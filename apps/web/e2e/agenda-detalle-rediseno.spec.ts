@@ -218,7 +218,7 @@ const inkDialogs = [
     slug: 'cancelar',
     button: 'Cancelar turno',
     maxWidth: 520,
-    texts: ['Vas a cancelar el turno de'],
+    texts: ['Turno que se cancelará', 'Valentina Pardo', 'no se puede deshacer'],
   },
 ] as const
 
