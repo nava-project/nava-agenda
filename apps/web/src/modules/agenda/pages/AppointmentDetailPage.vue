@@ -836,7 +836,10 @@ function occurredAtLabel(entry: HistoryEntry): string {
           style="--i: 2"
         >
           <div v-if="timeSpan" class="appointment-detail-page__span" aria-hidden="true">
-            <p class="appointment-detail-page__span-date">{{ timeSpan.date }}</p>
+            <p class="appointment-detail-page__span-date">
+              {{ timeSpan.date
+              }}<template v-if="barbershopTimezone"> · Zona {{ barbershopTimezone }}</template>
+            </p>
             <div class="appointment-detail-page__span-row">
               <span class="appointment-detail-page__span-time">{{ timeSpan.start }}</span>
               <span class="appointment-detail-page__span-track">
@@ -855,7 +858,7 @@ function occurredAtLabel(entry: HistoryEntry): string {
           </div>
 
           <dl class="appointment-detail-page__facts">
-            <div class="appointment-detail-page__fact">
+            <div class="appointment-detail-page__fact appointment-detail-page__fact--time">
               <dt>Hora</dt>
               <dd>
                 {{ timeRangeLabel }}
@@ -866,7 +869,7 @@ function occurredAtLabel(entry: HistoryEntry): string {
               <dt>Persona atendida</dt>
               <dd>{{ detail.attendeeName }}</dd>
             </div>
-            <div class="appointment-detail-page__fact">
+            <div class="appointment-detail-page__fact appointment-detail-page__fact--service">
               <dt>Servicio</dt>
               <dd>
                 {{ detail.serviceName }} · {{ detail.durationMinutes }} min ·
@@ -874,7 +877,7 @@ function occurredAtLabel(entry: HistoryEntry): string {
                 {{ detail.currency }}
               </dd>
             </div>
-            <div class="appointment-detail-page__fact">
+            <div class="appointment-detail-page__fact appointment-detail-page__fact--barber">
               <dt>{{ v.Professional }}</dt>
               <dd>{{ detail.barberFullName }}</dd>
             </div>
@@ -893,7 +896,10 @@ function occurredAtLabel(entry: HistoryEntry): string {
                 <span v-if="detail.customerEmail">{{ detail.customerEmail }}</span>
               </dd>
             </div>
-            <div v-if="detail.homeService" class="appointment-detail-page__fact">
+            <div
+              v-if="detail.homeService"
+              class="appointment-detail-page__fact appointment-detail-page__fact--wide"
+            >
               <dt>A domicilio</dt>
               <dd>
                 <span>{{ detail.homeService.address }}</span>
@@ -905,7 +911,10 @@ function occurredAtLabel(entry: HistoryEntry): string {
                 </template>
               </dd>
             </div>
-            <div v-if="detail.customerNote" class="appointment-detail-page__fact">
+            <div
+              v-if="detail.customerNote"
+              class="appointment-detail-page__fact appointment-detail-page__fact--wide"
+            >
               <dt>Nota del cliente</dt>
               <dd>{{ detail.customerNote }}</dd>
             </div>
@@ -1738,7 +1747,7 @@ function occurredAtLabel(entry: HistoryEntry): string {
 
 /* Franja de tiempo: inicio, regla con la duración y fin. Decorativa. */
 .appointment-detail-page__span {
-  padding: var(--space-8) var(--space-6) var(--space-5);
+  padding: var(--space-8) var(--space-6) var(--space-4);
   border-bottom: 1px solid var(--sx-line);
 }
 
@@ -1814,24 +1823,50 @@ function occurredAtLabel(entry: HistoryEntry): string {
   color: var(--sx-label);
 }
 
+/* Hechos en cuadrícula, con el rótulo sobre el valor: tres columnas en escritorio,
+   dos en tablet y una en móvil. «Hora» ya la dice la franja de arriba; su fila queda
+   solo para el lector de pantalla. */
 .appointment-detail-page__facts {
-  display: flex;
-  flex-direction: column;
-  padding: 0 var(--space-6);
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0 var(--space-6);
+  padding: var(--space-2) var(--space-6) var(--space-4);
   margin: 0;
 }
 
 .appointment-detail-page__fact {
-  display: grid;
-  grid-template-columns: minmax(130px, 0.5fr) minmax(0, 1.5fr);
-  gap: var(--space-1) var(--space-5);
-  align-items: baseline;
-  padding: var(--space-4) 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  order: 3;
+  min-width: 0;
+  padding: var(--space-3) 0;
   border-bottom: 1px solid var(--sx-line);
 }
 
-.appointment-detail-page__fact:last-child {
-  border-bottom: 0;
+.appointment-detail-page__fact--service {
+  grid-column: span 2;
+  order: 1;
+}
+
+.appointment-detail-page__fact--barber {
+  order: 2;
+}
+
+.appointment-detail-page__fact--wide {
+  grid-column: 1 / -1;
+  order: 4;
+}
+
+.appointment-detail-page__fact--time {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  overflow: hidden;
+  white-space: nowrap;
+  clip-path: inset(50%);
+  border: 0;
 }
 
 .appointment-detail-page__fact dt {
@@ -2171,12 +2206,12 @@ function occurredAtLabel(entry: HistoryEntry): string {
   }
 
   .appointment-detail-page__facts {
-    padding: 0 var(--space-4);
+    grid-template-columns: 1fr;
+    padding: var(--space-1) var(--space-4) var(--space-3);
   }
 
-  .appointment-detail-page__fact {
-    grid-template-columns: 1fr;
-    padding: var(--space-3) 0;
+  .appointment-detail-page__fact--service {
+    grid-column: auto;
   }
 
   .appointment-detail-page__history {
@@ -2224,6 +2259,10 @@ function occurredAtLabel(entry: HistoryEntry): string {
   .appointment-detail-page__body {
     grid-template-columns: minmax(0, 1.3fr) minmax(240px, 0.7fr);
     gap: var(--space-8);
+  }
+
+  .appointment-detail-page__facts {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
   .appointment-detail-page__dialog-grid {
