@@ -1195,12 +1195,59 @@ function occurredAtLabel(entry: HistoryEntry): string {
             Inténtalo de nuevo en unos segundos.
           </BaseAlert>
 
-          <p class="appointment-detail-page__cancel-copy">
-            Vas a cancelar el turno de <strong>{{ detail.attendeeName }}</strong> el
-            {{ timeRangeLabel }}{{ timeRangeLabel.endsWith('.') ? '' : '.' }} Si es una hora futura,
-            la franja queda disponible de inmediato para otro turno. Esta acción no se puede
-            deshacer desde aquí.
-          </p>
+          <div class="appointment-detail-page__cancel-ticket">
+            <p class="appointment-detail-page__cancel-eyebrow">Turno que se cancelará</p>
+            <p class="appointment-detail-page__cancel-name">{{ detail.attendeeName }}</p>
+            <p v-if="timeSpan" class="appointment-detail-page__cancel-when">
+              <span class="appointment-detail-page__cancel-date">{{ timeSpan.date }}</span>
+              <span class="appointment-detail-page__cancel-time">
+                <span class="appointment-detail-page__cancel-time-text">
+                  {{ timeSpan.start }} – {{ timeSpan.end }}
+                </span>
+              </span>
+            </p>
+            <p v-else class="appointment-detail-page__cancel-when">
+              <span class="appointment-detail-page__cancel-time">{{ timeRangeLabel }}</span>
+            </p>
+            <p class="appointment-detail-page__cancel-meta">
+              {{ detail.serviceName }} · {{ detail.barberFullName }} ·
+              {{ detail.durationMinutes }} min
+            </p>
+          </div>
+          <ul class="appointment-detail-page__cancel-effects">
+            <li>
+              <svg
+                class="appointment-detail-page__cancel-effect-icon"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="1.6"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                aria-hidden="true"
+              >
+                <rect x="4" y="11" width="16" height="9" rx="1" />
+                <path d="M8 11V8a4 4 0 0 1 7.5-2" />
+              </svg>
+              Si la hora es futura, la franja queda disponible de inmediato para otro turno.
+            </li>
+            <li>
+              <svg
+                class="appointment-detail-page__cancel-effect-icon"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="1.6"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                aria-hidden="true"
+              >
+                <path d="M12 4 3 20h18L12 4Z" />
+                <path d="M12 10v4M12 17v.5" />
+              </svg>
+              Esta acción no se puede deshacer desde aquí.
+            </li>
+          </ul>
 
           <div class="appointment-detail-page__dialog-actions">
             <BaseButton type="button" variant="secondary" @click="isCancelOpen = false">
@@ -2285,17 +2332,120 @@ function occurredAtLabel(entry: HistoryEntry): string {
   border-color: var(--color-brand-accent-surface);
 }
 
-/* Resumen del turno a cancelar: bloque rebajado con filete de peligro. */
-.appointment-detail-page__ink-form .appointment-detail-page__cancel-copy {
-  padding: var(--space-4);
-  color: var(--color-on-strong-soft);
+/* Resumen del turno a cancelar: una ficha con el horario tachado por una línea de peligro
+   y las dos consecuencias como filas cortas con icono (#483). */
+.appointment-detail-page__cancel-ticket {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  padding: var(--space-4) var(--space-5);
   background: color-mix(in srgb, var(--color-on-strong) 5%, transparent);
   border: 1px solid var(--color-field-strong-border);
   border-left: 3px solid var(--color-danger-on-strong);
 }
 
-.appointment-detail-page__ink-form .appointment-detail-page__cancel-copy strong {
+.appointment-detail-page__cancel-ticket p {
+  margin: 0;
+}
+
+.appointment-detail-page__cancel-eyebrow {
+  font-family: var(--font-sans);
+  font-size: var(--font-size-caption);
+  font-weight: 600;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--color-danger-on-strong);
+}
+
+.appointment-detail-page__cancel-name {
+  font-family: var(--font-display);
+  font-size: 28px;
+  line-height: 1.15;
   color: var(--color-on-strong);
+  overflow-wrap: anywhere;
+}
+
+.appointment-detail-page__cancel-when {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-1) var(--space-4);
+  align-items: baseline;
+  margin-top: var(--space-2);
+  padding-top: var(--space-3);
+  border-top: 1px dashed var(--color-field-strong-border);
+}
+
+.appointment-detail-page__cancel-date {
+  font-family: var(--font-sans);
+  font-size: var(--font-size-caption);
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--color-on-strong-soft);
+}
+
+.appointment-detail-page__cancel-time {
+  font-family: var(--font-display);
+  font-size: var(--font-size-title-item);
+  line-height: 1.2;
+  color: var(--color-on-strong-muted);
+}
+
+/* Línea de peligro que atraviesa el horario, como un turno tachado en la libreta. */
+.appointment-detail-page__cancel-time-text {
+  position: relative;
+  display: inline-block;
+}
+
+.appointment-detail-page__cancel-time-text::after {
+  content: '';
+  position: absolute;
+  inset: 52% -4px auto;
+  height: 2px;
+  background: var(--color-danger-on-strong);
+  transform-origin: left;
+  animation: nava-wipe 0.7s cubic-bezier(0.65, 0, 0.2, 1) 0.25s backwards;
+}
+
+.appointment-detail-page__cancel-meta {
+  font-family: var(--font-family-base);
+  font-size: var(--font-size-body-sm);
+  line-height: var(--font-size-body-sm-line);
+  color: var(--color-on-strong-soft);
+}
+
+.appointment-detail-page__cancel-effects {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.appointment-detail-page__cancel-effects li {
+  display: flex;
+  gap: var(--space-3);
+  align-items: flex-start;
+  font-family: var(--font-family-base);
+  font-size: var(--font-size-body-sm);
+  line-height: var(--font-size-body-sm-line);
+  color: var(--color-on-strong-soft);
+}
+
+.appointment-detail-page__cancel-effect-icon {
+  flex: 0 0 18px;
+  width: 18px;
+  height: 18px;
+  margin-top: 1px;
+  color: var(--color-brand-accent-surface);
+}
+
+.appointment-detail-page__cancel-effects
+  li:last-child
+  .appointment-detail-page__cancel-effect-icon {
+  color: var(--color-danger-on-strong);
 }
 
 /* Acción destructiva: contorno y texto de peligro, sin relleno, como «Desactivar» del catálogo. */
@@ -2471,12 +2621,14 @@ function occurredAtLabel(entry: HistoryEntry): string {
 
 @media (prefers-reduced-motion: reduce) {
   .appointment-detail-page__sheet::before,
+  .appointment-detail-page__cancel-time-text::after,
   .appointment-detail-page__span-line {
     animation: none;
   }
 }
 
 :global(:root[data-motion='reduced']) .appointment-detail-page__sheet::before,
+:global(:root[data-motion='reduced']) .appointment-detail-page__cancel-time-text::after,
 :global(:root[data-motion='reduced']) .appointment-detail-page__span-line {
   animation: none;
 }
