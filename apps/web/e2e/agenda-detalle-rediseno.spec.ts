@@ -6,7 +6,7 @@ import { fileURLToPath } from 'node:url'
  * Rediseño del detalle de turno sobre tinta (HU-064, DEC-146, issue #471). Respuestas simuladas del
  * API: un turno vigente (ficha de pergamino y acciones) y uno terminal (contorno sobre tinta, sin
  * relleno) en 320/360/768/1280 px y en los modos Tinta y Marfil (#473), sin scroll horizontal y con
- * axe-core (contraste incluido).
+ * axe-core (contraste incluido). A 1920 × 1080 el contenido queda centrado (#477).
  * Capturas en e2e/evidence/agenda-detalle/rediseno-471/.
  */
 const here = path.dirname(fileURLToPath(import.meta.url))
@@ -164,4 +164,43 @@ for (const [label, status] of [
       })
     }
   }
+}
+
+// #477: en una ventana ancha y alta el contenido no queda pegado arriba ni estirado a todo el ancho.
+for (const theme of themes) {
+  test(`el detalle queda centrado en una ventana de 1920 × 1080 en modo ${theme}`, async ({
+    page,
+  }) => {
+    await page.addInitScript((mode) => {
+      window.localStorage.setItem('nava.appearance.v1', JSON.stringify({ theme: mode }))
+    }, theme)
+    await page.setViewportSize({ width: 1920, height: 1080 })
+    await installApi(page, 'confirmed')
+    await page.goto('/panel/turnos/turno-demo?date=2026-11-02&barberId=barbero-demo')
+    await expect(page.getByRole('heading', { name: 'Valentina Pardo', level: 1 })).toBeVisible()
+    await expect(page.getByText('Turno reprogramado')).toBeVisible()
+
+    const gaps = await page.evaluate(() => {
+      const section = document.querySelector('.appointment-detail-page') as HTMLElement
+      const back = document.querySelector('.appointment-detail-page__back') as HTMLElement
+      const body = document.querySelector('.appointment-detail-page__body') as HTMLElement
+      const s = section.getBoundingClientRect()
+      return {
+        width: s.width,
+        left: s.left,
+        right: document.documentElement.clientWidth - s.right,
+        top: back.getBoundingClientRect().top - s.top,
+        bottom: s.bottom - body.getBoundingClientRect().bottom,
+      }
+    })
+    expect(gaps.width).toBeLessThanOrEqual(1280)
+    expect(Math.abs(gaps.left - gaps.right)).toBeLessThanOrEqual(1)
+    // Proporcionales: la diferencia es solo el relleno propio de la sección (26 px arriba, 30 abajo).
+    expect(Math.abs(gaps.top - gaps.bottom)).toBeLessThanOrEqual(24)
+
+    await expectAccessibleWithoutOverflow(page)
+    await page.screenshot({
+      path: path.join(evidenceDir, `detalle-vigente-${theme}-1920.png`),
+    })
+  })
 }

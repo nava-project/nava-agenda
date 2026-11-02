@@ -1487,7 +1487,22 @@ function occurredAtLabel(entry: HistoryEntry): string {
 
 @media (min-width: 1024px) {
   .appointment-detail-page {
+    width: 100%;
+    max-width: 1280px;
+    margin-inline: auto;
     padding: 26px 40px 30px;
+  }
+
+  /* Con la pantalla alta el contenido no se queda pegado arriba: el enlace de
+     regreso, la cabecera y la ficha forman un grupo que reparte el espacio
+     sobrante por igual arriba y abajo (#477). */
+  .appointment-detail-page:has(> .appointment-detail-page__body) > .appointment-detail-page__back {
+    margin-top: auto;
+  }
+
+  .appointment-detail-page > .appointment-detail-page__body {
+    margin-bottom: auto;
+    padding-bottom: var(--space-6);
   }
 }
 
