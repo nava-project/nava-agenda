@@ -1,9 +1,9 @@
 ---
 titulo: "Registro de decisiones"
-version: "1.59"
+version: "1.60"
 estado: "Vigente"
 responsable: "Propietario del proyecto"
-ultima_actualizacion: "2026-10-31"
+ultima_actualizacion: "2026-11-02"
 documentos_relacionados:
   - "contradicciones.md"
   - "matriz-trazabilidad.md"
@@ -138,6 +138,7 @@ Cada código `DEC-*` es estable y no se reutiliza. Este registro normaliza respu
 | `DEC-142` | 2026-10-31 | Primer tramo de B5: aviso por correo al cliente cuando el barbero cancela o reprograma, con cola propia, worker y evidencia por intento; WhatsApp y recordatorios quedan fuera | `DEC-004`, `DEC-027`, `DEC-032`, `DEC-102`; `RN-REC-01`–`RN-REC-06`, `RN-BLQ-03`; `HU-130`; issue #463 | Confirmada |
 | `DEC-143` | 2026-11-01 | Plantilla de marca compartida para los correos transaccionales: HTML y texto plano en la misma petición, sin cambiar asuntos, destinatarios ni reglas | `DEC-066`, `DEC-077`, `DEC-139`, `DEC-142`; `RN-DAT-02`; `HU-008`, `HU-097`, `HU-130`; issue #465 | Confirmada |
 | `DEC-144` | 2026-11-01 | Segundo tramo de B5: recordatorio por correo 30 minutos antes del turno, sobre la misma cola que los avisos de cambio; configuración, WhatsApp y varios recordatorios quedan fuera | `DEC-018`, `DEC-027`, `DEC-032`, `DEC-040`, `DEC-142`; `RN-REC-01`–`RN-REC-04`, `RN-REC-06`; `HU-131`; issue #467 | Confirmada |
+| `DEC-145` | 2026-11-02 | Rediseño visual de la entrada pública de reservas: nombre y botón a la izquierda, «ficha del local» con reloj de línea, contacto y plano a la derecha; sin datos ni funciones nuevas | `DEC-078`, `DEC-111`, `DEC-129`, `DEC-130`, `DEC-131`; `HU-090`; issue #469 | Confirmada |
 
 ## 3. Decisiones detalladas
 
@@ -1779,3 +1780,18 @@ Cada código `DEC-*` es estable y no se reutiliza. Este registro normaliza respu
 - **Alternativas descartadas:** una tabla propia de recordatorios (duplica lease, evidencia y funciones sin ganar nada); comparar con `updated_at` para invalidar (anularía el recordatorio por cambios que `RN-REC-01` excluye); borrar el recordatorio al cancelar (la aplicación no tiene `DELETE` sobre la cola y la verificación final ya es obligatoria); programar siempre aunque falten menos de 30 minutos (un turno tomado «para ya» recibiría un recordatorio inmediato sin sentido).
 - **Documentos afectados:** `historias-usuario.md` (`HU-131`), `matriz-trazabilidad.md`, `database/README.md`, `historial-cambios.md`, `apps/api/README.md`, migración `20261105120000_add_appointment_reminder_kind.sql`.
 - **Fuente:** `DEC-018`, `DEC-032`, `DEC-142`, `RN-REC-01`–`RN-REC-04`; issue [#467](https://github.com/bcaceres19/barberia/issues/467).
+
+### DEC-145 · Rediseño visual de la entrada pública de reservas
+
+- **Fecha:** 2026-11-02.
+- **Decisión:**
+  1. **Alcance.** Solo presentación de `/reservar/:slug` (`HU-090`), en identidad guiada (`DEC-078`, `DEC-111`): no hay mockup asignado y no se añade ningún dato, endpoint ni función. Lo que se muestra sale del perfil público que ya existe (nombre, zona horaria, contacto, ubicación y domicilio; `DEC-130`, `DEC-131`).
+  2. **Composición.** Desde 1000 px, dos columnas: nombre, regla, botón «Reservar un turno» y los cuatro pasos a la izquierda; la «ficha del local» a la derecha. Por debajo, una columna con el botón justo bajo el nombre y antes de la ficha, para que la acción principal no quede tras el mapa.
+  3. **Ficha del local.** Cinta métrica de latón en el borde superior (§6.10), reloj de línea decorativo con la hora de la zona de la barbería (nunca la del dispositivo; `aria-hidden`, la hora sigue dicha en texto), filas regladas de teléfono, correo y atención (en el local / a domicilio), y el mapa de `DEC-130` enmarcado como plano con marcas de registro y coordenadas. Una fila o sección sin dato no existe.
+  4. **Movimiento.** Solo `transform`, `opacity`, `clip-path` y `stroke-dashoffset`; `prefers-reduced-motion` deja todo compuesto. El mapa se asienta sobre la tinta con un filtro y recupera sus colores al señalarlo o enfocarlo.
+- **Quién lo decidió:** el propietario, el 2026-11-02, al pedir ajustar el diseño de la pantalla y «sorprender».
+- **Responsable:** propietario del proyecto.
+- **Motivo:** la entrada era una columna estrecha con el botón al final, tras el mapa, y la hora en una frase; el rediseño pone la acción a la vista y hace legible la hora local, con el mismo lenguaje del recorrido.
+- **Alternativas descartadas:** listar servicios en la entrada (exige otra petición y no es `HU-090`); un monograma o logotipo por barbería (`estandar-diseno-visual.md` §3.2); un reloj con segundero continuo (movimiento permanente sin valor para quien reserva).
+- **Documentos afectados:** `estandar-diseno-visual.md` (§6.10), `historial-cambios.md`, `apps/web/src/modules/public-booking/` y su evidencia `apps/web/e2e/evidence/entrada-publica-rediseno/`.
+- **Fuente:** `DEC-078`, `DEC-111`, `HU-090`; issue [#469](https://github.com/bcaceres19/barberia/issues/469).

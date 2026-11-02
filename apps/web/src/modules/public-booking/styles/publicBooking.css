@@ -1216,17 +1216,36 @@
   color: var(--pb-text);
 }
 
-/* ── Entrada: nombre de la barbería, hora y contacto ────────────────────── */
+/* ── Entrada: nombre, acción y ficha del local ─────────────────────────────
+   Dos columnas desde 1000 px: a la izquierda el nombre y el botón; a la
+   derecha la «ficha del local» (hora, contacto, plano), con la cinta métrica
+   de latón en el borde superior como las hojas de papel del recorrido. Por
+   debajo, una sola columna con el botón justo bajo el nombre. */
 
 .pb-hero {
+  max-width: 1120px;
   justify-content: center;
   padding-top: var(--space-6);
+}
+
+.pb-hero__grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: var(--space-10);
+  align-items: center;
+}
+
+.pb-hero__copy {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  min-width: 0;
 }
 
 .pb-hero__name {
   margin: var(--space-4) 0 0;
   font-family: var(--font-display);
-  font-size: clamp(52px, 15vw, 104px);
+  font-size: clamp(52px, 15vw, 96px);
   font-weight: 400;
   line-height: 0.98;
   letter-spacing: -0.02em;
@@ -1235,35 +1254,203 @@
   animation: pb-wipe 1.2s cubic-bezier(0.65, 0, 0.2, 1) 0.15s backwards;
 }
 
-.pb-clock {
-  display: inline-flex;
-  gap: var(--space-3);
-  align-items: center;
-  align-self: flex-start;
-  margin: var(--space-6) 0 0;
-  font-size: var(--font-size-body);
-  line-height: var(--font-size-body-line);
-  color: var(--pb-soft);
-  animation: pb-rise 0.7s var(--pb-ease) 0.5s backwards;
+.pb-hero .pb-rule {
+  align-self: stretch;
 }
 
-.pb-clock::before {
+.pb-hero .pb-cta--wide {
+  margin-top: var(--space-8);
+  animation: pb-rise 0.7s var(--pb-ease) 0.6s backwards;
+}
+
+/* Los cuatro pasos: rombos de latón unidos por una regla, como el progreso. */
+.pb-steps {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2) var(--space-6);
+  padding: 0;
+  margin: var(--space-8) 0 0;
+  font-family: var(--font-sans);
+  font-size: 11px;
+  font-weight: 600;
+  line-height: 16px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  list-style: none;
+  color: var(--pb-soft);
+  counter-reset: pb-step;
+  animation: pb-rise 0.7s var(--pb-ease) 0.75s backwards;
+}
+
+.pb-steps li {
+  display: flex;
+  gap: var(--space-2);
+  align-items: center;
+  counter-increment: pb-step;
+}
+
+.pb-steps li::before {
+  content: counter(pb-step, decimal-leading-zero);
+  font-variant-numeric: lining-nums tabular-nums;
+  color: var(--pb-brass);
+}
+
+@media (min-width: 1000px) {
+  .pb-hero__grid {
+    grid-template-columns: minmax(0, 1.12fr) minmax(0, 0.88fr);
+    gap: var(--space-16);
+  }
+
+  .pb-hero__name {
+    font-size: clamp(64px, 6.8vw, 96px);
+  }
+}
+
+/* Ficha del local */
+.pb-plate {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-6);
+  min-width: 0;
+  padding: var(--space-8) var(--space-5) var(--space-6);
+  background-image: linear-gradient(to bottom, var(--pb-wash), transparent 70%);
+  border: 1px solid var(--pb-line);
+  border-top: 0;
+  border-radius: 0 0 2px 2px;
+  animation: pb-sheet-in 0.9s var(--pb-ease) 0.45s backwards;
+}
+
+/* Cinta métrica: filete de latón con marcas que cuelgan cada 10 px y una más
+   larga cada 50, como la del borde de la hoja de datos. */
+.pb-plate::before {
+  content: '';
+  position: absolute;
+  inset: 0 0 auto;
+  height: 12px;
+  pointer-events: none;
+  background:
+    linear-gradient(var(--pb-brass), var(--pb-brass)) top / 100% 1px no-repeat,
+    repeating-linear-gradient(90deg, var(--pb-brass) 0 1px, transparent 1px 10px) top / 100% 5px
+      no-repeat,
+    repeating-linear-gradient(90deg, var(--pb-brass) 0 1px, transparent 1px 50px) top / 100% 11px
+      no-repeat;
+  transform-origin: left;
+  animation: pb-rule-grow 1.1s cubic-bezier(0.65, 0, 0.2, 1) 0.55s backwards;
+}
+
+/* Reloj y hora local */
+.pb-clock {
+  display: flex;
+  gap: var(--space-5);
+  align-items: center;
+  margin: 0;
+}
+
+.pb-dial {
+  flex: none;
+  width: 104px;
+  height: 104px;
+  overflow: visible;
+}
+
+.pb-dial__ring {
+  fill: color-mix(in srgb, var(--pb-brass) 6%, transparent);
+  stroke: var(--pb-brass);
+  stroke-dasharray: 1;
+  stroke-dashoffset: 0;
+  stroke-width: 1;
+  transform: rotate(-90deg);
+  animation: pb-draw 1.5s cubic-bezier(0.65, 0, 0.2, 1) 0.6s backwards;
+}
+
+.pb-dial__tick {
+  stroke: var(--pb-soft);
+  stroke-width: 0.6;
+  opacity: 0.55;
+}
+
+.pb-dial__tick--hour {
+  stroke: var(--pb-brass);
+  stroke-width: 1.2;
+  opacity: 1;
+}
+
+.pb-dial__lozenge,
+.pb-dial__hub {
+  fill: var(--pb-brass);
+}
+
+.pb-dial__hand {
+  stroke: var(--pb-text);
+  transition: transform 1.8s var(--pb-ease);
+}
+
+.pb-dial__hand--hour {
+  stroke-width: 3;
+}
+
+.pb-dial__hand--minute {
+  stroke-width: 1.8;
+}
+
+.pb-clock__text {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  min-width: 0;
+}
+
+.pb-clock__label {
+  display: flex;
+  gap: var(--space-2);
+  align-items: center;
+  margin: 0;
+  font-family: var(--font-sans);
+  font-size: 11px;
+  font-weight: 600;
+  line-height: 16px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--pb-brass);
+}
+
+.pb-clock__label::before {
   content: '';
   flex: none;
-  width: 8px;
-  height: 8px;
+  width: 7px;
+  height: 7px;
   background-color: var(--pb-brass);
   transform: rotate(45deg);
   animation: pb-pulse-dot 2.4s ease-in-out infinite;
 }
 
+.pb-clock__time {
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: 44px;
+  line-height: 1;
+  white-space: nowrap;
+  font-variant-numeric: lining-nums tabular-nums;
+  color: var(--pb-text);
+}
+
+.pb-clock__date {
+  margin: 0;
+  font-size: var(--font-size-body-sm);
+  line-height: var(--font-size-body-sm-line);
+  color: var(--pb-soft);
+}
+
+.pb-clock__date::first-letter {
+  text-transform: uppercase;
+}
+
 .pb-contact {
   display: flex;
   flex-direction: column;
-  max-width: 440px;
-  margin: var(--space-8) 0 0;
+  margin: 0;
   border-top: 1px solid var(--pb-line);
-  animation: pb-rise 0.7s var(--pb-ease) 0.65s backwards;
 }
 
 .pb-contact__row {
@@ -1294,12 +1481,10 @@
 }
 
 /* Ubicación del local (DEC-130, HU-102): el mapa hereda el color del texto y su
-   marco, así que solo hace falta el título y el ritmo vertical de la entrada. */
+   marco; aquí se le da el rótulo y el «plano» de patronaje. */
 .pb-location {
-  max-width: 560px;
-  margin: var(--space-8) 0 0;
+  margin: 0;
   color: var(--pb-text);
-  animation: pb-rise 0.7s var(--pb-ease) 0.72s backwards;
 }
 
 .pb-location__title {
@@ -1312,9 +1497,74 @@
   color: var(--pb-brass);
 }
 
-.pb-hero .pb-cta--wide {
-  margin-top: var(--space-8);
-  animation: pb-rise 0.7s var(--pb-ease) 0.8s backwards;
+/* Plano: cuatro marcas de registro de latón en las esquinas, como las de una
+   hoja de patronaje, y las coordenadas en cifras tabulares al pie. */
+.pb-plano {
+  position: relative;
+  padding: var(--space-3);
+}
+
+.pb-plano::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background:
+    linear-gradient(var(--pb-brass), var(--pb-brass)) 0 0 / 16px 1px no-repeat,
+    linear-gradient(var(--pb-brass), var(--pb-brass)) 0 0 / 1px 16px no-repeat,
+    linear-gradient(var(--pb-brass), var(--pb-brass)) 100% 0 / 16px 1px no-repeat,
+    linear-gradient(var(--pb-brass), var(--pb-brass)) 100% 0 / 1px 16px no-repeat,
+    linear-gradient(var(--pb-brass), var(--pb-brass)) 0 100% / 16px 1px no-repeat,
+    linear-gradient(var(--pb-brass), var(--pb-brass)) 0 100% / 1px 16px no-repeat,
+    linear-gradient(var(--pb-brass), var(--pb-brass)) 100% 100% / 16px 1px no-repeat,
+    linear-gradient(var(--pb-brass), var(--pb-brass)) 100% 100% / 1px 16px no-repeat;
+}
+
+/* El mapa de Google se asienta sobre la tinta: menos brillo y saturación, con un
+   tinte cálido. Al señalarlo recupera sus colores para leer calles y puntos. */
+.pb-plano .location-map .location-map__frame {
+  height: clamp(200px, 30vh, 280px);
+  filter: invert(0.9) hue-rotate(180deg) saturate(0.55) brightness(0.95) contrast(0.92);
+  transition: filter var(--motion-duration-base) var(--motion-easing-standard);
+  animation: pb-map-in 1s cubic-bezier(0.65, 0, 0.2, 1) 0.9s backwards;
+}
+
+.pb-plano:hover .location-map__frame,
+.pb-plano:focus-within .location-map__frame {
+  filter: none;
+}
+
+.pb-plano__coords {
+  margin: var(--space-2) 0 0;
+  font-family: var(--font-sans);
+  font-size: 11px;
+  font-weight: 600;
+  line-height: 16px;
+  letter-spacing: 0.12em;
+  text-align: right;
+  text-transform: uppercase;
+  font-variant-numeric: lining-nums tabular-nums;
+  color: var(--pb-soft);
+}
+
+@media (max-width: 479px) {
+  .pb-plate {
+    padding-right: var(--space-4);
+    padding-left: var(--space-4);
+  }
+
+  .pb-clock {
+    gap: var(--space-4);
+  }
+
+  .pb-dial {
+    width: 84px;
+    height: 84px;
+  }
+
+  .pb-clock__time {
+    font-size: 36px;
+  }
 }
 
 /* ── Hoja de papel: formulario, resumen y confirmación ──────────────────── */
@@ -1495,6 +1745,20 @@
   }
 }
 
+/* Trazo del aro del reloj: parte desde las 12 y se cierra. */
+@keyframes pb-draw {
+  from {
+    stroke-dashoffset: 1;
+  }
+}
+
+/* El mapa se descubre de arriba abajo, como se desenrolla un plano. */
+@keyframes pb-map-in {
+  from {
+    clip-path: inset(0 0 100% 0);
+  }
+}
+
 @keyframes pb-pulse-dot {
   50% {
     box-shadow: 0 0 0 5px color-mix(in srgb, var(--pb-brass) 0%, transparent);
@@ -1520,11 +1784,13 @@
   .pb-empty,
   .pb-ficha,
   .pb-hero__name,
-  .pb-clock,
-  .pb-clock::before,
-  .pb-contact,
-  .pb-location,
+  .pb-plate,
+  .pb-plate::before,
+  .pb-dial__ring,
+  .pb-clock__label::before,
+  .pb-plano .location-map__frame,
   .pb-hero .pb-cta--wide,
+  .pb-steps,
   .pb-sheet {
     animation: none;
   }
@@ -1544,6 +1810,8 @@
   .pb-cta::after,
   .pb-cta__arrow,
   .pb-back__arrow,
+  .pb-dial__hand,
+  .pb-plano .location-map__frame,
   .pb-day,
   .pb-slot {
     transition: none;

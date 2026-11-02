@@ -362,6 +362,74 @@ describe('PublicBarbershopEntryPage', () => {
     expect(wrapper.text()).toContain('Reservar un turno')
   })
 
+  it('draws the clock dial with the barbershop hour, and keeps it out of the accessibility tree', async () => {
+    vi.useFakeTimers()
+    try {
+      vi.setSystemTime(new Date('2026-09-15T19:30:00Z'))
+      getMock.mockResolvedValueOnce({
+        data: { ...profile, name: 'Barbería Ejemplo' },
+        error: undefined,
+        response: okResponse(),
+      })
+      const wrapper = mountEntryPage({ slug: 'barberia-reloj' })
+      await flushPromises()
+
+      const dial = wrapper.get('svg.pb-dial')
+      expect(dial.attributes('aria-hidden')).toBe('true')
+      // 14:30 en Bogotá: el texto de la hora sigue siendo la señal para quien no ve el reloj.
+      expect(wrapper.get('.pb-clock__time').text()).toMatch(/2:30\s*p\.\s*m\./)
+      expect(wrapper.get('.pb-clock__label').text()).toBe('Hora local de la barbería')
+    } finally {
+      vi.useRealTimers()
+    }
+  })
+
+  it('puts the primary action before the data sheet, so it never waits behind the map', async () => {
+    getMock.mockResolvedValueOnce({
+      data: {
+        ...profile,
+        location: { address: 'Calle 10 # 5-20, Bogotá', latitude: 4.598056, longitude: -74.076111 },
+      },
+      error: undefined,
+      response: okResponse(),
+    })
+    const wrapper = mountEntryPage({ slug: 'barberia-orden' })
+    await flushPromises()
+
+    const cta = wrapper.get('.pb-cta')
+    const plate = wrapper.get('.pb-plate')
+    expect(cta.element.compareDocumentPosition(plate.element)).toBe(
+      Node.DOCUMENT_POSITION_FOLLOWING,
+    )
+    expect(wrapper.get('.pb-steps').text()).toContain('Barbero')
+  })
+
+  it('frames the map as a plan with its coordinates, and the modes of attention only from the profile', async () => {
+    getMock.mockResolvedValueOnce({
+      data: {
+        ...profile,
+        offersHomeService: true,
+        location: { address: 'Calle 10 # 5-20, Bogotá', latitude: 4.598056, longitude: -74.076111 },
+      },
+      error: undefined,
+      response: okResponse(),
+    })
+    const wrapper = mountEntryPage({ slug: 'barberia-plano' })
+    await flushPromises()
+
+    expect(wrapper.get('.pb-plano__coords').text()).toBe('4.5981° N · 74.0761° O')
+    expect(wrapper.get('.pb-contact').text()).toContain('En el local · A domicilio')
+  })
+
+  it('omits the attention row when the profile declares neither a place nor home service', async () => {
+    getMock.mockResolvedValueOnce({ data: profile, error: undefined, response: okResponse() })
+    const wrapper = mountEntryPage({ slug: 'barberia-sin-modalidad' })
+    await flushPromises()
+
+    expect(wrapper.find('.pb-contact').exists()).toBe(false)
+    expect(wrapper.text()).not.toContain('Atención')
+  })
+
   it('has no accessibility violations on success with a location', async () => {
     getMock.mockResolvedValueOnce({
       data: {
