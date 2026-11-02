@@ -141,8 +141,10 @@ for (const [label, status] of [
 
         await expect(page.getByRole('heading', { name: 'Valentina Pardo', level: 1 })).toBeVisible()
         await expect(page.getByText('Turno reprogramado')).toBeVisible()
-        // La franja de tiempo es decorativa; la hora completa sigue dicha en su fila.
-        await expect(page.getByText('· Zona America/Bogota')).toBeVisible()
+        // La franja es decorativa; la hora completa sigue dicha en la fila «Hora» (solo lector de pantalla).
+        await expect(page.locator('.appointment-detail-page__span-date')).toContainText(
+          'Zona America/Bogota',
+        )
         await expect(page.getByRole('button', { name: 'Corregir resultado' })).toHaveCount(
           status === 'confirmed' ? 0 : 1,
         )
