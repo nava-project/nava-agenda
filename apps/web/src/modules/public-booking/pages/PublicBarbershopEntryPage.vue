@@ -8,9 +8,11 @@
 import { computed, onBeforeUnmount, onMounted, ref } from 'vue'
 import { isMapAvailable } from '@/shared/model/mapEmbed'
 import { LocationMap } from '@/shared/ui'
-import { formatInstantInTimezone } from '@/shared/time/formatInstant'
+import { formatFullDateInTimezone, formatTimeInTimezone } from '@/shared/time/formatInstant'
 import BookingStateScreen from '../components/BookingStateScreen.vue'
 import GoogleReviews from '../components/GoogleReviews.vue'
+import LocalTimeDial from '../components/LocalTimeDial.vue'
+import { formatCoordinates } from '../model/clockDial'
 import { loadPublicProfile } from '../model/publicProfile'
 import type { PublicBarbershopProfile } from '../model/barbershopProfileOutcome'
 import { usePublicVocabulary } from '../model/publicVocabulary'
@@ -74,7 +76,19 @@ const retry = () => {
 // (mismo criterio que formatFullDateInTimezone, HU-062).
 const currentTimeLabel = computed(() => {
   if (screenState.value.status !== 'success') return ''
-  return formatInstantInTimezone(now.value.toISOString(), screenState.value.profile.timezone)
+  return formatTimeInTimezone(now.value.toISOString(), screenState.value.profile.timezone)
+})
+const currentDateLabel = computed(() => {
+  if (screenState.value.status !== 'success') return ''
+  return formatFullDateInTimezone(screenState.value.profile.timezone, now.value)
+})
+
+// Modalidades de atención: solo lo que el perfil ya declara (DEC-130, DEC-131).
+const attentionLabel = computed(() => {
+  if (screenState.value.status !== 'success') return ''
+  const { location, offersHomeService } = screenState.value.profile
+  const modes = [location ? 'En el local' : null, offersHomeService ? 'A domicilio' : null]
+  return modes.filter(Boolean).join(' · ')
 })
 
 const failedRequestId = computed(() =>
@@ -93,49 +107,88 @@ const failedRequestId = computed(() =>
   />
 
   <main v-else class="pb-page pb-hero">
-    <p class="pb-eyebrow">Reserva en línea</p>
-    <h1 class="pb-hero__name">{{ screenState.profile.name }}</h1>
-    <div class="pb-rule" aria-hidden="true"></div>
+    <div class="pb-hero__grid">
+      <div class="pb-hero__copy">
+        <p class="pb-eyebrow">Reserva en línea</p>
+        <h1 class="pb-hero__name">{{ screenState.profile.name }}</h1>
+        <div class="pb-rule" aria-hidden="true"></div>
 
-    <p class="pb-clock">Hora local {{ v.ofTheBusiness }}: {{ currentTimeLabel }}</p>
+        <!-- La acción principal va justo bajo el nombre: en móvil no queda tras el mapa. -->
+        <RouterLink
+          :to="{ name: 'reserva-publica-servicios', params: { slug: props.slug } }"
+          class="pb-cta pb-cta--wide"
+        >
+          <span>Reservar un turno</span>
+          <span class="pb-cta__arrow" aria-hidden="true">→</span>
+        </RouterLink>
 
-    <dl
-      v-if="screenState.profile.contactEmail || screenState.profile.contactPhone"
-      class="pb-contact"
-    >
-      <div v-if="screenState.profile.contactPhone" class="pb-contact__row">
-        <dt>Teléfono</dt>
-        <dd>{{ screenState.profile.contactPhone }}</dd>
+        <!-- Los cuatro pasos del recorrido (los mismos del progreso), para saber qué sigue. -->
+        <ol class="pb-steps" aria-label="Pasos de la reserva">
+          <li>Servicio</li>
+          <li>{{ v.Professional }}</li>
+          <li>Horario</li>
+          <li>Tus datos</li>
+        </ol>
       </div>
-      <div v-if="screenState.profile.contactEmail" class="pb-contact__row">
-        <dt>Correo</dt>
-        <dd>{{ screenState.profile.contactEmail }}</dd>
-      </div>
-    </dl>
 
-    <!-- DEC-130: solo con interruptor activo y coordenadas reales; si no, nada, sin error. -->
-    <section
-      v-if="screenState.profile.location && isMapAvailable()"
-      class="pb-location"
-      aria-labelledby="pb-location-title"
-    >
-      <h2 id="pb-location-title" class="pb-location__title">Dónde estamos</h2>
-      <LocationMap
-        :latitude="screenState.profile.location.latitude"
-        :longitude="screenState.profile.location.longitude"
-        :address="screenState.profile.location.address"
-      />
-    </section>
+      <!-- Ficha del local: hora, contacto, modalidad y plano. Solo lo que el perfil trae. -->
+      <aside class="pb-plate" aria-label="Datos del local">
+        <div class="pb-clock">
+          <LocalTimeDial :at="now" :time-zone="screenState.profile.timezone" />
+          <div class="pb-clock__text">
+            <p class="pb-clock__label">Hora local {{ v.ofTheBusiness }}</p>
+            <p class="pb-clock__time">{{ currentTimeLabel }}</p>
+            <p class="pb-clock__date">{{ currentDateLabel }}</p>
+          </div>
+        </div>
 
-    <!-- DEC-129: solo con ficha de Google y datos; si no, nada, sin error. -->
-    <GoogleReviews :slug="props.slug" />
+        <dl
+          v-if="
+            screenState.profile.contactEmail || screenState.profile.contactPhone || attentionLabel
+          "
+          class="pb-contact"
+        >
+          <div v-if="screenState.profile.contactPhone" class="pb-contact__row">
+            <dt>Teléfono</dt>
+            <dd>{{ screenState.profile.contactPhone }}</dd>
+          </div>
+          <div v-if="screenState.profile.contactEmail" class="pb-contact__row">
+            <dt>Correo</dt>
+            <dd>{{ screenState.profile.contactEmail }}</dd>
+          </div>
+          <div v-if="attentionLabel" class="pb-contact__row">
+            <dt>Atención</dt>
+            <dd>{{ attentionLabel }}</dd>
+          </div>
+        </dl>
 
-    <RouterLink
-      :to="{ name: 'reserva-publica-servicios', params: { slug: props.slug } }"
-      class="pb-cta pb-cta--wide"
-    >
-      <span>Reservar un turno</span>
-      <span class="pb-cta__arrow" aria-hidden="true">→</span>
-    </RouterLink>
+        <!-- DEC-130: solo con interruptor activo y coordenadas reales; si no, nada, sin error. -->
+        <section
+          v-if="screenState.profile.location && isMapAvailable()"
+          class="pb-location"
+          aria-labelledby="pb-location-title"
+        >
+          <h2 id="pb-location-title" class="pb-location__title">Dónde estamos</h2>
+          <div class="pb-plano">
+            <LocationMap
+              :latitude="screenState.profile.location.latitude"
+              :longitude="screenState.profile.location.longitude"
+              :address="screenState.profile.location.address"
+            />
+            <p class="pb-plano__coords" aria-hidden="true">
+              {{
+                formatCoordinates(
+                  screenState.profile.location.latitude,
+                  screenState.profile.location.longitude,
+                )
+              }}
+            </p>
+          </div>
+        </section>
+
+        <!-- DEC-129: solo con ficha de Google y datos; si no, nada, sin error. -->
+        <GoogleReviews :slug="props.slug" />
+      </aside>
+    </div>
   </main>
 </template>

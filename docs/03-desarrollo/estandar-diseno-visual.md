@@ -1,9 +1,9 @@
 ---
 titulo: "Estándar visual NAVA para rediseños y pantallas nuevas"
-version: "5.7"
+version: "5.8"
 estado: "Normativo para rediseños y pantallas nuevas"
 responsable: "Propietario del proyecto"
-ultima_actualizacion: "2026-10-04"
+ultima_actualizacion: "2026-11-02"
 documentos_relacionados:
   - "../00-control/registro-decisiones.md"
   - "../01-producto/alcance-mvp.md"
@@ -272,6 +272,7 @@ Ningún texto visible baja de 12 px; el monograma decorativo de un retrato peque
 - **Opciones:** filas de divisor fino (servicio, barbero) y fichas de contorno (franjas, días). Seleccionada: rombo relleno con el check dibujado, filete lateral de latón y un destello único; nunca solo color (WCAG 1.4.1). Una barra de acción fija al pie reúne la selección y «Continuar» (latón lleno con filete inferior acentuado).
 - **Movimiento:** entradas escalonadas, trazos que se dibujan, marcas que se rellenan y una transición de paso (adelante desde la derecha, atrás desde la izquierda; la salida solo desvanece para no mover elementos `sticky`). Es CSS sobre `transform`, `opacity` y `stroke-dashoffset`; el único JavaScript de movimiento es el foco de latón que sigue al cursor, que se traslada con `transform` por fotograma y solo con puntero fino. `prefers-reduced-motion` deja cada elemento en su estado final y apaga el foco.
 - **Color sobre tinta:** el latón (`--color-brand-accent-surface`) es texto, filete y relleno; los estados de página usan los tintes levantados `--color-*-on-strong`, no el rojo/ámbar de las superficies claras. La evidencia de axe-core se corre con `color-contrast` activo y movimiento reducido.
+- **Entrada** (`DEC-145`, issue #469): dos columnas desde 1000 px —nombre, regla, «Reservar un turno» y los cuatro pasos a la izquierda; «ficha del local» a la derecha— y una columna debajo, con el botón antes de la ficha. La ficha lleva la cinta métrica de latón en el borde superior, un reloj de línea decorativo con la hora de la zona de la barbería (`LocalTimeDial`, `aria-hidden`: la hora se dice también en texto), filas regladas de contacto y atención, y el mapa como plano (marcas de registro de latón y coordenadas en cifras tabulares). Sin dato, la fila o sección no existe.
 
 ### 6.11 Movimiento compartido del panel
 
