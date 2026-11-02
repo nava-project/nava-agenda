@@ -204,3 +204,49 @@ for (const theme of themes) {
     })
   })
 }
+
+// #479: la tarjeta de reprogramar es una tarjeta centrada sobre tinta que sigue el modo activo.
+for (const theme of themes) {
+  for (const viewport of [...viewports, { name: '1920', width: 1920, height: 1080 }]) {
+    test(`la tarjeta de reprogramar en modo ${theme} a ${viewport.name} px`, async ({ page }) => {
+      await page.addInitScript((mode) => {
+        window.localStorage.setItem('nava.appearance.v1', JSON.stringify({ theme: mode }))
+      }, theme)
+      await page.setViewportSize({ width: viewport.width, height: viewport.height })
+      await installApi(page, 'confirmed')
+      await page.goto('/panel/turnos/turno-demo?date=2026-11-02&barberId=barbero-demo')
+      await page.getByRole('button', { name: 'Reprogramar turno' }).click()
+
+      const dialog = page.getByRole('dialog', { name: 'Reprogramar turno' })
+      await expect(dialog).toBeVisible()
+      await expect(dialog.getByText('Horario actual')).toBeVisible()
+      await expect(dialog.getByText('Vista previa')).toBeVisible()
+      await expect(dialog.getByLabel('Nueva fecha')).toBeVisible()
+      await expect(dialog.getByRole('button', { name: 'Confirmar' })).toBeVisible()
+
+      // Centrada en horizontal y dentro de la ventana, sin quedar pegada al borde inferior.
+      const box = await dialog.boundingBox()
+      expect(box).not.toBeNull()
+      const b = box!
+      expect(b.width).toBeLessThanOrEqual(620)
+      expect(Math.abs(b.x + b.width / 2 - viewport.width / 2)).toBeLessThanOrEqual(1)
+      expect(b.y).toBeGreaterThanOrEqual(0)
+      expect(b.y + b.height).toBeLessThanOrEqual(viewport.height - 8)
+      // La superficie es la del modo, no un bloque claro fijo.
+      const luminance = await dialog.evaluate((el) => {
+        const [r, g, bl] = getComputedStyle(el)
+          .backgroundColor.match(/\d+(\.\d+)?/g)!
+          .slice(0, 3)
+          .map(Number)
+        return (0.2126 * r + 0.7152 * g + 0.0722 * bl) / 255
+      })
+      if (theme === 'ink') expect(luminance).toBeLessThan(0.2)
+      else expect(luminance).toBeGreaterThan(0.8)
+
+      await expectAccessibleWithoutOverflow(page)
+      await page.screenshot({
+        path: path.join(evidenceDir, `reprogramar-${theme}-${viewport.name}.png`),
+      })
+    })
+  }
+}
