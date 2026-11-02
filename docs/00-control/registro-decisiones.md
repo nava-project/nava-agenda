@@ -1,6 +1,6 @@
 ---
 titulo: "Registro de decisiones"
-version: "1.60"
+version: "1.61"
 estado: "Vigente"
 responsable: "Propietario del proyecto"
 ultima_actualizacion: "2026-11-02"
@@ -139,6 +139,7 @@ Cada código `DEC-*` es estable y no se reutiliza. Este registro normaliza respu
 | `DEC-143` | 2026-11-01 | Plantilla de marca compartida para los correos transaccionales: HTML y texto plano en la misma petición, sin cambiar asuntos, destinatarios ni reglas | `DEC-066`, `DEC-077`, `DEC-139`, `DEC-142`; `RN-DAT-02`; `HU-008`, `HU-097`, `HU-130`; issue #465 | Confirmada |
 | `DEC-144` | 2026-11-01 | Segundo tramo de B5: recordatorio por correo 30 minutos antes del turno, sobre la misma cola que los avisos de cambio; configuración, WhatsApp y varios recordatorios quedan fuera | `DEC-018`, `DEC-027`, `DEC-032`, `DEC-040`, `DEC-142`; `RN-REC-01`–`RN-REC-04`, `RN-REC-06`; `HU-131`; issue #467 | Confirmada |
 | `DEC-145` | 2026-11-02 | Rediseño visual de la entrada pública de reservas: nombre y botón a la izquierda, «ficha del local» con reloj de línea, contacto y plano a la derecha; sin datos ni funciones nuevas | `DEC-078`, `DEC-111`, `DEC-129`, `DEC-130`, `DEC-131`; `HU-090`; issue #469 | Confirmada |
+| `DEC-146` | 2026-11-02 | Rediseño del detalle de turno del panel sobre tinta: la ficha de la lámina #191 deja de ser referencia exacta y pasa a identidad guiada; sin datos, comandos ni diálogos nuevos | `DEC-078`, `DEC-109`, `DEC-112`, `DEC-113`; `HU-064`; issues #191, #471 | Confirmada |
 
 ## 3. Decisiones detalladas
 
@@ -1795,3 +1796,19 @@ Cada código `DEC-*` es estable y no se reutiliza. Este registro normaliza respu
 - **Alternativas descartadas:** listar servicios en la entrada (exige otra petición y no es `HU-090`); un monograma o logotipo por barbería (`estandar-diseno-visual.md` §3.2); un reloj con segundero continuo (movimiento permanente sin valor para quien reserva).
 - **Documentos afectados:** `estandar-diseno-visual.md` (§6.10), `historial-cambios.md`, `apps/web/src/modules/public-booking/` y su evidencia `apps/web/e2e/evidence/entrada-publica-rediseno/`.
 - **Fuente:** `DEC-078`, `DEC-111`, `HU-090`; issue [#469](https://github.com/bcaceres19/barberia/issues/469).
+
+### DEC-146 · Rediseño del detalle de turno del panel sobre tinta
+
+- **Fecha:** 2026-11-02.
+- **Decisión:**
+  1. **La lámina #191 deja de ser referencia exacta.** El detalle de turno (`/panel/turnos/:appointmentId`, `HU-064`) era la única pantalla del panel sobre lienzo marfil con la composición de esa lámina. Igual que `DEC-109` con Horarios, pasa a identidad guiada dentro de NAVA / Tailored Grid: la lámina queda como antecedente y su evidencia en `apps/web/e2e/evidence/agenda-detalle/fidelidad-191/` no se regenera.
+  2. **Alcance.** Solo presentación. Mismos hechos, mismo historial, mismas acciones (reprogramar, cancelar, marcar atendido o no asistió, corregir resultado), mismos diálogos y reglas de estado (`HU-065`–`HU-068`). Sin endpoints ni datos nuevos.
+  3. **Composición.** Lienzo de tinta del cascarón (`DEC-113`); cabecera con rótulo, nombre serif (escala de `DEC-112`) y palabra de estado con el color de estado de la agenda. La ficha lleva cinta métrica de latón, una franja de tiempo decorativa (inicio, regla con la duración, fin; `aria-hidden`, la hora completa sigue en la fila «Hora») y los hechos como filas regladas con rótulo en versalitas de latón.
+  4. **Material por estado (§6.7).** Un turno vigente usa ficha de pergamino; uno terminal (completado, no se presentó, cancelado) cambia a contorno sobre tinta con velo del color del estado, para no pesar más que uno vigente.
+  5. **Historial.** Línea de tiempo con marcas cuadradas de filete de latón (la más reciente llena) y un rombo hueco cuando no hay eventos.
+- **Quién lo decidió:** el propietario, el 2026-11-02, al pedir ajustar el diseño de la pantalla del detalle de turno «en base a todo lo que hemos trabajado en Nava».
+- **Responsable:** propietario del proyecto.
+- **Motivo:** la pantalla había quedado atrás del resto del panel (marfil frente a tinta, iconos sueltos, hechos sin jerarquía) y su única referencia era una lámina anterior al lenguaje actual.
+- **Alternativas descartadas:** mostrar el historial de otros turnos del cliente (exige un endpoint y una regla de privacidad; no es `HU-064`); conservar la lámina como referencia exacta (congela la pantalla fuera del lenguaje del panel).
+- **Documentos afectados:** `estandar-diseno-visual.md` (§2, §6.15), `historial-cambios.md`, `apps/web/src/modules/agenda/pages/AppointmentDetailPage.vue` y su evidencia `apps/web/e2e/evidence/agenda-detalle/rediseno-471/`.
+- **Fuente:** `DEC-109`, `DEC-112`, `DEC-113`, `HU-064`; issue [#471](https://github.com/bcaceres19/barberia/issues/471).

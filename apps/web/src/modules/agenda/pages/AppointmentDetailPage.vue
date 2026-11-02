@@ -15,7 +15,11 @@ import { computed, onMounted, ref } from 'vue'
 import { useRoute, type LocationQueryRaw } from 'vue-router'
 import { useToast, useVocabulary } from '@/shared/composables'
 import { BaseAlert, BaseBadge, BaseButton, BaseDialog, BaseInput } from '@/shared/ui'
-import { formatInstantInTimezone } from '@/shared/time/formatInstant'
+import {
+  formatFullDateInTimezone,
+  formatInstantInTimezone,
+  formatTimeInTimezone,
+} from '@/shared/time/formatInstant'
 import { getCivilDateInTimezone } from '@/shared/time/civilDate'
 import {
   cancelAppointmentByBarber,
@@ -90,6 +94,19 @@ const statusLabel = computed(() =>
 const statusBadgeVariant = computed(() =>
   detail.value ? APPOINTMENT_STATUS_BADGE_VARIANT[detail.value.status] : 'neutral',
 )
+// Tono de la ficha: el mismo reparto de colores por estado que la agenda diaria
+// (pendiente, completado, no se presentó, cancelado), con la palabra de estado como
+// señal además del color.
+const STATUS_TONE: Record<AppointmentStatus, string> = {
+  confirmed: 'pending',
+  completed: 'completed',
+  no_show: 'no-show',
+  cancelled_by_customer: 'cancelled',
+  cancelled_by_barber: 'cancelled',
+}
+const statusTone = computed(() => (detail.value ? STATUS_TONE[detail.value.status] : 'pending'))
+// Un turno terminal cambia de material (contorno sobre tinta), no de peso (§6.7).
+const isTerminal = computed(() => !!detail.value && isTerminalStatus(detail.value.status))
 const attendeeInitials = computed(() => {
   if (!detail.value) return ''
   return detail.value.attendeeName
@@ -133,6 +150,18 @@ const homeServiceMapsUrl = computed(() =>
     ? mapsLinkUrl(detail.value.homeService.latitude, detail.value.homeService.longitude)
     : null,
 )
+
+// Franja decorativa de la ficha: hora de inicio y de fin en la zona de la barbería y la
+// fecha civil de esa zona. La hora completa sigue dicha en la fila «Hora».
+const timeSpan = computed(() => {
+  if (!detail.value || !barbershopTimezone.value) return null
+  const zone = barbershopTimezone.value
+  return {
+    start: formatTimeInTimezone(detail.value.startsAt, zone),
+    end: formatTimeInTimezone(detail.value.endsAt, zone),
+    date: formatFullDateInTimezone(zone, new Date(detail.value.startsAt)),
+  }
+})
 
 const timeRangeLabel = computed(() => {
   if (!detail.value || !barbershopTimezone.value) return ''
@@ -676,7 +705,11 @@ function occurredAtLabel(entry: HistoryEntry): string {
 </script>
 
 <template>
-  <section class="appointment-detail-page" aria-labelledby="appointment-detail-page-title">
+  <section
+    class="appointment-detail-page"
+    :class="`appointment-detail-page--${statusTone}`"
+    aria-labelledby="appointment-detail-page-title"
+  >
     <p class="appointment-detail-page__back">
       <RouterLink :to="{ name: 'panel', query: backQuery }">← Volver a la agenda</RouterLink>
     </p>
@@ -713,9 +746,12 @@ function occurredAtLabel(entry: HistoryEntry): string {
 
     <template v-else-if="detail">
       <header class="appointment-detail-page__hero">
-        <div class="appointment-detail-page__avatar" aria-hidden="true">{{ attendeeInitials }}</div>
+        <div class="appointment-detail-page__avatar nv-pop" aria-hidden="true">
+          {{ attendeeInitials }}
+        </div>
         <div class="appointment-detail-page__identity">
-          <h1 id="appointment-detail-page-title" class="appointment-detail-page__title">
+          <p class="appointment-detail-page__eyebrow">Detalle del turno</p>
+          <h1 id="appointment-detail-page-title" class="appointment-detail-page__title nv-wipe">
             {{ detail.attendeeName }}
           </h1>
           <p class="appointment-detail-page__status" role="status">
@@ -724,7 +760,7 @@ function occurredAtLabel(entry: HistoryEntry): string {
             </BaseBadge>
           </p>
         </div>
-        <div class="appointment-detail-page__actions">
+        <div class="appointment-detail-page__actions nv-rise" style="--i: 3">
           <BaseButton
             v-if="canReschedule"
             type="button"
@@ -794,104 +830,91 @@ function occurredAtLabel(entry: HistoryEntry): string {
       </header>
 
       <div class="appointment-detail-page__body">
-        <dl class="appointment-detail-page__facts">
-          <div class="appointment-detail-page__fact">
-            <span
-              class="appointment-detail-page__fact-icon"
-              aria-hidden="true"
-              v-html="factIcon('time')"
-            />
-            <dt>Hora</dt>
-            <dd>
-              {{ timeRangeLabel }}
-              <span v-if="barbershopTimezone">· Zona {{ barbershopTimezone }}</span>
-            </dd>
-          </div>
-          <div class="appointment-detail-page__fact">
-            <span
-              class="appointment-detail-page__fact-icon"
-              aria-hidden="true"
-              v-html="factIcon('attendee')"
-            />
-            <dt>Persona atendida</dt>
-            <dd>{{ detail.attendeeName }}</dd>
-          </div>
-          <div class="appointment-detail-page__fact">
-            <span
-              class="appointment-detail-page__fact-icon"
-              aria-hidden="true"
-              v-html="factIcon('service')"
-            />
-            <dt>Servicio</dt>
-            <dd>
-              {{ detail.serviceName }} · {{ detail.durationMinutes }} min · {{ detail.priceAmount }}
-              {{ detail.currency }}
-            </dd>
-          </div>
-          <div class="appointment-detail-page__fact">
-            <span
-              class="appointment-detail-page__fact-icon"
-              aria-hidden="true"
-              v-html="factIcon('barber')"
-            />
-            <dt>{{ v.Professional }}</dt>
-            <dd>{{ detail.barberFullName }}</dd>
-          </div>
-          <div class="appointment-detail-page__fact">
-            <span
-              class="appointment-detail-page__fact-icon"
-              aria-hidden="true"
-              v-html="factIcon('attendee')"
-            />
-            <dt>Cliente que reservó</dt>
-            <dd>{{ detail.customerFullName }}</dd>
-          </div>
-          <div
-            v-if="detail.customerPhone || detail.customerEmail"
-            class="appointment-detail-page__fact"
-          >
-            <span
-              class="appointment-detail-page__fact-icon"
-              aria-hidden="true"
-              v-html="factIcon('contact')"
-            />
-            <dt>Contacto</dt>
-            <dd>
-              <span v-if="detail.customerPhone">{{ detail.customerPhone }}</span>
-              <span v-if="detail.customerPhone && detail.customerEmail"> · </span>
-              <span v-if="detail.customerEmail">{{ detail.customerEmail }}</span>
-            </dd>
-          </div>
-          <div v-if="detail.homeService" class="appointment-detail-page__fact">
-            <span
-              class="appointment-detail-page__fact-icon"
-              aria-hidden="true"
-              v-html="factIcon('place')"
-            />
-            <dt>A domicilio</dt>
-            <dd>
-              <span>{{ detail.homeService.address }}</span>
-              <template v-if="homeServiceMapsUrl">
-                {{ ' ' }}·
-                <a :href="homeServiceMapsUrl" target="_blank" rel="noopener noreferrer"
-                  >Abrir en Google Maps (nueva pestaña)</a
+        <div
+          class="appointment-detail-page__sheet nv-rise"
+          :class="{ 'appointment-detail-page__sheet--terminal': isTerminal }"
+          style="--i: 2"
+        >
+          <div v-if="timeSpan" class="appointment-detail-page__span" aria-hidden="true">
+            <p class="appointment-detail-page__span-date">{{ timeSpan.date }}</p>
+            <div class="appointment-detail-page__span-row">
+              <span class="appointment-detail-page__span-time">{{ timeSpan.start }}</span>
+              <span class="appointment-detail-page__span-track">
+                <i
+                  class="appointment-detail-page__span-line appointment-detail-page__span-line--start"
+                ></i>
+                <span class="appointment-detail-page__span-length"
+                  >{{ detail.durationMinutes }} min</span
                 >
-              </template>
-            </dd>
+                <i
+                  class="appointment-detail-page__span-line appointment-detail-page__span-line--end"
+                ></i>
+              </span>
+              <span class="appointment-detail-page__span-time">{{ timeSpan.end }}</span>
+            </div>
           </div>
-          <div v-if="detail.customerNote" class="appointment-detail-page__fact">
-            <span
-              class="appointment-detail-page__fact-icon"
-              aria-hidden="true"
-              v-html="factIcon('note')"
-            />
-            <dt>Nota del cliente</dt>
-            <dd>{{ detail.customerNote }}</dd>
-          </div>
-        </dl>
+
+          <dl class="appointment-detail-page__facts">
+            <div class="appointment-detail-page__fact">
+              <dt>Hora</dt>
+              <dd>
+                {{ timeRangeLabel }}
+                <span v-if="barbershopTimezone">· Zona {{ barbershopTimezone }}</span>
+              </dd>
+            </div>
+            <div class="appointment-detail-page__fact">
+              <dt>Persona atendida</dt>
+              <dd>{{ detail.attendeeName }}</dd>
+            </div>
+            <div class="appointment-detail-page__fact">
+              <dt>Servicio</dt>
+              <dd>
+                {{ detail.serviceName }} · {{ detail.durationMinutes }} min ·
+                {{ detail.priceAmount }}
+                {{ detail.currency }}
+              </dd>
+            </div>
+            <div class="appointment-detail-page__fact">
+              <dt>{{ v.Professional }}</dt>
+              <dd>{{ detail.barberFullName }}</dd>
+            </div>
+            <div class="appointment-detail-page__fact">
+              <dt>Cliente que reservó</dt>
+              <dd>{{ detail.customerFullName }}</dd>
+            </div>
+            <div
+              v-if="detail.customerPhone || detail.customerEmail"
+              class="appointment-detail-page__fact"
+            >
+              <dt>Contacto</dt>
+              <dd>
+                <span v-if="detail.customerPhone">{{ detail.customerPhone }}</span>
+                <span v-if="detail.customerPhone && detail.customerEmail"> · </span>
+                <span v-if="detail.customerEmail">{{ detail.customerEmail }}</span>
+              </dd>
+            </div>
+            <div v-if="detail.homeService" class="appointment-detail-page__fact">
+              <dt>A domicilio</dt>
+              <dd>
+                <span>{{ detail.homeService.address }}</span>
+                <template v-if="homeServiceMapsUrl">
+                  {{ ' ' }}·
+                  <a :href="homeServiceMapsUrl" target="_blank" rel="noopener noreferrer"
+                    >Abrir en Google Maps (nueva pestaña)</a
+                  >
+                </template>
+              </dd>
+            </div>
+            <div v-if="detail.customerNote" class="appointment-detail-page__fact">
+              <dt>Nota del cliente</dt>
+              <dd>{{ detail.customerNote }}</dd>
+            </div>
+          </dl>
+        </div>
 
         <section
-          class="appointment-detail-page__history"
+          class="appointment-detail-page__history nv-rise"
+          style="--i: 4"
           aria-labelledby="appointment-history-title"
         >
           <h2 id="appointment-history-title" class="appointment-detail-page__history-title">
@@ -928,9 +951,10 @@ function occurredAtLabel(entry: HistoryEntry): string {
 
             <ol v-else class="appointment-detail-page__history-list" aria-label="Eventos del turno">
               <li
-                v-for="entry in historyItems"
+                v-for="(entry, index) in historyItems"
                 :key="entry.id"
-                class="appointment-detail-page__history-item"
+                class="appointment-detail-page__history-item nv-rise"
+                :style="{ '--i': Math.min(index, 8) + 5 }"
               >
                 <span
                   class="appointment-detail-page__history-icon"
@@ -1421,81 +1445,164 @@ function occurredAtLabel(entry: HistoryEntry): string {
 </template>
 
 <style scoped>
+/* Detalle de turno sobre la tinta del cascarón (DEC-146, issue #471): sustituye el
+   lienzo marfil de la lámina #191 por el lenguaje del panel — cabecera editorial,
+   ficha de pergamino con cinta métrica de latón y línea de tiempo con marcas de
+   latón. Un turno terminal cambia de material (contorno sobre tinta), no de peso
+   (§6.7). Los colores de estado son los de la agenda diaria. */
 .appointment-detail-page {
+  --tone: var(--color-pending-on-strong);
+  --rule: color-mix(in srgb, var(--color-on-strong) 16%, transparent);
+
   display: flex;
   position: relative;
   flex-direction: column;
   gap: var(--space-6);
   min-height: 100%;
-  padding: 24px 40px 16px;
-  background: var(--color-canvas);
+  padding: 20px 16px 24px;
+  /* Transparente: la tinta y el fondo animado los pone el cascarón. */
+  background: transparent;
+}
+
+.appointment-detail-page--completed {
+  --tone: var(--color-success-on-strong);
+}
+
+.appointment-detail-page--no-show {
+  --tone: var(--color-no-show-on-strong);
+}
+
+.appointment-detail-page--cancelled {
+  --tone: var(--color-danger-on-strong);
+}
+
+@media (min-width: 1024px) {
+  .appointment-detail-page {
+    padding: 26px 40px 30px;
+  }
 }
 
 .appointment-detail-page__body {
   display: grid;
-  grid-template-columns: minmax(0, 1.78fr) minmax(260px, 0.82fr);
-  gap: 48px;
+  grid-template-columns: minmax(0, 1.7fr) minmax(280px, 0.8fr);
+  gap: var(--space-12);
   align-items: start;
 }
 
 .appointment-detail-page__back {
   margin: 0;
-  font-family: var(--font-family-base);
-  font-size: var(--font-size-body);
 }
 
 .appointment-detail-page__back a {
-  color: var(--color-action-primary);
+  display: inline-flex;
+  align-items: center;
+  min-height: var(--control-height);
+  font-family: var(--font-sans);
+  font-size: var(--font-size-caption);
+  font-weight: 600;
+  letter-spacing: 0.1em;
   text-decoration: none;
+  text-transform: uppercase;
+  color: var(--color-brand-accent-surface);
+  border-radius: 2px;
+}
+
+.appointment-detail-page__back a:hover {
+  text-decoration: underline;
+  text-underline-offset: 4px;
+}
+
+.appointment-detail-page__back a:focus-visible {
+  outline: 2px solid var(--color-brand-accent-surface);
+  outline-offset: 3px;
 }
 
 .appointment-detail-page__state {
   padding: var(--space-6);
-  color: var(--color-text-secondary);
+  color: var(--color-on-strong-soft);
 }
 
 .appointment-detail-page__empty {
+  display: flex;
+  gap: var(--space-3);
+  align-items: center;
   padding: var(--space-2) 0;
-  color: var(--color-text-secondary);
+  margin: 0;
+  color: var(--color-on-strong-muted);
 }
+
+/* Marca hueca: el primer evento todavía no existe. */
+.appointment-detail-page__empty::before {
+  content: '';
+  flex: none;
+  width: 9px;
+  height: 9px;
+  border: 1px solid var(--color-brand-accent-surface);
+  transform: rotate(45deg);
+}
+
+/* ── Cabecera ───────────────────────────────────────────────────────────── */
 
 .appointment-detail-page__hero {
   display: flex;
+  gap: var(--space-5);
   align-items: center;
-  gap: var(--space-4);
-  min-height: 74px;
+  padding-bottom: var(--space-6);
+  border-bottom: 1px solid var(--rule);
 }
 
+/* Retrato cuadrado con filete de latón y monograma (§6.7). */
 .appointment-detail-page__avatar {
   display: grid;
-  width: 72px;
-  height: 72px;
   flex: 0 0 72px;
   place-items: center;
-  overflow: hidden;
-  background: var(--color-surface-strong);
-  border: 2px solid var(--color-border-subtle);
-  border-radius: 50%;
-  color: var(--color-on-strong);
+  width: 72px;
+  height: 72px;
   font-family: var(--font-display);
-  font-size: var(--font-size-h2);
+  font-size: var(--font-size-title-item);
+  color: var(--color-brand-accent-surface);
+  background-color: color-mix(in srgb, var(--color-brand-accent-surface) 10%, transparent);
+  border: 1px solid color-mix(in srgb, var(--color-brand-accent-surface) 60%, transparent);
+  border-radius: 2px;
 }
 
 .appointment-detail-page__identity {
   display: flex;
-  min-width: 0;
   flex: 1;
   flex-direction: column;
-  gap: var(--space-1);
+  gap: var(--space-2);
+  min-width: 0;
+}
+
+.appointment-detail-page__eyebrow {
+  display: flex;
+  gap: var(--space-3);
+  align-items: center;
+  margin: 0;
+  font-family: var(--font-sans);
+  font-size: var(--font-size-caption);
+  font-weight: 600;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--color-brand-accent-surface);
+}
+
+.appointment-detail-page__eyebrow::before {
+  content: '';
+  width: 28px;
+  height: 1px;
+  background-color: currentcolor;
 }
 
 .appointment-detail-page__title {
   margin: 0;
   font-family: var(--font-display);
-  font-size: var(--font-size-h1);
-  line-height: var(--font-size-h1-line);
+  font-size: var(--font-size-title-page);
   font-weight: var(--font-weight-h1);
-  color: var(--color-text-primary);
+  line-height: 1.08;
+  letter-spacing: -0.01em;
+  overflow-wrap: anywhere;
+  color: var(--color-on-strong);
 }
 
 .appointment-detail-page__status {
@@ -1504,26 +1611,79 @@ function occurredAtLabel(entry: HistoryEntry): string {
   margin: 0;
 }
 
+/* La palabra de estado lleva el color del estado, además del texto. */
+.appointment-detail-page__status :deep(.base-badge) {
+  color: var(--tone);
+  background-color: color-mix(in srgb, var(--tone) 10%, transparent);
+  border-color: color-mix(in srgb, var(--tone) 55%, transparent);
+}
+
 .appointment-detail-page__actions {
   display: flex;
   flex: 0 0 auto;
-  align-items: center;
+  flex-wrap: wrap;
   gap: var(--space-3);
+  align-items: center;
+  justify-content: flex-end;
 }
 
-.appointment-detail-page__reschedule,
-.appointment-detail-page__complete,
-.appointment-detail-page__no-show,
-.appointment-detail-page__cancel {
+.appointment-detail-page .appointment-detail-page__reschedule,
+.appointment-detail-page .appointment-detail-page__complete,
+.appointment-detail-page .appointment-detail-page__no-show,
+.appointment-detail-page .appointment-detail-page__cancel,
+.appointment-detail-page .appointment-detail-page__correct {
   flex: 0 0 auto;
-  min-width: 194px;
+  min-width: 0;
+}
+
+/* Acciones sobre tinta: la principal en latón lleno; las demás con el filete de
+   latón del resto del panel; cancelar con el color de peligro elevado. */
+.appointment-detail-page .appointment-detail-page__complete {
+  color: var(--color-brand-accent-text);
+  background-color: var(--color-brand-accent-surface);
+  border-color: var(--color-brand-accent-surface);
+}
+
+.appointment-detail-page .appointment-detail-page__complete:hover:not(:disabled) {
+  background-color: color-mix(in srgb, var(--color-brand-accent-surface) 88%, #fff);
+  border-color: color-mix(in srgb, var(--color-brand-accent-surface) 88%, #fff);
+}
+
+.appointment-detail-page .appointment-detail-page__reschedule,
+.appointment-detail-page .appointment-detail-page__no-show,
+.appointment-detail-page .appointment-detail-page__correct {
+  color: var(--color-brand-accent-surface);
+  background-color: transparent;
+  border-color: color-mix(in srgb, var(--color-brand-accent-surface) 50%, transparent);
+  border-bottom-color: var(--color-brand-accent-surface);
+}
+
+.appointment-detail-page .appointment-detail-page__reschedule:hover:not(:disabled),
+.appointment-detail-page .appointment-detail-page__no-show:hover:not(:disabled),
+.appointment-detail-page .appointment-detail-page__correct:hover:not(:disabled) {
+  background-color: color-mix(in srgb, var(--color-brand-accent-surface) 12%, transparent);
+  border-color: color-mix(in srgb, var(--color-brand-accent-surface) 50%, transparent);
+  border-bottom-color: var(--color-brand-accent-surface);
+}
+
+.appointment-detail-page .appointment-detail-page__cancel {
+  color: var(--color-danger-on-strong);
+  background-color: transparent;
+  border-color: color-mix(in srgb, var(--color-danger-on-strong) 50%, transparent);
+  border-bottom-color: var(--color-danger-on-strong);
+}
+
+.appointment-detail-page .appointment-detail-page__cancel:hover:not(:disabled) {
+  background-color: color-mix(in srgb, var(--color-danger-on-strong) 10%, transparent);
+  border-color: color-mix(in srgb, var(--color-danger-on-strong) 50%, transparent);
+  border-bottom-color: var(--color-danger-on-strong);
 }
 
 .appointment-detail-page__button-icon {
   display: inline-flex;
+  flex: 0 0 20px;
   width: 20px;
   height: 20px;
-  flex: 0 0 20px;
 }
 
 .appointment-detail-page__button-icon :deep(svg) {
@@ -1531,85 +1691,205 @@ function occurredAtLabel(entry: HistoryEntry): string {
   height: 100%;
 }
 
+/* ── Ficha del turno ────────────────────────────────────────────────────── */
+
+/* Pergamino para un turno vigente; contorno sobre tinta para uno terminal. */
+.appointment-detail-page__sheet {
+  --sx-text: var(--color-text-primary);
+  --sx-muted: var(--color-text-secondary);
+  --sx-label: var(--color-accent-brass);
+  --sx-line: color-mix(in srgb, var(--color-text-primary) 16%, transparent);
+
+  position: relative;
+  min-width: 0;
+  background-color: var(--color-surface-muted);
+  border-left: 4px solid var(--tone);
+  border-radius: 0 0 2px 2px;
+}
+
+.appointment-detail-page__sheet--terminal {
+  --sx-text: var(--color-on-strong);
+  --sx-muted: var(--color-on-strong-soft);
+  --sx-label: var(--color-brand-accent-surface);
+  --sx-line: var(--rule);
+
+  background-color: color-mix(in srgb, var(--tone) 6%, transparent);
+  border: 1px solid color-mix(in srgb, var(--tone) 45%, transparent);
+  border-left: 4px solid var(--tone);
+}
+
+/* Cinta métrica de latón en el borde superior: marcas cada 10 px y una más larga
+   cada 50, como la de la hoja de datos de la reserva pública. */
+.appointment-detail-page__sheet::before {
+  content: '';
+  position: absolute;
+  inset: 0 0 auto;
+  height: 11px;
+  pointer-events: none;
+  background:
+    linear-gradient(var(--sx-label), var(--sx-label)) top / 100% 1px no-repeat,
+    repeating-linear-gradient(90deg, var(--sx-label) 0 1px, transparent 1px 10px) top / 100% 5px
+      no-repeat,
+    repeating-linear-gradient(90deg, var(--sx-label) 0 1px, transparent 1px 50px) top / 100% 10px
+      no-repeat;
+  transform-origin: left;
+  animation: nava-wipe 1s cubic-bezier(0.65, 0, 0.2, 1) 0.35s backwards;
+}
+
+/* Franja de tiempo: inicio, regla con la duración y fin. Decorativa. */
+.appointment-detail-page__span {
+  padding: var(--space-8) var(--space-6) var(--space-5);
+  border-bottom: 1px solid var(--sx-line);
+}
+
+.appointment-detail-page__span-date {
+  margin: 0 0 var(--space-3);
+  font-family: var(--font-sans);
+  font-size: var(--font-size-caption);
+  font-weight: 600;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--sx-muted);
+}
+
+.appointment-detail-page__span-row {
+  display: flex;
+  gap: var(--space-4);
+  align-items: center;
+}
+
+.appointment-detail-page__span-time {
+  flex: none;
+  font-family: var(--font-display);
+  font-size: var(--font-size-title-page);
+  line-height: 1;
+  white-space: nowrap;
+  font-variant-numeric: lining-nums tabular-nums;
+  color: var(--sx-text);
+}
+
+.appointment-detail-page__span-track {
+  display: flex;
+  flex: 1;
+  gap: var(--space-3);
+  align-items: center;
+  min-width: 0;
+}
+
+.appointment-detail-page__span-line {
+  position: relative;
+  flex: 1;
+  height: 1px;
+  min-width: 12px;
+  background-color: var(--sx-label);
+  transform-origin: left;
+  animation: nava-wipe 1.1s cubic-bezier(0.65, 0, 0.2, 1) 0.6s backwards;
+}
+
+.appointment-detail-page__span-line::before {
+  content: '';
+  position: absolute;
+  top: 50%;
+  width: 7px;
+  height: 7px;
+  background-color: var(--sx-label);
+  transform: translateY(-50%) rotate(45deg);
+}
+
+.appointment-detail-page__span-line--start::before {
+  left: 0;
+}
+
+.appointment-detail-page__span-line--end::before {
+  right: 0;
+}
+
+.appointment-detail-page__span-length {
+  flex: none;
+  font-family: var(--font-sans);
+  font-size: var(--font-size-caption);
+  font-weight: 600;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--sx-label);
+}
+
 .appointment-detail-page__facts {
   display: flex;
   flex-direction: column;
-  gap: 0;
+  padding: 0 var(--space-6);
   margin: 0;
-  padding-top: 1px;
-  border-top: var(--border-width-normal) solid var(--color-border-subtle);
 }
 
 .appointment-detail-page__fact {
   display: grid;
-  grid-template-columns: 40px minmax(132px, 0.62fr) minmax(0, 1.35fr);
-  align-items: center;
-  min-height: 56px;
-  gap: var(--space-2);
-  padding: 9px 10px;
-  border-bottom: var(--border-width-normal) solid var(--color-border-subtle);
+  grid-template-columns: minmax(130px, 0.5fr) minmax(0, 1.5fr);
+  gap: var(--space-1) var(--space-5);
+  align-items: baseline;
+  padding: var(--space-4) 0;
+  border-bottom: 1px solid var(--sx-line);
 }
 
-.appointment-detail-page__fact-icon {
-  width: 24px;
-  height: 24px;
-  color: var(--color-surface-strong);
-}
-
-.appointment-detail-page__fact-icon :deep(svg) {
-  width: 100%;
-  height: 100%;
+.appointment-detail-page__fact:last-child {
+  border-bottom: 0;
 }
 
 .appointment-detail-page__fact dt {
-  font-family: var(--font-family-base);
-  font-size: var(--font-size-body-sm);
+  font-family: var(--font-sans);
+  font-size: var(--font-size-caption);
   font-weight: 600;
-  color: var(--color-text-primary);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--sx-label);
 }
 
 .appointment-detail-page__fact dd {
   margin: 0;
   font-family: var(--font-family-base);
-  font-size: var(--font-size-body-sm);
-  line-height: 20px;
-  color: var(--color-text-primary);
+  font-size: var(--font-size-body);
+  line-height: var(--font-size-body-line);
+  overflow-wrap: anywhere;
+  color: var(--sx-text);
 }
+
+.appointment-detail-page__fact dd a {
+  color: inherit;
+  text-underline-offset: 3px;
+}
+
+/* ── Historial: línea de tiempo ─────────────────────────────────────────── */
 
 .appointment-detail-page__history {
   display: flex;
   flex-direction: column;
-  gap: var(--space-4);
+  gap: var(--space-5);
   min-width: 0;
-  padding-left: 24px;
-  border-left: var(--border-width-normal) solid var(--color-border-subtle);
+  padding-left: var(--space-6);
+  border-left: 1px solid var(--rule);
 }
 
 .appointment-detail-page__history-title {
   margin: 0;
   font-family: var(--font-display);
-  font-size: var(--font-size-h2);
-  line-height: var(--font-size-h2-line);
+  font-size: var(--font-size-title-section);
   font-weight: var(--font-weight-h2);
-  color: var(--color-text-primary);
+  line-height: 1.1;
+  color: var(--color-on-strong);
 }
 
 .appointment-detail-page__history-list {
   display: flex;
   flex-direction: column;
-  gap: 0;
   padding: 0;
   margin: 0;
   list-style: none;
 }
 
-/* Línea de tiempo vertical (atlas: puntos y conexión entre eventos), sin
-   cambiar el orden ni el contenido de cada evento. */
 .appointment-detail-page__history-item {
   position: relative;
-  min-height: 74px;
-  padding: 0 0 var(--space-5) 48px;
-  border-left: var(--border-width-normal) solid var(--color-border-subtle);
+  min-height: 72px;
+  padding: 0 0 var(--space-6) var(--space-8);
+  border-left: 1px solid color-mix(in srgb, var(--color-brand-accent-surface) 45%, transparent);
 }
 
 .appointment-detail-page__history-item:last-child {
@@ -1617,27 +1897,29 @@ function occurredAtLabel(entry: HistoryEntry): string {
   border-left-color: transparent;
 }
 
+/* Marca del evento: cuadrado de filete de latón; la más reciente va llena. */
 .appointment-detail-page__history-icon {
   position: absolute;
   top: 0;
-  left: -18px;
+  left: -15px;
   display: grid;
-  width: 36px;
-  height: 36px;
   place-items: center;
-  background-color: var(--color-brand-accent-surface);
-  color: var(--color-surface-strong);
-  border-radius: 999px;
+  width: 30px;
+  height: 30px;
+  color: var(--color-brand-accent-surface);
+  background-color: var(--color-surface-strong);
+  border: 1px solid var(--color-brand-accent-surface);
+  border-radius: 2px;
 }
 
 .appointment-detail-page__history-icon :deep(svg) {
-  width: 19px;
-  height: 19px;
+  width: 16px;
+  height: 16px;
 }
 
 .appointment-detail-page__history-item:first-child .appointment-detail-page__history-icon {
-  background-color: var(--color-surface-strong);
-  color: var(--color-on-strong);
+  color: var(--color-brand-accent-text);
+  background-color: var(--color-brand-accent-surface);
 }
 
 .appointment-detail-page__history-main {
@@ -1648,30 +1930,30 @@ function occurredAtLabel(entry: HistoryEntry): string {
 
 .appointment-detail-page__history-event {
   font-family: var(--font-family-base);
-  font-size: var(--font-size-body-sm);
+  font-size: var(--font-size-body);
   font-weight: 600;
-  color: var(--color-text-primary);
+  color: var(--color-on-strong);
 }
 
 .appointment-detail-page__history-meta {
   font-family: var(--font-family-base);
   font-size: var(--font-size-body-sm);
-  color: var(--color-text-secondary);
+  color: var(--color-on-strong-muted);
 }
 
 .appointment-detail-page__history-reason {
-  margin: var(--space-1) 0 0;
+  margin: var(--space-2) 0 0;
   font-family: var(--font-family-base);
   font-size: var(--font-size-body-sm);
-  color: var(--color-text-secondary);
+  color: var(--color-on-strong-soft);
 }
 
 .appointment-detail-page__history-changes {
-  margin: var(--space-1) 0 0;
   padding-left: var(--space-4);
+  margin: var(--space-2) 0 0;
   font-family: var(--font-family-base);
   font-size: var(--font-size-body-sm);
-  color: var(--color-text-secondary);
+  color: var(--color-on-strong-soft);
 }
 
 .appointment-detail-page__dialog-form {
@@ -1829,7 +2111,6 @@ function occurredAtLabel(entry: HistoryEntry): string {
 @media (max-width: 767px) {
   .appointment-detail-page {
     gap: var(--space-4);
-    padding: 12px 12px 0;
   }
 
   .appointment-detail-page__back {
@@ -1838,105 +2119,74 @@ function occurredAtLabel(entry: HistoryEntry): string {
 
   .appointment-detail-page__hero {
     flex-wrap: wrap;
-    gap: var(--space-3);
-    min-height: 102px;
+    gap: var(--space-4);
   }
 
   .appointment-detail-page__avatar {
-    width: 58px;
-    height: 58px;
-    flex-basis: 58px;
-    font-size: var(--font-size-h3);
+    flex-basis: 56px;
+    width: 56px;
+    height: 56px;
   }
 
   .appointment-detail-page__title {
     font-size: var(--font-size-h2);
-    line-height: 30px;
+    line-height: 1.12;
   }
 
-  .appointment-detail-page__status {
-    font-size: var(--font-size-body-sm);
-  }
-
-  /* Hasta cuatro acciones pueden coexistir sobre un turno confirmed ya
-     cerrable (CA-067-08): con etiquetas largas ("Marcar que no asistió")
-     una grilla de dos columnas desborda a 320/360px (BaseButton usa
-     white-space: nowrap). Una sola columna en flujo normal, debajo del
-     hero, evita el desborde para cualquier cantidad de acciones sin
-     necesitar reservar una altura fija adivinada (a diferencia del recorte
-     posicionado en absoluto que este bloque reemplaza).
-   */
+  /* Hasta cuatro acciones pueden coexistir sobre un turno confirmado ya
+     cerrable (CA-067-08): con etiquetas largas una grilla de dos columnas
+     desborda a 320/360 px (BaseButton usa white-space: nowrap). Una sola
+     columna en flujo normal, debajo del hero, evita el desborde para cualquier
+     cantidad de acciones. */
   .appointment-detail-page__actions {
     display: grid;
     flex-basis: 100%;
     grid-template-columns: 1fr;
     width: 100%;
-    margin-top: var(--space-3);
   }
 
-  .appointment-detail-page__reschedule,
-  .appointment-detail-page__complete,
-  .appointment-detail-page__no-show,
-  .appointment-detail-page__cancel {
-    min-width: 0;
+  .appointment-detail-page .appointment-detail-page__reschedule,
+  .appointment-detail-page .appointment-detail-page__complete,
+  .appointment-detail-page .appointment-detail-page__no-show,
+  .appointment-detail-page .appointment-detail-page__cancel,
+  .appointment-detail-page .appointment-detail-page__correct {
     width: 100%;
   }
 
   .appointment-detail-page__body {
     grid-template-columns: 1fr;
-    gap: var(--space-4);
+    gap: var(--space-6);
+  }
+
+  .appointment-detail-page__span {
+    padding: var(--space-8) var(--space-4) var(--space-4);
+  }
+
+  .appointment-detail-page__span-time {
+    font-size: var(--font-size-title-item);
+  }
+
+  .appointment-detail-page__span-row {
+    gap: var(--space-3);
+  }
+
+  .appointment-detail-page__facts {
+    padding: 0 var(--space-4);
   }
 
   .appointment-detail-page__fact {
-    grid-template-columns: 26px minmax(100px, 0.86fr) minmax(0, 1.25fr);
-    min-height: 44px;
-    gap: 4px;
-    padding: 7px 0;
-  }
-
-  .appointment-detail-page__fact-icon {
-    width: 20px;
-    height: 20px;
-  }
-
-  .appointment-detail-page__fact dt,
-  .appointment-detail-page__fact dd {
-    font-size: var(--font-size-caption);
-    line-height: 15px;
+    grid-template-columns: 1fr;
+    padding: var(--space-3) 0;
   }
 
   .appointment-detail-page__history {
-    gap: var(--space-3);
-    padding: 2px 0 0;
-    border-top: var(--border-width-normal) solid var(--color-border-subtle);
-    border-left: none;
+    padding: var(--space-5) 0 0;
+    border-top: 1px solid var(--rule);
+    border-left: 0;
   }
 
   .appointment-detail-page__history-title {
     font-size: var(--font-size-title-item);
-    line-height: 25px;
-  }
-
-  .appointment-detail-page__history-item {
-    min-height: 64px;
-    padding-left: 42px;
-  }
-
-  .appointment-detail-page__history-icon {
-    left: -15px;
-    width: 30px;
-    height: 30px;
-  }
-
-  .appointment-detail-page__history-event {
-    font-size: var(--font-size-caption);
-  }
-
-  .appointment-detail-page__history-meta,
-  .appointment-detail-page__history-reason,
-  .appointment-detail-page__history-changes {
-    font-size: var(--font-size-caption);
-    line-height: 15px;
   }
 
   .appointment-detail-page__dialog-grid {
@@ -1959,9 +2209,7 @@ function occurredAtLabel(entry: HistoryEntry): string {
     padding: 24px;
   }
 
-  /* Mismo motivo que el bloque <768px: hasta cuatro acciones con
-     min-width: 194px cada una (776px+gaps) ya no caben junto al
-     avatar/identidad en un viewport de 768px. */
+  /* Hasta cuatro acciones ya no caben junto al retrato y la identidad en 768 px. */
   .appointment-detail-page__hero {
     flex-wrap: wrap;
   }
@@ -1971,23 +2219,27 @@ function occurredAtLabel(entry: HistoryEntry): string {
     flex-basis: 100%;
     grid-template-columns: repeat(2, minmax(0, 1fr));
     width: 100%;
-    margin-top: var(--space-3);
-  }
-
-  .appointment-detail-page__reschedule,
-  .appointment-detail-page__complete,
-  .appointment-detail-page__no-show,
-  .appointment-detail-page__cancel {
-    min-width: 0;
   }
 
   .appointment-detail-page__body {
     grid-template-columns: minmax(0, 1.3fr) minmax(240px, 0.7fr);
-    gap: 28px;
+    gap: var(--space-8);
   }
 
   .appointment-detail-page__dialog-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .appointment-detail-page__sheet::before,
+  .appointment-detail-page__span-line {
+    animation: none;
+  }
+}
+
+:global(:root[data-motion='reduced']) .appointment-detail-page__sheet::before,
+:global(:root[data-motion='reduced']) .appointment-detail-page__span-line {
+  animation: none;
 }
 </style>

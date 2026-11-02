@@ -1,6 +1,6 @@
 ---
 titulo: "Estándar visual NAVA para rediseños y pantallas nuevas"
-version: "5.8"
+version: "5.9"
 estado: "Normativo para rediseños y pantallas nuevas"
 responsable: "Propietario del proyecto"
 ultima_actualizacion: "2026-11-02"
@@ -52,7 +52,7 @@ Las siguientes láminas forman la referencia canónica para el lenguaje visual d
 | [Servicios por barbero por viewport y evento](../10-backlog/evidence/ui-mockups-nava-tailored-grid-2026-09-03/servicios-por-barbero-eventos/README.md) | Referencia exacta de `/panel/servicios-por-barbero`: selección, asignación, retiro y conflictos (issue #195).                                                                                                                                                                 |
 | [Horarios por viewport y evento](../10-backlog/evidence/ui-mockups-nava-tailored-grid-2026-09-03/horarios-eventos/README.md)                           | Antecedente de `/panel/horarios` (issue #196): tramos recurrentes, excepciones, festivos, validación y errores. Ya no es referencia exacta: `DEC-109` la sustituye por el tablero semanal sobre tinta del panel, de composición libre dentro de NAVA / Tailored Grid.         |
 | [Bloqueos por viewport y evento](../10-backlog/evidence/ui-mockups-nava-tailored-grid-2026-09-03/bloqueos-eventos/README.md)                           | Referencia exacta de `/panel/bloqueos`: bloqueos puntuales, series, validación, conflictos y retiro (issue #197).                                                                                                                                                             |
-| [Detalle de turno por viewport y evento](../10-backlog/evidence/ui-mockups-nava-tailored-grid-2026-09-03/detalle-turno-eventos/README.md)              | Referencia exacta de `/panel/turnos/:appointmentId`: detalle, historial, terminales y reprogramación (issue #191).                                                                                                                                                            |
+| [Detalle de turno por viewport y evento](../10-backlog/evidence/ui-mockups-nava-tailored-grid-2026-09-03/detalle-turno-eventos/README.md)              | Antecedente de `/panel/turnos/:appointmentId` (issue #191): detalle, historial, terminales y reprogramación. Ya no es referencia exacta: `DEC-146` la sustituye por la ficha sobre tinta del panel, de composición libre dentro de NAVA / Tailored Grid.                                                                                                                                                            |
 | [Reserva pública, recorrido completo](../../apps/web/e2e/evidence/reserva-publica/rediseno/)                                                           | Sin referencia exacta (identidad guiada, `DEC-111`): `/reservar/:slug` y sus cuatro pasos sobre el lienzo de tinta del panel, con cascarón persistente, panel de tinta levantada para lo que se rellena y capturas en 320, 360, 768, 1280, 1440 y zoom 200 %.                 |
 | [Nuevo turno responsive](../10-backlog/evidence/ui-redesign-nava-2026-09-02/02-nuevo-turno-responsive.png)                                             | Formularios extensos, secciones, reflow y conflictos.                                                                                                                                                                                                                         |
 | [Componentes, formularios y alertas](../10-backlog/evidence/ui-redesign-nava-2026-09-02/03-componentes-formularios-alertas.png)                        | Botones, campos, foco, estados, alertas y diálogo.                                                                                                                                                                                                                            |
@@ -289,6 +289,15 @@ Ningún texto visible baja de 12 px; el monograma decorativo de un retrato peque
 ### 6.14 Política de reserva pública del panel
 
 `/panel/reserva-publica` (`HU-093`) usa el lenguaje de Configuración (§6.9, `DEC-110`): dos `SettingsPanel` numerados sobre tinta («Ventana de reserva», «Cancelación del cliente»), la rejilla de horarios como `OptionGroup` de fichas con el valor en serif, los dos permisos de cancelación tardía como `SwitchField` y `SaveBar` solo mientras hay cambios sin guardar (con «Descartar»). A la derecha, desde 1100 px, `BookingPolicyPreview` traduce el borrador a lo que verá la persona que reserva —regla de ventana con el tramo rayado de la anticipación mínima y franjas de ejemplo desde las 10:00—; es solo lectura y deriva de los valores del formulario, sin crear funciones. Por debajo de 1100 px la vista previa pasa tras los paneles. Los rangos, la validación y el `versionToken` no cambian.
+
+### 6.15 Detalle de turno
+
+`DEC-146`, issue #471. Identidad guiada sobre la tinta del cascarón (`background: transparent`, §6.13).
+
+- **Cabecera:** enlace de retorno y rótulo «Detalle del turno» en versalitas de latón, retrato cuadrado con monograma (§6.7), nombre en serif (`--font-size-title-page`) y la palabra de estado con el color del estado de la agenda (pendiente, completado, no se presentó, cancelado), siempre con su texto. Las acciones usan la familia del panel: principal en latón lleno, secundarias con filete de latón y cancelar en el peligro elevado `--color-danger-on-strong`; en móvil se apilan a ancho completo.
+- **Ficha:** cinta métrica de latón en el borde superior, filete lateral de 4 px del color del estado y una franja de tiempo decorativa (hora de inicio, regla con rombos y la duración, hora de fin; `aria-hidden`). Los hechos son filas regladas con el rótulo en versalitas de latón; sin iconos sueltos. Un turno vigente es de pergamino (`--color-surface-muted`); uno terminal cambia de material a contorno sobre tinta (§6.7).
+- **Historial:** línea de tiempo con marcas cuadradas de filete de latón, la más reciente llena; sin eventos, un rombo hueco y el texto de siempre. En móvil pasa bajo la ficha.
+- **Movimiento:** utilidades `nv-*` (§6.11) y la cinta y la regla se dibujan con `clip-path`; `prefers-reduced-motion` y `data-motion="reduced"` lo dejan compuesto. Los diálogos (reprogramar, cancelar, cerrar, corregir) no cambian.
 
 ## 7. Zona de libertad creativa
 
