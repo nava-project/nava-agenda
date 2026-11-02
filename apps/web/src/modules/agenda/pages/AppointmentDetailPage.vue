@@ -1010,13 +1010,12 @@ function occurredAtLabel(entry: HistoryEntry): string {
       <BaseDialog
         v-model="isRescheduleOpen"
         title="Reprogramar turno"
-        size="xl"
-        placement="bottom"
+        size="md"
         content-class="appointment-detail-page__reschedule-dialog"
         @close="onRescheduleDialogClosed"
       >
         <form
-          class="appointment-detail-page__dialog-form"
+          class="appointment-detail-page__dialog-form appointment-detail-page__reschedule-form"
           novalidate
           @submit.prevent="onSubmitReschedule"
         >
@@ -1086,12 +1085,24 @@ function occurredAtLabel(entry: HistoryEntry): string {
             Inténtalo de nuevo en unos segundos. No perdiste lo que elegiste.
           </BaseAlert>
 
-          <div class="appointment-detail-page__dialog-grid">
+          <div class="appointment-detail-page__dialog-compare">
             <p class="appointment-detail-page__dialog-current">
               <strong>Horario actual</strong>
               {{ timeRangeLabel }}
               <span v-if="barbershopTimezone">Zona {{ barbershopTimezone }}</span>
             </p>
+            <span class="appointment-detail-page__dialog-arrow" aria-hidden="true">→</span>
+            <p
+              v-if="rescheduleNewEndLabel"
+              class="appointment-detail-page__dialog-preview appointment-detail-page__dialog-preview--new"
+            >
+              <strong>Vista previa</strong>
+              {{ rescheduleTime }} – {{ rescheduleNewEndLabel }}
+              <span v-if="barbershopTimezone">Zona {{ barbershopTimezone }}</span>
+            </p>
+          </div>
+
+          <div class="appointment-detail-page__dialog-grid">
             <BaseInput
               v-model="rescheduleDate"
               type="date"
@@ -1108,11 +1119,6 @@ function occurredAtLabel(entry: HistoryEntry): string {
               required
               :disabled="rescheduleStatus === 'saving'"
             />
-            <p v-if="rescheduleNewEndLabel" class="appointment-detail-page__dialog-preview">
-              <strong>Vista previa</strong>
-              {{ rescheduleTime }} – {{ rescheduleNewEndLabel }}
-              <span v-if="barbershopTimezone">Zona {{ barbershopTimezone }}</span>
-            </p>
           </div>
 
           <div class="appointment-detail-page__dialog-actions">
@@ -2014,7 +2020,7 @@ function occurredAtLabel(entry: HistoryEntry): string {
 
 .appointment-detail-page__dialog-grid {
   display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: var(--space-4);
   align-items: end;
 }
@@ -2144,18 +2150,142 @@ function occurredAtLabel(entry: HistoryEntry): string {
   color: var(--color-text-secondary);
 }
 
+/* Tarjeta de reprogramar sobre tinta (#479): centrada, con la superficie del modo activo
+   (--color-surface-strong cambia con Tinta/Marfil, §6.9) y el mismo tratamiento que los
+   diálogos del catálogo. Las reglas son globales porque BaseDialog se teletransporta a
+   <body> y pierde el ancestro de ámbito; !important porque su propia regla tiene igual
+   especificidad. Solo afecta a esta tarjeta (clase exclusiva de la pantalla). */
+:global(.appointment-detail-page__reschedule-dialog.base-dialog) {
+  width: min(100%, 620px) !important;
+  background-color: var(--color-surface-strong) !important;
+  border: 1px solid var(--color-field-strong-border) !important;
+  border-top: 3px solid var(--color-brand-accent-surface) !important;
+  box-shadow: 0 28px 60px -24px rgb(0 0 0 / 55%) !important;
+}
+
+:global(.appointment-detail-page__reschedule-dialog.base-dialog .base-dialog__container) {
+  max-width: none !important;
+}
+
 :global(.appointment-detail-page__reschedule-dialog .base-dialog__header) {
-  padding: 14px 18px;
+  padding: var(--space-5) var(--space-6) var(--space-4);
+  border-bottom: 1px solid var(--color-field-strong-border) !important;
 }
 
 :global(.appointment-detail-page__reschedule-dialog .base-dialog__title) {
   font-family: var(--font-display);
   font-size: var(--font-size-title-item);
   font-weight: 400;
+  color: var(--color-on-strong) !important;
+}
+
+:global(.appointment-detail-page__reschedule-dialog .base-dialog__close) {
+  color: var(--color-on-strong-muted) !important;
+}
+
+:global(.appointment-detail-page__reschedule-dialog .base-dialog__close:hover) {
+  background-color: color-mix(in srgb, var(--color-on-strong) 8%, transparent) !important;
+  color: var(--color-on-strong) !important;
+}
+
+:global(.appointment-detail-page__reschedule-dialog .base-dialog__close:focus-visible) {
+  box-shadow:
+    0 0 0 2px var(--color-surface-strong),
+    0 0 0 4px var(--color-focus) !important;
 }
 
 :global(.appointment-detail-page__reschedule-dialog .base-dialog__content) {
-  padding: 12px 18px 16px;
+  padding: var(--space-5) var(--space-6) var(--space-6);
+}
+
+/* Comparación: lo que hay ahora, una flecha y lo que quedará. */
+.appointment-detail-page__dialog-compare {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+  gap: var(--space-4);
+  align-items: start;
+  padding: var(--space-4);
+  background: color-mix(in srgb, var(--color-on-strong) 5%, transparent);
+  border: 1px solid var(--color-field-strong-border);
+  border-left: 3px solid var(--color-brand-accent-surface);
+}
+
+.appointment-detail-page__dialog-compare .appointment-detail-page__dialog-current,
+.appointment-detail-page__dialog-compare .appointment-detail-page__dialog-preview {
+  color: var(--color-on-strong);
+}
+
+.appointment-detail-page__dialog-compare strong {
+  font-size: var(--font-size-caption);
+  font-weight: 600;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--color-brand-accent-surface);
+}
+
+.appointment-detail-page__dialog-compare span {
+  color: var(--color-on-strong-soft);
+}
+
+.appointment-detail-page__dialog-compare .appointment-detail-page__dialog-arrow {
+  align-self: center;
+  font-size: var(--font-size-title-item);
+  line-height: 1;
+  color: var(--color-brand-accent-surface);
+}
+
+/* Campos reglados sobre tinta, igual que Agenda y el catálogo. */
+.appointment-detail-page__reschedule-form :deep(.base-input) {
+  --input-bg: color-mix(in srgb, var(--color-on-strong) 4%, transparent);
+  --input-border-color: color-mix(in srgb, var(--color-on-strong) 12%, transparent);
+  --input-border-base-color: color-mix(in srgb, var(--color-on-strong) 30%, transparent);
+  --input-focus-ring: 0 0 0 2px var(--color-surface-strong), 0 0 0 4px var(--color-focus);
+
+  color: var(--color-on-strong);
+  color-scheme: dark;
+}
+
+:global(:root[data-app-theme='ivory'])
+  .appointment-detail-page__reschedule-form
+  :deep(.base-input) {
+  color-scheme: light;
+}
+
+.appointment-detail-page__reschedule-form :deep(.base-input__label),
+.appointment-detail-page__reschedule-form :deep(.base-input__required) {
+  color: var(--color-brand-accent-surface);
+}
+
+.appointment-detail-page__reschedule-form
+  :deep(.base-input:hover:not(:disabled):not(.base-input--invalid)) {
+  border-color: color-mix(in srgb, var(--color-on-strong) 26%, transparent);
+}
+
+.appointment-detail-page__reschedule-form :deep(.base-input:disabled) {
+  opacity: 0.45;
+  color: var(--color-on-strong-muted);
+}
+
+.appointment-detail-page__reschedule-form :deep(.base-button) {
+  --btn-focus-ring: 0 0 0 2px var(--color-surface-strong), 0 0 0 4px var(--color-focus);
+}
+
+.appointment-detail-page__reschedule-form :deep(.base-button--primary) {
+  background-color: var(--color-brand-accent-surface);
+  color: var(--color-brand-accent-text);
+  border-color: var(--color-brand-accent-surface);
+}
+
+.appointment-detail-page__reschedule-form :deep(.base-button--secondary) {
+  background-color: transparent;
+  color: var(--color-brand-accent-surface);
+  border-color: color-mix(in srgb, var(--color-brand-accent-surface) 50%, transparent);
+  border-bottom-color: var(--color-brand-accent-surface);
+}
+
+.appointment-detail-page__reschedule-form
+  :deep(.base-button--secondary:hover:not(:disabled):not(.base-button--loading)) {
+  background-color: color-mix(in srgb, var(--color-brand-accent-surface) 12%, transparent);
 }
 
 @media (max-width: 767px) {
@@ -2239,9 +2369,27 @@ function occurredAtLabel(entry: HistoryEntry): string {
     font-size: var(--font-size-title-item);
   }
 
+  .appointment-detail-page__dialog-compare {
+    grid-template-columns: 1fr;
+    gap: var(--space-2);
+  }
+
+  .appointment-detail-page__dialog-arrow {
+    transform: rotate(90deg);
+    justify-self: start;
+  }
+
   .appointment-detail-page__dialog-grid {
     grid-template-columns: 1fr;
     gap: var(--space-3);
+  }
+
+  :global(.appointment-detail-page__reschedule-dialog .base-dialog__header) {
+    padding: var(--space-4) var(--space-4) var(--space-3);
+  }
+
+  :global(.appointment-detail-page__reschedule-dialog .base-dialog__content) {
+    padding: var(--space-4);
   }
 
   .appointment-detail-page__dialog-actions {
