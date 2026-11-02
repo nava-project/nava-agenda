@@ -5,7 +5,8 @@ import { fileURLToPath } from 'node:url'
 /**
  * Rediseño del detalle de turno sobre tinta (HU-064, DEC-146, issue #471). Respuestas simuladas del
  * API: un turno vigente (ficha de pergamino y acciones) y uno terminal (contorno sobre tinta, sin
- * relleno) en 320/360/768/1280 px, sin scroll horizontal y con axe-core (contraste incluido).
+ * relleno) en 320/360/768/1280 px y en los modos Tinta y Marfil (#473), sin scroll horizontal y con
+ * axe-core (contraste incluido).
  * Capturas en e2e/evidence/agenda-detalle/rediseno-471/.
  */
 const here = path.dirname(fileURLToPath(import.meta.url))
@@ -119,32 +120,46 @@ async function expectAccessibleWithoutOverflow(page: Page) {
   expect(violations).toEqual([])
 }
 
+const themes = ['ink', 'ivory'] as const
+
 for (const [label, status] of [
   ['vigente', 'confirmed'],
   ['terminal', 'cancelled_by_customer'],
 ] as const) {
-  for (const viewport of viewports) {
-    test(`detalle de un turno ${label} sobre tinta a ${viewport.name} px`, async ({ page }) => {
-      await page.setViewportSize({ width: viewport.width, height: viewport.height })
-      await installApi(page, status)
-      await page.goto('/panel/turnos/turno-demo?date=2026-11-02&barberId=barbero-demo')
+  for (const theme of themes) {
+    for (const viewport of viewports) {
+      test(`detalle de un turno ${label} en modo ${theme} a ${viewport.name} px`, async ({
+        page,
+      }) => {
+        // El modo se guarda en el dispositivo (DEC-110): se fija antes de que cargue la app.
+        await page.addInitScript((mode) => {
+          window.localStorage.setItem('nava.appearance.v1', JSON.stringify({ theme: mode }))
+        }, theme)
+        await page.setViewportSize({ width: viewport.width, height: viewport.height })
+        await installApi(page, status)
+        await page.goto('/panel/turnos/turno-demo?date=2026-11-02&barberId=barbero-demo')
 
-      await expect(page.getByRole('heading', { name: 'Valentina Pardo', level: 1 })).toBeVisible()
-      await expect(page.getByText('Turno reprogramado')).toBeVisible()
-      // La franja de tiempo es decorativa; la hora completa sigue dicha en su fila.
-      await expect(page.getByText('· Zona America/Bogota')).toBeVisible()
-      await expect(page.getByRole('button', { name: 'Corregir resultado' })).toHaveCount(
-        status === 'confirmed' ? 0 : 1,
-      )
-      await expect(page.getByRole('button', { name: 'Cancelar turno' })).toHaveCount(
-        status === 'confirmed' ? 1 : 0,
-      )
+        await expect(page.getByRole('heading', { name: 'Valentina Pardo', level: 1 })).toBeVisible()
+        await expect(page.getByText('Turno reprogramado')).toBeVisible()
+        // La franja de tiempo es decorativa; la hora completa sigue dicha en su fila.
+        await expect(page.getByText('· Zona America/Bogota')).toBeVisible()
+        await expect(page.getByRole('button', { name: 'Corregir resultado' })).toHaveCount(
+          status === 'confirmed' ? 0 : 1,
+        )
+        await expect(page.getByRole('button', { name: 'Cancelar turno' })).toHaveCount(
+          status === 'confirmed' ? 1 : 0,
+        )
 
-      await expectAccessibleWithoutOverflow(page)
-      await page.screenshot({
-        path: path.join(evidenceDir, `detalle-${label}-${viewport.name}.png`),
-        fullPage: true,
+        await expect(page.locator('html')).toHaveAttribute(
+          'data-app-theme',
+          theme === 'ivory' ? 'ivory' : /.*/,
+        )
+        await expectAccessibleWithoutOverflow(page)
+        await page.screenshot({
+          path: path.join(evidenceDir, `detalle-${label}-${theme}-${viewport.name}.png`),
+          fullPage: true,
+        })
       })
-    })
+    }
   }
 }
