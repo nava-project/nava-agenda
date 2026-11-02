@@ -1011,11 +1011,11 @@ function occurredAtLabel(entry: HistoryEntry): string {
         v-model="isRescheduleOpen"
         title="Reprogramar turno"
         size="md"
-        content-class="appointment-detail-page__reschedule-dialog"
+        content-class="appointment-detail-page__ink-dialog appointment-detail-page__ink-dialog--wide"
         @close="onRescheduleDialogClosed"
       >
         <form
-          class="appointment-detail-page__dialog-form appointment-detail-page__reschedule-form"
+          class="appointment-detail-page__dialog-form appointment-detail-page__ink-form"
           novalidate
           @submit.prevent="onSubmitReschedule"
         >
@@ -1141,9 +1141,10 @@ function occurredAtLabel(entry: HistoryEntry): string {
         v-model="isCancelOpen"
         title="Cancelar turno"
         size="md"
+        content-class="appointment-detail-page__ink-dialog appointment-detail-page__ink-dialog--danger"
         @close="onCancelDialogClosed"
       >
-        <div class="appointment-detail-page__dialog-form">
+        <div class="appointment-detail-page__dialog-form appointment-detail-page__ink-form">
           <BaseAlert
             v-if="cancelStatus === 'version-conflict'"
             variant="warning"
@@ -1196,8 +1197,9 @@ function occurredAtLabel(entry: HistoryEntry): string {
 
           <p class="appointment-detail-page__cancel-copy">
             Vas a cancelar el turno de <strong>{{ detail.attendeeName }}</strong> el
-            {{ timeRangeLabel }}. Si es una hora futura, la franja queda disponible de inmediato
-            para otro turno. Esta acción no se puede deshacer desde aquí.
+            {{ timeRangeLabel }}{{ timeRangeLabel.endsWith('.') ? '' : '.' }} Si es una hora futura,
+            la franja queda disponible de inmediato para otro turno. Esta acción no se puede
+            deshacer desde aquí.
           </p>
 
           <div class="appointment-detail-page__dialog-actions">
@@ -2155,46 +2157,55 @@ function occurredAtLabel(entry: HistoryEntry): string {
    diálogos del catálogo. Las reglas son globales porque BaseDialog se teletransporta a
    <body> y pierde el ancestro de ámbito; !important porque su propia regla tiene igual
    especificidad. Solo afecta a esta tarjeta (clase exclusiva de la pantalla). */
-:global(.appointment-detail-page__reschedule-dialog.base-dialog) {
-  width: min(100%, 620px) !important;
+:global(.appointment-detail-page__ink-dialog.base-dialog) {
+  width: min(100%, 520px) !important;
   background-color: var(--color-surface-strong) !important;
   border: 1px solid var(--color-field-strong-border) !important;
   border-top: 3px solid var(--color-brand-accent-surface) !important;
   box-shadow: 0 28px 60px -24px rgb(0 0 0 / 55%) !important;
 }
 
-:global(.appointment-detail-page__reschedule-dialog.base-dialog .base-dialog__container) {
+:global(.appointment-detail-page__ink-dialog--wide.base-dialog) {
+  width: min(100%, 620px) !important;
+}
+
+/* Cancelar: el filete superior y los acentos pasan al color de peligro (§6.7). */
+:global(.appointment-detail-page__ink-dialog--danger.base-dialog) {
+  border-top-color: var(--color-danger-on-strong) !important;
+}
+
+:global(.appointment-detail-page__ink-dialog.base-dialog .base-dialog__container) {
   max-width: none !important;
 }
 
-:global(.appointment-detail-page__reschedule-dialog .base-dialog__header) {
+:global(.appointment-detail-page__ink-dialog .base-dialog__header) {
   padding: var(--space-5) var(--space-6) var(--space-4);
   border-bottom: 1px solid var(--color-field-strong-border) !important;
 }
 
-:global(.appointment-detail-page__reschedule-dialog .base-dialog__title) {
+:global(.appointment-detail-page__ink-dialog .base-dialog__title) {
   font-family: var(--font-display);
   font-size: var(--font-size-title-item);
   font-weight: 400;
   color: var(--color-on-strong) !important;
 }
 
-:global(.appointment-detail-page__reschedule-dialog .base-dialog__close) {
+:global(.appointment-detail-page__ink-dialog .base-dialog__close) {
   color: var(--color-on-strong-muted) !important;
 }
 
-:global(.appointment-detail-page__reschedule-dialog .base-dialog__close:hover) {
+:global(.appointment-detail-page__ink-dialog .base-dialog__close:hover) {
   background-color: color-mix(in srgb, var(--color-on-strong) 8%, transparent) !important;
   color: var(--color-on-strong) !important;
 }
 
-:global(.appointment-detail-page__reschedule-dialog .base-dialog__close:focus-visible) {
+:global(.appointment-detail-page__ink-dialog .base-dialog__close:focus-visible) {
   box-shadow:
     0 0 0 2px var(--color-surface-strong),
     0 0 0 4px var(--color-focus) !important;
 }
 
-:global(.appointment-detail-page__reschedule-dialog .base-dialog__content) {
+:global(.appointment-detail-page__ink-dialog .base-dialog__content) {
   padding: var(--space-5) var(--space-6) var(--space-6);
 }
 
@@ -2235,7 +2246,7 @@ function occurredAtLabel(entry: HistoryEntry): string {
 }
 
 /* Campos reglados sobre tinta, igual que Agenda y el catálogo. */
-.appointment-detail-page__reschedule-form :deep(.base-input) {
+.appointment-detail-page__ink-form :deep(.base-input) {
   --input-bg: color-mix(in srgb, var(--color-on-strong) 4%, transparent);
   --input-border-color: color-mix(in srgb, var(--color-on-strong) 12%, transparent);
   --input-border-base-color: color-mix(in srgb, var(--color-on-strong) 30%, transparent);
@@ -2245,45 +2256,70 @@ function occurredAtLabel(entry: HistoryEntry): string {
   color-scheme: dark;
 }
 
-:global(:root[data-app-theme='ivory'])
-  .appointment-detail-page__reschedule-form
-  :deep(.base-input) {
+:global(:root[data-app-theme='ivory']) .appointment-detail-page__ink-form :deep(.base-input) {
   color-scheme: light;
 }
 
-.appointment-detail-page__reschedule-form :deep(.base-input__label),
-.appointment-detail-page__reschedule-form :deep(.base-input__required) {
+.appointment-detail-page__ink-form :deep(.base-input__label),
+.appointment-detail-page__ink-form :deep(.base-input__required) {
   color: var(--color-brand-accent-surface);
 }
 
-.appointment-detail-page__reschedule-form
+.appointment-detail-page__ink-form
   :deep(.base-input:hover:not(:disabled):not(.base-input--invalid)) {
   border-color: color-mix(in srgb, var(--color-on-strong) 26%, transparent);
 }
 
-.appointment-detail-page__reschedule-form :deep(.base-input:disabled) {
+.appointment-detail-page__ink-form :deep(.base-input:disabled) {
   opacity: 0.45;
   color: var(--color-on-strong-muted);
 }
 
-.appointment-detail-page__reschedule-form :deep(.base-button) {
+.appointment-detail-page__ink-form :deep(.base-button) {
   --btn-focus-ring: 0 0 0 2px var(--color-surface-strong), 0 0 0 4px var(--color-focus);
 }
 
-.appointment-detail-page__reschedule-form :deep(.base-button--primary) {
+.appointment-detail-page__ink-form :deep(.base-button--primary) {
   background-color: var(--color-brand-accent-surface);
   color: var(--color-brand-accent-text);
   border-color: var(--color-brand-accent-surface);
 }
 
-.appointment-detail-page__reschedule-form :deep(.base-button--secondary) {
+/* Resumen del turno a cancelar: bloque rebajado con filete de peligro. */
+.appointment-detail-page__ink-form .appointment-detail-page__cancel-copy {
+  padding: var(--space-4);
+  color: var(--color-on-strong-soft);
+  background: color-mix(in srgb, var(--color-on-strong) 5%, transparent);
+  border: 1px solid var(--color-field-strong-border);
+  border-left: 3px solid var(--color-danger-on-strong);
+}
+
+.appointment-detail-page__ink-form .appointment-detail-page__cancel-copy strong {
+  color: var(--color-on-strong);
+}
+
+/* Acción destructiva: contorno y texto de peligro, sin relleno, como «Desactivar» del catálogo. */
+.appointment-detail-page__ink-form :deep(.base-button--danger) {
+  background-color: transparent;
+  color: var(--color-danger-on-strong);
+  border-color: color-mix(in srgb, var(--color-danger-on-strong) 50%, transparent);
+  border-bottom-color: var(--color-danger-on-strong);
+}
+
+.appointment-detail-page__ink-form
+  :deep(.base-button--danger:hover:not(:disabled):not(.base-button--loading)) {
+  background-color: color-mix(in srgb, var(--color-danger-on-strong) 14%, transparent);
+  filter: none;
+}
+
+.appointment-detail-page__ink-form :deep(.base-button--secondary) {
   background-color: transparent;
   color: var(--color-brand-accent-surface);
   border-color: color-mix(in srgb, var(--color-brand-accent-surface) 50%, transparent);
   border-bottom-color: var(--color-brand-accent-surface);
 }
 
-.appointment-detail-page__reschedule-form
+.appointment-detail-page__ink-form
   :deep(.base-button--secondary:hover:not(:disabled):not(.base-button--loading)) {
   background-color: color-mix(in srgb, var(--color-brand-accent-surface) 12%, transparent);
 }
@@ -2384,11 +2420,11 @@ function occurredAtLabel(entry: HistoryEntry): string {
     gap: var(--space-3);
   }
 
-  :global(.appointment-detail-page__reschedule-dialog .base-dialog__header) {
+  :global(.appointment-detail-page__ink-dialog .base-dialog__header) {
     padding: var(--space-4) var(--space-4) var(--space-3);
   }
 
-  :global(.appointment-detail-page__reschedule-dialog .base-dialog__content) {
+  :global(.appointment-detail-page__ink-dialog .base-dialog__content) {
     padding: var(--space-4);
   }
 
@@ -2397,7 +2433,7 @@ function occurredAtLabel(entry: HistoryEntry): string {
     grid-template-columns: 1fr 1fr;
   }
 
-  :global(.appointment-detail-page__reschedule-dialog .base-dialog__container) {
+  :global(.appointment-detail-page__ink-dialog .base-dialog__container) {
     max-height: calc(100vh / var(--ui-zoom, 1) - 20px);
   }
 }
