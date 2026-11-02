@@ -1,6 +1,6 @@
 ---
 titulo: "Estándar visual NAVA para rediseños y pantallas nuevas"
-version: "5.9"
+version: "5.10"
 estado: "Normativo para rediseños y pantallas nuevas"
 responsable: "Propietario del proyecto"
 ultima_actualizacion: "2026-11-02"
@@ -295,7 +295,7 @@ Ningún texto visible baja de 12 px; el monograma decorativo de un retrato peque
 `DEC-146`, issue #471. Identidad guiada sobre la tinta del cascarón (`background: transparent`, §6.13).
 
 - **Cabecera:** enlace de retorno y rótulo «Detalle del turno» en versalitas de latón, retrato cuadrado con monograma (§6.7), nombre en serif (`--font-size-title-page`) y la palabra de estado con el color del estado de la agenda (pendiente, completado, no se presentó, cancelado), siempre con su texto. Las acciones usan la familia del panel: principal en latón lleno, secundarias con filete de latón y cancelar en el peligro elevado `--color-danger-on-strong`; en móvil se apilan a ancho completo.
-- **Ficha:** cinta métrica de latón en el borde superior, filete lateral de 4 px del color del estado y una franja de tiempo decorativa (hora de inicio, regla con rombos y la duración, hora de fin; `aria-hidden`). Los hechos son filas regladas con el rótulo en versalitas de latón; sin iconos sueltos. Un turno vigente es de pergamino (`--color-surface-muted`); uno terminal cambia de material a contorno sobre tinta (§6.7).
+- **Ficha:** cinta métrica de latón en el borde superior, filete lateral de 4 px del color del estado y una franja de tiempo decorativa (hora de inicio, regla con rombos y la duración, hora de fin; `aria-hidden`). Los hechos son filas regladas con el rótulo en versalitas de latón; sin iconos sueltos. La ficha usa los tokens de superficie sobre tinta (`--color-on-strong*` y el acento de marca), por lo que sigue los modos Tinta, Marfil y Automático (§6.9): un turno vigente lleva un velo tenue del color del texto con contorno; uno terminal cambia de material a contorno puro del color del estado (§6.7).
 - **Historial:** línea de tiempo con marcas cuadradas de filete de latón, la más reciente llena; sin eventos, un rombo hueco y el texto de siempre. En móvil pasa bajo la ficha.
 - **Movimiento:** utilidades `nv-*` (§6.11) y la cinta y la regla se dibujan con `clip-path`; `prefers-reduced-motion` y `data-motion="reduced"` lo dejan compuesto. Los diálogos (reprogramar, cancelar, cerrar, corregir) no cambian.
 

@@ -1693,29 +1693,29 @@ function occurredAtLabel(entry: HistoryEntry): string {
 
 /* ── Ficha del turno ────────────────────────────────────────────────────── */
 
-/* Pergamino para un turno vigente; contorno sobre tinta para uno terminal. */
+/* Superficies sobre tinta: la ficha usa los tokens que el modo Marfil ya redefine
+   (`--color-on-strong*`, acento de marca), así que en Tinta es oscura, en Marfil
+   clara y en Automático sigue al sistema, sin hoja de estilos paralela (§6.9).
+   Un turno vigente lleva un velo tenue del color del texto; uno terminal cambia de
+   material a contorno puro con el color del estado (§6.7). */
 .appointment-detail-page__sheet {
-  --sx-text: var(--color-text-primary);
-  --sx-muted: var(--color-text-secondary);
-  --sx-label: var(--color-accent-brass);
-  --sx-line: color-mix(in srgb, var(--color-text-primary) 16%, transparent);
-
-  position: relative;
-  min-width: 0;
-  background-color: var(--color-surface-muted);
-  border-left: 4px solid var(--tone);
-  border-radius: 0 0 2px 2px;
-}
-
-.appointment-detail-page__sheet--terminal {
   --sx-text: var(--color-on-strong);
   --sx-muted: var(--color-on-strong-soft);
   --sx-label: var(--color-brand-accent-surface);
   --sx-line: var(--rule);
 
-  background-color: color-mix(in srgb, var(--tone) 6%, transparent);
-  border: 1px solid color-mix(in srgb, var(--tone) 45%, transparent);
+  position: relative;
+  min-width: 0;
+  background-color: color-mix(in srgb, var(--color-on-strong) 5%, transparent);
+  border: 1px solid color-mix(in srgb, var(--color-on-strong) 18%, transparent);
   border-left: 4px solid var(--tone);
+  border-radius: 0 0 2px 2px;
+}
+
+.appointment-detail-page__sheet--terminal {
+  background-color: transparent;
+  border-color: color-mix(in srgb, var(--tone) 45%, transparent);
+  border-left-color: var(--tone);
 }
 
 /* Cinta métrica de latón en el borde superior: marcas cada 10 px y una más larga
