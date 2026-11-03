@@ -386,6 +386,79 @@ describe('SeriesFormDialog · alta por días · fechas elegidas', () => {
   })
 })
 
+describe('SeriesFormDialog · edición de una ficha con varios días (#499)', () => {
+  const days = [1, 3, 5].map((isoWeekday) => ({ ...weekly, id: `ser-${isoWeekday}`, isoWeekday }))
+  function mountGroup() {
+    return mount(SeriesFormDialog, {
+      props: {
+        modelValue: true,
+        mode: 'edit',
+        barberId: 'b-1',
+        barberName: 'Alex',
+        series: days[0]!,
+        group: days,
+        today: '2099-01-01',
+      },
+      global,
+    })
+  }
+
+  it('says how many days change and summarizes them', () => {
+    const wrapper = mountGroup()
+
+    expect(wrapper.text()).toContain('los 3 días de este bloqueo')
+    expect(wrapper.text()).toContain('Lunes, miércoles y viernes')
+  })
+
+  it('updates every day with the same values and emits each result', async () => {
+    updateTimeBlockSeriesMock.mockImplementation(async (_b: string, id: string) => ({
+      kind: 'success',
+      series: { ...weekly, id },
+    }))
+    const wrapper = mountGroup()
+
+    await wrapper.get('form').trigger('submit')
+    await flushPromises()
+
+    expect(updateTimeBlockSeriesMock.mock.calls.map((call) => call[1])).toEqual([
+      'ser-1',
+      'ser-3',
+      'ser-5',
+    ])
+    expect(
+      new Set(updateTimeBlockSeriesMock.mock.calls.map((call) => JSON.stringify(call[2]))).size,
+    ).toBe(1)
+    expect(wrapper.emitted('updated')).toHaveLength(3)
+    expect(wrapper.emitted('update:modelValue')?.at(-1)).toEqual([false])
+  })
+
+  it('on a partial failure keeps the dialog open and retries only the pending days', async () => {
+    updateTimeBlockSeriesMock
+      .mockResolvedValueOnce({ kind: 'success', series: { ...weekly, id: 'ser-1' } })
+      .mockResolvedValueOnce({ kind: 'network-error' })
+    const wrapper = mountGroup()
+
+    await wrapper.get('form').trigger('submit')
+    await flushPromises()
+
+    expect(wrapper.emitted('updated')).toHaveLength(1)
+    expect(wrapper.emitted('update:modelValue')).toBeUndefined()
+    expect(wrapper.text()).toContain('Se actualizaron 1 de 3 días')
+
+    updateTimeBlockSeriesMock.mockReset()
+    updateTimeBlockSeriesMock.mockImplementation(async (_b: string, id: string) => ({
+      kind: 'success',
+      series: { ...weekly, id },
+    }))
+    await wrapper.get('form').trigger('submit')
+    await flushPromises()
+
+    expect(updateTimeBlockSeriesMock.mock.calls.map((call) => call[1])).toEqual(['ser-3', 'ser-5'])
+    expect(wrapper.emitted('updated')).toHaveLength(3)
+    expect(wrapper.emitted('update:modelValue')?.at(-1)).toEqual([false])
+  })
+})
+
 describe('SeriesFormDialog · edición', () => {
   function mountEdit(series: TimeBlockSeries) {
     return mount(SeriesFormDialog, {

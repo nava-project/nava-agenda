@@ -32,7 +32,7 @@ import {
   type BlockType,
   type TimeBlockSeries,
 } from '../model/timeBlock'
-import { weekdayLabel } from '../model/workingHour'
+import { describeWeekdays, joinWeekdayNames, weekdayLabel } from '../model/workingHour'
 import WeekdayMultiPicker from './WeekdayMultiPicker.vue'
 import { validateDurationMinutes } from '../validation/scheduleValidation'
 import { durationBetween, minutesToTime, timeToMinutes } from '../model/weekBoard'
@@ -60,6 +60,9 @@ const props = defineProps<{
   barberId: string
   barberName: string
   series?: TimeBlockSeries | null
+  // Edición de una ficha que agrupa varios días (#499): todas las series del grupo,
+  // incluida `series`. El cambio se aplica a cada una con los mismos valores.
+  group?: TimeBlockSeries[] | null
   today: string | null
 }>()
 const emit = defineEmits<{
@@ -75,6 +78,13 @@ const uid = useId()
 const toast = useToast()
 const isEdit = computed(() => props.mode === 'edit')
 const isWeekly = computed(() => props.series?.recurrenceKind === 'weekly')
+const targets = computed(() =>
+  props.group && props.group.length > 1 ? props.group : props.series ? [props.series] : [],
+)
+const isGroupEdit = computed(() => isEdit.value && targets.value.length > 1)
+// Series del grupo que aún faltan por actualizar: tras un fallo parcial el reintento
+// solo toca las pendientes.
+const pendingTargets = ref<TimeBlockSeries[]>([])
 
 // Valores iniciales por modo: una pausa semanal suele ser una franja (almuerzo) y
 // un bloqueo por fechas suele ser de día completo (vacaciones, día libre).
@@ -121,7 +131,9 @@ const title = computed(() =>
 )
 const description = computed(() =>
   isEdit.value
-    ? `Cambia el tipo, la hora o la vigencia de esta serie de ${props.barberName}.`
+    ? isGroupEdit.value
+      ? `Cambia el tipo, la hora o la vigencia de los ${targets.value.length} días de este bloqueo de ${props.barberName}.`
+      : `Cambia el tipo, la hora o la vigencia de esta serie de ${props.barberName}.`
     : `Elige si se repite cada semana o solo ocurre en fechas concretas, para ${props.barberName}.`,
 )
 const isWeeklyCreate = computed(() => !isEdit.value && repeat.value === 'weekly')
@@ -142,6 +154,7 @@ function reset() {
   splitDate.value = ''
   idempotencyKey = newIdempotencyKey()
   weekdayKeys.clear()
+  pendingTargets.value = [...targets.value]
   const current = props.series
   if (isEdit.value && current) {
     blockType.value = current.blockType
@@ -211,21 +224,20 @@ function removePendingDate(date: string) {
   dates.value = dates.value.filter((item) => item !== date)
 }
 
-// «lunes, miércoles y viernes»
-function joinDays(days: number[]): string {
-  const names = days.map((day) => weekdayLabel(day).toLowerCase())
-  if (names.length <= 1) return names.join('')
-  return `${names.slice(0, -1).join(', ')} y ${names[names.length - 1]}`
-}
-
 const summary = computed(() => {
   const kind = blockTypeLabel(blockType.value)
   const clock = `${startsTime.value || '—'} → ${endsTime.value || '—'}`
   if (isEdit.value && isWeekly.value && props.series?.isoWeekday) {
-    return `${kind} · ${weekdayLabel(props.series.isoWeekday)} · ${clock}`
+    const days = isGroupEdit.value
+      ? describeWeekdays(
+          targets.value.flatMap((item) => (item.isoWeekday ? [item.isoWeekday] : [])),
+        )
+      : weekdayLabel(props.series.isoWeekday)
+    return `${kind} · ${days} · ${clock}`
   }
   if (isWeeklyCreate.value) {
-    const days = weekdays.value.length > 0 ? `cada ${joinDays(weekdays.value)}` : 'elige los días'
+    const days =
+      weekdays.value.length > 0 ? `cada ${joinWeekdayNames(weekdays.value)}` : 'elige los días'
     return `${kind} · ${days} · ${clock}`
   }
   if (isDatesCreate.value) {
@@ -325,18 +337,27 @@ async function onSubmit() {
     return
   }
 
-  const current = props.series
-  if (!current) return
+  if (!props.series) return
   const cut = splitting.value ? splitDate.value : null
-  const outcome = await updateTimeBlockSeries(
-    props.barberId,
-    current.id,
-    { ...common, effectiveFrom: cut ?? effectiveFrom.value },
-    cut ? { effectiveDate: cut } : null,
-  )
-  if (outcome.kind === 'success') {
+  const done: TimeBlockSeries[] = []
+  let failure: Exclude<SaveStatus, 'idle' | 'saving'> | null = null
+  for (const target of [...pendingTargets.value]) {
+    const outcome = await updateTimeBlockSeries(
+      props.barberId,
+      target.id,
+      { ...common, effectiveFrom: cut ?? effectiveFrom.value },
+      cut ? { effectiveDate: cut } : null,
+    )
+    if (outcome.kind !== 'success') {
+      failure = outcome.kind
+      break
+    }
+    done.push(target)
+    pendingTargets.value = pendingTargets.value.filter((item) => item.id !== target.id)
+    emit('updated', { originalId: target.id, series: outcome.series, splitFrom: cut })
+  }
+  if (failure === null) {
     status.value = 'idle'
-    emit('updated', { originalId: current.id, series: outcome.series, splitFrom: cut })
     emit('update:modelValue', false)
     toast.success(cut ? 'Serie dividida' : 'Serie actualizada', {
       detail: cut
@@ -345,7 +366,10 @@ async function onSubmit() {
     })
     return
   }
-  fail(outcome.kind)
+  if (done.length > 0) {
+    error.value = `Se actualizaron ${done.length} de ${done.length + pendingTargets.value.length} días. Inténtalo de nuevo para el resto.`
+  }
+  fail(failure)
 }
 
 async function createWeekly(common: {
@@ -385,14 +409,14 @@ async function createWeekly(common: {
   if (failure === null) {
     status.value = 'idle'
     emit('update:modelValue', false)
-    toast.success('Bloqueo agregado', { detail: `Se repite cada ${joinDays(created)}.` })
+    toast.success('Bloqueo agregado', { detail: `Se repite cada ${joinWeekdayNames(created)}.` })
     return
   }
   // Fallo a medias: lo creado ya está en el calendario; quedan marcados solo los
   // días pendientes para reintentarlos sin duplicar.
   if (created.length > 0) {
     weekdays.value = weekdays.value.filter((day) => !created.includes(day))
-    error.value = `Ya se agregó cada ${joinDays(created)}. No pudimos guardar el resto: ${joinDays(weekdays.value)}. Inténtalo de nuevo.`
+    error.value = `Ya se agregó cada ${joinWeekdayNames(created)}. No pudimos guardar el resto: ${joinWeekdayNames(weekdays.value)}. Inténtalo de nuevo.`
   }
   fail(failure)
 }

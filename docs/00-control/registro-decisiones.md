@@ -1827,3 +1827,18 @@ Cada código `DEC-*` es estable y no se reutiliza. Este registro normaliza respu
 - **Alternativas descartadas:** ampliar el API para aceptar varios días en una sola serie (migración y contrato nuevos para algo que la interfaz resuelve con una serie por día); mantener dos botones con el mismo formulario (conserva la confusión).
 - **Documentos afectados:** `historial-cambios.md`, `apps/web/src/modules/schedules/components/SeriesFormDialog.vue`, `WeekdayMultiPicker.vue`, `BarberBlocksPanel.vue` y sus pruebas.
 - **Fuente:** `DEC-020`, `HU-042`, `RN-BLQ-01`, `RN-IDE-01`; issue [#495](https://github.com/bcaceres19/barberia/issues/495).
+
+### DEC-148 · Las series semanales similares se muestran agrupadas
+
+- **Fecha:** 2026-11-03.
+- **Decisión:**
+  1. **Una ficha por bloqueo, no por día.** En «Series de bloqueo» las series semanales con el mismo tipo, hora de inicio, duración, vigencia y motivo se muestran como una sola ficha con sus días («Lunes a viernes · 13:00 · 60 min») y una tira L M X J V S D. Es solo presentación: sigue habiendo una serie por día en el API (`DEC-147`). Las series por fechas no se agrupan, y los bloqueos puntuales tampoco.
+  2. **Acciones sobre el grupo.** «Editar» aplica los mismos valores a todas las series de la ficha (incluido «esta fecha y las siguientes»); «Retirar todo» retira todas. «Días» despliega cada día con sus acciones propias («Excepciones» y «Retirar»), porque las excepciones siguen siendo por día. Una serie sin similares conserva su ficha y sus acciones de siempre.
+  3. **Lote a medias.** Si una acción por lote falla en algunos días, lo hecho se conserva, se informa cuántos días se completaron y el reintento solo toca los pendientes (editar: el diálogo sigue abierto con los pendientes; retirar: el aviso ofrece «Reintentar»).
+  4. **Sin cambios de contrato ni de reglas** (`HU-042`, `RN-BLQ-01`–`RN-BLQ-04`). Si después se cambia una serie de la ficha por separado (por ejemplo, su hora), deja de coincidir y pasa a verse aparte.
+- **Quién lo decidió:** el propietario, el 2026-11-03: «Me gustaría que los bloqueos similares se agrupen y no se coloquen como individuales, así evitamos que se sobrecargue esto de cosas o tarjetas».
+- **Responsable:** propietario del proyecto.
+- **Motivo:** marcar varios días creaba una tarjeta casi idéntica por día y la lista se saturaba.
+- **Alternativas descartadas:** unir las series en una sola con varios días en el API (migración y contrato nuevos); agrupar también los bloqueos puntuales (no comparten un patrón semanal; se evalúa si hace falta).
+- **Documentos afectados:** `historial-cambios.md`, `apps/web/src/modules/schedules/model/seriesGroups.ts`, `BarberBlocksPanel.vue`, `SeriesFormDialog.vue` y sus pruebas.
+- **Fuente:** `DEC-147`, `HU-042`, `RN-BLQ-01`; issue [#499](https://github.com/bcaceres19/barberia/issues/499).

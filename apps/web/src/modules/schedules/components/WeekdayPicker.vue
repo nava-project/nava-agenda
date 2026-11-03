@@ -6,7 +6,7 @@
  * nombre accesible de cada ficha es el día completo, no la inicial.
  */
 import { ref, useId } from 'vue'
-import { ISO_WEEKDAYS } from '../model/workingHour'
+import { ISO_WEEKDAYS, WEEKDAY_INITIALS } from '../model/workingHour'
 
 interface Props {
   modelValue: number
@@ -22,9 +22,6 @@ const uid = useId()
 const labelId = `weekday-label-${uid}`
 const errorId = `weekday-error-${uid}`
 const buttons = ref<HTMLButtonElement[]>([])
-
-// X para miércoles: M ya es martes y la inicial repetida confundiría.
-const SHORT: Record<number, string> = { 1: 'L', 2: 'M', 3: 'X', 4: 'J', 5: 'V', 6: 'S', 7: 'D' }
 
 function choose(value: number) {
   if (props.disabled) return
@@ -71,7 +68,7 @@ function onKeydown(event: KeyboardEvent, index: number) {
         @click="choose(day.value)"
         @keydown="onKeydown($event, index)"
       >
-        {{ SHORT[day.value] }}
+        {{ WEEKDAY_INITIALS[day.value] }}
       </button>
     </div>
     <p v-if="error" :id="errorId" class="weekday-picker__error" role="alert">{{ error }}</p>

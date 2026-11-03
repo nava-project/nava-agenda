@@ -36,7 +36,13 @@ import {
   type TimeBlock,
   type TimeBlockSeries,
 } from '../model/timeBlock'
-import { weekdayLabel } from '../model/workingHour'
+import {
+  describeWeekdays,
+  ISO_WEEKDAYS,
+  WEEKDAY_INITIALS,
+  weekdayLabel,
+} from '../model/workingHour'
+import { groupSeries, type SeriesGroup } from '../model/seriesGroups'
 import {
   validateBlockInterval,
   validateInstant,
@@ -87,6 +93,9 @@ const pendingDeleteSeriesIds = ref<Set<string>>(new Set())
 // de mostrarse aquí sin desaparecer del sistema.
 const visibleBlocks = computed(() => blocks.value.filter((b) => !b.deletedAt))
 const activeSeries = computed(() => series.value.filter((s) => !s.deletedAt))
+// Las series semanales que solo se distinguen por el día se muestran en una ficha (#499).
+const seriesGroups = computed(() => groupSeries(activeSeries.value))
+const expandedGroups = ref<Set<string>>(new Set())
 
 const toast = useToast()
 const v = useVocabulary()
@@ -357,10 +366,69 @@ async function onDeleteSeries(item: TimeBlockSeries) {
   })
 }
 
+// Retira todos los días de una ficha agrupada. Los que fallan se quedan en la lista
+// (la ficha se encoge) y el aviso ofrece reintentar solo esos.
+async function onDeleteGroup(group: SeriesGroup) {
+  const barberId = selectedBarberId.value
+  if (group.items.length === 1) return onDeleteSeries(group.items[0]!)
+  if (!barberId) return
+  const items = group.items.filter((item) => !pendingDeleteSeriesIds.value.has(item.id))
+  if (items.length === 0) return
+  const marked = new Set(pendingDeleteSeriesIds.value)
+  for (const item of items) marked.add(item.id)
+  pendingDeleteSeriesIds.value = marked
+
+  const outcomes = await Promise.all(items.map((item) => deleteTimeBlockSeries(barberId, item.id)))
+  const unmarked = new Set(pendingDeleteSeriesIds.value)
+  for (const item of items) unmarked.delete(item.id)
+  pendingDeleteSeriesIds.value = unmarked
+
+  const retired = new Set<string>()
+  const failed: TimeBlockSeries[] = []
+  items.forEach((item, index) => {
+    const kind = outcomes[index]!.kind
+    if (kind === 'success' || kind === 'not-found') retired.add(item.id)
+    else failed.push(item)
+  })
+  if (retired.size > 0) {
+    requestToken++
+    series.value = series.value.filter((s) => !retired.has(s.id))
+  }
+  if (failed.length === 0) {
+    toast.success('Bloqueo retirado', { detail: `Se retiraron los ${items.length} días.` })
+    return
+  }
+  toast.error('No pudimos retirar todos los días', {
+    detail:
+      retired.size > 0
+        ? `Se retiraron ${retired.size} de ${items.length}. Revisa tu conexión e inténtalo de nuevo.`
+        : 'Revisa tu conexión e inténtalo de nuevo.',
+    action: {
+      label: 'Reintentar',
+      icon: 'retry',
+      run: () => void onDeleteGroup({ ...group, items: failed }),
+    },
+  })
+}
+
+function groupName(group: SeriesGroup): string {
+  const first = group.items[0]!
+  return group.items.length > 1
+    ? `${blockTypeLabel(first.blockType)} ${describeWeekdays(group.weekdays).toLowerCase()}`
+    : seriesName(first)
+}
+
+function toggleGroup(key: string) {
+  const next = new Set(expandedGroups.value)
+  if (!next.delete(key)) next.add(key)
+  expandedGroups.value = next
+}
+
 // --- Bloqueo por días (semanal o fechas), edición y excepciones (#100, #495) ---------------------
 
 const isCreateDaysOpen = ref(false)
 const editingSeries = ref<TimeBlockSeries | null>(null)
+const editingGroup = ref<TimeBlockSeries[] | null>(null)
 const isEditOpen = ref(false)
 const managingSeriesId = ref<string | null>(null)
 const isInstancesOpen = ref(false)
@@ -373,8 +441,9 @@ function onSeriesCreated(created: TimeBlockSeries) {
   series.value.push(created)
 }
 
-function openEditSeries(item: TimeBlockSeries) {
-  editingSeries.value = item
+function openEditSeries(group: SeriesGroup) {
+  editingSeries.value = group.items[0]!
+  editingGroup.value = group.items.length > 1 ? group.items : null
   isEditOpen.value = true
 }
 
@@ -628,61 +697,122 @@ function seriesCounts(item: TimeBlockSeries): string {
               class="blocks-panel__list"
               aria-label="Series de bloqueo"
             >
-              <li v-for="item in activeSeries" :key="item.id" class="blocks-panel__record">
+              <li v-for="group in seriesGroups" :key="group.key" class="blocks-panel__record">
                 <div class="blocks-panel__record-top">
-                  <strong>{{ blockTypeLabel(item.blockType) }}</strong
+                  <strong>{{ blockTypeLabel(group.items[0]!.blockType) }}</strong
                   ><span class="blocks-panel__stamp">{{
-                    item.recurrenceKind === 'weekly' ? 'Semanal' : 'Fechas'
+                    group.items[0]!.recurrenceKind === 'weekly' ? 'Semanal' : 'Fechas'
                   }}</span>
                 </div>
+                <ul
+                  v-if="group.items[0]!.recurrenceKind === 'weekly'"
+                  class="blocks-panel__week"
+                  aria-hidden="true"
+                >
+                  <li
+                    v-for="day in ISO_WEEKDAYS"
+                    :key="day.value"
+                    :class="{ 'blocks-panel__week-day--on': group.weekdays.includes(day.value) }"
+                  >
+                    {{ WEEKDAY_INITIALS[day.value] }}
+                  </li>
+                </ul>
                 <p class="blocks-panel__interval">
-                  <template v-if="item.recurrenceKind === 'weekly' && item.isoWeekday"
-                    >{{ weekdayLabel(item.isoWeekday) }} · {{ item.startsTime }} ·
-                    {{ item.durationMinutes }} min</template
+                  <template v-if="group.items[0]!.recurrenceKind === 'weekly'"
+                    >{{ describeWeekdays(group.weekdays) }} · {{ group.items[0]!.startsTime }} ·
+                    {{ group.items[0]!.durationMinutes }} min</template
                   ><template v-else
-                    >Lista de fechas · {{ item.startsTime }} ·
-                    {{ item.durationMinutes }} min</template
+                    >Lista de fechas · {{ group.items[0]!.startsTime }} ·
+                    {{ group.items[0]!.durationMinutes }} min</template
                   >
                 </p>
                 <p class="blocks-panel__validity">
-                  Desde {{ displayDate(item.effectiveFrom)
-                  }}<template v-if="item.effectiveUntil">
-                    hasta {{ displayDate(item.effectiveUntil) }}</template
+                  Desde {{ displayDate(group.items[0]!.effectiveFrom)
+                  }}<template v-if="group.items[0]!.effectiveUntil">
+                    hasta {{ displayDate(group.items[0]!.effectiveUntil) }}</template
                   ><template v-else> · Sin fecha de fin</template>
                 </p>
-                <p v-if="item.reason" class="blocks-panel__reason">{{ item.reason }}</p>
-                <p v-if="seriesCounts(item)" class="blocks-panel__validity">
-                  {{ seriesCounts(item) }}
+                <p v-if="group.items[0]!.reason" class="blocks-panel__reason">
+                  {{ group.items[0]!.reason }}
+                </p>
+                <p
+                  v-if="group.items.length === 1 && seriesCounts(group.items[0]!)"
+                  class="blocks-panel__validity"
+                >
+                  {{ seriesCounts(group.items[0]!) }}
                 </p>
                 <div class="blocks-panel__record-footer">
                   <span>{{
-                    item.recurrenceKind === 'weekly' ? 'Se repite cada semana' : 'Fechas explícitas'
+                    group.items[0]!.recurrenceKind === 'weekly'
+                      ? 'Se repite cada semana'
+                      : 'Fechas explícitas'
                   }}</span>
                   <div class="blocks-panel__record-actions">
                     <BaseButton
+                      v-if="group.items.length === 1"
                       variant="secondary"
-                      :aria-label="`${item.recurrenceKind === 'date_list' ? 'Fechas y excepciones' : 'Excepciones'} de la serie ${seriesName(item)}`"
-                      @click="openInstances(item)"
+                      :aria-label="`${group.items[0]!.recurrenceKind === 'date_list' ? 'Fechas y excepciones' : 'Excepciones'} de la serie ${seriesName(group.items[0]!)}`"
+                      @click="openInstances(group.items[0]!)"
                       >{{
-                        item.recurrenceKind === 'date_list' ? 'Fechas' : 'Excepciones'
+                        group.items[0]!.recurrenceKind === 'date_list' ? 'Fechas' : 'Excepciones'
                       }}</BaseButton
                     >
                     <BaseButton
+                      v-else
                       variant="secondary"
-                      :aria-label="`Editar serie ${seriesName(item)}`"
-                      @click="openEditSeries(item)"
+                      :aria-expanded="expandedGroups.has(group.key)"
+                      :aria-controls="`series-days-${group.items[0]!.id}`"
+                      :aria-label="`Días de la serie ${groupName(group)}`"
+                      @click="toggleGroup(group.key)"
+                      >{{ expandedGroups.has(group.key) ? 'Ocultar días' : 'Días' }}</BaseButton
+                    >
+                    <BaseButton
+                      variant="secondary"
+                      :aria-label="`Editar serie ${groupName(group)}`"
+                      @click="openEditSeries(group)"
                       >Editar</BaseButton
                     >
                     <BaseButton
                       variant="secondary"
-                      :aria-label="`Retirar serie ${seriesName(item)}`"
-                      :loading="pendingDeleteSeriesIds.has(item.id)"
-                      :disabled="pendingDeleteSeriesIds.has(item.id)"
-                      @click="onDeleteSeries(item)"
-                      >Retirar</BaseButton
+                      :aria-label="`Retirar serie ${groupName(group)}`"
+                      :loading="group.items.some((member) => pendingDeleteSeriesIds.has(member.id))"
+                      :disabled="
+                        group.items.some((member) => pendingDeleteSeriesIds.has(member.id))
+                      "
+                      @click="onDeleteGroup(group)"
+                      >{{ group.items.length > 1 ? 'Retirar todo' : 'Retirar' }}</BaseButton
                     >
                   </div>
                 </div>
+                <ul
+                  v-if="group.items.length > 1 && expandedGroups.has(group.key)"
+                  :id="`series-days-${group.items[0]!.id}`"
+                  class="blocks-panel__members"
+                  :aria-label="`Días de ${groupName(group)}`"
+                >
+                  <li v-for="member in group.items" :key="member.id">
+                    <span class="blocks-panel__member-day"
+                      >{{ weekdayLabel(member.isoWeekday ?? 0)
+                      }}<small v-if="seriesCounts(member)">{{ seriesCounts(member) }}</small></span
+                    >
+                    <div class="blocks-panel__record-actions">
+                      <BaseButton
+                        variant="secondary"
+                        :aria-label="`Excepciones de la serie ${seriesName(member)}`"
+                        @click="openInstances(member)"
+                        >Excepciones</BaseButton
+                      >
+                      <BaseButton
+                        variant="secondary"
+                        :aria-label="`Retirar serie ${seriesName(member)}`"
+                        :loading="pendingDeleteSeriesIds.has(member.id)"
+                        :disabled="pendingDeleteSeriesIds.has(member.id)"
+                        @click="onDeleteSeries(member)"
+                        >Retirar</BaseButton
+                      >
+                    </div>
+                  </li>
+                </ul>
               </li>
             </TransitionGroup>
             <BaseAlert v-if="moreSeriesError" variant="warning"
@@ -837,6 +967,7 @@ function seriesCounts(item: TimeBlockSeries): string {
       :barber-id="barberId"
       :barber-name="barberName"
       :series="editingSeries"
+      :group="editingGroup"
       :today="todayCivilDate"
       @updated="onSeriesUpdated"
     />
@@ -1050,6 +1181,53 @@ function seriesCounts(item: TimeBlockSeries): string {
   color: var(--color-on-strong);
   background: color-mix(in srgb, var(--color-brand-accent-surface) 14%, transparent);
   border-color: var(--color-brand-accent-surface);
+}
+.blocks-panel__week {
+  display: flex;
+  gap: 4px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.blocks-panel__week > li {
+  display: grid;
+  place-items: center;
+  width: 26px;
+  height: 26px;
+  color: var(--color-on-strong-muted);
+  font-family: var(--font-display);
+  font-size: var(--font-size-caption);
+  line-height: 1;
+  border: 1px solid color-mix(in srgb, var(--color-on-strong) 14%, transparent);
+  border-radius: 2px;
+}
+.blocks-panel__week > li.blocks-panel__week-day--on {
+  color: var(--color-brand-accent-text);
+  background: var(--color-brand-accent-surface);
+  border-color: var(--color-brand-accent-surface);
+}
+.blocks-panel__members {
+  display: grid;
+  gap: 8px;
+  margin: 0;
+  padding: 10px 0 0;
+  list-style: none;
+  border-top: 1px dashed var(--color-field-strong-border);
+}
+.blocks-panel__members > li {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px 12px;
+}
+.blocks-panel__member-day {
+  display: grid;
+  font-size: var(--font-size-body-sm);
+}
+.blocks-panel__member-day small {
+  color: var(--color-on-strong-muted);
+  font-size: var(--font-size-caption);
 }
 .blocks-panel__affected {
   margin-bottom: var(--space-4, 1rem);

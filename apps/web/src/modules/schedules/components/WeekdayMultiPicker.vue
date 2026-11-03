@@ -8,7 +8,7 @@
  * El valor es la lista de días ISO (1 = lunes … 7 = domingo) en orden.
  */
 import { useId } from 'vue'
-import { ISO_WEEKDAYS } from '../model/workingHour'
+import { ISO_WEEKDAYS, WEEKDAY_INITIALS } from '../model/workingHour'
 
 interface Props {
   modelValue: number[]
@@ -24,8 +24,6 @@ const uid = useId()
 const labelId = `weekday-multi-label-${uid}`
 const errorId = `weekday-multi-error-${uid}`
 
-// X para miércoles: M ya es martes y la inicial repetida confundiría.
-const SHORT: Record<number, string> = { 1: 'L', 2: 'M', 3: 'X', 4: 'J', 5: 'V', 6: 'S', 7: 'D' }
 const WEEKDAYS = [1, 2, 3, 4, 5]
 const ALL_DAYS = [1, 2, 3, 4, 5, 6, 7]
 
@@ -71,7 +69,7 @@ function sameDays(a: number[], b: number[]): boolean {
         :disabled="disabled"
         @click="toggle(day.value)"
       >
-        {{ SHORT[day.value] }}
+        {{ WEEKDAY_INITIALS[day.value] }}
       </button>
     </div>
     <div class="weekday-picker__quick">
