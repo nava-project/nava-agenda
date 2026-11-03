@@ -202,4 +202,28 @@ describe('BaseButton primary state rules', () => {
       )
     },
   )
+
+  // #511: jsdom no calcula el layout, así que la alineación se protege leyendo la regla: con un
+  // icono dentro (svg o aria-hidden que no sea el spinner) el contenido es una fila centrada.
+  describe('Icon alignment (#511)', () => {
+    const css = readFileSync(resolve(__dirname, '../BaseButton.vue'), 'utf-8')
+    const rule = /\.base-button__content:has\(([^)]*\)?[^)]*)\)\s*\{([^}]*)\}/.exec(css)
+
+    it('centers the icon and the label on the same axis when the content has an icon', () => {
+      expect(rule).not.toBeNull()
+      expect(rule![0]).toContain('> svg')
+      expect(rule![0]).toContain(':not(.base-button__spinner)')
+      expect(rule![2]).toContain('display: inline-flex')
+      expect(rule![2]).toContain('align-items: center')
+    })
+
+    it('renders icon and label as siblings inside the content, spinner excluded', () => {
+      const wrapper = mount(BaseButton, {
+        slots: { default: '<svg aria-hidden="true"></svg>Reprogramar' },
+      })
+      const content = wrapper.get('.base-button__content')
+      expect(content.element.firstElementChild?.tagName.toLowerCase()).toBe('svg')
+      expect(content.text()).toBe('Reprogramar')
+    })
+  })
 })
