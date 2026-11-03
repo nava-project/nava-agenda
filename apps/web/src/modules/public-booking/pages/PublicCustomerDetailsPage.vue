@@ -11,11 +11,10 @@
 // mismo (CA-096-01, RN-RES-02).
 import { computed, nextTick, onMounted, ref, useId, watch } from 'vue'
 import { useRouter } from 'vue-router'
-import { BarberAvatar, BaseAlert, BaseButton, BaseDialog, BaseInput } from '@/shared/ui'
+import { BarberAvatar, BaseAlert, BaseButton, BaseDialog, BaseInput, PhoneField } from '@/shared/ui'
 import type { LatLng } from '@/shared/model/mapPicker'
 import { isPlacesAvailable, type PlaceSelection } from '@/shared/model/placesAutocomplete'
 import HomeLocationField from '../components/HomeLocationField.vue'
-import PhoneField from '../components/PhoneField.vue'
 import { confirmPublicAppointment } from '../api/confirmPublicAppointmentApi'
 import { listPublicBarbers } from '../api/listPublicBarbersApi'
 import { useBookingChrome } from '../model/bookingChrome'
@@ -23,7 +22,7 @@ import { newIdempotencyKey } from '../model/idempotencyKey'
 import { loadPublicProfile } from '../model/publicProfile'
 import type { PublicBarber } from '../model/publicBarberListOutcome'
 import { publicBarberPhotoUrl } from '../model/publicBarberPhotoUrl'
-import { DEFAULT_PHONE_COUNTRY, composePhone, phoneCountry } from '../model/phoneCountries'
+import { DEFAULT_PHONE_COUNTRY, composePhone, phoneCountry } from '@/shared/model/phoneCountries'
 import { usePublicVocabulary } from '../model/publicVocabulary'
 import type {
   ConfirmedPublicAppointment,

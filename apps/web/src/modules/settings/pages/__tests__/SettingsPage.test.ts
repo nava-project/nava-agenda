@@ -272,6 +272,84 @@ describe('SettingsPage', () => {
       expect(wrapper.find('.save-bar').exists()).toBe(false)
     })
 
+    describe('teléfono de contacto con país y número', () => {
+      const phoneSelect = (wrapper: VueWrapper) =>
+        wrapper.get('.phone-field select').element as HTMLSelectElement
+
+      it('reparte el teléfono guardado en país y número nacional', async () => {
+        const wrapper = await mountReady()
+
+        expect(phoneSelect(wrapper).value).toBe('CO')
+        expect(wrapper.get('.phone-field__dial').text()).toBe('+57')
+        expect(input(wrapper, 'contactPhone').value).toBe('3001234567')
+        expect(wrapper.find('.save-bar').exists()).toBe(false)
+      })
+
+      it('guarda el E.164 compuesto con el país elegido y el número escrito', async () => {
+        const wrapper = await mountReady()
+        saveMock.mockResolvedValueOnce({
+          kind: 'success',
+          settings: { ...loadedSettings, contactPhone: '+525512345678' },
+        })
+
+        await wrapper.get('.phone-field select').setValue('MX')
+        await wrapper.get('input[name="contactPhone"]').setValue('55 1234 5678')
+        await submit(wrapper)
+
+        expect(saveMock.mock.calls[0]![0]).toMatchObject({ contactPhone: '+525512345678' })
+        expect(phoneSelect(wrapper).value).toBe('MX')
+        expect(input(wrapper, 'contactPhone').value).toBe('5512345678')
+      })
+
+      it('al pegar un número con prefijo elige el país', async () => {
+        const wrapper = await mountReady()
+
+        await wrapper.get('input[name="contactPhone"]').setValue('+593 99 123 4567')
+
+        expect(phoneSelect(wrapper).value).toBe('EC')
+        expect(input(wrapper, 'contactPhone').value).toBe('991234567')
+        expect(wrapper.find('.save-bar').exists()).toBe(true)
+      })
+
+      it('vaciar el número guarda «sin teléfono» y conserva el país elegido', async () => {
+        const wrapper = await mountReady()
+        saveMock.mockResolvedValueOnce({
+          kind: 'success',
+          settings: { ...loadedSettings, contactPhone: null },
+        })
+
+        await wrapper.get('.phone-field select').setValue('MX')
+        await wrapper.get('input[name="contactPhone"]').setValue('')
+        await submit(wrapper)
+
+        expect(saveMock.mock.calls[0]![0]).toMatchObject({ contactPhone: '' })
+        expect(phoneSelect(wrapper).value).toBe('MX')
+      })
+
+      it('avisa de un número incompleto y no guarda', async () => {
+        const wrapper = await mountReady()
+
+        await wrapper.get('input[name="contactPhone"]').setValue('300')
+        await submit(wrapper)
+
+        expect(saveMock).not.toHaveBeenCalled()
+        expect(wrapper.get('.phone-field__error').text()).toContain('no parece completo')
+      })
+
+      it('descartar devuelve el país y el número guardados', async () => {
+        const wrapper = await mountReady()
+
+        await wrapper.get('.phone-field select').setValue('MX')
+        await wrapper.get('input[name="contactPhone"]').setValue('5512345678')
+        const discard = wrapper.findAll('.save-bar button').find((b) => b.text() === 'Descartar')!
+        await discard.trigger('click')
+        await flushPromises()
+
+        expect(phoneSelect(wrapper).value).toBe('CO')
+        expect(input(wrapper, 'contactPhone').value).toBe('3001234567')
+      })
+    })
+
     it('keeps the unsaved resource pending when only the other one fails to save', async () => {
       const wrapper = await mountReady()
       saveMock.mockResolvedValueOnce({

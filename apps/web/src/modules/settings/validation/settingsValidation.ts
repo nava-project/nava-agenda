@@ -49,7 +49,7 @@ export function validateContactPhone(contactPhone: string): string | undefined {
   const trimmed = contactPhone.trim()
   if (!trimmed) return undefined // vacío es válido: significa "sin teléfono de contacto".
   if (!CONTACT_PHONE_E164_PATTERN.test(trimmed)) {
-    return 'Escribe un teléfono en formato internacional (ej. +573001234567), o déjalo vacío.'
+    return 'El número no parece completo. Revisa que tenga todos los dígitos, o déjalo vacío.'
   }
   return undefined
 }
