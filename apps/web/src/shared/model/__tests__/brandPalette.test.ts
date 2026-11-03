@@ -103,26 +103,24 @@ describe('texto de estado sobre Tinta (tokens.css)', () => {
   })
 })
 
-describe('palabra de estado de BaseAlert (tokens.css)', () => {
-  const tokens = readFileSync(resolve(__dirname, '../../../styles/tokens.css'), 'utf-8')
-  const root = /:root \{([\s\S]*?)\n\}/.exec(tokens)?.[1] ?? ''
+describe('alertas en línea de BaseAlert sobre tinta (DEC-149)', () => {
   const alert = readFileSync(resolve(__dirname, '../../ui/BaseAlert.vue'), 'utf-8')
+  const css = alert.slice(alert.indexOf('<style'))
 
-  it('usa un latón que los paneles sobre tinta no reasignan', () => {
-    expect(root).toContain('--color-accent-brass-on-surface: var(--color-accent-brass);')
-    expect(/\.base-alert__status \{[^}]*var\(--color-accent-brass-on-surface\)/.test(alert)).toBe(
-      true,
-    )
+  it('pinta la palabra de estado con el latón de marca que sigue al tema, como BaseToast', () => {
+    expect(/\.base-alert__status \{[^}]*var\(--color-brand-accent-surface\)/.test(css)).toBe(true)
+  })
+
+  it('usa el lienzo y el texto de tinta, no las superficies pastel de estado', () => {
+    expect(css).toContain('--alert-surface: var(--color-surface-strong);')
+    expect(css).toContain('--alert-text: var(--color-on-strong);')
+    expect(css).not.toMatch(/--color-(success|warning|danger|info)-(surface|text|border)/)
   })
 
   it.each(['success', 'warning', 'danger', 'info'])(
-    'el latón se lee (AA) sobre la superficie de %s',
+    'el filete de %s es el color de estado levantado a tinta',
     (variant) => {
-      const surface = new RegExp(`--color-${variant}-surface: (#[0-9a-f]{6});`).exec(root)?.[1]
-      expect(surface).toBeDefined()
-      expect(contrastRatio(accentByKey('brass').ivory, surface as string)).toBeGreaterThanOrEqual(
-        AA_TEXT,
-      )
+      expect(alert).toContain(`${variant}: 'var(--color-${variant}-on-strong)'`)
     },
   )
 })

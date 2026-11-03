@@ -1334,25 +1334,20 @@ function onBarberSelect(barberId: string) {
   align-self: center;
 }
 
-/* Nota al margen del sistema con perímetro completo, como en el atlas: sobre
-   tinta un filete lateral suelto dejaba la alerta sin contorno contra el
-   canvas. */
+/* Alerta de tinta del sistema (DEC-149): solo se ajusta la medida a la
+   densidad de esta pantalla; el lienzo, el perímetro y los colores son los
+   de BaseAlert. */
 .new-appointment-page :deep(.base-alert) {
   --alert-padding: 13px 15px;
   --alert-title-size: 16px;
   --alert-font-size: var(--font-size-body-sm);
   --alert-line-height: 20px;
-
-  border: var(--border-width-normal) solid var(--alert-border);
-  border-left-width: 4px;
 }
 
 .new-appointment-page :deep(.base-alert__status) {
   font-size: var(--font-size-caption);
   line-height: 14px;
   letter-spacing: 0.15em;
-  color: currentcolor;
-  opacity: 0.85;
 }
 
 .new-appointment-page__alert-title {

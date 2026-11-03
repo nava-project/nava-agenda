@@ -69,6 +69,25 @@ describe('BaseAlert', () => {
       expect(wrapper.find('h4.base-alert__title').exists()).toBe(false)
     })
 
+    // DEC-149: el color de estado es solo el filete; el lienzo y el texto son los
+    // de tinta que fija el CSS, no variables por variante.
+    it('exposes the state accent on tinta as the only per-variant color', () => {
+      const accents: Record<string, string> = {
+        success: 'var(--color-success-on-strong)',
+        warning: 'var(--color-warning-on-strong)',
+        danger: 'var(--color-danger-on-strong)',
+        info: 'var(--color-info-on-strong)',
+      }
+      Object.entries(accents).forEach(([variant, accent]) => {
+        const wrapper = mount(BaseAlert, {
+          props: { variant: variant as 'success' | 'warning' | 'danger' | 'info' },
+        })
+        const style = wrapper.attributes('style') ?? ''
+        expect(style).toContain(`--alert-accent: ${accent}`)
+        expect(style).not.toContain('--alert-surface')
+      })
+    })
+
     it('renders default slot content', () => {
       const wrapper = mount(BaseAlert, { slots: { default: 'Alert content' } })
       expect(wrapper.text()).toContain('Alert content')

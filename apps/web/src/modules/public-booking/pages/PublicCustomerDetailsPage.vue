@@ -1297,26 +1297,8 @@ function chooseAlternative(startsAt: string) {
   text-align: right;
 }
 
-/* Avisos (error y conflicto) sobre tinta: baño tenue del color de estado y
-   filete lateral levantado al lienzo oscuro. */
-.customer-details :deep(.base-alert) {
-  color: var(--pb-text);
-  background-color: color-mix(
-    in srgb,
-    var(--color-danger-on-strong) 12%,
-    var(--color-surface-strong)
-  );
-  border-left-color: var(--color-danger-on-strong);
-}
-
-.customer-details :deep(.base-alert__title),
-.customer-details :deep(.base-alert__text) {
-  color: var(--pb-text);
-}
-
-.customer-details :deep(.base-alert__status) {
-  color: var(--pb-brass);
-}
+/* Avisos (error y conflicto): los pinta BaseAlert con su lienzo de tinta
+   (DEC-149); aquí no se redefine ningún color. */
 
 .customer-details__actions {
   display: grid;
