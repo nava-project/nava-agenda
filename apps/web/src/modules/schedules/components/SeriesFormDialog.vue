@@ -22,6 +22,7 @@ import {
 import {
   createDateListSeries,
   createTimeBlockSeries,
+  deleteTimeBlockSeries,
   updateTimeBlockSeries,
 } from '../api/timeBlocksApi'
 import { displayCivilDate } from '../model/displayDate'
@@ -32,7 +33,7 @@ import {
   type BlockType,
   type TimeBlockSeries,
 } from '../model/timeBlock'
-import { describeWeekdays, joinWeekdayNames, weekdayLabel } from '../model/workingHour'
+import { describeWeekdays, joinWeekdayNames } from '../model/workingHour'
 import WeekdayMultiPicker from './WeekdayMultiPicker.vue'
 import { validateDurationMinutes } from '../validation/scheduleValidation'
 import { durationBetween, minutesToTime, timeToMinutes } from '../model/weekBoard'
@@ -61,13 +62,16 @@ const props = defineProps<{
   barberName: string
   series?: TimeBlockSeries | null
   // Edición de una ficha que agrupa varios días (#499): todas las series del grupo,
-  // incluida `series`. El cambio se aplica a cada una con los mismos valores.
+  // incluida `series`. El cambio se aplica a cada una con los mismos valores y los
+  // días marcados añaden o quitan series (#501).
   group?: TimeBlockSeries[] | null
   today: string | null
 }>()
 const emit = defineEmits<{
   'update:modelValue': [open: boolean]
   created: [series: TimeBlockSeries]
+  // Al editar una serie semanal se pueden quitar días: cada día quitado retira su serie.
+  removed: [seriesId: string]
   // `splitFrom` es la fecha de corte cuando el alcance fue «esta y las
   // siguientes»: la serie original queda recortada el día anterior y `series`
   // es la nueva.
@@ -81,10 +85,12 @@ const isWeekly = computed(() => props.series?.recurrenceKind === 'weekly')
 const targets = computed(() =>
   props.group && props.group.length > 1 ? props.group : props.series ? [props.series] : [],
 )
-const isGroupEdit = computed(() => isEdit.value && targets.value.length > 1)
 // Series del grupo que aún faltan por actualizar: tras un fallo parcial el reintento
 // solo toca las pendientes.
 const pendingTargets = ref<TimeBlockSeries[]>([])
+// Días de la semana que ya tienen serie (al abrir y a medida que se crean o retiran).
+const existingDays = ref<number[]>([])
+const isWeeklyEdit = computed(() => isEdit.value && isWeekly.value)
 
 // Valores iniciales por modo: una pausa semanal suele ser una franja (almuerzo) y
 // un bloqueo por fechas suele ser de día completo (vacaciones, día libre).
@@ -131,8 +137,8 @@ const title = computed(() =>
 )
 const description = computed(() =>
   isEdit.value
-    ? isGroupEdit.value
-      ? `Cambia el tipo, la hora o la vigencia de los ${targets.value.length} días de este bloqueo de ${props.barberName}.`
+    ? isWeekly.value
+      ? `Cambia el tipo, los días, la hora o la vigencia de este bloqueo de ${props.barberName}.`
       : `Cambia el tipo, la hora o la vigencia de esta serie de ${props.barberName}.`
     : `Elige si se repite cada semana o solo ocurre en fechas concretas, para ${props.barberName}.`,
 )
@@ -155,6 +161,9 @@ function reset() {
   idempotencyKey = newIdempotencyKey()
   weekdayKeys.clear()
   pendingTargets.value = [...targets.value]
+  const initialDays = targets.value.flatMap((item) => (item.isoWeekday ? [item.isoWeekday] : []))
+  existingDays.value = initialDays
+  weekdays.value = isEdit.value ? [...initialDays] : []
   const current = props.series
   if (isEdit.value && current) {
     blockType.value = current.blockType
@@ -168,7 +177,6 @@ function reset() {
     return
   }
   repeat.value = 'weekly'
-  weekdays.value = []
   blockType.value = REPEAT_DEFAULTS.weekly.type
   startsTime.value = REPEAT_DEFAULTS.weekly.start
   endsTime.value = REPEAT_DEFAULTS.weekly.end
@@ -228,11 +236,7 @@ const summary = computed(() => {
   const kind = blockTypeLabel(blockType.value)
   const clock = `${startsTime.value || '—'} → ${endsTime.value || '—'}`
   if (isEdit.value && isWeekly.value && props.series?.isoWeekday) {
-    const days = isGroupEdit.value
-      ? describeWeekdays(
-          targets.value.flatMap((item) => (item.isoWeekday ? [item.isoWeekday] : [])),
-        )
-      : weekdayLabel(props.series.isoWeekday)
+    const days = weekdays.value.length > 0 ? describeWeekdays(weekdays.value) : 'elige los días'
     return `${kind} · ${days} · ${clock}`
   }
   if (isWeeklyCreate.value) {
@@ -255,7 +259,7 @@ function validate(): string | undefined {
     validateDurationMinutes(duration.value) ??
     validateReason(reason.value)
   if (base) return base
-  if (isWeeklyCreate.value && weekdays.value.length === 0) {
+  if ((isWeeklyCreate.value || isWeeklyEdit.value) && weekdays.value.length === 0) {
     return 'Elige al menos un día de la semana.'
   }
   if (isDatesCreate.value) {
@@ -338,10 +342,33 @@ async function onSubmit() {
   }
 
   if (!props.series) return
+  await applyEdit(common)
+}
+
+// Edición: actualiza las series que siguen, crea las de los días añadidos y retira las
+// de los días quitados (solo con alcance «toda la serie»; al dividir en una fecha los días
+// quedan como están). Cada paso se anota al completarse, así un fallo a medias conserva
+// lo hecho y el reintento solo recorre lo pendiente.
+async function applyEdit(common: {
+  blockType: BlockType
+  startsTime: string
+  durationMinutes: number
+  effectiveUntil: string | null
+  reason: string | null
+}) {
   const cut = splitting.value ? splitDate.value : null
-  const done: TimeBlockSeries[] = []
+  const canChangeDays = isWeekly.value && cut === null
+  const chosen = weekdays.value
+  const keeps = (item: TimeBlockSeries) =>
+    !canChangeDays || (item.isoWeekday !== null && chosen.includes(item.isoWeekday))
+  const toUpdate = pendingTargets.value.filter(keeps)
+  const toCreate = canChangeDays ? chosen.filter((day) => !existingDays.value.includes(day)) : []
+  const toRemove = canChangeDays ? pendingTargets.value.filter((item) => !keeps(item)) : []
+  const total = toUpdate.length + toCreate.length + toRemove.length
+  let done = 0
   let failure: Exclude<SaveStatus, 'idle' | 'saving'> | null = null
-  for (const target of [...pendingTargets.value]) {
+
+  for (const target of toUpdate) {
     const outcome = await updateTimeBlockSeries(
       props.barberId,
       target.id,
@@ -352,10 +379,47 @@ async function onSubmit() {
       failure = outcome.kind
       break
     }
-    done.push(target)
+    done++
     pendingTargets.value = pendingTargets.value.filter((item) => item.id !== target.id)
     emit('updated', { originalId: target.id, series: outcome.series, splitFrom: cut })
   }
+  for (const day of failure === null ? toCreate : []) {
+    let key = weekdayKeys.get(day)
+    if (!key) {
+      key = newIdempotencyKey()
+      weekdayKeys.set(day, key)
+    }
+    const outcome = await createTimeBlockSeries(
+      props.barberId,
+      common.blockType,
+      day,
+      common.startsTime,
+      common.durationMinutes,
+      effectiveFrom.value,
+      common.reason,
+      key,
+      common.effectiveUntil,
+    )
+    if (outcome.kind !== 'success') {
+      failure = outcome.kind
+      break
+    }
+    done++
+    existingDays.value = [...existingDays.value, day]
+    emit('created', outcome.series)
+  }
+  for (const target of failure === null ? toRemove : []) {
+    const outcome = await deleteTimeBlockSeries(props.barberId, target.id)
+    if (outcome.kind !== 'success' && outcome.kind !== 'not-found') {
+      failure = outcome.kind
+      break
+    }
+    done++
+    pendingTargets.value = pendingTargets.value.filter((item) => item.id !== target.id)
+    existingDays.value = existingDays.value.filter((day) => day !== target.isoWeekday)
+    emit('removed', target.id)
+  }
+
   if (failure === null) {
     status.value = 'idle'
     emit('update:modelValue', false)
@@ -366,8 +430,8 @@ async function onSubmit() {
     })
     return
   }
-  if (done.length > 0) {
-    error.value = `Se actualizaron ${done.length} de ${done.length + pendingTargets.value.length} días. Inténtalo de nuevo para el resto.`
+  if (done > 0) {
+    error.value = `Se aplicaron ${done} de ${total} cambios. Inténtalo de nuevo para el resto.`
   }
   fail(failure)
 }
@@ -474,12 +538,6 @@ const previousDay = computed(() =>
         :options="BLOCK_TYPES"
         :disabled="busy"
       />
-      <WeekdayMultiPicker
-        v-if="isWeeklyCreate"
-        v-model="weekdays"
-        label="Días de la semana"
-        :disabled="busy"
-      />
       <BaseSelect
         v-if="isEdit && isWeekly"
         :id="`series-scope-${uid}`"
@@ -501,6 +559,16 @@ const previousDay = computed(() =>
           required
         />
       </div>
+      <WeekdayMultiPicker
+        v-if="isWeeklyCreate || isWeeklyEdit"
+        v-model="weekdays"
+        label="Días de la semana"
+        :disabled="busy || splitting"
+      />
+      <p v-if="splitting" class="block-form__hint">
+        Al dividir desde una fecha los días no cambian. Para añadir o quitar días, edita toda la
+        serie.
+      </p>
       <div class="block-form__row">
         <BaseTimePicker v-model="startsTime" label="Hora de inicio" required :disabled="busy" />
         <BaseTimePicker v-model="endsTime" label="Hora de fin" required :disabled="busy" />

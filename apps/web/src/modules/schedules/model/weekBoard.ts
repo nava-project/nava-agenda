@@ -118,6 +118,17 @@ export function durationBetween(startsTime: string, endsTime: string): number {
   return wrapped === 0 ? MINUTES_PER_DAY : wrapped
 }
 
+// timeRangeLabel: «13:00 – 14:00», «Todo el día» o, si cruza la medianoche,
+// «22:00 – 02:00 (día siguiente)». Se muestra el rango y no los minutos: así se lee
+// lo mismo que se eligió en el formulario (hora de inicio y hora de fin).
+export function timeRangeLabel(startsTime: string, durationMinutes: number): string {
+  if (durationMinutes >= MINUTES_PER_DAY) return 'Todo el día'
+  const start = timeToMinutes(startsTime)
+  const end = minutesToTime(start + durationMinutes)
+  const nextDay = start + durationMinutes > MINUTES_PER_DAY
+  return `${startsTime} – ${end}${nextDay ? ' (día siguiente)' : ''}`
+}
+
 // formatHours: 480 → "8 h", 450 → "7 h 30 min", 45 → "45 min".
 export function formatHours(minutes: number): string {
   const hours = Math.floor(minutes / 60)
