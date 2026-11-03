@@ -13,6 +13,8 @@ import { axe } from 'vitest-axe'
 import LandingPage from '../LandingPage.vue'
 import {
   journeySteps,
+  landingAudiences,
+  landingNiches,
   landingCapabilities,
   landingContacts,
   startSteps,
@@ -72,8 +74,16 @@ describe('LandingPage', () => {
   it('tiene un solo h1 y una sección con nombre para cada parte de la presentación', async () => {
     const { wrapper } = await mountPage()
     expect(wrapper.findAll('h1')).toHaveLength(1)
-    expect(wrapper.get('h1').text()).toContain('La agenda de tu barbería')
-    for (const id of ['inicio', 'asistente', 'dia', 'marca', 'plataforma', 'contacto']) {
+    expect(wrapper.get('h1').text()).toContain('La agenda de tu negocio')
+    for (const id of [
+      'inicio',
+      'para-quien',
+      'asistente',
+      'dia',
+      'marca',
+      'plataforma',
+      'contacto',
+    ]) {
       const section = wrapper.get(`#${id}`)
       expect(section.attributes('aria-labelledby')).toBeTruthy()
     }
@@ -165,6 +175,20 @@ describe('LandingPage', () => {
     expect(wrapper.find('.ph__typing').exists()).toBe(false)
   })
 
+  it('habla a independientes, a equipos y a cualquier negocio que agende citas (issue #519)', async () => {
+    const { wrapper } = await mountPage()
+    const section = wrapper.get('#para-quien')
+    expect(landingAudiences.map((a) => a.id)).toEqual(['independiente', 'equipo'])
+    for (const audience of landingAudiences) expect(section.text()).toContain(audience.title)
+    for (const niche of landingNiches) expect(section.text()).toContain(niche)
+    // El hero y las acciones no asumen que el negocio sea una barbería.
+    expect(wrapper.get('h1').text()).not.toMatch(/barber/i)
+    const ctas = wrapper.findAll('a').filter((a) => a.text().startsWith('Quiero NAVA'))
+    expect(ctas.length).toBeGreaterThan(0)
+    for (const cta of ctas) expect(cta.text()).toContain('para mi negocio')
+    expect(wrapper.get('#contacto h2').text()).toContain('a tu negocio')
+  })
+
   it('cuenta el recorrido de un turno en pasos de texto real', async () => {
     const { wrapper } = await mountPage()
     const steps = wrapper.findAll('#dia ol.jr__steps > li')
@@ -200,6 +224,7 @@ describe('LandingPage', () => {
     const stops = wrapper.findAll('nav[aria-label="Recorrido de la página"] a')
     expect(stops.map((a) => a.attributes('href'))).toEqual([
       '#inicio',
+      '#para-quien',
       '#asistente',
       '#dia',
       '#marca',

@@ -8,7 +8,7 @@
 defineProps<{ step: number }>()
 
 const bookingRows = [
-  { k: 'Servicio', v: 'Corte y barba' },
+  { k: 'Servicio', v: 'Corte y color' },
   { k: 'Profesional', v: 'Valeria' },
   { k: 'Horario', v: 'Hoy · 5:30 pm' },
   { k: 'A nombre de', v: 'Mateo R.' },
@@ -31,7 +31,7 @@ const agendaBlocks = [
       </p>
       <p class="js__msg js__msg--in" style="--d: 2">La de las 5:30, gracias.</p>
       <p class="js__msg js__msg--out" style="--d: 3">Aquí tienes el enlace para confirmarla.</p>
-      <span class="js__link" style="--d: 4">nava.app/reservar/tu-barberia</span>
+      <span class="js__link" style="--d: 4">nava.app/reservar/tu-negocio</span>
     </div>
 
     <!-- 2 · Reserva desde el celular -->
@@ -76,7 +76,7 @@ const agendaBlocks = [
     <div v-else-if="step === 3" class="js__scene js__remind">
       <div class="js__card">
         <span class="js__card-head"><i></i>NAVA · Recordatorio</span>
-        <p>Hola Mateo, hoy a las <b>5:30 pm</b> tienes turno de corte y barba con Valeria.</p>
+        <p>Hola Mateo, hoy a las <b>5:30 pm</b> tienes cita de corte y color con Valeria.</p>
         <span class="js__card-act">Ver o cambiar mi turno</span>
       </div>
       <span class="js__sent"><i></i>Enviado por WhatsApp y correo</span>

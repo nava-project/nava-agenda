@@ -76,5 +76,5 @@ test('«Volver a la presentación» lleva a la landing y se alcanza con teclado'
   await expect(back).toBeFocused()
   await page.keyboard.press('Enter')
   await expect(page).toHaveURL(/\/$/)
-  await expect(page.getByRole('heading', { level: 1 })).toContainText('La agenda de tu barbería')
+  await expect(page.getByRole('heading', { level: 1 })).toContainText('La agenda de tu negocio')
 })

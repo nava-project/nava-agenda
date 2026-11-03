@@ -25,7 +25,7 @@ const hours = Array.from({ length: SPAN + 1 }, (_, i) => FIRST_HOUR + i)
 const lanes = [
   { name: 'Andrés', initials: 'A' },
   { name: 'Valeria', initials: 'V' },
-  { name: 'Julián', initials: 'J' },
+  { name: 'Marta', initials: 'M' },
 ]
 
 const turns: readonly DemoTurn[] = [
@@ -34,11 +34,11 @@ const turns: readonly DemoTurn[] = [
   { lane: 0, start: 14, end: 15, who: 'Camilo V.', what: 'Barba', status: 'confirmed' },
   { lane: 0, start: 16, end: 17.5, who: 'Daniel O.', what: 'Corte y barba', status: 'pending' },
   { lane: 1, start: 9.5, end: 11, who: 'Laura M.', what: 'Color', status: 'completed' },
-  { lane: 1, start: 12, end: 13, who: 'Esteban G.', what: 'Corte', status: 'noshow' },
-  { lane: 1, start: 15, end: 16.5, who: 'Nicolás T.', what: 'Corte y barba', status: 'confirmed' },
-  { lane: 2, start: 10, end: 11, who: 'Felipe A.', what: 'Corte', status: 'completed' },
-  { lane: 2, start: 13.5, end: 14.5, who: 'Sergio L.', what: 'Barba', status: 'confirmed' },
-  { lane: 2, start: 16.5, end: 17.5, who: 'Tomás H.', what: 'Corte', status: 'pending' },
+  { lane: 1, start: 12, end: 13, who: 'Esteban G.', what: 'Manicure', status: 'noshow' },
+  { lane: 1, start: 15, end: 16.5, who: 'Nicolás T.', what: 'Corte y color', status: 'confirmed' },
+  { lane: 2, start: 10, end: 11, who: 'Felipe A.', what: 'Masaje', status: 'completed' },
+  { lane: 2, start: 13.5, end: 14.5, who: 'Sergio L.', what: 'Facial', status: 'confirmed' },
+  { lane: 2, start: 16.5, end: 17.5, who: 'Tomás H.', what: 'Masaje', status: 'pending' },
 ]
 
 // Turno que «aterriza» desde el chat: 5:30 pm con Valeria.
