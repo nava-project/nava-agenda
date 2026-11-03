@@ -213,8 +213,8 @@ const createAttempted = ref(false)
 // (mismo criterio que staff/pages/StaffPage.vue).
 let createIdempotencyKey = newIdempotencyKey()
 
-function openCreateDialog(isoWeekday?: number) {
-  createISOWeekday.value = isoWeekday ?? 1
+function openCreateDialog(isoWeekday: number) {
+  createISOWeekday.value = isoWeekday
   createStartsTime.value = ''
   createEndsTime.value = ''
   createDurationMinutes.value = 0
@@ -1025,15 +1025,6 @@ const editPreview = computed(() =>
             </dd>
           </div>
         </dl>
-
-        <BaseButton
-          type="button"
-          variant="primary"
-          class="schedules-page__create"
-          @click="openCreateDialog()"
-        >
-          Agregar tramo
-        </BaseButton>
       </div>
     </header>
 
@@ -2081,36 +2072,6 @@ const editPreview = computed(() =>
   flex: 1 1 auto;
 }
 
-/* CTA "Agregar tramo": el relleno tinta de BaseButton--primary es el mismo
-   color que la página, así que se levanta con el dorado de marca. */
-.schedules-page__create.base-button {
-  height: 40px;
-  padding-inline: 18px;
-  margin-left: auto;
-  order: 1;
-  font-size: var(--font-size-body-sm);
-  font-weight: 600;
-}
-
-.schedules-page__create :deep(.base-button__content)::before {
-  content: '+';
-  margin-right: 6px;
-}
-
-.schedules-page__create.base-button--primary {
-  background-color: var(--color-brand-accent-surface);
-  color: var(--color-brand-accent-text);
-  border-color: var(--color-brand-accent-surface);
-}
-
-.schedules-page__create.base-button--primary:hover:not(:disabled):not(.base-button--loading) {
-  filter: brightness(92%);
-}
-
-.schedules-page__create.base-button--primary:active:not(:disabled):not(.base-button--loading) {
-  filter: brightness(84%);
-}
-
 /* Fundido entre carga/error/listo: --motion-duration-base, el mismo token que
    el resto de transiciones de estado (estandar-diseno-visual.md §12). */
 .schedules-content-enter-active,
@@ -2430,11 +2391,6 @@ const editPreview = computed(() =>
 
   .schedules-page__stats {
     order: 2;
-  }
-
-  .schedules-page__create.base-button {
-    order: 3;
-    margin-left: 0;
   }
 
   .schedules-page__ready {
@@ -3131,25 +3087,6 @@ const editPreview = computed(() =>
 
   .schedules-page__header {
     padding-bottom: 10px;
-  }
-
-  /* CTA compacto: un "+" en un círculo (el nombre accesible sigue siendo el
-     texto del botón). */
-  .schedules-page__create.base-button {
-    width: var(--control-height-icon);
-    height: var(--control-height-icon);
-    padding: 0;
-    overflow: hidden;
-    font-size: 0;
-  }
-
-  .schedules-page__create :deep(.base-button__content) {
-    font-size: 0;
-  }
-
-  .schedules-page__create :deep(.base-button__content)::before {
-    margin: 0;
-    font-size: var(--font-size-title-item);
   }
 
   .schedules-page__select {

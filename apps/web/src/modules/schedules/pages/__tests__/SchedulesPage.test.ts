@@ -96,7 +96,7 @@ async function openBarberList(wrapper: VueWrapper) {
 }
 
 async function openCreateDialog(wrapper: VueWrapper) {
-  await wrapper.get('button').trigger('click')
+  await wrapper.get('button[aria-label="Agregar un tramo el Lunes"]').trigger('click')
   await flushPromises()
 }
 

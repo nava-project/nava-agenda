@@ -199,8 +199,8 @@ test('horarios: sin scroll horizontal, foco visible y sin violaciones axe en cad
       path: path.join(evidenceDir, viewport.name, 'horarios.png'),
       fullPage: true,
     })
-    await page.getByRole('button', { name: 'Agregar tramo' }).focus()
-    await expect(page.getByRole('button', { name: 'Agregar tramo' })).toBeFocused()
+    await page.getByRole('button', { name: 'Agregar un tramo el Lunes' }).focus()
+    await expect(page.getByRole('button', { name: 'Agregar un tramo el Lunes' })).toBeFocused()
     await page.screenshot({ path: path.join(evidenceDir, viewport.name, 'foco-agregar.png') })
     await expectNoAxeViolations(page)
   }
@@ -274,7 +274,7 @@ test('horarios: el alta de un tramo y de una excepción funciona con los control
 
   await selectBarber(page, 'Segundo Barbero')
 
-  await page.getByRole('button', { name: 'Agregar tramo' }).click()
+  await page.getByRole('button', { name: 'Agregar un tramo el Lunes' }).click()
   const tramo = page.getByRole('dialog', { name: 'Agregar tramo' })
   await tramo.getByRole('radio', { name: 'Miércoles' }).click()
   await pickTime(tramo, page, 'Hora de inicio', '11:30')
