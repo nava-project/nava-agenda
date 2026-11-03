@@ -26,8 +26,9 @@ onBeforeUnmount(() => window.removeEventListener('scroll', onScroll))
       </a>
 
       <nav class="ln-head__nav" aria-label="Secciones">
-        <a href="#plataforma">Plataforma</a>
         <a href="#asistente">Asistente de IA</a>
+        <a href="#dia">Un día con NAVA</a>
+        <a href="#plataforma">Plataforma</a>
         <a href="#contacto">Contacto</a>
       </nav>
 
@@ -72,7 +73,7 @@ onBeforeUnmount(() => window.removeEventListener('scroll', onScroll))
   align-items: center;
   justify-content: space-between;
   gap: 24px;
-  min-height: 72px;
+  min-height: 80px;
 }
 
 .ln-head__brand {
@@ -83,13 +84,13 @@ onBeforeUnmount(() => window.removeEventListener('scroll', onScroll))
 }
 
 .ln-head__brand :deep(.nava-wordmark) {
-  font-size: 26px;
+  font-size: 30px;
   letter-spacing: 0.14em;
 }
 
 .ln-head__nav {
   display: none;
-  gap: 36px;
+  gap: 34px;
   margin-inline: auto;
 }
 
@@ -97,9 +98,9 @@ onBeforeUnmount(() => window.removeEventListener('scroll', onScroll))
   position: relative;
   padding: 10px 0;
   color: var(--ln-soft);
-  font-size: 14px;
+  font-size: 16px;
   font-weight: 500;
-  letter-spacing: 0.02em;
+  letter-spacing: 0.01em;
   text-decoration: none;
   transition: color 200ms ease;
 }
@@ -128,7 +129,7 @@ onBeforeUnmount(() => window.removeEventListener('scroll', onScroll))
   padding: 0 18px;
 }
 
-@media (min-width: 860px) {
+@media (min-width: 1000px) {
   .ln-head__nav {
     display: flex;
   }

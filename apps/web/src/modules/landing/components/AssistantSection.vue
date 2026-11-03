@@ -112,7 +112,7 @@ const { seen } = useInView(root, 0.15)
 
 .as__points li {
   display: grid;
-  grid-template-columns: 52px 1fr;
+  grid-template-columns: 64px 1fr;
   gap: 8px;
   padding: 22px 0;
   border-bottom: 1px solid var(--ln-line);
@@ -120,7 +120,7 @@ const { seen } = useInView(root, 0.15)
 
 .as__num {
   font-family: var(--font-display);
-  font-size: 30px;
+  font-size: 38px;
   line-height: 1;
   color: var(--ln-brass);
 }
@@ -128,16 +128,16 @@ const { seen } = useInView(root, 0.15)
 .as__points b {
   display: block;
   margin-bottom: 4px;
-  font-size: 17px;
-  line-height: 24px;
+  font-size: 21px;
+  line-height: 28px;
   font-weight: 600;
 }
 
 .as__points small {
   display: block;
-  font-size: 15px;
-  line-height: 24px;
-  color: var(--ln-muted);
+  font-size: 17px;
+  line-height: 27px;
+  color: var(--ln-soft);
 }
 
 .as__flow {
@@ -152,9 +152,9 @@ const { seen } = useInView(root, 0.15)
   padding: 10px 14px;
   border: 1px solid var(--ln-line-strong);
   border-radius: var(--radius-pill);
-  font-size: 12px;
+  font-size: 14px;
   font-weight: 600;
-  letter-spacing: 0.06em;
+  letter-spacing: 0.04em;
   white-space: nowrap;
   color: var(--ln-soft);
 }

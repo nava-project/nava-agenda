@@ -49,7 +49,7 @@ const words = [
   gap: 34px;
   padding-right: 34px;
   font-family: var(--font-display);
-  font-size: clamp(34px, 5vw, 64px);
+  font-size: clamp(40px, 6vw, 80px);
   line-height: 1;
   color: transparent;
   -webkit-text-stroke: 1px var(--ln-line-strong);

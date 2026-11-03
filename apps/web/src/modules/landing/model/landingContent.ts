@@ -140,3 +140,58 @@ export const assistantPoints: readonly { title: string; body: string }[] = [
     body: 'Cierra la conversación con el enlace de reserva de tu barbería, listo para confirmar.',
   },
 ]
+
+export interface JourneyStep {
+  time: string
+  title: string
+  body: string
+}
+
+// El recorrido de un turno. Cada paso describe algo que NAVA ya hace o que el
+// alcance P0 confirma (reserva pública, agenda, recordatorios, reseñas).
+export const journeySteps: readonly JourneyStep[] = [
+  {
+    time: '8:40 am · Un cliente escribe',
+    title: 'Pregunta por el chat y recibe respuesta al instante',
+    body: 'El asistente de IA mira la agenda real, ofrece las horas libres y le pasa el enlace de reserva de tu barbería.',
+  },
+  {
+    time: '8:42 am · Reserva',
+    title: 'Elige servicio, profesional y hora desde su celular',
+    body: 'Sin crear cuenta ni descargar nada. Solo ve horarios que existen y confirma con su nombre y su número.',
+  },
+  {
+    time: '8:42 am · Tu agenda',
+    title: 'El turno aparece solo en tu agenda',
+    body: 'Cae en el carril del profesional, con su hora y su estado. El hueco queda ocupado y nadie más puede tomarlo.',
+  },
+  {
+    time: 'Antes de la cita · Recordatorio',
+    title: 'Un aviso a tiempo, para que no se olvide',
+    body: 'NAVA le escribe por correo y WhatsApp antes del turno, con un enlace para verlo o cambiarlo. Si algo cambia, el aviso se actualiza.',
+  },
+  {
+    time: 'Después · Cierre',
+    title: 'Atendido, y la reputación se construye sola',
+    body: 'Marcas el turno como atendido y tu cliente puede calificar al profesional. Las reseñas se ven donde otros van a reservar.',
+  },
+]
+
+export interface LandingStep {
+  title: string
+  body: string
+}
+
+// Cómo se empieza. Sin plazos ni precios: la landing no promete lo que no
+// está acordado.
+export const startSteps: readonly LandingStep[] = [
+  { title: 'Hablamos', body: 'Nos cuentas cuántas personas trabajan contigo y cómo agendas hoy.' },
+  {
+    title: 'Armamos tu NAVA',
+    body: 'Cargamos tu equipo, tus servicios y tus horarios, con tu color y tus palabras.',
+  },
+  {
+    title: 'Abres tu agenda',
+    body: 'Compartes tu enlace de reservas y empiezas a recibir turnos.',
+  },
+]

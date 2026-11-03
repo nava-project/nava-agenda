@@ -77,7 +77,7 @@ const { seen } = useInView(root, 0.1)
 .cap__item {
   position: relative;
   display: grid;
-  grid-template-columns: 56px 1fr;
+  grid-template-columns: 70px 1fr;
   column-gap: 12px;
   row-gap: 8px;
   padding: 28px 0 28px 4px;
@@ -111,7 +111,7 @@ const { seen } = useInView(root, 0.1)
 .cap__num {
   grid-row: span 2;
   font-family: var(--font-display);
-  font-size: 34px;
+  font-size: 44px;
   line-height: 1;
   color: var(--ln-brass);
 }
@@ -120,16 +120,16 @@ const { seen } = useInView(root, 0.1)
   margin: 0;
   font-family: var(--font-display);
   font-weight: 400;
-  font-size: clamp(24px, 2.6vw, 32px);
+  font-size: clamp(28px, 3vw, 38px);
   line-height: 1.15;
 }
 
 .cap__item p {
   margin: 0;
-  max-width: 58ch;
-  font-size: 15px;
-  line-height: 24px;
-  color: var(--ln-muted);
+  max-width: 60ch;
+  font-size: 18px;
+  line-height: 28px;
+  color: var(--ln-soft);
 }
 
 @media (min-width: 1020px) {

@@ -11,7 +11,13 @@ import { mount, flushPromises } from '@vue/test-utils'
 import { createRouter, createMemoryHistory } from 'vue-router'
 import { axe } from 'vitest-axe'
 import LandingPage from '../LandingPage.vue'
-import { landingCapabilities, landingContacts } from '../../model/landingContent'
+import {
+  journeySteps,
+  landingCapabilities,
+  landingContacts,
+  startSteps,
+} from '../../model/landingContent'
+import { BRAND_ACCENTS } from '@/shared/model'
 
 const axeOptions = {
   rules: {
@@ -67,7 +73,7 @@ describe('LandingPage', () => {
     const { wrapper } = await mountPage()
     expect(wrapper.findAll('h1')).toHaveLength(1)
     expect(wrapper.get('h1').text()).toContain('La agenda de tu barbería')
-    for (const id of ['inicio', 'asistente', 'plataforma', 'contacto']) {
+    for (const id of ['inicio', 'asistente', 'dia', 'marca', 'plataforma', 'contacto']) {
       const section = wrapper.get(`#${id}`)
       expect(section.attributes('aria-labelledby')).toBeTruthy()
     }
@@ -138,7 +144,7 @@ describe('LandingPage', () => {
     await flushPromises()
 
     expect(writeText).toHaveBeenCalledWith(first.copyValue)
-    expect(wrapper.get('[role="status"]').text()).toContain('copiado')
+    expect(wrapper.get('#contacto [role="status"]').text()).toContain('copiado')
   })
 
   it('si el portapapeles no está disponible no muestra un aviso falso', async () => {
@@ -149,7 +155,7 @@ describe('LandingPage', () => {
     await wrapper.findAll('button.ct__copy')[0].trigger('click')
     await flushPromises()
 
-    expect(wrapper.get('[role="status"]').text()).toBe('')
+    expect(wrapper.get('#contacto [role="status"]').text()).toBe('')
   })
 
   it('con movimiento reducido la conversación de demostración aparece completa', async () => {
@@ -157,6 +163,64 @@ describe('LandingPage', () => {
     // Una burbuja por cada línea de la conversación y ningún indicador de escritura.
     expect(wrapper.findAll('.ph__msg:not(.ph__typing)').length).toBeGreaterThanOrEqual(4)
     expect(wrapper.find('.ph__typing').exists()).toBe(false)
+  })
+
+  it('cuenta el recorrido de un turno en pasos de texto real', async () => {
+    const { wrapper } = await mountPage()
+    const steps = wrapper.findAll('#dia ol.jr__steps > li')
+    expect(steps).toHaveLength(journeySteps.length)
+    for (const step of journeySteps) expect(wrapper.get('#dia').text()).toContain(step.title)
+  })
+
+  it('«Tu marca» ofrece los seis colores de la paleta y cambia la vista previa', async () => {
+    const { wrapper } = await mountPage()
+    const accents = wrapper.findAll('#marca input[name="accent"]')
+    expect(accents).toHaveLength(BRAND_ACCENTS.length)
+
+    await accents[2].setValue(true)
+    const status = wrapper.get('#marca [role="status"]')
+    expect(status.text()).toContain(BRAND_ACCENTS[2]!.label)
+
+    // Al elegir otro negocio cambian el nombre y la palabra del equipo.
+    const presets = wrapper.findAll('#marca input[name="negocio"]')
+    await presets[1].setValue(true)
+    expect(wrapper.get('#marca .br__preview').text()).toContain('estilista')
+    expect(wrapper.get('#marca [role="status"]').text()).toContain('Salón')
+  })
+
+  it('el contacto explica cómo se empieza sin prometer plazos ni precios', async () => {
+    const { wrapper } = await mountPage()
+    const section = wrapper.get('#contacto')
+    for (const step of startSteps) expect(section.text()).toContain(step.title)
+    expect(section.text()).not.toMatch(/\$|COP|USD|gratis|días hábiles/i)
+  })
+
+  it('la guía de lectura enlaza cada sección y la página usa el scroll de la app', async () => {
+    const { wrapper } = await mountPage()
+    const stops = wrapper.findAll('nav[aria-label="Recorrido de la página"] a')
+    expect(stops.map((a) => a.attributes('href'))).toEqual([
+      '#inicio',
+      '#asistente',
+      '#dia',
+      '#marca',
+      '#plataforma',
+      '#contacto',
+    ])
+    expect(document.documentElement.classList.contains('ln-root')).toBe(true)
+    wrapper.unmount()
+    expect(document.documentElement.classList.contains('ln-root')).toBe(false)
+  })
+
+  it('el pie enlaza el recorrido, el contacto y la cuenta', async () => {
+    const { wrapper } = await mountPage()
+    const footer = wrapper.get('footer')
+    const hrefs = footer.findAll('a').map((a) => a.attributes('href'))
+    expect(hrefs).toContain('/acceso')
+    expect(hrefs).toContain('/recuperar-acceso')
+    expect(hrefs).toContain('#contacto')
+    expect(hrefs.some((h) => h?.startsWith('tel:+'))).toBe(true)
+    expect(hrefs.some((h) => h?.startsWith('mailto:'))).toBe(true)
+    expect(footer.text()).toContain(landingContacts[0]!.display)
   })
 
   it('no tiene violaciones de accesibilidad automatizables', async () => {

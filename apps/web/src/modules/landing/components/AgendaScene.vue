@@ -106,7 +106,7 @@ const hourLabel = (h: number) => (h > 12 ? `${h - 12}p` : h === 12 ? '12p' : `${
 
 <style scoped>
 .ag {
-  --ag-label: 36px;
+  --ag-label: 42px;
   position: relative;
   padding: 18px 18px 14px;
   background: var(--ln-ink-deep);
@@ -123,7 +123,7 @@ const hourLabel = (h: number) => (h > 12 ? `${h - 12}p` : h === 12 ? '12p' : `${
   align-items: center;
   justify-content: space-between;
   margin-bottom: 14px;
-  font-size: 12px;
+  font-size: 14px;
   letter-spacing: 0.18em;
   text-transform: uppercase;
 }
@@ -156,10 +156,10 @@ const hourLabel = (h: number) => (h > 12 ? `${h - 12}p` : h === 12 ? '12p' : `${
 
 .ag__ruler {
   position: relative;
-  height: 14px;
+  height: 18px;
   margin-left: var(--ag-label);
-  font-size: 10px;
-  letter-spacing: 0.06em;
+  font-size: 13px;
+  letter-spacing: 0.04em;
   color: var(--ln-muted);
 }
 
@@ -172,7 +172,7 @@ const hourLabel = (h: number) => (h > 12 ? `${h - 12}p` : h === 12 ? '12p' : `${
   display: flex;
   align-items: stretch;
   gap: 0;
-  height: 54px;
+  height: 64px;
 }
 
 .ag__who {
@@ -185,8 +185,8 @@ const hourLabel = (h: number) => (h > 12 ? `${h - 12}p` : h === 12 ? '12p' : `${
 .ag__who b {
   display: grid;
   place-items: center;
-  width: 26px;
-  height: 26px;
+  width: 30px;
+  height: 30px;
   border: 1px solid var(--ln-brass-line);
   border-radius: 50%;
   font-family: var(--font-display);
@@ -237,14 +237,14 @@ const hourLabel = (h: number) => (h > 12 ? `${h - 12}p` : h === 12 ? '12p' : `${
 }
 
 .ag__turn b {
-  font-size: 11px;
-  line-height: 14px;
+  font-size: 14px;
+  line-height: 18px;
   font-weight: 600;
 }
 
 .ag__turn small {
-  font-size: 10px;
-  line-height: 13px;
+  font-size: 12px;
+  line-height: 15px;
   color: var(--ln-muted);
 }
 
@@ -311,7 +311,7 @@ const hourLabel = (h: number) => (h > 12 ? `${h - 12}p` : h === 12 ? '12p' : `${
   margin-top: 14px;
   padding-top: 12px;
   border-top: 1px solid var(--ln-line);
-  font-size: 11px;
+  font-size: 13px;
   color: var(--ln-muted);
 }
 
@@ -391,7 +391,7 @@ const hourLabel = (h: number) => (h > 12 ? `${h - 12}p` : h === 12 ? '12p' : `${
   }
 
   .ag__lane {
-    height: 48px;
+    height: 52px;
   }
 
   .ag__turn small {
@@ -399,7 +399,7 @@ const hourLabel = (h: number) => (h > 12 ? `${h - 12}p` : h === 12 ? '12p' : `${
   }
 
   .ag__turn b {
-    font-size: 10px;
+    font-size: 12px;
   }
 
   .ag__ruler span:nth-child(even) {

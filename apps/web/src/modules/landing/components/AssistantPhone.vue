@@ -125,14 +125,14 @@ onBeforeUnmount(clearTimers)
 .ph {
   position: relative;
   margin: 0;
-  width: min(100%, 380px);
+  width: min(100%, 420px);
 }
 
 .ph__device {
   position: relative;
   display: flex;
   flex-direction: column;
-  height: 640px;
+  height: 700px;
   max-height: 92vh;
   padding: 10px;
   background: var(--ln-ink-deep);
@@ -187,8 +187,8 @@ onBeforeUnmount(clearTimers)
 }
 
 .ph__name b {
-  font-size: 15px;
-  line-height: 20px;
+  font-size: 17px;
+  line-height: 22px;
   font-weight: 600;
 }
 
@@ -196,8 +196,8 @@ onBeforeUnmount(clearTimers)
   display: flex;
   align-items: center;
   gap: 6px;
-  font-size: 12px;
-  line-height: 16px;
+  font-size: 14px;
+  line-height: 18px;
   color: var(--ln-muted);
 }
 
@@ -213,7 +213,7 @@ onBeforeUnmount(clearTimers)
   padding: 3px 9px;
   border: 1px solid var(--ln-brass-line);
   border-radius: var(--radius-pill);
-  font-size: 11px;
+  font-size: 13px;
   font-weight: 700;
   letter-spacing: 0.14em;
   color: var(--ln-brass);
@@ -241,8 +241,8 @@ onBeforeUnmount(clearTimers)
   max-width: 86%;
   padding: 10px 13px;
   border-radius: 14px;
-  font-size: 14px;
-  line-height: 20px;
+  font-size: 16px;
+  line-height: 23px;
 }
 
 .ph__msg p {
@@ -274,7 +274,7 @@ onBeforeUnmount(clearTimers)
   padding: 6px 11px;
   border: 1px solid var(--ln-brass-line);
   border-radius: var(--radius-pill);
-  font-size: 13px;
+  font-size: 15px;
   font-weight: 600;
   color: var(--ln-brass);
   animation: ph-chip 420ms var(--motion-ease-spring) backwards;
@@ -313,7 +313,7 @@ onBeforeUnmount(clearTimers)
   height: 46px;
   border: 1px solid var(--ln-line);
   border-radius: var(--radius-pill);
-  font-size: 13px;
+  font-size: 15px;
   color: var(--ln-muted);
 }
 

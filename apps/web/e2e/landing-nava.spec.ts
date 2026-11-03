@@ -45,13 +45,24 @@ for (const viewport of viewports) {
     await page.goto('/')
 
     await expect(page.getByRole('heading', { level: 1 })).toContainText('La agenda de tu barbería')
-    await expect(page.getByRole('link', { name: 'Quiero NAVA en mi barbería' })).toBeVisible()
+    await expect(
+      page.getByRole('link', { name: 'Quiero NAVA en mi barbería' }).first(),
+    ).toBeVisible()
     await expect(page.getByRole('link', { name: 'Iniciar sesión' }).first()).toBeVisible()
     await page.screenshot({ path: path.join(evidenceDir, `${viewport.name}-1-presentacion.png`) })
 
     await page.locator('#asistente').scrollIntoViewIfNeeded()
     await expect(page.getByRole('heading', { name: /Tu chat nunca se queda/ })).toBeVisible()
     await page.screenshot({ path: path.join(evidenceDir, `${viewport.name}-2-asistente.png`) })
+
+    await page.locator('#dia').scrollIntoViewIfNeeded()
+    await expect(page.getByRole('heading', { name: /De un mensaje a una reseña/ })).toBeVisible()
+    await page.screenshot({ path: path.join(evidenceDir, `${viewport.name}-3-recorrido.png`) })
+
+    await page.locator('#marca').scrollIntoViewIfNeeded()
+    await expect(page.getByRole('heading', { name: /Tu negocio, tus palabras/ })).toBeVisible()
+    await page.getByLabel('Zafiro').check({ force: true })
+    await page.screenshot({ path: path.join(evidenceDir, `${viewport.name}-4-marca.png`) })
 
     await page.locator('#contacto').scrollIntoViewIfNeeded()
     await expect(page.getByRole('heading', { name: /Llevemos NAVA/ })).toBeVisible()
@@ -61,7 +72,11 @@ for (const viewport of viewports) {
       'href',
       /^mailto:/,
     )
-    await page.screenshot({ path: path.join(evidenceDir, `${viewport.name}-3-contacto.png`) })
+    await page.screenshot({ path: path.join(evidenceDir, `${viewport.name}-5-contacto.png`) })
+
+    await page.locator('footer').scrollIntoViewIfNeeded()
+    await expect(page.getByRole('link', { name: 'Volver arriba' })).toBeVisible()
+    await page.screenshot({ path: path.join(evidenceDir, `${viewport.name}-6-pie.png`) })
 
     await expectAccessibleWithoutOverflow(page)
   })

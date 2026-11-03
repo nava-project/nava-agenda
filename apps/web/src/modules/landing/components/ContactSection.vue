@@ -6,7 +6,7 @@
 // viva. A la derecha, el acceso para quien ya usa NAVA.
 import { onBeforeUnmount, ref } from 'vue'
 import { RouterLink } from 'vue-router'
-import { landingContacts, type LandingContact } from '../model/landingContent'
+import { landingContacts, startSteps, type LandingContact } from '../model/landingContent'
 import { useInView } from '../composables/useInView'
 
 const root = ref<HTMLElement | null>(null)
@@ -94,31 +94,51 @@ onBeforeUnmount(() => window.clearTimeout(resetTimer))
           </p>
         </div>
 
-        <aside
-          class="ct__login ln-reveal"
-          :data-seen="seen"
-          style="--i: 3"
-          aria-labelledby="ct-login"
-        >
-          <span class="ct__login-mark" aria-hidden="true"></span>
-          <h3 id="ct-login">¿Ya usas NAVA?</h3>
-          <p>Entra a tu panel para ver la agenda de hoy, tus turnos y tu equipo.</p>
-          <RouterLink class="ln-btn ln-btn--solid" :to="{ name: 'acceso' }">
-            Iniciar sesión
-            <svg
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              stroke-width="2"
-              aria-hidden="true"
-            >
-              <path d="M5 12h14M13 6l6 6-6 6" stroke-linecap="round" stroke-linejoin="round" />
-            </svg>
-          </RouterLink>
-          <RouterLink class="ct__forgot" :to="{ name: 'recuperar-acceso' }">
-            Olvidé mi contraseña
-          </RouterLink>
-        </aside>
+        <div class="ct__side">
+          <section
+            class="ct__start ln-reveal"
+            :data-seen="seen"
+            style="--i: 3"
+            aria-labelledby="ct-start"
+          >
+            <h3 id="ct-start">Así empezamos</h3>
+            <ol>
+              <li v-for="(step, index) in startSteps" :key="step.title">
+                <span class="ct__n">{{ index + 1 }}</span>
+                <span>
+                  <b>{{ step.title }}</b>
+                  <small>{{ step.body }}</small>
+                </span>
+              </li>
+            </ol>
+          </section>
+
+          <aside
+            class="ct__login ln-reveal"
+            :data-seen="seen"
+            style="--i: 4"
+            aria-labelledby="ct-login"
+          >
+            <span class="ct__login-mark" aria-hidden="true"></span>
+            <h3 id="ct-login">¿Ya usas NAVA?</h3>
+            <p>Entra a tu panel para ver la agenda de hoy, tus turnos y tu equipo.</p>
+            <RouterLink class="ln-btn ln-btn--solid" :to="{ name: 'acceso' }">
+              Iniciar sesión
+              <svg
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+                aria-hidden="true"
+              >
+                <path d="M5 12h14M13 6l6 6-6 6" stroke-linecap="round" stroke-linejoin="round" />
+              </svg>
+            </RouterLink>
+            <RouterLink class="ct__forgot" :to="{ name: 'recuperar-acceso' }">
+              Olvidé mi contraseña
+            </RouterLink>
+          </aside>
+        </div>
       </div>
     </div>
   </section>
@@ -203,17 +223,17 @@ onBeforeUnmount(() => window.clearTimeout(resetTimer))
 }
 
 .ct__label {
-  font-size: 11px;
+  font-size: 13px;
   font-weight: 600;
-  letter-spacing: 0.22em;
+  letter-spacing: 0.2em;
   text-transform: uppercase;
   color: var(--ln-brass);
 }
 
 .ct__value {
   font-family: var(--font-display);
-  font-size: clamp(24px, 3.6vw, 36px);
-  line-height: 1.15;
+  font-size: clamp(28px, 4vw, 42px);
+  line-height: 1.12;
   overflow-wrap: anywhere;
 }
 
@@ -226,8 +246,8 @@ onBeforeUnmount(() => window.clearTimeout(resetTimer))
 .ct__copy {
   display: grid;
   place-items: center;
-  width: 48px;
-  height: 48px;
+  width: 52px;
+  height: 52px;
   border: 1px solid var(--ln-line-strong);
   border-radius: var(--radius-md);
   background: transparent;
@@ -251,8 +271,74 @@ onBeforeUnmount(() => window.clearTimeout(resetTimer))
 .ct__status {
   min-height: 20px;
   margin: -8px 0 0;
-  font-size: 13px;
+  font-size: 15px;
   color: var(--color-success-on-strong);
+}
+
+.ct__side {
+  display: grid;
+  gap: 20px;
+  align-content: start;
+  min-width: 0;
+}
+
+.ct__start {
+  padding: 28px 28px 8px;
+  border: 1px solid var(--ln-line);
+  border-radius: var(--radius-lg);
+  background: color-mix(in srgb, var(--color-on-strong) 3%, transparent);
+}
+
+.ct__start h3 {
+  margin: 0 0 8px;
+  font-size: 14px;
+  font-weight: 600;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: var(--ln-brass);
+}
+
+.ct__start ol {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.ct__start li {
+  display: grid;
+  grid-template-columns: 40px 1fr;
+  gap: 14px;
+  padding: 16px 0;
+  border-top: 1px solid var(--ln-line);
+}
+
+.ct__start li:first-child {
+  border-top: 0;
+}
+
+.ct__n {
+  display: grid;
+  place-items: center;
+  width: 36px;
+  height: 36px;
+  border: 1px solid var(--ln-brass-line);
+  border-radius: 50%;
+  font-family: var(--font-display);
+  font-size: 20px;
+  color: var(--ln-brass);
+}
+
+.ct__start b {
+  display: block;
+  font-size: 18px;
+  line-height: 26px;
+}
+
+.ct__start small {
+  display: block;
+  font-size: 16px;
+  line-height: 24px;
+  color: var(--ln-muted);
 }
 
 .ct__login {
@@ -279,14 +365,14 @@ onBeforeUnmount(() => window.clearTimeout(resetTimer))
   margin: 0;
   font-family: var(--font-display);
   font-weight: 400;
-  font-size: 32px;
+  font-size: 36px;
   line-height: 1.1;
 }
 
 .ct__login p {
   margin: 0;
-  font-size: 15px;
-  line-height: 24px;
+  font-size: 17px;
+  line-height: 27px;
   color: var(--ln-muted);
 }
 
@@ -295,7 +381,7 @@ onBeforeUnmount(() => window.clearTimeout(resetTimer))
 }
 
 .ct__forgot {
-  font-size: 14px;
+  font-size: 16px;
   color: var(--ln-soft);
   text-underline-offset: 4px;
 }
@@ -306,7 +392,7 @@ onBeforeUnmount(() => window.clearTimeout(resetTimer))
 
 @media (min-width: 1020px) {
   .ct__panel {
-    grid-template-columns: minmax(0, 1.5fr) minmax(0, 0.7fr);
+    grid-template-columns: minmax(0, 1.35fr) minmax(0, 0.8fr);
     gap: 64px;
     align-items: start;
   }
