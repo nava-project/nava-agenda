@@ -461,6 +461,179 @@ describe('BarberBlocksPanel · avisos emergentes (DEC-095)', () => {
   })
 })
 
+describe('BarberBlocksPanel · series similares agrupadas (#499)', () => {
+  const day = (id: string, isoWeekday: number, over: Record<string, unknown> = {}) => ({
+    ...weeklySeries,
+    id,
+    isoWeekday,
+    ...over,
+  })
+  const dateList = {
+    ...weeklySeries,
+    id: 'ser-dates',
+    blockType: 'vacation' as const,
+    recurrenceKind: 'date_list' as const,
+    isoWeekday: null,
+    startsTime: '00:00',
+    durationMinutes: 1440,
+    dates: [{ blockDate: '2099-12-15' }],
+  }
+
+  async function mountWith(items: unknown[]) {
+    for (const mock of [
+      fetchBarbershopTimezoneMock,
+      fetchTimeBlocksMock,
+      fetchTimeBlockSeriesMock,
+      deleteTimeBlockSeriesMock,
+      updateTimeBlockSeriesMock,
+    ]) {
+      mock.mockReset()
+    }
+    toastState.items.splice(0)
+    fetchBarbershopTimezoneMock.mockResolvedValue({ kind: 'success', timezone: 'America/Bogota' })
+    fetchTimeBlocksMock.mockResolvedValue({
+      kind: 'success',
+      page: { items: [], nextCursor: null },
+    })
+    fetchTimeBlockSeriesMock.mockResolvedValue({
+      kind: 'success',
+      page: { items, nextCursor: null },
+    })
+    const wrapper = mount(BarberBlocksPanel, {
+      props: { barberId: 'b-1', barberName: 'Barbero de prueba' },
+      global: { stubs: { teleport: true, RouterLink: true } },
+    })
+    await flushPromises()
+    return wrapper
+  }
+  const records = (wrapper: VueWrapper) =>
+    wrapper.findAll('section[aria-labelledby="weekly-blocks-title"] .blocks-panel__record')
+  function named(wrapper: VueWrapper, label: string) {
+    const found = wrapper.findAll('button').find((b) => b.attributes('aria-label') === label)
+    if (!found) throw new Error(`Botón no encontrado: ${label}`)
+    return found
+  }
+  function dialogOf(wrapper: VueWrapper, title: string) {
+    const found = wrapper.findAll('[role="dialog"]').find((d) => d.text().includes(title))
+    if (!found) throw new Error(`Diálogo no encontrado: ${title}`)
+    return found
+  }
+  const group = [day('s1', 1), day('s5', 5), day('s3', 3)]
+
+  it('shows weekly series that only differ by weekday as one card, with its week strip', async () => {
+    const wrapper = await mountWith([...group, dateList, day('other', 2, { startsTime: '15:00' })])
+
+    expect(records(wrapper)).toHaveLength(3)
+    const card = records(wrapper)[0]!
+    expect(card.text()).toContain('Lunes, miércoles y viernes · 12:00 · 60 min')
+    const lit = card.findAll('.blocks-panel__week-day--on').map((item) => item.text())
+    expect(lit).toEqual(['L', 'X', 'V'])
+    // La serie por fechas y la de otra hora quedan aparte.
+    expect(records(wrapper)[1]!.text()).toContain('Lista de fechas')
+    expect(records(wrapper)[2]!.text()).toContain('Martes · 15:00')
+    wrapper.unmount()
+  })
+
+  it('keeps the usual actions on a card without similar series', async () => {
+    const wrapper = await mountWith([day('s1', 1)])
+
+    expect(named(wrapper, 'Excepciones de la serie Almuerzo Lunes')).toBeTruthy()
+    expect(named(wrapper, 'Retirar serie Almuerzo Lunes').text()).toBe('Retirar')
+    expect(wrapper.find('.blocks-panel__week-day--on').exists()).toBe(true)
+    expect(wrapper.text()).not.toContain('Ocultar días')
+    wrapper.unmount()
+  })
+
+  it('expands the days to act on a single one', async () => {
+    const wrapper = await mountWith(group)
+    const toggle = named(wrapper, 'Días de la serie Almuerzo lunes, miércoles y viernes')
+    expect(toggle.attributes('aria-expanded')).toBe('false')
+    expect(wrapper.find('.blocks-panel__members').exists()).toBe(false)
+
+    await toggle.trigger('click')
+    expect(toggle.attributes('aria-expanded')).toBe('true')
+    const rows = wrapper.findAll('.blocks-panel__members > li')
+    expect(rows.map((row) => row.find('.blocks-panel__member-day').text())).toEqual([
+      'Lunes',
+      'Miércoles',
+      'Viernes',
+    ])
+
+    deleteTimeBlockSeriesMock.mockResolvedValueOnce({ kind: 'success' })
+    await named(wrapper, 'Retirar serie Almuerzo Miércoles').trigger('click')
+    await flushPromises()
+
+    expect(deleteTimeBlockSeriesMock).toHaveBeenCalledTimes(1)
+    expect(deleteTimeBlockSeriesMock).toHaveBeenCalledWith('b-1', 's3')
+    expect(records(wrapper)[0]!.text()).toContain('Lunes y viernes · 12:00')
+    wrapper.unmount()
+  })
+
+  it('retires every day of the card at once', async () => {
+    const wrapper = await mountWith(group)
+    deleteTimeBlockSeriesMock.mockResolvedValue({ kind: 'success' })
+
+    await named(wrapper, 'Retirar serie Almuerzo lunes, miércoles y viernes').trigger('click')
+    await flushPromises()
+
+    expect(deleteTimeBlockSeriesMock.mock.calls.map((call) => call[1]).sort()).toEqual([
+      's1',
+      's3',
+      's5',
+    ])
+    expect(records(wrapper)).toHaveLength(0)
+    expect(toastState.items.map((item) => [item.title, item.detail])).toEqual([
+      ['Bloqueo retirado', 'Se retiraron los 3 días.'],
+    ])
+    wrapper.unmount()
+  })
+
+  it('keeps the days that failed and retries only those', async () => {
+    const wrapper = await mountWith(group)
+    deleteTimeBlockSeriesMock.mockImplementation(async (_barber: string, id: string) =>
+      id === 's3' ? { kind: 'network-error' } : { kind: 'success' },
+    )
+
+    await named(wrapper, 'Retirar serie Almuerzo lunes, miércoles y viernes').trigger('click')
+    await flushPromises()
+
+    expect(records(wrapper)).toHaveLength(1)
+    expect(records(wrapper)[0]!.text()).toContain('Miércoles · 12:00')
+    const toast = toastState.items[0]!
+    expect(toast.title).toBe('No pudimos retirar todos los días')
+    expect(toast.detail).toContain('Se retiraron 2 de 3')
+
+    deleteTimeBlockSeriesMock.mockReset()
+    deleteTimeBlockSeriesMock.mockResolvedValue({ kind: 'success' })
+    toast.action!.run()
+    await flushPromises()
+
+    expect(deleteTimeBlockSeriesMock.mock.calls).toEqual([['b-1', 's3']])
+    expect(records(wrapper)).toHaveLength(0)
+    wrapper.unmount()
+  })
+
+  it('applies an edit to every day of the card', async () => {
+    const wrapper = await mountWith(group)
+    updateTimeBlockSeriesMock.mockImplementation(async (_barber: string, id: string) => ({
+      kind: 'success',
+      series: day(id, id === 's1' ? 1 : id === 's3' ? 3 : 5, { startsTime: '13:30' }),
+    }))
+    const title = 'Editar serie de bloqueo'
+
+    await named(wrapper, 'Editar serie Almuerzo lunes, miércoles y viernes').trigger('click')
+    await flushPromises()
+    expect(dialogOf(wrapper, title).text()).toContain('los 3 días de este bloqueo')
+    await dialogOf(wrapper, title).get('form').trigger('submit')
+    await flushPromises()
+
+    expect(updateTimeBlockSeriesMock.mock.calls.map((call) => call[1])).toEqual(['s1', 's3', 's5'])
+    expect(records(wrapper)).toHaveLength(1)
+    expect(records(wrapper)[0]!.text()).toContain('13:30')
+    wrapper.unmount()
+  })
+})
+
 describe('BarberBlocksPanel · listas con scroll propio (#497)', () => {
   it('puts each list in its own labelled, keyboard-focusable scroll region', async () => {
     const wrapper = await mountReady()
@@ -628,7 +801,9 @@ describe('BarberBlocksPanel · series por fechas, edición y excepciones (#100)'
       ['b-1', 'lunch', 2, '12:00', 45, '2099-01-01', null],
       ['b-1', 'lunch', 4, '12:00', 45, '2099-01-01', null],
     ])
-    expect(seriesRecords(wrapper)).toHaveLength(3)
+    // Las tres series dicen lo mismo salvo el día: se ven como una sola ficha.
+    expect(seriesRecords(wrapper)).toHaveLength(1)
+    expect(seriesRecords(wrapper)[0]!.text()).toContain('Lunes, martes y jueves')
     expect(toastState.items.map((item) => item.title)).toEqual(['Bloqueo agregado'])
     wrapper.unmount()
   })
