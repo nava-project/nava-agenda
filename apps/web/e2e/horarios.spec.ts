@@ -60,7 +60,7 @@ async function addWorkingHour(
     durationMinutes,
   }: { weekday: string; startsTime: string; durationMinutes: string },
 ) {
-  await page.getByRole('button', { name: 'Agregar tramo' }).click()
+  await page.getByRole('button', { name: 'Agregar un tramo el Lunes' }).click()
   const dialog = page.getByRole('dialog', { name: 'Agregar tramo' })
   await dialog.getByRole('radio', { name: weekday }).click()
   await pickTime(dialog, page, 'Hora de inicio', startsTime)
