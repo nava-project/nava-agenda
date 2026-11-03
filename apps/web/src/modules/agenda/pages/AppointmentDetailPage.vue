@@ -1270,9 +1270,10 @@ function occurredAtLabel(entry: HistoryEntry): string {
         v-model="isCloseOpen"
         :title="closeDialogTitle"
         size="md"
+        content-class="appointment-detail-page__ink-dialog"
         @close="onCloseDialogClosed"
       >
-        <div class="appointment-detail-page__dialog-form">
+        <div class="appointment-detail-page__dialog-form appointment-detail-page__ink-form">
           <BaseAlert
             v-if="closeStatus === 'version-conflict'"
             variant="warning"
@@ -1336,16 +1337,54 @@ function occurredAtLabel(entry: HistoryEntry): string {
             Inténtalo de nuevo en unos segundos.
           </BaseAlert>
 
-          <p class="appointment-detail-page__cancel-copy">
-            <template v-if="closeMode === 'complete'">
-              Vas a marcar el turno de <strong>{{ detail.attendeeName }}</strong> el
-              {{ timeRangeLabel }} como atendido. Esta acción no se puede deshacer desde aquí.
-            </template>
-            <template v-else>
-              Vas a marcar el turno de <strong>{{ detail.attendeeName }}</strong> el
-              {{ timeRangeLabel }} como que no asistió. Esta acción no se puede deshacer desde aquí.
-            </template>
-          </p>
+          <div
+            class="appointment-detail-page__cancel-ticket appointment-detail-page__close-ticket"
+            :class="
+              closeMode === 'complete'
+                ? 'appointment-detail-page__close-ticket--complete'
+                : 'appointment-detail-page__close-ticket--no-show'
+            "
+          >
+            <p class="appointment-detail-page__cancel-eyebrow">
+              {{
+                closeMode === 'complete'
+                  ? 'Turno que se marcará como atendido'
+                  : 'Turno que se marcará como no asistido'
+              }}
+            </p>
+            <p class="appointment-detail-page__cancel-name">{{ detail.attendeeName }}</p>
+            <p v-if="timeSpan" class="appointment-detail-page__cancel-when">
+              <span class="appointment-detail-page__cancel-date">{{ timeSpan.date }}</span>
+              <span class="appointment-detail-page__cancel-time"
+                >{{ timeSpan.start }} – {{ timeSpan.end }}</span
+              >
+            </p>
+            <p v-else class="appointment-detail-page__cancel-when">
+              <span class="appointment-detail-page__cancel-time">{{ timeRangeLabel }}</span>
+            </p>
+            <p class="appointment-detail-page__cancel-meta">
+              {{ detail.serviceName }} · {{ detail.barberFullName }} ·
+              {{ detail.durationMinutes }} min
+            </p>
+          </div>
+          <ul class="appointment-detail-page__cancel-effects">
+            <li>
+              <svg
+                class="appointment-detail-page__cancel-effect-icon"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="1.6"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                aria-hidden="true"
+              >
+                <path d="M12 4 3 20h18L12 4Z" />
+                <path d="M12 10v4M12 17v.5" />
+              </svg>
+              Esta acción no se puede deshacer desde aquí.
+            </li>
+          </ul>
 
           <div class="appointment-detail-page__dialog-actions">
             <BaseButton type="button" variant="secondary" @click="isCloseOpen = false">
@@ -2347,6 +2386,24 @@ function occurredAtLabel(entry: HistoryEntry): string {
 
 .appointment-detail-page__cancel-ticket p {
   margin: 0;
+}
+
+/* Cerrar turno (atendido / no asistió): la misma ficha que cancelar, con el color del estado
+   que se va a registrar (los tintes levantados a tinta de la agenda). */
+.appointment-detail-page__close-ticket--complete {
+  border-left-color: var(--color-success-on-strong);
+}
+
+.appointment-detail-page__close-ticket--complete .appointment-detail-page__cancel-eyebrow {
+  color: var(--color-success-on-strong);
+}
+
+.appointment-detail-page__close-ticket--no-show {
+  border-left-color: var(--color-no-show-on-strong);
+}
+
+.appointment-detail-page__close-ticket--no-show .appointment-detail-page__cancel-eyebrow {
+  color: var(--color-no-show-on-strong);
 }
 
 .appointment-detail-page__cancel-eyebrow {

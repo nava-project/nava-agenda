@@ -825,6 +825,30 @@ describe('AppointmentDetailPage', () => {
     expect(openDialogElement(wrapper).textContent).toContain('no asistió')
   })
 
+  it('closes the turn from the same ink card as cancel/reschedule, with a status-colored summary (#509)', async () => {
+    fetchAppointmentDetailMock.mockResolvedValue({ kind: 'success', detail: readyDetail })
+    const { wrapper } = await mountPage()
+    await openNoShowDialog(wrapper)
+
+    const dialog = openDialogElement(wrapper)
+    expect(dialog.className).toContain('appointment-detail-page__ink-dialog')
+    const ticket = dialog.querySelector('.appointment-detail-page__close-ticket--no-show')
+    expect(ticket?.textContent).toContain('Turno que se marcará como no asistido')
+    expect(ticket?.textContent).toContain('Juan Pérez')
+    expect(dialog.querySelector('.appointment-detail-page__close-ticket--complete')).toBeNull()
+  })
+
+  it('the complete dialog uses the same card with the completed color (#509)', async () => {
+    fetchAppointmentDetailMock.mockResolvedValue({ kind: 'success', detail: readyDetail })
+    const { wrapper } = await mountPage()
+    await openCompleteDialog(wrapper)
+
+    const ticket = openDialogElement(wrapper).querySelector(
+      '.appointment-detail-page__close-ticket--complete',
+    )
+    expect(ticket?.textContent).toContain('Turno que se marcará como atendido')
+  })
+
   it('on complete success, calls the API with a fresh idempotency key, closes the dialog, and refetches the detail', async () => {
     fetchAppointmentDetailMock.mockResolvedValue({ kind: 'success', detail: readyDetail })
     const { wrapper } = await mountPage()
