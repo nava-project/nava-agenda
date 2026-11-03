@@ -6,19 +6,35 @@
  */
 import { afterEach, describe, it, expect, vi } from 'vitest'
 import { mount } from '@vue/test-utils'
+import { createRouter, createMemoryHistory } from 'vue-router'
 import { axe } from 'vitest-axe'
 import AuthSplitLayout from '../AuthSplitLayout.vue'
 
 const axeOptions = { rules: { region: { enabled: false }, 'color-contrast': { enabled: false } } }
 
+const router = createRouter({
+  history: createMemoryHistory(),
+  routes: [{ path: '/', component: { template: '<div />' } }],
+})
+
 function mountLayout(props: Record<string, unknown> = {}, slotHtml = '<h1>Accede a NAVA</h1>') {
   return mount(AuthSplitLayout, {
     props: { caption: 'ACCESO SEGURO', ...props },
     slots: { default: slotHtml },
+    global: { plugins: [router] },
   })
 }
 
 describe('AuthSplitLayout', () => {
+  it('ofrece una barra para volver a la presentación pública (issue #517)', () => {
+    const wrapper = mountLayout()
+    const link = wrapper.get('nav[aria-label="Sitio"] a')
+    expect(link.attributes('href')).toBe('/')
+    expect(link.text()).toBe('Volver a la presentación')
+    // No forma parte de la tarjeta: no altera el orden ni la entrada de su contenido.
+    expect(wrapper.get('.auth-split__card').find('.auth-split__nav').exists()).toBe(false)
+  })
+
   it('renders the brand mark as decorative (aria-hidden)', () => {
     const wrapper = mountLayout()
     expect(wrapper.find('.auth-split__brand').attributes('aria-hidden')).toBe('true')
