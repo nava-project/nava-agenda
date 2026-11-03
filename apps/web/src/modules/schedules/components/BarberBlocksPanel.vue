@@ -132,6 +132,12 @@ async function loadTimezone() {
 // ninguno cambia hasta que el barbero lo abre y decide.
 const affected = ref<{ items: AffectedAppointment[]; truncated: boolean } | null>(null)
 
+// Aviso breve tras crear un bloqueo (con botón «Ver turnos») y diálogo con el detalle por día.
+// El diálogo también se abre a demanda desde la ficha de un bloqueo puntual (#507).
+const affectedNotice = ref(false)
+const isAffectedOpen = ref(false)
+const loadingAffectedBlockId = ref<string | null>(null)
+
 async function showAffectedAppointments(startsAt: string, endsAt: string) {
   const barberId = selectedBarberId.value
   const timeZone = barbershopTimezone.value
@@ -139,10 +145,29 @@ async function showAffectedAppointments(startsAt: string, endsAt: string) {
   const outcome = await fetchAffectedAppointments(barberId, startsAt, endsAt, timeZone)
   // Si mientras tanto se cambió de profesional, esta respuesta ya no le corresponde.
   if (barberId !== selectedBarberId.value || outcome.kind !== 'success') return
-  affected.value =
-    outcome.items.length > 0 || outcome.truncated
-      ? { items: outcome.items, truncated: outcome.truncated }
-      : null
+  const found = outcome.items.length > 0 || outcome.truncated
+  affected.value = found ? { items: outcome.items, truncated: outcome.truncated } : null
+  affectedNotice.value = found
+}
+
+// Botón «Ver turnos» de la ficha: consulta los turnos que caen bajo ese bloqueo y abre el detalle.
+async function viewBlockAppointments(block: TimeBlock) {
+  const barberId = selectedBarberId.value
+  const timeZone = barbershopTimezone.value
+  if (!barberId || !timeZone || loadingAffectedBlockId.value) return
+  loadingAffectedBlockId.value = block.id
+  const outcome = await fetchAffectedAppointments(barberId, block.startsAt, block.endsAt, timeZone)
+  loadingAffectedBlockId.value = null
+  if (!alive || barberId !== selectedBarberId.value) return
+  if (outcome.kind !== 'success') {
+    toast.error('No pudimos cargar los turnos', {
+      detail: 'Revisa tu conexión e inténtalo de nuevo.',
+    })
+    return
+  }
+  affected.value = { items: outcome.items, truncated: outcome.truncated }
+  affectedNotice.value = false
+  isAffectedOpen.value = true
 }
 
 // Los turnos afectados se agrupan por día civil (zona de la barbería) para leerlos como una
@@ -185,6 +210,7 @@ function affectedWhen(item: AffectedAppointment): string {
 async function loadLists() {
   const token = ++requestToken
   affected.value = null
+  affectedNotice.value = false
   blocksStatus.value = 'loading'
   seriesStatus.value = 'loading'
   const [blocksOutcome, seriesOutcome] = await Promise.all([
@@ -630,7 +656,7 @@ function seriesCounts(item: TimeBlockSeries): string {
     </BaseAlert>
 
     <BaseAlert
-      v-if="affected"
+      v-if="affected && affectedNotice"
       class="blocks-panel__affected"
       variant="warning"
       :title="
@@ -642,40 +668,65 @@ function seriesCounts(item: TimeBlockSeries): string {
       "
     >
       <p v-if="affected.items.length > 0">
-        No cambiamos ningún turno. Abre cada uno para reprogramarlo o cancelarlo.
+        No cambiamos ningún turno. Revísalos para reprogramarlos o cancelarlos.
       </p>
-      <div v-if="affected.items.length > 0" class="blocks-panel__affected-days">
-        <section v-for="day in affectedByDay" :key="day.date" class="affected-day">
-          <h4 class="affected-day__title">
-            {{ day.heading }}
-            <span>{{ day.rows.length === 1 ? '1 turno' : `${day.rows.length} turnos` }}</span>
-          </h4>
-          <ul class="affected-day__list">
-            <li v-for="row in day.rows" :key="row.item.id">
-              <RouterLink
-                class="affected-row"
-                :to="{ name: 'agenda-detalle-turno', params: { appointmentId: row.item.id } }"
-                :aria-label="`${affectedWhen(row.item)} · ${row.item.attendeeName} · ${row.item.serviceName}`"
-              >
-                <span class="affected-row__time">{{ row.time }}</span>
-                <span class="affected-row__who"
-                  ><strong>{{ row.item.attendeeName }}</strong
-                  ><small>{{ row.item.serviceName }}</small></span
-                >
-                <span class="affected-row__go" aria-hidden="true">→</span>
-              </RouterLink>
-            </li>
-          </ul>
-        </section>
-      </div>
       <p v-if="affected.truncated">
         El bloqueo abarca más de {{ MAX_AFFECTED_DAYS }} días y solo revisamos los primeros. Mira la
         agenda de los días siguientes.
       </p>
-      <template #action
-        ><BaseButton variant="secondary" @click="affected = null">Entendido</BaseButton></template
-      >
+      <template #action>
+        <BaseButton
+          v-if="affected.items.length > 0"
+          variant="secondary"
+          @click="isAffectedOpen = true"
+          >Ver turnos</BaseButton
+        >
+        <BaseButton variant="secondary" @click="((affectedNotice = false), (affected = null))"
+          >Entendido</BaseButton
+        >
+      </template>
     </BaseAlert>
+    <BaseDialog
+      v-model="isAffectedOpen"
+      title="Turnos bajo el bloqueo"
+      description="No cambiamos ningún turno. Abre cada uno para reprogramarlo o cancelarlo."
+      size="lg"
+      content-class="block-dialog block-dialog--affected"
+    >
+      <template v-if="affected">
+        <p v-if="affected.items.length === 0" class="affected-empty">
+          Ningún turno confirmado cae dentro de este bloqueo.
+        </p>
+        <div v-else class="blocks-panel__affected-days">
+          <section v-for="day in affectedByDay" :key="day.date" class="affected-day">
+            <h3 class="affected-day__title">
+              {{ day.heading }}
+              <span>{{ day.rows.length === 1 ? '1 turno' : `${day.rows.length} turnos` }}</span>
+            </h3>
+            <ul class="affected-day__list">
+              <li v-for="row in day.rows" :key="row.item.id">
+                <RouterLink
+                  class="affected-row"
+                  :to="{ name: 'agenda-detalle-turno', params: { appointmentId: row.item.id } }"
+                  :aria-label="`${affectedWhen(row.item)} · ${row.item.attendeeName} · ${row.item.serviceName}`"
+                >
+                  <span class="affected-row__time">{{ row.time }}</span>
+                  <span class="affected-row__who"
+                    ><strong>{{ row.item.attendeeName }}</strong
+                    ><small>{{ row.item.serviceName }}</small></span
+                  >
+                  <span class="affected-row__go" aria-hidden="true">→</span>
+                </RouterLink>
+              </li>
+            </ul>
+          </section>
+        </div>
+        <p v-if="affected.truncated" class="affected-empty">
+          El bloqueo abarca más de {{ MAX_AFFECTED_DAYS }} días y solo revisamos los primeros. Mira
+          la agenda de los días siguientes.
+        </p>
+      </template>
+    </BaseDialog>
 
     <div class="blocks-panel__ledger">
       <section aria-labelledby="single-blocks-title">
@@ -744,15 +795,26 @@ function seriesCounts(item: TimeBlockSeries): string {
                     block.source === 'holiday_calendar'
                       ? 'Calendario de festivos'
                       : 'Bloqueo manual'
-                  }}</span
-                  ><BaseButton
-                    variant="secondary"
-                    :aria-label="`Retirar bloqueo ${blockTypeLabel(block.blockType)} del ${displayInstant(block.startsAt)}`"
-                    :loading="pendingDeleteBlockIds.has(block.id)"
-                    :disabled="pendingDeleteBlockIds.has(block.id)"
-                    @click="onDeleteBlock(block)"
-                    >Retirar</BaseButton
-                  >
+                  }}</span>
+                  <div class="blocks-panel__record-actions">
+                    <BaseButton
+                      v-if="!isPast(block)"
+                      variant="secondary"
+                      :aria-label="`Ver turnos del bloqueo ${blockTypeLabel(block.blockType)} del ${displayInstant(block.startsAt)}`"
+                      :loading="loadingAffectedBlockId === block.id"
+                      :disabled="loadingAffectedBlockId !== null"
+                      @click="viewBlockAppointments(block)"
+                      >Ver turnos</BaseButton
+                    >
+                    <BaseButton
+                      variant="secondary"
+                      :aria-label="`Retirar bloqueo ${blockTypeLabel(block.blockType)} del ${displayInstant(block.startsAt)}`"
+                      :loading="pendingDeleteBlockIds.has(block.id)"
+                      :disabled="pendingDeleteBlockIds.has(block.id)"
+                      @click="onDeleteBlock(block)"
+                      >Retirar</BaseButton
+                    >
+                  </div>
                 </div>
               </li>
             </TransitionGroup>
@@ -1357,12 +1419,11 @@ function seriesCounts(item: TimeBlockSeries): string {
 
 .blocks-panel__affected-days {
   display: grid;
-  gap: 14px;
-  max-height: min(44vh, 400px);
-  margin: 4px 0 12px;
-  padding-right: 6px;
-  overflow-y: auto;
-  overscroll-behavior: contain;
+  gap: 16px;
+}
+.affected-empty {
+  margin: 0;
+  color: var(--color-on-strong-muted);
 }
 .affected-day__title {
   display: flex;
@@ -1689,6 +1750,9 @@ function seriesCounts(item: TimeBlockSeries): string {
   color: var(--color-on-strong-muted);
   font-size: var(--font-size-caption);
   line-height: 1.5;
+}
+.block-dialog.block-dialog--affected.base-dialog {
+  width: min(100%, 600px) !important;
 }
 /* Diálogo «Días» (#505): un renglón por día con sus acciones, sobre hueco hundido. */
 .block-dialog.block-dialog--days.base-dialog {

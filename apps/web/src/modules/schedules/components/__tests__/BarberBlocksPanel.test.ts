@@ -295,6 +295,88 @@ describe('BarberBlocksPanel · avisos emergentes (DEC-095)', () => {
     await flushPromises()
   }
 
+  it('HU-069: after creating, the notice is short and a «Ver turnos» button opens the detail', async () => {
+    const wrapper = await mountReady(true)
+    fetchAffectedAppointmentsMock.mockResolvedValueOnce({
+      kind: 'success',
+      truncated: false,
+      items: [
+        {
+          id: 'apt-9',
+          attendeeName: 'Dora',
+          serviceName: 'Corte',
+          startsAt: '2099-01-06T14:00:00Z',
+          endsAt: '2099-01-06T14:30:00Z',
+        },
+      ],
+    })
+    await createEmergencyBlock(wrapper)
+
+    // El aviso ya no trae la lista: solo el resumen y los botones.
+    const notice = wrapper.get('.blocks-panel__affected')
+    expect(notice.find('.affected-row').exists()).toBe(false)
+    expect(wrapper.get('.block-dialog--affected').isVisible()).toBe(false)
+
+    await notice
+      .findAll('button')
+      .find((b) => b.text() === 'Ver turnos')!
+      .trigger('click')
+    const dialog = wrapper.get('.block-dialog--affected')
+    expect(dialog.isVisible()).toBe(true)
+    expect(dialog.get('.affected-row__who strong').text()).toBe('Dora')
+    wrapper.unmount()
+  })
+
+  it('HU-069: «Ver turnos» on a block card loads and shows the appointments under that block', async () => {
+    const wrapper = await mountReady(true)
+    fetchAffectedAppointmentsMock.mockResolvedValueOnce({
+      kind: 'success',
+      truncated: false,
+      items: [
+        {
+          id: 'apt-3',
+          attendeeName: 'Elena',
+          serviceName: 'Barba',
+          startsAt: '2099-01-05T17:00:00Z',
+          endsAt: '2099-01-05T17:30:00Z',
+        },
+      ],
+    })
+
+    await wrapper.get('button[aria-label^="Ver turnos del bloqueo Almuerzo"]').trigger('click')
+    await flushPromises()
+
+    expect(fetchAffectedAppointmentsMock).toHaveBeenCalledWith(
+      'b-1',
+      block.startsAt,
+      block.endsAt,
+      'America/Bogota',
+    )
+    const dialog = wrapper.get('.block-dialog--affected')
+    expect(dialog.isVisible()).toBe(true)
+    expect(dialog.get('.affected-row__who strong').text()).toBe('Elena')
+    // Abrirlo desde la ficha no levanta el aviso de creación.
+    expect(wrapper.find('.blocks-panel__affected').exists()).toBe(false)
+    wrapper.unmount()
+  })
+
+  it('HU-069: a block with no appointments says so instead of showing an empty list', async () => {
+    const wrapper = await mountReady(true)
+    fetchAffectedAppointmentsMock.mockResolvedValueOnce({
+      kind: 'success',
+      truncated: false,
+      items: [],
+    })
+
+    await wrapper.get('button[aria-label^="Ver turnos del bloqueo Almuerzo"]').trigger('click')
+    await flushPromises()
+
+    expect(wrapper.get('.block-dialog--affected').text()).toContain(
+      'Ningún turno confirmado cae dentro de este bloqueo.',
+    )
+    wrapper.unmount()
+  })
+
   it('HU-069: groups the affected appointments by day, with time, person and service per row', async () => {
     const wrapper = await mountReady(true)
     const apt = (id: string, name: string, startsAt: string, endsAt: string) => ({
