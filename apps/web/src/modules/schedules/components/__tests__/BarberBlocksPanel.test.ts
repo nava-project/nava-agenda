@@ -461,6 +461,23 @@ describe('BarberBlocksPanel · avisos emergentes (DEC-095)', () => {
   })
 })
 
+describe('BarberBlocksPanel · listas con scroll propio (#497)', () => {
+  it('puts each list in its own labelled, keyboard-focusable scroll region', async () => {
+    const wrapper = await mountReady()
+    const regions = wrapper.findAll('.blocks-panel__scroll')
+
+    expect(regions.map((region) => region.attributes('aria-label'))).toEqual([
+      'Lista de bloqueos puntuales',
+      'Lista de series de bloqueo',
+    ])
+    expect(regions.every((region) => region.attributes('role') === 'region')).toBe(true)
+    expect(regions.every((region) => region.attributes('tabindex') === '0')).toBe(true)
+    // Las fichas viven dentro de su región: es la región quien se desplaza.
+    expect(regions[1]!.findAll('.blocks-panel__record').length).toBeGreaterThan(0)
+    wrapper.unmount()
+  })
+})
+
 describe('BarberBlocksPanel · vocabulario del negocio (DEC-119)', () => {
   beforeEach(() => {
     for (const mock of [

@@ -504,182 +504,200 @@ function seriesCounts(item: TimeBlockSeries): string {
           <span aria-hidden="true">01</span>
           <h3 id="single-blocks-title">Bloqueos puntuales</h3>
         </div>
-        <div v-if="blocksStatus === 'loading'" class="blocks-panel__state" role="status">
-          <BaseSpinner size="sm" />
-          <p>Cargando bloqueos…</p>
-        </div>
-        <BaseAlert
-          v-else-if="blocksStatus === 'error'"
-          variant="warning"
-          title="No pudimos cargar los bloqueos"
+        <div
+          class="blocks-panel__scroll"
+          role="region"
+          aria-label="Lista de bloqueos puntuales"
+          tabindex="0"
         >
-          Revisa tu conexión e inténtalo de nuevo.
-          <template #action
-            ><BaseButton variant="secondary" @click="loadLists"
-              >Reintentar bloqueos</BaseButton
-            ></template
-          >
-        </BaseAlert>
-        <template v-else-if="blocksStatus === 'ready'">
-          <div v-if="visibleBlocks.length === 0" class="blocks-panel__empty">
-            <span aria-hidden="true">◇</span>
-            <p>Sin bloqueos puntuales</p>
-            <small>Cuando necesite una pausa, aparecerá aquí.</small>
+          <div v-if="blocksStatus === 'loading'" class="blocks-panel__state" role="status">
+            <BaseSpinner size="sm" />
+            <p>Cargando bloqueos…</p>
           </div>
-          <TransitionGroup
-            v-else
-            name="block-record"
-            tag="ul"
-            class="blocks-panel__list"
-            aria-label="Bloqueos puntuales"
+          <BaseAlert
+            v-else-if="blocksStatus === 'error'"
+            variant="warning"
+            title="No pudimos cargar los bloqueos"
           >
-            <li
-              v-for="block in visibleBlocks"
-              :key="block.id"
-              class="blocks-panel__record"
-              :class="{ 'blocks-panel__record--past': isPast(block) }"
+            Revisa tu conexión e inténtalo de nuevo.
+            <template #action
+              ><BaseButton variant="secondary" @click="loadLists"
+                >Reintentar bloqueos</BaseButton
+              ></template
             >
-              <div class="blocks-panel__record-top">
-                <strong>{{ blockTypeLabel(block.blockType) }}</strong
-                ><span class="blocks-panel__stamp">{{ isPast(block) ? 'Pasado' : 'Puntual' }}</span>
-              </div>
-              <p class="blocks-panel__interval">
-                <time :datetime="block.startsAt">{{ displayInstant(block.startsAt) }}</time
-                ><span aria-hidden="true"> → </span><span class="sr-only"> hasta </span
-                ><time :datetime="block.endsAt">{{ displayInstant(block.endsAt) }}</time>
-              </p>
-              <p v-if="block.reason" class="blocks-panel__reason">{{ block.reason }}</p>
-              <div class="blocks-panel__record-footer">
-                <span>{{
-                  block.source === 'holiday_calendar' ? 'Calendario de festivos' : 'Bloqueo manual'
-                }}</span
-                ><BaseButton
-                  variant="secondary"
-                  :aria-label="`Retirar bloqueo ${blockTypeLabel(block.blockType)} del ${displayInstant(block.startsAt)}`"
-                  :loading="pendingDeleteBlockIds.has(block.id)"
-                  :disabled="pendingDeleteBlockIds.has(block.id)"
-                  @click="onDeleteBlock(block)"
-                  >Retirar</BaseButton
-                >
-              </div>
-            </li>
-          </TransitionGroup>
-          <BaseAlert v-if="moreBlocksError" variant="warning"
-            >No pudimos cargar más bloqueos. Puedes reintentar.</BaseAlert
-          >
-          <BaseButton
-            v-if="blocksCursor"
-            variant="secondary"
-            :loading="loadingMoreBlocks"
-            :disabled="loadingMoreBlocks"
-            @click="loadMore('blocks')"
-            >Cargar más bloqueos</BaseButton
-          >
-        </template>
+          </BaseAlert>
+          <template v-else-if="blocksStatus === 'ready'">
+            <div v-if="visibleBlocks.length === 0" class="blocks-panel__empty">
+              <span aria-hidden="true">◇</span>
+              <p>Sin bloqueos puntuales</p>
+              <small>Cuando necesite una pausa, aparecerá aquí.</small>
+            </div>
+            <TransitionGroup
+              v-else
+              name="block-record"
+              tag="ul"
+              class="blocks-panel__list"
+              aria-label="Bloqueos puntuales"
+            >
+              <li
+                v-for="block in visibleBlocks"
+                :key="block.id"
+                class="blocks-panel__record"
+                :class="{ 'blocks-panel__record--past': isPast(block) }"
+              >
+                <div class="blocks-panel__record-top">
+                  <strong>{{ blockTypeLabel(block.blockType) }}</strong
+                  ><span class="blocks-panel__stamp">{{
+                    isPast(block) ? 'Pasado' : 'Puntual'
+                  }}</span>
+                </div>
+                <p class="blocks-panel__interval">
+                  <time :datetime="block.startsAt">{{ displayInstant(block.startsAt) }}</time
+                  ><span aria-hidden="true"> → </span><span class="sr-only"> hasta </span
+                  ><time :datetime="block.endsAt">{{ displayInstant(block.endsAt) }}</time>
+                </p>
+                <p v-if="block.reason" class="blocks-panel__reason">{{ block.reason }}</p>
+                <div class="blocks-panel__record-footer">
+                  <span>{{
+                    block.source === 'holiday_calendar'
+                      ? 'Calendario de festivos'
+                      : 'Bloqueo manual'
+                  }}</span
+                  ><BaseButton
+                    variant="secondary"
+                    :aria-label="`Retirar bloqueo ${blockTypeLabel(block.blockType)} del ${displayInstant(block.startsAt)}`"
+                    :loading="pendingDeleteBlockIds.has(block.id)"
+                    :disabled="pendingDeleteBlockIds.has(block.id)"
+                    @click="onDeleteBlock(block)"
+                    >Retirar</BaseButton
+                  >
+                </div>
+              </li>
+            </TransitionGroup>
+            <BaseAlert v-if="moreBlocksError" variant="warning"
+              >No pudimos cargar más bloqueos. Puedes reintentar.</BaseAlert
+            >
+            <BaseButton
+              v-if="blocksCursor"
+              variant="secondary"
+              :loading="loadingMoreBlocks"
+              :disabled="loadingMoreBlocks"
+              @click="loadMore('blocks')"
+              >Cargar más bloqueos</BaseButton
+            >
+          </template>
+        </div>
       </section>
       <section aria-labelledby="weekly-blocks-title">
         <div class="blocks-panel__section-head">
           <span aria-hidden="true">02</span>
           <h3 id="weekly-blocks-title">Series de bloqueo</h3>
         </div>
-        <div v-if="seriesStatus === 'loading'" class="blocks-panel__state" role="status">
-          <BaseSpinner size="sm" />
-          <p>Cargando series…</p>
-        </div>
-        <BaseAlert
-          v-else-if="seriesStatus === 'error'"
-          variant="warning"
-          title="No pudimos cargar las series"
+        <div
+          class="blocks-panel__scroll"
+          role="region"
+          aria-label="Lista de series de bloqueo"
+          tabindex="0"
         >
-          Revisa tu conexión e inténtalo de nuevo.
-          <template #action
-            ><BaseButton variant="secondary" @click="loadLists"
-              >Reintentar series</BaseButton
-            ></template
-          >
-        </BaseAlert>
-        <template v-else-if="seriesStatus === 'ready'">
-          <div v-if="activeSeries.length === 0" class="blocks-panel__empty">
-            <span aria-hidden="true">↻</span>
-            <p>Sin pausas recurrentes</p>
-            <small>Una misma pausa, cada semana.</small>
+          <div v-if="seriesStatus === 'loading'" class="blocks-panel__state" role="status">
+            <BaseSpinner size="sm" />
+            <p>Cargando series…</p>
           </div>
-          <TransitionGroup
-            v-else
-            name="block-record"
-            tag="ul"
-            class="blocks-panel__list"
-            aria-label="Series de bloqueo"
+          <BaseAlert
+            v-else-if="seriesStatus === 'error'"
+            variant="warning"
+            title="No pudimos cargar las series"
           >
-            <li v-for="item in activeSeries" :key="item.id" class="blocks-panel__record">
-              <div class="blocks-panel__record-top">
-                <strong>{{ blockTypeLabel(item.blockType) }}</strong
-                ><span class="blocks-panel__stamp">{{
-                  item.recurrenceKind === 'weekly' ? 'Semanal' : 'Fechas'
-                }}</span>
-              </div>
-              <p class="blocks-panel__interval">
-                <template v-if="item.recurrenceKind === 'weekly' && item.isoWeekday"
-                  >{{ weekdayLabel(item.isoWeekday) }} · {{ item.startsTime }} ·
-                  {{ item.durationMinutes }} min</template
-                ><template v-else
-                  >Lista de fechas · {{ item.startsTime }} ·
-                  {{ item.durationMinutes }} min</template
-                >
-              </p>
-              <p class="blocks-panel__validity">
-                Desde {{ displayDate(item.effectiveFrom)
-                }}<template v-if="item.effectiveUntil">
-                  hasta {{ displayDate(item.effectiveUntil) }}</template
-                ><template v-else> · Sin fecha de fin</template>
-              </p>
-              <p v-if="item.reason" class="blocks-panel__reason">{{ item.reason }}</p>
-              <p v-if="seriesCounts(item)" class="blocks-panel__validity">
-                {{ seriesCounts(item) }}
-              </p>
-              <div class="blocks-panel__record-footer">
-                <span>{{
-                  item.recurrenceKind === 'weekly' ? 'Se repite cada semana' : 'Fechas explícitas'
-                }}</span>
-                <div class="blocks-panel__record-actions">
-                  <BaseButton
-                    variant="secondary"
-                    :aria-label="`${item.recurrenceKind === 'date_list' ? 'Fechas y excepciones' : 'Excepciones'} de la serie ${seriesName(item)}`"
-                    @click="openInstances(item)"
-                    >{{
-                      item.recurrenceKind === 'date_list' ? 'Fechas' : 'Excepciones'
-                    }}</BaseButton
-                  >
-                  <BaseButton
-                    variant="secondary"
-                    :aria-label="`Editar serie ${seriesName(item)}`"
-                    @click="openEditSeries(item)"
-                    >Editar</BaseButton
-                  >
-                  <BaseButton
-                    variant="secondary"
-                    :aria-label="`Retirar serie ${seriesName(item)}`"
-                    :loading="pendingDeleteSeriesIds.has(item.id)"
-                    :disabled="pendingDeleteSeriesIds.has(item.id)"
-                    @click="onDeleteSeries(item)"
-                    >Retirar</BaseButton
-                  >
+            Revisa tu conexión e inténtalo de nuevo.
+            <template #action
+              ><BaseButton variant="secondary" @click="loadLists"
+                >Reintentar series</BaseButton
+              ></template
+            >
+          </BaseAlert>
+          <template v-else-if="seriesStatus === 'ready'">
+            <div v-if="activeSeries.length === 0" class="blocks-panel__empty">
+              <span aria-hidden="true">↻</span>
+              <p>Sin pausas recurrentes</p>
+              <small>Una misma pausa, cada semana.</small>
+            </div>
+            <TransitionGroup
+              v-else
+              name="block-record"
+              tag="ul"
+              class="blocks-panel__list"
+              aria-label="Series de bloqueo"
+            >
+              <li v-for="item in activeSeries" :key="item.id" class="blocks-panel__record">
+                <div class="blocks-panel__record-top">
+                  <strong>{{ blockTypeLabel(item.blockType) }}</strong
+                  ><span class="blocks-panel__stamp">{{
+                    item.recurrenceKind === 'weekly' ? 'Semanal' : 'Fechas'
+                  }}</span>
                 </div>
-              </div>
-            </li>
-          </TransitionGroup>
-          <BaseAlert v-if="moreSeriesError" variant="warning"
-            >No pudimos cargar más series. Puedes reintentar.</BaseAlert
-          >
-          <BaseButton
-            v-if="seriesCursor"
-            variant="secondary"
-            :loading="loadingMoreSeries"
-            :disabled="loadingMoreSeries"
-            @click="loadMore('series')"
-            >Cargar más series</BaseButton
-          >
-        </template>
+                <p class="blocks-panel__interval">
+                  <template v-if="item.recurrenceKind === 'weekly' && item.isoWeekday"
+                    >{{ weekdayLabel(item.isoWeekday) }} · {{ item.startsTime }} ·
+                    {{ item.durationMinutes }} min</template
+                  ><template v-else
+                    >Lista de fechas · {{ item.startsTime }} ·
+                    {{ item.durationMinutes }} min</template
+                  >
+                </p>
+                <p class="blocks-panel__validity">
+                  Desde {{ displayDate(item.effectiveFrom)
+                  }}<template v-if="item.effectiveUntil">
+                    hasta {{ displayDate(item.effectiveUntil) }}</template
+                  ><template v-else> · Sin fecha de fin</template>
+                </p>
+                <p v-if="item.reason" class="blocks-panel__reason">{{ item.reason }}</p>
+                <p v-if="seriesCounts(item)" class="blocks-panel__validity">
+                  {{ seriesCounts(item) }}
+                </p>
+                <div class="blocks-panel__record-footer">
+                  <span>{{
+                    item.recurrenceKind === 'weekly' ? 'Se repite cada semana' : 'Fechas explícitas'
+                  }}</span>
+                  <div class="blocks-panel__record-actions">
+                    <BaseButton
+                      variant="secondary"
+                      :aria-label="`${item.recurrenceKind === 'date_list' ? 'Fechas y excepciones' : 'Excepciones'} de la serie ${seriesName(item)}`"
+                      @click="openInstances(item)"
+                      >{{
+                        item.recurrenceKind === 'date_list' ? 'Fechas' : 'Excepciones'
+                      }}</BaseButton
+                    >
+                    <BaseButton
+                      variant="secondary"
+                      :aria-label="`Editar serie ${seriesName(item)}`"
+                      @click="openEditSeries(item)"
+                      >Editar</BaseButton
+                    >
+                    <BaseButton
+                      variant="secondary"
+                      :aria-label="`Retirar serie ${seriesName(item)}`"
+                      :loading="pendingDeleteSeriesIds.has(item.id)"
+                      :disabled="pendingDeleteSeriesIds.has(item.id)"
+                      @click="onDeleteSeries(item)"
+                      >Retirar</BaseButton
+                    >
+                  </div>
+                </div>
+              </li>
+            </TransitionGroup>
+            <BaseAlert v-if="moreSeriesError" variant="warning"
+              >No pudimos cargar más series. Puedes reintentar.</BaseAlert
+            >
+            <BaseButton
+              v-if="seriesCursor"
+              variant="secondary"
+              :loading="loadingMoreSeries"
+              :disabled="loadingMoreSeries"
+              @click="loadMore('series')"
+              >Cargar más series</BaseButton
+            >
+          </template>
+        </div>
       </section>
     </div>
     <p class="blocks-panel__note">Un bloqueo no cancela ni reprograma los turnos ya agendados.</p>
@@ -844,13 +862,6 @@ function seriesCounts(item: TimeBlockSeries): string {
   white-space: nowrap;
   border: 0;
 }
-.blocks-panel__record :deep(.base-button--secondary) {
-  background: transparent;
-}
-.blocks-panel__record--past :deep(.base-button--secondary) {
-  color: var(--color-on-strong);
-  border-color: var(--color-brand-accent-surface);
-}
 
 .blocks-panel {
   --color-text-primary: var(--color-on-strong);
@@ -937,66 +948,87 @@ function seriesCounts(item: TimeBlockSeries): string {
   padding: 0;
   margin: 0 0 16px;
   display: grid;
-  gap: 12px;
+  gap: 10px;
 }
+.blocks-panel__scroll {
+  min-width: 0;
+}
+.blocks-panel__scroll:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 2px var(--color-focus);
+}
+/* Ficha de bloqueo: hueco hundido sobre la tinta del diálogo con filete de latón
+   a la izquierda, el mismo lenguaje de las fichas del tablero de Horarios. */
 .blocks-panel__record {
-  background: var(--color-surface-muted);
-  color: var(--color-brand-accent-text);
+  display: grid;
+  gap: 10px;
+  padding: 16px 18px;
+  color: var(--color-on-strong);
+  background: var(--color-field-strong);
+  border: 1px solid var(--color-field-strong-border);
   border-left: 3px solid var(--color-brand-accent-surface);
-  padding: 18px;
+  border-radius: 2px;
   overflow-wrap: anywhere;
-  --color-text-primary: var(--color-brand-accent-text);
-  --color-text-secondary: var(--color-inactive-text);
-  --color-accent-brass: var(--color-focus);
 }
 .blocks-panel__record--past {
   background: transparent;
   color: var(--color-on-strong-muted);
-  border: 1px solid var(--color-field-strong-border);
+  border-left-color: color-mix(in srgb, var(--color-brand-accent-surface) 40%, transparent);
 }
 .blocks-panel__record-top {
   display: flex;
   justify-content: space-between;
-  align-items: baseline;
+  align-items: center;
   gap: 12px;
 }
 .blocks-panel__record-top strong {
   font-family: var(--font-display);
   font-size: var(--font-size-title-item);
   font-weight: 400;
+  line-height: 1.2;
 }
 .blocks-panel__stamp {
+  flex-shrink: 0;
+  padding: 3px 8px;
+  color: var(--color-brand-accent-surface);
   font-size: var(--font-size-caption);
-  text-transform: uppercase;
+  font-weight: 600;
+  line-height: 1.3;
   letter-spacing: 0.12em;
-  border: 1px solid currentColor;
-  padding: 3px 6px;
+  text-transform: uppercase;
+  border: 1px solid color-mix(in srgb, var(--color-brand-accent-surface) 55%, transparent);
+  border-radius: 2px;
 }
 .blocks-panel__interval {
-  font-size: var(--font-size-body-sm);
-  line-height: 1.7;
-  margin: 12px 0 6px;
+  margin: 0;
+  color: var(--color-on-strong);
+  font-size: var(--font-size-body);
+  line-height: 1.4;
 }
 .blocks-panel__reason {
+  margin: 0;
+  color: var(--color-on-strong);
   font-size: var(--font-size-body-sm);
-  margin: 12px 0;
   line-height: 1.5;
 }
 .blocks-panel__validity {
+  margin: 0;
+  color: var(--color-on-strong-muted);
   font-size: var(--font-size-caption);
-  margin: 6px 0;
+  line-height: 1.5;
 }
 .blocks-panel__record-footer {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
   justify-content: space-between;
-  gap: 12px;
-  margin-top: 16px;
+  gap: 10px 12px;
+  margin-top: 4px;
   padding-top: 12px;
-  border-top: 1px solid var(--color-border-subtle);
+  border-top: 1px solid var(--color-field-strong-border);
 }
 .blocks-panel__record-footer > span {
+  color: var(--color-on-strong-muted);
   font-size: var(--font-size-caption);
 }
 .blocks-panel__record-actions {
@@ -1004,6 +1036,20 @@ function seriesCounts(item: TimeBlockSeries): string {
   flex-wrap: wrap;
   justify-content: flex-end;
   gap: 8px;
+}
+/* Acciones compactas: la ficha manda, los botones acompañan. */
+.blocks-panel__record :deep(.base-button) {
+  min-height: 34px;
+  padding-inline: 12px;
+  font-size: var(--font-size-body-sm);
+  color: var(--color-on-strong);
+  background: transparent;
+  border-color: color-mix(in srgb, var(--color-brand-accent-surface) 55%, transparent);
+}
+.blocks-panel__record :deep(.base-button:hover:not(:disabled):not(.base-button--loading)) {
+  color: var(--color-on-strong);
+  background: color-mix(in srgb, var(--color-brand-accent-surface) 14%, transparent);
+  border-color: var(--color-brand-accent-surface);
 }
 .blocks-panel__affected {
   margin-bottom: var(--space-4, 1rem);
@@ -1061,7 +1107,7 @@ function seriesCounts(item: TimeBlockSeries): string {
   border-color: var(--color-brand-accent-surface);
 }
 .blocks-panel__actions :deep(.base-button--secondary),
-.blocks-panel__ledger > section > :deep(.base-button--secondary) {
+.blocks-panel__scroll > :deep(.base-button--secondary) {
   --color-surface-muted: var(--color-field-strong);
   --color-border-subtle: var(--color-field-strong-border);
   color: var(--color-on-strong);
@@ -1163,6 +1209,44 @@ function seriesCounts(item: TimeBlockSeries): string {
   opacity: 0;
   transform: translateY(8px);
 }
+/* Escritorio con alto suficiente: el diálogo tiene alto propio y cada columna
+   desplaza su lista; la cabecera, las acciones y la nota quedan fijas (no hay
+   scroll general). Con poca altura las listas quedarían mínimas: ahí el diálogo
+   se desplaza como un todo. */
+@media (min-width: 768px) and (min-height: 800px) {
+  .blocks-panel {
+    display: flex;
+    flex-direction: column;
+    flex: 1 1 auto;
+    min-height: 0;
+  }
+  .blocks-panel__ledger {
+    flex: 1 1 auto;
+    min-height: 0;
+    grid-template-rows: minmax(0, 1fr);
+  }
+  .blocks-panel__ledger > section {
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+  }
+  .blocks-panel__section-head {
+    flex-shrink: 0;
+  }
+  .blocks-panel__scroll {
+    flex: 1 1 auto;
+    min-height: 0;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    padding-right: 6px;
+    scrollbar-width: thin;
+    scrollbar-color: color-mix(in srgb, var(--color-brand-accent-surface) 55%, transparent)
+      transparent;
+  }
+  .blocks-panel__note {
+    flex-shrink: 0;
+  }
+}
 @media (max-width: 767px) {
   .blocks-panel {
     padding: 20px 16px;
@@ -1187,6 +1271,10 @@ function seriesCounts(item: TimeBlockSeries): string {
   }
   .blocks-panel__record {
     padding: 14px;
+  }
+  .blocks-panel__record-actions {
+    width: 100%;
+    justify-content: flex-start;
   }
   .blocks-panel__identity {
     align-items: flex-start;
