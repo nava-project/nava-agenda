@@ -115,6 +115,23 @@ function openBlocks(id: string, name: string, photoUrl: string | null) {
   padding: 0;
   overscroll-behavior: contain;
 }
+/* Escritorio con alto suficiente: el diálogo mide siempre lo mismo y su contenido no
+   se desplaza; cada lista del panel tiene su propio scroll (BarberBlocksPanel). En
+   móvil o con poca altura el contenido se desplaza con el diálogo. */
+@media (min-width: 768px) and (min-height: 800px) {
+  .blocks-workspace-dialog {
+    height: min(780px, calc(100vh / var(--ui-zoom, 1) - var(--space-4) * 2));
+  }
+  .blocks-workspace-dialog .base-dialog__container {
+    flex: 1 1 auto;
+    min-height: 0;
+  }
+  .blocks-workspace-dialog .base-dialog__content {
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  }
+}
 .blocks-workspace-dialog .blocks-panel {
   border: 0;
 }
