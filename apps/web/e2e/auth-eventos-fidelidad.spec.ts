@@ -193,7 +193,7 @@ for (const viewport of [
           })
         })
         await page.getByRole('button', { name: 'Iniciar sesión' }).click()
-        await expect(page.getByText('Verifica tu identidad')).toBeVisible()
+        await expect(page.getByRole('button', { name: 'Enviar código' })).toBeVisible()
 
         await page.route('**/api/v1/public/auth/challenge', async (route) => {
           await route.fulfill({ status: 202, contentType: 'application/json', body: '{}' })
@@ -221,7 +221,7 @@ for (const viewport of [
           })
         })
         await page.getByRole('button', { name: 'Iniciar sesión' }).click()
-        await expect(page.getByText('Verifica tu identidad')).toBeVisible()
+        await expect(page.getByRole('button', { name: 'Enviar código' })).toBeVisible()
 
         await page.route('**/api/v1/public/auth/challenge', async (route) => {
           await route.fulfill({ status: 202, contentType: 'application/json', body: '{}' })

@@ -94,12 +94,13 @@ async function attemptLogin() {
       screenState.value = { status: 'rate-limited', retryAfterSeconds: outcome.retryAfterSeconds }
       // El estado conserva `rate-limited` porque abre el reto telefónico.
       const seconds = outcome.retryAfterSeconds
-      useToast().warning('Demasiados intentos', {
-        detail:
-          seconds && seconds > 0
-            ? `Espera unos ${Math.ceil(seconds / 60) || 1} minuto(s) antes de volver a intentarlo.`
-            : 'Espera un momento antes de volver a intentarlo.',
-      })
+      // Un solo aviso (DEC-095, issue #485): explica el bloqueo y pide
+      // confirmar la identidad; la acción «Enviar código» queda en el reto.
+      const wait =
+        seconds && seconds > 0
+          ? `Espera unos ${Math.ceil(seconds / 60) || 1} minuto(s) o confirma tu identidad ahora con el código que te enviaremos.`
+          : 'Espera un momento o confirma tu identidad ahora con el código que te enviaremos.'
+      useToast().warning('Demasiados intentos', { detail: wait })
       return
     }
     case 'unexpected-error':

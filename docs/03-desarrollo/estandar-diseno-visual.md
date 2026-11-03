@@ -253,6 +253,7 @@ Ningún texto visible baja de 12 px; el monograma decorativo de un retrato peque
 - Cada módulo emite avisos con `useToast` (`shared/composables`) y nunca conoce cómo se muestran. Tiempo por variante: confirmación 5 s, información 6 s, advertencia 8 s y error 12 s; la cuenta atrás se detiene con el aviso abierto, con cursor encima o con foco. Máximo 4 simultáneos y un solo aviso abierto a la vez.
 - Una sola región por pantalla: anclada a la ventana en acceso, recuperación y reserva pública, y entre la cabecera y la navegación en el cascarón privado, sin tapar ninguna de las dos. Es una región persistente; `role="alert"` solo para errores, `role="status"` para el resto, nunca roba el foco y Escape descarta el aviso con foco.
 - Complementa §6.3: el aviso acompaña un resultado persistente, no lo sustituye, y los errores de un formulario o diálogo siguen en línea. Excepción (`DEC-108`): el rechazo de credenciales del servidor en `/acceso` es un aviso de error, no una alerta fija; los errores locales de campo siguen bajo su campo.
+- El mismo criterio aplica al bloqueo por intentos de `/acceso` (HU-007, issue #485): el toast «Demasiados intentos» explica el bloqueo e invita a confirmar la identidad; el reto telefónico ya no antepone una alerta fija «Verifica tu identidad» y conserva solo su acción «Enviar código».
 
 ### 6.9 Preferencias de pantalla, acento y vocabulario
 

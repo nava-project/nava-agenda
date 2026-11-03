@@ -54,7 +54,9 @@ describe('PhoneChallengeForm', () => {
   describe('Fase previa (no representada en los mockups, composición actual)', () => {
     it('shows the request-code button initially, no code input yet', () => {
       const wrapper = mountChallenge()
-      expect(wrapper.text()).toContain('Verifica tu identidad')
+      // El porqué del reto es un aviso emergente de LoginPage, no una alerta fija (issue #485).
+      expect(wrapper.text()).not.toContain('Verifica tu identidad')
+      expect(wrapper.find('[role="alert"]').exists()).toBe(false)
       expect(wrapper.find('button').text()).toContain('Enviar código')
       expect(wrapper.find('input').exists()).toBe(false)
     })
