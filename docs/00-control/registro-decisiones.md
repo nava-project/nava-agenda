@@ -1874,3 +1874,21 @@ Cada código `DEC-*` es estable y no se reutiliza. Este registro normaliza respu
 - **Alternativas descartadas:** un conmutador «Todo el día» aparte (añade un control sin necesidad); exigir ambas horas o ninguna (impide «desde las 15:00 hasta el final del día»).
 - **Documentos afectados:** `historial-cambios.md`, `BarberBlocksPanel.vue`, `BaseTimePicker.vue`, `civilTime.ts` y sus pruebas.
 - **Fuente:** `RN-BLQ-01`, `RN-BLQ-03`; issue [#507](https://github.com/bcaceres19/barberia/issues/507).
+
+### DEC-151 · La raíz «/» es la landing pública de NAVA
+
+- **Fecha:** 2026-11-03.
+- **Decisión:**
+  1. `/` deja de redirigir a `/acceso` y muestra una landing pública de NAVA (módulo `landing`): presentación de la plataforma, presentación de su asistente de IA para los chats, resumen de funciones, canales de contacto para contratar NAVA y el botón «Iniciar sesión», que lleva a `/acceso`.
+  2. Es una página informativa **sin sesión, sin llamadas al API y sin estado de negocio**. No crea función de producto, contrato, tabla ni regla: no está en el alcance P0 como funcionalidad, es comunicación comercial de la marca.
+  3. **Identidad guiada** (`estandar-diseno-visual.md` §2.1): tinta, marfil y latón, Instrument Serif/Sans y la mesa de patronaje del acceso y de la reserva pública. Sin clichés de barbería. Las ilustraciones (agenda de demostración, teléfono con el asistente, pieza de patrón) se dibujan en HTML/SVG/CSS con datos ficticios, van ocultas a las tecnologías de apoyo y respetan `prefers-reduced-motion`; la conversación de demostración existe además como texto.
+  4. **El asistente se presenta sin nombre propio** («Asistente de IA de NAVA»). Solo se afirma lo que hace hoy: leer la disponibilidad real de NAVA por su API pública y llevar al cliente al enlace de reserva; no se afirma que confirme turnos por su cuenta.
+  5. **Contacto.** Los datos que el propietario entregó para su publicación (un teléfono que atiende por WhatsApp y llamada, y un correo) viven en un único archivo de contenido (`modules/landing/model/landingContent.ts`); las pruebas los leen de ahí y no los repiten. Cambiarlos no exige tocar componentes.
+  6. **Secciones y movimiento.** La landing se compone de: presentación (titular que entra palabra por palabra, agenda de demostración y avisos flotantes), asistente de IA, «Un día con NAVA» (recorrido de un turno en cinco escenas), «Tu marca» (selector interactivo de los seis acentos reales de `BRAND_ACCENTS` y de cómo se llama el negocio y el equipo, DEC-110/DEC-119), índice de la plataforma, contacto con «Así empezamos» (sin plazos ni precios) y un pie con la marca a gran escala. El scroll es el de la app: barra delgada de latón sobre tinta como la del panel, línea de progreso superior y una guía de lectura con un rombo por sección (clase `ln-root` en `<html>` solo mientras la página está montada). El texto no baja de 14 px en etiquetas y de 16–18 px en lectura.
+  7. Sin fotografía: no hay activos con licencia en el repositorio y no se enlazan imágenes externas. Si el propietario aporta fotos propias, se añaden como activos del módulo.
+- **Quién lo decidió:** el propietario, el 2026-11-03: «genera una landing page de Nava … una pantalla de presentación … sobre Nava y [el] asistente de IA para sus chats, otra pantalla donde estén mis números de contacto … y el botón de inicio de sesión», y confirmó que viva en `/`.
+- **Responsable:** propietario del proyecto.
+- **Motivo:** quien llega a la raíz sin sesión hoy ve directamente un formulario de acceso y no sabe qué es NAVA ni cómo contratarla.
+- **Alternativas descartadas:** dejar la landing en una ruta aparte (`/nava`) y conservar la raíz como acceso (la raíz es la dirección que se comparte); incluir un formulario de contacto con backend (fuera de alcance, exigiría contrato, almacenamiento y tratamiento de datos personales); fotografía de stock enlazada (licencia y privacidad).
+- **Documentos afectados:** `historial-cambios.md`, `app/router/index.ts`, módulo `apps/web/src/modules/landing` y sus pruebas.
+- **Fuente:** issue [#515](https://github.com/bcaceres19/barberia/issues/515); `estandar-diseno-visual.md` §2.1 y §3.

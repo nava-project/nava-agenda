@@ -7,6 +7,7 @@ import {
 } from '@/modules/barberServices'
 import { catalogNavItems, catalogPrivateShellChildRoutes } from '@/modules/catalog'
 import { integrationsPrivateShellChildRoutes } from '@/modules/integrations'
+import { landingRoutes } from '@/modules/landing'
 import { customerAccessRoutes } from '@/modules/customer-access'
 import { publicBookingRoutes } from '@/modules/public-booking'
 import { schedulesNavItems, schedulesPrivateShellChildRoutes } from '@/modules/schedules'
@@ -25,12 +26,10 @@ import { installProfileRedirect } from './profileGuard'
 // navegación combinadas de `auth` y de cada módulo con pantalla privada,
 // sin que ningún módulo importe a otro (app → modules → shared).
 const routes: RouteRecordRaw[] = [
-  {
-    // HU-010 entrega la primera pantalla real: la raíz redirige al acceso
-    // en vez de conservar la pantalla provisional de arranque.
-    path: '/',
-    redirect: { name: 'acceso' },
-  },
+  // DEC-151: la raíz presenta NAVA (landing pública) en lugar de redirigir al
+  // acceso; «Iniciar sesión» lleva a /acceso. Sin sesión y fuera del cascarón
+  // privado.
+  ...landingRoutes,
   ...authRoutes,
   // HU-090: entrada pública de reservas, sin sesión del barbero y aislada
   // del cascarón privado (CA-090-03: nunca pasa por requireSession).
