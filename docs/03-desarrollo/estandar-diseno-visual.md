@@ -1,6 +1,6 @@
 ---
 titulo: "Estándar visual NAVA para rediseños y pantallas nuevas"
-version: "5.18"
+version: "5.19"
 estado: "Normativo para rediseños y pantallas nuevas"
 responsable: "Propietario del proyecto"
 ultima_actualizacion: "2026-11-03"
@@ -218,7 +218,7 @@ Ningún texto visible baja de 12 px; el monograma decorativo de un retrato peque
 - Un éxito importante permanece dentro de la tarea; no depende solo de un toast efímero.
 - Un conflicto conserva las selecciones válidas y explica qué puede hacer la persona.
 - Un error inesperado no expone stack, proveedor, token ni datos personales; puede mostrar un `request_id` seguro cuando el contrato lo proporcione.
-- **Alerta como nota al margen** (issue #212, `BaseAlert` en `shared/ui`): filete lateral de `4px` del color de estado sobre fondo apenas teñido, radio `2px` — ya no un recuadro con borde perimetral uniforme e icono circular genérico. Sobre el título aparece la palabra de estado en versalitas de latón oscuro: `Error` (`danger`), `Atención` (`warning`), `Nota` (`info`), `Confirmación` (`success`); esa palabra es la que cumple "icono, texto y estructura además del color" (WCAG 2.2 AA 1.4.1). El control de descarte se rotula `Descartar` en vez de un icono con `aria-label` aparte. La variante `plain` (nueva) es la excepción sin relleno para contenido informativo que no comunica un estado del sistema — filete lateral de latón, sin fondo teñido, sin palabra de estado; el título se compone como versalita única en vez de repetirse también como titular en negrita. Es la que usa la caja "Requisitos de la contraseña" de recuperación de acceso.
+- **Alerta en línea sobre tinta** (issue #212, `DEC-149`, `BaseAlert` en `shared/ui`): misma pieza que el aviso emergente (§6.8) pero sin flotar — lienzo `--color-surface-strong`, perímetro de latón al 45 %, radio `3px`, texto `--color-on-strong` y un filete lateral de `4px` del color de estado levantado a tinta (`--color-*-on-strong`, que se invierte con el tema Marfil). Ya no hay rosas, azules, amarillos ni verdes pastel bajo los formularios, y ninguna pantalla redefine esos colores (solo medidas). Sobre el título aparece la palabra de estado en versalitas del latón de marca (`--color-brand-accent-surface`): `Error` (`danger`), `Atención` (`warning`), `Nota` (`info`), `Confirmación` (`success`); esa palabra es la que cumple "icono, texto y estructura además del color" (WCAG 2.2 AA 1.4.1). El control de descarte se rotula `Descartar` en vez de un icono con `aria-label` aparte. La variante `plain` es la excepción sin relleno para contenido informativo que no comunica un estado del sistema — filete lateral de latón, sin lienzo ni perímetro, sin palabra de estado; el título se compone como versalita única en vez de repetirse también como titular en negrita. Es la que usa la caja "Requisitos de la contraseña" de recuperación de acceso.
 
 ### 6.4 Diálogos y capas
 

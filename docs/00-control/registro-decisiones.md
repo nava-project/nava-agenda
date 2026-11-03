@@ -1844,3 +1844,17 @@ Cada código `DEC-*` es estable y no se reutiliza. Este registro normaliza respu
 - **Alternativas descartadas:** unir las series en una sola con varios días en el API (migración y contrato nuevos); agrupar también los bloqueos puntuales (no comparten un patrón semanal; se evalúa si hace falta).
 - **Documentos afectados:** `historial-cambios.md`, `apps/web/src/modules/schedules/model/seriesGroups.ts`, `BarberBlocksPanel.vue`, `SeriesFormDialog.vue` y sus pruebas.
 - **Fuente:** `DEC-147`, `HU-042`, `RN-BLQ-01`; issue [#499](https://github.com/bcaceres19/barberia/issues/499).
+
+### DEC-149 · Las alertas en línea usan el lenguaje de tinta de los avisos
+
+- **Fecha:** 2026-11-03.
+- **Decisión:**
+  1. `BaseAlert` (success, warning, danger, info, neutral) se pinta como el aviso emergente de `DEC-095`: lienzo `--color-surface-strong`, perímetro de latón al 45 %, filete lateral de `4px` del color de estado levantado a tinta (`--color-*-on-strong`) y palabra de estado en latón de marca. Se acaban los pasteles rosas, azules, amarillos y verdes bajo los formularios.
+  2. Aplica a todas las alertas en línea a la vez, porque se resuelve en el componente compartido; las pantallas solo ajustan medidas y no redefinen colores. `plain` (requisitos de contraseña) conserva su filete de latón sin lienzo.
+  3. **No cambia dónde vive cada mensaje:** los errores de formulario o diálogo siguen en línea (§6.3 y §6.8; `DEC-108` es la única excepción). Cambia solo cómo se ven.
+- **Quién lo decidió:** el propietario, el 2026-11-03: «ajústame esa alerta para que quede como las demás, no esas alertas feas rojas, azules que aparecen debajo de cada formulario, ajusta eso en todas las alertas».
+- **Responsable:** propietario del proyecto.
+- **Motivo:** las alertas pastel no combinaban con el resto de avisos ni con las superficies de tinta y Marfil.
+- **Alternativas descartadas:** convertir los errores de formulario en avisos emergentes (cerca de 150 usos en unos 25 archivos, rompe la regla de errores en línea y la asociación con el campo); dejar un pastel solo en las pantallas claras (hoy no hay ninguna: el panel, el acceso y la reserva pública son de tinta o Marfil).
+- **Documentos afectados:** `estandar-diseno-visual.md` (5.19, §6.3), `historial-cambios.md`, `BaseAlert.vue` y sus pruebas.
+- **Fuente:** `DEC-095`, `DEC-110`; issue [#503](https://github.com/bcaceres19/barberia/issues/503).

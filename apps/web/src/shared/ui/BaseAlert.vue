@@ -3,6 +3,11 @@
  * BaseAlert - Alerta/feedback del sistema visual, "nota al margen"
  * (issue #212, auth-eventos/README.md "Contrato visual común").
  * Variantes: success | warning | danger | info | neutral | plain
+ * Las variantes con estado se pintan con el mismo lenguaje de tinta que los
+ * avisos emergentes (BaseToast, DEC-095): lienzo --color-surface-strong,
+ * perímetro de latón tenue y un filete lateral del color de estado levantado
+ * a tinta (--color-*-on-strong). Ya no hay rosas, azules ni amarillos
+ * pastel bajo los formularios (DEC-149).
  * `plain` es la variante sin relleno para contenido informativo que no
  * comunica un estado del sistema (por ejemplo, requisitos de contraseña):
  * filete lateral de latón, sin fondo teñido, sin palabra de estado.
@@ -48,37 +53,17 @@ const classes = computed(() => {
     .join(' ')
 })
 
-const surfaceVar = computed(() => {
+// Color de estado levantado a tinta (DEC-149): se usa para el filete lateral
+// y se invierte con el tema Marfil, igual que el acento de BaseToast. El
+// texto siempre es el de la superficie (--color-on-strong); el color solo
+// acompaña, la palabra de estado es la que distingue el estado (WCAG 1.4.1).
+const accentVar = computed(() => {
   const map: Record<string, string> = {
-    success: 'var(--color-success-surface)',
-    warning: 'var(--color-warning-surface)',
-    danger: 'var(--color-danger-surface)',
-    info: 'var(--color-info-surface)',
-    neutral: 'var(--color-inactive-surface)',
-    plain: 'transparent',
-  }
-  return map[props.variant] || map.info
-})
-
-const textVar = computed(() => {
-  const map: Record<string, string> = {
-    success: 'var(--color-success-text)',
-    warning: 'var(--color-warning-text)',
-    danger: 'var(--color-danger-text)',
-    info: 'var(--color-info-text)',
-    neutral: 'var(--color-inactive-text)',
-    plain: 'var(--color-text-primary)',
-  }
-  return map[props.variant] || map.info
-})
-
-const borderVar = computed(() => {
-  const map: Record<string, string> = {
-    success: 'var(--color-success-border)',
-    warning: 'var(--color-warning-border)',
-    danger: 'var(--color-danger-border)',
-    info: 'var(--color-info-border)',
-    neutral: 'var(--color-inactive-border)',
+    success: 'var(--color-success-on-strong)',
+    warning: 'var(--color-warning-on-strong)',
+    danger: 'var(--color-danger-on-strong)',
+    info: 'var(--color-info-on-strong)',
+    neutral: 'var(--color-on-strong-muted)',
     plain: 'var(--color-accent-brass)',
   }
   return map[props.variant] || map.info
@@ -168,9 +153,7 @@ defineExpose({
 })
 
 const style = computed(() => ({
-  '--alert-surface': surfaceVar.value,
-  '--alert-text': textVar.value,
-  '--alert-border': borderVar.value,
+  '--alert-accent': accentVar.value,
 }))
 </script>
 
@@ -207,14 +190,18 @@ const style = computed(() => ({
 </template>
 
 <style scoped>
-/* Nota al margen (issue #212): filete lateral de 4px del color de estado
-   sobre fondo apenas teñido, radio 2px — ya no un recuadro con borde
-   perimetral uniforme e icono circular. */
+/* Etiqueta de tinta en línea (DEC-149): misma pieza que BaseToast pero sin
+   flotar. Lienzo de tinta, perímetro de latón al 45 % —que la separa tanto
+   de una página clara como de un diálogo que ya es de tinta— y un filete
+   lateral de 4px del color de estado. `plain` conserva solo el filete. */
 .base-alert {
   --alert-padding: var(--space-4);
   --alert-gap: var(--space-3);
-  --alert-radius: 2px;
+  --alert-radius: 3px;
   --alert-border-width: 4px;
+  --alert-surface: var(--color-surface-strong);
+  --alert-text: var(--color-on-strong);
+  --alert-hairline: color-mix(in srgb, var(--color-brand-accent-surface) 45%, transparent);
   --alert-font-size: var(--font-size-body);
   --alert-title-size: var(--font-size-body);
   --alert-line-height: var(--font-size-body-line);
@@ -227,8 +214,10 @@ const style = computed(() => ({
   gap: var(--alert-gap);
   padding: var(--alert-padding);
   background-color: var(--alert-surface);
-  border-left: var(--alert-border-width) solid var(--alert-border);
+  border: var(--border-width-normal) solid var(--alert-hairline);
+  border-left: var(--alert-border-width) solid var(--alert-accent);
   border-radius: var(--alert-radius);
+  box-shadow: inset 0 1px 0 color-mix(in srgb, var(--color-on-strong) 8%, transparent);
   color: var(--alert-text);
   font-family: var(--font-family-base);
   font-size: var(--alert-font-size);
@@ -260,8 +249,20 @@ const style = computed(() => ({
 .base-alert:focus-visible {
   outline: none;
   box-shadow:
-    0 0 0 2px var(--color-surface),
+    0 0 0 2px var(--color-surface-strong),
     0 0 0 4px var(--color-focus);
+}
+
+/* Variante sin relleno: solo el filete de latón, sin lienzo ni perímetro. */
+.base-alert--plain {
+  --alert-surface: transparent;
+  --alert-text: var(--color-text-primary);
+
+  border-top-color: transparent;
+  border-right-color: transparent;
+  border-bottom-color: transparent;
+  border-radius: 2px;
+  box-shadow: none;
 }
 
 .base-alert[v-show='false'] {
@@ -281,9 +282,9 @@ const style = computed(() => ({
 
 /* Palabra de estado (Error/Atención/Nota/Confirmación): versalitas de
    latón sobre el título, misma familia tipográfica que el rótulo de
-   BaseInput y las ranuras de OtpInput. Se pinta sobre la superficie teñida
-   de la propia alerta, así que usa el latón fijo y no el que un panel sobre
-   tinta reasigna a su latón claro (2,49:1 sobre el amarillo de «Atención»). */
+   BaseInput y las ranuras de OtpInput. Se pinta sobre tinta (o sobre Marfil
+   en ese tema), así que usa el latón de marca que sigue al tema, el mismo
+   de la palabra de estado de BaseToast. */
 .base-alert__status {
   margin: 0 0 var(--space-1) 0;
   font-family: var(--font-sans);
@@ -291,7 +292,7 @@ const style = computed(() => ({
   font-weight: 600;
   letter-spacing: 0.08em;
   text-transform: uppercase;
-  color: var(--color-accent-brass-on-surface);
+  color: var(--color-brand-accent-surface);
 }
 
 .base-alert__title {
@@ -313,6 +314,10 @@ const style = computed(() => ({
   letter-spacing: 0.08em;
   text-transform: uppercase;
   color: var(--color-accent-brass);
+}
+
+.base-alert__text:last-child {
+  margin-bottom: 0;
 }
 
 .base-alert__text:only-child .base-alert__title,
@@ -347,7 +352,7 @@ const style = computed(() => ({
   font-weight: 600;
   letter-spacing: 0.08em;
   text-transform: uppercase;
-  color: var(--color-text-secondary);
+  color: var(--color-on-strong-muted);
   cursor: pointer;
   transition:
     color var(--motion-duration-fast) var(--motion-easing-standard),
@@ -362,18 +367,22 @@ const style = computed(() => ({
 
 .base-alert__dismiss:hover {
   color: var(--alert-text);
-  background-color: var(--color-overlay-hover);
+  background-color: color-mix(in srgb, var(--color-on-strong) 8%, transparent);
 }
 
 .base-alert__dismiss:focus-visible {
   outline: none;
   box-shadow:
-    0 0 0 2px var(--color-surface),
+    0 0 0 2px var(--color-surface-strong),
     0 0 0 4px var(--color-focus);
 }
 
-/* Neutral usa texto secundario */
+.base-alert--plain .base-alert__dismiss {
+  color: var(--color-text-secondary);
+}
+
+/* Neutral: texto de lectura apagado, sin color de estado. */
 .base-alert--neutral {
-  --alert-text: var(--color-text-secondary);
+  --alert-text: var(--color-on-strong-soft);
 }
 </style>
