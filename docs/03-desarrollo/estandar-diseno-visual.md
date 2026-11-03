@@ -1,6 +1,6 @@
 ---
 titulo: "Estándar visual NAVA para rediseños y pantallas nuevas"
-version: "5.17"
+version: "5.18"
 estado: "Normativo para rediseños y pantallas nuevas"
 responsable: "Propietario del proyecto"
 ultima_actualizacion: "2026-11-03"
@@ -303,7 +303,7 @@ Ningún texto visible baja de 12 px; el monograma decorativo de un retrato peque
 ### 6.16 Reseñas y calificación
 
 - La calificación se dibuja con **diamantes** (rombos de la identidad NAVA), no con estrellas: `StarRating` (lectura, relleno proporcional del diamante) y `StarRatingInput` (selector de 1 a 5) comparten un único glifo, `RatingGem` (issue #489): un diamante tallado de cuatro facetas —luz arriba a la izquierda, sombra abajo a la derecha— con borde definido; vacío conserva contorno y talla tenue, y el parcial recorta el relleno a la fracción (4,5 deja el quinto a medias). Sobre tinta usa el latón claro de la marca; `--star-filled-color` ajusta el color por superficie. Los nombres de los componentes y el texto accesible («N de 5 estrellas», «4,5 de 5 · 12 reseñas») no cambian (`DEC-128`).
-- En el perfil individual (`/panel/barberos`, `DEC-115`) «Ver reseñas» es un botón fantasma de latón con icono de línea, igual que «Editar mi perfil». Al pulsarlo las reseñas se abren en un **cuadro a la derecha** de la ficha —no dentro de ella—, con la misma tinta hundida y filete de latón, la altura de la ficha y el scroll vertical dentro de la lista. En ≤ 960 px el cuadro baja bajo la ficha. «Cerrar» y Escape lo cierran y devuelven el foco al botón. El detalle de barbero de un equipo conserva la lista desplegada bajo el resumen.
+- En el perfil individual (`/panel/barberos`, `DEC-115`) el resumen de calificación y el acceso a las reseñas son una sola **fila-resumen** a todo el ancho de la ficha (issue #491): tinta hundida con filete lateral de latón, diamantes con promedio y total a la izquierda y «Ver reseñas →» en versalitas de latón a la derecha; abierta queda resaltada y dice «Ocultar ←». Al pulsarla las reseñas se abren en un **cuadro a la derecha** de la ficha —no dentro de ella—, con la misma tinta hundida y filete de latón, la altura de la ficha y el scroll vertical dentro de la lista. En ≤ 960 px el cuadro baja bajo la ficha. «Cerrar» y Escape lo cierran y devuelven el foco al botón. El detalle de barbero de un equipo conserva la lista desplegada bajo el resumen.
 
 ## 7. Zona de libertad creativa
 

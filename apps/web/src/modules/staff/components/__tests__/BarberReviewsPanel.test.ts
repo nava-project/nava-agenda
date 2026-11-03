@@ -177,7 +177,7 @@ describe('BarberReviewsPanel', () => {
       await flushPromises()
       expect(target.querySelector('aside')).toBeNull()
       expect(wrapper.emitted('openChange')).toEqual([[true], [false]])
-      expect(document.activeElement?.textContent?.trim()).toBe('Ver reseñas')
+      expect(document.activeElement?.classList.contains('barber-reviews__toggle')).toBe(true)
       wrapper.unmount()
       target.remove()
     })
@@ -194,7 +194,7 @@ describe('BarberReviewsPanel', () => {
       await flushPromises()
 
       expect(target.querySelector('aside')).toBeNull()
-      expect(document.activeElement?.textContent?.trim()).toBe('Ver reseñas')
+      expect(document.activeElement?.classList.contains('barber-reviews__toggle')).toBe(true)
       wrapper.unmount()
       target.remove()
     })

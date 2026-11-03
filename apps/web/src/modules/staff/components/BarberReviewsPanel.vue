@@ -10,7 +10,7 @@
 // resumen (detalle de barbero); con `asideTo` —un selector— el resumen sigue en la
 // tarjeta y la lista se dibuja en un cuadro propio a la derecha, en ese contenedor,
 // con scroll vertical interno. El estado vive aquí en ambos casos.
-import { computed, nextTick, ref, watch, type ComponentPublicInstance } from 'vue'
+import { computed, nextTick, ref, watch } from 'vue'
 import { BaseButton, StarRating } from '@/shared/ui'
 import { listBarberReviews, setReviewHidden } from '../api/reviewsApi'
 import type { BarberReview, BarberReviewList } from '../model/review'
@@ -38,7 +38,7 @@ type LoadState =
   | { status: 'error' }
 
 const open = ref(false)
-const toggleRef = ref<ComponentPublicInstance | null>(null)
+const toggleRef = ref<HTMLButtonElement | null>(null)
 const state = ref<LoadState>({ status: 'idle' })
 const busyId = ref<string | null>(null)
 const actionError = ref('')
@@ -77,7 +77,7 @@ function toggle() {
 async function close() {
   setOpen(false)
   await nextTick()
-  ;(toggleRef.value?.$el as HTMLElement | undefined)?.focus()
+  toggleRef.value?.focus()
 }
 
 async function toggleHidden(review: BarberReview) {
@@ -119,32 +119,35 @@ function formatDate(iso: string): string {
 
 <template>
   <section class="barber-reviews" aria-label="Reseñas">
-    <div class="barber-reviews__summary">
+    <!-- Fila-resumen (issue #491): la calificación y el acceso a las reseñas son una sola
+         pieza interactiva, no un botón suelto junto a los diamantes. Resaltada mientras
+         el cuadro está abierto. -->
+    <button
+      ref="toggleRef"
+      type="button"
+      class="barber-reviews__toggle"
+      :class="{ 'barber-reviews__toggle--open': open }"
+      :aria-expanded="open"
+      :aria-controls="`barber-reviews-${barberId}`"
+      @click="toggle"
+    >
       <StarRating :rating="shown.rating" :count="shown.count" />
-      <BaseButton
-        ref="toggleRef"
-        type="button"
-        variant="secondary"
-        class="barber-reviews__toggle"
-        :aria-expanded="open"
-        :aria-controls="`barber-reviews-${barberId}`"
-        @click="toggle"
-      >
+      <span class="barber-reviews__cta">
+        {{ open ? 'Ocultar' : 'Ver reseñas' }}
         <svg
-          class="barber-reviews__toggle-icon"
+          class="barber-reviews__cta-arrow"
           viewBox="0 0 24 24"
           fill="none"
           stroke="currentColor"
-          stroke-width="1.5"
-          stroke-linejoin="miter"
+          stroke-width="1.6"
+          stroke-linecap="round"
+          stroke-linejoin="round"
           aria-hidden="true"
         >
-          <path d="M4 5h16v11H10l-4 3.5V16H4V5Z" />
-          <path d="M8 9.5h8M8 12.5h5" />
+          <path d="M5 12h14M13 6l6 6-6 6" />
         </svg>
-        {{ open ? 'Ocultar reseñas' : 'Ver reseñas' }}
-      </BaseButton>
-    </div>
+      </span>
+    </button>
 
     <Teleport :to="asideTo ?? 'body'" :disabled="!asideTo" defer>
       <component
@@ -236,17 +239,10 @@ function formatDate(iso: string): string {
   /* Sobre tinta, los diamantes usan el latón claro de la marca (issue #489). */
   --star-filled-color: var(--color-brand-accent-surface);
   display: flex;
+  width: 100%;
   flex-direction: column;
   gap: var(--space-3);
   margin-top: var(--space-4);
-}
-
-.barber-reviews__summary {
-  display: flex;
-  flex-wrap: wrap;
-  gap: var(--space-3);
-  align-items: center;
-  justify-content: space-between;
 }
 
 .barber-reviews__panel {
@@ -261,9 +257,75 @@ function formatDate(iso: string): string {
   gap: var(--space-3);
 }
 
-/* Botón «Ver reseñas»: mismo ghost de latón que «Editar mi perfil» (blanco relleno
-   desentonaba sobre la tinta), con icono de línea. */
-.barber-reviews__toggle.base-button.base-button--secondary,
+/* Fila-resumen: tinta hundida con filete lateral de latón, como las demás piezas de la
+   ficha; al abrir el cuadro queda resaltada para ligarla con él. */
+.barber-reviews__toggle {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2) var(--space-3);
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  min-height: 48px;
+  padding: var(--space-2) var(--space-4);
+  font: inherit;
+  color: var(--color-on-strong);
+  text-align: left;
+  cursor: pointer;
+  background-color: var(--color-surface-strong);
+  border: var(--border-width-normal) solid var(--color-field-strong-border);
+  border-left: 3px solid color-mix(in srgb, var(--color-brand-accent-surface) 55%, transparent);
+  border-radius: 2px;
+  transition:
+    background-color var(--motion-duration-fast) var(--motion-easing-standard),
+    border-color var(--motion-duration-fast) var(--motion-easing-standard);
+}
+
+.barber-reviews__toggle:hover,
+.barber-reviews__toggle--open {
+  background-color: color-mix(
+    in srgb,
+    var(--color-brand-accent-surface) 10%,
+    var(--color-surface-strong)
+  );
+  border-color: color-mix(in srgb, var(--color-brand-accent-surface) 45%, transparent);
+  border-left-color: var(--color-brand-accent-surface);
+}
+
+.barber-reviews__toggle:focus-visible {
+  outline: var(--focus-ring-width, 2px) solid var(--color-focus);
+  outline-offset: 2px;
+}
+
+.barber-reviews__cta {
+  display: inline-flex;
+  white-space: nowrap;
+  gap: 8px;
+  align-items: center;
+  color: var(--color-brand-accent-surface);
+  font-size: var(--font-size-caption);
+  font-weight: 600;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+.barber-reviews__cta-arrow {
+  width: 16px;
+  height: 16px;
+  flex-shrink: 0;
+  transition: transform var(--motion-duration-base) var(--motion-easing-standard);
+}
+
+.barber-reviews__toggle:hover .barber-reviews__cta-arrow {
+  transform: translateX(3px);
+}
+
+/* Abierto: la flecha apunta de vuelta al cuadro que se cierra. */
+.barber-reviews__toggle--open .barber-reviews__cta-arrow,
+.barber-reviews__toggle--open:hover .barber-reviews__cta-arrow {
+  transform: rotate(180deg);
+}
+
 .barber-reviews__close.base-button.base-button--secondary {
   background-color: transparent;
   color: var(--color-brand-accent-surface);
@@ -271,25 +333,21 @@ function formatDate(iso: string): string {
   border-bottom-color: var(--color-brand-accent-surface);
 }
 
-.barber-reviews__toggle.base-button.base-button--secondary:hover:not(:disabled):not(
-    .base-button--loading
-  ),
 .barber-reviews__close.base-button.base-button--secondary:hover:not(:disabled):not(
     .base-button--loading
   ) {
   background-color: color-mix(in srgb, var(--color-brand-accent-surface) 12%, transparent);
 }
 
-.barber-reviews__toggle :deep(.base-button__content) {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-}
+@media (prefers-reduced-motion: reduce) {
+  .barber-reviews__toggle,
+  .barber-reviews__cta-arrow {
+    transition: none;
+  }
 
-.barber-reviews__toggle-icon {
-  width: 14px;
-  height: 14px;
-  flex-shrink: 0;
+  .barber-reviews__toggle:hover .barber-reviews__cta-arrow {
+    transform: none;
+  }
 }
 
 /* Cuadro lateral (issue #487): misma tinta hundida y filete de latón que la tarjeta
