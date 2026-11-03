@@ -544,23 +544,44 @@ describe('BarberBlocksPanel · series similares agrupadas (#499)', () => {
     wrapper.unmount()
   })
 
-  it('opens a separate dialog with the days to act on a single one', async () => {
+  const tile = (wrapper: VueWrapper, day: string) => {
+    const found = wrapper
+      .find('.block-dialog--days')
+      .findAll('.days-picker__tile')
+      .find((t) => t.attributes('aria-label')?.startsWith(day))
+    if (!found) throw new Error(`Día no encontrado: ${day}`)
+    return found
+  }
+
+  it('opens a separate dialog to pick a day and act on it', async () => {
     const wrapper = await mountWith(group)
     const open = named(wrapper, 'Días de la serie Almuerzo lunes, miércoles y viernes')
     expect(open.attributes('aria-haspopup')).toBe('dialog')
     // La ficha ya no se despliega en línea: los días viven en su propio diálogo.
-    expect(wrapper.find('.blocks-panel__members').exists()).toBe(false)
+    expect(wrapper.find('.days-picker').exists()).toBe(false)
 
     await open.trigger('click')
     const dialog = wrapper.find('.block-dialog--days')
     expect(dialog.isVisible()).toBe(true)
     expect(dialog.text()).toContain('Días de Almuerzo lunes, miércoles y viernes')
-    const rows = dialog.findAll('.blocks-panel__members > li')
-    expect(rows.map((row) => row.find('.blocks-panel__member-day').text())).toEqual([
-      'Lunes',
-      'Miércoles',
-      'Viernes',
+    // Siete fichas de día: solo los días del bloqueo se pueden elegir.
+    const tiles = dialog.findAll('.days-picker__tile')
+    expect(tiles).toHaveLength(7)
+    expect(tiles.map((t) => t.attributes('disabled') === undefined)).toEqual([
+      true,
+      false,
+      true,
+      false,
+      true,
+      false,
+      false,
     ])
+    // El primer día queda elegido y su ficha muestra sus acciones.
+    expect(wrapper.find('.days-picker__day').text()).toBe('Lunes')
+
+    await tile(wrapper, 'Miércoles').trigger('click')
+    expect(wrapper.find('.days-picker__day').text()).toBe('Miércoles')
+    expect(tile(wrapper, 'Miércoles').attributes('aria-pressed')).toBe('true')
 
     deleteTimeBlockSeriesMock.mockResolvedValueOnce({ kind: 'success' })
     await named(wrapper, 'Retirar serie Almuerzo Miércoles').trigger('click')
@@ -569,15 +590,16 @@ describe('BarberBlocksPanel · series similares agrupadas (#499)', () => {
     expect(deleteTimeBlockSeriesMock).toHaveBeenCalledTimes(1)
     expect(deleteTimeBlockSeriesMock).toHaveBeenCalledWith('b-1', 's3')
     expect(records(wrapper)[0]!.text()).toContain('Lunes y viernes · 12:00 – 13:00')
-    // El diálogo sigue abierto y ya solo lista los días que quedan.
-    const left = wrapper.find('.block-dialog--days').findAll('.blocks-panel__member-day')
-    expect(left.map((row) => row.text())).toEqual(['Lunes', 'Viernes'])
+    // El diálogo sigue abierto, el día retirado ya no se puede elegir y pasa al primero.
+    expect(tile(wrapper, 'Miércoles').attributes('disabled')).toBeDefined()
+    expect(wrapper.find('.block-dialog--days .days-picker__day').text()).toBe('Lunes')
     wrapper.unmount()
   })
 
   it('opens the exceptions of the chosen day from the days dialog', async () => {
     const wrapper = await mountWith(group)
     await named(wrapper, 'Días de la serie Almuerzo lunes, miércoles y viernes').trigger('click')
+    await tile(wrapper, 'Viernes').trigger('click')
     await named(wrapper, 'Excepciones de la serie Almuerzo Viernes').trigger('click')
     await flushPromises()
 
@@ -595,11 +617,12 @@ describe('BarberBlocksPanel · series similares agrupadas (#499)', () => {
     await named(wrapper, 'Días de la serie Almuerzo lunes y miércoles').trigger('click')
     deleteTimeBlockSeriesMock.mockResolvedValue({ kind: 'success' })
     await named(wrapper, 'Retirar serie Almuerzo Lunes').trigger('click')
+    await flushPromises()
     await named(wrapper, 'Retirar serie Almuerzo Miércoles').trigger('click')
     await flushPromises()
 
     expect(wrapper.find('.block-dialog--days').isVisible()).toBe(false)
-    expect(wrapper.find('.blocks-panel__members').exists()).toBe(false)
+    expect(wrapper.find('.days-picker').exists()).toBe(false)
     wrapper.unmount()
   })
 
