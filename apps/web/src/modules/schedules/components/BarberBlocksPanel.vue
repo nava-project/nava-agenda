@@ -96,7 +96,18 @@ const visibleBlocks = computed(() => blocks.value.filter((b) => !b.deletedAt))
 const activeSeries = computed(() => series.value.filter((s) => !s.deletedAt))
 // Las series semanales que solo se distinguen por el día se muestran en una ficha (#499).
 const seriesGroups = computed(() => groupSeries(activeSeries.value))
-const expandedGroups = ref<Set<string>>(new Set())
+// Ficha cuyos días se gestionan en el diálogo «Días» (#505). Se guarda la clave y no el
+// grupo, y se resuelve contra la lista viva: al retirar un día el diálogo se actualiza.
+const daysGroupKey = ref<string | null>(null)
+const daysGroup = computed(
+  () => seriesGroups.value.find((group) => group.key === daysGroupKey.value) ?? null,
+)
+const isDaysOpen = computed({
+  get: () => daysGroup.value !== null,
+  set: (open: boolean) => {
+    if (!open) daysGroupKey.value = null
+  },
+})
 
 const toast = useToast()
 const v = useVocabulary()
@@ -428,10 +439,8 @@ function groupName(group: SeriesGroup): string {
     : seriesName(first)
 }
 
-function toggleGroup(key: string) {
-  const next = new Set(expandedGroups.value)
-  if (!next.delete(key)) next.add(key)
-  expandedGroups.value = next
+function openDays(group: SeriesGroup) {
+  daysGroupKey.value = group.key
 }
 
 // --- Bloqueo por días (semanal o fechas), edición y excepciones (#100, #495) ---------------------
@@ -767,11 +776,10 @@ function seriesCounts(item: TimeBlockSeries): string {
                     <BaseButton
                       v-else
                       variant="secondary"
-                      :aria-expanded="expandedGroups.has(group.key)"
-                      :aria-controls="`series-days-${group.items[0]!.id}`"
+                      aria-haspopup="dialog"
                       :aria-label="`Días de la serie ${groupName(group)}`"
-                      @click="toggleGroup(group.key)"
-                      >{{ expandedGroups.has(group.key) ? 'Ocultar días' : 'Días' }}</BaseButton
+                      @click="openDays(group)"
+                      >Días</BaseButton
                     >
                     <BaseButton
                       variant="secondary"
@@ -791,35 +799,6 @@ function seriesCounts(item: TimeBlockSeries): string {
                     >
                   </div>
                 </div>
-                <ul
-                  v-if="group.items.length > 1 && expandedGroups.has(group.key)"
-                  :id="`series-days-${group.items[0]!.id}`"
-                  class="blocks-panel__members"
-                  :aria-label="`Días de ${groupName(group)}`"
-                >
-                  <li v-for="member in group.items" :key="member.id">
-                    <span class="blocks-panel__member-day"
-                      >{{ weekdayLabel(member.isoWeekday ?? 0)
-                      }}<small v-if="seriesCounts(member)">{{ seriesCounts(member) }}</small></span
-                    >
-                    <div class="blocks-panel__record-actions">
-                      <BaseButton
-                        variant="secondary"
-                        :aria-label="`Excepciones de la serie ${seriesName(member)}`"
-                        @click="openInstances(member)"
-                        >Excepciones</BaseButton
-                      >
-                      <BaseButton
-                        variant="secondary"
-                        :aria-label="`Retirar serie ${seriesName(member)}`"
-                        :loading="pendingDeleteSeriesIds.has(member.id)"
-                        :disabled="pendingDeleteSeriesIds.has(member.id)"
-                        @click="onDeleteSeries(member)"
-                        >Retirar</BaseButton
-                      >
-                    </div>
-                  </li>
-                </ul>
               </li>
             </TransitionGroup>
             <BaseAlert v-if="moreSeriesError" variant="warning"
@@ -960,6 +939,42 @@ function seriesCounts(item: TimeBlockSeries): string {
       >
     </BaseDialog>
 
+    <BaseDialog
+      v-model="isDaysOpen"
+      :title="daysGroup ? `Días de ${groupName(daysGroup)}` : 'Días de la serie'"
+      description="Elige un día para gestionar sus excepciones o retirarlo."
+      size="md"
+      content-class="block-dialog block-dialog--days"
+    >
+      <ul
+        v-if="daysGroup"
+        class="blocks-panel__members"
+        :aria-label="`Días de ${groupName(daysGroup)}`"
+      >
+        <li v-for="member in daysGroup.items" :key="member.id">
+          <span class="blocks-panel__member-day"
+            >{{ weekdayLabel(member.isoWeekday ?? 0)
+            }}<small v-if="seriesCounts(member)">{{ seriesCounts(member) }}</small></span
+          >
+          <div class="blocks-panel__record-actions">
+            <BaseButton
+              variant="secondary"
+              :aria-label="`Excepciones de la serie ${seriesName(member)}`"
+              @click="openInstances(member)"
+              >Excepciones</BaseButton
+            >
+            <BaseButton
+              variant="secondary"
+              :aria-label="`Retirar serie ${seriesName(member)}`"
+              :loading="pendingDeleteSeriesIds.has(member.id)"
+              :disabled="pendingDeleteSeriesIds.has(member.id)"
+              @click="onDeleteSeries(member)"
+              >Retirar</BaseButton
+            >
+          </div>
+        </li>
+      </ul>
+    </BaseDialog>
     <SeriesFormDialog
       v-model="isCreateDaysOpen"
       mode="create"
@@ -1215,29 +1230,6 @@ function seriesCounts(item: TimeBlockSeries): string {
   background: var(--color-brand-accent-surface);
   border-color: var(--color-brand-accent-surface);
 }
-.blocks-panel__members {
-  display: grid;
-  gap: 8px;
-  margin: 0;
-  padding: 10px 0 0;
-  list-style: none;
-  border-top: 1px dashed var(--color-field-strong-border);
-}
-.blocks-panel__members > li {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  justify-content: space-between;
-  gap: 8px 12px;
-}
-.blocks-panel__member-day {
-  display: grid;
-  font-size: var(--font-size-body-sm);
-}
-.blocks-panel__member-day small {
-  color: var(--color-on-strong-muted);
-  font-size: var(--font-size-caption);
-}
 .blocks-panel__affected {
   margin-bottom: var(--space-4, 1rem);
 }
@@ -1481,6 +1473,42 @@ function seriesCounts(item: TimeBlockSeries): string {
 
 <style>
 /* BaseDialog se teleporta al body: este ámbito solo gobierna el panel de HU-042. */
+/* Diálogo «Días» (#505): un renglón por día con sus acciones, sobre hueco hundido. */
+.block-dialog.block-dialog--days.base-dialog {
+  width: min(100%, 520px) !important;
+}
+.blocks-panel__members {
+  display: grid;
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.blocks-panel__members > li {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px 12px;
+  padding: 10px 12px;
+  background: var(--color-field-strong);
+  border: 1px solid var(--color-field-strong-border);
+  border-radius: 2px;
+}
+.blocks-panel__member-day {
+  display: grid;
+  font-size: var(--font-size-body);
+  font-weight: 600;
+}
+.blocks-panel__member-day small {
+  color: var(--color-on-strong-muted);
+  font-size: var(--font-size-caption);
+  font-weight: 400;
+}
+.blocks-panel__members .blocks-panel__record-actions {
+  display: flex;
+  gap: 8px;
+}
 /* `size="lg"` solo fija max-width; el ancho real se declara aquí para que los
    formularios de bloqueo respiren igual que los de Servicios. */
 .block-dialog.base-dialog {

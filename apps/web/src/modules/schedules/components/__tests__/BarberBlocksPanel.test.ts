@@ -541,19 +541,21 @@ describe('BarberBlocksPanel · series similares agrupadas (#499)', () => {
     expect(named(wrapper, 'Excepciones de la serie Almuerzo Lunes')).toBeTruthy()
     expect(named(wrapper, 'Retirar serie Almuerzo Lunes').text()).toBe('Retirar')
     expect(wrapper.find('.blocks-panel__week-day--on').exists()).toBe(true)
-    expect(wrapper.text()).not.toContain('Ocultar días')
     wrapper.unmount()
   })
 
-  it('expands the days to act on a single one', async () => {
+  it('opens a separate dialog with the days to act on a single one', async () => {
     const wrapper = await mountWith(group)
-    const toggle = named(wrapper, 'Días de la serie Almuerzo lunes, miércoles y viernes')
-    expect(toggle.attributes('aria-expanded')).toBe('false')
+    const open = named(wrapper, 'Días de la serie Almuerzo lunes, miércoles y viernes')
+    expect(open.attributes('aria-haspopup')).toBe('dialog')
+    // La ficha ya no se despliega en línea: los días viven en su propio diálogo.
     expect(wrapper.find('.blocks-panel__members').exists()).toBe(false)
 
-    await toggle.trigger('click')
-    expect(toggle.attributes('aria-expanded')).toBe('true')
-    const rows = wrapper.findAll('.blocks-panel__members > li')
+    await open.trigger('click')
+    const dialog = wrapper.find('.block-dialog--days')
+    expect(dialog.isVisible()).toBe(true)
+    expect(dialog.text()).toContain('Días de Almuerzo lunes, miércoles y viernes')
+    const rows = dialog.findAll('.blocks-panel__members > li')
     expect(rows.map((row) => row.find('.blocks-panel__member-day').text())).toEqual([
       'Lunes',
       'Miércoles',
@@ -567,6 +569,37 @@ describe('BarberBlocksPanel · series similares agrupadas (#499)', () => {
     expect(deleteTimeBlockSeriesMock).toHaveBeenCalledTimes(1)
     expect(deleteTimeBlockSeriesMock).toHaveBeenCalledWith('b-1', 's3')
     expect(records(wrapper)[0]!.text()).toContain('Lunes y viernes · 12:00 – 13:00')
+    // El diálogo sigue abierto y ya solo lista los días que quedan.
+    const left = wrapper.find('.block-dialog--days').findAll('.blocks-panel__member-day')
+    expect(left.map((row) => row.text())).toEqual(['Lunes', 'Viernes'])
+    wrapper.unmount()
+  })
+
+  it('opens the exceptions of the chosen day from the days dialog', async () => {
+    const wrapper = await mountWith(group)
+    await named(wrapper, 'Días de la serie Almuerzo lunes, miércoles y viernes').trigger('click')
+    await named(wrapper, 'Excepciones de la serie Almuerzo Viernes').trigger('click')
+    await flushPromises()
+
+    // Se abre la gestión de la serie del viernes, encima del diálogo de días.
+    const exceptions = wrapper
+      .findAll('[role="dialog"]')
+      .find((d) => d.isVisible() && d.text().includes('Excepciones de la serie'))
+    expect(exceptions).toBeTruthy()
+    expect(wrapper.find('.block-dialog--days').isVisible()).toBe(true)
+    wrapper.unmount()
+  })
+
+  it('closes the days dialog when the last day is retired', async () => {
+    const wrapper = await mountWith([day('s1', 1), day('s2', 3)])
+    await named(wrapper, 'Días de la serie Almuerzo lunes y miércoles').trigger('click')
+    deleteTimeBlockSeriesMock.mockResolvedValue({ kind: 'success' })
+    await named(wrapper, 'Retirar serie Almuerzo Lunes').trigger('click')
+    await named(wrapper, 'Retirar serie Almuerzo Miércoles').trigger('click')
+    await flushPromises()
+
+    expect(wrapper.find('.block-dialog--days').isVisible()).toBe(false)
+    expect(wrapper.find('.blocks-panel__members').exists()).toBe(false)
     wrapper.unmount()
   })
 
