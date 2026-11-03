@@ -233,6 +233,8 @@ function formatDate(iso: string): string {
 
 <style scoped>
 .barber-reviews {
+  /* Sobre tinta, los diamantes usan el latón claro de la marca (issue #489). */
+  --star-filled-color: var(--color-brand-accent-surface);
   display: flex;
   flex-direction: column;
   gap: var(--space-3);

@@ -7,10 +7,10 @@
  * pantalla con el texto completo («4,5 de 5 · 12 reseñas»); los glifos y el texto
  * visible son decorativos para no leer dos veces. Sin reseñas visibles muestra
  * diamantes vacíos y «Sin reseñas todavía», nunca «0».
- * Hereda el color del contexto: `--star-filled` y `--star-empty` lo ajustan en
- * superficies claras u oscuras.
+ * El color lo da `--star-filled-color` (latón por defecto) y se ajusta por superficie.
  */
-import { computed, useId } from 'vue'
+import { computed } from 'vue'
+import RatingGem from './RatingGem.vue'
 import { MAX_RATING, ratingSummaryLabel, formatRating, reviewCountLabel } from '../model/rating'
 
 interface Props {
@@ -29,7 +29,6 @@ interface Props {
 
 const props = withDefaults(defineProps<Props>(), { count: 0, size: 'md', showValue: true })
 
-const uid = useId()
 const hasRating = computed(() => props.rating !== null && props.count > 0)
 const label = computed(() => props.label ?? ratingSummaryLabel(props.rating, props.count))
 
@@ -40,29 +39,12 @@ const fills = computed(() =>
     hasRating.value ? Math.min(1, Math.max(0, (props.rating ?? 0) - i)) : 0,
   ),
 )
-
-// Rombo: el diamante de la identidad NAVA (DEC-095, rombos de estado), no una estrella.
-const STAR_PATH = 'M12 2.5l8.5 9.5-8.5 9.5L3.5 12z'
 </script>
 
 <template>
   <span class="star-rating" :class="`star-rating--${size}`" role="img" :aria-label="label">
     <span class="star-rating__stars" aria-hidden="true">
-      <svg v-for="(fill, i) in fills" :key="i" class="star-rating__star" viewBox="0 0 24 24">
-        <defs>
-          <linearGradient :id="`${uid}-${i}`" x1="0" x2="1" y1="0" y2="0">
-            <stop :offset="`${fill * 100}%`" stop-color="var(--star-filled)" />
-            <stop :offset="`${fill * 100}%`" stop-color="var(--star-empty)" />
-          </linearGradient>
-        </defs>
-        <path
-          :d="STAR_PATH"
-          :fill="`url(#${uid}-${i})`"
-          stroke="var(--star-filled)"
-          stroke-width="1"
-          stroke-linejoin="miter"
-        />
-      </svg>
+      <RatingGem v-for="(fill, i) in fills" :key="i" :fill="fill" class="star-rating__star" />
     </span>
     <span v-if="showValue" class="star-rating__value" aria-hidden="true">
       <template v-if="hasRating">
@@ -76,9 +58,6 @@ const STAR_PATH = 'M12 2.5l8.5 9.5-8.5 9.5L3.5 12z'
 
 <style scoped>
 .star-rating {
-  --star-filled: var(--star-filled-color, var(--color-accent-brass));
-  --star-empty: var(--star-empty-color, transparent);
-
   display: inline-flex;
   align-items: center;
   gap: 8px;
@@ -92,13 +71,13 @@ const STAR_PATH = 'M12 2.5l8.5 9.5-8.5 9.5L3.5 12z'
 }
 
 .star-rating--md .star-rating__star {
-  width: 18px;
-  height: 18px;
+  width: 20px;
+  height: 20px;
 }
 
 .star-rating--sm .star-rating__star {
-  width: 14px;
-  height: 14px;
+  width: 16px;
+  height: 16px;
 }
 
 .star-rating__value {
