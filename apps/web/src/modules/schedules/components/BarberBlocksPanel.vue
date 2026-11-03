@@ -96,7 +96,26 @@ const visibleBlocks = computed(() => blocks.value.filter((b) => !b.deletedAt))
 const activeSeries = computed(() => series.value.filter((s) => !s.deletedAt))
 // Las series semanales que solo se distinguen por el día se muestran en una ficha (#499).
 const seriesGroups = computed(() => groupSeries(activeSeries.value))
-const expandedGroups = ref<Set<string>>(new Set())
+// Ficha cuyos días se gestionan en el diálogo «Días» (#505). Se guarda la clave y no el
+// grupo, y se resuelve contra la lista viva: al retirar un día el diálogo se actualiza.
+const daysGroupKey = ref<string | null>(null)
+const daysGroup = computed(
+  () => seriesGroups.value.find((group) => group.key === daysGroupKey.value) ?? null,
+)
+// Día elegido dentro del diálogo; si ya no existe (se retiró) cae al primero que quede.
+const selectedDayId = ref<string | null>(null)
+const activeMember = computed(
+  () =>
+    daysGroup.value?.items.find((member) => member.id === selectedDayId.value) ??
+    daysGroup.value?.items[0] ??
+    null,
+)
+const isDaysOpen = computed({
+  get: () => daysGroup.value !== null,
+  set: (open: boolean) => {
+    if (!open) daysGroupKey.value = null
+  },
+})
 
 const toast = useToast()
 const v = useVocabulary()
@@ -428,10 +447,14 @@ function groupName(group: SeriesGroup): string {
     : seriesName(first)
 }
 
-function toggleGroup(key: string) {
-  const next = new Set(expandedGroups.value)
-  if (!next.delete(key)) next.add(key)
-  expandedGroups.value = next
+function openDays(group: SeriesGroup) {
+  daysGroupKey.value = group.key
+  selectedDayId.value = group.items[0]?.id ?? null
+}
+
+// Serie del grupo que corresponde a un día ISO de la tira, o undefined si ese día no está.
+function memberOfDay(group: SeriesGroup, isoWeekday: number): TimeBlockSeries | undefined {
+  return group.items.find((member) => member.isoWeekday === isoWeekday)
 }
 
 // --- Bloqueo por días (semanal o fechas), edición y excepciones (#100, #495) ---------------------
@@ -767,11 +790,10 @@ function seriesCounts(item: TimeBlockSeries): string {
                     <BaseButton
                       v-else
                       variant="secondary"
-                      :aria-expanded="expandedGroups.has(group.key)"
-                      :aria-controls="`series-days-${group.items[0]!.id}`"
+                      aria-haspopup="dialog"
                       :aria-label="`Días de la serie ${groupName(group)}`"
-                      @click="toggleGroup(group.key)"
-                      >{{ expandedGroups.has(group.key) ? 'Ocultar días' : 'Días' }}</BaseButton
+                      @click="openDays(group)"
+                      >Días</BaseButton
                     >
                     <BaseButton
                       variant="secondary"
@@ -791,35 +813,6 @@ function seriesCounts(item: TimeBlockSeries): string {
                     >
                   </div>
                 </div>
-                <ul
-                  v-if="group.items.length > 1 && expandedGroups.has(group.key)"
-                  :id="`series-days-${group.items[0]!.id}`"
-                  class="blocks-panel__members"
-                  :aria-label="`Días de ${groupName(group)}`"
-                >
-                  <li v-for="member in group.items" :key="member.id">
-                    <span class="blocks-panel__member-day"
-                      >{{ weekdayLabel(member.isoWeekday ?? 0)
-                      }}<small v-if="seriesCounts(member)">{{ seriesCounts(member) }}</small></span
-                    >
-                    <div class="blocks-panel__record-actions">
-                      <BaseButton
-                        variant="secondary"
-                        :aria-label="`Excepciones de la serie ${seriesName(member)}`"
-                        @click="openInstances(member)"
-                        >Excepciones</BaseButton
-                      >
-                      <BaseButton
-                        variant="secondary"
-                        :aria-label="`Retirar serie ${seriesName(member)}`"
-                        :loading="pendingDeleteSeriesIds.has(member.id)"
-                        :disabled="pendingDeleteSeriesIds.has(member.id)"
-                        @click="onDeleteSeries(member)"
-                        >Retirar</BaseButton
-                      >
-                    </div>
-                  </li>
-                </ul>
               </li>
             </TransitionGroup>
             <BaseAlert v-if="moreSeriesError" variant="warning"
@@ -960,6 +953,70 @@ function seriesCounts(item: TimeBlockSeries): string {
       >
     </BaseDialog>
 
+    <BaseDialog
+      v-model="isDaysOpen"
+      :title="daysGroup ? `Días de ${groupName(daysGroup)}` : 'Días de la serie'"
+      description="Elige un día para gestionar sus excepciones o retirarlo."
+      size="md"
+      content-class="block-dialog block-dialog--days"
+    >
+      <div v-if="daysGroup" class="days-picker">
+        <p class="days-picker__summary">{{ groupSchedule(daysGroup) }}</p>
+        <div class="days-picker__week" role="group" aria-label="Elige un día">
+          <button
+            v-for="day in ISO_WEEKDAYS"
+            :key="day.value"
+            type="button"
+            class="days-picker__tile"
+            :class="{
+              'days-picker__tile--on': memberOfDay(daysGroup, day.value),
+              'days-picker__tile--active':
+                memberOfDay(daysGroup, day.value)?.id === activeMember?.id,
+            }"
+            :disabled="!memberOfDay(daysGroup, day.value)"
+            :aria-pressed="memberOfDay(daysGroup, day.value)?.id === activeMember?.id"
+            :aria-label="
+              memberOfDay(daysGroup, day.value)
+                ? weekdayLabel(day.value)
+                : `${weekdayLabel(day.value)}, sin bloqueo`
+            "
+            @click="selectedDayId = memberOfDay(daysGroup, day.value)?.id ?? selectedDayId"
+          >
+            <span class="days-picker__initial" aria-hidden="true">{{
+              WEEKDAY_INITIALS[day.value]
+            }}</span>
+            <span class="days-picker__abbr" aria-hidden="true">{{
+              weekdayLabel(day.value).slice(0, 3)
+            }}</span>
+          </button>
+        </div>
+        <section v-if="activeMember" class="days-picker__detail" aria-live="polite">
+          <p class="blocks-panel__eyebrow">Día elegido</p>
+          <h3 class="days-picker__day">{{ weekdayLabel(activeMember.isoWeekday ?? 0) }}</h3>
+          <p class="days-picker__meta">
+            {{ timeRangeLabel(activeMember.startsTime, activeMember.durationMinutes) }}
+            <span aria-hidden="true">·</span>
+            {{ seriesCounts(activeMember) || 'Sin excepciones' }}
+          </p>
+          <div class="days-picker__actions">
+            <BaseButton
+              variant="secondary"
+              :aria-label="`Excepciones de la serie ${seriesName(activeMember)}`"
+              @click="openInstances(activeMember)"
+              >Excepciones</BaseButton
+            >
+            <BaseButton
+              variant="secondary"
+              :aria-label="`Retirar serie ${seriesName(activeMember)}`"
+              :loading="pendingDeleteSeriesIds.has(activeMember.id)"
+              :disabled="pendingDeleteSeriesIds.has(activeMember.id)"
+              @click="onDeleteSeries(activeMember)"
+              >Retirar este día</BaseButton
+            >
+          </div>
+        </section>
+      </div>
+    </BaseDialog>
     <SeriesFormDialog
       v-model="isCreateDaysOpen"
       mode="create"
@@ -1215,29 +1272,6 @@ function seriesCounts(item: TimeBlockSeries): string {
   background: var(--color-brand-accent-surface);
   border-color: var(--color-brand-accent-surface);
 }
-.blocks-panel__members {
-  display: grid;
-  gap: 8px;
-  margin: 0;
-  padding: 10px 0 0;
-  list-style: none;
-  border-top: 1px dashed var(--color-field-strong-border);
-}
-.blocks-panel__members > li {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  justify-content: space-between;
-  gap: 8px 12px;
-}
-.blocks-panel__member-day {
-  display: grid;
-  font-size: var(--font-size-body-sm);
-}
-.blocks-panel__member-day small {
-  color: var(--color-on-strong-muted);
-  font-size: var(--font-size-caption);
-}
 .blocks-panel__affected {
   margin-bottom: var(--space-4, 1rem);
 }
@@ -1481,6 +1515,101 @@ function seriesCounts(item: TimeBlockSeries): string {
 
 <style>
 /* BaseDialog se teleporta al body: este ámbito solo gobierna el panel de HU-042. */
+/* Diálogo «Días» (#505): un renglón por día con sus acciones, sobre hueco hundido. */
+.block-dialog.block-dialog--days.base-dialog {
+  width: min(100%, 520px) !important;
+}
+.days-picker {
+  display: grid;
+  gap: 18px;
+}
+.days-picker__summary {
+  margin: 0;
+  color: var(--color-on-strong-muted);
+  font-size: var(--font-size-body-sm);
+}
+.days-picker__week {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  gap: 6px;
+}
+.days-picker__tile {
+  display: grid;
+  justify-items: center;
+  gap: 2px;
+  padding: 10px 0 8px;
+  color: var(--color-on-strong-muted);
+  background: transparent;
+  border: 1px solid color-mix(in srgb, var(--color-on-strong) 14%, transparent);
+  border-radius: 2px;
+  cursor: pointer;
+  transition:
+    background-color var(--motion-duration-fast) var(--motion-easing-standard),
+    border-color var(--motion-duration-fast) var(--motion-easing-standard);
+}
+.days-picker__tile:disabled {
+  opacity: 0.35;
+  border-style: dashed;
+  cursor: default;
+}
+.days-picker__tile--on {
+  color: var(--color-on-strong);
+  background: var(--color-field-strong);
+  border-color: color-mix(in srgb, var(--color-brand-accent-surface) 55%, transparent);
+}
+.days-picker__tile--on:hover {
+  background: var(--color-field-strong-raised);
+}
+.days-picker__tile--active,
+.days-picker__tile--active:hover {
+  color: var(--color-brand-accent-text);
+  background: var(--color-brand-accent-surface);
+  border-color: var(--color-brand-accent-surface);
+}
+.days-picker__tile:focus-visible {
+  outline: none;
+  box-shadow:
+    0 0 0 2px var(--color-surface-strong),
+    0 0 0 4px var(--color-focus);
+}
+.days-picker__initial {
+  font-family: var(--font-display);
+  font-size: 22px;
+  line-height: 1;
+}
+.days-picker__abbr {
+  font-size: var(--font-size-caption);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+.days-picker__detail {
+  display: grid;
+  gap: 6px;
+  padding: 16px 18px 18px;
+  background: var(--color-field-strong);
+  border: 1px solid var(--color-field-strong-border);
+  border-left: 4px solid var(--color-brand-accent-surface);
+  border-radius: 2px;
+}
+.days-picker__day {
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: 30px;
+  font-weight: 400;
+  line-height: 1.1;
+  color: var(--color-on-strong);
+}
+.days-picker__meta {
+  margin: 0;
+  color: var(--color-on-strong-muted);
+  font-size: var(--font-size-body-sm);
+}
+.days-picker__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 10px;
+}
 /* `size="lg"` solo fija max-width; el ancho real se declara aquí para que los
    formularios de bloqueo respiren igual que los de Servicios. */
 .block-dialog.base-dialog {
