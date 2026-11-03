@@ -253,6 +253,8 @@ function goToPage(page: number) {
 const soloView = computed(
   () => isSoloProfile.value && !(loadStatus.value === 'ready' && totalItems.value > 1),
 )
+// Cuadro lateral de reseñas abierto (issue #487): la ficha deja de centrarse sola.
+const soloReviewsOpen = ref(false)
 const soloCard = computed(
   () => soloView.value && loadStatus.value === 'ready' && totalItems.value === 1,
 )
@@ -757,28 +759,38 @@ async function onSubmitRename() {
         <!-- Perfil individual (DEC-115): su propia tarjeta, no una fila de
              tabla sin cabecera. StaffPage sigue siendo dueño de los datos y
              del diálogo de edición; la tarjeta solo presenta. -->
-        <MyProfileCard
+        <div
           v-if="soloCard"
-          :full-name="barbers[0]!.fullName"
-          :description="barbers[0]!.description"
-          :photo-url="photoOf(barbers[0]!)"
-          :has-photo="hasPhoto(barbers[0]!)"
-          :since-label="formatDate(barbers[0]!.createdAt)"
-          :role-label="v.Professional"
-          @edit="openRenameDialog(barbers[0]!)"
+          class="staff-page__solo"
+          :class="{ 'staff-page__solo--reviews': soloReviewsOpen }"
         >
-          <template #reviews>
-            <BarberReviewsPanel
-              :barber-id="barbers[0]!.id"
-              :rating="barbers[0]!.rating"
-              :rating-count="barbers[0]!.ratingCount"
-              @changed="onReviewsChanged(barbers[0]!.id, $event)"
-            />
-          </template>
-          <template #actions>
-            <slot name="barber-actions" :barber="barbers[0]!" />
-          </template>
-        </MyProfileCard>
+          <MyProfileCard
+            :full-name="barbers[0]!.fullName"
+            :description="barbers[0]!.description"
+            :photo-url="photoOf(barbers[0]!)"
+            :has-photo="hasPhoto(barbers[0]!)"
+            :since-label="formatDate(barbers[0]!.createdAt)"
+            :role-label="v.Professional"
+            @edit="openRenameDialog(barbers[0]!)"
+          >
+            <template #reviews>
+              <!-- Las reseñas se abren en un cuadro a la derecha de la tarjeta
+                   (issue #487), no dentro de ella. -->
+              <BarberReviewsPanel
+                :barber-id="barbers[0]!.id"
+                :rating="barbers[0]!.rating"
+                :rating-count="barbers[0]!.ratingCount"
+                aside-to="#staff-solo-reviews"
+                @changed="onReviewsChanged(barbers[0]!.id, $event)"
+                @open-change="soloReviewsOpen = $event"
+              />
+            </template>
+            <template #actions>
+              <slot name="barber-actions" :barber="barbers[0]!" />
+            </template>
+          </MyProfileCard>
+          <div id="staff-solo-reviews" class="staff-page__solo-aside"></div>
+        </div>
 
         <div v-else class="staff-page__table">
           <div class="staff-page__columns" aria-hidden="true">
@@ -1319,6 +1331,64 @@ async function onSubmitRename() {
   display: flex;
   flex-direction: column;
   gap: 16px;
+}
+
+/* Perfil individual con reseñas (issue #487): la ficha va centrada sola; al abrir
+   las reseñas, el cuadro se coloca a su derecha y el conjunto sigue centrado. En
+   pantallas angostas el cuadro baja bajo la ficha. */
+.staff-page__solo {
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  gap: var(--space-5);
+}
+
+.staff-page__solo > :deep(.my-profile-card) {
+  flex: 0 0 auto;
+  margin-inline: 0;
+}
+
+.staff-page__solo-aside {
+  display: none;
+  flex: 1 1 0;
+  min-width: 0;
+  max-width: 460px;
+}
+
+.staff-page__solo--reviews {
+  align-items: stretch;
+}
+
+.staff-page__solo--reviews .staff-page__solo-aside {
+  position: relative;
+  display: block;
+}
+
+/* El cuadro toma la altura de la ficha (no la empuja): si hay más reseñas de las que
+   caben, la lista se desplaza dentro de él. */
+.staff-page__solo-aside > :deep(.barber-reviews__panel--aside) {
+  position: absolute;
+  inset: 0;
+}
+
+@media (max-width: 960px) {
+  .staff-page__solo {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .staff-page__solo > :deep(.my-profile-card) {
+    align-self: center;
+  }
+
+  .staff-page__solo-aside {
+    max-width: none;
+  }
+
+  .staff-page__solo-aside > :deep(.barber-reviews__panel--aside) {
+    position: static;
+    max-height: 70dvh;
+  }
 }
 
 .staff-page__header {

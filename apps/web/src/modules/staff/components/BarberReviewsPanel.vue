@@ -5,7 +5,12 @@
 // borra: es reversible y solo saca la reseña del promedio y de la lista pública.
 // Autocontenido (pide sus datos por `barberId`) para usarlo igual en el detalle de
 // un barbero y en la ficha del perfil individual.
-import { computed, ref, watch } from 'vue'
+//
+// Dos colocaciones (issue #487): sin `asideTo` la lista se despliega debajo del
+// resumen (detalle de barbero); con `asideTo` —un selector— el resumen sigue en la
+// tarjeta y la lista se dibuja en un cuadro propio a la derecha, en ese contenedor,
+// con scroll vertical interno. El estado vive aquí en ambos casos.
+import { computed, nextTick, ref, watch, type ComponentPublicInstance } from 'vue'
 import { BaseButton, StarRating } from '@/shared/ui'
 import { listBarberReviews, setReviewHidden } from '../api/reviewsApi'
 import type { BarberReview, BarberReviewList } from '../model/review'
@@ -15,10 +20,16 @@ interface Props {
   /** Promedio y total que ya trae la lista de barberos, para pintar sin pedir nada. */
   rating: number | null
   ratingCount: number
+  /** Selector del contenedor donde dibujar la lista como cuadro lateral. */
+  asideTo?: string
 }
 const props = defineProps<Props>()
 // El promedio cambia al ocultar o mostrar: se avisa para que quien lo muestra se actualice.
-const emit = defineEmits<{ changed: [summary: { rating: number | null; ratingCount: number }] }>()
+const emit = defineEmits<{
+  changed: [summary: { rating: number | null; ratingCount: number }]
+  /** La lista se abrió o cerró: quien aloja el cuadro lateral ajusta su composición. */
+  openChange: [open: boolean]
+}>()
 
 type LoadState =
   | { status: 'idle' }
@@ -27,6 +38,7 @@ type LoadState =
   | { status: 'error' }
 
 const open = ref(false)
+const toggleRef = ref<ComponentPublicInstance | null>(null)
 const state = ref<LoadState>({ status: 'idle' })
 const busyId = ref<string | null>(null)
 const actionError = ref('')
@@ -50,9 +62,22 @@ async function load() {
       : { status: 'error' }
 }
 
+function setOpen(value: boolean) {
+  open.value = value
+  emit('openChange', value)
+  if (value && state.value.status !== 'success') void load()
+}
+
 function toggle() {
-  open.value = !open.value
-  if (open.value && state.value.status !== 'success') void load()
+  setOpen(!open.value)
+}
+
+// Cerrar desde el cuadro lateral devuelve el foco al botón que lo abrió, para que el
+// teclado no pierda su lugar al desaparecer el cuadro.
+async function close() {
+  setOpen(false)
+  await nextTick()
+  ;(toggleRef.value?.$el as HTMLElement | undefined)?.focus()
 }
 
 async function toggleHidden(review: BarberReview) {
@@ -79,6 +104,7 @@ watch(
   () => props.barberId,
   () => {
     requestToken++
+    if (open.value) emit('openChange', false)
     open.value = false
     state.value = { status: 'idle' }
     actionError.value = ''
@@ -96,65 +122,112 @@ function formatDate(iso: string): string {
     <div class="barber-reviews__summary">
       <StarRating :rating="shown.rating" :count="shown.count" />
       <BaseButton
+        ref="toggleRef"
         type="button"
         variant="secondary"
+        class="barber-reviews__toggle"
         :aria-expanded="open"
         :aria-controls="`barber-reviews-${barberId}`"
         @click="toggle"
       >
+        <svg
+          class="barber-reviews__toggle-icon"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="1.5"
+          stroke-linejoin="miter"
+          aria-hidden="true"
+        >
+          <path d="M4 5h16v11H10l-4 3.5V16H4V5Z" />
+          <path d="M8 9.5h8M8 12.5h5" />
+        </svg>
         {{ open ? 'Ocultar reseñas' : 'Ver reseñas' }}
       </BaseButton>
     </div>
 
-    <div v-if="open" :id="`barber-reviews-${barberId}`" class="barber-reviews__panel">
-      <p v-if="state.status === 'loading'" class="barber-reviews__note" role="status">
-        Cargando reseñas…
-      </p>
-      <p v-else-if="state.status === 'error'" class="barber-reviews__note" role="alert">
-        No pudimos cargar las reseñas.
-        <BaseButton type="button" variant="secondary" @click="load">Reintentar</BaseButton>
-      </p>
-      <template v-else-if="state.status === 'success'">
-        <p v-if="actionError" class="barber-reviews__error" role="alert">{{ actionError }}</p>
-        <p v-if="state.reviews.items.length === 0" class="barber-reviews__note">
-          Todavía no hay reseñas.
-        </p>
-        <ul v-else class="barber-reviews__list">
-          <li
-            v-for="review in state.reviews.items"
-            :key="review.id"
-            class="barber-reviews__item"
-            :class="{ 'barber-reviews__item--hidden': review.hiddenAt !== null }"
+    <Teleport :to="asideTo ?? 'body'" :disabled="!asideTo" defer>
+      <component
+        :is="asideTo ? 'aside' : 'div'"
+        v-if="open"
+        :id="`barber-reviews-${barberId}`"
+        class="barber-reviews__panel"
+        :class="{ 'barber-reviews__panel--aside': asideTo }"
+        :aria-label="asideTo ? 'Reseñas' : undefined"
+        @keydown.esc="asideTo && close()"
+      >
+        <header v-if="asideTo" class="barber-reviews__aside-head">
+          <div class="barber-reviews__aside-title">
+            <p class="barber-reviews__eyebrow">Reseñas</p>
+            <StarRating :rating="shown.rating" :count="shown.count" />
+          </div>
+          <BaseButton
+            type="button"
+            variant="secondary"
+            class="barber-reviews__close"
+            @click="close"
           >
-            <div class="barber-reviews__head">
-              <StarRating
-                :rating="review.rating"
-                :count="1"
-                size="sm"
-                :show-value="false"
-                :label="`${review.rating} de 5 estrellas`"
-              />
-              <time :datetime="review.createdAt" class="barber-reviews__date">{{
-                formatDate(review.createdAt)
-              }}</time>
-              <span v-if="review.hiddenAt" class="barber-reviews__badge">
-                Oculta desde el {{ formatDate(review.hiddenAt) }}
-              </span>
-            </div>
-            <p v-if="review.comment" class="barber-reviews__comment">{{ review.comment }}</p>
-            <BaseButton
-              type="button"
-              variant="secondary"
-              :disabled="busyId !== null"
-              :aria-label="`${review.hiddenAt ? 'Mostrar' : 'Ocultar'} la reseña de ${review.rating} estrellas del ${formatDate(review.createdAt)}`"
-              @click="toggleHidden(review)"
-            >
-              {{ review.hiddenAt ? 'Mostrar' : 'Ocultar' }}
-            </BaseButton>
-          </li>
-        </ul>
-      </template>
-    </div>
+            Cerrar
+          </BaseButton>
+        </header>
+
+        <div
+          class="barber-reviews__body"
+          :class="{ 'barber-reviews__body--scroll': asideTo }"
+          :tabindex="asideTo ? 0 : undefined"
+          :role="asideTo ? 'region' : undefined"
+          :aria-label="asideTo ? 'Lista de reseñas' : undefined"
+        >
+          <p v-if="state.status === 'loading'" class="barber-reviews__note" role="status">
+            Cargando reseñas…
+          </p>
+          <p v-else-if="state.status === 'error'" class="barber-reviews__note" role="alert">
+            No pudimos cargar las reseñas.
+            <BaseButton type="button" variant="secondary" @click="load">Reintentar</BaseButton>
+          </p>
+          <template v-else-if="state.status === 'success'">
+            <p v-if="actionError" class="barber-reviews__error" role="alert">{{ actionError }}</p>
+            <p v-if="state.reviews.items.length === 0" class="barber-reviews__note">
+              Todavía no hay reseñas.
+            </p>
+            <ul v-else class="barber-reviews__list">
+              <li
+                v-for="review in state.reviews.items"
+                :key="review.id"
+                class="barber-reviews__item"
+                :class="{ 'barber-reviews__item--hidden': review.hiddenAt !== null }"
+              >
+                <div class="barber-reviews__head">
+                  <StarRating
+                    :rating="review.rating"
+                    :count="1"
+                    size="sm"
+                    :show-value="false"
+                    :label="`${review.rating} de 5 estrellas`"
+                  />
+                  <time :datetime="review.createdAt" class="barber-reviews__date">{{
+                    formatDate(review.createdAt)
+                  }}</time>
+                  <span v-if="review.hiddenAt" class="barber-reviews__badge">
+                    Oculta desde el {{ formatDate(review.hiddenAt) }}
+                  </span>
+                </div>
+                <p v-if="review.comment" class="barber-reviews__comment">{{ review.comment }}</p>
+                <BaseButton
+                  type="button"
+                  variant="secondary"
+                  :disabled="busyId !== null"
+                  :aria-label="`${review.hiddenAt ? 'Mostrar' : 'Ocultar'} la reseña de ${review.rating} estrellas del ${formatDate(review.createdAt)}`"
+                  @click="toggleHidden(review)"
+                >
+                  {{ review.hiddenAt ? 'Mostrar' : 'Ocultar' }}
+                </BaseButton>
+              </li>
+            </ul>
+          </template>
+        </div>
+      </component>
+    </Teleport>
   </section>
 </template>
 
@@ -178,6 +251,128 @@ function formatDate(iso: string): string {
   display: flex;
   flex-direction: column;
   gap: var(--space-3);
+}
+
+.barber-reviews__body {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+/* Botón «Ver reseñas»: mismo ghost de latón que «Editar mi perfil» (blanco relleno
+   desentonaba sobre la tinta), con icono de línea. */
+.barber-reviews__toggle.base-button.base-button--secondary,
+.barber-reviews__close.base-button.base-button--secondary {
+  background-color: transparent;
+  color: var(--color-brand-accent-surface);
+  border-color: color-mix(in srgb, var(--color-brand-accent-surface) 50%, transparent);
+  border-bottom-color: var(--color-brand-accent-surface);
+}
+
+.barber-reviews__toggle.base-button.base-button--secondary:hover:not(:disabled):not(
+    .base-button--loading
+  ),
+.barber-reviews__close.base-button.base-button--secondary:hover:not(:disabled):not(
+    .base-button--loading
+  ) {
+  background-color: color-mix(in srgb, var(--color-brand-accent-surface) 12%, transparent);
+}
+
+.barber-reviews__toggle :deep(.base-button__content) {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.barber-reviews__toggle-icon {
+  width: 14px;
+  height: 14px;
+  flex-shrink: 0;
+}
+
+/* Cuadro lateral (issue #487): misma tinta hundida y filete de latón que la tarjeta
+   del perfil; el scroll vive en la lista, no en la página ni en la tarjeta. */
+.barber-reviews__panel--aside {
+  gap: var(--space-4);
+  width: 100%;
+  box-sizing: border-box;
+  padding: 24px 24px 16px;
+  background-color: var(--color-field-strong);
+  color: var(--color-on-strong);
+  border: var(--border-width-normal) solid var(--color-field-strong-border);
+  border-top: var(--border-width-emphasis) solid var(--color-brand-accent-surface);
+  border-radius: 4px;
+  animation: barber-reviews-enter 260ms var(--motion-easing-standard) both;
+}
+
+@keyframes barber-reviews-enter {
+  from {
+    opacity: 0;
+    transform: translateX(10px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+.barber-reviews__aside-head {
+  display: flex;
+  gap: var(--space-3);
+  align-items: flex-start;
+  justify-content: space-between;
+  padding-bottom: var(--space-3);
+  border-bottom: var(--border-width-normal) solid var(--color-field-strong-border);
+}
+
+.barber-reviews__aside-title {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.barber-reviews__eyebrow {
+  margin: 0;
+  color: var(--color-brand-accent-surface);
+  font-size: var(--font-size-caption);
+  font-weight: 600;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+}
+
+.barber-reviews__body--scroll {
+  flex: 1;
+  min-height: 0;
+  padding-right: var(--space-2);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+
+.barber-reviews__body--scroll:focus-visible {
+  outline: var(--focus-ring-width, 2px) solid var(--color-focus);
+  outline-offset: 2px;
+}
+
+.barber-reviews__panel--aside .barber-reviews__date {
+  color: var(--color-on-strong-muted);
+}
+
+.barber-reviews__panel--aside .barber-reviews__item:last-child {
+  padding-bottom: 0;
+  border-bottom: 0;
+}
+
+.barber-reviews__panel--aside .barber-reviews__item .base-button--secondary {
+  color: var(--color-brand-accent-surface);
+  background-color: transparent;
+  border-color: color-mix(in srgb, var(--color-brand-accent-surface) 50%, transparent);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .barber-reviews__panel--aside {
+    animation: none;
+  }
 }
 
 .barber-reviews__note,

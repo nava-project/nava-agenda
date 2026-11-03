@@ -1,11 +1,12 @@
 <script setup lang="ts">
 /**
- * StarRating - Promedio de estrellas de solo lectura (DEC-128, HU-100).
- * Cinco estrellas con relleno proporcional (4,5 pinta cuatro y media) y, opcional,
+ * StarRating - Promedio de solo lectura (DEC-128, HU-100), dibujado con diamantes
+ * (rombos de la identidad NAVA, issue #487; el nombre del componente se conserva).
+ * Cinco diamantes con relleno proporcional (4,5 pinta cuatro y medio) y, opcional,
  * el valor y el total al lado. El conjunto es una sola imagen para el lector de
  * pantalla con el texto completo («4,5 de 5 · 12 reseñas»); los glifos y el texto
  * visible son decorativos para no leer dos veces. Sin reseñas visibles muestra
- * estrellas vacías y «Sin reseñas todavía», nunca «0».
+ * diamantes vacíos y «Sin reseñas todavía», nunca «0».
  * Hereda el color del contexto: `--star-filled` y `--star-empty` lo ajustan en
  * superficies claras u oscuras.
  */
@@ -40,8 +41,8 @@ const fills = computed(() =>
   ),
 )
 
-const STAR_PATH =
-  'M12 2.5l2.94 5.96 6.58.96-4.76 4.64 1.12 6.55L12 17.52l-5.88 3.09 1.12-6.55L2.48 9.42l6.58-.96L12 2.5z'
+// Rombo: el diamante de la identidad NAVA (DEC-095, rombos de estado), no una estrella.
+const STAR_PATH = 'M12 2.5l8.5 9.5-8.5 9.5L3.5 12z'
 </script>
 
 <template>
@@ -59,7 +60,7 @@ const STAR_PATH =
           :fill="`url(#${uid}-${i})`"
           stroke="var(--star-filled)"
           stroke-width="1"
-          stroke-linejoin="round"
+          stroke-linejoin="miter"
         />
       </svg>
     </span>
