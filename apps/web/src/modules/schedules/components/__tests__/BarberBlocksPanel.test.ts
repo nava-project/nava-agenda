@@ -486,6 +486,7 @@ describe('BarberBlocksPanel · series similares agrupadas (#499)', () => {
       fetchTimeBlockSeriesMock,
       deleteTimeBlockSeriesMock,
       updateTimeBlockSeriesMock,
+      createTimeBlockSeriesMock,
     ]) {
       mock.mockReset()
     }
@@ -525,7 +526,7 @@ describe('BarberBlocksPanel · series similares agrupadas (#499)', () => {
 
     expect(records(wrapper)).toHaveLength(3)
     const card = records(wrapper)[0]!
-    expect(card.text()).toContain('Lunes, miércoles y viernes · 12:00 · 60 min')
+    expect(card.text()).toContain('Lunes, miércoles y viernes · 12:00 – 13:00')
     const lit = card.findAll('.blocks-panel__week-day--on').map((item) => item.text())
     expect(lit).toEqual(['L', 'X', 'V'])
     // La serie por fechas y la de otra hora quedan aparte.
@@ -565,7 +566,7 @@ describe('BarberBlocksPanel · series similares agrupadas (#499)', () => {
 
     expect(deleteTimeBlockSeriesMock).toHaveBeenCalledTimes(1)
     expect(deleteTimeBlockSeriesMock).toHaveBeenCalledWith('b-1', 's3')
-    expect(records(wrapper)[0]!.text()).toContain('Lunes y viernes · 12:00')
+    expect(records(wrapper)[0]!.text()).toContain('Lunes y viernes · 12:00 – 13:00')
     wrapper.unmount()
   })
 
@@ -598,7 +599,7 @@ describe('BarberBlocksPanel · series similares agrupadas (#499)', () => {
     await flushPromises()
 
     expect(records(wrapper)).toHaveLength(1)
-    expect(records(wrapper)[0]!.text()).toContain('Miércoles · 12:00')
+    expect(records(wrapper)[0]!.text()).toContain('Miércoles · 12:00 – 13:00')
     const toast = toastState.items[0]!
     expect(toast.title).toBe('No pudimos retirar todos los días')
     expect(toast.detail).toContain('Se retiraron 2 de 3')
@@ -613,6 +614,54 @@ describe('BarberBlocksPanel · series similares agrupadas (#499)', () => {
     wrapper.unmount()
   })
 
+  it('removes a day from the card when it is unchecked while editing', async () => {
+    const wrapper = await mountWith(group)
+    updateTimeBlockSeriesMock.mockImplementation(async (_barber: string, id: string) => ({
+      kind: 'success',
+      series: day(id, id === 's1' ? 1 : 5),
+    }))
+    deleteTimeBlockSeriesMock.mockResolvedValueOnce({ kind: 'success' })
+    const title = 'Editar serie de bloqueo'
+
+    await named(wrapper, 'Editar serie Almuerzo lunes, miércoles y viernes').trigger('click')
+    await flushPromises()
+    dialogOf(wrapper, title).getComponent(WeekdayMultiPicker).vm.$emit('update:modelValue', [1, 5])
+    await flushPromises()
+    await dialogOf(wrapper, title).get('form').trigger('submit')
+    await flushPromises()
+
+    expect(deleteTimeBlockSeriesMock).toHaveBeenCalledWith('b-1', 's3')
+    expect(records(wrapper)).toHaveLength(1)
+    expect(records(wrapper)[0]!.text()).toContain('Lunes y viernes · 12:00 – 13:00')
+    wrapper.unmount()
+  })
+
+  it('adds a day to the card when it is checked while editing', async () => {
+    const wrapper = await mountWith(group)
+    updateTimeBlockSeriesMock.mockImplementation(async (_barber: string, id: string) => ({
+      kind: 'success',
+      series: day(id, id === 's1' ? 1 : id === 's3' ? 3 : 5),
+    }))
+    createTimeBlockSeriesMock.mockResolvedValueOnce({ kind: 'success', series: day('s2', 2) })
+    const title = 'Editar serie de bloqueo'
+
+    await named(wrapper, 'Editar serie Almuerzo lunes, miércoles y viernes').trigger('click')
+    await flushPromises()
+    dialogOf(wrapper, title)
+      .getComponent(WeekdayMultiPicker)
+      .vm.$emit('update:modelValue', [1, 2, 3, 5])
+    await flushPromises()
+    await dialogOf(wrapper, title).get('form').trigger('submit')
+    await flushPromises()
+
+    expect(createTimeBlockSeriesMock.mock.calls[0]![2]).toBe(2)
+    expect(records(wrapper)).toHaveLength(1)
+    expect(records(wrapper)[0]!.text()).toContain(
+      'Lunes, martes, miércoles y viernes · 12:00 – 13:00',
+    )
+    wrapper.unmount()
+  })
+
   it('applies an edit to every day of the card', async () => {
     const wrapper = await mountWith(group)
     updateTimeBlockSeriesMock.mockImplementation(async (_barber: string, id: string) => ({
@@ -623,7 +672,9 @@ describe('BarberBlocksPanel · series similares agrupadas (#499)', () => {
 
     await named(wrapper, 'Editar serie Almuerzo lunes, miércoles y viernes').trigger('click')
     await flushPromises()
-    expect(dialogOf(wrapper, title).text()).toContain('los 3 días de este bloqueo')
+    expect(dialogOf(wrapper, title).findComponent(WeekdayMultiPicker).props('modelValue')).toEqual([
+      1, 3, 5,
+    ])
     await dialogOf(wrapper, title).get('form').trigger('submit')
     await flushPromises()
 

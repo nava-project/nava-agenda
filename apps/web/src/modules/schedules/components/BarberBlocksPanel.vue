@@ -43,6 +43,7 @@ import {
   weekdayLabel,
 } from '../model/workingHour'
 import { groupSeries, type SeriesGroup } from '../model/seriesGroups'
+import { timeRangeLabel } from '../model/weekBoard'
 import {
   validateBlockInterval,
   validateInstant,
@@ -411,6 +412,15 @@ async function onDeleteGroup(group: SeriesGroup) {
   })
 }
 
+// «Lunes a viernes · 13:00 – 14:00» (o «Lista de fechas · Todo el día»).
+function groupSchedule(group: SeriesGroup): string {
+  const first = group.items[0]!
+  const when = timeRangeLabel(first.startsTime, first.durationMinutes)
+  return first.recurrenceKind === 'weekly'
+    ? `${describeWeekdays(group.weekdays)} · ${when}`
+    : `Lista de fechas · ${when}`
+}
+
 function groupName(group: SeriesGroup): string {
   const first = group.items[0]!
   return group.items.length > 1
@@ -465,6 +475,11 @@ function onSeriesUpdated(payload: {
   series.value = series.value
     .map((item) => (item.id === payload.originalId ? { ...item, effectiveUntil: until } : item))
     .concat(payload.series)
+}
+
+function onSeriesRemoved(id: string) {
+  requestToken++
+  series.value = series.value.filter((item) => item.id !== id)
 }
 
 function openInstances(item: TimeBlockSeries) {
@@ -717,15 +732,7 @@ function seriesCounts(item: TimeBlockSeries): string {
                     {{ WEEKDAY_INITIALS[day.value] }}
                   </li>
                 </ul>
-                <p class="blocks-panel__interval">
-                  <template v-if="group.items[0]!.recurrenceKind === 'weekly'"
-                    >{{ describeWeekdays(group.weekdays) }} · {{ group.items[0]!.startsTime }} ·
-                    {{ group.items[0]!.durationMinutes }} min</template
-                  ><template v-else
-                    >Lista de fechas · {{ group.items[0]!.startsTime }} ·
-                    {{ group.items[0]!.durationMinutes }} min</template
-                  >
-                </p>
+                <p class="blocks-panel__interval">{{ groupSchedule(group) }}</p>
                 <p class="blocks-panel__validity">
                   Desde {{ displayDate(group.items[0]!.effectiveFrom)
                   }}<template v-if="group.items[0]!.effectiveUntil">
@@ -968,6 +975,8 @@ function seriesCounts(item: TimeBlockSeries): string {
       :barber-name="barberName"
       :series="editingSeries"
       :group="editingGroup"
+      @created="onSeriesCreated"
+      @removed="onSeriesRemoved"
       :today="todayCivilDate"
       @updated="onSeriesUpdated"
     />

@@ -15,6 +15,7 @@ import type { TimeBlockSeries } from '../../model/timeBlock'
 
 const createDateListSeriesMock = vi.hoisted(() => vi.fn())
 const createTimeBlockSeriesMock = vi.hoisted(() => vi.fn())
+const deleteTimeBlockSeriesMock = vi.hoisted(() => vi.fn())
 const updateTimeBlockSeriesMock = vi.hoisted(() => vi.fn())
 const addSeriesDateMock = vi.hoisted(() => vi.fn())
 const removeSeriesDateMock = vi.hoisted(() => vi.fn())
@@ -24,6 +25,7 @@ const removeSeriesExceptionMock = vi.hoisted(() => vi.fn())
 vi.mock('../../api/timeBlocksApi', () => ({
   createDateListSeries: createDateListSeriesMock,
   createTimeBlockSeries: createTimeBlockSeriesMock,
+  deleteTimeBlockSeries: deleteTimeBlockSeriesMock,
   updateTimeBlockSeries: updateTimeBlockSeriesMock,
   addSeriesDate: addSeriesDateMock,
   removeSeriesDate: removeSeriesDateMock,
@@ -93,6 +95,7 @@ beforeEach(() => {
   for (const mock of [
     createDateListSeriesMock,
     createTimeBlockSeriesMock,
+    deleteTimeBlockSeriesMock,
     updateTimeBlockSeriesMock,
     addSeriesDateMock,
     removeSeriesDateMock,
@@ -403,11 +406,83 @@ describe('SeriesFormDialog · edición de una ficha con varios días (#499)', ()
     })
   }
 
-  it('says how many days change and summarizes them', () => {
+  it('shows the days of the card selected and summarizes them', () => {
     const wrapper = mountGroup()
 
-    expect(wrapper.text()).toContain('los 3 días de este bloqueo')
+    expect(wrapper.getComponent(WeekdayMultiPicker).props('modelValue')).toEqual([1, 3, 5])
     expect(wrapper.text()).toContain('Lunes, miércoles y viernes')
+    expect(wrapper.text()).not.toMatch(/\bmin\b/)
+  })
+
+  it('shows the day of a lone weekly series selected too', () => {
+    const wrapper = mount(SeriesFormDialog, {
+      props: {
+        modelValue: true,
+        mode: 'edit',
+        barberId: 'b-1',
+        barberName: 'Alex',
+        series: weekly,
+        today: '2099-01-01',
+      },
+      global,
+    })
+
+    expect(wrapper.getComponent(WeekdayMultiPicker).props('modelValue')).toEqual([1])
+  })
+
+  it('creates the series of an added day and retires the one of a removed day', async () => {
+    updateTimeBlockSeriesMock.mockImplementation(async (_b: string, id: string) => ({
+      kind: 'success',
+      series: { ...weekly, id },
+    }))
+    createTimeBlockSeriesMock.mockResolvedValueOnce({
+      kind: 'success',
+      series: { ...weekly, id: 'ser-2', isoWeekday: 2 },
+    })
+    deleteTimeBlockSeriesMock.mockResolvedValueOnce({ kind: 'success' })
+    const wrapper = mountGroup()
+    await pickDays(wrapper, [1, 2, 3])
+
+    await wrapper.get('form').trigger('submit')
+    await flushPromises()
+
+    expect(updateTimeBlockSeriesMock.mock.calls.map((call) => call[1])).toEqual(['ser-1', 'ser-3'])
+    expect(createTimeBlockSeriesMock).toHaveBeenCalledOnce()
+    expect(createTimeBlockSeriesMock.mock.calls[0]!.slice(0, 7)).toEqual([
+      'b-1',
+      'lunch',
+      2,
+      '13:00',
+      60,
+      '2099-01-05',
+      null,
+    ])
+    expect(deleteTimeBlockSeriesMock).toHaveBeenCalledWith('b-1', 'ser-5')
+    expect(wrapper.emitted('created')?.map((args) => (args[0] as TimeBlockSeries).id)).toEqual([
+      'ser-2',
+    ])
+    expect(wrapper.emitted('removed')).toEqual([['ser-5']])
+    expect(wrapper.emitted('update:modelValue')?.at(-1)).toEqual([false])
+  })
+
+  it('asks for at least one day', async () => {
+    const wrapper = mountGroup()
+    await pickDays(wrapper, [])
+
+    await wrapper.get('form').trigger('submit')
+    await flushPromises()
+
+    expect(wrapper.text()).toContain('Elige al menos un día de la semana.')
+    expect(updateTimeBlockSeriesMock).not.toHaveBeenCalled()
+  })
+
+  it('locks the days while splitting from a date', async () => {
+    const wrapper = mountGroup()
+    chooseSelect(wrapper, 1, 'this_and_following')
+    await flushPromises()
+
+    expect(wrapper.getComponent(WeekdayMultiPicker).props('disabled')).toBe(true)
+    expect(wrapper.text()).toContain('Al dividir desde una fecha los días no cambian')
   })
 
   it('updates every day with the same values and emits each result', async () => {
@@ -443,7 +518,7 @@ describe('SeriesFormDialog · edición de una ficha con varios días (#499)', ()
 
     expect(wrapper.emitted('updated')).toHaveLength(1)
     expect(wrapper.emitted('update:modelValue')).toBeUndefined()
-    expect(wrapper.text()).toContain('Se actualizaron 1 de 3 días')
+    expect(wrapper.text()).toContain('Se aplicaron 1 de 3 cambios')
 
     updateTimeBlockSeriesMock.mockReset()
     updateTimeBlockSeriesMock.mockImplementation(async (_b: string, id: string) => ({

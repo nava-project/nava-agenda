@@ -183,3 +183,9 @@
     flex: 1;
   }
 }
+.block-form__hint {
+  margin: -10px 0 0;
+  color: var(--color-on-strong-muted);
+  font-size: var(--font-size-caption);
+  line-height: 1.5;
+}

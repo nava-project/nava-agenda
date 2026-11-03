@@ -9,6 +9,7 @@ import {
   nowInTimezone,
   scaleTicks,
   segmentGeometry,
+  timeRangeLabel,
   timeToMinutes,
 } from '../weekBoard'
 
@@ -90,5 +91,13 @@ describe('weekBoard', () => {
       startMinute: 420,
       endMinute: 1260,
     })
+  })
+
+  it('describe un bloque como rango de horas y no como minutos', () => {
+    expect(timeRangeLabel('13:00', 60)).toBe('13:00 – 14:00')
+    expect(timeRangeLabel('15:00', 120)).toBe('15:00 – 17:00')
+    expect(timeRangeLabel('23:00', 60)).toBe('23:00 – 00:00')
+    expect(timeRangeLabel('22:00', 240)).toBe('22:00 – 02:00 (día siguiente)')
+    expect(timeRangeLabel('00:00', 1440)).toBe('Todo el día')
   })
 })
