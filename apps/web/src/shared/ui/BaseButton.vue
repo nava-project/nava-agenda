@@ -277,6 +277,17 @@ const handleClick = (event: MouseEvent) => {
   pointer-events: none;
 }
 
+/* Botón con icono (#511): el contenido era un bloque y el icono, una caja en línea sobre la
+   línea base, así que quedaba más alto que la letra. Con un icono dentro (svg o un elemento
+   aria-hidden que no sea el spinner, que va en absoluto) el contenido pasa a fila centrada:
+   icono y texto comparten el mismo eje vertical. Un botón solo de texto no cambia. */
+.base-button__content:has(> svg, > [aria-hidden='true']:not(.base-button__spinner)) {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--btn-gap);
+}
+
 /* Loading */
 .base-button--loading {
   position: relative;
