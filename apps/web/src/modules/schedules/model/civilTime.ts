@@ -24,6 +24,15 @@ export function civilDateTimeToInstant(date: string, time: string, timeZone: str
   return new Date(actualUtcMs).toISOString()
 }
 
+// addCivilDays suma días a una fecha civil (YYYY-MM-DD) sin pasar por la zona
+// del dispositivo: se calcula en UTC a mediodía, así ningún cambio de hora la
+// desplaza. Sirve para el fin exclusivo de un bloqueo de día completo (#507).
+export function addCivilDays(date: string, days: number): string {
+  const ms = Date.parse(`${date}T12:00:00Z`)
+  if (Number.isNaN(ms)) throw new RangeError(`fecha civil inválida: ${date}`)
+  return new Date(ms + days * 86_400_000).toISOString().slice(0, 10)
+}
+
 // formatInstantInTimezone es la conversión inversa para MOSTRAR un instante
 // ya almacenado: no necesita el truco de doble formateo, Intl ya sabe hacer
 // esto directamente.

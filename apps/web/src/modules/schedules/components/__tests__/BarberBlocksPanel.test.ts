@@ -76,7 +76,8 @@ const weeklySeries = {
   exceptions: [],
 }
 
-async function mountReady() {
+// `renderLinks` hace que RouterLink pinte su contenido; por omisión es un stub vacío.
+async function mountReady(renderLinks = false) {
   fetchBarbershopTimezoneMock.mockResolvedValueOnce({
     kind: 'success',
     timezone: 'America/Bogota',
@@ -91,7 +92,12 @@ async function mountReady() {
   })
   const wrapper = mount(BarberBlocksPanel, {
     props: { barberId: 'b-1', barberName: 'Barbero de prueba' },
-    global: { stubs: { teleport: true, RouterLink: true } },
+    global: {
+      stubs: {
+        teleport: true,
+        RouterLink: renderLinks ? { template: '<a><slot /></a>' } : true,
+      },
+    },
   })
   await flushPromises()
   return wrapper
@@ -158,6 +164,115 @@ describe('BarberBlocksPanel · avisos emergentes (DEC-095)', () => {
     ])
   })
 
+  async function openCreateBlockForm(wrapper: VueWrapper) {
+    await wrapper
+      .findAll('button')
+      .find((button) => button.text() === 'Agregar bloqueo')!
+      .trigger('click')
+    await flushPromises()
+    return wrapper.get('form.blocks-page__form')
+  }
+
+  // #507: la hora es opcional; solo con fechas el bloqueo cubre los días completos.
+  it('creates an all-day block from dates only, ending at the end of the last day', async () => {
+    const wrapper = await mountReady()
+    createTimeBlockMock.mockResolvedValueOnce({
+      kind: 'success',
+      block: { ...block, id: 'blk-v', blockType: 'emergency' },
+    })
+    const form = await openCreateBlockForm(wrapper)
+    const dates = form.findAllComponents(BaseDatePicker)
+    dates[0]!.vm.$emit('update:modelValue', '2099-01-06')
+    dates[1]!.vm.$emit('update:modelValue', '2099-01-09')
+    await flushPromises()
+    expect(wrapper.get('form.blocks-page__form').text()).toContain('Todo el día')
+    await form.trigger('submit')
+    await flushPromises()
+
+    // America/Bogota es UTC-5: 00:00 del 6 y 00:00 del 10 (fin exclusivo del día 9).
+    expect(createTimeBlockMock.mock.calls[0]!.slice(2, 4)).toEqual([
+      '2099-01-06T05:00:00.000Z',
+      '2099-01-10T05:00:00.000Z',
+    ])
+    wrapper.unmount()
+  })
+
+  it('fills only the missing time of a partial day: start of day or end of day', async () => {
+    const wrapper = await mountReady()
+    createTimeBlockMock.mockResolvedValueOnce({
+      kind: 'success',
+      block: { ...block, id: 'blk-p', blockType: 'emergency' },
+    })
+    const form = await openCreateBlockForm(wrapper)
+    const dates = form.findAllComponents(BaseDatePicker)
+    const times = form.findAllComponents(BaseTimePicker)
+    dates[0]!.vm.$emit('update:modelValue', '2099-01-06')
+    times[0]!.vm.$emit('update:modelValue', '15:00')
+    dates[1]!.vm.$emit('update:modelValue', '2099-01-06')
+    await flushPromises()
+    await form.trigger('submit')
+    await flushPromises()
+
+    // Desde las 15:00 hasta el final del mismo día.
+    expect(createTimeBlockMock.mock.calls[0]!.slice(2, 4)).toEqual([
+      '2099-01-06T20:00:00.000Z',
+      '2099-01-07T05:00:00.000Z',
+    ])
+    wrapper.unmount()
+  })
+
+  it('still requires both dates and does not POST without them', async () => {
+    const wrapper = await mountReady()
+    const form = await openCreateBlockForm(wrapper)
+    form.findAllComponents(BaseDatePicker)[0]!.vm.$emit('update:modelValue', '2099-01-06')
+    await flushPromises()
+    await form.trigger('submit')
+    await flushPromises()
+
+    expect(createTimeBlockMock).not.toHaveBeenCalled()
+    expect(wrapper.get('form.blocks-page__form').text()).toContain(
+      'Elige la fecha de inicio y la de fin.',
+    )
+    wrapper.unmount()
+  })
+
+  it('shows a block from midnight to midnight as dates plus «Todo el día»', async () => {
+    fetchBarbershopTimezoneMock.mockResolvedValueOnce({
+      kind: 'success',
+      timezone: 'America/Bogota',
+    })
+    fetchTimeBlocksMock.mockResolvedValueOnce({
+      kind: 'success',
+      page: {
+        items: [
+          {
+            ...block,
+            id: 'blk-days',
+            startsAt: '2099-01-06T05:00:00.000Z',
+            endsAt: '2099-01-10T05:00:00.000Z',
+          },
+        ],
+        nextCursor: null,
+      },
+    })
+    fetchTimeBlockSeriesMock.mockResolvedValueOnce({
+      kind: 'success',
+      page: { items: [], nextCursor: null },
+    })
+    const wrapper = mount(BarberBlocksPanel, {
+      props: { barberId: 'b-1', barberName: 'Barbero de prueba' },
+      global: { stubs: { teleport: true, RouterLink: true } },
+    })
+    await flushPromises()
+
+    const interval = wrapper.get('.blocks-panel__record .blocks-panel__interval').text()
+    expect(interval).toContain('Todo el día')
+    expect(interval).toContain(displayCivilDate('2099-01-06'))
+    expect(interval).toContain(displayCivilDate('2099-01-09'))
+    expect(interval).not.toContain('00:00')
+    wrapper.unmount()
+  })
+
   async function createEmergencyBlock(wrapper: VueWrapper) {
     createTimeBlockMock.mockResolvedValueOnce({
       kind: 'success',
@@ -179,6 +294,123 @@ describe('BarberBlocksPanel · avisos emergentes (DEC-095)', () => {
     await form.trigger('submit')
     await flushPromises()
   }
+
+  it('HU-069: after creating, the notice is short and a «Ver turnos» button opens the detail', async () => {
+    const wrapper = await mountReady(true)
+    fetchAffectedAppointmentsMock.mockResolvedValueOnce({
+      kind: 'success',
+      truncated: false,
+      items: [
+        {
+          id: 'apt-9',
+          attendeeName: 'Dora',
+          serviceName: 'Corte',
+          startsAt: '2099-01-06T14:00:00Z',
+          endsAt: '2099-01-06T14:30:00Z',
+        },
+      ],
+    })
+    await createEmergencyBlock(wrapper)
+
+    // El aviso ya no trae la lista: solo el resumen y los botones.
+    const notice = wrapper.get('.blocks-panel__affected')
+    expect(notice.find('.affected-row').exists()).toBe(false)
+    expect(wrapper.get('.block-dialog--affected').isVisible()).toBe(false)
+
+    await notice
+      .findAll('button')
+      .find((b) => b.text() === 'Ver turnos')!
+      .trigger('click')
+    const dialog = wrapper.get('.block-dialog--affected')
+    expect(dialog.isVisible()).toBe(true)
+    expect(dialog.get('.affected-row__who strong').text()).toBe('Dora')
+    wrapper.unmount()
+  })
+
+  it('HU-069: «Ver turnos» on a block card loads and shows the appointments under that block', async () => {
+    const wrapper = await mountReady(true)
+    fetchAffectedAppointmentsMock.mockResolvedValueOnce({
+      kind: 'success',
+      truncated: false,
+      items: [
+        {
+          id: 'apt-3',
+          attendeeName: 'Elena',
+          serviceName: 'Barba',
+          startsAt: '2099-01-05T17:00:00Z',
+          endsAt: '2099-01-05T17:30:00Z',
+        },
+      ],
+    })
+
+    await wrapper.get('button[aria-label^="Ver turnos del bloqueo Almuerzo"]').trigger('click')
+    await flushPromises()
+
+    expect(fetchAffectedAppointmentsMock).toHaveBeenCalledWith(
+      'b-1',
+      block.startsAt,
+      block.endsAt,
+      'America/Bogota',
+    )
+    const dialog = wrapper.get('.block-dialog--affected')
+    expect(dialog.isVisible()).toBe(true)
+    expect(dialog.get('.affected-row__who strong').text()).toBe('Elena')
+    // Abrirlo desde la ficha no levanta el aviso de creación.
+    expect(wrapper.find('.blocks-panel__affected').exists()).toBe(false)
+    wrapper.unmount()
+  })
+
+  it('HU-069: a block with no appointments says so instead of showing an empty list', async () => {
+    const wrapper = await mountReady(true)
+    fetchAffectedAppointmentsMock.mockResolvedValueOnce({
+      kind: 'success',
+      truncated: false,
+      items: [],
+    })
+
+    await wrapper.get('button[aria-label^="Ver turnos del bloqueo Almuerzo"]').trigger('click')
+    await flushPromises()
+
+    expect(wrapper.get('.block-dialog--affected').text()).toContain(
+      'Ningún turno confirmado cae dentro de este bloqueo.',
+    )
+    wrapper.unmount()
+  })
+
+  it('HU-069: groups the affected appointments by day, with time, person and service per row', async () => {
+    const wrapper = await mountReady(true)
+    const apt = (id: string, name: string, startsAt: string, endsAt: string) => ({
+      id,
+      attendeeName: name,
+      serviceName: 'Corte',
+      startsAt,
+      endsAt,
+    })
+    fetchAffectedAppointmentsMock.mockResolvedValueOnce({
+      kind: 'success',
+      truncated: false,
+      items: [
+        apt('a1', 'Ana', '2099-01-06T14:00:00Z', '2099-01-06T14:30:00Z'),
+        apt('a2', 'Beto', '2099-01-06T16:00:00Z', '2099-01-06T16:45:00Z'),
+        apt('a3', 'Caro', '2099-01-07T15:00:00Z', '2099-01-07T15:30:00Z'),
+      ],
+    })
+
+    await createEmergencyBlock(wrapper)
+
+    const days = wrapper.findAll('.affected-day')
+    expect(days).toHaveLength(2)
+    expect(days[0]!.get('.affected-day__title').text()).toContain('2 turnos')
+    expect(days[1]!.get('.affected-day__title').text()).toContain('1 turno')
+    // America/Bogota es UTC-5: 14:00Z son las 09:00 locales.
+    expect(days[0]!.findAll('.affected-row__time').map((row) => row.text())).toEqual([
+      '09:00 – 09:30',
+      '11:00 – 11:45',
+    ])
+    expect(days[0]!.get('.affected-row__who strong').text()).toBe('Ana')
+    expect(days[0]!.get('.affected-row__who small').text()).toBe('Corte')
+    wrapper.unmount()
+  })
 
   it('HU-069: lists the confirmed appointments under a new block and links to each one', async () => {
     const wrapper = await mountReady()

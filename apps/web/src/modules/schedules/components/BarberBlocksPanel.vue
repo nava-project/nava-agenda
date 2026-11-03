@@ -26,7 +26,7 @@ import {
   fetchTimeBlocks,
 } from '../api/timeBlocksApi'
 import { MAX_AFFECTED_DAYS, type AffectedAppointment } from '../model/affectedAppointments'
-import { civilDateTimeToInstant, formatInstantInTimezone } from '../model/civilTime'
+import { addCivilDays, civilDateTimeToInstant, formatInstantInTimezone } from '../model/civilTime'
 import { displayCivilDate } from '../model/displayDate'
 import { newIdempotencyKey } from '../model/idempotencyKey'
 import {
@@ -132,6 +132,12 @@ async function loadTimezone() {
 // ninguno cambia hasta que el barbero lo abre y decide.
 const affected = ref<{ items: AffectedAppointment[]; truncated: boolean } | null>(null)
 
+// Aviso breve tras crear un bloqueo (con botón «Ver turnos») y diálogo con el detalle por día.
+// El diálogo también se abre a demanda desde la ficha de un bloqueo puntual (#507).
+const affectedNotice = ref(false)
+const isAffectedOpen = ref(false)
+const loadingAffectedBlockId = ref<string | null>(null)
+
 async function showAffectedAppointments(startsAt: string, endsAt: string) {
   const barberId = selectedBarberId.value
   const timeZone = barbershopTimezone.value
@@ -139,10 +145,59 @@ async function showAffectedAppointments(startsAt: string, endsAt: string) {
   const outcome = await fetchAffectedAppointments(barberId, startsAt, endsAt, timeZone)
   // Si mientras tanto se cambió de profesional, esta respuesta ya no le corresponde.
   if (barberId !== selectedBarberId.value || outcome.kind !== 'success') return
-  affected.value =
-    outcome.items.length > 0 || outcome.truncated
-      ? { items: outcome.items, truncated: outcome.truncated }
-      : null
+  const found = outcome.items.length > 0 || outcome.truncated
+  affected.value = found ? { items: outcome.items, truncated: outcome.truncated } : null
+  affectedNotice.value = found
+}
+
+// Botón «Ver turnos» de la ficha: consulta los turnos que caen bajo ese bloqueo y abre el detalle.
+async function viewBlockAppointments(block: TimeBlock) {
+  const barberId = selectedBarberId.value
+  const timeZone = barbershopTimezone.value
+  if (!barberId || !timeZone || loadingAffectedBlockId.value) return
+  loadingAffectedBlockId.value = block.id
+  const outcome = await fetchAffectedAppointments(barberId, block.startsAt, block.endsAt, timeZone)
+  loadingAffectedBlockId.value = null
+  if (!alive || barberId !== selectedBarberId.value) return
+  if (outcome.kind !== 'success') {
+    toast.error('No pudimos cargar los turnos', {
+      detail: 'Revisa tu conexión e inténtalo de nuevo.',
+    })
+    return
+  }
+  affected.value = { items: outcome.items, truncated: outcome.truncated }
+  affectedNotice.value = false
+  isAffectedOpen.value = true
+}
+
+// Los turnos afectados se agrupan por día civil (zona de la barbería) para leerlos como una
+// agenda: un encabezado por día y, debajo, hora, persona y servicio de cada turno.
+const affectedByDay = computed(() => {
+  const tz = barbershopTimezone.value ?? 'UTC'
+  const days = new Map<
+    string,
+    { date: string; heading: string; rows: { item: AffectedAppointment; time: string }[] }
+  >()
+  for (const item of affected.value?.items ?? []) {
+    const start = formatInstantInTimezone(item.startsAt, tz)
+    const end = formatInstantInTimezone(item.endsAt, tz)
+    let day = days.get(start.date)
+    if (!day) {
+      day = { date: start.date, heading: affectedDayHeading(start.date), rows: [] }
+      days.set(start.date, day)
+    }
+    day.rows.push({ item, time: `${start.time} – ${end.time}` })
+  }
+  return [...days.values()]
+})
+
+function affectedDayHeading(date: string): string {
+  return new Intl.DateTimeFormat('es-CO', {
+    weekday: 'long',
+    day: 'numeric',
+    month: 'long',
+    timeZone: 'UTC',
+  }).format(new Date(`${date}T12:00:00Z`))
 }
 
 function affectedWhen(item: AffectedAppointment): string {
@@ -155,6 +210,7 @@ function affectedWhen(item: AffectedAppointment): string {
 async function loadLists() {
   const token = ++requestToken
   affected.value = null
+  affectedNotice.value = false
   blocksStatus.value = 'loading'
   seriesStatus.value = 'loading'
   const [blocksOutcome, seriesOutcome] = await Promise.all([
@@ -214,11 +270,22 @@ function isPast(block: TimeBlock): boolean {
   return Date.parse(block.endsAt) <= Date.now()
 }
 const displayDate = displayCivilDate
-const blockPreview = computed(() =>
-  createStartDate.value && createEndDate.value
-    ? `${displayDate(createStartDate.value)} · ${createStartTime.value || '—'} → ${displayDate(createEndDate.value)} · ${createEndTime.value || '—'}`
-    : 'Elige cuándo empieza y termina este tiempo fuera.',
-)
+// La hora es opcional (#507): sin hora de inicio el bloqueo arranca a las 00:00 del primer día
+// y sin hora de fin llega hasta el final del último día (su fin exclusivo es las 00:00 del
+// siguiente). Con ambas vacías es de día completo (vacaciones, un día libre, una emergencia).
+const blockPreview = computed(() => {
+  const startDate = createStartDate.value
+  const endDate = createEndDate.value
+  if (!startDate || !endDate) return 'Elige desde qué día hasta qué día. La hora es opcional.'
+  const startTime = createStartTime.value
+  const endTime = createEndTime.value
+  if (!startTime && !endTime) {
+    return startDate === endDate
+      ? `${displayDate(startDate)} · Todo el día`
+      : `${displayDate(startDate)} → ${displayDate(endDate)} · Todo el día`
+  }
+  return `${displayDate(startDate)} · ${startTime || 'Inicio del día'} → ${displayDate(endDate)} · ${endTime || 'Fin del día'}`
+})
 
 // --- Alta de bloqueo puntual --------------------------------------------
 
@@ -260,27 +327,27 @@ async function onSubmitCreateBlock() {
     return
   }
 
-  const startInstantRaw = `${createStartDate.value}T${createStartTime.value}`
-  const endInstantRaw = `${createEndDate.value}T${createEndTime.value}`
-  if (
-    !createStartDate.value ||
-    !createStartTime.value ||
-    !createEndDate.value ||
-    !createEndTime.value
-  ) {
-    createBlockError.value = 'Completa fecha y hora de inicio y de fin.'
+  if (!createStartDate.value || !createEndDate.value) {
+    createBlockError.value = 'Elige la fecha de inicio y la de fin.'
     return
   }
 
   let startsAt: string
   let endsAt: string
   try {
-    startsAt = civilDateTimeToInstant(createStartDate.value, createStartTime.value, timeZone)
-    endsAt = civilDateTimeToInstant(createEndDate.value, createEndTime.value, timeZone)
+    startsAt = civilDateTimeToInstant(
+      createStartDate.value,
+      createStartTime.value || '00:00',
+      timeZone,
+    )
+    // Sin hora de fin el bloqueo cubre todo el último día: fin exclusivo a las 00:00 del siguiente.
+    endsAt = createEndTime.value
+      ? civilDateTimeToInstant(createEndDate.value, createEndTime.value, timeZone)
+      : civilDateTimeToInstant(addCivilDays(createEndDate.value, 1), '00:00', timeZone)
   } catch {
     createBlockError.value =
-      validateInstant(startInstantRaw) ??
-      validateInstant(endInstantRaw) ??
+      validateInstant(`${createStartDate.value}T${createStartTime.value || '00:00'}`) ??
+      validateInstant(`${createEndDate.value}T${createEndTime.value || '00:00'}`) ??
       `La fecha u hora no es válida en la zona ${v.value.ofTheBusiness}.`
     return
   }
@@ -362,6 +429,20 @@ function displayInstant(instant: string): string {
   if (!barbershopTimezone.value) return instant
   const { date, time } = formatInstantInTimezone(instant, barbershopTimezone.value)
   return `${displayDate(date)} · ${time}`
+}
+
+// Un bloqueo de días completos (de 00:00 a 00:00 en la zona de la barbería) se muestra por
+// fechas y «Todo el día», no como dos horas a medianoche (#507). Devuelve null si no lo es.
+function allDayLabel(block: TimeBlock): string | null {
+  const tz = barbershopTimezone.value
+  if (!tz) return null
+  const start = formatInstantInTimezone(block.startsAt, tz)
+  const end = formatInstantInTimezone(block.endsAt, tz)
+  if (start.time !== '00:00' || end.time !== '00:00' || end.date <= start.date) return null
+  const lastDay = addCivilDays(end.date, -1)
+  return lastDay === start.date
+    ? `${displayDate(start.date)} · Todo el día`
+    : `${displayDate(start.date)} → ${displayDate(lastDay)} · Todo el día`
 }
 
 async function onDeleteSeries(item: TimeBlockSeries) {
@@ -575,7 +656,7 @@ function seriesCounts(item: TimeBlockSeries): string {
     </BaseAlert>
 
     <BaseAlert
-      v-if="affected"
+      v-if="affected && affectedNotice"
       class="blocks-panel__affected"
       variant="warning"
       :title="
@@ -587,23 +668,65 @@ function seriesCounts(item: TimeBlockSeries): string {
       "
     >
       <p v-if="affected.items.length > 0">
-        No cambiamos ningún turno. Abre cada uno para reprogramarlo o cancelarlo.
+        No cambiamos ningún turno. Revísalos para reprogramarlos o cancelarlos.
       </p>
-      <ul v-if="affected.items.length > 0" class="blocks-panel__affected-list">
-        <li v-for="item in affected.items" :key="item.id">
-          <RouterLink :to="{ name: 'agenda-detalle-turno', params: { appointmentId: item.id } }">
-            {{ affectedWhen(item) }} · {{ item.attendeeName }} · {{ item.serviceName }}
-          </RouterLink>
-        </li>
-      </ul>
       <p v-if="affected.truncated">
         El bloqueo abarca más de {{ MAX_AFFECTED_DAYS }} días y solo revisamos los primeros. Mira la
         agenda de los días siguientes.
       </p>
-      <template #action
-        ><BaseButton variant="secondary" @click="affected = null">Entendido</BaseButton></template
-      >
+      <template #action>
+        <BaseButton
+          v-if="affected.items.length > 0"
+          variant="secondary"
+          @click="isAffectedOpen = true"
+          >Ver turnos</BaseButton
+        >
+        <BaseButton variant="secondary" @click="((affectedNotice = false), (affected = null))"
+          >Entendido</BaseButton
+        >
+      </template>
     </BaseAlert>
+    <BaseDialog
+      v-model="isAffectedOpen"
+      title="Turnos bajo el bloqueo"
+      description="No cambiamos ningún turno. Abre cada uno para reprogramarlo o cancelarlo."
+      size="lg"
+      content-class="block-dialog block-dialog--affected"
+    >
+      <template v-if="affected">
+        <p v-if="affected.items.length === 0" class="affected-empty">
+          Ningún turno confirmado cae dentro de este bloqueo.
+        </p>
+        <div v-else class="blocks-panel__affected-days">
+          <section v-for="day in affectedByDay" :key="day.date" class="affected-day">
+            <h3 class="affected-day__title">
+              {{ day.heading }}
+              <span>{{ day.rows.length === 1 ? '1 turno' : `${day.rows.length} turnos` }}</span>
+            </h3>
+            <ul class="affected-day__list">
+              <li v-for="row in day.rows" :key="row.item.id">
+                <RouterLink
+                  class="affected-row"
+                  :to="{ name: 'agenda-detalle-turno', params: { appointmentId: row.item.id } }"
+                  :aria-label="`${affectedWhen(row.item)} · ${row.item.attendeeName} · ${row.item.serviceName}`"
+                >
+                  <span class="affected-row__time">{{ row.time }}</span>
+                  <span class="affected-row__who"
+                    ><strong>{{ row.item.attendeeName }}</strong
+                    ><small>{{ row.item.serviceName }}</small></span
+                  >
+                  <span class="affected-row__go" aria-hidden="true">→</span>
+                </RouterLink>
+              </li>
+            </ul>
+          </section>
+        </div>
+        <p v-if="affected.truncated" class="affected-empty">
+          El bloqueo abarca más de {{ MAX_AFFECTED_DAYS }} días y solo revisamos los primeros. Mira
+          la agenda de los días siguientes.
+        </p>
+      </template>
+    </BaseDialog>
 
     <div class="blocks-panel__ledger">
       <section aria-labelledby="single-blocks-title">
@@ -658,7 +781,10 @@ function seriesCounts(item: TimeBlockSeries): string {
                     isPast(block) ? 'Pasado' : 'Puntual'
                   }}</span>
                 </div>
-                <p class="blocks-panel__interval">
+                <p v-if="allDayLabel(block)" class="blocks-panel__interval">
+                  <time :datetime="block.startsAt">{{ allDayLabel(block) }}</time>
+                </p>
+                <p v-else class="blocks-panel__interval">
                   <time :datetime="block.startsAt">{{ displayInstant(block.startsAt) }}</time
                   ><span aria-hidden="true"> → </span><span class="sr-only"> hasta </span
                   ><time :datetime="block.endsAt">{{ displayInstant(block.endsAt) }}</time>
@@ -669,15 +795,26 @@ function seriesCounts(item: TimeBlockSeries): string {
                     block.source === 'holiday_calendar'
                       ? 'Calendario de festivos'
                       : 'Bloqueo manual'
-                  }}</span
-                  ><BaseButton
-                    variant="secondary"
-                    :aria-label="`Retirar bloqueo ${blockTypeLabel(block.blockType)} del ${displayInstant(block.startsAt)}`"
-                    :loading="pendingDeleteBlockIds.has(block.id)"
-                    :disabled="pendingDeleteBlockIds.has(block.id)"
-                    @click="onDeleteBlock(block)"
-                    >Retirar</BaseButton
-                  >
+                  }}</span>
+                  <div class="blocks-panel__record-actions">
+                    <BaseButton
+                      v-if="!isPast(block)"
+                      variant="secondary"
+                      :aria-label="`Ver turnos del bloqueo ${blockTypeLabel(block.blockType)} del ${displayInstant(block.startsAt)}`"
+                      :loading="loadingAffectedBlockId === block.id"
+                      :disabled="loadingAffectedBlockId !== null"
+                      @click="viewBlockAppointments(block)"
+                      >Ver turnos</BaseButton
+                    >
+                    <BaseButton
+                      variant="secondary"
+                      :aria-label="`Retirar bloqueo ${blockTypeLabel(block.blockType)} del ${displayInstant(block.startsAt)}`"
+                      :loading="pendingDeleteBlockIds.has(block.id)"
+                      :disabled="pendingDeleteBlockIds.has(block.id)"
+                      @click="onDeleteBlock(block)"
+                      >Retirar</BaseButton
+                    >
+                  </div>
                 </div>
               </li>
             </TransitionGroup>
@@ -875,8 +1012,8 @@ function seriesCounts(item: TimeBlockSeries): string {
             <BaseTimePicker
               v-model="createStartTime"
               label="Hora de inicio"
+              optional
               :disabled="createBlockStatus === 'saving'"
-              required
             />
           </div>
         </fieldset>
@@ -899,11 +1036,15 @@ function seriesCounts(item: TimeBlockSeries): string {
             <BaseTimePicker
               v-model="createEndTime"
               label="Hora de fin"
+              optional
               :disabled="createBlockStatus === 'saving'"
-              required
             />
           </div>
         </fieldset>
+        <p class="block-form__hint">
+          Sin hora, el bloqueo es de día completo: desde el inicio del primer día hasta el final del
+          último. Sirve para vacaciones, un día libre o una emergencia.
+        </p>
         <BaseInput
           v-model="createBlockReason"
           type="text"
@@ -1276,14 +1417,102 @@ function seriesCounts(item: TimeBlockSeries): string {
   margin-bottom: var(--space-4, 1rem);
 }
 
-.blocks-panel__affected-list {
-  margin: var(--space-2, 0.5rem) 0 0;
-  padding-left: 1.25rem;
+.blocks-panel__affected-days {
+  display: grid;
+  gap: 16px;
 }
-
-.blocks-panel__affected-list a {
-  color: inherit;
-  text-decoration: underline;
+.affected-empty {
+  margin: 0;
+  color: var(--color-on-strong-muted);
+}
+.affected-day__title {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  margin: 0 0 6px;
+  padding-bottom: 6px;
+  color: var(--color-brand-accent-surface);
+  font-family: var(--font-sans);
+  font-size: var(--font-size-caption);
+  font-weight: 600;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  border-bottom: 1px solid color-mix(in srgb, var(--color-brand-accent-surface) 35%, transparent);
+}
+.affected-day__title span {
+  color: var(--color-on-strong-muted);
+  font-weight: 400;
+  letter-spacing: 0.06em;
+}
+.affected-day__list {
+  display: grid;
+  gap: 4px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.affected-row {
+  display: grid;
+  grid-template-columns: 112px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 14px;
+  padding: 6px 12px;
+  color: var(--color-on-strong);
+  text-decoration: none;
+  background: color-mix(in srgb, var(--color-on-strong) 4%, transparent);
+  border: 1px solid transparent;
+  border-left: 2px solid color-mix(in srgb, var(--color-brand-accent-surface) 55%, transparent);
+  border-radius: 2px;
+  transition:
+    background-color var(--motion-duration-fast) var(--motion-easing-standard),
+    border-color var(--motion-duration-fast) var(--motion-easing-standard);
+}
+.affected-row:hover {
+  background: color-mix(in srgb, var(--color-on-strong) 9%, transparent);
+  border-left-color: var(--color-brand-accent-surface);
+}
+.affected-row:focus-visible {
+  outline: none;
+  box-shadow:
+    0 0 0 2px var(--color-surface-strong),
+    0 0 0 4px var(--color-focus);
+}
+.affected-row__time {
+  font-family: var(--font-display);
+  font-size: 17px;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+.affected-row__who {
+  display: grid;
+  min-width: 0;
+}
+.affected-row__who strong {
+  overflow: hidden;
+  line-height: 1.3;
+  font-weight: 600;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.affected-row__who small {
+  overflow: hidden;
+  line-height: 1.3;
+  color: var(--color-on-strong-muted);
+  font-size: var(--font-size-caption);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.affected-row__go {
+  color: var(--color-brand-accent-surface);
+}
+@media (max-width: 520px) {
+  .affected-row {
+    grid-template-columns: minmax(0, 1fr) auto;
+  }
+  .affected-row__time {
+    grid-column: 1 / -1;
+  }
 }
 
 .blocks-panel__empty,
@@ -1515,6 +1744,16 @@ function seriesCounts(item: TimeBlockSeries): string {
 
 <style>
 /* BaseDialog se teleporta al body: este ámbito solo gobierna el panel de HU-042. */
+/* Ayuda bajo las horas opcionales del bloqueo puntual (#507). */
+.block-dialog .block-form__hint {
+  margin: -10px 0 0;
+  color: var(--color-on-strong-muted);
+  font-size: var(--font-size-caption);
+  line-height: 1.5;
+}
+.block-dialog.block-dialog--affected.base-dialog {
+  width: min(100%, 600px) !important;
+}
 /* Diálogo «Días» (#505): un renglón por día con sus acciones, sobre hueco hundido. */
 .block-dialog.block-dialog--days.base-dialog {
   width: min(100%, 520px) !important;

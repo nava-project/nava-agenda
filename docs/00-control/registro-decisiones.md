@@ -1859,3 +1859,18 @@ Cada código `DEC-*` es estable y no se reutiliza. Este registro normaliza respu
 - **Alternativas descartadas:** convertir los errores de formulario en avisos emergentes (cerca de 150 usos en unos 25 archivos, rompe la regla de errores en línea y la asociación con el campo); dejar un pastel solo en las pantallas claras (hoy no hay ninguna: el panel, el acceso y la reserva pública son de tinta o Marfil).
 - **Documentos afectados:** `estandar-diseno-visual.md` (5.19, §6.3), `historial-cambios.md`, `BaseAlert.vue` y sus pruebas.
 - **Fuente:** `DEC-095`, `DEC-110`; issue [#503](https://github.com/bcaceres19/barberia/issues/503).
+
+### DEC-150 · La hora del bloqueo puntual es opcional
+
+- **Fecha:** 2026-11-03.
+- **Decisión:**
+  1. En «Agregar bloqueo puntual» la fecha de inicio y la de fin siguen siendo obligatorias; la hora de inicio y la de fin son opcionales y una hora elegida se puede quitar.
+  2. Sin hora de inicio el bloqueo arranca a las 00:00 del primer día; sin hora de fin llega hasta el final del último día. El cliente lo traduce a los instantes de siempre en la zona de la barbería (fin exclusivo: 00:00 del día siguiente a la fecha de fin), así que **no cambia el contrato API** ni `RN-BLQ-01`/`RN-BLQ-03`.
+  3. Con ambas horas vacías el bloqueo es de día completo (emergencia, día libre, vacaciones). La vista previa y la ficha lo muestran como fechas y «Todo el día», no como dos medianoches.
+  4. **Turnos afectados en su propio diálogo.** El aviso «Este bloqueo cubre N turnos» (`RN-BLQ-03`, HU-069) deja de ser una lista que tapa las demás zonas: queda como un resumen de dos líneas con los botones «Ver turnos» y «Entendido». «Ver turnos» abre un diálogo con scroll propio que agrupa los turnos por día, con hora, persona y servicio en filas sobre tinta. La ficha de cada bloqueo puntual vigente también tiene «Ver turnos», que consulta y muestra los turnos bajo ese bloqueo (o dice que no hay ninguno). Sigue siendo solo informativo.
+- **Quién lo decidió:** el propietario, el 2026-11-03: «ajústalo para que sea opcional la hora, ya que puede ser una emergencia y solo necesite la fecha y el día fin o vacaciones».
+- **Responsable:** propietario del proyecto.
+- **Motivo:** una emergencia o unas vacaciones rara vez necesitan una hora exacta y obligarla estorbaba.
+- **Alternativas descartadas:** un conmutador «Todo el día» aparte (añade un control sin necesidad); exigir ambas horas o ninguna (impide «desde las 15:00 hasta el final del día»).
+- **Documentos afectados:** `historial-cambios.md`, `BarberBlocksPanel.vue`, `BaseTimePicker.vue`, `civilTime.ts` y sus pruebas.
+- **Fuente:** `RN-BLQ-01`, `RN-BLQ-03`; issue [#507](https://github.com/bcaceres19/barberia/issues/507).
