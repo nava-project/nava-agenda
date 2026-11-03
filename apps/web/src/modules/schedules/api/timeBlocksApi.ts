@@ -147,6 +147,7 @@ export async function createTimeBlockSeries(
   effectiveFrom: string,
   reason: string | null,
   idempotencyKey: string,
+  effectiveUntil: string | null = null,
 ): Promise<CreateTimeBlockSeriesOutcome> {
   try {
     const { data, response } = await httpClient.POST(
@@ -160,6 +161,7 @@ export async function createTimeBlockSeries(
           startsTime,
           durationMinutes,
           effectiveFrom,
+          effectiveUntil,
           reason,
         },
       },

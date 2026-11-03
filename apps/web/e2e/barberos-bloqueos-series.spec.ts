@@ -39,7 +39,7 @@ async function openPanel(page: Page) {
     page.getByRole('dialog', { name: 'Bloqueos de Alex de prueba', exact: true }),
   ).toBeVisible()
   await expect(page.locator('.blocks-panel__timezone')).toBeVisible()
-  await expect(page.getByRole('button', { name: 'Agregar bloqueo por fechas' })).toBeEnabled()
+  await expect(page.getByRole('button', { name: 'Agregar bloqueo por días' })).toBeEnabled()
 }
 
 async function checkAxe(page: Page, selector = '.base-dialog--open:last-of-type') {
@@ -130,13 +130,13 @@ test('series por fechas, excepciones y edición por alcance con API real', async
   await openPanel(page)
   try {
     // --- Alta por fechas explícitas -----------------------------------
-    await page.getByRole('button', { name: 'Agregar bloqueo por fechas' }).click()
-    const form = page.getByRole('dialog', { name: 'Agregar bloqueo por fechas' })
+    await page.getByRole('button', { name: 'Agregar bloqueo por días' }).click()
+    const form = page.getByRole('dialog', { name: 'Agregar bloqueo por días' })
     await expect(form).toBeVisible()
     const scope = page.locator('.block-dialog.base-dialog--open')
-    await pickDate(page, scope, /Vigente desde/, '2099-12-01')
-    await choose(scope, 'Fin de la vigencia', 'Hasta una fecha')
-    await pickDate(page, scope, /Vigente hasta/, '2099-12-31')
+    // En «Fechas elegidas» la vigencia sale de las fechas: no se pide aparte.
+    await form.getByRole('radio', { name: /Fechas elegidas/ }).click()
+    await expect(form.getByText('Vigente desde')).toHaveCount(0)
     await pickDate(page, scope, /Elegir una fecha/, '2099-12-16')
     await form.getByRole('button', { name: 'Añadir a la lista' }).click()
     await pickDate(page, scope, /Elegir una fecha/, '2099-12-15')
@@ -145,13 +145,6 @@ test('series por fechas, excepciones y edición por alcance con API real', async
       form.getByRole('list', { name: 'Fechas elegidas' }).getByRole('listitem'),
     ).toHaveCount(2)
     await form.getByLabel('Motivo (opcional)').fill(marker)
-
-    // Una fecha fuera de la vigencia se explica antes de enviar nada.
-    await pickDate(page, scope, /Elegir una fecha/, '2100-01-05')
-    await form.getByRole('button', { name: 'Añadir a la lista' }).click()
-    await form.getByRole('button', { name: 'Guardar bloqueo' }).click()
-    await expect(form.getByText(/queda fuera de la vigencia/)).toBeVisible()
-    await form.getByRole('button', { name: /^Quitar la fecha .*2100/ }).click()
 
     await checkAxe(page)
     await page.screenshot({ path: path.join(evidence, `${testInfo.project.name}-alta-fechas.png`) })
@@ -240,21 +233,25 @@ test('series por fechas, excepciones y edición por alcance con API real', async
     await expect(dateListRecord).toContainText('2 fechas')
 
     // --- Serie semanal: editar toda la serie y «esta y las siguientes» --
-    await page.getByRole('button', { name: 'Agregar serie semanal', exact: true }).click()
-    const weekly = page.getByRole('dialog', { name: 'Agregar serie semanal' })
-    await choose(scope, 'Día de la semana', 'Miércoles')
-    await scope.getByRole('button', { name: /Hora de inicio/ }).click()
-    const timePicker = page.getByRole('dialog', { name: 'Hora de inicio', exact: true })
-    await timePicker.getByRole('spinbutton', { name: 'Hora', exact: true }).fill('12')
-    await timePicker.getByRole('spinbutton', { name: 'Minutos', exact: true }).fill('00')
-    await timePicker.getByRole('button', { name: 'Aplicar hora', exact: true }).click()
-    await weekly.getByLabel('Duración (minutos)').fill('45')
+    await page.getByRole('button', { name: 'Agregar bloqueo por días', exact: true }).click()
+    const weekly = page.getByRole('dialog', { name: 'Agregar bloqueo por días' })
+    await weekly.getByRole('button', { name: 'Miércoles', exact: true }).click()
+    for (const [label, hour, minutes] of [
+      ['Hora de inicio', '12', '00'],
+      ['Hora de fin', '12', '45'],
+    ] as const) {
+      await scope.getByRole('button', { name: new RegExp(label) }).click()
+      const timePicker = page.getByRole('dialog', { name: label, exact: true })
+      await timePicker.getByRole('spinbutton', { name: 'Hora', exact: true }).fill(hour)
+      await timePicker.getByRole('spinbutton', { name: 'Minutos', exact: true }).fill(minutes)
+      await timePicker.getByRole('button', { name: 'Aplicar hora', exact: true }).click()
+    }
     await pickDate(page, scope, /Vigente desde/, '2099-01-01')
     await weekly.getByLabel('Motivo (opcional)').fill(marker)
     const weeklyResponse = page.waitForResponse(
       (r) => r.request().method() === 'POST' && r.url().endsWith(`${API}/time-block-series`),
     )
-    await weekly.getByRole('button', { name: 'Guardar serie' }).click()
+    await weekly.getByRole('button', { name: 'Guardar bloqueo' }).click()
     const weeklyId = (await (await weeklyResponse).json()).id as string
     created.push(weeklyId)
     await dismissNotices(page)
@@ -393,8 +390,8 @@ test('series por fechas, excepciones y edición por alcance con API real', async
         record.getByRole('button', { name: /^Fechas y excepciones de la serie/ }),
       ).toBeFocused()
 
-      await page.getByRole('button', { name: 'Agregar bloqueo por fechas' }).click()
-      const alta = page.getByRole('dialog', { name: 'Agregar bloqueo por fechas' })
+      await page.getByRole('button', { name: 'Agregar bloqueo por días' }).click()
+      const alta = page.getByRole('dialog', { name: 'Agregar bloqueo por días' })
       await expect(alta).toBeVisible()
       expect(await alta.evaluate((el) => el.scrollWidth > el.clientWidth)).toBe(false)
       await checkAxe(page)

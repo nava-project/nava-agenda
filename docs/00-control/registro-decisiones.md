@@ -1812,3 +1812,18 @@ Cada código `DEC-*` es estable y no se reutiliza. Este registro normaliza respu
 - **Alternativas descartadas:** mostrar el historial de otros turnos del cliente (exige un endpoint y una regla de privacidad; no es `HU-064`); conservar la lámina como referencia exacta (congela la pantalla fuera del lenguaje del panel).
 - **Documentos afectados:** `estandar-diseno-visual.md` (§2, §6.15), `historial-cambios.md`, `apps/web/src/modules/agenda/pages/AppointmentDetailPage.vue` y su evidencia `apps/web/e2e/evidence/agenda-detalle/rediseno-471/`.
 - **Fuente:** `DEC-109`, `DEC-112`, `DEC-113`, `HU-064`; issue [#471](https://github.com/bcaceres19/barberia/issues/471).
+
+### DEC-147 · Alta unificada del bloqueo por días (cada semana o fechas elegidas)
+
+- **Fecha:** 2026-11-03.
+- **Decisión:**
+  1. **Un solo alta.** «Agregar serie semanal» y «Agregar bloqueo por fechas» se funden en «Agregar bloqueo por días», un único diálogo con la opción «Cuándo ocurre»: «Cada semana» o «Fechas elegidas». Técnicamente ya eran la misma serie (`POST /time-block-series`, `recurrenceKind` `weekly` o `date_list`, `DEC-020`); solo cambia si se repite o si ocurre una vez en fechas concretas.
+  2. **Varios días de la semana a la vez.** En «Cada semana» se marcan los días con fichas L M X J V S D (alternancia, con atajos «Entre semana», «Todos» y «Limpiar») en vez de elegir uno por uno. El API sigue recibiendo un día por serie: se crea una serie por día marcado, con la misma hora, vigencia y motivo. Cada día usa su propia clave de idempotencia (`RN-IDE-01`); si el lote falla a medias se conservan las series ya creadas, quedan marcados solo los días pendientes y el reintento reutiliza la clave de cada día, sin duplicar.
+  3. **Vigencia.** En «Cada semana» se pide «Vigente desde» y, opcionalmente, el fin (el API ya admitía `effectiveUntil` en el alta semanal). En «Fechas elegidas» no se pide: la serie empieza en la primera fecha elegida y no tiene fin, de modo que las fechas que se añadan después desde «Fechas y excepciones» siguen dentro de ella.
+  4. **Sin cambios de contrato ni de reglas.** Edición, fechas, excepciones y retiro de series no cambian (`HU-042`, `RN-BLQ-01`–`RN-BLQ-04`). El bloqueo puntual («Agregar bloqueo», intervalo con inicio y fin) sigue aparte.
+- **Quién lo decidió:** el propietario, el 2026-11-03: «Unifiquen en una sola la serie semanal y el bloqueo por fechas […] uno debería escoger los días de la semana en vez de uno por uno».
+- **Responsable:** propietario del proyecto.
+- **Motivo:** dos altas casi idénticas confundían, y marcar el mismo bloqueo para cada día de la semana por separado no era práctico.
+- **Alternativas descartadas:** ampliar el API para aceptar varios días en una sola serie (migración y contrato nuevos para algo que la interfaz resuelve con una serie por día); mantener dos botones con el mismo formulario (conserva la confusión).
+- **Documentos afectados:** `historial-cambios.md`, `apps/web/src/modules/schedules/components/SeriesFormDialog.vue`, `WeekdayMultiPicker.vue`, `BarberBlocksPanel.vue` y sus pruebas.
+- **Fuente:** `DEC-020`, `HU-042`, `RN-BLQ-01`, `RN-IDE-01`; issue [#495](https://github.com/bcaceres19/barberia/issues/495).
