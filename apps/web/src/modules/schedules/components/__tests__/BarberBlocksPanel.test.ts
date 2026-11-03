@@ -158,6 +158,115 @@ describe('BarberBlocksPanel · avisos emergentes (DEC-095)', () => {
     ])
   })
 
+  async function openCreateBlockForm(wrapper: VueWrapper) {
+    await wrapper
+      .findAll('button')
+      .find((button) => button.text() === 'Agregar bloqueo')!
+      .trigger('click')
+    await flushPromises()
+    return wrapper.get('form.blocks-page__form')
+  }
+
+  // #507: la hora es opcional; solo con fechas el bloqueo cubre los días completos.
+  it('creates an all-day block from dates only, ending at the end of the last day', async () => {
+    const wrapper = await mountReady()
+    createTimeBlockMock.mockResolvedValueOnce({
+      kind: 'success',
+      block: { ...block, id: 'blk-v', blockType: 'emergency' },
+    })
+    const form = await openCreateBlockForm(wrapper)
+    const dates = form.findAllComponents(BaseDatePicker)
+    dates[0]!.vm.$emit('update:modelValue', '2099-01-06')
+    dates[1]!.vm.$emit('update:modelValue', '2099-01-09')
+    await flushPromises()
+    expect(wrapper.get('form.blocks-page__form').text()).toContain('Todo el día')
+    await form.trigger('submit')
+    await flushPromises()
+
+    // America/Bogota es UTC-5: 00:00 del 6 y 00:00 del 10 (fin exclusivo del día 9).
+    expect(createTimeBlockMock.mock.calls[0]!.slice(2, 4)).toEqual([
+      '2099-01-06T05:00:00.000Z',
+      '2099-01-10T05:00:00.000Z',
+    ])
+    wrapper.unmount()
+  })
+
+  it('fills only the missing time of a partial day: start of day or end of day', async () => {
+    const wrapper = await mountReady()
+    createTimeBlockMock.mockResolvedValueOnce({
+      kind: 'success',
+      block: { ...block, id: 'blk-p', blockType: 'emergency' },
+    })
+    const form = await openCreateBlockForm(wrapper)
+    const dates = form.findAllComponents(BaseDatePicker)
+    const times = form.findAllComponents(BaseTimePicker)
+    dates[0]!.vm.$emit('update:modelValue', '2099-01-06')
+    times[0]!.vm.$emit('update:modelValue', '15:00')
+    dates[1]!.vm.$emit('update:modelValue', '2099-01-06')
+    await flushPromises()
+    await form.trigger('submit')
+    await flushPromises()
+
+    // Desde las 15:00 hasta el final del mismo día.
+    expect(createTimeBlockMock.mock.calls[0]!.slice(2, 4)).toEqual([
+      '2099-01-06T20:00:00.000Z',
+      '2099-01-07T05:00:00.000Z',
+    ])
+    wrapper.unmount()
+  })
+
+  it('still requires both dates and does not POST without them', async () => {
+    const wrapper = await mountReady()
+    const form = await openCreateBlockForm(wrapper)
+    form.findAllComponents(BaseDatePicker)[0]!.vm.$emit('update:modelValue', '2099-01-06')
+    await flushPromises()
+    await form.trigger('submit')
+    await flushPromises()
+
+    expect(createTimeBlockMock).not.toHaveBeenCalled()
+    expect(wrapper.get('form.blocks-page__form').text()).toContain(
+      'Elige la fecha de inicio y la de fin.',
+    )
+    wrapper.unmount()
+  })
+
+  it('shows a block from midnight to midnight as dates plus «Todo el día»', async () => {
+    fetchBarbershopTimezoneMock.mockResolvedValueOnce({
+      kind: 'success',
+      timezone: 'America/Bogota',
+    })
+    fetchTimeBlocksMock.mockResolvedValueOnce({
+      kind: 'success',
+      page: {
+        items: [
+          {
+            ...block,
+            id: 'blk-days',
+            startsAt: '2099-01-06T05:00:00.000Z',
+            endsAt: '2099-01-10T05:00:00.000Z',
+          },
+        ],
+        nextCursor: null,
+      },
+    })
+    fetchTimeBlockSeriesMock.mockResolvedValueOnce({
+      kind: 'success',
+      page: { items: [], nextCursor: null },
+    })
+    const wrapper = mount(BarberBlocksPanel, {
+      props: { barberId: 'b-1', barberName: 'Barbero de prueba' },
+      global: { stubs: { teleport: true, RouterLink: true } },
+    })
+    await flushPromises()
+
+    const interval = wrapper.get('.blocks-panel__record .blocks-panel__interval').text()
+    expect(interval).toContain('Todo el día')
+    expect(interval).toContain(displayCivilDate('2099-01-06'))
+    expect(interval).toContain(displayCivilDate('2099-01-09'))
+    expect(interval).not.toContain('00:00')
+    wrapper.unmount()
+  })
+
   async function createEmergencyBlock(wrapper: VueWrapper) {
     createTimeBlockMock.mockResolvedValueOnce({
       kind: 'success',

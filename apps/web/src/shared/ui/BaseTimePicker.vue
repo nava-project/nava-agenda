@@ -9,8 +9,10 @@ const props = withDefaults(
     id?: string
     disabled?: boolean
     required?: boolean
+    /** Hora opcional (#507): se rotula «(opcional)» y, con hora elegida, ofrece «Quitar hora». */
+    optional?: boolean
   }>(),
-  { id: undefined, disabled: false, required: false },
+  { id: undefined, disabled: false, required: false, optional: false },
 )
 const emit = defineEmits<{ 'update:modelValue': [value: string] }>()
 const uid = useId()
@@ -93,6 +95,11 @@ function apply() {
   emit('update:modelValue', `${pad(hour.value)}:${pad(minute.value)}`)
   close()
 }
+function clear() {
+  if (props.disabled) return
+  emit('update:modelValue', '')
+  close()
+}
 function dialogKeydown(event: KeyboardEvent) {
   if (event.key === 'Escape') {
     event.preventDefault()
@@ -128,7 +135,8 @@ watch(
   <div ref="root" class="base-time-picker" :aria-owns="open ? dialogId : undefined">
     <label :id="labelId" :for="triggerId" class="base-time-picker__label">
       {{ label }}<span v-if="required" class="base-time-picker__sr-only"> (obligatoria)</span
-      ><span v-if="required" aria-hidden="true"> *</span>
+      ><span v-if="required" aria-hidden="true"> *</span
+      ><span v-if="optional" class="base-time-picker__optional"> (opcional)</span>
     </label>
     <button
       :id="triggerId"
@@ -240,6 +248,7 @@ watch(
           </p>
           <footer class="base-time-picker__footer">
             <button type="button" @click="close()">Cancelar</button>
+            <button v-if="optional && modelValue" type="button" @click="clear">Quitar hora</button>
             <button
               type="button"
               class="base-time-picker__apply"
@@ -279,6 +288,11 @@ watch(
 }
 .base-time-picker__label span {
   color: var(--color-danger-on-strong);
+}
+.base-time-picker__label .base-time-picker__optional {
+  color: var(--color-on-strong-muted);
+  text-transform: none;
+  letter-spacing: normal;
 }
 .base-time-picker__trigger {
   display: flex;

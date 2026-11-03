@@ -126,4 +126,27 @@ describe('BaseTimePicker', () => {
     expect(wrapper.get('[aria-valuemax="59"]').attributes('aria-valuenow')).toBe('7')
     wrapper.unmount()
   })
+  it('optional: labels it «(opcional)» and lets a chosen time be removed (#507)', async () => {
+    const wrapper = mount(BaseTimePicker, {
+      attachTo: document.body,
+      props: { modelValue: '09:30', label: 'Hora de fin', optional: true },
+      global: { stubs: { teleport: true } },
+    })
+    expect(wrapper.get('label').text()).toContain('(opcional)')
+    expect(wrapper.get('label').text()).not.toContain('obligatoria')
+    await wrapper.get('.base-time-picker__trigger').trigger('click')
+    const remove = wrapper
+      .findAll('.base-time-picker__footer button')
+      .find((b) => b.text() === 'Quitar hora')
+    expect(remove).toBeTruthy()
+    await remove!.trigger('click')
+    expect(wrapper.emitted('update:modelValue')).toEqual([['']])
+    wrapper.unmount()
+  })
+  it('without optional there is no way to remove the time', async () => {
+    const wrapper = render('09:30')
+    await wrapper.get('.base-time-picker__trigger').trigger('click')
+    expect(wrapper.text()).not.toContain('Quitar hora')
+    wrapper.unmount()
+  })
 })

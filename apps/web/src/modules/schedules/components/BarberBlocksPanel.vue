@@ -26,7 +26,7 @@ import {
   fetchTimeBlocks,
 } from '../api/timeBlocksApi'
 import { MAX_AFFECTED_DAYS, type AffectedAppointment } from '../model/affectedAppointments'
-import { civilDateTimeToInstant, formatInstantInTimezone } from '../model/civilTime'
+import { addCivilDays, civilDateTimeToInstant, formatInstantInTimezone } from '../model/civilTime'
 import { displayCivilDate } from '../model/displayDate'
 import { newIdempotencyKey } from '../model/idempotencyKey'
 import {
@@ -214,11 +214,22 @@ function isPast(block: TimeBlock): boolean {
   return Date.parse(block.endsAt) <= Date.now()
 }
 const displayDate = displayCivilDate
-const blockPreview = computed(() =>
-  createStartDate.value && createEndDate.value
-    ? `${displayDate(createStartDate.value)} · ${createStartTime.value || '—'} → ${displayDate(createEndDate.value)} · ${createEndTime.value || '—'}`
-    : 'Elige cuándo empieza y termina este tiempo fuera.',
-)
+// La hora es opcional (#507): sin hora de inicio el bloqueo arranca a las 00:00 del primer día
+// y sin hora de fin llega hasta el final del último día (su fin exclusivo es las 00:00 del
+// siguiente). Con ambas vacías es de día completo (vacaciones, un día libre, una emergencia).
+const blockPreview = computed(() => {
+  const startDate = createStartDate.value
+  const endDate = createEndDate.value
+  if (!startDate || !endDate) return 'Elige desde qué día hasta qué día. La hora es opcional.'
+  const startTime = createStartTime.value
+  const endTime = createEndTime.value
+  if (!startTime && !endTime) {
+    return startDate === endDate
+      ? `${displayDate(startDate)} · Todo el día`
+      : `${displayDate(startDate)} → ${displayDate(endDate)} · Todo el día`
+  }
+  return `${displayDate(startDate)} · ${startTime || 'Inicio del día'} → ${displayDate(endDate)} · ${endTime || 'Fin del día'}`
+})
 
 // --- Alta de bloqueo puntual --------------------------------------------
 
@@ -260,27 +271,27 @@ async function onSubmitCreateBlock() {
     return
   }
 
-  const startInstantRaw = `${createStartDate.value}T${createStartTime.value}`
-  const endInstantRaw = `${createEndDate.value}T${createEndTime.value}`
-  if (
-    !createStartDate.value ||
-    !createStartTime.value ||
-    !createEndDate.value ||
-    !createEndTime.value
-  ) {
-    createBlockError.value = 'Completa fecha y hora de inicio y de fin.'
+  if (!createStartDate.value || !createEndDate.value) {
+    createBlockError.value = 'Elige la fecha de inicio y la de fin.'
     return
   }
 
   let startsAt: string
   let endsAt: string
   try {
-    startsAt = civilDateTimeToInstant(createStartDate.value, createStartTime.value, timeZone)
-    endsAt = civilDateTimeToInstant(createEndDate.value, createEndTime.value, timeZone)
+    startsAt = civilDateTimeToInstant(
+      createStartDate.value,
+      createStartTime.value || '00:00',
+      timeZone,
+    )
+    // Sin hora de fin el bloqueo cubre todo el último día: fin exclusivo a las 00:00 del siguiente.
+    endsAt = createEndTime.value
+      ? civilDateTimeToInstant(createEndDate.value, createEndTime.value, timeZone)
+      : civilDateTimeToInstant(addCivilDays(createEndDate.value, 1), '00:00', timeZone)
   } catch {
     createBlockError.value =
-      validateInstant(startInstantRaw) ??
-      validateInstant(endInstantRaw) ??
+      validateInstant(`${createStartDate.value}T${createStartTime.value || '00:00'}`) ??
+      validateInstant(`${createEndDate.value}T${createEndTime.value || '00:00'}`) ??
       `La fecha u hora no es válida en la zona ${v.value.ofTheBusiness}.`
     return
   }
@@ -362,6 +373,20 @@ function displayInstant(instant: string): string {
   if (!barbershopTimezone.value) return instant
   const { date, time } = formatInstantInTimezone(instant, barbershopTimezone.value)
   return `${displayDate(date)} · ${time}`
+}
+
+// Un bloqueo de días completos (de 00:00 a 00:00 en la zona de la barbería) se muestra por
+// fechas y «Todo el día», no como dos horas a medianoche (#507). Devuelve null si no lo es.
+function allDayLabel(block: TimeBlock): string | null {
+  const tz = barbershopTimezone.value
+  if (!tz) return null
+  const start = formatInstantInTimezone(block.startsAt, tz)
+  const end = formatInstantInTimezone(block.endsAt, tz)
+  if (start.time !== '00:00' || end.time !== '00:00' || end.date <= start.date) return null
+  const lastDay = addCivilDays(end.date, -1)
+  return lastDay === start.date
+    ? `${displayDate(start.date)} · Todo el día`
+    : `${displayDate(start.date)} → ${displayDate(lastDay)} · Todo el día`
 }
 
 async function onDeleteSeries(item: TimeBlockSeries) {
@@ -658,7 +683,10 @@ function seriesCounts(item: TimeBlockSeries): string {
                     isPast(block) ? 'Pasado' : 'Puntual'
                   }}</span>
                 </div>
-                <p class="blocks-panel__interval">
+                <p v-if="allDayLabel(block)" class="blocks-panel__interval">
+                  <time :datetime="block.startsAt">{{ allDayLabel(block) }}</time>
+                </p>
+                <p v-else class="blocks-panel__interval">
                   <time :datetime="block.startsAt">{{ displayInstant(block.startsAt) }}</time
                   ><span aria-hidden="true"> → </span><span class="sr-only"> hasta </span
                   ><time :datetime="block.endsAt">{{ displayInstant(block.endsAt) }}</time>
@@ -875,8 +903,8 @@ function seriesCounts(item: TimeBlockSeries): string {
             <BaseTimePicker
               v-model="createStartTime"
               label="Hora de inicio"
+              optional
               :disabled="createBlockStatus === 'saving'"
-              required
             />
           </div>
         </fieldset>
@@ -899,11 +927,15 @@ function seriesCounts(item: TimeBlockSeries): string {
             <BaseTimePicker
               v-model="createEndTime"
               label="Hora de fin"
+              optional
               :disabled="createBlockStatus === 'saving'"
-              required
             />
           </div>
         </fieldset>
+        <p class="block-form__hint">
+          Sin hora, el bloqueo es de día completo: desde el inicio del primer día hasta el final del
+          último. Sirve para vacaciones, un día libre o una emergencia.
+        </p>
         <BaseInput
           v-model="createBlockReason"
           type="text"
@@ -1515,6 +1547,13 @@ function seriesCounts(item: TimeBlockSeries): string {
 
 <style>
 /* BaseDialog se teleporta al body: este ámbito solo gobierna el panel de HU-042. */
+/* Ayuda bajo las horas opcionales del bloqueo puntual (#507). */
+.block-dialog .block-form__hint {
+  margin: -10px 0 0;
+  color: var(--color-on-strong-muted);
+  font-size: var(--font-size-caption);
+  line-height: 1.5;
+}
 /* Diálogo «Días» (#505): un renglón por día con sus acciones, sobre hueco hundido. */
 .block-dialog.block-dialog--days.base-dialog {
   width: min(100%, 520px) !important;

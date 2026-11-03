@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { civilDateTimeToInstant, formatInstantInTimezone } from '../civilTime'
+import { addCivilDays, civilDateTimeToInstant, formatInstantInTimezone } from '../civilTime'
 
 describe('civilDateTimeToInstant', () => {
   it('convierte hora civil de Bogotá (UTC-5, sin horario de verano) a instante UTC', () => {
@@ -48,5 +48,17 @@ describe('formatInstantInTimezone', () => {
       date: '2026-07-20',
       time: '22:30',
     })
+  })
+})
+
+describe('addCivilDays', () => {
+  it('suma y resta días cruzando mes y año sin usar la zona del dispositivo', () => {
+    expect(addCivilDays('2099-01-09', 1)).toBe('2099-01-10')
+    expect(addCivilDays('2099-12-31', 1)).toBe('2100-01-01')
+    expect(addCivilDays('2099-03-01', -1)).toBe('2099-02-28')
+  })
+
+  it('rechaza una fecha civil inválida', () => {
+    expect(() => addCivilDays('no-es-fecha', 1)).toThrow(RangeError)
   })
 })
