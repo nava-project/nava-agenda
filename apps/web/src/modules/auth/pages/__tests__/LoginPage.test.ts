@@ -243,7 +243,10 @@ describe('LoginPage', () => {
       ['warning', 'Demasiados intentos'],
     ])
     expect(toastState.items[0]!.detail).toContain('2 minuto(s)')
-    expect(wrapper.text()).toContain('Verifica tu identidad')
+    expect(toastState.items[0]!.detail).toContain('confirma tu identidad')
+    // Sin alerta fija (issue #485): queda solo la acción del reto.
+    expect(wrapper.text()).not.toContain('Verifica tu identidad')
+    expect(wrapper.text()).toContain('Enviar código')
   })
 
   it('does not show the phone challenge outside the rate-limited state', async () => {

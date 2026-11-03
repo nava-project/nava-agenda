@@ -12,7 +12,7 @@
 // qué barbería pertenece la cuenta y decir «correo» o «teléfono» revelaría su
 // configuración o su existencia (DEC-065, DEC-139).
 import { computed, onUnmounted, ref } from 'vue'
-import { BaseAlert, BaseButton, OtpInput } from '@/shared/ui'
+import { BaseButton, OtpInput } from '@/shared/ui'
 import { requestChallenge, verifyChallenge } from '../api/challengeApi'
 
 const RESEND_COOLDOWN_SECONDS = 60
@@ -116,12 +116,10 @@ async function onVerifyCode() {
 <template>
   <div class="phone-challenge">
     <!-- Fase previa a solicitar el código: no representada en los mockups
-         asignados (trabajo requerido §4), conserva su composición actual. -->
+         asignados (trabajo requerido §4). El porqué del reto lo comunica el
+         aviso emergente que emite `LoginPage` (DEC-095, issue #485), no una
+         alerta fija; aquí queda solo la acción. -->
     <template v-if="requestPhase === 'idle' || requestPhase === 'error'">
-      <BaseAlert variant="info" title="Verifica tu identidad">
-        Para continuar, confirma tu identidad con el código que te enviaremos.
-      </BaseAlert>
-
       <BaseButton
         type="button"
         variant="secondary"

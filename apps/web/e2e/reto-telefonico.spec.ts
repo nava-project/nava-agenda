@@ -138,7 +138,7 @@ test.describe('Defensa escalonada contra abuso del acceso (HU-007)', () => {
     await page.getByRole('button', { name: 'Iniciar sesión' }).click()
 
     await expect(page.getByText('Demasiados intentos')).toBeVisible()
-    await expect(page.getByText('Verifica tu identidad')).toBeVisible()
+    await expect(page.getByRole('button', { name: 'Enviar código' })).toBeVisible()
     // Sigue en /acceso: la contraseña correcta no bastó (CA-007-02).
     await expect(page).toHaveURL(/\/acceso$/)
   })
@@ -153,7 +153,7 @@ test.describe('Defensa escalonada contra abuso del acceso (HU-007)', () => {
       await fillCredentials(page, EMAIL, i < 5 ? 'contraseña-incorrecta-a-proposito' : PASSWORD)
       await page.getByRole('button', { name: 'Iniciar sesión' }).click()
     }
-    await expect(page.getByText('Verifica tu identidad')).toBeVisible()
+    await expect(page.getByRole('button', { name: 'Enviar código' })).toBeVisible()
 
     await page.getByRole('button', { name: 'Enviar código' }).click()
     await expect(page.getByText('Si tu cuenta puede continuar')).toBeVisible()
@@ -191,7 +191,7 @@ test.describe('Defensa escalonada contra abuso del acceso (HU-007)', () => {
       await fillCredentials(page, EMAIL, 'contraseña-incorrecta-a-proposito')
       await page.getByRole('button', { name: 'Iniciar sesión' }).click()
     }
-    await expect(page.getByText('Verifica tu identidad')).toBeVisible()
+    await expect(page.getByRole('button', { name: 'Enviar código' })).toBeVisible()
 
     await page.getByRole('button', { name: 'Enviar código' }).click()
     await expect(page.getByText('Si tu cuenta puede continuar')).toBeVisible()
