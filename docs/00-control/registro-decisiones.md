@@ -1892,3 +1892,17 @@ Cada código `DEC-*` es estable y no se reutiliza. Este registro normaliza respu
 - **Alternativas descartadas:** dejar la landing en una ruta aparte (`/nava`) y conservar la raíz como acceso (la raíz es la dirección que se comparte); incluir un formulario de contacto con backend (fuera de alcance, exigiría contrato, almacenamiento y tratamiento de datos personales); fotografía de stock enlazada (licencia y privacidad).
 - **Documentos afectados:** `historial-cambios.md`, `app/router/index.ts`, módulo `apps/web/src/modules/landing` y sus pruebas.
 - **Fuente:** issue [#515](https://github.com/bcaceres19/barberia/issues/515); `estandar-diseno-visual.md` §2.1 y §3.
+
+### DEC-152 · El acceso y la recuperación conservan una barra para volver a la presentación
+
+- **Fecha:** 2026-11-03.
+- **Decisión:**
+  1. `/acceso` y `/recuperar-acceso` (que comparten `AuthSplitLayout`) muestran una barra delgada de 56 px sobre la columna de contenido con «Volver a la presentación», que lleva a `/` (la landing, `DEC-151`).
+  2. **Desviación registrada del mockup** (`estandar-diseno-visual.md` §2.1: «la implementación puede desviarse por una regla… cada desviación se registra con su causa»): los mockups `auth-eventos` no representan esa barra. Causa: instrucción expresa del propietario. Tratamiento: va posicionada de forma absoluta dentro del relleno superior de la columna (88 px en móvil, 64 px en escritorio), así que no mueve ni redimensiona la marca, el formulario ni el panel de tinta; no usa color nuevo (texto secundario y flecha de latón oscuro sobre marfil).
+  3. Es solo navegación: no cambia el flujo de autenticación, la sesión ni el API.
+- **Quién lo decidió:** el propietario, el 2026-11-03: «en el inicio de sesión que se mantenga el navbar por si se requiere volver a la pantalla de presentación».
+- **Responsable:** propietario del proyecto.
+- **Motivo:** tras `DEC-151`, quien abre el acceso desde la landing no tenía cómo volver a ella.
+- **Alternativas descartadas:** repetir en el acceso la cabecera completa de la landing con sus anclas (cambiaría la composición de las pantallas de mockup y obligaría a un scroll con hash entre rutas sin necesidad); un enlace dentro de la tarjeta (competiría con la acción principal y desplazaría el formulario).
+- **Documentos afectados:** `historial-cambios.md`, `AuthSplitLayout.vue` y sus pruebas. Las capturas versionadas de `e2e/evidence/auth-eventos/` son anteriores a la barra y no se regeneran; la evidencia de la barra vive en `e2e/evidence/acceso-volver-presentacion/`.
+- **Fuente:** issue [#517](https://github.com/bcaceres19/barberia/issues/517); `DEC-151`.

@@ -7,10 +7,16 @@
 // lienzo entero queda en marfil, con la marca reglada (wordmark + regla de
 // latón a su ancho) como encabezado de la propia columna de contenido —
 // misma marca que en escritorio, ya no una franja de tinta aparte.
+// Una barra delgada sobre la columna de contenido (issue #517) deja volver a
+// la presentación pública de NAVA («/», DEC-151). Es una adición pedida por el
+// propietario que los mockups de auth-eventos no representan: se posiciona de
+// forma absoluta dentro del relleno superior de la columna, así que no mueve ni
+// redimensiona el formulario, la marca ni el panel de tinta.
 // `LoginPage`/`RecoveryPage` conservan su propio estado y encabezado real
 // (`<h1>`); ni el panel de marca ni la marca reglada del encabezado son un
 // landmark de contenido, por eso ambos llevan `aria-hidden`.
 import { onBeforeUnmount, onMounted, ref } from 'vue'
+import { RouterLink } from 'vue-router'
 import { NavaWordmark } from '@/shared/ui'
 import AuthBrandBackdrop from './AuthBrandBackdrop.vue'
 
@@ -54,6 +60,20 @@ onBeforeUnmount(() => clearTimeout(introTimer))
         <p class="auth-split__caption">{{ caption }} · NAVA</p>
       </div>
       <div class="auth-split__content">
+        <nav class="auth-split__nav" aria-label="Sitio">
+          <RouterLink class="auth-split__back" to="/">
+            <svg
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+              aria-hidden="true"
+            >
+              <path d="M19 12H5M11 6l-6 6 6 6" stroke-linecap="round" stroke-linejoin="round" />
+            </svg>
+            Volver a la presentación
+          </RouterLink>
+        </nav>
         <div class="auth-split__card" :class="{ 'auth-split__card--intro': introActive }">
           <div class="auth-split__mark" aria-hidden="true">
             <NavaWordmark variant="ink" size="lg" />
@@ -217,6 +237,58 @@ onBeforeUnmount(() => clearTimeout(introTimer))
   justify-content: center;
   padding: 88px clamp(var(--space-5), 6vw, var(--space-10)) var(--space-12);
   background-color: var(--color-canvas);
+}
+
+/* Barra de regreso: absoluta, dentro del relleno superior de la columna (88 px
+   en móvil, 64 px en escritorio), por encima de la rejilla ornamental. */
+.auth-split__nav {
+  position: absolute;
+  top: 0;
+  right: 0;
+  left: 0;
+  z-index: 2;
+  display: flex;
+  align-items: center;
+  height: 56px;
+  padding: 0 clamp(var(--space-5), 6vw, var(--space-10));
+  border-bottom: 1px solid color-mix(in srgb, var(--color-border-subtle) 70%, transparent);
+  background-color: color-mix(in srgb, var(--color-canvas) 92%, transparent);
+}
+
+.auth-split__back {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  min-height: 44px;
+  padding: 0 var(--space-2);
+  margin-left: calc(var(--space-2) * -1);
+  border-radius: var(--radius-md);
+  font-family: var(--font-sans);
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--color-text-secondary);
+  text-decoration: none;
+  transition: color 160ms ease;
+}
+
+.auth-split__back svg {
+  width: 18px;
+  height: 18px;
+  color: var(--color-accent-brass);
+  transition: transform 220ms var(--motion-ease-out, ease-out);
+}
+
+.auth-split__back:hover {
+  color: var(--color-text-primary);
+}
+
+.auth-split__back:hover svg {
+  transform: translateX(-3px);
+}
+
+.auth-split__back:focus-visible {
+  outline: 2px solid var(--color-focus);
+  outline-offset: 2px;
 }
 
 .auth-split__card {
@@ -461,6 +533,10 @@ onBeforeUnmount(() => clearTimeout(introTimer))
     padding: var(--space-16) clamp(48px, 5vw, 64px);
   }
 
+  .auth-split__nav {
+    padding: 0 clamp(48px, 5vw, 64px);
+  }
+
   .auth-split__card {
     max-width: 580px;
   }
@@ -499,6 +575,11 @@ onBeforeUnmount(() => clearTimeout(introTimer))
   .auth-split__content::after,
   .auth-split__brand::after {
     animation: none;
+  }
+
+  .auth-split__back,
+  .auth-split__back svg {
+    transition: none;
   }
 }
 </style>
