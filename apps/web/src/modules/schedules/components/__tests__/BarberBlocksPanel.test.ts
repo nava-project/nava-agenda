@@ -8,7 +8,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { mount, flushPromises, type VueWrapper } from '@vue/test-utils'
 import { BaseInput, BaseDatePicker, BaseTimePicker, BaseSelect } from '@/shared/ui'
 import WeekdayMultiPicker from '../WeekdayMultiPicker.vue'
-import { toastState } from '@/shared/model/toastStore'
+import { dismissAllToasts, toastState } from '@/shared/model/toastStore'
 import { DEFAULT_BRAND, resetBrand, setBrand } from '@/shared/model'
 import { displayCivilDate } from '../../model/displayDate'
 
@@ -489,7 +489,7 @@ describe('BarberBlocksPanel · series similares agrupadas (#499)', () => {
     ]) {
       mock.mockReset()
     }
-    toastState.items.splice(0)
+    dismissAllToasts()
     fetchBarbershopTimezoneMock.mockResolvedValue({ kind: 'success', timezone: 'America/Bogota' })
     fetchTimeBlocksMock.mockResolvedValue({
       kind: 'success',
