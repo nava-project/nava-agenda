@@ -153,7 +153,7 @@ function formatDate(iso: string): string {
         :id="`barber-reviews-${barberId}`"
         class="barber-reviews__panel"
         :class="{ 'barber-reviews__panel--aside': asideTo }"
-        :aria-label="asideTo ? 'Reseñas del barbero' : undefined"
+        :aria-label="asideTo ? 'Reseñas' : undefined"
         @keydown.esc="asideTo && close()"
       >
         <header v-if="asideTo" class="barber-reviews__aside-head">

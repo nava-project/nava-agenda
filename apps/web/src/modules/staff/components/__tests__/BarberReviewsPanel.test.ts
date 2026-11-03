@@ -164,7 +164,7 @@ describe('BarberReviewsPanel', () => {
 
       expect(wrapper.find('li').exists()).toBe(false)
       const aside = target.querySelector('aside')!
-      expect(aside.getAttribute('aria-label')).toBe('Reseñas del barbero')
+      expect(aside.getAttribute('aria-label')).toBe('Reseñas')
       expect(aside.querySelectorAll('li')).toHaveLength(2)
       const scroll = aside.querySelector('[aria-label="Lista de reseñas"]')!
       expect(scroll.getAttribute('tabindex')).toBe('0')
