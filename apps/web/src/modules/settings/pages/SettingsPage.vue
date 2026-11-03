@@ -43,7 +43,20 @@ import {
   type ThemeMode,
 } from '@/shared/model'
 import { isMapAvailable } from '@/shared/model/mapEmbed'
-import { BaseAlert, BaseButton, BaseInput, DiamondLoader, LocationMap } from '@/shared/ui'
+import {
+  DEFAULT_PHONE_COUNTRY,
+  composePhone,
+  nationalDigits,
+  splitInternationalPhone,
+} from '@/shared/model/phoneCountries'
+import {
+  BaseAlert,
+  BaseButton,
+  BaseInput,
+  DiamondLoader,
+  LocationMap,
+  PhoneField,
+} from '@/shared/ui'
 import { updateBarbershopName } from '@/modules/auth'
 import { fetchBrand, saveBrand } from '../api/brandApi'
 import { fetchBarbershopSettings, saveBarbershopSettings } from '../api/settingsApi'
@@ -106,6 +119,50 @@ const shop = reactive<BarbershopSettingsFormValues>({
   contactPhone: '',
 })
 const brand = reactive<BrandSettings>({ ...DEFAULT_BRAND })
+// El teléfono de contacto se escribe en dos casillas (país y número nacional),
+// igual que en la reserva pública, pero `shop.contactPhone` sigue siendo el
+// único valor: un E.164 completo, o '' si no hay teléfono. Las casillas son su
+// vista; solo se escribe de vuelta cuando la persona edita alguna.
+const phoneCountryIso = ref(DEFAULT_PHONE_COUNTRY)
+const phoneNational = ref('')
+
+function composedContactPhone(): string {
+  return phoneNational.value === '' ? '' : composePhone(phoneCountryIso.value, phoneNational.value)
+}
+
+watch(
+  () => shop.contactPhone,
+  (value) => {
+    // Es la escritura de las propias casillas: no hay nada que repartir.
+    if (value === composedContactPhone()) return
+    const parts = splitInternationalPhone(value)
+    if (parts) {
+      phoneCountryIso.value = parts.country
+      phoneNational.value = parts.national
+      return
+    }
+    // Vacío (descartar, o ninguno guardado): se conserva el país elegido. Un
+    // prefijo fuera de la lista se muestra completo hasta que se edite.
+    phoneNational.value = nationalDigits(value)
+  },
+  { immediate: true },
+)
+
+function onContactPhoneChange() {
+  shop.contactPhone = composedContactPhone()
+  revalidate()
+}
+
+function onContactPhoneCountry(iso: string) {
+  phoneCountryIso.value = iso
+  onContactPhoneChange()
+}
+
+function onContactPhoneNational(value: string) {
+  phoneNational.value = value
+  onContactPhoneChange()
+}
+
 // Último valor confirmado por el servidor: contra él se mide qué cambió.
 const savedShop = ref<BarbershopSettingsFormValues>({ ...shop })
 const savedBrand = ref<BrandSettings>({ ...DEFAULT_BRAND })
@@ -949,16 +1006,15 @@ const previewClass = computed(() => ({ 'settings-page__preview--changed': brandD
                 :class="{ 'settings-input--filled': !!shop.contactEmail }"
                 @update:model-value="(value) => onShopInput('contactEmail', value)"
               />
-              <BaseInput
-                :model-value="shop.contactPhone"
-                type="tel"
+              <PhoneField
+                :country="phoneCountryIso"
+                :national="phoneNational"
                 name="contactPhone"
                 label="Teléfono de contacto"
-                hint="Con indicativo, por ejemplo +573001234567"
                 :disabled="saving"
                 :error="fieldErrors.contactPhone"
-                :class="{ 'settings-input--filled': !!shop.contactPhone }"
-                @update:model-value="(value) => onShopInput('contactPhone', value)"
+                @update:country="onContactPhoneCountry"
+                @update:national="onContactPhoneNational"
               />
             </div>
           </SettingsPanel>
@@ -1825,6 +1881,37 @@ const previewClass = computed(() => ({ 'settings-page__preview--changed': brandD
 
 .settings-ink :deep(.base-input:hover:not(:disabled):not(.base-input--invalid)) {
   border-color: color-mix(in srgb, var(--color-on-strong) 26%, transparent);
+}
+
+/* El teléfono (casilla de país + número) toma el mismo fondo y filete que los
+   demás campos de la hoja, para que no parezca de otra pantalla. */
+.settings-ink :deep(.phone-field__row) {
+  height: 44px;
+  background-color: color-mix(in srgb, var(--color-on-strong) 4%, transparent);
+  border-color: color-mix(in srgb, var(--color-on-strong) 12%, transparent);
+  border-bottom-color: color-mix(in srgb, var(--color-on-strong) 30%, transparent);
+}
+
+.settings-ink :deep(.phone-field__row--invalid),
+.settings-ink :deep(.phone-field__row--invalid:hover) {
+  border-color: var(--color-danger-on-strong);
+  border-bottom-color: var(--color-danger-on-strong);
+}
+
+.settings-ink :deep(.phone-field__row:hover:not(.phone-field__row--invalid)) {
+  border-color: color-mix(in srgb, var(--color-on-strong) 26%, transparent);
+}
+
+.settings-ink :deep(.phone-field__row:focus-within) {
+  box-shadow:
+    0 0 0 2px var(--color-surface-strong),
+    0 0 0 4px var(--color-focus);
+}
+
+.settings-ink :deep(.phone-field__row--invalid:focus-within) {
+  box-shadow:
+    0 0 0 2px var(--color-surface-strong),
+    0 0 0 4px var(--color-danger-on-strong);
 }
 
 .settings-ink :deep(.settings-input--filled .base-input) {

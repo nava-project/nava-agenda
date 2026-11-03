@@ -48,6 +48,16 @@ describe('PhoneField', () => {
     expect(wrapper.get(`#${errorId}`).text()).toBe('El teléfono es obligatorio.')
   })
 
+  it('deshabilita el selector y la casilla del número, y pasa el name a la casilla', () => {
+    const wrapper = mount(PhoneField, {
+      props: { country: 'CO', national: '', disabled: true, name: 'contactPhone' },
+    })
+
+    expect(wrapper.get('select').attributes('disabled')).toBeDefined()
+    expect(wrapper.get('input[type="tel"]').attributes('disabled')).toBeDefined()
+    expect(wrapper.get('input[type="tel"]').attributes('name')).toBe('contactPhone')
+  })
+
   it('no tiene violaciones de accesibilidad', async () => {
     // Dentro de un landmark, como lo aloja la página real.
     const wrapper = mount({

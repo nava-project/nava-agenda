@@ -21,11 +21,16 @@ interface Props {
   label?: string
   error?: string
   required?: boolean
+  disabled?: boolean
+  /** `name` de la casilla del número (formularios y pruebas). */
+  name?: string
 }
 const props = withDefaults(defineProps<Props>(), {
   label: 'Teléfono',
   error: undefined,
   required: false,
+  disabled: false,
+  name: undefined,
 })
 
 const emit = defineEmits<{
@@ -66,7 +71,10 @@ function onInput(event: Event) {
       <span v-if="required" class="phone-field__required" aria-hidden="true">*</span>
     </label>
 
-    <div class="phone-field__row" :class="{ 'phone-field__row--invalid': !!error }">
+    <div
+      class="phone-field__row"
+      :class="{ 'phone-field__row--invalid': !!error, 'phone-field__row--disabled': disabled }"
+    >
       <div class="phone-field__prefix">
         <span class="phone-field__face" aria-hidden="true">
           <span class="phone-field__flag">{{ flagEmoji(selected.iso) }}</span>
@@ -78,6 +86,7 @@ function onInput(event: Event) {
           aria-label="Prefijo del país"
           autocomplete="tel-country-code"
           :value="country"
+          :disabled="disabled"
           @change="onSelect"
         >
           <option v-for="item in PHONE_COUNTRIES" :key="item.iso" :value="item.iso">
@@ -88,6 +97,7 @@ function onInput(event: Event) {
 
       <input
         :id="inputId"
+        :name="name"
         class="phone-field__input"
         type="tel"
         inputmode="tel"
@@ -95,6 +105,7 @@ function onInput(event: Event) {
         placeholder="300 123 4567"
         :value="national"
         :required="required"
+        :disabled="disabled"
         :aria-required="required"
         :aria-invalid="!!error"
         :aria-describedby="error ? errorId : undefined"
@@ -111,6 +122,13 @@ function onInput(event: Event) {
    filete perimetral y línea base de latón. Aquí el filete envuelve las dos
    casillas para que se lean como un solo teléfono, con un tabique entre ellas. */
 .phone-field {
+  /* Dentro de la reserva pública (`.pb-layout`) hereda su paleta; en cualquier
+     otra hoja de tinta (Configuración) cae a los tokens de tinta directamente. */
+  --pf-text: var(--pb-text, var(--color-on-strong));
+  --pf-muted: var(--pb-muted, var(--color-on-strong-muted));
+  --pf-brass: var(--pb-brass, var(--color-brand-accent-surface));
+  --pf-line-strong: var(--pb-line-strong, color-mix(in srgb, var(--pf-text) 30%, transparent));
+
   display: flex;
   flex-direction: column;
   gap: var(--space-2);
@@ -124,7 +142,7 @@ function onInput(event: Event) {
   line-height: 14px;
   letter-spacing: 0.12em;
   text-transform: uppercase;
-  color: var(--pb-brass);
+  color: var(--pf-brass);
 }
 
 .phone-field__required {
@@ -136,9 +154,9 @@ function onInput(event: Event) {
   display: flex;
   height: var(--control-height);
   background-color: color-mix(in srgb, #000 46%, var(--color-surface-strong));
-  border: var(--border-width-normal) solid var(--pb-line-strong);
+  border: var(--border-width-normal) solid var(--pf-line-strong);
   border-bottom: var(--border-width-emphasis) solid
-    color-mix(in srgb, var(--pb-brass) 75%, transparent);
+    color-mix(in srgb, var(--pf-brass) 75%, transparent);
   border-radius: 2px;
   transition:
     border-color var(--motion-duration-fast) var(--motion-easing-standard),
@@ -148,17 +166,17 @@ function onInput(event: Event) {
 
 .phone-field__row:hover {
   background-color: color-mix(in srgb, #000 38%, var(--color-surface-strong));
-  border-color: color-mix(in srgb, var(--pb-brass) 60%, transparent);
-  border-bottom-color: var(--pb-brass);
+  border-color: color-mix(in srgb, var(--pf-brass) 60%, transparent);
+  border-bottom-color: var(--pf-brass);
 }
 
 .phone-field__row:focus-within {
   background-color: color-mix(in srgb, #000 52%, var(--color-surface-strong));
-  border-color: var(--pb-brass);
+  border-color: var(--pf-brass);
   box-shadow:
     0 0 0 2px var(--color-surface-strong),
-    0 0 0 4px var(--pb-brass),
-    0 0 22px color-mix(in srgb, var(--pb-brass) 35%, transparent);
+    0 0 0 4px var(--pf-brass),
+    0 0 22px color-mix(in srgb, var(--pf-brass) 35%, transparent);
 }
 
 .phone-field__row--invalid,
@@ -178,7 +196,7 @@ function onInput(event: Event) {
   display: flex;
   flex: none;
   align-items: center;
-  border-right: 1px solid var(--pb-line-strong);
+  border-right: 1px solid var(--pf-line-strong);
 }
 
 .phone-field__face {
@@ -187,7 +205,7 @@ function onInput(event: Event) {
   align-items: center;
   padding: 0 var(--space-3);
   font-size: var(--font-size-body);
-  color: var(--pb-text);
+  color: var(--pf-text);
   pointer-events: none;
 }
 
@@ -205,8 +223,8 @@ function onInput(event: Event) {
   width: 6px;
   height: 6px;
   margin: -3px 0 0 2px;
-  border-right: 1.5px solid var(--pb-brass);
-  border-bottom: 1.5px solid var(--pb-brass);
+  border-right: 1.5px solid var(--pf-brass);
+  border-bottom: 1.5px solid var(--pf-brass);
   transform: rotate(45deg);
 }
 
@@ -217,7 +235,7 @@ function onInput(event: Event) {
   width: 100%;
   height: 100%;
   margin: 0;
-  color: var(--pb-text);
+  color: var(--pf-text);
   cursor: pointer;
   background: transparent;
   border: 0;
@@ -234,15 +252,23 @@ function onInput(event: Event) {
   padding: 0 var(--space-4);
   font-family: var(--font-family-base);
   font-size: var(--font-size-body);
-  color: var(--pb-text);
+  color: var(--pf-text);
   background: transparent;
   border: 0;
   outline: none;
 }
 
 .phone-field__input::placeholder {
-  color: var(--pb-muted);
+  color: var(--pf-muted);
   opacity: 1;
+}
+
+.phone-field__row--disabled {
+  opacity: 0.6;
+}
+
+.phone-field__row--disabled .phone-field__select {
+  cursor: not-allowed;
 }
 
 .phone-field__error {
@@ -253,7 +279,7 @@ function onInput(event: Event) {
 
 /* El foco del selector (opacity 0) se dibuja en la cara. */
 .phone-field__prefix:has(.phone-field__select:focus-visible) .phone-field__face {
-  outline: 2px solid var(--pb-brass);
+  outline: 2px solid var(--pf-brass);
   outline-offset: -4px;
 }
 
