@@ -7,6 +7,10 @@ import { mount } from '@vue/test-utils'
 import { axe } from 'vitest-axe'
 import StarRating from '../StarRating.vue'
 
+// Ancho recortado de cada diamante (de 24): la fracción pintada (issue #489).
+const filledWidths = (wrapper: ReturnType<typeof mount>) =>
+  wrapper.findAll('clipPath rect').map((r) => r.attributes('width'))
+
 const axeOptions = { rules: { region: { enabled: false }, 'color-contrast': { enabled: false } } }
 
 describe('StarRating', () => {
@@ -20,23 +24,18 @@ describe('StarRating', () => {
     expect(wrapper.text()).toContain('12 reseñas')
   })
 
-  it('rellena cada estrella en proporción al promedio', () => {
+  it('rellena cada diamante en proporción al promedio', () => {
     const wrapper = mount(StarRating, { props: { rating: 3.5, count: 2 } })
-    const offsets = wrapper
-      .findAll('linearGradient')
-      .map((g) => g.findAll('stop')[0]!.attributes('offset'))
-    expect(offsets).toEqual(['100%', '100%', '100%', '50%', '0%'])
+    expect(filledWidths(wrapper)).toEqual(['24', '24', '24', '12', '0'])
   })
 
-  it('sin reseñas muestra estrellas vacías y «Sin reseñas todavía»', () => {
+  it('sin reseñas muestra diamantes vacíos y «Sin reseñas todavía»', () => {
     const wrapper = mount(StarRating, { props: { rating: null, count: 0 } })
     expect(wrapper.get('[role="img"]').attributes('aria-label')).toBe('Sin reseñas todavía')
     expect(wrapper.text()).toContain('Sin reseñas todavía')
     expect(wrapper.text()).not.toContain('0')
-    const offsets = wrapper
-      .findAll('linearGradient')
-      .map((g) => g.findAll('stop')[0]!.attributes('offset'))
-    expect(offsets).toEqual(['0%', '0%', '0%', '0%', '0%'])
+    expect(filledWidths(wrapper)).toEqual(['0', '0', '0', '0', '0'])
+    expect(wrapper.findAll('.rating-gem__facet')).toHaveLength(0)
   })
 
   it('puede ocultar el texto visible y conservar el nombre accesible', () => {
