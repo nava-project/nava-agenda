@@ -76,7 +76,8 @@ const weeklySeries = {
   exceptions: [],
 }
 
-async function mountReady() {
+// `renderLinks` hace que RouterLink pinte su contenido; por omisión es un stub vacío.
+async function mountReady(renderLinks = false) {
   fetchBarbershopTimezoneMock.mockResolvedValueOnce({
     kind: 'success',
     timezone: 'America/Bogota',
@@ -91,7 +92,12 @@ async function mountReady() {
   })
   const wrapper = mount(BarberBlocksPanel, {
     props: { barberId: 'b-1', barberName: 'Barbero de prueba' },
-    global: { stubs: { teleport: true, RouterLink: true } },
+    global: {
+      stubs: {
+        teleport: true,
+        RouterLink: renderLinks ? { template: '<a><slot /></a>' } : true,
+      },
+    },
   })
   await flushPromises()
   return wrapper
@@ -288,6 +294,41 @@ describe('BarberBlocksPanel · avisos emergentes (DEC-095)', () => {
     await form.trigger('submit')
     await flushPromises()
   }
+
+  it('HU-069: groups the affected appointments by day, with time, person and service per row', async () => {
+    const wrapper = await mountReady(true)
+    const apt = (id: string, name: string, startsAt: string, endsAt: string) => ({
+      id,
+      attendeeName: name,
+      serviceName: 'Corte',
+      startsAt,
+      endsAt,
+    })
+    fetchAffectedAppointmentsMock.mockResolvedValueOnce({
+      kind: 'success',
+      truncated: false,
+      items: [
+        apt('a1', 'Ana', '2099-01-06T14:00:00Z', '2099-01-06T14:30:00Z'),
+        apt('a2', 'Beto', '2099-01-06T16:00:00Z', '2099-01-06T16:45:00Z'),
+        apt('a3', 'Caro', '2099-01-07T15:00:00Z', '2099-01-07T15:30:00Z'),
+      ],
+    })
+
+    await createEmergencyBlock(wrapper)
+
+    const days = wrapper.findAll('.affected-day')
+    expect(days).toHaveLength(2)
+    expect(days[0]!.get('.affected-day__title').text()).toContain('2 turnos')
+    expect(days[1]!.get('.affected-day__title').text()).toContain('1 turno')
+    // America/Bogota es UTC-5: 14:00Z son las 09:00 locales.
+    expect(days[0]!.findAll('.affected-row__time').map((row) => row.text())).toEqual([
+      '09:00 – 09:30',
+      '11:00 – 11:45',
+    ])
+    expect(days[0]!.get('.affected-row__who strong').text()).toBe('Ana')
+    expect(days[0]!.get('.affected-row__who small').text()).toBe('Corte')
+    wrapper.unmount()
+  })
 
   it('HU-069: lists the confirmed appointments under a new block and links to each one', async () => {
     const wrapper = await mountReady()

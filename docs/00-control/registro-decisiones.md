@@ -1867,6 +1867,7 @@ Cada código `DEC-*` es estable y no se reutiliza. Este registro normaliza respu
   1. En «Agregar bloqueo puntual» la fecha de inicio y la de fin siguen siendo obligatorias; la hora de inicio y la de fin son opcionales y una hora elegida se puede quitar.
   2. Sin hora de inicio el bloqueo arranca a las 00:00 del primer día; sin hora de fin llega hasta el final del último día. El cliente lo traduce a los instantes de siempre en la zona de la barbería (fin exclusivo: 00:00 del día siguiente a la fecha de fin), así que **no cambia el contrato API** ni `RN-BLQ-01`/`RN-BLQ-03`.
   3. Con ambas horas vacías el bloqueo es de día completo (emergencia, día libre, vacaciones). La vista previa y la ficha lo muestran como fechas y «Todo el día», no como dos medianoches.
+  4. **Turnos afectados como agenda.** El aviso «Este bloqueo cubre N turnos» (`RN-BLQ-03`, HU-069) agrupa los turnos por día con su hora, persona y servicio en filas sobre tinta, en una zona con scroll propio, en vez de una lista de enlaces subrayados. Sigue siendo solo informativo.
 - **Quién lo decidió:** el propietario, el 2026-11-03: «ajústalo para que sea opcional la hora, ya que puede ser una emergencia y solo necesite la fecha y el día fin o vacaciones».
 - **Responsable:** propietario del proyecto.
 - **Motivo:** una emergencia o unas vacaciones rara vez necesitan una hora exacta y obligarla estorbaba.

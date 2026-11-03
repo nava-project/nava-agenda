@@ -145,6 +145,36 @@ async function showAffectedAppointments(startsAt: string, endsAt: string) {
       : null
 }
 
+// Los turnos afectados se agrupan por día civil (zona de la barbería) para leerlos como una
+// agenda: un encabezado por día y, debajo, hora, persona y servicio de cada turno.
+const affectedByDay = computed(() => {
+  const tz = barbershopTimezone.value ?? 'UTC'
+  const days = new Map<
+    string,
+    { date: string; heading: string; rows: { item: AffectedAppointment; time: string }[] }
+  >()
+  for (const item of affected.value?.items ?? []) {
+    const start = formatInstantInTimezone(item.startsAt, tz)
+    const end = formatInstantInTimezone(item.endsAt, tz)
+    let day = days.get(start.date)
+    if (!day) {
+      day = { date: start.date, heading: affectedDayHeading(start.date), rows: [] }
+      days.set(start.date, day)
+    }
+    day.rows.push({ item, time: `${start.time} – ${end.time}` })
+  }
+  return [...days.values()]
+})
+
+function affectedDayHeading(date: string): string {
+  return new Intl.DateTimeFormat('es-CO', {
+    weekday: 'long',
+    day: 'numeric',
+    month: 'long',
+    timeZone: 'UTC',
+  }).format(new Date(`${date}T12:00:00Z`))
+}
+
 function affectedWhen(item: AffectedAppointment): string {
   const tz = barbershopTimezone.value ?? 'UTC'
   const start = formatInstantInTimezone(item.startsAt, tz)
@@ -614,13 +644,30 @@ function seriesCounts(item: TimeBlockSeries): string {
       <p v-if="affected.items.length > 0">
         No cambiamos ningún turno. Abre cada uno para reprogramarlo o cancelarlo.
       </p>
-      <ul v-if="affected.items.length > 0" class="blocks-panel__affected-list">
-        <li v-for="item in affected.items" :key="item.id">
-          <RouterLink :to="{ name: 'agenda-detalle-turno', params: { appointmentId: item.id } }">
-            {{ affectedWhen(item) }} · {{ item.attendeeName }} · {{ item.serviceName }}
-          </RouterLink>
-        </li>
-      </ul>
+      <div v-if="affected.items.length > 0" class="blocks-panel__affected-days">
+        <section v-for="day in affectedByDay" :key="day.date" class="affected-day">
+          <h4 class="affected-day__title">
+            {{ day.heading }}
+            <span>{{ day.rows.length === 1 ? '1 turno' : `${day.rows.length} turnos` }}</span>
+          </h4>
+          <ul class="affected-day__list">
+            <li v-for="row in day.rows" :key="row.item.id">
+              <RouterLink
+                class="affected-row"
+                :to="{ name: 'agenda-detalle-turno', params: { appointmentId: row.item.id } }"
+                :aria-label="`${affectedWhen(row.item)} · ${row.item.attendeeName} · ${row.item.serviceName}`"
+              >
+                <span class="affected-row__time">{{ row.time }}</span>
+                <span class="affected-row__who"
+                  ><strong>{{ row.item.attendeeName }}</strong
+                  ><small>{{ row.item.serviceName }}</small></span
+                >
+                <span class="affected-row__go" aria-hidden="true">→</span>
+              </RouterLink>
+            </li>
+          </ul>
+        </section>
+      </div>
       <p v-if="affected.truncated">
         El bloqueo abarca más de {{ MAX_AFFECTED_DAYS }} días y solo revisamos los primeros. Mira la
         agenda de los días siguientes.
@@ -1308,14 +1355,103 @@ function seriesCounts(item: TimeBlockSeries): string {
   margin-bottom: var(--space-4, 1rem);
 }
 
-.blocks-panel__affected-list {
-  margin: var(--space-2, 0.5rem) 0 0;
-  padding-left: 1.25rem;
+.blocks-panel__affected-days {
+  display: grid;
+  gap: 14px;
+  max-height: min(44vh, 400px);
+  margin: 4px 0 12px;
+  padding-right: 6px;
+  overflow-y: auto;
+  overscroll-behavior: contain;
 }
-
-.blocks-panel__affected-list a {
-  color: inherit;
-  text-decoration: underline;
+.affected-day__title {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  margin: 0 0 6px;
+  padding-bottom: 6px;
+  color: var(--color-brand-accent-surface);
+  font-family: var(--font-sans);
+  font-size: var(--font-size-caption);
+  font-weight: 600;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  border-bottom: 1px solid color-mix(in srgb, var(--color-brand-accent-surface) 35%, transparent);
+}
+.affected-day__title span {
+  color: var(--color-on-strong-muted);
+  font-weight: 400;
+  letter-spacing: 0.06em;
+}
+.affected-day__list {
+  display: grid;
+  gap: 4px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.affected-row {
+  display: grid;
+  grid-template-columns: 112px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 14px;
+  padding: 6px 12px;
+  color: var(--color-on-strong);
+  text-decoration: none;
+  background: color-mix(in srgb, var(--color-on-strong) 4%, transparent);
+  border: 1px solid transparent;
+  border-left: 2px solid color-mix(in srgb, var(--color-brand-accent-surface) 55%, transparent);
+  border-radius: 2px;
+  transition:
+    background-color var(--motion-duration-fast) var(--motion-easing-standard),
+    border-color var(--motion-duration-fast) var(--motion-easing-standard);
+}
+.affected-row:hover {
+  background: color-mix(in srgb, var(--color-on-strong) 9%, transparent);
+  border-left-color: var(--color-brand-accent-surface);
+}
+.affected-row:focus-visible {
+  outline: none;
+  box-shadow:
+    0 0 0 2px var(--color-surface-strong),
+    0 0 0 4px var(--color-focus);
+}
+.affected-row__time {
+  font-family: var(--font-display);
+  font-size: 17px;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+.affected-row__who {
+  display: grid;
+  min-width: 0;
+}
+.affected-row__who strong {
+  overflow: hidden;
+  line-height: 1.3;
+  font-weight: 600;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.affected-row__who small {
+  overflow: hidden;
+  line-height: 1.3;
+  color: var(--color-on-strong-muted);
+  font-size: var(--font-size-caption);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.affected-row__go {
+  color: var(--color-brand-accent-surface);
+}
+@media (max-width: 520px) {
+  .affected-row {
+    grid-template-columns: minmax(0, 1fr) auto;
+  }
+  .affected-row__time {
+    grid-column: 1 / -1;
+  }
 }
 
 .blocks-panel__empty,
