@@ -148,12 +148,11 @@ test('bloqueos dentro de Barberos: ciclo real, aislamiento, errores y evidencia 
 
     for (const notice of await page.getByRole('button', { name: /Descartar aviso/ }).all())
       await notice.click()
-    await page.getByRole('button', { name: 'Agregar serie semanal', exact: true }).click()
-    const weekly = page.getByRole('dialog', { name: 'Agregar serie semanal' })
-    await weekly.getByRole('button', { name: 'Día de la semana', exact: true }).click()
-    await weekly.getByRole('option', { name: 'Miércoles', exact: true }).click()
+    await page.getByRole('button', { name: 'Agregar bloqueo por días', exact: true }).click()
+    const weekly = page.getByRole('dialog', { name: 'Agregar bloqueo por días' })
+    await weekly.getByRole('button', { name: 'Miércoles', exact: true }).click()
     await pickBlockTime(page, 'Hora de inicio', '12:00')
-    await weekly.getByLabel('Duración (minutos)').fill('45')
+    await pickBlockTime(page, 'Hora de fin', '12:45')
     await pickBlockDate(page, 'Vigente desde', '2099-01-01')
     await weekly.getByLabel('Motivo (opcional)').fill(marker)
     await checkAxe(page)
@@ -165,7 +164,7 @@ test('bloqueos dentro de Barberos: ciclo real, aislamiento, errores y evidencia 
         r.request().method() === 'POST' &&
         r.url().endsWith(`/barbers/${BARBER_A}/time-block-series`),
     )
-    await weekly.getByRole('button', { name: 'Guardar serie' }).click()
+    await weekly.getByRole('button', { name: 'Guardar bloqueo' }).click()
     const seriesResponse = await createdSeries
     expect(seriesResponse.status()).toBe(201)
     seriesId = (await seriesResponse.json()).id

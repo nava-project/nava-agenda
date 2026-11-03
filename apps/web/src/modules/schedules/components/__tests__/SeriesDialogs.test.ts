@@ -1,17 +1,20 @@
 /**
- * Pruebas de los diálogos de series de bloqueo de HU-042 (#100): alta por
- * fechas explícitas, edición por alcance y fechas/excepciones. La API se
+ * Pruebas de los diálogos de series de bloqueo de HU-042 (#100, #495): alta
+ * unificada por días (cada semana o fechas elegidas), edición por alcance y
+ * fechas/excepciones. La API se
  * sustituye por dobles controlables; el recorrido real vive en el E2E de
  * bloqueos dentro de Barberos.
  */
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { mount, flushPromises, type VueWrapper } from '@vue/test-utils'
 import { BaseDatePicker, BaseInput, BaseSelect, BaseTimePicker } from '@/shared/ui'
+import WeekdayMultiPicker from '../WeekdayMultiPicker.vue'
 import { toastState } from '@/shared/model/toastStore'
 import { displayCivilDate as d } from '../../model/displayDate'
 import type { TimeBlockSeries } from '../../model/timeBlock'
 
 const createDateListSeriesMock = vi.hoisted(() => vi.fn())
+const createTimeBlockSeriesMock = vi.hoisted(() => vi.fn())
 const updateTimeBlockSeriesMock = vi.hoisted(() => vi.fn())
 const addSeriesDateMock = vi.hoisted(() => vi.fn())
 const removeSeriesDateMock = vi.hoisted(() => vi.fn())
@@ -20,6 +23,7 @@ const removeSeriesExceptionMock = vi.hoisted(() => vi.fn())
 
 vi.mock('../../api/timeBlocksApi', () => ({
   createDateListSeries: createDateListSeriesMock,
+  createTimeBlockSeries: createTimeBlockSeriesMock,
   updateTimeBlockSeries: updateTimeBlockSeriesMock,
   addSeriesDate: addSeriesDateMock,
   removeSeriesDate: removeSeriesDateMock,
@@ -88,6 +92,7 @@ function pickers(wrapper: VueWrapper) {
 beforeEach(() => {
   for (const mock of [
     createDateListSeriesMock,
+    createTimeBlockSeriesMock,
     updateTimeBlockSeriesMock,
     addSeriesDateMock,
     removeSeriesDateMock,
@@ -98,36 +103,198 @@ beforeEach(() => {
   }
 })
 
-describe('SeriesFormDialog · alta por fechas', () => {
-  function mountCreate() {
-    return mount(SeriesFormDialog, {
-      props: {
-        modelValue: true,
-        mode: 'create-dates',
-        barberId: 'b-1',
-        barberName: 'Alex',
-        today: '2099-01-01',
-      },
-      global,
-    })
-  }
-  // Orden de los selectores de fecha: «Vigente desde», (fin opcional) y el
-  // selector de la lista de fechas, que es el último.
-  async function fillRange(wrapper: VueWrapper, from: string) {
-    pickers(wrapper)[0]!.vm.$emit('update:modelValue', from)
+function mountCreate() {
+  return mount(SeriesFormDialog, {
+    props: {
+      modelValue: true,
+      mode: 'create',
+      barberId: 'b-1',
+      barberName: 'Alex',
+      today: '2099-01-01',
+    },
+    global,
+  })
+}
+async function chooseRepeat(wrapper: VueWrapper, value: 'weekly' | 'dates') {
+  await wrapper.get(`[data-repeat="${value}"]`).trigger('click')
+  await flushPromises()
+}
+async function setTimes(wrapper: VueWrapper, start: string, end: string) {
+  const times = wrapper.findAllComponents(BaseTimePicker)
+  times[0]!.vm.$emit('update:modelValue', start)
+  times[1]!.vm.$emit('update:modelValue', end)
+  await flushPromises()
+}
+async function pickDays(wrapper: VueWrapper, days: number[]) {
+  wrapper.getComponent(WeekdayMultiPicker).vm.$emit('update:modelValue', days)
+  await flushPromises()
+}
+
+describe('SeriesFormDialog · alta por días · cada semana', () => {
+  async function fillWeekly(wrapper: VueWrapper, days: number[]) {
+    await pickDays(wrapper, days)
+    await setTimes(wrapper, '13:00', '14:00')
+    pickers(wrapper)[0]!.vm.$emit('update:modelValue', '2099-01-05')
     await flushPromises()
   }
+
+  it('opens on the weekly option with the weekday chips and no date list', () => {
+    const wrapper = mountCreate()
+
+    expect(wrapper.get('[data-repeat="weekly"]').attributes('aria-checked')).toBe('true')
+    expect(wrapper.findComponent(WeekdayMultiPicker).exists()).toBe(true)
+    expect(wrapper.find('ul[aria-label="Fechas elegidas"]').exists()).toBe(false)
+    expect(wrapper.text()).toContain('Vigente desde')
+  })
+
+  it('asks for at least one weekday before calling the API', async () => {
+    const wrapper = mountCreate()
+    await setTimes(wrapper, '13:00', '14:00')
+    pickers(wrapper)[0]!.vm.$emit('update:modelValue', '2099-01-05')
+    await flushPromises()
+
+    await wrapper.get('form').trigger('submit')
+    await flushPromises()
+
+    expect(wrapper.text()).toContain('Elige al menos un día de la semana.')
+    expect(createTimeBlockSeriesMock).not.toHaveBeenCalled()
+  })
+
+  it('creates one weekly series per chosen weekday with the same hours, validity and reason', async () => {
+    createTimeBlockSeriesMock
+      .mockResolvedValueOnce({ kind: 'success', series: { ...weekly, id: 'ser-1', isoWeekday: 1 } })
+      .mockResolvedValueOnce({ kind: 'success', series: { ...weekly, id: 'ser-3', isoWeekday: 3 } })
+      .mockResolvedValueOnce({ kind: 'success', series: { ...weekly, id: 'ser-5', isoWeekday: 5 } })
+    const wrapper = mountCreate()
+    await fillWeekly(wrapper, [1, 3, 5])
+    wrapper.findAllComponents(BaseInput).at(-1)!.vm.$emit('update:modelValue', ' Almuerzo ')
+    await flushPromises()
+
+    await wrapper.get('form').trigger('submit')
+    await flushPromises()
+
+    expect(createTimeBlockSeriesMock).toHaveBeenCalledTimes(3)
+    expect(createTimeBlockSeriesMock.mock.calls.map((call) => call.slice(0, 8))).toEqual(
+      [1, 3, 5].map((day) => [
+        'b-1',
+        'lunch',
+        day,
+        '13:00',
+        60,
+        '2099-01-05',
+        'Almuerzo',
+        expect.any(String),
+      ]),
+    )
+    expect(new Set(createTimeBlockSeriesMock.mock.calls.map((call) => call[7])).size).toBe(3)
+    expect(createTimeBlockSeriesMock.mock.calls.every((call) => call[8] === null)).toBe(true)
+    expect(wrapper.emitted('created')?.map((args) => (args[0] as TimeBlockSeries).id)).toEqual([
+      'ser-1',
+      'ser-3',
+      'ser-5',
+    ])
+    expect(wrapper.emitted('update:modelValue')?.at(-1)).toEqual([false])
+    expect(toastState.items.map((item) => [item.variant, item.title, item.detail])).toEqual([
+      ['success', 'Bloqueo agregado', 'Se repite cada lunes, miércoles y viernes.'],
+    ])
+  })
+
+  it('sends the end of the validity when it is bounded', async () => {
+    createTimeBlockSeriesMock.mockResolvedValueOnce({ kind: 'success', series: weekly })
+    const wrapper = mountCreate()
+    await fillWeekly(wrapper, [1])
+    chooseSelect(wrapper, 1, 'until')
+    await flushPromises()
+    pickers(wrapper)[1]!.vm.$emit('update:modelValue', '2099-03-01')
+    await flushPromises()
+
+    await wrapper.get('form').trigger('submit')
+    await flushPromises()
+
+    expect(createTimeBlockSeriesMock.mock.calls[0]![8]).toBe('2099-03-01')
+  })
+
+  it('keeps the created days, leaves only the pending ones marked and retries them with the same key', async () => {
+    createTimeBlockSeriesMock
+      .mockResolvedValueOnce({ kind: 'success', series: { ...weekly, id: 'ser-1', isoWeekday: 1 } })
+      .mockResolvedValueOnce({ kind: 'network-error' })
+    const wrapper = mountCreate()
+    await fillWeekly(wrapper, [1, 3, 5])
+
+    await wrapper.get('form').trigger('submit')
+    await flushPromises()
+
+    expect(createTimeBlockSeriesMock).toHaveBeenCalledTimes(2)
+    expect(wrapper.emitted('created')).toHaveLength(1)
+    expect(wrapper.emitted('update:modelValue')).toBeUndefined()
+    expect(wrapper.getComponent(WeekdayMultiPicker).props('modelValue')).toEqual([3, 5])
+    expect(wrapper.text()).toContain('Ya se agregó cada lunes.')
+    expect(wrapper.text()).toContain('miércoles y viernes')
+    const failedKey = createTimeBlockSeriesMock.mock.calls[1]![7]
+
+    createTimeBlockSeriesMock
+      .mockResolvedValueOnce({ kind: 'success', series: { ...weekly, id: 'ser-3', isoWeekday: 3 } })
+      .mockResolvedValueOnce({ kind: 'success', series: { ...weekly, id: 'ser-5', isoWeekday: 5 } })
+    await wrapper.get('form').trigger('submit')
+    await flushPromises()
+
+    expect(createTimeBlockSeriesMock.mock.calls[2]![2]).toBe(3)
+    expect(createTimeBlockSeriesMock.mock.calls[2]![7]).toBe(failedKey)
+    expect(wrapper.emitted('created')).toHaveLength(3)
+    expect(wrapper.emitted('update:modelValue')?.at(-1)).toEqual([false])
+  })
+
+  it('explains an idempotency conflict and keeps the form data', async () => {
+    createTimeBlockSeriesMock.mockResolvedValueOnce({ kind: 'idempotency-conflict' })
+    const wrapper = mountCreate()
+    await fillWeekly(wrapper, [2])
+
+    await wrapper.get('form').trigger('submit')
+    await flushPromises()
+
+    expect(wrapper.text()).toContain('Este intento ya se envió con otros datos')
+    expect(wrapper.emitted('created')).toBeUndefined()
+    expect(wrapper.getComponent(WeekdayMultiPicker).props('modelValue')).toEqual([2])
+  })
+})
+
+describe('SeriesFormDialog · alta por días · fechas elegidas', () => {
+  // En este modo no hay «Vigente desde» ni fin: el único selector de fecha es el
+  // de la lista de fechas.
   async function addDate(wrapper: VueWrapper, date: string) {
-    const all = pickers(wrapper)
-    all[all.length - 1]!.vm.$emit('update:modelValue', date)
+    pickers(wrapper)[0]!.vm.$emit('update:modelValue', date)
     await flushPromises()
     await button(wrapper, 'Añadir a la lista').trigger('click')
     await flushPromises()
   }
 
+  it('switches to the dates option, hides the weekdays and the validity, and swaps the defaults', async () => {
+    const wrapper = mountCreate()
+    await chooseRepeat(wrapper, 'dates')
+
+    expect(wrapper.get('[data-repeat="dates"]').attributes('aria-checked')).toBe('true')
+    expect(wrapper.findComponent(WeekdayMultiPicker).exists()).toBe(false)
+    expect(wrapper.text()).not.toContain('Vigente desde')
+    expect(wrapper.text()).not.toContain('Fin de la vigencia')
+    expect(wrapper.text()).toContain('Fechas del bloqueo')
+    const times = wrapper.findAllComponents(BaseTimePicker)
+    expect(times.map((time) => time.props('modelValue'))).toEqual(['00:00', '00:00'])
+  })
+
+  it('keeps the hours the person already chose when switching option', async () => {
+    const wrapper = mountCreate()
+    await setTimes(wrapper, '09:00', '10:00')
+    await chooseRepeat(wrapper, 'dates')
+
+    expect(wrapper.findAllComponents(BaseTimePicker).map((t) => t.props('modelValue'))).toEqual([
+      '09:00',
+      '10:00',
+    ])
+  })
+
   it('asks for at least one date before calling the API', async () => {
     const wrapper = mountCreate()
-    await fillRange(wrapper, '2099-12-01')
+    await chooseRepeat(wrapper, 'dates')
 
     await wrapper.get('form').trigger('submit')
     await flushPromises()
@@ -138,7 +305,7 @@ describe('SeriesFormDialog · alta por fechas', () => {
 
   it('lists the chosen dates in order and rejects a repeated one', async () => {
     const wrapper = mountCreate()
-    await fillRange(wrapper, '2099-12-01')
+    await chooseRepeat(wrapper, 'dates')
     await addDate(wrapper, '2099-12-16')
     await addDate(wrapper, '2099-12-15')
     await addDate(wrapper, '2099-12-15')
@@ -150,7 +317,7 @@ describe('SeriesFormDialog · alta por fechas', () => {
 
   it('removes a date from the list before saving', async () => {
     const wrapper = mountCreate()
-    await fillRange(wrapper, '2099-12-01')
+    await chooseRepeat(wrapper, 'dates')
     await addDate(wrapper, '2099-12-15')
 
     await byLabel(wrapper, `Quitar la fecha ${d('2099-12-15')}`).trigger('click')
@@ -158,36 +325,10 @@ describe('SeriesFormDialog · alta por fechas', () => {
     expect(wrapper.text()).toContain('Aún no elegiste ninguna fecha.')
   })
 
-  it('rejects a date that falls outside the validity range', async () => {
-    const wrapper = mountCreate()
-    await fillRange(wrapper, '2099-12-10')
-    await addDate(wrapper, '2099-12-05')
-
-    await wrapper.get('form').trigger('submit')
-    await flushPromises()
-
-    expect(wrapper.text()).toContain('queda fuera de la vigencia')
-    expect(createDateListSeriesMock).not.toHaveBeenCalled()
-  })
-
-  it('requires an end date when the validity is bounded', async () => {
-    const wrapper = mountCreate()
-    await fillRange(wrapper, '2099-12-01')
-    await addDate(wrapper, '2099-12-15')
-    chooseSelect(wrapper, 1, 'until')
-    await flushPromises()
-
-    await wrapper.get('form').trigger('submit')
-    await flushPromises()
-
-    expect(wrapper.text()).toContain('Elige la fecha de fin de la vigencia.')
-    expect(createDateListSeriesMock).not.toHaveBeenCalled()
-  })
-
-  it('saves the series with all its dates, emits it and confirms with a toast', async () => {
+  it('saves the series with all its dates, derives the validity from them and confirms with a toast', async () => {
     createDateListSeriesMock.mockResolvedValueOnce({ kind: 'success', series: dateList })
     const wrapper = mountCreate()
-    await fillRange(wrapper, '2099-12-01')
+    await chooseRepeat(wrapper, 'dates')
     await addDate(wrapper, '2099-12-16')
     await addDate(wrapper, '2099-12-15')
     wrapper.findAllComponents(BaseInput).at(-1)!.vm.$emit('update:modelValue', ' Cierre de año ')
@@ -202,24 +343,25 @@ describe('SeriesFormDialog · alta por fechas', () => {
         blockType: 'vacation',
         startsTime: '00:00',
         durationMinutes: 1440,
-        effectiveFrom: '2099-12-01',
+        effectiveFrom: '2099-12-15',
         effectiveUntil: null,
         reason: 'Cierre de año',
         explicitDates: ['2099-12-15', '2099-12-16'],
       },
       expect.any(String),
     )
+    expect(createTimeBlockSeriesMock).not.toHaveBeenCalled()
     expect(wrapper.emitted('created')?.[0]).toEqual([dateList])
     expect(wrapper.emitted('update:modelValue')?.at(-1)).toEqual([false])
     expect(toastState.items.map((item) => [item.variant, item.title])).toEqual([
-      ['success', 'Bloqueo por fechas agregado'],
+      ['success', 'Bloqueo agregado'],
     ])
   })
 
   it('keeps the data and explains an idempotency conflict', async () => {
     createDateListSeriesMock.mockResolvedValueOnce({ kind: 'idempotency-conflict' })
     const wrapper = mountCreate()
-    await fillRange(wrapper, '2099-12-01')
+    await chooseRepeat(wrapper, 'dates')
     await addDate(wrapper, '2099-12-15')
 
     await wrapper.get('form').trigger('submit')
@@ -233,7 +375,7 @@ describe('SeriesFormDialog · alta por fechas', () => {
   it('shows a recoverable message when the network fails', async () => {
     createDateListSeriesMock.mockResolvedValueOnce({ kind: 'network-error' })
     const wrapper = mountCreate()
-    await fillRange(wrapper, '2099-12-01')
+    await chooseRepeat(wrapper, 'dates')
     await addDate(wrapper, '2099-12-15')
 
     await wrapper.get('form').trigger('submit')

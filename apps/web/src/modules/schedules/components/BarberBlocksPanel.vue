@@ -20,7 +20,6 @@ import { fetchBarbershopTimezone } from '../api/schedulesApi'
 import {
   createTimeBlock,
   fetchAffectedAppointments,
-  createTimeBlockSeries,
   deleteTimeBlock,
   deleteTimeBlockSeries,
   fetchTimeBlockSeries,
@@ -37,17 +36,12 @@ import {
   type TimeBlock,
   type TimeBlockSeries,
 } from '../model/timeBlock'
-import { ISO_WEEKDAYS, weekdayLabel } from '../model/workingHour'
+import { weekdayLabel } from '../model/workingHour'
 import {
   validateBlockInterval,
-  validateEffectiveFrom,
-  validateISOWeekday,
   validateInstant,
   validateReason,
-  validateStartsTime,
 } from '../validation/timeBlockValidation'
-import { validateDurationMinutes } from '../validation/scheduleValidation'
-import { durationBetween } from '../model/weekBoard'
 import SeriesFormDialog from './SeriesFormDialog.vue'
 import SeriesInstancesDialog from './SeriesInstancesDialog.vue'
 
@@ -196,10 +190,6 @@ const blockPreview = computed(() =>
     ? `${displayDate(createStartDate.value)} · ${createStartTime.value || '—'} → ${displayDate(createEndDate.value)} · ${createEndTime.value || '—'}`
     : 'Elige cuándo empieza y termina este tiempo fuera.',
 )
-const seriesPreview = computed(
-  () =>
-    `${weekdayLabel(createSeriesWeekday.value)} · ${createSeriesStartsTime.value || '—'} → ${createSeriesEndsTime.value || '—'}`,
-)
 
 // --- Alta de bloqueo puntual --------------------------------------------
 
@@ -345,94 +335,6 @@ function displayInstant(instant: string): string {
   return `${displayDate(date)} · ${time}`
 }
 
-// --- Alta de serie semanal ------------------------------------------------
-
-const isCreateSeriesOpen = ref(false)
-const createSeriesType = ref<BlockType>('lunch')
-const createSeriesWeekday = ref(1)
-const createSeriesStartsTime = ref('')
-const createSeriesEndsTime = ref('')
-const createSeriesEffectiveFrom = ref('')
-const createSeriesReason = ref('')
-const createSeriesError = ref<string | undefined>(undefined)
-const createSeriesStatus = ref<SaveStatus>('idle')
-let createSeriesIdempotencyKey = newIdempotencyKey()
-
-function openCreateSeriesDialog() {
-  createSeriesType.value = 'lunch'
-  createSeriesWeekday.value = 1
-  createSeriesStartsTime.value = ''
-  createSeriesEndsTime.value = ''
-  createSeriesEffectiveFrom.value = ''
-  createSeriesReason.value = ''
-  createSeriesError.value = undefined
-  createSeriesStatus.value = 'idle'
-  createSeriesIdempotencyKey = newIdempotencyKey()
-  isCreateSeriesOpen.value = true
-}
-
-function onCreateSeriesDialogClosed() {
-  createSeriesStatus.value = 'idle'
-}
-
-async function onSubmitCreateSeries() {
-  if (createSeriesStatus.value === 'saving' || !selectedBarberId.value) return
-  createSeriesError.value = undefined
-
-  const weekdayError = validateISOWeekday(createSeriesWeekday.value)
-  const startsTimeError = validateStartsTime(createSeriesStartsTime.value)
-  const endsTimeError = validateStartsTime(createSeriesEndsTime.value)
-  const durationError =
-    endsTimeError ??
-    validateDurationMinutes(
-      durationBetween(createSeriesStartsTime.value, createSeriesEndsTime.value),
-    )
-  const effectiveFromError = validateEffectiveFrom(createSeriesEffectiveFrom.value)
-  const reasonError = validateReason(createSeriesReason.value)
-  const firstError =
-    weekdayError ?? startsTimeError ?? durationError ?? effectiveFromError ?? reasonError
-  if (firstError) {
-    createSeriesError.value = firstError
-    return
-  }
-
-  createSeriesStatus.value = 'saving'
-  const outcome = await createTimeBlockSeries(
-    selectedBarberId.value,
-    createSeriesType.value,
-    createSeriesWeekday.value,
-    createSeriesStartsTime.value,
-    durationBetween(createSeriesStartsTime.value, createSeriesEndsTime.value),
-    createSeriesEffectiveFrom.value,
-    createSeriesReason.value.trim() === '' ? null : createSeriesReason.value.trim(),
-    createSeriesIdempotencyKey,
-  )
-
-  switch (outcome.kind) {
-    case 'success':
-      requestToken++
-      series.value.push(outcome.series)
-      isCreateSeriesOpen.value = false
-      createSeriesStatus.value = 'idle'
-      toast.success('Serie agregada', { detail: 'La serie semanal ya está en el calendario.' })
-      return
-    case 'validation-error':
-      createSeriesStatus.value = 'validation-error'
-      return
-    case 'idempotency-conflict':
-      createSeriesStatus.value = 'idempotency-conflict'
-      return
-    case 'not-found':
-      createSeriesStatus.value = 'not-found'
-      return
-    case 'network-error':
-      createSeriesStatus.value = 'network-error'
-      return
-    case 'unexpected-error':
-      createSeriesStatus.value = 'unexpected-error'
-  }
-}
-
 async function onDeleteSeries(item: TimeBlockSeries) {
   if (!selectedBarberId.value || pendingDeleteSeriesIds.value.has(item.id)) return
   pendingDeleteSeriesIds.value = new Set(pendingDeleteSeriesIds.value).add(item.id)
@@ -455,9 +357,9 @@ async function onDeleteSeries(item: TimeBlockSeries) {
   })
 }
 
-// --- Series por fechas, edición y excepciones (#100) ---------------------
+// --- Bloqueo por días (semanal o fechas), edición y excepciones (#100, #495) ---------------------
 
-const isDateListOpen = ref(false)
+const isCreateDaysOpen = ref(false)
 const editingSeries = ref<TimeBlockSeries | null>(null)
 const isEditOpen = ref(false)
 const managingSeriesId = ref<string | null>(null)
@@ -466,7 +368,7 @@ const managingSeries = computed(
   () => series.value.find((item) => item.id === managingSeriesId.value) ?? null,
 )
 
-function onDateListCreated(created: TimeBlockSeries) {
+function onSeriesCreated(created: TimeBlockSeries) {
   requestToken++
   series.value.push(created)
 }
@@ -544,14 +446,8 @@ function seriesCounts(item: TimeBlockSeries): string {
         <BaseButton
           variant="secondary"
           :disabled="!barbershopTimezone || seriesStatus !== 'ready'"
-          @click="openCreateSeriesDialog"
-          >Agregar serie semanal</BaseButton
-        >
-        <BaseButton
-          variant="secondary"
-          :disabled="!barbershopTimezone || seriesStatus !== 'ready'"
-          @click="isDateListOpen = true"
-          >Agregar bloqueo por fechas</BaseButton
+          @click="isCreateDaysOpen = true"
+          >Agregar bloqueo por días</BaseButton
         >
       </div>
     </header>
@@ -909,125 +805,13 @@ function seriesCounts(item: TimeBlockSeries): string {
       >
     </BaseDialog>
 
-    <BaseDialog
-      v-model="isCreateSeriesOpen"
-      title="Agregar serie semanal"
-      :description="`Una pausa recurrente para ${barberName}.`"
-      size="lg"
-      content-class="block-dialog"
-      :close-on-backdrop="createSeriesStatus !== 'saving'"
-      :close-on-escape="createSeriesStatus !== 'saving'"
-      :show-close="createSeriesStatus !== 'saving'"
-      @close="onCreateSeriesDialogClosed"
-    >
-      <form
-        id="create-series-form"
-        class="blocks-page__form block-form"
-        @submit.prevent="onSubmitCreateSeries"
-      >
-        <div class="block-form__identity">
-          <BarberAvatar :full-name="barberName" :photo-url="photoUrl" size="row" />
-          <div>
-            <span class="blocks-panel__eyebrow">Serie semanal</span
-            ><strong>{{ barberName }}</strong>
-          </div>
-        </div>
-        <BaseSelect
-          id="create-series-type"
-          v-model="createSeriesType"
-          label="Tipo de bloqueo"
-          :options="BLOCK_TYPES"
-          :disabled="createSeriesStatus === 'saving'"
-        />
-        <BaseSelect
-          id="create-series-weekday"
-          v-model="createSeriesWeekday"
-          label="Día de la semana"
-          :options="ISO_WEEKDAYS"
-          :disabled="createSeriesStatus === 'saving'"
-        />
-        <div class="block-form__row">
-          <BaseTimePicker
-            v-model="createSeriesStartsTime"
-            label="Hora de inicio"
-            required
-            :disabled="createSeriesStatus === 'saving'"
-          /><BaseTimePicker
-            v-model="createSeriesEndsTime"
-            label="Hora de fin"
-            required
-            :disabled="createSeriesStatus === 'saving'"
-          />
-        </div>
-        <div class="block-form__date-field">
-          <label id="series-from-label" for="series-from"
-            >Vigente desde <span aria-hidden="true">*</span></label
-          >
-          <BaseDatePicker
-            v-model="createSeriesEffectiveFrom"
-            trigger-id="series-from"
-            label-id="series-from-label"
-            :today="todayCivilDate"
-            :disabled="createSeriesStatus === 'saving'"
-            required
-          />
-        </div>
-        <BaseInput
-          v-model="createSeriesReason"
-          type="text"
-          label="Motivo (opcional)"
-          :disabled="createSeriesStatus === 'saving'"
-        />
-        <div class="block-form__preview" aria-live="polite">
-          <span class="blocks-panel__eyebrow">Cada semana</span>
-          <p>{{ blockTypeLabel(createSeriesType) }} · {{ seriesPreview }}</p>
-          <small>{{ barbershopTimezone }}</small>
-        </div>
-        <BaseAlert v-if="createSeriesError" variant="danger">{{ createSeriesError }}</BaseAlert>
-        <BaseAlert v-else-if="createSeriesStatus === 'validation-error'" variant="danger"
-          >Revisa los datos de la serie.</BaseAlert
-        >
-        <BaseAlert v-else-if="createSeriesStatus === 'idempotency-conflict'" variant="danger"
-          >Este intento ya se envió con otros datos. Cierra y vuelve a abrir el formulario para
-          iniciar una serie nueva.</BaseAlert
-        >
-        <BaseAlert v-else-if="createSeriesStatus === 'not-found'" variant="danger"
-          >{{ v.ThisProfessional }} ya no está disponible.</BaseAlert
-        >
-        <BaseAlert
-          v-else-if="
-            createSeriesStatus === 'network-error' || createSeriesStatus === 'unexpected-error'
-          "
-          variant="danger"
-          >No pudimos guardar la serie. Tus datos siguen aquí; inténtalo de nuevo.</BaseAlert
-        >
-      </form>
-      <template #footer
-        ><div class="block-form__footer">
-          <BaseButton
-            variant="secondary"
-            :disabled="createSeriesStatus === 'saving'"
-            @click="isCreateSeriesOpen = false"
-            >Cancelar</BaseButton
-          ><BaseButton
-            type="submit"
-            form="create-series-form"
-            variant="primary"
-            :loading="createSeriesStatus === 'saving'"
-            :disabled="createSeriesStatus === 'saving'"
-            >Guardar serie</BaseButton
-          >
-        </div></template
-      >
-    </BaseDialog>
-
     <SeriesFormDialog
-      v-model="isDateListOpen"
-      mode="create-dates"
+      v-model="isCreateDaysOpen"
+      mode="create"
       :barber-id="barberId"
       :barber-name="barberName"
       :today="todayCivilDate"
-      @created="onDateListCreated"
+      @created="onSeriesCreated"
     />
     <SeriesFormDialog
       v-model="isEditOpen"

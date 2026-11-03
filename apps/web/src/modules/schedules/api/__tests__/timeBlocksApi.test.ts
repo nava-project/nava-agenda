@@ -17,6 +17,7 @@ vi.mock('@/shared/api/httpClient', () => ({
 const {
   fetchAffectedAppointments,
   createDateListSeries,
+  createTimeBlockSeries,
   updateTimeBlockSeries,
   addSeriesDate,
   removeSeriesDate,
@@ -89,6 +90,48 @@ describe('timeBlocksApi.createDateListSeries', () => {
     expect(await createDateListSeries('b-1', dateListInput, 'key-1')).toEqual({
       kind: 'network-error',
     })
+  })
+})
+
+describe('timeBlocksApi.createTimeBlockSeries', () => {
+  beforeEach(() => postMock.mockReset())
+
+  it('sends a weekly series with its optional end of validity', async () => {
+    postMock.mockResolvedValueOnce(result(201, seriesBody))
+
+    await createTimeBlockSeries(
+      'b-1',
+      'lunch',
+      3,
+      '13:00',
+      60,
+      '2027-01-04',
+      null,
+      'key-1',
+      '2027-03-01',
+    )
+
+    expect(postMock).toHaveBeenCalledWith('/private/barbers/{barberId}/time-block-series', {
+      params: { path: { barberId: 'b-1' }, header: { 'Idempotency-Key': 'key-1' } },
+      body: {
+        blockType: 'lunch',
+        recurrenceKind: 'weekly',
+        isoWeekday: 3,
+        startsTime: '13:00',
+        durationMinutes: 60,
+        effectiveFrom: '2027-01-04',
+        effectiveUntil: '2027-03-01',
+        reason: null,
+      },
+    })
+  })
+
+  it('leaves the validity open when no end is given', async () => {
+    postMock.mockResolvedValueOnce(result(201, seriesBody))
+
+    await createTimeBlockSeries('b-1', 'lunch', 1, '13:00', 60, '2027-01-04', null, 'key-2')
+
+    expect(postMock.mock.calls[0]![1].body.effectiveUntil).toBeNull()
   })
 })
 

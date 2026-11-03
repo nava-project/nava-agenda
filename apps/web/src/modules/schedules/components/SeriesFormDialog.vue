@@ -1,8 +1,12 @@
 <script setup lang="ts">
-// HU-042 / #100: alta de una serie por fechas explícitas (`date_list`, RN-BLQ-01
-// «bloqueo de varios días») y edición de cualquier serie por alcance. El
-// dueño de la lista es BarberBlocksPanel: aquí solo se pide el cambio y se
-// devuelve la serie que respondió la API.
+// HU-042 / #100 / #495: alta unificada del bloqueo por días y edición de cualquier
+// serie por alcance. Son la misma serie del API (`POST /time-block-series`): solo
+// cambia si se repite cada semana (`weekly`, uno o varios días de la semana) o
+// si ocurre en fechas explícitas (`date_list`, RN-BLQ-01 «bloqueo de varios
+// días»). El API recibe un día por serie, así que marcar varios días crea una
+// serie por día con la misma hora, vigencia y motivo. El dueño de la lista es
+// BarberBlocksPanel: aquí solo se pide el cambio y se devuelven las series que
+// respondió la API.
 import { computed, ref, useId, watch } from 'vue'
 import { shiftCivilDate } from '@/shared/time/civilDate'
 import { useToast } from '@/shared/composables'
@@ -15,7 +19,11 @@ import {
   BaseSelect,
   BaseTimePicker,
 } from '@/shared/ui'
-import { createDateListSeries, updateTimeBlockSeries } from '../api/timeBlocksApi'
+import {
+  createDateListSeries,
+  createTimeBlockSeries,
+  updateTimeBlockSeries,
+} from '../api/timeBlocksApi'
 import { displayCivilDate } from '../model/displayDate'
 import { newIdempotencyKey } from '../model/idempotencyKey'
 import {
@@ -25,6 +33,7 @@ import {
   type TimeBlockSeries,
 } from '../model/timeBlock'
 import { weekdayLabel } from '../model/workingHour'
+import WeekdayMultiPicker from './WeekdayMultiPicker.vue'
 import { validateDurationMinutes } from '../validation/scheduleValidation'
 import { durationBetween, minutesToTime, timeToMinutes } from '../model/weekBoard'
 import {
@@ -43,10 +52,11 @@ type SaveStatus =
   | 'unexpected-error'
 type Scope = 'whole' | 'this_and_following'
 type EndMode = 'open' | 'until'
+type Repeat = 'weekly' | 'dates'
 
 const props = defineProps<{
   modelValue: boolean
-  mode: 'create-dates' | 'edit'
+  mode: 'create' | 'edit'
   barberId: string
   barberName: string
   series?: TimeBlockSeries | null
@@ -66,9 +76,22 @@ const toast = useToast()
 const isEdit = computed(() => props.mode === 'edit')
 const isWeekly = computed(() => props.series?.recurrenceKind === 'weekly')
 
-const blockType = ref<BlockType>('vacation')
-const startsTime = ref('00:00')
-const endsTime = ref('00:00')
+// Valores iniciales por modo: una pausa semanal suele ser una franja (almuerzo) y
+// un bloqueo por fechas suele ser de día completo (vacaciones, día libre).
+const REPEAT_DEFAULTS: Record<Repeat, { type: BlockType; start: string; end: string }> = {
+  weekly: { type: 'lunch', start: '', end: '' },
+  dates: { type: 'vacation', start: '00:00', end: '00:00' },
+}
+const REPEAT_OPTIONS = [
+  { value: 'weekly' as Repeat, label: 'Cada semana', hint: 'Se repite los días que marques' },
+  { value: 'dates' as Repeat, label: 'Fechas elegidas', hint: 'Solo en los días que elijas' },
+]
+
+const repeat = ref<Repeat>('weekly')
+const weekdays = ref<number[]>([])
+const blockType = ref<BlockType>('lunch')
+const startsTime = ref('')
+const endsTime = ref('')
 const effectiveFrom = ref('')
 const endMode = ref<EndMode>('open')
 const effectiveUntil = ref('')
@@ -80,6 +103,9 @@ const splitDate = ref('')
 const error = ref<string | undefined>(undefined)
 const status = ref<SaveStatus>('idle')
 let idempotencyKey = newIdempotencyKey()
+// Una clave por día de la semana: un reintento tras un fallo parcial repite el mismo
+// intento lógico de cada día (RN-IDE-01) sin duplicar los que ya se crearon.
+const weekdayKeys = new Map<number, string>()
 
 const END_OPTIONS = [
   { value: 'open' as EndMode, label: 'Sin fecha de fin' },
@@ -91,13 +117,17 @@ const SCOPE_OPTIONS = [
 ]
 
 const title = computed(() =>
-  isEdit.value ? 'Editar serie de bloqueo' : 'Agregar bloqueo por fechas',
+  isEdit.value ? 'Editar serie de bloqueo' : 'Agregar bloqueo por días',
 )
 const description = computed(() =>
   isEdit.value
     ? `Cambia el tipo, la hora o la vigencia de esta serie de ${props.barberName}.`
-    : `Una pausa en fechas elegidas, sin repetirse cada semana, para ${props.barberName}.`,
+    : `Elige si se repite cada semana o solo ocurre en fechas concretas, para ${props.barberName}.`,
 )
+const isWeeklyCreate = computed(() => !isEdit.value && repeat.value === 'weekly')
+const isDatesCreate = computed(() => !isEdit.value && repeat.value === 'dates')
+// En fechas elegidas la vigencia sale de las propias fechas: no se pide aparte.
+const showValidity = computed(() => !isDatesCreate.value)
 const splitting = computed(
   () => isEdit.value && isWeekly.value && scope.value === 'this_and_following',
 )
@@ -111,6 +141,7 @@ function reset() {
   scope.value = 'whole'
   splitDate.value = ''
   idempotencyKey = newIdempotencyKey()
+  weekdayKeys.clear()
   const current = props.series
   if (isEdit.value && current) {
     blockType.value = current.blockType
@@ -123,9 +154,11 @@ function reset() {
     dates.value = []
     return
   }
-  blockType.value = 'vacation'
-  startsTime.value = '00:00'
-  endsTime.value = '00:00'
+  repeat.value = 'weekly'
+  weekdays.value = []
+  blockType.value = REPEAT_DEFAULTS.weekly.type
+  startsTime.value = REPEAT_DEFAULTS.weekly.start
+  endsTime.value = REPEAT_DEFAULTS.weekly.end
   effectiveFrom.value = ''
   endMode.value = 'open'
   effectiveUntil.value = ''
@@ -140,6 +173,28 @@ watch(
   },
   { immediate: true },
 )
+
+// Al cambiar de modo se cambian también los valores iniciales, salvo lo que la persona
+// ya tocó: solo se reemplaza lo que sigue valiendo el predeterminado del modo anterior.
+watch(repeat, (next, previous) => {
+  const from = REPEAT_DEFAULTS[previous]
+  const to = REPEAT_DEFAULTS[next]
+  error.value = undefined
+  if (blockType.value === from.type) blockType.value = to.type
+  if (startsTime.value === from.start && endsTime.value === from.end) {
+    startsTime.value = to.start
+    endsTime.value = to.end
+  }
+})
+
+function onRepeatKeydown(event: KeyboardEvent) {
+  if (!['ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown'].includes(event.key)) return
+  event.preventDefault()
+  const next = repeat.value === 'weekly' ? 'dates' : 'weekly'
+  repeat.value = next
+  const group = event.currentTarget as HTMLElement
+  group.querySelector<HTMLButtonElement>(`[data-repeat="${next}"]`)?.focus()
+}
 
 function addPendingDate() {
   error.value = undefined
@@ -156,11 +211,27 @@ function removePendingDate(date: string) {
   dates.value = dates.value.filter((item) => item !== date)
 }
 
+// «lunes, miércoles y viernes»
+function joinDays(days: number[]): string {
+  const names = days.map((day) => weekdayLabel(day).toLowerCase())
+  if (names.length <= 1) return names.join('')
+  return `${names.slice(0, -1).join(', ')} y ${names[names.length - 1]}`
+}
+
 const summary = computed(() => {
   const kind = blockTypeLabel(blockType.value)
   const clock = `${startsTime.value || '—'} → ${endsTime.value || '—'}`
   if (isEdit.value && isWeekly.value && props.series?.isoWeekday) {
     return `${kind} · ${weekdayLabel(props.series.isoWeekday)} · ${clock}`
+  }
+  if (isWeeklyCreate.value) {
+    const days = weekdays.value.length > 0 ? `cada ${joinDays(weekdays.value)}` : 'elige los días'
+    return `${kind} · ${days} · ${clock}`
+  }
+  if (isDatesCreate.value) {
+    const count = dates.value.length
+    const when = count === 0 ? 'elige las fechas' : count === 1 ? '1 fecha' : `${count} fechas`
+    return `${kind} · ${when} · ${clock}`
   }
   return `${kind} · ${clock}`
 })
@@ -172,6 +243,12 @@ function validate(): string | undefined {
     validateDurationMinutes(duration.value) ??
     validateReason(reason.value)
   if (base) return base
+  if (isWeeklyCreate.value && weekdays.value.length === 0) {
+    return 'Elige al menos un día de la semana.'
+  }
+  if (isDatesCreate.value) {
+    return dates.value.length === 0 ? 'Agrega al menos una fecha.' : undefined
+  }
 
   const from = splitting.value ? splitDate.value : effectiveFrom.value
   const fromError = validateEffectiveFrom(from)
@@ -188,14 +265,6 @@ function validate(): string | undefined {
     const untilError = validateEffectiveFrom(effectiveUntil.value)
     if (untilError) return 'Elige la fecha de fin de la vigencia.'
     if (effectiveUntil.value < from) return 'La vigencia no puede terminar antes de empezar.'
-  }
-  if (!isEdit.value) {
-    if (dates.value.length === 0) return 'Agrega al menos una fecha.'
-    const outside = dates.value.find(
-      (date) =>
-        date < effectiveFrom.value || (endMode.value === 'until' && date > effectiveUntil.value),
-    )
-    if (outside) return `El ${displayCivilDate(outside)} queda fuera de la vigencia de la serie.`
   }
   return undefined
 }
@@ -222,22 +291,37 @@ async function onSubmit() {
   }
 
   status.value = 'saving'
-  if (!isEdit.value) {
+  if (isDatesCreate.value) {
+    // La vigencia abarca desde la primera fecha elegida, sin fin: así las fechas
+    // que se añadan después desde «Fechas y excepciones» siguen dentro de ella.
     const outcome = await createDateListSeries(
       props.barberId,
-      { ...common, effectiveFrom: effectiveFrom.value, explicitDates: dates.value },
+      {
+        ...common,
+        effectiveFrom: dates.value[0]!,
+        effectiveUntil: null,
+        explicitDates: dates.value,
+      },
       idempotencyKey,
     )
     if (outcome.kind === 'success') {
       status.value = 'idle'
       emit('created', outcome.series)
       emit('update:modelValue', false)
-      toast.success('Bloqueo por fechas agregado', {
-        detail: `Las ${outcome.series.dates.length} fechas ya están en el calendario.`,
+      toast.success('Bloqueo agregado', {
+        detail:
+          outcome.series.dates.length === 1
+            ? 'La fecha ya está en el calendario.'
+            : `Las ${outcome.series.dates.length} fechas ya están en el calendario.`,
       })
       return
     }
     fail(outcome.kind)
+    return
+  }
+
+  if (isWeeklyCreate.value) {
+    await createWeekly(common)
     return
   }
 
@@ -264,6 +348,55 @@ async function onSubmit() {
   fail(outcome.kind)
 }
 
+async function createWeekly(common: {
+  blockType: BlockType
+  startsTime: string
+  durationMinutes: number
+  effectiveUntil: string | null
+  reason: string | null
+}) {
+  const created: number[] = []
+  let failure: Exclude<SaveStatus, 'idle' | 'saving'> | null = null
+  for (const day of weekdays.value) {
+    let key = weekdayKeys.get(day)
+    if (!key) {
+      key = newIdempotencyKey()
+      weekdayKeys.set(day, key)
+    }
+    const outcome = await createTimeBlockSeries(
+      props.barberId,
+      common.blockType,
+      day,
+      common.startsTime,
+      common.durationMinutes,
+      effectiveFrom.value,
+      common.reason,
+      key,
+      common.effectiveUntil,
+    )
+    if (outcome.kind !== 'success') {
+      failure = outcome.kind
+      break
+    }
+    created.push(day)
+    emit('created', outcome.series)
+  }
+
+  if (failure === null) {
+    status.value = 'idle'
+    emit('update:modelValue', false)
+    toast.success('Bloqueo agregado', { detail: `Se repite cada ${joinDays(created)}.` })
+    return
+  }
+  // Fallo a medias: lo creado ya está en el calendario; quedan marcados solo los
+  // días pendientes para reintentarlos sin duplicar.
+  if (created.length > 0) {
+    weekdays.value = weekdays.value.filter((day) => !created.includes(day))
+    error.value = `Ya se agregó cada ${joinDays(created)}. No pudimos guardar el resto: ${joinDays(weekdays.value)}. Inténtalo de nuevo.`
+  }
+  fail(failure)
+}
+
 const previousDay = computed(() =>
   splitting.value && splitDate.value ? shiftCivilDate(splitDate.value, -1) : null,
 )
@@ -282,11 +415,45 @@ const previousDay = computed(() =>
     @update:model-value="emit('update:modelValue', $event)"
   >
     <form :id="`series-form-${uid}`" class="block-form" @submit.prevent="onSubmit">
+      <div v-if="!isEdit" class="block-form__repeat">
+        <span :id="`series-repeat-label-${uid}`" class="block-form__repeat-label"
+          >Cuándo ocurre</span
+        >
+        <div
+          class="block-form__repeat-group"
+          role="radiogroup"
+          :aria-labelledby="`series-repeat-label-${uid}`"
+          @keydown="onRepeatKeydown"
+        >
+          <button
+            v-for="option in REPEAT_OPTIONS"
+            :key="option.value"
+            type="button"
+            role="radio"
+            class="block-form__repeat-option"
+            :class="{ 'block-form__repeat-option--on': repeat === option.value }"
+            :data-repeat="option.value"
+            :aria-checked="repeat === option.value"
+            :tabindex="repeat === option.value ? 0 : -1"
+            :disabled="busy"
+            @click="repeat = option.value"
+          >
+            <strong>{{ option.label }}</strong>
+            <small>{{ option.hint }}</small>
+          </button>
+        </div>
+      </div>
       <BaseSelect
         :id="`series-type-${uid}`"
         v-model="blockType"
         label="Tipo de bloqueo"
         :options="BLOCK_TYPES"
+        :disabled="busy"
+      />
+      <WeekdayMultiPicker
+        v-if="isWeeklyCreate"
+        v-model="weekdays"
+        label="Días de la semana"
         :disabled="busy"
       />
       <BaseSelect
@@ -314,7 +481,7 @@ const previousDay = computed(() =>
         <BaseTimePicker v-model="startsTime" label="Hora de inicio" required :disabled="busy" />
         <BaseTimePicker v-model="endsTime" label="Hora de fin" required :disabled="busy" />
       </div>
-      <div v-if="!splitting" class="block-form__date-field">
+      <div v-if="showValidity && !splitting" class="block-form__date-field">
         <label :id="`series-from-label-${uid}`" :for="`series-from-${uid}`"
           >Vigente desde <span aria-hidden="true">*</span></label
         >
@@ -328,13 +495,14 @@ const previousDay = computed(() =>
         />
       </div>
       <BaseSelect
+        v-if="showValidity"
         :id="`series-end-${uid}`"
         v-model="endMode"
         label="Fin de la vigencia"
         :options="END_OPTIONS"
         :disabled="busy"
       />
-      <div v-if="endMode === 'until'" class="block-form__date-field">
+      <div v-if="showValidity && endMode === 'until'" class="block-form__date-field">
         <label :id="`series-until-label-${uid}`" :for="`series-until-${uid}`"
           >Vigente hasta <span aria-hidden="true">*</span></label
         >
@@ -348,7 +516,7 @@ const previousDay = computed(() =>
         />
       </div>
 
-      <fieldset v-if="!isEdit" :disabled="busy">
+      <fieldset v-if="isDatesCreate" :disabled="busy">
         <legend>Fechas del bloqueo</legend>
         <ul v-if="dates.length" class="block-chips" aria-label="Fechas elegidas">
           <li v-for="date in dates" :key="date">
@@ -395,8 +563,7 @@ const previousDay = computed(() =>
 
       <BaseAlert v-if="error" variant="danger">{{ error }}</BaseAlert>
       <BaseAlert v-else-if="status === 'validation-error'" variant="danger"
-        >Revisa los datos: las fechas deben quedar dentro de la vigencia y la hora dentro del
-        día.</BaseAlert
+        >Revisa los datos: la hora debe quedar dentro del día y las fechas ser válidas.</BaseAlert
       >
       <BaseAlert v-else-if="status === 'idempotency-conflict'" variant="danger"
         >Este intento ya se envió con otros datos. Cierra y vuelve a abrir el formulario para

@@ -7,6 +7,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { mount, flushPromises, type VueWrapper } from '@vue/test-utils'
 import { BaseInput, BaseDatePicker, BaseTimePicker, BaseSelect } from '@/shared/ui'
+import WeekdayMultiPicker from '../WeekdayMultiPicker.vue'
 import { toastState } from '@/shared/model/toastStore'
 import { DEFAULT_BRAND, resetBrand, setBrand } from '@/shared/model'
 import { displayCivilDate } from '../../model/displayDate'
@@ -357,39 +358,6 @@ describe('BarberBlocksPanel · avisos emergentes (DEC-095)', () => {
     wrapper.unmount()
   })
 
-  it('creates a weekly series for the context barber and confirms it in the list', async () => {
-    const wrapper = await mountReady()
-    createTimeBlockSeriesMock.mockResolvedValueOnce({
-      kind: 'success',
-      series: { ...weeklySeries, id: 'ser-2' },
-    })
-    await wrapper
-      .findAll('button')
-      .find((button) => button.text() === 'Agregar serie semanal')!
-      .trigger('click')
-    await flushPromises()
-    const form = wrapper.findAll('form.blocks-page__form')[1]!
-    const times = form.findAllComponents(BaseTimePicker)
-    times[0]!.vm.$emit('update:modelValue', '12:00')
-    times[1]!.vm.$emit('update:modelValue', '12:45')
-    form.getComponent(BaseDatePicker).vm.$emit('update:modelValue', '2099-01-01')
-    await flushPromises()
-    await form.trigger('submit')
-    await flushPromises()
-    expect(createTimeBlockSeriesMock.mock.calls[0]!.slice(0, 7)).toEqual([
-      'b-1',
-      'lunch',
-      1,
-      '12:00',
-      45,
-      '2099-01-01',
-      null,
-    ])
-    expect(wrapper.findAll('.blocks-panel__record')).toHaveLength(3)
-    expect(toastState.items.map((item) => item.title)).toEqual(['Serie agregada'])
-    wrapper.unmount()
-  })
-
   it('disables creation when the timezone is unavailable and allows a safe retry', async () => {
     fetchBarbershopTimezoneMock.mockResolvedValueOnce({ kind: 'unavailable' })
     const wrapper = await mountReady()
@@ -591,16 +559,17 @@ describe('BarberBlocksPanel · series por fechas, edición y excepciones (#100)'
         dates: [{ blockDate: '2099-12-15' }, { blockDate: '2099-12-16' }],
       },
     })
-    const title = 'Agregar bloqueo por fechas'
+    const title = 'Agregar bloqueo por días'
 
     await wrapper
       .findAll('button')
       .find((b) => b.text() === title)!
       .trigger('click')
     await flushPromises()
-    await pickDate(wrapper, title, 0, '2099-12-01')
+    await dialogOf(wrapper, title).get('[data-repeat="dates"]').trigger('click')
+    await flushPromises()
     for (const date of ['2099-12-15', '2099-12-16']) {
-      await pickDate(wrapper, title, 1, date)
+      await pickDate(wrapper, title, 0, date)
       await press(wrapper, title, 'Añadir a la lista')
     }
     await submit(wrapper, title)
@@ -610,6 +579,41 @@ describe('BarberBlocksPanel · series por fechas, edición y excepciones (#100)'
     expect(records).toHaveLength(2)
     expect(records[1]!.text()).toContain('Vacaciones')
     expect(records[1]!.text()).toContain('2 fechas')
+  })
+
+  it('creates one weekly series per chosen weekday and lists them', async () => {
+    const wrapper = await mountReady()
+    createTimeBlockSeriesMock
+      .mockResolvedValueOnce({
+        kind: 'success',
+        series: { ...weeklySeries, id: 'ser-2', isoWeekday: 2 },
+      })
+      .mockResolvedValueOnce({
+        kind: 'success',
+        series: { ...weeklySeries, id: 'ser-4', isoWeekday: 4 },
+      })
+    const title = 'Agregar bloqueo por días'
+
+    await wrapper
+      .findAll('button')
+      .find((b) => b.text() === title)!
+      .trigger('click')
+    await flushPromises()
+    const dialog = dialogOf(wrapper, title)
+    dialog.getComponent(WeekdayMultiPicker).vm.$emit('update:modelValue', [2, 4])
+    const times = dialog.findAllComponents(BaseTimePicker)
+    times[0]!.vm.$emit('update:modelValue', '12:00')
+    times[1]!.vm.$emit('update:modelValue', '12:45')
+    await pickDate(wrapper, title, 0, '2099-01-01')
+    await submit(wrapper, title)
+
+    expect(createTimeBlockSeriesMock.mock.calls.map((call) => call.slice(0, 7))).toEqual([
+      ['b-1', 'lunch', 2, '12:00', 45, '2099-01-01', null],
+      ['b-1', 'lunch', 4, '12:00', 45, '2099-01-01', null],
+    ])
+    expect(seriesRecords(wrapper)).toHaveLength(3)
+    expect(toastState.items.map((item) => item.title)).toEqual(['Bloqueo agregado'])
+    wrapper.unmount()
   })
 
   it('edits the whole series in place', async () => {
