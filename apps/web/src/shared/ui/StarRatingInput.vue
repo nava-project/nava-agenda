@@ -1,6 +1,6 @@
 <script setup lang="ts">
 /**
- * StarRatingInput - Calificación de 1 a 5 estrellas (DEC-128, HU-100).
+ * StarRatingInput - Calificación de 1 a 5 diamantes (DEC-128, HU-100; rombos de NAVA, issue #487).
  * Un grupo de radios nativos (teclado y lector sin código extra: flechas mueven la
  * selección, Tab entra y sale del grupo) con un `<fieldset>` y su `<legend>`. Cada
  * estrella tiene el nombre accesible «N de 5 estrellas»; el foco visible lo pinta
@@ -27,8 +27,8 @@ const errorId = `${name}-error`
 const stars = Array.from({ length: MAX_RATING }, (_, i) => i + 1)
 const describedBy = computed(() => (props.error ? errorId : undefined))
 
-const STAR_PATH =
-  'M12 2.5l2.94 5.96 6.58.96-4.76 4.64 1.12 6.55L12 17.52l-5.88 3.09 1.12-6.55L2.48 9.42l6.58-.96L12 2.5z'
+// Rombo: el diamante de la identidad NAVA (DEC-095, rombos de estado), no una estrella.
+const STAR_PATH = 'M12 2.5l8.5 9.5-8.5 9.5L3.5 12z'
 </script>
 
 <template>
@@ -56,11 +56,11 @@ const STAR_PATH =
           viewBox="0 0 24 24"
           aria-hidden="true"
         >
-          <path :d="STAR_PATH" stroke-width="1.2" stroke-linejoin="round" />
+          <path :d="STAR_PATH" stroke-width="1.2" stroke-linejoin="miter" />
         </svg>
       </label>
       <span class="star-input__value" aria-hidden="true">
-        {{ modelValue === null ? 'Toca una estrella' : `${modelValue} de ${MAX_RATING}` }}
+        {{ modelValue === null ? 'Toca un diamante' : `${modelValue} de ${MAX_RATING}` }}
       </span>
     </div>
     <p v-if="error" :id="errorId" class="star-input__error" role="alert">{{ error }}</p>

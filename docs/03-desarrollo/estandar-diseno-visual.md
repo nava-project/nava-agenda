@@ -1,9 +1,9 @@
 ---
 titulo: "Estándar visual NAVA para rediseños y pantallas nuevas"
-version: "5.15"
+version: "5.16"
 estado: "Normativo para rediseños y pantallas nuevas"
 responsable: "Propietario del proyecto"
-ultima_actualizacion: "2026-11-02"
+ultima_actualizacion: "2026-11-03"
 documentos_relacionados:
   - "../00-control/registro-decisiones.md"
   - "../01-producto/alcance-mvp.md"
@@ -299,6 +299,11 @@ Ningún texto visible baja de 12 px; el monograma decorativo de un retrato peque
 - **Ficha:** cinta métrica de latón en el borde superior, filete lateral de 4 px del color del estado y una franja de tiempo decorativa (hora de inicio, regla con rombos y la duración, hora de fin; `aria-hidden`). La franja de tiempo muestra la fecha con la zona horaria de la barbería. Los hechos van en una cuadrícula de tres columnas desde 1024 px (dos entre 768 y 1023, una debajo), con el rótulo en versalitas de latón sobre el valor y el servicio a doble ancho; la hora no se repite como hecho visible (queda solo para lectores de pantalla) y no hay iconos sueltos. La ficha no reserva más espacio del que necesita su contenido (#475). Desde 1024 px el contenido tiene un ancho máximo de 1280 px y se centra en horizontal; si la ventana es más alta que el contenido, el enlace de regreso, la cabecera y la ficha forman un grupo que reparte el espacio sobrante por igual arriba y abajo, sin quedar pegado a la parte superior (#477). Los estados de carga, error y no encontrado conservan su posición. La tarjeta de reprogramar (#479) es una tarjeta centrada de hasta 620 px sobre la superficie del modo activo (`--color-surface-strong`), con filete de latón superior, título serif, una comparación «Horario actual → Vista previa» (en columna en móvil), campos de fecha y hora reglados sobre tinta y botones de latón; no se ancla al borde inferior. La tarjeta de cancelar (#481) usa la misma superficie (520 px), con el filete superior en color de peligro y, en vez de un párrafo, una ficha del turno que se cancela (persona atendida en serif, fecha, horario tachado por una línea de peligro que se dibuja al abrir, y servicio · barbero · duración) seguida de dos filas cortas con icono —la franja se libera si es futura; la acción no se puede deshacer desde aquí— (#483), y «Sí, cancelar turno» con contorno y texto de peligro; las de completar/no-show y corregir conservan por ahora la superficie clara. La ficha usa los tokens de superficie sobre tinta (`--color-on-strong*` y el acento de marca), por lo que sigue los modos Tinta, Marfil y Automático (§6.9): un turno vigente lleva un velo tenue del color del texto con contorno; uno terminal cambia de material a contorno puro del color del estado (§6.7).
 - **Historial:** línea de tiempo con marcas cuadradas de filete de latón, la más reciente llena; sin eventos, un rombo hueco y el texto de siempre. En móvil pasa bajo la ficha.
 - **Movimiento:** utilidades `nv-*` (§6.11) y la cinta y la regla se dibujan con `clip-path`; `prefers-reduced-motion` y `data-motion="reduced"` lo dejan compuesto. Los diálogos (reprogramar, cancelar, cerrar, corregir) no cambian.
+
+### 6.16 Reseñas y calificación
+
+- La calificación se dibuja con **diamantes** (rombos de la identidad NAVA), no con estrellas: `StarRating` (lectura, relleno proporcional del diamante) y `StarRatingInput` (selector de 1 a 5) comparten el mismo trazo. Los nombres de los componentes y el texto accesible («N de 5 estrellas», «4,5 de 5 · 12 reseñas») no cambian (`DEC-128`).
+- En el perfil individual (`/panel/barberos`, `DEC-115`) «Ver reseñas» es un botón fantasma de latón con icono de línea, igual que «Editar mi perfil». Al pulsarlo las reseñas se abren en un **cuadro a la derecha** de la ficha —no dentro de ella—, con la misma tinta hundida y filete de latón, la altura de la ficha y el scroll vertical dentro de la lista. En ≤ 960 px el cuadro baja bajo la ficha. «Cerrar» y Escape lo cierran y devuelven el foco al botón. El detalle de barbero de un equipo conserva la lista desplegada bajo el resumen.
 
 ## 7. Zona de libertad creativa
 

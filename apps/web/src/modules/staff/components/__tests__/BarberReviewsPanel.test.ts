@@ -141,4 +141,62 @@ describe('BarberReviewsPanel', () => {
 
     expect(wrapper.findAll('li')).toHaveLength(2)
   })
+
+  // Issue #487: en el perfil individual la lista vive en un cuadro a la derecha de la
+  // ficha, con scroll propio, no dentro de la tarjeta del barbero.
+  describe('cuadro lateral (asideTo)', () => {
+    function mountAside() {
+      const target = document.createElement('div')
+      target.id = 'aside-target'
+      document.body.appendChild(target)
+      const wrapper = mount(BarberReviewsPanel, {
+        attachTo: document.body,
+        props: { barberId: BARBER, rating: 3, ratingCount: 2, asideTo: '#aside-target' },
+      })
+      return { wrapper, target }
+    }
+
+    it('draws the list in the target, outside the summary, and reports open/close', async () => {
+      getMock.mockResolvedValueOnce(ok(both))
+      const { wrapper, target } = mountAside()
+      await wrapper.get('button').trigger('click')
+      await flushPromises()
+
+      expect(wrapper.find('li').exists()).toBe(false)
+      const aside = target.querySelector('aside')!
+      expect(aside.getAttribute('aria-label')).toBe('Reseñas del barbero')
+      expect(aside.querySelectorAll('li')).toHaveLength(2)
+      const scroll = aside.querySelector('[aria-label="Lista de reseñas"]')!
+      expect(scroll.getAttribute('tabindex')).toBe('0')
+      expect(wrapper.emitted('openChange')).toEqual([[true]])
+
+      const close = [...aside.querySelectorAll('button')].find(
+        (b) => b.textContent?.trim() === 'Cerrar',
+      )!
+      close.click()
+      await flushPromises()
+      expect(target.querySelector('aside')).toBeNull()
+      expect(wrapper.emitted('openChange')).toEqual([[true], [false]])
+      expect(document.activeElement?.textContent?.trim()).toBe('Ver reseñas')
+      wrapper.unmount()
+      target.remove()
+    })
+
+    it('closes with Escape and returns focus to the button', async () => {
+      getMock.mockResolvedValueOnce(ok(both))
+      const { wrapper, target } = mountAside()
+      await wrapper.get('button').trigger('click')
+      await flushPromises()
+
+      target
+        .querySelector('aside')!
+        .dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }))
+      await flushPromises()
+
+      expect(target.querySelector('aside')).toBeNull()
+      expect(document.activeElement?.textContent?.trim()).toBe('Ver reseñas')
+      wrapper.unmount()
+      target.remove()
+    })
+  })
 })
