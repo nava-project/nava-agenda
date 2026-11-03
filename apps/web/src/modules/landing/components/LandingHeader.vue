@@ -26,6 +26,7 @@ onBeforeUnmount(() => window.removeEventListener('scroll', onScroll))
       </a>
 
       <nav class="ln-head__nav" aria-label="Secciones">
+        <a href="#para-quien">Para quién</a>
         <a href="#asistente">Asistente de IA</a>
         <a href="#dia">Un día con NAVA</a>
         <a href="#plataforma">Plataforma</a>
@@ -90,7 +91,7 @@ onBeforeUnmount(() => window.removeEventListener('scroll', onScroll))
 
 .ln-head__nav {
   display: none;
-  gap: 34px;
+  gap: 28px;
   margin-inline: auto;
 }
 

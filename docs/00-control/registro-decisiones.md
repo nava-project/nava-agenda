@@ -1906,3 +1906,19 @@ Cada código `DEC-*` es estable y no se reutiliza. Este registro normaliza respu
 - **Alternativas descartadas:** repetir en el acceso la cabecera completa de la landing con sus anclas (cambiaría la composición de las pantallas de mockup y obligaría a un scroll con hash entre rutas sin necesidad); un enlace dentro de la tarjeta (competiría con la acción principal y desplazaría el formulario).
 - **Documentos afectados:** `historial-cambios.md`, `AuthSplitLayout.vue` y sus pruebas. Las capturas versionadas de `e2e/evidence/auth-eventos/` son anteriores a la barra y no se regeneran; la evidencia de la barra vive en `e2e/evidence/acceso-volver-presentacion/`.
 - **Fuente:** issue [#517](https://github.com/bcaceres19/barberia/issues/517); `DEC-151`.
+
+### DEC-153 · La landing habla a independientes, equipos y cualquier negocio que agende citas
+
+- **Fecha:** 2026-11-03.
+- **Decisión:**
+  1. La landing de `DEC-151` deja de presentar NAVA como un producto solo para barberías: el titular dice «La agenda de tu negocio, cortada a medida», el apoyo se presenta como «agenda de citas para independientes y equipos», las acciones dicen «Quiero NAVA para mi negocio» y el contacto «a tu negocio».
+  2. Nueva sección «Para quién es» con los dos perfiles de panel que el producto ya tiene (`DEC-115`, `DEC-134`: «Trabajo por mi cuenta» y «Dirijo un equipo») y una cinta de nichos **de ejemplo** (barberías, salones, uñas, spas y masajes, tatuajes y piercing, consultorios y terapias, «y cualquier negocio que agende citas»). No es un catálogo cerrado ni una promesa de funciones por nicho.
+  3. La agenda y el recorrido de demostración mezclan servicios de varios nichos (corte, barba, color, manicure, masaje, facial); «Tu marca» ya ofrecía barbería, salón, estudio de uñas y spa (`DEC-110`, `DEC-119`).
+  4. El título del documento pasa de «Agenda de barbería» a «NAVA · Agenda de citas».
+  5. Es solo comunicación: no cambia funciones, contrato, API ni base de datos.
+- **Quién lo decidió:** el propietario, el 2026-11-03: «recuerda que NAVA es ya sea para independientes o equipos de barbería u otro tipo de nicho que necesita agendamiento de citas».
+- **Responsable:** propietario del proyecto.
+- **Motivo:** el copy inicial asumía una barbería con equipo y dejaba fuera al profesional independiente y a otros nichos que NAVA ya soporta por configuración.
+- **Alternativas descartadas:** una landing por nicho (multiplica páginas sin necesidad); listar funciones específicas por nicho (no existen más allá del vocabulario configurable).
+- **Documentos afectados:** `historial-cambios.md`, módulo `apps/web/src/modules/landing`, `index.html` y sus pruebas.
+- **Fuente:** issue [#519](https://github.com/bcaceres19/barberia/issues/519); `DEC-151`.

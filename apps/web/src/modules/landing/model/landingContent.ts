@@ -30,7 +30,7 @@ const PHONE_DISPLAY = '+57 301 682 3624'
 const EMAIL = 'bacg20044@gmail.com'
 
 const WHATSAPP_GREETING =
-  'Hola, vi la página de NAVA y quiero saber cómo contratarla para mi barbería.'
+  'Hola, vi la página de NAVA y quiero saber cómo contratarla para mi negocio.'
 
 // Un solo número atiende por WhatsApp y por llamada: es una fila con dos
 // acciones, no dos canales repetidos.
@@ -113,7 +113,7 @@ export interface AssistantLine {
 // Conversación de demostración. Es ficticia a propósito: no hay nombres,
 // teléfonos ni horarios de ninguna barbería real.
 export const assistantDemo: readonly AssistantLine[] = [
-  { from: 'client', text: 'Hola, ¿tienen un hueco hoy después de las 5 para corte y barba?' },
+  { from: 'client', text: 'Hola, ¿tienen un hueco hoy después de las 5?' },
   {
     from: 'assistant',
     text: 'Claro. Hoy tenemos estas horas libres con cualquier profesional:',
@@ -137,7 +137,7 @@ export const assistantPoints: readonly { title: string; body: string }[] = [
   },
   {
     title: 'Lleva al cliente a reservar',
-    body: 'Cierra la conversación con el enlace de reserva de tu barbería, listo para confirmar.',
+    body: 'Cierra la conversación con el enlace de reserva de tu negocio, listo para confirmar.',
   },
 ]
 
@@ -153,7 +153,7 @@ export const journeySteps: readonly JourneyStep[] = [
   {
     time: '8:40 am · Un cliente escribe',
     title: 'Pregunta por el chat y recibe respuesta al instante',
-    body: 'El asistente de IA mira la agenda real, ofrece las horas libres y le pasa el enlace de reserva de tu barbería.',
+    body: 'El asistente de IA mira la agenda real, ofrece las horas libres y le pasa el enlace de reserva de tu negocio.',
   },
   {
     time: '8:42 am · Reserva',
@@ -185,13 +185,60 @@ export interface LandingStep {
 // Cómo se empieza. Sin plazos ni precios: la landing no promete lo que no
 // está acordado.
 export const startSteps: readonly LandingStep[] = [
-  { title: 'Hablamos', body: 'Nos cuentas cuántas personas trabajan contigo y cómo agendas hoy.' },
+  {
+    title: 'Hablamos',
+    body: 'Nos cuentas si trabajas por tu cuenta o con un equipo, y cómo agendas hoy.',
+  },
   {
     title: 'Armamos tu NAVA',
-    body: 'Cargamos tu equipo, tus servicios y tus horarios, con tu color y tus palabras.',
+    body: 'Cargamos tus servicios y tus horarios (y tu equipo, si lo tienes), con tu color y tus palabras.',
   },
   {
     title: 'Abres tu agenda',
     body: 'Compartes tu enlace de reservas y empiezas a recibir turnos.',
   },
+]
+
+export interface LandingAudience {
+  id: 'independiente' | 'equipo'
+  title: string
+  lead: string
+  points: readonly string[]
+}
+
+// Los dos perfiles de panel que NAVA ya tiene (DEC-115, DEC-134): quien trabaja
+// por su cuenta y quien dirige un equipo.
+export const landingAudiences: readonly LandingAudience[] = [
+  {
+    id: 'independiente',
+    title: 'Trabajo por mi cuenta',
+    lead: 'Tu agenda, tu enlace de reservas y tus horarios. Sin pantallas de equipo que no necesitas.',
+    points: [
+      'Un panel hecho para una sola persona',
+      'Tu propio enlace para que reserven sin escribirte',
+      'Recordatorios que reducen las ausencias',
+    ],
+  },
+  {
+    id: 'equipo',
+    title: 'Dirijo un equipo',
+    lead: 'Varios profesionales, cada uno con sus servicios, su horario y su agenda, y tú viendo todo el día.',
+    points: [
+      'Una agenda con un carril por profesional',
+      'Servicios y horarios distintos para cada persona',
+      'Reseñas y reputación por profesional',
+    ],
+  },
+]
+
+// Ejemplos, no un catálogo cerrado: NAVA sirve a cualquier negocio que agende
+// citas (el nombre del negocio y del equipo se configuran, DEC-110/DEC-119).
+export const landingNiches: readonly string[] = [
+  'Barberías',
+  'Salones de belleza',
+  'Estudios de uñas',
+  'Spas y masajes',
+  'Tatuajes y piercing',
+  'Consultorios y terapias',
+  'Y cualquier negocio que agende citas',
 ]

@@ -27,7 +27,7 @@ const { seen } = useInView(root, 0.15)
           Tu chat nunca se queda <em>sin respuesta.</em>
         </h2>
         <p class="ln-lead ln-reveal" :data-seen="seen" style="--i: 2">
-          Un asistente de inteligencia artificial que atiende las conversaciones de tu barbería,
+          Un asistente de inteligencia artificial que atiende las conversaciones de tu negocio,
           conoce tu agenda y le da a cada cliente una respuesta clara y a tiempo.
         </p>
 

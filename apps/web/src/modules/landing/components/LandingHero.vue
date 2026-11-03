@@ -46,7 +46,7 @@ onBeforeUnmount(() => {
 
 // El titular se parte en palabras para entrar escalonado; «cortada a medida»
 // va en latón. El texto sigue siendo una sola frase para quien lo lee.
-const lead = ['La', 'agenda', 'de', 'tu', 'barbería,']
+const lead = ['La', 'agenda', 'de', 'tu', 'negocio,']
 const accent = ['cortada', 'a medida.']
 </script>
 
@@ -57,7 +57,9 @@ const accent = ['cortada', 'a medida.']
 
     <div class="ln-wrap hero__grid">
       <div class="hero__copy">
-        <p class="ln-eyebrow nv-rise" style="--i: 0">Gestión para barberías y salones</p>
+        <p class="ln-eyebrow nv-rise" style="--i: 0">
+          Agenda de citas para independientes y equipos
+        </p>
         <h1 id="hero-title" class="hero__title">
           <template v-for="(word, i) in lead" :key="word"
             ><span class="hero__word" :style="{ '--w': i }">{{ word }}</span
@@ -71,13 +73,14 @@ const accent = ['cortada', 'a medida.']
           </em>
         </h1>
         <p class="ln-lead nv-rise" style="--i: 6">
-          NAVA reúne turnos, equipo, horarios y reservas en un solo lugar. Y un asistente de IA
-          atiende el chat de tu negocio mientras tú atiendes a tu gente.
+          Barbería, salón, uñas, spa o lo que sea que agendes. NAVA reúne citas, horarios y reservas
+          en un solo lugar, trabajes por tu cuenta o dirijas un equipo. Y un asistente de IA atiende
+          el chat mientras tú atiendes a tu gente.
         </p>
 
         <div class="hero__actions nv-rise" style="--i: 7">
           <a class="ln-btn ln-btn--solid" href="#contacto">
-            Quiero NAVA en mi barbería
+            Quiero NAVA para mi negocio
             <svg
               viewBox="0 0 24 24"
               fill="none"
@@ -94,6 +97,7 @@ const accent = ['cortada', 'a medida.']
         </div>
 
         <ul class="hero__proof nv-rise" style="--i: 8">
+          <li>Para independientes y equipos</li>
           <li>Reservas sin crear cuenta</li>
           <li>Recordatorios por correo y WhatsApp</li>
           <li>Asistente de IA en tu chat</li>

@@ -5,6 +5,7 @@
 // la sesión y no depende de ningún otro módulo.
 import { onBeforeUnmount, onMounted } from 'vue'
 import AssistantSection from '../components/AssistantSection.vue'
+import AudienceSection from '../components/AudienceSection.vue'
 import BrandSection from '../components/BrandSection.vue'
 import CapabilitiesSection from '../components/CapabilitiesSection.vue'
 import ContactSection from '../components/ContactSection.vue'
@@ -21,6 +22,7 @@ import '../styles/landing.css'
 // lectura (hilo con rombos) y el cálculo de la sección activa.
 const sections = [
   { id: 'inicio', label: 'Inicio' },
+  { id: 'para-quien', label: 'Para quién es' },
   { id: 'asistente', label: 'Asistente de IA' },
   { id: 'dia', label: 'Un día con NAVA' },
   { id: 'marca', label: 'Tu marca' },
@@ -44,6 +46,7 @@ onBeforeUnmount(() => document.documentElement.classList.remove('ln-root'))
     <main id="contenido">
       <LandingHero />
       <LandingMarquee />
+      <AudienceSection />
       <AssistantSection />
       <JourneySection />
       <BrandSection />

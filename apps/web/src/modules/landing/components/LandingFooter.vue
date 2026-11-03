@@ -20,6 +20,7 @@ const callHref = computed(
 const mailHref = computed(() => mail.value.actions[0]!.href)
 
 const tour = [
+  { href: '#para-quien', label: 'Para quién es' },
   { href: '#asistente', label: 'Asistente de IA' },
   { href: '#dia', label: 'Un día con NAVA' },
   { href: '#marca', label: 'Tu marca' },
@@ -36,7 +37,7 @@ const tour = [
         <NavaWordmark variant="inverted" class="ft__mark" />
         <p class="ft__tag">Tu agenda, cortada a medida.</p>
         <a class="ln-btn ln-btn--solid" href="#contacto">
-          Quiero NAVA en mi barbería
+          Quiero NAVA para mi negocio
           <svg
             viewBox="0 0 24 24"
             fill="none"
@@ -70,7 +71,7 @@ const tour = [
     <div class="ft__giant" aria-hidden="true"><span>NAVA</span></div>
 
     <div class="ln-wrap ft__base">
-      <p>© {{ year }} NAVA · Gestión para barberías y salones</p>
+      <p>© {{ year }} NAVA · Agenda de citas para independientes y equipos</p>
       <a class="ft__top" href="#inicio">
         Volver arriba
         <svg

@@ -44,12 +44,18 @@ for (const viewport of viewports) {
     await page.setViewportSize({ width: viewport.width, height: viewport.height })
     await page.goto('/')
 
-    await expect(page.getByRole('heading', { level: 1 })).toContainText('La agenda de tu barbería')
+    await expect(page.getByRole('heading', { level: 1 })).toContainText('La agenda de tu negocio')
     await expect(
-      page.getByRole('link', { name: 'Quiero NAVA en mi barbería' }).first(),
+      page.getByRole('link', { name: 'Quiero NAVA para mi negocio' }).first(),
     ).toBeVisible()
     await expect(page.getByRole('link', { name: 'Iniciar sesión' }).first()).toBeVisible()
     await page.screenshot({ path: path.join(evidenceDir, `${viewport.name}-1-presentacion.png`) })
+
+    await page.locator('#para-quien').scrollIntoViewIfNeeded()
+    await expect(page.getByRole('heading', { name: /Para ti, para tu equipo/ })).toBeVisible()
+    await expect(page.getByText('Trabajo por mi cuenta')).toBeVisible()
+    await expect(page.getByText('Dirijo un equipo')).toBeVisible()
+    await page.screenshot({ path: path.join(evidenceDir, `${viewport.name}-1b-para-quien.png`) })
 
     await page.locator('#asistente').scrollIntoViewIfNeeded()
     await expect(page.getByRole('heading', { name: /Tu chat nunca se queda/ })).toBeVisible()

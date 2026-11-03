@@ -40,7 +40,7 @@ onBeforeUnmount(() => window.clearTimeout(resetTimer))
 
         <div class="ct__main">
           <p class="ln-eyebrow">Contrata NAVA</p>
-          <h2 id="ct-title" class="ln-title">Llevemos NAVA <em>a tu barbería.</em></h2>
+          <h2 id="ct-title" class="ln-title">Llevemos NAVA <em>a tu negocio.</em></h2>
           <p class="ln-lead">
             Cuéntanos cuántas personas trabajan contigo y cómo agendas hoy. Armamos NAVA a tu medida
             y te acompañamos en el arranque.

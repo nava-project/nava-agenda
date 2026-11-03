@@ -21,8 +21,8 @@ const { seen } = useInView(root, 0.1)
           Todo el negocio, <em>en el mismo patrón.</em>
         </h2>
         <p class="ln-lead ln-reveal" :data-seen="seen" style="--i: 2">
-          Pensada para quien corta, peina y atiende todo el día: pocas pantallas, claras, que se
-          entienden a la primera.
+          Pensada para quien atiende citas todo el día: pocas pantallas, claras, que se entienden a
+          la primera.
         </p>
       </header>
 
