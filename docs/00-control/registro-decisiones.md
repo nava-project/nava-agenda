@@ -1937,3 +1937,21 @@ Cada código `DEC-*` es estable y no se reutiliza. Este registro normaliza respu
 - **Alternativas descartadas:** vincular en el servidor al crear la cuenta independiente (cambia contrato y datos existentes sin necesidad); un botón de un clic (sigue pidiendo una acción sin opciones).
 - **Documentos afectados:** `historial-cambios.md`, módulo `apps/web/src/modules/integrations` y sus pruebas; refina `DEC-100`.
 - **Fuente:** issue [#521](https://github.com/bcaceres19/barberia/issues/521); `DEC-100`, `DEC-134`.
+
+### DEC-155 · Domicilio: detalles de la dirección, ubicación obligatoria y detección automática más exacta (revisa `DEC-138`)
+
+- **Fecha:** 2026-11-03.
+- **Decisión:**
+  1. **Sin buscador de dirección.** Se retira el autocompletado de la reserva a domicilio. La ubicación se marca de dos formas equivalentes y es **obligatoria**: la posición detectada del dispositivo o mover el mapa hasta que el pin fijo quede sobre el lugar. Un texto escrito sin punto marcado no es una ubicación.
+  2. **Detalles de la dirección.** Un campo opcional «Detalles de la dirección» (torre, apartamento, casa o una referencia; hasta 80 caracteres) se **antepone** al texto de la dirección que ya se guarda (`«Torre 2, apto 304 · Cl. 85 #15-20, Bogotá»`), recortando la dirección aproximada, nunca los detalles, para no pasar de los 200 caracteres de `appointment_home_service_ck`. No hay migración, columna nueva ni cambio de contrato: el servidor sigue recibiendo `address` + coordenadas.
+  3. **Detección automática (revierte una alternativa descartada por `DEC-138`).** Al elegir «A domicilio» se intenta detectar la posición del dispositivo; el navegador pide su propio permiso. «Usar mi ubicación» repite la detección. Si se niega, tarda o no existe, se explica y el mapa abre donde siempre (la barbería, o Bogotá).
+  4. **Exactitud.** La detección no se queda con la primera lectura (a menudo una aproximación por red de cientos de metros o kilómetros, que dejaba el mapa «en el centro»): escucha la posición hasta 8 s y entrega la de mejor precisión, antes si baja de 25 m, con un máximo de 12 s. Una lectura de hasta 150 m queda **marcada**; una más gruesa solo **centra** el mapa (zoom según la precisión) y pide mover el pin, porque marcarla sola dejaría un punto equivocado sin que la persona lo revise. La punta del pin cae exactamente sobre el centro del mapa.
+  5. **Privacidad.** La posición sigue siendo dato personal (`RN-DAT-02`): no se registra ni se guarda fuera del formulario; el permiso lo decide la persona en su navegador.
+- **Quién lo decidió:** el propietario, el 2026-11-03: que en el domicilio haya un campo para una descripción extra de la dirección en lugar del buscador, que sea obligatorio colocarlo en el mapa o que lo detecte según la ubicación del dispositivo, y que mejore la exactitud porque quien vive en el sur veía el mapa en el centro.
+- **Responsable:** propietario del proyecto.
+- **Motivo:** el buscador era un camino más que casi nadie necesitaba; el mapa abría lejos de quien reserva y obligaba a recorrerlo a mano; y no había dónde escribir la referencia que el barbero necesita para llegar.
+- **Consecuencia aceptada:** el aviso de permiso del navegador aparece al elegir «A domicilio» y no solo al pulsar el botón, algo que `DEC-138` había descartado por intrusivo; se mitiga porque solo ocurre cuando la persona ya eligió domicilio y puede negarlo y marcar a mano.
+- **Alternativas descartadas:** guardar los detalles en una columna aparte (cambia migración, OpenAPI, Go y panel sin necesidad hoy); marcar siempre la lectura detectada aunque sea gruesa (punto equivocado sin revisión); pedir el permiso al cargar el paso de «Tus datos» (sin contexto).
+- **Alcance:** solo `apps/web` (`geolocation`, `LocationPicker`, `HomeLocationField`, `PublicCustomerDetailsPage`, `homeAddress`). Fuera de alcance: seguimiento en tiempo real, radio de cobertura, ubicaciones favoritas.
+- **Documentos afectados:** `historias-usuario.md` (`HU-103`, `CA-103-03`, `CA-103-09`, `CA-103-10`), `historial-cambios.md`.
+- **Fuente:** instrucción explícita del propietario el 2026-11-03; issue [#529](https://github.com/bcaceres19/barberia/issues/529); `DEC-138`.

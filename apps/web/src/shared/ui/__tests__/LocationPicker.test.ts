@@ -160,6 +160,111 @@ describe('LocationPicker', () => {
     expect(map.handle.setCenter).not.toHaveBeenCalled()
   })
 
+  describe('detección automática (DEC-155)', () => {
+    const fix = (accuracyMeters: number | null) =>
+      vi.fn(async (): Promise<LocateResult> => ({
+        kind: 'success',
+        point: { latitude: 4.5701, longitude: -74.1102 },
+        accuracyMeters,
+      }))
+
+    it('no detecta nada al abrirse si autoLocate no está activo', async () => {
+      const locate = fix(10)
+      mountIt(fakeMap(), {}, locate)
+      await flushPromises()
+      expect(locate).not.toHaveBeenCalled()
+    })
+
+    it('al abrirse detecta, centra donde está la persona y la marca si la lectura es precisa', async () => {
+      const map = fakeMap()
+      const locate = fix(18)
+      const wrapper = mountIt(
+        map,
+        { autoLocate: true, start: { latitude: 4.71, longitude: -74.07 } },
+        locate,
+      )
+      await flushPromises()
+
+      expect(locate).toHaveBeenCalledTimes(1)
+      expect(map.handle.setCenter).toHaveBeenCalledWith(
+        { latitude: 4.5701, longitude: -74.1102 },
+        17,
+      )
+      expect(lastEmit(wrapper)).toMatchObject({ latitude: 4.5701, longitude: -74.1102 })
+    })
+
+    it('con una lectura aproximada solo centra el mapa y pide mover el pin, sin marcarla', async () => {
+      const map = fakeMap()
+      const wrapper = mountIt(map, { autoLocate: true }, fix(900))
+      await flushPromises()
+
+      expect(map.handle.setCenter).toHaveBeenCalledWith(
+        { latitude: 4.5701, longitude: -74.1102 },
+        14,
+      )
+      expect(wrapper.emitted('update:modelValue')).toBeUndefined()
+      expect(wrapper.text()).toContain('Tu ubicación es aproximada (unos 900 m)')
+    })
+
+    it.each(['denied', 'unavailable', 'timeout'] as const)(
+      'si la detección falla (%s) el mapa abre donde siempre y no se marca nada',
+      async (kind) => {
+        const map = fakeMap()
+        const wrapper = mountIt(
+          map,
+          { autoLocate: true, start: { latitude: 4.71, longitude: -74.07 } },
+          async () => ({ kind }),
+        )
+        await flushPromises()
+
+        expect(map.mount.mock.calls[0]!.slice(1, 3)).toEqual([
+          { latitude: 4.71, longitude: -74.07 },
+          15,
+        ])
+        expect(map.handle.setCenter).not.toHaveBeenCalled()
+        expect(wrapper.emitted('update:modelValue')).toBeUndefined()
+      },
+    )
+
+    it('el aviso de la detección se quita cuando la persona marca el punto en el mapa', async () => {
+      const map = fakeMap()
+      const wrapper = mountIt(map, { autoLocate: true }, async () => ({ kind: 'denied' }))
+      await flushPromises()
+      expect(wrapper.text()).toContain('No tenemos permiso para ver tu ubicación')
+
+      map.userMoves({ latitude: 4.5, longitude: -74.1 })
+      await flushPromises()
+      expect(wrapper.text()).not.toContain('No tenemos permiso')
+    })
+
+    it('no pisa una ubicación ya elegida ni detecta con el campo deshabilitado', async () => {
+      const locate = fix(10)
+      mountIt(
+        fakeMap(),
+        { autoLocate: true, modelValue: { address: 'Calle 9', latitude: 4.6, longitude: -74.1 } },
+        locate,
+      )
+      mountIt(fakeMap(), { autoLocate: true, disabled: true }, locate)
+      await flushPromises()
+      expect(locate).not.toHaveBeenCalled()
+    })
+
+    it('no pide la posición si el navegador no puede detectarla', async () => {
+      const locate = fix(10)
+      mountIt(fakeMap(), { autoLocate: true, canLocate: false }, locate)
+      await flushPromises()
+      expect(locate).not.toHaveBeenCalled()
+    })
+
+    it('detecta aunque el mapa no haya cargado (la detección sigue siendo una forma válida)', async () => {
+      const locate = fix(12)
+      const wrapper = mountIt(null, { autoLocate: true }, locate)
+      await flushPromises()
+      expect(locate).toHaveBeenCalledTimes(1)
+      expect(lastEmit(wrapper)).toMatchObject({ latitude: 4.5701 })
+    })
+  })
+
   describe('Usar mi ubicación', () => {
     it('centers on the detected position, marks it and says how precise it is (CA-138-02)', async () => {
       const map = fakeMap()
