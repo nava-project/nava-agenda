@@ -169,7 +169,11 @@ describe('PublicBarbershopEntryPage', () => {
     const withContact = mountEntryPage({ slug: 'barberia-ejemplo' })
     await flushPromises()
     expect(withContact.text()).toContain('contacto@ejemplo.test')
-    expect(withContact.text()).toContain('+573001234567')
+    // Bandera, prefijo y número separados, no el E.164 pegado.
+    const phoneRow = withContact.get('.pb-contact__row .phone-display')
+    expect(phoneRow.get('.phone-display__dial').text()).toBe('+57')
+    expect(phoneRow.get('.phone-display__number').text()).toBe('300 123 4567')
+    expect(withContact.text()).not.toContain('+573001234567')
 
     getMock.mockResolvedValueOnce({
       data: {

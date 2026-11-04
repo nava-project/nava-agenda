@@ -90,3 +90,41 @@ export function nationalDigits(value: string): string {
 export function composePhone(iso: string, national: string): string {
   return `${phoneCountry(iso).dial}${nationalDigits(national)}`
 }
+
+// groupNationalDigits agrupa el número nacional para leerlo de un vistazo:
+// 10 dígitos (Colombia, México, EE. UU.) van 3-3-4 y 8 dígitos 4-4; el resto en
+// bloques de 3 y, si sobra un dígito, se une al bloque anterior.
+export function groupNationalDigits(national: string): string {
+  const digits = nationalDigits(national)
+  if (digits.length === 10) return `${digits.slice(0, 3)} ${digits.slice(3, 6)} ${digits.slice(6)}`
+  if (digits.length === 8) return `${digits.slice(0, 4)} ${digits.slice(4)}`
+  const groups = digits.match(/\d{1,3}/g) ?? []
+  if (groups.length > 1 && groups[groups.length - 1]!.length === 1) {
+    const last = groups.pop()!
+    groups[groups.length - 1] += last
+  }
+  return groups.join(' ')
+}
+
+export interface PhoneParts {
+  iso: string
+  flag: string
+  dial: string
+  /** Número nacional ya agrupado (`300 123 4567`). */
+  national: string
+}
+
+// phoneParts parte un teléfono E.164 guardado (`+573001234567`) en bandera,
+// prefijo y número para mostrarlo separado. Devuelve null si no reconoce el
+// prefijo: el llamador muestra entonces el valor tal cual, sin inventar país.
+export function phoneParts(raw: string): PhoneParts | null {
+  const split = splitInternationalPhone(raw)
+  if (!split || split.national === '') return null
+  const country = phoneCountry(split.country)
+  return {
+    iso: country.iso,
+    flag: flagEmoji(country.iso),
+    dial: country.dial,
+    national: groupNationalDigits(split.national),
+  }
+}
