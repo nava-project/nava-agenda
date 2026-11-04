@@ -13,6 +13,7 @@ import type {
   CompleteCallbackOutcome,
   DisconnectOutcome,
   FetchConnectionOutcome,
+  LinkSoleBarberOutcome,
   StartConnectOutcome,
   SyncNowOutcome,
   UpdateReminderOutcome,
@@ -132,6 +133,32 @@ export async function updateReminder(minutes: number | null): Promise<UpdateRemi
     if (response.ok && data) return { kind: 'success', connection: toConnection(data) }
     if (response.status === 422) return { kind: 'validation-error' }
     if (response.status === 404) return { kind: 'not-connected' }
+    return { kind: 'unexpected-error' }
+  } catch {
+    return { kind: 'network-error' }
+  }
+}
+
+/**
+ * Independiente (DEC-155): vincula al usuario con su única ficha de barbero usando
+ * el mismo autovínculo de DEC-100 (`PUT /private/me/barber`, que siempre actúa sobre
+ * el usuario autenticado). Solo procede si la barbería tiene exactamente una ficha;
+ * con varias no adivina cuál es y devuelve `not-applicable`.
+ */
+export async function linkSoleBarber(): Promise<LinkSoleBarberOutcome> {
+  try {
+    const list = await httpClient.GET('/private/barbers', { params: { query: {} } })
+    if (!list.response.ok || !list.data) return { kind: 'unexpected-error' }
+    const { items, nextCursor } = list.data
+    const [only] = items
+    if (items.length !== 1 || nextCursor !== null || !only) return { kind: 'not-applicable' }
+
+    const { response } = await httpClient.PUT('/private/me/barber', {
+      body: { barberId: only.id },
+    })
+    if (response.ok) return { kind: 'success' }
+    // 404/409: la ficha ya no existe o pertenece a otro usuario; sigue el flujo manual.
+    if (response.status === 404 || response.status === 409) return { kind: 'not-applicable' }
     return { kind: 'unexpected-error' }
   } catch {
     return { kind: 'network-error' }

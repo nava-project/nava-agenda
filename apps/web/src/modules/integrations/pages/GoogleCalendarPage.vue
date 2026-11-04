@@ -13,12 +13,14 @@
 import { computed, onMounted, onUnmounted, ref } from 'vue'
 import { RouterLink } from 'vue-router'
 import { useToast, useVocabulary } from '@/shared/composables'
+import { isSoloProfile } from '@/shared/model'
 import { BaseAlert, BaseButton, BaseDialog, BaseInput, DiamondLoader } from '@/shared/ui'
 import GoogleCalendarEmblem from '../components/GoogleCalendarEmblem.vue'
 import GoogleCalendarSteps from '../components/GoogleCalendarSteps.vue'
 import {
   disconnect,
   fetchConnection,
+  linkSoleBarber,
   startConnect,
   syncNow,
   updateReminder,
@@ -93,8 +95,23 @@ function schedulePoll() {
 
 async function load() {
   loadStatus.value = 'loading'
-  const outcome = await fetchConnection()
+  let outcome = await fetchConnection()
   if (disposed) return
+  // Independiente (DEC-155): solo existe su ficha, así que no hay nada que elegir.
+  // Si el vínculo se logra se vuelve a leer el estado; si no, queda el flujo manual.
+  if (
+    outcome.kind === 'success' &&
+    outcome.connection.enabled &&
+    !outcome.connection.barberLinked &&
+    isSoloProfile.value
+  ) {
+    const linked = await linkSoleBarber()
+    if (disposed) return
+    if (linked.kind === 'success') {
+      outcome = await fetchConnection()
+      if (disposed) return
+    }
+  }
   if (outcome.kind === 'success') {
     applyConnection(outcome.connection)
     loadStatus.value = 'ready'
@@ -306,15 +323,18 @@ const lead = computed(() => {
 })
 
 // Recorrido hacia la conexión: solo mientras todavía no hay una conexión viva.
+// El independiente no vincula su ficha (DEC-155): su recorrido empieza en Google.
 const steps = computed(() => [
-  { title: `Vincula tu ficha`, detail: `Dinos qué ${v.value.professional} eres.` },
+  ...(isSoloProfile.value
+    ? []
+    : [{ title: `Vincula tu ficha`, detail: `Dinos qué ${v.value.professional} eres.` }]),
   { title: 'Conecta tu Google', detail: 'Das tu permiso una sola vez.' },
   { title: 'Listo', detail: 'Tus turnos se publican solos.' },
 ])
 const showSteps = computed(
   () => view.value === 'needs-barber' || view.value === 'not-connected' || view.value === 'reauth',
 )
-const currentStep = computed(() => (view.value === 'needs-barber' ? 1 : 2))
+const currentStep = computed(() => (view.value === 'needs-barber' || isSoloProfile.value ? 1 : 2))
 
 // Recordatorio: dos modos y atajos de minutos habituales.
 const reminderMode = computed({

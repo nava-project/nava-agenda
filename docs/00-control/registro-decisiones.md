@@ -1922,3 +1922,18 @@ Cada código `DEC-*` es estable y no se reutiliza. Este registro normaliza respu
 - **Alternativas descartadas:** una landing por nicho (multiplica páginas sin necesidad); listar funciones específicas por nicho (no existen más allá del vocabulario configurable).
 - **Documentos afectados:** `historial-cambios.md`, módulo `apps/web/src/modules/landing`, `index.html` y sus pruebas.
 - **Fuente:** issue [#519](https://github.com/bcaceres19/barberia/issues/519); `DEC-151`.
+
+### DEC-154 · El independiente no elige barbero para conectar Google Calendar
+
+- **Fecha:** 2026-11-03.
+- **Decisión:**
+  1. Con perfil de panel `solo` (`DEC-115`, `DEC-134`), un usuario sin ficha vinculada y con **exactamente una** ficha de barbero en su barbería queda vinculado a ella al abrir «Google Calendar», usando el mismo autovínculo de `DEC-100` (`PUT /private/me/barber`, que actúa siempre sobre el usuario autenticado). Después la pantalla sigue directa a «Conectar Google Calendar».
+  2. No se infiere por nombre, correo ni teléfono ni cuando hay varias fichas, ninguna, más de una página, o la ficha ya pertenece a otro usuario (404/409): en esos casos se conserva el flujo de `DEC-100` («Primero, dinos qué barbero eres» → «Este soy yo»).
+  3. El recorrido del independiente omite el paso «Vincula tu ficha»; los perfiles `shop` y `employee` no cambian.
+  4. Es solo presentación y orquestación en el cliente: no cambia contrato, API, base de datos ni permisos. «Ya no soy yo» sigue disponible en la ficha; al volver a Google Calendar el independiente se vincula de nuevo.
+- **Quién lo decidió:** el propietario, el 2026-11-03: «adáptame el Google Calendar cuando es un independiente, ya que pide dizque escoger el usuario».
+- **Responsable:** propietario del proyecto.
+- **Motivo:** un independiente tiene una sola ficha; pedirle que la «elija» no aporta nada y es un paso extra antes de conectar.
+- **Alternativas descartadas:** vincular en el servidor al crear la cuenta independiente (cambia contrato y datos existentes sin necesidad); un botón de un clic (sigue pidiendo una acción sin opciones).
+- **Documentos afectados:** `historial-cambios.md`, módulo `apps/web/src/modules/integrations` y sus pruebas; refina `DEC-100`.
+- **Fuente:** issue [#521](https://github.com/bcaceres19/barberia/issues/521); `DEC-100`, `DEC-134`.

@@ -10,13 +10,21 @@ const getMock = vi.hoisted(() => vi.fn())
 const postMock = vi.hoisted(() => vi.fn())
 const patchMock = vi.hoisted(() => vi.fn())
 const deleteMock = vi.hoisted(() => vi.fn())
+const putMock = vi.hoisted(() => vi.fn())
 
 vi.mock('@/shared/api/httpClient', () => ({
-  httpClient: { GET: getMock, POST: postMock, PATCH: patchMock, DELETE: deleteMock },
+  httpClient: { GET: getMock, POST: postMock, PATCH: patchMock, DELETE: deleteMock, PUT: putMock },
 }))
 
-const { fetchConnection, startConnect, completeCallback, syncNow, disconnect, updateReminder } =
-  await import('../googleCalendarApi')
+const {
+  fetchConnection,
+  startConnect,
+  completeCallback,
+  syncNow,
+  disconnect,
+  updateReminder,
+  linkSoleBarber,
+} = await import('../googleCalendarApi')
 
 const wire = {
   enabled: true,
@@ -162,5 +170,49 @@ describe('googleCalendarApi.syncNow / disconnect / updateReminder', () => {
     expect(await updateReminder(99999)).toEqual({ kind: 'validation-error' })
     patchMock.mockResolvedValueOnce(status(404))
     expect(await updateReminder(5)).toEqual({ kind: 'not-connected' })
+  })
+})
+
+describe('googleCalendarApi.linkSoleBarber (DEC-155)', () => {
+  beforeEach(() => {
+    getMock.mockReset()
+    putMock.mockReset()
+  })
+
+  it('links the only barber with the self-link endpoint', async () => {
+    getMock.mockResolvedValueOnce(ok({ items: [{ id: 'b-1' }], nextCursor: null }))
+    putMock.mockResolvedValueOnce(ok({ id: 'b-1' }))
+    expect(await linkSoleBarber()).toEqual({ kind: 'success' })
+    expect(putMock).toHaveBeenCalledWith('/private/me/barber', { body: { barberId: 'b-1' } })
+  })
+
+  it('does not guess when there are several barbers, none, or more pages', async () => {
+    for (const page of [
+      { items: [{ id: 'b-1' }, { id: 'b-2' }], nextCursor: null },
+      { items: [], nextCursor: null },
+      { items: [{ id: 'b-1' }], nextCursor: 'siguiente' },
+    ]) {
+      getMock.mockResolvedValueOnce(ok(page))
+      expect(await linkSoleBarber()).toEqual({ kind: 'not-applicable' })
+    }
+    expect(putMock).not.toHaveBeenCalled()
+  })
+
+  it('falls back to the manual flow when the barber is gone or taken', async () => {
+    for (const code of [404, 409]) {
+      getMock.mockResolvedValueOnce(ok({ items: [{ id: 'b-1' }], nextCursor: null }))
+      putMock.mockResolvedValueOnce(status(code))
+      expect(await linkSoleBarber()).toEqual({ kind: 'not-applicable' })
+    }
+  })
+
+  it('maps failures', async () => {
+    getMock.mockResolvedValueOnce(status(500))
+    expect(await linkSoleBarber()).toEqual({ kind: 'unexpected-error' })
+    getMock.mockResolvedValueOnce(ok({ items: [{ id: 'b-1' }], nextCursor: null }))
+    putMock.mockResolvedValueOnce(status(500))
+    expect(await linkSoleBarber()).toEqual({ kind: 'unexpected-error' })
+    getMock.mockRejectedValueOnce(new Error('offline'))
+    expect(await linkSoleBarber()).toEqual({ kind: 'network-error' })
   })
 })
