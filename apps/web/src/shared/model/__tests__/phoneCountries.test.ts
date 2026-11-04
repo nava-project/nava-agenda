@@ -3,7 +3,9 @@ import {
   PHONE_COUNTRIES,
   composePhone,
   flagEmoji,
+  groupNationalDigits,
   phoneCountry,
+  phoneParts,
   splitInternationalPhone,
 } from '../phoneCountries'
 
@@ -48,5 +50,33 @@ describe('phoneCountries', () => {
   it('no toca lo que no trae prefijo ni lo que no reconoce', () => {
     expect(splitInternationalPhone('3001234567')).toBeNull()
     expect(splitInternationalPhone('+81 90 1234 5678')).toBeNull()
+  })
+})
+
+describe('formato de lectura del teléfono', () => {
+  it('agrupa el número nacional', () => {
+    expect(groupNationalDigits('3001234567')).toBe('300 123 4567')
+    expect(groupNationalDigits('30012345')).toBe('3001 2345')
+    expect(groupNationalDigits('300123456')).toBe('300 123 456')
+    expect(groupNationalDigits('3001234')).toBe('300 1234')
+    expect(groupNationalDigits('3001234567890')).toBe('300 123 456 7890')
+    expect(groupNationalDigits('300 123-4567')).toBe('300 123 4567')
+    expect(groupNationalDigits('')).toBe('')
+  })
+
+  it('parte un E.164 en bandera, prefijo y número', () => {
+    expect(phoneParts('+573001234567')).toEqual({
+      iso: 'CO',
+      flag: '🇨🇴',
+      dial: '+57',
+      national: '300 123 4567',
+    })
+    expect(phoneParts('+593991234567')).toMatchObject({ iso: 'EC', dial: '+593' })
+  })
+
+  it('no inventa país: sin prefijo reconocido o sin número devuelve null', () => {
+    expect(phoneParts('3001234567')).toBeNull()
+    expect(phoneParts('+999123456')).toBeNull()
+    expect(phoneParts('+57')).toBeNull()
   })
 })

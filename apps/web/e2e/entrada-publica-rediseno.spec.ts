@@ -76,6 +76,12 @@ for (const viewport of viewports) {
     await expect(cta).toBeVisible()
     await expect(page.getByText('Hora local de la barbería')).toBeVisible()
     await expect(page.getByText('En el local · A domicilio')).toBeVisible()
+    // El teléfono va en tres piezas (bandera, prefijo y número agrupado), no el E.164 pegado.
+    const phone = page.locator('.pb-contact .phone-display')
+    await expect(phone.locator('.phone-display__flag')).toHaveText('🇨🇴')
+    await expect(phone.locator('.phone-display__dial')).toHaveText('+57')
+    await expect(phone.locator('.phone-display__number')).toHaveText('300 123 4567')
+    await expect(page.getByText('+573001234567')).toHaveCount(0)
 
     // La acción principal se alcanza sin desplazarse y precede a la ficha del local.
     const ctaBox = await cta.boundingBox()
