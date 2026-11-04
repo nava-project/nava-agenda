@@ -80,23 +80,37 @@ function formatDate(iso: string): string {
         <p v-if="state.reviews.items.length === 0" class="pb-reviews__note">
           Todavía no hay reseñas.
         </p>
-        <ul v-else class="pb-reviews__list">
-          <li v-for="(review, index) in state.reviews.items" :key="index" class="pb-reviews__item">
-            <div class="pb-reviews__head">
-              <StarRating
-                :rating="review.rating"
-                :count="1"
-                size="sm"
-                :show-value="false"
-                :label="`${review.rating} de 5 estrellas`"
-              />
-              <time class="pb-reviews__date" :datetime="review.createdAt">{{
-                formatDate(review.createdAt)
-              }}</time>
-            </div>
-            <p v-if="review.comment" class="pb-reviews__comment">{{ review.comment }}</p>
-          </li>
-        </ul>
+        <!-- Región con desplazamiento propio: sin foco por teclado un bloque que se
+             desplaza no se podría leer con flechas (axe: scrollable-region-focusable). -->
+        <div
+          v-else
+          class="pb-reviews__scroll"
+          role="region"
+          tabindex="0"
+          :aria-label="`Lista de reseñas de ${barberName}`"
+        >
+          <ul class="pb-reviews__list">
+            <li
+              v-for="(review, index) in state.reviews.items"
+              :key="index"
+              class="pb-reviews__item"
+            >
+              <div class="pb-reviews__head">
+                <StarRating
+                  :rating="review.rating"
+                  :count="1"
+                  size="sm"
+                  :show-value="false"
+                  :label="`${review.rating} de 5 estrellas`"
+                />
+                <time class="pb-reviews__date" :datetime="review.createdAt">{{
+                  formatDate(review.createdAt)
+                }}</time>
+              </div>
+              <p v-if="review.comment" class="pb-reviews__comment">{{ review.comment }}</p>
+            </li>
+          </ul>
+        </div>
       </template>
     </div>
   </section>

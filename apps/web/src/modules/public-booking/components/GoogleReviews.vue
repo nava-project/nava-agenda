@@ -53,33 +53,41 @@ const countFormat = new Intl.NumberFormat('es-CO')
       >
         {{ open ? 'Ocultar reseñas' : `Ver reseñas (${reviews.reviews.length})` }}
       </button>
-      <ul v-if="open" id="pb-google-list" class="pb-google__list">
-        <li v-for="(review, index) in reviews.reviews" :key="index" class="pb-google__item">
-          <div class="pb-google__head">
-            <StarRating
-              :rating="review.rating"
-              :count="1"
-              size="sm"
-              :show-value="false"
-              :label="`${review.rating} de 5 estrellas`"
-            />
-            <span class="pb-google__author">
-              <a
-                v-if="review.authorUrl"
-                :href="review.authorUrl"
-                target="_blank"
-                rel="noopener noreferrer"
-                >{{ review.authorName }}</a
-              >
-              <template v-else>{{ review.authorName }}</template>
-            </span>
-            <span v-if="review.relativeTime" class="pb-google__when">{{
-              review.relativeTime
-            }}</span>
-          </div>
-          <p v-if="review.text" class="pb-google__text">{{ review.text }}</p>
-        </li>
-      </ul>
+      <div
+        v-if="open"
+        class="pb-google__scroll"
+        role="region"
+        tabindex="0"
+        aria-label="Lista de reseñas de Google"
+      >
+        <ul id="pb-google-list" class="pb-google__list">
+          <li v-for="(review, index) in reviews.reviews" :key="index" class="pb-google__item">
+            <div class="pb-google__head">
+              <StarRating
+                :rating="review.rating"
+                :count="1"
+                size="sm"
+                :show-value="false"
+                :label="`${review.rating} de 5 estrellas`"
+              />
+              <span class="pb-google__author">
+                <a
+                  v-if="review.authorUrl"
+                  :href="review.authorUrl"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  >{{ review.authorName }}</a
+                >
+                <template v-else>{{ review.authorName }}</template>
+              </span>
+              <span v-if="review.relativeTime" class="pb-google__when">{{
+                review.relativeTime
+              }}</span>
+            </div>
+            <p v-if="review.text" class="pb-google__text">{{ review.text }}</p>
+          </li>
+        </ul>
+      </div>
     </template>
 
     <p class="pb-google__attribution">

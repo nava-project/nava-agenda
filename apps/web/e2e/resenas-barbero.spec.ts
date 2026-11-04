@@ -288,6 +288,56 @@ for (const viewport of viewports) {
     })
   })
 
+  test(`con muchas reseñas solo su bloque se desplaza, no la página, a ${viewport.name} px`, async ({
+    page,
+  }) => {
+    await page.setViewportSize({ width: viewport.width, height: viewport.height })
+    // Quince reseñas visibles: la lista no cabe y debe desplazarse dentro de su bloque (#525).
+    const many: StoredReview[] = Array.from({ length: 15 }, (_, i) => ({
+      id: `b0000000-0000-0000-0000-0000000001${String(i).padStart(2, '0')}`,
+      rating: (i % 5) + 1,
+      comment: `Reseña número ${i + 1}: atención puntual y trato amable en todo momento.`,
+      hiddenAt: null,
+      createdAt: `2027-03-${String(10 + (i % 15)).padStart(2, '0')}T12:00:00Z`,
+    }))
+    await installApi(page, many)
+    await page.goto(`/reservar/${SLUG}/servicios/${SERVICE_ID}/barbero`)
+    await page.getByRole('radio', { name: 'Juan Pérez' }).click()
+    await page.getByRole('button', { name: 'Ver reseñas (15)' }).click()
+
+    const region = page.getByRole('region', { name: 'Lista de reseñas de Juan Pérez' })
+    await expect(region).toBeVisible()
+    await page.waitForTimeout(400)
+
+    // El bloque se desplaza por dentro y la página no tiene scroll general.
+    const box = await region.evaluate((el) => ({
+      scrolls: el.scrollHeight > el.clientHeight,
+      overscroll: getComputedStyle(el).overscrollBehaviorY,
+    }))
+    expect(box).toEqual({ scrolls: true, overscroll: 'contain' })
+    const pageOverflow = await page.evaluate(() => {
+      const root = document.scrollingElement as HTMLElement
+      return root.scrollHeight - root.clientHeight
+    })
+    expect(pageOverflow).toBeLessThanOrEqual(1)
+
+    // «Continuar» sigue a la vista y la última reseña se alcanza desplazando el bloque.
+    await expect(page.getByRole('link', { name: /Continuar/ })).toBeInViewport()
+    await expect(page.getByText('Reseña número 15:')).not.toBeInViewport()
+    await region.evaluate((el) => el.scrollTo(0, el.scrollHeight))
+    await expect(page.getByText('Reseña número 15:')).toBeInViewport()
+    await expect(page.getByRole('link', { name: /Continuar/ })).toBeInViewport()
+
+    // El bloque se alcanza con el teclado.
+    await region.focus()
+    await expect(region).toBeFocused()
+
+    await expectAccessibleWithoutOverflow(page)
+    await page.screenshot({
+      path: path.join(evidenceDir, `reserva-publica-muchas-${viewport.name}.png`),
+    })
+  })
+
   test(`quien administra oculta y vuelve a mostrar una reseña a ${viewport.name} px`, async ({
     page,
   }) => {
