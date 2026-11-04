@@ -29,10 +29,21 @@ describe('pantalla de horario público: layout en ventanas bajas', () => {
     expect(fixed).not.toContain('scroll-choices')
   })
 
-  it('con las reseñas del barbero abiertas la página crece con su contenido (sin alto fijo)', () => {
+  it('con las reseñas del barbero abiertas la página conserva un alto con piso y solo el bloque de reseñas se desplaza (#525)', () => {
     const open = rule('.pb-layout:has(.pb-page--scroll-choices .pb-reviews__panel)')
-    expect(open).toMatch(/height:\s*auto/)
-    expect(open).toMatch(/min-height:\s*100dvh/)
+    expect(open).toMatch(/height:\s*max\(100dvh,/)
+    expect(open).not.toMatch(/height:\s*auto/)
+
+    const scroll = rule('.pb-reviews__scroll')
+    expect(scroll).toMatch(/overflow-y:\s*auto/)
+    expect(scroll).toMatch(/overscroll-behavior:\s*contain/)
+    expect(scroll).toMatch(/max-height:/)
+  })
+
+  it('las reseñas de Google de la entrada pública también se desplazan en su propio bloque', () => {
+    const scroll = rule('.pb-google__scroll')
+    expect(scroll).toMatch(/overflow-y:\s*auto/)
+    expect(scroll).toMatch(/max-height:/)
   })
 
   it('el resumen de la reserva tiene su propio suelo de alto, así el pie no tapa «Confirmar turno»', () => {

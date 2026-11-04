@@ -834,12 +834,13 @@
   height: max(100dvh, 560px);
 }
 
-/* Con las reseñas del barbero abiertas el contenido ya no cabe en un alto fijo (F-RQ-PB-02,
-   #446): la lista se recortaba y el pie se pintaba sobre «Continuar». Sin alto fijo la página
-   crece con su contenido y la barra de acción, `sticky`, sigue al final. */
+/* Con las reseñas del barbero abiertas, solo su bloque se desplaza (#525): el alto de la
+   página sigue fijo y la lista de reseñas cede el sobrante (`.pb-reviews__scroll`), igual que
+   las de servicios y horarios. Como piso (cabecera + título + ficha + toggle + unas filas de
+   reseñas + barra de acción + pie), por debajo de él la página vuelve a desplazarse en vez de
+   solaparse: el pie nunca tapa «Continuar» (#446). */
 .pb-layout:has(.pb-page--scroll-choices .pb-reviews__panel) {
-  height: auto;
-  min-height: 100dvh;
+  height: max(100dvh, 720px);
 }
 
 /* Horario: el `min-height` de la lista no se propaga a la página (`min-height: 0`), así que
@@ -2025,6 +2026,10 @@
 }
 
 .pb-reviews {
+  display: flex;
+  flex: 0 1 auto;
+  flex-direction: column;
+  min-height: 0;
   margin-top: var(--space-6);
   color: var(--pb-text);
 }
@@ -2043,6 +2048,11 @@
   border: 0;
 }
 
+/* `.pb-reviews` es una columna flex: sin esto el botón se estira y centra su texto. */
+.pb-reviews__toggle {
+  align-self: flex-start;
+}
+
 .pb-reviews__toggle:focus-visible,
 .pb-reviews__retry:focus-visible {
   outline: 2px solid var(--pb-brass);
@@ -2050,7 +2060,30 @@
 }
 
 .pb-reviews__panel {
+  display: flex;
+  flex: 0 1 auto;
+  flex-direction: column;
+  min-height: 0;
   padding-top: var(--space-3);
+}
+
+/* Bloque de reseñas con desplazamiento propio: toma el alto que sobra y no más de la mitad
+   de la ventana; el desplazamiento no se encadena a la página. El anillo de foco es interior
+   (`inset`) porque el recorte de `overflow` cortaría uno exterior. */
+.pb-reviews__scroll {
+  flex: 0 1 auto;
+  min-height: 96px;
+  max-height: min(50dvh, 420px);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  scrollbar-color: var(--pb-line-strong) transparent;
+  scrollbar-width: thin;
+}
+
+.pb-reviews__scroll:focus-visible,
+.pb-google__scroll:focus-visible {
+  outline: 2px solid var(--pb-brass);
+  outline-offset: -2px;
 }
 
 .pb-reviews__note {
@@ -2154,11 +2187,21 @@
   outline-offset: 2px;
 }
 
+/* Mismo bloque con scroll propio para las reseñas de Google de la entrada pública. */
+.pb-google__scroll {
+  max-height: min(50dvh, 420px);
+  margin-top: var(--space-3);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  scrollbar-color: var(--pb-line-strong) transparent;
+  scrollbar-width: thin;
+}
+
 .pb-google__list {
   display: flex;
   flex-direction: column;
   gap: var(--space-4);
-  padding: var(--space-3) 0 0;
+  padding: 0;
   margin: 0;
   list-style: none;
 }
