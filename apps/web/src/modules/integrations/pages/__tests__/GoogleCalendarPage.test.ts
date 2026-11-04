@@ -10,12 +10,14 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { flushPromises, mount, type VueWrapper } from '@vue/test-utils'
 import { axe } from 'vitest-axe'
 import { resetToasts, toastState } from '@/shared/model/toastStore'
+import { DEFAULT_BRAND, resetBrand, setBrand } from '@/shared/model'
 
 const fetchMock = vi.hoisted(() => vi.fn())
 const startConnectMock = vi.hoisted(() => vi.fn())
 const syncMock = vi.hoisted(() => vi.fn())
 const disconnectMock = vi.hoisted(() => vi.fn())
 const reminderMock = vi.hoisted(() => vi.fn())
+const linkSoleMock = vi.hoisted(() => vi.fn())
 
 vi.mock('../../api/googleCalendarApi', () => ({
   fetchConnection: fetchMock,
@@ -23,6 +25,7 @@ vi.mock('../../api/googleCalendarApi', () => ({
   syncNow: syncMock,
   disconnect: disconnectMock,
   updateReminder: reminderMock,
+  linkSoleBarber: linkSoleMock,
 }))
 
 const { default: GoogleCalendarPage } = await import('../GoogleCalendarPage.vue')
@@ -80,7 +83,15 @@ function dialogButton(wrapper: VueWrapper, text: string): HTMLButtonElement {
 describe('GoogleCalendarPage', () => {
   beforeEach(() => {
     resetToasts()
-    for (const mock of [fetchMock, startConnectMock, syncMock, disconnectMock, reminderMock]) {
+    resetBrand()
+    for (const mock of [
+      fetchMock,
+      startConnectMock,
+      syncMock,
+      disconnectMock,
+      reminderMock,
+      linkSoleMock,
+    ]) {
       mock.mockReset()
     }
   })
@@ -118,6 +129,53 @@ describe('GoogleCalendarPage', () => {
     expect(wrapper.text()).toContain('no está disponible en este entorno')
     expect(wrapper.findAll('.gcal-panel button')).toHaveLength(0)
     expect(wrapper.text()).not.toContain('Cómo funciona')
+  })
+
+  describe('independent (solo profile, DEC-155)', () => {
+    beforeEach(() => setBrand({ ...DEFAULT_BRAND, panelProfile: 'solo' }))
+
+    it('links the only barber by itself and goes straight to connecting Google', async () => {
+      linkSoleMock.mockResolvedValue({ kind: 'success' })
+      fetchMock
+        .mockResolvedValueOnce({ kind: 'success', connection: { ...base, barberLinked: false } })
+        .mockResolvedValueOnce({ kind: 'success', connection: base })
+      const wrapper = mount(GoogleCalendarPage, {
+        global: { stubs: { teleport: true, transition: true } },
+      })
+      await flushPromises()
+      expect(linkSoleMock).toHaveBeenCalledTimes(1)
+      expect(fetchMock).toHaveBeenCalledTimes(2)
+      expect(wrapper.text()).not.toContain('Este soy yo')
+      expect(wrapper.text()).not.toContain('Vincula tu ficha')
+      expect(wrapper.text()).toContain('Conectar Google Calendar')
+    })
+
+    it('keeps the manual flow when the sole barber cannot be linked', async () => {
+      linkSoleMock.mockResolvedValue({ kind: 'not-applicable' })
+      const wrapper = await mountWith({ ...base, barberLinked: false })
+      expect(linkSoleMock).toHaveBeenCalledTimes(1)
+      expect(fetchMock).toHaveBeenCalledTimes(1)
+      expect(wrapper.text()).toContain('Este soy yo')
+    })
+
+    it('does not try to link when the barber is already linked', async () => {
+      await mountWith(base)
+      expect(linkSoleMock).not.toHaveBeenCalled()
+    })
+
+    it('does not try to link when the integration is unavailable', async () => {
+      await mountWith({ ...base, enabled: false, barberLinked: false })
+      expect(linkSoleMock).not.toHaveBeenCalled()
+    })
+  })
+
+  it('never links by itself outside the solo profile', async () => {
+    for (const panelProfile of ['shop', 'employee'] as const) {
+      setBrand({ ...DEFAULT_BRAND, panelProfile })
+      const wrapper = await mountWith({ ...base, barberLinked: false })
+      expect(wrapper.text()).toContain('Este soy yo')
+    }
+    expect(linkSoleMock).not.toHaveBeenCalled()
   })
 
   it('asks to link the barber first and points to the team screen', async () => {

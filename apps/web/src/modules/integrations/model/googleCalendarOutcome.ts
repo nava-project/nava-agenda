@@ -33,3 +33,8 @@ export type UpdateReminderOutcome =
   | { kind: 'validation-error' }
   | { kind: 'not-connected' }
   | Failure
+
+// Vínculo automático del independiente (DEC-155): `success` si quedó vinculada su
+// única ficha; `not-applicable` si no hay una sola ficha elegible (varias, ninguna,
+// ya tomada por otro usuario), caso en que la pantalla conserva el flujo manual.
+export type LinkSoleBarberOutcome = { kind: 'success' } | { kind: 'not-applicable' } | Failure
