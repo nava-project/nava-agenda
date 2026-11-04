@@ -7,7 +7,7 @@
 // `api/resolveBarbershopApi.ts`).
 import { computed, onBeforeUnmount, onMounted, ref } from 'vue'
 import { isMapAvailable } from '@/shared/model/mapEmbed'
-import { LocationMap } from '@/shared/ui'
+import { LocationMap, PhoneDisplay } from '@/shared/ui'
 import { formatFullDateInTimezone, formatTimeInTimezone } from '@/shared/time/formatInstant'
 import BookingStateScreen from '../components/BookingStateScreen.vue'
 import GoogleReviews from '../components/GoogleReviews.vue'
@@ -150,7 +150,7 @@ const failedRequestId = computed(() =>
         >
           <div v-if="screenState.profile.contactPhone" class="pb-contact__row">
             <dt>Teléfono</dt>
-            <dd>{{ screenState.profile.contactPhone }}</dd>
+            <dd><PhoneDisplay :value="screenState.profile.contactPhone" /></dd>
           </div>
           <div v-if="screenState.profile.contactEmail" class="pb-contact__row">
             <dt>Correo</dt>
