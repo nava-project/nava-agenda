@@ -322,3 +322,63 @@ test('Configuración enlaza con la pantalla de Google Calendar', async ({ page }
     .click()
   await expect(page).toHaveURL(/\/panel\/barberia\/google-calendar$/)
 })
+
+// DEC-155: el independiente (perfil `solo`, una sola ficha) no elige barbero; la pantalla
+// vincula su ficha por el autovínculo de DEC-100 y llega directo a «Conectar».
+for (const viewport of [viewports[1], viewports[3]]) {
+  test(`independiente a ${viewport.name}: se vincula solo y llega a conectar sin elegir`, async ({
+    page,
+  }) => {
+    const calls: string[] = []
+    let linked = false
+    const mock = await mockApi(page, { ...disconnected, barberLinked: false })
+    // Las rutas registradas después tienen prioridad sobre las de `mockApi`.
+    await page.route('**/api/v1/private/settings/brand', (route) =>
+      route.fulfill(json({ ...brand, panelProfile: 'solo' })),
+    )
+    await page.route('**/api/v1/private/barbers**', (route) =>
+      route.fulfill(
+        json({
+          items: [
+            {
+              id: 'b-unico',
+              fullName: 'Iván Carvajal',
+              createdAt: '2026-10-01T10:00:00Z',
+              updatedAt: '2026-10-01T10:00:00Z',
+            },
+          ],
+          nextCursor: null,
+        }),
+      ),
+    )
+    await page.route('**/api/v1/private/me/barber', async (route) => {
+      calls.push(`${route.request().method()}:${JSON.stringify(route.request().postDataJSON())}`)
+      linked = true
+      mock.connection = { ...mock.connection, barberLinked: true }
+      await route.fulfill(
+        json({
+          id: 'b-unico',
+          fullName: 'Iván Carvajal',
+          createdAt: '2026-10-01T10:00:00Z',
+          updatedAt: '2026-10-01T10:00:00Z',
+        }),
+      )
+    })
+    await page.setViewportSize({ width: viewport.width, height: viewport.height })
+    await page.goto('/panel/barberia/google-calendar')
+    await expect(page.getByRole('button', { name: 'Conectar Google Calendar' })).toBeVisible()
+    await page.waitForTimeout(500)
+
+    expect(linked).toBe(true)
+    expect(calls).toEqual(['PUT:{"barberId":"b-unico"}'])
+    await expect(page.getByText('Este soy yo')).toHaveCount(0)
+    await expect(page.getByText('Primero, dinos qué barbero eres')).toHaveCount(0)
+    await expect(page.getByText('Vincula tu ficha')).toHaveCount(0)
+    await expectNoHorizontalScroll(page)
+    expect(await axeViolations(page)).toEqual([])
+    await page.screenshot({
+      path: path.join(evidenceDir, 'independiente', `${viewport.name}.png`),
+      fullPage: true,
+    })
+  })
+}
