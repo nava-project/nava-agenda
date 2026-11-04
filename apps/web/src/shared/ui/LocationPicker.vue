@@ -7,11 +7,15 @@
  * esfuerzo) o «Ubicación marcada en el mapa» si no hay una. Lo que el padre ya sabe (una
  * sugerencia elegida) recentra el mapa sin emitir de vuelta.
  *
- * Accesibilidad: el botón «Usar mi ubicación» y el autocompletado son la alternativa a
- * arrastrar el mapa; el mapa admite teclado (flechas) y la ubicación elegida se anuncia. La
- * detección solo se pide al pulsar el botón. Si el mapa no carga, la detección sigue
- * funcionando. La posición es dato personal (RN-DAT-02): no se registra ni se guarda fuera
- * del formulario.
+ * Con `autoLocate` (DEC-155) intenta detectar la posición del dispositivo al abrirse, para que el
+ * mapa no arranque «en el centro» lejos de quien reserva: si la lectura es precisa queda
+ * marcada y si es aproximada solo centra el mapa y pide ajustar el pin. Sin permiso o sin
+ * lectura, el mapa abre donde siempre. El botón «Usar mi ubicación» repite la detección.
+ *
+ * Accesibilidad: el botón «Usar mi ubicación» es la alternativa a arrastrar el mapa; el mapa
+ * admite teclado (flechas) y la ubicación elegida se anuncia. Si el mapa no carga, la detección
+ * sigue funcionando. La posición es dato personal (RN-DAT-02): no se registra ni se guarda
+ * fuera del formulario.
  */
 import { computed, onBeforeUnmount, onMounted, ref, useId, watch } from 'vue'
 import {
@@ -26,7 +30,13 @@ import {
   type MapPickerEngine,
   type MapPickerHandle,
 } from '../model/mapPicker'
-import { isGeolocationSupported, locateUser, type LocateResult } from '../model/geolocation'
+import {
+  AUTO_MARK_ACCURACY_METERS,
+  isGeolocationSupported,
+  locateUser,
+  zoomForAccuracy,
+  type LocateResult,
+} from '../model/geolocation'
 import type { PlaceSelection } from '../model/placesAutocomplete'
 import BaseButton from './BaseButton.vue'
 
@@ -39,6 +49,8 @@ interface Props {
   label?: string
   error?: string
   disabled?: boolean
+  /** Detecta la posición del dispositivo al abrirse (si aún no hay una ubicación). */
+  autoLocate?: boolean
   /** Inyectables para pruebas; por defecto el motor del entorno y la geolocalización real. */
   engine?: MapPickerEngine | null
   locate?: () => Promise<LocateResult>
@@ -49,6 +61,7 @@ const props = withDefaults(defineProps<Props>(), {
   label: 'Tu ubicación',
   error: '',
   disabled: false,
+  autoLocate: false,
   engine: undefined,
   locate: () => locateUser(),
   canLocate: () => isGeolocationSupported(),
@@ -85,6 +98,9 @@ function trimAddress(text: string): string {
 function commit(raw: LatLng) {
   const point = roundPoint(raw)
   lastPoint = point
+  // Un aviso de la detección (permiso negado, posición aproximada) deja de aplicar en cuanto
+  // hay un punto marcado; `detect` escribe el suyo después de marcar.
+  notice.value = ''
   emit('update:modelValue', { address: FALLBACK_ADDRESS, ...point })
 
   describeAbort?.abort()
@@ -109,6 +125,8 @@ onMounted(async () => {
   const el = mapEl.value
   if (!client || !el) {
     mapState.value = 'failed'
+    // Sin mapa la detección sigue siendo una forma válida de marcar el punto.
+    maybeAutoLocate()
     return
   }
   const known = props.modelValue ? pointOf(props.modelValue) : null
@@ -125,7 +143,15 @@ onMounted(async () => {
   } catch {
     if (!unmounted) mapState.value = 'failed'
   }
+  maybeAutoLocate()
 })
+
+function maybeAutoLocate() {
+  if (unmounted || !props.autoLocate || props.modelValue || props.disabled || !props.canLocate) {
+    return
+  }
+  void detect(true)
+}
 
 // Una selección que viene de fuera (sugerencia elegida) recentra el mapa; la que emitimos
 // nosotros misma no, o el mapa saltaría bajo el dedo de la persona.
@@ -149,7 +175,16 @@ const NOTICES: Record<Exclude<LocateResult['kind'], 'success'>, string> = {
   unsupported: 'Este navegador no puede detectar tu ubicación. Márcala moviendo el mapa.',
 }
 
-async function onLocate() {
+function onLocate() {
+  void detect(false)
+}
+
+/**
+ * `auto`: la detección la inició la pantalla, no la persona. Una lectura precisa se marca
+ * igual que con el botón; una aproximada solo centra el mapa, porque marcarla sola dejaría un
+ * punto equivocado que la persona quizá no revise (el pin manda para que el barbero llegue).
+ */
+async function detect(auto: boolean) {
   if (locating.value || props.disabled) return
   locating.value = true
   notice.value = ''
@@ -160,13 +195,19 @@ async function onLocate() {
     notice.value = NOTICES[result.kind]
     return
   }
+  const accuracy = result.accuracyMeters
+  const precise = accuracy === null || accuracy <= AUTO_MARK_ACCURACY_METERS
   lastPoint = result.point
-  handle?.setCenter(result.point, FOCUS_ZOOM)
-  commit(result.point)
-  notice.value =
-    result.accuracyMeters !== null && result.accuracyMeters > 100
-      ? `Ubicamos tu posición con una precisión de unos ${result.accuracyMeters} m. Ajusta el pin si hace falta.`
-      : 'Ubicamos tu posición. Ajusta el pin si hace falta.'
+  handle?.setCenter(result.point, zoomForAccuracy(accuracy))
+  if (!auto || precise) {
+    commit(result.point)
+    notice.value =
+      accuracy !== null && accuracy > 100
+        ? `Ubicamos tu posición con una precisión de unos ${accuracy} m. Ajusta el pin si hace falta.`
+        : 'Ubicamos tu posición. Ajusta el pin si hace falta.'
+  } else {
+    notice.value = `Tu ubicación es aproximada (unos ${accuracy} m). Mueve el mapa hasta tu puerta para marcarla.`
+  }
 }
 
 onBeforeUnmount(() => {
@@ -272,14 +313,15 @@ const describedBy = computed(() => [hintId, props.error ? errorId : ''].filter(B
   background: color-mix(in srgb, currentColor 8%, transparent);
 }
 
-/* El pin queda fijo al centro: la punta (el vértice inferior) marca el punto exacto. */
+/* El pin queda fijo al centro: la punta (el vértice inferior) marca el punto exacto. Caja de
+   26 px (22 + borde) girada 45°: su vértice cae a ~31 px bajo el borde superior de la caja. */
 .location-picker__pin {
   position: absolute;
   top: 50%;
   left: 50%;
   width: 22px;
   height: 22px;
-  margin: -34px 0 0 -11px;
+  margin: -31px 0 0 -13px;
   background: #d93025;
   border: 2px solid #fff;
   border-radius: 50% 50% 50% 0;
