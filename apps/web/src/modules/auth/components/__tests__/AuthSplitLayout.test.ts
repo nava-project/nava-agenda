@@ -14,7 +14,11 @@ const axeOptions = { rules: { region: { enabled: false }, 'color-contrast': { en
 
 const router = createRouter({
   history: createMemoryHistory(),
-  routes: [{ path: '/', component: { template: '<div />' } }],
+  routes: [
+    { path: '/', component: { template: '<div />' } },
+    { path: '/privacidad', component: { template: '<div />' } },
+    { path: '/terminos', component: { template: '<div />' } },
+  ],
 })
 
 function mountLayout(props: Record<string, unknown> = {}, slotHtml = '<h1>Accede a NAVA</h1>') {
@@ -33,6 +37,16 @@ describe('AuthSplitLayout', () => {
     expect(link.text()).toBe('Volver a la presentación')
     // No forma parte de la tarjeta: no altera el orden ni la entrada de su contenido.
     expect(wrapper.get('.auth-split__card').find('.auth-split__nav').exists()).toBe(false)
+  })
+
+  it('enlaza la política de privacidad y las condiciones al pie de la tarjeta (issue #545)', () => {
+    const wrapper = mountLayout()
+    const card = wrapper.get('.auth-split__card')
+    const legal = card.get('nav[aria-label="Documentos legales"]')
+    expect(legal.get('a[href="/privacidad"]').text()).toBe('Privacidad')
+    expect(legal.get('a[href="/terminos"]').text()).toBe('Condiciones')
+    // Va después de todo lo existente: no desplaza el formulario ni la marca.
+    expect(card.element.lastElementChild).toBe(legal.element)
   })
 
   it('renders the brand mark as decorative (aria-hidden)', () => {

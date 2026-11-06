@@ -27,8 +27,15 @@ const Screen = defineComponent({
   },
 })
 
+// Destinos de los enlaces legales del pie (issue #545): solo existen para que
+// el router resuelva los `RouterLink`; su contenido vive en el módulo `legal`.
+const legalStubs: RouteRecordRaw[] = [
+  { path: '/privacidad', component: { template: '<div />' } },
+  { path: '/terminos', component: { template: '<div />' } },
+]
+
 function stubbedRoutes(): RouteRecordRaw[] {
-  return publicBookingRoutes.map((route) => ({
+  const booking = publicBookingRoutes.map((route) => ({
     ...route,
     component: PublicBookingLayout,
     children: route.children?.map((child) => ({
@@ -37,6 +44,7 @@ function stubbedRoutes(): RouteRecordRaw[] {
       props: child.name === 'reserva-publica-cliente' ? { confirm: true } : false,
     })) as RouteRecordRaw[],
   })) as RouteRecordRaw[]
+  return [...booking, ...legalStubs]
 }
 
 // Cada montaje queda adjunto al documento (axe y los landmarks lo exigen):
@@ -122,6 +130,15 @@ describe('PublicBookingLayout', () => {
     const { wrapper } = await mountAt('/reservar/barberia-ejemplo')
     expect(wrapper.find('footer').text()).toContain('Reservas con')
     expect(wrapper.find('footer').text()).toContain('NAVA')
+    wrapper.unmount()
+  })
+
+  it('enlaza la política de privacidad y las condiciones bajo la firma (issue #545)', async () => {
+    const { wrapper } = await mountAt('/reservar/barberia-ejemplo')
+    const legal = wrapper.get('footer nav[aria-label="Documentos legales"]')
+    expect(legal.get('a[href="/privacidad"]').text()).toBe('Privacidad')
+    expect(legal.get('a[href="/terminos"]').text()).toBe('Condiciones')
+    expect(wrapper.get('footer').text()).toContain('Reservas con')
     wrapper.unmount()
   })
 

@@ -1654,6 +1654,42 @@
   letter-spacing: 0.08em;
 }
 
+/* Segunda línea del pie (issue #545): la firma queda intacta arriba y los
+   enlaces legales ocupan su propia fila, centrada y en tono atenuado. */
+.pb-footer {
+  flex-wrap: wrap;
+  row-gap: var(--space-1);
+}
+
+.pb-footer__legal {
+  display: flex;
+  flex-basis: 100%;
+  justify-content: center;
+  gap: var(--space-1) var(--space-5);
+  letter-spacing: normal;
+  text-transform: none;
+  font-weight: 400;
+}
+
+.pb-footer__legal a {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  font-size: 13px;
+  color: var(--pb-muted);
+  text-underline-offset: 3px;
+}
+
+.pb-footer__legal a:hover {
+  color: var(--color-on-strong);
+}
+
+.pb-footer__legal a:focus-visible {
+  outline: 2px solid var(--pb-brass);
+  outline-offset: 3px;
+  border-radius: var(--radius-md);
+}
+
 /* ── Utilidades ─────────────────────────────────────────────────────────── */
 
 /* Técnica estándar «sr-only»: presente para tecnología de asistencia,
