@@ -1,6 +1,6 @@
 ---
 titulo: "Registro de decisiones"
-version: "1.63"
+version: "1.64"
 estado: "Vigente"
 responsable: "Propietario del proyecto"
 ultima_actualizacion: "2026-11-06"
@@ -1988,7 +1988,7 @@ Cada código `DEC-*` es estable y no se reutiliza. Este registro normaliza respu
 - **Responsable:** propietario del proyecto.
 - **Propuesta pendiente de confirmación (no la decidió el propietario):** PostgreSQL **16** en producción (`POSTGRES_VERSION` en `deploy/docker/db.Dockerfile`). El piso decidido sigue siendo la 14 (`DEC-040` y `apps/api/README.md`) y el CI la prueba; la 14 termina su soporte el 2026-11-12. Las 41 migraciones se aplicaron sin cambios sobre la 16 y el API arrancó contra ella, pero la suite completa corre solo sobre la 14. Hasta decidirlo, el CI no cubre la versión de producción.
 - **Motivo:** `stack-despliegue-operacion.md` pide un VPS dedicado con copias externas y despliegue del mismo commit probado; la imagen oficial de PostgreSQL permite un servicio autocontenido, y la API exige `sslmode` distinto de `disable` y roles separados fuera de local/test (`DEC-040`).
-- **Consecuencias aceptadas:** (1) sin una copia externa configurada, los respaldos comparten servidor con la base y un fallo del disco los perdería; (2) Docker publica sus puertos saltándose el firewall, por eso solo Caddy publica; (3) el grupo `docker` del usuario `deploy` equivale a root; (4) cambiar de versión mayor de PostgreSQL exige volcado y restauración; (5) el despliegue es manual con aprobación, sin disparo automático tras cada merge.
+- **Consecuencias aceptadas:** (1) sin una copia externa configurada, los respaldos comparten servidor con la base y un fallo del disco los perdería; (2) Docker publica sus puertos saltándose el firewall, por eso solo Caddy publica; (3) el grupo `docker` del usuario `deploy` equivale a root; (4) cambiar de versión mayor de PostgreSQL exige volcado y restauración; (5) el despliegue es manual con aprobación, sin disparo automático tras cada merge. *Actualización (2026-11-06, `DEC-160`): el despliegue pasa a ser automático tras cada commit de `main` con el CI en verde.*
 - **Alcance:** infraestructura (`deploy/`, `.github/workflows/`). Sin cambios de API, contrato, datos ni migraciones.
 - **Documentos afectados:** `stack-despliegue-operacion.md` (§7), `historial-cambios.md`, `deploy/README.md`.
 - **Fuente:** instrucción explícita del propietario el 2026-11-06; issue [#535](https://github.com/bcaceres19/barberia/issues/535); `DEC-023`, `DEC-024`, `DEC-036`, `DEC-040`, `docs/05-backend/migraciones-atlas.md`.
@@ -2000,8 +2000,20 @@ Cada código `DEC-*` es estable y no se reutiliza. Este registro normaliza respu
 - **Quién lo decidió:** el propietario, el 2026-11-06: que todos los secretos estén en el VPS como archivos de secreto de Docker.
 - **Responsable:** propietario del proyecto.
 - **Motivo:** mantener los secretos fuera de la definición de los contenedores (`docker inspect`), de los `env_file` y del historial del shell, y limitar cada servicio a los suyos. El código de la aplicación no cambia: lee variables de entorno, igual que antes.
-- **Consecuencias aceptadas:** (1) el cargador deja los secretos como variables del proceso (el mismo mecanismo `*_FILE` de la imagen oficial de PostgreSQL); (2) los servicios que leen archivos 600 corren con el UID 1001 de `deploy`; (3) la imagen `barberia-db` crece (~750 MB) por incluir Atlas; (4) rotar una contraseña de PostgreSQL exige además `ALTER ROLE`; (5) el respaldo de la base no incluye los secretos: hay que respaldar `/srv/barberia/secrets/` aparte; (6) el entorno `production` de GitHub no tiene aprobadores obligatorios, porque el plan gratuito no los admite en repositorios privados (el repositorio es privado): el control manual es el disparo de `workflow_dispatch`, y el entorno queda limitado a `main`. Esto precisa lo dicho en `DEC-158` sobre la aprobación.
+- **Consecuencias aceptadas:** (1) el cargador deja los secretos como variables del proceso (el mismo mecanismo `*_FILE` de la imagen oficial de PostgreSQL); (2) los servicios que leen archivos 600 corren con el UID 1001 de `deploy`; (3) la imagen `barberia-db` crece (~750 MB) por incluir Atlas; (4) rotar una contraseña de PostgreSQL exige además `ALTER ROLE`; (5) el respaldo de la base no incluye los secretos: hay que respaldar `/srv/barberia/secrets/` aparte; (6) el entorno `production` de GitHub no tiene aprobadores obligatorios, porque el plan gratuito no los admite en repositorios privados (el repositorio es privado): el control manual es el disparo de `workflow_dispatch`, y el entorno queda limitado a `main`. Esto precisa lo dicho en `DEC-158` sobre la aprobación. *Actualización (2026-11-06, `DEC-160`): el disparo pasa a ser automático; el entorno sigue limitado a `main`.*
 - **Alcance:** infraestructura (`deploy/`). Sin cambios de aplicación, API, contrato, datos ni migraciones.
 - **Documentos afectados:** `deploy/README.md`, `historial-cambios.md`.
 - **Fuente:** instrucción explícita del propietario el 2026-11-06; issue [#537](https://github.com/bcaceres19/barberia/issues/537); `DEC-158`, `DEC-040`.
 
+### DEC-160 · El despliegue a producción es automático tras cada commit de `main` con el CI en verde
+
+- **Fecha:** 2026-11-06.
+- **Decisión:** el workflow `Deploy` se dispara solo (`workflow_run`) cuando el CI de un `push` a `main` termina en `success` y despliega exactamente el SHA que probó ese CI. `workflow_dispatch` se conserva para reintentar o volver a un SHA de `main`. Si llega un commit más nuevo antes de que corra el despliegue, el anterior se omite. La variable de repositorio `AUTO_DEPLOY=false` apaga el disparo automático sin tocar código. Un solo despliegue a la vez y ninguno se cancela a medias.
+- **Quién lo decidió:** el propietario, el 2026-11-06: «que se haga en automático apenas exista un commit nuevo, no que tú lo debas hacer».
+- **Responsable:** propietario del proyecto.
+- **Motivo:** quitar el paso manual en cada versión. Las defensas que protegen el despliegue no dependen de una persona: CI en verde del mismo commit, respaldo verificado previo, simulación de las migraciones, parada sin desplegar la aplicación si algo falla y pruebas de humo (`deploy.sh`).
+- **Cambia una regla previa:** `docs/05-backend/migraciones-atlas.md` exigía «aprobación manual» antes de migrar producción. Se sustituye por: la revisión del SQL exacto ocurre en el PR (donde ya se exige) y el despliegue automático aplica lo integrado. `migraciones-atlas.md` pasa a la versión 1.3.
+- **Consecuencias aceptadas:** (1) una migración llega a producción en cuanto se integra en `main`, sin una segunda revisión; el respaldo previo y la restauración (`restore.sh`) son la red de seguridad, y la reversión de la aplicación sigue siendo *roll-forward*; (2) cada commit de `main`, también los de solo documentación, reconstruye imágenes y recrea contenedores; la imagen de la base se versiona por contenido y no se recrea si no cambia; (3) un commit defectuoso que pase el CI llega a producción; (4) los aprobadores obligatorios del entorno `production` siguen sin existir (plan gratuito, repositorio privado): si el repositorio pasa a un plan que los admita, pueden volver a exigirse.
+- **Alcance:** infraestructura (`.github/workflows/deploy.yml`). Sin cambios de API, contrato, datos ni migraciones.
+- **Documentos afectados:** `migraciones-atlas.md` (§ ambientes y § producción), `stack-despliegue-operacion.md` (§7), `deploy/README.md`, `historial-cambios.md`.
+- **Fuente:** instrucción explícita del propietario el 2026-11-06; issue [#541](https://github.com/bcaceres19/barberia/issues/541); `DEC-158`, `DEC-159`, `DEC-040`.

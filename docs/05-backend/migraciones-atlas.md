@@ -1,9 +1,9 @@
 ---
 titulo: "Gestión de migraciones PostgreSQL con Atlas"
-version: "1.2"
+version: "1.3"
 estado: "Decisión confirmada"
 responsable: "Propietario del proyecto"
-ultima_actualizacion: "2026-08-11"
+ultima_actualizacion: "2026-11-06"
 documentos_relacionados:
   - "../00-control/registro-decisiones.md"
   - "../00-control/matriz-trazabilidad.md"
@@ -94,7 +94,7 @@ Secuencia obligatoria:
 | Local | manual, recreable y con datos ficticios | desarrollador |
 | Test/CI | automático sobre PostgreSQL efímero | pipeline del commit |
 | Piloto | automático desde artefacto aprobado | aprobación del responsable del piloto |
-| Producción | etapa separada antes del despliegue del API | aprobación manual y respaldo verificado |
+| Producción | etapa separada antes del despliegue del API | PR revisado, CI en verde y respaldo verificado; despliegue automático (`DEC-160`) |
 
 La misma migración y el mismo `atlas.sum` avanzan entre ambientes. Está prohibido regenerar SQL distinto para piloto o producción.
 
@@ -126,7 +126,7 @@ Para producción se cambia el ambiente, pero no el artefacto. El pipeline debe:
 
 - confirmar copia o punto de recuperación según el riesgo;
 - guardar versión previa y objetivo;
-- requerir aprobación manual;
+- exigir el commit de `main` con el CI en verde y la simulación de la migración (`DEC-160` sustituye la aprobación manual por el disparo automático; la revisión humana del SQL ocurre en el PR);
 - usar un rol migrador separado con DDL, nunca el rol ordinario del API;
 - capturar salida, commit, actor, ambiente, inicio, fin y resultado;
 - ejecutar smoke tests antes de continuar el despliegue;

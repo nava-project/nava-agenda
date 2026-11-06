@@ -1,6 +1,6 @@
 ---
 titulo: "Stack, despliegue y operación"
-version: "1.7"
+version: "1.8"
 estado: "Decisión confirmada"
 responsable: "Propietario del proyecto"
 ultima_actualizacion: "2026-11-06"
@@ -162,7 +162,7 @@ Antes de migrar a un VPS:
 El procedimiento vigente está en [`deploy/README.md`](../../deploy/README.md) y la decisión en `DEC-158`:
 
 - pila en contenedores Docker Compose, base de datos incluida, con límites de CPU y memoria por servicio y una sola superficie pública (Caddy en 80/443);
-- imágenes publicadas en GHCR y despliegue manual con aprobación del commit de `main` que superó el CI;
+- imágenes publicadas en GHCR y despliegue automático (`DEC-160`) del commit de `main` que superó el CI, con disparo manual para reintentos y un interruptor `AUTO_DEPLOY`;
 - etapa de migración separada con Atlas y el rol `barberia_migrator`, precedida de un respaldo verificado; si falla, la aplicación en ejecución no se toca;
 - respaldo diario con retención de 30 días y prueba de restauración semanal (§5); la copia externa requiere configurar `BACKUP_RCLONE_REMOTE`.
 
