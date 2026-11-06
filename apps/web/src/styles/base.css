@@ -27,6 +27,52 @@ html:has(.auth-split) {
   background: var(--color-canvas);
 }
 
+/*
+ * Scroll general de la app, no el gris del navegador (issue #549): la barra
+ * delgada de latón de la landing y del panel, en todas las pantallas. La pista
+ * toma el mismo color que el fondo del documento (`html`), así que sigue a la
+ * tinta, al marfil del acceso y al tema Marfil del panel sin repetir reglas
+ * por pantalla. Los scrolls internos (paneles, diálogos, selectores) conservan
+ * su propio estilo.
+ */
+html {
+  --page-scroll-track: var(--color-surface-strong);
+  --page-scroll-thumb: color-mix(in srgb, var(--color-brand-accent-surface) 55%, transparent);
+  --page-scroll-thumb-hover: var(--color-brand-accent-surface);
+  --page-scroll-edge: color-mix(in srgb, var(--color-on-strong) 8%, transparent);
+  scrollbar-width: thin;
+  scrollbar-color: var(--page-scroll-thumb) var(--page-scroll-track);
+}
+
+/* Pantallas de fondo marfil: acceso/recuperación y el turno del cliente listo.
+   El pulgar usa el latón oscuro, que se lee sobre claro. */
+html:has(.auth-split),
+html:has(.customer-appointment--ready) {
+  --page-scroll-track: var(--color-canvas);
+  --page-scroll-thumb: color-mix(in srgb, var(--color-accent-brass) 55%, transparent);
+  --page-scroll-thumb-hover: var(--color-accent-brass);
+  --page-scroll-edge: color-mix(in srgb, var(--color-text-primary) 10%, transparent);
+}
+
+html::-webkit-scrollbar {
+  width: 12px;
+}
+
+html::-webkit-scrollbar-track {
+  background: var(--page-scroll-track);
+  border-left: 1px solid var(--page-scroll-edge);
+}
+
+html::-webkit-scrollbar-thumb {
+  background-color: var(--page-scroll-thumb);
+  border: 3px solid var(--page-scroll-track);
+  border-radius: var(--radius-pill);
+}
+
+html::-webkit-scrollbar-thumb:hover {
+  background-color: var(--page-scroll-thumb-hover);
+}
+
 body {
   margin: 0;
   /* `--viewport-height` es `100dvh` entre el zoom del tamaño de texto (DEC-110,

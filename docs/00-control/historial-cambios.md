@@ -1,6 +1,6 @@
 ---
 titulo: "Historial de cambios documentales"
-version: "4.14"
+version: "4.15"
 estado: "Vigente"
 responsable: "Propietario del proyecto"
 ultima_actualizacion: "2026-11-06"
@@ -429,3 +429,4 @@ Las versiones se aplican por documento. Mientras no exista historial Git, la fec
 | 2026-11-06 | `docs/00-control/historial-cambios.md`, `docs/00-control/registro-decisiones.md` (DEC-160), `docs/05-backend/migraciones-atlas.md` (1.3), `docs/04-arquitectura/stack-despliegue-operacion.md` (1.8), `deploy/README.md` y `.github/workflows/deploy.yml` | Despliegue automático a producción (#541): el workflow `Deploy` corre solo cuando el CI de un `push` a `main` termina en verde y despliega ese SHA; el disparo manual queda para reintentos y reversión, y `AUTO_DEPLOY=false` lo apaga. Sustituye la «aprobación manual» previa a migrar producción de `migraciones-atlas.md` por PR revisado + CI + simulación + respaldo verificado. Sin cambios de aplicación, API ni datos. |
 | 2026-11-06 | `docs/00-control/historial-cambios.md`, `docs/00-control/registro-decisiones.md` (DEC-161) y `apps/web/src/modules/{legal,landing,auth,public-booking}/`, `apps/web/src/app/router/index.ts` | Política de privacidad y condiciones del servicio públicas (#545): rutas `/privacidad` y `/terminos`, requisito de la verificación de OAuth de Google para `calendar.events`; enlaces en el pie de la landing, la tarjeta de acceso y la firma de la reserva pública. Borrador sujeto a revisión jurídica (`DP-LEG-01`, `DEC-025`). |
 | 2026-11-06 | `docs/00-control/historial-cambios.md`, `docs/00-control/registro-decisiones.md` (DEC-161) y `apps/web/src/modules/legal/` | Páginas legales sobre tinta con el lenguaje visual de la landing (#547): lienzo de tinta con mesa de patronaje, cabecera y pie como los de la landing, índice con sección activa, bloque destacado de Uso limitado con `lang="en"`. Solo presentación: texto, rutas y enlaces de `DEC-161` sin cambios. |
+| 2026-11-06 | `docs/00-control/historial-cambios.md`, `apps/web/src/styles/base.css` y `apps/web/src/modules/landing/styles/landing.css` | Scroll general con el estilo de NAVA en todas las pantallas (#549): la barra delgada de latón de la landing pasa a `base.css` y su pista sigue el fondo del documento (tinta; marfil en el acceso y en el turno del cliente listo). La landing conserva solo su `scroll-padding` y el desplazamiento suave. Sin cambios de comportamiento. |
