@@ -1,0 +1,181 @@
+name: Deploy
+
+# Despliegue manual a producción (VPS). Promueve un commit de `main` que ya superó
+# el CI: no hay ramas por ambiente (docs/03-desarrollo/flujo-git-github.md).
+# El job `deploy` usa el entorno `production`, donde el propietario configura la
+# aprobación manual y los secretos (deploy/README.md).
+on:
+  workflow_dispatch:
+    inputs:
+      ref:
+        description: "SHA de main a desplegar (vacío = último commit de main)"
+        required: false
+        default: ""
+
+# Un solo despliegue a la vez y nunca se cancela uno en curso a medias.
+concurrency:
+  group: deploy-production
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    name: Verificar commit
+    # El workflow solo se ejecuta desde main: quien lo lance desde otra rama no despliega.
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      actions: read
+    outputs:
+      sha: ${{ steps.resolve.outputs.sha }}
+      db_tag: ${{ steps.resolve.outputs.db_tag }}
+      owner: ${{ steps.resolve.outputs.owner }}
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+
+      - name: Resolver el commit y exigir CI en verde
+        id: resolve
+        env:
+          GH_TOKEN: ${{ github.token }}
+          INPUT_REF: ${{ inputs.ref }}
+        run: |
+          set -euo pipefail
+          sha="$(git rev-parse --verify "${INPUT_REF:-$GITHUB_SHA}^{commit}")"
+          git merge-base --is-ancestor "$sha" origin/main \
+            || { echo "::error::$sha no pertenece a main"; exit 1; }
+
+          ok="$(gh run list --workflow ci.yml --commit "$sha" --status success --json databaseId --jq length)"
+          [ "$ok" -ge 1 ] \
+            || { echo "::error::El CI de $sha no terminó en verde: no se despliega"; exit 1; }
+
+          # La imagen de la base se versiona por contenido: solo cambia (y recrea
+          # PostgreSQL) cuando cambian su configuración, sus scripts o su Dockerfile.
+          db_tag="$(git rev-parse "$sha:deploy/db" "$sha:deploy/backup" "$sha:deploy/docker/db.Dockerfile" | sha1sum | cut -c1-12)"
+
+          {
+            echo "sha=$sha"
+            echo "db_tag=$db_tag"
+            echo "owner=${GITHUB_REPOSITORY_OWNER,,}"
+          } >>"$GITHUB_OUTPUT"
+          echo "Desplegando $sha (imagen de base $db_tag)" >>"$GITHUB_STEP_SUMMARY"
+
+  images:
+    name: Imagen ${{ matrix.name }}
+    needs: verify
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    strategy:
+      fail-fast: true
+      matrix:
+        include:
+          - name: backend
+            dockerfile: deploy/docker/backend.Dockerfile
+            tag: ${{ needs.verify.outputs.sha }}
+            build_args: ""
+          - name: web
+            dockerfile: deploy/docker/web.Dockerfile
+            tag: ${{ needs.verify.outputs.sha }}
+            # Clave de NAVEGADOR de Google Maps: pública por diseño (se restringe por dominio).
+            build_args: VITE_GOOGLE_MAPS_BROWSER_KEY=${{ vars.VITE_GOOGLE_MAPS_BROWSER_KEY }}
+          - name: db
+            dockerfile: deploy/docker/db.Dockerfile
+            tag: ${{ needs.verify.outputs.db_tag }}
+            build_args: ""
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: ${{ needs.verify.outputs.sha }}
+
+      - uses: docker/setup-buildx-action@v4
+
+      - uses: docker/login-action@v4
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ github.token }}
+
+      - uses: docker/build-push-action@v7
+        with:
+          context: .
+          file: ${{ matrix.dockerfile }}
+          push: true
+          provenance: false
+          build-args: ${{ matrix.build_args }}
+          tags: ghcr.io/${{ needs.verify.outputs.owner }}/barberia-${{ matrix.name }}:${{ matrix.tag }}
+          cache-from: type=gha,scope=${{ matrix.name }}
+          cache-to: type=gha,scope=${{ matrix.name }},mode=max
+
+  deploy:
+    name: Desplegar en el VPS
+    needs: [verify, images]
+    runs-on: ubuntu-latest
+    # Aprobación manual y secretos (VPS_HOST, VPS_SSH_KEY, VPS_KNOWN_HOSTS) de este entorno.
+    environment:
+      name: production
+      url: ${{ vars.PUBLIC_URL }}
+    permissions:
+      contents: read
+      packages: read
+    env:
+      SHA: ${{ needs.verify.outputs.sha }}
+      DB_TAG: ${{ needs.verify.outputs.db_tag }}
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: ${{ needs.verify.outputs.sha }}
+
+      - name: Preparar SSH
+        env:
+          SSH_KEY: ${{ secrets.VPS_SSH_KEY }}
+          KNOWN_HOSTS: ${{ secrets.VPS_KNOWN_HOSTS }}
+        run: |
+          set -euo pipefail
+          install -d -m 700 ~/.ssh
+          printf '%s\n' "$SSH_KEY" >~/.ssh/deploy_key
+          printf '%s\n' "$KNOWN_HOSTS" >~/.ssh/known_hosts
+          chmod 600 ~/.ssh/deploy_key ~/.ssh/known_hosts
+
+      - name: Enviar la versión al servidor
+        env:
+          VPS_HOST: ${{ secrets.VPS_HOST }}
+        run: |
+          set -euo pipefail
+          ssh_opts=(-i ~/.ssh/deploy_key -o StrictHostKeyChecking=yes -o BatchMode=yes)
+          # SHA y DB_TAG se expanden aquí, en el cliente, a propósito (son hexadecimales).
+          # shellcheck disable=SC2029
+          # Solo lo necesario: compose, scripts y migraciones. El mismo commit que probó el CI.
+          tar czf - deploy database/atlas.hcl database/migrations \
+            | ssh "${ssh_opts[@]}" "deploy@$VPS_HOST" \
+                "set -e; d=/srv/barberia/releases/$SHA; rm -rf \"\$d\"; mkdir -p \"\$d\"; tar xzpf - -C \"\$d\""
+
+      - name: Desplegar (respaldo, migraciones, arranque, pruebas de humo)
+        env:
+          VPS_HOST: ${{ secrets.VPS_HOST }}
+          GHCR_USER: ${{ github.actor }}
+          GHCR_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          ssh_opts=(-i ~/.ssh/deploy_key -o StrictHostKeyChecking=yes -o BatchMode=yes)
+          # El token viaja por stdin: no queda en la línea de comandos ni en el disco del servidor.
+          # shellcheck disable=SC2029
+          printf '%s\n' "$GHCR_TOKEN" | ssh "${ssh_opts[@]}" "deploy@$VPS_HOST" \
+            "DEPLOY_ACTOR='$GHCR_USER' bash /srv/barberia/releases/$SHA/deploy/scripts/deploy.sh $SHA --db-tag $DB_TAG --ghcr-user '$GHCR_USER'"
+
+      - name: Comprobar HTTPS público
+        if: ${{ vars.PUBLIC_URL != '' }}
+        env:
+          PUBLIC_URL: ${{ vars.PUBLIC_URL }}
+        run: |
+          set -euo pipefail
+          for _ in 1 2 3 4 5 6; do
+            curl -fsS --max-time 10 "$PUBLIC_URL/health" && exit 0
+            sleep 10
+          done
+          echo "::error::$PUBLIC_URL/health no responde"; exit 1

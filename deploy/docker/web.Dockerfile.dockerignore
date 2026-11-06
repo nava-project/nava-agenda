@@ -1,0 +1,10 @@
+*
+!apps/web
+!deploy/caddy
+apps/web/node_modules
+apps/web/dist
+apps/web/e2e
+apps/web/test-results
+apps/web/playwright-report
+apps/web/graphify-out
+apps/web/.env*

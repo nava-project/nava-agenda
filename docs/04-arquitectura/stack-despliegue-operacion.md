@@ -1,9 +1,9 @@
 ---
 titulo: "Stack, despliegue y operación"
-version: "1.6"
+version: "1.7"
 estado: "Decisión confirmada"
 responsable: "Propietario del proyecto"
-ultima_actualizacion: "2026-08-06"
+ultima_actualizacion: "2026-11-06"
 documentos_relacionados:
   - "../00-control/registro-decisiones.md"
   - "../01-producto/alcance-mvp.md"
@@ -156,3 +156,15 @@ Antes de migrar a un VPS:
 - confirmar costos vigentes de correo y WhatsApp oficial.
 
 “VPS dedicado” describe el servidor de aplicación. No significa que la base de datos deba vivir sin respaldo en el mismo disco.
+
+## 7. Despliegue en el VPS
+
+El procedimiento vigente está en [`deploy/README.md`](../../deploy/README.md) y la decisión en `DEC-158`:
+
+- pila en contenedores Docker Compose, base de datos incluida, con límites de CPU y memoria por servicio y una sola superficie pública (Caddy en 80/443);
+- imágenes publicadas en GHCR y despliegue manual con aprobación del commit de `main` que superó el CI;
+- etapa de migración separada con Atlas y el rol `barberia_migrator`, precedida de un respaldo verificado; si falla, la aplicación en ejecución no se toca;
+- respaldo diario con retención de 30 días y prueba de restauración semanal (§5); la copia externa requiere configurar `BACKUP_RCLONE_REMOTE`.
+
+La reversión de la aplicación sigue siendo *roll-forward* (`migraciones-atlas.md` §9); `deploy.sh --no-migrate` solo es seguro si el esquema es compatible con la versión anterior.
+
