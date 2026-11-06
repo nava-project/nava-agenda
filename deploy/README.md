@@ -98,7 +98,8 @@ despliegue, y un servicio no puede leer los de otro. Los servicios que los leen 
    (opcionales: `APP_META_WEBHOOK_VERIFY_TOKEN`, `APP_META_APP_SECRET`, `GOOGLE_MAPS_API_KEY` y los de
    Google Calendar). Los datos no sensibles (`APP_META_WHATSAPP_PHONE_NUMBER_ID`,
    `APP_META_WHATSAPP_TEMPLATE_NAME`) se escriben en `/srv/barberia/env/app.env`.
-5. **Despliega**: GitHub → Actions → *Deploy* → *Run workflow*.
+5. **Despliega**: no hace falta hacer nada; el primer commit que llegue a `main` con el CI en verde
+   se despliega solo (o lánzalo a mano: GitHub → Actions → *Deploy* → *Run workflow*).
    El primer despliegue crea los roles, aplica las migraciones y arranca todo.
 
 ## 4. DNS de `nava.wtf` en Hostinger
@@ -141,11 +142,16 @@ El entorno **`production`** del repositorio ya está creado con lo necesario, en
 Las claves de Resend, Meta y Google **no** están en GitHub: viven solo en el servidor como
 secretos de Docker (sección 2). El repositorio es privado y aun así ningún secreto va en el código.
 
-**Aprobación manual.** `migraciones-atlas.md` exige aprobación antes de migrar producción. Los
-aprobadores obligatorios de un entorno no están disponibles en el plan gratuito con repositorios
-privados, así que el control es el propio disparo: el workflow solo corre por `workflow_dispatch`
-(quien tenga permiso de escritura) y solo desde `main`. Si el repositorio pasa a un plan que los
-admita, se añade con *Settings → Environments → production → Required reviewers*.
+**Despliegue automático (DEC-160).** El workflow corre solo cuando el CI de un `push` a `main`
+termina en verde, y despliega exactamente ese SHA. No hay aprobación manual previa: los aprobadores
+obligatorios de un entorno no existen en el plan gratuito con repositorios privados, y el propietario
+decidió desplegar sin intervención. Los controles son el PR revisado, el CI, la simulación de las
+migraciones, el respaldo verificado previo y las pruebas de humo; si falla cualquiera, no se
+despliega la aplicación. `workflow_dispatch` sigue disponible para reintentar o volver a un SHA de
+`main`. **Interruptor:** la variable de repositorio `AUTO_DEPLOY=false` (*Settings → Secrets and
+variables → Actions → Variables*, o `gh variable set AUTO_DEPLOY --body false`) apaga el disparo
+automático; `gh variable delete AUTO_DEPLOY` lo reactiva. Si llegan dos commits seguidos, solo se
+despliega el más nuevo.
 
 ## 6. Servicios externos que hay que apuntar al dominio
 
@@ -170,7 +176,8 @@ docker stats --no-stream            # consumo real frente a los límites
 tail /srv/barberia/deploy.log       # historial de despliegues (versión, actor, resultado)
 ```
 
-**Desplegar**: Actions → *Deploy* → *Run workflow* (vacío = último commit de `main`; o un SHA).
+**Desplegar**: ocurre solo tras cada commit de `main` con el CI en verde. A mano (reintento o SHA
+anterior): Actions → *Deploy* → *Run workflow* (vacío = último commit de `main`; o un SHA).
 Verifica que el CI del commit esté en verde, construye y publica las imágenes en GHCR y entonces: respaldo previo verificado → migraciones con `barberia_migrator` → arranque →
 pruebas de humo. **Si la migración falla, la aplicación en ejecución no se toca.**
 
@@ -220,5 +227,6 @@ y luego `restore.sh`.
 - **CSP**: Caddy aplica HSTS, `nosniff`, `X-Frame-Options` y `Permissions-Policy`, pero no una
   Content-Security-Policy estricta (la app carga scripts de Google Maps); requiere su propio
   trabajo y pruebas.
-- **Despliegue automático** tras cada merge: hoy es manual con aprobación. Puede añadirse un
-  disparador `workflow_run` cuando el primer despliegue haya salido bien.
+- **Migraciones destructivas sin aprobación**: con el despliegue automático (DEC-160) una migración
+  entra a producción en cuanto se integra en `main`. Hasta que exista un entorno con aprobadores, la
+  revisión del SQL en el PR es el único control humano; evita mezclar DDL destructivo con otros cambios.

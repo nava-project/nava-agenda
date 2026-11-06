@@ -1,11 +1,19 @@
 name: Deploy
 
-# Despliegue manual a producción (VPS). Promueve un commit de `main` que ya superó
-# el CI: no hay ramas por ambiente (docs/03-desarrollo/flujo-git-github.md).
-# El disparo manual es el control de aprobación (los aprobadores obligatorios del
-# entorno no existen en el plan gratuito con repositorios privados). El job `deploy`
-# usa el entorno `production`, que solo admite `main` y guarda los secretos SSH.
+# Despliegue a producción (VPS). Promueve un commit de `main` que ya superó el CI:
+# no hay ramas por ambiente (docs/03-desarrollo/flujo-git-github.md).
+#
+# Se dispara solo (DEC-160) cuando el CI de un `push` a `main` termina en verde, y a mano
+# (`workflow_dispatch`) para reintentar o volver a un SHA anterior de `main`. El control
+# previo es el PR revisado y el CI; el posterior, el respaldo verificado, la simulación de
+# migraciones y las pruebas de humo de deploy.sh, que detienen el despliegue si algo falla.
+# Interruptor: la variable de repositorio AUTO_DEPLOY=false desactiva el disparo automático.
+# El job `deploy` usa el entorno `production`, que solo admite `main` y guarda los secretos SSH.
 on:
+  workflow_run:
+    workflows: [CI]
+    types: [completed]
+    branches: [main]
   workflow_dispatch:
     inputs:
       ref:
@@ -24,14 +32,22 @@ permissions:
 jobs:
   verify:
     name: Verificar commit
-    # El workflow solo se ejecuta desde main: quien lo lance desde otra rama no despliega.
-    if: github.ref == 'refs/heads/main'
+    # Manual: solo desde main (quien lo lance desde otra rama no despliega). Automático:
+    # solo tras un `push` a main con el CI en verde y sin el interruptor apagado.
+    if: >-
+      (github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/main') ||
+      (github.event_name == 'workflow_run'
+        && github.event.workflow_run.conclusion == 'success'
+        && github.event.workflow_run.event == 'push'
+        && github.event.workflow_run.head_branch == 'main'
+        && vars.AUTO_DEPLOY != 'false')
     runs-on: ubuntu-latest
     permissions:
       contents: read
       actions: read
     outputs:
       sha: ${{ steps.resolve.outputs.sha }}
+      skip: ${{ steps.resolve.outputs.skip }}
       db_tag: ${{ steps.resolve.outputs.db_tag }}
       owner: ${{ steps.resolve.outputs.owner }}
     steps:
@@ -44,11 +60,23 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
           INPUT_REF: ${{ inputs.ref }}
+          EVENT: ${{ github.event_name }}
+          RUN_SHA: ${{ github.event.workflow_run.head_sha }}
         run: |
           set -euo pipefail
-          sha="$(git rev-parse --verify "${INPUT_REF:-$GITHUB_SHA}^{commit}")"
+          # Automático: el SHA que probó ese CI (no el GITHUB_SHA, que es la punta actual de main).
+          if [ "$EVENT" = workflow_run ]; then ref="$RUN_SHA"; else ref="${INPUT_REF:-$GITHUB_SHA}"; fi
+          sha="$(git rev-parse --verify "$ref^{commit}")"
           git merge-base --is-ancestor "$sha" origin/main \
             || { echo "::error::$sha no pertenece a main"; exit 1; }
+
+          # Si ya hay un commit más nuevo en main, su propio CI disparará su despliegue: este se
+          # omite para no desplegar una versión vieja encima de una nueva.
+          if [ "$EVENT" = workflow_run ] && [ "$sha" != "$(git rev-parse origin/main)" ]; then
+            echo "skip=true" >>"$GITHUB_OUTPUT"
+            echo "Se omite $sha: main ya avanzó" >>"$GITHUB_STEP_SUMMARY"
+            exit 0
+          fi
 
           ok="$(gh run list --workflow ci.yml --commit "$sha" --status success --json databaseId --jq length)"
           [ "$ok" -ge 1 ] \
@@ -68,6 +96,7 @@ jobs:
   images:
     name: Imagen ${{ matrix.name }}
     needs: verify
+    if: needs.verify.outputs.skip != 'true'
     runs-on: ubuntu-latest
     permissions:
       contents: read
