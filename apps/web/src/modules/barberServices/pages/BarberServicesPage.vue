@@ -16,7 +16,14 @@
 import { computed, nextTick, ref, onMounted, onUnmounted, watch } from 'vue'
 import { useToast, useVocabulary } from '@/shared/composables'
 import { capitalize } from '@/shared/model'
-import { BarberAvatar, BaseAlert, BaseButton, BasePagination, EmptyScene } from '@/shared/ui'
+import {
+  BarberAvatar,
+  BarberSelect,
+  BaseAlert,
+  BaseButton,
+  BasePagination,
+  EmptyScene,
+} from '@/shared/ui'
 import {
   assignService,
   fetchAssignments,
@@ -212,11 +219,6 @@ async function selectBarber(barberId: string) {
   assignmentsStatus.value = 'error'
 }
 
-function onBarberSelectChange(event: Event) {
-  const barberId = (event.target as HTMLSelectElement).value
-  void selectBarber(barberId)
-}
-
 function onRetryAssignments() {
   if (selectedBarberId.value) void selectBarber(selectedBarberId.value)
 }
@@ -380,18 +382,12 @@ async function onToggleService(service: ServiceSummary, event: Event) {
             <label for="barber-services-barber-select" class="barber-services-page__label">
               {{ v.Professional }}
             </label>
-            <div class="barber-services-page__select-wrap">
-              <select
-                id="barber-services-barber-select"
-                class="barber-services-page__select"
-                :value="selectedBarberId ?? ''"
-                @change="onBarberSelectChange"
-              >
-                <option v-for="barber in barbers" :key="barber.id" :value="barber.id">
-                  {{ barber.fullName }}
-                </option>
-              </select>
-            </div>
+            <BarberSelect
+              :model-value="selectedBarberId"
+              :barbers="barbers"
+              trigger-id="barber-services-barber-select"
+              @update:model-value="selectBarber"
+            />
           </div>
 
           <div
@@ -706,64 +702,6 @@ async function onToggleService(service: ServiceSummary, event: Event) {
   letter-spacing: 0.1em;
   text-transform: uppercase;
   color: var(--color-brand-accent-surface);
-}
-
-.barber-services-page__select-wrap {
-  position: relative;
-}
-
-/* Rombo de despliegue dibujado con bordes: el <select> nativo conserva su
-   semántica y su teclado; solo se le quita la apariencia del sistema. */
-.barber-services-page__select-wrap::after {
-  content: '';
-  position: absolute;
-  top: 50%;
-  right: 16px;
-  width: 8px;
-  height: 8px;
-  border-right: var(--border-width-emphasis) solid var(--color-brand-accent-surface);
-  border-bottom: var(--border-width-emphasis) solid var(--color-brand-accent-surface);
-  pointer-events: none;
-  transform: translateY(-70%) rotate(45deg);
-  transition: transform var(--motion-duration-base) var(--motion-ease-out);
-}
-
-.barber-services-page__select-wrap:focus-within::after {
-  transform: translateY(-30%) rotate(225deg);
-}
-
-.barber-services-page__select {
-  appearance: none;
-  width: 100%;
-  min-height: var(--control-height);
-  padding: 0 44px 0 var(--space-4);
-  font-family: var(--font-family-base);
-  font-size: var(--font-size-body);
-  color: var(--color-on-strong);
-  cursor: pointer;
-  background-color: color-mix(in srgb, var(--color-on-strong) 4%, transparent);
-  border: var(--border-width-normal) solid var(--color-field-strong-border);
-  border-bottom: var(--border-width-emphasis) solid var(--color-brand-accent-surface);
-  border-radius: 2px;
-  transition:
-    background-color var(--motion-duration-fast) var(--motion-easing-standard),
-    border-color var(--motion-duration-fast) var(--motion-easing-standard);
-}
-
-.barber-services-page__select option {
-  color: var(--color-text-primary);
-  background-color: var(--color-surface);
-}
-
-.barber-services-page__select:hover {
-  background-color: color-mix(in srgb, var(--color-on-strong) 8%, transparent);
-}
-
-.barber-services-page__select:focus-visible {
-  outline: none;
-  box-shadow:
-    0 0 0 2px var(--color-surface-strong),
-    0 0 0 4px var(--color-focus);
 }
 
 /* Medidor: cifra serif grande y una regla de latón que se llena. */
@@ -1107,8 +1045,7 @@ async function onToggleService(service: ServiceSummary, event: Event) {
   .barber-services-page__checkbox,
   .barber-services-page__checkbox::after,
   .barber-services-page__row::before,
-  .barber-services-page__meter-fill,
-  .barber-services-page__select-wrap::after {
+  .barber-services-page__meter-fill {
     transition: none;
   }
 }

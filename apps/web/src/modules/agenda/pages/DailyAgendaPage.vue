@@ -19,7 +19,15 @@ import { computed, onMounted, onUnmounted, ref, watch } from 'vue'
 import { useRoute, useRouter, type LocationQueryRaw } from 'vue-router'
 import { useMinHoldLoading, useVocabulary } from '@/shared/composables'
 import { capitalize, isSoloProfile } from '@/shared/model'
-import { BaseAlert, BaseBadge, BaseButton, DiamondLoader, EmptyScene, PageState } from '@/shared/ui'
+import {
+  BarberSelect,
+  BaseAlert,
+  BaseBadge,
+  BaseButton,
+  DiamondLoader,
+  EmptyScene,
+  PageState,
+} from '@/shared/ui'
 import {
   formatCivilDateFull,
   getCivilDateInTimezone,
@@ -42,7 +50,6 @@ import {
 } from '../model/dailyAgenda'
 import AgendaSkeleton from '../components/AgendaSkeleton.vue'
 import BaseDatePicker from '@/shared/ui/BaseDatePicker.vue'
-import BarberSelect from '../components/BarberSelect.vue'
 
 type PageStatus = 'loading' | 'ready' | 'load-error'
 // 'updating' (CA-063): ya hubo una agenda confirmada antes (para otra
