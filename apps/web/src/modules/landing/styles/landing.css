@@ -184,36 +184,13 @@
 }
 
 /*
- * Scroll de la app, no el gris del navegador: la misma barra delgada de latón
- * sobre tinta que usa el cascarón del panel (PrivateShell). La clase la pone
- * LandingPage en <html> solo mientras está montada, así el resto de rutas no
- * hereda nada. El desplazamiento a un ancla es suave y deja sitio a la
- * cabecera fija.
+ * Desplazamiento de la landing. La barra del documento ya es la de NAVA en toda
+ * la app (`styles/base.css`, issue #549); aquí solo queda lo propio de esta
+ * página: el desplazamiento a un ancla deja sitio a la cabecera fija y es
+ * suave. La clase la pone LandingPage en <html> solo mientras está montada.
  */
 html.ln-root {
-  scrollbar-width: thin;
-  scrollbar-color: color-mix(in srgb, var(--color-brand-accent-surface) 55%, transparent)
-    var(--color-surface-strong);
   scroll-padding-top: 72px;
-}
-
-html.ln-root::-webkit-scrollbar {
-  width: 12px;
-}
-
-html.ln-root::-webkit-scrollbar-track {
-  background: var(--color-surface-strong);
-  border-left: 1px solid color-mix(in srgb, var(--color-on-strong) 8%, transparent);
-}
-
-html.ln-root::-webkit-scrollbar-thumb {
-  background-color: color-mix(in srgb, var(--color-brand-accent-surface) 55%, transparent);
-  border: 3px solid var(--color-surface-strong);
-  border-radius: var(--radius-pill);
-}
-
-html.ln-root::-webkit-scrollbar-thumb:hover {
-  background-color: var(--color-brand-accent-surface);
 }
 
 @media (prefers-reduced-motion: no-preference) {
