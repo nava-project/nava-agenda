@@ -60,7 +60,9 @@ services:
       - /run/nava-tls:mode=0755
     networks: [data]
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -q -U postgres -d nava"]
+      # Como el usuario del sistema `postgres`: la regla `local … peer` de pg_hba.conf
+      # rechaza a root (el usuario de `docker exec`) y dejaría un FATAL cada 10 s en el log.
+      test: ["CMD-SHELL", "su-exec postgres pg_isready -q -U postgres -d nava"]
       interval: 10s
       timeout: 5s
       retries: 6
