@@ -28,7 +28,7 @@ api y worker salen a Internet (Resend, Meta, Google) por la red "egress".
 | `worker` | `barberia-backend` | 0,5 | 256 MB | Recordatorios y purgas |
 | `db` | `barberia-db` | 1,5 | 1,5 GB | PostgreSQL con TLS obligatorio |
 | `backup` | `barberia-db` | 0,5 | 512 MB | Respaldo diario, retención y prueba semanal |
-| `migrate` | `arigaio/atlas` | 1,0 | 256 MB | Migraciones (solo durante el despliegue) |
+| `migrate` | `barberia-db` (Atlas 1.3.0 incluido) | 1,0 | 256 MB | Migraciones (solo durante el despliegue) |
 
 Los límites suman ~3,1 GB de los 7,6 GB del VPS. El consumo real en reposo es una fracción
 (API ~25 MB, base ~50 MB). Se ajustan en [`compose.yaml`](compose.yaml).
@@ -38,41 +38,66 @@ Seguridad de los contenedores: sistema de archivos de solo lectura, `cap_drop: A
 Docker salta el firewall del servidor para los puertos que publica, por eso la base y el
 API nunca se publican. `db` y `backup` viven en una red interna sin salida a Internet.
 
-## 2. Variables de entorno (`env_file`)
+## 2. Configuración y secretos
 
-Un archivo por servicio en `/srv/barberia/env/` (modo 600, fuera del repositorio). Docker
-Compose los carga con `env_file` en formato `raw`: el valor es literal, sin comillas ni
-interpolación de `$`.
+Configuración y secretos van **separados** y los dos viven en el servidor, fuera del repositorio.
+
+**Configuración** (sin secretos) en `/srv/barberia/env/`, cargada con `env_file` en formato `raw`
+(valor literal, sin comillas ni interpolación de `$`):
 
 | Archivo | Lo usa | Contenido |
 | --- | --- | --- |
-| `stack.env` | compose | `DOMAIN`, `ACME_EMAIL`, registro de imágenes, puertos |
-| `db.env` | `db` | superusuario y contraseñas de los roles (`DEC-040`) |
-| `app.env` | `api`, `worker` | DSN, secreto HMAC, Resend, Meta, Google |
-| `migrate.env` | `migrate` | URL del rol migrador y del administrador (bootstrap) |
-| `backup.env` | `backup` | acceso de solo lectura, retención, copia externa |
+| `stack.env` | compose | `DOMAIN`, `ACME_EMAIL`, registro de imágenes, rutas, puertos |
+| `db.env` | `db` | usuario y nombre de la base |
+| `app.env` | `api`, `worker` | entorno, proxies de confianza, datos no sensibles de proveedores |
+| `backup.env` | `backup` | host, retención, hora, remoto de rclone |
 
-[`scripts/env-init.sh`](scripts/env-init.sh) los genera con secretos aleatorios, **nunca
-sobrescribe** un archivo existente y reutiliza las contraseñas ya generadas. Lo que solo tú
-puedes dar (Resend, Meta, Google) queda vacío en `app.env`; `deploy.sh` se niega a desplegar
-mientras falten los obligatorios (el API tampoco arranca sin ellos, `DEC-066`).
+**Secretos** como archivos de secreto de Docker, uno por secreto, en
+`/srv/barberia/secrets/<servicio>/<NOMBRE>` (carpetas 700, archivos 600, dueño `deploy`):
 
-> **Respalda `/srv/barberia/env/` fuera del servidor** (gestor de contraseñas). El respaldo
-> de la base no lo incluye y `APP_AUTH_HMAC_SECRET` no se puede reconstruir.
+| Carpeta | Secretos |
+| --- | --- |
+| `db/` | `POSTGRES_PASSWORD`, `NAVA_MIGRATOR_PASSWORD`, `NAVA_APP_PASSWORD`, `NAVA_WORKER_PASSWORD`, `NAVA_BACKUP_PASSWORD` |
+| `app/` | `APP_DATABASE_URL`, `APP_WORKER_DATABASE_URL`, `APP_AUTH_HMAC_SECRET`, `APP_RESEND_API_KEY`, `APP_META_WHATSAPP_ACCESS_TOKEN`, `APP_META_WEBHOOK_VERIFY_TOKEN`, `APP_META_APP_SECRET`, `GOOGLE_MAPS_API_KEY`, `GOOGLE_CALENDAR_CLIENT_SECRET`, `GOOGLE_CALENDAR_TOKEN_ENCRYPTION_KEY` |
+| `migrate/` | `DATABASE_PRODUCTION_URL`, `DATABASE_ADMIN_URL` |
+| `backup/` | `PGPASSWORD` y las credenciales de rclone que añadas (`RCLONE_CONFIG_<REMOTO>_*`) |
+
+Cada servicio monta **solo su carpeta** en `/run/secrets` (solo lectura) y el cargador
+[`with-secrets`](docker/with-secrets.sh) exporta cada archivo como variable de entorno del proceso;
+un archivo vacío se omite (secreto opcional sin valor). La aplicación no se modificó. Resultado
+verificado: los secretos no aparecen en `docker inspect`, ni en `ps`, ni en el registro de
+despliegue, y un servicio no puede leer los de otro. Los servicios que los leen corren con el UID
+1001 (el de `deploy`) para poder abrir archivos 600.
+
+- [`scripts/env-init.sh`](scripts/env-init.sh) genera configuración y secretos con valores
+  aleatorios, **nunca sobrescribe** lo existente y reutiliza las contraseñas ya generadas.
+- [`scripts/secret-set.sh`](scripts/secret-set.sh) guarda o reemplaza un secreto leyéndolo de la
+  entrada estándar (sin eco en terminal; nunca como argumento, que quedaría en el historial y en `ps`).
+- Lo que solo tú puedes dar (Resend, Meta, Google) se crea vacío; `deploy.sh` se niega a desplegar
+  mientras falten los obligatorios (el API tampoco arranca sin ellos, `DEC-066`).
+
+> **Respalda `/srv/barberia/secrets/` fuera del servidor** (gestor de contraseñas). El respaldo de
+> la base no lo incluye y `APP_AUTH_HMAC_SECRET` no se puede reconstruir. Para cambiar el valor de
+> un secreto: `secret-set.sh` y luego `docker compose ... up -d --force-recreate api worker`.
+> Rotar las contraseñas de PostgreSQL exige además `ALTER ROLE` dentro de la base.
 
 ## 3. Puesta en marcha (una sola vez)
 
 1. **DNS** del dominio: sección 4.
 2. **GitHub**: entorno y secretos, sección 5.
-3. **Entornos en el servidor** (genera los secretos aleatorios):
+3. **Configuración y secretos en el servidor** (genera los valores aleatorios):
    ```bash
    tar czf - deploy | ssh barberia-deploy 'mkdir -p /srv/barberia/bootstrap && tar xzpf - -C /srv/barberia/bootstrap'
    ssh barberia-deploy 'bash /srv/barberia/bootstrap/deploy/scripts/env-init.sh --domain nava.wtf --acme-email TU_CORREO'
    ```
-4. **Completa los proveedores** en `/srv/barberia/env/app.env` (`ssh barberia-deploy`, `nano`):
-   `APP_RESEND_API_KEY`, `APP_META_WHATSAPP_PHONE_NUMBER_ID`, `APP_META_WHATSAPP_ACCESS_TOKEN`,
-   `APP_META_WHATSAPP_TEMPLATE_NAME` y, si los usas, el webhook de Meta, `GOOGLE_MAPS_API_KEY`
-   y Google Calendar.
+4. **Completa los proveedores.** Los secretos se guardan sin eco y sin pasar por la línea de comandos:
+   ```bash
+   ssh -t barberia-deploy 'bash /srv/barberia/bootstrap/deploy/scripts/secret-set.sh app APP_RESEND_API_KEY'
+   ssh -t barberia-deploy 'bash /srv/barberia/bootstrap/deploy/scripts/secret-set.sh app APP_META_WHATSAPP_ACCESS_TOKEN'
+   ```
+   (opcionales: `APP_META_WEBHOOK_VERIFY_TOKEN`, `APP_META_APP_SECRET`, `GOOGLE_MAPS_API_KEY` y los de
+   Google Calendar). Los datos no sensibles (`APP_META_WHATSAPP_PHONE_NUMBER_ID`,
+   `APP_META_WHATSAPP_TEMPLATE_NAME`) se escriben en `/srv/barberia/env/app.env`.
 5. **Despliega**: GitHub → Actions → *Deploy* → *Run workflow*.
    El primer despliegue crea los roles, aplica las migraciones y arranca todo.
 
@@ -102,21 +127,25 @@ editan en **hPanel → Dominios → nava.wtf → DNS / Servidores de nombres →
 
 ## 5. GitHub
 
-**Settings → Environments → New environment → `production`**
-- *Required reviewers*: tú (aprobación manual antes de cada despliegue, exigida por
-  `migraciones-atlas.md`).
-- *Deployment branches*: solo `main`.
-- *Secrets* del entorno:
-  - `VPS_HOST`: `158.69.232.180`
-  - `VPS_SSH_KEY`: contenido de la llave privada `~/.ssh/barberia_deploy_ed25519`
-  - `VPS_KNOWN_HOSTS`: salida de `ssh-keyscan -t ed25519 158.69.232.180` (fija la identidad del
-    servidor y evita ataques de intermediario)
-- *Variables* del repositorio o del entorno:
-  - `PUBLIC_URL`: `https://nava.wtf` (comprobación final del despliegue)
-  - `VITE_GOOGLE_MAPS_BROWSER_KEY`: clave de **navegador** de Google Maps (es pública por diseño;
-    se protege con la restricción por dominio en Google Cloud)
+El entorno **`production`** del repositorio ya está creado con lo necesario, en la cuenta
+`bcaceres19`: solo admite despliegues desde `main` y tiene estos valores.
 
-El repositorio es público: ningún secreto va en el código, y `VPS_SSH_KEY` solo en *Secrets*.
+| Tipo | Nombre | Contenido |
+| --- | --- | --- |
+| Secreto | `VPS_HOST` | IP del servidor |
+| Secreto | `VPS_SSH_KEY` | llave privada de `deploy` (`~/.ssh/barberia_deploy_ed25519`) |
+| Secreto | `VPS_KNOWN_HOSTS` | huella ed25519 del servidor (evita ataques de intermediario) |
+| Variable | `PUBLIC_URL` | `https://nava.wtf` (comprobación final del despliegue) |
+| Variable | `VITE_GOOGLE_MAPS_BROWSER_KEY` | clave de **navegador** de Google Maps (pública por diseño; se protege con la restricción por dominio en Google Cloud) |
+
+Las claves de Resend, Meta y Google **no** están en GitHub: viven solo en el servidor como
+secretos de Docker (sección 2). El repositorio es privado y aun así ningún secreto va en el código.
+
+**Aprobación manual.** `migraciones-atlas.md` exige aprobación antes de migrar producción. Los
+aprobadores obligatorios de un entorno no están disponibles en el plan gratuito con repositorios
+privados, así que el control es el propio disparo: el workflow solo corre por `workflow_dispatch`
+(quien tenga permiso de escritura) y solo desde `main`. Si el repositorio pasa a un plan que los
+admita, se añade con *Settings → Environments → production → Required reviewers*.
 
 ## 6. Servicios externos que hay que apuntar al dominio
 
@@ -142,8 +171,7 @@ tail /srv/barberia/deploy.log       # historial de despliegues (versión, actor,
 ```
 
 **Desplegar**: Actions → *Deploy* → *Run workflow* (vacío = último commit de `main`; o un SHA).
-Verifica que el CI del commit esté en verde, construye y publica las imágenes en GHCR, espera tu
-aprobación y entonces: respaldo previo verificado → migraciones con `barberia_migrator` → arranque →
+Verifica que el CI del commit esté en verde, construye y publica las imágenes en GHCR y entonces: respaldo previo verificado → migraciones con `barberia_migrator` → arranque →
 pruebas de humo. **Si la migración falla, la aplicación en ejecución no se toca.**
 
 **Revertir la aplicación** (roll-forward es lo normal; esto solo es seguro si el esquema actual es
@@ -161,7 +189,9 @@ bash /srv/barberia/releases/$(cat /srv/barberia/previous-tag)/deploy/scripts/dep
 - **Retención** 30 días, sin bajar nunca de 7 respaldos. Carpeta: `/srv/barberia/backups`.
 - **Prueba de restauración** cada domingo: restaura el último respaldo en una instancia efímera
   y comprueba tablas, historial de migraciones y políticas RLS. También manual:
-  `docker exec nava-backup-1 restore-test.sh`.
+  `docker exec nava-backup-1 restore-test.sh`. Un respaldo manual se hace con
+  `docker exec nava-backup-1 with-secrets backup.sh` (`with-secrets` carga la contraseña de
+  `/run/secrets`; sin él, `pg_dump` no tiene credenciales).
 - **Salud**: el contenedor `backup` queda `unhealthy` si el último respaldo exitoso tiene más de 28 h.
 - **Copia externa**: `stack-despliegue-operacion.md` §5 exige almacenamiento separado del servidor.
   Rellena `BACKUP_RCLONE_REMOTE` y las variables `RCLONE_CONFIG_*` en `backup.env` (Backblaze B2,

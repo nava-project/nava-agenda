@@ -19,6 +19,9 @@ RUN apk add --no-cache ca-certificates tzdata \
     && addgroup -S -g 10001 nava \
     && adduser -S -u 10001 -G nava -H -s /sbin/nologin nava
 COPY --from=build /out/ /usr/local/bin/
+COPY --chmod=0555 deploy/docker/with-secrets.sh /usr/local/bin/with-secrets
 USER 10001:10001
 ENV TZ=UTC
+# with-secrets exporta /run/secrets/* y ejecuta el binario pedido (api o worker).
+ENTRYPOINT ["with-secrets"]
 CMD ["api"]

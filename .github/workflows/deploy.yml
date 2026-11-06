@@ -2,8 +2,9 @@ name: Deploy
 
 # Despliegue manual a producción (VPS). Promueve un commit de `main` que ya superó
 # el CI: no hay ramas por ambiente (docs/03-desarrollo/flujo-git-github.md).
-# El job `deploy` usa el entorno `production`, donde el propietario configura la
-# aprobación manual y los secretos (deploy/README.md).
+# El disparo manual es el control de aprobación (los aprobadores obligatorios del
+# entorno no existen en el plan gratuito con repositorios privados). El job `deploy`
+# usa el entorno `production`, que solo admite `main` y guarda los secretos SSH.
 on:
   workflow_dispatch:
     inputs:
@@ -116,7 +117,7 @@ jobs:
     name: Desplegar en el VPS
     needs: [verify, images]
     runs-on: ubuntu-latest
-    # Aprobación manual y secretos (VPS_HOST, VPS_SSH_KEY, VPS_KNOWN_HOSTS) de este entorno.
+    # Secretos (VPS_HOST, VPS_SSH_KEY, VPS_KNOWN_HOSTS) y variables de este entorno.
     environment:
       name: production
       url: ${{ vars.PUBLIC_URL }}

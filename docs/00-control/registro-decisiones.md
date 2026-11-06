@@ -1,6 +1,6 @@
 ---
 titulo: "Registro de decisiones"
-version: "1.62"
+version: "1.63"
 estado: "Vigente"
 responsable: "Propietario del proyecto"
 ultima_actualizacion: "2026-11-06"
@@ -1992,3 +1992,16 @@ Cada código `DEC-*` es estable y no se reutiliza. Este registro normaliza respu
 - **Alcance:** infraestructura (`deploy/`, `.github/workflows/`). Sin cambios de API, contrato, datos ni migraciones.
 - **Documentos afectados:** `stack-despliegue-operacion.md` (§7), `historial-cambios.md`, `deploy/README.md`.
 - **Fuente:** instrucción explícita del propietario el 2026-11-06; issue [#535](https://github.com/bcaceres19/barberia/issues/535); `DEC-023`, `DEC-024`, `DEC-036`, `DEC-040`, `docs/05-backend/migraciones-atlas.md`.
+
+### DEC-159 · Los secretos de producción son archivos de secreto de Docker, separados de la configuración
+
+- **Fecha:** 2026-11-06.
+- **Decisión:** en el VPS, todos los secretos (contraseñas de PostgreSQL, DSN, secreto HMAC y claves de Resend, Meta y Google) viven como **archivos de secreto de Docker**, uno por secreto, en `/srv/barberia/secrets/<servicio>/<NOMBRE>` (carpetas 700, archivos 600). Cada servicio monta únicamente su carpeta en `/run/secrets`, en solo lectura, y el cargador `with-secrets` exporta cada archivo como variable de entorno del proceso. La configuración no sensible permanece en `env_file` (`/srv/barberia/env/`). `migrate` usa la imagen propia (Atlas fijado más el cargador) porque la imagen oficial de Atlas no tiene shell. Los secretos se guardan con `secret-set.sh` (entrada estándar, sin eco). En GitHub solo se cargan los secretos necesarios para desplegar por SSH (entorno `production`, cuenta `bcaceres19`); ninguna clave de proveedor sale del servidor. Modifica la forma de entregar los secretos de `DEC-158`.
+- **Quién lo decidió:** el propietario, el 2026-11-06: que todos los secretos estén en el VPS como archivos de secreto de Docker.
+- **Responsable:** propietario del proyecto.
+- **Motivo:** mantener los secretos fuera de la definición de los contenedores (`docker inspect`), de los `env_file` y del historial del shell, y limitar cada servicio a los suyos. El código de la aplicación no cambia: lee variables de entorno, igual que antes.
+- **Consecuencias aceptadas:** (1) el cargador deja los secretos como variables del proceso (el mismo mecanismo `*_FILE` de la imagen oficial de PostgreSQL); (2) los servicios que leen archivos 600 corren con el UID 1001 de `deploy`; (3) la imagen `barberia-db` crece (~750 MB) por incluir Atlas; (4) rotar una contraseña de PostgreSQL exige además `ALTER ROLE`; (5) el respaldo de la base no incluye los secretos: hay que respaldar `/srv/barberia/secrets/` aparte; (6) el entorno `production` de GitHub no tiene aprobadores obligatorios, porque el plan gratuito no los admite en repositorios privados (el repositorio es privado): el control manual es el disparo de `workflow_dispatch`, y el entorno queda limitado a `main`. Esto precisa lo dicho en `DEC-158` sobre la aprobación.
+- **Alcance:** infraestructura (`deploy/`). Sin cambios de aplicación, API, contrato, datos ni migraciones.
+- **Documentos afectados:** `deploy/README.md`, `historial-cambios.md`.
+- **Fuente:** instrucción explícita del propietario el 2026-11-06; issue [#537](https://github.com/bcaceres19/barberia/issues/537); `DEC-158`, `DEC-040`.
+

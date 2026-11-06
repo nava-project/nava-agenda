@@ -447,7 +447,7 @@ jobs:
       - uses: actions/checkout@v7
 
       - name: shellcheck de scripts de despliegue y respaldos
-        run: shellcheck -x -S warning deploy/scripts/*.sh deploy/backup/*.sh deploy/db/entrypoint.sh deploy/db/init/*.sh
+        run: shellcheck -x -S warning deploy/scripts/*.sh deploy/backup/*.sh deploy/docker/with-secrets.sh deploy/db/entrypoint.sh deploy/db/init/*.sh
 
       - name: compose.yaml válido
         env:
@@ -460,7 +460,8 @@ jobs:
           # Los env_file viven fuera del repositorio; basta con que existan vacíos.
           export NAVA_ENV_DIR="$RUNNER_TEMP/env"
           mkdir -p "$NAVA_ENV_DIR"
-          touch "$NAVA_ENV_DIR"/{db,app,migrate,backup}.env
+          touch "$NAVA_ENV_DIR"/{db,app,backup}.env
+          export NAVA_SECRETS_DIR="$NAVA_ENV_DIR"
           docker compose -f deploy/compose.yaml --profile tools config -q
 
       - uses: docker/setup-buildx-action@v4
