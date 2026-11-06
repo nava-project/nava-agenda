@@ -18,6 +18,7 @@ import { PAGE_MIN_HOLD_MS, useMinHoldLoading, useToast, useVocabulary } from '@/
 import {
   BarberAvatar,
   BaseAlert,
+  BasePagination,
   EmptyScene,
   BaseButton,
   BaseDialog,
@@ -81,7 +82,6 @@ const listRef = ref<HTMLElement | null>(null)
 const footerRef = ref<HTMLElement | null>(null)
 const pageRef = ref<HTMLElement | null>(null)
 const fitPending = ref(true)
-const viewportWidth = ref(window.innerWidth)
 const { start: startLoadingHold, hold: holdLoadingReveal } = useMinHoldLoading()
 const { start: startPageHold, hold: holdPageReveal } = useMinHoldLoading(PAGE_MIN_HOLD_MS)
 let requestToken = 0
@@ -94,7 +94,7 @@ async function load(page = 1, initial = false) {
   if (initial) pendingPaginationFocus = false
   else if (
     document.activeElement instanceof HTMLElement &&
-    document.activeElement.closest('.staff-page__pagination-nav')
+    document.activeElement.closest('.base-pagination__nav')
   )
     pendingPaginationFocus = true
   const token = ++requestToken
@@ -131,7 +131,7 @@ async function load(page = 1, initial = false) {
         const active = document.activeElement
         if (
           active === document.body ||
-          (active instanceof HTMLElement && active.closest('.staff-page__pagination-nav'))
+          (active instanceof HTMLElement && active.closest('.base-pagination__nav'))
         ) {
           footerRef.value?.querySelector<HTMLButtonElement>('[aria-current="page"]')?.focus()
         }
@@ -203,7 +203,6 @@ async function fitPage() {
 }
 
 function scheduleFit() {
-  viewportWidth.value = window.innerWidth
   if (resizeTimer !== undefined) clearTimeout(resizeTimer)
   resizeTimer = setTimeout(() => {
     void fitPage()
@@ -263,24 +262,6 @@ const countLabel = computed(
   () =>
     `${totalItems.value} ${totalItems.value === 1 ? v.value.professional : v.value.professionals}`,
 )
-const pageTokens = computed(() => {
-  const total = totalPages.value,
-    current = currentPage.value
-  if (total <= 5) return Array.from({ length: total }, (_, i) => i + 1)
-  const pages = new Set(
-    viewportWidth.value <= 640
-      ? [1, total, current]
-      : [1, total, current, Math.max(1, current - 1), Math.min(total, current + 1)],
-  )
-  const tokens: (number | 'ellipsis')[] = []
-  for (const p of [...pages].sort((a, b) => a - b)) {
-    const last = tokens[tokens.length - 1]
-    if (typeof last === 'number' && p - last > 1) tokens.push('ellipsis')
-    tokens.push(p)
-  }
-  return tokens
-})
-
 // Fotografía (DEC-104): la URL solo existe cuando el barbero tiene una.
 function photoOf(barber: Barber): string | null {
   return barberPhotoUrl(barber)
@@ -891,55 +872,21 @@ async function onSubmitRename() {
           >
             Revisa tu conexión e inténtalo de nuevo.
           </BaseAlert>
-          <div class="staff-page__footer-bar">
-            <span class="staff-page__count" role="status">{{ countLabel }}</span>
-            <nav
-              class="staff-page__pagination-nav"
-              :aria-label="`Paginación de ${v.professionals}`"
-            >
-              <BaseButton
-                type="button"
-                variant="secondary"
-                aria-label="Página anterior"
-                :disabled="currentPage === 1 || pageLoading"
-                @click="goToPage(currentPage - 1)"
-                >‹</BaseButton
-              >
-              <template v-for="(token, index) in pageTokens" :key="`${token}-${index}`">
-                <span
-                  v-if="token === 'ellipsis'"
-                  class="staff-page__pagination-ellipsis"
-                  aria-hidden="true"
-                  >…</span
-                >
-                <BaseButton
-                  v-else
-                  type="button"
-                  :variant="token === currentPage ? 'primary' : 'secondary'"
-                  :aria-label="`Página ${token}`"
-                  :aria-current="token === currentPage ? 'page' : undefined"
-                  :disabled="pageLoading"
-                  @click="goToPage(token)"
-                  >{{ token }}</BaseButton
-                >
-              </template>
-              <BaseButton
-                type="button"
-                variant="secondary"
-                aria-label="Página siguiente"
-                :disabled="currentPage === totalPages || pageLoading"
-                @click="goToPage(currentPage + 1)"
-                >›</BaseButton
-              >
-            </nav>
-            <BaseButton
-              v-if="pageFailed"
-              type="button"
-              variant="secondary"
-              @click="load(lastRequestedPage)"
-              >Reintentar página</BaseButton
-            >
-          </div>
+          <BasePagination
+            :current-page="currentPage"
+            :total-pages="totalPages"
+            :count-label="countLabel"
+            :nav-label="`Paginación de ${v.professionals}`"
+            :disabled="pageLoading"
+            @change="goToPage"
+          />
+          <BaseButton
+            v-if="pageFailed"
+            type="button"
+            variant="secondary"
+            @click="load(lastRequestedPage)"
+            >Reintentar página</BaseButton
+          >
         </div>
       </div>
     </Transition>
@@ -1237,59 +1184,6 @@ async function onSubmitRename() {
 .staff-page__ready--fitting {
   visibility: hidden;
 }
-.staff-page__pagination-nav {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-}
-
-.staff-page__pagination-ellipsis {
-  padding-inline: 4px;
-  color: var(--color-on-strong-muted);
-}
-
-/* Botones del paginador: mismo par dorado-sólido (página vigente)/tinta-
-   fantasma (el resto) que ya usa el CTA "Agregar servicio" y las acciones
-   de fila — no los valores por defecto de BaseButton, calibrados para
-   flotar sobre superficie clara. Cuadrados y compactos (34px, sin relleno
-   horizontal de sobra): un paginador numerado vive de la repetición, no
-   necesita el mismo padding que un botón de acción con texto largo. */
-.staff-page__pagination-nav :deep(.base-button) {
-  height: 38px;
-  min-width: 38px;
-  padding-inline: 10px;
-  font-size: var(--font-size-body-sm);
-  --btn-focus-ring: 0 0 0 2px var(--color-surface-strong), 0 0 0 4px var(--color-focus);
-}
-
-.staff-page__pagination-nav :deep(.base-button--primary) {
-  background-color: var(--color-brand-accent-surface);
-  color: var(--color-brand-accent-text);
-  border-color: var(--color-brand-accent-surface);
-}
-
-.staff-page__pagination-nav
-  :deep(.base-button--primary:hover:not(:disabled):not(.base-button--loading)) {
-  filter: brightness(92%);
-}
-
-.staff-page__pagination-nav :deep(.base-button--secondary) {
-  background-color: transparent;
-  color: var(--color-brand-accent-surface);
-  border-color: color-mix(in srgb, var(--color-brand-accent-surface) 50%, transparent);
-  border-bottom-color: var(--color-brand-accent-surface);
-}
-
-.staff-page__pagination-nav
-  :deep(.base-button--secondary:hover:not(:disabled):not(.base-button--loading)) {
-  background-color: color-mix(in srgb, var(--color-brand-accent-surface) 12%, transparent);
-  border-color: color-mix(in srgb, var(--color-brand-accent-surface) 50%, transparent);
-}
-
-.staff-page__pagination-nav :deep(.base-button:disabled) {
-  opacity: 0.4;
-}
-
 /* Fundido entre carga/error/listo: --motion-duration-base, el mismo token que
    el resto de transiciones de estado (estandar-diseno-visual.md §12). */
 .staff-content-enter-active,
@@ -1815,19 +1709,6 @@ async function onSubmitRename() {
   gap: var(--space-3);
 }
 
-.staff-page__footer-bar {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  justify-content: space-between;
-  gap: var(--space-3);
-}
-
-.staff-page__count {
-  font-size: var(--font-size-body-sm);
-  color: var(--color-on-strong-muted);
-}
-
 .staff-page__load-more.base-button {
   height: 34px;
   padding-inline: 14px;
@@ -2344,11 +2225,6 @@ async function onSubmitRename() {
   .staff-page__item-actions :deep(.base-button) {
     height: 30px;
     padding-inline: 10px;
-  }
-
-  .staff-page__footer-bar {
-    justify-content: center;
-    text-align: center;
   }
 
   .staff-page__facts {

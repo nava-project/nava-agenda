@@ -18,6 +18,7 @@ import {
   BaseButton,
   BaseDialog,
   BaseInput,
+  BasePagination,
   DiamondLoader,
   EmptyScene,
 } from '@/shared/ui'
@@ -272,28 +273,6 @@ const resultsLabel = computed(() => {
   return `${n} ${n === 1 ? 'servicio' : 'servicios'}`
 })
 
-type PageToken = number | 'ellipsis'
-
-// paginationWindow: con pocas páginas muestra todas (1..total); con muchas,
-// ancla primera y última página y una vecindad de 1 alrededor de la
-// vigente, con "…" en los huecos — el patrón numerado estándar de un
-// paginador de tabla, sin que 30+ páginas desborden la fila de botones.
-function paginationWindow(current: number, total: number): PageToken[] {
-  if (total <= 7) {
-    return Array.from({ length: total }, (_, i) => i + 1)
-  }
-  const tokens: PageToken[] = [1]
-  const start = Math.max(2, current - 1)
-  const end = Math.min(total - 1, current + 1)
-  if (start > 2) tokens.push('ellipsis')
-  for (let p = start; p <= end; p++) tokens.push(p)
-  if (end < total - 1) tokens.push('ellipsis')
-  tokens.push(total)
-  return tokens
-}
-
-const pageTokens = computed(() => paginationWindow(currentPage.value, totalPages.value))
-
 // useMinHoldLoading (issue reportado 2026-09-28: primero "espasmo cuando
 // se cambia de pantallas", luego "se ve como se genera el objeto... quiero
 // el tema de la carga para tapar ese evento"): el rombo/esqueleto se
@@ -472,14 +451,6 @@ function goToPage(page: number) {
   if (page < 1 || page > totalPages.value || page === currentPage.value) return
   if (pageStatus.value === 'loading') return
   void load(page)
-}
-
-function onPrevPage() {
-  goToPage(currentPage.value - 1)
-}
-
-function onNextPage() {
-  goToPage(currentPage.value + 1)
 }
 
 // SEARCH_DEBOUNCE_MS: teclear no dispara una solicitud por pulsación — solo
@@ -1311,61 +1282,14 @@ async function reloadAfterConflict(serviceId: string) {
             </template>
           </BaseAlert>
 
-          <div
-            class="catalog-page__pagination-bar"
-            :style="{ '--pager-progress': String(currentPage / Math.max(totalPages, 1)) }"
-          >
-            <span class="catalog-page__pagination-count" role="status">
-              {{ resultsLabel }}
-              <span v-if="totalPages > 1" class="catalog-page__pagination-where">
-                · Página {{ currentPage }} de {{ totalPages }}
-              </span>
-            </span>
-            <span v-if="totalPages > 1" class="catalog-page__pagination-track" aria-hidden="true" />
-            <nav
-              v-if="totalPages > 1"
-              class="catalog-page__pagination-nav"
-              aria-label="Paginación de servicios"
-            >
-              <BaseButton
-                type="button"
-                variant="secondary"
-                :disabled="currentPage === 1 || pageStatus === 'loading'"
-                aria-label="Página anterior"
-                @click="onPrevPage"
-              >
-                ‹
-              </BaseButton>
-              <template v-for="(token, index) in pageTokens" :key="index">
-                <span
-                  v-if="token === 'ellipsis'"
-                  class="catalog-page__pagination-ellipsis"
-                  aria-hidden="true"
-                >
-                  …
-                </span>
-                <BaseButton
-                  v-else
-                  type="button"
-                  :variant="token === currentPage ? 'primary' : 'secondary'"
-                  :aria-current="token === currentPage ? 'page' : undefined"
-                  :disabled="pageStatus === 'loading'"
-                  @click="goToPage(token)"
-                >
-                  {{ token }}
-                </BaseButton>
-              </template>
-              <BaseButton
-                type="button"
-                variant="secondary"
-                :disabled="currentPage === totalPages || pageStatus === 'loading'"
-                aria-label="Página siguiente"
-                @click="onNextPage"
-              >
-                ›
-              </BaseButton>
-            </nav>
-          </div>
+          <BasePagination
+            :current-page="currentPage"
+            :total-pages="totalPages"
+            :count-label="resultsLabel"
+            nav-label="Paginación de servicios"
+            :disabled="pageStatus === 'loading'"
+            @change="goToPage"
+          />
         </div>
       </div>
     </Transition>
@@ -2666,178 +2590,6 @@ async function reloadAfterConflict(serviceId: string) {
   gap: var(--space-3);
 }
 
-.catalog-page__pagination-bar {
-  position: relative;
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  justify-content: space-between;
-  gap: var(--space-3);
-  box-sizing: border-box;
-  /* Alto fijo de 38px: con una sola página la barra solo tiene el texto del
-     total, y computeFittingPageSize mediría un paginador más bajo que el que
-     aparece al reducir las filas (desborde de 14px y scroll). Los botones
-     miden 32px y los 6px restantes alojan la cinta de progreso. */
-  min-height: 38px;
-  padding-bottom: 6px;
-}
-
-.catalog-page__pagination-count {
-  font-size: var(--font-size-body-sm);
-  color: var(--color-on-strong-muted);
-}
-
-.catalog-page__pagination-where {
-  color: color-mix(in srgb, var(--color-brand-accent-surface) 85%, var(--color-on-strong-muted));
-  letter-spacing: 0.02em;
-}
-
-/* Cinta métrica de sastre: un filete que recorre toda la barra, relleno en
-   dorado hasta la proporción página/total, con un rombo en la punta (el mismo
-   rombo del estado y del interruptor "Lo ofrezco"). Es decorativa; la
-   posición real la comunica "Página X de Y" y aria-current. */
-.catalog-page__pagination-track {
-  position: absolute;
-  inset-inline: 0;
-  bottom: 0;
-  height: 1px;
-  background: color-mix(in srgb, var(--color-brand-accent-surface) 22%, transparent);
-  pointer-events: none;
-}
-
-.catalog-page__pagination-track::before {
-  content: '';
-  position: absolute;
-  inset-block: -1px;
-  inset-inline-start: 0;
-  width: calc(var(--pager-progress, 0) * 100%);
-  background: linear-gradient(
-    90deg,
-    transparent,
-    color-mix(in srgb, var(--color-brand-accent-surface) 55%, transparent) 40%,
-    var(--color-brand-accent-surface)
-  );
-  transition: width 420ms cubic-bezier(0.22, 1, 0.36, 1);
-}
-
-.catalog-page__pagination-track::after {
-  content: '';
-  position: absolute;
-  top: 50%;
-  inset-inline-start: calc(var(--pager-progress, 0) * 100%);
-  width: 7px;
-  height: 7px;
-  background: var(--color-brand-accent-surface);
-  box-shadow: 0 0 10px color-mix(in srgb, var(--color-brand-accent-surface) 70%, transparent);
-  transform: translate(-50%, -50%) rotate(45deg);
-  transition: inset-inline-start 420ms cubic-bezier(0.22, 1, 0.36, 1);
-}
-
-.catalog-page__pagination-nav {
-  display: flex;
-  align-items: center;
-  gap: 2px;
-}
-
-.catalog-page__pagination-ellipsis {
-  padding-inline: 4px;
-  color: var(--color-on-strong-muted);
-  font-family: var(--font-display);
-  font-size: 1.2rem;
-  letter-spacing: 0.1em;
-}
-
-/* Botones del paginador: sin caja. Números en la tipografía de display sobre
-   la tinta de la barra; la página vigente se marca con un rombo dorado
-   (cuadrado girado 45°) y un halo; el hover levanta el número a dorado y
-   dibuja una marca de la cinta bajo él. Anulan los valores de BaseButton,
-   calibrados para botones de acción con texto. */
-.catalog-page__pagination-nav :deep(.base-button) {
-  position: relative;
-  isolation: isolate;
-  height: 32px;
-  min-width: 32px;
-  padding-inline: 8px;
-  border: 0;
-  background: transparent;
-  box-shadow: none;
-  font-family: var(--font-display);
-  font-size: 1.2rem;
-  font-weight: 500;
-  font-variant-numeric: tabular-nums;
-  color: var(--color-on-strong-soft);
-  --btn-focus-ring: 0 0 0 2px var(--color-surface-strong), 0 0 0 4px var(--color-focus);
-}
-
-.catalog-page__pagination-nav :deep(.base-button::before) {
-  content: '';
-  position: absolute;
-  z-index: -1;
-  top: 50%;
-  left: 50%;
-  width: 24px;
-  height: 24px;
-  border: 1px solid transparent;
-  background: transparent;
-  transform: translate(-50%, -50%) rotate(45deg) scale(0.6);
-  opacity: 0;
-  transition:
-    transform 260ms cubic-bezier(0.22, 1, 0.36, 1),
-    opacity 200ms ease,
-    background-color 200ms ease;
-}
-
-.catalog-page__pagination-nav :deep(.base-button--secondary:hover:not(:disabled)) {
-  background: transparent;
-  color: var(--color-brand-accent-surface);
-}
-
-.catalog-page__pagination-nav :deep(.base-button--secondary:hover:not(:disabled)::before) {
-  border-color: color-mix(in srgb, var(--color-brand-accent-surface) 45%, transparent);
-  transform: translate(-50%, -50%) rotate(45deg) scale(0.85);
-  opacity: 1;
-}
-
-.catalog-page__pagination-nav :deep(.base-button--primary),
-.catalog-page__pagination-nav
-  :deep(.base-button--primary:hover:not(:disabled):not(.base-button--loading)) {
-  background: transparent;
-  border: 0;
-  filter: none;
-  box-shadow: none;
-  color: var(--color-brand-accent-surface);
-  font-weight: 600;
-}
-
-.catalog-page__pagination-nav :deep(.base-button--primary::before) {
-  border-color: var(--color-brand-accent-surface);
-  background: color-mix(in srgb, var(--color-brand-accent-surface) 16%, transparent);
-  box-shadow: 0 0 14px color-mix(in srgb, var(--color-brand-accent-surface) 35%, transparent);
-  transform: translate(-50%, -50%) rotate(45deg) scale(1);
-  opacity: 1;
-}
-
-/* Anterior/siguiente: flechas finas en vez de la caja, más grandes que los
-   números para leerse como acciones y no como páginas. */
-.catalog-page__pagination-nav :deep(.base-button[aria-label^='Página']) {
-  font-family: var(--font-family-base);
-  font-size: 1.4rem;
-  line-height: 1;
-  color: var(--color-brand-accent-surface);
-}
-
-.catalog-page__pagination-nav :deep(.base-button:disabled) {
-  opacity: 0.3;
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .catalog-page__pagination-track::before,
-  .catalog-page__pagination-track::after,
-  .catalog-page__pagination-nav :deep(.base-button::before) {
-    transition: none;
-  }
-}
-
 .catalog-page__form {
   display: flex;
   flex-direction: column;
@@ -3740,16 +3492,6 @@ async function reloadAfterConflict(serviceId: string) {
 
   .catalog-page__search {
     max-width: none;
-  }
-
-  .catalog-page__pagination-bar {
-    justify-content: center;
-    text-align: center;
-  }
-
-  .catalog-page__pagination-nav {
-    flex-wrap: wrap;
-    justify-content: center;
   }
 
   .catalog-page__create.base-button {

@@ -1955,3 +1955,15 @@ Cada código `DEC-*` es estable y no se reutiliza. Este registro normaliza respu
 - **Alcance:** solo `apps/web` (`geolocation`, `LocationPicker`, `HomeLocationField`, `PublicCustomerDetailsPage`, `homeAddress`). Fuera de alcance: seguimiento en tiempo real, radio de cobertura, ubicaciones favoritas.
 - **Documentos afectados:** `historias-usuario.md` (`HU-103`, `CA-103-03`, `CA-103-09`, `CA-103-10`), `historial-cambios.md`.
 - **Fuente:** instrucción explícita del propietario el 2026-11-03; issue [#529](https://github.com/bcaceres19/barberia/issues/529); `DEC-138`.
+
+### DEC-156 · Un solo paginador numerado para todas las tablas
+
+- **Fecha:** 2026-11-06.
+- **Decisión:** el paginador de Servicios (`DEC-106`) pasa a ser un componente compartido, `BasePagination`, que usan también Barberos (`DEC-107`) y Servicios por barbero. Muestra el conteo con «Página X de Y», una cinta con rombo que avanza con la página y números en tipografía de display con la página vigente marcada por un rombo; con una sola página solo queda el conteo. Anterior/Siguiente se deshabilitan en los extremos y durante la carga, y el foco vuelve a la página vigente si el botón enfocado queda deshabilitado.
+- **Quién lo decidió:** el propietario, el 2026-11-06: «aplica el paginador de servicios en todos los demás paginadores».
+- **Responsable:** propietario del proyecto.
+- **Motivo:** cada tabla tenía su propio paginador, con aspecto y comportamiento distintos.
+- **Consecuencia aceptada:** Barberos y Servicios por barbero pierden sus botones con caja y el paginador compacto en móvil; en pantallas estrechas los números pasan a varias filas, como ya hacía Servicios. Una tabla nueva usa el componente compartido, no uno propio.
+- **Alcance:** solo `apps/web` (`shared/ui/BasePagination.vue`, `CatalogPage`, `StaffPage`, `BarberServicesPage`). Sin cambios de API, datos ni de la lógica de paginación de cada pantalla.
+- **Documentos afectados:** `historial-cambios.md`.
+- **Fuente:** instrucción explícita del propietario el 2026-11-06; issue [#531](https://github.com/bcaceres19/barberia/issues/531); `DEC-106`, `DEC-107`.

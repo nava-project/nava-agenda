@@ -143,7 +143,7 @@ describe('BarberServicesPage', () => {
 
     expect(wrapper.find('.barber-services-page__columns').text()).toContain('Servicio')
     expect(wrapper.find('.barber-services-page__columns').text()).toContain('Asignación')
-    expect(wrapper.find('.barber-services-page__count').text()).toBe('2 servicios')
+    expect(wrapper.find('.base-pagination__count').text()).toBe('2 servicios')
     expect(wrapper.findAll('.barber-services-page__row')).toHaveLength(2)
   })
 
@@ -160,7 +160,7 @@ describe('BarberServicesPage', () => {
 
     // jsdom no mide alturas: aplica el tamaño de página de reserva (20).
     expect(wrapper.findAll('.barber-services-page__row')).toHaveLength(20)
-    expect(wrapper.find('.barber-services-page__count').text()).toBe('25 servicios')
+    expect(wrapper.find('.base-pagination__count').text()).toContain('Página 1 de 2')
     expect(checkbox(wrapper, 's-25')).toBeNull()
 
     await wrapper.find('button[aria-label="Página siguiente"]').trigger('click')

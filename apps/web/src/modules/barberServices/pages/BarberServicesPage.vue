@@ -16,7 +16,7 @@
 import { computed, nextTick, ref, onMounted, onUnmounted, watch } from 'vue'
 import { useToast, useVocabulary } from '@/shared/composables'
 import { capitalize } from '@/shared/model'
-import { BarberAvatar, BaseAlert, BaseButton, EmptyScene } from '@/shared/ui'
+import { BarberAvatar, BaseAlert, BaseButton, BasePagination, EmptyScene } from '@/shared/ui'
 import {
   assignService,
   fetchAssignments,
@@ -64,7 +64,6 @@ const MIN_FIT_ROWS = 4
 const currentPage = ref(1)
 const pageSize = ref(FALLBACK_PAGE_SIZE)
 const fitPending = ref(true)
-const viewportWidth = ref(window.innerWidth)
 const pageRef = ref<HTMLElement | null>(null)
 const listRef = ref<HTMLElement | null>(null)
 const footerRef = ref<HTMLElement | null>(null)
@@ -79,39 +78,9 @@ const pagedServices = computed(() => {
 const countLabel = computed(
   () => `${services.value.length} ${services.value.length === 1 ? 'servicio' : 'servicios'}`,
 )
-const pageTokens = computed(() => {
-  const total = totalPages.value
-  const current = currentPage.value
-  if (total <= 5) return Array.from({ length: total }, (_, i) => i + 1)
-  const pages = new Set(
-    viewportWidth.value <= 640
-      ? [1, total, current]
-      : [1, total, current, Math.max(1, current - 1), Math.min(total, current + 1)],
-  )
-  const tokens: (number | 'ellipsis')[] = []
-  for (const p of [...pages].sort((a, b) => a - b)) {
-    const last = tokens[tokens.length - 1]
-    if (typeof last === 'number' && p - last > 1) tokens.push('ellipsis')
-    tokens.push(p)
-  }
-  return tokens
-})
-
 function goToPage(page: number) {
   if (page < 1 || page > totalPages.value || page === currentPage.value) return
-  const hadFocusInNav =
-    document.activeElement instanceof HTMLElement &&
-    document.activeElement.closest('.barber-services-page__pagination-nav') !== null
   currentPage.value = page
-  if (!hadFocusInNav) return
-  // Si el botón enfocado queda deshabilitado (primera/última página), el foco
-  // se devuelve a la página vigente en vez de perderse en el <body>.
-  void nextTick(() => {
-    const active = document.activeElement
-    if (active === document.body || active === null) {
-      footerRef.value?.querySelector<HTMLButtonElement>('[aria-current="page"]')?.focus()
-    }
-  })
 }
 
 function scrollParent(el: HTMLElement): HTMLElement | null {
@@ -160,7 +129,6 @@ async function fitPage() {
 }
 
 function scheduleFit() {
-  viewportWidth.value = window.innerWidth
   if (resizeTimer !== undefined) clearTimeout(resizeTimer)
   resizeTimer = setTimeout(() => {
     void fitPage()
@@ -558,49 +526,13 @@ async function onToggleService(service: ServiceSummary, event: Event) {
             </div>
 
             <div ref="footerRef" class="barber-services-page__footer">
-              <span class="barber-services-page__count" role="status">{{ countLabel }}</span>
-              <nav
-                class="barber-services-page__pagination-nav"
-                aria-label="Paginación de servicios"
-              >
-                <BaseButton
-                  type="button"
-                  variant="secondary"
-                  aria-label="Página anterior"
-                  :disabled="currentPage === 1"
-                  @click="goToPage(currentPage - 1)"
-                >
-                  ‹
-                </BaseButton>
-                <template v-for="(token, index) in pageTokens" :key="`${token}-${index}`">
-                  <span
-                    v-if="token === 'ellipsis'"
-                    class="barber-services-page__pagination-ellipsis"
-                    aria-hidden="true"
-                  >
-                    …
-                  </span>
-                  <BaseButton
-                    v-else
-                    type="button"
-                    :variant="token === currentPage ? 'primary' : 'secondary'"
-                    :aria-label="`Página ${token}`"
-                    :aria-current="token === currentPage ? 'page' : undefined"
-                    @click="goToPage(token)"
-                  >
-                    {{ token }}
-                  </BaseButton>
-                </template>
-                <BaseButton
-                  type="button"
-                  variant="secondary"
-                  aria-label="Página siguiente"
-                  :disabled="currentPage === totalPages"
-                  @click="goToPage(currentPage + 1)"
-                >
-                  ›
-                </BaseButton>
-              </nav>
+              <BasePagination
+                :current-page="currentPage"
+                :total-pages="totalPages"
+                :count-label="countLabel"
+                nav-label="Paginación de servicios"
+                @change="goToPage"
+              />
             </div>
           </fieldset>
         </div>
@@ -1144,66 +1076,10 @@ async function onToggleService(service: ServiceSummary, event: Event) {
   color: var(--color-success-on-strong);
 }
 
-/* Pie de la tabla: conteo a la izquierda, paginador a la derecha. */
+/* Pie de la tabla: el paginador compartido ocupa todo el ancho. */
 .barber-services-page__footer {
   display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  justify-content: space-between;
-  gap: var(--space-3);
-}
-
-.barber-services-page__count {
-  font-size: var(--font-size-body-sm);
-  color: var(--color-on-strong-muted);
-}
-
-.barber-services-page__pagination-nav {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-}
-
-.barber-services-page__pagination-ellipsis {
-  padding-inline: 4px;
-  color: var(--color-on-strong-muted);
-}
-
-/* Mismo par dorado-sólido (página vigente) / tinta-fantasma (el resto) que el
-   paginador de Barberos y Servicios. */
-.barber-services-page__pagination-nav :deep(.base-button) {
-  height: 38px;
-  min-width: 38px;
-  padding-inline: 10px;
-  font-size: var(--font-size-body-sm);
-  --btn-focus-ring: 0 0 0 2px var(--color-surface-strong), 0 0 0 4px var(--color-focus);
-}
-
-.barber-services-page__pagination-nav :deep(.base-button--primary) {
-  background-color: var(--color-brand-accent-surface);
-  color: var(--color-brand-accent-text);
-  border-color: var(--color-brand-accent-surface);
-}
-
-.barber-services-page__pagination-nav
-  :deep(.base-button--primary:hover:not(:disabled):not(.base-button--loading)) {
-  filter: brightness(92%);
-}
-
-.barber-services-page__pagination-nav :deep(.base-button--secondary) {
-  background-color: transparent;
-  color: var(--color-brand-accent-surface);
-  border-color: color-mix(in srgb, var(--color-brand-accent-surface) 50%, transparent);
-  border-bottom-color: var(--color-brand-accent-surface);
-}
-
-.barber-services-page__pagination-nav
-  :deep(.base-button--secondary:hover:not(:disabled):not(.base-button--loading)) {
-  background-color: color-mix(in srgb, var(--color-brand-accent-surface) 12%, transparent);
-}
-
-.barber-services-page__pagination-nav :deep(.base-button:disabled) {
-  opacity: 0.4;
+  flex-direction: column;
 }
 
 .barber-services-page__spinner {
@@ -1265,11 +1141,6 @@ async function onToggleService(service: ServiceSummary, event: Event) {
   .barber-services-page__item-label {
     gap: 10px;
     font-size: var(--font-size-body);
-  }
-
-  .barber-services-page__footer {
-    justify-content: center;
-    text-align: center;
   }
 
   .barber-services-page__service-icon {
