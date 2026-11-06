@@ -1,0 +1,205 @@
+# Pila de producción de NAVA: todo en contenedores, hasta la base de datos.
+# Se opera con deploy/scripts/deploy.sh; ver deploy/README.md.
+#
+# Variables de interpolación (archivo stack.env, lo genera deploy/scripts/env-init.sh;
+# IMAGE_TAG y DB_IMAGE_TAG las fija deploy.sh. La imagen de la base se versiona
+# aparte de la aplicación para no recrear PostgreSQL en cada despliegue):
+#   NAVA_REGISTRY, DOMAIN, ACME_EMAIL, NAVA_ENV_DIR, NAVA_BACKUP_DIR,
+#   HTTP_PORT, HTTPS_PORT.
+# Secretos por servicio: un archivo .env por servicio en NAVA_ENV_DIR (fuera del
+# repositorio, modo 600), cargado con `env_file` en formato raw (sin
+# interpolación de `$` ni comillas: el valor es literal).
+#
+# Redes:
+#   public  solo Caddy; es la única con puertos publicados al host.
+#   app     Caddy <-> API; interna (sin salida a Internet).
+#   data    PostgreSQL y quienes lo usan; interna: la base no tiene salida ni es
+#           alcanzable desde fuera, y ningún puerto suyo se publica.
+#   egress  API y worker, que sí llaman a Resend, Meta y Google.
+#
+# Límites: CPU y memoria acotados por servicio (suman ~3,1 GB de los 7,6 GB del
+# VPS) para que un servicio descontrolado no tumbe al resto.
+
+name: nava
+
+x-hardening: &hardening
+  restart: unless-stopped
+  read_only: true
+  cap_drop: [ALL]
+  security_opt: ["no-new-privileges:true"]
+
+x-app-env: &app-env
+  - path: ${NAVA_ENV_DIR:-/srv/barberia/env}/app.env
+    format: raw
+
+services:
+  db:
+    <<: *hardening
+    image: ${NAVA_REGISTRY:-ghcr.io/bcaceres19}/barberia-db:${DB_IMAGE_TAG:?DB_IMAGE_TAG es obligatorio}
+    command: ["postgres", "-c", "config_file=/etc/postgresql/postgresql.conf"]
+    env_file:
+      - path: ${NAVA_ENV_DIR:-/srv/barberia/env}/db.env
+        format: raw
+    # La imagen oficial arranca como root, ajusta permisos y baja a `postgres`.
+    cap_add: [CHOWN, DAC_OVERRIDE, FOWNER, SETUID, SETGID]
+    shm_size: 256m
+    stop_grace_period: 60s
+    volumes:
+      - db-data:/var/lib/postgresql/data
+    tmpfs:
+      - /tmp
+      - /var/run/postgresql
+      - /run/nava-tls:mode=0755
+    networks: [data]
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -q -U postgres -d nava"]
+      interval: 10s
+      timeout: 5s
+      retries: 6
+      start_period: 30s
+    deploy:
+      resources:
+        limits: { cpus: "1.5", memory: 1536M, pids: 200 }
+
+  api:
+    <<: *hardening
+    image: ${NAVA_REGISTRY:-ghcr.io/bcaceres19}/barberia-backend:${IMAGE_TAG:?IMAGE_TAG es obligatorio}
+    command: ["api"]
+    env_file: *app-env
+    environment:
+      GOMEMLIMIT: 400MiB
+    tmpfs: [/tmp]
+    networks: [app, data, egress]
+    depends_on:
+      db: { condition: service_healthy }
+    healthcheck:
+      test: ["CMD", "wget", "-q", "-O", "/dev/null", "http://127.0.0.1:8080/health"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 20s
+    deploy:
+      resources:
+        limits: { cpus: "1.0", memory: 512M, pids: 256 }
+
+  worker:
+    <<: *hardening
+    image: ${NAVA_REGISTRY:-ghcr.io/bcaceres19}/barberia-backend:${IMAGE_TAG:?IMAGE_TAG es obligatorio}
+    command: ["worker"]
+    env_file: *app-env
+    environment:
+      GOMEMLIMIT: 200MiB
+    tmpfs: [/tmp]
+    networks: [data, egress]
+    depends_on:
+      db: { condition: service_healthy }
+    deploy:
+      resources:
+        limits: { cpus: "0.5", memory: 256M, pids: 128 }
+
+  web:
+    <<: *hardening
+    image: ${NAVA_REGISTRY:-ghcr.io/bcaceres19}/barberia-web:${IMAGE_TAG:?}
+    user: "10002:10002"
+    # Puertos <1024 sin ser root: el contenedor los habilita en su propio espacio de red.
+    sysctls:
+      net.ipv4.ip_unprivileged_port_start: "0"
+    environment:
+      DOMAIN: ${DOMAIN:?DOMAIN es obligatorio (p. ej. nava.wtf)}
+      ACME_EMAIL: ${ACME_EMAIL:?ACME_EMAIL es obligatorio}
+      XDG_DATA_HOME: /var/lib/nava-caddy/data
+      XDG_CONFIG_HOME: /var/lib/nava-caddy/config
+    ports:
+      - "${HTTP_PORT:-80}:80"
+      - "${HTTPS_PORT:-443}:443"
+      - "${HTTPS_PORT:-443}:443/udp"
+    volumes:
+      - caddy-data:/var/lib/nava-caddy/data
+      - caddy-config:/var/lib/nava-caddy/config
+    tmpfs: [/tmp]
+    networks:
+      public: {}
+      app:
+        # IP fija: es la única que el API acepta como proxy de confianza.
+        ipv4_address: 10.89.1.2
+    depends_on:
+      api: { condition: service_started }
+    healthcheck:
+      test: ["CMD", "wget", "-q", "-O", "/dev/null", "http://127.0.0.1:2019/config/"]
+      interval: 20s
+      timeout: 5s
+      retries: 5
+      start_period: 15s
+    deploy:
+      resources:
+        limits: { cpus: "0.5", memory: 256M, pids: 128 }
+
+  # Respaldos: pg_dump diario, retención de 30 días y prueba de restauración
+  # semanal. Misma imagen que la base (misma versión de pg_dump).
+  backup:
+    <<: *hardening
+    image: ${NAVA_REGISTRY:-ghcr.io/bcaceres19}/barberia-db:${DB_IMAGE_TAG:?}
+    user: "1001:1001"
+    entrypoint: ["scheduler.sh"]
+    env_file:
+      - path: ${NAVA_ENV_DIR:-/srv/barberia/env}/backup.env
+        format: raw
+    volumes:
+      - ${NAVA_BACKUP_DIR:-/srv/barberia/backups}:/backups:z
+    tmpfs:
+      - /tmp:size=512m,mode=1777
+    networks: [data, egress]
+    depends_on:
+      db: { condition: service_healthy }
+    healthcheck:
+      # Falla si el último respaldo exitoso tiene más de 28 h.
+      test: ["CMD-SHELL", "test -f /backups/.last_success && [ $(( $(date -u +%s) - $(cat /backups/.last_success) )) -lt 100800 ]"]
+      interval: 5m
+      timeout: 10s
+      retries: 1
+      start_period: 10m
+    deploy:
+      resources:
+        limits: { cpus: "0.5", memory: 512M, pids: 128 }
+
+  # Migraciones con Atlas como `barberia_migrator` (docs/05-backend/migraciones-atlas.md).
+  # Etapa separada: nunca se ejecutan al arrancar el API o el worker.
+  migrate:
+    profiles: [tools]
+    image: arigaio/atlas:1.3.0
+    # Sin privilegios: la imagen corre como root pero su binario no es ejecutable
+    # para otros, así que con cap_drop ALL no arrancaría; como `nobody` sí.
+    user: "65534:65534"
+    working_dir: /database
+    env_file:
+      - path: ${NAVA_ENV_DIR:-/srv/barberia/env}/migrate.env
+        format: raw
+    volumes:
+      - ../database:/database:ro,z
+      - ./atlas-bootstrap.hcl:/atlas-bootstrap.hcl:ro,z
+    networks: [data]
+    read_only: true
+    cap_drop: [ALL]
+    security_opt: ["no-new-privileges:true"]
+    deploy:
+      resources:
+        limits: { cpus: "1.0", memory: 256M, pids: 64 }
+
+networks:
+  public: {}
+  app:
+    internal: true
+    ipam:
+      # Las IP dinámicas salen de .128/25: la .2 queda reservada para Caddy, que es
+      # el único proxy de confianza del API (APP_TRUSTED_PROXIES).
+      config: [{ subnet: 10.89.1.0/24, ip_range: 10.89.1.128/25 }]
+  data:
+    internal: true
+    ipam:
+      config: [{ subnet: 10.89.2.0/24 }]
+  egress: {}
+
+volumes:
+  db-data: {}
+  caddy-data: {}
+  caddy-config: {}

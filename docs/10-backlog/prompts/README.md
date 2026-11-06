@@ -3,7 +3,7 @@ titulo: "Catálogo de prompts persistentes"
 version: "1.99"
 estado: "Obligatorio para prompts reutilizables"
 responsable: "Propietario del proyecto"
-ultima_actualizacion: "2026-10-26"
+ultima_actualizacion: "2026-11-06"
 documentos_relacionados:
   - "../../../AGENTS.md"
   - "../../../CLAUDE.md"
@@ -272,6 +272,7 @@ Un prompt mutable atiende una preocupación primaria y un issue. Si un trabajo n
 | [PROMPT-TEST-301-UI-PUBLIC-CONFIRM-v1](test/issue-301-ui-public-confirm.md) | test | HU-096,HU-097 | [#301](https://github.com/bcaceres19/barberia/issues/301) | executed | Kit #300, única campaña sin fixes | Partición de campaña; sin producto |
 | [PROMPT-TEST-301-UI-CUSTOMER-v1](test/issue-301-ui-customer.md) | test | HU-098,HU-099 | [#301](https://github.com/bcaceres19/barberia/issues/301) | executed | Kit #300, única campaña sin fixes | Partición de campaña; sin producto |
 | [PROMPT-TEST-301-UI-JOURNEYS-v1](test/issue-301-ui-journeys.md) | test | Recorridos P0 | [#301](https://github.com/bcaceres19/barberia/issues/301) | executed | Kit #300, única campaña sin fixes | Partición de campaña; sin producto |
+| [PROMPT-OPS-VPS-OVH-FEDORA-ENDURECIMIENTO-v1](ops/issue-pending-vps-ovh-fedora-endurecimiento.md) | ops | Sin HU asignada | `pending` | `draft` | Aprovisionamiento y endurecimiento del VPS Fedora de producción: acceso solo por llave (usuarios admin y `deploy`), SSH endurecido, firewalld, fail2ban, actualizaciones de seguridad, Docker Engine con Compose. Aplicado a mano el 2026-11-06 sin issue; sin issue real no pasa a `ready`. Despliegue de la app, dominio y respaldos quedan fuera | Sin rama ni PR |
 
 ## 10. Lista de control al guardar o entregar
 

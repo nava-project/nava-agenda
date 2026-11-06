@@ -1,9 +1,9 @@
 ---
 titulo: "Registro de decisiones"
-version: "1.61"
+version: "1.62"
 estado: "Vigente"
 responsable: "Propietario del proyecto"
-ultima_actualizacion: "2026-11-02"
+ultima_actualizacion: "2026-11-06"
 documentos_relacionados:
   - "contradicciones.md"
   - "matriz-trazabilidad.md"
@@ -1979,3 +1979,16 @@ Cada código `DEC-*` es estable y no se reutiliza. Este registro normaliza respu
 - **Alcance:** solo `apps/web`. Sin cambios de API ni datos.
 - **Documentos afectados:** `historial-cambios.md`.
 - **Fuente:** instrucción explícita del propietario el 2026-11-06; issue [#533](https://github.com/bcaceres19/barberia/issues/533); `DEC-110`.
+
+### DEC-158 · Despliegue de producción: pila completa en contenedores sobre el VPS, con Caddy, GHCR y respaldos propios
+
+- **Fecha:** 2026-11-06.
+- **Decisión:** producción se despliega en un único VPS con Docker Compose y **todo en contenedores, base de datos incluida**: `web` (Caddy: HTTPS automático, SPA y proxy `/api/*`), `api`, `worker`, `db` (PostgreSQL con TLS y SCRAM) y `backup`; las migraciones corren como servicio `migrate` bajo demanda. Cada servicio tiene límites de CPU y memoria; solo `web` publica puertos; `db` vive en una red interna sin salida. Las imágenes se publican en GHCR y se despliegan por `workflow_dispatch` sobre un commit de `main` con CI en verde, con aprobación manual en el entorno `production`. Las variables de entorno viven en `/srv/barberia/env/` (un `env_file` por servicio, modo 600, fuera del repositorio) y las genera `deploy/scripts/env-init.sh` sin sobrescribir. El dominio es `nava.wtf` (DNS en Hostinger). Los respaldos son `pg_dump` diario con rol `barberia_backup` (`BYPASSRLS`, porque la RLS forzada ocultaría filas al propietario), verificación, retención de 30 días y prueba de restauración semanal en una instancia efímera; la copia externa se activa con `BACKUP_RCLONE_REMOTE`.
+- **Quién lo decidió:** el propietario, el 2026-11-06: pila en contenedores hasta la base de datos, recursos limitados, respaldos recuperables, entornos gestionados con Docker y dominio `nava.wtf`.
+- **Responsable:** propietario del proyecto.
+- **Propuesta pendiente de confirmación (no la decidió el propietario):** PostgreSQL **16** en producción (`POSTGRES_VERSION` en `deploy/docker/db.Dockerfile`). El piso decidido sigue siendo la 14 (`DEC-040` y `apps/api/README.md`) y el CI la prueba; la 14 termina su soporte el 2026-11-12. Las 41 migraciones se aplicaron sin cambios sobre la 16 y el API arrancó contra ella, pero la suite completa corre solo sobre la 14. Hasta decidirlo, el CI no cubre la versión de producción.
+- **Motivo:** `stack-despliegue-operacion.md` pide un VPS dedicado con copias externas y despliegue del mismo commit probado; la imagen oficial de PostgreSQL permite un servicio autocontenido, y la API exige `sslmode` distinto de `disable` y roles separados fuera de local/test (`DEC-040`).
+- **Consecuencias aceptadas:** (1) sin una copia externa configurada, los respaldos comparten servidor con la base y un fallo del disco los perdería; (2) Docker publica sus puertos saltándose el firewall, por eso solo Caddy publica; (3) el grupo `docker` del usuario `deploy` equivale a root; (4) cambiar de versión mayor de PostgreSQL exige volcado y restauración; (5) el despliegue es manual con aprobación, sin disparo automático tras cada merge.
+- **Alcance:** infraestructura (`deploy/`, `.github/workflows/`). Sin cambios de API, contrato, datos ni migraciones.
+- **Documentos afectados:** `stack-despliegue-operacion.md` (§7), `historial-cambios.md`, `deploy/README.md`.
+- **Fuente:** instrucción explícita del propietario el 2026-11-06; issue [#535](https://github.com/bcaceres19/barberia/issues/535); `DEC-023`, `DEC-024`, `DEC-036`, `DEC-040`, `docs/05-backend/migraciones-atlas.md`.

@@ -439,3 +439,55 @@ jobs:
         env:
           DATABASE_TEST_URL: postgres://barberia_app:app_test@localhost:5432/postgres?sslmode=disable
         run: bash database/tests/idempotency_concurrency_two_connections.sh
+
+  deploy:
+    name: Despliegue (compose, scripts e imágenes)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: shellcheck de scripts de despliegue y respaldos
+        run: shellcheck -x -S warning deploy/scripts/*.sh deploy/backup/*.sh deploy/db/entrypoint.sh deploy/db/init/*.sh
+
+      - name: compose.yaml válido
+        env:
+          IMAGE_TAG: ci
+          DB_IMAGE_TAG: ci
+          DOMAIN: example.test
+          ACME_EMAIL: ci@example.test
+        run: |
+          set -euo pipefail
+          # Los env_file viven fuera del repositorio; basta con que existan vacíos.
+          export NAVA_ENV_DIR="$RUNNER_TEMP/env"
+          mkdir -p "$NAVA_ENV_DIR"
+          touch "$NAVA_ENV_DIR"/{db,app,migrate,backup}.env
+          docker compose -f deploy/compose.yaml --profile tools config -q
+
+      - uses: docker/setup-buildx-action@v4
+
+      - name: Construir imagen backend
+        uses: docker/build-push-action@v7
+        with:
+          context: .
+          file: deploy/docker/backend.Dockerfile
+          push: false
+          cache-from: type=gha,scope=backend
+          cache-to: type=gha,scope=backend,mode=max
+
+      - name: Construir imagen web
+        uses: docker/build-push-action@v7
+        with:
+          context: .
+          file: deploy/docker/web.Dockerfile
+          push: false
+          cache-from: type=gha,scope=web
+          cache-to: type=gha,scope=web,mode=max
+
+      - name: Construir imagen de base de datos y respaldos
+        uses: docker/build-push-action@v7
+        with:
+          context: .
+          file: deploy/docker/db.Dockerfile
+          push: false
+          cache-from: type=gha,scope=db
+          cache-to: type=gha,scope=db,mode=max
