@@ -17,7 +17,14 @@
 import { computed, nextTick, ref, watch } from 'vue'
 import { useToast, useVocabulary } from '@/shared/composables'
 import { isSoloProfile } from '@/shared/model'
-import { BaseAlert, BaseButton, BaseInput, BarberAvatar, PageState } from '@/shared/ui'
+import {
+  BaseAlert,
+  BaseButton,
+  BaseInput,
+  BarberAvatar,
+  BarberSelect,
+  PageState,
+} from '@/shared/ui'
 import { formatCivilDateFull, isCivilDateString } from '@/shared/time/civilDate'
 import {
   createManualAppointment,
@@ -28,7 +35,6 @@ import {
 import { newIdempotencyKey } from '../model/idempotencyKey'
 import type { BarberSummary, ServiceSummary } from '../model/appointment'
 import type { CreatedManualAppointment } from '../model/appointmentOutcome'
-import BarberSelect from '../components/BarberSelect.vue'
 import NewAppointmentSkeleton from '../components/NewAppointmentSkeleton.vue'
 import {
   buildStartsAt,

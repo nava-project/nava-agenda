@@ -79,8 +79,14 @@ function checkbox(wrapper: VueWrapper, serviceId: string): HTMLInputElement {
   return wrapper.element.querySelector(`#barber-services-service-${serviceId}`) as HTMLInputElement
 }
 
-function barberSelect(wrapper: VueWrapper): HTMLSelectElement {
-  return wrapper.element.querySelector('#barber-services-barber-select') as HTMLSelectElement
+// El selector de barbero es el listbox propio (BarberSelect): se abre con su
+// disparador y se elige haciendo clic en la opción.
+async function chooseBarber(wrapper: VueWrapper, fullName: string) {
+  await wrapper.get('#barber-services-barber-select').trigger('click')
+  const option = wrapper
+    .findAll('[role="option"]')
+    .find((candidate) => candidate.get('.barber-select__option-name').text() === fullName)
+  await option!.trigger('click')
 }
 
 const axeOptions = { rules: { 'color-contrast': { enabled: false } } }
@@ -122,12 +128,12 @@ describe('BarberServicesPage', () => {
 
   it('a barber with one service and one with a full team select use the same component (CA-023-01)', async () => {
     const oneWrapper = await mountReady(oneBarber, twoServices, ['s-1'])
-    expect(oneWrapper.findAll('option').length).toBe(1)
+    expect(oneWrapper.findAll('[role="option"]').length).toBe(1)
     expect(checkbox(oneWrapper, 's-1').checked).toBe(true)
     expect(checkbox(oneWrapper, 's-2').checked).toBe(false)
 
     const fourWrapper = await mountReady(fourBarbers, twoServices, [])
-    expect(fourWrapper.findAll('option').length).toBe(4)
+    expect(fourWrapper.findAll('[role="option"]').length).toBe(4)
   })
 
   it('wraps each checkbox and its name in one 44px label, the real tap target (Fase 5, issue #157)', async () => {
@@ -230,9 +236,7 @@ describe('BarberServicesPage', () => {
         nextCursor: null,
       },
     })
-    const select = barberSelect(wrapper)
-    select.value = 'b-2'
-    await select.dispatchEvent(new Event('change'))
+    await chooseBarber(wrapper, fourBarbers[1]!.fullName)
     await flushPromises()
 
     expect(fetchAssignmentsMock).toHaveBeenLastCalledWith('b-2')

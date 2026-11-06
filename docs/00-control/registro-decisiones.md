@@ -1967,3 +1967,15 @@ Cada código `DEC-*` es estable y no se reutiliza. Este registro normaliza respu
 - **Alcance:** solo `apps/web` (`shared/ui/BasePagination.vue`, `CatalogPage`, `StaffPage`, `BarberServicesPage`). Sin cambios de API, datos ni de la lógica de paginación de cada pantalla.
 - **Documentos afectados:** `historial-cambios.md`.
 - **Fuente:** instrucción explícita del propietario el 2026-11-06; issue [#531](https://github.com/bcaceres19/barberia/issues/531); `DEC-106`, `DEC-107`.
+
+### DEC-157 · El selector de barbero con retrato es compartido y se usa en Servicios por barbero
+
+- **Fecha:** 2026-11-06.
+- **Decisión:** `BarberSelect` (listbox con monograma, opción elegida marcada con rombo, teclado completo) deja de ser local de `agenda` y pasa a `shared/ui`, con un tipo estructural `{ id, fullName, photoUrl? }`. Lo usan Agenda, Nuevo turno y Servicios por barbero; esta última deja el `<select>` nativo, cuya lista desplegable no tenía el diseño de NAVA. Conserva el `id` `barber-services-barber-select`.
+- **Quién lo decidió:** el propietario, el 2026-11-06: que el selector donde se escoge el barbero tenga diseño.
+- **Responsable:** propietario del proyecto.
+- **Motivo:** la lista nativa la dibuja el navegador y no admite el lenguaje visual de la marca; el componente con diseño ya existía en la Agenda, y un módulo no puede importar archivos internos de otro (`app → modules → shared`).
+- **Consecuencia aceptada:** en Servicios por barbero cada opción muestra el monograma y no la foto, porque ese módulo solo obtiene id y nombre del barbero; mostrar la foto exigiría ampliar su resumen.
+- **Alcance:** solo `apps/web`. Sin cambios de API ni datos.
+- **Documentos afectados:** `historial-cambios.md`.
+- **Fuente:** instrucción explícita del propietario el 2026-11-06; issue [#533](https://github.com/bcaceres19/barberia/issues/533); `DEC-110`.

@@ -10,7 +10,7 @@ const read = (relative: string) => readFileSync(resolve(__dirname, relative), 'u
 
 describe('objetivos táctiles de la barra de controles de la agenda (AGENDA-H-02)', () => {
   it('el selector compacto usa la altura de control, no 40 px', () => {
-    const source = read('../BarberSelect.vue')
+    const source = read('../../../../shared/ui/BarberSelect.vue')
     const rule = source.match(/\.barber-select--compact \.barber-select__trigger \{[^}]*\}/)?.[0]
     expect(rule).toContain('min-height: var(--control-height)')
     expect(rule).not.toMatch(/min-height:\s*40px/)

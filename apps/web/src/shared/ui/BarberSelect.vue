@@ -3,12 +3,12 @@
  * BarberSelect - Selector de barbero con retrato (issue #189, atlas
  * panel-agenda-eventos evento 12): el `<select>` nativo no puede mostrar un
  * `BarberAvatar` por opción, así que esta pantalla necesita un listbox
- * propio. Local al módulo `agenda`: solo `BarberAvatar` se promueve a
- * shared/ui, este widget de selección le pertenece únicamente a `/panel`.
+ * propio. Vive en shared/ui (issue #533) porque lo usan Agenda, Nuevo turno y
+ * Servicios por barbero, y un módulo no importa archivos internos de otro.
  *
  * No decide enrutamiento: emite `update:modelValue` con el `barberId`
  * elegido y quien lo monta (DailyAgendaPage.vue) sigue siendo la única
- * fuente de verdad de `route.query.barberId` (onBarberSelectChange).
+ * fuente de verdad de `route.query.barberId` (onBarberSelect).
  *
  * Patrón ARIA "Collapsible Listbox" (WAI-ARIA APG): botón disparador con
  * aria-haspopup="listbox"/aria-expanded, lista role="listbox" con opciones
@@ -25,12 +25,18 @@ import {
   type ComponentPublicInstance,
 } from 'vue'
 import { useVocabulary } from '@/shared/composables'
-import BarberAvatar from '@/shared/ui/BarberAvatar.vue'
-import type { BarberSummary } from '../model/appointment'
+import BarberAvatar from './BarberAvatar.vue'
+
+/** Lo mínimo que el selector necesita de un barbero: cada módulo pasa su propio resumen. */
+export interface BarberSelectOption {
+  id: string
+  fullName: string
+  photoUrl?: string | null
+}
 
 interface Props {
   modelValue: string | null
-  barbers: BarberSummary[]
+  barbers: BarberSelectOption[]
   disabled?: boolean
   /** id del botón disparador, para que el `<label for>` de la pantalla que
    * lo monta lo nombre. Por defecto conserva el de `/panel` (HU-062/063),
