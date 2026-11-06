@@ -83,7 +83,8 @@ describe.each([
     for (const section of doc.sections) {
       const target = wrapper.find(`#${section.id}`)
       expect(target.exists()).toBe(true)
-      expect(target.find('h2').text()).toBe(section.title)
+      expect(target.find('h2').text()).toContain(section.title)
+      expect(target.find('h2 .ld__num').attributes('aria-hidden')).toBe('true')
       expect(
         wrapper.find(`nav[aria-label="En esta página"] a[href="#${section.id}"]`).exists(),
       ).toBe(true)
@@ -96,6 +97,19 @@ describe.each([
     const legalNav = wrapper.find('nav[aria-label="Documentos legales"]')
     expect(legalNav.find('a[href="/privacidad"]').exists()).toBe(true)
     expect(legalNav.find('a[href="/terminos"]').exists()).toBe(true)
+  })
+
+  it('sugiere leer el otro documento al final', async () => {
+    const { wrapper } = await mountAt(path)
+    const next = wrapper.get('a.ld__next')
+    expect(next.attributes('href')).toBe(path === '/privacidad' ? '/terminos' : '/privacidad')
+  })
+
+  it('marca la sección en lectura en el índice con aria-current', async () => {
+    const { wrapper } = await mountAt(path)
+    const current = wrapper.findAll('nav[aria-label="En esta página"] a[aria-current="location"]')
+    expect(current).toHaveLength(1)
+    expect(current[0]!.attributes('href')).toBe(`#${doc.sections[0]!.id}`)
   })
 
   it('pone el nombre del documento en el título de la pestaña y lo restaura al salir', async () => {
@@ -116,7 +130,7 @@ describe.each([
 describe('política de privacidad: requisitos de la verificación de Google', () => {
   const text = privacyPolicy.sections
     .flatMap((section) => section.blocks)
-    .map((block) => (block.kind === 'p' ? block.text : block.items.join(' ')))
+    .map((block) => (block.kind === 'ul' ? block.items.join(' ') : block.text))
     .join('\n')
 
   it('declara los alcances que la app solicita', () => {
@@ -129,6 +143,15 @@ describe('política de privacidad: requisitos de la verificación de Google', ()
     expect(text).toContain(
       'Google API Services User Data Policy, including the Limited Use requirements',
     )
+  })
+
+  it('destaca la declaración de uso limitado y marca la frase en inglés con lang', async () => {
+    const { wrapper } = await mountAt('/privacidad')
+    const notes = wrapper.findAll('p.ld__note')
+    expect(notes).toHaveLength(2)
+    expect(notes[0]!.attributes('lang')).toBeUndefined()
+    expect(notes[1]!.attributes('lang')).toBe('en')
+    expect(notes[1]!.text()).toContain('Limited Use requirements')
   })
 
   it('explica cómo revocar el acceso y qué no se hace con los datos', () => {

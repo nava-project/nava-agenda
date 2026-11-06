@@ -10,7 +10,12 @@
 // real cambie —un proveedor nuevo, otro dato recogido, otro plazo— hay que
 // actualizar este archivo y `LEGAL_UPDATED`.
 
-export type LegalBlock = { kind: 'p'; text: string } | { kind: 'ul'; items: readonly string[] }
+export type LegalBlock =
+  | { kind: 'p'; text: string }
+  | { kind: 'ul'; items: readonly string[] }
+  // Declaración que debe destacarse (p. ej. el Uso limitado de Google); `lang`
+  // marca el idioma de la frase cuando no es español.
+  | { kind: 'note'; text: string; lang?: string }
 
 export interface LegalSection {
   /** Ancla estable (`#id`): Google y las personas enlazan secciones concretas. */
@@ -34,6 +39,7 @@ export const LEGAL_UPDATED_ISO = '2026-11-06'
 
 const p = (text: string): LegalBlock => ({ kind: 'p', text })
 const ul = (...items: string[]): LegalBlock => ({ kind: 'ul', items })
+const note = (text: string, lang?: string): LegalBlock => ({ kind: 'note', text, lang })
 
 export const privacyPolicy: LegalDocument = {
   title: 'Política de privacidad',
@@ -115,11 +121,12 @@ export const privacyPolicy: LegalDocument = {
         p(
           'Cómo revocar el acceso: desconecta Google Calendar desde el panel de NAVA, o retira el permiso en https://myaccount.google.com/permissions. Al desconectar desde NAVA revocamos el token, eliminamos las credenciales guardadas y detenemos los trabajos pendientes; los eventos que ya estaban en tu calendario permanecen y puedes borrarlos tú.',
         ),
-        p(
+        note(
           'El uso y la transferencia a cualquier otra aplicación de la información recibida de las API de Google se ajustarán a la Política de datos del usuario de los servicios de las API de Google, incluidos los requisitos de uso limitado.',
         ),
-        p(
+        note(
           'NAVA’s use and transfer to any other app of information received from Google APIs will adhere to Google API Services User Data Policy, including the Limited Use requirements.',
+          'en',
         ),
       ],
     },
