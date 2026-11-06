@@ -84,7 +84,7 @@ test('paginador real: reemplazo, reintento, resize, accesibilidad y aislamiento'
   await page.setViewportSize({ width: 1280, height: 900 })
   await page.goto('/panel/barberos')
   await settled(page)
-  await expect(page.locator('.staff-page__count')).toHaveText('17 barberos')
+  await expect(page.locator('.base-pagination__count')).toContainText('17 barberos')
   const first = await page.locator('.staff-page__item-name').allTextContents()
   await page.getByRole('button', { name: 'Página siguiente', exact: true }).click()
   await settled(page)
@@ -164,7 +164,7 @@ test('paginador real: reemplazo, reintento, resize, accesibilidad y aislamiento'
   await previous.focus()
   await page.keyboard.press('Enter')
   await settled(page)
-  await expect(page.locator('.staff-page__pagination-nav [aria-current="page"]')).toBeFocused()
+  await expect(page.locator('.base-pagination__nav [aria-current="page"]')).toBeFocused()
   await page
     .getByRole('button', { name: /Bloquear a/ })
     .first()

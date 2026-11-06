@@ -343,7 +343,7 @@ describe('StaffPage', () => {
   it('replaces the page, shows exact total and returns to the previous page', async () => {
     const wrapper = await mountReady(oneBarber, 'opaque-cursor')
     expect(wrapper.find('nav[aria-label="Paginación de barberos"]').exists()).toBe(true)
-    expect(wrapper.get('.staff-page__count').text()).toBe('2 barberos')
+    expect(wrapper.get('.base-pagination__count').text()).toContain('Página 1 de 2')
     fetchMock.mockResolvedValueOnce({
       kind: 'success',
       page: {

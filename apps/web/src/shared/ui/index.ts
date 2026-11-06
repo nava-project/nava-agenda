@@ -3,6 +3,7 @@
 
 export { default as BaseButton } from './BaseButton.vue'
 export { default as BaseInput } from './BaseInput.vue'
+export { default as BasePagination } from './BasePagination.vue'
 export { default as BaseDatePicker } from './BaseDatePicker.vue'
 export { default as BaseTimePicker } from './BaseTimePicker.vue'
 export { default as BaseSelect } from './BaseSelect.vue'
