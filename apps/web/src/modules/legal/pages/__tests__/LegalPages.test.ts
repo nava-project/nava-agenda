@@ -99,6 +99,26 @@ describe.each([
     expect(legalNav.find('a[href="/terminos"]').exists()).toBe(true)
   })
 
+  it('cierra con el pie de la landing y marca el documento abierto (issue #551)', async () => {
+    const { wrapper } = await mountAt(path)
+    const footer = wrapper.get('footer.sf')
+    // Recorrido hacia la landing, contacto, cuenta y legal.
+    const hrefs = footer.findAll('a').map((a) => a.attributes('href'))
+    expect(hrefs).toContain('/#contacto')
+    expect(hrefs).toContain('/#para-quien')
+    expect(hrefs).toContain('/acceso')
+    expect(hrefs.some((h) => h?.startsWith('tel:+'))).toBe(true)
+    const legal = footer.get('nav[aria-label="Documentos legales"]')
+    expect(legal.get('a[href="/privacidad"]').text()).toBe('Privacidad')
+    expect(legal.get('a[href="/terminos"]').text()).toBe('Condiciones')
+    const current = legal.findAll('a[aria-current="page"]')
+    expect(current).toHaveLength(1)
+    expect(current[0]!.attributes('href')).toBe(path)
+    // «Volver arriba» sube al inicio del documento, que existe en la página.
+    expect(footer.get('a.sf__top').attributes('href')).toBe('#inicio')
+    expect(wrapper.find('#inicio').exists()).toBe(true)
+  })
+
   it('sugiere leer el otro documento al final', async () => {
     const { wrapper } = await mountAt(path)
     const next = wrapper.get('a.ld__next')

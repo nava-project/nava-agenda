@@ -4,13 +4,13 @@
 // acceso para quien ya tiene cuenta. Es estática: no consulta el API, no lee
 // la sesión y no depende de ningún otro módulo.
 import { onBeforeUnmount, onMounted } from 'vue'
+import { SiteFooter } from '@/shared/ui'
 import AssistantSection from '../components/AssistantSection.vue'
 import AudienceSection from '../components/AudienceSection.vue'
 import BrandSection from '../components/BrandSection.vue'
 import CapabilitiesSection from '../components/CapabilitiesSection.vue'
 import ContactSection from '../components/ContactSection.vue'
 import JourneySection from '../components/JourneySection.vue'
-import LandingFooter from '../components/LandingFooter.vue'
 import LandingHeader from '../components/LandingHeader.vue'
 import LandingHero from '../components/LandingHero.vue'
 import LandingMarquee from '../components/LandingMarquee.vue'
@@ -53,7 +53,7 @@ onBeforeUnmount(() => document.documentElement.classList.remove('ln-root'))
       <CapabilitiesSection />
       <ContactSection />
     </main>
-    <LandingFooter />
+    <SiteFooter />
   </div>
 </template>
 
