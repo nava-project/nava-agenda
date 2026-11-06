@@ -4,8 +4,11 @@
 // estable.
 import LegalDocument from '../components/LegalDocument.vue'
 import { termsOfService } from '../model/legalContent'
+import { LEGAL_PRIVACY_PATH } from '../routes'
+
+const next = { to: LEGAL_PRIVACY_PATH, label: 'Política de privacidad' }
 </script>
 
 <template>
-  <LegalDocument :doc="termsOfService" />
+  <LegalDocument :doc="termsOfService" :next="next" />
 </template>
