@@ -1,6 +1,6 @@
 ---
 titulo: "Catálogo de prompts persistentes"
-version: "1.99"
+version: "1.100"
 estado: "Obligatorio para prompts reutilizables"
 responsable: "Propietario del proyecto"
 ultima_actualizacion: "2026-11-06"
@@ -273,6 +273,7 @@ Un prompt mutable atiende una preocupación primaria y un issue. Si un trabajo n
 | [PROMPT-TEST-301-UI-CUSTOMER-v1](test/issue-301-ui-customer.md) | test | HU-098,HU-099 | [#301](https://github.com/bcaceres19/barberia/issues/301) | executed | Kit #300, única campaña sin fixes | Partición de campaña; sin producto |
 | [PROMPT-TEST-301-UI-JOURNEYS-v1](test/issue-301-ui-journeys.md) | test | Recorridos P0 | [#301](https://github.com/bcaceres19/barberia/issues/301) | executed | Kit #300, única campaña sin fixes | Partición de campaña; sin producto |
 | [PROMPT-OPS-VPS-OVH-FEDORA-ENDURECIMIENTO-v1](ops/issue-pending-vps-ovh-fedora-endurecimiento.md) | ops | Sin HU asignada | `pending` | `draft` | Aprovisionamiento y endurecimiento del VPS Fedora de producción: acceso solo por llave (usuarios admin y `deploy`), SSH endurecido, firewalld, fail2ban, actualizaciones de seguridad, Docker Engine con Compose. Aplicado a mano el 2026-11-06 sin issue; sin issue real no pasa a `ready`. Despliegue de la app, dominio y respaldos quedan fuera | Sin rama ni PR |
+| [PROMPT-OPS-ODIN-EVALUAR-CABIDA-VPS-v1](ops/issue-pending-odin-evaluar-cabida-en-vps.md) | ops | Sin HU asignada | `pending` (no aplica a `barberia`; archivo versionado en #553) | `draft` | Handoff para el agente externo de Odin: conectarse al VPS por el alias SSH ya configurado, en solo lectura y con lista cerrada de comandos, medir memoria, disco, CPU y puertos, compararlos con lo que necesita Odin (runtime y su base) y entregar un veredicto «cabe / cabe con ajustes / no cabe». No despliega nada ni toca NAVA | Sin rama ni PR |
 
 ## 10. Lista de control al guardar o entregar
 
