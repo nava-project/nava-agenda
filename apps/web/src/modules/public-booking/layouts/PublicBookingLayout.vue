@@ -148,6 +148,11 @@ watch(
     <footer class="pb-footer">
       <span>Reservas con</span>
       <NavaWordmark variant="inverted" size="sm" />
+      <!-- Issue #545: enlaces legales en una segunda línea bajo la firma. -->
+      <nav class="pb-footer__legal" aria-label="Documentos legales">
+        <RouterLink to="/privacidad">Privacidad</RouterLink>
+        <RouterLink to="/terminos">Condiciones</RouterLink>
+      </nav>
     </footer>
   </div>
 </template>

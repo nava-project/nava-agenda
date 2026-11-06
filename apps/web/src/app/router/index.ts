@@ -8,6 +8,7 @@ import {
 import { catalogNavItems, catalogPrivateShellChildRoutes } from '@/modules/catalog'
 import { integrationsPrivateShellChildRoutes } from '@/modules/integrations'
 import { landingRoutes } from '@/modules/landing'
+import { legalRoutes } from '@/modules/legal'
 import { customerAccessRoutes } from '@/modules/customer-access'
 import { publicBookingRoutes } from '@/modules/public-booking'
 import { schedulesNavItems, schedulesPrivateShellChildRoutes } from '@/modules/schedules'
@@ -30,6 +31,10 @@ const routes: RouteRecordRaw[] = [
   // acceso; «Iniciar sesión» lleva a /acceso. Sin sesión y fuera del cascarón
   // privado.
   ...landingRoutes,
+  // Issue #545: política de privacidad y condiciones del servicio, públicas y
+  // sin sesión. Sus URL se registran en la pantalla de consentimiento de OAuth
+  // de Google, así que no se renombran.
+  ...legalRoutes,
   ...authRoutes,
   // HU-090: entrada pública de reservas, sin sesión del barbero y aislada
   // del cascarón privado (CA-090-03: nunca pasa por requireSession).

@@ -81,6 +81,12 @@ onBeforeUnmount(() => clearTimeout(introTimer))
           </div>
           <slot />
           <p class="auth-split__mobile-caption" aria-hidden="true">{{ caption }} · NAVA</p>
+          <!-- Issue #545: enlaces legales al pie de la tarjeta, después de todo lo
+               que ya existía: no mueven el formulario ni la marca. -->
+          <nav class="auth-split__legal" aria-label="Documentos legales">
+            <RouterLink to="/privacidad">Privacidad</RouterLink>
+            <RouterLink to="/terminos">Condiciones</RouterLink>
+          </nav>
         </div>
       </div>
     </div>
@@ -229,6 +235,33 @@ onBeforeUnmount(() => clearTimeout(introTimer))
   text-transform: uppercase;
   text-align: center;
   color: var(--color-text-secondary);
+}
+
+.auth-split__legal {
+  display: flex;
+  justify-content: center;
+  gap: var(--space-2) var(--space-6);
+  margin-top: calc(var(--space-3) * -1);
+}
+
+.auth-split__legal a {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  font-family: var(--font-sans);
+  font-size: var(--font-size-body-sm);
+  color: var(--color-text-secondary);
+  text-underline-offset: 3px;
+}
+
+.auth-split__legal a:hover {
+  color: var(--color-text-primary);
+}
+
+.auth-split__legal a:focus-visible {
+  outline: 2px solid var(--color-focus);
+  outline-offset: 2px;
+  border-radius: var(--radius-md);
 }
 
 .auth-split__content {

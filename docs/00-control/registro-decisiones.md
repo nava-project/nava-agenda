@@ -1,6 +1,6 @@
 ---
 titulo: "Registro de decisiones"
-version: "1.64"
+version: "1.65"
 estado: "Vigente"
 responsable: "Propietario del proyecto"
 ultima_actualizacion: "2026-11-06"
@@ -2017,3 +2017,16 @@ Cada código `DEC-*` es estable y no se reutiliza. Este registro normaliza respu
 - **Alcance:** infraestructura (`.github/workflows/deploy.yml`). Sin cambios de API, contrato, datos ni migraciones.
 - **Documentos afectados:** `migraciones-atlas.md` (§ ambientes y § producción), `stack-despliegue-operacion.md` (§7), `deploy/README.md`, `historial-cambios.md`.
 - **Fuente:** instrucción explícita del propietario el 2026-11-06; issue [#541](https://github.com/bcaceres19/barberia/issues/541); `DEC-158`, `DEC-159`, `DEC-040`.
+
+### DEC-161 · Política de privacidad y condiciones del servicio públicas, requisito de la verificación de Google
+
+- **Fecha:** 2026-11-06.
+- **Decisión:** NAVA publica dos documentos legales sin sesión en su dominio de producción: la política de privacidad en `/privacidad` y las condiciones del servicio en `/terminos`, desde un módulo web propio (`legal`) con su contenido en un único archivo tipado. Son las URL que se registran en la pantalla de consentimiento de OAuth de Google junto con la página principal (`/`, `DEC-151`), así que sus rutas son un contrato externo y no se renombran sin actualizar esa configuración. Se enlazan desde la franja legal del pie de la landing, desde el pie de la tarjeta de acceso y recuperación y desde la firma al pie de la reserva pública, sin alterar la composición de esas pantallas.
+- **Contenido mínimo de la política:** responsable y canal de contacto; datos tratados y no tratados (`RN-DAT-01`); finalidades; proveedores y encargados (hosting, correo, WhatsApp, Google); sección de datos de Google con alcances `calendar.events` y `openid email` (`DEC-102`), qué se publica y qué nunca (`DEC-101` §6), cifrado AES-256-GCM del refresh token, no venta ni cesión, no uso para entrenar modelos, revocación y la declaración de Uso limitado de la política de datos de usuario de las API de Google en español y en inglés; conservación y anonimización a 24 meses (`RN-DAT-03`); derechos de la Ley 1581 de 2012 y plazos de respuesta; menores; cambios.
+- **Responsable de los datos:** el operador de NAVA es una persona natural (el propietario del proyecto). Respecto de los clientes de cada barbería, la barbería decide los fines y NAVA actúa por cuenta de ella. El canal es `contacto@nava.wtf`.
+- **Estado del texto:** borrador de buena fe construido sobre el comportamiento real; **no sustituye una revisión jurídica**, que `DP-LEG-01` y `DEC-025` ya exigen antes de producción comercial. Cuando cambie un proveedor, un dato recogido o un plazo, se actualiza el texto y su fecha de vigencia.
+- **Motivo:** sin política de privacidad, condiciones y página principal públicas en un dominio autorizado, Google no verifica la aplicación; con el alcance sensible `calendar.events` la integración queda en modo de prueba (100 usuarios, tokens de renovación que caducan a los 7 días).
+- **Alternativas descartadas:** alojar los textos en un sitio externo (Notion, Google Sites), porque deben estar en el dominio verificado y versionados con el producto; un banner de cookies, porque la app no usa cookies de seguimiento ni analítica de terceros.
+- **Alcance:** frontend y documentación. Sin cambios de API, contrato, datos ni migraciones. La configuración en Google Cloud Console y Search Console es manual y la ejecuta el propietario.
+- **Documentos afectados:** `historial-cambios.md`; estándar visual sin cambios (identidad guiada).
+- **Fuente:** solicitud del propietario el 2026-11-06 para publicar la integración con Google Calendar; issue [#545](https://github.com/bcaceres19/barberia/issues/545); `DEC-099`, `DEC-101`, `DEC-102`, `DEC-151`, `RN-DAT-01`, `RN-DAT-03`, `DP-LEG-01`.

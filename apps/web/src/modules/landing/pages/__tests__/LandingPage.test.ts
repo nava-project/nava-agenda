@@ -35,6 +35,8 @@ function buildRouter() {
     routes: [
       { path: '/', name: 'inicio', component: LandingPage },
       { path: '/acceso', name: 'acceso', component: { template: '<div>acceso</div>' } },
+      { path: '/privacidad', component: { template: '<div>privacidad</div>' } },
+      { path: '/terminos', component: { template: '<div>terminos</div>' } },
       {
         path: '/recuperar-acceso',
         name: 'recuperar-acceso',
@@ -246,6 +248,13 @@ describe('LandingPage', () => {
     expect(hrefs.some((h) => h?.startsWith('tel:+'))).toBe(true)
     expect(hrefs.some((h) => h?.startsWith('mailto:'))).toBe(true)
     expect(footer.text()).toContain(landingContacts[0]!.display)
+  })
+
+  it('la franja legal del pie enlaza la política de privacidad y las condiciones (issue #545)', async () => {
+    const { wrapper } = await mountPage()
+    const legal = wrapper.get('footer nav[aria-label="Documentos legales"]')
+    expect(legal.get('a[href="/privacidad"]').text()).toBe('Privacidad')
+    expect(legal.get('a[href="/terminos"]').text()).toBe('Condiciones')
   })
 
   it('no tiene violaciones de accesibilidad automatizables', async () => {

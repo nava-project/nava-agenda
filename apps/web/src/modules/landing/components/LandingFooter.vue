@@ -72,6 +72,13 @@ const tour = [
 
     <div class="ln-wrap ft__base">
       <p>© {{ year }} NAVA · Agenda de citas para independientes y equipos</p>
+      <!-- Issue #545: Google exige que la página principal enlace de forma visible
+           la política de privacidad y las condiciones. Van en la franja legal,
+           junto al copyright, sin tocar las columnas del pie. -->
+      <nav class="ft__legal" aria-label="Documentos legales">
+        <RouterLink to="/privacidad">Privacidad</RouterLink>
+        <RouterLink to="/terminos">Condiciones</RouterLink>
+      </nav>
       <a class="ft__top" href="#inicio">
         Volver arriba
         <svg
@@ -247,6 +254,25 @@ const tour = [
   color: var(--ln-muted);
 }
 
+.ft__legal {
+  display: flex;
+  gap: 8px 24px;
+}
+
+.ft__legal a {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  font-size: 15px;
+  color: var(--ln-soft);
+  text-underline-offset: 4px;
+  transition: color 200ms ease;
+}
+
+.ft__legal a:hover {
+  color: var(--ln-brass);
+}
+
 .ft__top {
   display: inline-flex;
   align-items: center;
@@ -298,6 +324,7 @@ const tour = [
 @media (prefers-reduced-motion: reduce) {
   .ft__col a,
   .ft__col a::after,
+  .ft__legal a,
   .ft__top {
     transition: none;
   }
