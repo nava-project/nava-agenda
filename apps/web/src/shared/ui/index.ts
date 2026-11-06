@@ -29,6 +29,7 @@ export { default as PageState } from './PageState.vue'
 export { default as PhoneDisplay } from './PhoneDisplay.vue'
 export { default as PhoneField } from './PhoneField.vue'
 export { default as RecordRow } from './RecordRow.vue'
+export { default as SiteFooter } from './SiteFooter.vue'
 export { default as StarRating } from './StarRating.vue'
 export { default as StarRatingInput } from './StarRatingInput.vue'
 

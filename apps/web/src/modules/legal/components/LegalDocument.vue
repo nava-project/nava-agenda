@@ -9,14 +9,13 @@
 // `model/legalContent.ts`; este componente no conoce ningún texto legal.
 import { onBeforeUnmount, onMounted, ref } from 'vue'
 import { RouterLink } from 'vue-router'
-import { NavaWordmark } from '@/shared/ui'
+import { NavaWordmark, SiteFooter } from '@/shared/ui'
 import {
   LEGAL_CONTACT_EMAIL,
   LEGAL_UPDATED,
   LEGAL_UPDATED_ISO,
   type LegalDocument,
 } from '../model/legalContent'
-import { LEGAL_PRIVACY_PATH, LEGAL_TERMS_PATH } from '../routes'
 
 const props = defineProps<{
   doc: LegalDocument
@@ -100,12 +99,27 @@ function onToggle(event: Event) {
   tocOpen.value = (event.target as HTMLDetailsElement).open
 }
 
-const year = new Date().getFullYear()
 const pad = (n: number) => String(n).padStart(2, '0')
+
+// El pie ya no repite el correo del documento (muestra el de contacto comercial
+// de la landing), así que el canal legal se enlaza dentro del propio texto.
+function withMailLink(text: string): { text: string; mail: boolean }[] {
+  return text
+    .split(LEGAL_CONTACT_EMAIL)
+    .flatMap((part, i) =>
+      i === 0
+        ? [{ text: part, mail: false }]
+        : [
+            { text: LEGAL_CONTACT_EMAIL, mail: true },
+            { text: part, mail: false },
+          ],
+    )
+    .filter((part) => part.text !== '')
+}
 </script>
 
 <template>
-  <div class="ld">
+  <div id="inicio" class="ld">
     <a class="ld__skip" href="#contenido">Saltar al contenido</a>
 
     <!-- Mesa de patronaje: rejilla fina y dos luces. Puramente ornamental. -->
@@ -187,7 +201,12 @@ const pad = (n: number) => String(n).padStart(2, '0')
               {{ section.title }}
             </h2>
             <template v-for="(block, i) in section.blocks" :key="i">
-              <p v-if="block.kind === 'p'">{{ block.text }}</p>
+              <p v-if="block.kind === 'p'">
+                <template v-for="(part, j) in withMailLink(block.text)" :key="j"
+                  ><a v-if="part.mail" :href="`mailto:${LEGAL_CONTACT_EMAIL}`">{{ part.text }}</a
+                  ><template v-else>{{ part.text }}</template></template
+                >
+              </p>
               <ul v-else-if="block.kind === 'ul'">
                 <li v-for="item in block.items" :key="item">{{ item }}</li>
               </ul>
@@ -214,33 +233,10 @@ const pad = (n: number) => String(n).padStart(2, '0')
       </div>
     </main>
 
-    <footer class="ld__foot">
-      <div class="ld__wrap ld__foot-row">
-        <div class="ld__foot-id">
-          <NavaWordmark variant="inverted" />
-          <p>
-            © {{ year }} NAVA ·
-            <a :href="`mailto:${LEGAL_CONTACT_EMAIL}`">{{ LEGAL_CONTACT_EMAIL }}</a>
-          </p>
-        </div>
-        <nav class="ld__foot-nav" aria-label="Documentos legales">
-          <RouterLink :to="LEGAL_PRIVACY_PATH">Privacidad</RouterLink>
-          <RouterLink :to="LEGAL_TERMS_PATH">Condiciones</RouterLink>
-        </nav>
-        <a class="ld__top" href="#contenido">
-          Volver arriba
-          <svg
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            stroke-width="2"
-            aria-hidden="true"
-          >
-            <path d="M12 19V5M6 11l6-6 6 6" stroke-linecap="round" stroke-linejoin="round" />
-          </svg>
-        </a>
-      </div>
-    </footer>
+    <!-- Issue #551: el mismo pie de la landing cierra cada documento; sus
+         enlaces de recorrido llevan a la landing y «Volver arriba» sube a la
+         cabecera del documento. -->
+    <SiteFooter class="ld__foot" top-href="#inicio" />
   </div>
 </template>
 
@@ -683,6 +679,16 @@ const pad = (n: number) => String(n).padStart(2, '0')
   transform: rotate(45deg);
 }
 
+.ld__section p a {
+  color: var(--ld-text);
+  text-decoration-color: var(--ld-brass);
+  text-underline-offset: 4px;
+}
+
+.ld__section p a:hover {
+  color: var(--ld-brass);
+}
+
 /* Declaración destacada (Uso limitado de Google): panel levantado con el
    filete de latón a la izquierda. Dos declaraciones seguidas forman un solo
    panel. */
@@ -758,102 +764,9 @@ const pad = (n: number) => String(n).padStart(2, '0')
 
 /* ── Pie ────────────────────────────────────────────────────────────────── */
 
+/* Por encima del fondo fijo del documento. */
 .ld__foot {
-  position: relative;
   z-index: 1;
-  background: linear-gradient(to bottom, var(--ld-ink), var(--ld-ink-deep));
-  border-top: 1px solid var(--ld-line-strong);
-}
-
-.ld__foot::before {
-  content: '';
-  position: absolute;
-  top: -1px;
-  left: 50%;
-  width: min(560px, 60%);
-  height: 2px;
-  background: linear-gradient(to right, transparent, var(--ld-brass), transparent);
-  transform: translateX(-50%);
-}
-
-.ld__foot-row {
-  display: grid;
-  gap: 20px;
-  padding-block: 36px 40px;
-}
-
-.ld__foot-id {
-  display: grid;
-  gap: 12px;
-  justify-items: start;
-}
-
-.ld__foot-id :deep(.nava-wordmark) {
-  font-size: 28px;
-  letter-spacing: 0.14em;
-}
-
-.ld__foot-id p {
-  margin: 0;
-  font-size: 15px;
-  letter-spacing: 0.02em;
-  color: var(--ld-muted);
-  overflow-wrap: anywhere;
-}
-
-.ld__foot-id a {
-  color: var(--ld-soft);
-  text-underline-offset: 4px;
-}
-
-.ld__foot-nav {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 4px 24px;
-}
-
-.ld__foot-nav a {
-  display: inline-flex;
-  align-items: center;
-  min-height: 44px;
-  font-size: 16px;
-  color: var(--ld-soft);
-  text-underline-offset: 4px;
-  transition: color 200ms ease;
-}
-
-.ld__foot-nav a:hover,
-.ld__foot-id a:hover {
-  color: var(--ld-brass);
-}
-
-.ld__top {
-  display: inline-flex;
-  align-items: center;
-  justify-self: start;
-  gap: 10px;
-  min-height: 44px;
-  padding: 0 16px;
-  border: 1px solid var(--ld-line-strong);
-  border-radius: var(--radius-pill);
-  background: var(--ld-ink);
-  font-size: 15px;
-  font-weight: 600;
-  color: var(--ld-soft);
-  text-decoration: none;
-  transition:
-    border-color 200ms ease,
-    color 200ms ease;
-}
-
-.ld__top svg {
-  width: 18px;
-  height: 18px;
-}
-
-.ld__top:hover {
-  border-color: var(--ld-brass);
-  color: var(--ld-brass);
 }
 
 /* ── Anchos ─────────────────────────────────────────────────────────────── */
@@ -869,18 +782,6 @@ const pad = (n: number) => String(n).padStart(2, '0')
 
   .ld__btn {
     padding: 0 14px;
-  }
-}
-
-@media (min-width: 760px) {
-  .ld__foot-row {
-    grid-template-columns: 1fr auto auto;
-    align-items: center;
-    gap: 24px 40px;
-  }
-
-  .ld__top {
-    justify-self: end;
   }
 }
 
@@ -943,7 +844,6 @@ const pad = (n: number) => String(n).padStart(2, '0')
   .ld__head,
   .ld__btn,
   .ld__next,
-  .ld__top,
   .ld__toc a,
   .ld__toc a::before,
   .ld__toc summary svg {

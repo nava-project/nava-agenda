@@ -2,8 +2,16 @@
 // contacto o de copy no obligue a tocar componentes ni pruebas.
 //
 // Los datos de contacto son los que el propietario entregó para su
-// publicación el 2026-11-03 (DEC-151). Viven aquí y en ningún otro sitio: las
-// pruebas los leen de este módulo y no los repiten.
+// publicación el 2026-11-03 (DEC-151). El teléfono y el correo viven en
+// `shared/model/siteContact.ts`, porque el pie del sitio también los muestra
+// en las páginas legales; las pruebas los leen de aquí y no los repiten.
+
+import {
+  SITE_EMAIL,
+  SITE_MAIL_HREF,
+  SITE_PHONE_DISPLAY,
+  SITE_PHONE_E164,
+} from '@/shared/model/siteContact'
 
 export interface LandingContactAction {
   /** Texto del botón. */
@@ -25,9 +33,9 @@ export interface LandingContact {
   copyValue: string
 }
 
-const PHONE_E164 = '+573016823624'
-const PHONE_DISPLAY = '+57 301 682 3624'
-const EMAIL = 'bacg20044@gmail.com'
+const PHONE_E164 = SITE_PHONE_E164
+const PHONE_DISPLAY = SITE_PHONE_DISPLAY
+const EMAIL = SITE_EMAIL
 
 const WHATSAPP_GREETING =
   'Hola, vi la página de NAVA y quiero saber cómo contratarla para mi negocio.'
@@ -55,7 +63,7 @@ export const landingContacts: readonly LandingContact[] = [
     actions: [
       {
         label: 'Enviar un correo',
-        href: `mailto:${EMAIL}?subject=${encodeURIComponent('Quiero contratar NAVA')}`,
+        href: SITE_MAIL_HREF,
         external: false,
       },
     ],

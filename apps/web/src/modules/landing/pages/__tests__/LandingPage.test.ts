@@ -244,13 +244,16 @@ describe('LandingPage', () => {
     const hrefs = footer.findAll('a').map((a) => a.attributes('href'))
     expect(hrefs).toContain('/acceso')
     expect(hrefs).toContain('/recuperar-acceso')
-    expect(hrefs).toContain('#contacto')
+    // Los enlaces del pie apuntan a la landing por ruta: sirven igual desde
+    // las páginas legales (issue #551).
+    expect(hrefs).toContain('/#contacto')
+    expect(hrefs).toContain('/#para-quien')
     expect(hrefs.some((h) => h?.startsWith('tel:+'))).toBe(true)
     expect(hrefs.some((h) => h?.startsWith('mailto:'))).toBe(true)
     expect(footer.text()).toContain(landingContacts[0]!.display)
   })
 
-  it('la franja legal del pie enlaza la política de privacidad y las condiciones (issue #545)', async () => {
+  it('la columna legal del pie enlaza la política de privacidad y las condiciones (issues #545 y #551)', async () => {
     const { wrapper } = await mountPage()
     const legal = wrapper.get('footer nav[aria-label="Documentos legales"]')
     expect(legal.get('a[href="/privacidad"]').text()).toBe('Privacidad')

@@ -96,9 +96,27 @@ const routes: RouteRecordRaw[] = [
   },
 ]
 
+// Altura de la cabecera fija de la landing y de los documentos legales: el
+// ancla de destino queda justo debajo.
+const ANCHOR_OFFSET = 72
+
 export const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
   routes,
+  // El pie del sitio enlaza secciones de la landing desde cualquier página
+  // (`/#contacto`) y las pantallas públicas son largas: llegar a una ruta nueva
+  // empieza arriba y un ancla se alcanza con desplazamiento suave (salvo si la
+  // persona pidió menos movimiento). Atrás/adelante restauran la posición.
+  scrollBehavior(to, from, savedPosition) {
+    if (savedPosition) return savedPosition
+    if (to.hash) {
+      const reduced =
+        typeof window.matchMedia === 'function' &&
+        window.matchMedia('(prefers-reduced-motion: reduce)').matches
+      return { el: to.hash, top: ANCHOR_OFFSET, behavior: reduced ? 'auto' : 'smooth' }
+    }
+    return to.path === from.path ? false : { top: 0 }
+  },
 })
 
 // Perfil de barbero individual (DEC-115): las rutas que ese perfil retira se desvían a
