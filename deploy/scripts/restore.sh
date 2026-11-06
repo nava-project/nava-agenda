@@ -25,7 +25,7 @@ echo "1/5 verificando $(basename "$dump")"
 (cd "$(dirname "$dump")" && sha256sum -c "$(basename "$dump").sha256")
 
 echo "2/5 respaldo de seguridad del estado actual"
-"${compose[@]}" run --rm -T --no-deps --entrypoint backup.sh backup
+"${compose[@]}" run --rm -T --no-deps --entrypoint with-secrets backup backup.sh
 
 echo "3/5 deteniendo API y worker"
 "${compose[@]}" stop api worker

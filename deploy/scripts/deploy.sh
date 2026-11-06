@@ -52,13 +52,22 @@ show() {
 
 log "inicio (actor: ${DEPLOY_ACTOR:-desconocido}, migraciones: $migrate)"
 
-# --- 1. Entornos ------------------------------------------------------------
-for f in stack.env db.env app.env migrate.env backup.env; do
+# --- 1. Configuración y secretos ----------------------------------------------
+SECRETS_DIR="${NAVA_SECRETS_DIR:-$(get NAVA_SECRETS_DIR "$ENV_DIR/stack.env")}"
+SECRETS_DIR="${SECRETS_DIR:-/srv/barberia/secrets}"
+for f in stack.env db.env app.env backup.env; do
   [ -f "$ENV_DIR/$f" ] || fail "falta $ENV_DIR/$f (ejecuta deploy/scripts/env-init.sh)"
 done
-for k in APP_RESEND_API_KEY APP_META_WHATSAPP_PHONE_NUMBER_ID APP_META_WHATSAPP_ACCESS_TOKEN; do
-  [ -n "$(get "$k" "$ENV_DIR/app.env")" ] || fail "$k está vacío en $ENV_DIR/app.env (obligatorio en producción)"
+for s in db/POSTGRES_PASSWORD app/APP_DATABASE_URL app/APP_WORKER_DATABASE_URL app/APP_AUTH_HMAC_SECRET \
+         migrate/DATABASE_PRODUCTION_URL migrate/DATABASE_ADMIN_URL backup/PGPASSWORD; do
+  [ -s "$SECRETS_DIR/$s" ] || fail "falta el secreto $SECRETS_DIR/$s (ejecuta deploy/scripts/env-init.sh)"
 done
+# Obligatorios en producción: el API no arranca sin ellos (DEC-066, DEC-124).
+for s in APP_RESEND_API_KEY APP_META_WHATSAPP_ACCESS_TOKEN; do
+  [ -s "$SECRETS_DIR/app/$s" ] || fail "el secreto app/$s está vacío (guárdalo con deploy/scripts/secret-set.sh app $s)"
+done
+[ -n "$(get APP_META_WHATSAPP_PHONE_NUMBER_ID "$ENV_DIR/app.env")" ] \
+  || fail "APP_META_WHATSAPP_PHONE_NUMBER_ID está vacío en $ENV_DIR/app.env"
 if [ "$(get APP_META_WHATSAPP_MODE "$ENV_DIR/app.env")" != text ]; then
   [ -n "$(get APP_META_WHATSAPP_TEMPLATE_NAME "$ENV_DIR/app.env")" ] \
     || fail "APP_META_WHATSAPP_TEMPLATE_NAME está vacío en $ENV_DIR/app.env"
@@ -101,7 +110,7 @@ if [ "$migrate" = 1 ]; then
 
   # --- 3. Respaldo previo verificado ----------------------------------------
   log "respaldo previo a la migración"
-  "${compose[@]}" run --rm -T --no-deps --entrypoint backup.sh backup \
+  "${compose[@]}" run --rm -T --no-deps --entrypoint with-secrets backup backup.sh \
     || fail "el respaldo previo falló: no se migra ni se despliega"
 
   # --- 4. Migraciones -------------------------------------------------------

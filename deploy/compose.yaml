@@ -4,11 +4,18 @@
 # Variables de interpolación (archivo stack.env, lo genera deploy/scripts/env-init.sh;
 # IMAGE_TAG y DB_IMAGE_TAG las fija deploy.sh. La imagen de la base se versiona
 # aparte de la aplicación para no recrear PostgreSQL en cada despliegue):
-#   NAVA_REGISTRY, DOMAIN, ACME_EMAIL, NAVA_ENV_DIR, NAVA_BACKUP_DIR,
-#   HTTP_PORT, HTTPS_PORT.
-# Secretos por servicio: un archivo .env por servicio en NAVA_ENV_DIR (fuera del
-# repositorio, modo 600), cargado con `env_file` en formato raw (sin
-# interpolación de `$` ni comillas: el valor es literal).
+#   NAVA_REGISTRY, DOMAIN, ACME_EMAIL, NAVA_ENV_DIR, NAVA_SECRETS_DIR,
+#   NAVA_BACKUP_DIR, HTTP_PORT, HTTPS_PORT.
+#
+# Configuración y secretos van separados:
+#   - Configuración (sin secretos): un .env por servicio en NAVA_ENV_DIR, cargado con
+#     `env_file` en formato raw (valor literal, sin comillas ni interpolación de `$`).
+#   - Secretos: archivos de secreto de Docker. Cada servicio monta SOLO su carpeta
+#     NAVA_SECRETS_DIR/<servicio> en /run/secrets (solo lectura) y el cargador
+#     `with-secrets` exporta cada archivo como variable de entorno del proceso. Así no
+#     aparecen en `docker inspect` ni en ningún env_file. Los archivos son del usuario
+#     `deploy` (UID 1001, modo 600), por eso los servicios que los leen corren con ese UID.
+#     El sufijo `z` pide a Docker etiquetar la carpeta para SELinux.
 #
 # Redes:
 #   public  solo Caddy; es la única con puertos publicados al host.
@@ -46,6 +53,7 @@ services:
     stop_grace_period: 60s
     volumes:
       - db-data:/var/lib/postgresql/data
+      - ${NAVA_SECRETS_DIR:-/srv/barberia/secrets}/db:/run/secrets:ro,z
     tmpfs:
       - /tmp
       - /var/run/postgresql
@@ -64,10 +72,13 @@ services:
   api:
     <<: *hardening
     image: ${NAVA_REGISTRY:-ghcr.io/bcaceres19}/barberia-backend:${IMAGE_TAG:?IMAGE_TAG es obligatorio}
+    user: "1001:1001"
     command: ["api"]
     env_file: *app-env
     environment:
       GOMEMLIMIT: 400MiB
+    volumes:
+      - ${NAVA_SECRETS_DIR:-/srv/barberia/secrets}/app:/run/secrets:ro,z
     tmpfs: [/tmp]
     networks: [app, data, egress]
     depends_on:
@@ -85,10 +96,13 @@ services:
   worker:
     <<: *hardening
     image: ${NAVA_REGISTRY:-ghcr.io/bcaceres19}/barberia-backend:${IMAGE_TAG:?IMAGE_TAG es obligatorio}
+    user: "1001:1001"
     command: ["worker"]
     env_file: *app-env
     environment:
       GOMEMLIMIT: 200MiB
+    volumes:
+      - ${NAVA_SECRETS_DIR:-/srv/barberia/secrets}/app:/run/secrets:ro,z
     tmpfs: [/tmp]
     networks: [data, egress]
     depends_on:
@@ -140,12 +154,13 @@ services:
     <<: *hardening
     image: ${NAVA_REGISTRY:-ghcr.io/bcaceres19}/barberia-db:${DB_IMAGE_TAG:?}
     user: "1001:1001"
-    entrypoint: ["scheduler.sh"]
+    entrypoint: ["with-secrets", "scheduler.sh"]
     env_file:
       - path: ${NAVA_ENV_DIR:-/srv/barberia/env}/backup.env
         format: raw
     volumes:
       - ${NAVA_BACKUP_DIR:-/srv/barberia/backups}:/backups:z
+      - ${NAVA_SECRETS_DIR:-/srv/barberia/secrets}/backup:/run/secrets:ro,z
     tmpfs:
       - /tmp:size=512m,mode=1777
     networks: [data, egress]
@@ -163,20 +178,22 @@ services:
         limits: { cpus: "0.5", memory: 512M, pids: 128 }
 
   # Migraciones con Atlas como `barberia_migrator` (docs/05-backend/migraciones-atlas.md).
-  # Etapa separada: nunca se ejecutan al arrancar el API o el worker.
+  # Etapa separada: nunca se ejecutan al arrancar el API o el worker. Usa la imagen
+  # propia (Atlas fijado + el cargador de secretos): la imagen oficial de Atlas no
+  # trae shell y no podría leer los archivos de secreto.
   migrate:
     profiles: [tools]
-    image: arigaio/atlas:1.3.0
-    # Sin privilegios: la imagen corre como root pero su binario no es ejecutable
-    # para otros, así que con cap_drop ALL no arrancaría; como `nobody` sí.
-    user: "65534:65534"
+    image: ${NAVA_REGISTRY:-ghcr.io/bcaceres19}/barberia-db:${DB_IMAGE_TAG:?}
+    user: "1001:1001"
+    entrypoint: ["with-secrets", "atlas"]
     working_dir: /database
-    env_file:
-      - path: ${NAVA_ENV_DIR:-/srv/barberia/env}/migrate.env
-        format: raw
+    environment:
+      HOME: /tmp
     volumes:
       - ../database:/database:ro,z
       - ./atlas-bootstrap.hcl:/atlas-bootstrap.hcl:ro,z
+      - ${NAVA_SECRETS_DIR:-/srv/barberia/secrets}/migrate:/run/secrets:ro,z
+    tmpfs: [/tmp]
     networks: [data]
     read_only: true
     cap_drop: [ALL]

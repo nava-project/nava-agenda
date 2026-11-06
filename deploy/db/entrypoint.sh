@@ -17,4 +17,6 @@ openssl req -new -x509 -days 3650 -nodes -newkey rsa:3072 \
 chown postgres:postgres "$dir/server.key" "$dir/server.crt"
 chmod 0600 "$dir/server.key"
 chmod 0644 "$dir/server.crt"
-exec docker-entrypoint.sh "$@"
+# with-secrets exporta POSTGRES_PASSWORD y NAVA_*_PASSWORD desde /run/secrets antes del
+# entrypoint oficial, que los pasa también a los scripts de inicialización.
+exec with-secrets docker-entrypoint.sh "$@"

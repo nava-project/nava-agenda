@@ -1,5 +1,6 @@
 *
 !apps/api
+!deploy/docker/with-secrets.sh
 apps/api/.env*
 apps/api/o
 apps/api/bin
