@@ -21,6 +21,13 @@
 # Consume public_resolve_appointment_token_tenant
 # (20260916120000_add_public_resolve_appointment_token_tenant.sql).
 #
+# DEC-162 agrega dos agregados públicos de solo lectura en
+# paths/public-booking.yaml: GET /public/barbershops/{slug}/barbers (barberos
+# elegibles con los ids de sus servicios activos) y GET
+# /public/barbershops/{slug}/services/{serviceId}/availability (franjas de
+# todos los barberos del servicio). Las operaciones por servicio y por
+# barbero siguen sin cambios.
+#
 # HU-094 agrega la cuarta operación pública de reserva: GET
 # /public/barbershops/{slug}/services/{serviceId}/barbers/{barberId}/
 # availability (paths/public-booking.yaml), disponibilidad pública real sin
@@ -94,7 +101,7 @@
 openapi: 3.1.2
 info:
   title: API del sistema de agenda para barberías
-  version: 0.48.0
+  version: 0.49.0
   description: >
     Contrato HTTP entre apps/web y apps/api. Tres audiencias comparten este
     documento: /api/v1/public (reserva sin sesión), /api/v1/customer
@@ -157,6 +164,10 @@ paths:
     $ref: './paths/public-booking.yaml#/~1public~1barbershops~1{slug}'
   /public/barbershops/{slug}/services:
     $ref: './paths/public-booking.yaml#/~1public~1barbershops~1{slug}~1services'
+  /public/barbershops/{slug}/barbers:
+    $ref: './paths/public-booking.yaml#/~1public~1barbershops~1{slug}~1barbers'
+  /public/barbershops/{slug}/services/{serviceId}/availability:
+    $ref: './paths/public-booking.yaml#/~1public~1barbershops~1{slug}~1services~1{serviceId}~1availability'
   /public/barbershops/{slug}/barbers/{barberId}/photo:
     $ref: './paths/public-booking.yaml#/~1public~1barbershops~1{slug}~1barbers~1{barberId}~1photo'
   /public/barbershops/{slug}/services/{serviceId}/barbers:

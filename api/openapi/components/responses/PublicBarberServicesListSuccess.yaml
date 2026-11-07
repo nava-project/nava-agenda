@@ -1,0 +1,27 @@
+# Respuesta 200 de GET /public/barbershops/{slug}/barbers (DEC-162).
+description: Barberos elegibles de la barbería con los ids de los servicios activos que hacen.
+headers:
+  X-Request-Id:
+    $ref: '../headers/XRequestId.yaml'
+content:
+  application/json:
+    schema:
+      $ref: '../schemas/PublicBarberServicesListResponse.yaml'
+    examples:
+      variosBarberos:
+        summary: Dos barberos, con servicios en común
+        value:
+          items:
+            - id: 8f3ac2b1-e4d5-46f6-a7c8-d9e0f1a2b3c4
+              fullName: Ana Gómez
+              serviceIds:
+                - 1c9a7f2d-3b4e-4a5f-9c6d-7e8f9a0b1c2d
+                - 5e2d9b7a-6c1f-4d38-8a40-b3c5e7f90a12
+            - id: 1c9a7f2d-3b4e-4a5f-9c6d-7e8f9a0b1c2e
+              fullName: Luis Rojas
+              serviceIds:
+                - 5e2d9b7a-6c1f-4d38-8a40-b3c5e7f90a12
+      sinBarberos:
+        summary: Barbería publicada sin ningún barbero elegible
+        value:
+          items: []

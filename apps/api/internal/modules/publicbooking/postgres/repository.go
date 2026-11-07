@@ -380,6 +380,108 @@ func (r *Repository) ListPublicBarbers(ctx context.Context, slug string, service
 	return result, true, nil
 }
 
+// ListPublicBarbersWithServices implementa
+// publicbooking.Repository.ListPublicBarbersWithServices (DEC-162) con el
+// mismo patrón de dos pasos que ListPublicBarbers: resuelve slug SIN
+// contexto de tenant mediante public_resolve_barbershop_by_slug y lee, en
+// UNA sola consulta parametrizada dentro de una transacción tenant-aware, los
+// barberos con asignación vigente a servicios activos junto con sus ids. El
+// único identificador de tenant es el que la función SECURITY DEFINER
+// devolvió para el slug; nada del cliente llega a la consulta. Los JOIN y el
+// WHERE repiten barbershop_id además de RLS (mismo criterio que las demás
+// consultas de este paquete). array_agg se emite como text[] para escanear
+// a []string sin depender del códec de uuid[].
+func (r *Repository) ListPublicBarbersWithServices(ctx context.Context, slug string) (publicbooking.PublicBarberServicesListResult, bool, error) {
+	barbershopID, found, err := r.db.ResolveTenant(ctx,
+		`SELECT public_resolve_barbershop_by_slug($1)`,
+		slug,
+	)
+	if err != nil {
+		return publicbooking.PublicBarberServicesListResult{}, false, fmt.Errorf("publicbooking/postgres: resolve tenant by slug: %w", err)
+	}
+	if !found {
+		return publicbooking.PublicBarberServicesListResult{}, false, nil
+	}
+
+	items := make([]publicbooking.PublicBarberServices, 0)
+	err = r.db.InTenantTx(ctx, barbershopID, func(ctx context.Context, q database.Queries) error {
+		rows, err := q.Query(ctx,
+			`SELECT b.id, b.full_name,
+			        array_agg(s.id::text ORDER BY s.created_at, s.id) AS service_ids
+			   FROM barber b
+			   JOIN barber_service bs
+			     ON bs.barbershop_id = b.barbershop_id AND bs.barber_id = b.id
+			   JOIN service s
+			     ON s.barbershop_id = bs.barbershop_id AND s.id = bs.service_id
+			  WHERE b.barbershop_id = $1
+			    AND s.is_active = true
+			  GROUP BY b.id, b.full_name, b.created_at
+			  ORDER BY b.created_at, b.id`,
+			string(barbershopID),
+		)
+		if err != nil {
+			return fmt.Errorf("list public barbers with services: query: %w", err)
+		}
+		defer rows.Close()
+
+		for rows.Next() {
+			var barber publicbooking.PublicBarberServices
+			if err := rows.Scan(&barber.ID, &barber.FullName, &barber.ServiceIDs); err != nil {
+				return fmt.Errorf("list public barbers with services: scan: %w", err)
+			}
+			items = append(items, barber)
+		}
+		if err := rows.Err(); err != nil {
+			return fmt.Errorf("list public barbers with services: rows: %w", err)
+		}
+		return nil
+	})
+	if err != nil {
+		return publicbooking.PublicBarberServicesListResult{}, false, fmt.Errorf("publicbooking/postgres: read public barbers with services: %w", err)
+	}
+	return publicbooking.PublicBarberServicesListResult{Items: items}, true, nil
+}
+
+// ListServiceBarberIDs implementa
+// publicbooking.AvailabilityRepository.ListServiceBarberIDs (DEC-162): los
+// barberos con asignación a serviceID cuando el servicio está activo, dentro
+// de barbershopID (ya resuelto por el llamador a partir del slug). RLS acota
+// el tenant; barbershop_id se repite explícitamente. Un serviceID ajeno,
+// inexistente o inactivo no produce filas, nunca un error.
+func (r *Repository) ListServiceBarberIDs(ctx context.Context, barbershopID, serviceID string) ([]string, error) {
+	ids := make([]string, 0)
+	err := r.db.InTenantTx(ctx, database.BarbershopID(barbershopID), func(ctx context.Context, q database.Queries) error {
+		rows, err := q.Query(ctx,
+			`SELECT bs.barber_id::text
+			   FROM barber_service bs
+			   JOIN service s
+			     ON s.barbershop_id = bs.barbershop_id AND s.id = bs.service_id
+			  WHERE bs.barbershop_id = $1
+			    AND bs.service_id = $2
+			    AND s.is_active = true
+			  ORDER BY bs.created_at, bs.barber_id`,
+			barbershopID, serviceID,
+		)
+		if err != nil {
+			return err
+		}
+		defer rows.Close()
+
+		for rows.Next() {
+			var id string
+			if err := rows.Scan(&id); err != nil {
+				return err
+			}
+			ids = append(ids, id)
+		}
+		return rows.Err()
+	})
+	if err != nil {
+		return nil, fmt.Errorf("publicbooking/postgres: listar barberos del servicio: %w", err)
+	}
+	return ids, nil
+}
+
 // GetPublicBarberPhoto implementa publicbooking.Repository.GetPublicBarberPhoto
 // (DEC-127) con el mismo patrón de dos pasos: resuelve el slug sin tenant y lee
 // la imagen dentro de una transacción tenant-aware. El EXISTS limita la

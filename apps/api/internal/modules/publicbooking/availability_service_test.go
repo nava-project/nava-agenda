@@ -29,6 +29,15 @@ type fakeAvailabilityRepository struct {
 
 	occStarts, occEnds []time.Time
 	occErr             error
+
+	// serviceBarberIDs/serviceBarberErr alimentan ListServiceBarberIDs
+	// (agregado de disponibilidad por servicio, DEC-162).
+	serviceBarberIDs []string
+	serviceBarberErr error
+}
+
+func (f *fakeAvailabilityRepository) ListServiceBarberIDs(_ context.Context, _, _ string) ([]string, error) {
+	return f.serviceBarberIDs, f.serviceBarberErr
 }
 
 func (f *fakeAvailabilityRepository) ResolveBarbershopID(_ context.Context, _ string) (string, bool, error) {

@@ -37,6 +37,10 @@ type fakeRepository struct {
 	photoResult publicbooking.PublicBarberPhoto
 	photoFound  bool
 	photoErr    error
+
+	withServicesResult publicbooking.PublicBarberServicesListResult
+	withServicesFound  bool
+	withServicesErr    error
 }
 
 func (f *fakeRepository) ResolveBySlug(_ context.Context, slug string) (publicbooking.BarbershopProfile, bool, error) {
@@ -57,6 +61,11 @@ func (f *fakeRepository) ListPublicBarbers(_ context.Context, slug string, _ str
 func (f *fakeRepository) GetPublicBarberPhoto(_ context.Context, slug string, _ string) (publicbooking.PublicBarberPhoto, bool, error) {
 	f.calls = append(f.calls, slug)
 	return f.photoResult, f.photoFound, f.photoErr
+}
+
+func (f *fakeRepository) ListPublicBarbersWithServices(_ context.Context, slug string) (publicbooking.PublicBarberServicesListResult, bool, error) {
+	f.calls = append(f.calls, slug)
+	return f.withServicesResult, f.withServicesFound, f.withServicesErr
 }
 
 var _ publicbooking.Repository = (*fakeRepository)(nil)

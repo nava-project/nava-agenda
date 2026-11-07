@@ -240,6 +240,13 @@ func buildRouter(db *database.DB, logger *slog.Logger, cfg config.Config) (*chi.
 	listPublicBarbersHandler := publicbookinghttpapi.NewListPublicBarbersHandler(publicBookingService)
 	router.Get("/api/v1/public/barbershops/{slug}/services/{serviceId}/barbers", listPublicBarbersHandler.ServeHTTP)
 
+	// DEC-162: agregado barberos-servicios para clientes de solo lectura (el
+	// agente Odin): todos los barberos elegibles con los ids de sus servicios
+	// activos en UNA lectura, en vez de GET .../services/{serviceId}/barbers
+	// por servicio. Mismo criterio sin sesión; el tenant sale solo del slug.
+	listPublicBarbersWithServicesHandler := publicbookinghttpapi.NewListPublicBarbersWithServicesHandler(publicBookingService)
+	router.Get("/api/v1/public/barbershops/{slug}/barbers", listPublicBarbersWithServicesHandler.ServeHTTP)
+
 	// DEC-127: fotografía del barbero visible en la reserva pública. Mismo
 	// criterio sin sesión; solo sirve la imagen de quien la lista ya muestra.
 	getPublicBarberPhotoHandler := publicbookinghttpapi.NewGetPublicBarberPhotoHandler(publicBookingService)
@@ -499,6 +506,13 @@ func buildRouter(db *database.DB, logger *slog.Logger, cfg config.Config) (*chi.
 	)
 	listPublicAvailabilityHandler := publicbookinghttpapi.NewListPublicAvailabilityHandler(publicAvailabilityService)
 	router.Get("/api/v1/public/barbershops/{slug}/services/{serviceId}/barbers/{barberId}/availability", listPublicAvailabilityHandler.ServeHTTP)
+
+	// DEC-162: agregado de disponibilidad por servicio (todos los barberos
+	// elegibles en una respuesta). Reutiliza el MISMO AvailabilityService de
+	// HU-094, así que ventana, rejilla, bloqueos y citas no pueden divergir de
+	// la ruta por barbero, que sigue intacta.
+	listPublicServiceAvailabilityHandler := publicbookinghttpapi.NewListPublicServiceAvailabilityHandler(publicAvailabilityService)
+	router.Get("/api/v1/public/barbershops/{slug}/services/{serviceId}/availability", listPublicServiceAvailabilityHandler.ServeHTTP)
 
 	// HU-061: creación manual de turnos. ManualBookingService (booking, dueño
 	// de la primitiva de HU-060) colabora con catalog/schedule/shops SOLO a

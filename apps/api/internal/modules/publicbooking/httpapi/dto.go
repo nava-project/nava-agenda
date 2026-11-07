@@ -90,6 +90,25 @@ type PublicBarberListResponse struct {
 	Items []PublicBarberResponse `json:"items"`
 }
 
+// PublicBarberServicesResponse es la proyección pública agregada de un
+// barbero (DEC-162), forma exacta del componente OpenAPI
+// PublicBarberServicesResponse.yaml: id y nombre con el mismo saneamiento que
+// PublicBarberResponse, más los ids de los servicios activos que hace.
+// serviceIds nunca es null ni vacío (solo se listan barberos con al menos una
+// asignación vigente).
+type PublicBarberServicesResponse struct {
+	ID         string   `json:"id"`
+	FullName   string   `json:"fullName"`
+	ServiceIDs []string `json:"serviceIds"`
+}
+
+// PublicBarberServicesListResponse es la lista completa de barberos
+// elegibles con sus servicios (DEC-162). Sin paginar, como
+// PublicBarberListResponse.
+type PublicBarberServicesListResponse struct {
+	Items []PublicBarberServicesResponse `json:"items"`
+}
+
 // AvailabilitySlotResponse es un inicio público válido (HU-094, CA-094-01),
 // forma exacta del componente OpenAPI AvailabilitySlotResponse.yaml.
 type AvailabilitySlotResponse struct {
@@ -176,6 +195,27 @@ type AvailabilityResponse struct {
 	DurationMinutes int                        `json:"durationMinutes"`
 	Timezone        string                     `json:"timezone"`
 	SlotGridMinutes int                        `json:"slotGridMinutes"`
+}
+
+// BarberAvailabilitySlotResponse es un inicio válido atribuido a un barbero
+// (DEC-162), forma exacta del componente OpenAPI
+// BarberAvailabilitySlotResponse.yaml.
+type BarberAvailabilitySlotResponse struct {
+	BarberID string    `json:"barberId"`
+	StartsAt time.Time `json:"startsAt"`
+}
+
+// ServiceAvailabilityResponse es la respuesta del agregado de disponibilidad
+// por servicio (DEC-162): los inicios de todos los barberos elegibles,
+// ordenados por (startsAt, barberId), más el mismo contexto que
+// AvailabilityResponse. Un `slots` vacío cubre "sin franjas" y un
+// serviceId ajeno, inexistente, inactivo o sin barberos: la causa nunca se
+// distingue.
+type ServiceAvailabilityResponse struct {
+	Slots           []BarberAvailabilitySlotResponse `json:"slots"`
+	DurationMinutes int                              `json:"durationMinutes"`
+	Timezone        string                           `json:"timezone"`
+	SlotGridMinutes int                              `json:"slotGridMinutes"`
 }
 
 // PublicGoogleReviewsResponse es la forma exacta del componente OpenAPI

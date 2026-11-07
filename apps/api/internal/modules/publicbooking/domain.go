@@ -172,6 +172,28 @@ type PublicBarber struct {
 	RatingCount int
 }
 
+// PublicBarberServices es la proyección pública agregada de un barbero
+// elegible para la reserva: id, nombre y los servicios ACTIVOS que tiene
+// asignados (agregado de solo lectura para clientes que, como el agente
+// Odin, necesitan el mapa barbero-servicio completo en una sola lectura en
+// vez de una por servicio, DEC-162). Mismos campos y saneamiento que
+// PublicBarber para id y nombre; nunca descripción, fotografía, reseñas ni
+// ningún otro campo de staff.Barber.
+type PublicBarberServices struct {
+	ID         string
+	FullName   string
+	ServiceIDs []string
+}
+
+// PublicBarberServicesListResult es la lista completa (sin paginar, mismo
+// criterio que PublicBarberListResult) de barberos con al menos una
+// asignación vigente a un servicio activo, ordenada de forma estable
+// (created_at del barbero, id) para que dos lecturas sin cambios devuelvan
+// exactamente el mismo cuerpo.
+type PublicBarberServicesListResult struct {
+	Items []PublicBarberServices
+}
+
 // PublicBarberPhoto es la fotografía pública de un barbero (DEC-127): el
 // mismo contenido que `barber_photo`, entregado solo si el barbero es
 // elegible en la reserva pública.
@@ -237,6 +259,28 @@ type AvailabilitySlot struct {
 // ambigüedad (RN-DIS-07: zona de la barbería, nunca la del dispositivo).
 type AvailabilityResult struct {
 	Slots           []AvailabilitySlot
+	DurationMinutes int
+	Timezone        string
+	SlotGridMinutes int
+}
+
+// BarberAvailabilitySlot es un inicio público válido atribuido a un barbero
+// concreto: la unidad del agregado de disponibilidad por servicio (DEC-162).
+// Equivale a AvailabilitySlot de HU-094 más el barbero al que pertenece.
+type BarberAvailabilitySlot struct {
+	BarberID string
+	StartsAt time.Time
+}
+
+// ServiceAvailabilityResult es la respuesta del agregado de disponibilidad
+// por servicio (DEC-162): los inicios válidos de TODOS los barberos
+// elegibles del servicio, ordenados por (StartsAt, BarberID), con el mismo
+// contexto de interpretación que AvailabilityResult. Es vacío (Slots sin
+// elementos y el resto en cero) cuando el servicio no existe, es ajeno,
+// está inactivo o no tiene ningún barbero con asignación vigente: la causa
+// no se distingue (mismo criterio que CA-092-03).
+type ServiceAvailabilityResult struct {
+	Slots           []BarberAvailabilitySlot
 	DurationMinutes int
 	Timezone        string
 	SlotGridMinutes int

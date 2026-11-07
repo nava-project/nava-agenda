@@ -37,6 +37,11 @@ type fakeRepository struct {
 	photoFound  bool
 	photoErr    error
 	photoCalls  []photoCall
+
+	withServicesResult publicbooking.PublicBarberServicesListResult
+	withServicesFound  bool
+	withServicesErr    error
+	withServicesCalls  []string
 }
 
 type photoCall struct {
@@ -73,6 +78,11 @@ func (f *fakeRepository) ListPublicBarbers(_ context.Context, slug string, servi
 func (f *fakeRepository) GetPublicBarberPhoto(_ context.Context, slug string, barberID string) (publicbooking.PublicBarberPhoto, bool, error) {
 	f.photoCalls = append(f.photoCalls, photoCall{slug: slug, barberID: barberID})
 	return f.photoResult, f.photoFound, f.photoErr
+}
+
+func (f *fakeRepository) ListPublicBarbersWithServices(_ context.Context, slug string) (publicbooking.PublicBarberServicesListResult, bool, error) {
+	f.withServicesCalls = append(f.withServicesCalls, slug)
+	return f.withServicesResult, f.withServicesFound, f.withServicesErr
 }
 
 var _ publicbooking.Repository = (*fakeRepository)(nil)
@@ -477,5 +487,83 @@ func TestPublicBarberPhoto_RepositoryError_ReturnsInternal(t *testing.T) {
 	appErr, ok := apperr.As(err)
 	if !ok || appErr.Kind != apperr.KindInternal {
 		t.Fatalf("expected apperr.KindInternal, got %v", err)
+	}
+}
+
+func TestListPublicBarbersWithServices_Found_ReturnsResult(t *testing.T) {
+	want := publicbooking.PublicBarberServicesListResult{Items: []publicbooking.PublicBarberServices{
+		{ID: "b1", FullName: "Barbero Uno", ServiceIDs: []string{validServiceID}},
+	}}
+	repo := &fakeRepository{withServicesFound: true, withServicesResult: want}
+	svc := publicbooking.NewService(repo)
+
+	got, err := svc.ListPublicBarbersWithServices(context.Background(), "  barberia-ejemplo  ")
+	if err != nil {
+		t.Fatalf("ListPublicBarbersWithServices: %v", err)
+	}
+	if len(got.Items) != 1 || got.Items[0].ID != "b1" || len(got.Items[0].ServiceIDs) != 1 {
+		t.Fatalf("resultado inesperado: %+v", got)
+	}
+	// El slug se recorta antes de llegar al repositorio (mismo criterio que
+	// las demás operaciones públicas) y es la única entrada del cliente.
+	if len(repo.withServicesCalls) != 1 || repo.withServicesCalls[0] != "barberia-ejemplo" {
+		t.Fatalf("llamadas al repositorio = %v, want [barberia-ejemplo]", repo.withServicesCalls)
+	}
+}
+
+func TestListPublicBarbersWithServices_InvalidSlug_ReturnsUniformNotFoundWithoutCallingRepository(t *testing.T) {
+	for name, slug := range map[string]string{
+		"vacío":           "",
+		"solo espacio":    "   ",
+		"demasiado largo": strings.Repeat("a", publicbooking.MaxSlugLength+1),
+	} {
+		t.Run(name, func(t *testing.T) {
+			repo := &fakeRepository{withServicesFound: true}
+			_, err := publicbooking.NewService(repo).ListPublicBarbersWithServices(context.Background(), slug)
+			appErr, ok := apperr.As(err)
+			if !ok || appErr.Kind != apperr.KindNotFound {
+				t.Fatalf("esperaba apperr.KindNotFound, got %v", err)
+			}
+			if len(repo.withServicesCalls) != 0 {
+				t.Fatalf("un slug inválido no debe tocar el repositorio, got %v", repo.withServicesCalls)
+			}
+		})
+	}
+}
+
+func TestListPublicBarbersWithServices_UnknownBarbershop_ReturnsSameNotFoundAsOtherOperations(t *testing.T) {
+	svc := publicbooking.NewService(&fakeRepository{withServicesFound: false})
+	_, err := svc.ListPublicBarbersWithServices(context.Background(), "no-existe")
+	appErr, ok := apperr.As(err)
+	if !ok || appErr.Kind != apperr.KindNotFound {
+		t.Fatalf("esperaba apperr.KindNotFound, got %v", err)
+	}
+	_, resolveErr := svc.ResolveBarbershop(context.Background(), "")
+	resolveAppErr, _ := apperr.As(resolveErr)
+	if appErr.Message != resolveAppErr.Message {
+		t.Fatalf("el 404 debe ser el uniforme de HU-090: %q vs %q", appErr.Message, resolveAppErr.Message)
+	}
+}
+
+func TestListPublicBarbersWithServices_RepositoryError_IsInternal(t *testing.T) {
+	svc := publicbooking.NewService(&fakeRepository{withServicesErr: errors.New("boom")})
+	_, err := svc.ListPublicBarbersWithServices(context.Background(), "barberia-ejemplo")
+	appErr, ok := apperr.As(err)
+	if !ok || appErr.Kind != apperr.KindInternal {
+		t.Fatalf("esperaba apperr.KindInternal, got %v", err)
+	}
+}
+
+func TestListPublicBarbersWithServices_CancelledContext_IsInternal(t *testing.T) {
+	ctx, cancel := context.WithCancel(context.Background())
+	cancel()
+	repo := &fakeRepository{withServicesFound: true}
+	_, err := publicbooking.NewService(repo).ListPublicBarbersWithServices(ctx, "barberia-ejemplo")
+	appErr, ok := apperr.As(err)
+	if !ok || appErr.Kind != apperr.KindInternal {
+		t.Fatalf("esperaba apperr.KindInternal, got %v", err)
+	}
+	if len(repo.withServicesCalls) != 0 {
+		t.Fatal("un contexto cancelado no debe tocar el repositorio")
 	}
 }

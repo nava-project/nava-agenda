@@ -1,0 +1,47 @@
+# Disponibilidad pública de un servicio para todos sus barberos (DEC-162).
+type: object
+description: >
+  Inicios públicos válidos del servicio para todos sus barberos elegibles,
+  ordenados por (`startsAt`, `barberId`), más el contexto mínimo para
+  interpretarlos (RN-DIS-07). Un arreglo `slots` vacío cubre por igual "sin
+  disponibilidad en la ventana pública vigente" y un `serviceId` ajeno,
+  inexistente, inactivo o sin ningún barbero con asignación vigente: la causa
+  nunca se distingue (mismo criterio que CA-092-03). Nunca reserva ni aparta
+  ninguna franja (RN-DIS-03): es una proyección de solo lectura.
+properties:
+  slots:
+    type: array
+    description: >
+      Inicios válidos de todos los barberos elegibles, ordenados por
+      (`startsAt`, `barberId`).
+    items:
+      $ref: './BarberAvailabilitySlotResponse.yaml'
+  durationMinutes:
+    type: integer
+    minimum: 0
+    description: >
+      Duración planificada del servicio (DEC-002). 0 cuando `serviceId` no
+      produjo ningún barbero con asignación activa vigente.
+    examples:
+      - 45
+  timezone:
+    type: string
+    description: >
+      Zona horaria IANA de la barbería (RN-DIS-07). Cadena vacía cuando
+      `serviceId` no produjo ningún barbero con asignación activa vigente.
+    examples:
+      - America/Bogota
+  slotGridMinutes:
+    type: integer
+    minimum: 0
+    description: >
+      Paso de la rejilla vigente de la barbería (RN-DIS-06, DEC-083). 0
+      cuando `serviceId` no produjo ningún barbero con asignación activa
+      vigente.
+    examples:
+      - 30
+required:
+  - slots
+  - durationMinutes
+  - timezone
+  - slotGridMinutes

@@ -1,6 +1,6 @@
 ---
 titulo: "Registro de decisiones"
-version: "1.67"
+version: "1.68"
 estado: "Vigente"
 responsable: "Propietario del proyecto"
 ultima_actualizacion: "2026-11-06"
@@ -2032,6 +2032,20 @@ Cada código `DEC-*` es estable y no se reutiliza. Este registro normaliza respu
 - **Alcance:** frontend y documentación. Sin cambios de API, contrato, datos ni migraciones. La configuración en Google Cloud Console y Search Console es manual y la ejecuta el propietario.
 - **Documentos afectados:** `historial-cambios.md`; estándar visual sin cambios (identidad guiada).
 - **Fuente:** solicitud del propietario el 2026-11-06 para publicar la integración con Google Calendar; issue [#545](https://github.com/bcaceres19/barberia/issues/545); `DEC-099`, `DEC-101`, `DEC-102`, `DEC-151`, `RN-DAT-01`, `RN-DAT-03`, `DP-LEG-01`.
+
+### DEC-162 · Dos agregados públicos de solo lectura para que el agente Odin haga menos peticiones
+
+- **Fecha:** 2026-11-06.
+- **Decisión:** la API pública agrega, sin tocar ninguna operación existente, dos lecturas sin sesión pensadas para un cliente de solo lectura que consulta mucho (el agente Odin, otro proyecto): (A) `GET /public/barbershops/{slug}/barbers`, todos los barberos con al menos una asignación vigente a un servicio activo, cada uno con `id`, `fullName` y `serviceIds` (los servicios activos que hace); (B) `GET /public/barbershops/{slug}/services/{serviceId}/availability`, los inicios válidos del servicio para todos sus barberos elegibles en una sola respuesta (`slots: [{barberId, startsAt}]` ordenados por `startsAt` y `barberId`, más `durationMinutes`, `timezone` y `slotGridMinutes`).
+- **Quién lo decidió:** el propietario autorizó explícitamente modificar la API pública de NAVA para este fin (2026-11-06).
+- **Responsable:** propietario del proyecto.
+- **Motivo:** medido, Odin hacía hasta 73 `GET` públicos por mensaje: una llamada de `.../services/{serviceId}/barbers` por servicio para saber qué barbero hace qué, y una de `.../barbers/{barberId}/availability` por barbero para los cupos. Los agregados reducen eso a una lectura del mapa barbero-servicio y una por servicio consultado.
+- **Reglas de diseño:** (1) compatibilidad total: las operaciones por servicio (`HU-092`) y por barbero (`HU-094`) no cambian y Odin conserva el recurso a ellas; (2) el tenant sale solo del `slug` resuelto en servidor (`public_resolve_barbershop_by_slug`), nunca de un parámetro del cliente, y la lectura corre bajo RLS con una consulta parametrizada (`RN-TEN-01`); (3) mismo `404` uniforme de `HU-090` para `slug` inválido, desconocido o no publicable, y `200` vacío (nunca un error distinto) para un `serviceId` malformado, ajeno, inactivo o sin barberos (`CA-092-03`); (4) el agregado B no copia la lógica de franjas: por cada barbero elegible reutiliza `AvailabilityService.computeAvailableStarts` (única fuente de verdad, `HU-094`/`HU-097`) y la misma verificación de asignación, con la misma ventana, rejilla (`DEC-135`), bloqueos y citas, y una prueba exige que cada barbero obtenga exactamente las franjas de la operación individual; (5) `fullName` y `id` usan la misma proyección que `PublicBarberResponse`; el agregado no expone descripción, fotografía ni reseñas.
+- **Interpretaciones conservadoras (a confirmar):** (a) «barbero activo» significa lo que ya significa en `HU-092`: la tabla `barber` no tiene estado, y es elegible quien tiene una asignación a un servicio `is_active`; (b) el orden del agregado A es por fecha de alta del barbero y `id`, y el de `serviceIds` por fecha de alta del servicio y `id`; (c) sin `Cache-Control`/`ETag`, igual que sus hermanos JSON (solo la fotografía los usa): la disponibilidad debe ser fresca; (d) cuando el servicio no tiene barberos elegibles la respuesta B es la vacía uniforme (`durationMinutes: 0`, `timezone: ""`, `slotGridMinutes: 0`), idéntica a la de la operación por barbero para un id ajeno; (e) `startsAt` se serializa con el mismo formato que la operación por barbero (RFC 3339 con el offset de la barbería).
+- **Consecuencias aceptadas:** (1) el cálculo de B repite, por barbero, la lectura de zona horaria y política de reserva para no duplicar `computeAvailableStarts`; el costo crece linealmente con los barberos del servicio y se acepta frente a las N peticiones HTTP que sustituye; (2) el tamaño de B crece con barberos x días x franjas por día (decenas de KB para una barbería típica); (3) no se agrega cliente en `apps/web`, porque el frontend no consume estas lecturas; (4) mismo límite de tasa y middleware que el resto del router público: no se agrega un límite propio.
+- **Alcance:** API pública (servicio, puerto y repositorio de `publicbooking`, handlers, rutas en `cmd/api`), contrato OpenAPI 0.49.0 y datos de prueba `database/testdata/dec162_agregados_publicos.sql`. Sin migraciones ni cambios de esquema.
+- **Documentos afectados:** `api/openapi/CHANGELOG.md`, `historial-cambios.md`, `database/testdata/README.md`.
+- **Fuente:** autorización explícita del propietario el 2026-11-06; issue [#567](https://github.com/bcaceres19/barberia/issues/567); `HU-090`, `HU-092`, `HU-094`, `DEC-135`, `RN-TEN-01`.
 
 ### DEC-163 · La política y las condiciones públicas cubren también a Nexos (asistente Odin) para la revisión de la app de Meta
 
