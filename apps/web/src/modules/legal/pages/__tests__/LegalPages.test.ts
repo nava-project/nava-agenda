@@ -195,3 +195,67 @@ describe('política de privacidad: requisitos de la verificación de Google', ()
     expect(text).not.toMatch(/\+57\s?\d/)
   })
 })
+
+describe('política de privacidad: requisitos de la revisión de Meta para Nexos', () => {
+  const sectionText = (id: string) =>
+    privacyPolicy.sections
+      .find((section) => section.id === id)!
+      .blocks.map((block) => (block.kind === 'ul' ? block.items.join(' ') : block.text))
+      .join('\n')
+  const nexos = sectionText('nexos')
+
+  it('describe qué es Nexos y que solo responde a quien escribe primero', () => {
+    expect(nexos).toContain('Nexos')
+    expect(nexos).toContain('WhatsApp Business Platform')
+    expect(nexos).toMatch(/solo responde cuando la persona escribe primero/i)
+  })
+
+  it('declara qué datos guarda, el aviso previo y el enmascarado', () => {
+    expect(nexos).toMatch(/primer mensaje recibe un aviso de privacidad y no se guarda/i)
+    expect(nexos).toMatch(/correos, enlaces, teléfonos/i)
+    expect(nexos).toMatch(/solicitud de cita/i)
+  })
+
+  it('declara el modelo de IA, que no entrena y que no vende datos de Meta', () => {
+    expect(nexos).toContain('DeepInfra')
+    expect(nexos).toMatch(/no usamos las conversaciones para entrenar modelos/i)
+    expect(nexos).toMatch(/no los vendemos/i)
+    expect(nexos).toContain('Términos de la Plataforma de Meta')
+  })
+
+  it('nombra a los proveedores y la transferencia internacional', () => {
+    const providers = sectionText('proveedores')
+    for (const name of ['Meta', 'DeepInfra', 'Cloudflare', 'OVHcloud']) {
+      expect(providers).toContain(name)
+    }
+    expect(providers).toMatch(/Transferencia internacional/)
+  })
+
+  it('permite eliminar los datos por el chat y por correo, con ancla estable', async () => {
+    const deletion = sectionText('eliminar-datos')
+    expect(deletion).toContain('borra mis datos')
+    expect(deletion).toContain(LEGAL_CONTACT_EMAIL)
+    expect(deletion).toMatch(/15 días hábiles/)
+    const { wrapper } = await mountAt('/privacidad')
+    expect(wrapper.find('#eliminar-datos h2').exists()).toBe(true)
+  })
+
+  it('fija la retención de las conversaciones de Nexos', () => {
+    expect(sectionText('conservacion')).toMatch(/hasta 12 meses/)
+  })
+})
+
+describe('condiciones: Nexos', () => {
+  const text = termsOfService.sections
+    .flatMap((section) => section.blocks)
+    .map((block) => (block.kind === 'ul' ? block.items.join(' ') : block.text))
+    .join('\n')
+
+  it('describe el asistente automático, sus límites y las políticas de WhatsApp', () => {
+    expect(termsOfService.sections.map((section) => section.id)).toContain('nexos')
+    expect(text).toMatch(/asistente automático, no una persona/i)
+    expect(text).toMatch(/No diagnostica ni receta/)
+    expect(text).toMatch(/solo la solicita; el negocio decide/i)
+    expect(text).toContain('Política de mensajería de WhatsApp Business')
+  })
+})

@@ -120,6 +120,7 @@ Cuando la respuesta dio un rango o delegó una decisión, se escogió una config
 | `DP-LEG-01` | Política de datos | Aviso y política adaptada antes del piloto; revisión jurídica antes de producción comercial. | `DEC-030` |
 | `DP-LEG-02` | Eliminación de datos | Anonimizar datos personales y conservar el historial operativo. | `DEC-025` |
 | `DP-LEG-03` | Acuerdo con el colaborador | Acuerdo breve y escrito antes del piloto. | `DEC-030` |
+| `DP-LEG-04` | Nexos: retención de solicitudes de cita y purga | Pendiente de decidir plazo (propuesta: 30 días tras decidida) y programar la purga de conversaciones vencidas (hoy es oportunista) antes de operar con clientes reales. | `DEC-163` |
 | `DP-OPS-01` | Copias de seguridad | Diarias, con retención de 30 días y restauración probada. | `DEC-031` |
 | `DP-OPS-02` | Alojamiento | Servicios gratuitos gestionados en desarrollo/piloto; VPS dedicado económico en producción. | `DEC-031` |
 | `DP-OPS-03` | Soporte del piloto | Menos de una hora la primera semana; mismo día después, atendiendo cualquier alerta. | `DEC-031` |
