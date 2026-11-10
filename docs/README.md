@@ -64,6 +64,7 @@ Los archivos de `respuesta-manuales/` son evidencia de origen. Si difieren de un
 | Desarrollo | [estrategia-pruebas.md](03-desarrollo/estrategia-pruebas.md) | Unitarias, componente, integración, E2E y puertas de calidad | Obligatorio |
 | Desarrollo | [flujo-git-github.md](03-desarrollo/flujo-git-github.md) | Ramas, commits, issues, PR, rulesets, squash, hotfix y versiones | Obligatorio; activación remota pendiente |
 | Arquitectura | [stack-despliegue-operacion.md](04-arquitectura/stack-despliegue-operacion.md) | Stack, módulos, trabajos y despliegue | Confirmada |
+| Arquitectura | [meta-revision-app-whatsapp.md](04-arquitectura/meta-revision-app-whatsapp.md) | Checklist de la revisión de la app de Meta para NAVA y Nexos | Vigente |
 | Arquitectura | [frontend.md](04-arquitectura/frontend.md) | Vue 3, Vite, estructura y reglas de rendimiento | Confirmada |
 | Arquitectura | [backend-go.md](04-arquitectura/backend-go.md) | Chi, `net/http`, estructura y middleware | Confirmada |
 | Backend | [base-datos.md](05-backend/base-datos.md) | PostgreSQL, RLS, consultas y retención | Confirmada |

@@ -240,6 +240,10 @@ describe('política de privacidad: requisitos de la revisión de Meta para Nexos
     expect(wrapper.find('#eliminar-datos h2').exists()).toBe(true)
   })
 
+  it('declara los datos técnicos del webhook de WhatsApp de NAVA', () => {
+    expect(sectionText('datos')).toMatch(/Avisos de WhatsApp[^]*30 días[^]*24 horas/)
+  })
+
   it('fija la retención de las conversaciones de Nexos', () => {
     expect(sectionText('conservacion')).toMatch(/hasta 12 meses/)
   })

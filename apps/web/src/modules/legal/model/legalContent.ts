@@ -75,6 +75,7 @@ export const privacyPolicy: LegalDocument = {
           'La cita: servicio, fecha y hora, estado e historial de cambios.',
           'Quien escribe a un asistente Nexos por WhatsApp: el texto de sus mensajes, su número de teléfono (solo mientras se responde) y lo que decida contarle; el detalle está en la sección de Nexos.',
           'Datos técnicos mínimos: una cookie de sesión estrictamente necesaria para el panel (HttpOnly y Secure) y registros de seguridad que no contienen nombres, teléfonos, correos ni contenidos de mensajes.',
+          'Avisos de WhatsApp: cuando Meta nos informa del estado de un mensaje que enviamos (enviado, entregado, leído o fallido) guardamos su identificador y ese estado durante 30 días, y una huella irreversible de tu teléfono con la hora del último mensaje que nos escribiste, durante 24 horas. No guardamos tu número en claro ni el texto de esos avisos.',
         ),
         p(
           'No usamos cookies de publicidad ni herramientas de analítica o de seguimiento de terceros.',
