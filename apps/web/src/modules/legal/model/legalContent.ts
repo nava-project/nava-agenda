@@ -288,8 +288,11 @@ export const privacyPolicy: LegalDocument = {
       title: 'Contacto',
       blocks: [
         p(
-          'Brahian Alexander Caceres Guevara · Armenia, Quindío, Colombia · ' + LEGAL_CONTACT_EMAIL,
+          'Correo de contacto de NAVA y Nexos para consultas, reclamos y solicitudes de eliminación de datos: ' +
+            LEGAL_CONTACT_EMAIL +
+            '.',
         ),
+        p('Responsable: Brahian Alexander Caceres Guevara · Armenia, Quindío, Colombia.'),
       ],
     },
   ],
@@ -460,7 +463,13 @@ export const termsOfService: LegalDocument = {
     {
       id: 'contacto',
       title: 'Contacto',
-      blocks: [p('¿Dudas sobre estas condiciones? Escribe a ' + LEGAL_CONTACT_EMAIL + '.')],
+      blocks: [
+        p(
+          'Correo de contacto de NAVA y Nexos: ' +
+            LEGAL_CONTACT_EMAIL +
+            '. ¿Dudas sobre estas condiciones? Escríbenos allí.',
+        ),
+      ],
     },
   ],
 }
