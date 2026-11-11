@@ -24,7 +24,9 @@ import {
   BarberAvatar,
   BarberSelect,
   PageState,
+  PhoneField,
 } from '@/shared/ui'
+import { DEFAULT_PHONE_COUNTRY, composePhone } from '@/shared/model/phoneCountries'
 import { formatCivilDateFull, isCivilDateString } from '@/shared/time/civilDate'
 import {
   createManualAppointment,
@@ -73,7 +75,16 @@ const selectedServiceId = ref('')
 
 const attendeeName = ref('')
 const customerFullName = ref('')
-const customerPhone = ref('')
+// El teléfono se escribe con el prefijo en su propia casilla (`PhoneField`);
+// `customerPhone` es el E.164 compuesto que se valida y se envía (vacío si no
+// se escribió número: el teléfono es opcional).
+const customerPhoneCountry = ref(DEFAULT_PHONE_COUNTRY)
+const customerPhoneNational = ref('')
+const customerPhone = computed(() =>
+  customerPhoneNational.value === ''
+    ? ''
+    : composePhone(customerPhoneCountry.value, customerPhoneNational.value),
+)
 const customerEmail = ref('')
 const customerNote = ref('')
 const startsAtDate = ref('')
@@ -275,7 +286,8 @@ function onStartNewAppointment() {
   created.value = null
   attendeeName.value = ''
   customerFullName.value = ''
-  customerPhone.value = ''
+  customerPhoneCountry.value = DEFAULT_PHONE_COUNTRY
+  customerPhoneNational.value = ''
   customerEmail.value = ''
   customerNote.value = ''
   startsAtDate.value = ''
@@ -537,11 +549,11 @@ function onBarberSelect(barberId: string) {
                   />
                 </div>
                 <div class="new-appointment-page__row">
-                  <BaseInput
-                    v-model="customerPhone"
-                    type="tel"
+                  <PhoneField
+                    v-model:country="customerPhoneCountry"
+                    v-model:national="customerPhoneNational"
+                    tone="paper"
                     label="Teléfono (opcional)"
-                    placeholder="+573001234567"
                     :class="{ 'new-appointment-page__input--filled': !!customerPhone }"
                     :error="attempted ? fieldErrors.customerPhone : undefined"
                   />

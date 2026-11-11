@@ -24,6 +24,10 @@ interface Props {
   disabled?: boolean
   /** `name` de la casilla del número (formularios y pruebas). */
   name?: string
+  /** `ink` (hoja de tinta, por defecto) o `paper` (fondo claro, como `BaseInput`). */
+  tone?: 'ink' | 'paper'
+  /** Muestra el asterisco junto a la etiqueta cuando `required` es verdadero. */
+  showRequiredMarker?: boolean
 }
 const props = withDefaults(defineProps<Props>(), {
   label: 'Teléfono',
@@ -31,6 +35,8 @@ const props = withDefaults(defineProps<Props>(), {
   required: false,
   disabled: false,
   name: undefined,
+  tone: 'ink',
+  showRequiredMarker: true,
 })
 
 const emit = defineEmits<{
@@ -65,10 +71,12 @@ function onInput(event: Event) {
 </script>
 
 <template>
-  <div class="phone-field">
+  <div class="phone-field" :class="{ 'phone-field--paper': tone === 'paper' }">
     <label :for="inputId" class="phone-field__label">
       {{ label }}
-      <span v-if="required" class="phone-field__required" aria-hidden="true">*</span>
+      <span v-if="required && showRequiredMarker" class="phone-field__required" aria-hidden="true"
+        >*</span
+      >
     </label>
 
     <div
@@ -128,6 +136,15 @@ function onInput(event: Event) {
   --pf-muted: var(--pb-muted, var(--color-on-strong-muted));
   --pf-brass: var(--pb-brass, var(--color-brand-accent-surface));
   --pf-line-strong: var(--pb-line-strong, color-mix(in srgb, var(--pf-text) 30%, transparent));
+  --pf-row-bg: color-mix(in srgb, #000 46%, var(--color-surface-strong));
+  --pf-row-bg-hover: color-mix(in srgb, #000 38%, var(--color-surface-strong));
+  --pf-row-bg-focus: color-mix(in srgb, #000 52%, var(--color-surface-strong));
+  --pf-row-base: color-mix(in srgb, var(--pf-brass) 75%, transparent);
+  --pf-row-base-hover: var(--pf-brass);
+  --pf-ring-gap: var(--color-surface-strong);
+  --pf-focus: var(--pf-brass);
+  --pf-focus-glow: 0 0 22px color-mix(in srgb, var(--pf-brass) 35%, transparent);
+  --pf-danger: var(--color-danger-on-strong);
 
   display: flex;
   flex-direction: column;
@@ -147,16 +164,15 @@ function onInput(event: Event) {
 
 .phone-field__required {
   margin-left: 2px;
-  color: var(--color-danger-on-strong);
+  color: var(--pf-danger);
 }
 
 .phone-field__row {
   display: flex;
   height: var(--control-height);
-  background-color: color-mix(in srgb, #000 46%, var(--color-surface-strong));
+  background-color: var(--pf-row-bg);
   border: var(--border-width-normal) solid var(--pf-line-strong);
-  border-bottom: var(--border-width-emphasis) solid
-    color-mix(in srgb, var(--pf-brass) 75%, transparent);
+  border-bottom: var(--border-width-emphasis) solid var(--pf-row-base);
   border-radius: 2px;
   transition:
     border-color var(--motion-duration-fast) var(--motion-easing-standard),
@@ -165,30 +181,30 @@ function onInput(event: Event) {
 }
 
 .phone-field__row:hover {
-  background-color: color-mix(in srgb, #000 38%, var(--color-surface-strong));
+  background-color: var(--pf-row-bg-hover);
   border-color: color-mix(in srgb, var(--pf-brass) 60%, transparent);
-  border-bottom-color: var(--pf-brass);
+  border-bottom-color: var(--pf-row-base-hover);
 }
 
 .phone-field__row:focus-within {
-  background-color: color-mix(in srgb, #000 52%, var(--color-surface-strong));
-  border-color: var(--pf-brass);
+  background-color: var(--pf-row-bg-focus);
+  border-color: var(--pf-focus);
   box-shadow:
-    0 0 0 2px var(--color-surface-strong),
-    0 0 0 4px var(--pf-brass),
-    0 0 22px color-mix(in srgb, var(--pf-brass) 35%, transparent);
+    0 0 0 2px var(--pf-ring-gap),
+    0 0 0 4px var(--pf-focus),
+    var(--pf-focus-glow);
 }
 
 .phone-field__row--invalid,
 .phone-field__row--invalid:hover {
-  border-color: var(--color-danger-on-strong);
-  border-bottom-color: var(--color-danger-on-strong);
+  border-color: var(--pf-danger);
+  border-bottom-color: var(--pf-danger);
 }
 
 .phone-field__row--invalid:focus-within {
   box-shadow:
-    0 0 0 2px var(--color-surface-strong),
-    0 0 0 4px var(--color-danger-on-strong);
+    0 0 0 2px var(--pf-ring-gap),
+    0 0 0 4px var(--pf-danger);
 }
 
 .phone-field__prefix {
@@ -248,6 +264,9 @@ function onInput(event: Event) {
 
 .phone-field__input {
   flex: 1;
+  /* Ancho base 0: sin él, el ancho intrínseco del `<input>` (size=20) fija el
+     mínimo del contenedor y desborda las pantallas estrechas (360 px). */
+  width: 0;
   min-width: 0;
   padding: 0 var(--space-4);
   font-family: var(--font-family-base);
@@ -274,13 +293,40 @@ function onInput(event: Event) {
 .phone-field__error {
   font-size: var(--font-size-body-sm);
   line-height: var(--font-size-body-sm-line);
-  color: var(--color-danger-on-strong);
+  color: var(--pf-danger);
 }
 
 /* El foco del selector (opacity 0) se dibuja en la cara. */
 .phone-field__prefix:has(.phone-field__select:focus-visible) .phone-field__face {
   outline: 2px solid var(--pf-brass);
   outline-offset: -4px;
+}
+
+/* Fondo claro: mismos tokens que `BaseInput` (campo de papel, filete de piedra,
+   línea base de tinta y anillo de foco estándar). */
+.phone-field--paper {
+  --pf-text: var(--color-text-primary);
+  --pf-muted: var(--color-text-secondary);
+  --pf-brass: var(--color-accent-brass);
+  --pf-line-strong: var(--color-border-subtle);
+  --pf-row-bg: var(--color-surface);
+  --pf-row-bg-hover: var(--color-surface);
+  --pf-row-bg-focus: var(--color-surface);
+  --pf-row-base: var(--color-action-primary);
+  --pf-row-base-hover: var(--color-action-primary);
+  --pf-ring-gap: var(--color-surface);
+  --pf-focus: var(--color-focus);
+  --pf-focus-glow: 0 0 0 0 transparent;
+  --pf-danger: var(--color-danger-action);
+}
+
+.phone-field--paper .phone-field__row:hover {
+  border-color: var(--color-text-secondary);
+  border-bottom-color: var(--pf-row-base-hover);
+}
+
+.phone-field--paper .phone-field__chevron {
+  border-color: var(--color-text-secondary);
 }
 
 @media (prefers-reduced-motion: reduce) {

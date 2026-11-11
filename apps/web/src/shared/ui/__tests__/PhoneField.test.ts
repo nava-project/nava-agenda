@@ -9,6 +9,25 @@ function mountField(props: Partial<{ country: string; national: string; error: s
 }
 
 describe('PhoneField', () => {
+  it('usa la variante de papel y oculta el asterisco cuando se pide', () => {
+    const ink = mountField()
+    expect(ink.classes()).not.toContain('phone-field--paper')
+    expect(ink.find('.phone-field__required').exists()).toBe(true)
+
+    const paper = mount(PhoneField, {
+      props: {
+        country: 'CO',
+        national: '',
+        required: true,
+        tone: 'paper',
+        showRequiredMarker: false,
+      },
+    })
+    expect(paper.classes()).toContain('phone-field--paper')
+    expect(paper.find('.phone-field__required').exists()).toBe(false)
+    expect(paper.get('input[type="tel"]').attributes('aria-required')).toBe('true')
+  })
+
   it('muestra la bandera y el prefijo del país elegido, fuera de la casilla del número', () => {
     const wrapper = mountField({ country: 'MX', national: '5512345678' })
 

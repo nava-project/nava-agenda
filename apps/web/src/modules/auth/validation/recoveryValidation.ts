@@ -34,7 +34,7 @@ export function normalizeRecoveryPhone(phone: string): string {
 export function validateRecoveryPhone(phone: string): string | undefined {
   if (!phone.trim()) return 'Escribe tu número de teléfono.'
   if (!PHONE_E164_PATTERN.test(normalizeRecoveryPhone(phone))) {
-    return 'Escribe el número con el indicativo de tu país, por ejemplo +573001234567.'
+    return 'Revisa el número: parece incompleto. Elige el prefijo de tu país y escribe el número completo.'
   }
   return undefined
 }
