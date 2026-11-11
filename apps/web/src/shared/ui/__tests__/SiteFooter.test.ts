@@ -33,13 +33,13 @@ async function mountFooter(path = '/privacidad', props: { topHref?: string } = {
 }
 
 describe('SiteFooter', () => {
-  it('nombra al titular de NAVA y Nexos como persona natural (DEC-167)', async () => {
+  it('describe a NAVA y a Nexos sin nombrar al titular (DEC-167)', async () => {
     const wrapper = await mountFooter()
     const text = wrapper.get('.sf__about').text()
-    expect(text).toContain('NAVA y Nexos')
-    expect(text).toContain('Brahian Alexander Caceres Guevara')
-    expect(text).toContain('persona natural')
-    expect(text).toContain('Armenia, Quindío, Colombia')
+    expect(text).toContain('NAVA es un servicio de gestión de agendas')
+    expect(text).toContain('Nexos es su asistente de WhatsApp')
+    // El responsable figura en la política de privacidad, no en el pie.
+    expect(text).not.toContain('Brahian')
   })
 
   it('enlaza el recorrido y la invitación a la landing por ruta', async () => {

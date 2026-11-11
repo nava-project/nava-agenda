@@ -99,12 +99,10 @@ const tour = [
     <div class="sf__wrap sf__base">
       <div class="sf__about">
         <p>© {{ year }} NAVA · Agenda de citas para independientes y equipos</p>
-        <!-- Issue #569: Meta pide una relación evidente entre el nombre visible de
-             WhatsApp (NAVA y Nexos) y el titular del negocio; el sitio la declara. -->
-        <p>
-          NAVA y Nexos (su asistente de WhatsApp) son servicios de Brahian Alexander Caceres
-          Guevara, persona natural · Armenia, Quindío, Colombia
-        </p>
+        <!-- Issue #569: Meta pide que el sitio muestre qué es NAVA y que Nexos es su
+             asistente (nombres visibles de WhatsApp). El titular no se nombra aquí:
+             figura como responsable en la política de privacidad. -->
+        <p>NAVA es un servicio de gestión de agendas. Nexos es su asistente de WhatsApp.</p>
       </div>
       <a class="sf__top" :href="topHref">
         Volver arriba
