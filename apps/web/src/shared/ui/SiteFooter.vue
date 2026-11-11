@@ -97,7 +97,13 @@ const tour = [
     <div class="sf__giant" aria-hidden="true"><span>NAVA</span></div>
 
     <div class="sf__wrap sf__base">
-      <p>© {{ year }} NAVA · Agenda de citas para independientes y equipos</p>
+      <div class="sf__about">
+        <p>© {{ year }} NAVA · Agenda de citas para independientes y equipos</p>
+        <!-- Issue #569: Meta pide que el sitio muestre qué es NAVA y que Nexos es su
+             asistente (nombres visibles de WhatsApp). El titular no se nombra aquí:
+             figura como responsable en la política de privacidad. -->
+        <p>NAVA es un servicio de gestión de agendas. Nexos es su asistente de WhatsApp.</p>
+      </div>
       <a class="sf__top" :href="topHref">
         Volver arriba
         <svg
@@ -323,6 +329,13 @@ const tour = [
   gap: 12px 24px;
   padding-block: 26px 30px;
   border-top: 1px solid var(--sf-line);
+}
+
+.sf__about {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 0;
 }
 
 .sf__base p {
