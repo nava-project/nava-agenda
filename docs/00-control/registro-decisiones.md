@@ -2045,3 +2045,15 @@ Cada código `DEC-*` es estable y no se reutiliza. Este registro normaliza respu
 - **Alternativas descartadas:** una política separada de Nexos (dos URL que mantener y Meta pide una sola política por app), y una página aparte solo para eliminación de datos (el ancla estable cumple la función y no añade ruta).
 - **Documentos afectados:** `historial-cambios.md`, `dudas-pendientes.md`.
 - **Fuente:** solicitud del propietario el 2026-11-10 para publicar la app de Meta a nivel comercial; issue [#555](https://github.com/bcaceres19/barberia/issues/555); `DEC-030`, `DEC-161`, `RN-DAT-01`, `RN-DAT-03`, `DP-LEG-01`.
+
+### DEC-164 · La app de Meta se registra como proveedor de tecnología (Tech Provider) con registro integrado para conectar números de otros negocios
+
+- **Fecha:** 2026-11-11
+- **Estado:** Confirmada
+- **Decisión:** la app de Meta «NAVA-BARBERIA» sigue el flujo «Registrarte como proveedor de tecnología independiente». Solicita acceso avanzado únicamente a `whatsapp_business_messaging` y `whatsapp_business_management`; no se solicitan `public_profile` ni `business_management`. Los números de los negocios clientes se incorporarán con Embedded Signup v4. La revisión se documenta con dos videos: mensajería (envío desde NAVA recibido en WhatsApp, más el comportamiento de Nexos en el chat) y creación de una plantilla por llamadas a la API.
+- **Motivo:** Nexos y NAVA se conectan a números de WhatsApp Business de otros negocios; es el modelo previsto por Meta y sin acceso avanzado no se pueden incorporar clientes. Nexos no tiene interfaz propia, por lo que el envío visible en el video lo aporta NAVA, que usa la misma app.
+- **Alternativas descartadas:** alta manual de cada número en la cuenta del propietario (no escala y puede no cumplir la política de Meta); mantener `public_profile` en la solicitud (sin uso real).
+- **Alcance:** documentación (`meta-revision-app-whatsapp.md`). Sin cambios de código, API, datos ni migraciones. La implementación del Embedded Signup v4 queda como trabajo posterior con su propio issue.
+- **Sin verificar:** la página de App Review para proveedores, la verificación de acceso y la guía de la v4 no se leyeron; confirmarlas antes de grabar y de implementar.
+- **Documentos afectados:** `historial-cambios.md`, `docs/04-arquitectura/meta-revision-app-whatsapp.md`.
+- **Fuente:** solicitud del propietario el 2026-11-11; issue [#561](https://github.com/bcaceres19/barberia/issues/561); documentación oficial de Meta («Become a Tech Provider», «Embedded Signup»); `DEC-123`, `DEC-124`, `DEC-126`, `DEC-163`.
