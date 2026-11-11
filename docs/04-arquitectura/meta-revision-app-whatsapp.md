@@ -1,9 +1,9 @@
 ---
 titulo: "Guía de revisión de la app de Meta (NAVA y Nexos)"
-version: "1.0"
+version: "1.1"
 estado: "Vigente; las pantallas de Meta cambian, verificar contra la documentación oficial"
 responsable: "Propietario del proyecto"
-ultima_actualizacion: "2026-11-10"
+ultima_actualizacion: "2026-11-11"
 documentos_relacionados:
   - "00-control/registro-decisiones.md"
   - "04-arquitectura/stack-despliegue-operacion.md"
@@ -11,29 +11,38 @@ documentos_relacionados:
 
 # Guía de revisión de la app de Meta (NAVA y Nexos)
 
-Checklist para publicar la app «NAVA-BARBERIA» de Meta (WhatsApp Business Platform) a nivel comercial. **Nexos** es el nombre comercial del asistente Odin. Las partes que son de Odin las ejecuta el propietario en su repositorio; aquí solo se enumeran para no perderlas. Decisiones relacionadas: `DEC-123`, `DEC-124`, `DEC-126`, `DEC-161`, `DEC-163`.
+Checklist para publicar la app «NAVA-BARBERIA» de Meta (WhatsApp Business Platform) a nivel comercial. **Nexos** es el nombre comercial del asistente Odin y **no tiene interfaz propia**: es un bot de WhatsApp cuya configuración hace el propietario. Las partes que son de Odin las ejecuta el propietario en su repositorio; aquí solo se enumeran para no perderlas. Decisiones relacionadas: `DEC-123`, `DEC-124`, `DEC-126`, `DEC-161`, `DEC-163`, `DEC-164`.
 
-## 1. Estado de partida (2026-11-10)
+## 1. Estado de partida (2026-11-11)
+
+Flujo del panel: «Registrarte como proveedor de tecnología independiente» (Casos de uso → Personalizar → WhatsApp → Tech Provider onboarding), 1 de 2 pasos completados.
 
 | Requisito del panel de Meta | Estado |
 | --- | --- |
 | Caso de uso «Conectarte con los clientes a través de WhatsApp» | Hecho |
 | Inicio de sesión con Facebook para empresas | Hecho |
 | Requisitos de las pruebas | Hecho |
-| Verificación del negocio | Hecho |
-| Revisión de la app | **Pendiente** |
+| Paso 1 · Verificación del negocio | Hecho (aprobado) |
+| Paso 2a · Revisar la configuración de la app (privacidad, ícono, categoría) | Por comprobar (sección 3) |
+| Paso 2b · Grabar los dos videos | **Pendiente** (sección 5) |
+| Paso 2c · Enviar la documentación de la revisión | **Pendiente**; el panel muestra la tarjeta «En revisión» aunque la solicitud figuraba «No enviada»: aclararlo antes de editar |
 | Publicar (la app figura «Sin publicar») | **Pendiente** |
 
 Números de la cuenta: «Nava-Agent» (conectado, calidad alta) y «Odin-Agent» (pendiente, nombre en revisión; renombrar a **Nexos**).
 
-## 2. Decisión previa: ¿necesita Meta una revisión?
+## 2. Modelo de alta de números: proveedor de tecnología (`DEC-164`)
 
-El acceso avanzado (`whatsapp_business_messaging`, `whatsapp_business_management`) y la revisión de la app son necesarios cuando la app envía mensajes **en nombre de otros negocios** (clientes con su propia cuenta de WhatsApp Business). Si cada negocio usara solo un número de la cuenta del propietario, el acceso estándar podría bastar. Como el objetivo es vender Nexos y NAVA a negocios distintos, hay que decidir cómo se incorporan sus números:
+Como Nexos y NAVA se conectan a números de WhatsApp Business **de otros negocios**, la app va como **proveedor de tecnología** (Tech Provider) con **registro integrado (Embedded Signup)**. Lo leído en la documentación oficial de Meta («Become a Tech Provider» y «Embedded Signup», 2026-11-11):
 
-- **Registro integrado (Embedded Signup)** y programa de **proveedor de tecnología**: el negocio conecta su propio número desde un flujo de Meta. Es el camino previsto por Meta para este modelo y exige que la app lo muestre en la revisión.
-- **Alta manual por el propietario** de cada número en su cuenta: no escala y puede no cumplir la política de Meta.
+- Permisos que exige el programa, ambos con **acceso avanzado**: `whatsapp_business_messaging` (enviar mensajes en nombre de los clientes) y `whatsapp_business_management` (acceder a sus cuentas de WhatsApp y de mensajería). No hay otros permisos obligatorios.
+- `business_management` solo aparece para quien comparte línea de crédito como Solution Partner; los proveedores de tecnología usan tokens de negocio. No se solicita.
+- `public_profile` no interviene. Si figura en la solicitud de revisión, **quitarlo** (papelera); pedir un permiso sin uso solo añade preguntas del revisor.
+- Hasta tener el acceso avanzado en los dos permisos **no se pueden incorporar clientes**.
+- Embedded Signup usa «Inicio de sesión con Facebook para empresas» y el SDK de JavaScript; las versiones v2 y v3 se retiraron el 2026-10-15, por lo que se implementa la **v4**. Se necesita una página que aloje el botón de registro (a decidir: NAVA o una página de Nexos).
+- Al incorporar a cada cliente hay que suscribir la app a los webhooks de su cuenta de mensajería, y el cliente debe añadir un método de pago a su cuenta.
+- Límite inicial: 10 clientes nuevos por 7 días; con verificación del negocio, revisión y verificación de acceso sube a 200.
 
-Verificar en la documentación vigente de Meta («Become a Tech Provider» y «Embedded Signup») antes de grabar nada, porque cambia por versión. Esta decisión debe registrarse como `DEC-*` cuando se tome; hasta entonces la guía se redacta para el escenario de acceso avanzado.
+**Sin verificar** (no se leyeron esas páginas): detalle de la documentación que pide la página de App Review para proveedores, verificación de acceso y guía de implementación de la v4.
 
 ## 3. Configuración básica de la app (panel de Meta)
 
@@ -47,45 +56,48 @@ Verificar en la documentación vigente de Meta («Become a Tech Provider» y «E
 | Correo de contacto | `contacto@nava.wtf` |
 | Categoría | Negocios y páginas / Productividad |
 
-**Comprobar antes de pegar las URL** que el despliegue de `#556` ya está en producción y que la política abre y menciona a Nexos y la sección «Eliminación de tus datos».
+La política de `#556` ya está en producción y abre con la sección de Nexos y «Eliminación de tus datos».
 
 ## 4. Textos de uso de cada permiso (para pegar, en inglés)
 
 **`whatsapp_business_messaging`**
 
-> NAVA and Nexos are software services for appointment-based small businesses (barbershops, pet and fashion shops, veterinary clinics). Nexos is an automated assistant that answers, through the business's WhatsApp number, questions that customers send first (services, prices, products, availability, booking links). It never starts conversations or sends promotional messages. NAVA also sends one-time verification codes to staff members who request them to sign in. Messages are sent only as replies inside the 24-hour customer service window, or with an approved authentication template. Customers can delete their data at any time by sending "borra mis datos" in the chat or by email.
+> NAVA and Nexos are software services for appointment-based small businesses (barbershops, pet and fashion shops, veterinary clinics). Nexos is an automated assistant with no user interface of its own: it answers, through the business's WhatsApp number, questions that customers send first (services, prices, products, availability, booking links). It never starts conversations or sends promotional messages. NAVA also sends one-time verification codes to staff members who request them to sign in. Messages are sent only as replies inside the 24-hour customer service window, or with an approved authentication template. Customers can delete their data at any time by sending "borra mis datos" in the chat or by email.
 
 **`whatsapp_business_management`**
 
-> We use this permission to read and manage the phone numbers and WhatsApp Business accounts that businesses connect to our app (display name, quality rating, message templates and webhook subscription), so each business's number is routed to its own assistant and templates are kept up to date. We do not read or modify any other asset.
+> As a Tech Provider, we use this permission to read and manage the phone numbers and WhatsApp Business accounts that businesses connect to our app through Embedded Signup (display name, quality rating, message templates and webhook subscription), so each business's number is routed to its own assistant and templates are kept up to date. We do not read or modify any other asset.
 
-Ajustar el segundo texto al modelo elegido en la sección 2 (si hay Embedded Signup, descríbelo).
+## 5. Guion de los dos videos
 
-## 5. Guion de los videos
+El panel de Meta pide **exactamente dos videos**, separados. Ambos en inglés o con subtítulos, con datos ficticios y sin tokens a la vista (tapar `Authorization: Bearer …` o usar una variable de entorno; si un token se ve, rotarlo). Pulsar «Mostrar instrucciones» en cada tarjeta y priorizar lo que diga Meta (duración, resolución, subtítulos).
 
-Meta pide que el video muestre **la interfaz de la aplicación del negocio y cómo usa el permiso**, no solo el chat del consumidor. Un video por permiso, en inglés o con subtítulos, de 2 a 4 minutos, con datos ficticios y sin tokens a la vista.
+### Video 1 · `whatsapp_business_messaging`
 
-**`whatsapp_business_messaging`**
+Meta pide ver **la app enviando el mensaje y la interfaz de WhatsApp (web o móvil) recibiéndolo**. Como Nexos no tiene interfaz, el envío se muestra con NAVA y se añade Nexos como segunda parte.
 
-1. Panel de Meta con la app y el número conectado.
-2. La interfaz del negocio: el panel de NAVA (agenda, configuración del negocio) y cómo se asocia un número a una empresa (alta de la ruta en Odin).
-3. Un teléfono real escribe al número: aparece el aviso de privacidad y la respuesta de Nexos con servicios y precios.
-4. Ese mismo mensaje y su respuesta, vistos desde el lado del negocio, si existe una vista.
-5. «borra mis datos»: se confirma el borrado.
-6. NAVA: solicitud de código de acceso y recepción del código por WhatsApp.
-7. `nava.wtf/privacidad`: secciones de Nexos y de eliminación de datos.
+1. Panel de Meta con la app «NAVA-BARBERIA» y los números conectados.
+2. **NAVA**: pantalla de inicio de sesión en `nava.wtf`; se escribe un teléfono de prueba y se pide el código. El código llega por WhatsApp (pantalla del teléfono o WhatsApp Web junto a la pantalla de NAVA).
+3. **Nexos**: desde un teléfono de prueba se escribe al número de Nexos («Hola, ¿qué servicios tienen?»). Se ve el aviso de privacidad y la respuesta con servicios y precios. En paralelo, el registro de Odin o la llamada a la API que envía esa respuesta.
+4. «borra mis datos» en el chat de Nexos y la confirmación del borrado.
+5. `nava.wtf/privacidad`: secciones de Nexos y de eliminación de datos.
 
-**`whatsapp_business_management`**
+Requisito: el envío de NAVA debe salir por **esta misma app de Meta** (mismo ID). El modo `text` (`DEC-124`) sirve; con la plantilla de autenticación aprobada se pasa a `template` cambiando solo `APP_META_WHATSAPP_MODE` y el video queda más fiel a producción.
 
-1. Cómo el negocio conecta o se le asigna su número (flujo del modelo elegido en la sección 2).
-2. Dónde se ve el nombre, el estado y la calidad del número y las plantillas.
-3. Suscripción del webhook al campo `messages` y llegada de un evento firmado.
+### Video 2 · `whatsapp_business_management`
+
+Meta pide **llamadas de prueba a la API y un único video, aparte, que muestre la creación de una plantilla de mensaje**. NAVA no tiene pantalla ni servicio que cree plantillas; se hace con la API.
+
+1. La llamada de creación de la plantilla (por ejemplo `curl` o Postman) con su nombre, idioma y categoría (`AUTHENTICATION`).
+2. La respuesta con el identificador y el estado (`PENDING` o `APPROVED`).
+3. La plantilla ya listada en WhatsApp Manager (nombre, estado, calidad del número).
+4. Opcional: suscripción del webhook al campo `messages` y llegada de un evento firmado.
 
 ## 6. Cuenta y notas para el revisor
 
 - Usar solo datos ficticios y cuentas demo de producción creadas para la revisión (ver el procedimiento de cuentas demo del propietario). **No escribir credenciales en este repositorio**; entregarlas solo en el formulario de Meta.
 - Indicar el número de prueba, qué escribir («Hola, ¿qué servicios tienen?», «borra mis datos») y la respuesta esperada.
-- Aclarar que el asistente puede equivocarse y que no confirma citas.
+- Aclarar que **Nexos no tiene interfaz propia**, que el video de mensajería muestra el envío con NAVA (misma app) y el comportamiento de Nexos en el chat, y que el asistente puede equivocarse y no confirma citas.
 
 ## 7. Webhook
 
@@ -95,14 +107,15 @@ Meta pide que el video muestre **la interfaz de la aplicación del negocio y có
 
 ## 8. Plantilla de autenticación del OTP (NAVA)
 
-Hoy NAVA entrega el OTP en texto libre (`APP_META_WHATSAPP_MODE=text`, `DEC-124`) porque Meta rechazó crear la plantilla `AUTHENTICATION` (`code 10`, `subcode 2388185`). El texto libre solo llega a quien escribió al número en las últimas 24 horas, y un revisor lo notará. Con la verificación del negocio ya hecha, **reintentar crear la plantilla** en el administrador de WhatsApp y, cuando exista, cambiar a `template` (`DEC-123`). Si no se habilita, documentar la limitación en las notas del revisor.
+NAVA entregaba el OTP en texto libre (`APP_META_WHATSAPP_MODE=text`, `DEC-124`) porque Meta rechazó crear la plantilla `AUTHENTICATION` (`code 10`, `subcode 2388185`). El propietario informó el 2026-11-11 que la plantilla ya funciona: cuando esté aprobada y definida, cambiar a `template` (`DEC-123`). El texto libre solo llega a quien escribió al número en las últimas 24 horas, y un revisor lo notará.
 
 ## 9. Pendientes por responsable
 
 | Responsable | Pendiente |
 | --- | --- |
-| NAVA (repositorio) | Política y condiciones con Nexos y eliminación de datos (`#555`, `DEC-163`); esta guía; datos técnicos del webhook declarados en la política |
-| Propietario, panel de Meta | Cargar las URL, el ícono y los permisos; renombrar «Odin-Agent» a «Nexos»; decidir el modelo de alta de números (sección 2); grabar y subir los videos; pasar la app a modo Live |
-| Propietario, NAVA en Meta | Reintentar la plantilla `AUTHENTICATION`; decidir el callback del webhook |
+| NAVA (repositorio) | Política y condiciones con Nexos y eliminación de datos (`#555`, `DEC-163`); esta guía y `DEC-164`; datos técnicos del webhook declarados en la política |
+| Propietario, panel de Meta | Quitar `public_profile`; comprobar ícono, categoría y URL; renombrar «Odin-Agent» a «Nexos»; grabar y subir los dos videos; aclarar el estado «En revisión»; pasar la app a modo Live |
+| Propietario, NAVA en Meta | Confirmar que NAVA y Nexos usan la misma app; pasar el OTP a `template` con la plantilla aprobada; decidir el callback del webhook |
+| Propietario, después de la aprobación | Implementar el Embedded Signup v4 (página con el botón de registro, suscripción de webhooks por cliente, método de pago del cliente) |
 | Propietario, Odin | Enlace `https://nava.wtf/privacidad` en `ODIN_PRIVACY_NOTICE`; túnel estable; confirmar retención de 365 días y programar la purga; plazo de retención de las solicitudes de VetEye y verificar el borrado por correo (`DP-LEG-04`) |
 | Propietario, jurídico | Revisión jurídica de los textos (`DEC-030`, `DP-LEG-01`) |

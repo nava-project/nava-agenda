@@ -1,9 +1,9 @@
 ---
 titulo: "Historial de cambios documentales"
-version: "4.16"
+version: "4.17"
 estado: "Vigente"
 responsable: "Propietario del proyecto"
-ultima_actualizacion: "2026-11-06"
+ultima_actualizacion: "2026-11-11"
 documentos_relacionados:
   - "registro-decisiones.md"
   - "contradicciones.md"
@@ -434,4 +434,5 @@ Las versiones se aplican por documento. Mientras no exista historial Git, la fec
 | 2026-11-10 | `docs/00-control/historial-cambios.md`, `docs/00-control/registro-decisiones.md` (DEC-163), `docs/00-control/dudas-pendientes.md` y `apps/web/src/modules/legal/` | Política y condiciones con Nexos/Odin (#555): sección del asistente por WhatsApp, proveedores y transferencia internacional (Meta, DeepInfra, Cloudflare), retención, sección `#eliminar-datos` y condiciones del asistente automático; requisito de la revisión de la app de Meta. Sin cambios de API ni datos. |
 | 2026-11-10 | `docs/00-control/historial-cambios.md`, `docs/README.md`, `docs/04-arquitectura/meta-revision-app-whatsapp.md` y `apps/web/src/modules/legal/` | Guía de revisión de la app de Meta para NAVA y Nexos (#557): URL, permisos, textos de uso, guion de videos, webhook, plantilla del OTP y pendientes por responsable; la política declara los datos técnicos del webhook de Meta (estado de entrega 30 días, huella de teléfono 24 h). Sin cambios de API ni datos. |
 | 2026-11-10 | `docs/00-control/historial-cambios.md` y `apps/web/src/modules/legal/model/legalContent.ts` | Correo de contacto explícito (`contacto@nava.wtf`) en la sección Contacto de la política y de las condiciones (#559). Solo texto. |
+| 2026-11-11 | `docs/00-control/historial-cambios.md`, `docs/00-control/registro-decisiones.md` (DEC-164) y `docs/04-arquitectura/meta-revision-app-whatsapp.md` | Meta como proveedor de tecnología (#561): permisos solo de WhatsApp (sin `public_profile`), guion de los dos videos con NAVA y Nexos, plantilla por API y pendientes del Embedded Signup v4. Sin cambios de código, API ni datos. |
 | 2026-11-11 | `docs/00-control/historial-cambios.md`, `docs/00-control/registro-decisiones.md` (DEC-165) y `apps/api/go.mod` | El backend sube a Go 1.26.11 (issue [#563](https://github.com/bcaceres19/barberia/issues/563), `DEC-165`, amplía `DEC-132`): `toolchain go1.26.10` → `go1.26.11` porque `govulncheck` detectó `GO-2026-6859` en `net/http`. Solo versión del toolchain; sin cambios de código de aplicación. |
