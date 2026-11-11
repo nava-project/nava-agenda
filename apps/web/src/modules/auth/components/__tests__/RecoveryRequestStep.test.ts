@@ -58,7 +58,9 @@ describe('RecoveryRequestStep', () => {
       expect(message.toLowerCase()).not.toContain('correo')
       const input = wrapper.get('input[name="whatsapp"]')
       expect(input.attributes('type')).toBe('tel')
-      expect(input.attributes('autocomplete')).toBe('tel')
+      expect(input.attributes('autocomplete')).toBe('tel-national')
+      // El prefijo va en su propia casilla, con bandera (Colombia por defecto).
+      expect(wrapper.get('.phone-field__dial').text()).toBe('+57')
       expect(wrapper.find('input[name="email"]').exists()).toBe(false)
       expect(channelButton(wrapper, 'Teléfono').attributes('aria-pressed')).toBe('true')
       expect(channelButton(wrapper, 'Correo').attributes('aria-pressed')).toBe('false')
@@ -89,9 +91,11 @@ describe('RecoveryRequestStep', () => {
       await wrapper.get('input[name="email"]').setValue('barbero@ejemplo.test')
       await channelButton(wrapper, 'Teléfono').trigger('click')
 
+      // Un número pegado con prefijo elige el país y deja solo el número nacional.
       expect((wrapper.get('input[name="whatsapp"]').element as HTMLInputElement).value).toBe(
-        '+57 300 123 4567',
+        '3001234567',
       )
+      expect(wrapper.get('.phone-field__dial').text()).toBe('+57')
       await channelButton(wrapper, 'Correo').trigger('click')
       expect((wrapper.get('input[name="email"]').element as HTMLInputElement).value).toBe(
         'barbero@ejemplo.test',
@@ -144,15 +148,30 @@ describe('RecoveryRequestStep', () => {
       expect(wrapper.text()).toContain('Escribe tu número de teléfono')
     })
 
-    it('asks for the international prefix when the number is not in E.164', async () => {
+    it('rejects an incomplete number once the prefix is chosen', async () => {
       const wrapper = mount(RecoveryRequestStep)
       await channelButton(wrapper, 'Teléfono').trigger('click')
-      await wrapper.get('input[name="whatsapp"]').setValue('3001234567')
+      await wrapper.get('input[name="whatsapp"]').setValue('300')
 
       await wrapper.get('form').trigger('submit')
 
       expect(requestRecoveryMock).not.toHaveBeenCalled()
-      expect(wrapper.text()).toContain('indicativo de tu país')
+      expect(wrapper.text()).toContain('parece incompleto')
+    })
+
+    it('composes the default prefix with a national number', async () => {
+      requestRecoveryMock.mockResolvedValueOnce({ kind: 'accepted' })
+      const wrapper = mount(RecoveryRequestStep)
+      await channelButton(wrapper, 'Teléfono').trigger('click')
+      await wrapper.get('input[name="whatsapp"]').setValue('300 123 4567')
+
+      await wrapper.get('form').trigger('submit')
+      await flushPromises()
+
+      expect(requestRecoveryMock).toHaveBeenCalledWith({
+        channel: 'whatsapp',
+        value: '+573001234567',
+      })
     })
   })
 

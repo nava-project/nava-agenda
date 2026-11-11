@@ -105,9 +105,9 @@ for (const viewport of viewports) {
     test(`error de validación de WhatsApp (${viewport.name}px)`, async ({ page }) => {
       await page.goto('/recuperar-acceso')
       await page.getByRole('button', { name: 'Teléfono' }).click()
-      await page.getByLabel('Teléfono', { exact: true }).fill('3001234567')
+      await page.getByLabel('Teléfono', { exact: true }).fill('300')
       await page.getByRole('button', { name: 'Enviar código' }).click()
-      await expect(page.getByText(/indicativo de tu país/i)).toBeVisible()
+      await expect(page.getByText(/parece incompleto/i)).toBeVisible()
       await page.screenshot({
         path: path.join(evidenceDir, viewport.name, 'error-whatsapp.png'),
         fullPage: true,

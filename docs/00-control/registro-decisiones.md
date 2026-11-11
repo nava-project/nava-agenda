@@ -2068,3 +2068,14 @@ Cada código `DEC-*` es estable y no se reutiliza. Este registro normaliza respu
 - **Alcance:** solo versión del toolchain; sin cambios de código de aplicación, API, datos ni migraciones.
 - **Documentos afectados:** `historial-cambios.md`.
 - **Fuente:** detectado el 2026-11-11 al integrar el PR documental #562; issue [#563](https://github.com/bcaceres19/barberia/issues/563); `DEC-121`, `DEC-132`.
+
+### DEC-166 · El teléfono se escribe con bandera y prefijo en recuperación de acceso y nueva cita
+
+- **Fecha:** 2026-11-11
+- **Estado:** Confirmada
+- **Decisión:** el campo `PhoneField` (bandera, prefijo y número separados, Colombia +57 por defecto) se usa también en el canal Teléfono de la recuperación de acceso y en el teléfono opcional de «Nueva cita», además de Configuración y la reserva pública. `PhoneField` gana la variante `tone="paper"` para fondos claros (tokens de `BaseInput`) y la opción de ocultar el asterisco. El contrato del API no cambia: sigue siendo un único teléfono E.164 y la validación de forma se mantiene.
+- **Motivo:** petición del propietario de que el teléfono se vea igual en casi todos los formularios; esas dos pantallas conservaban el campo de texto libre `+573001234567`.
+- **Alternativas descartadas:** mantener el campo de texto con el prefijo escrito a mano (error frecuente y sin bandera); duplicar el componente para fondo claro.
+- **Alcance:** frontend (`PhoneField`, `RecoveryRequestStep`, `NewAppointmentPage`, `recoveryValidation`), pruebas y un ajuste del ancho del campo para pantallas de 320–360 px. El mensaje de validación del teléfono de recuperación ya no pide «escribir el indicativo» porque se elige en su casilla. Sin cambios de API, datos ni migraciones.
+- **Documentos afectados:** `historial-cambios.md`.
+- **Fuente:** solicitud del propietario el 2026-11-11; issue [#565](https://github.com/bcaceres19/barberia/issues/565); `DEC-163`.

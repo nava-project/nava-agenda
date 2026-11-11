@@ -12,7 +12,8 @@
 // `PhoneChallengeForm`, que ahí es correcto porque ese reto ya está detrás
 // de un intento de acceso autenticable).
 import { computed, reactive, ref } from 'vue'
-import { BaseButton, BaseInput } from '@/shared/ui'
+import { BaseButton, BaseInput, PhoneField } from '@/shared/ui'
+import { DEFAULT_PHONE_COUNTRY, composePhone } from '@/shared/model/phoneCountries'
 import { requestRecovery } from '../api/recoveryApi'
 import { notifyConnectionLost, notifyUnexpectedError } from '../model/authFeedback'
 import type { RecoveryChannel, RecoveryTarget } from '../model/recoveryTarget'
@@ -38,6 +39,10 @@ const CHANNELS: { value: RecoveryChannel; label: string }[] = [
 const channel = ref<RecoveryChannel | null>(null)
 // Lo escrito en cada canal se conserva al alternar entre ellos.
 const values = reactive<Record<RecoveryChannel, string>>({ whatsapp: '', email: '' })
+// El teléfono se escribe con el prefijo en su propia casilla (`PhoneField`);
+// `values.whatsapp` conserva el E.164 compuesto, que es lo que valida y envía.
+const phoneCountryIso = ref(DEFAULT_PHONE_COUNTRY)
+const phoneNational = ref('')
 const fieldError = ref<string | undefined>(undefined)
 const attemptedSubmit = ref(false)
 const status = ref<'idle' | 'submitting'>('idle')
@@ -67,6 +72,22 @@ const handleInput = (value: string | number) => {
   if (attemptedSubmit.value) {
     fieldError.value = validateCurrent()
   }
+}
+
+function syncPhone() {
+  handleInput(
+    phoneNational.value === '' ? '' : composePhone(phoneCountryIso.value, phoneNational.value),
+  )
+}
+
+function onPhoneCountry(iso: string) {
+  phoneCountryIso.value = iso
+  syncPhone()
+}
+
+function onPhoneNational(national: string) {
+  phoneNational.value = national
+  syncPhone()
 }
 
 async function onSubmit() {
@@ -195,21 +216,21 @@ async function onSubmit() {
         <div class="recovery-reveal__inner">
           <!-- `key` fuerza un campo nuevo por canal: cambia tipo, etiqueta y
                autocompletado sin arrastrar el estado del anterior. -->
-          <BaseInput
+          <PhoneField
             v-if="channel === 'whatsapp'"
             key="whatsapp"
             class="recovery-request__field"
-            :model-value="values.whatsapp"
-            type="tel"
+            tone="paper"
             name="whatsapp"
             label="Teléfono"
-            autocomplete="tel"
-            placeholder="+573001234567"
             required
             :show-required-marker="false"
             :disabled="isSubmitting"
             :error="fieldError"
-            @update:model-value="handleInput"
+            :country="phoneCountryIso"
+            :national="phoneNational"
+            @update:country="onPhoneCountry"
+            @update:national="onPhoneNational"
           />
           <BaseInput
             v-else
