@@ -49,6 +49,16 @@ type Repository interface {
 	// que ResolveBySlug found=false.
 	ListPublicBarbers(ctx context.Context, slug string, serviceID string) (result PublicBarberListResult, barbershopFound bool, err error)
 
+	// ListPublicBarbersWithServices resuelve slug EXACTAMENTE como
+	// ListPublicBarbers y, si resuelve, lee en UNA sola consulta todos los
+	// barberos con al menos una asignación vigente a un servicio ACTIVO,
+	// cada uno con los identificadores de esos servicios (DEC-162). Ordena
+	// por (created_at del barbero, id) y los serviceIds de cada barbero por
+	// (created_at del servicio, id). barbershopFound=false cubre
+	// exactamente el mismo universo de causas que ResolveBySlug
+	// found=false; una barbería sin barberos elegibles devuelve lista vacía.
+	ListPublicBarbersWithServices(ctx context.Context, slug string) (result PublicBarberServicesListResult, barbershopFound bool, err error)
+
 	// GetPublicBarberPhoto resuelve slug como ListPublicBarbers y lee la
 	// fotografía de barberID (DEC-127). found=false cubre, sin distinguirlas,
 	// una barbería no publicable, un barbero inexistente o de otra barbería,
@@ -77,6 +87,15 @@ type AvailabilityRepository interface {
 	// misma indistinción de causas) pero devuelve el identificador interno
 	// de la barbería en vez de su perfil público.
 	ResolveBarbershopID(ctx context.Context, slug string) (barbershopID string, found bool, err error)
+
+	// ListServiceBarberIDs lee, dentro de barbershopID, los identificadores
+	// de los barberos con asignación a serviceID cuando el servicio está
+	// ACTIVO (DEC-162): los candidatos del agregado de disponibilidad por
+	// servicio. serviceID ya llegó validado como forma de UUID. Un servicio
+	// ajeno, inexistente o inactivo produce lista vacía, nunca un error
+	// distinto. El orden no es contrato: AvailabilityService ordena el
+	// resultado final por (startsAt, barberId).
+	ListServiceBarberIDs(ctx context.Context, barbershopID, serviceID string) ([]string, error)
 
 	// ListOccupiedIntervals lee, dentro de barbershopID y barberID, los
 	// intervalos [starts_at, ends_at) de las citas que ocupan agenda

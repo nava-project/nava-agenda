@@ -136,6 +136,35 @@ func (s *Service) ListPublicBarbers(ctx context.Context, rawSlug string, rawServ
 	return result, nil
 }
 
+// ListPublicBarbersWithServices resuelve rawSlug -mismo criterio de recorte y
+// forma que ResolveBarbershop- y devuelve, en una sola lectura, todos los
+// barberos con al menos una asignación vigente a un servicio activo, cada
+// uno con los ids de esos servicios (DEC-162). Sustituye a N llamadas de
+// ListPublicBarbers (una por servicio) para quien necesita el mapa completo.
+// Un slug inválido, desconocido o de una barbería no publicable produce el
+// mismo apperr.NotFound uniforme que las demás operaciones públicas
+// (CA-090-02). No recibe ningún otro dato del cliente: el tenant lo fija el
+// slug resuelto en el repositorio, nunca un barbershopId.
+func (s *Service) ListPublicBarbersWithServices(ctx context.Context, rawSlug string) (PublicBarberServicesListResult, error) {
+	if err := ctx.Err(); err != nil {
+		return PublicBarberServicesListResult{}, apperr.Internal(fmt.Errorf("publicbooking: contexto cancelado antes de listar barberos con servicios: %w", err))
+	}
+
+	slug := strings.TrimSpace(rawSlug)
+	if slug == "" || len(slug) > MaxSlugLength {
+		return PublicBarberServicesListResult{}, errBarbershopNotPublic()
+	}
+
+	result, found, err := s.repo.ListPublicBarbersWithServices(ctx, slug)
+	if err != nil {
+		return PublicBarberServicesListResult{}, apperr.Internal(fmt.Errorf("publicbooking: listar barberos con servicios: %w", err))
+	}
+	if !found {
+		return PublicBarberServicesListResult{}, errBarbershopNotPublic()
+	}
+	return result, nil
+}
+
 // PublicBarberPhoto devuelve la fotografía de un barbero visible en la reserva
 // pública (DEC-127). Un slug inválido, un barbero con forma inválida, ajeno,
 // inexistente, sin fotografía o no elegible producen el MISMO

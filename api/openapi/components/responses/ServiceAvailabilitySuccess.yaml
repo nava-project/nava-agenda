@@ -1,0 +1,44 @@
+# Respuesta 200 de
+# GET /public/barbershops/{slug}/services/{serviceId}/availability (DEC-162).
+description: Inicios públicos válidos del servicio elegido para todos sus barberos elegibles.
+headers:
+  X-Request-Id:
+    $ref: '../headers/XRequestId.yaml'
+content:
+  application/json:
+    schema:
+      $ref: '../schemas/ServiceAvailabilityResponse.yaml'
+    examples:
+      conDisponibilidad:
+        summary: Dos barberos con franjas, ordenadas por (startsAt, barberId)
+        value:
+          slots:
+            - barberId: 1c9a7f2d-3b4e-4a5f-9c6d-7e8f9a0b1c2d
+              startsAt: "2026-09-15T09:00:00-05:00"
+            - barberId: 8f3ac2b1-e4d5-46f6-a7c8-d9e0f1a2b3c4
+              startsAt: "2026-09-15T09:00:00-05:00"
+            - barberId: 8f3ac2b1-e4d5-46f6-a7c8-d9e0f1a2b3c4
+              startsAt: "2026-09-15T09:30:00-05:00"
+          durationMinutes: 45
+          timezone: America/Bogota
+          slotGridMinutes: 30
+      sinFranjasHoy:
+        summary: >
+          Servicio válido con barberos elegibles, pero ninguno tiene un inicio
+          libre en la ventana pública vigente
+        value:
+          slots: []
+          durationMinutes: 45
+          timezone: America/Bogota
+          slotGridMinutes: 30
+      servicioAjenoOSinBarberos:
+        summary: >
+          serviceId con forma inválida, ajeno a esta barbería, inexistente,
+          inactivo o sin barberos con asignación vigente (misma respuesta
+          uniforme, la causa nunca se distingue, mismo criterio que
+          CA-092-03)
+        value:
+          slots: []
+          durationMinutes: 0
+          timezone: ""
+          slotGridMinutes: 0

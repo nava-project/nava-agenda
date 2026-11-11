@@ -210,6 +210,50 @@ func newPublicBarberListResponse(result publicbooking.PublicBarberListResult) Pu
 	return PublicBarberListResponse{Items: items}
 }
 
+// ListPublicBarbersWithServicesHandler expone
+// GET /public/barbershops/{slug}/barbers (DEC-162): todos los barberos con al
+// menos una asignación vigente a un servicio activo, cada uno con los ids de
+// esos servicios, sin sesión. Existe para que un cliente de solo lectura no
+// tenga que llamar GET .../services/{serviceId}/barbers una vez por servicio.
+type ListPublicBarbersWithServicesHandler struct {
+	service *publicbooking.Service
+}
+
+// NewListPublicBarbersWithServicesHandler construye el handler del agregado
+// barberos-servicios.
+func NewListPublicBarbersWithServicesHandler(service *publicbooking.Service) *ListPublicBarbersWithServicesHandler {
+	return &ListPublicBarbersWithServicesHandler{service: service}
+}
+
+// ServeHTTP implementa http.Handler. Como los demás handlers públicos no lee
+// ningún principal de sesión: el slug de la ruta es toda la entrada.
+func (h *ListPublicBarbersWithServicesHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	requestID := httpserver.RequestIDFromContext(r.Context())
+
+	result, err := h.service.ListPublicBarbersWithServices(r.Context(), httpserver.URLParam(r, slugParam))
+	if err != nil {
+		httpserver.WriteProblem(w, httpserver.Translate(err, requestID))
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
+	_ = json.NewEncoder(w).Encode(newPublicBarberServicesListResponse(result))
+}
+
+func newPublicBarberServicesListResponse(result publicbooking.PublicBarberServicesListResult) PublicBarberServicesListResponse {
+	items := make([]PublicBarberServicesResponse, 0, len(result.Items))
+	for _, barber := range result.Items {
+		// Copia defensiva y nunca null: serviceIds siempre es un arreglo.
+		serviceIDs := make([]string, 0, len(barber.ServiceIDs))
+		serviceIDs = append(serviceIDs, barber.ServiceIDs...)
+		items = append(items, PublicBarberServicesResponse{
+			ID: barber.ID, FullName: barber.FullName, ServiceIDs: serviceIDs,
+		})
+	}
+	return PublicBarberServicesListResponse{Items: items}
+}
+
 // GetPublicBarberPhotoHandler expone
 // GET /public/barbershops/{slug}/barbers/{barberId}/photo (DEC-127): los bytes
 // de la fotografía de un barbero visible en la reserva pública, sin sesión.
@@ -294,6 +338,52 @@ func newAvailabilityResponse(result publicbooking.AvailabilityResult) Availabili
 		slots = append(slots, AvailabilitySlotResponse{StartsAt: slot.StartsAt})
 	}
 	return AvailabilityResponse{
+		Slots:           slots,
+		DurationMinutes: result.DurationMinutes,
+		Timezone:        result.Timezone,
+		SlotGridMinutes: result.SlotGridMinutes,
+	}
+}
+
+// ListPublicServiceAvailabilityHandler expone
+// GET /public/barbershops/{slug}/services/{serviceId}/availability (DEC-162):
+// los inicios públicos válidos del servicio para todos sus barberos
+// elegibles en una sola respuesta, sin sesión. Existe para que un cliente de
+// solo lectura no tenga que llamar la disponibilidad una vez por barbero.
+type ListPublicServiceAvailabilityHandler struct {
+	service *publicbooking.AvailabilityService
+}
+
+// NewListPublicServiceAvailabilityHandler construye el handler del agregado
+// de disponibilidad por servicio.
+func NewListPublicServiceAvailabilityHandler(service *publicbooking.AvailabilityService) *ListPublicServiceAvailabilityHandler {
+	return &ListPublicServiceAvailabilityHandler{service: service}
+}
+
+// ServeHTTP implementa http.Handler. Como los demás handlers públicos no lee
+// ningún principal de sesión: slug y serviceId (de la ruta) son toda la
+// entrada.
+func (h *ListPublicServiceAvailabilityHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	requestID := httpserver.RequestIDFromContext(r.Context())
+
+	result, err := h.service.ListPublicServiceAvailability(r.Context(),
+		httpserver.URLParam(r, slugParam), httpserver.URLParam(r, serviceIDParam))
+	if err != nil {
+		httpserver.WriteProblem(w, httpserver.Translate(err, requestID))
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
+	_ = json.NewEncoder(w).Encode(newServiceAvailabilityResponse(result))
+}
+
+func newServiceAvailabilityResponse(result publicbooking.ServiceAvailabilityResult) ServiceAvailabilityResponse {
+	slots := make([]BarberAvailabilitySlotResponse, 0, len(result.Slots))
+	for _, slot := range result.Slots {
+		slots = append(slots, BarberAvailabilitySlotResponse{BarberID: slot.BarberID, StartsAt: slot.StartsAt})
+	}
+	return ServiceAvailabilityResponse{
 		Slots:           slots,
 		DurationMinutes: result.DurationMinutes,
 		Timezone:        result.Timezone,

@@ -1,0 +1,27 @@
+# Un inicio público válido atribuido a un barbero (DEC-162): la unidad del
+# agregado de disponibilidad por servicio.
+type: object
+description: >
+  Inicio válido de `barberId`: el intervalo [startsAt, startsAt +
+  durationMinutes) cabe entero en su jornada efectiva y no interseca ninguna
+  cita que ocupe agenda ni ningún bloqueo vigente. Es el mismo inicio que la
+  operación por barbero devuelve para ese barbero.
+properties:
+  barberId:
+    type: string
+    format: uuid
+    description: Barbero al que pertenece el inicio.
+    examples:
+      - 8f3ac2b1-e4d5-46f6-a7c8-d9e0f1a2b3c4
+  startsAt:
+    type: string
+    format: date-time
+    description: >
+      Instante absoluto de inicio (ISO 8601 con offset explícito). El cliente
+      lo presenta en la zona horaria de la barbería (`timezone`), nunca en la
+      del dispositivo (RN-DIS-07).
+    examples:
+      - "2026-09-15T09:00:00-05:00"
+required:
+  - barberId
+  - startsAt

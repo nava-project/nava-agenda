@@ -4,6 +4,35 @@ Formato basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/).
 Ver [`docs/06-api/estandar-openapi.md`](../../docs/06-api/estandar-openapi.md)
 sección 18 para qué cuenta como cambio compatible o incompatible.
 
+## 0.49.0 · 2026-11-06
+
+### Agregado
+
+- `GET /public/barbershops/{slug}/barbers` (`listPublicBarbersWithServices`,
+  `DEC-162`): todos los barberos con al menos una asignación vigente a un servicio
+  activo, cada uno con `id`, `fullName` y `serviceIds` (los servicios activos que
+  hace). Reemplaza N llamadas a `GET .../services/{serviceId}/barbers` (una por
+  servicio) para clientes de solo lectura. Esquemas `PublicBarberServicesResponse`
+  y `PublicBarberServicesListResponse`; respuesta `PublicBarberServicesListSuccess`.
+- `GET /public/barbershops/{slug}/services/{serviceId}/availability`
+  (`listPublicServiceAvailability`, `DEC-162`): los inicios válidos del servicio para
+  todos sus barberos elegibles en una respuesta (`slots: [{barberId, startsAt}]`
+  ordenados por `startsAt` y `barberId`, más `durationMinutes`, `timezone` y
+  `slotGridMinutes`). Reemplaza una llamada de disponibilidad por barbero. Mismo
+  cálculo y misma ventana que la operación por barbero. Esquemas
+  `BarberAvailabilitySlotResponse` y `ServiceAvailabilityResponse`; respuesta
+  `ServiceAvailabilitySuccess`.
+- Ambas son públicas (`security: []`), de solo lectura, con el mismo `404`
+  uniforme de `HU-090` para `slug` inválido, desconocido o no publicable. Un
+  `serviceId` ajeno, inactivo, inexistente o malformado responde `200` vacío, como
+  en `HU-092` y `HU-094`.
+
+### Compatibilidad
+
+- Compatible: solo agrega dos operaciones y sus esquemas. Ninguna operación,
+  esquema ni código existente cambia; `GET .../services/{serviceId}/barbers` y
+  `GET .../barbers/{barberId}/availability` siguen vigentes y devuelven lo mismo.
+
 ## 0.48.0 · 2026-10-31
 
 ### Agregado

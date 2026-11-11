@@ -39,6 +39,10 @@ func (f *confirmFakeAvailabilityRepository) ListOccupiedIntervals(context.Contex
 	return nil, nil, nil
 }
 
+func (f *confirmFakeAvailabilityRepository) ListServiceBarberIDs(context.Context, string, string) ([]string, error) {
+	return nil, nil
+}
+
 type confirmFakeEffectiveDay struct{}
 
 func (confirmFakeEffectiveDay) ResolveEffectiveDay(context.Context, string, string, string) (bool, []string, []int, error) {

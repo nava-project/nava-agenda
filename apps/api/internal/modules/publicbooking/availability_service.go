@@ -3,6 +3,7 @@ package publicbooking
 import (
 	"context"
 	"fmt"
+	"sort"
 	"strings"
 	"time"
 
@@ -116,6 +117,89 @@ func (s *AvailabilityService) ListPublicAvailability(ctx context.Context, rawSlu
 		Timezone:        timezone,
 		SlotGridMinutes: slotGridMinutes,
 	}, nil
+}
+
+// ListPublicServiceAvailability resuelve rawSlug -mismo criterio que
+// ListPublicAvailability- y proyecta, en una sola respuesta, los inicios
+// públicos válidos del servicio activo rawServiceID para TODOS sus barberos
+// elegibles (DEC-162). Sustituye a una llamada de ListPublicAvailability por
+// barbero para quien necesita el panorama completo. No reimplementa nada:
+// por cada barbero elegible reutiliza ActiveAssignedService (la misma
+// verificación de asignación vigente) y computeAvailableStarts (la única
+// fuente de verdad de las franjas, la misma que usa el endpoint por barbero
+// y la confirmación), así que ambas rutas no pueden divergir ni en
+// ventana, ni en rejilla, ni en bloqueos y citas.
+//
+// El resultado se ordena por (StartsAt, BarberID). Un slug inválido,
+// desconocido o no publicable produce el mismo apperr.NotFound uniforme;
+// un rawServiceID sin forma de UUID, ajeno, inexistente, inactivo o sin
+// ningún barbero con asignación vigente NUNCA produce un error distinto: el
+// resultado es vacío (CA-092-03), igual que el endpoint por barbero.
+func (s *AvailabilityService) ListPublicServiceAvailability(ctx context.Context, rawSlug, rawServiceID string) (ServiceAvailabilityResult, error) {
+	if err := ctx.Err(); err != nil {
+		return ServiceAvailabilityResult{}, apperr.Internal(fmt.Errorf("publicbooking: contexto cancelado antes de calcular disponibilidad del servicio: %w", err))
+	}
+
+	slug := strings.TrimSpace(rawSlug)
+	if slug == "" || len(slug) > MaxSlugLength {
+		return ServiceAvailabilityResult{}, errBarbershopNotPublic()
+	}
+
+	barbershopID, found, err := s.repo.ResolveBarbershopID(ctx, slug)
+	if err != nil {
+		return ServiceAvailabilityResult{}, apperr.Internal(fmt.Errorf("publicbooking: resolver barbería para disponibilidad del servicio: %w", err))
+	}
+	if !found {
+		return ServiceAvailabilityResult{}, errBarbershopNotPublic()
+	}
+
+	if !LooksLikePublicServiceID(rawServiceID) {
+		return ServiceAvailabilityResult{}, nil
+	}
+
+	barberIDs, err := s.repo.ListServiceBarberIDs(ctx, barbershopID, rawServiceID)
+	if err != nil {
+		return ServiceAvailabilityResult{}, apperr.Internal(fmt.Errorf("publicbooking: listar barberos elegibles del servicio: %w", err))
+	}
+
+	result := ServiceAvailabilityResult{Slots: []BarberAvailabilitySlot{}}
+	for _, barberID := range barberIDs {
+		if err := ctx.Err(); err != nil {
+			return ServiceAvailabilityResult{}, apperr.Internal(fmt.Errorf("publicbooking: contexto cancelado calculando disponibilidad del servicio: %w", err))
+		}
+
+		_, durationMinutes, _, _, assigned, err := s.assignments.ActiveAssignedService(ctx, barbershopID, barberID, rawServiceID)
+		if err != nil {
+			return ServiceAvailabilityResult{}, apperr.Internal(fmt.Errorf("publicbooking: verificar asignación para disponibilidad del servicio: %w", err))
+		}
+		if !assigned || durationMinutes <= 0 {
+			continue
+		}
+
+		starts, timezone, slotGridMinutes, err := s.computeAvailableStarts(ctx, barbershopID, barberID, durationMinutes)
+		if err != nil {
+			return ServiceAvailabilityResult{}, err
+		}
+
+		// La duración es del servicio y la zona y la rejilla de la barbería:
+		// iguales para todos los barberos, así que basta fijarlas con el
+		// primero elegible aunque no tenga franjas hoy.
+		result.DurationMinutes = durationMinutes
+		result.Timezone = timezone
+		result.SlotGridMinutes = slotGridMinutes
+		for _, t := range starts {
+			result.Slots = append(result.Slots, BarberAvailabilitySlot{BarberID: barberID, StartsAt: t})
+		}
+	}
+
+	sort.Slice(result.Slots, func(i, j int) bool {
+		a, b := result.Slots[i], result.Slots[j]
+		if !a.StartsAt.Equal(b.StartsAt) {
+			return a.StartsAt.Before(b.StartsAt)
+		}
+		return a.BarberID < b.BarberID
+	})
+	return result, nil
 }
 
 // computeAvailableStarts calcula, para barberID/durationMinutes YA

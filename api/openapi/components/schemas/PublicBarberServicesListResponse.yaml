@@ -1,0 +1,16 @@
+# Colección completa (sin paginar, como PublicBarberListResponse) de barberos
+# elegibles con los servicios activos que hacen (DEC-162).
+type: object
+description: >
+  Barberos de la barbería resuelta con al menos una asignación vigente a un
+  servicio activo, ordenados de forma estable por fecha de alta y luego por
+  id. Un arreglo vacío cubre una barbería publicada sin ningún barbero
+  elegible.
+properties:
+  items:
+    type: array
+    description: Barberos elegibles, en el orden estable del servidor.
+    items:
+      $ref: './PublicBarberServicesResponse.yaml'
+required:
+  - items
