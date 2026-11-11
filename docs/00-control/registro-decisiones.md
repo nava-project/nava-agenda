@@ -2045,3 +2045,14 @@ Cada código `DEC-*` es estable y no se reutiliza. Este registro normaliza respu
 - **Alternativas descartadas:** una política separada de Nexos (dos URL que mantener y Meta pide una sola política por app), y una página aparte solo para eliminación de datos (el ancla estable cumple la función y no añade ruta).
 - **Documentos afectados:** `historial-cambios.md`, `dudas-pendientes.md`.
 - **Fuente:** solicitud del propietario el 2026-11-10 para publicar la app de Meta a nivel comercial; issue [#555](https://github.com/bcaceres19/barberia/issues/555); `DEC-030`, `DEC-161`, `RN-DAT-01`, `RN-DAT-03`, `DP-LEG-01`.
+
+### DEC-165 · El backend sube a Go 1.26.11 (amplía `DEC-132`)
+
+- **Fecha:** 2026-11-11
+- **Estado:** Confirmada
+- **Decisión:** `apps/api/go.mod` pasa de `toolchain go1.26.10` a `toolchain go1.26.11` (`go 1.26.0` sin cambio). CI sigue instalando la línea 1.26.
+- **Motivo:** `govulncheck` (control obligatorio de CI) detectó `GO-2026-6859` en `net/http` de Go 1.26.10, alcanzable desde los handlers HTTP, el cliente de WhatsApp (`MetaWhatsAppSender.SendOTP`) y el adaptador de Google Calendar. Se corrige en Go 1.26.11. Sin la subida, el job de Go falla en todos los PR y en `main`, incluido uno puramente documental.
+- **Alternativas descartadas:** integrar con el check de seguridad en rojo (contradice la regla de integrar solo con CI en verde).
+- **Alcance:** solo versión del toolchain; sin cambios de código de aplicación, API, datos ni migraciones.
+- **Documentos afectados:** `historial-cambios.md`.
+- **Fuente:** detectado el 2026-11-11 al integrar el PR documental #562; issue [#563](https://github.com/bcaceres19/barberia/issues/563); `DEC-121`, `DEC-132`.
