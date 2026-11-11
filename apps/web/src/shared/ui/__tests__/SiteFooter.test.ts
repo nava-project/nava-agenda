@@ -33,6 +33,15 @@ async function mountFooter(path = '/privacidad', props: { topHref?: string } = {
 }
 
 describe('SiteFooter', () => {
+  it('nombra al titular de NAVA y Nexos como persona natural (DEC-167)', async () => {
+    const wrapper = await mountFooter()
+    const text = wrapper.get('.sf__about').text()
+    expect(text).toContain('NAVA y Nexos')
+    expect(text).toContain('Brahian Alexander Caceres Guevara')
+    expect(text).toContain('persona natural')
+    expect(text).toContain('Armenia, Quindío, Colombia')
+  })
+
   it('enlaza el recorrido y la invitación a la landing por ruta', async () => {
     const wrapper = await mountFooter()
     const tour = wrapper.get('nav[aria-label="Recorrido"]').findAll('a')

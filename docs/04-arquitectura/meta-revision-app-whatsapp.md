@@ -58,6 +58,17 @@ Como Nexos y NAVA se conectan a números de WhatsApp Business **de otros negocio
 
 La política de `#556` ya está en producción y abre con la sección de Nexos y «Eliminación de tus datos».
 
+## 3.1. Nombres visibles de los números (`DEC-167`)
+
+Meta rechazó «NAVA» y «Nexos» a secas. Sus normas (Normas sobre nombres visibles de la Plataforma de WhatsApp Business) piden: relación evidente con el nombre legal del negocio, marca coherente con fuentes externas (el sitio web), sin términos genéricos, sin «oficial» ni «verificado», sin referencias a Meta o a sus apps, sin lenguaje promocional y sin formato de URL o correo; si la marca no es obvia, el formato «de [negocio]» con la relación visible en el sitio; un nombre personal exige que la naturaleza del negocio sea clara en fuentes externas.
+
+| Número | Nombre propuesto |
+| --- | --- |
+| Nava-Agent (`+57 310 8953493`) | `NAVA Agenda` o `NAVA Barbería` |
+| Nexos | `Nexos de NAVA` |
+
+`nava.wtf` ya declara la relación: la sección del asistente presenta a Nexos como el asistente de NAVA y el pie nombra al titular (persona natural). Verificar que el sitio del portafolio de negocios en Meta sea `nava.wtf` y que el nombre legal verificado coincida con el del pie. Si vuelven a rechazar, conservar el motivo exacto del mensaje de Meta y apelar con enlace a la política.
+
 ## 4. Textos de uso de cada permiso (para pegar, en inglés)
 
 **`whatsapp_business_messaging`**

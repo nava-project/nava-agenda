@@ -97,7 +97,15 @@ const tour = [
     <div class="sf__giant" aria-hidden="true"><span>NAVA</span></div>
 
     <div class="sf__wrap sf__base">
-      <p>© {{ year }} NAVA · Agenda de citas para independientes y equipos</p>
+      <div class="sf__about">
+        <p>© {{ year }} NAVA · Agenda de citas para independientes y equipos</p>
+        <!-- Issue #569: Meta pide una relación evidente entre el nombre visible de
+             WhatsApp (NAVA y Nexos) y el titular del negocio; el sitio la declara. -->
+        <p>
+          NAVA y Nexos (su asistente de WhatsApp) son servicios de Brahian Alexander Caceres
+          Guevara, persona natural · Armenia, Quindío, Colombia
+        </p>
+      </div>
       <a class="sf__top" :href="topHref">
         Volver arriba
         <svg
@@ -323,6 +331,13 @@ const tour = [
   gap: 12px 24px;
   padding-block: 26px 30px;
   border-top: 1px solid var(--sf-line);
+}
+
+.sf__about {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 0;
 }
 
 .sf__base p {

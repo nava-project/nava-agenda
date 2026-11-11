@@ -2093,3 +2093,14 @@ Cada código `DEC-*` es estable y no se reutiliza. Este registro normaliza respu
 - **Alcance:** frontend (`PhoneField`, `RecoveryRequestStep`, `NewAppointmentPage`, `recoveryValidation`), pruebas y un ajuste del ancho del campo para pantallas de 320–360 px. El mensaje de validación del teléfono de recuperación ya no pide «escribir el indicativo» porque se elige en su casilla. Sin cambios de API, datos ni migraciones.
 - **Documentos afectados:** `historial-cambios.md`.
 - **Fuente:** solicitud del propietario el 2026-11-11; issue [#565](https://github.com/bcaceres19/barberia/issues/565); `DEC-163`.
+
+### DEC-167 · La página principal nombra a Nexos y el pie declara a su titular (modifica el punto 4 de `DEC-151`)
+
+- **Fecha:** 2026-11-11
+- **Estado:** Confirmada
+- **Decisión:** la sección del asistente de la landing presenta a **Nexos** como «el asistente de inteligencia artificial de NAVA», y el pie compartido (landing y documentos legales) declara: «NAVA y Nexos (su asistente de WhatsApp) son servicios de Brahian Alexander Caceres Guevara, persona natural · Armenia, Quindío, Colombia». Sustituye la regla de `DEC-151` (punto 4) de presentar al asistente sin nombre propio; lo que el asistente hace (leer la disponibilidad real y llevar al enlace de reserva, sin confirmar turnos) no cambia. El nombre interno del proyecto de Odin sigue sin publicarse.
+- **Motivo:** Meta rechazó los nombres visibles de los números de WhatsApp (NAVA y Nexos). Sus normas piden una relación evidente con el nombre legal del negocio y que la marca figure de forma coherente en fuentes externas como el sitio web; para una persona natural, que la naturaleza del negocio y su titular sean claros en el sitio. Hasta ahora solo la política y las condiciones nombraban a Nexos y al responsable.
+- **Alternativas descartadas:** una página aparte solo para Meta (la prueba debe estar en las páginas que ve cualquier visitante); poner el nombre del titular únicamente en la política (el revisor suele mirar la página principal).
+- **Alcance:** frontend (`AssistantSection`, `SiteFooter`) y pruebas. Sin cambios de API, datos ni migraciones.
+- **Documentos afectados:** `historial-cambios.md`; guía `docs/04-arquitectura/meta-revision-app-whatsapp.md` (nombres visibles).
+- **Fuente:** solicitud del propietario el 2026-11-11 tras el rechazo de los nombres visibles; issue [#569](https://github.com/bcaceres19/barberia/issues/569); `DEC-151`, `DEC-163`, `DEC-164`; normas de nombres visibles de la plataforma de WhatsApp Business de Meta.
