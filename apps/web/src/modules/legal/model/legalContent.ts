@@ -45,14 +45,14 @@ const note = (text: string, lang?: string): LegalBlock => ({ kind: 'note', text,
 
 export const privacyPolicy: LegalDocument = {
   title: 'Política de privacidad',
-  lede: 'Qué datos tratan NAVA y su asistente Nexos, para qué, con quién los comparten y cómo puedes ejercer tus derechos, incluida la eliminación de tus datos. Aplica a quienes administran un negocio, a sus barberos, a las personas que reservan una cita y a quienes escriben por WhatsApp a un asistente Nexos.',
+  lede: 'Qué datos tratan NAVA y su asistente NAVA Nexos (en adelante, Nexos), para qué, con quién los comparten y cómo puedes ejercer tus derechos, incluida la eliminación de tus datos. Aplica a quienes administran un negocio, a sus barberos, a las personas que reservan una cita y a quienes escriben por WhatsApp a un asistente Nexos.',
   sections: [
     {
       id: 'responsable',
       title: 'Quién es el responsable',
       blocks: [
         p(
-          'NAVA es una plataforma web de agenda de citas para barberías y barberos independientes, disponible en https://nava.wtf. Nexos es un asistente automático que atiende por WhatsApp a los clientes de un negocio (se describe en la sección «Nexos, el asistente por WhatsApp»). Ambos los opera Brahian Alexander Caceres Guevara, persona natural, con domicilio en Armenia, Quindío, Colombia. Para cualquier asunto de privacidad escribe a ' +
+          'NAVA es una plataforma web de agenda de citas para barberías y barberos independientes, disponible en https://nava.wtf. NAVA Nexos (en adelante, Nexos) es un asistente automático que atiende por WhatsApp a los clientes de un negocio (se describe en la sección «Nexos, el asistente por WhatsApp»). Ambos los opera Brahian Alexander Caceres Guevara, persona natural, con domicilio en Armenia, Quindío, Colombia. Para cualquier asunto de privacidad escribe a ' +
             LEGAL_CONTACT_EMAIL +
             '.',
         ),
@@ -137,10 +137,10 @@ export const privacyPolicy: LegalDocument = {
     },
     {
       id: 'nexos',
-      title: 'Nexos, el asistente por WhatsApp',
+      title: 'NAVA Nexos, el asistente por WhatsApp',
       blocks: [
         p(
-          'Nexos es el nombre comercial de un asistente conversacional automático. Un negocio (barbería, perfumería, tienda de comida para mascotas, tienda de ropa o veterinaria) lo conecta a su número de WhatsApp para que responda a sus clientes: servicios, precios, productos, disponibilidad y enlaces para reservar. Funciona sobre la WhatsApp Business Platform de Meta. Solo responde cuando la persona escribe primero al número del negocio: no inicia conversaciones ni envía mensajes promocionales.',
+          'NAVA Nexos, o simplemente Nexos, es el nombre comercial de un asistente conversacional automático. Un negocio (barbería, perfumería, tienda de comida para mascotas, tienda de ropa o veterinaria) lo conecta a su número de WhatsApp para que responda a sus clientes: servicios, precios, productos, disponibilidad y enlaces para reservar. Funciona sobre la WhatsApp Business Platform de Meta. Solo responde cuando la persona escribe primero al número del negocio: no inicia conversaciones ni envía mensajes promocionales.',
         ),
         p('Qué datos recibe y qué guarda:'),
         ul(
@@ -300,7 +300,7 @@ export const privacyPolicy: LegalDocument = {
 
 export const termsOfService: LegalDocument = {
   title: 'Condiciones del servicio',
-  lede: 'Las reglas para usar NAVA, la plataforma de agenda de citas para barberías, y Nexos, su asistente automático de WhatsApp. Al crear una cuenta, usar la plataforma o seguir una conversación con Nexos las aceptas.',
+  lede: 'Las reglas para usar NAVA, la plataforma de agenda de citas para barberías, y NAVA Nexos (en adelante, Nexos), su asistente automático de WhatsApp. Al crear una cuenta, usar la plataforma o seguir una conversación con Nexos las aceptas.',
   sections: [
     {
       id: 'aceptacion',
@@ -327,10 +327,10 @@ export const termsOfService: LegalDocument = {
     },
     {
       id: 'nexos',
-      title: 'Nexos, el asistente por WhatsApp',
+      title: 'NAVA Nexos, el asistente por WhatsApp',
       blocks: [
         p(
-          'Nexos es un asistente automático, basado en inteligencia artificial, que un negocio conecta a su número de WhatsApp para atender a sus clientes: informa servicios, precios, productos y disponibilidad y comparte enlaces. Solo responde a quien le escribe primero y no envía mensajes promocionales.',
+          'NAVA Nexos es un asistente automático, basado en inteligencia artificial, que un negocio conecta a su número de WhatsApp para atender a sus clientes: informa servicios, precios, productos y disponibilidad y comparte enlaces. Solo responde a quien le escribe primero y no envía mensajes promocionales.',
         ),
         ul(
           'Es un asistente automático, no una persona. Sus respuestas son informativas y pueden contener errores: confirma con el negocio los datos importantes, como precios, horarios o disponibilidad.',

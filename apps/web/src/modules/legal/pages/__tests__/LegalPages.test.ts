@@ -204,8 +204,8 @@ describe('política de privacidad: requisitos de la revisión de Meta para Nexos
       .join('\n')
   const nexos = sectionText('nexos')
 
-  it('describe qué es Nexos y que solo responde a quien escribe primero', () => {
-    expect(nexos).toContain('Nexos')
+  it('describe qué es NAVA Nexos y que solo responde a quien escribe primero', () => {
+    expect(nexos).toContain('NAVA Nexos')
     expect(nexos).toContain('WhatsApp Business Platform')
     expect(nexos).toMatch(/solo responde cuando la persona escribe primero/i)
   })
@@ -256,6 +256,7 @@ describe('condiciones: Nexos', () => {
     .join('\n')
 
   it('describe el asistente automático, sus límites y las políticas de WhatsApp', () => {
+    expect(text).toContain('NAVA Nexos')
     expect(termsOfService.sections.map((section) => section.id)).toContain('nexos')
     expect(text).toMatch(/asistente automático, no una persona/i)
     expect(text).toMatch(/No diagnostica ni receta/)

@@ -99,10 +99,13 @@ const tour = [
     <div class="sf__wrap sf__base">
       <div class="sf__about">
         <p>© {{ year }} NAVA · Agenda de citas para independientes y equipos</p>
-        <!-- Issue #569: Meta pide que el sitio muestre qué es NAVA y que Nexos es su
-             asistente (nombres visibles de WhatsApp). El titular no se nombra aquí:
+        <!-- Issues #569 y #571: Meta pide que el sitio muestre qué es NAVA y que NAVA Nexos
+             es su asistente (nombres visibles de WhatsApp). El titular no se nombra aquí:
              figura como responsable en la política de privacidad. -->
-        <p>NAVA es un servicio de gestión de agendas. Nexos es su asistente de WhatsApp.</p>
+        <p>
+          NAVA es un servicio de gestión de agendas. NAVA Barbería es su línea para barberías y NAVA
+          Nexos, su asistente de WhatsApp.
+        </p>
       </div>
       <a class="sf__top" :href="topHref">
         Volver arriba

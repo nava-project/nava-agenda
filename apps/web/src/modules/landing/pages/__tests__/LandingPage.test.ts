@@ -101,12 +101,12 @@ describe('LandingPage', () => {
     }
   })
 
-  it('el asistente de IA se presenta como Nexos (DEC-167) y con su conversación completa', async () => {
+  it('el asistente de IA se presenta como NAVA Nexos (DEC-167, DEC-168) y con su conversación completa', async () => {
     const { wrapper } = await mountPage()
     const section = wrapper.get('#asistente')
     expect(section.text()).toContain('Asistente de IA')
     // Nombre comercial del asistente; el nombre interno del proyecto no se publica.
-    expect(section.text()).toContain('Nexos, el asistente de inteligencia artificial de NAVA')
+    expect(section.text()).toContain('NAVA Nexos, el asistente de inteligencia artificial')
     expect(wrapper.text()).not.toMatch(/odin/i)
     // El diálogo de demostración también existe como lista de texto, completa
     // y en orden, para quien no ve la animación.
