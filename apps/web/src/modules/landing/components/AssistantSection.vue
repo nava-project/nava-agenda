@@ -27,8 +27,8 @@ const { seen } = useInView(root, 0.15)
           Tu chat nunca se queda <em>sin respuesta.</em>
         </h2>
         <p class="ln-lead ln-reveal" :data-seen="seen" style="--i: 2">
-          <b>Nexos</b>, el asistente de inteligencia artificial de NAVA, atiende las conversaciones
-          de tu negocio, conoce tu agenda y le da a cada cliente una respuesta clara y a tiempo.
+          <b>NAVA Nexos</b>, el asistente de inteligencia artificial, atiende las conversaciones de
+          tu negocio, conoce tu agenda y le da a cada cliente una respuesta clara y a tiempo.
         </p>
 
         <ol class="as__points">
