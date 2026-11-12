@@ -67,7 +67,7 @@ Meta rechazó «NAVA» y «Nexos» a secas. Sus normas (Normas sobre nombres vis
 | Nava-Agent (`+57 310 8953493`) | `NAVA` (aprobado por Meta el 2026-11-12; falta registrar el número para que se aplique) |
 | Odin-Prueba (`+57 313 5665974`) | `NAVA Nexos`; si lo rechazan, `Nexos de NAVA` y luego `Nexos NAVA` (`DEC-168`) |
 
-`nava.wtf` ya declara la relación: la sección del asistente presenta a **NAVA Nexos** y el pie dice que NAVA es un servicio de gestión de agendas, NAVA Barbería su línea para barberías y NAVA Nexos su asistente de WhatsApp (`DEC-168`). El pie **no nombra al titular** (decisión del propietario, por privacidad); el responsable figura en la política de privacidad. Verificar que el sitio del portafolio de negocios en Meta sea `nava.wtf`; si Meta pide más prueba del vínculo con el nombre legal verificado, apelar enlazando la política. Si vuelven a rechazar, conservar el motivo exacto del mensaje de Meta y apelar con enlace a la política.
+`nava.wtf` ya declara la relación: la sección del asistente presenta a **NAVA Nexos** y el pie dice que NAVA reúne soluciones para negocios, NAVA Agendas es su software de agenda de citas y NAVA Nexos su asistente de WhatsApp (`DEC-168`). El pie **no nombra al titular** (decisión del propietario, por privacidad); el responsable figura en la política de privacidad. Verificar que el sitio del portafolio de negocios en Meta sea `nava.wtf`; si Meta pide más prueba del vínculo con el nombre legal verificado, apelar enlazando la política. Si vuelven a rechazar, conservar el motivo exacto del mensaje de Meta y apelar con enlace a la política.
 
 ## 4. Textos de uso de cada permiso (para pegar, en inglés)
 

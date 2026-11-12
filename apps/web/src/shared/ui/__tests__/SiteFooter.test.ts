@@ -33,11 +33,11 @@ async function mountFooter(path = '/privacidad', props: { topHref?: string } = {
 }
 
 describe('SiteFooter', () => {
-  it('describe a NAVA, NAVA Barbería y NAVA Nexos sin nombrar al titular (DEC-167, DEC-168)', async () => {
+  it('describe a NAVA, NAVA Agendas y NAVA Nexos sin nombrar al titular (DEC-167, DEC-168)', async () => {
     const wrapper = await mountFooter()
     const text = wrapper.get('.sf__about').text().replace(/\s+/g, ' ')
-    expect(text).toContain('NAVA es un servicio de gestión de agendas')
-    expect(text).toContain('NAVA Barbería es su línea para barberías')
+    expect(text).toContain('NAVA reúne soluciones para negocios')
+    expect(text).toContain('NAVA Agendas es su software de agenda de citas')
     expect(text).toContain('NAVA Nexos, su asistente de WhatsApp')
     // El responsable figura en la política de privacidad, no en el pie.
     expect(text).not.toContain('Brahian')

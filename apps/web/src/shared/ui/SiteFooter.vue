@@ -103,7 +103,7 @@ const tour = [
              es su asistente (nombres visibles de WhatsApp). El titular no se nombra aquí:
              figura como responsable en la política de privacidad. -->
         <p>
-          NAVA es un servicio de gestión de agendas. NAVA Barbería es su línea para barberías y NAVA
+          NAVA reúne soluciones para negocios. NAVA Agendas es su software de agenda de citas y NAVA
           Nexos, su asistente de WhatsApp.
         </p>
       </div>
