@@ -212,15 +212,16 @@ function onSubmit() {
   gap: var(--space-3);
   padding-top: var(--space-5);
   text-align: left;
-  border-top: var(--border-width-normal) solid var(--color-border-subtle);
+  border-top: 1px solid color-mix(in srgb, var(--color-on-strong) 14%, transparent);
 }
 
 .appointment-cancel__title {
   margin: 0;
   font-family: var(--font-display);
-  font-size: 24px;
-  line-height: 32px;
-  color: var(--color-text-primary);
+  font-size: 30px;
+  font-weight: 400;
+  line-height: 36px;
+  color: var(--color-on-strong);
 }
 
 .appointment-cancel__lead,
@@ -229,12 +230,12 @@ function onSubmit() {
   margin: 0;
   font-family: var(--font-family-base);
   font-size: var(--font-size-body);
-  color: var(--color-text-secondary);
+  color: var(--color-on-strong-soft);
   overflow-wrap: anywhere;
 }
 
 .appointment-cancel__contact a {
-  color: var(--color-text-primary);
+  color: var(--color-on-strong);
 }
 
 .appointment-cancel__form {
@@ -251,14 +252,19 @@ function onSubmit() {
 
 .appointment-cancel__label {
   font-family: var(--font-family-base);
-  font-size: 13px;
+  font-size: 11px;
   font-weight: 600;
-  color: var(--color-text-primary);
+  line-height: 16px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--color-brand-accent-surface);
 }
 
 .appointment-cancel__optional {
   font-weight: 400;
-  color: var(--color-text-secondary);
+  letter-spacing: normal;
+  text-transform: none;
+  color: var(--color-on-strong-soft);
 }
 
 .appointment-cancel__textarea {
@@ -268,15 +274,18 @@ function onSubmit() {
   font-family: var(--font-family-base);
   font-size: var(--font-size-body);
   line-height: var(--font-size-body-line);
-  color: var(--color-text-primary);
+  color: var(--color-on-strong);
   resize: vertical;
-  background-color: var(--color-surface);
-  border: var(--border-width-normal) solid var(--color-border-control);
+  background-color: color-mix(in srgb, #000 46%, var(--color-surface-strong));
+  border: var(--border-width-normal) solid
+    color-mix(in srgb, var(--color-on-strong) 30%, transparent);
+  border-bottom: var(--border-width-emphasis) solid
+    color-mix(in srgb, var(--color-brand-accent-surface) 75%, transparent);
   border-radius: 2px;
 }
 
 .appointment-cancel__textarea:focus-visible {
-  outline: var(--focus-ring-width, 2px) solid var(--color-focus);
+  outline: 2px solid var(--color-brand-accent-surface);
   outline-offset: 2px;
 }
 
@@ -292,7 +301,7 @@ function onSubmit() {
   margin: 0;
   font-family: var(--font-family-base);
   font-size: 13px;
-  color: var(--color-text-secondary);
+  color: var(--color-on-strong-soft);
 }
 
 .appointment-cancel__counter {
@@ -302,7 +311,7 @@ function onSubmit() {
 
 .appointment-cancel__counter--over,
 .appointment-cancel__error {
-  color: var(--color-danger-text);
+  color: var(--color-danger-on-strong);
 }
 
 .appointment-cancel__actions {

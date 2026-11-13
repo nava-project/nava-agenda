@@ -1,9 +1,9 @@
 ---
 titulo: "Estándar visual NAVA para rediseños y pantallas nuevas"
-version: "5.19"
+version: "5.20"
 estado: "Normativo para rediseños y pantallas nuevas"
 responsable: "Propietario del proyecto"
-ultima_actualizacion: "2026-11-03"
+ultima_actualizacion: "2026-11-13"
 documentos_relacionados:
   - "../00-control/registro-decisiones.md"
   - "../01-producto/alcance-mvp.md"
@@ -304,6 +304,15 @@ Ningún texto visible baja de 12 px; el monograma decorativo de un retrato peque
 
 - La calificación se dibuja con **diamantes** (rombos de la identidad NAVA), no con estrellas: `StarRating` (lectura, relleno proporcional del diamante) y `StarRatingInput` (selector de 1 a 5) comparten un único glifo, `RatingGem` (issue #489): un diamante tallado de cuatro facetas —luz arriba a la izquierda, sombra abajo a la derecha— con borde definido; vacío conserva contorno y talla tenue, y el parcial recorta el relleno a la fracción (4,5 deja el quinto a medias). Sobre tinta usa el latón claro de la marca; `--star-filled-color` ajusta el color por superficie. Los nombres de los componentes y el texto accesible («N de 5 estrellas», «4,5 de 5 · 12 reseñas») no cambian (`DEC-128`).
 - En el perfil individual (`/panel/barberos`, `DEC-115`) el resumen de calificación y el acceso a las reseñas son una sola **fila-resumen** a todo el ancho de la ficha (issue #491): tinta hundida con filete lateral de latón, diamantes con promedio y total a la izquierda y «Ver reseñas →» en versalitas de latón a la derecha; abierta queda resaltada y dice «Ocultar ←». Al pulsarla las reseñas se abren en un **cuadro a la derecha** de la ficha —no dentro de ella—, con la misma tinta hundida y filete de latón, la altura de la ficha y el scroll vertical dentro de la lista. En ≤ 960 px el cuadro baja bajo la ficha. «Cerrar» y Escape lo cierran y devuelven el foco al botón. El detalle de barbero de un equipo conserva la lista desplegada bajo el resumen.
+
+### 6.17 Acceso del cliente a su turno
+
+Issue #573, identidad guiada. `/mi-turno/:token` es la continuación de la reserva pública (§6.10) y comparte su lienzo de tinta fijo y su fondo de patronaje (`BookingBackdrop`, expuesto por `modules/public-booking/index.ts`); no hereda `data-app-theme` ni acento por barbería.
+
+- **Jerarquía:** rótulo «Tu turno en», nombre de la barbería en serif como `h1` y, debajo, el estado con texto y rombo del color semántico levantado a tinta (`--color-*-on-strong`, misma tabla que `APPOINTMENT_STATUS_BADGE_VARIANT`) y, si el turno está confirmado, la cuenta regresiva («Mañana», «Hoy · en 2 h», «En curso · quedan 20 min»).
+- **Boleto:** la misma pieza de la confirmación de la reserva —cinta métrica de latón, servicio en serif con su duración, perforación, hoja de calendario con día de la semana y fecha larga, franja de tiempo (inicio, regla con rombos, fin) en la zona de la barbería, profesional con su retrato y persona atendida, y barras decorativas que no codifican la credencial (`DEC-089`). En curso, la regla se llena de latón hasta un rombo que marca «ahora». Un turno cerrado cambia de material a contorno (§6.7) y, si se canceló o no se presentó, la franja se tacha con el color del estado.
+- **Notas y acciones:** la política de cancelación solo aparece con el turno confirmado, con filete lateral de latón; los avisos usan `BaseAlert` sobre tinta. Cancelación y reseña llevan rótulos en versalitas de latón, campos de tinta hundida y botones de latón (primario lleno, secundario/fantasma en contorno); «Sí, cancelar mi turno» conserva el peligro.
+- **Movimiento:** el título se descubre, el boleto cae con un destello único, la hoja de calendario aparece y la regla se dibuja; el rombo del estado late mientras el turno sigue por delante. `prefers-reduced-motion` deja todo compuesto.
 
 ## 7. Zona de libertad creativa
 
