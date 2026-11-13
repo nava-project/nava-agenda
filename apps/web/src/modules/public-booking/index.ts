@@ -5,3 +5,7 @@
 // contexto público de una barbería a partir de su enlace de reservas. Los
 // componentes, el estado y el cliente API internos permanecen privados.
 export { publicBookingRoutes } from './routes'
+// Issue #573: «Mi turno» (customer-access) es la continuación del recorrido de
+// reserva y comparte su mesa de patronaje animada. Se expone solo el fondo
+// decorativo, no el cascarón ni sus estilos.
+export { default as BookingBackdrop } from './components/BookingBackdrop.vue'
