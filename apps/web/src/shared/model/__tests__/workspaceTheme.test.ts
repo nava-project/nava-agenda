@@ -110,6 +110,28 @@ describe('attachWorkspaceTheme', () => {
     detach()
   })
 
+  // Issue #575: rótulos y filetes que leen --color-accent-brass quedaban en
+  // latón aunque la barbería eligiera otro acento.
+  it('repaints the typographic brass with the accent and keeps its light-surface copy legible', async () => {
+    const { theme, appearance, brand } = await load()
+    const detach = theme.attachWorkspaceTheme()
+
+    expect(prop('--color-accent-brass')).toBe('#b8955a')
+
+    brand.setBrand({ ...brand.brandState.brand, accent: 'amethyst' })
+    await nextTick()
+    expect(prop('--color-accent-brass')).toBe('#b094ea')
+    expect(prop('--color-accent-brass-on-surface')).toBe('#5d3d9c')
+
+    appearance.setTheme('ivory')
+    await nextTick()
+    expect(prop('--color-accent-brass')).toBe('#5d3d9c')
+
+    detach()
+    expect(prop('--color-accent-brass')).toBe('')
+    expect(prop('--color-accent-brass-on-surface')).toBe('')
+  })
+
   it('previews an unsaved accent and returns to the confirmed one', async () => {
     const { theme, brand } = await load()
     const detach = theme.attachWorkspaceTheme()

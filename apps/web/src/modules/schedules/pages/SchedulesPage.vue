@@ -155,6 +155,15 @@ function onRetryLoad() {
   void loadPage()
 }
 
+// Al cambiar de barbero la semana anterior queda en pantalla, atenuada e inerte,
+// bajo un velo de carga: cambiar el tablero por un esqueleto de otro alto hacía
+// saltar toda la pantalla (issue #575). El esqueleto queda solo para la
+// primera carga, cuando aún no hay semana que mostrar.
+const hasShownWorkingHours = ref(false)
+const boardBusy = computed(
+  () => workingHoursStatus.value === 'loading' && hasShownWorkingHours.value,
+)
+
 async function selectBarber(barberId: string) {
   selectedBarberId.value = barberId
   workingHoursStatus.value = 'loading'
@@ -167,6 +176,7 @@ async function selectBarber(barberId: string) {
   if (outcome.kind === 'success') {
     workingHours.value = outcome.page.items
     workingHoursStatus.value = 'ready'
+    hasShownWorkingHours.value = true
   } else {
     workingHoursStatus.value = 'error'
   }
@@ -1005,7 +1015,11 @@ const editPreview = computed(() =>
           <span v-else class="schedules-page__who-name">{{ selectedBarber?.fullName }}</span>
         </div>
 
-        <dl v-if="workingHoursStatus === 'ready'" class="schedules-page__stats">
+        <dl
+          v-if="workingHoursStatus === 'ready' || boardBusy"
+          class="schedules-page__stats"
+          :class="{ 'schedules-page__stats--busy': boardBusy }"
+        >
           <div>
             <dt>Horas por semana</dt>
             <dd>
@@ -1085,7 +1099,7 @@ const editPreview = computed(() =>
         <div v-else class="schedules-page__workspace">
           <div class="schedules-page__main">
             <div
-              v-if="workingHoursStatus === 'loading'"
+              v-if="workingHoursStatus === 'loading' && !hasShownWorkingHours"
               class="schedules-page__state"
               role="status"
               aria-live="polite"
@@ -1117,7 +1131,7 @@ const editPreview = computed(() =>
               </template>
             </BaseAlert>
 
-            <template v-else-if="workingHoursStatus === 'ready'">
+            <template v-else-if="workingHoursStatus === 'ready' || boardBusy">
               <BaseAlert
                 v-if="deleteError"
                 variant="danger"
@@ -1127,16 +1141,39 @@ const editPreview = computed(() =>
                 {{ deleteError }}
               </BaseAlert>
 
-              <WeeklyBoard
-                :days="groupedByWeekday"
-                :scale="boardScale"
-                :today-iso-weekday="todayIsoWeekday"
-                :now-minute="nowMinute"
-                :pending-delete-ids="pendingDeleteIds"
-                @add="openCreateDialog"
-                @edit="openEditDialog"
-                @remove="onDelete"
-              />
+              <div
+                class="schedules-page__board-wrap"
+                :class="{ 'schedules-page__board-wrap--busy': boardBusy }"
+                :aria-busy="boardBusy ? 'true' : undefined"
+              >
+                <!-- inert con undefined: Vue escribiría inert="false", que el
+                     navegador trata como activo. -->
+                <WeeklyBoard
+                  class="schedules-page__board"
+                  :inert="boardBusy || undefined"
+                  :days="groupedByWeekday"
+                  :scale="boardScale"
+                  :today-iso-weekday="todayIsoWeekday"
+                  :now-minute="nowMinute"
+                  :pending-delete-ids="pendingDeleteIds"
+                  @add="openCreateDialog"
+                  @edit="openEditDialog"
+                  @remove="onDelete"
+                />
+                <Transition name="schedules-veil">
+                  <div
+                    v-if="boardBusy"
+                    class="schedules-page__veil"
+                    role="status"
+                    aria-live="polite"
+                  >
+                    <DiamondLoader
+                      :label="`Cargando el horario de ${selectedBarber?.fullName}…`"
+                      :phrases="LOADING_PHRASES"
+                    />
+                  </div>
+                </Transition>
+              </div>
             </template>
 
             <p v-if="barbershopTimezone" class="schedules-page__timezone">
@@ -1745,15 +1782,20 @@ const editPreview = computed(() =>
               Termina al día siguiente.
             </p>
           </div>
-          <BaseButton
+          <!-- Botón circular centrado bajo los tramos (issue #575): el texto
+               «Agregar tramo» en una esquina pesaba más que los propios tramos. -->
+          <button
             type="button"
-            variant="secondary"
             class="schedules-page__segment-add"
+            aria-label="Agregar tramo"
+            title="Agregar tramo"
             :disabled="createExceptionStatus === 'saving'"
             @click="addCreateSegment"
           >
-            Agregar tramo
-          </BaseButton>
+            <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+              <path d="M12 5v14M5 12h14" />
+            </svg>
+          </button>
           <div v-if="createShapeError" class="schedules-page__field-error" role="alert">
             {{ createShapeError }}
           </div>
@@ -1937,15 +1979,20 @@ const editPreview = computed(() =>
               Termina al día siguiente.
             </p>
           </div>
-          <BaseButton
+          <!-- Botón circular centrado bajo los tramos (issue #575): el texto
+               «Agregar tramo» en una esquina pesaba más que los propios tramos. -->
+          <button
             type="button"
-            variant="secondary"
             class="schedules-page__segment-add"
+            aria-label="Agregar tramo"
+            title="Agregar tramo"
             :disabled="editExceptionStatus === 'saving'"
             @click="addEditSegment"
           >
-            Agregar tramo
-          </BaseButton>
+            <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+              <path d="M12 5v14M5 12h14" />
+            </svg>
+          </button>
           <div v-if="editShapeError" class="schedules-page__field-error" role="alert">
             {{ editShapeError }}
           </div>
@@ -2176,14 +2223,21 @@ const editPreview = computed(() =>
   white-space: nowrap;
 }
 
+/* El retrato mide lo mismo que la casilla del selector y se apoya en su misma
+   línea base: antes era más alto y asomaba por encima del campo, junto al
+   rótulo, y se veía desalineado (issue #575). Sin escala al pasar el cursor,
+   que lo volvía a sacar de la línea. */
 .schedules-page__portrait {
+  /* Alto real de la casilla de BaseSelect: 10 px de relleno por lado, una
+     línea de 24 px y los filetes de 1 y 2 px. */
+  --avatar-size: 47px;
+
   flex: 0 0 auto;
-  transition: transform var(--motion-duration-base) cubic-bezier(0.34, 1.56, 0.64, 1);
 }
 
-@media (hover: hover) {
-  .schedules-page__who:hover .schedules-page__portrait {
-    transform: scale(1.05);
+@media (max-width: 767px) {
+  .schedules-page__portrait {
+    --avatar-size: 47px;
   }
 }
 
@@ -2377,7 +2431,9 @@ const editPreview = computed(() =>
 
   .schedules-page__who {
     flex: 0 1 auto;
-    align-items: center;
+    /* Al pie, no al centro: el centro incluía el rótulo y dejaba el retrato
+       a media altura del campo (issue #575). */
+    align-items: flex-end;
   }
 
   .schedules-page__select {
@@ -3051,8 +3107,124 @@ const editPreview = computed(() =>
   color: var(--color-on-strong-muted);
 }
 
+/* Velo del cambio de barbero (issue #575): misma pauta que Servicios por
+   barbero. Entra con retraso para que una respuesta rápida no destelle. */
+.schedules-page__board-wrap {
+  position: relative;
+}
+
+.schedules-page__board {
+  transition: opacity 220ms var(--motion-easing-standard);
+}
+
+.schedules-page__board-wrap--busy .schedules-page__board {
+  opacity: 0.22;
+  transition-delay: 120ms;
+}
+
+.schedules-page__veil {
+  position: absolute;
+  inset: 0;
+  z-index: 3;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: color-mix(in srgb, var(--color-field-strong) 50%, transparent);
+  backdrop-filter: blur(2px);
+}
+
+.schedules-veil-enter-active {
+  transition: opacity 220ms var(--motion-easing-standard) 120ms;
+}
+
+.schedules-veil-leave-active {
+  transition: opacity 180ms var(--motion-easing-standard);
+}
+
+.schedules-veil-enter-from,
+.schedules-veil-leave-to {
+  opacity: 0;
+}
+
+.schedules-page__stats {
+  transition: opacity 220ms var(--motion-easing-standard);
+}
+
+.schedules-page__stats--busy {
+  opacity: 0.4;
+  transition-delay: 120ms;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .schedules-page__board,
+  .schedules-page__stats,
+  .schedules-veil-enter-active,
+  .schedules-veil-leave-active {
+    transition: none;
+  }
+}
+
 .schedules-page__segment-add {
-  align-self: flex-start;
+  display: grid;
+  place-items: center;
+  align-self: center;
+  width: 44px;
+  height: 44px;
+  padding: 0;
+  color: var(--color-brand-accent-surface);
+  cursor: pointer;
+  background: color-mix(in srgb, var(--color-brand-accent-surface) 8%, transparent);
+  border: 1px dashed color-mix(in srgb, var(--color-brand-accent-surface) 60%, transparent);
+  border-radius: 50%;
+  transition:
+    background-color var(--motion-duration-fast) var(--motion-easing-standard),
+    border-color var(--motion-duration-fast) var(--motion-easing-standard),
+    transform var(--motion-duration-base) cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.schedules-page__segment-add svg {
+  width: 20px;
+  height: 20px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2;
+  stroke-linecap: round;
+  transition: transform var(--motion-duration-base) var(--motion-easing-standard);
+}
+
+.schedules-page__segment-add:hover:not(:disabled) {
+  background: color-mix(in srgb, var(--color-brand-accent-surface) 18%, transparent);
+  border-style: solid;
+  border-color: var(--color-brand-accent-surface);
+  transform: scale(1.06);
+}
+
+.schedules-page__segment-add:hover:not(:disabled) svg {
+  transform: rotate(90deg);
+}
+
+.schedules-page__segment-add:focus-visible {
+  outline: none;
+  box-shadow:
+    0 0 0 2px var(--color-surface-strong),
+    0 0 0 4px var(--color-focus);
+}
+
+.schedules-page__segment-add:disabled {
+  cursor: not-allowed;
+  opacity: 0.5;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .schedules-page__segment-add,
+  .schedules-page__segment-add svg {
+    transition: none;
+  }
+
+  .schedules-page__segment-add:hover:not(:disabled),
+  .schedules-page__segment-add:hover:not(:disabled) svg {
+    transform: none;
+  }
 }
 
 .schedules-page__dialog-actions {

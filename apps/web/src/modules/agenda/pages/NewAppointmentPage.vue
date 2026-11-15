@@ -552,7 +552,7 @@ function onBarberSelect(barberId: string) {
                   <PhoneField
                     v-model:country="customerPhoneCountry"
                     v-model:national="customerPhoneNational"
-                    tone="paper"
+                    tone="ink"
                     label="Teléfono (opcional)"
                     :class="{ 'new-appointment-page__input--filled': !!customerPhone }"
                     :error="attempted ? fieldErrors.customerPhone : undefined"
@@ -968,6 +968,24 @@ function onBarberSelect(barberId: string) {
 
 .new-appointment-page :deep(.base-input__wrapper) {
   gap: 6px;
+}
+
+/* El teléfono usa el tono de tinta de PhoneField con la misma piel del campo
+   reglado de esta página: antes iba en tono papel y el prefijo se veía como
+   una casilla blanca sobre la tinta (issue #575). */
+.new-appointment-page :deep(.phone-field) {
+  --pf-row-bg: color-mix(in srgb, var(--color-on-strong) 4%, transparent);
+  --pf-row-bg-hover: color-mix(in srgb, var(--color-on-strong) 6%, transparent);
+  --pf-row-bg-focus: color-mix(in srgb, var(--color-on-strong) 6%, transparent);
+  --pf-line-strong: color-mix(in srgb, var(--color-on-strong) 12%, transparent);
+  --pf-row-base: color-mix(in srgb, var(--color-on-strong) 30%, transparent);
+  --pf-text: var(--color-on-strong);
+  --pf-muted: var(--color-on-strong-muted);
+  --pf-ring-gap: var(--color-surface-strong);
+}
+
+.new-appointment-page :deep(.new-appointment-page__input--filled .phone-field__row) {
+  border-bottom-color: var(--color-brand-accent-surface);
 }
 
 .new-appointment-page :deep(.base-input__label) {

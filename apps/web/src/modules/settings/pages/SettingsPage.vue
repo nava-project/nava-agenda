@@ -488,6 +488,13 @@ const GENDER_OPTIONS: readonly { value: Gender; label: string }[] = [
 
 const ACCENT_OPTIONS = BRAND_ACCENTS.map((a) => ({ value: a.key, label: a.label }))
 
+// Las miniaturas de Tinta/Marfil pintan el acento elegido (aún sin guardar) con
+// el valor medido para cada modo, no el latón fijo (issue #575).
+const themeTileAccent = computed(() => {
+  const accent = BRAND_ACCENTS.find((a) => a.key === brand.accent) ?? BRAND_ACCENTS[0]!
+  return { '--mini-accent-ink': accent.ink, '--mini-accent-ivory': accent.ivory }
+})
+
 /** Valor de cada acento tal como se verá en el modo vigente. */
 function swatchColor(key: BrandAccentKey): string {
   const accent = BRAND_ACCENTS.find((a) => a.key === key)!
@@ -683,6 +690,7 @@ const previewClass = computed(() => ({ 'settings-page__preview--changed': brandD
                     <span
                       class="theme-tile__mini"
                       :class="`theme-tile__mini--${option.value}`"
+                      :style="themeTileAccent"
                       aria-hidden="true"
                     >
                       <span class="theme-tile__bar" />
@@ -1366,14 +1374,15 @@ const previewClass = computed(() => ({ 'settings-page__preview--changed': brandD
   box-shadow: 0 0 0 1px var(--color-brand-accent-surface);
 }
 
-/* Miniatura: colores literales a propósito, porque cada una muestra SU modo
-   sin importar cuál esté activo. */
+/* Miniatura: superficies literales a propósito, porque cada una muestra SU modo
+   sin importar cuál esté activo. El acento llega de la plantilla con su valor
+   para cada modo; el latón queda solo como respaldo. */
 .theme-tile__mini {
   --mini-bg: #101b2b;
   --mini-chrome: #101b2b;
   --mini-line: rgb(244 240 231 / 70%);
   --mini-faint: rgb(244 240 231 / 22%);
-  --mini-accent: #b8955a;
+  --mini-accent: var(--mini-accent-ink, #b8955a);
 
   position: relative;
   display: flex;
@@ -1390,7 +1399,7 @@ const previewClass = computed(() => ({ 'settings-page__preview--changed': brandD
   --mini-chrome: #ebe5d9;
   --mini-line: rgb(16 27 43 / 70%);
   --mini-faint: rgb(16 27 43 / 20%);
-  --mini-accent: #765c2f;
+  --mini-accent: var(--mini-accent-ivory, #765c2f);
 }
 
 .theme-tile__mini--auto {
@@ -1406,7 +1415,11 @@ const previewClass = computed(() => ({ 'settings-page__preview--changed': brandD
 }
 
 .theme-tile__mini--auto .theme-tile__accent {
-  background: linear-gradient(115deg, #b8955a 0 50%, #765c2f 50% 100%);
+  background: linear-gradient(
+    115deg,
+    var(--mini-accent-ink, #b8955a) 0 50%,
+    var(--mini-accent-ivory, #765c2f) 50% 100%
+  );
 }
 
 .theme-tile__bar {

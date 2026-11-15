@@ -38,6 +38,18 @@ const ACCENT_PROPERTIES = [
   '--color-focus',
 ] as const
 
+// Latón «tipográfico» (rótulos en versalitas, filetes inferiores de los campos,
+// barra de desplazamiento): tokens.css lo fija en latón oscuro y antes solo
+// algunas pantallas lo reasignaban al acento, así que el resto del panel seguía
+// en latón con cualquier marca (issue #575). Se reasigna siempre al acento del
+// modo. Su copia `-on-surface` pinta texto sobre una superficie clara propia
+// dentro de la tinta (palabra de estado de BaseAlert): se fija aquí al valor de
+// Marfil, porque en :root resolvería al acento aclarado y perdería contraste.
+const TYPOGRAPHIC_ACCENT_PROPERTIES = [
+  '--color-accent-brass',
+  '--color-accent-brass-on-surface',
+] as const
+
 let scope: EffectScope | null = null
 let detach: (() => void) | null = null
 
@@ -77,6 +89,9 @@ export function attachWorkspaceTheme(): () => void {
 
       // El latón sobre Tinta es el valor de tokens.css: no se sobrescribe, así
       // la barbería que nunca cambia su marca ve exactamente lo de siempre.
+      root.style.setProperty('--color-accent-brass', theme === 'ivory' ? accent.ivory : accent.ink)
+      root.style.setProperty('--color-accent-brass-on-surface', accent.ivory)
+
       if (accent.key === 'brass' && theme === 'ink') {
         for (const property of ACCENT_PROPERTIES) root.style.removeProperty(property)
       } else {
@@ -108,6 +123,7 @@ export function attachWorkspaceTheme(): () => void {
     delete root.dataset.appTheme
     delete root.dataset.motion
     for (const property of ACCENT_PROPERTIES) root.style.removeProperty(property)
+    for (const property of TYPOGRAPHIC_ACCENT_PROPERTIES) root.style.removeProperty(property)
     root.style.removeProperty('zoom')
     root.style.removeProperty('--ui-zoom')
     detach = null
