@@ -639,21 +639,33 @@ function seriesCounts(item: TimeBlockSeries): string {
         >
       </div>
     </header>
-    <p class="blocks-panel__intro">
-      Un descanso, un día libre o un imprevisto. Reserva ese tiempo para {{ barberName }}.
-    </p>
-    <p v-if="barbershopTimezone" class="blocks-panel__timezone">
-      Horas {{ v.ofTheBusiness }} · {{ barbershopTimezone }}
-    </p>
-    <p v-else-if="timezoneLoading" role="status">Consultando la zona horaria…</p>
-    <BaseAlert v-else variant="warning" title="No pudimos consultar la zona horaria">
-      Reintenta antes de crear un bloqueo. Tus registros siguen disponibles.
-      <template #action
-        ><BaseButton variant="secondary" @click="loadTimezone"
-          >Reintentar zona horaria</BaseButton
-        ></template
+    <!-- Introducción y zona horaria en un solo renglón (issue #577): antes
+         eran dos párrafos sueltos con márgenes propios que sumaban un alto
+         vacío entre la cabecera y las listas. -->
+    <div class="blocks-panel__lede">
+      <p class="blocks-panel__intro">
+        Un descanso, un día libre o un imprevisto. Reserva ese tiempo para {{ barberName }}.
+      </p>
+      <p v-if="barbershopTimezone" class="blocks-panel__timezone">
+        Horas {{ v.ofTheBusiness }} · {{ barbershopTimezone }}
+      </p>
+      <p v-else-if="timezoneLoading" class="blocks-panel__timezone" role="status">
+        Consultando la zona horaria…
+      </p>
+      <BaseAlert
+        v-else
+        class="blocks-panel__timezone-alert"
+        variant="warning"
+        title="No pudimos consultar la zona horaria"
       >
-    </BaseAlert>
+        Reintenta antes de crear un bloqueo. Tus registros siguen disponibles.
+        <template #action
+          ><BaseButton variant="secondary" @click="loadTimezone"
+            >Reintentar zona horaria</BaseButton
+          ></template
+        >
+      </BaseAlert>
+    </div>
 
     <BaseAlert
       v-if="affected && affectedNotice"
@@ -1244,15 +1256,31 @@ function seriesCounts(item: TimeBlockSeries): string {
   text-transform: uppercase;
   overflow-wrap: anywhere;
 }
+.blocks-panel__lede {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 6px 20px;
+  margin: 18px 0 22px;
+}
 .blocks-panel__intro {
-  margin: 20px 0 8px;
+  margin: 0;
   font-size: var(--font-size-body-sm);
   color: var(--color-on-strong-muted);
 }
+/* La zona va como etiqueta discreta al final del renglón. */
 .blocks-panel__timezone {
-  margin: 0 0 24px;
+  margin: 0;
+  padding: 3px 10px;
   color: var(--color-on-strong-muted);
   font-size: var(--font-size-caption);
+  white-space: nowrap;
+  border: 1px solid var(--color-field-strong-border);
+  border-radius: 999px;
+}
+.blocks-panel__timezone-alert {
+  flex-basis: 100%;
 }
 .blocks-panel__ledger {
   display: grid;
@@ -1515,9 +1543,8 @@ function seriesCounts(item: TimeBlockSeries): string {
   }
 }
 
-.blocks-panel__empty,
 .blocks-panel__state {
-  min-height: 150px;
+  min-height: 96px;
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -1527,22 +1554,47 @@ function seriesCounts(item: TimeBlockSeries): string {
   border: 1px dashed var(--color-field-strong-border);
   color: var(--color-on-strong-muted);
 }
+/* Vacío compacto (issue #577): un renglón con el glifo a la izquierda y el
+   texto al lado, en vez de una caja alta centrada que dejaba media columna
+   en blanco. */
+.blocks-panel__empty {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  grid-template-rows: auto auto;
+  column-gap: 14px;
+  row-gap: 2px;
+  align-items: center;
+  padding: 16px 18px;
+  color: var(--color-on-strong-muted);
+  background: color-mix(in srgb, var(--color-on-strong) 3%, transparent);
+  border: 1px dashed var(--color-field-strong-border);
+  border-radius: 2px;
+}
 .blocks-panel__empty > span {
+  grid-row: 1 / 3;
+  display: grid;
+  place-items: center;
+  width: 40px;
+  height: 40px;
   color: var(--color-brand-accent-surface);
-  font-size: var(--font-size-title-section);
+  font-size: 20px;
+  line-height: 1;
+  border: 1px solid color-mix(in srgb, var(--color-brand-accent-surface) 45%, transparent);
+  border-radius: 50%;
 }
 .blocks-panel__empty p {
-  margin: 10px 0;
+  margin: 0;
   color: var(--color-on-strong);
   font-family: var(--font-display);
-  font-size: var(--font-size-title-item);
+  font-size: var(--font-size-body-lg);
+  line-height: 1.25;
 }
 .blocks-panel__empty small {
   font-size: var(--font-size-caption);
-  line-height: 1.6;
+  line-height: 1.5;
 }
 .blocks-panel__note {
-  margin: 24px 0 0;
+  margin: 20px 0 0;
   padding-top: 16px;
   border-top: 1px solid var(--color-field-strong-border);
   font-size: var(--font-size-caption);
@@ -1733,12 +1785,59 @@ function seriesCounts(item: TimeBlockSeries): string {
     flex: 1;
   }
 }
+/* Entrada del panel (issue #577): el panel se monta al abrir el diálogo, así
+   que cada bloque sube y aparece en orden mientras el diálogo se despliega.
+   `backwards` y no `both`: terminada la entrada no queda transform que cree
+   contextos de apilamiento sobre las listas. */
+.blocks-panel__header,
+.blocks-panel__lede,
+.blocks-panel__ledger > section,
+.blocks-panel__note {
+  animation: blocks-panel-rise 420ms cubic-bezier(0.2, 0.7, 0.2, 1) backwards;
+}
+.blocks-panel__header {
+  animation-delay: 220ms;
+}
+.blocks-panel__lede {
+  animation-delay: 280ms;
+}
+.blocks-panel__ledger > section:first-child {
+  animation-delay: 340ms;
+}
+.blocks-panel__ledger > section:nth-child(2) {
+  animation-delay: 410ms;
+}
+.blocks-panel__note {
+  animation-delay: 480ms;
+}
+@keyframes blocks-panel-rise {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
 @media (prefers-reduced-motion: reduce) {
   .block-record-enter-active,
   .block-record-leave-active,
   .block-record-move {
     transition: none;
   }
+  .blocks-panel__header,
+  .blocks-panel__lede,
+  .blocks-panel__ledger > section,
+  .blocks-panel__note {
+    animation: none;
+  }
+}
+:root[data-motion='reduced'] .blocks-panel__header,
+:root[data-motion='reduced'] .blocks-panel__lede,
+:root[data-motion='reduced'] .blocks-panel__ledger > section,
+:root[data-motion='reduced'] .blocks-panel__note {
+  animation: none;
 }
 </style>
 

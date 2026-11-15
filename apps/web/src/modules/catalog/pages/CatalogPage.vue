@@ -31,6 +31,7 @@ import {
   updateService,
   type ServiceInput,
 } from '../api/catalogApi'
+import { moneyParts } from '@/shared/model/money'
 import { newIdempotencyKey } from '../model/idempotencyKey'
 import type { Service } from '../model/service'
 import {
@@ -897,6 +898,26 @@ function formatDate(iso: string | null | undefined): string {
 
 const deactivatedSince = computed(() => formatDate(lifecycleTarget.value?.deactivatedAt))
 
+// Fecha del detalle en palabras («15 de noviembre de 2026»): en la cabecera se
+// lee mejor que la forma numérica que usan los mensajes de estado.
+function formatDateLong(iso: string | null | undefined): string {
+  if (!iso) return ''
+  const date = new Date(iso)
+  if (Number.isNaN(date.getTime())) return ''
+  return new Intl.DateTimeFormat('es-CO', {
+    day: 'numeric',
+    month: 'long',
+    year: 'numeric',
+    timeZone: 'America/Bogota',
+  }).format(date)
+}
+
+// Precio del detalle descompuesto para la ficha (símbolo, cifra agrupada y
+// código), sin convertir el decimal del contrato a número.
+const detailPrice = computed(() =>
+  detailTarget.value ? moneyParts(detailTarget.value.price, detailTarget.value.currency) : null,
+)
+
 // Posición del interruptor: refleja el estado actual y salta al destino en
 // cuanto se pide el cambio (durante "saving"); si el servidor lo rechaza
 // vuelve solo, porque lifecycleStatus deja de ser "saving".
@@ -1315,34 +1336,61 @@ async function reloadAfterConflict(serviceId: string) {
       <!-- catalog-page__lifecycle aporta solo el apilado, el color de texto
            sobre tinta y el par de botones dorado/fantasma ya calibrado para
            este fondo; el resto es propio del detalle. -->
+      <!-- Rediseño del issue #577: una cabecera con el estado y la fecha de
+           registro, una sola ficha de cifras (precio en la moneda del
+           contrato y duración) y la descripción como texto corrido. Antes
+           eran dos cajas grandes con «25000.00 COP» y metadatos sueltos al
+           pie. Cada bloque entra escalonado con --row-index. -->
       <div v-if="detailTarget" class="catalog-page__lifecycle catalog-page__detail">
-        <p
-          class="catalog-page__detail-status"
-          :class="{ 'catalog-page__detail-status--active': detailTarget.isActive }"
-          :style="{ '--row-index': 0, ...diamondStyle(detailTarget) }"
-        >
-          <span class="catalog-page__detail-diamond" aria-hidden="true" />
-          {{ detailTarget.isActive ? 'Activo' : 'Inactivo' }}
-        </p>
+        <div class="catalog-page__detail-head" :style="{ '--row-index': 0 }">
+          <p
+            class="catalog-page__detail-status"
+            :class="{ 'catalog-page__detail-status--active': detailTarget.isActive }"
+            :style="diamondStyle(detailTarget)"
+          >
+            <span class="catalog-page__detail-diamond" aria-hidden="true" />
+            {{ detailTarget.isActive ? 'Activo' : 'Inactivo' }}
+          </p>
+          <dl class="catalog-page__detail-meta">
+            <div>
+              <dt>Registrado</dt>
+              <dd>{{ formatDateLong(detailTarget.createdAt) }}</dd>
+            </div>
+            <div v-if="detailTarget.deactivatedAt">
+              <dt>Inactivo desde</dt>
+              <dd>{{ formatDateLong(detailTarget.deactivatedAt) }}</dd>
+            </div>
+          </dl>
+        </div>
 
-        <dl class="catalog-page__lifecycle-facts catalog-page__detail-facts">
-          <div :style="{ '--row-index': 1 }">
-            <dt>Duración</dt>
-            <dd>
-              {{ detailTarget.durationMinutes }}
-              <small>min</small>
-            </dd>
-          </div>
-          <div :style="{ '--row-index': 2 }">
+        <dl class="catalog-page__detail-figures" :style="{ '--row-index': 1 }">
+          <div class="catalog-page__detail-figure catalog-page__detail-figure--price">
             <dt>Precio</dt>
             <dd>
-              {{ detailTarget.price }}
-              <small>{{ detailTarget.currency }}</small>
+              <span class="catalog-page__detail-symbol">{{ detailPrice!.symbol }}</span>
+              <span class="catalog-page__detail-amount">{{ detailPrice!.amount }}</span>
+              <small>{{ detailPrice!.currency }}</small>
+            </dd>
+          </div>
+          <div class="catalog-page__detail-figure">
+            <dt>Duración</dt>
+            <dd>
+              <svg
+                class="catalog-page__detail-clock"
+                viewBox="0 0 20 20"
+                aria-hidden="true"
+                focusable="false"
+              >
+                <circle cx="10" cy="10" r="7.5" />
+                <path d="M10 6v4.2l2.8 1.8" />
+              </svg>
+              <span class="catalog-page__detail-amount">{{ detailTarget.durationMinutes }}</span>
+              <small>min</small>
             </dd>
           </div>
         </dl>
 
-        <div class="catalog-page__detail-section" :style="{ '--row-index': 3 }">
+        <div class="catalog-page__detail-section" :style="{ '--row-index': 2 }">
           <h3 class="catalog-page__detail-label">Descripción</h3>
           <p v-if="detailTarget.description" class="catalog-page__detail-text">
             {{ detailTarget.description }}
@@ -1351,17 +1399,6 @@ async function reloadAfterConflict(serviceId: string) {
             Este servicio no tiene descripción.
           </p>
         </div>
-
-        <dl class="catalog-page__detail-meta" :style="{ '--row-index': 4 }">
-          <div>
-            <dt>Registrado</dt>
-            <dd>{{ formatDate(detailTarget.createdAt) }}</dd>
-          </div>
-          <div v-if="detailTarget.deactivatedAt">
-            <dt>Inactivo desde</dt>
-            <dd>{{ formatDate(detailTarget.deactivatedAt) }}</dd>
-          </div>
-        </dl>
       </div>
       <!-- Pie fuera del área con scroll: con una descripción larga solo esta
            se desplaza y "Cerrar"/"Editar" nunca quedan fuera de la pantalla. -->
@@ -3224,30 +3261,42 @@ async function reloadAfterConflict(serviceId: string) {
   }
 }
 
-/* Detalle del servicio (issue 2026-09-29). Reutiliza las fichas
-   .catalog-page__lifecycle-facts (duración/precio); lo propio es el estado, la
-   descripción y los datos de registro. Todo entra escalonado con --row-index
-   (mismo recurso que las filas de la lista) un instante después de la tarjeta,
-   para que el diálogo se arme en vez de aparecer de golpe. */
-.catalog-page__detail-status,
-.catalog-page__detail-facts > div,
-.catalog-page__detail-section,
-.catalog-page__detail-meta {
+/* Detalle del servicio (issue 2026-09-29, rediseñado en el #577): cabecera
+   con estado y fechas, una sola ficha de cifras y la descripción. Cada bloque
+   entra escalonado con --row-index un instante después de la tarjeta, para
+   que el diálogo se arme en vez de aparecer de golpe. */
+.catalog-page__detail {
+  gap: var(--space-5);
+}
+
+.catalog-page__detail-head,
+.catalog-page__detail-figures,
+.catalog-page__detail-section {
   animation: catalog-detail-enter 380ms var(--motion-easing-standard) both;
   animation-delay: calc(120ms + var(--row-index, 0) * 70ms);
+}
+
+.catalog-page__detail-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2) var(--space-4);
 }
 
 .catalog-page__detail-status {
   display: inline-flex;
   align-items: center;
-  align-self: flex-start;
   gap: 8px;
   margin: 0;
+  padding: 5px 12px 5px 10px;
   color: var(--color-on-strong-muted);
   font-size: var(--font-size-caption);
   font-weight: 600;
   letter-spacing: 0.08em;
   text-transform: uppercase;
+  border: var(--border-width-normal) solid currentColor;
+  border-radius: 999px;
 }
 
 .catalog-page__detail-status--active {
@@ -3266,17 +3315,123 @@ async function reloadAfterConflict(serviceId: string) {
     infinite;
 }
 
+.catalog-page__detail-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-1) var(--space-5);
+  margin: 0;
+}
+
+.catalog-page__detail-meta > div {
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+}
+
+.catalog-page__detail-meta dt {
+  color: var(--color-on-strong-muted);
+  font-size: var(--font-size-caption);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.catalog-page__detail-meta dd {
+  margin: 0;
+  color: var(--color-on-strong);
+  font-size: var(--font-size-body-sm);
+  font-variant-numeric: tabular-nums;
+}
+
+/* Ficha de cifras: una sola superficie con filete de acento arriba y las dos
+   cifras separadas por un filete vertical (en angosto, horizontal). El
+   precio pesa más que la duración: es lo que se busca al abrir el detalle. */
+.catalog-page__detail-figures {
+  display: grid;
+  grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr);
+  margin: 0;
+  background-color: var(--color-field-strong);
+  border: var(--border-width-normal) solid var(--color-field-strong-border);
+  border-top: var(--border-width-emphasis) solid var(--color-brand-accent-surface);
+  border-radius: var(--radius-sm);
+}
+
+.catalog-page__detail-figure {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  min-width: 0;
+  padding: var(--space-4) var(--space-5);
+}
+
+.catalog-page__detail-figure + .catalog-page__detail-figure {
+  border-left: var(--border-width-normal) solid var(--color-field-strong-border);
+}
+
+.catalog-page__detail-figure dt {
+  color: var(--color-on-strong-muted);
+  font-size: var(--font-size-caption);
+  font-weight: 600;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+.catalog-page__detail-figure dd {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  column-gap: 6px;
+  margin: 0;
+  color: var(--color-on-strong);
+}
+
+.catalog-page__detail-amount {
+  font-family: var(--font-display);
+  font-size: var(--font-size-h1);
+  line-height: 1.05;
+  font-variant-numeric: tabular-nums;
+}
+
+.catalog-page__detail-figure--price .catalog-page__detail-amount {
+  font-size: var(--font-size-display);
+  line-height: 1;
+}
+
+.catalog-page__detail-symbol {
+  align-self: flex-start;
+  margin-top: 4px;
+  color: var(--color-brand-accent-surface);
+  font-family: var(--font-display);
+  font-size: var(--font-size-h3);
+}
+
+.catalog-page__detail-figure dd small {
+  color: var(--color-on-strong-muted);
+  font-size: var(--font-size-caption);
+  font-weight: 600;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+.catalog-page__detail-clock {
+  align-self: center;
+  width: 18px;
+  height: 18px;
+  margin-right: 2px;
+  fill: none;
+  stroke: var(--color-brand-accent-surface);
+  stroke-width: 1.6;
+  stroke-linecap: round;
+}
+
 .catalog-page__detail-section {
   display: flex;
   flex-direction: column;
   gap: var(--space-2);
-  padding: var(--space-4);
-  background-color: var(--color-field-strong);
-  border: var(--border-width-normal) solid var(--color-field-strong-border);
-  /* Filete dorado a la izquierda, como cita: marca el texto largo como el
-     contenido principal del detalle sin recurrir a otra caja de color. */
-  border-left: var(--border-width-emphasis) solid var(--color-brand-accent-surface);
-  border-radius: var(--radius-sm);
+  padding-left: var(--space-4);
+  /* Filete de acento a la izquierda, como cita: marca el texto largo como el
+     contenido principal sin otra caja de color. */
+  border-left: var(--border-width-emphasis) solid
+    color-mix(in srgb, var(--color-brand-accent-surface) 70%, transparent);
 }
 
 .catalog-page__detail-label {
@@ -3288,38 +3443,24 @@ async function reloadAfterConflict(serviceId: string) {
   text-transform: uppercase;
 }
 
-/* pre-wrap respeta los saltos de línea que la persona escribió; anywhere evita
-   que una palabra sin espacios (una URL, 500 caracteres seguidos) ensanche el
-   diálogo. */
-/* Las cifras son el dato que se busca al abrir el detalle: un escalón sobre el
-   cuerpo de las fichas de estado del diálogo de ciclo de vida. */
-.catalog-page__detail-facts,
+/* Las fichas de cifra del diálogo de estado (Desactivar/Reactivar) conservan
+   su composición propia. */
 .catalog-page__facts-rich {
   gap: var(--space-4);
 }
 
-/* Ficha de cifra: filete de latón arriba (como el marco de la foto del
-   barbero), la cifra grande y su unidad a su lado en la misma línea. */
-.catalog-page__detail-facts > div,
 .catalog-page__facts-rich > div {
   gap: var(--space-3);
   padding: var(--space-4) var(--space-5) var(--space-5);
   border-top: var(--border-width-emphasis) solid var(--color-brand-accent-surface);
 }
 
-.catalog-page__detail-facts dd,
 .catalog-page__facts-rich dd {
   display: flex;
   align-items: baseline;
-  gap: var(--space-2);
-  font-size: var(--font-size-display);
-  line-height: var(--font-size-display-line);
-}
-
-/* Tres fichas en el diálogo de estado: la cifra no cabe a 36 px sin partirse
-   ("45000.0 / 0"), así que baja un escalón y la unidad pasa a la línea de
-   abajo cuando falta sitio, nunca la cifra. */
-.catalog-page__facts-rich dd {
+  /* Tres fichas: la cifra no cabe a 36 px sin partirse ("45000.0 / 0"), así
+     que baja un escalón y la unidad pasa a la línea de abajo cuando falta
+     sitio, nunca la cifra. */
   flex-wrap: wrap;
   column-gap: var(--space-2);
   row-gap: 0;
@@ -3329,17 +3470,16 @@ async function reloadAfterConflict(serviceId: string) {
 }
 
 .catalog-page__facts-rich dd small {
-  flex-basis: auto;
-}
-
-.catalog-page__detail-facts dd small,
-.catalog-page__facts-rich dd small {
   display: inline;
+  flex-basis: auto;
   margin: 0;
   font-size: var(--font-size-body-sm);
   text-transform: uppercase;
 }
 
+/* pre-wrap respeta los saltos de línea que la persona escribió; anywhere evita
+   que una palabra sin espacios (una URL, 500 caracteres seguidos) ensanche el
+   diálogo. */
 .catalog-page__detail-text {
   margin: 0;
   color: var(--color-on-strong);
@@ -3354,33 +3494,22 @@ async function reloadAfterConflict(serviceId: string) {
   font-style: italic;
 }
 
-.catalog-page__detail-meta {
-  display: flex;
-  flex-wrap: wrap;
-  gap: var(--space-2) var(--space-6);
-  margin: 0;
-  padding-top: var(--space-4);
-  border-top: var(--border-width-normal) solid var(--color-field-strong-border);
-}
-
-.catalog-page__detail-meta dt {
-  color: var(--color-on-strong-muted);
-  font-size: var(--font-size-caption);
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
-}
-
-.catalog-page__detail-meta dd {
-  margin: 2px 0 0;
-  font-size: var(--font-size-body-sm);
-  font-variant-numeric: tabular-nums;
-}
-
 .catalog-page__detail-footer {
   flex: 1;
   flex-flow: row wrap;
   justify-content: flex-end;
   gap: var(--space-3);
+}
+
+@media (max-width: 480px) {
+  .catalog-page__detail-figures {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .catalog-page__detail-figure + .catalog-page__detail-figure {
+    border-top: var(--border-width-normal) solid var(--color-field-strong-border);
+    border-left: none;
+  }
 }
 
 @keyframes catalog-detail-enter {
@@ -3396,10 +3525,9 @@ async function reloadAfterConflict(serviceId: string) {
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .catalog-page__detail-status,
-  .catalog-page__detail-facts > div,
+  .catalog-page__detail-head,
+  .catalog-page__detail-figures,
   .catalog-page__detail-section,
-  .catalog-page__detail-meta,
   .catalog-page__detail-diamond,
   .catalog-page__item-chevron,
   .catalog-page__item-name,
