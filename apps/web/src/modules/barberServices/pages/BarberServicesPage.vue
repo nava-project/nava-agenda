@@ -22,6 +22,7 @@ import {
   BaseAlert,
   BaseButton,
   BasePagination,
+  DiamondLoader,
   EmptyScene,
 } from '@/shared/ui'
 import {
@@ -46,6 +47,20 @@ const assignmentsStatus = ref<AssignmentsStatus>('idle')
 const assignedServiceIds = ref<Set<string>>(new Set())
 const pendingServiceIds = ref<Set<string>>(new Set())
 const toggleError = ref<string | null>(null)
+
+// Velo de carga del catálogo (issue #575): cubre la tabla mientras llegan las
+// asignaciones de la persona elegida o mientras se mide cuántas filas caben.
+// La tabla anterior sigue debajo (atenuada e inerte), así cambiar de persona no
+// vacía la pantalla ni la hace saltar de alto.
+const catalogBusy = computed(() => assignmentsStatus.value === 'loading' || fitPending.value)
+// Primera carga: todavía no hay asignaciones reales que mostrar debajo del velo.
+const hasShownAssignments = ref(false)
+
+const LOADING_PHRASES = [
+  'Repasando el catálogo',
+  'Afilando la navaja',
+  'Alineando los servicios',
+] as const
 
 const selectedBarber = computed(
   () => barbers.value.find((b) => b.id === selectedBarberId.value) ?? null,
@@ -214,6 +229,7 @@ async function selectBarber(barberId: string) {
   if (outcome.kind === 'success') {
     assignedServiceIds.value = new Set(outcome.page.items.map((a) => a.serviceId))
     assignmentsStatus.value = 'ready'
+    hasShownAssignments.value = true
     return
   }
   assignmentsStatus.value = 'error'
@@ -322,10 +338,20 @@ async function onToggleService(service: ServiceSummary, event: Event) {
       role="status"
       aria-live="polite"
     >
-      <p class="barber-services-page__state-text">Cargando {{ v.professionals }} y servicios…</p>
-      <ul class="barber-services-page__skeleton" aria-hidden="true">
-        <li v-for="n in 3" :key="n" class="barber-services-page__skeleton-row" />
-      </ul>
+      <DiamondLoader
+        :label="`Cargando ${v.professionals} y servicios…`"
+        layout="inline"
+        :phrases="LOADING_PHRASES"
+      />
+      <!-- Esqueleto con la misma forma que la pantalla lista (ficha a la
+           izquierda, tabla a la derecha) para que nada cambie de sitio al
+           llegar los datos. -->
+      <div class="barber-services-page__skeleton-workspace" aria-hidden="true">
+        <span class="barber-services-page__skeleton-profile" />
+        <ul class="barber-services-page__skeleton">
+          <li v-for="n in 4" :key="n" class="barber-services-page__skeleton-row" />
+        </ul>
+      </div>
     </div>
 
     <BaseAlert
@@ -368,7 +394,9 @@ async function onToggleService(service: ServiceSummary, event: Event) {
              re-montaje) para que se lea como "otra persona", no como un dato
              que cambia de sitio. -->
         <aside class="barber-services-page__profile nv-rise" style="--i: 1">
-          <div :key="selectedBarberId ?? 'none'" class="barber-services-page__identity nv-pop">
+          <!-- La ficha cambia en su sitio: re-montarla (o una transición de salida y
+               entrada) la dejaba vacía un instante y la pantalla parpadeaba. -->
+          <div class="barber-services-page__identity">
             <BarberAvatar
               v-if="selectedBarber"
               :full-name="selectedBarber.fullName"
@@ -390,9 +418,11 @@ async function onToggleService(service: ServiceSummary, event: Event) {
             />
           </div>
 
+          <!-- El medidor no desaparece mientras carga la siguiente persona: solo se
+               atenúa, así la ficha conserva su alto. -->
           <div
-            v-if="assignmentsStatus === 'ready'"
             class="barber-services-page__meter"
+            :class="{ 'barber-services-page__meter--busy': assignmentsStatus !== 'ready' }"
             role="group"
             aria-label="Servicios asignados"
           >
@@ -410,27 +440,27 @@ async function onToggleService(service: ServiceSummary, event: Event) {
           </div>
         </aside>
 
-        <div class="barber-services-page__panel">
-          <div
-            v-if="assignmentsStatus === 'loading'"
-            class="barber-services-page__state"
-            role="status"
-            aria-live="polite"
-          >
-            <p class="barber-services-page__state-text">
-              Cargando los servicios de {{ selectedBarber?.fullName }}…
-            </p>
-            <ul class="barber-services-page__skeleton" aria-hidden="true">
-              <li
-                v-for="n in Math.min(services.length, 4)"
-                :key="n"
-                class="barber-services-page__skeleton-row"
+        <div
+          class="barber-services-page__panel"
+          :class="{ 'barber-services-page__panel--busy': catalogBusy }"
+          :aria-busy="catalogBusy ? 'true' : undefined"
+        >
+          <Transition name="barber-services-veil">
+            <div
+              v-if="catalogBusy && assignmentsStatus !== 'error'"
+              class="barber-services-page__veil"
+              role="status"
+              aria-live="polite"
+            >
+              <DiamondLoader
+                :label="`Cargando los servicios de ${selectedBarber?.fullName ?? v.theProfessional}…`"
+                :phrases="LOADING_PHRASES"
               />
-            </ul>
-          </div>
+            </div>
+          </Transition>
 
           <BaseAlert
-            v-else-if="assignmentsStatus === 'error'"
+            v-if="assignmentsStatus === 'error'"
             variant="warning"
             :title="`No pudimos cargar los servicios ${v.ofThisProfessional}`"
             role="alert"
@@ -443,11 +473,18 @@ async function onToggleService(service: ServiceSummary, event: Event) {
             </template>
           </BaseAlert>
 
+          <!-- Sin :key por persona: re-montar la tabla en cada cambio repetía la
+               entrada escalonada de todas las filas y la pantalla «temblaba».
+               `inert` se quita con undefined: Vue escribiría inert="false" y el
+               navegador trata cualquier valor como activo. -->
           <fieldset
-            v-else-if="assignmentsStatus === 'ready'"
-            :key="selectedBarberId ?? 'none'"
+            v-else
             class="barber-services-page__fieldset"
-            :class="{ 'barber-services-page__fieldset--fitting': fitPending }"
+            :class="{
+              'barber-services-page__fieldset--hidden': !hasShownAssignments,
+              'barber-services-page__fieldset--dimmed': hasShownAssignments && catalogBusy,
+            }"
+            :inert="catalogBusy || undefined"
           >
             <legend class="barber-services-page__legend">
               Servicios que presta {{ selectedBarber?.fullName }}
@@ -785,10 +822,111 @@ async function onToggleService(service: ServiceSummary, event: Event) {
   margin: 0;
 }
 
-/* Mientras se mide cuántas filas caben, el contenido ocupa su lugar pero no se
-   ve: así la tabla no salta de tamaño ante la persona. */
-.barber-services-page__fieldset--fitting {
+/* Velo de carga del catálogo (issue #575). La tabla de debajo conserva su alto:
+   en la primera carga no se ve (aún no hay datos reales), al cambiar de
+   persona se atenúa. */
+.barber-services-page__panel {
+  position: relative;
+  min-height: 320px;
+}
+
+.barber-services-page__fieldset {
+  transition: opacity 220ms var(--motion-easing-standard);
+}
+
+.barber-services-page__fieldset--hidden {
   visibility: hidden;
+}
+
+.barber-services-page__fieldset--dimmed {
+  opacity: 0.22;
+  /* Mismo retraso que el velo: una respuesta rápida no llega a atenuar. */
+  transition-delay: 120ms;
+}
+
+.barber-services-page__veil {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: color-mix(in srgb, var(--color-field-strong) 55%, transparent);
+  border: var(--border-width-normal) solid var(--color-field-strong-border);
+  border-radius: 3px;
+  backdrop-filter: blur(2px);
+}
+
+/* El velo entra con un retraso breve: si la respuesta llega antes, nunca se
+   pinta y una carga casi instantánea no destella. */
+.barber-services-veil-enter-active {
+  transition: opacity 220ms var(--motion-easing-standard) 120ms;
+}
+
+.barber-services-veil-leave-active {
+  transition: opacity 180ms var(--motion-easing-standard);
+}
+
+.barber-services-veil-enter-from,
+.barber-services-veil-leave-to {
+  opacity: 0;
+}
+
+.barber-services-page__meter {
+  transition: opacity 220ms var(--motion-easing-standard);
+}
+
+.barber-services-page__meter--busy {
+  opacity: 0.35;
+}
+
+/* Esqueleto de la primera carga con la forma de la pantalla lista. */
+.barber-services-page__skeleton-workspace {
+  display: grid;
+  gap: 24px;
+  grid-template-columns: minmax(0, 1fr);
+  margin-top: var(--space-3);
+}
+
+.barber-services-page__skeleton-profile {
+  height: 220px;
+  background: linear-gradient(
+    100deg,
+    transparent 30%,
+    color-mix(in srgb, var(--color-on-strong) 8%, transparent) 50%,
+    transparent 70%
+  );
+  background-color: var(--color-field-strong);
+  background-size: 200% 100%;
+  border: var(--border-width-normal) solid var(--color-field-strong-border);
+  border-top: var(--border-width-emphasis) solid
+    color-mix(in srgb, var(--color-brand-accent-surface) 50%, transparent);
+  border-radius: 3px;
+  animation: nava-shimmer 1.6s linear infinite;
+}
+
+@media (min-width: 900px) {
+  .barber-services-page__skeleton-workspace {
+    grid-template-columns: 280px minmax(0, 1fr);
+    gap: 32px;
+  }
+
+  .barber-services-page__skeleton-profile {
+    height: 320px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .barber-services-page__fieldset,
+  .barber-services-page__meter,
+  .barber-services-veil-enter-active,
+  .barber-services-veil-leave-active {
+    transition: none;
+  }
+
+  .barber-services-page__skeleton-profile {
+    animation: none;
+  }
 }
 
 /* Encabezado reglado: versalitas espaciadas de latón, igual que Barberos y

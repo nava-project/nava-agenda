@@ -1907,7 +1907,12 @@ function seriesCounts(item: TimeBlockSeries): string {
   border-color: var(--color-brand-accent-surface);
 }
 .block-dialog .base-dialog__close {
-  color: var(--color-on-strong);
+  color: var(--color-on-strong-muted) !important;
+}
+
+.block-dialog .base-dialog__close:hover {
+  background-color: color-mix(in srgb, var(--color-on-strong) 8%, transparent) !important;
+  color: var(--color-on-strong) !important;
 }
 
 /* Entrada: la tarjeta rebota al asentarse (misma curva que Servicios y Mi

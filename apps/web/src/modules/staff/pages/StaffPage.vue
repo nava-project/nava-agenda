@@ -177,10 +177,21 @@ async function fitPage() {
   const listRect = list.getBoundingClientRect(),
     footerRect = footer.getBoundingClientRect()
   const gap = Math.max(0, footerRect.top - listRect.bottom)
-  const bottomPadding = parseFloat(getComputedStyle(page).paddingBottom)
+  const pageStyle = getComputedStyle(page)
+  const bottomPadding = parseFloat(pageStyle.paddingBottom)
+  // La pantalla se centra en vertical cuando la lista es corta (issue #575):
+  // el hueco que el centrado deja arriba no es espacio ocupado, así que se
+  // descuenta para que el número de filas no dependa de cuánto se centró.
+  const header = page.querySelector<HTMLElement>('.staff-page__header')
+  const rawOffset = header
+    ? header.getBoundingClientRect().top -
+      page.getBoundingClientRect().top -
+      (parseFloat(pageStyle.paddingTop) || 0)
+    : 0
+  const centeringOffset = Number.isFinite(rawOffset) ? Math.max(0, rawOffset) : 0
   const available =
     parent.clientHeight -
-    (listRect.top - parent.getBoundingClientRect().top + parent.scrollTop) -
+    (listRect.top - centeringOffset - parent.getBoundingClientRect().top + parent.scrollTop) -
     gap -
     footerRect.height -
     bottomPadding -
@@ -1204,6 +1215,10 @@ async function onSubmitRename() {
 
   display: flex;
   flex-direction: column;
+  /* Con pocos barberos el bloque queda centrado en el visor en vez de pegado
+     arriba con un gran vacío debajo (issue #575); con muchos llena el alto y
+     el centrado no desplaza nada. */
+  justify-content: center;
   gap: 16px;
   min-height: 100%;
   padding: 34px 32px 48px;

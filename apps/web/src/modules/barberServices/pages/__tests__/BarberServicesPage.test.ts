@@ -244,6 +244,33 @@ describe('BarberServicesPage', () => {
     expect(checkbox(wrapper, 's-2').checked).toBe(true)
   })
 
+  // Issue #575: cambiar de persona vaciaba la ficha y la tabla y la pantalla
+  // saltaba. Ahora la tabla anterior queda debajo de un velo de carga, inerte.
+  it('keeps the previous catalog in place, inert, under a loading veil while switching barbers', async () => {
+    const wrapper = await mountReady(fourBarbers, twoServices, ['s-1'])
+
+    let resolveAssignments: (value: unknown) => void = () => {}
+    fetchAssignmentsMock.mockReturnValueOnce(
+      new Promise((resolve) => (resolveAssignments = resolve)),
+    )
+    await chooseBarber(wrapper, fourBarbers[1]!.fullName)
+
+    const fieldset = wrapper.find('fieldset')
+    expect(fieldset.exists()).toBe(true)
+    expect(fieldset.attributes('inert')).toBeDefined()
+    expect(wrapper.find('.barber-services-page__panel').attributes('aria-busy')).toBe('true')
+    expect(wrapper.find('[role="status"]').text()).toContain(
+      `Cargando los servicios de ${fourBarbers[1]!.fullName}`,
+    )
+
+    resolveAssignments({ kind: 'success', page: { items: [], nextCursor: null } })
+    await flushPromises()
+
+    expect(wrapper.find('fieldset').attributes('inert')).toBeUndefined()
+    expect(wrapper.find('.barber-services-page__panel').attributes('aria-busy')).toBeUndefined()
+    expect(checkbox(wrapper, 's-1').checked).toBe(false)
+  })
+
   it('checking a box assigns the service and reflects success only after the server responds', async () => {
     const wrapper = await mountReady(oneBarber, twoServices, [])
     assignServiceMock.mockResolvedValueOnce({

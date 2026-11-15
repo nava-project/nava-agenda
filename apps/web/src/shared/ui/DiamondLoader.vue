@@ -74,9 +74,9 @@ onBeforeUnmount(() => {
             <path d="M32 4 60 32 32 60 4 32Z" />
           </clipPath>
           <linearGradient :id="glintId" x1="0" y1="0" x2="1" y2="0">
-            <stop offset="0" stop-color="#f6e6c2" stop-opacity="0" />
-            <stop offset="0.5" stop-color="#f6e6c2" stop-opacity="0.9" />
-            <stop offset="1" stop-color="#f6e6c2" stop-opacity="0" />
+            <stop offset="0" class="diamond-loader__glint-stop" stop-opacity="0" />
+            <stop offset="0.5" class="diamond-loader__glint-stop" stop-opacity="0.9" />
+            <stop offset="1" class="diamond-loader__glint-stop" stop-opacity="0" />
           </linearGradient>
         </defs>
         <path class="diamond-loader__inner" d="M32 17 47 32 32 47 17 32Z" />
@@ -125,6 +125,12 @@ onBeforeUnmount(() => {
   gap: var(--space-4);
   padding: var(--space-8) var(--space-4);
   color: var(--color-on-strong);
+}
+
+/* Destello claro teñido con el acento de la barbería: antes era un crema
+   dorado fijo que se veía latón con cualquier marca (issue #575). */
+.diamond-loader__glint-stop {
+  stop-color: color-mix(in srgb, var(--gem-brass) 35%, #fbf7ef);
 }
 
 .diamond-loader--stacked {

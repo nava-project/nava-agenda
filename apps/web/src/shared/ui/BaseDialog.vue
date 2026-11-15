@@ -496,9 +496,11 @@ onUnmounted(() => {
   }
 }
 
+/* Tinte translúcido del propio color del icono, no un relleno de superficie:
+   sobre tinta, el relleno claro dejaba un cuadro blanco ajeno a la paleta
+   (issue #575). Así la X se ve igual en papel, tinta y marfil. */
 .base-dialog__close:hover {
-  background-color: var(--color-surface-muted);
-  color: var(--color-text-primary);
+  background-color: color-mix(in srgb, currentColor 12%, transparent);
 }
 
 .base-dialog__close:focus-visible {
