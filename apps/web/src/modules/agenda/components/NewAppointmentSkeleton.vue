@@ -4,7 +4,8 @@
  * (issue #190, atlas nuevo-turno-eventos evento 01): mientras barberos y zona
  * horaria siguen sin resolverse, la pantalla conserva la hoja de cuatro
  * bandas numeradas y sus campos en vez de dejar un indicador suelto sobre una
- * pantalla vacía. Hermano de `AgendaSkeleton` (evento 05 del atlas de
+ * pantalla vacía. Desde el rediseño del issue #576 calca los pasos con su
+ * cifra redonda y el boleto lateral con las dos acciones. Hermano de `AgendaSkeleton` (evento 05 del atlas de
  * `/panel`) y, como él, local al módulo `agenda`: su geometría es la de esta
  * pantalla, no se promueve a shared/ui.
  *
@@ -55,7 +56,17 @@ const BANDS: readonly (readonly number[])[] = [[2], [2, 2], [2], [1]]
         </div>
       </div>
 
-      <div class="nt-skeleton__actions">
+      <div class="nt-skeleton__rail">
+        <div class="nt-skeleton__ticket">
+          <span class="nt-skeleton__bar nt-skeleton__bar--label" />
+          <span class="nt-skeleton__bar nt-skeleton__bar--time" />
+          <span class="nt-skeleton__bar nt-skeleton__bar--hint" />
+          <span class="nt-skeleton__perforation" />
+          <span v-for="n in 3" :key="n" class="nt-skeleton__field">
+            <span class="nt-skeleton__bar nt-skeleton__bar--label" />
+            <span class="nt-skeleton__bar nt-skeleton__bar--value" />
+          </span>
+        </div>
         <span class="nt-skeleton__bar nt-skeleton__bar--cta" />
       </div>
     </div>
@@ -103,20 +114,20 @@ const BANDS: readonly (readonly number[])[] = [[2], [2, 2], [2], [1]]
 }
 
 /* Misma hoja que el formulario real: una sola superficie translúcida con
-   filete de latón a la izquierda, no cuatro tarjetas. */
+   los cuatro pasos, no cuatro tarjetas. */
 .nt-skeleton__sheet {
+  padding: 6px 16px;
   background-color: color-mix(in srgb, var(--color-on-strong) 3.5%, transparent);
   border: var(--border-width-normal) solid
     color-mix(in srgb, var(--color-on-strong) 10%, transparent);
-  border-left: 3px solid color-mix(in srgb, var(--color-brand-accent-surface) 55%, transparent);
-  border-radius: 2px;
+  border-radius: 4px;
 }
 
 .nt-skeleton__band {
   display: flex;
   flex-direction: column;
   gap: 14px;
-  padding: 18px 16px;
+  padding: 18px 0;
 }
 
 .nt-skeleton__band + .nt-skeleton__band {
@@ -126,8 +137,8 @@ const BANDS: readonly (readonly number[])[] = [[2], [2, 2], [2], [1]]
 
 .nt-skeleton__head {
   display: flex;
-  align-items: flex-start;
-  gap: 11px;
+  align-items: center;
+  gap: 14px;
 }
 
 .nt-skeleton__stack {
@@ -165,8 +176,9 @@ const BANDS: readonly (readonly number[])[] = [[2], [2, 2], [2], [1]]
 
 .nt-skeleton__bar--num {
   flex: none;
-  width: 26px;
-  height: 26px;
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
 }
 
 .nt-skeleton__bar--title {
@@ -196,15 +208,56 @@ const BANDS: readonly (readonly number[])[] = [[2], [2, 2], [2], [1]]
     color-mix(in srgb, var(--color-brand-accent-surface) 45%, transparent);
 }
 
-.nt-skeleton__actions {
+.nt-skeleton__rail {
   display: flex;
   flex-direction: column;
+  gap: 14px;
+}
+
+/* Boleto por llegar: misma superficie elevada, filete superior de acento y
+   perforación que el resumen real. */
+.nt-skeleton__ticket {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 16px;
+  background-color: var(--color-field-strong-raised);
+  border: var(--border-width-normal) solid
+    color-mix(in srgb, var(--color-on-strong) 12%, transparent);
+  border-top: 3px solid color-mix(in srgb, var(--color-brand-accent-surface) 55%, transparent);
+  border-radius: 4px;
+}
+
+.nt-skeleton__bar--time {
+  width: 120px;
+  height: 40px;
+}
+
+.nt-skeleton__bar--value {
+  width: 150px;
+  height: 14px;
+}
+
+.nt-skeleton__perforation {
+  margin: 4px -16px;
+  border-top: 2px dashed color-mix(in srgb, var(--color-on-strong) 16%, transparent);
 }
 
 .nt-skeleton__bar--cta {
   width: 100%;
   height: 48px;
   background-color: color-mix(in srgb, var(--color-brand-accent-surface) 35%, transparent);
+}
+
+@media (min-width: 640px) {
+  .nt-skeleton__body {
+    padding-left: 44px;
+  }
+
+  .nt-skeleton__row {
+    flex-direction: row;
+    gap: 16px;
+  }
 }
 
 @keyframes nt-skeleton-pulse {
@@ -239,27 +292,33 @@ const BANDS: readonly (readonly number[])[] = [[2], [2, 2], [2], [1]]
     height: 18px;
   }
 
-  /* Misma sangría que el CTA real: rótulo (288px) + gutter (28px) + relleno
-     de banda (26px) + filete de latón (3px). */
+  /* Misma retícula que el formulario real: hoja y boleto de 340px. */
   .nt-skeleton__layout {
-    gap: 0;
-    max-width: 980px;
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 340px;
+    align-items: start;
+    gap: 28px;
+    max-width: 1240px;
   }
 
-  .nt-skeleton__actions {
-    margin-top: 16px;
-    padding-left: calc(26px + 288px + 28px + 3px);
+  .nt-skeleton__sheet {
+    padding: 4px 28px;
   }
 
   .nt-skeleton__band {
-    display: grid;
-    grid-template-columns: 288px minmax(0, 1fr);
-    gap: 28px;
-    padding: 20px 26px;
+    padding: 22px 0;
   }
 
   .nt-skeleton__head {
-    gap: 12px;
+    gap: 18px;
+  }
+
+  .nt-skeleton__body {
+    padding-left: 52px;
+  }
+
+  .nt-skeleton__ticket {
+    padding: 20px;
   }
 
   .nt-skeleton__body {
@@ -267,7 +326,6 @@ const BANDS: readonly (readonly number[])[] = [[2], [2, 2], [2], [1]]
   }
 
   .nt-skeleton__row {
-    flex-direction: row;
     gap: 20px;
   }
 
@@ -276,8 +334,8 @@ const BANDS: readonly (readonly number[])[] = [[2], [2, 2], [2], [1]]
   }
 
   .nt-skeleton__bar--num {
-    width: 28px;
-    height: 28px;
+    width: 34px;
+    height: 34px;
   }
 
   .nt-skeleton__bar--title {
@@ -293,11 +351,6 @@ const BANDS: readonly (readonly number[])[] = [[2], [2, 2], [2], [1]]
 
   .nt-skeleton__bar--label {
     width: 88px;
-  }
-
-  .nt-skeleton__bar--cta {
-    width: 240px;
-    height: 50px;
   }
 }
 </style>

@@ -308,7 +308,7 @@ Secciones y orden:
 5. resumen;
 6. confirmación.
 
-La composición del formulario se adapta al espacio disponible; un resumen lateral o inferior puede usarse solo si ayuda. Cambiar barbero invalida de forma explícita un servicio incompatible; no se borra silenciosamente. La hora manual no se fuerza a la rejilla pública. Los conflictos de jornada, bloqueo o cruce conservan datos y llevan el foco a fecha/hora.
+La composición del formulario se adapta al espacio disponible; un resumen lateral o inferior puede usarse solo si ayuda. Cambiar barbero invalida de forma explícita un servicio incompatible; no se borra silenciosamente. La hora manual no se fuerza a la rejilla pública. Los conflictos de jornada, bloqueo o cruce conservan datos y llevan el foco a fecha/hora. Junto al botón principal hay un **Cancelar** que vuelve a la agenda sin guardar; la agenda abre «Nuevo turno» con su barbero y su fecha en la URL (`?barberId=…&date=…`) y Cancelar los devuelve, para regresar al mismo día (issue #576).
 
 Textos canónicos: “Nuevo turno”, “Persona atendida”, “Hora de inicio”, “Duración prevista”, “Crear turno”, “Creando…”. Nunca “Nueva cita”.
 

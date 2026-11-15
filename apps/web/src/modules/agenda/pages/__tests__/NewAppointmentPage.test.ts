@@ -10,6 +10,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { resetToasts, toastState } from '@/shared/model/toastStore'
 import { DEFAULT_BRAND, resetBrand, setBrand } from '@/shared/model'
 import { mount, flushPromises } from '@vue/test-utils'
+import { createMemoryHistory, createRouter } from 'vue-router'
 import { axe } from 'vitest-axe'
 
 const fetchBarberSummariesMock = vi.hoisted(() => vi.fn())
@@ -140,19 +141,41 @@ describe('NewAppointmentPage', () => {
     expect(wrapper.text()).toContain('Elige un barbero')
   })
 
-  it('does not show a "Resumen" section on an untouched form', async () => {
+  // Rediseño del issue #576: el boleto del resumen está desde el inicio y
+  // nombra lo pendiente en vez de ocultarlo, para que su forma no salte.
+  it('shows the summary ticket with every pending item named on an untouched form', async () => {
     const wrapper = await mountReady()
-    expect(wrapper.find('.new-appointment-page__resumen').exists()).toBe(false)
+    const resumen = wrapper.get('.new-appointment-page__resumen')
+    expect(resumen.text()).toContain('0/3 pasos')
+    expect(resumen.text()).toContain('Fecha por definir')
+    expect(resumen.text()).toContain('Por elegir')
+    expect(resumen.text()).toContain('Por escribir')
   })
 
-  it('shows a live "Resumen" with only the fields filled so far (Fase 4b, adopción NAVA)', async () => {
+  it('fills the summary ticket live, keeping what is still pending as such', async () => {
     const wrapper = await mountReady()
     fetchAssignedServicesMock.mockResolvedValueOnce({ kind: 'success', items: twoServices })
     await chooseBarber(wrapper)
 
     const resumen = wrapper.get('.new-appointment-page__resumen')
     expect(resumen.text()).toContain('Carlos Ramírez')
-    expect(resumen.text()).not.toContain('Servicio')
+    expect(resumen.text()).toContain('Por elegir')
+    expect(resumen.text()).toContain('0/3 pasos')
+  })
+
+  it('marks each step as done once its required fields are filled', async () => {
+    const wrapper = await mountReady()
+    await fillValidForm(wrapper)
+
+    const sections = wrapper.findAll('.new-appointment-page__section')
+    expect(sections.map((s) => s.classes('new-appointment-page__section--done'))).toEqual([
+      true,
+      true,
+      true,
+      false,
+    ])
+    expect(sections[0]!.get('h2').text()).toContain('(listo)')
+    expect(wrapper.get('.new-appointment-page__resumen').text()).toContain('3/3 pasos')
   })
 
   it('reflects every filled field in "Resumen", including the readable date', async () => {
@@ -297,12 +320,67 @@ describe('NewAppointmentPage', () => {
     expect(wrapper.findAll('.nt-skeleton__band')).toHaveLength(4)
   })
 
-  it('does not render the summary rail on an untouched form (atlas evento 04)', async () => {
+  it('keeps Registrar and Cancelar together in the summary rail from the start', async () => {
     const wrapper = await mountReady()
-    expect(wrapper.find('.new-appointment-page__rail').exists()).toBe(false)
-    expect(wrapper.get('.new-appointment-page__layout').classes()).toContain(
-      'new-appointment-page__layout--solo',
-    )
+    const rail = wrapper.get('.new-appointment-page__rail')
+    const labels = rail.findAll('button').map((b) => b.text())
+    expect(labels).toEqual(['Registrar turno', 'Cancelar'])
+  })
+
+  it('Cancelar returns to the agenda day it came from without creating the appointment', async () => {
+    const router = createRouter({
+      history: createMemoryHistory(),
+      routes: [
+        { path: '/panel', name: 'panel', component: { template: '<div />' } },
+        { path: '/panel/turnos/nuevo', name: 'agenda-nuevo-turno', component: NewAppointmentPage },
+      ],
+    })
+    await router.push({
+      name: 'agenda-nuevo-turno',
+      query: { barberId: 'b-1', date: '2026-09-03', extra: 'x' },
+    })
+    fetchBarberSummariesMock.mockResolvedValueOnce({ kind: 'success', items: oneBarber })
+    fetchBarbershopTimezoneMock.mockResolvedValueOnce({
+      kind: 'success',
+      timezone: 'America/Bogota',
+    })
+    const wrapper = mount(NewAppointmentPage, { global: { plugins: [router] } })
+    await flushPromises()
+
+    const cancel = wrapper.findAll('button').find((b) => b.text() === 'Cancelar')!
+    await cancel.trigger('click')
+    await flushPromises()
+
+    expect(router.currentRoute.value.name).toBe('panel')
+    expect(router.currentRoute.value.query).toEqual({ barberId: 'b-1', date: '2026-09-03' })
+    expect(createManualAppointmentMock).not.toHaveBeenCalled()
+  })
+
+  it('Cancelar opened without an agenda origin returns to the agenda default', async () => {
+    const router = createRouter({
+      history: createMemoryHistory(),
+      routes: [
+        { path: '/panel', name: 'panel', component: { template: '<div />' } },
+        { path: '/panel/turnos/nuevo', name: 'agenda-nuevo-turno', component: NewAppointmentPage },
+      ],
+    })
+    await router.push({ name: 'agenda-nuevo-turno', query: { date: 'no-es-fecha' } })
+    fetchBarberSummariesMock.mockResolvedValueOnce({ kind: 'success', items: oneBarber })
+    fetchBarbershopTimezoneMock.mockResolvedValueOnce({
+      kind: 'success',
+      timezone: 'America/Bogota',
+    })
+    const wrapper = mount(NewAppointmentPage, { global: { plugins: [router] } })
+    await flushPromises()
+
+    await wrapper
+      .findAll('button')
+      .find((b) => b.text() === 'Cancelar')!
+      .trigger('click')
+    await flushPromises()
+
+    expect(router.currentRoute.value.name).toBe('panel')
+    expect(router.currentRoute.value.query).toEqual({})
   })
 
   it('has no detectable axe violations in the ready state', async () => {

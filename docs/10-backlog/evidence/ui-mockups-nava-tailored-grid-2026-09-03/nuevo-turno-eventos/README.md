@@ -2,6 +2,8 @@
 
 ## Propósito
 
+> **Sustituido por el rediseño del issue #576 (2026-11-15).** A pedido del propietario, la composición de este atlas (bandas con columna de rótulos y CTA bajo los campos) se reemplazó por pasos con línea de progreso, un boleto de resumen lateral siempre visible y las acciones Registrar y Cancelar junto a él. Los doce eventos, su copy y su comportamiento siguen vigentes; las láminas quedan como historial visual y ya no son referencia de fidelidad. La evidencia de `apps/web/e2e/evidence/nuevo-turno/fidelidad-190/` corresponde a la composición anterior.
+
 Este directorio reemplaza como referencia de implementación la lámina compuesta `03-nuevo-turno.png` de `ui-mockups-nava-tailored-grid-2026-09-02`. La lámina original se conserva como historial visual, pero no debe entregarse a un agente de implementación: cada archivo de este directorio representa una sola pantalla y un solo evento, igual que ocurrió en `/acceso` con `02-acceso-recuperacion.png` y en `/panel` con `01-agenda-diaria-responsive.png`.
 
 La lámina compuesta mostraba, en su tercer panel, botones de cuenta decorativos y navegación duplicada en el encabezado (`Nuevo turno` y `Cerrar sesión` como botones de la barra superior, repetidos luego en el dock). Esa es la misma inconsistencia que ya se corrigió al construir [`auth-eventos`](../auth-eventos/README.md) y [`panel-agenda-eventos`](../panel-agenda-eventos/README.md): el encabezado y el dock de este directorio son el mismo cascarón ya validado en esos dos atlas, sin controles de cuenta decorativos.

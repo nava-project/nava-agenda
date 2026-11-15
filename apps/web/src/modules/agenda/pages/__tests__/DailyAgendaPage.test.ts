@@ -323,6 +323,10 @@ describe('DailyAgendaPage', () => {
     await flushPromises()
 
     expect(router.currentRoute.value.name).toBe('agenda-nuevo-turno')
+    // Lleva el barbero y la fecha que se miraban, para que Cancelar vuelva
+    // a este mismo día (issue #576).
+    expect(router.currentRoute.value.query.barberId).toBeTruthy()
+    expect(router.currentRoute.value.query.date).toMatch(/^\d{4}-\d{2}-\d{2}$/)
   })
 
   it('has no detectable axe violations in the ready state with entries', async () => {

@@ -104,9 +104,13 @@ test.describe('Creación manual de turnos (HU-061)', () => {
     await openNewAppointment(page)
     await chooseBarber(page, barberName)
     await expect(
-      page.getByLabel('Servicio', { exact: true }).locator('option', { hasText: serviceName }),
+      page
+        .getByRole('combobox', { name: 'Servicio', exact: true })
+        .locator('option', { hasText: serviceName }),
     ).toHaveCount(1)
-    await page.getByLabel('Servicio', { exact: true }).selectOption({ label: serviceName })
+    await page
+      .getByRole('combobox', { name: 'Servicio', exact: true })
+      .selectOption({ label: serviceName })
     await page.getByLabel('Persona atendida').fill('Cliente de prueba E2E')
     await page.getByLabel('Nombre del cliente').fill('Cliente de prueba E2E')
     await page.getByLabel('Fecha del turno').fill(date)
@@ -133,7 +137,9 @@ test.describe('Creación manual de turnos (HU-061)', () => {
     async function submitOnce(attendeeName: string) {
       await openNewAppointment(page)
       await chooseBarber(page, barberName)
-      await page.getByLabel('Servicio', { exact: true }).selectOption({ label: serviceName })
+      await page
+        .getByRole('combobox', { name: 'Servicio', exact: true })
+        .selectOption({ label: serviceName })
       await page.getByLabel('Persona atendida').fill(attendeeName)
       await page.getByLabel('Nombre del cliente').fill(attendeeName)
       await page.getByLabel('Fecha del turno').fill(date)
@@ -165,7 +171,7 @@ test.describe('Creación manual de turnos (HU-061)', () => {
     await chooseBarber(page, barberName)
     await expect(
       page
-        .getByLabel('Servicio', { exact: true })
+        .getByRole('combobox', { name: 'Servicio', exact: true })
         .locator('option', { hasText: unassignedService }),
     ).toHaveCount(0)
   })

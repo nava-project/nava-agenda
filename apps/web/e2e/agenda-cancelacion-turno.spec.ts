@@ -85,7 +85,9 @@ async function registerManualAppointment(
   await page.getByRole('link', { name: 'Nuevo turno' }).click()
   await expect(page).toHaveURL(/\/panel\/turnos\/nuevo$/)
   await page.getByLabel('Barbero', { exact: true }).selectOption({ label: barberName })
-  await page.getByLabel('Servicio', { exact: true }).selectOption({ label: serviceName })
+  await page
+    .getByRole('combobox', { name: 'Servicio', exact: true })
+    .selectOption({ label: serviceName })
   await page.getByLabel('Persona atendida').fill(attendeeName)
   await page.getByLabel('Nombre del cliente').fill(attendeeName)
   await page.getByLabel('Fecha del turno').fill(date)
@@ -153,7 +155,9 @@ test.describe('Cancelación de un turno por el barbero (HU-066, T6)', () => {
     const newAttendeeName = `Cliente franja liberada E2E ${stamp}`
     await page.getByRole('link', { name: 'Nuevo turno' }).click()
     await page.getByLabel('Barbero', { exact: true }).selectOption({ label: barberName })
-    await page.getByLabel('Servicio', { exact: true }).selectOption({ label: serviceName })
+    await page
+      .getByRole('combobox', { name: 'Servicio', exact: true })
+      .selectOption({ label: serviceName })
     await page.getByLabel('Persona atendida').fill(newAttendeeName)
     await page.getByLabel('Nombre del cliente').fill(newAttendeeName)
     await page.getByLabel('Fecha del turno').fill(date)

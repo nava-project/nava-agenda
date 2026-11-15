@@ -14,7 +14,13 @@
 // documentan a qué panel responde cada bloque.
 // El resumen de éxito es el resultado persistente; el aviso emergente lo
 // acompaña (DEC-095).
+//
+// Rediseño del issue #576 (identidad guiada, sin mockup asignado): la
+// composición pasa a pasos con línea de progreso y un boleto lateral que se
+// llena mientras se escribe, con las acciones —Registrar y Cancelar— pegadas
+// a él. Campos, validaciones, contrato y envío no cambian.
 import { computed, nextTick, ref, watch } from 'vue'
+import { useRoute, useRouter, type LocationQueryRaw } from 'vue-router'
 import { useToast, useVocabulary } from '@/shared/composables'
 import { isSoloProfile } from '@/shared/model'
 import {
@@ -171,15 +177,21 @@ const selectedServiceName = computed(
 const summaryDateLabel = computed(() =>
   isCivilDateString(startsAtDate.value) ? formatCivilDateFull(startsAtDate.value) : '',
 )
-const hasSummaryContent = computed(
+
+// Pasos resueltos: encienden la cifra de cada banda, tiñen el tramo de la
+// línea de progreso que la une con la siguiente y alimentan el contador del
+// boleto. Solo cuentan los tres pasos con campos obligatorios; la nota es
+// opcional y nunca bloquea el avance.
+const stepDone = computed(() => ({
+  selection: !!selectedBarberId.value && !!selectedServiceId.value,
+  person: !!attendeeName.value.trim() && !!customerFullName.value.trim(),
+  when: !!startsAtDate.value && !!startsAtTime.value,
+  note: !!customerNote.value.trim(),
+}))
+const REQUIRED_STEPS = 3
+const requiredStepsDone = computed(
   () =>
-    !!(
-      selectedBarberName.value ||
-      selectedServiceName.value ||
-      attendeeName.value.trim() ||
-      summaryDateLabel.value ||
-      startsAtTime.value
-    ),
+    [stepDone.value.selection, stepDone.value.person, stepDone.value.when].filter(Boolean).length,
 )
 
 // El campo de servicio depende del barbero (DEC-072): sin barbero elegido,
@@ -203,12 +215,23 @@ const serviceSelectPlaceholder = computed(() => {
   return 'Elige un servicio'
 })
 
-// Alerta global. En escritorio encabeza la columna lateral y en móvil cae
-// justo encima del CTA: es el mismo nodo, la retícula lo recoloca.
-const hasGlobalAlert = computed(() => saveStatus.value !== 'idle' && saveStatus.value !== 'saving')
-// La columna lateral existe cuando lleva algo: alerta global, resumen o
-// ambos. El evento 04 (formulario recién abierto) es el único sin ella.
-const hasRail = computed(() => hasGlobalAlert.value || hasSummaryContent.value)
+// Cancelar vuelve a la agenda sin guardar nada. La agenda pasa su barbero y
+// su fecha al abrir esta pantalla (`?barberId=…&date=…`); se devuelven tal
+// cual para que la persona aterrice en el mismo día que estaba mirando. Sin
+// ellos, la agenda resuelve su selección por defecto.
+const route = useRoute()
+const router = useRouter()
+const agendaOrigin = computed<LocationQueryRaw>(() => {
+  const origin: LocationQueryRaw = {}
+  const { barberId, date } = route.query
+  if (typeof barberId === 'string' && barberId !== '') origin.barberId = barberId
+  if (typeof date === 'string' && isCivilDateString(date)) origin.date = date
+  return origin
+})
+
+function onCancel() {
+  void router.push({ name: 'panel', query: agendaOrigin.value })
+}
 
 function validateAll(): boolean {
   const errors: Record<string, string | undefined> = {
@@ -395,25 +418,40 @@ function onBarberSelect(barberId: string) {
         </PageState>
       </div>
 
-      <form
-        v-else
-        class="new-appointment-page__layout"
-        :class="{ 'new-appointment-page__layout--solo': !hasRail }"
-        novalidate
-        @submit.prevent="onSubmit"
-      >
-        <!-- Hoja continua: las cuatro secciones son bandas de UNA superficie
-             translúcida con filete de latón a la izquierda, separadas entre sí
-             por una línea de 1px. Nada de tarjetas de pergamino: el pergamino
-             es material de REGISTRO (la ficha del evento 12), no cromo de
-             formulario. -->
+      <form v-else class="new-appointment-page__layout" novalidate @submit.prevent="onSubmit">
+        <!-- Hoja continua de cuatro pasos. Cada paso lleva su cifra sobre una
+             línea vertical que une los pasos entre sí: cuando sus campos
+             obligatorios quedan resueltos, la cifra se vuelve una marca de
+             listo y el tramo de línea que baja al siguiente se tiñe con el
+             acento, así el avance se lee sin contar campos. -->
         <div class="new-appointment-page__form">
           <div class="new-appointment-page__sheet">
-            <section class="new-appointment-page__section">
+            <section
+              class="new-appointment-page__section"
+              :class="{ 'new-appointment-page__section--done': stepDone.selection }"
+              style="--i: 0"
+            >
               <div class="new-appointment-page__section-head">
-                <span class="new-appointment-page__section-number" aria-hidden="true">1</span>
+                <span class="new-appointment-page__section-number" aria-hidden="true">
+                  <Transition name="nt-mark" mode="out-in">
+                    <svg
+                      v-if="stepDone.selection"
+                      key="done"
+                      class="new-appointment-page__section-check"
+                      viewBox="0 0 16 16"
+                      focusable="false"
+                    >
+                      <path d="M3.5 8.5l3 3 6-7" />
+                    </svg>
+                    <span v-else key="number">1</span>
+                  </Transition>
+                </span>
                 <div class="new-appointment-page__section-stack">
-                  <h2 class="new-appointment-page__section-title">Selecciona</h2>
+                  <h2 class="new-appointment-page__section-title">
+                    Selecciona<span v-if="stepDone.selection" class="new-appointment-page__sr-only">
+                      (listo)</span
+                    >
+                  </h2>
                   <p class="new-appointment-page__section-hint">
                     {{
                       hideBarberField
@@ -516,11 +554,35 @@ function onBarberSelect(barberId: string) {
               </div>
             </section>
 
-            <section class="new-appointment-page__section">
+            <section
+              class="new-appointment-page__section"
+              :class="{ 'new-appointment-page__section--done': stepDone.person }"
+              style="--i: 1"
+            >
               <div class="new-appointment-page__section-head">
-                <span class="new-appointment-page__section-number" aria-hidden="true">2</span>
+                <span class="new-appointment-page__section-number" aria-hidden="true">
+                  <Transition name="nt-mark" mode="out-in">
+                    <svg
+                      v-if="stepDone.person"
+                      key="done"
+                      class="new-appointment-page__section-check"
+                      viewBox="0 0 16 16"
+                      focusable="false"
+                    >
+                      <path d="M3.5 8.5l3 3 6-7" />
+                    </svg>
+                    <span v-else key="number">2</span>
+                  </Transition>
+                </span>
                 <div class="new-appointment-page__section-stack">
-                  <h2 class="new-appointment-page__section-title">Persona atendida</h2>
+                  <h2 class="new-appointment-page__section-title">
+                    Persona atendida<span
+                      v-if="stepDone.person"
+                      class="new-appointment-page__sr-only"
+                    >
+                      (listo)</span
+                    >
+                  </h2>
                   <p class="new-appointment-page__section-hint">
                     Indica quién recibirá el servicio.
                   </p>
@@ -572,11 +634,32 @@ function onBarberSelect(barberId: string) {
               </div>
             </section>
 
-            <section class="new-appointment-page__section">
+            <section
+              class="new-appointment-page__section"
+              :class="{ 'new-appointment-page__section--done': stepDone.when }"
+              style="--i: 2"
+            >
               <div class="new-appointment-page__section-head">
-                <span class="new-appointment-page__section-number" aria-hidden="true">3</span>
+                <span class="new-appointment-page__section-number" aria-hidden="true">
+                  <Transition name="nt-mark" mode="out-in">
+                    <svg
+                      v-if="stepDone.when"
+                      key="done"
+                      class="new-appointment-page__section-check"
+                      viewBox="0 0 16 16"
+                      focusable="false"
+                    >
+                      <path d="M3.5 8.5l3 3 6-7" />
+                    </svg>
+                    <span v-else key="number">3</span>
+                  </Transition>
+                </span>
                 <div class="new-appointment-page__section-stack">
-                  <h2 class="new-appointment-page__section-title">Fecha y hora</h2>
+                  <h2 class="new-appointment-page__section-title">
+                    Fecha y hora<span v-if="stepDone.when" class="new-appointment-page__sr-only">
+                      (listo)</span
+                    >
+                  </h2>
                   <p class="new-appointment-page__section-hint">Define cuándo será el turno.</p>
                 </div>
               </div>
@@ -602,11 +685,32 @@ function onBarberSelect(barberId: string) {
               </div>
             </section>
 
-            <section class="new-appointment-page__section">
+            <section
+              class="new-appointment-page__section"
+              :class="{ 'new-appointment-page__section--done': stepDone.note }"
+              style="--i: 3"
+            >
               <div class="new-appointment-page__section-head">
-                <span class="new-appointment-page__section-number" aria-hidden="true">4</span>
+                <span class="new-appointment-page__section-number" aria-hidden="true">
+                  <Transition name="nt-mark" mode="out-in">
+                    <svg
+                      v-if="stepDone.note"
+                      key="done"
+                      class="new-appointment-page__section-check"
+                      viewBox="0 0 16 16"
+                      focusable="false"
+                    >
+                      <path d="M3.5 8.5l3 3 6-7" />
+                    </svg>
+                    <span v-else key="number">4</span>
+                  </Transition>
+                </span>
                 <div class="new-appointment-page__section-stack">
-                  <h2 class="new-appointment-page__section-title">Nota (opcional)</h2>
+                  <h2 class="new-appointment-page__section-title">
+                    Nota (opcional)<span v-if="stepDone.note" class="new-appointment-page__sr-only">
+                      (listo)</span
+                    >
+                  </h2>
                   <p class="new-appointment-page__section-hint">
                     Agrega información adicional si es necesario.
                   </p>
@@ -662,17 +766,17 @@ function onBarberSelect(barberId: string) {
           </div>
         </div>
 
-        <!-- Columna lateral: alerta global y resumen, en ese orden. En
-             escritorio queda junto al CTA sin empujar el formulario; en móvil
-             la retícula colapsa y cae entre el último campo y el CTA, que es
-             donde especificacion-frontend-nava.md §7.3 lo pide. -->
-        <aside v-if="hasRail" class="new-appointment-page__rail">
+        <!-- Columna lateral: alerta global, boleto del turno y acciones, en ese
+             orden. En escritorio se queda pegada a la vista mientras el
+             formulario se desplaza, así Registrar y Cancelar siempre están a
+             mano; en móvil la retícula colapsa y cae después del último paso,
+             que es donde especificacion-frontend-nava.md §7.3 pide el resumen
+             antes del CTA. -->
+        <aside class="new-appointment-page__rail">
           <!-- El titular de la alerta va en el cuerpo, no en el prop `title`
                de BaseAlert: ese prop compone un <h4> y esta pantalla ya tiene
                un <h2> por banda, así que un titular de alerta rompería el
-               orden de encabezados (axe `heading-order`). La composición del
-               atlas —rótulo ERROR, línea destacada y cuerpo— se conserva
-               entera. -->
+               orden de encabezados (axe `heading-order`). -->
           <BaseAlert v-if="saveStatus === 'conflict'" variant="danger" role="alert">
             <span class="new-appointment-page__alert-title">{{ saveErrorDetail }}</span>
           </BaseAlert>
@@ -700,65 +804,114 @@ function onBarberSelect(barberId: string) {
             No pudimos registrar el turno. Tus datos se conservaron; inténtalo de nuevo.
           </BaseAlert>
 
+          <!-- Boleto del turno: se llena mientras se escribe. Lo pendiente se
+               nombra en tenue («Por elegir») en vez de ocultarse, para que la
+               forma del boleto no salte con cada campo. -->
           <div
-            v-if="hasSummaryContent"
             class="new-appointment-page__resumen"
             aria-labelledby="new-appointment-resumen-title"
           >
-            <h2 id="new-appointment-resumen-title" class="new-appointment-page__resumen-title">
-              Resumen
-            </h2>
+            <div class="new-appointment-page__resumen-head">
+              <h2 id="new-appointment-resumen-title" class="new-appointment-page__resumen-title">
+                Resumen
+              </h2>
+              <span class="new-appointment-page__resumen-progress">
+                {{ requiredStepsDone }}/{{ REQUIRED_STEPS }} pasos
+              </span>
+            </div>
+
+            <div class="new-appointment-page__resumen-when">
+              <Transition name="nt-swap" mode="out-in">
+                <span
+                  :key="startsAtTime || 'empty'"
+                  class="new-appointment-page__resumen-time"
+                  :class="{ 'new-appointment-page__resumen-time--empty': !startsAtTime }"
+                >
+                  {{ startsAtTime || '--:--' }}
+                </span>
+              </Transition>
+              <Transition name="nt-swap" mode="out-in">
+                <span :key="summaryDateLabel || 'empty'" class="new-appointment-page__resumen-date">
+                  {{ summaryDateLabel || 'Fecha por definir' }}
+                </span>
+              </Transition>
+            </div>
+
+            <div class="new-appointment-page__resumen-perforation" aria-hidden="true" />
+
             <dl class="new-appointment-page__resumen-list">
-              <div v-if="selectedBarberName" class="new-appointment-page__resumen-item">
+              <div v-if="!hideBarberField" class="new-appointment-page__resumen-item">
                 <dt class="new-appointment-page__resumen-label">{{ v.Professional }}</dt>
                 <dd class="new-appointment-page__resumen-value">
-                  <BarberAvatar :full-name="selectedBarberName" size="closed" />
-                  <span>{{ selectedBarberName }}</span>
+                  <Transition name="nt-swap" mode="out-in">
+                    <span
+                      v-if="selectedBarberName"
+                      :key="selectedBarberName"
+                      class="new-appointment-page__resumen-swap"
+                    >
+                      <BarberAvatar :full-name="selectedBarberName" size="closed" />
+                      <span>{{ selectedBarberName }}</span>
+                    </span>
+                    <span
+                      v-else
+                      key="empty"
+                      class="new-appointment-page__resumen-swap new-appointment-page__resumen-value--empty"
+                    >
+                      Por elegir
+                    </span>
+                  </Transition>
                 </dd>
               </div>
-              <div v-if="selectedServiceName" class="new-appointment-page__resumen-item">
+              <div class="new-appointment-page__resumen-item">
                 <dt class="new-appointment-page__resumen-label">Servicio</dt>
                 <dd class="new-appointment-page__resumen-value">
-                  <span>{{ selectedServiceName }}</span>
+                  <Transition name="nt-swap" mode="out-in">
+                    <span
+                      :key="selectedServiceName || 'empty'"
+                      class="new-appointment-page__resumen-swap"
+                      :class="{
+                        'new-appointment-page__resumen-value--empty': !selectedServiceName,
+                      }"
+                    >
+                      {{ selectedServiceName || 'Por elegir' }}
+                    </span>
+                  </Transition>
                 </dd>
               </div>
-              <div v-if="attendeeName.trim()" class="new-appointment-page__resumen-item">
+              <div class="new-appointment-page__resumen-item">
                 <dt class="new-appointment-page__resumen-label">Persona atendida</dt>
-                <dd class="new-appointment-page__resumen-value">
-                  <span>{{ attendeeName }}</span>
-                </dd>
-              </div>
-              <div
-                v-if="summaryDateLabel || startsAtTime"
-                class="new-appointment-page__resumen-item"
-              >
-                <dt class="new-appointment-page__resumen-label">Fecha y hora</dt>
-                <dd class="new-appointment-page__resumen-value">
-                  <span>
-                    <span v-if="summaryDateLabel">{{ summaryDateLabel }}</span>
-                    <span v-if="summaryDateLabel && startsAtTime"> · </span>
-                    <span v-if="startsAtTime">{{ startsAtTime }}</span>
-                  </span>
+                <dd
+                  class="new-appointment-page__resumen-value"
+                  :class="{ 'new-appointment-page__resumen-value--empty': !attendeeName.trim() }"
+                >
+                  {{ attendeeName.trim() || 'Por escribir' }}
                 </dd>
               </div>
             </dl>
           </div>
-        </aside>
 
-        <!-- CTA sangrado hasta la columna de campos: la misma medida que
-             gobierna la columna de rótulos, para que la acción caiga bajo los
-             controles y no bajo los títulos de sección. En móvil ocupa el
-             ancho completo. -->
-        <div class="new-appointment-page__actions">
-          <BaseButton
-            type="submit"
-            variant="primary"
-            class="new-appointment-page__submit"
-            :disabled="saveStatus === 'saving'"
-          >
-            {{ saveStatus === 'saving' ? 'Guardando…' : 'Registrar turno' }}
-          </BaseButton>
-        </div>
+          <!-- Acciones del formulario: Registrar es la acción principal y
+               Cancelar vuelve a la agenda sin guardar. -->
+          <div class="new-appointment-page__actions">
+            <BaseButton
+              type="submit"
+              variant="primary"
+              class="new-appointment-page__submit"
+              :disabled="saveStatus === 'saving'"
+            >
+              {{ saveStatus === 'saving' ? 'Guardando…' : 'Registrar turno' }}
+            </BaseButton>
+            <BaseButton
+              type="button"
+              variant="ghost"
+              class="new-appointment-page__cancel"
+              :disabled="saveStatus === 'saving'"
+              @click="onCancel"
+            >
+              Cancelar
+            </BaseButton>
+          </div>
+        </aside>
       </form>
     </template>
   </section>
@@ -808,18 +961,15 @@ function onBarberSelect(barberId: string) {
   display: grid;
   align-items: start;
   grid-template-columns: minmax(0, 1fr);
-  grid-template-areas: 'form' 'rail' 'acts';
+  grid-template-areas: 'form' 'rail';
   row-gap: 16px;
-}
-
-.new-appointment-page__layout--solo {
-  grid-template-areas: 'form' 'acts';
 }
 
 .new-appointment-page__form {
   grid-area: form;
   display: flex;
   flex-direction: column;
+  min-width: 0;
 }
 
 .new-appointment-page__rail {
@@ -827,67 +977,133 @@ function onBarberSelect(barberId: string) {
   display: flex;
   flex-direction: column;
   gap: 14px;
+  animation: nt-rise 460ms cubic-bezier(0.2, 0.7, 0.2, 1) 260ms backwards;
 }
 
 .new-appointment-page__actions {
-  grid-area: acts;
   display: flex;
   flex-direction: column;
+  gap: 8px;
 }
 
 /* ------------------------------------------------------ hoja del formulario */
 
-/* Las cuatro secciones son bandas de UNA hoja separadas por filete, no cuatro
-   tarjetas apiladas: con borde propio cada una, el formulario se leía como una
-   pila rayada de objetos sueltos en vez de un documento. */
+/* Las cuatro secciones son pasos de UNA hoja, no cuatro tarjetas sueltas: la
+   línea vertical de los pasos es lo que las une. */
 .new-appointment-page__sheet {
+  --step-size: 30px;
+  --step-col: 30px;
+  --step-gap: 14px;
+
+  position: relative;
+  padding: 6px 16px;
   background-color: color-mix(in srgb, var(--color-on-strong) 3.5%, transparent);
   border: var(--border-width-normal) solid
     color-mix(in srgb, var(--color-on-strong) 10%, transparent);
-  border-left: 3px solid color-mix(in srgb, var(--color-brand-accent-surface) 55%, transparent);
-  border-radius: 2px;
+  border-radius: 4px;
 }
 
 .new-appointment-page__section {
-  display: flex;
-  flex-direction: column;
-  gap: 14px;
-  padding: 18px 16px;
+  position: relative;
+  display: grid;
+  grid-template-columns: var(--step-col) minmax(0, 1fr);
+  column-gap: var(--step-gap);
+  row-gap: 14px;
+  padding: 18px 0;
+  /* `backwards`, no `both`: terminada la entrada no queda ningún efecto de
+     animación sobre el paso. Con `both` el `transform` final dejaba a cada
+     paso con su propio contexto de apilamiento y la lista desplegable del
+     barbero (paso 1) quedaba debajo del paso 2. */
+  animation: nt-rise 460ms cubic-bezier(0.2, 0.7, 0.2, 1) backwards;
+  animation-delay: calc(var(--i, 0) * 70ms);
 }
 
-.new-appointment-page__section + .new-appointment-page__section {
-  border-top: var(--border-width-normal) solid
-    color-mix(in srgb, var(--color-on-strong) 10%, transparent);
+/* Tramo de la línea de progreso: baja desde la cifra de este paso hasta la
+   del siguiente. El filete neutro es el carril; el acento lo recorre con
+   `scaleY` cuando el paso queda resuelto. */
+.new-appointment-page__section:not(:last-child)::before,
+.new-appointment-page__section:not(:last-child)::after {
+  content: '';
+  position: absolute;
+  top: calc(18px + var(--step-size) + 6px);
+  bottom: -12px;
+  left: calc(var(--step-col) / 2 - 1px);
+  width: 2px;
+  border-radius: 1px;
+  pointer-events: none;
 }
 
+.new-appointment-page__section:not(:last-child)::before {
+  background-color: color-mix(in srgb, var(--color-on-strong) 12%, transparent);
+}
+
+.new-appointment-page__section:not(:last-child)::after {
+  background-color: var(--color-brand-accent-surface);
+  transform: scaleY(0);
+  transform-origin: top;
+  transition: transform 520ms cubic-bezier(0.2, 0.7, 0.2, 1);
+}
+
+.new-appointment-page__section--done:not(:last-child)::after {
+  transform: scaleY(1);
+}
+
+/* La cabecera ocupa las dos columnas: cifra en la columna de la línea y el
+   título junto a ella; los campos caen bajo el título, alineados con él. */
 .new-appointment-page__section-head {
-  display: flex;
-  align-items: flex-start;
-  gap: 11px;
+  display: contents;
 }
 
-/* Cuadrado de radio 2px con filete de latón y cifra en serif: el círculo era
-   el único elemento redondo de todo el sistema. */
 .new-appointment-page__section-number {
+  position: relative;
+  z-index: 1;
   display: flex;
-  flex: none;
   align-items: center;
   justify-content: center;
-  width: 26px;
-  height: 26px;
+  width: var(--step-size);
+  height: var(--step-size);
+  grid-column: 1;
+  grid-row: 1;
   border: var(--border-width-normal) solid
     color-mix(in srgb, var(--color-brand-accent-surface) 60%, transparent);
-  border-radius: 2px;
+  border-radius: 50%;
   font-family: var(--font-display);
-  font-size: var(--font-size-body-sm);
+  font-size: var(--font-size-body);
   line-height: 1;
   color: var(--color-brand-accent-surface);
+  background-color: var(--color-surface-strong);
+  transition:
+    background-color 260ms ease,
+    border-color 260ms ease,
+    color 260ms ease,
+    box-shadow 260ms ease;
+}
+
+.new-appointment-page__section--done .new-appointment-page__section-number {
+  border-color: var(--color-brand-accent-surface);
+  background-color: var(--color-brand-accent-surface);
+  color: var(--color-brand-accent-text);
+  box-shadow: 0 0 0 4px color-mix(in srgb, var(--color-brand-accent-surface) 18%, transparent);
+}
+
+.new-appointment-page__section-check {
+  width: 15px;
+  height: 15px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
 }
 
 .new-appointment-page__section-stack {
   display: flex;
   min-width: 0;
   flex-direction: column;
+  justify-content: center;
+  grid-column: 2;
+  grid-row: 1;
+  min-height: var(--step-size);
 }
 
 .new-appointment-page__section-title {
@@ -908,16 +1124,62 @@ function onBarberSelect(barberId: string) {
   text-wrap: balance;
 }
 
+.new-appointment-page__sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  padding: 0;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+  border: 0;
+}
+
 .new-appointment-page__section-body {
   display: flex;
   flex-direction: column;
   gap: 13px;
+  grid-column: 2;
+  min-width: 0;
 }
 
 .new-appointment-page__row {
   display: flex;
   flex-direction: column;
   gap: 13px;
+}
+
+.new-appointment-page__row > * {
+  flex: 1 1 0;
+  min-width: 0;
+}
+
+/* Teléfono angosto (< 640 px): los campos toman el ancho completo bajo la
+   cabecera del paso y la línea de progreso se reemplaza por un filete entre
+   pasos; en 320 px la columna de la línea dejaba los campos demasiado
+   estrechos. */
+@media (max-width: 639px) {
+  .new-appointment-page__section-body {
+    grid-column: 1 / -1;
+  }
+
+  .new-appointment-page__section:not(:last-child)::before,
+  .new-appointment-page__section:not(:last-child)::after {
+    display: none;
+  }
+
+  .new-appointment-page__section + .new-appointment-page__section {
+    border-top: var(--border-width-normal) solid
+      color-mix(in srgb, var(--color-on-strong) 10%, transparent);
+  }
+}
+
+@media (min-width: 640px) {
+  .new-appointment-page__row {
+    flex-direction: row;
+    gap: 16px;
+  }
 }
 
 .new-appointment-page__hint {
@@ -1257,13 +1519,28 @@ function onBarberSelect(barberId: string) {
 
 /* -------------------------------------------------------------- resumen */
 
+/* Boleto del turno: superficie elevada con la hora como protagonista, una
+   línea perforada con muescas a los lados y los datos debajo. Es la misma
+   metáfora de boleto que usa «Mi turno» en la reserva pública. */
 .new-appointment-page__resumen {
-  padding: 16px;
-  background-color: var(--color-field-strong-raised);
+  --ticket-bg: var(--color-field-strong-raised);
+  --ticket-pad: 16px;
+
+  position: relative;
+  padding: var(--ticket-pad);
+  background-color: var(--ticket-bg);
   border: var(--border-width-normal) solid
     color-mix(in srgb, var(--color-on-strong) 12%, transparent);
-  border-top: var(--border-width-emphasis) solid var(--color-brand-accent-surface);
-  border-radius: 2px;
+  border-top: 3px solid var(--color-brand-accent-surface);
+  border-radius: 4px;
+  box-shadow: 0 18px 40px -28px rgb(0 0 0 / 0.55);
+}
+
+.new-appointment-page__resumen-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
 }
 
 .new-appointment-page__resumen-title {
@@ -1277,30 +1554,90 @@ function onBarberSelect(barberId: string) {
   color: var(--color-brand-accent-surface);
 }
 
+.new-appointment-page__resumen-progress {
+  font-family: var(--font-family-base);
+  font-size: var(--font-size-caption);
+  line-height: 14px;
+  color: var(--color-on-strong-muted);
+  font-variant-numeric: tabular-nums;
+}
+
+.new-appointment-page__resumen-when {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin-top: 14px;
+}
+
+.new-appointment-page__resumen-time {
+  font-family: var(--font-display);
+  font-size: 44px;
+  line-height: 1;
+  color: var(--color-on-strong);
+  font-variant-numeric: tabular-nums;
+}
+
+.new-appointment-page__resumen-time--empty {
+  font-family: var(--font-sans);
+  font-weight: 300;
+  letter-spacing: 0.06em;
+  color: var(--color-on-strong-muted);
+}
+
+.new-appointment-page__resumen-date {
+  font-family: var(--font-family-base);
+  font-size: var(--font-size-body-sm);
+  line-height: 20px;
+  color: var(--color-on-strong-muted);
+}
+
+.new-appointment-page__resumen-date::first-letter {
+  text-transform: uppercase;
+}
+
+/* Perforación: filete punteado de borde a borde con dos muescas del color
+   del lienzo en los extremos. */
+.new-appointment-page__resumen-perforation {
+  position: relative;
+  height: 0;
+  margin: 16px calc(var(--ticket-pad) * -1);
+  border-top: 2px dashed color-mix(in srgb, var(--color-on-strong) 16%, transparent);
+}
+
+.new-appointment-page__resumen-perforation::before,
+.new-appointment-page__resumen-perforation::after {
+  content: '';
+  position: absolute;
+  top: -9px;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background-color: var(--color-surface-strong);
+  border: var(--border-width-normal) solid
+    color-mix(in srgb, var(--color-on-strong) 12%, transparent);
+}
+
+.new-appointment-page__resumen-perforation::before {
+  left: -9px;
+  clip-path: inset(0 0 0 50%);
+}
+
+.new-appointment-page__resumen-perforation::after {
+  right: -9px;
+  clip-path: inset(0 50% 0 0);
+}
+
 .new-appointment-page__resumen-list {
   display: flex;
   flex-direction: column;
-  margin: 12px 0 0;
+  gap: 12px;
+  margin: 0;
 }
 
 .new-appointment-page__resumen-item {
   display: flex;
   flex-direction: column;
-  gap: 5px;
-  padding: 11px 0;
-}
-
-.new-appointment-page__resumen-item:first-child {
-  padding-top: 0;
-}
-
-.new-appointment-page__resumen-item:last-child {
-  padding-bottom: 0;
-}
-
-.new-appointment-page__resumen-item + .new-appointment-page__resumen-item {
-  border-top: var(--border-width-normal) solid
-    color-mix(in srgb, var(--color-on-strong) 10%, transparent);
+  gap: 4px;
 }
 
 .new-appointment-page__resumen-label {
@@ -1317,12 +1654,27 @@ function onBarberSelect(barberId: string) {
   display: flex;
   align-items: center;
   gap: 9px;
+  min-width: 0;
   margin: 0;
   font-family: var(--font-family-base);
   font-size: var(--font-size-body);
   line-height: 21px;
   font-weight: 600;
   color: var(--color-on-strong);
+  overflow-wrap: anywhere;
+}
+
+.new-appointment-page__resumen-swap {
+  display: inline-flex;
+  align-items: center;
+  gap: 9px;
+  min-width: 0;
+}
+
+.new-appointment-page__resumen-value--empty {
+  font-weight: 400;
+  font-style: italic;
+  color: var(--color-on-strong-muted);
 }
 
 /* ------------------------------------------------------- alerta y acciones */
@@ -1343,13 +1695,43 @@ function onBarberSelect(barberId: string) {
   letter-spacing: 0.02em;
   background-color: var(--color-brand-accent-surface);
   border-color: var(--color-brand-accent-surface);
-  color: var(--color-surface-strong);
+  color: var(--color-brand-accent-text);
+  transition:
+    filter var(--motion-duration-base) ease,
+    transform var(--motion-duration-base) ease,
+    box-shadow var(--motion-duration-base) ease;
 }
 
 .new-appointment-page .new-appointment-page__submit:hover:not(:disabled) {
   background-color: var(--color-brand-accent-surface);
   border-color: var(--color-brand-accent-surface);
-  filter: brightness(94%);
+  filter: brightness(106%);
+  transform: translateY(-1px);
+  box-shadow: 0 10px 24px -14px var(--color-brand-accent-surface);
+}
+
+/* Cancelar: acción secundaria sin relleno, el mismo transparente de los
+   botones de cierre de los diálogos. Nunca compite con Registrar. */
+.new-appointment-page .new-appointment-page__cancel {
+  width: 100%;
+  height: 44px;
+  font-size: var(--font-size-body);
+  font-weight: 600;
+  color: var(--color-on-strong-muted);
+  background-color: transparent;
+  border-color: transparent;
+}
+
+.new-appointment-page .new-appointment-page__cancel:hover:not(:disabled) {
+  color: var(--color-on-strong);
+  background-color: color-mix(in srgb, var(--color-on-strong) 8%, transparent);
+  border-color: transparent;
+}
+
+.new-appointment-page .new-appointment-page__cancel:focus-visible {
+  box-shadow:
+    0 0 0 2px var(--color-surface-strong),
+    0 0 0 4px var(--color-focus);
 }
 
 .new-appointment-page .new-appointment-page__submit:focus-visible {
@@ -1455,6 +1837,110 @@ function onBarberSelect(barberId: string) {
   border-radius: 2px;
 }
 
+/* ------------------------------------------------------------- movimiento */
+
+/* Entrada escalonada: cada paso sube unos píxeles y aparece, uno tras otro;
+   el boleto llega al final. Solo `transform` y `opacity`. */
+@keyframes nt-rise {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+/* Cifra ↔ marca de listo: la marca entra con un pequeño rebote. */
+.nt-mark-enter-active {
+  transition:
+    transform 320ms cubic-bezier(0.34, 1.56, 0.64, 1),
+    opacity 200ms ease;
+}
+
+.nt-mark-leave-active {
+  transition:
+    transform 140ms ease,
+    opacity 140ms ease;
+}
+
+.nt-mark-enter-from,
+.nt-mark-leave-to {
+  opacity: 0;
+  transform: scale(0.4);
+}
+
+/* Datos del boleto: el valor viejo sale hacia arriba y el nuevo entra desde
+   abajo, como una ficha que se reemplaza. */
+.nt-swap-enter-active,
+.nt-swap-leave-active {
+  transition:
+    transform 180ms ease,
+    opacity 180ms ease;
+}
+
+.nt-swap-enter-from {
+  opacity: 0;
+  transform: translateY(6px);
+}
+
+.nt-swap-leave-to {
+  opacity: 0;
+  transform: translateY(-6px);
+}
+
+.new-appointment-page__state {
+  animation: nt-rise 420ms cubic-bezier(0.2, 0.7, 0.2, 1) backwards;
+}
+
+/* Movimiento reducido (sistema o preferencia de la cuenta, DEC-110): la
+   pantalla aparece ya compuesta y los cambios son instantáneos. */
+@media (prefers-reduced-motion: reduce) {
+  .new-appointment-page__section,
+  .new-appointment-page__rail,
+  .new-appointment-page__state {
+    animation: none;
+  }
+
+  .new-appointment-page__section::after,
+  .new-appointment-page__section-number,
+  .new-appointment-page .new-appointment-page__submit,
+  .nt-mark-enter-active,
+  .nt-mark-leave-active,
+  .nt-swap-enter-active,
+  .nt-swap-leave-active {
+    transition: none;
+  }
+
+  .new-appointment-page .new-appointment-page__submit:hover:not(:disabled) {
+    transform: none;
+  }
+}
+
+:root[data-motion='reduced'] .new-appointment-page__section,
+:root[data-motion='reduced'] .new-appointment-page__rail,
+:root[data-motion='reduced'] .new-appointment-page__state {
+  animation: none;
+}
+
+:root[data-motion='reduced'] .new-appointment-page__section::after,
+:root[data-motion='reduced'] .new-appointment-page__section-number,
+:root[data-motion='reduced'] .new-appointment-page .new-appointment-page__submit,
+:root[data-motion='reduced'] .nt-mark-enter-active,
+:root[data-motion='reduced'] .nt-mark-leave-active,
+:root[data-motion='reduced'] .nt-swap-enter-active,
+:root[data-motion='reduced'] .nt-swap-leave-active {
+  transition: none;
+}
+
+:root[data-motion='reduced']
+  .new-appointment-page
+  .new-appointment-page__submit:hover:not(:disabled) {
+  transform: none;
+}
+
 /* ------------------------------------------------------------- escritorio */
 
 @media (min-width: 1024px) {
@@ -1472,45 +1958,41 @@ function onBarberSelect(barberId: string) {
     line-height: 22px;
   }
 
-  /* La misma medida gobierna la columna de rótulos de cada banda y la
-     sangría del CTA, para que el botón caiga exactamente bajo los campos y
-     no bajo el título de la sección. */
+  /* Formulario y boleto lado a lado; el boleto (con las acciones) se queda
+     pegado a la vista mientras el formulario se desplaza. */
   .new-appointment-page__layout {
-    --label-col: 288px;
-    --band-gap: 28px;
-    --band-pad: 26px;
-
     grid-template-columns: minmax(0, 1fr) 340px;
-    grid-template-areas: 'form rail' 'acts rail';
-    column-gap: 32px;
+    grid-template-areas: 'form rail';
+    column-gap: 28px;
     row-gap: 0;
+    max-width: 1240px;
   }
 
-  .new-appointment-page__layout--solo {
-    grid-template-columns: minmax(0, 980px);
-    grid-template-areas: 'form' 'acts';
+  .new-appointment-page__rail {
+    position: sticky;
+    top: 16px;
   }
 
-  .new-appointment-page__actions {
-    margin-top: 16px;
-    padding-left: calc(var(--band-pad) + var(--label-col) + var(--band-gap) + 3px);
+  .new-appointment-page__sheet {
+    --step-size: 34px;
+    --step-col: 34px;
+    --step-gap: 18px;
+
+    padding: 4px 28px;
   }
 
   .new-appointment-page__section {
-    display: grid;
-    grid-template-columns: var(--label-col) minmax(0, 1fr);
-    gap: var(--band-gap);
-    padding: 20px var(--band-pad);
+    padding: 22px 0;
   }
 
-  .new-appointment-page__section-head {
-    gap: 12px;
+  .new-appointment-page__section:not(:last-child)::before,
+  .new-appointment-page__section:not(:last-child)::after {
+    top: calc(22px + var(--step-size) + 6px);
+    bottom: -16px;
   }
 
   .new-appointment-page__section-number {
-    width: 27px;
-    height: 27px;
-    font-size: var(--font-size-body);
+    font-size: var(--font-size-body-lg);
   }
 
   .new-appointment-page__section-title {
@@ -1526,7 +2008,6 @@ function onBarberSelect(barberId: string) {
   }
 
   .new-appointment-page__row {
-    flex-direction: row;
     gap: 20px;
   }
 
@@ -1567,7 +2048,11 @@ function onBarberSelect(barberId: string) {
   }
 
   .new-appointment-page__resumen {
-    padding: 18px 20px;
+    --ticket-pad: 20px;
+  }
+
+  .new-appointment-page__resumen-time {
+    font-size: 52px;
   }
 
   .new-appointment-page__resumen-title {
@@ -1575,27 +2060,10 @@ function onBarberSelect(barberId: string) {
     line-height: 15px;
   }
 
-  .new-appointment-page__resumen-list {
-    margin-top: 14px;
-  }
-
-  .new-appointment-page__resumen-item {
-    padding: 12px 0;
-  }
-
   .new-appointment-page__resumen-value {
     gap: 10px;
     font-size: var(--font-size-body);
     line-height: 22px;
-  }
-
-  .new-appointment-page .new-appointment-page__submit {
-    width: auto;
-    min-width: 240px;
-    height: 50px;
-    padding: 0 30px;
-    font-size: var(--font-size-body);
-    align-self: flex-start;
   }
 
   .new-appointment-page .new-appointment-page__state .new-appointment-page__submit {
