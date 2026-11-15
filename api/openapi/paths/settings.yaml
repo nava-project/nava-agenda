@@ -191,6 +191,105 @@
         $ref: '../components/responses/BookingPolicyValidationProblem.yaml'
       "500":
         $ref: '../components/responses/InternalErrorProblem.yaml'
+/private/settings/booking-policy/barbers:
+  get:
+    tags: [Settings]
+    summary: Listar las ventanas de reserva propias de los barberos
+    description: >
+      Lectura autenticada (DEC-169) de las ventanas de reserva públicas
+      propias de los barberos de la barbería de la sesión: anticipación
+      mínima, ventana máxima y rejilla. Un barbero que no aparece hereda la
+      política de la barbería (`getBookingPolicy`), incluidos sus cambios
+      futuros. El plazo y la política de cancelación no son por barbero.
+    operationId: listBarberBookingPolicies
+    security:
+      - SessionCookie: []
+    x-business-rules: [RN-DIS-04, RN-DIS-06, RN-TEN-01]
+    x-decisions: [DEC-024, DEC-083, DEC-133, DEC-169]
+    responses:
+      "200":
+        $ref: '../components/responses/BarberBookingPolicyListSuccess.yaml'
+      "401":
+        $ref: '../components/responses/UnauthorizedProblem.yaml'
+      "500":
+        $ref: '../components/responses/InternalErrorProblem.yaml'
+/private/settings/booking-policy/barbers/{barberId}:
+  parameters:
+    - name: barberId
+      in: path
+      required: true
+      description: Identificador del barbero de la barbería de la sesión.
+      schema:
+        type: string
+        format: uuid
+      examples:
+        barbero:
+          value: 3f1c9a52-7d4e-4b8a-9c21-5e6f7a8b9c0d
+  put:
+    tags: [Settings]
+    summary: Guardar la ventana de reserva propia de un barbero
+    description: >
+      Reemplazo completo e idempotente (DEC-169) de la ventana propia del
+      barbero: mismos rangos y misma coherencia que la de la barbería
+      (`DEC-083`; rejilla entera de 1 a 60, `DEC-133`; la anticipación no
+      puede alcanzar ni superar `maxAdvanceDays * 1440`). Sin `If-Match`:
+      cada escritura deja un estado completo y válido (último escritor). Un
+      barbero inexistente, de otra barbería o con identificador mal formado
+      responde el mismo `404`, sin escribir nada. Rige desde ya la
+      disponibilidad pública y la revalidación al confirmar de ese barbero;
+      no cambia citas existentes ni la creación manual.
+    operationId: putBarberBookingPolicy
+    security:
+      - SessionCookie: []
+    x-business-rules: [RN-DIS-04, RN-DIS-06, RN-TEN-01]
+    x-decisions: [DEC-024, DEC-083, DEC-133, DEC-169]
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            $ref: '../components/schemas/PutBarberBookingPolicyRequest.yaml'
+          examples:
+            ventanaPropia:
+              summary: Corta cada 40 minutos y recibe reservas con 30 minutos de anticipación
+              value:
+                minAdvanceMinutes: 30
+                maxAdvanceDays: 7
+                slotGridMinutes: 40
+    responses:
+      "200":
+        $ref: '../components/responses/BarberBookingPolicySaved.yaml'
+      "400":
+        $ref: '../components/responses/InvalidRequestProblem.yaml'
+      "401":
+        $ref: '../components/responses/UnauthorizedProblem.yaml'
+      "404":
+        $ref: '../components/responses/NotFoundProblem.yaml'
+      "422":
+        $ref: '../components/responses/BarberBookingPolicyValidationProblem.yaml'
+      "500":
+        $ref: '../components/responses/InternalErrorProblem.yaml'
+  delete:
+    tags: [Settings]
+    summary: Quitar la ventana propia de un barbero (vuelve a heredar)
+    description: >
+      Borra la ventana propia del barbero (DEC-169): desde ese momento hereda
+      la política de la barbería. Idempotente: responde `204` también si no
+      tenía una. Un identificador mal formado responde `404`.
+    operationId: deleteBarberBookingPolicy
+    security:
+      - SessionCookie: []
+    x-business-rules: [RN-DIS-04, RN-DIS-06, RN-TEN-01]
+    x-decisions: [DEC-024, DEC-169]
+    responses:
+      "204":
+        $ref: '../components/responses/BarberBookingPolicyDeleted.yaml'
+      "401":
+        $ref: '../components/responses/UnauthorizedProblem.yaml'
+      "404":
+        $ref: '../components/responses/NotFoundProblem.yaml'
+      "500":
+        $ref: '../components/responses/InternalErrorProblem.yaml'
 /private/settings/brand:
   get:
     tags: [Settings]

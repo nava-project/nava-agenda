@@ -44,6 +44,46 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/public/barbershops/{slug}/barbers": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Listar los barberos elegibles de la barbería con los servicios que hacen
+         * @description Agregado de solo lectura (DEC-162) para clientes que necesitan el mapa barbero-servicio completo en una sola lectura (por ejemplo el agente Odin), en lugar de llamar `GET /public/barbershops/{slug}/services/{serviceId}/barbers` una vez por servicio. Lista todos los barberos de la barbería resuelta por `slug` con al menos una asignación vigente a un servicio ACTIVO; cada uno con `id`, `fullName` (mismo saneamiento que el elemento de la operación por servicio) y `serviceIds`, los ids de los servicios activos que hace. Un servicio inactivo no aparece en `serviceIds`, y un barbero cuyas únicas asignaciones son a servicios inactivos no aparece en la lista. Orden estable: barberos por fecha de alta y luego `id`; `serviceIds` por fecha de alta del servicio y luego `id`. Sin paginar (mismo criterio que la operación por servicio). Mismo `slug` y misma resolución sin contexto de tenant que `GET /public/barbershops/{slug}`; un `slug` mal formado, desconocido o de una barbería no publicable produce EXACTAMENTE la misma respuesta `404` uniforme (CA-090-02, RN-TEN-01). La barbería sale siempre del `slug` resuelto en servidor; no existe ningún parámetro de tenant. Es de solo lectura (no crea filas ni sesiones). La operación por servicio sigue vigente y sin cambios.
+         */
+        get: operations["listPublicBarbersWithServices"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/public/barbershops/{slug}/services/{serviceId}/availability": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Listar los inicios públicos válidos de un servicio con todos sus barberos
+         * @description Agregado de solo lectura (DEC-162) de la disponibilidad pública: en una sola respuesta, los inicios válidos del servicio activo `serviceId` para TODOS los barberos con asignación vigente a él, en lugar de llamar `GET /public/barbershops/{slug}/services/{serviceId}/barbers/{barberId}/availability` una vez por barbero. Reutiliza exactamente el mismo cálculo que esa operación (jornada efectiva, bloqueos, citas que ocupan agenda, duración del servicio, anticipación mínima, ventana máxima y rejilla de la barbería, DEC-135), así que cada barbero obtiene las mismas franjas que por la operación individual y la ventana es idéntica. `slots` va ordenado por (`startsAt`, `barberId`); `durationMinutes`, `timezone` y `slotGridMinutes` se comparten por todos los barberos. El tamaño crece con barberos x días x franjas por día. Mismo `slug` y misma resolución sin contexto de tenant que `GET /public/barbershops/{slug}`; un `slug` mal formado, desconocido o de una barbería no publicable produce EXACTAMENTE la misma respuesta `404` uniforme (CA-090-02, RN-TEN-01). `serviceId` sin forma de UUID, ajeno a esta barbería, inexistente, inactivo o sin ningún barbero con asignación vigente NUNCA produce un error distinto (mismo criterio que CA-092-03): la respuesta es `200` con `slots: []`, `durationMinutes: 0`, `timezone: ""` y `slotGridMinutes: 0` -la causa no se distingue. Consultar esta operación no reserva ni aparta ninguna franja (RN-DIS-03) y no crea filas, bloqueos ni sesiones. La operación por barbero sigue vigente y sin cambios.
+         */
+        get: operations["listPublicServiceAvailability"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/public/barbershops/{slug}/barbers/{barberId}/photo": {
         parameters: {
             query?: never;
@@ -451,6 +491,53 @@ export interface paths {
         put: operations["updateBookingPolicy"];
         post?: never;
         delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/private/settings/booking-policy/barbers": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Listar las ventanas de reserva propias de los barberos
+         * @description Lectura autenticada (DEC-169) de las ventanas de reserva públicas propias de los barberos de la barbería de la sesión: anticipación mínima, ventana máxima y rejilla. Un barbero que no aparece hereda la política de la barbería (`getBookingPolicy`), incluidos sus cambios futuros. El plazo y la política de cancelación no son por barbero.
+         */
+        get: operations["listBarberBookingPolicies"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/private/settings/booking-policy/barbers/{barberId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Identificador del barbero de la barbería de la sesión. */
+                barberId: string;
+            };
+            cookie?: never;
+        };
+        get?: never;
+        /**
+         * Guardar la ventana de reserva propia de un barbero
+         * @description Reemplazo completo e idempotente (DEC-169) de la ventana propia del barbero: mismos rangos y misma coherencia que la de la barbería (`DEC-083`; rejilla entera de 1 a 60, `DEC-133`; la anticipación no puede alcanzar ni superar `maxAdvanceDays * 1440`). Sin `If-Match`: cada escritura deja un estado completo y válido (último escritor). Un barbero inexistente, de otra barbería o con identificador mal formado responde el mismo `404`, sin escribir nada. Rige desde ya la disponibilidad pública y la revalidación al confirmar de ese barbero; no cambia citas existentes ni la creación manual.
+         */
+        put: operations["putBarberBookingPolicy"];
+        post?: never;
+        /**
+         * Quitar la ventana propia de un barbero (vuelve a heredar)
+         * @description Borra la ventana propia del barbero (DEC-169): desde ese momento hereda la política de la barbería. Idempotente: responde `204` también si no tenía una. Un identificador mal formado responde `404`.
+         */
+        delete: operations["deleteBarberBookingPolicy"];
         options?: never;
         head?: never;
         patch?: never;
@@ -2033,6 +2120,68 @@ export interface components {
              */
             nextCursor: string | null;
         };
+        /** @description Barbero de la barbería resuelta con al menos una asignación vigente a un servicio activo, junto con los ids de esos servicios (DEC-162). */
+        PublicBarberServicesResponse: {
+            /**
+             * Format: uuid
+             * @description Identificador del barbero, necesario para seleccionarlo al reservar.
+             * @example 8f3ac2b1-e4d5-46f6-a7c8-d9e0f1a2b3c4
+             */
+            id: string;
+            /**
+             * @description Nombre completo visible del barbero.
+             * @example Juan Pérez
+             */
+            fullName: string;
+            /**
+             * @description Ids de los servicios ACTIVOS que el barbero tiene asignados, ordenados por fecha de alta del servicio y luego por id. Un servicio inactivo no figura aunque conserve la asignación.
+             * @example [
+             *       "1c9a7f2d-3b4e-4a5f-9c6d-7e8f9a0b1c2d",
+             *       "5e2d9b7a-6c1f-4d38-8a40-b3c5e7f90a12"
+             *     ]
+             */
+            serviceIds: string[];
+        };
+        /** @description Barberos de la barbería resuelta con al menos una asignación vigente a un servicio activo, ordenados de forma estable por fecha de alta y luego por id. Un arreglo vacío cubre una barbería publicada sin ningún barbero elegible. */
+        PublicBarberServicesListResponse: {
+            /** @description Barberos elegibles, en el orden estable del servidor. */
+            items: components["schemas"]["PublicBarberServicesResponse"][];
+        };
+        /** @description Inicio válido de `barberId`: el intervalo [startsAt, startsAt + durationMinutes) cabe entero en su jornada efectiva y no interseca ninguna cita que ocupe agenda ni ningún bloqueo vigente. Es el mismo inicio que la operación por barbero devuelve para ese barbero. */
+        BarberAvailabilitySlotResponse: {
+            /**
+             * Format: uuid
+             * @description Barbero al que pertenece el inicio.
+             * @example 8f3ac2b1-e4d5-46f6-a7c8-d9e0f1a2b3c4
+             */
+            barberId: string;
+            /**
+             * Format: date-time
+             * @description Instante absoluto de inicio (ISO 8601 con offset explícito). El cliente lo presenta en la zona horaria de la barbería (`timezone`), nunca en la del dispositivo (RN-DIS-07).
+             * @example 2026-09-15T09:00:00-05:00
+             */
+            startsAt: string;
+        };
+        /** @description Inicios públicos válidos del servicio para todos sus barberos elegibles, ordenados por (`startsAt`, `barberId`), más el contexto mínimo para interpretarlos (RN-DIS-07). Un arreglo `slots` vacío cubre por igual "sin disponibilidad en la ventana pública vigente" y un `serviceId` ajeno, inexistente, inactivo o sin ningún barbero con asignación vigente: la causa nunca se distingue (mismo criterio que CA-092-03). Nunca reserva ni aparta ninguna franja (RN-DIS-03): es una proyección de solo lectura. */
+        ServiceAvailabilityResponse: {
+            /** @description Inicios válidos de todos los barberos elegibles, ordenados por (`startsAt`, `barberId`). */
+            slots: components["schemas"]["BarberAvailabilitySlotResponse"][];
+            /**
+             * @description Duración planificada del servicio (DEC-002). 0 cuando `serviceId` no produjo ningún barbero con asignación activa vigente.
+             * @example 45
+             */
+            durationMinutes: number;
+            /**
+             * @description Zona horaria IANA de la barbería (RN-DIS-07). Cadena vacía cuando `serviceId` no produjo ningún barbero con asignación activa vigente.
+             * @example America/Bogota
+             */
+            timezone: string;
+            /**
+             * @description Paso de la rejilla vigente de la barbería (RN-DIS-06, DEC-083). 0 cuando `serviceId` no produjo ningún barbero con asignación activa vigente.
+             * @example 30
+             */
+            slotGridMinutes: number;
+        };
         /** @description Barbero de la barbería resuelta con asignación vigente al servicio activo elegido (HU-092, CA-092-02). */
         PublicBarberResponse: {
             /**
@@ -2638,6 +2787,33 @@ export interface components {
             lateCancellationClientAllowed: boolean;
             /** @example true */
             lateCancellationReasonRequired: boolean;
+        };
+        /** @description Ventana de reserva pública propia de un barbero. */
+        BarberBookingPolicyResponse: {
+            /**
+             * Format: uuid
+             * @example 3f1c9a52-7d4e-4b8a-9c21-5e6f7a8b9c0d
+             */
+            barberId: string;
+            /** @example 30 */
+            minAdvanceMinutes: number;
+            /** @example 7 */
+            maxAdvanceDays: number;
+            /** @example 40 */
+            slotGridMinutes: number;
+        };
+        /** @description Ventanas de reserva propias de los barberos de la barbería activa. */
+        BarberBookingPolicyListResponse: {
+            items: components["schemas"]["BarberBookingPolicyResponse"][];
+        };
+        /** @description Reemplazo completo de la ventana de reserva propia de un barbero. */
+        PutBarberBookingPolicyRequest: {
+            /** @example 30 */
+            minAdvanceMinutes: number;
+            /** @example 7 */
+            maxAdvanceDays: number;
+            /** @example 40 */
+            slotGridMinutes: number;
         };
         /**
          * @description Panel que ve el usuario: `shop` (rol `empresa`, o sin ningún rol: el panel completo con gestión de equipo), `solo` (rol `independiente`: barbero individual, sin gestión de equipo ni selector de barbero) o `employee` (rol `empleado`: panel individual limitado, sin Servicios, Reserva pública ni Configuración). Con varios roles prevalece `empresa`, luego `independiente` y luego `empleado`. Un barbero independiente sigue siendo una barbería con un solo barbero (`DEC-019`); el perfil solo cambia lo que el panel muestra.
@@ -4099,6 +4275,26 @@ export interface components {
                 "application/json": components["schemas"]["PublicServiceListResponse"];
             };
         };
+        /** @description Barberos elegibles de la barbería con los ids de los servicios activos que hacen. */
+        PublicBarberServicesListSuccess: {
+            headers: {
+                "X-Request-Id": components["headers"]["XRequestId"];
+                [name: string]: unknown;
+            };
+            content: {
+                "application/json": components["schemas"]["PublicBarberServicesListResponse"];
+            };
+        };
+        /** @description Inicios públicos válidos del servicio elegido para todos sus barberos elegibles. */
+        ServiceAvailabilitySuccess: {
+            headers: {
+                "X-Request-Id": components["headers"]["XRequestId"];
+                [name: string]: unknown;
+            };
+            content: {
+                "application/json": components["schemas"]["ServiceAvailabilityResponse"];
+            };
+        };
         /** @description Fotografía del barbero (JPEG o PNG). */
         PublicBarberPhotoSuccess: {
             headers: {
@@ -4277,6 +4473,44 @@ export interface components {
             content: {
                 "application/problem+json": components["schemas"]["Problem"];
             };
+        };
+        /** @description Ventanas de reserva propias de la barbería activa (los barberos ausentes heredan). */
+        BarberBookingPolicyListSuccess: {
+            headers: {
+                "X-Request-Id": components["headers"]["XRequestId"];
+                [name: string]: unknown;
+            };
+            content: {
+                "application/json": components["schemas"]["BarberBookingPolicyListResponse"];
+            };
+        };
+        /** @description Ventana propia guardada; rige desde ya la disponibilidad pública del barbero. */
+        BarberBookingPolicySaved: {
+            headers: {
+                "X-Request-Id": components["headers"]["XRequestId"];
+                [name: string]: unknown;
+            };
+            content: {
+                "application/json": components["schemas"]["BarberBookingPolicyResponse"];
+            };
+        };
+        /** @description El cuerpo es JSON válido con los tres campos, pero uno está fuera de rango (DEC-083, DEC-133) o la anticipación mínima alcanza o supera la ventana. */
+        BarberBookingPolicyValidationProblem: {
+            headers: {
+                "X-Request-Id": components["headers"]["XRequestId"];
+                [name: string]: unknown;
+            };
+            content: {
+                "application/problem+json": components["schemas"]["Problem"];
+            };
+        };
+        /** @description El barbero ya no tiene ventana propia y hereda la de la barbería, incluidos sus cambios futuros. Idempotente: también responde 204 si no tenía una. */
+        BarberBookingPolicyDeleted: {
+            headers: {
+                "X-Request-Id": components["headers"]["XRequestId"];
+                [name: string]: unknown;
+            };
+            content?: never;
         };
         /** @description Enlace público de reservas de la barbería activa. */
         PublicLinkSuccess: {
@@ -4942,6 +5176,60 @@ export interface operations {
             500: components["responses"]["InternalErrorProblem"];
         };
     };
+    listPublicBarbersWithServices: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Identificador del enlace público de reservas, tal como aparece en la URL. No es un identificador interno: su forma, generación y ciclo de vida los fija DEC-082 (resuelve DP-PUB-01). */
+                slug: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: components["responses"]["PublicBarberServicesListSuccess"];
+            /** @description `slug` con forma inválida, inexistente o de una barbería no publicable, sin distinguir la causa (CA-090-02, RN-TEN-01). */
+            404: {
+                headers: {
+                    "X-Request-Id": components["headers"]["XRequestId"];
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            500: components["responses"]["InternalErrorProblem"];
+        };
+    };
+    listPublicServiceAvailability: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Identificador del enlace público de reservas, tal como aparece en la URL. No es un identificador interno: su forma, generación y ciclo de vida los fija DEC-082 (resuelve DP-PUB-01). */
+                slug: string;
+                /** @description Identificador del servicio activo ya elegido (HU-091). No confiado: se revalida pertenencia y vigencia contra la barbería resuelta por `slug` en cada lectura (mismo criterio que CA-092-03). */
+                serviceId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: components["responses"]["ServiceAvailabilitySuccess"];
+            /** @description `slug` con forma inválida, inexistente o de una barbería no publicable, sin distinguir la causa (CA-090-02, RN-TEN-01). */
+            404: {
+                headers: {
+                    "X-Request-Id": components["headers"]["XRequestId"];
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            500: components["responses"]["InternalErrorProblem"];
+        };
+    };
     getPublicBarberPhoto: {
         parameters: {
             query?: never;
@@ -5492,6 +5780,62 @@ export interface operations {
                 };
             };
             422: components["responses"]["BookingPolicyValidationProblem"];
+            500: components["responses"]["InternalErrorProblem"];
+        };
+    };
+    listBarberBookingPolicies: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: components["responses"]["BarberBookingPolicyListSuccess"];
+            401: components["responses"]["UnauthorizedProblem"];
+            500: components["responses"]["InternalErrorProblem"];
+        };
+    };
+    putBarberBookingPolicy: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Identificador del barbero de la barbería de la sesión. */
+                barberId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PutBarberBookingPolicyRequest"];
+            };
+        };
+        responses: {
+            200: components["responses"]["BarberBookingPolicySaved"];
+            400: components["responses"]["InvalidRequestProblem"];
+            401: components["responses"]["UnauthorizedProblem"];
+            404: components["responses"]["NotFoundProblem"];
+            422: components["responses"]["BarberBookingPolicyValidationProblem"];
+            500: components["responses"]["InternalErrorProblem"];
+        };
+    };
+    deleteBarberBookingPolicy: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Identificador del barbero de la barbería de la sesión. */
+                barberId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            204: components["responses"]["BarberBookingPolicyDeleted"];
+            401: components["responses"]["UnauthorizedProblem"];
+            404: components["responses"]["NotFoundProblem"];
             500: components["responses"]["InternalErrorProblem"];
         };
     };

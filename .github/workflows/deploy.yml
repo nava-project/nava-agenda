@@ -100,6 +100,8 @@ jobs:
     runs-on: ubuntu-latest
     # Sin el entorno, `vars.VITE_GOOGLE_MAPS_BROWSER_KEY` (variable del entorno
     # production) llegaba vacía y la SPA se compilaba sin mapas (issue #579).
+    # Ojo: el entorno solo alcanza a los pasos, no a `strategy.matrix`, que se
+    # resuelve antes; por eso el build-arg se arma en el paso de build (#583).
     environment: production
     permissions:
       contents: read
@@ -111,16 +113,12 @@ jobs:
           - name: backend
             dockerfile: deploy/docker/backend.Dockerfile
             tag: ${{ needs.verify.outputs.sha }}
-            build_args: ""
           - name: web
             dockerfile: deploy/docker/web.Dockerfile
             tag: ${{ needs.verify.outputs.sha }}
-            # Clave de NAVEGADOR de Google Maps: pública por diseño (se restringe por dominio).
-            build_args: VITE_GOOGLE_MAPS_BROWSER_KEY=${{ vars.VITE_GOOGLE_MAPS_BROWSER_KEY }}
           - name: db
             dockerfile: deploy/docker/db.Dockerfile
             tag: ${{ needs.verify.outputs.db_tag }}
-            build_args: ""
     steps:
       - uses: actions/checkout@v7
         with:
@@ -140,7 +138,9 @@ jobs:
           file: ${{ matrix.dockerfile }}
           push: true
           provenance: false
-          build-args: ${{ matrix.build_args }}
+          # Clave de NAVEGADOR de Google Maps, solo para la imagen web: pública por
+          # diseño (se restringe por dominio en Google Cloud).
+          build-args: ${{ matrix.name == 'web' && format('VITE_GOOGLE_MAPS_BROWSER_KEY={0}', vars.VITE_GOOGLE_MAPS_BROWSER_KEY) || '' }}
           tags: ghcr.io/${{ needs.verify.outputs.owner }}/barberia-${{ matrix.name }}:${{ matrix.tag }}
           cache-from: type=gha,scope=${{ matrix.name }}
           cache-to: type=gha,scope=${{ matrix.name }},mode=max

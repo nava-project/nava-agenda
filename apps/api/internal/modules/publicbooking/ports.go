@@ -161,13 +161,14 @@ type BusyBlocksPort interface {
 }
 
 // BookingPolicyPort resuelve la anticipación mínima (minutos), la ventana
-// máxima (días) y el paso de rejilla (minutos) vigentes de barbershopID
-// (HU-093, RN-DIS-04, RN-DIS-06). El adaptador real vive en el paquete
-// shops (shops.NewAvailabilityBookingPolicy), que reutiliza
-// BookingPolicyService.Get sin duplicar sus rangos/defaults (DEC-083):
+// máxima (días) y el paso de rejilla (minutos) EFECTIVOS de barberID dentro
+// de barbershopID (HU-093, RN-DIS-04, RN-DIS-06, DEC-169): la configuración
+// propia del barbero si existe; si no, la de la barbería. El adaptador real
+// vive en el paquete shops (shops.NewAvailabilityBookingPolicy), que
+// reutiliza sus servicios sin duplicar rangos/defaults (DEC-083):
 // publicbooking nunca importa shops.
 type BookingPolicyPort interface {
-	BookingPolicy(ctx context.Context, barbershopID string) (minAdvanceMinutes, maxAdvanceDays, slotGridMinutes int, err error)
+	BookingPolicy(ctx context.Context, barbershopID, barberID string) (minAdvanceMinutes, maxAdvanceDays, slotGridMinutes int, err error)
 }
 
 // ServiceAssignmentPort resuelve, para (barberID, serviceID) dentro de

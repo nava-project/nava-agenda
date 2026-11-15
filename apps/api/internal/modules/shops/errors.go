@@ -119,3 +119,11 @@ func errGeocoderUnavailable() error {
 	return apperr.Validation(
 		"no pudimos verificar la dirección en este momento; inténtalo de nuevo en unos minutos")
 }
+
+// errBarberForPolicyNotFound cubre DEC-169: el barbero de la ventana propia no
+// existe en la barbería activa (o su identificador no tiene forma de uuid).
+// Mismo 404 uniforme que staff, sin revelar si existe en otra barbería
+// (RN-TEN-01).
+func errBarberForPolicyNotFound() error {
+	return apperr.NotFound("barbero no encontrado")
+}
