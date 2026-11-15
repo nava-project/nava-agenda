@@ -551,7 +551,7 @@ Las palabras «barbería» y «barbero» son los valores iniciales del vocabular
 - Se muestran en español y en la zona horaria de la barbería.
 - Una experiencia usa una sola convención horaria coherente; las horas siempre incluyen minutos.
 - Fechas importantes son legibles (“sábado, 24 de mayo”), con formato corto solo como apoyo.
-- Dinero se formatea según la moneda definida por el contrato; no se concatena `$` ni se asumen pesos desde el componente.
+- Dinero se formatea según la moneda definida por el contrato; no se concatena `$` ni se asumen pesos desde el componente. Cuando se muestra el símbolo, sale de `Intl` para la moneda recibida y el importe se agrupa sin convertir el decimal a número (`shared/model/money.ts`, issue #577).
 - Las cifras tabulares no eliminan su label ni contexto.
 
 ## 11. Implementación incremental para agentes
