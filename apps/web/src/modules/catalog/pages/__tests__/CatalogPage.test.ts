@@ -640,9 +640,14 @@ describe('CatalogPage', () => {
     expect(dialog.textContent).toContain('Corte clásico')
     expect(dialog.textContent).toContain(longDescription)
     expect(dialog.textContent).toContain('45')
-    expect(dialog.textContent).toContain('45000.00')
+    // Precio en pesos colombianos (issue #577): símbolo, miles con punto y
+    // sin decimales en cero, a partir del decimal exacto del contrato.
+    expect(dialog.querySelector('.catalog-page__detail-figure--price')?.textContent).toMatch(
+      /\$\s*45\.000\s*COP/,
+    )
+    expect(dialog.textContent).not.toContain('45000.00')
     expect(dialog.textContent).toContain('Activo')
-    expect(dialog.textContent).toContain('24/08/2026')
+    expect(dialog.textContent).toContain('24 de agosto de 2026')
   })
 
   it('says so when the service has no description', async () => {
@@ -665,7 +670,7 @@ describe('CatalogPage', () => {
 
     const dialog = openDialogElement(wrapper)
     expect(dialog.textContent).toContain('Inactivo')
-    expect(dialog.textContent).toContain('01/09/2026')
+    expect(dialog.textContent).toContain('1 de septiembre de 2026')
   })
 
   it('closes the detail dialog with Cerrar without calling the API', async () => {

@@ -1,6 +1,7 @@
 <script setup lang="ts">
 // Pantalla "Reserva pública" (HU-093): consultar y actualizar anticipación,
-// ventana, rejilla y política de cancelación tardía de la barbería activa.
+// ventana, rejilla y política de cancelación tardía de la barbería activa, y
+// la ventana propia de cada barbero (DEC-169, BarberWindowPanel).
 // Estados discriminados: carga inicial, listo, guardando, error de campo,
 // conflicto de versión, error recuperable y éxito (mismo criterio que
 // SettingsPage.vue/HU-020). Un error recuperable NUNCA borra lo que el
@@ -12,6 +13,7 @@ import { computed, onMounted, reactive, ref, watch } from 'vue'
 import { useToast, useVocabulary } from '@/shared/composables'
 import { BaseAlert, BaseButton, BaseInput, DiamondLoader } from '@/shared/ui'
 import { fetchBookingPolicy, saveBookingPolicy } from '../api/bookingPolicyApi'
+import BarberWindowPanel from '../components/BarberWindowPanel.vue'
 import BookingPolicyPreview from '../components/BookingPolicyPreview.vue'
 import SaveBar from '../components/SaveBar.vue'
 import SettingsPanel from '../components/SettingsPanel.vue'
@@ -402,15 +404,19 @@ function onReloadAfterConflict() {
             </div>
           </SettingsPanel>
 
-          <!-- 02 · Cancelación del cliente -->
+          <!-- 02 · Ventana por barbero (DEC-169): carga y guarda por su cuenta;
+               hereda la ventana de la barbería YA guardada, no el borrador. -->
+          <BarberWindowPanel :shop-window="savedForm" />
+
+          <!-- 03 · Cancelación del cliente -->
           <SettingsPanel
             id="reserva-cancelacion"
-            number="02"
+            number="03"
             title="Cancelación del cliente"
             description="Hasta cuándo puede cancelar por su cuenta y qué pasa si lo hace fuera de plazo."
             scope="shop"
             :scope-label="`Para ${v.allTheBusiness}`"
-            style="--panel-index: 1"
+            style="--panel-index: 2"
           >
             <BaseInput
               :model-value="form.cancellationDeadlineMinutes"

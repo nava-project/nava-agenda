@@ -238,9 +238,9 @@ Consultar la disponibilidad no bloquea ni aparta el horario. Varios clientes pue
 
 ### RN-DIS-04 · Anticipación mínima y ventana máxima
 
-**Estado: Decisión confirmada** (`DEC-005`, `DEC-018`)
+**Estado: Decisión confirmada** (`DEC-005`, `DEC-018`, `DEC-169`)
 
-No se puede reservar con menos de X minutos de anticipación ni con más de Y días de anticipación. Ambos valores son configurables por barbería. Los valores iniciales son X = 60 minutos y Y = 3 días. Rango permitido: X entero en `[0, 1440]` minutos (0 desactiva el mínimo); Y entero en `[1, 90]` días (`DEC-083`).
+No se puede reservar con menos de X minutos de anticipación ni con más de Y días de anticipación. Ambos valores son configurables por barbería. Los valores iniciales son X = 60 minutos y Y = 3 días. Rango permitido: X entero en `[0, 1440]` minutos (0 desactiva el mínimo); Y entero en `[1, 90]` días (`DEC-083`). Un barbero puede tener valores propios de X e Y dentro de los mismos rangos; sin ellos hereda los de la barbería (`DEC-169`).
 
 **Motivo:** sin anticipación mínima, un cliente puede reservar a las 10:00 para las 10:05 mientras el barbero está atendiendo y no mira el teléfono. Sin ventana máxima, aparecen reservas a ocho meses que casi nunca se cumplen.
 
@@ -286,9 +286,9 @@ Todo intervalo de cita o de bloqueo se interpreta como `[inicio, fin)`: incluye 
 
 ### RN-DIS-06 · Paso de la rejilla de horarios
 
-**Estado: Decisión confirmada** (`DEC-006`, `DEC-018`, `DEC-084` sustituida por `DEC-135`, `DEC-133`)
+**Estado: Decisión confirmada** (`DEC-006`, `DEC-018`, `DEC-084` sustituida por `DEC-135`, `DEC-133`, `DEC-169`)
 
-Las franjas ofrecidas al cliente se generan cada N minutos desde el inicio de cada tramo laboral disponible. El valor inicial de N es 15 minutos. N es un entero de 1 a 60 minutos que cada barbería fija con un campo numérico (`DEC-133`, que sustituye el conjunto discreto de `DEC-083`).
+Las franjas ofrecidas al cliente se generan cada N minutos desde el inicio de cada tramo laboral disponible. El valor inicial de N es 15 minutos. N es un entero de 1 a 60 minutos que cada barbería fija con un campo numérico (`DEC-133`, que sustituye el conjunto discreto de `DEC-083`). Un barbero puede fijar su propio N en el mismo rango; sin él usa el de la barbería (`DEC-169`).
 
 **Motivo:** ofrecer cualquier minuto produce listas inmanejables en un celular; un paso demasiado grande desperdicia huecos.
 

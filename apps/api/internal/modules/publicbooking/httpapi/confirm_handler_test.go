@@ -57,7 +57,7 @@ func (confirmFakeBusyBlocks) BusyIntervals(context.Context, string, string, stri
 
 type confirmFakeBookingPolicy struct{}
 
-func (confirmFakeBookingPolicy) BookingPolicy(context.Context, string) (int, int, int, error) {
+func (confirmFakeBookingPolicy) BookingPolicy(context.Context, string, string) (int, int, int, error) {
 	return 0, 1, 30, nil
 }
 

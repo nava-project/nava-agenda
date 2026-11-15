@@ -82,10 +82,16 @@ func (f *fakeBusyBlocks) BusyIntervals(_ context.Context, _, _, _, _, _ string) 
 
 type fakeBookingPolicy struct {
 	minAdvanceMinutes, maxAdvanceDays, slotGridMinutes int
-	err                                                error
+	// perBarber simula la configuración propia de un barbero (DEC-169):
+	// {minAdvanceMinutes, maxAdvanceDays, slotGridMinutes}.
+	perBarber map[string][3]int
+	err       error
 }
 
-func (f *fakeBookingPolicy) BookingPolicy(_ context.Context, _ string) (int, int, int, error) {
+func (f *fakeBookingPolicy) BookingPolicy(_ context.Context, _, barberID string) (int, int, int, error) {
+	if override, ok := f.perBarber[barberID]; ok {
+		return override[0], override[1], override[2], f.err
+	}
 	return f.minAdvanceMinutes, f.maxAdvanceDays, f.slotGridMinutes, f.err
 }
 
@@ -254,5 +260,43 @@ func TestListPublicAvailability_NonWorkingDay_ReturnsEmpty(t *testing.T) {
 	}
 	if len(got.Slots) != 0 {
 		t.Fatalf("esperaba slots vacío en día no laborable, got %v", got.Slots)
+	}
+}
+
+// DEC-169: la rejilla y la anticipación propias de un barbero rigen sus
+// franjas; otro barbero del mismo servicio sigue con la de la barbería, y el
+// agregado informa la rejilla más fina.
+func TestListPublicServiceAvailability_PerBarberPolicy_AppliesEachBarbersWindow(t *testing.T) {
+	loc, _ := time.LoadLocation("America/Bogota")
+	now := time.Date(2026, time.September, 14, 8, 0, 0, 0, loc)
+
+	const ownBarber = "33333333-3333-3333-3333-333333333333"
+	repo, effectiveDay, blocks, policy, assignments, timezones := newAvailabilityFixture(now)
+	repo.serviceBarberIDs = []string{availBarberID, ownBarber}
+	// Propia: rejilla de 45 y dos horas de anticipación (primera franja 10:00
+	// alineada desde las 9:00 → 10:30). La barbería: rejilla de 30, sin
+	// anticipación.
+	policy.perBarber = map[string][3]int{ownBarber: {120, 1, 45}}
+	svc := publicbooking.NewAvailabilityService(repo, effectiveDay, blocks, policy, assignments, timezones, fixedAvailabilityClock{now: now})
+
+	got, err := svc.ListPublicServiceAvailability(context.Background(), "barberia-ejemplo", availServiceID)
+	if err != nil {
+		t.Fatalf("ListPublicServiceAvailability: %v", err)
+	}
+	if got.SlotGridMinutes != 30 {
+		t.Fatalf("el agregado debe informar la rejilla más fina (30), got %d", got.SlotGridMinutes)
+	}
+
+	byBarber := map[string][]time.Time{}
+	for _, s := range got.Slots {
+		byBarber[s.BarberID] = append(byBarber[s.BarberID], s.StartsAt)
+	}
+	inherited, own := byBarber[availBarberID], byBarber[ownBarber]
+	if len(inherited) < 2 || !inherited[0].Equal(time.Date(2026, time.September, 14, 9, 0, 0, 0, loc)) ||
+		inherited[1].Sub(inherited[0]) != 30*time.Minute {
+		t.Fatalf("el barbero que hereda debe seguir la rejilla de 30 desde las 9:00: %v", inherited)
+	}
+	if len(own) < 2 || own[0].Before(now.Add(120*time.Minute)) || own[1].Sub(own[0]) != 45*time.Minute {
+		t.Fatalf("el barbero con ventana propia debe respetar 120 min de anticipación y rejilla de 45: %v", own)
 	}
 }

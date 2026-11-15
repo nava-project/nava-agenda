@@ -115,12 +115,14 @@ function openBlocks(id: string, name: string, photoUrl: string | null) {
   padding: 0;
   overscroll-behavior: contain;
 }
-/* Escritorio con alto suficiente: el diálogo mide siempre lo mismo y su contenido no
-   se desplaza; cada lista del panel tiene su propio scroll (BarberBlocksPanel). En
+/* Escritorio con alto suficiente: el diálogo mide lo que pide su contenido, con
+   un tope; al llegar al tope cada lista del panel desplaza la suya
+   (BarberBlocksPanel) y la cabecera y la nota quedan fijas. Antes el alto era
+   fijo y, con pocos bloqueos, dejaba media ventana en blanco (issue #577). En
    móvil o con poca altura el contenido se desplaza con el diálogo. */
 @media (min-width: 768px) and (min-height: 800px) {
   .blocks-workspace-dialog {
-    height: min(780px, calc(100vh / var(--ui-zoom, 1) - var(--space-4) * 2));
+    max-height: min(780px, calc(100vh / var(--ui-zoom, 1) - var(--space-4) * 2));
   }
   .blocks-workspace-dialog .base-dialog__container {
     flex: 1 1 auto;
@@ -139,5 +141,41 @@ function openBlocks(id: string, name: string, photoUrl: string | null) {
   .blocks-workspace-dialog .base-dialog__header {
     padding: 12px 16px;
   }
+}
+
+/* Apertura propia (issue #577): primero se traza la línea de acento desde el
+   centro y después el panel se despliega hacia abajo desde ella, mientras
+   sube unos píxeles. El recorte final es negativo para no cortar la sombra, y
+   el relleno es `backwards`: al terminar no queda ningún recorte que pueda
+   cortar un desplegable. Al cerrar se desvanece como los demás diálogos. */
+.blocks-workspace-dialog.base-dialog--open {
+  animation: blocks-dialog-unfold 640ms cubic-bezier(0.65, 0, 0.35, 1) backwards;
+}
+@keyframes blocks-dialog-unfold {
+  0% {
+    opacity: 0;
+    transform: translateY(14px);
+    clip-path: inset(0 50% calc(100% - 2px) 50%);
+  }
+  12% {
+    opacity: 1;
+  }
+  38% {
+    transform: translateY(8px);
+    clip-path: inset(0 0 calc(100% - 2px) 0);
+  }
+  100% {
+    opacity: 1;
+    transform: none;
+    clip-path: inset(-80px);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .blocks-workspace-dialog.base-dialog--open {
+    animation: none;
+  }
+}
+:root[data-motion='reduced'] .blocks-workspace-dialog.base-dialog--open {
+  animation: none;
 }
 </style>

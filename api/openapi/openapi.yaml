@@ -2,6 +2,11 @@
 # docs/06-api/estandar-openapi.md (DEC-037). No se edita el bundle generado
 # en dist/; este archivo y los que referencia son la fuente.
 #
+# Issue #585 (DEC-169) agrega GET /private/settings/booking-policy/barbers y
+# PUT/DELETE /private/settings/booking-policy/barbers/{barberId}
+# (paths/settings.yaml): ventana de reserva pública propia y opcional por
+# barbero; sin ella, el barbero hereda la de la barbería.
+#
 # Issue #355 (DEC-126) agrega el tag Webhooks y GET/POST
 # /public/webhooks/meta/whatsapp (paths/public-webhooks.yaml): verificación y
 # notificaciones firmadas de Meta WhatsApp Cloud API. Lo llama Meta; el frontend
@@ -101,7 +106,7 @@
 openapi: 3.1.2
 info:
   title: API del sistema de agenda para barberías
-  version: 0.49.0
+  version: 0.50.0
   description: >
     Contrato HTTP entre apps/web y apps/api. Tres audiencias comparten este
     documento: /api/v1/public (reserva sin sesión), /api/v1/customer
@@ -208,6 +213,10 @@ paths:
     $ref: './paths/settings.yaml#/~1private~1settings~1barbershop'
   /private/settings/booking-policy:
     $ref: './paths/settings.yaml#/~1private~1settings~1booking-policy'
+  /private/settings/booking-policy/barbers:
+    $ref: './paths/settings.yaml#/~1private~1settings~1booking-policy~1barbers'
+  /private/settings/booking-policy/barbers/{barberId}:
+    $ref: './paths/settings.yaml#/~1private~1settings~1booking-policy~1barbers~1{barberId}'
   /private/settings/brand:
     $ref: './paths/settings.yaml#/~1private~1settings~1brand'
   /private/settings/public-link:

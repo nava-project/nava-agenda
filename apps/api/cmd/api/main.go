@@ -291,6 +291,14 @@ func buildRouter(db *database.DB, logger *slog.Logger, cfg config.Config) (*chi.
 	updateBookingPolicyHandler := shopshttpapi.NewUpdateBookingPolicyHandler(bookingPolicyService)
 	private.Get("/settings/booking-policy", getBookingPolicyHandler.ServeHTTP)
 	private.Put("/settings/booking-policy", updateBookingPolicyHandler.ServeHTTP)
+	// DEC-169: ventana de reserva propia y opcional por barbero; sin ella, el
+	// barbero hereda la de la barbería.
+	barberBookingPolicyService := shops.NewBarberBookingPolicyService(
+		shopspostgres.NewBarberBookingPolicyRepository(db), bookingPolicyService)
+	barberBookingPolicyHandler := shopshttpapi.NewBarberBookingPolicyHandler(barberBookingPolicyService)
+	private.Get("/settings/booking-policy/barbers", barberBookingPolicyHandler.List)
+	private.Put("/settings/booking-policy/barbers/{barberId}", barberBookingPolicyHandler.Put)
+	private.Delete("/settings/booking-policy/barbers/{barberId}", barberBookingPolicyHandler.Delete)
 
 	// Issue #292 (DEC-110): marca y vocabulario de la barbería (color de
 	// acento de una lista cerrada, palabra del negocio y del profesional).
@@ -499,7 +507,7 @@ func buildRouter(db *database.DB, logger *slog.Logger, cfg config.Config) (*chi.
 		publicBookingRepo,
 		scheduleAvailability,
 		scheduleAvailability,
-		shops.NewAvailabilityBookingPolicy(bookingPolicyService),
+		shops.NewAvailabilityBookingPolicy(barberBookingPolicyService),
 		catalog.NewManualBookingCatalog(catalogService, assignmentService),
 		shops.NewTimezoneLookup(shopService),
 		clock.System{},

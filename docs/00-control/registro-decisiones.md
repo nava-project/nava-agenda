@@ -2113,3 +2113,15 @@ Cada código `DEC-*` es estable y no se reutiliza. Este registro normaliza respu
 - **Alcance:** frontend (`AssistantSection`, `SiteFooter`, contenido legal) y pruebas; guía de Meta. Sin cambios de API, datos ni migraciones.
 - **Documentos afectados:** `historial-cambios.md`; `docs/04-arquitectura/meta-revision-app-whatsapp.md` (§3.1).
 - **Fuente:** solicitud del propietario el 2026-11-12; issue [#571](https://github.com/bcaceres19/barberia/issues/571); `DEC-163`, `DEC-167`.
+
+### DEC-169 · Cada barbero puede tener su propia ventana de reserva pública (anticipación, ventana y rejilla); la cancelación sigue siendo de la barbería (amplía `DEC-083` y `DEC-133`)
+
+- **Fecha:** 2026-11-15
+- **Estado:** Confirmada
+- **Decisión:** además de la política de la barbería (HU-093), cada barbero puede tener una **configuración propia opcional** de anticipación mínima, ventana máxima y rejilla de horarios. Usa los mismos rangos y la misma coherencia que la de la barbería (`DEC-083`, `DEC-133`: rejilla entera de 1 a 60; anticipación menor que toda la ventana). Sin configuración propia, el barbero **hereda** la de la barbería, incluidos sus cambios futuros; quitarla vuelve a heredar. Es una fila aparte por barbero (`barber_booking_policy`): existir = propia, no existir = heredada. El plazo y la política de cancelación tardía (`RN-CAN-01`, `RN-CAN-02`) siguen siendo de la barbería. La disponibilidad pública y la revalidación al confirmar usan la política **efectiva** del barbero desde su única fuente (`computeAvailableStarts`). Las citas manuales siguen sin estos límites (`RN-DIS-04`). Guardar o quitar la configuración propia es un reemplazo completo e idempotente de un registro pequeño e independiente; no lleva `If-Match` (último escritor), porque solo la cuenta de la barbería lo edita y cada escritura deja un estado completo y válido.
+- **Motivo:** solicitud del propietario: «un barbero es único y puede escoger cada cuánto motilar». Un barbero que corta en 40 minutos y otro en 20 no deberían ofrecer la misma rejilla.
+- **Alternativas descartadas:** copiar los valores de la barbería en cada barbero (rompe la herencia: un cambio de la barbería no llegaría a nadie); columnas anulables en `barber` (mezcla la ficha del equipo con la política pública y obliga a tres nulos coordinados); incluir la cancelación por barbero (el cliente cancela contra una regla de la barbería y no hay pedido para cambiarla).
+- **Alcance:** migración Atlas `barber_booking_policy` con RLS; API privada `GET /private/settings/booking-policy/barbers`, `PUT`/`DELETE /private/settings/booking-policy/barbers/{barberId}`; puerto de política de `publicbooking` por barbero; sección «Ventana por barbero» en Reserva pública.
+- **Documentos afectados:** `reglas-negocio.md` (`RN-DIS-04`, `RN-DIS-06`), contrato OpenAPI, diccionario de datos, `historial-cambios.md`.
+- **Fuente:** solicitud del propietario el 2026-11-15; issue [#585](https://github.com/bcaceres19/barberia/issues/585); `DEC-083`, `DEC-133`, HU-093.
+
