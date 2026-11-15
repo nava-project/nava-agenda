@@ -137,7 +137,7 @@ El entorno **`production`** del repositorio ya está creado con lo necesario, en
 | Secreto | `VPS_SSH_KEY` | llave privada de `deploy` (`~/.ssh/barberia_deploy_ed25519`) |
 | Secreto | `VPS_KNOWN_HOSTS` | huella ed25519 del servidor (evita ataques de intermediario) |
 | Variable | `PUBLIC_URL` | `https://nava.wtf` (comprobación final del despliegue) |
-| Variable | `VITE_GOOGLE_MAPS_BROWSER_KEY` | clave de **navegador** de Google Maps (pública por diseño; se protege con la restricción por dominio en Google Cloud, que debe incluir `nava.wtf`). Es una variable del entorno `production`: el job que construye las imágenes declara ese entorno para recibirla; sin él la SPA se compila sin mapas (issue #579) |
+| Variable | `VITE_GOOGLE_MAPS_BROWSER_KEY` | clave de **navegador** de Google Maps (pública por diseño; se protege con la restricción por dominio en Google Cloud, que debe incluir `nava.wtf`). Es una variable del entorno `production`: el job que construye las imágenes declara ese entorno para recibirla; sin él la SPA se compila sin mapas (issue #579). El build-arg se arma en el paso de build y no en la matriz, que se resuelve antes de aplicar el entorno (issue #583) |
 
 Las claves de Resend, Meta y Google **no** están en GitHub: viven solo en el servidor como
 secretos de Docker (sección 2). El repositorio es privado y aun así ningún secreto va en el código.
