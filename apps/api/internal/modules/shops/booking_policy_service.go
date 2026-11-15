@@ -70,14 +70,15 @@ func (s *BookingPolicyService) Update(ctx context.Context, barbershopID string, 
 		return BookingPolicy{}, errBookingPolicyVersionTokenRequired()
 	}
 
-	switch {
-	case input.MinAdvanceMinutes < MinAdvanceMinutesFloor || input.MinAdvanceMinutes > MinAdvanceMinutesCeil:
-		return BookingPolicy{}, errBookingPolicyFieldOutOfRange("minAdvanceMinutes")
-	case input.MaxAdvanceDays < MaxAdvanceDaysFloor || input.MaxAdvanceDays > MaxAdvanceDaysCeil:
-		return BookingPolicy{}, errBookingPolicyFieldOutOfRange("maxAdvanceDays")
-	case input.SlotGridMinutes < SlotGridMinutesFloor || input.SlotGridMinutes > SlotGridMinutesCeil:
-		return BookingPolicy{}, errBookingPolicyFieldOutOfRange("slotGridMinutes")
-	case input.CancellationDeadlineMinutes < CancellationDeadlineMinutesFloor || input.CancellationDeadlineMinutes > CancellationDeadlineMinutesCeil:
+	// Mismo orden de evaluación que antes de DEC-169: rangos de la ventana,
+	// rango del plazo, coherencia de cancelación y, al final, anticipación
+	// frente a la ventana. La parte de la ventana la comparte con la
+	// política de cada barbero (validateBookingWindow).
+	windowErr := validateBookingWindow(input.MinAdvanceMinutes, input.MaxAdvanceDays, input.SlotGridMinutes)
+	if windowErr != nil && !isAdvanceExceedsWindow(input) {
+		return BookingPolicy{}, windowErr
+	}
+	if input.CancellationDeadlineMinutes < CancellationDeadlineMinutesFloor || input.CancellationDeadlineMinutes > CancellationDeadlineMinutesCeil {
 		return BookingPolicy{}, errBookingPolicyFieldOutOfRange("cancellationDeadlineMinutes")
 	}
 
@@ -86,11 +87,8 @@ func (s *BookingPolicyService) Update(ctx context.Context, barbershopID string, 
 	if input.LateCancellationReasonRequired && !input.LateCancellationClientAllowed {
 		return BookingPolicy{}, errBookingPolicyIncoherentCancellationPolicy()
 	}
-	// Mismo criterio que barbershop_min_advance_vs_window_ck: la
-	// anticipación mínima no puede alcanzar ni superar toda la ventana, o
-	// ninguna franja quedaría reservable.
-	if input.MinAdvanceMinutes >= input.MaxAdvanceDays*1440 {
-		return BookingPolicy{}, errBookingPolicyAdvanceExceedsWindow()
+	if windowErr != nil {
+		return BookingPolicy{}, windowErr
 	}
 
 	result, err := s.repo.Update(ctx, barbershopID, BookingPolicyUpdateInput{
@@ -112,4 +110,15 @@ func (s *BookingPolicyService) Update(ctx context.Context, barbershopID string, 
 		return BookingPolicy{}, apperr.NotFound("barbería no encontrada")
 	}
 	return result.Policy, nil
+}
+
+// isAdvanceExceedsWindow indica si la única falla de la ventana de input es
+// la coherencia anticipación < ventana (con los tres valores en rango): esa
+// comprobación se evalúa después de las de cancelación, como antes de
+// DEC-169.
+func isAdvanceExceedsWindow(input BookingPolicyInput) bool {
+	inRange := input.MinAdvanceMinutes >= MinAdvanceMinutesFloor && input.MinAdvanceMinutes <= MinAdvanceMinutesCeil &&
+		input.MaxAdvanceDays >= MaxAdvanceDaysFloor && input.MaxAdvanceDays <= MaxAdvanceDaysCeil &&
+		input.SlotGridMinutes >= SlotGridMinutesFloor && input.SlotGridMinutes <= SlotGridMinutesCeil
+	return inRange && input.MinAdvanceMinutes >= input.MaxAdvanceDays*1440
 }

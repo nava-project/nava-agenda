@@ -181,12 +181,16 @@ func (s *AvailabilityService) ListPublicServiceAvailability(ctx context.Context,
 			return ServiceAvailabilityResult{}, err
 		}
 
-		// La duración es del servicio y la zona y la rejilla de la barbería:
-		// iguales para todos los barberos, así que basta fijarlas con el
-		// primero elegible aunque no tenga franjas hoy.
+		// La duración es del servicio y la zona de la barbería: iguales para
+		// todos los barberos, así que basta fijarlas con el primero elegible
+		// aunque no tenga franjas hoy. La rejilla puede variar por barbero
+		// (DEC-169): se informa la más fina, la que ningún inicio del
+		// agregado contradice.
 		result.DurationMinutes = durationMinutes
 		result.Timezone = timezone
-		result.SlotGridMinutes = slotGridMinutes
+		if result.SlotGridMinutes == 0 || slotGridMinutes < result.SlotGridMinutes {
+			result.SlotGridMinutes = slotGridMinutes
+		}
 		for _, t := range starts {
 			result.Slots = append(result.Slots, BarberAvailabilitySlot{BarberID: barberID, StartsAt: t})
 		}
@@ -224,7 +228,7 @@ func (s *AvailabilityService) computeAvailableStarts(
 		return nil, "", 0, apperr.Internal(fmt.Errorf("publicbooking: zona horaria irresoluble para disponibilidad: %w", err))
 	}
 
-	minAdvanceMinutes, maxAdvanceDays, slotGridMinutes, err := s.policy.BookingPolicy(ctx, barbershopID)
+	minAdvanceMinutes, maxAdvanceDays, slotGridMinutes, err := s.policy.BookingPolicy(ctx, barbershopID, barberID)
 	if err != nil {
 		return nil, "", 0, apperr.Internal(fmt.Errorf("publicbooking: resolver política de reserva para disponibilidad: %w", err))
 	}
