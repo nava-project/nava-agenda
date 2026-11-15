@@ -1,0 +1,12 @@
+# Respuesta de GET /private/settings/booking-policy/barbers (DEC-169): las
+# ventanas propias de la barbería activa, ordenadas por barberId. Un barbero
+# ausente hereda la ventana de la barbería.
+type: object
+description: Ventanas de reserva propias de los barberos de la barbería activa.
+properties:
+  items:
+    type: array
+    items:
+      $ref: './BarberBookingPolicyResponse.yaml'
+required:
+  - items

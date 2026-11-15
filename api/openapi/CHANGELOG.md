@@ -4,6 +4,38 @@ Formato basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/).
 Ver [`docs/06-api/estandar-openapi.md`](../../docs/06-api/estandar-openapi.md)
 sección 18 para qué cuenta como cambio compatible o incompatible.
 
+## 0.50.0 · 2026-11-15
+
+### Agregado
+
+- `GET /private/settings/booking-policy/barbers` (`listBarberBookingPolicies`,
+  `DEC-169`): las ventanas de reserva públicas propias de los barberos de la
+  barbería de la sesión (anticipación mínima, ventana máxima y rejilla). Un
+  barbero ausente hereda la política de la barbería.
+- `PUT /private/settings/booking-policy/barbers/{barberId}`
+  (`putBarberBookingPolicy`): reemplazo completo e idempotente de la ventana
+  propia, con los mismos rangos y la misma coherencia que la de la barbería
+  (`DEC-083`, `DEC-133`), sin `If-Match`. Barbero inexistente, ajeno o mal
+  formado: `404` uniforme.
+- `DELETE /private/settings/booking-policy/barbers/{barberId}`
+  (`deleteBarberBookingPolicy`): el barbero vuelve a heredar; `204` idempotente.
+- Esquemas `BarberBookingPolicyResponse`, `BarberBookingPolicyListResponse` y
+  `PutBarberBookingPolicyRequest`; respuestas `BarberBookingPolicyListSuccess`,
+  `BarberBookingPolicySaved`, `BarberBookingPolicyDeleted` y
+  `BarberBookingPolicyValidationProblem`.
+
+### Cambiado
+
+- La disponibilidad pública por barbero, la del agregado por servicio y la
+  revalidación al confirmar usan la ventana **efectiva** de cada barbero (propia
+  o heredada). En `GET .../services/{serviceId}/availability`,
+  `slotGridMinutes` informa la rejilla más fina entre los barberos elegibles.
+
+### Compatibilidad
+
+- Compatible: solo agrega operaciones y esquemas. Sin ventanas propias, todas
+  las respuestas existentes son idénticas a las de 0.49.0.
+
 ## 0.49.0 · 2026-11-06
 
 ### Agregado

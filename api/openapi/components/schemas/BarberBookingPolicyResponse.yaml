@@ -1,0 +1,34 @@
+# Ventana de reserva pública propia de un barbero (DEC-169). Solo existe para
+# los barberos con configuración propia; los demás heredan la de la barbería
+# (BookingPolicyResponse) y no aparecen en el listado.
+type: object
+description: Ventana de reserva pública propia de un barbero.
+properties:
+  barberId:
+    type: string
+    format: uuid
+    examples:
+      - 3f1c9a52-7d4e-4b8a-9c21-5e6f7a8b9c0d
+  minAdvanceMinutes:
+    type: integer
+    minimum: 0
+    maximum: 1440
+    examples:
+      - 30
+  maxAdvanceDays:
+    type: integer
+    minimum: 1
+    maximum: 90
+    examples:
+      - 7
+  slotGridMinutes:
+    type: integer
+    minimum: 1
+    maximum: 60
+    examples:
+      - 40
+required:
+  - barberId
+  - minAdvanceMinutes
+  - maxAdvanceDays
+  - slotGridMinutes

@@ -19,6 +19,15 @@ vi.mock('../../api/bookingPolicyApi', () => ({
   saveBookingPolicy: saveMock,
 }))
 
+// La ventana por barbero (DEC-169) tiene sus propias pruebas
+// (BarberWindowPanel.test.ts): aquí se monta sin barberos para que sus
+// controles no se mezclen con los de la página.
+vi.mock('../../api/barberBookingPolicyApi', () => ({
+  fetchBarberWindows: vi.fn().mockResolvedValue({ kind: 'success', barbers: [], windows: [] }),
+  saveBarberWindow: vi.fn(),
+  removeBarberWindow: vi.fn(),
+}))
+
 const { default: BookingPolicyPage } = await import('../BookingPolicyPage.vue')
 
 const loadedPolicy = {
