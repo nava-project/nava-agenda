@@ -239,9 +239,9 @@ const ownRoster = computed(() =>
 
 <template>
   <SettingsPanel
-    id="reserva-por-barbero"
+    id="reserva-por-profesional"
     number="02"
-    title="Ventana por barbero"
+    :title="`Ventana por ${v.professional}`"
     :description="`Cada ${v.professional} tiene su ritmo: elige cada cuánto ofrece una franja y con cuánta anticipación recibe reservas. Sin ventana propia, usa la de ${v.thisBusiness}.`"
     scope="shop"
     :scope-label="`Por ${v.professional}`"
