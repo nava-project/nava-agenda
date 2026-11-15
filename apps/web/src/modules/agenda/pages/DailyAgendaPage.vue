@@ -305,8 +305,13 @@ function goToNextDay() {
   if (selectedDate.value) goToDate(shiftCivilDate(selectedDate.value, 1))
 }
 
+// «Nuevo turno» recibe el barbero y la fecha que se estaban mirando para que
+// su botón Cancelar devuelva a este mismo día (issue #576).
 function goToNewAppointment() {
-  void router.push({ name: 'agenda-nuevo-turno' })
+  const query: Record<string, string> = {}
+  if (selectedBarberId.value) query.barberId = selectedBarberId.value
+  if (selectedDate.value) query.date = selectedDate.value
+  void router.push({ name: 'agenda-nuevo-turno', query })
 }
 
 // Ritmo propio del rombo de cada turno: duración y desfase derivados del id

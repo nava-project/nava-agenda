@@ -116,7 +116,9 @@ test.describe('evidencia responsiva de /panel/turnos/nuevo', () => {
       await expect(trigger).toBeFocused()
       await expect(trigger).toContainText(BARBER.fullName)
 
-      await page.getByLabel('Servicio', { exact: true }).selectOption({ label: SERVICE.name })
+      await page
+        .getByRole('combobox', { name: 'Servicio', exact: true })
+        .selectOption({ label: SERVICE.name })
 
       const submit = page.getByRole('button', { name: 'Registrar turno' })
       await submit.focus()

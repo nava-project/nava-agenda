@@ -47,7 +47,7 @@ async function driveScenario(page: Page, scenario: Scenario) {
       return
     case 'services-loading':
       await chooseBarber(page)
-      await expect(page.getByText('Cargando servicios')).toBeVisible()
+      await expect(page.getByRole('status').filter({ hasText: 'Cargando servicios' })).toBeVisible()
       return
     case 'services-empty':
       await chooseBarber(page)
@@ -83,7 +83,9 @@ async function driveScenario(page: Page, scenario: Scenario) {
     case 'created':
       await fillCompleteForm(page)
       await page.getByRole('button', { name: 'Registrar turno' }).click()
-      await expect(page.getByText('Turno registrado')).toBeVisible()
+      await expect(
+        page.locator('.new-appointment-page__state').getByText('Turno registrado'),
+      ).toBeVisible()
   }
 }
 
@@ -147,10 +149,18 @@ for (const viewport of [
           expect(box.docHeight, `${scenario.file} no cabe en 1024px de alto`).toBeLessThanOrEqual(
             viewport.height,
           )
-          expect(
-            box.contentScrollHeight,
-            `${scenario.file} exige scroll dentro del cascarón`,
-          ).toBeLessThanOrEqual(box.contentClientHeight)
+          // El rediseño del issue #576 sustituye la composición del atlas:
+          // los pasos llevan su cabecera encima de los campos y el
+          // formulario puede desplazarse dentro del cascarón. Lo que se
+          // garantiza en su lugar es que, con el formulario en pantalla, las
+          // dos acciones del boleto lateral (pegado a la vista) se alcanzan
+          // sin desplazar.
+          if (await page.locator('.new-appointment-page__actions').count()) {
+            for (const name of ['Registrar turno', 'Guardando…', 'Cancelar']) {
+              const action = page.getByRole('button', { name, exact: true })
+              if (await action.count()) await expect(action).toBeInViewport({ ratio: 1 })
+            }
+          }
         }
 
         // En móvil el atlas registra el recorrido vertical entero (contenido

@@ -172,7 +172,9 @@ export async function fillCustomerAndSchedule(page: Page) {
 
 export async function fillCompleteForm(page: Page) {
   await chooseBarber(page)
-  await page.getByLabel('Servicio', { exact: true }).selectOption({ label: SERVICE.name })
+  await page
+    .getByRole('combobox', { name: 'Servicio', exact: true })
+    .selectOption({ label: SERVICE.name })
   await fillCustomerAndSchedule(page)
   await page.getByLabel('Teléfono (opcional)').fill(PHONE)
   await page.getByLabel('Correo (opcional)').fill(EMAIL)
