@@ -1,0 +1,6 @@
+# Anticipación del recordatorio al cliente (DEC-174). Lista cerrada: de 10 en 10
+# minutos, sin pasar de 60. Igual al CHECK barbershop_reminder_lead_minutes_ck.
+type: integer
+enum: [10, 20, 30, 40, 50, 60]
+description: Minutos antes del turno en que sale el recordatorio al cliente.
+example: 30

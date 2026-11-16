@@ -331,6 +331,10 @@ func buildRouter(db *database.DB, logger *slog.Logger, cfg config.Config) (*chi.
 	updateLoginOTPHandler := shopshttpapi.NewUpdateLoginOTPHandler(loginOTPService)
 	private.Get("/settings/login-otp", getLoginOTPHandler.ServeHTTP)
 	private.Patch("/settings/login-otp", updateLoginOTPHandler.ServeHTTP)
+	reminderSettingsService := shops.NewReminderSettingsService(
+		shopspostgres.NewReminderSettingsRepository(db, appointmentnoticepostgres.NewEnqueuer()))
+	private.Get("/settings/reminders", shopshttpapi.NewGetReminderSettingsHandler(reminderSettingsService).ServeHTTP)
+	private.Patch("/settings/reminders", shopshttpapi.NewUpdateReminderSettingsHandler(reminderSettingsService).ServeHTTP)
 
 	// Issue #304 (DEC-117): enlace público de reservas de la barbería de la
 	// sesión, generado `<nombre><código>` en la primera lectura si aún no

@@ -34,24 +34,48 @@ SELECT a.barbershop_id, a.id, $3, a.updated_at, now() + interval '60 seconds'
 ON CONFLICT (appointment_id, (kind = 'reminder')) WHERE status = 'pending'
 DO UPDATE SET kind = EXCLUDED.kind, state_at = EXCLUDED.state_at, run_at = EXCLUDED.run_at`
 
-// La anticipación (30 minutos) es la inicial del recordatorio (RN-REC-01, DEC-144).
-// No es configurable todavía (RN-REC-05 queda fuera del primer tramo).
+// La anticipación es la que eligió el negocio (`barbershop.reminder_lead_minutes`,
+// DEC-174; 30 minutos por defecto, DEC-018), leída en esta misma transacción.
 //
 // El recordatorio guarda como state_at el instante del turno: si el turno cambia
 // de hora, el recordatorio viejo ya no coincide y el worker lo descarta al enviar
-// (RN-REC-01, RN-REC-03). No se programa si faltan menos de reminderLead para el
-// turno: no habría nada que recordar con antelación (un turno tomado "para ya").
+// (RN-REC-01, RN-REC-03). No se programa si falta menos que la anticipación para
+// el turno: no habría nada que recordar con antelación (un turno tomado "para ya").
 // Un turno no confirmado no se programa. El índice único admite un recordatorio
 // pendiente por turno: reprogramar lo actualiza (regenera) en vez de duplicarlo.
 const reminderSQL = `
 INSERT INTO appointment_notice (barbershop_id, appointment_id, kind, state_at, run_at)
-SELECT a.barbershop_id, a.id, 'reminder', a.starts_at, a.starts_at - interval '30 minutes'
+SELECT a.barbershop_id, a.id, 'reminder', a.starts_at,
+       a.starts_at - make_interval(mins => b.reminder_lead_minutes)
   FROM appointment a
+  JOIN barbershop b ON b.id = a.barbershop_id
  WHERE a.barbershop_id = $1 AND a.id = $2
    AND a.status = 'confirmed'
-   AND a.starts_at - interval '30 minutes' > now()
+   AND a.starts_at - make_interval(mins => b.reminder_lead_minutes) > now()
 ON CONFLICT (appointment_id, (kind = 'reminder')) WHERE status = 'pending'
 DO UPDATE SET state_at = EXCLUDED.state_at, run_at = EXCLUDED.run_at`
+
+// Al cambiar la anticipación (DEC-174) se mueven los recordatorios pendientes
+// que siguen vigentes (cubren el inicio actual del turno) a la nueva hora. Uno
+// cuya nueva hora ya pasó se deja como estaba: moverlo al pasado lo enviaría de
+// inmediato, y quitarlo dejaría sin recordatorio un turno que ya lo tenía.
+const reminderLeadChangedSQL = `
+UPDATE appointment_notice n
+   SET run_at = a.starts_at - make_interval(mins => b.reminder_lead_minutes)
+  FROM appointment a, barbershop b
+ WHERE n.barbershop_id = $1 AND n.kind = 'reminder' AND n.status = 'pending'
+   AND a.barbershop_id = n.barbershop_id AND a.id = n.appointment_id
+   AND b.id = n.barbershop_id
+   AND n.state_at = a.starts_at
+   AND a.starts_at - make_interval(mins => b.reminder_lead_minutes) > now()`
+
+// ReminderLeadChanged implementa shops/postgres.ReminderLeadHook.
+func (Enqueuer) ReminderLeadChanged(ctx context.Context, q database.Queries, barbershopID string) error {
+	if _, err := q.Exec(ctx, reminderLeadChangedSQL, barbershopID); err != nil {
+		return fmt.Errorf("appointmentnotice/postgres: reschedule reminders: %w", err)
+	}
+	return nil
+}
 
 // AppointmentReminderRequired implementa booking/postgres.NoticeHook.
 func (Enqueuer) AppointmentReminderRequired(ctx context.Context, q database.Queries, barbershopID, appointmentID string) error {

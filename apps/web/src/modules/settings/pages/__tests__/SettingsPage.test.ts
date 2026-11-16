@@ -50,6 +50,11 @@ vi.mock('../../api/loginOtpApi', () => ({
   fetchLoginOtpChannel: vi.fn(() => Promise.resolve({ kind: 'success', channel: 'email' })),
   saveLoginOtpChannel: vi.fn(),
 }))
+// Igual con la anticipación del recordatorio (DEC-174): su prueba es ReminderPanel.test.ts.
+vi.mock('../../api/reminderSettingsApi', () => ({
+  fetchReminderSettings: vi.fn(() => Promise.resolve({ kind: 'success', leadMinutes: 30 })),
+  saveReminderLead: vi.fn(),
+}))
 vi.mock('@/modules/auth', () => ({ updateBarbershopName: updateBarbershopNameMock }))
 
 const { default: SettingsPage } = await import('../SettingsPage.vue')
@@ -538,7 +543,7 @@ describe('SettingsPage', () => {
       const wrapper = await mountReady()
 
       const numbers = wrapper.findAll('.settings-panel__number').map((n) => n.text())
-      expect(numbers).toEqual(['01', '02', '03', '04', '05', '06', '07', '08', '09', '10'])
+      expect(numbers).toEqual(['01', '02', '03', '04', '05', '06', '07', '08', '09', '10', '11'])
     })
 
     it('keeps the panel of the user when the brand is saved, and never sends it', async () => {

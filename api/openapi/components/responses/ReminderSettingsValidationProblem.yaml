@@ -1,0 +1,24 @@
+# 422 de PATCH /private/settings/reminders (DEC-174): cuerpo bien formado con una
+# anticipación fuera de la lista o sin ella. Mismo schema que
+# ValidationProblem.yaml; solo cambian los ejemplos.
+description: >
+  El cuerpo es JSON válido, pero `leadMinutes` falta o no es 10, 20, 30, 40, 50
+  ni 60. Ninguna escritura ocurre cuando esto sucede.
+headers:
+  X-Request-Id:
+    $ref: '../headers/XRequestId.yaml'
+content:
+  application/problem+json:
+    schema:
+      $ref: '../schemas/Problem.yaml'
+    examples:
+      fueraDeLista:
+        summary: Anticipación que no pertenece a la lista
+        value:
+          type: /api/v1/problems/validation-error
+          title: Error de validación
+          status: 422
+          detail: leadMinutes debe ser 10, 20, 30, 40, 50 o 60
+          instance: 8f3ac2b1e4d5f6a7c8d9e0f1a2b3c4d5
+          code: validation-error
+          requestId: 8f3ac2b1e4d5f6a7c8d9e0f1a2b3c4d5

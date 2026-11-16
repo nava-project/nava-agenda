@@ -1,0 +1,14 @@
+# Cuerpo de PATCH /private/settings/reminders (DEC-174). Cerrado: un campo
+# desconocido se rechaza con 400.
+type: object
+additionalProperties: false
+description: Nueva anticipación del recordatorio al cliente.
+properties:
+  leadMinutes:
+    type: integer
+    description: >
+      Minutos antes del turno: 10, 20, 30, 40, 50 o 60. Otro número responde
+      `422` (se valida en el servidor para devolver el problema con su detalle).
+    example: 20
+required:
+  - leadMinutes

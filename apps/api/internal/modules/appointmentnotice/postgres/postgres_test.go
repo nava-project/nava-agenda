@@ -12,6 +12,8 @@ import (
 
 	"system-barbershop/internal/modules/appointmentnotice"
 	noticepostgres "system-barbershop/internal/modules/appointmentnotice/postgres"
+	"system-barbershop/internal/modules/shops"
+	shopspostgres "system-barbershop/internal/modules/shops/postgres"
 	"system-barbershop/internal/platform/config"
 	"system-barbershop/internal/platform/database"
 )
@@ -686,5 +688,87 @@ func TestReminder_OtherTenantCannotScheduleForMyAppointment(t *testing.T) {
 	enqueueReminder(t, app, shopB, id) // sesión de B sobre el turno de A: el INSERT…SELECT no ve nada
 	if _, n := reminderRunAt(t, app, shopA, id); n != 0 {
 		t.Fatal("otra barbería no puede programar recordatorios de un turno ajeno (RN-TEN-01)")
+	}
+}
+
+// ---- DEC-174: anticipación del recordatorio elegida por el negocio ----
+
+// setLead cambia la anticipación del negocio con el repositorio real de shops y
+// el encolador como gancho, igual que la API; al terminar la prueba vuelve a 30.
+func setLead(t *testing.T, db *database.DB, shop database.BarbershopID, lead int) {
+	t.Helper()
+	repo := shopspostgres.NewReminderSettingsRepository(db, noticepostgres.NewEnqueuer())
+	stored, found, err := repo.Update(context.Background(), string(shop), shops.ReminderLeadMinutes(lead))
+	if err != nil || !found || int(stored) != lead {
+		t.Fatalf("setLead(%d): stored=%d found=%v err=%v", lead, stored, found, err)
+	}
+}
+
+func restoreLead(t *testing.T, db *database.DB, shop database.BarbershopID) {
+	t.Helper()
+	t.Cleanup(func() { setLead(t, db, shop, 30) })
+}
+
+func TestReminder_UsesTheLeadChosenByTheBusiness(t *testing.T) {
+	app := appDB(t)
+	restoreLead(t, app, shopA)
+	setLead(t, app, shopA, 60)
+
+	id, _ := seedAppointment(t, app, shopA, true)
+	start := startsAt(t, app, shopA, id)
+	enqueueReminder(t, app, shopA, id)
+	if runAt, n := reminderRunAt(t, app, shopA, id); n != 1 || !runAt.Equal(start.Add(-60*time.Minute)) {
+		t.Fatalf("recordatorio a 60 minutos: n=%d run_at=%s start=%s", n, runAt, start)
+	}
+
+	// Un turno a 55 minutos ya no alcanza una anticipación de 60: no se programa.
+	// (55 y no menos: el turno a 10 minutos de otra prueba ocupa al mismo barbero.)
+	soon := nearAppointment(t, app, shopA, 55*time.Minute)
+	enqueueReminder(t, app, shopA, soon)
+	if _, n := reminderRunAt(t, app, shopA, soon); n != 0 {
+		t.Fatal("un turno a menos de la anticipación no genera recordatorio")
+	}
+}
+
+// nearAppointment crea un turno confirmado que empieza dentro de `in` y lo
+// cancela al terminar la prueba, para no ocupar al barbero compartido.
+func nearAppointment(t *testing.T, db *database.DB, shop database.BarbershopID, in time.Duration) string {
+	t.Helper()
+	id, _ := seedAppointment(t, db, shop, true)
+	setStart(t, db, shop, id, time.Now().UTC().Add(in), "confirmed")
+	t.Cleanup(func() { setStart(t, db, shop, id, time.Time{}, "cancelled_by_customer") })
+	return id
+}
+
+func TestReminder_ChangingTheLeadMovesPendingRemindersOfThatBusinessOnly(t *testing.T) {
+	app := appDB(t)
+	restoreLead(t, app, shopA)
+	restoreLead(t, app, shopB)
+
+	mine, _ := seedAppointment(t, app, shopA, true)
+	theirs, _ := seedAppointment(t, app, shopB, true)
+	enqueueReminder(t, app, shopA, mine)
+	enqueueReminder(t, app, shopB, theirs)
+	theirRunAt, _ := reminderRunAt(t, app, shopB, theirs)
+
+	setLead(t, app, shopA, 10)
+	start := startsAt(t, app, shopA, mine)
+	if runAt, n := reminderRunAt(t, app, shopA, mine); n != 1 || !runAt.Equal(start.Add(-10*time.Minute)) {
+		t.Fatalf("el pendiente se mueve a 10 minutos: n=%d run_at=%s start=%s", n, runAt, start)
+	}
+	if runAt, _ := reminderRunAt(t, app, shopB, theirs); !runAt.Equal(theirRunAt) {
+		t.Fatalf("el recordatorio de otro negocio no se toca (RN-TEN-01): antes=%s después=%s", theirRunAt, runAt)
+	}
+
+	// Un turno que ya no alcanza la nueva anticipación conserva su recordatorio.
+	near := nearAppointment(t, app, shopA, 55*time.Minute)
+	enqueueReminder(t, app, shopA, near)
+	nearRunAt, n := reminderRunAt(t, app, shopA, near)
+	if n != 1 {
+		t.Fatalf("con 10 minutos un turno a 55 minutos tiene recordatorio: n=%d", n)
+	}
+	setLead(t, app, shopA, 60)
+	if runAt, n := reminderRunAt(t, app, shopA, near); n != 1 || !runAt.Equal(nearRunAt) {
+		t.Fatalf("el pendiente que ya no alcanza 60 minutos queda como estaba: n=%d antes=%s después=%s", n, nearRunAt, runAt)
 	}
 }

@@ -510,3 +510,69 @@
         $ref: '../components/responses/LoginOtpValidationProblem.yaml'
       "500":
         $ref: '../components/responses/InternalErrorProblem.yaml'
+/private/settings/reminders:
+  get:
+    tags: [Settings]
+    summary: Consultar la anticipación del recordatorio de la barbería activa
+    description: >
+      Lectura autenticada (DEC-174) de con cuántos minutos de anticipación sale
+      el recordatorio al cliente (`HU-131`), junto con las opciones admitidas.
+      `barbershopId` nunca es un parámetro: el tenant se deriva exclusivamente de
+      `SessionCookie`. Una cuenta de empleado recibe `403` (`DEC-173`). La
+      respuesta no se almacena en caché.
+    operationId: getReminderSettings
+    security:
+      - SessionCookie: []
+    x-business-rules: [RN-TEN-01, RN-REC-01, RN-REC-05]
+    x-decisions: [DEC-018, DEC-144, DEC-173, DEC-174]
+    responses:
+      "200":
+        $ref: '../components/responses/ReminderSettings.yaml'
+      "401":
+        $ref: '../components/responses/UnauthorizedProblem.yaml'
+      "403":
+        $ref: '../components/responses/ForbiddenProblem.yaml'
+      "404":
+        $ref: '../components/responses/NotFoundProblem.yaml'
+      "500":
+        $ref: '../components/responses/InternalErrorProblem.yaml'
+  patch:
+    tags: [Settings]
+    summary: Cambiar la anticipación del recordatorio de la barbería activa
+    description: >
+      Actualización autenticada (DEC-174). Se usa en cada turno que se crea o
+      se reprograma desde ese momento y, en la misma transacción, mueve a la
+      nueva hora los recordatorios pendientes de turnos futuros; uno cuya nueva
+      hora ya pasó se deja como estaba. Sin precondición de versión: la última
+      escritura gana. Una cuenta de empleado recibe `403` (`DEC-173`).
+    operationId: updateReminderSettings
+    security:
+      - SessionCookie: []
+    x-business-rules: [RN-TEN-01, RN-REC-01, RN-REC-05]
+    x-decisions: [DEC-018, DEC-144, DEC-173, DEC-174]
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            $ref: '../components/schemas/UpdateReminderSettingsRequest.yaml'
+          examples:
+            veinteMinutos:
+              summary: 20 minutos antes
+              value:
+                leadMinutes: 20
+    responses:
+      "200":
+        $ref: '../components/responses/ReminderSettings.yaml'
+      "400":
+        $ref: '../components/responses/InvalidRequestProblem.yaml'
+      "401":
+        $ref: '../components/responses/UnauthorizedProblem.yaml'
+      "403":
+        $ref: '../components/responses/ForbiddenProblem.yaml'
+      "404":
+        $ref: '../components/responses/NotFoundProblem.yaml'
+      "422":
+        $ref: '../components/responses/ReminderSettingsValidationProblem.yaml'
+      "500":
+        $ref: '../components/responses/InternalErrorProblem.yaml'

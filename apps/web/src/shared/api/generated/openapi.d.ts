@@ -611,6 +611,30 @@ export interface paths {
         patch: operations["updateLoginOtpSettings"];
         trace?: never;
     };
+    "/private/settings/reminders": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Consultar la anticipación del recordatorio de la barbería activa
+         * @description Lectura autenticada (DEC-174) de con cuántos minutos de anticipación sale el recordatorio al cliente (`HU-131`), junto con las opciones admitidas. `barbershopId` nunca es un parámetro: el tenant se deriva exclusivamente de `SessionCookie`. Una cuenta de empleado recibe `403` (`DEC-173`). La respuesta no se almacena en caché.
+         */
+        get: operations["getReminderSettings"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /**
+         * Cambiar la anticipación del recordatorio de la barbería activa
+         * @description Actualización autenticada (DEC-174). Se usa en cada turno que se crea o se reprograma desde ese momento y, en la misma transacción, mueve a la nueva hora los recordatorios pendientes de turnos futuros; uno cuya nueva hora ya pasó se deja como estaba. Sin precondición de versión: la última escritura gana. Una cuenta de empleado recibe `403` (`DEC-173`).
+         */
+        patch: operations["updateReminderSettings"];
+        trace?: never;
+    };
     "/private/integrations/google-calendar": {
         parameters: {
             query?: never;
@@ -2852,6 +2876,26 @@ export interface components {
         UpdateLoginOtpRequest: {
             channel: components["schemas"]["LoginOtpChannel"];
         };
+        /**
+         * @description Minutos antes del turno en que sale el recordatorio al cliente.
+         * @example 30
+         * @enum {integer}
+         */
+        ReminderLeadMinutes: 10 | 20 | 30 | 40 | 50 | 60;
+        /** @description Con cuánta anticipación sale el recordatorio al cliente, y las opciones admitidas. */
+        ReminderSettings: {
+            leadMinutes: components["schemas"]["ReminderLeadMinutes"];
+            /** @description Las opciones que se pueden elegir, en orden ascendente. */
+            leadOptions: components["schemas"]["ReminderLeadMinutes"][];
+        };
+        /** @description Nueva anticipación del recordatorio al cliente. */
+        UpdateReminderSettingsRequest: {
+            /**
+             * @description Minutos antes del turno: 10, 20, 30, 40, 50 o 60. Otro número responde `422` (se valida en el servidor para devolver el problema con su detalle).
+             * @example 20
+             */
+            leadMinutes: number;
+        };
         /** @description Estado de la integración del usuario autenticado. `enabled` es falso cuando el servidor no tiene credenciales de Google configuradas (la integración queda desactivada y el resto del producto funciona). `barberLinked` es falso mientras el usuario no haya declarado cuál barbero es (`DEC-100`): sin barbero no se puede conectar. */
         GoogleCalendarConnectionResponse: {
             /** @description El servidor tiene la integración con Google Calendar configurada. */
@@ -4568,6 +4612,28 @@ export interface components {
                 "application/problem+json": components["schemas"]["Problem"];
             };
         };
+        /** @description Anticipación vigente del recordatorio de la barbería activa. */
+        ReminderSettings: {
+            headers: {
+                "X-Request-Id": components["headers"]["XRequestId"];
+                /** @description Siempre `no-store`. */
+                "Cache-Control"?: "no-store";
+                [name: string]: unknown;
+            };
+            content: {
+                "application/json": components["schemas"]["ReminderSettings"];
+            };
+        };
+        /** @description El cuerpo es JSON válido, pero `leadMinutes` falta o no es 10, 20, 30, 40, 50 ni 60. Ninguna escritura ocurre cuando esto sucede. */
+        ReminderSettingsValidationProblem: {
+            headers: {
+                "X-Request-Id": components["headers"]["XRequestId"];
+                [name: string]: unknown;
+            };
+            content: {
+                "application/problem+json": components["schemas"]["Problem"];
+            };
+        };
         /** @description Estado de la integración del barbero con Google Calendar. */
         GoogleCalendarConnectionSuccess: {
             headers: {
@@ -5952,6 +6018,44 @@ export interface operations {
             403: components["responses"]["ForbiddenProblem"];
             404: components["responses"]["NotFoundProblem"];
             422: components["responses"]["LoginOtpValidationProblem"];
+            500: components["responses"]["InternalErrorProblem"];
+        };
+    };
+    getReminderSettings: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: components["responses"]["ReminderSettings"];
+            401: components["responses"]["UnauthorizedProblem"];
+            403: components["responses"]["ForbiddenProblem"];
+            404: components["responses"]["NotFoundProblem"];
+            500: components["responses"]["InternalErrorProblem"];
+        };
+    };
+    updateReminderSettings: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["UpdateReminderSettingsRequest"];
+            };
+        };
+        responses: {
+            200: components["responses"]["ReminderSettings"];
+            400: components["responses"]["InvalidRequestProblem"];
+            401: components["responses"]["UnauthorizedProblem"];
+            403: components["responses"]["ForbiddenProblem"];
+            404: components["responses"]["NotFoundProblem"];
+            422: components["responses"]["ReminderSettingsValidationProblem"];
             500: components["responses"]["InternalErrorProblem"];
         };
     };

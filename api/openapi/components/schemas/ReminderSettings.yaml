@@ -1,0 +1,17 @@
+# Recordatorios de la barbería activa (DEC-174).
+type: object
+additionalProperties: false
+description: Con cuánta anticipación sale el recordatorio al cliente, y las opciones admitidas.
+properties:
+  leadMinutes:
+    $ref: './ReminderLeadMinutes.yaml'
+  leadOptions:
+    type: array
+    description: Las opciones que se pueden elegir, en orden ascendente.
+    minItems: 6
+    maxItems: 6
+    items:
+      $ref: './ReminderLeadMinutes.yaml'
+required:
+  - leadMinutes
+  - leadOptions
