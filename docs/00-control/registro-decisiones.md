@@ -2194,3 +2194,20 @@ Cada código `DEC-*` es estable y no se reutiliza. Este registro normaliza respu
 - **Alternativas descartadas:** chequear en cada handler (fácil de olvidar en rutas nuevas); 404 para todo lo negado (oculta al empleado por qué no puede, aunque los barberos del equipo no son secretos); dejar que el empleado se vincule solo (abre la puerta a vincularse con otro barbero libre).
 - **Documentos afectados:** contrato OpenAPI (0.53.0), `database/testdata/empleado_restringido_605.sql`, `database/README.md`, `.github/workflows/ci.yml`, `matriz-trazabilidad.md`, `historial-cambios.md`.
 - **Fuente:** instrucción explícita del propietario del 2026-11-15; issue [#605](https://github.com/bcaceres19/barberia/issues/605).
+
+### DEC-174 · Cada negocio elige con cuánta anticipación sale el recordatorio: de 10 en 10 minutos, hasta 60 (amplía `DEC-144`; concreta `RN-REC-05` para la anticipación)
+
+- **Fecha:** 2026-11-16.
+- **Decisión:**
+  1. **Qué se elige.** Los minutos antes del turno en que sale el recordatorio al cliente (`HU-131`): 10, 20, 30, 40, 50 o 60. Es una lista cerrada, sin valor libre y sin pasar de 60. Un negocio nuevo o existente arranca en 30, el valor que fijó `DEC-018` y que se aplicaba hasta ahora.
+  2. **Dónde vive.** `barbershop.reminder_lead_minutes` con un `CHECK` sobre la lista (migración `20261117120000_add_reminder_lead_minutes.sql`). Se lee y cambia con `GET`/`PATCH /private/settings/reminders` (OpenAPI 0.54.0). Es configuración del negocio: una cuenta de empleado recibe 403 (`DEC-173`).
+  3. **Cómo se aplica.** Cada turno que se crea o se reprograma programa su recordatorio con la anticipación vigente, en la misma transacción (`DEC-144`, punto 3). Si el turno empieza antes de que se cumpla esa anticipación, no se programa recordatorio.
+  4. **Al cambiarla.** En la misma transacción del cambio se mueven a la nueva hora los recordatorios pendientes que siguen cubriendo el inicio actual de su turno. Uno cuya nueva hora ya pasó se deja como estaba: moverlo al pasado lo enviaría de inmediato y quitarlo dejaría sin recordatorio un turno que ya lo tenía.
+  5. **Panel.** Configuración › «Recordatorios» (sección 09) muestra las seis opciones. Se aplica al instante, como «Código de acceso» (`DEC-139`), y si el guardado falla vuelve a la opción vigente.
+- **Qué queda fuera:** varios recordatorios por turno (`DEC-048`) y el canal por evento (`RN-REC-05`).
+- **Quién lo decidió:** el propietario, el 2026-11-16: «configure cada cuanto mandar la notificación… 10 minutos antes, si 20, 30 y así, 10 en 10, deja unas opciones fijas y que no superen los 60».
+- **Responsable:** propietario del proyecto.
+- **Motivo:** `DEC-144` dejó la anticipación fija a 30 minutos y pendiente su configuración. Una lista corta evita valores que no tienen sentido para un recordatorio de última hora.
+- **Alternativas descartadas:** un número libre de minutos (permite valores sin sentido y obliga a validar rangos en la pantalla); recalcular los recordatorios en el worker al enviarlos (el `run_at` ya decide cuándo se reclaman y quedaría desalineado); borrar y volver a crear los pendientes al cambiarla (la aplicación no tiene `DELETE` sobre la cola).
+- **Documentos afectados:** contrato OpenAPI (0.54.0), `database/README.md`, `.github/workflows/ci.yml`, `matriz-trazabilidad.md`, `historial-cambios.md`.
+- **Fuente:** instrucción explícita del propietario del 2026-11-16; issue [#611](https://github.com/bcaceres19/barberia/issues/611).

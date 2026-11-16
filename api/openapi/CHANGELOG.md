@@ -4,6 +4,15 @@ Formato basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/).
 Ver [`docs/06-api/estandar-openapi.md`](../../docs/06-api/estandar-openapi.md)
 sección 18 para qué cuenta como cambio compatible o incompatible.
 
+## 0.54.0 · 2026-11-16
+
+### Agregado
+
+- `GET` y `PATCH /private/settings/reminders` (`DEC-174`): con cuántos minutos
+  de anticipación sale el recordatorio al cliente (10, 20, 30, 40, 50 o 60; por
+  defecto 30). Cambiarlo mueve los recordatorios pendientes de turnos futuros.
+  Una cuenta de empleado recibe `403` (`DEC-173`).
+
 ## 0.53.0 · 2026-11-16
 
 ### Agregado

@@ -26,6 +26,9 @@
 # DEC-139 agrega GET/PATCH /private/settings/login-otp (paths/settings.yaml): el
 # canal (correo, WhatsApp o ambos) del código del reto adicional de acceso.
 #
+# DEC-174 agrega GET/PATCH /private/settings/reminders (paths/settings.yaml): con
+# cuánta anticipación (10 a 60 minutos) sale el recordatorio al cliente.
+#
 # Issue #304 (DEC-117) agrega GET /private/settings/public-link
 # (paths/settings.yaml): el enlace público de reservas de la barbería de la
 # sesión, generado `<nombre><código aleatorio>` (sin guiones, `DEC-118`) en la primera lectura.
@@ -117,7 +120,7 @@
 openapi: 3.1.2
 info:
   title: API del sistema de agenda para barberías
-  version: 0.53.0
+  version: 0.54.0
   description: >
     Contrato HTTP entre apps/web y apps/api. Tres audiencias comparten este
     documento: /api/v1/public (reserva sin sesión), /api/v1/customer
@@ -234,6 +237,8 @@ paths:
     $ref: './paths/settings.yaml#/~1private~1settings~1public-link'
   /private/settings/login-otp:
     $ref: './paths/settings.yaml#/~1private~1settings~1login-otp'
+  /private/settings/reminders:
+    $ref: './paths/settings.yaml#/~1private~1settings~1reminders'
   /private/integrations/google-calendar:
     $ref: './paths/google-calendar.yaml#/~1private~1integrations~1google-calendar'
   /private/integrations/google-calendar/connect:

@@ -1,0 +1,20 @@
+# Respuesta 200 de GET y PATCH /private/settings/reminders (DEC-174).
+description: Anticipación vigente del recordatorio de la barbería activa.
+headers:
+  X-Request-Id:
+    $ref: '../headers/XRequestId.yaml'
+  Cache-Control:
+    description: Siempre `no-store`.
+    schema:
+      type: string
+      enum: [no-store]
+content:
+  application/json:
+    schema:
+      $ref: '../schemas/ReminderSettings.yaml'
+    examples:
+      inicial:
+        summary: 30 minutos (valor inicial)
+        value:
+          leadMinutes: 30
+          leadOptions: [10, 20, 30, 40, 50, 60]

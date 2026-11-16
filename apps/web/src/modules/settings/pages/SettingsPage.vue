@@ -94,6 +94,7 @@ import {
 } from '../validation/settingsValidation'
 import OptionGroup from '../components/OptionGroup.vue'
 import LoginOtpPanel from '../components/LoginOtpPanel.vue'
+import ReminderPanel from '../components/ReminderPanel.vue'
 import PublicLinkPanel from '../components/PublicLinkPanel.vue'
 import SaveBar from '../components/SaveBar.vue'
 import SettingsIndex from '../components/SettingsIndex.vue'
@@ -554,8 +555,9 @@ const SECTIONS = [
   { id: 'configuracion-ubicacion', number: '06', label: 'Ubicación' },
   { id: 'configuracion-enlace', number: '07', label: 'Enlace' },
   { id: 'configuracion-reservas', number: '08', label: 'Reservas' },
-  { id: 'configuracion-integraciones', number: '09', label: 'Integraciones' },
-  { id: 'configuracion-acceso', number: '10', label: 'Acceso' },
+  { id: 'configuracion-recordatorios', number: '09', label: 'Recordatorios' },
+  { id: 'configuracion-integraciones', number: '10', label: 'Integraciones' },
+  { id: 'configuracion-acceso', number: '11', label: 'Acceso' },
 ] as const
 
 const activeSection = ref<string>(SECTIONS[0].id)
@@ -1187,13 +1189,24 @@ const previewClass = computed(() => ({ 'settings-page__preview--changed': brandD
             </RouterLink>
           </SettingsPanel>
 
-          <!-- 09 · Integraciones: enlace a la pantalla de Google Calendar (DEC-099) -->
+          <!-- 09 · Recordatorios (DEC-174): se aplica al instante, no es parte del borrador -->
+          <SettingsPanel
+            id="configuracion-recordatorios"
+            number="09"
+            title="Recordatorios"
+            description="Cuánto antes de su turno le recordamos la cita a cada cliente."
+            style="--panel-index: 8"
+          >
+            <ReminderPanel />
+          </SettingsPanel>
+
+          <!-- 10 · Integraciones: enlace a la pantalla de Google Calendar (DEC-099) -->
           <SettingsPanel
             id="configuracion-integraciones"
-            number="09"
+            number="10"
             title="Integraciones"
             description="Conecta tu calendario para ver tu agenda de NAVA donde ya organizas tu día."
-            style="--panel-index: 8"
+            style="--panel-index: 9"
           >
             <RouterLink :to="{ name: 'integraciones-google-calendar' }" class="settings-link">
               <span class="settings-link__copy">
@@ -1206,13 +1219,13 @@ const previewClass = computed(() => ({ 'settings-page__preview--changed': brandD
             </RouterLink>
           </SettingsPanel>
 
-          <!-- 10 · Código de acceso (DEC-139): se aplica al instante, no es parte del borrador -->
+          <!-- 11 · Código de acceso (DEC-139): se aplica al instante, no es parte del borrador -->
           <SettingsPanel
             id="configuracion-acceso"
-            number="10"
+            number="11"
             title="Código de acceso"
             description="Por dónde llega el código de verificación cuando alguien necesita confirmar su identidad para entrar."
-            style="--panel-index: 9"
+            style="--panel-index: 10"
           >
             <LoginOtpPanel />
           </SettingsPanel>
