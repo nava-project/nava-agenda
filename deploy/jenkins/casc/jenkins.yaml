@@ -1,0 +1,101 @@
+# Configuración como código del Jenkins de la VPS (DEC-177).
+# La lee el plugin configuration-as-code en cada arranque: lo que se cambie en la
+# interfaz y no esté aquí se pierde al recrear el contenedor.
+#
+# ${NOMBRE} se resuelve con el archivo /run/secrets/NOMBRE (montado desde
+# /srv/jenkins/secrets, ver scripts/jenkins-init.sh). Ningún secreto vive en el repo.
+
+jenkins:
+  systemMessage: >-
+    CI/CD de la VPS de NAVA (DEC-177). Configuración como código en
+    deploy/jenkins/ del repo barberia: los cambios hechos aquí se pierden al reiniciar.
+  # Un solo nodo (el controlador): los pasos pesados corren en contenedores aparte.
+  numExecutors: 3
+  mode: NORMAL
+  # Sin agentes entrantes: no se abre el puerto TCP de agentes.
+  slaveAgentPort: -1
+  markupFormatter: plainText
+  securityRealm:
+    local:
+      allowsSignup: false
+      users:
+        - id: "admin"
+          name: "Administrador"
+          password: "${ADMIN_PASSWORD}"
+  authorizationStrategy:
+    globalMatrix:
+      entries:
+        - user:
+            name: "admin"
+            permissions:
+              - "Overall/Administer"
+  globalNodeProperties:
+    - envVars:
+        env:
+          - key: PUBLIC_URL
+            value: "https://nava.wtf"
+          - key: GITHUB_REPO
+            value: "bcaceres19/barberia"
+
+credentials:
+  system:
+    domainCredentials:
+      - credentials:
+          # Token de GitHub: clona el repo privado, descubre PR y publica el estado del CI
+          # en cada commit. Lo usan el multibranch (usuario/contraseña) y el plugin de
+          # GitHub (texto).
+          - usernamePassword:
+              scope: GLOBAL
+              id: "github-token"
+              username: "bcaceres19"
+              password: "${GITHUB_TOKEN}"
+              description: "GitHub (bcaceres19): clonado, PR y estados del commit"
+          - string:
+              scope: GLOBAL
+              id: "github-token-text"
+              secret: "${GITHUB_TOKEN}"
+              description: "GitHub (bcaceres19) como texto, para el plugin de GitHub"
+          - string:
+              scope: GLOBAL
+              id: "github-webhook-secret"
+              secret: "${GITHUB_WEBHOOK_SECRET}"
+              description: "Secreto HMAC del webhook de GitHub"
+          # Clave de NAVEGADOR de Google Maps: pública por diseño (restringida por
+          # dominio en Google Cloud); se compila en la imagen web.
+          - string:
+              scope: GLOBAL
+              id: "maps-browser-key"
+              secret: "${MAPS_BROWSER_KEY}"
+              description: "VITE_GOOGLE_MAPS_BROWSER_KEY de la imagen web"
+          # Llave SSH del usuario `deploy` del host; solo se acepta desde 10.89.10.0/24.
+          - basicSSHUserPrivateKey:
+              scope: GLOBAL
+              id: "vps-deploy-ssh"
+              username: "deploy"
+              description: "SSH a deploy@host (solo desde la red de Jenkins)"
+              privateKeySource:
+                directEntry:
+                  privateKey: "${readFile:/run/secrets/DEPLOY_SSH_KEY}"
+
+security:
+  globalJobDslSecurityConfiguration:
+    # Los scripts de Job DSL solo vienen de este archivo (versionado y revisado).
+    useScriptSecurity: false
+
+unclassified:
+  location:
+    url: "https://jenkins.nava.wtf/"
+  gitHubPluginConfig:
+    configs:
+      - name: "GitHub"
+        apiUrl: "https://api.github.com"
+        credentialsId: "github-token-text"
+        # El webhook lo crea jenkins-init.sh con gh; Jenkins no administra hooks.
+        manageHooks: false
+    hookSecretConfigs:
+      - credentialsId: "github-webhook-secret"
+  timestamper:
+    allPipelines: true
+
+jobs:
+  - file: /usr/share/jenkins/casc/jobs.groovy

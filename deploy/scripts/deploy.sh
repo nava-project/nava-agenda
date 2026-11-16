@@ -12,7 +12,8 @@
 #
 # Uso: deploy.sh <sha> --db-tag <tag> [--ghcr-user <usuario>] [--no-pull] [--no-migrate]
 #   --ghcr-user  inicia sesión en ghcr.io con el token leído de stdin (no se persiste)
-#   --no-pull    usa las imágenes ya presentes (pruebas locales)
+#   --no-pull    usa las imágenes ya presentes en el Docker del host (Jenkins las construye
+#                ahí, DEC-177; también sirve para pruebas locales)
 #   --no-migrate reversión de la aplicación SIN tocar el esquema ni respaldar; solo es
 #                seguro si el esquema actual es compatible con la versión anterior
 set -euo pipefail

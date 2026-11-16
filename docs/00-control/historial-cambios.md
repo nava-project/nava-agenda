@@ -1,9 +1,9 @@
 ---
 titulo: "Historial de cambios documentales"
-version: "4.17"
+version: "4.18"
 estado: "Vigente"
 responsable: "Propietario del proyecto"
-ultima_actualizacion: "2026-11-11"
+ultima_actualizacion: "2026-11-16"
 documentos_relacionados:
   - "registro-decisiones.md"
   - "contradicciones.md"
@@ -458,3 +458,4 @@ Las versiones se aplican por documento. Mientras no exista historial Git, la fec
 | 2026-11-16 | `database/migrations/20261117120000_add_reminder_lead_minutes.sql`, `apps/api/internal/modules/{shops,appointmentnotice/postgres}`, `apps/api/cmd/api/{main,access_policy}.go`, `api/openapi` (0.54.0), `apps/web/src/modules/settings`, `docs/00-control/{registro-decisiones,matriz-trazabilidad,historial-cambios}.md` (DEC-174), `database/README.md`, `.github/workflows/ci.yml` | Cada negocio elige con cuánta anticipación sale el recordatorio al cliente (issue [#611](https://github.com/bcaceres19/barberia/issues/611), `DEC-174`): 10, 20, 30, 40, 50 o 60 minutos, 30 por defecto, en Configuración › «Recordatorios». Cambiarla mueve los recordatorios pendientes de ese negocio. `database/README.md` registra además la migración de `DEC-172`, que faltaba. |
 | 2026-11-16 | `database/migrations/20261118120000_add_whatsapp_reminder.sql`, `database/{README.md,tests/appointment_notice.sql}`, `apps/api/{cmd/worker,internal/modules/{appointmentnotice,notification},internal/platform/config}`, `apps/api/{README.md,.env.example}`, `apps/web/src/modules/settings/components/ReminderPanel.vue`, `docs/00-control/{registro-decisiones,matriz-trazabilidad,historial-cambios}.md` (DEC-175), `.github/workflows/ci.yml` | El recordatorio al cliente sale también por WhatsApp con la plantilla aprobada `nava_recordatorio_turno` (issue [#613](https://github.com/bcaceres19/barberia/issues/613), `DEC-175`): una fila propia por canal en la cola de avisos, solo si el cliente tiene teléfono, con la anticipación del negocio y la hora redactada en su zona. |
 | 2026-11-16 | `deploy/{caddy/Caddyfile,compose.yaml,scripts/deploy.sh,README.md}`, `docs/00-control/{registro-decisiones,historial-cambios}.md` (DEC-176) | El Caddy de producción sirve también `pedidos.nava.wtf` (Nava · Pedidos, pila aparte) por la red Docker externa `edge`, en la que solo entra `web` (issue [#615](https://github.com/bcaceres19/barberia/issues/615), `DEC-176`). |
+| 2026-11-16 | `Jenkinsfile`, `deploy/jenkins/**`, `tools/ci/**`, `deploy/{caddy/Caddyfile,scripts/deploy.sh,README.md}`, `.github/workflows/{ci,deploy}.yml` (retirados), `docs/04-arquitectura/stack-despliegue-operacion.md`, `docs/05-backend/migraciones-atlas.md`, `docs/00-control/{registro-decisiones,historial-cambios}.md` (DEC-177) | El CI/CD pasa de GitHub Actions a un Jenkins propio en la VPS (`jenkins.nava.wtf`): CI multibranch con los mismos checks, despliegue automático del SHA de `main` en verde con `deploy.sh` y mantenimiento de Docker; imágenes construidas en el Docker del servidor, sin registro (issue [#617](https://github.com/bcaceres19/barberia/issues/617), `DEC-177`). |

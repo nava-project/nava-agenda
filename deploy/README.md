@@ -1,8 +1,8 @@
 # Despliegue de NAVA
 
 Pila de producción en contenedores Docker sobre un VPS: proxy con HTTPS, API, worker,
-PostgreSQL y respaldos. Todo se despliega desde GitHub Actions con el mismo commit que
-superó el CI. Decisiones de base: [`stack-despliegue-operacion.md`](../docs/04-arquitectura/stack-despliegue-operacion.md)
+PostgreSQL y respaldos. Todo se despliega desde el Jenkins de la propia VPS
+([`jenkins/README.md`](jenkins/README.md), `DEC-177`) con el mismo commit que superó el CI. Decisiones de base: [`stack-despliegue-operacion.md`](../docs/04-arquitectura/stack-despliegue-operacion.md)
 y [`migraciones-atlas.md`](../docs/05-backend/migraciones-atlas.md).
 
 ## 1. Arquitectura
@@ -22,6 +22,8 @@ api y worker salen a Internet (Resend, Meta, Google) por la red "egress".
 
 Internet ──443──▶ web (Caddy) ── red "edge" (externa, compartida) ──▶ pedidos:8080
                   pedidos.nava.wtf                                      (pila aparte)
+                  jenkins.nava.wtf ──────────────────────────────────▶ jenkins:8080
+                                                                        (pila aparte, DEC-177)
 ```
 
 **Otros proyectos en la misma VPS (`DEC-176`).** Este Caddy es el único dueño de 80/443.
@@ -97,7 +99,7 @@ despliegue, y un servicio no puede leer los de otro. Los servicios que los leen 
 ## 3. Puesta en marcha (una sola vez)
 
 1. **DNS** del dominio: sección 4.
-2. **GitHub**: entorno y secretos, sección 5.
+2. **Jenkins** en la VPS: sección 5 y [`jenkins/README.md`](jenkins/README.md).
 3. **Configuración y secretos en el servidor** (genera los valores aleatorios):
    ```bash
    tar czf - deploy | ssh barberia-deploy 'mkdir -p /srv/barberia/bootstrap && tar xzpf - -C /srv/barberia/bootstrap'
@@ -112,7 +114,7 @@ despliegue, y un servicio no puede leer los de otro. Los servicios que los leen 
    Google Calendar). Los datos no sensibles (`APP_META_WHATSAPP_PHONE_NUMBER_ID`,
    `APP_META_WHATSAPP_TEMPLATE_NAME`) se escriben en `/srv/barberia/env/app.env`.
 5. **Despliega**: no hace falta hacer nada; el primer commit que llegue a `main` con el CI en verde
-   se despliega solo (o lánzalo a mano: GitHub → Actions → *Deploy* → *Run workflow*).
+   se despliega solo (o lánzalo a mano: Jenkins → *Barbería* → *Deploy* → *Build with Parameters*).
    El primer despliegue crea los roles, aplica las migraciones y arranca todo.
 
 ## 4. DNS de `nava.wtf` en Hostinger
@@ -125,6 +127,7 @@ editan en **hPanel → Dominios → nava.wtf → DNS / Servidores de nombres →
 | A | `@` | `158.69.232.180` | 300 | **Cambiar**: hoy apunta a `2.57.91.91` (página de aparcamiento de Hostinger) |
 | CNAME | `www` | `nava.wtf` | 300 | Conservar (ya existe; Caddy redirige `www` al dominio sin `www`) |
 | A | `pedidos` | `158.69.232.180` | 300 | Ya existe: Nava · Pedidos, servido por este Caddy (`DEC-176`) |
+| A | `jenkins` | `158.69.232.180` | 300 | Jenkins de la VPS, servido por este Caddy (`DEC-177`) |
 | CAA | `@` | `0 issue "letsencrypt.org"` | 3600 | Opcional: solo Let's Encrypt puede emitir certificados |
 
 - **No agregues registros AAAA** (IPv6) salvo que configures IPv6 en el servidor.
@@ -140,32 +143,30 @@ editan en **hPanel → Dominios → nava.wtf → DNS / Servidores de nombres →
 - Comprueba: `dig +short nava.wtf` debe responder `158.69.232.180`. El certificado se emite
   solo cuando el DNS ya apunta al servidor; si aún no, `deploy.sh` avisa y Caddy reintenta.
 
-## 5. GitHub
+## 5. CI/CD (Jenkins)
 
-El entorno **`production`** del repositorio ya está creado con lo necesario, en la cuenta
-`bcaceres19`: solo admite despliegues desde `main` y tiene estos valores.
+El CI y los despliegues los hace el Jenkins de la VPS (`DEC-177`), en `https://jenkins.nava.wtf`;
+la instalación, los secretos y la operación están en [`jenkins/README.md`](jenkins/README.md).
+GitHub Actions quedó retirado: GitHub ya no guarda nada necesario para desplegar.
 
-| Tipo | Nombre | Contenido |
+| Pipeline | Cuándo corre | Qué hace |
 | --- | --- | --- |
-| Secreto | `VPS_HOST` | IP del servidor |
-| Secreto | `VPS_SSH_KEY` | llave privada de `deploy` (`~/.ssh/barberia_deploy_ed25519`) |
-| Secreto | `VPS_KNOWN_HOSTS` | huella ed25519 del servidor (evita ataques de intermediario) |
-| Variable | `PUBLIC_URL` | `https://nava.wtf` (comprobación final del despliegue) |
-| Variable | `VITE_GOOGLE_MAPS_BROWSER_KEY` | clave de **navegador** de Google Maps (pública por diseño; se protege con la restricción por dominio en Google Cloud, que debe incluir `nava.wtf`). Es una variable del entorno `production`: el job que construye las imágenes declara ese entorno para recibirla; sin él la SPA se compila sin mapas (issue #579). El build-arg se arma en el paso de build y no en la matriz, que se resuelve antes de aplicar el entorno (issue #583) |
+| `barberia/ci` | cada PR contra `main` y cada commit de `main` | los checks de [`Jenkinsfile`](../Jenkinsfile) y el estado en el commit de GitHub; en `main`, si pasa, construye las imágenes y dispara `deploy` |
+| `barberia/deploy` | lo dispara el CI de `main`; a mano con un SHA | worktree en el SHA, imágenes que falten, envío al servidor y `deploy.sh --no-pull` como `deploy` |
+| `vps/mantenimiento` | diario | contenedores de CI huérfanos y caché de construcción de más de 7 días |
 
-Las claves de Resend, Meta y Google **no** están en GitHub: viven solo en el servidor como
-secretos de Docker (sección 2). El repositorio es privado y aun así ningún secreto va en el código.
+Las claves de Resend, Meta y Google **no** están en Jenkins: viven solo en el servidor como
+secretos de Docker (sección 2). Jenkins guarda en `/srv/jenkins/secrets` únicamente lo suyo (token
+de GitHub, secreto del webhook, su llave SSH hacia `deploy` y la clave de **navegador** de Google
+Maps, pública por diseño y restringida por dominio en Google Cloud, que se compila en la imagen web).
 
-**Despliegue automático (DEC-160).** El workflow corre solo cuando el CI de un `push` a `main`
-termina en verde, y despliega exactamente ese SHA. No hay aprobación manual previa: los aprobadores
-obligatorios de un entorno no existen en el plan gratuito con repositorios privados, y el propietario
-decidió desplegar sin intervención. Los controles son el PR revisado, el CI, la simulación de las
-migraciones, el respaldo verificado previo y las pruebas de humo; si falla cualquiera, no se
-despliega la aplicación. `workflow_dispatch` sigue disponible para reintentar o volver a un SHA de
-`main`. **Interruptor:** la variable de repositorio `AUTO_DEPLOY=false` (*Settings → Secrets and
-variables → Actions → Variables*, o `gh variable set AUTO_DEPLOY --body false`) apaga el disparo
-automático; `gh variable delete AUTO_DEPLOY` lo reactiva. Si llegan dos commits seguidos, solo se
-despliega el más nuevo.
+**Despliegue automático (DEC-160).** Corre solo cuando el CI de un commit de `main` termina en verde,
+y despliega exactamente ese SHA. No hay aprobación manual previa: los controles son el PR revisado,
+el CI, la simulación de las migraciones, el respaldo verificado previo y las pruebas de humo; si falla
+cualquiera, no se despliega la aplicación. Si llegan dos commits seguidos, solo se despliega el más
+nuevo. **Interruptor:** desactivar el job (*Barbería → Deploy → Disable Project*) apaga el disparo
+automático; *Enable* lo reactiva. Sin registro de imágenes: Jenkins construye en el mismo Docker que
+ejecuta la pila y conserva los nombres `ghcr.io/bcaceres19/barberia-*`.
 
 ## 6. Servicios externos que hay que apuntar al dominio
 
@@ -191,9 +192,10 @@ tail /srv/barberia/deploy.log       # historial de despliegues (versión, actor,
 ```
 
 **Desplegar**: ocurre solo tras cada commit de `main` con el CI en verde. A mano (reintento o SHA
-anterior): Actions → *Deploy* → *Run workflow* (vacío = último commit de `main`; o un SHA).
-Verifica que el CI del commit esté en verde, construye y publica las imágenes en GHCR y entonces: respaldo previo verificado → migraciones con `barberia_migrator` → arranque →
-pruebas de humo. **Si la migración falla, la aplicación en ejecución no se toca.**
+anterior): Jenkins → *Barbería* → *Deploy* → *Build with Parameters* (`SHA` vacío = último commit de
+`main`; o un SHA). Verifica que el CI del commit esté en verde, construye las imágenes que falten en el
+Docker del servidor y entonces: respaldo previo verificado → migraciones con `barberia_migrator` →
+arranque → pruebas de humo. **Si la migración falla, la aplicación en ejecución no se toca.**
 
 **Revertir la aplicación** (roll-forward es lo normal; esto solo es seguro si el esquema actual es
 compatible con la versión anterior, ver `migraciones-atlas.md` §9):
@@ -201,7 +203,8 @@ compatible con la versión anterior, ver `migraciones-atlas.md` §9):
 bash /srv/barberia/releases/$(cat /srv/barberia/previous-tag)/deploy/scripts/deploy.sh \
      $(cat /srv/barberia/previous-tag) --db-tag $(cat /srv/barberia/current-db-tag) --no-migrate
 ```
-(las imágenes se conservan 7 días en el servidor; el registro guarda todas).
+(las imágenes se conservan 7 días en el servidor; para una versión más vieja, lanza *Deploy* con
+ese SHA: reconstruye sus imágenes desde el commit).
 
 ### Respaldos
 
