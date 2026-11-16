@@ -180,3 +180,71 @@ func TestLocation_Visible(t *testing.T) {
 		t.Fatal("CA-102-03: sin coordenadas no se muestra")
 	}
 }
+
+// DEC-170: el punto que el dueño ajusta a mano en el mapa manda sobre la
+// geocodificación y se guarda tal cual junto a la dirección escrita.
+func TestLocationPatch_ManualPin_WritesThatPointWithoutGeocoding(t *testing.T) {
+	repo := &fakeBrandRepository{getFound: true, updateResult: shops.BrandUpdateResult{Found: true}}
+	geo := &fakeGeocoder{err: errors.New("no debió llamarse")}
+
+	_, err := shops.NewBrandService(repo, geo).Update(context.Background(), shopID, validBrand(), shops.LocationPatch{
+		AddressSet: true, Address: ptr(" Calle 15 Norte # 12-57,  Armenia "),
+		Latitude: ptr(4.553358), Longitude: ptr(-75.656683),
+	})
+	if err != nil {
+		t.Fatalf("Update: %v", err)
+	}
+	if len(geo.calls) != 0 {
+		t.Fatalf("con un punto elegido a mano no se geocodifica, hubo %d llamadas", len(geo.calls))
+	}
+	w := repo.updateCalls[0].location
+	if !w.ReplaceAddress || w.Address == nil || *w.Address != "Calle 15 Norte # 12-57, Armenia" ||
+		w.Latitude == nil || *w.Latitude != 4.553358 || w.Longitude == nil || *w.Longitude != -75.656683 {
+		t.Fatalf("debe escribir la dirección normalizada y el punto elegido: %+v", w)
+	}
+}
+
+// Ajustar solo el pin, con la misma dirección ya ubicada, reemplaza el punto.
+func TestLocationPatch_ManualPin_SameAddress_MovesThePoint(t *testing.T) {
+	current := validBrand()
+	current.Location = shops.Location{
+		HasPhysicalLocation: true, Address: ptr("Calle 10 # 5-20, Bogotá"),
+		Latitude: ptr(4.598056), Longitude: ptr(-74.076111),
+	}
+	repo := &fakeBrandRepository{getBrand: current, getFound: true, updateResult: shops.BrandUpdateResult{Found: true}}
+
+	if _, err := shops.NewBrandService(repo, &fakeGeocoder{}).Update(context.Background(), shopID, validBrand(), shops.LocationPatch{
+		AddressSet: true, Address: ptr("Calle 10 # 5-20, Bogotá"),
+		Latitude: ptr(4.6), Longitude: ptr(-74.08),
+	}); err != nil {
+		t.Fatalf("Update: %v", err)
+	}
+	w := repo.updateCalls[0].location
+	if *w.Latitude != 4.6 || *w.Longitude != -74.08 {
+		t.Fatalf("el punto ajustado debe reemplazar al guardado: %+v", w)
+	}
+}
+
+func TestLocationPatch_ManualPin_InvalidCombinations_Return422AndNeverWrite(t *testing.T) {
+	cases := map[string]shops.LocationPatch{
+		"solo latitud":           {AddressSet: true, Address: ptr("Calle 1"), Latitude: ptr(4.6)},
+		"solo longitud":          {AddressSet: true, Address: ptr("Calle 1"), Longitude: ptr(-74.0)},
+		"latitud fuera de rango": {AddressSet: true, Address: ptr("Calle 1"), Latitude: ptr(90.5), Longitude: ptr(-74.0)},
+		"longitud fuera de rango": {AddressSet: true, Address: ptr("Calle 1"), Latitude: ptr(4.6),
+			Longitude: ptr(-180.5)},
+		"sin dirección en el parche": {Latitude: ptr(4.6), Longitude: ptr(-74.0)},
+		"quitando la dirección":      {AddressSet: true, Address: nil, Latitude: ptr(4.6), Longitude: ptr(-74.0)},
+		"dirección en blanco":        {AddressSet: true, Address: ptr("   "), Latitude: ptr(4.6), Longitude: ptr(-74.0)},
+	}
+	for name, patch := range cases {
+		t.Run(name, func(t *testing.T) {
+			repo := &fakeBrandRepository{getFound: true, updateResult: shops.BrandUpdateResult{Found: true}}
+			geo := &fakeGeocoder{}
+			_, err := shops.NewBrandService(repo, geo).Update(context.Background(), shopID, validBrand(), patch)
+			assertValidation(t, err)
+			if len(repo.updateCalls) != 0 || len(geo.calls) != 0 {
+				t.Fatalf("un punto inválido no escribe ni geocodifica: writes=%d geo=%d", len(repo.updateCalls), len(geo.calls))
+			}
+		})
+	}
+}

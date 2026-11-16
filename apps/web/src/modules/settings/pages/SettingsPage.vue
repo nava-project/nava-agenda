@@ -43,6 +43,8 @@ import {
   type ThemeMode,
 } from '@/shared/model'
 import { isMapAvailable } from '@/shared/model/mapEmbed'
+import { roundPoint } from '@/shared/model/mapPicker'
+import type { PlaceSelection } from '@/shared/model/placesAutocomplete'
 import {
   DEFAULT_PHONE_COUNTRY,
   composePhone,
@@ -52,9 +54,11 @@ import {
 import {
   BaseAlert,
   BaseButton,
+  AddressAutocomplete,
   BaseInput,
   DiamondLoader,
   LocationMap,
+  LocationPicker,
   PhoneField,
 } from '@/shared/ui'
 import { updateBarbershopName } from '@/modules/auth'
@@ -66,8 +70,10 @@ import {
   ADDRESS_MAX_LENGTH,
   draftFromSaved,
   locationChange,
+  normalizeAddress,
   needsGeocoding,
   addressChanged,
+  savedPoint,
   sameLocation,
   validateAddress,
   type LocationDraft,
@@ -259,7 +265,7 @@ function runValidation(): FieldErrors {
   set('businessTerm', validateTerm(brand.businessTerm))
   set('professionalTerm', validateTerm(brand.professionalTerm))
   set('professionalTermPlural', validateTerm(brand.professionalTermPlural))
-  set('address', validateAddress(location.address))
+  set('address', validateAddress(location.address, location.pin))
   return errors
 }
 
@@ -277,6 +283,28 @@ function onShopInput<K extends keyof BarbershopSettingsFormValues>(
 
 function onAddressInput(value: string | number) {
   location.address = String(value)
+  revalidate()
+}
+
+// Ubicación a mano en el mapa (DEC-170). El mapa muestra el punto marcado en
+// esta edición o, si no se tocó, el guardado. Un punto que vuelve del mapa se
+// guarda tal cual; su texto (dirección aproximada) no pisa la dirección escrita.
+const locationPickerValue = computed<PlaceSelection | null>(() => {
+  const point = location.pin ?? savedPoint(savedLocation.value)
+  return point ? { address: normalizeAddress(location.address) || 'Tu local', ...point } : null
+})
+
+function onPinMoved(selection: PlaceSelection) {
+  location.pin = roundPoint(selection)
+  revalidate()
+}
+
+// Una sugerencia del buscador (por nombre o dirección) centra el mapa ahí y, si
+// la dirección aún estaba vacía, la completa: el dueño la puede corregir.
+function onPlaceChosen(selection: PlaceSelection | null) {
+  if (!selection) return
+  location.pin = roundPoint(selection)
+  if (normalizeAddress(location.address) === '') location.address = selection.address
   revalidate()
 }
 
@@ -1066,12 +1094,38 @@ const previewClass = computed(() => ({ 'settings-page__preview--changed': brandD
               trabajas desde tu casa, apaga el interruptor para no mostrarla.
             </p>
             <p
-              v-if="needsGeocoding(savedLocation) && !addressChanged(location, savedLocation)"
+              v-if="
+                needsGeocoding(savedLocation) &&
+                !addressChanged(location, savedLocation) &&
+                !location.pin
+              "
               class="settings-field__hint settings-location-pending"
               role="status"
             >
-              Esta dirección todavía no está ubicada en el mapa. Guarda los cambios para ubicarla.
+              Esta dirección todavía no está ubicada en el mapa. Búscala o mueve el mapa hasta tu
+              local; si no, al guardar la ubicamos con la dirección escrita.
             </p>
+            <div
+              v-if="location.hasPhysicalLocation && isMapAvailable()"
+              class="settings-location-picker"
+            >
+              <AddressAutocomplete
+                :model-value="null"
+                label="Busca tu local por nombre o dirección"
+                hint="Elige una sugerencia y luego ajusta el pin moviendo el mapa."
+                :show-map="false"
+                :clear-on-input="false"
+                :disabled="saving"
+                @update:model-value="onPlaceChosen"
+              />
+              <LocationPicker
+                :model-value="locationPickerValue"
+                label="Ubicación en el mapa"
+                hint="Mueve el mapa hasta que el pin quede sobre la puerta de tu local. Así lo verán tus clientes al reservar."
+                :disabled="saving"
+                @update:model-value="onPinMoved"
+              />
+            </div>
             <SwitchField
               v-model="location.offersHomeService"
               label="Atiendo a domicilio"
@@ -1082,8 +1136,11 @@ const previewClass = computed(() => ({ 'settings-page__preview--changed': brandD
               "
               :disabled="saving"
             />
+            <!-- Con el local apagado no hay mapa para ajustar (DEC-170): solo se
+                 recuerda dónde quedó guardado, oculto para los clientes. -->
             <div
               v-if="
+                !location.hasPhysicalLocation &&
                 savedLocation.address &&
                 savedLocation.latitude !== null &&
                 savedLocation.longitude !== null &&
@@ -1092,11 +1149,7 @@ const previewClass = computed(() => ({ 'settings-page__preview--changed': brandD
               class="settings-location-preview"
             >
               <span class="settings-field__label settings-field__label--sub">
-                {{
-                  savedLocation.hasPhysicalLocation
-                    ? 'Así se ve en tu reserva pública'
-                    : 'Guardada, pero oculta mientras el interruptor siga apagado'
-                }}
+                Guardada, pero oculta mientras el interruptor siga apagado
               </span>
               <LocationMap
                 :latitude="savedLocation.latitude"
@@ -1344,6 +1397,13 @@ const previewClass = computed(() => ({ 'settings-page__preview--changed': brandD
   display: flex;
   flex-direction: column;
   gap: 10px;
+}
+
+/* Buscador + mapa con pin (DEC-170): el pin es la ubicación pública. */
+.settings-location-picker {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
 }
 
 .settings-grid {
@@ -1940,6 +2000,60 @@ const previewClass = computed(() => ({ 'settings-page__preview--changed': brandD
   box-shadow:
     0 0 0 2px var(--color-surface-strong),
     0 0 0 4px var(--color-danger-on-strong);
+}
+
+/* Buscador del local y selector del mapa (DEC-170): mismo campo reglado y
+   mismos rótulos que el resto de la hoja; la lista de sugerencias sobre la
+   superficie del modo activo, nunca un blanco fijo sobre la tinta. */
+.settings-ink :deep(.address-autocomplete__label),
+.settings-ink :deep(.location-picker__label) {
+  font-size: var(--font-size-caption);
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--color-brand-accent-surface);
+}
+
+.settings-ink :deep(.address-autocomplete__input) {
+  height: 44px;
+  padding: 0 var(--space-4);
+  color: var(--color-on-strong);
+  background-color: color-mix(in srgb, var(--color-on-strong) 4%, transparent);
+  border: var(--border-width-normal) solid
+    color-mix(in srgb, var(--color-on-strong) 12%, transparent);
+  border-bottom: var(--border-width-emphasis) solid
+    color-mix(in srgb, var(--color-on-strong) 30%, transparent);
+  outline: none;
+}
+
+.settings-ink :deep(.address-autocomplete__input:hover:not(:disabled)) {
+  border-color: color-mix(in srgb, var(--color-on-strong) 26%, transparent);
+}
+
+.settings-ink :deep(.address-autocomplete__input:focus-visible) {
+  border-bottom-color: var(--color-brand-accent-surface);
+  box-shadow:
+    0 0 0 2px var(--color-surface-strong),
+    0 0 0 4px var(--color-focus);
+}
+
+.settings-ink :deep(.address-autocomplete__list) {
+  background: var(--color-surface-strong);
+  color: var(--color-on-strong);
+  border-color: color-mix(in srgb, var(--color-on-strong) 18%, transparent);
+  box-shadow: var(--shadow-dialog);
+}
+
+.settings-ink :deep(.address-autocomplete__hint),
+.settings-ink :deep(.address-autocomplete__status),
+.settings-ink :deep(.location-picker__hint),
+.settings-ink :deep(.location-picker__notice),
+.settings-ink :deep(.location-picker__chosen) {
+  color: var(--color-on-strong-muted);
+}
+
+.settings-ink :deep(.location-picker__map) {
+  border-color: color-mix(in srgb, var(--color-on-strong) 16%, transparent);
 }
 
 .settings-ink :deep(.settings-input--filled .base-input) {

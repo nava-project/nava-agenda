@@ -15,8 +15,8 @@ const MaxAddressLength = 200
 // HasPhysicalLocation es un ajuste explícito: nunca se deriva de si Address
 // está vacía, y apagarlo conserva Address y las coordenadas. Latitude y
 // Longitude son nil o ambas no nil, y solo existen junto a una Address
-// (barbershop_coordinates_ck): son el resultado de geocodificar una vez en el
-// servidor al guardar, no un dato que el cliente envíe.
+// (barbershop_coordinates_ck): salen de geocodificar una vez en el servidor
+// al guardar o, desde DEC-170, del punto que el dueño ajustó a mano en el mapa.
 type Location struct {
 	HasPhysicalLocation bool
 	Address             *string
@@ -42,13 +42,19 @@ type LocationPatch struct {
 	HasPhysicalLocation *bool
 	AddressSet          bool
 	Address             *string
+	// Latitude y Longitude son el punto que el dueño eligió a mano en el mapa
+	// (DEC-170): ambas o ninguna, y solo junto a una Address no vacía. Con
+	// ellas el servidor guarda ese punto tal cual y no geocodifica.
+	Latitude  *float64
+	Longitude *float64
 	// OffersHomeService nil conserva el interruptor de domicilio (DEC-131).
 	OffersHomeService *bool
 }
 
 // IsZero informa si el parche no pide ningún cambio.
 func (p LocationPatch) IsZero() bool {
-	return p.HasPhysicalLocation == nil && !p.AddressSet && p.OffersHomeService == nil
+	return p.HasPhysicalLocation == nil && !p.AddressSet && p.OffersHomeService == nil &&
+		p.Latitude == nil && p.Longitude == nil
 }
 
 // LocationWrite es lo que BrandRepository.Update escribe sobre la ubicación,

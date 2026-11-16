@@ -111,6 +111,21 @@ func errAddressUnresolvable() error {
 		"no pudimos ubicar esa dirección en el mapa; escríbela completa (calle, número y ciudad)")
 }
 
+// errPinIncomplete, errPinWithoutAddress y errPinOutOfRange cubren el punto
+// elegido a mano (DEC-170): llega completo, dentro de rango y con una dirección
+// que lo acompañe, o no se guarda nada.
+func errPinIncomplete() error {
+	return apperr.Validation("latitude y longitude se envían juntas o ninguna")
+}
+
+func errPinWithoutAddress() error {
+	return apperr.Validation("el punto del mapa necesita una dirección escrita (address)")
+}
+
+func errPinOutOfRange() error {
+	return apperr.Validation("latitude debe estar entre -90 y 90 y longitude entre -180 y 180")
+}
+
 // errGeocoderUnavailable cubre un fallo ajeno a la dirección (sin credencial,
 // cuota, red). El catálogo de errores no tiene un 503: se responde 422 con un
 // mensaje distinto para que la persona reintente, y la causa real solo se

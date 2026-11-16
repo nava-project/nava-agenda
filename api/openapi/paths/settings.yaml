@@ -334,6 +334,9 @@
       dirección nueva se geocodifica en el servidor antes de guardar y, si no se
       puede ubicar con precisión de calle, responde `422` sin escribir nada (ni
       la marca); apagar el interruptor conserva la dirección y sus coordenadas.
+      Con `latitude`/`longitude` (`DEC-170`), el punto que el dueño ajustó a
+      mano en el mapa, el servidor guarda ese punto junto a la dirección sin
+      geocodificarla.
       Un valor inválido responde `422` sin escribir nada. Son preferencias de presentación: no hay precondición de
       versión y la última escritura gana. Escribir toca `updated_at` de la
       fila, así que invalida el token `If-Match` de una política de reserva

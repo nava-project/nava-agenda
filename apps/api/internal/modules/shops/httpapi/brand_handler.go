@@ -105,6 +105,8 @@ func (h *UpdateBrandHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		HasPhysicalLocation: req.HasPhysicalLocation,
 		AddressSet:          req.Address.Set,
 		Address:             req.Address.Value,
+		Latitude:            req.Latitude,
+		Longitude:           req.Longitude,
 		OffersHomeService:   req.OffersHomeService,
 	})
 	if err != nil {

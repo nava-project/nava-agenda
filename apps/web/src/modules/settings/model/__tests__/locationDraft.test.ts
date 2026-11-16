@@ -35,6 +35,7 @@ describe('locationDraft', () => {
       hasPhysicalLocation: true,
       address: '',
       offersHomeService: false,
+      pin: null,
     })
   })
 
@@ -43,6 +44,7 @@ describe('locationDraft', () => {
       hasPhysicalLocation: true,
       address: '  Calle 10   # 5-20, Bogotá ',
       offersHomeService: false,
+      pin: null,
     }
     expect(addressChanged(draft, saved)).toBe(false)
     expect(sameLocation(draft, saved)).toBe(true)
@@ -56,6 +58,7 @@ describe('locationDraft', () => {
           hasPhysicalLocation: false,
           address: 'Calle 10 # 5-20, Bogotá',
           offersHomeService: false,
+          pin: null,
         },
         saved,
       ),
@@ -66,6 +69,7 @@ describe('locationDraft', () => {
           hasPhysicalLocation: true,
           address: 'Carrera 7 # 32-16',
           offersHomeService: false,
+          pin: null,
         },
         saved,
       ),
@@ -73,17 +77,20 @@ describe('locationDraft', () => {
   })
 
   it('el interruptor de domicilio se envía solo si cambió (DEC-131)', () => {
-    const base = { hasPhysicalLocation: true, address: 'Calle 10 # 5-20, Bogotá' }
+    const base = { hasPhysicalLocation: true, address: 'Calle 10 # 5-20, Bogotá', pin: null }
     expect(locationChange({ ...base, offersHomeService: true }, saved)).toEqual({
       offersHomeService: true,
     })
     expect(sameLocation({ ...base, offersHomeService: true }, saved)).toBe(false)
-    expect(locationChange({ ...base, offersHomeService: false }, saved)).toEqual({})
+    expect(locationChange({ ...base, offersHomeService: false, pin: null }, saved)).toEqual({})
   })
 
   it('una dirección vacía se envía como null para quitarla', () => {
     expect(
-      locationChange({ hasPhysicalLocation: true, address: '  ', offersHomeService: false }, saved),
+      locationChange(
+        { hasPhysicalLocation: true, address: '  ', offersHomeService: false, pin: null },
+        saved,
+      ),
     ).toEqual({
       address: null,
     })
@@ -92,7 +99,7 @@ describe('locationDraft', () => {
   it('vaciar un campo que ya estaba sin dirección no es un cambio', () => {
     expect(
       locationChange(
-        { hasPhysicalLocation: true, address: '', offersHomeService: false },
+        { hasPhysicalLocation: true, address: '', offersHomeService: false, pin: null },
         DEFAULT_LOCATION,
       ),
     ).toEqual({})
@@ -123,6 +130,62 @@ describe('locationDraft', () => {
     it('una dirección ya ubicada y sin tocar sigue sin enviarse', () => {
       expect(locationChange(draftFromSaved(saved), saved)).toEqual({})
       expect(sameLocation(draftFromSaved(saved), saved)).toBe(true)
+    })
+  })
+
+  // DEC-170: el dueño ajusta a mano el punto del mapa; viaja con la dirección
+  // escrita y el servidor lo guarda sin geocodificar.
+  describe('punto ajustado a mano en el mapa', () => {
+    const pin = { latitude: 4.553358, longitude: -75.656683 }
+
+    it('un punto distinto del guardado es un cambio y viaja con la dirección', () => {
+      const draft = { ...draftFromSaved(saved), pin }
+      expect(sameLocation(draft, saved)).toBe(false)
+      expect(locationChange(draft, saved)).toEqual({
+        address: 'Calle 10 # 5-20, Bogotá',
+        latitude: 4.553358,
+        longitude: -75.656683,
+      })
+    })
+
+    it('el mismo punto guardado (dentro de ~1 m) no es un cambio', () => {
+      const draft = { ...draftFromSaved(saved), pin: { latitude: 4.598057, longitude: -74.07611 } }
+      expect(sameLocation(draft, saved)).toBe(true)
+      expect(locationChange(draft, saved)).toEqual({})
+    })
+
+    it('con el punto sin mover pero la dirección nueva, envía ambos y no geocodifica', () => {
+      const draft = {
+        ...draftFromSaved(saved),
+        address: 'Calle 10 # 5-20, Local 3, Bogotá',
+        pin: { latitude: 4.598056, longitude: -74.076111 },
+      }
+      expect(locationChange(draft, saved)).toEqual({
+        address: 'Calle 10 # 5-20, Local 3, Bogotá',
+        latitude: 4.598056,
+        longitude: -74.076111,
+      })
+    })
+
+    it('ubica a mano una dirección que nunca tuvo punto', () => {
+      const unlocated: LocationSettings = { ...saved, latitude: null, longitude: null }
+      const draft = { ...draftFromSaved(unlocated), pin }
+      expect(locationChange(draft, unlocated)).toEqual({
+        address: 'Calle 10 # 5-20, Bogotá',
+        latitude: 4.553358,
+        longitude: -75.656683,
+      })
+    })
+
+    it('exige una dirección escrita para acompañar el punto', () => {
+      expect(validateAddress('', pin)).toContain('dirección')
+      expect(validateAddress('   ', pin)).toContain('dirección')
+      expect(validateAddress('Calle 1', pin)).toBeUndefined()
+      expect(validateAddress('')).toBeUndefined()
+    })
+
+    it('el borrador recién cargado no trae punto marcado', () => {
+      expect(draftFromSaved(saved).pin).toBeNull()
     })
   })
 })

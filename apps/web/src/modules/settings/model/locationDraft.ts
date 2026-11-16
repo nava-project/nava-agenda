@@ -1,6 +1,7 @@
 // Borrador de la ubicación de la barbería en Configuración (DEC-130, HU-102):
 // ayudas puras para normalizar la dirección como la guardará el servidor, saber
 // si cambió y qué enviar. Sin Vue ni red, para probarlas sin montar nada.
+import { samePoint, type LatLng } from '@/shared/model/mapPicker'
 import type { LocationChange, LocationSettings } from './brandOutcome'
 
 /** Largo máximo de la dirección, igual que `barbershop_address_ck`. */
@@ -11,10 +12,18 @@ export function normalizeAddress(raw: string): string {
   return raw.trim().replace(/\s+/g, ' ')
 }
 
-/** Mensaje de error de la dirección, o `undefined` si es válida (puede ir vacía). */
-export function validateAddress(raw: string): string | undefined {
-  if ([...normalizeAddress(raw)].length > ADDRESS_MAX_LENGTH) {
+/**
+ * Mensaje de error de la dirección, o `undefined` si es válida. Puede ir vacía,
+ * salvo que haya un punto marcado a mano en el mapa (DEC-170): el punto siempre
+ * viaja con su dirección escrita.
+ */
+export function validateAddress(raw: string, pin: LatLng | null = null): string | undefined {
+  const normalized = normalizeAddress(raw)
+  if ([...normalized].length > ADDRESS_MAX_LENGTH) {
     return `La dirección no puede superar ${ADDRESS_MAX_LENGTH} caracteres.`
+  }
+  if (pin && normalized === '') {
+    return 'Escribe la dirección del local: acompaña al punto que marcaste en el mapa.'
   }
   return undefined
 }
@@ -24,6 +33,12 @@ export interface LocationDraft {
   /** Texto del campo, tal como se escribe. */
   address: string
   offersHomeService: boolean
+  /**
+   * Punto que el dueño marcó a mano en el mapa en esta edición (DEC-170), o
+   * `null` si no tocó el mapa: entonces el servidor geocodifica la dirección
+   * escrita, como siempre.
+   */
+  pin: LatLng | null
 }
 
 export function draftFromSaved(saved: LocationSettings): LocationDraft {
@@ -31,7 +46,22 @@ export function draftFromSaved(saved: LocationSettings): LocationDraft {
     hasPhysicalLocation: saved.hasPhysicalLocation,
     address: saved.address ?? '',
     offersHomeService: saved.offersHomeService,
+    pin: null,
   }
+}
+
+/** Punto guardado de la barbería, o `null` si aún no tiene coordenadas. */
+export function savedPoint(saved: LocationSettings): LatLng | null {
+  return saved.latitude !== null && saved.longitude !== null
+    ? { latitude: saved.latitude, longitude: saved.longitude }
+    : null
+}
+
+/** El dueño marcó en el mapa un punto distinto del guardado. */
+function pinChanged(draft: LocationDraft, saved: LocationSettings): boolean {
+  if (!draft.pin) return false
+  const current = savedPoint(saved)
+  return current === null || !samePoint(draft.pin, current)
 }
 
 export function addressChanged(draft: LocationDraft, saved: LocationSettings): boolean {
@@ -58,7 +88,8 @@ export function sameLocation(draft: LocationDraft, saved: LocationSettings): boo
     draft.hasPhysicalLocation === saved.hasPhysicalLocation &&
     draft.offersHomeService === saved.offersHomeService &&
     !addressChanged(draft, saved) &&
-    !pendingGeocoding(draft, saved)
+    !pendingGeocoding(draft, saved) &&
+    !pinChanged(draft, saved)
   )
 }
 
@@ -75,8 +106,18 @@ export function locationChange(draft: LocationDraft, saved: LocationSettings): L
   if (draft.offersHomeService !== saved.offersHomeService) {
     change.offersHomeService = draft.offersHomeService
   }
-  if (addressChanged(draft, saved) || pendingGeocoding(draft, saved)) {
-    const normalized = normalizeAddress(draft.address)
+  const normalized = normalizeAddress(draft.address)
+  if (
+    draft.pin &&
+    normalized !== '' &&
+    (pinChanged(draft, saved) || addressChanged(draft, saved))
+  ) {
+    // Punto marcado a mano (DEC-170): viaja con la dirección escrita y el
+    // servidor lo guarda tal cual, sin geocodificar.
+    change.address = normalized
+    change.latitude = draft.pin.latitude
+    change.longitude = draft.pin.longitude
+  } else if (addressChanged(draft, saved) || pendingGeocoding(draft, saved)) {
     change.address = normalized === '' ? null : normalized
   }
   return change

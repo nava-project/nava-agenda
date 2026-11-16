@@ -7,8 +7,9 @@ additionalProperties: false
 description: >
   Marca y vocabulario a guardar. Los seis campos de la marca viajan siempre
   presentes. No incluye `panelProfile`: el panel lo deciden los roles del
-  usuario (`DEC-134`). La ubicación (`hasPhysicalLocation`, `address`) es
-  opcional: ausente no la toca (`DEC-130`).
+  usuario (`DEC-134`). La ubicación (`hasPhysicalLocation`, `address` y el
+  punto opcional `latitude`/`longitude`) es opcional: ausente no la toca
+  (`DEC-130`, `DEC-170`).
 properties:
   accent:
     $ref: './BrandAccent.yaml'
@@ -35,10 +36,31 @@ properties:
       sus coordenadas; `null` o una cadena vacía las quita; una dirección nueva
       se recorta, se colapsan sus espacios y se geocodifica en el servidor antes
       de guardar. Si Google no puede ubicarla con precisión de calle responde
-      `422` sin escribir nada (tampoco la marca). Las coordenadas no se envían:
-      las calcula el servidor.
+      `422` sin escribir nada (tampoco la marca). Si viene junto con
+      `latitude`/`longitude`, no se geocodifica: se guarda ese punto
+      (`DEC-170`).
     examples:
       - Calle 10 # 5-20, Bogotá
+  latitude:
+    type: number
+    minimum: -90
+    maximum: 90
+    description: >
+      Latitud del punto que el dueño ajustó a mano en el mapa (`DEC-170`).
+      Opcional; se envía junto con `longitude` y con una `address` no vacía en
+      el mismo cuerpo, o el servidor responde `422` sin escribir nada. Con
+      ambas, el servidor guarda este punto y no geocodifica la dirección.
+    examples:
+      - 4.553358
+  longitude:
+    type: number
+    minimum: -180
+    maximum: 180
+    description: >
+      Longitud del punto ajustado a mano (`DEC-170`). Mismas reglas que
+      `latitude`.
+    examples:
+      - -75.656683
   offersHomeService:
     type: boolean
     description: >

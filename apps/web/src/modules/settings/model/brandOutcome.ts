@@ -22,6 +22,9 @@ export interface LocationSettings {
 export interface LocationChange {
   hasPhysicalLocation?: boolean
   address?: string | null
+  /** Punto ajustado a mano en el mapa (DEC-170): siempre junto a `address`. */
+  latitude?: number
+  longitude?: number
   offersHomeService?: boolean
 }
 
