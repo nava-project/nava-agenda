@@ -15,7 +15,7 @@
 // confirmado añade un aviso emergente (DEC-095); el error sigue en línea.
 import { computed, nextTick, ref, onMounted, onUnmounted, watch } from 'vue'
 import { useToast, useVocabulary } from '@/shared/composables'
-import { capitalize } from '@/shared/model'
+import { capitalize, isEmployeeProfile, worksOwnBarber } from '@/shared/model'
 import {
   BarberAvatar,
   BarberSelect,
@@ -215,6 +215,8 @@ function onRetryLoad() {
 const toast = useToast()
 // Palabras de la barbería (DEC-110): con los valores iniciales, el texto de siempre.
 const v = useVocabulary()
+// El empleado (DEC-173) solo recibe su propio barbero: no hay a quién elegir.
+const hideBarberPicker = computed(() => worksOwnBarber.value && barbers.value.length === 1)
 
 async function selectBarber(barberId: string) {
   selectedBarberId.value = barberId
@@ -325,10 +327,14 @@ async function onToggleService(service: ServiceSummary, event: Event) {
   <section ref="pageRef" class="barber-services-page" aria-labelledby="barber-services-page-title">
     <header class="barber-services-page__header nv-rise">
       <h1 id="barber-services-page-title" class="barber-services-page__title">
-        Servicios por {{ v.professional }}
+        {{ isEmployeeProfile ? 'Mis servicios' : `Servicios por ${v.professional}` }}
       </h1>
       <p class="barber-services-page__subtitle">
-        Gestiona los servicios que presta cada {{ v.professional }}.
+        {{
+          isEmployeeProfile
+            ? `Elige cuáles servicios del catálogo ${v.ofTheBusiness} ofreces tú.`
+            : `Gestiona los servicios que presta cada ${v.professional}.`
+        }}
       </p>
     </header>
 
@@ -368,11 +374,20 @@ async function onToggleService(service: ServiceSummary, event: Event) {
 
     <template v-else>
       <EmptyScene v-if="barbers.length === 0" scene="team" class="barber-services-page__empty">
-        <template #title>Aún no tienes {{ v.professionalsRegistered }}.</template>
+        <template #title>{{
+          isEmployeeProfile
+            ? 'Tu cuenta aún no tiene un perfil.'
+            : `Aún no tienes ${v.professionalsRegistered}.`
+        }}</template>
         <template #hint>
-          Agrega {{ v.oneProfessional }} en la sección
-          <RouterLink :to="{ name: 'staff-barberos' }">“{{ v.Professionals }}”</RouterLink>
-          antes de asignarle servicios.
+          <template v-if="isEmployeeProfile">
+            Pídele {{ v.toTheBusiness }} que vincule tu usuario con tu perfil de {{ v.professional }}.
+          </template>
+          <template v-else>
+            Agrega {{ v.oneProfessional }} en la sección
+            <RouterLink :to="{ name: 'staff-barberos' }">“{{ v.Professionals }}”</RouterLink>
+            antes de asignarle servicios.
+          </template>
         </template>
       </EmptyScene>
       <EmptyScene
@@ -380,11 +395,20 @@ async function onToggleService(service: ServiceSummary, event: Event) {
         scene="services"
         class="barber-services-page__empty"
       >
-        <template #title>Aún no tienes servicios en el catálogo.</template>
+        <template #title>{{
+          isEmployeeProfile
+            ? `${capitalize(v.theBusiness)} aún no tiene servicios en el catálogo.`
+            : 'Aún no tienes servicios en el catálogo.'
+        }}</template>
         <template #hint>
-          Agrega uno en la sección
-          <RouterLink :to="{ name: 'catalog-servicios' }">“Servicios”</RouterLink>
-          antes de asignarlo a {{ v.aProfessional }}.
+          <template v-if="isEmployeeProfile">
+            Cuando {{ v.theBusiness }} agregue servicios, aquí eliges cuáles ofreces.
+          </template>
+          <template v-else>
+            Agrega uno en la sección
+            <RouterLink :to="{ name: 'catalog-servicios' }">“Servicios”</RouterLink>
+            antes de asignarlo a {{ v.aProfessional }}.
+          </template>
         </template>
       </EmptyScene>
 
@@ -406,7 +430,7 @@ async function onToggleService(service: ServiceSummary, event: Event) {
             <p class="barber-services-page__identity-name">{{ selectedBarber?.fullName }}</p>
           </div>
 
-          <div class="barber-services-page__picker">
+          <div v-if="!hideBarberPicker" class="barber-services-page__picker">
             <label for="barber-services-barber-select" class="barber-services-page__label">
               {{ v.Professional }}
             </label>

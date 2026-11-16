@@ -19,13 +19,14 @@ export { loadWorkspaceBrand } from './model/workspaceBrand'
 // mecanismo de composición, sin agrupar visualmente: NavItem no modela
 // jerarquía todavía).
 //
-// El panel de un empleado (DEC-134) no administra la barbería: ambas entradas se
-// ocultan para él (sus rutas redirigen a la Agenda, ver profileGuard).
+// El panel de un empleado (DEC-134) no administra la barbería: «Configuración» se
+// oculta (su ruta redirige a la Agenda, ver profileGuard) y «Reserva pública» se
+// vuelve «Mi reserva», solo con la ventana propia de su barbero (DEC-173).
 export const settingsNavItems: NavItem[] = [
   {
     to: { name: 'configuracion-reserva-publica' },
     label: 'Reserva pública',
-    profiles: { employee: { hidden: true } },
+    profiles: { employee: { label: 'Mi reserva' } },
   },
   {
     to: { name: 'configuracion-barberia' },

@@ -81,6 +81,20 @@ describe('BarberReviewsPanel', () => {
     expect(await axe(wrapper.element)).toHaveNoViolations()
   })
 
+  it('only lists the reviews when read-only, without moderation buttons (DEC-173)', async () => {
+    getMock.mockResolvedValueOnce(ok(both))
+    const wrapper = mount(BarberReviewsPanel, {
+      attachTo: document.body,
+      props: { barberId: BARBER, rating: 3, ratingCount: 2, readOnly: true },
+    })
+    await openList(wrapper)
+
+    const items = wrapper.findAll('li')
+    expect(items).toHaveLength(2)
+    expect(items.every((item) => item.findAll('button').length === 0)).toBe(true)
+    wrapper.unmount()
+  })
+
   it('hides a review, reloads the server average and announces the change', async () => {
     getMock.mockResolvedValueOnce(ok(both)).mockResolvedValueOnce(
       ok({

@@ -66,6 +66,36 @@ describe('BarberWindowPanel', () => {
     document.body.innerHTML = ''
   })
 
+  it('shows only their own barber to an employee, without picker or team count (DEC-173)', async () => {
+    fetchMock.mockResolvedValueOnce({
+      kind: 'success',
+      barbers: [{ id: ANA, fullName: 'Ana Ruiz', photoUrl: null }],
+      windows: [],
+    })
+    const wrapper = mount(BarberWindowPanel, {
+      props: { shopWindow, ownOnly: true },
+      attachTo: document.body,
+    })
+    await flushPromises()
+
+    expect(wrapper.text()).toContain('Tu ventana de reserva')
+    expect(wrapper.find('#barber-window-select').exists()).toBe(false)
+    expect(wrapper.text()).not.toContain('con ventana propia')
+    expect(wrapper.text()).toContain('Ventana propia para Ana Ruiz')
+    expect(await axe(wrapper.element, axeOptions)).toHaveNoViolations()
+  })
+
+  it('asks the barbershop to link an employee with no barber', async () => {
+    fetchMock.mockResolvedValueOnce({ kind: 'success', barbers: [], windows: [] })
+    const wrapper = mount(BarberWindowPanel, {
+      props: { shopWindow, ownOnly: true },
+      attachTo: document.body,
+    })
+    await flushPromises()
+
+    expect(wrapper.text()).toContain('Pídele a la barbería que vincule tu usuario')
+  })
+
   it('shows the first barber inheriting the shop window, with its sample slots', async () => {
     const wrapper = await mountPanel()
 

@@ -14,7 +14,7 @@
 // regla horaria común, con la lista real de tramos debajo de cada día.
 import { computed, onMounted, onUnmounted, ref, watch } from 'vue'
 import { useToast, useVocabulary } from '@/shared/composables'
-import { isSoloProfile } from '@/shared/model'
+import { isSoloProfile, worksOwnBarber } from '@/shared/model'
 import { getCivilDateInTimezone } from '@/shared/time/civilDate'
 import {
   BarberAvatar,
@@ -107,7 +107,7 @@ const pendingDeleteIds = ref<Set<string>>(new Set())
 const v = useVocabulary()
 
 // Perfil de barbero individual (DEC-115): con un solo barbero no hay selector.
-const hideBarberPicker = computed(() => isSoloProfile.value && barbers.value.length === 1)
+const hideBarberPicker = computed(() => worksOwnBarber.value && barbers.value.length === 1)
 
 const selectedBarber = computed(
   () => barbers.value.find((b) => b.id === selectedBarberId.value) ?? null,

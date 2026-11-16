@@ -43,7 +43,7 @@ import BarberReviewsPanel from '../components/BarberReviewsPanel.vue'
 import { newIdempotencyKey } from '../model/idempotencyKey'
 import type { Barber } from '../model/barber'
 import { NO_PHOTO_CHANGE, type PhotoDraft } from '../model/photoDraft'
-import { capitalize, isSoloProfile } from '@/shared/model'
+import { capitalize, isEmployeeProfile, worksOwnBarber } from '@/shared/model'
 import { validateDescription, validateFullName } from '../validation/staffValidation'
 
 const toast = useToast()
@@ -260,8 +260,10 @@ function goToPage(page: number) {
 // solo. `soloView` cambia los textos; `soloCard` (un único barbero ya cargado) además
 // quita lo que solo tiene sentido con un equipo: «Agregar», encabezados de tabla y
 // paginador. Con más de un barbero la pantalla vuelve a ser la de siempre.
+// El empleado (DEC-173) ve la misma ficha: el API solo le devuelve su barbero, y
+// no puede dar de alta, vincularse ni moderar reseñas, así que esas acciones no se ofrecen.
 const soloView = computed(
-  () => isSoloProfile.value && !(loadStatus.value === 'ready' && totalItems.value > 1),
+  () => worksOwnBarber.value && !(loadStatus.value === 'ready' && totalItems.value > 1),
 )
 // Cuadro lateral de reseñas abierto (issue #487): la ficha deja de centrarse sola.
 const soloReviewsOpen = ref(false)
@@ -679,7 +681,7 @@ async function onSubmitRename() {
       <!-- Una acción principal por región: con el equipo vacío, el CTA vive en el
            propio estado vacío y no se repite en la cabecera. -->
       <BaseButton
-        v-if="loadStatus === 'ready' && barbers.length > 0 && !soloCard"
+        v-if="loadStatus === 'ready' && barbers.length > 0 && !soloCard && !isEmployeeProfile"
         type="button"
         variant="primary"
         class="staff-page__create"
@@ -736,12 +738,14 @@ async function onSubmitRename() {
           }}</template>
           <template #hint>
             {{
-              soloView
-                ? 'Créalo con tu nombre y, si quieres, tu foto: tu agenda y tus horarios cuelgan de él.'
-                : 'Agrega al primero de tu equipo: con su nombre y, si quieres, su foto.'
+              isEmployeeProfile
+                ? `Pídele ${v.toTheBusiness} que vincule tu usuario con tu perfil de ${v.professional}.`
+                : soloView
+                  ? 'Créalo con tu nombre y, si quieres, tu foto: tu agenda y tus horarios cuelgan de él.'
+                  : 'Agrega al primero de tu equipo: con su nombre y, si quieres, su foto.'
             }}
           </template>
-          <template #action>
+          <template v-if="!isEmployeeProfile" #action>
             <BaseButton type="button" variant="primary" @click="openCreateDialog">
               {{ soloView ? 'Crear mi perfil' : `Agregar ${v.professional}` }}
             </BaseButton>
@@ -773,12 +777,21 @@ async function onSubmitRename() {
                 :rating="barbers[0]!.rating"
                 :rating-count="barbers[0]!.ratingCount"
                 aside-to="#staff-solo-reviews"
+                :read-only="isEmployeeProfile"
                 @changed="onReviewsChanged(barbers[0]!.id, $event)"
                 @open-change="soloReviewsOpen = $event"
               />
             </template>
             <template #actions>
               <slot name="barber-actions" :barber="barbers[0]!" />
+              <!-- El empleado no tiene «Configuración»: llega aquí a su Google Calendar. -->
+              <RouterLink
+                v-if="isEmployeeProfile"
+                :to="{ name: 'integraciones-google-calendar' }"
+                class="staff-page__card-gcal"
+              >
+                Google Calendar <span aria-hidden="true">→</span>
+              </RouterLink>
             </template>
           </MyProfileCard>
           <div id="staff-solo-reviews" class="staff-page__solo-aside"></div>
@@ -942,13 +955,14 @@ async function onSubmitRename() {
           :barber-id="detailTarget.id"
           :rating="detailTarget.rating"
           :rating-count="detailTarget.ratingCount"
+          :read-only="isEmployeeProfile"
           @changed="onReviewsChanged(detailTarget.id, $event)"
         />
         <!-- Vínculo con mi usuario (DEC-100): el control vive DENTRO del área con
              scroll, junto al dato que cambia. Así la ficha no pierde altura en el
              pie y, si en una pantalla baja se vuelve desplazable, la región ya
              contiene un control enfocable (axe: scrollable-region-focusable). -->
-        <div v-if="myBarberKnown" class="staff-page__link" :style="{ '--row-index': 3 }">
+        <div v-if="myBarberKnown && !isEmployeeProfile" class="staff-page__link" :style="{ '--row-index': 3 }">
           <div class="staff-page__link-text">
             <span class="staff-page__link-label">Tu usuario</span>
             <span class="staff-page__link-state">{{
@@ -1262,6 +1276,28 @@ async function onSubmitRename() {
   flex: 1 1 0;
   min-width: 0;
   max-width: 460px;
+}
+
+.staff-page__card-gcal {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  min-height: 44px;
+  padding: 0 var(--space-3);
+  color: var(--color-brand-accent-surface);
+  font-weight: 600;
+  text-decoration: none;
+  border-bottom: 1px solid var(--color-brand-accent-surface);
+}
+
+.staff-page__card-gcal:hover {
+  background-color: color-mix(in srgb, var(--color-brand-accent-surface) 12%, transparent);
+}
+
+.staff-page__card-gcal:focus-visible {
+  outline: 2px solid var(--color-focus);
+  outline-offset: 2px;
 }
 
 .staff-page__solo--reviews {

@@ -18,7 +18,7 @@
 import { computed, nextTick, onMounted, onUnmounted, ref, watch } from 'vue'
 import { useRoute, useRouter, type LocationQueryRaw } from 'vue-router'
 import { useMinHoldLoading, useVocabulary } from '@/shared/composables'
-import { capitalize, isSoloProfile } from '@/shared/model'
+import { capitalize, isSoloProfile, worksOwnBarber } from '@/shared/model'
 import {
   BarberSelect,
   BaseAlert,
@@ -344,7 +344,7 @@ function statusBadgeVariant(entry: DailyAgendaEntry) {
 // Perfil de barbero individual (DEC-115): con un solo barbero no hay nada que
 // elegir, así que el selector se oculta. La selección sigue viviendo en
 // `route.query.barberId` (DEC-074): solo desaparece el control.
-const hideBarberPicker = computed(() => isSoloProfile.value && barbers.value.length === 1)
+const hideBarberPicker = computed(() => worksOwnBarber.value && barbers.value.length === 1)
 
 // «Mi día» (DEC-115): una frase con lo que queda de hoy, derivada de los turnos ya
 // cargados. Solo para el día en curso: en otra fecha «siguiente» no significaría nada.
