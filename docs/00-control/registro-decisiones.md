@@ -2232,3 +2232,20 @@ Cada código `DEC-*` es estable y no se reutiliza. Este registro normaliza respu
   - Texto libre: Meta solo lo entrega dentro de la ventana de 24 horas.
 - **Documentos afectados:** `database/README.md`, `database/tests/appointment_notice.sql`, `apps/api/README.md`, `apps/api/.env.example`, `.github/workflows/ci.yml`, `matriz-trazabilidad.md`, `historial-cambios.md`, migración `20261118120000_add_whatsapp_reminder.sql`.
 - **Fuente:** instrucción explícita del propietario del 2026-11-16; issue [#613](https://github.com/bcaceres19/barberia/issues/613).
+
+### DEC-176 · El Caddy de la barbería también sirve Nava · Pedidos en `pedidos.nava.wtf`, por una red Docker compartida (amplía `DEC-158`)
+
+- **Fecha:** 2026-11-16.
+- **Decisión:**
+  1. El servicio `web` (Caddy) sigue siendo el único dueño de 80/443 en la VPS. Sirve además `pedidos.{$DOMAIN}` y le hace proxy a `pedidos:8080`, con HSTS, `nosniff`, sin cabecera `Server`, cuerpo de hasta 6 MB (comprobantes de pago de hasta 5 MB) y SSE sin búfer.
+  2. Nava · Pedidos (repo `odin-pedidos`, pila `pedidos` en `/srv/pedidos`) llega por la red Docker externa `edge` con el alias `pedidos`. De esta pila solo `web` se une a `edge`; el API, el worker y la base siguen sin ser alcanzables desde otras pilas.
+  3. `edge` es externa a las dos pilas: `deploy.sh` la crea si falta y ninguna la borra. El upstream se resuelve en cada petición, así que si Pedidos está caído solo su subdominio da 502; el despliegue y la disponibilidad de nava.wtf no dependen de él.
+  4. Las cabeceras de seguridad específicas y la sesión las maneja la propia app de Pedidos (`TRUST_PROXY=1`, cookie `Secure` con `APP_URL` en https).
+- **Quién lo decidió:** el propietario, el 2026-11-16: «realiza por tu parte lo que falta», sobre la ruta de Caddy pedida por el despliegue de Pedidos.
+- **Responsable:** propietario del proyecto.
+- **Motivo:** un segundo proxy en 80/443 tumbaría nava.wtf. Un túnel de Cloudflare, como el de Odin, exige que el dominio esté en Cloudflare, y `nava.wtf` está en Hostinger.
+- **Alternativas descartadas:**
+  - Publicar Pedidos en un puerto del host: Docker se salta firewalld y quedaría expuesto sin HTTPS.
+  - Que Caddy importe archivos de sitio desde un directorio de la VPS: la ruta quedaría fuera del repo, sin revisión ni CI.
+- **Documentos afectados:** `deploy/caddy/Caddyfile`, `deploy/compose.yaml`, `deploy/scripts/deploy.sh`, `deploy/README.md`, `historial-cambios.md`.
+- **Fuente:** instrucción del propietario del 2026-11-16; issue [#615](https://github.com/bcaceres19/barberia/issues/615).

@@ -19,7 +19,20 @@ Internet ──443/80──▶ web (Caddy: HTTPS, SPA, /api → api)
                      migrate (bajo demanda) ─┘
 
 api y worker salen a Internet (Resend, Meta, Google) por la red "egress".
+
+Internet ──443──▶ web (Caddy) ── red "edge" (externa, compartida) ──▶ pedidos:8080
+                  pedidos.nava.wtf                                      (pila aparte)
 ```
+
+**Otros proyectos en la misma VPS (`DEC-176`).** Este Caddy es el único dueño de 80/443.
+Nava · Pedidos (repo `odin-pedidos`, pila `pedidos` en `/srv/pedidos`) no publica puertos:
+se une a la red Docker externa `edge` con el alias `pedidos`, y el sitio `pedidos.{$DOMAIN}`
+del [`Caddyfile`](caddy/Caddyfile) le hace proxy a `pedidos:8080` (HSTS, `nosniff`, cuerpo
+de hasta 6 MB para los comprobantes y SSE sin búfer). De esta pila solo `web` entra en
+`edge`; el API, el worker y la base no son alcanzables desde ahí. `deploy.sh` crea la red si
+falta y nunca la borra. Si Pedidos está caído, solo su subdominio responde 502. Ningún
+contenedor de `edge` debe usar los alias `api`, `web`, `db` o `worker`: Caddy los resolvería
+también por esa red. Odin (`/srv/odin`) no pasa por aquí: sale por su propio túnel.
 
 | Servicio | Imagen | CPU | Memoria | Función |
 | --- | --- | --- | --- | --- |
@@ -111,6 +124,7 @@ editan en **hPanel → Dominios → nava.wtf → DNS / Servidores de nombres →
 | --- | --- | --- | --- | --- |
 | A | `@` | `158.69.232.180` | 300 | **Cambiar**: hoy apunta a `2.57.91.91` (página de aparcamiento de Hostinger) |
 | CNAME | `www` | `nava.wtf` | 300 | Conservar (ya existe; Caddy redirige `www` al dominio sin `www`) |
+| A | `pedidos` | `158.69.232.180` | 300 | Ya existe: Nava · Pedidos, servido por este Caddy (`DEC-176`) |
 | CAA | `@` | `0 issue "letsencrypt.org"` | 3600 | Opcional: solo Let's Encrypt puede emitir certificados |
 
 - **No agregues registros AAAA** (IPv6) salvo que configures IPv6 en el servidor.

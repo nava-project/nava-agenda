@@ -138,6 +138,9 @@ services:
       app:
         # IP fija: es la única que el API acepta como proxy de confianza.
         ipv4_address: 10.89.1.2
+      # Red compartida con otros proyectos de la VPS a los que este Caddy hace de proxy
+      # (DEC-176). Solo `web` está en ella: el API, el worker y la base no son alcanzables.
+      edge: {}
     depends_on:
       api: { condition: service_started }
     healthcheck:
@@ -217,6 +220,10 @@ networks:
     ipam:
       config: [{ subnet: 10.89.2.0/24 }]
   egress: {}
+  # Externa: la crea deploy.sh (y la pila de Pedidos) si no existe; ninguna pila la borra.
+  edge:
+    external: true
+    name: edge
 
 volumes:
   db-data: {}

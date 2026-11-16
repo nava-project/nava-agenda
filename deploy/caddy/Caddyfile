@@ -2,6 +2,10 @@
 # Variables (las inyecta compose desde stack.env):
 #   DOMAIN      dominio público, p. ej. nava.wtf (con `localhost` Caddy usa su CA interna)
 #   ACME_EMAIL  correo de aviso para Let's Encrypt
+#
+# Este Caddy es el único dueño de 80/443 en la VPS. También sirve otros proyectos del
+# mismo dueño que corren en sus propias pilas y llegan por la red Docker externa `edge`
+# (DEC-176): cada uno con su subdominio y su alias en esa red.
 {
 	email {$ACME_EMAIL}
 	servers {
@@ -60,5 +64,32 @@ www.{$DOMAIN} {
 		header @shell Cache-Control "no-cache"
 		try_files {path} /index.html
 		file_server
+	}
+}
+
+# Nava · Pedidos (repo aparte, pila `pedidos` en /srv/pedidos; DEC-176). Llega por la red
+# `edge` con el alias `pedidos`. Si esa pila está caída, solo este sitio responde 502: el
+# upstream se resuelve en cada petición y no impide que Caddy arranque.
+pedidos.{$DOMAIN} {
+	encode zstd gzip
+
+	header {
+		Strict-Transport-Security "max-age=15552000"
+		X-Content-Type-Options "nosniff"
+		Referrer-Policy "strict-origin-when-cross-origin"
+		-Server
+	}
+
+	# Los comprobantes de pago llegan como imagen de hasta 5 MB.
+	request_body {
+		max_size 6MB
+	}
+
+	reverse_proxy pedidos:8080 {
+		# La bandeja se actualiza en vivo por Server-Sent Events (/api/stream): sin búfer.
+		flush_interval -1
+		transport http {
+			dial_timeout 5s
+		}
 	}
 }
