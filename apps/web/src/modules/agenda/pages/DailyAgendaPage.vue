@@ -15,7 +15,7 @@
 // (docs/10-backlog/evidence/ui-mockups-nava-tailored-grid-2026-09-03/
 // panel-agenda-eventos/README.md) documentan a qué panel responde cada
 // bloque.
-import { computed, onMounted, onUnmounted, ref, watch } from 'vue'
+import { computed, nextTick, onMounted, onUnmounted, ref, watch } from 'vue'
 import { useRoute, useRouter, type LocationQueryRaw } from 'vue-router'
 import { useMinHoldLoading, useVocabulary } from '@/shared/composables'
 import { capitalize, isSoloProfile } from '@/shared/model'
@@ -407,11 +407,70 @@ const canZoomInTimeline = computed(() => timelineZoomIndex.value < TIMELINE_ZOOM
 const canZoomOutTimeline = computed(() => timelineZoomIndex.value > 0)
 
 function zoomTimelineIn() {
-  if (canZoomInTimeline.value) timelineZoomIndex.value += 1
+  if (canZoomInTimeline.value) changeTimelineZoom(1)
 }
 
 function zoomTimelineOut() {
-  if (canZoomOutTimeline.value) timelineZoomIndex.value -= 1
+  if (canZoomOutTimeline.value) changeTimelineZoom(-1)
+}
+
+// Ancho mínimo de una hora del carril a zoom 1 (issue #587, reporte del
+// propietario: «está como apeñuscado donde se ven las citas»). Con el día
+// completo metido en el ancho de la pantalla una hora medía ~76 px a 1920 y
+// ~39 px a 1024, y las fichas quedaban en «Nic…». 180 px deja a un turno de
+// 45 min (135 px) con horario, persona y servicio; el día completo se sigue
+// pudiendo recorrer, ahora con desplazamiento horizontal dentro del carril.
+const TIMELINE_MIN_HOUR_PX = 180
+// Ancho real a partir del cual la ficha lleva sus tres líneas, y ancho mínimo
+// visual de una ficha muy corta (en px reales, no en % del carril: con un
+// carril ancho un % fijo inflaría un turno de 10 min).
+const TIMELINE_SLIP_FULL_PX = 120
+const TIMELINE_SLIP_MIN_PX = 44
+// Ancho aproximado de una ficha ensanchada (--expanded): decide si se ancla
+// por la derecha para no salirse del carril.
+const TIMELINE_SLIP_EXPANDED_PX = 200
+
+const timelineViewport = ref<HTMLElement | null>(null)
+const timelineViewportWidth = ref(0)
+let timelineResizeObserver: ResizeObserver | null = null
+
+watch(timelineViewport, (el) => {
+  timelineResizeObserver?.disconnect()
+  timelineResizeObserver = null
+  if (!el) return
+  timelineViewportWidth.value = el.clientWidth
+  // jsdom no implementa ResizeObserver: sin él se usa el ancho mínimo.
+  if (typeof ResizeObserver === 'undefined') return
+  timelineResizeObserver = new ResizeObserver(() => {
+    timelineViewportWidth.value = el.clientWidth
+  })
+  timelineResizeObserver.observe(el)
+})
+onUnmounted(() => timelineResizeObserver?.disconnect())
+
+/** Ancho mínimo del carril en px para el día y el zoom vigentes. */
+const timelineMinWidthPx = computed(() => {
+  const bounds = timelineBounds.value
+  if (!bounds) return 0
+  return ((bounds.end - bounds.start) / 60) * TIMELINE_MIN_HOUR_PX * timelineZoom.value
+})
+
+/** Ancho real del carril: el del contenedor por el zoom, nunca menos que el mínimo. */
+const timelineLaneWidthPx = computed(() =>
+  Math.max(timelineViewportWidth.value * timelineZoom.value, timelineMinWidthPx.value),
+)
+
+// Cambiar el zoom conserva el punto del día que está en el centro de la vista,
+// en vez de saltar al inicio del carril.
+function changeTimelineZoom(delta: number) {
+  const el = timelineViewport.value
+  const centerRatio =
+    el && el.scrollWidth > 0 ? (el.scrollLeft + el.clientWidth / 2) / el.scrollWidth : null
+  timelineZoomIndex.value += delta
+  if (el === null || centerRatio === null) return
+  void nextTick(() => {
+    el.scrollLeft = Math.max(0, centerRatio * el.scrollWidth - el.clientWidth / 2)
+  })
 }
 
 const timelineTickStepMinutes = computed(() => {
@@ -502,17 +561,21 @@ function timelineSlipWidthPercent(entry: DailyAgendaEntry): number {
   // duración real aunque cruce medianoche.
   const end = minutesSinceCivilMidnight(entry.endsAt, agendaDate.value, barbershopTimezone.value)
   const span = bounds.end - bounds.start
-  // Ancho mínimo visual del 4%: una ficha muy corta sigue siendo legible en
-  // la línea de tiempo sin que eso cambie su duración real.
-  return Math.max(((end - start) / span) * 100, 4)
+  // Ancho mínimo visual en px reales: una ficha muy corta sigue siendo
+  // legible en la línea de tiempo sin que eso cambie su duración real.
+  const minPercent = (TIMELINE_SLIP_MIN_PX / timelineLaneWidthPx.value) * 100
+  return Math.max(((end - start) / span) * 100, minPercent)
+}
+
+function timelineSlipWidthPx(entry: DailyAgendaEntry): number {
+  return (timelineSlipWidthPercent(entry) / 100) * timelineLaneWidthPx.value
 }
 
 // Ficha ensanchada al pasar el cursor o tocarla: crece hacia la derecha, salvo
 // las que arrancan cerca del final del carril, que se anclan por su borde
 // derecho y crecen hacia la izquierda para no salirse del contenedor. El
-// umbral (~18 % del carril a zoom 1) equivale a unos 200 px, el ancho al que
-// se ensancha una ficha (--expandido en CSS); con zoom el carril es más ancho,
-// así que el mismo ancho en px es un porcentaje menor.
+// umbral se mide en px reales del carril (~200 px, el ancho al que se
+// ensancha una ficha, --expanded en CSS).
 function timelineSlipStyle(entry: DailyAgendaEntry): {
   left?: string
   right?: string
@@ -523,7 +586,8 @@ function timelineSlipStyle(entry: DailyAgendaEntry): {
   const start = minutesIntoCivilDate(entry.startsAt, agendaDate.value, barbershopTimezone.value)
   const width = timelineSlipWidthPercent(entry)
   const leftPercent = ((start - bounds.start) / (bounds.end - bounds.start)) * 100
-  if (leftPercent > 100 - 18 / timelineZoom.value) {
+  const lane = timelineLaneWidthPx.value
+  if ((leftPercent / 100) * lane > lane - TIMELINE_SLIP_EXPANDED_PX) {
     return { right: `${Math.max(0, 100 - leftPercent - width)}%`, width: `${width}%` }
   }
   return { left: timelinePercent(start), width: `${width}%` }
@@ -564,11 +628,10 @@ onUnmounted(() => document.removeEventListener('pointerdown', onDocumentPointerD
 // porcentaje que ya gobierna el ancho real de la ficha, no un breakpoint de
 // viewport aparte.
 function timelineSlipDetail(entry: DailyAgendaEntry): 'full' | 'compact' {
-  // El umbral se mide en ancho real (%×zoom), no en el % crudo respecto al
-  // carril: con el carril ensanchado por zoom, una ficha que antes no
-  // cabía con las tres líneas ahora sí tiene espacio real, aunque su %
-  // respecto a timelineBounds no haya cambiado.
-  return timelineSlipWidthPercent(entry) * timelineZoom.value >= 8.5 ? 'full' : 'compact'
+  // El umbral se mide en ancho real (px del carril con zoom), no en el %
+  // crudo respecto al carril: con el carril ensanchado por zoom, una ficha
+  // que antes no cabía con las tres líneas ahora sí tiene espacio real.
+  return timelineSlipWidthPx(entry) >= TIMELINE_SLIP_FULL_PX ? 'full' : 'compact'
 }
 
 function isEntryCancelled(entry: (typeof entries.value)[number]): boolean {
@@ -607,6 +670,40 @@ const nowMarkerPercent = computed(() => {
   if (nowMinute < bounds.start || nowMinute > bounds.end) return null
   return timelinePercent(nowMinute)
 })
+
+// Encuadre inicial del carril (issue #587): con el día completo más ancho
+// que la pantalla, al abrir un día (o cambiar de barbero) el carril se
+// desplaza solo hasta el primer turno, o hasta «Ahora» si es hoy y no hay
+// turnos, con media hora de aire a la izquierda. Solo una vez por día y
+// barbero: una recarga tras atender o cancelar un turno no le mueve la vista
+// a quien ya está mirando otra hora.
+const timelineFocusMinute = computed(() => {
+  const date = agendaDate.value
+  const tz = barbershopTimezone.value
+  if (!timelineBounds.value || !date || !tz) return null
+  if (entries.value.length > 0) {
+    return Math.min(...entries.value.map((e) => minutesIntoCivilDate(e.startsAt, date, tz)))
+  }
+  if (!isViewingToday.value) return null
+  return minutesIntoCivilDate(new Date().toISOString(), date, tz)
+})
+
+let timelineFramedKey: string | null = null
+
+watch(
+  [timelineViewport, timelineFocusMinute, agendaStatus],
+  ([el, focusMinute, status]) => {
+    const bounds = timelineBounds.value
+    if (!el || focusMinute === null || !bounds || status !== 'ready') return
+    const key = `${agendaDate.value}|${selectedBarberId.value}`
+    if (key === timelineFramedKey) return
+    timelineFramedKey = key
+    const ratio =
+      (Math.max(bounds.start, focusMinute - 30) - bounds.start) / (bounds.end - bounds.start)
+    el.scrollLeft = Math.max(0, ratio * el.scrollWidth)
+  },
+  { flush: 'post' },
+)
 
 // "Cambio de día" (issue #189, evento 11 del atlas): decorativa igual que
 // "Ahora" — marca dónde el carril cruza medianoche cuando un turno de este
@@ -847,10 +944,10 @@ const dayChangeMarkerPercent = computed(() => {
                 </button>
               </div>
 
-              <div class="daily-agenda-page__timeline" aria-hidden="true">
+              <div ref="timelineViewport" class="daily-agenda-page__timeline" aria-hidden="true">
                 <div
                   class="daily-agenda-page__timeline-scroll"
-                  :style="{ width: `${timelineZoom * 100}%` }"
+                  :style="{ width: `${timelineZoom * 100}%`, minWidth: `${timelineMinWidthPx}px` }"
                 >
                   <!-- Eje (horas) y marcas (Ahora/Cambio de día) del atlas son
                        dos filas propias, apiladas ANTES del carril (.axis →
@@ -1645,15 +1742,16 @@ const dayChangeMarkerPercent = computed(() => {
 
   .daily-agenda-page__timeline {
     display: block;
-    /* El carril es 100% ancho relativo (posiciones en %, nunca px fijos) al
-       nivel de zoom por defecto: no necesita scroll propio. `auto`, no
-       `hidden` (issue #189): con zoom > 1 el carril interno
-       (.timeline-scroll) se ensancha más allá de este contenedor a
-       propósito y necesita poder desplazarse; al zoom por defecto nunca
-       sobra ancho real (la etiqueta de la última hora ya se ancla hacia
-       adentro, ver --end más abajo), así que `auto` no dibuja una barra
-       de scroll que no haga falta. */
+    /* Las posiciones del carril son % de su ancho (nunca px fijos), pero el
+       carril interno (.timeline-scroll) tiene un ancho mínimo por hora
+       (issue #587) y se ensancha con el zoom: casi siempre es más ancho que
+       este contenedor y se recorre con desplazamiento horizontal propio,
+       sin que la página entera se desplace. */
     overflow-x: auto;
+    overscroll-behavior-x: contain;
+    scrollbar-width: thin;
+    scrollbar-color: color-mix(in srgb, var(--color-brand-accent-surface) 45%, transparent)
+      transparent;
   }
 
   .daily-agenda-page__timeline-scroll {
