@@ -719,10 +719,21 @@ async function onToggleService(service: ServiceSummary, event: Event) {
   }
 }
 
+/* Escritorio: retrato y nombre centrados en la ficha, con el nombre en
+   tamaño de título de sección (pedido del propietario, 2026-11-15: el retrato
+   se veía corrido y el nombre pequeño y desalineado). */
 @media (min-width: 900px) {
   .barber-services-page__identity {
     flex-direction: column;
-    align-items: flex-start;
+    align-items: center;
+    gap: 14px;
+    padding-bottom: 4px;
+    text-align: center;
+  }
+
+  .barber-services-page__identity-name {
+    font-size: var(--font-size-title-section);
+    line-height: var(--font-size-title-section-line);
   }
 }
 
