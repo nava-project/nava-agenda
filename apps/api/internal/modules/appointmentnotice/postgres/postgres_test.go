@@ -5,6 +5,7 @@ import (
 	"crypto/rand"
 	"encoding/hex"
 	"os"
+	"strconv"
 	"strings"
 	"sync"
 	"testing"
@@ -770,5 +771,188 @@ func TestReminder_ChangingTheLeadMovesPendingRemindersOfThatBusinessOnly(t *test
 	setLead(t, app, shopA, 60)
 	if runAt, n := reminderRunAt(t, app, shopA, near); n != 1 || !runAt.Equal(nearRunAt) {
 		t.Fatalf("el pendiente que ya no alcanza 60 minutos queda como estaba: n=%d antes=%s después=%s", n, nearRunAt, runAt)
+	}
+}
+
+// ---- DEC-175: recordatorio por WhatsApp ----
+
+// givePhone pone un teléfono E.164 único al cliente del turno y lo devuelve.
+func givePhone(t *testing.T, db *database.DB, shop database.BarbershopID, appointmentID string) string {
+	t.Helper()
+	b := make([]byte, 4)
+	if _, err := rand.Read(b); err != nil {
+		t.Fatal(err)
+	}
+	n := int(b[0])<<24 | int(b[1])<<16 | int(b[2])<<8 | int(b[3])
+	phone := "+57300" + leftPad(n%10000000)
+	err := db.InTenantTx(context.Background(), shop, func(ctx context.Context, q database.Queries) error {
+		_, err := q.Exec(ctx, `UPDATE customer SET phone = $3
+		                        WHERE barbershop_id = $1
+		                          AND id = (SELECT customer_id FROM appointment WHERE barbershop_id = $1 AND id = $2)`,
+			string(shop), appointmentID, phone)
+		return err
+	})
+	if err != nil {
+		t.Fatalf("givePhone: %v", err)
+	}
+	return phone
+}
+
+func leftPad(n int) string {
+	s := "0000000" + strconv.Itoa(n)
+	return s[len(s)-7:]
+}
+
+func pendingKinds(t *testing.T, db *database.DB, shop database.BarbershopID, appointmentID string) map[string]time.Time {
+	t.Helper()
+	out := map[string]time.Time{}
+	err := db.InTenantTx(context.Background(), shop, func(ctx context.Context, q database.Queries) error {
+		rows, err := q.Query(ctx, `SELECT kind, run_at FROM appointment_notice
+		                            WHERE barbershop_id = $1 AND appointment_id = $2 AND status = 'pending'`,
+			string(shop), appointmentID)
+		if err != nil {
+			return err
+		}
+		defer rows.Close()
+		for rows.Next() {
+			var kind string
+			var runAt time.Time
+			if err := rows.Scan(&kind, &runAt); err != nil {
+				return err
+			}
+			if _, dup := out[kind]; dup {
+				t.Errorf("dos pendientes de la misma clase %q (RN-REC-01)", kind)
+			}
+			out[kind] = runAt
+		}
+		return rows.Err()
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	return out
+}
+
+func noticeID(t *testing.T, db *database.DB, shop database.BarbershopID, appointmentID, kind string) string {
+	t.Helper()
+	for _, n := range notices(t, db, shop, appointmentID) {
+		if n.Kind == kind && n.Status == "pending" {
+			return n.ID
+		}
+	}
+	t.Fatalf("no hay %s pendiente", kind)
+	return ""
+}
+
+func TestWhatsAppReminder_IsScheduledOnlyWithAPhoneAndCoexistsWithTheOthers(t *testing.T) {
+	app := appDB(t)
+
+	noPhone, _ := seedAppointment(t, app, shopA, true)
+	enqueueReminder(t, app, shopA, noPhone)
+	if _, ok := pendingKinds(t, app, shopA, noPhone)["reminder_whatsapp"]; ok {
+		t.Fatal("un cliente sin teléfono no tiene recordatorio por WhatsApp")
+	}
+
+	id, _ := seedAppointment(t, app, shopA, true)
+	givePhone(t, app, shopA, id)
+	start := startsAt(t, app, shopA, id)
+	enqueueReminder(t, app, shopA, id)
+	enqueue(t, app, shopA, id, "rescheduled")
+	enqueueReminder(t, app, shopA, id) // repetir no duplica
+
+	kinds := pendingKinds(t, app, shopA, id)
+	if len(kinds) != 3 {
+		t.Fatalf("un aviso de cambio y un recordatorio por canal: %v", kinds)
+	}
+	for _, k := range []string{"reminder", "reminder_whatsapp"} {
+		if !kinds[k].Equal(start.Add(-30 * time.Minute)) {
+			t.Fatalf("%s a la anticipación del negocio: run_at=%s start=%s", k, kinds[k], start)
+		}
+	}
+
+	// Mover el turno regenera los dos recordatorios, sin duplicar.
+	setStart(t, app, shopA, id, start.Add(2*time.Hour), "confirmed")
+	enqueueReminder(t, app, shopA, id)
+	kinds = pendingKinds(t, app, shopA, id)
+	if len(kinds) != 3 || !kinds["reminder_whatsapp"].Equal(start.Add(2*time.Hour-30*time.Minute)) {
+		t.Fatalf("regenerado a la hora nueva: %v", kinds)
+	}
+}
+
+func TestWhatsAppReminder_ChangingTheLeadMovesItToo(t *testing.T) {
+	app := appDB(t)
+	restoreLead(t, app, shopA)
+
+	id, _ := seedAppointment(t, app, shopA, false)
+	givePhone(t, app, shopA, id)
+	start := startsAt(t, app, shopA, id)
+	enqueueReminder(t, app, shopA, id)
+
+	setLead(t, app, shopA, 60)
+	if got := pendingKinds(t, app, shopA, id)["reminder_whatsapp"]; !got.Equal(start.Add(-60 * time.Minute)) {
+		t.Fatalf("el de WhatsApp se mueve a 60 minutos: run_at=%s start=%s", got, start)
+	}
+}
+
+func TestWhatsAppReminder_WorkerReadsPhoneAndBarberAndRecordsTheWhatsAppChannel(t *testing.T) {
+	app, worker := appDB(t), noticepostgres.NewWorkerRepository(workerDB(t))
+
+	id, _ := seedAppointment(t, app, shopA, true)
+	phone := givePhone(t, app, shopA, id)
+	enqueueReminder(t, app, shopA, id)
+	start := startsAt(t, app, shopA, id)
+	whatsappID := noticeID(t, app, shopA, id, "reminder_whatsapp")
+
+	mine, ok := claimMine(t, worker, whatsappID, start)
+	if !ok {
+		t.Fatal("el worker debe reclamar el recordatorio por WhatsApp")
+	}
+	c, found, err := worker.NoticeContext(context.Background(), mine.ID, mine.ClaimToken)
+	if err != nil || !found {
+		t.Fatalf("NoticeContext: found=%v err=%v", found, err)
+	}
+	if c.Kind != "reminder_whatsapp" || c.CustomerPhone != phone || !strings.HasPrefix(c.BarberName, "Barbero aviso ") {
+		t.Fatalf("contexto: kind=%s teléfono=%v barbero=%q", c.Kind, c.CustomerPhone == phone, c.BarberName)
+	}
+	ok, err = worker.FinishNotice(context.Background(), appointmentnotice.FinishInput{
+		NoticeID: mine.ID, ClaimToken: mine.ClaimToken, Outcome: appointmentnotice.OutcomeSent,
+		CoversStateAt: c.NoticeStateAt, MaxAttempts: 5, Now: start})
+	if err != nil || !ok {
+		t.Fatalf("FinishNotice: ok=%v err=%v", ok, err)
+	}
+
+	var channel string
+	err = app.InTenantTx(context.Background(), shopA, func(ctx context.Context, q database.Queries) error {
+		return q.QueryRow(ctx, `SELECT channel FROM appointment_notice_attempt WHERE notice_id = $1`, whatsappID).Scan(&channel)
+	})
+	if err != nil || channel != "whatsapp" {
+		t.Fatalf("la evidencia registra el canal whatsapp: %q err=%v", channel, err)
+	}
+
+	// El de WhatsApp enviado no cubre el de correo de la misma hora (cada canal es suyo).
+	// claimMine devolvió los avisos ajenos a la cola con una hora de espera, este incluido.
+	emailID := noticeID(t, app, shopA, id, "reminder")
+	emailClaim, ok := claimMine(t, worker, emailID, start.Add(2*time.Hour))
+	if !ok {
+		t.Fatal("el worker debe reclamar el recordatorio por correo")
+	}
+	ec, _, err := worker.NoticeContext(context.Background(), emailClaim.ID, emailClaim.ClaimToken)
+	if err != nil || ec.AlreadyCovered {
+		t.Fatalf("el correo no queda cubierto por el WhatsApp: covered=%v err=%v", ec.AlreadyCovered, err)
+	}
+	_, _ = worker.FinishNotice(context.Background(), appointmentnotice.FinishInput{
+		NoticeID: emailClaim.ID, ClaimToken: emailClaim.ClaimToken, Outcome: appointmentnotice.OutcomeSkipped,
+		Code: "prueba", MaxAttempts: 5, Now: start})
+}
+
+func TestWhatsAppReminder_OtherTenantCannotScheduleForMyAppointment(t *testing.T) {
+	app := appDB(t)
+	id, _ := seedAppointment(t, app, shopA, false)
+	givePhone(t, app, shopA, id)
+
+	// Sesión de B con el id del turno de A: RLS no deja ver el turno ni encolar.
+	enqueueReminder(t, app, shopB, id)
+	if kinds := pendingKinds(t, app, shopA, id); len(kinds) != 0 {
+		t.Fatalf("otra barbería no programa recordatorios en mi turno: %v", kinds)
 	}
 }

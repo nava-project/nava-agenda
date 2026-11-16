@@ -12,7 +12,16 @@ const (
 	// KindReminder es el recordatorio previo al turno (HU-131, DEC-144). Su
 	// `state_at` es el instante del turno para el que se programó.
 	KindReminder = "reminder"
+	// KindReminderWhatsApp es el mismo recordatorio por WhatsApp, con la
+	// plantilla aprobada de Meta (DEC-175). Fila propia: su intento, su
+	// reintento y su causa de omisión no dependen del correo.
+	KindReminderWhatsApp = "reminder_whatsapp"
 )
+
+// IsReminder informa si kind es un recordatorio, por cualquier canal.
+func IsReminder(kind string) bool {
+	return kind == KindReminder || kind == KindReminderWhatsApp
+}
 
 // Resultados con los que se cierra un aviso (argumento de `notice_finish`).
 const (
@@ -25,11 +34,14 @@ const (
 // Códigos de causa que quedan en la evidencia. Son códigos cortos, nunca texto
 // libre ni datos del cliente (RN-REC-04, RN-DAT-02).
 const (
-	CodeSuperseded          = "superseded"
-	CodeNotConfirmed        = "not_confirmed"
-	CodeNotCancelled        = "not_cancelled"
-	CodePast                = "past"
-	CodeNoEmail             = "no_email"
+	CodeSuperseded   = "superseded"
+	CodeNotConfirmed = "not_confirmed"
+	CodeNotCancelled = "not_cancelled"
+	CodePast         = "past"
+	CodeNoEmail      = "no_email"
+	CodeNoPhone      = "no_phone"
+	// CodeChannelUnavailable: el despliegue no tiene WhatsApp configurado.
+	CodeChannelUnavailable  = "channel_unavailable"
 	CodeProviderUnavailable = "provider_unavailable"
 	CodeProviderRejected    = "provider_rejected"
 	CodeInvalidTimezone     = "invalid_timezone"
@@ -43,8 +55,9 @@ type Notice struct {
 }
 
 // Context es lo mínimo que el worker necesita para redactar UN aviso con el
-// estado actual del turno (RN-REC-03). CustomerEmail y AttendeeName son datos
-// personales: solo viajan hasta el puerto de envío y nunca a logs ni evidencia.
+// estado actual del turno (RN-REC-03). CustomerEmail, CustomerPhone y
+// AttendeeName son datos personales: solo viajan hasta el puerto de envío y
+// nunca a logs ni evidencia.
 type Context struct {
 	Kind              string
 	AppointmentStatus string
@@ -64,6 +77,10 @@ type Context struct {
 	// instante del turno con el que se programó: si ya no coincide con StartsAt,
 	// el turno cambió de hora y el recordatorio quedó viejo (RN-REC-01, RN-REC-03).
 	NoticeStateAt time.Time
+	// CustomerPhone es el teléfono E.164 del cliente, o vacío.
+	CustomerPhone string
+	// BarberName es quien atiende el turno (para la plantilla de WhatsApp).
+	BarberName string
 }
 
 // FinishInput cierra un aviso con CAS sobre su claim_token.
@@ -98,5 +115,18 @@ type Mailer interface {
 	SendChangeNotice(
 		ctx context.Context,
 		kind, email, barbershopName, serviceName, attendeeName, startsAtLocal string,
+	) error
+}
+
+// WhatsAppReminderSender envía el recordatorio por WhatsApp con la plantilla
+// aprobada (DEC-175). El adaptador de Meta del paquete notification lo
+// satisface de forma estructural. `when` llega ya redactado en la zona del
+// negocio («hoy a las 3:30 p. m.»). Un error nunca incluye el teléfono
+// (RN-DAT-02); si implementa `Permanent() bool` y devuelve true, el rechazo no
+// se reintenta.
+type WhatsAppReminderSender interface {
+	SendReminder(
+		ctx context.Context,
+		phoneE164, attendeeName, barbershopName, when, serviceName, barberName string,
 	) error
 }

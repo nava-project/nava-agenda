@@ -110,7 +110,8 @@ jobs:
                    20261105120000_add_appointment_reminder_kind.sql \
                    20261115120000_create_barber_booking_policy.sql \
                    20261116120000_barber_booking_policy_full_window.sql \
-                   20261117120000_add_reminder_lead_minutes.sql; do
+                   20261117120000_add_reminder_lead_minutes.sql \
+                   20261118120000_add_whatsapp_reminder.sql; do
             psql -h localhost -U postgres -d postgres -v ON_ERROR_STOP=1 -f "$f"
           done
           psql -h localhost -U postgres -d postgres -c "ALTER ROLE barberia_app PASSWORD 'app_test';"

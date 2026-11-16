@@ -151,7 +151,14 @@ func (s MetaWhatsAppSender) SendOTP(ctx context.Context, phoneE164, code string)
 		return MetaSendResult{}, ErrRecipientNotAuthorized
 	}
 
-	body, err := json.Marshal(s.buildMessage(strings.TrimPrefix(phoneE164, "+"), code))
+	return s.post(ctx, s.buildMessage(strings.TrimPrefix(phoneE164, "+"), code))
+}
+
+// post envía un mensaje ya armado a Graph API y devuelve el wamid aceptado. Es
+// común al código de acceso y al recordatorio (DEC-175): mismo número emisor,
+// token, límite de tiempo y clasificación de errores, sin reintento.
+func (s MetaWhatsAppSender) post(ctx context.Context, msg metaMessage) (MetaSendResult, error) {
+	body, err := json.Marshal(msg)
 	if err != nil {
 		return MetaSendResult{}, fmt.Errorf("notification: codificar mensaje de WhatsApp: %w", err)
 	}

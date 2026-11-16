@@ -1051,6 +1051,8 @@ por si algo construye un `config.Config` sin pasar por `Load`.
 | `APP_META_WHATSAPP_TEMPLATE_NAME` | (vacía) | Plantilla "Authentication" pre-aprobada. Obligatoria en modo `template`. |
 | `APP_META_WHATSAPP_TEST_RECIPIENTS` | (vacía) | Teléfonos E.164 separados por coma; si se define, restringe el envío. Obligatoria con el modo `text` en `local`/`test`. |
 | `APP_META_WHATSAPP_LANGUAGE_CODE` | `es` | Idioma de esa plantilla. |
+| `APP_META_WHATSAPP_REMINDER_TEMPLATE_NAME` | `nava_recordatorio_turno` | Plantilla UTILITY del recordatorio al cliente (`DEC-175`). La usa el worker. |
+| `APP_META_WHATSAPP_REMINDER_LANGUAGE_CODE` | `es_CO` | Idioma de esa plantilla. |
 | `OTP_PROVIDER` | `meta` | Único valor aceptado; cualquier otro hace fallar el arranque (`DEC-123`). |
 | `APP_RESEND_API_KEY` | (vacía) | Secreto: autenticación contra Resend. |
 | `APP_RESEND_FROM_ADDRESS` | (vacía) | Remitente verificado del correo. |
@@ -1063,13 +1065,24 @@ petición a Resend. Para verlos en un navegador sin enviar nada:
 `EMAIL_PREVIEW_DIR=<carpeta> go test ./internal/modules/notification -run WritePreviews`
 escribe los `.html` de ejemplo con datos ficticios.
 
-El worker también envía el **recordatorio 30 minutos antes del turno**
-(`HU-131`, `DEC-144`) sobre la misma cola de avisos: se programa en la
-transacción que crea o reprograma el turno y, al enviarse, se descarta si el
-turno se canceló, cambió de hora o ya empezó. Solo correo, sin anticipación
-configurable todavía. Necesita las mismas variables que el aviso de cambio
-(`APP_RESEND_API_KEY`, `APP_RESEND_FROM_ADDRESS`) y `APP_WORKER_DATABASE_URL`
-con el rol `barberia_worker`.
+El worker también envía el **recordatorio previo al turno** (`HU-131`,
+`DEC-144`) sobre la misma cola de avisos: se programa en la transacción que
+crea o reprograma el turno, con la anticipación que eligió el negocio (10 a 60
+minutos, 30 por defecto; `DEC-174`), y al enviarse se descarta si el turno se
+canceló, cambió de hora o ya empezó. Necesita las mismas variables que el aviso
+de cambio (`APP_RESEND_API_KEY`, `APP_RESEND_FROM_ADDRESS`) y
+`APP_WORKER_DATABASE_URL` con el rol `barberia_worker`.
+
+Si el cliente tiene teléfono, el mismo recordatorio sale **también por
+WhatsApp** (`DEC-175`) como una fila propia (`kind = reminder_whatsapp`), con la
+plantilla UTILITY `nava_recordatorio_turno` (`es_CO`): nombre, negocio, cuándo
+(«hoy a las 3:30 p. m.» en la zona del negocio), servicio y quién atiende. Usa
+el número emisor y el token del código de acceso
+(`APP_META_WHATSAPP_PHONE_NUMBER_ID`, `APP_META_WHATSAPP_ACCESS_TOKEN`) y respeta
+`APP_META_WHATSAPP_TEST_RECIPIENTS`. Sin ellos, esos recordatorios se cierran
+como omitidos (`channel_unavailable`) y el correo sigue saliendo. Un número
+inválido, sin WhatsApp o fuera de la lista de pruebas es un rechazo permanente;
+una plantilla aún sin aprobar o un límite de Meta se reintentan.
 
 ### Meta WhatsApp Cloud API: modos de envío (`DEC-123`)
 

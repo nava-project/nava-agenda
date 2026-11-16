@@ -102,8 +102,9 @@ onMounted(load)
         </template>
       </OptionGroup>
       <p class="reminders__summary">
-        Tus clientes reciben el recordatorio <strong>{{ lead }} minutos antes</strong> de su turno.
-        Si cambias la hora, los recordatorios que aún no salen se ajustan solos.
+        Tus clientes reciben el recordatorio <strong>{{ lead }} minutos antes</strong> de su turno,
+        por WhatsApp y por correo según los datos que dejaron. Si cambias la hora, los recordatorios
+        que aún no salen se ajustan solos.
       </p>
       <p class="reminders__feedback" role="status" aria-live="polite">
         <template v-if="saving">Guardando…</template>

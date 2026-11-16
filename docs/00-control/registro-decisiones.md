@@ -2211,3 +2211,24 @@ Cada código `DEC-*` es estable y no se reutiliza. Este registro normaliza respu
 - **Alternativas descartadas:** un número libre de minutos (permite valores sin sentido y obliga a validar rangos en la pantalla); recalcular los recordatorios en el worker al enviarlos (el `run_at` ya decide cuándo se reclaman y quedaría desalineado); borrar y volver a crear los pendientes al cambiarla (la aplicación no tiene `DELETE` sobre la cola).
 - **Documentos afectados:** contrato OpenAPI (0.54.0), `database/README.md`, `.github/workflows/ci.yml`, `matriz-trazabilidad.md`, `historial-cambios.md`.
 - **Fuente:** instrucción explícita del propietario del 2026-11-16; issue [#611](https://github.com/bcaceres19/barberia/issues/611).
+
+### DEC-175 · El recordatorio al cliente sale también por WhatsApp, con la plantilla aprobada de Meta (amplía `DEC-144`; aplica `DEC-027`)
+
+- **Fecha:** 2026-11-16.
+- **Decisión:**
+  1. **Plantilla.** `nava_recordatorio_turno`, categoría UTILITY, idioma `es_CO`, creada en la cuenta de WhatsApp Business con la API de Meta. Encabezado «Tu turno se acerca» y cinco parámetros en el cuerpo: nombre del cliente, negocio, cuándo, servicio y quién atiende. Pie «Mensaje automático de NAVA Agendas». Sin botones, porque el enlace al turno solo se guarda como hash (`HU-098`) y el worker no puede reconstruirlo.
+  2. **Una fila por canal.** El recordatorio por WhatsApp es `kind = reminder_whatsapp` en la misma cola (`appointment_notice`), con el mismo lease, reintentos, evidencia por intento y reglas de omisión que el de correo. Cada canal tiene su intento y su causa: un correo caído no frena el WhatsApp ni al revés, y enviar uno no cubre al otro.
+  3. **Cuándo se programa.** En la transacción que crea o mueve el turno, con la anticipación del negocio (`DEC-174`), solo si el cliente tiene teléfono. Cambiar la anticipación también lo mueve.
+  4. **Al enviar.** Se omite con su causa si el turno no está confirmado, cambió de hora, ya empezó, ya se cubrió ese instante, el cliente no tiene teléfono (`no_phone`) o el despliegue no tiene WhatsApp configurado (`channel_unavailable`). «Cuándo» se redacta en la zona del negocio: «hoy a las 3:30 p. m.», «mañana a las …» o «el 20 de noviembre a las …».
+  5. **Errores de Meta.** Son permanentes, sin reintento, un número inválido, sin WhatsApp (131026), fuera de la lista de la cuenta (131030) o fuera de `APP_META_WHATSAPP_TEST_RECIPIENTS`. Se reintentan con la espera de la cola un límite de envíos, una falla de red y la plantilla todavía sin aprobar.
+  6. **Credenciales.** Usa el mismo número emisor y el mismo token del código de acceso (`DEC-066`, `DEC-123`). La plantilla y su idioma se pueden cambiar por entorno (`APP_META_WHATSAPP_REMINDER_TEMPLATE_NAME`, `APP_META_WHATSAPP_REMINDER_LANGUAGE_CODE`).
+- **Qué queda fuera:** elegir el canal por negocio o por evento (`RN-REC-05`), los avisos de cambio por WhatsApp y el consentimiento explícito del cliente para WhatsApp en la reserva.
+- **Quién lo decidió:** el propietario, el 2026-11-16: «crea porfa una plantilla de notificación (bonita) con la API de meta».
+- **Responsable:** propietario del proyecto.
+- **Motivo:** WhatsApp es el canal que el cliente más lee y `DEC-027` ya lo aprobó. La plantilla UTILITY es la vía oficial para escribir fuera de la ventana de 24 horas.
+- **Alternativas descartadas:**
+  - Enviar los dos canales en una sola fila: un fallo parcial obligaría a reintentar también el canal que sí salió, o a perder la evidencia del que falló.
+  - Solo WhatsApp con el correo como respaldo: el resultado de Meta no siempre se conoce a tiempo para decidir.
+  - Texto libre: Meta solo lo entrega dentro de la ventana de 24 horas.
+- **Documentos afectados:** `database/README.md`, `database/tests/appointment_notice.sql`, `apps/api/README.md`, `apps/api/.env.example`, `.github/workflows/ci.yml`, `matriz-trazabilidad.md`, `historial-cambios.md`, migración `20261118120000_add_whatsapp_reminder.sql`.
+- **Fuente:** instrucción explícita del propietario del 2026-11-16; issue [#613](https://github.com/bcaceres19/barberia/issues/613).

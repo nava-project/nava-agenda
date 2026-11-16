@@ -31,7 +31,7 @@ INSERT INTO appointment_notice (barbershop_id, appointment_id, kind, state_at, r
 SELECT a.barbershop_id, a.id, $3, a.updated_at, now() + interval '60 seconds'
   FROM appointment a
  WHERE a.barbershop_id = $1 AND a.id = $2
-ON CONFLICT (appointment_id, (kind = 'reminder')) WHERE status = 'pending'
+ON CONFLICT (appointment_id, (CASE WHEN kind IN ('reminder', 'reminder_whatsapp') THEN kind ELSE 'change' END)) WHERE status = 'pending'
 DO UPDATE SET kind = EXCLUDED.kind, state_at = EXCLUDED.state_at, run_at = EXCLUDED.run_at`
 
 // La anticipación es la que eligió el negocio (`barbershop.reminder_lead_minutes`,
@@ -43,16 +43,24 @@ DO UPDATE SET kind = EXCLUDED.kind, state_at = EXCLUDED.state_at, run_at = EXCLU
 // el turno: no habría nada que recordar con antelación (un turno tomado "para ya").
 // Un turno no confirmado no se programa. El índice único admite un recordatorio
 // pendiente por turno: reprogramar lo actualiza (regenera) en vez de duplicarlo.
+//
+// Hay un recordatorio por canal (DEC-175): `reminder` (correo) siempre, y
+// `reminder_whatsapp` solo si el cliente tiene teléfono. Cada uno tiene su fila,
+// su intento y su causa de omisión; el worker vuelve a mirar el contacto al
+// enviar.
 const reminderSQL = `
 INSERT INTO appointment_notice (barbershop_id, appointment_id, kind, state_at, run_at)
-SELECT a.barbershop_id, a.id, 'reminder', a.starts_at,
+SELECT a.barbershop_id, a.id, k.kind, a.starts_at,
        a.starts_at - make_interval(mins => b.reminder_lead_minutes)
   FROM appointment a
   JOIN barbershop b ON b.id = a.barbershop_id
+  JOIN customer cu ON cu.barbershop_id = a.barbershop_id AND cu.id = a.customer_id
+ CROSS JOIN (VALUES ('reminder'), ('reminder_whatsapp')) AS k(kind)
  WHERE a.barbershop_id = $1 AND a.id = $2
    AND a.status = 'confirmed'
    AND a.starts_at - make_interval(mins => b.reminder_lead_minutes) > now()
-ON CONFLICT (appointment_id, (kind = 'reminder')) WHERE status = 'pending'
+   AND (k.kind = 'reminder' OR cu.phone IS NOT NULL)
+ON CONFLICT (appointment_id, (CASE WHEN kind IN ('reminder', 'reminder_whatsapp') THEN kind ELSE 'change' END)) WHERE status = 'pending'
 DO UPDATE SET state_at = EXCLUDED.state_at, run_at = EXCLUDED.run_at`
 
 // Al cambiar la anticipación (DEC-174) se mueven los recordatorios pendientes
@@ -63,7 +71,7 @@ const reminderLeadChangedSQL = `
 UPDATE appointment_notice n
    SET run_at = a.starts_at - make_interval(mins => b.reminder_lead_minutes)
   FROM appointment a, barbershop b
- WHERE n.barbershop_id = $1 AND n.kind = 'reminder' AND n.status = 'pending'
+ WHERE n.barbershop_id = $1 AND n.kind IN ('reminder', 'reminder_whatsapp') AND n.status = 'pending'
    AND a.barbershop_id = n.barbershop_id AND a.id = n.appointment_id
    AND b.id = n.barbershop_id
    AND n.state_at = a.starts_at
