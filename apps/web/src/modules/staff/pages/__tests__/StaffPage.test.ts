@@ -1183,4 +1183,42 @@ describe('StaffPage', () => {
       expect(await axe(wrapper.element.outerHTML, axeOptions)).toHaveNoViolations()
     })
   })
+
+  describe('panel del empleado (DEC-173)', () => {
+    const employee = { ...DEFAULT_BRAND, panelProfile: 'employee' as const }
+
+    it('is the card of their own barber, with Google Calendar and without team controls', async () => {
+      setBrand(employee)
+      fetchMyBarberMock.mockResolvedValue({
+        kind: 'linked',
+        barber: barber('b-1', 'Carlos Ramírez'),
+      })
+      const wrapper = await mountReady()
+
+      expect(wrapper.get('h1').text()).toBe('Mi perfil')
+      expect(wrapper.find('.staff-page__create').exists()).toBe(false)
+      expect(wrapper.find('.staff-page__row').exists()).toBe(false)
+      expect(wrapper.find('button[aria-label="Editar Carlos Ramírez"]').exists()).toBe(true)
+      expect(wrapper.get('.staff-page__card-gcal').text()).toContain('Google Calendar')
+      // El vínculo lo fija el alta: el empleado no puede cambiarlo (403 en el API).
+      expect(wrapper.text()).not.toContain('Este soy yo')
+      expect(wrapper.text()).not.toContain('Ya no soy yo')
+    })
+
+    it('asks the barbershop to link the account instead of offering to create a profile', async () => {
+      setBrand(employee)
+      const wrapper = await mountReady([])
+
+      const empty = wrapper.get('.staff-page__empty')
+      expect(empty.text()).toContain('Pídele a la barbería que vincule tu usuario')
+      expect(empty.findAll('button')).toHaveLength(0)
+    })
+
+    it('has no axe violations on the card', async () => {
+      setBrand(employee)
+      const wrapper = await mountReady()
+
+      expect(await axe(wrapper.element.outerHTML, axeOptions)).toHaveNoViolations()
+    })
+  })
 })

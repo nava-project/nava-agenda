@@ -10,21 +10,24 @@ describe('profileRedirect (DEC-115)', () => {
     })
   })
 
-  it.each([
-    'barber-services',
-    'catalog-servicios',
-    'configuracion-reserva-publica',
-    'configuracion-barberia',
-  ])('sends «%s» to the agenda for the employee profile (DEC-134)', (name) => {
-    expect(profileRedirect({ name }, 'employee')).toEqual({ name: 'panel' })
-  })
-
-  it.each(['panel', 'staff-barberos', 'schedules-horarios', 'agenda-nuevo-turno'])(
-    'keeps «%s» available for the employee profile',
+  it.each(['catalog-servicios', 'configuracion-barberia'])(
+    'sends «%s» to the agenda for the employee profile (DEC-134)',
     (name) => {
-      expect(profileRedirect({ name }, 'employee')).toBeNull()
+      expect(profileRedirect({ name }, 'employee')).toEqual({ name: 'panel' })
     },
   )
+
+  // DEC-173: el empleado configura sus servicios ofrecidos y su ventana de reserva.
+  it.each([
+    'panel',
+    'staff-barberos',
+    'schedules-horarios',
+    'agenda-nuevo-turno',
+    'barber-services',
+    'configuracion-reserva-publica',
+  ])('keeps «%s» available for the employee profile', (name) => {
+    expect(profileRedirect({ name }, 'employee')).toBeNull()
+  })
 
   it('leaves every route alone in the full panel', () => {
     expect(profileRedirect({ name: 'barber-services' }, 'shop')).toBeNull()

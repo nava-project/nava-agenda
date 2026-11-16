@@ -33,6 +33,8 @@ import SwitchField from './SwitchField.vue'
 const props = defineProps<{
   /** La ventana de la barbería confirmada por el servidor: la que hereda quien no tiene propia. */
   shopWindow: BookingWindowValues
+  /** Panel del empleado (DEC-173): solo su barbero, sin selector ni recuento del equipo. */
+  ownOnly?: boolean
 }>()
 
 type LoadStatus = 'loading' | 'ready' | 'load-error'
@@ -237,11 +239,15 @@ const ownRoster = computed(() =>
 <template>
   <SettingsPanel
     id="reserva-por-profesional"
-    number="02"
-    :title="`Ventana por ${v.professional}`"
-    :description="`Cada ${v.professional} tiene su ritmo: elige cada cuánto ofrece una franja y con cuánta anticipación recibe reservas. Sin ventana propia, usa la de ${v.thisBusiness}.`"
+    :number="ownOnly ? '01' : '02'"
+    :title="ownOnly ? 'Tu ventana de reserva' : `Ventana por ${v.professional}`"
+    :description="
+      ownOnly
+        ? `Elige cada cuánto ofreces una franja y con cuánta anticipación recibes reservas. Sin ventana propia, usas la de ${v.thisBusiness}.`
+        : `Cada ${v.professional} tiene su ritmo: elige cada cuánto ofrece una franja y con cuánta anticipación recibe reservas. Sin ventana propia, usa la de ${v.thisBusiness}.`
+    "
     scope="shop"
-    :scope-label="`Por ${v.professional}`"
+    :scope-label="ownOnly ? 'Solo tú' : `Por ${v.professional}`"
     style="--panel-index: 1"
   >
     <div class="barber-window" @keydown.enter="onEnter">
@@ -270,13 +276,18 @@ const ownRoster = computed(() =>
         </template>
       </BaseAlert>
 
+      <p v-else-if="barbers.length === 0 && ownOnly" class="barber-window__empty">
+        Tu cuenta aún no tiene un perfil. Pídele {{ v.toTheBusiness }} que vincule tu usuario con tu
+        perfil de {{ v.professional }}.
+      </p>
+
       <p v-else-if="barbers.length === 0" class="barber-window__empty">
         Aún no tienes {{ v.professionalsRegistered }}. Cuando agregues {{ v.oneProfessional }},
         podrás darle su propia ventana aquí.
       </p>
 
       <div v-else class="barber-window__body">
-        <div class="barber-window__pick">
+        <div v-if="!ownOnly" class="barber-window__pick">
           <div class="barber-window__select">
             <label for="barber-window-select" class="barber-window__label">{{
               v.Professional

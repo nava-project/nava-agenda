@@ -11,6 +11,7 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { resetToasts, toastState } from '@/shared/model/toastStore'
 import { mount, flushPromises, type VueWrapper } from '@vue/test-utils'
 import { axe } from 'vitest-axe'
+import { DEFAULT_BRAND, resetBrand, setBrand } from '@/shared/model'
 
 const fetchBarberSummariesMock = vi.hoisted(() => vi.fn())
 const fetchServiceSummariesMock = vi.hoisted(() => vi.fn())
@@ -418,5 +419,36 @@ describe('BarberServicesPage', () => {
 
     const results = await axe(wrapper.element, axeOptionsWithAlert)
     expect(results).toHaveNoViolations()
+  })
+
+  describe('panel del empleado (DEC-173)', () => {
+    afterEach(() => resetBrand())
+
+    it('is «Mis servicios» for their own barber, without a barber picker', async () => {
+      setBrand({ ...DEFAULT_BRAND, panelProfile: 'employee' })
+      const wrapper = await mountReady(oneBarber, twoServices, ['s-1'])
+
+      expect(wrapper.get('h1').text()).toBe('Mis servicios')
+      expect(wrapper.find('#barber-services-barber-select').exists()).toBe(false)
+      expect(wrapper.text()).toContain('Carlos Ramírez')
+      expect(wrapper.text()).toContain('Corte clásico')
+    })
+
+    it('asks the barbershop to link the account when there is no barber', async () => {
+      setBrand({ ...DEFAULT_BRAND, panelProfile: 'employee' })
+      fetchBarberSummariesMock.mockResolvedValueOnce({ kind: 'success', items: [] })
+      fetchServiceSummariesMock.mockResolvedValueOnce({ kind: 'success', items: twoServices })
+      const wrapper = mountPage()
+      await flushPromises()
+
+      expect(wrapper.text()).toContain('Tu cuenta aún no tiene un perfil.')
+      expect(wrapper.find('a').exists()).toBe(false)
+    })
+
+    it('keeps the picker in the full panel with one barber', async () => {
+      const wrapper = await mountReady()
+
+      expect(wrapper.find('#barber-services-barber-select').exists()).toBe(true)
+    })
   })
 })

@@ -11,6 +11,7 @@
 // nunca como un campo editable.
 import { computed, onMounted, reactive, ref, watch } from 'vue'
 import { useToast, useVocabulary } from '@/shared/composables'
+import { isEmployeeProfile } from '@/shared/model'
 import { BaseAlert, BaseButton, BaseInput, DiamondLoader } from '@/shared/ui'
 import { fetchBookingPolicy, saveBookingPolicy } from '../api/bookingPolicyApi'
 import BarberWindowPanel from '../components/BarberWindowPanel.vue'
@@ -241,6 +242,14 @@ function onReloadAfterConflict() {
   <section class="booking-policy-page" aria-labelledby="booking-policy-page-title">
     <header class="booking-policy-page__header">
       <h1
+        v-if="isEmployeeProfile"
+        id="booking-policy-page-title"
+        class="booking-policy-page__title"
+      >
+        Mi reserva
+      </h1>
+      <h1
+        v-else
         id="booking-policy-page-title"
         class="booking-policy-page__title"
         aria-label="Configuración de reserva pública"
@@ -249,7 +258,11 @@ function onReloadAfterConflict() {
         <span class="booking-policy-page__title--mobile">Reserva pública</span>
       </h1>
       <p class="booking-policy-page__subtitle">
-        Define cuándo pueden reservar tus clientes y hasta cuándo pueden cancelar.
+        {{
+          isEmployeeProfile
+            ? `Usa tu propia ventana de reserva o la ${v.ofTheBusiness}.`
+            : 'Define cuándo pueden reservar tus clientes y hasta cuándo pueden cancelar.'
+        }}
       </p>
       <span class="booking-policy-page__rule" aria-hidden="true"
         ><span class="booking-policy-page__rule-line" /><span
@@ -292,6 +305,12 @@ function onReloadAfterConflict() {
           <BaseButton variant="secondary" type="button" @click="onRetryLoad">Reintentar</BaseButton>
         </template>
       </BaseAlert>
+
+      <!-- El empleado (DEC-173) no cambia las reglas de la barbería: solo la ventana
+           propia de su barbero, que es lo único que el API le deja guardar aquí. -->
+      <div v-else-if="isEmployeeProfile" key="own" class="booking-policy-page__own policy-ink">
+        <BarberWindowPanel :shop-window="savedForm" own-only />
+      </div>
 
       <div v-else key="ready" class="booking-policy-page__layout">
         <form class="booking-policy-page__form policy-ink" novalidate @submit.prevent="onSubmit">
@@ -492,6 +511,7 @@ function onReloadAfterConflict() {
 .booking-policy-page__header,
 .booking-policy-page__state,
 .booking-policy-page__layout,
+.booking-policy-page__own,
 .booking-policy-page > :deep(.base-alert) {
   width: min(100%, var(--policy-width));
   margin-inline: auto;
@@ -574,6 +594,12 @@ function onReloadAfterConflict() {
   border-radius: 3px;
   animation: policy-skeleton-pulse 1400ms ease-in-out infinite;
   animation-delay: calc(var(--n) * 120ms);
+}
+
+.booking-policy-page__own {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
 }
 
 /* Formulario a la izquierda, vista previa fija a la derecha. */

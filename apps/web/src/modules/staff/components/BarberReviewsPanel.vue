@@ -22,6 +22,8 @@ interface Props {
   ratingCount: number
   /** Selector del contenedor donde dibujar la lista como cuadro lateral. */
   asideTo?: string
+  /** Solo lectura: el empleado ve sus reseñas pero no las modera (DEC-173). */
+  readOnly?: boolean
 }
 const props = defineProps<Props>()
 // El promedio cambia al ocultar o mostrar: se avisa para que quien lo muestra se actualice.
@@ -217,6 +219,7 @@ function formatDate(iso: string): string {
                 </div>
                 <p v-if="review.comment" class="barber-reviews__comment">{{ review.comment }}</p>
                 <BaseButton
+                  v-if="!readOnly"
                   type="button"
                   variant="secondary"
                   :disabled="busyId !== null"

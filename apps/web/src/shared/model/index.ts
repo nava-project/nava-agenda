@@ -29,12 +29,14 @@ export type { BrandAccent, BrandAccentKey } from './brandPalette'
 export {
   brandState,
   effectiveAccent,
+  isEmployeeProfile,
   isSoloProfile,
   panelProfile,
   resetBrand,
   setAccentPreview,
   setBrand,
   vocabulary,
+  worksOwnBarber,
 } from './brandStore'
 export {
   buildVocabulary,

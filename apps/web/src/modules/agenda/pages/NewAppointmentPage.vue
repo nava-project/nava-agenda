@@ -22,7 +22,7 @@
 import { computed, nextTick, ref, watch } from 'vue'
 import { useRoute, useRouter, type LocationQueryRaw } from 'vue-router'
 import { useToast, useVocabulary } from '@/shared/composables'
-import { isSoloProfile } from '@/shared/model'
+import { worksOwnBarber } from '@/shared/model'
 import {
   BaseAlert,
   BaseButton,
@@ -117,7 +117,7 @@ const attempted = ref(false)
 const toast = useToast()
 // Palabras de la barbería (DEC-110): con los valores iniciales, el texto de siempre.
 const v = useVocabulary()
-const hideBarberField = computed(() => isSoloProfile.value && barbers.value.length === 1)
+const hideBarberField = computed(() => worksOwnBarber.value && barbers.value.length === 1)
 const saveStatus = ref<SaveStatus>('idle')
 const saveErrorDetail = ref<string | undefined>(undefined)
 const created = ref<CreatedManualAppointment | null>(null)

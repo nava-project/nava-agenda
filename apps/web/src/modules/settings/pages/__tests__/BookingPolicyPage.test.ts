@@ -6,10 +6,11 @@
  * un doble de prueba; el recorrido real contra el API vive en el E2E de
  * HU-093.
  */
-import { describe, it, expect, vi, beforeEach } from 'vitest'
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { resetToasts, toastState } from '@/shared/model/toastStore'
 import { mount, flushPromises } from '@vue/test-utils'
 import { axe } from 'vitest-axe'
+import { DEFAULT_BRAND, resetBrand, setBrand } from '@/shared/model'
 
 const fetchMock = vi.hoisted(() => vi.fn())
 const saveMock = vi.hoisted(() => vi.fn())
@@ -390,5 +391,20 @@ describe('BookingPolicyPage', () => {
 
     const results = await axe(wrapper.element, axeOptionsWithAlert)
     expect(results).toHaveNoViolations()
+  })
+
+  describe('panel del empleado (DEC-173)', () => {
+    afterEach(() => resetBrand())
+
+    it('shows only the own window of their barber, never the barbershop rules', async () => {
+      setBrand({ ...DEFAULT_BRAND, panelProfile: 'employee' })
+      const wrapper = await mountReady()
+
+      expect(wrapper.get('h1').text()).toBe('Mi reserva')
+      expect(wrapper.find('.booking-policy-page__own').exists()).toBe(true)
+      expect(wrapper.find('form.booking-policy-page__form').exists()).toBe(false)
+      expect(wrapper.find('#reserva-cancelacion').exists()).toBe(false)
+      expect(wrapper.text()).not.toContain('Guardar')
+    })
   })
 })

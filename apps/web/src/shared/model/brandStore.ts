@@ -91,6 +91,16 @@ export const panelProfile = computed<PanelProfile>(() => state.brand.panelProfil
 /** `true` en el panel de barbero individual (perfil `solo`). */
 export const isSoloProfile = computed(() => state.brand.panelProfile === 'solo')
 
+/** `true` en el panel del empleado (DEC-134): el API solo le deja lo de su barbero (DEC-173). */
+export const isEmployeeProfile = computed(() => state.brand.panelProfile === 'employee')
+
+/**
+ * `true` cuando el panel trabaja sobre un único barbero propio: el barbero
+ * individual (DEC-115) y el empleado, cuyo API solo devuelve su barbero (DEC-173).
+ * Las pantallas lo usan para quitar selectores que no tienen nada que elegir.
+ */
+export const worksOwnBarber = computed(() => isSoloProfile.value || isEmployeeProfile.value)
+
 /** Vocabulario ya concordado de la marca confirmada por el servidor. */
 export const vocabulary = computed(() => buildVocabulary(state.brand))
 
