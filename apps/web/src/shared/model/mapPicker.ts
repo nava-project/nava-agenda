@@ -28,6 +28,11 @@ export interface MapPickerHandle {
 
 export interface MapPickerEngine {
   /**
+   * El mapa atrapa la rueda y el dedo (arrastrar, acercar). La pantalla lo cubre hasta que la
+   * persona hace clic en él, para que pasar el cursor o desplazar la página no lo mueva (#609).
+   */
+  readonly capturesGestures: boolean
+  /**
    * Dibuja el mapa en `el`. `onUserMove` se invoca solo cuando la PERSONA mueve el mapa
    * (arrastrar, tocar, teclado), nunca por `setCenter`.
    */
@@ -156,6 +161,7 @@ export function loadGoogleMaps(key: string): Promise<GoogleMapsNamespace> {
 
 function googleEngine(key: string): MapPickerEngine {
   return {
+    capturesGestures: true,
     async mount(el, start, zoom, onUserMove) {
       const maps = await loadGoogleMaps(key)
       const { Map } = await maps.importLibrary('maps')
@@ -226,6 +232,8 @@ const SIMULATED_STEP = 0.001
 
 function simulatedEngine(): MapPickerEngine {
   return {
+    // Solo botones: no hay gestos que atrapen la página.
+    capturesGestures: false,
     async mount(el, start, _zoom, onUserMove) {
       let center = start
       el.classList.add('map-picker-sim')
