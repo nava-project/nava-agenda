@@ -429,6 +429,8 @@ const TIMELINE_SLIP_MIN_PX = 44
 // Ancho aproximado de una ficha ensanchada (--expanded): decide si se ancla
 // por la derecha para no salirse del carril.
 const TIMELINE_SLIP_EXPANDED_PX = 200
+// Ancho que necesita una etiqueta de hora («00:00») con aire a los lados.
+const TIMELINE_TICK_LABEL_PX = 58
 
 const timelineViewport = ref<HTMLElement | null>(null)
 const timelineViewportWidth = ref(0)
@@ -448,10 +450,15 @@ watch(timelineViewport, (el) => {
 })
 onUnmounted(() => timelineResizeObserver?.disconnect())
 
-/** Ancho mínimo del carril en px para el día y el zoom vigentes. */
+/**
+ * Ancho mínimo del carril en px para el día y el zoom vigentes. Un día sin
+ * turnos no tiene fichas que leer: el carril se acomoda al ancho disponible,
+ * sin desplazamiento horizontal (pedido del propietario, 2026-11-15: «debe
+ * acomodarse siempre y no generar un scroll cuando no hay nada»).
+ */
 const timelineMinWidthPx = computed(() => {
   const bounds = timelineBounds.value
-  if (!bounds) return 0
+  if (!bounds || entries.value.length === 0) return 0
   return ((bounds.end - bounds.start) / 60) * TIMELINE_MIN_HOUR_PX * timelineZoom.value
 })
 
@@ -518,7 +525,18 @@ const timelineTicks = computed(() => {
   const bounds = timelineBounds.value
   if (!bounds) return []
   const step = timelineTickStepMinutes.value
-  const ticks: { minute: number; label: string; align: 'start' | 'center' | 'end' }[] = []
+  // Con el carril acomodado al ancho (día sin turnos, issue #587) una hora
+  // puede medir menos que su etiqueta («00:0001:00»): se rotula una de cada
+  // N marcas y las líneas se conservan todas. Sin medida (pruebas), todas.
+  const lane = timelineLaneWidthPx.value
+  const pxPerTick = lane > 0 ? (lane * step) / (bounds.end - bounds.start) : Infinity
+  const labelEvery = Math.max(1, Math.ceil(TIMELINE_TICK_LABEL_PX / pxPerTick))
+  const ticks: {
+    minute: number
+    label: string
+    align: 'start' | 'center' | 'end'
+    labeled: boolean
+  }[] = []
   for (let minute = bounds.start; minute <= bounds.end; minute += step) {
     const hour = Math.floor(minute / 60) % 24
     const mins = minute % 60
@@ -527,10 +545,13 @@ const timelineTicks = computed(() => {
       minute,
       label: `${String(hour).padStart(2, '0')}:${String(mins).padStart(2, '0')}`,
       align,
+      labeled: ((minute - bounds.start) / step) % labelEvery === 0,
     })
   }
   return ticks
 })
+
+const timelineLabeledTicks = computed(() => timelineTicks.value.filter((t) => t.labeled))
 
 // Guías de media hora (issue #189): tenues, sin etiqueta — solo marcan el
 // carril entre cada par de horas para que una ficha corta se pueda leer
@@ -922,7 +943,9 @@ const dayChangeMarkerPercent = computed(() => {
                    pantalla. Cada nivel reduce el paso del eje (1h → 30min →
                    15min) y ensancha el carril en la misma proporción, para
                    que una ficha corta deje de ir en modo compacto. -->
-              <div class="daily-agenda-page__timeline-zoom">
+              <!-- Sin turnos no hay fichas que acercar (pedido del propietario,
+                   2026-11-15): el zoom se oculta y el carril cabe en el ancho. -->
+              <div v-if="entries.length > 0" class="daily-agenda-page__timeline-zoom">
                 <button
                   type="button"
                   class="daily-agenda-page__timeline-zoom-btn"
@@ -947,7 +970,10 @@ const dayChangeMarkerPercent = computed(() => {
               <div ref="timelineViewport" class="daily-agenda-page__timeline" aria-hidden="true">
                 <div
                   class="daily-agenda-page__timeline-scroll"
-                  :style="{ width: `${timelineZoom * 100}%`, minWidth: `${timelineMinWidthPx}px` }"
+                  :style="{
+                    width: `${timelineZoom * 100}%`,
+                    ...(timelineMinWidthPx > 0 ? { minWidth: `${timelineMinWidthPx}px` } : {}),
+                  }"
                 >
                   <!-- Eje (horas) y marcas (Ahora/Cambio de día) del atlas son
                        dos filas propias, apiladas ANTES del carril (.axis →
@@ -961,7 +987,7 @@ const dayChangeMarkerPercent = computed(() => {
                        coincidan en x. -->
                   <div class="daily-agenda-page__timeline-axis">
                     <span
-                      v-for="tick in timelineTicks"
+                      v-for="tick in timelineLabeledTicks"
                       :key="tick.minute"
                       class="daily-agenda-page__timeline-tick-wrap"
                       :class="`daily-agenda-page__timeline-tick-wrap--${tick.align}`"
@@ -1243,6 +1269,69 @@ const dayChangeMarkerPercent = computed(() => {
 .daily-agenda-page__list,
 .daily-agenda-page__empty-state {
   transition: opacity 0.15s ease;
+}
+
+/* Día sin turnos (pedido del propietario, 2026-11-15: «no debería parecer
+   que fuera tan largo… no generar un scroll cuando no hay nada»): bajo la
+   línea temporal el vacío es una nota, no una portada. Sin el alto mínimo de
+   360 px de EmptyScene y con la ilustración más chica, el día vacío cabe en
+   la pantalla sin desplazar la página. */
+.daily-agenda-page__empty-state {
+  /* Nunca se encoge por debajo de su contenido (la página es una columna
+     flexible): si de verdad no cabe, se desplaza la página, no se recorta. */
+  flex-shrink: 0;
+  min-height: 0;
+  padding: var(--space-6) var(--space-5);
+  gap: var(--space-2);
+}
+
+/* Pantallas bajas (portátiles de 768 px): la ilustración es decorativa y es
+   lo primero que cede, para que título, ayuda y «Nuevo turno» quepan sin
+   desplazar la página. */
+@media (max-height: 860px) {
+  .daily-agenda-page__empty-state {
+    padding: var(--space-5);
+  }
+
+  .daily-agenda-page__empty-state :deep(.empty-scene__art),
+  .daily-agenda-page__empty-state :deep(.empty-scene__glow) {
+    display: none;
+  }
+}
+
+/* En escritorio bajo, la nota va en una sola fila: título y ayuda a la
+   izquierda, «Nuevo turno» a la derecha. */
+@media (max-height: 860px) and (min-width: 1024px) {
+  .daily-agenda-page__empty-state {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    align-items: center;
+    column-gap: var(--space-6);
+    row-gap: var(--space-1);
+    padding: var(--space-4) var(--space-6);
+    text-align: left;
+  }
+
+  .daily-agenda-page__empty-state :deep(.empty-scene__title),
+  .daily-agenda-page__empty-state :deep(.empty-scene__hint) {
+    grid-column: 1;
+    margin: 0;
+  }
+
+  .daily-agenda-page__empty-state :deep(.empty-scene__action) {
+    grid-column: 2;
+    grid-row: 1 / span 2;
+    margin: 0;
+  }
+}
+
+.daily-agenda-page__empty-state :deep(.empty-scene__art) {
+  width: 176px;
+  height: 110px;
+}
+
+.daily-agenda-page__empty-state :deep(.empty-scene__glow) {
+  top: 18px;
 }
 
 .daily-agenda-page--updating .daily-agenda-page__timeline-wrapper,
