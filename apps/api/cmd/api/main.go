@@ -14,6 +14,9 @@ import (
 	"syscall"
 	"time"
 
+	"system-barbershop/internal/modules/access"
+	accesshttpapi "system-barbershop/internal/modules/access/httpapi"
+	accesspostgres "system-barbershop/internal/modules/access/postgres"
 	appointmentnoticepostgres "system-barbershop/internal/modules/appointmentnotice/postgres"
 	"system-barbershop/internal/modules/auth"
 	authhttpapi "system-barbershop/internal/modules/auth/httpapi"
@@ -269,6 +272,15 @@ func buildRouter(db *database.DB, logger *slog.Logger, cfg config.Config) (*chi.
 	sessionContextHandler := authhttpapi.NewSessionContextHandler(sessionService)
 
 	private.Use(sessionMiddleware.RequireSession)
+	// DEC-173: alcance por rol justo después de la sesión. El empleado solo
+	// toca lo de su propio barbero; la tabla vive en access_policy.go.
+	accessPolicy, err := access.NewPolicy(privateAccessPolicy)
+	if err != nil {
+		return nil, err
+	}
+	accessMiddleware := accesshttpapi.NewMiddleware(
+		access.NewService(accesspostgres.New(db)), accessPolicy, privatePrefix)
+	private.Use(accessMiddleware.Enforce)
 	private.Post("/auth/logout", logoutHandler.ServeHTTP)
 	private.Get("/auth/session", sessionContextHandler.ServeHTTP)
 

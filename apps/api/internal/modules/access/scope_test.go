@@ -1,0 +1,66 @@
+package access_test
+
+import (
+	"testing"
+
+	"system-barbershop/internal/modules/access"
+)
+
+func TestIsRestricted_FollowsTheRolePriorityOfDEC134(t *testing.T) {
+	cases := []struct {
+		roles []string
+		want  bool
+	}{
+		{nil, false},
+		{[]string{"empleado"}, true},
+		{[]string{"empleado", "independiente"}, false},
+		{[]string{"empleado", "empresa"}, false},
+		{[]string{"empresa"}, false},
+		{[]string{"independiente"}, false},
+	}
+	for _, tc := range cases {
+		if got := access.IsRestricted(tc.roles); got != tc.want {
+			t.Errorf("IsRestricted(%v) = %v, want %v", tc.roles, got, tc.want)
+		}
+	}
+}
+
+func TestScope_Owns(t *testing.T) {
+	if !(access.Scope{}).Owns("cualquiera") {
+		t.Fatal("sin restricción se alcanza cualquier barbero")
+	}
+	own := access.Scope{Restricted: true, BarberID: "b1"}
+	if !own.Owns("b1") || own.Owns("b2") {
+		t.Fatal("el empleado solo alcanza su barbero")
+	}
+	if (access.Scope{Restricted: true}).Owns("") {
+		t.Fatal("sin vínculo no alcanza ningún barbero, ni siquiera el id vacío")
+	}
+}
+
+func TestPolicy_MatchesPatternsAndRejectsDuplicates(t *testing.T) {
+	p, err := access.NewPolicy([]access.Entry{
+		{Method: "GET", Pattern: "/barbers/{barberId}/time-blocks/effective", Rule: access.OwnBarber},
+		{Method: "GET", Pattern: "/barbers/{barberId}", Rule: access.OwnBarber},
+		{Method: "PATCH", Pattern: "/settings/brand", Rule: access.DenyRestricted},
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	rule, params, ok := p.Match("GET", "/barbers/abc/time-blocks/effective")
+	if !ok || rule != access.OwnBarber || params["barberId"] != "abc" {
+		t.Fatalf("match = %v %v %v", rule, params, ok)
+	}
+	if _, _, ok := p.Match("GET", "/barbers/abc/otra"); ok {
+		t.Fatal("un patrón no debe coincidir con un prefijo")
+	}
+	if _, _, ok := p.Match("GET", "/settings/brand"); ok {
+		t.Fatal("el método forma parte de la regla")
+	}
+	if _, err := access.NewPolicy([]access.Entry{
+		{Method: "GET", Pattern: "/x", Rule: access.Open},
+		{Method: "GET", Pattern: "/x", Rule: access.DenyRestricted},
+	}); err == nil {
+		t.Fatal("una ruta repetida es un error de wiring")
+	}
+}

@@ -161,27 +161,27 @@ func TestContract_WorkingHourListResponseSchema_HasItemsAndNextCursor(t *testing
 
 func TestContract_ListWorkingHoursOperation_MethodPathSecurityAndResponses(t *testing.T) {
 	doc := loadYAML[schedulePathsFile](t, "api/openapi/paths/schedules.yaml")
-	requireResponses(t, doc.Collection.Get, "listWorkingHours", []string{"200", "400", "401", "404", "500"})
+	requireResponses(t, doc.Collection.Get, "listWorkingHours", []string{"200", "400", "401", "403", "404", "500"})
 }
 
 func TestContract_CreateWorkingHourOperation_MethodPathSecurityAndResponses(t *testing.T) {
 	doc := loadYAML[schedulePathsFile](t, "api/openapi/paths/schedules.yaml")
-	requireResponses(t, doc.Collection.Post, "createWorkingHour", []string{"201", "400", "401", "404", "409", "422", "500"})
+	requireResponses(t, doc.Collection.Post, "createWorkingHour", []string{"201", "400", "401", "403", "404", "409", "422", "500"})
 }
 
 func TestContract_GetWorkingHourOperation_MethodPathSecurityAndResponses(t *testing.T) {
 	doc := loadYAML[schedulePathsFile](t, "api/openapi/paths/schedules.yaml")
-	requireResponses(t, doc.Item.Get, "getWorkingHour", []string{"200", "401", "404", "500"})
+	requireResponses(t, doc.Item.Get, "getWorkingHour", []string{"200", "401", "403", "404", "500"})
 }
 
 func TestContract_UpdateWorkingHourOperation_MethodPathSecurityAndResponses(t *testing.T) {
 	doc := loadYAML[schedulePathsFile](t, "api/openapi/paths/schedules.yaml")
-	requireResponses(t, doc.Item.Patch, "updateWorkingHour", []string{"200", "400", "401", "404", "409", "422", "500"})
+	requireResponses(t, doc.Item.Patch, "updateWorkingHour", []string{"200", "400", "401", "403", "404", "409", "422", "500"})
 }
 
 func TestContract_DeleteWorkingHourOperation_MethodPathSecurityAndResponses(t *testing.T) {
 	doc := loadYAML[schedulePathsFile](t, "api/openapi/paths/schedules.yaml")
-	requireResponses(t, doc.Item.Delete, "deleteWorkingHour", []string{"204", "401", "404", "500"})
+	requireResponses(t, doc.Item.Delete, "deleteWorkingHour", []string{"204", "401", "403", "404", "500"})
 }
 
 // TestContract_OpenAPIYAML_RegistersSchedulePaths confirma que openapi.yaml
@@ -279,37 +279,37 @@ func TestContract_ColombianHolidayListResponseSchema_HasItems(t *testing.T) {
 
 func TestContract_GetHolidayCalendarOperation_MethodPathSecurityAndResponses(t *testing.T) {
 	doc := loadYAML[scheduleExceptionPathsFile](t, "api/openapi/paths/schedule-exceptions.yaml")
-	requireResponses(t, doc.HolidayCalendar.Get, "getHolidayCalendar", []string{"200", "401", "404", "500"})
+	requireResponses(t, doc.HolidayCalendar.Get, "getHolidayCalendar", []string{"200", "401", "403", "404", "500"})
 }
 
 func TestContract_UpdateHolidayCalendarOperation_MethodPathSecurityAndResponses(t *testing.T) {
 	doc := loadYAML[scheduleExceptionPathsFile](t, "api/openapi/paths/schedule-exceptions.yaml")
-	requireResponses(t, doc.HolidayCalendar.Patch, "updateHolidayCalendar", []string{"200", "400", "401", "404", "500"})
+	requireResponses(t, doc.HolidayCalendar.Patch, "updateHolidayCalendar", []string{"200", "400", "401", "403", "404", "500"})
 }
 
 func TestContract_ListScheduleExceptionsOperation_MethodPathSecurityAndResponses(t *testing.T) {
 	doc := loadYAML[scheduleExceptionPathsFile](t, "api/openapi/paths/schedule-exceptions.yaml")
-	requireResponses(t, doc.Collection.Get, "listScheduleExceptions", []string{"200", "400", "401", "404", "500"})
+	requireResponses(t, doc.Collection.Get, "listScheduleExceptions", []string{"200", "400", "401", "403", "404", "500"})
 }
 
 func TestContract_CreateScheduleExceptionOperation_MethodPathSecurityAndResponses(t *testing.T) {
 	doc := loadYAML[scheduleExceptionPathsFile](t, "api/openapi/paths/schedule-exceptions.yaml")
-	requireResponses(t, doc.Collection.Post, "createScheduleException", []string{"201", "400", "401", "404", "409", "422", "500"})
+	requireResponses(t, doc.Collection.Post, "createScheduleException", []string{"201", "400", "401", "403", "404", "409", "422", "500"})
 }
 
 func TestContract_GetScheduleExceptionOperation_MethodPathSecurityAndResponses(t *testing.T) {
 	doc := loadYAML[scheduleExceptionPathsFile](t, "api/openapi/paths/schedule-exceptions.yaml")
-	requireResponses(t, doc.Item.Get, "getScheduleException", []string{"200", "401", "404", "500"})
+	requireResponses(t, doc.Item.Get, "getScheduleException", []string{"200", "401", "403", "404", "500"})
 }
 
 func TestContract_UpdateScheduleExceptionOperation_MethodPathSecurityAndResponses(t *testing.T) {
 	doc := loadYAML[scheduleExceptionPathsFile](t, "api/openapi/paths/schedule-exceptions.yaml")
-	requireResponses(t, doc.Item.Patch, "updateScheduleException", []string{"200", "400", "401", "404", "409", "422", "500"})
+	requireResponses(t, doc.Item.Patch, "updateScheduleException", []string{"200", "400", "401", "403", "404", "409", "422", "500"})
 }
 
 func TestContract_DeleteScheduleExceptionOperation_MethodPathSecurityAndResponses(t *testing.T) {
 	doc := loadYAML[scheduleExceptionPathsFile](t, "api/openapi/paths/schedule-exceptions.yaml")
-	requireResponses(t, doc.Item.Delete, "deleteScheduleException", []string{"204", "401", "404", "500"})
+	requireResponses(t, doc.Item.Delete, "deleteScheduleException", []string{"204", "401", "403", "404", "500"})
 }
 
 func TestContract_ListColombianHolidaysOperation_MethodPathSecurityAndResponses(t *testing.T) {

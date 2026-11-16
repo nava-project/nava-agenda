@@ -171,7 +171,7 @@ func TestContract_UpdateBarbershopSettingsOperation_MethodPathSecurityAndRespons
 		t.Fatalf("expected exactly one security requirement (SessionCookie), got %v", op.Security)
 	}
 
-	wantStatuses := []string{"200", "400", "401", "404", "422", "500"}
+	wantStatuses := []string{"200", "400", "401", "403", "404", "422", "500"}
 	for _, s := range wantStatuses {
 		if _, ok := op.Responses[s]; !ok {
 			t.Errorf("el contrato no documenta la respuesta %s, pero el handler la produce", s)
@@ -273,7 +273,7 @@ func TestContract_UpdateBookingPolicyOperation_MethodPathSecurityAndResponses(t 
 		t.Fatalf("expected exactly one parameter referencing IfMatch.yaml, got %+v", op.Parameters)
 	}
 
-	wantStatuses := []string{"200", "400", "401", "404", "409", "422", "500"}
+	wantStatuses := []string{"200", "400", "401", "403", "404", "409", "422", "500"}
 	for _, s := range wantStatuses {
 		if _, ok := op.Responses[s]; !ok {
 			t.Errorf("el contrato no documenta la respuesta %s, pero el handler la produce", s)
@@ -460,7 +460,7 @@ func TestContract_BrandOperations_SecurityAndResponses(t *testing.T) {
 		statuses []string
 	}{
 		{doc.Brand.Get, "getBrand", []string{"200", "401", "404", "500"}},
-		{doc.Brand.Patch, "updateBrand", []string{"200", "400", "401", "404", "422", "500"}},
+		{doc.Brand.Patch, "updateBrand", []string{"200", "400", "401", "403", "404", "422", "500"}},
 	}
 	for _, c := range cases {
 		if c.op.OperationID != c.id {

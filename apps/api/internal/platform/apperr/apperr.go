@@ -53,6 +53,11 @@ const (
 	// distinga los dos casos, igual que KindNotFound para tenant cruzado
 	// (CA-005-02).
 	KindUnauthorized Kind = "unauthorized"
+	// KindForbidden cubre una identidad conocida (sesión válida) sin permiso
+	// para la operación (DEC-173: el empleado fuera de lo de su barbero).
+	// docs/06-api/estandar-openapi.md: 403 solo cuando no revela un recurso
+	// sensible; un recurso de otra barbería sigue siendo KindNotFound.
+	KindForbidden Kind = "forbidden"
 	// KindChallengeRequired cubre una IP que superó el umbral de intentos
 	// de acceso y debe completar el reto telefónico antes de que la
 	// contraseña se evalúe (HU-007, DEC-061/DEC-062). No se reutiliza
@@ -178,6 +183,12 @@ func Validation(message string) *Error {
 // CA-005-07).
 func Unauthorized(message string) *Error {
 	return &Error{Kind: KindUnauthorized, Message: message}
+}
+
+// Forbidden construye el error de una sesión válida sin permiso para la
+// operación (DEC-173).
+func Forbidden(message string) *Error {
+	return &Error{Kind: KindForbidden, Message: message}
 }
 
 // ChallengeRequired construye el error de escalamiento de HU-007: la

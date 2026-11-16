@@ -122,6 +122,7 @@ jobs:
           set -euo pipefail
           psql -h localhost -U postgres -d postgres -v ON_ERROR_STOP=1 -f database/testdata/dos_barberias.sql
           psql -h localhost -U postgres -d postgres -v ON_ERROR_STOP=1 -f database/testdata/staff_user_role_365.sql
+          psql -h localhost -U postgres -d postgres -v ON_ERROR_STOP=1 -f database/testdata/empleado_restringido_605.sql
           psql -h localhost -U postgres -d postgres -v ON_ERROR_STOP=1 -f database/testdata/hu005_credenciales_sesiones.sql
           psql -h localhost -U postgres -d postgres -v ON_ERROR_STOP=1 -f database/testdata/hu007_reto_telefonico.sql
           psql -h localhost -U postgres -d postgres -v ON_ERROR_STOP=1 -f database/testdata/hu021_barberos.sql
@@ -288,6 +289,7 @@ jobs:
           set -euo pipefail
           psql -h localhost -U postgres -d postgres -v ON_ERROR_STOP=1 -f database/testdata/dos_barberias.sql
           psql -h localhost -U postgres -d postgres -v ON_ERROR_STOP=1 -f database/testdata/staff_user_role_365.sql
+          psql -h localhost -U postgres -d postgres -v ON_ERROR_STOP=1 -f database/testdata/empleado_restringido_605.sql
           psql -h localhost -U postgres -d postgres -v ON_ERROR_STOP=1 -f database/testdata/hu005_credenciales_sesiones.sql
           psql -h localhost -U postgres -d postgres -v ON_ERROR_STOP=1 -f database/testdata/hu007_reto_telefonico.sql
           psql -h localhost -U postgres -d postgres -v ON_ERROR_STOP=1 -f database/testdata/hu021_barberos.sql

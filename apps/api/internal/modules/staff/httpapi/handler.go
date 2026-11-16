@@ -16,6 +16,7 @@ import (
 	"net/http"
 	"strconv"
 
+	"system-barbershop/internal/modules/access"
 	"system-barbershop/internal/modules/auth"
 	"system-barbershop/internal/modules/staff"
 	"system-barbershop/internal/platform/apperr"
@@ -64,6 +65,11 @@ func (h *ListBarbersHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	requestID := httpserver.RequestIDFromContext(r.Context())
 	principal, ok := principalOrInternalError(w, r, requestID)
 	if !ok {
+		return
+	}
+	// DEC-173: el empleado solo ve su propio barbero (o ninguno sin vínculo).
+	if scope := access.ScopeFromContext(r.Context()); scope.Restricted {
+		h.serveOwnOnly(w, r, principal.BarbershopID, scope.BarberID, requestID)
 		return
 	}
 
@@ -125,6 +131,40 @@ func (h *ListBarbersHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
 	_ = json.NewEncoder(w).Encode(newBarberListResponse(result))
+}
+
+// serveOwnOnly responde la lista del empleado restringido: su barbero
+// vinculado o ninguno, en el mismo modo de paginación que se pidió.
+func (h *ListBarbersHandler) serveOwnOnly(w http.ResponseWriter, r *http.Request, barbershopID, barberID, requestID string) {
+	items := []staff.Barber{}
+	if barberID != "" {
+		barber, err := h.service.Get(r.Context(), barbershopID, barberID)
+		if err != nil {
+			httpserver.WriteProblem(w, httpserver.Translate(err, requestID))
+			return
+		}
+		items = append(items, barber)
+	}
+	response := newBarberListResponse(staff.ListResult{Items: items})
+	w.Header().Set("Content-Type", "application/json")
+	query := r.URL.Query()
+	if query.Has("page") || query.Has("pageSize") {
+		pageSize := staff.DefaultListLimit
+		if value, err := strconv.Atoi(query.Get("pageSize")); err == nil && value >= 1 && value <= staff.MaxListLimit {
+			pageSize = value
+		}
+		// Siempre una página, como GREATEST(1, …) del repositorio.
+		totalPages := 1
+		_ = json.NewEncoder(w).Encode(struct {
+			BarberListResponse
+			Page       int `json:"page"`
+			PageSize   int `json:"pageSize"`
+			Total      int `json:"total"`
+			TotalPages int `json:"totalPages"`
+		}{response, 1, pageSize, len(items), totalPages})
+		return
+	}
+	_ = json.NewEncoder(w).Encode(response)
 }
 
 // GetBarberHandler expone GET /private/barbers/{barberId} (CA-021-05: la

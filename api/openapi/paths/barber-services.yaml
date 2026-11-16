@@ -61,6 +61,8 @@
         $ref: '../components/responses/InvalidRequestProblem.yaml'
       "401":
         $ref: '../components/responses/UnauthorizedProblem.yaml'
+      "403":
+        $ref: '../components/responses/ForbiddenProblem.yaml'
       "404":
         $ref: '../components/responses/NotFoundProblem.yaml'
       "500":
@@ -116,6 +118,8 @@
         $ref: '../components/responses/AssignmentAssigned.yaml'
       "401":
         $ref: '../components/responses/UnauthorizedProblem.yaml'
+      "403":
+        $ref: '../components/responses/ForbiddenProblem.yaml'
       "404":
         $ref: '../components/responses/NotFoundProblem.yaml'
       "500":
@@ -164,6 +168,8 @@
         $ref: '../components/responses/AssignmentUnassigned.yaml'
       "401":
         $ref: '../components/responses/UnauthorizedProblem.yaml'
+      "403":
+        $ref: '../components/responses/ForbiddenProblem.yaml'
       "404":
         $ref: '../components/responses/NotFoundProblem.yaml'
       "500":

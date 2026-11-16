@@ -204,7 +204,7 @@ func TestContract_ListServicesOperation_MethodPathSecurityAndResponses(t *testin
 
 func TestContract_CreateServiceOperation_MethodPathSecurityAndResponses(t *testing.T) {
 	doc := loadYAML[catalogPathsFile](t, "api/openapi/paths/catalog.yaml")
-	requireResponses(t, doc.Collection.Post, "createService", []string{"201", "400", "401", "409", "422", "500"})
+	requireResponses(t, doc.Collection.Post, "createService", []string{"201", "400", "401", "403", "409", "422", "500"})
 }
 
 func TestContract_GetServiceOperation_MethodPathSecurityAndResponses(t *testing.T) {
@@ -214,7 +214,7 @@ func TestContract_GetServiceOperation_MethodPathSecurityAndResponses(t *testing.
 
 func TestContract_UpdateServiceOperation_MethodPathSecurityAndResponses(t *testing.T) {
 	doc := loadYAML[catalogPathsFile](t, "api/openapi/paths/catalog.yaml")
-	requireResponses(t, doc.Item.Patch, "updateService", []string{"200", "400", "401", "404", "409", "422", "500"})
+	requireResponses(t, doc.Item.Patch, "updateService", []string{"200", "400", "401", "403", "404", "409", "422", "500"})
 }
 
 // TestContract_OpenAPIYAML_RegistersCatalogPaths confirma que openapi.yaml
@@ -259,15 +259,15 @@ func TestContract_ServiceDeactivationResponseSchema_MatchesDTOFields(t *testing.
 
 func TestContract_GetServiceDeactivationImpactOperation_MethodPathSecurityAndResponses(t *testing.T) {
 	doc := loadYAML[serviceLifecyclePathsFile](t, "api/openapi/paths/service-lifecycle.yaml")
-	requireResponses(t, doc.Impact.Get, "getServiceDeactivationImpact", []string{"200", "401", "404", "500"})
+	requireResponses(t, doc.Impact.Get, "getServiceDeactivationImpact", []string{"200", "401", "403", "404", "500"})
 }
 
 func TestContract_DeactivateServiceOperation_MethodPathSecurityAndResponses(t *testing.T) {
 	doc := loadYAML[serviceLifecyclePathsFile](t, "api/openapi/paths/service-lifecycle.yaml")
-	requireResponses(t, doc.Deactivate.Post, "deactivateService", []string{"200", "400", "401", "404", "409", "500"})
+	requireResponses(t, doc.Deactivate.Post, "deactivateService", []string{"200", "400", "401", "403", "404", "409", "500"})
 }
 
 func TestContract_ReactivateServiceOperation_MethodPathSecurityAndResponses(t *testing.T) {
 	doc := loadYAML[serviceLifecyclePathsFile](t, "api/openapi/paths/service-lifecycle.yaml")
-	requireResponses(t, doc.Reactivate.Post, "reactivateService", []string{"200", "400", "401", "404", "409", "500"})
+	requireResponses(t, doc.Reactivate.Post, "reactivateService", []string{"200", "400", "401", "403", "404", "409", "500"})
 }

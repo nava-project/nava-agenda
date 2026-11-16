@@ -166,8 +166,8 @@ func TestContract_ReviewOperations_SecurityAndStatuses(t *testing.T) {
 	if len(staff.List.Get.Security) == 0 || len(staff.Item.Patch.Security) == 0 {
 		t.Error("las operaciones del panel exigen sesión")
 	}
-	requireStatuses(t, "GET /private/barbers/{barberId}/reviews", staff.List.Get, "200", "401", "404", "500")
-	requireStatuses(t, "PATCH /private/barbers/{barberId}/reviews/{reviewId}", staff.Item.Patch, "200", "400", "401", "404", "422", "500")
+	requireStatuses(t, "GET /private/barbers/{barberId}/reviews", staff.List.Get, "200", "401", "403", "404", "500")
+	requireStatuses(t, "PATCH /private/barbers/{barberId}/reviews/{reviewId}", staff.Item.Patch, "200", "400", "401", "403", "404", "422", "500")
 }
 
 func TestContract_OpenAPIYAML_RegistersTheReviewPaths(t *testing.T) {

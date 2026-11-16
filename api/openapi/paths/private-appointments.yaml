@@ -63,6 +63,8 @@
         $ref: '../components/responses/InvalidRequestProblem.yaml'
       "401":
         $ref: '../components/responses/UnauthorizedProblem.yaml'
+      "403":
+        $ref: '../components/responses/ForbiddenProblem.yaml'
       "404":
         description: >
           `barberId` inexistente o de otra barbería, o `serviceId`
@@ -242,6 +244,8 @@
         $ref: '../components/responses/InvalidRequestProblem.yaml'
       "401":
         $ref: '../components/responses/UnauthorizedProblem.yaml'
+      "403":
+        $ref: '../components/responses/ForbiddenProblem.yaml'
       "404":
         description: >
           `barberId` con forma inválida, inexistente o de otra barbería

@@ -5,6 +5,7 @@ import (
 	"errors"
 	"net/http"
 
+	"system-barbershop/internal/modules/access"
 	"system-barbershop/internal/modules/auth"
 	"system-barbershop/internal/modules/shops"
 	"system-barbershop/internal/platform/apperr"
@@ -52,8 +53,13 @@ func (h *BarberBookingPolicyHandler) List(w http.ResponseWriter, r *http.Request
 		return
 	}
 
+	// DEC-173: el empleado solo ve la ventana de su propio barbero.
+	scope := access.ScopeFromContext(r.Context())
 	resp := BarberBookingPolicyListResponse{Items: make([]BarberBookingPolicyResponse, 0, len(policies))}
 	for _, p := range policies {
+		if !scope.Owns(p.BarberID) {
+			continue
+		}
 		resp.Items = append(resp.Items, newBarberBookingPolicyResponse(p))
 	}
 	w.Header().Set("Content-Type", "application/json")
