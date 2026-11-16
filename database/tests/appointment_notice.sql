@@ -119,14 +119,14 @@ BEGIN
   INSERT INTO appointment_notice (barbershop_id, appointment_id, kind, state_at, run_at)
   VALUES ('11111111-1111-1111-1111-111111111111', 'b4630004-0000-4000-8000-00000000000a',
           'rescheduled', '2026-01-05 09:00:00-05', '2026-01-05 09:01:00-05')
-  ON CONFLICT (appointment_id, (kind = 'reminder')) WHERE status = 'pending'
+  ON CONFLICT (appointment_id, (CASE WHEN kind IN ('reminder', 'reminder_whatsapp') THEN kind ELSE 'change' END)) WHERE status = 'pending'
   DO UPDATE SET kind = EXCLUDED.kind, state_at = EXCLUDED.state_at, run_at = EXCLUDED.run_at;
 
   -- Un cambio posterior REEMPLAZA al pendiente (la cancelación sustituye a la reprogramación).
   INSERT INTO appointment_notice (barbershop_id, appointment_id, kind, state_at, run_at)
   VALUES ('11111111-1111-1111-1111-111111111111', 'b4630004-0000-4000-8000-00000000000a',
           'cancelled_by_barber', '2026-01-05 09:00:20-05', '2026-01-05 09:01:20-05')
-  ON CONFLICT (appointment_id, (kind = 'reminder')) WHERE status = 'pending'
+  ON CONFLICT (appointment_id, (CASE WHEN kind IN ('reminder', 'reminder_whatsapp') THEN kind ELSE 'change' END)) WHERE status = 'pending'
   DO UPDATE SET kind = EXCLUDED.kind, state_at = EXCLUDED.state_at, run_at = EXCLUDED.run_at;
 
   SELECT count(*), max(kind) INTO v_count, v_kind FROM appointment_notice;
@@ -485,8 +485,8 @@ BEGIN
   END;
   BEGIN
     INSERT INTO appointment_notice_attempt (barbershop_id, notice_id, attempt_no, channel, outcome)
-    VALUES ('11111111-1111-1111-1111-111111111111', 'b4630006-0000-4000-8000-00000000000a', 9, 'whatsapp', 'sent');
-    RAISE EXCEPTION 'WhatsApp no está en este tramo (DEC-027).';
+    VALUES ('11111111-1111-1111-1111-111111111111', 'b4630006-0000-4000-8000-00000000000a', 9, 'sms', 'sent');
+    RAISE EXCEPTION 'solo correo y WhatsApp son canales de la evidencia (DEC-027, DEC-175).';
   EXCEPTION WHEN check_violation THEN NULL;
   END;
 
@@ -527,14 +527,14 @@ BEGIN
   INSERT INTO appointment_notice (barbershop_id, appointment_id, kind, state_at, run_at)
   VALUES ('11111111-1111-1111-1111-111111111111', 'b4630004-0000-4000-8000-0000000000c1',
           'rescheduled', '2026-01-05 09:00:00-05', '2026-01-05 09:01:00-05')
-  ON CONFLICT (appointment_id, (kind = 'reminder')) WHERE status = 'pending'
+  ON CONFLICT (appointment_id, (CASE WHEN kind IN ('reminder', 'reminder_whatsapp') THEN kind ELSE 'change' END)) WHERE status = 'pending'
   DO UPDATE SET kind = EXCLUDED.kind, state_at = EXCLUDED.state_at, run_at = EXCLUDED.run_at;
 
   -- Reprogramar regenera el recordatorio: se actualiza el pendiente, no se duplica.
   INSERT INTO appointment_notice (barbershop_id, appointment_id, kind, state_at, run_at)
   VALUES ('11111111-1111-1111-1111-111111111111', 'b4630004-0000-4000-8000-0000000000c1',
           'reminder', '2099-01-09T13:00:00Z', '2099-01-09T12:30:00Z')
-  ON CONFLICT (appointment_id, (kind = 'reminder')) WHERE status = 'pending'
+  ON CONFLICT (appointment_id, (CASE WHEN kind IN ('reminder', 'reminder_whatsapp') THEN kind ELSE 'change' END)) WHERE status = 'pending'
   DO UPDATE SET state_at = EXCLUDED.state_at, run_at = EXCLUDED.run_at;
 
   SELECT count(*) INTO v_count FROM appointment_notice
@@ -627,5 +627,75 @@ END
 $$;
 RESET ROLE;
 \echo 'recordatorio OK · convive con el aviso de cambio, se regenera sin duplicar y su cobertura es exacta'
+
+-- DEC-175: recordatorio por WhatsApp. Es una clase propia: convive con el de
+-- correo del mismo instante, su intento se registra con channel = 'whatsapp' y
+-- enviarlo no cubre el de correo (ni al revés).
+INSERT INTO appointment_notice (id, barbershop_id, appointment_id, kind, state_at, run_at) VALUES
+  ('b4630014-0000-4000-8000-0000000000c1', '11111111-1111-1111-1111-111111111111',
+   'b4630004-0000-4000-8000-0000000000c1', 'reminder_whatsapp', '2099-01-09T12:00:00Z', '2099-01-09T11:30:00Z'),
+  ('b4630015-0000-4000-8000-0000000000c1', '11111111-1111-1111-1111-111111111111',
+   'b4630004-0000-4000-8000-0000000000c1', 'reminder', '2099-01-09T12:00:00Z', '2099-01-09T11:30:00Z');
+DO $$
+BEGIN
+  BEGIN
+    INSERT INTO appointment_notice (barbershop_id, appointment_id, kind, state_at, run_at) VALUES
+      ('11111111-1111-1111-1111-111111111111', 'b4630004-0000-4000-8000-0000000000c1',
+       'reminder_whatsapp', '2099-01-09T12:00:00Z', '2099-01-09T11:30:00Z');
+    RAISE EXCEPTION 'dos recordatorios por WhatsApp pendientes del mismo turno deben chocar.';
+  EXCEPTION WHEN unique_violation THEN NULL;
+  END;
+  BEGIN
+    INSERT INTO appointment_notice (barbershop_id, appointment_id, kind, state_at, run_at) VALUES
+      ('11111111-1111-1111-1111-111111111111', 'b4630004-0000-4000-8000-0000000000c1',
+       'reminder_sms', '2099-01-09T12:00:00Z', '2099-01-09T11:30:00Z');
+    RAISE EXCEPTION 'una clase de aviso desconocida debe rechazarse.';
+  EXCEPTION WHEN check_violation THEN NULL;
+  END;
+END
+$$;
+SET ROLE barberia_worker;
+DO $$
+DECLARE
+  v_w   record;
+  v_e   record;
+  v_ctx record;
+BEGIN
+  SELECT * INTO v_w FROM notice_claim(100, 60, 5, '2099-01-09T11:31:00Z'::timestamptz)
+   WHERE notice_id = 'b4630014-0000-4000-8000-0000000000c1';
+  IF v_w.notice_id IS NULL THEN
+    RAISE EXCEPTION 'el worker debe reclamar el recordatorio por WhatsApp.';
+  END IF;
+  SELECT * INTO v_ctx FROM notice_context(v_w.notice_id, v_w.claim_token);
+  IF v_ctx.kind <> 'reminder_whatsapp' OR v_ctx.barber_name IS NULL OR v_ctx.already_covered THEN
+    RAISE EXCEPTION 'contexto del recordatorio por WhatsApp inesperado: %', row_to_json(v_ctx);
+  END IF;
+  PERFORM notice_finish(v_w.notice_id, v_w.claim_token, 'sent', NULL, NULL, 5, v_ctx.notice_state_at, '2099-01-09T11:31:01Z');
+
+  SELECT * INTO v_e FROM notice_claim(100, 60, 5, '2099-01-09T11:32:00Z'::timestamptz)
+   WHERE notice_id = 'b4630015-0000-4000-8000-0000000000c1';
+  IF v_e.notice_id IS NULL THEN
+    RAISE EXCEPTION 'el worker debe reclamar el recordatorio por correo del mismo instante.';
+  END IF;
+  IF (SELECT already_covered FROM notice_context(v_e.notice_id, v_e.claim_token)) THEN
+    RAISE EXCEPTION 'el WhatsApp enviado NO cubre el correo del mismo instante (cada canal es suyo).';
+  END IF;
+  PERFORM notice_finish(v_e.notice_id, v_e.claim_token, 'skipped', 'no_email', NULL, 5, NULL, '2099-01-09T11:32:01Z');
+END
+$$;
+RESET ROLE;
+DO $$
+BEGIN
+  IF NOT EXISTS (SELECT 1 FROM appointment_notice_attempt
+                  WHERE notice_id = 'b4630014-0000-4000-8000-0000000000c1' AND channel = 'whatsapp' AND outcome = 'sent') THEN
+    RAISE EXCEPTION 'el intento del recordatorio por WhatsApp debe registrarse con channel = whatsapp.';
+  END IF;
+  IF NOT EXISTS (SELECT 1 FROM appointment_notice_attempt
+                  WHERE notice_id = 'b4630015-0000-4000-8000-0000000000c1' AND channel = 'email') THEN
+    RAISE EXCEPTION 'el intento del recordatorio por correo sigue registrándose con channel = email.';
+  END IF;
+END
+$$;
+\echo 'recordatorio por WhatsApp OK · clase propia, evidencia con su canal y sin cubrir al correo'
 
 ROLLBACK;

@@ -344,3 +344,99 @@ func TestProcess_Reminder_Skips(t *testing.T) {
 		})
 	}
 }
+
+// ---- DEC-175: recordatorio por WhatsApp ----
+
+type sentWhatsApp struct{ phone, name, shop, when, service, barber string }
+
+type fakeWhatsApp struct {
+	err   error
+	calls []sentWhatsApp
+}
+
+func (w *fakeWhatsApp) SendReminder(_ context.Context, phone, name, shop, when, service, barber string) error {
+	w.calls = append(w.calls, sentWhatsApp{phone, name, shop, when, service, barber})
+	return w.err
+}
+
+func whatsappContext() appointmentnotice.Context {
+	c := reminderContext()
+	c.Kind = appointmentnotice.KindReminderWhatsApp
+	c.CustomerEmail = "" // el canal no depende del correo
+	c.CustomerPhone = "+573001112233"
+	c.BarberName = "Camilo Ortega"
+	// 12:00 UTC = 7:00 a. m. en Bogotá; el turno es hoy a las 7:40 a. m.
+	c.StartsAt = now.Add(40 * time.Minute)
+	c.NoticeStateAt = c.StartsAt
+	return c
+}
+
+func processWhatsApp(t *testing.T, ctx appointmentnotice.Context, wa *fakeWhatsApp) appointmentnotice.FinishInput {
+	t.Helper()
+	store, mailer := &fakeStore{ctx: ctx, found: true, finishOK: true}, &fakeMailer{}
+	deps := appointmentnotice.Deps{Store: store, Mailer: mailer, Clock: fixedClock{}, Config: appointmentnotice.DefaultConfig()}
+	if wa != nil {
+		deps.WhatsApp = wa
+	}
+	appointmentnotice.NewDispatcher(deps).Process(context.Background(),
+		appointmentnotice.Notice{ID: "n1", ClaimToken: "t1", Attempts: 1})
+	if len(mailer.calls) != 0 {
+		t.Fatalf("un recordatorio por WhatsApp nunca sale por correo: %+v", mailer.calls)
+	}
+	if len(store.finishes) != 1 {
+		t.Fatalf("debe cerrarse exactamente una vez, se cerró %d", len(store.finishes))
+	}
+	return store.finishes[0]
+}
+
+func TestProcess_WhatsAppReminder_FillsTheTemplateAndCoversTheInstant(t *testing.T) {
+	wa := &fakeWhatsApp{}
+	fin := processWhatsApp(t, whatsappContext(), wa)
+
+	want := sentWhatsApp{"+573001112233", "Ana", "Barbería Centro", "hoy a las 7:40 a. m.", "Corte clásico", "Camilo Ortega"}
+	if len(wa.calls) != 1 || wa.calls[0] != want {
+		t.Fatalf("plantilla = %+v, quiero %+v", wa.calls, want)
+	}
+	if fin.Outcome != appointmentnotice.OutcomeSent || !fin.CoversStateAt.Equal(whatsappContext().StartsAt) {
+		t.Fatalf("cierre = %+v", fin)
+	}
+}
+
+func TestProcess_WhatsAppReminder_Skips(t *testing.T) {
+	cases := []struct {
+		name   string
+		mutate func(c *appointmentnotice.Context)
+		wa     *fakeWhatsApp
+		code   string
+	}{
+		{"cliente sin teléfono", func(c *appointmentnotice.Context) { c.CustomerPhone = "" }, &fakeWhatsApp{}, appointmentnotice.CodeNoPhone},
+		{"turno cancelado", func(c *appointmentnotice.Context) { c.AppointmentStatus = "cancelled_by_customer" }, &fakeWhatsApp{}, appointmentnotice.CodeNotConfirmed},
+		{"el turno cambió de hora", func(c *appointmentnotice.Context) { c.NoticeStateAt = c.StartsAt.Add(time.Hour) }, &fakeWhatsApp{}, appointmentnotice.CodeSuperseded},
+		{"ya enviado para esa hora", func(c *appointmentnotice.Context) { c.AlreadyCovered = true }, &fakeWhatsApp{}, appointmentnotice.CodeSuperseded},
+		{"WhatsApp sin configurar", func(*appointmentnotice.Context) {}, nil, appointmentnotice.CodeChannelUnavailable},
+	}
+	for _, c := range cases {
+		t.Run(c.name, func(t *testing.T) {
+			ctx := whatsappContext()
+			c.mutate(&ctx)
+			fin := processWhatsApp(t, ctx, c.wa)
+			if c.wa != nil && len(c.wa.calls) != 0 {
+				t.Fatalf("no debe enviar, envió %d", len(c.wa.calls))
+			}
+			if fin.Outcome != appointmentnotice.OutcomeSkipped || fin.Code != c.code {
+				t.Fatalf("cierre = %s/%s, quiero skipped/%s", fin.Outcome, fin.Code, c.code)
+			}
+		})
+	}
+}
+
+func TestProcess_WhatsAppReminder_RejectionsAndFailures(t *testing.T) {
+	fin := processWhatsApp(t, whatsappContext(), &fakeWhatsApp{err: permanentErr{}})
+	if fin.Outcome != appointmentnotice.OutcomePermanent || fin.Code != appointmentnotice.CodeProviderRejected {
+		t.Fatalf("un número que Meta rechaza no se reintenta: %+v", fin)
+	}
+	fin = processWhatsApp(t, whatsappContext(), &fakeWhatsApp{err: errors.New("límite de Meta")})
+	if fin.Outcome != appointmentnotice.OutcomeRetry || fin.RetrySeconds == 0 {
+		t.Fatalf("una falla pasajera se reintenta: %+v", fin)
+	}
+}

@@ -40,20 +40,24 @@ func retryAfterSeconds(attempts int) int {
 
 // Dispatcher consume la cola de avisos.
 type Dispatcher struct {
-	store  Store
-	mailer Mailer
-	clock  clock.Clock
-	cfg    Config
-	log    *slog.Logger
+	store    Store
+	mailer   Mailer
+	whatsapp WhatsAppReminderSender
+	clock    clock.Clock
+	cfg      Config
+	log      *slog.Logger
 }
 
 // Deps son las dependencias del despachador.
 type Deps struct {
 	Store  Store
 	Mailer Mailer
-	Clock  clock.Clock
-	Config Config
-	Logger *slog.Logger
+	// WhatsApp envía los recordatorios por WhatsApp (DEC-175). Sin él, esos
+	// recordatorios se cierran como omitidos (`channel_unavailable`).
+	WhatsApp WhatsAppReminderSender
+	Clock    clock.Clock
+	Config   Config
+	Logger   *slog.Logger
 }
 
 // NewDispatcher construye el despachador.
@@ -66,7 +70,7 @@ func NewDispatcher(deps Deps) *Dispatcher {
 	if cfg.BatchSize == 0 {
 		cfg = DefaultConfig()
 	}
-	return &Dispatcher{store: deps.Store, mailer: deps.Mailer, clock: deps.Clock, cfg: cfg, log: logger}
+	return &Dispatcher{store: deps.Store, mailer: deps.Mailer, whatsapp: deps.WhatsApp, clock: deps.Clock, cfg: cfg, log: logger}
 }
 
 // Run procesa la cola hasta que ctx termina.
@@ -115,16 +119,18 @@ func skipReason(c Context, now time.Time) string {
 		return CodeNotConfirmed
 	case c.Kind == KindCancelledByBarber && c.AppointmentStatus != "cancelled_by_barber":
 		return CodeNotCancelled
-	case c.Kind == KindReminder && c.AppointmentStatus != "confirmed":
+	case IsReminder(c.Kind) && c.AppointmentStatus != "confirmed":
 		// RN-REC-02: un turno cancelado, completado o no asistido no se recuerda.
 		return CodeNotConfirmed
-	case c.Kind == KindReminder && !c.NoticeStateAt.Equal(c.StartsAt):
+	case IsReminder(c.Kind) && !c.NoticeStateAt.Equal(c.StartsAt):
 		// RN-REC-01/03: el turno cambió de hora; el recordatorio de la hora vieja
 		// no se envía (el vigente lo programó la reprogramación).
 		return CodeSuperseded
 	case !c.StartsAt.After(now):
 		return CodePast
-	case c.CustomerEmail == "":
+	case c.Kind == KindReminderWhatsApp && c.CustomerPhone == "":
+		return CodeNoPhone
+	case c.Kind != KindReminderWhatsApp && c.CustomerEmail == "":
 		return CodeNoEmail
 	}
 	return ""
@@ -152,6 +158,11 @@ func (d *Dispatcher) Process(ctx context.Context, n Notice) {
 		d.finish(ctx, n, in)
 		return
 	}
+	if c.Kind == KindReminderWhatsApp && d.whatsapp == nil {
+		in.Outcome, in.Code = OutcomeSkipped, CodeChannelUnavailable
+		d.finish(ctx, n, in)
+		return
+	}
 
 	loc, err := time.LoadLocation(c.Timezone)
 	if err != nil {
@@ -161,14 +172,19 @@ func (d *Dispatcher) Process(ctx context.Context, n Notice) {
 	}
 
 	sendCtx, cancel := context.WithTimeout(ctx, d.cfg.SendTimeout)
-	err = d.mailer.SendChangeNotice(sendCtx, c.Kind, c.CustomerEmail, c.BarbershopName, c.ServiceName, c.AttendeeName,
-		c.StartsAt.In(loc).Format("2006-01-02 15:04")+" ("+loc.String()+")")
+	if c.Kind == KindReminderWhatsApp {
+		err = d.whatsapp.SendReminder(sendCtx, c.CustomerPhone, firstName(c.AttendeeName), c.BarbershopName,
+			WhenText(c.StartsAt, now, loc), c.ServiceName, c.BarberName)
+	} else {
+		err = d.mailer.SendChangeNotice(sendCtx, c.Kind, c.CustomerEmail, c.BarbershopName, c.ServiceName, c.AttendeeName,
+			c.StartsAt.In(loc).Format("2006-01-02 15:04")+" ("+loc.String()+")")
+	}
 	cancel()
 
 	switch {
 	case err == nil:
 		in.Outcome, in.CoversStateAt = OutcomeSent, c.StateAt
-		if c.Kind == KindReminder {
+		if IsReminder(c.Kind) {
 			in.CoversStateAt = c.NoticeStateAt
 		}
 	case isPermanent(err):

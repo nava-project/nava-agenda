@@ -114,9 +114,10 @@ func run() error {
 			Mailer: notification.NewResendChangeNoticeSender(notification.ResendChangeNoticeConfig{
 				APIKey: cfg.ResendAPIKey, FromAddress: cfg.ResendFromAddress,
 			}, nil),
-			Clock:  clock.System{},
-			Config: appointmentnotice.DefaultConfig(),
-			Logger: logger,
+			WhatsApp: buildWhatsAppReminderSender(cfg, logger),
+			Clock:    clock.System{},
+			Config:   appointmentnotice.DefaultConfig(),
+			Logger:   logger,
 		})
 		go dispatcher.Run(ctx)
 		logger.Info("worker: avisos de cambio de turno activos")
@@ -179,4 +180,29 @@ func buildGoogleCalendarPublisher(db *database.DB, logger *slog.Logger, cfg conf
 		Config: googlecalendar.DefaultPublisherConfig(),
 		Logger: logger,
 	}), nil
+}
+
+// buildWhatsAppReminderSender arma el envío del recordatorio por WhatsApp
+// (DEC-175) con el mismo número emisor y token del código de acceso. Sin ellos
+// devuelve nil y el despachador cierra esos recordatorios como omitidos
+// (`channel_unavailable`), sin bloquear los de correo.
+func buildWhatsAppReminderSender(cfg config.Config, logger *slog.Logger) appointmentnotice.WhatsAppReminderSender {
+	if cfg.MetaWhatsAppPhoneNumberID == "" || cfg.MetaWhatsAppAccessToken == "" {
+		logger.Warn("appointment_notice.whatsapp.disabled",
+			"detail", "faltan APP_META_WHATSAPP_PHONE_NUMBER_ID o APP_META_WHATSAPP_ACCESS_TOKEN; el recordatorio sale solo por correo")
+		return nil
+	}
+	meta := notification.NewMetaWhatsAppSender(notification.MetaWhatsAppConfig{
+		APIVersion:     cfg.MetaWhatsAppAPIVersion,
+		PhoneNumberID:  cfg.MetaWhatsAppPhoneNumberID,
+		AccessToken:    cfg.MetaWhatsAppAccessToken,
+		Mode:           notification.MetaModeTemplate,
+		TestRecipients: cfg.MetaWhatsAppTestRecipients,
+		Logger:         logger,
+	}, nil)
+	logger.Info("worker: recordatorios por WhatsApp activos", "template", cfg.MetaWhatsAppReminderTemplateName)
+	return notification.NewMetaReminderSender(meta, notification.MetaReminderConfig{
+		TemplateName: cfg.MetaWhatsAppReminderTemplateName,
+		LanguageCode: cfg.MetaWhatsAppReminderLanguageCode,
+	})
 }
