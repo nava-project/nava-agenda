@@ -1500,10 +1500,9 @@ const editPreview = computed(() =>
           <p>{{ createPreview.text }}</p>
         </div>
 
+        <!-- Solo «Guardar»: la X del diálogo (y Escape) ya cierra sin guardar
+             (pedido del propietario, 2026-11-15). -->
         <div class="schedules-page__dialog-actions">
-          <BaseButton type="button" variant="secondary" @click="isCreateOpen = false">
-            Cancelar
-          </BaseButton>
           <BaseButton
             type="submit"
             variant="primary"
@@ -1616,9 +1615,6 @@ const editPreview = computed(() =>
         </div>
 
         <div class="schedules-page__dialog-actions">
-          <BaseButton type="button" variant="secondary" @click="isEditOpen = false">
-            Cancelar
-          </BaseButton>
           <BaseButton
             type="submit"
             variant="primary"
@@ -1819,9 +1815,6 @@ const editPreview = computed(() =>
         />
 
         <div class="schedules-page__dialog-actions">
-          <BaseButton type="button" variant="secondary" @click="isExceptionCreateOpen = false">
-            Cancelar
-          </BaseButton>
           <BaseButton
             type="submit"
             variant="primary"
@@ -2016,9 +2009,6 @@ const editPreview = computed(() =>
         />
 
         <div class="schedules-page__dialog-actions">
-          <BaseButton type="button" variant="secondary" @click="isExceptionEditOpen = false">
-            Cancelar
-          </BaseButton>
           <BaseButton
             type="submit"
             variant="primary"
