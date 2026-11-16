@@ -66,6 +66,8 @@ import {
   ADDRESS_MAX_LENGTH,
   draftFromSaved,
   locationChange,
+  needsGeocoding,
+  addressChanged,
   sameLocation,
   validateAddress,
   type LocationDraft,
@@ -1063,6 +1065,13 @@ const previewClass = computed(() => ({ 'settings-page__preview--changed': brandD
               La dirección es pública: cualquiera que abra tu enlace de reservas puede verla. Si
               trabajas desde tu casa, apaga el interruptor para no mostrarla.
             </p>
+            <p
+              v-if="needsGeocoding(savedLocation) && !addressChanged(location, savedLocation)"
+              class="settings-field__hint settings-location-pending"
+              role="status"
+            >
+              Esta dirección todavía no está ubicada en el mapa. Guarda los cambios para ubicarla.
+            </p>
             <SwitchField
               v-model="location.offersHomeService"
               label="Atiendo a domicilio"
@@ -1323,6 +1332,12 @@ const previewClass = computed(() => ({ 'settings-page__preview--changed': brandD
   font-size: var(--font-size-caption);
   line-height: 18px;
   color: var(--color-on-strong-muted);
+}
+
+/* Dirección sin punto en el mapa (issue #589): el aviso lleva el acento para
+   leerse como una acción pendiente, no como ayuda de fondo. */
+.settings-location-pending {
+  color: var(--color-brand-accent-surface);
 }
 
 .settings-location-preview {

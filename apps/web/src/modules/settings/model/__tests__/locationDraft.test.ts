@@ -4,6 +4,7 @@ import {
   addressChanged,
   draftFromSaved,
   locationChange,
+  needsGeocoding,
   normalizeAddress,
   sameLocation,
   validateAddress,
@@ -95,5 +96,33 @@ describe('locationDraft', () => {
         DEFAULT_LOCATION,
       ),
     ).toEqual({})
+  })
+
+  // Issue #589: una dirección cargada fuera del panel quedó sin punto en el mapa
+  // y el panel no tenía cómo ubicarla, porque solo envía lo que cambió.
+  describe('dirección guardada sin punto en el mapa', () => {
+    const unlocated: LocationSettings = { ...saved, latitude: null, longitude: null }
+
+    it('la detecta solo cuando hay dirección y le faltan coordenadas', () => {
+      expect(needsGeocoding(unlocated)).toBe(true)
+      expect(needsGeocoding(saved)).toBe(false)
+      expect(needsGeocoding({ ...unlocated, address: null })).toBe(false)
+    })
+
+    it('cuenta como pendiente de guardar y envía la dirección para ubicarla', () => {
+      const draft = draftFromSaved(unlocated)
+      expect(sameLocation(draft, unlocated)).toBe(false)
+      expect(locationChange(draft, unlocated)).toEqual({ address: 'Calle 10 # 5-20, Bogotá' })
+    })
+
+    it('borrar la dirección la quita, sin intentar ubicar la anterior', () => {
+      const draft = { ...draftFromSaved(unlocated), address: '' }
+      expect(locationChange(draft, unlocated)).toEqual({ address: null })
+    })
+
+    it('una dirección ya ubicada y sin tocar sigue sin enviarse', () => {
+      expect(locationChange(draftFromSaved(saved), saved)).toEqual({})
+      expect(sameLocation(draftFromSaved(saved), saved)).toBe(true)
+    })
   })
 })

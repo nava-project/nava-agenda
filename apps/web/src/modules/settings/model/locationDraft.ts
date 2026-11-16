@@ -38,17 +38,34 @@ export function addressChanged(draft: LocationDraft, saved: LocationSettings): b
   return normalizeAddress(draft.address) !== (saved.address ?? '')
 }
 
+/**
+ * Dirección guardada que nunca se ubicó en el mapa (issue #589): por ejemplo,
+ * cargada fuera del panel. El servidor la geocodifica si se le vuelve a
+ * enviar, pero el panel solo envía lo que cambió; sin esto, el dueño no tenía
+ * forma de ubicarla salvo editando el texto.
+ */
+export function needsGeocoding(saved: LocationSettings): boolean {
+  return !!saved.address && (saved.latitude === null || saved.longitude === null)
+}
+
+/** El borrador conserva la dirección guardada y esa dirección aún no tiene punto. */
+function pendingGeocoding(draft: LocationDraft, saved: LocationSettings): boolean {
+  return needsGeocoding(saved) && !addressChanged(draft, saved)
+}
+
 export function sameLocation(draft: LocationDraft, saved: LocationSettings): boolean {
   return (
     draft.hasPhysicalLocation === saved.hasPhysicalLocation &&
     draft.offersHomeService === saved.offersHomeService &&
-    !addressChanged(draft, saved)
+    !addressChanged(draft, saved) &&
+    !pendingGeocoding(draft, saved)
   )
 }
 
 /**
- * Lo que hay que enviar para llevar `saved` al borrador: solo lo que cambió. Una
- * dirección vacía se envía como `null` (la quita junto a sus coordenadas).
+ * Lo que hay que enviar para llevar `saved` al borrador: solo lo que cambió, más
+ * la dirección guardada cuando aún no tiene punto en el mapa. Una dirección
+ * vacía se envía como `null` (la quita junto a sus coordenadas).
  */
 export function locationChange(draft: LocationDraft, saved: LocationSettings): LocationChange {
   const change: LocationChange = {}
@@ -58,7 +75,7 @@ export function locationChange(draft: LocationDraft, saved: LocationSettings): L
   if (draft.offersHomeService !== saved.offersHomeService) {
     change.offersHomeService = draft.offersHomeService
   }
-  if (addressChanged(draft, saved)) {
+  if (addressChanged(draft, saved) || pendingGeocoding(draft, saved)) {
     const normalized = normalizeAddress(draft.address)
     change.address = normalized === '' ? null : normalized
   }
