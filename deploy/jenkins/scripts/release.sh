@@ -44,7 +44,12 @@ ci_green() {
 case "$phase" in
   verify)
     rm -rf "$state"; mkdir -p "$state"
-    git fetch --no-tags --quiet origin +refs/heads/main:refs/remotes/origin/main
+    # Jenkins solo da credenciales a su propio checkout: aquí se pasan con un helper que lee
+    # GH_USER/GH_TOKEN del entorno (el token no aparece en la línea de comandos).
+    # shellcheck disable=SC2016
+    git -c credential.helper= \
+        -c 'credential.helper=!f() { echo "username=$GH_USER"; echo "password=$GH_TOKEN"; }; f' \
+        fetch --no-tags --quiet origin +refs/heads/main:refs/remotes/origin/main
     tip="$(git rev-parse origin/main)"
     sha="$(git rev-parse --verify "${SHA:-$tip}^{commit}")" || fail "no existe el commit ${SHA:-}"
     git merge-base --is-ancestor "$sha" origin/main || fail "$sha no pertenece a main"
