@@ -16,6 +16,11 @@
  * admite teclado (flechas) y la ubicación elegida se anuncia. Si el mapa no carga, la detección
  * sigue funcionando. La posición es dato personal (RN-DAT-02): no se registra ni se guarda
  * fuera del formulario.
+ *
+ * Activación con clic (#609): un mapa que atrapa gestos (el de Google) queda cubierto por un botón
+ * transparente hasta que la persona hace clic o toca. Así pasar el cursor no lo acerca con la
+ * rueda y en el celular el dedo desplaza la página. Ese primer clic solo activa: no mueve el pin.
+ * Se vuelve a cubrir al salir el cursor, al tocar fuera o con Escape.
  */
 import { computed, onBeforeUnmount, onMounted, ref, useId, watch } from 'vue'
 import {
@@ -82,6 +87,11 @@ const mapEl = ref<HTMLElement | null>(null)
 const mapState = ref<'loading' | 'ready' | 'failed'>('loading')
 const locating = ref(false)
 const notice = ref('')
+const stageEl = ref<HTMLElement | null>(null)
+const mapActive = ref(false)
+const needsActivation = computed(
+  () => mapState.value === 'ready' && !!engine.value?.capturesGestures && !mapActive.value,
+)
 
 let handle: MapPickerHandle | null = null
 let unmounted = false
@@ -213,7 +223,31 @@ async function detect(auto: boolean) {
   }
 }
 
+function activateMap() {
+  mapActive.value = true
+  document.addEventListener('pointerdown', onOutsidePointer, true)
+  // El botón que cubría el mapa desaparece: el foco pasa al mapa para seguir con el teclado.
+  mapEl.value?.querySelector<HTMLElement>('[tabindex="0"]')?.focus({ preventScroll: true })
+}
+
+function deactivateMap() {
+  if (!mapActive.value) return
+  mapActive.value = false
+  document.removeEventListener('pointerdown', onOutsidePointer, true)
+}
+
+function onOutsidePointer(event: PointerEvent) {
+  if (!stageEl.value?.contains(event.target as Node)) deactivateMap()
+}
+
+function onStageFocusOut(event: FocusEvent) {
+  // Solo cuando el foco se va a otro control; al quitar el botón el foco queda en el documento.
+  const next = event.relatedTarget as Node | null
+  if (next && !stageEl.value?.contains(next)) deactivateMap()
+}
+
 onBeforeUnmount(() => {
+  document.removeEventListener('pointerdown', onOutsidePointer, true)
   unmounted = true
   describeAbort?.abort()
   handle?.destroy()
@@ -240,7 +274,13 @@ const describedBy = computed(() => [hintId, props.error ? errorId : ''].filter(B
 
     <p :id="hintId" class="location-picker__hint">{{ hint }}</p>
 
-    <div class="location-picker__stage">
+    <div
+      ref="stageEl"
+      class="location-picker__stage"
+      @mouseleave="deactivateMap"
+      @focusout="onStageFocusOut"
+      @keydown.esc="deactivateMap"
+    >
       <div
         ref="mapEl"
         class="location-picker__map"
@@ -249,6 +289,19 @@ const describedBy = computed(() => [hintId, props.error ? errorId : ''].filter(B
         :aria-describedby="describedBy"
       />
       <span v-if="mapState === 'ready'" class="location-picker__pin" aria-hidden="true" />
+      <button
+        v-if="needsActivation"
+        type="button"
+        class="location-picker__activate"
+        aria-label="Activar el mapa para moverlo"
+        :disabled="disabled"
+        @click="activateMap"
+      >
+        <span class="location-picker__activate-hint">
+          <span class="location-picker__activate-pointer">Haz clic para mover el mapa</span>
+          <span class="location-picker__activate-touch">Toca para mover el mapa</span>
+        </span>
+      </button>
       <p v-if="mapState === 'loading'" class="location-picker__overlay" role="status">
         Cargando el mapa…
       </p>
@@ -349,6 +402,69 @@ const describedBy = computed(() => [hintId, props.error ? errorId : ''].filter(B
   margin: 0;
   font-size: var(--font-size-caption, 13px);
   pointer-events: none;
+}
+
+/* Cubre el mapa mientras no está activo: la rueda y el dedo siguen desplazando la página. */
+.location-picker__activate {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  padding: 0 12px 12px;
+  margin: 0;
+  font: inherit;
+  color: inherit;
+  cursor: pointer;
+  background: transparent;
+  border: 0;
+  border-radius: 2px;
+}
+
+.location-picker__activate:focus-visible {
+  outline: 2px solid var(--color-focus, currentColor);
+  outline-offset: 2px;
+}
+
+.location-picker__activate-hint {
+  padding: 6px 12px;
+  font-size: var(--font-size-caption, 13px);
+  font-weight: 600;
+  color: #fff;
+  background: rgb(17 20 26 / 82%);
+  border-radius: 999px;
+  opacity: 0;
+  transition: opacity 0.15s ease;
+}
+
+.location-picker__activate:hover .location-picker__activate-hint,
+.location-picker__activate:focus-visible .location-picker__activate-hint {
+  opacity: 1;
+}
+
+.location-picker__activate-touch {
+  display: none;
+}
+
+/* Sin cursor (celular) no hay hover: el aviso se ve siempre y habla de tocar. */
+@media (hover: none) {
+  .location-picker__activate-hint {
+    opacity: 1;
+  }
+
+  .location-picker__activate-pointer {
+    display: none;
+  }
+
+  .location-picker__activate-touch {
+    display: inline;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .location-picker__activate-hint {
+    transition: none;
+  }
 }
 
 /* Modo simulado (solo desarrollo): botones que mueven el punto. */

@@ -13,7 +13,10 @@ interface FakeMap {
   userMoves: (center: LatLng) => void
 }
 
-function fakeMap(describeText: string | null = 'Calle 1 # 2-3, Bogotá'): FakeMap {
+function fakeMap(
+  describeText: string | null = 'Calle 1 # 2-3, Bogotá',
+  capturesGestures = false,
+): FakeMap {
   let onUserMove: (center: LatLng) => void = () => {}
   const handle: MapPickerHandle = {
     getCenter: vi.fn(() => ({ latitude: 0, longitude: 0 })),
@@ -26,7 +29,7 @@ function fakeMap(describeText: string | null = 'Calle 1 # 2-3, Bogotá'): FakeMa
   })
   const describeFn = vi.fn(async () => describeText)
   return {
-    engine: { mount: mountFn, describe: describeFn },
+    engine: { capturesGestures, mount: mountFn, describe: describeFn },
     handle,
     mount: mountFn,
     describe: describeFn,
@@ -402,6 +405,57 @@ describe('LocationPicker', () => {
     release(late.handle)
     await flushPromises()
     expect(late.handle.destroy).toHaveBeenCalledTimes(1)
+  })
+
+  describe('activación con clic (#609)', () => {
+    const activator = '[aria-label="Activar el mapa para moverlo"]'
+
+    it('cubre un mapa que atrapa gestos hasta el primer clic, sin mover el punto', async () => {
+      const map = fakeMap('Calle 1', true)
+      const wrapper = mountIt(map)
+      await flushPromises()
+
+      expect(wrapper.find(activator).exists()).toBe(true)
+      await wrapper.get(activator).trigger('click')
+      expect(wrapper.find(activator).exists()).toBe(false)
+      expect(wrapper.emitted('update:modelValue')).toBeUndefined()
+      expect(map.handle.setCenter).not.toHaveBeenCalled()
+      wrapper.unmount()
+    })
+
+    it('vuelve a cubrirlo al salir el cursor, con Escape o al tocar fuera', async () => {
+      const wrapper = mountIt(fakeMap('Calle 1', true))
+      await flushPromises()
+      const stage = wrapper.get('.location-picker__stage')
+
+      await wrapper.get(activator).trigger('click')
+      await stage.trigger('mouseleave')
+      expect(wrapper.find(activator).exists()).toBe(true)
+
+      await wrapper.get(activator).trigger('click')
+      await stage.trigger('keydown', { key: 'Escape' })
+      expect(wrapper.find(activator).exists()).toBe(true)
+
+      await wrapper.get(activator).trigger('click')
+      document.body.dispatchEvent(new Event('pointerdown', { bubbles: true }))
+      await flushPromises()
+      expect(wrapper.find(activator).exists()).toBe(true)
+      wrapper.unmount()
+    })
+
+    it('no cubre el mapa simulado, que solo tiene botones', async () => {
+      const wrapper = mountIt(fakeMap())
+      await flushPromises()
+      expect(wrapper.find(activator).exists()).toBe(false)
+      wrapper.unmount()
+    })
+
+    it('no tiene violaciones de accesibilidad con el mapa cubierto', async () => {
+      const wrapper = mountIt(fakeMap('Calle 1', true))
+      await flushPromises()
+      expect(await axe(wrapper.element)).toHaveNoViolations()
+      wrapper.unmount()
+    })
   })
 
   it('has no accessibility violations', async () => {
