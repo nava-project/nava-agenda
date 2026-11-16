@@ -6,7 +6,7 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { flushPromises, mount } from '@vue/test-utils'
 import { createMemoryHistory, createRouter } from 'vue-router'
-import { defineComponent, h } from 'vue'
+import { h } from 'vue'
 import PublicBookingLayout from '../PublicBookingLayout.vue'
 import { resetPublicProfileCache } from '../../model/publicProfile'
 import { accentByKey } from '@/shared/model'
@@ -34,8 +34,9 @@ const profile = (brandAccent: string) => ({
   },
 })
 
-const Probe = defineComponent({ setup: () => () => h('main', 'pantalla') })
-const Elsewhere = defineComponent({ setup: () => () => h('main', 'fuera') })
+// Pantallas de prueba como objetos de render (sin contenido propio que probar).
+const Probe = { render: () => h('main', 'pantalla') }
+const Elsewhere = { render: () => h('main', 'fuera') }
 
 async function mountAt(slug: string) {
   const router = createRouter({
