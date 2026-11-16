@@ -108,13 +108,30 @@ func sharedFixture(t *testing.T, db *database.DB, shop database.BarbershopID) sh
 func seedAppointment(t *testing.T, db *database.DB, shop database.BarbershopID, withEmail bool) (id, email string) {
 	t.Helper()
 	f := sharedFixture(t, db, shop)
+	// Todas las citas son del mismo barbero y ninguna prueba las borra: un minuto al azar
+	// puede caer encima de otra cita (exclusión del barbero, 23P01). Eso no es lo que
+	// prueba ningún caso, así que se reintenta con otro minuto; cualquier otro error falla.
+	const attempts = 8
+	for attempt := 1; ; attempt++ {
+		id, email, err := insertSeedAppointment(t, db, shop, f, withEmail)
+		if err == nil {
+			return id, email
+		}
+		if attempt == attempts || !strings.Contains(err.Error(), "SQLSTATE 23P01") {
+			t.Fatalf("seedAppointment: %v", err)
+		}
+	}
+}
+
+func insertSeedAppointment(t *testing.T, db *database.DB, shop database.BarbershopID, f shopFixture, withEmail bool) (id, email string, err error) {
+	t.Helper()
 	b := make([]byte, 3)
 	if _, err := rand.Read(b); err != nil {
-		t.Fatal(err)
+		return "", "", err
 	}
 	offsetMinutes := int(b[0])<<16 | int(b[1])<<8 | int(b[2]) // hasta ~16,7 M de minutos
 	offsetMinutes %= 365 * 24 * 60
-	err := db.InTenantTx(context.Background(), shop, func(ctx context.Context, q database.Queries) error {
+	err = db.InTenantTx(context.Background(), shop, func(ctx context.Context, q database.Queries) error {
 		var customerID string
 		var emailArg *string
 		if withEmail {
@@ -136,10 +153,7 @@ func seedAppointment(t *testing.T, db *database.DB, shop database.BarbershopID, 
 			 RETURNING id::text`,
 			string(shop), f.barberID, f.serviceID, customerID, start).Scan(&id)
 	})
-	if err != nil {
-		t.Fatalf("seedAppointment: %v", err)
-	}
-	return id, email
+	return id, email, err
 }
 
 func enqueue(t *testing.T, db *database.DB, shop database.BarbershopID, appointmentID, kind string) {
@@ -594,8 +608,7 @@ func TestReminder_IsDueThirtyMinutesBeforeAndCoexistsWithAChangeNotice(t *testin
 func TestReminder_IsNotScheduledWhenThereIsNothingToRemind(t *testing.T) {
 	app := appDB(t)
 
-	soon, _ := seedAppointment(t, app, shopA, true)
-	setStart(t, app, shopA, soon, time.Now().UTC().Add(10*time.Minute), "confirmed")
+	soon := nearAppointment(t, app, shopA, 10*time.Minute)
 	enqueueReminder(t, app, shopA, soon)
 	if _, n := reminderRunAt(t, app, shopA, soon); n != 0 {
 		t.Fatal("un turno a menos de 30 minutos no genera recordatorio")
