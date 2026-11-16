@@ -4,6 +4,16 @@ Formato basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/).
 Ver [`docs/06-api/estandar-openapi.md`](../../docs/06-api/estandar-openapi.md)
 sección 18 para qué cuenta como cambio compatible o incompatible.
 
+## 0.52.0 · 2026-11-15
+
+### Agregado
+
+- `GET /public/barbershops/{slug}` devuelve `brandAccent` (`DEC-171`): la
+  clave del color de acento que la barbería eligió en Configuración, la misma
+  enumeración cerrada `BrandAccent` de `/private/settings/brand`. La reserva
+  pública de esa barbería pinta con ella sus acentos. Siempre presente.
+  Compatible: un cliente que ignora el campo se comporta como antes.
+
 ## 0.51.0 · 2026-11-15
 
 ### Agregado

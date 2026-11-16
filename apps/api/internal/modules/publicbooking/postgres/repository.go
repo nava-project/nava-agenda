@@ -68,7 +68,7 @@ func (r *Repository) ResolveBySlug(ctx context.Context, slug string) (publicbook
 			        business_term, business_term_gender,
 			        professional_term, professional_term_plural, professional_term_gender,
 			        has_physical_location, address, latitude, longitude, offers_home_service,
-			        google_place_id
+			        google_place_id, brand_accent
 			   FROM barbershop
 			  WHERE id = $1`,
 			string(barbershopID),
@@ -78,7 +78,7 @@ func (r *Repository) ResolveBySlug(ctx context.Context, slug string) (publicbook
 			&profile.Vocabulary.ProfessionalTerm, &profile.Vocabulary.ProfessionalTermPlural,
 			&profile.Vocabulary.ProfessionalTermGender,
 			&hasPhysicalLocation, &address, &latitude, &longitude, &profile.OffersHomeService,
-			&profile.GooglePlaceID,
+			&profile.GooglePlaceID, &profile.BrandAccent,
 		)
 		switch {
 		case err == nil:

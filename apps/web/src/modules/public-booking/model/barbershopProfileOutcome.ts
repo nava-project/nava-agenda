@@ -6,7 +6,7 @@
 // formado, desconocido o no publicable llegan TODOS como `not-found`
 // (CA-090-02), nunca distinguidos.
 
-import type { VocabularyTerms } from '@/shared/model'
+import type { BrandAccentKey, VocabularyTerms } from '@/shared/model'
 
 /** Contexto público mínimo de una barbería habilitada (CA-090-01,
  * CA-090-04). contactEmail/contactPhone son `null` cuando la barbería no
@@ -32,6 +32,8 @@ export interface PublicBarbershopProfile {
   location: PublicBarbershopLocation | null
   /** Si la barbería atiende a domicilio (DEC-131, HU-103). */
   offersHomeService: boolean
+  /** Color de marca que la barbería eligió en Configuración (DEC-171). */
+  brandAccent: BrandAccentKey
 }
 
 /** Resultado discriminado de resolver un enlace público contra el API

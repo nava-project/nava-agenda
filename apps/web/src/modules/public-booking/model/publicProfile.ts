@@ -10,11 +10,12 @@
 // No es estado de negocio: solo las palabras ya públicas del último perfil leído
 // por enlace, que el cascarón vuelve a pedir cada vez que se abre.
 import { reactive } from 'vue'
-import type { VocabularyTerms } from '@/shared/model'
+import type { BrandAccentKey, VocabularyTerms } from '@/shared/model'
 import { resolveBarbershop } from '../api/resolveBarbershopApi'
 import type { ResolveBarbershopOutcome } from './barbershopProfileOutcome'
 
 const termsBySlug = reactive<Record<string, VocabularyTerms>>({})
+const accentBySlug = reactive<Record<string, BrandAccentKey>>({})
 const inFlight = new Map<string, Promise<ResolveBarbershopOutcome>>()
 
 /** Resuelve el enlace; llamadas simultáneas para el mismo enlace comparten una sola petición. */
@@ -23,7 +24,10 @@ export function loadPublicProfile(slug: string): Promise<ResolveBarbershopOutcom
   if (pending) return pending
   const request = resolveBarbershop(slug)
     .then((outcome) => {
-      if (outcome.kind === 'success') termsBySlug[slug] = outcome.profile.vocabulary
+      if (outcome.kind === 'success') {
+        termsBySlug[slug] = outcome.profile.vocabulary
+        accentBySlug[slug] = outcome.profile.brandAccent
+      }
       return outcome
     })
     .finally(() => inFlight.delete(slug))
@@ -36,8 +40,14 @@ export function publicTermsFor(slug: string): VocabularyTerms | null {
   return termsBySlug[slug] ?? null
 }
 
+/** Color de marca de la barbería del enlace (DEC-171), o `null` si aún no se leyó. */
+export function publicAccentFor(slug: string): BrandAccentKey | null {
+  return accentBySlug[slug] ?? null
+}
+
 /** Solo para pruebas: olvida lo leído. */
 export function resetPublicProfileCache(): void {
   for (const key of Object.keys(termsBySlug)) delete termsBySlug[key]
+  for (const key of Object.keys(accentBySlug)) delete accentBySlug[key]
   inFlight.clear()
 }
