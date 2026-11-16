@@ -712,14 +712,40 @@ describe('SettingsPage', () => {
 
     // DEC-170: con el local activado siempre hay buscador y mapa con pin, aunque la
     // dirección aún no tenga coordenadas; apagado, solo se recuerda el punto guardado.
-    it('shows the place search and the pin map whenever the local is on, even without coordinates', async () => {
+    it('the address field is the place search, and the pin map shows whenever the local is on, even without coordinates', async () => {
       for (const location of [savedLocation, DEFAULT_LOCATION]) {
         const wrapper = await mountWithLocation(location)
-        const picker = wrapper.get('#configuracion-ubicacion .settings-location-picker')
-        expect(picker.text()).toContain('Busca tu local por nombre o dirección')
-        expect(picker.text()).toContain('Ubicación en el mapa')
+        const panel = wrapper.get('#configuracion-ubicacion')
+        // Un solo campo de dirección, que también busca (sin un segundo buscador).
+        expect(panel.findAll('input[name="address"][role="combobox"]')).toHaveLength(1)
+        expect(panel.text()).not.toContain('Busca tu local')
+        expect(panel.get('.settings-location-picker').text()).toContain('Ubicación en el mapa')
         wrapper.unmount()
       }
+    })
+
+    it('choosing a suggestion in the address field writes it and sends its point (DEC-170)', async () => {
+      const wrapper = await mountWithLocation(DEFAULT_LOCATION)
+      saveBrandMock.mockImplementationOnce(async (brand) => ({
+        kind: 'success',
+        brand,
+        location: { ...savedLocation },
+      }))
+
+      await wrapper.get('input[name="address"]').setValue('Vibras Barbería')
+      await new Promise((resolve) => setTimeout(resolve, 400))
+      await settle()
+      await wrapper.findAll('#configuracion-ubicacion [role="option"]')[0]!.trigger('click')
+      await settle()
+
+      const chosen = (wrapper.get('input[name="address"]').element as HTMLInputElement).value
+      expect(chosen).not.toBe('Vibras Barbería')
+      await submit(wrapper)
+      const sent = saveBrandMock.mock.calls[0]![1]
+      expect(sent.address).toBe(chosen)
+      expect(typeof sent.latitude).toBe('number')
+      expect(typeof sent.longitude).toBe('number')
+      wrapper.unmount()
     })
 
     it('with the local off, hides the pin map and only previews the saved point', async () => {
