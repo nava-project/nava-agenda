@@ -110,9 +110,11 @@ ssh barberia-vps 'sudo docker stats --no-stream'                      # consumo 
 
 - **Apagar el despliegue automático:** *Barbería → Deploy → Disable Project* (el CI sigue corriendo).
 - **Reintentar o volver atrás:** *Barbería → Deploy → Build with Parameters* con el SHA de `main`.
-- **Recursos:** el controlador tiene 1,5 CPU y 1,5 GB; los checks, prioridad de CPU baja y límites
-  propios (Go 2 CPU/3 GB, web 1,5/2 GB, SQL 1/1 GB, PostgreSQL 1/768 MB). Las imágenes se construyen
-  tras los checks, no en paralelo con ellos.
+- **Recursos:** el controlador tiene 1,5 CPU y 1,5 GB. Los checks corren con prioridad de CPU baja
+  (`--cpu-shares 512`, la producción tiene 1024) y memoria acotada (Go y web 3 GB, el resto 1 GB,
+  PostgreSQL 768 MB), sin cuota fija de CPU: Node y Go dimensionan sus hilos por los núcleos del host
+  y una cuota los estrangula. El frontend corre después de Go, no a la vez, y las imágenes después de
+  los checks.
 - **Disco:** `JENKINS_HOME` (workspaces con `node_modules`), el volumen `nava-ci-cache` (módulos de
   Go y pnpm) y la caché de BuildKit. `vps/mantenimiento` limpia lo de más de 7 días.
 

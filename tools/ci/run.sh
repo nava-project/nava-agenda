@@ -12,8 +12,10 @@
 #                 su espacio de red: la base queda en localhost:5432 (postgres/postgres),
 #                 igual que el `services: postgres` que usaba GitHub Actions.
 #
-# Los checks corren con baja prioridad de CPU (--cpu-shares 512 frente a 1024 de la
-# producción) y con límites propios, porque comparten la VPS con los servicios en vivo.
+# Los checks comparten la VPS con la producción: corren con prioridad de CPU baja
+# (--cpu-shares 512 frente a 1024 de los servicios en vivo) y con memoria acotada. Sin
+# cuota fija de CPU (--cpus): Node y Go dimensionan sus hilos por los núcleos del host, y
+# una cuota menor los estrangula (las pruebas de vitest agotaban su timeout de 5 s).
 set -euo pipefail
 
 root="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
@@ -33,10 +35,9 @@ if [ "$check" = image ]; then build_image; exit 0; fi
 build_image
 
 case "$check" in
-  go)       limits=(--cpus 2 --memory 3g) ;;
-  web)      limits=(--cpus 1.5 --memory 2g) ;;
-  database) limits=(--cpus 1 --memory 1g) ;;
-  *)        limits=(--cpus 1 --memory 1g) ;;
+  go)  limits=(--memory 3g) ;;
+  web) limits=(--memory 3g) ;;
+  *)   limits=(--memory 1g) ;;
 esac
 
 # Nombre único por ejecución: BUILD_TAG lo da Jenkins (p. ej. jenkins-barberia-ci-main-12).
@@ -48,7 +49,7 @@ trap 'exit 143' INT TERM
 net=()
 if [ "$postgres" = 1 ]; then
   docker run -d --name "$name-pg" --label nava-ci=1 \
-    --cpu-shares 512 --cpus 1 --memory 768m \
+    --cpu-shares 512 --memory 768m \
     --tmpfs /var/lib/postgresql/data \
     -e POSTGRES_PASSWORD=postgres \
     postgres:14 >/dev/null

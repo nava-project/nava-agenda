@@ -30,9 +30,6 @@ pipeline {
         stage('OpenAPI (lint + bundle)') {
           steps { sh 'tools/ci/run.sh openapi' }
         }
-        stage('Frontend (lint, tipos, pruebas, build)') {
-          steps { sh 'tools/ci/run.sh web' }
-        }
         stage('Atlas + suites SQL contra el esquema aplicado') {
           steps { sh 'tools/ci/run.sh database --postgres' }
         }
@@ -43,6 +40,12 @@ pipeline {
           }
         }
       }
+    }
+
+    // Aparte de Go: vitest y `go test -race` usan todos los núcleos y, juntos, las pruebas
+    // de componentes con axe agotaban su timeout.
+    stage('Frontend (lint, tipos, pruebas, build)') {
+      steps { sh 'tools/ci/run.sh web' }
     }
 
     // Después de los checks y no en paralelo: BuildKit no hereda la prioridad baja de
