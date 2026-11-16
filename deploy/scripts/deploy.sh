@@ -72,6 +72,10 @@ if [ "$(get APP_META_WHATSAPP_MODE "$ENV_DIR/app.env")" != text ]; then
   [ -n "$(get APP_META_WHATSAPP_TEMPLATE_NAME "$ENV_DIR/app.env")" ] \
     || fail "APP_META_WHATSAPP_TEMPLATE_NAME está vacío en $ENV_DIR/app.env"
 fi
+# Red compartida con otros proyectos de la VPS (DEC-176). Es externa a esta pila: se crea
+# si falta y nunca se borra aquí, porque otras pilas pueden estar usándola.
+docker network inspect edge >/dev/null 2>&1 || docker network create edge >/dev/null \
+  || fail "no se pudo crear la red edge"
 "${compose[@]}" config -q || fail "compose.yaml no es válido con los entornos actuales"
 
 # --- 1b. Imágenes -----------------------------------------------------------
