@@ -241,7 +241,11 @@ function onReloadAfterConflict() {
 <template>
   <section class="booking-policy-page" aria-labelledby="booking-policy-page-title">
     <header class="booking-policy-page__header">
-      <h1 v-if="isEmployeeProfile" id="booking-policy-page-title" class="booking-policy-page__title">
+      <h1
+        v-if="isEmployeeProfile"
+        id="booking-policy-page-title"
+        class="booking-policy-page__title"
+      >
         Mi reserva
       </h1>
       <h1

@@ -381,7 +381,8 @@ async function onToggleService(service: ServiceSummary, event: Event) {
         }}</template>
         <template #hint>
           <template v-if="isEmployeeProfile">
-            Pídele {{ v.toTheBusiness }} que vincule tu usuario con tu perfil de {{ v.professional }}.
+            Pídele {{ v.toTheBusiness }} que vincule tu usuario con tu perfil de
+            {{ v.professional }}.
           </template>
           <template v-else>
             Agrega {{ v.oneProfessional }} en la sección

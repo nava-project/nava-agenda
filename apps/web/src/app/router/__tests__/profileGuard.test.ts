@@ -25,12 +25,9 @@ describe('profileRedirect (DEC-115)', () => {
     'agenda-nuevo-turno',
     'barber-services',
     'configuracion-reserva-publica',
-  ])(
-    'keeps «%s» available for the employee profile',
-    (name) => {
-      expect(profileRedirect({ name }, 'employee')).toBeNull()
-    },
-  )
+  ])('keeps «%s» available for the employee profile', (name) => {
+    expect(profileRedirect({ name }, 'employee')).toBeNull()
+  })
 
   it('leaves every route alone in the full panel', () => {
     expect(profileRedirect({ name: 'barber-services' }, 'shop')).toBeNull()

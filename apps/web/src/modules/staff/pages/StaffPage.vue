@@ -962,7 +962,11 @@ async function onSubmitRename() {
              scroll, junto al dato que cambia. Así la ficha no pierde altura en el
              pie y, si en una pantalla baja se vuelve desplazable, la región ya
              contiene un control enfocable (axe: scrollable-region-focusable). -->
-        <div v-if="myBarberKnown && !isEmployeeProfile" class="staff-page__link" :style="{ '--row-index': 3 }">
+        <div
+          v-if="myBarberKnown && !isEmployeeProfile"
+          class="staff-page__link"
+          :style="{ '--row-index': 3 }"
+        >
           <div class="staff-page__link-text">
             <span class="staff-page__link-label">Tu usuario</span>
             <span class="staff-page__link-state">{{

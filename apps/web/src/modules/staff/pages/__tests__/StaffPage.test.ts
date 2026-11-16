@@ -1189,7 +1189,10 @@ describe('StaffPage', () => {
 
     it('is the card of their own barber, with Google Calendar and without team controls', async () => {
       setBrand(employee)
-      fetchMyBarberMock.mockResolvedValue({ kind: 'linked', barber: barber('b-1', 'Carlos Ramírez') })
+      fetchMyBarberMock.mockResolvedValue({
+        kind: 'linked',
+        barber: barber('b-1', 'Carlos Ramírez'),
+      })
       const wrapper = await mountReady()
 
       expect(wrapper.get('h1').text()).toBe('Mi perfil')
