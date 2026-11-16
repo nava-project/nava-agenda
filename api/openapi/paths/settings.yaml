@@ -80,6 +80,8 @@
         $ref: '../components/responses/InvalidRequestProblem.yaml'
       "401":
         $ref: '../components/responses/UnauthorizedProblem.yaml'
+      "403":
+        $ref: '../components/responses/ForbiddenProblem.yaml'
       "404":
         $ref: '../components/responses/NotFoundProblem.yaml'
       "422":
@@ -163,6 +165,8 @@
         $ref: '../components/responses/InvalidRequestProblem.yaml'
       "401":
         $ref: '../components/responses/UnauthorizedProblem.yaml'
+      "403":
+        $ref: '../components/responses/ForbiddenProblem.yaml'
       "404":
         $ref: '../components/responses/NotFoundProblem.yaml'
       "409":
@@ -197,7 +201,8 @@
     summary: Listar las ventanas de reserva propias de los barberos
     description: >
       Lectura autenticada (DEC-169) de las ventanas de reserva públicas
-      propias de los barberos de la barbería de la sesión: anticipación
+      propias de los barberos de la barbería de la sesión (para una cuenta de
+      empleado, `DEC-173`, solo la de su propio barbero): anticipación
       mínima, ventana máxima y rejilla. Un barbero que no aparece hereda la
       política de la barbería (`getBookingPolicy`), incluidos sus cambios
       futuros. El plazo y la política de cancelación no son por barbero.
@@ -263,6 +268,8 @@
         $ref: '../components/responses/InvalidRequestProblem.yaml'
       "401":
         $ref: '../components/responses/UnauthorizedProblem.yaml'
+      "403":
+        $ref: '../components/responses/ForbiddenProblem.yaml'
       "404":
         $ref: '../components/responses/NotFoundProblem.yaml'
       "422":
@@ -286,6 +293,8 @@
         $ref: '../components/responses/BarberBookingPolicyDeleted.yaml'
       "401":
         $ref: '../components/responses/UnauthorizedProblem.yaml'
+      "403":
+        $ref: '../components/responses/ForbiddenProblem.yaml'
       "404":
         $ref: '../components/responses/NotFoundProblem.yaml'
       "500":
@@ -391,6 +400,8 @@
         $ref: '../components/responses/InvalidRequestProblem.yaml'
       "401":
         $ref: '../components/responses/UnauthorizedProblem.yaml'
+      "403":
+        $ref: '../components/responses/ForbiddenProblem.yaml'
       "404":
         $ref: '../components/responses/NotFoundProblem.yaml'
       "422":
@@ -446,6 +457,8 @@
         $ref: '../components/responses/LoginOtpSettings.yaml'
       "401":
         $ref: '../components/responses/UnauthorizedProblem.yaml'
+      "403":
+        $ref: '../components/responses/ForbiddenProblem.yaml'
       "404":
         $ref: '../components/responses/NotFoundProblem.yaml'
       "500":
@@ -489,6 +502,8 @@
         $ref: '../components/responses/InvalidRequestProblem.yaml'
       "401":
         $ref: '../components/responses/UnauthorizedProblem.yaml'
+      "403":
+        $ref: '../components/responses/ForbiddenProblem.yaml'
       "404":
         $ref: '../components/responses/NotFoundProblem.yaml'
       "422":

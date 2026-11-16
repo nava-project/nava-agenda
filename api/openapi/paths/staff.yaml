@@ -14,7 +14,8 @@
       de respuesta: nunca una rama especial para "barbero único". Orden
       estable por fecha de alta y luego por identificador; sin paginación
       por offset porque la colección no tiene un máximo de negocio
-      aprobado.
+      aprobado. Para una cuenta de empleado (`DEC-173`) la lista contiene
+      solo su propio barbero, o ninguno si no tiene uno vinculado.
     operationId: listBarbers
     security:
       - SessionCookie: []
@@ -106,6 +107,8 @@
         $ref: '../components/responses/InvalidRequestProblem.yaml'
       "401":
         $ref: '../components/responses/UnauthorizedProblem.yaml'
+      "403":
+        $ref: '../components/responses/ForbiddenProblem.yaml'
       "409":
         description: >
           Conflicto de idempotencia (misma clave con otro contenido u otra
@@ -176,6 +179,8 @@
         $ref: '../components/responses/BarberSuccess.yaml'
       "401":
         $ref: '../components/responses/UnauthorizedProblem.yaml'
+      "403":
+        $ref: '../components/responses/ForbiddenProblem.yaml'
       "404":
         $ref: '../components/responses/NotFoundProblem.yaml'
       "500":
@@ -224,6 +229,8 @@
         $ref: '../components/responses/InvalidRequestProblem.yaml'
       "401":
         $ref: '../components/responses/UnauthorizedProblem.yaml'
+      "403":
+        $ref: '../components/responses/ForbiddenProblem.yaml'
       "404":
         $ref: '../components/responses/NotFoundProblem.yaml'
       "422":
@@ -283,6 +290,8 @@
         $ref: '../components/responses/PayloadTooLargeProblem.yaml'
       "401":
         $ref: '../components/responses/UnauthorizedProblem.yaml'
+      "403":
+        $ref: '../components/responses/ForbiddenProblem.yaml'
       "404":
         $ref: '../components/responses/NotFoundProblem.yaml'
       "422":
@@ -330,6 +339,8 @@
         $ref: '../components/responses/BarberPhotoNotModified.yaml'
       "401":
         $ref: '../components/responses/UnauthorizedProblem.yaml'
+      "403":
+        $ref: '../components/responses/ForbiddenProblem.yaml'
       "404":
         $ref: '../components/responses/NotFoundProblem.yaml'
       "500":
@@ -365,6 +376,8 @@
         $ref: '../components/responses/BarberPhotoDeleted.yaml'
       "401":
         $ref: '../components/responses/UnauthorizedProblem.yaml'
+      "403":
+        $ref: '../components/responses/ForbiddenProblem.yaml'
       "404":
         $ref: '../components/responses/NotFoundProblem.yaml'
       "500":
@@ -427,6 +440,8 @@
         $ref: '../components/responses/InvalidRequestProblem.yaml'
       "401":
         $ref: '../components/responses/UnauthorizedProblem.yaml'
+      "403":
+        $ref: '../components/responses/ForbiddenProblem.yaml'
       "404":
         $ref: '../components/responses/NotFoundProblem.yaml'
       "409":
@@ -450,6 +465,8 @@
         $ref: '../components/responses/MyBarberUnlinked.yaml'
       "401":
         $ref: '../components/responses/UnauthorizedProblem.yaml'
+      "403":
+        $ref: '../components/responses/ForbiddenProblem.yaml'
       "500":
         $ref: '../components/responses/InternalErrorProblem.yaml'
 
@@ -484,6 +501,8 @@
         $ref: '../components/responses/ReviewListSuccess.yaml'
       "401":
         $ref: '../components/responses/UnauthorizedProblem.yaml'
+      "403":
+        $ref: '../components/responses/ForbiddenProblem.yaml'
       "404":
         $ref: '../components/responses/NotFoundProblem.yaml'
       "500":
@@ -546,6 +565,8 @@
         $ref: '../components/responses/InvalidRequestProblem.yaml'
       "401":
         $ref: '../components/responses/UnauthorizedProblem.yaml'
+      "403":
+        $ref: '../components/responses/ForbiddenProblem.yaml'
       "404":
         $ref: '../components/responses/NotFoundProblem.yaml'
       "422":

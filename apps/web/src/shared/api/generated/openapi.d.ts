@@ -505,7 +505,7 @@ export interface paths {
         };
         /**
          * Listar las ventanas de reserva propias de los barberos
-         * @description Lectura autenticada (DEC-169) de las ventanas de reserva públicas propias de los barberos de la barbería de la sesión: anticipación mínima, ventana máxima y rejilla. Un barbero que no aparece hereda la política de la barbería (`getBookingPolicy`), incluidos sus cambios futuros. El plazo y la política de cancelación no son por barbero.
+         * @description Lectura autenticada (DEC-169) de las ventanas de reserva públicas propias de los barberos de la barbería de la sesión (para una cuenta de empleado, `DEC-173`, solo la de su propio barbero): anticipación mínima, ventana máxima y rejilla. Un barbero que no aparece hereda la política de la barbería (`getBookingPolicy`), incluidos sus cambios futuros. El plazo y la política de cancelación no son por barbero.
          */
         get: operations["listBarberBookingPolicies"];
         put?: never;
@@ -736,7 +736,7 @@ export interface paths {
         };
         /**
          * Listar los barberos de la barbería activa
-         * @description Lista paginada por cursor (HU-021, CA-021-01, CA-021-02) de los barberos de la barbería derivada de la sesión vigente. Una barbería unipersonal y una de cuatro barberos usan exactamente la misma forma de respuesta: nunca una rama especial para "barbero único". Orden estable por fecha de alta y luego por identificador; sin paginación por offset porque la colección no tiene un máximo de negocio aprobado.
+         * @description Lista paginada por cursor (HU-021, CA-021-01, CA-021-02) de los barberos de la barbería derivada de la sesión vigente. Una barbería unipersonal y una de cuatro barberos usan exactamente la misma forma de respuesta: nunca una rama especial para "barbero único". Orden estable por fecha de alta y luego por identificador; sin paginación por offset porque la colección no tiene un máximo de negocio aprobado. Para una cuenta de empleado (`DEC-173`) la lista contiene solo su propio barbero, o ninguno si no tiene uno vinculado.
          */
         get: operations["listBarbers"];
         put?: never;
@@ -4456,6 +4456,16 @@ export interface components {
             };
             content?: never;
         };
+        /** @description Tu cuenta no tiene permiso para esta operación. Una cuenta de empleado solo puede cambiar lo de su propio barbero (horarios, servicios que ofrece, ventana propia, perfil, agenda y turnos), no la configuración de la barbería. */
+        ForbiddenProblem: {
+            headers: {
+                "X-Request-Id": components["headers"]["XRequestId"];
+                [name: string]: unknown;
+            };
+            content: {
+                "application/problem+json": components["schemas"]["Problem"];
+            };
+        };
         /** @description Política pública de reserva y cancelación de la barbería activa. */
         BookingPolicySuccess: {
             headers: {
@@ -5741,6 +5751,7 @@ export interface operations {
             200: components["responses"]["BarbershopSettingsUpdated"];
             400: components["responses"]["InvalidRequestProblem"];
             401: components["responses"]["UnauthorizedProblem"];
+            403: components["responses"]["ForbiddenProblem"];
             404: components["responses"]["NotFoundProblem"];
             422: components["responses"]["BarbershopSettingsValidationProblem"];
             500: components["responses"]["InternalErrorProblem"];
@@ -5780,6 +5791,7 @@ export interface operations {
             200: components["responses"]["BookingPolicyUpdated"];
             400: components["responses"]["InvalidRequestProblem"];
             401: components["responses"]["UnauthorizedProblem"];
+            403: components["responses"]["ForbiddenProblem"];
             404: components["responses"]["NotFoundProblem"];
             /** @description El `If-Match` enviado ya no coincide con la representación vigente porque otra escritura tocó la barbería primero (`code: version-conflict`). */
             409: {
@@ -5828,6 +5840,7 @@ export interface operations {
             200: components["responses"]["BarberBookingPolicySaved"];
             400: components["responses"]["InvalidRequestProblem"];
             401: components["responses"]["UnauthorizedProblem"];
+            403: components["responses"]["ForbiddenProblem"];
             404: components["responses"]["NotFoundProblem"];
             422: components["responses"]["BarberBookingPolicyValidationProblem"];
             500: components["responses"]["InternalErrorProblem"];
@@ -5847,6 +5860,7 @@ export interface operations {
         responses: {
             204: components["responses"]["BarberBookingPolicyDeleted"];
             401: components["responses"]["UnauthorizedProblem"];
+            403: components["responses"]["ForbiddenProblem"];
             404: components["responses"]["NotFoundProblem"];
             500: components["responses"]["InternalErrorProblem"];
         };
@@ -5882,6 +5896,7 @@ export interface operations {
             200: components["responses"]["BrandUpdated"];
             400: components["responses"]["InvalidRequestProblem"];
             401: components["responses"]["UnauthorizedProblem"];
+            403: components["responses"]["ForbiddenProblem"];
             404: components["responses"]["NotFoundProblem"];
             422: components["responses"]["BrandValidationProblem"];
             500: components["responses"]["InternalErrorProblem"];
@@ -5913,6 +5928,7 @@ export interface operations {
         responses: {
             200: components["responses"]["LoginOtpSettings"];
             401: components["responses"]["UnauthorizedProblem"];
+            403: components["responses"]["ForbiddenProblem"];
             404: components["responses"]["NotFoundProblem"];
             500: components["responses"]["InternalErrorProblem"];
         };
@@ -5933,6 +5949,7 @@ export interface operations {
             200: components["responses"]["LoginOtpSettings"];
             400: components["responses"]["InvalidRequestProblem"];
             401: components["responses"]["UnauthorizedProblem"];
+            403: components["responses"]["ForbiddenProblem"];
             404: components["responses"]["NotFoundProblem"];
             422: components["responses"]["LoginOtpValidationProblem"];
             500: components["responses"]["InternalErrorProblem"];
@@ -6069,6 +6086,7 @@ export interface operations {
             200: components["responses"]["BarberUpdated"];
             400: components["responses"]["InvalidRequestProblem"];
             401: components["responses"]["UnauthorizedProblem"];
+            403: components["responses"]["ForbiddenProblem"];
             404: components["responses"]["NotFoundProblem"];
             409: components["responses"]["MyBarberLinkConflictProblem"];
             500: components["responses"]["InternalErrorProblem"];
@@ -6085,6 +6103,7 @@ export interface operations {
         responses: {
             204: components["responses"]["MyBarberUnlinked"];
             401: components["responses"]["UnauthorizedProblem"];
+            403: components["responses"]["ForbiddenProblem"];
             500: components["responses"]["InternalErrorProblem"];
         };
     };
@@ -6131,6 +6150,7 @@ export interface operations {
             201: components["responses"]["BarberCreated"];
             400: components["responses"]["InvalidRequestProblem"];
             401: components["responses"]["UnauthorizedProblem"];
+            403: components["responses"]["ForbiddenProblem"];
             /** @description Conflicto de idempotencia (misma clave con otro contenido u otra operación, `IdempotencyConflictProblem`) u operación en curso con la misma clave (`IdempotencyLockedProblem`, DEC-043). Mismos dos problem types reutilizables que HU-004 ya documenta; ver esos componentes para la forma completa de cada uno. */
             409: {
                 headers: {
@@ -6159,6 +6179,7 @@ export interface operations {
         responses: {
             200: components["responses"]["BarberSuccess"];
             401: components["responses"]["UnauthorizedProblem"];
+            403: components["responses"]["ForbiddenProblem"];
             404: components["responses"]["NotFoundProblem"];
             500: components["responses"]["InternalErrorProblem"];
         };
@@ -6182,6 +6203,7 @@ export interface operations {
             200: components["responses"]["BarberUpdated"];
             400: components["responses"]["InvalidRequestProblem"];
             401: components["responses"]["UnauthorizedProblem"];
+            403: components["responses"]["ForbiddenProblem"];
             404: components["responses"]["NotFoundProblem"];
             422: components["responses"]["BarberValidationProblem"];
             500: components["responses"]["InternalErrorProblem"];
@@ -6205,6 +6227,7 @@ export interface operations {
             200: components["responses"]["BarberPhotoSuccess"];
             304: components["responses"]["BarberPhotoNotModified"];
             401: components["responses"]["UnauthorizedProblem"];
+            403: components["responses"]["ForbiddenProblem"];
             404: components["responses"]["NotFoundProblem"];
             500: components["responses"]["InternalErrorProblem"];
         };
@@ -6230,6 +6253,7 @@ export interface operations {
             200: components["responses"]["BarberPhotoUpdated"];
             400: components["responses"]["PayloadTooLargeProblem"];
             401: components["responses"]["UnauthorizedProblem"];
+            403: components["responses"]["ForbiddenProblem"];
             404: components["responses"]["NotFoundProblem"];
             422: components["responses"]["BarberPhotoValidationProblem"];
             500: components["responses"]["InternalErrorProblem"];
@@ -6249,6 +6273,7 @@ export interface operations {
         responses: {
             204: components["responses"]["BarberPhotoDeleted"];
             401: components["responses"]["UnauthorizedProblem"];
+            403: components["responses"]["ForbiddenProblem"];
             404: components["responses"]["NotFoundProblem"];
             500: components["responses"]["InternalErrorProblem"];
         };
@@ -6267,6 +6292,7 @@ export interface operations {
         responses: {
             200: components["responses"]["ReviewListSuccess"];
             401: components["responses"]["UnauthorizedProblem"];
+            403: components["responses"]["ForbiddenProblem"];
             404: components["responses"]["NotFoundProblem"];
             500: components["responses"]["InternalErrorProblem"];
         };
@@ -6292,6 +6318,7 @@ export interface operations {
             200: components["responses"]["ReviewUpdated"];
             400: components["responses"]["InvalidRequestProblem"];
             401: components["responses"]["UnauthorizedProblem"];
+            403: components["responses"]["ForbiddenProblem"];
             404: components["responses"]["NotFoundProblem"];
             422: components["responses"]["ValidationProblem"];
             500: components["responses"]["InternalErrorProblem"];
@@ -6338,6 +6365,7 @@ export interface operations {
             201: components["responses"]["ServiceCreated"];
             400: components["responses"]["InvalidRequestProblem"];
             401: components["responses"]["UnauthorizedProblem"];
+            403: components["responses"]["ForbiddenProblem"];
             /** @description Conflicto de idempotencia (misma clave con otro contenido u otra operación, `IdempotencyConflictProblem`), operación en curso con la misma clave (`IdempotencyLockedProblem`, DEC-043), o nombre ya usado por otro servicio activo de la misma barbería (`ServiceConflictProblem`, DEC-067). Los tres problem types comparten status pero tienen `code` distinto: el cliente decide por `code`, nunca por `detail`. */
             409: {
                 headers: {
@@ -6389,6 +6417,7 @@ export interface operations {
             200: components["responses"]["ServiceUpdated"];
             400: components["responses"]["InvalidRequestProblem"];
             401: components["responses"]["UnauthorizedProblem"];
+            403: components["responses"]["ForbiddenProblem"];
             404: components["responses"]["NotFoundProblem"];
             409: components["responses"]["ServiceConflictProblem"];
             422: components["responses"]["ServiceValidationProblem"];
@@ -6415,6 +6444,7 @@ export interface operations {
             200: components["responses"]["AssignmentListSuccess"];
             400: components["responses"]["InvalidRequestProblem"];
             401: components["responses"]["UnauthorizedProblem"];
+            403: components["responses"]["ForbiddenProblem"];
             404: components["responses"]["NotFoundProblem"];
             500: components["responses"]["InternalErrorProblem"];
         };
@@ -6436,6 +6466,7 @@ export interface operations {
             200: components["responses"]["AssignmentAssigned"];
             201: components["responses"]["AssignmentAssigned"];
             401: components["responses"]["UnauthorizedProblem"];
+            403: components["responses"]["ForbiddenProblem"];
             404: components["responses"]["NotFoundProblem"];
             500: components["responses"]["InternalErrorProblem"];
         };
@@ -6456,6 +6487,7 @@ export interface operations {
         responses: {
             204: components["responses"]["AssignmentUnassigned"];
             401: components["responses"]["UnauthorizedProblem"];
+            403: components["responses"]["ForbiddenProblem"];
             404: components["responses"]["NotFoundProblem"];
             500: components["responses"]["InternalErrorProblem"];
         };
@@ -6474,6 +6506,7 @@ export interface operations {
         responses: {
             200: components["responses"]["ServiceDeactivationImpact"];
             401: components["responses"]["UnauthorizedProblem"];
+            403: components["responses"]["ForbiddenProblem"];
             404: components["responses"]["NotFoundProblem"];
             500: components["responses"]["InternalErrorProblem"];
         };
@@ -6496,6 +6529,7 @@ export interface operations {
             200: components["responses"]["ServiceDeactivated"];
             400: components["responses"]["InvalidRequestProblem"];
             401: components["responses"]["UnauthorizedProblem"];
+            403: components["responses"]["ForbiddenProblem"];
             404: components["responses"]["NotFoundProblem"];
             /** @description Conflicto de idempotencia (misma clave con otra operación, `IdempotencyConflictProblem`), operación en curso con la misma clave (`IdempotencyLockedProblem`, DEC-043), o el servicio ya está inactivo (`ServiceTransitionConflictProblem`). Los tres problem types comparten status pero tienen `code` distinto: el cliente decide por `code`, nunca por `detail`. */
             409: {
@@ -6528,6 +6562,7 @@ export interface operations {
             200: components["responses"]["ServiceReactivated"];
             400: components["responses"]["InvalidRequestProblem"];
             401: components["responses"]["UnauthorizedProblem"];
+            403: components["responses"]["ForbiddenProblem"];
             404: components["responses"]["NotFoundProblem"];
             /** @description Conflicto de idempotencia (misma clave con otra operación, `IdempotencyConflictProblem`), operación en curso con la misma clave (`IdempotencyLockedProblem`, DEC-043), o el servicio ya está activo (`ServiceTransitionConflictProblem`). Los tres problem types comparten status pero tienen `code` distinto: el cliente decide por `code`, nunca por `detail`. */
             409: {
@@ -6562,6 +6597,7 @@ export interface operations {
             200: components["responses"]["WorkingHourListSuccess"];
             400: components["responses"]["InvalidRequestProblem"];
             401: components["responses"]["UnauthorizedProblem"];
+            403: components["responses"]["ForbiddenProblem"];
             404: components["responses"]["NotFoundProblem"];
             500: components["responses"]["InternalErrorProblem"];
         };
@@ -6588,6 +6624,7 @@ export interface operations {
             201: components["responses"]["WorkingHourCreated"];
             400: components["responses"]["InvalidRequestProblem"];
             401: components["responses"]["UnauthorizedProblem"];
+            403: components["responses"]["ForbiddenProblem"];
             404: components["responses"]["NotFoundProblem"];
             /** @description Conflicto de idempotencia (misma clave con otro contenido u otra operación, `IdempotencyConflictProblem`), operación en curso con la misma clave (`IdempotencyLockedProblem`, DEC-043), o solape/ repetición de hora de inicio con otro tramo del mismo barbero y día (`WorkingHourConflictProblem`). Los problem types comparten status pero tienen `code` distinto: el cliente decide por `code`, nunca por `detail`. */
             409: {
@@ -6619,6 +6656,7 @@ export interface operations {
         responses: {
             200: components["responses"]["WorkingHourSuccess"];
             401: components["responses"]["UnauthorizedProblem"];
+            403: components["responses"]["ForbiddenProblem"];
             404: components["responses"]["NotFoundProblem"];
             500: components["responses"]["InternalErrorProblem"];
         };
@@ -6639,6 +6677,7 @@ export interface operations {
         responses: {
             204: components["responses"]["WorkingHourDeleted"];
             401: components["responses"]["UnauthorizedProblem"];
+            403: components["responses"]["ForbiddenProblem"];
             404: components["responses"]["NotFoundProblem"];
             500: components["responses"]["InternalErrorProblem"];
         };
@@ -6664,6 +6703,7 @@ export interface operations {
             200: components["responses"]["WorkingHourUpdated"];
             400: components["responses"]["InvalidRequestProblem"];
             401: components["responses"]["UnauthorizedProblem"];
+            403: components["responses"]["ForbiddenProblem"];
             404: components["responses"]["NotFoundProblem"];
             409: components["responses"]["WorkingHourConflictProblem"];
             422: components["responses"]["WorkingHourValidationProblem"];
@@ -6684,6 +6724,7 @@ export interface operations {
         responses: {
             200: components["responses"]["HolidayCalendarSuccess"];
             401: components["responses"]["UnauthorizedProblem"];
+            403: components["responses"]["ForbiddenProblem"];
             404: components["responses"]["NotFoundProblem"];
             500: components["responses"]["InternalErrorProblem"];
         };
@@ -6707,6 +6748,7 @@ export interface operations {
             200: components["responses"]["HolidayCalendarUpdated"];
             400: components["responses"]["InvalidRequestProblem"];
             401: components["responses"]["UnauthorizedProblem"];
+            403: components["responses"]["ForbiddenProblem"];
             404: components["responses"]["NotFoundProblem"];
             500: components["responses"]["InternalErrorProblem"];
         };
@@ -6731,6 +6773,7 @@ export interface operations {
             200: components["responses"]["ScheduleExceptionListSuccess"];
             400: components["responses"]["InvalidRequestProblem"];
             401: components["responses"]["UnauthorizedProblem"];
+            403: components["responses"]["ForbiddenProblem"];
             404: components["responses"]["NotFoundProblem"];
             500: components["responses"]["InternalErrorProblem"];
         };
@@ -6757,6 +6800,7 @@ export interface operations {
             201: components["responses"]["ScheduleExceptionCreated"];
             400: components["responses"]["InvalidRequestProblem"];
             401: components["responses"]["UnauthorizedProblem"];
+            403: components["responses"]["ForbiddenProblem"];
             404: components["responses"]["NotFoundProblem"];
             /** @description Conflicto de idempotencia (misma clave con otro contenido u otra operación, `IdempotencyConflictProblem`), operación en curso con la misma clave (`IdempotencyLockedProblem`, DEC-043), o fecha duplicada/tramos solapados (`ScheduleExceptionConflictProblem`). Los problem types comparten status pero tienen `code` distinto: el cliente decide por `code`, nunca por `detail`. */
             409: {
@@ -6788,6 +6832,7 @@ export interface operations {
         responses: {
             200: components["responses"]["ScheduleExceptionSuccess"];
             401: components["responses"]["UnauthorizedProblem"];
+            403: components["responses"]["ForbiddenProblem"];
             404: components["responses"]["NotFoundProblem"];
             500: components["responses"]["InternalErrorProblem"];
         };
@@ -6808,6 +6853,7 @@ export interface operations {
         responses: {
             204: components["responses"]["ScheduleExceptionDeleted"];
             401: components["responses"]["UnauthorizedProblem"];
+            403: components["responses"]["ForbiddenProblem"];
             404: components["responses"]["NotFoundProblem"];
             500: components["responses"]["InternalErrorProblem"];
         };
@@ -6833,6 +6879,7 @@ export interface operations {
             200: components["responses"]["ScheduleExceptionUpdated"];
             400: components["responses"]["InvalidRequestProblem"];
             401: components["responses"]["UnauthorizedProblem"];
+            403: components["responses"]["ForbiddenProblem"];
             404: components["responses"]["NotFoundProblem"];
             409: components["responses"]["ScheduleExceptionConflictProblem"];
             422: components["responses"]["ScheduleExceptionValidationProblem"];
@@ -6876,6 +6923,7 @@ export interface operations {
             200: components["responses"]["TimeBlockListSuccess"];
             400: components["responses"]["InvalidRequestProblem"];
             401: components["responses"]["UnauthorizedProblem"];
+            403: components["responses"]["ForbiddenProblem"];
             404: components["responses"]["NotFoundProblem"];
             500: components["responses"]["InternalErrorProblem"];
         };
@@ -6901,6 +6949,7 @@ export interface operations {
             201: components["responses"]["TimeBlockCreated"];
             400: components["responses"]["InvalidRequestProblem"];
             401: components["responses"]["UnauthorizedProblem"];
+            403: components["responses"]["ForbiddenProblem"];
             404: components["responses"]["NotFoundProblem"];
             /** @description Conflicto de idempotencia: misma clave con otro contenido (`IdempotencyConflictProblem`) u operación en curso con la misma clave (`IdempotencyLockedProblem`, DEC-043). Un bloqueo puntual nunca produce un 409 de negocio (RN-BLQ-03): siempre se crea. */
             409: {
@@ -6935,6 +6984,7 @@ export interface operations {
             200: components["responses"]["EffectiveBlocksSuccess"];
             400: components["responses"]["InvalidRequestProblem"];
             401: components["responses"]["UnauthorizedProblem"];
+            403: components["responses"]["ForbiddenProblem"];
             404: components["responses"]["NotFoundProblem"];
             500: components["responses"]["InternalErrorProblem"];
         };
@@ -6953,6 +7003,7 @@ export interface operations {
         responses: {
             200: components["responses"]["TimeBlockSuccess"];
             401: components["responses"]["UnauthorizedProblem"];
+            403: components["responses"]["ForbiddenProblem"];
             404: components["responses"]["NotFoundProblem"];
             500: components["responses"]["InternalErrorProblem"];
         };
@@ -6971,6 +7022,7 @@ export interface operations {
         responses: {
             204: components["responses"]["TimeBlockDeleted"];
             401: components["responses"]["UnauthorizedProblem"];
+            403: components["responses"]["ForbiddenProblem"];
             404: components["responses"]["NotFoundProblem"];
             500: components["responses"]["InternalErrorProblem"];
         };
@@ -6993,6 +7045,7 @@ export interface operations {
             200: components["responses"]["TimeBlockSeriesListSuccess"];
             400: components["responses"]["InvalidRequestProblem"];
             401: components["responses"]["UnauthorizedProblem"];
+            403: components["responses"]["ForbiddenProblem"];
             404: components["responses"]["NotFoundProblem"];
             500: components["responses"]["InternalErrorProblem"];
         };
@@ -7018,6 +7071,7 @@ export interface operations {
             201: components["responses"]["TimeBlockSeriesCreated"];
             400: components["responses"]["InvalidRequestProblem"];
             401: components["responses"]["UnauthorizedProblem"];
+            403: components["responses"]["ForbiddenProblem"];
             404: components["responses"]["NotFoundProblem"];
             /** @description Conflicto de idempotencia: misma clave con otro contenido (`IdempotencyConflictProblem`) u operación en curso con la misma clave (`IdempotencyLockedProblem`, DEC-043). */
             409: {
@@ -7047,6 +7101,7 @@ export interface operations {
         responses: {
             200: components["responses"]["TimeBlockSeriesSuccess"];
             401: components["responses"]["UnauthorizedProblem"];
+            403: components["responses"]["ForbiddenProblem"];
             404: components["responses"]["NotFoundProblem"];
             500: components["responses"]["InternalErrorProblem"];
         };
@@ -7065,6 +7120,7 @@ export interface operations {
         responses: {
             204: components["responses"]["TimeBlockSeriesDeleted"];
             401: components["responses"]["UnauthorizedProblem"];
+            403: components["responses"]["ForbiddenProblem"];
             404: components["responses"]["NotFoundProblem"];
             500: components["responses"]["InternalErrorProblem"];
         };
@@ -7088,6 +7144,7 @@ export interface operations {
             200: components["responses"]["TimeBlockSeriesUpdated"];
             400: components["responses"]["InvalidRequestProblem"];
             401: components["responses"]["UnauthorizedProblem"];
+            403: components["responses"]["ForbiddenProblem"];
             404: components["responses"]["NotFoundProblem"];
             422: components["responses"]["ValidationProblem"];
             500: components["responses"]["InternalErrorProblem"];
@@ -7112,6 +7169,7 @@ export interface operations {
             204: components["responses"]["SeriesDateAdded"];
             400: components["responses"]["InvalidRequestProblem"];
             401: components["responses"]["UnauthorizedProblem"];
+            403: components["responses"]["ForbiddenProblem"];
             404: components["responses"]["NotFoundProblem"];
             409: components["responses"]["SeriesDateConflict"];
             422: components["responses"]["ValidationProblem"];
@@ -7133,6 +7191,7 @@ export interface operations {
         responses: {
             204: components["responses"]["SeriesDateRemoved"];
             401: components["responses"]["UnauthorizedProblem"];
+            403: components["responses"]["ForbiddenProblem"];
             404: components["responses"]["NotFoundProblem"];
             500: components["responses"]["InternalErrorProblem"];
         };
@@ -7156,6 +7215,7 @@ export interface operations {
             204: components["responses"]["SeriesExceptionAdded"];
             400: components["responses"]["InvalidRequestProblem"];
             401: components["responses"]["UnauthorizedProblem"];
+            403: components["responses"]["ForbiddenProblem"];
             404: components["responses"]["NotFoundProblem"];
             409: components["responses"]["SeriesExceptionConflict"];
             422: components["responses"]["ValidationProblem"];
@@ -7177,6 +7237,7 @@ export interface operations {
         responses: {
             204: components["responses"]["SeriesExceptionRemoved"];
             401: components["responses"]["UnauthorizedProblem"];
+            403: components["responses"]["ForbiddenProblem"];
             404: components["responses"]["NotFoundProblem"];
             500: components["responses"]["InternalErrorProblem"];
         };
@@ -7200,6 +7261,7 @@ export interface operations {
             201: components["responses"]["AppointmentCreated"];
             400: components["responses"]["InvalidRequestProblem"];
             401: components["responses"]["UnauthorizedProblem"];
+            403: components["responses"]["ForbiddenProblem"];
             /** @description `barberId` inexistente o de otra barbería, o `serviceId` inexistente, inactivo o no asignado a `barberId` (DEC-072). Un único `code` sin distinguir la causa (RN-TEN-01). */
             404: {
                 headers: {
@@ -7251,6 +7313,7 @@ export interface operations {
             };
             400: components["responses"]["InvalidRequestProblem"];
             401: components["responses"]["UnauthorizedProblem"];
+            403: components["responses"]["ForbiddenProblem"];
             /** @description `barberId` con forma inválida, inexistente o de otra barbería (RN-TEN-01), sin distinguir la causa. */
             404: {
                 headers: {

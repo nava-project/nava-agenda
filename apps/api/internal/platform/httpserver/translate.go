@@ -30,6 +30,16 @@ var notFoundProblem = problemSpec{
 	status:  http.StatusNotFound,
 }
 
+// forbiddenProblem cubre una sesión válida sin permiso para la operación
+// (DEC-173): el empleado que intenta tocar algo fuera de su propio barbero o
+// la configuración de la barbería.
+var forbiddenProblem = problemSpec{
+	typeURI: "/api/v1/problems/forbidden",
+	title:   "Sin permiso",
+	code:    "forbidden",
+	status:  http.StatusForbidden,
+}
+
 var internalProblem = problemSpec{
 	typeURI: "/api/v1/problems/internal-error",
 	title:   "Error interno",
@@ -202,6 +212,8 @@ func Translate(err error, requestID string) Problem {
 			return newProblem(validationProblem, appErr.Message, requestID)
 		case apperr.KindUnauthorized:
 			return newProblem(unauthorizedProblem, appErr.Message, requestID)
+		case apperr.KindForbidden:
+			return newProblem(forbiddenProblem, appErr.Message, requestID)
 		case apperr.KindChallengeRequired:
 			return newProblem(challengeRequiredProblem, appErr.Message, requestID)
 		case apperr.KindConflict:

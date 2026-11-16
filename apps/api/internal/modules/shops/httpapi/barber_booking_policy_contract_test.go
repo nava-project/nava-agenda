@@ -52,8 +52,8 @@ func TestContract_BarberBookingPolicyOperations_SecurityAndResponses(t *testing.
 		codes []string
 	}{
 		{file.List.Get, "listBarberBookingPolicies", []string{"200", "401", "500"}},
-		{file.Item.Put, "putBarberBookingPolicy", []string{"200", "400", "401", "404", "422", "500"}},
-		{file.Item.Delete, "deleteBarberBookingPolicy", []string{"204", "401", "404", "500"}},
+		{file.Item.Put, "putBarberBookingPolicy", []string{"200", "400", "401", "403", "404", "422", "500"}},
+		{file.Item.Delete, "deleteBarberBookingPolicy", []string{"204", "401", "403", "404", "500"}},
 	}
 	for _, tc := range cases {
 		if tc.op.OperationID != tc.id {

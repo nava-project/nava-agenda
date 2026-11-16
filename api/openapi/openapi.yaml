@@ -2,6 +2,10 @@
 # docs/06-api/estandar-openapi.md (DEC-037). No se edita el bundle generado
 # en dist/; este archivo y los que referencia son la fuente.
 #
+# Issue #605 (DEC-173) agrega permisos reales por rol: una cuenta de empleado
+# solo alcanza lo de su propio barbero y recibe 403 (ForbiddenProblem) en la
+# configuración de la barbería y en lo de otros barberos.
+#
 # Issue #599 (DEC-171) agrega brandAccent a GET /public/barbershops/{slug}:
 # la reserva pública de cada barbería pinta con el color que eligió.
 #
@@ -113,7 +117,7 @@
 openapi: 3.1.2
 info:
   title: API del sistema de agenda para barberías
-  version: 0.52.0
+  version: 0.53.0
   description: >
     Contrato HTTP entre apps/web y apps/api. Tres audiencias comparten este
     documento: /api/v1/public (reserva sin sesión), /api/v1/customer

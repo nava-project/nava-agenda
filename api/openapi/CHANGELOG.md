@@ -4,6 +4,23 @@ Formato basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/).
 Ver [`docs/06-api/estandar-openapi.md`](../../docs/06-api/estandar-openapi.md)
 sección 18 para qué cuenta como cambio compatible o incompatible.
 
+## 0.53.0 · 2026-11-16
+
+### Agregado
+
+- Respuesta `403` (`ForbiddenProblem`, código `forbidden`, `DEC-173`) en las
+  operaciones privadas que una cuenta de empleado no puede usar: escritura de
+  datos básicos, marca y reglas de reserva de la barbería, código de acceso,
+  alta de barberos, catálogo de servicios, moderación de reseñas, cambio del
+  propio vínculo y todo lo de un barbero que no es el suyo.
+
+### Cambiado
+
+- `GET /private/barbers` y `GET /private/settings/booking-policy/barbers`
+  devuelven a una cuenta de empleado solo su propio barbero. Un turno de otro
+  barbero responde `404` en `/private/appointments/{appointmentId}…`.
+  Compatible para las demás cuentas: nada cambia sin el rol `empleado` puro.
+
 ## 0.52.0 · 2026-11-15
 
 ### Agregado

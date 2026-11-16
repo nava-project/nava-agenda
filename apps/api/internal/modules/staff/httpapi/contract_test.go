@@ -201,42 +201,42 @@ func TestContract_ListBarbersOperation_MethodPathSecurityAndResponses(t *testing
 
 func TestContract_CreateBarberOperation_MethodPathSecurityAndResponses(t *testing.T) {
 	doc := loadYAML[staffPathsFile](t, "api/openapi/paths/staff.yaml")
-	requireResponses(t, doc.Collection.Post, "createBarber", []string{"201", "400", "401", "409", "422", "500"})
+	requireResponses(t, doc.Collection.Post, "createBarber", []string{"201", "400", "401", "403", "409", "422", "500"})
 }
 
 func TestContract_GetBarberOperation_MethodPathSecurityAndResponses(t *testing.T) {
 	doc := loadYAML[staffPathsFile](t, "api/openapi/paths/staff.yaml")
-	requireResponses(t, doc.Item.Get, "getBarber", []string{"200", "401", "404", "500"})
+	requireResponses(t, doc.Item.Get, "getBarber", []string{"200", "401", "403", "404", "500"})
 }
 
 func TestContract_RenameBarberOperation_MethodPathSecurityAndResponses(t *testing.T) {
 	doc := loadYAML[staffPathsFile](t, "api/openapi/paths/staff.yaml")
-	requireResponses(t, doc.Item.Patch, "renameBarber", []string{"200", "400", "401", "404", "422", "500"})
+	requireResponses(t, doc.Item.Patch, "renameBarber", []string{"200", "400", "401", "403", "404", "422", "500"})
 }
 
 // DEC-104: la fotografía es contenido binario, sin Idempotency-Key (el PUT
 // reemplaza y es idempotente por naturaleza).
 func TestContract_PutBarberPhotoOperation_MethodPathSecurityAndResponses(t *testing.T) {
 	doc := loadYAML[staffPathsFile](t, "api/openapi/paths/staff.yaml")
-	requireResponses(t, doc.Photo.Put, "putBarberPhoto", []string{"200", "400", "401", "404", "422", "500"})
+	requireResponses(t, doc.Photo.Put, "putBarberPhoto", []string{"200", "400", "401", "403", "404", "422", "500"})
 }
 
 func TestContract_GetBarberPhotoOperation_MethodPathSecurityAndResponses(t *testing.T) {
 	doc := loadYAML[staffPathsFile](t, "api/openapi/paths/staff.yaml")
-	requireResponses(t, doc.Photo.Get, "getBarberPhoto", []string{"200", "304", "401", "404", "500"})
+	requireResponses(t, doc.Photo.Get, "getBarberPhoto", []string{"200", "304", "401", "403", "404", "500"})
 }
 
 func TestContract_DeleteBarberPhotoOperation_MethodPathSecurityAndResponses(t *testing.T) {
 	doc := loadYAML[staffPathsFile](t, "api/openapi/paths/staff.yaml")
-	requireResponses(t, doc.Photo.Delete, "deleteBarberPhoto", []string{"204", "401", "404", "500"})
+	requireResponses(t, doc.Photo.Delete, "deleteBarberPhoto", []string{"204", "401", "403", "404", "500"})
 }
 
 // DEC-100: el vínculo propio actúa sobre el principal de la sesión.
 func TestContract_MyBarberOperations_MethodPathSecurityAndResponses(t *testing.T) {
 	doc := loadYAML[staffPathsFile](t, "api/openapi/paths/staff.yaml")
 	requireResponses(t, doc.Me.Get, "getMyBarber", []string{"200", "401", "404", "500"})
-	requireResponses(t, doc.Me.Put, "linkMyBarber", []string{"200", "400", "401", "404", "409", "500"})
-	requireResponses(t, doc.Me.Delete, "unlinkMyBarber", []string{"204", "401", "500"})
+	requireResponses(t, doc.Me.Put, "linkMyBarber", []string{"200", "400", "401", "403", "404", "409", "500"})
+	requireResponses(t, doc.Me.Delete, "unlinkMyBarber", []string{"204", "401", "403", "500"})
 }
 
 func TestContract_LinkMyBarberRequestSchema_OnlyBarberID(t *testing.T) {
