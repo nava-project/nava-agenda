@@ -23,20 +23,21 @@ get() { cat "$state/$1"; }
 
 # Estado del CI de un commit en GitHub. Vale el de Jenkins (estado del commit
 # continuous-integration/jenkins/branch) y, para commits anteriores a la migración, los
-# check runs de GitHub Actions (todos terminados, ninguno fallido, el de Go en verde).
+# check runs de los cinco jobs del antiguo ci.yml de GitHub Actions (el último intento de
+# cada uno en verde). Los del workflow Deploy no cuentan: no prueban el código.
+legacy_ci_jobs='["Go (build, vet, test -race, govulncheck)","OpenAPI (lint + bundle)","Frontend (lint, tipos, pruebas, build)","Atlas + suites SQL contra el esquema aplicado","Despliegue (compose, scripts e imágenes)"]'
 ci_green() {
-  local sha="$1" api="https://api.github.com/repos/$GITHUB_REPO/commits/$1"
+  local api="https://api.github.com/repos/$GITHUB_REPO/commits/$1"
   local auth=(-H "Authorization: Bearer $GH_TOKEN" -H "Accept: application/vnd.github+json")
   local jenkins actions
   jenkins="$(curl -fsS "${auth[@]}" "$api/status" \
     | jq -r '[.statuses[] | select(.context == "continuous-integration/jenkins/branch")][0].state // ""')"
   [ "$jenkins" = success ] && return 0
   actions="$(curl -fsS "${auth[@]}" "$api/check-runs?per_page=100" \
-    | jq -r '.check_runs
-        | if length == 0 then "none"
-          elif any(.[]; .status != "completed" or (.conclusion | IN("success", "skipped", "neutral") | not)) then "failed"
-          elif any(.[]; .name == "Go (build, vet, test -race, govulncheck)" and .conclusion == "success") then "success"
-          else "none" end')"
+    | jq -r --argjson jobs "$legacy_ci_jobs" '
+        [.check_runs[] | select(.name as $n | $jobs | index($n))]
+        | group_by(.name) | map(max_by(.started_at))
+        | if length == ($jobs | length) and all(.[]; .conclusion == "success") then "success" else "no" end')"
   [ "$actions" = success ]
 }
 
