@@ -628,12 +628,40 @@ describe('DailyAgendaPage', () => {
       // 2026-08-28T19:30-20:00Z = 14:30-15:00 America/Bogota (UTC-05).
       // bounds: [00:00, 24:00) (pedido explícito del propietario, el carril
       // siempre cubre el día completo) → left=870/1440=60.4166...%,
-      // width=(900-870)/1440=2.08...%, pero nunca baja del 4% mínimo
-      // visual de una ficha corta.
+      // width=(900-870)/1440=2.08...%: con el ancho mínimo por hora (issue
+      // #587) 30 min son 90 px, por encima del mínimo visual de una ficha.
       const slip = wrapper.get('.daily-agenda-page__timeline-slip')
       const style = slip.attributes('style') ?? ''
       expect(style).toContain('left: 60.416666666666664%')
-      expect(style).toContain('width: 4%')
+      expect(style).toContain('width: 2.083333333333333%')
+    })
+
+    // Issue #587: el día completo en el ancho de la pantalla dejaba ~76 px por
+    // hora y las fichas en «Nic…». Cada hora mide al menos 180 px a zoom 1.
+    it('gives every hour a legible minimum width, multiplied by the zoom', async () => {
+      const { wrapper } = await mountWithFixedDate()
+      const scroll = wrapper.get('.daily-agenda-page__timeline-scroll')
+      expect(scroll.attributes('style')).toContain('min-width: 4320px')
+
+      await wrapper.get('[aria-label="Acercar el calendario"]').trigger('click')
+      expect(wrapper.get('.daily-agenda-page__timeline-scroll').attributes('style')).toContain(
+        'min-width: 8640px',
+      )
+    })
+
+    it('a 45-minute slip shows time range, person and service at the default zoom', async () => {
+      const entry = [{ ...oneEntry[0]!, endsAt: '2026-08-28T20:15:00Z' }]
+      const { wrapper } = await mountWithFixedDate(entry)
+      expect(wrapper.get('.daily-agenda-page__timeline-slip').text()).toContain('Corte clásico')
+    })
+
+    it('a very short slip keeps a minimum visual width without inflating its duration', async () => {
+      const entry = [{ ...oneEntry[0]!, endsAt: '2026-08-28T19:35:00Z' }]
+      const { wrapper } = await mountWithFixedDate(entry)
+      const slip = wrapper.get('.daily-agenda-page__timeline-slip')
+      // 5 min = 15 px; el mínimo visual es 44 px de 4320 = 1.0185...%.
+      expect(slip.attributes('style')).toMatch(/width: 1\.018/)
+      expect(slip.text()).not.toContain('Corte clásico')
     })
 
     it('con el dedo, el primer toque ensancha la ficha con horario y servicio y el segundo abre el detalle', async () => {
@@ -753,10 +781,8 @@ describe('DailyAgendaPage', () => {
       })
 
       it('widening the track lets a short slip show its full detail (time+name+service)', async () => {
-        // 10min: 10/240=4.16% a zoom 1 (bajo el umbral del 8.5%, modo
-        // compacto); a zoom 4 (dos clics de "Acercar") 16.67% (≥8.5%, modo
-        // completo) — mismo bounds de 4h que oneEntry, solo la duración
-        // real cambia.
+        // 10min: 30 px a zoom 1 (bajo el umbral de 120 px, modo compacto);
+        // a zoom 4 (dos clics de "Acercar") 120 px (modo completo).
         const shortEntry = [{ ...oneEntry[0]!, endsAt: '2026-08-28T19:40:00Z' }]
         const { wrapper } = await mountWithFixedDate(shortEntry)
         const { zoomIn } = zoomButtons(wrapper)
