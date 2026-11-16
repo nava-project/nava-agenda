@@ -1,0 +1,65 @@
+# Jenkins de la VPS (DEC-177): CI/CD de NAVA y, más adelante, de los otros proyectos.
+# Se opera con scripts/jenkins-up.sh; ver deploy/jenkins/README.md.
+#
+# - Habla con el Docker del host por su socket: construye las imágenes y lanza los
+#   contenedores de prueba. Eso equivale a root en la VPS; por eso Jenkins exige usuario
+#   y contraseña, no admite registro y solo se publica por HTTPS a través de Caddy.
+# - JENKINS_HOME se monta en la MISMA ruta en el host y en el contenedor: los
+#   contenedores de prueba montan el workspace por su ruta, que el Docker del host
+#   resuelve en su propio sistema de archivos.
+# - Los secretos son archivos en /srv/jenkins/secrets (600, UID 1000), montados en
+#   /run/secrets: la configuración como código los lee por su nombre (${NOMBRE}).
+# - Despliega entrando por SSH como `deploy` a la IP del host en su propia red
+#   (10.89.10.1), la única desde la que esa llave es aceptada.
+# - `label=disable`: el socket de Docker y el workspace compartido no admiten las
+#   etiquetas de SELinux por contenedor.
+
+name: jenkins
+
+services:
+  controller:
+    build:
+      context: .
+      dockerfile: controller.Dockerfile
+    image: nava-jenkins:local
+    restart: unless-stopped
+    user: "1000:1000"
+    # GID del grupo `docker` del host (lo escribe jenkins-init.sh en /srv/jenkins/stack.env).
+    group_add: ["${DOCKER_GID:?DOCKER_GID es obligatorio}"]
+    environment:
+      JAVA_OPTS: >-
+        -Xms256m -Xmx1g
+        -Djenkins.install.runSetupWizard=false
+      TZ: America/Bogota
+    volumes:
+      - /srv/jenkins/home:/srv/jenkins/home
+      - /srv/jenkins/secrets:/run/secrets:ro
+      - /var/run/docker.sock:/var/run/docker.sock
+    security_opt: ["label=disable", "no-new-privileges:true"]
+    # Solo en el loopback del host: acceso de emergencia por túnel SSH
+    # (ssh -L 8090:127.0.0.1:8090 barberia-vps). El acceso normal es por Caddy.
+    ports:
+      - "127.0.0.1:8090:8080"
+    networks:
+      ci:
+        ipv4_address: 10.89.10.2
+      # Red compartida con el Caddy de la barbería (DEC-176), que publica jenkins.nava.wtf.
+      edge:
+        aliases: [jenkins]
+    healthcheck:
+      test: ["CMD", "curl", "-fsS", "-o", "/dev/null", "http://127.0.0.1:8080/login"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 120s
+    deploy:
+      resources:
+        limits: { cpus: "1.5", memory: 1536M, pids: 1024 }
+
+networks:
+  ci:
+    ipam:
+      config: [{ subnet: 10.89.10.0/24, gateway: 10.89.10.1 }]
+  edge:
+    external: true
+    name: edge

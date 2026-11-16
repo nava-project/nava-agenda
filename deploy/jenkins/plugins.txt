@@ -1,0 +1,15 @@
+# Plugins del controlador (DEC-177). jenkins-plugin-cli resuelve la última versión
+# compatible con el LTS fijado en controller.Dockerfile al construir la imagen.
+configuration-as-code
+job-dsl
+workflow-aggregator
+pipeline-graph-view
+pipeline-stage-view
+git
+github
+github-branch-source
+credentials-binding
+ssh-credentials
+matrix-auth
+timestamper
+lockable-resources

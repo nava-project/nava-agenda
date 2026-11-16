@@ -93,3 +93,25 @@ pedidos.{$DOMAIN} {
 		}
 	}
 }
+
+# Jenkins de la VPS (CI/CD de todos los proyectos; pila `jenkins` en /srv/jenkins; DEC-177).
+# Llega por la red `edge` con el alias `jenkins`. Jenkins exige usuario y contraseña; el
+# webhook de GitHub (/github-webhook/) se valida con su firma HMAC. Si Jenkins está
+# caído, solo este sitio responde 502.
+jenkins.{$DOMAIN} {
+	encode zstd gzip
+
+	header {
+		Strict-Transport-Security "max-age=15552000"
+		X-Content-Type-Options "nosniff"
+		X-Frame-Options "SAMEORIGIN"
+		Referrer-Policy "strict-origin-when-cross-origin"
+		-Server
+	}
+
+	reverse_proxy jenkins:8080 {
+		transport http {
+			dial_timeout 5s
+		}
+	}
+}
