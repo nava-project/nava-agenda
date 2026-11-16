@@ -731,6 +731,17 @@ describe('DailyAgendaPage', () => {
       expect(wrapper.find('.daily-agenda-page__timeline-mark--now').exists()).toBe(true)
     })
 
+    // Pedido del propietario (2026-11-15): sin turnos no hay fichas que leer y
+    // el carril se acomoda al ancho, sin desplazamiento horizontal.
+    it('an empty day fits the lane to the available width (no minimum width)', async () => {
+      fetchDailyAgendaMock.mockResolvedValueOnce({ kind: 'success', items: [] })
+      const { wrapper } = await mountReady()
+
+      const style = wrapper.get('.daily-agenda-page__timeline-scroll').attributes('style') ?? ''
+      expect(style).toContain('width: 100%')
+      expect(style).not.toContain('min-width')
+    })
+
     // Zoom del carril (pedido explícito del propietario, 2026-09-04): no
     // representado en el atlas, función nueva autorizada aparte del modo
     // de fidelidad visual del resto de esta pantalla.
