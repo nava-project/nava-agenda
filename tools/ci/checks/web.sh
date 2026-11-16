@@ -9,10 +9,12 @@ for script in format lint typecheck; do
   echo "== $script"
   pnpm run "$script"
 done
-# vitest abre por defecto un proceso por núcleo menos uno (3 en la VPS). Con las vCPU de la
-# VPS, tres pruebas pesadas de jsdom + axe a la vez superan el timeout de 5 s; con dos
-# tardan lo mismo que con una. Los runners privados de GitHub (2 vCPU) usaban uno.
+# Hardware de la VPS (DEC-177): sus vCPU son ~2 veces más lentas que las de los runners de
+# GitHub (SettingsPage.test.ts: 158 s con un proceso frente a 77 s), y las pruebas más
+# pesadas de jsdom + axe rondan los 5 s por defecto de vitest aun sin concurrencia. Se da el
+# mismo presupuesto en proporción, 10 s por prueba; ninguna aserción cambia. Dos procesos
+# tardan lo mismo que uno; con tres (el valor por defecto aquí) se estorban entre sí.
 echo "== test:unit"
-pnpm run test:unit --maxWorkers="${VITEST_MAX_WORKERS:-2}" --minWorkers=1
+pnpm run test:unit --maxWorkers="${VITEST_MAX_WORKERS:-2}" --minWorkers=1 --testTimeout=10000
 echo "== build"
 pnpm run build
