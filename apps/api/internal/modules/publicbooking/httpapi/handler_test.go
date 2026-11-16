@@ -90,6 +90,7 @@ func TestResolveBarbershopHandler_Success_ReturnsPublicProfile(t *testing.T) {
 				ProfessionalTerm: "manicurista", ProfessionalTermPlural: "manicuristas",
 				ProfessionalTermGender: "feminine",
 			},
+			BrandAccent: "emerald",
 		},
 	}
 	h := httpapi.NewResolveBarbershopHandler(publicbooking.NewService(repo))
@@ -119,6 +120,10 @@ func TestResolveBarbershopHandler_Success_ReturnsPublicProfile(t *testing.T) {
 	}
 	if body.ContactEmail == nil || *body.ContactEmail != email {
 		t.Fatalf("expected contactEmail=%q, got %v", email, body.ContactEmail)
+	}
+	// DEC-171: el color de marca viaja para que la reserva pinte con él.
+	if body.BrandAccent != "emerald" {
+		t.Fatalf("brandAccent = %q, want emerald", body.BrandAccent)
 	}
 	if len(repo.calls) != 1 || repo.calls[0] != "barberia-ejemplo" {
 		t.Fatalf("expected exactly one ResolveBySlug call with the path slug, got %v", repo.calls)

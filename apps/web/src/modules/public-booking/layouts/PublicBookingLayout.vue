@@ -6,18 +6,20 @@
 // estado y su `<h1>`; el cascarón solo aporta el marco (el `<header>` es el
 // único landmark de banner) y la transición de entrada/salida entre pasos.
 //
-// Es un lienzo de tinta fijo: no hereda `data-app-theme` ni los acentos del
-// panel privado (DEC-110: la reserva pública nunca los hereda) y NAVA aparece
+// Es un lienzo de tinta fijo: no hereda `data-app-theme` del panel privado.
+// Sí lleva el color de marca de SU barbería (DEC-171, amplía DEC-110/DEC-111),
+// leído del perfil público del enlace, y NAVA aparece
 // como firma secundaria, porque el nombre de la barbería es la jerarquía
 // principal de la entrada (estandar-diseno-visual.md §3.2).
-import { computed, provide, ref, watch } from 'vue'
+import { computed, onBeforeUnmount, provide, ref, watch } from 'vue'
 import { RouterLink, RouterView, useRoute, type RouteLocationRaw } from 'vue-router'
 import { buildVocabularyFromTerms } from '@/shared/model'
 import { NavaWordmark } from '@/shared/ui'
 import BookingBackdrop from '../components/BookingBackdrop.vue'
 import BookingProgress from '../components/BookingProgress.vue'
 import { bookingChromeKey } from '../model/bookingChrome'
-import { loadPublicProfile, publicTermsFor } from '../model/publicProfile'
+import { paintPublicAccent } from '../model/publicAccent'
+import { loadPublicProfile, publicAccentFor, publicTermsFor } from '../model/publicProfile'
 import { publicVocabularyKey } from '../model/publicVocabulary'
 import '../styles/publicBooking.css'
 
@@ -56,6 +58,22 @@ watch(
   },
   { immediate: true },
 )
+
+// Color de marca del enlace (DEC-171): cambia con el enlace y se retira al
+// salir de la reserva.
+let clearAccent: (() => void) | null = null
+watch(
+  () => publicAccentFor(currentSlug.value),
+  (key) => {
+    clearAccent?.()
+    clearAccent = paintPublicAccent(document.documentElement, key)
+  },
+  { immediate: true },
+)
+onBeforeUnmount(() => {
+  clearAccent?.()
+  clearAccent = null
+})
 
 const TOTAL_STEPS = 4
 

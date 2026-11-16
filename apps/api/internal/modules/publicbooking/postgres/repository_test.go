@@ -816,6 +816,44 @@ func TestResolveBySlug_OffersHomeService_FollowsTheShopSwitchOnly(t *testing.T) 
 	}
 }
 
+// TestResolveBySlug_BrandAccent_FollowsTheShopOnly cubre DEC-171 en la capa de
+// datos: el perfil público trae el color de SU barbería y nunca el de otra
+// (RN-TEN-01). Una barbería nueva conserva el latón inicial.
+func TestResolveBySlug_BrandAccent_FollowsTheShopOnly(t *testing.T) {
+	db := setupTestDB(t)
+	repo := publicbookingpostgres.New(db)
+	ctx := context.Background()
+
+	before, _, err := repo.ResolveBySlug(ctx, slugUno)
+	if err != nil || before.BrandAccent != "brass" {
+		t.Fatalf("una barbería nueva usa latón: %+v err=%v", before, err)
+	}
+
+	id, found, err := repo.ResolveBarbershopID(ctx, slugUno)
+	if err != nil || !found {
+		t.Fatalf("ResolveBarbershopID: found=%v err=%v", found, err)
+	}
+	setAccent := func(accent string) error {
+		return db.InTenantTx(ctx, database.BarbershopID(id), func(ctx context.Context, q database.Queries) error {
+			_, err := q.Exec(ctx, `UPDATE barbershop SET brand_accent = $2 WHERE id = $1`, id, accent)
+			return err
+		})
+	}
+	if err := setAccent("ruby"); err != nil {
+		t.Fatalf("cambiar acento: %v", err)
+	}
+	t.Cleanup(func() { _ = setAccent("brass") })
+
+	p, _, _ := repo.ResolveBySlug(ctx, slugUno)
+	if p.BrandAccent != "ruby" {
+		t.Fatalf("DEC-171: el perfil debe publicar el acento elegido, got %q", p.BrandAccent)
+	}
+	other, _, _ := repo.ResolveBySlug(ctx, slugDos)
+	if other.BrandAccent != "brass" {
+		t.Fatalf("RN-TEN-01: el acento de slugUno se filtró a slugDos: %q", other.BrandAccent)
+	}
+}
+
 // TestResolveBySlug_GooglePlaceID_FollowsTheShopOnly cubre DEC-129 en la capa de
 // datos: el perfil que usa el servidor trae la ficha de SU barbería y nunca la de
 // otra (RN-TEN-01); el DTO público no la expone (contract_test.go).

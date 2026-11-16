@@ -54,6 +54,12 @@ properties:
     description: >
       Si la barbería atiende a domicilio (`DEC-131`). Con `true` el cliente puede
       elegir «a domicilio» al reservar e indicar su dirección.
+  brandAccent:
+    $ref: './BrandAccent.yaml'
+    description: >
+      Color de acento que la barbería eligió en Configuración (`DEC-110`). La
+      reserva pública de esta barbería pinta con él sus acentos (`DEC-171`).
+      Siempre presente; `brass` es el valor inicial.
 required:
   - name
   - timezone
@@ -62,3 +68,4 @@ required:
   - vocabulary
   - location
   - offersHomeService
+  - brandAccent

@@ -22,6 +22,8 @@ type PublicBarbershopProfileResponse struct {
 	Location *PublicLocationResponse `json:"location"`
 	// OffersHomeService indica si la barbería atiende a domicilio (DEC-131, HU-103).
 	OffersHomeService bool `json:"offersHomeService"`
+	// BrandAccent es la clave del color de marca de la barbería (DEC-171).
+	BrandAccent string `json:"brandAccent"`
 }
 
 // PublicLocationResponse es la forma exacta del componente OpenAPI
@@ -36,7 +38,7 @@ type PublicLocationResponse struct {
 
 // PublicVocabularyResponse es la forma exacta del componente OpenAPI
 // PublicVocabulary.yaml (DEC-119): las palabras con las que la barbería nombra a
-// su negocio y a su profesional. Nunca el acento ni el perfil del panel.
+// su negocio y a su profesional. El acento viaja aparte, en brandAccent (DEC-171).
 type PublicVocabularyResponse struct {
 	BusinessTerm           string `json:"businessTerm"`
 	BusinessTermGender     string `json:"businessTermGender"`

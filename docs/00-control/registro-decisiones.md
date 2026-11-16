@@ -2144,3 +2144,19 @@ Cada código `DEC-*` es estable y no se reutiliza. Este registro normaliza respu
 - **Alcance:** `apps/api` (`LocationPatch` y `BrandService` aceptan y validan el punto; DTO `UpdateBrandRequest`); contrato OpenAPI 0.51.0; `apps/web` (Configuración: buscador `AddressAutocomplete` y `LocationPicker`, borrador con `pin`). Sin migración.
 - **Documentos afectados:** contrato OpenAPI, `matriz-trazabilidad.md`, `historial-cambios.md`.
 - **Fuente:** solicitud del propietario el 2026-11-15; issue [#591](https://github.com/bcaceres19/barberia/issues/591); `DEC-130`, `DEC-138`, HU-102.
+
+### DEC-171 · La reserva pública de cada barbería usa el color de marca que eligió (amplía `DEC-110` y `DEC-111`)
+
+- **Fecha:** 2026-11-15.
+- **Decisión:** la reserva pública (`/reservar/:slug…`: entrada, servicio, barbero, horario y datos, más los diálogos y selectores que se abren desde ella) pinta acentos, filetes, foco, progreso y botones con el color de acento que esa barbería eligió en Configuración (`DEC-110`). Cada enlace lleva solo el color de su barbería.
+  1. **Contrato.** `GET /public/barbershops/{slug}` devuelve `brandAccent`, la misma clave cerrada `BrandAccent` de `/private/settings/brand`, siempre presente (OpenAPI 0.52.0). Nunca un valor de color libre.
+  2. **Valor.** La reserva es un lienzo de tinta fijo, así que siempre usa el valor Tinta del acento, cuyo contraste AA como texto y como relleno de botón ya mide `brandPalette.test.ts`. Con latón (valor inicial) no se escribe nada y la reserva queda exactamente como antes.
+  3. **Alcance en el navegador.** El cascarón de la reserva aplica el acento sobre `<html>`, porque los diálogos y selectores se abren en `<body>`, y lo retira al desmontarse o al cambiar de enlace. No llega al panel, al acceso ni a otra barbería. Una clave desconocida para el cliente cae en latón.
+- **Sin cambio:** modo claro/oscuro, tamaño de texto y animaciones del panel (siguen siendo del dispositivo y no se heredan), colores semánticos de estado, wordmark NAVA, tipografía, correos y `Mi turno` (`/mi-turno/:token`), que conserva su aspecto hasta un issue propio.
+- **Alcance de la sustitución:** levanta, solo para el color de acento, la exclusión de `DEC-110` («sigue prohibido… personalizar la reserva pública») y de `DEC-111` («el cascarón no hereda… el acento del panel: la reserva pública sigue sin personalización por barbería»). Sigue prohibido un color libre o un logotipo propio.
+- **Responsable:** propietario del proyecto.
+- **Motivo:** instrucción del propietario: el color que la barbería escoge en Configuración lo definió el dueño del local y debe verse en su zona de reservas, solo en la de esa barbería.
+- **Riesgo residual aceptado:** la entrada de la reserva muestra un instante su indicador de carga en latón antes de recibir el perfil; las pantallas siguientes ya esperan al perfil (`DEC-119`) y no cambian de color.
+- **Alternativas descartadas:** aplicar el acento solo al contenedor del cascarón (los diálogos en `<body>` quedarían en latón); exponer el color en hexadecimal (rompe la paleta cerrada con contraste comprobado); seguir también el modo Marfil del panel (es una preferencia del dispositivo del dueño, no de la barbería).
+- **Documentos afectados:** contrato OpenAPI (0.52.0), `docs/03-desarrollo/estandar-diseno-visual.md` §3.2, `matriz-trazabilidad.md`, `historial-cambios.md`.
+- **Fuente:** instrucción explícita del propietario del 2026-11-15; issue [#599](https://github.com/bcaceres19/barberia/issues/599).

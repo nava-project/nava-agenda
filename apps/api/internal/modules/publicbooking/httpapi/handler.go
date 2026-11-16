@@ -76,6 +76,7 @@ func newPublicBarbershopProfileResponse(p publicbooking.BarbershopProfile) Publi
 	return PublicBarbershopProfileResponse{
 		Location:          location,
 		OffersHomeService: p.OffersHomeService,
+		BrandAccent:       p.BrandAccent,
 		Name:              p.Name,
 		Timezone:          p.Timezone,
 		ContactEmail:      p.ContactEmail,

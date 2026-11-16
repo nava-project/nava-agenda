@@ -1735,7 +1735,7 @@ export interface components {
             offersHomeService?: boolean;
         };
         /**
-         * @description Color de acento del panel: `brass` (el latón NAVA, valor inicial), `emerald`, `sapphire`, `ruby`, `amethyst` o `copper`.
+         * @description Color de acento del panel y de la reserva pública de la barbería (`DEC-171`): `brass` (el latón NAVA, valor inicial), `emerald`, `sapphire`, `ruby`, `amethyst` o `copper`.
          * @example brass
          * @enum {string}
          */
@@ -2084,6 +2084,8 @@ export interface components {
             location: components["schemas"]["PublicLocation"] | null;
             /** @description Si la barbería atiende a domicilio (`DEC-131`). Con `true` el cliente puede elegir «a domicilio» al reservar e indicar su dirección. */
             offersHomeService: boolean;
+            /** @description Color de acento que la barbería eligió en Configuración (`DEC-110`). La reserva pública de esta barbería pinta con él sus acentos (`DEC-171`). Siempre presente; `brass` es el valor inicial. */
+            brandAccent: components["schemas"]["BrandAccent"];
         };
         /** @description Servicio ofrecido públicamente por la barbería resuelta: activo y con al menos una asignación vigente a un barbero (HU-091, CA-091-01). currency es siempre "COP" (DEC-067). */
         PublicServiceResponse: {

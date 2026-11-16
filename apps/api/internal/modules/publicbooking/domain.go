@@ -27,6 +27,10 @@ type BarbershopProfile struct {
 	// OffersHomeService indica que la barbería ofrece atender a domicilio
 	// (DEC-131, HU-103): la reserva pública solo pide la modalidad cuando es true.
 	OffersHomeService bool
+	// BrandAccent es la clave del color de acento que la barbería eligió en
+	// Configuración (DEC-110); la reserva pública la usa para pintar su enlace
+	// (DEC-171). Siempre es una clave de barbershop_brand_accent_ck.
+	BrandAccent string
 	// GooglePlaceID es la ficha de Google de la barbería (DEC-129, HU-101), nil
 	// sin ficha. Es solo para el servidor: el perfil público nunca lo expone, el
 	// navegador recibe únicamente lo que Google devuelve ya recortado.

@@ -4,6 +4,7 @@
 // página coordinadora nunca ve `Problem`, `status` HTTP crudo ni cabeceras.
 import { httpClient } from '@/shared/api/httpClient'
 import { isProblem } from '@/shared/api/problem'
+import { DEFAULT_BRAND_ACCENT, isBrandAccentKey } from '@/shared/model'
 import type { ResolveBarbershopOutcome } from '../model/barbershopProfileOutcome'
 
 /**
@@ -43,6 +44,9 @@ export async function resolveBarbershop(slug: string): Promise<ResolveBarbershop
               }
             : null,
           offersHomeService: data.offersHomeService ?? false,
+          // DEC-171: una clave que este cliente no conoce (servidor más nuevo) cae
+          // en latón, nunca en un color sin contraste comprobado.
+          brandAccent: isBrandAccentKey(data.brandAccent) ? data.brandAccent : DEFAULT_BRAND_ACCENT,
         },
       }
     }

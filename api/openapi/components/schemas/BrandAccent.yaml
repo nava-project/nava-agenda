@@ -5,7 +5,8 @@
 type: string
 enum: [brass, emerald, sapphire, ruby, amethyst, copper]
 description: >
-  Color de acento del panel: `brass` (el latón NAVA, valor inicial),
+  Color de acento del panel y de la reserva pública de la barbería
+  (`DEC-171`): `brass` (el latón NAVA, valor inicial),
   `emerald`, `sapphire`, `ruby`, `amethyst` o `copper`.
 examples:
   - brass

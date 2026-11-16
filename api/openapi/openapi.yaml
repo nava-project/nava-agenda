@@ -2,6 +2,9 @@
 # docs/06-api/estandar-openapi.md (DEC-037). No se edita el bundle generado
 # en dist/; este archivo y los que referencia son la fuente.
 #
+# Issue #599 (DEC-171) agrega brandAccent a GET /public/barbershops/{slug}:
+# la reserva pública de cada barbería pinta con el color que eligió.
+#
 # Issue #591 (DEC-170) agrega latitude/longitude opcionales a
 # PATCH /private/settings/brand: el punto que el dueño ajusta a mano en el
 # mapa se guarda tal cual, sin geocodificar la dirección.
@@ -110,7 +113,7 @@
 openapi: 3.1.2
 info:
   title: API del sistema de agenda para barberías
-  version: 0.51.0
+  version: 0.52.0
   description: >
     Contrato HTTP entre apps/web y apps/api. Tres audiencias comparten este
     documento: /api/v1/public (reserva sin sesión), /api/v1/customer
