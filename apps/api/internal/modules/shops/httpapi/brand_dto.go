@@ -41,10 +41,13 @@ type UpdateBrandRequest struct {
 	ProfessionalTermGender string `json:"professionalTermGender"`
 	// HasPhysicalLocation y Address son opcionales (DEC-130): ausentes no tocan la
 	// ubicación. Address distingue ausente de null (quita la dirección y sus
-	// coordenadas). Las coordenadas no se envían: las calcula el servidor al
-	// geocodificar una dirección nueva.
+	// coordenadas). Sin Latitude/Longitude el servidor geocodifica una
+	// dirección nueva; con ellas (DEC-170) guarda el punto que el dueño ajustó
+	// a mano en el mapa, siempre junto a una Address no vacía.
 	HasPhysicalLocation *bool        `json:"hasPhysicalLocation"`
 	Address             OptionalText `json:"address"`
+	Latitude            *float64     `json:"latitude"`
+	Longitude           *float64     `json:"longitude"`
 	// OffersHomeService es opcional (DEC-131): ausente conserva el interruptor.
 	OffersHomeService *bool `json:"offersHomeService"`
 }

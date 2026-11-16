@@ -47,6 +47,8 @@ interface Props {
   /** Dónde abrir el mapa si aún no hay ubicación (p. ej. la de la barbería). */
   start?: LatLng | null
   label?: string
+  /** Instrucción bajo el rótulo; por defecto, la de quien reserva a domicilio. */
+  hint?: string
   error?: string
   disabled?: boolean
   /** Detecta la posición del dispositivo al abrirse (si aún no hay una ubicación). */
@@ -59,6 +61,7 @@ interface Props {
 const props = withDefaults(defineProps<Props>(), {
   start: null,
   label: 'Tu ubicación',
+  hint: 'Mueve el mapa hasta que el pin quede sobre el lugar donde te atendemos. No necesitas saber la dirección.',
   error: '',
   disabled: false,
   autoLocate: false,
@@ -235,10 +238,7 @@ const describedBy = computed(() => [hintId, props.error ? errorId : ''].filter(B
       {{ locating ? 'Buscando tu ubicación…' : 'Usar mi ubicación' }}
     </BaseButton>
 
-    <p :id="hintId" class="location-picker__hint">
-      Mueve el mapa hasta que el pin quede sobre el lugar donde te atendemos. No necesitas saber la
-      dirección.
-    </p>
+    <p :id="hintId" class="location-picker__hint">{{ hint }}</p>
 
     <div class="location-picker__stage">
       <div

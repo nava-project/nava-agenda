@@ -392,19 +392,52 @@ func TestUpdateBrandHandler_UnresolvableAddress_Returns422WithoutWriting(t *test
 	}
 }
 
-func TestUpdateBrandHandler_ClientCannotSendCoordinates(t *testing.T) {
-	repo := &fakeBrandRepository{}
-	h := httpapi.NewUpdateBrandHandler(shops.NewBrandService(repo, nil), profilesFor())
+// DEC-170 reemplaza la regla anterior («las coordenadas las calcula el
+// servidor»): el dueño puede ajustar el punto a mano. Llega al servicio tal
+// cual y se guarda sin geocodificar; incompleto o sin dirección, 422.
+func TestUpdateBrandHandler_ManualPin_SavesThePointWithoutGeocoding(t *testing.T) {
+	repo := &fakeBrandRepository{getFound: true, updateResult: shops.BrandUpdateResult{Found: true}}
+	geocoded := 0
+	geo := shops.GeocoderFunc(func(context.Context, string) (shops.Coordinates, error) {
+		geocoded++
+		return shops.Coordinates{Latitude: 1, Longitude: 2}, nil
+	})
+	h := httpapi.NewUpdateBrandHandler(shops.NewBrandService(repo, geo), profilesFor())
 
-	for _, extra := range []string{`,"latitude":4.6`, `,"longitude":-74.0`} {
+	body := strings.TrimSuffix(validBrandBody, "}") +
+		`,"address":"Calle 15 Norte # 12-57, Armenia","latitude":4.553358,"longitude":-75.656683}`
+	rec := httptest.NewRecorder()
+	h.ServeHTTP(rec, requestWithPrincipal(http.MethodPatch, "/api/v1/private/settings/brand", []byte(body)))
+
+	if rec.Code != http.StatusOK {
+		t.Fatalf("expected 200, got %d: %s", rec.Code, rec.Body.String())
+	}
+	if geocoded != 0 {
+		t.Fatalf("con un punto elegido a mano no se geocodifica, hubo %d llamadas", geocoded)
+	}
+	w := repo.updateCalls[0].location
+	if w.Latitude == nil || *w.Latitude != 4.553358 || w.Longitude == nil || *w.Longitude != -75.656683 {
+		t.Fatalf("debe guardar el punto enviado: %+v", w)
+	}
+}
+
+func TestUpdateBrandHandler_ManualPin_Invalid_Returns422WithoutWriting(t *testing.T) {
+	for _, extra := range []string{
+		`,"address":"Calle 1","latitude":4.6`,
+		`,"address":"Calle 1","longitude":-74.0`,
+		`,"latitude":4.6,"longitude":-74.0`,
+		`,"address":"Calle 1","latitude":91,"longitude":-74.0`,
+	} {
+		repo := &fakeBrandRepository{getFound: true, updateResult: shops.BrandUpdateResult{Found: true}}
+		h := httpapi.NewUpdateBrandHandler(shops.NewBrandService(repo, nil), profilesFor())
 		rec := httptest.NewRecorder()
 		h.ServeHTTP(rec, requestWithPrincipal(http.MethodPatch, "/api/v1/private/settings/brand",
 			[]byte(strings.TrimSuffix(validBrandBody, "}")+extra+"}")))
-		if rec.Code != http.StatusBadRequest {
-			t.Fatalf("%s: las coordenadas las calcula el servidor; expected 400, got %d", extra, rec.Code)
+		if rec.Code != http.StatusUnprocessableEntity {
+			t.Fatalf("%s: expected 422, got %d: %s", extra, rec.Code, rec.Body.String())
 		}
-	}
-	if len(repo.updateCalls) != 0 {
-		t.Fatal("nada debe llegar al repositorio")
+		if len(repo.updateCalls) != 0 {
+			t.Fatalf("%s: nada debe llegar al repositorio", extra)
+		}
 	}
 }

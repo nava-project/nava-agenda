@@ -4,6 +4,17 @@ Formato basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/).
 Ver [`docs/06-api/estandar-openapi.md`](../../docs/06-api/estandar-openapi.md)
 sección 18 para qué cuenta como cambio compatible o incompatible.
 
+## 0.51.0 · 2026-11-15
+
+### Agregado
+
+- `PATCH /private/settings/brand` (`updateBrand`) acepta `latitude` y
+  `longitude` opcionales (`DEC-170`): el punto que el dueño ajustó a mano en el
+  mapa. Se envían juntas y con una `address` no vacía; con ellas el servidor
+  guarda ese punto sin geocodificar. Incompletas, fuera de rango o sin
+  dirección: `422` sin escribir nada. Compatible: un cliente que no las envía
+  se comporta como antes.
+
 ## 0.50.0 · 2026-11-15
 
 ### Agregado

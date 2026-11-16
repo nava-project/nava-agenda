@@ -2125,3 +2125,21 @@ Cada código `DEC-*` es estable y no se reutiliza. Este registro normaliza respu
 - **Documentos afectados:** `reglas-negocio.md` (`RN-DIS-04`, `RN-DIS-06`), contrato OpenAPI, diccionario de datos, `historial-cambios.md`.
 - **Fuente:** solicitud del propietario el 2026-11-15; issue [#585](https://github.com/bcaceres19/barberia/issues/585); `DEC-083`, `DEC-133`, HU-093.
 
+
+### DEC-170 · El dueño puede ubicar su local a mano en el mapa de Configuración: buscarlo por nombre o dirección y ajustar el pin (amplía `DEC-130`)
+
+- **Fecha:** 2026-11-15
+- **Estado:** Confirmada
+- **Decisión:** en Configuración → Ubicación, con el local activado, siempre hay un buscador y un mapa con el pin fijo al centro, aunque la dirección aún no tenga coordenadas.
+  1. **Buscar.** El buscador usa las sugerencias de Google Places del navegador (las mismas de `DEC-138`) y encuentra el local por su nombre o por su dirección. Elegir una sugerencia centra el mapa ahí y, si la dirección escrita estaba vacía, la completa.
+  2. **Ajustar a mano.** Mover el mapa, o «Usar mi ubicación», fija el punto exacto. El panel lo cuenta como cambio sin guardar.
+  3. **Guardar.** Con un punto marcado, el panel envía `latitude` y `longitude` junto a la `address` escrita en `PATCH /private/settings/brand`, y el servidor guarda ese punto tal cual, sin geocodificar. Sin punto marcado, todo sigue como en `DEC-130`: el servidor geocodifica una dirección nueva.
+  4. **Validación.** El punto llega completo (ambas coordenadas), dentro de rango y con una dirección no vacía en el mismo cuerpo. Si no, el servidor responde `422` sin escribir nada. La base ya lo garantiza con `barbershop_latitude_ck`, `barbershop_longitude_ck` y `barbershop_coordinates_ck`.
+- **Motivo:** el propietario pidió: «¿no hay forma que se despliegue el mapa y que la persona de forma manual coloque el lugar, o por el nombre que colocó, y que después de forma manual coloque la ubicación?». La geocodificación del texto no siempre cae en la puerta correcta: «Local 2», una dirección rural o un centro comercial. Además, una dirección cargada fuera del panel podía quedar sin mapa.
+- **Alternativas descartadas:**
+  - Solo geocodificar en el servidor (`DEC-130`): no permite corregir un punto mal ubicado.
+  - Un marcador arrastrable: se descarta por coherencia con el selector de domicilio (`DEC-138`), donde el pin va fijo al centro y se mueve el mapa, que funciona igual con el dedo, el ratón y el teclado.
+  - Validar en el servidor que el punto esté cerca de la dirección: añadiría una consulta facturable y rechazaría justo los casos que motivan el cambio.
+- **Alcance:** `apps/api` (`LocationPatch` y `BrandService` aceptan y validan el punto; DTO `UpdateBrandRequest`); contrato OpenAPI 0.51.0; `apps/web` (Configuración: buscador `AddressAutocomplete` y `LocationPicker`, borrador con `pin`). Sin migración.
+- **Documentos afectados:** contrato OpenAPI, `matriz-trazabilidad.md`, `historial-cambios.md`.
+- **Fuente:** solicitud del propietario el 2026-11-15; issue [#591](https://github.com/bcaceres19/barberia/issues/591); `DEC-130`, `DEC-138`, HU-102.

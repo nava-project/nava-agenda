@@ -562,7 +562,7 @@ export interface paths {
         head?: never;
         /**
          * Actualizar la marca y el vocabulario de la barbería activa
-         * @description Actualización autenticada (issue #292, DEC-110) de los seis campos de marca y vocabulario, que viajan siempre presentes; cualquier otro campo -en particular un identificador de barbería o `panelProfile`, que desde `DEC-134` lo deciden los roles del usuario- se rechaza como forma inválida. `accent` pertenece a una lista cerrada (nunca un color libre) y cada término se recorta, se colapsa y se pasa a minúsculas antes de validarlo y guardarlo. `hasPhysicalLocation` y `address` son opcionales (`DEC-130`, `HU-102`): ausentes no tocan la ubicación; una dirección nueva se geocodifica en el servidor antes de guardar y, si no se puede ubicar con precisión de calle, responde `422` sin escribir nada (ni la marca); apagar el interruptor conserva la dirección y sus coordenadas. Un valor inválido responde `422` sin escribir nada. Son preferencias de presentación: no hay precondición de versión y la última escritura gana. Escribir toca `updated_at` de la fila, así que invalida el token `If-Match` de una política de reserva leída antes (`HU-093`), igual que una escritura de `HU-020`. La respuesta devuelve la representación canónica ya guardada, la misma forma que `GET`.
+         * @description Actualización autenticada (issue #292, DEC-110) de los seis campos de marca y vocabulario, que viajan siempre presentes; cualquier otro campo -en particular un identificador de barbería o `panelProfile`, que desde `DEC-134` lo deciden los roles del usuario- se rechaza como forma inválida. `accent` pertenece a una lista cerrada (nunca un color libre) y cada término se recorta, se colapsa y se pasa a minúsculas antes de validarlo y guardarlo. `hasPhysicalLocation` y `address` son opcionales (`DEC-130`, `HU-102`): ausentes no tocan la ubicación; una dirección nueva se geocodifica en el servidor antes de guardar y, si no se puede ubicar con precisión de calle, responde `422` sin escribir nada (ni la marca); apagar el interruptor conserva la dirección y sus coordenadas. Con `latitude`/`longitude` (`DEC-170`), el punto que el dueño ajustó a mano en el mapa, el servidor guarda ese punto junto a la dirección sin geocodificarla. Un valor inválido responde `422` sin escribir nada. Son preferencias de presentación: no hay precondición de versión y la última escritura gana. Escribir toca `updated_at` de la fila, así que invalida el token `If-Match` de una política de reserva leída antes (`HU-093`), igual que una escritura de `HU-020`. La respuesta devuelve la representación canónica ya guardada, la misma forma que `GET`.
          */
         patch: operations["updateBrand"];
         trace?: never;
@@ -1706,7 +1706,7 @@ export interface components {
             /** @description Interruptor general del servicio a domicilio (`DEC-131`). Con `true`, la reserva pública ofrece «a domicilio» para cualquier servicio. */
             offersHomeService: boolean;
         };
-        /** @description Marca y vocabulario a guardar. Los seis campos de la marca viajan siempre presentes. No incluye `panelProfile`: el panel lo deciden los roles del usuario (`DEC-134`). La ubicación (`hasPhysicalLocation`, `address`) es opcional: ausente no la toca (`DEC-130`). */
+        /** @description Marca y vocabulario a guardar. Los seis campos de la marca viajan siempre presentes. No incluye `panelProfile`: el panel lo deciden los roles del usuario (`DEC-134`). La ubicación (`hasPhysicalLocation`, `address` y el punto opcional `latitude`/`longitude`) es opcional: ausente no la toca (`DEC-130`, `DEC-170`). */
         UpdateBrandRequest: {
             accent: components["schemas"]["BrandAccent"];
             businessTerm: components["schemas"]["BrandTerm"];
@@ -1717,10 +1717,20 @@ export interface components {
             /** @description Interruptor de la ubicación física (`DEC-130`). Ausente conserva el valor actual; apagarlo no borra la dirección ni las coordenadas. */
             hasPhysicalLocation?: boolean;
             /**
-             * @description Dirección del local en texto (`DEC-130`). Ausente conserva la dirección y sus coordenadas; `null` o una cadena vacía las quita; una dirección nueva se recorta, se colapsan sus espacios y se geocodifica en el servidor antes de guardar. Si Google no puede ubicarla con precisión de calle responde `422` sin escribir nada (tampoco la marca). Las coordenadas no se envían: las calcula el servidor.
+             * @description Dirección del local en texto (`DEC-130`). Ausente conserva la dirección y sus coordenadas; `null` o una cadena vacía las quita; una dirección nueva se recorta, se colapsan sus espacios y se geocodifica en el servidor antes de guardar. Si Google no puede ubicarla con precisión de calle responde `422` sin escribir nada (tampoco la marca). Si viene junto con `latitude`/`longitude`, no se geocodifica: se guarda ese punto (`DEC-170`).
              * @example Calle 10
              */
             address?: string | null;
+            /**
+             * @description Latitud del punto que el dueño ajustó a mano en el mapa (`DEC-170`). Opcional; se envía junto con `longitude` y con una `address` no vacía en el mismo cuerpo, o el servidor responde `422` sin escribir nada. Con ambas, el servidor guarda este punto y no geocodifica la dirección.
+             * @example 4.553358
+             */
+            latitude?: number;
+            /**
+             * @description Longitud del punto ajustado a mano (`DEC-170`). Mismas reglas que `latitude`.
+             * @example -75.656683
+             */
+            longitude?: number;
             /** @description Interruptor general del servicio a domicilio (`DEC-131`). Ausente conserva el valor; apagarlo no afecta los turnos ya creados con domicilio. */
             offersHomeService?: boolean;
         };

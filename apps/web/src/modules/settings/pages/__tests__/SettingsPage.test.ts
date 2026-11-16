@@ -710,14 +710,60 @@ describe('SettingsPage', () => {
       wrapper.unmount()
     })
 
-    it('previews the saved map only when there are coordinates', async () => {
-      const withMap = await mountWithLocation(savedLocation)
-      expect(withMap.find('#configuracion-ubicacion iframe').exists()).toBe(true)
-      withMap.unmount()
+    // DEC-170: con el local activado siempre hay buscador y mapa con pin, aunque la
+    // dirección aún no tenga coordenadas; apagado, solo se recuerda el punto guardado.
+    it('shows the place search and the pin map whenever the local is on, even without coordinates', async () => {
+      for (const location of [savedLocation, DEFAULT_LOCATION]) {
+        const wrapper = await mountWithLocation(location)
+        const picker = wrapper.get('#configuracion-ubicacion .settings-location-picker')
+        expect(picker.text()).toContain('Busca tu local por nombre o dirección')
+        expect(picker.text()).toContain('Ubicación en el mapa')
+        wrapper.unmount()
+      }
+    })
 
-      const without = await mountWithLocation(DEFAULT_LOCATION)
-      expect(without.find('#configuracion-ubicacion iframe').exists()).toBe(false)
-      without.unmount()
+    it('with the local off, hides the pin map and only previews the saved point', async () => {
+      const wrapper = await mountWithLocation({ ...savedLocation, hasPhysicalLocation: false })
+      expect(wrapper.find('.settings-location-picker').exists()).toBe(false)
+      expect(wrapper.find('#configuracion-ubicacion iframe').exists()).toBe(true)
+      expect(wrapper.get('#configuracion-ubicacion').text()).toContain('oculta')
+      wrapper.unmount()
+    })
+
+    it('moving the map sends the hand-placed point with the written address (DEC-170)', async () => {
+      const wrapper = await mountWithLocation(savedLocation)
+      saveBrandMock.mockImplementationOnce(async (brand) => ({
+        kind: 'success',
+        brand,
+        location: { ...savedLocation, latitude: 4.599056 },
+      }))
+
+      await wrapper.get('[aria-label="Mover el mapa al norte"]').trigger('click')
+      await settle()
+      expect(wrapper.get('.save-bar').text()).toContain('Ubicación')
+      await submit(wrapper)
+
+      expect(saveBrandMock.mock.calls[0]![1]).toEqual({
+        address: 'Calle 10 # 5-20, Bogotá',
+        latitude: 4.599056,
+        longitude: -74.076111,
+      })
+      expect(wrapper.find('.save-bar').exists()).toBe(false)
+      wrapper.unmount()
+    })
+
+    it('a hand-placed point without a written address asks for the address and does not save', async () => {
+      const wrapper = await mountWithLocation(DEFAULT_LOCATION)
+
+      await wrapper.get('[aria-label="Mover el mapa al este"]').trigger('click')
+      await settle()
+      await submit(wrapper)
+
+      expect(saveBrandMock).not.toHaveBeenCalled()
+      expect(wrapper.get('#configuracion-ubicacion').text()).toContain(
+        'Escribe la dirección del local',
+      )
+      wrapper.unmount()
     })
 
     it('warns that the address is public', async () => {
@@ -742,8 +788,7 @@ describe('SettingsPage', () => {
       expect(saveBrandMock).toHaveBeenCalledTimes(1)
       expect(saveBrandMock.mock.calls[0]![1]).toEqual({ address: 'Calle 10 # 5-20, Bogotá' })
       expect(saveMock).not.toHaveBeenCalled()
-      // Tras guardar aparece la vista previa con las coordenadas que fijó el servidor.
-      expect(wrapper.find('#configuracion-ubicacion iframe').exists()).toBe(true)
+      // Sin tocar el mapa no viaja ningún punto: lo fija el servidor al geocodificar.
       expect(wrapper.find('.save-bar').exists()).toBe(false)
       wrapper.unmount()
     })

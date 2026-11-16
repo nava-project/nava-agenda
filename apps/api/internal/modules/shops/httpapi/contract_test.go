@@ -334,11 +334,12 @@ var brandFields = []string{
 const panelProfileField = "panelProfile"
 
 // Ubicación de la barbería (DEC-130, HU-102): la respuesta siempre trae los
-// cuatro; la petición solo admite el interruptor y la dirección (opcionales:
-// ausente = sin cambio), nunca las coordenadas, que calcula el servidor.
+// cuatro; la petición admite el interruptor, la dirección y, desde DEC-170,
+// el punto ajustado a mano (todo opcional: ausente = sin cambio).
 var (
 	locationResponseFields = []string{"hasPhysicalLocation", "address", "latitude", "longitude", "offersHomeService"}
-	locationRequestFields  = []string{"hasPhysicalLocation", "address", "offersHomeService"}
+	// latitude/longitude: el punto ajustado a mano en el mapa (DEC-170).
+	locationRequestFields = []string{"hasPhysicalLocation", "address", "latitude", "longitude", "offersHomeService"}
 )
 
 // TestContract_BrandSchemas_MatchDTOFields verifica que BrandResponse y
@@ -364,11 +365,6 @@ func TestContract_BrandSchemas_MatchDTOFields(t *testing.T) {
 	for _, field := range locationRequestFields {
 		if _, ok := request.Properties[field]; !ok {
 			t.Errorf("UpdateBrandRequest no declara %q", field)
-		}
-	}
-	for _, field := range []string{"latitude", "longitude"} {
-		if _, ok := request.Properties[field]; ok {
-			t.Fatalf("UpdateBrandRequest no debe declarar %s: lo calcula el servidor (DEC-130)", field)
 		}
 	}
 	for _, field := range locationRequestFields {

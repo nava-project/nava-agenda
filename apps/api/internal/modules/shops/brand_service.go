@@ -103,7 +103,14 @@ func (s *BrandService) Update(ctx context.Context, barbershopID string, input Br
 // escribe nada.
 func (s *BrandService) resolveLocation(ctx context.Context, barbershopID string, patch LocationPatch) (LocationWrite, error) {
 	write := LocationWrite{HasPhysicalLocation: patch.HasPhysicalLocation, OffersHomeService: patch.OffersHomeService}
+	pin, err := manualPin(patch)
+	if err != nil {
+		return LocationWrite{}, err
+	}
 	if !patch.AddressSet {
+		if pin != nil {
+			return LocationWrite{}, errPinWithoutAddress()
+		}
 		return write, nil
 	}
 
@@ -113,11 +120,22 @@ func (s *BrandService) resolveLocation(ctx context.Context, barbershopID string,
 	}
 	write.ReplaceAddress = true
 	if address == nil {
+		if pin != nil {
+			return LocationWrite{}, errPinWithoutAddress()
+		}
 		// Quitar la dirección quita también sus coordenadas.
 		return write, nil
 	}
 	if !IsValidAddressLength(*address) {
 		return LocationWrite{}, errAddressTooLong()
+	}
+	if pin != nil {
+		// Punto elegido a mano (DEC-170): manda sobre la geocodificación, que
+		// no se consulta. La dirección escrita lo acompaña como texto.
+		write.Address = address
+		write.Latitude = &pin.Latitude
+		write.Longitude = &pin.Longitude
+		return write, nil
 	}
 
 	current, found, err := s.repo.Get(ctx, barbershopID)
@@ -152,4 +170,20 @@ func (s *BrandService) resolveLocation(ctx context.Context, barbershopID string,
 	write.Latitude = &point.Latitude
 	write.Longitude = &point.Longitude
 	return write, nil
+}
+
+// manualPin valida el punto elegido a mano (DEC-170): nil si no vino, o el
+// punto si vino completo y dentro de rango. NaN o infinito no pasan el rango.
+func manualPin(patch LocationPatch) (*Coordinates, error) {
+	if patch.Latitude == nil && patch.Longitude == nil {
+		return nil, nil
+	}
+	if patch.Latitude == nil || patch.Longitude == nil {
+		return nil, errPinIncomplete()
+	}
+	lat, lng := *patch.Latitude, *patch.Longitude
+	if !(lat >= -90 && lat <= 90) || !(lng >= -180 && lng <= 180) {
+		return nil, errPinOutOfRange()
+	}
+	return &Coordinates{Latitude: lat, Longitude: lng}, nil
 }
