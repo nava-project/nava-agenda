@@ -2160,3 +2160,18 @@ Cada código `DEC-*` es estable y no se reutiliza. Este registro normaliza respu
 - **Alternativas descartadas:** aplicar el acento solo al contenedor del cascarón (los diálogos en `<body>` quedarían en latón); exponer el color en hexadecimal (rompe la paleta cerrada con contraste comprobado); seguir también el modo Marfil del panel (es una preferencia del dispositivo del dueño, no de la barbería).
 - **Documentos afectados:** contrato OpenAPI (0.52.0), `docs/03-desarrollo/estandar-diseno-visual.md` §3.2, `matriz-trazabilidad.md`, `historial-cambios.md`.
 - **Fuente:** instrucción explícita del propietario del 2026-11-15; issue [#599](https://github.com/bcaceres19/barberia/issues/599).
+
+### DEC-172 · La ventana propia del barbero no tiene tope de días: dura hasta apagarla (amplía `DEC-169`)
+
+- **Fecha:** 2026-11-15.
+- **Decisión:** en Reserva pública → Ventana por barbero, la ventana propia ya no pide «Ventana (días)». Con el interruptor encendido el barbero tiene su anticipación y su franja; el cliente puede reservar con él hasta el techo que el sistema calcula, 90 días (el máximo de la ventana de la barbería, `DEC-083`), y la ventana propia rige hasta que se apaga.
+  1. **Panel.** Sin campo de días; una nota explica «Sin límite de días… hasta que apagues la ventana propia». Guardar envía `maxAdvanceDays = 90`. El resumen de barberos con ventana propia dice «sin límite de días».
+  2. **Datos.** La migración `20261116120000_barber_booking_policy_full_window.sql` lleva a 90 las ventanas propias ya guardadas. No cambia columnas ni restricciones.
+  3. **Contrato.** Sin cambios: `PUT /private/settings/booking-policy/barbers/{barberId}` sigue aceptando 1..90; el panel solo usa 90.
+- **Por qué 90 y no infinito:** la disponibilidad pública se calcula de una vez para toda la ventana, una jornada efectiva por día (`HU-094`); una ventana sin fin no se puede calcular. Ampliar el techo exigiría paginar la disponibilidad por fechas, fuera de este alcance.
+- **Sin cambio:** la ventana de la barbería conserva su campo de días (1..90); anticipación, rejilla, plazo de cancelación y reglas de solape (`RN-DIS-04`, `RN-CON-01`).
+- **Responsable:** propietario del proyecto.
+- **Motivo:** el propietario leyó «Ventana (días)» como la duración de la ventana propia y pidió que no fuera un plazo sino «hasta que se desactive»; entre «sin límite de días», «aclarar el texto» y «tope opcional» eligió «sin límite de días».
+- **Alternativas descartadas:** tope opcional (vuelve a exponer un número que confundía); paginar la disponibilidad para un horizonte mayor (cambio del motor y del contrato público sin necesidad demostrada).
+- **Documentos afectados:** `database/migrations` (+ `atlas.sum`, `.github/workflows/ci.yml`), `matriz-trazabilidad.md`, `historial-cambios.md`.
+- **Fuente:** instrucción explícita del propietario del 2026-11-15; issue [#603](https://github.com/bcaceres19/barberia/issues/603).

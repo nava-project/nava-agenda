@@ -15,6 +15,7 @@ import {
   saveBarberWindow,
 } from '../api/barberBookingPolicyApi'
 import {
+  BARBER_WINDOW_MAX_DAYS,
   sameWindow,
   type BarberBookingWindow,
   type BarberWindowOption,
@@ -23,8 +24,6 @@ import {
 import { formatDuration, sampleSlotLabels } from '../model/bookingPolicy'
 import {
   SLOT_GRID_MINUTES_CEIL,
-  validateAdvanceWithinWindow,
-  validateMaxAdvanceDays,
   validateMinAdvanceMinutes,
   validateSlotGridMinutes,
 } from '../validation/bookingPolicyValidation'
@@ -86,6 +85,7 @@ function resetDraft() {
   const own = savedOwn.value
   ownDraft.value = own !== undefined
   Object.assign(draft, own ? pickWindow(own) : props.shopWindow)
+  if (ownDraft.value) draft.maxAdvanceDays = BARBER_WINDOW_MAX_DAYS
   fieldErrors.value = {}
   attempted.value = false
 }
@@ -119,6 +119,8 @@ function onOwnToggle(value: boolean) {
   // Al activar parte de lo vigente (la propia guardada o la de la barbería);
   // al apagar, lo que se ve es exactamente lo que heredaría.
   Object.assign(draft, value && savedOwn.value ? pickWindow(savedOwn.value) : props.shopWindow)
+  // DEC-172: la ventana propia no tiene tope de días elegido; dura hasta apagarla.
+  if (value) draft.maxAdvanceDays = BARBER_WINDOW_MAX_DAYS
   fieldErrors.value = {}
   attempted.value = false
   if (actionStatus.value !== 'saving') actionStatus.value = 'idle'
@@ -128,14 +130,10 @@ function validate(): FieldErrors {
   const errors: FieldErrors = {}
   const minError = validateMinAdvanceMinutes(draft.minAdvanceMinutes)
   if (minError) errors.minAdvanceMinutes = minError
-  const maxError = validateMaxAdvanceDays(draft.maxAdvanceDays)
-  if (maxError) errors.maxAdvanceDays = maxError
   const gridError = validateSlotGridMinutes(draft.slotGridMinutes)
   if (gridError) errors.slotGridMinutes = gridError
-  if (!errors.minAdvanceMinutes && !errors.maxAdvanceDays) {
-    const windowError = validateAdvanceWithinWindow(draft.minAdvanceMinutes, draft.maxAdvanceDays)
-    if (windowError) errors.minAdvanceMinutes = windowError
-  }
+  // Sin campo de días (DEC-172): la anticipación máxima (24 h) nunca alcanza la
+  // ventana propia de 90 días, así que no hay coherencia que comprobar.
   return errors
 }
 
@@ -225,8 +223,7 @@ const slots = computed(() => sampleSlotLabels(shownWindow.value.slotGridMinutes,
 
 function summaryOf(w: BookingWindowValues): string {
   const lead = w.minAdvanceMinutes > 0 ? formatDuration(w.minAdvanceMinutes) : 'sin mínimo'
-  const days = `${w.maxAdvanceDays} ${w.maxAdvanceDays === 1 ? 'día' : 'días'}`
-  return `Cada ${w.slotGridMinutes} min · anticipación ${lead} · hasta ${days}`
+  return `Cada ${w.slotGridMinutes} min · anticipación ${lead} · sin límite de días`
 }
 
 const ownRoster = computed(() =>
@@ -332,20 +329,6 @@ const ownRoster = computed(() =>
                   @update:model-value="(value) => onField('minAdvanceMinutes', value)"
                 />
                 <BaseInput
-                  :model-value="draft.maxAdvanceDays"
-                  type="number"
-                  name="barberMaxAdvanceDays"
-                  label="Ventana (días)"
-                  hint="Máxima: de 1 a 90."
-                  required
-                  :show-required-marker="false"
-                  :min="1"
-                  :max="90"
-                  :disabled="busy"
-                  :error="fieldErrors.maxAdvanceDays"
-                  @update:model-value="(value) => onField('maxAdvanceDays', value)"
-                />
-                <BaseInput
                   :model-value="draft.slotGridMinutes"
                   type="number"
                   name="barberSlotGridMinutes"
@@ -360,6 +343,11 @@ const ownRoster = computed(() =>
                   @update:model-value="(value) => onField('slotGridMinutes', value)"
                   @input="capGridField"
                 />
+                <!-- DEC-172: sin tope de días que elegir; la ventana dura hasta apagarla. -->
+                <p class="barber-window__no-limit">
+                  Sin límite de días: los clientes reservan con {{ selected.fullName }} tan adelante
+                  como permite el sistema (3 meses), hasta que apagues la ventana propia.
+                </p>
               </div>
               <dl v-else key="inherit" class="barber-window__inherited">
                 <div>
@@ -603,8 +591,17 @@ const ownRoster = computed(() =>
 
 .barber-window__grid {
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 16px;
+}
+
+.barber-window__no-limit {
+  grid-column: 1 / -1;
+  margin: 0;
+  font-family: var(--font-sans);
+  font-size: var(--font-size-body-sm);
+  line-height: var(--font-size-body-sm-line);
+  color: var(--color-on-strong-muted);
 }
 
 /* Lo heredado se lee, no se edita: tres cifras sobre una regla fina. */

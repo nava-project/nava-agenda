@@ -93,20 +93,24 @@ describe('BarberWindowPanel', () => {
 
     // Parte de los valores de la barbería.
     expect(input(wrapper, 'barberSlotGridMinutes').value).toBe('15')
+    // Sin campo de días: la ventana propia dura hasta apagarla (DEC-172).
+    expect(wrapper.find('input[name="barberMaxAdvanceDays"]').exists()).toBe(false)
+    expect(wrapper.text()).toContain('Sin límite de días')
     await wrapper.get('input[name="barberSlotGridMinutes"]').setValue('40')
     await wrapper.get('input[name="barberMinAdvanceMinutes"]').setValue('30')
     expect(wrapper.findAll('.barber-window__slot')[1]!.text()).toBe('10:40')
 
     saveMock.mockResolvedValueOnce({
       kind: 'success',
-      window: { barberId: LEO, minAdvanceMinutes: 30, maxAdvanceDays: 3, slotGridMinutes: 40 },
+      window: { barberId: LEO, minAdvanceMinutes: 30, maxAdvanceDays: 90, slotGridMinutes: 40 },
     })
     await wrapper.get('button.base-button--primary').trigger('click')
     await flushPromises()
 
+    // DEC-172: la ventana propia no pide días; viaja con el techo del sistema.
     expect(saveMock).toHaveBeenCalledWith(LEO, {
       minAdvanceMinutes: 30,
-      maxAdvanceDays: 3,
+      maxAdvanceDays: 90,
       slotGridMinutes: 40,
     })
     expect(wrapper.text()).toContain('Tiene ventana propia')
