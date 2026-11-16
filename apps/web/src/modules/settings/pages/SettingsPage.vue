@@ -299,12 +299,13 @@ function onPinMoved(selection: PlaceSelection) {
   revalidate()
 }
 
-// Una sugerencia del buscador (por nombre o dirección) centra el mapa ahí y, si
-// la dirección aún estaba vacía, la completa: el dueño la puede corregir.
+// Una sugerencia del campo de dirección (por nombre del negocio o por
+// dirección) ya escribió su dirección en el campo (`update:text`); aquí solo
+// marca su punto, que centra el mapa. El dueño puede corregir el texto y
+// ajustar el pin después.
 function onPlaceChosen(selection: PlaceSelection | null) {
   if (!selection) return
   location.pin = roundPoint(selection)
-  if (normalizeAddress(location.address) === '') location.address = selection.address
   revalidate()
 }
 
@@ -1077,17 +1078,23 @@ const previewClass = computed(() => ({ 'settings-page__preview--changed': brandD
               "
               :disabled="saving"
             />
-            <BaseInput
-              :model-value="location.address"
+            <!-- Un solo campo (DEC-170): es la dirección que ven los clientes y a la vez
+                 el buscador de Google por nombre del negocio o por dirección. Elegir una
+                 sugerencia la escribe aquí y centra el mapa de abajo. -->
+            <AddressAutocomplete
+              :model-value="null"
+              :text="location.address"
               name="address"
               label="Dirección del local"
-              hint="Calle, número y ciudad. La ubicamos en el mapa al guardar."
+              hint="Escribe la dirección o el nombre de tu local y elige una sugerencia; luego ajusta el pin en el mapa."
               :maxlength="ADDRESS_MAX_LENGTH"
-              autocomplete="street-address"
+              :show-map="false"
+              :clear-on-input="false"
               :disabled="saving"
               :error="fieldErrors.address"
-              :class="{ 'settings-input--filled': !!location.address }"
-              @update:model-value="onAddressInput"
+              class="settings-address"
+              @update:text="onAddressInput"
+              @update:model-value="onPlaceChosen"
             />
             <p class="settings-field__hint">
               La dirección es pública: cualquiera que abra tu enlace de reservas puede verla. Si
@@ -1109,15 +1116,6 @@ const previewClass = computed(() => ({ 'settings-page__preview--changed': brandD
               v-if="location.hasPhysicalLocation && isMapAvailable()"
               class="settings-location-picker"
             >
-              <AddressAutocomplete
-                :model-value="null"
-                label="Busca tu local por nombre o dirección"
-                hint="Elige una sugerencia y luego ajusta el pin moviendo el mapa."
-                :show-map="false"
-                :clear-on-input="false"
-                :disabled="saving"
-                @update:model-value="onPlaceChosen"
-              />
               <LocationPicker
                 :model-value="locationPickerValue"
                 label="Ubicación en el mapa"
@@ -2035,6 +2033,15 @@ const previewClass = computed(() => ({ 'settings-page__preview--changed': brandD
   box-shadow:
     0 0 0 2px var(--color-surface-strong),
     0 0 0 4px var(--color-focus);
+}
+
+.settings-ink :deep(.address-autocomplete__input[aria-invalid='true']) {
+  background-color: color-mix(in srgb, var(--color-danger-on-strong) 7%, transparent);
+  border-bottom-color: var(--color-danger-on-strong);
+}
+
+.settings-ink :deep(.address-autocomplete__error) {
+  color: var(--color-danger-on-strong);
 }
 
 .settings-ink :deep(.address-autocomplete__list) {

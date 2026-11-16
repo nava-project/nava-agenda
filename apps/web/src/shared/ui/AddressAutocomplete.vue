@@ -37,6 +37,13 @@ interface Props {
    * ubicación puede venir de otro lado (p. ej. el mapa) y esto es solo una ayuda para buscarla.
    */
   clearOnInput?: boolean
+  /**
+   * Texto del campo controlado por el padre (DEC-170): el campo es a la vez la dirección
+   * que se guarda y el buscador. `undefined` deja el texto interno, como siempre.
+   */
+  text?: string
+  name?: string
+  maxlength?: number
 }
 const props = withDefaults(defineProps<Props>(), {
   hint: '',
@@ -46,8 +53,15 @@ const props = withDefaults(defineProps<Props>(), {
   debounceMs: 250,
   showMap: true,
   clearOnInput: true,
+  text: undefined,
+  name: undefined,
+  maxlength: undefined,
 })
-const emit = defineEmits<{ 'update:modelValue': [value: PlaceSelection | null] }>()
+const emit = defineEmits<{
+  'update:modelValue': [value: PlaceSelection | null]
+  /** Cada cambio del texto, escrito o puesto por una sugerencia elegida. */
+  'update:text': [value: string]
+}>()
 
 const uid = useId()
 const inputId = `${uid}-input`
@@ -58,7 +72,7 @@ const errorId = `${uid}-error`
 
 const places = computed(() => (props.client === undefined ? createPlacesClient() : props.client))
 
-const text = ref(props.modelValue?.address ?? '')
+const text = ref(props.text ?? props.modelValue?.address ?? '')
 const suggestions = ref<PlaceSuggestion[]>([])
 const open = ref(false)
 const activeIndex = ref(-1)
@@ -79,7 +93,10 @@ const statusText = computed(() => {
   if (loading.value) return 'Buscando direcciones…'
   if (failed.value) return 'No pudimos buscar direcciones. Inténtalo de nuevo.'
   if (open.value && suggestions.value.length === 0) return 'No encontramos esa dirección.'
-  if (open.value) return `${suggestions.value.length} sugerencias disponibles.`
+  if (open.value) {
+    const count = suggestions.value.length
+    return count === 1 ? '1 sugerencia disponible.' : `${count} sugerencias disponibles.`
+  }
   return ''
 })
 const describedBy = computed(
@@ -97,6 +114,7 @@ function cancelPending() {
 
 function onInput(event: Event) {
   text.value = (event.target as HTMLInputElement).value
+  emit('update:text', text.value)
   // Editar el texto invalida la selección anterior: un texto libre no es una dirección.
   if (props.modelValue && props.clearOnInput) emit('update:modelValue', null)
   failed.value = false
@@ -146,6 +164,7 @@ async function choose(suggestion: PlaceSuggestion) {
     if (mine !== token) return
     if (selection) {
       text.value = selection.address
+      emit('update:text', selection.address)
       emit('update:modelValue', selection)
     } else {
       failed.value = true
@@ -194,6 +213,12 @@ watch(
     text.value = value.address
   },
 )
+watch(
+  () => props.text,
+  (value) => {
+    if (value !== undefined && value !== text.value) text.value = value
+  },
+)
 onBeforeUnmount(cancelPending)
 </script>
 
@@ -214,6 +239,8 @@ onBeforeUnmount(cancelPending)
       :aria-describedby="describedBy"
       :aria-invalid="!!error"
       :disabled="disabled"
+      :name="name"
+      :maxlength="maxlength"
       :value="text"
       @input="onInput"
       @keydown="onKeydown"
