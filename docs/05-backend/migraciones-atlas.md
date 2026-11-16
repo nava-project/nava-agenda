@@ -1,9 +1,9 @@
 ---
 titulo: "Gestión de migraciones PostgreSQL con Atlas"
-version: "1.3"
+version: "1.4"
 estado: "Decisión confirmada"
 responsable: "Propietario del proyecto"
-ultima_actualizacion: "2026-11-06"
+ultima_actualizacion: "2026-11-16"
 documentos_relacionados:
   - "../00-control/registro-decisiones.md"
   - "../00-control/matriz-trazabilidad.md"
@@ -94,7 +94,7 @@ Secuencia obligatoria:
 | Local | manual, recreable y con datos ficticios | desarrollador |
 | Test/CI | automático sobre PostgreSQL efímero | pipeline del commit |
 | Piloto | automático desde artefacto aprobado | aprobación del responsable del piloto |
-| Producción | etapa separada antes del despliegue del API | PR revisado, CI en verde y respaldo verificado; despliegue automático (`DEC-160`) |
+| Producción | etapa separada antes del despliegue del API | PR revisado, CI en verde y respaldo verificado; despliegue automático (`DEC-160`) desde Jenkins (`DEC-177`) |
 
 La misma migración y el mismo `atlas.sum` avanzan entre ambientes. Está prohibido regenerar SQL distinto para piloto o producción.
 

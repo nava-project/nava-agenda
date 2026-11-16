@@ -1,9 +1,9 @@
 ---
 titulo: "Registro de decisiones"
-version: "1.68"
+version: "1.69"
 estado: "Vigente"
 responsable: "Propietario del proyecto"
-ultima_actualizacion: "2026-11-06"
+ultima_actualizacion: "2026-11-16"
 documentos_relacionados:
   - "contradicciones.md"
   - "matriz-trazabilidad.md"
@@ -2013,7 +2013,7 @@ Cada código `DEC-*` es estable y no se reutiliza. Este registro normaliza respu
 - **Responsable:** propietario del proyecto.
 - **Motivo:** quitar el paso manual en cada versión. Las defensas que protegen el despliegue no dependen de una persona: CI en verde del mismo commit, respaldo verificado previo, simulación de las migraciones, parada sin desplegar la aplicación si algo falla y pruebas de humo (`deploy.sh`).
 - **Cambia una regla previa:** `docs/05-backend/migraciones-atlas.md` exigía «aprobación manual» antes de migrar producción. Se sustituye por: la revisión del SQL exacto ocurre en el PR (donde ya se exige) y el despliegue automático aplica lo integrado. `migraciones-atlas.md` pasa a la versión 1.3.
-- **Consecuencias aceptadas:** (1) una migración llega a producción en cuanto se integra en `main`, sin una segunda revisión; el respaldo previo y la restauración (`restore.sh`) son la red de seguridad, y la reversión de la aplicación sigue siendo *roll-forward*; (2) cada commit de `main`, también los de solo documentación, reconstruye imágenes y recrea contenedores; la imagen de la base se versiona por contenido y no se recrea si no cambia; (3) un commit defectuoso que pase el CI llega a producción; (4) los aprobadores obligatorios del entorno `production` siguen sin existir (plan gratuito, repositorio privado): si el repositorio pasa a un plan que los admita, pueden volver a exigirse.
+- **Consecuencias aceptadas:** (1) una migración llega a producción en cuanto se integra en `main`, sin una segunda revisión; el respaldo previo y la restauración (`restore.sh`) son la red de seguridad, y la reversión de la aplicación sigue siendo *roll-forward*; (2) cada commit de `main`, también los de solo documentación, reconstruye imágenes y recrea contenedores; la imagen de la base se versiona por contenido y no se recrea si no cambia; (3) un commit defectuoso que pase el CI llega a producción; (4) los aprobadores obligatorios del entorno `production` siguen sin existir (plan gratuito, repositorio privado): si el repositorio pasa a un plan que los admita, pueden volver a exigirse. *Actualización (2026-11-16, `DEC-177`): el mismo comportamiento lo ejecuta ahora Jenkins en la VPS (`barberia/ci` → `barberia/deploy`); `AUTO_DEPLOY` se sustituye por desactivar el job `barberia/deploy`.*
 - **Alcance:** infraestructura (`.github/workflows/deploy.yml`). Sin cambios de API, contrato, datos ni migraciones.
 - **Documentos afectados:** `migraciones-atlas.md` (§ ambientes y § producción), `stack-despliegue-operacion.md` (§7), `deploy/README.md`, `historial-cambios.md`.
 - **Fuente:** instrucción explícita del propietario el 2026-11-06; issue [#541](https://github.com/bcaceres19/barberia/issues/541); `DEC-158`, `DEC-159`, `DEC-040`.
@@ -2249,3 +2249,25 @@ Cada código `DEC-*` es estable y no se reutiliza. Este registro normaliza respu
   - Que Caddy importe archivos de sitio desde un directorio de la VPS: la ruta quedaría fuera del repo, sin revisión ni CI.
 - **Documentos afectados:** `deploy/caddy/Caddyfile`, `deploy/compose.yaml`, `deploy/scripts/deploy.sh`, `deploy/README.md`, `historial-cambios.md`.
 - **Fuente:** instrucción del propietario del 2026-11-16; issue [#615](https://github.com/bcaceres19/barberia/issues/615).
+
+### DEC-177 · El CI/CD pasa de GitHub Actions a un Jenkins propio en la VPS (sustituye el mecanismo de `DEC-160`; amplía `DEC-158` y `DEC-176`)
+
+- **Fecha:** 2026-11-16.
+- **Decisión:**
+  1. Un Jenkins en la VPS de producción (pila `jenkins` en `/srv/jenkins`, `deploy/jenkins/`) es el único proveedor de CI/CD. Se retiran `.github/workflows/ci.yml` y `deploy.yml`. Su configuración es código: imagen con plugins, JCasC y Job DSL versionados; lo que se cambie en la interfaz se pierde al reiniciar.
+  2. Tres pipelines: **`barberia/ci`** (multibranch: cada PR contra `main` y cada commit de `main`; `Jenkinsfile` en la raíz) con los mismos checks de `ci.yml` (Go con PostgreSQL real, OpenAPI, frontend, Atlas + suites SQL, shellcheck y compose, construcción de las tres imágenes) y el estado publicado en el commit de GitHub; **`barberia/deploy`** (por SHA), que despliega con `deploy.sh` sin cambiar sus controles; **`vps/mantenimiento`** (diario), que limpia contenedores de CI huérfanos y caché de construcción vieja. Los demás proyectos de la VPS se sumarán como carpetas propias.
+  3. Se conserva `DEC-160`: el CI de `main` en verde dispara el despliegue del mismo SHA; si `main` avanzó, el despliegue viejo se omite; un despliegue a la vez y ninguno se cancela a medias. El interruptor `AUTO_DEPLOY` de GitHub se sustituye por desactivar el job `barberia/deploy` en Jenkins.
+  4. Sin registro de imágenes: Jenkins construye en el mismo Docker que ejecuta la pila y `deploy.sh` usa las imágenes locales (`--no-pull`). Los nombres conservan el prefijo `ghcr.io/bcaceres19/` para no cambiar `compose.yaml` ni las versiones anteriores. La imagen de la base sigue versionada por contenido y nunca se reconstruye si su etiqueta existe.
+  5. Jenkins entra como `deploy` por SSH a la IP del host en su propia red (`10.89.10.1`), con una llave propia restringida a esa red (`restrict,from=`). Se publica en `jenkins.nava.wtf` por el Caddy de la barbería y la red `edge` (como `DEC-176`); exige usuario y contraseña, sin registro, y el webhook de GitHub se valida con su firma HMAC. Hay respaldo por escaneo cada 5 minutos.
+  6. Variables y secretos viven como archivos en `/srv/jenkins/secrets` (600), leídos por JCasC: contraseña de `admin`, token de GitHub, secreto del webhook, llave SSH de despliegue, huella del host y la clave de navegador de Google Maps. Las claves de proveedores de la aplicación siguen solo en `/srv/barberia/secrets` (`DEC-159`).
+- **Quién lo decidió:** el propietario, el 2026-11-16: «Monta en el VPS un jenkins con varios pipelines para hacer despliegues […] migra todo lo de GITHUB Actions a JENKINS […] que se ejecute cada vez que haya un nuevo commit en main y lo despliegue en la VPS». Eligió usar el token actual de `gh` de `bcaceres19` y el subdominio `jenkins.nava.wtf`.
+- **Responsable:** propietario del proyecto.
+- **Motivo:** instrucción del propietario de tener el CI/CD propio en la VPS para todos sus proyectos.
+- **Alternativas descartadas:**
+  - Mantener GitHub Actions para el CI y Jenkins solo para desplegar: el propietario pidió migrar todo.
+  - Seguir publicando en GHCR: el token de `gh` no tiene `write:packages` y un registro no aporta nada cuando se construye y se ejecuta en la misma máquina.
+  - Ejecutar `deploy.sh` desde el contenedor de Jenkins: los secretos de `/srv/barberia` son del usuario `deploy` (600); entrar por SSH conserva esa frontera y el registro de quién desplegó.
+- **Consecuencias aceptadas:** (1) Jenkins habla con el socket de Docker del host: quien lo administre, o quien logre ejecutar código en un pipeline (un PR), es root en la VPS; el repositorio es privado y de un solo dueño, y Jenkins no admite anónimos ni registro; (2) el CI compite por CPU y memoria con la producción: los contenedores de prueba corren con prioridad baja (`--cpu-shares 512`) y límites propios, y las imágenes se construyen después de los checks, no en paralelo; (3) si la VPS cae, también cae el CI/CD; (4) el token de `gh` de `bcaceres19` tiene alcance `repo` sobre todos sus repositorios: un token fino solo para este repo reduce el riesgo y puede sustituirlo con `jenkins-secret-set.sh GITHUB_TOKEN`; (5) sin registro, las imágenes de versiones anteriores solo duran 7 días en el servidor (`deploy.sh` las limpia); para volver a un SHA más viejo, `barberia/deploy` las reconstruye desde ese commit; (6) el plan gratuito no admite checks obligatorios en un repositorio privado: el estado de Jenkins en el commit es informativo y la regla de no integrar con checks fallidos sigue siendo de proceso; (7) los plugins se resuelven a su última versión compatible al reconstruir la imagen; el núcleo de Jenkins sí está fijado.
+- **Alcance:** infraestructura (`Jenkinsfile`, `deploy/jenkins/`, `tools/ci/`, `deploy/caddy/Caddyfile`). Sin cambios de API, contrato, datos ni migraciones.
+- **Documentos afectados:** `deploy/README.md`, `deploy/jenkins/README.md`, `stack-despliegue-operacion.md`, `flujo-git-github.md`, `migraciones-atlas.md`, `apps/api/README.md`, `historial-cambios.md`.
+- **Fuente:** instrucción del propietario del 2026-11-16; issue [#617](https://github.com/bcaceres19/barberia/issues/617); `DEC-158`, `DEC-159`, `DEC-160`, `DEC-176`.
