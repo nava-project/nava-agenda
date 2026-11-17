@@ -118,7 +118,9 @@ describe('OpeningHoursPanel', () => {
     await day(wrapper, 4).get('.opening__remove').trigger('click')
     expect(day(wrapper, 4).classes()).toContain('opening__day--closed')
 
-    const copy = wrapper.findAll('button').find((b) => b.text().includes('Copiar el horario del lunes'))!
+    const copy = wrapper
+      .findAll('button')
+      .find((b) => b.text().includes('Copiar el horario del lunes'))!
     await copy.trigger('click')
     await saveButton(wrapper).trigger('click')
     await flushPromises()
