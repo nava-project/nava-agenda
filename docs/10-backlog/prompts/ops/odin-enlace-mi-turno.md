@@ -2,7 +2,7 @@
 prompt_id: "PROMPT-OPS-ODIN-ENLACE-MI-TURNO-v1"
 version: "1.0"
 kind: "ops"
-status: "blocked"
+status: "ready"
 target_agents:
   - "claude"
   - "codex"
@@ -21,7 +21,7 @@ branch: null
 pr: null
 pr_url: null
 depends_on:
-  - "HU-105 integrada en main de bcaceres19/barberia y desplegada (issue bcaceres19/barberia#637)"
+  - "HU-105 integrada en main de bcaceres19/barberia y desplegada (issue bcaceres19/barberia#637, PR #643): cumplida el 2026-11-17"
 rules:
   - "RN-DAT-01"
   - "RN-DAT-02"
@@ -53,7 +53,7 @@ superseded_by: null
 
 Trabajas en el repositorio **bcaceres19/odin**, no en `barberia`. Antes de tocar nada, lee `AGENTS.md` y la skill `odin-orientacion` de Odin; sus reglas prevalecen sobre este prompt.
 
-El issue es [bcaceres19/odin#7](https://github.com/bcaceres19/odin/issues/7). Este prompt está `blocked` y pasa a `ready` cuando `HU-105` esté integrada en `main` de `barberia` y desplegada, es decir, cuando la ruta `/reservar/<slug>/mi-turno` exista en producción. Si al empezar no se cumple, detente e informa. No publiques un enlace que todavía lleva a una página inexistente.
+El issue es [bcaceres19/odin#7](https://github.com/bcaceres19/odin/issues/7). `HU-105` ya está integrada en `main` de `barberia` ([PR #643](https://github.com/bcaceres19/barberia/pull/643)) y desplegada: la ruta `/reservar/<slug>/mi-turno` existe en producción y por ahora **solo permite cambiar la hora** (no cancela). Si al empezar la ruta ya no responde, detente e informa. No publiques un enlace que todavía lleva a una página inexistente.
 
 ## Problema
 
