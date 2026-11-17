@@ -1,9 +1,9 @@
 ---
 titulo: "Historias de usuario y criterios de aceptación"
-version: "1.59"
+version: "1.60"
 estado: "Propuesta"
 responsable: "Propietario del proyecto"
-ultima_actualizacion: "2026-10-26"
+ultima_actualizacion: "2026-11-17"
 documentos_relacionados:
   - "../01-producto/alcance-mvp.md"
   - "../01-producto/reglas-negocio.md"
@@ -52,7 +52,7 @@ La secuencia de bloques vive en [plan-bloques.md](../10-backlog/plan-bloques.md)
 | B1 · Identidad de la barbería y catálogo | `HU-020` – `HU-025` | `HU-020`–`HU-024` integradas en `main` ([PR #79](https://github.com/bcaceres19/barberia/pull/79), [PR #83](https://github.com/bcaceres19/barberia/pull/83), [PR #84](https://github.com/bcaceres19/barberia/pull/84)); `HU-025` implementada contra el issue [#292](https://github.com/bcaceres19/barberia/issues/292) (`DEC-110`) |
 | B2 · Horario laboral y bloqueos | `HU-040` – `HU-042` | Integradas en `main` ([PR #93](https://github.com/bcaceres19/barberia/pull/93), [PR #96](https://github.com/bcaceres19/barberia/pull/96), [PR #99](https://github.com/bcaceres19/barberia/pull/99)); seguimientos parciales en `#90`, `#95`, `#98` y `#100` |
 | B3 · Agenda, estados e integridad | `HU-060` – `HU-068` | `HU-060`–`HU-068` integradas en `main`, issues reales [#225](https://github.com/bcaceres19/barberia/issues/225)–[#227](https://github.com/bcaceres19/barberia/issues/227); tercer lote de B3 completo, T3/cierre automático pendientes |
-| B4 · Reserva pública y disponibilidad | `HU-090` – `HU-103` | `HU-090`–`HU-099` redactadas como propuesta en issue [#240](https://github.com/bcaceres19/barberia/issues/240), `DP-PUB-01`–`DP-PUB-06`/`CT-011` resueltas; `HU-100`–`HU-103` (reseñas internas, reseñas de Google, ubicación y domicilio) redactadas el 2026-10-26 (`DEC-128`–`DEC-131`), sin issue real todavía |
+| B4 · Reserva pública y disponibilidad | `HU-090` – `HU-105` | `HU-090`–`HU-099` redactadas como propuesta en issue [#240](https://github.com/bcaceres19/barberia/issues/240), `DP-PUB-01`–`DP-PUB-06`/`CT-011` resueltas; `HU-100`–`HU-103` (reseñas internas, reseñas de Google, ubicación y domicilio) redactadas el 2026-10-26 (`DEC-128`–`DEC-131`), sin issue real todavía; `HU-104`–`HU-105` (reprogramación por el cliente) redactadas el 2026-11-17 (`DEC-178`, issues [#636](https://github.com/bcaceres19/barberia/issues/636) y [#637](https://github.com/bcaceres19/barberia/issues/637)) |
 | B5 · Notificaciones y recordatorios | `HU-130` – `HU-131` | `HU-130` implementada (issue [#463](https://github.com/bcaceres19/barberia/issues/463), `DEC-142`); `HU-131` implementada (issue [#467](https://github.com/bcaceres19/barberia/issues/467), `DEC-144`); WhatsApp, varios recordatorios y configuración por evento pendientes |
 | B6 · Operación, privacidad y piloto | `HU-150` – | Pendientes |
 
@@ -2411,7 +2411,7 @@ Orden recomendado: `HU-090` → `HU-091` → `HU-092` → `HU-093` → `HU-094` 
 
 **Alcance excluido**
 
-- Portal, login, búsqueda por contacto, edición/reprogramación por cliente o historial interno.
+- Portal, login, búsqueda por contacto, edición/reprogramación por cliente o historial interno. *La reprogramación por el cliente y el acceso con código de un solo uso llegan después con `HU-104` y `HU-105` (`DEC-178`).*
 - Mostrar IDs, notas internas, otros turnos o datos de otros clientes.
 
 **Criterios de aceptación**
@@ -2665,6 +2665,98 @@ Orden recomendado: `HU-090` → `HU-091` → `HU-092` → `HU-093` → `HU-094` 
 
 ---
 
+### HU-104 · El cliente reprograma su turno desde el enlace
+
+| Campo | Valor |
+| --- | --- |
+| Función | `F-PUB-13` |
+| Reglas | `RN-RES-03`, `RN-CAN-01`, `RN-CIT-01`, `RN-CON-01`, `RN-DIS-01`–`RN-DIS-07`, `RN-HIS-01`, `RN-IDE-01`, `RN-TEN-01` |
+| Decisiones | `DEC-022`, `DEC-043`, `DEC-076`, `DEC-083`, `DEC-089`, `DEC-102`, `DEC-136`, `DEC-142`, `DEC-144`, `DEC-178` |
+| Actor | Cliente con el enlace de su turno |
+| Depende de | `HU-065`, `HU-094`, `HU-098` y `HU-099` integradas |
+| Bloquea | `HU-105` |
+| Estado | En implementación contra el issue real [#636](https://github.com/bcaceres19/barberia/issues/636) |
+| Riesgo | Aceptar una franja que la reserva pública no ofrecería, reprogramar fuera de plazo o sin límite, avisar al cliente de su propio cambio o mover un turno ajeno. |
+
+**Historia**
+
+> Como cliente, quiero cambiar la fecha y la hora de mi turno desde el enlace que me llegó, para no tener que llamar a la barbería cuando se me cruza algo.
+
+**Alcance incluido**
+
+- Lectura del turno con el permiso de reprogramar y las reprogramaciones restantes.
+- Franjas para el mismo profesional y la misma duración, con las reglas de la reserva pública y sin contar el propio turno como ocupado.
+- Reprogramación con actor `customer`, plazo de la cancelación, máximo 2 por turno, versión e idempotencia, en una transacción con historial, recordatorio y Google Calendar, sin aviso al cliente.
+- Pantalla dedicada `/mi-turno/<token>/reprogramar` y acceso desde la pantalla del turno.
+
+**Alcance excluido**
+
+- Acceso por código de un solo uso (`HU-105`).
+- Cambiar servicio o profesional, avisar al barbero, plazo o límite configurables.
+
+**Criterios de aceptación**
+
+| Código | Criterio |
+| --- | --- |
+| `CA-104-01` | La lectura del turno informa si se puede reprogramar, hasta cuándo y cuántas reprogramaciones quedan, sin exponer IDs. |
+| `CA-104-02` | Las franjas ofrecidas siguen la disponibilidad pública del mismo profesional y la duración del turno, y no cuentan el propio turno como ocupado. |
+| `CA-104-03` | Reprogramar a una franja ofrecida mueve el turno en una transacción: historial con actor cliente, recordatorio regenerado, publicación en Google encolada y ningún aviso al cliente. |
+| `CA-104-04` | Una franja fuera de la disponibilidad, ya ocupada (también en carrera) o con un bloqueo se rechaza sin cambios; la ocupada vuelve como conflicto recuperable. |
+| `CA-104-05` | Fuera de plazo, con el turno no confirmado o con 2 reprogramaciones del cliente ya hechas, se rechaza con un error distinguible; versión vieja → 409; token inválido → 404 uniforme. |
+| `CA-104-06` | Misma clave y cuerpo reproducen el resultado; otro cuerpo con la misma clave es un conflicto (`RN-IDE-01`). |
+| `CA-104-07` | Con dos barberías reales, un token nunca lista franjas ni mueve turnos de otra. |
+| `CA-104-08` | La pantalla muestra el turno actual, días y horarios, la comparación antes/después y pide confirmación explícita; cubre éxito, conflicto, fuera de plazo, límite alcanzado, carga y error con teclado, foco, axe-core y 320/360/768/1280 px. |
+
+**Pruebas obligatorias:** dominio del plazo y el límite; servicio con puertos simulados; HTTP customer; PostgreSQL real con dos tenants, carrera por la misma franja y efectos (historial, recordatorio, sin aviso); componente; E2E del recorrido con el API simulado y evidencia responsive.
+
+**Terminado cuando** el cliente mueve su turno a otra franja válida sin llamar, dentro del plazo y del límite, y el barbero lo ve en su agenda e historial.
+
+---
+
+### HU-105 · Acceso al turno con un código de un solo uso por correo o WhatsApp
+
+| Campo | Valor |
+| --- | --- |
+| Función | `F-PUB-13` |
+| Reglas | `RN-RES-03`, `RN-DAT-01`–`RN-DAT-03`, `RN-IDE-01`, `RN-TEN-01` |
+| Decisiones | `DEC-022`, `DEC-045`, `DEC-046`, `DEC-062`, `DEC-066`, `DEC-089`, `DEC-123`, `DEC-178` |
+| Actor | Cliente sin el enlace a la mano |
+| Depende de | `HU-104` integrada |
+| Estado | Issue real [#637](https://github.com/bcaceres19/barberia/issues/637); pendiente de `HU-104` |
+| Riesgo | Revelar si un contacto tiene turnos, permitir adivinar el código, enviar códigos sin límite o abrir turnos de otra barbería. |
+
+**Historia**
+
+> Como cliente que no encuentra el correo de su turno, quiero entrar con un código que me llegue al correo o al WhatsApp, para reprogramar sin depender del enlace.
+
+**Alcance incluido**
+
+- Pantalla `/reservar/<slug>/mi-turno` con tres pasos: contacto, código y elección del turno.
+- Código de 6 dígitos por correo o WhatsApp, 10 minutos, 5 intentos, un solo uso, guardado como HMAC; límite por contacto y por IP; respuesta uniforme.
+- Acceso de vida corta a cada turno futuro `confirmed` del cliente en esa barbería, que abre la pantalla de `HU-104`.
+- Enlace desde la entrada pública de la barbería.
+
+**Alcance excluido**
+
+- SMS, cuenta o portal con contraseña, y reglas nuevas de cancelación.
+
+**Criterios de aceptación**
+
+| Código | Criterio |
+| --- | --- |
+| `CA-105-01` | Pedir el código responde igual exista o no el contacto, y solo envía si hay un turno futuro confirmado de ese cliente en esa barbería. |
+| `CA-105-02` | El código vale 10 minutos, 5 intentos y un solo uso; se guarda como HMAC y nunca aparece en logs, evidencia ni respuestas. |
+| `CA-105-03` | Hay límite de solicitudes por contacto y por IP; al excederlo, la respuesta es `429` con un `Retry-After`. |
+| `CA-105-04` | Verificar el código devuelve los turnos futuros confirmados con un acceso de vida corta; si hay uno solo, se entra directo a reprogramar. |
+| `CA-105-05` | Con dos barberías reales, un contacto de una no recibe ni ve turnos de otra. |
+| `CA-105-06` | La pantalla cubre contacto, código (pegar, reenviar con cuenta atrás, error, bloqueo) y elección del turno, con teclado, axe-core y 320/360/768/1280 px. |
+
+**Pruebas obligatorias:** dominio del código y el límite; adaptadores de correo y WhatsApp contra un servidor de prueba; PostgreSQL real con dos tenants; HTTP público; componente; E2E con el API simulado.
+
+**Terminado cuando** un cliente sin el correo a mano recibe un código sencillo, entra y reprograma su turno, sin que nadie pueda usar su contacto para ver o mover el turno.
+
+---
+
 ## 8. Bloque B5 · Notificaciones y recordatorios
 
 ### HU-130 · Aviso al cliente cuando el barbero cancela o reprograma su turno
@@ -2781,7 +2873,7 @@ Orden recomendado: `HU-090` → `HU-091` → `HU-092` → `HU-093` → `HU-094` 
 | B1 | `HU-029` – (`HU-026`, `HU-027` y `HU-028`: conexión, publicación y pantalla de Google Calendar, `DEC-099`) | `HU-020`–`HU-024` implementadas (`DEC-067`–`DEC-069` propagadas); redactar lo restante solo después de revisar el criterio de salida de B1 |
 | B2 | `HU-040` – `HU-042` | Integradas en `main` (PR `#93`, `#96`, `#99`); seguimientos parciales en issues `#90`, `#95`, `#98` y `#100` (este último completo el 2026-10-08) |
 | B3 | `HU-069` – | `HU-066`–`HU-068` ya integradas en `main`; continuar con T3 y cierre automático solo después de revisar este lote y resolver cualquier duda de semántica de snapshots/configuración |
-| B4 | `HU-104` – | `HU-090`–`HU-103` ya redactadas (`HU-100`–`HU-103`: reseñas internas, reseñas de Google, ubicación y domicilio, `DEC-128`–`DEC-131`); continuar con el resto solo tras resolver cualquier duda nueva de esas cuatro historias |
+| B4 | `HU-106` – | `HU-090`–`HU-103` ya redactadas (`HU-100`–`HU-103`: reseñas internas, reseñas de Google, ubicación y domicilio, `DEC-128`–`DEC-131`); continuar con el resto solo tras resolver cualquier duda nueva de esas cuatro historias |
 | B5 | `HU-132` – (`HU-130`: aviso al cliente al cancelar o reprogramar, `DEC-142`; `HU-131`: recordatorio 30 minutos antes, `DEC-144`) | B4 cumple su criterio de salida; recordatorios, WhatsApp y configuración por evento siguen pendientes |
 | B6 | `HU-150` – | B5 cumple su criterio de salida |
 
