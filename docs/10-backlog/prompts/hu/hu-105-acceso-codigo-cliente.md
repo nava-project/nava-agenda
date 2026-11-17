@@ -17,8 +17,8 @@ issue: 637
 issue_url: "https://github.com/bcaceres19/barberia/issues/637"
 suggested_issue_title: null
 branch: "feat/637-hu105-acceso-codigo-cliente"
-pr: null
-pr_url: null
+pr: 643
+pr_url: "https://github.com/bcaceres19/barberia/pull/643"
 depends_on:
   - "HU-104 integrada (PROMPT-HU-104-v1)"
   - "DEC-178"
