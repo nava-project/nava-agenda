@@ -2,15 +2,15 @@
 prompt_id: "PROMPT-OPS-MIGRAR-PROYECTO-A-JENKINS-VPS-v2"
 version: "2.0"
 kind: "ops"
-status: "draft"
+status: "in_progress"
 target_agents:
   - "any"
 repository: "externo — el repositorio del proyecto a migrar (bcaceres19/odin-pedidos o bcaceres19/odin); el registro de jobs se hace aparte en bcaceres19/barberia"
 base_branch: "main"
 primary_hu: null
 related_hu: []
-issue: "pending"
-issue_url: null
+issue: "bcaceres19/odin-pedidos#2, bcaceres19/barberia#630 (pedidos); odin: pendiente"
+issue_url: "https://github.com/bcaceres19/barberia/issues/630"
 suggested_issue_title: "ci: migrar el CI/CD de GitHub Actions al Jenkins compartido de la VPS"
 branch: null
 pr: null

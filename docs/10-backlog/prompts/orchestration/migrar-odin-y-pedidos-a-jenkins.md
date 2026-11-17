@@ -2,7 +2,7 @@
 prompt_id: "PROMPT-ORCH-MIGRAR-ODIN-Y-PEDIDOS-A-JENKINS-v1"
 version: "1.0"
 kind: "orchestration"
-status: "draft"
+status: "in_progress"
 target_agents:
   - "claude"
   - "codex"
@@ -10,8 +10,8 @@ repository: "externo — bcaceres19/odin-pedidos y bcaceres19/odin (registro de 
 base_branch: "main"
 primary_hu: null
 related_hu: []
-issue: "pending"
-issue_url: null
+issue: "bcaceres19/odin-pedidos#2, bcaceres19/barberia#630 (pedidos); odin: pendiente"
+issue_url: "https://github.com/bcaceres19/barberia/issues/630"
 suggested_issue_title: "ci: migrar el CI/CD de GitHub Actions al Jenkins compartido de la VPS (uno por repositorio)"
 branch: null
 pr: null
