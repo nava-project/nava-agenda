@@ -1,8 +1,8 @@
 ---
 prompt_id: "PROMPT-OPS-ODIN-ENLACE-SIN-PROPOSITO-v1"
-version: "1.0"
+version: "1.1"
 kind: "ops"
-status: "draft"
+status: "executed"
 target_agents:
   - "claude"
   - "codex"
@@ -12,12 +12,12 @@ primary_hu: null
 related_hu:
   - "HU-105"
   - "HU-106"
-issue: "pending"
+issue: "no aplica: el propietario lo pidió directamente en la sesión de Odin; la traza es el PR bcaceres19/odin#12"
 issue_url: null
 suggested_issue_title: "feat(eye-nava): pedir el código del turno sin propósito y pegar el accessUrl que devuelve NAVA"
-branch: null
-pr: null
-pr_url: null
+branch: "feat/turno-enlace-sin-proposito"
+pr: "bcaceres19/odin#12"
+pr_url: "https://github.com/bcaceres19/odin/pull/12"
 depends_on:
   - "bcaceres19/barberia#651 (DEC-181, OpenAPI 0.58.0) integrado en main y desplegado en nava.wtf"
 rules:
@@ -45,6 +45,8 @@ superseded_by: null
 # Odin pide el código sin preguntar «¿cancelar o reprogramar?» y pega el enlace de NAVA
 
 ## Instrucción para el agente
+
+> **Estado (2026-11-17):** ejecutado en Odin por pedido directo del propietario, sin issue aparte: rama `feat/turno-enlace-sin-proposito`, PR [bcaceres19/odin#12](https://github.com/bcaceres19/odin/pull/12), desplegado (`880068d`) con el flag encendido. Odin envía `challenge` sin `purpose`; pega `accessUrl` solo si es exactamente `{booking_base}/reservar/{slug}/mi-turno/<ref>` de esa barbería y, si no viene o no coincide, lo arma con `accessRef`; un turno sin `canCancel` ni `canReschedule` no pide código. Antes de cambiar verificó en `nava.wtf` que un `challenge` sin `purpose` con una referencia falsa responde `409` y no `422`. Falta la prueba real por WhatsApp.
 
 Trabajas en el repositorio **bcaceres19/odin**, no en `barberia`. Antes de tocar nada, lee `AGENTS.md` y la skill `odin-orientacion` de Odin; sus reglas prevalecen sobre este prompt. Este prompt sigue en `draft` hasta que exista el issue real en `bcaceres19/odin` (título sugerido arriba). Cuando exista, anótalo en `issue` y `issue_url`, pasa `status` a `ready` y actualiza su fila del índice antes de empezar.
 
