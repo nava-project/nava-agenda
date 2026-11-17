@@ -12,6 +12,6 @@
 # trabajadores, 314 s frente a 351 s; cada archivo sigue aislado en su propio entorno.
 set -euo pipefail
 cd "$(dirname "${BASH_SOURCE[0]}")/../../../apps/web"
-workers="${VITEST_MAX_WORKERS:-3}"
+workers="${VITEST_MAX_WORKERS:-4}"
 echo "== test:unit (pool=threads, $workers trabajadores)"
 pnpm run test:unit --pool=threads --maxWorkers="$workers" --minWorkers=1 --testTimeout=10000
