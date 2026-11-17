@@ -9,7 +9,9 @@
 # da el mismo presupuesto en proporción, 10 s por prueba; ninguna aserción cambia.
 #
 # Pool de hilos en vez de procesos (#625): medido en la VPS sobre la suite completa con 2
-# trabajadores, 314 s frente a 351 s; cada archivo sigue aislado en su propio entorno.
+# trabajadores, 314 s frente a 351 s; cada archivo sigue aislado en su propio entorno. Con
+# todos los checks a la vez, 4 trabajadores (uno por vCPU) dan 216 s frente a 236 s con 3, y
+# la prueba más lenta sigue en ~5 s, la mitad del límite.
 set -euo pipefail
 cd "$(dirname "${BASH_SOURCE[0]}")/../../../apps/web"
 workers="${VITEST_MAX_WORKERS:-4}"
