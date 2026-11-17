@@ -1,0 +1,26 @@
+# Respuesta 429 de POST .../customer-access/challenge (HU-105, DEC-178): demasiados
+# códigos pedidos desde el mismo contacto o la misma IP. El texto es siempre el
+# mismo: no dice cuál de los dos límites se superó, y el límite por contacto
+# cuenta también los contactos que no existen, para no delatarlos (CA-105-01).
+description: >
+  Se pidieron demasiados códigos. Esperar `Retry-After` segundos antes de
+  volver a pedir.
+headers:
+  X-Request-Id:
+    $ref: '../headers/XRequestId.yaml'
+  Retry-After:
+    $ref: '../headers/RetryAfter.yaml'
+content:
+  application/problem+json:
+    schema:
+      $ref: '../schemas/Problem.yaml'
+    examples:
+      demasiadasSolicitudes:
+        value:
+          type: /api/v1/problems/rate-limited
+          title: Demasiadas solicitudes
+          status: 429
+          detail: pediste demasiados códigos; espera un momento antes de intentarlo otra vez
+          instance: 8f3ac2b1e4d5f6a7c8d9e0f1a2b3c4d5
+          code: rate-limited
+          requestId: 8f3ac2b1e4d5f6a7c8d9e0f1a2b3c4d5

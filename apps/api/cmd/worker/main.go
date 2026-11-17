@@ -16,6 +16,7 @@ import (
 	appointmentnoticepostgres "system-barbershop/internal/modules/appointmentnotice/postgres"
 	"system-barbershop/internal/modules/auth"
 	authpostgres "system-barbershop/internal/modules/auth/postgres"
+	customeraccesspostgres "system-barbershop/internal/modules/customeraccess/postgres"
 	"system-barbershop/internal/modules/googlecalendar"
 	googlecalendargoogle "system-barbershop/internal/modules/googlecalendar/google"
 	googlecalendarpostgres "system-barbershop/internal/modules/googlecalendar/postgres"
@@ -90,6 +91,9 @@ func run() error {
 		notificationpostgres.NewWhatsAppPurgeRepository(db), cfg.PhoneChallengePurgeLimit,
 	)
 
+	// HU-105 (DEC-178): purga de los retos de acceso al turno vencidos.
+	customerAccessPurge := customeraccesspostgres.NewPurgeRepository(db)
+
 	// Issue #324 (DEC-102): publicación en Google Calendar. Con las credenciales
 	// ausentes el worker sigue purgando y la integración queda desactivada.
 	if cfg.GoogleCalendarEnabled() {
@@ -141,6 +145,11 @@ func run() error {
 				logger.Error("worker: fallo al purgar los datos del webhook de WhatsApp")
 			} else if whatsAppDeleted > 0 {
 				logger.Info("worker: purga de WhatsApp completada", "whatsapp_deleted", whatsAppDeleted)
+			}
+			if accessDeleted, err := customerAccessPurge.PurgeExpiredChallenges(ctx, cfg.PhoneChallengePurgeLimit); err != nil {
+				logger.Error("worker: fallo al purgar customer_access_challenge")
+			} else if accessDeleted > 0 {
+				logger.Info("worker: purga de retos de acceso completada", "customer_access_deleted", accessDeleted)
 			}
 			loginThrottleDeleted, phoneChallengeDeleted, recoveryCodeDeleted, err := purgeService.PurgeOnce(ctx)
 			if err != nil {

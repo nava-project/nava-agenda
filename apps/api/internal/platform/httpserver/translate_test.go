@@ -212,3 +212,13 @@ func TestTranslate_CancellationPolicyRejections_Map422WithDistinctCodes(t *testi
 		})
 	}
 }
+
+func TestTranslate_RateLimitedIsA429WithItsOwnCode(t *testing.T) {
+	p := httpserver.Translate(apperr.RateLimited("espera un momento", 30), "req-5")
+	if p.Status != http.StatusTooManyRequests || p.Code != "rate-limited" {
+		t.Fatalf("expected 429 rate-limited, got %d %q", p.Status, p.Code)
+	}
+	if p.Detail != "espera un momento" {
+		t.Fatalf("the safe message must pass through, got %q", p.Detail)
+	}
+}

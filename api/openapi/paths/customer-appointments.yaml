@@ -390,3 +390,138 @@
         $ref: '../components/responses/RescheduleRejectedProblem.yaml'
       "500":
         $ref: '../components/responses/InternalErrorProblem.yaml'
+
+# HU-105 (DEC-178): acceso al turno con un código de un solo uso, para quien no
+# tiene el enlace del correo. Cuelga de la barbería (`/public/barbershops/{slug}`)
+# porque el contacto solo identifica a alguien dentro de una barbería.
+/public/barbershops/{slug}/customer-access/challenge:
+  post:
+    tags: [CustomerAccess]
+    summary: Pedir un código para entrar a tu turno
+    description: >
+      Pide un código de 6 dígitos para entrar a cambiar la hora de un turno
+      (HU-105). Responde siempre `202` con el mismo cuerpo, exista o no un
+      cliente con ese contacto (CA-105-01); solo si lo hay y tiene algún turno
+      futuro confirmado se envía el código, en segundo plano: por correo si el
+      contacto es un correo y por WhatsApp si es un celular. El código vence a
+      los 10 minutos, sirve una vez y admite 5 intentos. Pedir otro deja inútil
+      el anterior. Límites: 3 solicitudes por contacto y 10 por IP en 15 minutos,
+      contando también los contactos que no existen; superarlos responde `429`
+      con `Retry-After`. Un `slug` inexistente o no publicable responde el mismo
+      `404` uniforme de `GET /public/barbershops/{slug}`. Un contacto con forma
+      inválida responde `422` sin decir nada de si existe.
+    operationId: requestCustomerAccessCode
+    security: []
+    x-business-rules: [RN-DAT-01, RN-DAT-02, RN-TEN-01]
+    x-decisions: [DEC-062, DEC-089, DEC-141, DEC-178]
+    parameters:
+      - name: slug
+        in: path
+        required: true
+        description: Identificador público de la barbería (HU-090).
+        schema:
+          type: string
+          maxLength: 120
+        examples:
+          slug:
+            value: barberia-ejemplo
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            $ref: '../components/schemas/CustomerAccessChallengeRequest.yaml'
+          examples:
+            porCorreo:
+              value:
+                contact: ana.perez@correo.test
+            porCelular:
+              value:
+                contact: 300 123 4567
+    responses:
+      "202":
+        $ref: '../components/responses/CustomerAccessChallengeAccepted.yaml'
+      "400":
+        $ref: '../components/responses/InvalidRequestProblem.yaml'
+      "404":
+        $ref: '../components/responses/NotFoundProblem.yaml'
+      "422":
+        $ref: '../components/responses/ValidationProblem.yaml'
+      "429":
+        $ref: '../components/responses/RateLimitedProblem.yaml'
+      "500":
+        $ref: '../components/responses/InternalErrorProblem.yaml'
+
+/public/barbershops/{slug}/customer-access/verify:
+  post:
+    tags: [CustomerAccess]
+    summary: Canjear el código por el acceso a tus turnos
+    description: >
+      Verifica el código recibido (HU-105, CA-105-02) y, si es válido, lo
+      consume y emite un acceso de 60 minutos por cada turno futuro confirmado
+      del cliente, hasta 10. Cada `accessToken` se usa como el `token` del
+      enlace en `/customer/appointments/{token}…`, así que todo lo que el
+      enlace permite (ver el turno, cambiar la hora) funciona con él mientras
+      dure. Un código incorrecto, vencido, ya usado, agotado, de otro contacto
+      o de un contacto que no existe producen exactamente la misma respuesta
+      `401`: no se puede saber cuál ocurrió. Cada código incorrecto cuenta un
+      intento; al quinto, ni el código correcto sirve y hay que pedir otro. La
+      respuesta lleva credenciales en claro: `Cache-Control: no-store`.
+    operationId: verifyCustomerAccessCode
+    security: []
+    x-business-rules: [RN-DAT-01, RN-DAT-02, RN-TEN-01]
+    x-decisions: [DEC-062, DEC-089, DEC-141, DEC-178]
+    parameters:
+      - name: slug
+        in: path
+        required: true
+        description: Identificador público de la barbería (HU-090).
+        schema:
+          type: string
+          maxLength: 120
+        examples:
+          slug:
+            value: barberia-ejemplo
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            $ref: '../components/schemas/CustomerAccessVerifyRequest.yaml'
+          examples:
+            codigo:
+              value:
+                contact: ana.perez@correo.test
+                code: "482913"
+    responses:
+      "200":
+        $ref: '../components/responses/CustomerAccessVerified.yaml'
+      "400":
+        $ref: '../components/responses/InvalidRequestProblem.yaml'
+      "401":
+        description: >
+          Código incorrecto, vencido, ya usado, agotado, de otro contacto o de
+          un contacto inexistente, sin distinguir la causa (CA-105-02).
+        headers:
+          X-Request-Id:
+            $ref: '../components/headers/XRequestId.yaml'
+        content:
+          application/problem+json:
+            schema:
+              $ref: '../components/schemas/Problem.yaml'
+            examples:
+              codigoInvalido:
+                value:
+                  type: /api/v1/problems/unauthorized
+                  title: No autorizado
+                  status: 401
+                  detail: código de verificación inválido o expirado
+                  instance: 8f3ac2b1e4d5f6a7c8d9e0f1a2b3c4d5
+                  code: unauthorized
+                  requestId: 8f3ac2b1e4d5f6a7c8d9e0f1a2b3c4d5
+      "404":
+        $ref: '../components/responses/NotFoundProblem.yaml'
+      "422":
+        $ref: '../components/responses/ValidationProblem.yaml'
+      "500":
+        $ref: '../components/responses/InternalErrorProblem.yaml'

@@ -2,7 +2,7 @@
 prompt_id: "PROMPT-HU-105-v1"
 version: "1.0"
 kind: "hu"
-status: "blocked"
+status: "in_progress"
 target_agents:
   - "claude"
   - "codex"
@@ -16,7 +16,7 @@ related_hu:
 issue: 637
 issue_url: "https://github.com/bcaceres19/barberia/issues/637"
 suggested_issue_title: null
-branch: null
+branch: "feat/637-hu105-acceso-codigo-cliente"
 pr: null
 pr_url: null
 depends_on:

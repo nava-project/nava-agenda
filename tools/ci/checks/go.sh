@@ -68,7 +68,8 @@ for f in 20260807170000_create_tenant_foundation.sql \
          20261115120000_create_barber_booking_policy.sql \
          20261116120000_barber_booking_policy_full_window.sql \
          20261117120000_add_reminder_lead_minutes.sql \
-         20261118120000_add_whatsapp_reminder.sql; do
+         20261118120000_add_whatsapp_reminder.sql \
+         20261119120000_create_customer_access_challenge.sql; do
   psql_file "database/migrations/$f"
 done
 psql -c "ALTER ROLE barberia_app PASSWORD 'app_test';"
@@ -93,6 +94,7 @@ for f in database/testdata/dos_barberias.sql \
          database/testdata/hu093_politica_reserva.sql \
          database/testdata/hu094_disponibilidad.sql \
          database/testdata/hu098_acceso_turno.sql \
+         database/testdata/hu105_acceso_codigo.sql \
          database/testdata/hu008_recuperacion_canal.sql \
          database/testdata/hu100_resenas.sql \
          database/testdata/dec162_agregados_publicos.sql; do

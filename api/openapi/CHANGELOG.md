@@ -4,6 +4,31 @@ Formato basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/).
 Ver [`docs/06-api/estandar-openapi.md`](../../docs/06-api/estandar-openapi.md)
 sección 18 para qué cuenta como cambio compatible o incompatible.
 
+## 0.56.0 · 2026-11-17
+
+### Agregado
+
+- `POST /public/barbershops/{slug}/customer-access/challenge` y
+  `POST /public/barbershops/{slug}/customer-access/verify` (`HU-105`, `DEC-178`):
+  acceso al turno con un código de 6 dígitos que llega por correo o WhatsApp, para
+  quien no tiene el enlace de confirmación. La solicitud responde siempre `202` con
+  el mismo cuerpo, exista o no el contacto; la verificación responde `401` uniforme
+  ante cualquier fallo del código y, si es válido, entrega un `accessToken` de
+  60 minutos por cada turno futuro confirmado, que se usa como el `token` de
+  `/customer/appointments/{token}…`.
+- Respuesta `429` (`RateLimitedProblem`, código `rate-limited`, con `Retry-After`)
+  para la solicitud de código: 3 por contacto y 10 por IP cada 15 minutos.
+
+## 0.55.0 · 2026-11-17
+
+### Agregado
+
+- `GET /customer/appointments/{token}/reschedule-slots` y
+  `POST /customer/appointments/{token}/reschedule` (`HU-104`, `DEC-178`): el cliente
+  cambia la fecha y la hora de su turno desde el enlace, con el mismo plazo que la
+  cancelación y un máximo de 2 cambios propios. `CustomerAppointmentResponse` gana
+  `rescheduleRemaining`.
+
 ## 0.54.0 · 2026-11-16
 
 ### Agregado

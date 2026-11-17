@@ -185,3 +185,13 @@ func TestRescheduleRejections_HaveDistinctKinds(t *testing.T) {
 		t.Fatal("the reschedule rejections must stay distinct from each other and from the cancellation ones (HU-104)")
 	}
 }
+
+func TestRateLimited_CarriesRetryAfter(t *testing.T) {
+	limited, ok := apperr.As(apperr.RateLimited("espera", 42))
+	if !ok || limited.Kind != apperr.KindRateLimited || limited.RetryAfterSeconds != 42 {
+		t.Fatalf("expected KindRateLimited with 42s, got %+v", limited)
+	}
+	if limited.Kind == apperr.KindChallengeRequired {
+		t.Fatal("rate limiting must stay distinct from the staff phone challenge (HU-007)")
+	}
+}

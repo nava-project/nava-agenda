@@ -200,6 +200,16 @@ var rescheduleLimitReachedProblem = problemSpec{
 	status:  http.StatusUnprocessableEntity,
 }
 
+// rateLimitedProblem cubre apperr.KindRateLimited (HU-105, DEC-178): se pidieron
+// demasiados códigos desde el mismo contacto o la misma IP. El detail es siempre
+// el mismo texto: no dice cuál de los dos límites se superó.
+var rateLimitedProblem = problemSpec{
+	typeURI: "/api/v1/problems/rate-limited",
+	title:   "Demasiadas solicitudes",
+	code:    "rate-limited",
+	status:  http.StatusTooManyRequests,
+}
+
 // Translate convierte cualquier error en un Problem seguro para el cliente.
 // Es el único punto central de traducción que exige
 // docs/04-arquitectura/backend-go.md sección 5 ("los errores de dominio se
@@ -251,6 +261,8 @@ func Translate(err error, requestID string) Problem {
 			return newProblem(rescheduleWindowClosedProblem, appErr.Message, requestID)
 		case apperr.KindRescheduleLimitReached:
 			return newProblem(rescheduleLimitReachedProblem, appErr.Message, requestID)
+		case apperr.KindRateLimited:
+			return newProblem(rateLimitedProblem, appErr.Message, requestID)
 		}
 	}
 

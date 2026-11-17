@@ -264,6 +264,46 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/public/barbershops/{slug}/customer-access/challenge": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Pedir un código para entrar a tu turno
+         * @description Pide un código de 6 dígitos para entrar a cambiar la hora de un turno (HU-105). Responde siempre `202` con el mismo cuerpo, exista o no un cliente con ese contacto (CA-105-01); solo si lo hay y tiene algún turno futuro confirmado se envía el código, en segundo plano: por correo si el contacto es un correo y por WhatsApp si es un celular. El código vence a los 10 minutos, sirve una vez y admite 5 intentos. Pedir otro deja inútil el anterior. Límites: 3 solicitudes por contacto y 10 por IP en 15 minutos, contando también los contactos que no existen; superarlos responde `429` con `Retry-After`. Un `slug` inexistente o no publicable responde el mismo `404` uniforme de `GET /public/barbershops/{slug}`. Un contacto con forma inválida responde `422` sin decir nada de si existe.
+         */
+        post: operations["requestCustomerAccessCode"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/public/barbershops/{slug}/customer-access/verify": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Canjear el código por el acceso a tus turnos
+         * @description Verifica el código recibido (HU-105, CA-105-02) y, si es válido, lo consume y emite un acceso de 60 minutos por cada turno futuro confirmado del cliente, hasta 10. Cada `accessToken` se usa como el `token` del enlace en `/customer/appointments/{token}…`, así que todo lo que el enlace permite (ver el turno, cambiar la hora) funciona con él mientras dure. Un código incorrecto, vencido, ya usado, agotado, de otro contacto o de un contacto que no existe producen exactamente la misma respuesta `401`: no se puede saber cuál ocurrió. Cada código incorrecto cuenta un intento; al quinto, ni el código correcto sirve y hay que pedir otro. La respuesta lleva credenciales en claro: `Cache-Control: no-store`.
+         */
+        post: operations["verifyCustomerAccessCode"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/public/barbershops/{slug}/barbers/{barberId}/reviews": {
         parameters: {
             query?: never;
@@ -2597,6 +2637,59 @@ export interface components {
              */
             endsAt: string;
         };
+        /** @description El contacto con el que la persona reservó, escrito como lo recuerde. */
+        CustomerAccessChallengeRequest: {
+            /**
+             * @description Correo o celular. El correo se compara sin distinguir mayúsculas; el celular colombiano se acepta con o sin `+57` y con espacios o guiones (DEC-141). Cualquier otro número debe venir en formato E.164.
+             * @example ana.perez@correo.test
+             * @example 300 123 4567
+             */
+            contact: string;
+        };
+        /** @description Confirmación genérica de que la solicitud fue recibida. */
+        CustomerAccessChallengeResponse: {
+            /**
+             * @description Vigencia del código, en segundos.
+             * @example 600
+             */
+            expiresInSeconds: number;
+            /**
+             * @description Segundos que la pantalla espera antes de ofrecer pedir otro código. Es una guía de interfaz; el límite real lo aplica el servidor con `429`.
+             * @example 60
+             */
+            resendAfterSeconds: number;
+        };
+        /** @description El contacto y el código de 6 dígitos que le llegó. */
+        CustomerAccessVerifyRequest: {
+            /** @description El mismo contacto con el que se pidió el código. */
+            contact: string;
+            /**
+             * @description Código de 6 dígitos.
+             * @example 482913
+             */
+            code: string;
+        };
+        /** @description Lo mínimo para elegir entre varios turnos, más la credencial de vida corta con la que abrirlo. No incluye identificadores internos, contacto ni notas. */
+        CustomerAccessAppointment: {
+            /** @description Credencial de 60 minutos para este turno. Se usa exactamente como el `token` del enlace de `/customer/appointments/{token}`; nada más la distingue. Viaja una sola vez, en esta respuesta, y nunca se registra. */
+            accessToken: string;
+            /**
+             * Format: date-time
+             * @description Inicio del turno (UTC).
+             */
+            startsAt: string;
+            serviceName: string;
+            barberName: string;
+        };
+        /** @description Los turnos futuros confirmados del cliente, del más próximo al más lejano. */
+        CustomerAccessVerifyResponse: {
+            /**
+             * @description Zona IANA de la barbería; las horas se muestran en ella (RN-DIS-07).
+             * @example America/Bogota
+             */
+            timezone: string;
+            appointments: components["schemas"]["CustomerAccessAppointment"][];
+        };
         /** @description Reseña no oculta de un barbero. Sin identificador del turno ni del cliente: la reseña es anónima para el visitante. */
         PublicReview: {
             /** @example 5 */
@@ -4563,6 +4656,41 @@ export interface components {
                 "application/problem+json": components["schemas"]["Problem"];
             };
         };
+        /** @description La solicitud fue recibida. Si hay un cliente con ese contacto y algún turno futuro confirmado, se envía un código; en cualquier otro caso no ocurre ningún envío, sin que la respuesta lo revele. */
+        CustomerAccessChallengeAccepted: {
+            headers: {
+                "X-Request-Id": components["headers"]["XRequestId"];
+                /** @description Siempre `no-store`. */
+                "Cache-Control"?: "no-store";
+                [name: string]: unknown;
+            };
+            content: {
+                "application/json": components["schemas"]["CustomerAccessChallengeResponse"];
+            };
+        };
+        /** @description Se pidieron demasiados códigos. Esperar `Retry-After` segundos antes de volver a pedir. */
+        RateLimitedProblem: {
+            headers: {
+                "X-Request-Id": components["headers"]["XRequestId"];
+                "Retry-After": components["headers"]["RetryAfter"];
+                [name: string]: unknown;
+            };
+            content: {
+                "application/problem+json": components["schemas"]["Problem"];
+            };
+        };
+        /** @description Código válido: un acceso de 60 minutos por cada turno futuro confirmado. */
+        CustomerAccessVerified: {
+            headers: {
+                "X-Request-Id": components["headers"]["XRequestId"];
+                /** @description Siempre `no-store`: la respuesta lleva credenciales en claro (RN-DAT-02). */
+                "Cache-Control"?: "no-store";
+                [name: string]: unknown;
+            };
+            content: {
+                "application/json": components["schemas"]["CustomerAccessVerifyResponse"];
+            };
+        };
         /** @description Resumen y reseñas visibles más recientes del barbero. */
         PublicReviewListSuccess: {
             headers: {
@@ -5308,10 +5436,10 @@ export interface components {
         Location: string;
         /** @description Identificador de correlación de la solicitud. El cliente puede enviarlo; si está ausente o no cumple el formato aceptado, el servidor genera uno y lo refleja aquí. El mismo valor aparece en instance y requestId de cualquier Problem y en los registros técnicos relacionados con la solicitud. */
         XRequestId: string;
-        /** @description Fija la cookie de sesión (ver components/security-schemes/SessionCookie.yaml): HttpOnly, Secure, SameSite=Lax (provisional, DP-SEG-07 en docs/00-control/dudas-pendientes.md), Path=/api/v1, vigencia de 30 días. El valor de la cookie es un token opaco aleatorio; nunca aparece en el cuerpo de la respuesta ni en ningún ejemplo de esta documentación. */
-        SetCookieSession: string;
         /** @description Segundos que el cliente debe esperar antes de reintentar. */
         RetryAfter: number;
+        /** @description Fija la cookie de sesión (ver components/security-schemes/SessionCookie.yaml): HttpOnly, Secure, SameSite=Lax (provisional, DP-SEG-07 en docs/00-control/dudas-pendientes.md), Path=/api/v1, vigencia de 30 días. El valor de la cookie es un token opaco aleatorio; nunca aparece en el cuerpo de la respuesta ni en ningún ejemplo de esta documentación. */
+        SetCookieSession: string;
     };
     pathItems: never;
 }
@@ -5699,6 +5827,63 @@ export interface operations {
                 };
             };
             422: components["responses"]["RescheduleRejectedProblem"];
+            500: components["responses"]["InternalErrorProblem"];
+        };
+    };
+    requestCustomerAccessCode: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Identificador público de la barbería (HU-090). */
+                slug: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CustomerAccessChallengeRequest"];
+            };
+        };
+        responses: {
+            202: components["responses"]["CustomerAccessChallengeAccepted"];
+            400: components["responses"]["InvalidRequestProblem"];
+            404: components["responses"]["NotFoundProblem"];
+            422: components["responses"]["ValidationProblem"];
+            429: components["responses"]["RateLimitedProblem"];
+            500: components["responses"]["InternalErrorProblem"];
+        };
+    };
+    verifyCustomerAccessCode: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Identificador público de la barbería (HU-090). */
+                slug: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CustomerAccessVerifyRequest"];
+            };
+        };
+        responses: {
+            200: components["responses"]["CustomerAccessVerified"];
+            400: components["responses"]["InvalidRequestProblem"];
+            /** @description Código incorrecto, vencido, ya usado, agotado, de otro contacto o de un contacto inexistente, sin distinguir la causa (CA-105-02). */
+            401: {
+                headers: {
+                    "X-Request-Id": components["headers"]["XRequestId"];
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            404: components["responses"]["NotFoundProblem"];
+            422: components["responses"]["ValidationProblem"];
             500: components["responses"]["InternalErrorProblem"];
         };
     };

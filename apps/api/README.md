@@ -1052,6 +1052,7 @@ por si algo construye un `config.Config` sin pasar por `Load`.
 | `APP_META_WHATSAPP_TEST_RECIPIENTS` | (vacía) | Teléfonos E.164 separados por coma; si se define, restringe el envío. Obligatoria con el modo `text` en `local`/`test`. |
 | `APP_META_WHATSAPP_LANGUAGE_CODE` | `es` | Idioma de esa plantilla. |
 | `APP_META_WHATSAPP_REMINDER_TEMPLATE_NAME` | `nava_recordatorio_turno` | Plantilla UTILITY del recordatorio al cliente (`DEC-175`). La usa el worker. |
+| `APP_META_WHATSAPP_CUSTOMER_CODE_TEMPLATE_NAME` | `nava_codigo_turno` | Plantilla AUTHENTICATION del código con el que el cliente entra a su turno (`HU-105`, `DEC-178`). Idioma en `APP_META_WHATSAPP_CUSTOMER_CODE_LANGUAGE_CODE` (`es_CO`). Usa el mismo número y token que el reto del personal. |
 | `APP_META_WHATSAPP_REMINDER_LANGUAGE_CODE` | `es_CO` | Idioma de esa plantilla. |
 | `OTP_PROVIDER` | `meta` | Único valor aceptado; cualquier otro hace fallar el arranque (`DEC-123`). |
 | `APP_RESEND_API_KEY` | (vacía) | Secreto: autenticación contra Resend. |

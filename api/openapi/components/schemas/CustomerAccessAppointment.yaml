@@ -1,0 +1,26 @@
+# Un turno al que la verificación del código dio acceso (HU-105).
+type: object
+additionalProperties: false
+description: >
+  Lo mínimo para elegir entre varios turnos, más la credencial de vida corta
+  con la que abrirlo. No incluye identificadores internos, contacto ni notas.
+properties:
+  accessToken:
+    type: string
+    description: >
+      Credencial de 60 minutos para este turno. Se usa exactamente como el
+      `token` del enlace de `/customer/appointments/{token}`; nada más la
+      distingue. Viaja una sola vez, en esta respuesta, y nunca se registra.
+  startsAt:
+    type: string
+    format: date-time
+    description: Inicio del turno (UTC).
+  serviceName:
+    type: string
+  barberName:
+    type: string
+required:
+  - accessToken
+  - startsAt
+  - serviceName
+  - barberName

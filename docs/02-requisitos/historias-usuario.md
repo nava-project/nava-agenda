@@ -1,6 +1,6 @@
 ---
 titulo: "Historias de usuario y criterios de aceptación"
-version: "1.61"
+version: "1.62"
 estado: "Propuesta"
 responsable: "Propietario del proyecto"
 ultima_actualizacion: "2026-11-17"
@@ -2722,7 +2722,7 @@ Orden recomendado: `HU-090` → `HU-091` → `HU-092` → `HU-093` → `HU-094` 
 | Decisiones | `DEC-022`, `DEC-045`, `DEC-046`, `DEC-062`, `DEC-066`, `DEC-089`, `DEC-123`, `DEC-178` |
 | Actor | Cliente sin el enlace a la mano |
 | Depende de | `HU-104` integrada |
-| Estado | Issue real [#637](https://github.com/bcaceres19/barberia/issues/637); pendiente de `HU-104` |
+| Estado | Implementada contra el issue real [#637](https://github.com/bcaceres19/barberia/issues/637), rama `feat/637-hu105-acceso-codigo-cliente` |
 | Riesgo | Revelar si un contacto tiene turnos, permitir adivinar el código, enviar códigos sin límite o abrir turnos de otra barbería. |
 
 **Historia**

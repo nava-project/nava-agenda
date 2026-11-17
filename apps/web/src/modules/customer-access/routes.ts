@@ -33,4 +33,14 @@ export const customerAccessRoutes: RouteRecordRaw[] = [
     component: () => import('./pages/CustomerReschedulePage.vue'),
     props: true,
   },
+  // Entrada sin enlace (HU-105, DEC-178): la persona escribe su correo o celular, recibe un
+  // código de 6 dígitos y entra a «Cambiar la hora». Cuelga de `/reservar/:slug` porque el
+  // contacto solo identifica a alguien dentro de una barbería, pero es una ruta propia y no
+  // hija del cascarón de reserva: es la audiencia cliente, con la tinta de «Mi turno».
+  {
+    path: '/reservar/:slug/mi-turno',
+    name: 'mi-turno-acceso',
+    component: () => import('./pages/CustomerAccessPage.vue'),
+    props: true,
+  },
 ]

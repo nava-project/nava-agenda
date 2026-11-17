@@ -129,6 +129,14 @@ const failedRequestId = computed(() =>
           <li>Horario</li>
           <li>Tus datos</li>
         </ol>
+
+        <!-- Quien ya reservó entra a cambiar la hora con un código, sin el correo (HU-105). -->
+        <p class="pb-manage">
+          ¿Ya tienes un turno?
+          <RouterLink :to="{ name: 'mi-turno-acceso', params: { slug: props.slug } }"
+            >Cámbialo aquí</RouterLink
+          >
+        </p>
       </div>
 
       <!-- Ficha del local: hora, contacto, modalidad y plano. Solo lo que el perfil trae. -->
