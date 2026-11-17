@@ -557,3 +557,79 @@ func TestContract_OpenAPIYAML_RegistersPublicLinkPath(t *testing.T) {
 		t.Fatal("openapi.yaml no registra paths./private/settings/public-link")
 	}
 }
+
+type openingHoursPathFile struct {
+	OpeningHours struct {
+		Get operation `yaml:"get"`
+		Put operation `yaml:"put"`
+	} `yaml:"/private/settings/opening-hours"`
+}
+
+// TestContract_OpeningHoursSchemas_MatchDTOFields: las formas de HU-107
+// (DEC-182) coinciden con los DTO del handler.
+func TestContract_OpeningHoursSchemas_MatchDTOFields(t *testing.T) {
+	requireProps(t, loadYAML[schemaDoc](t, "api/openapi/components/schemas/OpeningHoursSettings.yaml"),
+		[]string{"openingHours", "closedOnHolidays", "maxSegmentsPerDay"})
+	requireProps(t, loadYAML[schemaDoc](t, "api/openapi/components/schemas/ReplaceOpeningHoursRequest.yaml"),
+		[]string{"openingHours", "closedOnHolidays"})
+	requireProps(t, loadYAML[schemaDoc](t, "api/openapi/components/schemas/OpeningHoursSegment.yaml"),
+		[]string{"dayOfWeek", "opens", "closes"})
+
+	type maxDoc struct {
+		Properties map[string]struct {
+			Enum []int `yaml:"enum"`
+		} `yaml:"properties"`
+	}
+	maxSegments := loadYAML[maxDoc](t, "api/openapi/components/schemas/OpeningHoursSettings.yaml").Properties["maxSegmentsPerDay"]
+	if len(maxSegments.Enum) != 1 || maxSegments.Enum[0] != shops.MaxOpeningSegmentsPerDay {
+		t.Fatalf("maxSegmentsPerDay declara %v, shops admite %d", maxSegments.Enum, shops.MaxOpeningSegmentsPerDay)
+	}
+
+	type enumDoc struct {
+		Enum []string `yaml:"enum"`
+	}
+	days := loadYAML[enumDoc](t, "api/openapi/components/schemas/DayOfWeek.yaml").Enum
+	for i, name := range days {
+		if d, ok := shops.ParseWeekday(name); !ok || int(d) != i+1 {
+			t.Errorf("DayOfWeek[%d]=%q no es el día ISO %d de shops", i, name, i+1)
+		}
+	}
+	if len(days) != 7 {
+		t.Fatalf("DayOfWeek debe tener 7 días, tiene %d", len(days))
+	}
+}
+
+func TestContract_OpeningHoursOperations_SecurityAndResponses(t *testing.T) {
+	doc := loadYAML[openingHoursPathFile](t, "api/openapi/paths/settings.yaml")
+	cases := []struct {
+		op   operation
+		id   string
+		want []string
+	}{
+		{doc.OpeningHours.Get, "getOpeningHours", []string{"200", "401", "403", "404", "500"}},
+		{doc.OpeningHours.Put, "replaceOpeningHours", []string{"200", "400", "401", "403", "404", "422", "500"}},
+	}
+	for _, c := range cases {
+		if c.op.OperationID != c.id {
+			t.Fatalf("operationId: esperaba %q, obtuvo %q", c.id, c.op.OperationID)
+		}
+		if len(c.op.Security) != 1 {
+			t.Fatalf("%s: esperaba un requisito de seguridad, obtuvo %v", c.id, c.op.Security)
+		}
+		for _, s := range c.want {
+			if _, ok := c.op.Responses[s]; !ok {
+				t.Errorf("%s: el contrato no documenta la respuesta %s", c.id, s)
+			}
+		}
+		if len(c.op.Responses) != len(c.want) {
+			t.Errorf("%s: documenta %d respuestas, se esperaban %d", c.id, len(c.op.Responses), len(c.want))
+		}
+	}
+
+	type pathsDoc struct {
+		Paths map[string]any `yaml:"paths"`
+	}
+	if _, ok := loadYAML[pathsDoc](t, "api/openapi/openapi.yaml").Paths["/private/settings/opening-hours"]; !ok {
+		t.Fatal("openapi.yaml no registra paths./private/settings/opening-hours")
+	}
+}

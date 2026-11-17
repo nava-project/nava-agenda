@@ -95,6 +95,7 @@ import {
 import OptionGroup from '../components/OptionGroup.vue'
 import LoginOtpPanel from '../components/LoginOtpPanel.vue'
 import ReminderPanel from '../components/ReminderPanel.vue'
+import OpeningHoursPanel from '../components/OpeningHoursPanel.vue'
 import PublicLinkPanel from '../components/PublicLinkPanel.vue'
 import SaveBar from '../components/SaveBar.vue'
 import SettingsIndex from '../components/SettingsIndex.vue'
@@ -553,11 +554,12 @@ const SECTIONS = [
   { id: 'configuracion-hora', number: '04', label: 'Hora' },
   { id: 'configuracion-contacto', number: '05', label: 'Contacto' },
   { id: 'configuracion-ubicacion', number: '06', label: 'Ubicación' },
-  { id: 'configuracion-enlace', number: '07', label: 'Enlace' },
-  { id: 'configuracion-reservas', number: '08', label: 'Reservas' },
-  { id: 'configuracion-recordatorios', number: '09', label: 'Recordatorios' },
-  { id: 'configuracion-integraciones', number: '10', label: 'Integraciones' },
-  { id: 'configuracion-acceso', number: '11', label: 'Acceso' },
+  { id: 'configuracion-horario', number: '07', label: 'Horario' },
+  { id: 'configuracion-enlace', number: '08', label: 'Enlace' },
+  { id: 'configuracion-reservas', number: '09', label: 'Reservas' },
+  { id: 'configuracion-recordatorios', number: '10', label: 'Recordatorios' },
+  { id: 'configuracion-integraciones', number: '11', label: 'Integraciones' },
+  { id: 'configuracion-acceso', number: '12', label: 'Acceso' },
 ] as const
 
 const activeSection = ref<string>(SECTIONS[0].id)
@@ -1159,24 +1161,35 @@ const previewClass = computed(() => ({ 'settings-page__preview--changed': brandD
             </div>
           </SettingsPanel>
 
-          <!-- 07 · Enlace público de reservas (DEC-117): solo lectura, no es parte del borrador -->
+          <!-- 07 · Horario de atención (DEC-182): se guarda con su propio botón, no es parte del borrador -->
+          <SettingsPanel
+            id="configuracion-horario"
+            number="07"
+            title="Horario de atención"
+            description="Los días y horas en que abre el local. Lo ven tus clientes al reservar."
+            style="--panel-index: 6"
+          >
+            <OpeningHoursPanel />
+          </SettingsPanel>
+
+          <!-- 08 · Enlace público de reservas (DEC-117): solo lectura, no es parte del borrador -->
           <SettingsPanel
             id="configuracion-enlace"
-            number="07"
+            number="08"
             title="Enlace público"
             description="La dirección que compartes para que tus clientes reserven. Cópiala cuando la necesites."
-            style="--panel-index: 6"
+            style="--panel-index: 7"
           >
             <PublicLinkPanel />
           </SettingsPanel>
 
-          <!-- 08 · Reservas públicas: enlace a su propia pantalla (HU-093) -->
+          <!-- 09 · Reservas públicas: enlace a su propia pantalla (HU-093) -->
           <SettingsPanel
             id="configuracion-reservas"
-            number="08"
+            number="09"
             title="Reservas"
             description="Cuándo y con cuánta anticipación pueden reservar tus clientes, y cómo cancelan."
-            style="--panel-index: 7"
+            style="--panel-index: 8"
           >
             <RouterLink :to="{ name: 'configuracion-reserva-publica' }" class="settings-link">
               <span class="settings-link__copy">
@@ -1189,24 +1202,24 @@ const previewClass = computed(() => ({ 'settings-page__preview--changed': brandD
             </RouterLink>
           </SettingsPanel>
 
-          <!-- 09 · Recordatorios (DEC-174): se aplica al instante, no es parte del borrador -->
+          <!-- 10 · Recordatorios (DEC-174): se aplica al instante, no es parte del borrador -->
           <SettingsPanel
             id="configuracion-recordatorios"
-            number="09"
+            number="10"
             title="Recordatorios"
             description="Cuánto antes de su turno le recordamos la cita a cada cliente."
-            style="--panel-index: 8"
+            style="--panel-index: 9"
           >
             <ReminderPanel />
           </SettingsPanel>
 
-          <!-- 10 · Integraciones: enlace a la pantalla de Google Calendar (DEC-099) -->
+          <!-- 11 · Integraciones: enlace a la pantalla de Google Calendar (DEC-099) -->
           <SettingsPanel
             id="configuracion-integraciones"
-            number="10"
+            number="11"
             title="Integraciones"
             description="Conecta tu calendario para ver tu agenda de NAVA donde ya organizas tu día."
-            style="--panel-index: 9"
+            style="--panel-index: 10"
           >
             <RouterLink :to="{ name: 'integraciones-google-calendar' }" class="settings-link">
               <span class="settings-link__copy">
@@ -1219,13 +1232,13 @@ const previewClass = computed(() => ({ 'settings-page__preview--changed': brandD
             </RouterLink>
           </SettingsPanel>
 
-          <!-- 11 · Código de acceso (DEC-139): se aplica al instante, no es parte del borrador -->
+          <!-- 12 · Código de acceso (DEC-139): se aplica al instante, no es parte del borrador -->
           <SettingsPanel
             id="configuracion-acceso"
-            number="11"
+            number="12"
             title="Código de acceso"
             description="Por dónde llega el código de verificación cuando alguien necesita confirmar su identidad para entrar."
-            style="--panel-index: 10"
+            style="--panel-index: 11"
           >
             <LoginOtpPanel />
           </SettingsPanel>

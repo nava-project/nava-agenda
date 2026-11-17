@@ -454,6 +454,32 @@ describe('PublicBarbershopEntryPage', () => {
     expect(results).toHaveNoViolations()
   })
 
+  it('shows the opening hours only when the barbershop configured them (CA-107-06)', async () => {
+    getMock.mockResolvedValueOnce({ data: profile, error: undefined, response: okResponse() })
+    const without = mountEntryPage({ slug: 'sin-horario' })
+    await flushPromises()
+    expect(without.find('.pb-hours').exists()).toBe(false)
+
+    getMock.mockResolvedValueOnce({
+      data: {
+        ...profile,
+        openingHours: [{ dayOfWeek: 'SATURDAY', opens: '08:00', closes: '16:00' }],
+        closedOnHolidays: true,
+        today: { date: '2000-01-01', dayOfWeek: 'SATURDAY', holiday: null, hours: [] },
+      },
+      error: undefined,
+      response: okResponse(),
+    })
+    const withHours = mountEntryPage({ slug: 'con-horario' })
+    await flushPromises()
+    const section = withHours.get('section[aria-labelledby="pb-hours-title"]')
+    expect(section.get('h2').text()).toBe('Horario')
+    expect(section.text()).toContain('8:00 a. m. – 4:00 p. m.')
+    expect(section.text()).toContain('Cerramos los festivos.')
+    // `today` es de otra fecha: la entrada no inventa un «abierto» o «cerrado».
+    expect(section.find('.pb-hours__now').exists()).toBe(false)
+  })
+
   it('has no accessibility violations on the not-found error state', async () => {
     getMock.mockResolvedValueOnce({
       data: undefined,

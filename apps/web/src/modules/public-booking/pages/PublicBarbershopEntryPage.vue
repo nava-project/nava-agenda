@@ -12,6 +12,7 @@ import { formatFullDateInTimezone, formatTimeInTimezone } from '@/shared/time/fo
 import BookingStateScreen from '../components/BookingStateScreen.vue'
 import GoogleReviews from '../components/GoogleReviews.vue'
 import LocalTimeDial from '../components/LocalTimeDial.vue'
+import OpeningHoursCard from '../components/OpeningHoursCard.vue'
 import { formatCoordinates } from '../model/clockDial'
 import { loadPublicProfile } from '../model/publicProfile'
 import type { PublicBarbershopProfile } from '../model/barbershopProfileOutcome'
@@ -169,6 +170,15 @@ const failedRequestId = computed(() =>
             <dd>{{ attentionLabel }}</dd>
           </div>
         </dl>
+
+        <!-- DEC-182: solo con horario configurado; si no, nada (no sabemos si abre). -->
+        <OpeningHoursCard
+          :opening-hours="screenState.profile.openingHours"
+          :today="screenState.profile.today"
+          :closed-on-holidays="screenState.profile.closedOnHolidays"
+          :time-zone="screenState.profile.timezone"
+          :at="now"
+        />
 
         <!-- DEC-130: solo con interruptor activo y coordenadas reales; si no, nada, sin error. -->
         <section

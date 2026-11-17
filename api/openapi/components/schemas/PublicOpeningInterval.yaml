@@ -1,0 +1,18 @@
+# Un tramo de hoy en el perfil público (HU-107, DEC-182): mismas horas que
+# OpeningHoursSegment, sin el día (ya lo da PublicOpeningToday).
+type: object
+additionalProperties: false
+description: Tramo `[opens, closes)` de hoy en la hora civil del local.
+properties:
+  opens:
+    type: string
+    pattern: '^([01][0-9]|2[0-3]):[0-5][0-9]$'
+    example: '09:00'
+  closes:
+    type: string
+    description: '`24:00` significa «hasta medianoche».'
+    pattern: '^(([01][0-9]|2[0-3]):[0-5][0-9]|24:00)$'
+    example: '19:00'
+required:
+  - opens
+  - closes

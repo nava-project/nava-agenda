@@ -35,6 +35,68 @@ type BarbershopProfile struct {
 	// sin ficha. Es solo para el servidor: el perfil público nunca lo expone, el
 	// navegador recibe únicamente lo que Google devuelve ya recortado.
 	GooglePlaceID *string
+	// OpeningHours es el horario de atención del local (HU-107, DEC-182),
+	// ordenado por día y apertura; vacío si la barbería no lo configuró.
+	OpeningHours []OpeningSegment
+	// ClosedOnHolidays indica que el local cierra los festivos colombianos.
+	ClosedOnHolidays bool
+	// Today es lo que rige hoy con el festivo aplicado; nil sin horario. Lo
+	// calcula Service.ResolveBarbershop, no el repositorio.
+	Today *OpeningToday
+}
+
+// OpeningSegment es un tramo `[Opens, Closes)` del horario del local, en
+// minutos desde medianoche de la hora civil de la barbería; Closes puede ser
+// 1440 (24:00). Weekday es ISO: 1 = lunes … 7 = domingo. Este paquete no
+// importa shops (CA-002-06), así que repite su propia forma mínima.
+type OpeningSegment struct {
+	Weekday int
+	Opens   int
+	Closes  int
+}
+
+// OpeningToday es el horario de hoy en la fecha civil de la barbería: los
+// tramos de su día de la semana, o ninguno si es festivo y el local cierra
+// los festivos (DEC-182).
+type OpeningToday struct {
+	// Date es la fecha civil de hoy en la zona de la barbería (hora 00:00 UTC).
+	Date    time.Time
+	Weekday int
+	// Holiday es el nombre del festivo colombiano de hoy; nil si no lo es.
+	Holiday *string
+	// Hours son los tramos de hoy; vacío si hoy cierra.
+	Hours []OpeningSegment
+}
+
+// HolidayLookup dice si una fecha civil es festivo y cuál. La raíz de
+// composición inyecta el calendario colombiano de schedule; este paquete no
+// lo importa.
+type HolidayLookup func(date time.Time) (name string, ok bool)
+
+// TodayOpening calcula lo que rige en now según el horario semanal, en la
+// zona loc. Devuelve nil si no hay horario configurado: no saberlo no es lo
+// mismo que estar cerrado.
+func TodayOpening(segments []OpeningSegment, closedOnHolidays bool, now time.Time, loc *time.Location, holiday HolidayLookup) *OpeningToday {
+	if len(segments) == 0 {
+		return nil
+	}
+	local := now.In(loc)
+	date := time.Date(local.Year(), local.Month(), local.Day(), 0, 0, 0, 0, time.UTC)
+	today := &OpeningToday{Date: date, Weekday: (int(local.Weekday())+6)%7 + 1, Hours: []OpeningSegment{}}
+	if holiday != nil {
+		if name, ok := holiday(date); ok {
+			today.Holiday = &name
+			if closedOnHolidays {
+				return today
+			}
+		}
+	}
+	for _, seg := range segments {
+		if seg.Weekday == today.Weekday {
+			today.Hours = append(today.Hours, seg)
+		}
+	}
+	return today
 }
 
 // Location es la ubicación física que la reserva pública muestra (DEC-130,

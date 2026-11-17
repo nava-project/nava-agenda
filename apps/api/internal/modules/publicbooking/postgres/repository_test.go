@@ -892,3 +892,56 @@ func TestResolveBySlug_GooglePlaceID_FollowsTheShopOnly(t *testing.T) {
 		t.Fatalf("RN-TEN-01: la ficha de slugUno se filtró a slugDos: %q", *other.GooglePlaceID)
 	}
 }
+
+// TestResolveBySlug_OpeningHours_FollowsTheShopOnly cubre HU-107 en la capa de
+// datos: el perfil trae el horario de SU barbería, ordenado y con 24:00 como
+// 1440, y nunca el de otra (RN-TEN-01). Sin horario, la lista es vacía.
+func TestResolveBySlug_OpeningHours_FollowsTheShopOnly(t *testing.T) {
+	db := setupTestDB(t)
+	repo := publicbookingpostgres.New(db)
+	ctx := context.Background()
+
+	before, _, err := repo.ResolveBySlug(ctx, slugUno)
+	if err != nil || len(before.OpeningHours) != 0 || before.OpeningHours == nil || before.ClosedOnHolidays {
+		t.Fatalf("una barbería nueva no tiene horario (lista vacía, no nil): %+v err=%v", before.OpeningHours, err)
+	}
+
+	id, found, err := repo.ResolveBarbershopID(ctx, slugUno)
+	if err != nil || !found {
+		t.Fatalf("ResolveBarbershopID: found=%v err=%v", found, err)
+	}
+	exec := func(sql string) error {
+		return db.InTenantTx(ctx, database.BarbershopID(id), func(ctx context.Context, q database.Queries) error {
+			_, err := q.Exec(ctx, sql, id)
+			return err
+		})
+	}
+	if err := exec(`
+		WITH s AS (UPDATE barbershop SET closed_on_holidays = true WHERE id = $1 RETURNING id)
+		INSERT INTO barbershop_opening_hour (barbershop_id, iso_weekday, opens_time, closes_time)
+		SELECT s.id, v.d, v.o::time, v.c::time FROM s,
+		       (VALUES (5, '20:00', '24:00'), (1, '14:00', '19:00'), (1, '09:00', '12:00')) AS v(d, o, c)`); err != nil {
+		t.Fatalf("guardar horario: %v", err)
+	}
+	t.Cleanup(func() {
+		_ = exec(`WITH s AS (UPDATE barbershop SET closed_on_holidays = false WHERE id = $1 RETURNING id)
+		          DELETE FROM barbershop_opening_hour USING s WHERE barbershop_opening_hour.barbershop_id = s.id`)
+	})
+
+	p, _, err := repo.ResolveBySlug(ctx, slugUno)
+	want := []publicbooking.OpeningSegment{
+		{Weekday: 1, Opens: 540, Closes: 720}, {Weekday: 1, Opens: 840, Closes: 1140}, {Weekday: 5, Opens: 1200, Closes: 1440},
+	}
+	if err != nil || !p.ClosedOnHolidays || len(p.OpeningHours) != 3 {
+		t.Fatalf("perfil con horario: %+v err=%v", p, err)
+	}
+	for i := range want {
+		if p.OpeningHours[i] != want[i] {
+			t.Fatalf("tramos ordenados por día y apertura: got %+v want %+v", p.OpeningHours, want)
+		}
+	}
+	other, _, _ := repo.ResolveBySlug(ctx, slugDos)
+	if len(other.OpeningHours) != 0 || other.ClosedOnHolidays {
+		t.Fatalf("RN-TEN-01: el horario de slugUno se filtró a slugDos: %+v", other.OpeningHours)
+	}
+}

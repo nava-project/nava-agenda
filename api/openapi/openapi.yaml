@@ -2,6 +2,10 @@
 # docs/06-api/estandar-openapi.md (DEC-037). No se edita el bundle generado
 # en dist/; este archivo y los que referencia son la fuente.
 #
+# Issue #654 (DEC-182, HU-107) agrega GET/PUT /private/settings/opening-hours
+# (paths/settings.yaml), el horario de atención propio del local, y lo expone en
+# GET /public/barbershops/{slug} (openingHours, closedOnHolidays y today).
+#
 # Issue #651 (DEC-181): Odin puede pedir el código sin propósito (`manage`) y recibe
 # `accessUrl`, el enlace listo para el chat; el paso 03 ofrece cancelar y reprogramar.
 #
@@ -123,7 +127,7 @@
 openapi: 3.1.2
 info:
   title: API del sistema de agenda para barberías
-  version: 0.58.0
+  version: 0.59.0
   description: >
     Contrato HTTP entre apps/web y apps/api. Tres audiencias comparten este
     documento: /api/v1/public (reserva sin sesión), /api/v1/customer
@@ -256,6 +260,8 @@ paths:
     $ref: './paths/settings.yaml#/~1private~1settings~1login-otp'
   /private/settings/reminders:
     $ref: './paths/settings.yaml#/~1private~1settings~1reminders'
+  /private/settings/opening-hours:
+    $ref: './paths/settings.yaml#/~1private~1settings~1opening-hours'
   /private/integrations/google-calendar:
     $ref: './paths/google-calendar.yaml#/~1private~1integrations~1google-calendar'
   /private/integrations/google-calendar/connect:

@@ -40,6 +40,10 @@ vi.mock(
   '../../api/reminderSettingsApi',
   async () => (await import('./settingsPageHarness')).doubles.reminderSettingsApi,
 )
+vi.mock(
+  '../../api/openingHoursApi',
+  async () => (await import('./settingsPageHarness')).doubles.openingHoursApi,
+)
 vi.mock('@/modules/auth', async () => (await import('./settingsPageHarness')).doubles.auth)
 
 describe('SettingsPage', () => {
@@ -106,7 +110,20 @@ describe('SettingsPage', () => {
       const wrapper = await mountReady()
 
       const numbers = wrapper.findAll('.settings-panel__number').map((n) => n.text())
-      expect(numbers).toEqual(['01', '02', '03', '04', '05', '06', '07', '08', '09', '10', '11'])
+      expect(numbers).toEqual([
+        '01',
+        '02',
+        '03',
+        '04',
+        '05',
+        '06',
+        '07',
+        '08',
+        '09',
+        '10',
+        '11',
+        '12',
+      ])
     })
 
     it('keeps the panel of the user when the brand is saved, and never sends it', async () => {

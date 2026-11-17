@@ -36,6 +36,8 @@ var privateAccessPolicy = []access.Entry{
 	{Method: "PATCH", Pattern: "/settings/login-otp", Rule: access.DenyRestricted},
 	{Method: "GET", Pattern: "/settings/reminders", Rule: access.DenyRestricted},
 	{Method: "PATCH", Pattern: "/settings/reminders", Rule: access.DenyRestricted},
+	{Method: "GET", Pattern: "/settings/opening-hours", Rule: access.DenyRestricted},
+	{Method: "PUT", Pattern: "/settings/opening-hours", Rule: access.DenyRestricted},
 	{Method: "GET", Pattern: "/settings/public-link", Rule: access.Open},
 
 	// Google Calendar: personal, resuelto en el servidor con su propio vínculo.

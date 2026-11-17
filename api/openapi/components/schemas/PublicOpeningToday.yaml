@@ -1,0 +1,33 @@
+# Horario de hoy en el perfil público (HU-107, DEC-182): el semanal ya con el
+# festivo aplicado, para responder «¿está abierto?» sin calcular calendarios.
+type: object
+additionalProperties: false
+description: >
+  Lo que rige hoy, en la fecha civil de la zona horaria del local. `hours` vacío
+  significa que hoy cierra: el día no tiene tramos o es festivo y el local cierra
+  los festivos.
+properties:
+  date:
+    type: string
+    format: date
+    description: Fecha de hoy en la zona horaria del local.
+    example: '2026-11-17'
+  dayOfWeek:
+    $ref: './DayOfWeek.yaml'
+  holiday:
+    type: [string, "null"]
+    description: Nombre del festivo colombiano si hoy lo es; `null` si no.
+    maxLength: 80
+    examples:
+      - Independencia de Cartagena
+  hours:
+    type: array
+    description: Tramos de hoy ordenados por apertura; vacío si hoy cierra.
+    maxItems: 4
+    items:
+      $ref: './PublicOpeningInterval.yaml'
+required:
+  - date
+  - dayOfWeek
+  - holiday
+  - hours

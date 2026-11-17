@@ -4,6 +4,21 @@ Formato basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/).
 Ver [`docs/06-api/estandar-openapi.md`](../../docs/06-api/estandar-openapi.md)
 sección 18 para qué cuenta como cambio compatible o incompatible.
 
+## 0.59.0 · 2026-11-17
+
+### Agregado
+
+- `GET` y `PUT /private/settings/opening-hours` (`HU-107`, `DEC-182`, issue #654): el
+  horario de atención propio del local, que el dueño edita en Configuración. La
+  escritura reemplaza la semana completa; varios tramos por día (máximo 4), sin
+  solape, `closes` hasta `24:00`, y `closedOnHolidays` para los festivos colombianos.
+  Una cuenta de empleado recibe `403`.
+- En `GET /public/barbershops/{slug}`: `openingHours` (lista vacía si no está
+  configurado), `closedOnHolidays` y `today` (lo que rige hoy en la zona del local,
+  con el festivo aplicado; `null` sin horario). Esquemas nuevos `DayOfWeek`,
+  `OpeningHoursSegment`, `PublicOpeningToday` y `PublicOpeningInterval`. Compatible:
+  son campos nuevos de respuesta.
+
 ## 0.58.0 · 2026-11-17
 
 ### Cambiado

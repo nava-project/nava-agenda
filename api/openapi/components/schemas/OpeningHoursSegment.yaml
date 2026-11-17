@@ -1,0 +1,28 @@
+# Tramo del horario de atención del local (HU-107, DEC-182). Misma forma en
+# Configuración y en el perfil público.
+type: object
+additionalProperties: false
+description: >
+  Un tramo `[opens, closes)` de un día de la semana, en la hora civil de la zona
+  horaria del local (`timezone` del perfil). Varios tramos en un mismo día son un
+  cierre al mediodía; un día sin tramos está cerrado. Un horario que pasa de
+  medianoche son dos tramos: `20:00–24:00` un día y `00:00–02:00` el siguiente.
+properties:
+  dayOfWeek:
+    $ref: './DayOfWeek.yaml'
+  opens:
+    type: string
+    description: Hora de apertura, `HH:MM` de `00:00` a `23:59`.
+    pattern: '^([01][0-9]|2[0-3]):[0-5][0-9]$'
+    example: '09:00'
+  closes:
+    type: string
+    description: >
+      Hora de cierre, excluida del tramo; `HH:MM` posterior a `opens`. `24:00`
+      significa «hasta medianoche».
+    pattern: '^(([01][0-9]|2[0-3]):[0-5][0-9]|24:00)$'
+    example: '19:00'
+required:
+  - dayOfWeek
+  - opens
+  - closes

@@ -7,6 +7,7 @@
 // (CA-090-02), nunca distinguidos.
 
 import type { BrandAccentKey, VocabularyTerms } from '@/shared/model'
+import type { OpeningSegment, OpeningToday } from '@/shared/model/openingHours'
 
 /** Contexto público mínimo de una barbería habilitada (CA-090-01,
  * CA-090-04). contactEmail/contactPhone son `null` cuando la barbería no
@@ -34,6 +35,15 @@ export interface PublicBarbershopProfile {
   offersHomeService: boolean
   /** Color de marca que la barbería eligió en Configuración (DEC-171). */
   brandAccent: BrandAccentKey
+  /**
+   * Horario de atención del local (DEC-182, HU-107). Vacío: la barbería no lo
+   * configuró y la reserva no pinta ningún horario.
+   */
+  openingHours: OpeningSegment[]
+  /** El local cierra los festivos colombianos. */
+  closedOnHolidays: boolean
+  /** Lo que rige hoy con el festivo aplicado; `null` sin horario. */
+  today: OpeningToday | null
 }
 
 /** Resultado discriminado de resolver un enlace público contra el API

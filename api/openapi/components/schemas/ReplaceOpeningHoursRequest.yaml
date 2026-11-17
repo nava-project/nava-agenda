@@ -1,0 +1,24 @@
+# Cuerpo de PUT /private/settings/opening-hours (HU-107, DEC-182). Cerrado: un
+# campo desconocido se rechaza con 400.
+type: object
+additionalProperties: false
+description: >
+  La semana completa: reemplaza todos los tramos y el ajuste de festivos. Una
+  lista vacía deja el horario sin configurar.
+properties:
+  openingHours:
+    type: array
+    description: >
+      Tramos en cualquier orden. Cada uno cierra después de abrir, no se solapa
+      con otro del mismo día (dos contiguos, `12:00` y `12:00`, no se solapan) y
+      un día admite como máximo 4. Si uno falla, responde `422` y no se guarda
+      nada.
+    maxItems: 28
+    items:
+      $ref: './OpeningHoursSegment.yaml'
+  closedOnHolidays:
+    type: boolean
+    description: El local cierra los festivos colombianos.
+required:
+  - openingHours
+  - closedOnHolidays

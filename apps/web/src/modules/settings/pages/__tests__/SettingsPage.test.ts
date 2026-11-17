@@ -44,6 +44,10 @@ vi.mock(
   '../../api/reminderSettingsApi',
   async () => (await import('./settingsPageHarness')).doubles.reminderSettingsApi,
 )
+vi.mock(
+  '../../api/openingHoursApi',
+  async () => (await import('./settingsPageHarness')).doubles.openingHoursApi,
+)
 vi.mock('@/modules/auth', async () => (await import('./settingsPageHarness')).doubles.auth)
 
 const { default: SettingsPage } = await import('../SettingsPage.vue')
