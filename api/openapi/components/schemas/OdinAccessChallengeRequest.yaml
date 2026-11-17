@@ -16,7 +16,9 @@ properties:
     description: La referencia que `lookup` entregó para ese turno.
   purpose:
     $ref: './CustomerAccessPurpose.yaml'
+    description: >
+      Opcional (DEC-181). Sin él vale `manage`: exige que el turno admita cancelar o
+      cambiar la hora, y la persona elige en el paso 03.
 required:
   - phone
   - appointmentRef
-  - purpose

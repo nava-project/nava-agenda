@@ -1,6 +1,6 @@
 ---
 titulo: "Historias de usuario y criterios de aceptación"
-version: "1.63"
+version: "1.64"
 estado: "Propuesta"
 responsable: "Propietario del proyecto"
 ultima_actualizacion: "2026-11-17"
@@ -2763,10 +2763,10 @@ Orden recomendado: `HU-090` → `HU-091` → `HU-092` → `HU-093` → `HU-094` 
 | --- | --- |
 | Función | `F-PUB-13` |
 | Reglas | `RN-CAN-01`, `RN-DAT-01`–`RN-DAT-03`, `RN-TEN-01` |
-| Decisiones | `DEC-062`, `DEC-089`, `DEC-123`, `DEC-141`, `DEC-178`, `DEC-179` |
+| Decisiones | `DEC-062`, `DEC-089`, `DEC-123`, `DEC-141`, `DEC-178`, `DEC-179`, `DEC-180`, `DEC-181` |
 | Actor | Cliente que escribe a Odin por WhatsApp; Odin como servicio |
 | Depende de | `HU-104` y `HU-105` integradas |
-| Estado | Implementada contra el issue real [#645](https://github.com/bcaceres19/barberia/issues/645), rama `feat/645-hu106-odin-enlace-cancelar-reprogramar` |
+| Estado | Implementada contra el issue real [#645](https://github.com/bcaceres19/barberia/issues/645), rama `feat/645-hu106-odin-enlace-cancelar-reprogramar`; ampliada por `DEC-181` (issue [#651](https://github.com/bcaceres19/barberia/issues/651)): propósito opcional `manage` y `accessUrl` |
 | Riesgo | Que alguien use un teléfono ajeno para cancelar o mover un turno, que el secreto de servicio se filtre o que el límite no frene a un cliente que pide códigos sin parar. |
 
 **Historia**
@@ -2776,8 +2776,8 @@ Orden recomendado: `HU-090` → `HU-091` → `HU-092` → `HU-093` → `HU-094` 
 **Alcance incluido**
 
 - Acceso de servicio de Odin (`Authorization: Bearer`, `APP_ODIN_SERVICE_TOKEN`); sin el secreto las rutas no existen.
-- `lookup` por teléfono con referencias opacas, y `challenge` que envía el código por WhatsApp atado a un turno y a un propósito.
-- `verify-ref` público y la página `/reservar/<slug>/mi-turno/<accessRef>`, que abre en el código y lleva a «Mi turno» (con la cancelación a la vista) o a «Cambiar la hora».
+- `lookup` por teléfono con referencias opacas, y `challenge` que envía el código por WhatsApp atado a un turno y a un propósito; sin propósito vale `manage` y la respuesta trae `accessUrl`, el enlace listo para el chat (`DEC-181`).
+- `verify-ref` público y la página `/reservar/<slug>/mi-turno/<accessRef>`, con «01 Contacto» hecho, que abre en «02 Código» y, tras él, muestra «03 Tu turno»: con `manage` las dos acciones, con `cancel` la cancelación abierta; `reschedule` lleva a «Cambiar la hora» (`DEC-180`, `DEC-181`).
 - El acceso general de `HU-105` con un solo turno lleva a `/mi-turno/<token>`.
 
 **Alcance excluido**
@@ -2796,6 +2796,7 @@ Orden recomendado: `HU-090` → `HU-091` → `HU-092` → `HU-093` → `HU-094` 
 | `CA-106-06` | Un reto de Odin no sirve en la verificación general de `HU-105`, ni al revés. |
 | `CA-106-07` | Con dos barberías, una referencia o un `accessRef` de una no funciona en la otra. |
 | `CA-106-08` | La página cubre código, error, bloqueo y redirección por propósito, con teclado, axe-core y 320/360/768/1280 px. |
+| `CA-106-09` | Sin `purpose`, `challenge` usa `manage`: prospera si el turno admite cancelar o cambiar la hora, devuelve `purpose` y, con web pública configurada, `accessUrl` sin datos personales; tras el código, la página muestra el paso 03 con las dos acciones (`DEC-181`). |
 
 **Pruebas obligatorias:** dominio (referencia cifrada); PostgreSQL real con dos tenants; HTTP y contrato OpenAPI; configuración del secreto; componente; E2E con evidencia responsive.
 

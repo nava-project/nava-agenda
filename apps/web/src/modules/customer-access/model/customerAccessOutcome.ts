@@ -40,7 +40,11 @@ export type VerifyAccessCodeOutcome =
   | { kind: 'unexpected-error'; requestId?: string }
 
 /** Para qué se pidió el acceso desde Odin (HU-106): decide a qué pantalla lleva. */
-export type AccessPurpose = 'cancel' | 'reschedule'
+/**
+ * Para qué pidió Odin el acceso (DEC-179, DEC-181): `manage` deja elegir en el paso 03;
+ * `cancel` abre la cancelación y `reschedule` lleva a «Cambiar la hora».
+ */
+export type AccessPurpose = 'manage' | 'cancel' | 'reschedule'
 
 export type VerifyAccessRefOutcome =
   /** `accessToken` es el acceso de 60 minutos a ese turno; solo vive en memoria. */

@@ -55,10 +55,14 @@
     tags: [Integrations]
     summary: Pedir un código atado a un turno
     description: >
-      Crea un reto atado a ESE turno y a ESE propósito (`cancel` o `reschedule`) y
-      envía el código de 6 dígitos por WhatsApp a ese teléfono (HU-106, CA-106-03).
+      Crea un reto atado a ESE turno y a ESE propósito y envía el código de 6 dígitos
+      por WhatsApp a ese teléfono (HU-106, CA-106-03). Sin `purpose` el reto queda en
+      `manage` (DEC-181): Odin ya tiene el teléfono y ya confirmó el turno con el
+      cliente, así que el enlace abre directo en el código y, tras él, en el paso 03
+      con las dos acciones. Devuelve `accessUrl`, el enlace listo para el chat.
       Solo prospera si la referencia es de ese teléfono en esa barbería y el turno
-      sigue elegible para el propósito; en cualquier otro caso responde el mismo
+      sigue elegible para el propósito (con `manage`, que admita al menos una de las
+      dos acciones); en cualquier otro caso responde el mismo
       `409` `appointment-not-available`. El código vale 10 minutos, sirve una vez y
       admite 5 intentos. Pedir otro deja inútil el anterior. El límite de 3
       solicitudes por contacto cada 15 minutos cuenta también estas solicitudes y
@@ -71,7 +75,7 @@
     security:
       - OdinServiceToken: []
     x-business-rules: [RN-CAN-01, RN-DAT-01, RN-DAT-02, RN-TEN-01]
-    x-decisions: [DEC-062, DEC-123, DEC-178, DEC-179]
+    x-decisions: [DEC-062, DEC-123, DEC-178, DEC-179, DEC-181]
     parameters:
       - name: slug
         in: path
@@ -90,6 +94,11 @@
           schema:
             $ref: '../components/schemas/OdinAccessChallengeRequest.yaml'
           examples:
+            elegirEnLaPagina:
+              summary: Sin propósito; la persona elige en el paso 03
+              value:
+                phone: "+573001234567"
+                appointmentRef: kP3x9Qm2LwT7yVb1NcH8sJ4dRfE0uZaG6iO5tXnYhBqMlKjWvCpDrA
             reprogramar:
               value:
                 phone: "+573001234567"

@@ -9,10 +9,24 @@ properties:
       Referencia de un solo uso para el enlace
       `/reservar/{slug}/mi-turno/{accessRef}`. Por sí sola no da acceso: hace falta
       el código de 6 dígitos que llegó al WhatsApp del cliente.
+  accessUrl:
+    type: string
+    format: uri
+    maxLength: 512
+    description: >
+      Enlace completo `<web pública>/reservar/{slug}/mi-turno/{accessRef}`, listo para
+      pegarlo en el chat (DEC-181). Abre directo en el código, sin pedir el contacto. No
+      lleva datos personales. Solo aparece si el despliegue conoce su web pública
+      (`APP_PUBLIC_WEB_BASE_URL`); si falta, Odin arma el enlace con `accessRef`.
+    examples:
+      - https://nava.wtf/reservar/barberia-ejemplo/mi-turno/Xr4tN8bQ2vLm7KpZ9wYc3HdF6sJ1aGeU0iO5nTqRhBk
+  purpose:
+    $ref: './CustomerAccessPurpose.yaml'
   expiresAt:
     type: string
     format: date-time
     description: Hasta cuándo sirve el código y, con él, la referencia (10 minutos).
 required:
   - accessRef
+  - purpose
   - expiresAt

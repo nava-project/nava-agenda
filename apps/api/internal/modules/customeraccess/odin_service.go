@@ -12,10 +12,14 @@ import (
 
 // Política del acceso que pide Odin (DEC-179, HU-106).
 const (
-	// PurposeCancel y PurposeReschedule son los dos propósitos del acceso: la
-	// página lleva a «Mi turno» o a «Cambiar la hora» según cuál.
+	// PurposeCancel y PurposeReschedule atan el acceso a una sola acción: la
+	// página abre la cancelación o lleva a «Cambiar la hora» (DEC-179, DEC-180).
 	PurposeCancel     = "cancel"
 	PurposeReschedule = "reschedule"
+	// PurposeManage es el acceso sin acción elegida: Odin ya confirmó el turno con
+	// el cliente y la persona decide en el paso 03 si cancela o cambia la hora. Es
+	// el propósito por defecto cuando Odin no envía ninguno (DEC-181).
+	PurposeManage = "manage"
 
 	// AppointmentRefTTL es lo que vale la referencia de un turno desde que Odin la
 	// recibe en `lookup`: el tiempo que el cliente tarda en responder que sí.
@@ -133,6 +137,8 @@ type OdinAppointment struct {
 type RefChallengeAccepted struct {
 	AccessRef string
 	ExpiresAt time.Time
+	// Purpose es el propósito con el que quedó el reto (`manage` si Odin no envió).
+	Purpose string
 }
 
 // RefVerified es la respuesta de verificar la referencia con su código.
@@ -228,19 +234,26 @@ func (s *RefService) eligible(c AppointmentCandidate, purpose string, now time.T
 		return s.policy.CanCancel != nil && s.policy.CanCancel(c.StartsAt, now, c.DeadlineMinutes, c.LateCancelAllowed)
 	case PurposeReschedule:
 		return s.policy.CanReschedule != nil && s.policy.CanReschedule(c.StartsAt, now, c.DeadlineMinutes, c.CustomerReschedules)
+	case PurposeManage:
+		// Basta con que admita una de las dos: el paso 03 apaga la otra con su motivo.
+		return s.eligible(c, PurposeCancel, now) || s.eligible(c, PurposeReschedule, now)
 	}
 	return false
 }
 
 // RequestCode crea un reto atado a un turno y a un propósito y manda el código al
-// teléfono por WhatsApp. Una referencia ajena, vencida o de otra barbería, o un
-// turno que ya no es elegible, producen el mismo rechazo (CA-106-03).
+// teléfono por WhatsApp. Un propósito vacío es `manage` (DEC-181). Una referencia
+// ajena, vencida o de otra barbería, o un turno que ya no es elegible, producen el
+// mismo rechazo (CA-106-03).
 func (s *RefService) RequestCode(ctx context.Context, slug, rawPhone, ref, purpose string) (RefChallengeAccepted, error) {
 	if err := ctx.Err(); err != nil {
 		return RefChallengeAccepted{}, apperr.Internal(fmt.Errorf("customeraccess: contexto cancelado antes de pedir el código: %w", err))
 	}
-	if purpose != PurposeCancel && purpose != PurposeReschedule {
-		return RefChallengeAccepted{}, apperr.Validation("el propósito debe ser cancel o reschedule")
+	if purpose == "" {
+		purpose = PurposeManage
+	}
+	if purpose != PurposeCancel && purpose != PurposeReschedule && purpose != PurposeManage {
+		return RefChallengeAccepted{}, apperr.Validation("el propósito debe ser manage, cancel o reschedule")
 	}
 	contact, err := s.phone(rawPhone)
 	if err != nil {
@@ -287,7 +300,7 @@ func (s *RefService) RequestCode(ctx context.Context, slug, rawPhone, ref, purpo
 	}
 
 	s.dispatch(contact, code)
-	return RefChallengeAccepted{AccessRef: accessRef, ExpiresAt: expiresAt}, nil
+	return RefChallengeAccepted{AccessRef: accessRef, ExpiresAt: expiresAt, Purpose: purpose}, nil
 }
 
 // dispatch entrega el código en segundo plano con un contexto propio. Un fallo solo

@@ -661,7 +661,7 @@ func buildRouter(db *database.DB, logger *slog.Logger, cfg config.Config) (*chi.
 		odinOnly.Post("/api/v1/integrations/odin/barbershops/{slug}/customer-appointments/lookup",
 			customeraccesshttpapi.NewOdinLookupHandler(refService).ServeHTTP)
 		odinOnly.Post("/api/v1/integrations/odin/barbershops/{slug}/customer-access/challenge",
-			customeraccesshttpapi.NewOdinChallengeHandler(refService).ServeHTTP)
+			customeraccesshttpapi.NewOdinChallengeHandler(refService, cfg.PublicWebBaseURL).ServeHTTP)
 	} else {
 		logger.Info("integración de Odin desactivada: APP_ODIN_SERVICE_TOKEN no está definido")
 	}
