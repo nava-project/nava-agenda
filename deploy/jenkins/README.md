@@ -39,14 +39,35 @@ En el servidor:
 
 | Job | Disparo | Qué hace |
 | --- | --- | --- |
-| `barberia/ci` (multibranch) | webhook de GitHub (push y PR); escaneo cada 5 min de respaldo | solo `main` y los PR. Cada check en un contenedor de `tools/ci/ci.Dockerfile` con prioridad baja de CPU; Go y SQL con un PostgreSQL 14 efímero. Después, las tres imágenes. Estado en el commit: `continuous-integration/jenkins/branch` (main) o `…/pr-merge` (PR). En `main`, si pasa, dispara `barberia/deploy` |
+| `barberia/ci` (multibranch) | webhook de GitHub (push y PR); escaneo cada 5 min de respaldo | solo `main` y los PR. `tools/ci/plan.sh` decide los checks (ver abajo); todos corren a la vez, cada uno en un contenedor de `tools/ci/ci.Dockerfile` con prioridad baja de CPU; Go y SQL con un PostgreSQL 14 efímero. Después, las imágenes (en `main` siempre). Estado en el commit: `continuous-integration/jenkins/branch` (main) o `…/pr-merge` (PR). En `main`, si pasa, dispara `barberia/deploy` |
 | `barberia/deploy` | el CI de `main` (`AUTO=true`); a mano con `SHA` | verifica que el SHA sea de `main` y que su CI esté en verde (a mano consulta GitHub; también acepta commits anteriores a la migración que pasaron en Actions). Con `AUTO=true` se omite si `main` ya avanzó. Worktree en el SHA → imágenes que falten → tar a `/srv/barberia/releases/<sha>` → `deploy.sh --no-pull` → `GET https://nava.wtf/health` |
 | `vps/mantenimiento` | diario, ~04:00 | borra contenedores de CI de más de 3 h, caché de construcción de más de 7 días e imágenes colgantes; muestra el uso de disco |
 
-Checks del CI (equivalentes uno a uno a los jobs del antiguo `ci.yml`): `tools/ci/checks/go.sh`,
-`openapi.sh`, `web.sh`, `database.sh`, `shellcheck.sh` y `tools/ci/compose-check.sh`. Una migración
+Checks del CI (los mismos del antiguo `ci.yml`): `tools/ci/checks/go.sh`, `openapi.sh`, el frontend
+partido en `web-deps.sh` (instalación, una vez) + `web-static.sh` (formato, lint, tipos) +
+`web-test.sh` (vitest); el build de producción del frontend lo comprueba la imagen web, `database.sh`, `shellcheck.sh` y `tools/ci/compose-check.sh`. Una migración
 nueva se añade a la lista explícita de `go.sh` (Atlas la valida en `database.sh`). Se pueden correr en
 local con Docker: `tools/ci/run.sh go --postgres`.
+
+**Qué checks corren (`tools/ci/plan.sh`, #625).** Primero, si el mismo árbol de git ya pasó un CI
+completo, no se repite nada: es lo normal tras el squash-merge de un PR al día con `main`, que así se
+despliega en un par de minutos. Si no, se comparan los archivos con la base (en un PR, el `main` con el
+que se fusiona; en `main`, el commit anterior, y solo si ese commit ya estaba verificado):
+
+| Cambia | Corre |
+| --- | --- |
+| `docs/`, `.agents/`, `.claude/`, `.github/`, `*.md`/`*.docx`/`*.txt` de la raíz | nada |
+| `apps/web/` | frontend (+ imágenes) |
+| `apps/api/` | Go (+ imágenes) |
+| `api/` (OpenAPI) | OpenAPI y Go (pruebas de contrato) |
+| `database/` | Atlas + SQL y Go |
+| `deploy/` | shellcheck y compose (+ imágenes) |
+| `package.json`, `pnpm-lock.yaml`, `redocly.yaml` de la raíz | OpenAPI |
+| `Jenkinsfile`, `tools/ci/`, `.gitattributes` o cualquier otra ruta | todo |
+
+Un check omitido aparece como *skipped* y la descripción del build dice por qué. Los árboles
+verificados se guardan en `$JENKINS_HOME/nava-ci-green/` (30 días); borrar esa carpeta obliga a
+repetir el CI completo.
 
 ## 3. Secretos y variables
 
@@ -110,11 +131,14 @@ ssh barberia-vps 'sudo docker stats --no-stream'                      # consumo 
 
 - **Apagar el despliegue automático:** *Barbería → Deploy → Disable Project* (el CI sigue corriendo).
 - **Reintentar o volver atrás:** *Barbería → Deploy → Build with Parameters* con el SHA de `main`.
-- **Recursos:** el controlador tiene 1,5 CPU y 1,5 GB. Los checks corren con prioridad de CPU baja
-  (`--cpu-shares 512`, la producción tiene 1024) y memoria acotada (Go y web 3 GB, el resto 1 GB,
-  PostgreSQL 768 MB), sin cuota fija de CPU: Node y Go dimensionan sus hilos por los núcleos del host
-  y una cuota los estrangula. El frontend corre después de Go, no a la vez, y las imágenes después de
-  los checks.
+- **Recursos:** el controlador tiene 1,5 CPU y 1,5 GB. Los checks corren a la vez, con prioridad de
+  CPU baja (`--cpu-shares 512`, la producción tiene 1024) y topes de memoria (Go 3 GB, pruebas del
+  frontend 2,5 GB, estático del frontend 2 GB, el resto 1 GB, PostgreSQL 768 MB), sin cuota fija de
+  CPU: Node y Go dimensionan sus hilos por los núcleos del host y una cuota los estrangula. vitest usa
+  hilos y 10 s por prueba (`web-test.sh`). Las imágenes se construyen después de los checks.
+- **Cachés:** el workspace se monta siempre en `/workspace` dentro del check, así que la caché de Go
+  (también la de resultados de pruebas) sirve entre ramas y PR. Las pruebas de Go con base de datos se
+  invalidan cuando cambian las migraciones o el testdata (su huella va en la URL de la base).
 - **Disco:** `JENKINS_HOME` (workspaces con `node_modules`), el volumen `nava-ci-cache` (módulos de
   Go y pnpm) y la caché de BuildKit. `vps/mantenimiento` limpia lo de más de 7 días.
 

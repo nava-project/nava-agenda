@@ -102,10 +102,17 @@ done
 echo "== go test -race"
 # -p 1: los paquetes con BD comparten una sola base y reclaman la misma cola global
 # (`google_calendar_sync_job`); en paralelo se roban trabajos entre sí (#369).
+#
+# Caché de resultados (#625): Go reutiliza el resultado de una prueba si no cambian su
+# código, los archivos que abre ni las variables de entorno que lee. El esquema de la base
+# no es ninguna de esas cosas, así que su huella (migraciones, testdata y este script, que
+# decide qué se carga) va en application_name dentro de la URL que leen las pruebas: si el
+# esquema cambia, la URL cambia y las pruebas con base se vuelven a ejecutar.
+schema="$(cat database/migrations/* database/testdata/* "${BASH_SOURCE[0]}" | sha1sum | cut -c1-12)"
 (
   cd apps/api
-  TEST_DATABASE_URL="postgres://barberia_app:app_test@localhost:5432/postgres?sslmode=disable" \
-  TEST_WORKER_DATABASE_URL="postgres://barberia_worker:worker_test@localhost:5432/postgres?sslmode=disable" \
+  TEST_DATABASE_URL="postgres://barberia_app:app_test@localhost:5432/postgres?sslmode=disable&application_name=nava-ci-$schema" \
+  TEST_WORKER_DATABASE_URL="postgres://barberia_worker:worker_test@localhost:5432/postgres?sslmode=disable&application_name=nava-ci-$schema" \
     go test -race -p 1 ./...
 )
 

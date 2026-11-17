@@ -64,3 +64,6 @@ temp/
 *.dump
 *.backup
 *.sql.gz
+
+# Plan del CI de Jenkins (tools/ci/plan.sh)
+.ci-plan/
