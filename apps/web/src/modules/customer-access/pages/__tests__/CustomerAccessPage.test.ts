@@ -3,7 +3,8 @@
  * - paso 1: contacto vacío sin llamar al servidor, contacto inválido, límite (429), red;
  * - paso 2: el contacto se muestra enmascarado, el código se verifica al completarse,
  *   un código incorrecto se limpia y a los cinco se bloquea; reenvío con cuenta atrás;
- * - paso 3: un turno entra directo a «Mi turno» (HU-106); varios se eligen en una lista;
+ * - paso 3: un turno abre sus acciones en la misma página (#647); varios se eligen antes en
+ *   una lista, también sin salir;
  * - barbería inexistente y accesibilidad (axe-core) en cada paso.
  */
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
@@ -75,6 +76,16 @@ const TWO: Reply = {
   },
 }
 
+// El paso 03 delega en AppointmentActions (probado aparte): aquí basta con saber qué turno
+// abre y con qué acción.
+const ActionsStub = {
+  name: 'AppointmentActions',
+  props: ['token', 'slug', 'initialAction'],
+  emits: ['cancelled', 'modeChange'],
+  template:
+    '<section data-test="actions" :data-token="token" :data-slug="slug" :data-action="initialAction"><h2>Tu turno</h2></section>',
+}
+
 const wrappers: VueWrapper[] = []
 let router: Router
 
@@ -98,7 +109,7 @@ async function mountPage() {
   await router.isReady()
   const wrapper = mount(CustomerAccessPage, {
     props: { slug: 'mi-barberia' },
-    global: { plugins: [router] },
+    global: { plugins: [router], stubs: { AppointmentActions: ActionsStub } },
     attachTo: document.body,
   })
   wrappers.push(wrapper)
@@ -312,19 +323,37 @@ describe('CustomerAccessPage · paso 2, código', () => {
 })
 
 describe('CustomerAccessPage · paso 3, turno', () => {
-  it('con un solo turno entra directo a «Mi turno» con su credencial', async () => {
+  it('con un solo turno abre sus acciones en el paso 03, sin salir de la página', async () => {
     script({ challenge: [ACCEPTED], verify: [ONE] })
     const w = await mountPage()
     await sendContact(w)
     await typeCode(w, '482913')
     await flushPromises()
 
-    expect(router.currentRoute.value.name).toBe('mi-turno')
-    expect(router.currentRoute.value.params.token).toBe('tok-1')
+    expect(router.currentRoute.value.name).toBe('mi-turno-acceso')
+    expect(w.find('h1').text()).toBe('¿Qué quieres hacer?')
+    expect(document.activeElement).toBe(w.find('h1').element)
+    expect(w.find('[aria-current="step"]').text()).toContain('Tu turno')
+    const actions = w.find('[data-test="actions"]')
+    expect(actions.attributes('data-token')).toBe('tok-1')
+    expect(actions.attributes('data-slug')).toBe('mi-barberia')
+    expect(buttonByText(w, '← Elegir otro turno')).toBeUndefined()
     expect(w.text()).not.toContain('tok-1')
   })
 
-  it('con varios turnos los lista con su hora en la zona de la barbería', async () => {
+  it('al cancelar ahí mismo el título lo dice', async () => {
+    script({ challenge: [ACCEPTED], verify: [ONE] })
+    const w = await mountPage()
+    await sendContact(w)
+    await typeCode(w, '482913')
+    await flushPromises()
+
+    w.findComponent({ name: 'AppointmentActions' }).vm.$emit('cancelled')
+    await flushPromises()
+    expect(w.find('h1').text()).toBe('Turno cancelado')
+  })
+
+  it('con varios turnos los lista con su hora y abre el elegido sin salir', async () => {
     script({ challenge: [ACCEPTED], verify: [TWO] })
     const w = await mountPage()
     await sendContact(w)
@@ -332,17 +361,24 @@ describe('CustomerAccessPage · paso 3, turno', () => {
 
     expect(w.find('h1').text()).toBe('Elige tu turno')
     expect(document.activeElement).toBe(w.find('h1').element)
-    const links = w.findAll('a.ticket')
-    expect(links).toHaveLength(2)
-    expect(links[0]!.text()).toContain('10:00')
-    expect(links[0]!.text()).toContain('Corte clásico con Juan')
-    expect(links[1]!.text()).toContain('3:30')
-    expect(links[1]!.text()).toContain('Corte y barba con Ana')
+    expect(w.find('[aria-current="step"]').text()).toContain('Tu turno')
+    const tickets = w.findAll('button.ticket')
+    expect(tickets).toHaveLength(2)
+    expect(tickets[0]!.text()).toContain('10:00')
+    expect(tickets[0]!.text()).toContain('Corte clásico con Juan')
+    expect(tickets[1]!.text()).toContain('3:30')
+    expect(tickets[1]!.text()).toContain('Corte y barba con Ana')
     expect(w.text()).toContain('Todas las horas son de Bogota.')
 
-    await links[1]!.trigger('click')
+    await tickets[1]!.trigger('click')
     await flushPromises()
-    expect(router.currentRoute.value.params.token).toBe('tok-2')
+    expect(router.currentRoute.value.name).toBe('mi-turno-acceso')
+    expect(w.find('[data-test="actions"]').attributes('data-token')).toBe('tok-2')
+
+    await buttonByText(w, '← Elegir otro turno')!.trigger('click')
+    await flushPromises()
+    expect(w.find('h1').text()).toBe('Elige tu turno')
+    expect(w.findAll('button.ticket')).toHaveLength(2)
   })
 })
 

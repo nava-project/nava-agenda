@@ -1,7 +1,7 @@
 /**
  * Pruebas de CustomerAccessRefPage (HU-106, DEC-179): el enlace que Odin entrega por
- * WhatsApp abre directo en el código, lo canjea por la referencia del enlace y lleva a
- * «Mi turno» (cancelar) o a «Cambiar la hora» (reprogramar). Un código incorrecto no dice por
+ * WhatsApp abre directo en el código, lo canjea por la referencia del enlace y abre la
+ * cancelación en la misma página (cancelar, #647) o lleva a «Cambiar la hora» (reprogramar). Un código incorrecto no dice por
  * qué, a los cinco se bloquea, y la referencia nunca se muestra.
  */
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
@@ -33,6 +33,16 @@ function reply(status: number, data?: unknown, error?: unknown) {
   })
 }
 
+// El paso 03 delega en AppointmentActions (probado aparte): aquí basta con saber qué turno
+// abre y con qué acción.
+const ActionsStub = {
+  name: 'AppointmentActions',
+  props: ['token', 'slug', 'initialAction'],
+  emits: ['cancelled', 'modeChange'],
+  template:
+    '<section data-test="actions" :data-token="token" :data-slug="slug" :data-action="initialAction"><h2>Tu turno</h2></section>',
+}
+
 const wrappers: VueWrapper[] = []
 let router: Router
 
@@ -57,7 +67,7 @@ async function mountPage() {
   await router.isReady()
   const wrapper = mount(CustomerAccessRefPage, {
     props: { slug: 'mi-barberia', accessRef: REF },
-    global: { plugins: [router] },
+    global: { plugins: [router], stubs: { AppointmentActions: ActionsStub } },
     attachTo: document.body,
   })
   wrappers.push(wrapper)
@@ -114,14 +124,35 @@ describe('CustomerAccessRefPage', () => {
     expect(w.text()).not.toContain('tok-1')
   })
 
-  it('con el propósito «cancel» lleva a «Mi turno» con la cancelación a la vista', async () => {
+  it('con el propósito «cancel» abre la cancelación en la misma página', async () => {
     reply(200, { accessToken: 'tok-2', purpose: 'cancel' })
     const w = await mountPage()
     await typeCode(w, '482913')
 
-    expect(router.currentRoute.value.name).toBe('mi-turno')
-    expect(router.currentRoute.value.params.token).toBe('tok-2')
-    expect(router.currentRoute.value.query).toEqual({ accion: 'cancelar' })
+    expect(router.currentRoute.value.name).toBe('mi-turno-acceso-ref')
+    expect(w.find('h1').text()).toBe('Cancelar tu turno')
+    expect(w.find('[aria-current="step"]').text()).toContain('Tu turno')
+    const actions = w.find('[data-test="actions"]')
+    expect(actions.attributes('data-token')).toBe('tok-2')
+    expect(actions.attributes('data-action')).toBe('cancel')
+    // El código ya no se muestra: quedó gastado.
+    expect(slotInputs(w)).toHaveLength(0)
+    expect(w.text()).not.toContain('tok-2')
+  })
+
+  it('el título sigue al panel: opciones y cancelado', async () => {
+    reply(200, { accessToken: 'tok-2', purpose: 'cancel' })
+    const w = await mountPage()
+    await typeCode(w, '482913')
+    const actions = w.findComponent({ name: 'AppointmentActions' })
+
+    actions.vm.$emit('modeChange', 'menu')
+    await flushPromises()
+    expect(w.find('h1').text()).toBe('¿Qué quieres hacer?')
+
+    actions.vm.$emit('cancelled')
+    await flushPromises()
+    expect(w.find('h1').text()).toBe('Turno cancelado')
   })
 
   it('un código incorrecto se limpia sin decir la causa y a los cinco se bloquea', async () => {

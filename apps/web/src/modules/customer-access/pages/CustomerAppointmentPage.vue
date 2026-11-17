@@ -17,10 +17,9 @@ import { formatTimeInTimezone } from '@/shared/time/formatInstant'
 import { BookingBackdrop } from '@/modules/public-booking'
 import { getCustomerAppointment } from '../api/getCustomerAppointmentApi'
 import { createReview } from '../api/createReviewApi'
-import { cancelCustomerAppointment } from '../api/cancelCustomerAppointmentApi'
 import AppointmentCancellation from '../components/AppointmentCancellation.vue'
 import AppointmentReview from '../components/AppointmentReview.vue'
-import { newIdempotencyKey } from '../model/idempotencyKey'
+import { useAppointmentCancel } from '../composables/useAppointmentCancel'
 import {
   appointmentPhase,
   appointmentProgress,
@@ -32,7 +31,6 @@ import {
   APPOINTMENT_STATUS_BADGE_VARIANT,
   appointmentStatusLabel,
   type CancelAppointmentInput,
-  type CancellationRejection,
   type CustomerAppointment,
   type ReviewInput,
 } from '../model/customerAppointmentOutcome'
@@ -173,79 +171,32 @@ async function submitReview(input: ReviewInput) {
   }
 }
 
-// Cancelación del turno (HU-099, T5): la página posee el envío y la clave de
-// idempotencia. Se reutiliza la clave solo al reintentar la MISMA intención (mismo
-// motivo) tras un fallo de red o una respuesta inesperada; cualquier otra cosa es un
-// intento nuevo con clave nueva (RN-IDE-01, DEC-043).
-const cancelSubmitting = ref(false)
-const cancelError = ref('')
-const cancelRejection = ref<CancellationRejection>(null)
-const cancelNotice = ref('')
+// Cancelación del turno (HU-099, T5): el envío y la clave de idempotencia viven en
+// `useAppointmentCancel`, compartido con el paso 03 del acceso con código (#647).
 const justCancelled = ref(false)
 const cancelledNotice = ref<HTMLElement | null>(null)
-let lastCancelAttempt: { reason: string | null; key: string } | null = null
+const {
+  submitting: cancelSubmitting,
+  error: cancelError,
+  rejection: cancelRejection,
+  notice: cancelNotice,
+  submit: sendCancel,
+} = useAppointmentCancel(() => props.token, {
+  async onCancelled(appointment) {
+    justCancelled.value = true
+    screenState.value = { status: 'success', appointment }
+    await nextTick()
+    cancelledNotice.value?.focus()
+  },
+  onChanged: load,
+  onNotFound() {
+    screenState.value = { status: 'not-found' }
+  },
+})
 
-function cancelAttemptKey(reason: string | null): string {
-  if (lastCancelAttempt && lastCancelAttempt.reason === reason) return lastCancelAttempt.key
-  lastCancelAttempt = { reason, key: newIdempotencyKey() }
-  return lastCancelAttempt.key
-}
-
-async function submitCancel(input: CancelAppointmentInput) {
-  if (screenState.value.status !== 'success' || cancelSubmitting.value) return
-  const { appointment } = screenState.value
-  cancelSubmitting.value = true
-  cancelError.value = ''
-  cancelRejection.value = null
-  const outcome = await cancelCustomerAppointment(
-    props.token,
-    appointment.versionToken,
-    cancelAttemptKey(input.reason),
-    input,
-  )
-  cancelSubmitting.value = false
-
-  switch (outcome.kind) {
-    case 'success':
-      lastCancelAttempt = null
-      justCancelled.value = true
-      screenState.value = {
-        status: 'success',
-        appointment: { ...appointment, status: 'cancelled_by_customer', canReview: false },
-      }
-      await nextTick()
-      cancelledNotice.value?.focus()
-      return
-    case 'window-closed':
-    case 'reason-required':
-      lastCancelAttempt = null
-      cancelRejection.value = outcome.kind
-      return
-    case 'validation-error':
-      cancelError.value = 'Revisa el motivo e inténtalo de nuevo.'
-      return
-    case 'changed':
-      lastCancelAttempt = null
-      cancelNotice.value =
-        'Tu turno cambió mientras tanto, así que no lo cancelamos. Esto es lo que figura ahora.'
-      await load()
-      return
-    case 'idempotency-in-progress':
-      cancelError.value =
-        'Tu cancelación sigue en curso. Espera unos segundos e inténtalo de nuevo.'
-      return
-    case 'not-found':
-      lastCancelAttempt = null
-      screenState.value = { status: 'not-found' }
-      return
-    case 'network-error':
-      cancelError.value = 'No pudimos conectar. Revisa tu conexión e inténtalo de nuevo.'
-      return
-    case 'unexpected-error':
-      cancelError.value = outcome.requestId
-        ? `No pudimos cancelar tu turno. Si continúa, comparte este código con soporte: ${outcome.requestId}.`
-        : 'No pudimos cancelar tu turno. Inténtalo de nuevo en unos segundos.'
-  }
+function submitCancel(input: CancelAppointmentInput) {
+  if (screenState.value.status !== 'success') return
+  void sendCancel(screenState.value.appointment, input)
 }
 
 const retry = () => {

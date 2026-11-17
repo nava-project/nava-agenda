@@ -104,6 +104,10 @@
   animation: ac-rise 0.6s var(--ac-ease) 0.05s backwards;
 }
 
+.access__steps--two {
+  grid-template-columns: repeat(2, 1fr);
+}
+
 .access__step {
   display: flex;
   flex-direction: column;
@@ -247,6 +251,10 @@
 .ticket {
   display: grid;
   grid-template-columns: auto 1fr;
+  width: 100%;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
   gap: var(--space-1) var(--space-4);
   align-items: center;
   min-height: var(--control-height);
@@ -329,6 +337,28 @@
   letter-spacing: 0.04em;
   color: var(--ac-brass);
   border-top: 1px dashed var(--ac-line);
+}
+
+.access__back {
+  align-self: flex-start;
+  min-height: 44px;
+  padding: 0;
+  font: inherit;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--ac-soft);
+  cursor: pointer;
+  background: none;
+  border: 0;
+}
+
+.access__back:hover {
+  color: var(--ac-text);
+}
+
+.access__back:focus-visible {
+  outline: 2px solid var(--ac-brass);
+  outline-offset: 3px;
 }
 
 .access__zone {
