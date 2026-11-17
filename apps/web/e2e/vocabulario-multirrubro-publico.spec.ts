@@ -124,6 +124,7 @@ for (const viewport of viewports) {
           versionToken: 'version-token-1',
           barbershopContactEmail: null,
           barbershopContactPhone: null,
+          rescheduleRemaining: 2,
           vocabulary: nails,
         }),
       ),

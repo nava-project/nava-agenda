@@ -53,6 +53,7 @@ const APPOINTMENT_VIEW = {
   versionToken: 'version-token-1',
   barbershopContactEmail: 'contacto@barberia-ejemplo.test',
   barbershopContactPhone: '+573001234567',
+  rescheduleRemaining: 2,
   vocabulary: INITIAL_VOCABULARY,
 }
 

@@ -58,6 +58,7 @@ export async function getCustomerAppointment(
               createdAt: data.review.createdAt,
             }
           : null,
+        rescheduleRemaining: data.rescheduleRemaining,
       }
       return { kind: 'success', appointment }
     }

@@ -193,6 +193,8 @@ func TestTranslate_CancellationPolicyRejections_Map422WithDistinctCodes(t *testi
 		code string
 	}{
 		{"plazo vencido", apperr.CancellationWindowClosed("fuera de plazo"), "cancellation-window-closed"},
+		{"reprogramación fuera de plazo", apperr.RescheduleWindowClosed("fuera de plazo"), "reschedule-window-closed"},
+		{"límite de reprogramaciones", apperr.RescheduleLimitReached("sin cambios"), "reschedule-limit-reached"},
 		{"motivo obligatorio", apperr.CancellationReasonRequired("falta el motivo"), "cancellation-reason-required"},
 	}
 	for _, tc := range cases {

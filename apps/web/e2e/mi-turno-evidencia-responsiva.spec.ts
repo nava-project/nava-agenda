@@ -64,6 +64,7 @@ const APPOINTMENT_VIEW = {
   versionToken: 'version-token-1',
   barbershopContactEmail: null,
   barbershopContactPhone: null,
+  rescheduleRemaining: 2,
   vocabulary: INITIAL_VOCABULARY,
 }
 

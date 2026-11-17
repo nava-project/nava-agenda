@@ -1,6 +1,6 @@
 ---
 titulo: "Historias de usuario y criterios de aceptación"
-version: "1.60"
+version: "1.61"
 estado: "Propuesta"
 responsable: "Propietario del proyecto"
 ultima_actualizacion: "2026-11-17"
@@ -2675,7 +2675,7 @@ Orden recomendado: `HU-090` → `HU-091` → `HU-092` → `HU-093` → `HU-094` 
 | Actor | Cliente con el enlace de su turno |
 | Depende de | `HU-065`, `HU-094`, `HU-098` y `HU-099` integradas |
 | Bloquea | `HU-105` |
-| Estado | En implementación contra el issue real [#636](https://github.com/bcaceres19/barberia/issues/636) |
+| Estado | Implementada contra el issue real [#636](https://github.com/bcaceres19/barberia/issues/636), rama `feat/636-hu104-reprogramacion-cliente` |
 | Riesgo | Aceptar una franja que la reserva pública no ofrecería, reprogramar fuera de plazo o sin límite, avisar al cliente de su propio cambio o mover un turno ajeno. |
 
 **Historia**

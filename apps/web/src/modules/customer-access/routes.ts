@@ -25,4 +25,12 @@ export const customerAccessRoutes: RouteRecordRaw[] = [
     component: () => import('./pages/CustomerAppointmentPage.vue'),
     props: true,
   },
+  // Pantalla dedicada a cambiar la hora (HU-104, DEC-178): vive bajo el mismo
+  // enlace, así que el correo ya enviado sigue llevando a ella sin cambios.
+  {
+    path: '/mi-turno/:token/reprogramar',
+    name: 'mi-turno-reprogramar',
+    component: () => import('./pages/CustomerReschedulePage.vue'),
+    props: true,
+  },
 ]

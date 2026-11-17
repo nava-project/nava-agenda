@@ -1,0 +1,18 @@
+# Respuesta 200 de POST /customer/appointments/{token}/reschedule (HU-104).
+# Deliberadamente mínima: el cliente vuelve a leer el turno con GET para el
+# nuevo versionToken y las reprogramaciones restantes.
+type: object
+additionalProperties: false
+description: Intervalo vigente del turno tras la reprogramación.
+properties:
+  startsAt:
+    type: string
+    format: date-time
+    description: Nuevo inicio, en UTC.
+  endsAt:
+    type: string
+    format: date-time
+    description: Nuevo fin, en UTC (inicio más la duración del turno).
+required:
+  - startsAt
+  - endsAt

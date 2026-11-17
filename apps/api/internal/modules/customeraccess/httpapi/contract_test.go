@@ -130,3 +130,56 @@ func TestContract_CancelOperation_DeclaresEverySharedStatusAndNoSession(t *testi
 		}
 	}
 }
+
+// HU-104: los DTO de franjas y del cuerpo de reprogramación son exactamente los
+// del contrato, y ambas operaciones declaran sus respuestas sin sesión.
+func TestContract_RescheduleSchemasMatchDTOs(t *testing.T) {
+	slots := loadYAML[contractSchema](t, "api/openapi/components/schemas/CustomerRescheduleSlots.yaml")
+	if got, want := jsonFields(t, httpapi.RescheduleSlotsResponse{}), schemaProps(slots); !reflect.DeepEqual(got, want) {
+		t.Fatalf("RescheduleSlotsResponse %v != OpenAPI %v", got, want)
+	}
+	body := loadYAML[contractSchema](t, "api/openapi/components/schemas/RescheduleCustomerAppointmentRequest.yaml")
+	if got, want := jsonFields(t, httpapi.RescheduleAppointmentRequest{}), schemaProps(body); !reflect.DeepEqual(got, want) {
+		t.Fatalf("RescheduleAppointmentRequest %v != OpenAPI %v", got, want)
+	}
+	if body.AdditionalProperties != false {
+		t.Fatal("el cuerpo debe ser cerrado (additionalProperties: false)")
+	}
+}
+
+func TestContract_RescheduleOperations_DeclareStatusesAndNoSession(t *testing.T) {
+	type op struct {
+		OperationID string         `yaml:"operationId"`
+		Security    []any          `yaml:"security"`
+		Responses   map[string]any `yaml:"responses"`
+	}
+	ops := loadYAML[map[string]struct {
+		Get  *op `yaml:"get"`
+		Post *op `yaml:"post"`
+	}](t, "api/openapi/paths/customer-appointments.yaml")
+
+	checks := []struct {
+		path     string
+		pick     func(struct{ Get, Post *op }) *op
+		id       string
+		statuses []string
+	}{
+		{"/customer/appointments/{token}/reschedule-slots", func(p struct{ Get, Post *op }) *op { return p.Get }, "listCustomerRescheduleSlots", []string{"200", "404", "500"}},
+		{"/customer/appointments/{token}/reschedule", func(p struct{ Get, Post *op }) *op { return p.Post }, "rescheduleCustomerAppointment", []string{"200", "400", "404", "409", "422", "500"}},
+	}
+	for _, c := range checks {
+		entry, ok := ops[c.path]
+		if !ok {
+			t.Fatalf("falta %s", c.path)
+		}
+		o := c.pick(struct{ Get, Post *op }{entry.Get, entry.Post})
+		if o == nil || o.OperationID != c.id || len(o.Security) != 0 {
+			t.Fatalf("%s: operación %+v", c.path, o)
+		}
+		for _, status := range c.statuses {
+			if _, ok := o.Responses[status]; !ok {
+				t.Errorf("%s: falta la respuesta %s", c.path, status)
+			}
+		}
+	}
+}

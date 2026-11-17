@@ -1,0 +1,16 @@
+# Cuerpo de POST /customer/appointments/{token}/reschedule (HU-104, DEC-178).
+# Solo el inicio: servicio, profesional y duración no cambian.
+type: object
+additionalProperties: false
+description: Nuevo inicio elegido por el cliente.
+properties:
+  startsAt:
+    type: string
+    format: date-time
+    description: >
+      Uno de los instantes que devolvió `GET .../reschedule-slots`, tal cual.
+      El servidor vuelve a calcular las franjas y rechaza cualquier otro valor.
+    examples:
+      - "2026-11-20T20:00:00Z"
+required:
+  - startsAt

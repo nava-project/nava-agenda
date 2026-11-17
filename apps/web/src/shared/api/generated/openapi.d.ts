@@ -224,6 +224,46 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/customer/appointments/{token}/reschedule-slots": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Franjas a las que el cliente puede mover su turno
+         * @description Devuelve los inicios a los que el cliente puede mover su turno `confirmed` (`HU-104`, `DEC-178`), con la misma credencial del enlace y sin sesión. Es el mismo cálculo de la disponibilidad pública (`HU-094`: jornada efectiva, bloqueos, citas, rejilla y anticipación mínima y máxima) para el profesional y la duración del turno, pero el propio turno no cuenta como ocupado: se puede mover a una franja que se cruza con su hora actual. Un turno que ya no está `confirmed` devuelve la lista vacía. No evalúa el plazo ni el límite: eso lo decide `POST .../reschedule` y la interfaz ya lo sabe por `GET` (`rescheduleRemaining`). Un `token` inexistente, vencido o revocado responde el mismo `404` uniforme que `GET`.
+         */
+        get: operations["listCustomerRescheduleSlots"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/customer/appointments/{token}/reschedule": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Reprogramar el turno por el cliente
+         * @description El cliente mueve su turno `confirmed` a otro inicio con la credencial del enlace y sin sesión (`HU-104`, `DEC-178`). Solo cambian fecha y hora: servicio, profesional, precio y duración se conservan. Reglas, evaluadas con el reloj del servidor: plazo igual al de la cancelación (hasta `startsAt - cancellationDeadlineMinutes` inclusive; con plazo 0 nunca); como máximo 2 reprogramaciones hechas por el cliente en el mismo turno; y `startsAt` debe ser uno de los inicios de `GET .../reschedule-slots`, que el servidor recalcula. Protegida con `Idempotency-Key` (`RN-IDE-01`, `DEC-043`) y con `If-Match` (el `versionToken` de `GET`). En una sola transacción, con la fila bloqueada, se mueve el intervalo (un cruce en carrera lo rechaza la exclusión de PostgreSQL con `409 slot-conflict`), se regenera el recordatorio, se encola la publicación en Google Calendar y se registra un evento `appointment_rescheduled` con actor cliente. No se envía aviso al cliente, porque el cambio lo hizo él (`DEC-142`). Un intervalo idéntico es un éxito sin escritura. Un `token` inexistente, vencido o revocado responde el mismo `404` uniforme que `GET`.
+         */
+        post: operations["rescheduleCustomerAppointment"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/public/barbershops/{slug}/barbers/{barberId}/reviews": {
         parameters: {
             query?: never;
@@ -2489,6 +2529,11 @@ export interface components {
             canReview: boolean;
             /** @description La reseña que el cliente ya dejó sobre este turno, o `null`. */
             review: components["schemas"]["CustomerReview"] | null;
+            /**
+             * @description Veces que el cliente todavía puede cambiar la hora de este turno por su cuenta (`HU-104`, `DEC-178`: máximo 2 por turno; las del barbero no cuentan). El plazo es el mismo de la cancelación: hasta `startsAt - cancellationDeadlineMinutes`, y con plazo 0 nunca. La interfaz ofrece «Cambiar la hora» solo con el turno `confirmed`, dentro de plazo y con este valor mayor que 0; el servidor lo vuelve a decidir.
+             * @example 2
+             */
+            rescheduleRemaining: number;
         };
         /** @description Motivo de la cancelación. Obligatorio solo cuando la política vigente lo exige (cancelación fuera de plazo con `lateCancellationReasonRequired`); en cualquier otro caso es opcional y, si llega en blanco, se trata como ausente. El cuerpo completo puede omitirse. */
         CancelCustomerAppointmentRequest: {
@@ -2519,6 +2564,38 @@ export interface components {
              * @example null
              */
             comment?: string | null;
+        };
+        /** @description Inicios a los que el cliente puede mover su turno. */
+        CustomerRescheduleSlots: {
+            /**
+             * @description Zona horaria IANA de la barbería (RN-DIS-07). `starts` viaja en UTC; el cliente agrupa y presenta las franjas en esta zona, nunca en la del dispositivo.
+             * @example America/Bogota
+             */
+            timezone: string;
+            /** @description Inicios válidos en orden cronológico, como instantes UTC. Vacío si el turno ya no está `confirmed` o si no hay franjas en la ventana de reserva. */
+            starts: string[];
+        };
+        /** @description Nuevo inicio elegido por el cliente. */
+        RescheduleCustomerAppointmentRequest: {
+            /**
+             * Format: date-time
+             * @description Uno de los instantes que devolvió `GET .../reschedule-slots`, tal cual. El servidor vuelve a calcular las franjas y rechaza cualquier otro valor.
+             * @example 2026-11-20T20:00:00Z
+             */
+            startsAt: string;
+        };
+        /** @description Intervalo vigente del turno tras la reprogramación. */
+        CustomerAppointmentRescheduled: {
+            /**
+             * Format: date-time
+             * @description Nuevo inicio, en UTC.
+             */
+            startsAt: string;
+            /**
+             * Format: date-time
+             * @description Nuevo fin, en UTC (inicio más la duración del turno).
+             */
+            endsAt: string;
         };
         /** @description Reseña no oculta de un barbero. Sin identificador del turno ni del cliente: la reseña es anónima para el visitante. */
         PublicReview: {
@@ -4452,6 +4529,40 @@ export interface components {
                 "application/problem+json": components["schemas"]["Problem"];
             };
         };
+        /** @description Franjas a las que el cliente puede mover su turno. */
+        CustomerRescheduleSlotsSuccess: {
+            headers: {
+                "X-Request-Id": components["headers"]["XRequestId"];
+                /** @description Siempre `no-store` (RN-DAT-02). */
+                "Cache-Control"?: "no-store";
+                [name: string]: unknown;
+            };
+            content: {
+                "application/json": components["schemas"]["CustomerRescheduleSlots"];
+            };
+        };
+        /** @description El turno quedó en el nuevo intervalo (o ya estaba en él: un intervalo idéntico no escribe nada). Repetir la misma `Idempotency-Key` con el mismo cuerpo reproduce esta respuesta. */
+        CustomerAppointmentRescheduled: {
+            headers: {
+                "X-Request-Id": components["headers"]["XRequestId"];
+                /** @description Siempre `no-store` (RN-DAT-02). */
+                "Cache-Control"?: "no-store";
+                [name: string]: unknown;
+            };
+            content: {
+                "application/json": components["schemas"]["CustomerAppointmentRescheduled"];
+            };
+        };
+        /** @description Tres rechazos distinguibles por `code`, nunca por `detail`: `reschedule-window-closed` (pasó el plazo, el mismo de la cancelación: el cliente debe contactar a la barbería), `reschedule-limit-reached` (el cliente ya cambió la hora de este turno las veces permitidas) y `validation-error` (`startsAt` no es un instante RFC 3339). */
+        RescheduleRejectedProblem: {
+            headers: {
+                "X-Request-Id": components["headers"]["XRequestId"];
+                [name: string]: unknown;
+            };
+            content: {
+                "application/problem+json": components["schemas"]["Problem"];
+            };
+        };
         /** @description Resumen y reseñas visibles más recientes del barbero. */
         PublicReviewListSuccess: {
             headers: {
@@ -5533,6 +5644,61 @@ export interface operations {
             404: components["responses"]["NotFoundProblem"];
             409: components["responses"]["ReviewNotAvailableProblem"];
             422: components["responses"]["ValidationProblem"];
+            500: components["responses"]["InternalErrorProblem"];
+        };
+    };
+    listCustomerRescheduleSlots: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Credencial en claro del enlace de acceso al turno (DEC-089). */
+                token: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: components["responses"]["CustomerRescheduleSlotsSuccess"];
+            404: components["responses"]["NotFoundProblem"];
+            500: components["responses"]["InternalErrorProblem"];
+        };
+    };
+    rescheduleCustomerAppointment: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description Clave elegida por el cliente que identifica un intento de escritura crítica. Repetir la misma clave con el mismo contenido (método, ruta y cuerpo) reproduce la respuesta original sin ejecutar el efecto de nuevo. Repetirla con contenido distinto es un conflicto: usa una clave nueva para una solicitud distinta. */
+                "Idempotency-Key": components["parameters"]["IdempotencyKey"];
+                /** @description Token opaco de versión de la representación que el cliente leyó antes de esta escritura (`versionToken` de la respuesta de detalle). Si ya no coincide con la versión vigente del recurso, la operación responde `409` con `code: version-conflict`. */
+                "If-Match": components["parameters"]["IfMatch"];
+            };
+            path: {
+                /** @description Credencial en claro del enlace de acceso al turno (DEC-089). */
+                token: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RescheduleCustomerAppointmentRequest"];
+            };
+        };
+        responses: {
+            200: components["responses"]["CustomerAppointmentRescheduled"];
+            400: components["responses"]["InvalidRequestProblem"];
+            404: components["responses"]["NotFoundProblem"];
+            /** @description Cuatro conflictos distinguibles por `code`, nunca por `detail`: `slot-conflict` (la hora elegida ya no está disponible, también si otra reserva la ganó en carrera: hay que volver a pedir las franjas); `version-conflict` (el turno cambió desde que se leyó); `invalid-state` (el turno ya no está `confirmed`); y los de idempotencia (misma clave con otro contenido u operación en curso). */
+            409: {
+                headers: {
+                    "X-Request-Id": components["headers"]["XRequestId"];
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            422: components["responses"]["RescheduleRejectedProblem"];
             500: components["responses"]["InternalErrorProblem"];
         };
     };

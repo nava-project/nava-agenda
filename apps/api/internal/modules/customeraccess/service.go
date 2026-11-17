@@ -17,9 +17,11 @@ import (
 // hash por su cuenta: solo este paquete toca el valor en claro antes de
 // descartarlo (CA-098-02, el valor en claro nunca se registra ni persiste).
 type Service struct {
-	repo           Repository
-	versionToken   VersionTokenEncoder
-	appointmentCan AppointmentCanceller
+	repo                Repository
+	versionToken        VersionTokenEncoder
+	appointmentCan      AppointmentCanceller
+	rescheduler         AppointmentRescheduler
+	rescheduleRemaining func(done int) int
 }
 
 // VersionTokenEncoder produce el token opaco de versión del turno (If-Match de
@@ -39,6 +41,17 @@ func WithVersionTokens(encode VersionTokenEncoder) Option {
 // WithCanceller habilita la cancelación del cliente (HU-099).
 func WithCanceller(c AppointmentCanceller) Option {
 	return func(s *Service) { s.appointmentCan = c }
+}
+
+// WithRescheduler habilita la reprogramación del cliente (HU-104). remaining
+// traduce las reprogramaciones ya hechas a las que quedan; lo inyecta cmd/api
+// con booking.CustomerRescheduleRemaining para que el límite viva en un solo
+// sitio.
+func WithRescheduler(r AppointmentRescheduler, remaining func(done int) int) Option {
+	return func(s *Service) {
+		s.rescheduler = r
+		s.rescheduleRemaining = remaining
+	}
 }
 
 // NewService construye el servicio de acceso del cliente.
@@ -87,6 +100,9 @@ func (s *Service) GetAppointmentByToken(ctx context.Context, tokenRaw string) (A
 	if s.versionToken != nil {
 		view.VersionToken = s.versionToken(view.AppointmentID, view.UpdatedAt)
 	}
+	if s.rescheduleRemaining != nil {
+		view.RescheduleRemaining = s.rescheduleRemaining(view.CustomerReschedules)
+	}
 	return view, nil
 }
 
@@ -120,6 +136,64 @@ func (s *Service) CancelAppointment(
 		return idempotency.Decision{}, idempotency.StoredResponse{}, errAppointmentAccessDenied()
 	}
 	return s.appointmentCan.CancelAppointment(ctx, target.BarbershopID, target.AppointmentID, expectedVersionToken, reason, key, fingerprint)
+}
+
+// RescheduleSlots son los inicios a los que el cliente puede mover su turno
+// (HU-104), con la zona de la barbería para agruparlos por fecha civil.
+type RescheduleSlots struct {
+	Timezone string
+	Starts   []time.Time
+}
+
+// ListRescheduleSlots resuelve el token y pide las franjas a booking. Mismo
+// 404 uniforme que la lectura ante cualquier token no vigente.
+func (s *Service) ListRescheduleSlots(ctx context.Context, tokenRaw string) (RescheduleSlots, error) {
+	target, err := s.resolveRescheduleTarget(ctx, tokenRaw)
+	if err != nil {
+		return RescheduleSlots{}, err
+	}
+	starts, err := s.rescheduler.ListRescheduleStarts(ctx, target.BarbershopID, target.AppointmentID)
+	if err != nil {
+		return RescheduleSlots{}, err
+	}
+	return RescheduleSlots{Timezone: target.Timezone, Starts: starts}, nil
+}
+
+// RescheduleAppointment ejecuta la reprogramación del cliente (HU-104) con la
+// credencial del enlace. Versión, estado, plazo, límite, franja e idempotencia
+// los decide booking; este método solo resuelve el token.
+func (s *Service) RescheduleAppointment(
+	ctx context.Context,
+	tokenRaw, startsAt, expectedVersionToken string,
+	key idempotency.Key,
+	fingerprint idempotency.Fingerprint,
+) (idempotency.Decision, idempotency.StoredResponse, error) {
+	target, err := s.resolveRescheduleTarget(ctx, tokenRaw)
+	if err != nil {
+		return idempotency.Decision{}, idempotency.StoredResponse{}, err
+	}
+	return s.rescheduler.RescheduleAppointment(ctx, target.BarbershopID, target.AppointmentID, startsAt, expectedVersionToken, key, fingerprint)
+}
+
+func (s *Service) resolveRescheduleTarget(ctx context.Context, tokenRaw string) (CancellationTarget, error) {
+	if err := ctx.Err(); err != nil {
+		return CancellationTarget{}, apperr.Internal(fmt.Errorf("customeraccess: contexto cancelado antes de reprogramar: %w", err))
+	}
+	if s.rescheduler == nil {
+		return CancellationTarget{}, apperr.Internal(fmt.Errorf("customeraccess: reprogramación no configurada"))
+	}
+	tokenHash, ok := hashToken(tokenRaw)
+	if !ok {
+		return CancellationTarget{}, errAppointmentAccessDenied()
+	}
+	target, found, err := s.repo.ResolveCancellationTarget(ctx, tokenHash)
+	if err != nil {
+		return CancellationTarget{}, apperr.Internal(fmt.Errorf("customeraccess: resolver turno por token: %w", err))
+	}
+	if !found {
+		return CancellationTarget{}, errAppointmentAccessDenied()
+	}
+	return target, nil
 }
 
 // errAppointmentAccessDenied cubre las tres causas de CA-098-02 (token

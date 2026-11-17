@@ -2,6 +2,7 @@ package booking
 
 import (
 	"context"
+	"time"
 
 	"system-barbershop/internal/platform/idempotency"
 )
@@ -33,6 +34,37 @@ func (a CustomerAppointmentCancellerAdapter) CancelAppointment(
 		ExpectedVersionToken: expectedVersionToken,
 		Reason:               reason,
 	}, key, fingerprint)
+	if err != nil {
+		return idempotency.Decision{}, idempotency.StoredResponse{}, err
+	}
+	return result.Decision, result.Response, nil
+}
+
+// CustomerAppointmentReschedulerAdapter satisface
+// customeraccess.AppointmentRescheduler (HU-104) con el caso de uso de booking,
+// sin que customeraccess importe booking (mismo criterio que la cancelación).
+type CustomerAppointmentReschedulerAdapter struct {
+	service *RescheduleAppointmentByCustomerService
+}
+
+// NewCustomerAppointmentReschedulerAdapter construye el adaptador.
+func NewCustomerAppointmentReschedulerAdapter(service *RescheduleAppointmentByCustomerService) CustomerAppointmentReschedulerAdapter {
+	return CustomerAppointmentReschedulerAdapter{service: service}
+}
+
+// ListRescheduleStarts implementa customeraccess.AppointmentRescheduler.
+func (a CustomerAppointmentReschedulerAdapter) ListRescheduleStarts(ctx context.Context, barbershopID, appointmentID string) ([]time.Time, error) {
+	return a.service.ListRescheduleStarts(ctx, barbershopID, appointmentID)
+}
+
+// RescheduleAppointment implementa customeraccess.AppointmentRescheduler.
+func (a CustomerAppointmentReschedulerAdapter) RescheduleAppointment(
+	ctx context.Context,
+	barbershopID, appointmentID, startsAt, expectedVersionToken string,
+	key idempotency.Key,
+	fingerprint idempotency.Fingerprint,
+) (idempotency.Decision, idempotency.StoredResponse, error) {
+	result, err := a.service.RescheduleAppointmentByCustomer(ctx, barbershopID, appointmentID, startsAt, expectedVersionToken, key, fingerprint)
 	if err != nil {
 		return idempotency.Decision{}, idempotency.StoredResponse{}, err
 	}

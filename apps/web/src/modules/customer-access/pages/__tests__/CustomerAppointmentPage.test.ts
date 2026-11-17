@@ -51,6 +51,7 @@ function successData() {
     },
     canReview: false,
     review: null,
+    rescheduleRemaining: 2,
   }
 }
 
@@ -705,5 +706,52 @@ describe('CustomerAppointmentPage · cancelación (HU-099)', () => {
     await openForm(done)
     await confirm(done)
     expect(await axe(done.element)).toHaveNoViolations()
+  })
+})
+
+describe('CustomerAppointmentPage · entrada a «Cambiar la hora» (HU-104)', () => {
+  afterEach(() => vi.useRealTimers())
+
+  async function mountWith(overrides: Record<string, unknown> = {}) {
+    getMock.mockResolvedValueOnce({
+      data: { ...successData(), ...overrides },
+      error: undefined,
+      response: okResponse(),
+    })
+    const wrapper = mountPage({ token: 'tok/raro' })
+    await flushPromises()
+    return wrapper
+  }
+
+  const entry = (wrapper: ReturnType<typeof mountPage>) =>
+    wrapper.find('a.customer-appointment__reschedule')
+
+  it('dentro de plazo y con cambios restantes ofrece la pantalla dedicada', async () => {
+    const wrapper = await mountWith()
+    expect(entry(wrapper).exists()).toBe(true)
+    expect(entry(wrapper).attributes('href')).toBe('/mi-turno/tok%2Fraro/reprogramar')
+    expect(entry(wrapper).text()).toContain('Cambiar la hora')
+    expect(entry(wrapper).text()).toContain('Puedes cambiarla hasta 2 veces')
+  })
+
+  it('con un solo cambio restante lo dice en singular', async () => {
+    const wrapper = await mountWith({ rescheduleRemaining: 1 })
+    expect(entry(wrapper).text()).toContain('Te queda 1 cambio de hora')
+  })
+
+  it.each([
+    ['sin cambios restantes', { rescheduleRemaining: 0 }],
+    ['con plazo 0', { cancellationDeadlineMinutes: 0 }],
+    ['con el turno completado', { status: 'completed' }],
+  ])('no la ofrece %s', async (_label, overrides) => {
+    const wrapper = await mountWith(overrides)
+    expect(entry(wrapper).exists()).toBe(false)
+  })
+
+  it('no la ofrece con el plazo vencido según el reloj local', async () => {
+    vi.useFakeTimers({ toFake: ['Date'] })
+    vi.setSystemTime(new Date('2027-03-15T14:50:00Z'))
+    const wrapper = await mountWith()
+    expect(entry(wrapper).exists()).toBe(false)
   })
 })

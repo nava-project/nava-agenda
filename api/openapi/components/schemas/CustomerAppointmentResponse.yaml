@@ -124,6 +124,19 @@ properties:
       - $ref: './CustomerReview.yaml'
       - type: "null"
     description: La reseña que el cliente ya dejó sobre este turno, o `null`.
+  rescheduleRemaining:
+    type: integer
+    minimum: 0
+    maximum: 2
+    description: >
+      Veces que el cliente todavía puede cambiar la hora de este turno por su
+      cuenta (`HU-104`, `DEC-178`: máximo 2 por turno; las del barbero no
+      cuentan). El plazo es el mismo de la cancelación: hasta
+      `startsAt - cancellationDeadlineMinutes`, y con plazo 0 nunca. La
+      interfaz ofrece «Cambiar la hora» solo con el turno `confirmed`, dentro
+      de plazo y con este valor mayor que 0; el servidor lo vuelve a decidir.
+    examples:
+      - 2
 required:
   - barbershopName
   - timezone
@@ -143,3 +156,4 @@ required:
   - vocabulary
   - canReview
   - review
+  - rescheduleRemaining

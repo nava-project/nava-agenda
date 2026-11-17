@@ -79,6 +79,8 @@ export interface CustomerAppointment {
   canReview: boolean
   /** La reseña que el cliente ya dejó sobre este turno, o `null`. */
   review: CustomerReview | null
+  /** Veces que el cliente todavía puede cambiar la hora por su cuenta (HU-104, DEC-178). */
+  rescheduleRemaining: number
 }
 
 /** Resultado discriminado de resolver un token de acceso contra el API
@@ -136,6 +138,38 @@ export type CancelAppointmentOutcome =
   | { kind: 'validation-error' }
   | { kind: 'changed' }
   | { kind: 'idempotency-in-progress' }
+  | { kind: 'not-found' }
+  | { kind: 'network-error' }
+  | { kind: 'unexpected-error'; requestId?: string }
+
+/** Franjas a las que el cliente puede mover su turno (HU-104): instantes UTC en
+ * orden cronológico y la zona de la barbería para agruparlos. */
+export interface RescheduleSlots {
+  timezone: string
+  starts: string[]
+}
+
+export type ListRescheduleSlotsOutcome =
+  | { kind: 'success'; slots: RescheduleSlots }
+  | { kind: 'not-found' }
+  | { kind: 'network-error' }
+  | { kind: 'unexpected-error'; requestId?: string }
+
+/**
+ * Resultado de reprogramar el turno (HU-104), discriminado por `status`/`code` y
+ * nunca por `detail`. `slot-taken` es el `409 slot-conflict` (la hora ya no está:
+ * hay que volver a pedir las franjas); `changed` cubre versión obsoleta y estado
+ * ya no confirmado; `window-closed` y `limit-reached` son los rechazos de
+ * política (422).
+ */
+export type RescheduleAppointmentOutcome =
+  | { kind: 'success'; startsAt: string; endsAt: string }
+  | { kind: 'slot-taken' }
+  | { kind: 'changed' }
+  | { kind: 'window-closed' }
+  | { kind: 'limit-reached' }
+  | { kind: 'idempotency-in-progress' }
+  | { kind: 'validation-error' }
   | { kind: 'not-found' }
   | { kind: 'network-error' }
   | { kind: 'unexpected-error'; requestId?: string }

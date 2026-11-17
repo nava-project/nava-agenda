@@ -1,0 +1,28 @@
+# Franjas a las que el cliente puede mover su turno (HU-104, DEC-178). Mismo
+# cálculo que la disponibilidad pública (HU-094) para el profesional y la
+# duración del turno, sin contar el propio turno como ocupado.
+type: object
+additionalProperties: false
+description: Inicios a los que el cliente puede mover su turno.
+properties:
+  timezone:
+    type: string
+    maxLength: 64
+    description: >
+      Zona horaria IANA de la barbería (RN-DIS-07). `starts` viaja en UTC; el
+      cliente agrupa y presenta las franjas en esta zona, nunca en la del
+      dispositivo.
+    examples:
+      - America/Bogota
+  starts:
+    type: array
+    description: >
+      Inicios válidos en orden cronológico, como instantes UTC. Vacío si el
+      turno ya no está `confirmed` o si no hay franjas en la ventana de reserva.
+    maxItems: 5000
+    items:
+      type: string
+      format: date-time
+required:
+  - timezone
+  - starts

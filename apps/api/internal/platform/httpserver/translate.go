@@ -181,6 +181,25 @@ var cancellationReasonRequiredProblem = problemSpec{
 	status:  http.StatusUnprocessableEntity,
 }
 
+// rescheduleWindowClosedProblem cubre apperr.KindRescheduleWindowClosed
+// (HU-104, DEC-178): el cliente ya no puede mover su turno por su cuenta.
+// Mismo criterio que la cancelación: 422, y la interfaz remite a la barbería.
+var rescheduleWindowClosedProblem = problemSpec{
+	typeURI: "/api/v1/problems/reschedule-window-closed",
+	title:   "Plazo de reprogramación vencido",
+	code:    "reschedule-window-closed",
+	status:  http.StatusUnprocessableEntity,
+}
+
+// rescheduleLimitReachedProblem cubre apperr.KindRescheduleLimitReached
+// (HU-104, DEC-178): el turno ya tiene las reprogramaciones propias que admite.
+var rescheduleLimitReachedProblem = problemSpec{
+	typeURI: "/api/v1/problems/reschedule-limit-reached",
+	title:   "Límite de reprogramaciones alcanzado",
+	code:    "reschedule-limit-reached",
+	status:  http.StatusUnprocessableEntity,
+}
+
 // Translate convierte cualquier error en un Problem seguro para el cliente.
 // Es el único punto central de traducción que exige
 // docs/04-arquitectura/backend-go.md sección 5 ("los errores de dominio se
@@ -228,6 +247,10 @@ func Translate(err error, requestID string) Problem {
 			return newProblem(cancellationWindowClosedProblem, appErr.Message, requestID)
 		case apperr.KindCancellationReasonRequired:
 			return newProblem(cancellationReasonRequiredProblem, appErr.Message, requestID)
+		case apperr.KindRescheduleWindowClosed:
+			return newProblem(rescheduleWindowClosedProblem, appErr.Message, requestID)
+		case apperr.KindRescheduleLimitReached:
+			return newProblem(rescheduleLimitReachedProblem, appErr.Message, requestID)
 		}
 	}
 

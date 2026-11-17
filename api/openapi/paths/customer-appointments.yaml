@@ -1,5 +1,5 @@
 # Operaciones de acceso del cliente mediante el token del enlace de su cita
-# (consultar y cancelar). Ver docs/06-api/estandar-openapi.md. HU-098 agrega
+# (consultar, cancelar y reprogramar). Ver docs/06-api/estandar-openapi.md. HU-098 agrega
 # la primera: GET /customer/appointments/{token}, lectura mínima autenticada
 # únicamente por la credencial del enlace, sin sesión. La cancelación
 # (HU-099, T5) vive en este mismo archivo: POST .../cancel.
@@ -244,5 +244,149 @@
                   requestId: 8f3ac2b1e4d5f6a7c8d9e0f1a2b3c4d5
       "422":
         $ref: '../components/responses/CancellationRejectedProblem.yaml'
+      "500":
+        $ref: '../components/responses/InternalErrorProblem.yaml'
+
+/customer/appointments/{token}/reschedule-slots:
+  get:
+    tags: [CustomerAccess]
+    summary: Franjas a las que el cliente puede mover su turno
+    description: >
+      Devuelve los inicios a los que el cliente puede mover su turno
+      `confirmed` (`HU-104`, `DEC-178`), con la misma credencial del enlace y
+      sin sesión. Es el mismo cálculo de la disponibilidad pública (`HU-094`:
+      jornada efectiva, bloqueos, citas, rejilla y anticipación mínima y
+      máxima) para el profesional y la duración del turno, pero el propio
+      turno no cuenta como ocupado: se puede mover a una franja que se cruza
+      con su hora actual. Un turno que ya no está `confirmed` devuelve la lista
+      vacía. No evalúa el plazo ni el límite: eso lo decide `POST .../reschedule`
+      y la interfaz ya lo sabe por `GET` (`rescheduleRemaining`). Un `token`
+      inexistente, vencido o revocado responde el mismo `404` uniforme que
+      `GET`.
+    operationId: listCustomerRescheduleSlots
+    security: []
+    x-business-rules: [RN-DIS-01, RN-DIS-07, RN-CON-01, RN-TEN-01]
+    x-decisions: [DEC-089, DEC-135, DEC-178]
+    parameters:
+      - name: token
+        in: path
+        required: true
+        description: Credencial en claro del enlace de acceso al turno (DEC-089).
+        schema:
+          type: string
+          maxLength: 256
+        examples:
+          token:
+            value: 3n9F1sQe2z8mM5wYtR7pL0oXhC4bV6dK1aE9jU2gN8i
+    responses:
+      "200":
+        $ref: '../components/responses/CustomerRescheduleSlotsSuccess.yaml'
+      "404":
+        $ref: '../components/responses/NotFoundProblem.yaml'
+      "500":
+        $ref: '../components/responses/InternalErrorProblem.yaml'
+
+/customer/appointments/{token}/reschedule:
+  post:
+    tags: [CustomerAccess]
+    summary: Reprogramar el turno por el cliente
+    description: >
+      El cliente mueve su turno `confirmed` a otro inicio con la credencial del
+      enlace y sin sesión (`HU-104`, `DEC-178`). Solo cambian fecha y hora:
+      servicio, profesional, precio y duración se conservan. Reglas, evaluadas
+      con el reloj del servidor:
+      plazo igual al de la cancelación (hasta
+      `startsAt - cancellationDeadlineMinutes` inclusive; con plazo 0 nunca);
+      como máximo 2 reprogramaciones hechas por el cliente en el mismo turno;
+      y `startsAt` debe ser uno de los inicios de `GET .../reschedule-slots`,
+      que el servidor recalcula. Protegida con `Idempotency-Key` (`RN-IDE-01`,
+      `DEC-043`) y con `If-Match` (el `versionToken` de `GET`). En una sola
+      transacción, con la fila bloqueada, se mueve el intervalo (un cruce en
+      carrera lo rechaza la exclusión de PostgreSQL con `409 slot-conflict`),
+      se regenera el recordatorio, se encola la publicación en Google
+      Calendar y se registra un evento `appointment_rescheduled` con actor
+      cliente. No se envía aviso al cliente, porque el cambio lo hizo él
+      (`DEC-142`). Un intervalo idéntico es un éxito sin escritura. Un `token`
+      inexistente, vencido o revocado responde el mismo `404` uniforme que
+      `GET`.
+    operationId: rescheduleCustomerAppointment
+    security: []
+    x-business-rules: [RN-CAN-01, RN-CIT-01, RN-CON-01, RN-HIS-01, RN-IDE-01, RN-TEN-01]
+    x-decisions: [DEC-043, DEC-083, DEC-089, DEC-142, DEC-144, DEC-178]
+    parameters:
+      - name: token
+        in: path
+        required: true
+        description: Credencial en claro del enlace de acceso al turno (DEC-089).
+        schema:
+          type: string
+          maxLength: 256
+        examples:
+          token:
+            value: 3n9F1sQe2z8mM5wYtR7pL0oXhC4bV6dK1aE9jU2gN8i
+      - $ref: '../components/parameters/IdempotencyKey.yaml'
+      - $ref: '../components/parameters/IfMatch.yaml'
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            $ref: '../components/schemas/RescheduleCustomerAppointmentRequest.yaml'
+          examples:
+            nuevaHora:
+              value:
+                startsAt: "2026-11-20T20:00:00Z"
+    responses:
+      "200":
+        $ref: '../components/responses/CustomerAppointmentRescheduled.yaml'
+      "400":
+        $ref: '../components/responses/InvalidRequestProblem.yaml'
+      "404":
+        $ref: '../components/responses/NotFoundProblem.yaml'
+      "409":
+        description: >
+          Cuatro conflictos distinguibles por `code`, nunca por `detail`:
+          `slot-conflict` (la hora elegida ya no está disponible, también si
+          otra reserva la ganó en carrera: hay que volver a pedir las franjas);
+          `version-conflict` (el turno cambió desde que se leyó);
+          `invalid-state` (el turno ya no está `confirmed`); y los de
+          idempotencia (misma clave con otro contenido u operación en curso).
+        headers:
+          X-Request-Id:
+            $ref: '../components/headers/XRequestId.yaml'
+        content:
+          application/problem+json:
+            schema:
+              $ref: '../components/schemas/Problem.yaml'
+            examples:
+              franjaOcupada:
+                value:
+                  type: /api/v1/problems/slot-conflict
+                  title: Franja no disponible
+                  status: 409
+                  detail: ese horario ya no está disponible; elige otro
+                  instance: 8f3ac2b1e4d5f6a7c8d9e0f1a2b3c4d5
+                  code: slot-conflict
+                  requestId: 8f3ac2b1e4d5f6a7c8d9e0f1a2b3c4d5
+              versionDesactualizada:
+                value:
+                  type: /api/v1/problems/version-conflict
+                  title: Conflicto de versión
+                  status: 409
+                  detail: el turno cambió desde que se leyó; recarga antes de reintentar
+                  instance: 8f3ac2b1e4d5f6a7c8d9e0f1a2b3c4d5
+                  code: version-conflict
+                  requestId: 8f3ac2b1e4d5f6a7c8d9e0f1a2b3c4d5
+              estadoInvalido:
+                value:
+                  type: /api/v1/problems/invalid-state
+                  title: Estado inválido
+                  status: 409
+                  detail: el turno ya no está confirmado; recarga para ver su estado actual
+                  instance: 8f3ac2b1e4d5f6a7c8d9e0f1a2b3c4d5
+                  code: invalid-state
+                  requestId: 8f3ac2b1e4d5f6a7c8d9e0f1a2b3c4d5
+      "422":
+        $ref: '../components/responses/RescheduleRejectedProblem.yaml'
       "500":
         $ref: '../components/responses/InternalErrorProblem.yaml'

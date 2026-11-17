@@ -12,6 +12,7 @@ import (
 	"errors"
 	"io"
 	"net/http"
+	"time"
 
 	"system-barbershop/internal/modules/customeraccess"
 	"system-barbershop/internal/platform/apperr"
@@ -72,6 +73,7 @@ func newCustomerAppointmentResponse(v customeraccess.AppointmentView) CustomerAp
 	return CustomerAppointmentResponse{
 		CanReview:                      v.CanReview,
 		Review:                         review,
+		RescheduleRemaining:            v.RescheduleRemaining,
 		BarbershopName:                 v.BarbershopName,
 		Timezone:                       v.Timezone,
 		AttendeeName:                   v.AttendeeName,
@@ -157,6 +159,106 @@ func (h *CancelAppointmentHandler) ServeHTTP(w http.ResponseWriter, r *http.Requ
 
 	decision, stored, err := h.service.CancelAppointment(
 		r.Context(), httpserver.URLParam(r, tokenParam), versionToken, reason,
+		key, httpserver.IdempotencyFingerprint(r, body),
+	)
+	if err != nil {
+		fail(err)
+		return
+	}
+	switch decision.Outcome {
+	case idempotency.OutcomeProceed, idempotency.OutcomeReplay:
+		httpserver.WriteStoredResponse(w, stored)
+	default:
+		fail(decision.AsError())
+	}
+}
+
+// ListRescheduleSlotsHandler expone GET /customer/appointments/{token}/reschedule-slots
+// (HU-104, CA-104-02): las franjas a las que el cliente puede mover su turno,
+// autenticado solo por la credencial del enlace.
+type ListRescheduleSlotsHandler struct {
+	service *customeraccess.Service
+}
+
+// NewListRescheduleSlotsHandler construye el handler de franjas.
+func NewListRescheduleSlotsHandler(service *customeraccess.Service) *ListRescheduleSlotsHandler {
+	return &ListRescheduleSlotsHandler{service: service}
+}
+
+// ServeHTTP implementa http.Handler. no-store por la misma razón que la
+// lectura del turno: es información de una persona.
+func (h *ListRescheduleSlotsHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	requestID := httpserver.RequestIDFromContext(r.Context())
+	w.Header().Set("Cache-Control", "no-store")
+
+	slots, err := h.service.ListRescheduleSlots(r.Context(), httpserver.URLParam(r, tokenParam))
+	if err != nil {
+		httpserver.WriteProblem(w, httpserver.Translate(err, requestID))
+		return
+	}
+	starts := make([]time.Time, 0, len(slots.Starts))
+	for _, start := range slots.Starts {
+		starts = append(starts, start.UTC())
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
+	_ = json.NewEncoder(w).Encode(RescheduleSlotsResponse{Timezone: slots.Timezone, Starts: starts})
+}
+
+// RescheduleAppointmentHandler expone POST /customer/appointments/{token}/reschedule
+// (HU-104, DEC-178): el cliente mueve su turno con la credencial del enlace,
+// protegido por Idempotency-Key (RN-IDE-01, DEC-043) y por If-Match. El cuerpo
+// solo puede traer `startsAt`; plazo, límite, franja y actor los decide el
+// servidor.
+type RescheduleAppointmentHandler struct {
+	service *customeraccess.Service
+}
+
+// NewRescheduleAppointmentHandler construye el handler de reprogramación.
+func NewRescheduleAppointmentHandler(service *customeraccess.Service) *RescheduleAppointmentHandler {
+	return &RescheduleAppointmentHandler{service: service}
+}
+
+// ServeHTTP implementa http.Handler. Valida cabeceras y cuerpo antes de tocar
+// la base y nunca registra el token.
+func (h *RescheduleAppointmentHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	requestID := httpserver.RequestIDFromContext(r.Context())
+	w.Header().Set("Cache-Control", "no-store")
+	fail := func(err error) {
+		httpserver.WriteProblem(w, httpserver.Translate(err, requestID))
+	}
+
+	key, err := httpserver.IdempotencyKeyFromRequest(r)
+	if err != nil {
+		fail(err)
+		return
+	}
+	versionToken := r.Header.Get(ifMatchHeader)
+	if versionToken == "" {
+		fail(apperr.Invalid("falta la cabecera If-Match con el token de versión del turno"))
+		return
+	}
+
+	body, err := io.ReadAll(r.Body)
+	if err != nil {
+		var maxBytesErr *http.MaxBytesError
+		if errors.As(err, &maxBytesErr) {
+			fail(err)
+			return
+		}
+		fail(apperr.Invalid("cuerpo de la solicitud ilegible"))
+		return
+	}
+	var req RescheduleAppointmentRequest
+	dec := json.NewDecoder(bytes.NewReader(body))
+	dec.DisallowUnknownFields()
+	if err := dec.Decode(&req); err != nil || dec.More() || req.StartsAt == nil {
+		fail(apperr.Invalid("el cuerpo debe ser un objeto JSON con el campo startsAt"))
+		return
+	}
+
+	decision, stored, err := h.service.RescheduleAppointment(
+		r.Context(), httpserver.URLParam(r, tokenParam), *req.StartsAt, versionToken,
 		key, httpserver.IdempotencyFingerprint(r, body),
 	)
 	if err != nil {
