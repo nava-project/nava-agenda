@@ -155,6 +155,81 @@ pipelineJob('pedidos/deploy') {
   }
 }
 
+// ---------------------------------------------------------------------------------------
+// ODIN (bcaceres19/odin, /srv/odin). Mismo patrón que barberia/: el
+// Jenkinsfile y deploy/jenkins/deploy.Jenkinsfile viven en su propio repositorio.
+
+def odinUrl = 'https://github.com/bcaceres19/odin'
+
+folder('odin') {
+  displayName('Odin')
+  description("Repositorio ${odinUrl}")
+}
+
+multibranchPipelineJob('odin/ci') {
+  displayName('CI')
+  description('Ruff, mypy, pytest unitario, PostgreSQL 17 + pgvector con rol runtime, shellcheck, compose e imagen. Jenkinsfile en la raíz del repo.')
+  branchSources {
+    branchSource {
+      source {
+        github {
+          id('odin-github')
+          repoOwner('bcaceres19')
+          repository('odin')
+          repositoryUrl("${odinUrl}.git")
+          configuredByUrl(false)
+          credentialsId('github-token')
+          traits {
+            gitHubBranchDiscovery { strategyId(1) }
+            gitHubPullRequestDiscovery { strategyId(1) }
+            headWildcardFilter {
+              includes('main PR-*')
+              excludes('')
+            }
+          }
+        }
+      }
+    }
+  }
+  factory {
+    workflowBranchProjectFactory { scriptPath('Jenkinsfile') }
+  }
+  orphanedItemStrategy {
+    discardOldItems {
+      daysToKeep(14)
+      numToKeep(30)
+    }
+  }
+  triggers {
+    periodicFolderTrigger { interval('5m') }
+  }
+}
+
+pipelineJob('odin/deploy') {
+  displayName('Deploy')
+  description('Despliega un SHA de main en /srv/odin: imagen, base, migraciones, arranque con healthcheck y comprobación del contenedor app.')
+  parameters {
+    stringParam('SHA', '', 'SHA de main a desplegar (vacío = último commit de main).')
+    booleanParam('AUTO', false, 'Lo marca el CI. Si main ya avanzó, se omite este despliegue.')
+  }
+  logRotator { numToKeep(60) }
+  definition {
+    cpsScm {
+      scm {
+        git {
+          remote {
+            url("${odinUrl}.git")
+            credentials('github-token')
+          }
+          branch('*/main')
+        }
+      }
+      scriptPath('deploy/jenkins/deploy.Jenkinsfile')
+      lightweight(true)
+    }
+  }
+}
+
 folder('vps') {
   displayName('VPS')
   description('Tareas de la máquina compartidas por todos los proyectos.')

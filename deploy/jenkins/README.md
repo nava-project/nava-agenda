@@ -43,6 +43,8 @@ En el servidor:
 | `barberia/deploy` | el CI de `main` (`AUTO=true`); a mano con `SHA` | verifica que el SHA sea de `main` y que su CI esté en verde (a mano consulta GitHub; también acepta commits anteriores a la migración que pasaron en Actions). Con `AUTO=true` se omite si `main` ya avanzó. Worktree en el SHA → imágenes que falten → tar a `/srv/barberia/releases/<sha>` → `deploy.sh --no-pull` → `GET https://nava.wtf/health` |
 | `pedidos/ci` (multibranch) | webhook de `bcaceres19/odin-pedidos`; escaneo cada 5 min | mismo patrón que `barberia/ci` con el `Jenkinsfile` de ese repo: `npm test` con PostgreSQL 16 efímero, shellcheck y `deploy/compose.yaml` en paralelo; imagen `ghcr.io/bcaceres19/odin-pedidos:<sha>` (en `main` siempre). Árboles verificados en `$JENKINS_HOME/pedidos-ci-green/`. En `main`, si pasa, dispara `pedidos/deploy` |
 | `pedidos/deploy` | el CI de `main` (`AUTO=true`); a mano con `SHA` | `deploy/jenkins/deploy.Jenkinsfile` de ese repo: verifica el SHA (también commits que pasaron en Actions), imagen si falta, `compose.yaml` y `deploy.sh` a `/srv/pedidos/releases/<sha>` → `current` → `deploy.sh <sha>` (respaldo, salud por `edge`, vuelta atrás) → `GET https://pedidos.nava.wtf/healthz` |
+| `odin/ci` (multibranch) | webhook de `bcaceres19/odin`; escaneo cada 5 min | `Jenkinsfile` de ese repo: Ruff y mypy, pytest unitario y pytest de integración con PostgreSQL 17 + pgvector efímero y rol runtime `odin_app`, en paralelo tras un único `uv sync`; shellcheck y `deploy/compose.yaml`; imagen `ghcr.io/bcaceres19/odin:<sha>` (en `main` siempre). Árboles verificados en `$JENKINS_HOME/odin-ci-green/`. En `main`, si pasa, dispara `odin/deploy` |
+| `odin/deploy` | el CI de `main` (`AUTO=true`); a mano con `SHA` | `deploy/jenkins/deploy.Jenkinsfile` de ese repo: verifica el SHA (también commits que pasaron en Actions), imagen si falta, `compose.yaml` y `deploy.sh` a `/srv/odin/releases/<sha>` → `current` → `deploy.sh <sha>` (base, migraciones, `--wait`, vuelta atrás, conserva dos imágenes) → comprueba por SSH que `app` está `healthy` con la imagen del SHA (sin URL pública) |
 | `vps/mantenimiento` | diario, ~04:00 | borra contenedores de CI de más de 3 h, caché de construcción de más de 7 días e imágenes colgantes; muestra el uso de disco |
 
 Los demás proyectos traen su CI/CD en su propio repositorio (`Jenkinsfile`, `tools/ci/`, `deploy/jenkins/`) y
@@ -122,7 +124,10 @@ ssh barberia-vps 'sudo bash /srv/jenkins/stack/scripts/jenkins-up.sh --restart'
    ```
 
 **Actualizar Jenkins** (plugins, JCasC, jobs o versión): cambiar esta carpeta por PR y, ya en `main`,
-repetir la copia del paso 2 y `jenkins-up.sh`. No se hace desde un pipeline: reiniciar el controlador
+repetir la copia del paso 2 y `jenkins-up.sh`. **Carpeta de jobs nueva** (un proyecto más): tras ese
+`jenkins-up.sh`, un segundo `jenkins-up.sh --restart`. Job DSL crea la carpeta en disco durante el arranque, a la vez
+que Jenkins carga los jobs, y no queda en memoria hasta el siguiente reinicio (visto al registrar `pedidos`: la API
+devolvía 404 y el primer build falló con «No build record … could be located»). No se hace desde un pipeline: reiniciar el controlador
 corta su propia ejecución. Subir el LTS es cambiar la etiqueta de `controller.Dockerfile`.
 
 **Acceso de emergencia** (sin DNS o con Caddy caído): `ssh -L 8090:127.0.0.1:8090 barberia-vps` y

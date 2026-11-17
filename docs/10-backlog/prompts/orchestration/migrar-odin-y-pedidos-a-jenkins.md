@@ -10,7 +10,7 @@ repository: "externo — bcaceres19/odin-pedidos y bcaceres19/odin (registro de 
 base_branch: "main"
 primary_hu: null
 related_hu: []
-issue: "bcaceres19/odin-pedidos#2, bcaceres19/barberia#630 (pedidos); odin: pendiente"
+issue: "bcaceres19/odin-pedidos#2, bcaceres19/barberia#630 (pedidos); bcaceres19/odin#1, bcaceres19/barberia#632 (odin)"
 issue_url: "https://github.com/bcaceres19/barberia/issues/630"
 suggested_issue_title: "ci: migrar el CI/CD de GitHub Actions al Jenkins compartido de la VPS (uno por repositorio)"
 branch: null
