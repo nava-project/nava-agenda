@@ -73,7 +73,7 @@ Configuración y secretos van **separados** y los dos viven en el servidor, fuer
 | Carpeta | Secretos |
 | --- | --- |
 | `db/` | `POSTGRES_PASSWORD`, `NAVA_MIGRATOR_PASSWORD`, `NAVA_APP_PASSWORD`, `NAVA_WORKER_PASSWORD`, `NAVA_BACKUP_PASSWORD` |
-| `app/` | `APP_DATABASE_URL`, `APP_WORKER_DATABASE_URL`, `APP_AUTH_HMAC_SECRET`, `APP_RESEND_API_KEY`, `APP_META_WHATSAPP_ACCESS_TOKEN`, `APP_META_WEBHOOK_VERIFY_TOKEN`, `APP_META_APP_SECRET`, `GOOGLE_MAPS_API_KEY`, `GOOGLE_CALENDAR_CLIENT_SECRET`, `GOOGLE_CALENDAR_TOKEN_ENCRYPTION_KEY` |
+| `app/` | `APP_DATABASE_URL`, `APP_WORKER_DATABASE_URL`, `APP_AUTH_HMAC_SECRET`, `APP_RESEND_API_KEY`, `APP_META_WHATSAPP_ACCESS_TOKEN`, `APP_META_WEBHOOK_VERIFY_TOKEN`, `APP_META_APP_SECRET`, `GOOGLE_MAPS_API_KEY`, `GOOGLE_CALENDAR_CLIENT_SECRET`, `GOOGLE_CALENDAR_TOKEN_ENCRYPTION_KEY`, `APP_ODIN_SERVICE_TOKEN` |
 | `migrate/` | `DATABASE_PRODUCTION_URL`, `DATABASE_ADMIN_URL` |
 | `backup/` | `PGPASSWORD` y las credenciales de rclone que añadas (`RCLONE_CONFIG_<REMOTO>_*`) |
 
@@ -110,8 +110,10 @@ despliegue, y un servicio no puede leer los de otro. Los servicios que los leen 
    ssh -t barberia-deploy 'bash /srv/barberia/bootstrap/deploy/scripts/secret-set.sh app APP_RESEND_API_KEY'
    ssh -t barberia-deploy 'bash /srv/barberia/bootstrap/deploy/scripts/secret-set.sh app APP_META_WHATSAPP_ACCESS_TOKEN'
    ```
-   (opcionales: `APP_META_WEBHOOK_VERIFY_TOKEN`, `APP_META_APP_SECRET`, `GOOGLE_MAPS_API_KEY` y los de
-   Google Calendar). Los datos no sensibles (`APP_META_WHATSAPP_PHONE_NUMBER_ID`,
+   (opcionales: `APP_META_WEBHOOK_VERIFY_TOKEN`, `APP_META_APP_SECRET`, `GOOGLE_MAPS_API_KEY`, los de
+   Google Calendar y `APP_ODIN_SERVICE_TOKEN`, el secreto con el que Odin consulta los turnos por
+   teléfono: `HU-106`, `DEC-179`; mínimo 32 caracteres, distinto de los de Meta; lo genera el
+   propietario y es el mismo valor que configura en Odin; sin él esas rutas no existen). Los datos no sensibles (`APP_META_WHATSAPP_PHONE_NUMBER_ID`,
    `APP_META_WHATSAPP_TEMPLATE_NAME`) se escriben en `/srv/barberia/env/app.env`.
 5. **Despliega**: no hace falta hacer nada; el primer commit que llegue a `main` con el CI en verde
    se despliega solo (o lánzalo a mano: Jenkins → *Barbería* → *Deploy* → *Build with Parameters*).

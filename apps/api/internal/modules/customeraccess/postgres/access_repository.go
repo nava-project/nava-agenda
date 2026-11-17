@@ -175,7 +175,8 @@ func findCustomerWithUpcomingAppointment(ctx context.Context, q database.Queries
 // quede contado.
 //
 // Solo el ÚLTIMO reto con código puede verificarse: pedir otro código deja inútil
-// el anterior, y consumir uno no resucita uno más viejo.
+// el anterior, y consumir uno no resucita uno más viejo. Los retos que pidió Odin
+// (atados a un turno, HU-106) no participan: se verifican por su referencia.
 func (r *AccessRepository) VerifyChallenge(
 	ctx context.Context, req customeraccess.VerifyRequest, mint customeraccess.TokenMinter,
 ) (customeraccess.VerifyOutcome, error) {
@@ -201,6 +202,7 @@ func (r *AccessRepository) VerifyChallenge(
 			`SELECT id, customer_id, code_hash, attempts, expires_at, consumed_at
 			   FROM customer_access_challenge
 			  WHERE barbershop_id = $1 AND contact_hash = $2 AND code_hash IS NOT NULL
+			    AND appointment_id IS NULL
 			  ORDER BY created_at DESC
 			  LIMIT 1
 			  FOR UPDATE`,

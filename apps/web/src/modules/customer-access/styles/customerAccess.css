@@ -1,0 +1,387 @@
+/*
+ * Acceso al turno (HU-105) sobre la tinta de «Mi turno»: mismo lienzo, latón y
+ * serif editorial que «Cambiar la hora». El formulario vive en un talón de papel
+ * con la fila de pasos como numeración de boleto. Colores solo de tokens;
+ * movimiento solo con transform/opacity y desactivado con movimiento reducido.
+ */
+.access {
+  --ac-text: var(--color-on-strong);
+  --ac-muted: var(--color-on-strong-muted);
+  --ac-soft: var(--color-on-strong-soft);
+  --ac-brass: var(--color-brand-accent-surface);
+  --ac-line: color-mix(in srgb, var(--ac-text) 14%, transparent);
+  --ac-line-strong: color-mix(in srgb, var(--ac-text) 30%, transparent);
+  --ac-ease: cubic-bezier(0.2, 0.7, 0.2, 1);
+
+  position: relative;
+  isolation: isolate;
+  display: flex;
+  flex-direction: column;
+  min-height: 100dvh;
+  overflow-x: clip;
+  font-family: var(--font-sans);
+  color: var(--ac-text);
+  background-color: var(--color-surface-strong);
+}
+
+.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  padding: 0;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+/* ── Cabecera ───────────────────────────────────────────────────────────── */
+
+.access__masthead {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  max-width: 1040px;
+  min-height: var(--control-height);
+  padding: var(--space-3) var(--space-4) 0;
+  margin: 0 auto;
+  animation: ac-fade 0.8s ease backwards;
+}
+
+.access__masthead :deep(.nava-wordmark) {
+  font-size: 26px;
+  letter-spacing: 0.08em;
+}
+
+.access__caption,
+.access__eyebrow,
+.access__step {
+  margin: 0;
+  font-size: 11px;
+  font-weight: 600;
+  line-height: 16px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+
+.access__caption {
+  color: var(--ac-muted);
+}
+
+/* ── Columna ────────────────────────────────────────────────────────────── */
+
+.access__main {
+  position: relative;
+  z-index: 2;
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: var(--space-6);
+  width: 100%;
+  max-width: 520px;
+  padding: var(--space-8) var(--space-4) var(--space-12);
+  margin: 0 auto;
+}
+
+.access__main--state {
+  justify-content: center;
+  padding-top: 0;
+}
+
+/* ── Pasos ──────────────────────────────────────────────────────────────── */
+
+.access__steps {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: var(--space-2);
+  padding: 0;
+  margin: 0;
+  list-style: none;
+  animation: ac-rise 0.6s var(--ac-ease) 0.05s backwards;
+}
+
+.access__step {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  padding-top: var(--space-2);
+  color: var(--ac-muted);
+  border-top: 1px solid var(--ac-line);
+}
+
+.access__step-num {
+  font-family: var(--font-display);
+  font-size: 18px;
+  letter-spacing: 0.04em;
+}
+
+.access__step--done {
+  color: var(--ac-soft);
+  border-top-color: var(--ac-line-strong);
+}
+
+.access__step--current {
+  color: var(--ac-brass);
+  border-top: 2px solid var(--ac-brass);
+}
+
+/* ── Título ─────────────────────────────────────────────────────────────── */
+
+.access__intro {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+.access__eyebrow {
+  display: flex;
+  gap: var(--space-3);
+  align-items: center;
+  color: var(--ac-brass);
+}
+
+.access__eyebrow::before {
+  content: '';
+  width: 28px;
+  height: 1px;
+  background-color: currentcolor;
+  transform-origin: left;
+  animation: ac-grow 0.8s var(--ac-ease) 0.25s backwards;
+}
+
+.access__title {
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: clamp(34px, 9vw, 48px);
+  font-weight: 400;
+  line-height: 1.04;
+  letter-spacing: -0.015em;
+  overflow-wrap: anywhere;
+  color: var(--ac-text);
+  animation: ac-rise 0.7s var(--ac-ease) 0.12s backwards;
+}
+
+.access__title:focus-visible {
+  outline: 2px solid var(--ac-brass);
+  outline-offset: 4px;
+}
+
+.access__lead {
+  margin: 0;
+  font-size: 16px;
+  line-height: 24px;
+  color: var(--ac-soft);
+  overflow-wrap: anywhere;
+}
+
+.access__contact {
+  font-weight: 600;
+  color: var(--ac-text);
+}
+
+/* ── Talón (formulario) ─────────────────────────────────────────────────── */
+
+.stub {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-5);
+  padding: var(--space-6) var(--space-5) var(--space-5);
+  color: var(--color-text-primary);
+  background-color: var(--color-surface);
+  border-top: 3px solid var(--ac-brass);
+  border-radius: 2px;
+  box-shadow: 0 18px 40px -22px rgb(0 0 0 / 60%);
+  animation: ac-rise 0.7s var(--ac-ease) 0.2s backwards;
+}
+
+.stub__action {
+  width: 100%;
+}
+
+.stub__notice {
+  margin: 0;
+  font-size: 14px;
+  line-height: 20px;
+  color: var(--color-success-text);
+}
+
+.stub__aside {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2) var(--space-4);
+  align-items: center;
+  justify-content: space-between;
+  padding-top: var(--space-4);
+  border-top: 1px dashed var(--color-border-subtle);
+}
+
+.stub__wait {
+  margin: 0;
+  font-size: 14px;
+  line-height: 20px;
+  color: var(--color-text-secondary);
+}
+
+.stub__count {
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  color: var(--color-text-primary);
+}
+
+/* ── Varios turnos ──────────────────────────────────────────────────────── */
+
+.access__list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  padding: 0;
+  margin: 0;
+  list-style: none;
+}
+
+.ticket {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: var(--space-1) var(--space-4);
+  align-items: center;
+  min-height: var(--control-height);
+  padding: var(--space-4);
+  color: var(--ac-text);
+  text-decoration: none;
+  background-color: color-mix(in srgb, #000 26%, var(--color-surface-strong));
+  border: 1px solid var(--ac-line);
+  border-left: 3px solid var(--ac-brass);
+  border-radius: 2px;
+  transition:
+    transform 0.25s var(--ac-ease),
+    border-color 0.2s ease;
+}
+
+.ticket:hover {
+  border-color: var(--ac-line-strong);
+  border-left-color: var(--ac-brass);
+  transform: translateY(-2px);
+}
+
+.ticket:focus-visible {
+  outline: 2px solid var(--ac-brass);
+  outline-offset: 3px;
+}
+
+.ticket__leaf {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-width: 56px;
+  padding: var(--space-2) var(--space-1);
+  color: var(--color-brand-accent-text);
+  background-color: var(--ac-brass);
+  border-radius: 2px;
+}
+
+.ticket__leaf-month {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.ticket__leaf-day {
+  font-family: var(--font-display);
+  font-size: 28px;
+  line-height: 1;
+}
+
+.ticket__body {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.ticket__when {
+  font-size: 16px;
+  font-weight: 600;
+}
+
+/* Solo el día de la semana lleva mayúscula inicial: «a. m.» no debe volverse «A. M.». */
+.ticket__weekday {
+  text-transform: capitalize;
+}
+
+.ticket__what {
+  font-size: 14px;
+  color: var(--ac-soft);
+  overflow-wrap: anywhere;
+}
+
+.ticket__go {
+  grid-column: 1 / -1;
+  padding-top: var(--space-3);
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  color: var(--ac-brass);
+  border-top: 1px dashed var(--ac-line);
+}
+
+.access__zone {
+  font-size: 13px;
+  line-height: 18px;
+  color: var(--ac-muted);
+}
+
+/* ── Movimiento ─────────────────────────────────────────────────────────── */
+
+@keyframes ac-fade {
+  from {
+    opacity: 0;
+  }
+}
+
+@keyframes ac-rise {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+}
+
+@keyframes ac-grow {
+  from {
+    transform: scaleX(0);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .access__masthead,
+  .access__steps,
+  .access__title,
+  .access__eyebrow::before,
+  .stub {
+    animation: none;
+  }
+
+  .ticket {
+    transition: none;
+  }
+
+  .ticket:hover {
+    transform: none;
+  }
+}
+
+@media (width >= 768px) {
+  .access__main {
+    padding-top: var(--space-12);
+  }
+
+  .stub {
+    padding: var(--space-8) var(--space-8) var(--space-6);
+  }
+}

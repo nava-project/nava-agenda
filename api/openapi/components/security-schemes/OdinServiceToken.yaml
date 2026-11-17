@@ -1,0 +1,10 @@
+# Credencial de servicio de Odin (HU-106, DEC-179): un secreto compartido que
+# viaja en `Authorization: Bearer`. Solo lo usan las rutas de
+# /integrations/odin; lo genera el propietario y vive como secreto del despliegue
+# (`APP_ODIN_SERVICE_TOKEN`), nunca en el repositorio. Sin él configurado, esas
+# rutas no existen.
+type: http
+scheme: bearer
+description: >
+  Secreto de servicio de Odin. Se compara en tiempo constante; un valor ausente
+  o distinto responde siempre el mismo `401`.

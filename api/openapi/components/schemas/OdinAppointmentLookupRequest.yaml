@@ -1,0 +1,16 @@
+# Cuerpo de POST /integrations/odin/barbershops/{slug}/customer-appointments/lookup (HU-106).
+type: object
+additionalProperties: false
+description: El teléfono del remitente de WhatsApp, tal como Meta lo firma.
+properties:
+  phone:
+    type: string
+    minLength: 1
+    maxLength: 32
+    description: >
+      Celular del cliente en formato E.164. Solo se aceptan celulares: un correo
+      responde `422`.
+    examples:
+      - "+573001234567"
+required:
+  - phone

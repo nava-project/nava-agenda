@@ -1,0 +1,25 @@
+# Respuesta 409 de .../customer-access/challenge de Odin (HU-106, CA-106-03): una sola
+# respuesta para una referencia ajena, vencida o de otra barbería, un teléfono que no es
+# el del turno y un turno que ya no es elegible para el propósito. No se puede saber
+# cuál ocurrió.
+description: >
+  El turno no está disponible para este cambio. Cubre una referencia ajena, vencida
+  o de otra barbería, un teléfono que no es el del turno y un turno que ya no
+  admite ese propósito, sin distinguir la causa.
+headers:
+  X-Request-Id:
+    $ref: '../headers/XRequestId.yaml'
+content:
+  application/problem+json:
+    schema:
+      $ref: '../schemas/Problem.yaml'
+    examples:
+      noDisponible:
+        value:
+          type: /api/v1/problems/appointment-not-available
+          title: Turno no disponible
+          status: 409
+          detail: ese turno no está disponible para este cambio
+          instance: 8f3ac2b1e4d5f6a7c8d9e0f1a2b3c4d5
+          code: appointment-not-available
+          requestId: 8f3ac2b1e4d5f6a7c8d9e0f1a2b3c4d5

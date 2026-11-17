@@ -1,0 +1,9 @@
+# Para qué se pidió el acceso al turno (HU-106, DEC-179): decide a qué pantalla lleva
+# la verificación.
+type: string
+enum: [cancel, reschedule]
+description: >
+  `cancel` lleva a «Mi turno», con la cancelación a la vista; `reschedule` lleva a
+  «Cambiar la hora».
+examples:
+  - reschedule

@@ -4,6 +4,23 @@ Formato basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/).
 Ver [`docs/06-api/estandar-openapi.md`](../../docs/06-api/estandar-openapi.md)
 sección 18 para qué cuenta como cambio compatible o incompatible.
 
+## 0.57.0 · 2026-11-17
+
+### Agregado
+
+- `POST /integrations/odin/barbershops/{slug}/customer-appointments/lookup` y
+  `POST /integrations/odin/barbershops/{slug}/customer-access/challenge` (`HU-106`,
+  `DEC-179`): Odin, desde WhatsApp, encuentra los turnos futuros confirmados de un
+  teléfono y pide un código atado a UN turno y a UN propósito (`cancel` o
+  `reschedule`). Protegidas con el nuevo esquema `OdinServiceToken` (`Authorization:
+  Bearer`); sin `APP_ODIN_SERVICE_TOKEN` en el despliegue no existen.
+- `POST /public/barbershops/{slug}/customer-access/verify-ref`: canjea el código de la
+  referencia del enlace `/reservar/{slug}/mi-turno/{accessRef}` por el mismo acceso de
+  60 minutos de `HU-105`, solo a ese turno, con el propósito para el que se pidió.
+- Respuestas `409` `appointment-not-available` (uniforme: referencia ajena, vencida,
+  teléfono distinto o turno ya no elegible) y `503` `service-unavailable` (sin envío por
+  WhatsApp configurado).
+
 ## 0.56.0 · 2026-11-17
 
 ### Agregado

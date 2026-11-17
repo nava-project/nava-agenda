@@ -23,7 +23,11 @@ export const customerAccessRoutes: RouteRecordRaw[] = [
     path: '/mi-turno/:token',
     name: 'mi-turno',
     component: () => import('./pages/CustomerAppointmentPage.vue'),
-    props: true,
+    // `?accion=cancelar` (HU-106) deja la cancelación a la vista; cualquier otro valor se ignora.
+    props: (route) => ({
+      token: route.params.token,
+      focus: route.query.accion === 'cancelar' ? 'cancel' : undefined,
+    }),
   },
   // Pantalla dedicada a cambiar la hora (HU-104, DEC-178): vive bajo el mismo
   // enlace, así que el correo ya enviado sigue llevando a ella sin cambios.
@@ -41,6 +45,15 @@ export const customerAccessRoutes: RouteRecordRaw[] = [
     path: '/reservar/:slug/mi-turno',
     name: 'mi-turno-acceso',
     component: () => import('./pages/CustomerAccessPage.vue'),
+    props: true,
+  },
+  // Enlace que Odin entrega por WhatsApp (HU-106, DEC-179): abre directo en el código, sin
+  // pedir el contacto. `:accessRef` es una referencia opaca de un uso que por sí sola no da
+  // acceso; la URL no lleva datos personales.
+  {
+    path: '/reservar/:slug/mi-turno/:accessRef',
+    name: 'mi-turno-acceso-ref',
+    component: () => import('./pages/CustomerAccessRefPage.vue'),
     props: true,
   },
 ]

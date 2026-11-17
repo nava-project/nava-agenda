@@ -525,3 +525,76 @@
         $ref: '../components/responses/ValidationProblem.yaml'
       "500":
         $ref: '../components/responses/InternalErrorProblem.yaml'
+
+/public/barbershops/{slug}/customer-access/verify-ref:
+  post:
+    tags: [CustomerAccess]
+    summary: Canjear el código de un enlace de Odin por el acceso a ese turno
+    description: >
+      Verifica el código que llegó por WhatsApp para la referencia del enlace
+      `/reservar/{slug}/mi-turno/{accessRef}` (HU-106, CA-106-05) y, si es válido,
+      lo consume y emite UN acceso de 60 minutos a ese turno, con el propósito para
+      el que se pidió. El código vale 10 minutos, sirve una vez y admite 5 intentos.
+      Una referencia inexistente, de otra barbería, vencida, ya usada o agotada, o
+      un código incorrecto, producen exactamente el mismo `401`: no se puede saber
+      cuál ocurrió. El acceso emitido es el mismo de `HU-105` y se usa como el
+      `token` de `/customer/appointments/{token}…`. La respuesta lleva una credencial
+      en claro: `Cache-Control: no-store`.
+    operationId: verifyCustomerAccessRef
+    security: []
+    x-business-rules: [RN-DAT-01, RN-DAT-02, RN-TEN-01]
+    x-decisions: [DEC-062, DEC-178, DEC-179]
+    parameters:
+      - name: slug
+        in: path
+        required: true
+        description: Identificador público de la barbería (HU-090).
+        schema:
+          type: string
+          maxLength: 120
+        examples:
+          slug:
+            value: barberia-ejemplo
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            $ref: '../components/schemas/CustomerAccessVerifyRefRequest.yaml'
+          examples:
+            codigo:
+              value:
+                accessRef: 3vNq8Yt1KsM6wZc2HbJ9xRfE4uLaP7dG0iO5TnXyhBk
+                code: "482913"
+    responses:
+      "200":
+        $ref: '../components/responses/CustomerAccessRefVerified.yaml'
+      "400":
+        $ref: '../components/responses/InvalidRequestProblem.yaml'
+      "401":
+        description: >
+          Código incorrecto, vencido, ya usado o agotado, o referencia inexistente,
+          ajena o vencida, sin distinguir la causa (CA-106-05).
+        headers:
+          X-Request-Id:
+            $ref: '../components/headers/XRequestId.yaml'
+        content:
+          application/problem+json:
+            schema:
+              $ref: '../components/schemas/Problem.yaml'
+            examples:
+              codigoInvalido:
+                value:
+                  type: /api/v1/problems/unauthorized
+                  title: No autorizado
+                  status: 401
+                  detail: código de verificación inválido o expirado
+                  instance: 8f3ac2b1e4d5f6a7c8d9e0f1a2b3c4d5
+                  code: unauthorized
+                  requestId: 8f3ac2b1e4d5f6a7c8d9e0f1a2b3c4d5
+      "404":
+        $ref: '../components/responses/NotFoundProblem.yaml'
+      "422":
+        $ref: '../components/responses/ValidationProblem.yaml'
+      "500":
+        $ref: '../components/responses/InternalErrorProblem.yaml'

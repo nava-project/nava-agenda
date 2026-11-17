@@ -1,0 +1,45 @@
+# Un turno tal como se le muestra a Odin (HU-106, CA-106-02).
+type: object
+additionalProperties: false
+description: >
+  Sin identificadores internos, sin nombre ni contacto del cliente. `appointmentRef`
+  solo sirve para pedir el código de ese turno.
+properties:
+  appointmentRef:
+    type: string
+    maxLength: 128
+    description: >
+      Referencia opaca del turno, ligada a la barbería y válida 30 minutos desde
+      que se entrega. No es un identificador y no se puede deducir ni reutilizar en
+      otra barbería.
+  startsAt:
+    type: string
+    format: date-time
+    description: Inicio del turno, con la zona horaria de la barbería.
+    examples:
+      - "2026-11-20T14:00:00-05:00"
+  serviceName:
+    type: string
+    examples:
+      - Corte Vbras
+  barberName:
+    type: string
+    examples:
+      - Jhonner Bustamante
+  canCancel:
+    type: boolean
+    description: >
+      Hoy el cliente puede cancelar este turno por su cuenta, según el plazo y la
+      cancelación tardía que configuró la barbería (`RN-CAN-01`).
+  canReschedule:
+    type: boolean
+    description: >
+      Hoy el cliente puede cambiar la hora: dentro del plazo y con cambios propios
+      disponibles (máximo 2, `DEC-178`).
+required:
+  - appointmentRef
+  - startsAt
+  - serviceName
+  - barberName
+  - canCancel
+  - canReschedule

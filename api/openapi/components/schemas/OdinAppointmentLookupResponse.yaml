@@ -1,0 +1,14 @@
+# Respuesta 200 de .../customer-appointments/lookup (HU-106, CA-106-02).
+type: object
+additionalProperties: false
+properties:
+  appointments:
+    type: array
+    maxItems: 10
+    description: >
+      Turnos futuros confirmados de ese teléfono en esa barbería, del más próximo al
+      más lejano. Vacía si no hay.
+    items:
+      $ref: './OdinAppointment.yaml'
+required:
+  - appointments

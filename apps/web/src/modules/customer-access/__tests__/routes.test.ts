@@ -37,3 +37,34 @@ describe('customerAccessRoutes', () => {
     )
   })
 })
+
+describe('rutas del acceso con código (HU-105 y HU-106)', () => {
+  it('el enlace de Odin abre /reservar/:slug/mi-turno/:accessRef sin sesión y con sus props', async () => {
+    const router = buildRouter()
+    await router.push('/reservar/mi-barberia/mi-turno/ref-opaca-de-un-uso')
+    await router.isReady()
+    expect(router.currentRoute.value.name).toBe('mi-turno-acceso-ref')
+    expect(router.currentRoute.value.params).toMatchObject({
+      slug: 'mi-barberia',
+      accessRef: 'ref-opaca-de-un-uso',
+    })
+  })
+
+  it('la pantalla general y la del enlace de Odin son rutas distintas', async () => {
+    const router = buildRouter()
+    await router.push('/reservar/mi-barberia/mi-turno')
+    await router.isReady()
+    expect(router.currentRoute.value.name).toBe('mi-turno-acceso')
+  })
+
+  it('?accion=cancelar deja el foco en la cancelación y cualquier otro valor se ignora', async () => {
+    const router = buildRouter()
+    const record = router.getRoutes().find((r) => r.name === 'mi-turno')!
+    const propsFn = record.props.default as (route: unknown) => Record<string, unknown>
+    const route = (accion?: unknown) => ({ params: { token: 'tok' }, query: { accion } })
+
+    expect(propsFn(route('cancelar'))).toEqual({ token: 'tok', focus: 'cancel' })
+    expect(propsFn(route('otra-cosa'))).toEqual({ token: 'tok', focus: undefined })
+    expect(propsFn(route(undefined))).toEqual({ token: 'tok', focus: undefined })
+  })
+})

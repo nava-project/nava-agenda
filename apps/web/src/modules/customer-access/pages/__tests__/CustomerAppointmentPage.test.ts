@@ -55,8 +55,13 @@ function successData() {
   }
 }
 
-function mountPage(props: { token: string }) {
+function mountPage(props: { token: string; focus?: 'cancel' }) {
   return mount(CustomerAppointmentPage, { props })
+}
+
+// El foco solo existe con el árbol en el documento: estas pruebas lo montan ahí y lo desmontan.
+function mountAttached(props: { token: string; focus?: 'cancel' }) {
+  return mount(CustomerAppointmentPage, { props, attachTo: document.body })
 }
 
 beforeEach(() => {
@@ -753,5 +758,44 @@ describe('CustomerAppointmentPage · entrada a «Cambiar la hora» (HU-104)', ()
     vi.setSystemTime(new Date('2027-03-15T14:50:00Z'))
     const wrapper = await mountWith()
     expect(entry(wrapper).exists()).toBe(false)
+  })
+
+  // HU-106 (DEC-179): quien llega desde el enlace de Odin para cancelar no busca la sección.
+  describe('foco en la cancelación (HU-106)', () => {
+    afterEach(() => {
+      document.body.innerHTML = ''
+    })
+
+    it('con focus="cancel" deja el foco en el título de la cancelación, una sola vez', async () => {
+      getMock.mockResolvedValue({ data: successData(), error: undefined, response: okResponse() })
+      const wrapper = mountAttached({ token: 'token-en-claro', focus: 'cancel' })
+      await flushPromises()
+
+      const title = wrapper.find('#appointment-cancel-title').element
+      expect(document.activeElement).toBe(title)
+      wrapper.unmount()
+    })
+
+    it('sin focus no mueve el foco', async () => {
+      getMock.mockResolvedValue({ data: successData(), error: undefined, response: okResponse() })
+      const wrapper = mountAttached({ token: 'token-en-claro' })
+      await flushPromises()
+
+      expect(document.activeElement).not.toBe(wrapper.find('#appointment-cancel-title').element)
+      wrapper.unmount()
+    })
+
+    it('con un turno que ya no se puede cancelar no falla', async () => {
+      getMock.mockResolvedValue({
+        data: { ...successData(), status: 'cancelled' },
+        error: undefined,
+        response: okResponse(),
+      })
+      const wrapper = mountAttached({ token: 'token-en-claro', focus: 'cancel' })
+      await flushPromises()
+
+      expect(wrapper.find('#appointment-cancel-title').exists()).toBe(false)
+      wrapper.unmount()
+    })
   })
 })

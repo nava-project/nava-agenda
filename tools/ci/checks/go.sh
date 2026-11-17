@@ -69,7 +69,8 @@ for f in 20260807170000_create_tenant_foundation.sql \
          20261116120000_barber_booking_policy_full_window.sql \
          20261117120000_add_reminder_lead_minutes.sql \
          20261118120000_add_whatsapp_reminder.sql \
-         20261119120000_create_customer_access_challenge.sql; do
+         20261119120000_create_customer_access_challenge.sql \
+         20261119130000_customer_access_challenge_appointment_ref.sql; do
   psql_file "database/migrations/$f"
 done
 psql -c "ALTER ROLE barberia_app PASSWORD 'app_test';"

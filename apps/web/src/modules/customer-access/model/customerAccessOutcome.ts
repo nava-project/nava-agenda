@@ -38,3 +38,17 @@ export type VerifyAccessCodeOutcome =
   | { kind: 'barbershop-not-found' }
   | { kind: 'network-error' }
   | { kind: 'unexpected-error'; requestId?: string }
+
+/** Para qué se pidió el acceso desde Odin (HU-106): decide a qué pantalla lleva. */
+export type AccessPurpose = 'cancel' | 'reschedule'
+
+export type VerifyAccessRefOutcome =
+  /** `accessToken` es el acceso de 60 minutos a ese turno; solo vive en memoria. */
+  | { kind: 'granted'; accessToken: string; purpose: AccessPurpose }
+  /** 401 uniforme: código incorrecto, vencido, usado o agotado, o enlace ajeno/vencido. */
+  | { kind: 'invalid-code' }
+  /** 400/422: el código no tiene forma de 6 dígitos. */
+  | { kind: 'invalid-input' }
+  | { kind: 'barbershop-not-found' }
+  | { kind: 'network-error' }
+  | { kind: 'unexpected-error'; requestId?: string }

@@ -1,0 +1,14 @@
+# Respuesta 200 de .../customer-access/verify-ref (HU-106, CA-106-05).
+type: object
+additionalProperties: false
+properties:
+  accessToken:
+    type: string
+    description: >
+      Acceso de 60 minutos a ese turno. Se usa como el `token` de
+      `/customer/appointments/{token}…` y en `/mi-turno/{token}`.
+  purpose:
+    $ref: './CustomerAccessPurpose.yaml'
+required:
+  - accessToken
+  - purpose

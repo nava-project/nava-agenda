@@ -3,7 +3,7 @@
  * - paso 1: contacto vacío sin llamar al servidor, contacto inválido, límite (429), red;
  * - paso 2: el contacto se muestra enmascarado, el código se verifica al completarse,
  *   un código incorrecto se limpia y a los cinco se bloquea; reenvío con cuenta atrás;
- * - paso 3: un turno entra directo a «Cambiar la hora»; varios se eligen en una lista;
+ * - paso 3: un turno entra directo a «Mi turno» (HU-106); varios se eligen en una lista;
  * - barbería inexistente y accesibilidad (axe-core) en cada paso.
  */
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
@@ -88,8 +88,8 @@ async function mountPage() {
         component: { template: '<div />' },
       },
       {
-        path: '/mi-turno/:token/reprogramar',
-        name: 'mi-turno-reprogramar',
+        path: '/mi-turno/:token',
+        name: 'mi-turno',
         component: { template: '<div />' },
       },
     ],
@@ -312,14 +312,14 @@ describe('CustomerAccessPage · paso 2, código', () => {
 })
 
 describe('CustomerAccessPage · paso 3, turno', () => {
-  it('con un solo turno entra directo a «Cambiar la hora» con su credencial', async () => {
+  it('con un solo turno entra directo a «Mi turno» con su credencial', async () => {
     script({ challenge: [ACCEPTED], verify: [ONE] })
     const w = await mountPage()
     await sendContact(w)
     await typeCode(w, '482913')
     await flushPromises()
 
-    expect(router.currentRoute.value.name).toBe('mi-turno-reprogramar')
+    expect(router.currentRoute.value.name).toBe('mi-turno')
     expect(router.currentRoute.value.params.token).toBe('tok-1')
     expect(w.text()).not.toContain('tok-1')
   })

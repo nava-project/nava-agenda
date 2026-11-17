@@ -673,3 +673,55 @@ func TestLoad_MetaWebhookRejectsIncompleteOrUnsafeConfiguration(t *testing.T) {
 		})
 	}
 }
+
+const odinServiceTokenForTests = "odin-service-token-de-prueba-0123456789abcdef"
+
+func TestLoad_OdinIntegrationIsOffWithoutItsSecret(t *testing.T) {
+	withEnv(t, baseLocalEnv(), func() {
+		cfg, err := config.Load()
+		if err != nil {
+			t.Fatalf("unexpected error: %v", err)
+		}
+		if cfg.OdinIntegrationEnabled() {
+			t.Fatal("the Odin routes must not exist without APP_ODIN_SERVICE_TOKEN (CA-106-01)")
+		}
+	})
+}
+
+func TestLoad_OdinIntegrationEnabledWithALongSecret(t *testing.T) {
+	env := baseLocalEnv()
+	env["APP_ODIN_SERVICE_TOKEN"] = odinServiceTokenForTests
+	withEnv(t, env, func() {
+		cfg, err := config.Load()
+		if err != nil || !cfg.OdinIntegrationEnabled() {
+			t.Fatalf("expected the Odin integration enabled: %v", err)
+		}
+	})
+}
+
+func TestLoad_OdinIntegrationRejectsAWeakOrReusedSecret(t *testing.T) {
+	tests := map[string]func(map[string]string){
+		"secreto corto": func(env map[string]string) { env["APP_ODIN_SERVICE_TOKEN"] = "corto" },
+		"igual al token de verificación de Meta": func(env map[string]string) {
+			env["APP_META_WEBHOOK_VERIFY_TOKEN"] = odinServiceTokenForTests
+		},
+		"igual al secreto de la app de Meta": func(env map[string]string) {
+			env["APP_META_APP_SECRET"] = odinServiceTokenForTests
+		},
+		"igual al access token de WhatsApp": func(env map[string]string) {
+			env["APP_META_WHATSAPP_ACCESS_TOKEN"] = odinServiceTokenForTests
+		},
+	}
+	for name, mutate := range tests {
+		t.Run(name, func(t *testing.T) {
+			env := metaWebhookEnv()
+			env["APP_ODIN_SERVICE_TOKEN"] = odinServiceTokenForTests
+			mutate(env)
+			withEnv(t, env, func() {
+				if _, err := config.Load(); err == nil {
+					t.Fatalf("expected %q to be rejected", name)
+				}
+			})
+		})
+	}
+}

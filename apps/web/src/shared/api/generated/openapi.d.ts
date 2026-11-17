@@ -304,6 +304,66 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/public/barbershops/{slug}/customer-access/verify-ref": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Canjear el código de un enlace de Odin por el acceso a ese turno
+         * @description Verifica el código que llegó por WhatsApp para la referencia del enlace `/reservar/{slug}/mi-turno/{accessRef}` (HU-106, CA-106-05) y, si es válido, lo consume y emite UN acceso de 60 minutos a ese turno, con el propósito para el que se pidió. El código vale 10 minutos, sirve una vez y admite 5 intentos. Una referencia inexistente, de otra barbería, vencida, ya usada o agotada, o un código incorrecto, producen exactamente el mismo `401`: no se puede saber cuál ocurrió. El acceso emitido es el mismo de `HU-105` y se usa como el `token` de `/customer/appointments/{token}…`. La respuesta lleva una credencial en claro: `Cache-Control: no-store`.
+         */
+        post: operations["verifyCustomerAccessRef"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/integrations/odin/barbershops/{slug}/customer-appointments/lookup": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Buscar los turnos de un teléfono
+         * @description Devuelve los turnos futuros `confirmed` del cliente con ese teléfono en esa barbería, del más próximo al más lejano, con lo que puede hacer hoy con cada uno (`canCancel`, `canReschedule`, según `RN-CAN-01` y el máximo de 2 cambios de `DEC-178`). Cada turno trae una referencia opaca de 30 minutos y nunca un identificador interno ni datos del cliente. Un teléfono sin turnos recibe una lista vacía. Un `slug` inexistente responde `404`.
+         */
+        post: operations["lookupCustomerAppointmentsForOdin"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/integrations/odin/barbershops/{slug}/customer-access/challenge": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Pedir un código atado a un turno
+         * @description Crea un reto atado a ESE turno y a ESE propósito (`cancel` o `reschedule`) y envía el código de 6 dígitos por WhatsApp a ese teléfono (HU-106, CA-106-03). Solo prospera si la referencia es de ese teléfono en esa barbería y el turno sigue elegible para el propósito; en cualquier otro caso responde el mismo `409` `appointment-not-available`. El código vale 10 minutos, sirve una vez y admite 5 intentos. Pedir otro deja inútil el anterior. El límite de 3 solicitudes por contacto cada 15 minutos cuenta también estas solicitudes y comparte la cuenta con la pantalla pública; además hay un tope por barbería para el servicio. Superarlos responde `429` con `Retry-After`; Odin no reintenta, avisa al cliente que espere. Sin WhatsApp configurado responde `503`. Odin no ve el código ni ningún acceso: el cliente lo escribe en `/reservar/{slug}/mi-turno/{accessRef}`.
+         */
+        post: operations["requestCustomerAccessCodeForOdin"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/public/barbershops/{slug}/barbers/{barberId}/reviews": {
         parameters: {
             query?: never;
@@ -2690,6 +2750,76 @@ export interface components {
             timezone: string;
             appointments: components["schemas"]["CustomerAccessAppointment"][];
         };
+        CustomerAccessVerifyRefRequest: {
+            /** @description La referencia del enlace que Odin entregó. */
+            accessRef: string;
+            /**
+             * @description Código de 6 dígitos que llegó por WhatsApp.
+             * @example 482913
+             */
+            code: string;
+        };
+        /**
+         * @description `cancel` lleva a «Mi turno», con la cancelación a la vista; `reschedule` lleva a «Cambiar la hora».
+         * @example reschedule
+         * @enum {string}
+         */
+        CustomerAccessPurpose: "cancel" | "reschedule";
+        CustomerAccessVerifyRefResponse: {
+            /** @description Acceso de 60 minutos a ese turno. Se usa como el `token` de `/customer/appointments/{token}…` y en `/mi-turno/{token}`. */
+            accessToken: string;
+            purpose: components["schemas"]["CustomerAccessPurpose"];
+        };
+        /** @description El teléfono del remitente de WhatsApp, tal como Meta lo firma. */
+        OdinAppointmentLookupRequest: {
+            /**
+             * @description Celular del cliente en formato E.164. Solo se aceptan celulares: un correo responde `422`.
+             * @example +573001234567
+             */
+            phone: string;
+        };
+        /** @description Sin identificadores internos, sin nombre ni contacto del cliente. `appointmentRef` solo sirve para pedir el código de ese turno. */
+        OdinAppointment: {
+            /** @description Referencia opaca del turno, ligada a la barbería y válida 30 minutos desde que se entrega. No es un identificador y no se puede deducir ni reutilizar en otra barbería. */
+            appointmentRef: string;
+            /**
+             * Format: date-time
+             * @description Inicio del turno, con la zona horaria de la barbería.
+             * @example 2026-11-20T14:00:00-05:00
+             */
+            startsAt: string;
+            /** @example Corte Vbras */
+            serviceName: string;
+            /** @example Jhonner Bustamante */
+            barberName: string;
+            /** @description Hoy el cliente puede cancelar este turno por su cuenta, según el plazo y la cancelación tardía que configuró la barbería (`RN-CAN-01`). */
+            canCancel: boolean;
+            /** @description Hoy el cliente puede cambiar la hora: dentro del plazo y con cambios propios disponibles (máximo 2, `DEC-178`). */
+            canReschedule: boolean;
+        };
+        OdinAppointmentLookupResponse: {
+            /** @description Turnos futuros confirmados de ese teléfono en esa barbería, del más próximo al más lejano. Vacía si no hay. */
+            appointments: components["schemas"]["OdinAppointment"][];
+        };
+        OdinAccessChallengeRequest: {
+            /**
+             * @description El mismo celular E.164 con el que se hizo `lookup`.
+             * @example +573001234567
+             */
+            phone: string;
+            /** @description La referencia que `lookup` entregó para ese turno. */
+            appointmentRef: string;
+            purpose: components["schemas"]["CustomerAccessPurpose"];
+        };
+        OdinAccessChallengeResponse: {
+            /** @description Referencia de un solo uso para el enlace `/reservar/{slug}/mi-turno/{accessRef}`. Por sí sola no da acceso: hace falta el código de 6 dígitos que llegó al WhatsApp del cliente. */
+            accessRef: string;
+            /**
+             * Format: date-time
+             * @description Hasta cuándo sirve el código y, con él, la referencia (10 minutos).
+             */
+            expiresAt: string;
+        };
         /** @description Reseña no oculta de un barbero. Sin identificador del turno ni del cliente: la reseña es anónima para el visitante. */
         PublicReview: {
             /** @example 5 */
@@ -4691,6 +4821,74 @@ export interface components {
                 "application/json": components["schemas"]["CustomerAccessVerifyResponse"];
             };
         };
+        /** @description Código válido: un acceso de 60 minutos a ese turno, y para qué se pidió. */
+        CustomerAccessRefVerified: {
+            headers: {
+                "X-Request-Id": components["headers"]["XRequestId"];
+                /** @description Siempre `no-store`: la respuesta lleva una credencial en claro (RN-DAT-02). */
+                "Cache-Control"?: "no-store";
+                [name: string]: unknown;
+            };
+            content: {
+                "application/json": components["schemas"]["CustomerAccessVerifyRefResponse"];
+            };
+        };
+        /** @description Los turnos futuros confirmados de ese teléfono en esa barbería, o una lista vacía. */
+        OdinAppointmentLookup: {
+            headers: {
+                "X-Request-Id": components["headers"]["XRequestId"];
+                /** @description Siempre `no-store`: las referencias valen 30 minutos. */
+                "Cache-Control"?: "no-store";
+                [name: string]: unknown;
+            };
+            content: {
+                "application/json": components["schemas"]["OdinAppointmentLookupResponse"];
+            };
+        };
+        /** @description La credencial de servicio falta o no es válida. La misma respuesta cubre una cabecera ausente, de otro esquema o con un secreto distinto. */
+        ServiceCredentialProblem: {
+            headers: {
+                "X-Request-Id": components["headers"]["XRequestId"];
+                /** @description Siempre `Bearer`. */
+                "WWW-Authenticate"?: "Bearer";
+                [name: string]: unknown;
+            };
+            content: {
+                "application/problem+json": components["schemas"]["Problem"];
+            };
+        };
+        /** @description El código se envió por WhatsApp al teléfono; la referencia arma el enlace. */
+        OdinAccessChallengeCreated: {
+            headers: {
+                "X-Request-Id": components["headers"]["XRequestId"];
+                /** @description Siempre `no-store`. */
+                "Cache-Control"?: "no-store";
+                [name: string]: unknown;
+            };
+            content: {
+                "application/json": components["schemas"]["OdinAccessChallengeResponse"];
+            };
+        };
+        /** @description El turno no está disponible para este cambio. Cubre una referencia ajena, vencida o de otra barbería, un teléfono que no es el del turno y un turno que ya no admite ese propósito, sin distinguir la causa. */
+        AppointmentNotAvailableProblem: {
+            headers: {
+                "X-Request-Id": components["headers"]["XRequestId"];
+                [name: string]: unknown;
+            };
+            content: {
+                "application/problem+json": components["schemas"]["Problem"];
+            };
+        };
+        /** @description El envío por WhatsApp no está configurado en este ambiente. */
+        ServiceUnavailableProblem: {
+            headers: {
+                "X-Request-Id": components["headers"]["XRequestId"];
+                [name: string]: unknown;
+            };
+            content: {
+                "application/problem+json": components["schemas"]["Problem"];
+            };
+        };
         /** @description Resumen y reseñas visibles más recientes del barbero. */
         PublicReviewListSuccess: {
             headers: {
@@ -5885,6 +6083,90 @@ export interface operations {
             404: components["responses"]["NotFoundProblem"];
             422: components["responses"]["ValidationProblem"];
             500: components["responses"]["InternalErrorProblem"];
+        };
+    };
+    verifyCustomerAccessRef: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Identificador público de la barbería (HU-090). */
+                slug: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CustomerAccessVerifyRefRequest"];
+            };
+        };
+        responses: {
+            200: components["responses"]["CustomerAccessRefVerified"];
+            400: components["responses"]["InvalidRequestProblem"];
+            /** @description Código incorrecto, vencido, ya usado o agotado, o referencia inexistente, ajena o vencida, sin distinguir la causa (CA-106-05). */
+            401: {
+                headers: {
+                    "X-Request-Id": components["headers"]["XRequestId"];
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            404: components["responses"]["NotFoundProblem"];
+            422: components["responses"]["ValidationProblem"];
+            500: components["responses"]["InternalErrorProblem"];
+        };
+    };
+    lookupCustomerAppointmentsForOdin: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Identificador público de la barbería (HU-090). */
+                slug: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["OdinAppointmentLookupRequest"];
+            };
+        };
+        responses: {
+            200: components["responses"]["OdinAppointmentLookup"];
+            400: components["responses"]["InvalidRequestProblem"];
+            401: components["responses"]["ServiceCredentialProblem"];
+            404: components["responses"]["NotFoundProblem"];
+            422: components["responses"]["ValidationProblem"];
+            500: components["responses"]["InternalErrorProblem"];
+        };
+    };
+    requestCustomerAccessCodeForOdin: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Identificador público de la barbería (HU-090). */
+                slug: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["OdinAccessChallengeRequest"];
+            };
+        };
+        responses: {
+            201: components["responses"]["OdinAccessChallengeCreated"];
+            400: components["responses"]["InvalidRequestProblem"];
+            401: components["responses"]["ServiceCredentialProblem"];
+            404: components["responses"]["NotFoundProblem"];
+            409: components["responses"]["AppointmentNotAvailableProblem"];
+            422: components["responses"]["ValidationProblem"];
+            429: components["responses"]["RateLimitedProblem"];
+            500: components["responses"]["InternalErrorProblem"];
+            503: components["responses"]["ServiceUnavailableProblem"];
         };
     };
     listPublicBarberReviews: {

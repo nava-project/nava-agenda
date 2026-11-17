@@ -222,3 +222,20 @@ func TestTranslate_RateLimitedIsA429WithItsOwnCode(t *testing.T) {
 		t.Fatalf("the safe message must pass through, got %q", p.Detail)
 	}
 }
+
+func TestTranslate_AppointmentNotAvailableIsA409WithItsOwnCode(t *testing.T) {
+	p := httpserver.Translate(apperr.AppointmentNotAvailable("ese turno no está disponible"), "req-6")
+	if p.Status != http.StatusConflict || p.Code != "appointment-not-available" {
+		t.Fatalf("expected 409 appointment-not-available, got %d %q", p.Status, p.Code)
+	}
+	if p.Code == "conflict" {
+		t.Fatal("the uniform HU-106 rejection must not share the generic conflict code")
+	}
+}
+
+func TestTranslate_UnavailableIsA503(t *testing.T) {
+	p := httpserver.Translate(apperr.Unavailable("el envío no está configurado"), "req-7")
+	if p.Status != http.StatusServiceUnavailable || p.Code != "service-unavailable" {
+		t.Fatalf("expected 503 service-unavailable, got %d %q", p.Status, p.Code)
+	}
+}

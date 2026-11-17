@@ -126,3 +126,41 @@ describe('verifyAccessCode', () => {
     expect(await verifyAccessCode('s', 'a@b.co', '111111')).toEqual({ kind: 'network-error' })
   })
 })
+
+// HU-106: el enlace de Odin canjea una referencia + el código por el acceso a ese turno.
+describe('verifyAccessRef', () => {
+  it('envía la referencia y el código a la ruta con el slug y devuelve el acceso y el propósito', async () => {
+    const { verifyAccessRef } = await import('../verifyAccessRefApi')
+    reply(200, { accessToken: 'tok-1', purpose: 'cancel' })
+    const outcome = await verifyAccessRef('mi-barberia', 'ref-opaca', '482913')
+
+    expect(postMock).toHaveBeenCalledWith('/public/barbershops/{slug}/customer-access/verify-ref', {
+      params: { path: { slug: 'mi-barberia' } },
+      body: { accessRef: 'ref-opaca', code: '482913' },
+    })
+    expect(outcome).toEqual({ kind: 'granted', accessToken: 'tok-1', purpose: 'cancel' })
+  })
+
+  it('traduce por status: 401 a código inválido, 400/422 a entrada inválida y 404 a barbería inexistente', async () => {
+    const { verifyAccessRef } = await import('../verifyAccessRefApi')
+    reply(401, undefined, problem(401, 'unauthorized'))
+    expect(await verifyAccessRef('s', 'r', '111111')).toEqual({ kind: 'invalid-code' })
+    reply(422, undefined, problem(422, 'validation'))
+    expect(await verifyAccessRef('s', 'r', '1')).toEqual({ kind: 'invalid-input' })
+    reply(400, undefined, problem(400, 'invalid-request'))
+    expect(await verifyAccessRef('s', 'r', '1')).toEqual({ kind: 'invalid-input' })
+    reply(404, undefined, problem(404, 'not-found'))
+    expect(await verifyAccessRef('s', 'r', '111111')).toEqual({ kind: 'barbershop-not-found' })
+  })
+
+  it('devuelve el requestId en un error inesperado y network-error si no hay respuesta', async () => {
+    const { verifyAccessRef } = await import('../verifyAccessRefApi')
+    reply(500, undefined, problem(500, 'internal'))
+    expect(await verifyAccessRef('s', 'r', '111111')).toEqual({
+      kind: 'unexpected-error',
+      requestId: 'req-1',
+    })
+    postMock.mockRejectedValueOnce(new TypeError('fallo de red'))
+    expect(await verifyAccessRef('s', 'r', '111111')).toEqual({ kind: 'network-error' })
+  })
+})
