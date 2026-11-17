@@ -19,8 +19,8 @@ issue: 636
 issue_url: "https://github.com/bcaceres19/barberia/issues/636"
 suggested_issue_title: null
 branch: "feat/636-hu104-reprogramacion-cliente"
-pr: null
-pr_url: null
+pr: 638
+pr_url: "https://github.com/bcaceres19/barberia/pull/638"
 depends_on:
   - "HU-065 integrada"
   - "HU-094 integrada"
