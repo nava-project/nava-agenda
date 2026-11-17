@@ -44,8 +44,8 @@ En el servidor:
 | `vps/mantenimiento` | diario, ~04:00 | borra contenedores de CI de más de 3 h, caché de construcción de más de 7 días e imágenes colgantes; muestra el uso de disco |
 
 Checks del CI (los mismos del antiguo `ci.yml`): `tools/ci/checks/go.sh`, `openapi.sh`, el frontend
-partido en `web-deps.sh` (instalación, una vez) + `web-static.sh` (formato, lint, tipos, build) +
-`web-test.sh` (vitest), `database.sh`, `shellcheck.sh` y `tools/ci/compose-check.sh`. Una migración
+partido en `web-deps.sh` (instalación, una vez) + `web-static.sh` (formato, lint, tipos) +
+`web-test.sh` (vitest); el build de producción del frontend lo comprueba la imagen web, `database.sh`, `shellcheck.sh` y `tools/ci/compose-check.sh`. Una migración
 nueva se añade a la lista explícita de `go.sh` (Atlas la valida en `database.sh`). Se pueden correr en
 local con Docker: `tools/ci/run.sh go --postgres`.
 

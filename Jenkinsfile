@@ -50,7 +50,7 @@ pipeline {
           when { expression { fileExists('.ci-plan/web') } }
           steps { sh 'tools/ci/run.sh web-test' }
         }
-        stage('Frontend: formato, lint, tipos y build') {
+        stage('Frontend: formato, lint y tipos') {
           when { expression { fileExists('.ci-plan/web') } }
           steps { sh 'tools/ci/run.sh web-static' }
         }
@@ -79,7 +79,8 @@ pipeline {
     // Después de los checks y no en paralelo: BuildKit no hereda la prioridad baja de
     // los contenedores de prueba y competiría con la producción por la CPU. En main
     // siempre: el despliegue necesita las imágenes de este SHA (si ya existen, no se
-    // reconstruyen).
+    // reconstruyen). La imagen web ejecuta `pnpm run build`: es el check del build del
+    // frontend.
     stage('Imágenes (backend, web, base)') {
       when { expression { env.BRANCH_NAME == 'main' || fileExists('.ci-plan/images') } }
       steps {
