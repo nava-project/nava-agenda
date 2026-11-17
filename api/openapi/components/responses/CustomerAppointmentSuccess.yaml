@@ -41,6 +41,7 @@ content:
             professionalTermGender: masculine
           canReview: false
           review: null
+          rescheduleRemaining: 2
       turnoCompletadoSinReseña:
         summary: Turno completado; el cliente aún puede calificar (HU-100)
         value:
@@ -67,3 +68,4 @@ content:
             professionalTermGender: masculine
           canReview: true
           review: null
+          rescheduleRemaining: 2

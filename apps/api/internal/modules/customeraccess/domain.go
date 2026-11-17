@@ -43,6 +43,13 @@ type AppointmentView struct {
 	UpdatedAt     time.Time
 	VersionToken  string
 
+	// CustomerReschedules son las reprogramaciones que el propio cliente ya
+	// hizo (HU-104, DEC-178); RescheduleRemaining es lo que le queda según el
+	// límite que fija booking, y solo se calcula si la reprogramación está
+	// configurada en el servicio.
+	CustomerReschedules int
+	RescheduleRemaining int
+
 	// CanReview es verdadero solo con el turno `completed` y sin reseña (HU-100,
 	// CA-100-01); Review trae la que el cliente ya dejó, si existe.
 	CanReview bool
@@ -73,9 +80,12 @@ type Vocabulary struct {
 }
 
 // CancellationTarget es el turno al que un token vigente da acceso, resuelto
-// para ejecutar la cancelación del cliente (HU-099). Son identificadores
-// internos: nunca salen del servidor.
+// para ejecutar una orden del cliente sobre él: cancelar (HU-099) o
+// reprogramar (HU-104). Son identificadores internos: nunca salen del
+// servidor. Timezone es la zona de la barbería, que la lista de franjas
+// devuelve para que la interfaz agrupe por fecha civil (RN-DIS-07).
 type CancellationTarget struct {
 	BarbershopID  string
 	AppointmentID string
+	Timezone      string
 }

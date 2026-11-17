@@ -35,6 +35,11 @@ type CustomerAppointmentResponse struct {
 	// turno completado y sin reseña; Review es la que el cliente ya dejó.
 	CanReview bool                    `json:"canReview"`
 	Review    *CustomerReviewResponse `json:"review"`
+
+	// RescheduleRemaining (HU-104, DEC-178) son las veces que el cliente
+	// todavía puede cambiar la hora de este turno. El plazo se deduce de
+	// startsAt y cancellationDeadlineMinutes, el mismo de la cancelación.
+	RescheduleRemaining int `json:"rescheduleRemaining"`
 }
 
 // CustomerReviewResponse es la forma de CustomerReview.yaml: lo que el cliente
@@ -62,4 +67,19 @@ type PublicVocabularyResponse struct {
 // actor o tiempo porque el decodificador rechaza campos desconocidos.
 type CancelAppointmentRequest struct {
 	Reason *string `json:"reason"`
+}
+
+// RescheduleSlotsResponse es la forma de CustomerRescheduleSlots.yaml
+// (HU-104): los inicios a los que el cliente puede mover su turno, en orden
+// cronológico, con la zona de la barbería para agruparlos por fecha civil.
+type RescheduleSlotsResponse struct {
+	Timezone string      `json:"timezone"`
+	Starts   []time.Time `json:"starts"`
+}
+
+// RescheduleAppointmentRequest es el cuerpo de la reprogramación del cliente
+// (HU-104): solo el nuevo inicio, tal como lo ofreció la lista de franjas.
+// Servicio, profesional y duración no se pueden cambiar (DEC-178).
+type RescheduleAppointmentRequest struct {
+	StartsAt *string `json:"startsAt"`
 }

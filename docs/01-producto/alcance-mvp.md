@@ -1,9 +1,9 @@
 ---
 titulo: "Alcance del MVP"
-version: "1.1"
+version: "1.2"
 estado: "Borrador"
 responsable: "Propietario del proyecto"
-ultima_actualizacion: "2026-10-26"
+ultima_actualizacion: "2026-11-17"
 documentos_relacionados:
   - "reglas-negocio.md"
   - "prioridades.md"
@@ -13,7 +13,7 @@ documentos_relacionados:
   - "../00-control/registro-decisiones.md"
 ---
 
-> **Estado del contenido:** Hay 49 funciones P0 confirmadas. No queda ninguna elevación pendiente del lote de decisiones del 5 de agosto de 2026; `F-PUB-09`–`F-PUB-12` se elevan el 2026-10-26 por instrucción directa del propietario (`DEC-128`–`DEC-131`).
+> **Estado del contenido:** Hay 50 funciones P0 confirmadas. No queda ninguna elevación pendiente del lote de decisiones del 5 de agosto de 2026; `F-PUB-09`–`F-PUB-12` se elevan el 2026-10-26 por instrucción directa del propietario (`DEC-128`–`DEC-131`), y `F-PUB-13` el 2026-11-17 (`DEC-178`).
 >
 > Este documento no convierte automáticamente las propuestas en decisiones aprobadas.
 
@@ -131,6 +131,7 @@ Se dejan explícitos para que nadie asuma lo contrario:
 | `F-PUB-10` | Reseñas y estrellas de Google del negocio | Ficha de Google por barbería (o del barbero independiente); integración de pago. `DEC-129` |
 | `F-PUB-11` | Ubicación de la barbería en la reserva pública | Configurable; oculta si la barbería no tiene local. `DEC-130` |
 | `F-PUB-12` | Domicilio con dirección del cliente y mapa | Interruptor general de la barbería; dirección geocodificada obligatoria. `DEC-131` |
+| `F-PUB-13` | Reprogramación por parte del cliente | Solo fecha y hora, mismo plazo que la cancelación, máximo 2 por turno; acceso por el enlace o con un código de un solo uso al correo o WhatsApp. `DEC-178` |
 
 ### Disponibilidad e integridad — `DISP`
 

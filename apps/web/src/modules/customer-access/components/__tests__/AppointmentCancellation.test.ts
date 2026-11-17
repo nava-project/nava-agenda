@@ -35,6 +35,7 @@ function appointment(over: Partial<CustomerAppointment> = {}): CustomerAppointme
     },
     canReview: false,
     review: null,
+    rescheduleRemaining: 2,
     ...over,
   }
 }

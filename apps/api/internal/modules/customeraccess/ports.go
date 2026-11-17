@@ -2,6 +2,7 @@ package customeraccess
 
 import (
 	"context"
+	"time"
 
 	"system-barbershop/internal/platform/idempotency"
 )
@@ -14,7 +15,7 @@ type Repository interface {
 	ResolveAppointmentByTokenHash(ctx context.Context, tokenHash string) (view AppointmentView, found bool, err error)
 
 	// ResolveCancellationTarget resuelve el mismo token vigente a la
-	// barbería y la cita sobre las que HU-099 ejecuta la cancelación. found
+	// barbería y la cita sobre las que HU-099 cancela y HU-104 reprograma. found
 	// sigue la misma regla uniforme que ResolveAppointmentByTokenHash.
 	ResolveCancellationTarget(ctx context.Context, tokenHash string) (target CancellationTarget, found bool, err error)
 }
@@ -28,6 +29,23 @@ type AppointmentCanceller interface {
 	CancelAppointment(
 		ctx context.Context,
 		barbershopID, appointmentID, expectedVersionToken, reason string,
+		key idempotency.Key,
+		fingerprint idempotency.Fingerprint,
+	) (idempotency.Decision, idempotency.StoredResponse, error)
+}
+
+// AppointmentRescheduler ejecuta la reprogramación del cliente (HU-104,
+// DEC-178) sobre un turno ya resuelto desde su token. Lo implementa un
+// adaptador de booking, que a su vez pide las franjas a publicbooking: este
+// módulo no importa ninguno de los dos (CA-002-06). ListRescheduleStarts
+// devuelve los inicios ofrecidos; RescheduleAppointment reproduce la decisión
+// de idempotencia y devuelve como error los rechazos de versión, estado,
+// plazo, límite y franja.
+type AppointmentRescheduler interface {
+	ListRescheduleStarts(ctx context.Context, barbershopID, appointmentID string) ([]time.Time, error)
+	RescheduleAppointment(
+		ctx context.Context,
+		barbershopID, appointmentID, startsAt, expectedVersionToken string,
 		key idempotency.Key,
 		fingerprint idempotency.Fingerprint,
 	) (idempotency.Decision, idempotency.StoredResponse, error)

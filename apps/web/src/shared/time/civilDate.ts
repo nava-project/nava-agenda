@@ -122,3 +122,28 @@ export function minutesSinceCivilMidnight(
   if (instantCivilDate > civilDate) return 1440 + clockMinutes
   return clockMinutes - 1440
 }
+
+// civilDateChip: partes cortas de un día civil para una tira de fechas
+// («lun», «15», «sep»). Como formatCivilDateFull, se ancla a mediodía UTC y se
+// formatea en UTC: una fecha civil ya resuelta nunca se reinterpreta por zona
+// (RN-DIS-07). La usan la reserva pública (HU-095) y la reprogramación del
+// cliente (HU-104).
+export interface CivilDateChip {
+  weekday: string
+  day: string
+  month: string
+}
+
+export function civilDateChip(civilDate: string): CivilDateChip {
+  const [year, month, day] = civilDate.split('-').map(Number)
+  const at = new Date(Date.UTC(year!, month! - 1, day!, 12))
+  const parts = new Intl.DateTimeFormat('es-CO', {
+    timeZone: 'UTC',
+    weekday: 'short',
+    day: 'numeric',
+    month: 'short',
+  }).formatToParts(at)
+  const pick = (type: Intl.DateTimeFormatPartTypes) =>
+    (parts.find((part) => part.type === type)?.value ?? '').replace(/\.$/, '')
+  return { weekday: pick('weekday'), day: pick('day'), month: pick('month') }
+}

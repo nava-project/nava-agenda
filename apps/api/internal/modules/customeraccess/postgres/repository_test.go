@@ -536,3 +536,45 @@ func TestResolveCancellationTarget_TenantIsolation(t *testing.T) {
 		t.Fatalf("token de shopDos: %+v found=%v err=%v", dos, foundDos, err)
 	}
 }
+
+// HU-104 (DEC-178): la lectura cuenta solo las reprogramaciones hechas por el
+// cliente, y el destino del token trae la zona de la barbería.
+func TestResolveAppointmentByTokenHash_CountsOnlyCustomerReschedules(t *testing.T) {
+	db := setupTestDB(t)
+	repo := customeraccesspostgres.New(db)
+
+	appointment := createTestAppointment(t, db, shopUno, barberUno, serviceUno, booking.StatusConfirmed)
+	tokenPlain := insertAccessToken(t, db, shopUno, appointment.ID, tokenState{expiresIn: 90 * 24 * time.Hour})
+
+	err := db.InTenantTx(context.Background(), database.BarbershopID(shopUno), func(ctx context.Context, q database.Queries) error {
+		for _, actor := range []string{"customer", "system"} {
+			var customer any
+			if actor == "customer" {
+				customer = appointment.CustomerID
+			}
+			if _, err := q.Exec(ctx, `
+				INSERT INTO appointment_history (barbershop_id, appointment_id, event_type, actor_type, actor_customer_id)
+				VALUES ($1, $2, 'appointment_rescheduled', $3, $4)`,
+				shopUno, appointment.ID, actor, customer); err != nil {
+				return err
+			}
+		}
+		return nil
+	})
+	if err != nil {
+		t.Fatalf("insert history: %v", err)
+	}
+
+	view, found, err := repo.ResolveAppointmentByTokenHash(context.Background(), tokenHash(tokenPlain))
+	if err != nil || !found {
+		t.Fatalf("ResolveAppointmentByTokenHash: found=%v err=%v", found, err)
+	}
+	if view.CustomerReschedules != 1 {
+		t.Fatalf("CustomerReschedules = %d, quiero 1 (el del sistema no cuenta)", view.CustomerReschedules)
+	}
+
+	target, found, err := repo.ResolveCancellationTarget(context.Background(), tokenHash(tokenPlain))
+	if err != nil || !found || target.Timezone == "" || target.Timezone != view.Timezone {
+		t.Fatalf("target = %+v found=%v err=%v", target, found, err)
+	}
+}

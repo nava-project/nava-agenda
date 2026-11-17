@@ -1,0 +1,22 @@
+# Respuesta 200 de POST /customer/appointments/{token}/reschedule (HU-104).
+description: >
+  El turno quedó en el nuevo intervalo (o ya estaba en él: un intervalo
+  idéntico no escribe nada). Repetir la misma `Idempotency-Key` con el mismo
+  cuerpo reproduce esta respuesta.
+headers:
+  X-Request-Id:
+    $ref: '../headers/XRequestId.yaml'
+  Cache-Control:
+    description: Siempre `no-store` (RN-DAT-02).
+    schema:
+      type: string
+      enum: [no-store]
+content:
+  application/json:
+    schema:
+      $ref: '../schemas/CustomerAppointmentRescheduled.yaml'
+    examples:
+      reprogramado:
+        value:
+          startsAt: "2026-11-20T20:00:00Z"
+          endsAt: "2026-11-20T20:30:00Z"

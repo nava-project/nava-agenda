@@ -94,7 +94,7 @@ Cuando la respuesta dio un rango o delegó una decisión, se escogió una config
 | `DP-UX-01` | Selección de barbero | El cliente elige cuando hay varios; con uno queda preseleccionado sin paso adicional. | `DEC-019` |
 | `DP-UX-02` | Campos del formulario | Nombre, teléfono y correo obligatorios; nota opcional; persona atendida solo se pide aparte si difiere. | `DEC-022` |
 | `DP-UX-03` | Validación del nombre | Texto no vacío con ejemplo claro; sin exigir dos palabras. | `DEC-022` |
-| `DP-UX-04` | Acceso del cliente a su turno | Enlace aleatorio largo enviado por correo; portal por teléfono/correo y bot quedan para después. | `DEC-022` |
+| `DP-UX-04` | Acceso del cliente a su turno | Enlace aleatorio largo enviado por correo; el bot queda para después. Desde el 2026-11-17 el cliente también entra con un código de un solo uso enviado a su correo o WhatsApp para reprogramar (`DEC-178`). | `DEC-022`, `DEC-178` |
 | `DP-UX-05` | Paso de la rejilla | 15 minutos iniciales, configurable. | `DEC-018` |
 | `DP-BE-01` | Tecnología de implementación | Go + Chi v5 sobre `net/http`, monolito modular; frontend en Vue 3 + TypeScript + Vite. | `DEC-023`, `DEC-033`, `DEC-034` |
 | `DP-BE-02` | Bloqueos puntuales o recurrentes | Ambos: puntual, recurrencia y listas explícitas de fechas, con excepciones. | `DEC-020` |

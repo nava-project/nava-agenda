@@ -219,6 +219,21 @@ func (s *AvailabilityService) computeAvailableStarts(
 	barbershopID, barberID string,
 	durationMinutes int,
 ) (starts []time.Time, timezone string, slotGridMinutes int, err error) {
+	return s.computeAvailableStartsExcluding(ctx, barbershopID, barberID, durationMinutes, nil)
+}
+
+// computeAvailableStartsExcluding es computeAvailableStarts sin contar como
+// ocupada la cita cuyo intervalo es exactamente own (HU-104, DEC-178): quien
+// reprograma su turno puede moverlo a una franja que se cruza con su hora
+// actual. La exclusión de PostgreSQL impide que dos citas del mismo barbero
+// compartan intervalo, así que comparar el intervalo identifica una sola
+// cita sin exponer su ID a este módulo. own nil no excluye nada.
+func (s *AvailabilityService) computeAvailableStartsExcluding(
+	ctx context.Context,
+	barbershopID, barberID string,
+	durationMinutes int,
+	own *availability.Interval,
+) (starts []time.Time, timezone string, slotGridMinutes int, err error) {
 	timezone, err = s.timezones.Timezone(ctx, barbershopID)
 	if err != nil {
 		return nil, "", 0, apperr.Internal(fmt.Errorf("publicbooking: resolver zona horaria para disponibilidad: %w", err))
@@ -251,6 +266,9 @@ func (s *AvailabilityService) computeAvailableStarts(
 	busy, err := s.resolveBusyIntervals(ctx, barbershopID, barberID, fromDate, toDate, timezone, now, latestStart)
 	if err != nil {
 		return nil, "", 0, err
+	}
+	if own != nil {
+		busy = withoutOwnAppointment(busy, *own)
 	}
 
 	starts = availability.GenerateStarts(segments, busy, availability.Policy{
@@ -340,4 +358,41 @@ func (s *AvailabilityService) resolveBusyIntervals(
 		busy = append(busy, availability.Interval{Start: appointmentStarts[i], End: appointmentEnds[i]})
 	}
 	return busy, nil
+}
+
+// withoutOwnAppointment quita de busy la ocupación idéntica a own. Solo se
+// quita una: si un bloqueo coincide exactamente con el turno, sigue contando
+// (el bloqueo existe aunque el turno se mueva).
+func withoutOwnAppointment(busy []availability.Interval, own availability.Interval) []availability.Interval {
+	out := make([]availability.Interval, 0, len(busy))
+	removed := false
+	for _, interval := range busy {
+		if !removed && interval.Start.Equal(own.Start) && interval.End.Equal(own.End) {
+			removed = true
+			continue
+		}
+		out = append(out, interval)
+	}
+	return out
+}
+
+// OfferedRescheduleStarts implementa booking.RescheduleSlotsPort (HU-104,
+// DEC-178): los inicios que la reserva pública ofrecería a ese barbero y esa
+// duración, sin contar el propio turno como ocupado. No revisa la asignación
+// servicio-barbero: el turno ya existe con su snapshot y solo cambia de hora.
+func (s *AvailabilityService) OfferedRescheduleStarts(
+	ctx context.Context,
+	barbershopID, barberID string,
+	durationMinutes int,
+	ownStartsAt, ownEndsAt time.Time,
+) ([]time.Time, error) {
+	if durationMinutes <= 0 {
+		return nil, apperr.Internal(fmt.Errorf("publicbooking: duración no positiva al reprogramar"))
+	}
+	starts, _, _, err := s.computeAvailableStartsExcluding(ctx, barbershopID, barberID, durationMinutes,
+		&availability.Interval{Start: ownStartsAt, End: ownEndsAt})
+	if err != nil {
+		return nil, err
+	}
+	return starts, nil
 }

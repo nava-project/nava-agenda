@@ -588,15 +588,28 @@ func buildRouter(db *database.DB, logger *slog.Logger, cfg config.Config) (*chi.
 	// booking.NewCustomerAppointmentCancellerAdapter (booking es dueño de la
 	// transacción, la política y el historial). El versionToken de la lectura
 	// usa booking.EncodeVersionToken, el mismo cálculo que valida booking.
+	//
+	// HU-104 (DEC-178): la reprogramación del cliente sigue el mismo camino que
+	// la cancelación. booking es dueño de la transacción, el plazo, el límite y
+	// el historial; las franjas salen del MISMO AvailabilityService de HU-094
+	// (publicAvailabilityService satisface booking.RescheduleSlotsPort), así que
+	// el cliente nunca puede elegir una hora que la reserva pública no ofrecería.
 	cancelByCustomerService := booking.NewCancelAppointmentByCustomerService(bookingRepo, clock.System{}.Now)
+	rescheduleByCustomerService := booking.NewRescheduleAppointmentByCustomerService(bookingRepo, publicAvailabilityService, clock.System{}.Now)
 	customerAppointmentService := customeraccess.NewService(
 		customeraccesspostgres.New(db),
 		customeraccess.WithVersionTokens(booking.EncodeVersionToken),
 		customeraccess.WithCanceller(booking.NewCustomerAppointmentCancellerAdapter(cancelByCustomerService)),
+		customeraccess.WithRescheduler(
+			booking.NewCustomerAppointmentReschedulerAdapter(rescheduleByCustomerService),
+			booking.CustomerRescheduleRemaining,
+		),
 	)
 	getCustomerAppointmentHandler := customeraccesshttpapi.NewGetAppointmentHandler(customerAppointmentService)
 	router.Get("/api/v1/customer/appointments/{token}", getCustomerAppointmentHandler.ServeHTTP)
 	router.Post("/api/v1/customer/appointments/{token}/cancel", customeraccesshttpapi.NewCancelAppointmentHandler(customerAppointmentService).ServeHTTP)
+	router.Get("/api/v1/customer/appointments/{token}/reschedule-slots", customeraccesshttpapi.NewListRescheduleSlotsHandler(customerAppointmentService).ServeHTTP)
+	router.Post("/api/v1/customer/appointments/{token}/reschedule", customeraccesshttpapi.NewRescheduleAppointmentHandler(customerAppointmentService).ServeHTTP)
 
 	// HU-100 (DEC-128): reseñas internas por barbero. Crear (cliente, por el token
 	// del enlace), listar las visibles (público) y moderar (panel) comparten un

@@ -108,6 +108,16 @@ const (
 	// cancelación es válida pero la política exige un motivo y no llegó o
 	// llegó en blanco. Código: "cancellation-reason-required".
 	KindCancellationReasonRequired Kind = "cancellation_reason_required"
+	// KindRescheduleWindowClosed cubre HU-104 (DEC-178): el cliente quiere
+	// reprogramar su turno después del plazo (el mismo de la cancelación,
+	// RN-CAN-01). A diferencia de la cancelación, no existe una
+	// reprogramación tardía: la interfaz remite a la barbería. Código:
+	// "reschedule-window-closed".
+	KindRescheduleWindowClosed Kind = "reschedule_window_closed"
+	// KindRescheduleLimitReached cubre HU-104 (DEC-178): el cliente ya usó
+	// las reprogramaciones propias que admite un turno. Código:
+	// "reschedule-limit-reached".
+	KindRescheduleLimitReached Kind = "reschedule_limit_reached"
 )
 
 // Error es el error de aplicación que domain/servicios devuelven.
@@ -237,6 +247,16 @@ func CancellationWindowClosed(message string) *Error {
 // CancellationReasonRequired construye el rechazo por motivo faltante de HU-099.
 func CancellationReasonRequired(message string) *Error {
 	return &Error{Kind: KindCancellationReasonRequired, Message: message}
+}
+
+// RescheduleWindowClosed construye el rechazo por plazo vencido de HU-104.
+func RescheduleWindowClosed(message string) *Error {
+	return &Error{Kind: KindRescheduleWindowClosed, Message: message}
+}
+
+// RescheduleLimitReached construye el rechazo por límite alcanzado de HU-104.
+func RescheduleLimitReached(message string) *Error {
+	return &Error{Kind: KindRescheduleLimitReached, Message: message}
 }
 
 // As extrae un *Error de la cadena de err, igual que errors.As.

@@ -1,6 +1,6 @@
 ---
 titulo: "Registro de decisiones"
-version: "1.73"
+version: "1.74"
 estado: "Vigente"
 responsable: "Propietario del proyecto"
 ultima_actualizacion: "2026-11-17"
@@ -343,7 +343,7 @@ Cada código `DEC-*` es estable y no se reutiliza. Este registro normaliza respu
 ### DEC-022 · Datos de reserva y acceso del cliente
 
 - **Fecha:** 2026-08-05.
-- **Decisión:** el formulario público exige nombre, teléfono y correo; la nota es opcional. El nombre de la persona atendida se toma del reservante y solo se pide aparte al reservar para otra persona. Se acepta texto no vacío con un ejemplo claro. La confirmación envía por correo un enlace con token aleatorio largo para consultar o cancelar; un portal por teléfono/correo y un bot quedan fuera del MVP.
+- **Decisión:** el formulario público exige nombre, teléfono y correo; la nota es opcional. El nombre de la persona atendida se toma del reservante y solo se pide aparte al reservar para otra persona. Se acepta texto no vacío con un ejemplo claro. La confirmación envía por correo un enlace con token aleatorio largo para consultar o cancelar; un portal por teléfono/correo y un bot quedan fuera del MVP. *Actualización (2026-11-17, `DEC-178`): el cliente también puede reprogramar su turno, desde el enlace o entrando con un código de un solo uso enviado a su correo o WhatsApp; el bot sigue fuera.*
 - **Motivo:** reunir los datos necesarios para correo, WhatsApp y calendario sin duplicar el nombre en el caso habitual.
 - **Fuente:** `respuesta-dudas-pendientes.txt`, líneas 33–50.
 
@@ -2275,3 +2275,26 @@ Cada código `DEC-*` es estable y no se reutiliza. Este registro normaliza respu
 - **Alcance:** infraestructura (`Jenkinsfile`, `deploy/jenkins/`, `tools/ci/`, `deploy/caddy/Caddyfile`). Sin cambios de API, contrato, datos ni migraciones.
 - **Documentos afectados:** `deploy/README.md`, `deploy/jenkins/README.md`, `stack-despliegue-operacion.md`, `flujo-git-github.md`, `migraciones-atlas.md`, `apps/api/README.md`, `historial-cambios.md`.
 - **Fuente:** instrucción del propietario del 2026-11-16; issue [#617](https://github.com/bcaceres19/barberia/issues/617); `DEC-158`, `DEC-159`, `DEC-160`, `DEC-176`.
+
+### DEC-178 · El cliente reprograma su propio turno: desde el enlace o con un código de un solo uso por correo o WhatsApp (amplía `DEC-022`; sustituye la exclusión de `HU-098`)
+
+- **Fecha:** 2026-11-17.
+- **Decisión:**
+  1. **Qué se habilita.** La persona que pidió el turno (el reservante de `RN-RES-03`, nunca la persona atendida) puede cambiar la **fecha y la hora** de su turno `confirmed` desde una pantalla dedicada. No cambia servicio, profesional, precio ni duración: el nuevo intervalo usa la duración del snapshot del turno. Es una `T2` con actor `customer` (`RN-HIS-01`).
+  2. **Plazo.** El mismo de la cancelación (`RN-CAN-01`, `DEC-083`): se puede hasta `inicio − cancellation_deadline_minutes`, inclusive, con el reloj del servidor. Pasado ese límite no se puede reprogramar aunque la barbería admita la cancelación tardía: lo que sigue se habla con la barbería. Con plazo 0 el cliente no puede reprogramar.
+  3. **Límite.** Como máximo **dos** reprogramaciones hechas por el cliente en un mismo turno. Las del barbero no cuentan. Se cuentan en `appointment_history` (`appointment_rescheduled` con actor `customer`), dentro de la transacción y con la fila bloqueada.
+  4. **Franjas.** Solo se aceptan inicios que la reserva pública ofrecería para ese profesional y esa duración (`HU-094`: jornada efectiva, bloqueos, citas, rejilla y anticipación mínima y máxima), sin contar el propio turno como ocupado. Los cruces en carrera los resuelve la exclusión de PostgreSQL, igual que en `HU-097` y `HU-065`.
+  5. **Efectos.** En la misma transacción: historial con actor `customer`, recordatorio regenerado (`DEC-144`, `DEC-174`, `DEC-175`) y publicación en Google Calendar (`DEC-102`). Ningún aviso al cliente, porque lo hizo él mismo (`DEC-142`). El barbero lo ve en su agenda y en su historial.
+  6. **Acceso.** Dos puertas, el mismo turno:
+     - El enlace del correo de confirmación (`HU-098`), que lleva directo a la pantalla.
+     - La pantalla «Reprogramar mi turno» de cada barbería: la persona escribe su correo o su celular y recibe un **código de 6 dígitos**. Por correo con Resend; por celular, por WhatsApp con la plantilla de autenticación ya aprobada (`DEC-066`, `DEC-123`). El código vale 10 minutos, admite 5 intentos, es de un solo uso y se guarda solo como HMAC. La respuesta es la misma exista o no el contacto, y hay límite de envíos por contacto y por IP. Al verificarlo se emite un acceso de vida corta a cada turno futuro `confirmed` de ese cliente en esa barbería.
+- **Qué queda fuera:** cambiar el servicio o el profesional; avisar al barbero por correo o WhatsApp; configurar un plazo o un límite propios para reprogramar; SMS; una cuenta o un portal con contraseña.
+- **Quién lo decidió:** el propietario, el 2026-11-17: «genere entonces una pantalla dedicada a la reprogramación de la cita de una persona […] se puede identificar por código (cuando nos llega el correo) o se puede identificar por correo o teléfono del usuario». Precisó: «por código que le llega al usuario por correo o celular […] que el código no sea complejo, sea algo sencillo de digitar». Eligió el mismo plazo que cancelar, solo fecha y hora, y un máximo de 2 reprogramaciones.
+- **Responsable:** propietario del proyecto.
+- **Motivo:** hoy cada cambio de hora exige que el cliente llame y que el barbero lo haga a mano (`RN-CIT-01`). El enlace ya autentica al reservante (`DEC-089`). Buscar solo por correo o teléfono permitiría a cualquiera mover un turno ajeno, por eso el código de un solo uso va al contacto guardado.
+- **Alternativas descartadas:**
+  - Un código fijo y corto por turno, impreso en el correo: es fácil de adivinar si no lleva un segundo factor, y no sirve a quien perdió el correo.
+  - Buscar por correo o teléfono sin verificar: expone y deja mover los turnos de otra persona.
+  - Un plazo y un límite propios configurables: la barbería ya configura el plazo de cancelación y el propietario eligió reutilizarlo.
+- **Documentos afectados:** `alcance-mvp.md` (`F-PUB-13`), `historias-usuario.md` (`HU-098`, `HU-104`, `HU-105`), `dudas-pendientes.md` (`DP-UX-04`), contrato OpenAPI, `matriz-trazabilidad.md` y `historial-cambios.md`.
+- **Fuente:** instrucción explícita del propietario del 2026-11-17; issues [#636](https://github.com/bcaceres19/barberia/issues/636) (`HU-104`) y [#637](https://github.com/bcaceres19/barberia/issues/637) (`HU-105`).

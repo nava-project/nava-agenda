@@ -1,0 +1,22 @@
+# Respuesta 200 de GET /customer/appointments/{token}/reschedule-slots (HU-104).
+description: Franjas a las que el cliente puede mover su turno.
+headers:
+  X-Request-Id:
+    $ref: '../headers/XRequestId.yaml'
+  Cache-Control:
+    description: Siempre `no-store` (RN-DAT-02).
+    schema:
+      type: string
+      enum: [no-store]
+content:
+  application/json:
+    schema:
+      $ref: '../schemas/CustomerRescheduleSlots.yaml'
+    examples:
+      conFranjas:
+        value:
+          timezone: America/Bogota
+          starts:
+            - "2026-11-20T19:00:00Z"
+            - "2026-11-20T19:30:00Z"
+            - "2026-11-21T14:00:00Z"

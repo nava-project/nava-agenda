@@ -36,6 +36,7 @@ import {
   type CustomerAppointment,
   type ReviewInput,
 } from '../model/customerAppointmentOutcome'
+import { rescheduleAvailability } from '../model/rescheduleAvailability'
 
 interface Props {
   /** Credencial en claro del enlace, tal como llega del parámetro de ruta
@@ -97,6 +98,22 @@ onMounted(() => {
 onBeforeUnmount(() => clearInterval(clockTimer))
 // El componente se reutiliza al cambiar de token dentro de la SPA: sin esto no recargaba.
 watch(() => props.token, load)
+
+// Entrada a «Cambiar la hora» (HU-104): solo se ofrece cuando la pista local dice
+// que procede; la pantalla dedicada y el servidor vuelven a decidir. Enlace simple,
+// sin RouterLink, por el mismo motivo que el pie: la página se prueba sin router.
+const reschedule = computed(() => {
+  if (screenState.value.status !== 'success') return null
+  const availability = rescheduleAvailability(screenState.value.appointment, nowMs.value)
+  if (availability.mode !== 'available') return null
+  return {
+    href: `/mi-turno/${encodeURIComponent(props.token)}/reprogramar`,
+    remaining:
+      availability.remaining === 1
+        ? 'Te queda 1 cambio de hora'
+        : `Puedes cambiarla hasta ${availability.remaining} veces`,
+  }
+})
 
 // Reseña del turno (HU-100, DEC-128): la página posee el envío; el componente solo
 // presenta el formulario. Un `409` significa que el turno ya no admite reseña (la
@@ -465,6 +482,24 @@ const unexpectedErrorMessage = computed(() => {
           <p class="customer-appointment__policy-text">{{ cancellationPolicyLabel }}</p>
         </div>
       </div>
+
+      <a
+        v-if="reschedule && !justCancelled"
+        class="customer-appointment__reschedule"
+        :href="reschedule.href"
+      >
+        <span class="customer-appointment__reschedule-text">
+          <span class="customer-appointment__reschedule-title">¿No puedes a esa hora?</span>
+          <span class="customer-appointment__reschedule-hint"
+            >Cambia el día o la hora. {{ reschedule.remaining }}.</span
+          >
+        </span>
+        <span class="customer-appointment__reschedule-action">
+          Cambiar la hora<span class="customer-appointment__reschedule-arrow" aria-hidden="true"
+            >→</span
+          >
+        </span>
+      </a>
 
       <AppointmentCancellation
         v-if="screenState.appointment.status === 'confirmed'"
@@ -1091,6 +1126,70 @@ const unexpectedErrorMessage = computed(() => {
 
 .customer-appointment__policy-label {
   color: var(--mt-brass);
+}
+
+/* Entrada a «Cambiar la hora» (HU-104): una franja de latón tenue, más clara
+   que la cancelación porque es el camino que conserva el turno. */
+.customer-appointment__reschedule {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-3) var(--space-5);
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--space-4) var(--space-5);
+  color: var(--mt-text);
+  text-decoration: none;
+  background-color: var(--mt-wash);
+  border: 1px solid color-mix(in srgb, var(--mt-brass) 45%, transparent);
+  border-radius: 4px;
+  transition:
+    background-color 0.2s ease,
+    border-color 0.2s ease;
+  animation: mt-rise 0.7s var(--mt-ease) 1.15s backwards;
+}
+
+.customer-appointment__reschedule:hover {
+  background-color: color-mix(in srgb, var(--mt-brass) 22%, transparent);
+  border-color: var(--mt-brass);
+}
+
+.customer-appointment__reschedule:focus-visible {
+  outline: 2px solid var(--mt-brass);
+  outline-offset: 3px;
+}
+
+.customer-appointment__reschedule-text {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+}
+
+.customer-appointment__reschedule-title {
+  font-family: var(--font-display);
+  font-size: 22px;
+  line-height: 1.2;
+}
+
+.customer-appointment__reschedule-hint {
+  font-size: var(--font-size-body-sm);
+  color: var(--mt-soft);
+}
+
+.customer-appointment__reschedule-action {
+  display: inline-flex;
+  gap: var(--space-2);
+  align-items: center;
+  min-height: 44px;
+  font-weight: 600;
+  color: var(--mt-brass);
+}
+
+.customer-appointment__reschedule-arrow {
+  transition: transform 0.2s var(--mt-ease);
+}
+
+.customer-appointment__reschedule:hover .customer-appointment__reschedule-arrow {
+  transform: translateX(4px);
 }
 
 .customer-appointment__policy-text {

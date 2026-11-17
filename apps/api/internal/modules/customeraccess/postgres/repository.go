@@ -70,7 +70,13 @@ func (r *Repository) ResolveAppointmentByTokenHash(ctx context.Context, tokenHas
 			        bs.business_term, bs.business_term_gender,
 			        bs.professional_term, bs.professional_term_plural, bs.professional_term_gender,
 			        rv.rating, rv.comment, rv.created_at,
-			        bs.contact_email, bs.contact_phone, ap.id, ap.updated_at
+			        bs.contact_email, bs.contact_phone, ap.id, ap.updated_at,
+			        (SELECT count(*)
+			           FROM appointment_history h
+			          WHERE h.barbershop_id = ap.barbershop_id
+			            AND h.appointment_id = ap.id
+			            AND h.event_type = 'appointment_rescheduled'
+			            AND h.actor_type = 'customer')
 			   FROM appointment_access_token t
 			   JOIN appointment ap ON ap.barbershop_id = t.barbershop_id AND ap.id = t.appointment_id
 			   JOIN barbershop bs ON bs.id = t.barbershop_id
@@ -91,6 +97,7 @@ func (r *Repository) ResolveAppointmentByTokenHash(ctx context.Context, tokenHas
 			&view.Vocabulary.ProfessionalTermGender,
 			&reviewRating, &reviewComment, &reviewCreatedAt,
 			&view.BarbershopContactEmail, &view.BarbershopContactPhone, &view.AppointmentID, &view.UpdatedAt,
+			&view.CustomerReschedules,
 		)
 		switch {
 		case err == nil:
@@ -117,6 +124,7 @@ func (r *Repository) ResolveAppointmentByTokenHash(ctx context.Context, tokenHas
 }
 
 // ResolveCancellationTarget implementa customeraccess.Repository para HU-099
+// y HU-104
 // con los mismos dos pasos que ResolveAppointmentByTokenHash: primero la
 // función SECURITY DEFINER estrecha (responde igual a un hash inexistente,
 // vencido o revocado) y después, ya dentro del tenant, la cita a la que ese
@@ -138,13 +146,14 @@ func (r *Repository) ResolveCancellationTarget(ctx context.Context, tokenHash st
 	targetFound := false
 	err = r.db.InTenantTx(ctx, barbershopID, func(ctx context.Context, q database.Queries) error {
 		err := q.QueryRow(ctx,
-			`SELECT t.appointment_id
+			`SELECT t.appointment_id, bs.timezone
 			   FROM appointment_access_token t
+			   JOIN barbershop bs ON bs.id = t.barbershop_id
 			  WHERE t.token_hash = $1
 			    AND t.revoked_at IS NULL
 			    AND (t.expires_at IS NULL OR t.expires_at > now())`,
 			tokenHash,
-		).Scan(&target.AppointmentID)
+		).Scan(&target.AppointmentID, &target.Timezone)
 		switch {
 		case err == nil:
 			targetFound = true

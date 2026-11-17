@@ -171,3 +171,17 @@ func TestCancellationRejections_HaveDistinctKinds(t *testing.T) {
 		t.Fatal("the two policy rejections must stay distinct from each other and from KindValidation (HU-099)")
 	}
 }
+
+func TestRescheduleRejections_HaveDistinctKinds(t *testing.T) {
+	closed, ok := apperr.As(apperr.RescheduleWindowClosed("fuera de plazo"))
+	if !ok || closed.Kind != apperr.KindRescheduleWindowClosed {
+		t.Fatalf("expected KindRescheduleWindowClosed, got %+v", closed)
+	}
+	limit, ok := apperr.As(apperr.RescheduleLimitReached("sin cambios"))
+	if !ok || limit.Kind != apperr.KindRescheduleLimitReached {
+		t.Fatalf("expected KindRescheduleLimitReached, got %+v", limit)
+	}
+	if closed.Kind == limit.Kind || closed.Kind == apperr.KindCancellationWindowClosed {
+		t.Fatal("the reschedule rejections must stay distinct from each other and from the cancellation ones (HU-104)")
+	}
+}
