@@ -11,10 +11,14 @@
 // «incorrecto» de «vencido» (CA-105-02). El contacto, el código y las credenciales
 // viven solo en memoria: nada se guarda en el navegador ni viaja en la URL salvo la
 // credencial de 60 minutos de «Cambiar la hora», igual que el enlace del correo.
+//
+// Issue #647: el código no saca a la persona del flujo. El paso 03 «Tu turno» muestra el
+// turno y las dos acciones a las que vino (cambiar la hora o cancelar) aquí mismo; la
+// pantalla completa de «Mi turno» queda como enlace secundario.
 import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue'
-import { useRouter } from 'vue-router'
 import { BaseAlert, BaseButton, BaseInput, NavaWordmark, OtpInput, PageState } from '@/shared/ui'
 import { BookingBackdrop } from '@/modules/public-booking'
+import AppointmentActions from '../components/AppointmentActions.vue'
 import { requestAccessCode } from '../api/requestAccessCodeApi'
 import { verifyAccessCode } from '../api/verifyAccessCodeApi'
 import { formatCountdown, maskContact, waitMinutes, isEmailContact } from '../model/accessContact'
@@ -27,9 +31,8 @@ interface Props {
   slug: string
 }
 const props = defineProps<Props>()
-const router = useRouter()
 
-type Step = 'contact' | 'code' | 'choose' | 'opening' | 'barbershop-not-found'
+type Step = 'contact' | 'code' | 'choose' | 'manage' | 'barbershop-not-found'
 
 /** Códigos incorrectos que admite el servidor por código (DEC-178): al llegar aquí la
  * pantalla ofrece pedir uno nuevo en vez de seguir probando. */
@@ -45,6 +48,10 @@ const notice = ref('')
 const submitting = ref(false)
 const wrongCodes = ref(0)
 const grant = ref<AccessGrant | null>(null)
+/** Credencial del turno abierto en el paso 03. */
+const selectedToken = ref('')
+/** El turno abierto en el paso 03 se acaba de cancelar. */
+const cancelledHere = ref(false)
 const nowMs = ref(Date.now())
 /** Instante a partir del cual se ofrece «pedir otro código». */
 const resendAt = ref(0)
@@ -87,6 +94,8 @@ const title = computed(() => {
       return 'Encuentra tu turno'
     case 'code':
       return 'Escribe tu código'
+    case 'manage':
+      return cancelledHere.value ? 'Turno cancelado' : '¿Qué quieres hacer?'
     default:
       return 'Elige tu turno'
   }
@@ -177,7 +186,7 @@ async function submitCode() {
   switch (outcome.kind) {
     case 'granted':
       grant.value = outcome.grant
-      await enter(outcome.grant)
+      enter(outcome.grant)
       return
     case 'invalid-code':
     case 'invalid-contact':
@@ -207,17 +216,24 @@ async function submitCode() {
   }
 }
 
-/** Un solo turno entra directo a «Mi turno» (ahí se cambia la hora o se cancela); varios se
- * eligen en una lista. */
-async function enter(access: AccessGrant) {
+/** Un solo turno abre directo sus acciones en el paso 03; varios se eligen antes en una
+ * lista, también dentro del paso 03. */
+function enter(access: AccessGrant) {
   const only = access.appointments[0]
   if (access.appointments.length === 1 && only) {
-    step.value = 'opening'
-    await router.replace({ name: 'mi-turno', params: { token: only.accessToken } })
+    openAppointment(only.accessToken)
     return
   }
   step.value = 'choose'
 }
+
+function openAppointment(token: string) {
+  selectedToken.value = token
+  cancelledHere.value = false
+  step.value = 'manage'
+}
+
+const hasSeveral = computed(() => (grant.value?.appointments.length ?? 0) > 1)
 
 async function resend() {
   if (submitting.value || !canResend.value) return
@@ -299,11 +315,6 @@ const zoneCity = computed(() => (grant.value ? timezoneCity(grant.value.timezone
       </PageState>
     </main>
 
-    <main v-else-if="step === 'opening'" class="access__main access__main--state">
-      <h1 class="visually-hidden">Abriendo tu turno</h1>
-      <PageState variant="loading" headline="Abriendo tu turno…" role="status" />
-    </main>
-
     <main v-else class="access__main">
       <ol class="access__steps" aria-label="Pasos para entrar a tu turno">
         <li
@@ -333,6 +344,9 @@ const zoneCity = computed(() => (grant.value ? timezoneCity(grant.value.timezone
         <p v-else-if="step === 'code'" class="access__lead">
           Si <strong class="access__contact">{{ maskedContact }}</strong> tiene un turno, el código
           va en camino por {{ channelWord }}. Vence en 10 minutos.
+        </p>
+        <p v-else-if="step === 'manage' && !cancelledHere" class="access__lead">
+          Cambia el día o la hora, o cancélalo si ya no puedes venir.
         </p>
         <p v-else class="access__lead">
           Tienes {{ choices.length }} turnos próximos. Elige cuál quieres abrir.
@@ -411,10 +425,18 @@ const zoneCity = computed(() => (grant.value ? timezoneCity(grant.value.timezone
         </div>
       </form>
 
-      <!-- Paso 3: varios turnos. -->
+      <!-- Paso 3: el turno y sus acciones, sin salir de la página (#647). -->
+      <template v-else-if="step === 'manage'">
+        <button v-if="hasSeveral" type="button" class="access__back" @click="step = 'choose'">
+          ← Elegir otro turno
+        </button>
+        <AppointmentActions :token="selectedToken" :slug="slug" @cancelled="cancelledHere = true" />
+      </template>
+
+      <!-- Paso 3 con varios turnos: primero se elige cuál. -->
       <ul v-else class="access__list" aria-label="Tus turnos próximos">
         <li v-for="a in choices" :key="a.accessToken">
-          <RouterLink class="ticket" :to="{ name: 'mi-turno', params: { token: a.accessToken } }">
+          <button type="button" class="ticket" @click="openAppointment(a.accessToken)">
             <span class="ticket__leaf" aria-hidden="true">
               <span class="ticket__leaf-month">{{ a.leaf.month }}</span>
               <span class="ticket__leaf-day">{{ a.leaf.day }}</span>
@@ -426,7 +448,7 @@ const zoneCity = computed(() => (grant.value ? timezoneCity(grant.value.timezone
               <span class="ticket__what">{{ a.serviceName }} con {{ a.barberName }}</span>
             </span>
             <span class="ticket__go">Abrir mi turno<span aria-hidden="true"> →</span></span>
-          </RouterLink>
+          </button>
         </li>
         <li v-if="zoneCity" class="access__zone">Todas las horas son de {{ zoneCity }}.</li>
       </ul>

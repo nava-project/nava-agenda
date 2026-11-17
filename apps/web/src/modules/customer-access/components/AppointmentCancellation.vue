@@ -5,7 +5,7 @@
 // contactar), el botón inicial, el formulario de confirmación con la consecuencia
 // por delante, y el rechazo del servidor (que siempre prevalece sobre la pista local
 // de `cancellationAvailability`, que usa el reloj del dispositivo).
-import { computed, nextTick, ref, watch } from 'vue'
+import { computed, nextTick, onMounted, ref, watch } from 'vue'
 import { BaseAlert, BaseButton } from '@/shared/ui'
 import type { Vocabulary } from '@/shared/model'
 import {
@@ -28,15 +28,19 @@ interface Props {
   rejection?: CancellationRejection
   /** Mensaje de error ya redactado por la página (red, inesperado, entrada inválida). */
   errorMessage?: string
+  /** Abre directo la confirmación (paso 03 del acceso con código, #647): quien eligió
+   * «Cancelar turno» ya dijo qué quiere y no necesita un segundo botón igual. */
+  startOpen?: boolean
 }
 const props = withDefaults(defineProps<Props>(), {
   submitting: false,
   rejection: null,
   errorMessage: '',
+  startOpen: false,
 })
-const emit = defineEmits<{ submit: [input: CancelAppointmentInput] }>()
+const emit = defineEmits<{ submit: [input: CancelAppointmentInput]; close: [] }>()
 
-const confirming = ref(false)
+const confirming = ref(props.startOpen)
 const reason = ref('')
 const reasonError = ref('')
 const reasonField = ref<HTMLTextAreaElement | null>(null)
@@ -75,7 +79,15 @@ async function open() {
 function close() {
   confirming.value = false
   reasonError.value = ''
+  emit('close')
 }
+
+// Abierta de entrada, el foco va al título y no al campo: en un celular el teclado taparía la
+// consecuencia, que es lo primero que hay que leer.
+const title = ref<HTMLElement | null>(null)
+onMounted(() => {
+  if (props.startOpen) title.value?.focus()
+})
 
 // Tras un rechazo por motivo el formulario sigue abierto y el foco vuelve al campo.
 watch(
@@ -108,7 +120,14 @@ function onSubmit() {
 
 <template>
   <section class="appointment-cancel" aria-labelledby="appointment-cancel-title">
-    <h2 id="appointment-cancel-title" class="appointment-cancel__title">Cancelar turno</h2>
+    <h2
+      id="appointment-cancel-title"
+      ref="title"
+      class="appointment-cancel__title"
+      :tabindex="startOpen ? -1 : undefined"
+    >
+      Cancelar turno
+    </h2>
 
     <template v-if="unavailable">
       <BaseAlert variant="warning" role="status">
@@ -224,6 +243,11 @@ function onSubmit() {
   color: var(--color-on-strong);
 }
 
+.appointment-cancel__title:focus-visible {
+  outline: 2px solid var(--color-brand-accent-surface);
+  outline-offset: 4px;
+}
+
 .appointment-cancel__lead,
 .appointment-cancel__consequence,
 .appointment-cancel__contact {
@@ -318,5 +342,16 @@ function onSubmit() {
   display: flex;
   flex-wrap: wrap;
   gap: var(--space-3);
+}
+
+/* La sección vive sobre tinta oscura: el fantasma de la biblioteca trae texto de tinta pensado
+   para papel y aquí casi no se leía «Mantener mi turno» (#647). */
+.appointment-cancel__actions :deep(.base-button--ghost) {
+  color: var(--color-on-strong);
+}
+
+.appointment-cancel__actions
+  :deep(.base-button--ghost:hover:not(:disabled):not(.base-button--loading)) {
+  background-color: color-mix(in srgb, var(--color-on-strong) 8%, transparent);
 }
 </style>

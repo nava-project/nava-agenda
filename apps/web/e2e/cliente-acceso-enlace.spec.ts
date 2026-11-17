@@ -5,7 +5,7 @@ import { INITIAL_VOCABULARY } from './fixtures/vocabularioInicial'
 
 /**
  * HU-106 (DEC-179): el enlace que Odin entrega por WhatsApp abre directo en el código y lleva
- * a «Mi turno» (cancelar, con la cancelación a la vista) o a «Cambiar la hora» (reprogramar).
+ * a la cancelación en la misma página (cancelar, #647) o a «Cambiar la hora» (reprogramar).
  *
  * Recorridos con el API simulado: cancelar, reprogramar, código incorrecto con bloqueo a los
  * cinco intentos y enlace sin barbería. Evidencia responsiva y accesible (estandar-diseno-
@@ -107,7 +107,7 @@ test.describe('HU-106 · el enlace de Odin', () => {
     await expect(page.getByText(ACCESS_REF)).toHaveCount(0)
   })
 
-  test('cancelar: el código lleva a «Mi turno» con la cancelación a la vista', async ({ page }) => {
+  test('cancelar: el código abre la cancelación en la misma página', async ({ page }) => {
     await mockTargetAppointment(page)
     let body: unknown = null
     await page.route(VERIFY_REF_URL, async (route) => {
@@ -118,9 +118,17 @@ test.describe('HU-106 · el enlace de Odin', () => {
     await page.goto(LINK)
     await typeCode(page, GOOD_CODE)
 
-    await expect(page).toHaveURL(new RegExp(`/mi-turno/${TOKEN}\\?accion=cancelar$`))
     await expect(page.getByRole('heading', { name: 'Cancelar turno' })).toBeFocused()
+    await expect(page.getByRole('heading', { level: 1, name: 'Cancelar tu turno' })).toBeVisible()
+    await expect(page).toHaveURL(new RegExp(`/reservar/${SLUG}/mi-turno/${ACCESS_REF}$`))
+    // El código ya se gastó: no vuelve a pedirse.
+    await expect(page.getByRole('group', { name: 'Código de 6 dígitos' })).toHaveCount(0)
     expect(body).toEqual({ accessRef: ACCESS_REF, code: GOOD_CODE })
+
+    // «Mantener mi turno» vuelve a las opciones, donde también está cambiar la hora.
+    await page.getByRole('button', { name: 'Mantener mi turno' }).click()
+    await expect(page.getByRole('heading', { level: 1, name: '¿Qué quieres hacer?' })).toBeVisible()
+    await expect(page.getByRole('link', { name: /Cambiar la hora/ })).toBeVisible()
   })
 
   test('reprogramar: el código lleva a «Cambiar la hora»', async ({ page }) => {
@@ -225,6 +233,13 @@ for (const viewport of viewports) {
       await typeCode(page, GOOD_CODE)
       await expect(page.getByRole('heading', { name: 'Cancelar turno' })).toBeFocused()
       await capture(page, viewport.name, '4-cancelar')
+
+      await page.route(`**/api/v1/customer/appointments/${TOKEN}/cancel`, (route) =>
+        json(route, 200, {}),
+      )
+      await page.getByRole('button', { name: 'Sí, cancelar mi turno' }).click()
+      await expect(page.getByText('Tu turno quedó cancelado')).toBeVisible()
+      await capture(page, viewport.name, '6-cancelado')
     })
 
     test(`enlace sin barbería (${viewport.name}px)`, async ({ page }) => {

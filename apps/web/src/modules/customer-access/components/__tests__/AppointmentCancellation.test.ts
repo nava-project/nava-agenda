@@ -191,3 +191,33 @@ describe('AppointmentCancellation', () => {
     open.unmount()
   })
 })
+
+// #647: el paso 03 abre la confirmación directo, porque la persona ya eligió «Cancelar turno».
+describe('AppointmentCancellation · abierta de entrada', () => {
+  it('con startOpen muestra el formulario y deja el foco en su título, no en el campo', async () => {
+    const wrapper = mountCancel({}, { startOpen: true })
+
+    expect(wrapper.find('form').exists()).toBe(true)
+    expect(document.activeElement).toBe(wrapper.find('#appointment-cancel-title').element)
+    wrapper.unmount()
+  })
+
+  it('«Mantener mi turno» avisa con close', async () => {
+    const wrapper = mountCancel({}, { startOpen: true })
+    const keep = wrapper.findAll('button').find((b) => b.text() === 'Mantener mi turno')!
+
+    await keep.trigger('click')
+
+    expect(wrapper.emitted('close')).toHaveLength(1)
+    wrapper.unmount()
+  })
+
+  it('sin startOpen el título no es enfocable ni recibe el foco', () => {
+    const wrapper = mountCancel()
+    const title = wrapper.find('#appointment-cancel-title')
+
+    expect(title.attributes('tabindex')).toBeUndefined()
+    expect(document.activeElement).not.toBe(title.element)
+    wrapper.unmount()
+  })
+})

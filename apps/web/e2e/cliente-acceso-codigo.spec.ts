@@ -8,7 +8,8 @@ import { INITIAL_VOCABULARY } from './fixtures/vocabularioInicial'
  * enlace del correo.
  *
  * Recorridos con el API simulado:
- * - desde la entrada pública, correo → código → «Mi turno» (un solo turno; HU-106 cambió el destino);
+ * - desde la entrada pública, correo → código → paso 03 «Tu turno» con sus dos acciones, sin
+ *   salir de la página (#647), y cancelar ahí mismo;
  * - celular con varios turnos: lista y elección;
  * - código incorrecto, reenvío con cuenta atrás y límite de solicitudes (429).
  *
@@ -29,6 +30,7 @@ const TOKEN_A = '7kQ2mZ9xR4tW1vB8nC3pL6yH0sD5fG2jA9eU4iO7rT1'
 const TOKEN_B = '3n9F1sQe2z8mM5wYtR7pL0oXhC4bV6dK1aE9jU2gN8i'
 const APPOINTMENT_URL = (token: string) => `**/api/v1/customer/appointments/${token}`
 const SLOTS_URL = (token: string) => `**/api/v1/customer/appointments/${token}/reschedule-slots`
+const CANCEL_URL = (token: string) => `**/api/v1/customer/appointments/${token}/cancel`
 
 const GOOD_CODE = '482913'
 
@@ -153,7 +155,9 @@ async function sendContact(page: Page, contact: string) {
 test.use({ contextOptions: { reducedMotion: 'reduce' } })
 
 test.describe('HU-105 · entrar al turno con un código', () => {
-  test('desde la entrada pública: correo, código y directo a «Mi turno»', async ({ page }) => {
+  test('desde la entrada pública: correo, código y el paso 03 con sus acciones', async ({
+    page,
+  }) => {
     await mockBarbershopProfile(page)
     await mockTargetAppointment(page, TOKEN_A)
     let challengeBody: unknown = null
@@ -185,12 +189,43 @@ test.describe('HU-105 · entrar al turno con un código', () => {
 
     await typeCode(page, GOOD_CODE)
 
-    // Un solo turno entra directo a «Mi turno» (ahí se cambia la hora o se cancela), con su
-    // credencial en la ruta.
-    await expect(page).toHaveURL(new RegExp(`/mi-turno/${TOKEN_A}$`))
-    await expect(page.getByRole('heading', { name: 'Barbería Ejemplo' })).toBeVisible()
+    // Un solo turno abre el paso 03 en la misma página: el turno y sus dos acciones (#647).
+    await expect(page.getByRole('heading', { level: 1, name: '¿Qué quieres hacer?' })).toBeFocused()
+    await expect(page).toHaveURL(new RegExp(`/reservar/${SLUG}/mi-turno$`))
+    await expect(page.getByText('Corte clásico con Barbero Ejemplo')).toBeVisible()
+    await expect(page.getByRole('link', { name: /Cambiar la hora/ })).toHaveAttribute(
+      'href',
+      `/mi-turno/${TOKEN_A}/reprogramar`,
+    )
+    await expect(page.getByRole('button', { name: /Cancelar turno/ })).toBeVisible()
     expect(challengeBody).toEqual({ contact: 'Ana.Perez@Correo.Test' })
     expect(verifyBody).toEqual({ contact: 'Ana.Perez@Correo.Test', code: GOOD_CODE })
+  })
+
+  test('paso 03: cancelar ahí mismo, con la versión del turno', async ({ page }) => {
+    await mockTargetAppointment(page, TOKEN_A)
+    await page.route(CHALLENGE_URL, (route) => json(route, 202, ACCEPTED))
+    await page.route(VERIFY_URL, (route) => json(route, 200, ONE_APPOINTMENT))
+    let ifMatch: string | undefined
+    await page.route(CANCEL_URL(TOKEN_A), async (route) => {
+      ifMatch = route.request().headers()['if-match']
+      await json(route, 200, {})
+    })
+
+    await page.goto(`/reservar/${SLUG}/mi-turno`)
+    await sendContact(page, 'ana.perez@correo.test')
+    await typeCode(page, GOOD_CODE)
+    await page.getByRole('button', { name: /Cancelar turno/ }).click()
+    await expect(page.getByRole('heading', { name: 'Cancelar turno' })).toBeFocused()
+    await page.getByRole('button', { name: 'Mantener mi turno' }).click()
+    await expect(page.getByRole('button', { name: /Cancelar turno/ })).toBeFocused()
+
+    await page.getByRole('button', { name: /Cancelar turno/ }).click()
+    await page.getByRole('button', { name: 'Sí, cancelar mi turno' }).click()
+    await expect(page.getByText('Tu turno quedó cancelado')).toBeVisible()
+    await expect(page.getByRole('heading', { level: 1, name: 'Turno cancelado' })).toBeVisible()
+    await expect(page).toHaveURL(new RegExp(`/reservar/${SLUG}/mi-turno$`))
+    expect(ifMatch).toBe('version-token-1')
   })
 
   test('celular con varios turnos: lista y elección', async ({ page }) => {
@@ -207,12 +242,19 @@ test.describe('HU-105 · entrar al turno con un código', () => {
 
     await expect(page.getByRole('heading', { level: 1, name: 'Elige tu turno' })).toBeFocused()
     const list = page.getByRole('list', { name: 'Tus turnos próximos' })
-    await expect(list.getByRole('link')).toHaveCount(2)
+    await expect(list.getByRole('button')).toHaveCount(2)
     await expect(list.getByText('Corte clásico con Barbero Ejemplo')).toBeVisible()
     await expect(list.getByText('Corte y barba con Otra Barbera Ejemplo')).toBeVisible()
 
-    await list.getByRole('link', { name: /Corte y barba/ }).click()
-    await expect(page).toHaveURL(new RegExp(`/mi-turno/${TOKEN_B}$`))
+    await list.getByRole('button', { name: /Corte y barba/ }).click()
+    await expect(page.getByRole('heading', { level: 1, name: '¿Qué quieres hacer?' })).toBeVisible()
+    await expect(page).toHaveURL(new RegExp(`/reservar/${SLUG}/mi-turno$`))
+    await expect(page.getByRole('link', { name: /Cambiar la hora/ })).toHaveAttribute(
+      'href',
+      `/mi-turno/${TOKEN_B}/reprogramar`,
+    )
+    await page.getByRole('button', { name: '← Elegir otro turno' }).click()
+    await expect(page.getByRole('heading', { level: 1, name: 'Elige tu turno' })).toBeVisible()
   })
 
   test('código incorrecto: error uniforme, se limpia y se puede reintentar', async ({ page }) => {
@@ -411,6 +453,26 @@ for (const viewport of viewports) {
       await sendContact(page, 'ana.perez@correo.test')
       await expect(page.getByText(/Pediste demasiados códigos/)).toBeVisible()
       await capture(page, viewport.name, '1-limite')
+    })
+
+    test(`paso 03 con sus acciones (${viewport.name}px)`, async ({ page }) => {
+      await mockTargetAppointment(page, TOKEN_A)
+      await page.route(CHALLENGE_URL, (route) => json(route, 202, ACCEPTED))
+      await page.route(VERIFY_URL, (route) => json(route, 200, ONE_APPOINTMENT))
+      await page.goto(`/reservar/${SLUG}/mi-turno`)
+      await sendContact(page, 'ana.perez@correo.test')
+      await typeCode(page, GOOD_CODE)
+      await expect(page.getByRole('button', { name: /Cancelar turno/ })).toBeVisible()
+      await capture(page, viewport.name, '4-acciones')
+
+      await page.getByRole('button', { name: /Cancelar turno/ }).click()
+      await expect(page.getByRole('button', { name: 'Sí, cancelar mi turno' })).toBeVisible()
+      await capture(page, viewport.name, '5-cancelar')
+
+      await page.route(CANCEL_URL(TOKEN_A), (route) => json(route, 200, {}))
+      await page.getByRole('button', { name: 'Sí, cancelar mi turno' }).click()
+      await expect(page.getByText('Tu turno quedó cancelado')).toBeVisible()
+      await capture(page, viewport.name, '6-cancelado')
     })
 
     test(`entrada pública con el enlace (${viewport.name}px)`, async ({ page }) => {

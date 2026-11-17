@@ -10,10 +10,15 @@
 // o «ya usado» (CA-106-05); la pantalla solo cuenta los intentos fallidos para ofrecer
 // pedir un enlace nuevo en vez de seguir probando. Nada se guarda en el navegador: la
 // credencial de 60 minutos viaja únicamente en la ruta del turno, como la del correo.
+//
+// Issue #647: con el propósito «cancelar» la cancelación se confirma aquí mismo, en el paso
+// «Tu turno», en vez de saltar a la pantalla completa de «Mi turno». «Cambiar la hora» sí va a
+// su pantalla, que es la que elige el día y la hora.
 import { computed, nextTick, onMounted, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { BaseAlert, BaseButton, NavaWordmark, OtpInput, PageState } from '@/shared/ui'
 import { BookingBackdrop } from '@/modules/public-booking'
+import AppointmentActions from '../components/AppointmentActions.vue'
 import { verifyAccessRef } from '../api/verifyAccessRefApi'
 import type { AccessPurpose } from '../model/customerAccessOutcome'
 
@@ -26,7 +31,7 @@ interface Props {
 const props = defineProps<Props>()
 const router = useRouter()
 
-type Step = 'code' | 'opening' | 'barbershop-not-found'
+type Step = 'code' | 'manage' | 'opening' | 'barbershop-not-found'
 
 /** Códigos incorrectos que admite el servidor por código (DEC-178). */
 const MAX_WRONG_CODES = 5
@@ -38,6 +43,21 @@ const alert = ref<{ variant: 'warning' | 'danger'; text: string } | null>(null)
 const submitting = ref(false)
 const wrongCodes = ref(0)
 const purpose = ref<AccessPurpose | null>(null)
+/** Credencial del turno para el paso «Tu turno». */
+const accessToken = ref('')
+const cancelledHere = ref(false)
+/** `menu` si la persona volvió a las opciones desde la cancelación. */
+const actionsMode = ref<'menu' | 'cancel'>('cancel')
+const manageTitle = computed(() => {
+  if (cancelledHere.value) return 'Turno cancelado'
+  return actionsMode.value === 'cancel' ? 'Cancelar tu turno' : '¿Qué quieres hacer?'
+})
+
+const STEPS = [
+  { id: 1, label: 'Código' },
+  { id: 2, label: 'Tu turno' },
+]
+const stepNumber = computed(() => (step.value === 'code' ? 1 : 2))
 
 const heading = ref<HTMLElement | null>(null)
 const root = ref<HTMLElement | null>(null)
@@ -68,16 +88,15 @@ async function submitCode() {
   switch (outcome.kind) {
     case 'granted':
       purpose.value = outcome.purpose
-      step.value = 'opening'
-      // `cancel` llega a «Mi turno» con la cancelación a la vista; `reschedule`, a la
-      // pantalla de «Cambiar la hora». `replace` para que «Atrás» no vuelva a un código gastado.
+      // `cancel` confirma aquí mismo, en «Tu turno»; `reschedule` va a «Cambiar la hora».
+      // `replace` para que «Atrás» no vuelva a un código gastado.
       if (outcome.purpose === 'cancel') {
-        await router.replace({
-          name: 'mi-turno',
-          params: { token: outcome.accessToken },
-          query: { accion: 'cancelar' },
-        })
+        accessToken.value = outcome.accessToken
+        step.value = 'manage'
+        await nextTick()
+        heading.value?.focus()
       } else {
+        step.value = 'opening'
         await router.replace({
           name: 'mi-turno-reprogramar',
           params: { token: outcome.accessToken },
@@ -143,14 +162,50 @@ async function submitCode() {
     </main>
 
     <main v-else class="access__main">
+      <ol class="access__steps access__steps--two" aria-label="Pasos para entrar a tu turno">
+        <li
+          v-for="s in STEPS"
+          :key="s.id"
+          class="access__step"
+          :class="{
+            'access__step--done': s.id < stepNumber,
+            'access__step--current': s.id === stepNumber,
+          }"
+          :aria-current="s.id === stepNumber ? 'step' : undefined"
+        >
+          <span class="access__step-num" aria-hidden="true">{{
+            String(s.id).padStart(2, '0')
+          }}</span>
+          <span class="access__step-label">{{ s.label }}</span>
+        </li>
+      </ol>
+
       <div class="access__intro">
         <p class="access__eyebrow">Tu turno</p>
-        <h1 ref="heading" class="access__title" tabindex="-1">Escribe tu código</h1>
-        <p class="access__lead">
+        <h1 ref="heading" class="access__title" tabindex="-1">
+          {{ step === 'manage' ? manageTitle : 'Escribe tu código' }}
+        </h1>
+        <p v-if="step === 'manage' && !cancelledHere" class="access__lead">
+          {{
+            actionsMode === 'cancel'
+              ? 'Confirma la cancelación. Si prefieres otra hora, vuelve a las opciones.'
+              : 'Cambia el día o la hora, o cancélalo si ya no puedes venir.'
+          }}
+        </p>
+        <p v-else-if="step === 'code'" class="access__lead">
           Te enviamos un código de 6 dígitos a tu WhatsApp. Escríbelo para continuar; vence en 10
           minutos.
         </p>
       </div>
+
+      <AppointmentActions
+        v-if="step === 'manage'"
+        :token="accessToken"
+        :slug="slug"
+        initial-action="cancel"
+        @cancelled="cancelledHere = true"
+        @mode-change="actionsMode = $event"
+      />
 
       <BaseAlert
         v-if="alert"
@@ -160,7 +215,13 @@ async function submitCode() {
         {{ alert.text }}
       </BaseAlert>
 
-      <form class="stub" novalidate aria-label="Escribir el código" @submit.prevent="submitCode">
+      <form
+        v-if="step === 'code'"
+        class="stub"
+        novalidate
+        aria-label="Escribir el código"
+        @submit.prevent="submitCode"
+      >
         <OtpInput
           v-model="code"
           label="Código de 6 dígitos"

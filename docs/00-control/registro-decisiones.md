@@ -1,6 +1,6 @@
 ---
 titulo: "Registro de decisiones"
-version: "1.75"
+version: "1.76"
 estado: "Vigente"
 responsable: "Propietario del proyecto"
 ultima_actualizacion: "2026-11-17"
@@ -2330,3 +2330,22 @@ Cada código `DEC-*` es estable y no se reutiliza. Este registro normaliza respu
   - El límite por IP para Odin: todo su tráfico comparte IP y un cliente bloquearía a todos.
 - **Documentos afectados:** `historias-usuario.md` (`HU-106`), contrato OpenAPI (0.57.0), `database/README.md`, `deploy/README.md`, `matriz-trazabilidad.md`, `historial-cambios.md` y el prompt `PROMPT-OPS-ODIN-ENLACE-MI-TURNO-v1`.
 - **Fuente:** instrucción del propietario del 2026-11-17; issue [#645](https://github.com/bcaceres19/barberia/issues/645); issue de Odin [bcaceres19/odin#7](https://github.com/bcaceres19/odin/issues/7).
+
+### DEC-180 · El código abre el paso 03 «Tu turno» con cambiar la hora y cancelar, sin salir del flujo (amplía `DEC-178`, sustituye el punto 7 de `DEC-179`)
+
+- **Fecha:** 2026-11-17.
+- **Decisión:**
+  1. Tras verificar el código en `/reservar/<slug>/mi-turno` (`HU-105`), la página **no navega**: activa el paso 03 «Tu turno» y muestra el turno en una línea (hoja de calendario, hora en la zona de la barbería, servicio y profesional) y dos acciones, «Cambiar la hora» y «Cancelar turno».
+  2. «Cambiar la hora» lleva a la pantalla de `HU-104` (`/mi-turno/<token>/reprogramar`), que es la que elige el día y la hora. Si la pista local dice que ya no procede (plazo vencido o cambios agotados), la opción se muestra apagada con el motivo.
+  3. «Cancelar turno» abre la confirmación **en la misma página**, con la consecuencia por delante y el motivo según la política (`HU-099`, `RN-CAN-01`). La cancelación vuelve a usar la versión del turno y la clave de idempotencia, y su lógica es una sola para «Mi turno» y el paso 03. Al cancelar, el paso muestra el turno cancelado y ofrece reservar de nuevo.
+  4. Con varios turnos, el paso 03 primero lista los turnos y luego abre las acciones del elegido, con «Elegir otro turno» para volver. Tampoco sale de la página.
+  5. El enlace de Odin con propósito `cancel` (`HU-106`) abre la confirmación en la misma página, con los pasos «01 Código · 02 Tu turno». Con «Mantener mi turno» vuelve a las dos opciones. El propósito `reschedule` sigue llevando a «Cambiar la hora».
+  6. La pantalla completa de «Mi turno» (`/mi-turno/<token>`) sigue existiendo para el enlace del correo y queda como enlace secundario («Ver el detalle completo del turno»).
+- **Qué no cambia:** las reglas de cancelación y de reprogramación, el contrato del API y las credenciales: el paso 03 usa el mismo acceso de 60 minutos.
+- **Quién lo decidió:** el propietario, el 2026-11-17: «cuando de el codigo no abras como otra pantalla si no abre el paso 03 Tu turno… deberia mostrar esas opciones en la 03 ya que por ende estoy haciendo dicho flujo».
+- **Responsable:** propietario del proyecto.
+- **Motivo:** la pantalla completa es la de la confirmación de la reserva. Quien escribe el código vino a cambiar o cancelar, y ahí las acciones quedaban al fondo, después del boleto y la política.
+- **Alternativas descartadas:** seguir llevando a `/mi-turno/<token>` con la cancelación enfocada (es la pantalla que el propietario pidió no abrir); duplicar la pantalla de reprogramar dentro del paso 03 (repetiría la elección de día y hora de `HU-104`).
+- **Corrección incluida:** el botón «Mantener mi turno» de la cancelación tenía texto de tinta sobre tinta oscura y casi no se leía, también en «Mi turno»; ahora usa el color de texto sobre tinta.
+- **Documentos afectados:** `matriz-trazabilidad.md`, `historial-cambios.md`.
+- **Fuente:** instrucción del propietario del 2026-11-17; issue [#647](https://github.com/bcaceres19/barberia/issues/647).
