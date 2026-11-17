@@ -13,7 +13,7 @@ documentos_relacionados:
   - "../00-control/registro-decisiones.md"
 ---
 
-> **Estado del contenido:** Hay 50 funciones P0 confirmadas. No queda ninguna elevación pendiente del lote de decisiones del 5 de agosto de 2026; `F-PUB-09`–`F-PUB-12` se elevan el 2026-10-26 por instrucción directa del propietario (`DEC-128`–`DEC-131`), y `F-PUB-13` el 2026-11-17 (`DEC-178`).
+> **Estado del contenido:** Hay 50 funciones P0 confirmadas. No queda ninguna elevación pendiente del lote de decisiones del 5 de agosto de 2026; `F-PUB-09`–`F-PUB-12` se elevan el 2026-10-26 por instrucción directa del propietario (`DEC-128`–`DEC-131`), `F-PUB-13` el 2026-11-17 (`DEC-178`) y `F-PUB-14` el mismo día (`DEC-182`).
 >
 > Este documento no convierte automáticamente las propuestas en decisiones aprobadas.
 
@@ -132,6 +132,7 @@ Se dejan explícitos para que nadie asuma lo contrario:
 | `F-PUB-11` | Ubicación de la barbería en la reserva pública | Configurable; oculta si la barbería no tiene local. `DEC-130` |
 | `F-PUB-12` | Domicilio con dirección del cliente y mapa | Interruptor general de la barbería; dirección geocodificada obligatoria. `DEC-131` |
 | `F-PUB-13` | Reprogramación por parte del cliente | Solo fecha y hora, mismo plazo que la cancelación, máximo 2 por turno; acceso por el enlace o con un código de un solo uso al correo o WhatsApp. `DEC-178` |
+| `F-PUB-14` | Horario de atención del local | Propio del local, editado por el dueño; se muestra en la reserva pública con el estado de hoy y lo consulta Odin. Informativo: no limita la disponibilidad. `DEC-182` |
 
 ### Disponibilidad e integridad — `DISP`
 
@@ -271,6 +272,7 @@ No quedan dudas de este lote que cambien qué se construye. Las incorporaciones 
 | `DEC-027` | Correo y WhatsApp oficial son canales del MVP |
 | `DEC-032` | `F-NOT-03` pasa a P0; `CT-001` queda resuelta |
 | `DEC-128`–`DEC-131` | `F-PUB-09`–`F-PUB-12` pasan a P0: reseñas internas por barbero, reseñas y estrellas de Google del negocio, ubicación configurable de la barbería y domicilio con dirección del cliente, todas por instrucción directa del propietario el 2026-10-26 |
+| `DEC-182` | `F-PUB-14` pasa a P0: horario de atención propio del local en Configuración, el perfil público y la reserva, por instrucción del propietario el 2026-11-17 |
 
 ---
 

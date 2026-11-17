@@ -1,0 +1,31 @@
+# Respuesta 200 de GET y PUT /private/settings/opening-hours (HU-107, DEC-182).
+description: Horario de atención vigente de la barbería activa.
+headers:
+  X-Request-Id:
+    $ref: '../headers/XRequestId.yaml'
+  Cache-Control:
+    description: Siempre `no-store`.
+    schema:
+      type: string
+      enum: [no-store]
+content:
+  application/json:
+    schema:
+      $ref: '../schemas/OpeningHoursSettings.yaml'
+    examples:
+      sinConfigurar:
+        summary: Todavía sin horario
+        value:
+          openingHours: []
+          closedOnHolidays: false
+          maxSegmentsPerDay: 4
+      jornadaPartida:
+        summary: Lunes a viernes con almuerzo, sábado corrido, festivos cerrado
+        value:
+          openingHours:
+            - { dayOfWeek: MONDAY, opens: '09:00', closes: '12:30' }
+            - { dayOfWeek: MONDAY, opens: '14:00', closes: '19:00' }
+            - { dayOfWeek: FRIDAY, opens: '09:00', closes: '20:00' }
+            - { dayOfWeek: SATURDAY, opens: '08:00', closes: '16:00' }
+          closedOnHolidays: true
+          maxSegmentsPerDay: 4

@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"strings"
+	"time"
 
 	"system-barbershop/internal/platform/apperr"
 )
@@ -12,12 +13,26 @@ import (
 // de reservas de una barbería a partir de un identificador (slug) no
 // confiado, sin sesión y sin que el cliente pueda fijar barbershopId.
 type Service struct {
-	repo Repository
+	repo    Repository
+	now     func() time.Time
+	holiday HolidayLookup
 }
 
-// NewService construye el servicio.
+// NewService construye el servicio. Sin WithOpeningCalendar usa el reloj del
+// sistema y no conoce festivos.
 func NewService(repo Repository) *Service {
-	return &Service{repo: repo}
+	return &Service{repo: repo, now: time.Now}
+}
+
+// WithOpeningCalendar fija el reloj y el calendario de festivos con que se
+// calcula el horario de hoy del perfil público (DEC-182). now nil conserva el
+// reloj del sistema.
+func (s *Service) WithOpeningCalendar(now func() time.Time, holiday HolidayLookup) *Service {
+	if now != nil {
+		s.now = now
+	}
+	s.holiday = holiday
+	return s
 }
 
 // ResolveBarbershop resuelve rawSlug -tal como llega del parámetro de ruta,
@@ -44,6 +59,11 @@ func (s *Service) ResolveBarbershop(ctx context.Context, rawSlug string) (Barber
 	}
 	if !found {
 		return BarbershopProfile{}, errBarbershopNotPublic()
+	}
+	// La zona viene de barbershop.timezone, validada al guardarla; si aun así no
+	// carga, el perfil sale sin «hoy» en vez de fallar entero.
+	if loc, err := time.LoadLocation(profile.Timezone); err == nil {
+		profile.Today = TodayOpening(profile.OpeningHours, profile.ClosedOnHolidays, s.now(), loc, s.holiday)
 	}
 	return profile, nil
 }

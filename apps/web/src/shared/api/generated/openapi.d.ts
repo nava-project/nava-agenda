@@ -775,6 +775,30 @@ export interface paths {
         patch: operations["updateReminderSettings"];
         trace?: never;
     };
+    "/private/settings/opening-hours": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Consultar el horario de atención del local
+         * @description Lectura autenticada (HU-107, DEC-182) del horario semanal del local y de si cierra los festivos colombianos. `barbershopId` nunca es un parámetro: el tenant se deriva exclusivamente de `SessionCookie`. Una cuenta de empleado recibe `403` (`DEC-173`). La respuesta no se almacena en caché.
+         */
+        get: operations["getOpeningHours"];
+        /**
+         * Guardar el horario de atención del local
+         * @description Reemplaza la semana completa en una sola transacción (HU-107, DEC-182): o queda el horario nuevo entero o el anterior. El horario del local es informativo y no cambia la disponibilidad de los barberos. Sin precondición de versión: la última escritura gana. Una cuenta de empleado recibe `403` (`DEC-173`).
+         */
+        put: operations["replaceOpeningHours"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/private/integrations/google-calendar": {
         parameters: {
             query?: never;
@@ -2220,6 +2244,53 @@ export interface components {
             /** @example -74.076111 */
             longitude: number;
         };
+        /**
+         * @description Día de la semana.
+         * @example MONDAY
+         * @enum {string}
+         */
+        DayOfWeek: "MONDAY" | "TUESDAY" | "WEDNESDAY" | "THURSDAY" | "FRIDAY" | "SATURDAY" | "SUNDAY";
+        /** @description Un tramo `[opens, closes)` de un día de la semana, en la hora civil de la zona horaria del local (`timezone` del perfil). Varios tramos en un mismo día son un cierre al mediodía; un día sin tramos está cerrado. Un horario que pasa de medianoche son dos tramos: `20:00–24:00` un día y `00:00–02:00` el siguiente. */
+        OpeningHoursSegment: {
+            dayOfWeek: components["schemas"]["DayOfWeek"];
+            /**
+             * @description Hora de apertura, `HH:MM` de `00:00` a `23:59`.
+             * @example 09:00
+             */
+            opens: string;
+            /**
+             * @description Hora de cierre, excluida del tramo; `HH:MM` posterior a `opens`. `24:00` significa «hasta medianoche».
+             * @example 19:00
+             */
+            closes: string;
+        };
+        /** @description Tramo `[opens, closes)` de hoy en la hora civil del local. */
+        PublicOpeningInterval: {
+            /** @example 09:00 */
+            opens: string;
+            /**
+             * @description `24:00` significa «hasta medianoche».
+             * @example 19:00
+             */
+            closes: string;
+        };
+        /** @description Lo que rige hoy, en la fecha civil de la zona horaria del local. `hours` vacío significa que hoy cierra: el día no tiene tramos o es festivo y el local cierra los festivos. */
+        PublicOpeningToday: {
+            /**
+             * Format: date
+             * @description Fecha de hoy en la zona horaria del local.
+             * @example 2026-11-17
+             */
+            date: string;
+            dayOfWeek: components["schemas"]["DayOfWeek"];
+            /**
+             * @description Nombre del festivo colombiano si hoy lo es; `null` si no.
+             * @example Independencia de Cartagena
+             */
+            holiday: string | null;
+            /** @description Tramos de hoy ordenados por apertura; vacío si hoy cierra. */
+            hours: components["schemas"]["PublicOpeningInterval"][];
+        };
         /** @description Contexto público de la barbería resuelta por su enlace de reservas. contactEmail/contactPhone viajan siempre presentes en el cuerpo, con valor `null` explícito cuando la barbería no tiene ese contacto configurado (nunca se omiten ni se representan como cadena vacía), misma convención que BarbershopSettingsResponse. */
         PublicBarbershopProfile: {
             /**
@@ -2250,6 +2321,12 @@ export interface components {
             offersHomeService: boolean;
             /** @description Color de acento que la barbería eligió en Configuración (`DEC-110`). La reserva pública de esta barbería pinta con él sus acentos (`DEC-171`). Siempre presente; `brass` es el valor inicial. */
             brandAccent: components["schemas"]["BrandAccent"];
+            /** @description Horario semanal del local (`DEC-182`), ordenado por día (lunes primero) y apertura, en la hora civil de `timezone`. Un día sin tramos está cerrado. Vacío significa que la barbería no lo ha configurado: no se sabe, no que cierre toda la semana. Es informativo; la disponibilidad real sale de los horarios de los barberos. */
+            openingHours: components["schemas"]["OpeningHoursSegment"][];
+            /** @description El local cierra los festivos colombianos (`DEC-182`). */
+            closedOnHolidays: boolean;
+            /** @description Lo que rige hoy con el festivo aplicado (`DEC-182`); `null` cuando `openingHours` está vacío. */
+            today: components["schemas"]["PublicOpeningToday"] | null;
         };
         /** @description Servicio ofrecido públicamente por la barbería resuelta: activo y con al menos una asignación vigente a un barbero (HU-091, CA-091-01). currency es siempre "COP" (DEC-067). */
         PublicServiceResponse: {
@@ -3203,6 +3280,25 @@ export interface components {
              * @example 20
              */
             leadMinutes: number;
+        };
+        /** @description El horario semanal del local y si cierra los festivos colombianos. Es informativo: no limita la disponibilidad, que sale del horario de cada barbero. */
+        OpeningHoursSettings: {
+            /** @description Tramos ordenados por día (lunes primero) y apertura. Vacío significa que el dueño todavía no configuró el horario. */
+            openingHours: components["schemas"]["OpeningHoursSegment"][];
+            /** @description El local cierra los festivos colombianos. */
+            closedOnHolidays: boolean;
+            /**
+             * @description Cuántos tramos admite un día.
+             * @enum {integer}
+             */
+            maxSegmentsPerDay: 4;
+        };
+        /** @description La semana completa: reemplaza todos los tramos y el ajuste de festivos. Una lista vacía deja el horario sin configurar. */
+        ReplaceOpeningHoursRequest: {
+            /** @description Tramos en cualquier orden. Cada uno cierra después de abrir, no se solapa con otro del mismo día (dos contiguos, `12:00` y `12:00`, no se solapan) y un día admite como máximo 4. Si uno falla, responde `422` y no se guarda nada. */
+            openingHours: components["schemas"]["OpeningHoursSegment"][];
+            /** @description El local cierra los festivos colombianos. */
+            closedOnHolidays: boolean;
         };
         /** @description Estado de la integración del usuario autenticado. `enabled` es falso cuando el servidor no tiene credenciales de Google configuradas (la integración queda desactivada y el resto del producto funciona). `barberLinked` es falso mientras el usuario no haya declarado cuál barbero es (`DEC-100`): sin barbero no se puede conectar. */
         GoogleCalendarConnectionResponse: {
@@ -5079,6 +5175,28 @@ export interface components {
                 "application/problem+json": components["schemas"]["Problem"];
             };
         };
+        /** @description Horario de atención vigente de la barbería activa. */
+        OpeningHoursSettingsSuccess: {
+            headers: {
+                "X-Request-Id": components["headers"]["XRequestId"];
+                /** @description Siempre `no-store`. */
+                "Cache-Control"?: "no-store";
+                [name: string]: unknown;
+            };
+            content: {
+                "application/json": components["schemas"]["OpeningHoursSettings"];
+            };
+        };
+        /** @description El cuerpo es JSON válido, pero falta un campo, un día u hora está mal escrito, un tramo cierra antes de abrir, dos tramos del mismo día se solapan o un día pasa de 4 tramos. Ninguna escritura ocurre cuando esto sucede. */
+        OpeningHoursValidationProblem: {
+            headers: {
+                "X-Request-Id": components["headers"]["XRequestId"];
+                [name: string]: unknown;
+            };
+            content: {
+                "application/problem+json": components["schemas"]["Problem"];
+            };
+        };
         /** @description Estado de la integración del barbero con Google Calendar. */
         GoogleCalendarConnectionSuccess: {
             headers: {
@@ -6697,6 +6815,44 @@ export interface operations {
             403: components["responses"]["ForbiddenProblem"];
             404: components["responses"]["NotFoundProblem"];
             422: components["responses"]["ReminderSettingsValidationProblem"];
+            500: components["responses"]["InternalErrorProblem"];
+        };
+    };
+    getOpeningHours: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: components["responses"]["OpeningHoursSettingsSuccess"];
+            401: components["responses"]["UnauthorizedProblem"];
+            403: components["responses"]["ForbiddenProblem"];
+            404: components["responses"]["NotFoundProblem"];
+            500: components["responses"]["InternalErrorProblem"];
+        };
+    };
+    replaceOpeningHours: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ReplaceOpeningHoursRequest"];
+            };
+        };
+        responses: {
+            200: components["responses"]["OpeningHoursSettingsSuccess"];
+            400: components["responses"]["InvalidRequestProblem"];
+            401: components["responses"]["UnauthorizedProblem"];
+            403: components["responses"]["ForbiddenProblem"];
+            404: components["responses"]["NotFoundProblem"];
+            422: components["responses"]["OpeningHoursValidationProblem"];
             500: components["responses"]["InternalErrorProblem"];
         };
     };

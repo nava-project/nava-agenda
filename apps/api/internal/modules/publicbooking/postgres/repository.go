@@ -68,7 +68,7 @@ func (r *Repository) ResolveBySlug(ctx context.Context, slug string) (publicbook
 			        business_term, business_term_gender,
 			        professional_term, professional_term_plural, professional_term_gender,
 			        has_physical_location, address, latitude, longitude, offers_home_service,
-			        google_place_id, brand_accent
+			        google_place_id, brand_accent, closed_on_holidays
 			   FROM barbershop
 			  WHERE id = $1`,
 			string(barbershopID),
@@ -78,7 +78,7 @@ func (r *Repository) ResolveBySlug(ctx context.Context, slug string) (publicbook
 			&profile.Vocabulary.ProfessionalTerm, &profile.Vocabulary.ProfessionalTermPlural,
 			&profile.Vocabulary.ProfessionalTermGender,
 			&hasPhysicalLocation, &address, &latitude, &longitude, &profile.OffersHomeService,
-			&profile.GooglePlaceID, &profile.BrandAccent,
+			&profile.GooglePlaceID, &profile.BrandAccent, &profile.ClosedOnHolidays,
 		)
 		switch {
 		case err == nil:
@@ -98,6 +98,14 @@ func (r *Repository) ResolveBySlug(ctx context.Context, slug string) (publicbook
 		default:
 			return fmt.Errorf("select public barbershop profile: %w", err)
 		}
+		if !profileFound {
+			return nil
+		}
+		hours, err := readOpeningHours(ctx, q, string(barbershopID))
+		if err != nil {
+			return err
+		}
+		profile.OpeningHours = hours
 		return nil
 	})
 	if err != nil {
@@ -585,4 +593,32 @@ func (r *Repository) FindCustomerMatches(ctx context.Context, barbershopID, phon
 		return nil, nil, fmt.Errorf("publicbooking/postgres: buscar coincidencias de customer: %w", err)
 	}
 	return phoneMatchID, emailMatchID, nil
+}
+
+// readOpeningHours lee el horario del local (HU-107, DEC-182) en minutos
+// desde medianoche; EXTRACT(EPOCH) de un `time` 24:00 da 86400, es decir 1440.
+func readOpeningHours(ctx context.Context, q database.Queries, barbershopID string) ([]publicbooking.OpeningSegment, error) {
+	rows, err := q.Query(ctx,
+		`SELECT iso_weekday,
+		        (EXTRACT(EPOCH FROM opens_time)  / 60)::int,
+		        (EXTRACT(EPOCH FROM closes_time) / 60)::int
+		   FROM barbershop_opening_hour
+		  WHERE barbershop_id = $1
+		  ORDER BY iso_weekday, opens_time`, barbershopID)
+	if err != nil {
+		return nil, fmt.Errorf("select opening hours: %w", err)
+	}
+	defer rows.Close()
+	segments := []publicbooking.OpeningSegment{}
+	for rows.Next() {
+		var seg publicbooking.OpeningSegment
+		if err := rows.Scan(&seg.Weekday, &seg.Opens, &seg.Closes); err != nil {
+			return nil, fmt.Errorf("scan opening hour: %w", err)
+		}
+		segments = append(segments, seg)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, fmt.Errorf("iterate opening hours: %w", err)
+	}
+	return segments, nil
 }

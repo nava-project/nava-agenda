@@ -1,6 +1,6 @@
 ---
 titulo: "Historias de usuario y criterios de aceptación"
-version: "1.64"
+version: "1.65"
 estado: "Propuesta"
 responsable: "Propietario del proyecto"
 ultima_actualizacion: "2026-11-17"
@@ -2802,6 +2802,52 @@ Orden recomendado: `HU-090` → `HU-091` → `HU-092` → `HU-093` → `HU-094` 
 
 **Terminado cuando** un cliente le escribe a Odin, confirma su turno y, con el código que le llega al mismo WhatsApp, cancela o cambia la hora sin que nadie más pueda hacerlo con su teléfono.
 
+### HU-107 · Horario de atención del local
+
+| Campo | Valor |
+| --- | --- |
+| Función | `F-PUB-14` |
+| Reglas | `RN-TEN-01`, `RN-DIS-07` |
+| Decisiones | `DEC-020`, `DEC-173`, `DEC-182` |
+| Actor | Dueño de la barbería; cliente en la reserva pública; Odin como servicio |
+| Depende de | `HU-020` (Configuración) y `HU-090` (perfil público) integradas |
+| Estado | Implementada contra el issue real [#654](https://github.com/bcaceres19/barberia/issues/654), rama `feat/654-horario-del-local` |
+| Riesgo | Que el horario publicado contradiga la agenda real y un cliente llegue a un local cerrado, o que «sin horario» se lea como «cerrado». |
+
+**Historia**
+
+> Como dueño, quiero publicar los días y horas en que abre mi local, para que mis clientes lo vean al reservar y el asistente de WhatsApp responda si estoy abierto.
+
+**Alcance incluido**
+
+- Sección «07 Horario de atención» en Configuración: cada día abierto o cerrado, hasta 4 horarios por día, «Cerramos los festivos» y copiar el lunes de martes a viernes.
+- `GET`/`PUT /private/settings/opening-hours` (solo el dueño).
+- `openingHours`, `closedOnHolidays` y `today` en el perfil público.
+- Sección «Horario» en la entrada de la reserva, con el estado de ahora en la hora del local.
+
+**Alcance excluido**
+
+- Cierres puntuales por fecha.
+- Validar reservas contra el horario del local.
+- Horario por sede.
+- El lector de Odin, que vive en su repositorio.
+
+**Criterios de aceptación**
+
+| Código | Criterio |
+| --- | --- |
+| `CA-107-01` | El dueño guarda el horario semanal con varios horarios por día; un día sin horarios queda cerrado y `24:00` (00:00 en el selector) es medianoche. |
+| `CA-107-02` | Un horario que cierra antes de abrir o igual, horas mal escritas, horarios que se cruzan o más de 4 por día se rechazan con `422` sin guardar nada; la pantalla los señala junto al día antes de enviar. |
+| `CA-107-03` | Un empleado recibe `403`; ninguna barbería ve, borra ni escribe el horario de otra (RLS con dos tenants). |
+| `CA-107-04` | El perfil público trae `openingHours` (lista vacía si no está configurado), `closedOnHolidays` y `today`, que es `null` sin horario. |
+| `CA-107-05` | `today` usa la fecha civil de la zona del local; en un festivo colombiano trae su nombre y, con `closedOnHolidays`, `hours` vacío. |
+| `CA-107-06` | La reserva pública muestra el estado de ahora y la semana solo con horario configurado; sin él no muestra nada. |
+| `CA-107-07` | Evidencia en 320/360/768/1280 px y zoom 200 %, sin scroll horizontal y sin violaciones de axe-core, en Configuración y en la reserva. |
+
+**Pruebas obligatorias:** SQL con dos tenants (restricciones, privilegios, RLS); dominio; PostgreSQL real (reemplazo atómico, aislamiento, perfil público); handler y contrato; modelo, API y componentes con `vitest-axe`; E2E `horario-local.spec.ts` con evidencia.
+
+**Terminado cuando** el dueño guarda su horario y, al instante, la reserva y Odin pueden decir si el local está abierto a una hora dada.
+
 ---
 
 ## 8. Bloque B5 · Notificaciones y recordatorios
@@ -2920,7 +2966,7 @@ Orden recomendado: `HU-090` → `HU-091` → `HU-092` → `HU-093` → `HU-094` 
 | B1 | `HU-029` – (`HU-026`, `HU-027` y `HU-028`: conexión, publicación y pantalla de Google Calendar, `DEC-099`) | `HU-020`–`HU-024` implementadas (`DEC-067`–`DEC-069` propagadas); redactar lo restante solo después de revisar el criterio de salida de B1 |
 | B2 | `HU-040` – `HU-042` | Integradas en `main` (PR `#93`, `#96`, `#99`); seguimientos parciales en issues `#90`, `#95`, `#98` y `#100` (este último completo el 2026-10-08) |
 | B3 | `HU-069` – | `HU-066`–`HU-068` ya integradas en `main`; continuar con T3 y cierre automático solo después de revisar este lote y resolver cualquier duda de semántica de snapshots/configuración |
-| B4 | `HU-107` – | `HU-090`–`HU-106` ya redactadas (`HU-100`–`HU-103`: reseñas internas, reseñas de Google, ubicación y domicilio, `DEC-128`–`DEC-131`; `HU-104`–`HU-106`: reprogramación por el cliente y su acceso, `DEC-178` y `DEC-179`); continuar con el resto solo tras resolver cualquier duda nueva de esas cuatro historias |
+| B4 | `HU-108` – | `HU-090`–`HU-107` ya redactadas (`HU-100`–`HU-103`: reseñas internas, reseñas de Google, ubicación y domicilio, `DEC-128`–`DEC-131`; `HU-104`–`HU-106`: reprogramación por el cliente y su acceso, `DEC-178` y `DEC-179`); continuar con el resto solo tras resolver cualquier duda nueva de esas cuatro historias |
 | B5 | `HU-132` – (`HU-130`: aviso al cliente al cancelar o reprogramar, `DEC-142`; `HU-131`: recordatorio 30 minutos antes, `DEC-144`) | B4 cumple su criterio de salida; recordatorios, WhatsApp y configuración por evento siguen pendientes |
 | B6 | `HU-150` – | B5 cumple su criterio de salida |
 

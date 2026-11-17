@@ -9,10 +9,12 @@ import (
 	"bytes"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"io"
 	"log/slog"
 	"net/http"
 	"strconv"
+	"time"
 
 	"system-barbershop/internal/modules/publicbooking"
 	"system-barbershop/internal/platform/apperr"
@@ -73,7 +75,29 @@ func newPublicBarbershopProfileResponse(p publicbooking.BarbershopProfile) Publi
 			Address: p.Location.Address, Latitude: p.Location.Latitude, Longitude: p.Location.Longitude,
 		}
 	}
+	openingHours := make([]PublicOpeningSegmentResponse, 0, len(p.OpeningHours))
+	for _, seg := range p.OpeningHours {
+		openingHours = append(openingHours, PublicOpeningSegmentResponse{
+			DayOfWeek: weekdayName(seg.Weekday), Opens: clockText(seg.Opens), Closes: clockText(seg.Closes),
+		})
+	}
+	var today *PublicOpeningTodayResponse
+	if p.Today != nil {
+		hours := make([]PublicOpeningIntervalResponse, 0, len(p.Today.Hours))
+		for _, seg := range p.Today.Hours {
+			hours = append(hours, PublicOpeningIntervalResponse{Opens: clockText(seg.Opens), Closes: clockText(seg.Closes)})
+		}
+		today = &PublicOpeningTodayResponse{
+			Date:      p.Today.Date.Format(time.DateOnly),
+			DayOfWeek: weekdayName(p.Today.Weekday),
+			Holiday:   p.Today.Holiday,
+			Hours:     hours,
+		}
+	}
 	return PublicBarbershopProfileResponse{
+		OpeningHours:      openingHours,
+		ClosedOnHolidays:  p.ClosedOnHolidays,
+		Today:             today,
 		Location:          location,
 		OffersHomeService: p.OffersHomeService,
 		BrandAccent:       p.BrandAccent,
@@ -564,4 +588,19 @@ func newPublicGoogleReviewsResponse(g publicbooking.GoogleReviews) PublicGoogleR
 	return PublicGoogleReviewsResponse{
 		Rating: g.Rating, RatingCount: g.RatingCount, MapsURL: g.MapsURL, Reviews: items,
 	}
+}
+
+// weekdayNames son los valores de DayOfWeek.yaml en orden ISO (1 = lunes).
+var weekdayNames = [...]string{"MONDAY", "TUESDAY", "WEDNESDAY", "THURSDAY", "FRIDAY", "SATURDAY", "SUNDAY"}
+
+func weekdayName(iso int) string {
+	if iso < 1 || iso > 7 {
+		return ""
+	}
+	return weekdayNames[iso-1]
+}
+
+// clockText escribe minutos desde medianoche como `HH:MM`; 1440 es `24:00`.
+func clockText(minutes int) string {
+	return fmt.Sprintf("%02d:%02d", minutes/60, minutes%60)
 }

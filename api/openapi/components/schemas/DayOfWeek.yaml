@@ -1,0 +1,7 @@
+# Día de la semana del horario del local (HU-107, DEC-182). Por nombre, no por
+# número, para que un lector humano o un agente no tenga que adivinar si el
+# cero es domingo; internamente es el día ISO 8601 (1 = lunes … 7 = domingo).
+type: string
+description: Día de la semana.
+enum: [MONDAY, TUESDAY, WEDNESDAY, THURSDAY, FRIDAY, SATURDAY, SUNDAY]
+example: MONDAY

@@ -10,6 +10,7 @@ package publicbooking_test
 import (
 	"context"
 	"errors"
+	"reflect"
 	"strings"
 	"testing"
 
@@ -111,7 +112,7 @@ func TestResolveBarbershop_Found_ReturnsProfile(t *testing.T) {
 	if err != nil {
 		t.Fatalf("ResolveBarbershop: %v", err)
 	}
-	if got != want {
+	if !reflect.DeepEqual(got, want) {
 		t.Fatalf("expected %+v, got %+v", want, got)
 	}
 	if len(repo.calls) != 1 || repo.calls[0] != "barberia-ejemplo" {

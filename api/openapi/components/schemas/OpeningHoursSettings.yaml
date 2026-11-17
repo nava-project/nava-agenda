@@ -1,0 +1,26 @@
+# Horario de atención de la barbería activa (HU-107, DEC-182).
+type: object
+additionalProperties: false
+description: >
+  El horario semanal del local y si cierra los festivos colombianos. Es
+  informativo: no limita la disponibilidad, que sale del horario de cada barbero.
+properties:
+  openingHours:
+    type: array
+    description: >
+      Tramos ordenados por día (lunes primero) y apertura. Vacío significa que el
+      dueño todavía no configuró el horario.
+    maxItems: 28
+    items:
+      $ref: './OpeningHoursSegment.yaml'
+  closedOnHolidays:
+    type: boolean
+    description: El local cierra los festivos colombianos.
+  maxSegmentsPerDay:
+    type: integer
+    description: Cuántos tramos admite un día.
+    enum: [4]
+required:
+  - openingHours
+  - closedOnHolidays
+  - maxSegmentsPerDay

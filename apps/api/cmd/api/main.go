@@ -224,7 +224,13 @@ func buildRouter(db *database.DB, logger *slog.Logger, cfg config.Config) (*chi.
 	// una barbería habilitada sin sesión y sin que el cliente pueda fijar
 	// barbershopId (CA-090-03); registrada sobre el router público
 	// completo, igual que login/challenge, nunca sobre `private`.
-	publicBookingService := publicbooking.NewService(publicbookingpostgres.New(db))
+	// El horario de hoy del perfil público (DEC-182) aplica el calendario de
+	// festivos colombianos de schedule; publicbooking no importa schedule.
+	publicBookingService := publicbooking.NewService(publicbookingpostgres.New(db)).
+		WithOpeningCalendar(nil, func(date time.Time) (string, bool) {
+			holiday, ok := schedule.IsColombianHoliday(date)
+			return holiday.Name, ok
+		})
 	resolveBarbershopHandler := publicbookinghttpapi.NewResolveBarbershopHandler(publicBookingService)
 	router.Get("/api/v1/public/barbershops/{slug}", resolveBarbershopHandler.ServeHTTP)
 	listPublicServicesHandler := publicbookinghttpapi.NewListPublicServicesHandler(publicBookingService)
@@ -335,6 +341,10 @@ func buildRouter(db *database.DB, logger *slog.Logger, cfg config.Config) (*chi.
 		shopspostgres.NewReminderSettingsRepository(db, appointmentnoticepostgres.NewEnqueuer()))
 	private.Get("/settings/reminders", shopshttpapi.NewGetReminderSettingsHandler(reminderSettingsService).ServeHTTP)
 	private.Patch("/settings/reminders", shopshttpapi.NewUpdateReminderSettingsHandler(reminderSettingsService).ServeHTTP)
+	// HU-107 (DEC-182): horario de atención propio del local.
+	openingHoursService := shops.NewOpeningHoursService(shopspostgres.NewOpeningHoursRepository(db))
+	private.Get("/settings/opening-hours", shopshttpapi.NewGetOpeningHoursHandler(openingHoursService).ServeHTTP)
+	private.Put("/settings/opening-hours", shopshttpapi.NewReplaceOpeningHoursHandler(openingHoursService).ServeHTTP)
 
 	// Issue #304 (DEC-117): enlace público de reservas de la barbería de la
 	// sesión, generado `<nombre><código>` en la primera lectura si aún no

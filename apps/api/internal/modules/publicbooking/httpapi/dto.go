@@ -24,6 +24,37 @@ type PublicBarbershopProfileResponse struct {
 	OffersHomeService bool `json:"offersHomeService"`
 	// BrandAccent es la clave del color de marca de la barbería (DEC-171).
 	BrandAccent string `json:"brandAccent"`
+	// OpeningHours es el horario del local (DEC-182); lista vacía, nunca null,
+	// si no está configurado.
+	OpeningHours []PublicOpeningSegmentResponse `json:"openingHours"`
+	// ClosedOnHolidays indica que el local cierra los festivos colombianos.
+	ClosedOnHolidays bool `json:"closedOnHolidays"`
+	// Today es lo que rige hoy con el festivo aplicado; null sin horario.
+	Today *PublicOpeningTodayResponse `json:"today"`
+}
+
+// PublicOpeningSegmentResponse es la forma exacta del componente OpenAPI
+// OpeningHoursSegment.yaml (DEC-182).
+type PublicOpeningSegmentResponse struct {
+	DayOfWeek string `json:"dayOfWeek"`
+	Opens     string `json:"opens"`
+	Closes    string `json:"closes"`
+}
+
+// PublicOpeningTodayResponse es la forma exacta del componente OpenAPI
+// PublicOpeningToday.yaml (DEC-182).
+type PublicOpeningTodayResponse struct {
+	Date      string                          `json:"date"`
+	DayOfWeek string                          `json:"dayOfWeek"`
+	Holiday   *string                         `json:"holiday"`
+	Hours     []PublicOpeningIntervalResponse `json:"hours"`
+}
+
+// PublicOpeningIntervalResponse es la forma exacta del componente OpenAPI
+// PublicOpeningInterval.yaml (DEC-182).
+type PublicOpeningIntervalResponse struct {
+	Opens  string `json:"opens"`
+	Closes string `json:"closes"`
 }
 
 // PublicLocationResponse es la forma exacta del componente OpenAPI

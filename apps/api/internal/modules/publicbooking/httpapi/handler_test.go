@@ -713,3 +713,49 @@ func TestGetPublicGoogleReviewsHandler_NeverExposesThePlaceIDOrAnyKey(t *testing
 		t.Fatalf("la respuesta no debe contener el Place ID ni claves: %s", rec.Body.String())
 	}
 }
+
+// CA-107-04: sin horario, openingHours viaja como lista vacía y today como null
+// explícito; con horario, los tramos salen en `HH:MM` (24:00 incluido) y today
+// trae la fecha civil del local.
+func TestResolveBarbershopHandler_OpeningHours_EmptyListAndNullTodayOrTheWeek(t *testing.T) {
+	none := &fakeRepository{found: true, profile: publicbooking.BarbershopProfile{Name: "A", Timezone: "America/Bogota"}}
+	rec := httptest.NewRecorder()
+	httpapi.NewResolveBarbershopHandler(publicbooking.NewService(none)).ServeHTTP(rec, requestWithSlug("a"))
+	var raw map[string]any
+	if err := json.NewDecoder(rec.Body).Decode(&raw); err != nil {
+		t.Fatalf("decode: %v", err)
+	}
+	if hours, ok := raw["openingHours"].([]any); !ok || len(hours) != 0 {
+		t.Fatalf("sin horario, openingHours debe ser [] (no null): %v", raw["openingHours"])
+	}
+	if v, present := raw["today"]; !present || v != nil {
+		t.Fatalf("sin horario, today debe viajar como null explícito: present=%v v=%v", present, v)
+	}
+
+	shop := &fakeRepository{found: true, profile: publicbooking.BarbershopProfile{
+		Name: "A", Timezone: "America/Bogota", ClosedOnHolidays: true,
+		OpeningHours: []publicbooking.OpeningSegment{
+			{Weekday: 2, Opens: 9*60 + 30, Closes: 19 * 60},
+			{Weekday: 5, Opens: 20 * 60, Closes: 24 * 60},
+		},
+	}}
+	tuesday := func() time.Time { return time.Date(2026, 11, 17, 15, 0, 0, 0, time.UTC) }
+	rec = httptest.NewRecorder()
+	httpapi.NewResolveBarbershopHandler(publicbooking.NewService(shop).WithOpeningCalendar(tuesday, nil)).
+		ServeHTTP(rec, requestWithSlug("a"))
+	var body httpapi.PublicBarbershopProfileResponse
+	if err := json.NewDecoder(rec.Body).Decode(&body); err != nil {
+		t.Fatalf("decode: %v", err)
+	}
+	want := []httpapi.PublicOpeningSegmentResponse{
+		{DayOfWeek: "TUESDAY", Opens: "09:30", Closes: "19:00"},
+		{DayOfWeek: "FRIDAY", Opens: "20:00", Closes: "24:00"},
+	}
+	if len(body.OpeningHours) != 2 || body.OpeningHours[0] != want[0] || body.OpeningHours[1] != want[1] || !body.ClosedOnHolidays {
+		t.Fatalf("openingHours = %+v closedOnHolidays=%v", body.OpeningHours, body.ClosedOnHolidays)
+	}
+	if body.Today == nil || body.Today.Date != "2026-11-17" || body.Today.DayOfWeek != "TUESDAY" ||
+		body.Today.Holiday != nil || len(body.Today.Hours) != 1 || body.Today.Hours[0].Opens != "09:30" {
+		t.Fatalf("today = %+v", body.Today)
+	}
+}

@@ -60,6 +60,27 @@ properties:
       Color de acento que la barbería eligió en Configuración (`DEC-110`). La
       reserva pública de esta barbería pinta con él sus acentos (`DEC-171`).
       Siempre presente; `brass` es el valor inicial.
+  openingHours:
+    type: array
+    description: >
+      Horario semanal del local (`DEC-182`), ordenado por día (lunes primero) y
+      apertura, en la hora civil de `timezone`. Un día sin tramos está cerrado.
+      Vacío significa que la barbería no lo ha configurado: no se sabe, no que
+      cierre toda la semana. Es informativo; la disponibilidad real sale de los
+      horarios de los barberos.
+    maxItems: 28
+    items:
+      $ref: './OpeningHoursSegment.yaml'
+  closedOnHolidays:
+    type: boolean
+    description: El local cierra los festivos colombianos (`DEC-182`).
+  today:
+    oneOf:
+      - $ref: './PublicOpeningToday.yaml'
+      - type: "null"
+    description: >
+      Lo que rige hoy con el festivo aplicado (`DEC-182`); `null` cuando
+      `openingHours` está vacío.
 required:
   - name
   - timezone
@@ -69,3 +90,6 @@ required:
   - location
   - offersHomeService
   - brandAccent
+  - openingHours
+  - closedOnHolidays
+  - today

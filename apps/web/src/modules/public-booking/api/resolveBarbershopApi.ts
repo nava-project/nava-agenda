@@ -5,6 +5,7 @@
 import { httpClient } from '@/shared/api/httpClient'
 import { isProblem } from '@/shared/api/problem'
 import { DEFAULT_BRAND_ACCENT, isBrandAccentKey } from '@/shared/model'
+import { isDayOfWeek, type OpeningSegment } from '@/shared/model/openingHours'
 import type { ResolveBarbershopOutcome } from '../model/barbershopProfileOutcome'
 
 /**
@@ -47,6 +48,21 @@ export async function resolveBarbershop(slug: string): Promise<ResolveBarbershop
           // DEC-171: una clave que este cliente no conoce (servidor más nuevo) cae
           // en latón, nunca en un color sin contraste comprobado.
           brandAccent: isBrandAccentKey(data.brandAccent) ? data.brandAccent : DEFAULT_BRAND_ACCENT,
+          // DEC-182: un servidor anterior al horario no trae estos campos; un día
+          // que este cliente no reconoce se descarta en vez de pintarse mal.
+          openingHours: (data.openingHours ?? []).filter((seg): seg is OpeningSegment =>
+            isDayOfWeek(seg.dayOfWeek),
+          ),
+          closedOnHolidays: data.closedOnHolidays ?? false,
+          today:
+            data.today && isDayOfWeek(data.today.dayOfWeek)
+              ? {
+                  date: data.today.date,
+                  dayOfWeek: data.today.dayOfWeek,
+                  holiday: data.today.holiday,
+                  hours: data.today.hours.map((h) => ({ opens: h.opens, closes: h.closes })),
+                }
+              : null,
         },
       }
     }

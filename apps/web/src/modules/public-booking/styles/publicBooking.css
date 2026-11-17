@@ -1510,6 +1510,105 @@
   color: var(--pb-text);
 }
 
+/* Horario de atención del local (DEC-182, HU-107): el estado de ahora con un
+   rombo (lleno si está abierto, en contorno si no: la diferencia no depende
+   solo del color) y la semana en filas finas, con hoy en latón. */
+.pb-hours {
+  margin: 0;
+  color: var(--pb-text);
+}
+
+.pb-hours__title {
+  margin: 0 0 var(--space-3);
+  font-family: var(--font-sans);
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--pb-brass);
+}
+
+.pb-hours__now {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  margin: 0 0 var(--space-3);
+  font-size: 17px;
+  line-height: 24px;
+}
+
+.pb-hours__mark {
+  flex: none;
+  width: 9px;
+  height: 9px;
+  border: 1.5px solid var(--pb-muted);
+  transform: rotate(45deg);
+}
+
+.pb-hours__now--open .pb-hours__mark {
+  background: var(--pb-brass);
+  border-color: var(--pb-brass);
+}
+
+.pb-hours__week {
+  display: flex;
+  flex-direction: column;
+  margin: 0;
+  border-top: 1px solid var(--pb-line);
+}
+
+.pb-hours__row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-1) var(--space-4);
+  align-items: baseline;
+  justify-content: space-between;
+  padding: var(--space-2) 0;
+  border-bottom: 1px solid var(--pb-line);
+}
+
+.pb-hours__row dt {
+  font-size: 15px;
+  color: var(--pb-muted);
+}
+
+.pb-hours__row dd {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0 var(--space-3);
+  justify-content: flex-end;
+  margin: 0;
+  font-size: 15px;
+  font-variant-numeric: tabular-nums;
+  color: var(--pb-text);
+}
+
+.pb-hours__row--today {
+  box-shadow: inset 2px 0 0 var(--pb-brass);
+  padding-left: var(--space-3);
+  background: var(--pb-wash);
+}
+
+.pb-hours__row--today dt {
+  color: var(--pb-text);
+  font-weight: 600;
+}
+
+.pb-hours__today {
+  color: var(--pb-brass);
+  font-weight: 600;
+}
+
+.pb-hours__row--today dd {
+  padding-right: var(--space-3);
+}
+
+.pb-hours__note {
+  margin: var(--space-2) 0 0;
+  font-size: 13px;
+  color: var(--pb-muted);
+}
+
 /* Ubicación del local (DEC-130, HU-102): el mapa hereda el color del texto y su
    marco; aquí se le da el rótulo y el «plano» de patronaje. */
 .pb-location {

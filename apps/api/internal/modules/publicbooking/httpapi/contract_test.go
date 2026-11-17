@@ -71,12 +71,14 @@ func loadYAML[T any](t *testing.T, relPath string) T {
 
 // TestContract_PublicBarbershopProfileSchema_MatchesDTOFields verifica que
 // httpapi.PublicBarbershopProfileResponse (name, timezone, contactEmail,
-// contactPhone, vocabulary, location, offersHomeService, brandAccent) coincide exactamente con las propiedades y los required de
+// contactPhone, vocabulary, location, offersHomeService, brandAccent,
+// openingHours, closedOnHolidays, today) coincide exactamente con las propiedades y los required de
 // PublicBarbershopProfile.yaml (CA-090-04: nunca un identificador interno
 // ni el slug mismo).
 func TestContract_PublicBarbershopProfileSchema_MatchesDTOFields(t *testing.T) {
 	schema := loadYAML[schemaDoc](t, "api/openapi/components/schemas/PublicBarbershopProfile.yaml")
-	want := []string{"name", "timezone", "contactEmail", "contactPhone", "vocabulary", "location", "offersHomeService", "brandAccent"}
+	want := []string{"name", "timezone", "contactEmail", "contactPhone", "vocabulary", "location", "offersHomeService", "brandAccent",
+		"openingHours", "closedOnHolidays", "today"}
 
 	if len(schema.Properties) != len(want) {
 		t.Fatalf("expected %d properties, schema has %d: %v", len(want), len(schema.Properties), schema.Properties)
@@ -303,5 +305,26 @@ func TestContract_GetPublicGoogleReviewsOperation_MethodPathSecurityAndResponses
 	}
 	if len(op.Responses) != len(wantStatuses) {
 		t.Errorf("el contrato documenta %d respuestas, se esperaban exactamente %d (%v)", len(op.Responses), len(wantStatuses), wantStatuses)
+	}
+}
+
+// TestContract_PublicOpeningSchemas_MatchDTOFields verifica las tres formas del
+// horario del local en el perfil público (DEC-182) contra sus DTO.
+func TestContract_PublicOpeningSchemas_MatchDTOFields(t *testing.T) {
+	cases := map[string][]string{
+		"OpeningHoursSegment.yaml":   {"dayOfWeek", "opens", "closes"},
+		"PublicOpeningToday.yaml":    {"date", "dayOfWeek", "holiday", "hours"},
+		"PublicOpeningInterval.yaml": {"opens", "closes"},
+	}
+	for file, want := range cases {
+		schema := loadYAML[schemaDoc](t, "api/openapi/components/schemas/"+file)
+		if len(schema.Properties) != len(want) || len(schema.Required) != len(want) {
+			t.Errorf("%s: esperaba %d propiedades requeridas, tiene %v / %v", file, len(want), schema.Properties, schema.Required)
+		}
+		for _, prop := range want {
+			if _, ok := schema.Properties[prop]; !ok {
+				t.Errorf("%s no declara %q", file, prop)
+			}
+		}
 	}
 }

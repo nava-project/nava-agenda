@@ -1,6 +1,6 @@
 ---
 titulo: "Registro de decisiones"
-version: "1.77"
+version: "1.78"
 estado: "Vigente"
 responsable: "Propietario del proyecto"
 ultima_actualizacion: "2026-11-17"
@@ -2368,3 +2368,31 @@ Cada código `DEC-*` es estable y no se reutiliza. Este registro normaliza respu
   - Retirar `cancel` y `reschedule`: rompería al Odin desplegado mientras adopta el cambio.
 - **Documentos afectados:** contrato OpenAPI (0.58.0), `database/README.md`, `historias-usuario.md` (`HU-106`), `matriz-trazabilidad.md`, `historial-cambios.md` y el prompt `PROMPT-OPS-ODIN-ENLACE-SIN-PROPOSITO-v1`.
 - **Fuente:** instrucción del propietario del 2026-11-17; issue [#651](https://github.com/bcaceres19/barberia/issues/651).
+
+### DEC-182 · Horario de atención propio del local, editado por el dueño y publicado en el perfil público
+
+- **Fecha:** 2026-11-17.
+- **Decisión:**
+  1. **Fuente.** El horario del local es un dato propio de la barbería que el dueño escribe en Configuración, sección «07 Horario de atención». No se deriva del horario de los barberos. Es **informativo**: no limita la disponibilidad, que sigue saliendo del horario, las excepciones y los bloqueos de cada barbero (`HU-040`–`HU-042`).
+  2. **Modelo.** Tabla `barbershop_opening_hour`, una fila por tramo `[opens_time, closes_time)`, con día ISO (1 = lunes … 7 = domingo).
+     - Un día sin filas está cerrado. Varios tramos en un día (máximo 4, sin solaparse; dos contiguos no se solapan) representan un cierre al mediodía.
+     - `closes_time` admite `24:00`, «hasta medianoche». Un horario que pasa de medianoche se guarda como dos tramos: el resto va en el día siguiente desde `00:00`.
+     - `barbershop.closed_on_holidays` marca que el local cierra los festivos colombianos.
+     - RLS por tenant. `barberia_app` solo inserta y borra (sin UPDATE), porque guardar reemplaza la semana completa en una transacción.
+  3. **API privada.** `GET` y `PUT /private/settings/opening-hours`. La escritura reemplaza la semana completa; un tramo inválido responde `422` y no guarda nada. La última escritura gana. Una cuenta de empleado recibe `403` (`DEC-173`).
+  4. **Perfil público.** `GET /public/barbershops/{slug}` suma tres campos:
+     - `openingHours`: `[{dayOfWeek, opens, closes}]`, con `MONDAY`…`SUNDAY` y horas `HH:MM` en la zona del local. Lista vacía si no está configurado: eso significa «no se sabe», no «cerrado».
+     - `closedOnHolidays`.
+     - `today`: `{date, dayOfWeek, holiday, hours}`, en la fecha civil del local y con el festivo colombiano aplicado (`hours` vacío = hoy cierra). Es `null` sin horario.
+  5. **Reserva pública.** La entrada muestra la sección «Horario» solo con horario configurado. Lleva el estado de ahora en la hora del local («Abierto · cierra a las 7:00 p. m.», «Cerrado · abre hoy a las…», «Hoy cerrado · <festivo>»), la semana con hoy marcado y la nota de festivos.
+  6. **Odin** lee esos campos para responder «¿está abierto a tal hora?». Lo adapta Odin en su repositorio.
+- **Fuera de alcance:** cierres puntuales por fecha (vacaciones, inventario), validar reservas contra el horario del local, horario por sede, avisar al dueño de diferencias entre su horario y el de sus barberos.
+- **Quién lo decidió:** el propietario, el 2026-11-17. Odin pidió poder responder «¿el local sigue abierto a las 6?» y el propietario pidió «que se pueda ver la hora abierto y cerrado de una barbería». Entre derivarlo de los barberos y un horario propio, eligió «Horario propio del local».
+- **Responsable:** propietario del proyecto.
+- **Motivo:** el letrero de la puerta no siempre coincide con las horas en que hay un barbero atendiendo: el local puede abrir antes, o un barbero puede llegar tarde. Un horario propio dice lo que el dueño quiere publicar, sin depender de cómo cargó la agenda de cada barbero.
+- **Alternativas descartadas:**
+  - Derivarlo de los barberos (por día, el inicio más temprano y el fin más tarde): sin carga de datos, pero sin control del dueño y con huecos engañosos.
+  - Guardar inicio y duración, como `working_hour`: el dueño piensa y escribe «abre a las 9, cierra a las 7», y el contrato lo devuelve así.
+  - Un tramo que cruce medianoche en una sola fila: complica responder «¿qué rige el sábado?»; dos tramos lo dejan explícito.
+- **Documentos afectados:** migración `20261120090000_create_barbershop_opening_hour.sql`, `database/README.md`, suite `database/tests/barbershop_horario.sql`, contrato OpenAPI (0.59.0), `historias-usuario.md` (`HU-107`), `matriz-trazabilidad.md`, `historial-cambios.md`.
+- **Fuente:** decisión del propietario del 2026-11-17; issue [#654](https://github.com/bcaceres19/barberia/issues/654).

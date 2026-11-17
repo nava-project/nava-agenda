@@ -54,6 +54,7 @@ suite "Suite del servicio a domicilio (DEC-131)" psql_file database/tests/appoin
 suite "Suite del canal del código de acceso (DEC-139)" psql_file database/tests/login_otp_channel.sql
 suite "Suite de la ficha de Google de la barbería (DEC-129)" psql_file database/tests/barbershop_google_place_id.sql
 suite "Suite de la ubicación de la barbería (DEC-130)" psql_file database/tests/barbershop_ubicacion.sql
+suite "Suite del horario de atención del local (DEC-182)" psql_file database/tests/barbershop_horario.sql
 suite "Suite del vínculo barbero–usuario (DEC-100)" psql_file database/tests/barbero_vinculo_usuario.sql
 suite "Suite de la descripción del barbero (DEC-127)" psql_file database/tests/barber_description.sql
 suite "Suite de ventana de reserva por barbero DEC-169" psql_file database/tests/barber_booking_policy.sql

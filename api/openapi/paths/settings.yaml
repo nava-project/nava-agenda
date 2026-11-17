@@ -576,3 +576,79 @@
         $ref: '../components/responses/ReminderSettingsValidationProblem.yaml'
       "500":
         $ref: '../components/responses/InternalErrorProblem.yaml'
+/private/settings/opening-hours:
+  get:
+    tags: [Settings]
+    summary: Consultar el horario de atención del local
+    description: >
+      Lectura autenticada (HU-107, DEC-182) del horario semanal del local y de si
+      cierra los festivos colombianos. `barbershopId` nunca es un parámetro: el
+      tenant se deriva exclusivamente de `SessionCookie`. Una cuenta de empleado
+      recibe `403` (`DEC-173`). La respuesta no se almacena en caché.
+    operationId: getOpeningHours
+    security:
+      - SessionCookie: []
+    x-business-rules: [RN-TEN-01]
+    x-decisions: [DEC-020, DEC-173, DEC-182]
+    responses:
+      "200":
+        $ref: '../components/responses/OpeningHoursSettingsSuccess.yaml'
+      "401":
+        $ref: '../components/responses/UnauthorizedProblem.yaml'
+      "403":
+        $ref: '../components/responses/ForbiddenProblem.yaml'
+      "404":
+        $ref: '../components/responses/NotFoundProblem.yaml'
+      "500":
+        $ref: '../components/responses/InternalErrorProblem.yaml'
+  put:
+    tags: [Settings]
+    summary: Guardar el horario de atención del local
+    description: >
+      Reemplaza la semana completa en una sola transacción (HU-107, DEC-182): o
+      queda el horario nuevo entero o el anterior. El horario del local es
+      informativo y no cambia la disponibilidad de los barberos. Sin
+      precondición de versión: la última escritura gana. Una cuenta de empleado
+      recibe `403` (`DEC-173`).
+    operationId: replaceOpeningHours
+    security:
+      - SessionCookie: []
+    x-business-rules: [RN-TEN-01]
+    x-decisions: [DEC-020, DEC-173, DEC-182]
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            $ref: '../components/schemas/ReplaceOpeningHoursRequest.yaml'
+          examples:
+            jornadaPartida:
+              summary: Lunes con almuerzo y sábado corrido
+              value:
+                openingHours:
+                  - { dayOfWeek: MONDAY, opens: '09:00', closes: '12:30' }
+                  - { dayOfWeek: MONDAY, opens: '14:00', closes: '19:00' }
+                  - { dayOfWeek: SATURDAY, opens: '08:00', closes: '16:00' }
+                closedOnHolidays: true
+            nocturno:
+              summary: Viernes que pasa de medianoche
+              value:
+                openingHours:
+                  - { dayOfWeek: FRIDAY, opens: '20:00', closes: '24:00' }
+                  - { dayOfWeek: SATURDAY, opens: '00:00', closes: '02:00' }
+                closedOnHolidays: false
+    responses:
+      "200":
+        $ref: '../components/responses/OpeningHoursSettingsSuccess.yaml'
+      "400":
+        $ref: '../components/responses/InvalidRequestProblem.yaml'
+      "401":
+        $ref: '../components/responses/UnauthorizedProblem.yaml'
+      "403":
+        $ref: '../components/responses/ForbiddenProblem.yaml'
+      "404":
+        $ref: '../components/responses/NotFoundProblem.yaml'
+      "422":
+        $ref: '../components/responses/OpeningHoursValidationProblem.yaml'
+      "500":
+        $ref: '../components/responses/InternalErrorProblem.yaml'

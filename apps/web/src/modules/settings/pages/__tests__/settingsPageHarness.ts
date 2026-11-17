@@ -49,6 +49,13 @@ export const doubles = {
     fetchReminderSettings: vi.fn(() => Promise.resolve({ kind: 'success', leadMinutes: 30 })),
     saveReminderLead: vi.fn(),
   },
+  // Igual con el horario de atención (DEC-182): su prueba es OpeningHoursPanel.test.ts.
+  openingHoursApi: {
+    fetchOpeningHours: vi.fn(() =>
+      Promise.resolve({ kind: 'success', settings: { openingHours: [], closedOnHolidays: false } }),
+    ),
+    saveOpeningHours: vi.fn(),
+  },
   auth: { updateBarbershopName: updateBarbershopNameMock },
 }
 
