@@ -1,9 +1,9 @@
 ---
 titulo: "Historial de cambios documentales"
-version: "4.21"
+version: "4.22"
 estado: "Vigente"
 responsable: "Propietario del proyecto"
-ultima_actualizacion: "2026-11-16"
+ultima_actualizacion: "2026-11-17"
 documentos_relacionados:
   - "registro-decisiones.md"
   - "contradicciones.md"
@@ -462,3 +462,4 @@ Las versiones se aplican por documento. Mientras no exista historial Git, la fec
 | 2026-11-16 | `Jenkinsfile`, `tools/ci/{plan.sh,run.sh,checks/{go,web-deps,web-static,web-test}.sh}`, `apps/web/vitest.config.ts`, `.gitignore`, `deploy/jenkins/README.md`, `docs/00-control/{registro-decisiones.md,historial-cambios.md}` | CI de Jenkins más rápido sin quitar pruebas (issue [#625](https://github.com/bcaceres19/barberia/issues/625), actualización de `DEC-177`): `plan.sh` omite los checks de un árbol ya verificado y, si no, corre solo los afectados por los archivos cambiados (todo ante una ruta sin regla); todos los checks en paralelo con el frontend partido en estático y pruebas (su build lo comprueba la imagen web); vitest con hilos y dependencias preempaquetadas (`apps/web/vitest.config.ts`); caché de Go entre ramas con la huella del esquema en la URL de la base de pruebas. La división de `SettingsPage.test.ts` va en su propio PR. registro-decisiones 1.69 → 1.70; historial 4.18 → 4.19 |
 | 2026-11-16 | `deploy/jenkins/{casc/jobs.groovy,README.md}`, `docs/00-control/{registro-decisiones,historial-cambios}.md`, `docs/10-backlog/prompts/{README.md,ops/issue-pending-migrar-proyecto-a-jenkins-vps-v2.md,orchestration/migrar-odin-y-pedidos-a-jenkins.md}` | Registro en Jenkins de los jobs `pedidos/ci` y `pedidos/deploy` de `bcaceres19/odin-pedidos` (issue [#630](https://github.com/bcaceres19/barberia/issues/630), actualización de `DEC-177`); los prompts de la migración pasan a `in_progress`. registro-decisiones 1.70 → 1.71; historial 4.19 → 4.20 |
 | 2026-11-17 | `deploy/jenkins/{casc/jobs.groovy,README.md}`, `docs/00-control/{registro-decisiones,historial-cambios}.md`, `docs/10-backlog/prompts/{README.md,ops/issue-pending-migrar-proyecto-a-jenkins-vps-v2.md,orchestration/migrar-odin-y-pedidos-a-jenkins.md}` | Registro en Jenkins de los jobs `odin/ci` y `odin/deploy` de `bcaceres19/odin` (issue [#632](https://github.com/bcaceres19/barberia/issues/632), actualización de `DEC-177`) y nota del segundo reinicio que necesita una carpeta de jobs nueva. registro-decisiones 1.71 → 1.72; historial 4.20 → 4.21 |
+| 2026-11-17 | `deploy/scripts/deploy.sh`, `deploy/jenkins/{scripts/release.sh,README.md}`, `deploy/README.md`, `docs/00-control/{registro-decisiones,historial-cambios}.md` | Retirada completa de GitHub Actions (issue [#634](https://github.com/bcaceres19/barberia/issues/634), actualización de `DEC-177`): Actions desactivado y sin runs, paquetes de GHCR ni entorno `github-pages`; `release.sh` solo acepta el estado de Jenkins y `deploy.sh` ya no descarga imágenes. registro-decisiones 1.72 → 1.73; historial 4.21 → 4.22 |
