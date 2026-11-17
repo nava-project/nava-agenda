@@ -169,9 +169,10 @@
   animation: ac-rise 0.7s var(--ac-ease) 0.12s backwards;
 }
 
-.access__title:focus-visible {
-  outline: 2px solid var(--ac-brass);
-  outline-offset: 4px;
+/* El título recibe el foco solo para anunciar el paso (tabindex -1): no es un control, así
+   que no lleva el recuadro de foco de los controles (#649). */
+.access__title:focus {
+  outline: none;
 }
 
 .access__lead {
@@ -189,29 +190,259 @@
 
 /* ── Talón (formulario) ─────────────────────────────────────────────────── */
 
+/* Issue #649: el talón es un panel de tinta levantada, el mismo del paso 03, para que
+   contacto, código y «Tu turno» se lean como un solo recorrido. `BaseInput`, `OtpInput` y
+   `BaseButton` se pensaron para papel: aquí se ajustan sus variables y colores sin tocar los
+   componentes compartidos, igual que en la reserva pública. */
 .stub {
+  --ac-panel: color-mix(in srgb, #000 26%, var(--color-surface-strong));
+  --ac-field: color-mix(in srgb, #000 46%, var(--color-surface-strong));
+  --ac-ring:
+    0 0 0 2px var(--color-surface-strong), 0 0 0 4px var(--ac-brass),
+    0 0 22px color-mix(in srgb, var(--ac-brass) 35%, transparent);
+
   position: relative;
   display: flex;
   flex-direction: column;
   gap: var(--space-5);
   padding: var(--space-6) var(--space-5) var(--space-5);
-  color: var(--color-text-primary);
-  background-color: var(--color-surface);
+  color: var(--ac-text);
+  background-color: var(--ac-panel);
+  border: 1px solid var(--ac-line);
   border-top: 3px solid var(--ac-brass);
   border-radius: 2px;
   box-shadow: 0 18px 40px -22px rgb(0 0 0 / 60%);
   animation: ac-rise 0.7s var(--ac-ease) 0.2s backwards;
 }
 
+/* Campo de contacto sobre tinta. */
+.stub :deep(.base-input) {
+  --input-bg: var(--ac-field);
+  --input-border-color: var(--ac-line-strong);
+  --input-border-base-color: color-mix(in srgb, var(--ac-brass) 75%, transparent);
+  --input-focus-ring: var(--ac-ring);
+
+  color: var(--ac-text);
+  color-scheme: dark;
+}
+
+.stub :deep(.base-input::placeholder) {
+  color: var(--ac-muted);
+  opacity: 1;
+}
+
+.stub :deep(.base-input:hover:not(:disabled):not(.base-input--invalid)) {
+  border-color: color-mix(in srgb, var(--ac-brass) 60%, transparent);
+  border-bottom-color: var(--ac-brass);
+}
+
+.stub :deep(.base-input:focus-visible) {
+  border-color: var(--ac-brass);
+  border-bottom-color: var(--ac-brass);
+}
+
+.stub :deep(.base-input:-webkit-autofill),
+.stub :deep(.base-input:-webkit-autofill:hover),
+.stub :deep(.base-input:-webkit-autofill:focus) {
+  -webkit-text-fill-color: var(--ac-text);
+  caret-color: var(--ac-text);
+}
+
+.stub :deep(.base-input__label),
+.stub :deep(.otp-input__label) {
+  letter-spacing: 0.12em;
+  color: var(--ac-brass);
+}
+
+.stub :deep(.base-input__hint) {
+  color: var(--ac-muted);
+}
+
+.stub :deep(.base-input--invalid),
+.stub :deep(.base-input--invalid:hover) {
+  border-color: var(--color-danger-on-strong);
+  border-bottom-color: var(--color-danger-on-strong);
+}
+
+.stub :deep(.base-input__error),
+.stub :deep(.otp-input__error) {
+  color: var(--color-danger-on-strong);
+}
+
+/* Casillas del código sobre tinta: la cifra en la serif, en latón al escribirla. */
+.stub :deep(.otp-input__slot) {
+  color: var(--ac-text);
+  background-color: var(--ac-field);
+  border-color: var(--ac-line-strong);
+  border-bottom-color: color-mix(in srgb, var(--ac-brass) 60%, transparent);
+  caret-color: var(--ac-brass);
+}
+
+.stub :deep(.otp-input__slot:hover:not(:disabled):not(.otp-input__slot--invalid)) {
+  border-color: color-mix(in srgb, var(--ac-brass) 60%, transparent);
+  border-bottom-color: var(--ac-brass);
+}
+
+.stub :deep(.otp-input__slot:focus-visible) {
+  border-color: var(--ac-brass);
+  box-shadow: var(--ac-ring);
+}
+
+.stub :deep(.otp-input__slot--filled) {
+  color: var(--ac-brass);
+  border-bottom-color: var(--ac-brass);
+}
+
+.stub :deep(.otp-input__slot--invalid) {
+  border-color: var(--color-danger-on-strong);
+  border-bottom-color: var(--color-danger-on-strong);
+}
+
+.stub :deep(.otp-input__slot--invalid:focus-visible) {
+  box-shadow:
+    0 0 0 2px var(--color-surface-strong),
+    0 0 0 4px var(--color-danger-on-strong);
+}
+
+.stub :deep(.otp-input__slot:disabled) {
+  color: var(--ac-muted);
+  background-color: color-mix(in srgb, var(--ac-text) 4%, transparent);
+  border-color: var(--ac-line);
+  border-bottom-color: var(--ac-line);
+}
+
+/* Botones: el principal en latón, como «Continuar» de la reserva; los fantasmas con texto
+   claro y el mismo filete de latón. */
+.stub :deep(.base-button) {
+  --btn-focus-ring: var(--ac-ring);
+}
+
+.stub :deep(.base-button--primary) {
+  color: var(--color-brand-accent-text);
+  background-color: var(--ac-brass);
+  border-color: var(--ac-brass);
+}
+
+.stub :deep(.base-button--primary:hover:not(:disabled):not(.base-button--loading)) {
+  background-color: color-mix(in srgb, #fff 12%, var(--ac-brass));
+  border-color: color-mix(in srgb, #fff 12%, var(--ac-brass));
+}
+
+.stub :deep(.base-button--primary:disabled) {
+  color: var(--ac-muted);
+  background-color: color-mix(in srgb, var(--ac-text) 8%, transparent);
+  border-color: var(--ac-line);
+  opacity: 1;
+}
+
+.stub :deep(.base-button--ghost) {
+  color: var(--ac-text);
+}
+
+.stub :deep(.base-button--ghost:hover:not(:disabled):not(.base-button--loading)) {
+  background-color: color-mix(in srgb, var(--ac-text) 8%, transparent);
+}
+
 .stub__action {
   width: 100%;
+}
+
+/* Casillas del código más altas y con la cifra más grande: es lo único que hay que hacer aquí. */
+.stub :deep(.otp-input__slots) {
+  gap: var(--space-2);
+}
+
+.stub :deep(.otp-input__slot) {
+  height: 60px;
+  font-size: 30px;
+}
+
+/* Canal por el que llegará el código: se enciende según lo que se escribe. */
+.stub__channel {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  align-items: center;
+  margin-top: calc(var(--space-2) * -1);
+}
+
+.stub__channel-label {
+  margin-right: var(--space-1);
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--ac-muted);
+}
+
+.stub__chip {
+  display: inline-flex;
+  gap: 6px;
+  align-items: center;
+  min-height: 28px;
+  padding: 2px 10px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--ac-muted);
+  border: 1px solid var(--ac-line);
+  border-radius: 999px;
+  transition:
+    color 0.2s ease,
+    border-color 0.2s ease,
+    background-color 0.2s ease;
+}
+
+.stub__chip svg {
+  fill: none;
+  stroke: currentcolor;
+  stroke-width: 1.6;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.stub__chip--on {
+  color: var(--ac-brass);
+  background-color: color-mix(in srgb, var(--ac-brass) 10%, transparent);
+  border-color: color-mix(in srgb, var(--ac-brass) 60%, transparent);
+}
+
+@media (width < 420px) {
+  .stub__channel-label {
+    flex-basis: 100%;
+  }
+}
+
+/* Acción menor del talón: enlace de texto, no una caja que compita con el botón principal. */
+.stub__link {
+  min-height: 44px;
+  padding: 0;
+  font: inherit;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--ac-soft);
+  text-decoration: underline;
+  text-decoration-color: var(--ac-line-strong);
+  text-underline-offset: 4px;
+  cursor: pointer;
+  background: none;
+  border: 0;
+}
+
+.stub__link:hover {
+  color: var(--ac-text);
+  text-decoration-color: var(--ac-brass);
+}
+
+.stub__link:focus-visible {
+  outline: 2px solid var(--ac-brass);
+  outline-offset: 3px;
 }
 
 .stub__notice {
   margin: 0;
   font-size: 14px;
   line-height: 20px;
-  color: var(--color-success-text);
+  color: var(--color-success-on-strong);
 }
 
 .stub__aside {
@@ -221,20 +452,20 @@
   align-items: center;
   justify-content: space-between;
   padding-top: var(--space-4);
-  border-top: 1px dashed var(--color-border-subtle);
+  border-top: 1px dashed var(--ac-line-strong);
 }
 
 .stub__wait {
   margin: 0;
   font-size: 14px;
   line-height: 20px;
-  color: var(--color-text-secondary);
+  color: var(--ac-soft);
 }
 
 .stub__count {
   font-weight: 600;
   font-variant-numeric: tabular-nums;
-  color: var(--color-text-primary);
+  color: var(--ac-brass);
 }
 
 /* ── Varios turnos ──────────────────────────────────────────────────────── */
@@ -397,7 +628,8 @@
     animation: none;
   }
 
-  .ticket {
+  .ticket,
+  .stub__chip {
     transition: none;
   }
 

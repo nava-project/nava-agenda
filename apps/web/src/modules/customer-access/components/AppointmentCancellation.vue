@@ -243,9 +243,9 @@ function onSubmit() {
   color: var(--color-on-strong);
 }
 
-.appointment-cancel__title:focus-visible {
-  outline: 2px solid var(--color-brand-accent-surface);
-  outline-offset: 4px;
+/* Recibe el foco solo para anunciar la sección (tabindex -1): no es un control. */
+.appointment-cancel__title:focus {
+  outline: none;
 }
 
 .appointment-cancel__lead,
