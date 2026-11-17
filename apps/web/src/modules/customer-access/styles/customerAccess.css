@@ -104,10 +104,6 @@
   animation: ac-rise 0.6s var(--ac-ease) 0.05s backwards;
 }
 
-.access__steps--two {
-  grid-template-columns: repeat(2, 1fr);
-}
-
 .access__step {
   display: flex;
   flex-direction: column;

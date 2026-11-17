@@ -16,4 +16,6 @@ content:
       creado:
         value:
           accessRef: 3vNq8Yt1KsM6wZc2HbJ9xRfE4uLaP7dG0iO5TnXyhBk
+          accessUrl: https://nava.wtf/reservar/barberia-ejemplo/mi-turno/3vNq8Yt1KsM6wZc2HbJ9xRfE4uLaP7dG0iO5TnXyhBk
+          purpose: manage
           expiresAt: "2026-11-17T15:10:00Z"

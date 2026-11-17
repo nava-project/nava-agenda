@@ -14,14 +14,16 @@ func TestContract_OdinSchemasMatchDTOs(t *testing.T) {
 	for _, tc := range []struct {
 		name, file string
 		dto        any
+		// optional son los campos que el contrato no exige (DEC-181).
+		optional []string
 	}{
-		{"búsqueda", "OdinAppointmentLookupRequest", httpapi.OdinLookupRequest{}},
-		{"turno de la búsqueda", "OdinAppointment", httpapi.OdinAppointmentResponse{}},
-		{"respuesta de la búsqueda", "OdinAppointmentLookupResponse", httpapi.OdinLookupResponse{}},
-		{"solicitud de código", "OdinAccessChallengeRequest", httpapi.OdinChallengeRequest{}},
-		{"respuesta de la solicitud", "OdinAccessChallengeResponse", httpapi.OdinChallengeResponse{}},
-		{"verificación por referencia", "CustomerAccessVerifyRefRequest", httpapi.VerifyRefRequest{}},
-		{"respuesta de la verificación", "CustomerAccessVerifyRefResponse", httpapi.VerifyRefResponse{}},
+		{"búsqueda", "OdinAppointmentLookupRequest", httpapi.OdinLookupRequest{}, nil},
+		{"turno de la búsqueda", "OdinAppointment", httpapi.OdinAppointmentResponse{}, nil},
+		{"respuesta de la búsqueda", "OdinAppointmentLookupResponse", httpapi.OdinLookupResponse{}, nil},
+		{"solicitud de código", "OdinAccessChallengeRequest", httpapi.OdinChallengeRequest{}, []string{"purpose"}},
+		{"respuesta de la solicitud", "OdinAccessChallengeResponse", httpapi.OdinChallengeResponse{}, []string{"accessUrl"}},
+		{"verificación por referencia", "CustomerAccessVerifyRefRequest", httpapi.VerifyRefRequest{}, nil},
+		{"respuesta de la verificación", "CustomerAccessVerifyRefResponse", httpapi.VerifyRefResponse{}, nil},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			schema := loadYAML[contractSchema](t, "api/openapi/components/schemas/"+tc.file+".yaml")
@@ -31,8 +33,18 @@ func TestContract_OdinSchemasMatchDTOs(t *testing.T) {
 			if schema.AdditionalProperties != false {
 				t.Fatal("el esquema debe ser cerrado (additionalProperties: false)")
 			}
-			if len(schema.Required) != len(schema.Properties) {
-				t.Fatalf("todos los campos son obligatorios en el contrato: %v de %d", schema.Required, len(schema.Properties))
+			optional := map[string]bool{}
+			for _, name := range tc.optional {
+				optional[name] = true
+			}
+			required := map[string]bool{}
+			for _, name := range schema.Required {
+				required[name] = true
+			}
+			for name := range schema.Properties {
+				if required[name] == optional[name] {
+					t.Fatalf("%q: obligatorio=%v, pero se esperaba opcional=%v", name, required[name], optional[name])
+				}
 			}
 		})
 	}

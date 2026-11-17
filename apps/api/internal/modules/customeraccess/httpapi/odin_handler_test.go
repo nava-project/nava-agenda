@@ -177,7 +177,7 @@ func TestOdinChallenge_CreatedSendsOnlyByWhatsApp(t *testing.T) {
 	ref := validRef(t)
 	repo := &fakeOdinRepo{challenge: customeraccess.RefChallengeOutcome{BarbershopFound: true, Available: true}}
 	sender := &discardSender{}
-	rec := post(httpapi.NewOdinChallengeHandler(refService(repo, sender, true)),
+	rec := post(httpapi.NewOdinChallengeHandler(refService(repo, sender, true), ""),
 		`{"phone":"`+goodPhone+`","appointmentRef":"`+ref+`","purpose":"reschedule"}`)
 	if rec.Code != http.StatusCreated || rec.Header().Get("Cache-Control") != "no-store" {
 		t.Fatalf("expected 201 no-store, got %d: %s", rec.Code, rec.Body.String())
@@ -197,16 +197,49 @@ func TestOdinChallenge_CreatedSendsOnlyByWhatsApp(t *testing.T) {
 	}
 }
 
+// DEC-181: sin propósito el reto queda en `manage` y la respuesta trae el enlace
+// completo para pegarlo en el chat, con la referencia escapada y sin datos personales.
+func TestOdinChallenge_WithoutPurposeIsManageAndCarriesTheLink(t *testing.T) {
+	ref := validRef(t)
+	repo := &fakeOdinRepo{challenge: customeraccess.RefChallengeOutcome{BarbershopFound: true, Available: true}}
+	sender := &discardSender{}
+	rec := post(httpapi.NewOdinChallengeHandler(refService(repo, sender, true), "https://nava.example/"),
+		`{"phone":"`+goodPhone+`","appointmentRef":"`+ref+`"}`)
+	if rec.Code != http.StatusCreated {
+		t.Fatalf("expected 201, got %d: %s", rec.Code, rec.Body.String())
+	}
+	var body httpapi.OdinChallengeResponse
+	if err := json.Unmarshal(rec.Body.Bytes(), &body); err != nil {
+		t.Fatal(err)
+	}
+	if body.Purpose != customeraccess.PurposeManage || repo.lastReq.Purpose != customeraccess.PurposeManage {
+		t.Fatalf("an omitted purpose must be manage: response %q, challenge %q", body.Purpose, repo.lastReq.Purpose)
+	}
+	if want := "https://nava.example/reservar/demo/mi-turno/" + body.AccessRef; body.AccessURL != want {
+		t.Fatalf("accessUrl = %q, want %q", body.AccessURL, want)
+	}
+	if strings.Contains(body.AccessURL, goodPhone) || strings.Contains(body.AccessURL, strings.TrimPrefix(goodPhone, "+")) {
+		t.Fatalf("the link must not carry the phone: %s", body.AccessURL)
+	}
+
+	// Sin web pública configurada no hay enlace: Odin lo arma con accessRef.
+	bare := post(httpapi.NewOdinChallengeHandler(refService(repo, sender, true), ""),
+		`{"phone":"`+goodPhone+`","appointmentRef":"`+ref+`","purpose":"cancel"}`)
+	if bare.Code != http.StatusCreated || strings.Contains(bare.Body.String(), "accessUrl") {
+		t.Fatalf("without a web base there must be no accessUrl: %d %s", bare.Code, bare.Body.String())
+	}
+}
+
 func TestOdinChallenge_ErrorsHaveTheirOwnStatuses(t *testing.T) {
 	ref := validRef(t)
 	body := `{"phone":"` + goodPhone + `","appointmentRef":"` + ref + `","purpose":"cancel"}`
 	sender := &discardSender{}
 
-	notAvailable := post(httpapi.NewOdinChallengeHandler(refService(&fakeOdinRepo{challenge: customeraccess.RefChallengeOutcome{BarbershopFound: true}}, sender, true)), body)
+	notAvailable := post(httpapi.NewOdinChallengeHandler(refService(&fakeOdinRepo{challenge: customeraccess.RefChallengeOutcome{BarbershopFound: true}}, sender, true), ""), body)
 	if notAvailable.Code != http.StatusConflict || !strings.Contains(notAvailable.Body.String(), `"code":"appointment-not-available"`) {
 		t.Fatalf("expected the uniform 409, got %d %s", notAvailable.Code, notAvailable.Body.String())
 	}
-	madeUp := post(httpapi.NewOdinChallengeHandler(refService(&fakeOdinRepo{}, sender, true)),
+	madeUp := post(httpapi.NewOdinChallengeHandler(refService(&fakeOdinRepo{}, sender, true), ""),
 		`{"phone":"`+goodPhone+`","appointmentRef":"inventada","purpose":"cancel"}`)
 	if madeUp.Code != http.StatusConflict || madeUp.Body.String() == "" {
 		t.Fatalf("a made-up reference must be the same 409, got %d", madeUp.Code)
@@ -214,12 +247,12 @@ func TestOdinChallenge_ErrorsHaveTheirOwnStatuses(t *testing.T) {
 
 	limited := post(httpapi.NewOdinChallengeHandler(refService(&fakeOdinRepo{challenge: customeraccess.RefChallengeOutcome{
 		BarbershopFound: true, RateLimited: true, RetryAfter: 90*time.Second + 300*time.Millisecond,
-	}}, sender, true)), body)
+	}}, sender, true), ""), body)
 	if limited.Code != http.StatusTooManyRequests || limited.Header().Get("Retry-After") != "91" {
 		t.Fatalf("expected 429 with Retry-After 91, got %d %q", limited.Code, limited.Header().Get("Retry-After"))
 	}
 
-	noWhatsApp := post(httpapi.NewOdinChallengeHandler(refService(&fakeOdinRepo{}, sender, false)), body)
+	noWhatsApp := post(httpapi.NewOdinChallengeHandler(refService(&fakeOdinRepo{}, sender, false), ""), body)
 	if noWhatsApp.Code != http.StatusServiceUnavailable || !strings.Contains(noWhatsApp.Body.String(), `"code":"service-unavailable"`) {
 		t.Fatalf("expected 503 without WhatsApp, got %d", noWhatsApp.Code)
 	}
@@ -228,7 +261,7 @@ func TestOdinChallenge_ErrorsHaveTheirOwnStatuses(t *testing.T) {
 		"propósito desconocido": `{"phone":"` + goodPhone + `","appointmentRef":"` + ref + `","purpose":"borrar"}`,
 		"un correo":             `{"phone":"a@b.co","appointmentRef":"` + ref + `","purpose":"cancel"}`,
 	} {
-		if rec := post(httpapi.NewOdinChallengeHandler(refService(&fakeOdinRepo{}, sender, true)), b); rec.Code != http.StatusUnprocessableEntity {
+		if rec := post(httpapi.NewOdinChallengeHandler(refService(&fakeOdinRepo{}, sender, true), ""), b); rec.Code != http.StatusUnprocessableEntity {
 			t.Errorf("%s: expected 422, got %d", name, rec.Code)
 		}
 	}

@@ -219,6 +219,60 @@ func TestRef_AppointmentOfAnotherPhoneOrAnIneligiblePurposeIsNotAvailable(t *tes
 	}
 }
 
+// DEC-181: sin propósito el reto queda en `manage`, se guarda así en la tabla y viaja a
+// la verificación; la persona elige después en el paso 03.
+func TestRef_Manage_IsTheDefaultAndTravelsToTheVerification(t *testing.T) {
+	f := newRefFixture(t)
+	ctx := context.Background()
+	email, phone := freshContact(t)
+	bookFor(t, f.db, email, phone, 5)
+	target := f.onlyAppointment(t, phone)
+
+	accepted, err := f.refs.RequestCode(ctx, accessSlugUno, phone, target.Ref, "")
+	if err != nil || accepted.Purpose != customeraccess.PurposeManage {
+		t.Fatalf("an omitted purpose must be manage: %+v / %v", accepted, err)
+	}
+	verified, err := f.refs.VerifyRef(ctx, accessSlugUno, accepted.AccessRef, f.sender.last(t).code)
+	if err != nil || verified.Purpose != customeraccess.PurposeManage {
+		t.Fatalf("manage must travel to the verification: %+v / %v", verified, err)
+	}
+	if _, err := f.reader.GetAppointmentByToken(ctx, verified.AccessToken); err != nil {
+		t.Fatalf("the access must open the appointment: %v", err)
+	}
+}
+
+// DEC-181: `manage` basta con que el turno admita una de las dos acciones, y se rechaza
+// igual que los demás cuando no admite ninguna.
+func TestRef_Manage_NeedsAtLeastOneAction(t *testing.T) {
+	ctx := context.Background()
+	never := func(time.Time, time.Time, int, bool) bool { return false }
+	onlyReschedule := newRefFixtureWith(t, customeraccess.ChangePolicy{
+		CanCancel:     never,
+		CanReschedule: func(time.Time, time.Time, int, int) bool { return true },
+	}, true)
+	email, phone := freshContact(t)
+	bookFor(t, onlyReschedule.db, email, phone, 5)
+	if _, err := onlyReschedule.refs.RequestCode(ctx, accessSlugUno, phone,
+		onlyReschedule.onlyAppointment(t, phone).Ref, customeraccess.PurposeManage); err != nil {
+		t.Fatalf("one available action is enough for manage: %v", err)
+	}
+
+	neither := newRefFixtureWith(t, customeraccess.ChangePolicy{
+		CanCancel:     never,
+		CanReschedule: func(time.Time, time.Time, int, int) bool { return false },
+	}, true)
+	email, phone = freshContact(t)
+	bookFor(t, neither.db, email, phone, 5)
+	before := neither.sender.count()
+	if _, err := neither.refs.RequestCode(ctx, accessSlugUno, phone,
+		neither.onlyAppointment(t, phone).Ref, customeraccess.PurposeManage); !isKind(err, apperr.KindAppointmentNotAvailable) {
+		t.Fatalf("an appointment with no available action must be not available, got %v", err)
+	}
+	if neither.sender.count() != before {
+		t.Fatal("a rejected request must not send anything")
+	}
+}
+
 func TestRef_ReferenceOfShopOneIsUselessInShopTwo(t *testing.T) {
 	f := newRefFixture(t)
 	ctx := context.Background()

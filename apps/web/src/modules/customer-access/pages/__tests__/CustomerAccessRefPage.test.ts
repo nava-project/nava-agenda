@@ -91,7 +91,12 @@ describe('CustomerAccessRefPage', () => {
     const w = await mountPage()
 
     expect(w.find('h1').text()).toBe('Escribe tu código')
-    expect(w.text()).toContain('Te enviamos un código de 6 dígitos a tu WhatsApp')
+    expect(w.text()).toContain('Te enviamos allí un código de 6 dígitos')
+    // DEC-181: el contacto lo resolvió Odin; la página abre en el paso 02 con el 01 hecho.
+    const steps = w.findAll('.access__step')
+    expect(steps.map((s) => s.text())).toEqual(['01Contacto', '02Código', '03Tu turno'])
+    expect(steps[0]!.classes()).toContain('access__step--done')
+    expect(w.find('[aria-current="step"]').text()).toContain('Código')
     expect(w.find('input[name="contact"]').exists()).toBe(false)
     expect(slotInputs(w)).toHaveLength(6)
     expect(document.activeElement).toBe(w.find('h1').element)
@@ -112,6 +117,21 @@ describe('CustomerAccessRefPage', () => {
       params: { path: { slug: 'mi-barberia' } },
       body: { accessRef: REF, code: '482913' },
     })
+  })
+
+  it('con el propósito «manage» abre el paso 03 con las dos opciones', async () => {
+    reply(200, { accessToken: 'tok-3', purpose: 'manage' })
+    const w = await mountPage()
+    await typeCode(w, '482913')
+
+    expect(router.currentRoute.value.name).toBe('mi-turno-acceso-ref')
+    expect(w.find('h1').text()).toBe('¿Qué quieres hacer?')
+    expect(w.find('[aria-current="step"]').text()).toContain('Tu turno')
+    const actions = w.find('[data-test="actions"]')
+    expect(actions.attributes('data-token')).toBe('tok-3')
+    expect(actions.attributes('data-action')).toBeUndefined()
+    expect(slotInputs(w)).toHaveLength(0)
+    expect(w.text()).not.toContain('tok-3')
   })
 
   it('con el propósito «reschedule» lleva a «Cambiar la hora» con su credencial', async () => {

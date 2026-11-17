@@ -1,6 +1,6 @@
 ---
 titulo: "Registro de decisiones"
-version: "1.76"
+version: "1.77"
 estado: "Vigente"
 responsable: "Propietario del proyecto"
 ultima_actualizacion: "2026-11-17"
@@ -2349,3 +2349,22 @@ Cada código `DEC-*` es estable y no se reutiliza. Este registro normaliza respu
 - **Corrección incluida:** el botón «Mantener mi turno» de la cancelación tenía texto de tinta sobre tinta oscura y casi no se leía, también en «Mi turno»; ahora usa el color de texto sobre tinta.
 - **Documentos afectados:** `matriz-trazabilidad.md`, `historial-cambios.md`.
 - **Fuente:** instrucción del propietario del 2026-11-17; issue [#647](https://github.com/bcaceres19/barberia/issues/647).
+
+### DEC-181 · Odin pide el código sin propósito y entrega el enlace listo; la página abre en el paso 02 y la persona elige en el 03 (amplía `DEC-179` y `DEC-180`)
+
+- **Fecha:** 2026-11-17.
+- **Decisión:**
+  1. **Propósito opcional.** En `POST /api/v1/integrations/odin/barbershops/{slug}/customer-access/challenge`, `purpose` deja de ser obligatorio y suma el valor `manage`, que es el valor por defecto. Con `manage` el turno debe admitir cancelar **o** cambiar la hora (si no admite ninguna, el mismo `409` `appointment-not-available`). `cancel` y `reschedule` siguen igual: un Odin que siga enviándolos obtiene lo mismo de antes.
+  2. **Enlace listo.** La respuesta `201` devuelve también `purpose` y `accessUrl`, el enlace completo `<APP_PUBLIC_WEB_BASE_URL>/reservar/<slug>/mi-turno/<accessRef>`, para que Odin lo pegue en el chat sin armarlo. Solo lleva el slug y la referencia opaca, nunca datos personales. Sin web pública configurada, `accessUrl` no aparece y Odin lo arma con `accessRef`.
+  3. **Página del enlace.** `/reservar/<slug>/mi-turno/<accessRef>` muestra los mismos tres pasos que la pantalla general: «01 Contacto» aparece hecho (lo resolvió Odin con el teléfono que firma Meta), abre en «02 Código» y, tras el código, «03 Tu turno». Con `manage` el paso 03 muestra el turno y las dos acciones de `DEC-180`, sin salir de la página. `cancel` sigue abriendo la confirmación y `reschedule` sigue llevando a «Cambiar la hora».
+  4. **Base de datos.** El `CHECK` de `customer_access_challenge.purpose` admite `manage` (migración `20261119140000_customer_access_challenge_purpose_manage.sql`, creada `NOT VALID` y validada después).
+- **Qué no cambia:** el código por WhatsApp como segundo factor, su vigencia, intentos y límites; el acceso de 60 minutos; las reglas de cancelar y de reprogramar; `lookup`.
+- **Quién lo decidió:** el propietario, el 2026-11-17: «necesito un endpoint donde Odin pueda retornarlo en el chat ya con el numero de telefono obtenido, asi que no deberia pedirlo de nuevo porque Odin ya lo pidio o ya lo recupero, y tambien confirmo la cita, asi que solo seria pedir el codigo como por seguridad (es decir, pasar de una vez al paso 2 con el envio del codigo, y proceder al paso 3 donde se escoge cancelar o reprogramar)».
+- **Responsable:** propietario del proyecto.
+- **Motivo:** obligar a Odin a preguntar «¿cancelar o reprogramar?» antes del enlace añade un turno de conversación y fija una acción que la persona puede querer cambiar al ver sus opciones. El teléfono y el turno ya están confirmados; el código sigue siendo lo que prueba que quien abre el enlace es el titular.
+- **Alternativas descartadas:**
+  - Quitar el código porque Odin ya confirmó el turno: el enlace se puede reenviar y daría acceso a cualquiera que lo tenga.
+  - Un endpoint nuevo aparte de `challenge`: duplicaría límites, auditoría y pruebas; ampliar el propósito es compatible.
+  - Retirar `cancel` y `reschedule`: rompería al Odin desplegado mientras adopta el cambio.
+- **Documentos afectados:** contrato OpenAPI (0.58.0), `database/README.md`, `historias-usuario.md` (`HU-106`), `matriz-trazabilidad.md`, `historial-cambios.md` y el prompt `PROMPT-OPS-ODIN-ENLACE-SIN-PROPOSITO-v1`.
+- **Fuente:** instrucción del propietario del 2026-11-17; issue [#651](https://github.com/bcaceres19/barberia/issues/651).

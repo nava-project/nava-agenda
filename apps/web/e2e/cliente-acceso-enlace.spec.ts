@@ -101,10 +101,35 @@ test.describe('HU-106 · el enlace de Odin', () => {
     await page.goto(LINK)
 
     await expect(page.getByRole('heading', { level: 1, name: 'Escribe tu código' })).toBeFocused()
-    await expect(page.getByText('Te enviamos un código de 6 dígitos a tu WhatsApp')).toBeVisible()
+    await expect(page.getByText('Te enviamos allí un código de 6 dígitos')).toBeVisible()
     await expect(page.getByLabel('Correo o celular')).toHaveCount(0)
+    // DEC-181: el contacto ya lo resolvió Odin; el paso actual es el 02.
+    const steps = page.getByRole('list', { name: 'Pasos para entrar a tu turno' })
+    await expect(steps.getByRole('listitem')).toHaveCount(3)
+    await expect(steps.locator('[aria-current="step"]')).toContainText('Código')
     // La referencia viaja en la ruta pero nunca se pinta en la pantalla.
     await expect(page.getByText(ACCESS_REF)).toHaveCount(0)
+  })
+
+  test('elegir (manage): el código abre el paso 03 con las dos opciones', async ({ page }) => {
+    await mockTargetAppointment(page)
+    await page.route(VERIFY_REF_URL, (route) =>
+      json(route, 200, { accessToken: TOKEN, purpose: 'manage' }),
+    )
+
+    await page.goto(LINK)
+    await typeCode(page, GOOD_CODE)
+
+    await expect(page.getByRole('heading', { level: 1, name: '¿Qué quieres hacer?' })).toBeFocused()
+    await expect(page).toHaveURL(new RegExp(`/reservar/${SLUG}/mi-turno/${ACCESS_REF}$`))
+    await expect(page.getByRole('link', { name: /Cambiar la hora/ })).toBeVisible()
+    await expect(page.getByRole('button', { name: /Cancelar turno/ })).toBeVisible()
+    await expect(page.getByRole('group', { name: 'Código de 6 dígitos' })).toHaveCount(0)
+
+    // Cancelar desde aquí abre la confirmación sin salir de la página.
+    await page.getByRole('button', { name: /Cancelar turno/ }).click()
+    await expect(page.getByRole('button', { name: 'Sí, cancelar mi turno' })).toBeVisible()
+    await expect(page).toHaveURL(new RegExp(`/reservar/${SLUG}/mi-turno/${ACCESS_REF}$`))
   })
 
   test('cancelar: el código abre la cancelación en la misma página', async ({ page }) => {
@@ -222,6 +247,17 @@ for (const viewport of viewports) {
       for (let i = 0; i < 5; i++) await typeCode(page, '111111')
       await expect(page.getByText(/Ese código ya no sirve/)).toBeVisible()
       await capture(page, viewport.name, '3-bloqueado')
+    })
+
+    test(`paso 03 con las dos opciones (${viewport.name}px)`, async ({ page }) => {
+      await mockTargetAppointment(page)
+      await page.route(VERIFY_REF_URL, (route) =>
+        json(route, 200, { accessToken: TOKEN, purpose: 'manage' }),
+      )
+      await page.goto(LINK)
+      await typeCode(page, GOOD_CODE)
+      await expect(page.getByRole('link', { name: /Cambiar la hora/ })).toBeVisible()
+      await capture(page, viewport.name, '7-opciones')
     })
 
     test(`cancelación a la vista (${viewport.name}px)`, async ({ page }) => {

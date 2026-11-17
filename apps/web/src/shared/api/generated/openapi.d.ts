@@ -355,7 +355,7 @@ export interface paths {
         put?: never;
         /**
          * Pedir un código atado a un turno
-         * @description Crea un reto atado a ESE turno y a ESE propósito (`cancel` o `reschedule`) y envía el código de 6 dígitos por WhatsApp a ese teléfono (HU-106, CA-106-03). Solo prospera si la referencia es de ese teléfono en esa barbería y el turno sigue elegible para el propósito; en cualquier otro caso responde el mismo `409` `appointment-not-available`. El código vale 10 minutos, sirve una vez y admite 5 intentos. Pedir otro deja inútil el anterior. El límite de 3 solicitudes por contacto cada 15 minutos cuenta también estas solicitudes y comparte la cuenta con la pantalla pública; además hay un tope por barbería para el servicio. Superarlos responde `429` con `Retry-After`; Odin no reintenta, avisa al cliente que espere. Sin WhatsApp configurado responde `503`. Odin no ve el código ni ningún acceso: el cliente lo escribe en `/reservar/{slug}/mi-turno/{accessRef}`.
+         * @description Crea un reto atado a ESE turno y a ESE propósito y envía el código de 6 dígitos por WhatsApp a ese teléfono (HU-106, CA-106-03). Sin `purpose` el reto queda en `manage` (DEC-181): Odin ya tiene el teléfono y ya confirmó el turno con el cliente, así que el enlace abre directo en el código y, tras él, en el paso 03 con las dos acciones. Devuelve `accessUrl`, el enlace listo para el chat. Solo prospera si la referencia es de ese teléfono en esa barbería y el turno sigue elegible para el propósito (con `manage`, que admita al menos una de las dos acciones); en cualquier otro caso responde el mismo `409` `appointment-not-available`. El código vale 10 minutos, sirve una vez y admite 5 intentos. Pedir otro deja inútil el anterior. El límite de 3 solicitudes por contacto cada 15 minutos cuenta también estas solicitudes y comparte la cuenta con la pantalla pública; además hay un tope por barbería para el servicio. Superarlos responde `429` con `Retry-After`; Odin no reintenta, avisa al cliente que espere. Sin WhatsApp configurado responde `503`. Odin no ve el código ni ningún acceso: el cliente lo escribe en `/reservar/{slug}/mi-turno/{accessRef}`.
          */
         post: operations["requestCustomerAccessCodeForOdin"];
         delete?: never;
@@ -2760,11 +2760,11 @@ export interface components {
             code: string;
         };
         /**
-         * @description `cancel` lleva a «Mi turno», con la cancelación a la vista; `reschedule` lleva a «Cambiar la hora».
-         * @example reschedule
+         * @description `manage` abre el paso 03 «Tu turno» con las dos acciones (cambiar la hora y cancelar): Odin ya confirmó el turno con el cliente y la persona elige en la página. `cancel` abre directamente la confirmación de la cancelación; `reschedule` lleva a «Cambiar la hora».
+         * @example manage
          * @enum {string}
          */
-        CustomerAccessPurpose: "cancel" | "reschedule";
+        CustomerAccessPurpose: "manage" | "cancel" | "reschedule";
         CustomerAccessVerifyRefResponse: {
             /** @description Acceso de 60 minutos a ese turno. Se usa como el `token` de `/customer/appointments/{token}…` y en `/mi-turno/{token}`. */
             accessToken: string;
@@ -2809,11 +2809,19 @@ export interface components {
             phone: string;
             /** @description La referencia que `lookup` entregó para ese turno. */
             appointmentRef: string;
-            purpose: components["schemas"]["CustomerAccessPurpose"];
+            /** @description Opcional (DEC-181). Sin él vale `manage`: exige que el turno admita cancelar o cambiar la hora, y la persona elige en el paso 03. */
+            purpose?: components["schemas"]["CustomerAccessPurpose"];
         };
         OdinAccessChallengeResponse: {
             /** @description Referencia de un solo uso para el enlace `/reservar/{slug}/mi-turno/{accessRef}`. Por sí sola no da acceso: hace falta el código de 6 dígitos que llegó al WhatsApp del cliente. */
             accessRef: string;
+            /**
+             * Format: uri
+             * @description Enlace completo `<web pública>/reservar/{slug}/mi-turno/{accessRef}`, listo para pegarlo en el chat (DEC-181). Abre directo en el código, sin pedir el contacto. No lleva datos personales. Solo aparece si el despliegue conoce su web pública (`APP_PUBLIC_WEB_BASE_URL`); si falta, Odin arma el enlace con `accessRef`.
+             * @example https://nava.wtf/reservar/barberia-ejemplo/mi-turno/Xr4tN8bQ2vLm7KpZ9wYc3HdF6sJ1aGeU0iO5nTqRhBk
+             */
+            accessUrl?: string;
+            purpose: components["schemas"]["CustomerAccessPurpose"];
             /**
              * Format: date-time
              * @description Hasta cuándo sirve el código y, con él, la referencia (10 minutos).

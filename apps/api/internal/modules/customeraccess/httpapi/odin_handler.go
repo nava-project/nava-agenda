@@ -5,6 +5,7 @@ import (
 	"crypto/subtle"
 	"encoding/json"
 	"net/http"
+	"net/url"
 	"strconv"
 	"strings"
 	"time"
@@ -36,15 +37,21 @@ type OdinLookupResponse struct {
 }
 
 // OdinChallengeRequest es el cuerpo de POST .../customer-access/challenge de Odin.
+// Purpose es opcional: sin él, el enlace abre el paso 03 con las dos acciones
+// (`manage`, DEC-181).
 type OdinChallengeRequest struct {
 	Phone          string `json:"phone"`
 	AppointmentRef string `json:"appointmentRef"`
-	Purpose        string `json:"purpose"`
+	Purpose        string `json:"purpose,omitempty"`
 }
 
-// OdinChallengeResponse es la respuesta 201: la referencia del enlace y su vigencia.
+// OdinChallengeResponse es la respuesta 201: la referencia del enlace, su vigencia,
+// el propósito con que quedó y, si el despliegue conoce su web pública, el enlace
+// completo para pegarlo en el chat.
 type OdinChallengeResponse struct {
 	AccessRef string    `json:"accessRef"`
+	AccessURL string    `json:"accessUrl,omitempty"`
+	Purpose   string    `json:"purpose"`
 	ExpiresAt time.Time `json:"expiresAt"`
 }
 
@@ -125,11 +132,25 @@ func (h *OdinLookupHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 // OdinChallengeHandler expone POST /integrations/odin/barbershops/{slug}/customer-access/challenge
 // (HU-106, CA-106-03 y CA-106-04).
-type OdinChallengeHandler struct{ service *customeraccess.RefService }
+type OdinChallengeHandler struct {
+	service *customeraccess.RefService
+	webBase string
+}
 
-// NewOdinChallengeHandler construye el handler de solicitud de código.
-func NewOdinChallengeHandler(service *customeraccess.RefService) *OdinChallengeHandler {
-	return &OdinChallengeHandler{service: service}
+// NewOdinChallengeHandler construye el handler de solicitud de código. webBase es
+// el origen de la web pública (APP_PUBLIC_WEB_BASE_URL); vacío, la respuesta no
+// lleva `accessUrl` y Odin arma el enlace con `accessRef`.
+func NewOdinChallengeHandler(service *customeraccess.RefService, webBase string) *OdinChallengeHandler {
+	return &OdinChallengeHandler{service: service, webBase: strings.TrimRight(webBase, "/")}
+}
+
+// accessURL arma el enlace que el cliente abre: directo en el código, sin pedir el
+// contacto. Solo lleva el slug y la referencia opaca, nunca datos personales.
+func (h *OdinChallengeHandler) accessURL(slug, accessRef string) string {
+	if h.webBase == "" {
+		return ""
+	}
+	return h.webBase + "/reservar/" + url.PathEscape(slug) + "/mi-turno/" + url.PathEscape(accessRef)
 }
 
 // ServeHTTP implementa http.Handler.
@@ -148,14 +169,18 @@ func (h *OdinChallengeHandler) ServeHTTP(w http.ResponseWriter, r *http.Request)
 		fail(err)
 		return
 	}
-	accepted, err := h.service.RequestCode(r.Context(), httpserver.URLParam(r, slugParam), req.Phone, req.AppointmentRef, req.Purpose)
+	slug := httpserver.URLParam(r, slugParam)
+	accepted, err := h.service.RequestCode(r.Context(), slug, req.Phone, req.AppointmentRef, req.Purpose)
 	if err != nil {
 		fail(err)
 		return
 	}
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusCreated)
-	_ = json.NewEncoder(w).Encode(OdinChallengeResponse{AccessRef: accepted.AccessRef, ExpiresAt: accepted.ExpiresAt})
+	_ = json.NewEncoder(w).Encode(OdinChallengeResponse{
+		AccessRef: accepted.AccessRef, AccessURL: h.accessURL(slug, accepted.AccessRef),
+		Purpose: accepted.Purpose, ExpiresAt: accepted.ExpiresAt,
+	})
 }
 
 // VerifyRefHandler expone POST /public/barbershops/{slug}/customer-access/verify-ref

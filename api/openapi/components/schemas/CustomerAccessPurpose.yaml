@@ -1,9 +1,11 @@
-# Para qué se pidió el acceso al turno (HU-106, DEC-179): decide a qué pantalla lleva
-# la verificación.
+# Para qué se pidió el acceso al turno (HU-106, DEC-179, DEC-180, DEC-181): decide qué
+# muestra la página tras verificar el código.
 type: string
-enum: [cancel, reschedule]
+enum: [manage, cancel, reschedule]
 description: >
-  `cancel` lleva a «Mi turno», con la cancelación a la vista; `reschedule` lleva a
+  `manage` abre el paso 03 «Tu turno» con las dos acciones (cambiar la hora y
+  cancelar): Odin ya confirmó el turno con el cliente y la persona elige en la página.
+  `cancel` abre directamente la confirmación de la cancelación; `reschedule` lleva a
   «Cambiar la hora».
 examples:
-  - reschedule
+  - manage

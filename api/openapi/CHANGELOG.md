@@ -4,6 +4,24 @@ Formato basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/).
 Ver [`docs/06-api/estandar-openapi.md`](../../docs/06-api/estandar-openapi.md)
 sección 18 para qué cuenta como cambio compatible o incompatible.
 
+## 0.58.0 · 2026-11-17
+
+### Cambiado
+
+- `POST /integrations/odin/barbershops/{slug}/customer-access/challenge` (`DEC-181`,
+  issue #651): `purpose` pasa a opcional y admite el valor nuevo `manage`, que es el
+  valor por defecto. Con `manage` el turno debe admitir cancelar **o** cambiar la hora,
+  y tras el código la persona elige en el paso 03. `cancel` y `reschedule` no cambian.
+  Compatible: un cliente que siga enviando `purpose` obtiene lo mismo de antes.
+
+### Agregado
+
+- En la respuesta `201` de esa operación: `purpose` (el propósito con que quedó el reto)
+  y `accessUrl` opcional, el enlace completo para pegarlo en el chat (solo si el
+  despliegue define `APP_PUBLIC_WEB_BASE_URL`).
+- `CustomerAccessPurpose` suma `manage`, también en la respuesta de
+  `POST /public/barbershops/{slug}/customer-access/verify-ref`.
+
 ## 0.57.0 · 2026-11-17
 
 ### Agregado

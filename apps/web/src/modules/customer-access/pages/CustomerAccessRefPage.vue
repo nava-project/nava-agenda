@@ -14,6 +14,10 @@
 // Issue #647: con el propósito «cancelar» la cancelación se confirma aquí mismo, en el paso
 // «Tu turno», en vez de saltar a la pantalla completa de «Mi turno». «Cambiar la hora» sí va a
 // su pantalla, que es la que elige el día y la hora.
+//
+// Issue #651 (DEC-181): Odin ya tiene el teléfono y ya confirmó el turno en el chat, así que
+// el paso 01 «Contacto» aparece hecho y la página abre en el 02 «Código». Con el propósito
+// `manage` (el que Odin usa por defecto) el paso 03 ofrece las dos acciones y la persona elige.
 import { computed, nextTick, onMounted, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { BaseAlert, BaseButton, NavaWordmark, OtpInput, PageState } from '@/shared/ui'
@@ -46,18 +50,20 @@ const purpose = ref<AccessPurpose | null>(null)
 /** Credencial del turno para el paso «Tu turno». */
 const accessToken = ref('')
 const cancelledHere = ref(false)
-/** `menu` si la persona volvió a las opciones desde la cancelación. */
-const actionsMode = ref<'menu' | 'cancel'>('cancel')
+/** Qué muestra el paso 03: las dos opciones o la cancelación abierta. */
+const actionsMode = ref<'menu' | 'cancel'>('menu')
 const manageTitle = computed(() => {
   if (cancelledHere.value) return 'Turno cancelado'
   return actionsMode.value === 'cancel' ? 'Cancelar tu turno' : '¿Qué quieres hacer?'
 })
 
+// El contacto lo resolvió Odin en WhatsApp: el paso 01 se muestra hecho.
 const STEPS = [
-  { id: 1, label: 'Código' },
-  { id: 2, label: 'Tu turno' },
+  { id: 1, label: 'Contacto' },
+  { id: 2, label: 'Código' },
+  { id: 3, label: 'Tu turno' },
 ]
-const stepNumber = computed(() => (step.value === 'code' ? 1 : 2))
+const stepNumber = computed(() => (step.value === 'code' ? 2 : 3))
 
 const heading = ref<HTMLElement | null>(null)
 const root = ref<HTMLElement | null>(null)
@@ -88,10 +94,11 @@ async function submitCode() {
   switch (outcome.kind) {
     case 'granted':
       purpose.value = outcome.purpose
-      // `cancel` confirma aquí mismo, en «Tu turno»; `reschedule` va a «Cambiar la hora».
+      // `manage` y `cancel` siguen aquí, en «Tu turno»; `reschedule` va a «Cambiar la hora».
       // `replace` para que «Atrás» no vuelva a un código gastado.
-      if (outcome.purpose === 'cancel') {
+      if (outcome.purpose !== 'reschedule') {
         accessToken.value = outcome.accessToken
+        actionsMode.value = outcome.purpose === 'cancel' ? 'cancel' : 'menu'
         step.value = 'manage'
         await nextTick()
         heading.value?.focus()
@@ -162,7 +169,7 @@ async function submitCode() {
     </main>
 
     <main v-else class="access__main">
-      <ol class="access__steps access__steps--two" aria-label="Pasos para entrar a tu turno">
+      <ol class="access__steps" aria-label="Pasos para entrar a tu turno">
         <li
           v-for="s in STEPS"
           :key="s.id"
@@ -193,8 +200,8 @@ async function submitCode() {
           }}
         </p>
         <p v-else-if="step === 'code'" class="access__lead">
-          Te enviamos un código de 6 dígitos a tu WhatsApp. Escríbelo para continuar; vence en 10
-          minutos.
+          Ya confirmamos tu turno por WhatsApp. Te enviamos allí un código de 6 dígitos: escríbelo
+          para continuar; vence en 10 minutos.
         </p>
       </div>
 
@@ -202,7 +209,7 @@ async function submitCode() {
         v-if="step === 'manage'"
         :token="accessToken"
         :slug="slug"
-        initial-action="cancel"
+        :initial-action="purpose === 'cancel' ? 'cancel' : undefined"
         @cancelled="cancelledHere = true"
         @mode-change="actionsMode = $event"
       />
