@@ -3,7 +3,9 @@
 #
 # Lo invoca el Jenkinsfile desde el controlador de Jenkins, que habla con el Docker del
 # host. El workspace vive en la misma ruta dentro del controlador y en el host
-# (/srv/jenkins/home), por eso se monta tal cual en el contenedor del check.
+# (/srv/jenkins/home), así que el Docker del host puede montarlo. Dentro del check se monta
+# siempre en /workspace: las cachés de Go (pruebas incluidas) dependen de la ruta, y con una
+# ruta fija un PR reutiliza lo que ya compiló y probó main (#625).
 #
 # Uso:
 #   tools/ci/run.sh image                       construye la imagen si falta
@@ -34,10 +36,14 @@ if [ "$check" = image ]; then build_image; exit 0; fi
 [ -x "$root/tools/ci/checks/$check.sh" ] || { echo "check desconocido: $check" >&2; exit 2; }
 build_image
 
+# Go y las pruebas del frontend corren a la vez que el resto (#625). Son topes contra un
+# check desbocado, no reservas: el pico real medido de todos juntos está en
+# deploy/jenkins/README.md y cabe en la memoria libre del VPS.
 case "$check" in
-  go)  limits=(--memory 3g) ;;
-  web) limits=(--memory 3g) ;;
-  *)   limits=(--memory 1g) ;;
+  go)         limits=(--memory 3g) ;;
+  web-test)   limits=(--memory 2560m) ;;
+  web-static) limits=(--memory 2g) ;;
+  *)          limits=(--memory 1g) ;;
 esac
 
 # Nombre único por ejecución: BUILD_TAG lo da Jenkins (p. ej. jenkins-barberia-ci-main-12).
@@ -66,7 +72,7 @@ fi
 docker run --rm --init --name "$name" --label nava-ci=1 \
   --user 1000:1000 --security-opt label=disable \
   --cpu-shares 512 "${limits[@]}" \
-  -v "$root:$root" -w "$root" \
+  -v "$root:/workspace" -w /workspace \
   -v nava-ci-cache:/cache \
   "${net[@]}" \
   "$tag" "tools/ci/checks/$check.sh"
