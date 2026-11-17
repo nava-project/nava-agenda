@@ -2,7 +2,7 @@
 prompt_id: "PROMPT-OPS-MIGRAR-PROYECTO-A-JENKINS-VPS-v1"
 version: "1.0"
 kind: "ops"
-status: "draft"
+status: "superseded"
 target_agents:
   - "any"
 repository: "externo — el repositorio del proyecto a migrar (p. ej. bcaceres19/odin o bcaceres19/odin-pedidos); el registro de jobs se hace aparte en bcaceres19/barberia"
@@ -32,10 +32,12 @@ source_docs:
 created_at: "2026-11-16"
 updated_at: "2026-11-16"
 supersedes: null
-superseded_by: null
+superseded_by: "PROMPT-OPS-MIGRAR-PROYECTO-A-JENKINS-VPS-v2"
 ---
 
 # Migrar el CI/CD de un proyecto al Jenkins compartido de la VPS
+
+> **Sustituido** por [`PROMPT-OPS-MIGRAR-PROYECTO-A-JENKINS-VPS-v2`](issue-pending-migrar-proyecto-a-jenkins-vps-v2.md) (2026-11-16): no incluye la aceleración del CI (#625) ni las particularidades verificadas de `odin` y `odin-pedidos`. No lo ejecutes.
 
 ## Instrucción para el agente
 
