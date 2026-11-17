@@ -118,6 +118,12 @@ const (
 	// las reprogramaciones propias que admite un turno. Código:
 	// "reschedule-limit-reached".
 	KindRescheduleLimitReached Kind = "reschedule_limit_reached"
+
+	// KindRateLimited cubre HU-105 (DEC-178): demasiadas solicitudes de código
+	// desde el mismo contacto o la misma IP. Lleva RetryAfterSeconds y, a
+	// diferencia de KindChallengeRequired (HU-007), no habla de ningún reto
+	// telefónico: el cliente solo debe esperar.
+	KindRateLimited Kind = "rate_limited"
 )
 
 // Error es el error de aplicación que domain/servicios devuelven.
@@ -130,8 +136,8 @@ type Error struct {
 	// Err es la causa interna, útil para logs; la capa HTTP nunca la
 	// vuelca en la respuesta.
 	Err error
-	// RetryAfterSeconds acompaña KindChallengeRequired con el segundo en
-	// que el escalamiento deja de estar vigente (HU-007). Cero para
+	// RetryAfterSeconds acompaña KindChallengeRequired (HU-007) y KindRateLimited
+	// (HU-105) con los segundos hasta que el límite deja de aplicar. Cero para
 	// cualquier otro Kind: la capa HTTP solo añade la cabecera Retry-After
 	// cuando este campo es positivo.
 	RetryAfterSeconds int
@@ -252,6 +258,12 @@ func CancellationReasonRequired(message string) *Error {
 // RescheduleWindowClosed construye el rechazo por plazo vencido de HU-104.
 func RescheduleWindowClosed(message string) *Error {
 	return &Error{Kind: KindRescheduleWindowClosed, Message: message}
+}
+
+// RateLimited construye el rechazo por exceso de solicitudes de HU-105.
+// retryAfterSeconds debe ser positivo: la capa HTTP lo traduce en Retry-After.
+func RateLimited(message string, retryAfterSeconds int) *Error {
+	return &Error{Kind: KindRateLimited, Message: message, RetryAfterSeconds: retryAfterSeconds}
 }
 
 // RescheduleLimitReached construye el rechazo por límite alcanzado de HU-104.

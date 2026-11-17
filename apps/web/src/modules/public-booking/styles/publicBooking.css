@@ -1296,6 +1296,35 @@
   color: var(--pb-brass);
 }
 
+/* Enlace para quien ya tiene turno (HU-105): secundario, pero con el área táctil de un control. */
+.pb-manage {
+  margin: var(--space-6) 0 0;
+  font-family: var(--font-sans);
+  font-size: 15px;
+  line-height: 24px;
+  color: var(--pb-soft);
+}
+
+.pb-manage a {
+  display: inline-block;
+  padding-block: var(--space-2);
+  font-weight: 600;
+  color: var(--pb-text, inherit);
+  text-decoration: underline;
+  text-decoration-color: var(--pb-brass);
+  text-decoration-thickness: 2px;
+  text-underline-offset: 4px;
+}
+
+.pb-manage a:hover {
+  color: var(--pb-brass);
+}
+
+.pb-manage a:focus-visible {
+  outline: 2px solid var(--pb-brass);
+  outline-offset: 3px;
+}
+
 @media (min-width: 1000px) {
   .pb-hero__grid {
     grid-template-columns: minmax(0, 1.12fr) minmax(0, 0.88fr);

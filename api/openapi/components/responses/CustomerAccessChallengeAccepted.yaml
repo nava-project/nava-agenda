@@ -1,0 +1,22 @@
+# Respuesta 202 de POST .../customer-access/challenge (HU-105, CA-105-01).
+description: >
+  La solicitud fue recibida. Si hay un cliente con ese contacto y algún turno
+  futuro confirmado, se envía un código; en cualquier otro caso no ocurre
+  ningún envío, sin que la respuesta lo revele.
+headers:
+  X-Request-Id:
+    $ref: '../headers/XRequestId.yaml'
+  Cache-Control:
+    description: Siempre `no-store`.
+    schema:
+      type: string
+      enum: [no-store]
+content:
+  application/json:
+    schema:
+      $ref: '../schemas/CustomerAccessChallengeResponse.yaml'
+    examples:
+      solicitudRecibida:
+        value:
+          expiresInSeconds: 600
+          resendAfterSeconds: 60

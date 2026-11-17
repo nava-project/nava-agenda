@@ -1,0 +1,20 @@
+# Cuerpo de la respuesta 202 de POST .../customer-access/challenge (HU-105).
+# Los dos valores son constantes de la política, no resultados de la búsqueda:
+# la respuesta es idéntica exista o no el contacto (CA-105-01).
+type: object
+additionalProperties: false
+description: Confirmación genérica de que la solicitud fue recibida.
+properties:
+  expiresInSeconds:
+    type: integer
+    description: Vigencia del código, en segundos.
+    examples: [600]
+  resendAfterSeconds:
+    type: integer
+    description: >
+      Segundos que la pantalla espera antes de ofrecer pedir otro código. Es
+      una guía de interfaz; el límite real lo aplica el servidor con `429`.
+    examples: [60]
+required:
+  - expiresInSeconds
+  - resendAfterSeconds

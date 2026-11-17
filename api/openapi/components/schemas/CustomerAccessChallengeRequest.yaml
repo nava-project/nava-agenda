@@ -1,0 +1,18 @@
+# Cuerpo de POST /public/barbershops/{slug}/customer-access/challenge (HU-105).
+type: object
+additionalProperties: false
+description: El contacto con el que la persona reservó, escrito como lo recuerde.
+properties:
+  contact:
+    type: string
+    minLength: 1
+    maxLength: 254
+    description: >
+      Correo o celular. El correo se compara sin distinguir mayúsculas; el
+      celular colombiano se acepta con o sin `+57` y con espacios o guiones
+      (DEC-141). Cualquier otro número debe venir en formato E.164.
+    examples:
+      - ana.perez@correo.test
+      - 300 123 4567
+required:
+  - contact

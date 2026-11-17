@@ -1,4 +1,4 @@
-h1:PxTEvAyDPz7JwqxJDS9bu1GbjhgiLhG/CHgIx6U39/o=
+h1:Or/zyVKgwiadCnzUiGXra614KWmt/B/FHBPh1G79ztI=
 20260807170000_create_tenant_foundation.sql h1:9KyewD/Xqtm6MjQ7MkTora3f47kjPOobGVfE2q66AUI=
 20260807170100_create_idempotency_record.sql h1:he0jfwTn3otdzgu/qHhFo7Z4ra9+1AL/mT2db82DOrU=
 20260811145252_harden_roles_and_definer_functions.sql h1:KhiZKVpFfL81T+f/73nMkVD0ndVWsCdM4ShqMHZfZ/g=
@@ -44,3 +44,4 @@ h1:PxTEvAyDPz7JwqxJDS9bu1GbjhgiLhG/CHgIx6U39/o=
 20261116120000_barber_booking_policy_full_window.sql h1:BH1f7ieHXOpuTV0LZY/4mdAaJ8nd7nzIDXpcZArkHU8=
 20261117120000_add_reminder_lead_minutes.sql h1:yjh24pJolYf6ZAo2nqpgKoNmuMg4FJ6Os/P/yuFnSZ4=
 20261118120000_add_whatsapp_reminder.sql h1:H3nyjgeTKi+VLCGKed6TDePZ0TXwZWDz/tLn025d9/w=
+20261119120000_create_customer_access_challenge.sql h1:218jIhKud5vguFxZ4KW2SX1YWClX19qUksWpE0VwgxQ=

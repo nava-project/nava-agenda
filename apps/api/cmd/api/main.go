@@ -611,6 +611,22 @@ func buildRouter(db *database.DB, logger *slog.Logger, cfg config.Config) (*chi.
 	router.Get("/api/v1/customer/appointments/{token}/reschedule-slots", customeraccesshttpapi.NewListRescheduleSlotsHandler(customerAppointmentService).ServeHTTP)
 	router.Post("/api/v1/customer/appointments/{token}/reschedule", customeraccesshttpapi.NewRescheduleAppointmentHandler(customerAppointmentService).ServeHTTP)
 
+	// HU-105 (DEC-178): acceso al turno con un código de un solo uso, para quien no
+	// tiene el enlace del correo. Públicas y sin sesión; el límite por contacto y por
+	// IP vive en la base y el envío corre en segundo plano.
+	customerAccessService := customeraccess.NewAccessService(
+		customeraccesspostgres.NewAccessRepository(db),
+		selectCustomerAccessCodeSender(cfg, logger),
+		customeraccess.CryptoCodeGenerator{},
+		clock.System{},
+		hmacSecret,
+		logger,
+	)
+	router.Post("/api/v1/public/barbershops/{slug}/customer-access/challenge",
+		customeraccesshttpapi.NewRequestAccessCodeHandler(customerAccessService, trustedProxies).ServeHTTP)
+	router.Post("/api/v1/public/barbershops/{slug}/customer-access/verify",
+		customeraccesshttpapi.NewVerifyAccessCodeHandler(customerAccessService).ServeHTTP)
+
 	// HU-100 (DEC-128): reseñas internas por barbero. Crear (cliente, por el token
 	// del enlace), listar las visibles (público) y moderar (panel) comparten un
 	// único servicio; el promedio y el total del barbero lo calculan staff y
@@ -770,6 +786,37 @@ func selectChallengeEmailSender(cfg config.Config, logger *slog.Logger) auth.Cha
 		}, nil)
 	}
 	return auth.NewLoggingChallengeEmailSender(logger)
+}
+
+// selectCustomerAccessCodeSender elige cómo se entrega el código con el que el
+// cliente entra a su turno (HU-105): correo por Resend y WhatsApp por Meta, cada
+// uno solo si está configurado por completo. Sin ninguno de los dos (local/test),
+// un marcador que solo deja constancia del canal, sin destinatario ni código.
+func selectCustomerAccessCodeSender(cfg config.Config, logger *slog.Logger) customeraccess.AccessCodeSender {
+	resendComplete := cfg.ResendAPIKey != "" && cfg.ResendFromAddress != ""
+	if !resendComplete && !cfg.MetaWhatsAppConfigured() {
+		return notification.NewLoggingCustomerAccessCodeSender(logger)
+	}
+
+	var whatsappPort interface {
+		Send(ctx context.Context, phoneE164, code string) error
+	}
+	if cfg.MetaWhatsAppConfigured() {
+		whatsappPort = notification.NewMetaWhatsAppSender(notification.MetaWhatsAppConfig{
+			APIVersion:     cfg.MetaWhatsAppAPIVersion,
+			PhoneNumberID:  cfg.MetaWhatsAppPhoneNumberID,
+			AccessToken:    cfg.MetaWhatsAppAccessToken,
+			Mode:           notification.MetaWhatsAppMode(cfg.MetaWhatsAppMode),
+			TemplateName:   cfg.MetaWhatsAppCustomerCodeTemplateName,
+			LanguageCode:   cfg.MetaWhatsAppCustomerCodeLanguageCode,
+			TestRecipients: cfg.MetaWhatsAppTestRecipients,
+			Logger:         logger,
+		}, nil)
+	}
+	return notification.NewCustomerAccessCodeSender(notification.ResendEmailConfig{
+		APIKey:      cfg.ResendAPIKey,
+		FromAddress: cfg.ResendFromAddress,
+	}, whatsappPort, nil)
 }
 
 // selectRecoverySender selects the email-only delivery path. WhatsApp OTP

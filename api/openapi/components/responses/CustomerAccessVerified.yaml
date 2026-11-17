@@ -1,0 +1,23 @@
+# Respuesta 200 de POST .../customer-access/verify (HU-105, CA-105-02).
+description: "Código válido: un acceso de 60 minutos por cada turno futuro confirmado."
+headers:
+  X-Request-Id:
+    $ref: '../headers/XRequestId.yaml'
+  Cache-Control:
+    description: "Siempre `no-store`: la respuesta lleva credenciales en claro (RN-DAT-02)."
+    schema:
+      type: string
+      enum: [no-store]
+content:
+  application/json:
+    schema:
+      $ref: '../schemas/CustomerAccessVerifyResponse.yaml'
+    examples:
+      unTurno:
+        value:
+          timezone: America/Bogota
+          appointments:
+            - accessToken: 7Yq2mK9sV1xN4cB6hJ3tR0wE8uL5pA2dF7gZ1oXiC9k
+              startsAt: "2026-11-20T19:00:00Z"
+              serviceName: Corte clásico
+              barberName: Juan

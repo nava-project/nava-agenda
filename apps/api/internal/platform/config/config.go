@@ -213,6 +213,12 @@ type Config struct {
 	// la aprobada en la cuenta: `nava_recordatorio_turno` en `es_CO`.
 	MetaWhatsAppReminderTemplateName string
 	MetaWhatsAppReminderLanguageCode string
+	// MetaWhatsAppCustomerCodeTemplateName y MetaWhatsAppCustomerCodeLanguageCode son
+	// la plantilla AUTHENTICATION del código con el que el cliente entra a su turno
+	// (HU-105, DEC-178). Distinta de la del reto del personal: el texto de Meta es
+	// fijo y la expiración de 10 minutos de esta plantilla no es la de aquella.
+	MetaWhatsAppCustomerCodeTemplateName string
+	MetaWhatsAppCustomerCodeLanguageCode string
 
 	// MetaWebhookVerifyToken es el token que Meta devuelve en la verificación
 	// del webhook (GET). Secreto propio, distinto del access token. Junto con
@@ -461,6 +467,9 @@ func Load() (Config, error) {
 
 		MetaWhatsAppReminderTemplateName: getEnv("APP_META_WHATSAPP_REMINDER_TEMPLATE_NAME", "nava_recordatorio_turno"),
 		MetaWhatsAppReminderLanguageCode: getEnv("APP_META_WHATSAPP_REMINDER_LANGUAGE_CODE", "es_CO"),
+
+		MetaWhatsAppCustomerCodeTemplateName: getEnv("APP_META_WHATSAPP_CUSTOMER_CODE_TEMPLATE_NAME", "nava_codigo_turno"),
+		MetaWhatsAppCustomerCodeLanguageCode: getEnv("APP_META_WHATSAPP_CUSTOMER_CODE_LANGUAGE_CODE", "es_CO"),
 
 		OTPProvider: otpProvider,
 
