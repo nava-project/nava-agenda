@@ -80,6 +80,12 @@ const secondsToResend = computed(() =>
 const canResend = computed(() => isLocked.value || secondsToResend.value === 0)
 const channelWord = computed(() => (isEmailContact(contact.value) ? 'correo' : 'WhatsApp'))
 const maskedContact = computed(() => maskContact(contact.value))
+/** Canal que se deduce de lo escrito, para anticipar por dónde llegará el código (#649). */
+const channelPreview = computed<'correo' | 'WhatsApp' | ''>(() => {
+  const value = contact.value.trim()
+  if (!value) return ''
+  return isEmailContact(value) ? 'correo' : 'WhatsApp'
+})
 const stepNumber = computed(() => (step.value === 'contact' ? 1 : step.value === 'code' ? 2 : 3))
 
 const STEPS = [
@@ -379,6 +385,33 @@ const zoneCity = computed(() => (grant.value ? timezoneCity(grant.value.timezone
           hint="El mismo con el que hiciste la reserva."
           placeholder="ana@correo.com o 300 123 4567"
         />
+        <div class="stub__channel">
+          <span class="stub__channel-label" aria-hidden="true">Te llega por</span>
+          <span
+            class="stub__chip"
+            :class="{ 'stub__chip--on': channelPreview === 'correo' }"
+            aria-hidden="true"
+          >
+            <svg viewBox="0 0 24 24" width="16" height="16">
+              <rect x="3.5" y="5.5" width="17" height="13" rx="1.5" />
+              <path d="M4 7l8 6 8-6" />
+            </svg>
+            Correo
+          </span>
+          <span
+            class="stub__chip"
+            :class="{ 'stub__chip--on': channelPreview === 'WhatsApp' }"
+            aria-hidden="true"
+          >
+            <svg viewBox="0 0 24 24" width="16" height="16">
+              <path d="M5 19l1.2-3.6A7.5 7.5 0 1 1 9 18.3L5 19z" />
+            </svg>
+            WhatsApp
+          </span>
+          <span class="visually-hidden" aria-live="polite">{{
+            channelPreview ? `El código te llegará por ${channelPreview}.` : ''
+          }}</span>
+        </div>
         <BaseButton type="submit" size="lg" :loading="submitting" class="stub__action">
           Enviarme el código
         </BaseButton>
@@ -421,7 +454,9 @@ const zoneCity = computed(() => (grant.value ? timezoneCity(grant.value.timezone
           <BaseButton v-else variant="ghost" :loading="submitting" @click="resend">
             Pedir otro código
           </BaseButton>
-          <BaseButton variant="ghost" @click="changeContact">Cambiar el contacto</BaseButton>
+          <button type="button" class="stub__link" @click="changeContact">
+            Cambiar el contacto
+          </button>
         </div>
       </form>
 

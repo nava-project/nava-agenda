@@ -147,6 +147,25 @@ afterEach(() => {
 })
 
 describe('CustomerAccessPage · paso 1, contacto', () => {
+  // #649: anticipa por dónde llegará el código según lo que se escribe, sin llamar al servidor.
+  it('enciende el canal que corresponde a lo escrito y lo anuncia', async () => {
+    const w = await mountPage()
+    const chips = () => w.findAll('.stub__chip--on').map((c) => c.text())
+
+    expect(chips()).toEqual([])
+    await contactInput(w).setValue('ana@correo.test')
+    expect(chips()).toEqual(['Correo'])
+    expect(w.find('.stub__channel [aria-live="polite"]').text()).toBe(
+      'El código te llegará por correo.',
+    )
+    await contactInput(w).setValue('300 123 4567')
+    expect(chips()).toEqual(['WhatsApp'])
+    expect(w.find('.stub__channel [aria-live="polite"]').text()).toBe(
+      'El código te llegará por WhatsApp.',
+    )
+    expect(postMock).not.toHaveBeenCalled()
+  })
+
   it('abre con el título enfocado y sin llamar al servidor', async () => {
     const w = await mountPage()
     expect(w.find('h1').text()).toBe('Encuentra tu turno')
