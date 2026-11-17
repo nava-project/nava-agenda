@@ -3,28 +3,27 @@
 # desde el directorio de la versión (/srv/barberia/releases/<sha>/deploy/scripts).
 #
 # Orden (docs/05-backend/migraciones-atlas.md, "Despliegue"):
-#   1. valida entornos y descarga imágenes
+#   1. valida entornos y que las imágenes estén en el Docker del host
 #   2. levanta PostgreSQL (la crea y hace el bootstrap de roles si es la primera vez)
 #   3. respaldo previo verificado
 #   4. migraciones con Atlas como barberia_migrator (si fallan, NO se toca la aplicación)
 #   5. arranca API, worker, web y respaldos; espera a que estén sanos
 #   6. pruebas de humo
 #
-# Uso: deploy.sh <sha> --db-tag <tag> [--ghcr-user <usuario>] [--no-pull] [--no-migrate]
-#   --ghcr-user  inicia sesión en ghcr.io con el token leído de stdin (no se persiste)
-#   --no-pull    usa las imágenes ya presentes en el Docker del host (Jenkins las construye
-#                ahí, DEC-177; también sirve para pruebas locales)
+# Uso: deploy.sh <sha> --db-tag <tag> [--no-migrate]
+#   Las imágenes no se descargan de ningún registro: Jenkins las construye en el Docker del
+#   host (DEC-177). --no-pull se acepta y no hace nada: release.sh lo pasa también al
+#   deploy.sh de versiones anteriores a #634, que sí descargaban.
 #   --no-migrate reversión de la aplicación SIN tocar el esquema ni respaldar; solo es
 #                seguro si el esquema actual es compatible con la versión anterior
 set -euo pipefail
 
 sha="${1:?uso: deploy.sh <sha> --db-tag <tag> [opciones]}"; shift
-db_tag=""; ghcr_user=""; pull=1; migrate=1
+db_tag=""; migrate=1
 while [ $# -gt 0 ]; do
   case "$1" in
     --db-tag) db_tag="${2:?}"; shift 2 ;;
-    --ghcr-user) ghcr_user="${2:?}"; shift 2 ;;
-    --no-pull) pull=0; shift ;;
+    --no-pull) shift ;;
     --no-migrate) migrate=0; shift ;;
     *) echo "argumento desconocido: $1" >&2; exit 2 ;;
   esac
@@ -80,21 +79,15 @@ docker network inspect edge >/dev/null 2>&1 || docker network create edge >/dev/
 "${compose[@]}" config -q || fail "compose.yaml no es válido con los entornos actuales"
 
 # --- 1b. Imágenes -----------------------------------------------------------
-token=""
-[ -z "$ghcr_user" ] || IFS= read -r token
-# El token ya está leído: ningún comando posterior debe consumir stdin (docker
-# compose run/exec lo harían, y bajo `ssh host bash -s` se tragarían el script).
+# Ningún comando posterior debe consumir stdin (docker compose run/exec lo harían, y bajo
+# `ssh host bash -s` se tragarían el script).
 exec </dev/null
-if [ "$pull" = 1 ]; then
-  if [ -n "$ghcr_user" ]; then
-    # Token por stdin y configuración de Docker temporal: no queda en disco.
-    export DOCKER_CONFIG; DOCKER_CONFIG="$(mktemp -d)"
-    trap 'rm -rf "$DOCKER_CONFIG"' EXIT
-    docker login ghcr.io -u "$ghcr_user" --password-stdin <<<"$token" >/dev/null
-  fi
-  log "descargando imágenes"
-  "${compose[@]}" --profile tools pull db api web migrate
-fi
+# Sin registro: si falta una imagen, compose intentaría descargarla y fallaría a medias.
+images="$("${compose[@]}" --profile tools config --images | sort -u)"
+for img in $images; do
+  docker image inspect "$img" >/dev/null 2>&1 \
+    || fail "no está la imagen $img en el Docker del host: constrúyela con el job barberia/deploy de Jenkins"
+done
 
 # --- 2. Base de datos -------------------------------------------------------
 log "levantando PostgreSQL"

@@ -147,12 +147,13 @@ editan en **hPanel → Dominios → nava.wtf → DNS / Servidores de nombres →
 
 El CI y los despliegues los hace el Jenkins de la VPS (`DEC-177`), en `https://jenkins.nava.wtf`;
 la instalación, los secretos y la operación están en [`jenkins/README.md`](jenkins/README.md).
-GitHub Actions quedó retirado: GitHub ya no guarda nada necesario para desplegar.
+GitHub Actions quedó retirado y desactivado en el repositorio (#634): GitHub ya no guarda nada necesario
+para desplegar ni hay registro de imágenes.
 
 | Pipeline | Cuándo corre | Qué hace |
 | --- | --- | --- |
 | `barberia/ci` | cada PR contra `main` y cada commit de `main` | los checks de [`Jenkinsfile`](../Jenkinsfile) y el estado en el commit de GitHub; en `main`, si pasa, construye las imágenes y dispara `deploy` |
-| `barberia/deploy` | lo dispara el CI de `main`; a mano con un SHA | worktree en el SHA, imágenes que falten, envío al servidor y `deploy.sh --no-pull` como `deploy` |
+| `barberia/deploy` | lo dispara el CI de `main`; a mano con un SHA | worktree en el SHA, imágenes que falten, envío al servidor y `deploy.sh` como `deploy` |
 | `vps/mantenimiento` | diario | contenedores de CI huérfanos y caché de construcción de más de 7 días |
 
 Las claves de Resend, Meta y Google **no** están en Jenkins: viven solo en el servidor como
@@ -193,7 +194,8 @@ tail /srv/barberia/deploy.log       # historial de despliegues (versión, actor,
 
 **Desplegar**: ocurre solo tras cada commit de `main` con el CI en verde. A mano (reintento o SHA
 anterior): Jenkins → *Barbería* → *Deploy* → *Build with Parameters* (`SHA` vacío = último commit de
-`main`; o un SHA). Verifica que el CI del commit esté en verde, construye las imágenes que falten en el
+`main`; o un SHA). Verifica que el CI de Jenkins del commit esté en verde (un commit anterior a la migración del
+2026-11-16 ya no se acepta: sus resultados de GitHub Actions se borraron), construye las imágenes que falten en el
 Docker del servidor y entonces: respaldo previo verificado → migraciones con `barberia_migrator` →
 arranque → pruebas de humo. **Si la migración falla, la aplicación en ejecución no se toca.**
 

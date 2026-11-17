@@ -21,24 +21,15 @@ phase="${1:?uso: release.sh verify|images|deploy|public-check}"
 fail() { echo "ERROR: $*" >&2; exit 1; }
 get() { cat "$state/$1"; }
 
-# Estado del CI de un commit en GitHub. Vale el de Jenkins (estado del commit
-# continuous-integration/jenkins/branch) y, para commits anteriores a la migración, los
-# check runs de los cinco jobs del antiguo ci.yml de GitHub Actions (el último intento de
-# cada uno en verde). Los del workflow Deploy no cuentan: no prueban el código.
-legacy_ci_jobs='["Go (build, vet, test -race, govulncheck)","OpenAPI (lint + bundle)","Frontend (lint, tipos, pruebas, build)","Atlas + suites SQL contra el esquema aplicado","Despliegue (compose, scripts e imágenes)"]'
+# Estado del CI de un commit en GitHub: el de Jenkins (continuous-integration/jenkins/branch).
+# Los commits anteriores a la migración no se aceptan: sus check runs de GitHub Actions se
+# borraron al retirarlo (#634).
 ci_green() {
-  local api="https://api.github.com/repos/$GITHUB_REPO/commits/$1"
-  local auth=(-H "Authorization: Bearer $GH_TOKEN" -H "Accept: application/vnd.github+json")
-  local jenkins actions
-  jenkins="$(curl -fsS "${auth[@]}" "$api/status" \
+  local api="https://api.github.com/repos/$GITHUB_REPO/commits/$1/status"
+  local jenkins
+  jenkins="$(curl -fsS -H "Authorization: Bearer $GH_TOKEN" -H "Accept: application/vnd.github+json" "$api" \
     | jq -r '[.statuses[] | select(.context == "continuous-integration/jenkins/branch")][0].state // ""')"
-  [ "$jenkins" = success ] && return 0
-  actions="$(curl -fsS "${auth[@]}" "$api/check-runs?per_page=100" \
-    | jq -r --argjson jobs "$legacy_ci_jobs" '
-        [.check_runs[] | select(.name as $n | $jobs | index($n))]
-        | group_by(.name) | map(max_by(.started_at))
-        | if length == ($jobs | length) and all(.[]; .conclusion == "success") then "success" else "no" end')"
-  [ "$actions" = success ]
+  [ "$jenkins" = success ]
 }
 
 case "$phase" in
@@ -90,7 +81,8 @@ case "$phase" in
     tar -C "$state/src" -czf - deploy database/atlas.hcl database/migrations \
       | ssh "${ssh_opts[@]}" "deploy@$deploy_host" \
           "set -e; d=/srv/barberia/releases/$sha; rm -rf \"\$d\"; mkdir -p \"\$d\"; tar xzpf - -C \"\$d\""
-    # Las imágenes ya están en el Docker del host (las construyó este Jenkins): --no-pull.
+    # Las imágenes ya están en el Docker del host (las construyó este Jenkins). --no-pull no
+    # hace nada en el deploy.sh actual, pero el de versiones anteriores a #634 descargaría.
     # shellcheck disable=SC2029
     ssh "${ssh_opts[@]}" "deploy@$deploy_host" \
       "DEPLOY_ACTOR='jenkins:${BUILD_TAG:-manual}' bash /srv/barberia/releases/$sha/deploy/scripts/deploy.sh $sha --db-tag $DB_TAG --no-pull" </dev/null
