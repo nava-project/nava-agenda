@@ -1052,6 +1052,7 @@ por si algo construye un `config.Config` sin pasar por `Load`.
 | `APP_META_WHATSAPP_TEST_RECIPIENTS` | (vacía) | Teléfonos E.164 separados por coma; si se define, restringe el envío. Obligatoria con el modo `text` en `local`/`test`. |
 | `APP_META_WHATSAPP_LANGUAGE_CODE` | `es` | Idioma de esa plantilla. |
 | `APP_META_WHATSAPP_REMINDER_TEMPLATE_NAME` | `nava_recordatorio_turno` | Plantilla UTILITY del recordatorio al cliente (`DEC-175`). La usa el worker. |
+| `APP_ODIN_SERVICE_TOKEN` | — | Secreto con el que Odin consulta los turnos por teléfono y pide el código para cancelar o reprogramar (`HU-106`, `DEC-179`). Sin él, las rutas `/api/v1/integrations/odin/...` no existen. Mínimo 32 caracteres y distinto de los secretos de Meta. Lo genera el propietario y se configura igual en Odin; en producción es un secreto de Docker (`secret-set.sh app APP_ODIN_SERVICE_TOKEN`), nunca va en Git ni en el chat. |
 | `APP_META_WHATSAPP_CUSTOMER_CODE_TEMPLATE_NAME` | `nava_codigo_turno` | Plantilla AUTHENTICATION del código con el que el cliente entra a su turno (`HU-105`, `DEC-178`). Idioma en `APP_META_WHATSAPP_CUSTOMER_CODE_LANGUAGE_CODE` (`es_CO`). Usa el mismo número y token que el reto del personal. |
 | `APP_META_WHATSAPP_REMINDER_LANGUAGE_CODE` | `es_CO` | Idioma de esa plantilla. |
 | `OTP_PROVIDER` | `meta` | Único valor aceptado; cualquier otro hace fallar el arranque (`DEC-123`). |

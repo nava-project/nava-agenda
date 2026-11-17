@@ -614,9 +614,11 @@ func buildRouter(db *database.DB, logger *slog.Logger, cfg config.Config) (*chi.
 	// HU-105 (DEC-178): acceso al turno con un código de un solo uso, para quien no
 	// tiene el enlace del correo. Públicas y sin sesión; el límite por contacto y por
 	// IP vive en la base y el envío corre en segundo plano.
+	customerAccessSender := selectCustomerAccessCodeSender(cfg, logger)
+	customerAccessRepo := customeraccesspostgres.NewAccessRepository(db)
 	customerAccessService := customeraccess.NewAccessService(
-		customeraccesspostgres.NewAccessRepository(db),
-		selectCustomerAccessCodeSender(cfg, logger),
+		customerAccessRepo,
+		customerAccessSender,
 		customeraccess.CryptoCodeGenerator{},
 		clock.System{},
 		hmacSecret,
@@ -626,6 +628,43 @@ func buildRouter(db *database.DB, logger *slog.Logger, cfg config.Config) (*chi.
 		customeraccesshttpapi.NewRequestAccessCodeHandler(customerAccessService, trustedProxies).ServeHTTP)
 	router.Post("/api/v1/public/barbershops/{slug}/customer-access/verify",
 		customeraccesshttpapi.NewVerifyAccessCodeHandler(customerAccessService).ServeHTTP)
+
+	// HU-106 (DEC-179): Odin, desde WhatsApp, encuentra el turno del cliente por su
+	// teléfono y pide un código atado a ese turno para que el cliente cancele o
+	// reprograme. La verificación del código es pública (la hace la persona en la
+	// página); la búsqueda y la solicitud son del servicio y exigen su secreto. Sin
+	// APP_ODIN_SERVICE_TOKEN esas dos rutas no existen. Las reglas de cancelar y de
+	// reprogramar son las de booking, inyectadas para no importarlo (CA-002-06).
+	refService := customeraccess.NewRefService(
+		customerAccessRepo,
+		customerAccessSender,
+		customeraccess.CryptoCodeGenerator{},
+		clock.System{},
+		hmacSecret,
+		customeraccess.ChangePolicy{
+			CanCancel: func(startsAt, now time.Time, deadlineMinutes int, lateAllowed bool) bool {
+				policy := booking.CustomerCancellationPolicy{DeadlineMinutes: deadlineMinutes, LateClientAllowed: lateAllowed}
+				return policy.Evaluate(startsAt, now, "") == nil
+			},
+			CanReschedule: func(startsAt, now time.Time, deadlineMinutes, customerReschedules int) bool {
+				policy := booking.CustomerReschedulePolicy{DeadlineMinutes: deadlineMinutes}
+				return policy.Evaluate(startsAt, now) == nil && booking.EvaluateCustomerRescheduleCount(customerReschedules) == nil
+			},
+		},
+		cfg.MetaWhatsAppConfigured(),
+		logger,
+	)
+	router.Post("/api/v1/public/barbershops/{slug}/customer-access/verify-ref",
+		customeraccesshttpapi.NewVerifyRefHandler(refService).ServeHTTP)
+	if cfg.OdinIntegrationEnabled() {
+		odinOnly := router.With(customeraccesshttpapi.RequireServiceToken(cfg.OdinServiceToken))
+		odinOnly.Post("/api/v1/integrations/odin/barbershops/{slug}/customer-appointments/lookup",
+			customeraccesshttpapi.NewOdinLookupHandler(refService).ServeHTTP)
+		odinOnly.Post("/api/v1/integrations/odin/barbershops/{slug}/customer-access/challenge",
+			customeraccesshttpapi.NewOdinChallengeHandler(refService).ServeHTTP)
+	} else {
+		logger.Info("integración de Odin desactivada: APP_ODIN_SERVICE_TOKEN no está definido")
+	}
 
 	// HU-100 (DEC-128): reseñas internas por barbero. Crear (cliente, por el token
 	// del enlace), listar las visibles (público) y moderar (panel) comparten un

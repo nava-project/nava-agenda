@@ -8,7 +8,7 @@ import { INITIAL_VOCABULARY } from './fixtures/vocabularioInicial'
  * enlace del correo.
  *
  * Recorridos con el API simulado:
- * - desde la entrada pública, correo → código → «Cambiar la hora» (un solo turno);
+ * - desde la entrada pública, correo → código → «Mi turno» (un solo turno; HU-106 cambió el destino);
  * - celular con varios turnos: lista y elección;
  * - código incorrecto, reenvío con cuenta atrás y límite de solicitudes (429).
  *
@@ -153,9 +153,7 @@ async function sendContact(page: Page, contact: string) {
 test.use({ contextOptions: { reducedMotion: 'reduce' } })
 
 test.describe('HU-105 · entrar al turno con un código', () => {
-  test('desde la entrada pública: correo, código y directo a «Cambiar la hora»', async ({
-    page,
-  }) => {
+  test('desde la entrada pública: correo, código y directo a «Mi turno»', async ({ page }) => {
     await mockBarbershopProfile(page)
     await mockTargetAppointment(page, TOKEN_A)
     let challengeBody: unknown = null
@@ -187,8 +185,9 @@ test.describe('HU-105 · entrar al turno con un código', () => {
 
     await typeCode(page, GOOD_CODE)
 
-    // Un solo turno entra directo a «Cambiar la hora», con su credencial en la ruta.
-    await expect(page).toHaveURL(new RegExp(`/mi-turno/${TOKEN_A}/reprogramar$`))
+    // Un solo turno entra directo a «Mi turno» (ahí se cambia la hora o se cancela), con su
+    // credencial en la ruta.
+    await expect(page).toHaveURL(new RegExp(`/mi-turno/${TOKEN_A}$`))
     await expect(page.getByRole('heading', { name: 'Barbería Ejemplo' })).toBeVisible()
     expect(challengeBody).toEqual({ contact: 'Ana.Perez@Correo.Test' })
     expect(verifyBody).toEqual({ contact: 'Ana.Perez@Correo.Test', code: GOOD_CODE })
@@ -213,7 +212,7 @@ test.describe('HU-105 · entrar al turno con un código', () => {
     await expect(list.getByText('Corte y barba con Otra Barbera Ejemplo')).toBeVisible()
 
     await list.getByRole('link', { name: /Corte y barba/ }).click()
-    await expect(page).toHaveURL(new RegExp(`/mi-turno/${TOKEN_B}/reprogramar$`))
+    await expect(page).toHaveURL(new RegExp(`/mi-turno/${TOKEN_B}$`))
   })
 
   test('código incorrecto: error uniforme, se limpia y se puede reintentar', async ({ page }) => {

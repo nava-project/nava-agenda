@@ -220,6 +220,11 @@ type Config struct {
 	MetaWhatsAppCustomerCodeTemplateName string
 	MetaWhatsAppCustomerCodeLanguageCode string
 
+	// OdinServiceToken es el secreto con el que Odin se autentica en
+	// /api/v1/integrations/odin/... (HU-106, DEC-179). Sin él, esas rutas no
+	// existen. Secreto: nunca se registra.
+	OdinServiceToken string
+
 	// MetaWebhookVerifyToken es el token que Meta devuelve en la verificación
 	// del webhook (GET). Secreto propio, distinto del access token. Junto con
 	// MetaAppSecret activa la ruta del webhook; sin ambos la ruta no existe.
@@ -461,6 +466,7 @@ func Load() (Config, error) {
 		MetaWhatsAppMode:           getEnv("APP_META_WHATSAPP_MODE", "template"),
 		MetaWhatsAppTemplateName:   getEnv("APP_META_WHATSAPP_TEMPLATE_NAME", ""),
 		MetaWhatsAppTestRecipients: getEnvCSV("APP_META_WHATSAPP_TEST_RECIPIENTS"),
+		OdinServiceToken:           getEnv("APP_ODIN_SERVICE_TOKEN", ""),
 		MetaWebhookVerifyToken:     getEnv("APP_META_WEBHOOK_VERIFY_TOKEN", ""),
 		MetaAppSecret:              getEnv("APP_META_APP_SECRET", ""),
 		MetaWhatsAppLanguageCode:   getEnv("APP_META_WHATSAPP_LANGUAGE_CODE", "es"),
@@ -544,6 +550,9 @@ func Load() (Config, error) {
 		return Config{}, fmt.Errorf("config: OTP_PROVIDER solo admite meta (DEC-123)")
 	}
 	if err := validateMetaWhatsApp(cfg); err != nil {
+		return Config{}, err
+	}
+	if err := validateOdinIntegration(cfg); err != nil {
 		return Config{}, err
 	}
 	if err := validateMetaWebhook(cfg); err != nil {
@@ -630,6 +639,29 @@ func (c Config) MetaWebhookEnabled() bool {
 }
 
 const minMetaWebhookSecretLength = 16
+
+// OdinIntegrationEnabled indica si se atienden las rutas de servicio de Odin
+// (HU-106, DEC-179).
+func (c Config) OdinIntegrationEnabled() bool { return c.OdinServiceToken != "" }
+
+// validateOdinIntegration rechaza un secreto de servicio corto: es la única
+// credencial de un grupo de rutas que busca citas por teléfono, y el propietario lo
+// genera, así que se exige un largo mínimo y que no coincida con otro secreto.
+func validateOdinIntegration(cfg Config) error {
+	if cfg.OdinServiceToken == "" {
+		return nil
+	}
+	if len(cfg.OdinServiceToken) < minOdinServiceTokenLength {
+		return fmt.Errorf("config: APP_ODIN_SERVICE_TOKEN debe tener al menos %d caracteres", minOdinServiceTokenLength)
+	}
+	if cfg.OdinServiceToken == cfg.MetaWebhookVerifyToken || cfg.OdinServiceToken == cfg.MetaAppSecret ||
+		cfg.OdinServiceToken == cfg.MetaWhatsAppAccessToken {
+		return fmt.Errorf("config: APP_ODIN_SERVICE_TOKEN debe ser distinto de los secretos de Meta")
+	}
+	return nil
+}
+
+const minOdinServiceTokenLength = 32
 
 // validateMetaWebhook exige que el webhook se configure completo o no se
 // configure: un token sin secreto aceptaría la verificación pero no podría

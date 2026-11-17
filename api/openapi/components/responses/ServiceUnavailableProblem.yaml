@@ -1,0 +1,19 @@
+# Respuesta 503: una capacidad sin configurar (HU-106: el envío por WhatsApp).
+description: El envío por WhatsApp no está configurado en este ambiente.
+headers:
+  X-Request-Id:
+    $ref: '../headers/XRequestId.yaml'
+content:
+  application/problem+json:
+    schema:
+      $ref: '../schemas/Problem.yaml'
+    examples:
+      sinWhatsApp:
+        value:
+          type: /api/v1/problems/service-unavailable
+          title: Servicio no disponible
+          status: 503
+          detail: el envío por WhatsApp no está disponible
+          instance: 8f3ac2b1e4d5f6a7c8d9e0f1a2b3c4d5
+          code: service-unavailable
+          requestId: 8f3ac2b1e4d5f6a7c8d9e0f1a2b3c4d5

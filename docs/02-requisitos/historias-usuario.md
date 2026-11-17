@@ -1,6 +1,6 @@
 ---
 titulo: "Historias de usuario y criterios de aceptación"
-version: "1.62"
+version: "1.63"
 estado: "Propuesta"
 responsable: "Propietario del proyecto"
 ultima_actualizacion: "2026-11-17"
@@ -52,7 +52,7 @@ La secuencia de bloques vive en [plan-bloques.md](../10-backlog/plan-bloques.md)
 | B1 · Identidad de la barbería y catálogo | `HU-020` – `HU-025` | `HU-020`–`HU-024` integradas en `main` ([PR #79](https://github.com/bcaceres19/barberia/pull/79), [PR #83](https://github.com/bcaceres19/barberia/pull/83), [PR #84](https://github.com/bcaceres19/barberia/pull/84)); `HU-025` implementada contra el issue [#292](https://github.com/bcaceres19/barberia/issues/292) (`DEC-110`) |
 | B2 · Horario laboral y bloqueos | `HU-040` – `HU-042` | Integradas en `main` ([PR #93](https://github.com/bcaceres19/barberia/pull/93), [PR #96](https://github.com/bcaceres19/barberia/pull/96), [PR #99](https://github.com/bcaceres19/barberia/pull/99)); seguimientos parciales en `#90`, `#95`, `#98` y `#100` |
 | B3 · Agenda, estados e integridad | `HU-060` – `HU-068` | `HU-060`–`HU-068` integradas en `main`, issues reales [#225](https://github.com/bcaceres19/barberia/issues/225)–[#227](https://github.com/bcaceres19/barberia/issues/227); tercer lote de B3 completo, T3/cierre automático pendientes |
-| B4 · Reserva pública y disponibilidad | `HU-090` – `HU-105` | `HU-090`–`HU-099` redactadas como propuesta en issue [#240](https://github.com/bcaceres19/barberia/issues/240), `DP-PUB-01`–`DP-PUB-06`/`CT-011` resueltas; `HU-100`–`HU-103` (reseñas internas, reseñas de Google, ubicación y domicilio) redactadas el 2026-10-26 (`DEC-128`–`DEC-131`), sin issue real todavía; `HU-104`–`HU-105` (reprogramación por el cliente) redactadas el 2026-11-17 (`DEC-178`, issues [#636](https://github.com/bcaceres19/barberia/issues/636) y [#637](https://github.com/bcaceres19/barberia/issues/637)) |
+| B4 · Reserva pública y disponibilidad | `HU-090` – `HU-106` | `HU-090`–`HU-099` redactadas como propuesta en issue [#240](https://github.com/bcaceres19/barberia/issues/240), `DP-PUB-01`–`DP-PUB-06`/`CT-011` resueltas; `HU-100`–`HU-103` (reseñas internas, reseñas de Google, ubicación y domicilio) redactadas el 2026-10-26 (`DEC-128`–`DEC-131`), sin issue real todavía; `HU-104`–`HU-105` (reprogramación por el cliente) redactadas el 2026-11-17 (`DEC-178`, issues [#636](https://github.com/bcaceres19/barberia/issues/636) y [#637](https://github.com/bcaceres19/barberia/issues/637)); `HU-106` (enlace de Odin para cancelar o reprogramar, `DEC-179`, issue [#645](https://github.com/bcaceres19/barberia/issues/645)) |
 | B5 · Notificaciones y recordatorios | `HU-130` – `HU-131` | `HU-130` implementada (issue [#463](https://github.com/bcaceres19/barberia/issues/463), `DEC-142`); `HU-131` implementada (issue [#467](https://github.com/bcaceres19/barberia/issues/467), `DEC-144`); WhatsApp, varios recordatorios y configuración por evento pendientes |
 | B6 · Operación, privacidad y piloto | `HU-150` – | Pendientes |
 
@@ -2757,6 +2757,52 @@ Orden recomendado: `HU-090` → `HU-091` → `HU-092` → `HU-093` → `HU-094` 
 
 ---
 
+### HU-106 · Odin entrega el enlace para cancelar o reprogramar el turno por WhatsApp
+
+| Campo | Valor |
+| --- | --- |
+| Función | `F-PUB-13` |
+| Reglas | `RN-CAN-01`, `RN-DAT-01`–`RN-DAT-03`, `RN-TEN-01` |
+| Decisiones | `DEC-062`, `DEC-089`, `DEC-123`, `DEC-141`, `DEC-178`, `DEC-179` |
+| Actor | Cliente que escribe a Odin por WhatsApp; Odin como servicio |
+| Depende de | `HU-104` y `HU-105` integradas |
+| Estado | Implementada contra el issue real [#645](https://github.com/bcaceres19/barberia/issues/645), rama `feat/645-hu106-odin-enlace-cancelar-reprogramar` |
+| Riesgo | Que alguien use un teléfono ajeno para cancelar o mover un turno, que el secreto de servicio se filtre o que el límite no frene a un cliente que pide códigos sin parar. |
+
+**Historia**
+
+> Como cliente que le escribe a Odin «¿cómo cancelo mi cita?», quiero que me confirme cuál es mi turno y me mande el enlace para hacerlo yo, para no llamar a la barbería.
+
+**Alcance incluido**
+
+- Acceso de servicio de Odin (`Authorization: Bearer`, `APP_ODIN_SERVICE_TOKEN`); sin el secreto las rutas no existen.
+- `lookup` por teléfono con referencias opacas, y `challenge` que envía el código por WhatsApp atado a un turno y a un propósito.
+- `verify-ref` público y la página `/reservar/<slug>/mi-turno/<accessRef>`, que abre en el código y lleva a «Mi turno» (con la cancelación a la vista) o a «Cambiar la hora».
+- El acceso general de `HU-105` con un solo turno lleva a `/mi-turno/<token>`.
+
+**Alcance excluido**
+
+- Que Odin vea el código o el acceso, cancelar sin que el cliente abra la página, SMS y cambios a las políticas de cancelación o de reprogramación.
+
+**Criterios de aceptación**
+
+| Código | Criterio |
+| --- | --- |
+| `CA-106-01` | Sin la credencial de servicio, o con una distinta, las rutas de Odin responden el mismo `401`; sin secreto configurado no existen. |
+| `CA-106-02` | `lookup` devuelve solo los turnos futuros confirmados de ese teléfono en esa barbería, sin identificadores internos ni datos del cliente, con `canCancel` y `canReschedule` según la política vigente. |
+| `CA-106-03` | `challenge` solo prospera si la referencia es de ese teléfono y barbería y el turno sigue elegible para el propósito; si no, `409` uniforme. |
+| `CA-106-04` | El límite de 3 por contacto cada 15 minutos cuenta también las solicitudes de Odin; hay un tope por barbería para el servicio y no aplica el límite por IP; `429` con `Retry-After`. |
+| `CA-106-05` | `verify-ref` vale 10 minutos, 5 intentos y un solo uso, no revela la causa del fallo y emite un acceso de 60 minutos solo a ese turno. |
+| `CA-106-06` | Un reto de Odin no sirve en la verificación general de `HU-105`, ni al revés. |
+| `CA-106-07` | Con dos barberías, una referencia o un `accessRef` de una no funciona en la otra. |
+| `CA-106-08` | La página cubre código, error, bloqueo y redirección por propósito, con teclado, axe-core y 320/360/768/1280 px. |
+
+**Pruebas obligatorias:** dominio (referencia cifrada); PostgreSQL real con dos tenants; HTTP y contrato OpenAPI; configuración del secreto; componente; E2E con evidencia responsive.
+
+**Terminado cuando** un cliente le escribe a Odin, confirma su turno y, con el código que le llega al mismo WhatsApp, cancela o cambia la hora sin que nadie más pueda hacerlo con su teléfono.
+
+---
+
 ## 8. Bloque B5 · Notificaciones y recordatorios
 
 ### HU-130 · Aviso al cliente cuando el barbero cancela o reprograma su turno
@@ -2873,7 +2919,7 @@ Orden recomendado: `HU-090` → `HU-091` → `HU-092` → `HU-093` → `HU-094` 
 | B1 | `HU-029` – (`HU-026`, `HU-027` y `HU-028`: conexión, publicación y pantalla de Google Calendar, `DEC-099`) | `HU-020`–`HU-024` implementadas (`DEC-067`–`DEC-069` propagadas); redactar lo restante solo después de revisar el criterio de salida de B1 |
 | B2 | `HU-040` – `HU-042` | Integradas en `main` (PR `#93`, `#96`, `#99`); seguimientos parciales en issues `#90`, `#95`, `#98` y `#100` (este último completo el 2026-10-08) |
 | B3 | `HU-069` – | `HU-066`–`HU-068` ya integradas en `main`; continuar con T3 y cierre automático solo después de revisar este lote y resolver cualquier duda de semántica de snapshots/configuración |
-| B4 | `HU-106` – | `HU-090`–`HU-103` ya redactadas (`HU-100`–`HU-103`: reseñas internas, reseñas de Google, ubicación y domicilio, `DEC-128`–`DEC-131`); continuar con el resto solo tras resolver cualquier duda nueva de esas cuatro historias |
+| B4 | `HU-107` – | `HU-090`–`HU-106` ya redactadas (`HU-100`–`HU-103`: reseñas internas, reseñas de Google, ubicación y domicilio, `DEC-128`–`DEC-131`; `HU-104`–`HU-106`: reprogramación por el cliente y su acceso, `DEC-178` y `DEC-179`); continuar con el resto solo tras resolver cualquier duda nueva de esas cuatro historias |
 | B5 | `HU-132` – (`HU-130`: aviso al cliente al cancelar o reprogramar, `DEC-142`; `HU-131`: recordatorio 30 minutos antes, `DEC-144`) | B4 cumple su criterio de salida; recordatorios, WhatsApp y configuración por evento siguen pendientes |
 | B6 | `HU-150` – | B5 cumple su criterio de salida |
 

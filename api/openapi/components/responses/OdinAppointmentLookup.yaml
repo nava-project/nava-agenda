@@ -1,0 +1,27 @@
+# Respuesta 200 de .../customer-appointments/lookup (HU-106, CA-106-02).
+description: Los turnos futuros confirmados de ese teléfono en esa barbería, o una lista vacía.
+headers:
+  X-Request-Id:
+    $ref: '../headers/XRequestId.yaml'
+  Cache-Control:
+    description: "Siempre `no-store`: las referencias valen 30 minutos."
+    schema:
+      type: string
+      enum: [no-store]
+content:
+  application/json:
+    schema:
+      $ref: '../schemas/OdinAppointmentLookupResponse.yaml'
+    examples:
+      unTurno:
+        value:
+          appointments:
+            - appointmentRef: kP3x9Qm2LwT7yVb1NcH8sJ4dRfE0uZaG6iO5tXnYhBqMlKjWvCpDrA
+              startsAt: "2026-11-20T14:00:00-05:00"
+              serviceName: Corte Vbras
+              barberName: Jhonner Bustamante
+              canCancel: true
+              canReschedule: true
+      sinTurnos:
+        value:
+          appointments: []

@@ -1,0 +1,19 @@
+# Respuesta 200 de POST .../customer-access/verify-ref (HU-106, CA-106-05).
+description: "Código válido: un acceso de 60 minutos a ese turno, y para qué se pidió."
+headers:
+  X-Request-Id:
+    $ref: '../headers/XRequestId.yaml'
+  Cache-Control:
+    description: "Siempre `no-store`: la respuesta lleva una credencial en claro (RN-DAT-02)."
+    schema:
+      type: string
+      enum: [no-store]
+content:
+  application/json:
+    schema:
+      $ref: '../schemas/CustomerAccessVerifyRefResponse.yaml'
+    examples:
+      cancelar:
+        value:
+          accessToken: 7Yq2mK9sV1xN4cB6hJ3tR0wE8uL5pA2dF7gZ1oXiC9k
+          purpose: cancel

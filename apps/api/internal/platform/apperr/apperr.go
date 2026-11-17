@@ -124,6 +124,16 @@ const (
 	// diferencia de KindChallengeRequired (HU-007), no habla de ningún reto
 	// telefónico: el cliente solo debe esperar.
 	KindRateLimited Kind = "rate_limited"
+
+	// KindAppointmentNotAvailable cubre HU-106 (DEC-179): el turno que Odin
+	// quiere abrir no existe para ese teléfono, venció la referencia o ya no es
+	// elegible para ese propósito. Una sola respuesta para las tres causas, para
+	// que no sirva de oráculo. Código: "appointment-not-available".
+	KindAppointmentNotAvailable Kind = "appointment_not_available"
+
+	// KindUnavailable cubre una capacidad temporalmente no disponible (503): hoy,
+	// el envío por WhatsApp que Odin necesita sin configurar (HU-106).
+	KindUnavailable Kind = "unavailable"
 )
 
 // Error es el error de aplicación que domain/servicios devuelven.
@@ -264,6 +274,16 @@ func RescheduleWindowClosed(message string) *Error {
 // retryAfterSeconds debe ser positivo: la capa HTTP lo traduce en Retry-After.
 func RateLimited(message string, retryAfterSeconds int) *Error {
 	return &Error{Kind: KindRateLimited, Message: message, RetryAfterSeconds: retryAfterSeconds}
+}
+
+// AppointmentNotAvailable construye el rechazo uniforme de HU-106.
+func AppointmentNotAvailable(message string) *Error {
+	return &Error{Kind: KindAppointmentNotAvailable, Message: message}
+}
+
+// Unavailable construye el rechazo 503 por una capacidad sin configurar.
+func Unavailable(message string) *Error {
+	return &Error{Kind: KindUnavailable, Message: message}
 }
 
 // RescheduleLimitReached construye el rechazo por límite alcanzado de HU-104.

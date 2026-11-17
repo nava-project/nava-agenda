@@ -1,0 +1,18 @@
+# Respuesta 201 de .../customer-access/challenge de Odin (HU-106, CA-106-03).
+type: object
+additionalProperties: false
+properties:
+  accessRef:
+    type: string
+    maxLength: 128
+    description: >
+      Referencia de un solo uso para el enlace
+      `/reservar/{slug}/mi-turno/{accessRef}`. Por sí sola no da acceso: hace falta
+      el código de 6 dígitos que llegó al WhatsApp del cliente.
+  expiresAt:
+    type: string
+    format: date-time
+    description: Hasta cuándo sirve el código y, con él, la referencia (10 minutos).
+required:
+  - accessRef
+  - expiresAt

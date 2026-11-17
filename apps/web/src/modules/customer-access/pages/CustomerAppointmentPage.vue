@@ -44,6 +44,9 @@ interface Props {
    * hashea y la vuelve a resolver desde cero (CA-098-02); nunca se registra
    * ni se persiste en este componente más allá de reenviarla al API. */
   token: string
+  /** `cancel` (HU-106, `?accion=cancelar`): llegó desde el enlace de Odin para cancelar, así
+   * que al cargar el turno la cancelación recibe el foco y queda a la vista. */
+  focus?: 'cancel'
 }
 const props = defineProps<Props>()
 
@@ -96,6 +99,23 @@ onMounted(() => {
   }, 30_000)
 })
 onBeforeUnmount(() => clearInterval(clockTimer))
+
+// Con `focus="cancel"` la sección de cancelación recibe el foco una sola vez, cuando el turno
+// ya se pintó: así quien llega a cancelar no tiene que buscarla al fondo de la página.
+const cancelSlot = ref<HTMLElement | null>(null)
+let cancelFocused = false
+watch(
+  () => screenState.value.status,
+  async (status) => {
+    if (status !== 'success' || props.focus !== 'cancel' || cancelFocused) return
+    await nextTick()
+    const title = cancelSlot.value?.querySelector<HTMLElement>('h2')
+    if (!title) return
+    cancelFocused = true
+    title.tabIndex = -1
+    title.focus()
+  },
+)
 // El componente se reutiliza al cambiar de token dentro de la SPA: sin esto no recargaba.
 watch(() => props.token, load)
 
@@ -501,16 +521,17 @@ const unexpectedErrorMessage = computed(() => {
         </span>
       </a>
 
-      <AppointmentCancellation
-        v-if="screenState.appointment.status === 'confirmed'"
-        :appointment="screenState.appointment"
-        :vocabulary="v"
-        :now-ms="nowMs"
-        :submitting="cancelSubmitting"
-        :rejection="cancelRejection"
-        :error-message="cancelError"
-        @submit="submitCancel"
-      />
+      <div v-if="screenState.appointment.status === 'confirmed'" ref="cancelSlot">
+        <AppointmentCancellation
+          :appointment="screenState.appointment"
+          :vocabulary="v"
+          :now-ms="nowMs"
+          :submitting="cancelSubmitting"
+          :rejection="cancelRejection"
+          :error-message="cancelError"
+          @submit="submitCancel"
+        />
+      </div>
 
       <AppointmentReview
         :can-review="screenState.appointment.canReview"

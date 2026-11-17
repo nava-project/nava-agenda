@@ -1,6 +1,6 @@
 ---
 titulo: "Registro de decisiones"
-version: "1.74"
+version: "1.75"
 estado: "Vigente"
 responsable: "Propietario del proyecto"
 ultima_actualizacion: "2026-11-17"
@@ -2306,3 +2306,27 @@ Cada código `DEC-*` es estable y no se reutiliza. Este registro normaliza respu
   - **Accesos emitidos.** Hasta 10, uno por turno futuro `confirmed`, de 60 minutos; son filas normales de `appointment_access_token`, así que abren lo mismo que el enlace (`HU-098`, `HU-104`) hasta que vencen.
   - **Purga.** El worker borra los retos vencidos hace más de una hora: la ventana del límite es de 15 minutos y no puede perder filas que todavía cuentan.
   - **Ruta.** `/reservar/<slug>/mi-turno` es una ruta propia de la audiencia cliente (tinta de «Mi turno»), no un paso del asistente de reserva.
+
+### DEC-179 · Odin entrega el enlace para cancelar o reprogramar por WhatsApp: acceso de servicio, referencia opaca y código atado al turno (amplía `DEC-178`)
+
+- **Fecha:** 2026-11-17.
+- **Decisión:**
+  1. **Qué se habilita.** Odin, el asistente de WhatsApp, encuentra los turnos del cliente por el teléfono que Meta firma (nunca por el texto del mensaje), confirma con él cuál es y, cuando el cliente dice que sí, dispara un código de un solo uso. El cliente lo escribe en una página de NAVA y cancela o cambia la hora él mismo con las reglas de siempre (`RN-CAN-01`, `DEC-178`). Odin no ve el código ni el acceso al turno.
+  2. **Acceso de servicio.** Las rutas `/api/v1/integrations/odin/...` exigen `Authorization: Bearer` con el secreto `APP_ODIN_SERVICE_TOKEN`, comparado en tiempo constante. Sin ese secreto en el despliegue las rutas **no existen**. Debe tener al menos 32 caracteres y ser distinto de los secretos de Meta. Lo genera y lo coloca el propietario en los dos lados (NAVA y Odin); no pasa por el chat ni por Git.
+  3. **Buscar.** `POST .../customer-appointments/lookup` con `{ phone }` devuelve los turnos futuros `confirmed` de ese teléfono en esa barbería (hasta 10), cada uno con `appointmentRef`, hora, servicio, profesional y `canCancel` y `canReschedule` según el plazo y la cancelación tardía configurados y el máximo de 2 cambios. La referencia es **opaca**: el identificador del turno va cifrado (AES-256-GCM, clave derivada del secreto de despliegue) junto con la barbería y un vencimiento de 30 minutos, sin tabla. Nunca salen identificadores internos ni datos del cliente.
+  4. **Pedir el código.** `POST .../customer-access/challenge` con `{ phone, appointmentRef, purpose }`, con `purpose` `cancel` o `reschedule`. Solo prospera si la referencia es de esa barbería y de ese teléfono y el turno sigue elegible para el propósito; en cualquier otro caso responde el mismo `409` `appointment-not-available`. Crea un reto atado a ESE turno y a ESE propósito en `customer_access_challenge` (tres columnas nuevas: turno, propósito y el hash de la referencia del enlace) y envía el código por WhatsApp con `nava_codigo_turno`. Devuelve `{ accessRef, expiresAt }`. Sin WhatsApp configurado responde `503`.
+  5. **Límites.** El límite de 3 solicitudes por contacto cada 15 minutos cuenta **también** las de Odin y se comparte con la pantalla pública. El límite por IP no aplica (todo Odin sale de una sola dirección): lo reemplaza un tope de 30 solicitudes por barbería en la ventana. Superarlos responde `429` con `Retry-After`; Odin no reintenta, le dice al cliente que espere.
+  6. **Verificar.** `POST /public/barbershops/{slug}/customer-access/verify-ref` con `{ accessRef, code }` (10 minutos, 5 intentos, un solo uso, error uniforme) emite **el mismo acceso de 60 minutos** de `HU-105`, solo a ese turno, y devuelve `{ accessToken, purpose }`. La referencia del enlace es un paso previo: por sí sola no da acceso. No hay un segundo tipo de acceso que mantener. Un reto de Odin no sirve en la verificación general de `HU-105` ni al revés, y pedir otro código atado a turno deja inútil el anterior.
+  7. **Páginas.** `/reservar/<slug>/mi-turno/<accessRef>` abre directo en el código, sin pedir el contacto. Con `cancel` lleva a `/mi-turno/<token>?accion=cancelar` (la cancelación recibe el foco); con `reschedule`, a `/mi-turno/<token>/reprogramar`. La URL no lleva datos personales. Además, la pantalla general de `HU-105` ya no salta a «Cambiar la hora» con un solo turno: lleva a `/mi-turno/<token>`, donde están el cambio de hora y la cancelación.
+- **Qué queda fuera:** que Odin reciba el código, el acceso o el nombre del cliente; cancelar o mover un turno desde WhatsApp sin que el cliente abra la página; SMS; cambiar el plazo, el máximo de cambios o la política de cancelación.
+- **Quién lo decidió:** el propietario, el 2026-11-17, desde la sesión de Odin: Odin «en base al teléfono obtiene la cita, le dice al usuario si la cita tal es de él, espera confirmación del usuario, y ya Odin ejecuta el proceso del código y le manda un link (ya sea para cancelar o reprogramar) para que el usuario lo haga». Eligió que tras verificar el código la página lleve a `/mi-turno/<token>` en vez de saltar a `/reprogramar` y que el alcance llegue hasta producción. En esta sesión confirmó: «si implementalo».
+- **Responsable:** propietario del proyecto.
+- **Motivo:** el propietario probó por WhatsApp «Tengo una cita hoy, ¿cómo la puedo cancelar?» y Odin no daba ningún enlace. Buscar por teléfono es seguro solo porque el número lo firma Meta y porque quien actúa es el cliente, con un código que llega a ese mismo WhatsApp.
+- **Alternativas descartadas:**
+  - Una referencia que dé acceso por sí sola: cualquiera con el enlace reenviado cancelaría el turno de otro. El código al WhatsApp del titular es el segundo factor.
+  - Un segundo tipo de acceso para Odin: duplica la política de vigencia y de revocación; se reutiliza el de `HU-105`.
+  - Que Odin reciba el acceso al turno: Odin vería una credencial del cliente.
+  - El identificador interno del turno como referencia: filtra una clave interna y no vence.
+  - El límite por IP para Odin: todo su tráfico comparte IP y un cliente bloquearía a todos.
+- **Documentos afectados:** `historias-usuario.md` (`HU-106`), contrato OpenAPI (0.57.0), `database/README.md`, `deploy/README.md`, `matriz-trazabilidad.md`, `historial-cambios.md` y el prompt `PROMPT-OPS-ODIN-ENLACE-MI-TURNO-v1`.
+- **Fuente:** instrucción del propietario del 2026-11-17; issue [#645](https://github.com/bcaceres19/barberia/issues/645); issue de Odin [bcaceres19/odin#7](https://github.com/bcaceres19/odin/issues/7).

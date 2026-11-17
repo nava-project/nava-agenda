@@ -120,7 +120,7 @@
 openapi: 3.1.2
 info:
   title: API del sistema de agenda para barberías
-  version: 0.56.0
+  version: 0.57.0
   description: >
     Contrato HTTP entre apps/web y apps/api. Tres audiencias comparten este
     documento: /api/v1/public (reserva sin sesión), /api/v1/customer
@@ -209,6 +209,12 @@ paths:
     $ref: './paths/customer-appointments.yaml#/~1public~1barbershops~1{slug}~1customer-access~1challenge'
   /public/barbershops/{slug}/customer-access/verify:
     $ref: './paths/customer-appointments.yaml#/~1public~1barbershops~1{slug}~1customer-access~1verify'
+  /public/barbershops/{slug}/customer-access/verify-ref:
+    $ref: './paths/customer-appointments.yaml#/~1public~1barbershops~1{slug}~1customer-access~1verify-ref'
+  /integrations/odin/barbershops/{slug}/customer-appointments/lookup:
+    $ref: './paths/integrations-odin.yaml#/~1integrations~1odin~1barbershops~1{slug}~1customer-appointments~1lookup'
+  /integrations/odin/barbershops/{slug}/customer-access/challenge:
+    $ref: './paths/integrations-odin.yaml#/~1integrations~1odin~1barbershops~1{slug}~1customer-access~1challenge'
   /public/barbershops/{slug}/barbers/{barberId}/reviews:
     $ref: './paths/public-booking.yaml#/~1public~1barbershops~1{slug}~1barbers~1{barberId}~1reviews'
   /public/barbershops/{slug}/reviews:
@@ -388,6 +394,8 @@ components:
   securitySchemes:
     SessionCookie:
       $ref: './components/security-schemes/SessionCookie.yaml'
+    OdinServiceToken:
+      $ref: './components/security-schemes/OdinServiceToken.yaml'
   headers:
     X-Request-Id:
       $ref: './components/headers/XRequestId.yaml'

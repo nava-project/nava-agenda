@@ -195,3 +195,12 @@ func TestRateLimited_CarriesRetryAfter(t *testing.T) {
 		t.Fatal("rate limiting must stay distinct from the staff phone challenge (HU-007)")
 	}
 }
+
+func TestAppointmentNotAvailableAndUnavailable_KeepTheirKinds(t *testing.T) {
+	if e, ok := apperr.As(apperr.AppointmentNotAvailable("x")); !ok || e.Kind != apperr.KindAppointmentNotAvailable {
+		t.Fatalf("expected KindAppointmentNotAvailable, got %+v", e)
+	}
+	if e, ok := apperr.As(apperr.Unavailable("x")); !ok || e.Kind != apperr.KindUnavailable {
+		t.Fatalf("expected KindUnavailable, got %+v", e)
+	}
+}

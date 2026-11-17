@@ -210,6 +210,25 @@ var rateLimitedProblem = problemSpec{
 	status:  http.StatusTooManyRequests,
 }
 
+// appointmentNotAvailableProblem cubre apperr.KindAppointmentNotAvailable (HU-106,
+// DEC-179): referencia ajena, vencida o turno ya no elegible. Un 409 con un código
+// propio, para que Odin decida por el código y no por el texto.
+var appointmentNotAvailableProblem = problemSpec{
+	typeURI: "/api/v1/problems/appointment-not-available",
+	title:   "Turno no disponible",
+	code:    "appointment-not-available",
+	status:  http.StatusConflict,
+}
+
+// unavailableProblem cubre apperr.KindUnavailable: una capacidad sin configurar
+// (hoy, el envío por WhatsApp de HU-106).
+var unavailableProblem = problemSpec{
+	typeURI: "/api/v1/problems/service-unavailable",
+	title:   "Servicio no disponible",
+	code:    "service-unavailable",
+	status:  http.StatusServiceUnavailable,
+}
+
 // Translate convierte cualquier error en un Problem seguro para el cliente.
 // Es el único punto central de traducción que exige
 // docs/04-arquitectura/backend-go.md sección 5 ("los errores de dominio se
@@ -263,6 +282,10 @@ func Translate(err error, requestID string) Problem {
 			return newProblem(rescheduleLimitReachedProblem, appErr.Message, requestID)
 		case apperr.KindRateLimited:
 			return newProblem(rateLimitedProblem, appErr.Message, requestID)
+		case apperr.KindAppointmentNotAvailable:
+			return newProblem(appointmentNotAvailableProblem, appErr.Message, requestID)
+		case apperr.KindUnavailable:
+			return newProblem(unavailableProblem, appErr.Message, requestID)
 		}
 	}
 

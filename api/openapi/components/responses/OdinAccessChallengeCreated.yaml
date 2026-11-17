@@ -1,0 +1,19 @@
+# Respuesta 201 de .../customer-access/challenge de Odin (HU-106, CA-106-03).
+description: El código se envió por WhatsApp al teléfono; la referencia arma el enlace.
+headers:
+  X-Request-Id:
+    $ref: '../headers/XRequestId.yaml'
+  Cache-Control:
+    description: "Siempre `no-store`."
+    schema:
+      type: string
+      enum: [no-store]
+content:
+  application/json:
+    schema:
+      $ref: '../schemas/OdinAccessChallengeResponse.yaml'
+    examples:
+      creado:
+        value:
+          accessRef: 3vNq8Yt1KsM6wZc2HbJ9xRfE4uLaP7dG0iO5TnXyhBk
+          expiresAt: "2026-11-17T15:10:00Z"
