@@ -12,8 +12,8 @@
 #    completo ya pasó con ese mismo árbol, no se repite. Es el caso del squash-merge de un
 #    PR al día con main: el commit de main tiene exactamente el árbol que el PR ya probó.
 #
-# 2. Solo lo afectado. Se compara con la base (en un PR, el main con el que Jenkins lo
-#    fusiona; en main, el commit anterior) y cada archivo cambiado activa los checks que lo
+# 2. Solo lo afectado. Se compara con la base (en un PR, el main que Jenkins le fusiona;
+#    en main, el commit anterior) y cada archivo cambiado activa los checks que lo
 #    leen. Un archivo que no encaja en ninguna regla, o un cambio del propio CI, activa
 #    todos: ante la duda se prueba de más, nunca de menos. En main solo se aplica si el
 #    commit anterior está verificado, para que lo omitido esté cubierto por ese CI.
@@ -49,14 +49,25 @@ if verified "$tree"; then
   exit 0
 fi
 
-# Base: en un PR con estrategia de fusión, HEAD es el merge y su primer padre es main; en
-# main (squash), el commit anterior.
+everything() { run "${all_checks[@]}"; : >"$plan/.recordable"; summary "todos los checks: $1"; exit 0; }
+
+# Base (#639):
+# - en main (squash), el commit anterior;
+# - en un PR, el main que Jenkins le fusionó: `merge-base` con la rama destino. No sirve
+#   `HEAD^1`, porque Jenkins fusiona main DENTRO de la cabeza del PR: con un merge real
+#   el primer padre es la cabeza del PR, y si el PR ya está al día, `HEAD` es esa cabeza y
+#   `HEAD^1` su commit anterior; en ambos casos se dejaban de probar cambios del PR.
 base=""
-if [ "$(git rev-list --parents -n 1 HEAD | wc -w)" -ge 2 ]; then base="$(git rev-parse HEAD^1)"; fi
+if [ -n "${CHANGE_ID:-}" ]; then
+  target="origin/${CHANGE_TARGET:-main}"
+  git rev-parse -q --verify "$target^{commit}" >/dev/null || everything "no está la rama destino $target"
+  base="$(git merge-base HEAD "$target")" || everything "sin base común con $target"
+elif [ "$(git rev-list --parents -n 1 HEAD | wc -w)" -ge 2 ]; then
+  base="$(git rev-parse HEAD^1)"
+fi
 on_main=0; [ "${BRANCH_NAME:-}" = main ] && on_main=1
 base_tree=""; [ -n "$base" ] && base_tree="$(git rev-parse "$base^{tree}")"
 
-everything() { run "${all_checks[@]}"; : >"$plan/.recordable"; summary "todos los checks: $1"; exit 0; }
 [ -n "$base" ] || everything "sin commit base"
 if [ "$on_main" = 1 ] && ! verified "$base_tree"; then everything "el commit anterior de main no está verificado"; fi
 
