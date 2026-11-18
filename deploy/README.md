@@ -8,9 +8,10 @@ y [`migraciones-atlas.md`](../docs/05-backend/migraciones-atlas.md).
 > **Nombres desde `DEC-183` (#664).** Repositorio `bcaceres19/nava-agenda` (GitHub redirige la URL
 > vieja), carpeta de Jenkins `agenda/` (`agenda/ci`, `agenda/deploy`), imágenes
 > `nava-agenda-{web,backend,db}` y raíz del servidor `/srv/nava-agenda`. La raíz se movió una sola vez
-> con `sudo mv /srv/barberia /srv/nava-agenda`, dejando `/srv/barberia` como enlace simbólico para las
-> versiones anteriores (su `deploy.sh` y el enlace `current` absoluto aún nombran la ruta vieja) y
-> cambiando `NAVA_ENV_DIR`/`NAVA_BACKUP_DIR` en `stack.env`. Los volúmenes de Docker (`nava_db-data`,
+> con `sudo mv /srv/barberia /srv/nava-agenda`, cambiando `NAVA_ENV_DIR`/`NAVA_BACKUP_DIR` en
+> `stack.env`. El enlace de compatibilidad `/srv/barberia` se retiró tras el primer despliegue con las
+> rutas nuevas: las versiones anteriores a `50d7b1b8` tienen la ruta vieja fija y no sirven para volver
+> atrás. Los volúmenes de Docker (`nava_db-data`,
 > `nava_caddy-*`) y el proyecto compose `nava` no cambian de nombre. Alias SSH: `nava-vps` y
 > `nava-deploy` (los viejos `barberia-*` siguen en `~/.ssh/config`).
 
