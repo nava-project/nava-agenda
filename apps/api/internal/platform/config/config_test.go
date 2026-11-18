@@ -27,7 +27,7 @@ const testHMACSecret = "prueba-no-es-un-secreto-real-0123456789"
 func baseLocalEnv() map[string]string {
 	return map[string]string{
 		"APP_ENVIRONMENT":      "local",
-		"APP_DATABASE_URL":     "postgres://barberia_app:secret@localhost:5432/barberia?sslmode=disable",
+		"APP_DATABASE_URL":     "postgres://agenda_app:secret@localhost:5432/barberia?sslmode=disable",
 		"APP_AUTH_HMAC_SECRET": testHMACSecret,
 	}
 }
@@ -94,8 +94,8 @@ func TestLoad_TLSRequiredOutsideLocalTest(t *testing.T) {
 	for _, env := range []string{"pilot", "production"} {
 		e := map[string]string{
 			"APP_ENVIRONMENT":         env,
-			"APP_DATABASE_URL":        "postgres://barberia_app:secret@db:5432/barberia?sslmode=disable",
-			"APP_WORKER_DATABASE_URL": "postgres://barberia_worker:secret@db:5432/barberia?sslmode=require",
+			"APP_DATABASE_URL":        "postgres://agenda_app:secret@db:5432/barberia?sslmode=disable",
+			"APP_WORKER_DATABASE_URL": "postgres://agenda_worker:secret@db:5432/barberia?sslmode=require",
 			"APP_AUTH_HMAC_SECRET":    testHMACSecret,
 		}
 		withEnv(t, e, func() {
@@ -110,7 +110,7 @@ func TestLoad_TLSRequiredOutsideLocalTest(t *testing.T) {
 func TestLoad_WorkerDSNRequiredOutsideLocalTest(t *testing.T) {
 	env := map[string]string{
 		"APP_ENVIRONMENT":      "production",
-		"APP_DATABASE_URL":     "postgres://barberia_app:secret@db:5432/barberia?sslmode=require",
+		"APP_DATABASE_URL":     "postgres://agenda_app:secret@db:5432/barberia?sslmode=require",
 		"APP_AUTH_HMAC_SECRET": testHMACSecret,
 	}
 	withEnv(t, env, func() {
@@ -122,7 +122,7 @@ func TestLoad_WorkerDSNRequiredOutsideLocalTest(t *testing.T) {
 }
 
 func TestLoad_WorkerDSNMustDifferFromAPIOutsideLocalTest(t *testing.T) {
-	same := "postgres://barberia_app:secret@db:5432/barberia?sslmode=require"
+	same := "postgres://agenda_app:secret@db:5432/barberia?sslmode=require"
 	env := map[string]string{
 		"APP_ENVIRONMENT":         "production",
 		"APP_DATABASE_URL":        same,
@@ -140,8 +140,8 @@ func TestLoad_WorkerDSNMustDifferFromAPIOutsideLocalTest(t *testing.T) {
 func TestLoad_ProductionValidConfig(t *testing.T) {
 	env := map[string]string{
 		"APP_ENVIRONMENT":                   "production",
-		"APP_DATABASE_URL":                  "postgres://barberia_app:secret@db:5432/barberia?sslmode=require",
-		"APP_WORKER_DATABASE_URL":           "postgres://barberia_worker:secret@db:5432/barberia?sslmode=require",
+		"APP_DATABASE_URL":                  "postgres://agenda_app:secret@db:5432/barberia?sslmode=require",
+		"APP_WORKER_DATABASE_URL":           "postgres://agenda_worker:secret@db:5432/barberia?sslmode=require",
 		"APP_AUTH_HMAC_SECRET":              testHMACSecret,
 		"APP_META_WHATSAPP_PHONE_NUMBER_ID": "1234567890",
 		"APP_META_WHATSAPP_ACCESS_TOKEN":    "meta-access-token-de-prueba",
@@ -162,8 +162,8 @@ func TestLoad_ProductionValidConfig(t *testing.T) {
 func TestLoad_ProductionMissingMetaWhatsAppCredentialsRejected(t *testing.T) {
 	env := map[string]string{
 		"APP_ENVIRONMENT":         "production",
-		"APP_DATABASE_URL":        "postgres://barberia_app:secret@db:5432/barberia?sslmode=require",
-		"APP_WORKER_DATABASE_URL": "postgres://barberia_worker:secret@db:5432/barberia?sslmode=require",
+		"APP_DATABASE_URL":        "postgres://agenda_app:secret@db:5432/barberia?sslmode=require",
+		"APP_WORKER_DATABASE_URL": "postgres://agenda_worker:secret@db:5432/barberia?sslmode=require",
 		"APP_AUTH_HMAC_SECRET":    testHMACSecret,
 		"APP_RESEND_API_KEY":      "resend-api-key-de-prueba",
 		"APP_RESEND_FROM_ADDRESS": "no-responder@barberia.test",
@@ -180,8 +180,8 @@ func TestLoad_ProductionMissingMetaWhatsAppCredentialsRejected(t *testing.T) {
 func TestLoad_ProductionMissingResendCredentialsRejected(t *testing.T) {
 	env := map[string]string{
 		"APP_ENVIRONMENT":                   "production",
-		"APP_DATABASE_URL":                  "postgres://barberia_app:secret@db:5432/barberia?sslmode=require",
-		"APP_WORKER_DATABASE_URL":           "postgres://barberia_worker:secret@db:5432/barberia?sslmode=require",
+		"APP_DATABASE_URL":                  "postgres://agenda_app:secret@db:5432/barberia?sslmode=require",
+		"APP_WORKER_DATABASE_URL":           "postgres://agenda_worker:secret@db:5432/barberia?sslmode=require",
 		"APP_AUTH_HMAC_SECRET":              testHMACSecret,
 		"APP_META_WHATSAPP_PHONE_NUMBER_ID": "1234567890",
 		"APP_META_WHATSAPP_ACCESS_TOKEN":    "meta-access-token-de-prueba",
@@ -240,8 +240,8 @@ func TestLoad_MetaDefaultsToTemplateModeAndRecentGraphVersion(t *testing.T) {
 func productionTextEnv() map[string]string {
 	return map[string]string{
 		"APP_ENVIRONMENT":                   "production",
-		"APP_DATABASE_URL":                  "postgres://barberia_app:secret@db:5432/barberia?sslmode=require",
-		"APP_WORKER_DATABASE_URL":           "postgres://barberia_worker:secret@db:5432/barberia?sslmode=require",
+		"APP_DATABASE_URL":                  "postgres://agenda_app:secret@db:5432/barberia?sslmode=require",
+		"APP_WORKER_DATABASE_URL":           "postgres://agenda_worker:secret@db:5432/barberia?sslmode=require",
 		"APP_AUTH_HMAC_SECRET":              testHMACSecret,
 		"APP_META_WHATSAPP_MODE":            "text",
 		"APP_META_WHATSAPP_PHONE_NUMBER_ID": "1234567890",
@@ -359,8 +359,8 @@ func TestLoad_MetaWhatsAppPartialConfigurationRejectedInEveryEnvironment(t *test
 				env["APP_META_WHATSAPP_ACCESS_TOKEN"] = ""
 				env["APP_META_WHATSAPP_TEMPLATE_NAME"] = ""
 				if environment == "pilot" || environment == "production" {
-					env["APP_DATABASE_URL"] = "postgres://barberia_app:secret@db:5432/barberia?sslmode=require"
-					env["APP_WORKER_DATABASE_URL"] = "postgres://barberia_worker:secret@db:5432/barberia?sslmode=require"
+					env["APP_DATABASE_URL"] = "postgres://agenda_app:secret@db:5432/barberia?sslmode=require"
+					env["APP_WORKER_DATABASE_URL"] = "postgres://agenda_worker:secret@db:5432/barberia?sslmode=require"
 				}
 				for key, value := range partial {
 					env[key] = value
@@ -464,7 +464,7 @@ func TestLoad_TrustedProxiesInvalidCIDRRejected(t *testing.T) {
 // TestDatabaseDSN_RedactsPassword verifica que ni %s/%v ni %+v sobre un
 // struct que contenga un DatabaseDSN filtren la contraseña.
 func TestDatabaseDSN_RedactsPassword(t *testing.T) {
-	dsn := config.DatabaseDSN("postgres://barberia_app:supersecreto@db:5432/barberia?sslmode=require")
+	dsn := config.DatabaseDSN("postgres://agenda_app:supersecreto@db:5432/barberia?sslmode=require")
 
 	rendered := fmt.Sprintf("%s", dsn)
 	if strings.Contains(rendered, "supersecreto") {
@@ -480,7 +480,7 @@ func TestDatabaseDSN_RedactsPassword(t *testing.T) {
 }
 
 func TestDatabaseDSN_RedactsKeywordFormat(t *testing.T) {
-	dsn := config.DatabaseDSN("host=db user=barberia_app password=supersecreto dbname=barberia sslmode=require")
+	dsn := config.DatabaseDSN("host=db user=agenda_app password=supersecreto dbname=barberia sslmode=require")
 	rendered := fmt.Sprintf("%s", dsn)
 	if strings.Contains(rendered, "supersecreto") {
 		t.Fatalf("password leaked via keyword-format DSN: %s", rendered)
@@ -505,8 +505,8 @@ func googleEnv() map[string]string {
 func productionGoogleEnv() map[string]string {
 	env := googleEnv()
 	env["APP_ENVIRONMENT"] = "production"
-	env["APP_DATABASE_URL"] = "postgres://barberia_app:secret@db:5432/barberia?sslmode=require"
-	env["APP_WORKER_DATABASE_URL"] = "postgres://barberia_worker:secret@db:5432/barberia?sslmode=require"
+	env["APP_DATABASE_URL"] = "postgres://agenda_app:secret@db:5432/barberia?sslmode=require"
+	env["APP_WORKER_DATABASE_URL"] = "postgres://agenda_worker:secret@db:5432/barberia?sslmode=require"
 	env["APP_META_WHATSAPP_PHONE_NUMBER_ID"] = "1234567890"
 	env["APP_META_WHATSAPP_ACCESS_TOKEN"] = "meta-access-token-de-prueba"
 	env["APP_META_WHATSAPP_TEMPLATE_NAME"] = "recuperacion_acceso"

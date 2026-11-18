@@ -26,7 +26,7 @@ import path from 'node:path'
  *     los pocos segundos que tarda cada prueba.
  *
  * Comando reproducible (PowerShell, dos terminales):
- *   $env:APP_ENVIRONMENT="local"; $env:APP_DATABASE_URL="postgres://barberia_app:app_test@localhost:5432/postgres?sslmode=disable";
+ *   $env:APP_ENVIRONMENT="local"; $env:APP_DATABASE_URL="postgres://agenda_app:app_test@localhost:5432/postgres?sslmode=disable";
  *   $env:APP_AUTH_HMAC_SECRET="una-clave-de-prueba-local-de-al-menos-32-caracteres";
  *   $env:APP_RECOVERY_CAPTURE_FILE="$env:TEMP\hu011-e2e-capture.json";
  *   $env:APP_RECOVERY_CODE_EXPIRES_SECONDS="2";

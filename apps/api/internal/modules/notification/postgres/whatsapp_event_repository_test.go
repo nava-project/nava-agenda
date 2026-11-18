@@ -39,11 +39,11 @@ func openDB(t *testing.T, envVar, fallback string) *database.DB {
 }
 
 func appDB(t *testing.T) *database.DB {
-	return openDB(t, "TEST_DATABASE_URL", "postgres://barberia_app@localhost:5432/barberia_test?sslmode=disable")
+	return openDB(t, "TEST_DATABASE_URL", "postgres://agenda_app@localhost:5432/barberia_test?sslmode=disable")
 }
 
 func workerDB(t *testing.T) *database.DB {
-	return openDB(t, "TEST_WORKER_DATABASE_URL", "postgres://barberia_worker@localhost:5432/barberia_test?sslmode=disable")
+	return openDB(t, "TEST_WORKER_DATABASE_URL", "postgres://agenda_worker@localhost:5432/barberia_test?sslmode=disable")
 }
 
 func hashOf(seed string) string {
@@ -121,7 +121,7 @@ func TestWhatsAppEventRepository_StatusIsRecordedOnce(t *testing.T) {
 }
 
 func TestWhatsAppTables_AreNotReadableByAppOrWorker(t *testing.T) {
-	for name, db := range map[string]*database.DB{"barberia_app": appDB(t), "barberia_worker": workerDB(t)} {
+	for name, db := range map[string]*database.DB{"agenda_app": appDB(t), "agenda_worker": workerDB(t)} {
 		for _, table := range []string{"whatsapp_conversation_window", "whatsapp_message_status"} {
 			err := db.CallSecurityDefinerRow(context.Background(), "SELECT count(*) FROM "+table, nil,
 				func(row pgx.Row) error { var n int; return row.Scan(&n) })
@@ -142,10 +142,10 @@ func TestWhatsAppPurge_IsWorkerOnlyAndKeepsCurrentData(t *testing.T) {
 	}
 
 	if _, err := notificationpostgres.NewWhatsAppPurgeRepository(app).PurgeExpired(ctx, 100, 2592000); err == nil {
-		t.Fatal("barberia_app must not run the purge")
+		t.Fatal("agenda_app must not run the purge")
 	}
 	if _, err := notificationpostgres.NewWhatsAppPurgeRepository(workerDB(t)).PurgeExpired(ctx, 100, 2592000); err != nil {
-		t.Fatalf("barberia_worker must run the purge: %v", err)
+		t.Fatalf("agenda_worker must run the purge: %v", err)
 	}
 	if open, err := events.ConversationOpen(ctx, phone); err != nil || !open {
 		t.Fatalf("the purge must keep a current window: open=%v err=%v", open, err)

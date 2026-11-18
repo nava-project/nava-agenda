@@ -23,15 +23,15 @@ const candidateSelect = `
 	       bs.cancellation_deadline_minutes, bs.late_cancellation_client_allowed,
 	       (SELECT count(*)
 	          FROM appointment_history h
-	         WHERE h.barbershop_id = a.barbershop_id
+	         WHERE h.business_id = a.business_id
 	           AND h.appointment_id = a.id
 	           AND h.event_type = 'appointment_rescheduled'
 	           AND h.actor_type = 'customer')
 	  FROM appointment a
-	  JOIN customer c   ON c.barbershop_id = a.barbershop_id AND c.id = a.customer_id
-	  JOIN barber br    ON br.barbershop_id = a.barbershop_id AND br.id = a.barber_id
-	  JOIN barbershop bs ON bs.id = a.barbershop_id
-	 WHERE a.barbershop_id = $1 AND c.phone = $2
+	  JOIN customer c   ON c.business_id = a.business_id AND c.id = a.customer_id
+	  JOIN professional br    ON br.business_id = a.business_id AND br.id = a.professional_id
+	  JOIN business bs ON bs.id = a.business_id
+	 WHERE a.business_id = $1 AND c.phone = $2
 	   AND a.status = 'confirmed' AND a.starts_at > $3`
 
 func scanCandidates(ctx context.Context, q database.Queries, query string, args ...any) ([]customeraccess.AppointmentCandidate, error) {
@@ -133,21 +133,21 @@ func (r *AccessRepository) RequestRefChallenge(ctx context.Context, req customer
 
 		var customerID string
 		if err := q.QueryRow(ctx,
-			`SELECT customer_id FROM appointment WHERE barbershop_id = $1 AND id = $2`,
+			`SELECT customer_id FROM appointment WHERE business_id = $1 AND id = $2`,
 			string(shop), req.AppointmentID).Scan(&customerID); err != nil {
 			return fmt.Errorf("select customer: %w", err)
 		}
 		// Un solo reto pendiente por contacto atado a turno: el más reciente.
 		if _, err := q.Exec(ctx,
 			`UPDATE customer_access_challenge SET consumed_at = $3
-			  WHERE barbershop_id = $1 AND contact_hash = $2
+			  WHERE business_id = $1 AND contact_hash = $2
 			    AND appointment_id IS NOT NULL AND consumed_at IS NULL`,
 			string(shop), req.ContactHash, req.Now); err != nil {
 			return fmt.Errorf("retire previous ref challenges: %w", err)
 		}
 		if _, err := q.Exec(ctx,
 			`INSERT INTO customer_access_challenge
-			   (barbershop_id, customer_id, channel, contact_hash, ip_hash, code_hash,
+			   (business_id, customer_id, channel, contact_hash, ip_hash, code_hash,
 			    appointment_id, purpose, access_ref_hash, created_at, expires_at)
 			 VALUES ($1, $2, 'whatsapp', $3, $4, $5, $6, $7, $8, $9, $10)`,
 			string(shop), customerID, req.ContactHash, req.ServiceHash, req.CodeHash,
@@ -194,7 +194,7 @@ func (r *AccessRepository) VerifyRef(
 		err := q.QueryRow(ctx,
 			`SELECT id, appointment_id, purpose, contact_hash, code_hash, attempts, expires_at, consumed_at
 			   FROM customer_access_challenge
-			  WHERE barbershop_id = $1 AND access_ref_hash = $2
+			  WHERE business_id = $1 AND access_ref_hash = $2
 			  FOR UPDATE`,
 			string(shop), req.AccessRefHash,
 		).Scan(&id, &appointmentID, &purpose, &contactHash, &storedHash, &attempts, &expiresAt, &consumedAt)
@@ -210,7 +210,7 @@ func (r *AccessRepository) VerifyRef(
 
 		if subtle.ConstantTimeCompare([]byte(storedHash), []byte(req.CodeHashFor(contactHash))) != 1 {
 			if _, err := q.Exec(ctx,
-				`UPDATE customer_access_challenge SET attempts = attempts + 1 WHERE barbershop_id = $1 AND id = $2`,
+				`UPDATE customer_access_challenge SET attempts = attempts + 1 WHERE business_id = $1 AND id = $2`,
 				string(shop), id,
 			); err != nil {
 				return fmt.Errorf("count failed attempt: %w", err)
@@ -224,7 +224,7 @@ func (r *AccessRepository) VerifyRef(
 		var stillOpen bool
 		if err := q.QueryRow(ctx,
 			`SELECT EXISTS (SELECT 1 FROM appointment
-			                 WHERE barbershop_id = $1 AND id = $2
+			                 WHERE business_id = $1 AND id = $2
 			                   AND status = 'confirmed' AND starts_at > $3)`,
 			string(shop), appointmentID, req.Now).Scan(&stillOpen); err != nil {
 			return fmt.Errorf("check appointment: %w", err)
@@ -234,7 +234,7 @@ func (r *AccessRepository) VerifyRef(
 		}
 
 		if _, err := q.Exec(ctx,
-			`UPDATE customer_access_challenge SET consumed_at = $3 WHERE barbershop_id = $1 AND id = $2`,
+			`UPDATE customer_access_challenge SET consumed_at = $3 WHERE business_id = $1 AND id = $2`,
 			string(shop), id, req.Now,
 		); err != nil {
 			return fmt.Errorf("consume ref challenge: %w", err)
@@ -244,7 +244,7 @@ func (r *AccessRepository) VerifyRef(
 			return err
 		}
 		if _, err := q.Exec(ctx,
-			`INSERT INTO appointment_access_token (barbershop_id, appointment_id, token_hash, issued_at, expires_at)
+			`INSERT INTO appointment_access_token (business_id, appointment_id, token_hash, issued_at, expires_at)
 			 VALUES ($1, $2, $3, $4, $5)`,
 			string(shop), appointmentID, hash, req.Now, req.Now.Add(req.TokenTTL),
 		); err != nil {

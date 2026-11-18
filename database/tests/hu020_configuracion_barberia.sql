@@ -4,10 +4,10 @@
 -- viven en el servicio Go (internal/modules/shops), no aquí.
 --
 -- Uso:
---   psql "$DATABASE_TEST_URL" -v ON_ERROR_STOP=1 -f testdata/dos_barberias.sql
---   psql "$DATABASE_TEST_URL" -v ON_ERROR_STOP=1 -f tests/hu020_configuracion_barberia.sql
+--   psql "$DATABASE_TEST_URL" -v ON_ERROR_STOP=1 -f testdata/dos_professionalias.sql
+--   psql "$DATABASE_TEST_URL" -v ON_ERROR_STOP=1 -f tests/hu020_configuracion_professionalia.sql
 --
--- Requisito del arnés: la conexión debe poder ejecutar `SET ROLE barberia_app`
+-- Requisito del arnés: la conexión debe poder ejecutar `SET ROLE agenda_app`
 -- (estandar-base-datos.md §9.8), igual que hu001_aislamiento_rls.sql.
 --
 -- Cada comprobación falla lanzando una excepción. Si el archivo termina, pasó.
@@ -23,18 +23,18 @@ DO $$
 BEGIN
   IF NOT EXISTS (
     SELECT 1 FROM information_schema.columns
-    WHERE table_schema = 'public' AND table_name = 'barbershop'
+    WHERE table_schema = 'public' AND table_name = 'business'
       AND column_name = 'contact_email' AND is_nullable = 'YES'
   ) THEN
-    RAISE EXCEPTION 'barbershop.contact_email debe existir y ser anulable.';
+    RAISE EXCEPTION 'business.contact_email debe existir y ser anulable.';
   END IF;
 
   IF NOT EXISTS (
     SELECT 1 FROM information_schema.columns
-    WHERE table_schema = 'public' AND table_name = 'barbershop'
+    WHERE table_schema = 'public' AND table_name = 'business'
       AND column_name = 'contact_phone' AND is_nullable = 'YES'
   ) THEN
-    RAISE EXCEPTION 'barbershop.contact_phone debe existir y ser anulable.';
+    RAISE EXCEPTION 'business.contact_phone debe existir y ser anulable.';
   END IF;
 END
 $$;
@@ -44,21 +44,21 @@ $$;
 -- CA-020-06 · Update propio con contacto válido, dentro del tenant
 -- ---------------------------------------------------------------------------
 BEGIN;
-SET ROLE barberia_app;
-SET LOCAL app.barbershop_id = '11111111-1111-1111-1111-111111111111';
+SET ROLE agenda_app;
+SET LOCAL app.business_id = '11111111-1111-1111-1111-111111111111';
 
 DO $$
 DECLARE
   v_email text;
   v_phone text;
 BEGIN
-  UPDATE barbershop
+  UPDATE business
      SET contact_email = 'contacto@ejemplo.test',
          contact_phone = '+573001234567'
    WHERE id = '11111111-1111-1111-1111-111111111111';
 
   SELECT contact_email, contact_phone INTO v_email, v_phone
-  FROM barbershop WHERE id = '11111111-1111-1111-1111-111111111111';
+  FROM business WHERE id = '11111111-1111-1111-1111-111111111111';
 
   IF v_email <> 'contacto@ejemplo.test' OR v_phone <> '+573001234567' THEN
     RAISE EXCEPTION 'CA-020-06: el contacto propio no se guardó como se esperaba (% / %).', v_email, v_phone;
@@ -74,18 +74,18 @@ ROLLBACK;
 -- CA-020-06 · Contacto vacío se persiste como NULL, nunca como cadena vacía
 -- ---------------------------------------------------------------------------
 BEGIN;
-SET ROLE barberia_app;
-SET LOCAL app.barbershop_id = '11111111-1111-1111-1111-111111111111';
+SET ROLE agenda_app;
+SET LOCAL app.business_id = '11111111-1111-1111-1111-111111111111';
 
 DO $$
 DECLARE
   v_email text;
 BEGIN
-  UPDATE barbershop SET contact_email = NULL
+  UPDATE business SET contact_email = NULL
   WHERE id = '11111111-1111-1111-1111-111111111111';
 
   SELECT contact_email INTO v_email
-  FROM barbershop WHERE id = '11111111-1111-1111-1111-111111111111';
+  FROM business WHERE id = '11111111-1111-1111-1111-111111111111';
 
   IF v_email IS NOT NULL THEN
     RAISE EXCEPTION 'CA-020-06: contacto vacío no quedó NULL (quedó %).', v_email;
@@ -101,24 +101,24 @@ ROLLBACK;
 -- Constraint: correo con forma inválida se rechaza en la base
 -- ---------------------------------------------------------------------------
 BEGIN;
-SET ROLE barberia_app;
-SET LOCAL app.barbershop_id = '11111111-1111-1111-1111-111111111111';
+SET ROLE agenda_app;
+SET LOCAL app.business_id = '11111111-1111-1111-1111-111111111111';
 
 DO $$
 BEGIN
   BEGIN
-    UPDATE barbershop SET contact_email = 'no-es-un-correo'
+    UPDATE business SET contact_email = 'no-es-un-correo'
     WHERE id = '11111111-1111-1111-1111-111111111111';
-    RAISE EXCEPTION 'barbershop_contact_email_ck: se aceptó un correo con forma inválida.';
+    RAISE EXCEPTION 'business_contact_email_ck: se aceptó un correo con forma inválida.';
   EXCEPTION
     WHEN check_violation THEN
       NULL; -- Esperado.
   END;
 
   BEGIN
-    UPDATE barbershop SET contact_email = 'MAYUSCULA@Ejemplo.test'
+    UPDATE business SET contact_email = 'MAYUSCULA@Ejemplo.test'
     WHERE id = '11111111-1111-1111-1111-111111111111';
-    RAISE EXCEPTION 'barbershop_contact_email_ck: se aceptó un correo sin normalizar a minúsculas.';
+    RAISE EXCEPTION 'business_contact_email_ck: se aceptó un correo sin normalizar a minúsculas.';
   EXCEPTION
     WHEN check_violation THEN
       NULL; -- Esperado: la normalización a minúsculas es responsabilidad del servicio (defensa en profundidad).
@@ -128,30 +128,30 @@ $$;
 
 RESET ROLE;
 ROLLBACK;
-\echo 'constraint OK · barbershop_contact_email_ck rechaza forma inválida y mayúsculas'
+\echo 'constraint OK · business_contact_email_ck rechaza forma inválida y mayúsculas'
 
 -- ---------------------------------------------------------------------------
 -- Constraint: teléfono fuera de forma E.164 se rechaza en la base
 -- ---------------------------------------------------------------------------
 BEGIN;
-SET ROLE barberia_app;
-SET LOCAL app.barbershop_id = '11111111-1111-1111-1111-111111111111';
+SET ROLE agenda_app;
+SET LOCAL app.business_id = '11111111-1111-1111-1111-111111111111';
 
 DO $$
 BEGIN
   BEGIN
-    UPDATE barbershop SET contact_phone = '3001234567'
+    UPDATE business SET contact_phone = '3001234567'
     WHERE id = '11111111-1111-1111-1111-111111111111';
-    RAISE EXCEPTION 'barbershop_contact_phone_ck: se aceptó un teléfono sin indicativo E.164.';
+    RAISE EXCEPTION 'business_contact_phone_ck: se aceptó un teléfono sin indicativo E.164.';
   EXCEPTION
     WHEN check_violation THEN
       NULL; -- Esperado.
   END;
 
   BEGIN
-    UPDATE barbershop SET contact_phone = '+57'
+    UPDATE business SET contact_phone = '+57'
     WHERE id = '11111111-1111-1111-1111-111111111111';
-    RAISE EXCEPTION 'barbershop_contact_phone_ck: se aceptó un teléfono demasiado corto.';
+    RAISE EXCEPTION 'business_contact_phone_ck: se aceptó un teléfono demasiado corto.';
   EXCEPTION
     WHEN check_violation THEN
       NULL; -- Esperado.
@@ -161,14 +161,14 @@ $$;
 
 RESET ROLE;
 ROLLBACK;
-\echo 'constraint OK · barbershop_contact_phone_ck rechaza formas fuera de E.164'
+\echo 'constraint OK · business_contact_phone_ck rechaza formas fuera de E.164'
 
 -- ---------------------------------------------------------------------------
 -- CA-020-05 · Contexto de A no ve ni puede escribir el contacto de B
 -- ---------------------------------------------------------------------------
 BEGIN;
-SET ROLE barberia_app;
-SET LOCAL app.barbershop_id = '11111111-1111-1111-1111-111111111111';
+SET ROLE agenda_app;
+SET LOCAL app.business_id = '11111111-1111-1111-1111-111111111111';
 
 DO $$
 DECLARE
@@ -178,14 +178,14 @@ BEGIN
   -- B es invisible con el contexto de A: RLS ya lo demuestra en
   -- hu001_aislamiento_rls.sql; aquí se repite acotado a las columnas nuevas.
   SELECT count(*) INTO v_visible
-  FROM barbershop
+  FROM business
   WHERE id = '22222222-2222-2222-2222-222222222222';
 
   IF v_visible <> 0 THEN
     RAISE EXCEPTION 'CA-020-05: el contexto de A ve la fila de B (RLS rota).';
   END IF;
 
-  UPDATE barbershop SET contact_email = 'intruso@ejemplo.test'
+  UPDATE business SET contact_email = 'intruso@ejemplo.test'
   WHERE id = '22222222-2222-2222-2222-222222222222';
   GET DIAGNOSTICS v_updated = ROW_COUNT;
 
@@ -206,13 +206,13 @@ ROLLBACK;
 -- qué la validación IANA vive en el servicio Go y no aquí.
 -- ---------------------------------------------------------------------------
 BEGIN;
-SET ROLE barberia_app;
-SET LOCAL app.barbershop_id = '11111111-1111-1111-1111-111111111111';
+SET ROLE agenda_app;
+SET LOCAL app.business_id = '11111111-1111-1111-1111-111111111111';
 
 DO $$
 BEGIN
   BEGIN
-    UPDATE barbershop SET timezone = 'UTC-5'
+    UPDATE business SET timezone = 'UTC-5'
     WHERE id = '11111111-1111-1111-1111-111111111111';
   EXCEPTION
     WHEN check_violation THEN

@@ -35,8 +35,8 @@ func (r *AssignmentRepository) Exists(ctx context.Context, barbershopID, barberI
 	err := r.db.InTenantTx(ctx, database.BarbershopID(barbershopID), func(ctx context.Context, q database.Queries) error {
 		row := q.QueryRow(ctx,
 			`SELECT EXISTS (
-			   SELECT 1 FROM barber_service
-			    WHERE barbershop_id = $1 AND barber_id = $2 AND service_id = $3
+			   SELECT 1 FROM professional_service
+			    WHERE business_id = $1 AND professional_id = $2 AND service_id = $3
 			 )`,
 			barbershopID, barberID, serviceID,
 		)
@@ -66,8 +66,8 @@ func (r *AssignmentRepository) List(ctx context.Context, barbershopID, barberID 
 		if cursor == nil {
 			rows, err = q.Query(ctx,
 				`SELECT service_id, created_at
-				   FROM barber_service
-				  WHERE barbershop_id = $1 AND barber_id = $2
+				   FROM professional_service
+				  WHERE business_id = $1 AND professional_id = $2
 				  ORDER BY created_at, service_id
 				  LIMIT $3`,
 				barbershopID, barberID, fetchLimit,
@@ -75,8 +75,8 @@ func (r *AssignmentRepository) List(ctx context.Context, barbershopID, barberID 
 		} else {
 			rows, err = q.Query(ctx,
 				`SELECT service_id, created_at
-				   FROM barber_service
-				  WHERE barbershop_id = $1 AND barber_id = $2
+				   FROM professional_service
+				  WHERE business_id = $1 AND professional_id = $2
 				    AND (created_at, service_id) > ($3, $4)
 				  ORDER BY created_at, service_id
 				  LIMIT $5`,
@@ -84,7 +84,7 @@ func (r *AssignmentRepository) List(ctx context.Context, barbershopID, barberID 
 			)
 		}
 		if err != nil {
-			return fmt.Errorf("list barber_service: query: %w", err)
+			return fmt.Errorf("list professional_service: query: %w", err)
 		}
 		defer rows.Close()
 
@@ -92,12 +92,12 @@ func (r *AssignmentRepository) List(ctx context.Context, barbershopID, barberID 
 		for rows.Next() {
 			a := catalog.Assignment{BarberID: barberID}
 			if err := rows.Scan(&a.ServiceID, &a.CreatedAt); err != nil {
-				return fmt.Errorf("list barber_service: scan: %w", err)
+				return fmt.Errorf("list professional_service: scan: %w", err)
 			}
 			items = append(items, a)
 		}
 		if err := rows.Err(); err != nil {
-			return fmt.Errorf("list barber_service: rows: %w", err)
+			return fmt.Errorf("list professional_service: rows: %w", err)
 		}
 
 		hasMore := len(items) > limit
@@ -132,7 +132,7 @@ func (r *AssignmentRepository) Assign(ctx context.Context, barbershopID, barberI
 	err := r.db.InTenantTx(ctx, database.BarbershopID(barbershopID), func(ctx context.Context, q database.Queries) error {
 		var serviceExists bool
 		if err := q.QueryRow(ctx,
-			`SELECT EXISTS(SELECT 1 FROM service WHERE id = $1 AND barbershop_id = $2)`,
+			`SELECT EXISTS(SELECT 1 FROM service WHERE id = $1 AND business_id = $2)`,
 			serviceID, barbershopID,
 		).Scan(&serviceExists); err != nil {
 			return fmt.Errorf("check service exists: %w", err)
@@ -144,9 +144,9 @@ func (r *AssignmentRepository) Assign(ctx context.Context, barbershopID, barberI
 
 		a := catalog.Assignment{BarberID: barberID, ServiceID: serviceID}
 		err := q.QueryRow(ctx,
-			`INSERT INTO barber_service (barbershop_id, barber_id, service_id)
+			`INSERT INTO professional_service (business_id, professional_id, service_id)
 			      VALUES ($1, $2, $3)
-			 ON CONFLICT (barbershop_id, barber_id, service_id) DO NOTHING
+			 ON CONFLICT (business_id, professional_id, service_id) DO NOTHING
 			  RETURNING created_at`,
 			barbershopID, barberID, serviceID,
 		).Scan(&a.CreatedAt)
@@ -160,16 +160,16 @@ func (r *AssignmentRepository) Assign(ctx context.Context, barbershopID, barberI
 			// de una repetición refleja la asignación original, no un
 			// instante nuevo inventado).
 			if err := q.QueryRow(ctx,
-				`SELECT created_at FROM barber_service
-				  WHERE barbershop_id = $1 AND barber_id = $2 AND service_id = $3`,
+				`SELECT created_at FROM professional_service
+				  WHERE business_id = $1 AND professional_id = $2 AND service_id = $3`,
 				barbershopID, barberID, serviceID,
 			).Scan(&a.CreatedAt); err != nil {
-				return fmt.Errorf("select existing barber_service: %w", err)
+				return fmt.Errorf("select existing professional_service: %w", err)
 			}
 			result.Outcome = catalog.AssignOutcomeAlreadyExists
 			result.Assignment = a
 		default:
-			return fmt.Errorf("insert barber_service: %w", err)
+			return fmt.Errorf("insert professional_service: %w", err)
 		}
 		return nil
 	})
@@ -192,11 +192,11 @@ func (r *AssignmentRepository) Unassign(ctx context.Context, barbershopID, barbe
 
 	err := r.db.InTenantTx(ctx, database.BarbershopID(barbershopID), func(ctx context.Context, q database.Queries) error {
 		tag, err := q.Exec(ctx,
-			`DELETE FROM barber_service WHERE barbershop_id = $1 AND barber_id = $2 AND service_id = $3`,
+			`DELETE FROM professional_service WHERE business_id = $1 AND professional_id = $2 AND service_id = $3`,
 			barbershopID, barberID, serviceID,
 		)
 		if err != nil {
-			return fmt.Errorf("delete barber_service: %w", err)
+			return fmt.Errorf("delete professional_service: %w", err)
 		}
 		if tag.RowsAffected() == 0 {
 			result.Outcome = catalog.UnassignOutcomeNotFound

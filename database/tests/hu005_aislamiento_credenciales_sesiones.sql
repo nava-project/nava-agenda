@@ -6,12 +6,12 @@
 -- verificable sin el hasher Go real.
 --
 -- Uso:
---   psql "$DATABASE_TEST_URL" -v ON_ERROR_STOP=1 -f testdata/dos_barberias.sql
+--   psql "$DATABASE_TEST_URL" -v ON_ERROR_STOP=1 -f testdata/dos_professionalias.sql
 --   psql "$DATABASE_TEST_URL" -v ON_ERROR_STOP=1 -f testdata/hu005_credenciales_sesiones.sql
 --   psql "$DATABASE_TEST_URL" -v ON_ERROR_STOP=1 -f tests/hu005_aislamiento_credenciales_sesiones.sql
 --
 -- Mismo requisito de arnés que hu001_aislamiento_rls.sql: la conexión debe
--- poder ejecutar `SET ROLE barberia_app`.
+-- poder ejecutar `SET ROLE agenda_app`.
 --
 -- Cada comprobación falla lanzando una excepción. Si el archivo termina, pasó.
 
@@ -20,17 +20,17 @@
 \echo '=== HU-005 · pruebas de credenciales y sesiones ==='
 
 -- ---------------------------------------------------------------------------
--- DDL-AUT-01 · barberia_app no puede leer staff_credential directamente
+-- DDL-AUT-01 · agenda_app no puede leer staff_credential directamente
 -- ---------------------------------------------------------------------------
 BEGIN;
-SET ROLE barberia_app;
-SET LOCAL app.barbershop_id = '11111111-1111-1111-1111-111111111111';
+SET ROLE agenda_app;
+SET LOCAL app.business_id = '11111111-1111-1111-1111-111111111111';
 
 DO $$
 BEGIN
   BEGIN
     PERFORM * FROM staff_credential LIMIT 1;
-    RAISE EXCEPTION 'DDL-AUT-01: barberia_app pudo leer staff_credential directamente.';
+    RAISE EXCEPTION 'DDL-AUT-01: agenda_app pudo leer staff_credential directamente.';
   EXCEPTION
     WHEN insufficient_privilege THEN
       NULL; -- Esperado: sin GRANT ni política de SELECT.
@@ -40,15 +40,15 @@ $$;
 
 RESET ROLE;
 ROLLBACK;
-\echo 'DDL-AUT-01 OK · staff_credential no admite SELECT directo de barberia_app'
+\echo 'DDL-AUT-01 OK · staff_credential no admite SELECT directo de agenda_app'
 
 -- ---------------------------------------------------------------------------
 -- CA-005-03 · auth_get_credential expone el hash de un único usuario, dentro
 -- del tenant vigente, y CA-005-05 (parte de base de datos) · no cruza tenant
 -- ---------------------------------------------------------------------------
 BEGIN;
-SET ROLE barberia_app;
-SET LOCAL app.barbershop_id = '11111111-1111-1111-1111-111111111111';
+SET ROLE agenda_app;
+SET LOCAL app.business_id = '11111111-1111-1111-1111-111111111111';
 
 DO $$
 DECLARE
@@ -91,7 +91,7 @@ BEGIN
     RAISE EXCEPTION 'CA-005-01: authn_resolve_login_tenant no resolvió el correo activo de A.';
   END IF;
 
-  -- barbero.b@ejemplo.test existe pero está inactivo (dos_barberias.sql).
+  -- barbero.b@ejemplo.test existe pero está inactivo (dos_professionalias.sql).
   SELECT authn_resolve_login_tenant('barbero.b@ejemplo.test') INTO v_shop_inactive;
   SELECT authn_resolve_login_tenant('no-existe@ejemplo.test') INTO v_shop_unknown;
 
@@ -119,8 +119,8 @@ $$;
 -- CA-005-01/05 · staff_session: contexto de A no ve la sesión de B
 -- ---------------------------------------------------------------------------
 BEGIN;
-SET ROLE barberia_app;
-SET LOCAL app.barbershop_id = '11111111-1111-1111-1111-111111111111';
+SET ROLE agenda_app;
+SET LOCAL app.business_id = '11111111-1111-1111-1111-111111111111';
 
 DO $$
 DECLARE
@@ -128,9 +128,9 @@ DECLARE
   v_count_b integer;
 BEGIN
   SELECT count(*) INTO v_count_a FROM staff_session
-    WHERE barbershop_id = '11111111-1111-1111-1111-111111111111';
+    WHERE business_id = '11111111-1111-1111-1111-111111111111';
   SELECT count(*) INTO v_count_b FROM staff_session
-    WHERE barbershop_id = '22222222-2222-2222-2222-222222222222';
+    WHERE business_id = '22222222-2222-2222-2222-222222222222';
 
   IF v_count_a <> 1 THEN
     RAISE EXCEPTION 'CA-005-01: se esperaba 1 sesión de A y se vieron %.', v_count_a;
@@ -141,12 +141,12 @@ BEGIN
 
   -- Intentar insertar una sesión con el tenant ajeno falla (WITH CHECK).
   BEGIN
-    INSERT INTO staff_session (barbershop_id, staff_user_id, token_hash, expires_at)
+    INSERT INTO staff_session (business_id, staff_user_id, token_hash, expires_at)
     VALUES ('22222222-2222-2222-2222-222222222222',
             'bbbbbbb1-bbbb-bbbb-bbbb-bbbbbbbbbbb1',
             encode(sha256('intruso'::bytea), 'hex'),
             now() + interval '30 days');
-    RAISE EXCEPTION 'CA-005-05: se pudo insertar una sesión con el barbershop_id de B.';
+    RAISE EXCEPTION 'CA-005-05: se pudo insertar una sesión con el business_id de B.';
   EXCEPTION
     WHEN insufficient_privilege THEN
       NULL; -- Esperado.
@@ -190,7 +190,7 @@ DELETE FROM staff_credential WHERE staff_user_id = 'aaaaaaa1-aaaa-aaaa-aaaa-aaaa
 DO $$
 BEGIN
   BEGIN
-    INSERT INTO staff_credential (staff_user_id, barbershop_id, password_hash)
+    INSERT INTO staff_credential (staff_user_id, business_id, password_hash)
     VALUES ('aaaaaaa1-aaaa-aaaa-aaaa-aaaaaaaaaaa1',
             '11111111-1111-1111-1111-111111111111', 'corto');
     RAISE EXCEPTION 'staff_credential_password_hash_ck no rechazó un hash demasiado corto.';

@@ -1,4 +1,4 @@
--- Pruebas SQL de DEC-129 / HU-101: barbershop.google_place_id. Cubren a nivel de
+-- Pruebas SQL de DEC-129 / HU-101: business.google_place_id. Cubren a nivel de
 -- base de datos el valor por defecto (sin ficha), la forma aceptada (letras,
 -- dígitos, `_` y `-`, de 1 a 200 caracteres), el rechazo de cualquier otra
 -- (vacío, espacios, `/`, `?`, `%`, acentos, más de 200) y el aislamiento RLS
@@ -6,10 +6,10 @@
 -- (internal/modules/publicbooking/google).
 --
 -- Uso:
---   psql "$DATABASE_TEST_URL" -v ON_ERROR_STOP=1 -f testdata/dos_barberias.sql
---   psql "$DATABASE_TEST_URL" -v ON_ERROR_STOP=1 -f tests/barbershop_google_place_id.sql
+--   psql "$DATABASE_TEST_URL" -v ON_ERROR_STOP=1 -f testdata/dos_professionalias.sql
+--   psql "$DATABASE_TEST_URL" -v ON_ERROR_STOP=1 -f tests/business_google_place_id.sql
 --
--- Requisito del arnés: la conexión debe poder ejecutar `SET ROLE barberia_app`
+-- Requisito del arnés: la conexión debe poder ejecutar `SET ROLE agenda_app`
 -- (estandar-base-datos.md §9.8). Todo se revierte con ROLLBACK.
 --
 -- Cada comprobación falla lanzando una excepción. Si el archivo termina, pasó.
@@ -22,14 +22,14 @@
 -- Defaults: sin ficha
 -- ---------------------------------------------------------------------------
 BEGIN;
-SET ROLE barberia_app;
-SET LOCAL app.barbershop_id = '11111111-1111-1111-1111-111111111111';
+SET ROLE agenda_app;
+SET LOCAL app.business_id = '11111111-1111-1111-1111-111111111111';
 
 DO $$
 DECLARE
   v text;
 BEGIN
-  SELECT google_place_id INTO v FROM barbershop WHERE id = '11111111-1111-1111-1111-111111111111';
+  SELECT google_place_id INTO v FROM business WHERE id = '11111111-1111-1111-1111-111111111111';
   IF v IS NOT NULL THEN
     RAISE EXCEPTION 'una barbería existente no debe tener ficha de Google (leyó %).', v;
   END IF;
@@ -44,8 +44,8 @@ ROLLBACK;
 -- Formas válidas y quitar la ficha
 -- ---------------------------------------------------------------------------
 BEGIN;
-SET ROLE barberia_app;
-SET LOCAL app.barbershop_id = '11111111-1111-1111-1111-111111111111';
+SET ROLE agenda_app;
+SET LOCAL app.business_id = '11111111-1111-1111-1111-111111111111';
 
 DO $$
 DECLARE
@@ -54,15 +54,15 @@ DECLARE
 BEGIN
   FOREACH v_ok IN ARRAY ARRAY['ChIJN1t_tDeuEmsRUsoyG83frY4', 'a', 'A-b_9', repeat('x', 200)]
   LOOP
-    UPDATE barbershop SET google_place_id = v_ok WHERE id = '11111111-1111-1111-1111-111111111111';
-    SELECT google_place_id INTO v FROM barbershop WHERE id = '11111111-1111-1111-1111-111111111111';
+    UPDATE business SET google_place_id = v_ok WHERE id = '11111111-1111-1111-1111-111111111111';
+    SELECT google_place_id INTO v FROM business WHERE id = '11111111-1111-1111-1111-111111111111';
     IF v <> v_ok THEN
       RAISE EXCEPTION 'no se conservó el Place ID válido %.', v_ok;
     END IF;
   END LOOP;
 
-  UPDATE barbershop SET google_place_id = NULL WHERE id = '11111111-1111-1111-1111-111111111111';
-  SELECT google_place_id INTO v FROM barbershop WHERE id = '11111111-1111-1111-1111-111111111111';
+  UPDATE business SET google_place_id = NULL WHERE id = '11111111-1111-1111-1111-111111111111';
+  SELECT google_place_id INTO v FROM business WHERE id = '11111111-1111-1111-1111-111111111111';
   IF v IS NOT NULL THEN
     RAISE EXCEPTION 'quitar la ficha debe dejar NULL.';
   END IF;
@@ -77,8 +77,8 @@ ROLLBACK;
 -- Restricción: cada forma inválida se rechaza en la base
 -- ---------------------------------------------------------------------------
 BEGIN;
-SET ROLE barberia_app;
-SET LOCAL app.barbershop_id = '11111111-1111-1111-1111-111111111111';
+SET ROLE agenda_app;
+SET LOCAL app.business_id = '11111111-1111-1111-1111-111111111111';
 
 DO $$
 DECLARE
@@ -89,7 +89,7 @@ BEGIN
   ]
   LOOP
     BEGIN
-      UPDATE barbershop SET google_place_id = v_bad WHERE id = '11111111-1111-1111-1111-111111111111';
+      UPDATE business SET google_place_id = v_bad WHERE id = '11111111-1111-1111-1111-111111111111';
       RAISE EXCEPTION 'se aceptó un Place ID inválido: [%]', v_bad;
     EXCEPTION
       WHEN check_violation THEN
@@ -107,22 +107,22 @@ ROLLBACK;
 -- RLS: un tenant no lee ni modifica la ficha de otro
 -- ---------------------------------------------------------------------------
 BEGIN;
-SET ROLE barberia_app;
-SET LOCAL app.barbershop_id = '11111111-1111-1111-1111-111111111111';
+SET ROLE agenda_app;
+SET LOCAL app.business_id = '11111111-1111-1111-1111-111111111111';
 
 DO $$
 DECLARE
   v_rows integer;
   v_visible integer;
 BEGIN
-  UPDATE barbershop SET google_place_id = 'Intrusion'
+  UPDATE business SET google_place_id = 'Intrusion'
    WHERE id = '22222222-2222-2222-2222-222222222222';
   GET DIAGNOSTICS v_rows = ROW_COUNT;
   IF v_rows <> 0 THEN
     RAISE EXCEPTION 'RLS: el tenant A modificó la ficha del tenant B (% filas).', v_rows;
   END IF;
 
-  SELECT count(*) INTO v_visible FROM barbershop
+  SELECT count(*) INTO v_visible FROM business
    WHERE id = '22222222-2222-2222-2222-222222222222';
   IF v_visible <> 0 THEN
     RAISE EXCEPTION 'RLS: el tenant A ve la barbería del tenant B.';

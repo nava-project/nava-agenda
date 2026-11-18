@@ -157,6 +157,8 @@ write_secret db NAVA_APP_PASSWORD "$APP_PW"
 write_secret db NAVA_WORKER_PASSWORD "$WRK_PW"
 write_secret db NAVA_BACKUP_PASSWORD "$BAK_PW"
 
+# Cadenas con los roles barberia_* de una base nueva: deploy.sh las cambia a agenda_*
+# al renombrar los roles tras la migración 20261121090000 (DEC-183, #660).
 write_secret app APP_DATABASE_URL "postgres://barberia_app:$APP_PW@db:5432/nava?sslmode=require"
 write_secret app APP_WORKER_DATABASE_URL "postgres://barberia_worker:$WRK_PW@db:5432/nava?sslmode=require"
 # CONSERVAR: cambiarlo invalida los HMAC ya guardados. Respáldalo fuera del servidor.

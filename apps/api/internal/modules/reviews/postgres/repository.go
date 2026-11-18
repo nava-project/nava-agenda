@@ -43,16 +43,16 @@ func (r *Repository) CreateByTokenHash(ctx context.Context, tokenHash string, ra
 	created := false
 	err = r.db.InTenantTx(ctx, barbershopID, func(ctx context.Context, q database.Queries) error {
 		err := q.QueryRow(ctx,
-			`INSERT INTO barber_review (barbershop_id, barber_id, appointment_id, rating, comment)
-			 SELECT t.barbershop_id, ap.barber_id, ap.id, $2, $3
+			`INSERT INTO professional_review (business_id, professional_id, appointment_id, rating, comment)
+			 SELECT t.business_id, ap.professional_id, ap.id, $2, $3
 			   FROM appointment_access_token t
-			   JOIN appointment ap ON ap.barbershop_id = t.barbershop_id AND ap.id = t.appointment_id
+			   JOIN appointment ap ON ap.business_id = t.business_id AND ap.id = t.appointment_id
 			  WHERE t.token_hash = $1
 			    AND t.revoked_at IS NULL
 			    AND (t.expires_at IS NULL OR t.expires_at > now())
 			    AND ap.status = 'completed'
 			 ON CONFLICT (appointment_id) DO NOTHING
-			 RETURNING id, barber_id, rating, comment, hidden_at, created_at`,
+			 RETURNING id, professional_id, rating, comment, hidden_at, created_at`,
 			tokenHash, rating, comment,
 		).Scan(&review.ID, &review.BarberID, &review.Rating, &review.Comment, &review.HiddenAt, &review.CreatedAt)
 		switch {
@@ -61,7 +61,7 @@ func (r *Repository) CreateByTokenHash(ctx context.Context, tokenHash string, ra
 		case errors.Is(err, pgx.ErrNoRows):
 			// Turno no completado o ya reseñado: no se distingue.
 		default:
-			return fmt.Errorf("insert barber_review: %w", err)
+			return fmt.Errorf("insert professional_review: %w", err)
 		}
 		return nil
 	})
@@ -75,8 +75,8 @@ func (r *Repository) CreateByTokenHash(ctx context.Context, tokenHash string, ra
 }
 
 const summarySQL = `SELECT round(avg(rating)::numeric, 1)::float8, count(*)
-	   FROM barber_review
-	  WHERE barbershop_id = $1 AND barber_id = $2 AND hidden_at IS NULL`
+	   FROM professional_review
+	  WHERE business_id = $1 AND professional_id = $2 AND hidden_at IS NULL`
 
 func scanSummary(ctx context.Context, q database.Queries, barbershopID, barberID string) (reviews.Summary, error) {
 	var s reviews.Summary
@@ -88,7 +88,7 @@ func scanSummary(ctx context.Context, q database.Queries, barbershopID, barberID
 
 func barberExists(ctx context.Context, q database.Queries, barbershopID, barberID string) (bool, error) {
 	var one int
-	err := q.QueryRow(ctx, `SELECT 1 FROM barber WHERE barbershop_id = $1 AND id = $2`, barbershopID, barberID).Scan(&one)
+	err := q.QueryRow(ctx, `SELECT 1 FROM professional WHERE business_id = $1 AND id = $2`, barbershopID, barberID).Scan(&one)
 	switch {
 	case err == nil:
 		return true, nil
@@ -101,7 +101,7 @@ func barberExists(ctx context.Context, q database.Queries, barbershopID, barberI
 
 // ListPublic implementa reviews.Repository.
 func (r *Repository) ListPublic(ctx context.Context, slug, barberID string, limit int) (reviews.PublicList, bool, error) {
-	barbershopID, found, err := r.db.ResolveTenant(ctx, `SELECT public_resolve_barbershop_by_slug($1)`, slug)
+	barbershopID, found, err := r.db.ResolveTenant(ctx, `SELECT public_resolve_business_by_slug($1)`, slug)
 	if err != nil {
 		return reviews.PublicList{}, false, fmt.Errorf("reviews/postgres: resolve tenant by slug: %w", err)
 	}
@@ -122,8 +122,8 @@ func (r *Repository) ListPublic(ctx context.Context, slug, barberID string, limi
 		}
 		rows, err := q.Query(ctx,
 			`SELECT rating, comment, created_at
-			   FROM barber_review
-			  WHERE barbershop_id = $1 AND barber_id = $2 AND hidden_at IS NULL
+			   FROM professional_review
+			  WHERE business_id = $1 AND professional_id = $2 AND hidden_at IS NULL
 			  ORDER BY created_at DESC, id
 			  LIMIT $3`,
 			string(barbershopID), barberID, limit)
@@ -161,9 +161,9 @@ func (r *Repository) ListForBarber(ctx context.Context, barbershopID, barberID s
 			return err
 		}
 		rows, err := q.Query(ctx,
-			`SELECT id, barber_id, rating, comment, hidden_at, created_at
-			   FROM barber_review
-			  WHERE barbershop_id = $1 AND barber_id = $2
+			`SELECT id, professional_id, rating, comment, hidden_at, created_at
+			   FROM professional_review
+			  WHERE business_id = $1 AND professional_id = $2
 			  ORDER BY created_at DESC, id
 			  LIMIT $3`,
 			barbershopID, barberID, limit)
@@ -193,10 +193,10 @@ func (r *Repository) SetHidden(ctx context.Context, barbershopID, barberID, revi
 	found := false
 	err := r.db.InTenantTx(ctx, database.BarbershopID(barbershopID), func(ctx context.Context, q database.Queries) error {
 		err := q.QueryRow(ctx,
-			`UPDATE barber_review
+			`UPDATE professional_review
 			    SET hidden_at = CASE WHEN $4::boolean THEN COALESCE(hidden_at, now()) ELSE NULL END
-			  WHERE barbershop_id = $1 AND barber_id = $2 AND id = $3
-			  RETURNING id, barber_id, rating, comment, hidden_at, created_at`,
+			  WHERE business_id = $1 AND professional_id = $2 AND id = $3
+			  RETURNING id, professional_id, rating, comment, hidden_at, created_at`,
 			barbershopID, barberID, reviewID, hidden,
 		).Scan(&review.ID, &review.BarberID, &review.Rating, &review.Comment, &review.HiddenAt, &review.CreatedAt)
 		switch {
@@ -204,7 +204,7 @@ func (r *Repository) SetHidden(ctx context.Context, barbershopID, barberID, revi
 			found = true
 		case errors.Is(err, pgx.ErrNoRows):
 		default:
-			return fmt.Errorf("update barber_review: %w", err)
+			return fmt.Errorf("update professional_review: %w", err)
 		}
 		return nil
 	})

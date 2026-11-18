@@ -1,18 +1,18 @@
 -- Pruebas SQL de HU-008: staff_recovery_code y sus cuatro funciones
 -- SECURITY DEFINER (auth_recovery_request/verify/current_credential/
--- change_password). Cubren DDL-AUT-01 (sin GRANT directo a barberia_app),
+-- change_password). Cubren DDL-AUT-01 (sin GRANT directo a agenda_app),
 -- DEC-064 (código de un solo uso, vencimiento, intentos, cooldown/límite de
 -- reenvío, token de reinicio) y CA-008-05 (cambio de contraseña + revocación
 -- de TODAS las sesiones en la misma operación atómica).
 --
 -- Uso:
---   psql "$DATABASE_TEST_URL" -v ON_ERROR_STOP=1 -f testdata/dos_barberias.sql
+--   psql "$DATABASE_TEST_URL" -v ON_ERROR_STOP=1 -f testdata/dos_professionalias.sql
 --   psql "$DATABASE_TEST_URL" -v ON_ERROR_STOP=1 -f testdata/hu005_credenciales_sesiones.sql
 --   psql "$DATABASE_TEST_URL" -v ON_ERROR_STOP=1 -f testdata/hu007_reto_telefonico.sql
 --   psql "$DATABASE_TEST_URL" -v ON_ERROR_STOP=1 -f tests/hu008_recuperacion_acceso.sql
 --
 -- Mismo requisito de arnés que hu007_defensa_abuso.sql: la conexión debe
--- poder ejecutar `SET ROLE barberia_app` y `SET ROLE barberia_worker`. Cada
+-- poder ejecutar `SET ROLE agenda_app` y `SET ROLE agenda_worker`. Cada
 -- escenario que usa las cuentas reales (duena.a, dueno.b) se envuelve en
 -- BEGIN...ROLLBACK a propósito, igual que hu007_defensa_abuso.sql: así
 -- nunca deja un código de recuperación real persistido que compita por
@@ -27,17 +27,17 @@
 \echo '=== HU-008 · pruebas de recuperación de acceso con código ==='
 
 -- ---------------------------------------------------------------------------
--- DDL-AUT-01 · barberia_app no puede leer/escribir staff_recovery_code
+-- DDL-AUT-01 · agenda_app no puede leer/escribir staff_recovery_code
 -- directamente
 -- ---------------------------------------------------------------------------
 BEGIN;
-SET ROLE barberia_app;
+SET ROLE agenda_app;
 
 DO $$
 BEGIN
   BEGIN
     PERFORM * FROM staff_recovery_code LIMIT 1;
-    RAISE EXCEPTION 'DDL-AUT-01: barberia_app pudo leer staff_recovery_code directamente.';
+    RAISE EXCEPTION 'DDL-AUT-01: agenda_app pudo leer staff_recovery_code directamente.';
   EXCEPTION
     WHEN insufficient_privilege THEN
       NULL; -- Esperado.
@@ -45,7 +45,7 @@ BEGIN
 
   BEGIN
     DELETE FROM staff_recovery_code;
-    RAISE EXCEPTION 'DDL-AUT-01: barberia_app pudo borrar staff_recovery_code directamente.';
+    RAISE EXCEPTION 'DDL-AUT-01: agenda_app pudo borrar staff_recovery_code directamente.';
   EXCEPTION
     WHEN insufficient_privilege THEN
       NULL; -- Esperado.
@@ -55,19 +55,19 @@ $$;
 
 RESET ROLE;
 ROLLBACK;
-\echo 'DDL-AUT-01 OK · staff_recovery_code no admite DML directo de barberia_app'
+\echo 'DDL-AUT-01 OK · staff_recovery_code no admite DML directo de agenda_app'
 
 -- ---------------------------------------------------------------------------
--- DDL-AUT-01 · auth_recovery_purge_expired es exclusiva de barberia_worker
+-- DDL-AUT-01 · auth_recovery_purge_expired es exclusiva de agenda_worker
 -- ---------------------------------------------------------------------------
 BEGIN;
-SET ROLE barberia_app;
+SET ROLE agenda_app;
 
 DO $$
 BEGIN
   BEGIN
     PERFORM auth_recovery_purge_expired(10);
-    RAISE EXCEPTION 'DDL-AUT-01: barberia_app pudo ejecutar auth_recovery_purge_expired.';
+    RAISE EXCEPTION 'DDL-AUT-01: agenda_app pudo ejecutar auth_recovery_purge_expired.';
   EXCEPTION
     WHEN insufficient_privilege THEN
       NULL; -- Esperado.
@@ -77,10 +77,10 @@ $$;
 
 RESET ROLE;
 ROLLBACK;
-\echo 'DDL-AUT-01 OK · purga exclusiva de barberia_worker'
+\echo 'DDL-AUT-01 OK · purga exclusiva de agenda_worker'
 
 BEGIN;
-SET ROLE barberia_worker;
+SET ROLE agenda_worker;
 DO $$
 BEGIN
   PERFORM auth_recovery_purge_expired(10);
@@ -88,7 +88,7 @@ END
 $$;
 RESET ROLE;
 ROLLBACK;
-\echo 'OK · barberia_worker sí puede purgar staff_recovery_code'
+\echo 'OK · agenda_worker sí puede purgar staff_recovery_code'
 
 -- ---------------------------------------------------------------------------
 -- CA-008-01/CA-008-11 · auth_recovery_request no enumera: cuenta inexistente,
@@ -96,7 +96,7 @@ ROLLBACK;
 -- válida producen la forma de resultado correcta en cada caso
 -- ---------------------------------------------------------------------------
 BEGIN;
-SET ROLE barberia_app;
+SET ROLE agenda_app;
 
 DO $$
 DECLARE
@@ -140,11 +140,11 @@ ROLLBACK;
 -- ---------------------------------------------------------------------------
 -- Nota: las lecturas directas de staff_recovery_code que verifican "un solo
 -- código vigente" corren DESPUÉS de RESET ROLE (superusuario de la
--- conexión, que hace bypass de RLS): barberia_app no tiene ningún GRANT
+-- conexión, que hace bypass de RLS): agenda_app no tiene ningún GRANT
 -- sobre esta tabla (DDL-AUT-01, ya probado arriba), así que una lectura de
 -- verificación con ese rol fallaría por privilegios en vez de por RLS.
 BEGIN;
-SET ROLE barberia_app;
+SET ROLE agenda_app;
 
 DO $$
 DECLARE
@@ -208,7 +208,7 @@ BEGIN
 END
 $$;
 
-SET ROLE barberia_app;
+SET ROLE agenda_app;
 DO $$
 DECLARE
   v_second_hash text := encode(sha256('hu008-sql-test-resend-second'::bytea), 'hex');
@@ -245,7 +245,7 @@ BEGIN
 END
 $$;
 
-SET ROLE barberia_app;
+SET ROLE agenda_app;
 DO $$
 DECLARE
   v_accepted boolean;
@@ -270,7 +270,7 @@ ROLLBACK;
 -- CA-008-02/03 · intentos, agotamiento y vencimiento en auth_recovery_verify
 -- ---------------------------------------------------------------------------
 BEGIN;
-SET ROLE barberia_app;
+SET ROLE agenda_app;
 
 DO $$
 DECLARE
@@ -321,7 +321,7 @@ BEGIN
 END
 $$;
 
-SET ROLE barberia_app;
+SET ROLE agenda_app;
 DO $$
 DECLARE
   v_wrong_hash text := encode(sha256('hu008-sql-test-verify-wrong'::bytea), 'hex');
@@ -351,11 +351,11 @@ ROLLBACK;
 -- contraseña con revocación de TODAS las sesiones en la misma operación
 -- ---------------------------------------------------------------------------
 BEGIN;
-SET ROLE barberia_app;
+SET ROLE agenda_app;
 
 -- Nota: igual que en el bloque CA-008-07, las lecturas directas de
 -- staff_credential/staff_session (para confirmar el efecto del cambio de
--- contraseña) corren tras RESET ROLE: barberia_app solo alcanza esas tablas
+-- contraseña) corren tras RESET ROLE: agenda_app solo alcanza esas tablas
 -- a través de las funciones SECURITY DEFINER aprobadas, nunca por SQL
 -- directo en este flujo previo a resolver tenant.
 DO $$
@@ -439,7 +439,7 @@ BEGIN
 END
 $$;
 
-SET ROLE barberia_app;
+SET ROLE agenda_app;
 DO $$
 DECLARE
   v_token_hash text := encode(sha256('hu008-sql-test-success-token'::bytea), 'hex');
@@ -465,7 +465,7 @@ ROLLBACK;
 -- compitan con otras suites.
 -- ---------------------------------------------------------------------------
 BEGIN;
-SET ROLE barberia_app;
+SET ROLE agenda_app;
 
 DO $$
 DECLARE
@@ -502,7 +502,7 @@ RESET ROLE;
 UPDATE staff_user SET phone = '+573000000001' WHERE email = 'dueno.b@ejemplo.test';
 UPDATE staff_user SET phone_verified_at = pg_catalog.now() WHERE email = 'dueno.b@ejemplo.test';
 
-SET ROLE barberia_app;
+SET ROLE agenda_app;
 DO $$
 BEGIN
   IF auth_recovery_resolve_phone('+573000000001') IS NOT NULL THEN
@@ -515,7 +515,7 @@ RESET ROLE;
 -- Con una de las dos inactiva vuelve a haber exactamente una activa.
 UPDATE staff_user SET is_active = false WHERE email = 'dueno.b@ejemplo.test';
 
-SET ROLE barberia_app;
+SET ROLE agenda_app;
 DO $$
 BEGIN
   IF auth_recovery_resolve_phone('+573000000001') IS DISTINCT FROM 'duena.a@ejemplo.test' THEN
@@ -528,7 +528,7 @@ RESET ROLE;
 -- Un teléfono sin verificar no identifica ninguna cuenta.
 UPDATE staff_user SET phone_verified_at = NULL WHERE email = 'duena.a@ejemplo.test';
 
-SET ROLE barberia_app;
+SET ROLE agenda_app;
 DO $$
 BEGIN
   IF auth_recovery_resolve_phone('+573000000001') IS NOT NULL THEN

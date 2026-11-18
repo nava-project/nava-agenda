@@ -26,10 +26,10 @@ import (
 // otra violación se propaga sin traducir (defecto de forma que el dominio
 // ya debió rechazar antes de llegar aquí).
 const (
-	appointmentBarberIntervalExclConstraint = "appointment_barber_interval_excl"
-	appointmentCustomerFKConstraint         = "appointment_barbershop_id_customer_id_fk"
-	appointmentBarberFKConstraint           = "appointment_barbershop_id_barber_id_fk"
-	appointmentServiceFKConstraint          = "appointment_barbershop_id_service_id_fk"
+	appointmentBarberIntervalExclConstraint = "appointment_professional_interval_excl"
+	appointmentCustomerFKConstraint         = "appointment_business_id_customer_id_fk"
+	appointmentBarberFKConstraint           = "appointment_business_id_professional_id_fk"
+	appointmentServiceFKConstraint          = "appointment_business_id_service_id_fk"
 	customerShopPhoneUniqueIndex            = "idx_customer_shop_phone"
 	customerShopEmailUniqueIndex            = "idx_customer_shop_email"
 )
@@ -180,15 +180,15 @@ func findCustomerForReconciliation(
 	switch {
 	case phone != nil:
 		row = q.QueryRow(ctx,
-			`SELECT id, barbershop_id, full_name, phone, email, created_at, updated_at
+			`SELECT id, business_id, full_name, phone, email, created_at, updated_at
 			   FROM customer
-			  WHERE barbershop_id = $1 AND phone = $2`,
+			  WHERE business_id = $1 AND phone = $2`,
 			barbershopID, *phone)
 	case email != nil:
 		row = q.QueryRow(ctx,
-			`SELECT id, barbershop_id, full_name, phone, email, created_at, updated_at
+			`SELECT id, business_id, full_name, phone, email, created_at, updated_at
 			   FROM customer
-			  WHERE barbershop_id = $1 AND email = $2`,
+			  WHERE business_id = $1 AND email = $2`,
 			barbershopID, *email)
 	default:
 		return none, false, nil
@@ -369,9 +369,9 @@ func loadExistingCustomer(
 ) (booking.Customer, error) {
 	var c booking.Customer
 	err := q.QueryRow(ctx,
-		`SELECT id, barbershop_id, full_name, phone, email, created_at, updated_at
+		`SELECT id, business_id, full_name, phone, email, created_at, updated_at
 		   FROM customer
-		  WHERE barbershop_id = $1 AND id = $2`,
+		  WHERE business_id = $1 AND id = $2`,
 		barbershopID, customerID,
 	).Scan(&c.ID, &c.BarbershopID, &c.FullName, &c.Phone, &c.Email, &c.CreatedAt, &c.UpdatedAt)
 	if err != nil {
@@ -394,9 +394,9 @@ func insertNewCustomer(
 ) (booking.Customer, error) {
 	var c booking.Customer
 	err := q.QueryRow(ctx,
-		`INSERT INTO customer (barbershop_id, full_name, phone, email)
+		`INSERT INTO customer (business_id, full_name, phone, email)
 		 VALUES ($1, $2, $3, $4)
-		 RETURNING id, barbershop_id, full_name, phone, email, created_at, updated_at`,
+		 RETURNING id, business_id, full_name, phone, email, created_at, updated_at`,
 		barbershopID, in.FullName, in.Phone, in.Email,
 	).Scan(&c.ID, &c.BarbershopID, &c.FullName, &c.Phone, &c.Email, &c.CreatedAt, &c.UpdatedAt)
 	if err != nil {
@@ -415,7 +415,7 @@ func insertNewCustomer(
 // appointment de este paquete usa: mantiene la RETURNING del INSERT y el
 // Scan del struct siempre alineados.
 const appointmentResponseFields = `
-	id, barbershop_id, barber_id, service_id, customer_id, attendee_name,
+	id, business_id, professional_id, service_id, customer_id, attendee_name,
 	starts_at, ends_at, status, occupies_schedule, origin,
 	service_name_snapshot, duration_minutes_snapshot, price_amount_snapshot, price_currency_snapshot,
 	customer_note, created_at, updated_at`
@@ -454,7 +454,7 @@ func insertAppointment(
 ) (booking.Appointment, error) {
 	row := q.QueryRow(ctx, `
 		INSERT INTO appointment (
-			barbershop_id, barber_id, service_id, customer_id, attendee_name,
+			business_id, professional_id, service_id, customer_id, attendee_name,
 			starts_at, ends_at, status, origin,
 			service_name_snapshot, duration_minutes_snapshot, price_amount_snapshot, price_currency_snapshot,
 			customer_note,
@@ -540,7 +540,7 @@ func insertAppointmentCreatedHistory(
 ) error {
 	_, err := q.Exec(ctx, `
 		INSERT INTO appointment_history (
-			barbershop_id, appointment_id, event_type, actor_type, actor_staff_user_id, actor_customer_id
+			business_id, appointment_id, event_type, actor_type, actor_staff_user_id, actor_customer_id
 		) VALUES ($1, $2, 'appointment_created', $3, $4, $5)`,
 		barbershopID, appointmentID, string(actor.Type), actor.StaffUserID, actor.CustomerID,
 	)
@@ -635,8 +635,8 @@ func (r *Repository) ListDailyAgenda(
 			       price_amount_snapshot, price_currency_snapshot,
 			       is_home_service, service_address, service_latitude, service_longitude
 			  FROM appointment
-			 WHERE barbershop_id = $1
-			   AND barber_id = $2
+			 WHERE business_id = $1
+			   AND professional_id = $2
 			   AND starts_at >= $3
 			   AND starts_at < $4
 			   AND ends_at > $5
@@ -741,7 +741,7 @@ func (r *Repository) GetAppointmentDetail(
 	)
 	err = r.db.InTenantTx(ctx, shop, func(ctx context.Context, q database.Queries) error {
 		row := q.QueryRow(ctx, `
-			SELECT a.id, a.barber_id, a.attendee_name,
+			SELECT a.id, a.professional_id, a.attendee_name,
 			       c.full_name, c.phone, c.email,
 			       a.customer_note, a.starts_at, a.ends_at, a.status, a.origin,
 			       a.service_name_snapshot, a.duration_minutes_snapshot,
@@ -749,8 +749,8 @@ func (r *Repository) GetAppointmentDetail(
 			       a.is_home_service, a.service_address, a.service_latitude, a.service_longitude,
 			       a.created_at, a.updated_at
 			  FROM appointment a
-			  JOIN customer c ON c.barbershop_id = a.barbershop_id AND c.id = a.customer_id
-			 WHERE a.barbershop_id = $1 AND a.id = $2`,
+			  JOIN customer c ON c.business_id = a.business_id AND c.id = a.customer_id
+			 WHERE a.business_id = $1 AND a.id = $2`,
 			barbershopID, appointmentID)
 
 		d, ok, err := scanAppointmentDetail(row)
@@ -809,7 +809,7 @@ func scanAppointmentDetail(row pgx.Row) (booking.AppointmentDetail, bool, error)
 func appointmentExists(ctx context.Context, q database.Queries, barbershopID, appointmentID string) (bool, error) {
 	var exists bool
 	err := q.QueryRow(ctx,
-		`SELECT EXISTS (SELECT 1 FROM appointment WHERE barbershop_id = $1 AND id = $2)`,
+		`SELECT EXISTS (SELECT 1 FROM appointment WHERE business_id = $1 AND id = $2)`,
 		barbershopID, appointmentID,
 	).Scan(&exists)
 	if err != nil {
@@ -864,7 +864,7 @@ func (r *Repository) ListAppointmentHistory(
 			SELECT id, event_type, actor_type, actor_staff_user_id, actor_customer_id,
 			       reason, occurred_at
 			  FROM appointment_history
-			 WHERE barbershop_id = $1 AND appointment_id = $2
+			 WHERE business_id = $1 AND appointment_id = $2
 			   AND ($3::timestamptz IS NULL OR (occurred_at, id) > ($3::timestamptz, $4::uuid))
 			 ORDER BY occurred_at, id
 			 LIMIT $5`,
@@ -955,7 +955,7 @@ func loadHistoryChanges(
 	rows, err := q.Query(ctx, `
 		SELECT history_id, field_name, previous_value, new_value
 		  FROM appointment_history_change
-		 WHERE barbershop_id = $1 AND history_id = ANY($2)
+		 WHERE business_id = $1 AND history_id = ANY($2)
 		 ORDER BY history_id, field_name`,
 		barbershopID, ids,
 	)
@@ -997,7 +997,7 @@ func (r *Repository) CustomerNames(ctx context.Context, barbershopID string, cus
 
 	err = r.db.InTenantTx(ctx, shop, func(ctx context.Context, q database.Queries) error {
 		rows, err := q.Query(ctx,
-			`SELECT id, full_name FROM customer WHERE barbershop_id = $1 AND id = ANY($2)`,
+			`SELECT id, full_name FROM customer WHERE business_id = $1 AND id = ANY($2)`,
 			barbershopID, customerIDs)
 		if err != nil {
 			return err
@@ -1071,12 +1071,12 @@ func lockAppointmentForReschedule(
 ) (currentAppointmentForReschedule, bool, error) {
 	var row currentAppointmentForReschedule
 	err := q.QueryRow(ctx, `
-		SELECT id, barber_id, service_id, customer_id, attendee_name,
+		SELECT id, professional_id, service_id, customer_id, attendee_name,
 		       starts_at, ends_at, status, origin,
 		       service_name_snapshot, duration_minutes_snapshot, price_amount_snapshot, price_currency_snapshot,
 		       customer_note, created_at, updated_at
 		  FROM appointment
-		 WHERE barbershop_id = $1 AND id = $2
+		 WHERE business_id = $1 AND id = $2
 		 FOR UPDATE`,
 		barbershopID, appointmentID,
 	).Scan(
@@ -1110,7 +1110,7 @@ func updateAppointmentInterval(
 	err := q.QueryRow(ctx, `
 		UPDATE appointment
 		   SET starts_at = $3, ends_at = $4
-		 WHERE barbershop_id = $1 AND id = $2
+		 WHERE business_id = $1 AND id = $2
 		RETURNING updated_at`,
 		barbershopID, appointmentID, newStartsAt, newEndsAt,
 	).Scan(&updatedAt)
@@ -1146,7 +1146,7 @@ func insertAppointmentRescheduledHistory(
 	var historyID string
 	err := q.QueryRow(ctx, `
 		INSERT INTO appointment_history (
-			barbershop_id, appointment_id, event_type, actor_type, actor_staff_user_id, actor_customer_id
+			business_id, appointment_id, event_type, actor_type, actor_staff_user_id, actor_customer_id
 		) VALUES ($1, $2, 'appointment_rescheduled', $3, $4, $5)
 		RETURNING id`,
 		barbershopID, appointmentID, string(actor.Type), actor.StaffUserID, actor.CustomerID,
@@ -1156,7 +1156,7 @@ func insertAppointmentRescheduledHistory(
 	}
 
 	_, err = q.Exec(ctx, `
-		INSERT INTO appointment_history_change (barbershop_id, history_id, field_name, previous_value, new_value)
+		INSERT INTO appointment_history_change (business_id, history_id, field_name, previous_value, new_value)
 		VALUES
 			($1, $2, 'starts_at', $3, $4),
 			($1, $2, 'ends_at', $5, $6)`,
@@ -1428,7 +1428,7 @@ func updateAppointmentStatusCancelledByBarber(
 	err := q.QueryRow(ctx, `
 		UPDATE appointment
 		   SET status = 'cancelled_by_barber', resolved_at = now()
-		 WHERE barbershop_id = $1 AND id = $2
+		 WHERE business_id = $1 AND id = $2
 		RETURNING updated_at`,
 		barbershopID, appointmentID,
 	).Scan(&updatedAt)
@@ -1451,7 +1451,7 @@ func insertAppointmentCancelledByBarberHistory(
 	var historyID string
 	err := q.QueryRow(ctx, `
 		INSERT INTO appointment_history (
-			barbershop_id, appointment_id, event_type, actor_type, actor_staff_user_id, actor_customer_id
+			business_id, appointment_id, event_type, actor_type, actor_staff_user_id, actor_customer_id
 		) VALUES ($1, $2, 'appointment_cancelled_by_barber', $3, $4, $5)
 		RETURNING id`,
 		barbershopID, appointmentID, string(actor.Type), actor.StaffUserID, actor.CustomerID,
@@ -1461,7 +1461,7 @@ func insertAppointmentCancelledByBarberHistory(
 	}
 
 	_, err = q.Exec(ctx, `
-		INSERT INTO appointment_history_change (barbershop_id, history_id, field_name, previous_value, new_value)
+		INSERT INTO appointment_history_change (business_id, history_id, field_name, previous_value, new_value)
 		VALUES ($1, $2, 'status', 'confirmed', 'cancelled_by_barber')`,
 		barbershopID, historyID,
 	)
@@ -1676,7 +1676,7 @@ func readCancellationPolicy(ctx context.Context, q database.Queries, barbershopI
 	var p booking.CustomerCancellationPolicy
 	err := q.QueryRow(ctx, `
 		SELECT cancellation_deadline_minutes, late_cancellation_client_allowed, late_cancellation_reason_required
-		  FROM barbershop
+		  FROM business
 		 WHERE id = $1`,
 		barbershopID,
 	).Scan(&p.DeadlineMinutes, &p.LateClientAllowed, &p.LateReasonRequired)
@@ -1695,7 +1695,7 @@ func updateAppointmentStatusCancelledByCustomer(
 	_, err := q.Exec(ctx, `
 		UPDATE appointment
 		   SET status = 'cancelled_by_customer', resolved_at = now(), cancellation_reason = NULLIF($3, '')
-		 WHERE barbershop_id = $1 AND id = $2`,
+		 WHERE business_id = $1 AND id = $2`,
 		barbershopID, appointmentID, reason,
 	)
 	return err
@@ -1712,7 +1712,7 @@ func insertAppointmentCancelledByCustomerHistory(
 	var historyID string
 	err := q.QueryRow(ctx, `
 		INSERT INTO appointment_history (
-			barbershop_id, appointment_id, event_type, actor_type, actor_customer_id, reason
+			business_id, appointment_id, event_type, actor_type, actor_customer_id, reason
 		) VALUES ($1, $2, 'appointment_cancelled_by_customer', 'customer', $3, NULLIF($4, ''))
 		RETURNING id`,
 		barbershopID, appointmentID, customerID, reason,
@@ -1721,7 +1721,7 @@ func insertAppointmentCancelledByCustomerHistory(
 		return err
 	}
 	_, err = q.Exec(ctx, `
-		INSERT INTO appointment_history_change (barbershop_id, history_id, field_name, previous_value, new_value)
+		INSERT INTO appointment_history_change (business_id, history_id, field_name, previous_value, new_value)
 		VALUES ($1, $2, 'status', 'confirmed', 'cancelled_by_customer')`,
 		barbershopID, historyID,
 	)
@@ -1856,7 +1856,7 @@ func updateAppointmentStatusCompleted(
 	err := q.QueryRow(ctx, `
 		UPDATE appointment
 		   SET status = 'completed', resolved_at = now()
-		 WHERE barbershop_id = $1 AND id = $2
+		 WHERE business_id = $1 AND id = $2
 		RETURNING updated_at`,
 		barbershopID, appointmentID,
 	).Scan(&updatedAt)
@@ -1877,7 +1877,7 @@ func updateAppointmentStatusNoShow(
 	err := q.QueryRow(ctx, `
 		UPDATE appointment
 		   SET status = 'no_show', resolved_at = now()
-		 WHERE barbershop_id = $1 AND id = $2
+		 WHERE business_id = $1 AND id = $2
 		RETURNING updated_at`,
 		barbershopID, appointmentID,
 	).Scan(&updatedAt)
@@ -1900,7 +1900,7 @@ func insertAppointmentCompletedHistory(
 	var historyID string
 	err := q.QueryRow(ctx, `
 		INSERT INTO appointment_history (
-			barbershop_id, appointment_id, event_type, actor_type, actor_staff_user_id, actor_customer_id
+			business_id, appointment_id, event_type, actor_type, actor_staff_user_id, actor_customer_id
 		) VALUES ($1, $2, 'appointment_completed', $3, $4, $5)
 		RETURNING id`,
 		barbershopID, appointmentID, string(actor.Type), actor.StaffUserID, actor.CustomerID,
@@ -1910,7 +1910,7 @@ func insertAppointmentCompletedHistory(
 	}
 
 	_, err = q.Exec(ctx, `
-		INSERT INTO appointment_history_change (barbershop_id, history_id, field_name, previous_value, new_value)
+		INSERT INTO appointment_history_change (business_id, history_id, field_name, previous_value, new_value)
 		VALUES ($1, $2, 'status', 'confirmed', 'completed')`,
 		barbershopID, historyID,
 	)
@@ -1928,7 +1928,7 @@ func insertAppointmentNoShowHistory(
 	var historyID string
 	err := q.QueryRow(ctx, `
 		INSERT INTO appointment_history (
-			barbershop_id, appointment_id, event_type, actor_type, actor_staff_user_id, actor_customer_id
+			business_id, appointment_id, event_type, actor_type, actor_staff_user_id, actor_customer_id
 		) VALUES ($1, $2, 'appointment_no_show', $3, $4, $5)
 		RETURNING id`,
 		barbershopID, appointmentID, string(actor.Type), actor.StaffUserID, actor.CustomerID,
@@ -1938,7 +1938,7 @@ func insertAppointmentNoShowHistory(
 	}
 
 	_, err = q.Exec(ctx, `
-		INSERT INTO appointment_history_change (barbershop_id, history_id, field_name, previous_value, new_value)
+		INSERT INTO appointment_history_change (business_id, history_id, field_name, previous_value, new_value)
 		VALUES ($1, $2, 'status', 'confirmed', 'no_show')`,
 		barbershopID, historyID,
 	)
@@ -2251,7 +2251,7 @@ func updateAppointmentStatusCorrected(
 	err := q.QueryRow(ctx, `
 		UPDATE appointment
 		   SET status = $3, resolved_at = now()
-		 WHERE barbershop_id = $1 AND id = $2
+		 WHERE business_id = $1 AND id = $2
 		RETURNING updated_at`,
 		barbershopID, appointmentID, newStatus,
 	).Scan(&updatedAt)
@@ -2287,7 +2287,7 @@ func insertAppointmentStatusCorrectedHistory(
 	var historyID string
 	err := q.QueryRow(ctx, `
 		INSERT INTO appointment_history (
-			barbershop_id, appointment_id, event_type, actor_type, actor_staff_user_id, actor_customer_id, reason
+			business_id, appointment_id, event_type, actor_type, actor_staff_user_id, actor_customer_id, reason
 		) VALUES ($1, $2, 'appointment_status_corrected', $3, $4, $5, $6)
 		RETURNING id`,
 		barbershopID, appointmentID, string(actor.Type), actor.StaffUserID, actor.CustomerID, reason,
@@ -2297,7 +2297,7 @@ func insertAppointmentStatusCorrectedHistory(
 	}
 
 	_, err = q.Exec(ctx, `
-		INSERT INTO appointment_history_change (barbershop_id, history_id, field_name, previous_value, new_value)
+		INSERT INTO appointment_history_change (business_id, history_id, field_name, previous_value, new_value)
 		VALUES ($1, $2, 'status', $3, $4)`,
 		barbershopID, historyID, previousStatus, newStatus,
 	)

@@ -28,7 +28,7 @@ const (
 	// testDatabaseURL es la URL de la base de datos de prueba. Debe apuntar a
 	// una base efímera con las migraciones aplicadas y testdata cargada.
 	// En CI: PostgreSQL efímero. En local: variable de entorno TEST_DATABASE_URL.
-	testDatabaseURL = "postgres://barberia_app@localhost:5432/barberia_test?sslmode=disable"
+	testDatabaseURL = "postgres://agenda_app@localhost:5432/barberia_test?sslmode=disable"
 )
 
 // setupTestDB crea un pool de prueba conectado como barberia_app.
@@ -79,7 +79,7 @@ func TestInTenantTx_CA002_01(t *testing.T) {
 	// Barbería A
 	err := db.InTenantTx(context.Background(), shopA, func(ctx context.Context, q database.Queries) error {
 		var setting string
-		err := q.QueryRow(ctx, "SELECT current_setting('app.barbershop_id')").Scan(&setting)
+		err := q.QueryRow(ctx, "SELECT current_setting('app.business_id')").Scan(&setting)
 		if err != nil {
 			return fmt.Errorf("query setting: %w", err)
 		}
@@ -109,7 +109,7 @@ func TestInTenantTx_CA002_01(t *testing.T) {
 	// Barbería B
 	err = db.InTenantTx(context.Background(), shopB, func(ctx context.Context, q database.Queries) error {
 		var setting string
-		err := q.QueryRow(ctx, "SELECT current_setting('app.barbershop_id')").Scan(&setting)
+		err := q.QueryRow(ctx, "SELECT current_setting('app.business_id')").Scan(&setting)
 		if err != nil {
 			return fmt.Errorf("query setting: %w", err)
 		}
@@ -244,7 +244,7 @@ func TestInTenantTx_CA002_03(t *testing.T) {
 
 			var setting string
 			err = conn.QueryRow(context.Background(),
-				"SELECT coalesce(current_setting('app.barbershop_id', true), '')").Scan(&setting)
+				"SELECT coalesce(current_setting('app.business_id', true), '')").Scan(&setting)
 			if err != nil {
 				errCh <- fmt.Errorf("query setting: %w", err)
 				return
@@ -284,7 +284,7 @@ func TestInTenantTx_CA002_05(t *testing.T) {
 	})
 
 	if err == nil {
-		t.Fatal("expected error for invalid barbershop_id, got nil")
+		t.Fatal("expected error for invalid business_id, got nil")
 	}
 
 	if !strings.Contains(err.Error(), "database: fallo al fijar contexto de barbería") {
@@ -304,7 +304,7 @@ func TestInTenantTx_CA002_05(t *testing.T) {
 
 	var setting string
 	err = conn.QueryRow(context.Background(),
-		"SELECT coalesce(current_setting('app.barbershop_id', true), '')").Scan(&setting)
+		"SELECT coalesce(current_setting('app.business_id', true), '')").Scan(&setting)
 	if err != nil {
 		t.Fatalf("query setting after failure: %v", err)
 	}
@@ -438,7 +438,7 @@ func TestInTenantTx_RollbackOnCallbackError(t *testing.T) {
 
 	err = db.InTenantTx(context.Background(), shopA, func(ctx context.Context, q database.Queries) error {
 		if _, err := q.Exec(ctx,
-			"UPDATE barbershop SET name = 'NO DEBERIA PERSISTIR' WHERE id = $1", string(shopA),
+			"UPDATE business SET name = 'NO DEBERIA PERSISTIR' WHERE id = $1", string(shopA),
 		); err != nil {
 			return fmt.Errorf("update: %w", err)
 		}
@@ -453,7 +453,7 @@ func TestInTenantTx_RollbackOnCallbackError(t *testing.T) {
 	err = db.InTenantTx(context.Background(), shopA, func(ctx context.Context, q database.Queries) error {
 		var name string
 		if err := q.QueryRow(ctx,
-			"SELECT name FROM barbershop WHERE id = $1", string(shopA),
+			"SELECT name FROM business WHERE id = $1", string(shopA),
 		).Scan(&name); err != nil {
 			return fmt.Errorf("select: %w", err)
 		}

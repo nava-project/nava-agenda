@@ -54,7 +54,7 @@ func (r *Repository) ValidateAndRenewSession(ctx context.Context, barbershopID, 
 			  FROM staff_user u
 			 WHERE s.token_hash = $1
 			   AND u.id = s.staff_user_id
-			   AND u.barbershop_id = s.barbershop_id
+			   AND u.business_id = s.business_id
 			   AND s.revoked_at IS NULL
 			   AND s.expires_at > $2
 			   AND u.is_active
@@ -103,7 +103,7 @@ func (r *Repository) RevokeSession(ctx context.Context, barbershopID, sessionID 
 			UPDATE staff_session
 			   SET revoked_at = $3
 			 WHERE id = $1
-			   AND barbershop_id = $2
+			   AND business_id = $2
 			   AND revoked_at IS NULL`,
 			sessionID, barbershopID, now,
 		)
@@ -124,7 +124,7 @@ func (r *Repository) RevokeSession(ctx context.Context, barbershopID, sessionID 
 func (r *Repository) BarbershopName(ctx context.Context, barbershopID string) (string, error) {
 	var name string
 	err := r.db.InTenantTx(ctx, database.BarbershopID(barbershopID), func(ctx context.Context, q database.Queries) error {
-		return q.QueryRow(ctx, `SELECT name FROM barbershop WHERE id = $1`, barbershopID).Scan(&name)
+		return q.QueryRow(ctx, `SELECT name FROM business WHERE id = $1`, barbershopID).Scan(&name)
 	})
 	if err != nil {
 		return "", fmt.Errorf("auth/postgres: barbershop name: %w", err)

@@ -11,7 +11,7 @@ export const scopes = [
   'isolation-a', 'isolation-b',
 ]
 const root = resolve(dirname(fileURLToPath(import.meta.url)), '../..')
-export function databaseEnvironment(dsn, environment, role = 'barberia_migrator') {
+export function databaseEnvironment(dsn, environment, role = 'agenda_migrator') {
   if (!['local', 'test'].includes(environment)) throw new Error('QA exige ambiente local/test')
   let url
   try { url = new URL(dsn) } catch { throw new Error('Conexión QA inválida') }
@@ -69,41 +69,41 @@ const q = value => "'" + String(value).replaceAll("'", "''") + "'"
 export function fixtureSQL(manifest, hashes) {
   validateManifest(manifest)
   if (hashes.length !== scopes.length + 1 || hashes.some(h => !h.startsWith('$argon2id$'))) throw new Error('Hashes QA inválidos')
-  const admin = ["BEGIN; SET LOCAL ROLE barberia_owner;",
+  const admin = ["BEGIN; SET LOCAL ROLE agenda_owner;",
     "DO $$ BEGIN IF current_database() !~ '_(test|qa)$' THEN RAISE EXCEPTION 'Solo base QA'; END IF; END $$;"]
   const sql = ['BEGIN;']
   for (const [i, a] of manifest.accounts.entries()) {
-    sql.push("SELECT set_config('app.barbershop_id'," + q(a.shopId) + ',true);')
+    sql.push("SELECT set_config('app.business_id'," + q(a.shopId) + ',true);')
     // Identidades aleatorias propias: las reejecuciones no restauran ni sobrescriben estados.
     const name = 'QA ' + a.scope + ' ' + manifest.campaign
-    admin.push('INSERT INTO barbershop(id,name,timezone,public_slug) VALUES(' +
+    admin.push('INSERT INTO business(id,name,timezone,public_slug) VALUES(' +
       [a.shopId, name, 'America/Bogota', a.slug].map(q).join(',') + ') ON CONFLICT(id) DO NOTHING;')
-    admin.push('INSERT INTO staff_user(id,barbershop_id,email,full_name,phone,phone_verified_at) VALUES(' +
+    admin.push('INSERT INTO staff_user(id,business_id,email,full_name,phone,phone_verified_at) VALUES(' +
       [a.userId, a.shopId, a.email, 'Operador sintético ' + a.scope, a.phone].map(q).join(',') +
       ',now()) ON CONFLICT(id) DO NOTHING;')
-    sql.push('INSERT INTO staff_credential(staff_user_id,barbershop_id,password_hash,password_algorithm) VALUES(' +
+    sql.push('INSERT INTO staff_credential(staff_user_id,business_id,password_hash,password_algorithm) VALUES(' +
       [a.userId, a.shopId, hashes[i], 'argon2id'].map(q).join(',') + ') ON CONFLICT DO NOTHING;')
     for (const [j, id] of a.barberIds.entries()) {
-      sql.push('INSERT INTO barber(id,barbershop_id,full_name) VALUES(' +
+      sql.push('INSERT INTO professional(id,business_id,full_name) VALUES(' +
         [id, a.shopId, 'QA ' + a.scope + ' profesional ' + (j + 1)].map(q).join(',') + ') ON CONFLICT(id) DO NOTHING;')
-      sql.push('INSERT INTO working_hour(barbershop_id,barber_id,iso_weekday,starts_time,duration_minutes) SELECT ' +
-        q(a.shopId) + ',' + q(id) + ",d,'08:00'::time,720 FROM generate_series(1,7) d WHERE NOT EXISTS(SELECT 1 FROM working_hour WHERE barber_id=" +
+      sql.push('INSERT INTO working_hour(business_id,professional_id,iso_weekday,starts_time,duration_minutes) SELECT ' +
+        q(a.shopId) + ',' + q(id) + ",d,'08:00'::time,720 FROM generate_series(1,7) d WHERE NOT EXISTS(SELECT 1 FROM working_hour WHERE professional_id=" +
         q(id) + ' AND iso_weekday=d);')
     }
     for (const [j, id] of a.serviceIds.entries()) {
-      sql.push('INSERT INTO service(id,barbershop_id,name,duration_minutes,price_amount) VALUES(' +
+      sql.push('INSERT INTO service(id,business_id,name,duration_minutes,price_amount) VALUES(' +
         [id, a.shopId, 'QA ' + a.scope + ' servicio ' + (j + 1)].map(q).join(',') +
         ',' + [30, 45, 60][j] + ',' + [20000, 30000, 10000][j] + ') ON CONFLICT(id) DO NOTHING;')
-      if (j < 2) for (const barberId of a.barberIds) sql.push('INSERT INTO barber_service(barbershop_id,barber_id,service_id) VALUES(' +
+      if (j < 2) for (const barberId of a.barberIds) sql.push('INSERT INTO professional_service(business_id,professional_id,service_id) VALUES(' +
         [a.shopId, barberId, id].map(q).join(',') + ') ON CONFLICT DO NOTHING;')
     }
   }
   const a = manifest.accounts.find(a => a.scope === 'access')
-  admin.push('INSERT INTO staff_user(id,barbershop_id,email,full_name,is_active) VALUES(' +
+  admin.push('INSERT INTO staff_user(id,business_id,email,full_name,is_active) VALUES(' +
     [manifest.inactive.userId, a.shopId, manifest.inactive.email, 'Operador sintético inactivo'].map(q).join(',') +
     ',false) ON CONFLICT(id) DO NOTHING;')
-  sql.push("SELECT set_config('app.barbershop_id'," + q(a.shopId) + ',true);')
-  sql.push('INSERT INTO staff_credential(staff_user_id,barbershop_id,password_hash,password_algorithm) VALUES(' +
+  sql.push("SELECT set_config('app.business_id'," + q(a.shopId) + ',true);')
+  sql.push('INSERT INTO staff_credential(staff_user_id,business_id,password_hash,password_algorithm) VALUES(' +
     [manifest.inactive.userId, a.shopId, hashes.at(-1), 'argon2id'].map(q).join(',') + ') ON CONFLICT DO NOTHING;')
   admin.push('COMMIT;')
   sql.push('COMMIT;')
@@ -111,7 +111,7 @@ export function fixtureSQL(manifest, hashes) {
 }
 function run() {
   const pgEnv = databaseEnvironment(process.env.NAVA_QA_DATABASE_URL, process.env.APP_ENVIRONMENT)
-  const appEnv = databaseEnvironment(process.env.APP_DATABASE_URL, process.env.APP_ENVIRONMENT, 'barberia_app')
+  const appEnv = databaseEnvironment(process.env.APP_DATABASE_URL, process.env.APP_ENVIRONMENT, 'agenda_app')
   if (['PGHOST', 'PGPORT', 'PGDATABASE'].some(k => appEnv[k] !== pgEnv[k])) throw new Error('App y migrador deben usar la misma base QA')
   const directory = join(root, 'apps/web/.auth/nava-qa')
   mkdirSync(directory, { recursive: true, mode: 0o700 })

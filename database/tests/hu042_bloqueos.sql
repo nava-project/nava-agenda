@@ -11,7 +11,7 @@
 --   psql "$DATABASE_TEST_URL" -v ON_ERROR_STOP=1 -f testdata/hu042_bloqueos.sql
 --   psql "$DATABASE_TEST_URL" -v ON_ERROR_STOP=1 -f tests/hu042_bloqueos.sql
 --
--- Requisito del arnés: la conexión debe poder ejecutar `SET ROLE barberia_app`
+-- Requisito del arnés: la conexión debe poder ejecutar `SET ROLE agenda_app`
 -- y `RESET ROLE` hacia un rol con privilegios administrativos (mismo
 -- criterio que hu040_horario.sql/hu041_excepciones.sql).
 --
@@ -47,48 +47,48 @@ $$;
 -- semiabierto (ends_at > starts_at), reason (<=200), deleted_by coherente
 -- ---------------------------------------------------------------------------
 BEGIN;
-SET ROLE barberia_app;
-SET LOCAL app.barbershop_id = 'b10c0001-b10c-b10c-b10c-b10c00010001';
+SET ROLE agenda_app;
+SET LOCAL app.business_id = 'b10c0001-b10c-b10c-b10c-b10c00010001';
 
 DO $$
 DECLARE
-  v_barber uuid := 'b10c1001-1001-1001-1001-100110011001';
+  v_professional uuid := 'b10c1001-1001-1001-1001-100110011001';
 BEGIN
   BEGIN
-    INSERT INTO time_block (barbershop_id, barber_id, block_type, starts_at, ends_at)
-    VALUES ('b10c0001-b10c-b10c-b10c-b10c00010001', v_barber, 'appointment', now(), now() + interval '1 hour');
+    INSERT INTO time_block (business_id, professional_id, block_type, starts_at, ends_at)
+    VALUES ('b10c0001-b10c-b10c-b10c-b10c00010001', v_professional, 'appointment', now(), now() + interval '1 hour');
     RAISE EXCEPTION 'time_block_block_type_ck: se aceptó un tipo fuera de los siete cerrados.';
   EXCEPTION
     WHEN check_violation THEN NULL;
   END;
 
   BEGIN
-    INSERT INTO time_block (barbershop_id, barber_id, block_type, source, starts_at, ends_at)
-    VALUES ('b10c0001-b10c-b10c-b10c-b10c00010001', v_barber, 'break', 'imported', now(), now() + interval '1 hour');
+    INSERT INTO time_block (business_id, professional_id, block_type, source, starts_at, ends_at)
+    VALUES ('b10c0001-b10c-b10c-b10c-b10c00010001', v_professional, 'break', 'imported', now(), now() + interval '1 hour');
     RAISE EXCEPTION 'time_block_source_ck: se aceptó un source fuera de manual/holiday_calendar.';
   EXCEPTION
     WHEN check_violation THEN NULL;
   END;
 
   BEGIN
-    INSERT INTO time_block (barbershop_id, barber_id, block_type, starts_at, ends_at)
-    VALUES ('b10c0001-b10c-b10c-b10c-b10c00010001', v_barber, 'unavailable', now(), now());
+    INSERT INTO time_block (business_id, professional_id, block_type, starts_at, ends_at)
+    VALUES ('b10c0001-b10c-b10c-b10c-b10c00010001', v_professional, 'unavailable', now(), now());
     RAISE EXCEPTION 'time_block_interval_ck: se aceptó ends_at = starts_at (semiabierto).';
   EXCEPTION
     WHEN check_violation THEN NULL;
   END;
 
   BEGIN
-    INSERT INTO time_block (barbershop_id, barber_id, block_type, starts_at, ends_at, reason)
-    VALUES ('b10c0001-b10c-b10c-b10c-b10c00010001', v_barber, 'day_off', now(), now() + interval '1 day', repeat('a', 201));
+    INSERT INTO time_block (business_id, professional_id, block_type, starts_at, ends_at, reason)
+    VALUES ('b10c0001-b10c-b10c-b10c-b10c00010001', v_professional, 'day_off', now(), now() + interval '1 day', repeat('a', 201));
     RAISE EXCEPTION 'time_block_reason_ck: se aceptó un motivo de 201 caracteres.';
   EXCEPTION
     WHEN check_violation THEN NULL;
   END;
 
   -- RN-BLQ-03/DEC-008: un bloqueo urgente cruzando medianoche siempre se crea.
-  INSERT INTO time_block (barbershop_id, barber_id, block_type, starts_at, ends_at)
-  VALUES ('b10c0001-b10c-b10c-b10c-b10c00010001', v_barber, 'emergency', now(), now() + interval '10 hours');
+  INSERT INTO time_block (business_id, professional_id, block_type, starts_at, ends_at)
+  VALUES ('b10c0001-b10c-b10c-b10c-b10c00010001', v_professional, 'emergency', now(), now() + interval '10 hours');
 END
 $$;
 
@@ -101,48 +101,48 @@ ROLLBACK;
 -- rango efectivo
 -- ---------------------------------------------------------------------------
 BEGIN;
-SET ROLE barberia_app;
-SET LOCAL app.barbershop_id = 'b10c0001-b10c-b10c-b10c-b10c00010001';
+SET ROLE agenda_app;
+SET LOCAL app.business_id = 'b10c0001-b10c-b10c-b10c-b10c00010001';
 
 DO $$
 DECLARE
-  v_barber uuid := 'b10c1001-1001-1001-1001-100110011001';
+  v_professional uuid := 'b10c1001-1001-1001-1001-100110011001';
 BEGIN
   BEGIN
-    INSERT INTO time_block_series (barbershop_id, barber_id, block_type, recurrence_kind, iso_weekday, starts_time, duration_minutes, effective_from)
-    VALUES ('b10c0001-b10c-b10c-b10c-b10c00010001', v_barber, 'lunch', 'daily', 1, '13:00', 60, '2027-01-01');
+    INSERT INTO time_block_series (business_id, professional_id, block_type, recurrence_kind, iso_weekday, starts_time, duration_minutes, effective_from)
+    VALUES ('b10c0001-b10c-b10c-b10c-b10c00010001', v_professional, 'lunch', 'daily', 1, '13:00', 60, '2027-01-01');
     RAISE EXCEPTION 'time_block_series_recurrence_kind_ck: se aceptó daily.';
   EXCEPTION
     WHEN check_violation THEN NULL;
   END;
 
   BEGIN
-    INSERT INTO time_block_series (barbershop_id, barber_id, block_type, recurrence_kind, iso_weekday, starts_time, duration_minutes, effective_from)
-    VALUES ('b10c0001-b10c-b10c-b10c-b10c00010001', v_barber, 'lunch', 'weekly', NULL, '13:00', 60, '2027-01-01');
+    INSERT INTO time_block_series (business_id, professional_id, block_type, recurrence_kind, iso_weekday, starts_time, duration_minutes, effective_from)
+    VALUES ('b10c0001-b10c-b10c-b10c-b10c00010001', v_professional, 'lunch', 'weekly', NULL, '13:00', 60, '2027-01-01');
     RAISE EXCEPTION 'time_block_series_weekday_shape_ck: se aceptó weekly sin iso_weekday.';
   EXCEPTION
     WHEN check_violation THEN NULL;
   END;
 
   BEGIN
-    INSERT INTO time_block_series (barbershop_id, barber_id, block_type, recurrence_kind, iso_weekday, starts_time, duration_minutes, effective_from)
-    VALUES ('b10c0001-b10c-b10c-b10c-b10c00010001', v_barber, 'vacation', 'date_list', 3, '00:00', 1440, '2027-01-01');
+    INSERT INTO time_block_series (business_id, professional_id, block_type, recurrence_kind, iso_weekday, starts_time, duration_minutes, effective_from)
+    VALUES ('b10c0001-b10c-b10c-b10c-b10c00010001', v_professional, 'vacation', 'date_list', 3, '00:00', 1440, '2027-01-01');
     RAISE EXCEPTION 'time_block_series_weekday_shape_ck: se aceptó date_list con iso_weekday.';
   EXCEPTION
     WHEN check_violation THEN NULL;
   END;
 
   BEGIN
-    INSERT INTO time_block_series (barbershop_id, barber_id, block_type, recurrence_kind, iso_weekday, starts_time, duration_minutes, effective_from)
-    VALUES ('b10c0001-b10c-b10c-b10c-b10c00010001', v_barber, 'lunch', 'weekly', 1, '13:00', 0, '2027-01-01');
+    INSERT INTO time_block_series (business_id, professional_id, block_type, recurrence_kind, iso_weekday, starts_time, duration_minutes, effective_from)
+    VALUES ('b10c0001-b10c-b10c-b10c-b10c00010001', v_professional, 'lunch', 'weekly', 1, '13:00', 0, '2027-01-01');
     RAISE EXCEPTION 'time_block_series_duration_minutes_ck: se aceptó duration_minutes = 0.';
   EXCEPTION
     WHEN check_violation THEN NULL;
   END;
 
   BEGIN
-    INSERT INTO time_block_series (barbershop_id, barber_id, block_type, recurrence_kind, iso_weekday, starts_time, duration_minutes, effective_from, effective_until)
-    VALUES ('b10c0001-b10c-b10c-b10c-b10c00010001', v_barber, 'lunch', 'weekly', 1, '13:00', 60, '2027-02-01', '2027-01-01');
+    INSERT INTO time_block_series (business_id, professional_id, block_type, recurrence_kind, iso_weekday, starts_time, duration_minutes, effective_from, effective_until)
+    VALUES ('b10c0001-b10c-b10c-b10c-b10c00010001', v_professional, 'lunch', 'weekly', 1, '13:00', 60, '2027-02-01', '2027-01-01');
     RAISE EXCEPTION 'time_block_series_effective_range_ck: se aceptó effective_until anterior a effective_from.';
   EXCEPTION
     WHEN check_violation THEN NULL;
@@ -158,33 +158,33 @@ ROLLBACK;
 -- Disparador time_block_series_date_check_parent: date_list y rango vigente
 -- ---------------------------------------------------------------------------
 BEGIN;
-SET ROLE barberia_app;
-SET LOCAL app.barbershop_id = 'b10c0001-b10c-b10c-b10c-b10c00010001';
+SET ROLE agenda_app;
+SET LOCAL app.business_id = 'b10c0001-b10c-b10c-b10c-b10c00010001';
 
 DO $$
 DECLARE
-  v_barber uuid := 'b10c1001-1001-1001-1001-100110011001';
+  v_professional uuid := 'b10c1001-1001-1001-1001-100110011001';
   v_weekly_id uuid;
   v_datelist_id uuid;
 BEGIN
-  INSERT INTO time_block_series (barbershop_id, barber_id, block_type, recurrence_kind, iso_weekday, starts_time, duration_minutes, effective_from)
-  VALUES ('b10c0001-b10c-b10c-b10c-b10c00010001', v_barber, 'lunch', 'weekly', 2, '13:00', 60, '2027-01-01')
+  INSERT INTO time_block_series (business_id, professional_id, block_type, recurrence_kind, iso_weekday, starts_time, duration_minutes, effective_from)
+  VALUES ('b10c0001-b10c-b10c-b10c-b10c00010001', v_professional, 'lunch', 'weekly', 2, '13:00', 60, '2027-01-01')
   RETURNING id INTO v_weekly_id;
 
   BEGIN
-    INSERT INTO time_block_series_date (barbershop_id, series_id, block_date)
+    INSERT INTO time_block_series_date (business_id, series_id, block_date)
     VALUES ('b10c0001-b10c-b10c-b10c-b10c00010001', v_weekly_id, '2027-01-05');
     RAISE EXCEPTION 'time_block_series_date_check_parent_trg: se aceptó una fecha sobre una serie weekly.';
   EXCEPTION
     WHEN raise_exception THEN NULL;
   END;
 
-  INSERT INTO time_block_series (barbershop_id, barber_id, block_type, recurrence_kind, starts_time, duration_minutes, effective_from, effective_until)
-  VALUES ('b10c0001-b10c-b10c-b10c-b10c00010001', v_barber, 'vacation', 'date_list', '00:00', 1440, '2027-03-01', '2027-03-31')
+  INSERT INTO time_block_series (business_id, professional_id, block_type, recurrence_kind, starts_time, duration_minutes, effective_from, effective_until)
+  VALUES ('b10c0001-b10c-b10c-b10c-b10c00010001', v_professional, 'vacation', 'date_list', '00:00', 1440, '2027-03-01', '2027-03-31')
   RETURNING id INTO v_datelist_id;
 
   BEGIN
-    INSERT INTO time_block_series_date (barbershop_id, series_id, block_date)
+    INSERT INTO time_block_series_date (business_id, series_id, block_date)
     VALUES ('b10c0001-b10c-b10c-b10c-b10c00010001', v_datelist_id, '2027-04-01');
     RAISE EXCEPTION 'time_block_series_date_check_parent_trg: se aceptó una fecha fuera del rango vigente.';
   EXCEPTION
@@ -192,12 +192,12 @@ BEGIN
   END;
 
   -- Dentro de rango: se acepta.
-  INSERT INTO time_block_series_date (barbershop_id, series_id, block_date)
+  INSERT INTO time_block_series_date (business_id, series_id, block_date)
   VALUES ('b10c0001-b10c-b10c-b10c-b10c00010001', v_datelist_id, '2027-03-15');
 
   -- PK compuesta: la misma fecha dos veces se rechaza.
   BEGIN
-    INSERT INTO time_block_series_date (barbershop_id, series_id, block_date)
+    INSERT INTO time_block_series_date (business_id, series_id, block_date)
     VALUES ('b10c0001-b10c-b10c-b10c-b10c00010001', v_datelist_id, '2027-03-15');
     RAISE EXCEPTION 'time_block_series_date_pk: se aceptó la misma fecha dos veces en la misma serie.';
   EXCEPTION
@@ -205,10 +205,10 @@ BEGIN
   END;
 
   -- Misma fecha dos veces como EXCEPCIÓN de la misma serie: también se rechaza.
-  INSERT INTO time_block_series_exception (barbershop_id, series_id, excluded_date)
+  INSERT INTO time_block_series_exception (business_id, series_id, excluded_date)
   VALUES ('b10c0001-b10c-b10c-b10c-b10c00010001', v_datelist_id, '2027-03-15');
   BEGIN
-    INSERT INTO time_block_series_exception (barbershop_id, series_id, excluded_date)
+    INSERT INTO time_block_series_exception (business_id, series_id, excluded_date)
     VALUES ('b10c0001-b10c-b10c-b10c-b10c00010001', v_datelist_id, '2027-03-15');
     RAISE EXCEPTION 'time_block_series_exception_pk: se aceptó la misma fecha excepcionada dos veces.';
   EXCEPTION
@@ -239,15 +239,15 @@ BEGIN
     END IF;
   END LOOP;
 
-  IF EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'barberia_app' AND rolbypassrls) THEN
-    RAISE EXCEPTION 'barberia_app no puede tener BYPASSRLS.';
+  IF EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'agenda_app' AND rolbypassrls) THEN
+    RAISE EXCEPTION 'agenda_app no puede tener BYPASSRLS.';
   END IF;
 END
 $$;
-\echo 'RLS OK · las cuatro tablas tienen RLS habilitada y forzada, barberia_app sin BYPASSRLS'
+\echo 'RLS OK · las cuatro tablas tienen RLS habilitada y forzada, agenda_app sin BYPASSRLS'
 
 -- ---------------------------------------------------------------------------
--- Grants exactos de barberia_app: sin DELETE en time_block/time_block_series
+-- Grants exactos de agenda_app: sin DELETE en time_block/time_block_series
 -- (RN-BLQ-04: eliminación lógica); SELECT/INSERT/DELETE (sin UPDATE) en
 -- dates/exceptions, filas hijas sin ciclo de vida propio
 -- ---------------------------------------------------------------------------
@@ -261,17 +261,17 @@ BEGIN
   WHERE NOT EXISTS (
     SELECT 1 FROM information_schema.table_privileges
     WHERE table_schema = 'public' AND table_name = 'time_block'
-      AND grantee = 'barberia_app' AND privilege_type = expected
+      AND grantee = 'agenda_app' AND privilege_type = expected
   );
   IF v_missing IS NOT NULL THEN
-    RAISE EXCEPTION 'barberia_app debe tener % sobre time_block.', v_missing;
+    RAISE EXCEPTION 'agenda_app debe tener % sobre time_block.', v_missing;
   END IF;
   IF EXISTS (
     SELECT 1 FROM information_schema.table_privileges
     WHERE table_schema = 'public' AND table_name = 'time_block'
-      AND grantee = 'barberia_app' AND privilege_type = 'DELETE'
+      AND grantee = 'agenda_app' AND privilege_type = 'DELETE'
   ) THEN
-    RAISE EXCEPTION 'RN-BLQ-04: barberia_app NO debe tener DELETE sobre time_block.';
+    RAISE EXCEPTION 'RN-BLQ-04: agenda_app NO debe tener DELETE sobre time_block.';
   END IF;
 
   SELECT string_agg(expected, ', ') INTO v_missing
@@ -279,17 +279,17 @@ BEGIN
   WHERE NOT EXISTS (
     SELECT 1 FROM information_schema.table_privileges
     WHERE table_schema = 'public' AND table_name = 'time_block_series'
-      AND grantee = 'barberia_app' AND privilege_type = expected
+      AND grantee = 'agenda_app' AND privilege_type = expected
   );
   IF v_missing IS NOT NULL THEN
-    RAISE EXCEPTION 'barberia_app debe tener % sobre time_block_series.', v_missing;
+    RAISE EXCEPTION 'agenda_app debe tener % sobre time_block_series.', v_missing;
   END IF;
   IF EXISTS (
     SELECT 1 FROM information_schema.table_privileges
     WHERE table_schema = 'public' AND table_name = 'time_block_series'
-      AND grantee = 'barberia_app' AND privilege_type = 'DELETE'
+      AND grantee = 'agenda_app' AND privilege_type = 'DELETE'
   ) THEN
-    RAISE EXCEPTION 'RN-BLQ-04: barberia_app NO debe tener DELETE sobre time_block_series.';
+    RAISE EXCEPTION 'RN-BLQ-04: agenda_app NO debe tener DELETE sobre time_block_series.';
   END IF;
 
   FOREACH v_extra IN ARRAY ARRAY['time_block_series_date', 'time_block_series_exception']
@@ -299,10 +299,10 @@ BEGIN
     WHERE NOT EXISTS (
       SELECT 1 FROM information_schema.table_privileges
       WHERE table_schema = 'public' AND table_name = v_extra
-        AND grantee = 'barberia_app' AND privilege_type = expected
+        AND grantee = 'agenda_app' AND privilege_type = expected
     );
     IF v_missing IS NOT NULL THEN
-      RAISE EXCEPTION 'barberia_app debe tener % sobre %.', v_missing, v_extra;
+      RAISE EXCEPTION 'agenda_app debe tener % sobre %.', v_missing, v_extra;
     END IF;
   END LOOP;
 END
@@ -313,15 +313,15 @@ $$;
 -- Aislamiento de tenant: el contexto de O no ve, no edita ni retira nada de P
 -- ---------------------------------------------------------------------------
 BEGIN;
-SET ROLE barberia_app;
-SET LOCAL app.barbershop_id = 'b10c0002-b10c-b10c-b10c-b10c00020002';
+SET ROLE agenda_app;
+SET LOCAL app.business_id = 'b10c0002-b10c-b10c-b10c-b10c00020002';
 
-INSERT INTO time_block (id, barbershop_id, barber_id, block_type, starts_at, ends_at)
+INSERT INTO time_block (id, business_id, professional_id, block_type, starts_at, ends_at)
 VALUES (
   'dead0001-0001-0001-0001-000100010001', 'b10c0002-b10c-b10c-b10c-b10c00020002',
   'b10c2001-2001-2001-2001-200120012001', 'unavailable', '2027-05-01T10:00:00Z', '2027-05-01T11:00:00Z'
 );
-INSERT INTO time_block_series (id, barbershop_id, barber_id, block_type, recurrence_kind, iso_weekday, starts_time, duration_minutes, effective_from)
+INSERT INTO time_block_series (id, business_id, professional_id, block_type, recurrence_kind, iso_weekday, starts_time, duration_minutes, effective_from)
 VALUES (
   'beef0001-0001-0001-0001-000100010001', 'b10c0002-b10c-b10c-b10c-b10c00020002',
   'b10c2001-2001-2001-2001-200120012001', 'lunch', 'weekly', 4, '13:00', 60, '2027-01-01'
@@ -331,8 +331,8 @@ RESET ROLE;
 COMMIT;
 
 BEGIN;
-SET ROLE barberia_app;
-SET LOCAL app.barbershop_id = 'b10c0001-b10c-b10c-b10c-b10c00010001';
+SET ROLE agenda_app;
+SET LOCAL app.business_id = 'b10c0001-b10c-b10c-b10c-b10c00010001';
 
 DO $$
 DECLARE
@@ -363,7 +363,7 @@ RESET ROLE;
 ROLLBACK;
 
 -- Limpieza de las filas de P confirmadas arriba. Sin SET ROLE
--- barberia_app: RN-BLQ-04 no le concede DELETE sobre time_block ni
+-- agenda_app: RN-BLQ-04 no le concede DELETE sobre time_block ni
 -- time_block_series a propósito; limpiar como el rol administrativo
 -- conectado (superusuario/migrador en este arnés) es correcto aquí.
 BEGIN;
@@ -373,25 +373,25 @@ COMMIT;
 \echo 'RN-TEN-01 OK · el contexto de O no ve ni edita el bloqueo ni la serie de P'
 
 -- ---------------------------------------------------------------------------
--- DEC-070/CT-008 · Las FK hacia barber/staff_user/time_block_series usan
+-- DEC-070/CT-008 · Las FK hacia professional/staff_user/time_block_series usan
 -- ON DELETE RESTRICT, no CASCADE
 -- ---------------------------------------------------------------------------
 BEGIN;
-SET ROLE barberia_app;
-SET LOCAL app.barbershop_id = 'b10c0001-b10c-b10c-b10c-b10c00010001';
+SET ROLE agenda_app;
+SET LOCAL app.business_id = 'b10c0001-b10c-b10c-b10c-b10c00010001';
 
-INSERT INTO time_block (id, barbershop_id, barber_id, block_type, starts_at, ends_at, deleted_at, deleted_by)
+INSERT INTO time_block (id, business_id, professional_id, block_type, starts_at, ends_at, deleted_at, deleted_by)
 VALUES (
   'dead0002-0002-0002-0002-000200020002', 'b10c0001-b10c-b10c-b10c-b10c00010001',
   'b10c1002-1002-1002-1002-100210021002', 'day_off', '2027-05-05T00:00:00Z', '2027-05-06T00:00:00Z',
   now(), 'b10c9001-9001-9001-9001-900190019001'
 );
-INSERT INTO time_block_series (id, barbershop_id, barber_id, block_type, recurrence_kind, starts_time, duration_minutes, effective_from)
+INSERT INTO time_block_series (id, business_id, professional_id, block_type, recurrence_kind, starts_time, duration_minutes, effective_from)
 VALUES (
   'beef0002-0002-0002-0002-000200020002', 'b10c0001-b10c-b10c-b10c-b10c00010001',
   'b10c1002-1002-1002-1002-100210021002', 'vacation', 'date_list', '00:00', 1440, '2027-09-01'
 );
-INSERT INTO time_block_series_date (barbershop_id, series_id, block_date)
+INSERT INTO time_block_series_date (business_id, series_id, block_date)
 VALUES ('b10c0001-b10c-b10c-b10c-b10c00010001', 'beef0002-0002-0002-0002-000200020002', '2027-09-10');
 
 RESET ROLE;
@@ -401,14 +401,14 @@ DO $$
 BEGIN
   -- El barbero no se puede borrar mientras tenga un bloqueo asociado.
   BEGIN
-    DELETE FROM barber WHERE id = 'b10c1002-1002-1002-1002-100210021002';
-    RAISE EXCEPTION 'DEC-070/CT-008: se permitió borrar un barber con un time_block asociado (CASCADE en vez de RESTRICT).';
+    DELETE FROM professional WHERE id = 'b10c1002-1002-1002-1002-100210021002';
+    RAISE EXCEPTION 'DEC-070/CT-008: se permitió borrar un professional con un time_block asociado (CASCADE en vez de RESTRICT).';
   EXCEPTION
     WHEN foreign_key_violation THEN NULL;
   END;
 
   -- El staff_user que retiró un bloqueo no se puede borrar físicamente
-  -- (time_block_barbershop_id_deleted_by_fk).
+  -- (time_block_business_id_deleted_by_fk).
   BEGIN
     DELETE FROM staff_user WHERE id = 'b10c9001-9001-9001-9001-900190019001';
     RAISE EXCEPTION 'DEC-070/CT-008: se permitió borrar un staff_user referenciado por time_block.deleted_by.';
@@ -427,7 +427,7 @@ END
 $$;
 
 -- Limpieza (fecha antes que serie: RESTRICT, no se puede borrar la serie
--- primero). Sin SET ROLE barberia_app para time_block_series/time_block por
+-- primero). Sin SET ROLE agenda_app para time_block_series/time_block por
 -- el mismo motivo que la limpieza cruzada de arriba (RN-BLQ-04, sin DELETE).
 BEGIN;
 DELETE FROM time_block_series_date WHERE series_id = 'beef0002-0002-0002-0002-000200020002';
@@ -440,10 +440,10 @@ COMMIT;
 -- Trigger de updated_at sobre time_block y time_block_series
 -- ---------------------------------------------------------------------------
 BEGIN;
-SET ROLE barberia_app;
-SET LOCAL app.barbershop_id = 'b10c0001-b10c-b10c-b10c-b10c00010001';
+SET ROLE agenda_app;
+SET LOCAL app.business_id = 'b10c0001-b10c-b10c-b10c-b10c00010001';
 
-INSERT INTO time_block (id, barbershop_id, barber_id, block_type, starts_at, ends_at)
+INSERT INTO time_block (id, business_id, professional_id, block_type, starts_at, ends_at)
 VALUES (
   'dead0003-0003-0003-0003-000300030003', 'b10c0001-b10c-b10c-b10c-b10c00010001',
   'b10c1001-1001-1001-1001-100110011001', 'break', '2027-06-01T09:00:00Z', '2027-06-01T09:15:00Z'
@@ -453,8 +453,8 @@ RESET ROLE;
 COMMIT;
 
 BEGIN;
-SET ROLE barberia_app;
-SET LOCAL app.barbershop_id = 'b10c0001-b10c-b10c-b10c-b10c00010001';
+SET ROLE agenda_app;
+SET LOCAL app.business_id = 'b10c0001-b10c-b10c-b10c-b10c00010001';
 
 DO $$
 DECLARE
@@ -479,7 +479,7 @@ RESET ROLE;
 COMMIT;
 
 -- Limpieza de la fila confirmada para el trigger. Sin SET ROLE
--- barberia_app: mismo motivo que las dos limpiezas anteriores.
+-- agenda_app: mismo motivo que las dos limpiezas anteriores.
 BEGIN;
 DELETE FROM time_block WHERE id = 'dead0003-0003-0003-0003-000300030003';
 COMMIT;

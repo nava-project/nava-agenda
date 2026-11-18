@@ -29,7 +29,7 @@ import (
 )
 
 const (
-	testDatabaseURL = "postgres://barberia_app@localhost:5432/barberia_test?sslmode=disable"
+	testDatabaseURL = "postgres://agenda_app@localhost:5432/barberia_test?sslmode=disable"
 
 	// shopQ/shopR son las dos barberías dedicadas de
 	// testdata/hu060_citas.sql: aisladas de dos_barberias.sql y de las
@@ -204,7 +204,7 @@ func TestCreateInternal_NewCustomer_PersistsAppointmentAndHistory(t *testing.T) 
 		var count int
 		scanErr := q.QueryRow(ctx,
 			`SELECT count(*) FROM appointment_history
-			  WHERE barbershop_id = $1 AND appointment_id = $2
+			  WHERE business_id = $1 AND appointment_id = $2
 			    AND event_type = 'appointment_created' AND actor_type = 'staff' AND actor_staff_user_id = $3`,
 			string(shopQ), result.Appointment.ID, staffQ,
 		).Scan(&count)
@@ -300,7 +300,7 @@ func TestCreateInternal_ScheduleConflict_RollsBackNewCustomer(t *testing.T) {
 	err = db.InTenantTx(context.Background(), shopQ, func(ctx context.Context, q database.Queries) error {
 		var count int
 		scanErr := q.QueryRow(ctx,
-			`SELECT count(*) FROM customer WHERE barbershop_id = $1 AND full_name = $2`,
+			`SELECT count(*) FROM customer WHERE business_id = $1 AND full_name = $2`,
 			string(shopQ), "Cliente de prueba "+suffix+"-overlap",
 		).Scan(&count)
 		if scanErr != nil {
@@ -341,13 +341,13 @@ func TestCreateInternal_HistoryInsertFails_RollsBackAppointmentAndCustomer(t *te
 	verifyErr := db.InTenantTx(context.Background(), shopQ, func(ctx context.Context, q database.Queries) error {
 		var customerCount, appointmentCount int
 		if scanErr := q.QueryRow(ctx,
-			`SELECT count(*) FROM customer WHERE barbershop_id = $1 AND full_name = $2`,
+			`SELECT count(*) FROM customer WHERE business_id = $1 AND full_name = $2`,
 			string(shopQ), "Cliente de prueba "+suffix,
 		).Scan(&customerCount); scanErr != nil {
 			return scanErr
 		}
 		if scanErr := q.QueryRow(ctx,
-			`SELECT count(*) FROM appointment WHERE barbershop_id = $1 AND attendee_name = $2`,
+			`SELECT count(*) FROM appointment WHERE business_id = $1 AND attendee_name = $2`,
 			string(shopQ), "Cliente de prueba "+suffix,
 		).Scan(&appointmentCount); scanErr != nil {
 			return scanErr
@@ -402,7 +402,7 @@ func TestCreateInternal_ContextCancelled_NoPartialWrite(t *testing.T) {
 	err = db.InTenantTx(context.Background(), shopQ, func(ctx context.Context, q database.Queries) error {
 		var count int
 		scanErr := q.QueryRow(ctx,
-			`SELECT count(*) FROM customer WHERE barbershop_id = $1 AND full_name = $2`,
+			`SELECT count(*) FROM customer WHERE business_id = $1 AND full_name = $2`,
 			string(shopQ), "Cliente de prueba "+suffix,
 		).Scan(&count)
 		if scanErr != nil {
@@ -487,7 +487,7 @@ func TestCreateInternal_ConcurrentOverlap_ExactlyOneSucceeds(t *testing.T) {
 		var count int
 		scanErr := q.QueryRow(ctx,
 			`SELECT count(*) FROM appointment
-			  WHERE barbershop_id = $1 AND barber_id = $2
+			  WHERE business_id = $1 AND professional_id = $2
 			    AND tstzrange(starts_at, ends_at, '[)') && tstzrange($3, $4, '[)')
 			    AND occupies_schedule`,
 			string(shopQ), barberQ1, start.Add(-time.Hour), start.Add(time.Hour),

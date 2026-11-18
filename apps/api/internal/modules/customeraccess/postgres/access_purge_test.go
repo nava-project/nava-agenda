@@ -16,7 +16,7 @@ func setupWorkerDB(t *testing.T) *database.DB {
 	t.Helper()
 	url := os.Getenv("TEST_WORKER_DATABASE_URL")
 	if url == "" {
-		url = "postgres://barberia_worker@localhost:5432/barberia_test?sslmode=disable"
+		url = "postgres://agenda_worker@localhost:5432/barberia_test?sslmode=disable"
 	}
 	db, err := database.NewDB(config.DatabaseDSN(url), config.Config{
 		Environment: "test", DatabaseMaxConns: 5, DatabaseMinConns: 1,
@@ -50,7 +50,7 @@ func TestPurgeExpiredChallenges_KeepsRecentRowsAndRemovesOldOnes(t *testing.T) {
 			{recent, now.Add(-40 * time.Minute), now.Add(-30 * time.Minute)},
 		} {
 			if _, err := q.Exec(ctx,
-				`INSERT INTO customer_access_challenge (barbershop_id, channel, contact_hash, ip_hash, created_at, expires_at)
+				`INSERT INTO customer_access_challenge (business_id, channel, contact_hash, ip_hash, created_at, expires_at)
 				 VALUES ($1, 'email', $2, $2, $3, $4)`,
 				accessShopUno, row.contact, row.created, row.expires); err != nil {
 				return err
@@ -92,13 +92,13 @@ func TestPurge_AppRoleCannotDeleteNorCallThePurgeFunction(t *testing.T) {
 		return err
 	})
 	if err == nil {
-		t.Fatal("barberia_app must not be able to DELETE retos")
+		t.Fatal("agenda_app must not be able to DELETE retos")
 	}
 	err = appDB.InTenantTx(ctx, database.BarbershopID(accessShopUno), func(ctx context.Context, q database.Queries) error {
 		_, err := q.Exec(ctx, `SELECT customer_access_challenge_purge_expired(10)`)
 		return err
 	})
 	if err == nil {
-		t.Fatal("barberia_app must not be able to run the purge function")
+		t.Fatal("agenda_app must not be able to run the purge function")
 	}
 }

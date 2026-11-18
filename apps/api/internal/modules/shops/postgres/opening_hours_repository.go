@@ -53,7 +53,7 @@ func (r *OpeningHoursRepository) Replace(ctx context.Context, barbershopID strin
 	)
 	err := r.db.InTenantTx(ctx, database.BarbershopID(barbershopID), func(ctx context.Context, q database.Queries) error {
 		tag, err := q.Exec(ctx,
-			`UPDATE barbershop SET closed_on_holidays = $2 WHERE id = $1`, barbershopID, hours.ClosedOnHolidays)
+			`UPDATE business SET closed_on_holidays = $2 WHERE id = $1`, barbershopID, hours.ClosedOnHolidays)
 		if err != nil {
 			return fmt.Errorf("closed_on_holidays: %w", err)
 		}
@@ -61,14 +61,14 @@ func (r *OpeningHoursRepository) Replace(ctx context.Context, barbershopID strin
 			return nil // found queda false: barbería no visible en este tenant
 		}
 		if _, err := q.Exec(ctx,
-			`DELETE FROM barbershop_opening_hour WHERE barbershop_id = $1`, barbershopID); err != nil {
+			`DELETE FROM business_opening_hour WHERE business_id = $1`, barbershopID); err != nil {
 			return fmt.Errorf("borrar horario anterior: %w", err)
 		}
 		for _, seg := range hours.Segments {
 			// La hora viaja como texto `HH:MM` porque `24:00` es un `time` válido
 			// en PostgreSQL pero un intervalo de 1440 minutos daría 00:00.
 			if _, err := q.Exec(ctx,
-				`INSERT INTO barbershop_opening_hour (barbershop_id, iso_weekday, opens_time, closes_time)
+				`INSERT INTO business_opening_hour (business_id, iso_weekday, opens_time, closes_time)
 				 VALUES ($1, $2, $3::time, $4::time)`,
 				barbershopID, int(seg.Weekday), seg.Opens.String(), seg.Closes.String()); err != nil {
 				return fmt.Errorf("insertar tramo %s %s–%s: %w", seg.Weekday, seg.Opens, seg.Closes, err)
@@ -86,7 +86,7 @@ func (r *OpeningHoursRepository) Replace(ctx context.Context, barbershopID strin
 func readOpeningHours(ctx context.Context, q database.Queries, barbershopID string) (shops.OpeningHours, bool, error) {
 	var hours shops.OpeningHours
 	err := q.QueryRow(ctx,
-		`SELECT closed_on_holidays FROM barbershop WHERE id = $1`, barbershopID,
+		`SELECT closed_on_holidays FROM business WHERE id = $1`, barbershopID,
 	).Scan(&hours.ClosedOnHolidays)
 	switch {
 	case errors.Is(err, pgx.ErrNoRows):
@@ -100,8 +100,8 @@ func readOpeningHours(ctx context.Context, q database.Queries, barbershopID stri
 		`SELECT iso_weekday,
 		        (EXTRACT(EPOCH FROM opens_time)  / 60)::int,
 		        (EXTRACT(EPOCH FROM closes_time) / 60)::int
-		   FROM barbershop_opening_hour
-		  WHERE barbershop_id = $1
+		   FROM business_opening_hour
+		  WHERE business_id = $1
 		  ORDER BY iso_weekday, opens_time`, barbershopID)
 	if err != nil {
 		return shops.OpeningHours{}, false, fmt.Errorf("tramos: %w", err)

@@ -62,7 +62,7 @@ func newCustomerCancelFixture(t *testing.T) customerCancelFixture {
 	}
 	err = db.InTenantTx(context.Background(), shopQ, func(ctx context.Context, q database.Queries) error {
 		_, err := q.Exec(ctx,
-			`INSERT INTO appointment_access_token (barbershop_id, appointment_id, token_hash, issued_at, expires_at)
+			`INSERT INTO appointment_access_token (business_id, appointment_id, token_hash, issued_at, expires_at)
 			 VALUES ($1, $2, $3, now() - interval '1 minute', now() + interval '90 days')`,
 			shopQ, created.Appointment.ID, f.tokenHash)
 		return err
@@ -78,7 +78,7 @@ func (f customerCancelFixture) setPolicy(t *testing.T, shop database.BarbershopI
 	t.Helper()
 	err := f.db.InTenantTx(context.Background(), shop, func(ctx context.Context, q database.Queries) error {
 		_, err := q.Exec(ctx,
-			`UPDATE barbershop
+			`UPDATE business
 			    SET cancellation_deadline_minutes = $2, late_cancellation_client_allowed = $3, late_cancellation_reason_required = $4
 			  WHERE id = $1`, shop, minutes, allowed, reasonRequired)
 		return err
@@ -113,7 +113,7 @@ func (f customerCancelFixture) state(t *testing.T) customerCancelState {
 	var s customerCancelState
 	err := f.db.InTenantTx(context.Background(), shopQ, func(ctx context.Context, q database.Queries) error {
 		var reason, eventReason *string
-		if err := q.QueryRow(ctx, `SELECT status, cancellation_reason FROM appointment WHERE barbershop_id = $1 AND id = $2`,
+		if err := q.QueryRow(ctx, `SELECT status, cancellation_reason FROM appointment WHERE business_id = $1 AND id = $2`,
 			shopQ, f.appointment).Scan(&s.status, &reason); err != nil {
 			return err
 		}
@@ -123,13 +123,13 @@ func (f customerCancelFixture) state(t *testing.T) customerCancelState {
 		if err := q.QueryRow(ctx, `SELECT revoked_at IS NOT NULL FROM appointment_access_token WHERE token_hash = $1`, f.tokenHash).Scan(&s.tokenRevoked); err != nil {
 			return err
 		}
-		if err := q.QueryRow(ctx, `SELECT count(*) FROM appointment_history WHERE barbershop_id = $1 AND appointment_id = $2 AND event_type = 'appointment_cancelled_by_customer'`,
+		if err := q.QueryRow(ctx, `SELECT count(*) FROM appointment_history WHERE business_id = $1 AND appointment_id = $2 AND event_type = 'appointment_cancelled_by_customer'`,
 			shopQ, f.appointment).Scan(&s.events); err != nil {
 			return err
 		}
 		if s.events > 0 {
 			if err := q.QueryRow(ctx, `SELECT reason, actor_type, actor_customer_id IS NOT NULL FROM appointment_history
-			   WHERE barbershop_id = $1 AND appointment_id = $2 AND event_type = 'appointment_cancelled_by_customer' LIMIT 1`,
+			   WHERE business_id = $1 AND appointment_id = $2 AND event_type = 'appointment_cancelled_by_customer' LIMIT 1`,
 				shopQ, f.appointment).Scan(&eventReason, &s.actorType, &s.actorCustomer); err != nil {
 				return err
 			}

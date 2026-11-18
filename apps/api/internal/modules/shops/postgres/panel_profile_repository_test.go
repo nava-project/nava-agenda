@@ -95,9 +95,9 @@ func TestPanelProfile_TheApplicationRoleCannotWriteRoles(t *testing.T) {
 	db := setupTestDB(t)
 
 	for name, sql := range map[string]string{
-		"insert": `INSERT INTO staff_user_role (barbershop_id, staff_user_id, role) VALUES ($1, $2, 'empresa')`,
-		"update": `UPDATE staff_user_role SET role = 'empresa' WHERE barbershop_id = $1 AND staff_user_id = $2`,
-		"delete": `DELETE FROM staff_user_role WHERE barbershop_id = $1 AND staff_user_id = $2`,
+		"insert": `INSERT INTO staff_user_role (business_id, staff_user_id, role) VALUES ($1, $2, 'empresa')`,
+		"update": `UPDATE staff_user_role SET role = 'empresa' WHERE business_id = $1 AND staff_user_id = $2`,
+		"delete": `DELETE FROM staff_user_role WHERE business_id = $1 AND staff_user_id = $2`,
 	} {
 		t.Run(name, func(t *testing.T) {
 			err := db.InTenantTx(context.Background(), database.BarbershopID(shopA), func(ctx context.Context, q database.Queries) error {

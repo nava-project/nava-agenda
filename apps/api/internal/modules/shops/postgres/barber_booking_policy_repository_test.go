@@ -26,7 +26,7 @@ func seedBarberForPolicy(t *testing.T, db *database.DB, shopID, barberID string)
 	t.Helper()
 	err := db.InTenantTx(context.Background(), database.BarbershopID(shopID), func(ctx context.Context, q database.Queries) error {
 		_, err := q.Exec(ctx,
-			`INSERT INTO barber (id, barbershop_id, full_name) VALUES ($1, $2, 'Barbero DEC-169')
+			`INSERT INTO professional (id, business_id, full_name) VALUES ($1, $2, 'Barbero DEC-169')
 			 ON CONFLICT (id) DO NOTHING`, barberID, shopID)
 		return err
 	})

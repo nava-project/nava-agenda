@@ -21,7 +21,7 @@ import (
 // integración, así que nada de esto se prueba con dobles.
 
 const (
-	testDatabaseURL = "postgres://barberia_app@localhost:5432/barberia_test?sslmode=disable"
+	testDatabaseURL = "postgres://agenda_app@localhost:5432/barberia_test?sslmode=disable"
 
 	shopC = database.BarbershopID("33333333-3333-3333-3333-333333333333")
 	shopD = database.BarbershopID("44444444-4444-4444-4444-444444444444")
@@ -74,12 +74,12 @@ func newFixtures(t *testing.T, db *database.DB, shop database.BarbershopID, staf
 	var f fixtures
 	err := db.InTenantTx(context.Background(), shop, func(ctx context.Context, q database.Queries) error {
 		if err := q.QueryRow(ctx,
-			`INSERT INTO barber (barbershop_id, full_name) VALUES ($1, $2) RETURNING id::text`,
+			`INSERT INTO professional (business_id, full_name) VALUES ($1, $2) RETURNING id::text`,
 			string(shop), "Gcal "+randomHex(t, 6)).Scan(&f.barberID); err != nil {
 			return err
 		}
 		return q.QueryRow(ctx,
-			`INSERT INTO staff_session (barbershop_id, staff_user_id, token_hash, expires_at)
+			`INSERT INTO staff_session (business_id, staff_user_id, token_hash, expires_at)
 			 VALUES ($1, $2, $3, now() + interval '1 hour') RETURNING id::text`,
 			string(shop), staffUserID, randomHex(t, 32)).Scan(&f.sessionID)
 	})
@@ -93,11 +93,11 @@ func linkBarber(t *testing.T, db *database.DB, shop database.BarbershopID, barbe
 	t.Helper()
 	err := db.InTenantTx(context.Background(), shop, func(ctx context.Context, q database.Queries) error {
 		// El usuario es como máximo un barbero: se libera cualquier vínculo previo.
-		if _, err := q.Exec(ctx, `UPDATE barber SET staff_user_id = NULL WHERE barbershop_id = $1 AND staff_user_id = $2`,
+		if _, err := q.Exec(ctx, `UPDATE professional SET staff_user_id = NULL WHERE business_id = $1 AND staff_user_id = $2`,
 			string(shop), staffUserID); err != nil {
 			return err
 		}
-		_, err := q.Exec(ctx, `UPDATE barber SET staff_user_id = $3 WHERE barbershop_id = $1 AND id = $2`,
+		_, err := q.Exec(ctx, `UPDATE professional SET staff_user_id = $3 WHERE business_id = $1 AND id = $2`,
 			string(shop), barberID, staffUserID)
 		return err
 	})
@@ -322,7 +322,7 @@ func TestOAuthState_IsSingleUseExpiringAndTenantScoped(t *testing.T) {
 	}
 	var left int
 	_ = db.InTenantTx(ctx, shopC, func(ctx context.Context, q database.Queries) error {
-		return q.QueryRow(ctx, `SELECT count(*) FROM google_calendar_oauth_state WHERE barber_id = $1`, f.barberID).Scan(&left)
+		return q.QueryRow(ctx, `SELECT count(*) FROM google_calendar_oauth_state WHERE professional_id = $1`, f.barberID).Scan(&left)
 	})
 	if left != 1 {
 		t.Fatalf("solo debe quedar el state vigente, hay %d", left)
@@ -372,7 +372,7 @@ func TestBarberOfUser_ReadsTheLinkAndIsTenantScoped(t *testing.T) {
 	linkBarber(t, db, shopC, f.barberID, userC1)
 	t.Cleanup(func() {
 		_ = db.InTenantTx(ctx, shopC, func(ctx context.Context, q database.Queries) error {
-			_, err := q.Exec(ctx, `UPDATE barber SET staff_user_id = NULL WHERE barbershop_id = $1 AND staff_user_id = $2`, string(shopC), userC1)
+			_, err := q.Exec(ctx, `UPDATE professional SET staff_user_id = NULL WHERE business_id = $1 AND staff_user_id = $2`, string(shopC), userC1)
 			return err
 		})
 	})

@@ -103,7 +103,7 @@ func TestSlugWithCode_ResultMatchesDatabaseFormat(t *testing.T) {
 	for _, name := range []string{"Barbería Ejemplo", "A B", "!!!", strings.Repeat("x", 200), "Café & Corte 123"} {
 		got := shops.SlugWithCode(shops.SlugBase(shops.NormalizeName(name)), "k7x2m9q4")
 		if !slugFormat.MatchString(got) {
-			t.Fatalf("SlugWithCode(SlugBase(%q)) = %q: no cumple barbershop_public_slug_ck", name, got)
+			t.Fatalf("SlugWithCode(SlugBase(%q)) = %q: no cumple business_public_slug_ck", name, got)
 		}
 	}
 }

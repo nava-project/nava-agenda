@@ -1,4 +1,4 @@
--- Pruebas SQL de DEC-139 / DEC-081: barbershop.login_otp_channel y los destinos
+-- Pruebas SQL de DEC-139 / DEC-081: business.login_otp_channel y los destinos
 -- que devuelve auth_phone_challenge_request. Cubren el valor por defecto, la
 -- restricción CHECK, qué destinos salen con cada canal (correo, WhatsApp, ambos),
 -- que nunca se sustituye un canal por otro, que una cuenta sin destino utilizable
@@ -6,12 +6,12 @@
 -- afecta a la otra. El envío en sí vive en el servicio Go (internal/modules/auth).
 --
 -- Uso:
---   psql "$DATABASE_TEST_URL" -v ON_ERROR_STOP=1 -f testdata/dos_barberias.sql
+--   psql "$DATABASE_TEST_URL" -v ON_ERROR_STOP=1 -f testdata/dos_professionalias.sql
 --   psql "$DATABASE_TEST_URL" -v ON_ERROR_STOP=1 -f testdata/hu005_credenciales_sesiones.sql
 --   psql "$DATABASE_TEST_URL" -v ON_ERROR_STOP=1 -f testdata/hu007_reto_telefonico.sql
 --   psql "$DATABASE_TEST_URL" -v ON_ERROR_STOP=1 -f tests/login_otp_channel.sql
 --
--- Requisito del arnés: la conexión debe poder ejecutar `SET ROLE barberia_app`
+-- Requisito del arnés: la conexión debe poder ejecutar `SET ROLE agenda_app`
 -- (estandar-base-datos.md §9.8). Todo se revierte con ROLLBACK.
 --
 -- Cuentas (testdata/hu007_reto_telefonico.sql): duena.a y dueno.b tienen
@@ -33,20 +33,20 @@ DECLARE
   v_id text;
   v_channel text;
 BEGIN
-  INSERT INTO barbershop (id, name, timezone)
+  INSERT INTO business (id, name, timezone)
   VALUES ('99999999-9999-4999-8999-999999999999', 'Barbería nueva', 'America/Bogota');
-  SELECT login_otp_channel INTO v_channel FROM barbershop WHERE id = '99999999-9999-4999-8999-999999999999';
+  SELECT login_otp_channel INTO v_channel FROM business WHERE id = '99999999-9999-4999-8999-999999999999';
   IF v_channel IS DISTINCT FROM 'email' THEN
     RAISE EXCEPTION 'una barbería nueva debe nacer con correo (DEC-081), leyó %.', v_channel;
   END IF;
 
   FOREACH v_id IN ARRAY ARRAY['email', 'whatsapp', 'both'] LOOP
-    UPDATE barbershop SET login_otp_channel = v_id WHERE id = '99999999-9999-4999-8999-999999999999';
+    UPDATE business SET login_otp_channel = v_id WHERE id = '99999999-9999-4999-8999-999999999999';
   END LOOP;
 
   FOREACH v_id IN ARRAY ARRAY['sms', 'Email', 'WHATSAPP', '', 'email,whatsapp', 'push'] LOOP
     BEGIN
-      UPDATE barbershop SET login_otp_channel = v_id WHERE id = '99999999-9999-4999-8999-999999999999';
+      UPDATE business SET login_otp_channel = v_id WHERE id = '99999999-9999-4999-8999-999999999999';
       RAISE EXCEPTION 'el CHECK debió rechazar el canal "%".', v_id;
     EXCEPTION WHEN check_violation THEN
       NULL;
@@ -54,7 +54,7 @@ BEGIN
   END LOOP;
 
   BEGIN
-    UPDATE barbershop SET login_otp_channel = NULL WHERE id = '99999999-9999-4999-8999-999999999999';
+    UPDATE business SET login_otp_channel = NULL WHERE id = '99999999-9999-4999-8999-999999999999';
     RAISE EXCEPTION 'NOT NULL debió rechazar el canal nulo.';
   EXCEPTION WHEN not_null_violation THEN
     NULL;
@@ -71,10 +71,10 @@ ROLLBACK;
 -- ---------------------------------------------------------------------------
 BEGIN;
 
-UPDATE barbershop SET login_otp_channel = 'email'    WHERE id = '11111111-1111-1111-1111-111111111111';
-UPDATE barbershop SET login_otp_channel = 'whatsapp' WHERE id = '22222222-2222-2222-2222-222222222222';
+UPDATE business SET login_otp_channel = 'email'    WHERE id = '11111111-1111-1111-1111-111111111111';
+UPDATE business SET login_otp_channel = 'whatsapp' WHERE id = '22222222-2222-2222-2222-222222222222';
 
-SET ROLE barberia_app;
+SET ROLE agenda_app;
 
 DO $$
 DECLARE
@@ -132,10 +132,10 @@ ROLLBACK;
 -- ---------------------------------------------------------------------------
 BEGIN;
 
-UPDATE barbershop SET login_otp_channel = 'both'     WHERE id = '11111111-1111-1111-1111-111111111111';
-UPDATE barbershop SET login_otp_channel = 'whatsapp' WHERE id = '22222222-2222-2222-2222-222222222222';
+UPDATE business SET login_otp_channel = 'both'     WHERE id = '11111111-1111-1111-1111-111111111111';
+UPDATE business SET login_otp_channel = 'whatsapp' WHERE id = '22222222-2222-2222-2222-222222222222';
 
-SET ROLE barberia_app;
+SET ROLE agenda_app;
 
 DO $$
 DECLARE
@@ -168,8 +168,8 @@ $$;
 RESET ROLE;
 
 -- WhatsApp sin teléfono verificado: no hay destino utilizable y NO se cae a correo.
-UPDATE barbershop SET login_otp_channel = 'whatsapp' WHERE id = '11111111-1111-1111-1111-111111111111';
-SET ROLE barberia_app;
+UPDATE business SET login_otp_channel = 'whatsapp' WHERE id = '11111111-1111-1111-1111-111111111111';
+SET ROLE agenda_app;
 DO $$
 DECLARE
   v_code_hash text := encode(sha256('login-otp-channel-code'::bytea), 'hex');
@@ -196,8 +196,8 @@ ROLLBACK;
 -- ---------------------------------------------------------------------------
 BEGIN;
 
-UPDATE barbershop SET login_otp_channel = 'both' WHERE id = '11111111-1111-1111-1111-111111111111';
-SET ROLE barberia_app;
+UPDATE business SET login_otp_channel = 'both' WHERE id = '11111111-1111-1111-1111-111111111111';
+SET ROLE agenda_app;
 DO $$
 DECLARE
   v_code_hash text := encode(sha256('login-otp-single-row'::bytea), 'hex');

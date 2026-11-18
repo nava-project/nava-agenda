@@ -5,31 +5,31 @@
 --
 -- REQUIERE modelo-fisico-referencia.sql cargado ADEMÁS de las cinco
 -- migraciones de database/migrations/: las 23 tablas que cubre esta suite
--- (más allá de barbershop/staff_user, ya cubiertas por
+-- (más allá de business/staff_user, ya cubiertas por
 -- hu001_aislamiento_rls.sql) no existen en el esquema realmente aplicado.
 -- Esta suite certifica el diseño del modelo de referencia para cuando se
 -- convierta en migración; NO es evidencia de que el esquema desplegable
 -- hoy tenga esas 23 tablas protegidas, porque hoy no las tiene en absoluto.
 --
 -- Uso:
---   psql "$DATABASE_TEST_URL" -v ON_ERROR_STOP=1 -f testdata/dos_barberias.sql
+--   psql "$DATABASE_TEST_URL" -v ON_ERROR_STOP=1 -f testdata/dos_professionalias.sql
 --   psql "$DATABASE_TEST_URL" -v ON_ERROR_STOP=1 -f testdata/rls_suite_fixture.sql
 --   psql "$DATABASE_TEST_URL" -v ON_ERROR_STOP=1 -f tests/rls_suite.sql
 --
 -- Requisito del arnés: igual que hu001_aislamiento_rls.sql, la conexión debe
--- poder ejecutar `SET ROLE barberia_app`/`barberia_worker` sin pertenecer a
+-- poder ejecutar `SET ROLE agenda_app`/`agenda_worker` sin pertenecer a
 -- esos roles (conectada como superusuario en local/CI).
 --
--- Relación con hu001_aislamiento_rls.sql: ese archivo ya cubre `barbershop`
+-- Relación con hu001_aislamiento_rls.sql: ese archivo ya cubre `business`
 -- y `staff_user` en detalle (CA-001-*); esta suite no los repite y cubre las
 -- 23 tablas restantes con RLS forzada. `login_throttle` queda fuera a
--- propósito: es la única tabla sin `barbershop_id` por diseño (cuenta
+-- propósito: es la única tabla sin `business_id` por diseño (cuenta
 -- intentos por IP antes de saber quién solicita), documentado en
 -- modelo-fisico-referencia.sql sección A.4.
 --
 -- DDL-RLS-01 pide aceptar cualquier fallo fail-closed esperado, no un único
 -- SQLSTATE accidental: los bloques de "sin contexto" y "sin privilegio de
--- tabla" aceptan tanto `undefined_object` (falta app.barbershop_id) como
+-- tabla" aceptan tanto `undefined_object` (falta app.business_id) como
 -- `insufficient_privilege` (la tabla ni siquiera concede el verbo), porque
 -- ambos son el mismo resultado correcto -acceso denegado- por razones
 -- distintas y válidas.
@@ -71,7 +71,7 @@ DECLARE
   v_offenders text;
 BEGIN
   -- Toda tabla con RLS forzada tiene una política administrativa FOR ALL
-  -- que apunta a barberia_owner (DEC-040), nunca a barberia_migrator.
+  -- que apunta a agenda_owner (DEC-040), nunca a agenda_migrator.
   SELECT string_agg(c.relname, ', ')
   INTO v_offenders
   FROM pg_class c
@@ -81,22 +81,22 @@ BEGIN
     AND NOT EXISTS (
       SELECT 1 FROM pg_policies p
       WHERE p.schemaname = 'public' AND p.tablename = c.relname
-        AND p.cmd = 'ALL' AND 'barberia_owner' = ANY(p.roles)
+        AND p.cmd = 'ALL' AND 'agenda_owner' = ANY(p.roles)
     );
   IF v_offenders IS NOT NULL THEN
-    RAISE EXCEPTION 'Tablas sin política administrativa FOR ALL a barberia_owner: %', v_offenders;
+    RAISE EXCEPTION 'Tablas sin política administrativa FOR ALL a agenda_owner: %', v_offenders;
   END IF;
 
   SELECT string_agg(DISTINCT p.tablename, ', ')
   INTO v_offenders
   FROM pg_policies p
-  WHERE p.schemaname = 'public' AND 'barberia_migrator' = ANY(p.roles);
+  WHERE p.schemaname = 'public' AND 'agenda_migrator' = ANY(p.roles);
   IF v_offenders IS NOT NULL THEN
-    RAISE EXCEPTION 'Políticas todavía apuntando a barberia_migrator (DDL-RLS-01/H.7): %', v_offenders;
+    RAISE EXCEPTION 'Políticas todavía apuntando a agenda_migrator (DDL-RLS-01/H.7): %', v_offenders;
   END IF;
 END
 $$;
-\echo 'Parte 1.2 OK · política administrativa de cada tabla apunta a barberia_owner, ninguna a barberia_migrator'
+\echo 'Parte 1.2 OK · política administrativa de cada tabla apunta a agenda_owner, ninguna a agenda_migrator'
 
 DO $$
 BEGIN
@@ -105,41 +105,41 @@ BEGIN
   -- archivo sería teatro.
   IF EXISTS (
     SELECT 1 FROM pg_roles
-    WHERE rolname IN ('barberia_app', 'barberia_worker')
+    WHERE rolname IN ('agenda_app', 'agenda_worker')
       AND (rolsuper OR rolbypassrls)
   ) THEN
-    RAISE EXCEPTION 'barberia_app o barberia_worker tienen superusuario o BYPASSRLS.';
+    RAISE EXCEPTION 'agenda_app o agenda_worker tienen superusuario o BYPASSRLS.';
   END IF;
 END
 $$;
-\echo 'Parte 1.3 OK · ni barberia_app ni barberia_worker tienen BYPASSRLS ni son superusuario'
+\echo 'Parte 1.3 OK · ni agenda_app ni agenda_worker tienen BYPASSRLS ni son superusuario'
 
 DO $$
 DECLARE
   v_offenders text;
 BEGIN
   -- Cada política de lectura/escritura tenant-aware referencia de verdad
-  -- barbershop_id y current_setting: una política SELECT/INSERT/UPDATE/
-  -- DELETE de barberia_app cuyo USING/WITH CHECK no mencione ambos términos
+  -- business_id y current_setting: una política SELECT/INSERT/UPDATE/
+  -- DELETE de agenda_app cuyo USING/WITH CHECK no mencione ambos términos
   -- es, con altísima probabilidad, un copy-paste roto (columna equivocada,
   -- condición `true` residual) que ningún otro chequeo estructural detecta.
   SELECT string_agg(p.tablename || '.' || p.policyname, ', ')
   INTO v_offenders
   FROM pg_policies p
   WHERE p.schemaname = 'public'
-    AND 'barberia_app' = ANY(p.roles)
+    AND 'agenda_app' = ANY(p.roles)
     AND p.tablename NOT IN ('login_throttle')
     AND NOT (
-      (p.qual       IS NOT NULL AND p.qual       LIKE '%barbershop_id%' AND p.qual       LIKE '%current_setting%')
+      (p.qual       IS NOT NULL AND p.qual       LIKE '%business_id%' AND p.qual       LIKE '%current_setting%')
       OR
-      (p.with_check IS NOT NULL AND p.with_check LIKE '%barbershop_id%' AND p.with_check LIKE '%current_setting%')
+      (p.with_check IS NOT NULL AND p.with_check LIKE '%business_id%' AND p.with_check LIKE '%current_setting%')
     );
   IF v_offenders IS NOT NULL THEN
-    RAISE EXCEPTION 'Políticas de barberia_app sin USING/WITH CHECK tenant-aware reconocible: %', v_offenders;
+    RAISE EXCEPTION 'Políticas de agenda_app sin USING/WITH CHECK tenant-aware reconocible: %', v_offenders;
   END IF;
 END
 $$;
-\echo 'Parte 1.4 OK · toda política de barberia_app referencia barbershop_id y current_setting'
+\echo 'Parte 1.4 OK · toda política de agenda_app referencia business_id y current_setting'
 
 -- ---------------------------------------------------------------------------
 -- Parte 2 · Sin contexto: toda tabla falla cerrado, con cualquier SQLSTATE
@@ -151,16 +151,16 @@ DECLARE
   v_table  text;
   v_tables constant text[] := ARRAY[
     'staff_credential', 'staff_session', 'staff_recovery_code',
-    'barber', 'service', 'barber_service',
+    'professional', 'service', 'professional_service',
     'working_hour', 'working_hour_override', 'working_hour_override_segment',
     'time_block_series', 'time_block_series_date', 'time_block_series_exception', 'time_block',
     'customer', 'appointment', 'appointment_history', 'appointment_history_change',
-    'appointment_access_token', 'notification_channel_setting', 'barbershop_reminder_rule',
+    'appointment_access_token', 'notification_channel_setting', 'business_reminder_rule',
     'notification_schedule', 'notification_attempt', 'idempotency_record'
   ];
   v_count  integer;
 BEGIN
-  SET ROLE barberia_app;
+  SET ROLE agenda_app;
   FOREACH v_table IN ARRAY v_tables LOOP
     BEGIN
       EXECUTE format('SELECT count(*) FROM %I', v_table) INTO v_count;
@@ -173,36 +173,36 @@ BEGIN
   RESET ROLE;
 END
 $$;
-\echo 'Parte 2 OK · sin app.barbershop_id, las 23 tablas fallan cerrado (undefined_object o insufficient_privilege)'
+\echo 'Parte 2 OK · sin app.business_id, las 23 tablas fallan cerrado (undefined_object o insufficient_privilege)'
 
 -- ---------------------------------------------------------------------------
 -- Parte 3 · Tenant A/B: con contexto de A, cero filas de B (DDL-RLS-01)
 -- ---------------------------------------------------------------------------
--- staff_credential queda fuera: no concede SELECT a barberia_app en
+-- staff_credential queda fuera: no concede SELECT a agenda_app en
 -- absoluto (auth_get_credential es el único camino de lectura), así que no
 -- hay nada que "ver filtrado" — ya está cubierto por la Parte 2.
 
 BEGIN;
-SET ROLE barberia_app;
-SET LOCAL app.barbershop_id = '11111111-1111-1111-1111-111111111111';
+SET ROLE agenda_app;
+SET LOCAL app.business_id = '11111111-1111-1111-1111-111111111111';
 
 DO $$
 DECLARE
   v_table  text;
   v_tables constant text[] := ARRAY[
     'staff_session', 'staff_recovery_code',
-    'barber', 'service', 'barber_service',
+    'professional', 'service', 'professional_service',
     'working_hour', 'working_hour_override', 'working_hour_override_segment',
     'time_block_series', 'time_block_series_date', 'time_block_series_exception', 'time_block',
     'customer', 'appointment', 'appointment_history', 'appointment_history_change',
-    'appointment_access_token', 'notification_channel_setting', 'barbershop_reminder_rule',
+    'appointment_access_token', 'notification_channel_setting', 'business_reminder_rule',
     'notification_schedule', 'notification_attempt', 'idempotency_record'
   ];
   v_count integer;
 BEGIN
   FOREACH v_table IN ARRAY v_tables LOOP
     EXECUTE format(
-      'SELECT count(*) FROM %I WHERE barbershop_id = ''22222222-2222-2222-2222-222222222222''',
+      'SELECT count(*) FROM %I WHERE business_id = ''22222222-2222-2222-2222-222222222222''',
       v_table
     ) INTO v_count;
     IF v_count <> 0 THEN
@@ -223,45 +223,45 @@ ROLLBACK;
 -- WITH CHECK real, agrupado por verbo para no repetir el mismo bloque 23
 -- veces. Usa las filas del fixture (sufijo `a`/`b`).
 
--- 4.1 · INSERT propio permitido; INSERT con barbershop_id ajeno rechazado.
+-- 4.1 · INSERT propio permitido; INSERT con business_id ajeno rechazado.
 BEGIN;
-SET ROLE barberia_app;
-SET LOCAL app.barbershop_id = '11111111-1111-1111-1111-111111111111';
+SET ROLE agenda_app;
+SET LOCAL app.business_id = '11111111-1111-1111-1111-111111111111';
 
 DO $$
 BEGIN
   -- Permitido: una fila nueva y propia en una tabla representativa de cada
   -- forma de INSERT (simple, compuesta, PK generada, PK compuesta sin id).
-  INSERT INTO barber (id, barbershop_id, full_name)
+  INSERT INTO professional (id, business_id, full_name)
   VALUES ('11110000-0000-0000-0000-000000000001', '11111111-1111-1111-1111-111111111111', 'Alta permitida');
 
-  INSERT INTO notification_channel_setting (barbershop_id, event_type, channel)
+  INSERT INTO notification_channel_setting (business_id, event_type, channel)
   VALUES ('11111111-1111-1111-1111-111111111111', 'reminder', 'email');
 
-  -- Denegado: barbershop_id ajeno en el payload, tabla con PK simple.
+  -- Denegado: business_id ajeno en el payload, tabla con PK simple.
   BEGIN
-    INSERT INTO barber (id, barbershop_id, full_name)
+    INSERT INTO professional (id, business_id, full_name)
     VALUES ('22220000-0000-0000-0000-000000000002', '22222222-2222-2222-2222-222222222222', 'Alta cruzada');
-    RAISE EXCEPTION 'Se insertó barber con el barbershop_id de otro tenant.';
+    RAISE EXCEPTION 'Se insertó professional con el business_id de otro tenant.';
   EXCEPTION
     WHEN insufficient_privilege THEN NULL;  -- Esperado.
   END;
 
-  -- Denegado: barbershop_id ajeno, tabla con PK compuesta (sin columna id).
+  -- Denegado: business_id ajeno, tabla con PK compuesta (sin columna id).
   BEGIN
-    INSERT INTO notification_channel_setting (barbershop_id, event_type, channel)
+    INSERT INTO notification_channel_setting (business_id, event_type, channel)
     VALUES ('22222222-2222-2222-2222-222222222222', 'delay', 'whatsapp');
-    RAISE EXCEPTION 'Se insertó notification_channel_setting con el barbershop_id de otro tenant.';
+    RAISE EXCEPTION 'Se insertó notification_channel_setting con el business_id de otro tenant.';
   EXCEPTION
     WHEN insufficient_privilege THEN NULL;  -- Esperado.
   END;
 
   -- Denegado: tabla append-only sin política de INSERT hacia otro tenant.
   BEGIN
-    INSERT INTO appointment_history (barbershop_id, appointment_id, event_type, actor_type)
+    INSERT INTO appointment_history (business_id, appointment_id, event_type, actor_type)
     VALUES ('22222222-2222-2222-2222-222222222222', 'a99a0000-0000-0000-0000-00000000000b',
             'appointment_completed', 'system');
-    RAISE EXCEPTION 'Se insertó appointment_history con el barbershop_id de otro tenant.';
+    RAISE EXCEPTION 'Se insertó appointment_history con el business_id de otro tenant.';
   EXCEPTION
     WHEN insufficient_privilege THEN NULL;  -- Esperado.
   END;
@@ -270,36 +270,36 @@ $$;
 
 RESET ROLE;
 ROLLBACK;
-\echo 'Parte 4.1 OK · INSERT propio permitido; INSERT con barbershop_id ajeno rechazado (PK simple, compuesta y append-only)'
+\echo 'Parte 4.1 OK · INSERT propio permitido; INSERT con business_id ajeno rechazado (PK simple, compuesta y append-only)'
 
 -- 4.2 · UPDATE propio permitido; UPDATE de fila ajena o hacia otro tenant rechazado.
 BEGIN;
-SET ROLE barberia_app;
-SET LOCAL app.barbershop_id = '11111111-1111-1111-1111-111111111111';
+SET ROLE agenda_app;
+SET LOCAL app.business_id = '11111111-1111-1111-1111-111111111111';
 
 DO $$
 DECLARE
   v_rows integer;
 BEGIN
   -- Permitido: modificar una fila propia.
-  UPDATE barber SET full_name = 'Barbero RLS A editado'
+  UPDATE professional SET full_name = 'Barbero RLS A editado'
   WHERE id = 'ba5b0000-0000-0000-0000-00000000000a';
 
   -- Denegado por USING: una fila de B es invisible para A, así que el
   -- UPDATE afecta cero filas en vez de fallar (RN-TEN-01: indistinguible de
   -- "no existe").
-  UPDATE barber SET full_name = 'Secuestrado'
+  UPDATE professional SET full_name = 'Secuestrado'
   WHERE id = 'ba5b0000-0000-0000-0000-00000000000b';
   GET DIAGNOSTICS v_rows = ROW_COUNT;
   IF v_rows <> 0 THEN
-    RAISE EXCEPTION 'UPDATE alcanzó % filas de otro tenant en barber.', v_rows;
+    RAISE EXCEPTION 'UPDATE alcanzó % filas de otro tenant en professional.', v_rows;
   END IF;
 
   -- Denegado por WITH CHECK: mover una fila propia hacia el tenant ajeno.
   BEGIN
-    UPDATE barber SET barbershop_id = '22222222-2222-2222-2222-222222222222'
+    UPDATE professional SET business_id = '22222222-2222-2222-2222-222222222222'
     WHERE id = 'ba5b0000-0000-0000-0000-00000000000a';
-    RAISE EXCEPTION 'Se movió un barber propio hacia otro tenant.';
+    RAISE EXCEPTION 'Se movió un professional propio hacia otro tenant.';
   EXCEPTION
     WHEN insufficient_privilege THEN NULL;  -- Esperado.
   END;
@@ -322,15 +322,15 @@ ROLLBACK;
 
 -- 4.3 · DELETE propio permitido; DELETE de fila ajena no afecta nada.
 BEGIN;
-SET ROLE barberia_app;
-SET LOCAL app.barbershop_id = '11111111-1111-1111-1111-111111111111';
+SET ROLE agenda_app;
+SET LOCAL app.business_id = '11111111-1111-1111-1111-111111111111';
 
 DO $$
 DECLARE
   v_rows integer;
 BEGIN
   -- Denegado por USING: DELETE de una fila de B no afecta nada bajo
-  -- contexto de A (tablas con DELETE concedido a barberia_app).
+  -- contexto de A (tablas con DELETE concedido a agenda_app).
   DELETE FROM staff_session WHERE id = '50550000-0000-0000-0000-00000000000b';
   GET DIAGNOSTICS v_rows = ROW_COUNT;
   IF v_rows <> 0 THEN
@@ -369,8 +369,8 @@ ROLLBACK;
 
 -- 4.4 · Tablas append-only: ni UPDATE ni DELETE, ni siquiera sobre lo propio.
 BEGIN;
-SET ROLE barberia_app;
-SET LOCAL app.barbershop_id = '11111111-1111-1111-1111-111111111111';
+SET ROLE agenda_app;
+SET LOCAL app.business_id = '11111111-1111-1111-1111-111111111111';
 
 DO $$
 BEGIN
@@ -391,7 +391,7 @@ BEGIN
 
   BEGIN
     UPDATE appointment_history_change SET new_value = 'reescrito'
-    WHERE barbershop_id = '11111111-1111-1111-1111-111111111111'
+    WHERE business_id = '11111111-1111-1111-1111-111111111111'
       AND history_id = '7157000a-0000-0000-0000-00000000000a' AND field_name = 'status';
     RAISE EXCEPTION 'Se pudo UPDATE una fila propia de appointment_history_change (debe ser append-only).';
   EXCEPTION
@@ -400,7 +400,7 @@ BEGIN
 
   BEGIN
     UPDATE notification_attempt SET result = 'failed'
-    WHERE barbershop_id = '11111111-1111-1111-1111-111111111111'
+    WHERE business_id = '11111111-1111-1111-1111-111111111111'
       AND notification_schedule_id = '501e0000-0000-0000-0000-00000000000a' AND attempt_number = 1;
     RAISE EXCEPTION 'Se pudo UPDATE una fila propia de notification_attempt (debe ser append-only).';
   EXCEPTION

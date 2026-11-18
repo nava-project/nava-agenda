@@ -76,7 +76,7 @@ func TestListPublicBarbersWithServicesHandler_Success_ReturnsIdFullNameAndServic
 	if len(repo.calls) != 1 || repo.calls[0] != "barberia-ejemplo" {
 		t.Fatalf("expected a single repository call with the path slug, got %v", repo.calls)
 	}
-	if strings.Contains(strings.ToLower(rec.Body.String()), "barbershop") {
+	if strings.Contains(strings.ToLower(rec.Body.String()), "business") {
 		t.Fatalf("la respuesta nunca menciona un identificador de tenant: %s", rec.Body.String())
 	}
 }

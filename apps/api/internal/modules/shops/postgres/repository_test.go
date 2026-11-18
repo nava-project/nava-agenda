@@ -22,7 +22,7 @@ import (
 )
 
 const (
-	testDatabaseURL = "postgres://barberia_app@localhost:5432/barberia_test?sslmode=disable"
+	testDatabaseURL = "postgres://agenda_app@localhost:5432/barberia_test?sslmode=disable"
 
 	// NO shopA/shopB reales (11111111.../22222222...) ni el par "shopC/shopD"
 	// de hu021_barberos.sql (33333333.../44444444..., ajeno a este archivo):
@@ -92,7 +92,7 @@ func restoreShopA(t *testing.T, db *database.DB) {
 	t.Cleanup(func() {
 		err := db.InTenantTx(context.Background(), database.BarbershopID(shopA), func(ctx context.Context, q database.Queries) error {
 			_, err := q.Exec(ctx,
-				`UPDATE barbershop SET name = $2, timezone = $3, contact_email = NULL, contact_phone = NULL WHERE id = $1`,
+				`UPDATE business SET name = $2, timezone = $3, contact_email = NULL, contact_phone = NULL WHERE id = $1`,
 				shopA, "Barbería de prueba (aislamiento de paquete) 1", "America/Bogota",
 			)
 			return err

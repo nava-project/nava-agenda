@@ -211,14 +211,14 @@ func (r *Repository) List(ctx context.Context, barbershopID string, page, pageSi
 		var total int
 		if search == "" {
 			if err := q.QueryRow(ctx,
-				`SELECT count(*) FROM service WHERE barbershop_id = $1`,
+				`SELECT count(*) FROM service WHERE business_id = $1`,
 				barbershopID,
 			).Scan(&total); err != nil {
 				return fmt.Errorf("list services: count: %w", err)
 			}
 		} else {
 			if err := q.QueryRow(ctx,
-				`SELECT count(*) FROM service WHERE barbershop_id = $1 AND name ILIKE $2 ESCAPE '\'`,
+				`SELECT count(*) FROM service WHERE business_id = $1 AND name ILIKE $2 ESCAPE '\'`,
 				barbershopID, likePattern(search),
 			).Scan(&total); err != nil {
 				return fmt.Errorf("list services: count: %w", err)
@@ -235,7 +235,7 @@ func (r *Repository) List(ctx context.Context, barbershopID string, page, pageSi
 				`SELECT id, name, description, duration_minutes, price_amount, price_currency,
 				        is_active, deactivated_at, created_at, updated_at
 				   FROM service
-				  WHERE barbershop_id = $1
+				  WHERE business_id = $1
 				  ORDER BY created_at, id
 				  LIMIT $2 OFFSET $3`,
 				barbershopID, pageSize, offset,
@@ -245,7 +245,7 @@ func (r *Repository) List(ctx context.Context, barbershopID string, page, pageSi
 				`SELECT id, name, description, duration_minutes, price_amount, price_currency,
 				        is_active, deactivated_at, created_at, updated_at
 				   FROM service
-				  WHERE barbershop_id = $1
+				  WHERE business_id = $1
 				    AND name ILIKE $2 ESCAPE '\'
 				  ORDER BY created_at, id
 				  LIMIT $3 OFFSET $4`,
@@ -309,7 +309,7 @@ func totalPages(total, pageSize int) int {
 // servicio activo: `confirmed` y con inicio futuro. Las completadas, las
 // inasistencias y las canceladas ya no ocupan agenda (RN-SER-03).
 const futureAppointmentsSQL = `SELECT count(*) FROM appointment
-	 WHERE barbershop_id = $1 AND service_id = $2
+	 WHERE business_id = $1 AND service_id = $2
 	   AND status = 'confirmed' AND starts_at > now()`
 
 // CountFutureAppointments implementa catalog.Repository.CountFutureAppointments.
@@ -339,7 +339,7 @@ func (r *Repository) Get(ctx context.Context, barbershopID, serviceID string) (c
 			`SELECT name, description, duration_minutes, price_amount, price_currency,
 			        is_active, deactivated_at, created_at, updated_at
 			   FROM service
-			  WHERE id = $1 AND barbershop_id = $2`,
+			  WHERE id = $1 AND business_id = $2`,
 			serviceID, barbershopID,
 		).Scan(&svc.Name, &svc.Description, &svc.DurationMinutes, &priceNumeric, &svc.Currency,
 			&svc.IsActive, &svc.DeactivatedAt,
@@ -401,7 +401,7 @@ func (r *Repository) Create(
 		}
 
 		row := q.QueryRow(ctx,
-			`INSERT INTO service (barbershop_id, name, description, duration_minutes, price_amount, price_currency)
+			`INSERT INTO service (business_id, name, description, duration_minutes, price_amount, price_currency)
 			      VALUES ($1, $2, $3, $4, $5, 'COP')
 			   RETURNING id, name, description, duration_minutes, price_amount, price_currency,
 			             is_active, deactivated_at, created_at, updated_at`,
@@ -470,7 +470,7 @@ func (r *Repository) Update(ctx context.Context, barbershopID, serviceID string,
 			        description      = CASE WHEN $4::boolean THEN $5::text ELSE description END,
 			        duration_minutes = COALESCE($6::integer, duration_minutes),
 			        price_amount     = COALESCE($7::numeric(12,2), price_amount)
-			  WHERE id = $1 AND barbershop_id = $2
+			  WHERE id = $1 AND business_id = $2
 			RETURNING name, description, duration_minutes, price_amount, price_currency,
 			          is_active, deactivated_at, created_at, updated_at`,
 			serviceID, barbershopID,
@@ -526,7 +526,7 @@ const applyPriceToUpcomingSQL = `
 WITH target AS (
   SELECT id, price_amount_snapshot AS previous_price
     FROM appointment
-   WHERE barbershop_id = $1 AND service_id = $2
+   WHERE business_id = $1 AND service_id = $2
      AND status = 'confirmed' AND starts_at > now()
      AND price_amount_snapshot <> $3::numeric(12,2)
    FOR UPDATE
@@ -534,14 +534,14 @@ WITH target AS (
   UPDATE appointment a
      SET price_amount_snapshot = $3::numeric(12,2), updated_at = now()
     FROM target t
-   WHERE a.barbershop_id = $1 AND a.id = t.id
+   WHERE a.business_id = $1 AND a.id = t.id
    RETURNING a.id, t.previous_price
 ), hist AS (
-  INSERT INTO appointment_history (barbershop_id, appointment_id, event_type, actor_type, actor_staff_user_id)
+  INSERT INTO appointment_history (business_id, appointment_id, event_type, actor_type, actor_staff_user_id)
   SELECT $1, id, 'appointment_service_changed', 'staff', $4::uuid FROM upd
   RETURNING id, appointment_id
 ), chg AS (
-  INSERT INTO appointment_history_change (barbershop_id, history_id, field_name, previous_value, new_value)
+  INSERT INTO appointment_history_change (business_id, history_id, field_name, previous_value, new_value)
   SELECT $1, h.id, 'price_amount_snapshot', u.previous_price::text, $3::numeric(12,2)::text
     FROM hist h JOIN upd u ON u.id = h.appointment_id
   RETURNING 1
@@ -595,7 +595,7 @@ var errLifecycleAbortInternal = errors.New("catalog/postgres: transición de cic
 // o "es de otra barbería" (CA-024-07).
 func lockServiceForTransition(ctx context.Context, q database.Queries, barbershopID, serviceID string) (isActive bool, found bool, err error) {
 	err = q.QueryRow(ctx,
-		`SELECT is_active FROM service WHERE id = $1 AND barbershop_id = $2 FOR UPDATE`,
+		`SELECT is_active FROM service WHERE id = $1 AND business_id = $2 FOR UPDATE`,
 		serviceID, barbershopID,
 	).Scan(&isActive)
 	switch {
@@ -655,7 +655,7 @@ func (r *Repository) Deactivate(
 			`UPDATE service
 			    SET is_active      = false,
 			        deactivated_at = now()
-			  WHERE id = $1 AND barbershop_id = $2
+			  WHERE id = $1 AND business_id = $2
 			RETURNING id, name, description, duration_minutes, price_amount, price_currency,
 			          is_active, deactivated_at, created_at, updated_at`,
 			serviceID, barbershopID,
@@ -751,7 +751,7 @@ func (r *Repository) Reactivate(
 			`UPDATE service
 			    SET is_active      = true,
 			        deactivated_at = NULL
-			  WHERE id = $1 AND barbershop_id = $2
+			  WHERE id = $1 AND business_id = $2
 			RETURNING id, name, description, duration_minutes, price_amount, price_currency,
 			          is_active, deactivated_at, created_at, updated_at`,
 			serviceID, barbershopID,

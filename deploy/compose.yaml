@@ -182,7 +182,7 @@ services:
       resources:
         limits: { cpus: "0.5", memory: 512M, pids: 128 }
 
-  # Migraciones con Atlas como `barberia_migrator` (docs/05-backend/migraciones-atlas.md).
+  # Migraciones con Atlas como `agenda_migrator` (docs/05-backend/migraciones-atlas.md).
   # Etapa separada: nunca se ejecutan al arrancar el API o el worker. Usa la imagen
   # propia (Atlas fijado + el cargador de secretos): la imagen oficial de Atlas no
   # trae shell y no podría leer los archivos de secreto.

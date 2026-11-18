@@ -1,7 +1,7 @@
 -- Escenario controlado de HU-001: dos barberías con usuarios propios.
 --
 -- Uso:
---   psql "$DATABASE_TEST_URL" -v ON_ERROR_STOP=1 -f testdata/dos_barberias.sql
+--   psql "$DATABASE_TEST_URL" -v ON_ERROR_STOP=1 -f testdata/dos_professionalias.sql
 --
 -- Se ejecuta con el rol migrador, que es el único con política administrativa
 -- sobre las tablas con RLS forzada.
@@ -14,16 +14,16 @@
 
 BEGIN;
 
-INSERT INTO barbershop (id, name, timezone) VALUES
+INSERT INTO business (id, name, timezone) VALUES
   ('11111111-1111-1111-1111-111111111111', 'Barbería de prueba A', 'America/Bogota'),
   ('22222222-2222-2222-2222-222222222222', 'Barbería de prueba B', 'America/Bogota')
 ON CONFLICT (id) DO NOTHING;
 
 -- Par dedicado (NO 33333333.../44444444...: esos ids ya son "shopC/shopD" de
--- testdata/hu021_barberos.sql, reutilizados por hu022/hu023; un conflicto de
+-- testdata/hu021_professionalos.sql, reutilizados por hu022/hu023; un conflicto de
 -- nombre ahí es un fixture roto, no una fila nueva): reservado en exclusiva
 -- para pruebas de integración de PAQUETES Go distintos a los que ya usan A/B
--- para las mismas columnas mutables de `barbershop`
+-- para las mismas columnas mutables de `business`
 -- (name/timezone/contact_*). `go test ./...` ejecuta paquetes en binarios
 -- separados EN PARALELO por defecto (issue #158): si dos paquetes hacen
 -- UPDATE confirmado sobre la misma fila A o B, uno puede leer el estado a
@@ -31,12 +31,12 @@ ON CONFLICT (id) DO NOTHING;
 -- ya existe otro paquete que también las escribe sobre A/B (verifica antes
 -- de reutilizar A/B para ese propósito), y antes de acuñar un id nuevo aquí
 -- confirma con grep que ningún otro testdata/*.sql ya lo reclama.
-INSERT INTO barbershop (id, name, timezone) VALUES
+INSERT INTO business (id, name, timezone) VALUES
   ('12121212-1212-1212-1212-121212121212', 'Barbería de prueba (aislamiento de paquete) 1', 'America/Bogota'),
   ('34343434-3434-3434-3434-343434343434', 'Barbería de prueba (aislamiento de paquete) 2', 'America/Bogota')
 ON CONFLICT (id) DO NOTHING;
 
-INSERT INTO staff_user (id, barbershop_id, email, full_name, is_active) VALUES
+INSERT INTO staff_user (id, business_id, email, full_name, is_active) VALUES
   ('aaaaaaa1-aaaa-aaaa-aaaa-aaaaaaaaaaa1',
    '11111111-1111-1111-1111-111111111111',
    'duena.a@ejemplo.test',  'Dueña A',   true),
@@ -68,7 +68,7 @@ ON CONFLICT (id) DO NOTHING;
 -- internal/platform/database/database_test.go cuenta USUARIOS POR
 -- BARBERÍA bajo RLS (no total): añadir esta fila exige mantener ese conteo
 -- en 3, no en 2.
-INSERT INTO staff_user (id, barbershop_id, email, full_name, is_active) VALUES
+INSERT INTO staff_user (id, business_id, email, full_name, is_active) VALUES
   ('aaaaaaa3-aaaa-aaaa-aaaa-aaaaaaaaaaa3',
    '11111111-1111-1111-1111-111111111111',
    'sesion.a@ejemplo.test', 'Sesión de prueba A', true),

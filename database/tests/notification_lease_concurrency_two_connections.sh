@@ -17,7 +17,7 @@
 #
 # Requiere, ya aplicados sobre esa base: las cuatro migraciones de
 # database/migrations, database/modelo-fisico-referencia.sql,
-# testdata/dos_barberias.sql y testdata/notification_lease_fixture.sql.
+# testdata/dos_professionalias.sql y testdata/notification_lease_fixture.sql.
 #
 # Coordinación sin sleeps de negocio (estrategia-pruebas.md §7 · "no usar
 # sleep para coordinar concurrencia; usar barreras, canales o condiciones
@@ -48,9 +48,9 @@ trap cleanup EXIT
 echo "=== notification_claim_due · concurrencia real con dos conexiones ==="
 
 psql "$DATABASE_TEST_URL" -v ON_ERROR_STOP=1 -q <<SQL
-SET ROLE barberia_migrator;
+SET ROLE agenda_migrator;
 DELETE FROM notification_schedule WHERE id = '$SCHEDULE_ID';
-INSERT INTO notification_schedule (id, barbershop_id, appointment_id, event_type, channel, scheduled_for)
+INSERT INTO notification_schedule (id, business_id, appointment_id, event_type, channel, scheduled_for)
 VALUES ('$SCHEDULE_ID', '$BARBERSHOP_ID', '$APPOINTMENT_ID', 'reminder', 'email', '2026-01-05 09:30:00-05');
 SQL
 
@@ -60,7 +60,7 @@ SQL
 cat > "$WORKDIR/a.sql" <<SQL
 \\set ON_ERROR_STOP on
 BEGIN;
-SET ROLE barberia_worker;
+SET ROLE agenda_worker;
 SELECT pg_advisory_lock(424201);
 \\! touch "$WORKDIR/a_ready"
 SELECT schedule_id, claim_token AS a_token
@@ -81,7 +81,7 @@ SQL
 # instante: si SKIP LOCKED funciona, este intento de B no debe traer la fila.
 cat > "$WORKDIR/b.sql" <<SQL
 \\set ON_ERROR_STOP on
-SET ROLE barberia_worker;
+SET ROLE agenda_worker;
 SELECT pg_advisory_lock(424202);
 SELECT pg_advisory_lock(424201);
 SELECT pg_advisory_unlock(424201);

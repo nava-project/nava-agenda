@@ -32,8 +32,8 @@ type brandBody struct {
 }
 
 var initialBrand = brandBody{
-	Accent: "brass", BusinessTerm: "barbería", BusinessTermGender: "feminine",
-	ProfessionalTerm: "barbero", ProfessionalTermPlural: "barberos", ProfessionalTermGender: "masculine",
+	Accent: "brass", BusinessTerm: "negocio", BusinessTermGender: "masculine",
+	ProfessionalTerm: "profesional", ProfessionalTermPlural: "profesionales", ProfessionalTermGender: "masculine",
 	PanelProfile: "shop",
 }
 
@@ -65,9 +65,9 @@ func restoreBrandRow(t *testing.T, db *database.DB, shop string) {
 	t.Cleanup(func() {
 		err := db.InTenantTx(context.Background(), database.BarbershopID(shop), func(ctx context.Context, q database.Queries) error {
 			_, err := q.Exec(ctx,
-				`UPDATE barbershop
-				    SET brand_accent = 'brass', business_term = 'barbería', business_term_gender = 'feminine',
-				        professional_term = 'barbero', professional_term_plural = 'barberos',
+				`UPDATE business
+				    SET brand_accent = 'brass', business_term = 'negocio', business_term_gender = 'masculine',
+				        professional_term = 'profesional', professional_term_plural = 'profesionales',
 				        professional_term_gender = 'masculine',
 				        has_physical_location = true, address = NULL, latitude = NULL, longitude = NULL,
 				        offers_home_service = false, google_place_id = NULL
@@ -472,7 +472,7 @@ func TestBrand_HTTP_GooglePlaceID_IsDatabaseOnly(t *testing.T) {
 	storedPlaceID := func(shop string) (id *string) {
 		t.Helper()
 		err := db.InTenantTx(context.Background(), database.BarbershopID(shop), func(ctx context.Context, q database.Queries) error {
-			return q.QueryRow(ctx, `SELECT google_place_id FROM barbershop WHERE id = $1`, shop).Scan(&id)
+			return q.QueryRow(ctx, `SELECT google_place_id FROM business WHERE id = $1`, shop).Scan(&id)
 		})
 		if err != nil {
 			t.Fatalf("leer google_place_id: %v", err)
@@ -480,7 +480,7 @@ func TestBrand_HTTP_GooglePlaceID_IsDatabaseOnly(t *testing.T) {
 		return id
 	}
 	err = db.InTenantTx(context.Background(), database.BarbershopID(shopA), func(ctx context.Context, q database.Queries) error {
-		_, err := q.Exec(ctx, `UPDATE barbershop SET google_place_id = 'ChIJabc_123-X' WHERE id = $1`, shopA)
+		_, err := q.Exec(ctx, `UPDATE business SET google_place_id = 'ChIJabc_123-X' WHERE id = $1`, shopA)
 		return err
 	})
 	if err != nil {

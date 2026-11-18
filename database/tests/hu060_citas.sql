@@ -11,11 +11,11 @@
 -- conexiones (CA-060-*, sin dobles).
 --
 -- Uso:
---   psql "$DATABASE_TEST_URL" -v ON_ERROR_STOP=1 -f testdata/dos_barberias.sql
+--   psql "$DATABASE_TEST_URL" -v ON_ERROR_STOP=1 -f testdata/dos_professionalias.sql
 --   psql "$DATABASE_TEST_URL" -v ON_ERROR_STOP=1 -f testdata/hu060_citas.sql
 --   psql "$DATABASE_TEST_URL" -v ON_ERROR_STOP=1 -f tests/hu060_citas.sql
 --
--- Requisito del arnés: la conexión debe poder ejecutar `SET ROLE barberia_app`
+-- Requisito del arnés: la conexión debe poder ejecutar `SET ROLE agenda_app`
 -- y `RESET ROLE` hacia un rol con privilegios administrativos (mismo
 -- criterio que hu040_horario.sql/hu041_excepciones.sql/hu042_bloqueos.sql).
 --
@@ -50,13 +50,13 @@ $$;
 -- CHECK de `customer`: full_name, phone, email, anonymized_at coherente
 -- ---------------------------------------------------------------------------
 BEGIN;
-SET ROLE barberia_app;
-SET LOCAL app.barbershop_id = 'c17a0001-c17a-c17a-c17a-c17a00010001';
+SET ROLE agenda_app;
+SET LOCAL app.business_id = 'c17a0001-c17a-c17a-c17a-c17a00010001';
 
 DO $$
 BEGIN
   BEGIN
-    INSERT INTO customer (barbershop_id, full_name)
+    INSERT INTO customer (business_id, full_name)
     VALUES ('c17a0001-c17a-c17a-c17a-c17a00010001', '   ');
     RAISE EXCEPTION 'customer_full_name_ck: se aceptó un nombre solo de espacios.';
   EXCEPTION
@@ -64,7 +64,7 @@ BEGIN
   END;
 
   BEGIN
-    INSERT INTO customer (barbershop_id, full_name, phone)
+    INSERT INTO customer (business_id, full_name, phone)
     VALUES ('c17a0001-c17a-c17a-c17a-c17a00010001', 'Cliente de prueba', 'no-es-telefono');
     RAISE EXCEPTION 'customer_phone_ck: se aceptó un teléfono con formato inválido.';
   EXCEPTION
@@ -72,7 +72,7 @@ BEGIN
   END;
 
   BEGIN
-    INSERT INTO customer (barbershop_id, full_name, email)
+    INSERT INTO customer (business_id, full_name, email)
     VALUES ('c17a0001-c17a-c17a-c17a-c17a00010001', 'Cliente de prueba', 'no-es-correo');
     RAISE EXCEPTION 'customer_email_ck: se aceptó un correo con formato inválido.';
   EXCEPTION
@@ -80,7 +80,7 @@ BEGIN
   END;
 
   BEGIN
-    INSERT INTO customer (barbershop_id, full_name, email)
+    INSERT INTO customer (business_id, full_name, email)
     VALUES ('c17a0001-c17a-c17a-c17a-c17a00010001', 'Cliente de prueba', 'Con.Mayusculas@Ejemplo.test');
     RAISE EXCEPTION 'customer_email_ck: se aceptó un correo sin forma canónica (mayúsculas).';
   EXCEPTION
@@ -88,7 +88,7 @@ BEGIN
   END;
 
   BEGIN
-    INSERT INTO customer (barbershop_id, full_name, phone, anonymized_at)
+    INSERT INTO customer (business_id, full_name, phone, anonymized_at)
     VALUES ('c17a0001-c17a-c17a-c17a-c17a00010001', 'Cliente de prueba', '+573001234567', now());
     RAISE EXCEPTION 'customer_anonymized_ck: se aceptó anonymized_at con teléfono todavía presente.';
   EXCEPTION
@@ -96,7 +96,7 @@ BEGIN
   END;
 
   -- Forma válida: sin teléfono ni correo (RN-CIT-02, cita manual futura).
-  INSERT INTO customer (barbershop_id, full_name)
+  INSERT INTO customer (business_id, full_name)
   VALUES ('c17a0001-c17a-c17a-c17a-c17a00010001', 'Cliente sin contacto de prueba');
 END
 $$;
@@ -111,27 +111,27 @@ ROLLBACK;
 -- duración coherente con el intervalo, cancellation_reason, resolved_at
 -- ---------------------------------------------------------------------------
 BEGIN;
-SET ROLE barberia_app;
-SET LOCAL app.barbershop_id = 'c17a0001-c17a-c17a-c17a-c17a00010001';
+SET ROLE agenda_app;
+SET LOCAL app.business_id = 'c17a0001-c17a-c17a-c17a-c17a00010001';
 
 DO $$
 DECLARE
   v_shop    uuid := 'c17a0001-c17a-c17a-c17a-c17a00010001';
-  v_barber  uuid := 'c17a1001-1001-1001-1001-100110011001';
+  v_professional  uuid := 'c17a1001-1001-1001-1001-100110011001';
   v_service uuid := 'c17a5001-5001-5001-5001-500150015001';
   v_customer uuid;
 BEGIN
-  INSERT INTO customer (barbershop_id, full_name)
+  INSERT INTO customer (business_id, full_name)
   VALUES (v_shop, 'Cliente de prueba CHECK')
   RETURNING id INTO v_customer;
 
   BEGIN
     INSERT INTO appointment (
-      barbershop_id, barber_id, service_id, customer_id, attendee_name,
+      business_id, professional_id, service_id, customer_id, attendee_name,
       starts_at, ends_at, status, origin,
       service_name_snapshot, duration_minutes_snapshot, price_amount_snapshot, price_currency_snapshot
     ) VALUES (
-      v_shop, v_barber, v_service, v_customer, 'Cliente de prueba CHECK',
+      v_shop, v_professional, v_service, v_customer, 'Cliente de prueba CHECK',
       '2027-05-10T10:00:00Z', '2027-05-10T11:00:00Z', 'scheduled', 'manual',
       'Corte de prueba Q', 60, 20000.00, 'COP'
     );
@@ -142,11 +142,11 @@ BEGIN
 
   BEGIN
     INSERT INTO appointment (
-      barbershop_id, barber_id, service_id, customer_id, attendee_name,
+      business_id, professional_id, service_id, customer_id, attendee_name,
       starts_at, ends_at, status, origin,
       service_name_snapshot, duration_minutes_snapshot, price_amount_snapshot, price_currency_snapshot
     ) VALUES (
-      v_shop, v_barber, v_service, v_customer, 'Cliente de prueba CHECK',
+      v_shop, v_professional, v_service, v_customer, 'Cliente de prueba CHECK',
       '2027-05-10T10:00:00Z', '2027-05-10T11:00:00Z', 'confirmed', 'walk_in',
       'Corte de prueba Q', 60, 20000.00, 'COP'
     );
@@ -157,11 +157,11 @@ BEGIN
 
   BEGIN
     INSERT INTO appointment (
-      barbershop_id, barber_id, service_id, customer_id, attendee_name,
+      business_id, professional_id, service_id, customer_id, attendee_name,
       starts_at, ends_at, status, origin,
       service_name_snapshot, duration_minutes_snapshot, price_amount_snapshot, price_currency_snapshot
     ) VALUES (
-      v_shop, v_barber, v_service, v_customer, 'Cliente de prueba CHECK',
+      v_shop, v_professional, v_service, v_customer, 'Cliente de prueba CHECK',
       '2027-05-10T10:00:00Z', '2027-05-10T10:00:00Z', 'confirmed', 'manual',
       'Corte de prueba Q', 0, 20000.00, 'COP'
     );
@@ -172,11 +172,11 @@ BEGIN
 
   BEGIN
     INSERT INTO appointment (
-      barbershop_id, barber_id, service_id, customer_id, attendee_name,
+      business_id, professional_id, service_id, customer_id, attendee_name,
       starts_at, ends_at, status, origin,
       service_name_snapshot, duration_minutes_snapshot, price_amount_snapshot, price_currency_snapshot
     ) VALUES (
-      v_shop, v_barber, v_service, v_customer, '   ',
+      v_shop, v_professional, v_service, v_customer, '   ',
       '2027-05-10T10:00:00Z', '2027-05-10T11:00:00Z', 'confirmed', 'manual',
       'Corte de prueba Q', 60, 20000.00, 'COP'
     );
@@ -187,11 +187,11 @@ BEGIN
 
   BEGIN
     INSERT INTO appointment (
-      barbershop_id, barber_id, service_id, customer_id, attendee_name,
+      business_id, professional_id, service_id, customer_id, attendee_name,
       starts_at, ends_at, status, origin,
       service_name_snapshot, duration_minutes_snapshot, price_amount_snapshot, price_currency_snapshot
     ) VALUES (
-      v_shop, v_barber, v_service, v_customer, 'Cliente de prueba CHECK',
+      v_shop, v_professional, v_service, v_customer, 'Cliente de prueba CHECK',
       '2027-05-10T10:00:00Z', '2027-05-10T11:00:00Z', 'confirmed', 'manual',
       'Corte de prueba Q', 1500, 20000.00, 'COP'
     );
@@ -202,11 +202,11 @@ BEGIN
 
   BEGIN
     INSERT INTO appointment (
-      barbershop_id, barber_id, service_id, customer_id, attendee_name,
+      business_id, professional_id, service_id, customer_id, attendee_name,
       starts_at, ends_at, status, origin,
       service_name_snapshot, duration_minutes_snapshot, price_amount_snapshot, price_currency_snapshot
     ) VALUES (
-      v_shop, v_barber, v_service, v_customer, 'Cliente de prueba CHECK',
+      v_shop, v_professional, v_service, v_customer, 'Cliente de prueba CHECK',
       '2027-05-10T10:00:00Z', '2027-05-10T11:00:00Z', 'confirmed', 'manual',
       'Corte de prueba Q', 60, -1.00, 'COP'
     );
@@ -217,11 +217,11 @@ BEGIN
 
   BEGIN
     INSERT INTO appointment (
-      barbershop_id, barber_id, service_id, customer_id, attendee_name,
+      business_id, professional_id, service_id, customer_id, attendee_name,
       starts_at, ends_at, status, origin,
       service_name_snapshot, duration_minutes_snapshot, price_amount_snapshot, price_currency_snapshot
     ) VALUES (
-      v_shop, v_barber, v_service, v_customer, 'Cliente de prueba CHECK',
+      v_shop, v_professional, v_service, v_customer, 'Cliente de prueba CHECK',
       '2027-05-10T10:00:00Z', '2027-05-10T11:00:00Z', 'confirmed', 'manual',
       'Corte de prueba Q', 60, 20000.00, 'cop'
     );
@@ -232,11 +232,11 @@ BEGIN
 
   BEGIN
     INSERT INTO appointment (
-      barbershop_id, barber_id, service_id, customer_id, attendee_name,
+      business_id, professional_id, service_id, customer_id, attendee_name,
       starts_at, ends_at, status, origin,
       service_name_snapshot, duration_minutes_snapshot, price_amount_snapshot, price_currency_snapshot
     ) VALUES (
-      v_shop, v_barber, v_service, v_customer, 'Cliente de prueba CHECK',
+      v_shop, v_professional, v_service, v_customer, 'Cliente de prueba CHECK',
       '2027-05-10T10:00:00Z', '2027-05-10T11:00:00Z', 'confirmed', 'manual',
       '', 60, 20000.00, 'COP'
     );
@@ -247,12 +247,12 @@ BEGIN
 
   BEGIN
     INSERT INTO appointment (
-      barbershop_id, barber_id, service_id, customer_id, attendee_name,
+      business_id, professional_id, service_id, customer_id, attendee_name,
       starts_at, ends_at, status, origin,
       service_name_snapshot, duration_minutes_snapshot, price_amount_snapshot, price_currency_snapshot,
       customer_note
     ) VALUES (
-      v_shop, v_barber, v_service, v_customer, 'Cliente de prueba CHECK',
+      v_shop, v_professional, v_service, v_customer, 'Cliente de prueba CHECK',
       '2027-05-10T10:00:00Z', '2027-05-10T11:00:00Z', 'confirmed', 'manual',
       'Corte de prueba Q', 60, 20000.00, 'COP', repeat('a', 501)
     );
@@ -264,11 +264,11 @@ BEGIN
   -- La duración del snapshot (45) no coincide con el intervalo real (60 min).
   BEGIN
     INSERT INTO appointment (
-      barbershop_id, barber_id, service_id, customer_id, attendee_name,
+      business_id, professional_id, service_id, customer_id, attendee_name,
       starts_at, ends_at, status, origin,
       service_name_snapshot, duration_minutes_snapshot, price_amount_snapshot, price_currency_snapshot
     ) VALUES (
-      v_shop, v_barber, v_service, v_customer, 'Cliente de prueba CHECK',
+      v_shop, v_professional, v_service, v_customer, 'Cliente de prueba CHECK',
       '2027-05-10T10:00:00Z', '2027-05-10T11:00:00Z', 'confirmed', 'manual',
       'Corte de prueba Q', 45, 20000.00, 'COP'
     );
@@ -280,12 +280,12 @@ BEGIN
   -- cancellation_reason solo tiene sentido en un estado cancelado.
   BEGIN
     INSERT INTO appointment (
-      barbershop_id, barber_id, service_id, customer_id, attendee_name,
+      business_id, professional_id, service_id, customer_id, attendee_name,
       starts_at, ends_at, status, origin,
       service_name_snapshot, duration_minutes_snapshot, price_amount_snapshot, price_currency_snapshot,
       cancellation_reason
     ) VALUES (
-      v_shop, v_barber, v_service, v_customer, 'Cliente de prueba CHECK',
+      v_shop, v_professional, v_service, v_customer, 'Cliente de prueba CHECK',
       '2027-05-10T10:00:00Z', '2027-05-10T11:00:00Z', 'confirmed', 'manual',
       'Corte de prueba Q', 60, 20000.00, 'COP', 'motivo improcedente'
     );
@@ -297,12 +297,12 @@ BEGIN
   -- resolved_at: NULL exigido en confirmed, obligatorio (y >= created_at) en cualquier otro estado.
   BEGIN
     INSERT INTO appointment (
-      barbershop_id, barber_id, service_id, customer_id, attendee_name,
+      business_id, professional_id, service_id, customer_id, attendee_name,
       starts_at, ends_at, status, origin,
       service_name_snapshot, duration_minutes_snapshot, price_amount_snapshot, price_currency_snapshot,
       resolved_at
     ) VALUES (
-      v_shop, v_barber, v_service, v_customer, 'Cliente de prueba CHECK',
+      v_shop, v_professional, v_service, v_customer, 'Cliente de prueba CHECK',
       '2027-05-10T10:00:00Z', '2027-05-10T11:00:00Z', 'confirmed', 'manual',
       'Corte de prueba Q', 60, 20000.00, 'COP', now()
     );
@@ -313,11 +313,11 @@ BEGIN
 
   BEGIN
     INSERT INTO appointment (
-      barbershop_id, barber_id, service_id, customer_id, attendee_name,
+      business_id, professional_id, service_id, customer_id, attendee_name,
       starts_at, ends_at, status, origin,
       service_name_snapshot, duration_minutes_snapshot, price_amount_snapshot, price_currency_snapshot
     ) VALUES (
-      v_shop, v_barber, v_service, v_customer, 'Cliente de prueba CHECK',
+      v_shop, v_professional, v_service, v_customer, 'Cliente de prueba CHECK',
       '2027-05-10T10:00:00Z', '2027-05-10T11:00:00Z', 'no_show', 'manual',
       'Corte de prueba Q', 60, 20000.00, 'COP'
     );
@@ -337,17 +337,17 @@ ROLLBACK;
 -- pruebas de exclusión, occupies_schedule, historial y RESTRICT que siguen
 -- ---------------------------------------------------------------------------
 BEGIN;
-SET ROLE barberia_app;
-SET LOCAL app.barbershop_id = 'c17a0001-c17a-c17a-c17a-c17a00010001';
+SET ROLE agenda_app;
+SET LOCAL app.business_id = 'c17a0001-c17a-c17a-c17a-c17a00010001';
 
-INSERT INTO customer (id, barbershop_id, full_name, phone)
+INSERT INTO customer (id, business_id, full_name, phone)
 VALUES (
   'c17ac001-0001-0001-0001-000100010001', 'c17a0001-c17a-c17a-c17a-c17a00010001',
   'Cliente Q-1 de prueba', '+573001112233'
 );
 
 INSERT INTO appointment (
-  id, barbershop_id, barber_id, service_id, customer_id, attendee_name,
+  id, business_id, professional_id, service_id, customer_id, attendee_name,
   starts_at, ends_at, status, origin,
   service_name_snapshot, duration_minutes_snapshot, price_amount_snapshot, price_currency_snapshot
 ) VALUES (
@@ -368,29 +368,29 @@ COMMIT;
 -- distintos y tenants distintos aceptados
 -- ---------------------------------------------------------------------------
 BEGIN;
-SET ROLE barberia_app;
-SET LOCAL app.barbershop_id = 'c17a0001-c17a-c17a-c17a-c17a00010001';
+SET ROLE agenda_app;
+SET LOCAL app.business_id = 'c17a0001-c17a-c17a-c17a-c17a00010001';
 
 DO $$
 DECLARE
   v_shop     uuid := 'c17a0001-c17a-c17a-c17a-c17a00010001';
-  v_barber1  uuid := 'c17a1001-1001-1001-1001-100110011001';
-  v_barber2  uuid := 'c17a1002-1002-1002-1002-100210021002';
+  v_professional1  uuid := 'c17a1001-1001-1001-1001-100110011001';
+  v_professional2  uuid := 'c17a1002-1002-1002-1002-100210021002';
   v_service  uuid := 'c17a5001-5001-5001-5001-500150015001';
   v_customer uuid := 'c17ac001-0001-0001-0001-000100010001';
 BEGIN
   -- Cruce total: mismo intervalo exacto.
   BEGIN
     INSERT INTO appointment (
-      barbershop_id, barber_id, service_id, customer_id, attendee_name,
+      business_id, professional_id, service_id, customer_id, attendee_name,
       starts_at, ends_at, status, origin,
       service_name_snapshot, duration_minutes_snapshot, price_amount_snapshot, price_currency_snapshot
     ) VALUES (
-      v_shop, v_barber1, v_service, v_customer, 'Cruce total',
+      v_shop, v_professional1, v_service, v_customer, 'Cruce total',
       '2027-05-11T10:00:00Z', '2027-05-11T11:00:00Z', 'confirmed', 'manual',
       'Corte de prueba Q', 60, 20000.00, 'COP'
     );
-    RAISE EXCEPTION 'appointment_barber_interval_excl: se aceptó un cruce total con A1.';
+    RAISE EXCEPTION 'appointment_professional_interval_excl: se aceptó un cruce total con A1.';
   EXCEPTION
     WHEN exclusion_violation THEN NULL;
   END;
@@ -398,15 +398,15 @@ BEGIN
   -- Parcial por el inicio: 09:30-10:30 se cruza con 10:00-11:00.
   BEGIN
     INSERT INTO appointment (
-      barbershop_id, barber_id, service_id, customer_id, attendee_name,
+      business_id, professional_id, service_id, customer_id, attendee_name,
       starts_at, ends_at, status, origin,
       service_name_snapshot, duration_minutes_snapshot, price_amount_snapshot, price_currency_snapshot
     ) VALUES (
-      v_shop, v_barber1, v_service, v_customer, 'Cruce parcial inicio',
+      v_shop, v_professional1, v_service, v_customer, 'Cruce parcial inicio',
       '2027-05-11T09:30:00Z', '2027-05-11T10:30:00Z', 'confirmed', 'manual',
       'Corte de prueba Q', 60, 20000.00, 'COP'
     );
-    RAISE EXCEPTION 'appointment_barber_interval_excl: se aceptó un cruce parcial por el inicio.';
+    RAISE EXCEPTION 'appointment_professional_interval_excl: se aceptó un cruce parcial por el inicio.';
   EXCEPTION
     WHEN exclusion_violation THEN NULL;
   END;
@@ -414,15 +414,15 @@ BEGIN
   -- Parcial por el final: 10:30-11:30 se cruza con 10:00-11:00.
   BEGIN
     INSERT INTO appointment (
-      barbershop_id, barber_id, service_id, customer_id, attendee_name,
+      business_id, professional_id, service_id, customer_id, attendee_name,
       starts_at, ends_at, status, origin,
       service_name_snapshot, duration_minutes_snapshot, price_amount_snapshot, price_currency_snapshot
     ) VALUES (
-      v_shop, v_barber1, v_service, v_customer, 'Cruce parcial final',
+      v_shop, v_professional1, v_service, v_customer, 'Cruce parcial final',
       '2027-05-11T10:30:00Z', '2027-05-11T11:30:00Z', 'confirmed', 'manual',
       'Corte de prueba Q', 60, 20000.00, 'COP'
     );
-    RAISE EXCEPTION 'appointment_barber_interval_excl: se aceptó un cruce parcial por el final.';
+    RAISE EXCEPTION 'appointment_professional_interval_excl: se aceptó un cruce parcial por el final.';
   EXCEPTION
     WHEN exclusion_violation THEN NULL;
   END;
@@ -430,15 +430,15 @@ BEGIN
   -- Cruce de un minuto: 10:59-11:59 comparte [10:59, 11:00) con A1.
   BEGIN
     INSERT INTO appointment (
-      barbershop_id, barber_id, service_id, customer_id, attendee_name,
+      business_id, professional_id, service_id, customer_id, attendee_name,
       starts_at, ends_at, status, origin,
       service_name_snapshot, duration_minutes_snapshot, price_amount_snapshot, price_currency_snapshot
     ) VALUES (
-      v_shop, v_barber1, v_service, v_customer, 'Cruce de un minuto',
+      v_shop, v_professional1, v_service, v_customer, 'Cruce de un minuto',
       '2027-05-11T10:59:00Z', '2027-05-11T11:59:00Z', 'confirmed', 'manual',
       'Corte de prueba Q', 60, 20000.00, 'COP'
     );
-    RAISE EXCEPTION 'appointment_barber_interval_excl: se aceptó un cruce de un minuto.';
+    RAISE EXCEPTION 'appointment_professional_interval_excl: se aceptó un cruce de un minuto.';
   EXCEPTION
     WHEN exclusion_violation THEN NULL;
   END;
@@ -446,23 +446,23 @@ BEGIN
   -- Contigüidad válida: 11:00-12:00 empieza justo cuando A1 termina
   -- (semiabierto [inicio, fin), RN-DIS-05). Debe aceptarse.
   INSERT INTO appointment (
-    barbershop_id, barber_id, service_id, customer_id, attendee_name,
+    business_id, professional_id, service_id, customer_id, attendee_name,
     starts_at, ends_at, status, origin,
     service_name_snapshot, duration_minutes_snapshot, price_amount_snapshot, price_currency_snapshot
   ) VALUES (
-    v_shop, v_barber1, v_service, v_customer, 'Contigua',
+    v_shop, v_professional1, v_service, v_customer, 'Contigua',
     '2027-05-11T11:00:00Z', '2027-05-11T12:00:00Z', 'confirmed', 'manual',
     'Corte de prueba Q', 60, 20000.00, 'COP'
   );
 
   -- Mismo intervalo exacto, pero otro barbero de la misma barbería: la
-  -- exclusión es por (barbershop_id, barber_id), no solo por barbershop_id.
+  -- exclusión es por (business_id, professional_id), no solo por business_id.
   INSERT INTO appointment (
-    barbershop_id, barber_id, service_id, customer_id, attendee_name,
+    business_id, professional_id, service_id, customer_id, attendee_name,
     starts_at, ends_at, status, origin,
     service_name_snapshot, duration_minutes_snapshot, price_amount_snapshot, price_currency_snapshot
   ) VALUES (
-    v_shop, v_barber2, v_service, v_customer, 'Otro barbero, mismo horario',
+    v_shop, v_professional2, v_service, v_customer, 'Otro barbero, mismo horario',
     '2027-05-11T10:00:00Z', '2027-05-11T11:00:00Z', 'confirmed', 'manual',
     'Corte de prueba Q', 60, 20000.00, 'COP'
   );
@@ -470,12 +470,12 @@ BEGIN
   -- Cancelada: mismo barbero, mismo intervalo exacto que A1. occupies_schedule
   -- es false, así que no debe entrar en la exclusión.
   INSERT INTO appointment (
-    barbershop_id, barber_id, service_id, customer_id, attendee_name,
+    business_id, professional_id, service_id, customer_id, attendee_name,
     starts_at, ends_at, status, origin,
     service_name_snapshot, duration_minutes_snapshot, price_amount_snapshot, price_currency_snapshot,
     resolved_at
   ) VALUES (
-    v_shop, v_barber1, v_service, v_customer, 'Cancelada solapada',
+    v_shop, v_professional1, v_service, v_customer, 'Cancelada solapada',
     '2027-05-11T10:00:00Z', '2027-05-11T11:00:00Z', 'cancelled_by_barber', 'manual',
     'Corte de prueba Q', 60, 20000.00, 'COP', now()
   );
@@ -492,13 +492,13 @@ ROLLBACK;
 -- agenda (completed) también entra en la exclusión.
 -- ---------------------------------------------------------------------------
 BEGIN;
-SET ROLE barberia_app;
-SET LOCAL app.barbershop_id = 'c17a0001-c17a-c17a-c17a-c17a00010001';
+SET ROLE agenda_app;
+SET LOCAL app.business_id = 'c17a0001-c17a-c17a-c17a-c17a00010001';
 
 DO $$
 DECLARE
   v_shop     uuid := 'c17a0001-c17a-c17a-c17a-c17a00010001';
-  v_barber1  uuid := 'c17a1001-1001-1001-1001-100110011001';
+  v_professional1  uuid := 'c17a1001-1001-1001-1001-100110011001';
   v_service  uuid := 'c17a5001-5001-5001-5001-500150015001';
   v_customer uuid := 'c17ac001-0001-0001-0001-000100010001';
   v_completed_id uuid;
@@ -507,34 +507,34 @@ DECLARE
   v_occupies boolean;
 BEGIN
   INSERT INTO appointment (
-    barbershop_id, barber_id, service_id, customer_id, attendee_name,
+    business_id, professional_id, service_id, customer_id, attendee_name,
     starts_at, ends_at, status, origin,
     service_name_snapshot, duration_minutes_snapshot, price_amount_snapshot, price_currency_snapshot,
     resolved_at
   ) VALUES (
-    v_shop, v_barber1, v_service, v_customer, 'Atendida de prueba',
+    v_shop, v_professional1, v_service, v_customer, 'Atendida de prueba',
     '2027-05-12T14:00:00Z', '2027-05-12T15:00:00Z', 'completed', 'manual',
     'Corte de prueba Q', 60, 20000.00, 'COP', now()
   ) RETURNING id INTO v_completed_id;
 
   INSERT INTO appointment (
-    barbershop_id, barber_id, service_id, customer_id, attendee_name,
+    business_id, professional_id, service_id, customer_id, attendee_name,
     starts_at, ends_at, status, origin,
     service_name_snapshot, duration_minutes_snapshot, price_amount_snapshot, price_currency_snapshot,
     resolved_at
   ) VALUES (
-    v_shop, v_barber1, v_service, v_customer, 'Inasistencia de prueba',
+    v_shop, v_professional1, v_service, v_customer, 'Inasistencia de prueba',
     '2027-05-12T16:00:00Z', '2027-05-12T17:00:00Z', 'no_show', 'manual',
     'Corte de prueba Q', 60, 20000.00, 'COP', now()
   ) RETURNING id INTO v_no_show_id;
 
   INSERT INTO appointment (
-    barbershop_id, barber_id, service_id, customer_id, attendee_name,
+    business_id, professional_id, service_id, customer_id, attendee_name,
     starts_at, ends_at, status, origin,
     service_name_snapshot, duration_minutes_snapshot, price_amount_snapshot, price_currency_snapshot,
     resolved_at
   ) VALUES (
-    v_shop, v_barber1, v_service, v_customer, 'Cancelada por cliente de prueba',
+    v_shop, v_professional1, v_service, v_customer, 'Cancelada por cliente de prueba',
     '2027-05-12T18:00:00Z', '2027-05-12T19:00:00Z', 'cancelled_by_customer', 'manual',
     'Corte de prueba Q', 60, 20000.00, 'COP', now()
   ) RETURNING id INTO v_cancelled_customer_id;
@@ -558,15 +558,15 @@ BEGIN
   -- exclusión: crear otra cita encima de una ya atendida se rechaza.
   BEGIN
     INSERT INTO appointment (
-      barbershop_id, barber_id, service_id, customer_id, attendee_name,
+      business_id, professional_id, service_id, customer_id, attendee_name,
       starts_at, ends_at, status, origin,
       service_name_snapshot, duration_minutes_snapshot, price_amount_snapshot, price_currency_snapshot
     ) VALUES (
-      v_shop, v_barber1, v_service, v_customer, 'Encima de una atendida',
+      v_shop, v_professional1, v_service, v_customer, 'Encima de una atendida',
       '2027-05-12T14:30:00Z', '2027-05-12T15:30:00Z', 'confirmed', 'manual',
       'Corte de prueba Q', 60, 20000.00, 'COP'
     );
-    RAISE EXCEPTION 'appointment_barber_interval_excl: se aceptó una cita encima de una completed.';
+    RAISE EXCEPTION 'appointment_professional_interval_excl: se aceptó una cita encima de una completed.';
   EXCEPTION
     WHEN exclusion_violation THEN NULL;
   END;
@@ -583,24 +583,24 @@ ROLLBACK;
 -- de sesión (CA-060-04)
 -- ---------------------------------------------------------------------------
 BEGIN;
-SET ROLE barberia_app;
-SET LOCAL app.barbershop_id = 'c17a0001-c17a-c17a-c17a-c17a00010001';
+SET ROLE agenda_app;
+SET LOCAL app.business_id = 'c17a0001-c17a-c17a-c17a-c17a00010001';
 SET LOCAL TIME ZONE 'America/New_York';
 
 DO $$
 DECLARE
   v_shop     uuid := 'c17a0001-c17a-c17a-c17a-c17a00010001';
-  v_barber1  uuid := 'c17a1001-1001-1001-1001-100110011001';
+  v_professional1  uuid := 'c17a1001-1001-1001-1001-100110011001';
   v_service  uuid := 'c17a5001-5001-5001-5001-500150015001';
   v_customer uuid := 'c17ac001-0001-0001-0001-000100010001';
 BEGIN
   -- Cruza medianoche UTC: 2027-05-20T23:30:00Z a 2027-05-21T00:30:00Z, 60 min.
   INSERT INTO appointment (
-    barbershop_id, barber_id, service_id, customer_id, attendee_name,
+    business_id, professional_id, service_id, customer_id, attendee_name,
     starts_at, ends_at, status, origin,
     service_name_snapshot, duration_minutes_snapshot, price_amount_snapshot, price_currency_snapshot
   ) VALUES (
-    v_shop, v_barber1, v_service, v_customer, 'Cruza medianoche',
+    v_shop, v_professional1, v_service, v_customer, 'Cruza medianoche',
     '2027-05-20T23:30:00+00', '2027-05-21T00:30:00+00', 'confirmed', 'manual',
     'Corte de prueba Q', 60, 20000.00, 'COP'
   );
@@ -611,11 +611,11 @@ BEGIN
   -- horas locales en vez de EXTRACT(EPOCH) sobre timestamptz, fallaría o
   -- exigiría un valor de duración distinto justo este día.
   INSERT INTO appointment (
-    barbershop_id, barber_id, service_id, customer_id, attendee_name,
+    business_id, professional_id, service_id, customer_id, attendee_name,
     starts_at, ends_at, status, origin,
     service_name_snapshot, duration_minutes_snapshot, price_amount_snapshot, price_currency_snapshot
   ) VALUES (
-    v_shop, v_barber1, v_service, v_customer, 'Cambio de horario DST',
+    v_shop, v_professional1, v_service, v_customer, 'Cambio de horario DST',
     '2027-03-14T05:30:00+00', '2027-03-14T06:30:00+00', 'confirmed', 'manual',
     'Corte de prueba Q', 60, 20000.00, 'COP'
   );
@@ -631,8 +631,8 @@ ROLLBACK;
 -- reason; INSERT permitido y UPDATE/DELETE rechazados (RN-HIS-02, DEC-014)
 -- ---------------------------------------------------------------------------
 BEGIN;
-SET ROLE barberia_app;
-SET LOCAL app.barbershop_id = 'c17a0001-c17a-c17a-c17a-c17a00010001';
+SET ROLE agenda_app;
+SET LOCAL app.business_id = 'c17a0001-c17a-c17a-c17a-c17a00010001';
 
 DO $$
 DECLARE
@@ -641,7 +641,7 @@ DECLARE
   v_staff uuid := 'c17a9001-9001-9001-9001-900190019001';
 BEGIN
   BEGIN
-    INSERT INTO appointment_history (barbershop_id, appointment_id, event_type, actor_type)
+    INSERT INTO appointment_history (business_id, appointment_id, event_type, actor_type)
     VALUES (v_shop, v_appt, 'appointment_booked', 'system');
     RAISE EXCEPTION 'appointment_history_event_type_ck: se aceptó un event_type fuera del vocabulario cerrado.';
   EXCEPTION
@@ -649,7 +649,7 @@ BEGIN
   END;
 
   BEGIN
-    INSERT INTO appointment_history (barbershop_id, appointment_id, event_type, actor_type)
+    INSERT INTO appointment_history (business_id, appointment_id, event_type, actor_type)
     VALUES (v_shop, v_appt, 'appointment_created', 'owner');
     RAISE EXCEPTION 'appointment_history_actor_type_ck: se aceptó un actor_type fuera de staff/customer/system.';
   EXCEPTION
@@ -657,7 +657,7 @@ BEGIN
   END;
 
   BEGIN
-    INSERT INTO appointment_history (barbershop_id, appointment_id, event_type, actor_type, actor_staff_user_id)
+    INSERT INTO appointment_history (business_id, appointment_id, event_type, actor_type, actor_staff_user_id)
     VALUES (v_shop, v_appt, 'appointment_created', 'system', v_staff);
     RAISE EXCEPTION 'appointment_history_actor_shape_ck: se aceptó actor_type=system con actor_staff_user_id presente.';
   EXCEPTION
@@ -665,7 +665,7 @@ BEGIN
   END;
 
   BEGIN
-    INSERT INTO appointment_history (barbershop_id, appointment_id, event_type, actor_type)
+    INSERT INTO appointment_history (business_id, appointment_id, event_type, actor_type)
     VALUES (v_shop, v_appt, 'appointment_created', 'staff');
     RAISE EXCEPTION 'appointment_history_actor_shape_ck: se aceptó actor_type=staff sin actor_staff_user_id.';
   EXCEPTION
@@ -673,7 +673,7 @@ BEGIN
   END;
 
   BEGIN
-    INSERT INTO appointment_history (barbershop_id, appointment_id, event_type, actor_type, actor_staff_user_id)
+    INSERT INTO appointment_history (business_id, appointment_id, event_type, actor_type, actor_staff_user_id)
     VALUES (v_shop, v_appt, 'appointment_status_corrected', 'staff', v_staff);
     RAISE EXCEPTION 'appointment_history_reason_ck: se aceptó appointment_status_corrected sin motivo.';
   EXCEPTION
@@ -684,14 +684,14 @@ $$;
 
 -- Fila válida: appointment_created, actor staff. Se conserva para las
 -- pruebas de RESTRICT/limpieza más abajo.
-INSERT INTO appointment_history (id, barbershop_id, appointment_id, event_type, actor_type, actor_staff_user_id)
+INSERT INTO appointment_history (id, business_id, appointment_id, event_type, actor_type, actor_staff_user_id)
 VALUES (
   'c17a4001-0001-0001-0001-000100010001', 'c17a0001-c17a-c17a-c17a-c17a00010001',
   'c17aa001-0001-0001-0001-000100010001', 'appointment_created', 'staff',
   'c17a9001-9001-9001-9001-900190019001'
 );
 
-INSERT INTO appointment_history_change (barbershop_id, history_id, field_name, new_value)
+INSERT INTO appointment_history_change (business_id, history_id, field_name, new_value)
 VALUES (
   'c17a0001-c17a-c17a-c17a-c17a00010001', 'c17a4001-0001-0001-0001-000100010001',
   'status', 'confirmed'
@@ -751,33 +751,33 @@ BEGIN
     END IF;
   END LOOP;
 
-  IF EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'barberia_app' AND rolbypassrls) THEN
-    RAISE EXCEPTION 'barberia_app no puede tener BYPASSRLS.';
+  IF EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'agenda_app' AND rolbypassrls) THEN
+    RAISE EXCEPTION 'agenda_app no puede tener BYPASSRLS.';
   END IF;
 END
 $$;
-\echo 'RLS OK · las cuatro tablas tienen RLS habilitada y forzada, barberia_app sin BYPASSRLS'
+\echo 'RLS OK · las cuatro tablas tienen RLS habilitada y forzada, agenda_app sin BYPASSRLS'
 
 -- ---------------------------------------------------------------------------
--- Cierre por falta de contexto: sin app.barbershop_id fijado, cualquier
--- consulta de barberia_app sobre customer/appointment falla cerrada (nunca
+-- Cierre por falta de contexto: sin app.business_id fijado, cualquier
+-- consulta de agenda_app sobre customer/appointment falla cerrada (nunca
 -- devuelve filas de ninguna barbería), porque la política RLS evalúa
--- current_setting('app.barbershop_id') sin el segundo argumento
+-- current_setting('app.business_id') sin el segundo argumento
 -- missing_ok y ese parámetro no tiene valor por defecto a nivel de sesión.
 -- ---------------------------------------------------------------------------
 BEGIN;
-SET ROLE barberia_app;
--- Deliberadamente SIN "SET LOCAL app.barbershop_id = ...".
+SET ROLE agenda_app;
+-- Deliberadamente SIN "SET LOCAL app.business_id = ...".
 
 DO $$
 BEGIN
   BEGIN
     PERFORM count(*) FROM customer;
-    RAISE EXCEPTION 'customer: una consulta sin app.barbershop_id fijado no debe tener éxito.';
+    RAISE EXCEPTION 'customer: una consulta sin app.business_id fijado no debe tener éxito.';
   EXCEPTION
     WHEN undefined_object THEN NULL;
     WHEN invalid_parameter_value THEN NULL;
-    -- Este mismo backend ya fijó app.barbershop_id con alcance LOCAL en
+    -- Este mismo backend ya fijó app.business_id con alcance LOCAL en
     -- transacciones anteriores de esta suite (todas revertidas): una vez
     -- que un parámetro de configuración personalizado se toca en una
     -- sesión, PostgreSQL lo registra y current_setting() devuelve '' en
@@ -788,11 +788,11 @@ BEGIN
 
   BEGIN
     PERFORM count(*) FROM appointment;
-    RAISE EXCEPTION 'appointment: una consulta sin app.barbershop_id fijado no debe tener éxito.';
+    RAISE EXCEPTION 'appointment: una consulta sin app.business_id fijado no debe tener éxito.';
   EXCEPTION
     WHEN undefined_object THEN NULL;
     WHEN invalid_parameter_value THEN NULL;
-    -- Este mismo backend ya fijó app.barbershop_id con alcance LOCAL en
+    -- Este mismo backend ya fijó app.business_id con alcance LOCAL en
     -- transacciones anteriores de esta suite (todas revertidas): una vez
     -- que un parámetro de configuración personalizado se toca en una
     -- sesión, PostgreSQL lo registra y current_setting() devuelve '' en
@@ -805,10 +805,10 @@ $$;
 
 RESET ROLE;
 ROLLBACK;
-\echo 'cierre por falta de contexto OK · customer/appointment fallan cerrados sin app.barbershop_id'
+\echo 'cierre por falta de contexto OK · customer/appointment fallan cerrados sin app.business_id'
 
 -- ---------------------------------------------------------------------------
--- Grants exactos de barberia_app: sin DELETE en customer/appointment;
+-- Grants exactos de agenda_app: sin DELETE en customer/appointment;
 -- sin UPDATE ni DELETE en el historial (RN-DAT-03, RN-HIS-02)
 -- ---------------------------------------------------------------------------
 DO $$
@@ -823,17 +823,17 @@ BEGIN
     WHERE NOT EXISTS (
       SELECT 1 FROM information_schema.table_privileges
       WHERE table_schema = 'public' AND table_name = v_table
-        AND grantee = 'barberia_app' AND privilege_type = expected
+        AND grantee = 'agenda_app' AND privilege_type = expected
     );
     IF v_missing IS NOT NULL THEN
-      RAISE EXCEPTION 'barberia_app debe tener % sobre %.', v_missing, v_table;
+      RAISE EXCEPTION 'agenda_app debe tener % sobre %.', v_missing, v_table;
     END IF;
     IF EXISTS (
       SELECT 1 FROM information_schema.table_privileges
       WHERE table_schema = 'public' AND table_name = v_table
-        AND grantee = 'barberia_app' AND privilege_type = 'DELETE'
+        AND grantee = 'agenda_app' AND privilege_type = 'DELETE'
     ) THEN
-      RAISE EXCEPTION 'RN-DAT-03/RN-HIS-02: barberia_app NO debe tener DELETE sobre %.', v_table;
+      RAISE EXCEPTION 'RN-DAT-03/RN-HIS-02: agenda_app NO debe tener DELETE sobre %.', v_table;
     END IF;
   END LOOP;
 
@@ -844,17 +844,17 @@ BEGIN
     WHERE NOT EXISTS (
       SELECT 1 FROM information_schema.table_privileges
       WHERE table_schema = 'public' AND table_name = v_table
-        AND grantee = 'barberia_app' AND privilege_type = expected
+        AND grantee = 'agenda_app' AND privilege_type = expected
     );
     IF v_missing IS NOT NULL THEN
-      RAISE EXCEPTION 'barberia_app debe tener % sobre %.', v_missing, v_table;
+      RAISE EXCEPTION 'agenda_app debe tener % sobre %.', v_missing, v_table;
     END IF;
     IF EXISTS (
       SELECT 1 FROM information_schema.table_privileges
       WHERE table_schema = 'public' AND table_name = v_table
-        AND grantee = 'barberia_app' AND privilege_type IN ('UPDATE', 'DELETE')
+        AND grantee = 'agenda_app' AND privilege_type IN ('UPDATE', 'DELETE')
     ) THEN
-      RAISE EXCEPTION 'RN-HIS-02: barberia_app NO debe tener UPDATE ni DELETE sobre %.', v_table;
+      RAISE EXCEPTION 'RN-HIS-02: agenda_app NO debe tener UPDATE ni DELETE sobre %.', v_table;
     END IF;
   END LOOP;
 END
@@ -866,17 +866,17 @@ $$;
 -- cita de R
 -- ---------------------------------------------------------------------------
 BEGIN;
-SET ROLE barberia_app;
-SET LOCAL app.barbershop_id = 'c17a0002-c17a-c17a-c17a-c17a00020002';
+SET ROLE agenda_app;
+SET LOCAL app.business_id = 'c17a0002-c17a-c17a-c17a-c17a00020002';
 
-INSERT INTO customer (id, barbershop_id, full_name)
+INSERT INTO customer (id, business_id, full_name)
 VALUES (
   'c17ac002-0002-0002-0002-000200020002', 'c17a0002-c17a-c17a-c17a-c17a00020002',
   'Cliente R-1 de prueba'
 );
 
 INSERT INTO appointment (
-  id, barbershop_id, barber_id, service_id, customer_id, attendee_name,
+  id, business_id, professional_id, service_id, customer_id, attendee_name,
   starts_at, ends_at, status, origin,
   service_name_snapshot, duration_minutes_snapshot, price_amount_snapshot, price_currency_snapshot
 ) VALUES (
@@ -891,8 +891,8 @@ RESET ROLE;
 COMMIT;
 
 BEGIN;
-SET ROLE barberia_app;
-SET LOCAL app.barbershop_id = 'c17a0001-c17a-c17a-c17a-c17a00010001';
+SET ROLE agenda_app;
+SET LOCAL app.business_id = 'c17a0001-c17a-c17a-c17a-c17a00010001';
 
 DO $$
 DECLARE
@@ -918,14 +918,14 @@ ROLLBACK;
 \echo 'RN-TEN-01 OK · el contexto de Q no ve ni edita la cita de R'
 
 -- ---------------------------------------------------------------------------
--- DEC-070 · Las FK hacia barber/service/customer/staff_user/appointment
+-- DEC-070 · Las FK hacia professional/service/customer/staff_user/appointment
 -- usan ON DELETE RESTRICT, no CASCADE
 -- ---------------------------------------------------------------------------
 DO $$
 BEGIN
   BEGIN
-    DELETE FROM barber WHERE id = 'c17a1001-1001-1001-1001-100110011001';
-    RAISE EXCEPTION 'DEC-070: se permitió borrar un barber con una appointment asociada (CASCADE en vez de RESTRICT).';
+    DELETE FROM professional WHERE id = 'c17a1001-1001-1001-1001-100110011001';
+    RAISE EXCEPTION 'DEC-070: se permitió borrar un professional con una appointment asociada (CASCADE en vez de RESTRICT).';
   EXCEPTION
     WHEN foreign_key_violation THEN NULL;
   END;
@@ -972,8 +972,8 @@ $$;
 -- Trigger de updated_at sobre customer y appointment
 -- ---------------------------------------------------------------------------
 BEGIN;
-SET ROLE barberia_app;
-SET LOCAL app.barbershop_id = 'c17a0001-c17a-c17a-c17a-c17a00010001';
+SET ROLE agenda_app;
+SET LOCAL app.business_id = 'c17a0001-c17a-c17a-c17a-c17a00010001';
 
 DO $$
 DECLARE
@@ -1007,7 +1007,7 @@ ROLLBACK;
 -- ---------------------------------------------------------------------------
 -- Limpieza de las filas persistidas por este archivo (A1, R1, historial y
 -- sus clientes). Orden que respeta ON DELETE RESTRICT: cambios de
--- historial -> historial -> citas -> clientes. Sin SET ROLE barberia_app:
+-- historial -> historial -> citas -> clientes. Sin SET ROLE agenda_app:
 -- ni customer ni appointment ni el historial le conceden DELETE a
 -- propósito (RN-DAT-03/RN-HIS-02); limpiar como el rol administrativo
 -- conectado (superusuario/migrador en este arnés) es correcto aquí, mismo

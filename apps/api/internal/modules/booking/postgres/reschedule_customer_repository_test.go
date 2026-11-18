@@ -55,7 +55,7 @@ func newCustomerRescheduleFixture(t *testing.T) customerRescheduleFixture {
 func (f customerRescheduleFixture) setDeadline(t *testing.T, shop database.BarbershopID, minutes int) {
 	t.Helper()
 	err := f.db.InTenantTx(context.Background(), shop, func(ctx context.Context, q database.Queries) error {
-		_, err := q.Exec(ctx, `UPDATE barbershop SET cancellation_deadline_minutes = $2 WHERE id = $1`, shop, minutes)
+		_, err := q.Exec(ctx, `UPDATE business SET cancellation_deadline_minutes = $2 WHERE id = $1`, shop, minutes)
 		return err
 	})
 	if err != nil {
@@ -99,7 +99,7 @@ func (f customerRescheduleFixture) row(t *testing.T) customerRescheduleRow {
 	t.Helper()
 	var r customerRescheduleRow
 	err := f.db.InTenantTx(context.Background(), shopQ, func(ctx context.Context, q database.Queries) error {
-		if err := q.QueryRow(ctx, `SELECT starts_at, ends_at FROM appointment WHERE barbershop_id = $1 AND id = $2`,
+		if err := q.QueryRow(ctx, `SELECT starts_at, ends_at FROM appointment WHERE business_id = $1 AND id = $2`,
 			shopQ, f.appointment).Scan(&r.startsAt, &r.endsAt); err != nil {
 			return err
 		}
@@ -108,7 +108,7 @@ func (f customerRescheduleFixture) row(t *testing.T) customerRescheduleRow {
 			       count(*) FILTER (WHERE actor_type = 'staff'),
 			       coalesce(bool_and(actor_customer_id = $3) FILTER (WHERE actor_type = 'customer'), true)
 			  FROM appointment_history
-			 WHERE barbershop_id = $1 AND appointment_id = $2 AND event_type = 'appointment_rescheduled'`,
+			 WHERE business_id = $1 AND appointment_id = $2 AND event_type = 'appointment_rescheduled'`,
 			shopQ, f.appointment, f.customerID).Scan(&r.customerEvents, &r.staffEvents, &r.actorCustomerOK); err != nil {
 			return err
 		}

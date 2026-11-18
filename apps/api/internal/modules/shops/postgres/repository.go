@@ -18,7 +18,7 @@ import (
 // publicSlugUniqueIndex es el nombre del índice único parcial que
 // 20260911045044_add_barbershop_public_slug.sql crea sobre
 // lower(public_slug) (HU-090, DEC-082).
-const publicSlugUniqueIndex = "idx_barbershop_public_slug"
+const publicSlugUniqueIndex = "idx_business_public_slug"
 
 // maxSlugGenerationAttempts acota el reintento ante colisión real: con 31^6
 // códigos por nombre (DEC-117) una colisión ya es improbable, así que agotar
@@ -67,7 +67,7 @@ func claimSlug(ctx context.Context, q database.Queries, newCode slugCodeFunc, ba
 			return "", fmt.Errorf("savepoint before slug attempt: %w", err)
 		}
 		_, err = q.Exec(ctx,
-			`UPDATE barbershop SET public_slug = $2 WHERE id = $1 AND public_slug IS NULL`,
+			`UPDATE business SET public_slug = $2 WHERE id = $1 AND public_slug IS NULL`,
 			barbershopID, candidate,
 		)
 		switch {
@@ -113,7 +113,7 @@ func (r *Repository) Get(ctx context.Context, barbershopID string) (shops.Barber
 	err := r.db.InTenantTx(ctx, database.BarbershopID(barbershopID), func(ctx context.Context, q database.Queries) error {
 		err := q.QueryRow(ctx,
 			`SELECT name, timezone, contact_email, contact_phone
-			   FROM barbershop
+			   FROM business
 			  WHERE id = $1`,
 			barbershopID,
 		).Scan(&b.Name, &b.Timezone, &b.ContactEmail, &b.ContactPhone)
@@ -173,7 +173,7 @@ func (r *Repository) Update(ctx context.Context, barbershopID string, input shop
 		// tenant.
 		var currentSlug *string
 		if err := q.QueryRow(ctx,
-			`SELECT public_slug FROM barbershop WHERE id = $1 FOR UPDATE`,
+			`SELECT public_slug FROM business WHERE id = $1 FOR UPDATE`,
 			barbershopID,
 		).Scan(&currentSlug); err != nil {
 			if errors.Is(err, pgx.ErrNoRows) {
@@ -190,7 +190,7 @@ func (r *Repository) Update(ctx context.Context, barbershopID string, input shop
 
 		var b shops.Barbershop
 		err := q.QueryRow(ctx,
-			`UPDATE barbershop
+			`UPDATE business
 			    SET name = $2, timezone = $3, contact_email = $4, contact_phone = $5
 			  WHERE id = $1
 			RETURNING name, timezone, contact_email, contact_phone`,

@@ -47,12 +47,12 @@ func seedCompletedAppointmentWithToken(t *testing.T, db *database.DB, status str
 	hash := hex.EncodeToString(sum[:])
 
 	err := db.InTenantTx(context.Background(), database.BarbershopID(reviewShopUno), func(ctx context.Context, q database.Queries) error {
-		if err := q.QueryRow(ctx, `INSERT INTO barber (barbershop_id, full_name) VALUES ($1, $2) RETURNING id`,
+		if err := q.QueryRow(ctx, `INSERT INTO professional (business_id, full_name) VALUES ($1, $2) RETURNING id`,
 			reviewShopUno, "Barbero reseñas "+strconv.FormatInt(time.Now().UnixNano(), 10)).Scan(&barberID); err != nil {
 			return err
 		}
 		var customerID, appointmentID string
-		if err := q.QueryRow(ctx, `INSERT INTO customer (barbershop_id, full_name) VALUES ($1, 'Cliente de prueba') RETURNING id`,
+		if err := q.QueryRow(ctx, `INSERT INTO customer (business_id, full_name) VALUES ($1, 'Cliente de prueba') RETURNING id`,
 			reviewShopUno).Scan(&customerID); err != nil {
 			return err
 		}
@@ -62,7 +62,7 @@ func seedCompletedAppointmentWithToken(t *testing.T, db *database.DB, status str
 			resolved = "NULL"
 		}
 		if err := q.QueryRow(ctx,
-			`INSERT INTO appointment (barbershop_id, barber_id, service_id, customer_id, attendee_name, starts_at, ends_at,
+			`INSERT INTO appointment (business_id, professional_id, service_id, customer_id, attendee_name, starts_at, ends_at,
 			                          status, origin, resolved_at, service_name_snapshot, duration_minutes_snapshot,
 			                          price_amount_snapshot, price_currency_snapshot)
 			 VALUES ($1, $2, $3, $4, 'Cliente de prueba', $5, $6, $7, 'manual', `+resolved+`, 'Servicio', 30, 20000, 'COP')
@@ -71,7 +71,7 @@ func seedCompletedAppointmentWithToken(t *testing.T, db *database.DB, status str
 		}
 		issued := time.Now().UTC().Add(-time.Hour)
 		_, err := q.Exec(ctx,
-			`INSERT INTO appointment_access_token (barbershop_id, appointment_id, token_hash, issued_at, expires_at)
+			`INSERT INTO appointment_access_token (business_id, appointment_id, token_hash, issued_at, expires_at)
 			 VALUES ($1, $2, $3, $4, $5)`, reviewShopUno, appointmentID, hash, issued, issued.Add(90*24*time.Hour))
 		return err
 	})

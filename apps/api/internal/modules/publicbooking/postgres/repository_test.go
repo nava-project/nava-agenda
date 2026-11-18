@@ -24,7 +24,7 @@ import (
 )
 
 const (
-	testDatabaseURL = "postgres://barberia_app@localhost:5432/barberia_test?sslmode=disable"
+	testDatabaseURL = "postgres://agenda_app@localhost:5432/barberia_test?sslmode=disable"
 
 	// Par dedicado de hu090_reserva_publica.sql: shopUno tiene contacto
 	// completo y slug, shopDos tiene slug pero sin contacto (contactos
@@ -238,7 +238,7 @@ func setVocabulary(t *testing.T, db *database.DB, repo *publicbookingpostgres.Re
 	write := func(v publicbooking.Vocabulary) error {
 		return db.InTenantTx(context.Background(), database.BarbershopID(id), func(ctx context.Context, q database.Queries) error {
 			_, err := q.Exec(ctx,
-				`UPDATE barbershop
+				`UPDATE business
 				    SET business_term = $2, business_term_gender = $3,
 				        professional_term = $4, professional_term_plural = $5, professional_term_gender = $6
 				  WHERE id = $1`,
@@ -268,8 +268,8 @@ func TestResolveBySlug_Vocabulary_DefaultsAndPerTenant(t *testing.T) {
 	repo := publicbookingpostgres.New(db)
 
 	wantDefault := publicbooking.Vocabulary{
-		BusinessTerm: "barbería", BusinessTermGender: "feminine",
-		ProfessionalTerm: "barbero", ProfessionalTermPlural: "barberos",
+		BusinessTerm: "negocio", BusinessTermGender: "masculine",
+		ProfessionalTerm: "profesional", ProfessionalTermPlural: "profesionales",
 		ProfessionalTermGender: "masculine",
 	}
 	wantNails := publicbooking.Vocabulary{
@@ -315,7 +315,7 @@ func setLocation(t *testing.T, db *database.DB, repo *publicbookingpostgres.Repo
 	write := func(enabled bool, address *string, lat, lng *float64) error {
 		return db.InTenantTx(context.Background(), database.BarbershopID(id), func(ctx context.Context, q database.Queries) error {
 			_, err := q.Exec(ctx,
-				`UPDATE barbershop
+				`UPDATE business
 				    SET has_physical_location = $2, address = $3, latitude = $4, longitude = $5
 				  WHERE id = $1`, id, enabled, address, lat, lng)
 			return err
@@ -731,17 +731,17 @@ func TestListPublicBarbers_RatingCountsOnlyVisibleReviews(t *testing.T) {
 		}{{5, false}, {5, false}, {1, true}} {
 			var serviceID, customerID, appointmentID string
 			if err := q.QueryRow(ctx,
-				`INSERT INTO service (barbershop_id, name, duration_minutes, price_amount, price_currency)
+				`INSERT INTO service (business_id, name, duration_minutes, price_amount, price_currency)
 				 VALUES ($1, $2, 30, 20000, 'COP') RETURNING id`, shopUno, "Servicio reseña "+strconv.FormatInt(time.Now().UnixNano(), 10)).Scan(&serviceID); err != nil {
 				return err
 			}
 			if err := q.QueryRow(ctx,
-				`INSERT INTO customer (barbershop_id, full_name) VALUES ($1, 'Cliente de prueba') RETURNING id`, shopUno).Scan(&customerID); err != nil {
+				`INSERT INTO customer (business_id, full_name) VALUES ($1, 'Cliente de prueba') RETURNING id`, shopUno).Scan(&customerID); err != nil {
 				return err
 			}
 			starts := time.Date(2032, 1, 1, 8, 0, 0, 0, time.UTC).AddDate(0, 0, int(time.Now().UnixNano()%3000)).Add(time.Duration(i) * time.Hour)
 			if err := q.QueryRow(ctx,
-				`INSERT INTO appointment (barbershop_id, barber_id, service_id, customer_id, attendee_name, starts_at, ends_at,
+				`INSERT INTO appointment (business_id, professional_id, service_id, customer_id, attendee_name, starts_at, ends_at,
 				                          status, origin, resolved_at, service_name_snapshot, duration_minutes_snapshot,
 				                          price_amount_snapshot, price_currency_snapshot)
 				 VALUES ($1, $2, $3, $4, 'Cliente de prueba', $5, $6, 'completed', 'manual', now(), 'Servicio', 30, 20000, 'COP')
@@ -749,7 +749,7 @@ func TestListPublicBarbers_RatingCountsOnlyVisibleReviews(t *testing.T) {
 				return err
 			}
 			if _, err := q.Exec(ctx,
-				`INSERT INTO barber_review (barbershop_id, barber_id, appointment_id, rating, hidden_at)
+				`INSERT INTO professional_review (business_id, professional_id, appointment_id, rating, hidden_at)
 				 VALUES ($1, $2, $3, $4, CASE WHEN $5 THEN now() ELSE NULL END)`,
 				shopUno, barberoVariosSegundoID, appointmentID, c.rating, c.hidden); err != nil {
 				return err
@@ -797,7 +797,7 @@ func TestResolveBySlug_OffersHomeService_FollowsTheShopSwitchOnly(t *testing.T) 
 	}
 	setOffers := func(on bool) error {
 		return db.InTenantTx(ctx, database.BarbershopID(id), func(ctx context.Context, q database.Queries) error {
-			_, err := q.Exec(ctx, `UPDATE barbershop SET offers_home_service = $2 WHERE id = $1`, id, on)
+			_, err := q.Exec(ctx, `UPDATE business SET offers_home_service = $2 WHERE id = $1`, id, on)
 			return err
 		})
 	}
@@ -835,7 +835,7 @@ func TestResolveBySlug_BrandAccent_FollowsTheShopOnly(t *testing.T) {
 	}
 	setAccent := func(accent string) error {
 		return db.InTenantTx(ctx, database.BarbershopID(id), func(ctx context.Context, q database.Queries) error {
-			_, err := q.Exec(ctx, `UPDATE barbershop SET brand_accent = $2 WHERE id = $1`, id, accent)
+			_, err := q.Exec(ctx, `UPDATE business SET brand_accent = $2 WHERE id = $1`, id, accent)
 			return err
 		})
 	}
@@ -873,7 +873,7 @@ func TestResolveBySlug_GooglePlaceID_FollowsTheShopOnly(t *testing.T) {
 	}
 	set := func(placeID *string) error {
 		return db.InTenantTx(ctx, database.BarbershopID(id), func(ctx context.Context, q database.Queries) error {
-			_, err := q.Exec(ctx, `UPDATE barbershop SET google_place_id = $2 WHERE id = $1`, id, placeID)
+			_, err := q.Exec(ctx, `UPDATE business SET google_place_id = $2 WHERE id = $1`, id, placeID)
 			return err
 		})
 	}
@@ -917,15 +917,15 @@ func TestResolveBySlug_OpeningHours_FollowsTheShopOnly(t *testing.T) {
 		})
 	}
 	if err := exec(`
-		WITH s AS (UPDATE barbershop SET closed_on_holidays = true WHERE id = $1 RETURNING id)
-		INSERT INTO barbershop_opening_hour (barbershop_id, iso_weekday, opens_time, closes_time)
+		WITH s AS (UPDATE business SET closed_on_holidays = true WHERE id = $1 RETURNING id)
+		INSERT INTO business_opening_hour (business_id, iso_weekday, opens_time, closes_time)
 		SELECT s.id, v.d, v.o::time, v.c::time FROM s,
 		       (VALUES (5, '20:00', '24:00'), (1, '14:00', '19:00'), (1, '09:00', '12:00')) AS v(d, o, c)`); err != nil {
 		t.Fatalf("guardar horario: %v", err)
 	}
 	t.Cleanup(func() {
-		_ = exec(`WITH s AS (UPDATE barbershop SET closed_on_holidays = false WHERE id = $1 RETURNING id)
-		          DELETE FROM barbershop_opening_hour USING s WHERE barbershop_opening_hour.barbershop_id = s.id`)
+		_ = exec(`WITH s AS (UPDATE business SET closed_on_holidays = false WHERE id = $1 RETURNING id)
+		          DELETE FROM business_opening_hour USING s WHERE business_opening_hour.business_id = s.id`)
 	})
 
 	p, _, err := repo.ResolveBySlug(ctx, slugUno)

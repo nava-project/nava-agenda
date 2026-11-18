@@ -53,8 +53,8 @@ func (r *WorkerRepository) NoticeContext(ctx context.Context, noticeID, claimTok
 	found := false
 	err := r.db.CallSecurityDefinerRow(ctx,
 		`SELECT kind, appointment_status, starts_at, appointment_state_at, coalesce(customer_email, ''),
-		        attendee_name, service_name, barbershop_name, barbershop_timezone, already_covered, notice_state_at,
-		        coalesce(customer_phone, ''), barber_name
+		        attendee_name, service_name, business_name, business_timezone, already_covered, notice_state_at,
+		        coalesce(customer_phone, ''), professional_name
 		   FROM notice_context($1::uuid, $2::uuid)`,
 		[]any{noticeID, claimToken},
 		func(row pgx.Row) error {

@@ -42,7 +42,7 @@ func (r *BrandRepository) Get(ctx context.Context, barbershopID string) (shops.B
 			`SELECT brand_accent, business_term, business_term_gender,
 			        professional_term, professional_term_plural, professional_term_gender,
 			        has_physical_location, address, latitude, longitude, offers_home_service
-			   FROM barbershop
+			   FROM business
 			  WHERE id = $1`,
 			barbershopID,
 		).Scan(&b.Accent, &b.BusinessTerm, &b.BusinessTermGender,
@@ -79,7 +79,7 @@ func (r *BrandRepository) Update(ctx context.Context, barbershopID string, brand
 	err := r.db.InTenantTx(ctx, database.BarbershopID(barbershopID), func(ctx context.Context, q database.Queries) error {
 		var b shops.Brand
 		err := q.QueryRow(ctx,
-			`UPDATE barbershop
+			`UPDATE business
 			    SET brand_accent = $2,
 			        business_term = $3,
 			        business_term_gender = $4,

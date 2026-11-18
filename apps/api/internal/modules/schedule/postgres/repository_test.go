@@ -25,7 +25,7 @@ import (
 )
 
 const (
-	testDatabaseURL = "postgres://barberia_app@localhost:5432/barberia_test?sslmode=disable"
+	testDatabaseURL = "postgres://agenda_app@localhost:5432/barberia_test?sslmode=disable"
 
 	// shopK/shopL y sus barberos son los de testdata/hu040_horario.sql:
 	// aislados de dos_barberias.sql/hu021_barberos.sql/etc. por el mismo

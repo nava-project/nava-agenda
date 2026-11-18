@@ -79,7 +79,7 @@ func createAppointmentForOccupancy(t *testing.T, db *database.DB, barbershopID, 
 	err := db.InTenantTx(context.Background(), database.BarbershopID(barbershopID), func(ctx context.Context, q database.Queries) error {
 		var customerID string
 		if err := q.QueryRow(ctx, `
-			INSERT INTO customer (barbershop_id, full_name, phone)
+			INSERT INTO customer (business_id, full_name, phone)
 			VALUES ($1, 'Cliente de prueba HU-094', $2)
 			RETURNING id`,
 			barbershopID, phone,
@@ -88,7 +88,7 @@ func createAppointmentForOccupancy(t *testing.T, db *database.DB, barbershopID, 
 		}
 		return q.QueryRow(ctx, `
 			INSERT INTO appointment (
-				barbershop_id, barber_id, service_id, customer_id, attendee_name,
+				business_id, professional_id, service_id, customer_id, attendee_name,
 				starts_at, ends_at, status, origin, resolved_at,
 				service_name_snapshot, duration_minutes_snapshot,
 				price_amount_snapshot, price_currency_snapshot

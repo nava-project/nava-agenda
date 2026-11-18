@@ -262,7 +262,7 @@ func (s *Service) CompleteCallback(
 	tokens, err := s.provider.Exchange(ctx, code, string(verifier))
 	if err != nil || tokens.RefreshToken == "" {
 		// Sin detalle: el error del proveedor puede traer partes del código.
-		s.log.Warn("google_calendar.connect.exchange_failed", "barber_id", barberID)
+		s.log.Warn("google_calendar.connect.exchange_failed", "professional_id", barberID)
 		return CallbackFailed, nil
 	}
 
@@ -289,7 +289,7 @@ func (s *Service) CompleteCallback(
 	if hadPrevious && previous.HasCredentials() {
 		s.revokeStored(ctx, previous, barbershopID, barberID)
 	}
-	s.log.Info("google_calendar.connect.connected", "barber_id", barberID)
+	s.log.Info("google_calendar.connect.connected", "professional_id", barberID)
 	return CallbackConnected, nil
 }
 
@@ -336,7 +336,7 @@ func (s *Service) BarberLinkReleased(ctx context.Context, barbershopID, barberID
 	if err := s.disconnectBarber(ctx, barbershopID, barberID); err != nil {
 		// El vínculo ya cambió: no hay a quién devolverle el error. Se deja
 		// constancia sin datos personales para reconciliarlo.
-		s.log.Error("google_calendar.disconnect.after_link_released_failed", "barber_id", barberID, "error", err)
+		s.log.Error("google_calendar.disconnect.after_link_released_failed", "professional_id", barberID, "error", err)
 	}
 }
 
@@ -354,7 +354,7 @@ func (s *Service) disconnectBarber(ctx context.Context, barbershopID, barberID s
 	if _, err := s.repo.MarkStatus(ctx, barbershopID, barberID, StatusDisconnected, "", s.clock.Now()); err != nil {
 		return apperr.Internal(fmt.Errorf("googlecalendar: desconectar: %w", err))
 	}
-	s.log.Info("google_calendar.disconnect.disconnected", "barber_id", barberID)
+	s.log.Info("google_calendar.disconnect.disconnected", "professional_id", barberID)
 	return nil
 }
 
@@ -366,11 +366,11 @@ func (s *Service) revokeStored(ctx context.Context, conn Connection, barbershopI
 	}
 	token, err := s.cipher.Decrypt(conn.Credentials, conn.KeyID, tokenAAD(barbershopID, barberID))
 	if err != nil {
-		s.log.Warn("google_calendar.revoke.undecryptable", "barber_id", barberID)
+		s.log.Warn("google_calendar.revoke.undecryptable", "professional_id", barberID)
 		return
 	}
 	if err := s.provider.Revoke(ctx, string(token)); err != nil {
-		s.log.Warn("google_calendar.revoke.failed", "barber_id", barberID)
+		s.log.Warn("google_calendar.revoke.failed", "professional_id", barberID)
 	}
 }
 
@@ -401,7 +401,7 @@ func (s *Service) AccessToken(ctx context.Context, barbershopID, barberID string
 		if _, markErr := s.repo.MarkStatus(ctx, barbershopID, barberID, StatusReauthRequired, "token_revoked", s.clock.Now()); markErr != nil {
 			return "", time.Time{}, fmt.Errorf("googlecalendar: marcar reauth_required: %w", markErr)
 		}
-		s.log.Warn("google_calendar.token.revoked", "barber_id", barberID)
+		s.log.Warn("google_calendar.token.revoked", "professional_id", barberID)
 		return "", time.Time{}, ErrReauthRequired
 	}
 	if err != nil {

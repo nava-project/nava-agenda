@@ -17,17 +17,17 @@
 
 BEGIN;
 
-INSERT INTO barbershop (id, name, timezone, public_slug) VALUES
+INSERT INTO business (id, name, timezone, public_slug) VALUES
   ('01050001-0105-0105-0105-010500010001', 'Barbería de prueba HU-105 Uno', 'America/Bogota', 'hu105-uno'),
   ('01050002-0105-0105-0105-010500020002', 'Barbería de prueba HU-105 Dos', 'America/Bogota', 'hu105-dos')
 ON CONFLICT (id) DO NOTHING;
 
-INSERT INTO barber (id, barbershop_id, full_name) VALUES
+INSERT INTO professional (id, business_id, full_name) VALUES
   ('01050011-0105-0105-0105-010500110011', '01050001-0105-0105-0105-010500010001', 'Barbero HU-105 Uno'),
   ('01050021-0105-0105-0105-010500210021', '01050002-0105-0105-0105-010500020002', 'Barbero HU-105 Dos')
 ON CONFLICT (id) DO NOTHING;
 
-INSERT INTO service (id, barbershop_id, name, duration_minutes, price_amount, price_currency) VALUES
+INSERT INTO service (id, business_id, name, duration_minutes, price_amount, price_currency) VALUES
   ('01050012-0105-0105-0105-010500120012', '01050001-0105-0105-0105-010500010001', 'Corte de prueba HU-105 Uno', 30, 20000.00, 'COP'),
   ('01050022-0105-0105-0105-010500220022', '01050002-0105-0105-0105-010500020002', 'Corte de prueba HU-105 Dos', 30, 20000.00, 'COP')
 ON CONFLICT (id) DO NOTHING;

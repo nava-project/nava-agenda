@@ -32,7 +32,7 @@ import (
 )
 
 const (
-	testDatabaseURL = "postgres://barberia_app@localhost:5432/barberia_test?sslmode=disable"
+	testDatabaseURL = "postgres://agenda_app@localhost:5432/barberia_test?sslmode=disable"
 
 	shopUno    = "01010001-0101-0101-0101-010100010001"
 	serviceUno = "01010031-0101-0101-0101-010100310031"
@@ -73,7 +73,7 @@ func newBarber(t *testing.T, db *database.DB, shopID string) string {
 	var id string
 	err := db.InTenantTx(context.Background(), database.BarbershopID(shopID), func(ctx context.Context, q database.Queries) error {
 		return q.QueryRow(ctx,
-			`INSERT INTO barber (barbershop_id, full_name) VALUES ($1, $2) RETURNING id`,
+			`INSERT INTO professional (business_id, full_name) VALUES ($1, $2) RETURNING id`,
 			shopID, "Barbero de prueba HU-100 "+strconv.FormatInt(time.Now().UnixNano(), 10)).Scan(&id)
 	})
 	if err != nil {
@@ -140,7 +140,7 @@ func newToken(t *testing.T, db *database.DB, shopID, appointmentID string) (plai
 	issued := time.Now().UTC().Add(-time.Hour)
 	err := db.InTenantTx(context.Background(), database.BarbershopID(shopID), func(ctx context.Context, q database.Queries) error {
 		_, err := q.Exec(ctx,
-			`INSERT INTO appointment_access_token (barbershop_id, appointment_id, token_hash, issued_at, expires_at)
+			`INSERT INTO appointment_access_token (business_id, appointment_id, token_hash, issued_at, expires_at)
 			 VALUES ($1, $2, $3, $4, $5)`,
 			shopID, appointmentID, hash, issued, issued.Add(90*24*time.Hour))
 		return err
@@ -187,7 +187,7 @@ func TestCreate_CompletedAppointment_StoresOneReviewForTheAppointmentsBarber(t *
 	}
 	var count, rating int
 	err = db.InTenantTx(context.Background(), database.BarbershopID(shopUno), func(ctx context.Context, q database.Queries) error {
-		return q.QueryRow(ctx, `SELECT count(*), max(rating) FROM barber_review WHERE appointment_id = $1`, appt).Scan(&count, &rating)
+		return q.QueryRow(ctx, `SELECT count(*), max(rating) FROM professional_review WHERE appointment_id = $1`, appt).Scan(&count, &rating)
 	})
 	if err != nil || count != 1 || rating != 5 {
 		t.Fatalf("count=%d rating=%d err=%v, se esperaba 1 reseña de 5 estrellas", count, rating, err)
