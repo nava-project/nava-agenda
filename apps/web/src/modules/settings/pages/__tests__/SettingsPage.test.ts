@@ -73,9 +73,9 @@ describe('SettingsPage', () => {
 
       expect(input(wrapper, 'name').value).toBe('Barbería Ejemplo')
       expect(input(wrapper, 'contactEmail').value).toBe('contacto@ejemplo.test')
-      expect(input(wrapper, 'businessTerm').value).toBe('barbería')
-      expect(input(wrapper, 'professionalTerm').value).toBe('barbero')
-      expect(input(wrapper, 'professionalTermPlural').value).toBe('barberos')
+      expect(input(wrapper, 'businessTerm').value).toBe('negocio')
+      expect(input(wrapper, 'professionalTerm').value).toBe('profesional')
+      expect(input(wrapper, 'professionalTermPlural').value).toBe('profesionales')
       // La zona vive en el combobox del selector de zonas.
       expect((wrapper.get('[role="combobox"]').element as HTMLInputElement).value).toBe(
         'America/Bogota',
@@ -147,7 +147,7 @@ describe('SettingsPage', () => {
       await submit(wrapper)
 
       expect(saveMock).not.toHaveBeenCalled()
-      expect(wrapper.text()).toContain('Escribe el nombre de la barbería.')
+      expect(wrapper.text()).toContain('Escribe el nombre del negocio.')
     })
 
     it.each([
@@ -420,7 +420,7 @@ describe('SettingsPage', () => {
       await discard.trigger('click')
 
       expect(input(wrapper, 'name').value).toBe('Barbería Ejemplo')
-      expect(input(wrapper, 'businessTerm').value).toBe('barbería')
+      expect(input(wrapper, 'businessTerm').value).toBe('negocio')
       expect(wrapper.find('.save-bar').exists()).toBe(false)
       expect(saveMock).not.toHaveBeenCalled()
     })

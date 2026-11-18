@@ -31,7 +31,7 @@ export { default as OfferServiceSwitch } from './components/OfferServiceSwitch.v
 export const barberServicesNavItems: NavItem[] = [
   {
     to: { name: 'barber-services' },
-    label: 'Servicios por barbero',
+    label: 'Servicios por profesional',
     labelFor: (v) => `Servicios por ${v.professional}`,
     // Con un solo barbero la matriz no tiene sentido: «Servicios» ofrece cada servicio (DEC-115).
     // El empleado no tiene «Servicios» (el catálogo es de la barbería): aquí elige

@@ -63,7 +63,7 @@ async function openAssignments(page: Page, width: number, height: number) {
     await route.fulfill(json({ title: 'Mock endpoint not found' }, 404))
   })
   await page.goto('/panel/servicios-por-barbero')
-  await expect(page.getByRole('heading', { name: 'Servicios por barbero' })).toBeVisible()
+  await expect(page.getByRole('heading', { name: 'Servicios por profesional' })).toBeVisible()
   await expect(page.getByRole('checkbox', { name: 'Corte clásico' })).toBeChecked()
 }
 
@@ -106,8 +106,8 @@ test('fidelidad #195: conflicto, foco y reflow obligatorio', async ({ page }) =>
     expect(
       await page.evaluate(() => document.documentElement.scrollWidth > window.innerWidth),
     ).toBe(false)
-    await page.getByLabel('Barbero', { exact: true }).focus()
-    await expect(page.getByLabel('Barbero', { exact: true })).toBeFocused()
+    await page.getByLabel('Profesional', { exact: true }).focus()
+    await expect(page.getByLabel('Profesional', { exact: true })).toBeFocused()
     await page.screenshot({
       path: path.join(evidenceDir, 'responsive', viewport.name, 'foco-barbero.png'),
       animations: 'disabled',

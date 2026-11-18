@@ -40,10 +40,10 @@ async function driveScenario(page: Page, scenario: Scenario) {
       await expect(page.getByText('No pudimos cargar esta sección')).toBeVisible()
       return
     case 'no-barbers':
-      await expect(page.getByText('Aún no tienes barberos registrados')).toBeVisible()
+      await expect(page.getByText('Aún no tienes profesionales registrados')).toBeVisible()
       return
     case 'empty-form':
-      await expect(page.getByRole('button', { name: 'Barbero', exact: true })).toBeVisible()
+      await expect(page.getByRole('button', { name: 'Profesional', exact: true })).toBeVisible()
       return
     case 'services-loading':
       await chooseBarber(page)
@@ -52,12 +52,14 @@ async function driveScenario(page: Page, scenario: Scenario) {
     case 'services-empty':
       await chooseBarber(page)
       await expect(
-        page.getByText('Este barbero no tiene servicios activos asignados.'),
+        page.getByText('Este profesional no tiene servicios activos asignados.'),
       ).toBeVisible()
       return
     case 'services-error':
       await chooseBarber(page)
-      await expect(page.getByText('No pudimos cargar los servicios de este barbero.')).toBeVisible()
+      await expect(
+        page.getByText('No pudimos cargar los servicios de este profesional.'),
+      ).toBeVisible()
       return
     case 'filled-form':
       await fillCompleteForm(page)
@@ -66,7 +68,7 @@ async function driveScenario(page: Page, scenario: Scenario) {
     case 'validation-error':
       await fillCustomerAndSchedule(page)
       await page.getByRole('button', { name: 'Registrar turno' }).click()
-      await expect(page.getByText('Elige un barbero.')).toBeVisible()
+      await expect(page.getByText('Elige un profesional.')).toBeVisible()
       return
     case 'saving':
       await fillCompleteForm(page)
@@ -77,7 +79,7 @@ async function driveScenario(page: Page, scenario: Scenario) {
       await fillCompleteForm(page)
       await page.getByRole('button', { name: 'Registrar turno' }).click()
       await expect(
-        page.getByText('el barbero ya tiene una cita en ese intervalo').first(),
+        page.getByText('el profesional ya tiene una cita en ese intervalo').first(),
       ).toBeVisible()
       return
     case 'created':

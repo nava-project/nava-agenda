@@ -6,7 +6,7 @@ import "system-barbershop/internal/platform/apperr"
 // barbería (RN-TEN-01): el mismo Kind para ambos casos es lo que impide que
 // la capa HTTP los distinga, igual que el resto del backend.
 func errBarberNotFound() error {
-	return apperr.NotFound("no existe un barbero con ese identificador")
+	return apperr.NotFound("no existe un profesional con ese identificador")
 }
 
 // errWorkingHourNotFound cubre un tramo inexistente, de otro barbero o de
@@ -38,5 +38,5 @@ func errDurationInvalid() error {
 // no depende de la forma del cuerpo, depende del estado ya persistido de
 // otras filas.
 func errOverlapConflict() error {
-	return apperr.Conflict("el tramo se solapa con otro existente del mismo barbero y día")
+	return apperr.Conflict("el tramo se solapa con otro existente del mismo profesional y día")
 }

@@ -14,7 +14,7 @@ describe('BookingProgress', () => {
     const wrapper = mount(BookingProgress, { props: { step: 1 } })
     expect(wrapper.find('nav').attributes('aria-label')).toBe('Progreso de la reserva')
     const labels = wrapper.findAll('li').map((item) => item.find('.pb-progress__label').text())
-    expect(labels).toEqual(['Servicio', 'Barbero', 'Horario', 'Tus datos'])
+    expect(labels).toEqual(['Servicio', 'Profesional', 'Horario', 'Tus datos'])
   })
 
   it('marks only the current step with aria-current and the earlier ones as completed', () => {

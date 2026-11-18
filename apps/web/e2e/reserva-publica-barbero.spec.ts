@@ -79,7 +79,7 @@ test.describe('Selección pública de barbero (HU-092)', () => {
 
     await page.goto(`/reservar/barberia-ejemplo/servicios/${SERVICE_ID}/barbero`)
     await expect(
-      page.getByText('Este servicio no tiene barberos disponibles en este momento.'),
+      page.getByText('Este servicio no tiene profesionales disponibles en este momento.'),
     ).toBeVisible()
   })
 
@@ -96,7 +96,7 @@ test.describe('Selección pública de barbero (HU-092)', () => {
             type: '/api/v1/problems/not-found',
             title: 'No encontrado',
             status: 404,
-            detail: 'no existe una barbería pública con ese enlace',
+            detail: 'no existe un negocio público con ese enlace',
             instance: 'e2e-hu092-404',
             code: 'not-found',
             requestId: 'e2e-hu092-404',

@@ -7,7 +7,7 @@ import "system-barbershop/internal/platform/apperr"
 // que impide que la capa HTTP los distinga, igual que el resto del backend
 // (mismo criterio que errServiceNotFound en errors.go).
 func errAssignmentBarberNotFound() error {
-	return apperr.NotFound("no existe un barbero con ese identificador")
+	return apperr.NotFound("no existe un profesional con ese identificador")
 }
 
 // errAssignmentNotFound cubre servicio inexistente/ajeno, barbero
@@ -15,5 +15,5 @@ func errAssignmentBarberNotFound() error {
 // fila, no por BarberPort) y la asociación concreta inexistente: las tres
 // causas producen el mismo 404 uniforme (CA-023-04).
 func errAssignmentNotFound() error {
-	return apperr.NotFound("no existe esa asignación de servicio para ese barbero")
+	return apperr.NotFound("no existe esa asignación de servicio para ese profesional")
 }

@@ -5,9 +5,9 @@
 // tabla `barber`, los contratos de la API ni los términos del dominio
 // (`turno`, estados), que siguen siendo los autorizados.
 //
-// Con los valores iniciales cada frase sale idéntica a la interfaz anterior a
-// DEC-110, de modo que una barbería que no toca esta configuración no ve
-// ningún cambio de texto.
+// Los valores iniciales son el vocabulario genérico de Nava Agenda (DEC-183):
+// "negocio" y "profesional". Un negocio que ya guardó su propio vocabulario
+// (p. ej. "barbería" / "barbero") lo sigue viendo igual.
 
 import type { BrandAccentKey } from './brandPalette'
 
@@ -49,10 +49,10 @@ export type VocabularyTerms = Pick<
 
 export const DEFAULT_BRAND: BrandSettings = {
   accent: 'brass',
-  businessTerm: 'barbería',
-  businessTermGender: 'feminine',
-  professionalTerm: 'barbero',
-  professionalTermPlural: 'barberos',
+  businessTerm: 'negocio',
+  businessTermGender: 'masculine',
+  professionalTerm: 'profesional',
+  professionalTermPlural: 'profesionales',
   professionalTermGender: 'masculine',
   panelProfile: 'shop',
 }
@@ -158,7 +158,7 @@ function plural(article: string): string {
 }
 
 /** Vocabulario de una pantalla pública: el que trae el servidor o, mientras no
- * llega o si no llega, los valores iniciales (la interfaz de siempre). */
+ * llega o si no llega, los valores iniciales ("negocio" / "profesional"). */
 export function buildVocabularyFromTerms(terms: VocabularyTerms | null | undefined): Vocabulary {
   return buildVocabulary({ ...DEFAULT_BRAND, ...terms })
 }

@@ -64,6 +64,7 @@ export interface ProfessionalPreset {
 }
 
 export const BUSINESS_PRESETS: readonly BusinessPreset[] = [
+  { term: 'negocio', gender: 'masculine' },
   { term: 'barbería', gender: 'feminine' },
   { term: 'salón de belleza', gender: 'masculine' },
   { term: 'peluquería', gender: 'feminine' },
@@ -75,6 +76,7 @@ export const BUSINESS_PRESETS: readonly BusinessPreset[] = [
 ]
 
 export const PROFESSIONAL_PRESETS: readonly ProfessionalPreset[] = [
+  { singular: 'profesional', plural: 'profesionales', gender: 'masculine' },
   { singular: 'barbero', plural: 'barberos', gender: 'masculine' },
   { singular: 'barbera', plural: 'barberas', gender: 'feminine' },
   { singular: 'estilista', plural: 'estilistas', gender: 'feminine' },

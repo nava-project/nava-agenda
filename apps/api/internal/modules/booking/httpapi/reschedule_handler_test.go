@@ -220,7 +220,7 @@ func TestRescheduleAppointmentHandler_InvalidState_Returns409WithDistinguishable
 func TestRescheduleAppointmentHandler_ScheduleConflict_Returns409WithConflictCode(t *testing.T) {
 	repo := &fakeRescheduleRepository{
 		detail: readyRescheduleDetail(), detailFound: true,
-		rescheduleErr: apperr.Conflict("el barbero ya tiene una cita en ese intervalo"),
+		rescheduleErr: apperr.Conflict("el profesional ya tiene una cita en ese intervalo"),
 	}
 	h := newRescheduleHandler(repo)
 

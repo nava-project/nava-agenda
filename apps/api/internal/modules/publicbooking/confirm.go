@@ -99,7 +99,7 @@ func errScheduleConflict() error {
 // escritura no tiene un "vacío" que devolver, así que el 404 uniforme es la
 // respuesta equivalente.
 func errAppointmentResourceNotAvailable() error {
-	return apperr.NotFound("no existe un servicio activo asignado a ese barbero en esa barbería pública")
+	return apperr.NotFound("no existe un servicio activo asignado a ese profesional en ese negocio público")
 }
 
 func errStartsAtInvalid() error {

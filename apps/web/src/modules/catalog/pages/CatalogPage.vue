@@ -1036,7 +1036,7 @@ async function reloadAfterConflict(serviceId: string) {
     <header class="catalog-page__header">
       <div>
         <h1 id="catalog-page-title" class="catalog-page__title">Servicios</h1>
-        <p class="catalog-page__subtitle">Catálogo de servicios en NAVA.</p>
+        <p class="catalog-page__subtitle">Catálogo de servicios {{ v.ofTheBusiness }}.</p>
       </div>
       <BaseButton
         v-if="loadStatus === 'ready'"

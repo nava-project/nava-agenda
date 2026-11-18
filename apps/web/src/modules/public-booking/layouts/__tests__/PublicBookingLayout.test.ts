@@ -61,7 +61,7 @@ async function mountAt(path: string, routes: RouteRecordRaw[] = stubbedRoutes())
   return { wrapper, router }
 }
 
-const STEP_LABELS = ['Servicio', 'Barbero', 'Horario', 'Tus datos']
+const STEP_LABELS = ['Servicio', 'Profesional', 'Horario', 'Tus datos']
 const SERVICE = '8f3ac2b1-e4d5-46f6-a7c8-d9e0f1a2b3c4'
 const BARBER = 'a1111111-1111-1111-1111-111111111111'
 // La ruta de «Tus datos» descarta franjas pasadas (#436): siempre una futura.
@@ -97,7 +97,7 @@ describe('PublicBookingLayout', () => {
       `/reservar/b/servicios/${SERVICE}/barbero/${BARBER}/horario`,
     )
     const back = wrapper.find('a.pb-back')
-    expect(back.text()).toContain('Barbero')
+    expect(back.text()).toContain('Profesional')
     expect(router.resolve(back.attributes('href')!).name).toBe('reserva-publica-barbero')
     expect(back.attributes('href')).toBe(`/reservar/b/servicios/${SERVICE}/barbero`)
     wrapper.unmount()

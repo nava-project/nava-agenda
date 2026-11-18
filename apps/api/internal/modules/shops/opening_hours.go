@@ -120,7 +120,7 @@ func (s *OpeningHoursService) Get(ctx context.Context, barbershopID string) (Ope
 		return OpeningHours{}, apperr.Internal(fmt.Errorf("shops: leer horario del local: %w", err))
 	}
 	if !found {
-		return OpeningHours{}, apperr.NotFound("barbería no encontrada")
+		return OpeningHours{}, apperr.NotFound("negocio no encontrado")
 	}
 	return hours, nil
 }
@@ -140,7 +140,7 @@ func (s *OpeningHoursService) Replace(ctx context.Context, barbershopID string, 
 		return OpeningHours{}, apperr.Internal(fmt.Errorf("shops: guardar horario del local: %w", err))
 	}
 	if !found {
-		return OpeningHours{}, apperr.NotFound("barbería no encontrada")
+		return OpeningHours{}, apperr.NotFound("negocio no encontrado")
 	}
 	return stored, nil
 }

@@ -124,7 +124,7 @@ const onChallengeVerified = () => {
 <template>
   <AuthSplitLayout caption="ACCESO SEGURO">
     <div class="login-page__header">
-      <h1 class="login-page__title">Accede a NAVA</h1>
+      <h1 class="login-page__title">Accede a Nava Agenda</h1>
       <p class="login-page__subtitle">Tu agenda y tu equipo, en un solo lugar.</p>
     </div>
 

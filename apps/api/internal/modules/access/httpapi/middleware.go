@@ -16,7 +16,7 @@ import (
 	"system-barbershop/internal/platform/httpserver"
 )
 
-const forbiddenMessage = "Tu cuenta de empleado solo puede cambiar lo de tu propio perfil de barbero."
+const forbiddenMessage = "Tu cuenta de empleado solo puede cambiar lo de tu propio perfil de profesional."
 
 var uuidShape = regexp.MustCompile(`^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$`)
 

@@ -16,11 +16,11 @@ describe('staffValidation.validateFullName', () => {
   })
 
   it('rejects an empty name', () => {
-    expect(validateFullName('', v)).toBe('Escribe el nombre del barbero.')
+    expect(validateFullName('', v)).toBe('Escribe el nombre del profesional.')
   })
 
   it('rejects a whitespace-only name', () => {
-    expect(validateFullName('   \t\n  ', v)).toBe('Escribe el nombre del barbero.')
+    expect(validateFullName('   \t\n  ', v)).toBe('Escribe el nombre del profesional.')
   })
 
   it('rejects a name longer than 120 characters', () => {

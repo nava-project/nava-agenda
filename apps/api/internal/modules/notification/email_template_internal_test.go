@@ -129,7 +129,7 @@ func TestEmailTemplate_StructureForMailClients(t *testing.T) {
 	}
 	for _, want := range []string{
 		`<html lang="es"`, `name="viewport"`, `color-scheme`, `prefers-color-scheme: dark`,
-		`role="presentation"`, `max-width:600px`, "Vista previa", "NAVA",
+		`role="presentation"`, `max-width:600px`, "Vista previa", "Nava Agenda",
 	} {
 		if !strings.Contains(html, want) {
 			t.Errorf("la plantilla debe contener %q", want)
@@ -148,7 +148,7 @@ func TestEmailContent_TextKeepsOrderAndData(t *testing.T) {
 		Code:    "123456", Footnotes: []string{"Ignóralo."},
 	}.Text()
 	last := -1
-	for _, want := range []string{"Barbería Centro", "TURNO CANCELADO", "Tu turno fue cancelado", "Hola Ana,", "Párrafo.", "123456", "Servicio: Corte", "Fecha y hora: mañana", "Ignóralo.", "NAVA"} {
+	for _, want := range []string{"Barbería Centro", "TURNO CANCELADO", "Tu turno fue cancelado", "Hola Ana,", "Párrafo.", "123456", "Servicio: Corte", "Fecha y hora: mañana", "Ignóralo.", "Nava Agenda"} {
 		i := strings.Index(txt, want)
 		if i < 0 || i < last {
 			t.Fatalf("%q falta o está fuera de orden en:\n%s", want, txt)
@@ -167,7 +167,7 @@ func TestEmailTemplate_WritePreviews(t *testing.T) {
 	}
 	samples := map[string]emailContent{
 		"codigo": {
-			Preheader: "Tu código de verificación para entrar a NAVA.", Title: "Verifica que eres tú",
+			Preheader: "Tu código de verificación para entrar a Nava Agenda.", Title: "Verifica que eres tú",
 			Paragraphs: []string{"Tu código de verificación para entrar es el siguiente. Vence en pocos minutos."},
 			Code:       "482913", Footnotes: []string{"Si no intentaste entrar, ignora este mensaje y considera cambiar tu contraseña."},
 		},
@@ -184,7 +184,7 @@ func TestEmailTemplate_WritePreviews(t *testing.T) {
 			Preheader: "Barbería Centro canceló tu turno.", Brand: "Barbería Centro",
 			Badge: &emailBadge{Label: "Turno cancelado", Tone: toneDanger}, Title: "Tu turno fue cancelado",
 			Greeting:   "Hola Ana,",
-			Paragraphs: []string{"Barbería Centro canceló tu turno. Estos son los datos del turno cancelado:", "Si quieres otro horario, comunícate con la barbería o reserva de nuevo."},
+			Paragraphs: []string{"Barbería Centro canceló tu turno. Estos son los datos del turno cancelado:", "Si quieres otro horario, comunícate con el negocio o reserva de nuevo."},
 			Details:    []emailDetail{{"Servicio", "Corte clásico"}, {"Fecha y hora", "jueves 7 de enero, 4:30 p. m."}},
 			Footnotes:  []string{"Si no esperabas este mensaje, ignóralo."},
 		},
@@ -192,7 +192,7 @@ func TestEmailTemplate_WritePreviews(t *testing.T) {
 			Preheader: "Tu turno en Barbería Centro es muy pronto.", Brand: "Barbería Centro",
 			Badge: &emailBadge{Label: "Recordatorio", Tone: toneNeutral}, Title: "Tu turno es muy pronto",
 			Greeting:   "Hola Ana,",
-			Paragraphs: []string{"Te recordamos tu turno en Barbería Centro. Te esperamos:", "Si no puedes asistir, avísale a la barbería con tiempo."},
+			Paragraphs: []string{"Te recordamos tu turno en Barbería Centro. Te esperamos:", "Si no puedes asistir, avísale al negocio con tiempo."},
 			Details:    []emailDetail{{"Servicio", "Corte clásico"}, {"Fecha y hora", "jueves 7 de enero, 4:30 p. m."}},
 			Footnotes:  []string{"Si no esperabas este mensaje, ignóralo."},
 		},
@@ -200,7 +200,7 @@ func TestEmailTemplate_WritePreviews(t *testing.T) {
 			Preheader: "Barbería Centro cambió el horario de tu turno.", Brand: "Barbería Centro",
 			Badge: &emailBadge{Label: "Horario actualizado", Tone: toneWarning}, Title: "Tu turno cambió de horario",
 			Greeting:   "Hola Ana,",
-			Paragraphs: []string{"Barbería Centro cambió el horario de tu turno. Este es el horario vigente:", "Si no puedes asistir, comunícate con la barbería."},
+			Paragraphs: []string{"Barbería Centro cambió el horario de tu turno. Este es el horario vigente:", "Si no puedes asistir, comunícate con el negocio."},
 			Details:    []emailDetail{{"Servicio", "Corte clásico"}, {"Fecha y hora", "viernes 8 de enero, 10:00 a. m."}},
 			Footnotes:  []string{"Si no esperabas este mensaje, ignóralo."},
 		},

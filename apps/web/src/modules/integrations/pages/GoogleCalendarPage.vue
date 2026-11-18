@@ -306,13 +306,13 @@ const headline = computed(() => {
 const lead = computed(() => {
   switch (view.value) {
     case 'unavailable':
-      return 'La conexión con Google Calendar no está disponible en este entorno. El resto de NAVA funciona igual.'
+      return 'La conexión con Google Calendar no está disponible en este entorno. El resto de Nava Agenda funciona igual.'
     case 'needs-barber':
-      return `Para publicar tu agenda, NAVA necesita saber cuál ${v.value.professional} eres. Abre tu ficha en ${v.value.Professionals} y pulsa «Este soy yo»: toma un clic.`
+      return `Para publicar tu agenda, Nava Agenda necesita saber cuál ${v.value.professional} eres. Abre tu ficha en ${v.value.Professionals} y pulsa «Este soy yo»: toma un clic.`
     case 'reauth':
-      return 'Retiraste el permiso de NAVA o caducó. Tus turnos no se pierden: vuelve a conectar y seguirán publicándose.'
+      return 'Retiraste el permiso de Nava Agenda o caducó. Tus turnos no se pierden: vuelve a conectar y seguirán publicándose.'
     case 'sync-error':
-      return 'Tus turnos están a salvo en NAVA. Pulsa «Sincronizar ahora» para reintentar el envío.'
+      return 'Tus turnos están a salvo en Nava Agenda. Pulsa «Sincronizar ahora» para reintentar el envío.'
     case 'syncing':
       return `Estamos enviando ${pendingLabel.value} a Google. Tarda unos segundos.`
     case 'connected':
@@ -359,12 +359,12 @@ function pickPreset(minutes: number) {
 
 const HOW_IT_WORKS = [
   {
-    title: 'NAVA manda',
+    title: 'Nava Agenda manda',
     text: 'Google es solo una vista. Lo que cambies o borres allí no modifica tus turnos, bloqueos ni disponibilidad.',
   },
   {
     title: 'Si borras un evento',
-    text: 'NAVA lo vuelve a crear en unos minutos. Para dejar de publicar un turno, cancélalo desde NAVA.',
+    text: 'Nava Agenda lo vuelve a crear en unos minutos. Para dejar de publicar un turno, cancélalo desde Nava Agenda.',
   },
   {
     title: 'Tus clientes, invitados',
@@ -372,7 +372,7 @@ const HOW_IT_WORKS = [
   },
   {
     title: 'Si desconectas',
-    text: 'Los eventos que ya están en tu calendario se quedan. NAVA solo deja de publicar nuevos.',
+    text: 'Los eventos que ya están en tu calendario se quedan. Nava Agenda solo deja de publicar nuevos.',
   },
 ] as const
 </script>
@@ -382,7 +382,7 @@ const HOW_IT_WORKS = [
     <header class="gcal-page__header nv-rise">
       <h1 id="gcal-page-title" class="gcal-page__title">Google Calendar</h1>
       <p class="gcal-page__subtitle">
-        Tus turnos y bloqueos de NAVA, en el calendario que ya usas.
+        Tus turnos y bloqueos de Nava Agenda, en el calendario que ya usas.
       </p>
       <span class="gcal-page__rule" aria-hidden="true"
         ><span class="gcal-page__rule-line nv-wipe" /><span
@@ -553,7 +553,8 @@ const HOW_IT_WORKS = [
         </header>
         <form class="gcal-panel__body" novalidate @submit.prevent="onSaveReminder">
           <p class="gcal-copy">
-            Google te avisa antes de cada turno en tu calendario. NAVA no envía un aviso propio.
+            Google te avisa antes de cada turno en tu calendario. Nava Agenda no envía un aviso
+            propio.
           </p>
 
           <fieldset class="gcal-modes" :disabled="busy !== null">
@@ -642,8 +643,8 @@ const HOW_IT_WORKS = [
     >
       <div class="gcal-ink gcal-dialog__body">
         <p class="gcal-copy">
-          NAVA dejará de publicar tus turnos y bloqueos y retirará su permiso en Google. Los eventos
-          que ya están en tu calendario se quedan allí y tus turnos no cambian.
+          Nava Agenda dejará de publicar tus turnos y bloqueos y retirará su permiso en Google. Los
+          eventos que ya están en tu calendario se quedan allí y tus turnos no cambian.
         </p>
       </div>
       <template #footer>

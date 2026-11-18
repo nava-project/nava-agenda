@@ -36,7 +36,7 @@ func (s *BookingPolicyService) Get(ctx context.Context, barbershopID string) (Bo
 		return BookingPolicy{}, apperr.Internal(fmt.Errorf("shops: leer política de reserva: %w", err))
 	}
 	if !found {
-		return BookingPolicy{}, apperr.NotFound("barbería no encontrada")
+		return BookingPolicy{}, apperr.NotFound("negocio no encontrado")
 	}
 	return policy, nil
 }
@@ -107,7 +107,7 @@ func (s *BookingPolicyService) Update(ctx context.Context, barbershopID string, 
 	case BookingPolicyUpdateOutcomeVersionConflict:
 		return BookingPolicy{}, errBookingPolicyVersionConflict()
 	case BookingPolicyUpdateOutcomeNotFound:
-		return BookingPolicy{}, apperr.NotFound("barbería no encontrada")
+		return BookingPolicy{}, apperr.NotFound("negocio no encontrado")
 	}
 	return result.Policy, nil
 }

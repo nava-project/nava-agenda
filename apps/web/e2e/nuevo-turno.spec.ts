@@ -151,7 +151,7 @@ test.describe('Creación manual de turnos (HU-061)', () => {
     await expect(page.getByText('Turno registrado')).toBeVisible()
 
     await submitOnce('Segundo cliente E2E')
-    await expect(page.getByText('el barbero ya tiene una cita en ese intervalo')).toBeVisible()
+    await expect(page.getByText('el profesional ya tiene una cita en ese intervalo')).toBeVisible()
   })
 
   test('un servicio no asignado al barbero elegido no aparece en el selector (DEC-072)', async ({

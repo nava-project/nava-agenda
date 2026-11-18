@@ -37,7 +37,7 @@ func (s *BrandService) Get(ctx context.Context, barbershopID string) (Brand, err
 		return Brand{}, apperr.Internal(fmt.Errorf("shops: leer marca: %w", err))
 	}
 	if !found {
-		return Brand{}, apperr.NotFound("barbería no encontrada")
+		return Brand{}, apperr.NotFound("negocio no encontrado")
 	}
 	return brand, nil
 }
@@ -93,7 +93,7 @@ func (s *BrandService) Update(ctx context.Context, barbershopID string, input Br
 		return Brand{}, apperr.Internal(fmt.Errorf("shops: actualizar marca: %w", err))
 	}
 	if !result.Found {
-		return Brand{}, apperr.NotFound("barbería no encontrada")
+		return Brand{}, apperr.NotFound("negocio no encontrado")
 	}
 	return result.Brand, nil
 }
@@ -143,7 +143,7 @@ func (s *BrandService) resolveLocation(ctx context.Context, barbershopID string,
 		return LocationWrite{}, apperr.Internal(fmt.Errorf("shops: leer ubicación vigente: %w", err))
 	}
 	if !found {
-		return LocationWrite{}, apperr.NotFound("barbería no encontrada")
+		return LocationWrite{}, apperr.NotFound("negocio no encontrado")
 	}
 	cur := current.Location
 	if cur.Address != nil && *cur.Address == *address && cur.Latitude != nil && cur.Longitude != nil {

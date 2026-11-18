@@ -62,7 +62,7 @@ func (s *ReminderSettingsService) Get(ctx context.Context, barbershopID string) 
 		return 0, apperr.Internal(fmt.Errorf("shops: leer anticipación del recordatorio: %w", err))
 	}
 	if !found {
-		return 0, apperr.NotFound("barbería no encontrada")
+		return 0, apperr.NotFound("negocio no encontrado")
 	}
 	return lead, nil
 }
@@ -81,7 +81,7 @@ func (s *ReminderSettingsService) Update(ctx context.Context, barbershopID strin
 		return 0, apperr.Internal(fmt.Errorf("shops: actualizar anticipación del recordatorio: %w", err))
 	}
 	if !found {
-		return 0, apperr.NotFound("barbería no encontrada")
+		return 0, apperr.NotFound("negocio no encontrado")
 	}
 	return stored, nil
 }

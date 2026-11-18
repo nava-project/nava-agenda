@@ -173,7 +173,7 @@ describe('DailyAgendaPage', () => {
     fetchBarbershopTimezoneMock.mockResolvedValueOnce({ kind: 'unavailable' })
     fetchDailyAgendaMock.mockResolvedValueOnce({ kind: 'success', items: [] })
     const { wrapper } = await mountPage()
-    expect(wrapper.text()).toContain('Cargando barberos')
+    expect(wrapper.text()).toContain('Cargando profesionales')
 
     resolveBarbers({ kind: 'success', items: twoBarbers })
     await flushPromises()
@@ -190,7 +190,7 @@ describe('DailyAgendaPage', () => {
     await waitOutInitialLoadHold()
     await flushPromises()
 
-    expect(wrapper.text()).toContain('Aún no tienes barberos registrados')
+    expect(wrapper.text()).toContain('Aún no tienes profesionales registrados')
     expect(wrapper.find('#daily-agenda-barber-select').exists()).toBe(false)
     expect(fetchDailyAgendaMock).not.toHaveBeenCalled()
   })
@@ -293,7 +293,7 @@ describe('DailyAgendaPage', () => {
     fetchDailyAgendaMock.mockResolvedValueOnce({ kind: 'network-error' })
     const { wrapper } = await mountReady()
 
-    expect(wrapper.text()).toContain('No pudimos cargar la agenda de este barbero')
+    expect(wrapper.text()).toContain('No pudimos cargar la agenda de este profesional')
 
     fetchDailyAgendaMock.mockResolvedValueOnce({ kind: 'success', items: oneEntry })
     const retryButtons = wrapper.findAll('button').filter((b) => b.text() === 'Reintentar')
@@ -311,7 +311,7 @@ describe('DailyAgendaPage', () => {
     fetchDailyAgendaMock.mockResolvedValueOnce({ kind: 'not-found' })
     const { wrapper } = await mountReady()
 
-    expect(wrapper.text()).toContain('Este barbero ya no está disponible')
+    expect(wrapper.text()).toContain('Este profesional ya no está disponible')
   })
 
   it('"Nuevo turno" navigates to the real HU-061 form', async () => {
