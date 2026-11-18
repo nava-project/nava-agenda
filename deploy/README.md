@@ -27,7 +27,7 @@ Internet ──443──▶ web (Caddy) ── red "edge" (externa, compartida) 
 ```
 
 **Otros proyectos en la misma VPS (`DEC-176`).** Este Caddy es el único dueño de 80/443.
-Nava · Pedidos (repo `odin-pedidos`, pila `pedidos` en `/srv/pedidos`) no publica puertos:
+Nava · Pedidos (repo `nava-pedidos`, pila `pedidos` en `/srv/pedidos`) no publica puertos:
 se une a la red Docker externa `edge` con el alias `pedidos`, y el sitio `pedidos.{$DOMAIN}`
 del [`Caddyfile`](caddy/Caddyfile) le hace proxy a `pedidos:8080` (HSTS, `nosniff`, cuerpo
 de hasta 6 MB para los comprobantes y SSE sin búfer). De esta pila solo `web` entra en
