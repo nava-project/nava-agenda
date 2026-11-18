@@ -1,6 +1,6 @@
 ---
 titulo: "Registro de decisiones"
-version: "1.81"
+version: "1.82"
 estado: "Vigente"
 responsable: "Propietario del proyecto"
 ultima_actualizacion: "2026-11-18"
@@ -2435,3 +2435,22 @@ Cada código `DEC-*` es estable y no se reutiliza. Este registro normaliza respu
 - **Alternativas descartadas:** dejar `deploy/jenkins/` aquí con un dueño documental (sigue mezclando responsabilidades y el historial de la infraestructura con el del producto).
 - **Documentos afectados:** `deploy/README.md`, `deploy/caddy/Caddyfile`, `stack-despliegue-operacion.md`, `tools/ci/{compose-check,run}.sh`, este registro (nota en `DEC-177`), `historial-cambios.md`, `docs/10-backlog/prompts/README.md` y los prompts de migración a Jenkins.
 - **Fuente:** issue [#689](https://github.com/nava-project/nava-agenda/issues/689); `DEC-177`.
+
+### DEC-185 · La anonimización de clientes vencidos se ejecuta de verdad: domicilio incluido, reseñas y Google Calendar fuera, registro por lote y plazo máximo de 24 meses (amplía `DEC-025`, `DEC-049` y `DEC-054`)
+
+- **Fecha:** 2026-11-18.
+- **Decisión:**
+  1. **Se implementa** la anonimización de `DEC-025`/`DEC-042`/`DEC-049`/`DEC-054`, que hasta ahora solo existía en `modelo-fisico-referencia.sql`. Un job del worker la ejecuta al arrancar y cada 24 horas (`customer_anonymize_expired`, lotes de 200, una transacción por lote).
+  2. **Domicilio (`DEC-131`).** También se anonimizan `appointment.service_address`, `service_latitude` y `service_longitude`, y sus filas en `appointment_history_change`. La dirección queda con el marcador `'Cliente anonimizado'` y las coordenadas en `NULL`. La modalidad (`is_home_service`) se conserva como hecho operativo; `appointment_home_service_ck` admite ese estado y solo ese.
+  3. **Reseñas (`DEC-128`).** Se conservan completas (estrellas y comentario): ya se publican sin el nombre del cliente.
+  4. **Google Calendar (`DEC-099`/`DEC-101`).** Los eventos ya publicados no se tocan: son datos del calendario propio del profesional, igual que al desconectar.
+  5. **Registro.** `customer_anonymization_run` guarda una fila por lote y negocio (`reason = expired`) o por solicitud (`reason = request`), con la cantidad y el instante. No guarda identificadores de cliente ni datos personales, y no vence.
+  6. **Solicitud del titular.** La ejecuta el operador con `customer_anonymize_request` tras verificar la identidad (procedimiento en `deploy/README.md` §7). Ni el API ni el worker tienen permiso sobre ella.
+  7. **Plazo.** `business.personal_data_retention_months` va de 1 a 24 meses (24 por defecto). `DEC-025` prohíbe ampliarlo sin base legal, así que el máximo vive en un CHECK: ampliarlo exige una migración que cite esa base. El modelo de referencia admitía hasta 120; se descarta.
+- **Fuera de alcance:** una interfaz para que el negocio cambie su plazo o para que el titular pida el borrado; la revisión jurídica que `DEC-025` sigue exigiendo.
+- **Quién lo decidió:** el propietario, el 2026-11-18. Eligió «Borrarla» para la dirección del domicilio, «Conservar todo» para las reseñas, «No tocarlos» para los eventos de Google Calendar y «Tabla de ejecuciones» para el registro. Lo pidió la sesión orquestadora para que la política de privacidad publicada no prometa algo que no se hace.
+- **Responsable:** propietario del proyecto, sujeta a revisión jurídica colombiana como toda `DEC-025`.
+- **Motivo:** la política publicada promete anonimizar a los 24 meses y a petición; sin el job, esa promesa era falsa. En producción ningún cliente vence antes del 2028-11-06 (producción empezó el 2026-11-06, `DEC-158`).
+- **Alternativas descartadas:** dejar la dirección y anonimizar solo el nombre (sigue identificando al cliente); redactar el comentario de la reseña o borrarla (el propietario prefirió conservarla); re-sincronizar los eventos de Google Calendar; registrar solo en el log del worker (rota y no se puede consultar).
+- **Documentos afectados:** `database/migrations/20261123090000_create_customer_anonymization.sql`, `database/tests/customer_anonymization.sql` (ahora en el CI), `apps/api/internal/modules/retention`, `apps/api/cmd/worker`, `01-producto/reglas-negocio.md` (`RN-DAT-03`), `05-backend/base-datos.md` §6, `apps/api/README.md`, `deploy/README.md` §7, `historial-cambios.md`.
+- **Fuente:** decisión del propietario del 2026-11-18; issue [#693](https://github.com/nava-project/nava-agenda/issues/693); `DEC-025`, `DEC-042`, `DEC-049`, `DEC-053`, `DEC-054`.

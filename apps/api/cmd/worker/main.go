@@ -22,6 +22,8 @@ import (
 	googlecalendarpostgres "nava-agenda/internal/modules/googlecalendar/postgres"
 	"nava-agenda/internal/modules/notification"
 	notificationpostgres "nava-agenda/internal/modules/notification/postgres"
+	"nava-agenda/internal/modules/retention"
+	retentionpostgres "nava-agenda/internal/modules/retention/postgres"
 	"nava-agenda/internal/platform/clock"
 	"nava-agenda/internal/platform/config"
 	"nava-agenda/internal/platform/database"
@@ -35,6 +37,12 @@ import (
 // razonable para tablas de retención corta (horas/días) sin generar carga
 // perceptible.
 const purgeInterval = 5 * time.Minute
+
+// retentionInterval es la cadencia de la anonimización de clientes vencidos
+// (DEC-185). El plazo se mide en meses, así que un día de retraso no cambia
+// nada; la pasada también corre al arrancar, y el worker arranca en cada
+// despliegue.
+const retentionInterval = 24 * time.Hour
 
 func main() {
 	if err := run(); err != nil {
@@ -93,6 +101,10 @@ func run() error {
 
 	// HU-105 (DEC-178): purga de los retos de acceso al turno vencidos.
 	customerAccessPurge := customeraccesspostgres.NewPurgeRepository(db)
+
+	// Issue #693 (DEC-185): anonimización de los clientes 24 meses después de su
+	// última actividad, como promete la política de privacidad.
+	go runRetention(ctx, retention.NewService(retentionpostgres.NewRepository(db)), logger)
 
 	// Issue #324 (DEC-102): publicación en Google Calendar. Con las credenciales
 	// ausentes el worker sigue purgando y la integración queda desactivada.
@@ -163,6 +175,29 @@ func run() error {
 					"recovery_code_deleted", recoveryCodeDeleted,
 				)
 			}
+		}
+	}
+}
+
+// runRetention corre una pasada de anonimización al arrancar y otra cada
+// retentionInterval. Solo registra conteos: nunca datos del cliente (RN-DAT-02).
+func runRetention(ctx context.Context, svc *retention.Service, logger *slog.Logger) {
+	ticker := time.NewTicker(retentionInterval)
+	defer ticker.Stop()
+	for {
+		anonymized, err := svc.RunOnce(ctx)
+		switch {
+		case ctx.Err() != nil:
+			return
+		case err != nil:
+			logger.Error("worker: fallo en la anonimización de clientes vencidos", "customers_anonymized", anonymized)
+		case anonymized > 0:
+			logger.Info("worker: anonimización de clientes vencidos completada", "customers_anonymized", anonymized)
+		}
+		select {
+		case <-ctx.Done():
+			return
+		case <-ticker.C:
 		}
 	}
 }

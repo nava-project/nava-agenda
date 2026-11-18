@@ -1,6 +1,6 @@
 ---
 titulo: "Reglas de negocio"
-version: "1.9"
+version: "1.10"
 estado: "Vigente"
 responsable: "Propietario del proyecto"
 ultima_actualizacion: "2026-11-18"
@@ -1003,6 +1003,8 @@ Nombre, teléfono, correo y tokens públicos se conservan 24 meses por defecto, 
 **Módulos afectados:** clientes, citas, historial, privacidad, tareas programadas.
 
 **Pruebas asociadas:** anonimización vencida, revocación de token, conservación de métricas y ausencia del dato anterior en logs.
+
+**Implementación (`DEC-185`, #693):** el worker la ejecuta cada día y al arrancar (`customer_anonymize_expired`); la solicitud del titular la ejecuta el operador (`customer_anonymize_request`). Además de lo anterior, anonimiza la dirección y las coordenadas del domicilio; conserva las reseñas y no toca los eventos ya publicados en Google Calendar. El plazo por negocio (`business.personal_data_retention_months`) va de 1 a 24 meses: ampliarlo exige una migración con base legal documentada. Cada ejecución queda en `customer_anonymization_run`, sin datos personales.
 
 ---
 

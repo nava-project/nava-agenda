@@ -1,6 +1,6 @@
 ---
 titulo: "PostgreSQL, multi-tenancy y consultas"
-version: "1.3"
+version: "1.4"
 estado: "Decisión confirmada"
 responsable: "Propietario del proyecto"
 ultima_actualizacion: "2026-11-18"
@@ -134,13 +134,15 @@ Validaciones mínimas:
 
 ## 6. Retención y anonimización
 
-Un parámetro de configuración conserva el plazo efectivo por negocio, con 24 meses como valor inicial. El proceso de anonimización:
+`business.personal_data_retention_months` conserva el plazo efectivo por negocio: 24 meses como valor inicial y como máximo (`business_retention_months_ck`, 1–24; `DEC-185`). El plazo se cuenta desde la última actividad del cliente (`DEC-042`, fórmula de `DEC-054`). El proceso de anonimización (migración `20261123090000_create_customer_anonymization.sql`):
 
-1. identifica datos vencidos;
-2. sustituye nombre, teléfono y correo por valores anónimos no reversibles;
+1. identifica datos vencidos (`retention_claim_due_customers`, `FOR UPDATE SKIP LOCKED`);
+2. sustituye nombre, teléfono y correo por el marcador literal `'Cliente anonimizado'` o `NULL` (`customer_anonymize`), y hace lo mismo con la persona atendida, la nota, la dirección y las coordenadas del domicilio, el motivo del historial y los cambios de campos personales;
 3. revoca tokens públicos y credenciales de acceso a la cita;
-4. conserva servicio, profesional, intervalo, estado, importes informativos e historial operativo;
-5. registra el proceso sin copiar el dato personal anterior a los logs.
+4. conserva servicio, profesional, intervalo, estado, modalidad, importes informativos, reseñas e historial operativo; no toca los eventos ya publicados en Google Calendar;
+5. registra el proceso sin copiar el dato personal anterior a los logs: una fila por lote y negocio, o por solicitud, en `customer_anonymization_run` (negocio, motivo, cantidad, instante).
+
+El worker corre `customer_anonymize_expired` al arrancar y cada 24 horas, en lotes de 200 dentro de una sola transacción por lote (`DEC-053`). La solicitud individual del titular la ejecuta el operador con `customer_anonymize_request` (procedimiento en `deploy/README.md` §7). Las pruebas viven en `database/tests/customer_anonymization.sql`.
 
 Un cambio de retención requiere motivo, actor, fecha y revisión de su base legal.
 
