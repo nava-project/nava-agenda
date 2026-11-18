@@ -134,9 +134,10 @@ log "pruebas de humo"
 inside() { "${compose[@]}" exec -T web wget -q -O - "$1"; }
 inside http://api:8080/health >/dev/null || fail "GET /health falló"
 inside http://api:8080/health/db >/dev/null || fail "GET /health/db falló (el API no alcanza PostgreSQL)"
-domain="$(get DOMAIN "$ENV_DIR/stack.env")"; port="$(get HTTPS_PORT "$ENV_DIR/stack.env")"; port="${port:-443}"
+# La app vive en agenda.$DOMAIN (DEC-183); DOMAIN es el dominio raíz de la familia NAVA.
+domain="agenda.$(get DOMAIN "$ENV_DIR/stack.env")"; port="$(get HTTPS_PORT "$ENV_DIR/stack.env")"; port="${port:-443}"
 ok=0; insecure=()
-[ "$domain" = localhost ] && insecure=(-k)   # CA interna de Caddy en pruebas locales
+[ "$domain" = agenda.localhost ] && insecure=(-k)   # CA interna de Caddy en pruebas locales
 for _ in 1 2 3 4 5 6; do
   if curl -fsS "${insecure[@]}" -o /dev/null --max-time 8 --resolve "$domain:$port:127.0.0.1" "https://$domain:$port/health" 2>/dev/null; then ok=1; break; fi
   sleep 10
