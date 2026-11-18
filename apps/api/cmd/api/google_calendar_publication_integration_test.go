@@ -164,7 +164,7 @@ func setupWorkerTestDB(t *testing.T) *database.DB {
 	t.Helper()
 	dsn := os.Getenv("TEST_WORKER_DATABASE_URL")
 	if dsn == "" {
-		dsn = "postgres://agenda_worker@localhost:5432/barberia_test?sslmode=disable"
+		dsn = "postgres://agenda_worker@localhost:5432/agenda_test?sslmode=disable"
 	}
 	cfg := config.Config{
 		Environment: "test", DatabaseMaxConns: 5, DatabaseMinConns: 1,

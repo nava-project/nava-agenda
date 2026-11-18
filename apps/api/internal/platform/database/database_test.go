@@ -28,7 +28,7 @@ const (
 	// testDatabaseURL es la URL de la base de datos de prueba. Debe apuntar a
 	// una base efímera con las migraciones aplicadas y testdata cargada.
 	// En CI: PostgreSQL efímero. En local: variable de entorno TEST_DATABASE_URL.
-	testDatabaseURL = "postgres://agenda_app@localhost:5432/barberia_test?sslmode=disable"
+	testDatabaseURL = "postgres://agenda_app@localhost:5432/agenda_test?sslmode=disable"
 )
 
 // setupTestDB crea un pool de prueba conectado como agenda_app.

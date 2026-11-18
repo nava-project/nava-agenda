@@ -22,7 +22,7 @@ import (
 )
 
 const (
-	testDatabaseURL = "postgres://agenda_app@localhost:5432/barberia_test?sslmode=disable"
+	testDatabaseURL = "postgres://agenda_app@localhost:5432/agenda_test?sslmode=disable"
 
 	// NO shopA/shopB reales (11111111.../22222222...) ni el par "shopC/shopD"
 	// de hu021_profesionales.sql (33333333.../44444444..., ajeno a este archivo):

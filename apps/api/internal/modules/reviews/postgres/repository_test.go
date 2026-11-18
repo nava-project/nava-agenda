@@ -32,7 +32,7 @@ import (
 )
 
 const (
-	testDatabaseURL = "postgres://agenda_app@localhost:5432/barberia_test?sslmode=disable"
+	testDatabaseURL = "postgres://agenda_app@localhost:5432/agenda_test?sslmode=disable"
 
 	shopUno    = "01010001-0101-0101-0101-010100010001"
 	serviceUno = "01010031-0101-0101-0101-010100310031"

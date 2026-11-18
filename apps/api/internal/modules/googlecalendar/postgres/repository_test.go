@@ -21,7 +21,7 @@ import (
 // integración, así que nada de esto se prueba con dobles.
 
 const (
-	testDatabaseURL = "postgres://agenda_app@localhost:5432/barberia_test?sslmode=disable"
+	testDatabaseURL = "postgres://agenda_app@localhost:5432/agenda_test?sslmode=disable"
 
 	shopC = database.BusinessID("33333333-3333-3333-3333-333333333333")
 	shopD = database.BusinessID("44444444-4444-4444-4444-444444444444")

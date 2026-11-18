@@ -14,7 +14,7 @@ Fuente: solicitud del propietario del 2026-10-02, DEC-106, issue [#287](https://
 - Lee AGENTS.md, la configuración local y los comandos reales de `apps/api` y `apps/web`. No deduzcas el estado actual desde un README que diga que todavía no hay BD: contrasta código, migraciones y procesos.
 - Identifica dónde están Docker, Go, pnpm, Atlas y el navegador. Si estás dentro de Flatpak y las herramientas viven en el anfitrión, usa `flatpak-spawn --host` para operar allí; su `/tmp` puede ser distinto. Respeta los controles de permisos de la sesión.
 - Comprueba contenedores, puertos y procesos existentes antes de arrancar nada. Reutiliza la instancia correcta; inicia solo lo detenido. No crees otra BD ni otro servidor porque el sandbox no vea el anfitrión.
-- Confirma el contenedor y la base de destino con consultas sin datos personales. `barberia-postgres`, `barberia_test`, 5432/8080/5173 son pistas del entorno observado, no valores que deban imponerse a otra configuración.
+- Confirma el contenedor y la base de destino con consultas sin datos personales. `nava-agenda-postgres`, `agenda_test`, 5432/8080/5173 son pistas del entorno observado, no valores que deban imponerse a otra configuración.
 - No detengas procesos ajenos ni borres volúmenes, tablas o datos. No instales dependencias si las herramientas existentes bastan.
 
 ## 2. Cargar configuración sin exponer secretos
