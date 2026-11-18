@@ -1,6 +1,6 @@
-# NAVA
+# Nava Agenda
 
-NAVA es una plataforma web de agenda para barberías. Este repositorio reúne su definición de producto, requisitos, arquitectura e implementación. El objetivo del MVP es que un barbero pueda operar su jornada, permitir reservas públicas, evitar cruces de horario y conservar trazabilidad de los cambios. La identidad y la experiencia elegidas se especifican en [`docs/03-desarrollo/especificacion-frontend-nava.md`](docs/03-desarrollo/especificacion-frontend-nava.md).
+Nava Agenda es una plataforma web de agenda para cualquier negocio que muestra servicios y agenda citas (salones, consultorios, estudios, barberías), según `DEC-183`. La app y su API viven en `agenda.nava.wtf`; `nava.wtf` sirve la landing de la familia NAVA desde el repositorio aparte `bcaceres19/nava`. Este repositorio reúne su definición de producto, requisitos, arquitectura e implementación. El objetivo del MVP es que un profesional pueda operar su jornada, permitir reservas públicas, evitar cruces de horario y conservar trazabilidad de los cambios. La identidad y la experiencia elegidas se especifican en [`docs/03-desarrollo/especificacion-frontend-nava.md`](docs/03-desarrollo/especificacion-frontend-nava.md).
 
 ## Estado actual
 
@@ -50,11 +50,11 @@ están en `apps/api/README.md`, `apps/web/README.md` y
 | Ruta | Contenido |
 | --- | --- |
 | [`apps/api/`](apps/api/) | Backend Go (Chi v5 pendiente): procesos `api` y `worker`, base de plataforma y módulos vacíos |
-| [`apps/web/`](apps/web/) | Frontend Vue 3 + TypeScript + Vite: arranque, router y estilos de la interfaz NAVA |
+| [`apps/web/`](apps/web/) | Frontend Vue 3 + TypeScript + Vite: arranque, router y estilos de la interfaz de Nava Agenda |
 | [`database/`](database/) | Configuración de Atlas y carpetas de migraciones, seeds, testdata y pruebas |
 | [`api/openapi/`](api/openapi/) | Documento de entrada OpenAPI 3.1.2 y estructura de paths/components |
 | [`docs/README.md`](docs/README.md) | Mapa documental, fuentes de verdad y flujo de cambios |
-| [`docs/00-control/`](docs/00-control/) | Decisiones, contradicciones, trazabilidad, cambios, dudas, supuestos y glosario |
+| [`docs/00-control/`](docs/00-control/) | Decisiones, contradicciones, trazabilidad, cambios, dudas, supuestos y glosario (con la equivalencia de términos anteriores a `DEC-183`) |
 | [`docs/01-producto/`](docs/01-producto/) | Alcance del MVP, prioridades y reglas de negocio |
 | [`docs/02-requisitos/`](docs/02-requisitos/) | Requisitos detallados, estados de las citas e historias de usuario |
 | [`docs/03-desarrollo/`](docs/03-desarrollo/) | Estándares de código, dirección visual y estrategia de pruebas |

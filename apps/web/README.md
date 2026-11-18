@@ -1,7 +1,7 @@
 # apps/web
 
-Aplicación Vue 3 + TypeScript + Vite del flujo público y del panel del
-barbero. Ver
+Aplicación Vue 3 + TypeScript + Vite de Nava Agenda: el flujo público de
+reserva y el panel del negocio y sus profesionales. Ver
 [`docs/04-arquitectura/frontend.md`](../../docs/04-arquitectura/frontend.md)
 y [`docs/03-desarrollo/estandar-frontend-vue.md`](../../docs/03-desarrollo/estandar-frontend-vue.md)
 antes de agregar código.
@@ -11,42 +11,42 @@ antes de agregar código.
 Arranque de la aplicación, router, el **sistema visual base (HU-009)**
 (tokens y cinco componentes en `src/shared/ui/`), la **pantalla de acceso
 (HU-010)**, el **cascarón del panel privado (HU-012)** (guard generalizado
-con sesión real, cabecera con barbería activa y coordinación única de 401),
+con sesión real, cabecera con negocio activo y coordinación única de 401),
 la **defensa escalonada contra abuso (HU-007)**: reto telefónico inline en
 la pantalla de acceso cuando el login responde 429, la **configuración
-básica de la barbería (HU-020)**: pantalla "Barbería" (`/panel/barberia`)
+básica del negocio (HU-020)**: pantalla "Configuración" (`/panel/negocio`)
 para consultar y actualizar nombre, zona horaria y contacto opcional, con
 actualización inmediata de la cabecera tras guardar, el **registro y
-listado de barberos (HU-021)**: pantalla "Barberos" (`/panel/barberos`)
-con lista paginada, alta con idempotencia real y edición del nombre; una
-barbería con una persona y una con varias usan el mismo componente y el
+listado de profesionales (HU-021)**: pantalla "Profesionales" (`/panel/profesionales`)
+con lista paginada, alta con idempotencia real y edición del nombre; un
+negocio con una persona y uno con varias usan el mismo componente y el
 mismo estado de datos, y el **catálogo básico de servicios (HU-022)**:
 pantalla "Servicios" (`/panel/servicios`) con lista paginada, alta y
 edición de nombre/descripción/duración/precio, precio en COP como string
 decimal exacto y conflicto de nombre entre servicios activos (`DEC-067`)
 distinguido del conflicto de idempotencia, y la **asignación de servicios a
-barberos (HU-023)**: pantalla "Servicios por barbero"
-(`/panel/servicios-por-barbero`) con un selector de barbero y una casilla
-por servicio del catálogo; el mismo componente funciona con un barbero que
+profesionales (HU-023)**: pantalla "Servicios por profesional"
+(`/panel/servicios-por-profesional`) con un selector de profesional y una casilla
+por servicio del catálogo; el mismo componente funciona con un profesional que
 presta todo el catálogo y con un equipo de especialidades distintas. Cada
 casilla se deshabilita mientras su propia solicitud está en curso (evita
 doble envío) y solo cambia de estado tras la respuesta real del servidor;
-se puede retirar a cualquier barbero, también al último de un servicio activo
+se puede retirar a cualquier profesional, también al último de un servicio activo
 (`DEC-114`; ese servicio deja de ofrecerse al público hasta asignar otro), y el **ciclo de vida de
 servicios (HU-024)**: en la misma pantalla "Servicios", desactivar/reactivar
 con un `BaseDialog` que consulta el impacto real de citas futuras antes de
 confirmar (siempre 0 en B1, `DEC-069`) y recarga el estado real si el
 servidor responde un conflicto de transición, en vez de asumir éxito
 optimista, y el **horario laboral recurrente (HU-040)**: pantalla
-"Horarios" (`/panel/horarios`) con un selector de barbero y los siete días
+"Horarios" (`/panel/horarios`) con un selector de profesional y los siete días
 ISO siempre visibles, agrupando los tramos existentes de cada uno; agregar,
 editar y retirar un tramo con validación de campo en cliente (día/hora/
 duración) y traducción del conflicto de solape real del servidor
 (`code: "conflict"`) a un mensaje recuperable sin cerrar el diálogo. La
-pantalla indica explícitamente la zona IANA de la barbería junto a las
+pantalla indica explícitamente la zona IANA del negocio junto a las
 horas (`CA-040-06`), nunca la del dispositivo, y las **excepciones de
 jornada y festivos (HU-041)**: en la misma pantalla "Horarios", un
-interruptor de calendario de festivos colombianos por barbero, un CRUD de
+interruptor de calendario de festivos colombianos por profesional, un CRUD de
 excepciones de jornada por fecha (día cerrado o abierto con tramos
 especiales, con la misma traducción de conflicto de fecha duplicada
 \-`CA-041-05`- a un mensaje recuperable) y una referencia de "Próximos
@@ -54,7 +54,7 @@ festivos colombianos" con un atajo para prellenar la fecha del diálogo de
 alta. Ver las secciones siguientes. El resto de carpetas de `modules/`
 conserva su `index.ts` de marcador de responsabilidad futura.
 
-## Acceso del barbero (HU-010)
+## Acceso del profesional (HU-010)
 
 Fuente normativa: `docs/02-requisitos/historias-usuario.md` (HU-010) y
 `docs/00-control/registro-decisiones.md` (`DEC-056`). Esta sección resume
@@ -74,8 +74,8 @@ desde `src/app/router/index.ts`:
   combinando las hijas y las entradas de navegación de `auth`
   (`privateShellChildRoutes`, hoy solo `""` → `name: "panel"`) con las de
   cualquier otro módulo con pantalla privada (`settings.
-settingsPrivateShellChildRoutes`/`settingsNavItems`, hoy `barberia` →
-  `name: "configuracion-barberia"`). Ningún módulo importa a otro para
+settingsPrivateShellChildRoutes`/`settingsNavItems`, hoy `negocio` →
+  `name: "configuracion-negocio"`; la ruta vieja `barberia` redirige). Ningún módulo importa a otro para
   lograrlo (app → modules → shared, ver
   `src/shared/navigation/navItem.ts`); toda ruta privada futura se agrega
   igual, como hija de esta misma ruta padre, sin repetir el guard ni crear
@@ -121,7 +121,7 @@ mínimo y el marcador local `sessionStorage` de HU-010 (`DP-SEG-08`,
   interpreta el 401 de ese endpoint por su cuenta, evitando una redirección
   compitiendo con la que el guard está resolviendo.
 - **`src/modules/auth/layouts/PrivateShell.vue`**: cabecera
-  (`AppHeader.vue`, barbería activa siempre visible, `CA-012-04`, y cierre
+  (`AppHeader.vue`, negocio activo siempre visible, `CA-012-04`, y cierre
   de sesión, `CA-012-07`) + navegación (`AppNav.vue`, hoy solo "Panel": no
   inventa destinos de B1 en adelante que todavía no existen) + contenido,
   solo en estado `authenticated`; `checking`/`connection-lost` (con
@@ -184,7 +184,7 @@ hash argon2id real (no el hash ficticio de
 probar forma/RLS); variables `E2E_EMAIL`/`E2E_PASSWORD` sobrescriben las
 credenciales de prueba por defecto.
 
-## Configuración básica de la barbería (HU-020)
+## Configuración básica del negocio (HU-020)
 
 Fuente normativa: `docs/02-requisitos/historias-usuario.md` (HU-020) y
 `docs/00-control/registro-decisiones.md` (`DEC-019`, `DEC-024`). Esta
@@ -194,17 +194,17 @@ sustituye.
 ### Ruta y navegación
 
 `src/modules/settings/routes.ts` expone `settingsPrivateShellChildRoutes`
-(`barberia` → `name: "configuracion-barberia"`, `src/modules/settings/
-pages/SettingsPage.vue`, diferida) y `src/modules/settings/index.ts`
+(`negocio` → `name: "configuracion-negocio"`, `src/modules/settings/
+pages/SettingsPage.vue`, diferida; `barberia` queda como redirección) y `src/modules/settings/index.ts`
 expone además `settingsNavItems` (`{ to: { name:
-"configuracion-barberia" }, label: "Barbería" }`). `src/app/router/index.ts`
+"configuracion-negocio" }, label: "Configuración" }`). `src/app/router/index.ts`
 combina ambas con las de `auth` al construir el único cascarón privado (ver
 "Cascarón del panel privado (HU-012)" más arriba); `settings` no importa
 ningún interno de `auth` ni monta su propio guard.
 
 ### Formulario y estados
 
-`SettingsPage.vue` carga `GET /private/settings/barbershop` al montar,
+`SettingsPage.vue` carga `GET /private/settings/business` al montar,
 edita los cuatro campos autorizados (`name`, `timezone`, `contactEmail`,
 `contactPhone`) y guarda con `PATCH` del mismo recurso
 (`src/modules/settings/api/settingsApi.ts`, mismo patrón de outcome
@@ -214,14 +214,14 @@ campo (validación de cliente en `src/modules/settings/validation/
 settingsValidation.ts`, forma únicamente — nunca valida el catálogo IANA,
 eso lo confirma el servidor), error de validación del servidor (incluida
 una zona horaria no reconocida, `CA-020-03`), error de red y éxito. Un
-error recuperable NUNCA borra lo que el barbero ya escribió (`CA-020-08`);
+error recuperable NUNCA borra lo que el profesional ya escribió (`CA-020-08`);
 solo la respuesta `200` confirmada por el servidor reemplaza los valores
 del formulario.
 
 ### Actualización inmediata de la cabecera
 
 Tras un guardado exitoso, `SettingsPage.vue` llama a la función pública
-estrecha `updateBarbershopName` (exportada por `auth`, HU-020) con el
+estrecha `updateBusinessName` (exportada por `auth`, HU-020) con el
 nombre YA confirmado por el servidor: es el único punto del código que
 actualiza la cabecera antes de la próxima rehidratación completa
 (`GET /private/auth/session` sigue siendo la autoridad en cada recarga).
@@ -245,14 +245,14 @@ validación (`src/modules/settings/validation/__tests__/
 settingsValidation.test.ts`), presentación de instantes
 (`src/shared/time/__tests__/formatInstant.test.ts`), accesibilidad
 (`vitest-axe` integrado en `SettingsPage.test.ts`) y E2E contra el API real
-en local: `e2e/configuracion-barberia.spec.ts` (edición/guardado con
+en local: `e2e/configuracion-negocio.spec.ts` (edición/guardado con
 persistencia real tras recargar, zona no reconocida sin pérdida de datos)
-y `e2e/configuracion-barberia-evidencia-responsiva.spec.ts` (capturas en
-`e2e/evidence/configuracion-barberia/`, un solo inicio de sesión
+y `e2e/configuracion-negocio-evidencia-responsiva.spec.ts` (capturas en
+`e2e/evidence/configuracion/rediseno/`, un solo inicio de sesión
 reutilizado entre los cinco breakpoints para no competir con el umbral de
 `HU-007` al correrse junto al resto de la suite E2E).
 
-## Registro y listado de barberos (HU-021)
+## Registro y listado de profesionales (HU-021)
 
 Fuente normativa: `docs/02-requisitos/historias-usuario.md` (HU-021) y
 `docs/00-control/registro-decisiones.md` (`DEC-019`, `DEC-024`, `DEC-043`,
@@ -262,18 +262,18 @@ implementación; no las sustituye.
 ### Ruta y navegación
 
 `src/modules/staff/routes.ts` expone `staffPrivateShellChildRoutes`
-(`barberos` → `name: "staff-barberos"`, `src/modules/staff/pages/
+(`profesionales` → `name: "staff-profesionales"`, `src/modules/staff/pages/
 StaffPage.vue`, diferida) y `src/modules/staff/index.ts` expone además
-`staffNavItems` (`{ to: { name: "staff-barberos" }, label: "Barberos" }`).
+`staffNavItems` (`{ to: { name: "staff-profesionales" }, label: "Profesionales" }`).
 `src/app/router/index.ts` combina ambas con las de `auth`/`settings` al
 construir el único cascarón privado (ver "Cascarón del panel privado
 (HU-012)"); `staff` no importa ningún interno de `auth` ni monta su propio
 guard.
 
-### Un mismo componente para barbería unipersonal y de equipo (CA-021-01/02)
+### Un mismo componente para negocio unipersonal y de equipo (CA-021-01/02)
 
-`StaffPage.vue` renderiza `barbers.value` (un arreglo plano de `Barber`)
-sin ninguna rama que distinga "un barbero" de "varios": una lista con 1
+`StaffPage.vue` renderiza `professionals.value` (un arreglo plano de `Professional`)
+sin ninguna rama que distinga "un profesional" de "varios": una lista con 1
 elemento y una con 4 pasan por el mismo `<li v-for>`. El alta hace
 `unshift` del recurso confirmado por el servidor (nunca antes de esa
 confirmación: sin actualización optimista); el renombrado reemplaza por
@@ -281,9 +281,9 @@ confirmación: sin actualización optimista); el renombrado reemplaza por
 
 ### Paginación por cursor (`src/modules/staff/api/staffApi.ts`)
 
-`fetchBarbers(cursor?)` traduce `GET /private/barbers` (`cursor`/`limit`
+`fetchProfessionals(cursor?)` traduce `GET /private/professionals` (`cursor`/`limit`
 como parámetros de consulta tipados por el cliente generado) a
-`FetchBarbersOutcome`. `StaffPage.vue` carga la primera página al montar y
+`FetchProfessionalsOutcome`. `StaffPage.vue` carga la primera página al montar y
 expone "Cargar más" cuando `nextCursor` no es `null`; las páginas
 siguientes se concatenan por `id` (defensivo contra un doble clic muy
 rápido), nunca se reemplaza la lista completa.
@@ -294,7 +294,7 @@ rápido), nunca se reemplaza la lista completa.
 `crypto.randomUUID()`) genera la clave de UN intento lógico al abrir el
 diálogo de alta; el mismo intento (por ejemplo, un reintento tras un error
 de red con el diálogo todavía abierto) reutiliza la MISMA clave, y solo un
-envío exitoso o cerrar y reabrir el diálogo la renueva. `createBarber`
+envío exitoso o cerrar y reabrir el diálogo la renueva. `createProfessional`
 (`staffApi.ts`) envía esa clave como cabecera `Idempotency-Key`
 (`params.header`, no `headers`: forma exigida por `openapi-fetch` para
 parámetros tipados del contrato). Un conflicto de idempotencia (`409`) se
@@ -315,7 +315,7 @@ vinculado (`DEC-047`): administra únicamente nombres.
 ### Hallazgo real de accesibilidad corregido en `BaseDialog` (HU-009)
 
 HU-021 es la primera pantalla que usa `BaseDialog` en un flujo real del
-panel. El E2E de evidencia (`e2e/barberos-evidencia-responsiva.spec.ts`)
+panel. El E2E de evidencia (`e2e/profesionales-evidencia-responsiva.spec.ts`)
 contra Chromium real (no `jsdom`) expuso dos problemas que las pruebas de
 componente existentes no cubrían, corregidos en `src/shared/ui/
 BaseDialog.vue` en el mismo cambio:
@@ -351,12 +351,12 @@ api/__tests__/staffApi.test.ts`), validación (`src/modules/staff/
 validation/__tests__/staffValidation.test.ts`), accesibilidad
 (`vitest-axe` integrado en `StaffPage.test.ts`, con `stubs.teleport` para
 que las pruebas de `BaseDialog` queden dentro del árbol del wrapper) y E2E
-contra el API real en local: `e2e/barberos.spec.ts` (alta de 1 y luego 3
+contra el API real en local: `e2e/profesionales.spec.ts` (alta de 1 y luego 3
 más por el mismo camino de UI -CA-021-01/02-, renombrado con persistencia
-real, nombre vacío rechazado, identificador real de otra barbería con
+real, nombre vacío rechazado, identificador real de otro negocio con
 `404` idéntico y ausente del listado propio -CA-021-05-, verificado con
 `fetch` autenticado por cookie dentro de la página) y
-`e2e/barberos-evidencia-responsiva.spec.ts` (capturas en
+`e2e/profesionales-evidencia-responsiva.spec.ts` (capturas en
 `e2e/evidence/barberos/`, axe-core inyectado desde
 `node_modules/axe-core/axe.min.js` en cada uno de los cinco breakpoints y
 en el diálogo de alta, foco atrapado dentro del diálogo verificado con
@@ -370,7 +370,7 @@ Atlas, `testdata/dos_negocios.sql` + `testdata/hu005_credenciales_sesiones.sql`
   en el momento con el mismo `Argon2Hasher` de producción (nunca embebido en
   el repositorio) sustituyendo el hash ficticio de
   `hu005_credenciales_sesiones.sql` para las dos cuentas usadas en el
-  recorrido, exactamente el procedimiento que `e2e/configuracion-barberia.spec.ts`
+  recorrido, exactamente el procedimiento que `e2e/configuracion-negocio.spec.ts`
   ya documenta como necesario.
 
 ## Catálogo básico de servicios (HU-022)
@@ -408,7 +408,7 @@ nunca un campo editable (ningún formulario de esta pantalla lo declara).
 `code` que `openapi-fetch` ya decodificó en `error`, nunca comparando
 `detail`. `CatalogPage.vue` expone ambos como mensajes recuperables
 distintos (`name-conflict` invita a elegir otro nombre; `idempotency-conflict`
-invita a reintentar) sin perder lo que el barbero ya escribió.
+invita a reintentar) sin perder lo que el profesional ya escribió.
 
 ### Edición parcial de cuatro campos en un solo formulario
 
@@ -441,9 +441,9 @@ literal de `estandar-diseno-visual.md` §16/§17 ("funciona desde 320 px sin
 pérdida") y el ítem A de `docs/07-calidad/02-checklist-transversal.md`
 ("reflow sin scroll horizontal ni pérdida de contenido"). Se reemplazó por
 `flex-wrap: wrap` sobre `.app-nav__list`: a 320/360 px los cinco enlaces
-(`Panel`/`Barbería`/`Barberos`/`Servicios`/`Servicios por barbero`) se
+(`Panel`/`Configuración`/`Profesionales`/`Servicios`/`Servicios por profesional`) se
 reparten en dos líneas sin scroll de ningún tipo, aceptando el costo de un
-alto de cabecera variable según cuántos módulos aporte cada barbería (antes
+alto de cabecera variable según cuántos módulos aporte cada negocio (antes
 descartado por ese motivo) a cambio de no violar el criterio de "sin
 pérdida" con un scroll no descubrible. Reverificado sin regresión con
 `panel-evidencia-responsiva.spec.ts` en 320/360/768/1280 px (sin scroll
@@ -462,20 +462,20 @@ E2E contra el API real en local: `e2e/servicios.spec.ts` (alta → listar →
 editar → recargar con persistencia real, precio cero y nombre vacío
 rechazados sin persistir, duraciones 25/30/45/90 sin catálogo cerrado,
 nombre duplicado con `409` sin segunda fila -`DEC-067`-, identificador
-real de otra barbería con `404` idéntico y ausente del listado propio) y
+real de otro negocio con `404` idéntico y ausente del listado propio) y
 `e2e/servicios-evidencia-responsiva.spec.ts` (capturas en
 `e2e/evidence/servicios/`, sin scroll horizontal, foco visible y sin
 violaciones axe-core en los cinco breakpoints y en el diálogo de alta).
 
 Preparación de PostgreSQL para el E2E real: mismo procedimiento que
-"Registro y listado de barberos (HU-021)" arriba (contenedor Postgres 14
+"Registro y listado de profesionales (HU-021)" arriba (contenedor Postgres 14
 efímero, migraciones vía Atlas, `testdata/dos_negocios.sql` +
 `testdata/hu005_credenciales_sesiones.sql` + `testdata/hu021_profesionales.sql`
 
 - `testdata/hu022_catalogo.sql`, hash argon2id real calculado en el
   momento, nunca embebido en el repositorio).
 
-## Asignación de servicios a barberos (HU-023)
+## Asignación de servicios a profesionales (HU-023)
 
 Fuente normativa: `docs/02-requisitos/historias-usuario.md` (HU-023) y
 `docs/00-control/registro-decisiones.md` (`DEC-024`, `DEC-068`). Esta
@@ -484,14 +484,14 @@ sustituye.
 
 ### Módulo nuevo, sin importar internos de `staff` ni de `catalog`
 
-`src/modules/barberServices/` es un módulo propio (no una extensión de
-`staff` ni de `catalog`): la pantalla necesita datos de ambos (barberos y
+`src/modules/professionalServices/` es un módulo propio (no una extensión de
+`staff` ni de `catalog`): la pantalla necesita datos de ambos (profesionales y
 servicios) pero ningún módulo del frontend expone su cliente API interno a
 otro (`staffApi.ts`/`catalogApi.ts` son privados de sus módulos,
-docs/03-desarrollo/estandar-frontend-vue.md §3). `api/barberServicesApi.ts`
+docs/03-desarrollo/estandar-frontend-vue.md §3). `api/professionalServicesApi.ts`
 llama DIRECTAMENTE al cliente HTTP compartido (`@/shared/api/httpClient`)
-para `GET /private/barbers`/`GET /private/services` (solo id + nombre
-visible, `BarberSummary`/`ServiceSummary`) igual que cualquier otro módulo
+para `GET /private/professionals`/`GET /private/services` (solo id + nombre
+visible, `ProfessionalSummary`/`ServiceSummary`) igual que cualquier otro módulo
 llama a ese mismo cliente: es la misma pequeña duplicación de forma que el
 backend ya acepta entre `catalog.Cursor`/`staff.Cursor`, preferible a un
 acoplamiento cruzado entre módulos. `routes.ts`/`index.ts` siguen el mismo
@@ -500,7 +500,7 @@ patrón de ruta hija diferida + `NavItem` que `staff`/`catalog`;
 
 ### Casilla controlada: el estado solo cambia tras la respuesta del servidor
 
-`BarberServicesPage.vue` no usa `v-model` sobre cada casilla: usa
+`ProfessionalServicesPage.vue` no usa `v-model` sobre cada casilla: usa
 `:checked="isAssigned(service.id)"` + `@change`, y en el handler
 `onToggleService` guarda una referencia directa al `<input>` que disparó el
 evento. Si el servidor rechaza el cambio (`404`, error de
@@ -514,29 +514,29 @@ casilla visualmente al hacer clic-. Cada casilla se deshabilita mientras su
 propia solicitud está en curso (`pendingServiceIds`), lo que además evita
 estructuralmente el doble envío (un `<input disabled>` no dispara `change`).
 
-### Retirar al último barbero de un servicio (DEC-114)
+### Retirar al último profesional de un servicio (DEC-114)
 
-Retirar a cualquier barbero es válido, también al último de un servicio
+Retirar a cualquier profesional es válido, también al último de un servicio
 activo: el API responde `204` y la casilla se desmarca como en cualquier otro
 retiro. Ese servicio queda sin asignaciones y el catálogo público deja de
-ofrecerlo hasta que se asigne otro barbero. `DEC-114` sustituye a `DEC-068`,
+ofrecerlo hasta que se asigne otro profesional. `DEC-114` sustituye a `DEC-068`,
 que lo rechazaba con `409`; el cliente ya no distingue ese caso.
 
 ### Pruebas
 
-Componente (`src/modules/barberServices/pages/__tests__/
-BarberServicesPage.test.ts`: un barbero y cuatro, servicio compartido,
-vacío sin barberos/sin servicios, error recuperable, cambio de barbero,
-asignar/desasignar, retirar al último barbero de un servicio -DEC-114-, error
+Componente (`src/modules/professionalServices/pages/__tests__/
+ProfessionalServicesPage.test.ts`: un profesional y cuatro, servicio compartido,
+vacío sin profesionales/sin servicios, error recuperable, cambio de profesional,
+asignar/desasignar, retirar al último profesional de un servicio -DEC-114-, error
 de red con reversión de la casilla, doble envío bloqueado, ausencia de horario/
-disponibilidad/citas/precio por barbero, axe-core), cliente tipado
-(`src/modules/barberServices/api/__tests__/barberServicesApi.test.ts`:
+disponibilidad/citas/precio por profesional, axe-core), cliente tipado
+(`src/modules/professionalServices/api/__tests__/professionalServicesApi.test.ts`:
 mapeo por `status`/`code`, nunca `detail`) y E2E contra el API real en
-local: `e2e/servicios-por-barbero.spec.ts` (asignar con persistencia real,
-un servicio compartido por varios barberos como recursos independientes,
+local: `e2e/servicios-por-profesional.spec.ts` (asignar con persistencia real,
+un servicio compartido por varios profesionales como recursos independientes,
 última asignación activa rechazada con la casilla marcada de nuevo,
-identificador real de otra barbería con `404`) y
-`e2e/servicios-por-barbero-evidencia-responsiva.spec.ts` (capturas en
+identificador real de otro negocio con `404`) y
+`e2e/servicios-por-profesional-evidencia-responsiva.spec.ts` (capturas en
 `e2e/evidence/servicios-por-barbero/`, sin scroll horizontal, foco visible
 por teclado -incluida la propia casilla- y sin violaciones axe-core en los
 cinco breakpoints).
@@ -593,9 +593,9 @@ axe-core con el diálogo de desactivación abierto), cliente tipado
 (`src/modules/catalog/api/__tests__/catalogApi.test.ts`) y E2E contra el
 API real en local: `e2e/servicios-ciclo-vida.spec.ts` (previsualizar,
 cancelar sin mutar, desactivar con persistencia real tras recargar,
-reactivar sin alterar duración, identificador real de otra barbería con
+reactivar sin alterar duración, identificador real de otro negocio con
 `404` en las tres operaciones), escrito siguiendo el mismo patrón que
-`servicios.spec.ts`/`servicios-por-barbero.spec.ts`. Pendiente de
+`servicios.spec.ts`/`servicios-por-profesional.spec.ts`. Pendiente de
 ejecución contra Chromium real y de la evidencia responsiva en
 `e2e/evidence/servicios/` en los cinco breakpoints (no forma parte de los
 checks de CI, que solo corren `test:unit`).
@@ -613,23 +613,23 @@ las sustituye.
 
 ### Módulo nuevo, mismo patrón de selector que HU-023
 
-`src/modules/schedules/` reutiliza el patrón de selector de barbero de
-`barberServices` (`api/schedulesApi.ts` llama DIRECTAMENTE al cliente HTTP
-compartido para `GET /private/barbers`, nunca a `staffApi.ts`), pero
+`src/modules/schedules/` reutiliza el patrón de selector de profesional de
+`professionalServices` (`api/schedulesApi.ts` llama DIRECTAMENTE al cliente HTTP
+compartido para `GET /private/professionals`, nunca a `staffApi.ts`), pero
 agrupa el recurso por día ISO en vez de por casilla: `groupedByWeekday`
 siempre construye las siete entradas de `ISO_WEEKDAYS`, con o sin tramos
-(`CA-040-01`), así que un barbero recién creado sin horario y uno con
+(`CA-040-01`), así que un profesional recién creado sin horario y uno con
 jornada partida en varios días muestran exactamente la misma estructura.
 
 ### Alta con `Idempotency-Key`, edición y retiro sin ella
 
 `createWorkingHour` sigue el mismo patrón de intento lógico que
-`createBarber`/`createService`: la clave se genera al abrir el diálogo
+`createProfessional`/`createService`: la clave se genera al abrir el diálogo
 "Agregar tramo" y se reutiliza en un reintento por error de red, nunca en
 un intento lógico distinto. `updateWorkingHour` (reemplaza el intervalo
 completo) y `deleteWorkingHour` no llevan `Idempotency-Key` (PATCH/DELETE
 sobre un recurso ya identificado por su propio id son naturalmente
-repetibles, mismo criterio que `renameBarber`); retirar un tramo ya
+repetibles, mismo criterio que `renameProfessional`); retirar un tramo ya
 retirado responde `404`, que la pantalla trata igual que un éxito (ya no
 está, sin mostrar un error nuevo que exija reintento).
 
@@ -643,13 +643,13 @@ persistido de los demás tramos, que solo el servidor conoce con certeza
 diálogo ("Este tramo se solapa con otro existente"), distinto del `409` de
 idempotencia (`RN-IDE-01`).
 
-### La zona de la barbería se indica explícitamente (CA-040-06)
+### La zona del negocio se indica explícitamente (CA-040-06)
 
-`fetchBarbershopTimezone` llama a
-`GET /private/settings/barbershop` (HU-020) directamente -mismo criterio
-de pequeña duplicación entre módulos que `BarberSummary`/`ServiceSummary`
-en `barberServices`- y la pantalla muestra "Horas en la zona horaria de la
-barbería: {zona}" junto al título. `startsTime` viaja siempre como hora
+`fetchBusinessTimezone` llama a
+`GET /private/settings/business` (HU-020) directamente -mismo criterio
+de pequeña duplicación entre módulos que `ProfessionalSummary`/`ServiceSummary`
+en `professionalServices`- y la pantalla muestra "Horas en la zona horaria del
+negocio: {zona}" (con el vocabulario del negocio) junto al título. `startsTime` viaja siempre como hora
 civil `HH:MM` sin ninguna conversión de zona en ningún punto del cliente;
 un fallo al obtener la zona no bloquea la pantalla (la hora ya es correcta
 de todas formas), solo omite el indicador.
@@ -658,18 +658,18 @@ de todas formas), solo omite el indicador.
 
 Componente (`src/modules/schedules/pages/__tests__/SchedulesPage.test.ts`:
 un tramo y jornada partida en varios días con el mismo componente, los
-siete días siempre visibles, vacío sin barberos, error recuperable, cambio
-de barbero, alta/edición/retiro -éxito, solape, validación de cliente,
+siete días siempre visibles, vacío sin profesionales, error recuperable, cambio
+de profesional, alta/edición/retiro -éxito, solape, validación de cliente,
 error de red-, retiro sin doble envío, indicador de zona horaria,
 axe-core), cliente tipado
 (`src/modules/schedules/api/__tests__/schedulesApi.test.ts`: mapeo por
 `status`/`code`, nunca `detail`) y validación
 (`src/modules/schedules/validation/__tests__/scheduleValidation.test.ts`).
 E2E escrito siguiendo el mismo patrón que
-`servicios-por-barbero.spec.ts`/`servicios-ciclo-vida.spec.ts`:
+`servicios-por-profesional.spec.ts`/`servicios-ciclo-vida.spec.ts`:
 `e2e/horarios.spec.ts` (alta con persistencia real tras recargar, jornada
 partida, solape rechazado sin cerrar el diálogo, editar y retirar con
-persistencia real, identificador real de otra barbería con `404`).
+persistencia real, identificador real de otro negocio con `404`).
 Pendiente de ejecución contra Chromium real y de la evidencia responsiva en
 `e2e/evidence/horarios/` en los cinco breakpoints (no forma parte de los
 checks de CI, que solo corren `test:unit`).
@@ -685,13 +685,13 @@ Fuente normativa: `docs/02-requisitos/historias-usuario.md` (HU-041) y
 `DEC-070`). Esta sección resume la API pública y las decisiones de
 implementación; no las sustituye.
 
-### Mismo módulo y misma pantalla que HU-040, tres secciones nuevas por barbero
+### Mismo módulo y misma pantalla que HU-040, tres secciones nuevas por profesional
 
 `src/modules/schedules/` gana `api/scheduleExceptionsApi.ts`,
 `model/scheduleException.ts`/`exceptionOutcome.ts` y
 `validation/exceptionValidation.ts`, todos siguiendo exactamente el
 mismo patrón que sus equivalentes de HU-040. `SchedulesPage.vue` no gana
-una pantalla nueva: al elegir un barbero, `selectBarber` dispara en
+una pantalla nueva: al elegir un profesional, `selectProfessional` dispara en
 paralelo la carga de su horario semanal (HU-040), su interruptor de
 calendario de festivos y sus excepciones de jornada. Tres secciones
 nuevas aparecen debajo de los siete días: el interruptor de calendario de
@@ -723,10 +723,10 @@ fecha" / "Ya existe otra excepción para esa fecha"), distinto del `409`
 de idempotencia (`RN-IDE-01`) que sigue el mismo criterio que
 `createWorkingHour`.
 
-### El calendario de festivos es un interruptor por barbero, no una acción con `Idempotency-Key`
+### El calendario de festivos es un interruptor por profesional, no una acción con `Idempotency-Key`
 
 `updateHolidayCalendar` es un `PATCH` naturalmente repetible (mismo
-criterio que `renameBarber`/`updateWorkingHour`): no lleva clave de
+criterio que `renameProfessional`/`updateWorkingHour`): no lleva clave de
 idempotencia. La casilla revierte a su valor real si la petición falla,
 sin optimismo: solo una respuesta `success` cambia el estado visible.
 
@@ -753,7 +753,7 @@ E2E escrito siguiendo el mismo patrón que `horarios.spec.ts`:
 `e2e/excepciones-festivos.spec.ts` (activar el calendario de festivos con
 persistencia real, alta cerrada y abierta con persistencia real, fecha
 duplicada rechazada sin cerrar el diálogo, editar y retirar con
-persistencia real, identificador real de otra barbería con `404` en el
+persistencia real, identificador real de otro negocio con `404` en el
 calendario de festivos). Pendiente de ejecución contra Chromium real y de
 la evidencia responsiva en `e2e/evidence/excepciones-festivos/` en los
 cinco breakpoints (no forma parte de los checks de CI, que solo corren
@@ -766,33 +766,33 @@ Preparación de PostgreSQL para el E2E real: mismo procedimiento que
 ## Nuevo turno (HU-061)
 
 Primera pantalla real del módulo `agenda` (`src/modules/agenda`):
-`NewAppointmentPage.vue` (`/panel/turnos/nuevo`), el barbero autenticado
+`NewAppointmentPage.vue` (`/panel/turnos/nuevo`), el profesional autenticado
 registra un turno manual recibido por teléfono, WhatsApp o en persona.
-Elegir un barbero carga solo los servicios activos ya asignados a ese
-barbero (`GET .../services` de HU-023 cruzado contra el catálogo activo de
+Elegir un profesional carga solo los servicios activos ya asignados a ese
+profesional (`GET .../services` de HU-023 cruzado contra el catálogo activo de
 HU-022, `DEC-072`): el formulario nunca ofrece un servicio que el
 servidor rechazaría. `startsAt` se envía como fecha/hora civil
 "AAAA-MM-DDTHH:MM:SS" sin desplazamiento de zona (los `<input
 type="date">`/`type="time">` nativos ya la producen en el reloj del
-dispositivo, que es el que el barbero ve): el servidor la interpreta
-contra la zona IANA de la barbería (RN-DIS-07), sin ninguna conversión de
+dispositivo, que es el que el profesional ve): el servidor la interpreta
+contra la zona IANA del negocio (RN-DIS-07), sin ninguna conversión de
 zona en el cliente. El éxito muestra un resumen honesto (servicio,
-duración, precio) sin navegar automáticamente a la agenda: el barbero
+duración, precio) sin navegar automáticamente a la agenda: el profesional
 vuelve a "Panel" (HU-062) por su cuenta.
 
 ### Pruebas
 
 Componente
 (`src/modules/agenda/pages/__tests__/NewAppointmentPage.test.ts`): carga
-(vacío, error recuperable), selección de barbero → carga de servicios
+(vacío, error recuperable), selección de profesional → carga de servicios
 asignados (`DEC-072`), validación de forma bloqueando el envío,
 conflicto de agenda/bloqueo (`DEC-073`) mostrando el detalle del
 servidor, conflicto de idempotencia, error de red conservando los datos
 ya escritos, doble envío bloqueado y `vitest-axe` sin violaciones.
 E2E escrito siguiendo el mismo patrón que
-`e2e/servicios-por-barbero.spec.ts`: `e2e/nuevo-turno.spec.ts` (alta
+`e2e/servicios-por-profesional.spec.ts`: `e2e/nuevo-turno.spec.ts` (alta
 manual dentro de la próxima hora, fuera de la anticipación mínima
-pública; cruce con una cita existente del mismo barbero rechazado;
+pública; cruce con una cita existente del mismo profesional rechazado;
 servicio no asignado ausente del selector). Pendiente de ejecución
 contra Chromium real y de evidencia responsiva en los cuatro
 breakpoints (no forma parte de los checks de CI, que solo corren
@@ -806,10 +806,10 @@ Reemplaza el marcador de posición de HU-012 en la raíz del panel privado:
 `agenda` (`src/modules/agenda/routes.ts`), no en `auth`
 (`auth/pages/PanelPage.vue` retirado, `auth/routes.ts` ya no registra
 ninguna hija propia — `privateShellChildRoutes` queda `[]`). Selector
-obligatorio de un barbero (`DEC-074`): la pantalla nunca ofrece una vista
-consolidada de varios barberos ni infiere uno del `staff_user` autenticado.
-Al elegir un barbero, `fetchDailyAgenda` pide
-`GET /private/barbers/{barberId}/appointments/daily-agenda` con `date`
+obligatorio de un profesional (`DEC-074`): la pantalla nunca ofrece una vista
+consolidada de varios profesionales ni infiere uno del `staff_user` autenticado.
+Al elegir un profesional, `fetchDailyAgenda` pide
+`GET /private/professionals/{professionalId}/appointments/daily-agenda` con `date`
 (desde HU-063, casi siempre un día civil explícito en vez de dejar que el
 servidor decida "hoy"; ver la sección "Navegación de agenda por fecha
 (HU-063)" más abajo). El encabezado muestra la fecha civil completa y la
@@ -823,9 +823,9 @@ español de `APPOINTMENT_STATUS_LABELS`
 terminal se atenúa (`opacity`) pero nunca desaparece de la lista
 (`RN-CIT-04`). "Nuevo turno" navega al formulario real de HU-061
 (`router.push`, sin `RouterLink` porque `BaseButton` no admite un
-destino). Cambiar de barbero descarta una respuesta de agenda que llegue
+destino). Cambiar de profesional descarta una respuesta de agenda que llegue
 tarde para una selección ya reemplazada (mismo patrón que
-`SchedulesPage.vue`/`selectBarber`, HU-040).
+`SchedulesPage.vue`/`selectProfessional`, HU-040).
 
 Fuera de alcance a propósito: detalle de cita y cualquier acción sobre una
 cita existente. Anterior/siguiente/selector de fecha (`F-CITA-02`) llegó
@@ -834,10 +834,10 @@ con HU-063 (siguiente sección).
 ### Pruebas
 
 Componente (`src/modules/agenda/pages/__tests__/DailyAgendaPage.test.ts`):
-carga (vacío, error recuperable), selector obligatorio de barbero
+carga (vacío, error recuperable), selector obligatorio de profesional
 (`DEC-074`), agenda vacía con mensaje explícito, aislamiento entre
-selecciones rápidas de barbero (descarta una respuesta obsoleta), error
-recuperable con reintento, barbero ya no disponible (404), navegación a
+selecciones rápidas de profesional (descarta una respuesta obsoleta), error
+recuperable con reintento, profesional ya no disponible (404), navegación a
 "Nuevo turno" y `vitest-axe` sin violaciones. `src/shared/time/formatInstant.ts`
 gana `formatTimeInTimezone`/`formatFullDateInTimezone`, probadas en
 `src/shared/time/__tests__/formatInstant.test.ts` con el mismo control
@@ -848,12 +848,12 @@ hija mínima propia en vez de `auth/pages/PanelPage.vue` (retirado).
 
 E2E: `e2e/agenda-diaria.spec.ts` (apertura mostrando fecha completa y
 zona con selector obligatorio, turno recién creado visible con estado
-Confirmado, cambio de barbero muestra la agenda correcta, navegación a
+Confirmado, cambio de profesional muestra la agenda correcta, navegación a
 "Nuevo turno", y un dispositivo en otra zona horaria — `timezoneId:
-'America/Los_Angeles'` — mostrando la zona de la barbería, nunca la del
+'America/Los_Angeles'` — mostrando la zona del negocio, nunca la del
 dispositivo). `e2e/panel.spec.ts`/`e2e/panel-evidencia-responsiva.spec.ts`
-(HU-012) se actualizaron: el encabezado esperado pasó de "Panel del
-barbero" a "Agenda de hoy". Pendiente de ejecución contra Chromium real
+(HU-012) se actualizaron: el encabezado esperado pasó del rótulo genérico
+anterior a "Agenda de hoy". Pendiente de ejecución contra Chromium real
 y de evidencia responsiva en los cuatro breakpoints (no forma parte de
 los checks de CI, que solo corren `test:unit`), mismo estado que
 `e2e/nuevo-turno.spec.ts` (HU-061).
@@ -863,7 +863,7 @@ los checks de CI, que solo corren `test:unit`), mismo estado que
 Tres controles estables en `DailyAgendaPage.vue` (día anterior, selector de
 fecha `BaseInput type="date"`, día siguiente; `estandar-diseno-visual.md`
 §11.2): la fuente de verdad es `route.query` (`date` en `AAAA-MM-DD`,
-`barberId`), nunca un store global. `src/shared/time/civilDate.ts` aporta
+`professionalId`), nunca un store global. `src/shared/time/civilDate.ts` aporta
 la aritmética de calendario que lo hace posible, siempre sin depender de la
 zona del dispositivo (`RN-DIS-07`):
 
@@ -872,7 +872,7 @@ zona del dispositivo (`RN-DIS-07`):
   un día local de 23/25 horas por DST.
 - `shiftCivilDate(civilDate, deltaDays)`: aritmética pura en `Date.UTC`
   sobre el triplete año/mes/día, nunca suma 24h de reloj; cruza mes/año y
-  es indiferente a DST porque la zona de la barbería no participa.
+  es indiferente a DST porque la zona del negocio no participa.
 - `formatCivilDateFull(civilDate)`: formatea una fecha civil YA resuelta
   ("jueves, 31 de agosto de 2026") anclando a mediodía UTC y formateando en
   `timeZone: 'UTC'`, para que ninguna zona (ni siquiera un desfase extremo
@@ -880,24 +880,24 @@ zona del dispositivo (`RN-DIS-07`):
 
 `syncFromRoute()` (`DailyAgendaPage.vue`) es el único punto que traduce
 `route.query` a una carga de agenda: se invoca una vez al abrir la pantalla
-(tras resolver barberos/zona) y en cada cambio posterior de `route.query`
+(tras resolver profesionales/zona) y en cada cambio posterior de `route.query`
 vía un `watch`, cubriendo de forma uniforme recarga, atrás/adelante del
 navegador y los `router.push` propios de esta pantalla (cambiar de fecha o
-de barbero). Si la URL no trae una selección válida (`barberId`
+de profesional). Si la URL no trae una selección válida (`professionalId`
 inexistente, `date` ausente o mal formada), la normaliza con un único
 `router.replace` — nunca crea una entrada de historial por el simple hecho
 de abrir `/panel` — que vuelve a disparar el mismo `watch` ya con la URL
 normalizada; nunca hay una segunda petición duplicada. Un contador
 `agendaRequestSeq` descarta cualquier respuesta que llegue fuera de orden
-(cambio rápido de fecha o de barbero), igual que `selectBarber` ya hacía en
-HU-062. Sin zona de la barbería conocida (`fetchBarbershopTimezone`
+(cambio rápido de fecha o de profesional), igual que `selectProfessional` ya hacía en
+HU-062. Sin zona del negocio conocida (`fetchBusinessTimezone`
 `unavailable`), la navegación por fecha se deshabilita en vez de adivinar
 con la zona del dispositivo; la agenda sigue siendo legible con el
 comportamiento degradado de HU-062 (`date` ausente, "hoy" según el
 servidor).
 
 `agendaStatus` distingue `loading` (primera carga, sin nada que conservar)
-de `updating` (ya hubo una agenda confirmada — para otra fecha o barbero —
+de `updating` (ya hubo una agenda confirmada — para otra fecha o profesional —
 que permanece visible con un indicador local "Actualizando…" mientras
 llega la siguiente, `estandar-diseno-visual.md` §9 "Actualización"). Un
 error tras una carga previa exitosa conserva esa agenda visible junto a la
@@ -906,7 +906,7 @@ alerta de reintento, en vez de reemplazar toda la pantalla.
 Fuera de alcance a propósito: detalle, historial y cualquier acción sobre
 una cita (ver "Detalle e historial de un turno (HU-064)" más abajo, y
 HU-065 para reprogramación); vista semanal/mensual; vista consolidada de
-varios barberos.
+varios profesionales.
 
 ### Pruebas
 
@@ -916,15 +916,15 @@ día civil en dos zonas con desfase suficiente para caer en días distintos.
 
 Componente (`src/modules/agenda/pages/__tests__/DailyAgendaPage.test.ts`,
 bloque "navegación por fecha (HU-063)"): anterior/siguiente/selector de
-fecha, recarga con `date`/`barberId` ya en la URL, atrás del navegador,
+fecha, recarga con `date`/`professionalId` ya en la URL, atrás del navegador,
 descarte de una respuesta fuera de orden tras navegar dos veces seguidas,
 indicador "Actualizando…" con la agenda anterior visible, y navegación
-deshabilitada sin zona de la barbería conocida.
+deshabilitada sin zona del negocio conocida.
 
 E2E: `e2e/agenda-navegacion-fecha.spec.ts` (hoy → anterior → siguiente →
-fecha elegida → recarga → atrás/adelante, con fecha y barbero correctos en
+fecha elegida → recarga → atrás/adelante, con fecha y profesional correctos en
 cada paso; un dispositivo en otra zona horaria calcula igual el día civil
-de la zona de la barbería). Pendiente de ejecución contra Chromium real y
+de la zona del negocio). Pendiente de ejecución contra Chromium real y
 de evidencia responsiva en los cuatro breakpoints (no forma parte de los
 checks de CI, que solo corren `test:unit`), mismo estado que
 `e2e/agenda-diaria.spec.ts` (HU-062).
@@ -935,19 +935,19 @@ checks de CI, que solo corren `test:unit`), mismo estado que
 `agenda-detalle-turno`, hija de `agenda`, registrada después de
 `turnos/nuevo`) abre desde cada fila de `DailyAgendaPage.vue`: el bloque
 `daily-agenda-page__item-main` (hora/persona/servicio) es un `RouterLink`
-hacia el detalle con `query: withQuery({})` (reenvía `date`/`barberId`
+hacia el detalle con `query: withQuery({})` (reenvía `date`/`professionalId`
 vigentes sin tocarlos); el badge de estado queda fuera del enlace a
 propósito, para no convertir toda la fila en un control ambiguo.
 
 La pantalla sigue la plantilla P0 "Detalle de turno"
 (`estandar-diseno-visual.md` §10): hora con zona, persona atendida,
-servicio (snapshot, nunca el catálogo vigente), barbero, cliente que
+servicio (snapshot, nunca el catálogo vigente), profesional, cliente que
 reservó con su contacto opcional y nota (solo visibles aquí, nunca en la
 agenda diaria), estado e historial. Ninguna acción se renderiza (edición,
 reprogramación, cancelación): `HU-064` es de solo lectura. "Volver a la
 agenda" (`RouterLink`, mismo patrón que `RecoveryPage.vue`) usa
 `backQuery`, capturado UNA sola vez al montar desde `route.query.date`/
-`route.query.barberId`, para regresar exactamente a la fecha/barbero de
+`route.query.professionalId`, para regresar exactamente a la fecha/profesional de
 origen (`HU-063`) sin depender del historial del navegador.
 
 `pageStatus` (`loading`/`ready`/`not-found`/`error`) gobierna el detalle;
@@ -971,11 +971,11 @@ teléfono ni correo), no encontrado, error con reintento, historial listo
 tras el detalle, motivo y cambios anterior/nuevo de una entrada, "Cargar
 más" con dos páginas que conviven (nunca se reemplaza la primera), error de
 historial con reintento, enlace "Volver" con `href` verificado
-literalmente (fecha/barbero preservados), y `vitest-axe` sin violaciones.
+literalmente (fecha/profesional preservados), y `vitest-axe` sin violaciones.
 
 E2E: `e2e/agenda-detalle-historial.spec.ts` (desde una fecha no actual,
 abre el turno, verifica snapshots/contacto/nota/historial, vuelve a la
-misma fecha/barbero; un `appointmentId` inexistente muestra el estado "no
+misma fecha/profesional; un `appointmentId` inexistente muestra el estado "no
 disponible" explícito). Pendiente de ejecución contra Chromium real y de
 evidencia responsiva en los cuatro breakpoints (no forma parte de los
 checks de CI, que solo corren `test:unit`), mismo estado que
@@ -989,11 +989,11 @@ ningún estado terminal la muestra, porque `T3`/cancelación/`no_show` no
 existen todavía y no tienen acción propia que renderizar en su lugar. El
 botón abre un `BaseDialog` (mismo patrón que el diálogo de alta de
 `StaffPage.vue`) con la fecha/hora vigentes precargadas —
-`getCivilDateInTimezone`/`Intl.DateTimeFormat` en la zona de la barbería,
+`getCivilDateInTimezone`/`Intl.DateTimeFormat` en la zona del negocio,
 nunca la del dispositivo (`RN-DIS-07`)— y una vista previa del nuevo fin
 calculada con `addMinutesToTimeString`, una función pura de aritmética de
 minutos sobre `"HH:MM"` deliberadamente sin `Date`/`Intl`: es una
-aproximación barata para la UI mientras el barbero escribe, nunca la fuente
+aproximación barata para la UI mientras el profesional escribe, nunca la fuente
 de verdad (el fin real lo deriva el servidor de
 `duration_minutes_snapshot` en la zona real).
 
@@ -1007,12 +1007,12 @@ diferencia de un formulario de página completa que solo la regenera tras un
 éxito. `RescheduleAppointmentOutcome` distingue cuatro conflictos por
 `kind` (`conflict` agenda/bloqueo, `version-conflict`, `invalid-state`,
 `idempotency-conflict`): los dos primeros conservan la fecha/hora elegidas
-en el formulario (el barbero puede corregir sin perder su intención);
+en el formulario (el profesional puede corregir sin perder su intención);
 `version-conflict`/`invalid-state` ofrecen "Recargar" en vez de reenviar
 contra una representación que ya cambió.
 
 Al éxito, la respuesta del servidor solo trae `startsAt` — deliberadamente
-nunca `barberFullName`/`customerFullName`/contacto, que `T2` no toca y por
+nunca `professionalFullName`/`customerFullName`/contacto, que `T2` no toca y por
 eso el backend no vuelve a resolver — así que la pantalla nunca reconstruye
 un `AppointmentDetail` parcial con esos campos vacíos: cierra el diálogo y
 llama a `loadPage()`, la misma función de carga completa que `onMounted`,
@@ -1115,7 +1115,7 @@ lo necesita para layout; la apariencia semántica solo se elige con `variant`
 
 ```vue
 <BaseBadge variant="info">Confirmada</BaseBadge>
-<BaseBadge variant="neutral" dismissible label="Filtro barbero" @dismiss="onRemove">Juan</BaseBadge>
+<BaseBadge variant="neutral" dismissible label="Filtro profesional" @dismiss="onRemove">Juan</BaseBadge>
 ```
 
 - `variant`: `neutral` | `primary` | `success` | `warning` | `danger` | `info`.
@@ -1151,43 +1151,43 @@ lo necesita para layout; la apariencia semántica solo se elige con `variant`
   desbloquean el scroll el uno al otro. No admite un prop `zIndex`: todos
   comparten la capa semántica `--layer-dialog`.
 
-## Ubicación de la barbería (HU-102, DEC-130)
+## Ubicación del negocio (HU-102, DEC-130)
 
 - **Configuración** (`/panel/configuracion`, panel 06 «Ubicación»): interruptor «Mostrar la ubicación», dirección y vista previa del mapa. Las coordenadas las calcula el servidor al guardar; el cliente solo envía el texto y nunca las manda. Apagar el interruptor conserva la dirección.
 - **Reserva pública** (`/reservar/:slug`): la sección «Dónde estamos» aparece solo si `location` llega en el perfil y hay forma de dibujar el mapa; si no, no se renderiza nada ni se muestra error.
 - **Mapa** (`src/shared/ui/LocationMap.vue`, `src/shared/model/mapEmbed.ts`): iframe de Google Maps Embed con `title`, la dirección en texto y un enlace «Abrir en Google Maps». Clave de navegador en `VITE_GOOGLE_MAPS_BROWSER_KEY` (restringida por dominio y a Maps Embed API; no es secreto). Sin clave, el mapa sin clave solo se usa en desarrollo (`import.meta.env.DEV`); en producción la sección se oculta.
-- **Pruebas**: `src/shared/model/__tests__/mapEmbed.test.ts`, `ui/__tests__/LocationMap.test.ts`, bloque «ubicación» de `SettingsPage.test.ts` y `PublicBarbershopEntryPage.test.ts`, y `e2e/ubicacion-reserva-publica.spec.ts` (con y sin ubicación, 320/360/768/1280, axe).
+- **Pruebas**: `src/shared/model/__tests__/mapEmbed.test.ts`, `ui/__tests__/LocationMap.test.ts`, bloque «ubicación» de `SettingsPage.test.ts` y `PublicBusinessEntryPage.test.ts`, y `e2e/ubicacion-reserva-publica.spec.ts` (con y sin ubicación, 320/360/768/1280, axe).
 
 ## Cancelación pública del turno (HU-099, T5)
 
 - **Cliente** (`/mi-turno/:token`): con el turno `confirmed` aparece «Cancelar turno» (`customer-access/components/AppointmentCancellation.vue`). Al abrirlo se dice la consecuencia (se libera el horario, no se deshace) y se pide un motivo, opcional u obligatorio según la política. El foco entra al campo de motivo y la página enfoca el aviso «Cancelaste tu turno» al terminar.
-- **Quién decide**: el servidor. `model/cancellationAvailability.ts` es solo una **pista** con el reloj del dispositivo (mismo criterio que el backend, probado antes/exacto/después) para decidir qué ofrecer; un `422` del servidor (`cancellation-window-closed`, `cancellation-reason-required`) siempre prevalece. Sin permiso para cancelar no hay botón: se explica por qué y se muestra el contacto público de la barbería (`tel:`/`mailto:`), o se remite al canal por el que reservó.
+- **Quién decide**: el servidor. `model/cancellationAvailability.ts` es solo una **pista** con el reloj del dispositivo (mismo criterio que el backend, probado antes/exacto/después) para decidir qué ofrecer; un `422` del servidor (`cancellation-window-closed`, `cancellation-reason-required`) siempre prevalece. Sin permiso para cancelar no hay botón: se explica por qué y se muestra el contacto público del negocio (`tel:`/`mailto:`), o se remite al canal por el que reservó.
 - **Idempotencia**: la página reutiliza la `Idempotency-Key` solo al reintentar la misma intención (mismo motivo) tras un fallo de red o error inesperado; cualquier otro intento usa una nueva. Un `409` de versión/estado recarga el turno y avisa; un `404` (enlace inexistente, vencido o anonimizado) muestra «No pudimos abrir ese enlace». Un turno ya cancelado se abre normalmente y muestra «Este turno está cancelado» sin política ni formulario (`DEC-136`).
 - **Pruebas**: `model/__tests__/cancellationAvailability.test.ts`, `api/__tests__/cancelCustomerAppointmentApi.test.ts`, `components/__tests__/AppointmentCancellation.test.ts`, bloque «cancelación» de `CustomerAppointmentPage.test.ts` y `e2e/cancelacion-publica.spec.ts` (cancelar → recargar muestra «cancelado» → franja reconsultada, rechazos, teclado, 320/360/768/1280 y zoom 200%, axe; evidencia en `e2e/evidence/mi-turno-cancelacion/`).
 
-## Reseñas por barbero (HU-100, DEC-128)
+## Reseñas por profesional (HU-100, DEC-128)
 
 - **Cliente** (`/mi-turno/:token`): con `canReview` el turno completado muestra «Califica a …» (`customer-access/components/AppointmentReview.vue`): estrellas 1–5 (`shared/ui/StarRatingInput.vue`, radios nativos), comentario opcional con contador /500 y aviso de no escribir datos personales. Tras enviar (o si ya existe) se muestra de solo lectura. Un `409` o `404` recarga el turno.
-- **Reserva pública** (`/reservar/:slug/servicios/:serviceId/barbero`): promedio con `shared/ui/StarRating.vue` solo si hay reseñas visibles, y «Ver reseñas» (`public-booking/components/BarberReviews.vue`) del barbero elegido, fuera del `radiogroup`; la lista se pide al abrirla.
-- **Panel** (detalle del barbero y ficha del perfil individual): `staff/components/BarberReviewsPanel.vue` muestra el promedio y todas las reseñas, las ocultas con su fecha, y permite ocultar/mostrar; el promedio lo recalcula el servidor.
-- **Pruebas**: `shared/model/__tests__/rating.test.ts`, `shared/ui/__tests__/StarRating*.test.ts`, componentes de cada módulo y `e2e/resenas-barbero.spec.ts` (calificar, ver y ocultar con respuestas simuladas, 320/360/768/1280, axe).
+- **Reserva pública** (`/reservar/:slug/servicios/:serviceId/profesional`): promedio con `shared/ui/StarRating.vue` solo si hay reseñas visibles, y «Ver reseñas» (`public-booking/components/ProfessionalReviews.vue`) del profesional elegido, fuera del `radiogroup`; la lista se pide al abrirla.
+- **Panel** (detalle del profesional y ficha del perfil individual): `staff/components/ProfessionalReviewsPanel.vue` muestra el promedio y todas las reseñas, las ocultas con su fecha, y permite ocultar/mostrar; el promedio lo recalcula el servidor.
+- **Pruebas**: `shared/model/__tests__/rating.test.ts`, `shared/ui/__tests__/StarRating*.test.ts`, componentes de cada módulo y `e2e/resenas-profesional.spec.ts` (calificar, ver y ocultar con respuestas simuladas, 320/360/768/1280, axe).
 
 ## Reseñas de Google del negocio (HU-101, DEC-129)
 
 - **Configuración** (panel 06 «Ubicación»): no ofrece el identificador de la ficha de Google; lo fija quien opera la base de datos (`DEC-137`) y guardar la ubicación o el domicilio nunca lo modifica.
-- **Entrada pública** (`/reservar/:slug`): `public-booking/components/GoogleReviews.vue` pide `GET /public/barbershops/{slug}/reviews` al abrir y muestra «Opiniones en Google» con estrellas, el total, las reseñas bajo demanda con la atribución a cada autor, «Reseñas de Google» y el enlace a la ficha real. **Sin ficha, sin credencial, con la estructura vacía o ante cualquier error, la sección no existe y no se muestra ningún error.**
+- **Entrada pública** (`/reservar/:slug`): `public-booking/components/GoogleReviews.vue` pide `GET /public/businesses/{slug}/reviews` al abrir y muestra «Opiniones en Google» con estrellas, el total, las reseñas bajo demanda con la atribución a cada autor, «Reseñas de Google» y el enlace a la ficha real. **Sin ficha, sin credencial, con la estructura vacía o ante cualquier error, la sección no existe y no se muestra ningún error.**
 - **Clave**: el navegador nunca recibe la clave de servidor; la consulta a Google la hace el API.
-- **Pruebas**: `api/__tests__/getPublicGoogleReviewsApi.test.ts`, `components/__tests__/GoogleReviews.test.ts` (con axe), bloque de Google de `PublicBarbershopEntryPage.test.ts`, `SettingsPage.test.ts` y `e2e/google-resenas-reserva-publica.spec.ts` (320/360/768/1280, axe).
+- **Pruebas**: `api/__tests__/getPublicGoogleReviewsApi.test.ts`, `components/__tests__/GoogleReviews.test.ts` (con axe), bloque de Google de `PublicBusinessEntryPage.test.ts`, `SettingsPage.test.ts` y `e2e/google-resenas-reserva-publica.spec.ts` (320/360/768/1280, axe).
 
 ## Canal del código de acceso (HU-007, DEC-139)
 
-- **Configuración** (`/panel/barberia`, panel 10 «Código de acceso», `components/LoginOtpPanel.vue`): grupo de opciones «Correo», «WhatsApp» y «Correo y WhatsApp». Elegir una opción la guarda al instante con `PATCH /private/settings/login-otp` (cliente `api/loginOtpApi.ts`), lo anuncia en una región viva y, si falla, conserva la anterior. La pantalla nunca pide ni muestra un correo o teléfono: el servidor deriva los destinos de cada cuenta. La recuperación de acceso no se configura aquí (`DEC-092`).
+- **Configuración** (`/panel/negocio`, panel 10 «Código de acceso», `components/LoginOtpPanel.vue`): grupo de opciones «Correo», «WhatsApp» y «Correo y WhatsApp». Elegir una opción la guarda al instante con `PATCH /private/settings/login-otp` (cliente `api/loginOtpApi.ts`), lo anuncia en una región viva y, si falla, conserva la anterior. La pantalla nunca pide ni muestra un correo o teléfono: el servidor deriva los destinos de cada cuenta. La recuperación de acceso no se configura aquí (`DEC-092`).
 - **Pruebas**: `api/__tests__/loginOtpApi.test.ts`, `components/__tests__/LoginOtpPanel.test.ts` (con axe), `SettingsPage.test.ts` y `e2e/acceso-codigo-canal.spec.ts` (320/360/768/1280, axe).
 
 ## Servicio a domicilio (HU-103, DEC-131, DEC-138)
 
 - **Configuración** (panel 06 «Ubicación»): interruptor «Atiendo a domicilio» (`offersHomeService`), se guarda con la misma petición que la marca.
-- **Reserva pública** (`/reservar/:slug/.../cliente`): si la barbería lo ofrece **y** hay forma de buscar direcciones, los datos del cliente muestran «¿Dónde te atendemos?» (en el local / a domicilio). «A domicilio» exige una ubicación marcada (`modules/public-booking/components/HomeLocationField.vue`), de cualquiera de tres formas (DEC-138): elegir una sugerencia del autocompletado (`shared/ui/AddressAutocomplete.vue`, combobox accesible), mover el mapa hasta que el pin fijo quede sobre el lugar o pulsar «Usar mi ubicación»; un texto escrito sin ubicación marcada no basta. La dirección escrita es opcional. El resumen añade «Te atendemos en» y la confirmación envía `homeService` solo en ese caso.
+- **Reserva pública** (`/reservar/:slug/.../cliente`): si el negocio lo ofrece **y** hay forma de buscar direcciones, los datos del cliente muestran «¿Dónde te atendemos?» (en el local / a domicilio). «A domicilio» exige una ubicación marcada (`modules/public-booking/components/HomeLocationField.vue`), de cualquiera de tres formas (DEC-138): elegir una sugerencia del autocompletado (`shared/ui/AddressAutocomplete.vue`, combobox accesible), mover el mapa hasta que el pin fijo quede sobre el lugar o pulsar «Usar mi ubicación»; un texto escrito sin ubicación marcada no basta. La dirección escrita es opcional. El resumen añade «Te atendemos en» y la confirmación envía `homeService` solo en ese caso.
 - **Autocompletado** (`src/shared/model/placesAutocomplete.ts`): API REST de Google Places (New) desde el navegador con la clave de navegador `VITE_GOOGLE_MAPS_BROWSER_KEY` (habilitar también Places API (New) en esa clave, restringida por dominio); sin SDK de JavaScript ni tokens de sesión. Sin clave solo funciona en desarrollo, con un proveedor simulado y determinista (Bogotá); **en producción sin clave el paso no se ofrece**.
 - **Mapa para marcar la ubicación** (`shared/ui/LocationPicker.vue`, `shared/model/mapPicker.ts`): con la clave de navegador se carga la API de JavaScript de Google Maps con un `<script>` (sin dependencia nueva) y se geocodifica a la inversa el punto para dar un texto; hay que habilitar **Maps JavaScript API** y **Geocoding API** en esa clave (restringida por dominio). Sin clave, en desarrollo, un mapa simulado con botones para mover el punto. El texto del punto es la dirección aproximada o «Ubicación marcada en el mapa».
 - **Detección de ubicación** (`shared/model/geolocation.ts`): usa `navigator.geolocation` solo al pulsar el botón; negado, sin respuesta a tiempo o no disponible se explica y se sigue con el mapa. La posición no se registra ni se guarda fuera del formulario.
@@ -1218,6 +1218,6 @@ por defecto, configurable con `API_PROXY_TARGET`) para que `shared/api` use
 rutas relativas de mismo origen, igual que en despliegue real. Pinia se
 agrega solo si aparece estado compartido real entre rutas, según `DEC-033`.
 
-### Paginación de Barberos (DEC-107, #288)
+### Paginación de Profesionales (DEC-107, #288)
 
-Barberos muestra páginas numeradas con total real. El tamaño se mide contra el cascarón, incluyendo filas, pie y padding responsive; al redimensionar conserva el primer registro dentro de la página nueva. El alta refresca la última página para mostrar el registro con orden estable. Los errores conservan la lista anterior y reintentan la página solicitada. Los selectores conservan el cliente por cursor.
+Profesionales muestra páginas numeradas con total real. El tamaño se mide contra el cascarón, incluyendo filas, pie y padding responsive; al redimensionar conserva el primer registro dentro de la página nueva. El alta refresca la última página para mostrar el registro con orden estable. Los errores conservan la lista anterior y reintentan la página solicitada. Los selectores conservan el cliente por cursor.
