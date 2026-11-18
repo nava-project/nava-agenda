@@ -80,6 +80,7 @@ done
 # esquema (DEC-183, #660): lo hace el superusuario, no una migración. Las migraciones que
 # se añadan después de 20261121090000 van en una segunda lista, tras este paso.
 psql_file database/roles/rename_to_agenda.sql
+# shellcheck disable=SC2043 # la lista crece con cada migración posterior al renombrado de roles
 for f in 20261122090000_rename_cancelled_by_professional.sql; do
   psql_file "database/migrations/$f"
 done
