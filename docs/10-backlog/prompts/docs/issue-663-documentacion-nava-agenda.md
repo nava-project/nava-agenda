@@ -13,8 +13,8 @@ issue: 663
 issue_url: "https://github.com/bcaceres19/barberia/issues/663"
 suggested_issue_title: null
 branch: "docs/663-documentacion-nava-agenda"
-pr: null
-pr_url: null
+pr: 678
+pr_url: "https://github.com/bcaceres19/barberia/pull/678"
 depends_on:
   - "DEC-183"
   - "#660"
