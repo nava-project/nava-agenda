@@ -1,6 +1,7 @@
-# Proxy inverso, HTTPS automático y archivos estáticos de NAVA.
+# Proxy inverso, HTTPS automático y archivos estáticos de Nava Agenda.
 # Variables (las inyecta compose desde stack.env):
-#   DOMAIN      dominio público, p. ej. nava.wtf (con `localhost` Caddy usa su CA interna)
+#   DOMAIN      dominio raíz de la familia NAVA, p. ej. nava.wtf (con `localhost` Caddy usa su
+#               CA interna). La app vive en agenda.{$DOMAIN} (DEC-183).
 #   ACME_EMAIL  correo de aviso para Let's Encrypt
 #
 # Este Caddy es el único dueño de 80/443 en la VPS. También sirve otros proyectos del
@@ -17,7 +18,9 @@ www.{$DOMAIN} {
 	redir https://{$DOMAIN}{uri} permanent
 }
 
-{$DOMAIN} {
+# La app (SPA + API) de Nava Agenda (DEC-183). Se importa en agenda.{$DOMAIN}, su casa,
+# y en {$DOMAIN} hasta que la landing de la familia NAVA ocupe ese dominio (#658).
+(nava_agenda) {
 	encode zstd gzip
 
 	header {
@@ -65,6 +68,14 @@ www.{$DOMAIN} {
 		try_files {path} /index.html
 		file_server
 	}
+}
+
+agenda.{$DOMAIN} {
+	import nava_agenda
+}
+
+{$DOMAIN} {
+	import nava_agenda
 }
 
 # Nava · Pedidos (repo aparte, pila `pedidos` en /srv/pedidos; DEC-176). Llega por la red
