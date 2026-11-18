@@ -234,10 +234,7 @@ type AvailabilityResponse struct {
 // (DEC-162), forma exacta del componente OpenAPI
 // ProfessionalAvailabilitySlotResponse.yaml.
 type ProfessionalAvailabilitySlotResponse struct {
-	ProfessionalID string `json:"professionalId"`
-	// LegacyBarberID repite ProfessionalID con el nombre anterior a DEC-183 (#661): Odin
-	// lo lee en cada hueco. Se retira cuando Odin migre al contrato nuevo.
-	LegacyBarberID string    `json:"barberId"`
+	ProfessionalID string    `json:"professionalId"`
 	StartsAt       time.Time `json:"startsAt"`
 }
 

@@ -12,6 +12,4 @@ export const professionalServicesPrivateShellChildRoutes: RouteRecordRaw[] = [
     name: 'professional-services',
     component: () => import('./pages/ProfessionalServicesPage.vue'),
   },
-  // Ruta anterior a DEC-183 (#662): un enlace guardado sigue llegando.
-  { path: 'servicios-por-barbero', redirect: { name: 'professional-services' } },
 ]

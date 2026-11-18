@@ -4,6 +4,34 @@ Formato basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/).
 Ver [`docs/06-api/estandar-openapi.md`](../../docs/06-api/estandar-openapi.md)
 sección 18 para qué cuenta como cambio compatible o incompatible.
 
+
+## 2.0.0 · 2026-11-18
+
+Cierre de la transición de `DEC-183` (issue #685): el contrato deja solo los nombres
+actuales. Nava Nexos (Odin) migró a las rutas y campos nuevos (bcaceres19/nava-nexos#19,
+desplegado y comprobado en producción), y en los registros del API no hay llamadas a
+las rutas viejas desde entonces.
+
+### Retirado (incompatible)
+
+- La cookie de sesión con el nombre anterior, `barberia_session`, ya no se acepta
+  ni se borra (issue #685; `SessionCookie`, `SetCookieSession`,
+  `ClearCookieSession`). Motivo: el propietario pidió dejar solo los nombres
+  actuales. Consumidores afectados: ninguno. Las 6 sesiones abiertas se emitieron
+  y usaron antes de que `agenda.nava.wtf` entrara en servicio, con cookie
+  host-only de `nava.wtf`, que nunca llega al dominio nuevo.
+- Alias deprecados de Odin: `POST /integrations/odin/barbershops/{slug}/customer-appointments/lookup`
+  y `…/customer-access/challenge` (`lookupCustomerAppointmentsForOdinDeprecated`,
+  `requestCustomerAccessCodeForOdinDeprecated`) y el parámetro `OdinBusinessSlug`.
+  Usar `/integrations/odin/businesses/{slug}/…`.
+- Las 7 lecturas públicas con la ruta anterior, `GET /public/barbershops/{slug}`,
+  `…/services`, `…/reviews`, `…/barbers`, `…/services/{serviceId}/barbers`,
+  `…/services/{serviceId}/availability` y
+  `…/services/{serviceId}/barbers/{barberId}/availability`. Usar `/public/businesses/{slug}/…`.
+- Campos deprecados `OdinAppointment.barberName` (usar `professionalName`) y
+  `ProfessionalAvailabilitySlotResponse.barberId` (usar `professionalId`).
+- Consumidor afectado: solo Nava Nexos, que ya usa la forma nueva.
+
 ## 1.1.0 · 2026-11-18
 
 ### Cambiado (compatible)

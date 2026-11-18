@@ -13,15 +13,6 @@ properties:
     description: Profesional al que pertenece el inicio.
     examples:
       - 8f3ac2b1-e4d5-46f6-a7c8-d9e0f1a2b3c4
-  barberId:
-    type: string
-    format: uuid
-    deprecated: true
-    description: >
-      Mismo valor que `professionalId`. Se conserva mientras Odin no lea
-      `professionalId` (DEC-183, issue #661); después se retira.
-    examples:
-      - 8f3ac2b1-e4d5-46f6-a7c8-d9e0f1a2b3c4
   startsAt:
     type: string
     format: date-time
@@ -33,5 +24,4 @@ properties:
       - "2026-09-15T09:00:00-05:00"
 required:
   - professionalId
-  - barberId
   - startsAt

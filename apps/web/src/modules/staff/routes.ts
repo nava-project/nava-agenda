@@ -12,6 +12,4 @@ export const staffPrivateShellChildRoutes: RouteRecordRaw[] = [
     name: 'staff-profesionales',
     component: () => import('./pages/StaffPage.vue'),
   },
-  // Ruta anterior a DEC-183 (#662): un enlace guardado sigue llegando.
-  { path: 'barberos', redirect: { name: 'staff-profesionales' } },
 ]

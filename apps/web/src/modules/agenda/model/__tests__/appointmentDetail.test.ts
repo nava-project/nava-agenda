@@ -5,10 +5,8 @@ import { historyFieldLabel } from '../appointmentDetail'
 describe('historyFieldLabel', () => {
   const v = buildVocabulary(DEFAULT_BRAND)
 
-  // El historial es inmutable: un cambio guardado como `barber_id` antes de
-  // DEC-183 (#662) se sigue rotulando con el término del negocio.
-  it.each(['professional_id', 'barber_id'])('%s usa el término de profesional', (field) => {
-    expect(historyFieldLabel(field, v)).toBe(v.Professional)
+  it('professional_id usa el término de profesional del negocio', () => {
+    expect(historyFieldLabel('professional_id', v)).toBe(v.Professional)
   })
 
   it('los campos fijos conservan su etiqueta y los desconocidos su nombre', () => {

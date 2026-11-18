@@ -3,10 +3,6 @@
 # turno, para que el cliente cancele o reprograme él mismo. Se protegen con el
 # secreto de servicio (`OdinServiceToken`); sin `APP_ODIN_SERVICE_TOKEN` en el
 # despliegue estas rutas no existen. Ver docs/06-api/estandar-openapi.md.
-#
-# DEC-183 (issue #661): las rutas pasan de `/barbershops/{slug}` a
-# `/businesses/{slug}`. Las viejas siguen respondiendo igual, como alias
-# deprecados, hasta que Odin confirme el cambio; después se retiran.
 /integrations/odin/businesses/{slug}/customer-appointments/lookup:
   post:
     tags: [Integrations]
@@ -108,84 +104,6 @@
                 phone: "+573001234567"
                 appointmentRef: kP3x9Qm2LwT7yVb1NcH8sJ4dRfE0uZaG6iO5tXnYhBqMlKjWvCpDrA
                 purpose: reschedule
-    responses:
-      "201":
-        $ref: '../components/responses/OdinAccessChallengeCreated.yaml'
-      "400":
-        $ref: '../components/responses/InvalidRequestProblem.yaml'
-      "401":
-        $ref: '../components/responses/ServiceCredentialProblem.yaml'
-      "404":
-        $ref: '../components/responses/NotFoundProblem.yaml'
-      "409":
-        $ref: '../components/responses/AppointmentNotAvailableProblem.yaml'
-      "422":
-        $ref: '../components/responses/ValidationProblem.yaml'
-      "429":
-        $ref: '../components/responses/RateLimitedProblem.yaml'
-      "500":
-        $ref: '../components/responses/InternalErrorProblem.yaml'
-      "503":
-        $ref: '../components/responses/ServiceUnavailableProblem.yaml'
-
-/integrations/odin/barbershops/{slug}/customer-appointments/lookup:
-  post:
-    tags: [Integrations]
-    summary: Buscar los turnos de un teléfono (ruta anterior)
-    description: >
-      Alias deprecado de `POST /integrations/odin/businesses/{slug}/customer-appointments/lookup`
-      (DEC-183, issue #661): misma petición, misma respuesta y mismos errores. Se
-      conserva mientras Odin no use la ruta nueva.
-    operationId: lookupCustomerAppointmentsForOdinDeprecated
-    deprecated: true
-    security:
-      - OdinServiceToken: []
-    x-business-rules: [RN-CAN-01, RN-DAT-02, RN-TEN-01]
-    x-decisions: [DEC-179, DEC-183]
-    parameters:
-      - $ref: '../components/parameters/OdinBusinessSlug.yaml'
-    requestBody:
-      required: true
-      content:
-        application/json:
-          schema:
-            $ref: '../components/schemas/OdinAppointmentLookupRequest.yaml'
-    responses:
-      "200":
-        $ref: '../components/responses/OdinAppointmentLookup.yaml'
-      "400":
-        $ref: '../components/responses/InvalidRequestProblem.yaml'
-      "401":
-        $ref: '../components/responses/ServiceCredentialProblem.yaml'
-      "404":
-        $ref: '../components/responses/NotFoundProblem.yaml'
-      "422":
-        $ref: '../components/responses/ValidationProblem.yaml'
-      "500":
-        $ref: '../components/responses/InternalErrorProblem.yaml'
-
-/integrations/odin/barbershops/{slug}/customer-access/challenge:
-  post:
-    tags: [Integrations]
-    summary: Pedir un código atado a un turno (ruta anterior)
-    description: >
-      Alias deprecado de `POST /integrations/odin/businesses/{slug}/customer-access/challenge`
-      (DEC-183, issue #661): misma petición, misma respuesta y mismos errores. Se
-      conserva mientras Odin no use la ruta nueva.
-    operationId: requestCustomerAccessCodeForOdinDeprecated
-    deprecated: true
-    security:
-      - OdinServiceToken: []
-    x-business-rules: [RN-CAN-01, RN-DAT-01, RN-DAT-02, RN-TEN-01]
-    x-decisions: [DEC-179, DEC-181, DEC-183]
-    parameters:
-      - $ref: '../components/parameters/OdinBusinessSlug.yaml'
-    requestBody:
-      required: true
-      content:
-        application/json:
-          schema:
-            $ref: '../components/schemas/OdinAccessChallengeRequest.yaml'
     responses:
       "201":
         $ref: '../components/responses/OdinAccessChallengeCreated.yaml'

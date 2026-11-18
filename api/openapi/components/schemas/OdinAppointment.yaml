@@ -27,14 +27,6 @@ properties:
     description: Nombre del profesional que atiende el turno.
     examples:
       - Jhonner Bustamante
-  barberName:
-    type: string
-    deprecated: true
-    description: >
-      Mismo valor que `professionalName`. Se conserva mientras Odin no confirme que
-      lee `professionalName` (DEC-183, issue #661); después se retira.
-    examples:
-      - Jhonner Bustamante
   canCancel:
     type: boolean
     description: >
@@ -50,6 +42,5 @@ required:
   - startsAt
   - serviceName
   - professionalName
-  - barberName
   - canCancel
   - canReschedule

@@ -407,7 +407,7 @@ func newServiceAvailabilityResponse(result publicbooking.ServiceAvailabilityResu
 	slots := make([]ProfessionalAvailabilitySlotResponse, 0, len(result.Slots))
 	for _, slot := range result.Slots {
 		slots = append(slots, ProfessionalAvailabilitySlotResponse{
-			ProfessionalID: slot.ProfessionalID, LegacyBarberID: slot.ProfessionalID, StartsAt: slot.StartsAt,
+			ProfessionalID: slot.ProfessionalID, StartsAt: slot.StartsAt,
 		})
 	}
 	return ServiceAvailabilityResponse{

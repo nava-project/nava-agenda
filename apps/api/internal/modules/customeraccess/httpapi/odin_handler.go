@@ -27,11 +27,8 @@ type OdinAppointmentResponse struct {
 	StartsAt         time.Time `json:"startsAt"`
 	ServiceName      string    `json:"serviceName"`
 	ProfessionalName string    `json:"professionalName"`
-	// LegacyBarberName repite ProfessionalName con el nombre de campo anterior a DEC-183
-	// (#661). Se retira cuando Odin confirme que lee professionalName.
-	LegacyBarberName string `json:"barberName"`
-	CanCancel        bool   `json:"canCancel"`
-	CanReschedule    bool   `json:"canReschedule"`
+	CanCancel        bool      `json:"canCancel"`
+	CanReschedule    bool      `json:"canReschedule"`
 }
 
 // OdinLookupResponse es la respuesta 200 de `lookup`.
@@ -125,8 +122,7 @@ func (h *OdinLookupHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	for _, a := range appointments {
 		out.Appointments = append(out.Appointments, OdinAppointmentResponse{
 			AppointmentRef: a.Ref, StartsAt: a.StartsAt, ServiceName: a.ServiceName, ProfessionalName: a.ProfessionalName,
-			LegacyBarberName: a.ProfessionalName,
-			CanCancel:        a.CanCancel, CanReschedule: a.CanReschedule,
+			CanCancel: a.CanCancel, CanReschedule: a.CanReschedule,
 		})
 	}
 	w.Header().Set("Content-Type", "application/json")
