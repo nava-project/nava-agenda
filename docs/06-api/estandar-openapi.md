@@ -1,9 +1,9 @@
 ---
 titulo: "Estándar de documentación OpenAPI"
-version: "1.0"
+version: "1.1"
 estado: "Obligatorio para desarrollo"
 responsable: "Propietario del proyecto"
-ultima_actualizacion: "2026-08-06"
+ultima_actualizacion: "2026-11-18"
 documentos_relacionados:
   - "../00-control/registro-decisiones.md"
   - "../00-control/matriz-trazabilidad.md"
@@ -81,9 +81,9 @@ Reglas:
 El API se divide conceptualmente en tres audiencias:
 
 ```text
-/api/v1/public/...      # reserva sin sesión del barbero
+/api/v1/public/...      # reserva sin sesión del profesional
 /api/v1/customer/...    # acceso mediante credencial del enlace de la cita
-/api/v1/private/...     # sesión autenticada del barbero
+/api/v1/private/...     # sesión autenticada del profesional
 ```
 
 En OpenAPI se usa preferiblemente un servidor relativo:
@@ -123,13 +123,13 @@ El usuario ve “turno”; los identificadores técnicos conservan `appointment`
 1. Usar sustantivos plurales para colecciones: `/appointments`, `/services`.
 2. Evitar verbos CRUD en la URL: no `/getAppointments` ni `/createAppointment`.
 3. Modelar transiciones de negocio como subrecursos o comandos explícitos y consistentes cuando un simple `PATCH` oculte precondiciones importantes.
-4. No anidar más de lo necesario. La pertenencia a barbería se deriva de identidad o recurso, no de un `barbershopId` confiado del body.
+4. No anidar más de lo necesario. La pertenencia al negocio se deriva de identidad o recurso, no de un `businessId` confiado del body.
 5. `GET` no tiene body y no produce efectos de negocio.
 6. `POST` crea recursos o ejecuta comandos no idempotentes por naturaleza, protegidos con clave de idempotencia cuando sean críticos.
 7. `PUT` reemplaza una representación completa; `PATCH` aplica una modificación parcial con campos permitidos explícitos.
 8. `DELETE` no implica borrado físico cuando las reglas exigen historial; la descripción explica el efecto observable.
 9. Filtros y orden se documentan mediante parámetros definidos, no mediante una cadena libre.
-10. Listas potencialmente crecientes usan paginación por cursor; `limit` tiene mínimo, máximo y valor inicial. Excepciones puntuales: Servicios usa modo numerado con búsqueda (DEC-103); Barberos añade modo numerado optativo (DEC-107) y conserva cursor para sus selectores. En Barberos no se mezclan modos, pageSize admite 1–50, total y filas comparten snapshot y una página fuera de rango se ajusta a la última (vacío: página 1).
+10. Listas potencialmente crecientes usan paginación por cursor; `limit` tiene mínimo, máximo y valor inicial. Excepciones puntuales: Servicios usa modo numerado con búsqueda (DEC-103); Profesionales añade modo numerado optativo (DEC-107) y conserva cursor para sus selectores. En Profesionales no se mezclan modos, pageSize admite 1–50, total y filas comparten snapshot y una página fuera de rango se ajusta a la última (vacío: página 1).
 
 ## 7. Contenido obligatorio de cada operación
 
@@ -200,7 +200,7 @@ Reglas:
 | Estado | enum documentado y alineado con la máquina de estados |
 | Token o contraseña | `writeOnly: true`, sin ejemplo real |
 
-Los instantes se transportan con offset. Una fecha u hora mostrada al cliente siempre se interpreta en la zona de la barbería.
+Los instantes se transportan con offset. Una fecha u hora mostrada al cliente siempre se interpreta en la zona del negocio.
 
 ## 10. Requests y validación
 
@@ -208,10 +208,10 @@ Los instantes se transportan con offset. Una fecha u hora mostrada al cliente si
 - Rechazar campos desconocidos en requests cerrados.
 - Documentar límites de longitud, valores, patrones y cardinalidad que el backend aplica realmente.
 - Un campo obligatorio en producto aparece en `required`; no basta una descripción que diga “obligatorio”.
-- No incluir `barbershopId`, permisos, estado derivado o actor como entrada confiable cuando el servidor puede derivarlo.
+- No incluir `businessId`, permisos, estado derivado o actor como entrada confiable cuando el servidor puede derivarlo.
 - Requests de creación crítica declaran `Idempotency-Key` como header requerido.
 - La misma clave con el mismo contenido devuelve el mismo resultado lógico; con contenido distinto produce conflicto documentado.
-- Archivos o contenido binario solo se agregan cuando exista un caso aprobado (hasta hoy, la fotografía del barbero, `DEC-104`); no usar base64 dentro de JSON por conveniencia.
+- Archivos o contenido binario solo se agregan cuando exista un caso aprobado (hasta hoy, la fotografía del profesional, `DEC-104`); no usar base64 dentro de JSON por conveniencia.
 
 ## 11. Responses y códigos HTTP
 
@@ -224,7 +224,7 @@ Los instantes se transportan con offset. Una fecha u hora mostrada al cliente si
 | `400` | JSON, parámetro o sintaxis inválida |
 | `401` | credencial ausente, inválida o expirada |
 | `403` | identidad conocida sin permiso, solo cuando no revele un recurso sensible |
-| `404` | recurso inexistente o perteneciente a otra barbería |
+| `404` | recurso inexistente o perteneciente a otro negocio |
 | `409` | conflicto de agenda, estado, versión o idempotencia |
 | `422` | contenido bien formado que incumple validaciones de campo o regla procesable |
 | `429` | límite de solicitudes; documentar `Retry-After` cuando exista |
@@ -266,7 +266,7 @@ Reglas:
 2. Los esquemas de seguridad se definen una sola vez en `components/securitySchemes` y reflejan la implementación real.
 3. El acceso público usa `security: []`; eso no elimina rate limiting, idempotencia ni controles de abuso.
 4. La descripción privada indica que el tenant se deriva de la identidad autorizada.
-5. Recursos de otra barbería responden como no encontrados y no tienen ejemplo que revele su existencia.
+5. Recursos de otro negocio responden como no encontrados y no tienen ejemplo que revele su existencia.
 6. No incluir credenciales, cookies, tokens funcionales, hosts internos ni datos reales en ejemplos.
 7. Contraseñas, códigos y tokens se marcan `writeOnly`; respuestas nunca los reutilizan salvo el único momento expresamente diseñado.
 8. La documentación completa de rutas privadas se publica solo en un artefacto con acceso controlado.
@@ -279,7 +279,7 @@ Todo endpoint importante incluye ejemplos coherentes de request y response.
 
 - Usar UUID reservados para documentación o claramente ficticios.
 - Usar nombres como “Cliente Ejemplo”; no copiar datos de pruebas reales.
-- Fechas deben mostrar offset y zona de barbería coherentes.
+- Fechas deben mostrar offset y zona del negocio coherentes.
 - Un ejemplo debe validar contra su schema.
 - Proporcionar casos de frontera importantes: conflicto de franja, token expirado, límite de abuso y validación por campo.
 - No usar valores que parezcan secretos reales.

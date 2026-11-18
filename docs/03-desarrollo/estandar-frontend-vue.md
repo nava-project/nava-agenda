@@ -1,9 +1,9 @@
 ---
 titulo: "Estándar de código del frontend en Vue"
-version: "1.5"
+version: "1.6"
 estado: "Obligatorio para desarrollo"
 responsable: "Propietario del proyecto"
-ultima_actualizacion: "2026-09-02"
+ultima_actualizacion: "2026-11-18"
 documentos_relacionados:
   - "../00-control/registro-decisiones.md"
   - "../01-producto/alcance-mvp.md"
@@ -18,7 +18,7 @@ documentos_relacionados:
 
 ## 1. Propósito y alcance
 
-Estas reglas aplican a la aplicación Vue del flujo público y del panel del barbero. Buscan que una persona pueda entender, probar y modificar una funcionalidad sin recorrer toda la aplicación ni conocer detalles internos de otras funcionalidades.
+Estas reglas aplican a la aplicación Vue del flujo público y del panel del negocio (Nava Agenda). Buscan que una persona pueda entender, probar y modificar una funcionalidad sin recorrer toda la aplicación ni conocer detalles internos de otras funcionalidades.
 
 Código limpio significa aquí comportamiento explícito, componentes cohesionados, contratos tipados, accesibilidad y dependencias contenidas. No significa fragmentar cada archivo ni convertir toda lógica en un patrón genérico.
 

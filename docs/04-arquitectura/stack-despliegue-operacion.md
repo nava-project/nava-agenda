@@ -1,9 +1,9 @@
 ---
 titulo: "Stack, despliegue y operación"
-version: "1.9"
+version: "1.10"
 estado: "Decisión confirmada"
 responsable: "Propietario del proyecto"
-ultima_actualizacion: "2026-11-16"
+ultima_actualizacion: "2026-11-18"
 documentos_relacionados:
   - "../00-control/registro-decisiones.md"
   - "../01-producto/alcance-mvp.md"
@@ -95,7 +95,7 @@ Los cambios se entregan mediante GitHub Flow según [flujo-git-github.md](../03-
 El monolito mantiene límites internos explícitos:
 
 - identidad y sesiones;
-- barberías, usuarios y barberos;
+- negocios, usuarios y profesionales;
 - servicios y horarios;
 - disponibilidad;
 - turnos/citas;
@@ -103,7 +103,7 @@ El monolito mantiene límites internos explícitos:
 - notificaciones y recordatorios;
 - auditoría y operación.
 
-Un módulo no lee tablas de otro de forma improvisada: usa una función o servicio interno con contexto de barbería. La separación prepara el código para crecer sin asumir el costo operativo de varios servicios desplegados.
+Un módulo no lee tablas de otro de forma improvisada: usa una función o servicio interno con contexto de negocio. La separación prepara el código para crecer sin asumir el costo operativo de varios servicios desplegados.
 
 ## 3. Recordatorios y notificaciones
 
@@ -120,7 +120,7 @@ Canales del MVP:
 
 - correo electrónico transaccional;
 - interfaz oficial de WhatsApp;
-- selección por barbería y por tipo de evento.
+- selección por negocio y por tipo de evento.
 
 No se usan automatizaciones de WhatsApp no oficiales.
 
@@ -163,7 +163,7 @@ El procedimiento vigente está en [`deploy/README.md`](../../deploy/README.md) y
 
 - pila en contenedores Docker Compose, base de datos incluida, con límites de CPU y memoria por servicio y una sola superficie pública (Caddy en 80/443);
 - CI/CD en un Jenkins propio de la VPS (`DEC-177`, [`deploy/jenkins/README.md`](../../deploy/jenkins/README.md)): cada PR y cada commit de `main` pasan los checks, y el commit de `main` que los supera se despliega solo (`DEC-160`); las imágenes se construyen en el mismo Docker del servidor, sin registro intermedio, y un despliegue manual por SHA sirve para reintentos y vueltas atrás;
-- etapa de migración separada con Atlas y el rol `barberia_migrator`, precedida de un respaldo verificado; si falla, la aplicación en ejecución no se toca;
+- etapa de migración separada con Atlas y el rol `agenda_migrator`, precedida de un respaldo verificado; si falla, la aplicación en ejecución no se toca;
 - respaldo diario con retención de 30 días y prueba de restauración semanal (§5); la copia externa requiere configurar `BACKUP_RCLONE_REMOTE`.
 
 La reversión de la aplicación sigue siendo *roll-forward* (`migraciones-atlas.md` §9); `deploy.sh --no-migrate` solo es seguro si el esquema es compatible con la versión anterior.

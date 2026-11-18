@@ -1,9 +1,9 @@
 ---
 titulo: "Arquitectura del frontend"
-version: "1.6"
+version: "1.7"
 estado: "Decisión confirmada"
 responsable: "Propietario del proyecto"
-ultima_actualizacion: "2026-09-02"
+ultima_actualizacion: "2026-11-18"
 documentos_relacionados:
   - "../00-control/registro-decisiones.md"
   - "../01-producto/alcance-mvp.md"
@@ -54,7 +54,7 @@ La decisión busca reducir **tiempo total de construcción y mantenimiento**, no
 6. No conservar listas completas si la API puede paginarlas.
 7. Evitar reactividad profunda sobre estructuras grandes; normalizar los datos recibidos.
 8. Servir imágenes en dimensiones adecuadas y no cargar recursos del área privada en el flujo público.
-9. Generar bundles separados para el flujo público y el panel del barbero mediante rutas diferidas.
+9. Generar bundles separados para el flujo público y el panel del negocio mediante rutas diferidas.
 10. Medir tamaño, carga e interacción en cada build de candidato al piloto.
 11. Todo rediseño o pantalla nueva conserva los mockups aprobados, la firma cromática y el contraste editorial/funcional de NAVA / Tailored Grid; la composición y la tecnología de estilos son libres y cada issue elige la solución que mejor equilibre identidad, accesibilidad, rendimiento y mantenimiento.
 12. Una herramienta visual o dependencia nueva —incluido Tailwind, una biblioteca de componentes o iconos— requiere justificar licencia, mantenimiento, accesibilidad e impacto en el bundle.
@@ -97,7 +97,7 @@ Cada módulo agrupa vistas, componentes y lógica de su capacidad. `shared/` sol
 - no Nuxt ni renderizado del lado del servidor para el panel operativo;
 - no microfrontends;
 - no gestor de estado global obligatorio;
-- no se agregan al MVP configuradores de tema, personalización por barbería ni otras capacidades de producto solo por una decisión visual; la implementación interna puede usar la expresión visual que mejor materialice NAVA / Tailored Grid.
+- no se agregan al MVP configuradores de tema, personalización por negocio ni otras capacidades de producto solo por una decisión visual; la implementación interna puede usar la expresión visual que mejor materialice NAVA / Tailored Grid.
 
 Las páginas públicas de mercadeo pueden generarse como HTML estático separado. El flujo de reservas sigue siendo interactivo y se entrega con Vue.
 

@@ -1,9 +1,9 @@
 ---
 titulo: "Especificación integral de experiencia y pantallas NAVA"
-version: "1.5"
+version: "1.6"
 estado: "Dirección de producto y alcance; composición visual orientativa"
 responsable: "Propietario del proyecto"
-ultima_actualizacion: "2026-10-04"
+ultima_actualizacion: "2026-11-18"
 documentos_relacionados:
   - "../00-control/registro-decisiones.md"
   - "../01-producto/alcance-mvp.md"
@@ -41,11 +41,11 @@ Fuentes normativas: `DEC-016`, `DEC-074`, `DEC-075`, `DEC-077`, `DEC-078`, `DEC-
 
 ### 2.1 Nombre
 
-- El producto y la aplicación se llaman **NAVA**.
-- El wordmark visible se escribe `NAVA`, en mayúsculas, sin traducirlo ni agregarle “App”, “Studio” o “Barber”.
-- El nombre de la barbería es dato del tenant y nunca se sustituye por NAVA.
-- En el panel privado, NAVA identifica la plataforma y el nombre de la barbería identifica el contexto operativo.
-- En la reserva pública, la barbería tiene la jerarquía principal y aparece la firma secundaria “Reservas con NAVA”. El cliente no debe creer que reserva en una barbería llamada NAVA.
+- El producto y la aplicación se llaman **Nava Agenda** (`DEC-183`): una agenda para cualquier negocio que muestra servicios y agenda citas, dentro de la familia NAVA. La app vive en `agenda.nava.wtf`; `nava.wtf` sirve la landing de la familia desde su propio repositorio. Los textos que nombran el producto dicen «Nava Agenda».
+- El wordmark visible sigue siendo `NAVA`, en mayúsculas, sin traducirlo ni agregarle “App”, “Studio” o “Barber”.
+- El nombre del negocio es dato del tenant y nunca se sustituye por NAVA.
+- En el panel privado, NAVA identifica la plataforma y el nombre del negocio identifica el contexto operativo.
+- En la reserva pública, el negocio tiene la jerarquía principal y aparece la firma secundaria “Reservas con NAVA”. El cliente no debe creer que reserva en un negocio llamado NAVA.
 - La decisión de producto no certifica disponibilidad de marca, dominio o registro legal; esa validación requiere una tarea separada antes de una salida comercial que la exija.
 
 ### 2.2 Personalidad
@@ -55,7 +55,7 @@ NAVA debe sentirse como sastrería contemporánea y hospitalidad boutique: preci
 Como orientación de tono, NAVA procura evitar:
 
 - estética de fiesta, neón, graffiti, gaming o alto contraste fluorescente;
-- clichés de barbería como bigotes, postes, navajas o tijeras repetidas como decoración;
+- clichés de un rubro concreto, como los de barbería: bigotes, postes, navajas o tijeras repetidas como decoración;
 - tarjetas grandes y redondeadas para cada fragmento de contenido;
 - sombras profundas, degradados, vidrio, brillos o texturas falsas;
 - fotografías de stock, avatares ficticios o cifras de demostración en producción;
@@ -90,7 +90,7 @@ Para rediseños y pantallas nuevas, estos rasgos son obligatorios como familia v
 - calidez, sobriedad, líneas finas, profundidad contenida y sensación de superficies cuidadas;
 - agenda estructurada por tiempo y foco en el próximo turno;
 - acciones contextuales y navegación clara;
-- reserva por servicio, barbero, fecha y hora;
+- reserva por servicio, profesional, fecha y hora;
 - composición con sensación editorial cuando favorezca el contenido.
 
 Las cuatro láminas de `docs/10-backlog/evidence/ui-redesign-nava-2026-09-02/` son referencias de familia para autenticación, formularios, componentes/alertas y shell/navegación. El atlas individual `ui-mockups-nava-tailored-grid-2026-09-03/auth-eventos/` es la referencia ejecutable para las rutas y estados que enumera. Si solo se cita la familia NAVA, orientan la identidad sin cerrar la composición. Si un PNG individual se asigna de forma expresa a una pantalla, se activa el modo de fidelidad de `DEC-080`: su geometría, escala y jerarquía visibles sí son contrato para el viewport y estado representados. Los datos sintéticos y las funciones fuera de alcance nunca lo son.
@@ -103,10 +103,10 @@ Las cuatro láminas de `docs/10-backlog/evidence/ui-redesign-nava-2026-09-02/` s
 | Ocupación o rendimiento | Solo se muestra cuando una HU y un contrato definan fórmula, ventana, fuente y casos límite. Nunca se calcula de forma ad hoc en Vue. |
 | Reportes | No existe como destino P0. Una métrica operativa futura no crea automáticamente un módulo de reportes. |
 | Inventario | Excluido del MVP. No aparece en el dock. |
-| Agenda con todas las filas de barberos | No es la vista P0. `DEC-074` exige seleccionar un barbero; la vista consolidada queda diferida. |
+| Agenda con todas las filas de profesionales | No es la vista P0. `DEC-074` exige seleccionar un profesional; la vista consolidada queda diferida. |
 | Estado “En curso” | No existe en la máquina P0. El marcador “Ahora” expresa tiempo, no cambia el estado `confirmed`. |
 | Perfil o cuenta de cliente | Excluido del flujo público P0. El cliente gestiona un turno mediante enlace de acceso, sin cuenta. |
-| Modo oscuro, tema o color por barbería | Una variante visual no agrega por sí sola settings, persistencia ni personalización por tenant; esas capacidades siguen requiriendo decisión de producto. |
+| Modo oscuro, tema o color por negocio | Una variante visual no agrega por sí sola settings, persistencia ni personalización por tenant; esas capacidades siguen requiriendo decisión de producto. |
 | Aplicación nativa | Excluida. La experiencia es web responsive. |
 
 ## 4. Contrato visual y libertades
@@ -136,12 +136,12 @@ La iconografía, fotografía, ilustración o ausencia de imagen se elige por su 
 La navegación principal P0 se agrupa así:
 
 1. **Agenda**: agenda diaria, cambio de fecha, detalle, nuevo turno y acciones de ciclo de vida.
-2. **Servicios**: catálogo y asignación de servicios por barbero.
-3. **Barberos**: listado y configuración del equipo.
+2. **Servicios**: catálogo y asignación de servicios por profesional.
+3. **Profesionales**: listado y configuración del equipo.
 4. **Horarios**: jornada base, excepciones, festivos y bloqueos.
-5. **Configuración**: barbería, reglas de reserva, cancelación, recordatorios y canales conforme existan sus HU.
+5. **Configuración**: negocio, reglas de reserva, cancelación, recordatorios y canales conforme existan sus HU.
 
-**Perfil del panel (`DEC-115`, `DEC-134`).** El panel lo deciden los roles del usuario en la base de datos, no un ajuste de Configuración: `empresa` ve el panel completo, `independiente` el perfil `solo` (barbero individual) y `empleado` el perfil `employee`, individual y más limitado (Agenda, Barberos y Horarios; sin Servicios, Servicios por barbero, Reserva pública ni Configuración, cuyas rutas llevan a la Agenda). Con varios roles prevalece `empresa`, luego `independiente`, luego `empleado`. El perfil `solo` es la misma navegación sin lo que solo tiene sentido con un equipo: Es la misma navegación sin lo que solo tiene sentido con un equipo: «Barberos» pasa a ser «Mi perfil» (la ficha del único barbero), desaparece «Servicios por barbero» y, con exactamente un barbero, Agenda, Nuevo turno y Horarios no piden elegirlo. No se crea un destino nuevo ni cambia ningún dato: con `shop`, o con más de un barbero, todo vuelve a ser como arriba.
+**Perfil del panel (`DEC-115`, `DEC-134`).** El panel lo deciden los roles del usuario en la base de datos, no un ajuste de Configuración: `empresa` ve el panel completo, `independiente` el perfil `solo` (profesional individual) y `empleado` el perfil `employee`, individual y más limitado (Agenda, Profesionales y Horarios; sin Servicios, Servicios por profesional, Reserva pública ni Configuración, cuyas rutas llevan a la Agenda). Con varios roles prevalece `empresa`, luego `independiente`, luego `empleado`. El perfil `solo` es la misma navegación sin lo que solo tiene sentido con un equipo: Es la misma navegación sin lo que solo tiene sentido con un equipo: «Profesionales» pasa a ser «Mi perfil» (la ficha del único profesional), desaparece «Servicios por profesional» y, con exactamente un profesional, Agenda, Nuevo turno y Horarios no piden elegirlo. No se crea un destino nuevo ni cambia ningún dato: con `shop`, o con más de un profesional, todo vuelve a ser como arriba.
 
 “Nuevo turno” es una acción primaria global, no un módulo de navegación. “Bloqueos” puede aparecer como subvista visible de Horarios. No se crean destinos P0 para Clientes, Caja, Reportes, Inventario, Finanzas ni Ajustes genéricos sin una capacidad aprobada.
 
@@ -153,7 +153,7 @@ La navegación y la composición se eligen según el espacio disponible, la tare
 
 ```text
 ┌──────────────────────────────────────────────────────────────┐
-│ NAVA · nombre de barbería        contexto       Nuevo turno │
+│ NAVA · nombre del negocio        contexto       Nuevo turno │
 ├──────────────────────────────────────────────────────────────┤
 │ título + descripción breve                    acción local   │
 │ filtros / resumen autorizado                                │
@@ -161,7 +161,7 @@ La navegación y la composición se eligen según el espacio disponible, la tare
 │ contenido principal NAVA                                    │
 │                                                              │
 ├──────────────────────────────────────────────────────────────┤
-│ Agenda · Servicios · Barberos · Horarios · Configuración    │
+│ Agenda · Servicios · Profesionales · Horarios · Configuración│
 └──────────────────────────────────────────────────────────────┘
 ```
 
@@ -174,7 +174,7 @@ La navegación y la composición se eligen según el espacio disponible, la tare
 
 ```text
 ┌──────────────────────────────┐
-│ nombre de barbería           │
+│ nombre del negocio           │
 │ Reservas con NAVA            │
 ├──────────────────────────────┤
 │ Paso n de m                  │
@@ -192,7 +192,7 @@ La navegación y la composición se eligen según el espacio disponible, la tare
 - No tiene navegación del panel, publicidad ni solicitud de registro.
 - El cuerpo y los formularios usan un ancho que preserve legibilidad; no se impone una medida única.
 - El CTA principal permanece alcanzable, sin ocultar errores ni el último control.
-- El progreso cuenta solo pasos reales. Si hay un único barbero, se omite esa decisión y se recalcula el total.
+- El progreso cuenta solo pasos reales. Si hay un único profesional, se omite esa decisión y se recalcula el total.
 
 ## 6. Componentes del sistema NAVA
 
@@ -202,12 +202,12 @@ Los nombres son responsabilidades conceptuales, no obligación de crear un archi
 | --- | --- | --- |
 | `NavaWordmark` | Identidad de plataforma | Texto/SVG accesible; variantes tinta e invertida; sin imagen raster. |
 | `PrivateAppShell` | Contexto privado, navegación y contenido | Maneja safe areas, foco al navegar y contexto de sesión; la forma visual es libre. |
-| `PublicBookingShell` | Marca de barbería, progreso y acciones | Sin dependencias del bundle privado; la composición es libre. |
+| `PublicBookingShell` | Marca del negocio, progreso y acciones | Sin dependencias del bundle privado; la composición es libre. |
 | `PageHeader` | Título, ayuda y acción de pantalla | Un solo `h1`; la acción baja a ancho completo en móvil si hace falta. |
 | `DesktopDock` / `MobileDock` | Navegación primaria si la pantalla lo necesita | `aria-current` cuando corresponda, targets cómodos y sin overflow horizontal oculto. |
 | `MetricRibbon` | Resumen operativo aprobado | Solo datos con contrato; label, valor, contexto y estado de carga. |
-| `BarberSelector` | Selección obligatoria de barbero | Select/listbox accesible; no opción consolidada en P0. |
-| `DateNavigator` | Anterior, fecha y siguiente | Tres controles estables; fecha completa anunciable; zona de barbería. |
+| `ProfessionalSelector` | Selección obligatoria de profesional | Select/listbox accesible; no opción consolidada en P0. |
+| `DateNavigator` | Anterior, fecha y siguiente | Tres controles estables; fecha completa anunciable; zona del negocio. |
 | `AgendaTimeline` | Representación temporal escritorio | No es fuente de disponibilidad; tiene equivalente en lista. |
 | `AppointmentSlip` | Turno compacto | Hora, persona, servicio, estado; foco y enlace único al detalle. |
 | `NowMarker` | Hora actual | Etiqueta “Ahora”; decorativo respecto al estado del turno. |
@@ -215,11 +215,11 @@ Los nombres son responsabilidades conceptuales, no obligación de crear un archi
 | `ContextPanel` | Resumen o acciones de la selección | No duplica toda la pantalla ni oculta acción crítica en móvil. |
 | `AppointmentStatusBadge` | Estado P0 | Usa etiquetas de `estados-citas.md`, texto + icono/forma. |
 | `ServiceOptionRow` | Selección de servicio | Nombre, duración, precio vigente y estado seleccionado. |
-| `BarberOption` | Preferencia de barbero | Nombre real; monograma opcional; “Sin preferencia” solo si lo permite el flujo. |
+| `ProfessionalOption` | Preferencia de profesional | Nombre real; monograma opcional; “Sin preferencia” solo si lo permite el flujo. |
 | `DateStrip` | Selección de día público | Fecha legible; días no disponibles realmente disabled. |
 | `TimeSlotGrid` | Franjas disponibles | Selección única, estado real y controles cómodos; puede representarse como grid, lista u otra composición equivalente. |
 | `BookingStepProgress` | Progreso público | Texto “Paso n de m” y nombre del paso; no depende de una barra visual. |
-| `BookingSummary` | Selección persistente | Servicio, barbero, fecha, hora, duración y precio; permite editar el paso. |
+| `BookingSummary` | Selección persistente | Servicio, profesional, fecha, hora, duración y precio; permite editar el paso. |
 | `BottomActionBar` | Acciones sticky | No tapa foco, errores o contenido; respeta safe area. |
 | `BaseDialog` / `BaseBottomSheet` | Confirmación breve | Misma semántica; foco contenido y retorno al disparador. No depende de drag. |
 | `AsyncState` | Carga, vacío, error o conflicto | Mensaje específico, acción posible y `request_id` solo en error inesperado. |
@@ -232,7 +232,7 @@ El `AppointmentSlip` usa el lenguaje de una ficha impresa:
 2. nombre de la persona atendida como texto principal;
 3. servicio como texto secundario;
 4. estado con badge completo;
-5. barbero solo cuando aporta contexto; en la agenda P0 ya está definido por el selector;
+5. profesional solo cuando aporta contexto; en la agenda P0 ya está definido por el selector;
 6. indicador de conflicto o acción pendiente mediante texto e icono.
 
 No muestra teléfono o correo en la lista. No contiene varios botones pequeños: la ficha abre el detalle; como máximo admite una acción rápida frecuente con nombre accesible y target completo.
@@ -264,7 +264,7 @@ Reglas particulares:
 Orden obligatorio:
 
 1. `PageHeader`: “Agenda” + fecha legible + “Nuevo turno”.
-2. `BarberSelector`: selección explícita; si solo existe uno, se muestra como valor fijo o preseleccionado sin opción “Todos”.
+2. `ProfessionalSelector`: selección explícita; si solo existe uno, se muestra como valor fijo o preseleccionado sin opción “Todos”.
 3. `DateNavigator`: anterior, selector de fecha, siguiente y retorno a “Hoy” cuando corresponda.
 4. Resumen permitido: cantidad de turnos del día y próximo turno; solo si vienen del contrato o se derivan sin ambigüedad del resultado completo recibido.
 5. Contenido cronológico.
@@ -272,12 +272,12 @@ Orden obligatorio:
 
 Escritorio:
 
-- puede mostrar una línea temporal horizontal para **el barbero seleccionado**;
+- puede mostrar una línea temporal horizontal para **el profesional seleccionado**;
 - el eje de tiempo tiene intervalos consistentes y se alinea con las fichas;
 - los huecos son espacio, no tarjetas vacías repetidas;
 - el marcador “Ahora” cruza el eje y lleva texto; no cambia `confirmed`;
 - una lista cronológica accesible conserva la información equivalente y puede ser la misma estructura semántica con otra presentación CSS;
-- el mosaico simultáneo de varios barberos queda reservado para `P2` o una decisión posterior.
+- el mosaico simultáneo de varios profesionales queda reservado para `P2` o una decisión posterior.
 
 Móvil:
 
@@ -288,11 +288,11 @@ Móvil:
 
 Estados:
 
-- sin barberos activos: explicación y enlace a Barberos si la persona tiene permiso;
+- sin profesionales activos: explicación y enlace a Profesionales si la persona tiene permiso;
 - día sin turnos: “No hay turnos para esta fecha” + “Crear turno”;
 - carga de otra fecha: conserva la fecha elegida, evita parpadeo completo y anuncia actualización;
 - turno nocturno: aparece en cada día que intersecta y muestra fecha/hora de inicio/fin sin ambigüedad;
-- error: conserva barbero y fecha, permite reintentar;
+- error: conserva profesional y fecha, permite reintentar;
 - estado terminal: sigue legible, con menor énfasis que `confirmed`, nunca oculto por defecto.
 
 ### 7.3 Nuevo turno manual
@@ -301,14 +301,14 @@ Estados:
 
 Secciones y orden:
 
-1. barbero;
-2. servicio válido para ese barbero;
+1. profesional;
+2. servicio válido para ese profesional;
 3. fecha, hora inicial y duración planificada;
 4. cliente/persona atendida y contacto según `RN-CIT-02`;
 5. resumen;
 6. confirmación.
 
-La composición del formulario se adapta al espacio disponible; un resumen lateral o inferior puede usarse solo si ayuda. Cambiar barbero invalida de forma explícita un servicio incompatible; no se borra silenciosamente. La hora manual no se fuerza a la rejilla pública. Los conflictos de jornada, bloqueo o cruce conservan datos y llevan el foco a fecha/hora. Junto al botón principal hay un **Cancelar** que vuelve a la agenda sin guardar; la agenda abre «Nuevo turno» con su barbero y su fecha en la URL (`?barberId=…&date=…`) y Cancelar los devuelve, para regresar al mismo día (issue #576).
+La composición del formulario se adapta al espacio disponible; un resumen lateral o inferior puede usarse solo si ayuda. Cambiar profesional invalida de forma explícita un servicio incompatible; no se borra silenciosamente. La hora manual no se fuerza a la rejilla pública. Los conflictos de jornada, bloqueo o cruce conservan datos y llevan el foco a fecha/hora. Junto al botón principal hay un **Cancelar** que vuelve a la agenda sin guardar; la agenda abre «Nuevo turno» con su profesional y su fecha en la URL (`?professionalId=…&date=…`) y Cancelar los devuelve, para regresar al mismo día (issue #576).
 
 Textos canónicos: “Nuevo turno”, “Persona atendida”, “Hora de inicio”, “Duración prevista”, “Crear turno”, “Creando…”. Nunca “Nueva cita”.
 
@@ -317,7 +317,7 @@ Textos canónicos: “Nuevo turno”, “Persona atendida”, “Hora de inicio�
 **Prioridad:** `P0 existente`.
 
 - Encabezado: fecha/hora, estado y acción contextual permitida.
-- Resumen principal: persona atendida, servicio, barbero, duración y datos de contacto autorizados.
+- Resumen principal: persona atendida, servicio, profesional, duración y datos de contacto autorizados.
 - Historial: línea temporal inmutable con evento, actor, fecha/hora y cambios comprensibles; paginación/carga adicional según contrato.
 - Acciones: reprogramar, editar lo permitido, cancelar, completar, marcar no asistencia o corregir estado solo si la máquina y la HU lo autorizan.
 - Acciones destructivas o terminales se confirman en diálogo/bottom sheet con consecuencia, motivo cuando aplique e idempotencia del servidor.
@@ -329,24 +329,24 @@ Textos canónicos: “Nuevo turno”, “Persona atendida”, “Hora de inicio�
 | --- | --- | --- |
 | Reprogramar fecha/hora | `P0 existente` | Diálogo o página corta con intervalo vigente, nueva fecha/hora, fin calculado como vista previa, versión vigente y resumen. |
 | Editar servicio/duración `T3` | `P0 pendiente` | Flujo dedicado cuando exista HU; compara “Antes / Después” y no reutiliza una simple edición de texto. |
-| Cancelar por barbería | `P0 pendiente` | Confirmación con turno, consecuencia, motivo y notificación resultante. |
+| Cancelar por el negocio | `P0 pendiente` | Confirmación con turno, consecuencia, motivo y notificación resultante. |
 | Completar turno | `P0 pendiente` | Confirmación breve desde detalle/próximo turno; muestra resultado persistente. |
 | Marcar no asistencia | `P0 pendiente` | Acción diferenciada de cancelar; no comparte color/etiqueta de peligro sin texto. |
 | Corregir estado terminal | `P0 pendiente` | Vista de alto impacto con estado actual, destino permitido, motivo y advertencia de auditoría. |
 
 Los estados pendientes no se implementan hasta tener historia, contrato e issue. Su presencia en esta tabla solo garantiza coherencia visual futura.
 
-### 7.6 Barbería y equipo
+### 7.6 Negocio y equipo
 
 | Pantalla | Prioridad | Composición | Acción principal |
 | --- | --- | --- | --- |
-| Configuración | `P0 existente` | Centro de ajustes sobre tinta con índice de ocho secciones numeradas (`DEC-110`, `DEC-115`, `DEC-117`): Pantalla (modo Tinta/Marfil/Automático, tamaño de texto, animaciones; solo este dispositivo, al instante), Marca (nombre y color de acento), Vocabulario (palabra del negocio y del profesional, con género y plural, y vista previa), Hora (zona con buscador y reloj en vivo), Contacto, Enlace público (`DEC-117`: la URL completa de reservas con «Copiar enlace» y «Abrir», solo lectura, no forma parte del borrador) y enlace a Reglas de reserva pública (`HU-093`, su propia pantalla). Los datos de la barbería se editan en un borrador; una barra flotante «Cambios sin guardar» aparece solo con cambios y envía solo los recursos que cambiaron. | Guardar cambios |
-| Lista de barberos | `P0 existente` | Tabla hundida sobre tinta (mismo lenguaje que Servicios): retrato cuadrado (o monograma), nombre, fecha de alta y rombo «Con foto»/«Sin foto». Clic o toque en la fila abre la ficha con el retrato grande; «Editar» conserva su propio clic. «Bloquear» abre una ventana modal amplia del profesional con sus bloqueos puntuales y series existentes (`DEC-105`); no hay un destino de navegación «Bloqueos» aparte. «Cargar más» con conteo y esqueletos; carga con el rombo NAVA, entrada escalonada y sin movimiento con `prefers-reduced-motion`. El barbero recién agregado se ilumina un instante. | Añadir barbero |
-| Alta de barbero | `P0 existente` | Formulario corto: espacio para la foto (elegir o soltar un archivo, recorte cuadrado desde el centro, vista previa) y nombre. La foto es opcional (`DEC-104`); si el alta se guarda pero la foto falla, el barbero queda creado y un aviso ofrece reintentar desde «Editar». | Guardar barbero |
-| Renombrar/editar barbero | `P0 existente` | Mismo patrón del alta: foto (cambiar, quitar, deshacer) y nombre. «Guardar» aplica en orden lo que cambió (nombre y luego foto); sin cambios no envía nada; un fallo a medias conserva lo ya guardado y lo escrito. | Guardar cambios |
-| Desactivar barbero | `P0 pendiente` | No se diseña como delete; requiere HU sobre impacto y retención. | Según decisión futura |
+| Configuración | `P0 existente` | Centro de ajustes sobre tinta con índice de ocho secciones numeradas (`DEC-110`, `DEC-115`, `DEC-117`): Pantalla (modo Tinta/Marfil/Automático, tamaño de texto, animaciones; solo este dispositivo, al instante), Marca (nombre y color de acento), Vocabulario (palabra del negocio y del profesional, con género y plural, y vista previa), Hora (zona con buscador y reloj en vivo), Contacto, Enlace público (`DEC-117`: la URL completa de reservas con «Copiar enlace» y «Abrir», solo lectura, no forma parte del borrador) y enlace a Reglas de reserva pública (`HU-093`, su propia pantalla). Los datos del negocio se editan en un borrador; una barra flotante «Cambios sin guardar» aparece solo con cambios y envía solo los recursos que cambiaron. | Guardar cambios |
+| Lista de profesionales | `P0 existente` | Tabla hundida sobre tinta (mismo lenguaje que Servicios): retrato cuadrado (o monograma), nombre, fecha de alta y rombo «Con foto»/«Sin foto». Clic o toque en la fila abre la ficha con el retrato grande; «Editar» conserva su propio clic. «Bloquear» abre una ventana modal amplia del profesional con sus bloqueos puntuales y series existentes (`DEC-105`); no hay un destino de navegación «Bloqueos» aparte. «Cargar más» con conteo y esqueletos; carga con el rombo NAVA, entrada escalonada y sin movimiento con `prefers-reduced-motion`. El profesional recién agregado se ilumina un instante. | Añadir profesional |
+| Alta de profesional | `P0 existente` | Formulario corto: espacio para la foto (elegir o soltar un archivo, recorte cuadrado desde el centro, vista previa) y nombre. La foto es opcional (`DEC-104`); si el alta se guarda pero la foto falla, el profesional queda creado y un aviso ofrece reintentar desde «Editar». | Guardar profesional |
+| Renombrar/editar profesional | `P0 existente` | Mismo patrón del alta: foto (cambiar, quitar, deshacer) y nombre. «Guardar» aplica en orden lo que cambió (nombre y luego foto); sin cambios no envía nada; un fallo a medias conserva lo ya guardado y lo escrito. | Guardar cambios |
+| Desactivar profesional | `P0 pendiente` | No se diseña como delete; requiere HU sobre impacto y retención. | Según decisión futura |
 
-La lista no muestra retratos ficticios: solo la fotografía que la persona subió o, sin ella, el monograma. Puede usar filas, tarjetas o una composición equivalente; las acciones deben conservar nombre accesible y contexto. Servicios y horario abren su módulo correspondiente con barbero preseleccionado, sin duplicar formularios.
+La lista no muestra retratos ficticios: solo la fotografía que la persona subió o, sin ella, el monograma. Puede usar filas, tarjetas o una composición equivalente; las acciones deben conservar nombre accesible y contexto. Servicios y horario abren su módulo correspondiente con profesional preseleccionado, sin duplicar formularios.
 
 ### 7.7 Servicios y asignaciones
 
@@ -357,7 +357,7 @@ La lista no muestra retratos ficticios: solo la fotografía que la persona subi�
 | Crear servicio | `P0 existente` | Formulario corto; nombre, duración planificada y precio según contrato. |
 | Editar servicio | `P0 existente` | Muestra impacto de duración/precio según reglas; no promete cambiar turnos existentes. |
 | Estado del servicio | `P0 existente` | Un solo botón «Cambiar estado» por fila abre un único diálogo que desactiva o reactiva según el estado actual. El interruptor del diálogo es la acción (no hay botón de confirmar aparte) y queda deshabilitado mientras se consulta o se guarda. Un cambio confirmado no cierra el diálogo: sigue abierto con el estado nuevo (y permite revertirlo) hasta pulsar «Salir». Al desactivar, el diálogo muestra antes la cantidad real de turnos afectados y el efecto; reactivar es ligero. El resultado es visible en la fila. |
-| Servicios por barbero | `P0 existente` | Selector de barbero + tabla paginada de servicios con asignación; se puede retirar cualquier asignación, también la última (`DEC-114`). |
+| Servicios por profesional | `P0 existente` | Selector de profesional + tabla paginada de servicios con asignación; se puede retirar cualquier asignación, también la última (`DEC-114`). |
 
 No se usa un interruptor silencioso para desactivar: el interruptor solo vive dentro del diálogo «Estado del servicio», con el impacto y la consecuencia a la vista antes de poder tocarlo, nunca directamente en la fila. El precio conserva formato local, pero el almacenamiento y cálculo dependen del contrato. Una fila inactiva sigue legible y lleva la etiqueta “Inactivo”.
 
@@ -365,14 +365,14 @@ No se usa un interruptor silencioso para desactivar: el interruptor solo vive de
 
 | Pantalla | Prioridad | Composición |
 | --- | --- | --- |
-| Horario semanal | `P0 existente` | Tablero sobre tinta (`DEC-109`): selector de barbero con retrato, cifras de la semana, resumen de zona horaria y siete días en orden local. Cada día lleva una pista horaria con una barra por tramo sobre una regla común, el marcador de hoy y de la hora vigente en la zona de la barbería, y bajo ella la lista real de tramos con «Editar» y «Retirar» y un «+» que abre el alta en ese día. Un día sin tramos se rotula «Día libre»; la pista es decorativa y la lista es la fuente accesible. El diálogo de tramo usa selector de día en fichas, hora y fecha compartidas, duraciones habituales y una vista previa con los tramos ya existentes del día. En escritorio cabe sin desplazarse: cabecera con barbero y cifras, tablero a la izquierda y un acordeón a la derecha (festivos, excepciones y próximos festivos; un apartado abierto a la vez, el de excepciones primero). En móvil cada día apila título, pista y tramos y el acordeón pasa bajo el tablero; sin arrastre. |
+| Horario semanal | `P0 existente` | Tablero sobre tinta (`DEC-109`): selector de profesional con retrato, cifras de la semana, resumen de zona horaria y siete días en orden local. Cada día lleva una pista horaria con una barra por tramo sobre una regla común, el marcador de hoy y de la hora vigente en la zona del negocio, y bajo ella la lista real de tramos con «Editar» y «Retirar» y un «+» que abre el alta en ese día. Un día sin tramos se rotula «Día libre»; la pista es decorativa y la lista es la fuente accesible. El diálogo de tramo usa selector de día en fichas, hora y fecha compartidas, duraciones habituales y una vista previa con los tramos ya existentes del día. En escritorio cabe sin desplazarse: cabecera con profesional y cifras, tablero a la izquierda y un acordeón a la derecha (festivos, excepciones y próximos festivos; un apartado abierto a la vez, el de excepciones primero). En móvil cada día apila título, pista y tramos y el acordeón pasa bajo el tablero; sin arrastre. |
 | Excepciones y festivos | `P0 existente` | Próximas excepciones por fecha, tipo y segmentos; crear/editar en formulario dedicado o panel. |
-| Bloqueos en Barberos | `P0 existente` | Panel contextual «Tiempo fuera de agenda»: tipo, fecha, intervalo, motivo, origen, recurrencia y vigencia. Los intervalos pasados se distinguen con texto y contorno. Carga, vacío, error y paginación independientes para puntuales y series. |
-| Crear bloqueo | `P0 existente` | Desde «Bloquear» en la fila del barbero. Identidad del profesional en la ventana contextual; el formulario puntual conserva esa identidad en su nombre accesible y evita repetir la ficha. Tipo, intervalo o serie semanal, zona horaria de la barbería y resumen previo. Selectores desplegables con el lenguaje de la agenda, selección marcada y navegación por teclado; campos sobre tinta con borde discreto y línea base de latón. Fechas con el calendario personalizado compartido de la agenda y «Hoy» en la zona de la barbería. Horas con dos columnas simultáneas de hora y minutos: escritura numérica directa y ajuste con flechas del teclado, sin listas de números, formato de 24 horas y precisión de 00 a 59, borrador cancelable y confirmación explícita. Los paneles flotan fuera del scroll del modal, caben en el viewport y devuelven el foco al campo al cerrar. Pie fijo para cancelar/guardar, datos conservados ante error, cierre bloqueado durante guardado y movimiento reducido. |
+| Bloqueos en Profesionales | `P0 existente` | Panel contextual «Tiempo fuera de agenda»: tipo, fecha, intervalo, motivo, origen, recurrencia y vigencia. Los intervalos pasados se distinguen con texto y contorno. Carga, vacío, error y paginación independientes para puntuales y series. |
+| Crear bloqueo | `P0 existente` | Desde «Bloquear» en la fila del profesional. Identidad del profesional en la ventana contextual; el formulario puntual conserva esa identidad en su nombre accesible y evita repetir la ficha. Tipo, intervalo o serie semanal, zona horaria del negocio y resumen previo. Selectores desplegables con el lenguaje de la agenda, selección marcada y navegación por teclado; campos sobre tinta con borde discreto y línea base de latón. Fechas con el calendario personalizado compartido de la agenda y «Hoy» en la zona del negocio. Horas con dos columnas simultáneas de hora y minutos: escritura numérica directa y ajuste con flechas del teclado, sin listas de números, formato de 24 horas y precisión de 00 a 59, borrador cancelable y confirmación explícita. Los paneles flotan fuera del scroll del modal, caben en el viewport y devuelven el foco al campo al cerrar. Pie fijo para cancelar/guardar, datos conservados ante error, cierre bloqueado durante guardado y movimiento reducido. |
 | Editar serie/ocurrencia | `P0 existente` | Selector explícito de alcance solo donde el backend/UI lo soporte; la UI actual puede tener seguimiento parcial y no se simulan controles pendientes. |
 | Turnos afectados por bloqueo | `P0 pendiente` | Primero confirma el bloqueo; luego lista cada turno y permite decisiones individuales. |
 
-En móvil, la semana no se presenta de una forma que vuelva ilegibles sus controles; puede usar secciones, lista u otra composición equivalente. No se usa drag para mover segmentos. Crear un bloqueo no cancela ni reprograma turnos existentes en silencio. `/panel/bloqueos` redirige a `/panel/barberos` (`DEC-105`, issue #286). La ventana conserva el foco, lo devuelve a «Bloquear» al cerrar y permite recorrer sus listas con scroll interno; en móvil las columnas se apilan. Los formularios se abren sobre ella y Escape cierra únicamente el diálogo superior. La composición ocurre en `app`: `staff` expone las filas y `schedules` conserva el cliente, validaciones y panel; no se duplican reglas ni formularios.
+En móvil, la semana no se presenta de una forma que vuelva ilegibles sus controles; puede usar secciones, lista u otra composición equivalente. No se usa drag para mover segmentos. Crear un bloqueo no cancela ni reprograma turnos existentes en silencio. `/panel/bloqueos` redirige a `/panel/profesionales` (`DEC-105`, issue #286). La ventana conserva el foco, lo devuelve a «Bloquear» al cerrar y permite recorrer sus listas con scroll interno; en móvil las columnas se apilan. Los formularios se abren sobre ella y Escape cierra únicamente el diálogo superior. La composición ocurre en `app`: `staff` expone las filas y `schedules` conserva el cliente, validaciones y panel; no se duplican reglas ni formularios.
 
 ### 7.9 Configuración operativa futura del MVP
 
@@ -389,7 +389,7 @@ Cada capacidad es una sección o subruta con guardado propio, descripción del e
 
 Pantallas complementarias:
 
-- **Textos legales y privacidad (`P0 pendiente`)**: páginas públicas de lectura larga, con nombre de barbería/plataforma, fecha de vigencia y navegación de regreso. La composición debe favorecer la lectura. No se generan textos jurídicos desde el diseño ni se publican borradores sin revisión.
+- **Textos legales y privacidad (`P0 pendiente`)**: páginas públicas de lectura larga, con nombre del negocio/plataforma, fecha de vigencia y navegación de regreso. La composición debe favorecer la lectura. No se generan textos jurídicos desde el diseño ni se publican borradores sin revisión.
 - **Estado de canales (`P0 pendiente`)**: puede mostrar canal configurado/no configurado y última validación cuando exista contrato. No revela tokens, credenciales ni respuesta cruda del proveedor.
 - **Operación de notificaciones y retención (`sin pantalla P0`)**: workers, colas, leases y anonimización son capacidades backend/operativas. No se crea un dashboard administrativo salvo que una HU futura defina actor, permiso, datos y acciones.
 
@@ -400,11 +400,11 @@ Pantallas complementarias:
 Secuencia adaptable:
 
 1. **Servicio** — “Elige un servicio”. Opción con nombre, duración y precio; solo servicios activos y reservables.
-2. **Barbero** — “Elige un barbero”. Se omite si solo hay uno válido; “Sin preferencia” solo si el dominio lo permite.
-3. **Fecha y hora** — “Elige fecha y hora”. Fechas disponibles primero, luego franjas; zona horaria de la barbería visible.
+2. **Profesional** — “Elige un profesional”. Se omite si solo hay uno válido; “Sin preferencia” solo si el dominio lo permite.
+3. **Fecha y hora** — “Elige fecha y hora”. Fechas disponibles primero, luego franjas; zona horaria del negocio visible.
 4. **Tus datos** — nombre, teléfono, correo y nota conforme al contrato; “Reservo para otra persona” revela solo el dato necesario.
 5. **Revisión** — “Revisa tu turno”. Resumen completo, política relevante y enlaces “Editar” a cada paso.
-6. **Resultado** — “Tu turno está confirmado”. Fecha, hora, servicio, barbero, instrucciones del enlace de gestión y siguiente acción.
+6. **Resultado** — “Tu turno está confirmado”. Fecha, hora, servicio, profesional, instrucciones del enlace de gestión y siguiente acción.
 
 Reglas:
 
@@ -416,15 +416,15 @@ Reglas:
 - precio y duración son datos, no controles decorativos;
 - no se promete envío por un canal que el backend no haya confirmado.
 
-Composición visual (`DEC-111`): la reserva se presenta sobre el lienzo de tinta del panel, dentro de un cascarón único que conserva entre pasos el fondo, la cabecera con el enlace «‹ paso anterior», el progreso («Paso N de 4») y la firma «Reservas con NAVA» al pie. La entrada es una portada editorial: rótulo, nombre de la barbería en serif de gran tamaño, hora local que avanza, contacto en renglones y «Reservar un turno». Servicio y barbero son listas de filas con selección en rombo y barra de acción fija con «Continuar». Fecha y hora añade una tira de días con disponibilidad sobre «Anterior/Siguiente», franjas en fichas y un talón de tinta con baño de latón con la franja elegida (la oración completa se anuncia aparte). «Tus datos» es un panel de tinta levantada con filete y cinta métrica de latón, campos reglados oscuros con foco de latón y entrada escalonada; el resumen y la confirmación (sello animado) usan el mismo panel. Sin funciones nuevas: el orden del flujo, los textos de error y los contratos no cambian.
+Composición visual (`DEC-111`): la reserva se presenta sobre el lienzo de tinta del panel, dentro de un cascarón único que conserva entre pasos el fondo, la cabecera con el enlace «‹ paso anterior», el progreso («Paso N de 4») y la firma «Reservas con NAVA» al pie. La entrada es una portada editorial: rótulo, nombre del negocio en serif de gran tamaño, hora local que avanza, contacto en renglones y «Reservar un turno». Servicio y profesional son listas de filas con selección en rombo y barra de acción fija con «Continuar». Fecha y hora añade una tira de días con disponibilidad sobre «Anterior/Siguiente», franjas en fichas y un talón de tinta con baño de latón con la franja elegida (la oración completa se anuncia aparte). «Tus datos» es un panel de tinta levantada con filete y cinta métrica de latón, campos reglados oscuros con foco de latón y entrada escalonada; el resumen y la confirmación (sello animado) usan el mismo panel. Sin funciones nuevas: el orden del flujo, los textos de error y los contratos no cambian.
 
 Estados dedicados:
 
 | Estado | Mensaje/acción esperada |
 | --- | --- |
-| Barbería o enlace no disponible | Explicación neutra; no filtra estado interno; permite volver al canal de origen. |
+| Negocio o enlace no disponible | Explicación neutra; no filtra estado interno; permite volver al canal de origen. |
 | Sin servicios reservables | “No hay servicios disponibles para reservar en línea”. |
-| Sin fechas en ventana | “No encontramos horarios en estas fechas” + cambiar servicio/barbero cuando aplique. |
+| Sin fechas en ventana | “No encontramos horarios en estas fechas” + cambiar servicio/profesional cuando aplique. |
 | Franja ocupada al confirmar | “Ese horario acaba de ocuparse” + alternativas cercanas reales. |
 | Error recuperable | Conserva selecciones y ofrece “Reintentar”. |
 | Confirmación | Resumen persistente y acceso de gestión; no depende solo de un toast. |
@@ -435,7 +435,7 @@ Estados dedicados:
 
 - La URL contiene un token opaco; nunca se expone en texto, logs o analytics.
 - La pantalla representa un solo turno y no crea una cuenta de cliente.
-- Muestra barbería, fecha/hora/zona, servicio, barbero, estado y política aplicable.
+- Muestra negocio, fecha/hora/zona, servicio, profesional, estado y política aplicable.
 - La cancelación pública solo aparece dentro del límite vigente; exige confirmación y muestra el resultado persistente.
 - Un enlace inválido, vencido, revocado o ya usado recibe un mensaje seguro sin distinguir detalles que faciliten enumeración.
 - Un turno ya cancelado o terminal muestra su estado; no ofrece transiciones imposibles.
@@ -451,7 +451,7 @@ Estados dedicados:
 | Agenda semanal | `P2` | Vista temporal adicional; conserva lista accesible. |
 | Repetir turno | `P2` | Acción desde un turno existente con revisión explícita. |
 | Exportar agenda | `P2` | Acción secundaria; no módulo permanente. |
-| Vista consolidada multi-barbero | `P2` | Puede recuperar el mosaico del concepto solo tras resolver interacción y alcance. |
+| Vista consolidada con varios profesionales | `P2` | Puede recuperar el mosaico del concepto solo tras resolver interacción y alcance. |
 | Clientes con cuenta / “Mis turnos” | `Excluido` | No se maqueta como si existiera. |
 | Pagos, caja, ingresos, comisiones | `Excluido` | Sin navegación, métricas ni placeholders. |
 | Inventario, nómina, contabilidad | `Excluido` | Sin navegación, métricas ni placeholders. |
@@ -512,7 +512,7 @@ Cada página y región que consulta datos define:
 - `:focus-visible` usa un tratamiento claramente perceptible dentro de la firma cromática NAVA; su grosor y separación se ajustan a la composición sin perder contraste.
 - Navegar de página mueve foco al `h1` o al contenedor principal anunciado; no lo deja en un dock desmontado.
 - Diálogos contienen foco, cierran con Escape cuando es seguro y lo devuelven al disparador.
-- Fecha, hora, servicio y barbero se pueden operar con teclado sin simular controles incompletos.
+- Fecha, hora, servicio y profesional se pueden operar con teclado sin simular controles incompletos.
 - Ninguna acción necesaria aparece solo en hover.
 
 ### 9.3 Semántica
@@ -535,7 +535,7 @@ Cada página y región que consulta datos define:
 
 La interfaz siempre usa **turno**. API, TypeScript generado y backend usan `appointment`. No se introducen “cita”, “booking” o “reserva” para nombrar el objeto ya creado. “Reserva” puede describir el proceso público: “Reserva tu turno”.
 
-Las palabras «barbería» y «barbero» son los valores iniciales del vocabulario de cada barbería (`DEC-110`): todo el panel privado las sustituye por las que el negocio configure (barbero, manicurista, tatuadora; barbería, estudio, spa…), concordadas en género y número, incluidos Horarios, los avisos, las validaciones y las etiquetas «Cancelado por…» (`DEC-119`). La reserva pública y el acceso del cliente adoptan el mismo vocabulario, que el API público entrega junto al perfil de la barbería y al turno (`DEC-119`, #309). `turno` y los estados autorizados no se configuran.
+Las palabras «negocio» y «profesional» son los valores iniciales del vocabulario de cada negocio (`DEC-110`): todo el panel privado las sustituye por las que el negocio configure (barbero, manicurista, tatuadora; barbería, estudio, spa…), concordadas en género y número, incluidos Horarios, los avisos, las validaciones y las etiquetas «Cancelado por…» (`DEC-119`). La reserva pública y el acceso del cliente adoptan el mismo vocabulario, que el API público entrega junto al perfil del negocio y al turno (`DEC-119`, #309). `turno` y los estados autorizados no se configuran.
 
 ### 10.2 Voz
 
@@ -548,7 +548,7 @@ Las palabras «barbería» y «barbero» son los valores iniciales del vocabular
 
 ### 10.3 Fechas, horas y dinero
 
-- Se muestran en español y en la zona horaria de la barbería.
+- Se muestran en español y en la zona horaria del negocio.
 - Una experiencia usa una sola convención horaria coherente; las horas siempre incluyen minutos.
 - Fechas importantes son legibles (“sábado, 24 de mayo”), con formato corto solo como apoyo.
 - Dinero se formatea según la moneda definida por el contrato; no se concatena `$` ni se asumen pesos desde el componente. Cuando se muestra el símbolo, sale de `Intl` para la moneda recibida y el importe se agrupa sin convertir el decimal a número (`shared/model/money.ts`, issue #577).
@@ -573,7 +573,7 @@ Cada issue migra una preocupación completa y verificable. No se debe:
 2. Shell privado: wordmark, header, navegación y safe areas.
 3. Acceso/recuperación y estados de sesión.
 4. Agenda diaria, navegación de fecha, nuevo turno y detalle.
-5. Configuración, barberos, servicios y asignaciones.
+5. Configuración, profesionales, servicios y asignaciones.
 6. Horarios, excepciones y bloqueos.
 7. Acciones restantes de B3 cuando existan sus HU.
 8. Reserva y gestión pública cuando B4 tenga contrato e issue.
@@ -604,7 +604,7 @@ Toda pantalla NAVA modificada debe aportar:
 - evidencia en 320, 360, 768 y 1280 px cuando cambia composición;
 - zoom 200 %, teclado completo y `prefers-reduced-motion`;
 - contraste de cada combinación nueva;
-- textos largos: barbería, servicio y persona;
+- textos largos: negocio, servicio y persona;
 - datos límite reales del contrato: cero elementos, una opción, muchas opciones, turnos nocturnos y conflictos aplicables;
 - prueba en teléfono real antes del piloto.
 
@@ -615,7 +615,7 @@ En modo de fidelidad también debe aportar la imagen original identificada, medi
 ## 13. Criterio de terminado de una pantalla NAVA
 
 - [ ] La pantalla corresponde a una HU/issue real y no amplía alcance.
-- [ ] Usa NAVA como plataforma y conserva el nombre de la barbería como contexto.
+- [ ] Usa NAVA como plataforma y conserva el nombre del negocio como contexto.
 - [ ] Declara `identidad guiada` o `fidelidad al mockup`; expresa NAVA / Tailored Grid y respeta la firma cromática obligatoria.
 - [ ] Si tiene mockup exacto asignado, reproduce su geometría, proporciones, jerarquía, escala, centrado, alineaciones, densidad y estados en el viewport representado; la comparación visual queda en `PASS` sin diferencias primarias inexplicadas.
 - [ ] Usa “turno” y copy orientado a tarea.
@@ -634,7 +634,7 @@ Esta especificación no decide:
 
 - el registro jurídico o dominio de la marca NAVA;
 - un logotipo gráfico adicional al wordmark tipográfico;
-- vista consolidada de varios barberos;
+- vista consolidada de varios profesionales;
 - fórmula o catálogo de métricas;
 - personalización visual por tenant;
 - comportamiento de capacidades sin HU o regla cerrada.

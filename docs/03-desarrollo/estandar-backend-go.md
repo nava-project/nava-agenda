@@ -1,9 +1,9 @@
 ---
 titulo: "Estándar de código del backend en Go"
-version: "1.1"
+version: "1.2"
 estado: "Obligatorio para desarrollo"
 responsable: "Propietario del proyecto"
-ultima_actualizacion: "2026-08-06"
+ultima_actualizacion: "2026-11-18"
 documentos_relacionados:
   - "../00-control/registro-decisiones.md"
   - "../01-producto/reglas-negocio.md"
@@ -19,7 +19,7 @@ documentos_relacionados:
 
 Estas reglas aplican al API, al trabajador de notificaciones, a tareas administrativas y a cualquier paquete Go del MVP. Adaptan código limpio a un monolito modular pequeño: claridad, cohesión y comportamiento verificable tienen prioridad sobre patrones, capas o abstracciones por sí mismas.
 
-Una excepción es válida cuando simplifica un caso real y queda explicada en la revisión. No se aceptan excepciones para aislamiento entre barberías, integridad de agenda, protección de datos o pruebas de reglas P0.
+Una excepción es válida cuando simplifica un caso real y queda explicada en la revisión. No se aceptan excepciones para aislamiento entre negocios, integridad de agenda, protección de datos o pruebas de reglas P0.
 
 Fuente normativa: `DEC-035`.
 
@@ -59,8 +59,8 @@ Significado de los módulos:
 | Paquete | Responsabilidad |
 | --- | --- |
 | `auth` | identidad, sesiones y recuperación de acceso |
-| `shops` | barbería, configuración y zona horaria |
-| `staff` | barberos y su pertenencia a la barbería |
+| `shops` | negocio, configuración y zona horaria |
+| `staff` | profesionales y su pertenencia al negocio |
 | `catalog` | servicios ofrecidos, duración y precio informativo |
 | `schedule` | horarios, excepciones, festivos y bloqueos |
 | `booking` | disponibilidad, creación y ciclo de vida de citas |
@@ -104,7 +104,7 @@ Reglas de paquetes:
 2. Usar nombres cortos, en minúscula y sin guion bajo; el nombre debe describir una sola responsabilidad.
 3. Declarar interfaces junto al consumidor. No crear `interfaces`, `common`, `helpers` o `utils` globales.
 4. Evitar ciclos. Una interacción entre módulos pasa por una operación explícita o por un contrato pequeño, no por acceso a tablas ajenas.
-5. Mantener `internal/platform` libre de reglas de barbería, agenda o citas.
+5. Mantener `internal/platform` libre de reglas de negocio, agenda o citas.
 6. Exportar solo lo necesario para componer adaptadores y módulos. No exportar para facilitar una prueba.
 7. Introducir una abstracción después de identificar variación real; la similitud accidental de dos funciones no basta.
 
@@ -112,7 +112,7 @@ Reglas de paquetes:
 
 ### Dominio y aplicación
 
-- Los tipos representan términos del glosario: `Appointment`, `Barbershop`, `TimeBlock`, no nombres genéricos como `Item`, `Data` o `Manager`.
+- Los tipos representan términos del glosario: `Appointment`, `Business`, `TimeBlock`, no nombres genéricos como `Item`, `Data` o `Manager`.
 - El dominio protege invariantes que pueden comprobarse sin infraestructura.
 - El servicio de aplicación coordina permisos, reloj, transacción, repositorios y efectos persistidos.
 - Los servicios no conocen Chi, encabezados HTTP, JSON, SQL ni códigos de estado.
@@ -131,7 +131,7 @@ Reglas de paquetes:
 ### PostgreSQL
 
 - El repositorio traduce entre filas y tipos del módulo; no contiene decisiones de negocio.
-- Las consultas tienen columnas explícitas y contexto de barbería.
+- Las consultas tienen columnas explícitas y contexto de negocio.
 - El caso de uso define la frontera transaccional. No se hace una llamada de red con una transacción abierta.
 - No se incorpora ORM en el MVP. Las consultas SQL permanecen visibles, revisables y probadas contra PostgreSQL real.
 - Las restricciones de base de datos son la última defensa ante concurrencia; un `SELECT` previo no sustituye una restricción.
@@ -214,7 +214,7 @@ govulncheck ./...          # en CI programada y antes de desplegar
 - [ ] Se agregaron las pruebas exigidas por [estrategia-pruebas.md](estrategia-pruebas.md).
 - [ ] Los comentarios explican decisiones no evidentes y no repiten el código.
 - [ ] Una dependencia o abstracción nueva resuelve un problema actual demostrable.
-- [ ] El cambio preserva las reglas `RN-*`, las decisiones `DEC-*` y el aislamiento entre barberías.
+- [ ] El cambio preserva las reglas `RN-*`, las decisiones `DEC-*` y el aislamiento entre negocios.
 
 ## 9. Referencias oficiales
 
