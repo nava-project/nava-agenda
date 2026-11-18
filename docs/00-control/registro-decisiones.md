@@ -1,6 +1,6 @@
 ---
 titulo: "Registro de decisiones"
-version: "1.80"
+version: "1.81"
 estado: "Vigente"
 responsable: "Propietario del proyecto"
 ultima_actualizacion: "2026-11-18"
@@ -2272,6 +2272,7 @@ Cada código `DEC-*` es estable y no se reutiliza. Este registro normaliza respu
 - **Actualización (2026-11-16, [#630](https://github.com/bcaceres19/barberia/issues/630)):** primer proyecto ajeno en este Jenkins, con autorización del propietario del 2026-11-16 (`PROMPT-ORCH-MIGRAR-ODIN-Y-PEDIDOS-A-JENKINS-v1`): `bcaceres19/odin-pedidos` (Nava · Pedidos, `/srv/pedidos`) se registra como carpeta `pedidos` con `pedidos/ci` y `pedidos/deploy`. Su `Jenkinsfile`, `tools/ci/` y `deploy/jenkins/` viven en ese repositorio (bcaceres19/odin-pedidos#2) con el mismo patrón de #625; aquí solo cambian `casc/jobs.groovy` y la documentación. Usa las credenciales compartidas `github-token` y `vps-deploy-ssh`, sus propias variables de repositorio y URL pública en el `environment` de su pipeline, y no toca la pila de la barbería.
 - **Actualización (2026-11-17, [#632](https://github.com/bcaceres19/barberia/issues/632)):** segundo proyecto, con la misma autorización: `bcaceres19/odin` (`/srv/odin`) se registra como carpeta `odin` con `odin/ci` y `odin/deploy` (bcaceres19/odin#1). Odin no tiene URL pública: su despliegue se comprueba por SSH con el estado `healthy` del contenedor `app` y la imagen del SHA. La autorización cubre solo `casc/jobs.groovy`, la documentación de Jenkins y su reinicio; nada más de NAVA cambia. Se documenta que una carpeta de jobs nueva necesita un segundo reinicio de Jenkins.
 - **Actualización (2026-11-17, [#634](https://github.com/bcaceres19/barberia/issues/634)):** a petición del propietario («quiero que solo quedemos con jenkins, nada de github-actions»), GitHub Actions se desactiva en barberia, odin y odin-pedidos; se borran sus runs, artefactos y cachés, los paquetes de GHCR, el entorno `github-pages` y las llaves de despliegue de Actions de odin y pedidos en el VPS. Con los runs se borran sus check runs: `barberia/deploy` (y los de odin y pedidos) ya solo acepta el estado de Jenkins, así que un SHA anterior a la migración no se puede volver a desplegar con Jenkins. `deploy.sh` deja de descargar imágenes (sin `--ghcr-user` ni `pull`) y termina antes de tocar nada si falta una en el host; `--no-pull` se sigue aceptando sin efecto porque `release.sh` también lo pasa al `deploy.sh` de versiones anteriores. Equivalentes: bcaceres19/odin-pedidos#6 y bcaceres19/odin#5.
+- **Actualización (2026-11-18, [#689](https://github.com/nava-project/nava-agenda/issues/689)):** la infraestructura de este Jenkins sale a [`nava-project/nava-jenkins`](https://github.com/nava-project/nava-jenkins) y la gobierna solo el orquestador; en este repositorio quedan el `Jenkinsfile`, `tools/ci/`, `deploy/jenkins/pipelines/deploy.Jenkinsfile` y `deploy/jenkins/scripts/release.sh`. Ver `DEC-184`.
 - **Alcance:** infraestructura (`Jenkinsfile`, `deploy/jenkins/`, `tools/ci/`, `deploy/caddy/Caddyfile`). Sin cambios de API, contrato, datos ni migraciones.
 - **Documentos afectados:** `deploy/README.md`, `deploy/jenkins/README.md`, `stack-despliegue-operacion.md`, `flujo-git-github.md`, `migraciones-atlas.md`, `apps/api/README.md`, `historial-cambios.md`.
 - **Fuente:** instrucción del propietario del 2026-11-16; issue [#617](https://github.com/bcaceres19/barberia/issues/617); `DEC-158`, `DEC-159`, `DEC-160`, `DEC-176`.
@@ -2418,3 +2419,19 @@ Cada código `DEC-*` es estable y no se reutiliza. Este registro normaliza respu
 - **Documentos afectados:** este registro, `historial-cambios.md`, `docs/10-backlog/prompts/orchestration/nava-agenda.md` y su índice; las entregas siguientes enlazan esta decisión.
 - **Equivalencias:** la tabla de términos y nombres anteriores y actuales está en el [glosario](glosario.md#12-equivalencias-de-nava-agenda-dec-183) (issue #663).
 - **Fuente:** decisión del propietario del 2026-11-18; issues [#656](https://github.com/bcaceres19/barberia/issues/656)–[#664](https://github.com/bcaceres19/barberia/issues/664).
+
+### DEC-184 · La infraestructura de Jenkins pasa a `nava-project/nava-jenkins` y solo la gobierna el orquestador (amplía `DEC-177`)
+
+- **Fecha:** 2026-11-18.
+- **Decisión:**
+  1. **Repositorio propio.** La imagen del controlador, los plugins, JCasC (`casc/jenkins.yaml`), los jobs (`casc/jobs.groovy`), los scripts de instalación, secretos y arranque, `vps/mantenimiento` y la operación del controlador salen de `deploy/jenkins/` a [`nava-project/nava-jenkins`](https://github.com/nava-project/nava-jenkins), con su historial de git.
+  2. **Gobierno.** Configurar Jenkins (JCasC, jobs, plugins, credenciales y secretos, la VPS de Jenkins, webhooks, crear o cambiar jobs) es exclusivo de la sesión orquestadora. Las demás sesiones y repositorios lo **usan**: disparar o relanzar builds, leer registros y verificar despliegues. Un cambio de configuración se le pide al orquestador.
+  3. **Qué se queda en Nava Agenda.** El `Jenkinsfile` del CI, `tools/ci/`, el despliegue `deploy/jenkins/pipelines/deploy.Jenkinsfile` y sus fases `deploy/jenkins/scripts/release.sh`. El job `agenda/deploy` apunta a esas rutas, así que moverlas se coordina con el orquestador. `GITHUB_REPO` y `PUBLIC_URL` dejan de ser globales de JCasC y pasan al `environment` de `deploy.Jenkinsfile`, como en los demás proyectos.
+  4. **Proxy.** El sitio `jenkins.{$DOMAIN}` sigue en el `Caddyfile` de este repositorio, que es el proxy compartido de la VPS; su backend es de `nava-jenkins` y cambiarlo se coordina con el orquestador.
+- **Fuera de alcance:** cambiar la topología del CI/CD de `DEC-177` (sigue habiendo un Jenkins en la VPS con el socket de Docker del host) y separar el proxy de la VPS.
+- **Quién lo decidió:** el propietario, el 2026-11-18, durante la migración de los repositorios a la organización `nava-project`; lo transmitió la sesión orquestadora.
+- **Responsable:** propietario del proyecto; la operación de Jenkins, la sesión orquestadora.
+- **Motivo:** Jenkins sirve a cuatro proyectos (`agenda`, `pedidos`, `nava`, `odin`) y a la VPS; tenerlo dentro de Nava Agenda mezclaba la infraestructura compartida con un solo producto y permitía que cualquier sesión de este repositorio la cambiara.
+- **Alternativas descartadas:** dejar `deploy/jenkins/` aquí con un dueño documental (sigue mezclando responsabilidades y el historial de la infraestructura con el del producto).
+- **Documentos afectados:** `deploy/README.md`, `deploy/caddy/Caddyfile`, `stack-despliegue-operacion.md`, `tools/ci/{compose-check,run}.sh`, este registro (nota en `DEC-177`), `historial-cambios.md`, `docs/10-backlog/prompts/README.md` y los prompts de migración a Jenkins.
+- **Fuente:** issue [#689](https://github.com/nava-project/nava-agenda/issues/689); `DEC-177`.

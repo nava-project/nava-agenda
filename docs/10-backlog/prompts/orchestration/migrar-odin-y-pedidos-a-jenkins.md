@@ -2,7 +2,7 @@
 prompt_id: "PROMPT-ORCH-MIGRAR-ODIN-Y-PEDIDOS-A-JENKINS-v1"
 version: "1.0"
 kind: "orchestration"
-status: "in_progress"
+status: "superseded"
 target_agents:
   - "claude"
   - "codex"
@@ -28,12 +28,14 @@ source_docs:
   - "bcaceres19/barberia: docs/10-backlog/prompts/ops/issue-pending-migrar-proyecto-a-jenkins-vps-v2.md"
   - "bcaceres19/barberia: deploy/jenkins/README.md"
 created_at: "2026-11-16"
-updated_at: "2026-11-16"
+updated_at: "2026-11-18"
 supersedes: null
-superseded_by: null
+superseded_by: "nava-project/nava-jenkins (orquestador; DEC-184, #689)"
 ---
 
 # Migrar Odin y Odin-pedidos al Jenkins de la VPS
+
+> **Trasladado al orquestador (2026-11-18, [#689](https://github.com/nava-project/nava-agenda/issues/689), `DEC-184`).** La infraestructura de Jenkins vive ahora en [`nava-project/nava-jenkins`](https://github.com/nava-project/nava-jenkins) y solo la sesión orquestadora la configura. Este prompt ya no se ejecuta desde `nava-agenda`; se conserva sin cambios por trazabilidad. De las rutas `bcaceres19/barberia: deploy/jenkins/...` que cita, las de infraestructura (`README.md`, `casc/*`) están ahora en ese repositorio; `pipelines/deploy.Jenkinsfile` y `scripts/release.sh` siguen en `nava-agenda`.
 
 ## Instrucción para el agente
 

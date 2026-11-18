@@ -167,6 +167,8 @@ nexos.{$DOMAIN} {
 }
 
 # Jenkins de la VPS (CI/CD de todos los proyectos; pila `jenkins` en /srv/jenkins; DEC-177).
+# El backend es de nava-project/nava-jenkins y lo gobierna el orquestador (DEC-184): cambiar
+# este sitio (nombre, alias `jenkins`, puerto o cabeceras) se coordina con él.
 # Llega por la red `edge` con el alias `jenkins`. Jenkins exige usuario y contraseña; el
 # webhook de GitHub (/github-webhook/) se valida con su firma HMAC. Si Jenkins está
 # caído, solo este sitio responde 502.

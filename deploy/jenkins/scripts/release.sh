@@ -9,7 +9,7 @@
 #   release.sh deploy        envía la versión al servidor y ejecuta deploy.sh como `deploy`
 #   release.sh public-check  GET $PUBLIC_URL/health
 #
-# Entorno: SHA y AUTO (parámetros), GITHUB_REPO y PUBLIC_URL (globales de Jenkins),
+# Entorno: SHA y AUTO (parámetros), GITHUB_REPO y PUBLIC_URL (environment del pipeline),
 # GH_TOKEN, SSH_KEY y VITE_GOOGLE_MAPS_BROWSER_KEY (credenciales, según la fase).
 set -euo pipefail
 

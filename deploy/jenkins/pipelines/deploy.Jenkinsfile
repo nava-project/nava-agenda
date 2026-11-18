@@ -17,6 +17,13 @@ pipeline {
     timeout(time: 45, unit: 'MINUTES')
   }
 
+  // Propias de este pipeline (antes globales de JCasC). La infraestructura de Jenkins vive
+  // en nava-project/nava-jenkins (DEC-184) y no guarda nada específico de Nava Agenda.
+  environment {
+    GITHUB_REPO = 'nava-project/nava-agenda'
+    PUBLIC_URL = 'https://nava.wtf'
+  }
+
   stages {
     stage('Verificar commit') {
       steps {

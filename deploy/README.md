@@ -2,7 +2,7 @@
 
 Pila de producción en contenedores Docker sobre un VPS: proxy con HTTPS, API, worker,
 PostgreSQL y respaldos. Todo se despliega desde el Jenkins de la propia VPS
-([`jenkins/README.md`](jenkins/README.md), `DEC-177`) con el mismo commit que superó el CI. Decisiones de base: [`stack-despliegue-operacion.md`](../docs/04-arquitectura/stack-despliegue-operacion.md)
+(`DEC-177`; infraestructura en [`nava-project/nava-jenkins`](https://github.com/nava-project/nava-jenkins), `DEC-184`) con el mismo commit que superó el CI. Decisiones de base: [`stack-despliegue-operacion.md`](../docs/04-arquitectura/stack-despliegue-operacion.md)
 y [`migraciones-atlas.md`](../docs/05-backend/migraciones-atlas.md).
 
 > **Nombres desde `DEC-183` (#664).** Repositorio `nava-project/nava-agenda` (transferido desde `bcaceres19`, #687; GitHub redirige la URL
@@ -115,7 +115,7 @@ despliegue, y un servicio no puede leer los de otro. Los servicios que los leen 
 ## 3. Puesta en marcha (una sola vez)
 
 1. **DNS** del dominio: sección 4.
-2. **Jenkins** en la VPS: sección 5 y [`jenkins/README.md`](jenkins/README.md).
+2. **Jenkins** en la VPS: lo instala y opera [`nava-project/nava-jenkins`](https://github.com/nava-project/nava-jenkins) (`DEC-184`); aquí solo la sección 5.
 3. **Configuración y secretos en el servidor** (genera los valores aleatorios):
    ```bash
    tar czf - deploy | ssh nava-deploy 'mkdir -p /srv/nava-agenda/bootstrap && tar xzpf - -C /srv/nava-agenda/bootstrap'
@@ -145,7 +145,7 @@ editan en **hPanel → Dominios → nava.wtf → DNS / Servidores de nombres →
 | A | `@` | `158.69.232.180` | 300 | **Cambiar**: hoy apunta a `2.57.91.91` (página de aparcamiento de Hostinger) |
 | CNAME | `www` | `nava.wtf` | 300 | Conservar (ya existe; Caddy redirige `www` al dominio sin `www`) |
 | A | `pedidos` | `158.69.232.180` | 300 | Ya existe: Nava · Pedidos, servido por este Caddy (`DEC-176`) |
-| A | `jenkins` | `158.69.232.180` | 300 | Jenkins de la VPS, servido por este Caddy (`DEC-177`) |
+| A | `jenkins` | `158.69.232.180` | 300 | Jenkins de la VPS, servido por este Caddy (`DEC-177`; backend de `nava-project/nava-jenkins`, `DEC-184`) |
 | A | `nexos` | `158.69.232.180` | 300 | Ya existe: webhook de WhatsApp de Nava Nexos (#679) |
 | A | `agenda` | `158.69.232.180` | 300 | **Nava Agenda** (`DEC-183`): la app y su API. `nava.wtf` queda para la landing de la familia NAVA |
 | CAA | `@` | `0 issue "letsencrypt.org"` | 3600 | Opcional: solo Let's Encrypt puede emitir certificados |
@@ -165,16 +165,59 @@ editan en **hPanel → Dominios → nava.wtf → DNS / Servidores de nombres →
 
 ## 5. CI/CD (Jenkins)
 
-El CI y los despliegues los hace el Jenkins de la VPS (`DEC-177`), en `https://jenkins.nava.wtf`;
-la instalación, los secretos y la operación están en [`jenkins/README.md`](jenkins/README.md).
+El CI y los despliegues los hace el Jenkins de la VPS (`DEC-177`), en `https://jenkins.nava.wtf`.
+Su infraestructura (imagen, plugins, JCasC, jobs, credenciales, `vps/mantenimiento` y la operación del
+controlador) vive en [`nava-project/nava-jenkins`](https://github.com/nava-project/nava-jenkins) y la
+gobierna solo la sesión orquestadora (`DEC-184`): desde aquí se **usa** Jenkins (disparar o relanzar
+builds, leer registros, verificar despliegues), pero un cambio de configuración se le pide a ella. Este
+repositorio conserva lo que es de Nava Agenda: el [`Jenkinsfile`](../Jenkinsfile) del CI,
+[`tools/ci/`](../tools/ci) y el despliegue en [`jenkins/pipelines/deploy.Jenkinsfile`](jenkins/pipelines/deploy.Jenkinsfile)
+con sus fases en [`jenkins/scripts/release.sh`](jenkins/scripts/release.sh). El job `agenda/deploy`
+apunta a esas dos rutas, así que moverlas también se coordina.
 GitHub Actions quedó retirado y desactivado en el repositorio (#634): GitHub ya no guarda nada necesario
 para desplegar ni hay registro de imágenes.
 
 | Pipeline | Cuándo corre | Qué hace |
 | --- | --- | --- |
 | `agenda/ci` | cada PR contra `main` y cada commit de `main` | los checks de [`Jenkinsfile`](../Jenkinsfile) y el estado en el commit de GitHub; en `main`, si pasa, construye las imágenes y dispara `deploy` |
-| `agenda/deploy` | lo dispara el CI de `main`; a mano con un SHA | worktree en el SHA, imágenes que falten, envío al servidor y `deploy.sh` como `deploy` |
-| `vps/mantenimiento` | diario | contenedores de CI huérfanos y caché de construcción de más de 7 días |
+| `agenda/deploy` | lo dispara el CI de `main`; a mano con un SHA | verifica que el SHA sea de `main` y que su CI de Jenkins esté en verde (los commits anteriores a la migración no se aceptan, #634); con `AUTO=true` se omite si `main` ya avanzó. Worktree en el SHA → imágenes que falten → tar a `/srv/nava-agenda/releases/<sha>` → `deploy.sh --no-pull` → `GET $PUBLIC_URL/health`. `GITHUB_REPO` y `PUBLIC_URL` están en el `environment` del pipeline |
+
+Estado en el commit: `continuous-integration/jenkins/branch` (main) o `…/pr-merge` (PR). Los checks
+(los mismos del antiguo `ci.yml`) son `tools/ci/checks/go.sh`, `openapi.sh`, el frontend partido en
+`web-deps.sh` (instalación, una vez) + `web-static.sh` (formato, lint, tipos) + `web-test.sh` (vitest),
+`database.sh`, `shellcheck.sh` y `tools/ci/compose-check.sh`; el build de producción del frontend lo
+comprueba la imagen web. Todos corren a la vez, cada uno en un contenedor de `tools/ci/ci.Dockerfile`
+con prioridad baja de CPU; Go y SQL con un PostgreSQL 14 efímero. Una migración nueva se añade a la
+lista explícita de `go.sh` (Atlas la valida en `database.sh`). En local con Docker:
+`tools/ci/run.sh go --postgres`.
+
+**Qué checks corren (`tools/ci/plan.sh`, #625).** Si el mismo árbol de git ya pasó un CI completo, no
+se repite nada: es lo normal tras el squash-merge de un PR al día con `main`. Si no, se comparan los
+archivos con la base (en un PR, el `main` con el que se fusiona; en `main`, el commit anterior, y solo
+si ese commit ya estaba verificado):
+
+| Cambia | Corre |
+| --- | --- |
+| `docs/`, `.agents/`, `.claude/`, `.github/`, `*.md`/`*.docx`/`*.txt` de la raíz | nada |
+| `apps/web/` | frontend (+ imágenes) |
+| `apps/api/` | Go (+ imágenes) |
+| `api/` (OpenAPI) | OpenAPI y Go (pruebas de contrato) |
+| `database/` | Atlas + SQL y Go |
+| `deploy/` | shellcheck y compose (+ imágenes) |
+| `package.json`, `pnpm-lock.yaml`, `redocly.yaml` de la raíz | OpenAPI |
+| `Jenkinsfile`, `tools/ci/`, `.gitattributes` o cualquier otra ruta | todo |
+
+Un check omitido aparece como *skipped* y la descripción del build dice por qué. Los árboles
+verificados se guardan en `$JENKINS_HOME/nava-ci-green/` (30 días); borrar esa carpeta obliga a
+repetir el CI completo.
+
+**Recursos y cachés de los checks.** Prioridad de CPU baja (`--cpu-shares 512`, la producción tiene
+1024) y topes de memoria (Go 3 GB, pruebas del frontend 2,5 GB, estático del frontend 2 GB, el resto
+1 GB, PostgreSQL 768 MB), sin cuota fija de CPU: Node y Go dimensionan sus hilos por los núcleos del
+host y una cuota los estrangula. vitest usa hilos y 10 s por prueba (`web-test.sh`). El workspace se
+monta siempre en `/workspace` dentro del check, así que la caché de Go sirve entre ramas y PR; las
+pruebas de Go con base de datos se invalidan cuando cambian las migraciones o el testdata. Los módulos
+de Go y pnpm viven en el volumen `nava-ci-cache`.
 
 Las claves de Resend, Meta y Google **no** están en Jenkins: viven solo en el servidor como
 secretos de Docker (sección 2). Jenkins guarda en `/srv/jenkins/secrets` únicamente lo suyo (token
