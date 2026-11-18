@@ -1,9 +1,9 @@
 ---
 titulo: "Checklist transversal (toda pantalla y flujo)"
-version: "1.3"
+version: "1.4"
 estado: "Herramienta operativa, no normativa"
 responsable: "Propietario del proyecto"
-ultima_actualizacion: "2026-09-02"
+ultima_actualizacion: "2026-11-18"
 documentos_relacionados:
   - "README.md"
   - "01-metodologia-y-uso.md"
@@ -47,10 +47,10 @@ Aplica a **cada** pantalla privada y cada formulario, además de los checks espe
 - [ ] Enviar un formulario, y **antes de que responda el servidor**, navegar a otra pantalla y volver: ¿la operación se completó, se duplicó o quedó en un limbo visible como pendiente para siempre?
 - [ ] Doble envío con **la misma clave de idempotencia y contenido distinto** (solo aplica a `catalog`, que sí usa `Idempotency-Key`, ver `apps/web/src/modules/catalog/model/idempotencyKey.ts`): debe rechazarse como conflicto, no ejecutarse con el contenido nuevo.
 
-## D. Aislamiento entre barberías (`RN-TEN-01`)
+## D. Aislamiento entre negocios (`RN-TEN-01`)
 
-- [ ] Con dos sesiones abiertas en navegadores/perfiles distintos (barbería A y barbería B), copiar el identificador de un recurso de A (servicio, barbero, asignación) y sustituirlo en una petición o URL de B: debe responder **404**, nunca 403 (P10 de `estados-citas.md` — un 403 revelaría que el recurso existe).
-- [ ] Un dato de A (nombre de servicio, nombre de barbero) nunca debe aparecer en ningún selector, lista o dropdown de B, ni siquiera brevemente durante una carga.
+- [ ] Con dos sesiones abiertas en navegadores/perfiles distintos (negocio A y negocio B), copiar el identificador de un recurso de A (servicio, profesional, asignación) y sustituirlo en una petición o URL de B: debe responder **404**, nunca 403 (P10 de `estados-citas.md` — un 403 revelaría que el recurso existe).
+- [ ] Un dato de A (nombre de servicio, nombre de profesional) nunca debe aparecer en ningún selector, lista o dropdown de B, ni siquiera brevemente durante una carga.
 
 ## E. Flujos no esperados
 
@@ -64,7 +64,7 @@ Aplica a **cada** pantalla privada y cada formulario, además de los checks espe
 ## F. Almacenamiento e integridad de datos
 
 - [ ] Crear/editar un recurso y **recargar con F5** (no solo confiar en el estado en memoria de Vue): el valor mostrado coincide exactamente con lo enviado, carácter por carácter.
-- [ ] El mismo dato mostrado en **dos lugares distintos** (lista y selector de otro módulo, por ejemplo un barbero en `staff` y en `barberServices`) coincide siempre — sin una copia desactualizada.
+- [ ] El mismo dato mostrado en **dos lugares distintos** (lista y selector de otro módulo, por ejemplo un profesional en `staff` y en `professionalServices`) coincide siempre — sin una copia desactualizada.
 - [ ] Un valor con **espacios al inicio/final únicamente** (`"   "`) se trata como vacío por cada validador (todos usan `trim()` en este proyecto) — verificar que ningún campo lo acepte como "con contenido".
 - [ ] Un valor con **HTML/script** (`<script>alert(1)</script>`, `<img src=x onerror=alert(1)>`) guardado y mostrado después: debe verse como texto literal, nunca ejecutarse ni romper el layout de la fila que lo muestra.
 - [ ] Un valor con **unicode/emoji** (`Bárbería 🪒 Ñoño`) se guarda y se muestra igual en cada lugar donde aparece, sin mojibake ni recorte a mitad de un carácter multibyte.

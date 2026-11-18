@@ -11,7 +11,7 @@ Leer [protocolo](../02-protocolo-agentes.md), [transversal](../04-transversal.md
 | UI-DETAIL-01 | Crear propio → detalle → F5 | Datos/snapshots/cronología reales. |
 | UI-DETAIL-02 | Reprogramar válido → Mi turno | Hora/versión nueva y evento anterior/nuevo. |
 | UI-DETAIL-03 | Reprogramar a cruce/bloqueo/versión antigua | Conflicto atómico sin historial parcial. |
-| UI-DETAIL-04 | Cancelar por barbero según RN-CAN-03 | Estado/motivo/actor correctos. |
+| UI-DETAIL-04 | Cancelar por profesional según RN-CAN-03 | Estado/motivo/actor correctos. |
 | UI-DETAIL-05 | Cerrar attended/no_show según reloj/transición | Solo transiciones HU-067, sin cierre arbitrario. |
 | UI-DETAIL-06 | Corregir resultado con motivo | Evento nuevo y anterior intacto RN-CIT-04/RN-HIS-02. |
 | UI-DETAIL-07 | Corregir a estado que ocupa franja ya ocupada | Revalida, conflicto atómico HU-068. |

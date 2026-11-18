@@ -1,6 +1,6 @@
 # Selección pública de profesional
 
-Scope **public-barber**, ruta **/reservar/:slug/servicios/:serviceId/barbero**. Cuenta: entrada scope=public-barber de apps/web/.auth/nava-qa/current.json, leída privadamente; nunca credenciales del chat o suites ajenas.
+Scope **public-barber**, ruta **/reservar/:slug/servicios/:serviceId/profesional**. Cuenta: entrada scope=public-barber de apps/web/.auth/nava-qa/current.json, leída privadamente; nunca credenciales del chat o suites ajenas.
 
 Fuentes: HU-092 en [historias](../../../02-requisitos/historias-usuario.md), DEC-104,DEC-111 en [decisiones](../../../00-control/registro-decisiones.md), RN en [reglas](../../../01-producto/reglas-negocio.md). Leer fragmentos de la capacidad; norma prevalece sobre código. Duda = registrar y BLOCKED.
 

@@ -1,9 +1,9 @@
 ---
 titulo: "Metodología de exploración combinatoria"
-version: "1.0"
+version: "1.1"
 estado: "Herramienta operativa, no normativa"
 responsable: "Propietario del proyecto"
-ultima_actualizacion: "2026-08-25"
+ultima_actualizacion: "2026-11-18"
 documentos_relacionados:
   - "README.md"
   - "../03-desarrollo/estrategia-pruebas.md"
@@ -39,7 +39,7 @@ Cada flujo se describe como una tabla de **dimensiones** (rol, ancho de pantalla
 
 | Severidad | Criterio | Ejemplo |
 | --- | --- | --- |
-| **Bloqueante** | Corrupción o fuga de datos entre barberías, 500 sin recuperación, pérdida irreversible de datos ya guardados | Un servicio de la barbería A aparece en el selector de la barbería B |
+| **Bloqueante** | Corrupción o fuga de datos entre negocios, 500 sin recuperación, pérdida irreversible de datos ya guardados | Un servicio del negocio A aparece en el selector del negocio B |
 | **Alto** | Dato persistido incorrecto sin fuga entre tenants, flujo roto sin forma de continuar | Guardar configuración deja `contactEmail` como cadena vacía en vez de `null` |
 | **Medio** | Mensaje de error incorrecto o genérico donde debía ser específico, responsive roto que dificulta pero no impide la tarea | A 320 px el botón "Guardar" queda parcialmente tapado por la barra inferior |
 | **Bajo** | Detalle visual, copy, inconsistencia menor sin efecto funcional | Un ícono decorativo queda descentrado 2 px |
@@ -49,7 +49,7 @@ Un hallazgo **Bloqueante** o **Alto** se reporta de inmediato al propietario, no
 ## 4. Protocolo para una sesión humana
 
 1. Elige un checklist (`03`, `04`) o una fila de [`05-matriz-combinaciones.md`](05-matriz-combinaciones.md).
-2. Levanta el entorno local (`apps/api` + `apps/web` + PostgreSQL real) con datos de prueba sembrados — nunca contra producción ni con datos reales de una barbería piloto.
+2. Levanta el entorno local (`apps/api` + `apps/web` + PostgreSQL real) con datos de prueba sembrados — nunca contra producción ni con datos reales de un negocio piloto.
 3. Fija un tiempo (25–40 min) y recorre las combinaciones en orden, marcando cada una.
 4. Ante un resultado inesperado, no lo descartes por parecer menor: regístralo con [`06-plantilla-hallazgo.md`](06-plantilla-hallazgo.md) antes de seguir.
 5. Al terminar, si algún hallazgo es real y reproducible, créalo como issue. Si además requiere una corrección de código, el trabajo de corrección se guarda como un prompt persistente `fix/issue-<numero>-<slug>.md` en [`docs/10-backlog/prompts/`](../10-backlog/prompts/README.md), siguiendo `AGENTS.md` — esta carpeta nunca reemplaza esa persistencia.
