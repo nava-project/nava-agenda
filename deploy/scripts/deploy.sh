@@ -144,10 +144,14 @@ if [ "$migrate" = 1 ]; then
   log "aplicando migraciones"
   # Los roles barberia_* pasan a agenda_* con el superusuario justo después de la
   # migración que renombra el esquema (DEC-183, #660): se aplica hasta ella, se
-  # renombran los roles y se aplica el resto. En una base ya renombrada, ambos pasos
-  # son no-ops. Ver docs/05-backend/migraciones-atlas.md.
-  show atlas migrate apply --env production --to-version "$ROLE_RENAME_VERSION" \
-    || fail "la migración falló: la aplicación en ejecución no se tocó"
+  # renombran los roles y se aplica el resto. Atlas rechaza --to-version con una versión
+  # ya aplicada, así que en una base ya renombrada la primera fase se salta (#674) y
+  # rename_roles no hace nada. Ver docs/05-backend/migraciones-atlas.md.
+  rename_applied="$(psql_db -c "SELECT EXISTS (SELECT 1 FROM atlas_schema_revisions.atlas_schema_revisions WHERE version = '$ROLE_RENAME_VERSION')")"
+  if [ "$rename_applied" != t ]; then
+    show atlas migrate apply --env production --to-version "$ROLE_RENAME_VERSION" \
+      || fail "la migración falló: la aplicación en ejecución no se tocó"
+  fi
   rename_roles
   show atlas migrate apply --env production \
     || fail "la migración falló: la aplicación en ejecución no se tocó"
