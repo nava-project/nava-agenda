@@ -2,7 +2,7 @@
 prompt_id: "PROMPT-CHORE-661-CONTRATO-BUSINESSES-v1"
 version: "1.0"
 kind: "chore"
-status: "in_progress"
+status: "executed"
 target_agents:
   - "claude-code"
 repository: "bcaceres19/barberia"
