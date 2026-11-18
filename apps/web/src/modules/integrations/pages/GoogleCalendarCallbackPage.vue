@@ -78,17 +78,17 @@ onMounted(() => {
             : 'No pudimos conectar.'
       }}</strong>
       <template v-if="phase === 'denied'">
-        Sin el permiso de calendario NAVA no puede publicar tu agenda. Puedes intentarlo de nuevo
-        cuando quieras.
+        Sin el permiso de calendario Nava Agenda no puede publicar tu agenda. Puedes intentarlo de
+        nuevo cuando quieras.
       </template>
       <template v-else-if="phase === 'invalid'">
-        El enlace de Google ya se usó o venció. Inicia la conexión de nuevo desde NAVA.
+        El enlace de Google ya se usó o venció. Inicia la conexión de nuevo desde Nava Agenda.
       </template>
       <template v-else-if="phase === 'failed'">
         Google no completó la conexión. Inténtalo de nuevo; tus turnos no se tocaron.
       </template>
       <template v-else>
-        Hubo un problema al hablar con NAVA. Revisa tu conexión e inténtalo de nuevo.
+        Hubo un problema al hablar con Nava Agenda. Revisa tu conexión e inténtalo de nuevo.
       </template>
       <template #action>
         <RouterLink :to="{ name: 'integraciones-google-calendar' }" class="gcal-return__link">

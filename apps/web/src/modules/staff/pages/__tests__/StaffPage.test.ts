@@ -261,6 +261,7 @@ describe('StaffPage', () => {
     expect(wrapper.text()).toContain('Agregar estilista')
     expect(wrapper.text()).toContain('1 estilista')
     expect(wrapper.text()).not.toContain('barbero')
+    expect(wrapper.text()).not.toContain('profesional')
   })
 
   it('a one-person shop and a four-person shop use the same list component (CA-021-01/02)', async () => {
@@ -311,7 +312,7 @@ describe('StaffPage', () => {
 
   it('shows an empty state with no special data shape when there are no barbers', async () => {
     const wrapper = await mountReady([])
-    expect(wrapper.text()).toContain('Aún no tienes barberos registrados')
+    expect(wrapper.text()).toContain('Aún no tienes profesionales registrados')
     expect(wrapper.find('.staff-page__ready--fitting').exists()).toBe(false)
     expect(wrapper.findAll('li').length).toBe(0)
     expect(wrapper.find('.staff-page__footer').exists()).toBe(false)
@@ -342,7 +343,7 @@ describe('StaffPage', () => {
 
   it('replaces the page, shows exact total and returns to the previous page', async () => {
     const wrapper = await mountReady(oneBarber, 'opaque-cursor')
-    expect(wrapper.find('nav[aria-label="Paginación de barberos"]').exists()).toBe(true)
+    expect(wrapper.find('nav[aria-label="Paginación de profesionales"]').exists()).toBe(true)
     expect(wrapper.get('.base-pagination__count').text()).toContain('Página 1 de 2')
     fetchMock.mockResolvedValueOnce({
       kind: 'success',
@@ -573,7 +574,7 @@ describe('StaffPage', () => {
 
   it('opens the create dialog and blocks submission for an empty name', async () => {
     const wrapper = await mountReady()
-    await findButtonByText(wrapper, 'Agregar barbero').trigger('click')
+    await findButtonByText(wrapper, 'Agregar profesional').trigger('click')
     await flushPromises()
 
     expect(openDialogInput(wrapper)).toBeTruthy()
@@ -583,12 +584,12 @@ describe('StaffPage', () => {
     await flushPromises()
 
     expect(createMock).not.toHaveBeenCalled()
-    expect(wrapper.text()).toContain('Escribe el nombre del barbero.')
+    expect(wrapper.text()).toContain('Escribe el nombre del profesional.')
   })
 
   it('on success, prepends the confirmed barber once and closes the dialog', async () => {
     const wrapper = await mountReady()
-    await findButtonByText(wrapper, 'Agregar barbero').trigger('click')
+    await findButtonByText(wrapper, 'Agregar profesional').trigger('click')
     await flushPromises()
 
     setInputValue(openDialogInput(wrapper), 'Nuevo Barbero')
@@ -604,7 +605,7 @@ describe('StaffPage', () => {
     expect(uploadPhotoMock).not.toHaveBeenCalled()
     expect(wrapper.findAll('.staff-page__row').length).toBe(2)
     expect(wrapper.text()).toContain('Nuevo Barbero')
-    expect(toastState.items.map((item) => item.title)).toEqual(['Barbero agregado'])
+    expect(toastState.items.map((item) => item.title)).toEqual(['Profesional agregado'])
     // La fila recién agregada se ilumina un instante.
     expect(wrapper.get('.staff-page__row--new').text()).toContain('Nuevo Barbero')
     expect(wrapper.find('.base-dialog--open').exists()).toBe(false)
@@ -612,7 +613,7 @@ describe('StaffPage', () => {
 
   it('creates the barber and then uploads the chosen photo, showing it in the new row (DEC-104)', async () => {
     const wrapper = await mountReady()
-    await findButtonByText(wrapper, 'Agregar barbero').trigger('click')
+    await findButtonByText(wrapper, 'Agregar profesional').trigger('click')
     await flushPromises()
 
     setInputValue(openDialogInput(wrapper), 'Con Foto')
@@ -632,12 +633,12 @@ describe('StaffPage', () => {
     expect(row.get('img.barber-avatar__photo').attributes('src')).toBe(
       '/photo/b-new?v=2026-09-30T13:00:00Z',
     )
-    expect(toastState.items.map((item) => item.title)).toEqual(['Barbero agregado'])
+    expect(toastState.items.map((item) => item.title)).toEqual(['Profesional agregado'])
   })
 
   it('keeps the barber and warns when only the photo fails after a successful create', async () => {
     const wrapper = await mountReady()
-    await findButtonByText(wrapper, 'Agregar barbero').trigger('click')
+    await findButtonByText(wrapper, 'Agregar profesional').trigger('click')
     await flushPromises()
 
     setInputValue(openDialogInput(wrapper), 'Foto Fallida')
@@ -653,13 +654,13 @@ describe('StaffPage', () => {
     expect(wrapper.text()).toContain('Foto Fallida')
     expect(wrapper.find('.base-dialog--open').exists()).toBe(false)
     expect(toastState.items.map((item) => [item.variant, item.title])).toEqual([
-      ['warning', 'Barbero agregado, pero no pudimos guardar la foto'],
+      ['warning', 'Profesional agregado, pero no pudimos guardar la foto'],
     ])
   })
 
   it('sends the same idempotency key across a submit and a network-error retry of the same logical attempt', async () => {
     const wrapper = await mountReady()
-    await findButtonByText(wrapper, 'Agregar barbero').trigger('click')
+    await findButtonByText(wrapper, 'Agregar profesional').trigger('click')
     await flushPromises()
 
     setInputValue(openDialogInput(wrapper), 'Reintentado')
@@ -685,7 +686,7 @@ describe('StaffPage', () => {
 
   it('blocks a second submit while the first is still in flight (no double POST)', async () => {
     const wrapper = await mountReady()
-    await findButtonByText(wrapper, 'Agregar barbero').trigger('click')
+    await findButtonByText(wrapper, 'Agregar profesional').trigger('click')
     await flushPromises()
 
     setInputValue(openDialogInput(wrapper), 'Doble Envío')
@@ -706,7 +707,7 @@ describe('StaffPage', () => {
 
   it('on idempotency-conflict, shows a recoverable message and keeps the typed value and the chosen photo', async () => {
     const wrapper = await mountReady()
-    await findButtonByText(wrapper, 'Agregar barbero').trigger('click')
+    await findButtonByText(wrapper, 'Agregar profesional').trigger('click')
     await flushPromises()
 
     const input = openDialogInput(wrapper)
@@ -729,7 +730,7 @@ describe('StaffPage', () => {
   // F-RQ-PB-01 (#431): un 422 del servidor dejaba el diálogo abierto sin ningún mensaje.
   it('on a server validation-error, says so in the create dialog and keeps what was typed', async () => {
     const wrapper = await mountReady()
-    await findButtonByText(wrapper, 'Agregar barbero').trigger('click')
+    await findButtonByText(wrapper, 'Agregar profesional').trigger('click')
     await flushPromises()
 
     const input = openDialogInput(wrapper)
@@ -769,7 +770,8 @@ describe('StaffPage', () => {
 
   it('never shows placeholders for service, schedule, active status, or linked user', async () => {
     const wrapper = await mountReady(fourBarbers)
-    const text = wrapper.text().toLowerCase()
+    // El nombre del producto («Nava Agenda», DEC-183) no es un marcador de la agenda.
+    const text = wrapper.text().toLowerCase().replaceAll('nava agenda', '')
     for (const forbidden of [
       'servicio',
       'horario',
@@ -817,7 +819,7 @@ describe('StaffPage', () => {
 
   it('creates a barber with the public description the user wrote', async () => {
     const wrapper = await mountReady()
-    await findButtonByText(wrapper, 'Agregar barbero').trigger('click')
+    await findButtonByText(wrapper, 'Agregar profesional').trigger('click')
     await flushPromises()
 
     expect(openDialogDescription(wrapper).value).toBe('')
@@ -842,7 +844,7 @@ describe('StaffPage', () => {
 
   it('rejects a description over 280 characters without calling the API', async () => {
     const wrapper = await mountReady()
-    await findButtonByText(wrapper, 'Agregar barbero').trigger('click')
+    await findButtonByText(wrapper, 'Agregar profesional').trigger('click')
     await flushPromises()
 
     setInputValue(openDialogInput(wrapper), 'Nuevo Barbero')
@@ -1013,7 +1015,7 @@ describe('StaffPage', () => {
     await flushPromises()
 
     expect(order).toEqual(['rename', 'photo'])
-    expect(toastState.items.map((item) => item.title)).toEqual(['Barbero actualizado'])
+    expect(toastState.items.map((item) => item.title)).toEqual(['Profesional actualizado'])
   })
 
   it('after a partial failure (name saved, photo failed) a retry does not rename again', async () => {
@@ -1102,7 +1104,7 @@ describe('StaffPage', () => {
 
   it('has no axe violations with the create dialog open', async () => {
     const wrapper = await mountReady()
-    await findButtonByText(wrapper, 'Agregar barbero').trigger('click')
+    await findButtonByText(wrapper, 'Agregar profesional').trigger('click')
     await flushPromises()
 
     const results = await axe(wrapper.element, axeOptions)
@@ -1132,7 +1134,7 @@ describe('StaffPage', () => {
       expect(wrapper.find('.staff-page__footer').exists()).toBe(false)
       // Su propia tarjeta, no una fila de tabla sin cabecera (DEC-115).
       expect(wrapper.find('.staff-page__row').exists()).toBe(false)
-      expect(wrapper.text()).toContain('En NAVA desde')
+      expect(wrapper.text()).toContain('En Nava Agenda desde')
       // Lo propio de la persona sigue ahí: editar y la acción de «Bloquear» del slot.
       expect(wrapper.find('button[aria-label="Editar Carlos Ramírez"]').exists()).toBe(true)
     })
@@ -1163,7 +1165,7 @@ describe('StaffPage', () => {
       setBrand(solo)
       const wrapper = await mountReady(fourBarbers)
 
-      expect(wrapper.get('h1').text()).toBe('Barberos')
+      expect(wrapper.get('h1').text()).toBe('Profesionales')
       expect(wrapper.find('.staff-page__create').exists()).toBe(true)
       expect(wrapper.find('.staff-page__footer').exists()).toBe(true)
     })
@@ -1171,7 +1173,7 @@ describe('StaffPage', () => {
     it('keeps the full panel untouched with one barber', async () => {
       const wrapper = await mountReady()
 
-      expect(wrapper.get('h1').text()).toBe('Barberos')
+      expect(wrapper.get('h1').text()).toBe('Profesionales')
       expect(wrapper.find('.staff-page__create').exists()).toBe(true)
       expect(wrapper.find('.staff-page__columns').exists()).toBe(true)
     })
@@ -1210,7 +1212,7 @@ describe('StaffPage', () => {
       const wrapper = await mountReady([])
 
       const empty = wrapper.get('.staff-page__empty')
-      expect(empty.text()).toContain('Pídele a la barbería que vincule tu usuario')
+      expect(empty.text()).toContain('Pídele al negocio que vincule tu usuario')
       expect(empty.findAll('button')).toHaveLength(0)
     })
 

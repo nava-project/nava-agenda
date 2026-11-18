@@ -179,7 +179,7 @@ describe('SettingsPage', () => {
       const preview = wrapper.get('[aria-label="Vista previa del vocabulario"]').text()
       expect(preview).toContain('Estilistas')
       expect(preview).toContain('+ Agregar estilista')
-      expect(preview).toContain('Aún no tienes estilistas registradas en la barbería.')
+      expect(preview).toContain('Aún no tienes estilistas registradas en el negocio.')
       expect(preview).toContain('Elige a la estilista y el servicio.')
     })
 
@@ -198,7 +198,7 @@ describe('SettingsPage', () => {
         expect(preview).not.toContain('Aún no tienes')
         expect(preview).not.toContain('Elige a la estilista')
         expect(preview).toContain('Mi perfil de estilista')
-        expect(preview).toContain('Tus clientes reservan en la barbería.')
+        expect(preview).toContain('Tus clientes reservan en el negocio.')
       },
     )
 

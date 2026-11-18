@@ -27,11 +27,11 @@ beforeEach(() => {
 })
 
 describe('brandStore', () => {
-  it('starts on the interface the barbershop always had', async () => {
+  it('starts on the generic vocabulary (DEC-183)', async () => {
     const store = await load()
     expect({ ...store.brandState.brand }).toEqual(DEFAULT_BRAND)
     expect(store.effectiveAccent.value).toBe('brass')
-    expect(store.vocabulary.value.Professionals).toBe('Barberos')
+    expect(store.vocabulary.value.Professionals).toBe('Profesionales')
   })
 
   it('publishes the confirmed brand to the vocabulary and keeps a local copy', async () => {

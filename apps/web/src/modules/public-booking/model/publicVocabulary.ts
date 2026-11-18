@@ -4,7 +4,7 @@
 // directamente desde un enlace, así que ninguna puede depender de haber pasado
 // por la anterior. Es un `provide`/`inject` acotado a este árbol, no estado
 // global; sin cascarón (pruebas de componente en aislamiento) devuelve los
-// valores iniciales, es decir, la interfaz de siempre.
+// valores iniciales ("negocio" / "profesional", DEC-183).
 import { computed, inject, type ComputedRef, type InjectionKey } from 'vue'
 import { buildVocabularyFromTerms, type Vocabulary } from '@/shared/model'
 

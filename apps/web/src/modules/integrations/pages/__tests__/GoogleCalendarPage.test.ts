@@ -206,7 +206,7 @@ describe('GoogleCalendarPage', () => {
     const wrapper = await mountWith(connected)
     const cards = wrapper.findAll('.gcal-how__item')
     expect(cards).toHaveLength(4)
-    expect(cards[0].text()).toContain('NAVA manda')
+    expect(cards[0].text()).toContain('Nava Agenda manda')
   })
 
   it('shows «No conectado» with the connect action, and the how-it-works copy always', async () => {
@@ -214,10 +214,10 @@ describe('GoogleCalendarPage', () => {
     expect(wrapper.text()).toContain('No conectado')
     expect(button(wrapper, 'Conectar Google Calendar').exists()).toBe(true)
     const how = wrapper.text()
-    expect(how).toContain('NAVA manda')
+    expect(how).toContain('Nava Agenda manda')
     expect(how).toContain('no modifica tus turnos')
-    expect(how).toContain('NAVA lo vuelve a crear')
-    expect(how).toContain('cancélalo desde NAVA')
+    expect(how).toContain('Nava Agenda lo vuelve a crear')
+    expect(how).toContain('cancélalo desde Nava Agenda')
     expect(how).toContain('Google les envía la invitación')
   })
 
@@ -246,7 +246,7 @@ describe('GoogleCalendarPage', () => {
   it('shows the recoverable sync error and keeps «Sincronizar ahora» available', async () => {
     const wrapper = await mountWith({ ...connected, failedSyncJobs: 2 })
     expect(wrapper.text()).toContain('Error de sincronización')
-    expect(wrapper.text()).toContain('Tus turnos están a salvo en NAVA')
+    expect(wrapper.text()).toContain('Tus turnos están a salvo en Nava Agenda')
     expect(button(wrapper, 'Sincronizar ahora').exists()).toBe(true)
   })
 

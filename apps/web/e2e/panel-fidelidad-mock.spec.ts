@@ -185,22 +185,22 @@ async function installPanelMock(page: Page, scenario: Scenario): Promise<Deferre
 async function waitForScenario(page: Page, scenario: Scenario) {
   switch (scenario) {
     case 'context-loading':
-      await expect(page.getByText('Cargando barberos')).toBeVisible()
+      await expect(page.getByText('Cargando profesionales')).toBeVisible()
       return
     case 'context-error':
       await expect(page.getByText('No pudimos cargar esta sección')).toBeVisible()
       return
     case 'no-barbers':
-      await expect(page.getByText('Aún no tienes barberos registrados')).toBeVisible()
+      await expect(page.getByText('Aún no tienes profesionales registrados')).toBeVisible()
       return
     case 'agenda-loading':
       await expect(page.locator('.agenda-skeleton')).toBeVisible()
       return
     case 'agenda-error':
-      await expect(page.getByText('No pudimos cargar la agenda de este barbero')).toBeVisible()
+      await expect(page.getByText('No pudimos cargar la agenda de este profesional')).toBeVisible()
       return
     case 'barber-not-found':
-      await expect(page.getByText('Este barbero ya no está disponible')).toBeVisible()
+      await expect(page.getByText('Este profesional ya no está disponible')).toBeVisible()
       return
     case 'empty-day':
       await expect(page.getByText('No hay turnos para Julián Rodríguez hoy')).toBeVisible()
@@ -212,8 +212,8 @@ async function waitForScenario(page: Page, scenario: Scenario) {
       await expect(page.locator('.daily-agenda-page__timeline-mark--day-change')).toBeAttached()
       return
     case 'barber-selection':
-      await page.getByRole('button', { name: 'Barbero', exact: true }).click()
-      await expect(page.getByRole('listbox', { name: 'Barbero' })).toBeVisible()
+      await page.getByRole('button', { name: 'Profesional', exact: true }).click()
+      await expect(page.getByRole('listbox', { name: 'Profesional' })).toBeVisible()
       return
     case 'agenda':
     case 'updating':

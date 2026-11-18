@@ -166,7 +166,7 @@ for (const viewport of viewports) {
               type: '/api/v1/problems/not-found',
               title: 'No encontrado',
               status: 404,
-              detail: 'no existe una barbería pública con ese enlace',
+              detail: 'no existe un negocio público con ese enlace',
               instance: 'evidence-hu095-404',
               code: 'not-found',
               requestId: 'evidence-hu095-404',

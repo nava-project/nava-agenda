@@ -293,7 +293,7 @@ describe('PublicAvailabilityPage', () => {
 
     const announced = wrapper.find('.pb-sr-only[role="status"]')
     expect(announced.text()).toContain('Franja elegida:')
-    expect(announced.text()).toContain('zona horaria de la barbería: America/Bogota')
+    expect(announced.text()).toContain('zona horaria del negocio: America/Bogota')
     expect(announced.text()).toContain('dura 30 min')
     // La ficha visual no se anuncia una segunda vez.
     const ticket = wrapper.find('.pb-ticket')

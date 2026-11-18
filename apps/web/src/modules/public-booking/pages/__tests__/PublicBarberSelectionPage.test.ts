@@ -65,7 +65,7 @@ describe('PublicBarberSelectionPage', () => {
       props: { slug: 'barberia-ejemplo', serviceId: SERVICE_A },
     })
 
-    expect(wrapper.text()).toContain('Cargando barberos')
+    expect(wrapper.text()).toContain('Cargando profesionales')
 
     resolveRequest({ data: undefined, error: undefined, response: errorResponse(500) })
     await flushPromises()
@@ -191,7 +191,7 @@ describe('PublicBarberSelectionPage', () => {
     })
     await flushPromises()
 
-    expect(wrapper.text()).toContain('no tiene barberos disponibles')
+    expect(wrapper.text()).toContain('no tiene profesionales disponibles')
     expect(wrapper.find('[role="radiogroup"]').exists()).toBe(false)
   })
 

@@ -14,7 +14,7 @@ export { staffPrivateShellChildRoutes } from './routes'
 export const staffNavItems: NavItem[] = [
   {
     to: { name: 'staff-barberos' },
-    label: 'Barberos',
+    label: 'Profesionales',
     labelFor: (v) => v.Professionals,
     primary: true,
     // Un barbero individual no gestiona un equipo: esta misma pantalla es su ficha (DEC-115).

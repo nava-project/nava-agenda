@@ -108,7 +108,7 @@ for (const viewport of [
     test.describe('acceso', () => {
       test('01-inicial', async ({ page }) => {
         await page.goto('/acceso')
-        await expect(page.getByRole('heading', { name: 'Accede a NAVA' })).toBeVisible()
+        await expect(page.getByRole('heading', { name: 'Accede a Nava Agenda' })).toBeVisible()
         await shoot(page, viewport.name, 'acceso', '01-inicial.png')
       })
 

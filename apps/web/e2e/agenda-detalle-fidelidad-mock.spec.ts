@@ -168,7 +168,7 @@ async function installDetailMock(
         type: 'https://nava.example/problems/conflict',
         title: 'Conflicto',
         status: 409,
-        detail: 'el barbero ya tiene una cita en ese intervalo',
+        detail: 'el profesional ya tiene una cita en ese intervalo',
         code: 'conflict',
       },
       409,
@@ -379,7 +379,7 @@ for (const viewport of [
     const dialog = page.getByRole('dialog', { name: 'Cancelar turno' })
     await dialog.getByRole('button', { name: 'Sí, cancelar turno' }).click()
     await expect(page.getByRole('dialog')).toHaveCount(0)
-    await expect(page.getByRole('status').getByText('Cancelado por el barbero')).toBeVisible()
+    await expect(page.getByRole('status').getByText('Cancelado por el profesional')).toBeVisible()
     // El turno ya cancelado no vuelve a ofrecer "Cancelar turno" (solo
     // aplica sobre confirmed, CA-066-08).
     await expect(page.getByRole('button', { name: 'Cancelar turno' })).toHaveCount(0)
@@ -414,7 +414,7 @@ test('HU-066: doble toque no duplica la solicitud de cancelación', async ({ pag
   // real no dispara un segundo evento — la protección real (cancelStatus
   // === 'saving' en AppointmentDetailPage.vue) es la que importa aquí.
   await confirm.click({ force: true }).catch(() => {})
-  await expect(page.getByRole('status').getByText('Cancelado por el barbero')).toBeVisible()
+  await expect(page.getByRole('status').getByText('Cancelado por el profesional')).toBeVisible()
 
   expect(mockState.cancelRequests).toBe(1)
 })
@@ -431,7 +431,7 @@ test('HU-066: recorrido completo por teclado, sin ratón', async ({ page }) => {
   await expect(dialog.getByRole('button', { name: 'Sí, cancelar turno' })).toBeFocused()
   await page.keyboard.press('Enter')
 
-  await expect(page.getByRole('status').getByText('Cancelado por el barbero')).toBeVisible()
+  await expect(page.getByRole('status').getByText('Cancelado por el profesional')).toBeVisible()
 })
 
 async function runAxe(page: Page) {
@@ -452,7 +452,7 @@ test('HU-066: axe-core sin violaciones en el diálogo y en el estado terminal', 
 
   const dialog = page.getByRole('dialog', { name: 'Cancelar turno' })
   await dialog.getByRole('button', { name: 'Sí, cancelar turno' }).click()
-  await expect(page.getByRole('status').getByText('Cancelado por el barbero')).toBeVisible()
+  await expect(page.getByRole('status').getByText('Cancelado por el profesional')).toBeVisible()
   const terminalResults = await runAxe(page)
   expect(terminalResults.violations, JSON.stringify(terminalResults.violations, null, 2)).toEqual(
     [],
@@ -836,7 +836,9 @@ for (const viewport of [
     await dialog.getByLabel('Nuevo resultado').selectOption({ label: 'Completado' })
     await dialog.getByLabel('Motivo de la corrección').fill('motivo de prueba')
     await dialog.getByRole('button', { name: 'Confirmar corrección' }).click()
-    await expect(dialog.getByText('el barbero ya tiene una cita en ese intervalo')).toBeVisible()
+    await expect(
+      dialog.getByText('el profesional ya tiene una cita en ese intervalo'),
+    ).toBeVisible()
     await page.screenshot({
       path: path.join(evidenceDirCorrect, viewport.name, 'cruce-agenda.png'),
       animations: 'disabled',

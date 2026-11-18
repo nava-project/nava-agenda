@@ -41,7 +41,7 @@ const Probe = defineComponent({
     const v = usePublicVocabulary()
     return () =>
       h('div', [
-        h('p', { class: 'probe' }, `Elige tu ${v.value.professional} de ${v.value.theBusiness}`),
+        h('p', { class: 'probe' }, `Elige tu ${v.value.professional} ${v.value.ofTheBusiness}`),
         h(BookingProgress, { step: 2 }),
       ])
   },
@@ -81,12 +81,13 @@ describe('vocabulario de la reserva pública (DEC-119)', () => {
     const wrapper = await mountAt('estudiolila')
 
     expect(resolveBarbershopMock).toHaveBeenCalledWith('estudiolila')
-    expect(wrapper.get('.probe').text()).toBe('Elige tu manicurista de el estudio de uñas')
+    expect(wrapper.get('.probe').text()).toBe('Elige tu manicurista del estudio de uñas')
     expect(wrapper.get('.pb-progress').text()).toContain('Manicurista')
     expect(wrapper.text()).not.toMatch(/barber(o|a|os|as|ía|ías)\b/i)
+    expect(wrapper.text()).not.toMatch(/profesional(es)?\b|negocio/i)
   })
 
-  it('conserva los valores iniciales si la barbería nunca los cambió', async () => {
+  it('conserva el vocabulario que una barbería guardó', async () => {
     resolveBarbershopMock.mockResolvedValueOnce(
       profile({
         businessTerm: 'barbería',
@@ -117,7 +118,7 @@ describe('vocabulario de la reserva pública (DEC-119)', () => {
     resolveBarbershopMock.mockResolvedValueOnce({ kind: 'not-found' })
     const wrapper = await mountAt('desconocido')
 
-    expect(wrapper.get('.probe').text()).toBe('Elige tu barbero de la barbería')
+    expect(wrapper.get('.probe').text()).toBe('Elige tu profesional del negocio')
   })
 
   it('no hace esperar a la entrada: ella misma lee el perfil y comparte la petición', async () => {
@@ -128,6 +129,6 @@ describe('vocabulario de la reserva pública (DEC-119)', () => {
     expect(wrapper.find('.probe').exists()).toBe(true)
     release(profile(nails))
     await flushPromises()
-    expect(wrapper.get('.probe').text()).toBe('Elige tu manicurista de el estudio de uñas')
+    expect(wrapper.get('.probe').text()).toBe('Elige tu manicurista del estudio de uñas')
   })
 })

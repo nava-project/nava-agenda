@@ -202,7 +202,7 @@ describe('SchedulesPage', () => {
     const wrapper = mountPage()
     await flushPromises()
 
-    expect(wrapper.text()).toContain('Aún no tienes barberos registrados')
+    expect(wrapper.text()).toContain('Aún no tienes profesionales registrados')
     expect(wrapper.find('#schedules-barber-select').exists()).toBe(false)
   })
 
@@ -821,6 +821,8 @@ describe('SchedulesPage · vocabulario del negocio (DEC-119)', () => {
 
   function expectNoFixedWords(wrapper: VueWrapper) {
     expect(wrapper.text()).not.toMatch(/barber(o|a|os|as|ía|ías)\b/i)
+    // Ni las palabras del vocabulario inicial (DEC-183).
+    expect(wrapper.text()).not.toMatch(/profesional(es)?\b|negocio/i)
   }
 
   it('names the picker, the timezone note and the holiday switch with the configured words', async () => {
@@ -857,10 +859,10 @@ describe('SchedulesPage · vocabulario del negocio (DEC-119)', () => {
     expectNoFixedWords(wrapper)
   })
 
-  it('keeps the original words when the business never configured its own', async () => {
+  it('uses the generic words when the business never configured its own (DEC-183)', async () => {
     const wrapper = await mountReady(fourBarbers)
 
-    expect(wrapper.text()).toContain('Horas en la zona horaria de la barbería:')
-    expect(wrapper.text()).toContain('festivos colombianos de este barbero')
+    expect(wrapper.text()).toContain('Horas en la zona horaria del negocio:')
+    expect(wrapper.text()).toContain('festivos colombianos de este profesional')
   })
 })

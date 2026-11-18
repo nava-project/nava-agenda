@@ -38,7 +38,7 @@ for (const viewport of viewports) {
       // Espera el contenido real (no solo el evento `load` de la
       // navegación) antes de la primera captura: la ruta se carga de
       // forma diferida y el primer paint puede llegar después de `load`.
-      await expect(page.getByRole('heading', { name: 'Accede a NAVA' })).toBeVisible()
+      await expect(page.getByRole('heading', { name: 'Accede a Nava Agenda' })).toBeVisible()
       await page.screenshot({
         path: path.join(evidenceDir, viewport.name, 'normal.png'),
         fullPage: true,

@@ -22,7 +22,7 @@ const viewports = [
 ] as const
 
 const routes = [
-  { name: 'acceso', url: '/acceso', heading: /Accede a NAVA/ },
+  { name: 'acceso', url: '/acceso', heading: /Accede a Nava Agenda/ },
   { name: 'recuperacion', url: '/recuperar-acceso', heading: /\S/ },
 ] as const
 

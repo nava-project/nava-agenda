@@ -283,7 +283,7 @@ test('Marfil no se filtra al acceso, que conserva su propio diseño', async ({ p
   await page.route('**/api/v1/public/**', (route) => route.fulfill(json({}, 404)))
   await page.evaluate(() => (window as unknown as { __router?: unknown }).__router)
   await page.goto('/acceso')
-  await expect(page.getByRole('heading', { name: 'Accede a NAVA' })).toBeVisible()
+  await expect(page.getByRole('heading', { name: 'Accede a Nava Agenda' })).toBeVisible()
   expect(await page.evaluate(() => document.documentElement.dataset.appTheme ?? null)).toBeNull()
 })
 
