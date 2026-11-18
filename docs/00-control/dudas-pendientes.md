@@ -1,9 +1,9 @@
 ---
 titulo: "Dudas pendientes y resoluciones"
-version: "2.19"
+version: "2.20"
 estado: "Sin dudas abiertas"
 responsable: "Propietario del proyecto"
-ultima_actualizacion: "2026-09-26"
+ultima_actualizacion: "2026-11-18"
 documentos_relacionados:
   - "registro-decisiones.md"
   - "contradicciones.md"
@@ -14,6 +14,8 @@ documentos_relacionados:
 ---
 
 # Dudas pendientes y resoluciones
+
+> **Equivalencia de términos (`DEC-183`).** Este registro conserva los términos de la fecha de cada entrada. Desde `DEC-183` el producto se llama Nava Agenda y la documentación vigente dice «negocio» y «profesional» con los nombres técnicos `business`, `professional` y `agenda_*`; la tabla de equivalencias está en el [glosario](glosario.md#12-equivalencias-de-nava-agenda-dec-183).
 
 ## 1. Estado
 

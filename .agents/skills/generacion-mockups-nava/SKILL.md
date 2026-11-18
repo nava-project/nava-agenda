@@ -49,7 +49,8 @@ forma explícita después de distinguirlo de los mockups visuales.
 - Un mockup nunca crea funciones. Si una acción o dato no existe en la HU, el
   contrato o la pantalla real, no se dibuja.
 - Evitar dashboards genéricos, tarjetas flotantes repetitivas, glassmorphism,
-  neón y clichés decorativos de barbería.
+  neón y clichés decorativos de un rubro concreto (barbería, salón, consultorio):
+  Nava Agenda sirve a cualquier negocio que agenda citas (`DEC-183`).
 - Mantener contraste, foco visible, objetivos táctiles, reflow real y texto sin
   overflow en todos los viewports solicitados.
 - No declarar implementación, QA funcional ni accesibilidad comprobada por el

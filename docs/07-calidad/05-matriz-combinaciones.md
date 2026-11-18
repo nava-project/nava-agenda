@@ -1,9 +1,9 @@
 ---
 titulo: "Matriz de combinaciones por pares"
-version: "1.0"
+version: "1.1"
 estado: "Herramienta operativa, no normativa"
 responsable: "Propietario del proyecto"
-ultima_actualizacion: "2026-08-25"
+ultima_actualizacion: "2026-11-18"
 documentos_relacionados:
   - "README.md"
   - "01-metodologia-y-uso.md"
@@ -29,7 +29,7 @@ Dimensiones: **Nombre** (vacío / típico / 120 exacto / 121 / duplicado-activo)
 | 7 | 121 chars | 1440 | 45000.999 | 320 | lenta | Errores de cliente visibles antes de que la red lenta importe |
 | 8 | duplicado-activo | 0 | 45000.50 | 768 | normal | `name-conflict` del servidor (duración ya habría fallado en cliente primero — confirma que la validación de cliente bloquea el envío) |
 
-## 2. Configuración de la barbería — guardar sección (`SettingsPage`)
+## 2. Configuración del negocio — guardar sección (`SettingsPage`)
 
 Dimensiones: **Correo contacto** (vacío / válido / inválido / 254 exacto), **Teléfono contacto** (vacío / E.164 válido / con espacios / sin `+`), **Zona horaria** (válida IANA / vacía / no reconocida por Postgres), **Pestañas** (una / dos concurrentes editando campos distintos).
 
@@ -43,14 +43,14 @@ Dimensiones: **Correo contacto** (vacío / válido / inválido / 254 exacto), **
 
 ## 3. Ciclo de vida de un servicio + asignación cruzada
 
-Dimensiones: **Estado inicial** (activo con 1 barbero asignado / activo con varios / recién reactivado), **Acción** (desactivar / reactivar / desasignar última / desasignar no-última), **Concurrencia** (una pestaña / dos pestañas simultáneas), **Ancho**.
+Dimensiones: **Estado inicial** (activo con 1 profesional asignado / activo con varios / recién reactivado), **Acción** (desactivar / reactivar / desasignar última / desasignar no-última), **Concurrencia** (una pestaña / dos pestañas simultáneas), **Ancho**.
 
 | # | Estado inicial | Acción | Concurrencia | Ancho | Resultado esperado |
 | --- | --- | --- | --- | --- | --- |
-| 1 | activo, 1 barbero | desasignar esa única asignación | una | 768 | Se retira sin error (`DEC-114`, que sustituye a `DEC-068`); el servicio deja de ofrecerse al público |
-| 2 | activo, 1 barbero | desactivar servicio, luego desasignar | una | 768 | Tras desactivar, ¿la regla de "última asignación" se sigue aplicando a un servicio ya inactivo? Documentar comportamiento real |
-| 3 | activo, varios barberos | desasignar uno cualquiera (no el último) | dos pestañas, la misma asignación | 320 | Una tiene éxito, la otra recibe conflicto controlado — nunca doble desasignación silenciosa |
-| 4 | activo, varios barberos | desactivar servicio (doble clic) | una | 1280 | Una sola desactivación real; segundo clic con `idempotency-conflict` bien comunicado |
+| 1 | activo, 1 profesional | desasignar esa única asignación | una | 768 | Se retira sin error (`DEC-114`, que sustituye a `DEC-068`); el servicio deja de ofrecerse al público |
+| 2 | activo, 1 profesional | desactivar servicio, luego desasignar | una | 768 | Tras desactivar, ¿la regla de "última asignación" se sigue aplicando a un servicio ya inactivo? Documentar comportamiento real |
+| 3 | activo, varios profesionales | desasignar uno cualquiera (no el último) | dos pestañas, la misma asignación | 320 | Una tiene éxito, la otra recibe conflicto controlado — nunca doble desasignación silenciosa |
+| 4 | activo, varios profesionales | desactivar servicio (doble clic) | una | 1280 | Una sola desactivación real; segundo clic con `idempotency-conflict` bien comunicado |
 | 5 | recién reactivado | crear un servicio nuevo con el mismo nombre que tenía antes de reactivarse | una | 768 | Verificar `name-conflict` esperado entre dos servicios activos con el mismo nombre |
 
 ## 4. Login + throttle + reto (si `HU-007` está activo en el entorno probado)

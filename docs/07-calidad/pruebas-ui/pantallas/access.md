@@ -8,7 +8,7 @@ Leer [protocolo](../02-protocolo-agentes.md), [transversal](../04-transversal.md
 
 | Caso | Acción | Resultado esperado |
 | --- | --- | --- |
-| UI-ACCESS-01 | Login válido → panel → F5 | Sesión y barbería correctas, agenda visible. |
+| UI-ACCESS-01 | Login válido → panel → F5 | Sesión y negocio correctas, agenda visible. |
 | UI-ACCESS-02 | Correo desconocido, contraseña incorrecta e inactive, contextos distintos | Rechazo no enumerable; aviso emergente, correo conservado, contraseña limpia. |
 | UI-ACCESS-03 | Vacío, correo inválido, 254/255 y contraseña 256/257 | Límites del formulario sin envío inválido ni 500. |
 | UI-ACCESS-04 | Doble clic con respuesta real lenta | Una intención/sesión, botón bloquea segundo envío. |
