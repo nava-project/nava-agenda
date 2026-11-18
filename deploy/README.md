@@ -1,9 +1,18 @@
-# Despliegue de NAVA
+# Despliegue de Nava Agenda
 
 Pila de producción en contenedores Docker sobre un VPS: proxy con HTTPS, API, worker,
 PostgreSQL y respaldos. Todo se despliega desde el Jenkins de la propia VPS
 ([`jenkins/README.md`](jenkins/README.md), `DEC-177`) con el mismo commit que superó el CI. Decisiones de base: [`stack-despliegue-operacion.md`](../docs/04-arquitectura/stack-despliegue-operacion.md)
 y [`migraciones-atlas.md`](../docs/05-backend/migraciones-atlas.md).
+
+> **Nombres desde `DEC-183` (#664).** Repositorio `bcaceres19/nava-agenda` (GitHub redirige la URL
+> vieja), carpeta de Jenkins `agenda/` (`agenda/ci`, `agenda/deploy`), imágenes
+> `nava-agenda-{web,backend,db}` y raíz del servidor `/srv/nava-agenda`. La raíz se movió una sola vez
+> con `sudo mv /srv/barberia /srv/nava-agenda`, dejando `/srv/barberia` como enlace simbólico para las
+> versiones anteriores (su `deploy.sh` y el enlace `current` absoluto aún nombran la ruta vieja) y
+> cambiando `NAVA_ENV_DIR`/`NAVA_BACKUP_DIR` en `stack.env`. Los volúmenes de Docker (`nava_db-data`,
+> `nava_caddy-*`) y el proyecto compose `nava` no cambian de nombre. Alias SSH: `nava-vps` y
+> `nava-deploy` (los viejos `barberia-*` siguen en `~/.ssh/config`).
 
 ## 1. Arquitectura
 
@@ -15,7 +24,7 @@ Internet ──443/80──▶ web (Caddy: HTTPS, SPA, /api → api)   agenda.na
                                     │ red "data" (interna, sin salida)
                      worker ────────┼──▶ db (PostgreSQL, TLS + SCRAM)
                      backup ────────┘        ▲
-                                             │ pg_dump diario → /srv/barberia/backups
+                                             │ pg_dump diario → /srv/nava-agenda/backups
                      migrate (bajo demanda) ─┘
 
 api y worker salen a Internet (Resend, Meta, Google) por la red "egress".
@@ -40,12 +49,12 @@ también por esa red. Odin (`/srv/odin`) no pasa por aquí: sale por su propio t
 
 | Servicio | Imagen | CPU | Memoria | Función |
 | --- | --- | --- | --- | --- |
-| `web` | `barberia-web` | 0,5 | 256 MB | Caddy: HTTPS automático, SPA de Vue, proxy `/api/*` |
-| `api` | `barberia-backend` | 1,0 | 512 MB | API HTTP (`GOMEMLIMIT` 400 MiB) |
-| `worker` | `barberia-backend` | 0,5 | 256 MB | Recordatorios y purgas |
-| `db` | `barberia-db` | 1,5 | 1,5 GB | PostgreSQL con TLS obligatorio |
-| `backup` | `barberia-db` | 0,5 | 512 MB | Respaldo diario, retención y prueba semanal |
-| `migrate` | `barberia-db` (Atlas 1.3.0 incluido) | 1,0 | 256 MB | Migraciones (solo durante el despliegue) |
+| `web` | `nava-agenda-web` | 0,5 | 256 MB | Caddy: HTTPS automático, SPA de Vue, proxy `/api/*` |
+| `api` | `nava-agenda-backend` | 1,0 | 512 MB | API HTTP (`GOMEMLIMIT` 400 MiB) |
+| `worker` | `nava-agenda-backend` | 0,5 | 256 MB | Recordatorios y purgas |
+| `db` | `nava-agenda-db` | 1,5 | 1,5 GB | PostgreSQL con TLS obligatorio |
+| `backup` | `nava-agenda-db` | 0,5 | 512 MB | Respaldo diario, retención y prueba semanal |
+| `migrate` | `nava-agenda-db` (Atlas 1.3.0 incluido) | 1,0 | 256 MB | Migraciones (solo durante el despliegue) |
 
 Los límites suman ~3,1 GB de los 7,6 GB del VPS. El consumo real en reposo es una fracción
 (API ~25 MB, base ~50 MB). Se ajustan en [`compose.yaml`](compose.yaml).
@@ -59,7 +68,7 @@ API nunca se publican. `db` y `backup` viven en una red interna sin salida a Int
 
 Configuración y secretos van **separados** y los dos viven en el servidor, fuera del repositorio.
 
-**Configuración** (sin secretos) en `/srv/barberia/env/`, cargada con `env_file` en formato `raw`
+**Configuración** (sin secretos) en `/srv/nava-agenda/env/`, cargada con `env_file` en formato `raw`
 (valor literal, sin comillas ni interpolación de `$`):
 
 | Archivo | Lo usa | Contenido |
@@ -70,7 +79,7 @@ Configuración y secretos van **separados** y los dos viven en el servidor, fuer
 | `backup.env` | `backup` | host, retención, hora, remoto de rclone |
 
 **Secretos** como archivos de secreto de Docker, uno por secreto, en
-`/srv/barberia/secrets/<servicio>/<NOMBRE>` (carpetas 700, archivos 600, dueño `deploy`):
+`/srv/nava-agenda/secrets/<servicio>/<NOMBRE>` (carpetas 700, archivos 600, dueño `deploy`):
 
 | Carpeta | Secretos |
 | --- | --- |
@@ -93,7 +102,7 @@ despliegue, y un servicio no puede leer los de otro. Los servicios que los leen 
 - Lo que solo tú puedes dar (Resend, Meta, Google) se crea vacío; `deploy.sh` se niega a desplegar
   mientras falten los obligatorios (el API tampoco arranca sin ellos, `DEC-066`).
 
-> **Respalda `/srv/barberia/secrets/` fuera del servidor** (gestor de contraseñas). El respaldo de
+> **Respalda `/srv/nava-agenda/secrets/` fuera del servidor** (gestor de contraseñas). El respaldo de
 > la base no lo incluye y `APP_AUTH_HMAC_SECRET` no se puede reconstruir. Para cambiar el valor de
 > un secreto: `secret-set.sh` y luego `docker compose ... up -d --force-recreate api worker`.
 > Rotar las contraseñas de PostgreSQL exige además `ALTER ROLE` dentro de la base.
@@ -104,21 +113,21 @@ despliegue, y un servicio no puede leer los de otro. Los servicios que los leen 
 2. **Jenkins** en la VPS: sección 5 y [`jenkins/README.md`](jenkins/README.md).
 3. **Configuración y secretos en el servidor** (genera los valores aleatorios):
    ```bash
-   tar czf - deploy | ssh barberia-deploy 'mkdir -p /srv/barberia/bootstrap && tar xzpf - -C /srv/barberia/bootstrap'
-   ssh barberia-deploy 'bash /srv/barberia/bootstrap/deploy/scripts/env-init.sh --domain nava.wtf --acme-email TU_CORREO'
+   tar czf - deploy | ssh nava-deploy 'mkdir -p /srv/nava-agenda/bootstrap && tar xzpf - -C /srv/nava-agenda/bootstrap'
+   ssh nava-deploy 'bash /srv/nava-agenda/bootstrap/deploy/scripts/env-init.sh --domain nava.wtf --acme-email TU_CORREO'
    ```
 4. **Completa los proveedores.** Los secretos se guardan sin eco y sin pasar por la línea de comandos:
    ```bash
-   ssh -t barberia-deploy 'bash /srv/barberia/bootstrap/deploy/scripts/secret-set.sh app APP_RESEND_API_KEY'
-   ssh -t barberia-deploy 'bash /srv/barberia/bootstrap/deploy/scripts/secret-set.sh app APP_META_WHATSAPP_ACCESS_TOKEN'
+   ssh -t nava-deploy 'bash /srv/nava-agenda/bootstrap/deploy/scripts/secret-set.sh app APP_RESEND_API_KEY'
+   ssh -t nava-deploy 'bash /srv/nava-agenda/bootstrap/deploy/scripts/secret-set.sh app APP_META_WHATSAPP_ACCESS_TOKEN'
    ```
    (opcionales: `APP_META_WEBHOOK_VERIFY_TOKEN`, `APP_META_APP_SECRET`, `GOOGLE_MAPS_API_KEY`, los de
    Google Calendar y `APP_ODIN_SERVICE_TOKEN`, el secreto con el que Odin consulta los turnos por
    teléfono: `HU-106`, `DEC-179`; mínimo 32 caracteres, distinto de los de Meta; lo genera el
    propietario y es el mismo valor que configura en Odin; sin él esas rutas no existen). Los datos no sensibles (`APP_META_WHATSAPP_PHONE_NUMBER_ID`,
-   `APP_META_WHATSAPP_TEMPLATE_NAME`) se escriben en `/srv/barberia/env/app.env`.
+   `APP_META_WHATSAPP_TEMPLATE_NAME`) se escriben en `/srv/nava-agenda/env/app.env`.
 5. **Despliega**: no hace falta hacer nada; el primer commit que llegue a `main` con el CI en verde
-   se despliega solo (o lánzalo a mano: Jenkins → *Barbería* → *Deploy* → *Build with Parameters*).
+   se despliega solo (o lánzalo a mano: Jenkins → *Nava Agenda* → *Deploy* → *Build with Parameters*).
    El primer despliegue crea los roles, aplica las migraciones y arranca todo.
 
 ## 4. DNS de `nava.wtf` en Hostinger
@@ -157,8 +166,8 @@ para desplegar ni hay registro de imágenes.
 
 | Pipeline | Cuándo corre | Qué hace |
 | --- | --- | --- |
-| `barberia/ci` | cada PR contra `main` y cada commit de `main` | los checks de [`Jenkinsfile`](../Jenkinsfile) y el estado en el commit de GitHub; en `main`, si pasa, construye las imágenes y dispara `deploy` |
-| `barberia/deploy` | lo dispara el CI de `main`; a mano con un SHA | worktree en el SHA, imágenes que falten, envío al servidor y `deploy.sh` como `deploy` |
+| `agenda/ci` | cada PR contra `main` y cada commit de `main` | los checks de [`Jenkinsfile`](../Jenkinsfile) y el estado en el commit de GitHub; en `main`, si pasa, construye las imágenes y dispara `deploy` |
+| `agenda/deploy` | lo dispara el CI de `main`; a mano con un SHA | worktree en el SHA, imágenes que falten, envío al servidor y `deploy.sh` como `deploy` |
 | `vps/mantenimiento` | diario | contenedores de CI huérfanos y caché de construcción de más de 7 días |
 
 Las claves de Resend, Meta y Google **no** están en Jenkins: viven solo en el servidor como
@@ -170,35 +179,35 @@ Maps, pública por diseño y restringida por dominio en Google Cloud, que se com
 y despliega exactamente ese SHA. No hay aprobación manual previa: los controles son el PR revisado,
 el CI, la simulación de las migraciones, el respaldo verificado previo y las pruebas de humo; si falla
 cualquiera, no se despliega la aplicación. Si llegan dos commits seguidos, solo se despliega el más
-nuevo. **Interruptor:** desactivar el job (*Barbería → Deploy → Disable Project*) apaga el disparo
+nuevo. **Interruptor:** desactivar el job (*Nava Agenda → Deploy → Disable Project*) apaga el disparo
 automático; *Enable* lo reactiva. Sin registro de imágenes: Jenkins construye en el mismo Docker que
-ejecuta la pila y conserva los nombres `ghcr.io/bcaceres19/barberia-*`.
+ejecuta la pila y conserva los nombres `ghcr.io/bcaceres19/nava-agenda-*`.
 
 ## 6. Servicios externos que hay que apuntar al dominio
 
 | Servicio | Qué configurar |
 | --- | --- |
 | Google Cloud, clave de navegador | Añadir `https://agenda.nava.wtf/*` a las referencias HTTP permitidas (`https://nava.wtf/*` mientras dure la transición) |
-| Google Cloud, cliente OAuth de Calendar | Origen `https://agenda.nava.wtf` y URI de redirección `https://agenda.nava.wtf/panel/barberia/google-calendar/callback` (y la futura `…/panel/negocio/google-calendar/callback`, #662); las mismas cuatro variables `GOOGLE_CALENDAR_*` en `app.env` |
+| Google Cloud, cliente OAuth de Calendar | Origen `https://agenda.nava.wtf` y URI de redirección `https://agenda.nava.wtf/panel/negocio/google-calendar/callback` (y la futura `…/panel/negocio/google-calendar/callback`, #662); las mismas cuatro variables `GOOGLE_CALENDAR_*` en `app.env` |
 | Meta, webhook de WhatsApp | URL `https://agenda.nava.wtf/api/v1/public/webhooks/meta/whatsapp` y el token de verificación de `app.env` (`nava.wtf/api/*` sigue llegando al API durante la transición) |
 | Resend | Dominio `nava.wtf` verificado (sección 4) |
 
 ## 7. Operación
 
 ```bash
-ssh barberia-deploy
-cd /srv/barberia/current/deploy
-C="docker compose --env-file /srv/barberia/env/stack.env -f compose.yaml"
-export IMAGE_TAG=$(cat /srv/barberia/current-tag) DB_IMAGE_TAG=$(cat /srv/barberia/current-db-tag)
+ssh nava-deploy
+cd /srv/nava-agenda/current/deploy
+C="docker compose --env-file /srv/nava-agenda/env/stack.env -f compose.yaml"
+export IMAGE_TAG=$(cat /srv/nava-agenda/current-tag) DB_IMAGE_TAG=$(cat /srv/nava-agenda/current-db-tag)
 
 $C ps                               # estado y salud
 $C logs -f --tail=100 api           # logs (rotan solos: 5 × 20 MB por contenedor)
 docker stats --no-stream            # consumo real frente a los límites
-tail /srv/barberia/deploy.log       # historial de despliegues (versión, actor, resultado)
+tail /srv/nava-agenda/deploy.log       # historial de despliegues (versión, actor, resultado)
 ```
 
 **Desplegar**: ocurre solo tras cada commit de `main` con el CI en verde. A mano (reintento o SHA
-anterior): Jenkins → *Barbería* → *Deploy* → *Build with Parameters* (`SHA` vacío = último commit de
+anterior): Jenkins → *Nava Agenda* → *Deploy* → *Build with Parameters* (`SHA` vacío = último commit de
 `main`; o un SHA). Verifica que el CI de Jenkins del commit esté en verde (un commit anterior a la migración del
 2026-11-16 ya no se acepta: sus resultados de GitHub Actions se borraron), construye las imágenes que falten en el
 Docker del servidor y entonces: respaldo previo verificado → migraciones con `agenda_migrator` (en dos fases: los roles `barberia_*` pasan a `agenda_*` tras `20261121090000`, DEC-183) →
@@ -207,8 +216,8 @@ arranque → pruebas de humo. **Si la migración falla, la aplicación en ejecuc
 **Revertir la aplicación** (roll-forward es lo normal; esto solo es seguro si el esquema actual es
 compatible con la versión anterior, ver `migraciones-atlas.md` §9):
 ```bash
-bash /srv/barberia/releases/$(cat /srv/barberia/previous-tag)/deploy/scripts/deploy.sh \
-     $(cat /srv/barberia/previous-tag) --db-tag $(cat /srv/barberia/current-db-tag) --no-migrate
+bash /srv/nava-agenda/releases/$(cat /srv/nava-agenda/previous-tag)/deploy/scripts/deploy.sh \
+     $(cat /srv/nava-agenda/previous-tag) --db-tag $(cat /srv/nava-agenda/current-db-tag) --no-migrate
 ```
 (las imágenes se conservan 7 días en el servidor; para una versión más vieja, lanza *Deploy* con
 ese SHA: reconstruye sus imágenes desde el commit).
@@ -217,7 +226,7 @@ ese SHA: reconstruye sus imágenes desde el commit).
 
 - **Diario** a las 03:00 UTC con `pg_dump` (formato custom), más el definición de roles. Cada
   respaldo se verifica (`pg_restore --list`, tamaño mínimo, SHA-256) antes de darlo por bueno.
-- **Retención** 30 días, sin bajar nunca de 7 respaldos. Carpeta: `/srv/barberia/backups`.
+- **Retención** 30 días, sin bajar nunca de 7 respaldos. Carpeta: `/srv/nava-agenda/backups`.
 - **Prueba de restauración** cada domingo: restaura el último respaldo en una instancia efímera
   y comprueba tablas, historial de migraciones y políticas RLS. También manual:
   `docker exec nava-backup-1 restore-test.sh`. Un respaldo manual se hace con
@@ -231,8 +240,8 @@ ese SHA: reconstruye sus imágenes desde el commit).
 
 **Restaurar** (destructivo; hace antes un respaldo de seguridad y detiene API y worker):
 ```bash
-CONFIRM_RESTORE=yes bash /srv/barberia/current/deploy/scripts/restore.sh \
-    /srv/barberia/backups/nava-AAAAMMDDTHHMMSSZ.dump
+CONFIRM_RESTORE=yes bash /srv/nava-agenda/current/deploy/scripts/restore.sh \
+    /srv/nava-agenda/backups/nava-AAAAMMDDTHHMMSSZ.dump
 ```
 Sobre un servidor nuevo: copia el respaldo, ejecuta una vez `deploy.sh` (crea `db` con sus roles)
 y luego `restore.sh`.

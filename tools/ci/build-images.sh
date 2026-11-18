@@ -46,12 +46,12 @@ case "$mode" in
     # Misma fórmula que usaba el workflow de GitHub: no cambia la etiqueta en producción.
     db_tag="$(git -C "$ctx" rev-parse "$sha:deploy/db" "$sha:deploy/backup" "$sha:deploy/docker/db.Dockerfile" | sha1sum | cut -c1-12)"
     for name in backend web; do
-      tag="$registry/barberia-$name:$sha"
+      tag="$registry/nava-agenda-$name:$sha"
       if docker image inspect "$tag" >/dev/null 2>&1; then echo "== imagen $name ya existe ($tag)"; continue; fi
       extra=(); [ "$name" = web ] && extra=("${maps[@]}")
       build "$name" "deploy/docker/$name.Dockerfile" "$tag" "${extra[@]}"
     done
-    tag="$registry/barberia-db:$db_tag"
+    tag="$registry/nava-agenda-db:$db_tag"
     if docker image inspect "$tag" >/dev/null 2>&1; then echo "== imagen db ya existe ($tag)"
     else build db deploy/docker/db.Dockerfile "$tag"; fi
     echo "DB_TAG=$db_tag" >"$ctx/.nava-release"

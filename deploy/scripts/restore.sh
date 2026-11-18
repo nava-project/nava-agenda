@@ -2,7 +2,7 @@
 # Restaura un respaldo en la base de producción. DESTRUCTIVO: reemplaza la base
 # `nava` completa por el contenido del respaldo.
 #
-# Uso: CONFIRM_RESTORE=yes restore.sh /srv/barberia/backups/nava-YYYYmmddTHHMMSSZ.dump
+# Uso: CONFIRM_RESTORE=yes restore.sh /srv/nava-agenda/backups/nava-YYYYmmddTHHMMSSZ.dump
 #
 # Pasos: verifica la suma SHA-256, hace un respaldo de seguridad del estado actual,
 # detiene API y worker, restaura (propietarios y RLS incluidos) y vuelve a arrancar.
@@ -15,8 +15,8 @@ dump="${1:?uso: CONFIRM_RESTORE=yes restore.sh <archivo.dump>}"
 [ -f "$dump" ] || { echo "no existe $dump" >&2; exit 2; }
 
 here="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-ENV_DIR="${NAVA_ENV_DIR:-/srv/barberia/env}"
-BASE_DIR="${NAVA_BASE_DIR:-/srv/barberia}"
+ENV_DIR="${NAVA_ENV_DIR:-/srv/nava-agenda/env}"
+BASE_DIR="${NAVA_BASE_DIR:-/srv/nava-agenda}"
 export IMAGE_TAG; IMAGE_TAG="$(cat "$BASE_DIR/current-tag")"
 export DB_IMAGE_TAG; DB_IMAGE_TAG="$(cat "$BASE_DIR/current-db-tag")"
 compose=(docker compose --env-file "$ENV_DIR/stack.env" -f "$here/compose.yaml")

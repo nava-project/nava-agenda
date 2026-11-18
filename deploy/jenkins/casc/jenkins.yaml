@@ -8,7 +8,7 @@
 jenkins:
   systemMessage: >-
     CI/CD de la VPS de NAVA (DEC-177). Configuración como código en
-    deploy/jenkins/ del repo barberia: los cambios hechos aquí se pierden al reiniciar.
+    deploy/jenkins/ del repo nava-agenda: los cambios hechos aquí se pierden al reiniciar.
   # Un solo nodo (el controlador): los pasos pesados corren en contenedores aparte.
   numExecutors: 3
   mode: NORMAL
@@ -33,9 +33,9 @@ jenkins:
     - envVars:
         env:
           - key: PUBLIC_URL
-            value: "https://nava.wtf"
+            value: "https://agenda.nava.wtf"
           - key: GITHUB_REPO
-            value: "bcaceres19/barberia"
+            value: "bcaceres19/nava-agenda"
 
 credentials:
   system:

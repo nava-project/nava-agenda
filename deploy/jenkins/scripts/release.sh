@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Fases del pipeline barberia/deploy (deploy/jenkins/pipelines/deploy.Jenkinsfile, DEC-177).
+# Fases del pipeline agenda/deploy (deploy/jenkins/pipelines/deploy.Jenkinsfile, DEC-177).
 # Corre en el controlador de Jenkins, desde un checkout del último main. El estado entre
 # fases vive en .release/ del workspace.
 #
@@ -81,12 +81,12 @@ case "$phase" in
     # shellcheck disable=SC2029
     tar -C "$state/src" -czf - deploy database/atlas.hcl database/migrations database/roles \
       | ssh "${ssh_opts[@]}" "deploy@$deploy_host" \
-          "set -e; d=/srv/barberia/releases/$sha; rm -rf \"\$d\"; mkdir -p \"\$d\"; tar xzpf - -C \"\$d\""
+          "set -e; d=/srv/nava-agenda/releases/$sha; rm -rf \"\$d\"; mkdir -p \"\$d\"; tar xzpf - -C \"\$d\""
     # Las imágenes ya están en el Docker del host (las construyó este Jenkins). --no-pull no
     # hace nada en el deploy.sh actual, pero el de versiones anteriores a #634 descargaría.
     # shellcheck disable=SC2029
     ssh "${ssh_opts[@]}" "deploy@$deploy_host" \
-      "DEPLOY_ACTOR='jenkins:${BUILD_TAG:-manual}' bash /srv/barberia/releases/$sha/deploy/scripts/deploy.sh $sha --db-tag $DB_TAG --no-pull" </dev/null
+      "DEPLOY_ACTOR='jenkins:${BUILD_TAG:-manual}' bash /srv/nava-agenda/releases/$sha/deploy/scripts/deploy.sh $sha --db-tag $DB_TAG --no-pull" </dev/null
     ;;
 
   public-check)

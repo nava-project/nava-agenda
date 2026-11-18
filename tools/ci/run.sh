@@ -46,7 +46,7 @@ case "$check" in
   *)          limits=(--memory 1g) ;;
 esac
 
-# Nombre único por ejecución: BUILD_TAG lo da Jenkins (p. ej. jenkins-barberia-ci-main-12).
+# Nombre único por ejecución: BUILD_TAG lo da Jenkins (p. ej. jenkins-agenda-ci-main-12).
 name="nava-ci-$(printf '%s-%s' "${BUILD_TAG:-local-$$}" "$check" | tr -c 'a-zA-Z0-9_.-' '-' | cut -c1-100)"
 cleanup() { docker rm -f -v "$name" "$name-pg" >/dev/null 2>&1 || true; }
 trap cleanup EXIT
