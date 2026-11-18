@@ -141,6 +141,8 @@ services:
       # Red compartida con otros proyectos de la VPS a los que este Caddy hace de proxy
       # (DEC-176). Solo `web` está en ella: el API, el worker y la base no son alcanzables.
       edge: {}
+      # Solo Nava Nexos, para publicar su webhook de WhatsApp en nexos.{$DOMAIN} (#679).
+      nexos-edge: {}
     depends_on:
       api: { condition: service_started }
     healthcheck:
@@ -224,6 +226,10 @@ networks:
   edge:
     external: true
     name: edge
+  # Externa y exclusiva de Nava Nexos (alias `nexos`); la crea deploy.sh si no existe.
+  nexos-edge:
+    external: true
+    name: nexos-edge
 
 volumes:
   db-data: {}

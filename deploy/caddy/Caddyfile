@@ -137,6 +137,38 @@ pedidos.{$DOMAIN} {
 	}
 }
 
+# Nava Nexos (repo bcaceres19/nava-nexos, ADR 027; #679): solo su webhook de WhatsApp. Llega
+# por la red `nexos-edge` (aparte de `edge`) con el alias `nexos`. Ninguna otra ruta pasa:
+# ni /health, ni /webhooks/pedidos, ni el simulador. La firma HMAC de Meta la valida Nexos.
+nexos.{$DOMAIN} {
+	header {
+		Strict-Transport-Security "max-age=15552000"
+		X-Content-Type-Options "nosniff"
+		Referrer-Policy "no-referrer"
+		-Server
+	}
+
+	@webhook {
+		path /webhooks/whatsapp
+		method GET POST
+	}
+	handle @webhook {
+		request_body {
+			max_size 1MB
+		}
+		reverse_proxy nexos:7870 {
+			transport http {
+				dial_timeout 5s
+				response_header_timeout 15s
+			}
+		}
+	}
+
+	handle {
+		respond 404
+	}
+}
+
 # Jenkins de la VPS (CI/CD de todos los proyectos; pila `jenkins` en /srv/jenkins; DEC-177).
 # Llega por la red `edge` con el alias `jenkins`. Jenkins exige usuario y contraseña; el
 # webhook de GitHub (/github-webhook/) se valida con su firma HMAC. Si Jenkins está
