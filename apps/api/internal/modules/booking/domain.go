@@ -33,7 +33,7 @@ const (
 	StatusConfirmed           Status = "confirmed"
 	StatusCompleted           Status = "completed"
 	StatusCancelledByCustomer Status = "cancelled_by_customer"
-	StatusCancelledByBarber   Status = "cancelled_by_barber"
+	StatusCancelledByBarber   Status = "cancelled_by_professional"
 	StatusNoShow              Status = "no_show"
 )
 
@@ -87,7 +87,7 @@ const (
 	EventTypeAppointmentServiceChanged      EventType = "appointment_service_changed"
 	EventTypeAppointmentCompleted           EventType = "appointment_completed"
 	EventTypeAppointmentCancelledByCustomer EventType = "appointment_cancelled_by_customer"
-	EventTypeAppointmentCancelledByBarber   EventType = "appointment_cancelled_by_barber"
+	EventTypeAppointmentCancelledByBarber   EventType = "appointment_cancelled_by_professional"
 	EventTypeAppointmentNoShow              EventType = "appointment_no_show"
 	EventTypeAppointmentStatusCorrected     EventType = "appointment_status_corrected"
 )

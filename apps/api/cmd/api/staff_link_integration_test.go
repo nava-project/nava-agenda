@@ -21,7 +21,7 @@ func doMyBarberRequest(router http.Handler, rawToken, method, rawBody string) *h
 	} else {
 		body = bytes.NewReader(nil)
 	}
-	req := httptest.NewRequest(method, "/api/v1/private/me/barber", body)
+	req := httptest.NewRequest(method, "/api/v1/private/me/professional", body)
 	req.Header.Set("Content-Type", "application/json")
 	if rawToken != "" {
 		req.AddCookie(&http.Cookie{Name: cookieName, Value: rawToken})
@@ -59,7 +59,7 @@ func TestMyBarber_HTTP_LinkReadSwitchAndUnlinkJourney(t *testing.T) {
 		t.Fatalf("sin vínculo se espera 404, got %d: %s", rec.Code, rec.Body.String())
 	}
 
-	rec := doMyBarberRequest(router, raw, http.MethodPut, `{"barberId":"`+first.ID+`"}`)
+	rec := doMyBarberRequest(router, raw, http.MethodPut, `{"professionalId":"`+first.ID+`"}`)
 	if rec.Code != http.StatusOK {
 		t.Fatalf("vincular: expected 200, got %d: %s", rec.Code, rec.Body.String())
 	}
@@ -74,11 +74,11 @@ func TestMyBarber_HTTP_LinkReadSwitchAndUnlinkJourney(t *testing.T) {
 		t.Fatal("la respuesta nunca debe exponer staffUserId")
 	}
 
-	if rec := doMyBarberRequest(router, raw, http.MethodPut, `{"barberId":"`+first.ID+`"}`); rec.Code != http.StatusOK {
+	if rec := doMyBarberRequest(router, raw, http.MethodPut, `{"professionalId":"`+first.ID+`"}`); rec.Code != http.StatusOK {
 		t.Fatalf("repetir la selección es idempotente, got %d", rec.Code)
 	}
 
-	if rec := doMyBarberRequest(router, raw, http.MethodPut, `{"barberId":"`+second.ID+`"}`); rec.Code != http.StatusOK {
+	if rec := doMyBarberRequest(router, raw, http.MethodPut, `{"professionalId":"`+second.ID+`"}`); rec.Code != http.StatusOK {
 		t.Fatalf("cambiar de barbero: expected 200, got %d: %s", rec.Code, rec.Body.String())
 	}
 	rec = doMyBarberRequest(router, raw, http.MethodGet, "")
@@ -117,14 +117,14 @@ func TestMyBarber_HTTP_BarberOfAnotherUser_Is409AndPreservesPreviousLink(t *test
 	mine := createBarberVia(t, router, rawOne, "Mío "+uniqueToken(t, "n"))
 	theirs := createBarberVia(t, router, rawOne, "Ajeno "+uniqueToken(t, "n"))
 
-	if rec := doMyBarberRequest(router, rawOne, http.MethodPut, `{"barberId":"`+mine.ID+`"}`); rec.Code != http.StatusOK {
+	if rec := doMyBarberRequest(router, rawOne, http.MethodPut, `{"professionalId":"`+mine.ID+`"}`); rec.Code != http.StatusOK {
 		t.Fatalf("expected 200, got %d: %s", rec.Code, rec.Body.String())
 	}
-	if rec := doMyBarberRequest(router, rawTwo, http.MethodPut, `{"barberId":"`+theirs.ID+`"}`); rec.Code != http.StatusOK {
+	if rec := doMyBarberRequest(router, rawTwo, http.MethodPut, `{"professionalId":"`+theirs.ID+`"}`); rec.Code != http.StatusOK {
 		t.Fatalf("expected 200, got %d: %s", rec.Code, rec.Body.String())
 	}
 
-	rec := doMyBarberRequest(router, rawOne, http.MethodPut, `{"barberId":"`+theirs.ID+`"}`)
+	rec := doMyBarberRequest(router, rawOne, http.MethodPut, `{"professionalId":"`+theirs.ID+`"}`)
 	if rec.Code != http.StatusConflict {
 		t.Fatalf("expected 409, got %d: %s", rec.Code, rec.Body.String())
 	}
@@ -150,8 +150,8 @@ func TestMyBarber_HTTP_TwoTenants_AndNoCookie(t *testing.T) {
 	barberB := createBarberVia(t, router, rawB, "Solo B "+uniqueToken(t, "n"))
 
 	// Un usuario de A pidiendo el barbero de B recibe el mismo 404 que un id inexistente.
-	cross := doMyBarberRequest(router, rawA, http.MethodPut, `{"barberId":"`+barberB.ID+`"}`)
-	missing := doMyBarberRequest(router, rawA, http.MethodPut, `{"barberId":"99999999-9999-4999-8999-999999999999"}`)
+	cross := doMyBarberRequest(router, rawA, http.MethodPut, `{"professionalId":"`+barberB.ID+`"}`)
+	missing := doMyBarberRequest(router, rawA, http.MethodPut, `{"professionalId":"99999999-9999-4999-8999-999999999999"}`)
 	if cross.Code != http.StatusNotFound || missing.Code != http.StatusNotFound {
 		t.Fatalf("expected 404/404, got %d/%d", cross.Code, missing.Code)
 	}
@@ -162,7 +162,7 @@ func TestMyBarber_HTTP_TwoTenants_AndNoCookie(t *testing.T) {
 	// El cuerpo nunca acepta el usuario de otra persona.
 	own := createBarberVia(t, router, rawA, "Propio A "+uniqueToken(t, "n"))
 	forged := doMyBarberRequest(router, rawA, http.MethodPut,
-		`{"barberId":"`+own.ID+`","staffUserId":"`+staffUserBarberA+`"}`)
+		`{"professionalId":"`+own.ID+`","staffUserId":"`+staffUserBarberA+`"}`)
 	if forged.Code != http.StatusBadRequest {
 		t.Fatalf("un staffUserId en el cuerpo debe rechazarse con 400, got %d", forged.Code)
 	}

@@ -178,7 +178,7 @@ func TestGet_ReportsNotConnectedThenConnectedAndNeverLeaksCredentials(t *testing
 
 	rec := do(h.Get, request(http.MethodGet, ""))
 	body := decode(t, rec)
-	if rec.Code != http.StatusOK || body["status"] != "not_connected" || body["enabled"] != true || body["barberLinked"] != true {
+	if rec.Code != http.StatusOK || body["status"] != "not_connected" || body["enabled"] != true || body["professionalLinked"] != true {
 		t.Fatalf("sin conexión: %d %v", rec.Code, body)
 	}
 
@@ -209,7 +209,7 @@ func TestGet_ReportsNotConnectedThenConnectedAndNeverLeaksCredentials(t *testing
 
 func TestGet_WithoutBarberOrWithIntegrationOff(t *testing.T) {
 	rec := do(newHandlers(t, newRepo(false), true).Get, request(http.MethodGet, ""))
-	if body := decode(t, rec); body["barberLinked"] != false || body["status"] != "not_connected" {
+	if body := decode(t, rec); body["professionalLinked"] != false || body["status"] != "not_connected" {
 		t.Fatalf("sin barbero: %v", body)
 	}
 	rec = do(newHandlers(t, newRepo(true), false).Get, request(http.MethodGet, ""))
@@ -237,7 +237,7 @@ func TestCallback_StrictBodyAndUniformInvalidStateError(t *testing.T) {
 
 	for name, body := range map[string]string{
 		"JSON inválido":       `{`,
-		"campo desconocido":   `{"state":"x","barberId":"b"}`,
+		"campo desconocido":   `{"state":"x","professionalId":"b"}`,
 		"identificador ajeno": `{"state":"x","staffUserId":"u"}`,
 		"dos documentos":      `{"state":"x"}{}`,
 	} {
@@ -401,7 +401,7 @@ type schemaDoc struct {
 
 func TestContract_SchemasMatchTheDTOsAndNeverCarrySecrets(t *testing.T) {
 	cases := map[string][]string{
-		"GoogleCalendarConnectionResponse":        {"enabled", "barberLinked", "status", "accountEmail", "reminderMinutes", "connectedAt", "lastSyncedAt", "pendingSyncJobs", "failedSyncJobs"},
+		"GoogleCalendarConnectionResponse":        {"enabled", "professionalLinked", "status", "accountEmail", "reminderMinutes", "connectedAt", "lastSyncedAt", "pendingSyncJobs", "failedSyncJobs"},
 		"GoogleCalendarAuthorizationResponse":     {"authorizationUrl"},
 		"CompleteGoogleCalendarConnectionRequest": {"state", "code", "error"},
 		"GoogleCalendarCallbackResponse":          {"result"},
@@ -420,7 +420,7 @@ func TestContract_SchemasMatchTheDTOsAndNeverCarrySecrets(t *testing.T) {
 		}
 		for prop := range schema.Properties {
 			lower := strings.ToLower(prop)
-			for _, forbidden := range []string{"barberid", "staffuserid", "barbershopid", "refreshtoken", "accesstoken", "secret", "ciphertext"} {
+			for _, forbidden := range []string{"professionalid", "staffuserid", "businessid", "refreshtoken", "accesstoken", "secret", "ciphertext"} {
 				if lower == forbidden {
 					t.Errorf("%s nunca debe declarar %q", name, prop)
 				}

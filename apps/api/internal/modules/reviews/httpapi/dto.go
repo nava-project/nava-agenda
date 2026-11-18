@@ -27,7 +27,7 @@ type PublicReviewResponse struct {
 }
 
 // PublicReviewListResponse es la respuesta de
-// GET /public/barbershops/{slug}/barbers/{barberId}/reviews.
+// GET /public/businesses/{slug}/professionals/{professionalId}/reviews.
 type PublicReviewListResponse struct {
 	Rating      *float64               `json:"rating"`
 	RatingCount int                    `json:"ratingCount"`
@@ -44,14 +44,14 @@ type ReviewResponse struct {
 	CreatedAt time.Time  `json:"createdAt"`
 }
 
-// ReviewListResponse es la respuesta de GET /private/barbers/{barberId}/reviews.
+// ReviewListResponse es la respuesta de GET /private/professionals/{professionalId}/reviews.
 type ReviewListResponse struct {
 	Rating      *float64         `json:"rating"`
 	RatingCount int              `json:"ratingCount"`
 	Items       []ReviewResponse `json:"items"`
 }
 
-// UpdateReviewRequest es el cuerpo de PATCH /private/barbers/{barberId}/reviews/{reviewId}.
+// UpdateReviewRequest es el cuerpo de PATCH /private/professionals/{professionalId}/reviews/{reviewId}.
 type UpdateReviewRequest struct {
 	Hidden *bool `json:"hidden"`
 }

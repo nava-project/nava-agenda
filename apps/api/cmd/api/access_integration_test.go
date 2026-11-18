@@ -113,25 +113,25 @@ func TestAccess_HTTP_EmployeeOnlyReachesTheirOwnBarber(t *testing.T) {
 		wantStatus         int
 		wantCode           string
 	}{
-		{"lee su perfil", http.MethodGet, "/barbers/" + accessBarberPropio, nil, http.StatusOK, ""},
-		{"no lee el perfil de otro", http.MethodGet, "/barbers/" + accessBarberOtro, nil, http.StatusForbidden, "forbidden"},
-		{"lee su jornada", http.MethodGet, "/barbers/" + accessBarberPropio + "/working-hours", nil, http.StatusOK, ""},
-		{"no lee la jornada de otro", http.MethodGet, "/barbers/" + accessBarberOtro + "/working-hours", nil, http.StatusForbidden, "forbidden"},
-		{"lee sus servicios", http.MethodGet, "/barbers/" + accessBarberPropio + "/services", nil, http.StatusOK, ""},
-		{"no quita servicios a otro", http.MethodDelete, "/barbers/" + accessBarberOtro + "/services/" + accessServiceE, nil, http.StatusForbidden, "forbidden"},
-		{"lee su agenda", http.MethodGet, "/barbers/" + accessBarberPropio + "/appointments/daily-agenda?date=2030-01-10", nil, http.StatusOK, ""},
-		{"no lee la agenda de otro", http.MethodGet, "/barbers/" + accessBarberOtro + "/appointments/daily-agenda?date=2030-01-10", nil, http.StatusForbidden, "forbidden"},
-		{"no fija la ventana de otro", http.MethodDelete, "/settings/booking-policy/barbers/" + accessBarberOtro, nil, http.StatusForbidden, "forbidden"},
+		{"lee su perfil", http.MethodGet, "/professionals/" + accessBarberPropio, nil, http.StatusOK, ""},
+		{"no lee el perfil de otro", http.MethodGet, "/professionals/" + accessBarberOtro, nil, http.StatusForbidden, "forbidden"},
+		{"lee su jornada", http.MethodGet, "/professionals/" + accessBarberPropio + "/working-hours", nil, http.StatusOK, ""},
+		{"no lee la jornada de otro", http.MethodGet, "/professionals/" + accessBarberOtro + "/working-hours", nil, http.StatusForbidden, "forbidden"},
+		{"lee sus servicios", http.MethodGet, "/professionals/" + accessBarberPropio + "/services", nil, http.StatusOK, ""},
+		{"no quita servicios a otro", http.MethodDelete, "/professionals/" + accessBarberOtro + "/services/" + accessServiceE, nil, http.StatusForbidden, "forbidden"},
+		{"lee su agenda", http.MethodGet, "/professionals/" + accessBarberPropio + "/appointments/daily-agenda?date=2030-01-10", nil, http.StatusOK, ""},
+		{"no lee la agenda de otro", http.MethodGet, "/professionals/" + accessBarberOtro + "/appointments/daily-agenda?date=2030-01-10", nil, http.StatusForbidden, "forbidden"},
+		{"no fija la ventana de otro", http.MethodDelete, "/settings/booking-policy/professionals/" + accessBarberOtro, nil, http.StatusForbidden, "forbidden"},
 		{"lee la marca", http.MethodGet, "/settings/brand", nil, http.StatusOK, ""},
 		{"no cambia la marca", http.MethodPatch, "/settings/brand", map[string]any{"brandAccent": "ruby"}, http.StatusForbidden, "forbidden"},
-		{"no cambia los datos de la barbería", http.MethodPatch, "/settings/barbershop", map[string]any{"name": "X"}, http.StatusForbidden, "forbidden"},
+		{"no cambia los datos de la barbería", http.MethodPatch, "/settings/business", map[string]any{"name": "X"}, http.StatusForbidden, "forbidden"},
 		{"no lee el código de acceso", http.MethodGet, "/settings/login-otp", nil, http.StatusForbidden, "forbidden"},
 		{"lee el catálogo", http.MethodGet, "/services", nil, http.StatusOK, ""},
 		{"no crea servicios", http.MethodPost, "/services", map[string]any{"name": "X"}, http.StatusForbidden, "forbidden"},
-		{"no da de alta barberos", http.MethodPost, "/barbers", map[string]any{"fullName": "X"}, http.StatusForbidden, "forbidden"},
-		{"no cambia su vínculo", http.MethodPut, "/me/barber", map[string]any{"barberId": accessBarberOtro}, http.StatusForbidden, "forbidden"},
-		{"no se desvincula", http.MethodDelete, "/me/barber", nil, http.StatusForbidden, "forbidden"},
-		{"no crea turnos a otro", http.MethodPost, "/appointments", map[string]any{"barberId": accessBarberOtro}, http.StatusForbidden, "forbidden"},
+		{"no da de alta barberos", http.MethodPost, "/professionals", map[string]any{"fullName": "X"}, http.StatusForbidden, "forbidden"},
+		{"no cambia su vínculo", http.MethodPut, "/me/professional", map[string]any{"professionalId": accessBarberOtro}, http.StatusForbidden, "forbidden"},
+		{"no se desvincula", http.MethodDelete, "/me/professional", nil, http.StatusForbidden, "forbidden"},
+		{"no crea turnos a otro", http.MethodPost, "/appointments", map[string]any{"professionalId": accessBarberOtro}, http.StatusForbidden, "forbidden"},
 		{"ve su turno", http.MethodGet, "/appointments/" + accessApptPropio, nil, http.StatusOK, ""},
 		{"el turno de otro no existe para él", http.MethodGet, "/appointments/" + accessApptOtro, nil, http.StatusNotFound, "not-found"},
 		{"no cancela el turno de otro", http.MethodPost, "/appointments/" + accessApptOtro + "/cancel", map[string]any{"reason": "x"}, http.StatusNotFound, "not-found"},
@@ -175,32 +175,32 @@ func TestAccess_HTTP_EmployeeListsOnlyTheirOwnBarber(t *testing.T) {
 
 	employee := createSessionCookie(t, db, accessShopE, accessUserEmpleado, "access-list-empleado")
 	for _, query := range []string{"", "?page=1&pageSize=20"} {
-		rec := doPrivate(t, router, http.MethodGet, "/barbers"+query, employee, nil)
+		rec := doPrivate(t, router, http.MethodGet, "/professionals"+query, employee, nil)
 		if rec.Code != http.StatusOK {
-			t.Fatalf("GET /barbers%s: %d %s", query, rec.Code, rec.Body.String())
+			t.Fatalf("GET /professionals%s: %d %s", query, rec.Code, rec.Body.String())
 		}
 		if got := ids(rec); len(got) != 1 || got[0] != accessBarberPropio {
-			t.Fatalf("GET /barbers%s: el empleado debe ver solo su barbero, got %v", query, got)
+			t.Fatalf("GET /professionals%s: el empleado debe ver solo su barbero, got %v", query, got)
 		}
 	}
 
 	unlinked := createSessionCookie(t, db, accessShopE, accessUserSinBarbero, "access-list-sin-barbero")
-	rec := doPrivate(t, router, http.MethodGet, "/barbers", unlinked, nil)
+	rec := doPrivate(t, router, http.MethodGet, "/professionals", unlinked, nil)
 	if got := ids(rec); rec.Code != http.StatusOK || len(got) != 0 {
 		t.Fatalf("sin vínculo la lista debe venir vacía: %d %v", rec.Code, got)
 	}
-	if rec := doPrivate(t, router, http.MethodGet, "/barbers/"+accessBarberPropio+"/working-hours", unlinked, nil); rec.Code != http.StatusForbidden {
+	if rec := doPrivate(t, router, http.MethodGet, "/professionals/"+accessBarberPropio+"/working-hours", unlinked, nil); rec.Code != http.StatusForbidden {
 		t.Fatalf("sin vínculo, lo de un barbero responde 403: %d", rec.Code)
 	}
 
 	owner := createSessionCookie(t, db, accessShopE, accessUserEmpresa, "access-list-empresa")
-	if got := ids(doPrivate(t, router, http.MethodGet, "/barbers", owner, nil)); len(got) != 2 {
+	if got := ids(doPrivate(t, router, http.MethodGet, "/professionals", owner, nil)); len(got) != 2 {
 		t.Fatalf("la cuenta empresa conserva la lista completa, got %v", got)
 	}
 	if rec := doPrivate(t, router, http.MethodGet, "/appointments/"+accessApptOtro, owner, nil); rec.Code != http.StatusOK {
 		t.Fatalf("la cuenta empresa ve cualquier turno: %d %s", rec.Code, rec.Body.String())
 	}
-	if rec := doPrivate(t, router, http.MethodGet, "/barbers/"+accessBarberOtro+"/working-hours", owner, nil); rec.Code != http.StatusOK {
+	if rec := doPrivate(t, router, http.MethodGet, "/professionals/"+accessBarberOtro+"/working-hours", owner, nil); rec.Code != http.StatusOK {
 		t.Fatalf("la cuenta empresa ve la jornada de cualquier barbero: %d", rec.Code)
 	}
 
@@ -209,7 +209,7 @@ func TestAccess_HTTP_EmployeeListsOnlyTheirOwnBarber(t *testing.T) {
 	if rec := doPrivate(t, router, http.MethodGet, "/appointments/"+accessApptPropio, other, nil); rec.Code != http.StatusNotFound {
 		t.Fatalf("un turno de otra barbería es 404: %d", rec.Code)
 	}
-	for _, id := range ids(doPrivate(t, router, http.MethodGet, "/barbers", other, nil)) {
+	for _, id := range ids(doPrivate(t, router, http.MethodGet, "/professionals", other, nil)) {
 		if id == accessBarberPropio || id == accessBarberOtro {
 			t.Fatalf("RN-TEN-01: la lista de F incluye un barbero de E")
 		}

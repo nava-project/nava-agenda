@@ -25,14 +25,14 @@ type TimeBlockResponse struct {
 }
 
 // TimeBlockListResponse es la página paginada por cursor de
-// GET /private/barbers/{barberId}/time-blocks.
+// GET /private/professionals/{professionalId}/time-blocks.
 type TimeBlockListResponse struct {
 	Items      []TimeBlockResponse `json:"items"`
 	NextCursor *string             `json:"nextCursor"`
 }
 
 // CreateTimeBlockRequest es el cuerpo de
-// POST /private/barbers/{barberId}/time-blocks. Cerrado: el handler rechaza
+// POST /private/professionals/{professionalId}/time-blocks. Cerrado: el handler rechaza
 // cualquier campo desconocido.
 type CreateTimeBlockRequest struct {
 	BlockType string  `json:"blockType"`
@@ -79,14 +79,14 @@ type TimeBlockSeriesResponse struct {
 }
 
 // TimeBlockSeriesListResponse es la página paginada por cursor de
-// GET /private/barbers/{barberId}/time-block-series.
+// GET /private/professionals/{professionalId}/time-block-series.
 type TimeBlockSeriesListResponse struct {
 	Items      []TimeBlockSeriesResponse `json:"items"`
 	NextCursor *string                   `json:"nextCursor"`
 }
 
 // CreateTimeBlockSeriesRequest es el cuerpo de
-// POST /private/barbers/{barberId}/time-block-series. explicitDates solo se
+// POST /private/professionals/{professionalId}/time-block-series. explicitDates solo se
 // admite cuando recurrenceKind es date_list (RN-BLQ-01: "bloqueo de varios
 // días debe poder crearse en una sola operación").
 type CreateTimeBlockSeriesRequest struct {
@@ -102,7 +102,7 @@ type CreateTimeBlockSeriesRequest struct {
 }
 
 // UpdateTimeBlockSeriesRequest es el cuerpo de
-// PATCH /private/barbers/{barberId}/time-block-series/{seriesId}
+// PATCH /private/professionals/{professionalId}/time-block-series/{seriesId}
 // (RN-BLQ-01: "esta y las siguientes" o "toda la serie"). effectiveDate
 // solo es obligatorio cuando scope es this_and_following: es el punto de
 // corte donde nace la serie nueva.
@@ -142,7 +142,7 @@ type SeriesOccurrenceResponse struct {
 }
 
 // EffectiveBlocksResponse es la respuesta de
-// GET /private/barbers/{barberId}/time-blocks/effective. manualBlocks y
+// GET /private/professionals/{professionalId}/time-blocks/effective. manualBlocks y
 // seriesOccurrences vienen deliberadamente separados: unirlos en una sola
 // línea de tiempo exige la zona IANA de la barbería, que ningún consumidor
 // necesita todavía (ver schedule.EffectiveBlocksResult).

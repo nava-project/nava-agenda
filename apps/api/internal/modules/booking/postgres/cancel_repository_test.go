@@ -87,17 +87,17 @@ func TestCancelByBarber_ValidRequest_UpdatesStatusAndInsertsHistory(t *testing.T
 		}
 	}
 	if cancelled == nil {
-		t.Fatalf("no se insertó el evento appointment_cancelled_by_barber: %+v", items)
+		t.Fatalf("no se insertó el evento appointment_cancelled_by_professional: %+v", items)
 	}
 	if len(cancelled.Changes) != 1 || cancelled.Changes[0].FieldName != "status" ||
 		cancelled.Changes[0].PreviousValue == nil || *cancelled.Changes[0].PreviousValue != "confirmed" ||
-		cancelled.Changes[0].NewValue == nil || *cancelled.Changes[0].NewValue != "cancelled_by_barber" {
-		t.Fatalf("Changes = %+v, want status: confirmed -> cancelled_by_barber", cancelled.Changes)
+		cancelled.Changes[0].NewValue == nil || *cancelled.Changes[0].NewValue != "cancelled_by_professional" {
+		t.Fatalf("Changes = %+v, want status: confirmed -> cancelled_by_professional", cancelled.Changes)
 	}
 }
 
 // TestCancelByBarber_RepeatedByBarber_IsSuccessNoOpNoDuplicateEvent cubre
-// CA-066-04: cancelar una cita YA cancelled_by_barber con una clave de
+// CA-066-04: cancelar una cita YA cancelled_by_professional con una clave de
 // idempotencia NUEVA y el token de versión ORIGINAL (deliberadamente
 // obsoleto) sigue teniendo éxito, sin duplicar el evento de historial.
 func TestCancelByBarber_RepeatedByBarber_IsSuccessNoOpNoDuplicateEvent(t *testing.T) {
@@ -146,7 +146,7 @@ func TestCancelByBarber_RepeatedByBarber_IsSuccessNoOpNoDuplicateEvent(t *testin
 		}
 	}
 	if count != 1 {
-		t.Fatalf("appointment_cancelled_by_barber insertado %d veces, want exactamente 1", count)
+		t.Fatalf("appointment_cancelled_by_professional insertado %d veces, want exactamente 1", count)
 	}
 }
 
@@ -178,7 +178,7 @@ func TestCancelByBarber_OtherTerminalStatus_ReturnsInvalidState(t *testing.T) {
 // TestCancelByBarber_StaleVersionTokenOnConfirmed_ReturnsVersionConflict
 // cubre CA-066-05: la cita sigue `confirmed` (reprogramada, no cancelada),
 // así que un token obsoleto SÍ debe rechazarse con version-conflict — a
-// diferencia del caso "ya cancelled_by_barber" de CA-066-04.
+// diferencia del caso "ya cancelled_by_professional" de CA-066-04.
 func TestCancelByBarber_StaleVersionTokenOnConfirmed_ReturnsVersionConflict(t *testing.T) {
 	db := setupTestDB(t)
 	repo := newRepository(db)
@@ -284,7 +284,7 @@ func TestCancelByBarber_RepeatedKeySameIntent_Replays(t *testing.T) {
 		}
 	}
 	if count != 1 {
-		t.Fatalf("appointment_cancelled_by_barber insertado %d veces, want exactamente 1", count)
+		t.Fatalf("appointment_cancelled_by_professional insertado %d veces, want exactamente 1", count)
 	}
 }
 
@@ -322,7 +322,7 @@ func TestCancelByBarber_ExclusionReleased_NewAppointmentCanUseFreedSlot(t *testi
 // "carrera coordinada" de las pruebas obligatorias: dos cancelaciones
 // concurrentes sobre LA MISMA cita, con claves de idempotencia distintas.
 // FOR UPDATE serializa las dos transacciones: la segunda encuentra la fila
-// ya cancelled_by_barber y toma la rama no-op (CA-066-04), así que AMBAS
+// ya cancelled_by_professional y toma la rama no-op (CA-066-04), así que AMBAS
 // deben tener éxito y el historial debe conservar exactamente un evento.
 func TestCancelByBarber_ConcurrentDoubleCancel_ExactlyOneWritesHistory(t *testing.T) {
 	db := setupTestDB(t)
@@ -367,7 +367,7 @@ func TestCancelByBarber_ConcurrentDoubleCancel_ExactlyOneWritesHistory(t *testin
 		t.Fatalf("errB = %v, want nil (ambas cancelaciones deben tener éxito, CA-066-04)", errB)
 	}
 	if resultA.Appointment.Status != booking.StatusCancelledByBarber || resultB.Appointment.Status != booking.StatusCancelledByBarber {
-		t.Fatalf("ambos resultados deben reflejar cancelled_by_barber: A=%v B=%v", resultA.Appointment.Status, resultB.Appointment.Status)
+		t.Fatalf("ambos resultados deben reflejar cancelled_by_professional: A=%v B=%v", resultA.Appointment.Status, resultB.Appointment.Status)
 	}
 
 	count := 0
@@ -381,6 +381,6 @@ func TestCancelByBarber_ConcurrentDoubleCancel_ExactlyOneWritesHistory(t *testin
 		}
 	}
 	if count != 1 {
-		t.Fatalf("appointment_cancelled_by_barber insertado %d veces bajo carrera, want exactamente 1", count)
+		t.Fatalf("appointment_cancelled_by_professional insertado %d veces bajo carrera, want exactamente 1", count)
 	}
 }

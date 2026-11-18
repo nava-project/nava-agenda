@@ -146,7 +146,7 @@ func errAppointmentNotStarted() error {
 
 // errAppointmentAlreadyClosed cubre HU-067 (CA-067-05): el turno ya tiene
 // un resultado terminal distinto del que el comando intenta aplicar
-// (completed/no_show contrario, o cancelled_by_barber/cancelled_by_customer).
+// (completed/no_show contrario, o cancelled_by_professional/cancelled_by_customer).
 // Repetir el MISMO resultado nunca produce este error: es un no-op exitoso
 // resuelto dentro del repositorio, antes de llegar a esta rama.
 func errAppointmentAlreadyClosed() error {
@@ -164,10 +164,10 @@ func errAppointmentNotTerminal() error {
 
 // errCorrectionDestinationInvalid cubre HU-068 (CA-068-02): el destino de
 // T8 no es ninguno de los cuatro terminales válidos (`completed`, `no_show`,
-// `cancelled_by_customer`, `cancelled_by_barber`) — incluye enviar
+// `cancelled_by_customer`, `cancelled_by_professional`) — incluye enviar
 // `confirmed` o cualquier valor desconocido.
 func errCorrectionDestinationInvalid() error {
-	return apperr.Validation("el estado destino debe ser completed, no_show, cancelled_by_customer o cancelled_by_barber")
+	return apperr.Validation("el estado destino debe ser completed, no_show, cancelled_by_customer o cancelled_by_professional")
 }
 
 // errCorrectionReasonRequired cubre HU-068 (CA-068-02): el motivo de T8 es

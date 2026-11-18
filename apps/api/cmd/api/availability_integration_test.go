@@ -36,7 +36,7 @@ type availabilityResponseBody struct {
 }
 
 func doPublicAvailabilityRequest(router http.Handler, slug, serviceID, barberID string) *httptest.ResponseRecorder {
-	url := "/api/v1/public/barbershops/" + slug + "/services/" + serviceID + "/barbers/" + barberID + "/availability"
+	url := "/api/v1/public/businesses/" + slug + "/services/" + serviceID + "/professionals/" + barberID + "/availability"
 	req := httptest.NewRequest(http.MethodGet, url, nil)
 	rec := httptest.NewRecorder()
 	router.ServeHTTP(rec, req)
@@ -126,8 +126,8 @@ func TestAvailability_HTTP_ForeignOrMalformedIDs_ReturnsEmptySlotsNotError(t *te
 		barberID  string
 	}{
 		{"serviceId sin forma de UUID", availShopSlugUno, "no-es-uuid", availBarberIDUno},
-		{"barberId sin forma de UUID", availShopSlugUno, availServiceIDUno, "no-es-uuid"},
-		{"barberId de otra barbería (CA-094-05, aislamiento de tenant)", availShopSlugUno, availServiceIDUno, availBarberIDDos},
+		{"professionalId sin forma de UUID", availShopSlugUno, availServiceIDUno, "no-es-uuid"},
+		{"professionalId de otra barbería (CA-094-05, aislamiento de tenant)", availShopSlugUno, availServiceIDUno, availBarberIDDos},
 	}
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
@@ -190,7 +190,7 @@ func TestAvailability_HTTP_NoSessionCookieRequired(t *testing.T) {
 		t.Fatalf("buildRouter: %v", err)
 	}
 
-	req := httptest.NewRequest(http.MethodGet, "/api/v1/public/barbershops/"+availShopSlugUno+"/services/"+availServiceIDUno+"/barbers/"+availBarberIDUno+"/availability", nil)
+	req := httptest.NewRequest(http.MethodGet, "/api/v1/public/businesses/"+availShopSlugUno+"/services/"+availServiceIDUno+"/professionals/"+availBarberIDUno+"/availability", nil)
 	rec := httptest.NewRecorder()
 	router.ServeHTTP(rec, req)
 

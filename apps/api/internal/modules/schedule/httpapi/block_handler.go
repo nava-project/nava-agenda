@@ -26,11 +26,11 @@ const (
 )
 
 func timeBlockBasePath(barberID string) string {
-	return "/private/barbers/" + barberID + "/time-blocks/"
+	return "/private/professionals/" + barberID + "/time-blocks/"
 }
 
 func timeBlockSeriesBasePath(barberID string) string {
-	return "/private/barbers/" + barberID + "/time-block-series/"
+	return "/private/professionals/" + barberID + "/time-block-series/"
 }
 
 func newTimeBlockResponse(b schedule.TimeBlock) TimeBlockResponse {
@@ -110,7 +110,7 @@ func decodeJSONBody[T any](w http.ResponseWriter, r *http.Request, requestID str
 
 // --- Bloqueos puntuales (HU-042) ------------------------------------------
 
-// ListTimeBlocksHandler expone GET /private/barbers/{barberId}/time-blocks.
+// ListTimeBlocksHandler expone GET /private/professionals/{professionalId}/time-blocks.
 type ListTimeBlocksHandler struct{ service *schedule.Service }
 
 func NewListTimeBlocksHandler(service *schedule.Service) *ListTimeBlocksHandler {
@@ -147,7 +147,7 @@ func (h *ListTimeBlocksHandler) ServeHTTP(w http.ResponseWriter, r *http.Request
 }
 
 // GetTimeBlockHandler expone
-// GET /private/barbers/{barberId}/time-blocks/{blockId}.
+// GET /private/professionals/{professionalId}/time-blocks/{blockId}.
 type GetTimeBlockHandler struct{ service *schedule.Service }
 
 func NewGetTimeBlockHandler(service *schedule.Service) *GetTimeBlockHandler {
@@ -174,7 +174,7 @@ func (h *GetTimeBlockHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) 
 }
 
 // CreateTimeBlockHandler expone
-// POST /private/barbers/{barberId}/time-blocks (RN-BLQ-01/03), protegido
+// POST /private/professionals/{professionalId}/time-blocks (RN-BLQ-01/03), protegido
 // por el protocolo de idempotencia reutilizable (RN-IDE-01, DEC-043).
 type CreateTimeBlockHandler struct{ service *schedule.Service }
 
@@ -237,7 +237,7 @@ func (h *CreateTimeBlockHandler) ServeHTTP(w http.ResponseWriter, r *http.Reques
 }
 
 // DeleteTimeBlockHandler expone
-// DELETE /private/barbers/{barberId}/time-blocks/{blockId} (RN-BLQ-04):
+// DELETE /private/professionals/{professionalId}/time-blocks/{blockId} (RN-BLQ-04):
 // retiro lógico, nunca físico.
 type DeleteTimeBlockHandler struct{ service *schedule.Service }
 
@@ -262,7 +262,7 @@ func (h *DeleteTimeBlockHandler) ServeHTTP(w http.ResponseWriter, r *http.Reques
 }
 
 // EffectiveBlocksHandler expone
-// GET /private/barbers/{barberId}/time-blocks/effective?from&to: la
+// GET /private/professionals/{professionalId}/time-blocks/effective?from&to: la
 // operación interna de proyección que el prompt de HU-042 exige, para que
 // B3/B4 (y la propia pantalla, "próximos bloqueos") puedan leer el efecto
 // combinado sin recalcular la expansión de series por su cuenta.
@@ -307,7 +307,7 @@ func (h *EffectiveBlocksHandler) ServeHTTP(w http.ResponseWriter, r *http.Reques
 // --- Series recurrentes (HU-042) ------------------------------------------
 
 // ListTimeBlockSeriesHandler expone
-// GET /private/barbers/{barberId}/time-block-series.
+// GET /private/professionals/{professionalId}/time-block-series.
 type ListTimeBlockSeriesHandler struct{ service *schedule.Service }
 
 func NewListTimeBlockSeriesHandler(service *schedule.Service) *ListTimeBlockSeriesHandler {
@@ -344,7 +344,7 @@ func (h *ListTimeBlockSeriesHandler) ServeHTTP(w http.ResponseWriter, r *http.Re
 }
 
 // GetTimeBlockSeriesHandler expone
-// GET /private/barbers/{barberId}/time-block-series/{seriesId}.
+// GET /private/professionals/{professionalId}/time-block-series/{seriesId}.
 type GetTimeBlockSeriesHandler struct{ service *schedule.Service }
 
 func NewGetTimeBlockSeriesHandler(service *schedule.Service) *GetTimeBlockSeriesHandler {
@@ -371,7 +371,7 @@ func (h *GetTimeBlockSeriesHandler) ServeHTTP(w http.ResponseWriter, r *http.Req
 }
 
 // CreateTimeBlockSeriesHandler expone
-// POST /private/barbers/{barberId}/time-block-series, protegido por el
+// POST /private/professionals/{professionalId}/time-block-series, protegido por el
 // protocolo de idempotencia reutilizable.
 type CreateTimeBlockSeriesHandler struct{ service *schedule.Service }
 
@@ -436,7 +436,7 @@ func (h *CreateTimeBlockSeriesHandler) ServeHTTP(w http.ResponseWriter, r *http.
 }
 
 // UpdateTimeBlockSeriesHandler expone
-// PATCH /private/barbers/{barberId}/time-block-series/{seriesId}
+// PATCH /private/professionals/{professionalId}/time-block-series/{seriesId}
 // (RN-BLQ-01: scope whole o this_and_following).
 type UpdateTimeBlockSeriesHandler struct{ service *schedule.Service }
 
@@ -470,7 +470,7 @@ func (h *UpdateTimeBlockSeriesHandler) ServeHTTP(w http.ResponseWriter, r *http.
 }
 
 // DeleteTimeBlockSeriesHandler expone
-// DELETE /private/barbers/{barberId}/time-block-series/{seriesId}
+// DELETE /private/professionals/{professionalId}/time-block-series/{seriesId}
 // (RN-BLQ-04): retiro lógico de la serie completa.
 type DeleteTimeBlockSeriesHandler struct{ service *schedule.Service }
 
@@ -495,7 +495,7 @@ func (h *DeleteTimeBlockSeriesHandler) ServeHTTP(w http.ResponseWriter, r *http.
 }
 
 // AddSeriesDateHandler expone
-// POST /private/barbers/{barberId}/time-block-series/{seriesId}/dates.
+// POST /private/professionals/{professionalId}/time-block-series/{seriesId}/dates.
 type AddSeriesDateHandler struct{ service *schedule.Service }
 
 func NewAddSeriesDateHandler(service *schedule.Service) *AddSeriesDateHandler {

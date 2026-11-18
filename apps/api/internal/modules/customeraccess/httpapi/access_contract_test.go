@@ -48,8 +48,8 @@ func TestContract_AccessOperations_DeclareEveryStatusAndNoSession(t *testing.T) 
 		id       string
 		statuses []string
 	}{
-		"/public/barbershops/{slug}/customer-access/challenge": {"requestCustomerAccessCode", []string{"202", "400", "404", "422", "429", "500"}},
-		"/public/barbershops/{slug}/customer-access/verify":    {"verifyCustomerAccessCode", []string{"200", "400", "401", "404", "422", "500"}},
+		"/public/businesses/{slug}/customer-access/challenge": {"requestCustomerAccessCode", []string{"202", "400", "404", "422", "429", "500"}},
+		"/public/businesses/{slug}/customer-access/verify":    {"verifyCustomerAccessCode", []string{"200", "400", "401", "404", "422", "500"}},
 	} {
 		op, ok := ops[path]
 		if !ok {

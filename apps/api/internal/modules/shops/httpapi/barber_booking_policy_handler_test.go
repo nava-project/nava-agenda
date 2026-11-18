@@ -61,8 +61,8 @@ func TestBarberBookingPolicyHandler_PutThenList(t *testing.T) {
 	h, repo := newBarberPolicyHandler()
 
 	req := httpserver.RequestWithURLParam(requestWithPrincipal(http.MethodPut,
-		"/api/v1/private/settings/booking-policy/barbers/"+handlerPolicyBarberID,
-		[]byte(`{"minAdvanceMinutes":30,"maxAdvanceDays":7,"slotGridMinutes":40}`)), "barberId", handlerPolicyBarberID)
+		"/api/v1/private/settings/booking-policy/professionals/"+handlerPolicyBarberID,
+		[]byte(`{"minAdvanceMinutes":30,"maxAdvanceDays":7,"slotGridMinutes":40}`)), "professionalId", handlerPolicyBarberID)
 	rec := httptest.NewRecorder()
 	h.Put(rec, req)
 	if rec.Code != http.StatusOK {
@@ -70,7 +70,7 @@ func TestBarberBookingPolicyHandler_PutThenList(t *testing.T) {
 	}
 	var put map[string]any
 	_ = json.Unmarshal(rec.Body.Bytes(), &put)
-	if put["barberId"] != handlerPolicyBarberID || put["slotGridMinutes"] != float64(40) || len(put) != 4 {
+	if put["professionalId"] != handlerPolicyBarberID || put["slotGridMinutes"] != float64(40) || len(put) != 4 {
 		t.Fatalf("PUT: cuerpo inesperado: %v", put)
 	}
 	if repo.lastShopID != testShopID {
@@ -78,12 +78,12 @@ func TestBarberBookingPolicyHandler_PutThenList(t *testing.T) {
 	}
 
 	rec = httptest.NewRecorder()
-	h.List(rec, requestWithPrincipal(http.MethodGet, "/api/v1/private/settings/booking-policy/barbers", nil))
+	h.List(rec, requestWithPrincipal(http.MethodGet, "/api/v1/private/settings/booking-policy/professionals", nil))
 	var list struct {
 		Items []map[string]any `json:"items"`
 	}
 	_ = json.Unmarshal(rec.Body.Bytes(), &list)
-	if rec.Code != http.StatusOK || len(list.Items) != 1 || list.Items[0]["barberId"] != handlerPolicyBarberID {
+	if rec.Code != http.StatusOK || len(list.Items) != 1 || list.Items[0]["professionalId"] != handlerPolicyBarberID {
 		t.Fatalf("GET: expected the saved policy, got %d %s", rec.Code, rec.Body.String())
 	}
 }
@@ -91,7 +91,7 @@ func TestBarberBookingPolicyHandler_PutThenList(t *testing.T) {
 func TestBarberBookingPolicyHandler_ListEmpty_ReturnsEmptyArray(t *testing.T) {
 	h, _ := newBarberPolicyHandler()
 	rec := httptest.NewRecorder()
-	h.List(rec, requestWithPrincipal(http.MethodGet, "/api/v1/private/settings/booking-policy/barbers", nil))
+	h.List(rec, requestWithPrincipal(http.MethodGet, "/api/v1/private/settings/booking-policy/professionals", nil))
 	if rec.Code != http.StatusOK || rec.Body.String() != "{\"items\":[]}\n" {
 		t.Fatalf("expected {\"items\":[]}, got %d %q", rec.Code, rec.Body.String())
 	}
@@ -102,7 +102,7 @@ func TestBarberBookingPolicyHandler_PutRejections(t *testing.T) {
 		name, barberID, body string
 		want                 int
 	}{
-		{"campo desconocido", handlerPolicyBarberID, `{"minAdvanceMinutes":30,"maxAdvanceDays":7,"slotGridMinutes":40,"barbershopId":"x"}`, http.StatusBadRequest},
+		{"campo desconocido", handlerPolicyBarberID, `{"minAdvanceMinutes":30,"maxAdvanceDays":7,"slotGridMinutes":40,"businessId":"x"}`, http.StatusBadRequest},
 		{"JSON roto", handlerPolicyBarberID, `{`, http.StatusBadRequest},
 		{"fuera de rango", handlerPolicyBarberID, `{"minAdvanceMinutes":30,"maxAdvanceDays":7,"slotGridMinutes":61}`, http.StatusUnprocessableEntity},
 		{"barbero inexistente", "d1690000-0000-4000-8000-0000000000ff", `{"minAdvanceMinutes":30,"maxAdvanceDays":7,"slotGridMinutes":40}`, http.StatusNotFound},
@@ -112,7 +112,7 @@ func TestBarberBookingPolicyHandler_PutRejections(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			h, _ := newBarberPolicyHandler()
 			req := httpserver.RequestWithURLParam(requestWithPrincipal(http.MethodPut,
-				"/api/v1/private/settings/booking-policy/barbers/"+tc.barberID, []byte(tc.body)), "barberId", tc.barberID)
+				"/api/v1/private/settings/booking-policy/professionals/"+tc.barberID, []byte(tc.body)), "professionalId", tc.barberID)
 			rec := httptest.NewRecorder()
 			h.Put(rec, req)
 			if rec.Code != tc.want {
@@ -127,7 +127,7 @@ func TestBarberBookingPolicyHandler_Delete_Returns204Idempotent(t *testing.T) {
 	repo.own[handlerPolicyBarberID] = shops.BarberBookingPolicy{BarberID: handlerPolicyBarberID}
 	for i := 0; i < 2; i++ {
 		req := httpserver.RequestWithURLParam(requestWithPrincipal(http.MethodDelete,
-			"/api/v1/private/settings/booking-policy/barbers/"+handlerPolicyBarberID, nil), "barberId", handlerPolicyBarberID)
+			"/api/v1/private/settings/booking-policy/professionals/"+handlerPolicyBarberID, nil), "professionalId", handlerPolicyBarberID)
 		rec := httptest.NewRecorder()
 		h.Delete(rec, req)
 		if rec.Code != http.StatusNoContent {

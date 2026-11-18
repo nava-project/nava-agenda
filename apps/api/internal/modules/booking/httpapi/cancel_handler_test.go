@@ -68,7 +68,7 @@ func TestCancelAppointmentByBarberHandler_ValidRequest_NoBody_Returns200(t *test
 			Response: idempotency.StoredResponse{
 				Status:      200,
 				ContentType: "application/json",
-				Body:        `{"id":"` + validCancelAppointmentID + `","status":"cancelled_by_barber","versionToken":"new-token"}`,
+				Body:        `{"id":"` + validCancelAppointmentID + `","status":"cancelled_by_professional","versionToken":"new-token"}`,
 			},
 		},
 	}
@@ -85,7 +85,7 @@ func TestCancelAppointmentByBarberHandler_ValidRequest_NoBody_Returns200(t *test
 	if err := json.Unmarshal(rec.Body.Bytes(), &got); err != nil {
 		t.Fatalf("unmarshal response: %v", err)
 	}
-	if got.VersionToken != "new-token" || got.Status != "cancelled_by_barber" {
+	if got.VersionToken != "new-token" || got.Status != "cancelled_by_professional" {
 		t.Fatalf("respuesta inesperada: %+v", got)
 	}
 }
@@ -97,7 +97,7 @@ func TestCancelAppointmentByBarberHandler_ValidRequest_EmptyJSONBody_Returns200(
 			Response: idempotency.StoredResponse{
 				Status:      200,
 				ContentType: "application/json",
-				Body:        `{"id":"` + validCancelAppointmentID + `","status":"cancelled_by_barber","versionToken":"new-token"}`,
+				Body:        `{"id":"` + validCancelAppointmentID + `","status":"cancelled_by_professional","versionToken":"new-token"}`,
 			},
 		},
 	}

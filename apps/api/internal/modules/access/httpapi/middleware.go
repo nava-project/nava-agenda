@@ -71,7 +71,7 @@ func (m *Middleware) Enforce(next http.Handler) http.Handler {
 		case access.DenyRestricted:
 			forbid(w, requestID)
 		case access.OwnBarber:
-			if !scope.Owns(params["barberId"]) {
+			if !scope.Owns(params["professionalId"]) {
 				forbid(w, requestID)
 				return
 			}
@@ -126,7 +126,7 @@ func peekBarberID(r *http.Request) (string, io.ReadCloser, error) {
 		return "", nil, err // MaxBytesError → 400 payload-too-large en Translate
 	}
 	var probe struct {
-		BarberID string `json:"barberId"`
+		BarberID string `json:"professionalId"`
 	}
 	_ = json.Unmarshal(raw, &probe)
 	return probe.BarberID, io.NopCloser(bytes.NewReader(raw)), nil

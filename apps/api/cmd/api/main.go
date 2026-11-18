@@ -232,34 +232,34 @@ func buildRouter(db *database.DB, logger *slog.Logger, cfg config.Config) (*chi.
 			return holiday.Name, ok
 		})
 	resolveBarbershopHandler := publicbookinghttpapi.NewResolveBarbershopHandler(publicBookingService)
-	router.Get("/api/v1/public/barbershops/{slug}", resolveBarbershopHandler.ServeHTTP)
+	router.Get("/api/v1/public/businesses/{slug}", resolveBarbershopHandler.ServeHTTP)
 	listPublicServicesHandler := publicbookinghttpapi.NewListPublicServicesHandler(publicBookingService)
-	router.Get("/api/v1/public/barbershops/{slug}/services", listPublicServicesHandler.ServeHTTP)
+	router.Get("/api/v1/public/businesses/{slug}/services", listPublicServicesHandler.ServeHTTP)
 
 	// HU-101 (DEC-129): calificación y reseñas de Google del negocio. Mismo
 	// criterio sin sesión; la caché de 6 horas y la clave de servidor viven en el
 	// adaptador, y sin ficha, sin credencial o ante un fallo responde vacío.
 	googleReviewsHandler := publicbookinghttpapi.NewGetPublicGoogleReviewsHandler(
 		publicbooking.NewGoogleReviewsService(publicBookingService, buildGoogleReviewsProvider(logger, cfg), logger))
-	router.Get("/api/v1/public/barbershops/{slug}/reviews", googleReviewsHandler.ServeHTTP)
+	router.Get("/api/v1/public/businesses/{slug}/reviews", googleReviewsHandler.ServeHTTP)
 
 	// HU-092: selección pública de barbero. Mismo criterio de resolución
 	// sin sesión que HU-090/HU-091; serviceId nunca se confía sin
 	// revalidar pertenencia y vigencia contra la barbería resuelta por slug.
 	listPublicBarbersHandler := publicbookinghttpapi.NewListPublicBarbersHandler(publicBookingService)
-	router.Get("/api/v1/public/barbershops/{slug}/services/{serviceId}/barbers", listPublicBarbersHandler.ServeHTTP)
+	router.Get("/api/v1/public/businesses/{slug}/services/{serviceId}/professionals", listPublicBarbersHandler.ServeHTTP)
 
 	// DEC-162: agregado barberos-servicios para clientes de solo lectura (el
 	// agente Odin): todos los barberos elegibles con los ids de sus servicios
-	// activos en UNA lectura, en vez de GET .../services/{serviceId}/barbers
+	// activos en UNA lectura, en vez de GET .../services/{serviceId}/professionals
 	// por servicio. Mismo criterio sin sesión; el tenant sale solo del slug.
 	listPublicBarbersWithServicesHandler := publicbookinghttpapi.NewListPublicBarbersWithServicesHandler(publicBookingService)
-	router.Get("/api/v1/public/barbershops/{slug}/barbers", listPublicBarbersWithServicesHandler.ServeHTTP)
+	router.Get("/api/v1/public/businesses/{slug}/professionals", listPublicBarbersWithServicesHandler.ServeHTTP)
 
 	// DEC-127: fotografía del barbero visible en la reserva pública. Mismo
 	// criterio sin sesión; solo sirve la imagen de quien la lista ya muestra.
 	getPublicBarberPhotoHandler := publicbookinghttpapi.NewGetPublicBarberPhotoHandler(publicBookingService)
-	router.Get("/api/v1/public/barbershops/{slug}/barbers/{barberId}/photo", getPublicBarberPhotoHandler.ServeHTTP)
+	router.Get("/api/v1/public/businesses/{slug}/professionals/{professionalId}/photo", getPublicBarberPhotoHandler.ServeHTTP)
 
 	// HU-006: middleware de sesión (paso 8) montado UNA sola vez sobre el
 	// subrouter privado, ANTES de registrar ninguna ruta sobre él (chi
@@ -297,8 +297,8 @@ func buildRouter(db *database.DB, logger *slog.Logger, cfg config.Config) (*chi.
 	shopService := shops.NewService(shopspostgres.New(db))
 	getBarbershopSettingsHandler := shopshttpapi.NewGetBarbershopSettingsHandler(shopService)
 	updateBarbershopSettingsHandler := shopshttpapi.NewUpdateBarbershopSettingsHandler(shopService)
-	private.Get("/settings/barbershop", getBarbershopSettingsHandler.ServeHTTP)
-	private.Patch("/settings/barbershop", updateBarbershopSettingsHandler.ServeHTTP)
+	private.Get("/settings/business", getBarbershopSettingsHandler.ServeHTTP)
+	private.Patch("/settings/business", updateBarbershopSettingsHandler.ServeHTTP)
 
 	// HU-093: política pública de reserva y cancelación (anticipación,
 	// ventana, rejilla, plazo y política de cancelación tardía). Servicio
@@ -314,9 +314,9 @@ func buildRouter(db *database.DB, logger *slog.Logger, cfg config.Config) (*chi.
 	barberBookingPolicyService := shops.NewBarberBookingPolicyService(
 		shopspostgres.NewBarberBookingPolicyRepository(db), bookingPolicyService)
 	barberBookingPolicyHandler := shopshttpapi.NewBarberBookingPolicyHandler(barberBookingPolicyService)
-	private.Get("/settings/booking-policy/barbers", barberBookingPolicyHandler.List)
-	private.Put("/settings/booking-policy/barbers/{barberId}", barberBookingPolicyHandler.Put)
-	private.Delete("/settings/booking-policy/barbers/{barberId}", barberBookingPolicyHandler.Delete)
+	private.Get("/settings/booking-policy/professionals", barberBookingPolicyHandler.List)
+	private.Put("/settings/booking-policy/professionals/{professionalId}", barberBookingPolicyHandler.Put)
+	private.Delete("/settings/booking-policy/professionals/{professionalId}", barberBookingPolicyHandler.Delete)
 
 	// Issue #292 (DEC-110): marca y vocabulario de la barbería (color de
 	// acento de una lista cerrada, palabra del negocio y del profesional).
@@ -385,16 +385,16 @@ func buildRouter(db *database.DB, logger *slog.Logger, cfg config.Config) (*chi.
 	private.Post("/integrations/google-calendar/sync", googleCalendarHandlers.SyncNow)
 	private.Post("/integrations/google-calendar/callback", googleCalendarHandlers.Callback)
 
-	private.Get("/me/barber", getMyBarberHandler.ServeHTTP)
-	private.Put("/me/barber", linkMyBarberHandler.ServeHTTP)
-	private.Delete("/me/barber", unlinkMyBarberHandler.ServeHTTP)
-	private.Get("/barbers", listBarbersHandler.ServeHTTP)
-	private.Post("/barbers", createBarberHandler.ServeHTTP)
-	private.Get("/barbers/{barberId}", getBarberHandler.ServeHTTP)
-	private.Patch("/barbers/{barberId}", renameBarberHandler.ServeHTTP)
-	private.Put("/barbers/{barberId}/photo", putBarberPhotoHandler.ServeHTTP)
-	private.Get("/barbers/{barberId}/photo", getBarberPhotoHandler.ServeHTTP)
-	private.Delete("/barbers/{barberId}/photo", deleteBarberPhotoHandler.ServeHTTP)
+	private.Get("/me/professional", getMyBarberHandler.ServeHTTP)
+	private.Put("/me/professional", linkMyBarberHandler.ServeHTTP)
+	private.Delete("/me/professional", unlinkMyBarberHandler.ServeHTTP)
+	private.Get("/professionals", listBarbersHandler.ServeHTTP)
+	private.Post("/professionals", createBarberHandler.ServeHTTP)
+	private.Get("/professionals/{professionalId}", getBarberHandler.ServeHTTP)
+	private.Patch("/professionals/{professionalId}", renameBarberHandler.ServeHTTP)
+	private.Put("/professionals/{professionalId}/photo", putBarberPhotoHandler.ServeHTTP)
+	private.Get("/professionals/{professionalId}/photo", getBarberPhotoHandler.ServeHTTP)
+	private.Delete("/professionals/{professionalId}/photo", deleteBarberPhotoHandler.ServeHTTP)
 
 	// HU-022: catálogo básico de servicios de la barbería activa.
 	// catalogpostgres.New recibe el mismo idempotency.SQLCoordinator real
@@ -432,9 +432,9 @@ func buildRouter(db *database.DB, logger *slog.Logger, cfg config.Config) (*chi.
 	listAssignmentsHandler := cataloghttpapi.NewListAssignmentsHandler(assignmentService)
 	assignServiceHandler := cataloghttpapi.NewAssignServiceHandler(assignmentService)
 	unassignServiceHandler := cataloghttpapi.NewUnassignServiceHandler(assignmentService)
-	private.Get("/barbers/{barberId}/services", listAssignmentsHandler.ServeHTTP)
-	private.Put("/barbers/{barberId}/services/{serviceId}", assignServiceHandler.ServeHTTP)
-	private.Delete("/barbers/{barberId}/services/{serviceId}", unassignServiceHandler.ServeHTTP)
+	private.Get("/professionals/{professionalId}/services", listAssignmentsHandler.ServeHTTP)
+	private.Put("/professionals/{professionalId}/services/{serviceId}", assignServiceHandler.ServeHTTP)
+	private.Delete("/professionals/{professionalId}/services/{serviceId}", unassignServiceHandler.ServeHTTP)
 
 	// HU-040: horario laboral recurrente de cada barbero. scheduleService
 	// (schedule, dueño de la intención "cuándo trabaja cada barbero")
@@ -450,11 +450,11 @@ func buildRouter(db *database.DB, logger *slog.Logger, cfg config.Config) (*chi.
 	createWorkingHourHandler := schedulehttpapi.NewCreateWorkingHourHandler(scheduleService)
 	updateWorkingHourHandler := schedulehttpapi.NewUpdateWorkingHourHandler(scheduleService)
 	deleteWorkingHourHandler := schedulehttpapi.NewDeleteWorkingHourHandler(scheduleService)
-	private.Get("/barbers/{barberId}/working-hours", listWorkingHoursHandler.ServeHTTP)
-	private.Post("/barbers/{barberId}/working-hours", createWorkingHourHandler.ServeHTTP)
-	private.Get("/barbers/{barberId}/working-hours/{workingHourId}", getWorkingHourHandler.ServeHTTP)
-	private.Patch("/barbers/{barberId}/working-hours/{workingHourId}", updateWorkingHourHandler.ServeHTTP)
-	private.Delete("/barbers/{barberId}/working-hours/{workingHourId}", deleteWorkingHourHandler.ServeHTTP)
+	private.Get("/professionals/{professionalId}/working-hours", listWorkingHoursHandler.ServeHTTP)
+	private.Post("/professionals/{professionalId}/working-hours", createWorkingHourHandler.ServeHTTP)
+	private.Get("/professionals/{professionalId}/working-hours/{workingHourId}", getWorkingHourHandler.ServeHTTP)
+	private.Patch("/professionals/{professionalId}/working-hours/{workingHourId}", updateWorkingHourHandler.ServeHTTP)
+	private.Delete("/professionals/{professionalId}/working-hours/{workingHourId}", deleteWorkingHourHandler.ServeHTTP)
 
 	// HU-041: excepciones de jornada y festivos. Mismo scheduleService de
 	// HU-040 (mismo módulo, misma tabla de tenant/barbero): solo se agregan
@@ -467,13 +467,13 @@ func buildRouter(db *database.DB, logger *slog.Logger, cfg config.Config) (*chi.
 	updateScheduleExceptionHandler := schedulehttpapi.NewUpdateScheduleExceptionHandler(scheduleService)
 	deleteScheduleExceptionHandler := schedulehttpapi.NewDeleteScheduleExceptionHandler(scheduleService)
 	listColombianHolidaysHandler := schedulehttpapi.NewListColombianHolidaysHandler()
-	private.Get("/barbers/{barberId}/holiday-calendar", getHolidayCalendarHandler.ServeHTTP)
-	private.Patch("/barbers/{barberId}/holiday-calendar", updateHolidayCalendarHandler.ServeHTTP)
-	private.Get("/barbers/{barberId}/schedule-exceptions", listScheduleExceptionsHandler.ServeHTTP)
-	private.Post("/barbers/{barberId}/schedule-exceptions", createScheduleExceptionHandler.ServeHTTP)
-	private.Get("/barbers/{barberId}/schedule-exceptions/{exceptionId}", getScheduleExceptionHandler.ServeHTTP)
-	private.Patch("/barbers/{barberId}/schedule-exceptions/{exceptionId}", updateScheduleExceptionHandler.ServeHTTP)
-	private.Delete("/barbers/{barberId}/schedule-exceptions/{exceptionId}", deleteScheduleExceptionHandler.ServeHTTP)
+	private.Get("/professionals/{professionalId}/holiday-calendar", getHolidayCalendarHandler.ServeHTTP)
+	private.Patch("/professionals/{professionalId}/holiday-calendar", updateHolidayCalendarHandler.ServeHTTP)
+	private.Get("/professionals/{professionalId}/schedule-exceptions", listScheduleExceptionsHandler.ServeHTTP)
+	private.Post("/professionals/{professionalId}/schedule-exceptions", createScheduleExceptionHandler.ServeHTTP)
+	private.Get("/professionals/{professionalId}/schedule-exceptions/{exceptionId}", getScheduleExceptionHandler.ServeHTTP)
+	private.Patch("/professionals/{professionalId}/schedule-exceptions/{exceptionId}", updateScheduleExceptionHandler.ServeHTTP)
+	private.Delete("/professionals/{professionalId}/schedule-exceptions/{exceptionId}", deleteScheduleExceptionHandler.ServeHTTP)
 	private.Get("/schedule/colombian-holidays", listColombianHolidaysHandler.ServeHTTP)
 
 	// HU-042: bloqueos de agenda. Mismo scheduleService de HU-040/HU-041
@@ -497,20 +497,20 @@ func buildRouter(db *database.DB, logger *slog.Logger, cfg config.Config) (*chi.
 	// chi resuelve el segmento literal "effective" con prioridad sobre el
 	// parámetro {blockId} sin importar el orden de registro, pero declararla
 	// primero documenta la intención para quien lea este archivo.
-	private.Get("/barbers/{barberId}/time-blocks/effective", effectiveBlocksHandler.ServeHTTP)
-	private.Get("/barbers/{barberId}/time-blocks", listTimeBlocksHandler.ServeHTTP)
-	private.Post("/barbers/{barberId}/time-blocks", createTimeBlockHandler.ServeHTTP)
-	private.Get("/barbers/{barberId}/time-blocks/{blockId}", getTimeBlockHandler.ServeHTTP)
-	private.Delete("/barbers/{barberId}/time-blocks/{blockId}", deleteTimeBlockHandler.ServeHTTP)
-	private.Get("/barbers/{barberId}/time-block-series", listTimeBlockSeriesHandler.ServeHTTP)
-	private.Post("/barbers/{barberId}/time-block-series", createTimeBlockSeriesHandler.ServeHTTP)
-	private.Get("/barbers/{barberId}/time-block-series/{seriesId}", getTimeBlockSeriesHandler.ServeHTTP)
-	private.Patch("/barbers/{barberId}/time-block-series/{seriesId}", updateTimeBlockSeriesHandler.ServeHTTP)
-	private.Delete("/barbers/{barberId}/time-block-series/{seriesId}", deleteTimeBlockSeriesHandler.ServeHTTP)
-	private.Post("/barbers/{barberId}/time-block-series/{seriesId}/dates", addSeriesDateHandler.ServeHTTP)
-	private.Delete("/barbers/{barberId}/time-block-series/{seriesId}/dates/{blockDate}", removeSeriesDateHandler.ServeHTTP)
-	private.Post("/barbers/{barberId}/time-block-series/{seriesId}/exceptions", addSeriesExceptionHandler.ServeHTTP)
-	private.Delete("/barbers/{barberId}/time-block-series/{seriesId}/exceptions/{excludedDate}", removeSeriesExceptionHandler.ServeHTTP)
+	private.Get("/professionals/{professionalId}/time-blocks/effective", effectiveBlocksHandler.ServeHTTP)
+	private.Get("/professionals/{professionalId}/time-blocks", listTimeBlocksHandler.ServeHTTP)
+	private.Post("/professionals/{professionalId}/time-blocks", createTimeBlockHandler.ServeHTTP)
+	private.Get("/professionals/{professionalId}/time-blocks/{blockId}", getTimeBlockHandler.ServeHTTP)
+	private.Delete("/professionals/{professionalId}/time-blocks/{blockId}", deleteTimeBlockHandler.ServeHTTP)
+	private.Get("/professionals/{professionalId}/time-block-series", listTimeBlockSeriesHandler.ServeHTTP)
+	private.Post("/professionals/{professionalId}/time-block-series", createTimeBlockSeriesHandler.ServeHTTP)
+	private.Get("/professionals/{professionalId}/time-block-series/{seriesId}", getTimeBlockSeriesHandler.ServeHTTP)
+	private.Patch("/professionals/{professionalId}/time-block-series/{seriesId}", updateTimeBlockSeriesHandler.ServeHTTP)
+	private.Delete("/professionals/{professionalId}/time-block-series/{seriesId}", deleteTimeBlockSeriesHandler.ServeHTTP)
+	private.Post("/professionals/{professionalId}/time-block-series/{seriesId}/dates", addSeriesDateHandler.ServeHTTP)
+	private.Delete("/professionals/{professionalId}/time-block-series/{seriesId}/dates/{blockDate}", removeSeriesDateHandler.ServeHTTP)
+	private.Post("/professionals/{professionalId}/time-block-series/{seriesId}/exceptions", addSeriesExceptionHandler.ServeHTTP)
+	private.Delete("/professionals/{professionalId}/time-block-series/{seriesId}/exceptions/{excludedDate}", removeSeriesExceptionHandler.ServeHTTP)
 
 	// HU-094: disponibilidad pública real. AvailabilityService (publicbooking,
 	// dueño del flujo público) colabora con schedule/shops/catalog SOLO a
@@ -539,14 +539,14 @@ func buildRouter(db *database.DB, logger *slog.Logger, cfg config.Config) (*chi.
 		clock.System{},
 	)
 	listPublicAvailabilityHandler := publicbookinghttpapi.NewListPublicAvailabilityHandler(publicAvailabilityService)
-	router.Get("/api/v1/public/barbershops/{slug}/services/{serviceId}/barbers/{barberId}/availability", listPublicAvailabilityHandler.ServeHTTP)
+	router.Get("/api/v1/public/businesses/{slug}/services/{serviceId}/professionals/{professionalId}/availability", listPublicAvailabilityHandler.ServeHTTP)
 
 	// DEC-162: agregado de disponibilidad por servicio (todos los barberos
 	// elegibles en una respuesta). Reutiliza el MISMO AvailabilityService de
 	// HU-094, así que ventana, rejilla, bloqueos y citas no pueden divergir de
 	// la ruta por barbero, que sigue intacta.
 	listPublicServiceAvailabilityHandler := publicbookinghttpapi.NewListPublicServiceAvailabilityHandler(publicAvailabilityService)
-	router.Get("/api/v1/public/barbershops/{slug}/services/{serviceId}/availability", listPublicServiceAvailabilityHandler.ServeHTTP)
+	router.Get("/api/v1/public/businesses/{slug}/services/{serviceId}/availability", listPublicServiceAvailabilityHandler.ServeHTTP)
 
 	// HU-061: creación manual de turnos. ManualBookingService (booking, dueño
 	// de la primitiva de HU-060) colabora con catalog/schedule/shops SOLO a
@@ -584,7 +584,7 @@ func buildRouter(db *database.DB, logger *slog.Logger, cfg config.Config) (*chi.
 		cfg.PublicWebBaseURL,
 	)
 	confirmPublicAppointmentHandler := publicbookinghttpapi.NewConfirmPublicAppointmentHandler(confirmationService, logger)
-	router.Post("/api/v1/public/barbershops/{slug}/services/{serviceId}/barbers/{barberId}/appointments", confirmPublicAppointmentHandler.ServeHTTP)
+	router.Post("/api/v1/public/businesses/{slug}/services/{serviceId}/professionals/{professionalId}/appointments", confirmPublicAppointmentHandler.ServeHTTP)
 
 	// HU-098: lectura del turno del cliente por el token de acceso que
 	// HU-097 ya emite. customeraccess tiene su propio adaptador postgres
@@ -634,9 +634,9 @@ func buildRouter(db *database.DB, logger *slog.Logger, cfg config.Config) (*chi.
 		hmacSecret,
 		logger,
 	)
-	router.Post("/api/v1/public/barbershops/{slug}/customer-access/challenge",
+	router.Post("/api/v1/public/businesses/{slug}/customer-access/challenge",
 		customeraccesshttpapi.NewRequestAccessCodeHandler(customerAccessService, trustedProxies).ServeHTTP)
-	router.Post("/api/v1/public/barbershops/{slug}/customer-access/verify",
+	router.Post("/api/v1/public/businesses/{slug}/customer-access/verify",
 		customeraccesshttpapi.NewVerifyAccessCodeHandler(customerAccessService).ServeHTTP)
 
 	// HU-106 (DEC-179): Odin, desde WhatsApp, encuentra el turno del cliente por su
@@ -664,14 +664,18 @@ func buildRouter(db *database.DB, logger *slog.Logger, cfg config.Config) (*chi.
 		cfg.MetaWhatsAppConfigured(),
 		logger,
 	)
-	router.Post("/api/v1/public/barbershops/{slug}/customer-access/verify-ref",
+	router.Post("/api/v1/public/businesses/{slug}/customer-access/verify-ref",
 		customeraccesshttpapi.NewVerifyRefHandler(refService).ServeHTTP)
 	if cfg.OdinIntegrationEnabled() {
 		odinOnly := router.With(customeraccesshttpapi.RequireServiceToken(cfg.OdinServiceToken))
-		odinOnly.Post("/api/v1/integrations/odin/barbershops/{slug}/customer-appointments/lookup",
-			customeraccesshttpapi.NewOdinLookupHandler(refService).ServeHTTP)
-		odinOnly.Post("/api/v1/integrations/odin/barbershops/{slug}/customer-access/challenge",
-			customeraccesshttpapi.NewOdinChallengeHandler(refService, cfg.PublicWebBaseURL).ServeHTTP)
+		odinLookup := customeraccesshttpapi.NewOdinLookupHandler(refService).ServeHTTP
+		odinChallenge := customeraccesshttpapi.NewOdinChallengeHandler(refService, cfg.PublicWebBaseURL).ServeHTTP
+		odinOnly.Post("/api/v1/integrations/odin/businesses/{slug}/customer-appointments/lookup", odinLookup)
+		odinOnly.Post("/api/v1/integrations/odin/businesses/{slug}/customer-access/challenge", odinChallenge)
+		// Alias deprecados con la ruta anterior a DEC-183 (#661): responden igual
+		// hasta que Odin confirme el cambio; después se retiran.
+		odinOnly.Post("/api/v1/integrations/odin/barbershops/{slug}/customer-appointments/lookup", odinLookup)
+		odinOnly.Post("/api/v1/integrations/odin/barbershops/{slug}/customer-access/challenge", odinChallenge)
 	} else {
 		logger.Info("integración de Odin desactivada: APP_ODIN_SERVICE_TOKEN no está definido")
 	}
@@ -682,9 +686,9 @@ func buildRouter(db *database.DB, logger *slog.Logger, cfg config.Config) (*chi.
 	// publicbooking en su propia consulta.
 	reviewService := reviews.NewService(reviewspostgres.New(db))
 	router.Post("/api/v1/customer/appointments/{token}/review", reviewshttpapi.NewCreateReviewHandler(reviewService).ServeHTTP)
-	router.Get("/api/v1/public/barbershops/{slug}/barbers/{barberId}/reviews", reviewshttpapi.NewListPublicReviewsHandler(reviewService).ServeHTTP)
-	private.Get("/barbers/{barberId}/reviews", reviewshttpapi.NewListReviewsHandler(reviewService).ServeHTTP)
-	private.Patch("/barbers/{barberId}/reviews/{reviewId}", reviewshttpapi.NewUpdateReviewHandler(reviewService).ServeHTTP)
+	router.Get("/api/v1/public/businesses/{slug}/professionals/{professionalId}/reviews", reviewshttpapi.NewListPublicReviewsHandler(reviewService).ServeHTTP)
+	private.Get("/professionals/{professionalId}/reviews", reviewshttpapi.NewListReviewsHandler(reviewService).ServeHTTP)
+	private.Patch("/professionals/{professionalId}/reviews/{reviewId}", reviewshttpapi.NewUpdateReviewHandler(reviewService).ServeHTTP)
 
 	manualBookingService := booking.NewManualBookingService(
 		bookingRepo,
@@ -706,7 +710,7 @@ func buildRouter(db *database.DB, logger *slog.Logger, cfg config.Config) (*chi.
 		clock.System{},
 	)
 	listDailyAgendaHandler := bookinghttpapi.NewListDailyAgendaHandler(agendaService)
-	private.Get("/barbers/{barberId}/appointments/daily-agenda", listDailyAgendaHandler.ServeHTTP)
+	private.Get("/professionals/{professionalId}/appointments/daily-agenda", listDailyAgendaHandler.ServeHTTP)
 
 	// HU-064: detalle e historial de un turno. Mismo criterio de
 	// colaboración por puerto pequeño que ManualBookingService/AgendaService:

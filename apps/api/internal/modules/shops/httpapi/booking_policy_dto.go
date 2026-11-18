@@ -36,20 +36,20 @@ type UpdateBookingPolicyRequest struct {
 // (DEC-169). Solo existe para los barberos con configuración propia; los
 // demás heredan la de la barbería y no aparecen en el listado.
 type BarberBookingPolicyResponse struct {
-	BarberID          string `json:"barberId"`
+	BarberID          string `json:"professionalId"`
 	MinAdvanceMinutes int    `json:"minAdvanceMinutes"`
 	MaxAdvanceDays    int    `json:"maxAdvanceDays"`
 	SlotGridMinutes   int    `json:"slotGridMinutes"`
 }
 
 // BarberBookingPolicyListResponse es la respuesta de
-// GET /private/settings/booking-policy/barbers.
+// GET /private/settings/booking-policy/professionals.
 type BarberBookingPolicyListResponse struct {
 	Items []BarberBookingPolicyResponse `json:"items"`
 }
 
 // PutBarberBookingPolicyRequest es el cuerpo cerrado de
-// PUT /private/settings/booking-policy/barbers/{barberId} (DEC-169):
+// PUT /private/settings/booking-policy/professionals/{professionalId} (DEC-169):
 // reemplazo completo de los tres valores, sin token de versión.
 type PutBarberBookingPolicyRequest struct {
 	MinAdvanceMinutes int `json:"minAdvanceMinutes"`

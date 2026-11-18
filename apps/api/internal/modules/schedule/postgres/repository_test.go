@@ -72,7 +72,7 @@ func createWorkingHour(t *testing.T, repo *schedulepostgres.Repository, shop dat
 	t.Helper()
 	key := idempotency.Key("fixture-" + uniqueSuffix(t))
 	body := `{"isoWeekday":` + itoa(input.ISOWeekday) + `,"startsTime":"` + input.StartsTime + `","durationMinutes":` + itoa(input.DurationMinutes) + `}`
-	fp := idempotency.ComputeFingerprint("POST", "/api/v1/private/barbers/"+barberID+"/working-hours", []byte(body))
+	fp := idempotency.ComputeFingerprint("POST", "/api/v1/private/professionals/"+barberID+"/working-hours", []byte(body))
 
 	result, err := repo.Create(context.Background(), string(shop), barberID, input, key, fp)
 	if err != nil {

@@ -190,7 +190,7 @@ func TestListPublicAvailability_MalformedServiceOrBarberID_ReturnsEmptyNotError(
 		barberID  string
 	}{
 		{"serviceId no es UUID", "not-a-uuid", availBarberID},
-		{"barberId no es UUID", availServiceID, "not-a-uuid"},
+		{"professionalId no es UUID", availServiceID, "not-a-uuid"},
 	}
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {

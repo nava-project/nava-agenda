@@ -39,7 +39,7 @@ type aggBarbersBody struct {
 
 type aggAvailabilityBody struct {
 	Slots []struct {
-		BarberID string    `json:"barberId"`
+		BarberID string    `json:"professionalId"`
 		StartsAt time.Time `json:"startsAt"`
 	} `json:"slots"`
 	DurationMinutes int    `json:"durationMinutes"`
@@ -59,14 +59,14 @@ func newAggRouter(t *testing.T) http.Handler {
 }
 
 func aggGet(router http.Handler, path string) *httptest.ResponseRecorder {
-	req := httptest.NewRequest(http.MethodGet, "/api/v1/public/barbershops/"+path, nil)
+	req := httptest.NewRequest(http.MethodGet, "/api/v1/public/businesses/"+path, nil)
 	rec := httptest.NewRecorder()
 	router.ServeHTTP(rec, req)
 	return rec
 }
 
 func TestPublicAggregates_HTTP_Barbers_ReturnsEligibleBarbersWithServiceIds(t *testing.T) {
-	rec := aggGet(newAggRouter(t), aggSlugUno+"/barbers")
+	rec := aggGet(newAggRouter(t), aggSlugUno+"/professionals")
 	if rec.Code != http.StatusOK {
 		t.Fatalf("expected 200, got %d: %s", rec.Code, rec.Body.String())
 	}
@@ -93,13 +93,13 @@ func TestPublicAggregates_HTTP_Barbers_ReturnsEligibleBarbersWithServiceIds(t *t
 func TestPublicAggregates_HTTP_Barbers_IsConsistentWithPerServiceEndpoint(t *testing.T) {
 	router := newAggRouter(t)
 	var agg aggBarbersBody
-	if err := json.Unmarshal(aggGet(router, aggSlugUno+"/barbers").Body.Bytes(), &agg); err != nil {
+	if err := json.Unmarshal(aggGet(router, aggSlugUno+"/professionals").Body.Bytes(), &agg); err != nil {
 		t.Fatalf("decode: %v", err)
 	}
 	// Para cada servicio activo, los barberos del endpoint por servicio son
 	// exactamente los que el agregado lista con ese serviceId.
 	for _, serviceID := range []string{aggServiceS1, aggServiceS2} {
-		rec := aggGet(router, aggSlugUno+"/services/"+serviceID+"/barbers")
+		rec := aggGet(router, aggSlugUno+"/services/"+serviceID+"/professionals")
 		var legacy struct {
 			Items []struct {
 				ID string `json:"id"`
@@ -132,7 +132,7 @@ func TestPublicAggregates_HTTP_Barbers_IsConsistentWithPerServiceEndpoint(t *tes
 }
 
 func TestPublicAggregates_HTTP_Barbers_TenantIsolation(t *testing.T) {
-	rec := aggGet(newAggRouter(t), aggSlugDos+"/barbers")
+	rec := aggGet(newAggRouter(t), aggSlugDos+"/professionals")
 	if rec.Code != http.StatusOK {
 		t.Fatalf("expected 200, got %d: %s", rec.Code, rec.Body.String())
 	}
@@ -153,7 +153,7 @@ func TestPublicAggregates_HTTP_Barbers_TenantIsolation(t *testing.T) {
 func TestPublicAggregates_HTTP_UnknownSlug_Returns404Problem(t *testing.T) {
 	router := newAggRouter(t)
 	for _, path := range []string{
-		"barberia-que-no-existe/barbers",
+		"barberia-que-no-existe/professionals",
 		"barberia-que-no-existe/services/" + aggServiceS2 + "/availability",
 	} {
 		rec := aggGet(router, path)
@@ -193,7 +193,7 @@ func TestPublicAggregates_HTTP_ServiceAvailability_AggregatesAllEligibleBarbers(
 		if i > 0 {
 			prev := agg.Slots[i-1]
 			if s.StartsAt.Before(prev.StartsAt) || (s.StartsAt.Equal(prev.StartsAt) && s.BarberID <= prev.BarberID) {
-				t.Fatalf("orden (startsAt, barberId) roto en índice %d: %+v / %+v", i, prev, s)
+				t.Fatalf("orden (startsAt, professionalId) roto en índice %d: %+v / %+v", i, prev, s)
 			}
 		}
 		perBarber[s.BarberID] = append(perBarber[s.BarberID], s.StartsAt)
@@ -208,7 +208,7 @@ func TestPublicAggregates_HTTP_ServiceAvailability_AggregatesAllEligibleBarbers(
 	// una falsa discrepancia si la ventana avanzó entre las dos llamadas.
 	after := time.Now().UTC()
 	for barberID, got := range perBarber {
-		single := aggGet(router, aggSlugUno+"/services/"+aggServiceS2+"/barbers/"+barberID+"/availability")
+		single := aggGet(router, aggSlugUno+"/services/"+aggServiceS2+"/professionals/"+barberID+"/availability")
 		if single.Code != http.StatusOK {
 			t.Fatalf("legacy %s: %d: %s", barberID, single.Code, single.Body.String())
 		}
@@ -288,9 +288,9 @@ func TestPublicAggregates_HTTP_ExistingEndpointsKeepWorking(t *testing.T) {
 	for _, path := range []string{
 		aggSlugUno,
 		aggSlugUno + "/services",
-		aggSlugUno + "/services/" + aggServiceS2 + "/barbers",
-		aggSlugUno + "/services/" + aggServiceS2 + "/barbers/" + aggBarberUno1 + "/availability",
-		aggSlugUno + "/barbers/" + aggBarberUno1 + "/photo", // 404 uniforme: sin fotografía
+		aggSlugUno + "/services/" + aggServiceS2 + "/professionals",
+		aggSlugUno + "/services/" + aggServiceS2 + "/professionals/" + aggBarberUno1 + "/availability",
+		aggSlugUno + "/professionals/" + aggBarberUno1 + "/photo", // 404 uniforme: sin fotografía
 	} {
 		rec := aggGet(router, path)
 		want := http.StatusOK

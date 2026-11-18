@@ -148,8 +148,8 @@ type AvailabilitySlotResponse struct {
 	StartsAt time.Time `json:"startsAt"`
 }
 
-// ConfirmPublicAppointmentRequest es el cuerpo de POST /public/barbershops/
-// {slug}/services/{serviceId}/barbers/{barberId}/appointments (HU-097).
+// ConfirmPublicAppointmentRequest es el cuerpo de POST /public/businesses/
+// {slug}/services/{serviceId}/professionals/{professionalId}/appointments (HU-097).
 // Cerrado: el handler rechaza cualquier campo desconocido. Nunca declara
 // barbershopId, customerId, status, origin, precio, duración ni ningún
 // otro dato que el servidor derive o revalide (CA-097-02); startsAt es el
@@ -187,7 +187,7 @@ type HomeServiceRequest struct {
 // transacción (DEC-089); nunca vuelve a aparecer en ninguna otra respuesta.
 type ConfirmedPublicAppointmentResponse struct {
 	AttendeeName    string  `json:"attendeeName"`
-	BarbershopName  string  `json:"barbershopName"`
+	BarbershopName  string  `json:"businessName"`
 	ServiceName     string  `json:"serviceName"`
 	DurationMinutes int     `json:"durationMinutes"`
 	PriceAmount     string  `json:"priceAmount"`
@@ -234,7 +234,7 @@ type AvailabilityResponse struct {
 // (DEC-162), forma exacta del componente OpenAPI
 // BarberAvailabilitySlotResponse.yaml.
 type BarberAvailabilitySlotResponse struct {
-	BarberID string    `json:"barberId"`
+	BarberID string    `json:"professionalId"`
 	StartsAt time.Time `json:"startsAt"`
 }
 

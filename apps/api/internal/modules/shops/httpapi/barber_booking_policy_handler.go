@@ -13,13 +13,13 @@ import (
 )
 
 // barberIDURLParam es el parámetro de ruta del barbero (DEC-169).
-const barberIDURLParam = "barberId"
+const barberIDURLParam = "professionalId"
 
 // BarberBookingPolicyHandler expone las tres operaciones de la ventana de
 // reserva propia por barbero (DEC-169):
-//   - GET    /private/settings/booking-policy/barbers
-//   - PUT    /private/settings/booking-policy/barbers/{barberId}
-//   - DELETE /private/settings/booking-policy/barbers/{barberId}
+//   - GET    /private/settings/booking-policy/professionals
+//   - PUT    /private/settings/booking-policy/professionals/{professionalId}
+//   - DELETE /private/settings/booking-policy/professionals/{professionalId}
 type BarberBookingPolicyHandler struct {
 	service *shops.BarberBookingPolicyService
 }
@@ -39,7 +39,7 @@ func principalBarbershopID(w http.ResponseWriter, r *http.Request, requestID str
 	return principal.BarbershopID, true
 }
 
-// List atiende GET /private/settings/booking-policy/barbers.
+// List atiende GET /private/settings/booking-policy/professionals.
 func (h *BarberBookingPolicyHandler) List(w http.ResponseWriter, r *http.Request) {
 	requestID := httpserver.RequestIDFromContext(r.Context())
 	barbershopID, ok := principalBarbershopID(w, r, requestID)
@@ -67,7 +67,7 @@ func (h *BarberBookingPolicyHandler) List(w http.ResponseWriter, r *http.Request
 	_ = json.NewEncoder(w).Encode(resp)
 }
 
-// Put atiende PUT /private/settings/booking-policy/barbers/{barberId}.
+// Put atiende PUT /private/settings/booking-policy/professionals/{professionalId}.
 func (h *BarberBookingPolicyHandler) Put(w http.ResponseWriter, r *http.Request) {
 	requestID := httpserver.RequestIDFromContext(r.Context())
 	barbershopID, ok := principalBarbershopID(w, r, requestID)
@@ -110,7 +110,7 @@ func (h *BarberBookingPolicyHandler) Put(w http.ResponseWriter, r *http.Request)
 	_ = json.NewEncoder(w).Encode(newBarberBookingPolicyResponse(policy))
 }
 
-// Delete atiende DELETE /private/settings/booking-policy/barbers/{barberId}:
+// Delete atiende DELETE /private/settings/booking-policy/professionals/{professionalId}:
 // el barbero vuelve a heredar la ventana de la barbería. 204 aunque no
 // tuviera configuración propia (idempotente).
 func (h *BarberBookingPolicyHandler) Delete(w http.ResponseWriter, r *http.Request) {

@@ -40,18 +40,18 @@ func TestScope_Owns(t *testing.T) {
 
 func TestPolicy_MatchesPatternsAndRejectsDuplicates(t *testing.T) {
 	p, err := access.NewPolicy([]access.Entry{
-		{Method: "GET", Pattern: "/barbers/{barberId}/time-blocks/effective", Rule: access.OwnBarber},
-		{Method: "GET", Pattern: "/barbers/{barberId}", Rule: access.OwnBarber},
+		{Method: "GET", Pattern: "/professionals/{professionalId}/time-blocks/effective", Rule: access.OwnBarber},
+		{Method: "GET", Pattern: "/professionals/{professionalId}", Rule: access.OwnBarber},
 		{Method: "PATCH", Pattern: "/settings/brand", Rule: access.DenyRestricted},
 	})
 	if err != nil {
 		t.Fatal(err)
 	}
-	rule, params, ok := p.Match("GET", "/barbers/abc/time-blocks/effective")
-	if !ok || rule != access.OwnBarber || params["barberId"] != "abc" {
+	rule, params, ok := p.Match("GET", "/professionals/abc/time-blocks/effective")
+	if !ok || rule != access.OwnBarber || params["professionalId"] != "abc" {
 		t.Fatalf("match = %v %v %v", rule, params, ok)
 	}
-	if _, _, ok := p.Match("GET", "/barbers/abc/otra"); ok {
+	if _, _, ok := p.Match("GET", "/professionals/abc/otra"); ok {
 		t.Fatal("un patrón no debe coincidir con un prefijo")
 	}
 	if _, _, ok := p.Match("GET", "/settings/brand"); ok {

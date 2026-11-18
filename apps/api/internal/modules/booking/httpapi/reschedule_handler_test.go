@@ -149,7 +149,7 @@ func TestRescheduleAppointmentHandler_UnknownField_Returns400(t *testing.T) {
 	repo := &fakeRescheduleRepository{detail: readyRescheduleDetail(), detailFound: true}
 	h := newRescheduleHandler(repo)
 
-	req := rescheduleRequest([]byte(`{"startsAt":"2099-01-01T14:30:00","barberId":"x"}`), "key-1", "old-token")
+	req := rescheduleRequest([]byte(`{"startsAt":"2099-01-01T14:30:00","professionalId":"x"}`), "key-1", "old-token")
 	rec := httptest.NewRecorder()
 	h.ServeHTTP(rec, req)
 

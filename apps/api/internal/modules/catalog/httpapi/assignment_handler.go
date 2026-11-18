@@ -11,22 +11,22 @@ import (
 )
 
 // barberIDParam es el nombre del parámetro de ruta que cmd/api.buildRouter
-// registra para /private/barbers/{barberId}/services[/{serviceId}].
+// registra para /private/professionals/{professionalId}/services[/{serviceId}].
 // Deliberadamente igual al de staff/httpapi (mismo segmento de ruta), pero
 // este paquete no lo importa: es una constante propia (mismo criterio de
 // duplicación pequeña que catalog.barberIDPattern en assignment.go).
 // serviceIDParam ya existe en handler.go (mismo paquete): se reutiliza tal
 // cual, sin declararlo dos veces.
-const barberIDParam = "barberId"
+const barberIDParam = "professionalId"
 
 // assignmentBasePath es la base usada para construir el header Location de
 // una asignación creada, relativa a /api/v1 (igual que el resto del
 // contrato).
 func assignmentBasePath(barberID string) string {
-	return "/private/barbers/" + barberID + "/services/"
+	return "/private/professionals/" + barberID + "/services/"
 }
 
-// ListAssignmentsHandler expone GET /private/barbers/{barberId}/services
+// ListAssignmentsHandler expone GET /private/professionals/{professionalId}/services
 // (CA-023-01).
 type ListAssignmentsHandler struct {
 	service *catalog.AssignmentService
@@ -73,7 +73,7 @@ func (h *ListAssignmentsHandler) ServeHTTP(w http.ResponseWriter, r *http.Reques
 }
 
 // AssignServiceHandler expone
-// PUT /private/barbers/{barberId}/services/{serviceId} (CA-023-02,
+// PUT /private/professionals/{professionalId}/services/{serviceId} (CA-023-02,
 // CA-023-03). Semántica HTTP naturalmente repetible: no usa el protocolo de
 // Idempotency-Key de RN-IDE-01 (esa cabecera protege un POST no idempotente
 // por sí mismo; PUT sobre un recurso identificado por su propia clave
@@ -117,7 +117,7 @@ func (h *AssignServiceHandler) ServeHTTP(w http.ResponseWriter, r *http.Request)
 }
 
 // UnassignServiceHandler expone
-// DELETE /private/barbers/{barberId}/services/{serviceId} (CA-023-05,
+// DELETE /private/professionals/{professionalId}/services/{serviceId} (CA-023-05,
 // DEC-114).
 type UnassignServiceHandler struct {
 	service *catalog.AssignmentService

@@ -1,6 +1,6 @@
 // Pruebas HTTP de los dos agregados de solo lectura (DEC-162):
-// GET /public/barbershops/{slug}/barbers y
-// GET /public/barbershops/{slug}/services/{serviceId}/availability. Invocan
+// GET /public/businesses/{slug}/professionals y
+// GET /public/businesses/{slug}/services/{serviceId}/availability. Invocan
 // los handlers reales con dobles solo en los puertos del núcleo; la
 // consulta SQL y el aislamiento de tenant se prueban con PostgreSQL real en
 // publicbooking/postgres y en cmd/api.
@@ -27,7 +27,7 @@ const (
 )
 
 func requestBarbersAggregate(slug string) *http.Request {
-	req := httptest.NewRequest(http.MethodGet, "/api/v1/public/barbershops/"+slug+"/barbers", nil)
+	req := httptest.NewRequest(http.MethodGet, "/api/v1/public/businesses/"+slug+"/professionals", nil)
 	return httpserver.RequestWithURLParam(req, "slug", slug)
 }
 
@@ -163,7 +163,7 @@ func newServiceAvailabilityHandler(repo *aggAvailabilityRepo) *httpapi.ListPubli
 }
 
 func requestServiceAvailability(slug, serviceID string) *http.Request {
-	req := httptest.NewRequest(http.MethodGet, "/api/v1/public/barbershops/"+slug+"/services/"+serviceID+"/availability", nil)
+	req := httptest.NewRequest(http.MethodGet, "/api/v1/public/businesses/"+slug+"/services/"+serviceID+"/availability", nil)
 	req = httpserver.RequestWithURLParam(req, "slug", slug)
 	return httpserver.RequestWithURLParam(req, "serviceId", serviceID)
 }
@@ -192,7 +192,7 @@ func TestListPublicServiceAvailabilityHandler_Success_ReturnsBarberSlotsOrdered(
 	for i := 0; i < len(body.Slots); i += 2 {
 		a, b := body.Slots[i], body.Slots[i+1]
 		if !a.StartsAt.Equal(b.StartsAt) || a.BarberID != aggBarberAID || b.BarberID != aggBarberBID {
-			t.Fatalf("par %d fuera de orden (startsAt, barberId): %+v %+v", i/2, a, b)
+			t.Fatalf("par %d fuera de orden (startsAt, professionalId): %+v %+v", i/2, a, b)
 		}
 		if i > 0 && !a.StartsAt.After(body.Slots[i-1].StartsAt) {
 			t.Fatalf("startsAt no crece en el par %d", i/2)
@@ -206,7 +206,7 @@ func TestListPublicServiceAvailabilityHandler_Success_ReturnsBarberSlotsOrdered(
 		t.Fatalf("decode: %v", err)
 	}
 	if len(raw.Slots[0]) != 2 {
-		t.Fatalf("cada franja debe tener exactamente barberId y startsAt: %v", raw.Slots[0])
+		t.Fatalf("cada franja debe tener exactamente professionalId y startsAt: %v", raw.Slots[0])
 	}
 }
 

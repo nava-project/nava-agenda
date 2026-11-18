@@ -13,7 +13,7 @@ import (
 	"system-barbershop/internal/platform/httpserver"
 )
 
-// slugParam es el parámetro de ruta {slug} de /public/barbershops/{slug}/...
+// slugParam es el parámetro de ruta {slug} de /public/businesses/{slug}/...
 const slugParam = "slug"
 
 // AccessChallengeRequest es el cuerpo de POST .../customer-access/challenge.
@@ -39,7 +39,7 @@ type AccessAppointmentResponse struct {
 	AccessToken string    `json:"accessToken"`
 	StartsAt    time.Time `json:"startsAt"`
 	ServiceName string    `json:"serviceName"`
-	BarberName  string    `json:"barberName"`
+	BarberName  string    `json:"professionalName"`
 }
 
 // AccessVerifyResponse es la respuesta 200 de una verificación válida.
@@ -66,7 +66,7 @@ func decodeAccessBody(r *http.Request, dst any) error {
 	return nil
 }
 
-// RequestAccessCodeHandler expone POST /public/barbershops/{slug}/customer-access/challenge
+// RequestAccessCodeHandler expone POST /public/businesses/{slug}/customer-access/challenge
 // (HU-105, CA-105-01): pide un código de un solo uso. Responde siempre 202 con el
 // mismo cuerpo, exista o no el contacto; el único rechazo que depende del uso es
 // 429 con Retry-After.
@@ -115,7 +115,7 @@ func (h *RequestAccessCodeHandler) ServeHTTP(w http.ResponseWriter, r *http.Requ
 	})
 }
 
-// VerifyAccessCodeHandler expone POST /public/barbershops/{slug}/customer-access/verify
+// VerifyAccessCodeHandler expone POST /public/businesses/{slug}/customer-access/verify
 // (HU-105, CA-105-02): canjea el código por un acceso de 60 minutos a cada turno
 // futuro confirmado. Un código incorrecto, vencido o agotado da el mismo 401.
 type VerifyAccessCodeHandler struct {

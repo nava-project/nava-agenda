@@ -402,7 +402,7 @@ func TestListHistory_MissingAuthorizedName_UsesSafeLabel(t *testing.T) {
 }
 
 func TestListHistory_ChangesArePreservedPerEntry(t *testing.T) {
-	prev, next := "confirmed", "cancelled_by_barber"
+	prev, next := "confirmed", "cancelled_by_professional"
 	repo := &fakeDetailRepository{
 		historyFound: true,
 		historyItems: []booking.HistoryRow{

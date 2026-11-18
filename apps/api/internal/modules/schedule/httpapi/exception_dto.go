@@ -14,7 +14,7 @@ type HolidayCalendarResponse struct {
 }
 
 // UpdateHolidayCalendarRequest es el cuerpo de
-// PATCH /private/barbers/{barberId}/holiday-calendar (CA-041-01/02).
+// PATCH /private/professionals/{professionalId}/holiday-calendar (CA-041-01/02).
 type UpdateHolidayCalendarRequest struct {
 	Enabled bool `json:"enabled"`
 }
@@ -55,14 +55,14 @@ type ScheduleExceptionResponse struct {
 }
 
 // ScheduleExceptionListResponse es la página paginada por cursor de
-// GET /private/barbers/{barberId}/schedule-exceptions (CA-041-04/05).
+// GET /private/professionals/{professionalId}/schedule-exceptions (CA-041-04/05).
 type ScheduleExceptionListResponse struct {
 	Items      []ScheduleExceptionResponse `json:"items"`
 	NextCursor *string                     `json:"nextCursor"`
 }
 
 // CreateScheduleExceptionRequest es el cuerpo de
-// POST /private/barbers/{barberId}/schedule-exceptions (CA-041-04/05).
+// POST /private/professionals/{professionalId}/schedule-exceptions (CA-041-04/05).
 // Cerrado: el handler rechaza cualquier campo desconocido. Nunca declara
 // barbershopId ni barberId.
 type CreateScheduleExceptionRequest struct {
@@ -73,7 +73,7 @@ type CreateScheduleExceptionRequest struct {
 }
 
 // UpdateScheduleExceptionRequest es el cuerpo de
-// PATCH /private/barbers/{barberId}/schedule-exceptions/{exceptionId}
+// PATCH /private/professionals/{professionalId}/schedule-exceptions/{exceptionId}
 // (CA-041-04/05): reemplaza la excepción completa.
 type UpdateScheduleExceptionRequest struct {
 	EffectiveDate string                          `json:"effectiveDate"`

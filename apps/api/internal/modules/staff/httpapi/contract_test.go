@@ -28,21 +28,21 @@ type staffPathsFile struct {
 	Collection struct {
 		Get  operation `yaml:"get"`
 		Post operation `yaml:"post"`
-	} `yaml:"/private/barbers"`
+	} `yaml:"/private/professionals"`
 	Item struct {
 		Get   operation `yaml:"get"`
 		Patch operation `yaml:"patch"`
-	} `yaml:"/private/barbers/{barberId}"`
+	} `yaml:"/private/professionals/{professionalId}"`
 	Photo struct {
 		Put    operation `yaml:"put"`
 		Get    operation `yaml:"get"`
 		Delete operation `yaml:"delete"`
-	} `yaml:"/private/barbers/{barberId}/photo"`
+	} `yaml:"/private/professionals/{professionalId}/photo"`
 	Me struct {
 		Get    operation `yaml:"get"`
 		Put    operation `yaml:"put"`
 		Delete operation `yaml:"delete"`
-	} `yaml:"/private/me/barber"`
+	} `yaml:"/private/me/professional"`
 }
 
 func findRepoRoot(t *testing.T) string {
@@ -158,22 +158,22 @@ func requireResponses(t *testing.T, op operation, wantOperationID string, wantSt
 // active, deletedAt, sortOrder, staffUserId, servicios ni horarios; DEC-104
 // añade photoUpdatedAt y DEC-127 description).
 func TestContract_BarberResponseSchema_MatchesDTOFields(t *testing.T) {
-	schema := loadYAML[schemaDoc](t, "api/openapi/components/schemas/BarberResponse.yaml")
+	schema := loadYAML[schemaDoc](t, "api/openapi/components/schemas/ProfessionalResponse.yaml")
 	requireProps(t, schema, []string{"id", "fullName", "createdAt", "updatedAt", "photoUpdatedAt", "description", "rating", "ratingCount"})
 }
 
 func TestContract_CreateBarberRequestSchema_MatchesDTOFields(t *testing.T) {
-	schema := loadYAML[schemaDoc](t, "api/openapi/components/schemas/CreateBarberRequest.yaml")
+	schema := loadYAML[schemaDoc](t, "api/openapi/components/schemas/CreateProfessionalRequest.yaml")
 	requireOptionalProps(t, schema, []string{"fullName"}, []string{"description"})
-	if _, ok := schema.Properties["barbershopId"]; ok {
-		t.Fatal("el contrato de alta nunca debe declarar barbershopId")
+	if _, ok := schema.Properties["businessId"]; ok {
+		t.Fatal("el contrato de alta nunca debe declarar businessId")
 	}
 }
 
 func TestContract_UpdateBarberRequestSchema_MatchesDTOFields(t *testing.T) {
-	schema := loadYAML[schemaDoc](t, "api/openapi/components/schemas/UpdateBarberRequest.yaml")
+	schema := loadYAML[schemaDoc](t, "api/openapi/components/schemas/UpdateProfessionalRequest.yaml")
 	requireOptionalProps(t, schema, []string{"fullName"}, []string{"description"})
-	for _, forbidden := range []string{"active", "deletedAt", "sortOrder", "staffUserId", "barbershopId"} {
+	for _, forbidden := range []string{"active", "deletedAt", "sortOrder", "staffUserId", "businessId"} {
 		if _, ok := schema.Properties[forbidden]; ok {
 			t.Fatalf("CA-021-07/DEC-047: el contrato de renombrado nunca debe declarar %q", forbidden)
 		}
@@ -181,7 +181,7 @@ func TestContract_UpdateBarberRequestSchema_MatchesDTOFields(t *testing.T) {
 }
 
 func TestContract_BarberListResponseSchema_HasItemsAndNextCursor(t *testing.T) {
-	schema := loadYAML[schemaDoc](t, "api/openapi/components/schemas/BarberListResponse.yaml")
+	schema := loadYAML[schemaDoc](t, "api/openapi/components/schemas/ProfessionalListResponse.yaml")
 	if len(schema.Properties) != 6 {
 		t.Fatalf("expected cursor fields and four optional page fields")
 	}
@@ -196,53 +196,53 @@ func TestContract_BarberListResponseSchema_HasItemsAndNextCursor(t *testing.T) {
 
 func TestContract_ListBarbersOperation_MethodPathSecurityAndResponses(t *testing.T) {
 	doc := loadYAML[staffPathsFile](t, "api/openapi/paths/staff.yaml")
-	requireResponses(t, doc.Collection.Get, "listBarbers", []string{"200", "400", "401", "500"})
+	requireResponses(t, doc.Collection.Get, "listProfessionals", []string{"200", "400", "401", "500"})
 }
 
 func TestContract_CreateBarberOperation_MethodPathSecurityAndResponses(t *testing.T) {
 	doc := loadYAML[staffPathsFile](t, "api/openapi/paths/staff.yaml")
-	requireResponses(t, doc.Collection.Post, "createBarber", []string{"201", "400", "401", "403", "409", "422", "500"})
+	requireResponses(t, doc.Collection.Post, "createProfessional", []string{"201", "400", "401", "403", "409", "422", "500"})
 }
 
 func TestContract_GetBarberOperation_MethodPathSecurityAndResponses(t *testing.T) {
 	doc := loadYAML[staffPathsFile](t, "api/openapi/paths/staff.yaml")
-	requireResponses(t, doc.Item.Get, "getBarber", []string{"200", "401", "403", "404", "500"})
+	requireResponses(t, doc.Item.Get, "getProfessional", []string{"200", "401", "403", "404", "500"})
 }
 
 func TestContract_RenameBarberOperation_MethodPathSecurityAndResponses(t *testing.T) {
 	doc := loadYAML[staffPathsFile](t, "api/openapi/paths/staff.yaml")
-	requireResponses(t, doc.Item.Patch, "renameBarber", []string{"200", "400", "401", "403", "404", "422", "500"})
+	requireResponses(t, doc.Item.Patch, "renameProfessional", []string{"200", "400", "401", "403", "404", "422", "500"})
 }
 
 // DEC-104: la fotografía es contenido binario, sin Idempotency-Key (el PUT
 // reemplaza y es idempotente por naturaleza).
 func TestContract_PutBarberPhotoOperation_MethodPathSecurityAndResponses(t *testing.T) {
 	doc := loadYAML[staffPathsFile](t, "api/openapi/paths/staff.yaml")
-	requireResponses(t, doc.Photo.Put, "putBarberPhoto", []string{"200", "400", "401", "403", "404", "422", "500"})
+	requireResponses(t, doc.Photo.Put, "putProfessionalPhoto", []string{"200", "400", "401", "403", "404", "422", "500"})
 }
 
 func TestContract_GetBarberPhotoOperation_MethodPathSecurityAndResponses(t *testing.T) {
 	doc := loadYAML[staffPathsFile](t, "api/openapi/paths/staff.yaml")
-	requireResponses(t, doc.Photo.Get, "getBarberPhoto", []string{"200", "304", "401", "403", "404", "500"})
+	requireResponses(t, doc.Photo.Get, "getProfessionalPhoto", []string{"200", "304", "401", "403", "404", "500"})
 }
 
 func TestContract_DeleteBarberPhotoOperation_MethodPathSecurityAndResponses(t *testing.T) {
 	doc := loadYAML[staffPathsFile](t, "api/openapi/paths/staff.yaml")
-	requireResponses(t, doc.Photo.Delete, "deleteBarberPhoto", []string{"204", "401", "403", "404", "500"})
+	requireResponses(t, doc.Photo.Delete, "deleteProfessionalPhoto", []string{"204", "401", "403", "404", "500"})
 }
 
 // DEC-100: el vínculo propio actúa sobre el principal de la sesión.
 func TestContract_MyBarberOperations_MethodPathSecurityAndResponses(t *testing.T) {
 	doc := loadYAML[staffPathsFile](t, "api/openapi/paths/staff.yaml")
-	requireResponses(t, doc.Me.Get, "getMyBarber", []string{"200", "401", "404", "500"})
-	requireResponses(t, doc.Me.Put, "linkMyBarber", []string{"200", "400", "401", "403", "404", "409", "500"})
-	requireResponses(t, doc.Me.Delete, "unlinkMyBarber", []string{"204", "401", "403", "500"})
+	requireResponses(t, doc.Me.Get, "getMyProfessional", []string{"200", "401", "404", "500"})
+	requireResponses(t, doc.Me.Put, "linkMyProfessional", []string{"200", "400", "401", "403", "404", "409", "500"})
+	requireResponses(t, doc.Me.Delete, "unlinkMyProfessional", []string{"204", "401", "403", "500"})
 }
 
 func TestContract_LinkMyBarberRequestSchema_OnlyBarberID(t *testing.T) {
-	schema := loadYAML[schemaDoc](t, "api/openapi/components/schemas/LinkMyBarberRequest.yaml")
-	requireProps(t, schema, []string{"barberId"})
-	for _, forbidden := range []string{"staffUserId", "userId", "barbershopId"} {
+	schema := loadYAML[schemaDoc](t, "api/openapi/components/schemas/LinkMyProfessionalRequest.yaml")
+	requireProps(t, schema, []string{"professionalId"})
+	for _, forbidden := range []string{"staffUserId", "userId", "businessId"} {
 		if _, ok := schema.Properties[forbidden]; ok {
 			t.Errorf("el vínculo propio nunca debe aceptar %q: nadie asigna el vínculo de otra persona", forbidden)
 		}
@@ -258,16 +258,16 @@ func TestContract_OpenAPIYAML_RegistersStaffPaths(t *testing.T) {
 	}
 	doc := loadYAML[pathsDoc](t, "api/openapi/openapi.yaml")
 
-	if _, ok := doc.Paths["/private/barbers"]; !ok {
-		t.Fatal("openapi.yaml no registra paths./private/barbers")
+	if _, ok := doc.Paths["/private/professionals"]; !ok {
+		t.Fatal("openapi.yaml no registra paths./private/professionals")
 	}
-	if _, ok := doc.Paths["/private/barbers/{barberId}"]; !ok {
-		t.Fatal("openapi.yaml no registra paths./private/barbers/{barberId}")
+	if _, ok := doc.Paths["/private/professionals/{professionalId}"]; !ok {
+		t.Fatal("openapi.yaml no registra paths./private/professionals/{professionalId}")
 	}
-	if _, ok := doc.Paths["/private/me/barber"]; !ok {
-		t.Fatal("openapi.yaml no registra paths./private/me/barber")
+	if _, ok := doc.Paths["/private/me/professional"]; !ok {
+		t.Fatal("openapi.yaml no registra paths./private/me/professional")
 	}
-	if _, ok := doc.Paths["/private/barbers/{barberId}/photo"]; !ok {
-		t.Fatal("openapi.yaml no registra paths./private/barbers/{barberId}/photo")
+	if _, ok := doc.Paths["/private/professionals/{professionalId}/photo"]; !ok {
+		t.Fatal("openapi.yaml no registra paths./private/professionals/{professionalId}/photo")
 	}
 }

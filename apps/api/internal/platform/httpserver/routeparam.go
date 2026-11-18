@@ -8,7 +8,7 @@ import (
 )
 
 // URLParam es el único punto donde un handler de módulo puede leer un
-// parámetro de ruta ({barberId}, y cualquier otro que HU-021 en adelante
+// parámetro de ruta ({professionalId}, y cualquier otro que HU-021 en adelante
 // necesite): httpserver es la ÚNICA capa autorizada a importar Chi
 // (DEC-034, TestDomainAndServicesDoNotImportChi en
 // internal/platform/archtest/chi_boundary_test.go), así que ningún

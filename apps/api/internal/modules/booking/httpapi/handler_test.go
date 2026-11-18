@@ -128,7 +128,7 @@ func requestWithPrincipal(method, target string, body []byte) *http.Request {
 
 func validRequestBody() []byte {
 	return []byte(`{
-		"barberId": "8f3ac2b1-e4d5-46f6-a7c8-d9e0f1a2b3c4",
+		"professionalId": "8f3ac2b1-e4d5-46f6-a7c8-d9e0f1a2b3c4",
 		"serviceId": "6f1a2b3c-4d5e-4f60-8172-8394a5b6c7d8",
 		"attendeeName": "Carlos Restrepo",
 		"customerFullName": "Carlos Restrepo",
@@ -142,7 +142,7 @@ func fixedCreateFn(t *testing.T) func(context.Context, string, booking.CreateInt
 	return func(_ context.Context, _ string, input booking.CreateInternalInput, _ idempotency.Key, _ idempotency.Fingerprint) (booking.CreateManualResult, error) {
 		body, err := json.Marshal(map[string]any{
 			"id":              "appt-1",
-			"barberId":        input.BarberID,
+			"professionalId":  input.BarberID,
 			"serviceId":       input.ServiceID,
 			"customerId":      "cust-1",
 			"attendeeName":    input.AttendeeName,
@@ -208,7 +208,7 @@ func TestCreateManualAppointmentHandler_UnknownField_Returns400(t *testing.T) {
 	repo := &fakeRepository{createFn: fixedCreateFn(t)}
 	h := newHandler(repo)
 
-	body := []byte(`{"barberId":"8f3ac2b1-e4d5-46f6-a7c8-d9e0f1a2b3c4","serviceId":"6f1a2b3c-4d5e-4f60-8172-8394a5b6c7d8","attendeeName":"Carlos","customerFullName":"Carlos","startsAt":"2026-09-03T14:30:00","unexpected":true}`)
+	body := []byte(`{"professionalId":"8f3ac2b1-e4d5-46f6-a7c8-d9e0f1a2b3c4","serviceId":"6f1a2b3c-4d5e-4f60-8172-8394a5b6c7d8","attendeeName":"Carlos","customerFullName":"Carlos","startsAt":"2026-09-03T14:30:00","unexpected":true}`)
 	req := requestWithPrincipal(http.MethodPost, "/api/v1/private/appointments", body)
 	req.Header.Set("Idempotency-Key", "key-1")
 	rec := httptest.NewRecorder()

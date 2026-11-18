@@ -15,7 +15,7 @@ import (
 // importa appointmentnotice (se satisfacen estructuralmente, como el correo de
 // confirmación con publicbooking).
 const (
-	changeNoticeCancelled   = "cancelled_by_barber"
+	changeNoticeCancelled   = "cancelled_by_professional"
 	changeNoticeRescheduled = "rescheduled"
 	changeNoticeReminder    = "reminder"
 )

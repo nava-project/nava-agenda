@@ -58,7 +58,7 @@ type CancelledAppointment struct {
 // cancelación idempotente (RN-IDE-01, DEC-043), mismo criterio que
 // RescheduleResult: Decision.Outcome distingue Proceed (aplicada ahora,
 // incluida una cancelación repetida que ya encontró la cita
-// `cancelled_by_barber`, CA-066-04) de Replay (repetición exacta por la
+// `cancelled_by_professional`, CA-066-04) de Replay (repetición exacta por la
 // misma Idempotency-Key) y cualquier otro desenlace que Decision.AsError()
 // ya traduce.
 type CancelAppointmentByBarberResult struct {

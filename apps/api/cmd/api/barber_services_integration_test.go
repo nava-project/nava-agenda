@@ -17,7 +17,7 @@ import (
 )
 
 type assignmentBody struct {
-	BarberID  string `json:"barberId"`
+	BarberID  string `json:"professionalId"`
 	ServiceID string `json:"serviceId"`
 	CreatedAt string `json:"createdAt"`
 }
@@ -28,7 +28,7 @@ type assignmentListBody struct {
 }
 
 func doListAssignmentsRequest(router http.Handler, rawToken, barberID, query string) *httptest.ResponseRecorder {
-	target := "/api/v1/private/barbers/" + barberID + "/services"
+	target := "/api/v1/private/professionals/" + barberID + "/services"
 	if query != "" {
 		target += "?" + query
 	}
@@ -42,7 +42,7 @@ func doListAssignmentsRequest(router http.Handler, rawToken, barberID, query str
 }
 
 func doAssignServiceRequest(router http.Handler, rawToken, barberID, serviceID string) *httptest.ResponseRecorder {
-	req := httptest.NewRequest(http.MethodPut, "/api/v1/private/barbers/"+barberID+"/services/"+serviceID, nil)
+	req := httptest.NewRequest(http.MethodPut, "/api/v1/private/professionals/"+barberID+"/services/"+serviceID, nil)
 	if rawToken != "" {
 		req.AddCookie(&http.Cookie{Name: cookieName, Value: rawToken})
 	}
@@ -52,7 +52,7 @@ func doAssignServiceRequest(router http.Handler, rawToken, barberID, serviceID s
 }
 
 func doUnassignServiceRequest(router http.Handler, rawToken, barberID, serviceID string) *httptest.ResponseRecorder {
-	req := httptest.NewRequest(http.MethodDelete, "/api/v1/private/barbers/"+barberID+"/services/"+serviceID, nil)
+	req := httptest.NewRequest(http.MethodDelete, "/api/v1/private/professionals/"+barberID+"/services/"+serviceID, nil)
 	if rawToken != "" {
 		req.AddCookie(&http.Cookie{Name: cookieName, Value: rawToken})
 	}
@@ -116,7 +116,7 @@ func TestBarberServices_HTTP_AssignRepeatListUnassign_FullJourney(t *testing.T) 
 		t.Fatalf("unexpected assignment body: %+v", firstBody)
 	}
 	loc := first.Header().Get("Location")
-	wantLoc := "/private/barbers/" + barber.ID + "/services/" + service.ID
+	wantLoc := "/private/professionals/" + barber.ID + "/services/" + service.ID
 	if loc != wantLoc {
 		t.Fatalf("expected Location %q, got %q", wantLoc, loc)
 	}
@@ -283,7 +283,7 @@ func TestBarberServices_HTTP_ResponseNeverIncludesNameDurationPrice(t *testing.T
 	if err := json.Unmarshal(rec.Body.Bytes(), &generic); err != nil {
 		t.Fatalf("decode: %v", err)
 	}
-	wantKeys := map[string]bool{"barberId": true, "serviceId": true, "createdAt": true}
+	wantKeys := map[string]bool{"professionalId": true, "serviceId": true, "createdAt": true}
 	if len(generic) != len(wantKeys) {
 		t.Fatalf("CA-023-07: expected exactly %v, got keys %v", wantKeys, generic)
 	}

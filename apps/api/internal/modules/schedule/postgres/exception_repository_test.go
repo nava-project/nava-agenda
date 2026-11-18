@@ -36,7 +36,7 @@ const (
 func createException(t *testing.T, repo *schedulepostgres.Repository, shop database.BarbershopID, barberID string, input schedule.CreateExceptionInput) schedule.ScheduleException {
 	t.Helper()
 	key := idempotency.Key("exc-fixture-" + uniqueSuffix(t))
-	fp := idempotency.ComputeFingerprint("POST", "/api/v1/private/barbers/"+barberID+"/schedule-exceptions", []byte(uniqueSuffix(t)))
+	fp := idempotency.ComputeFingerprint("POST", "/api/v1/private/professionals/"+barberID+"/schedule-exceptions", []byte(uniqueSuffix(t)))
 
 	result, err := repo.CreateException(context.Background(), string(shop), barberID, input, key, fp)
 	if err != nil {

@@ -389,7 +389,7 @@ func TestPublish_ConflictWithADeletedEventID_MovesToTheNextGeneration(t *testing
 // --- retirar y conservar ----------------------------------------------------
 
 func TestRemove_CancelledAppointment_DeletesTheEventAndNotifiesTheGuest(t *testing.T) {
-	for _, status := range []string{"cancelled_by_customer", "cancelled_by_barber"} {
+	for _, status := range []string{"cancelled_by_customer", "cancelled_by_professional"} {
 		t.Run(status, func(t *testing.T) {
 			h := newPubHarness(t)
 			jc := h.apptContext(t)
@@ -415,7 +415,7 @@ func TestRemove_CancelledAppointment_DeletesTheEventAndNotifiesTheGuest(t *testi
 func TestRemove_AlreadyGoneInGoogle_IsSuccess(t *testing.T) {
 	h := newPubHarness(t)
 	jc := h.apptContext(t)
-	jc.ApptStatus = "cancelled_by_barber"
+	jc.ApptStatus = "cancelled_by_professional"
 	jc.LinkEventID = "navaevento1"
 	h.api.deleteErr = &googlecalendar.APIError{Status: 410}
 
@@ -426,7 +426,7 @@ func TestRemove_AlreadyGoneInGoogle_IsSuccess(t *testing.T) {
 
 func TestNoLink_CancelledOrTerminalOrPast_DoesNothingInGoogle(t *testing.T) {
 	cases := map[string]func(jc *googlecalendar.JobContext){
-		"cancelada sin vínculo": func(jc *googlecalendar.JobContext) { jc.ApptStatus = "cancelled_by_barber" },
+		"cancelada sin vínculo": func(jc *googlecalendar.JobContext) { jc.ApptStatus = "cancelled_by_professional" },
 		"completada":            func(jc *googlecalendar.JobContext) { jc.ApptStatus = "completed" },
 		"no_show":               func(jc *googlecalendar.JobContext) { jc.ApptStatus = "no_show" },
 		"confirmada ya pasada": func(jc *googlecalendar.JobContext) {

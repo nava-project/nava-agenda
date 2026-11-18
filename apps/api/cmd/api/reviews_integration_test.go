@@ -119,8 +119,8 @@ func TestReviews_HTTP_Journey_RateThenPublicThenHideThenGone(t *testing.T) {
 	}
 	barberID, token := seedCompletedAppointmentWithToken(t, db, "completed")
 	reviewPath := "/api/v1/customer/appointments/" + token + "/review"
-	publicPath := "/api/v1/public/barbershops/" + reviewSlugUno + "/barbers/" + barberID + "/reviews"
-	panelPath := "/api/v1/private/barbers/" + barberID + "/reviews"
+	publicPath := "/api/v1/public/businesses/" + reviewSlugUno + "/professionals/" + barberID + "/reviews"
+	panelPath := "/api/v1/private/professionals/" + barberID + "/reviews"
 	cookieUno := createSessionCookie(t, db, reviewShopUno, reviewUserUno, "reviews-uno")
 	cookieDos := createSessionCookie(t, db, reviewShopDos, reviewUserDos, "reviews-dos")
 
@@ -221,10 +221,10 @@ func TestReviews_HTTP_NotReviewableAppointmentsAndBadTokens_AreUniform(t *testin
 		}
 	}
 	// Panel y lista pública sin sesión / con barbero inexistente.
-	if rec := reviewRequest(router, http.MethodGet, "/api/v1/private/barbers/8f3ac2b1-e4d5-46f6-a7c8-d9e0f1a2b3c4/reviews", "", ""); rec.Code != http.StatusUnauthorized {
+	if rec := reviewRequest(router, http.MethodGet, "/api/v1/private/professionals/8f3ac2b1-e4d5-46f6-a7c8-d9e0f1a2b3c4/reviews", "", ""); rec.Code != http.StatusUnauthorized {
 		t.Fatalf("panel sin sesión: esperaba 401, fue %d", rec.Code)
 	}
-	if rec := reviewRequest(router, http.MethodGet, "/api/v1/public/barbershops/"+reviewSlugUno+"/barbers/8f3ac2b1-e4d5-46f6-a7c8-d9e0f1a2b3c4/reviews", "", ""); rec.Code != http.StatusNotFound {
+	if rec := reviewRequest(router, http.MethodGet, "/api/v1/public/businesses/"+reviewSlugUno+"/professionals/8f3ac2b1-e4d5-46f6-a7c8-d9e0f1a2b3c4/reviews", "", ""); rec.Code != http.StatusNotFound {
 		t.Fatalf("barbero inexistente: esperaba 404, fue %d", rec.Code)
 	}
 }

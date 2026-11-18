@@ -1,7 +1,7 @@
 // Package httpapi es el adaptador HTTP del módulo staff: decodifica,
 // invoca staff.Service y traduce el resultado a HTTP
 // (docs/03-desarrollo/estandar-backend-go.md §4). No importa Chi
-// directamente: usa httpserver.URLParam para leer {barberId}, igual que
+// directamente: usa httpserver.URLParam para leer {professionalId}, igual que
 // httpserver.RequestIDFromContext/IdempotencyKeyFromRequest para el resto
 // de valores que Chi o net/http exponen (DEC-034,
 // internal/platform/archtest/chi_boundary_test.go).
@@ -25,12 +25,12 @@ import (
 )
 
 // barberIDParam es el nombre del parámetro de ruta que cmd/api.buildRouter
-// registra para /private/barbers/{barberId}.
-const barberIDParam = "barberId"
+// registra para /private/professionals/{professionalId}.
+const barberIDParam = "professionalId"
 
 // barberBasePath es la base usada para construir el header Location de un
 // alta exitosa, relativa a /api/v1 (igual que el resto del contrato).
-const barberBasePath = "/private/barbers/"
+const barberBasePath = "/private/professionals/"
 
 func principalOrInternalError(w http.ResponseWriter, r *http.Request, requestID string) (auth.Principal, bool) {
 	principal, ok := auth.PrincipalFromContext(r.Context())
@@ -50,7 +50,7 @@ func writeUnknownFieldOrInvalidJSONProblem(w http.ResponseWriter, requestID stri
 		apperr.Invalid("cuerpo JSON inválido o con un campo desconocido"), requestID))
 }
 
-// ListBarbersHandler expone GET /private/barbers (CA-021-01, CA-021-02).
+// ListBarbersHandler expone GET /private/professionals (CA-021-01, CA-021-02).
 type ListBarbersHandler struct {
 	service *staff.Service
 }
@@ -167,7 +167,7 @@ func (h *ListBarbersHandler) serveOwnOnly(w http.ResponseWriter, r *http.Request
 	_ = json.NewEncoder(w).Encode(response)
 }
 
-// GetBarberHandler expone GET /private/barbers/{barberId} (CA-021-05: la
+// GetBarberHandler expone GET /private/professionals/{professionalId} (CA-021-05: la
 // lectura individual permite demostrar de forma directa el 404 de un
 // barbero de otra barbería).
 type GetBarberHandler struct {
@@ -199,7 +199,7 @@ func (h *GetBarberHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	_ = json.NewEncoder(w).Encode(newBarberResponse(barber))
 }
 
-// CreateBarberHandler expone POST /private/barbers (CA-021-02), protegido
+// CreateBarberHandler expone POST /private/professionals (CA-021-02), protegido
 // por el protocolo de idempotencia reutilizable de HU-004 (RN-IDE-01,
 // DEC-043).
 type CreateBarberHandler struct {
@@ -281,7 +281,7 @@ func (h *CreateBarberHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) 
 	}
 }
 
-// UpdateBarberHandler expone PATCH /private/barbers/{barberId} (CA-021-04).
+// UpdateBarberHandler expone PATCH /private/professionals/{professionalId} (CA-021-04).
 type UpdateBarberHandler struct {
 	service *staff.Service
 }
@@ -358,7 +358,7 @@ func newBarberListResponse(result staff.ListResult) BarberListResponse {
 	return BarberListResponse{Items: items, NextCursor: next}
 }
 
-// PutBarberPhotoHandler expone PUT /private/barbers/{barberId}/photo (DEC-104):
+// PutBarberPhotoHandler expone PUT /private/professionals/{professionalId}/photo (DEC-104):
 // reemplaza la fotografía del barbero con el cuerpo binario de la solicitud.
 // PUT es idempotente por naturaleza (repetir el mismo cuerpo deja el mismo
 // estado), así que no lleva Idempotency-Key.
@@ -414,7 +414,7 @@ func (h *PutBarberPhotoHandler) ServeHTTP(w http.ResponseWriter, r *http.Request
 	_ = json.NewEncoder(w).Encode(newBarberResponse(barber))
 }
 
-// GetBarberPhotoHandler expone GET /private/barbers/{barberId}/photo (DEC-104):
+// GetBarberPhotoHandler expone GET /private/professionals/{professionalId}/photo (DEC-104):
 // sirve los bytes de la fotografía con validador ETag para que el navegador
 // revalide barato. El cliente versiona la URL con `photoUpdatedAt`, así que una
 // fotografía nueva nunca se sirve desde una caché vieja.
@@ -459,7 +459,7 @@ func (h *GetBarberPhotoHandler) ServeHTTP(w http.ResponseWriter, r *http.Request
 	_, _ = w.Write(photo.Data)
 }
 
-// DeleteBarberPhotoHandler expone DELETE /private/barbers/{barberId}/photo
+// DeleteBarberPhotoHandler expone DELETE /private/professionals/{professionalId}/photo
 // (DEC-104): quita la fotografía; el barbero vuelve al monograma. Idempotente:
 // quitar una fotografía inexistente también responde 204.
 type DeleteBarberPhotoHandler struct {

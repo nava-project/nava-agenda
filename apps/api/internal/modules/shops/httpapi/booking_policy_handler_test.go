@@ -167,7 +167,7 @@ func TestUpdateBookingPolicyHandler_UnknownField_ReturnsInvalidRequest(t *testin
 	repo := &fakeBookingPolicyRepository{}
 	h := httpapi.NewUpdateBookingPolicyHandler(shops.NewBookingPolicyService(repo))
 
-	body := []byte(`{"minAdvanceMinutes":60,"maxAdvanceDays":3,"slotGridMinutes":15,"cancellationDeadlineMinutes":20,"lateCancellationClientAllowed":true,"lateCancellationReasonRequired":true,"barbershopId":"22222222-2222-2222-2222-222222222222"}`)
+	body := []byte(`{"minAdvanceMinutes":60,"maxAdvanceDays":3,"slotGridMinutes":15,"cancellationDeadlineMinutes":20,"lateCancellationClientAllowed":true,"lateCancellationReasonRequired":true,"businessId":"22222222-2222-2222-2222-222222222222"}`)
 	req := requestWithPrincipalAndIfMatch(http.MethodPut, "/api/v1/private/settings/booking-policy", body, "tok-1")
 	rec := httptest.NewRecorder()
 	h.ServeHTTP(rec, req)

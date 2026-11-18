@@ -21,16 +21,16 @@ import (
 
 // barberIDParam y workingHourIDParam son los nombres de los parámetros de
 // ruta que cmd/api.buildRouter registra para
-// /private/barbers/{barberId}/working-hours[/{workingHourId}].
+// /private/professionals/{professionalId}/working-hours[/{workingHourId}].
 const (
-	barberIDParam      = "barberId"
+	barberIDParam      = "professionalId"
 	workingHourIDParam = "workingHourId"
 )
 
 // workingHourBasePath es la base usada para construir el header Location
 // de un alta exitosa, relativa a /api/v1.
 func workingHourBasePath(barberID string) string {
-	return "/private/barbers/" + barberID + "/working-hours/"
+	return "/private/professionals/" + barberID + "/working-hours/"
 }
 
 func principalOrInternalError(w http.ResponseWriter, r *http.Request, requestID string) (auth.Principal, bool) {
@@ -52,7 +52,7 @@ func writeUnknownFieldOrInvalidJSONProblem(w http.ResponseWriter, requestID stri
 }
 
 // ListWorkingHoursHandler expone
-// GET /private/barbers/{barberId}/working-hours (CA-040-01).
+// GET /private/professionals/{professionalId}/working-hours (CA-040-01).
 type ListWorkingHoursHandler struct {
 	service *schedule.Service
 }
@@ -98,7 +98,7 @@ func (h *ListWorkingHoursHandler) ServeHTTP(w http.ResponseWriter, r *http.Reque
 }
 
 // GetWorkingHourHandler expone
-// GET /private/barbers/{barberId}/working-hours/{workingHourId} (HU-040):
+// GET /private/professionals/{professionalId}/working-hours/{workingHourId} (HU-040):
 // la lectura individual permite demostrar de forma directa el 404 de un
 // tramo de otro barbero o de otra barbería (CA-040-05).
 type GetWorkingHourHandler struct {
@@ -133,7 +133,7 @@ func (h *GetWorkingHourHandler) ServeHTTP(w http.ResponseWriter, r *http.Request
 }
 
 // CreateWorkingHourHandler expone
-// POST /private/barbers/{barberId}/working-hours (CA-040-02), protegido
+// POST /private/professionals/{professionalId}/working-hours (CA-040-02), protegido
 // por el protocolo de idempotencia reutilizable de HU-004 (RN-IDE-01,
 // DEC-043).
 type CreateWorkingHourHandler struct {
@@ -213,7 +213,7 @@ func (h *CreateWorkingHourHandler) ServeHTTP(w http.ResponseWriter, r *http.Requ
 }
 
 // UpdateWorkingHourHandler expone
-// PATCH /private/barbers/{barberId}/working-hours/{workingHourId}
+// PATCH /private/professionals/{professionalId}/working-hours/{workingHourId}
 // (CA-040-04).
 type UpdateWorkingHourHandler struct {
 	service *schedule.Service
@@ -264,7 +264,7 @@ func (h *UpdateWorkingHourHandler) ServeHTTP(w http.ResponseWriter, r *http.Requ
 }
 
 // DeleteWorkingHourHandler expone
-// DELETE /private/barbers/{barberId}/working-hours/{workingHourId}
+// DELETE /private/professionals/{professionalId}/working-hours/{workingHourId}
 // (CA-040-05).
 type DeleteWorkingHourHandler struct {
 	service *schedule.Service

@@ -108,7 +108,7 @@ func TestCreateHandler_Errors(t *testing.T) {
 		{"calificación 0", `{"rating":0}`, reviews.Created, http.StatusUnprocessableEntity, 0},
 		{"calificación 6", `{"rating":6}`, reviews.Created, http.StatusUnprocessableEntity, 0},
 		{"comentario de 501", `{"rating":3,"comment":"` + strings.Repeat("a", 501) + `"}`, reviews.Created, http.StatusUnprocessableEntity, 0},
-		{"campo desconocido", `{"rating":3,"barberId":"x"}`, reviews.Created, http.StatusBadRequest, 0},
+		{"campo desconocido", `{"rating":3,"professionalId":"x"}`, reviews.Created, http.StatusBadRequest, 0},
 		{"JSON inválido", `{`, reviews.Created, http.StatusBadRequest, 0},
 		{"calificación decimal", `{"rating":4.5}`, reviews.Created, http.StatusBadRequest, 0},
 		{"token desconocido", `{"rating":3}`, reviews.TokenNotFound, http.StatusNotFound, 1},
@@ -138,7 +138,7 @@ func TestListPublicHandler_ShapeAndNotFound(t *testing.T) {
 	h := httpapi.NewListPublicReviewsHandler(reviews.NewService(repo))
 
 	rec := httptest.NewRecorder()
-	h.ServeHTTP(rec, jsonRequest(http.MethodGet, "/x", "", map[string]string{"slug": "s", "barberId": barberID}))
+	h.ServeHTTP(rec, jsonRequest(http.MethodGet, "/x", "", map[string]string{"slug": "s", "professionalId": barberID}))
 	if rec.Code != http.StatusOK {
 		t.Fatalf("status = %d: %s", rec.Code, rec.Body.String())
 	}
@@ -162,14 +162,14 @@ func TestListPublicHandler_ShapeAndNotFound(t *testing.T) {
 	// Sin reseñas: items es [] y rating null (nunca null/ausente en items).
 	repo.public = reviews.PublicList{}
 	rec = httptest.NewRecorder()
-	h.ServeHTTP(rec, jsonRequest(http.MethodGet, "/x", "", map[string]string{"slug": "s", "barberId": barberID}))
+	h.ServeHTTP(rec, jsonRequest(http.MethodGet, "/x", "", map[string]string{"slug": "s", "professionalId": barberID}))
 	if !strings.Contains(rec.Body.String(), `"items":[]`) || !strings.Contains(rec.Body.String(), `"rating":null`) {
 		t.Fatalf("sin reseñas: %s", rec.Body.String())
 	}
 
 	repo.found = false
 	rec = httptest.NewRecorder()
-	h.ServeHTTP(rec, jsonRequest(http.MethodGet, "/x", "", map[string]string{"slug": "s", "barberId": barberID}))
+	h.ServeHTTP(rec, jsonRequest(http.MethodGet, "/x", "", map[string]string{"slug": "s", "professionalId": barberID}))
 	if rec.Code != http.StatusNotFound {
 		t.Fatalf("barbero desconocido: status = %d", rec.Code)
 	}
@@ -184,7 +184,7 @@ func TestPanelHandlers_RequireSessionAndModerate(t *testing.T) {
 		}},
 	}
 	svc := reviews.NewService(repo)
-	params := map[string]string{"barberId": barberID, "reviewId": reviewID}
+	params := map[string]string{"professionalId": barberID, "reviewId": reviewID}
 
 	// Sin principal de sesión: defecto de wiring → 500, nunca datos.
 	rec := httptest.NewRecorder()

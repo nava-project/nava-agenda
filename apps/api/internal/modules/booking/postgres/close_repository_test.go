@@ -254,7 +254,7 @@ func TestCompleteAppointment_CancelledByBarber_ReturnsInvalidState(t *testing.T)
 	if err != nil {
 		t.Fatalf("CreateInternal: %v", err)
 	}
-	setAppointmentStatus(t, db, shopQ, created.Appointment.ID, "cancelled_by_barber")
+	setAppointmentStatus(t, db, shopQ, created.Appointment.ID, "cancelled_by_professional")
 
 	afterDetail, _, err := repo.GetAppointmentDetail(context.Background(), string(shopQ), created.Appointment.ID)
 	if err != nil {

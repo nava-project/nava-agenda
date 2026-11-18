@@ -26,8 +26,8 @@ const appointmentBasePath = "/private/appointments/"
 
 // agendaBarberIDParam es el nombre del parámetro de ruta que
 // cmd/api.buildRouter registra para
-// /private/barbers/{barberId}/appointments/daily-agenda (HU-062).
-const agendaBarberIDParam = "barberId"
+// /private/professionals/{professionalId}/appointments/daily-agenda (HU-062).
+const agendaBarberIDParam = "professionalId"
 
 func principalOrInternalError(w http.ResponseWriter, r *http.Request, requestID string) (auth.Principal, bool) {
 	principal, ok := auth.PrincipalFromContext(r.Context())
@@ -132,7 +132,7 @@ func (h *CreateManualAppointmentHandler) ServeHTTP(w http.ResponseWriter, r *htt
 }
 
 // ListDailyAgendaHandler expone
-// GET /private/barbers/{barberId}/appointments/daily-agenda (HU-062,
+// GET /private/professionals/{professionalId}/appointments/daily-agenda (HU-062,
 // CA-062-01 a CA-062-07): lectura de la agenda diaria de un único barbero,
 // sin idempotencia (operación de solo lectura).
 type ListDailyAgendaHandler struct {

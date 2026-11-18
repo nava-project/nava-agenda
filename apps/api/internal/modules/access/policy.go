@@ -19,7 +19,7 @@ const (
 	Filtered
 	// DenyRestricted: configuración de la barbería; 403 para el empleado.
 	DenyRestricted
-	// OwnBarber: ruta con {barberId}; solo su propio barbero (403 si no).
+	// OwnBarber: ruta con {professionalId}; solo su propio barbero (403 si no).
 	OwnBarber
 	// OwnBarberInBody: el barberId viaja en el cuerpo JSON (crear turno).
 	OwnBarberInBody
@@ -47,7 +47,7 @@ func (r Rule) String() string {
 }
 
 // Entry clasifica una ruta privada: método y patrón chi relativo al prefijo
-// privado (p. ej. "/barbers/{barberId}/photo").
+// privado (p. ej. "/professionals/{professionalId}/photo").
 type Entry struct {
 	Method  string
 	Pattern string

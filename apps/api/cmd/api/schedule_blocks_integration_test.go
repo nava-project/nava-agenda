@@ -90,7 +90,7 @@ func TestTimeBlocks_HTTP_CreateListGetDelete_FullJourney(t *testing.T) {
 
 	key := uniqueToken(t, "block-create")
 	body := `{"blockType":"emergency","startsAt":"2027-07-20T15:00:00-05:00","endsAt":"2027-07-20T19:00:00-05:00","reason":"Urgencia médica"}`
-	first := doJSONRequest(router, http.MethodPost, raw, "/barbers/"+barber.ID+"/time-blocks", key, body)
+	first := doJSONRequest(router, http.MethodPost, raw, "/professionals/"+barber.ID+"/time-blocks", key, body)
 	if first.Code != http.StatusCreated {
 		t.Fatalf("expected 201 on create, got %d: %s", first.Code, first.Body.String())
 	}
@@ -101,19 +101,19 @@ func TestTimeBlocks_HTTP_CreateListGetDelete_FullJourney(t *testing.T) {
 	if created.BlockType != "emergency" || created.Source != "manual" {
 		t.Fatalf("unexpected created block: %+v", created)
 	}
-	wantLoc := "/private/barbers/" + barber.ID + "/time-blocks/" + created.ID
+	wantLoc := "/private/professionals/" + barber.ID + "/time-blocks/" + created.ID
 	if loc := first.Header().Get("Location"); loc != wantLoc {
 		t.Fatalf("expected Location %q, got %q", wantLoc, loc)
 	}
 
 	// RN-IDE-01: repetir exactamente la misma clave y cuerpo reproduce la
 	// misma respuesta, sin crear un segundo bloqueo.
-	replay := doJSONRequest(router, http.MethodPost, raw, "/barbers/"+barber.ID+"/time-blocks", key, body)
+	replay := doJSONRequest(router, http.MethodPost, raw, "/professionals/"+barber.ID+"/time-blocks", key, body)
 	if replay.Code != http.StatusCreated || replay.Body.String() != first.Body.String() {
 		t.Fatalf("expected byte-identical replay, got %d: %s", replay.Code, replay.Body.String())
 	}
 
-	list := doJSONRequest(router, http.MethodGet, raw, "/barbers/"+barber.ID+"/time-blocks", "", "")
+	list := doJSONRequest(router, http.MethodGet, raw, "/professionals/"+barber.ID+"/time-blocks", "", "")
 	if list.Code != http.StatusOK {
 		t.Fatalf("expected 200 on list, got %d: %s", list.Code, list.Body.String())
 	}
@@ -131,17 +131,17 @@ func TestTimeBlocks_HTTP_CreateListGetDelete_FullJourney(t *testing.T) {
 		t.Fatalf("expected the created block in the list, got %+v", listed.Items)
 	}
 
-	get := doJSONRequest(router, http.MethodGet, raw, "/barbers/"+barber.ID+"/time-blocks/"+created.ID, "", "")
+	get := doJSONRequest(router, http.MethodGet, raw, "/professionals/"+barber.ID+"/time-blocks/"+created.ID, "", "")
 	if get.Code != http.StatusOK {
 		t.Fatalf("expected 200 on get, got %d: %s", get.Code, get.Body.String())
 	}
 
-	del := doJSONRequest(router, http.MethodDelete, raw, "/barbers/"+barber.ID+"/time-blocks/"+created.ID, "", "")
+	del := doJSONRequest(router, http.MethodDelete, raw, "/professionals/"+barber.ID+"/time-blocks/"+created.ID, "", "")
 	if del.Code != http.StatusNoContent {
 		t.Fatalf("expected 204 on delete, got %d: %s", del.Code, del.Body.String())
 	}
 
-	delAgain := doJSONRequest(router, http.MethodDelete, raw, "/barbers/"+barber.ID+"/time-blocks/"+created.ID, "", "")
+	delAgain := doJSONRequest(router, http.MethodDelete, raw, "/professionals/"+barber.ID+"/time-blocks/"+created.ID, "", "")
 	if delAgain.Code != http.StatusNotFound {
 		t.Fatalf("expected 404 retrying delete (RN-BLQ-04, no physical delete), got %d: %s", delAgain.Code, delAgain.Body.String())
 	}
@@ -160,7 +160,7 @@ func TestTimeBlocks_HTTP_CrossTenant_NeverLeaksAnotherShopsBlock(t *testing.T) {
 
 	key := uniqueToken(t, "block-cross")
 	body := `{"blockType":"vacation","startsAt":"2027-08-01T00:00:00-05:00","endsAt":"2027-08-15T00:00:00-05:00"}`
-	created := doJSONRequest(router, http.MethodPost, rawA, "/barbers/"+barberA.ID+"/time-blocks", key, body)
+	created := doJSONRequest(router, http.MethodPost, rawA, "/professionals/"+barberA.ID+"/time-blocks", key, body)
 	if created.Code != http.StatusCreated {
 		t.Fatalf("setup create: expected 201, got %d: %s", created.Code, created.Body.String())
 	}
@@ -168,7 +168,7 @@ func TestTimeBlocks_HTTP_CrossTenant_NeverLeaksAnotherShopsBlock(t *testing.T) {
 	_ = json.Unmarshal(created.Body.Bytes(), &block)
 
 	rawB := createSessionCookie(t, db, shopB, staffUserActiveB, "blocks-tenant-b")
-	crossGet := doJSONRequest(router, http.MethodGet, rawB, "/barbers/"+barberA.ID+"/time-blocks/"+block.ID, "", "")
+	crossGet := doJSONRequest(router, http.MethodGet, rawB, "/professionals/"+barberA.ID+"/time-blocks/"+block.ID, "", "")
 	if crossGet.Code != http.StatusNotFound {
 		t.Fatalf("expected 404 for a cross-tenant read, got %d: %s", crossGet.Code, crossGet.Body.String())
 	}
@@ -189,7 +189,7 @@ func TestTimeBlockSeries_HTTP_WeeklyCreateUpdateSplitDelete_FullJourney(t *testi
 
 	key := uniqueToken(t, "series-create")
 	body := `{"blockType":"lunch","recurrenceKind":"weekly","isoWeekday":1,"startsTime":"13:00","durationMinutes":60,"effectiveFrom":"2027-01-04"}`
-	created := doJSONRequest(router, http.MethodPost, raw, "/barbers/"+barber.ID+"/time-block-series", key, body)
+	created := doJSONRequest(router, http.MethodPost, raw, "/professionals/"+barber.ID+"/time-block-series", key, body)
 	if created.Code != http.StatusCreated {
 		t.Fatalf("expected 201 on create, got %d: %s", created.Code, created.Body.String())
 	}
@@ -199,7 +199,7 @@ func TestTimeBlockSeries_HTTP_WeeklyCreateUpdateSplitDelete_FullJourney(t *testi
 	}
 
 	wholeBody := `{"scope":"whole","blockType":"lunch","startsTime":"13:30","durationMinutes":45,"effectiveFrom":"2027-01-04"}`
-	updated := doJSONRequest(router, http.MethodPatch, raw, "/barbers/"+barber.ID+"/time-block-series/"+series.ID, "", wholeBody)
+	updated := doJSONRequest(router, http.MethodPatch, raw, "/professionals/"+barber.ID+"/time-block-series/"+series.ID, "", wholeBody)
 	if updated.Code != http.StatusOK {
 		t.Fatalf("expected 200 on whole update, got %d: %s", updated.Code, updated.Body.String())
 	}
@@ -210,7 +210,7 @@ func TestTimeBlockSeries_HTTP_WeeklyCreateUpdateSplitDelete_FullJourney(t *testi
 	}
 
 	splitBody := `{"scope":"this_and_following","effectiveDate":"2027-06-01","blockType":"lunch","startsTime":"14:00","durationMinutes":30,"effectiveFrom":"2027-06-01"}`
-	split := doJSONRequest(router, http.MethodPatch, raw, "/barbers/"+barber.ID+"/time-block-series/"+series.ID, "", splitBody)
+	split := doJSONRequest(router, http.MethodPatch, raw, "/professionals/"+barber.ID+"/time-block-series/"+series.ID, "", splitBody)
 	if split.Code != http.StatusOK {
 		t.Fatalf("expected 200 on split update, got %d: %s", split.Code, split.Body.String())
 	}
@@ -223,18 +223,18 @@ func TestTimeBlockSeries_HTTP_WeeklyCreateUpdateSplitDelete_FullJourney(t *testi
 		t.Fatalf("unexpected new series after split: %+v", newSeries)
 	}
 
-	originalAfter := doJSONRequest(router, http.MethodGet, raw, "/barbers/"+barber.ID+"/time-block-series/"+series.ID, "", "")
+	originalAfter := doJSONRequest(router, http.MethodGet, raw, "/professionals/"+barber.ID+"/time-block-series/"+series.ID, "", "")
 	var originalAfterBody timeBlockSeriesBody
 	_ = json.Unmarshal(originalAfter.Body.Bytes(), &originalAfterBody)
 	if originalAfterBody.EffectiveUntil == nil || *originalAfterBody.EffectiveUntil != "2027-05-31" {
 		t.Fatalf("expected original series truncated to 2027-05-31, got %+v", originalAfterBody.EffectiveUntil)
 	}
 
-	delOriginal := doJSONRequest(router, http.MethodDelete, raw, "/barbers/"+barber.ID+"/time-block-series/"+series.ID, "", "")
+	delOriginal := doJSONRequest(router, http.MethodDelete, raw, "/professionals/"+barber.ID+"/time-block-series/"+series.ID, "", "")
 	if delOriginal.Code != http.StatusNoContent {
 		t.Fatalf("expected 204 deleting the original series, got %d: %s", delOriginal.Code, delOriginal.Body.String())
 	}
-	delNew := doJSONRequest(router, http.MethodDelete, raw, "/barbers/"+barber.ID+"/time-block-series/"+newSeries.ID, "", "")
+	delNew := doJSONRequest(router, http.MethodDelete, raw, "/professionals/"+barber.ID+"/time-block-series/"+newSeries.ID, "", "")
 	if delNew.Code != http.StatusNoContent {
 		t.Fatalf("expected 204 deleting the split series, got %d: %s", delNew.Code, delNew.Body.String())
 	}
@@ -255,7 +255,7 @@ func TestTimeBlockSeries_HTTP_DateList_AddRemoveDatesAndExceptions(t *testing.T)
 
 	key := uniqueToken(t, "series-datelist-create")
 	body := `{"blockType":"vacation","recurrenceKind":"date_list","startsTime":"00:00","durationMinutes":1440,"effectiveFrom":"2027-12-01","effectiveUntil":"2027-12-31","explicitDates":["2027-12-15","2027-12-16"]}`
-	created := doJSONRequest(router, http.MethodPost, raw, "/barbers/"+barber.ID+"/time-block-series", key, body)
+	created := doJSONRequest(router, http.MethodPost, raw, "/professionals/"+barber.ID+"/time-block-series", key, body)
 	if created.Code != http.StatusCreated {
 		t.Fatalf("expected 201 on create, got %d: %s", created.Code, created.Body.String())
 	}
@@ -265,21 +265,21 @@ func TestTimeBlockSeries_HTTP_DateList_AddRemoveDatesAndExceptions(t *testing.T)
 		t.Fatalf("expected 2 explicit dates created in one operation, got %+v", series.Dates)
 	}
 
-	addDate := doJSONRequest(router, http.MethodPost, raw, "/barbers/"+barber.ID+"/time-block-series/"+series.ID+"/dates", "", `{"blockDate":"2027-12-20"}`)
+	addDate := doJSONRequest(router, http.MethodPost, raw, "/professionals/"+barber.ID+"/time-block-series/"+series.ID+"/dates", "", `{"blockDate":"2027-12-20"}`)
 	if addDate.Code != http.StatusNoContent {
 		t.Fatalf("expected 204 adding a date, got %d: %s", addDate.Code, addDate.Body.String())
 	}
-	removeDate := doJSONRequest(router, http.MethodDelete, raw, "/barbers/"+barber.ID+"/time-block-series/"+series.ID+"/dates/2027-12-15", "", "")
+	removeDate := doJSONRequest(router, http.MethodDelete, raw, "/professionals/"+barber.ID+"/time-block-series/"+series.ID+"/dates/2027-12-15", "", "")
 	if removeDate.Code != http.StatusNoContent {
 		t.Fatalf("expected 204 removing a date, got %d: %s", removeDate.Code, removeDate.Body.String())
 	}
 
-	addException := doJSONRequest(router, http.MethodPost, raw, "/barbers/"+barber.ID+"/time-block-series/"+series.ID+"/exceptions", "", `{"excludedDate":"2027-12-16"}`)
+	addException := doJSONRequest(router, http.MethodPost, raw, "/professionals/"+barber.ID+"/time-block-series/"+series.ID+"/exceptions", "", `{"excludedDate":"2027-12-16"}`)
 	if addException.Code != http.StatusNoContent {
 		t.Fatalf("expected 204 adding an exception, got %d: %s", addException.Code, addException.Body.String())
 	}
 
-	fetched := doJSONRequest(router, http.MethodGet, raw, "/barbers/"+barber.ID+"/time-block-series/"+series.ID, "", "")
+	fetched := doJSONRequest(router, http.MethodGet, raw, "/professionals/"+barber.ID+"/time-block-series/"+series.ID, "", "")
 	var fetchedBody timeBlockSeriesBody
 	_ = json.Unmarshal(fetched.Body.Bytes(), &fetchedBody)
 	if len(fetchedBody.Dates) != 2 { // 2027-12-16 y 2027-12-20 (2027-12-15 se retiró)
@@ -289,7 +289,7 @@ func TestTimeBlockSeries_HTTP_DateList_AddRemoveDatesAndExceptions(t *testing.T)
 		t.Fatalf("unexpected exceptions: %+v", fetchedBody.Exceptions)
 	}
 
-	removeException := doJSONRequest(router, http.MethodDelete, raw, "/barbers/"+barber.ID+"/time-block-series/"+series.ID+"/exceptions/2027-12-16", "", "")
+	removeException := doJSONRequest(router, http.MethodDelete, raw, "/professionals/"+barber.ID+"/time-block-series/"+series.ID+"/exceptions/2027-12-16", "", "")
 	if removeException.Code != http.StatusNoContent {
 		t.Fatalf("expected 204 removing an exception, got %d: %s", removeException.Code, removeException.Body.String())
 	}

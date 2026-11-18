@@ -533,7 +533,7 @@ func TestRestore_ListsOnlyLiveFutureLinksAndRequeuesIdempotently(t *testing.T) {
 		}
 	}
 	err := app.InTenantTx(ctx, f.shop, func(ctx context.Context, q database.Queries) error {
-		if _, err := q.Exec(ctx, `UPDATE appointment SET status = 'cancelled_by_barber', resolved_at = now() WHERE id = $1`, cancelled); err != nil {
+		if _, err := q.Exec(ctx, `UPDATE appointment SET status = 'cancelled_by_professional', resolved_at = now() WHERE id = $1`, cancelled); err != nil {
 			return err
 		}
 		if _, err := q.Exec(ctx, `UPDATE appointment SET status = 'completed', resolved_at = now() WHERE id = $1`, completed); err != nil {
@@ -662,9 +662,9 @@ func TestDisconnectAndInitialPublication_DropAndRebuildTheQueue(t *testing.T) {
 	}
 
 	// Reconectar publica lo vigente de los próximos 6 meses y nada de lo pasado ni lejano.
-	f.seedAppointment(t, "confirmed", 24*time.Hour)           // dentro de la ventana
-	f.seedAppointment(t, "confirmed", 24*30*8*time.Hour)      // a 8 meses: fuera
-	f.seedAppointment(t, "cancelled_by_barber", 30*time.Hour) // cancelada: no se publica
+	f.seedAppointment(t, "confirmed", 24*time.Hour)                 // dentro de la ventana
+	f.seedAppointment(t, "confirmed", 24*30*8*time.Hour)            // a 8 meses: fuera
+	f.seedAppointment(t, "cancelled_by_professional", 30*time.Hour) // cancelada: no se publica
 	if _, err := f.repo.SaveConnected(ctx, string(f.shop), f.barberID, connectedData(now)); err != nil {
 		t.Fatal(err)
 	}

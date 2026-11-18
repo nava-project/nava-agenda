@@ -85,7 +85,7 @@ func TestCreatePublic_NewCustomer_PersistsAppointmentHistoryAndToken(t *testing.
 
 	var parsed struct {
 		AttendeeName    string `json:"attendeeName"`
-		BarbershopName  string `json:"barbershopName"`
+		BarbershopName  string `json:"businessName"`
 		ServiceName     string `json:"serviceName"`
 		DurationMinutes int    `json:"durationMinutes"`
 		Currency        string `json:"currency"`

@@ -22,7 +22,7 @@ type WorkingHourResponse struct {
 }
 
 // WorkingHourListResponse es la página paginada por cursor de
-// GET /private/barbers/{barberId}/working-hours (CA-040-01). NextCursor es
+// GET /private/professionals/{professionalId}/working-hours (CA-040-01). NextCursor es
 // un puntero para que "sin página siguiente" serialice como `null`
 // explícito, nunca como una cadena vacía.
 type WorkingHourListResponse struct {
@@ -31,7 +31,7 @@ type WorkingHourListResponse struct {
 }
 
 // CreateWorkingHourRequest es el cuerpo de
-// POST /private/barbers/{barberId}/working-hours (CA-040-02). Cerrado: el
+// POST /private/professionals/{professionalId}/working-hours (CA-040-02). Cerrado: el
 // handler rechaza cualquier campo desconocido. Nunca declara barbershopId
 // ni barberId: el tenant se deriva de SessionCookie, el barbero de la ruta.
 type CreateWorkingHourRequest struct {
@@ -41,7 +41,7 @@ type CreateWorkingHourRequest struct {
 }
 
 // UpdateWorkingHourRequest es el cuerpo de
-// PATCH /private/barbers/{barberId}/working-hours/{workingHourId}
+// PATCH /private/professionals/{professionalId}/working-hours/{workingHourId}
 // (CA-040-04). Los tres campos son obligatorios: reemplaza el intervalo
 // completo, mismo criterio que UpdateWorkingHourRequest del contrato
 // OpenAPI.

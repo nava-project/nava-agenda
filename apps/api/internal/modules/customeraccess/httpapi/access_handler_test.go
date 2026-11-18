@@ -44,7 +44,7 @@ func accessService(repo fakeAccessRepo, sender *discardSender) *customeraccess.A
 }
 
 func postJSON(h http.Handler, body string) *httptest.ResponseRecorder {
-	req := httptest.NewRequest(http.MethodPost, "/api/v1/public/barbershops/demo/customer-access/x", strings.NewReader(body))
+	req := httptest.NewRequest(http.MethodPost, "/api/v1/public/businesses/demo/customer-access/x", strings.NewReader(body))
 	req.RemoteAddr = "203.0.113.7:4444"
 	req = httpserver.RequestWithURLParam(req, "slug", "demo")
 	rec := httptest.NewRecorder()

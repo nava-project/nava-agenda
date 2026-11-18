@@ -155,7 +155,7 @@ func TestLoginHandler_InvalidJSON_Returns400(t *testing.T) {
 func TestLoginHandler_UnknownField_Returns400(t *testing.T) {
 	h := newHandler(t, stubRepository{}, false)
 
-	rec := doLogin(t, h, `{"email":"a@b.test","password":"x","barbershopId":"colado"}`)
+	rec := doLogin(t, h, `{"email":"a@b.test","password":"x","businessId":"colado"}`)
 
 	assertProblem(t, rec, http.StatusBadRequest, "invalid-request")
 }

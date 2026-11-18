@@ -35,7 +35,7 @@ func newCorrectInput(appointmentID, destination, reason, versionToken string, no
 // terminales (CA-068-01, CA-068-03) ----
 
 func TestCorrectAppointmentStatus_TwelveTerminalTransitions_UpdateStatusAndAppendSingleHistoryEvent(t *testing.T) {
-	terminals := []string{"completed", "no_show", "cancelled_by_customer", "cancelled_by_barber"}
+	terminals := []string{"completed", "no_show", "cancelled_by_customer", "cancelled_by_professional"}
 
 	for _, from := range terminals {
 		for _, to := range terminals {
@@ -204,7 +204,7 @@ func TestCorrectAppointmentStatus_CancelledToOccupying_BeforeStartsAt_ReturnsVal
 	if err != nil {
 		t.Fatalf("CreateInternal: %v", err)
 	}
-	setAppointmentStatus(t, db, shopQ, created.Appointment.ID, "cancelled_by_barber")
+	setAppointmentStatus(t, db, shopQ, created.Appointment.ID, "cancelled_by_professional")
 	before, _, err := repo.GetAppointmentDetail(context.Background(), string(shopQ), created.Appointment.ID)
 	if err != nil {
 		t.Fatalf("GetAppointmentDetail: %v", err)
@@ -243,7 +243,7 @@ func TestCorrectAppointmentStatus_CancelledToOccupying_CrossesAnotherAppointment
 	if err != nil {
 		t.Fatalf("CreateInternal(A): %v", err)
 	}
-	setAppointmentStatus(t, db, shopQ, a.Appointment.ID, "cancelled_by_barber")
+	setAppointmentStatus(t, db, shopQ, a.Appointment.ID, "cancelled_by_professional")
 	beforeA, _, err := repo.GetAppointmentDetail(context.Background(), string(shopQ), a.Appointment.ID)
 	if err != nil {
 		t.Fatalf("GetAppointmentDetail(A): %v", err)
@@ -306,7 +306,7 @@ func TestCorrectAppointmentStatus_OccupyingToCancelled_ReleasesExclusion_NewAppo
 	}
 
 	if _, err := repo.CorrectAppointmentStatus(context.Background(), string(shopQ),
-		newCorrectInput(created.Appointment.ID, "cancelled_by_barber", "motivo", before.VersionToken, start),
+		newCorrectInput(created.Appointment.ID, "cancelled_by_professional", "motivo", before.VersionToken, start),
 		idempotency.Key("correct-release-"+suffix), closeFingerprint("release-"+suffix)); err != nil {
 		t.Fatalf("CorrectAppointmentStatus: %v", err)
 	}
@@ -341,7 +341,7 @@ func TestCorrectAppointmentStatus_StaleVersionToken_ReturnsVersionConflict(t *te
 	}
 
 	_, err = repo.CorrectAppointmentStatus(context.Background(), string(shopQ),
-		newCorrectInput(created.Appointment.ID, "cancelled_by_barber", "motivo", stale.VersionToken, start),
+		newCorrectInput(created.Appointment.ID, "cancelled_by_professional", "motivo", stale.VersionToken, start),
 		idempotency.Key("correct-stale-"+suffix), closeFingerprint("stale-"+suffix))
 	appErr, ok := apperr.As(err)
 	if !ok || appErr.Kind != apperr.KindVersionConflict {
@@ -496,7 +496,7 @@ func TestCorrectAppointmentStatus_ConcurrentCorrections_ExactlyOneWinsWithVersio
 	if err != nil {
 		t.Fatalf("CreateInternal: %v", err)
 	}
-	setAppointmentStatus(t, db, shopQ, created.Appointment.ID, "cancelled_by_barber")
+	setAppointmentStatus(t, db, shopQ, created.Appointment.ID, "cancelled_by_professional")
 	before, _, err := repo.GetAppointmentDetail(context.Background(), string(shopQ), created.Appointment.ID)
 	if err != nil {
 		t.Fatalf("GetAppointmentDetail: %v", err)

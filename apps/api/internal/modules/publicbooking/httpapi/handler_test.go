@@ -73,7 +73,7 @@ var _ publicbooking.Repository = (*fakeRepository)(nil)
 const validServiceID = "11111111-1111-1111-1111-111111111111"
 
 func requestWithSlug(slug string) *http.Request {
-	req := httptest.NewRequest(http.MethodGet, "/api/v1/public/barbershops/"+slug, nil)
+	req := httptest.NewRequest(http.MethodGet, "/api/v1/public/businesses/"+slug, nil)
 	return httpserver.RequestWithURLParam(req, "slug", slug)
 }
 
@@ -132,7 +132,7 @@ func TestResolveBarbershopHandler_Success_ReturnsPublicProfile(t *testing.T) {
 	// CA-090-04: el cuerpo nunca menciona un identificador interno ni el
 	// slug mismo.
 	raw := strings.ToLower(rec.Body.String())
-	for _, forbidden := range []string{"barbershopid", "\"id\"", "slug"} {
+	for _, forbidden := range []string{"businessid", "\"id\"", "slug"} {
 		if strings.Contains(raw, forbidden) {
 			t.Fatalf("CA-090-04: response body must never mention %q: %s", forbidden, raw)
 		}
@@ -242,7 +242,7 @@ func TestResolveBarbershopHandler_RepositoryError_ReturnsSafe500(t *testing.T) {
 }
 
 func requestWithSlugAndQuery(slug, rawQuery string) *http.Request {
-	target := "/api/v1/public/barbershops/" + slug + "/services"
+	target := "/api/v1/public/businesses/" + slug + "/services"
 	if rawQuery != "" {
 		target += "?" + rawQuery
 	}
@@ -365,7 +365,7 @@ func TestListPublicServicesHandler_RepositoryError_ReturnsSafe500(t *testing.T) 
 }
 
 func requestWithSlugAndServiceID(slug, serviceID string) *http.Request {
-	target := "/api/v1/public/barbershops/" + slug + "/services/" + serviceID + "/barbers"
+	target := "/api/v1/public/businesses/" + slug + "/services/" + serviceID + "/professionals"
 	req := httptest.NewRequest(http.MethodGet, target, nil)
 	req = httpserver.RequestWithURLParam(req, "slug", slug)
 	return httpserver.RequestWithURLParam(req, "serviceId", serviceID)
@@ -538,9 +538,9 @@ func TestListPublicBarbersHandler_DescriptionAndPhotoVersion_AreExposed(t *testi
 }
 
 func requestWithSlugAndBarberID(slug, barberID string) *http.Request {
-	req := httptest.NewRequest(http.MethodGet, "/api/v1/public/barbershops/"+slug+"/barbers/"+barberID+"/photo", nil)
+	req := httptest.NewRequest(http.MethodGet, "/api/v1/public/businesses/"+slug+"/professionals/"+barberID+"/photo", nil)
 	req = httpserver.RequestWithURLParam(req, "slug", slug)
-	return httpserver.RequestWithURLParam(req, "barberId", barberID)
+	return httpserver.RequestWithURLParam(req, "professionalId", barberID)
 }
 
 func TestGetPublicBarberPhotoHandler_Success_ServesBytesWithETag(t *testing.T) {
@@ -602,7 +602,7 @@ func TestGetPublicBarberPhotoHandler_NotFound_ReturnsUniform404(t *testing.T) {
 		rec := httptest.NewRecorder()
 		h.ServeHTTP(rec, requestWithSlugAndBarberID("barberia-ejemplo", barberID))
 		if rec.Code != http.StatusNotFound {
-			t.Fatalf("barberId %q: expected 404, got %d", barberID, rec.Code)
+			t.Fatalf("professionalId %q: expected 404, got %d", barberID, rec.Code)
 		}
 	}
 }

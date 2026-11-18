@@ -9,7 +9,7 @@ import (
 	"system-barbershop/internal/platform/httpserver"
 )
 
-// GetMyBarberHandler expone GET /private/me/barber (DEC-100): el barbero que
+// GetMyBarberHandler expone GET /private/me/professional (DEC-100): el barbero que
 // el usuario autenticado declaró ser, o 404 si no tiene ninguno.
 type GetMyBarberHandler struct {
 	service *staff.Service
@@ -36,7 +36,7 @@ func (h *GetMyBarberHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	writeBarber(w, barber)
 }
 
-// LinkMyBarberHandler expone PUT /private/me/barber (DEC-100). Actúa siempre
+// LinkMyBarberHandler expone PUT /private/me/professional (DEC-100). Actúa siempre
 // sobre el principal de la sesión; el cuerpo solo nombra al barbero.
 type LinkMyBarberHandler struct {
 	service *staff.Service
@@ -80,7 +80,7 @@ func (h *LinkMyBarberHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) 
 	writeBarber(w, barber)
 }
 
-// UnlinkMyBarberHandler expone DELETE /private/me/barber (DEC-100).
+// UnlinkMyBarberHandler expone DELETE /private/me/professional (DEC-100).
 type UnlinkMyBarberHandler struct {
 	service *staff.Service
 }

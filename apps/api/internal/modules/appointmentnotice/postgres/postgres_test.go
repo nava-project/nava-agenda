@@ -258,10 +258,10 @@ func TestEnqueue_ConsecutiveChangesLeaveExactlyOnePendingNotice(t *testing.T) {
 
 	enqueue(t, app, shopA, id, "rescheduled")
 	enqueue(t, app, shopA, id, "rescheduled")
-	enqueue(t, app, shopA, id, "cancelled_by_barber") // la cancelación sustituye (CA-130-03)
+	enqueue(t, app, shopA, id, "cancelled_by_professional") // la cancelación sustituye (CA-130-03)
 
 	got := notices(t, app, shopA, id)
-	if len(got) != 1 || got[0].Status != "pending" || got[0].Kind != "cancelled_by_barber" {
+	if len(got) != 1 || got[0].Status != "pending" || got[0].Kind != "cancelled_by_professional" {
 		t.Fatalf("debe quedar un solo aviso pendiente, el más reciente: %+v", got)
 	}
 }
@@ -355,7 +355,7 @@ func TestWorker_FullCycle_ReadsTheCurrentStateAndLeavesEvidenceWithoutContact(t 
 func TestWorker_CustomerWithoutEmail_ContextHasNoAddress(t *testing.T) {
 	app, worker := appDB(t), noticepostgres.NewWorkerRepository(workerDB(t))
 	id, _ := seedAppointment(t, app, shopA, false)
-	enqueue(t, app, shopA, id, "cancelled_by_barber")
+	enqueue(t, app, shopA, id, "cancelled_by_professional")
 	n := notices(t, app, shopA, id)[0]
 
 	claimed, ok := claimMine(t, worker, n.ID, time.Now().Add(2*time.Minute))

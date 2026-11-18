@@ -16,7 +16,7 @@ import (
 	"system-barbershop/internal/platform/httpserver"
 )
 
-// GetBarbershopSettingsHandler expone GET /private/settings/barbershop
+// GetBarbershopSettingsHandler expone GET /private/settings/business
 // (CA-020-01): lectura autenticada de la configuración básica de la
 // barbería activa.
 type GetBarbershopSettingsHandler struct {
@@ -53,7 +53,7 @@ func (h *GetBarbershopSettingsHandler) ServeHTTP(w http.ResponseWriter, r *http.
 	_ = json.NewEncoder(w).Encode(newBarbershopSettingsResponse(barbershop))
 }
 
-// UpdateBarbershopSettingsHandler expone PATCH /private/settings/barbershop
+// UpdateBarbershopSettingsHandler expone PATCH /private/settings/business
 // (CA-020-02, CA-020-03, CA-020-06): actualización autenticada de la
 // configuración básica de la barbería activa.
 type UpdateBarbershopSettingsHandler struct {

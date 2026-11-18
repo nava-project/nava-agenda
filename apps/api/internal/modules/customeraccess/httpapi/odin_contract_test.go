@@ -68,9 +68,9 @@ func TestContract_OdinOperations_DeclareEveryStatusAndTheirSecurity(t *testing.T
 		service  bool
 		statuses []string
 	}{
-		{odin, "/integrations/odin/barbershops/{slug}/customer-appointments/lookup", "lookupCustomerAppointmentsForOdin", true, []string{"200", "400", "401", "404", "422", "500"}},
-		{odin, "/integrations/odin/barbershops/{slug}/customer-access/challenge", "requestCustomerAccessCodeForOdin", true, []string{"201", "400", "401", "404", "409", "422", "429", "500", "503"}},
-		{public, "/public/barbershops/{slug}/customer-access/verify-ref", "verifyCustomerAccessRef", false, []string{"200", "400", "401", "404", "422", "500"}},
+		{odin, "/integrations/odin/businesses/{slug}/customer-appointments/lookup", "lookupCustomerAppointmentsForOdin", true, []string{"200", "400", "401", "404", "422", "500"}},
+		{odin, "/integrations/odin/businesses/{slug}/customer-access/challenge", "requestCustomerAccessCodeForOdin", true, []string{"201", "400", "401", "404", "409", "422", "429", "500", "503"}},
+		{public, "/public/businesses/{slug}/customer-access/verify-ref", "verifyCustomerAccessRef", false, []string{"200", "400", "401", "404", "422", "500"}},
 	} {
 		op, ok := tc.ops[tc.path]
 		if !ok {

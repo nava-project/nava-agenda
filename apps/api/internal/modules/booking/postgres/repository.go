@@ -310,7 +310,7 @@ func (r *Repository) CreateManual(
 // schedulepostgres.workingHourResponseWire).
 type manualAppointmentResponseWire struct {
 	ID              string  `json:"id"`
-	BarberID        string  `json:"barberId"`
+	BarberID        string  `json:"professionalId"`
 	ServiceID       string  `json:"serviceId"`
 	CustomerID      string  `json:"customerId"`
 	AttendeeName    string  `json:"attendeeName"`
@@ -1199,7 +1199,7 @@ func newRescheduleAppointment(row currentAppointmentForReschedule) (booking.Resc
 // criterio que manualAppointmentResponseWire).
 type rescheduleAppointmentResponseWire struct {
 	ID              string  `json:"id"`
-	BarberID        string  `json:"barberId"`
+	BarberID        string  `json:"professionalId"`
 	ServiceID       string  `json:"serviceId"`
 	CustomerID      string  `json:"customerId"`
 	AttendeeName    string  `json:"attendeeName"`
@@ -1427,7 +1427,7 @@ func updateAppointmentStatusCancelledByBarber(
 	var updatedAt time.Time
 	err := q.QueryRow(ctx, `
 		UPDATE appointment
-		   SET status = 'cancelled_by_barber', resolved_at = now()
+		   SET status = 'cancelled_by_professional', resolved_at = now()
 		 WHERE business_id = $1 AND id = $2
 		RETURNING updated_at`,
 		barbershopID, appointmentID,
@@ -1439,8 +1439,8 @@ func updateAppointmentStatusCancelledByBarber(
 }
 
 // insertAppointmentCancelledByBarberHistory inserta, dentro de la misma
-// transacción, el evento appointment_cancelled_by_barber y su único cambio
-// (status: confirmed -> cancelled_by_barber), mismo criterio de dos INSERT
+// transacción, el evento appointment_cancelled_by_professional y su único cambio
+// (status: confirmed -> cancelled_by_professional), mismo criterio de dos INSERT
 // que insertAppointmentRescheduledHistory.
 func insertAppointmentCancelledByBarberHistory(
 	ctx context.Context,
@@ -1452,7 +1452,7 @@ func insertAppointmentCancelledByBarberHistory(
 	err := q.QueryRow(ctx, `
 		INSERT INTO appointment_history (
 			business_id, appointment_id, event_type, actor_type, actor_staff_user_id, actor_customer_id
-		) VALUES ($1, $2, 'appointment_cancelled_by_barber', $3, $4, $5)
+		) VALUES ($1, $2, 'appointment_cancelled_by_professional', $3, $4, $5)
 		RETURNING id`,
 		barbershopID, appointmentID, string(actor.Type), actor.StaffUserID, actor.CustomerID,
 	).Scan(&historyID)
@@ -1462,7 +1462,7 @@ func insertAppointmentCancelledByBarberHistory(
 
 	_, err = q.Exec(ctx, `
 		INSERT INTO appointment_history_change (business_id, history_id, field_name, previous_value, new_value)
-		VALUES ($1, $2, 'status', 'confirmed', 'cancelled_by_barber')`,
+		VALUES ($1, $2, 'status', 'confirmed', 'cancelled_by_professional')`,
 		barbershopID, historyID,
 	)
 	return err
@@ -1500,7 +1500,7 @@ func newCancelledAppointment(row currentAppointmentForReschedule) (booking.Cance
 // original (mismo criterio que rescheduleAppointmentResponseWire).
 type cancelAppointmentByBarberResponseWire struct {
 	ID              string  `json:"id"`
-	BarberID        string  `json:"barberId"`
+	BarberID        string  `json:"professionalId"`
 	ServiceID       string  `json:"serviceId"`
 	CustomerID      string  `json:"customerId"`
 	AttendeeName    string  `json:"attendeeName"`
@@ -1540,10 +1540,10 @@ func newCancelAppointmentByBarberResponseWire(a booking.CancelledAppointment) ca
 
 // CancelByBarber implementa booking.Repository.CancelByBarber (HU-066, T6):
 // Begin, bloquear la fila, verificar de nuevo con la fila ya bloqueada
-// (no-op si ya está cancelled_by_barber, InvalidState si es cualquier otro
+// (no-op si ya está cancelled_by_professional, InvalidState si es cualquier otro
 // estado terminal, VersionConflict si el token no coincide mientras sigue
 // confirmed), aplicar el estado terminal + insertar
-// appointment_cancelled_by_barber, y Complete, todo dentro de UNA sola
+// appointment_cancelled_by_professional, y Complete, todo dentro de UNA sola
 // InTenantTx. Reutiliza lockAppointmentForReschedule/
 // currentAppointmentForReschedule (HU-065): misma fila, mismas columnas,
 // ningún motivo para duplicar el SELECT ... FOR UPDATE.
@@ -1978,7 +1978,7 @@ func newClosedAppointment(row currentAppointmentForReschedule) (booking.ClosedAp
 // respuesta original, mismo criterio que cancelAppointmentByBarberResponseWire.
 type closedAppointmentResponseWire struct {
 	ID              string  `json:"id"`
-	BarberID        string  `json:"barberId"`
+	BarberID        string  `json:"professionalId"`
 	ServiceID       string  `json:"serviceId"`
 	CustomerID      string  `json:"customerId"`
 	AttendeeName    string  `json:"attendeeName"`
@@ -2340,7 +2340,7 @@ func newCorrectedAppointment(row currentAppointmentForReschedule) (booking.Corre
 // representación vigente de la cita.
 type correctedAppointmentResponseWire struct {
 	ID              string  `json:"id"`
-	BarberID        string  `json:"barberId"`
+	BarberID        string  `json:"professionalId"`
 	ServiceID       string  `json:"serviceId"`
 	CustomerID      string  `json:"customerId"`
 	AttendeeName    string  `json:"attendeeName"`

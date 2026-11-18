@@ -302,7 +302,7 @@ func TestListAppointmentHistory_ChangesAttachedToTheirOwnEntry(t *testing.T) {
 	err = db.InTenantTx(context.Background(), shopQ, func(ctx context.Context, q database.Queries) error {
 		_, err := q.Exec(ctx, `
 			INSERT INTO appointment_history_change (business_id, history_id, field_name, previous_value, new_value)
-			VALUES ($1, $2, 'status', 'confirmed', 'cancelled_by_barber')`,
+			VALUES ($1, $2, 'status', 'confirmed', 'cancelled_by_professional')`,
 			string(shopQ), historyID)
 		return err
 	})

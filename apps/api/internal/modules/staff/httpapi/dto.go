@@ -29,7 +29,7 @@ type BarberResponse struct {
 	RatingCount    int        `json:"ratingCount"`
 }
 
-// BarberListResponse es la página paginada por cursor de GET /private/barbers
+// BarberListResponse es la página paginada por cursor de GET /private/professionals
 // (CA-021-02). NextCursor es un puntero para que "sin página siguiente"
 // serialice como `null` explícito, nunca como una cadena vacía.
 type BarberListResponse struct {
@@ -37,7 +37,7 @@ type BarberListResponse struct {
 	NextCursor *string          `json:"nextCursor"`
 }
 
-// CreateBarberRequest es el cuerpo de POST /private/barbers (CA-021-02).
+// CreateBarberRequest es el cuerpo de POST /private/professionals (CA-021-02).
 // Cerrado: el handler rechaza cualquier campo desconocido. Nunca declara
 // barbershopId: el tenant se deriva exclusivamente de auth.Principal.
 type CreateBarberRequest struct {
@@ -47,7 +47,7 @@ type CreateBarberRequest struct {
 	Description *string `json:"description"`
 }
 
-// UpdateBarberRequest es el cuerpo de PATCH /private/barbers/{barberId}
+// UpdateBarberRequest es el cuerpo de PATCH /private/professionals/{professionalId}
 // (CA-021-04). Cerrado y limitado a los campos editables (el nombre de HU-021
 // y, por DEC-127, la descripción): nunca active, deletedAt, sortOrder,
 // staffUserId, servicios ni horarios (DEC-047, CA-021-07).
@@ -81,10 +81,10 @@ func (o *OptionalText) UnmarshalJSON(data []byte) error {
 	return nil
 }
 
-// LinkMyBarberRequest es el cuerpo de PUT /private/me/barber (DEC-100).
+// LinkMyBarberRequest es el cuerpo de PUT /private/me/professional (DEC-100).
 // Cerrado y limitado a barberId: nunca lleva un staffUserId, porque el
 // usuario es siempre el principal de la sesión y nadie asigna el vínculo de
 // otra persona.
 type LinkMyBarberRequest struct {
-	BarberID string `json:"barberId"`
+	BarberID string `json:"professionalId"`
 }

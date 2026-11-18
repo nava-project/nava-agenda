@@ -52,7 +52,7 @@ type colombianHolidayListBody struct {
 }
 
 func doGetHolidayCalendarRequest(router http.Handler, rawToken, barberID string) *httptest.ResponseRecorder {
-	req := httptest.NewRequest(http.MethodGet, "/api/v1/private/barbers/"+barberID+"/holiday-calendar", nil)
+	req := httptest.NewRequest(http.MethodGet, "/api/v1/private/professionals/"+barberID+"/holiday-calendar", nil)
 	if rawToken != "" {
 		req.AddCookie(&http.Cookie{Name: cookieName, Value: rawToken})
 	}
@@ -62,7 +62,7 @@ func doGetHolidayCalendarRequest(router http.Handler, rawToken, barberID string)
 }
 
 func doUpdateHolidayCalendarRequest(router http.Handler, rawToken, barberID, rawBody string) *httptest.ResponseRecorder {
-	req := httptest.NewRequest(http.MethodPatch, "/api/v1/private/barbers/"+barberID+"/holiday-calendar", bytes.NewReader([]byte(rawBody)))
+	req := httptest.NewRequest(http.MethodPatch, "/api/v1/private/professionals/"+barberID+"/holiday-calendar", bytes.NewReader([]byte(rawBody)))
 	req.Header.Set("Content-Type", "application/json")
 	if rawToken != "" {
 		req.AddCookie(&http.Cookie{Name: cookieName, Value: rawToken})
@@ -73,7 +73,7 @@ func doUpdateHolidayCalendarRequest(router http.Handler, rawToken, barberID, raw
 }
 
 func doListScheduleExceptionsRequest(router http.Handler, rawToken, barberID, query string) *httptest.ResponseRecorder {
-	target := "/api/v1/private/barbers/" + barberID + "/schedule-exceptions"
+	target := "/api/v1/private/professionals/" + barberID + "/schedule-exceptions"
 	if query != "" {
 		target += "?" + query
 	}
@@ -87,7 +87,7 @@ func doListScheduleExceptionsRequest(router http.Handler, rawToken, barberID, qu
 }
 
 func doGetScheduleExceptionRequest(router http.Handler, rawToken, barberID, exceptionID string) *httptest.ResponseRecorder {
-	req := httptest.NewRequest(http.MethodGet, "/api/v1/private/barbers/"+barberID+"/schedule-exceptions/"+exceptionID, nil)
+	req := httptest.NewRequest(http.MethodGet, "/api/v1/private/professionals/"+barberID+"/schedule-exceptions/"+exceptionID, nil)
 	if rawToken != "" {
 		req.AddCookie(&http.Cookie{Name: cookieName, Value: rawToken})
 	}
@@ -97,7 +97,7 @@ func doGetScheduleExceptionRequest(router http.Handler, rawToken, barberID, exce
 }
 
 func doCreateScheduleExceptionRequest(router http.Handler, rawToken, barberID, idempotencyKey, rawBody string) *httptest.ResponseRecorder {
-	req := httptest.NewRequest(http.MethodPost, "/api/v1/private/barbers/"+barberID+"/schedule-exceptions", bytes.NewReader([]byte(rawBody)))
+	req := httptest.NewRequest(http.MethodPost, "/api/v1/private/professionals/"+barberID+"/schedule-exceptions", bytes.NewReader([]byte(rawBody)))
 	req.Header.Set("Content-Type", "application/json")
 	if idempotencyKey != "" {
 		req.Header.Set("Idempotency-Key", idempotencyKey)
@@ -111,7 +111,7 @@ func doCreateScheduleExceptionRequest(router http.Handler, rawToken, barberID, i
 }
 
 func doUpdateScheduleExceptionRequest(router http.Handler, rawToken, barberID, exceptionID, rawBody string) *httptest.ResponseRecorder {
-	req := httptest.NewRequest(http.MethodPatch, "/api/v1/private/barbers/"+barberID+"/schedule-exceptions/"+exceptionID, bytes.NewReader([]byte(rawBody)))
+	req := httptest.NewRequest(http.MethodPatch, "/api/v1/private/professionals/"+barberID+"/schedule-exceptions/"+exceptionID, bytes.NewReader([]byte(rawBody)))
 	req.Header.Set("Content-Type", "application/json")
 	if rawToken != "" {
 		req.AddCookie(&http.Cookie{Name: cookieName, Value: rawToken})
@@ -122,7 +122,7 @@ func doUpdateScheduleExceptionRequest(router http.Handler, rawToken, barberID, e
 }
 
 func doDeleteScheduleExceptionRequest(router http.Handler, rawToken, barberID, exceptionID string) *httptest.ResponseRecorder {
-	req := httptest.NewRequest(http.MethodDelete, "/api/v1/private/barbers/"+barberID+"/schedule-exceptions/"+exceptionID, nil)
+	req := httptest.NewRequest(http.MethodDelete, "/api/v1/private/professionals/"+barberID+"/schedule-exceptions/"+exceptionID, nil)
 	if rawToken != "" {
 		req.AddCookie(&http.Cookie{Name: cookieName, Value: rawToken})
 	}
@@ -174,7 +174,7 @@ func TestScheduleExceptions_HTTP_CreateListGetUpdateDelete_FullJourney(t *testin
 	if created.Reason == nil || *created.Reason != "Turno especial" {
 		t.Fatalf("expected reason to persist, got %+v", created.Reason)
 	}
-	wantLoc := "/private/barbers/" + barber.ID + "/schedule-exceptions/" + created.ID
+	wantLoc := "/private/professionals/" + barber.ID + "/schedule-exceptions/" + created.ID
 	if loc := first.Header().Get("Location"); loc != wantLoc {
 		t.Fatalf("expected Location %q, got %q", wantLoc, loc)
 	}

@@ -156,7 +156,7 @@ func TestListPublicServiceAvailability_OrdersByStartsAtThenBarberID(t *testing.T
 	}
 	for i, s := range got.Slots {
 		if s.BarberID != want[i] {
-			t.Fatalf("índice %d: barbero %s, want %s (orden (startsAt, barberId))", i, s.BarberID, want[i])
+			t.Fatalf("índice %d: barbero %s, want %s (orden (startsAt, professionalId))", i, s.BarberID, want[i])
 		}
 		if i > 0 && s.StartsAt.Before(got.Slots[i-1].StartsAt) {
 			t.Fatalf("startsAt decrece en índice %d", i)

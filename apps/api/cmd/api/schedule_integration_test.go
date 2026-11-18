@@ -32,7 +32,7 @@ type workingHourListBody struct {
 }
 
 func doListWorkingHoursRequest(router http.Handler, rawToken, barberID, query string) *httptest.ResponseRecorder {
-	target := "/api/v1/private/barbers/" + barberID + "/working-hours"
+	target := "/api/v1/private/professionals/" + barberID + "/working-hours"
 	if query != "" {
 		target += "?" + query
 	}
@@ -46,7 +46,7 @@ func doListWorkingHoursRequest(router http.Handler, rawToken, barberID, query st
 }
 
 func doGetWorkingHourRequest(router http.Handler, rawToken, barberID, workingHourID string) *httptest.ResponseRecorder {
-	req := httptest.NewRequest(http.MethodGet, "/api/v1/private/barbers/"+barberID+"/working-hours/"+workingHourID, nil)
+	req := httptest.NewRequest(http.MethodGet, "/api/v1/private/professionals/"+barberID+"/working-hours/"+workingHourID, nil)
 	if rawToken != "" {
 		req.AddCookie(&http.Cookie{Name: cookieName, Value: rawToken})
 	}
@@ -56,7 +56,7 @@ func doGetWorkingHourRequest(router http.Handler, rawToken, barberID, workingHou
 }
 
 func doCreateWorkingHourRequest(router http.Handler, rawToken, barberID, idempotencyKey, rawBody string) *httptest.ResponseRecorder {
-	req := httptest.NewRequest(http.MethodPost, "/api/v1/private/barbers/"+barberID+"/working-hours", bytes.NewReader([]byte(rawBody)))
+	req := httptest.NewRequest(http.MethodPost, "/api/v1/private/professionals/"+barberID+"/working-hours", bytes.NewReader([]byte(rawBody)))
 	req.Header.Set("Content-Type", "application/json")
 	if idempotencyKey != "" {
 		req.Header.Set("Idempotency-Key", idempotencyKey)
@@ -70,7 +70,7 @@ func doCreateWorkingHourRequest(router http.Handler, rawToken, barberID, idempot
 }
 
 func doUpdateWorkingHourRequest(router http.Handler, rawToken, barberID, workingHourID, rawBody string) *httptest.ResponseRecorder {
-	req := httptest.NewRequest(http.MethodPatch, "/api/v1/private/barbers/"+barberID+"/working-hours/"+workingHourID, bytes.NewReader([]byte(rawBody)))
+	req := httptest.NewRequest(http.MethodPatch, "/api/v1/private/professionals/"+barberID+"/working-hours/"+workingHourID, bytes.NewReader([]byte(rawBody)))
 	req.Header.Set("Content-Type", "application/json")
 	if rawToken != "" {
 		req.AddCookie(&http.Cookie{Name: cookieName, Value: rawToken})
@@ -81,7 +81,7 @@ func doUpdateWorkingHourRequest(router http.Handler, rawToken, barberID, working
 }
 
 func doDeleteWorkingHourRequest(router http.Handler, rawToken, barberID, workingHourID string) *httptest.ResponseRecorder {
-	req := httptest.NewRequest(http.MethodDelete, "/api/v1/private/barbers/"+barberID+"/working-hours/"+workingHourID, nil)
+	req := httptest.NewRequest(http.MethodDelete, "/api/v1/private/professionals/"+barberID+"/working-hours/"+workingHourID, nil)
 	if rawToken != "" {
 		req.AddCookie(&http.Cookie{Name: cookieName, Value: rawToken})
 	}
@@ -116,7 +116,7 @@ func TestWorkingHours_HTTP_CreateListGetUpdateDelete_FullJourney(t *testing.T) {
 	if created.ISOWeekday != 1 || created.StartsTime != "08:00" || created.DurationMinutes != 240 {
 		t.Fatalf("unexpected created working hour: %+v", created)
 	}
-	wantLoc := "/private/barbers/" + barber.ID + "/working-hours/" + created.ID
+	wantLoc := "/private/professionals/" + barber.ID + "/working-hours/" + created.ID
 	if loc := first.Header().Get("Location"); loc != wantLoc {
 		t.Fatalf("expected Location %q, got %q", wantLoc, loc)
 	}

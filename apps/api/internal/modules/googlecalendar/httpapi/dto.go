@@ -9,7 +9,7 @@ import "time"
 // ConnectionResponse es GoogleCalendarConnectionResponse (OpenAPI).
 type ConnectionResponse struct {
 	Enabled         bool       `json:"enabled"`
-	BarberLinked    bool       `json:"barberLinked"`
+	BarberLinked    bool       `json:"professionalLinked"`
 	Status          string     `json:"status"`
 	AccountEmail    *string    `json:"accountEmail"`
 	ReminderMinutes *int       `json:"reminderMinutes"`

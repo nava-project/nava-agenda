@@ -405,7 +405,7 @@ func TestCountFutureAppointments_CountsOnlyConfirmedFutureOfThatServiceAndTenant
 	insertAppointmentFixture(t, db, shopE, barber.ID, target.ID, customer, "confirmed", now.Add(48*time.Hour))
 	insertAppointmentFixture(t, db, shopE, barber.ID, target.ID, customer, "confirmed", now.Add(72*time.Hour))
 	insertAppointmentFixture(t, db, shopE, barber.ID, target.ID, customer, "confirmed", now.Add(-48*time.Hour))
-	insertAppointmentFixture(t, db, shopE, barber.ID, target.ID, customer, "cancelled_by_barber", now.Add(96*time.Hour))
+	insertAppointmentFixture(t, db, shopE, barber.ID, target.ID, customer, "cancelled_by_professional", now.Add(96*time.Hour))
 	insertAppointmentFixture(t, db, shopE, barber.ID, other.ID, customer, "confirmed", now.Add(120*time.Hour))
 
 	got, err := repo.CountFutureAppointments(context.Background(), string(shopE), target.ID)
@@ -519,7 +519,7 @@ func TestUpdate_ApplyPriceToUpcoming_ChangesOnlyConfirmedFutureOfThatService(t *
 	insertAppointmentFixture(t, db, shopE, barber.ID, target.ID, customer, "confirmed", now.Add(48*time.Hour))
 	insertAppointmentFixture(t, db, shopE, barber.ID, target.ID, customer, "confirmed", now.Add(72*time.Hour))
 	insertAppointmentFixture(t, db, shopE, barber.ID, target.ID, customer, "confirmed", now.Add(-48*time.Hour))
-	insertAppointmentFixture(t, db, shopE, barber.ID, target.ID, customer, "cancelled_by_barber", now.Add(96*time.Hour))
+	insertAppointmentFixture(t, db, shopE, barber.ID, target.ID, customer, "cancelled_by_professional", now.Add(96*time.Hour))
 	insertAppointmentFixture(t, db, shopE, barber.ID, other.ID, customer, "confirmed", now.Add(120*time.Hour))
 	ids := appointmentIDs(t, db, shopE, target.ID)
 	otherIDs := appointmentIDs(t, db, shopE, other.ID)

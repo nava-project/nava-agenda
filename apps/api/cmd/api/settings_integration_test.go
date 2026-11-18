@@ -31,7 +31,7 @@ type barbershopSettingsBody struct {
 }
 
 func doGetSettingsRequest(router http.Handler, rawToken string) *httptest.ResponseRecorder {
-	req := httptest.NewRequest(http.MethodGet, "/api/v1/private/settings/barbershop", nil)
+	req := httptest.NewRequest(http.MethodGet, "/api/v1/private/settings/business", nil)
 	if rawToken != "" {
 		req.AddCookie(&http.Cookie{Name: cookieName, Value: rawToken})
 	}
@@ -45,7 +45,7 @@ func doPatchSettingsRequest(router http.Handler, rawToken string, body barbersho
 	if err != nil {
 		panic(err)
 	}
-	req := httptest.NewRequest(http.MethodPatch, "/api/v1/private/settings/barbershop", bytes.NewReader(raw))
+	req := httptest.NewRequest(http.MethodPatch, "/api/v1/private/settings/business", bytes.NewReader(raw))
 	req.Header.Set("Content-Type", "application/json")
 	if rawToken != "" {
 		req.AddCookie(&http.Cookie{Name: cookieName, Value: rawToken})
@@ -253,8 +253,8 @@ func TestSettings_HTTP_UnknownField_Returns400(t *testing.T) {
 
 	raw := createSessionCookie(t, db, shopA, staffUserActiveA, "settings-unknown-field")
 
-	req := httptest.NewRequest(http.MethodPatch, "/api/v1/private/settings/barbershop",
-		bytes.NewReader([]byte(`{"name":"x","timezone":"America/Bogota","contactEmail":"","contactPhone":"","barbershopId":"`+shopB+`"}`)))
+	req := httptest.NewRequest(http.MethodPatch, "/api/v1/private/settings/business",
+		bytes.NewReader([]byte(`{"name":"x","timezone":"America/Bogota","contactEmail":"","contactPhone":"","businessId":"`+shopB+`"}`)))
 	req.Header.Set("Content-Type", "application/json")
 	req.AddCookie(&http.Cookie{Name: cookieName, Value: raw})
 	rec := httptest.NewRecorder()

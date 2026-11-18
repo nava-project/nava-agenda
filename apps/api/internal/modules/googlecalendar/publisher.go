@@ -190,7 +190,7 @@ func decide(jc JobContext, now time.Time) jobAction {
 				return actionSkip
 			}
 			return actionPublish
-		case "cancelled_by_customer", "cancelled_by_barber":
+		case "cancelled_by_customer", "cancelled_by_professional":
 			return actionRemove
 		default: // completed y no_show conservan el evento tal como está.
 			return actionSkip

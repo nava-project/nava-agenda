@@ -151,14 +151,14 @@ func newConfirmHandler(appointments *confirmFakePublicAppointmentPort, email *co
 func confirmRequest(t *testing.T, body string, idempotencyKey string) *http.Request {
 	t.Helper()
 	req := httptest.NewRequest(http.MethodPost,
-		"/api/v1/public/barbershops/"+confirmHandlerSlug+"/services/"+confirmHandlerServiceID+"/barbers/"+confirmHandlerBarberID+"/appointments",
+		"/api/v1/public/businesses/"+confirmHandlerSlug+"/services/"+confirmHandlerServiceID+"/professionals/"+confirmHandlerBarberID+"/appointments",
 		bytes.NewBufferString(body))
 	if idempotencyKey != "" {
 		req.Header.Set(httpserver.IdempotencyKeyHeader, idempotencyKey)
 	}
 	req = httpserver.RequestWithURLParam(req, "slug", confirmHandlerSlug)
 	req = httpserver.RequestWithURLParam(req, "serviceId", confirmHandlerServiceID)
-	req = httpserver.RequestWithURLParam(req, "barberId", confirmHandlerBarberID)
+	req = httpserver.RequestWithURLParam(req, "professionalId", confirmHandlerBarberID)
 	return req
 }
 
