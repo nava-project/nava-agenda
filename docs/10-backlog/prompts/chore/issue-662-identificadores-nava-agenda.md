@@ -13,8 +13,8 @@ issue: 662
 issue_url: "https://github.com/bcaceres19/barberia/issues/662"
 suggested_issue_title: null
 branch: "refactor/662-identificadores-nava-agenda"
-pr: null
-pr_url: null
+pr: 676
+pr_url: "https://github.com/bcaceres19/barberia/pull/676"
 depends_on:
   - "DEC-183"
   - "#660"
