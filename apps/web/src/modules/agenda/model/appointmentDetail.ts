@@ -99,7 +99,11 @@ const FIXED_FIELD_LABELS: Record<string, string> = {
   cancellation_reason: 'Motivo de cancelación',
 }
 
+// `barber_id` es el nombre que un cambio de profesional habría guardado antes de
+// DEC-183 (#662); el historial es inmutable, así que se reconocen los dos.
+const PROFESSIONAL_FIELD_NAMES = new Set(['professional_id', 'barber_id'])
+
 export function historyFieldLabel(fieldName: string, v: Vocabulary): string {
-  if (fieldName === 'professional_id') return v.Professional
+  if (PROFESSIONAL_FIELD_NAMES.has(fieldName)) return v.Professional
   return FIXED_FIELD_LABELS[fieldName] ?? fieldName
 }
