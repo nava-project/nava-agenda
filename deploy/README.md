@@ -8,7 +8,7 @@ y [`migraciones-atlas.md`](../docs/05-backend/migraciones-atlas.md).
 ## 1. Arquitectura
 
 ```text
-Internet ──443/80──▶ web (Caddy: HTTPS, SPA, /api → api)
+Internet ──443/80──▶ web (Caddy: HTTPS, SPA, /api → api)   agenda.nava.wtf (DEC-183)
                        │  red "app" (interna)
                        ▼
                       api ──────────┐
@@ -130,6 +130,7 @@ editan en **hPanel → Dominios → nava.wtf → DNS / Servidores de nombres →
 | CNAME | `www` | `nava.wtf` | 300 | Conservar (ya existe; Caddy redirige `www` al dominio sin `www`) |
 | A | `pedidos` | `158.69.232.180` | 300 | Ya existe: Nava · Pedidos, servido por este Caddy (`DEC-176`) |
 | A | `jenkins` | `158.69.232.180` | 300 | Jenkins de la VPS, servido por este Caddy (`DEC-177`) |
+| A | `agenda` | `158.69.232.180` | 300 | **Nava Agenda** (`DEC-183`): la app y su API. `nava.wtf` queda para la landing de la familia NAVA |
 | CAA | `@` | `0 issue "letsencrypt.org"` | 3600 | Opcional: solo Let's Encrypt puede emitir certificados |
 
 - **No agregues registros AAAA** (IPv6) salvo que configures IPv6 en el servidor.
@@ -142,7 +143,7 @@ editan en **hPanel → Dominios → nava.wtf → DNS / Servidores de nombres →
   `nava.wtf` y copia en Hostinger los registros que te indique (SPF, DKIM y MX del subdominio
   de envío). Sin verificarlo, los códigos de recuperación por correo no se entregan. Añade
   también un `TXT` `_dmarc` con `v=DMARC1; p=none; rua=mailto:TU_CORREO`.
-- Comprueba: `dig +short nava.wtf` debe responder `158.69.232.180`. El certificado se emite
+- Comprueba: `dig +short nava.wtf` y `dig +short agenda.nava.wtf` deben responder `158.69.232.180`. El certificado se emite
   solo cuando el DNS ya apunta al servidor; si aún no, `deploy.sh` avisa y Caddy reintenta.
 
 ## 5. CI/CD (Jenkins)
@@ -175,9 +176,9 @@ ejecuta la pila y conserva los nombres `ghcr.io/bcaceres19/barberia-*`.
 
 | Servicio | Qué configurar |
 | --- | --- |
-| Google Cloud, clave de navegador | Añadir `https://nava.wtf/*` a las referencias HTTP permitidas |
-| Google Cloud, cliente OAuth de Calendar | Origen `https://nava.wtf` y URI de redirección `https://nava.wtf/panel/barberia/google-calendar/callback`; las mismas cuatro variables `GOOGLE_CALENDAR_*` en `app.env` |
-| Meta, webhook de WhatsApp | URL `https://nava.wtf/api/v1/public/webhooks/meta/whatsapp` y el token de verificación de `app.env` |
+| Google Cloud, clave de navegador | Añadir `https://agenda.nava.wtf/*` a las referencias HTTP permitidas (`https://nava.wtf/*` mientras dure la transición) |
+| Google Cloud, cliente OAuth de Calendar | Origen `https://agenda.nava.wtf` y URI de redirección `https://agenda.nava.wtf/panel/barberia/google-calendar/callback` (y la futura `…/panel/negocio/google-calendar/callback`, #662); las mismas cuatro variables `GOOGLE_CALENDAR_*` en `app.env` |
+| Meta, webhook de WhatsApp | URL `https://agenda.nava.wtf/api/v1/public/webhooks/meta/whatsapp` y el token de verificación de `app.env` (`nava.wtf/api/*` sigue llegando al API durante la transición) |
 | Resend | Dominio `nava.wtf` verificado (sección 4) |
 
 ## 7. Operación

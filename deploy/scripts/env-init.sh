@@ -115,7 +115,8 @@ APP_DATABASE_MAX_CONNS=20
 APP_DATABASE_MIN_CONNS=2
 # Único proxy de confianza: Caddy, con IP fija en la red interna (deploy/compose.yaml).
 APP_TRUSTED_PROXIES=10.89.1.2/32
-APP_PUBLIC_WEB_BASE_URL=https://$DOMAIN
+# La app vive en agenda.$DOMAIN (DEC-183).
+APP_PUBLIC_WEB_BASE_URL=https://agenda.$DOMAIN
 
 # --- OBLIGATORIOS en producción: el API no arranca sin ellos (DEC-066, DEC-124) ---
 OTP_PROVIDER=meta
@@ -129,7 +130,7 @@ APP_META_WHATSAPP_LANGUAGE_CODE=es
 # --- Opcionales ---
 # Google Calendar: o se configuran las cuatro variables (client id, client secret,
 # redirect URI y llave de cifrado; las dos últimas sensibles van en secretos) o ninguna.
-# URI de redirección a registrar en Google Cloud: https://$DOMAIN/panel/barberia/google-calendar/callback
+# URI de redirección a registrar en Google Cloud: https://agenda.$DOMAIN/panel/barberia/google-calendar/callback
 GOOGLE_CALENDAR_CLIENT_ID=
 GOOGLE_CALENDAR_REDIRECT_URI=
 EOF
