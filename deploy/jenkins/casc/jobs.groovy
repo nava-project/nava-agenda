@@ -1,7 +1,7 @@
 // Jobs del Jenkins de la VPS (DEC-177), como código (Job DSL). Una carpeta por proyecto;
 // cada proyecto trae sus Jenkinsfiles en su propio repositorio.
 
-def repoUrl = 'https://github.com/bcaceres19/nava-agenda'
+def repoUrl = 'https://github.com/nava-project/nava-agenda'
 
 folder('agenda') {
   displayName('Nava Agenda')
@@ -18,7 +18,7 @@ multibranchPipelineJob('agenda/ci') {
       source {
         github {
           id('nava-agenda-github')
-          repoOwner('bcaceres19')
+          repoOwner('nava-project')
           repository('nava-agenda')
           repositoryUrl("${repoUrl}.git")
           configuredByUrl(false)
@@ -81,10 +81,10 @@ pipelineJob('agenda/deploy') {
 }
 
 // ---------------------------------------------------------------------------------------
-// Nava · Pedidos (bcaceres19/nava-pedidos, /srv/pedidos). Mismo patrón que agenda/: el
+// Nava · Pedidos (nava-project/nava-pedidos, /srv/pedidos). Mismo patrón que agenda/: el
 // Jenkinsfile y deploy/jenkins/deploy.Jenkinsfile viven en su propio repositorio.
 
-def pedidosUrl = 'https://github.com/bcaceres19/nava-pedidos'
+def pedidosUrl = 'https://github.com/nava-project/nava-pedidos'
 
 folder('pedidos') {
   displayName('Pedidos (bandeja)')
@@ -99,7 +99,7 @@ multibranchPipelineJob('pedidos/ci') {
       source {
         github {
           id('pedidos-github')
-          repoOwner('bcaceres19')
+          repoOwner('nava-project')
           repository('nava-pedidos')
           repositoryUrl("${pedidosUrl}.git")
           configuredByUrl(false)
@@ -156,11 +156,11 @@ pipelineJob('pedidos/deploy') {
 }
 
 // ---------------------------------------------------------------------------------------
-// Nava · Landing (bcaceres19/nava, /srv/nava; DEC-183). La landing de la familia NAVA y
+// Nava · Landing (nava-project/nava, /srv/nava; DEC-183). La landing de la familia NAVA y
 // sus documentos legales, servidos en nava.wtf. Mismo patrón que agenda/: el Jenkinsfile
 // y deploy/jenkins/deploy.Jenkinsfile viven en su propio repositorio.
 
-def navaUrl = 'https://github.com/bcaceres19/nava'
+def navaUrl = 'https://github.com/nava-project/nava'
 
 folder('nava') {
   displayName('Nava (landing)')
@@ -175,7 +175,7 @@ multibranchPipelineJob('nava/ci') {
       source {
         github {
           id('nava-github')
-          repoOwner('bcaceres19')
+          repoOwner('nava-project')
           repository('nava')
           repositoryUrl("${navaUrl}.git")
           configuredByUrl(false)
@@ -232,10 +232,10 @@ pipelineJob('nava/deploy') {
 }
 
 // ---------------------------------------------------------------------------------------
-// Nava Nexos, antes Odin (bcaceres19/nava-nexos, /srv/odin). Mismo patrón que agenda/: el
+// Nava Nexos, antes Odin (nava-project/nava-nexos, /srv/odin). Mismo patrón que agenda/: el
 // Jenkinsfile y deploy/jenkins/deploy.Jenkinsfile viven en su propio repositorio.
 
-def odinUrl = 'https://github.com/bcaceres19/nava-nexos'
+def odinUrl = 'https://github.com/nava-project/nava-nexos'
 
 folder('odin') {
   displayName('Odin')
@@ -250,7 +250,7 @@ multibranchPipelineJob('odin/ci') {
       source {
         github {
           id('odin-github')
-          repoOwner('bcaceres19')
+          repoOwner('nava-project')
           repository('nava-nexos')
           repositoryUrl("${odinUrl}.git")
           configuredByUrl(false)

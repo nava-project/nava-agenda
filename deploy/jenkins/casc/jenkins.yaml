@@ -35,7 +35,7 @@ jenkins:
           - key: PUBLIC_URL
             value: "https://agenda.nava.wtf"
           - key: GITHUB_REPO
-            value: "bcaceres19/nava-agenda"
+            value: "nava-project/nava-agenda"
 
 credentials:
   system:
@@ -49,12 +49,12 @@ credentials:
               id: "github-token"
               username: "bcaceres19"
               password: "${GITHUB_TOKEN}"
-              description: "GitHub (bcaceres19): clonado, PR y estados del commit"
+              description: "GitHub (token de bcaceres19, org nava-project): clonado, PR y estados del commit"
           - string:
               scope: GLOBAL
               id: "github-token-text"
               secret: "${GITHUB_TOKEN}"
-              description: "GitHub (bcaceres19) como texto, para el plugin de GitHub"
+              description: "GitHub (token de bcaceres19, org nava-project) como texto, para el plugin de GitHub"
           - string:
               scope: GLOBAL
               id: "github-webhook-secret"

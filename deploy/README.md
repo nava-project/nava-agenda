@@ -5,7 +5,7 @@ PostgreSQL y respaldos. Todo se despliega desde el Jenkins de la propia VPS
 ([`jenkins/README.md`](jenkins/README.md), `DEC-177`) con el mismo commit que superó el CI. Decisiones de base: [`stack-despliegue-operacion.md`](../docs/04-arquitectura/stack-despliegue-operacion.md)
 y [`migraciones-atlas.md`](../docs/05-backend/migraciones-atlas.md).
 
-> **Nombres desde `DEC-183` (#664).** Repositorio `bcaceres19/nava-agenda` (GitHub redirige la URL
+> **Nombres desde `DEC-183` (#664).** Repositorio `nava-project/nava-agenda` (transferido desde `bcaceres19`, #687; GitHub redirige la URL
 > vieja), carpeta de Jenkins `agenda/` (`agenda/ci`, `agenda/deploy`), imágenes
 > `nava-agenda-{web,backend,db}` y raíz del servidor `/srv/nava-agenda`. La raíz se movió una sola vez
 > con `sudo mv /srv/barberia /srv/nava-agenda`, cambiando `NAVA_ENV_DIR`/`NAVA_BACKUP_DIR` en
@@ -38,9 +38,9 @@ Internet ──443──▶ web (Caddy) ── red "edge" (externa, compartida) 
                   (solo /webhooks/whatsapp)                             (pila aparte, #679)
 ```
 
-**Webhook de WhatsApp de Nava Nexos (#679, ADR 027 de `bcaceres19/nava-nexos`).** El sitio `nexos.{$DOMAIN}` solo deja pasar `GET`/`POST /webhooks/whatsapp` hacia `nexos:7870`, con cuerpo de hasta 1 MB; cualquier otra ruta responde 404 en el propio Caddy. Llega por la red externa `nexos-edge`, separada de `edge` para que Pedidos, Jenkins y la landing no alcancen el simulador ni los otros webhooks de Nexos. `deploy.sh` crea esa red si falta. La firma HMAC de Meta la valida Nexos.
+**Webhook de WhatsApp de Nava Nexos (#679, ADR 027 de `nava-project/nava-nexos`).** El sitio `nexos.{$DOMAIN}` solo deja pasar `GET`/`POST /webhooks/whatsapp` hacia `nexos:7870`, con cuerpo de hasta 1 MB; cualquier otra ruta responde 404 en el propio Caddy. Llega por la red externa `nexos-edge`, separada de `edge` para que Pedidos, Jenkins y la landing no alcancen el simulador ni los otros webhooks de Nexos. `deploy.sh` crea esa red si falta. La firma HMAC de Meta la valida Nexos.
 
-**Landing en `nava.wtf` (`DEC-183`, #658).** La app vive en `agenda.nava.wtf`. `nava.wtf` sirve la landing de la familia NAVA y `/privacidad` y `/terminos` desde el repo `bcaceres19/nava` (pila `nava-landing` en `/srv/nava`, alias `nava-landing` en `edge`, jobs `nava/ci` y `nava/deploy`). En `nava.wtf`, las rutas de la app (`/acceso`, `/recuperar-acceso`, `/panel/*`, `/reservar/*`, `/mi-turno/*`) redirigen con 308 a `agenda.nava.wtf` con la misma ruta; el API ya no responde en `nava.wtf` (#685). En `agenda.nava.wtf`, `/privacidad` y `/terminos` redirigen a `nava.wtf`.
+**Landing en `nava.wtf` (`DEC-183`, #658).** La app vive en `agenda.nava.wtf`. `nava.wtf` sirve la landing de la familia NAVA y `/privacidad` y `/terminos` desde el repo `nava-project/nava` (pila `nava-landing` en `/srv/nava`, alias `nava-landing` en `edge`, jobs `nava/ci` y `nava/deploy`). En `nava.wtf`, las rutas de la app (`/acceso`, `/recuperar-acceso`, `/panel/*`, `/reservar/*`, `/mi-turno/*`) redirigen con 308 a `agenda.nava.wtf` con la misma ruta; el API ya no responde en `nava.wtf` (#685). En `agenda.nava.wtf`, `/privacidad` y `/terminos` redirigen a `nava.wtf`.
 
 **Otros proyectos en la misma VPS (`DEC-176`).** Este Caddy es el único dueño de 80/443.
 Nava · Pedidos (repo `nava-pedidos`, pila `pedidos` en `/srv/pedidos`) no publica puertos:
