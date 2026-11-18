@@ -2,7 +2,7 @@
 prompt_id: "PROMPT-OPS-MIGRAR-PROYECTO-A-JENKINS-VPS-v2"
 version: "2.0"
 kind: "ops"
-status: "in_progress"
+status: "superseded"
 target_agents:
   - "any"
 repository: "externo — el repositorio del proyecto a migrar (bcaceres19/odin-pedidos o bcaceres19/odin); el registro de jobs se hace aparte en bcaceres19/barberia"
@@ -30,12 +30,14 @@ source_docs:
   - "bcaceres19/barberia: Jenkinsfile, tools/ci/plan.sh, tools/ci/run.sh, tools/ci/checks/*.sh"
   - "bcaceres19/barberia: deploy/jenkins/pipelines/deploy.Jenkinsfile, deploy/jenkins/scripts/release.sh"
 created_at: "2026-11-16"
-updated_at: "2026-11-16"
+updated_at: "2026-11-18"
 supersedes: "PROMPT-OPS-MIGRAR-PROYECTO-A-JENKINS-VPS-v1"
-superseded_by: null
+superseded_by: "nava-project/nava-jenkins (orquestador; DEC-184, #689)"
 ---
 
 # Migrar el CI/CD de un proyecto al Jenkins compartido de la VPS (v2)
+
+> **Trasladado al orquestador (2026-11-18, [#689](https://github.com/nava-project/nava-agenda/issues/689), `DEC-184`).** La infraestructura de Jenkins vive ahora en [`nava-project/nava-jenkins`](https://github.com/nava-project/nava-jenkins) y solo la sesión orquestadora la configura. Este prompt ya no se ejecuta desde `nava-agenda`; se conserva sin cambios por trazabilidad. De las rutas `bcaceres19/barberia: deploy/jenkins/...` que cita, las de infraestructura (`README.md`, `casc/*`) están ahora en ese repositorio; `pipelines/deploy.Jenkinsfile` y `scripts/release.sh` siguen en `nava-agenda`.
 
 ## Instrucción para el agente
 

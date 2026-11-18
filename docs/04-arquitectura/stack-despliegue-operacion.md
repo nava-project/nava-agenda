@@ -162,7 +162,7 @@ Antes de migrar a un VPS:
 El procedimiento vigente está en [`deploy/README.md`](../../deploy/README.md) y la decisión en `DEC-158`:
 
 - pila en contenedores Docker Compose, base de datos incluida, con límites de CPU y memoria por servicio y una sola superficie pública (Caddy en 80/443);
-- CI/CD en un Jenkins propio de la VPS (`DEC-177`, [`deploy/jenkins/README.md`](../../deploy/jenkins/README.md)): cada PR y cada commit de `main` pasan los checks, y el commit de `main` que los supera se despliega solo (`DEC-160`); las imágenes se construyen en el mismo Docker del servidor, sin registro intermedio, y un despliegue manual por SHA sirve para reintentos y vueltas atrás;
+- CI/CD en un Jenkins propio de la VPS (`DEC-177`; infraestructura en [`nava-project/nava-jenkins`](https://github.com/nava-project/nava-jenkins), `DEC-184`): cada PR y cada commit de `main` pasan los checks, y el commit de `main` que los supera se despliega solo (`DEC-160`); las imágenes se construyen en el mismo Docker del servidor, sin registro intermedio, y un despliegue manual por SHA sirve para reintentos y vueltas atrás;
 - etapa de migración separada con Atlas y el rol `agenda_migrator`, precedida de un respaldo verificado; si falla, la aplicación en ejecución no se toca;
 - respaldo diario con retención de 30 días y prueba de restauración semanal (§5); la copia externa requiere configurar `BACKUP_RCLONE_REMOTE`.
 
