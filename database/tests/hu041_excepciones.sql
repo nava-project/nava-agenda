@@ -59,7 +59,7 @@ $$;
 \echo 'esquema OK · professional.holiday_calendar_enabled y ambas tablas de excepción existen'
 
 -- ---------------------------------------------------------------------------
--- CA-041-05 · Una sola cabecera por barbero y fecha
+-- CA-041-05 · Una sola cabecera por profesional y fecha
 -- ---------------------------------------------------------------------------
 BEGIN;
 SET ROLE agenda_app;
@@ -75,7 +75,7 @@ BEGIN
   BEGIN
     INSERT INTO working_hour_override (business_id, professional_id, effective_date, is_closed)
     VALUES ('eeeeeeee-eeee-eeee-eeee-eeeeeeeeeeee', v_professional, '2026-12-08', false);
-    RAISE EXCEPTION 'working_hour_override_shop_professional_date_uk: se aceptó una segunda cabecera para el mismo barbero y fecha.';
+    RAISE EXCEPTION 'working_hour_override_shop_professional_date_uk: se aceptó una segunda cabecera para el mismo profesional y fecha.';
   EXCEPTION
     WHEN unique_violation THEN NULL;
   END;
@@ -84,7 +84,7 @@ $$;
 
 RESET ROLE;
 ROLLBACK;
-\echo 'CA-041-05 OK · working_hour_override_shop_professional_date_uk rechaza una segunda cabecera del mismo barbero+fecha'
+\echo 'CA-041-05 OK · working_hour_override_shop_professional_date_uk rechaza una segunda cabecera del mismo profesional+fecha'
 
 -- ---------------------------------------------------------------------------
 -- CA-041-04 · Un día cerrado no admite tramos (disparador check_open)
@@ -375,7 +375,7 @@ BEGIN
     WHEN foreign_key_violation THEN NULL; -- Esperado: working_hour_override_segment_..._fk en RESTRICT.
   END;
 
-  -- El barbero no se puede borrar mientras tenga una excepción (RESTRICT
+  -- El profesional no se puede borrar mientras tenga una excepción (RESTRICT
   -- de working_hour_override hacia professional).
   BEGIN
     DELETE FROM professional WHERE id = 'eeee0002-0002-0002-0002-000200020002';

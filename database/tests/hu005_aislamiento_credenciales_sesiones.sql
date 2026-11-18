@@ -6,7 +6,7 @@
 -- verificable sin el hasher Go real.
 --
 -- Uso:
---   psql "$DATABASE_TEST_URL" -v ON_ERROR_STOP=1 -f testdata/dos_professionalias.sql
+--   psql "$DATABASE_TEST_URL" -v ON_ERROR_STOP=1 -f testdata/dos_negocios.sql
 --   psql "$DATABASE_TEST_URL" -v ON_ERROR_STOP=1 -f testdata/hu005_credenciales_sesiones.sql
 --   psql "$DATABASE_TEST_URL" -v ON_ERROR_STOP=1 -f tests/hu005_aislamiento_credenciales_sesiones.sql
 --
@@ -63,7 +63,7 @@ BEGIN
     RAISE EXCEPTION 'CA-005-03: auth_get_credential no devolvió la credencial esperada de A.';
   END IF;
 
-  -- Un staff_user_id real de LA OTRA barbería, con el contexto de A: debe
+  -- Un staff_user_id real del otro negocio, con el contexto de A: debe
   -- devolver cero filas, nunca el hash de B (RN-TEN-01).
   PERFORM 1 FROM auth_get_credential('bbbbbbb1-bbbb-bbbb-bbbb-bbbbbbbbbbb1');
   IF FOUND THEN
@@ -78,7 +78,7 @@ ROLLBACK;
 
 -- ---------------------------------------------------------------------------
 -- CA-005-02/07 · authn_resolve_login_tenant unifica correo inexistente e
--- inactivo (ambos NULL); solo el usuario activo resuelve su barbería
+-- inactivo (ambos NULL); solo el usuario activo resuelve su negocio
 -- ---------------------------------------------------------------------------
 DO $$
 DECLARE
@@ -91,7 +91,7 @@ BEGIN
     RAISE EXCEPTION 'CA-005-01: authn_resolve_login_tenant no resolvió el correo activo de A.';
   END IF;
 
-  -- barbero.b@ejemplo.test existe pero está inactivo (dos_professionalias.sql).
+  -- profesional.b@ejemplo.test existe pero está inactivo (dos_negocios.sql).
   SELECT authn_resolve_login_tenant('barbero.b@ejemplo.test') INTO v_shop_inactive;
   SELECT authn_resolve_login_tenant('no-existe@ejemplo.test') INTO v_shop_unknown;
 

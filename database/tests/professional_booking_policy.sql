@@ -1,11 +1,11 @@
--- Pruebas SQL de DEC-169: ventana de reserva propia por barbero
+-- Pruebas SQL de DEC-169: ventana de reserva propia por profesional
 -- (professional_booking_policy). Cubren a nivel de base de datos los rangos, la
--- coherencia anticipación < ventana, la unicidad por barbero, la FK compuesta
--- por tenant y el aislamiento RLS entre dos barberías. Validar y decidir qué
+-- coherencia anticipación < ventana, la unicidad por profesional, la FK compuesta
+-- por tenant y el aislamiento RLS entre dos negocios. Validar y decidir qué
 -- se escribe vive en el servicio Go (internal/modules/shops).
 --
 -- Uso:
---   psql "$DATABASE_TEST_URL" -v ON_ERROR_STOP=1 -f testdata/dos_professionalias.sql
+--   psql "$DATABASE_TEST_URL" -v ON_ERROR_STOP=1 -f testdata/dos_negocios.sql
 --   psql "$DATABASE_TEST_URL" -v ON_ERROR_STOP=1 -f tests/professional_booking_policy.sql
 --
 -- Requisito del arnés: la conexión debe poder ejecutar `SET ROLE agenda_app`
@@ -94,7 +94,7 @@ BEGIN
     v_rejected := true;
   END;
   IF NOT v_rejected THEN
-    RAISE EXCEPTION 'un barbero no puede tener dos configuraciones propias.';
+    RAISE EXCEPTION 'un profesional no puede tener dos configuraciones propias.';
   END IF;
 
   v_rejected := false;
@@ -105,21 +105,21 @@ BEGIN
     v_rejected := true;
   END;
   IF NOT v_rejected THEN
-    RAISE EXCEPTION 'la configuración exige un barbero existente de la misma barbería.';
+    RAISE EXCEPTION 'la configuración exige un profesional existente del mismo negocio.';
   END IF;
 END
 $$;
 \echo 'rangos, coherencia, unicidad y FK OK'
 
--- Volver a heredar es borrar la fila; el barbero sigue existiendo.
+-- Volver a heredar es borrar la fila; el profesional sigue existiendo.
 DELETE FROM professional_booking_policy WHERE professional_id = 'd1690001-0000-4000-8000-000000000001';
 DO $$
 BEGIN
   IF EXISTS (SELECT 1 FROM professional_booking_policy WHERE professional_id = 'd1690001-0000-4000-8000-000000000001') THEN
-    RAISE EXCEPTION 'borrar la configuración propia debe dejar al barbero heredando.';
+    RAISE EXCEPTION 'borrar la configuración propia debe dejar al profesional heredando.';
   END IF;
   IF NOT EXISTS (SELECT 1 FROM professional WHERE id = 'd1690001-0000-4000-8000-000000000001') THEN
-    RAISE EXCEPTION 'volver a heredar no puede afectar al barbero.';
+    RAISE EXCEPTION 'volver a heredar no puede afectar al profesional.';
   END IF;
 END
 $$;
@@ -130,7 +130,7 @@ INSERT INTO professional_booking_policy (business_id, professional_id, min_advan
 VALUES ('11111111-1111-1111-1111-111111111111', 'd1690001-0000-4000-8000-000000000001', 30, 7, 40);
 
 -- ---------------------------------------------------------------------------
--- Aislamiento: la barbería B no ve, no modifica, no borra ni crea filas de A
+-- Aislamiento: el negocio B no ve, no modifica, no borra ni crea filas de A
 -- ---------------------------------------------------------------------------
 SET LOCAL app.business_id = '22222222-2222-2222-2222-222222222222';
 
@@ -142,20 +142,20 @@ BEGIN
   SELECT count(*) INTO v_count FROM professional_booking_policy
   WHERE business_id = '11111111-1111-1111-1111-111111111111';
   IF v_count <> 0 THEN
-    RAISE EXCEPTION 'la barbería B no debe ver configuraciones de A (vio %).', v_count;
+    RAISE EXCEPTION 'el negocio B no debe ver configuraciones de A (vio %).', v_count;
   END IF;
 
   UPDATE professional_booking_policy SET slot_grid_minutes = 5
   WHERE professional_id = 'd1690001-0000-4000-8000-000000000001';
   GET DIAGNOSTICS v_count = ROW_COUNT;
   IF v_count <> 0 THEN
-    RAISE EXCEPTION 'la barbería B no debe modificar configuraciones de A.';
+    RAISE EXCEPTION 'el negocio B no debe modificar configuraciones de A.';
   END IF;
 
   DELETE FROM professional_booking_policy WHERE professional_id = 'd1690001-0000-4000-8000-000000000001';
   GET DIAGNOSTICS v_count = ROW_COUNT;
   IF v_count <> 0 THEN
-    RAISE EXCEPTION 'la barbería B no debe borrar configuraciones de A.';
+    RAISE EXCEPTION 'el negocio B no debe borrar configuraciones de A.';
   END IF;
 
   BEGIN
@@ -165,10 +165,10 @@ BEGIN
     v_rejected := true;
   END;
   IF NOT v_rejected THEN
-    RAISE EXCEPTION 'la barbería B no debe crear configuraciones en A.';
+    RAISE EXCEPTION 'el negocio B no debe crear configuraciones en A.';
   END IF;
 
-  -- Ni siquiera con su propio business_id puede apuntar a un barbero de A:
+  -- Ni siquiera con su propio business_id puede apuntar a un profesional de A:
   -- la FK compuesta lo impide.
   v_rejected := false;
   BEGIN
@@ -178,7 +178,7 @@ BEGIN
     v_rejected := true;
   END;
   IF NOT v_rejected THEN
-    RAISE EXCEPTION 'la barbería B no debe asociar su configuración a un barbero de A.';
+    RAISE EXCEPTION 'el negocio B no debe asociar su configuración a un profesional de A.';
   END IF;
 END
 $$;
@@ -194,7 +194,7 @@ BEGIN
   END IF;
 END
 $$;
-\echo 'aislamiento entre barberías OK'
+\echo 'aislamiento entre negocios OK'
 
 ROLLBACK;
 

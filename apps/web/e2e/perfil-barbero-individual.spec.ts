@@ -1,7 +1,7 @@
 import { test, expect, type Page, type BrowserContext } from '@playwright/test'
 
 // #294 (DEC-115): perfil «barbero individual» contra el API y PostgreSQL reales.
-// Datos dedicados en database/testdata/ui_barbero_individual_294.sql: una barbería
+// Datos dedicados en database/testdata/ui_profesional_individual_294.sql: una barbería
 // con UN solo barbero, perfil `solo`, tres de cuatro servicios ofrecidos y tres
 // turnos hoy. No comparte registros con las otras suites. Apagar «Lo ofrezco» retira
 // la última asignación de un servicio activo, que solo es posible con DEC-114: por eso

@@ -2,7 +2,7 @@
 -- esquema de las cuatro tablas (customer, appointment, appointment_history,
 -- appointment_history_change), sus CHECK, el criterio derivado
 -- occupies_schedule, la restricción de exclusión EXCLUDE USING gist contra
--- cruces del mismo barbero, RLS/grants exactos (sin DELETE en customer ni
+-- cruces del mismo profesional, RLS/grants exactos (sin DELETE en customer ni
 -- appointment; sin UPDATE ni DELETE en el historial), aislamiento por
 -- tenant (RN-TEN-01) y DEC-070 (ON DELETE RESTRICT, nunca CASCADE) a nivel
 -- de base de datos. La primitiva transaccional Go (cliente+cita+historial
@@ -11,7 +11,7 @@
 -- conexiones (CA-060-*, sin dobles).
 --
 -- Uso:
---   psql "$DATABASE_TEST_URL" -v ON_ERROR_STOP=1 -f testdata/dos_professionalias.sql
+--   psql "$DATABASE_TEST_URL" -v ON_ERROR_STOP=1 -f testdata/dos_negocios.sql
 --   psql "$DATABASE_TEST_URL" -v ON_ERROR_STOP=1 -f testdata/hu060_citas.sql
 --   psql "$DATABASE_TEST_URL" -v ON_ERROR_STOP=1 -f tests/hu060_citas.sql
 --
@@ -333,7 +333,7 @@ ROLLBACK;
 \echo 'CHECK OK · appointment_status_ck/origin_ck/interval_ck/attendee_name_ck/duration_snapshot_ck/price_snapshot_ck/currency_snapshot_ck/service_name_snapshot_ck/customer_note_ck/duration_matches_snapshot_ck/cancellation_reason_ck/resolved_at_ck rechazan valores inválidos'
 
 -- ---------------------------------------------------------------------------
--- Cita base persistida (A1, confirmed, 10:00-11:00, barbero Q-1) para las
+-- Cita base persistida (A1, confirmed, 10:00-11:00, profesional Q-1) para las
 -- pruebas de exclusión, occupies_schedule, historial y RESTRICT que siguen
 -- ---------------------------------------------------------------------------
 BEGIN;
@@ -360,11 +360,11 @@ INSERT INTO appointment (
 
 RESET ROLE;
 COMMIT;
-\echo 'fixture OK · cita base A1 (confirmed, 10:00-11:00, barbero Q-1) persistida'
+\echo 'fixture OK · cita base A1 (confirmed, 10:00-11:00, profesional Q-1) persistida'
 
 -- ---------------------------------------------------------------------------
 -- Restricción de exclusión (RN-CON-01, RN-CON-03, F-DISP-02): cruce total,
--- parcial por ambos extremos, un minuto, contigüidad válida, barberos
+-- parcial por ambos extremos, un minuto, contigüidad válida, profesionales
 -- distintos y tenants distintos aceptados
 -- ---------------------------------------------------------------------------
 BEGIN;
@@ -455,7 +455,7 @@ BEGIN
     'Corte de prueba Q', 60, 20000.00, 'COP'
   );
 
-  -- Mismo intervalo exacto, pero otro barbero de la misma barbería: la
+  -- Mismo intervalo exacto, pero otro profesional del mismo negocio: la
   -- exclusión es por (business_id, professional_id), no solo por business_id.
   INSERT INTO appointment (
     business_id, professional_id, service_id, customer_id, attendee_name,
@@ -467,7 +467,7 @@ BEGIN
     'Corte de prueba Q', 60, 20000.00, 'COP'
   );
 
-  -- Cancelada: mismo barbero, mismo intervalo exacto que A1. occupies_schedule
+  -- Cancelada: mismo profesional, mismo intervalo exacto que A1. occupies_schedule
   -- es false, así que no debe entrar en la exclusión.
   INSERT INTO appointment (
     business_id, professional_id, service_id, customer_id, attendee_name,
@@ -484,7 +484,7 @@ $$;
 
 RESET ROLE;
 ROLLBACK;
-\echo 'EXCLUDE OK · cruce total/parcial/un minuto rechazados; contigüidad, otro barbero y cita cancelada solapada aceptados'
+\echo 'EXCLUDE OK · cruce total/parcial/un minuto rechazados; contigüidad, otro profesional y cita cancelada solapada aceptados'
 
 -- ---------------------------------------------------------------------------
 -- occupies_schedule (CA-060-03): confirmed/completed/no_show = true;
@@ -761,7 +761,7 @@ $$;
 -- ---------------------------------------------------------------------------
 -- Cierre por falta de contexto: sin app.business_id fijado, cualquier
 -- consulta de agenda_app sobre customer/appointment falla cerrada (nunca
--- devuelve filas de ninguna barbería), porque la política RLS evalúa
+-- devuelve filas de ningún negocio), porque la política RLS evalúa
 -- current_setting('app.business_id') sin el segundo argumento
 -- missing_ok y ese parámetro no tiene valor por defecto a nivel de sesión.
 -- ---------------------------------------------------------------------------

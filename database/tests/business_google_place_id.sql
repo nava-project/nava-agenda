@@ -2,11 +2,11 @@
 -- base de datos el valor por defecto (sin ficha), la forma aceptada (letras,
 -- dígitos, `_` y `-`, de 1 a 200 caracteres), el rechazo de cualquier otra
 -- (vacío, espacios, `/`, `?`, `%`, acentos, más de 200) y el aislamiento RLS
--- entre dos barberías. Consultar a Google y cachear viven en el servicio Go
+-- entre dos negocios. Consultar a Google y cachear viven en el servicio Go
 -- (internal/modules/publicbooking/google).
 --
 -- Uso:
---   psql "$DATABASE_TEST_URL" -v ON_ERROR_STOP=1 -f testdata/dos_professionalias.sql
+--   psql "$DATABASE_TEST_URL" -v ON_ERROR_STOP=1 -f testdata/dos_negocios.sql
 --   psql "$DATABASE_TEST_URL" -v ON_ERROR_STOP=1 -f tests/business_google_place_id.sql
 --
 -- Requisito del arnés: la conexión debe poder ejecutar `SET ROLE agenda_app`
@@ -31,7 +31,7 @@ DECLARE
 BEGIN
   SELECT google_place_id INTO v FROM business WHERE id = '11111111-1111-1111-1111-111111111111';
   IF v IS NOT NULL THEN
-    RAISE EXCEPTION 'una barbería existente no debe tener ficha de Google (leyó %).', v;
+    RAISE EXCEPTION 'un negocio existente no debe tener ficha de Google (leyó %).', v;
   END IF;
 END
 $$;
@@ -125,7 +125,7 @@ BEGIN
   SELECT count(*) INTO v_visible FROM business
    WHERE id = '22222222-2222-2222-2222-222222222222';
   IF v_visible <> 0 THEN
-    RAISE EXCEPTION 'RLS: el tenant A ve la barbería del tenant B.';
+    RAISE EXCEPTION 'RLS: el tenant A ve el negocio del tenant B.';
   END IF;
 END
 $$;

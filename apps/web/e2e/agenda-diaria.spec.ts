@@ -181,7 +181,7 @@ test.describe('Agenda diaria de hoy (HU-062)', () => {
 test.describe('Agenda diaria en un dispositivo de otra zona horaria (CA-062-01, RN-DIS-07)', () => {
   // El dispositivo simula America/Los_Angeles; la barbería de las
   // credenciales de prueba está configurada en otra zona (America/Bogota,
-  // ver database/testdata/dos_barberias.sql). La fecha/hora mostradas deben
+  // ver database/testdata/dos_negocios.sql). La fecha/hora mostradas deben
   // seguir siendo las de la ZONA DE LA BARBERÍA, nunca las del dispositivo.
   test.use({ timezoneId: 'America/Los_Angeles' })
 

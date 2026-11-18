@@ -11,7 +11,7 @@
 -- diseño del modelo de referencia, NO el esquema desplegable hoy.
 --
 -- Uso:
---   psql "$DATABASE_TEST_URL" -v ON_ERROR_STOP=1 -f testdata/dos_professionalias.sql
+--   psql "$DATABASE_TEST_URL" -v ON_ERROR_STOP=1 -f testdata/dos_negocios.sql
 --   psql "$DATABASE_TEST_URL" -v ON_ERROR_STOP=1 -f testdata/rls_suite_fixture.sql
 --
 -- Se ejecuta con el rol migrador (política administrativa sobre las tablas
@@ -27,7 +27,7 @@
 BEGIN;
 
 -- ---------------------------------------------------------------------------
--- Barbería A (11111111-...)
+-- Negocio A (11111111-...)
 -- ---------------------------------------------------------------------------
 
 INSERT INTO staff_credential (staff_user_id, business_id, password_hash) VALUES
@@ -140,7 +140,7 @@ INSERT INTO idempotency_record (business_id, idempotency_key, operation, request
 ON CONFLICT (business_id, idempotency_key) DO NOTHING;
 
 -- ---------------------------------------------------------------------------
--- Barbería B (22222222-...) — mismas tablas, mismo patrón
+-- Negocio B (22222222-...) — mismas tablas, mismo patrón
 -- ---------------------------------------------------------------------------
 
 INSERT INTO staff_credential (staff_user_id, business_id, password_hash) VALUES

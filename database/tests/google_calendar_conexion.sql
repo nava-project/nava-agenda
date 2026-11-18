@@ -1,12 +1,12 @@
--- Pruebas SQL del issue #323 (DEC-099, DEC-102): conexión del barbero con Google
+-- Pruebas SQL del issue #323 (DEC-099, DEC-102): conexión del profesional con Google
 -- Calendar y estado OAuth. Cubren a nivel de base de datos la unicidad de una
--- conexión por barbero, la FK compuesta por tenant, el CHECK que liga las
+-- conexión por profesional, la FK compuesta por tenant, el CHECK que liga las
 -- credenciales al estado, el rango del recordatorio, la ausencia de DELETE y el
--- aislamiento RLS entre dos barberías. La orquestación OAuth vive en el servicio
+-- aislamiento RLS entre dos negocios. La orquestación OAuth vive en el servicio
 -- Go (internal/modules/googlecalendar), no aquí.
 --
 -- Uso:
---   psql "$DATABASE_TEST_URL" -v ON_ERROR_STOP=1 -f testdata/dos_professionalias.sql
+--   psql "$DATABASE_TEST_URL" -v ON_ERROR_STOP=1 -f testdata/dos_negocios.sql
 --   psql "$DATABASE_TEST_URL" -v ON_ERROR_STOP=1 -f tests/google_calendar_conexion.sql
 --
 -- Requisito del arnés: la conexión debe poder ejecutar `SET ROLE agenda_app`
@@ -51,7 +51,7 @@ $$;
 \echo 'RLS y privilegios OK · conexión sin DELETE, estado con DELETE, worker sin acceso'
 
 -- ---------------------------------------------------------------------------
--- Una conexión por barbero, credenciales ligadas al estado y rango del recordatorio
+-- Una conexión por profesional, credenciales ligadas al estado y rango del recordatorio
 -- ---------------------------------------------------------------------------
 BEGIN;
 SET ROLE agenda_app;
@@ -67,13 +67,13 @@ BEGIN
   VALUES ('11111111-1111-1111-1111-111111111111', 'c3230001-0000-4000-8000-000000000001',
           'connected', 'barbero@ejemplo.test', '\x0102'::bytea, 'v1');
 
-  -- Una sola conexión por barbero.
+  -- Una sola conexión por profesional.
   BEGIN
     INSERT INTO google_calendar_connection
       (business_id, professional_id, status, refresh_token_ciphertext, token_key_id)
     VALUES ('11111111-1111-1111-1111-111111111111', 'c3230001-0000-4000-8000-000000000001',
             'connected', '\x0102'::bytea, 'v1');
-    RAISE EXCEPTION 'un barbero no debe poder tener dos conexiones.';
+    RAISE EXCEPTION 'un profesional no debe poder tener dos conexiones.';
   EXCEPTION WHEN unique_violation THEN NULL;
   END;
 
@@ -127,10 +127,10 @@ $$;
 
 RESET ROLE;
 ROLLBACK;
-\echo 'restricciones OK · una conexión por barbero, credenciales ligadas al estado, recordatorio acotado'
+\echo 'restricciones OK · una conexión por profesional, credenciales ligadas al estado, recordatorio acotado'
 
 -- ---------------------------------------------------------------------------
--- La FK compuesta rechaza conectar el barbero de otra barbería
+-- La FK compuesta rechaza conectar el profesional de otro negocio
 -- ---------------------------------------------------------------------------
 BEGIN;
 SET ROLE agenda_app;
@@ -145,14 +145,14 @@ SET LOCAL app.business_id = '22222222-2222-2222-2222-222222222222';
 
 DO $$
 BEGIN
-  -- La barbería B intenta conectar el barbero de la A: la RLS lo permite (es su
+  -- El negocio B intenta conectar el profesional de la A: la RLS lo permite (es su
   -- tenant) pero la FK compuesta (business_id, professional_id) lo rechaza.
   BEGIN
     INSERT INTO google_calendar_connection
       (business_id, professional_id, status, refresh_token_ciphertext, token_key_id)
     VALUES ('22222222-2222-2222-2222-222222222222', 'c3230002-0000-4000-8000-000000000001',
             'connected', '\x0102'::bytea, 'v1');
-    RAISE EXCEPTION 'la barbería B no debe poder conectar al barbero de la A.';
+    RAISE EXCEPTION 'el negocio B no debe poder conectar al profesional de la A.';
   EXCEPTION WHEN foreign_key_violation THEN NULL;
   END;
 
@@ -162,7 +162,7 @@ BEGIN
       (business_id, professional_id, status, refresh_token_ciphertext, token_key_id)
     VALUES ('11111111-1111-1111-1111-111111111111', 'c3230002-0000-4000-8000-000000000001',
             'connected', '\x0102'::bytea, 'v1');
-    RAISE EXCEPTION 'la RLS debe rechazar una fila de otra barbería.';
+    RAISE EXCEPTION 'la RLS debe rechazar una fila de otro negocio.';
   EXCEPTION WHEN insufficient_privilege THEN NULL;
   END;
 END
@@ -170,7 +170,7 @@ $$;
 
 RESET ROLE;
 ROLLBACK;
-\echo 'FK compuesta y RLS OK · el barbero de otra barbería no se conecta ni se escribe'
+\echo 'FK compuesta y RLS OK · el profesional de otro negocio no se conecta ni se escribe'
 
 -- ---------------------------------------------------------------------------
 -- Aislamiento RLS en lectura y actualización cruzada
@@ -196,23 +196,23 @@ DECLARE
 BEGIN
   IF EXISTS (SELECT 1 FROM google_calendar_connection
               WHERE professional_id = 'c3230003-0000-4000-8000-000000000001') THEN
-    RAISE EXCEPTION 'la barbería B no debe ver la conexión de la A.';
+    RAISE EXCEPTION 'el negocio B no debe ver la conexión de la A.';
   END IF;
   UPDATE google_calendar_connection SET reminder_minutes = 5
    WHERE professional_id = 'c3230003-0000-4000-8000-000000000001';
   GET DIAGNOSTICS v_rows = ROW_COUNT;
   IF v_rows <> 0 THEN
-    RAISE EXCEPTION 'la barbería B no debe poder modificar la conexión de la A (% filas).', v_rows;
+    RAISE EXCEPTION 'el negocio B no debe poder modificar la conexión de la A (% filas).', v_rows;
   END IF;
 END
 $$;
 
 RESET ROLE;
 ROLLBACK;
-\echo 'RLS OK · la barbería B no ve ni modifica la conexión de la A'
+\echo 'RLS OK · el negocio B no ve ni modifica la conexión de la A'
 
 -- ---------------------------------------------------------------------------
--- Estado OAuth: hash único de 64 caracteres y ligado a barbería, usuario y sesión
+-- Estado OAuth: hash único de 64 caracteres y ligado a negocio, usuario y sesión
 -- ---------------------------------------------------------------------------
 BEGIN;
 SET ROLE agenda_app;
@@ -257,7 +257,7 @@ BEGIN
   EXCEPTION WHEN check_violation THEN NULL;
   END;
 
-  -- Un usuario de otra barbería no puede ser dueño del estado (FK compuesta).
+  -- Un usuario de otro negocio no puede ser dueño del estado (FK compuesta).
   BEGIN
     INSERT INTO google_calendar_oauth_state
       (business_id, professional_id, staff_user_id, session_id, state_hash,
@@ -265,7 +265,7 @@ BEGIN
     VALUES ('11111111-1111-1111-1111-111111111111', 'c3230004-0000-4000-8000-000000000001',
             'bbbbbbb2-bbbb-bbbb-bbbb-bbbbbbbbbbb2', '5e550323-0000-4000-8000-000000000001',
             repeat('c', 64), '\x0102'::bytea, 'v1', now() + interval '10 minutes');
-    RAISE EXCEPTION 'un usuario de otra barbería no debe poder ser dueño del state.';
+    RAISE EXCEPTION 'un usuario de otro negocio no debe poder ser dueño del state.';
   EXCEPTION WHEN foreign_key_violation THEN NULL;
   END;
 END
@@ -273,6 +273,6 @@ $$;
 
 RESET ROLE;
 ROLLBACK;
-\echo 'estado OAuth OK · hash único de 64, ligado a barbería, usuario y sesión'
+\echo 'estado OAuth OK · hash único de 64, ligado a negocio, usuario y sesión'
 
 \echo '=== Issue #323 · todas las comprobaciones pasaron ==='

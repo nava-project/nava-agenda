@@ -1,13 +1,13 @@
--- Escenario controlado de HU-001: dos barberías con usuarios propios.
+-- Escenario controlado de HU-001: dos negocios con usuarios propios.
 --
 -- Uso:
---   psql "$DATABASE_TEST_URL" -v ON_ERROR_STOP=1 -f testdata/dos_professionalias.sql
+--   psql "$DATABASE_TEST_URL" -v ON_ERROR_STOP=1 -f testdata/dos_negocios.sql
 --
 -- Se ejecuta con el rol migrador, que es el único con política administrativa
 -- sobre las tablas con RLS forzada.
 --
 -- Identificadores fijos a propósito: las pruebas de aislamiento necesitan
--- conocer un identificador de la barbería ajena para intentar alcanzarlo
+-- conocer un identificador del negocio ajeno para intentar alcanzarlo
 -- (base-datos.md §4.8).
 --
 -- Ningún dato de este archivo corresponde a una persona real (AGENTS.md).
@@ -54,10 +54,10 @@ INSERT INTO staff_user (id, business_id, email, full_name, is_active) VALUES
    'barbero.b@ejemplo.test', 'Barbero B', false)
 ON CONFLICT (id) DO NOTHING;
 
--- Tercer usuario por barbería (aaaaaaa3/bbbbbbb3): activo, SIN teléfono
+-- Tercer usuario por negocio (aaaaaaa3/bbbbbbb3): activo, SIN teléfono
 -- verificado, dedicado a pruebas de cmd/api que solo necesitan UNA sesión
 -- válida para ejercitar una feature ajena a recuperación (catálogo,
--- barberos, turnos, servicios...). auth_recovery_change_password (issue
+-- profesionales, turnos, servicios...). auth_recovery_change_password (issue
 -- #158) revoca TODAS las sesiones activas del usuario cuya contraseña
 -- cambia (CA-008-05); como duena.a/dueno.b son las únicas cuentas con
 -- teléfono verificado (hu007_reto_telefonico.sql) y las únicas que ejercitan
@@ -66,7 +66,7 @@ ON CONFLICT (id) DO NOTHING;
 -- termina un flujo de recuperación real. aaaaaaa3/bbbbbbb3 nunca son el
 -- objetivo de una prueba de recuperación en ningún paquete: mantenlo así.
 -- internal/platform/database/database_test.go cuenta USUARIOS POR
--- BARBERÍA bajo RLS (no total): añadir esta fila exige mantener ese conteo
+-- PROFESSIONALÍA bajo RLS (no total): añadir esta fila exige mantener ese conteo
 -- en 3, no en 2.
 INSERT INTO staff_user (id, business_id, email, full_name, is_active) VALUES
   ('aaaaaaa3-aaaa-aaaa-aaaa-aaaaaaaaaaa3',

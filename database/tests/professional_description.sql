@@ -1,11 +1,11 @@
--- Pruebas SQL de DEC-127: descripción opcional del barbero (professional.description).
+-- Pruebas SQL de DEC-127: descripción opcional del profesional (professional.description).
 -- Cubren a nivel de base de datos la nulabilidad, la restricción
 -- professional_description_ck (ni vacía ni de solo espacios, máximo 280 caracteres) y
--- el aislamiento RLS entre dos barberías. Normalizar (recortar, vacío = NULL) y
+-- el aislamiento RLS entre dos negocios. Normalizar (recortar, vacío = NULL) y
 -- decidir qué se escribe viven en el servicio Go (internal/modules/staff).
 --
 -- Uso:
---   psql "$DATABASE_TEST_URL" -v ON_ERROR_STOP=1 -f testdata/dos_professionalias.sql
+--   psql "$DATABASE_TEST_URL" -v ON_ERROR_STOP=1 -f testdata/dos_negocios.sql
 --   psql "$DATABASE_TEST_URL" -v ON_ERROR_STOP=1 -f tests/professional_description.sql
 --
 -- Requisito del arnés: la conexión debe poder ejecutar `SET ROLE agenda_app`
@@ -35,7 +35,7 @@ BEGIN
     RAISE EXCEPTION 'professional.description debe ser text NULL (leyó % %).', v_col.data_type, v_col.is_nullable;
   END IF;
   IF EXISTS (SELECT 1 FROM professional WHERE description IS NOT NULL AND btrim(description) = '') THEN
-    RAISE EXCEPTION 'ningún barbero puede tener una descripción vacía.';
+    RAISE EXCEPTION 'ningún profesional puede tener una descripción vacía.';
   END IF;
 END
 $$;
@@ -93,7 +93,7 @@ $$;
 ROLLBACK;
 
 -- ---------------------------------------------------------------------------
--- RLS: la barbería B no ve ni modifica la descripción de la A
+-- RLS: el negocio B no ve ni modifica la descripción de la A
 -- ---------------------------------------------------------------------------
 BEGIN;
 SET ROLE agenda_app;
@@ -109,17 +109,17 @@ DECLARE
   v_rows integer;
 BEGIN
   IF EXISTS (SELECT 1 FROM professional WHERE id = 'd1270002-0000-4000-8000-000000000001') THEN
-    RAISE EXCEPTION 'la barbería B no debe ver el barbero (ni la descripción) de la A.';
+    RAISE EXCEPTION 'el negocio B no debe ver el profesional (ni la descripción) de la A.';
   END IF;
 
   UPDATE professional SET description = 'Pisada por B' WHERE id = 'd1270002-0000-4000-8000-000000000001';
   GET DIAGNOSTICS v_rows = ROW_COUNT;
   IF v_rows <> 0 THEN
-    RAISE EXCEPTION 'la barbería B no debe poder modificar la descripción de un barbero de la A.';
+    RAISE EXCEPTION 'el negocio B no debe poder modificar la descripción de un profesional de la A.';
   END IF;
 END
 $$;
-\echo 'RLS OK · la descripción no cruza barberías'
+\echo 'RLS OK · la descripción no cruza negocios'
 ROLLBACK;
 
 \echo '=== DEC-127 · todas las pruebas pasaron ==='

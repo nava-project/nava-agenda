@@ -1,4 +1,4 @@
--- Fixture propio de HU-105: dos barberías DEDICADAS a las pruebas del acceso al
+-- Fixture propio de HU-105: dos negocios DEDICADAS a las pruebas del acceso al
 -- turno con código (customeraccess/postgres y httpapi). Cada una lleva su
 -- public_slug, porque el acceso se resuelve por slug, y están separadas de las
 -- demás suites por el mismo motivo que hu098_acceso_turno.sql: una prueba de

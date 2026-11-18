@@ -1,22 +1,22 @@
--- Fixture propio de HU-040: dos barberías DEDICADAS a las pruebas de
+-- Fixture propio de HU-040: dos negocios DEDICADAS a las pruebas de
 -- schedule/postgres (horario laboral recurrente, aislamiento por tenant),
--- separadas de dos_professionalias.sql/hu021_professionalos.sql/hu022_catalogo.sql/
+-- separadas de dos_negocios.sql/hu021_professionalos.sql/hu022_catalogo.sql/
 -- hu023_asignaciones.sql por el mismo motivo: un conteo exacto de tramos
--- por barbero no debe depender del estado que dejen otras suites.
+-- por profesional no debe depender del estado que dejen otras suites.
 --
 -- IDs 'c...'/'d...' (K/L), no '9...'/'a...' (I/J): esos dos ya están
--- reservados como identificadores de barbería DELIBERADAMENTE inexistentes
+-- reservados como identificadores de negocio DELIBERADAMENTE inexistentes
 -- por internal/modules/auth/postgres/session_repository_test.go
--- (TestBarbershopName_UnknownID_ReturnsError) y database/tests/
+-- (TestBusinessName_UnknownID_ReturnsError) y database/tests/
 -- hu001_aislamiento_rls.sql/hu021_professionalos.sql (ids de otras tablas);
 -- reutilizarlos como business.id real habría roto esa prueba.
 --
 -- Uso:
---   psql "$DATABASE_TEST_URL" -v ON_ERROR_STOP=1 -f testdata/dos_professionalias.sql
+--   psql "$DATABASE_TEST_URL" -v ON_ERROR_STOP=1 -f testdata/dos_negocios.sql
 --   psql "$DATABASE_TEST_URL" -v ON_ERROR_STOP=1 -f testdata/hu040_horario.sql
 --
 -- Se ejecuta con el rol migrador (o superusuario en local/CI efímero,
--- mismo criterio que dos_professionalias.sql), el único con política
+-- mismo criterio que dos_negocios.sql), el único con política
 -- administrativa sobre business/professional.
 --
 -- Ningún dato de este archivo corresponde a una persona real (AGENTS.md).

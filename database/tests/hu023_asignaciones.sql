@@ -1,4 +1,4 @@
--- Pruebas SQL de HU-023: asignación de servicios a barberos. Cubren
+-- Pruebas SQL de HU-023: asignación de servicios a profesionales. Cubren
 -- CA-023-04, CA-023-06 y CA-023-07 a nivel de base de datos (esquema, FK
 -- compuestas, RLS, grants); la orquestación completa de asignar/desasignar,
 -- la carrera de DEC-068 y la traducción a apperr viven en el servicio y el
@@ -6,7 +6,7 @@
 -- PostgreSQL real.
 --
 -- Uso:
---   psql "$DATABASE_TEST_URL" -v ON_ERROR_STOP=1 -f testdata/dos_professionalias.sql
+--   psql "$DATABASE_TEST_URL" -v ON_ERROR_STOP=1 -f testdata/dos_negocios.sql
 --   psql "$DATABASE_TEST_URL" -v ON_ERROR_STOP=1 -f testdata/hu021_professionalos.sql
 --   psql "$DATABASE_TEST_URL" -v ON_ERROR_STOP=1 -f testdata/hu022_catalogo.sql
 --   psql "$DATABASE_TEST_URL" -v ON_ERROR_STOP=1 -f testdata/hu023_asignaciones.sql
@@ -20,7 +20,7 @@
 
 \set ON_ERROR_STOP on
 
-\echo '=== HU-023 · pruebas de asignación de servicios a barberos ==='
+\echo '=== HU-023 · pruebas de asignación de servicios a profesionales ==='
 
 -- ---------------------------------------------------------------------------
 -- Esquema mínimo: columnas exactas (CA-023-07: sin nombre, duración, precio
@@ -151,7 +151,7 @@ ROLLBACK;
 
 -- ---------------------------------------------------------------------------
 -- CA-023-02/03 · Asignar dentro del propio tenant: repetible sin duplicar,
--- un mismo servicio a varios barberos
+-- un mismo servicio a varios profesionales
 -- ---------------------------------------------------------------------------
 BEGIN;
 SET ROLE agenda_app;
@@ -190,7 +190,7 @@ BEGIN
     RAISE EXCEPTION 'CA-023-02: se esperaba exactamente 1 fila tras repetir la asignación, hay %.', v_count;
   END IF;
 
-  -- CA-023-03: el mismo servicio a un segundo barbero es una fila
+  -- CA-023-03: el mismo servicio a un segundo profesional es una fila
   -- independiente.
   INSERT INTO professional_service (business_id, professional_id, service_id)
   VALUES ('11111111-1111-1111-1111-111111111111', v_professional2, v_service);
@@ -205,13 +205,13 @@ $$;
 
 RESET ROLE;
 ROLLBACK;
-\echo 'CA-023-02/03 OK · asignación repetida no duplica; un servicio compartido por varios barberos son filas independientes'
+\echo 'CA-023-02/03 OK · asignación repetida no duplica; un servicio compartido por varios profesionales son filas independientes'
 
 -- ---------------------------------------------------------------------------
--- CA-023-04 · La base rechaza asociar un barbero y un servicio de
--- barberías DISTINTAS, aun con el rol de aplicación real (FK compuesta)
+-- CA-023-04 · La base rechaza asociar un profesional y un servicio de
+-- negocios DISTINTAS, aun con el rol de aplicación real (FK compuesta)
 -- ---------------------------------------------------------------------------
--- Prepara un barbero real de A y un servicio real de B en transacciones
+-- Prepara un profesional real de A y un servicio real de B en transacciones
 -- confirmadas por separado (para no depender de visibilidad entre RLS y la
 -- transacción de prueba).
 BEGIN;
@@ -246,7 +246,7 @@ BEGIN
     VALUES ('11111111-1111-1111-1111-111111111111',
             '77777777-1111-1111-1111-777777777771',
             '77777777-2222-2222-2222-777777777772');
-    RAISE EXCEPTION 'CA-023-04: se permitió asociar un barbero de A con un servicio de B.';
+    RAISE EXCEPTION 'CA-023-04: se permitió asociar un profesional de A con un servicio de B.';
   EXCEPTION
     WHEN foreign_key_violation THEN NULL; -- Esperado.
   END;
@@ -255,7 +255,7 @@ $$;
 
 RESET ROLE;
 ROLLBACK;
-\echo 'CA-023-04 OK · la FK compuesta rechaza asociar un barbero y un servicio de barberías distintas'
+\echo 'CA-023-04 OK · la FK compuesta rechaza asociar un profesional y un servicio de negocios distintos'
 
 -- ---------------------------------------------------------------------------
 -- CA-023-06 (nivel base de datos) · El contexto de A no ve ni puede
@@ -381,7 +381,7 @@ $$;
 
 -- ---------------------------------------------------------------------------
 -- Limpieza de las dos filas que se confirmaron con COMMIT más arriba (el
--- barbero de A y el servicio de B usados para CA-023-04): con el rol de
+-- profesional de A y el servicio de B usados para CA-023-04): con el rol de
 -- sesión sin RLS forzada (superusuario/`agenda_migrator`), para dejar la
 -- base exactamente como estaba al empezar este archivo. agenda_app nunca
 -- podría hacer esta limpieza (sin GRANT DELETE sobre professional/service,

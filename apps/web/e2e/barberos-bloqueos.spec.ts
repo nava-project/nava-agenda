@@ -4,7 +4,7 @@ import { existsSync, mkdirSync, readFileSync } from 'node:fs'
 import path from 'node:path'
 
 // #286: API y PostgreSQL reales. Datos dedicados en
-// database/testdata/ui_bloqueos_barberos_286.sql; no comparte personas ni
+// database/testdata/ui_bloqueos_profesionales_286.sql; no comparte personas ni
 // registros mutables con las otras suites.
 const BARBER_A = '286b0001-0000-4000-8000-000000000001'
 const BARBER_OTHER = '286b0001-0000-4000-8000-000000000002'

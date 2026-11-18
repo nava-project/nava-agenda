@@ -5,7 +5,7 @@ import path from 'node:path'
 
 // #100: bloqueos por fechas explícitas, excepciones y edición de serie por
 // alcance, sobre API y PostgreSQL reales. Reutiliza los datos dedicados de
-// #286 (database/testdata/ui_bloqueos_barberos_286.sql); cada ejecución crea
+// #286 (database/testdata/ui_bloqueos_profesionales_286.sql); cada ejecución crea
 // sus propias series con un rótulo único y las retira al terminar.
 const BARBER_A = '286b0001-0000-4000-8000-000000000001'
 const evidence = path.resolve('e2e/evidence/barberos/bloqueos-100')

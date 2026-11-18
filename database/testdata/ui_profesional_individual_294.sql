@@ -1,7 +1,7 @@
--- Solo datos sintéticos para ver y probar el perfil «barbero individual» (#294,
--- DEC-115): una barbería con UN solo barbero, el perfil `solo`, cuatro servicios
+-- Solo datos sintéticos para ver y probar el perfil «profesional individual» (#294,
+-- DEC-115): un negocio con UN solo profesional, el perfil `solo`, cuatro servicios
 -- (tres ya asignados a él), horario de lunes a sábado y tres turnos hoy en la zona
--- de la barbería. Aplicar con el rol migrador únicamente en una BD local de
+-- del negocio. Aplicar con el rol migrador únicamente en una BD local de
 -- desarrollo o de pruebas; no usar en producción.
 --
 -- Cuenta ficticia: mateo.demo@ejemplo.test · contraseña de desarrollo
@@ -68,7 +68,7 @@ INSERT INTO customer (id, business_id, full_name, phone) VALUES
   ('294d0001-0000-4000-8000-000000000003', '294a0001-0000-4000-8000-000000000001', 'Cliente de prueba Tres', '+573000000013')
 ON CONFLICT (id) DO NOTHING;
 
--- Turnos de hoy en la zona de la barbería, recreados en cada aplicación.
+-- Turnos de hoy en la zona del negocio, recreados en cada aplicación.
 DELETE FROM appointment_history WHERE business_id = '294a0001-0000-4000-8000-000000000001';
 DELETE FROM appointment WHERE business_id = '294a0001-0000-4000-8000-000000000001';
 

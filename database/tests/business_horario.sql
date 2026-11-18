@@ -3,11 +3,11 @@
 -- base de datos el default, las restricciones (día ISO, cierre posterior a la
 -- apertura, 24:00 como medianoche, minutos enteros, apertura repetida), que
 -- agenda_app no puede modificar filas y el aislamiento RLS entre dos
--- barberías. El solape parcial y el reemplazo de la semana viven en el servicio
+-- negocios. El solape parcial y el reemplazo de la semana viven en el servicio
 -- Go (internal/modules/shops).
 --
 -- Uso:
---   psql "$DATABASE_TEST_URL" -v ON_ERROR_STOP=1 -f testdata/dos_professionalias.sql
+--   psql "$DATABASE_TEST_URL" -v ON_ERROR_STOP=1 -f testdata/dos_negocios.sql
 --   psql "$DATABASE_TEST_URL" -v ON_ERROR_STOP=1 -f tests/business_horario.sql
 --
 -- Requisito del arnés: la conexión debe poder ejecutar `SET ROLE agenda_app`
@@ -32,7 +32,7 @@ BEGIN
     RAISE EXCEPTION 'closed_on_holidays debe ser false por defecto.';
   END IF;
   IF EXISTS (SELECT 1 FROM business_opening_hour) THEN
-    RAISE EXCEPTION 'una barbería existente no debe tener horario.';
+    RAISE EXCEPTION 'un negocio existente no debe tener horario.';
   END IF;
 END
 $$;
@@ -60,7 +60,7 @@ BEGIN
   END IF;
   UPDATE business SET closed_on_holidays = true WHERE id = '11111111-1111-1111-1111-111111111111';
   IF NOT FOUND THEN
-    RAISE EXCEPTION 'agenda_app debe poder cambiar closed_on_holidays de su barbería.';
+    RAISE EXCEPTION 'agenda_app debe poder cambiar closed_on_holidays de su negocio.';
   END IF;
 END
 $$;
@@ -134,7 +134,7 @@ BEGIN
   END;
   DELETE FROM business_opening_hour;
   IF EXISTS (SELECT 1 FROM business_opening_hour) THEN
-    RAISE EXCEPTION 'agenda_app debe poder borrar el horario de su barbería.';
+    RAISE EXCEPTION 'agenda_app debe poder borrar el horario de su negocio.';
   END IF;
 END
 $$;
@@ -144,7 +144,7 @@ ROLLBACK;
 \echo 'privilegios OK · sin UPDATE, con DELETE + INSERT'
 
 -- ---------------------------------------------------------------------------
--- Aislamiento RLS entre dos barberías (CA-107-03)
+-- Aislamiento RLS entre dos negocios (CA-107-03)
 -- ---------------------------------------------------------------------------
 BEGIN;
 SET ROLE agenda_app;
@@ -157,7 +157,7 @@ SET LOCAL app.business_id = '22222222-2222-2222-2222-222222222222';
 DO $$
 BEGIN
   IF EXISTS (SELECT 1 FROM business_opening_hour) THEN
-    RAISE EXCEPTION 'la barbería B ve el horario de la barbería A.';
+    RAISE EXCEPTION 'el negocio B ve el horario del negocio A.';
   END IF;
 
   DELETE FROM business_opening_hour WHERE business_id = '11111111-1111-1111-1111-111111111111';
@@ -165,7 +165,7 @@ BEGIN
   BEGIN
     INSERT INTO business_opening_hour (business_id, iso_weekday, opens_time, closes_time)
       VALUES ('11111111-1111-1111-1111-111111111111', 4, '18:00', '20:00');
-    RAISE EXCEPTION 'la barbería B insertó un tramo en el horario de la barbería A.';
+    RAISE EXCEPTION 'el negocio B insertó un tramo en el horario del negocio A.';
   EXCEPTION WHEN insufficient_privilege THEN
     NULL;
   END;
@@ -177,11 +177,11 @@ SET LOCAL app.business_id = '11111111-1111-1111-1111-111111111111';
 DO $$
 BEGIN
   IF (SELECT count(*) FROM business_opening_hour) <> 1 THEN
-    RAISE EXCEPTION 'el DELETE de la barbería B no debía tocar el horario de la barbería A.';
+    RAISE EXCEPTION 'el DELETE del negocio B no debía tocar el horario del negocio A.';
   END IF;
 END
 $$;
 
 RESET ROLE;
 ROLLBACK;
-\echo 'RLS OK · ninguna barbería ve, borra ni inserta el horario de otra'
+\echo 'RLS OK · ningún negocio ve, borra ni inserta el horario de otra'

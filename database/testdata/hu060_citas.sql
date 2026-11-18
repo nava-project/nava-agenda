@@ -1,22 +1,22 @@
--- Fixture propio de HU-060: dos barberías DEDICADAS a las pruebas de
+-- Fixture propio de HU-060: dos negocios DEDICADAS a las pruebas de
 -- booking/postgres (núcleo de citas, exclusión anti-cruces, aislamiento por
--- tenant), separadas de dos_professionalias.sql y de las demás suites por el
+-- tenant), separadas de dos_negocios.sql y de las demás suites por el
 -- mismo motivo que hu042_bloqueos.sql: una carrera de exclusión o un
--- conteo de citas por barbero no debe depender del estado que dejen otras
+-- conteo de citas por profesional no debe depender del estado que dejen otras
 -- suites.
 --
 -- IDs 'c17a...' ("cita", mnemónico; solo dígitos hexadecimales válidos
--- c/1/7/a), distintos de '1.../2...' (dos_professionalias.sql), '3.../4...'
+-- c/1/7/a), distintos de '1.../2...' (dos_negocios.sql), '3.../4...'
 -- (HU-021), '5.../6...' (HU-022), '7.../8...' (HU-023), 'b10c...' (HU-042),
 -- 'c.../d...'/'e.../f...' (HU-040/HU-041, repetidos completos) y de
 -- 'b1a0.../5e10...' (customer_anonymization_fixture.sql).
 --
 -- Uso:
---   psql "$DATABASE_TEST_URL" -v ON_ERROR_STOP=1 -f testdata/dos_professionalias.sql
+--   psql "$DATABASE_TEST_URL" -v ON_ERROR_STOP=1 -f testdata/dos_negocios.sql
 --   psql "$DATABASE_TEST_URL" -v ON_ERROR_STOP=1 -f testdata/hu060_citas.sql
 --
 -- Se ejecuta con el rol migrador (o superusuario en local/CI efímero,
--- mismo criterio que dos_professionalias.sql), el único con política
+-- mismo criterio que dos_negocios.sql), el único con política
 -- administrativa sobre business/professional/service/staff_user.
 --
 -- Ningún dato de este archivo corresponde a una persona real (AGENTS.md).

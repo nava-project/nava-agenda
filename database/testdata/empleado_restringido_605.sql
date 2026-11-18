@@ -1,9 +1,9 @@
 -- Fixture de DEC-173 (issue #605): permisos del empleado restringido. Dos
--- barberías propias (E y F) para que ninguna otra prueba vea estos barberos.
+-- negocios propios (E y F) para que ninguna otra prueba vea estos profesionales.
 --
--- Barbería E: empleado vinculado a su barbero (BE), otro barbero (BO), una
--- cuenta empresa y un empleado sin barbero vinculado; un servicio asignado a
--- ambos y un turno de cada barbero. Barbería F: un empleado con su barbero,
+-- Negocio E: empleado vinculado a su profesional (BE), otro profesional (BO), una
+-- cuenta empresa y un empleado sin profesional vinculado; un servicio asignado a
+-- ambos y un turno de cada profesional. Negocio F: un empleado con su profesional,
 -- para comprobar que nada cruza de tenant.
 --
 -- Datos sintéticos: ningún nombre, teléfono ni correo real.

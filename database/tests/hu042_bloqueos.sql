@@ -399,7 +399,7 @@ COMMIT;
 
 DO $$
 BEGIN
-  -- El barbero no se puede borrar mientras tenga un bloqueo asociado.
+  -- El profesional no se puede borrar mientras tenga un bloqueo asociado.
   BEGIN
     DELETE FROM professional WHERE id = 'b10c1002-1002-1002-1002-100210021002';
     RAISE EXCEPTION 'DEC-070/CT-008: se permitió borrar un professional con un time_block asociado (CASCADE en vez de RESTRICT).';

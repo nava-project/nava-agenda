@@ -1,13 +1,13 @@
--- Pruebas SQL de DEC-130 / HU-102: ubicación de la barbería (business.
+-- Pruebas SQL de DEC-130 / HU-102: ubicación del negocio (business.
 -- has_physical_location, address, latitude, longitude). Cubren a nivel de base
 -- de datos los defaults, las restricciones (dirección ni vacía ni de más de 200
 -- caracteres, rangos de coordenadas, coordenadas en pareja y solo con
 -- dirección), que apagar el interruptor conserva el dato y el aislamiento RLS
--- entre dos barberías. Geocodificar y decidir qué se guarda viven en el
+-- entre dos negocios. Geocodificar y decidir qué se guarda viven en el
 -- servicio Go (internal/modules/shops).
 --
 -- Uso:
---   psql "$DATABASE_TEST_URL" -v ON_ERROR_STOP=1 -f testdata/dos_professionalias.sql
+--   psql "$DATABASE_TEST_URL" -v ON_ERROR_STOP=1 -f testdata/dos_negocios.sql
 --   psql "$DATABASE_TEST_URL" -v ON_ERROR_STOP=1 -f tests/business_ubicacion.sql
 --
 -- Requisito del arnés: la conexión debe poder ejecutar `SET ROLE agenda_app`
@@ -36,7 +36,7 @@ BEGIN
     RAISE EXCEPTION 'has_physical_location debe ser true por defecto (leyó %).', v.has_physical_location;
   END IF;
   IF v.address IS NOT NULL OR v.latitude IS NOT NULL OR v.longitude IS NOT NULL THEN
-    RAISE EXCEPTION 'una barbería existente no debe tener dirección ni coordenadas.';
+    RAISE EXCEPTION 'un negocio existente no debe tener dirección ni coordenadas.';
   END IF;
 END
 $$;
@@ -156,7 +156,7 @@ BEGIN
   SELECT count(*) INTO v_visible FROM business
    WHERE id = '22222222-2222-2222-2222-222222222222';
   IF v_visible <> 0 THEN
-    RAISE EXCEPTION 'RLS: el tenant A ve la barbería del tenant B.';
+    RAISE EXCEPTION 'RLS: el tenant A ve el negocio del tenant B.';
   END IF;
 END
 $$;

@@ -1,4 +1,4 @@
--- Fixture propio de HU-091: dos barberías DEDICADAS a las pruebas de
+-- Fixture propio de HU-091: dos negocios DEDICADAS a las pruebas de
 -- publicbooking/postgres.ListPublicServices (catálogo público de servicios
 -- activos y asignados, aislamiento por tenant), separadas de
 -- hu090_reserva_publica.sql y de las demás suites por el mismo motivo: un
@@ -6,7 +6,7 @@
 -- dejen otras suites (catalog, staff) sobre servicios/asignaciones.
 --
 -- IDs '0091...' (mnemónico: HU-091; solo dígitos hexadecimales válidos
--- 0/9/1), distintos de '1.../2...' (dos_professionalias.sql), '3.../4...'
+-- 0/9/1), distintos de '1.../2...' (dos_negocios.sql), '3.../4...'
 -- (HU-021), '5.../6...' (HU-022), '7.../8...' (HU-023), 'b10c...' (HU-042),
 -- 'c17a...' (HU-060), 'c.../d...'/'e.../f...' (HU-040/HU-041) y de '0090...'
 -- (hu090_reserva_publica.sql).
@@ -15,7 +15,7 @@
 --   psql "$DATABASE_TEST_URL" -v ON_ERROR_STOP=1 -f testdata/hu091_catalogo_publico.sql
 --
 -- Se ejecuta con el rol migrador (o superusuario en local/CI efímero,
--- mismo criterio que dos_professionalias.sql), el único con política
+-- mismo criterio que dos_negocios.sql), el único con política
 -- administrativa sobre business/professional/service/professional_service.
 --
 -- Ningún dato de este archivo corresponde a una persona real (AGENTS.md).
@@ -31,7 +31,7 @@ ON CONFLICT (id) DO NOTHING;
 
 -- Barbería Dos: publicable, usada exclusivamente para CA-091-03
 -- (aislamiento de tenant: su único servicio nunca debe aparecer al
--- resolver el slug de la barbería Uno, y viceversa).
+-- resolver el slug del negocio Uno, y viceversa).
 INSERT INTO business (id, name, timezone, public_slug) VALUES
   ('00910002-0091-0091-0091-009100020002',
    'Barbería de prueba HU-091 Dos', 'America/Bogota', 'barberia-hu091-dos')
@@ -76,7 +76,7 @@ INSERT INTO service (id, business_id, name, description, duration_minutes, price
    'Corte inactivo asignado HU-091', NULL, 40, 40000.00, 'COP', false, '2026-09-01T00:00:00Z')
 ON CONFLICT (id) DO NOTHING;
 
--- Dos: activo y asignado, único servicio de esta barbería (CA-091-03).
+-- Dos: activo y asignado, único servicio de este negocio (CA-091-03).
 INSERT INTO service (id, business_id, name, description, duration_minutes, price_amount, price_currency, is_active) VALUES
   ('00910201-0091-0091-0091-009102010201',
    '00910002-0091-0091-0091-009100020002',

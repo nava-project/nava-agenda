@@ -9,7 +9,7 @@
 -- viejos en dos negocios), vuelve a ejecutar el archivo de la migración tal cual y
 -- comprueba el resultado. Todo se revierte con ROLLBACK.
 --
--- Uso (desde la raíz del repositorio, tras testdata/dos_barberias.sql):
+-- Uso (desde la raíz del repositorio, tras testdata/dos_negocios.sql):
 --   psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f database/tests/cancelled_by_professional.sql
 --
 -- Requisito del arnés: superusuario (local/CI efímero), igual que quien aplica las

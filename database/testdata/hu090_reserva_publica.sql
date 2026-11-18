@@ -1,14 +1,14 @@
--- Fixture propio de HU-090: dos barberías DEDICADAS a las pruebas de
+-- Fixture propio de HU-090: dos negocios DEDICADAS a las pruebas de
 -- publicbooking/postgres (resolución pública del enlace de reservas),
--- separadas de dos_professionalias.sql y de las demás suites por el mismo motivo
+-- separadas de dos_negocios.sql y de las demás suites por el mismo motivo
 -- que hu060_citas.sql: una prueba de aislamiento de tenant no debe depender
 -- del estado que dejen otras suites, y estas filas SÍ requieren un
--- public_slug ya asignado (a diferencia de dos_professionalias.sql, cuyas dos
--- barberías nacen sin slug para las pruebas de generación automática de
+-- public_slug ya asignado (a diferencia de dos_negocios.sql, cuyas dos
+-- negocios nacen sin slug para las pruebas de generación automática de
 -- shops/postgres).
 --
 -- IDs '0090...' (mnemónico: HU-090; solo dígitos hexadecimales válidos
--- 0/9), distintos de '1.../2...' (dos_professionalias.sql), '3.../4...'
+-- 0/9), distintos de '1.../2...' (dos_negocios.sql), '3.../4...'
 -- (HU-021), '5.../6...' (HU-022), '7.../8...' (HU-023), 'b10c...' (HU-042),
 -- 'c17a...' (HU-060), 'c.../d...'/'e.../f...' (HU-040/HU-041) y de
 -- 'b1a0.../5e10...' (customer_anonymization_fixture.sql).
@@ -17,7 +17,7 @@
 --   psql "$DATABASE_TEST_URL" -v ON_ERROR_STOP=1 -f testdata/hu090_reserva_publica.sql
 --
 -- Se ejecuta con el rol migrador (o superusuario en local/CI efímero,
--- mismo criterio que dos_professionalias.sql), el único con política
+-- mismo criterio que dos_negocios.sql), el único con política
 -- administrativa sobre business.
 --
 -- Ningún dato de este archivo corresponde a una persona real (AGENTS.md).
@@ -32,7 +32,7 @@ INSERT INTO business (id, name, timezone, contact_email, contact_phone, public_s
    'Barbería de prueba HU-090 Dos', 'America/Bogota', NULL, NULL, 'barberia-hu090-dos')
 ON CONFLICT (id) DO NOTHING;
 
--- Tercera barbería, deliberadamente SIN public_slug: cubre "existe pero no
+-- Tercer negocio, deliberadamente SIN public_slug: cubre "existe pero no
 -- es publicable" (CA-090-02), indistinguible desde fuera de "no existe".
 INSERT INTO business (id, name, timezone, public_slug) VALUES
   ('00900003-0090-0090-0090-009000030003',

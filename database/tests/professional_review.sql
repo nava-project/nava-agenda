@@ -1,8 +1,8 @@
--- Pruebas SQL de DEC-128 / HU-100: reseña interna por barbero (professional_review).
+-- Pruebas SQL de DEC-128 / HU-100: reseña interna por profesional (professional_review).
 -- Cubren a nivel de base de datos la unicidad por turno, el disparador que exige
--- un turno `completed` del mismo barbero, los CHECK de calificación y comentario,
+-- un turno `completed` del mismo profesional, los CHECK de calificación y comentario,
 -- el ocultamiento reversible (único campo editable), la ausencia de borrado y el
--- aislamiento RLS entre dos barberías. Normalizar el comentario y decidir qué se
+-- aislamiento RLS entre dos negocios. Normalizar el comentario y decidir qué se
 -- publica viven en el servicio Go (internal/modules/reviews).
 --
 -- Uso:
@@ -19,7 +19,7 @@
 
 BEGIN;
 
--- Datos de dos barberías (rol administrativo de la sesión, antes de SET ROLE).
+-- Datos de dos negocios (rol administrativo de la sesión, antes de SET ROLE).
 INSERT INTO business (id, name, timezone) VALUES
   ('01000001-0100-4100-8100-010000000001', 'Barbería reseñas A', 'America/Bogota'),
   ('01000002-0100-4100-8100-010000000002', 'Barbería reseñas B', 'America/Bogota');
@@ -38,7 +38,7 @@ INSERT INTO customer (id, business_id, full_name) VALUES
   ('01000042-0100-4100-8100-010000000042', '01000002-0100-4100-8100-010000000002', 'Cliente de prueba B');
 
 -- Citas de A: una completada (A1), otra completada (A1), una confirmada (A1) y una
--- completada con el barbero A2. Una completada de B (B1).
+-- completada con el profesional A2. Una completada de B (B1).
 INSERT INTO appointment (
   id, business_id, professional_id, service_id, customer_id, attendee_name,
   starts_at, ends_at, status, origin, resolved_at,
@@ -99,7 +99,7 @@ $$;
 \echo 'unicidad OK · una reseña por turno'
 
 -- ---------------------------------------------------------------------------
--- Solo un turno completado y del mismo barbero (disparador)
+-- Solo un turno completado y del mismo profesional (disparador)
 -- ---------------------------------------------------------------------------
 DO $$
 DECLARE
@@ -117,7 +117,7 @@ BEGIN
     RAISE EXCEPTION 'el disparador debió rechazar una reseña de un turno no completado.';
   END IF;
 
-  -- Barbero distinto al del turno (turno de A2 reseñando a A1).
+  -- Profesional distinto al del turno (turno de A2 reseñando a A1).
   v_rejected := false;
   BEGIN
     INSERT INTO professional_review (business_id, professional_id, appointment_id, rating)
@@ -127,11 +127,11 @@ BEGIN
     v_rejected := true;
   END;
   IF NOT v_rejected THEN
-    RAISE EXCEPTION 'el disparador debió rechazar un barbero distinto al del turno.';
+    RAISE EXCEPTION 'el disparador debió rechazar un profesional distinto al del turno.';
   END IF;
 END
 $$;
-\echo 'disparador OK · turno completado y barbero del turno'
+\echo 'disparador OK · turno completado y profesional del turno'
 
 -- ---------------------------------------------------------------------------
 -- CHECK de calificación y comentario (CA-100-02)
@@ -216,7 +216,7 @@ $$;
 \echo 'ocultar OK · reversible, solo hidden_at, sin borrado'
 
 -- ---------------------------------------------------------------------------
--- RLS: la barbería B no ve, no oculta y no reseña turnos de A
+-- RLS: el negocio B no ve, no oculta y no reseña turnos de A
 -- ---------------------------------------------------------------------------
 SET LOCAL app.business_id = '01000002-0100-4100-8100-010000000002';
 
@@ -226,13 +226,13 @@ DECLARE
   v_rejected boolean := false;
 BEGIN
   IF (SELECT count(*) FROM professional_review) <> 0 THEN
-    RAISE EXCEPTION 'la barbería B no debe ver reseñas de A.';
+    RAISE EXCEPTION 'el negocio B no debe ver reseñas de A.';
   END IF;
 
   UPDATE professional_review SET hidden_at = now() WHERE id = '01000071-0100-4100-8100-010000000071';
   GET DIAGNOSTICS v_rows = ROW_COUNT;
   IF v_rows <> 0 THEN
-    RAISE EXCEPTION 'la barbería B no debe poder ocultar una reseña de A.';
+    RAISE EXCEPTION 'el negocio B no debe poder ocultar una reseña de A.';
   END IF;
 
   BEGIN
@@ -243,7 +243,7 @@ BEGIN
     v_rejected := true;
   END;
   IF NOT v_rejected THEN
-    RAISE EXCEPTION 'la barbería B no debe poder insertar una reseña con el identificador de A.';
+    RAISE EXCEPTION 'el negocio B no debe poder insertar una reseña con el identificador de A.';
   END IF;
 
   -- B sí reseña su propio turno.
@@ -251,11 +251,11 @@ BEGIN
   VALUES ('01000002-0100-4100-8100-010000000002', '01000021-0100-4100-8100-010000000021',
           '01000061-0100-4100-8100-010000000061', 2);
   IF (SELECT count(*) FROM professional_review) <> 1 THEN
-    RAISE EXCEPTION 'la barbería B debe ver solo su propia reseña.';
+    RAISE EXCEPTION 'el negocio B debe ver solo su propia reseña.';
   END IF;
 END
 $$;
-\echo 'RLS OK · dos barberías aisladas'
+\echo 'RLS OK · dos negocios aislados'
 
 ROLLBACK;
 

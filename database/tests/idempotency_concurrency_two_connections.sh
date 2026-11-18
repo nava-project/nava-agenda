@@ -17,7 +17,7 @@
 #     ./idempotency_concurrency_two_connections.sh
 #
 # Requiere, ya aplicadas sobre esa base: las cinco migraciones de
-# database/migrations y testdata/dos_professionalias.sql.
+# database/migrations y testdata/dos_negocios.sql.
 #
 # Coordinación sin sleeps de negocio (estrategia-pruebas.md §7): el orden
 # A-antes-que-B lo fija un archivo marcador (a_ready) que A escribe justo
@@ -33,7 +33,7 @@ set -euo pipefail
 
 : "${DATABASE_TEST_URL:?Defina DATABASE_TEST_URL antes de ejecutar esta prueba.}"
 
-BARBERSHOP_ID='11111111-1111-1111-1111-111111111111'
+BUSINESS_ID='11111111-1111-1111-1111-111111111111'
 IDEMPOTENCY_KEY='audit-test-two-connections'
 FINGERPRINT_A=$(printf 'a%.0s' {1..64})
 FINGERPRINT_B=$(printf 'b%.0s' {1..64})
@@ -62,7 +62,7 @@ SET ROLE agenda_app;
 BEGIN;
 SELECT outcome AS a_outcome
 FROM idempotency_begin(
-  '$BARBERSHOP_ID'::uuid, '$IDEMPOTENCY_KEY', 'audit_test_operation', '$FINGERPRINT_A', 60
+  '$BUSINESS_ID'::uuid, '$IDEMPOTENCY_KEY', 'audit_test_operation', '$FINGERPRINT_A', 60
 ) \\gset
 \\! touch "$WORKDIR/a_ready"
 \\! i=0; while [ ! -f "$WORKDIR/b_done" ] && [ "\$i" -lt 100 ]; do sleep 0.1; i=\$((i+1)); done; true
@@ -94,7 +94,7 @@ psql "$DATABASE_TEST_URL" -v ON_ERROR_STOP=1 -q -c "
 SET ROLE agenda_app;
 SELECT outcome
 FROM idempotency_begin(
-  '$BARBERSHOP_ID'::uuid, '$IDEMPOTENCY_KEY', 'audit_test_operation', '$FINGERPRINT_B', 60
+  '$BUSINESS_ID'::uuid, '$IDEMPOTENCY_KEY', 'audit_test_operation', '$FINGERPRINT_B', 60
 );
 " > "$WORKDIR/b.log" 2>&1
 

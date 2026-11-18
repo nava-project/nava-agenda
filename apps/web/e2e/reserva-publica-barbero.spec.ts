@@ -7,7 +7,7 @@ import { test, expect, type Route } from '@playwright/test'
  * (`GET /public/businesses/{slug}/services/{serviceId}/professionals`),
  * interceptado con `page.route(...).fulfill(...)` para cubrir cada estado
  * observable de forma determinista, sin depender de `database/testdata/
- * hu092_seleccion_barbero.sql` ni de un servidor Go real detrás.
+ * hu092_seleccion_profesional.sql` ni de un servidor Go real detrás.
  */
 const SERVICE_ID = '8f3ac2b1-e4d5-46f6-a7c8-d9e0f1a2b3c4'
 

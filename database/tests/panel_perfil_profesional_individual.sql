@@ -1,11 +1,11 @@
--- Pruebas SQL del issue #294 (DEC-115): perfil del panel de la barbería.
+-- Pruebas SQL del issue #294 (DEC-115): perfil del panel del negocio.
 -- Cubren a nivel de base de datos el default `shop`, la lista cerrada de
--- perfiles, que cambiar de perfil no toca a los barberos y el aislamiento RLS
--- entre dos barberías. La orquestación del PATCH vive en el servicio Go
+-- perfiles, que cambiar de perfil no toca a los profesionales y el aislamiento RLS
+-- entre dos negocios. La orquestación del PATCH vive en el servicio Go
 -- (internal/modules/shops), no aquí.
 --
 -- Uso:
---   psql "$DATABASE_TEST_URL" -v ON_ERROR_STOP=1 -f testdata/dos_professionalias.sql
+--   psql "$DATABASE_TEST_URL" -v ON_ERROR_STOP=1 -f testdata/dos_negocios.sql
 --   psql "$DATABASE_TEST_URL" -v ON_ERROR_STOP=1 -f tests/panel_perfil_professionalo_individual.sql
 --
 -- Requisito del arnés: la conexión debe poder ejecutar `SET ROLE agenda_app`
@@ -43,8 +43,8 @@ $$;
 \echo 'columna OK · panel_profile NOT NULL con default shop'
 
 -- ---------------------------------------------------------------------------
--- Una barbería existente lee `shop`; cambiar de perfil es reversible y no toca
--- a los barberos (un independiente sigue siendo una barbería con uno solo).
+-- Un negocio existente lee `shop`; cambiar de perfil es reversible y no toca
+-- a los profesionales (un independiente sigue siendo un negocio con uno solo).
 -- ---------------------------------------------------------------------------
 BEGIN;
 SET ROLE agenda_app;
@@ -59,7 +59,7 @@ BEGIN
   SELECT panel_profile INTO v_profile FROM business
    WHERE id = '11111111-1111-1111-1111-111111111111';
   IF v_profile <> 'shop' THEN
-    RAISE EXCEPTION 'la barbería existente debe leer shop (leyó %).', v_profile;
+    RAISE EXCEPTION 'el negocio existente debe leer shop (leyó %).', v_profile;
   END IF;
 
   SELECT count(*) INTO v_professionals_before FROM professional;
@@ -82,14 +82,14 @@ BEGIN
 
   SELECT count(*) INTO v_professionals_after FROM professional;
   IF v_professionals_after <> v_professionals_before THEN
-    RAISE EXCEPTION 'cambiar de perfil alteró a los barberos (% → %).', v_professionals_before, v_professionals_after;
+    RAISE EXCEPTION 'cambiar de perfil alteró a los profesionales (% → %).', v_professionals_before, v_professionals_after;
   END IF;
 END
 $$;
 
 RESET ROLE;
 ROLLBACK;
-\echo 'perfil OK · default shop, cambio reversible y sin efecto sobre los barberos'
+\echo 'perfil OK · default shop, cambio reversible y sin efecto sobre los profesionales'
 
 -- ---------------------------------------------------------------------------
 -- CHECK: cualquier valor fuera de la lista cerrada se rechaza en la base
@@ -151,7 +151,7 @@ $$;
 RESET ROLE;
 ROLLBACK;
 
--- La barbería B conserva su perfil inicial tras el intento anterior.
+-- El negocio B conserva su perfil inicial tras el intento anterior.
 DO $$
 DECLARE
   v_profile text;

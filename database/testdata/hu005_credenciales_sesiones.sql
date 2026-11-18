@@ -1,12 +1,12 @@
 -- Escenario controlado de HU-005: credenciales y sesiones para los cuatro
--- usuarios ya creados por testdata/dos_professionalias.sql (que debe cargarse
+-- usuarios ya creados por testdata/dos_negocios.sql (que debe cargarse
 -- primero).
 --
 -- Uso:
---   psql "$DATABASE_TEST_URL" -v ON_ERROR_STOP=1 -f testdata/dos_professionalias.sql
+--   psql "$DATABASE_TEST_URL" -v ON_ERROR_STOP=1 -f testdata/dos_negocios.sql
 --   psql "$DATABASE_TEST_URL" -v ON_ERROR_STOP=1 -f testdata/hu005_credenciales_sesiones.sql
 --
--- Se ejecuta con el rol migrador/administrador, igual que dos_professionalias.sql:
+-- Se ejecuta con el rol migrador/administrador, igual que dos_negocios.sql:
 -- es el único con política administrativa sobre tablas con RLS forzada.
 --
 -- El valor de password_hash NO es un hash argon2id real: es una cadena
@@ -37,7 +37,7 @@ INSERT INTO staff_credential (staff_user_id, business_id, password_hash, passwor
    'fixture-no-es-un-hash-real-de-prueba-barbero-b-0004', 'argon2id')
 ON CONFLICT (staff_user_id) DO NOTHING;
 
--- Una sesión vigente por barbería, con identificadores e hash de token fijos
+-- Una sesión vigente por negocio, con identificadores e hash de token fijos
 -- para que las pruebas de aislamiento puedan referenciarlos directamente.
 -- El hash es SHA-256 de un valor ficticio ("token-ficticio-a"/"...-b"), no un
 -- token real emitido por la aplicación.

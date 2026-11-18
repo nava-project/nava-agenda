@@ -9,7 +9,7 @@ import path from 'node:path'
 // incluido), desbordamiento horizontal, errores de consola y de página, y la
 // consistencia del cascarón (un solo <main>, un solo <h1>, marca y navegación,
 // tipografía de títulos). Datos sintéticos de database/testdata/
-// ui_bloqueos_barberos_286.sql. Las capturas de cada ruta (1280 y 320) y
+// ui_bloqueos_profesionales_286.sql. Las capturas de cada ruta (1280 y 320) y
 // report.json son la evidencia versionada.
 const evidence = path.resolve('e2e/evidence/revision-integral-198')
 const VIEWPORTS = [

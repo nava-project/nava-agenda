@@ -1,31 +1,31 @@
--- Fixture propio de DEC-162: dos barberías DEDICADAS a las pruebas de los
+-- Fixture propio de DEC-162: dos negocios DEDICADAS a las pruebas de los
 -- agregados públicos de solo lectura (GET /public/businesses/{slug}/professionals
 -- y GET /public/businesses/{slug}/services/{serviceId}/availability) en
 -- publicbooking/postgres y cmd/api. Separadas de hu092/hu094 por el mismo
--- motivo que ellas: un conteo exacto de barberos/servicios elegibles no
+-- motivo que ellas: un conteo exacto de profesionales/servicios elegibles no
 -- debe depender del estado que dejen otras suites.
 --
 -- IDs '0162...' (mnemónico: DEC-162), distintos de los demás fixtures.
 --
--- Barbería Uno (slug barberia-dec162-uno), anticipación mínima 0, ventana 7
+-- Barbería Uno (slug negocio-dec162-uno), anticipación mínima 0, ventana 7
 -- días, rejilla 30 min:
---   barberos   Uno-1 (creado primero), Uno-2, Uno-3 (sin asignaciones) y
+--   profesionales   Uno-1 (creado primero), Uno-2, Uno-3 (sin asignaciones) y
 --              Uno-4 (solo asignado a un servicio INACTIVO);
 --   servicios  S1 activo 30 min, S2 activo 45 min, S3 INACTIVO, S4 activo sin
---              ningún barbero;
+--              ningún profesional;
 --   asignación Uno-1: S1, S2, S3; Uno-2: S2; Uno-4: S3.
 -- Uno-1 y Uno-2 trabajan 9:00-18:00 los siete días ISO (las pruebas corren en
 -- tiempo real y "hoy" varía). Uno-1 vs Uno-2 comparten servicio S2, así que el
 -- agregado de S2 trae franjas de ambos.
 --
--- Barbería Dos (slug barberia-dec162-dos): un barbero, un servicio activo y su
+-- Barbería Dos (slug negocio-dec162-dos): un profesional, un servicio activo y su
 -- jornada; solo existe para comprobar el aislamiento de tenant.
 --
 -- Uso:
 --   psql "$DATABASE_TEST_URL" -v ON_ERROR_STOP=1 -f testdata/dec162_agregados_publicos.sql
 --
 -- Se ejecuta con el rol migrador (o superusuario en local/CI efímero, mismo
--- criterio que dos_professionalias.sql). Repetible: ON CONFLICT DO NOTHING.
+-- criterio que dos_negocios.sql). Repetible: ON CONFLICT DO NOTHING.
 --
 -- Ningún dato de este archivo corresponde a una persona real (AGENTS.md).
 

@@ -1,19 +1,19 @@
--- Fixture propio de HU-041: dos barberías DEDICADAS a las pruebas de
+-- Fixture propio de HU-041: dos negocios DEDICADAS a las pruebas de
 -- schedule/postgres (excepciones de jornada y festivos, aislamiento por
--- tenant), separadas de dos_professionalias.sql/hu021_professionalos.sql/
+-- tenant), separadas de dos_negocios.sql/hu021_professionalos.sql/
 -- hu040_horario.sql por el mismo motivo: un conteo exacto de excepciones
--- por barbero no debe depender del estado que dejen otras suites.
+-- por profesional no debe depender del estado que dejen otras suites.
 --
 -- IDs 'e...'/'f...' (M/N), distintos de 'c...'/'d...' (K/L, HU-040) y de
 -- '9...'/'a...'/'b...' (reservados como sentinelas o usados como ids de
 -- otras tablas en otras suites).
 --
 -- Uso:
---   psql "$DATABASE_TEST_URL" -v ON_ERROR_STOP=1 -f testdata/dos_professionalias.sql
+--   psql "$DATABASE_TEST_URL" -v ON_ERROR_STOP=1 -f testdata/dos_negocios.sql
 --   psql "$DATABASE_TEST_URL" -v ON_ERROR_STOP=1 -f testdata/hu041_excepciones.sql
 --
 -- Se ejecuta con el rol migrador (o superusuario en local/CI efímero,
--- mismo criterio que dos_professionalias.sql), el único con política
+-- mismo criterio que dos_negocios.sql), el único con política
 -- administrativa sobre business/professional.
 --
 -- Ningún dato de este archivo corresponde a una persona real (AGENTS.md).

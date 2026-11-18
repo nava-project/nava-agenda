@@ -1,10 +1,10 @@
--- Pruebas SQL de HU-020: configuración básica de la barbería. Cubren
+-- Pruebas SQL de HU-020: configuración básica del negocio. Cubren
 -- CA-020-01, CA-020-05, CA-020-06 a nivel de base de datos (constraints y
 -- RLS); la validación de zona IANA y la orquestación completa del PATCH
 -- viven en el servicio Go (internal/modules/shops), no aquí.
 --
 -- Uso:
---   psql "$DATABASE_TEST_URL" -v ON_ERROR_STOP=1 -f testdata/dos_professionalias.sql
+--   psql "$DATABASE_TEST_URL" -v ON_ERROR_STOP=1 -f testdata/dos_negocios.sql
 --   psql "$DATABASE_TEST_URL" -v ON_ERROR_STOP=1 -f tests/hu020_configuracion_professionalia.sql
 --
 -- Requisito del arnés: la conexión debe poder ejecutar `SET ROLE agenda_app`
@@ -14,7 +14,7 @@
 
 \set ON_ERROR_STOP on
 
-\echo '=== HU-020 · pruebas de configuración de la barbería ==='
+\echo '=== HU-020 · pruebas de configuración del negocio ==='
 
 -- ---------------------------------------------------------------------------
 -- Columnas nuevas anulables y con los CHECK esperados

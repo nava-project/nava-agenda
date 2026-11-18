@@ -1,11 +1,11 @@
--- Pruebas SQL de HU-021: registro y listado de barberos. Cubren CA-021-01,
+-- Pruebas SQL de HU-021: registro y listado de profesionales. Cubren CA-021-01,
 -- CA-021-02, CA-021-05, CA-021-06 y CA-021-07 a nivel de base de datos
 -- (esquema, RLS, grants); la validación de fullName, la paginación por
 -- cursor y el protocolo de idempotencia completo viven en el servicio Go
 -- (internal/modules/staff), probados aparte contra PostgreSQL real.
 --
 -- Uso:
---   psql "$DATABASE_TEST_URL" -v ON_ERROR_STOP=1 -f testdata/dos_professionalias.sql
+--   psql "$DATABASE_TEST_URL" -v ON_ERROR_STOP=1 -f testdata/dos_negocios.sql
 --   psql "$DATABASE_TEST_URL" -v ON_ERROR_STOP=1 -f tests/hu021_professionalos.sql
 --
 -- Requisito del arnés: la conexión debe poder ejecutar `SET ROLE agenda_app`
@@ -16,7 +16,7 @@
 
 \set ON_ERROR_STOP on
 
-\echo '=== HU-021 · pruebas de registro y listado de barberos ==='
+\echo '=== HU-021 · pruebas de registro y listado de profesionales ==='
 
 -- ---------------------------------------------------------------------------
 -- Esquema mínimo: columnas, tipos y CHECK esperados (DEC-047: sin active,
@@ -127,7 +127,7 @@ ROLLBACK;
 \echo 'sin contexto OK · leer professional sin app.business_id fijado falla cerrado'
 
 -- ---------------------------------------------------------------------------
--- CA-021-01/02 · Alta dentro del propio tenant: una fila para barbería
+-- CA-021-01/02 · Alta dentro del propio tenant: una fila para negocio
 -- unipersonal, cuatro filas distintas para un equipo
 -- ---------------------------------------------------------------------------
 BEGIN;
@@ -148,11 +148,11 @@ BEGIN
 
   SELECT count(*) INTO v_count FROM professional WHERE business_id = '11111111-1111-1111-1111-111111111111';
   IF v_count <> 1 THEN
-    RAISE EXCEPTION 'CA-021-01: barbería unipersonal debe tener exactamente 1 fila professional, tiene %.', v_count;
+    RAISE EXCEPTION 'CA-021-01: negocio unipersonal debe tener exactamente 1 fila professional, tiene %.', v_count;
   END IF;
 
   -- CA-021-02: agregar tres más produce cuatro recursos distintos, mismo
-  -- schema/tabla, sin caso especial de "barbero único".
+  -- schema/tabla, sin caso especial de "profesional único".
   INSERT INTO professional (business_id, full_name) VALUES
     ('11111111-1111-1111-1111-111111111111', 'Segundo Barbero')
     RETURNING id INTO v_id2;
@@ -166,7 +166,7 @@ BEGIN
 
   SELECT count(*) INTO v_count FROM professional WHERE business_id = '11111111-1111-1111-1111-111111111111';
   IF v_count <> 4 THEN
-    RAISE EXCEPTION 'CA-021-02: se esperaban 4 barberos distintos, hay %.', v_count;
+    RAISE EXCEPTION 'CA-021-02: se esperaban 4 profesionales distintos, hay %.', v_count;
   END IF;
 
   IF v_id1 = v_id2 OR v_id1 = v_id3 OR v_id1 = v_id4 OR v_id2 = v_id3 OR v_id2 = v_id4 OR v_id3 = v_id4 THEN
@@ -177,7 +177,7 @@ $$;
 
 RESET ROLE;
 ROLLBACK;
-\echo 'CA-021-01/02 OK · barbería unipersonal y de equipo usan la misma tabla, sin rama especial'
+\echo 'CA-021-01/02 OK · negocio unipersonal y de equipo usan la misma tabla, sin rama especial'
 
 -- ---------------------------------------------------------------------------
 -- CA-021-06 · La base rechaza insertar/relacionar un professional con un
@@ -233,7 +233,7 @@ DECLARE
   v_professional_b_id uuid := '88888888-8888-8888-8888-888888888888';
   v_visible integer;
 BEGIN
-  -- Identificador REAL de un barbero de B (creado y confirmado arriba),
+  -- Identificador REAL de un profesional de B (creado y confirmado arriba),
   -- consultado directamente por id bajo el contexto de A: no debe
   -- encontrarse (RLS, no solo "adivinar mal el id").
   SELECT count(*) INTO v_visible FROM professional WHERE id = v_professional_b_id;
@@ -243,7 +243,7 @@ BEGIN
 
   SELECT count(*) INTO v_visible FROM professional WHERE business_id = '22222222-2222-2222-2222-222222222222';
   IF v_visible <> 0 THEN
-    RAISE EXCEPTION 'CA-021-05: el contexto de A ve % filas de la barbería de B.', v_visible;
+    RAISE EXCEPTION 'CA-021-05: el contexto de A ve % filas del negocio de B.', v_visible;
   END IF;
 END
 $$;
@@ -253,7 +253,7 @@ ROLLBACK;
 \echo 'CA-021-05 OK · el contexto de A no ve ningún professional de B'
 
 -- Repite el intento de escritura cruzada usando el mismo identificador REAL
--- del barbero de B, para que el rechazo del UPDATE de abajo sea la parte
+-- del profesional de B, para que el rechazo del UPDATE de abajo sea la parte
 -- bajo prueba, no la ausencia de una fila que adivinar.
 BEGIN;
 SET ROLE agenda_app;
@@ -420,7 +420,7 @@ ROLLBACK;
 
 -- ---------------------------------------------------------------------------
 -- DEC-104 · professional_photo: aislamiento por tenant, FK compuesta, CHECK y DELETE
--- (usa los dos barberos confirmados arriba: 9999... es de A y 8888... es de B)
+-- (usa los dos profesionales confirmados arriba: 9999... es de A y 8888... es de B)
 -- ---------------------------------------------------------------------------
 BEGIN;
 SET ROLE agenda_app;
@@ -430,18 +430,18 @@ DO $$
 DECLARE
   v_count integer;
 BEGIN
-  -- Insertar la fotografía de un barbero propio funciona.
+  -- Insertar la fotografía de un profesional propio funciona.
   INSERT INTO professional_photo (business_id, professional_id, content_type, image)
   VALUES ('11111111-1111-1111-1111-111111111111', '99999999-9999-9999-9999-999999999999',
           'image/jpeg', '\x00010203'::bytea);
 
-  -- Asociar la fotografía al barbero de OTRA barbería falla: la FK compuesta
+  -- Asociar la fotografía al profesional de Otro negocio falla: la FK compuesta
   -- (business_id, professional_id) no existe, aun con SQL directo (RN-TEN-01).
   BEGIN
     INSERT INTO professional_photo (business_id, professional_id, content_type, image)
     VALUES ('11111111-1111-1111-1111-111111111111', '88888888-8888-8888-8888-888888888888',
             'image/jpeg', '\x00010203'::bytea);
-    RAISE EXCEPTION 'professional_photo aceptó una fotografía para el barbero de otra barbería.';
+    RAISE EXCEPTION 'professional_photo aceptó una fotografía para el profesional de otro negocio.';
   EXCEPTION WHEN foreign_key_violation THEN
     NULL;
   END;
@@ -481,12 +481,12 @@ BEGIN
     NULL;
   END;
 
-  -- Una segunda fotografía para el mismo barbero viola la PK: una por barbero.
+  -- Una segunda fotografía para el mismo profesional viola la PK: una por profesional.
   BEGIN
     INSERT INTO professional_photo (business_id, professional_id, content_type, image)
     VALUES ('11111111-1111-1111-1111-111111111111', '99999999-9999-9999-9999-999999999999',
             'image/png', '\x00010203'::bytea);
-    RAISE EXCEPTION 'professional_photo aceptó una segunda fotografía del mismo barbero.';
+    RAISE EXCEPTION 'professional_photo aceptó una segunda fotografía del mismo profesional.';
   EXCEPTION WHEN unique_violation THEN
     NULL;
   END;
@@ -505,7 +505,7 @@ DECLARE
   v_deleted integer;
 BEGIN
   IF EXISTS (SELECT 1 FROM professional_photo) THEN
-    RAISE EXCEPTION 'RN-TEN-01: B ve la fotografía de un barbero de A.';
+    RAISE EXCEPTION 'RN-TEN-01: B ve la fotografía de un profesional de A.';
   END IF;
   DELETE FROM professional_photo WHERE professional_id = '99999999-9999-9999-9999-999999999999';
   GET DIAGNOSTICS v_deleted = ROW_COUNT;
@@ -535,7 +535,7 @@ ROLLBACK;
 
 -- ---------------------------------------------------------------------------
 -- Limpieza de las dos filas que se confirmaron con COMMIT más arriba (el
--- barbero de B usado para CA-021-05 y el barbero fijo usado para el trigger
+-- profesional de B usado para CA-021-05 y el profesional fijo usado para el trigger
 -- de updated_at): con el rol de sesión sin RLS forzada, para dejar la base
 -- exactamente como estaba al empezar este archivo.
 -- ---------------------------------------------------------------------------

@@ -6,7 +6,7 @@
 -- (internal/modules/catalog), probados aparte contra PostgreSQL real.
 --
 -- Uso:
---   psql "$DATABASE_TEST_URL" -v ON_ERROR_STOP=1 -f testdata/dos_professionalias.sql
+--   psql "$DATABASE_TEST_URL" -v ON_ERROR_STOP=1 -f testdata/dos_negocios.sql
 --   psql "$DATABASE_TEST_URL" -v ON_ERROR_STOP=1 -f testdata/hu022_catalogo.sql
 --   psql "$DATABASE_TEST_URL" -v ON_ERROR_STOP=1 -f tests/hu022_catalogo.sql
 --
@@ -66,13 +66,13 @@ BEGIN
   END IF;
 
   -- CA-022-07/DEC-067: sin columnas fuera de alcance de HU-022 (asignación a
-  -- barberos u otra forma de "vínculo" que HU-023 debería introducir).
+  -- profesionales u otra forma de "vínculo" que HU-023 debería introducir).
   IF EXISTS (
     SELECT 1 FROM information_schema.columns
     WHERE table_schema = 'public' AND table_name = 'service'
       AND column_name IN ('professional_id', 'staff_user_id')
   ) THEN
-    RAISE EXCEPTION 'DEC-067/HU-023: service no debe tener columnas de asignación a barberos.';
+    RAISE EXCEPTION 'DEC-067/HU-023: service no debe tener columnas de asignación a profesionales.';
   END IF;
 END
 $$;
@@ -174,7 +174,7 @@ $$;
 
 RESET ROLE;
 ROLLBACK;
-\echo 'CA-022-01 OK · el catálogo admite varios servicios distintos en la misma barbería'
+\echo 'CA-022-01 OK · el catálogo admite varios servicios distintos en el mismo negocio'
 
 -- ---------------------------------------------------------------------------
 -- CA-022-06 · La base rechaza insertar un service con un business_id
@@ -252,7 +252,7 @@ DELETE FROM service WHERE id = '77777777-7777-7777-7777-777777777777';
 
 -- ---------------------------------------------------------------------------
 -- CA-022-04/DEC-067 · nombre único entre servicios ACTIVOS de la misma
--- barbería; un servicio de OTRA barbería puede compartir el mismo nombre
+-- negocio; un servicio de Otro negocio puede compartir el mismo nombre
 -- exacto sin conflicto
 -- ---------------------------------------------------------------------------
 BEGIN;
@@ -267,7 +267,7 @@ BEGIN
   BEGIN
     INSERT INTO service (business_id, name, duration_minutes, price_amount)
     VALUES ('55555555-5555-5555-5555-555555555555', 'SQL Suite Nombre Único', 45, 2.00);
-    RAISE EXCEPTION 'DEC-067: se aceptó un nombre duplicado entre servicios activos de la misma barbería.';
+    RAISE EXCEPTION 'DEC-067: se aceptó un nombre duplicado entre servicios activos del mismo negocio.';
   EXCEPTION
     WHEN unique_violation THEN NULL; -- Esperado: idx_service_active_name.
   END;
@@ -289,7 +289,7 @@ ROLLBACK;
 BEGIN;
 SET ROLE agenda_app;
 SET LOCAL app.business_id = '66666666-6666-6666-6666-666666666666';
--- El mismo nombre exacto en OTRA barbería no conflictúa (DEC-067: la
+-- El mismo nombre exacto en Otro negocio no conflictúa (DEC-067: la
 -- unicidad es tenant-aware, no global). Ambos INSERT se hacen dentro de
 -- transacciones separadas que hacen ROLLBACK, así que esto solo confirma
 -- que el segundo INSERT NO lanza unique_violation por sí mismo (no depende
@@ -298,7 +298,7 @@ INSERT INTO service (business_id, name, duration_minutes, price_amount)
 VALUES ('66666666-6666-6666-6666-666666666666', 'SQL Suite Nombre Compartido Entre Tenants', 30, 1.00);
 RESET ROLE;
 ROLLBACK;
-\echo 'DEC-067 OK · el mismo nombre exacto en barberías distintas no conflictúa'
+\echo 'DEC-067 OK · el mismo nombre exacto en negocios distintos no conflictúa'
 
 -- ---------------------------------------------------------------------------
 -- DEC-067 · un servicio DESACTIVADO libera su nombre (la transición de

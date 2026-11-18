@@ -6,7 +6,7 @@
 -- aceptar, ip_hash ata el reto a su IP, verificar limpia el escalamiento).
 --
 -- Uso:
---   psql "$DATABASE_TEST_URL" -v ON_ERROR_STOP=1 -f testdata/dos_professionalias.sql
+--   psql "$DATABASE_TEST_URL" -v ON_ERROR_STOP=1 -f testdata/dos_negocios.sql
 --   psql "$DATABASE_TEST_URL" -v ON_ERROR_STOP=1 -f testdata/hu005_credenciales_sesiones.sql
 --   psql "$DATABASE_TEST_URL" -v ON_ERROR_STOP=1 -f testdata/hu007_reto_telefonico.sql
 --   psql "$DATABASE_TEST_URL" -v ON_ERROR_STOP=1 -f tests/hu007_defensa_abuso.sql
@@ -155,7 +155,7 @@ BEGIN
     PERFORM login_throttle_register_attempt(v_ip_escalated, 900, 86400, 5, 172800);
   END LOOP;
 
-  -- Teléfono no verificado (barbero.a, testdata/hu007_reto_telefonico.sql) +
+  -- Teléfono no verificado (profesional.a, testdata/hu007_reto_telefonico.sql) +
   -- IP escalada: NO se acepta.
   SELECT accepted, phone INTO v_accepted, v_phone
   FROM auth_phone_challenge_request('barbero.a@ejemplo.test', v_ip_escalated, v_code_hash, 300, 900, 3, 60);

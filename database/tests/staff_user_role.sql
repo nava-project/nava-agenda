@@ -1,12 +1,12 @@
 -- Pruebas SQL del issue #365 (DEC-134): roles del usuario del área privada.
 -- Cubren a nivel de base de datos la lista cerrada de roles, la unicidad por
 -- (usuario, rol) con varios roles por usuario, la FK compuesta que impide un rol
--- para un usuario de otra barbería, el aislamiento RLS entre dos barberías y que
+-- para un usuario de otro negocio, el aislamiento RLS entre dos negocios y que
 -- la aplicación solo puede leer. La derivación del panel vive en el servicio Go
 -- (internal/modules/shops), no aquí.
 --
 -- Uso:
---   psql "$DATABASE_TEST_URL" -v ON_ERROR_STOP=1 -f testdata/dos_professionalias.sql
+--   psql "$DATABASE_TEST_URL" -v ON_ERROR_STOP=1 -f testdata/dos_negocios.sql
 --   psql "$DATABASE_TEST_URL" -v ON_ERROR_STOP=1 -f testdata/staff_user_role_365.sql
 --   psql "$DATABASE_TEST_URL" -v ON_ERROR_STOP=1 -f tests/staff_user_role.sql
 --
@@ -59,14 +59,14 @@ $$;
 \echo 'varios roles por usuario OK'
 
 -- ---------------------------------------------------------------------------
--- FK compuesta: no se asigna un rol a un usuario de otra barbería
+-- FK compuesta: no se asigna un rol a un usuario de otro negocio
 -- ---------------------------------------------------------------------------
 DO $$
 BEGIN
   BEGIN
     INSERT INTO staff_user_role (business_id, staff_user_id, role)
     VALUES ('12121212-1212-1212-1212-121212121212', '365a0001-0000-4000-8000-000000000006', 'empleado');
-    RAISE EXCEPTION 'un rol para un usuario de otra barbería debía rechazarse.';
+    RAISE EXCEPTION 'un rol para un usuario de otro negocio debía rechazarse.';
   EXCEPTION WHEN foreign_key_violation THEN
     NULL;
   END;
@@ -75,7 +75,7 @@ $$;
 \echo 'FK compuesta OK'
 
 -- ---------------------------------------------------------------------------
--- RLS: cada barbería ve solo los roles de sus usuarios
+-- RLS: cada negocio ve solo los roles de sus usuarios
 -- ---------------------------------------------------------------------------
 BEGIN;
 SET ROLE agenda_app;
@@ -88,12 +88,12 @@ DECLARE
 BEGIN
   SELECT count(*) INTO v_total FROM staff_user_role;
   IF v_total <> 5 THEN
-    RAISE EXCEPTION 'la barbería A debe ver exactamente los 5 roles de sus usuarios (vio %).', v_total;
+    RAISE EXCEPTION 'el negocio A debe ver exactamente los 5 roles de sus usuarios (vio %).', v_total;
   END IF;
   SELECT count(*) INTO v_other FROM staff_user_role
    WHERE staff_user_id = '365a0001-0000-4000-8000-000000000006';
   IF v_other <> 0 THEN
-    RAISE EXCEPTION 'la barbería A no debe ver los roles de un usuario de B (vio %).', v_other;
+    RAISE EXCEPTION 'el negocio A no debe ver los roles de un usuario de B (vio %).', v_other;
   END IF;
 END
 $$;
@@ -112,17 +112,17 @@ BEGIN
    WHERE staff_user_id IN ('365a0001-0000-4000-8000-000000000001', '365a0001-0000-4000-8000-000000000002',
                            '365a0001-0000-4000-8000-000000000003', '365a0001-0000-4000-8000-000000000004');
   IF v_a <> 0 THEN
-    RAISE EXCEPTION 'la barbería B no debe ver los roles de usuarios de A (vio %).', v_a;
+    RAISE EXCEPTION 'el negocio B no debe ver los roles de usuarios de A (vio %).', v_a;
   END IF;
   SELECT count(*) INTO v_own FROM staff_user_role
    WHERE staff_user_id = '365a0001-0000-4000-8000-000000000006';
   IF v_own <> 1 THEN
-    RAISE EXCEPTION 'la barbería B debe ver el rol de su usuario (vio %).', v_own;
+    RAISE EXCEPTION 'el negocio B debe ver el rol de su usuario (vio %).', v_own;
   END IF;
 END
 $$;
 ROLLBACK;
-\echo 'RLS entre dos barberías OK'
+\echo 'RLS entre dos negocios OK'
 
 -- ---------------------------------------------------------------------------
 -- La aplicación solo lee: sin INSERT, UPDATE ni DELETE
