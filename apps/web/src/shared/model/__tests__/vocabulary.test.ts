@@ -1,6 +1,7 @@
 /**
- * Vocabulario de la barbería (DEC-110): con los valores iniciales cada frase
- * sale idéntica a la interfaz anterior; con otros, concuerda en género y número.
+ * Vocabulario del negocio (DEC-110, DEC-183): los valores iniciales hablan de
+ * "negocio" y "profesional"; una barbería que guardó sus palabras conserva cada
+ * frase idéntica; con otros términos, concuerda en género y número.
  */
 import { describe, expect, it } from 'vitest'
 import {
@@ -11,6 +12,16 @@ import {
   validateTerm,
   type BrandSettings,
 } from '../vocabulary'
+
+// Lo que una barbería guardó antes de DEC-183: sus frases no cambian.
+const barbershop: BrandSettings = {
+  ...DEFAULT_BRAND,
+  businessTerm: 'barbería',
+  businessTermGender: 'feminine',
+  professionalTerm: 'barbero',
+  professionalTermPlural: 'barberos',
+  professionalTermGender: 'masculine',
+}
 
 const stylist: BrandSettings = {
   ...DEFAULT_BRAND,
@@ -23,6 +34,44 @@ const stylist: BrandSettings = {
 
 describe('buildVocabulary con los valores iniciales', () => {
   const v = buildVocabulary(DEFAULT_BRAND)
+
+  it('speaks of the business and the professional in generic words (DEC-183)', () => {
+    expect(v.Professionals).toBe('Profesionales')
+    expect(v.Professional).toBe('Profesional')
+    expect(`Agregar ${v.professional}`).toBe('Agregar profesional')
+    expect(`Aún no tienes ${v.professionalsRegistered}.`).toBe(
+      'Aún no tienes profesionales registrados.',
+    )
+    expect(`Selecciona ${v.aProfessional}`).toBe('Selecciona un profesional')
+    expect(`Elige ${v.toTheProfessional} y el servicio.`).toBe(
+      'Elige al profesional y el servicio.',
+    )
+    expect(`No pudimos cargar la agenda ${v.ofThisProfessional}`).toBe(
+      'No pudimos cargar la agenda de este profesional',
+    )
+    expect(`Servicios ${v.ofTheBusiness}`).toBe('Servicios del negocio')
+    expect(`Elige ${v.anotherProfessional} ${v.professional} en la lista.`).toBe(
+      'Elige otro profesional en la lista.',
+    )
+    expect(`es ${v.theOnlyProfessional} asignad${v.professionalEnding}`).toBe(
+      'es el único profesional asignado',
+    )
+    expect(`${v.ThisProfessional} ya no está disponible`).toBe(
+      'Este profesional ya no está disponible',
+    )
+    expect(`Cancelado ${v.byTheProfessional}`).toBe('Cancelado por el profesional')
+    expect(`${v.ThisBusiness} todavía no tiene servicios`).toBe(
+      'Este negocio todavía no tiene servicios',
+    )
+    expect(`contacta ${v.toTheBusiness}`).toBe('contacta al negocio')
+    expect(`Para ${v.allTheBusiness}`).toBe('Para todo el negocio')
+    expect(`pertenecer a ${v.anotherBusiness}`).toBe('pertenecer a otro negocio')
+    expect(`guardad${v.businessEnding}`).toBe('guardado')
+  })
+})
+
+describe('buildVocabulary con el vocabulario de una barbería', () => {
+  const v = buildVocabulary(barbershop)
 
   it('reproduces, word for word, the phrases the interface had before DEC-110', () => {
     expect(v.Professionals).toBe('Barberos')

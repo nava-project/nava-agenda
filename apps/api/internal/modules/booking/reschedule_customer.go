@@ -58,11 +58,11 @@ func CustomerRescheduleRemaining(done int) int {
 }
 
 func errRescheduleWindowClosed() error {
-	return apperr.RescheduleWindowClosed("el plazo para cambiar la hora por tu cuenta ya venció; contacta a la barbería")
+	return apperr.RescheduleWindowClosed("el plazo para cambiar la hora por tu cuenta ya venció; contacta al negocio")
 }
 
 func errRescheduleLimitReached() error {
-	return apperr.RescheduleLimitReached("ya cambiaste la hora de este turno las veces permitidas; contacta a la barbería")
+	return apperr.RescheduleLimitReached("ya cambiaste la hora de este turno las veces permitidas; contacta al negocio")
 }
 
 func errRescheduleSlotUnavailable() error {

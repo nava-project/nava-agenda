@@ -759,7 +759,7 @@ describe('AppointmentDetailPage', () => {
     })
     const { wrapper } = await mountPage()
 
-    expect(wrapper.text()).toContain('Cancelado por el barbero')
+    expect(wrapper.text()).toContain('Cancelado por el profesional')
     expect(wrapper.findAll('button').some((b) => b.text() === 'Cancelar turno')).toBe(false)
   })
 

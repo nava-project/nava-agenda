@@ -54,7 +54,7 @@ func (s *Service) Get(ctx context.Context, barbershopID string) (Barbershop, err
 		return Barbershop{}, apperr.Internal(fmt.Errorf("shops: leer barbería: %w", err))
 	}
 	if !found {
-		return Barbershop{}, apperr.NotFound("barbería no encontrada")
+		return Barbershop{}, apperr.NotFound("negocio no encontrado")
 	}
 	return barbershop, nil
 }
@@ -125,7 +125,7 @@ func (s *Service) Update(ctx context.Context, barbershopID string, input Input) 
 		return Barbershop{}, errTimezoneInvalid()
 	}
 	if !result.Found {
-		return Barbershop{}, apperr.NotFound("barbería no encontrada")
+		return Barbershop{}, apperr.NotFound("negocio no encontrado")
 	}
 	return result.Barbershop, nil
 }

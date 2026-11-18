@@ -69,7 +69,7 @@ async function openStaff(page: Page, width: number, height: number, empty = fals
   await page.setViewportSize({ width, height })
   await installStaffMock(page, empty)
   await page.goto('/panel/barberos')
-  await expect(page.getByRole('heading', { name: 'Barberos' })).toBeVisible()
+  await expect(page.getByRole('heading', { name: 'Profesionales' })).toBeVisible()
   expect(await page.evaluate(() => window.innerWidth)).toBe(width)
   expect(await page.evaluate(() => window.innerHeight)).toBe(height)
 }
@@ -92,8 +92,8 @@ for (const viewport of [
 
   test(`fidelidad #192: error de alta en ${viewport.name}`, async ({ page }) => {
     await openStaff(page, viewport.width, viewport.height)
-    await page.getByRole('button', { name: 'Agregar barbero' }).click()
-    const dialog = page.getByRole('dialog', { name: 'Agregar barbero' })
+    await page.getByRole('button', { name: 'Agregar profesional' }).click()
+    const dialog = page.getByRole('dialog', { name: 'Agregar profesional' })
     await dialog.getByLabel('Nombre').fill('Andrés Valencia')
     await dialog.getByRole('button', { name: 'Guardar' }).click()
     await expect(dialog.getByText('No pudimos conectar')).toBeVisible()
@@ -108,7 +108,7 @@ test('fidelidad #192: vacío, reflow, teclado y foco en los viewports obligatori
   page,
 }) => {
   await openStaff(page, 1280, 900, true)
-  await expect(page.getByText('Aún no tienes barberos registrados.')).toBeVisible()
+  await expect(page.getByText('Aún no tienes profesionales registrados.')).toBeVisible()
   await page.screenshot({
     path: path.join(evidenceDir, 'desktop', 'vacio.png'),
     animations: 'disabled',
@@ -126,7 +126,7 @@ test('fidelidad #192: vacío, reflow, teclado y foco en los viewports obligatori
   for (const viewport of viewports) {
     await page.setViewportSize({ width: viewport.width, height: viewport.height })
     await page.goto('/panel/barberos')
-    await expect(page.getByRole('heading', { name: 'Barberos' })).toBeVisible()
+    await expect(page.getByRole('heading', { name: 'Profesionales' })).toBeVisible()
     expect(await page.evaluate(() => window.innerWidth)).toBe(viewport.width)
     expect(await page.evaluate(() => window.innerHeight)).toBe(viewport.height)
     expect(
@@ -139,7 +139,7 @@ test('fidelidad #192: vacío, reflow, teclado y foco en los viewports obligatori
       }),
       `${viewport.name}: no hay desborde horizontal`,
     ).toBe(false)
-    const action = page.getByRole('button', { name: 'Agregar barbero' })
+    const action = page.getByRole('button', { name: 'Agregar profesional' })
     await action.focus()
     await expect(action).toBeFocused()
     await page.screenshot({
@@ -152,8 +152,8 @@ test('fidelidad #192: vacío, reflow, teclado y foco en los viewports obligatori
 test('fidelidad #192: movimiento reducido elimina la transición del diálogo', async ({ page }) => {
   await page.emulateMedia({ reducedMotion: 'reduce' })
   await openStaff(page, 1280, 900)
-  await page.getByRole('button', { name: 'Agregar barbero' }).click()
-  await expect(page.getByRole('dialog', { name: 'Agregar barbero' })).toBeVisible()
+  await page.getByRole('button', { name: 'Agregar profesional' }).click()
+  await expect(page.getByRole('dialog', { name: 'Agregar profesional' })).toBeVisible()
   expect(
     Number.parseFloat(
       await page.evaluate(

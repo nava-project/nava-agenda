@@ -1016,14 +1016,15 @@ describe('BarberBlocksPanel · vocabulario del negocio (DEC-119)', () => {
 
     expect(wrapper.text()).toContain('Horas del estudio · America/Bogota')
     expect(wrapper.text()).not.toContain('de la barbería')
+    expect(wrapper.text()).not.toContain('del negocio')
     resetBrand()
     wrapper.unmount()
   })
 
-  it('keeps the original words by default', async () => {
+  it('uses the generic words by default (DEC-183)', async () => {
     const wrapper = await mountReady()
 
-    expect(wrapper.text()).toContain('Horas de la barbería · America/Bogota')
+    expect(wrapper.text()).toContain('Horas del negocio · America/Bogota')
     wrapper.unmount()
   })
 })

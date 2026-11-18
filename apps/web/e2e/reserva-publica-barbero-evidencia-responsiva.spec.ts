@@ -77,7 +77,7 @@ for (const viewport of viewports) {
         },
       )
       await page.goto(`/reservar/barberia-ejemplo/servicios/${SERVICE_ID}/barbero`)
-      await expect(page.getByText('Cargando barberos')).toBeVisible()
+      await expect(page.getByText('Cargando profesionales')).toBeVisible()
       await page.screenshot({
         path: path.join(evidenceDir, viewport.name, 'carga.png'),
         fullPage: true,
@@ -133,7 +133,7 @@ for (const viewport of viewports) {
       )
       await page.goto(`/reservar/barberia-ejemplo/servicios/${SERVICE_ID}/barbero`)
       await expect(
-        page.getByText('Este servicio no tiene barberos disponibles en este momento.'),
+        page.getByText('Este servicio no tiene profesionales disponibles en este momento.'),
       ).toBeVisible()
       await page.screenshot({
         path: path.join(evidenceDir, viewport.name, 'vacio.png'),
@@ -155,7 +155,7 @@ for (const viewport of viewports) {
               type: '/api/v1/problems/not-found',
               title: 'No encontrado',
               status: 404,
-              detail: 'no existe una barbería pública con ese enlace',
+              detail: 'no existe un negocio público con ese enlace',
               instance: 'evidence-hu092-404',
               code: 'not-found',
               requestId: 'evidence-hu092-404',

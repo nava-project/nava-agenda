@@ -6,15 +6,15 @@ import "system-barbershop/internal/platform/apperr"
 // cliente (nunca SQL ni el valor crudo enviado, CA-003-02). Compartidos por
 // Create y Rename: ambos validan `fullName` con la misma regla.
 func errFullNameRequired() error {
-	return apperr.Validation("el nombre del barbero es obligatorio")
+	return apperr.Validation("el nombre del profesional es obligatorio")
 }
 
 func errFullNameTooLong() error {
-	return apperr.Validation("el nombre del barbero excede el largo máximo")
+	return apperr.Validation("el nombre del profesional excede el largo máximo")
 }
 
 func errDescriptionTooLong() error {
-	return apperr.Validation("la descripción del barbero excede el largo máximo")
+	return apperr.Validation("la descripción del profesional excede el largo máximo")
 }
 
 // errBarberNotFound cubre tanto un barbero inexistente como uno de otra
@@ -22,7 +22,7 @@ func errDescriptionTooLong() error {
 // HTTP los distinga (CA-021-05, RN-TEN-01), igual que el resto del
 // backend.
 func errBarberNotFound() error {
-	return apperr.NotFound("no existe un barbero con ese identificador")
+	return apperr.NotFound("no existe un profesional con ese identificador")
 }
 
 // Mensajes de la fotografía (DEC-104): describen la imagen, nunca el valor

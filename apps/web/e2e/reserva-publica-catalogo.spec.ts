@@ -72,7 +72,7 @@ test.describe('Catálogo público de servicios (HU-091)', () => {
 
     await page.goto('/reservar/barberia-ejemplo/servicios')
     await expect(
-      page.getByText('Esta barbería todavía no tiene servicios disponibles para reservar.'),
+      page.getByText('Este negocio todavía no tiene servicios disponibles para reservar.'),
     ).toBeVisible()
   })
 
@@ -87,7 +87,7 @@ test.describe('Catálogo público de servicios (HU-091)', () => {
           type: '/api/v1/problems/not-found',
           title: 'No encontrado',
           status: 404,
-          detail: 'no existe una barbería pública con ese enlace',
+          detail: 'no existe un negocio público con ese enlace',
           instance: 'e2e-hu091-404',
           code: 'not-found',
           requestId: 'e2e-hu091-404',

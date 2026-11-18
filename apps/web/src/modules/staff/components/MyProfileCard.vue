@@ -34,7 +34,7 @@ defineEmits<{ edit: [] }>()
 
     <dl class="my-profile-card__facts">
       <div>
-        <dt>En NAVA desde</dt>
+        <dt>En Nava Agenda desde</dt>
         <dd>{{ sinceLabel }}</dd>
       </div>
       <div>

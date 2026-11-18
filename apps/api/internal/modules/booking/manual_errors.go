@@ -10,21 +10,21 @@ import (
 // inactivo o no está asignado al barbero elegido. Un único 404 sin
 // distinguir la causa (mismo criterio uniforme que RN-TEN-01).
 func errServiceNotAssigned() error {
-	return apperr.NotFound("no existe un servicio activo asignado a ese barbero")
+	return apperr.NotFound("no existe un servicio activo asignado a ese profesional")
 }
 
 // errBlockedInterval cubre DEC-073: el intervalo elegido se solapa con un
 // bloqueo vigente del barbero. Mismo tratamiento HTTP que un cruce de
 // citas (409).
 func errBlockedInterval() error {
-	return apperr.Conflict("el barbero tiene un bloqueo vigente en ese intervalo")
+	return apperr.Conflict("el profesional tiene un bloqueo vigente en ese intervalo")
 }
 
 // errOutsideWorkingHours cubre CA-061-02 y CA-065-04: el intervalo no cabe
 // dentro de la jornada efectiva del barbero. 422 (no 409): no hay otro
 // recurso con el que chocar, la entrada pide algo que el horario no admite.
 func errOutsideWorkingHours() error {
-	return apperr.Validation("el intervalo queda fuera de la jornada del barbero")
+	return apperr.Validation("el intervalo queda fuera de la jornada del profesional")
 }
 
 // errTimezoneUnresolvable cubre el caso defensivo de una zona IANA

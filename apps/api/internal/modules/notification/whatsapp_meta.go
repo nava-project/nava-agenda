@@ -222,6 +222,6 @@ func (s MetaWhatsAppSender) buildMessage(to, code string) metaMessage {
 }
 
 func textMessage(code string) string {
-	return "NAVA — Tu código de verificación es: " + code +
+	return "Nava Agenda — Tu código de verificación es: " + code +
 		"\n\nNo lo compartas con nadie. Si no lo solicitaste, ignora este mensaje."
 }

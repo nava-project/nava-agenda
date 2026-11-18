@@ -72,7 +72,7 @@ func (s *Service) ResolveBarbershop(ctx context.Context, rawSlug string) (Barber
 // devuelve (CA-090-02): mismo mensaje seguro para forma inválida,
 // desconocido y no publicable, sin revelar cuál de los tres ocurrió.
 func errBarbershopNotPublic() error {
-	return apperr.NotFound("no existe una barbería pública con ese enlace")
+	return apperr.NotFound("no existe un negocio público con ese enlace")
 }
 
 // ListPublicServices resuelve rawSlug -mismo criterio de recorte y forma

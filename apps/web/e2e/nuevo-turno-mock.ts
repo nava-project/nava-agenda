@@ -130,7 +130,11 @@ export async function installNewAppointmentMock(
     if (pathname === '/api/v1/private/appointments' && route.request().method() === 'POST') {
       if (scenario === 'saving' && pending) await pending.promise
       if (scenario === 'schedule-conflict') {
-        await respondJson(route, { detail: 'el barbero ya tiene una cita en ese intervalo' }, 409)
+        await respondJson(
+          route,
+          { detail: 'el profesional ya tiene una cita en ese intervalo' },
+          409,
+        )
         return
       }
       await respondJson(
@@ -160,7 +164,7 @@ export async function installNewAppointmentMock(
 
 /** Abre el listbox de barbero y elige el único del mock. */
 export async function chooseBarber(page: Page) {
-  await page.getByRole('button', { name: 'Barbero', exact: true }).click()
+  await page.getByRole('button', { name: 'Profesional', exact: true }).click()
   await page.getByRole('option', { name: BARBER.fullName }).click()
 }
 

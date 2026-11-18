@@ -13,11 +13,11 @@ import (
 // primer error de campo que encuentra, igual que LoginService hace con la
 // forma del request.
 func errNameRequired() error {
-	return apperr.Validation("el nombre de la barbería es obligatorio")
+	return apperr.Validation("el nombre del negocio es obligatorio")
 }
 
 func errNameTooLong() error {
-	return apperr.Validation("el nombre de la barbería excede el largo máximo")
+	return apperr.Validation("el nombre del negocio excede el largo máximo")
 }
 
 func errTimezoneRequired() error {
@@ -140,5 +140,5 @@ func errGeocoderUnavailable() error {
 // Mismo 404 uniforme que staff, sin revelar si existe en otra barbería
 // (RN-TEN-01).
 func errBarberForPolicyNotFound() error {
-	return apperr.NotFound("barbero no encontrado")
+	return apperr.NotFound("profesional no encontrado")
 }

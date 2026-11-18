@@ -35,16 +35,16 @@ describe('sameBarbershop', () => {
 
 describe('sameBrand', () => {
   it('compares the words as the server will store them', () => {
-    expect(sameBrand({ ...DEFAULT_BRAND, businessTerm: '  Barbería ' }, DEFAULT_BRAND)).toBe(true)
-    expect(sameBrand({ ...DEFAULT_BRAND, professionalTermPlural: 'BARBEROS' }, DEFAULT_BRAND)).toBe(
-      true,
-    )
+    expect(sameBrand({ ...DEFAULT_BRAND, businessTerm: '  Negocio ' }, DEFAULT_BRAND)).toBe(true)
+    expect(
+      sameBrand({ ...DEFAULT_BRAND, professionalTermPlural: 'PROFESIONALES' }, DEFAULT_BRAND),
+    ).toBe(true)
   })
 
   it.each([
     ['accent', { accent: 'ruby' as const }],
     ['businessTerm', { businessTerm: 'estudio' }],
-    ['businessTermGender', { businessTermGender: 'masculine' as const }],
+    ['businessTermGender', { businessTermGender: 'feminine' as const }],
     ['professionalTerm', { professionalTerm: 'estilista' }],
     ['professionalTermPlural', { professionalTermPlural: 'estilistas' }],
     ['professionalTermGender', { professionalTermGender: 'feminine' as const }],
@@ -96,9 +96,22 @@ describe('suggestPlural', () => {
 })
 
 describe('presets', () => {
-  it('start with the words the interface always used', () => {
-    expect(BUSINESS_PRESETS[0]).toEqual({ term: 'barbería', gender: 'feminine' })
+  it('start with the generic words of the initial vocabulary (DEC-183)', () => {
+    expect(BUSINESS_PRESETS[0]).toEqual({
+      term: DEFAULT_BRAND.businessTerm,
+      gender: DEFAULT_BRAND.businessTermGender,
+    })
     expect(PROFESSIONAL_PRESETS[0]).toEqual({
+      singular: DEFAULT_BRAND.professionalTerm,
+      plural: DEFAULT_BRAND.professionalTermPlural,
+      gender: DEFAULT_BRAND.professionalTermGender,
+    })
+    expect(BUSINESS_PRESETS[0]).toEqual({ term: 'negocio', gender: 'masculine' })
+  })
+
+  it('keep the words a barbershop already uses', () => {
+    expect(BUSINESS_PRESETS).toContainEqual({ term: 'barbería', gender: 'feminine' })
+    expect(PROFESSIONAL_PRESETS).toContainEqual({
       singular: 'barbero',
       plural: 'barberos',
       gender: 'masculine',

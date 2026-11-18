@@ -101,7 +101,7 @@ describe('NewAppointmentPage', () => {
     )
     fetchBarbershopTimezoneMock.mockResolvedValueOnce({ kind: 'unavailable' })
     const wrapper = mountPage()
-    expect(wrapper.text()).toContain('Cargando barberos')
+    expect(wrapper.text()).toContain('Cargando profesionales')
 
     resolveBarbers({ kind: 'success', items: oneBarber })
     await flushPromises()
@@ -113,7 +113,7 @@ describe('NewAppointmentPage', () => {
     fetchBarbershopTimezoneMock.mockResolvedValueOnce({ kind: 'unavailable' })
     const wrapper = mountPage()
     await flushPromises()
-    expect(wrapper.text()).toContain('Aún no tienes barberos registrados')
+    expect(wrapper.text()).toContain('Aún no tienes profesionales registrados')
   })
 
   it('shows a recoverable error when barbers fail to load', async () => {
@@ -138,7 +138,7 @@ describe('NewAppointmentPage', () => {
     await wrapper.get('form').trigger('submit.prevent')
     await flushPromises()
     expect(createManualAppointmentMock).not.toHaveBeenCalled()
-    expect(wrapper.text()).toContain('Elige un barbero')
+    expect(wrapper.text()).toContain('Elige un profesional')
   })
 
   // Rediseño del issue #576: el boleto del resumen está desde el inicio y
@@ -223,11 +223,11 @@ describe('NewAppointmentPage', () => {
     await fillValidForm(wrapper)
     createManualAppointmentMock.mockResolvedValueOnce({
       kind: 'conflict',
-      detail: 'el barbero tiene un bloqueo vigente en ese intervalo',
+      detail: 'el profesional tiene un bloqueo vigente en ese intervalo',
     })
     await wrapper.get('form').trigger('submit.prevent')
     await flushPromises()
-    expect(wrapper.text()).toContain('el barbero tiene un bloqueo vigente en ese intervalo')
+    expect(wrapper.text()).toContain('el profesional tiene un bloqueo vigente en ese intervalo')
   })
 
   it('shows a recoverable message on a network error and keeps the form data', async () => {
@@ -284,13 +284,15 @@ describe('NewAppointmentPage', () => {
     await fillValidForm(wrapper)
     createManualAppointmentMock.mockResolvedValueOnce({
       kind: 'conflict',
-      detail: 'el barbero ya tiene una cita en ese intervalo',
+      detail: 'el profesional ya tiene una cita en ese intervalo',
     })
     await wrapper.get('form').trigger('submit.prevent')
     await flushPromises()
 
     // Dos niveles a la vez: alerta global + mismo detalle junto al campo.
-    const occurrences = wrapper.text().split('el barbero ya tiene una cita en ese intervalo').length
+    const occurrences = wrapper
+      .text()
+      .split('el profesional ya tiene una cita en ese intervalo').length
     expect(occurrences).toBe(3)
 
     const inputs = wrapper.findAll('input')
@@ -316,7 +318,7 @@ describe('NewAppointmentPage', () => {
 
     const skeleton = wrapper.get('.nt-skeleton')
     expect(skeleton.attributes('role')).toBe('status')
-    expect(skeleton.text()).toContain('Cargando barberos')
+    expect(skeleton.text()).toContain('Cargando profesionales')
     expect(wrapper.findAll('.nt-skeleton__band')).toHaveLength(4)
   })
 
@@ -433,7 +435,7 @@ describe('NewAppointmentPage', () => {
       expect(wrapper.find('#new-appointment-barber').exists()).toBe(false)
       expect(fetchAssignedServicesMock).toHaveBeenCalledWith('b-1')
       expect(wrapper.text()).toContain('Elige el servicio.')
-      expect(wrapper.text()).not.toContain('Elige al barbero')
+      expect(wrapper.text()).not.toContain('Elige al profesional')
       expect(wrapper.get('#new-appointment-service').findAll('option').length).toBeGreaterThan(2)
     })
 

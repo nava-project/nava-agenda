@@ -93,7 +93,7 @@ describe('BarberWindowPanel', () => {
     })
     await flushPromises()
 
-    expect(wrapper.text()).toContain('Pídele a la barbería que vincule tu usuario')
+    expect(wrapper.text()).toContain('Pídele al negocio que vincule tu usuario')
   })
 
   it('shows the first barber inheriting the shop window, with its sample slots', async () => {

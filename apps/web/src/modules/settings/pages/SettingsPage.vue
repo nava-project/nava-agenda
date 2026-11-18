@@ -640,7 +640,7 @@ const previewClass = computed(() => ({ 'settings-page__preview--changed': brandD
     <header class="settings-page__header">
       <h1 id="settings-page-title" class="settings-page__title">Configuración</h1>
       <p class="settings-page__subtitle">
-        Ajusta cómo se ve NAVA en este dispositivo y cómo se llama {{ v.theBusiness }}.
+        Ajusta cómo se ve Nava Agenda en este dispositivo y cómo se llama {{ v.theBusiness }}.
       </p>
       <span class="settings-page__rule" aria-hidden="true"
         ><span class="settings-page__rule-line" /><span class="settings-page__rule-diamond" /><span
@@ -706,7 +706,7 @@ const previewClass = computed(() => ({ 'settings-page__preview--changed': brandD
             id="configuracion-pantalla"
             number="01"
             title="Pantalla"
-            description="Cómo se ve NAVA en este aparato. Se aplica al instante y no hace falta guardar."
+            description="Cómo se ve Nava Agenda en este aparato. Se aplica al instante y no hace falta guardar."
             scope="device"
             scope-label="Solo este dispositivo"
             style="--panel-index: 0"
@@ -853,7 +853,7 @@ const previewClass = computed(() => ({ 'settings-page__preview--changed': brandD
             id="configuracion-vocabulario"
             number="03"
             title="Vocabulario"
-            description="Las palabras con las que NAVA nombra tu negocio y a quien atiende los turnos."
+            description="Las palabras con las que Nava Agenda nombra tu negocio y a quien atiende los turnos."
             scope="shop"
             :scope-label="`Para ${v.theBusiness}`"
             style="--panel-index: 2"
@@ -1218,7 +1218,7 @@ const previewClass = computed(() => ({ 'settings-page__preview--changed': brandD
             id="configuracion-integraciones"
             number="11"
             title="Integraciones"
-            description="Conecta tu calendario para ver tu agenda de NAVA donde ya organizas tu día."
+            description="Conecta tu calendario para ver tus turnos de Nava Agenda donde ya organizas tu día."
             style="--panel-index: 10"
           >
             <RouterLink :to="{ name: 'integraciones-google-calendar' }" class="settings-link">

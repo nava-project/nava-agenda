@@ -126,7 +126,7 @@ for (const viewport of viewports) {
       })
       await page.goto('/reservar/barberia-ejemplo/servicios')
       await expect(
-        page.getByText('Esta barbería todavía no tiene servicios disponibles para reservar.'),
+        page.getByText('Este negocio todavía no tiene servicios disponibles para reservar.'),
       ).toBeVisible()
       await page.screenshot({
         path: path.join(evidenceDir, viewport.name, 'vacio.png'),
@@ -146,7 +146,7 @@ for (const viewport of viewports) {
             type: '/api/v1/problems/not-found',
             title: 'No encontrado',
             status: 404,
-            detail: 'no existe una barbería pública con ese enlace',
+            detail: 'no existe un negocio público con ese enlace',
             instance: 'evidence-hu091-404',
             code: 'not-found',
             requestId: 'evidence-hu091-404',

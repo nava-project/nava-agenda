@@ -23,7 +23,8 @@ vi.mock('../../api/getPublicGoogleReviewsApi', () => ({
 
 const { default: PublicBarbershopEntryPage } = await import('../PublicBarbershopEntryPage.vue')
 
-// Una barbería que nunca configuró su vocabulario recibe los valores iniciales (DEC-119).
+// El vocabulario que guardó una barbería (DEC-119); la pantalla, montada sin el
+// cascarón, habla con el vocabulario inicial («negocio», DEC-183).
 const initialVocabulary = {
   businessTerm: 'barbería',
   businessTermGender: 'feminine',
@@ -120,7 +121,7 @@ describe('PublicBarbershopEntryPage', () => {
     await flushPromises()
 
     expect(wrapper.text()).toContain('Barbería Ejemplo')
-    expect(wrapper.text()).toContain('Hora local de la barbería')
+    expect(wrapper.text()).toContain('Hora local del negocio')
   })
 
   it('keeps the barbershop clock moving instead of freezing the time of the first paint (DEC-111)', async () => {
@@ -382,7 +383,7 @@ describe('PublicBarbershopEntryPage', () => {
       expect(dial.attributes('aria-hidden')).toBe('true')
       // 14:30 en Bogotá: el texto de la hora sigue siendo la señal para quien no ve el reloj.
       expect(wrapper.get('.pb-clock__time').text()).toMatch(/2:30\s*p\.\s*m\./)
-      expect(wrapper.get('.pb-clock__label').text()).toBe('Hora local de la barbería')
+      expect(wrapper.get('.pb-clock__label').text()).toBe('Hora local del negocio')
     } finally {
       vi.useRealTimers()
     }
@@ -405,7 +406,7 @@ describe('PublicBarbershopEntryPage', () => {
     expect(cta.element.compareDocumentPosition(plate.element)).toBe(
       Node.DOCUMENT_POSITION_FOLLOWING,
     )
-    expect(wrapper.get('.pb-steps').text()).toContain('Barbero')
+    expect(wrapper.get('.pb-steps').text()).toContain('Profesional')
   })
 
   it('frames the map as a plan with its coordinates, and the modes of attention only from the profile', async () => {

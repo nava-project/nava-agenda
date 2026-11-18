@@ -15,7 +15,7 @@ import (
 const (
 	invalidAccessCodeMessage = "código de verificación inválido o expirado"
 	rateLimitedMessage       = "pediste demasiados códigos; espera un momento antes de intentarlo otra vez"
-	barbershopNotFoundMsg    = "barbería no encontrada"
+	barbershopNotFoundMsg    = "negocio no encontrado"
 )
 
 // TokenMinter genera un acceso al turno: el valor en claro y su hash. Lo invoca

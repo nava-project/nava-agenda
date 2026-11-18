@@ -57,7 +57,7 @@ onBeforeUnmount(() => clearTimeout(introTimer))
           <span class="auth-split__rule"></span>
         </div>
         <p class="auth-split__tagline">{{ tagline }}</p>
-        <p class="auth-split__caption">{{ caption }} · NAVA</p>
+        <p class="auth-split__caption">{{ caption }} · Nava Agenda</p>
       </div>
       <div class="auth-split__content">
         <nav class="auth-split__nav" aria-label="Sitio">
@@ -80,7 +80,7 @@ onBeforeUnmount(() => clearTimeout(introTimer))
             <span class="auth-split__mark-rule"></span>
           </div>
           <slot />
-          <p class="auth-split__mobile-caption" aria-hidden="true">{{ caption }} · NAVA</p>
+          <p class="auth-split__mobile-caption" aria-hidden="true">{{ caption }} · Nava Agenda</p>
           <!-- Issue #545: enlaces legales al pie de la tarjeta, después de todo lo
                que ya existía: no mueven el formulario ni la marca. -->
           <nav class="auth-split__legal" aria-label="Documentos legales">

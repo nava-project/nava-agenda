@@ -110,6 +110,6 @@ func errTokenNotFound() error {
 	return apperr.NotFound("no existe un turno accesible con ese enlace")
 }
 
-func errBarberNotFound() error { return apperr.NotFound("no existe ese barbero") }
+func errBarberNotFound() error { return apperr.NotFound("no existe ese profesional") }
 
 func errReviewNotFound() error { return apperr.NotFound("no existe esa reseña") }

@@ -211,23 +211,23 @@ describe('AppNav', () => {
     const items: NavItem[] = [
       {
         to: { name: 'panel' },
-        label: 'Barberos',
+        label: 'Profesionales',
         labelFor: (v) => v.Professionals,
         primary: true,
       },
       {
         to: { name: 'schedules-horarios' },
-        label: 'Servicios por barbero',
+        label: 'Servicios por profesional',
         labelFor: (v) => `Servicios por ${v.professional}`,
       },
     ]
 
-    it('shows the default label while the barbershop keeps the initial vocabulary', async () => {
+    it('shows the generic label while the business keeps the initial vocabulary (DEC-183)', async () => {
       const { wrapper } = await mountNav('/panel', items)
 
       const labels = wrapper.findAll('.app-nav__list--desktop .app-nav__label').map((l) => l.text())
-      expect(labels).toContain('Barberos')
-      expect(labels).toContain('Servicios por barbero')
+      expect(labels).toContain('Profesionales')
+      expect(labels).toContain('Servicios por profesional')
     })
 
     it('renames the entries with the words the barbershop chose', async () => {
@@ -242,7 +242,7 @@ describe('AppNav', () => {
       const labels = wrapper.findAll('.app-nav__list--desktop .app-nav__label').map((l) => l.text())
       expect(labels).toContain('Estilistas')
       expect(labels).toContain('Servicios por estilista')
-      expect(labels).not.toContain('Barberos')
+      expect(labels).not.toContain('Profesionales')
     })
 
     it('keeps a plain entry (no labelFor) exactly as declared', async () => {
@@ -260,7 +260,7 @@ describe('AppNav', () => {
     const items: NavItem[] = [
       {
         to: { name: 'panel' },
-        label: 'Barberos',
+        label: 'Profesionales',
         labelFor: (v) => v.Professionals,
         primary: true,
         profiles: { solo: { label: 'Mi perfil' } },
@@ -272,7 +272,7 @@ describe('AppNav', () => {
       },
       {
         to: { name: 'acceso' },
-        label: 'Servicios por barbero',
+        label: 'Servicios por profesional',
         profiles: { solo: { hidden: true } },
       },
     ]
@@ -287,12 +287,12 @@ describe('AppNav', () => {
 
       expect(desktopLabels(wrapper)).toEqual([
         'Agenda',
-        'Barberos',
+        'Profesionales',
         'Horarios',
-        'Servicios por barbero',
+        'Servicios por profesional',
       ])
       // Horarios solo sube al dock en el perfil solo.
-      expect(dockLabels(wrapper)).toEqual(['Agenda', 'Barberos', 'Más'])
+      expect(dockLabels(wrapper)).toEqual(['Agenda', 'Profesionales', 'Más'])
     })
 
     it('hides, renames and promotes entries for the solo profile', async () => {
@@ -319,7 +319,7 @@ describe('AppNav', () => {
 
     it('hides the entries an employee does not administer (DEC-134)', async () => {
       const employeeItems: NavItem[] = [
-        { to: { name: 'panel' }, label: 'Barberos', primary: true },
+        { to: { name: 'panel' }, label: 'Profesionales', primary: true },
         {
           to: { name: 'schedules-horarios' },
           label: 'Horarios',
@@ -334,8 +334,8 @@ describe('AppNav', () => {
       setBrand({ ...DEFAULT_BRAND, panelProfile: 'employee' })
       const { wrapper } = await mountNav('/panel', employeeItems)
 
-      expect(desktopLabels(wrapper)).toEqual(['Agenda', 'Barberos', 'Horarios'])
-      expect(dockLabels(wrapper)).toEqual(['Agenda', 'Barberos', 'Horarios'])
+      expect(desktopLabels(wrapper)).toEqual(['Agenda', 'Profesionales', 'Horarios'])
+      expect(dockLabels(wrapper)).toEqual(['Agenda', 'Profesionales', 'Horarios'])
     })
 
     it('has no axe violations in the solo dock', async () => {

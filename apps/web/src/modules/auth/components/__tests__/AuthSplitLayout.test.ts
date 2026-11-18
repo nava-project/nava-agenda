@@ -17,7 +17,10 @@ const router = createRouter({
   routes: [{ path: '/', component: { template: '<div />' } }],
 })
 
-function mountLayout(props: Record<string, unknown> = {}, slotHtml = '<h1>Accede a NAVA</h1>') {
+function mountLayout(
+  props: Record<string, unknown> = {},
+  slotHtml = '<h1>Accede a Nava Agenda</h1>',
+) {
   return mount(AuthSplitLayout, {
     props: { caption: 'ACCESO SEGURO', ...props },
     slots: { default: slotHtml },
@@ -89,22 +92,24 @@ describe('AuthSplitLayout', () => {
     expect(wrapper.text()).toContain('Recupera el acceso a tu cuenta.')
   })
 
-  it('renders the caption next to NAVA in the brand panel and again at the foot of the card for mobile', () => {
+  it('renders the caption next to Nava Agenda in the brand panel and again at the foot of the card for mobile', () => {
     const wrapper = mountLayout({ caption: 'RECUPERACIÓN SEGURA' })
-    expect(wrapper.get('.auth-split__caption').text()).toBe('RECUPERACIÓN SEGURA · NAVA')
-    expect(wrapper.get('.auth-split__mobile-caption').text()).toBe('RECUPERACIÓN SEGURA · NAVA')
+    expect(wrapper.get('.auth-split__caption').text()).toBe('RECUPERACIÓN SEGURA · Nava Agenda')
+    expect(wrapper.get('.auth-split__mobile-caption').text()).toBe(
+      'RECUPERACIÓN SEGURA · Nava Agenda',
+    )
   })
 
   it('renders slot content as the real page heading', () => {
     const wrapper = mountLayout()
-    expect(wrapper.get('h1').text()).toBe('Accede a NAVA')
+    expect(wrapper.get('h1').text()).toBe('Accede a Nava Agenda')
   })
 
   describe('Accesibilidad automatizada (axe-core, CA-009-05)', () => {
     it('sin violaciones con el contenido real de una pantalla', async () => {
       const wrapper = mountLayout(
         {},
-        '<h1>Accede a NAVA</h1><label for="c">Correo</label><input id="c" />',
+        '<h1>Accede a Nava Agenda</h1><label for="c">Correo</label><input id="c" />',
       )
       expect(await axe(wrapper.element, axeOptions)).toHaveNoViolations()
     })

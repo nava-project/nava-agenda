@@ -49,13 +49,13 @@ func (s *Service) notifyReleased(ctx context.Context, barbershopID, barberID str
 // errNoLinkedBarber es el 404 de «no tienes un barbero vinculado»: el vínculo
 // es opcional (DEC-100), no un fallo.
 func errNoLinkedBarber() error {
-	return apperr.NotFound("el usuario no tiene un barbero vinculado")
+	return apperr.NotFound("el usuario no tiene un profesional vinculado")
 }
 
 // errBarberTaken es el 409 de «ese barbero ya es de otro usuario». No revela
 // quién es: el mensaje es el mismo sea cual sea el otro usuario.
 func errBarberTaken() error {
-	return apperr.Conflict("ese barbero ya está vinculado a otro usuario")
+	return apperr.Conflict("ese profesional ya está vinculado a otro usuario")
 }
 
 // LinkedBarber devuelve el barbero del usuario autenticado. staffUserID llega

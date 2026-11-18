@@ -35,7 +35,7 @@ const viewports = [
 async function openReadyForm(page: Page) {
   await installNewAppointmentMock(page, 'empty-form')
   await page.goto('/panel/turnos/nuevo', { waitUntil: 'domcontentloaded' })
-  await expect(page.getByRole('button', { name: 'Barbero', exact: true })).toBeVisible()
+  await expect(page.getByRole('button', { name: 'Profesional', exact: true })).toBeVisible()
 }
 
 /**
@@ -98,7 +98,7 @@ test.describe('evidencia responsiva de /panel/turnos/nuevo', () => {
       // El listbox de barbero se abre y se recorre con teclado (patrón
       // "Collapsible Listbox" de WAI-ARIA): abrir con Enter, elegir con Enter
       // y devolver el foco al disparador.
-      const trigger = page.getByRole('button', { name: 'Barbero', exact: true })
+      const trigger = page.getByRole('button', { name: 'Profesional', exact: true })
       await trigger.focus()
       await expect(trigger).toBeFocused()
       await page.screenshot({
@@ -107,7 +107,7 @@ test.describe('evidencia responsiva de /panel/turnos/nuevo', () => {
       })
 
       await page.keyboard.press('Enter')
-      await expect(page.getByRole('listbox', { name: 'Barbero' })).toBeVisible()
+      await expect(page.getByRole('listbox', { name: 'Profesional' })).toBeVisible()
       await page.screenshot({
         path: path.join(evidenceDir, viewport.name, 'listbox-barbero.png'),
         animations: 'disabled',
@@ -161,7 +161,7 @@ test.describe('evidencia responsiva de /panel/turnos/nuevo', () => {
     await fillCompleteForm(page)
     await page.getByRole('button', { name: 'Registrar turno' }).click()
     await expect(
-      page.getByText('el barbero ya tiene una cita en ese intervalo').first(),
+      page.getByText('el profesional ya tiene una cita en ese intervalo').first(),
     ).toBeVisible()
 
     const overflows = await page.evaluate(

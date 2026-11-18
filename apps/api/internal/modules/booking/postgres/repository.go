@@ -569,7 +569,7 @@ func parsePriceAmount(raw string) (int64, error) {
 }
 
 func errScheduleConflict() error {
-	return apperr.Conflict("el barbero ya tiene una cita en ese intervalo")
+	return apperr.Conflict("el profesional ya tiene una cita en ese intervalo")
 }
 
 // scheduleConflictError traduce una carrera perdida contra la restricción
@@ -591,7 +591,7 @@ func errCustomerNotFound() error {
 }
 
 func errBarberNotFound() error {
-	return apperr.NotFound("no existe un barbero con ese identificador")
+	return apperr.NotFound("no existe un profesional con ese identificador")
 }
 
 func errServiceNotFound() error {
@@ -711,11 +711,11 @@ func scanDailyAgendaEntry(row pgx.Row) (booking.DailyAgendaEntry, error) {
 }
 
 func errCustomerPhoneTaken() error {
-	return apperr.Conflict("ya existe un cliente con ese teléfono en esta barbería")
+	return apperr.Conflict("ya existe un cliente con ese teléfono en este negocio")
 }
 
 func errCustomerEmailTaken() error {
-	return apperr.Conflict("ya existe un cliente con ese correo en esta barbería")
+	return apperr.Conflict("ya existe un cliente con ese correo en este negocio")
 }
 
 // ---------------------------------------------------------------------------

@@ -192,7 +192,7 @@ describe('BarberServicesPage', () => {
     const wrapper = mountPage()
     await flushPromises()
 
-    expect(wrapper.text()).toContain('Aún no tienes barberos registrados')
+    expect(wrapper.text()).toContain('Aún no tienes profesionales registrados')
     expect(wrapper.find('select').exists()).toBe(false)
   })
 

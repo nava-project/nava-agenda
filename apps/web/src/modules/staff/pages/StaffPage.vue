@@ -379,7 +379,7 @@ async function onToggleMine() {
     const outcome = await unlinkMyBarber()
     if (outcome.kind === 'success') {
       myBarberId.value = null
-      toast.success(`Ya no eres ${barber.fullName} en NAVA`)
+      toast.success(`Ya no eres ${barber.fullName} en Nava Agenda`)
     } else {
       linkError.value = 'No pudimos quitar el vínculo. Inténtalo de nuevo.'
     }
@@ -387,7 +387,7 @@ async function onToggleMine() {
     const outcome = await linkMyBarber(barber.id)
     if (outcome.kind === 'success') {
       myBarberId.value = barber.id
-      toast.success(`Ahora eres ${barber.fullName} en NAVA`, {
+      toast.success(`Ahora eres ${barber.fullName} en Nava Agenda`, {
         detail: 'Siguiente paso: conecta tu Google Calendar desde esta ficha.',
       })
     } else if (outcome.kind === 'taken') {
@@ -675,7 +675,11 @@ async function onSubmitRename() {
           {{ soloView ? 'Mi perfil' : v.Professionals }}
         </h1>
         <p class="staff-page__subtitle">
-          {{ soloView ? 'Tu ficha en NAVA: nombre, foto y bloqueos.' : 'Tu equipo en NAVA.' }}
+          {{
+            soloView
+              ? 'Tu ficha en Nava Agenda: nombre, foto y bloqueos.'
+              : 'Tu equipo en Nava Agenda.'
+          }}
         </p>
       </div>
       <!-- Una acción principal por región: con el equipo vacío, el CTA vive en el
@@ -800,7 +804,7 @@ async function onSubmitRename() {
         <div v-else class="staff-page__table">
           <div class="staff-page__columns" aria-hidden="true">
             <span>{{ v.Professional }}</span
-            ><span>En NAVA desde</span><span>Foto</span><span>Acción</span>
+            ><span>En Nava Agenda desde</span><span>Foto</span><span>Acción</span>
           </div>
           <ul
             ref="listRef"
@@ -943,7 +947,7 @@ async function onSubmitRename() {
 
         <dl class="staff-page__facts">
           <div :style="{ '--row-index': 1 }">
-            <dt>En NAVA desde</dt>
+            <dt>En Nava Agenda desde</dt>
             <dd>{{ formatDate(detailTarget.createdAt) }}</dd>
           </div>
           <div :style="{ '--row-index': 2 }">

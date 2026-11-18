@@ -57,5 +57,5 @@ func finiteWithin(v, lo, hi float64) bool {
 // barbería lo tiene apagado en el momento de confirmar, ya sea porque nunca lo
 // ofreció o porque lo apagó entre la elección y el envío. No crea el turno.
 func errHomeServiceNotOffered() error {
-	return apperr.Validation("esta barbería no ofrece servicio a domicilio")
+	return apperr.Validation("este negocio no ofrece servicio a domicilio")
 }

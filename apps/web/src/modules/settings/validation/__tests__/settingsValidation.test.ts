@@ -25,7 +25,7 @@ describe('validateName', () => {
       businessTerm: 'estudio',
       businessTermGender: 'masculine',
     })
-    expect(validateName('', v)).toBe('Escribe el nombre de la barbería.')
+    expect(validateName('', v)).toBe('Escribe el nombre del negocio.')
     expect(validateName('', studio)).toBe('Escribe el nombre del estudio.')
   })
 
