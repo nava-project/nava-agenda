@@ -2,7 +2,7 @@
 prompt_id: "PROMPT-ORCH-NAVA-AGENDA-v1"
 version: "1.0"
 kind: "orchestration"
-status: "in_progress"
+status: "executed"
 target_agents:
   - "any"
 repository: "bcaceres19/barberia"
@@ -83,3 +83,30 @@ El producto se llama Nava Agenda, usa «negocio» y «profesional», vive en `ag
 - `https://nava.wtf` sirve la landing, `/privacidad` y `/terminos`; un enlace viejo de reserva redirige.
 - Odin responde horarios y turnos contra el API nuevo.
 - `git grep -i barber` solo encuentra historia (decisiones, historial, prompts ejecutados, migraciones aplicadas) y nombres propios.
+
+## Resultado (2026-11-18)
+
+Ejecutado completo. El cuerpo de arriba es el plan original; las URL `bcaceres19/barberia` redirigen al repositorio renombrado `bcaceres19/nava-agenda`.
+
+| # | Issue | PR integrados |
+| - | ----- | ------------- |
+| 1 | #656 | #665 |
+| 2 | #657 | #666 |
+| 3 | #658 | #670, #669 (jobs de Jenkins de la landing) y el repositorio `bcaceres19/nava` |
+| 4 | #659 | #671 |
+| 5 | #660 | #672, #675 (guarda de la primera fase de migración, issue #674) |
+| 6 | #661 | #673 |
+| 7 | #662 | #676 |
+| 8 | #663 | #678 |
+| 9 | #664 | #677 y este cierre |
+
+Verificado en producción: `agenda/deploy` #1 desplegó `50d7b1b8` con imágenes `nava-agenda-*` desde `/srv/nava-agenda`; esquema en `20261122090000` con los datos intactos; `https://agenda.nava.wtf/health`, la reserva pública y `/panel/negocio` responden 200; `https://nava.wtf` sirve la landing, y un enlace viejo de reserva redirige con 308.
+
+Pendiente fuera del repositorio (lo hace el propietario o necesita su permiso):
+
+- Google Cloud: registrar la URI `https://agenda.nava.wtf/panel/negocio/google-calendar/callback` (la vieja redirige) y el referrer de Maps `https://agenda.nava.wtf/*`.
+- Meta: URL del webhook de WhatsApp en `agenda.nava.wtf`, porque `nava.wtf/api/*` sigue llegando al API solo de forma temporal.
+- Odin: migrar a `/public/businesses/…` y `/integrations/odin/businesses/…`; después se retiran los alias, `barberName` y `barberId`.
+- Retirar, con permiso, la carpeta vieja `barberia/` de Jenkins (su deploy está desactivado) y el enlace `/srv/barberia`.
+- Mover la carpeta local `~/Proyectos/barberia` → `~/Proyectos/nava-agenda`.
+

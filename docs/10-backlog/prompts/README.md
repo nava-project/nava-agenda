@@ -1,6 +1,6 @@
 ---
 titulo: "Catálogo de prompts persistentes"
-version: "1.119"
+version: "1.120"
 estado: "Obligatorio para prompts reutilizables"
 responsable: "Propietario del proyecto"
 ultima_actualizacion: "2026-11-18"
@@ -141,7 +141,7 @@ Un prompt mutable atiende una preocupación primaria y un issue. Si un trabajo n
 | [PROMPT-HU-105-v1](hu/hu-105-acceso-codigo-cliente.md) | `hu` | `HU-105`; relacionadas `HU-104`, `HU-007`, `HU-098` | [#637](https://github.com/bcaceres19/barberia/issues/637) | `in_progress` | `DEC-178`; `HU-104` integrada | `feat/637-hu105-acceso-codigo-cliente`; [PR #643](https://github.com/bcaceres19/barberia/pull/643) |
 | [PROMPT-HU-106-v1](hu/hu-106-odin-enlace-cancelar-reprogramar.md) | `hu` | `HU-106`; relacionadas `HU-104`, `HU-105`, `HU-098` | [#645](https://github.com/bcaceres19/barberia/issues/645) | `in_progress` | `DEC-179`; `HU-104` y `HU-105` integradas | `feat/645-hu106-odin-enlace-cancelar-reprogramar` |
 | [PROMPT-ORCH-REPROGRAMACION-CLIENTE-v1](orchestration/reprogramacion-cliente.md) | `orchestration` | `HU-104`, `HU-105` | [#636](https://github.com/bcaceres19/barberia/issues/636), [#637](https://github.com/bcaceres19/barberia/issues/637) | `in_progress` | `DEC-178`; `HU-104` antes que `HU-105` | Ordena las dos entregas sin mezclar ramas |
-| [PROMPT-ORCH-NAVA-AGENDA-v1](orchestration/nava-agenda.md) | `orchestration` | — | [#656](https://github.com/bcaceres19/barberia/issues/656)–[#664](https://github.com/bcaceres19/barberia/issues/664) | `in_progress` | `DEC-183`; DNS `agenda.nava.wtf` | Nueve entregas en orden: dominio, landing aparte, textos, BD, contrato, identificadores, docs, repo |
+| [PROMPT-ORCH-NAVA-AGENDA-v1](orchestration/nava-agenda.md) | `orchestration` | — | [#656](https://github.com/bcaceres19/barberia/issues/656)–[#664](https://github.com/bcaceres19/barberia/issues/664) | `executed` | `DEC-183`; DNS `agenda.nava.wtf` | Nueve entregas en orden: dominio, landing aparte, textos, BD, contrato, identificadores, docs, repo |
 | [PROMPT-CHORE-661-CONTRATO-BUSINESSES-v1](chore/issue-661-contrato-businesses.md) | `chore` | — | [#661](https://github.com/bcaceres19/barberia/issues/661) | `executed` | `DEC-183`; #660 | Contrato HTTP con `businesses`/`professionals`, OpenAPI 1.0.0, alias de Odin y valores `cancelled_by_professional` |
 | [PROMPT-CHORE-662-IDENTIFICADORES-NAVA-AGENDA-v1](chore/issue-662-identificadores-nava-agenda.md) | `chore` | — | [#662](https://github.com/bcaceres19/barberia/issues/662) | `executed` | `DEC-183`; #660, #661 | Módulo Go `nava-agenda`, identificadores Go/Vue, rutas `/panel/negocio` con redirección y cookie `nava_agenda_session` compatible |
 | [PROMPT-DOCS-663-DOCUMENTACION-NAVA-AGENDA-v1](docs/issue-663-documentacion-nava-agenda.md) | `docs` | — | [#663](https://github.com/bcaceres19/barberia/issues/663) | `executed` | `DEC-183`; #660–#662 | Documentación vigente con Nava Agenda, negocio/profesional y nombres actuales; la historia no se reescribe |
