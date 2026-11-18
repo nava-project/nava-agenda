@@ -106,7 +106,7 @@ func TestCreatePublic_NewCustomer_PersistsAppointmentHistoryAndToken(t *testing.
 		var customerID string
 		scanErr := q.QueryRow(ctx,
 			`SELECT origin, status, customer_id FROM appointment
-			  WHERE barbershop_id = $1 AND barber_id = $2 AND starts_at = $3`,
+			  WHERE business_id = $1 AND professional_id = $2 AND starts_at = $3`,
 			string(shopQ), barberQ1, start,
 		).Scan(&origin, &status, &customerID)
 		if scanErr != nil {
@@ -118,7 +118,7 @@ func TestCreatePublic_NewCustomer_PersistsAppointmentHistoryAndToken(t *testing.
 
 		scanErr = q.QueryRow(ctx,
 			`SELECT actor_type FROM appointment_history
-			  WHERE barbershop_id = $1 AND actor_customer_id = $2 AND event_type = 'appointment_created'`,
+			  WHERE business_id = $1 AND actor_customer_id = $2 AND event_type = 'appointment_created'`,
 			string(shopQ), customerID,
 		).Scan(&actorType)
 		if scanErr != nil {
@@ -132,8 +132,8 @@ func TestCreatePublic_NewCustomer_PersistsAppointmentHistoryAndToken(t *testing.
 		var expiresAt time.Time
 		scanErr = q.QueryRow(ctx,
 			`SELECT token_hash, expires_at FROM appointment_access_token
-			  WHERE barbershop_id = $1 AND appointment_id = (
-			    SELECT id FROM appointment WHERE barbershop_id = $1 AND customer_id = $2
+			  WHERE business_id = $1 AND appointment_id = (
+			    SELECT id FROM appointment WHERE business_id = $1 AND customer_id = $2
 			  )`,
 			string(shopQ), customerID,
 		).Scan(&tokenHash, &expiresAt)
@@ -186,7 +186,7 @@ func TestCreatePublic_SameKeyAndFingerprint_Replays(t *testing.T) {
 	err = db.InTenantTx(context.Background(), shopQ, func(ctx context.Context, q database.Queries) error {
 		var count int
 		scanErr := q.QueryRow(ctx,
-			`SELECT count(*) FROM appointment WHERE barbershop_id = $1 AND barber_id = $2 AND starts_at = $3`,
+			`SELECT count(*) FROM appointment WHERE business_id = $1 AND professional_id = $2 AND starts_at = $3`,
 			string(shopQ), barberQ1, start,
 		).Scan(&count)
 		if scanErr != nil {
@@ -372,7 +372,7 @@ func TestCreatePublic_ConcurrentOverlap_ExactlyOneSucceeds(t *testing.T) {
 		var count int
 		scanErr := q.QueryRow(ctx,
 			`SELECT count(*) FROM appointment
-			  WHERE barbershop_id = $1 AND barber_id = $2
+			  WHERE business_id = $1 AND professional_id = $2
 			    AND tstzrange(starts_at, ends_at, '[)') && tstzrange($3, $4, '[)')
 			    AND occupies_schedule`,
 			string(shopQ), barberQ2, start.Add(-time.Hour), start.Add(time.Hour),

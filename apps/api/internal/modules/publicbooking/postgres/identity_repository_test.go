@@ -49,7 +49,7 @@ func insertTestCustomer(t *testing.T, db *database.DB, barbershopID, fullName, p
 	var id string
 	err := db.InTenantTx(context.Background(), database.BarbershopID(barbershopID), func(ctx context.Context, q database.Queries) error {
 		return q.QueryRow(ctx,
-			`INSERT INTO customer (barbershop_id, full_name, phone, email)
+			`INSERT INTO customer (business_id, full_name, phone, email)
 			 VALUES ($1, $2, $3, $4)
 			 RETURNING id`,
 			barbershopID, fullName, phone, email,

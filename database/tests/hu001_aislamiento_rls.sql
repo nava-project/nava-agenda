@@ -1,14 +1,14 @@
 -- Pruebas SQL de aislamiento de HU-001. Cubren CA-001-01 a CA-001-06.
 --
 -- Uso:
---   psql "$DATABASE_TEST_URL" -v ON_ERROR_STOP=1 -f testdata/dos_barberias.sql
+--   psql "$DATABASE_TEST_URL" -v ON_ERROR_STOP=1 -f testdata/dos_professionalias.sql
 --   psql "$DATABASE_TEST_URL" -v ON_ERROR_STOP=1 -f tests/hu001_aislamiento_rls.sql
 --
--- Requisito del arnés: la conexión debe poder ejecutar `SET ROLE barberia_app`,
+-- Requisito del arnés: la conexión debe poder ejecutar `SET ROLE agenda_app`,
 -- porque las políticas se prueban con el rol real (estandar-base-datos.md §9.8).
 -- En local y en CI, con PostgreSQL efímero, se conecta como superusuario. Si se
--- conecta como `barberia_migrator`, hace falta `GRANT barberia_app TO
--- barberia_migrator` una sola vez; con NOINHERIT solo surte efecto vía SET ROLE.
+-- conecta como `agenda_migrator`, hace falta `GRANT agenda_app TO
+-- agenda_migrator` una sola vez; con NOINHERIT solo surte efecto vía SET ROLE.
 --
 -- Cada comprobación falla lanzando una excepción. Si el archivo termina, pasó.
 
@@ -23,15 +23,15 @@ DO $$
 DECLARE
   v_owned integer;
 BEGIN
-  IF NOT EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'barberia_app') THEN
-    RAISE EXCEPTION 'CA-001-04: el rol barberia_app no existe.';
+  IF NOT EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'agenda_app') THEN
+    RAISE EXCEPTION 'CA-001-04: el rol agenda_app no existe.';
   END IF;
 
   IF EXISTS (
     SELECT 1 FROM pg_roles
-    WHERE rolname = 'barberia_app' AND (rolsuper OR rolbypassrls)
+    WHERE rolname = 'agenda_app' AND (rolsuper OR rolbypassrls)
   ) THEN
-    RAISE EXCEPTION 'CA-001-04: barberia_app tiene superusuario o BYPASSRLS.';
+    RAISE EXCEPTION 'CA-001-04: agenda_app tiene superusuario o BYPASSRLS.';
   END IF;
 
   SELECT count(*) INTO v_owned
@@ -39,10 +39,10 @@ BEGIN
   JOIN pg_namespace n ON n.oid = c.relnamespace
   WHERE n.nspname = 'public'
     AND c.relkind = 'r'
-    AND pg_get_userbyid(c.relowner) = 'barberia_app';
+    AND pg_get_userbyid(c.relowner) = 'agenda_app';
 
   IF v_owned > 0 THEN
-    RAISE EXCEPTION 'CA-001-04: barberia_app es propietario de % tablas.', v_owned;
+    RAISE EXCEPTION 'CA-001-04: agenda_app es propietario de % tablas.', v_owned;
   END IF;
 END
 $$;
@@ -81,7 +81,7 @@ BEGIN
   JOIN pg_namespace n ON n.oid = c.relnamespace
   WHERE n.nspname = 'public'
     AND c.relkind = 'r'
-    -- `atlas_schema_revisions` pertenece a Atlas y no lleva barbershop_id.
+    -- `atlas_schema_revisions` pertenece a Atlas y no lleva business_id.
     -- `login_throttle` es la única excepción de diseño: cuenta intentos por IP
     -- ANTES de saber quién solicita, y asociarla a una barbería permitiría
     -- repartir los intentos entre barberías para diluir el límite.
@@ -100,7 +100,7 @@ $$;
 -- CA-001-03 · Sin contexto, la consulta falla de forma explícita
 -- ---------------------------------------------------------------------------
 BEGIN;
-SET ROLE barberia_app;
+SET ROLE agenda_app;
 
 DO $$
 DECLARE
@@ -109,7 +109,7 @@ BEGIN
   BEGIN
     SELECT count(*) INTO v_count FROM staff_user;
     RAISE EXCEPTION
-      'CA-001-03: una consulta sin app.barbershop_id devolvió % filas en lugar de fallar.',
+      'CA-001-03: una consulta sin app.business_id devolvió % filas en lugar de fallar.',
       v_count;
   EXCEPTION
     WHEN undefined_object THEN
@@ -126,8 +126,8 @@ ROLLBACK;
 -- CA-001-01 · Con contexto de A solo se ven filas de A
 -- ---------------------------------------------------------------------------
 BEGIN;
-SET ROLE barberia_app;
-SET LOCAL app.barbershop_id = '11111111-1111-1111-1111-111111111111';
+SET ROLE agenda_app;
+SET LOCAL app.business_id = '11111111-1111-1111-1111-111111111111';
 
 DO $$
 DECLARE
@@ -137,13 +137,13 @@ DECLARE
 BEGIN
   SELECT count(*) INTO v_visible_a
   FROM staff_user
-  WHERE barbershop_id = '11111111-1111-1111-1111-111111111111';
+  WHERE business_id = '11111111-1111-1111-1111-111111111111';
 
   SELECT count(*) INTO v_visible_b
   FROM staff_user
-  WHERE barbershop_id = '22222222-2222-2222-2222-222222222222';
+  WHERE business_id = '22222222-2222-2222-2222-222222222222';
 
-  SELECT count(*) INTO v_shops FROM barbershop;
+  SELECT count(*) INTO v_shops FROM business;
 
   IF v_visible_a <> 3 THEN
     RAISE EXCEPTION 'CA-001-01: se esperaban 3 usuarios de A y se vieron %.', v_visible_a;
@@ -167,17 +167,17 @@ ROLLBACK;
 -- CA-001-02 · Escritura cruzada rechazada por WITH CHECK
 -- ---------------------------------------------------------------------------
 BEGIN;
-SET ROLE barberia_app;
-SET LOCAL app.barbershop_id = '11111111-1111-1111-1111-111111111111';
+SET ROLE agenda_app;
+SET LOCAL app.business_id = '11111111-1111-1111-1111-111111111111';
 
 DO $$
 BEGIN
   -- INSERT con el tenant ajeno.
   BEGIN
-    INSERT INTO staff_user (barbershop_id, email, full_name)
+    INSERT INTO staff_user (business_id, email, full_name)
     VALUES ('22222222-2222-2222-2222-222222222222',
             'intruso@ejemplo.test', 'Intruso');
-    RAISE EXCEPTION 'CA-001-02: se pudo insertar una fila con el barbershop_id de B.';
+    RAISE EXCEPTION 'CA-001-02: se pudo insertar una fila con el business_id de B.';
   EXCEPTION
     WHEN insufficient_privilege THEN
       NULL;  -- Esperado: la política WITH CHECK rechaza la fila.
@@ -186,7 +186,7 @@ BEGIN
   -- UPDATE que intenta mover una fila propia hacia el tenant ajeno.
   BEGIN
     UPDATE staff_user
-    SET barbershop_id = '22222222-2222-2222-2222-222222222222'
+    SET business_id = '22222222-2222-2222-2222-222222222222'
     WHERE id = 'aaaaaaa2-aaaa-aaaa-aaaa-aaaaaaaaaaa2';
     RAISE EXCEPTION 'CA-001-02: se pudo mover una fila de A hacia B.';
   EXCEPTION
@@ -205,8 +205,8 @@ ROLLBACK;
 -- (base de RN-TEN-01 y de la respuesta 404 de CA-003-03)
 -- ---------------------------------------------------------------------------
 BEGIN;
-SET ROLE barberia_app;
-SET LOCAL app.barbershop_id = '11111111-1111-1111-1111-111111111111';
+SET ROLE agenda_app;
+SET LOCAL app.business_id = '11111111-1111-1111-1111-111111111111';
 
 DO $$
 DECLARE

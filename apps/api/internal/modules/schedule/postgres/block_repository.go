@@ -144,7 +144,7 @@ func (r *Repository) ListBlocks(ctx context.Context, barbershopID, barberID stri
 			rows, err = q.Query(ctx,
 				`SELECT `+timeBlockColumns+`
 				   FROM time_block
-				  WHERE barbershop_id = $1 AND barber_id = $2 `+deletedClause+`
+				  WHERE business_id = $1 AND professional_id = $2 `+deletedClause+`
 				  ORDER BY starts_at, id
 				  LIMIT $3`,
 				barbershopID, barberID, fetchLimit,
@@ -153,7 +153,7 @@ func (r *Repository) ListBlocks(ctx context.Context, barbershopID, barberID stri
 			rows, err = q.Query(ctx,
 				`SELECT `+timeBlockColumns+`
 				   FROM time_block
-				  WHERE barbershop_id = $1 AND barber_id = $2 `+deletedClause+`
+				  WHERE business_id = $1 AND professional_id = $2 `+deletedClause+`
 				    AND (starts_at, id) > ($3::timestamptz, $4)
 				  ORDER BY starts_at, id
 				  LIMIT $5`,
@@ -203,7 +203,7 @@ func (r *Repository) GetBlock(ctx context.Context, barbershopID, barberID, block
 		row := q.QueryRow(ctx,
 			`SELECT `+timeBlockColumns+`
 			   FROM time_block
-			  WHERE id = $1 AND barbershop_id = $2 AND barber_id = $3`,
+			  WHERE id = $1 AND business_id = $2 AND professional_id = $3`,
 			blockID, barbershopID, barberID,
 		)
 		scanned, err := scanTimeBlock(row)
@@ -249,7 +249,7 @@ func (r *Repository) CreateBlock(
 		}
 
 		row := q.QueryRow(ctx,
-			`INSERT INTO time_block (barbershop_id, barber_id, block_type, source, starts_at, ends_at, reason)
+			`INSERT INTO time_block (business_id, professional_id, block_type, source, starts_at, ends_at, reason)
 			      VALUES ($1, $2, $3, 'manual', $4, $5, $6)
 			   RETURNING `+timeBlockColumns,
 			barbershopID, barberID, input.BlockType, input.StartsAt, input.EndsAt, input.Reason,
@@ -296,7 +296,7 @@ func (r *Repository) DeleteBlock(ctx context.Context, barbershopID, barberID, bl
 		tag, err := q.Exec(ctx,
 			`UPDATE time_block
 			    SET deleted_at = now(), deleted_by = $4
-			  WHERE id = $1 AND barbershop_id = $2 AND barber_id = $3 AND deleted_at IS NULL`,
+			  WHERE id = $1 AND business_id = $2 AND professional_id = $3 AND deleted_at IS NULL`,
 			blockID, barbershopID, barberID, actorID,
 		)
 		if err != nil {
@@ -323,7 +323,7 @@ func (r *Repository) ListEffectiveManualBlocks(ctx context.Context, barbershopID
 		rows, err := q.Query(ctx,
 			`SELECT `+timeBlockColumns+`
 			   FROM time_block
-			  WHERE barbershop_id = $1 AND barber_id = $2 AND deleted_at IS NULL
+			  WHERE business_id = $1 AND professional_id = $2 AND deleted_at IS NULL
 			    AND starts_at < $4 AND ends_at > $3
 			  ORDER BY starts_at`,
 			barbershopID, barberID, from, until,
@@ -395,7 +395,7 @@ func loadSeriesChildren(ctx context.Context, q database.Queries, barbershopID st
 	dateRows, err := q.Query(ctx,
 		`SELECT series_id, to_char(block_date, 'YYYY-MM-DD')
 		   FROM time_block_series_date
-		  WHERE barbershop_id = $1 AND series_id = ANY($2)
+		  WHERE business_id = $1 AND series_id = ANY($2)
 		  ORDER BY series_id, block_date`,
 		barbershopID, ids,
 	)
@@ -419,7 +419,7 @@ func loadSeriesChildren(ctx context.Context, q database.Queries, barbershopID st
 	excRows, err := q.Query(ctx,
 		`SELECT series_id, to_char(excluded_date, 'YYYY-MM-DD'), reason, created_at
 		   FROM time_block_series_exception
-		  WHERE barbershop_id = $1 AND series_id = ANY($2)
+		  WHERE business_id = $1 AND series_id = ANY($2)
 		  ORDER BY series_id, excluded_date`,
 		barbershopID, ids,
 	)
@@ -458,7 +458,7 @@ func (r *Repository) ListSeries(ctx context.Context, barbershopID, barberID stri
 		if cursor == nil {
 			rows, err = q.Query(ctx,
 				timeBlockSeriesSelectSQL+`
-				  WHERE barbershop_id = $1 AND barber_id = $2 `+deletedClause+`
+				  WHERE business_id = $1 AND professional_id = $2 `+deletedClause+`
 				  ORDER BY effective_from, id
 				  LIMIT $3`,
 				barbershopID, barberID, fetchLimit,
@@ -466,7 +466,7 @@ func (r *Repository) ListSeries(ctx context.Context, barbershopID, barberID stri
 		} else {
 			rows, err = q.Query(ctx,
 				timeBlockSeriesSelectSQL+`
-				  WHERE barbershop_id = $1 AND barber_id = $2 `+deletedClause+`
+				  WHERE business_id = $1 AND professional_id = $2 `+deletedClause+`
 				    AND (effective_from, id) > ($3::date, $4)
 				  ORDER BY effective_from, id
 				  LIMIT $5`,
@@ -518,7 +518,7 @@ func (r *Repository) GetSeries(ctx context.Context, barbershopID, barberID, seri
 
 	err := r.db.InTenantTx(ctx, database.BarbershopID(barbershopID), func(ctx context.Context, q database.Queries) error {
 		row := q.QueryRow(ctx,
-			timeBlockSeriesSelectSQL+` WHERE id = $1 AND barbershop_id = $2 AND barber_id = $3`,
+			timeBlockSeriesSelectSQL+` WHERE id = $1 AND business_id = $2 AND professional_id = $3`,
 			seriesID, barbershopID, barberID,
 		)
 		scanned, err := scanTimeBlockSeriesText(row)
@@ -573,7 +573,7 @@ func (r *Repository) CreateSeries(
 
 		row := q.QueryRow(ctx,
 			`INSERT INTO time_block_series
-			        (barbershop_id, barber_id, block_type, recurrence_kind, iso_weekday, starts_time, duration_minutes, effective_from, effective_until, reason)
+			        (business_id, professional_id, block_type, recurrence_kind, iso_weekday, starts_time, duration_minutes, effective_from, effective_until, reason)
 			 VALUES ($1, $2, $3, $4, $5, $6::time, $7, $8::date, $9::date, $10)
 			 RETURNING id, block_type, recurrence_kind, iso_weekday, to_char(starts_time, 'HH24:MI'), duration_minutes,
 			           to_char(effective_from, 'YYYY-MM-DD'), to_char(effective_until, 'YYYY-MM-DD'), reason, deleted_at, created_at, updated_at`,
@@ -587,7 +587,7 @@ func (r *Repository) CreateSeries(
 
 		for _, d := range input.ExplicitDates {
 			if _, err := q.Exec(ctx,
-				`INSERT INTO time_block_series_date (barbershop_id, series_id, block_date) VALUES ($1, $2, $3::date)`,
+				`INSERT INTO time_block_series_date (business_id, series_id, block_date) VALUES ($1, $2, $3::date)`,
 				barbershopID, sr.ID, d,
 			); err != nil {
 				return fmt.Errorf("insert series explicit date: %w", err)
@@ -628,7 +628,7 @@ func (r *Repository) UpdateSeriesWhole(ctx context.Context, barbershopID, barber
 			`UPDATE time_block_series
 			    SET block_type = $4, starts_time = $5::time, duration_minutes = $6,
 			        effective_from = $7::date, effective_until = $8::date, reason = $9
-			  WHERE id = $1 AND barbershop_id = $2 AND barber_id = $3 AND deleted_at IS NULL
+			  WHERE id = $1 AND business_id = $2 AND professional_id = $3 AND deleted_at IS NULL
 			RETURNING id, block_type, recurrence_kind, iso_weekday, to_char(starts_time, 'HH24:MI'), duration_minutes,
 			          to_char(effective_from, 'YYYY-MM-DD'), to_char(effective_until, 'YYYY-MM-DD'), reason, deleted_at, created_at, updated_at`,
 			seriesID, barbershopID, barberID, input.BlockType, input.StartsTime, input.DurationMinutes,
@@ -672,7 +672,7 @@ func (r *Repository) SplitSeriesFrom(ctx context.Context, barbershopID, barberID
 		row := q.QueryRow(ctx,
 			`SELECT iso_weekday, to_char(effective_until, 'YYYY-MM-DD')
 			   FROM time_block_series
-			  WHERE id = $1 AND barbershop_id = $2 AND barber_id = $3 AND deleted_at IS NULL
+			  WHERE id = $1 AND business_id = $2 AND professional_id = $3 AND deleted_at IS NULL
 			    FOR UPDATE`,
 			seriesID, barbershopID, barberID,
 		)
@@ -685,7 +685,7 @@ func (r *Repository) SplitSeriesFrom(ctx context.Context, barbershopID, barberID
 
 		if _, err := q.Exec(ctx,
 			`UPDATE time_block_series SET effective_until = ($4::date - INTERVAL '1 day')::date
-			  WHERE id = $1 AND barbershop_id = $2 AND barber_id = $3`,
+			  WHERE id = $1 AND business_id = $2 AND professional_id = $3`,
 			seriesID, barbershopID, barberID, effectiveDate,
 		); err != nil {
 			return fmt.Errorf("truncate original series: %w", err)
@@ -693,7 +693,7 @@ func (r *Repository) SplitSeriesFrom(ctx context.Context, barbershopID, barberID
 
 		newRow := q.QueryRow(ctx,
 			`INSERT INTO time_block_series
-			        (barbershop_id, barber_id, block_type, recurrence_kind, iso_weekday, starts_time, duration_minutes, effective_from, effective_until, reason)
+			        (business_id, professional_id, block_type, recurrence_kind, iso_weekday, starts_time, duration_minutes, effective_from, effective_until, reason)
 			 VALUES ($1, $2, $3, 'weekly', $4, $5::time, $6, $7::date, $8::date, $9)
 			 RETURNING id, block_type, recurrence_kind, iso_weekday, to_char(starts_time, 'HH24:MI'), duration_minutes,
 			           to_char(effective_from, 'YYYY-MM-DD'), to_char(effective_until, 'YYYY-MM-DD'), reason, deleted_at, created_at, updated_at`,
@@ -722,7 +722,7 @@ func (r *Repository) DeleteSeries(ctx context.Context, barbershopID, barberID, s
 	err := r.db.InTenantTx(ctx, database.BarbershopID(barbershopID), func(ctx context.Context, q database.Queries) error {
 		tag, err := q.Exec(ctx,
 			`UPDATE time_block_series SET deleted_at = now()
-			  WHERE id = $1 AND barbershop_id = $2 AND barber_id = $3 AND deleted_at IS NULL`,
+			  WHERE id = $1 AND business_id = $2 AND professional_id = $3 AND deleted_at IS NULL`,
 			seriesID, barbershopID, barberID,
 		)
 		if err != nil {
@@ -744,7 +744,7 @@ func (r *Repository) AddSeriesDate(ctx context.Context, barbershopID, barberID, 
 	err := r.db.InTenantTx(ctx, database.BarbershopID(barbershopID), func(ctx context.Context, q database.Queries) error {
 		var exists bool
 		if err := q.QueryRow(ctx,
-			`SELECT EXISTS (SELECT 1 FROM time_block_series WHERE id = $1 AND barbershop_id = $2 AND barber_id = $3 AND deleted_at IS NULL)`,
+			`SELECT EXISTS (SELECT 1 FROM time_block_series WHERE id = $1 AND business_id = $2 AND professional_id = $3 AND deleted_at IS NULL)`,
 			seriesID, barbershopID, barberID,
 		).Scan(&exists); err != nil {
 			return fmt.Errorf("check series exists: %w", err)
@@ -755,7 +755,7 @@ func (r *Repository) AddSeriesDate(ctx context.Context, barbershopID, barberID, 
 		found = true
 
 		if _, err := q.Exec(ctx,
-			`INSERT INTO time_block_series_date (barbershop_id, series_id, block_date) VALUES ($1, $2, $3::date)`,
+			`INSERT INTO time_block_series_date (business_id, series_id, block_date) VALUES ($1, $2, $3::date)`,
 			barbershopID, seriesID, blockDate,
 		); err != nil {
 			if isConstraintViolation(err, "23505", timeBlockSeriesDatePKConstraint) {
@@ -784,9 +784,9 @@ func (r *Repository) RemoveSeriesDate(ctx context.Context, barbershopID, barberI
 		tag, err := q.Exec(ctx,
 			`DELETE FROM time_block_series_date d
 			  USING time_block_series s
-			 WHERE d.series_id = s.id AND d.barbershop_id = s.barbershop_id
-			   AND d.barbershop_id = $1 AND d.series_id = $2 AND d.block_date = $3::date
-			   AND s.barber_id = $4`,
+			 WHERE d.series_id = s.id AND d.business_id = s.business_id
+			   AND d.business_id = $1 AND d.series_id = $2 AND d.block_date = $3::date
+			   AND s.professional_id = $4`,
 			barbershopID, seriesID, blockDate, barberID,
 		)
 		if err != nil {
@@ -808,7 +808,7 @@ func (r *Repository) AddSeriesException(ctx context.Context, barbershopID, barbe
 	err := r.db.InTenantTx(ctx, database.BarbershopID(barbershopID), func(ctx context.Context, q database.Queries) error {
 		var exists bool
 		if err := q.QueryRow(ctx,
-			`SELECT EXISTS (SELECT 1 FROM time_block_series WHERE id = $1 AND barbershop_id = $2 AND barber_id = $3 AND deleted_at IS NULL)`,
+			`SELECT EXISTS (SELECT 1 FROM time_block_series WHERE id = $1 AND business_id = $2 AND professional_id = $3 AND deleted_at IS NULL)`,
 			seriesID, barbershopID, barberID,
 		).Scan(&exists); err != nil {
 			return fmt.Errorf("check series exists: %w", err)
@@ -819,7 +819,7 @@ func (r *Repository) AddSeriesException(ctx context.Context, barbershopID, barbe
 		found = true
 
 		if _, err := q.Exec(ctx,
-			`INSERT INTO time_block_series_exception (barbershop_id, series_id, excluded_date, reason) VALUES ($1, $2, $3::date, $4)`,
+			`INSERT INTO time_block_series_exception (business_id, series_id, excluded_date, reason) VALUES ($1, $2, $3::date, $4)`,
 			barbershopID, seriesID, excludedDate, reason,
 		); err != nil {
 			if isConstraintViolation(err, "23505", timeBlockSeriesExceptionPKConstraint) {
@@ -848,9 +848,9 @@ func (r *Repository) RemoveSeriesException(ctx context.Context, barbershopID, ba
 		tag, err := q.Exec(ctx,
 			`DELETE FROM time_block_series_exception e
 			  USING time_block_series s
-			 WHERE e.series_id = s.id AND e.barbershop_id = s.barbershop_id
-			   AND e.barbershop_id = $1 AND e.series_id = $2 AND e.excluded_date = $3::date
-			   AND s.barber_id = $4`,
+			 WHERE e.series_id = s.id AND e.business_id = s.business_id
+			   AND e.business_id = $1 AND e.series_id = $2 AND e.excluded_date = $3::date
+			   AND s.professional_id = $4`,
 			barbershopID, seriesID, excludedDate, barberID,
 		)
 		if err != nil {
@@ -873,7 +873,7 @@ func (r *Repository) ListActiveSeriesForProjection(ctx context.Context, barbersh
 	err := r.db.InTenantTx(ctx, database.BarbershopID(barbershopID), func(ctx context.Context, q database.Queries) error {
 		rows, err := q.Query(ctx,
 			timeBlockSeriesSelectSQL+`
-			  WHERE barbershop_id = $1 AND barber_id = $2 AND deleted_at IS NULL
+			  WHERE business_id = $1 AND professional_id = $2 AND deleted_at IS NULL
 			    AND effective_from <= $4::date
 			    AND (effective_until IS NULL OR effective_until >= $3::date)
 			  ORDER BY effective_from`,

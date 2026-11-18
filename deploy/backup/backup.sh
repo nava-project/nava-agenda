@@ -2,9 +2,9 @@
 # Respaldo lógico de la base de NAVA con pg_dump (formato custom, comprimido).
 # Lo ejecuta el planificador cada día y deploy.sh antes de migrar.
 #
-# Conserva propietarios y permisos (barberia_owner, políticas RLS, funciones
+# Conserva propietarios y permisos (agenda_owner, políticas RLS, funciones
 # SECURITY DEFINER): sin ellos una restauración rompería el aislamiento por
-# barbería. Se conecta como `barberia_backup` (BYPASSRLS + pg_read_all_data);
+# barbería. Se conecta como `agenda_backup` (BYPASSRLS + pg_read_all_data);
 # un rol corriente leería filas filtradas por RLS y produciría un respaldo
 # incompleto sin avisar.
 #

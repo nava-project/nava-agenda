@@ -16,7 +16,7 @@
 // (`<h1>`); ni el panel de marca ni la marca reglada del encabezado son un
 // landmark de contenido, por eso ambos llevan `aria-hidden`.
 import { onBeforeUnmount, onMounted, ref } from 'vue'
-import { RouterLink } from 'vue-router'
+import { NAVA_PRIVACY_URL, NAVA_SITE_URL, NAVA_TERMS_URL } from '@/shared/model/navaSite'
 import { NavaWordmark } from '@/shared/ui'
 import AuthBrandBackdrop from './AuthBrandBackdrop.vue'
 
@@ -61,7 +61,7 @@ onBeforeUnmount(() => clearTimeout(introTimer))
       </div>
       <div class="auth-split__content">
         <nav class="auth-split__nav" aria-label="Sitio">
-          <RouterLink class="auth-split__back" to="/">
+          <a class="auth-split__back" :href="NAVA_SITE_URL">
             <svg
               viewBox="0 0 24 24"
               fill="none"
@@ -72,7 +72,7 @@ onBeforeUnmount(() => clearTimeout(introTimer))
               <path d="M19 12H5M11 6l-6 6 6 6" stroke-linecap="round" stroke-linejoin="round" />
             </svg>
             Volver a la presentación
-          </RouterLink>
+          </a>
         </nav>
         <div class="auth-split__card" :class="{ 'auth-split__card--intro': introActive }">
           <div class="auth-split__mark" aria-hidden="true">
@@ -84,8 +84,8 @@ onBeforeUnmount(() => clearTimeout(introTimer))
           <!-- Issue #545: enlaces legales al pie de la tarjeta, después de todo lo
                que ya existía: no mueven el formulario ni la marca. -->
           <nav class="auth-split__legal" aria-label="Documentos legales">
-            <RouterLink to="/privacidad">Privacidad</RouterLink>
-            <RouterLink to="/terminos">Condiciones</RouterLink>
+            <a :href="NAVA_PRIVACY_URL">Privacidad</a>
+            <a :href="NAVA_TERMS_URL">Condiciones</a>
           </nav>
         </div>
       </div>

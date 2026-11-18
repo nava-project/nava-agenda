@@ -26,7 +26,7 @@ func setupWorkerDB(t *testing.T) *database.DB {
 	t.Helper()
 	url := os.Getenv("TEST_WORKER_DATABASE_URL")
 	if url == "" {
-		url = "postgres://barberia_worker@localhost:5432/barberia_test?sslmode=disable"
+		url = "postgres://agenda_worker@localhost:5432/barberia_test?sslmode=disable"
 	}
 	cfg := config.Config{
 		Environment: "test", DatabaseMaxConns: 8, DatabaseMinConns: 1,
@@ -72,12 +72,12 @@ func (f syncFixture) seedAppointment(t *testing.T, status string, startsIn time.
 	err := f.app.InTenantTx(context.Background(), f.shop, func(ctx context.Context, q database.Queries) error {
 		var serviceID, customerID string
 		if err := q.QueryRow(ctx,
-			`INSERT INTO service (barbershop_id, name, duration_minutes, price_amount) VALUES ($1, $2, 40, 30000)
+			`INSERT INTO service (business_id, name, duration_minutes, price_amount) VALUES ($1, $2, 40, 30000)
 			 RETURNING id::text`, string(f.shop), "Corte "+randomHex(t, 4)).Scan(&serviceID); err != nil {
 			return err
 		}
 		if err := q.QueryRow(ctx,
-			`INSERT INTO customer (barbershop_id, full_name, email) VALUES ($1, $2, $3) RETURNING id::text`,
+			`INSERT INTO customer (business_id, full_name, email) VALUES ($1, $2, $3) RETURNING id::text`,
 			string(f.shop), "Cliente Prueba", "cliente."+randomHex(t, 4)+"@ejemplo.test").Scan(&customerID); err != nil {
 			return err
 		}
@@ -87,7 +87,7 @@ func (f syncFixture) seedAppointment(t *testing.T, status string, startsIn time.
 			resolved = "now()"
 		}
 		if err := q.QueryRow(ctx,
-			`INSERT INTO appointment (barbershop_id, barber_id, service_id, customer_id, attendee_name, starts_at, ends_at,
+			`INSERT INTO appointment (business_id, professional_id, service_id, customer_id, attendee_name, starts_at, ends_at,
 			                          status, resolved_at, origin, service_name_snapshot, duration_minutes_snapshot,
 			                          price_amount_snapshot, price_currency_snapshot)
 			 VALUES ($1, $2, $3, $4, 'Ana Pérez', $5::timestamptz, $5::timestamptz + interval '40 minutes', $6, `+resolved+`, 'manual', 'Corte clásico', 40, 30000, 'COP')
@@ -196,8 +196,8 @@ func TestEnqueue_NothingWithoutALiveConnection(t *testing.T) {
 	_ = other
 	var count int
 	_ = app.InTenantTx(ctx, shopC, func(ctx context.Context, q database.Queries) error {
-		return q.QueryRow(ctx, `SELECT count(*) FROM google_calendar_sync_job WHERE barbershop_id = $1 AND connection_id NOT IN
-			(SELECT id FROM google_calendar_connection WHERE barbershop_id = $1)`, string(shopC)).Scan(&count)
+		return q.QueryRow(ctx, `SELECT count(*) FROM google_calendar_sync_job WHERE business_id = $1 AND connection_id NOT IN
+			(SELECT id FROM google_calendar_connection WHERE business_id = $1)`, string(shopC)).Scan(&count)
 	})
 	if count != 0 {
 		t.Fatal("ningún trabajo huérfano")
@@ -213,7 +213,7 @@ func TestEnqueue_TimeBlockRules(t *testing.T) {
 		err := app.InTenantTx(context.Background(), f.shop, func(ctx context.Context, q database.Queries) error {
 			var id string
 			if err := q.QueryRow(ctx,
-				`INSERT INTO time_block (barbershop_id, barber_id, block_type, source, starts_at, ends_at)
+				`INSERT INTO time_block (business_id, professional_id, block_type, source, starts_at, ends_at)
 				 VALUES ($1, $2, $3, $4, now() + interval '2 days', now() + interval '2 days 1 hour') RETURNING id::text`,
 				string(f.shop), f.barberID, blockType, source).Scan(&id); err != nil {
 				return err

@@ -27,7 +27,7 @@ func prepareShop(t *testing.T, db *database.DB, id, name string) {
 	t.Helper()
 	resetSlugFixture(t, db, id, standardShopName[id])
 	err := db.InTenantTx(context.Background(), database.BarbershopID(id), func(ctx context.Context, q database.Queries) error {
-		_, err := q.Exec(ctx, `UPDATE barbershop SET name = $2 WHERE id = $1`, id, name)
+		_, err := q.Exec(ctx, `UPDATE business SET name = $2 WHERE id = $1`, id, name)
 		return err
 	})
 	if err != nil {
@@ -42,7 +42,7 @@ func resolveSlug(t *testing.T, db *database.DB, slug string) *string {
 	t.Helper()
 	var id *string
 	err := db.InTenantTx(context.Background(), database.BarbershopID(shopA), func(ctx context.Context, q database.Queries) error {
-		return q.QueryRow(ctx, `SELECT public_resolve_barbershop_by_slug($1)::text`, slug).Scan(&id)
+		return q.QueryRow(ctx, `SELECT public_resolve_business_by_slug($1)::text`, slug).Scan(&id)
 	})
 	if err != nil {
 		t.Fatalf("resolveSlug(%q): %v", slug, err)

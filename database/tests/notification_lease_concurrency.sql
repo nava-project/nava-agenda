@@ -3,12 +3,12 @@
 -- notification_finalize_claim y retention_claim_due_customers.
 --
 -- Uso:
---   psql "$DATABASE_TEST_URL" -v ON_ERROR_STOP=1 -f testdata/dos_barberias.sql
+--   psql "$DATABASE_TEST_URL" -v ON_ERROR_STOP=1 -f testdata/dos_professionalias.sql
 --   psql "$DATABASE_TEST_URL" -v ON_ERROR_STOP=1 -f testdata/notification_lease_fixture.sql
 --   psql "$DATABASE_TEST_URL" -v ON_ERROR_STOP=1 -f tests/notification_lease_concurrency.sql
 --
 -- Requisito del arnés: igual que hu001_aislamiento_rls.sql, la conexión debe
--- poder ejecutar `SET ROLE barberia_app` y `SET ROLE barberia_worker` sin
+-- poder ejecutar `SET ROLE agenda_app` y `SET ROLE agenda_worker` sin
 -- pertenecer a esos roles (conectada como superusuario en local/CI).
 --
 -- Por qué no hay una prueba de dos conexiones reales aquí
@@ -34,15 +34,15 @@
 -- Escenario 1 · Reclamo básico y "sin doble claim vigente"
 -- ---------------------------------------------------------------------------
 BEGIN;
-SET ROLE barberia_migrator;
+SET ROLE agenda_migrator;
 
-INSERT INTO notification_schedule (id, barbershop_id, appointment_id, event_type, channel, scheduled_for, created_at)
+INSERT INTO notification_schedule (id, business_id, appointment_id, event_type, channel, scheduled_for, created_at)
 VALUES ('00000000-0000-0000-0000-000000000001',
         '11111111-1111-1111-1111-111111111111',
         'a99a99a9-a99a-a99a-a99a-a99a99a99a99',
         'reminder', 'email', '2026-01-05 09:30:00-05', '2026-01-05 09:00:00-05');
 
-SET ROLE barberia_worker;
+SET ROLE agenda_worker;
 
 DO $$
 DECLARE
@@ -80,15 +80,15 @@ ROLLBACK;
 -- Escenario 2 · Recuperación de un lease vencido (caída tras el claim)
 -- ---------------------------------------------------------------------------
 BEGIN;
-SET ROLE barberia_migrator;
+SET ROLE agenda_migrator;
 
-INSERT INTO notification_schedule (id, barbershop_id, appointment_id, event_type, channel, scheduled_for, created_at)
+INSERT INTO notification_schedule (id, business_id, appointment_id, event_type, channel, scheduled_for, created_at)
 VALUES ('00000000-0000-0000-0000-000000000002',
         '11111111-1111-1111-1111-111111111111',
         'a99a99a9-a99a-a99a-a99a-a99a99a99a99',
         'confirmation', 'email', '2026-01-05 09:30:00-05', '2026-01-05 09:00:00-05');
 
-SET ROLE barberia_worker;
+SET ROLE agenda_worker;
 
 DO $$
 DECLARE
@@ -148,15 +148,15 @@ ROLLBACK;
 -- Escenario 3 · Fallo temporal: retry vuelve a 'pending' y es reclamable ya
 -- ---------------------------------------------------------------------------
 BEGIN;
-SET ROLE barberia_migrator;
+SET ROLE agenda_migrator;
 
-INSERT INTO notification_schedule (id, barbershop_id, appointment_id, event_type, channel, scheduled_for, created_at)
+INSERT INTO notification_schedule (id, business_id, appointment_id, event_type, channel, scheduled_for, created_at)
 VALUES ('00000000-0000-0000-0000-000000000003',
         '11111111-1111-1111-1111-111111111111',
         'a99a99a9-a99a-a99a-a99a-a99a99a99a99',
         'cancellation', 'email', '2026-01-05 09:30:00-05', '2026-01-05 09:00:00-05');
 
-SET ROLE barberia_worker;
+SET ROLE agenda_worker;
 
 DO $$
 DECLARE
@@ -176,7 +176,7 @@ BEGIN
   END IF;
 
   -- Reclamable de inmediato, sin esperar a que venza ningún lease: prueba,
-  -- sin necesitar leer la tabla (barberia_worker no tiene SELECT directo),
+  -- sin necesitar leer la tabla (agenda_worker no tiene SELECT directo),
   -- que retry la dejó en 'pending' y no en 'processing' ni en un estado
   -- terminal.
   SELECT * INTO v_retry
@@ -189,7 +189,7 @@ BEGIN
 END
 $$;
 
-SET ROLE barberia_migrator;
+SET ROLE agenda_migrator;
 
 DO $$
 DECLARE
@@ -212,15 +212,15 @@ ROLLBACK;
 -- de la cola
 -- ---------------------------------------------------------------------------
 BEGIN;
-SET ROLE barberia_migrator;
+SET ROLE agenda_migrator;
 
-INSERT INTO notification_schedule (id, barbershop_id, appointment_id, event_type, channel, scheduled_for, created_at)
+INSERT INTO notification_schedule (id, business_id, appointment_id, event_type, channel, scheduled_for, created_at)
 VALUES ('00000000-0000-0000-0000-000000000004',
         '11111111-1111-1111-1111-111111111111',
         'a99a99a9-a99a-a99a-a99a-a99a99a99a99',
         'delay', 'whatsapp', '2026-01-05 09:30:00-05', '2026-01-05 09:00:00-05');
 
-SET ROLE barberia_worker;
+SET ROLE agenda_worker;
 
 DO $$
 DECLARE
@@ -248,7 +248,7 @@ BEGIN
 END
 $$;
 
-SET ROLE barberia_migrator;
+SET ROLE agenda_migrator;
 
 DO $$
 DECLARE
@@ -270,15 +270,15 @@ ROLLBACK;
 -- Escenario 5 · Envío exitoso: sent es terminal
 -- ---------------------------------------------------------------------------
 BEGIN;
-SET ROLE barberia_migrator;
+SET ROLE agenda_migrator;
 
-INSERT INTO notification_schedule (id, barbershop_id, appointment_id, event_type, channel, scheduled_for, created_at)
+INSERT INTO notification_schedule (id, business_id, appointment_id, event_type, channel, scheduled_for, created_at)
 VALUES ('00000000-0000-0000-0000-000000000005',
         '11111111-1111-1111-1111-111111111111',
         'a99a99a9-a99a-a99a-a99a-a99a99a99a99',
         'no_show', 'email', '2026-01-05 09:30:00-05', '2026-01-05 09:00:00-05');
 
-SET ROLE barberia_worker;
+SET ROLE agenda_worker;
 
 DO $$
 DECLARE
@@ -308,7 +308,7 @@ BEGIN
 END
 $$;
 
-SET ROLE barberia_migrator;
+SET ROLE agenda_migrator;
 
 DO $$
 DECLARE
@@ -335,25 +335,25 @@ ROLLBACK;
 -- Escenario 6 · Una fila 'processing' no libera el hueco de unicidad activa
 -- ---------------------------------------------------------------------------
 BEGIN;
-SET ROLE barberia_migrator;
+SET ROLE agenda_migrator;
 
-INSERT INTO notification_schedule (id, barbershop_id, appointment_id, event_type, channel, ordinal, scheduled_for, created_at)
+INSERT INTO notification_schedule (id, business_id, appointment_id, event_type, channel, ordinal, scheduled_for, created_at)
 VALUES ('00000000-0000-0000-0000-000000000006',
         '11111111-1111-1111-1111-111111111111',
         'a99a99a9-a99a-a99a-a99a-a99a99a99a99',
         'reminder', 'whatsapp', 1, '2026-01-05 09:30:00-05', '2026-01-05 09:00:00-05');
 
-SET ROLE barberia_worker;
+SET ROLE agenda_worker;
 SELECT claim_token FROM notification_claim_due(10, 60, '2026-01-05 09:30:00-05'::timestamptz)
 WHERE schedule_id = '00000000-0000-0000-0000-000000000006';
 
-SET ROLE barberia_migrator;
+SET ROLE agenda_migrator;
 
 DO $$
 BEGIN
   BEGIN
     INSERT INTO notification_schedule (
-      id, barbershop_id, appointment_id, event_type, channel, ordinal, scheduled_for
+      id, business_id, appointment_id, event_type, channel, ordinal, scheduled_for
     ) VALUES (
       '00000000-0000-0000-0000-000000000106',
       '11111111-1111-1111-1111-111111111111',
@@ -373,25 +373,25 @@ ROLLBACK;
 \echo 'Escenario 6 OK · processing sigue ocupando el hueco de unicidad activa'
 
 -- ---------------------------------------------------------------------------
--- Escenario 7 · barberia_app no puede reclamar ni finalizar (DEC-040, DDL-SEC-04)
+-- Escenario 7 · agenda_app no puede reclamar ni finalizar (DEC-040, DDL-SEC-04)
 -- ---------------------------------------------------------------------------
 BEGIN;
-SET ROLE barberia_migrator;
+SET ROLE agenda_migrator;
 
-INSERT INTO notification_schedule (id, barbershop_id, appointment_id, event_type, channel, scheduled_for, created_at)
+INSERT INTO notification_schedule (id, business_id, appointment_id, event_type, channel, scheduled_for, created_at)
 VALUES ('00000000-0000-0000-0000-000000000007',
         '11111111-1111-1111-1111-111111111111',
         'a99a99a9-a99a-a99a-a99a-a99a99a99a99',
         'reminder', 'email', '2026-01-05 09:30:00-05', '2026-01-05 09:00:00-05');
 
-SET ROLE barberia_app;
-SET LOCAL app.barbershop_id = '11111111-1111-1111-1111-111111111111';
+SET ROLE agenda_app;
+SET LOCAL app.business_id = '11111111-1111-1111-1111-111111111111';
 
 DO $$
 BEGIN
   BEGIN
     PERFORM * FROM notification_claim_due(10, 60, '2026-01-05 09:30:00-05'::timestamptz);
-    RAISE EXCEPTION 'Escenario 7: barberia_app pudo ejecutar notification_claim_due.';
+    RAISE EXCEPTION 'Escenario 7: agenda_app pudo ejecutar notification_claim_due.';
   EXCEPTION
     WHEN insufficient_privilege THEN
       NULL;  -- Esperado.
@@ -403,7 +403,7 @@ BEGIN
       '00000000-0000-0000-0000-000000000007',
       gen_random_uuid(), 'sent', '2026-01-05 09:30:00-05'::timestamptz
     );
-    RAISE EXCEPTION 'Escenario 7: barberia_app pudo ejecutar notification_finalize_claim.';
+    RAISE EXCEPTION 'Escenario 7: agenda_app pudo ejecutar notification_finalize_claim.';
   EXCEPTION
     WHEN insufficient_privilege THEN
       NULL;  -- Esperado.
@@ -413,23 +413,23 @@ $$;
 
 RESET ROLE;
 ROLLBACK;
-\echo 'Escenario 7 OK · barberia_app no tiene EXECUTE ni sobre el claim ni sobre la finalización'
+\echo 'Escenario 7 OK · agenda_app no tiene EXECUTE ni sobre el claim ni sobre la finalización'
 
 -- ---------------------------------------------------------------------------
--- Escenario 8 · barberia_app no puede escribir columnas de lease, y el CHECK
+-- Escenario 8 · agenda_app no puede escribir columnas de lease, y el CHECK
 -- de forma impide cancelar una fila processing por esa misma vía
 -- ---------------------------------------------------------------------------
 BEGIN;
-SET ROLE barberia_migrator;
+SET ROLE agenda_migrator;
 
-INSERT INTO notification_schedule (id, barbershop_id, appointment_id, event_type, channel, scheduled_for, created_at)
+INSERT INTO notification_schedule (id, business_id, appointment_id, event_type, channel, scheduled_for, created_at)
 VALUES ('00000000-0000-0000-0000-000000000008',
         '11111111-1111-1111-1111-111111111111',
         'a99a99a9-a99a-a99a-a99a-a99a99a99a99',
         'reminder', 'email', '2026-01-05 09:30:00-05', '2026-01-05 09:00:00-05');
 
-SET ROLE barberia_app;
-SET LOCAL app.barbershop_id = '11111111-1111-1111-1111-111111111111';
+SET ROLE agenda_app;
+SET LOCAL app.business_id = '11111111-1111-1111-1111-111111111111';
 
 DO $$
 BEGIN
@@ -437,7 +437,7 @@ BEGIN
     UPDATE notification_schedule
     SET claim_token = gen_random_uuid()
     WHERE id = '00000000-0000-0000-0000-000000000008';
-    RAISE EXCEPTION 'Escenario 8: barberia_app pudo escribir claim_token directamente.';
+    RAISE EXCEPTION 'Escenario 8: agenda_app pudo escribir claim_token directamente.';
   EXCEPTION
     WHEN insufficient_privilege THEN
       NULL;  -- Esperado: sin privilegio de columna.
@@ -451,21 +451,21 @@ END
 $$;
 
 RESET ROLE;
-SET ROLE barberia_migrator;
+SET ROLE agenda_migrator;
 
 -- Nueva fila, esta vez reclamada por el worker antes de intentar cancelarla.
-INSERT INTO notification_schedule (id, barbershop_id, appointment_id, event_type, channel, scheduled_for, created_at)
+INSERT INTO notification_schedule (id, business_id, appointment_id, event_type, channel, scheduled_for, created_at)
 VALUES ('00000000-0000-0000-0000-000000000009',
         '11111111-1111-1111-1111-111111111111',
         'a99a99a9-a99a-a99a-a99a-a99a99a99a99',
         'confirmation', 'email', '2026-01-05 09:30:00-05', '2026-01-05 09:00:00-05');
 
-SET ROLE barberia_worker;
+SET ROLE agenda_worker;
 SELECT claim_token FROM notification_claim_due(10, 60, '2026-01-05 09:30:00-05'::timestamptz)
 WHERE schedule_id = '00000000-0000-0000-0000-000000000009';
 
-SET ROLE barberia_app;
-SET LOCAL app.barbershop_id = '11111111-1111-1111-1111-111111111111';
+SET ROLE agenda_app;
+SET LOCAL app.business_id = '11111111-1111-1111-1111-111111111111';
 
 DO $$
 BEGIN
@@ -476,20 +476,20 @@ BEGIN
     RAISE EXCEPTION 'Escenario 8: se pudo cancelar una fila processing sin tocar el lease.';
   EXCEPTION
     WHEN check_violation THEN
-      NULL;  -- Esperado: cancelled exige claim_token NULL, que barberia_app no puede fijar.
+      NULL;  -- Esperado: cancelled exige claim_token NULL, que agenda_app no puede fijar.
   END;
 END
 $$;
 
 RESET ROLE;
 ROLLBACK;
-\echo 'Escenario 8 OK · barberia_app no puede tocar el lease ni cancelar una fila en vuelo'
+\echo 'Escenario 8 OK · agenda_app no puede tocar el lease ni cancelar una fila en vuelo'
 
 -- ---------------------------------------------------------------------------
 -- Escenario 9 · Validación de p_limit/p_lease_seconds/p_now (DDL-OPS-01)
 -- ---------------------------------------------------------------------------
 BEGIN;
-SET ROLE barberia_worker;
+SET ROLE agenda_worker;
 
 DO $$
   -- Cada combinación inválida debe lanzar excepción, nunca ejecutarse.
@@ -549,10 +549,10 @@ ROLLBACK;
 
 -- ---------------------------------------------------------------------------
 -- Escenario 10 · p_limit/p_now se validan igual que en notification_claim_due;
--- barberia_app tampoco tiene EXECUTE
+-- agenda_app tampoco tiene EXECUTE
 -- ---------------------------------------------------------------------------
 BEGIN;
-SET ROLE barberia_worker;
+SET ROLE agenda_worker;
 
 DO $$
 DECLARE
@@ -577,14 +577,14 @@ END
 $$;
 
 RESET ROLE;
-SET ROLE barberia_app;
-SET LOCAL app.barbershop_id = '11111111-1111-1111-1111-111111111111';
+SET ROLE agenda_app;
+SET LOCAL app.business_id = '11111111-1111-1111-1111-111111111111';
 
 DO $$
 BEGIN
   BEGIN
     PERFORM * FROM retention_claim_due_customers(10, now());
-    RAISE EXCEPTION 'Escenario 10: barberia_app pudo ejecutar retention_claim_due_customers.';
+    RAISE EXCEPTION 'Escenario 10: agenda_app pudo ejecutar retention_claim_due_customers.';
   EXCEPTION
     WHEN insufficient_privilege THEN
       NULL;  -- Esperado.

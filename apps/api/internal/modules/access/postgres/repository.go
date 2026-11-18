@@ -36,7 +36,7 @@ func (r *Repository) RolesAndBarber(ctx context.Context, barbershopID, staffUser
 	)
 	err := r.db.InTenantTx(ctx, database.BarbershopID(barbershopID), func(ctx context.Context, q database.Queries) error {
 		rows, err := q.Query(ctx,
-			`SELECT role FROM staff_user_role WHERE barbershop_id = $1 AND staff_user_id = $2`,
+			`SELECT role FROM staff_user_role WHERE business_id = $1 AND staff_user_id = $2`,
 			barbershopID, staffUserID)
 		if err != nil {
 			return fmt.Errorf("select roles: %w", err)
@@ -54,7 +54,7 @@ func (r *Repository) RolesAndBarber(ctx context.Context, barbershopID, staffUser
 			return fmt.Errorf("roles rows: %w", err)
 		}
 		err = q.QueryRow(ctx,
-			`SELECT id::text FROM barber WHERE barbershop_id = $1 AND staff_user_id = $2`,
+			`SELECT id::text FROM professional WHERE business_id = $1 AND staff_user_id = $2`,
 			barbershopID, staffUserID).Scan(&barberID)
 		if errors.Is(err, pgx.ErrNoRows) {
 			barberID = ""
@@ -78,7 +78,7 @@ func (r *Repository) AppointmentBarber(ctx context.Context, barbershopID, appoin
 	found := false
 	err := r.db.InTenantTx(ctx, database.BarbershopID(barbershopID), func(ctx context.Context, q database.Queries) error {
 		err := q.QueryRow(ctx,
-			`SELECT barber_id::text FROM appointment WHERE barbershop_id = $1 AND id = $2`,
+			`SELECT professional_id::text FROM appointment WHERE business_id = $1 AND id = $2`,
 			barbershopID, appointmentID).Scan(&barberID)
 		if errors.Is(err, pgx.ErrNoRows) {
 			return nil

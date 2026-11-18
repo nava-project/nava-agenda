@@ -2,7 +2,7 @@
 -- a nivel de base de datos, lo que HU-022 (20260824140000_create_service.sql)
 -- ya preparó pero no ejercía todavía con el rol de aplicación real:
 -- service_deactivated_at_ck en ambas direcciones, la transición real
--- is_active/deactivated_at con barberia_app, aislamiento RLS entre
+-- is_active/deactivated_at con agenda_app, aislamiento RLS entre
 -- barberías sobre esa misma transición, y la reutilización de nombre que
 -- CA-024-05/idx_service_active_name habilitan. La orquestación completa
 -- (idempotencia, transición inválida, la carrera real de dos conexiones)
@@ -12,10 +12,10 @@
 -- tests/hu022_catalogo.sql: este archivo no los repite.
 --
 -- Uso:
---   psql "$DATABASE_TEST_URL" -v ON_ERROR_STOP=1 -f testdata/dos_barberias.sql
+--   psql "$DATABASE_TEST_URL" -v ON_ERROR_STOP=1 -f testdata/dos_professionalias.sql
 --   psql "$DATABASE_TEST_URL" -v ON_ERROR_STOP=1 -f tests/hu024_ciclo_vida.sql
 --
--- Requisito del arnés: la conexión debe poder ejecutar `SET ROLE barberia_app`
+-- Requisito del arnés: la conexión debe poder ejecutar `SET ROLE agenda_app`
 -- (estandar-base-datos.md §9.8), igual que hu022_catalogo.sql/hu023_asignaciones.sql.
 --
 -- Cada comprobación falla lanzando una excepción. Si el archivo termina, pasó.
@@ -44,13 +44,13 @@ $$;
 -- service_deactivated_at_ck rechaza is_active=false con deactivated_at NULL
 -- ---------------------------------------------------------------------------
 BEGIN;
-SET ROLE barberia_app;
-SET LOCAL app.barbershop_id = '11111111-1111-1111-1111-111111111111';
+SET ROLE agenda_app;
+SET LOCAL app.business_id = '11111111-1111-1111-1111-111111111111';
 
 DO $$
 BEGIN
   BEGIN
-    INSERT INTO service (barbershop_id, name, duration_minutes, price_amount, is_active, deactivated_at)
+    INSERT INTO service (business_id, name, duration_minutes, price_amount, is_active, deactivated_at)
     VALUES ('11111111-1111-1111-1111-111111111111', 'HU024 Inactivo sin marca ' || gen_random_uuid(), 30, 20000, false, NULL);
     RAISE EXCEPTION 'service_deactivated_at_ck: se permitió is_active=false con deactivated_at NULL.';
   EXCEPTION
@@ -67,13 +67,13 @@ ROLLBACK;
 -- service_deactivated_at_ck rechaza is_active=true con deactivated_at fijado
 -- ---------------------------------------------------------------------------
 BEGIN;
-SET ROLE barberia_app;
-SET LOCAL app.barbershop_id = '11111111-1111-1111-1111-111111111111';
+SET ROLE agenda_app;
+SET LOCAL app.business_id = '11111111-1111-1111-1111-111111111111';
 
 DO $$
 BEGIN
   BEGIN
-    INSERT INTO service (barbershop_id, name, duration_minutes, price_amount, is_active, deactivated_at)
+    INSERT INTO service (business_id, name, duration_minutes, price_amount, is_active, deactivated_at)
     VALUES ('11111111-1111-1111-1111-111111111111', 'HU024 Activo con marca ' || gen_random_uuid(), 30, 20000, true, now());
     RAISE EXCEPTION 'service_deactivated_at_ck: se permitió is_active=true con deactivated_at fijado.';
   EXCEPTION
@@ -87,12 +87,12 @@ ROLLBACK;
 \echo 'service_deactivated_at_ck OK · is_active=true exige deactivated_at NULL'
 
 -- ---------------------------------------------------------------------------
--- CA-024-02 · barberia_app puede transicionar activo -> inactivo, misma fila
+-- CA-024-02 · agenda_app puede transicionar activo -> inactivo, misma fila
 -- (RN-SER-03: nunca otra fila, nunca DELETE)
 -- ---------------------------------------------------------------------------
 BEGIN;
-SET ROLE barberia_app;
-SET LOCAL app.barbershop_id = '11111111-1111-1111-1111-111111111111';
+SET ROLE agenda_app;
+SET LOCAL app.business_id = '11111111-1111-1111-1111-111111111111';
 
 DO $$
 DECLARE
@@ -101,12 +101,12 @@ DECLARE
   v_deact     timestamptz;
   v_count     integer;
 BEGIN
-  INSERT INTO service (barbershop_id, name, duration_minutes, price_amount)
+  INSERT INTO service (business_id, name, duration_minutes, price_amount)
   VALUES ('11111111-1111-1111-1111-111111111111', 'HU024 A desactivar ' || gen_random_uuid(), 30, 20000)
   RETURNING id INTO v_service;
 
   UPDATE service SET is_active = false, deactivated_at = now()
-   WHERE id = v_service AND barbershop_id = '11111111-1111-1111-1111-111111111111';
+   WHERE id = v_service AND business_id = '11111111-1111-1111-1111-111111111111';
 
   SELECT is_active, deactivated_at INTO v_is_active, v_deact FROM service WHERE id = v_service;
   IF v_is_active OR v_deact IS NULL THEN
@@ -122,15 +122,15 @@ $$;
 
 RESET ROLE;
 ROLLBACK;
-\echo 'CA-024-02 OK · barberia_app transiciona activo -> inactivo sobre la MISMA fila'
+\echo 'CA-024-02 OK · agenda_app transiciona activo -> inactivo sobre la MISMA fila'
 
 -- ---------------------------------------------------------------------------
--- CA-024-05 · barberia_app puede transicionar inactivo -> activo sin crear
+-- CA-024-05 · agenda_app puede transicionar inactivo -> activo sin crear
 -- otra fila ni alterar duración/precio
 -- ---------------------------------------------------------------------------
 BEGIN;
-SET ROLE barberia_app;
-SET LOCAL app.barbershop_id = '11111111-1111-1111-1111-111111111111';
+SET ROLE agenda_app;
+SET LOCAL app.business_id = '11111111-1111-1111-1111-111111111111';
 
 DO $$
 DECLARE
@@ -140,12 +140,12 @@ DECLARE
   v_is_active boolean;
   v_deact     timestamptz;
 BEGIN
-  INSERT INTO service (barbershop_id, name, duration_minutes, price_amount, is_active, deactivated_at)
+  INSERT INTO service (business_id, name, duration_minutes, price_amount, is_active, deactivated_at)
   VALUES ('11111111-1111-1111-1111-111111111111', 'HU024 A reactivar ' || gen_random_uuid(), 45, 30000, false, now())
   RETURNING id, duration_minutes, price_amount INTO v_service, v_duration, v_price;
 
   UPDATE service SET is_active = true, deactivated_at = NULL
-   WHERE id = v_service AND barbershop_id = '11111111-1111-1111-1111-111111111111';
+   WHERE id = v_service AND business_id = '11111111-1111-1111-1111-111111111111';
 
   SELECT is_active, deactivated_at INTO v_is_active, v_deact FROM service WHERE id = v_service;
   IF NOT v_is_active OR v_deact IS NOT NULL THEN
@@ -161,35 +161,35 @@ $$;
 
 RESET ROLE;
 ROLLBACK;
-\echo 'CA-024-05 OK · barberia_app reactiva sin crear otra fila ni alterar duración/precio'
+\echo 'CA-024-05 OK · agenda_app reactiva sin crear otra fila ni alterar duración/precio'
 
 -- ---------------------------------------------------------------------------
 -- CA-024-07/RN-TEN-01 · la transición nunca cruza de barbería, aun con el
 -- id real de la fila ajena (defensa en profundidad + RLS forzada)
 -- ---------------------------------------------------------------------------
 BEGIN;
-SET ROLE barberia_app;
-SET LOCAL app.barbershop_id = '11111111-1111-1111-1111-111111111111';
-INSERT INTO service (id, barbershop_id, name, duration_minutes, price_amount)
+SET ROLE agenda_app;
+SET LOCAL app.business_id = '11111111-1111-1111-1111-111111111111';
+INSERT INTO service (id, business_id, name, duration_minutes, price_amount)
 VALUES ('77777777-2222-2222-2222-777777777772', '11111111-1111-1111-1111-111111111111', 'HU024 Servicio de A ' || gen_random_uuid(), 30, 20000);
 RESET ROLE;
 COMMIT;
 
 BEGIN;
-SET ROLE barberia_app;
-SET LOCAL app.barbershop_id = '22222222-2222-2222-2222-222222222222';
+SET ROLE agenda_app;
+SET LOCAL app.business_id = '22222222-2222-2222-2222-222222222222';
 
 DO $$
 DECLARE
   v_is_active boolean;
 BEGIN
   UPDATE service SET is_active = false, deactivated_at = now()
-   WHERE id = '77777777-2222-2222-2222-777777777772' AND barbershop_id = '22222222-2222-2222-2222-222222222222';
+   WHERE id = '77777777-2222-2222-2222-777777777772' AND business_id = '22222222-2222-2222-2222-222222222222';
   IF FOUND THEN
     RAISE EXCEPTION 'CA-024-07/RN-TEN-01: barbería B pudo transicionar un servicio de la barbería A.';
   END IF;
 
-  SET LOCAL app.barbershop_id = '11111111-1111-1111-1111-111111111111';
+  SET LOCAL app.business_id = '11111111-1111-1111-1111-111111111111';
   SELECT is_active INTO v_is_active FROM service WHERE id = '77777777-2222-2222-2222-777777777772';
   IF NOT v_is_active THEN
     RAISE EXCEPTION 'CA-024-07: el servicio de A debe permanecer activo tras el intento cruzado.';
@@ -204,12 +204,12 @@ ROLLBACK;
 -- ---------------------------------------------------------------------------
 -- CA-024-05 · desactivar libera el nombre para un servicio ACTIVO nuevo
 -- (idx_service_active_name, DEC-067), ejercido con la transición real de
--- barberia_app (no con una fila insertada ya inactiva por el propietario,
+-- agenda_app (no con una fila insertada ya inactiva por el propietario,
 -- a diferencia de tests/hu022_catalogo.sql)
 -- ---------------------------------------------------------------------------
 BEGIN;
-SET ROLE barberia_app;
-SET LOCAL app.barbershop_id = '11111111-1111-1111-1111-111111111111';
+SET ROLE agenda_app;
+SET LOCAL app.business_id = '11111111-1111-1111-1111-111111111111';
 
 DO $$
 DECLARE
@@ -217,13 +217,13 @@ DECLARE
   v_first   uuid;
   v_second  uuid;
 BEGIN
-  INSERT INTO service (barbershop_id, name, duration_minutes, price_amount)
+  INSERT INTO service (business_id, name, duration_minutes, price_amount)
   VALUES ('11111111-1111-1111-1111-111111111111', v_name, 30, 20000)
   RETURNING id INTO v_first;
 
   -- Mientras está activo, un segundo servicio con el mismo nombre choca.
   BEGIN
-    INSERT INTO service (barbershop_id, name, duration_minutes, price_amount)
+    INSERT INTO service (business_id, name, duration_minutes, price_amount)
     VALUES ('11111111-1111-1111-1111-111111111111', v_name, 30, 20000);
     RAISE EXCEPTION 'idx_service_active_name: se permitieron dos servicios ACTIVOS con el mismo nombre.';
   EXCEPTION
@@ -231,10 +231,10 @@ BEGIN
   END;
 
   UPDATE service SET is_active = false, deactivated_at = now()
-   WHERE id = v_first AND barbershop_id = '11111111-1111-1111-1111-111111111111';
+   WHERE id = v_first AND business_id = '11111111-1111-1111-1111-111111111111';
 
   -- Ya desactivado, el nombre queda libre para un servicio nuevo.
-  INSERT INTO service (barbershop_id, name, duration_minutes, price_amount)
+  INSERT INTO service (business_id, name, duration_minutes, price_amount)
   VALUES ('11111111-1111-1111-1111-111111111111', v_name, 30, 20000)
   RETURNING id INTO v_second;
 

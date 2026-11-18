@@ -27,10 +27,10 @@ func NewEnqueuer() Enqueuer { return Enqueuer{} }
 // state_at es el updated_at que el turno tiene tras el cambio, en esta misma
 // transacción: identifica qué estado cubre cada aviso.
 const enqueueSQL = `
-INSERT INTO appointment_notice (barbershop_id, appointment_id, kind, state_at, run_at)
-SELECT a.barbershop_id, a.id, $3, a.updated_at, now() + interval '60 seconds'
+INSERT INTO appointment_notice (business_id, appointment_id, kind, state_at, run_at)
+SELECT a.business_id, a.id, $3, a.updated_at, now() + interval '60 seconds'
   FROM appointment a
- WHERE a.barbershop_id = $1 AND a.id = $2
+ WHERE a.business_id = $1 AND a.id = $2
 ON CONFLICT (appointment_id, (CASE WHEN kind IN ('reminder', 'reminder_whatsapp') THEN kind ELSE 'change' END)) WHERE status = 'pending'
 DO UPDATE SET kind = EXCLUDED.kind, state_at = EXCLUDED.state_at, run_at = EXCLUDED.run_at`
 
@@ -49,14 +49,14 @@ DO UPDATE SET kind = EXCLUDED.kind, state_at = EXCLUDED.state_at, run_at = EXCLU
 // su intento y su causa de omisión; el worker vuelve a mirar el contacto al
 // enviar.
 const reminderSQL = `
-INSERT INTO appointment_notice (barbershop_id, appointment_id, kind, state_at, run_at)
-SELECT a.barbershop_id, a.id, k.kind, a.starts_at,
+INSERT INTO appointment_notice (business_id, appointment_id, kind, state_at, run_at)
+SELECT a.business_id, a.id, k.kind, a.starts_at,
        a.starts_at - make_interval(mins => b.reminder_lead_minutes)
   FROM appointment a
-  JOIN barbershop b ON b.id = a.barbershop_id
-  JOIN customer cu ON cu.barbershop_id = a.barbershop_id AND cu.id = a.customer_id
+  JOIN business b ON b.id = a.business_id
+  JOIN customer cu ON cu.business_id = a.business_id AND cu.id = a.customer_id
  CROSS JOIN (VALUES ('reminder'), ('reminder_whatsapp')) AS k(kind)
- WHERE a.barbershop_id = $1 AND a.id = $2
+ WHERE a.business_id = $1 AND a.id = $2
    AND a.status = 'confirmed'
    AND a.starts_at - make_interval(mins => b.reminder_lead_minutes) > now()
    AND (k.kind = 'reminder' OR cu.phone IS NOT NULL)
@@ -70,10 +70,10 @@ DO UPDATE SET state_at = EXCLUDED.state_at, run_at = EXCLUDED.run_at`
 const reminderLeadChangedSQL = `
 UPDATE appointment_notice n
    SET run_at = a.starts_at - make_interval(mins => b.reminder_lead_minutes)
-  FROM appointment a, barbershop b
- WHERE n.barbershop_id = $1 AND n.kind IN ('reminder', 'reminder_whatsapp') AND n.status = 'pending'
-   AND a.barbershop_id = n.barbershop_id AND a.id = n.appointment_id
-   AND b.id = n.barbershop_id
+  FROM appointment a, business b
+ WHERE n.business_id = $1 AND n.kind IN ('reminder', 'reminder_whatsapp') AND n.status = 'pending'
+   AND a.business_id = n.business_id AND a.id = n.appointment_id
+   AND b.id = n.business_id
    AND n.state_at = a.starts_at
    AND a.starts_at - make_interval(mins => b.reminder_lead_minutes) > now()`
 

@@ -39,7 +39,7 @@ func uniqueToken(t *testing.T, label string) string {
 }
 
 const (
-	testDatabaseURL = "postgres://barberia_app@localhost:5432/barberia_test?sslmode=disable"
+	testDatabaseURL = "postgres://agenda_app@localhost:5432/barberia_test?sslmode=disable"
 
 	shopA = "11111111-1111-1111-1111-111111111111"
 	shopB = "22222222-2222-2222-2222-222222222222"

@@ -28,7 +28,7 @@ const createExceptionIdempotencyTTL = 24 * time.Hour
 // dos se traducen a un conflicto de negocio: cualquier otra violación se
 // propaga como error interno.
 const (
-	exceptionDateUniqueConstraint     = "working_hour_override_shop_barber_date_uk"
+	exceptionDateUniqueConstraint     = "working_hour_override_shop_professional_date_uk"
 	exceptionSegmentOverlapConstraint = "working_hour_override_segment_no_overlap_excl"
 )
 
@@ -97,7 +97,7 @@ func loadExceptionSegments(ctx context.Context, q database.Queries, barbershopID
 	rows, err := q.Query(ctx,
 		`SELECT id, to_char(starts_time, 'HH24:MI'), duration_minutes
 		   FROM working_hour_override_segment
-		  WHERE barbershop_id = $1 AND override_id = $2
+		  WHERE business_id = $1 AND override_id = $2
 		  ORDER BY starts_time`,
 		barbershopID, overrideID,
 	)
@@ -131,7 +131,7 @@ func loadExceptionSegmentsBatch(ctx context.Context, q database.Queries, barbers
 	rows, err := q.Query(ctx,
 		`SELECT id, override_id, to_char(starts_time, 'HH24:MI'), duration_minutes
 		   FROM working_hour_override_segment
-		  WHERE barbershop_id = $1 AND override_id = ANY($2)
+		  WHERE business_id = $1 AND override_id = ANY($2)
 		  ORDER BY override_id, starts_time`,
 		barbershopID, overrideIDs,
 	)
@@ -159,7 +159,7 @@ func insertExceptionSegments(ctx context.Context, q database.Queries, barbershop
 	for _, seg := range segments {
 		var id string
 		if err := q.QueryRow(ctx,
-			`INSERT INTO working_hour_override_segment (barbershop_id, override_id, starts_time, duration_minutes)
+			`INSERT INTO working_hour_override_segment (business_id, override_id, starts_time, duration_minutes)
 			      VALUES ($1, $2, $3::time, $4)
 			   RETURNING id`,
 			barbershopID, overrideID, seg.StartsTime, seg.DurationMinutes,
@@ -178,7 +178,7 @@ func (r *Repository) GetHolidayCalendarEnabled(ctx context.Context, barbershopID
 
 	err := r.db.InTenantTx(ctx, database.BarbershopID(barbershopID), func(ctx context.Context, q database.Queries) error {
 		err := q.QueryRow(ctx,
-			`SELECT holiday_calendar_enabled FROM barber WHERE id = $1 AND barbershop_id = $2`,
+			`SELECT holiday_calendar_enabled FROM professional WHERE id = $1 AND business_id = $2`,
 			barberID, barbershopID,
 		).Scan(&enabled)
 		switch {
@@ -203,8 +203,8 @@ func (r *Repository) SetHolidayCalendarEnabled(ctx context.Context, barbershopID
 
 	err := r.db.InTenantTx(ctx, database.BarbershopID(barbershopID), func(ctx context.Context, q database.Queries) error {
 		err := q.QueryRow(ctx,
-			`UPDATE barber SET holiday_calendar_enabled = $3
-			  WHERE id = $1 AND barbershop_id = $2
+			`UPDATE professional SET holiday_calendar_enabled = $3
+			  WHERE id = $1 AND business_id = $2
 			RETURNING holiday_calendar_enabled`,
 			barberID, barbershopID, enabled,
 		).Scan(&result.Enabled)
@@ -241,7 +241,7 @@ func (r *Repository) ListExceptions(ctx context.Context, barbershopID, barberID 
 			rows, err = q.Query(ctx,
 				`SELECT id, to_char(effective_date, 'YYYY-MM-DD'), is_closed, reason, created_at, updated_at
 				   FROM working_hour_override
-				  WHERE barbershop_id = $1 AND barber_id = $2
+				  WHERE business_id = $1 AND professional_id = $2
 				  ORDER BY effective_date, id
 				  LIMIT $3`,
 				barbershopID, barberID, fetchLimit,
@@ -250,7 +250,7 @@ func (r *Repository) ListExceptions(ctx context.Context, barbershopID, barberID 
 			rows, err = q.Query(ctx,
 				`SELECT id, to_char(effective_date, 'YYYY-MM-DD'), is_closed, reason, created_at, updated_at
 				   FROM working_hour_override
-				  WHERE barbershop_id = $1 AND barber_id = $2
+				  WHERE business_id = $1 AND professional_id = $2
 				    AND (effective_date, id) > ($3::date, $4)
 				  ORDER BY effective_date, id
 				  LIMIT $5`,
@@ -310,7 +310,7 @@ func (r *Repository) GetException(ctx context.Context, barbershopID, barberID, e
 	return r.getExceptionBy(ctx, barbershopID,
 		`SELECT id, to_char(effective_date, 'YYYY-MM-DD'), is_closed, reason, created_at, updated_at
 		   FROM working_hour_override
-		  WHERE id = $1 AND barbershop_id = $2 AND barber_id = $3`,
+		  WHERE id = $1 AND business_id = $2 AND professional_id = $3`,
 		exceptionID, barberID,
 	)
 }
@@ -320,7 +320,7 @@ func (r *Repository) GetExceptionByDate(ctx context.Context, barbershopID, barbe
 	return r.getExceptionBy(ctx, barbershopID,
 		`SELECT id, to_char(effective_date, 'YYYY-MM-DD'), is_closed, reason, created_at, updated_at
 		   FROM working_hour_override
-		  WHERE effective_date = $1::date AND barbershop_id = $2 AND barber_id = $3`,
+		  WHERE effective_date = $1::date AND business_id = $2 AND professional_id = $3`,
 		effectiveDate, barberID,
 	)
 }
@@ -388,7 +388,7 @@ func (r *Repository) CreateException(
 
 		var e schedule.ScheduleException
 		row := q.QueryRow(ctx,
-			`INSERT INTO working_hour_override (barbershop_id, barber_id, effective_date, is_closed, reason)
+			`INSERT INTO working_hour_override (business_id, professional_id, effective_date, is_closed, reason)
 			      VALUES ($1, $2, $3::date, $4, $5)
 			   RETURNING id, to_char(effective_date, 'YYYY-MM-DD'), is_closed, reason, created_at, updated_at`,
 			barbershopID, barberID, input.EffectiveDate, input.IsClosed, input.Reason,
@@ -461,7 +461,7 @@ func (r *Repository) UpdateException(ctx context.Context, barbershopID, barberID
 		row := q.QueryRow(ctx,
 			`UPDATE working_hour_override
 			    SET effective_date = $4::date, is_closed = $5, reason = $6
-			  WHERE id = $1 AND barbershop_id = $2 AND barber_id = $3
+			  WHERE id = $1 AND business_id = $2 AND professional_id = $3
 			RETURNING to_char(effective_date, 'YYYY-MM-DD'), is_closed, reason, created_at, updated_at`,
 			exceptionID, barbershopID, barberID, input.EffectiveDate, input.IsClosed, input.Reason,
 		)
@@ -479,7 +479,7 @@ func (r *Repository) UpdateException(ctx context.Context, barbershopID, barberID
 		result.Found = true
 
 		if _, err := q.Exec(ctx,
-			`DELETE FROM working_hour_override_segment WHERE barbershop_id = $1 AND override_id = $2`,
+			`DELETE FROM working_hour_override_segment WHERE business_id = $1 AND override_id = $2`,
 			barbershopID, exceptionID,
 		); err != nil {
 			return fmt.Errorf("delete existing exception segments: %w", err)
@@ -520,10 +520,10 @@ func (r *Repository) DeleteException(ctx context.Context, barbershopID, barberID
 	err := r.db.InTenantTx(ctx, database.BarbershopID(barbershopID), func(ctx context.Context, q database.Queries) error {
 		if _, err := q.Exec(ctx,
 			`DELETE FROM working_hour_override_segment
-			  WHERE barbershop_id = $1
+			  WHERE business_id = $1
 			    AND override_id IN (
 			      SELECT id FROM working_hour_override
-			       WHERE barbershop_id = $1 AND barber_id = $2 AND id = $3
+			       WHERE business_id = $1 AND professional_id = $2 AND id = $3
 			    )`,
 			barbershopID, barberID, exceptionID,
 		); err != nil {
@@ -531,7 +531,7 @@ func (r *Repository) DeleteException(ctx context.Context, barbershopID, barberID
 		}
 
 		tag, err := q.Exec(ctx,
-			`DELETE FROM working_hour_override WHERE id = $1 AND barbershop_id = $2 AND barber_id = $3`,
+			`DELETE FROM working_hour_override WHERE id = $1 AND business_id = $2 AND professional_id = $3`,
 			exceptionID, barbershopID, barberID,
 		)
 		if err != nil {
@@ -556,7 +556,7 @@ func (r *Repository) ListWorkingHoursForWeekday(ctx context.Context, barbershopI
 		rows, err := q.Query(ctx,
 			`SELECT id, iso_weekday, to_char(starts_time, 'HH24:MI'), duration_minutes, created_at, updated_at
 			   FROM working_hour
-			  WHERE barbershop_id = $1 AND barber_id = $2 AND iso_weekday = $3
+			  WHERE business_id = $1 AND professional_id = $2 AND iso_weekday = $3
 			  ORDER BY starts_time`,
 			barbershopID, barberID, isoWeekday,
 		)

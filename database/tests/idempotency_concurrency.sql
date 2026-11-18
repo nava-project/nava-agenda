@@ -3,14 +3,14 @@
 -- CA-004-01, CA-004-02, CA-004-04, CA-004-05, CA-004-06 y RN-IDE-01.
 --
 -- Uso:
---   psql "$DATABASE_TEST_URL" -v ON_ERROR_STOP=1 -f testdata/dos_barberias.sql
+--   psql "$DATABASE_TEST_URL" -v ON_ERROR_STOP=1 -f testdata/dos_professionalias.sql
 --   psql "$DATABASE_TEST_URL" -v ON_ERROR_STOP=1 -f tests/idempotency_concurrency.sql
 --
 -- Requisito del arnés: igual que hu001_aislamiento_rls.sql, la conexión
--- debe poder ejecutar `SET ROLE barberia_app`/`barberia_worker`/
--- `barberia_owner` sin pertenecer a esos roles (conectada como superusuario
--- en local/CI). barberia_owner ya llega concedido a barberia_migrator desde
--- la migración de endurecimiento de roles; barberia_app/barberia_worker
+-- debe poder ejecutar `SET ROLE agenda_app`/`agenda_worker`/
+-- `agenda_owner` sin pertenecer a esos roles (conectada como superusuario
+-- en local/CI). agenda_owner ya llega concedido a agenda_migrator desde
+-- la migración de endurecimiento de roles; agenda_app/agenda_worker
 -- necesitan el mismo GRANT puntual que ya exige hu001_aislamiento_rls.sql si
 -- la conexión no es superusuario.
 --
@@ -32,14 +32,14 @@
 -- CA-004-01 · Camino feliz: proceed -> complete -> replay con la misma huella
 -- ---------------------------------------------------------------------------
 BEGIN;
-SET ROLE barberia_app;
+SET ROLE agenda_app;
 
 DO $$
 DECLARE
   v_outcome   text;
   v_completed boolean;
 BEGIN
-  PERFORM set_config('app.barbershop_id', '11111111-1111-1111-1111-111111111111', true);
+  PERFORM set_config('app.business_id', '11111111-1111-1111-1111-111111111111', true);
 
   SELECT outcome INTO v_outcome
   FROM idempotency_begin(
@@ -63,7 +63,7 @@ $$;
 COMMIT;
 
 BEGIN;
-SET ROLE barberia_app;
+SET ROLE agenda_app;
 
 DO $$
 DECLARE
@@ -71,7 +71,7 @@ DECLARE
   v_status  smallint;
   v_body    text;
 BEGIN
-  PERFORM set_config('app.barbershop_id', '11111111-1111-1111-1111-111111111111', true);
+  PERFORM set_config('app.business_id', '11111111-1111-1111-1111-111111111111', true);
 
   SELECT outcome, response_status, response_body INTO v_outcome, v_status, v_body
   FROM idempotency_begin(
@@ -94,13 +94,13 @@ ROLLBACK;
 -- CA-004-02 · Misma clave, huella distinta -> conflict_fingerprint, sin efecto
 -- ---------------------------------------------------------------------------
 BEGIN;
-SET ROLE barberia_app;
+SET ROLE agenda_app;
 
 DO $$
 DECLARE
   v_outcome text;
 BEGIN
-  PERFORM set_config('app.barbershop_id', '11111111-1111-1111-1111-111111111111', true);
+  PERFORM set_config('app.business_id', '11111111-1111-1111-1111-111111111111', true);
 
   SELECT outcome INTO v_outcome
   FROM idempotency_begin(
@@ -120,13 +120,13 @@ ROLLBACK;
 -- RN-IDE-01 · Misma clave, otra operación -> conflict_operation
 -- ---------------------------------------------------------------------------
 BEGIN;
-SET ROLE barberia_app;
+SET ROLE agenda_app;
 
 DO $$
 DECLARE
   v_outcome text;
 BEGIN
-  PERFORM set_config('app.barbershop_id', '11111111-1111-1111-1111-111111111111', true);
+  PERFORM set_config('app.business_id', '11111111-1111-1111-1111-111111111111', true);
 
   SELECT outcome INTO v_outcome
   FROM idempotency_begin(
@@ -147,14 +147,14 @@ ROLLBACK;
 -- reintentar; jamás borra una fila completed (DDL-IDEM-01).
 -- ---------------------------------------------------------------------------
 BEGIN;
-SET ROLE barberia_app;
+SET ROLE agenda_app;
 
 DO $$
 DECLARE
   v_outcome text;
   v_aborted boolean;
 BEGIN
-  PERFORM set_config('app.barbershop_id', '11111111-1111-1111-1111-111111111111', true);
+  PERFORM set_config('app.business_id', '11111111-1111-1111-1111-111111111111', true);
 
   SELECT outcome INTO v_outcome
   FROM idempotency_begin(
@@ -203,21 +203,21 @@ ROLLBACK;
 -- barberías son registros independientes.
 -- ---------------------------------------------------------------------------
 BEGIN;
-SET ROLE barberia_app;
+SET ROLE agenda_app;
 
 DO $$
 DECLARE
   v_outcome_a text;
   v_outcome_b text;
 BEGIN
-  PERFORM set_config('app.barbershop_id', '11111111-1111-1111-1111-111111111111', true);
+  PERFORM set_config('app.business_id', '11111111-1111-1111-1111-111111111111', true);
   SELECT outcome INTO v_outcome_a
   FROM idempotency_begin(
     '11111111-1111-1111-1111-111111111111'::uuid,
     'audit-test-shared-key', 'audit_test_operation', repeat('d', 64), 60
   );
 
-  PERFORM set_config('app.barbershop_id', '22222222-2222-2222-2222-222222222222', true);
+  PERFORM set_config('app.business_id', '22222222-2222-2222-2222-222222222222', true);
   SELECT outcome INTO v_outcome_b
   FROM idempotency_begin(
     '22222222-2222-2222-2222-222222222222'::uuid,
@@ -240,13 +240,13 @@ ROLLBACK;
 -- de nuevo como si no existiera.
 -- ---------------------------------------------------------------------------
 BEGIN;
-SET ROLE barberia_app;
+SET ROLE agenda_app;
 
 DO $$
 DECLARE
   v_outcome text;
 BEGIN
-  PERFORM set_config('app.barbershop_id', '11111111-1111-1111-1111-111111111111', true);
+  PERFORM set_config('app.business_id', '11111111-1111-1111-1111-111111111111', true);
 
   SELECT outcome INTO v_outcome
   FROM idempotency_begin(
@@ -267,7 +267,7 @@ $$;
 COMMIT;
 
 -- Espera a que venza de verdad, en vez de forzar expires_at con UPDATE:
--- barberia_app ya no tiene UPDATE/DELETE directo sobre la tabla desde la
+-- agenda_app ya no tiene UPDATE/DELETE directo sobre la tabla desde la
 -- migración de endurecimiento de concurrencia, y retroceder expires_at
 -- manualmente puede violar idempotency_record_expires_at_ck (exige
 -- expires_at > created_at, y created_at ya quedó fijado por el INSERT de
@@ -277,13 +277,13 @@ COMMIT;
 SELECT pg_sleep(1.1);
 
 BEGIN;
-SET ROLE barberia_app;
+SET ROLE agenda_app;
 
 DO $$
 DECLARE
   v_outcome text;
 BEGIN
-  PERFORM set_config('app.barbershop_id', '11111111-1111-1111-1111-111111111111', true);
+  PERFORM set_config('app.business_id', '11111111-1111-1111-1111-111111111111', true);
 
   SELECT outcome INTO v_outcome
   FROM idempotency_begin(
@@ -303,9 +303,9 @@ ROLLBACK;
 -- ---------------------------------------------------------------------------
 -- idempotency_purge_expired · limpieza acotada, exclusiva del worker
 -- ---------------------------------------------------------------------------
-SET ROLE barberia_owner;
+SET ROLE agenda_owner;
 DELETE FROM idempotency_record
-WHERE barbershop_id = '11111111-1111-1111-1111-111111111111'
+WHERE business_id = '11111111-1111-1111-1111-111111111111'
   AND idempotency_key IN ('audit-test-happy-path', 'audit-test-abort', 'audit-test-expired');
 -- created_at y expires_at se fijan ambos en el pasado, con created_at más
 -- atrás: idempotency_record_expires_at_ck exige expires_at > created_at, y
@@ -313,7 +313,7 @@ WHERE barbershop_id = '11111111-1111-1111-1111-111111111111'
 -- para ambas columnas violaría el CHECK (quedarían iguales, no expires_at
 -- después de created_at).
 INSERT INTO idempotency_record (
-  barbershop_id, idempotency_key, operation, request_fingerprint, status, created_at, expires_at
+  business_id, idempotency_key, operation, request_fingerprint, status, created_at, expires_at
 )
 VALUES (
   '11111111-1111-1111-1111-111111111111', 'audit-test-purge-1', 'audit_test_operation',
@@ -322,9 +322,9 @@ VALUES (
 RESET ROLE;
 
 BEGIN;
-SET ROLE barberia_worker;
+SET ROLE agenda_worker;
 
--- barberia_worker solo tiene EXECUTE sobre esta función, NADA de privilegio
+-- agenda_worker solo tiene EXECUTE sobre esta función, NADA de privilegio
 -- directo sobre la tabla (mínimo privilegio real, no solo documentado): la
 -- comprobación de ausencia de la fila se hace después, con un rol que sí
 -- tiene acceso a la tabla, no aquí.
@@ -339,14 +339,14 @@ BEGIN
 END
 $$;
 
-SET ROLE barberia_owner;
+SET ROLE agenda_owner;
 
 DO $$
 DECLARE
   v_count integer;
 BEGIN
   SELECT count(*) INTO v_count FROM idempotency_record
-  WHERE barbershop_id = '11111111-1111-1111-1111-111111111111'
+  WHERE business_id = '11111111-1111-1111-1111-111111111111'
     AND idempotency_key = 'audit-test-purge-1';
   IF v_count <> 0 THEN
     RAISE EXCEPTION 'idempotency_purge_expired: la fila vencida seguía presente tras la limpieza.';
@@ -356,22 +356,22 @@ $$;
 
 RESET ROLE;
 
--- barberia_app NUNCA debe poder ejecutar la limpieza (exclusiva del worker).
+-- agenda_app NUNCA debe poder ejecutar la limpieza (exclusiva del worker).
 -- SET ROLE es una sentencia de utilidad: no puede aparecer dentro de un
 -- bloque PL/pgSQL, así que el cambio de rol queda fuera del DO.
-SET ROLE barberia_app;
+SET ROLE agenda_app;
 DO $$
 BEGIN
   PERFORM idempotency_purge_expired(10);
-  RAISE EXCEPTION 'idempotency_purge_expired: barberia_app pudo ejecutar la limpieza exclusiva del worker.';
+  RAISE EXCEPTION 'idempotency_purge_expired: agenda_app pudo ejecutar la limpieza exclusiva del worker.';
 EXCEPTION
   WHEN insufficient_privilege THEN
-    NULL; -- Esperado: sin EXECUTE concedido a barberia_app.
+    NULL; -- Esperado: sin EXECUTE concedido a agenda_app.
 END
 $$;
 RESET ROLE;
 
 COMMIT;
-\echo 'idempotency_purge_expired OK · recicla filas vencidas, exclusivo de barberia_worker'
+\echo 'idempotency_purge_expired OK · recicla filas vencidas, exclusivo de agenda_worker'
 
 \echo '=== idempotency_begin/complete/abort/purge_expired · todas las comprobaciones pasaron ==='

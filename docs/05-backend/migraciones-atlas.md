@@ -1,9 +1,9 @@
 ---
 titulo: "Gestión de migraciones PostgreSQL con Atlas"
-version: "1.4"
+version: "1.5"
 estado: "Decisión confirmada"
 responsable: "Propietario del proyecto"
-ultima_actualizacion: "2026-11-16"
+ultima_actualizacion: "2026-11-18"
 documentos_relacionados:
   - "../00-control/registro-decisiones.md"
   - "../00-control/matriz-trazabilidad.md"
@@ -136,6 +136,14 @@ Las migraciones no se ejecutan al arrancar el API o el worker. Así el rol de ap
 
 ### Bootstrap de roles (`DEC-040`)
 
+> **Nombres actuales (`DEC-183`, #660).** Los roles se crean con los nombres
+> `barberia_*` que usan las migraciones históricas, y el superusuario los
+> renombra a `agenda_owner`, `agenda_migrator`, `agenda_app`, `agenda_worker` y
+> `agenda_backup` justo después de `20261121090000_rename_to_business_professional.sql`
+> (ver «Renombrado de roles» más abajo). Esa misma migración cambia la variable
+> de sesión del tenant a `app.business_id`. Lo que sigue describe el bootstrap
+> con los nombres originales.
+
 Los cuatro roles de PostgreSQL se aprovisionan **fuera de Atlas**, con un
 administrador (o superusuario de bootstrap), **antes** de que Atlas se
 conecte por primera vez a un ambiente nuevo. Ninguna migración crea estos
@@ -184,6 +192,26 @@ Procedimiento de bootstrap por ambiente nuevo (desarrollo, piloto, producción):
    `CREATEROLE`) y aplica el resto del directorio de migraciones. Verificado
    contra PostgreSQL 14 real: `barberia_migrator` sin `CREATEROLE` aplica
    `20260811154100` y `20260811220000` sin error a partir de aquí.
+
+### Renombrado de roles (`DEC-183`, #660)
+
+El rol que migra no puede renombrarse a sí mismo ni tiene `CREATEROLE`, y las
+migraciones anteriores nombran `barberia_*`. Por eso el renombrado no es una
+migración: lo hace el superusuario con
+[`database/roles/rename_to_agenda.sql`](../../database/roles/rename_to_agenda.sql)
+en un punto fijo de la secuencia:
+
+1. Atlas aplica hasta `20261121090000` (`--to-version 20261121090000`).
+2. El superusuario ejecuta `rename_to_agenda.sql` (idempotente: salta los roles
+   ya renombrados; rechaza contraseñas MD5, que se perderían).
+3. Las cadenas de conexión pasan a `agenda_*` y Atlas aplica el resto como
+   `agenda_migrator`.
+
+Toda migración posterior a `20261121090000` nombra `agenda_*`. Así lo hacen
+`deploy/scripts/deploy.sh` (que además reescribe los secretos de conexión y el
+usuario del respaldo), `tools/ci/checks/go.sh` y `tools/ci/checks/database.sh`.
+Una base local existente se pone al día igual: aplicar hasta esa versión,
+ejecutar el script como superusuario y cambiar el usuario en `apps/api/.env.local`.
 
 **Por qué `INHERIT` y no `SET ROLE` por migración.** Se probó primero un
 diseño con `barberia_migrator` `NOINHERIT` y `SET ROLE barberia_owner; ...

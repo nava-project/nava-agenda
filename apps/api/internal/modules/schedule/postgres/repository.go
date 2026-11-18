@@ -35,7 +35,7 @@ const createWorkingHourIdempotencyTTL = 24 * time.Hour
 // otro unique_violation (que hoy no debería existir en working_hour) se
 // propaga como error interno, mismo criterio que
 // catalog/postgres.nameUniqueConstraint.
-const workingHourWeekdayStartUniqueConstraint = "working_hour_shop_barber_weekday_start_uk"
+const workingHourWeekdayStartUniqueConstraint = "working_hour_shop_professional_weekday_start_uk"
 
 // Repository implementa schedule.Repository sobre database.DB.
 type Repository struct {
@@ -114,7 +114,7 @@ func isWeekdayStartConflict(err error) bool {
 // solape no encuentra nada y el INSERT/UPDATE final falla por su cuenta
 // (FK o cero filas afectadas).
 func lockBarberForScheduleWrite(ctx context.Context, q database.Queries, barbershopID, barberID string) error {
-	rows, err := q.Query(ctx, `SELECT 1 FROM barber WHERE barbershop_id = $1 AND id = $2 FOR UPDATE`, barbershopID, barberID)
+	rows, err := q.Query(ctx, `SELECT 1 FROM professional WHERE business_id = $1 AND id = $2 FOR UPDATE`, barbershopID, barberID)
 	if err != nil {
 		return fmt.Errorf("lock barber: %w", err)
 	}
@@ -137,7 +137,7 @@ func overlapsExisting(
 	rows, err := q.Query(ctx,
 		`SELECT to_char(starts_time, 'HH24:MI'), duration_minutes
 		   FROM working_hour
-		  WHERE barbershop_id = $1 AND barber_id = $2 AND iso_weekday = $3 AND id <> $4
+		  WHERE business_id = $1 AND professional_id = $2 AND iso_weekday = $3 AND id <> $4
 		    FOR UPDATE`,
 		barbershopID, barberID, isoWeekday, excludeID,
 	)
@@ -182,7 +182,7 @@ func (r *Repository) List(ctx context.Context, barbershopID, barberID string, cu
 			rows, err = q.Query(ctx,
 				`SELECT id, iso_weekday, to_char(starts_time, 'HH24:MI'), duration_minutes, created_at, updated_at
 				   FROM working_hour
-				  WHERE barbershop_id = $1 AND barber_id = $2
+				  WHERE business_id = $1 AND professional_id = $2
 				  ORDER BY iso_weekday, starts_time, id
 				  LIMIT $3`,
 				barbershopID, barberID, fetchLimit,
@@ -191,7 +191,7 @@ func (r *Repository) List(ctx context.Context, barbershopID, barberID string, cu
 			rows, err = q.Query(ctx,
 				`SELECT id, iso_weekday, to_char(starts_time, 'HH24:MI'), duration_minutes, created_at, updated_at
 				   FROM working_hour
-				  WHERE barbershop_id = $1 AND barber_id = $2
+				  WHERE business_id = $1 AND professional_id = $2
 				    AND (iso_weekday, starts_time, id) > ($3, $4::time, $5)
 				  ORDER BY iso_weekday, starts_time, id
 				  LIMIT $6`,
@@ -246,7 +246,7 @@ func (r *Repository) Get(ctx context.Context, barbershopID, barberID, workingHou
 		err := q.QueryRow(ctx,
 			`SELECT iso_weekday, to_char(starts_time, 'HH24:MI'), duration_minutes, created_at, updated_at
 			   FROM working_hour
-			  WHERE id = $1 AND barbershop_id = $2 AND barber_id = $3`,
+			  WHERE id = $1 AND business_id = $2 AND professional_id = $3`,
 			workingHourID, barbershopID, barberID,
 		).Scan(&wh.ISOWeekday, &wh.StartsTime, &wh.DurationMinutes, &wh.CreatedAt, &wh.UpdatedAt)
 		switch {
@@ -316,7 +316,7 @@ func (r *Repository) Create(
 
 		var wh schedule.WorkingHour
 		row := q.QueryRow(ctx,
-			`INSERT INTO working_hour (barbershop_id, barber_id, iso_weekday, starts_time, duration_minutes)
+			`INSERT INTO working_hour (business_id, professional_id, iso_weekday, starts_time, duration_minutes)
 			      VALUES ($1, $2, $3, $4::time, $5)
 			   RETURNING id, iso_weekday, to_char(starts_time, 'HH24:MI'), duration_minutes, created_at, updated_at`,
 			barbershopID, barberID, input.ISOWeekday, input.StartsTime, input.DurationMinutes,
@@ -388,7 +388,7 @@ func (r *Repository) Update(ctx context.Context, barbershopID, barberID, working
 		row := q.QueryRow(ctx,
 			`UPDATE working_hour
 			    SET iso_weekday = $4, starts_time = $5::time, duration_minutes = $6
-			  WHERE id = $1 AND barbershop_id = $2 AND barber_id = $3
+			  WHERE id = $1 AND business_id = $2 AND professional_id = $3
 			RETURNING iso_weekday, to_char(starts_time, 'HH24:MI'), duration_minutes, created_at, updated_at`,
 			workingHourID, barbershopID, barberID, input.ISOWeekday, input.StartsTime, input.DurationMinutes,
 		)
@@ -423,7 +423,7 @@ func (r *Repository) Delete(ctx context.Context, barbershopID, barberID, working
 
 	err := r.db.InTenantTx(ctx, database.BarbershopID(barbershopID), func(ctx context.Context, q database.Queries) error {
 		tag, err := q.Exec(ctx,
-			`DELETE FROM working_hour WHERE id = $1 AND barbershop_id = $2 AND barber_id = $3`,
+			`DELETE FROM working_hour WHERE id = $1 AND business_id = $2 AND professional_id = $3`,
 			workingHourID, barbershopID, barberID,
 		)
 		if err != nil {

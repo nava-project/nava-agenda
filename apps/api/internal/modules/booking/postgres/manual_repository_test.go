@@ -124,7 +124,7 @@ func TestCreateManual_RepeatedKeySameBody_Replays_NeverCreatesSecondAppointment(
 	err = db.InTenantTx(context.Background(), shopQ, func(ctx context.Context, q database.Queries) error {
 		var count int
 		scanErr := q.QueryRow(ctx,
-			`SELECT count(*) FROM appointment WHERE barbershop_id = $1 AND attendee_name = $2`,
+			`SELECT count(*) FROM appointment WHERE business_id = $1 AND attendee_name = $2`,
 			string(shopQ), input.AttendeeName,
 		).Scan(&count)
 		if scanErr != nil {

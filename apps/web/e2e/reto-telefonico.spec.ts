@@ -32,7 +32,7 @@ import path from 'node:path'
  *     Restringido por main.go a APP_ENVIRONMENT=local/test.
  *
  * Comando reproducible (PowerShell, dos terminales):
- *   $env:APP_ENVIRONMENT="local"; $env:APP_DATABASE_URL="postgres://barberia_app:app_test@localhost:5432/postgres?sslmode=disable";
+ *   $env:APP_ENVIRONMENT="local"; $env:APP_DATABASE_URL="postgres://agenda_app:app_test@localhost:5432/postgres?sslmode=disable";
  *   $env:APP_AUTH_HMAC_SECRET="una-clave-de-prueba-local-de-al-menos-32-caracteres";
  *   $env:APP_TRUSTED_PROXIES="127.0.0.1/32";
  *   $env:APP_PHONE_CHALLENGE_CAPTURE_FILE="$env:TEMP\hu007-e2e-capture.json";

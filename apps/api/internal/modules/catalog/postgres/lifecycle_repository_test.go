@@ -361,7 +361,7 @@ func insertAppointmentFixture(t *testing.T, db *database.DB, shop database.Barbe
 	t.Helper()
 	err := db.InTenantTx(context.Background(), shop, func(ctx context.Context, q database.Queries) error {
 		_, err := q.Exec(ctx,
-			`INSERT INTO appointment (barbershop_id, barber_id, service_id, customer_id, attendee_name,
+			`INSERT INTO appointment (business_id, professional_id, service_id, customer_id, attendee_name,
 			                          starts_at, ends_at, status, origin,
 			                          service_name_snapshot, duration_minutes_snapshot,
 			                          price_amount_snapshot, price_currency_snapshot, resolved_at)
@@ -380,7 +380,7 @@ func createCustomerFixture(t *testing.T, db *database.DB, shop database.Barbersh
 	var id string
 	err := db.InTenantTx(context.Background(), shop, func(ctx context.Context, q database.Queries) error {
 		return q.QueryRow(ctx,
-			`INSERT INTO customer (barbershop_id, full_name) VALUES ($1, 'Cliente de prueba') RETURNING id`,
+			`INSERT INTO customer (business_id, full_name) VALUES ($1, 'Cliente de prueba') RETURNING id`,
 			string(shop)).Scan(&id)
 	})
 	if err != nil {
@@ -495,7 +495,7 @@ func priceHistory(t *testing.T, db *database.DB, shop database.BarbershopID, app
 		return q.QueryRow(ctx,
 			`SELECT c.previous_value, c.new_value
 			   FROM appointment_history_change c
-			   JOIN appointment_history h ON h.barbershop_id = c.barbershop_id AND h.id = c.history_id
+			   JOIN appointment_history h ON h.business_id = c.business_id AND h.id = c.history_id
 			  WHERE h.appointment_id = $1 AND c.field_name = 'price_amount_snapshot'`,
 			appointmentID).Scan(&previous, &next)
 	})

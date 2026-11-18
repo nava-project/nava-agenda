@@ -89,10 +89,10 @@ func TestCancelFlow_ReadCancelThenLinkStillShowsCancelled(t *testing.T) {
 	var status string
 	var events int
 	err := db.InTenantTx(context.Background(), database.BarbershopID(shopUno), func(ctx context.Context, q database.Queries) error {
-		if err := q.QueryRow(ctx, `SELECT status FROM appointment WHERE barbershop_id = $1 AND id = $2`, shopUno, appointment.ID).Scan(&status); err != nil {
+		if err := q.QueryRow(ctx, `SELECT status FROM appointment WHERE business_id = $1 AND id = $2`, shopUno, appointment.ID).Scan(&status); err != nil {
 			return err
 		}
-		return q.QueryRow(ctx, `SELECT count(*) FROM appointment_history WHERE barbershop_id = $1 AND appointment_id = $2 AND event_type = 'appointment_cancelled_by_customer'`,
+		return q.QueryRow(ctx, `SELECT count(*) FROM appointment_history WHERE business_id = $1 AND appointment_id = $2 AND event_type = 'appointment_cancelled_by_customer'`,
 			shopUno, appointment.ID).Scan(&events)
 	})
 	if err != nil || status != "cancelled_by_customer" || events != 1 {
@@ -127,7 +127,7 @@ func TestCancelFlow_StaleVersionAndForeignTokenChangeNothing(t *testing.T) {
 	for _, tc := range []struct{ shop, id string }{{shopUno, apptUno.ID}, {shopDos, apptDos.ID}} {
 		var status string
 		err := db.InTenantTx(context.Background(), database.BarbershopID(tc.shop), func(ctx context.Context, q database.Queries) error {
-			return q.QueryRow(ctx, `SELECT status FROM appointment WHERE barbershop_id = $1 AND id = $2`, tc.shop, tc.id).Scan(&status)
+			return q.QueryRow(ctx, `SELECT status FROM appointment WHERE business_id = $1 AND id = $2`, tc.shop, tc.id).Scan(&status)
 		})
 		if err != nil || status != "confirmed" {
 			t.Fatalf("cita %s: estado=%q err=%v", tc.id, status, err)

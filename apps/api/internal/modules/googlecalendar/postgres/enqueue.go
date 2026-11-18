@@ -25,35 +25,35 @@ type Enqueuer struct{}
 func NewEnqueuer() Enqueuer { return Enqueuer{} }
 
 const enqueueAppointmentSQL = `
-INSERT INTO google_calendar_sync_job (barbershop_id, connection_id, resource_type, resource_id)
-SELECT c.barbershop_id, c.id, 'appointment', a.id
+INSERT INTO google_calendar_sync_job (business_id, connection_id, resource_type, resource_id)
+SELECT c.business_id, c.id, 'appointment', a.id
   FROM appointment a
   JOIN google_calendar_connection c
-    ON c.barbershop_id = a.barbershop_id AND c.barber_id = a.barber_id
- WHERE a.barbershop_id = $1 AND a.id = $2 AND c.status IN ('connected', 'error')
+    ON c.business_id = a.business_id AND c.professional_id = a.professional_id
+ WHERE a.business_id = $1 AND a.id = $2 AND c.status IN ('connected', 'error')
 UNION
-SELECT l.barbershop_id, l.connection_id, 'appointment', l.resource_id
+SELECT l.business_id, l.connection_id, 'appointment', l.resource_id
   FROM google_calendar_event_link l
   JOIN google_calendar_connection c
-    ON c.barbershop_id = l.barbershop_id AND c.id = l.connection_id
- WHERE l.barbershop_id = $1 AND l.resource_type = 'appointment' AND l.resource_id = $2
+    ON c.business_id = l.business_id AND c.id = l.connection_id
+ WHERE l.business_id = $1 AND l.resource_type = 'appointment' AND l.resource_id = $2
    AND c.status IN ('connected', 'error')
 ON CONFLICT (connection_id, resource_type, resource_id) WHERE status = 'pending' DO NOTHING`
 
 const enqueueTimeBlockSQL = `
-INSERT INTO google_calendar_sync_job (barbershop_id, connection_id, resource_type, resource_id)
-SELECT c.barbershop_id, c.id, 'time_block', t.id
+INSERT INTO google_calendar_sync_job (business_id, connection_id, resource_type, resource_id)
+SELECT c.business_id, c.id, 'time_block', t.id
   FROM time_block t
   JOIN google_calendar_connection c
-    ON c.barbershop_id = t.barbershop_id AND c.barber_id = t.barber_id
- WHERE t.barbershop_id = $1 AND t.id = $2 AND c.status IN ('connected', 'error')
+    ON c.business_id = t.business_id AND c.professional_id = t.professional_id
+ WHERE t.business_id = $1 AND t.id = $2 AND c.status IN ('connected', 'error')
    AND t.source = 'manual' AND t.block_type <> 'holiday'
 UNION
-SELECT l.barbershop_id, l.connection_id, 'time_block', l.resource_id
+SELECT l.business_id, l.connection_id, 'time_block', l.resource_id
   FROM google_calendar_event_link l
   JOIN google_calendar_connection c
-    ON c.barbershop_id = l.barbershop_id AND c.id = l.connection_id
- WHERE l.barbershop_id = $1 AND l.resource_type = 'time_block' AND l.resource_id = $2
+    ON c.business_id = l.business_id AND c.id = l.connection_id
+ WHERE l.business_id = $1 AND l.resource_type = 'time_block' AND l.resource_id = $2
    AND c.status IN ('connected', 'error')
 ON CONFLICT (connection_id, resource_type, resource_id) WHERE status = 'pending' DO NOTHING`
 

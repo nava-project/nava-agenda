@@ -32,7 +32,7 @@ func (r *PanelProfileRepository) RolesOf(ctx context.Context, barbershopID, staf
 		rows, err := q.Query(ctx,
 			`SELECT role
 			   FROM staff_user_role
-			  WHERE barbershop_id = $1 AND staff_user_id = $2`,
+			  WHERE business_id = $1 AND staff_user_id = $2`,
 			barbershopID, staffUserID)
 		if err != nil {
 			return fmt.Errorf("select roles: %w", err)

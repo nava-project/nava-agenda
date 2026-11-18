@@ -1,9 +1,9 @@
 -- Escenario controlado de HU-007: teléfono verificado para el reto que
--- desbloquea el login (DEC-062). Requiere testdata/dos_barberias.sql y
+-- desbloquea el login (DEC-062). Requiere testdata/dos_professionalias.sql y
 -- testdata/hu005_credenciales_sesiones.sql cargados primero.
 --
 -- Uso:
---   psql "$DATABASE_TEST_URL" -v ON_ERROR_STOP=1 -f testdata/dos_barberias.sql
+--   psql "$DATABASE_TEST_URL" -v ON_ERROR_STOP=1 -f testdata/dos_professionalias.sql
 --   psql "$DATABASE_TEST_URL" -v ON_ERROR_STOP=1 -f testdata/hu005_credenciales_sesiones.sql
 --   psql "$DATABASE_TEST_URL" -v ON_ERROR_STOP=1 -f testdata/hu007_reto_telefonico.sql
 --
@@ -18,7 +18,7 @@ BEGIN;
 -- Estas pruebas cubren el reto por WhatsApp (DEC-062): las dos barberías lo
 -- piden explícitamente porque una barbería nueva nace con correo (DEC-139). Los
 -- canales de correo y ambos se cubren en tests/login_otp_channel.sql.
-UPDATE barbershop SET login_otp_channel = 'whatsapp'
+UPDATE business SET login_otp_channel = 'whatsapp'
 WHERE id IN ('11111111-1111-1111-1111-111111111111', '22222222-2222-2222-2222-222222222222');
 
 -- Dos UPDATE separados a propósito: staff_user_reset_phone_verification_trg

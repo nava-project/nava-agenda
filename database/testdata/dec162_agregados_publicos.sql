@@ -25,13 +25,13 @@
 --   psql "$DATABASE_TEST_URL" -v ON_ERROR_STOP=1 -f testdata/dec162_agregados_publicos.sql
 --
 -- Se ejecuta con el rol migrador (o superusuario en local/CI efímero, mismo
--- criterio que dos_barberias.sql). Repetible: ON CONFLICT DO NOTHING.
+-- criterio que dos_professionalias.sql). Repetible: ON CONFLICT DO NOTHING.
 --
 -- Ningún dato de este archivo corresponde a una persona real (AGENTS.md).
 
 BEGIN;
 
-INSERT INTO barbershop (
+INSERT INTO business (
   id, name, timezone, public_slug,
   min_advance_minutes, max_advance_days, slot_grid_minutes
 ) VALUES
@@ -45,7 +45,7 @@ ON CONFLICT (id) DO NOTHING;
 
 -- created_at explícito: el orden (created_at, id) de la respuesta no debe
 -- depender del reloj de la inserción.
-INSERT INTO barber (id, barbershop_id, full_name, created_at) VALUES
+INSERT INTO professional (id, business_id, full_name, created_at) VALUES
   ('01620011-0162-0162-0162-016200110011',
    '01620001-0162-0162-0162-016200010001', 'Barbero DEC-162 Uno-1', '2026-01-01T10:00:00Z'),
   ('01620012-0162-0162-0162-016200120012',
@@ -58,7 +58,7 @@ INSERT INTO barber (id, barbershop_id, full_name, created_at) VALUES
    '01620002-0162-0162-0162-016200020002', 'Barbero DEC-162 Dos-1', '2026-01-01T10:00:00Z')
 ON CONFLICT (id) DO NOTHING;
 
-INSERT INTO service (id, barbershop_id, name, description, duration_minutes, price_amount, price_currency, is_active, deactivated_at, created_at) VALUES
+INSERT INTO service (id, business_id, name, description, duration_minutes, price_amount, price_currency, is_active, deactivated_at, created_at) VALUES
   ('01620101-0162-0162-0162-016201010101',
    '01620001-0162-0162-0162-016200010001',
    'Servicio S1 activo DEC-162', NULL, 30, 35000.00, 'COP', true, NULL, '2026-01-01T09:00:00Z'),
@@ -76,7 +76,7 @@ INSERT INTO service (id, barbershop_id, name, description, duration_minutes, pri
    'Servicio Dos activo DEC-162', NULL, 30, 22000.00, 'COP', true, NULL, '2026-01-01T09:00:00Z')
 ON CONFLICT (id) DO NOTHING;
 
-INSERT INTO barber_service (barbershop_id, barber_id, service_id) VALUES
+INSERT INTO professional_service (business_id, professional_id, service_id) VALUES
   ('01620001-0162-0162-0162-016200010001', '01620011-0162-0162-0162-016200110011', '01620101-0162-0162-0162-016201010101'),
   ('01620001-0162-0162-0162-016200010001', '01620011-0162-0162-0162-016200110011', '01620102-0162-0162-0162-016201020102'),
   ('01620001-0162-0162-0162-016200010001', '01620011-0162-0162-0162-016200110011', '01620103-0162-0162-0162-016201030103'),
@@ -86,14 +86,14 @@ INSERT INTO barber_service (barbershop_id, barber_id, service_id) VALUES
 ON CONFLICT DO NOTHING;
 
 -- Jornada 9:00-18:00 los siete días ISO.
-INSERT INTO working_hour (barbershop_id, barber_id, iso_weekday, starts_time, duration_minutes)
+INSERT INTO working_hour (business_id, professional_id, iso_weekday, starts_time, duration_minutes)
 SELECT '01620001-0162-0162-0162-016200010001', b, d, '09:00', 540
   FROM generate_series(1, 7) AS d,
        (VALUES ('01620011-0162-0162-0162-016200110011'::uuid),
                ('01620012-0162-0162-0162-016200120012'::uuid)) AS t(b)
 ON CONFLICT DO NOTHING;
 
-INSERT INTO working_hour (barbershop_id, barber_id, iso_weekday, starts_time, duration_minutes)
+INSERT INTO working_hour (business_id, professional_id, iso_weekday, starts_time, duration_minutes)
 SELECT '01620002-0162-0162-0162-016200020002', '01620021-0162-0162-0162-016200210021', d, '09:00', 540
   FROM generate_series(1, 7) AS d
 ON CONFLICT DO NOTHING;

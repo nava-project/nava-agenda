@@ -26,6 +26,8 @@ Internet ──443──▶ web (Caddy) ── red "edge" (externa, compartida) 
                                                                         (pila aparte, DEC-177)
 ```
 
+**Landing en `nava.wtf` (`DEC-183`, #658).** La app vive en `agenda.nava.wtf`. `nava.wtf` sirve la landing de la familia NAVA y `/privacidad` y `/terminos` desde el repo `bcaceres19/nava` (pila `nava-landing` en `/srv/nava`, alias `nava-landing` en `edge`, jobs `nava/ci` y `nava/deploy`). En `nava.wtf`, las rutas de la app (`/acceso`, `/recuperar-acceso`, `/panel/*`, `/reservar/*`, `/mi-turno/*`) redirigen con 308 a `agenda.nava.wtf` con la misma ruta, y `/api/*` y `/health` siguen llegando al API mientras Odin y el webhook de Meta cambian su URL. En `agenda.nava.wtf`, `/privacidad` y `/terminos` redirigen a `nava.wtf`.
+
 **Otros proyectos en la misma VPS (`DEC-176`).** Este Caddy es el único dueño de 80/443.
 Nava · Pedidos (repo `nava-pedidos`, pila `pedidos` en `/srv/pedidos`) no publica puertos:
 se une a la red Docker externa `edge` con el alias `pedidos`, y el sitio `pedidos.{$DOMAIN}`
@@ -199,7 +201,7 @@ tail /srv/barberia/deploy.log       # historial de despliegues (versión, actor,
 anterior): Jenkins → *Barbería* → *Deploy* → *Build with Parameters* (`SHA` vacío = último commit de
 `main`; o un SHA). Verifica que el CI de Jenkins del commit esté en verde (un commit anterior a la migración del
 2026-11-16 ya no se acepta: sus resultados de GitHub Actions se borraron), construye las imágenes que falten en el
-Docker del servidor y entonces: respaldo previo verificado → migraciones con `barberia_migrator` →
+Docker del servidor y entonces: respaldo previo verificado → migraciones con `agenda_migrator` (en dos fases: los roles `barberia_*` pasan a `agenda_*` tras `20261121090000`, DEC-183) →
 arranque → pruebas de humo. **Si la migración falla, la aplicación en ejecución no se toca.**
 
 **Revertir la aplicación** (roll-forward es lo normal; esto solo es seguro si el esquema actual es

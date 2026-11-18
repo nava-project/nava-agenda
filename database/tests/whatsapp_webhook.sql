@@ -1,15 +1,15 @@
 -- Pruebas SQL del issue #355 (DEC-126): webhook de Meta WhatsApp. Cubren los
 -- privilegios (la API solo ejecuta funciones; la purga es exclusiva del worker),
 -- la ventana de 24 horas por teléfono, la idempotencia de los estados de entrega
--- y la purga. Las tablas no tienen barbershop_id por diseño (el número emisor es
+-- y la purga. Las tablas no tienen business_id por diseño (el número emisor es
 -- único de la plataforma), así que no aplican dos tenants: lo que se comprueba es
 -- que ningún rol de aplicación toca las tablas directamente.
 --
 -- Uso:
 --   psql "$DATABASE_TEST_URL" -v ON_ERROR_STOP=1 -f tests/whatsapp_webhook.sql
 --
--- Requisito del arnés: la conexión debe poder ejecutar `SET ROLE barberia_app` y
--- `SET ROLE barberia_worker`. Todo se revierte con ROLLBACK.
+-- Requisito del arnés: la conexión debe poder ejecutar `SET ROLE agenda_app` y
+-- `SET ROLE agenda_worker`. Todo se revierte con ROLLBACK.
 
 \set ON_ERROR_STOP on
 
@@ -25,8 +25,8 @@ BEGIN
       RAISE EXCEPTION '% debe tener RLS habilitada y forzada.', v_table;
     END IF;
     IF (SELECT count(*) FROM pg_policies WHERE schemaname = 'public' AND tablename = v_table) <> 1
-       OR NOT EXISTS (SELECT 1 FROM pg_policies WHERE tablename = v_table AND cmd = 'ALL' AND 'barberia_owner' = ANY(roles)) THEN
-      RAISE EXCEPTION '% debe tener únicamente la política administrativa de barberia_owner.', v_table;
+       OR NOT EXISTS (SELECT 1 FROM pg_policies WHERE tablename = v_table AND cmd = 'ALL' AND 'agenda_owner' = ANY(roles)) THEN
+      RAISE EXCEPTION '% debe tener únicamente la política administrativa de agenda_owner.', v_table;
     END IF;
   END LOOP;
 END
@@ -40,7 +40,7 @@ DECLARE
   v_role  text;
 BEGIN
   FOREACH v_table IN ARRAY ARRAY['whatsapp_conversation_window', 'whatsapp_message_status'] LOOP
-    FOREACH v_role IN ARRAY ARRAY['barberia_app', 'barberia_worker'] LOOP
+    FOREACH v_role IN ARRAY ARRAY['agenda_app', 'agenda_worker'] LOOP
       IF has_table_privilege(v_role, v_table, 'SELECT') OR has_table_privilege(v_role, v_table, 'INSERT')
          OR has_table_privilege(v_role, v_table, 'UPDATE') OR has_table_privilege(v_role, v_table, 'DELETE') THEN
         RAISE EXCEPTION '% no debe tener acceso directo a % (DDL-AUT-01).', v_role, v_table;
@@ -48,20 +48,20 @@ BEGIN
     END LOOP;
   END LOOP;
 
-  IF NOT has_function_privilege('barberia_app', 'whatsapp_window_record(text, timestamptz)', 'EXECUTE')
-     OR NOT has_function_privilege('barberia_app', 'whatsapp_window_is_open(text)', 'EXECUTE')
-     OR NOT has_function_privilege('barberia_app', 'whatsapp_status_record(text, text, timestamptz, integer)', 'EXECUTE') THEN
-    RAISE EXCEPTION 'barberia_app debe ejecutar las funciones del webhook.';
+  IF NOT has_function_privilege('agenda_app', 'whatsapp_window_record(text, timestamptz)', 'EXECUTE')
+     OR NOT has_function_privilege('agenda_app', 'whatsapp_window_is_open(text)', 'EXECUTE')
+     OR NOT has_function_privilege('agenda_app', 'whatsapp_status_record(text, text, timestamptz, integer)', 'EXECUTE') THEN
+    RAISE EXCEPTION 'agenda_app debe ejecutar las funciones del webhook.';
   END IF;
-  IF has_function_privilege('barberia_app', 'whatsapp_webhook_purge_expired(integer, integer)', 'EXECUTE') THEN
-    RAISE EXCEPTION 'barberia_app no debe ejecutar la purga.';
+  IF has_function_privilege('agenda_app', 'whatsapp_webhook_purge_expired(integer, integer)', 'EXECUTE') THEN
+    RAISE EXCEPTION 'agenda_app no debe ejecutar la purga.';
   END IF;
-  IF NOT has_function_privilege('barberia_worker', 'whatsapp_webhook_purge_expired(integer, integer)', 'EXECUTE') THEN
-    RAISE EXCEPTION 'barberia_worker debe ejecutar la purga.';
+  IF NOT has_function_privilege('agenda_worker', 'whatsapp_webhook_purge_expired(integer, integer)', 'EXECUTE') THEN
+    RAISE EXCEPTION 'agenda_worker debe ejecutar la purga.';
   END IF;
-  IF has_function_privilege('barberia_worker', 'whatsapp_window_record(text, timestamptz)', 'EXECUTE')
-     OR has_function_privilege('barberia_worker', 'whatsapp_status_record(text, text, timestamptz, integer)', 'EXECUTE') THEN
-    RAISE EXCEPTION 'barberia_worker no debe escribir eventos del webhook.';
+  IF has_function_privilege('agenda_worker', 'whatsapp_window_record(text, timestamptz)', 'EXECUTE')
+     OR has_function_privilege('agenda_worker', 'whatsapp_status_record(text, text, timestamptz, integer)', 'EXECUTE') THEN
+    RAISE EXCEPTION 'agenda_worker no debe escribir eventos del webhook.';
   END IF;
   IF has_function_privilege('public', 'whatsapp_window_record(text, timestamptz)', 'EXECUTE') THEN
     RAISE EXCEPTION 'PUBLIC no debe ejecutar las funciones del webhook.';
@@ -72,7 +72,7 @@ $$;
 
 -- Ventana de 24 horas -------------------------------------------------------
 BEGIN;
-SET ROLE barberia_app;
+SET ROLE agenda_app;
 
 DO $$
 DECLARE
@@ -96,7 +96,7 @@ BEGIN
   PERFORM whatsapp_window_record(v_hash, now() - interval '20 hours');
   RESET ROLE;
   SELECT last_inbound_at INTO v_last FROM whatsapp_conversation_window WHERE phone_hash = v_hash;
-  SET ROLE barberia_app;
+  SET ROLE agenda_app;
   IF v_last < now() - interval '2 hours' THEN
     RAISE EXCEPTION 'Una notificación antigua retrocedió la última interacción.';
   END IF;
@@ -105,7 +105,7 @@ BEGIN
   PERFORM whatsapp_window_record(v_other, now() + interval '10 days');
   RESET ROLE;
   SELECT expires_at INTO v_last FROM whatsapp_conversation_window WHERE phone_hash = v_other;
-  SET ROLE barberia_app;
+  SET ROLE agenda_app;
   IF v_last > now() + interval '24 hours 5 seconds' THEN
     RAISE EXCEPTION 'Una fecha futura extendió la ventana más de 24 horas.';
   END IF;
@@ -131,7 +131,7 @@ ROLLBACK;
 
 -- Estados de entrega --------------------------------------------------------
 BEGIN;
-SET ROLE barberia_app;
+SET ROLE agenda_app;
 
 DO $$
 BEGIN
@@ -176,7 +176,7 @@ INSERT INTO whatsapp_message_status (wamid, status, occurred_at, received_at)
 VALUES ('wamid.purge.viejo', 'sent', now() - interval '40 days', now() - interval '40 days'),
        ('wamid.purge.reciente', 'sent', now(), now());
 
-SET ROLE barberia_worker;
+SET ROLE agenda_worker;
 DO $$
 DECLARE
   v_deleted integer;
@@ -204,12 +204,12 @@ BEGIN
 END
 $$;
 
-SET ROLE barberia_app;
+SET ROLE agenda_app;
 DO $$
 BEGIN
   BEGIN
     PERFORM whatsapp_webhook_purge_expired(10, 2592000);
-    RAISE EXCEPTION 'barberia_app ejecutó la purga.';
+    RAISE EXCEPTION 'agenda_app ejecutó la purga.';
   EXCEPTION WHEN insufficient_privilege THEN
     NULL;
   END;

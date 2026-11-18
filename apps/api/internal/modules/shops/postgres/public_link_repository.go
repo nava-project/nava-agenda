@@ -42,7 +42,7 @@ func (r *PublicLinkRepository) Ensure(ctx context.Context, barbershopID string) 
 			currentSlug *string
 		)
 		err := q.QueryRow(ctx,
-			`SELECT name, public_slug FROM barbershop WHERE id = $1 FOR UPDATE`,
+			`SELECT name, public_slug FROM business WHERE id = $1 FOR UPDATE`,
 			barbershopID,
 		).Scan(&name, &currentSlug)
 		switch {

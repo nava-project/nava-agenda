@@ -28,7 +28,7 @@ import (
 )
 
 const (
-	testDatabaseURL = "postgres://barberia_app@localhost:5432/barberia_test?sslmode=disable"
+	testDatabaseURL = "postgres://agenda_app@localhost:5432/barberia_test?sslmode=disable"
 
 	// shopE/shopF son las dos barberías dedicadas de
 	// testdata/hu022_catalogo.sql: aisladas de dos_barberias.sql y

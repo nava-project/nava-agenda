@@ -30,13 +30,13 @@ var _ shops.LoginOTPRepository = (*LoginOTPRepository)(nil)
 // Get implementa shops.LoginOTPRepository.
 func (r *LoginOTPRepository) Get(ctx context.Context, barbershopID string) (shops.LoginOTPChannel, bool, error) {
 	return r.run(ctx, barbershopID,
-		`SELECT login_otp_channel FROM barbershop WHERE id = $1`, barbershopID)
+		`SELECT login_otp_channel FROM business WHERE id = $1`, barbershopID)
 }
 
 // Update implementa shops.LoginOTPRepository con un único UPDATE ... RETURNING.
 func (r *LoginOTPRepository) Update(ctx context.Context, barbershopID string, channel shops.LoginOTPChannel) (shops.LoginOTPChannel, bool, error) {
 	return r.run(ctx, barbershopID,
-		`UPDATE barbershop SET login_otp_channel = $2 WHERE id = $1 RETURNING login_otp_channel`,
+		`UPDATE business SET login_otp_channel = $2 WHERE id = $1 RETURNING login_otp_channel`,
 		barbershopID, string(channel))
 }
 

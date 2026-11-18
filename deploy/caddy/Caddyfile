@@ -18,21 +18,9 @@ www.{$DOMAIN} {
 	redir https://{$DOMAIN}{uri} permanent
 }
 
-# La app (SPA + API) de Nava Agenda (DEC-183). Se importa en agenda.{$DOMAIN}, su casa,
-# y en {$DOMAIN} hasta que la landing de la familia NAVA ocupe ese dominio (#658).
-(nava_agenda) {
-	encode zstd gzip
-
-	header {
-		Strict-Transport-Security "max-age=15552000"
-		X-Content-Type-Options "nosniff"
-		X-Frame-Options "DENY"
-		Referrer-Policy "strict-origin-when-cross-origin"
-		# La detección de ubicación del domicilio usa la geolocalización del navegador.
-		Permissions-Policy "camera=(), microphone=(), payment=(), geolocation=(self)"
-		-Server
-	}
-
+# API de Nava Agenda y su sondeo de salud. Lo importan agenda.{$DOMAIN} y, durante la
+# transición de Odin y del webhook de Meta, {$DOMAIN} (DEC-183).
+(nava_agenda_api) {
 	# API: el contrato OpenAPI declara `servers: /api/v1` en el mismo origen, así
 	# que la cookie de sesión HttpOnly viaja sin CORS ni SameSite entre orígenes.
 	handle /api/* {
@@ -57,6 +45,23 @@ www.{$DOMAIN} {
 	handle /health/* {
 		respond 404
 	}
+}
+
+# La app (SPA + API) de Nava Agenda (DEC-183), servida en agenda.{$DOMAIN}.
+(nava_agenda) {
+	encode zstd gzip
+
+	header {
+		Strict-Transport-Security "max-age=15552000"
+		X-Content-Type-Options "nosniff"
+		X-Frame-Options "DENY"
+		Referrer-Policy "strict-origin-when-cross-origin"
+		# La detección de ubicación del domicilio usa la geolocalización del navegador.
+		Permissions-Policy "camera=(), microphone=(), payment=(), geolocation=(self)"
+		-Server
+	}
+
+	import nava_agenda_api
 
 	# SPA: archivos con hash inmutables; el resto cae en index.html (history mode).
 	handle {
@@ -71,11 +76,38 @@ www.{$DOMAIN} {
 }
 
 agenda.{$DOMAIN} {
+	# Los documentos legales viven en la landing (#658); sus URL están registradas en Google.
+	redir /privacidad https://{$DOMAIN}/privacidad 308
+	redir /terminos https://{$DOMAIN}/terminos 308
 	import nava_agenda
 }
 
+# Landing de la familia NAVA (repo bcaceres19/nava, pila `nava-landing` en /srv/nava; DEC-183,
+# #658). Llega por la red `edge` con el alias `nava-landing`. Las rutas de la app que aún
+# lleguen aquí (enlaces viejos de correos, WhatsApp y Odin) van a agenda.{$DOMAIN} con la
+# misma ruta; el API sigue respondiendo aquí mientras Odin y el webhook de Meta cambian su URL.
 {$DOMAIN} {
-	import nava_agenda
+	encode zstd gzip
+
+	header {
+		Strict-Transport-Security "max-age=15552000"
+		X-Content-Type-Options "nosniff"
+		Referrer-Policy "strict-origin-when-cross-origin"
+		-Server
+	}
+
+	@agenda path /acceso /acceso/* /recuperar-acceso /recuperar-acceso/* /panel /panel/* /reservar/* /mi-turno/*
+	redir @agenda https://agenda.{$DOMAIN}{uri} 308
+
+	import nava_agenda_api
+
+	handle {
+		reverse_proxy nava-landing:8080 {
+			transport http {
+				dial_timeout 5s
+			}
+		}
+	}
 }
 
 # Nava · Pedidos (repo aparte, pila `pedidos` en /srv/pedidos; DEC-176). Llega por la red

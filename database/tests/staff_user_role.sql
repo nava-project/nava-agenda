@@ -6,12 +6,12 @@
 -- (internal/modules/shops), no aquí.
 --
 -- Uso:
---   psql "$DATABASE_TEST_URL" -v ON_ERROR_STOP=1 -f testdata/dos_barberias.sql
+--   psql "$DATABASE_TEST_URL" -v ON_ERROR_STOP=1 -f testdata/dos_professionalias.sql
 --   psql "$DATABASE_TEST_URL" -v ON_ERROR_STOP=1 -f testdata/staff_user_role_365.sql
 --   psql "$DATABASE_TEST_URL" -v ON_ERROR_STOP=1 -f tests/staff_user_role.sql
 --
--- Requisito del arnés: la conexión debe poder ejecutar `SET ROLE barberia_app`
--- (estandar-base-datos.md §9.8), igual que panel_perfil_barbero_individual.sql.
+-- Requisito del arnés: la conexión debe poder ejecutar `SET ROLE agenda_app`
+-- (estandar-base-datos.md §9.8), igual que panel_perfil_professionalo_individual.sql.
 --
 -- Cada comprobación falla lanzando una excepción. Si el archivo termina, pasó.
 
@@ -25,7 +25,7 @@
 DO $$
 BEGIN
   BEGIN
-    INSERT INTO staff_user_role (barbershop_id, staff_user_id, role)
+    INSERT INTO staff_user_role (business_id, staff_user_id, role)
     VALUES ('12121212-1212-1212-1212-121212121212', '365a0001-0000-4000-8000-000000000005', 'administrador');
     RAISE EXCEPTION 'un rol fuera de la lista cerrada debía rechazarse.';
   EXCEPTION WHEN check_violation THEN
@@ -33,7 +33,7 @@ BEGIN
   END;
 
   BEGIN
-    INSERT INTO staff_user_role (barbershop_id, staff_user_id, role)
+    INSERT INTO staff_user_role (business_id, staff_user_id, role)
     VALUES ('12121212-1212-1212-1212-121212121212', '365a0001-0000-4000-8000-000000000004', 'empresa');
     RAISE EXCEPTION 'el mismo rol dos veces para un usuario debía rechazarse.';
   EXCEPTION WHEN unique_violation THEN
@@ -64,7 +64,7 @@ $$;
 DO $$
 BEGIN
   BEGIN
-    INSERT INTO staff_user_role (barbershop_id, staff_user_id, role)
+    INSERT INTO staff_user_role (business_id, staff_user_id, role)
     VALUES ('12121212-1212-1212-1212-121212121212', '365a0001-0000-4000-8000-000000000006', 'empleado');
     RAISE EXCEPTION 'un rol para un usuario de otra barbería debía rechazarse.';
   EXCEPTION WHEN foreign_key_violation THEN
@@ -78,8 +78,8 @@ $$;
 -- RLS: cada barbería ve solo los roles de sus usuarios
 -- ---------------------------------------------------------------------------
 BEGIN;
-SET ROLE barberia_app;
-SET LOCAL app.barbershop_id = '12121212-1212-1212-1212-121212121212';
+SET ROLE agenda_app;
+SET LOCAL app.business_id = '12121212-1212-1212-1212-121212121212';
 
 DO $$
 DECLARE
@@ -100,8 +100,8 @@ $$;
 ROLLBACK;
 
 BEGIN;
-SET ROLE barberia_app;
-SET LOCAL app.barbershop_id = '34343434-3434-3434-3434-343434343434';
+SET ROLE agenda_app;
+SET LOCAL app.business_id = '34343434-3434-3434-3434-343434343434';
 
 DO $$
 DECLARE
@@ -128,13 +128,13 @@ ROLLBACK;
 -- La aplicación solo lee: sin INSERT, UPDATE ni DELETE
 -- ---------------------------------------------------------------------------
 BEGIN;
-SET ROLE barberia_app;
-SET LOCAL app.barbershop_id = '12121212-1212-1212-1212-121212121212';
+SET ROLE agenda_app;
+SET LOCAL app.business_id = '12121212-1212-1212-1212-121212121212';
 
 DO $$
 BEGIN
   BEGIN
-    INSERT INTO staff_user_role (barbershop_id, staff_user_id, role)
+    INSERT INTO staff_user_role (business_id, staff_user_id, role)
     VALUES ('12121212-1212-1212-1212-121212121212', '365a0001-0000-4000-8000-000000000005', 'empresa');
     RAISE EXCEPTION 'la aplicación no debe poder insertar roles.';
   EXCEPTION WHEN insufficient_privilege THEN

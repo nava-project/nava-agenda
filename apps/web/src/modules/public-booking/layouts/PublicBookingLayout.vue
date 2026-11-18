@@ -14,6 +14,7 @@
 import { computed, onBeforeUnmount, provide, ref, watch } from 'vue'
 import { RouterLink, RouterView, useRoute, type RouteLocationRaw } from 'vue-router'
 import { buildVocabularyFromTerms } from '@/shared/model'
+import { NAVA_PRIVACY_URL, NAVA_TERMS_URL } from '@/shared/model/navaSite'
 import { NavaWordmark } from '@/shared/ui'
 import BookingBackdrop from '../components/BookingBackdrop.vue'
 import BookingProgress from '../components/BookingProgress.vue'
@@ -168,8 +169,8 @@ watch(
       <NavaWordmark variant="inverted" size="sm" />
       <!-- Issue #545: enlaces legales en una segunda línea bajo la firma. -->
       <nav class="pb-footer__legal" aria-label="Documentos legales">
-        <RouterLink to="/privacidad">Privacidad</RouterLink>
-        <RouterLink to="/terminos">Condiciones</RouterLink>
+        <a :href="NAVA_PRIVACY_URL">Privacidad</a>
+        <a :href="NAVA_TERMS_URL">Condiciones</a>
       </nav>
     </footer>
   </div>

@@ -67,7 +67,7 @@ func TestLoginOTPRepository_IsolatedBetweenTenants(t *testing.T) {
 	// Contexto de A escribiendo el id de B: RLS no deja ver ni actualizar la fila.
 	var affected int64
 	err = db.InTenantTx(context.Background(), database.BarbershopID(shopA), func(ctx context.Context, q database.Queries) error {
-		tag, err := q.Exec(ctx, `UPDATE barbershop SET login_otp_channel = 'both' WHERE id = $1`, shopB)
+		tag, err := q.Exec(ctx, `UPDATE business SET login_otp_channel = 'both' WHERE id = $1`, shopB)
 		affected = tag.RowsAffected()
 		return err
 	})

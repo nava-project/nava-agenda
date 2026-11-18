@@ -111,7 +111,7 @@ func TestOpeningHoursRepository_IsolatedBetweenTenants(t *testing.T) {
 
 	var deleted int64
 	err = db.InTenantTx(ctx, database.BarbershopID(shopA), func(ctx context.Context, q database.Queries) error {
-		tag, err := q.Exec(ctx, `DELETE FROM barbershop_opening_hour WHERE barbershop_id = $1`, shopB)
+		tag, err := q.Exec(ctx, `DELETE FROM business_opening_hour WHERE business_id = $1`, shopB)
 		deleted = tag.RowsAffected()
 		return err
 	})
@@ -121,7 +121,7 @@ func TestOpeningHoursRepository_IsolatedBetweenTenants(t *testing.T) {
 
 	err = db.InTenantTx(ctx, database.BarbershopID(shopA), func(ctx context.Context, q database.Queries) error {
 		_, err := q.Exec(ctx,
-			`INSERT INTO barbershop_opening_hour (barbershop_id, iso_weekday, opens_time, closes_time)
+			`INSERT INTO business_opening_hour (business_id, iso_weekday, opens_time, closes_time)
 			 VALUES ($1, 3, '09:00', '10:00')`, shopB)
 		return err
 	})

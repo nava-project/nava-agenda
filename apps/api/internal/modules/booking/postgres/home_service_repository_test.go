@@ -29,7 +29,7 @@ func appointmentIDAt(t *testing.T, db *database.DB, shop database.BarbershopID, 
 	var id string
 	err := db.InTenantTx(context.Background(), shop, func(ctx context.Context, q database.Queries) error {
 		return q.QueryRow(ctx,
-			`SELECT id FROM appointment WHERE barbershop_id = $1 AND barber_id = $2 AND starts_at = $3`,
+			`SELECT id FROM appointment WHERE business_id = $1 AND professional_id = $2 AND starts_at = $3`,
 			string(shop), barberID, start).Scan(&id)
 	})
 	if err != nil {
@@ -147,12 +147,12 @@ func TestAppointmentHomeServiceCheck_RejectsPartialAddressAtTheDatabase(t *testi
 	err := db.InTenantTx(context.Background(), shopQ, func(ctx context.Context, q database.Queries) error {
 		_, execErr := q.Exec(ctx, `
 			INSERT INTO appointment (
-				barbershop_id, barber_id, service_id, customer_id, attendee_name,
+				business_id, professional_id, service_id, customer_id, attendee_name,
 				starts_at, ends_at, status, origin,
 				service_name_snapshot, duration_minutes_snapshot, price_amount_snapshot, price_currency_snapshot,
 				is_home_service, service_address)
 			SELECT $1, $2, $3, c.id, $4, $5, $6, 'confirmed', 'public', 'Corte', 30, 18000.00, 'COP', true, 'Solo texto'
-			  FROM customer c WHERE c.barbershop_id = $1 LIMIT 1`,
+			  FROM customer c WHERE c.business_id = $1 LIMIT 1`,
 			string(shopQ), barberQ1, serviceQ, "Parcial "+suffix, start, start.Add(30*time.Minute))
 		return execErr
 	})

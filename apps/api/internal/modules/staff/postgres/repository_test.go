@@ -29,7 +29,7 @@ import (
 )
 
 const (
-	testDatabaseURL = "postgres://barberia_app@localhost:5432/barberia_test?sslmode=disable"
+	testDatabaseURL = "postgres://agenda_app@localhost:5432/barberia_test?sslmode=disable"
 
 	// shopC/shopD son las dos barberías dedicadas de
 	// testdata/hu021_barberos.sql: aisladas de dos_barberias.sql para que un
@@ -766,7 +766,7 @@ func TestUpdate_Description_DatabaseRejectsEmptyAndOversized(t *testing.T) {
 		"281 caracteres": strings.Repeat("a", 281),
 	} {
 		if _, err := repo.Update(ctx, string(shopC), barber.ID, barber.FullName, staff.DescriptionPatch{Set: true, Value: strPtr(value)}); err == nil {
-			t.Errorf("%s: expected barber_description_ck to reject the value", name)
+			t.Errorf("%s: expected professional_description_ck to reject the value", name)
 		}
 	}
 
@@ -785,17 +785,17 @@ func seedReview(t *testing.T, db *database.DB, shop database.BarbershopID, barbe
 	err := db.InTenantTx(context.Background(), shop, func(ctx context.Context, q database.Queries) error {
 		var serviceID, customerID, appointmentID string
 		if err := q.QueryRow(ctx,
-			`INSERT INTO service (barbershop_id, name, duration_minutes, price_amount, price_currency)
+			`INSERT INTO service (business_id, name, duration_minutes, price_amount, price_currency)
 			 VALUES ($1, $2, 30, 20000, 'COP') RETURNING id`, string(shop), "Servicio reseña "+suffix).Scan(&serviceID); err != nil {
 			return err
 		}
 		if err := q.QueryRow(ctx,
-			`INSERT INTO customer (barbershop_id, full_name) VALUES ($1, 'Cliente de prueba') RETURNING id`, string(shop)).Scan(&customerID); err != nil {
+			`INSERT INTO customer (business_id, full_name) VALUES ($1, 'Cliente de prueba') RETURNING id`, string(shop)).Scan(&customerID); err != nil {
 			return err
 		}
 		starts := time.Date(2031, 1, 1, 8, 0, 0, 0, time.UTC).AddDate(0, 0, slot).Add(time.Duration(len(suffix)) * time.Minute)
 		if err := q.QueryRow(ctx,
-			`INSERT INTO appointment (barbershop_id, barber_id, service_id, customer_id, attendee_name, starts_at, ends_at,
+			`INSERT INTO appointment (business_id, professional_id, service_id, customer_id, attendee_name, starts_at, ends_at,
 			                          status, origin, resolved_at, service_name_snapshot, duration_minutes_snapshot,
 			                          price_amount_snapshot, price_currency_snapshot)
 			 VALUES ($1, $2, $3, $4, 'Cliente de prueba', $5, $6, 'completed', 'manual', now(), 'Servicio', 30, 20000, 'COP')
@@ -803,7 +803,7 @@ func seedReview(t *testing.T, db *database.DB, shop database.BarbershopID, barbe
 			return err
 		}
 		_, err := q.Exec(ctx,
-			`INSERT INTO barber_review (barbershop_id, barber_id, appointment_id, rating, hidden_at)
+			`INSERT INTO professional_review (business_id, professional_id, appointment_id, rating, hidden_at)
 			 VALUES ($1, $2, $3, $4, CASE WHEN $5 THEN now() ELSE NULL END)`,
 			string(shop), barberID, appointmentID, rating, hidden)
 		return err

@@ -6,7 +6,8 @@
 #   1. valida entornos y que las imágenes estén en el Docker del host
 #   2. levanta PostgreSQL (la crea y hace el bootstrap de roles si es la primera vez)
 #   3. respaldo previo verificado
-#   4. migraciones con Atlas como barberia_migrator (si fallan, NO se toca la aplicación)
+#   4. migraciones con Atlas como agenda_migrator (barberia_migrator hasta DEC-183; si fallan,
+#      NO se toca la aplicación); los roles se renombran tras 20261121090000
 #   5. arranca API, worker, web y respaldos; espera a que estén sanos
 #   6. pruebas de humo
 #
@@ -95,11 +96,35 @@ log "levantando PostgreSQL"
 psql_db() { "${compose[@]}" exec -T -u postgres db psql -U postgres -d nava -v ON_ERROR_STOP=1 -Atq "$@"; }
 atlas() { "${compose[@]}" --profile tools run --rm -T migrate "$@"; }
 
+# Versión de la migración tras la cual los roles se llaman agenda_* (DEC-183, #660).
+ROLE_RENAME_VERSION=20261121090000
+
+# Renombra barberia_* → agenda_* con el superusuario y actualiza las cadenas de
+# conexión que los nombran (secretos de la app y del migrador, usuario del respaldo).
+# Idempotente: si ya no queda ningún barberia_*, no hace nada.
+rename_roles() {
+  local pending
+  pending="$(psql_db -c "SELECT EXISTS (SELECT 1 FROM pg_roles WHERE rolname LIKE 'barberia\_%')")"
+  [ "$pending" = t ] || return 0
+  log "roles barberia_* → agenda_* (DEC-183)"
+  [ -f "$here/../database/roles/rename_to_agenda.sql" ] \
+    || fail "falta database/roles/rename_to_agenda.sql en el release: no se renombran los roles"
+  psql_db -c "$(cat "$here/../database/roles/rename_to_agenda.sql")" \
+    || fail "el renombrado de roles falló: la aplicación en ejecución no se tocó"
+  sed -i -E 's#://barberia_(app|worker|migrator):#://agenda_\1:#' \
+    "$SECRETS_DIR/app/APP_DATABASE_URL" "$SECRETS_DIR/app/APP_WORKER_DATABASE_URL" \
+    "$SECRETS_DIR/migrate/DATABASE_PRODUCTION_URL" \
+    || fail "no se pudieron actualizar las cadenas de conexión con los roles nuevos"
+  sed -i 's/^PGUSER=barberia_backup$/PGUSER=agenda_backup/' "$ENV_DIR/backup.env" \
+    || fail "no se pudo actualizar el usuario del respaldo"
+}
+
 if [ "$migrate" = 1 ]; then
   bootstrapped="$(psql_db -c "SELECT to_regclass('atlas_schema_revisions.atlas_schema_revisions') IS NOT NULL")"
   if [ "$bootstrapped" != t ]; then
     # Primera instalación: las tres primeras migraciones con el administrador y
-    # traspaso del historial de Atlas a barberia_migrator (si no, quien lo creó
+    # traspaso del historial de Atlas a barberia_migrator, que se llama así hasta el
+    # renombrado de roles (DEC-183) (si no, quien lo creó
     # —postgres— sería su único dueño y el migrador no podría anotar el progreso).
     log "bootstrap: primeras tres migraciones como administrador"
     atlas migrate apply --config file:///atlas-bootstrap.hcl --env bootstrap --to-version 20260811145252
@@ -117,6 +142,13 @@ if [ "$migrate" = 1 ]; then
   log "simulación de migraciones"
   show atlas migrate apply --env production --dry-run
   log "aplicando migraciones"
+  # Los roles barberia_* pasan a agenda_* con el superusuario justo después de la
+  # migración que renombra el esquema (DEC-183, #660): se aplica hasta ella, se
+  # renombran los roles y se aplica el resto. En una base ya renombrada, ambos pasos
+  # son no-ops. Ver docs/05-backend/migraciones-atlas.md.
+  show atlas migrate apply --env production --to-version "$ROLE_RENAME_VERSION" \
+    || fail "la migración falló: la aplicación en ejecución no se tocó"
+  rename_roles
   show atlas migrate apply --env production \
     || fail "la migración falló: la aplicación en ejecución no se tocó"
   show atlas migrate status --env production

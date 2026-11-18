@@ -85,7 +85,7 @@ func TestWriteStoredResponse_ReproducesStatusContentTypeAndBodyExactly(t *testin
 // application/problem+json— contra PostgreSQL real, sin agregar una
 // operación de negocio ni tocar el router de producción.
 
-const idempotencyTestDatabaseURL = "postgres://barberia_app@localhost:5432/barberia_test?sslmode=disable"
+const idempotencyTestDatabaseURL = "postgres://agenda_app@localhost:5432/barberia_test?sslmode=disable"
 
 var idempotencyTestShop = database.BarbershopID("11111111-1111-1111-1111-111111111111")
 

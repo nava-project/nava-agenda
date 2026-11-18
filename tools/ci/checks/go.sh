@@ -72,11 +72,16 @@ for f in 20260807170000_create_tenant_foundation.sql \
          20261119120000_create_customer_access_challenge.sql \
          20261119130000_customer_access_challenge_appointment_ref.sql \
          20261119140000_customer_access_challenge_purpose_manage.sql \
-         20261120090000_create_barbershop_opening_hour.sql; do
+         20261120090000_create_barbershop_opening_hour.sql \
+         20261121090000_rename_to_business_professional.sql; do
   psql_file "database/migrations/$f"
 done
-psql -c "ALTER ROLE barberia_app PASSWORD 'app_test';"
-psql -c "ALTER ROLE barberia_worker PASSWORD 'worker_test';"
+# Los roles barberia_* pasan a agenda_* justo después de la migración que renombra el
+# esquema (DEC-183, #660): lo hace el superusuario, no una migración. Las migraciones que
+# se añadan después de 20261121090000 van en una segunda lista, tras este paso.
+psql_file database/roles/rename_to_agenda.sql
+psql -c "ALTER ROLE agenda_app PASSWORD 'app_test';"
+psql -c "ALTER ROLE agenda_worker PASSWORD 'worker_test';"
 
 echo "== testdata de dos barberías"
 for f in database/testdata/dos_barberias.sql \
@@ -116,8 +121,8 @@ echo "== go test -race"
 schema="$(cat database/migrations/* database/testdata/* "${BASH_SOURCE[0]}" | sha1sum | cut -c1-12)"
 (
   cd apps/api
-  TEST_DATABASE_URL="postgres://barberia_app:app_test@localhost:5432/postgres?sslmode=disable&application_name=nava-ci-$schema" \
-  TEST_WORKER_DATABASE_URL="postgres://barberia_worker:worker_test@localhost:5432/postgres?sslmode=disable&application_name=nava-ci-$schema" \
+  TEST_DATABASE_URL="postgres://agenda_app:app_test@localhost:5432/postgres?sslmode=disable&application_name=nava-ci-$schema" \
+  TEST_WORKER_DATABASE_URL="postgres://agenda_worker:worker_test@localhost:5432/postgres?sslmode=disable&application_name=nava-ci-$schema" \
     go test -race -p 1 ./...
 )
 

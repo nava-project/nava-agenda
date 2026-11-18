@@ -7,7 +7,7 @@
 -- Uso:
 --   psql "$DATABASE_TEST_URL" -v ON_ERROR_STOP=1 -f tests/appointment_domicilio.sql
 --
--- Requisito del arnés: la conexión debe poder ejecutar `SET ROLE barberia_app`
+-- Requisito del arnés: la conexión debe poder ejecutar `SET ROLE agenda_app`
 -- (estandar-base-datos.md §9.8). Crea sus propios datos y todo se revierte con
 -- ROLLBACK. Cada comprobación falla lanzando una excepción; si el archivo
 -- termina, pasó.
@@ -18,19 +18,19 @@
 
 BEGIN;
 
-INSERT INTO barbershop (id, name, timezone) VALUES
+INSERT INTO business (id, name, timezone) VALUES
   ('01030001-0100-4100-8100-010300000001', 'Barbería domicilio A', 'America/Bogota'),
   ('01030002-0100-4100-8100-010300000002', 'Barbería domicilio B', 'America/Bogota');
 
-INSERT INTO barber (id, barbershop_id, full_name) VALUES
+INSERT INTO professional (id, business_id, full_name) VALUES
   ('01030011-0100-4100-8100-010300000011', '01030001-0100-4100-8100-010300000001', 'Barbero A'),
   ('01030021-0100-4100-8100-010300000021', '01030002-0100-4100-8100-010300000002', 'Barbero B');
 
-INSERT INTO service (id, barbershop_id, name, duration_minutes, price_amount, price_currency) VALUES
+INSERT INTO service (id, business_id, name, duration_minutes, price_amount, price_currency) VALUES
   ('01030031-0100-4100-8100-010300000031', '01030001-0100-4100-8100-010300000001', 'Corte A', 30, 20000.00, 'COP'),
   ('01030032-0100-4100-8100-010300000032', '01030002-0100-4100-8100-010300000002', 'Corte B', 30, 20000.00, 'COP');
 
-INSERT INTO customer (id, barbershop_id, full_name) VALUES
+INSERT INTO customer (id, business_id, full_name) VALUES
   ('01030041-0100-4100-8100-010300000041', '01030001-0100-4100-8100-010300000001', 'Cliente de prueba A'),
   ('01030042-0100-4100-8100-010300000042', '01030002-0100-4100-8100-010300000002', 'Cliente de prueba B');
 
@@ -39,7 +39,7 @@ INSERT INTO customer (id, barbershop_id, full_name) VALUES
 -- ---------------------------------------------------------------------------
 DO $$
 BEGIN
-  IF (SELECT offers_home_service FROM barbershop WHERE id = '01030001-0100-4100-8100-010300000001') THEN
+  IF (SELECT offers_home_service FROM business WHERE id = '01030001-0100-4100-8100-010300000001') THEN
     RAISE EXCEPTION 'una barbería nueva no debe ofrecer domicilio por defecto.';
   END IF;
 END
@@ -47,7 +47,7 @@ $$;
 
 -- Turno en el local: sin dirección, valores por defecto.
 INSERT INTO appointment (
-  id, barbershop_id, barber_id, service_id, customer_id, attendee_name,
+  id, business_id, professional_id, service_id, customer_id, attendee_name,
   starts_at, ends_at, status, origin,
   service_name_snapshot, duration_minutes_snapshot, price_amount_snapshot, price_currency_snapshot
 ) VALUES
@@ -71,7 +71,7 @@ $$;
 -- Domicilio completo: válido
 -- ---------------------------------------------------------------------------
 INSERT INTO appointment (
-  id, barbershop_id, barber_id, service_id, customer_id, attendee_name,
+  id, business_id, professional_id, service_id, customer_id, attendee_name,
   starts_at, ends_at, status, origin,
   service_name_snapshot, duration_minutes_snapshot, price_amount_snapshot, price_currency_snapshot,
   is_home_service, service_address, service_latitude, service_longitude
@@ -95,7 +95,7 @@ DECLARE
   v_sql text;
   v_base text := $b$
     INSERT INTO appointment (
-      id, barbershop_id, barber_id, service_id, customer_id, attendee_name,
+      id, business_id, professional_id, service_id, customer_id, attendee_name,
       starts_at, ends_at, status, origin,
       service_name_snapshot, duration_minutes_snapshot, price_amount_snapshot, price_currency_snapshot,
       is_home_service, service_address, service_latitude, service_longitude
@@ -162,8 +162,8 @@ $$;
 -- ---------------------------------------------------------------------------
 -- Aislamiento RLS: la dirección de A nunca es visible desde B (CA-103-06)
 -- ---------------------------------------------------------------------------
-SET LOCAL ROLE barberia_app;
-SET LOCAL app.barbershop_id = '01030002-0100-4100-8100-010300000002';
+SET LOCAL ROLE agenda_app;
+SET LOCAL app.business_id = '01030002-0100-4100-8100-010300000002';
 
 DO $$
 BEGIN

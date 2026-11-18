@@ -3,6 +3,9 @@
 # cuatro roles se crean FUERA de Atlas, antes de la primera migración, con la
 # contraseña del secreto del ambiente. Se añade `barberia_backup` (lectura de
 # todo, incluso con RLS forzada) para que los respaldos no usen el superusuario.
+#
+# Se crean con los nombres barberia_* que usan las migraciones históricas; deploy.sh
+# los renombra a agenda_* tras la migración 20261121090000 (DEC-183, #660).
 set -eu
 : "${NAVA_MIGRATOR_PASSWORD:?}" "${NAVA_APP_PASSWORD:?}" "${NAVA_WORKER_PASSWORD:?}" "${NAVA_BACKUP_PASSWORD:?}"
 

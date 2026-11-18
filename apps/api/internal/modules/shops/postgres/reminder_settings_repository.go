@@ -40,13 +40,13 @@ var _ shops.ReminderSettingsRepository = (*ReminderSettingsRepository)(nil)
 // Get implementa shops.ReminderSettingsRepository.
 func (r *ReminderSettingsRepository) Get(ctx context.Context, barbershopID string) (shops.ReminderLeadMinutes, bool, error) {
 	return r.run(ctx, barbershopID, false,
-		`SELECT reminder_lead_minutes FROM barbershop WHERE id = $1`, barbershopID)
+		`SELECT reminder_lead_minutes FROM business WHERE id = $1`, barbershopID)
 }
 
 // Update implementa shops.ReminderSettingsRepository.
 func (r *ReminderSettingsRepository) Update(ctx context.Context, barbershopID string, lead shops.ReminderLeadMinutes) (shops.ReminderLeadMinutes, bool, error) {
 	return r.run(ctx, barbershopID, true,
-		`UPDATE barbershop SET reminder_lead_minutes = $2 WHERE id = $1 RETURNING reminder_lead_minutes`,
+		`UPDATE business SET reminder_lead_minutes = $2 WHERE id = $1 RETURNING reminder_lead_minutes`,
 		barbershopID, int(lead))
 }
 

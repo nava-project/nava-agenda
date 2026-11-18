@@ -26,7 +26,7 @@ import (
 )
 
 const (
-	testDatabaseURL = "postgres://barberia_app@localhost:5432/barberia_test?sslmode=disable"
+	testDatabaseURL = "postgres://agenda_app@localhost:5432/barberia_test?sslmode=disable"
 	shopA           = database.BarbershopID("11111111-1111-1111-1111-111111111111")
 	shopB           = database.BarbershopID("22222222-2222-2222-2222-222222222222")
 )

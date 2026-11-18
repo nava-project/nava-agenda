@@ -67,7 +67,7 @@ var uuidPattern = regexp.MustCompile(
 // para inyectar el contexto; en producción llega desde la autenticación (HU-005).
 func ValidBarbershopID(s string) (BarbershopID, error) {
 	if !uuidPattern.MatchString(s) {
-		return "", fmt.Errorf("barbershop_id: formato UUID inválido")
+		return "", fmt.Errorf("business_id: formato UUID inválido")
 	}
 	return BarbershopID(s), nil
 }
@@ -123,7 +123,7 @@ func NewDB(dsn config.DatabaseDSN, cfg config.Config) (*DB, error) {
 	poolConfig.AfterRelease = func(conn *pgx.Conn) bool {
 		var setting string
 		err := conn.QueryRow(context.Background(),
-			"SELECT coalesce(current_setting('app.barbershop_id', true), '')").Scan(&setting)
+			"SELECT coalesce(current_setting('app.business_id', true), '')").Scan(&setting)
 		if err != nil || setting != "" {
 			conn.Close(context.Background())
 			return false
@@ -201,7 +201,7 @@ func (d *DB) InTenantTx(
 	// antes de adquirir conexión, es lo que hace real la garantía de que
 	// jamás se continúa con un contexto vacío o inválido (CA-002-05).
 	if !uuidPattern.MatchString(string(shop)) {
-		return fmt.Errorf("%w: barbershop_id con formato inválido", ErrContextSetupFailed)
+		return fmt.Errorf("%w: business_id con formato inválido", ErrContextSetupFailed)
 	}
 
 	// Adquirir conexión del pool
@@ -238,7 +238,7 @@ func (d *DB) InTenantTx(
 	// NUNCA se concatena el identificador en la cadena SQL: eso introduce
 	// inyección SQL en el punto exacto del que depende TODO el aislamiento.
 	_, err = tx.Exec(ctx,
-		"SELECT set_config('app.barbershop_id', $1::text, true)",
+		"SELECT set_config('app.business_id', $1::text, true)",
 		string(shop),
 	)
 	if err != nil {
@@ -247,7 +247,7 @@ func (d *DB) InTenantTx(
 
 	// Verificar que el contexto se fijó correctamente
 	var currentSetting string
-	err = tx.QueryRow(ctx, "SELECT current_setting('app.barbershop_id')").Scan(&currentSetting)
+	err = tx.QueryRow(ctx, "SELECT current_setting('app.business_id')").Scan(&currentSetting)
 	if err != nil {
 		return fmt.Errorf("database: verify context: %w", err)
 	}

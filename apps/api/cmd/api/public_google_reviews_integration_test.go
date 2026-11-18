@@ -37,12 +37,12 @@ func doGoogleReviewsRequest(router http.Handler, slug string) *httptest.Response
 func setGooglePlaceID(t *testing.T, db *database.DB, slug string, placeID *string) {
 	t.Helper()
 	ctx := context.Background()
-	id, found, err := db.ResolveTenant(ctx, `SELECT public_resolve_barbershop_by_slug($1)`, slug)
+	id, found, err := db.ResolveTenant(ctx, `SELECT public_resolve_business_by_slug($1)`, slug)
 	if err != nil || !found {
 		t.Fatalf("resolver %s: found=%v err=%v", slug, found, err)
 	}
 	err = db.InTenantTx(ctx, id, func(ctx context.Context, q database.Queries) error {
-		_, err := q.Exec(ctx, `UPDATE barbershop SET google_place_id = $2 WHERE id = $1`, string(id), placeID)
+		_, err := q.Exec(ctx, `UPDATE business SET google_place_id = $2 WHERE id = $1`, string(id), placeID)
 		return err
 	})
 	if err != nil {
