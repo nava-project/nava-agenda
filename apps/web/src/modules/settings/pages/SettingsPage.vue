@@ -1,14 +1,14 @@
 <script setup lang="ts">
 // Pantalla "Configuración" (HU-020, DEC-110): nombre, zona horaria y contacto
-// de la barbería activa (HU-020) más la marca y el vocabulario de toda la
-// barbería y las preferencias de pantalla de ESTE dispositivo. Mismo lenguaje
-// que Agenda, Servicios y Barberos (tinta, latón, campos reglados, rombo de
+// del negocio activo (HU-020) más la marca y el vocabulario de todo el
+// negocio y las preferencias de pantalla de ESTE dispositivo. Mismo lenguaje
+// que Agenda, Servicios y Profesionales (tinta, latón, campos reglados, rombo de
 // estado, entrada escalonada, carga con el rombo).
 //
 // Dos clases de ajuste, y la pantalla lo dice en cada sección:
 //  - Este dispositivo (modo, tamaño de texto, animaciones): se aplican al
 //    instante y viven en el navegador; no hay nada que guardar.
-//  - Toda la barbería (nombre, acento, vocabulario, zona, contacto): se
+//  - Todo el negocio (nombre, acento, vocabulario, zona, contacto): se
 //    editan en un borrador y solo un guardado confirmado por el servidor los
 //    aplica. Un error recuperable NUNCA borra lo que la persona escribió
 //    (CA-020-08). Marca y datos básicos son dos recursos distintos, así que se
@@ -61,10 +61,10 @@ import {
   LocationPicker,
   PhoneField,
 } from '@/shared/ui'
-import { updateBarbershopName } from '@/modules/auth'
+import { updateBusinessName } from '@/modules/auth'
 import { fetchBrand, saveBrand } from '../api/brandApi'
-import { fetchBarbershopSettings, saveBarbershopSettings } from '../api/settingsApi'
-import { toFormValues, type BarbershopSettingsFormValues } from '../model/barbershopSettings'
+import { fetchBusinessSettings, saveBusinessSettings } from '../api/settingsApi'
+import { toFormValues, type BusinessSettingsFormValues } from '../model/businessSettings'
 import { DEFAULT_LOCATION, type LocationSettings } from '../model/brandOutcome'
 import {
   ADDRESS_MAX_LENGTH,
@@ -82,7 +82,7 @@ import {
   brandForSave,
   BUSINESS_PRESETS,
   PROFESSIONAL_PRESETS,
-  sameBarbershop,
+  sameBusiness,
   sameBrand,
   suggestPlural,
 } from '../model/settingsDraft'
@@ -122,7 +122,7 @@ const attempted = ref(false)
 const shopError = ref<GroupError | null>(null)
 const brandError = ref<GroupError | null>(null)
 
-const shop = reactive<BarbershopSettingsFormValues>({
+const shop = reactive<BusinessSettingsFormValues>({
   name: '',
   timezone: '',
   contactEmail: '',
@@ -174,7 +174,7 @@ function onContactPhoneNational(value: string) {
 }
 
 // Último valor confirmado por el servidor: contra él se mide qué cambió.
-const savedShop = ref<BarbershopSettingsFormValues>({ ...shop })
+const savedShop = ref<BusinessSettingsFormValues>({ ...shop })
 const savedBrand = ref<BrandSettings>({ ...DEFAULT_BRAND })
 // Ubicación física (DEC-130): se guarda con la misma petición que la marca.
 const location = reactive<LocationDraft>(draftFromSaved(DEFAULT_LOCATION))
@@ -187,7 +187,7 @@ async function load() {
   const token = ++requestToken
   loadStatus.value = 'loading'
   startLoadingHold()
-  const [shopOutcome, brandOutcome] = await Promise.all([fetchBarbershopSettings(), fetchBrand()])
+  const [shopOutcome, brandOutcome] = await Promise.all([fetchBusinessSettings(), fetchBrand()])
   if (token !== requestToken) return
   holdLoadingReveal(() => {
     if (token !== requestToken) return
@@ -209,7 +209,7 @@ onMounted(load)
 
 // --- Borrador --------------------------------------------------------------
 
-const shopDirty = computed(() => !sameBarbershop(shop, savedShop.value))
+const shopDirty = computed(() => !sameBusiness(shop, savedShop.value))
 const brandDirty = computed(() => !sameBrand(brand, savedBrand.value))
 const locationDirty = computed(() => !sameLocation(location, savedLocation.value))
 const dirty = computed(() => shopDirty.value || brandDirty.value || locationDirty.value)
@@ -275,10 +275,7 @@ function revalidate() {
   if (attempted.value) fieldErrors.value = runValidation()
 }
 
-function onShopInput<K extends keyof BarbershopSettingsFormValues>(
-  field: K,
-  value: string | number,
-) {
+function onShopInput<K extends keyof BusinessSettingsFormValues>(field: K, value: string | number) {
   shop[field] = String(value)
   revalidate()
 }
@@ -400,12 +397,12 @@ async function onSave() {
   let savedSomething = false
 
   if (shopDirty.value) {
-    const outcome = await saveBarbershopSettings(shop)
+    const outcome = await saveBusinessSettings(shop)
     if (outcome.kind === 'success') {
       Object.assign(shop, toFormValues(outcome.settings))
       savedShop.value = { ...shop }
       // Solo el valor confirmado por el servidor cambia la cabecera (CA-020-02).
-      updateBarbershopName(outcome.settings.name)
+      updateBusinessName(outcome.settings.name)
       savedSomething = true
     } else {
       shopError.value =
@@ -796,7 +793,7 @@ const previewClass = computed(() => ({ 'settings-page__preview--changed': brandD
             </div>
           </SettingsPanel>
 
-          <!-- 02 · Marca (toda la barbería) -->
+          <!-- 02 · Marca (todo el negocio) -->
           <SettingsPanel
             id="configuracion-marca"
             number="02"
@@ -848,7 +845,7 @@ const previewClass = computed(() => ({ 'settings-page__preview--changed': brandD
             </div>
           </SettingsPanel>
 
-          <!-- 03 · Vocabulario (toda la barbería) -->
+          <!-- 03 · Vocabulario (todo el negocio) -->
           <SettingsPanel
             id="configuracion-vocabulario"
             number="03"
@@ -1008,7 +1005,7 @@ const previewClass = computed(() => ({ 'settings-page__preview--changed': brandD
             </aside>
           </SettingsPanel>
 
-          <!-- 04 · Hora (toda la barbería) -->
+          <!-- 04 · Hora (todo el negocio) -->
           <SettingsPanel
             id="configuracion-hora"
             number="04"
@@ -1027,7 +1024,7 @@ const previewClass = computed(() => ({ 'settings-page__preview--changed': brandD
             />
           </SettingsPanel>
 
-          <!-- 05 · Contacto (toda la barbería) -->
+          <!-- 05 · Contacto (todo el negocio) -->
           <SettingsPanel
             id="configuracion-contacto"
             number="05"
@@ -1260,7 +1257,7 @@ const previewClass = computed(() => ({ 'settings-page__preview--changed': brandD
 
 <style scoped>
 /* Superficie tinta de punta a punta (estandar-diseno-visual.md §3), el mismo
-   canvas que Agenda, Servicios y Barberos. */
+   canvas que Agenda, Servicios y Profesionales. */
 .settings-page {
   --settings-width: 1040px;
 
@@ -1970,7 +1967,7 @@ const previewClass = computed(() => ({ 'settings-page__preview--changed': brandD
   transform: translateX(6px);
 }
 
-/* --- Campos reglados: mismo tratamiento que Servicios y Barberos --------- */
+/* --- Campos reglados: mismo tratamiento que Servicios y Profesionales --------- */
 
 .settings-ink :deep(.base-input) {
   --input-bg: color-mix(in srgb, var(--color-on-strong) 4%, transparent);

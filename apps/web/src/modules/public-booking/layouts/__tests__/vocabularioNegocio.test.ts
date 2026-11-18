@@ -1,7 +1,7 @@
 /**
- * Vocabulario de la barbería en la reserva pública (DEC-119): el cascarón lo lee del
+ * Vocabulario del negocio en la reserva pública (DEC-119): el cascarón lo lee del
  * perfil público del enlace y lo ofrece a las pantallas del recorrido, que dicen
- * «manicurista» y «estudio» en vez de «barbero» y «barbería». Con los valores
+ * «manicurista» y «estudio» en vez de «profesional» y «negocio». Con los valores
  * iniciales cada texto sale idéntico al anterior.
  */
 import { beforeEach, describe, expect, it, vi } from 'vitest'
@@ -13,8 +13,8 @@ import { resetPublicProfileCache } from '../../model/publicProfile'
 import { usePublicVocabulary } from '../../model/publicVocabulary'
 import { defineComponent, h } from 'vue'
 
-const resolveBarbershopMock = vi.hoisted(() => vi.fn())
-vi.mock('../../api/resolveBarbershopApi', () => ({ resolveBarbershop: resolveBarbershopMock }))
+const resolveBusinessMock = vi.hoisted(() => vi.fn())
+vi.mock('../../api/resolveBusinessApi', () => ({ resolveBusiness: resolveBusinessMock }))
 
 const profile = (vocabulary: Record<string, string>) => ({
   kind: 'success' as const,
@@ -47,7 +47,7 @@ const Probe = defineComponent({
   },
 })
 
-async function mountAt(slug: string, subpath = 'servicios/s-1/barbero') {
+async function mountAt(slug: string, subpath = 'servicios/s-1/profesional') {
   const router = createRouter({
     history: createMemoryHistory(),
     routes: [
@@ -56,7 +56,7 @@ async function mountAt(slug: string, subpath = 'servicios/s-1/barbero') {
         component: PublicBookingLayout,
         children: [
           { path: '', name: 'reserva-publica-entrada', component: Probe },
-          { path: 'servicios/:serviceId/barbero', name: 'probe', component: Probe },
+          { path: 'servicios/:serviceId/profesional', name: 'probe', component: Probe },
         ],
       },
     ],
@@ -71,24 +71,24 @@ async function mountAt(slug: string, subpath = 'servicios/s-1/barbero') {
 }
 
 beforeEach(() => {
-  resolveBarbershopMock.mockReset()
+  resolveBusinessMock.mockReset()
   resetPublicProfileCache()
 })
 
 describe('vocabulario de la reserva pública (DEC-119)', () => {
   it('dice la palabra configurada en el cascarón, el progreso y las pantallas de estado', async () => {
-    resolveBarbershopMock.mockResolvedValueOnce(profile(nails))
+    resolveBusinessMock.mockResolvedValueOnce(profile(nails))
     const wrapper = await mountAt('estudiolila')
 
-    expect(resolveBarbershopMock).toHaveBeenCalledWith('estudiolila')
+    expect(resolveBusinessMock).toHaveBeenCalledWith('estudiolila')
     expect(wrapper.get('.probe').text()).toBe('Elige tu manicurista del estudio de uñas')
     expect(wrapper.get('.pb-progress').text()).toContain('Manicurista')
-    expect(wrapper.text()).not.toMatch(/barber(o|a|os|as|ía|ías)\b/i)
+    expect(wrapper.text()).not.toMatch(/professional(o|a|os|as|ía|ías)\b/i)
     expect(wrapper.text()).not.toMatch(/profesional(es)?\b|negocio/i)
   })
 
-  it('conserva el vocabulario que una barbería guardó', async () => {
-    resolveBarbershopMock.mockResolvedValueOnce(
+  it('conserva el vocabulario que un negocio guardó', async () => {
+    resolveBusinessMock.mockResolvedValueOnce(
       profile({
         businessTerm: 'barbería',
         businessTermGender: 'feminine',
@@ -105,7 +105,7 @@ describe('vocabulario de la reserva pública (DEC-119)', () => {
 
   it('no monta las pantallas hasta saber el vocabulario, para no mostrar un instante la palabra equivocada', async () => {
     let release!: (value: unknown) => void
-    resolveBarbershopMock.mockReturnValueOnce(new Promise((resolve) => (release = resolve)))
+    resolveBusinessMock.mockReturnValueOnce(new Promise((resolve) => (release = resolve)))
     const wrapper = await mountAt('estudiolila')
 
     expect(wrapper.find('.probe').exists()).toBe(false)
@@ -115,7 +115,7 @@ describe('vocabulario de la reserva pública (DEC-119)', () => {
   })
 
   it('usa los valores iniciales si el enlace no resuelve y deja que cada pantalla muestre su error', async () => {
-    resolveBarbershopMock.mockResolvedValueOnce({ kind: 'not-found' })
+    resolveBusinessMock.mockResolvedValueOnce({ kind: 'not-found' })
     const wrapper = await mountAt('desconocido')
 
     expect(wrapper.get('.probe').text()).toBe('Elige tu profesional del negocio')
@@ -123,7 +123,7 @@ describe('vocabulario de la reserva pública (DEC-119)', () => {
 
   it('no hace esperar a la entrada: ella misma lee el perfil y comparte la petición', async () => {
     let release!: (value: unknown) => void
-    resolveBarbershopMock.mockReturnValueOnce(new Promise((resolve) => (release = resolve)))
+    resolveBusinessMock.mockReturnValueOnce(new Promise((resolve) => (release = resolve)))
     const wrapper = await mountAt('estudiolila', '')
 
     expect(wrapper.find('.probe').exists()).toBe(true)

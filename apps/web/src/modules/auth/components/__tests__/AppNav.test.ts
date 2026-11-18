@@ -207,7 +207,7 @@ describe('AppNav', () => {
     })
   })
 
-  describe('vocabulario de la barbería (DEC-110)', () => {
+  describe('vocabulario del negocio (DEC-110)', () => {
     const items: NavItem[] = [
       {
         to: { name: 'panel' },
@@ -230,7 +230,7 @@ describe('AppNav', () => {
       expect(labels).toContain('Servicios por profesional')
     })
 
-    it('renames the entries with the words the barbershop chose', async () => {
+    it('renames the entries with the words the business chose', async () => {
       setBrand({
         ...DEFAULT_BRAND,
         professionalTerm: 'estilista',
@@ -303,7 +303,7 @@ describe('AppNav', () => {
       expect(dockLabels(wrapper)).toEqual(['Agenda', 'Mi perfil', 'Horarios'])
     })
 
-    it('lets the profile label win over the barbershop vocabulary', async () => {
+    it('lets the profile label win over the business vocabulary', async () => {
       setBrand({
         ...DEFAULT_BRAND,
         panelProfile: 'solo',

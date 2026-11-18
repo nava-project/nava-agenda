@@ -1,8 +1,8 @@
 <script setup lang="ts">
 // Contenido de la sección «Enlace público» de Configuración (issue #304,
-// DEC-117): el enlace de reservas de la barbería, siempre a mano para verlo y
+// DEC-117): el enlace de reservas del negocio, siempre a mano para verlo y
 // copiarlo si se pierde. Solo lectura: no se edita ni se regenera. La primera
-// lectura de una barbería sin enlace lo genera en el servidor.
+// lectura de un negocio sin enlace lo genera en el servidor.
 //
 // Copiar usa el portapapeles del navegador; si no está disponible (contexto
 // no seguro, permiso denegado) deja el enlace seleccionado en el campo y lo

@@ -20,13 +20,15 @@ vi.mock('../../api/bookingPolicyApi', () => ({
   saveBookingPolicy: saveMock,
 }))
 
-// La ventana por barbero (DEC-169) tiene sus propias pruebas
-// (BarberWindowPanel.test.ts): aquí se monta sin barberos para que sus
+// La ventana por profesional (DEC-169) tiene sus propias pruebas
+// (ProfessionalWindowPanel.test.ts): aquí se monta sin profesionales para que sus
 // controles no se mezclen con los de la página.
-vi.mock('../../api/barberBookingPolicyApi', () => ({
-  fetchBarberWindows: vi.fn().mockResolvedValue({ kind: 'success', barbers: [], windows: [] }),
-  saveBarberWindow: vi.fn(),
-  removeBarberWindow: vi.fn(),
+vi.mock('../../api/professionalBookingPolicyApi', () => ({
+  fetchProfessionalWindows: vi
+    .fn()
+    .mockResolvedValue({ kind: 'success', professionals: [], windows: [] }),
+  saveProfessionalWindow: vi.fn(),
+  removeProfessionalWindow: vi.fn(),
 }))
 
 const { default: BookingPolicyPage } = await import('../BookingPolicyPage.vue')
@@ -396,7 +398,7 @@ describe('BookingPolicyPage', () => {
   describe('panel del empleado (DEC-173)', () => {
     afterEach(() => resetBrand())
 
-    it('shows only the own window of their barber, never the barbershop rules', async () => {
+    it('shows only the own window of their professional, never the business rules', async () => {
       setBrand({ ...DEFAULT_BRAND, panelProfile: 'employee' })
       const wrapper = await mountReady()
 

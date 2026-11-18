@@ -72,7 +72,7 @@ describe('brandApi.fetchBrand', () => {
     expect(await fetchBrand()).toEqual({ kind: 'success', brand, location })
   })
 
-  it('reads a barbershop without address as null coordinates, never as empty text', async () => {
+  it('reads a business without address as null coordinates, never as empty text', async () => {
     const empty = {
       hasPhysicalLocation: true,
       address: null,

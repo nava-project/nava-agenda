@@ -1,6 +1,6 @@
 /**
  * Pruebas de AppointmentActions, el paso 03 «Tu turno» del acceso con código (issue #647):
- * - lee el turno con la credencial y lo resume en una línea, en la zona de la barbería;
+ * - lee el turno con la credencial y lo resume en una línea, en la zona del negocio;
  * - ofrece «Cambiar la hora» (enlace a HU-104) solo si la pista local lo permite y explica
  *   por qué no cuando no;
  * - «Cancelar turno» abre la confirmación aquí mismo, envía con la versión y la clave de
@@ -79,7 +79,7 @@ afterEach(() => {
 })
 
 describe('AppointmentActions · el turno y sus dos acciones', () => {
-  it('lee el turno con la credencial y lo resume en la hora de la barbería', async () => {
+  it('lee el turno con la credencial y lo resume en la hora del negocio', async () => {
     const w = await mountActions()
 
     expect(getMock).toHaveBeenCalledWith('/customer/appointments/{token}', {

@@ -1,5 +1,5 @@
 // Espejo tipado del recurso `GoogleCalendarConnectionResponse` (issue #323/#324,
-// DEC-099): lo que el barbero necesita ver de su integración. Nunca contiene
+// DEC-099): lo que el profesional necesita ver de su integración. Nunca contiene
 // tokens, secretos, el código OAuth ni el `state`: el cliente jamás los maneja.
 export type GoogleCalendarStatus =
   'not_connected' | 'connected' | 'reauth_required' | 'error' | 'disconnected'
@@ -7,8 +7,8 @@ export type GoogleCalendarStatus =
 export interface GoogleCalendarConnection {
   /** El servidor tiene la integración configurada. */
   enabled: boolean
-  /** El usuario declaró cuál barbero es (DEC-100); sin eso no se puede conectar. */
-  barberLinked: boolean
+  /** El usuario declaró cuál profesional es (DEC-100); sin eso no se puede conectar. */
+  professionalLinked: boolean
   status: GoogleCalendarStatus
   accountEmail: string | null
   /** Minutos de anticipación del recordatorio, o null para los de Google. */
@@ -27,7 +27,7 @@ export type GoogleCalendarCallbackResult = 'connected' | 'denied' | 'failed'
 /** Estado que la pantalla muestra, derivado del recurso (no es un campo de la API). */
 export type GoogleCalendarView =
   | 'unavailable'
-  | 'needs-barber'
+  | 'needs-professional'
   | 'not-connected'
   | 'connected'
   | 'syncing'
@@ -36,7 +36,7 @@ export type GoogleCalendarView =
 
 export function viewOf(connection: GoogleCalendarConnection): GoogleCalendarView {
   if (!connection.enabled) return 'unavailable'
-  if (!connection.barberLinked) return 'needs-barber'
+  if (!connection.professionalLinked) return 'needs-professional'
   switch (connection.status) {
     case 'reauth_required':
       return 'reauth'

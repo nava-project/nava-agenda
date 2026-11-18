@@ -1,9 +1,9 @@
-// Color de marca de la reserva pública (DEC-171). La barbería elige su acento
+// Color de marca de la reserva pública (DEC-171). El negocio elige su acento
 // en Configuración (DEC-110) y su enlace de reservas pinta con él acentos,
 // filetes, foco y botones. Se aplica sobre <html> —no sobre el cascarón— porque
 // los diálogos y selectores de la reserva se abren en <body> (Teleport) y
 // también deben llevarlo; el cascarón lo retira al desmontarse, así que nunca
-// llega a otra pantalla ni a otra barbería.
+// llega a otra pantalla ni a otro negocio.
 //
 // La reserva es un lienzo de tinta fijo: siempre se usa el valor Tinta del
 // acento, cuyo contraste AA ya mide `brandPalette.test.ts`. Con latón (valor

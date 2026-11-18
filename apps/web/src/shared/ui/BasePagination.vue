@@ -3,7 +3,7 @@
  * BasePagination - Paginador numerado del sistema visual (issue #531).
  *
  * Nació en el panel de Servicios (issue 2026-09-28, «colócalos en una tabla
- * con paginador») y se compartió con Barberos y Servicios por barbero a
+ * con paginador») y se compartió con Profesionales y Servicios por profesional a
  * petición del propietario, para que todas las tablas paginen igual: conteo
  * con «Página X de Y», una cinta métrica con rombo que avanza con la página y
  * números en tipografía de display con la página vigente marcada por un rombo.

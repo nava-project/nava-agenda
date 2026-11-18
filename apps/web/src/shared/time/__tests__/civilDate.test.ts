@@ -1,6 +1,6 @@
 // Pruebas de las utilidades de fecha civil de HU-063: aritmética de
 // calendario (no de reloj), fin de mes/año, día civil "hoy" en la zona
-// explícita de la barbería (nunca la del dispositivo) y formato completo en
+// explícita del negocio (nunca la del dispositivo) y formato completo en
 // español a partir de una fecha ya resuelta.
 import { describe, expect, it } from 'vitest'
 import {

@@ -1,12 +1,12 @@
 /**
  * Pruebas de PublicAvailabilityPage (HU-095): carga, agrupación por día
- * civil en la zona de la barbería (nunca la del dispositivo, CA-095-02),
+ * civil en la zona del negocio (nunca la del dispositivo, CA-095-02),
  * navegación entre días con franjas, selección accesible por teclado y
  * clic con resumen fecha+hora+zona+duración, ausencia total de franjas en
  * toda la ventana como vacío distinto de carga/error (CA-095-04), enlace no
  * disponible/desconocido/no publicable (CA-090-02, reutilizado), error de
  * red con reintento, error inesperado con requestId, revalidación al
- * cambiar de barbero (CA-095-03) y ausencia de violaciones de
+ * cambiar de profesional (CA-095-03) y ausencia de violaciones de
  * accesibilidad (axe-core) en cada estado observable (CA-095-05).
  */
 import { describe, it, expect, vi, beforeEach } from 'vitest'
@@ -21,14 +21,14 @@ vi.mock('@/shared/api/httpClient', () => ({
 const { default: PublicAvailabilityPage } = await import('../PublicAvailabilityPage.vue')
 
 // RouterLink stubbed en vez de un router real (mismo patrón que
-// PublicBarberSelectionPage.test.ts): esta suite verifica el componente en
+// PublicProfessionalSelectionPage.test.ts): esta suite verifica el componente en
 // aislamiento, no el enrutamiento, y el CTA "Continuar" (HU-096) navega a
 // la captura de datos del cliente con la franja ya elegida.
 const RouterLinkStub = { name: 'RouterLink', props: ['to'], template: '<a><slot /></a>' }
 
 const SERVICE_A = '8f3ac2b1-e4d5-46f6-a7c8-d9e0f1a2b3c4'
-const BARBER_A = 'a1111111-1111-1111-1111-111111111111'
-const BARBER_B = 'b2222222-2222-2222-2222-222222222222'
+const PROFESSIONAL_A = 'a1111111-1111-1111-1111-111111111111'
+const PROFESSIONAL_B = 'b2222222-2222-2222-2222-222222222222'
 const TIMEZONE = 'America/Bogota'
 
 function okResponse(): Response {
@@ -53,7 +53,7 @@ function availabilityFixture(overrides: Partial<Record<string, unknown>> = {}) {
   }
 }
 
-function mountAvailabilityPage(props: { slug: string; serviceId: string; barberId: string }) {
+function mountAvailabilityPage(props: { slug: string; serviceId: string; professionalId: string }) {
   return mount(PublicAvailabilityPage, { props, global: { stubs: { RouterLink: RouterLinkStub } } })
 }
 
@@ -72,7 +72,7 @@ describe('PublicAvailabilityPage', () => {
     const wrapper = mountAvailabilityPage({
       slug: 'barberia-ejemplo',
       serviceId: SERVICE_A,
-      barberId: BARBER_A,
+      professionalId: PROFESSIONAL_A,
     })
 
     expect(wrapper.text()).toContain('Cargando disponibilidad')
@@ -81,26 +81,30 @@ describe('PublicAvailabilityPage', () => {
     await flushPromises()
   })
 
-  it('resolves slug, serviceId and barberId from props', async () => {
+  it('resolves slug, serviceId and professionalId from props', async () => {
     getMock.mockResolvedValueOnce({
       data: availabilityFixture(),
       error: undefined,
       response: okResponse(),
     })
-    mountAvailabilityPage({ slug: 'barberia-ejemplo', serviceId: SERVICE_A, barberId: BARBER_A })
+    mountAvailabilityPage({
+      slug: 'barberia-ejemplo',
+      serviceId: SERVICE_A,
+      professionalId: PROFESSIONAL_A,
+    })
     await flushPromises()
 
     expect(getMock).toHaveBeenCalledWith(
       '/public/businesses/{slug}/services/{serviceId}/professionals/{professionalId}/availability',
       expect.objectContaining({
         params: {
-          path: { slug: 'barberia-ejemplo', serviceId: SERVICE_A, professionalId: BARBER_A },
+          path: { slug: 'barberia-ejemplo', serviceId: SERVICE_A, professionalId: PROFESSIONAL_A },
         },
       }),
     )
   })
 
-  it('groups slots by civil date in the barbershop timezone, defaulting to the first day (CA-095-01)', async () => {
+  it('groups slots by civil date in the business timezone, defaulting to the first day (CA-095-01)', async () => {
     getMock.mockResolvedValueOnce({
       data: availabilityFixture(),
       error: undefined,
@@ -109,7 +113,7 @@ describe('PublicAvailabilityPage', () => {
     const wrapper = mountAvailabilityPage({
       slug: 'barberia-ejemplo',
       serviceId: SERVICE_A,
-      barberId: BARBER_A,
+      professionalId: PROFESSIONAL_A,
     })
     await flushPromises()
 
@@ -129,7 +133,7 @@ describe('PublicAvailabilityPage', () => {
     const wrapper = mountAvailabilityPage({
       slug: 'barberia-ejemplo',
       serviceId: SERVICE_A,
-      barberId: BARBER_A,
+      professionalId: PROFESSIONAL_A,
     })
     await flushPromises()
 
@@ -157,7 +161,7 @@ describe('PublicAvailabilityPage', () => {
     const wrapper = mountAvailabilityPage({
       slug: 'barberia-ejemplo',
       serviceId: SERVICE_A,
-      barberId: BARBER_A,
+      professionalId: PROFESSIONAL_A,
     })
     await flushPromises()
 
@@ -180,7 +184,7 @@ describe('PublicAvailabilityPage', () => {
     const wrapper = mountAvailabilityPage({
       slug: 'barberia-ejemplo',
       serviceId: SERVICE_A,
-      barberId: BARBER_A,
+      professionalId: PROFESSIONAL_A,
     })
     await flushPromises()
 
@@ -195,7 +199,7 @@ describe('PublicAvailabilityPage', () => {
       params: {
         slug: 'barberia-ejemplo',
         serviceId: SERVICE_A,
-        barberId: BARBER_A,
+        professionalId: PROFESSIONAL_A,
         startsAt: '2026-09-15T19:00:00Z',
       },
     })
@@ -210,7 +214,7 @@ describe('PublicAvailabilityPage', () => {
     const wrapper = mountAvailabilityPage({
       slug: 'barberia-ejemplo',
       serviceId: SERVICE_A,
-      barberId: BARBER_A,
+      professionalId: PROFESSIONAL_A,
     })
     await flushPromises()
 
@@ -236,7 +240,7 @@ describe('PublicAvailabilityPage', () => {
     const wrapper = mountAvailabilityPage({
       slug: 'barberia-ejemplo',
       serviceId: SERVICE_A,
-      barberId: BARBER_A,
+      professionalId: PROFESSIONAL_A,
     })
     await flushPromises()
 
@@ -257,7 +261,7 @@ describe('PublicAvailabilityPage', () => {
     const wrapper = mountAvailabilityPage({
       slug: 'barberia-ejemplo',
       serviceId: SERVICE_A,
-      barberId: BARBER_A,
+      professionalId: PROFESSIONAL_A,
     })
     await flushPromises()
 
@@ -286,7 +290,7 @@ describe('PublicAvailabilityPage', () => {
     const wrapper = mountAvailabilityPage({
       slug: 'barberia-ejemplo',
       serviceId: SERVICE_A,
-      barberId: BARBER_A,
+      professionalId: PROFESSIONAL_A,
     })
     await flushPromises()
     expect(wrapper.find('.pb-ticket').exists()).toBe(false)
@@ -315,7 +319,7 @@ describe('PublicAvailabilityPage', () => {
     const wrapper = mountAvailabilityPage({
       slug: 'barberia-ejemplo',
       serviceId: SERVICE_A,
-      barberId: BARBER_A,
+      professionalId: PROFESSIONAL_A,
     })
     await flushPromises()
     const options = wrapper.findAll('[role="radio"]')
@@ -355,7 +359,7 @@ describe('PublicAvailabilityPage', () => {
     const wrapper = mountAvailabilityPage({
       slug: 'barberia-ejemplo',
       serviceId: SERVICE_A,
-      barberId: BARBER_A,
+      professionalId: PROFESSIONAL_A,
     })
     await flushPromises()
 
@@ -372,7 +376,7 @@ describe('PublicAvailabilityPage', () => {
     const wrapper = mountAvailabilityPage({
       slug: 'no-existe',
       serviceId: SERVICE_A,
-      barberId: BARBER_A,
+      professionalId: PROFESSIONAL_A,
     })
     await flushPromises()
 
@@ -384,7 +388,7 @@ describe('PublicAvailabilityPage', () => {
     const wrapper = mountAvailabilityPage({
       slug: 'barberia-ejemplo',
       serviceId: SERVICE_A,
-      barberId: BARBER_A,
+      professionalId: PROFESSIONAL_A,
     })
     await flushPromises()
     expect(wrapper.text()).toContain('No pudimos conectar')
@@ -410,7 +414,7 @@ describe('PublicAvailabilityPage', () => {
     const wrapper = mountAvailabilityPage({
       slug: 'barberia-ejemplo',
       serviceId: SERVICE_A,
-      barberId: BARBER_A,
+      professionalId: PROFESSIONAL_A,
     })
     await flushPromises()
 
@@ -418,7 +422,7 @@ describe('PublicAvailabilityPage', () => {
     expect(wrapper.text()).toContain('Ocurrió un error inesperado')
   })
 
-  it('reloads and resets the selection when barberId changes (CA-095-03)', async () => {
+  it('reloads and resets the selection when professionalId changes (CA-095-03)', async () => {
     getMock.mockResolvedValueOnce({
       data: availabilityFixture(),
       error: undefined,
@@ -427,7 +431,7 @@ describe('PublicAvailabilityPage', () => {
     const wrapper = mountAvailabilityPage({
       slug: 'barberia-ejemplo',
       serviceId: SERVICE_A,
-      barberId: BARBER_A,
+      professionalId: PROFESSIONAL_A,
     })
     await flushPromises()
     await wrapper.findAll('[role="radio"]')[0]!.trigger('click')
@@ -438,14 +442,14 @@ describe('PublicAvailabilityPage', () => {
       error: undefined,
       response: okResponse(),
     })
-    await wrapper.setProps({ barberId: BARBER_B })
+    await wrapper.setProps({ professionalId: PROFESSIONAL_B })
     await flushPromises()
 
     expect(getMock).toHaveBeenLastCalledWith(
       '/public/businesses/{slug}/services/{serviceId}/professionals/{professionalId}/availability',
       expect.objectContaining({
         params: {
-          path: { slug: 'barberia-ejemplo', serviceId: SERVICE_A, professionalId: BARBER_B },
+          path: { slug: 'barberia-ejemplo', serviceId: SERVICE_A, professionalId: PROFESSIONAL_B },
         },
       }),
     )
@@ -462,7 +466,7 @@ describe('PublicAvailabilityPage', () => {
     const wrapper = mountAvailabilityPage({
       slug: 'barberia-ejemplo',
       serviceId: SERVICE_A,
-      barberId: BARBER_A,
+      professionalId: PROFESSIONAL_A,
     })
 
     getMock.mockResolvedValueOnce({
@@ -470,11 +474,11 @@ describe('PublicAvailabilityPage', () => {
       error: undefined,
       response: okResponse(),
     })
-    await wrapper.setProps({ barberId: BARBER_B })
+    await wrapper.setProps({ professionalId: PROFESSIONAL_B })
     await flushPromises()
 
-    // La respuesta de la primera petición (para BARBER_A) llega tarde,
-    // después de que BARBER_B ya resolvió: debe descartarse.
+    // La respuesta de la primera petición (para PROFESSIONAL_A) llega tarde,
+    // después de que PROFESSIONAL_B ya resolvió: debe descartarse.
     resolveFirst({ data: availabilityFixture(), error: undefined, response: okResponse() })
     await flushPromises()
 
@@ -487,7 +491,7 @@ describe('PublicAvailabilityPage', () => {
     const wrapper = mountAvailabilityPage({
       slug: 'barberia-ejemplo',
       serviceId: SERVICE_A,
-      barberId: BARBER_A,
+      professionalId: PROFESSIONAL_A,
     })
     const results = await axe(wrapper.element)
     expect(results).toHaveNoViolations()
@@ -502,7 +506,7 @@ describe('PublicAvailabilityPage', () => {
     const wrapper = mountAvailabilityPage({
       slug: 'barberia-ejemplo',
       serviceId: SERVICE_A,
-      barberId: BARBER_A,
+      professionalId: PROFESSIONAL_A,
     })
     await flushPromises()
     const results = await axe(wrapper.element)
@@ -518,7 +522,7 @@ describe('PublicAvailabilityPage', () => {
     const wrapper = mountAvailabilityPage({
       slug: 'barberia-ejemplo',
       serviceId: SERVICE_A,
-      barberId: BARBER_A,
+      professionalId: PROFESSIONAL_A,
     })
     await flushPromises()
     const results = await axe(wrapper.element)
@@ -534,7 +538,7 @@ describe('PublicAvailabilityPage', () => {
     const wrapper = mountAvailabilityPage({
       slug: 'no-existe',
       serviceId: SERVICE_A,
-      barberId: BARBER_A,
+      professionalId: PROFESSIONAL_A,
     })
     await flushPromises()
     const results = await axe(wrapper.element)

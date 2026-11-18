@@ -28,14 +28,15 @@ function buildRouter() {
 
 describe('publicBookingRoutes', () => {
   it('hosts every screen under one shared shell, with the step in the route meta', async () => {
-    expect(publicBookingRoutes).toHaveLength(1)
+    // Un solo cascarón; el resto son las redirecciones de la forma anterior a DEC-183 (#662).
+    expect(publicBookingRoutes.filter((route) => !route.redirect)).toHaveLength(1)
     const router = buildRouter()
     const expected: Array<[string, number | undefined]> = [
       ['/reservar/a', undefined],
       ['/reservar/a/servicios', 1],
-      ['/reservar/a/servicios/s/barbero', 2],
-      ['/reservar/a/servicios/s/barbero/b/horario', 3],
-      [`/reservar/a/servicios/s/barbero/b/horario/${futureStart}/cliente`, 4],
+      ['/reservar/a/servicios/s/profesional', 2],
+      ['/reservar/a/servicios/s/profesional/b/horario', 3],
+      [`/reservar/a/servicios/s/profesional/b/horario/${futureStart}/cliente`, 4],
     ]
     for (const [path, step] of expected) {
       await router.push(path)
@@ -66,59 +67,65 @@ describe('publicBookingRoutes', () => {
     expect(router.currentRoute.value.params.slug).toBe('barberia-ejemplo')
   })
 
-  it('registers /reservar/:slug/servicios/:serviceId/barbero (HU-092)', () => {
+  it('registers /reservar/:slug/servicios/:serviceId/profesional (HU-092)', () => {
     const paths = registeredPaths
-    expect(paths).toContain('/reservar/:slug/servicios/:serviceId/barbero')
+    expect(paths).toContain('/reservar/:slug/servicios/:serviceId/profesional')
   })
 
-  it('resolves the barber selection route with both params as props, without any session guard', async () => {
+  it('resolves the professional selection route with both params as props, without any session guard', async () => {
     const router = buildRouter()
     await router.push(
-      '/reservar/barberia-ejemplo/servicios/8f3ac2b1-e4d5-46f6-a7c8-d9e0f1a2b3c4/barbero',
+      '/reservar/barberia-ejemplo/servicios/8f3ac2b1-e4d5-46f6-a7c8-d9e0f1a2b3c4/profesional',
     )
     await router.isReady()
-    expect(router.currentRoute.value.name).toBe('reserva-publica-barbero')
+    expect(router.currentRoute.value.name).toBe('reserva-publica-profesional')
     expect(router.currentRoute.value.matched.length).toBeGreaterThan(0)
     expect(router.currentRoute.value.params.slug).toBe('barberia-ejemplo')
     expect(router.currentRoute.value.params.serviceId).toBe('8f3ac2b1-e4d5-46f6-a7c8-d9e0f1a2b3c4')
   })
 
-  it('registers /reservar/:slug/servicios/:serviceId/barbero/:barberId/horario (HU-095)', () => {
+  it('registers /reservar/:slug/servicios/:serviceId/profesional/:professionalId/horario (HU-095)', () => {
     const paths = registeredPaths
-    expect(paths).toContain('/reservar/:slug/servicios/:serviceId/barbero/:barberId/horario')
+    expect(paths).toContain(
+      '/reservar/:slug/servicios/:serviceId/profesional/:professionalId/horario',
+    )
   })
 
   it('resolves the availability route with the three params as props, without any session guard', async () => {
     const router = buildRouter()
     await router.push(
-      '/reservar/barberia-ejemplo/servicios/8f3ac2b1-e4d5-46f6-a7c8-d9e0f1a2b3c4/barbero/a1111111-1111-1111-1111-111111111111/horario',
+      '/reservar/barberia-ejemplo/servicios/8f3ac2b1-e4d5-46f6-a7c8-d9e0f1a2b3c4/profesional/a1111111-1111-1111-1111-111111111111/horario',
     )
     await router.isReady()
     expect(router.currentRoute.value.name).toBe('reserva-publica-horario')
     expect(router.currentRoute.value.matched.length).toBeGreaterThan(0)
     expect(router.currentRoute.value.params.slug).toBe('barberia-ejemplo')
     expect(router.currentRoute.value.params.serviceId).toBe('8f3ac2b1-e4d5-46f6-a7c8-d9e0f1a2b3c4')
-    expect(router.currentRoute.value.params.barberId).toBe('a1111111-1111-1111-1111-111111111111')
+    expect(router.currentRoute.value.params.professionalId).toBe(
+      'a1111111-1111-1111-1111-111111111111',
+    )
   })
 
-  it('registers /reservar/:slug/servicios/:serviceId/barbero/:barberId/horario/:startsAt/cliente (HU-096)', () => {
+  it('registers /reservar/:slug/servicios/:serviceId/profesional/:professionalId/horario/:startsAt/cliente (HU-096)', () => {
     const paths = registeredPaths
     expect(paths).toContain(
-      '/reservar/:slug/servicios/:serviceId/barbero/:barberId/horario/:startsAt/cliente',
+      '/reservar/:slug/servicios/:serviceId/profesional/:professionalId/horario/:startsAt/cliente',
     )
   })
 
   it('resolves the customer details route with the four params as props, without any session guard', async () => {
     const router = buildRouter()
     await router.push(
-      `/reservar/barberia-ejemplo/servicios/8f3ac2b1-e4d5-46f6-a7c8-d9e0f1a2b3c4/barbero/a1111111-1111-1111-1111-111111111111/horario/${encodeURIComponent(futureStart)}/cliente`,
+      `/reservar/barberia-ejemplo/servicios/8f3ac2b1-e4d5-46f6-a7c8-d9e0f1a2b3c4/profesional/a1111111-1111-1111-1111-111111111111/horario/${encodeURIComponent(futureStart)}/cliente`,
     )
     await router.isReady()
     expect(router.currentRoute.value.name).toBe('reserva-publica-cliente')
     expect(router.currentRoute.value.matched.length).toBeGreaterThan(0)
     expect(router.currentRoute.value.params.slug).toBe('barberia-ejemplo')
     expect(router.currentRoute.value.params.serviceId).toBe('8f3ac2b1-e4d5-46f6-a7c8-d9e0f1a2b3c4')
-    expect(router.currentRoute.value.params.barberId).toBe('a1111111-1111-1111-1111-111111111111')
+    expect(router.currentRoute.value.params.professionalId).toBe(
+      'a1111111-1111-1111-1111-111111111111',
+    )
     expect(router.currentRoute.value.params.startsAt).toBe(futureStart)
   })
 
@@ -127,10 +134,10 @@ describe('publicBookingRoutes', () => {
     'sends an unreadable or past startsAt (%s) back to the schedule instead of the form',
     async (startsAt) => {
       const router = buildRouter()
-      await router.push(`/reservar/a/servicios/s/barbero/b/horario/${startsAt}/cliente`)
+      await router.push(`/reservar/a/servicios/s/profesional/b/horario/${startsAt}/cliente`)
       const current = router.currentRoute.value
       expect(current.name).toBe('reserva-publica-horario')
-      expect(current.params).toMatchObject({ slug: 'a', serviceId: 's', barberId: 'b' })
+      expect(current.params).toMatchObject({ slug: 'a', serviceId: 's', professionalId: 'b' })
     },
   )
 })

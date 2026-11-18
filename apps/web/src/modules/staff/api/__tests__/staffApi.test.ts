@@ -23,16 +23,16 @@ vi.mock('@/shared/api/httpClient', () => ({
 }))
 
 const {
-  fetchBarbers,
-  fetchBarberPage,
-  createBarber,
-  renameBarber,
-  uploadBarberPhoto,
-  removeBarberPhoto,
-  barberPhotoUrl,
-  fetchMyBarber,
-  linkMyBarber,
-  unlinkMyBarber,
+  fetchProfessionals,
+  fetchProfessionalPage,
+  createProfessional,
+  renameProfessional,
+  uploadProfessionalPhoto,
+  removeProfessionalPhoto,
+  professionalPhotoUrl,
+  fetchMyProfessional,
+  linkMyProfessional,
+  unlinkMyProfessional,
 } = await import('../staffApi')
 
 function ok(body: unknown) {
@@ -47,7 +47,7 @@ function problem(status: number, body: Record<string, unknown> = {}) {
   return { data: undefined, error: body, response: new Response(null, { status }) }
 }
 
-const barberBody = {
+const professionalBody = {
   id: '8f3ac2b1-e4d5-46f6-a7c8-d9e0f1a2b3c4',
   fullName: 'Carlos Ramírez',
   createdAt: '2026-08-23T15:04:05Z',
@@ -58,21 +58,24 @@ const barberBody = {
   ratingCount: 0,
 }
 
-describe('staffApi.fetchBarbers', () => {
+describe('staffApi.fetchProfessionals', () => {
   beforeEach(() => getMock.mockReset())
 
   it('maps a 200 success body to a success outcome with items and nextCursor', async () => {
-    getMock.mockResolvedValueOnce(ok({ items: [barberBody], nextCursor: null }))
+    getMock.mockResolvedValueOnce(ok({ items: [professionalBody], nextCursor: null }))
 
-    const outcome = await fetchBarbers()
+    const outcome = await fetchProfessionals()
 
-    expect(outcome).toEqual({ kind: 'success', page: { items: [barberBody], nextCursor: null } })
+    expect(outcome).toEqual({
+      kind: 'success',
+      page: { items: [professionalBody], nextCursor: null },
+    })
   })
 
   it('forwards the cursor as a query parameter when provided', async () => {
     getMock.mockResolvedValueOnce(ok({ items: [], nextCursor: null }))
 
-    await fetchBarbers('opaque-cursor')
+    await fetchProfessionals('opaque-cursor')
 
     expect(getMock).toHaveBeenCalledWith('/private/professionals', {
       params: { query: { cursor: 'opaque-cursor' } },
@@ -82,7 +85,7 @@ describe('staffApi.fetchBarbers', () => {
   it('sends no cursor query parameter for the first page', async () => {
     getMock.mockResolvedValueOnce(ok({ items: [], nextCursor: null }))
 
-    await fetchBarbers()
+    await fetchProfessionals()
 
     expect(getMock).toHaveBeenCalledWith('/private/professionals', { params: { query: {} } })
   })
@@ -90,7 +93,7 @@ describe('staffApi.fetchBarbers', () => {
   it('maps any non-2xx status to unexpected-error (401 handled globally)', async () => {
     getMock.mockResolvedValueOnce(problem(401))
 
-    const outcome = await fetchBarbers()
+    const outcome = await fetchProfessionals()
 
     expect(outcome).toEqual({ kind: 'unexpected-error' })
   })
@@ -98,19 +101,19 @@ describe('staffApi.fetchBarbers', () => {
   it('maps a rejected request (no HTTP response) to network-error', async () => {
     getMock.mockRejectedValueOnce(new TypeError('Failed to fetch'))
 
-    const outcome = await fetchBarbers()
+    const outcome = await fetchProfessionals()
 
     expect(outcome).toEqual({ kind: 'network-error' })
   })
 })
 
-describe('staffApi.createBarber', () => {
+describe('staffApi.createProfessional', () => {
   beforeEach(() => postMock.mockReset())
 
   it('sends fullName and the Idempotency-Key header', async () => {
-    postMock.mockResolvedValueOnce(created(barberBody))
+    postMock.mockResolvedValueOnce(created(professionalBody))
 
-    await createBarber('Carlos Ramírez', 'idem-key-1')
+    await createProfessional('Carlos Ramírez', 'idem-key-1')
 
     expect(postMock).toHaveBeenCalledWith('/private/professionals', {
       params: { header: { 'Idempotency-Key': 'idem-key-1' } },
@@ -119,9 +122,9 @@ describe('staffApi.createBarber', () => {
   })
 
   it('sends a trimmed description when there is one (DEC-127)', async () => {
-    postMock.mockResolvedValueOnce(created({ ...barberBody, description: 'Fade y barba.' }))
+    postMock.mockResolvedValueOnce(created({ ...professionalBody, description: 'Fade y barba.' }))
 
-    const outcome = await createBarber('Carlos Ramírez', 'idem-key-1', '  Fade y barba.  ')
+    const outcome = await createProfessional('Carlos Ramírez', 'idem-key-1', '  Fade y barba.  ')
 
     expect(postMock).toHaveBeenCalledWith('/private/professionals', {
       params: { header: { 'Idempotency-Key': 'idem-key-1' } },
@@ -129,14 +132,14 @@ describe('staffApi.createBarber', () => {
     })
     expect(outcome).toEqual({
       kind: 'success',
-      barber: { ...barberBody, description: 'Fade y barba.' },
+      professional: { ...professionalBody, description: 'Fade y barba.' },
     })
   })
 
   it('omits a blank description from the body', async () => {
-    postMock.mockResolvedValueOnce(created(barberBody))
+    postMock.mockResolvedValueOnce(created(professionalBody))
 
-    await createBarber('Carlos Ramírez', 'idem-key-1', '   ')
+    await createProfessional('Carlos Ramírez', 'idem-key-1', '   ')
 
     expect(postMock).toHaveBeenCalledWith('/private/professionals', {
       params: { header: { 'Idempotency-Key': 'idem-key-1' } },
@@ -145,17 +148,17 @@ describe('staffApi.createBarber', () => {
   })
 
   it('maps a 201 success body to a success outcome', async () => {
-    postMock.mockResolvedValueOnce(created(barberBody))
+    postMock.mockResolvedValueOnce(created(professionalBody))
 
-    const outcome = await createBarber('Carlos Ramírez', 'idem-key-1')
+    const outcome = await createProfessional('Carlos Ramírez', 'idem-key-1')
 
-    expect(outcome).toEqual({ kind: 'success', barber: barberBody })
+    expect(outcome).toEqual({ kind: 'success', professional: professionalBody })
   })
 
   it('maps 422 to validation-error', async () => {
     postMock.mockResolvedValueOnce(problem(422, { code: 'validation-error' }))
 
-    const outcome = await createBarber('', 'idem-key-1')
+    const outcome = await createProfessional('', 'idem-key-1')
 
     expect(outcome).toEqual({ kind: 'validation-error' })
   })
@@ -163,7 +166,7 @@ describe('staffApi.createBarber', () => {
   it('maps 409 to idempotency-conflict', async () => {
     postMock.mockResolvedValueOnce(problem(409, { code: 'idempotency-conflict' }))
 
-    const outcome = await createBarber('Carlos Ramírez', 'reused-key')
+    const outcome = await createProfessional('Carlos Ramírez', 'reused-key')
 
     expect(outcome).toEqual({ kind: 'idempotency-conflict' })
   })
@@ -171,7 +174,7 @@ describe('staffApi.createBarber', () => {
   it('maps a 500 to unexpected-error', async () => {
     postMock.mockResolvedValueOnce(problem(500, { code: 'internal-error' }))
 
-    const outcome = await createBarber('Carlos Ramírez', 'idem-key-1')
+    const outcome = await createProfessional('Carlos Ramírez', 'idem-key-1')
 
     expect(outcome).toEqual({ kind: 'unexpected-error' })
   })
@@ -179,64 +182,64 @@ describe('staffApi.createBarber', () => {
   it('maps a rejected request (no HTTP response) to network-error', async () => {
     postMock.mockRejectedValueOnce(new TypeError('Failed to fetch'))
 
-    const outcome = await createBarber('Carlos Ramírez', 'idem-key-1')
+    const outcome = await createProfessional('Carlos Ramírez', 'idem-key-1')
 
     expect(outcome).toEqual({ kind: 'network-error' })
   })
 })
 
-describe('staffApi.renameBarber', () => {
+describe('staffApi.renameProfessional', () => {
   beforeEach(() => patchMock.mockReset())
 
-  it('sends the barberId as a path parameter and fullName as the body', async () => {
-    patchMock.mockResolvedValueOnce(ok(barberBody))
+  it('sends the professionalId as a path parameter and fullName as the body', async () => {
+    patchMock.mockResolvedValueOnce(ok(professionalBody))
 
-    await renameBarber(barberBody.id, 'Nuevo Nombre')
+    await renameProfessional(professionalBody.id, 'Nuevo Nombre')
 
     expect(patchMock).toHaveBeenCalledWith('/private/professionals/{professionalId}', {
-      params: { path: { professionalId: barberBody.id } },
+      params: { path: { professionalId: professionalBody.id } },
       body: { fullName: 'Nuevo Nombre' },
     })
   })
 
   it('sends the description when it changed and null to remove it (DEC-127)', async () => {
-    patchMock.mockResolvedValue(ok(barberBody))
+    patchMock.mockResolvedValue(ok(professionalBody))
 
-    await renameBarber(barberBody.id, 'Carlos', ' Fade y barba. ')
-    await renameBarber(barberBody.id, 'Carlos', '   ')
+    await renameProfessional(professionalBody.id, 'Carlos', ' Fade y barba. ')
+    await renameProfessional(professionalBody.id, 'Carlos', '   ')
 
     expect(patchMock).toHaveBeenNthCalledWith(1, '/private/professionals/{professionalId}', {
-      params: { path: { professionalId: barberBody.id } },
+      params: { path: { professionalId: professionalBody.id } },
       body: { fullName: 'Carlos', description: 'Fade y barba.' },
     })
     expect(patchMock).toHaveBeenNthCalledWith(2, '/private/professionals/{professionalId}', {
-      params: { path: { professionalId: barberBody.id } },
+      params: { path: { professionalId: professionalBody.id } },
       body: { fullName: 'Carlos', description: null },
     })
   })
 
   it('treats a missing description in a response as no description', async () => {
-    const withoutDescription: Partial<typeof barberBody> = { ...barberBody }
+    const withoutDescription: Partial<typeof professionalBody> = { ...professionalBody }
     delete withoutDescription.description
     patchMock.mockResolvedValueOnce(ok(withoutDescription))
 
-    const outcome = await renameBarber(barberBody.id, 'Carlos Ramírez')
+    const outcome = await renameProfessional(professionalBody.id, 'Carlos Ramírez')
 
-    expect(outcome).toEqual({ kind: 'success', barber: barberBody })
+    expect(outcome).toEqual({ kind: 'success', professional: professionalBody })
   })
 
   it('maps a 200 success body to a success outcome', async () => {
-    patchMock.mockResolvedValueOnce(ok(barberBody))
+    patchMock.mockResolvedValueOnce(ok(professionalBody))
 
-    const outcome = await renameBarber(barberBody.id, 'Carlos Ramírez')
+    const outcome = await renameProfessional(professionalBody.id, 'Carlos Ramírez')
 
-    expect(outcome).toEqual({ kind: 'success', barber: barberBody })
+    expect(outcome).toEqual({ kind: 'success', professional: professionalBody })
   })
 
   it('maps 404 to not-found', async () => {
     patchMock.mockResolvedValueOnce(problem(404, { code: 'not-found' }))
 
-    const outcome = await renameBarber('unknown-id', 'X')
+    const outcome = await renameProfessional('unknown-id', 'X')
 
     expect(outcome).toEqual({ kind: 'not-found' })
   })
@@ -244,7 +247,7 @@ describe('staffApi.renameBarber', () => {
   it('maps 422 to validation-error', async () => {
     patchMock.mockResolvedValueOnce(problem(422, { code: 'validation-error' }))
 
-    const outcome = await renameBarber(barberBody.id, '')
+    const outcome = await renameProfessional(professionalBody.id, '')
 
     expect(outcome).toEqual({ kind: 'validation-error' })
   })
@@ -252,60 +255,67 @@ describe('staffApi.renameBarber', () => {
   it('maps a rejected request (no HTTP response) to network-error', async () => {
     patchMock.mockRejectedValueOnce(new TypeError('Failed to fetch'))
 
-    const outcome = await renameBarber(barberBody.id, 'X')
+    const outcome = await renameProfessional(professionalBody.id, 'X')
 
     expect(outcome).toEqual({ kind: 'network-error' })
   })
 })
 
-describe('staffApi barber photo mapping (DEC-104)', () => {
+describe('staffApi professional photo mapping (DEC-104)', () => {
   beforeEach(() => getMock.mockReset())
 
-  it('keeps photoUpdatedAt when the barber has a photo', async () => {
-    const withPhoto = { ...barberBody, photoUpdatedAt: '2026-09-30T12:00:00Z' }
+  it('keeps photoUpdatedAt when the professional has a photo', async () => {
+    const withPhoto = { ...professionalBody, photoUpdatedAt: '2026-09-30T12:00:00Z' }
     getMock.mockResolvedValueOnce(ok({ items: [withPhoto], nextCursor: null }))
 
-    const outcome = await fetchBarbers()
+    const outcome = await fetchProfessionals()
 
     expect(outcome).toEqual({ kind: 'success', page: { items: [withPhoto], nextCursor: null } })
   })
 
   it('treats a missing photoUpdatedAt (a replayed pre-DEC-104 response) as no photo', async () => {
-    const { photoUpdatedAt: _omitted, ...legacy } = barberBody
+    const { photoUpdatedAt: _omitted, ...legacy } = professionalBody
     void _omitted
     getMock.mockResolvedValueOnce(ok({ items: [legacy], nextCursor: null }))
 
-    const outcome = await fetchBarbers()
+    const outcome = await fetchProfessionals()
 
-    expect(outcome).toEqual({ kind: 'success', page: { items: [barberBody], nextCursor: null } })
+    expect(outcome).toEqual({
+      kind: 'success',
+      page: { items: [professionalBody], nextCursor: null },
+    })
   })
 })
 
-describe('staffApi.barberPhotoUrl', () => {
-  it('returns null while the barber has no photo', () => {
-    expect(barberPhotoUrl({ id: 'b-1', photoUpdatedAt: null })).toBeNull()
+describe('staffApi.professionalPhotoUrl', () => {
+  it('returns null while the professional has no photo', () => {
+    expect(professionalPhotoUrl({ id: 'b-1', photoUpdatedAt: null })).toBeNull()
   })
 
   it('versions the URL with photoUpdatedAt so a new photo never reuses a stale cache entry', () => {
-    const url = barberPhotoUrl({ id: 'b-1', photoUpdatedAt: '2026-09-30T12:00:00Z' })
+    const url = professionalPhotoUrl({ id: 'b-1', photoUpdatedAt: '2026-09-30T12:00:00Z' })
     expect(url).toBe('/api/v1/private/professionals/b-1/photo?v=2026-09-30T12%3A00%3A00Z')
-    expect(barberPhotoUrl({ id: 'b-1', photoUpdatedAt: '2026-10-01T09:00:00Z' })).not.toBe(url)
+    expect(professionalPhotoUrl({ id: 'b-1', photoUpdatedAt: '2026-10-01T09:00:00Z' })).not.toBe(
+      url,
+    )
   })
 })
 
-describe('staffApi.uploadBarberPhoto', () => {
+describe('staffApi.uploadProfessionalPhoto', () => {
   beforeEach(() => putMock.mockReset())
 
   const blob = new Blob(['jpeg-bytes'], { type: 'image/jpeg' })
 
-  it('sends the blob untouched with its own Content-Type and the barberId as a path parameter', async () => {
-    putMock.mockResolvedValueOnce(ok({ ...barberBody, photoUpdatedAt: '2026-09-30T12:00:00Z' }))
+  it('sends the blob untouched with its own Content-Type and the professionalId as a path parameter', async () => {
+    putMock.mockResolvedValueOnce(
+      ok({ ...professionalBody, photoUpdatedAt: '2026-09-30T12:00:00Z' }),
+    )
 
-    await uploadBarberPhoto(barberBody.id, blob)
+    await uploadProfessionalPhoto(professionalBody.id, blob)
 
     const [path, init] = putMock.mock.calls[0]!
     expect(path).toBe('/private/professionals/{professionalId}/photo')
-    expect(init.params).toEqual({ path: { professionalId: barberBody.id } })
+    expect(init.params).toEqual({ path: { professionalId: professionalBody.id } })
     expect(init.headers).toEqual({ 'Content-Type': 'image/jpeg' })
     expect(init.body).toBe(blob)
     // El serializador deja pasar el Blob: nunca lo convierte a JSON.
@@ -313,12 +323,12 @@ describe('staffApi.uploadBarberPhoto', () => {
   })
 
   it('maps a 200 body to a success outcome with the new photoUpdatedAt', async () => {
-    const updated = { ...barberBody, photoUpdatedAt: '2026-09-30T12:00:00Z' }
+    const updated = { ...professionalBody, photoUpdatedAt: '2026-09-30T12:00:00Z' }
     putMock.mockResolvedValueOnce(ok(updated))
 
-    expect(await uploadBarberPhoto(barberBody.id, blob)).toEqual({
+    expect(await uploadProfessionalPhoto(professionalBody.id, blob)).toEqual({
       kind: 'success',
-      barber: updated,
+      professional: updated,
     })
   })
 
@@ -328,27 +338,29 @@ describe('staffApi.uploadBarberPhoto', () => {
     [500, 'unexpected-error'],
   ])('maps status %i to %s', async (status, kind) => {
     putMock.mockResolvedValueOnce(problem(status))
-    expect(await uploadBarberPhoto(barberBody.id, blob)).toEqual({ kind })
+    expect(await uploadProfessionalPhoto(professionalBody.id, blob)).toEqual({ kind })
   })
 
   it('maps a rejected request (no HTTP response) to network-error', async () => {
     putMock.mockRejectedValueOnce(new TypeError('Failed to fetch'))
-    expect(await uploadBarberPhoto(barberBody.id, blob)).toEqual({ kind: 'network-error' })
+    expect(await uploadProfessionalPhoto(professionalBody.id, blob)).toEqual({
+      kind: 'network-error',
+    })
   })
 })
 
-describe('staffApi.removeBarberPhoto', () => {
+describe('staffApi.removeProfessionalPhoto', () => {
   beforeEach(() => deleteMock.mockReset())
 
-  it('maps a 204 to success and sends the barberId as a path parameter', async () => {
+  it('maps a 204 to success and sends the professionalId as a path parameter', async () => {
     deleteMock.mockResolvedValueOnce({
       data: undefined,
       response: new Response(null, { status: 204 }),
     })
 
-    expect(await removeBarberPhoto(barberBody.id)).toEqual({ kind: 'success' })
+    expect(await removeProfessionalPhoto(professionalBody.id)).toEqual({ kind: 'success' })
     expect(deleteMock).toHaveBeenCalledWith('/private/professionals/{professionalId}/photo', {
-      params: { path: { professionalId: barberBody.id } },
+      params: { path: { professionalId: professionalBody.id } },
     })
   })
 
@@ -357,66 +369,76 @@ describe('staffApi.removeBarberPhoto', () => {
     [500, 'unexpected-error'],
   ])('maps status %i to %s', async (status, kind) => {
     deleteMock.mockResolvedValueOnce(problem(status))
-    expect(await removeBarberPhoto(barberBody.id)).toEqual({ kind })
+    expect(await removeProfessionalPhoto(professionalBody.id)).toEqual({ kind })
   })
 
   it('maps a rejected request (no HTTP response) to network-error', async () => {
     deleteMock.mockRejectedValueOnce(new TypeError('Failed to fetch'))
-    expect(await removeBarberPhoto(barberBody.id)).toEqual({ kind: 'network-error' })
+    expect(await removeProfessionalPhoto(professionalBody.id)).toEqual({ kind: 'network-error' })
   })
 })
 
-describe('staffApi.fetchBarberPage (#288)', () => {
+describe('staffApi.fetchProfessionalPage (#288)', () => {
   beforeEach(() => getMock.mockReset())
   it('requests the numbered mode and maps exact page metadata', async () => {
     getMock.mockResolvedValueOnce(
-      ok({ items: [barberBody], nextCursor: null, page: 2, pageSize: 3, total: 4, totalPages: 2 }),
+      ok({
+        items: [professionalBody],
+        nextCursor: null,
+        page: 2,
+        pageSize: 3,
+        total: 4,
+        totalPages: 2,
+      }),
     )
-    expect(await fetchBarberPage(2, 3)).toEqual({
+    expect(await fetchProfessionalPage(2, 3)).toEqual({
       kind: 'success',
-      page: { items: [barberBody], page: 2, pageSize: 3, total: 4, totalPages: 2 },
+      page: { items: [professionalBody], page: 2, pageSize: 3, total: 4, totalPages: 2 },
     })
     expect(getMock).toHaveBeenCalledWith('/private/professionals', {
       params: { query: { page: 2, pageSize: 3 } },
     })
   })
   it('rejects a cursor response instead of inventing numbered metadata', async () => {
-    getMock.mockResolvedValueOnce(ok({ items: [barberBody], nextCursor: null }))
-    expect(await fetchBarberPage(1, 3)).toEqual({ kind: 'unexpected-error' })
+    getMock.mockResolvedValueOnce(ok({ items: [professionalBody], nextCursor: null }))
+    expect(await fetchProfessionalPage(1, 3)).toEqual({ kind: 'unexpected-error' })
   })
 })
 
 // DEC-100: el vínculo propio actúa sobre la sesión, nunca sobre otro usuario.
-describe('staffApi.fetchMyBarber', () => {
+describe('staffApi.fetchMyProfessional', () => {
   beforeEach(() => getMock.mockReset())
 
-  it('maps a 200 to the linked barber and sends no user identifier', async () => {
-    getMock.mockResolvedValueOnce(ok(barberBody))
-    expect(await fetchMyBarber()).toEqual({ kind: 'linked', barber: barberBody })
+  it('maps a 200 to the linked professional and sends no user identifier', async () => {
+    getMock.mockResolvedValueOnce(ok(professionalBody))
+    expect(await fetchMyProfessional()).toEqual({ kind: 'linked', professional: professionalBody })
     expect(getMock).toHaveBeenCalledWith('/private/me/professional')
   })
 
   it('maps a 404 to none: the link is optional, not an error', async () => {
     getMock.mockResolvedValueOnce(problem(404))
-    expect(await fetchMyBarber()).toEqual({ kind: 'none' })
+    expect(await fetchMyProfessional()).toEqual({ kind: 'none' })
   })
 
   it('maps other statuses and a rejected request', async () => {
     getMock.mockResolvedValueOnce(problem(500))
-    expect(await fetchMyBarber()).toEqual({ kind: 'unexpected-error' })
+    expect(await fetchMyProfessional()).toEqual({ kind: 'unexpected-error' })
     getMock.mockRejectedValueOnce(new TypeError('Failed to fetch'))
-    expect(await fetchMyBarber()).toEqual({ kind: 'network-error' })
+    expect(await fetchMyProfessional()).toEqual({ kind: 'network-error' })
   })
 })
 
-describe('staffApi.linkMyBarber', () => {
+describe('staffApi.linkMyProfessional', () => {
   beforeEach(() => putMock.mockReset())
 
-  it('sends only the barberId in the body', async () => {
-    putMock.mockResolvedValueOnce(ok(barberBody))
-    expect(await linkMyBarber(barberBody.id)).toEqual({ kind: 'success', barber: barberBody })
+  it('sends only the professionalId in the body', async () => {
+    putMock.mockResolvedValueOnce(ok(professionalBody))
+    expect(await linkMyProfessional(professionalBody.id)).toEqual({
+      kind: 'success',
+      professional: professionalBody,
+    })
     expect(putMock).toHaveBeenCalledWith('/private/me/professional', {
-      body: { professionalId: barberBody.id },
+      body: { professionalId: professionalBody.id },
     })
   })
 
@@ -426,16 +448,16 @@ describe('staffApi.linkMyBarber', () => {
     [500, 'unexpected-error'],
   ])('maps status %i to %s', async (status, kind) => {
     putMock.mockResolvedValueOnce(problem(status))
-    expect(await linkMyBarber(barberBody.id)).toEqual({ kind })
+    expect(await linkMyProfessional(professionalBody.id)).toEqual({ kind })
   })
 
   it('maps a rejected request (no HTTP response) to network-error', async () => {
     putMock.mockRejectedValueOnce(new TypeError('Failed to fetch'))
-    expect(await linkMyBarber(barberBody.id)).toEqual({ kind: 'network-error' })
+    expect(await linkMyProfessional(professionalBody.id)).toEqual({ kind: 'network-error' })
   })
 })
 
-describe('staffApi.unlinkMyBarber', () => {
+describe('staffApi.unlinkMyProfessional', () => {
   beforeEach(() => deleteMock.mockReset())
 
   it('maps a 204 to success', async () => {
@@ -443,14 +465,14 @@ describe('staffApi.unlinkMyBarber', () => {
       data: undefined,
       response: new Response(null, { status: 204 }),
     })
-    expect(await unlinkMyBarber()).toEqual({ kind: 'success' })
+    expect(await unlinkMyProfessional()).toEqual({ kind: 'success' })
     expect(deleteMock).toHaveBeenCalledWith('/private/me/professional')
   })
 
   it('maps other statuses and a rejected request', async () => {
     deleteMock.mockResolvedValueOnce(problem(500))
-    expect(await unlinkMyBarber()).toEqual({ kind: 'unexpected-error' })
+    expect(await unlinkMyProfessional()).toEqual({ kind: 'unexpected-error' })
     deleteMock.mockRejectedValueOnce(new TypeError('Failed to fetch'))
-    expect(await unlinkMyBarber()).toEqual({ kind: 'network-error' })
+    expect(await unlinkMyProfessional()).toEqual({ kind: 'network-error' })
   })
 })

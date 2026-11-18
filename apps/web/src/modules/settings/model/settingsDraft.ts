@@ -2,11 +2,11 @@
 // qué se envía y qué sugerir (DEC-110). Sin Vue ni red, para probarlas sin montar nada.
 import type { BrandSettings, Gender } from '@/shared/model'
 import { normalizeTerm } from '@/shared/model'
-import type { BarbershopSettingsFormValues } from './barbershopSettings'
+import type { BusinessSettingsFormValues } from './businessSettings'
 
-export function sameBarbershop(
-  a: BarbershopSettingsFormValues,
-  b: BarbershopSettingsFormValues,
+export function sameBusiness(
+  a: BusinessSettingsFormValues,
+  b: BusinessSettingsFormValues,
 ): boolean {
   return (
     a.name.trim() === b.name.trim() &&

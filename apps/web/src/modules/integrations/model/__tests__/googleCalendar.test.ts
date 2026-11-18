@@ -4,7 +4,7 @@ import { viewOf, type GoogleCalendarConnection } from '../googleCalendar'
 function connection(overrides: Partial<GoogleCalendarConnection> = {}): GoogleCalendarConnection {
   return {
     enabled: true,
-    barberLinked: true,
+    professionalLinked: true,
     status: 'connected',
     accountEmail: 'barbero@ejemplo.test',
     reminderMinutes: null,
@@ -19,7 +19,7 @@ function connection(overrides: Partial<GoogleCalendarConnection> = {}): GoogleCa
 describe('viewOf', () => {
   it.each([
     [{ enabled: false }, 'unavailable'],
-    [{ barberLinked: false }, 'needs-barber'],
+    [{ professionalLinked: false }, 'needs-professional'],
     [{ status: 'not_connected' as const }, 'not-connected'],
     [{ status: 'disconnected' as const }, 'not-connected'],
     [{ status: 'reauth_required' as const }, 'reauth'],
@@ -32,10 +32,12 @@ describe('viewOf', () => {
     expect(viewOf(connection(overrides))).toBe(expected)
   })
 
-  it('shows the missing configuration before the barber link and the link before the status', () => {
-    expect(viewOf(connection({ enabled: false, barberLinked: false, status: 'connected' }))).toBe(
-      'unavailable',
+  it('shows the missing configuration before the professional link and the link before the status', () => {
+    expect(
+      viewOf(connection({ enabled: false, professionalLinked: false, status: 'connected' })),
+    ).toBe('unavailable')
+    expect(viewOf(connection({ professionalLinked: false, status: 'connected' }))).toBe(
+      'needs-professional',
     )
-    expect(viewOf(connection({ barberLinked: false, status: 'connected' }))).toBe('needs-barber')
   })
 })

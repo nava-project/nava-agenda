@@ -26,7 +26,7 @@ const viewports = [
 function detail(status: 'confirmed' | 'cancelled_by_customer') {
   return {
     id: 'turno-demo',
-    professionalId: 'barbero-demo',
+    professionalId: 'profesional-demo',
     professionalFullName: 'Iván Carvajal',
     attendeeName: 'Valentina Pardo',
     customerFullName: 'Valentina Pardo',
@@ -137,7 +137,7 @@ for (const [label, status] of [
         }, theme)
         await page.setViewportSize({ width: viewport.width, height: viewport.height })
         await installApi(page, status)
-        await page.goto('/panel/turnos/turno-demo?date=2026-11-02&barberId=barbero-demo')
+        await page.goto('/panel/turnos/turno-demo?date=2026-11-02&professionalId=profesional-demo')
 
         await expect(page.getByRole('heading', { name: 'Valentina Pardo', level: 1 })).toBeVisible()
         await expect(page.getByText('Turno reprogramado')).toBeVisible()
@@ -176,7 +176,7 @@ for (const theme of themes) {
     }, theme)
     await page.setViewportSize({ width: 1920, height: 1080 })
     await installApi(page, 'confirmed')
-    await page.goto('/panel/turnos/turno-demo?date=2026-11-02&barberId=barbero-demo')
+    await page.goto('/panel/turnos/turno-demo?date=2026-11-02&professionalId=profesional-demo')
     await expect(page.getByRole('heading', { name: 'Valentina Pardo', level: 1 })).toBeVisible()
     await expect(page.getByText('Turno reprogramado')).toBeVisible()
 
@@ -233,7 +233,7 @@ for (const card of inkDialogs) {
         }, theme)
         await page.setViewportSize({ width: viewport.width, height: viewport.height })
         await installApi(page, 'confirmed')
-        await page.goto('/panel/turnos/turno-demo?date=2026-11-02&barberId=barbero-demo')
+        await page.goto('/panel/turnos/turno-demo?date=2026-11-02&professionalId=profesional-demo')
         await page.getByRole('button', { name: card.button, exact: true }).click()
 
         const dialog = page.getByRole('dialog', { name: card.button })

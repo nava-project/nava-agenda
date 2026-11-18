@@ -4,13 +4,13 @@
 // discriminados que la página consume; ningún componente ve `Problem`,
 // `status` HTTP crudo ni cabeceras.
 import { httpClient } from '@/shared/api/httpClient'
-import type { BarbershopSettings, BarbershopSettingsFormValues } from '../model/barbershopSettings'
+import type { BusinessSettings, BusinessSettingsFormValues } from '../model/businessSettings'
 import type {
-  FetchBarbershopSettingsOutcome,
-  SaveBarbershopSettingsOutcome,
+  FetchBusinessSettingsOutcome,
+  SaveBusinessSettingsOutcome,
 } from '../model/settingsOutcome'
 
-export async function fetchBarbershopSettings(): Promise<FetchBarbershopSettingsOutcome> {
+export async function fetchBusinessSettings(): Promise<FetchBusinessSettingsOutcome> {
   try {
     const { data, response } = await httpClient.GET('/private/settings/business')
 
@@ -30,9 +30,9 @@ export async function fetchBarbershopSettings(): Promise<FetchBarbershopSettings
   }
 }
 
-export async function saveBarbershopSettings(
-  values: BarbershopSettingsFormValues,
-): Promise<SaveBarbershopSettingsOutcome> {
+export async function saveBusinessSettings(
+  values: BusinessSettingsFormValues,
+): Promise<SaveBusinessSettingsOutcome> {
   try {
     const { data, response } = await httpClient.PATCH('/private/settings/business', {
       body: {
@@ -64,7 +64,7 @@ function toSettings(data: {
   timezone: string
   contactEmail: string | null
   contactPhone: string | null
-}): BarbershopSettings {
+}): BusinessSettings {
   return {
     name: data.name,
     timezone: data.timezone,

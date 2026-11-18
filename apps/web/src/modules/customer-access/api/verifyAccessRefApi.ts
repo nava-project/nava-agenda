@@ -8,7 +8,7 @@ import type { VerifyAccessRefOutcome } from '../model/customerAccessOutcome'
  * - 200: acceso concedido, con el propósito para el que se pidió;
  * - 401: código o enlace no válido, sin decir por qué (CA-106-05);
  * - 400/422: el código no tiene 6 dígitos;
- * - 404: la barbería del enlace no existe o no está publicada.
+ * - 404: el negocio del enlace no existe o no está publicada.
  */
 export async function verifyAccessRef(
   slug: string,
@@ -30,7 +30,7 @@ export async function verifyAccessRef(
       case 422:
         return { kind: 'invalid-input' }
       case 404:
-        return { kind: 'barbershop-not-found' }
+        return { kind: 'business-not-found' }
       default:
         return {
           kind: 'unexpected-error',

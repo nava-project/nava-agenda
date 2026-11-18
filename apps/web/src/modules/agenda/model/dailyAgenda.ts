@@ -45,7 +45,7 @@ const FIXED_STATUS_LABELS: Record<
 }
 
 // El estado técnico `cancelled_by_professional` no se renombra (DEC-016, contrato); su
-// etiqueta nombra a quien atiende con la palabra de la barbería (DEC-110, DEC-119).
+// etiqueta nombra a quien atiende con la palabra del negocio (DEC-110, DEC-119).
 export function appointmentStatusLabel(status: AppointmentStatus, v: Vocabulary): string {
   return status === 'cancelled_by_professional'
     ? `Cancelado ${v.byTheProfessional}`

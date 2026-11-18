@@ -18,8 +18,8 @@ export interface NavItem {
   to: { name: string }
   /** Rótulo por defecto; también identifica la entrada. */
   label: string
-  /** Rótulo según el vocabulario de la barbería (DEC-110): "Barberos" se
-   * lee "Estilistas" cuando la barbería así lo configura. */
+  /** Rótulo según el vocabulario del negocio (DEC-110): "Profesionales" se
+   * lee "Estilistas" cuando el negocio así lo configura. */
   labelFor?: (vocabulary: Vocabulary) => string
   /** Visible siempre en el dock. Sin ella, la entrada solo aparece dentro
    * de "Más" (estandar-diseno-visual.md §6.5: cuatro destinos visibles y

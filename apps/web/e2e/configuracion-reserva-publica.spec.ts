@@ -5,7 +5,7 @@ import { test, expect, type Page } from '@playwright/test'
  * Corre contra el API real en local (`go run ./cmd/api` sobre PostgreSQL
  * real con las migraciones aplicadas, incluida
  * `20260911060000_add_barbershop_booking_policy.sql`, y un usuario con un
- * hash argon2id REAL), mismo criterio que `e2e/configuracion-barberia.spec.ts`
+ * hash argon2id REAL), mismo criterio que `e2e/configuracion-negocio.spec.ts`
  * (HU-020).
  *
  * Variables de entorno:
@@ -25,8 +25,8 @@ async function login(page: Page) {
 
 test.describe('Configuración pública de reserva y cancelación (HU-093)', () => {
   // Serial a propósito: las tres pruebas escriben sobre la MISMA fila real
-  // de barbershop (barbería única de prueba), mismo criterio que
-  // configuracion-barberia.spec.ts: ejecutarlas en paralelo produciría una
+  // de business (negocio único de prueba), mismo criterio que
+  // configuracion-negocio.spec.ts: ejecutarlas en paralelo produciría una
   // carrera entre sus propias escrituras, no un defecto del producto.
   test.describe.configure({ mode: 'serial' })
 

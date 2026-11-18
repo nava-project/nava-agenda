@@ -94,7 +94,7 @@ const TWO_APPOINTMENTS = {
   ],
 }
 
-async function mockBarbershopProfile(page: Page) {
+async function mockBusinessProfile(page: Page) {
   await page.route(`${PROFILE_URL}/reviews`, (route) =>
     json(route, 200, { rating: null, ratingCount: 0, mapsUrl: null, reviews: [] }),
   )
@@ -158,7 +158,7 @@ test.describe('HU-105 · entrar al turno con un código', () => {
   test('desde la entrada pública: correo, código y el paso 03 con sus acciones', async ({
     page,
   }) => {
-    await mockBarbershopProfile(page)
+    await mockBusinessProfile(page)
     await mockTargetAppointment(page, TOKEN_A)
     let challengeBody: unknown = null
     let verifyBody: unknown = null
@@ -343,7 +343,7 @@ test.describe('HU-105 · entrar al turno con un código', () => {
     await expect(page.getByLabel('Correo o celular')).toHaveValue('ana@correo.test')
   })
 
-  test('contacto inválido y barbería inexistente', async ({ page }) => {
+  test('contacto inválido y negocio inexistente', async ({ page }) => {
     await page.route(CHALLENGE_URL, (route) =>
       json(route, 422, problem(422, 'validation'), 'application/problem+json'),
     )
@@ -476,7 +476,7 @@ for (const viewport of viewports) {
     })
 
     test(`entrada pública con el enlace (${viewport.name}px)`, async ({ page }) => {
-      await mockBarbershopProfile(page)
+      await mockBusinessProfile(page)
       await page.goto(`/reservar/${SLUG}`)
       await expect(page.getByRole('link', { name: 'Cámbialo aquí' })).toBeVisible()
       await capture(page, viewport.name, '0-entrada-publica')

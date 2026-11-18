@@ -1,12 +1,12 @@
 // Desenlaces discriminados de las llamadas de red de `agenda` (HU-061):
 // ningún componente ve `Problem`, `status` HTTP crudo ni cabeceras, mismo
 // criterio que schedules/model/scheduleOutcome.ts.
-import type { BarberSummary, ServiceSummary } from './appointment'
+import type { ProfessionalSummary, ServiceSummary } from './appointment'
 import type { AppointmentDetail, HistoryEntry } from './appointmentDetail'
 import type { DailyAgendaEntry } from './dailyAgenda'
 
-export type FetchBarberSummariesOutcome =
-  | { kind: 'success'; items: BarberSummary[] }
+export type FetchProfessionalSummariesOutcome =
+  | { kind: 'success'; items: ProfessionalSummary[] }
   | { kind: 'network-error' }
   | { kind: 'unexpected-error' }
 
@@ -16,12 +16,12 @@ export type FetchAssignedServicesOutcome =
   | { kind: 'network-error' }
   | { kind: 'unexpected-error' }
 
-export type FetchBarbershopTimezoneOutcome =
+export type FetchBusinessTimezoneOutcome =
   { kind: 'success'; timezone: string } | { kind: 'unavailable' }
 
 export type CreatedManualAppointment = {
   id: string
-  barberId: string
+  professionalId: string
   serviceId: string
   attendeeName: string
   startsAt: string
@@ -37,9 +37,9 @@ export type CreatedManualAppointment = {
 // ambos (el cliente decide por `code`, nunca por `detail`, pero aquí no
 // hay un `code` más específico que distinguirlos); detail trae el mensaje
 // seguro que el backend ya redactó para mostrar directamente.
-// FetchDailyAgendaOutcome (HU-062): 'not-found' cubre un barberId
-// inexistente o de otra barbería (RN-TEN-01), verificado ya en el
-// selector, pero posible si el barbero se retira mientras la pantalla
+// FetchDailyAgendaOutcome (HU-062): 'not-found' cubre un professionalId
+// inexistente o de otro negocio (RN-TEN-01), verificado ya en el
+// selector, pero posible si el profesional se retira mientras la pantalla
 // sigue abierta.
 export type FetchDailyAgendaOutcome =
   | { kind: 'success'; items: DailyAgendaEntry[] }
@@ -48,7 +48,7 @@ export type FetchDailyAgendaOutcome =
   | { kind: 'unexpected-error' }
 
 // FetchAppointmentDetailOutcome/FetchAppointmentHistoryOutcome (HU-064):
-// 'not-found' cubre un appointmentId inexistente o de otra barbería
+// 'not-found' cubre un appointmentId inexistente o de otro negocio
 // (RN-TEN-01).
 export type FetchAppointmentDetailOutcome =
   | { kind: 'success'; detail: AppointmentDetail }
@@ -75,11 +75,11 @@ export type CreateManualAppointmentOutcome =
 // distinguibles por `kind` (agenda, versión, estado, idempotencia), mismo
 // criterio de "el cliente decide por code, nunca por detail" que el
 // contrato ya aplica del lado del servidor. 'version-conflict' y
-// 'invalid-state' exigen recargar el detalle (la intención del barbero se
+// 'invalid-state' exigen recargar el detalle (la intención del profesional se
 // conserva en el formulario, nunca se descarta silenciosamente). El éxito
-// solo trae `startsAt`: T2 nunca cambia barbero/cliente/contacto/nota, y la
+// solo trae `startsAt`: T2 nunca cambia profesional/cliente/contacto/nota, y la
 // pantalla recarga el detalle completo tras confirmar (mismo dato, nunca
-// una copia parcial con campos vacíos que el barbero podría ver como
+// una copia parcial con campos vacíos que el profesional podría ver como
 // reales).
 export type RescheduleAppointmentOutcome =
   | { kind: 'success'; startsAt: string }

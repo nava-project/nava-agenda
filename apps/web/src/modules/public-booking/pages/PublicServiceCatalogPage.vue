@@ -6,12 +6,12 @@
 // del contrato (eso queda dentro de `api/listPublicServicesApi.ts`).
 //
 // Selección: lista `role="radiogroup"` con roving tabindex (WAI-ARIA APG,
-// mismo patrón de teclado que BarberSelect.vue, sin el popup/colapso que
+// mismo patrón de teclado que ProfessionalSelect.vue, sin el popup/colapso que
 // ese widget sí necesita). La selección se indica con `aria-checked`, un
 // filete lateral, el rombo relleno con su check -nunca solo color (CA-091-04)-. Esta
 // historia no crea ninguna cita (fuera de alcance de HU-091 y HU-092); tras
 // elegir un servicio, el botón "Continuar" (HU-092) navega a la selección
-// pública de barbero de ESE servicio.
+// pública de profesional de ESE servicio.
 import { computed, nextTick, onMounted, ref } from 'vue'
 import BookingStateScreen from '../components/BookingStateScreen.vue'
 import ChoiceMark from '../components/ChoiceMark.vue'
@@ -22,7 +22,7 @@ import { usePublicVocabulary } from '../model/publicVocabulary'
 interface Props {
   /** Identificador del enlace público, tal como llega del parámetro de
    * ruta `:slug` (app/router, `props: true`). No confiado: el servidor lo
-   * vuelve a resolver desde cero, igual que PublicBarbershopEntryPage. */
+   * vuelve a resolver desde cero, igual que PublicBusinessEntryPage. */
   slug: string
 }
 const props = defineProps<Props>()
@@ -199,7 +199,7 @@ const selectedService = computed(() => services.value.find((s) => s.id === selec
         </p>
         <RouterLink
           :to="{
-            name: 'reserva-publica-barbero',
+            name: 'reserva-publica-profesional',
             params: { slug: props.slug, serviceId: selectedService.id },
           }"
           class="pb-cta"

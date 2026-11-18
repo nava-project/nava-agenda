@@ -4,17 +4,17 @@
 // dentro de NAVA / Tailored Grid (DEC-078), alojada en el cascarón de la
 // reserva pública (DEC-111). Consume el motor de
 // disponibilidad de HU-094 en una sola consulta por contexto (slug +
-// serviceId + barberId): el contrato no admite una fecha como parámetro,
+// serviceId + professionalId): el contrato no admite una fecha como parámetro,
 // devuelve todos los inicios válidos de la ventana pública vigente en una
 // sola respuesta, así que "explorar fechas" es una agrupación en el
 // cliente sobre datos ya recibidos (`groupSlotsByCivilDate`), nunca una
 // consulta nueva por cada fecha visitada (RN-DIS-03: consultar no reserva).
 //
-// Revalidación (CA-095-03): un cambio de `serviceId`/`barberId` (mismo
+// Revalidación (CA-095-03): un cambio de `serviceId`/`professionalId` (mismo
 // componente reutilizado por vue-router al cambiar los parámetros de ruta)
 // dispara una nueva carga; una respuesta tardía de una carga ya
 // reemplazada se descarta con un token monótono, mismo patrón que
-// PublicBarberSelectionPage.vue.
+// PublicProfessionalSelectionPage.vue.
 import { computed, nextTick, ref, watch } from 'vue'
 import { formatCivilDateFull } from '@/shared/time/civilDate'
 import { formatTimeInTimezone } from '@/shared/time/formatInstant'
@@ -36,10 +36,10 @@ interface Props {
    * parámetro de ruta `:serviceId`. No confiado: el servidor revalida
    * pertenencia, vigencia y asignación en cada lectura. */
   serviceId: string
-  /** Identificador del barbero ya elegido, tal como llega del parámetro de
-   * ruta `:barberId`. No confiado: el servidor revalida asignación vigente
+  /** Identificador del profesional ya elegido, tal como llega del parámetro de
+   * ruta `:professionalId`. No confiado: el servidor revalida asignación vigente
    * al servicio activo en cada lectura. */
-  barberId: string
+  professionalId: string
 }
 const props = defineProps<Props>()
 const v = usePublicVocabulary()
@@ -56,7 +56,7 @@ const activeDayIndex = ref(0)
 const activeSlotIndex = ref(0)
 // Selección global (no por día): navegar entre días nunca descarta una
 // franja ya elegida en otro día de la misma ventana (CA-095-04, "conservan
-// selecciones previas válidas"). Solo un contexto nuevo (servicio/barbero
+// selecciones previas válidas"). Solo un contexto nuevo (servicio/profesional
 // distinto) o un reintento tras error la reinicia, porque en ese caso la
 // ventana completa se vuelve a resolver desde cero.
 const selectedSlot = ref<PublicAvailabilitySlot | null>(null)
@@ -83,7 +83,7 @@ async function load() {
   slotRefs.value = []
   dayRefs.value = []
 
-  const outcome = await listPublicAvailability(props.slug, props.serviceId, props.barberId)
+  const outcome = await listPublicAvailability(props.slug, props.serviceId, props.professionalId)
   // Una respuesta tardía de una carga ya reemplazada (contexto cambió de
   // nuevo mientras esta esperaba) se descarta: nunca sobrescribe el estado
   // de la carga vigente (CA-095-03).
@@ -112,7 +112,7 @@ async function load() {
   }
 }
 
-watch(() => [props.slug, props.serviceId, props.barberId], load, { immediate: true })
+watch(() => [props.slug, props.serviceId, props.professionalId], load, { immediate: true })
 
 const retry = () => {
   void load()
@@ -282,7 +282,7 @@ const failedRequestId = computed(() =>
     <div class="pb-rule" aria-hidden="true"></div>
 
     <!-- CA-095-04: ninguna franja en toda la ventana pública vigente
-         (festivo total, servicio/barbero sin agenda compatible, etc.) es
+         (festivo total, servicio/profesional sin agenda compatible, etc.) es
          un vacío genuino, distinto de carga o error. -->
     <div v-if="days.length === 0" class="pb-empty">
       <span class="pb-empty__mark" aria-hidden="true"></span>
@@ -387,7 +387,7 @@ const failedRequestId = computed(() =>
               params: {
                 slug: props.slug,
                 serviceId: props.serviceId,
-                barberId: props.barberId,
+                professionalId: props.professionalId,
                 startsAt: selectedSlot.startsAt,
               },
             }"

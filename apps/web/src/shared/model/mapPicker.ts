@@ -71,7 +71,7 @@ export function isValidPoint(point: LatLng): boolean {
   )
 }
 
-/** Punto de partida cuando la barbería no tiene ubicación: Bogotá, a vista de ciudad. */
+/** Punto de partida cuando el negocio no tiene ubicación: Bogotá, a vista de ciudad. */
 export const DEFAULT_START: LatLng = { latitude: 4.711, longitude: -74.0721 }
 export const DEFAULT_START_ZOOM = 11
 /** Texto de la ubicación cuando no hay una dirección aproximada para el punto. */
@@ -217,7 +217,7 @@ function googleEngine(key: string): MapPickerEngine {
       })
       if (signal?.aborted) return null
       // Para un punto sin dirección postal Google devuelve primero un código Plus
-      // («67P7JW7R+G8»): no le sirve al barbero, así que se salta y, si no hay otra, queda el texto de respaldo.
+      // («67P7JW7R+G8»): no le sirve al profesional, así que se salta y, si no hay otra, queda el texto de respaldo.
       const address = results.find((r) => !r.types?.includes('plus_code'))
       const text = (address?.formatted_address ?? '').trim().replace(/\s+/g, ' ')
       return text === '' ? null : text

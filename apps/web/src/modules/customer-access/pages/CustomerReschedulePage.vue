@@ -205,18 +205,18 @@ const contact = computed(() => {
   const a = appointment.value
   if (!a) return []
   const items: { label: string; href: string; text: string }[] = []
-  if (a.barbershopContactPhone) {
+  if (a.businessContactPhone) {
     items.push({
       label: 'Teléfono',
-      href: `tel:${a.barbershopContactPhone}`,
-      text: a.barbershopContactPhone,
+      href: `tel:${a.businessContactPhone}`,
+      text: a.businessContactPhone,
     })
   }
-  if (a.barbershopContactEmail) {
+  if (a.businessContactEmail) {
     items.push({
       label: 'Correo',
-      href: `mailto:${a.barbershopContactEmail}`,
-      text: a.barbershopContactEmail,
+      href: `mailto:${a.businessContactEmail}`,
+      text: a.businessContactEmail,
     })
   }
   return items
@@ -486,7 +486,7 @@ const unexpectedErrorMessage = computed(() => {
       <div class="reschedule__intro">
         <p class="reschedule__eyebrow">Tu turno en</p>
         <h1 ref="doneHeading" class="reschedule__title" tabindex="-1">
-          {{ screenState.appointment.barbershopName }}
+          {{ screenState.appointment.businessName }}
         </h1>
       </div>
 
@@ -521,7 +521,8 @@ const unexpectedErrorMessage = computed(() => {
           </p>
         </div>
         <p class="stamp__foot">
-          {{ screenState.appointment.serviceName }} · con {{ screenState.appointment.barberName }}
+          {{ screenState.appointment.serviceName }} · con
+          {{ screenState.appointment.professionalName }}
         </p>
       </article>
 
@@ -549,9 +550,9 @@ const unexpectedErrorMessage = computed(() => {
     >
       <div class="reschedule__intro">
         <p class="reschedule__eyebrow">Tu turno en</p>
-        <h1 class="reschedule__title">{{ appointment.barbershopName }}</h1>
+        <h1 class="reschedule__title">{{ appointment.businessName }}</h1>
         <p class="reschedule__lede">
-          Elige otro día y hora con {{ appointment.barberName }}. El servicio, el precio y la
+          Elige otro día y hora con {{ appointment.professionalName }}. El servicio, el precio y la
           duración siguen igual.
         </p>
       </div>
@@ -570,7 +571,7 @@ const unexpectedErrorMessage = computed(() => {
             <div class="stamp__head">
               <p class="stamp__service">{{ appointment.serviceName }}</p>
               <p class="stamp__meta">
-                {{ appointment.durationMinutes }} min · con {{ appointment.barberName }}
+                {{ appointment.durationMinutes }} min · con {{ appointment.professionalName }}
               </p>
             </div>
 
@@ -647,8 +648,8 @@ const unexpectedErrorMessage = computed(() => {
 
           <div v-if="days.length === 0" class="reschedule__empty">
             <p>
-              No hay otras horas libres con {{ appointment.barberName }} en este momento. Vuelve a
-              mirar más tarde o escribe {{ v.toTheBusiness }}.
+              No hay otras horas libres con {{ appointment.professionalName }} en este momento.
+              Vuelve a mirar más tarde o escribe {{ v.toTheBusiness }}.
             </p>
             <a class="reschedule__back" :href="myTurnHref">← Volver a mi turno</a>
           </div>

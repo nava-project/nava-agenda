@@ -1,4 +1,4 @@
-// Módulo: configuración básica de la barbería (HU-020). API pública mínima
+// Módulo: configuración básica del negocio (HU-020). API pública mínima
 // para `app`, según docs/03-desarrollo/estandar-frontend-vue.md: la ruta
 // hija privada (cargada de forma diferida) y la entrada de navegación que
 // la representa. `app/router/index.ts` combina ambas con las de `auth`
@@ -12,16 +12,16 @@ export { settingsPrivateShellChildRoutes } from './routes'
 export { loadWorkspaceBrand } from './model/workspaceBrand'
 
 // El rótulo del dock es "Configuración" (destino P0 de
-// especificacion-frontend-nava.md §5.1, que agrupa barbería, reglas de
+// especificacion-frontend-nava.md §5.1, que agrupa negocio, reglas de
 // reserva, cancelación, recordatorios y canales conforme existan sus HU);
-// la ruta y el título propio de la pantalla ("Barbería") no cambian.
+// la ruta y el título propio de la pantalla ("Negocio") no cambian.
 // HU-093 agrega "Reserva pública" como una segunda entrada plana (mismo
 // mecanismo de composición, sin agrupar visualmente: NavItem no modela
 // jerarquía todavía).
 //
-// El panel de un empleado (DEC-134) no administra la barbería: «Configuración» se
+// El panel de un empleado (DEC-134) no administra el negocio: «Configuración» se
 // oculta (su ruta redirige a la Agenda, ver profileGuard) y «Reserva pública» se
-// vuelve «Mi reserva», solo con la ventana propia de su barbero (DEC-173).
+// vuelve «Mi reserva», solo con la ventana propia de su profesional (DEC-173).
 export const settingsNavItems: NavItem[] = [
   {
     to: { name: 'configuracion-reserva-publica' },
@@ -29,7 +29,7 @@ export const settingsNavItems: NavItem[] = [
     profiles: { employee: { label: 'Mi reserva' } },
   },
   {
-    to: { name: 'configuracion-barberia' },
+    to: { name: 'configuracion-negocio' },
     label: 'Configuración',
     profiles: { employee: { hidden: true } },
   },

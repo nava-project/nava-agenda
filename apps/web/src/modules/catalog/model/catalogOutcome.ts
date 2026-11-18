@@ -14,7 +14,7 @@ export type FetchServicesOutcome =
 export type CreateServiceOutcome =
   | { kind: 'success'; service: Service }
   | { kind: 'validation-error' }
-  // DEC-067: el nombre ya lo usa otro servicio activo de la misma barbería.
+  // DEC-067: el nombre ya lo usa otro servicio activo del mismo negocio.
   // Distinto de idempotency-conflict: no depende de la clave de
   // idempotencia ni de un reintento, así que reintentar con la MISMA clave
   // y OTRO nombre sí puede tener éxito.

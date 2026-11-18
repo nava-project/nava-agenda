@@ -3,7 +3,7 @@ import { randomBytes } from 'node:crypto'
 
 /**
  * Recorrido E2E de HU-010 (docs/03-desarrollo/estrategia-pruebas.md §5.3,
- * recorrido P0 #4 "barbero inicia sesión"). Corre contra el API real en
+ * recorrido P0 #4 "profesional inicia sesión"). Corre contra el API real en
  * local (`go run ./cmd/api` sobre PostgreSQL real con las migraciones
  * aplicadas y un usuario con un hash argon2id REAL, no el hash ficticio de
  * `database/testdata/hu005_credenciales_sesiones.sql`): ver el comando
@@ -42,7 +42,7 @@ async function withIsolatedIP(page: Page): Promise<void> {
   })
 }
 
-test.describe('Acceso del barbero (HU-010)', () => {
+test.describe('Acceso del profesional (HU-010)', () => {
   test('accede con credenciales válidas y llega a /panel (CA-010-01)', async ({ page }) => {
     await withIsolatedIP(page)
     await page.goto('/acceso')

@@ -1,6 +1,6 @@
 // Horario de atención del local (HU-107, DEC-182), compartido por Configuración
 // (que lo edita) y la reserva pública (que lo muestra). Las horas viajan como
-// `HH:MM` en la hora civil de la barbería; `24:00` es «hasta medianoche». Nada
+// `HH:MM` en la hora civil del negocio; `24:00` es «hasta medianoche». Nada
 // aquí usa la zona del dispositivo: «ahora» se calcula siempre en la zona del
 // local (RN-DIS-07).
 

@@ -36,7 +36,7 @@ async function assertNoAxeViolations(page: import('@playwright/test').Page) {
     const axeGlobal = (window as any).axe
     // color-contrast se desactiva: la paleta ya está verificada en la
     // tabla aprobada de estandar-diseno-visual.md §4.3 (mismo criterio que
-    // barberos-evidencia-responsiva.spec.ts y las pruebas de componente
+    // profesionales-evidencia-responsiva.spec.ts y las pruebas de componente
     // con vitest-axe).
     return axeGlobal.run(document, { rules: { 'color-contrast': { enabled: false } } })
     // eslint-disable-next-line @typescript-eslint/no-explicit-any

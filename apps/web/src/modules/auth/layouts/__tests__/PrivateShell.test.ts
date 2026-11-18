@@ -56,8 +56,8 @@ describe('PrivateShell', () => {
   it('renders header, nav and content when authenticated (CA-012-04)', async () => {
     mockState.bootstrap = {
       status: 'authenticated',
-      barbershopId: 'shop-1',
-      barbershopName: 'Barbería El Corte',
+      businessId: 'shop-1',
+      businessName: 'Barbería El Corte',
       expiresAt: new Date().toISOString(),
     }
     const wrapper = await mountShell()
@@ -87,8 +87,8 @@ describe('PrivateShell', () => {
   it('has no axe violations in the authenticated state', async () => {
     mockState.bootstrap = {
       status: 'authenticated',
-      barbershopId: 'shop-1',
-      barbershopName: 'Barbería El Corte',
+      businessId: 'shop-1',
+      businessName: 'Barbería El Corte',
       expiresAt: new Date().toISOString(),
     }
     const wrapper = await mountShell()
@@ -100,8 +100,8 @@ describe('PrivateShell', () => {
     const authenticated = () => {
       mockState.bootstrap = {
         status: 'authenticated',
-        barbershopId: 'shop-1',
-        barbershopName: 'Barbería El Corte',
+        businessId: 'shop-1',
+        businessName: 'Barbería El Corte',
         expiresAt: new Date().toISOString(),
       }
     }

@@ -1,4 +1,4 @@
-// Calificación de un barbero (DEC-128): promedio de 1 decimal sobre 1–5 y total de
+// Calificación de un profesional (DEC-128): promedio de 1 decimal sobre 1–5 y total de
 // reseñas visibles. Funciones puras compartidas por la reserva pública, el acceso al
 // turno y el panel; el servidor calcula ambos valores, aquí solo se presentan.
 

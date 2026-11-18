@@ -3,7 +3,7 @@
 // accesible (patrón ARIA "list autocomplete") sobre el catálogo IANA del
 // navegador, más un reloj en vivo de la zona elegida y la sugerencia de la zona
 // de este dispositivo. La zona del dispositivo NUNCA se aplica sola: solo se
-// ofrece como atajo, porque toda hora de la app sigue la zona de la barbería.
+// ofrece como atajo, porque toda hora de la app sigue la zona del negocio.
 // El servidor confirma la zona contra su catálogo al guardar (CA-020-03).
 import { computed, onBeforeUnmount, onMounted, ref, useId, watch } from 'vue'
 import {

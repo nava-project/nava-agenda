@@ -8,8 +8,10 @@ import type { RouteRecordRaw } from 'vue-router'
 
 export const staffPrivateShellChildRoutes: RouteRecordRaw[] = [
   {
-    path: 'barberos',
-    name: 'staff-barberos',
+    path: 'profesionales',
+    name: 'staff-profesionales',
     component: () => import('./pages/StaffPage.vue'),
   },
+  // Ruta anterior a DEC-183 (#662): un enlace guardado sigue llegando.
+  { path: 'barberos', redirect: { name: 'staff-profesionales' } },
 ]

@@ -1,7 +1,7 @@
 /**
  * Composición de «Servicios» en app (DEC-115): el catálogo no conoce las
  * asignaciones ni al revés. Las APIs de los dos módulos se sustituyen por dobles;
- * el recorrido real contra el servidor vive en el E2E del perfil de barbero
+ * el recorrido real contra el servidor vive en el E2E del perfil de profesional
  * individual.
  */
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
@@ -12,7 +12,7 @@ import { resetToasts, toastState } from '@/shared/model/toastStore'
 
 const fetchServicesMock = vi.hoisted(() => vi.fn())
 const createServiceMock = vi.hoisted(() => vi.fn())
-const fetchBarberSummariesMock = vi.hoisted(() => vi.fn())
+const fetchProfessionalSummariesMock = vi.hoisted(() => vi.fn())
 const fetchAssignmentsMock = vi.hoisted(() => vi.fn())
 const assignServiceMock = vi.hoisted(() => vi.fn())
 const unassignServiceMock = vi.hoisted(() => vi.fn())
@@ -25,8 +25,8 @@ vi.mock('@/modules/catalog/api/catalogApi', () => ({
   deactivateService: vi.fn(),
   reactivateService: vi.fn(),
 }))
-vi.mock('@/modules/barberServices/api/barberServicesApi', () => ({
-  fetchBarberSummaries: fetchBarberSummariesMock,
+vi.mock('@/modules/professionalServices/api/professionalServicesApi', () => ({
+  fetchProfessionalSummaries: fetchProfessionalSummariesMock,
   fetchAssignments: fetchAssignmentsMock,
   assignService: assignServiceMock,
   unassignService: unassignServiceMock,
@@ -52,11 +52,11 @@ function service(id: string, name: string, overrides: Partial<Record<string, unk
 
 const services = [service('s-1', 'Corte clásico'), service('s-2', 'Barba perfilada')]
 const solo = { ...DEFAULT_BRAND, panelProfile: 'solo' as const }
-const oneBarber = { kind: 'success', items: [{ id: 'b-1', fullName: 'Mateo Rojas' }] }
+const oneProfessional = { kind: 'success', items: [{ id: 'b-1', fullName: 'Mateo Rojas' }] }
 const assignmentsOf = (...ids: string[]) => ({
   kind: 'success',
   page: {
-    items: ids.map((serviceId) => ({ barberId: 'b-1', serviceId, createdAt: '2026-10-04' })),
+    items: ids.map((serviceId) => ({ professionalId: 'b-1', serviceId, createdAt: '2026-10-04' })),
     nextCursor: null,
   },
 })
@@ -108,7 +108,7 @@ describe('CatalogWorkspacePage', () => {
     for (const mock of [
       fetchServicesMock,
       createServiceMock,
-      fetchBarberSummariesMock,
+      fetchProfessionalSummariesMock,
       fetchAssignmentsMock,
       assignServiceMock,
       unassignServiceMock,
@@ -123,12 +123,12 @@ describe('CatalogWorkspacePage', () => {
     expect(wrapper.text()).toContain('Corte clásico')
     expect(switches(wrapper)).toHaveLength(0)
     expect(wrapper.find('.catalog-page__table--offer').exists()).toBe(false)
-    expect(fetchBarberSummariesMock).not.toHaveBeenCalled()
+    expect(fetchProfessionalSummariesMock).not.toHaveBeenCalled()
   })
 
   it('adds «Lo ofrezco» to every service in the solo profile, reflecting what is assigned', async () => {
     setBrand(solo)
-    fetchBarberSummariesMock.mockResolvedValueOnce(oneBarber)
+    fetchProfessionalSummariesMock.mockResolvedValueOnce(oneProfessional)
     fetchAssignmentsMock.mockResolvedValueOnce(assignmentsOf('s-1'))
     const wrapper = await mountPage()
 
@@ -142,7 +142,7 @@ describe('CatalogWorkspacePage', () => {
 
   it('offers and stops offering a service through the real assignment', async () => {
     setBrand(solo)
-    fetchBarberSummariesMock.mockResolvedValueOnce(oneBarber)
+    fetchProfessionalSummariesMock.mockResolvedValueOnce(oneProfessional)
     fetchAssignmentsMock.mockResolvedValueOnce(assignmentsOf('s-1'))
     const wrapper = await mountPage()
     assignServiceMock.mockResolvedValueOnce({ kind: 'success', assignment: {} })
@@ -161,7 +161,7 @@ describe('CatalogWorkspacePage', () => {
 
   it('keeps the switch where it was when the server refuses', async () => {
     setBrand(solo)
-    fetchBarberSummariesMock.mockResolvedValueOnce(oneBarber)
+    fetchProfessionalSummariesMock.mockResolvedValueOnce(oneProfessional)
     fetchAssignmentsMock.mockResolvedValueOnce(assignmentsOf('s-1'))
     const wrapper = await mountPage()
     unassignServiceMock.mockResolvedValueOnce({ kind: 'last-active-conflict' })
@@ -173,9 +173,9 @@ describe('CatalogWorkspacePage', () => {
     expect(toastState.items.map((t) => t.title)).toEqual(['No pudimos guardar el cambio'])
   })
 
-  it('offers a newly created service to the only barber', async () => {
+  it('offers a newly created service to the only professional', async () => {
     setBrand(solo)
-    fetchBarberSummariesMock.mockResolvedValueOnce(oneBarber)
+    fetchProfessionalSummariesMock.mockResolvedValueOnce(oneProfessional)
     fetchAssignmentsMock.mockResolvedValueOnce(assignmentsOf())
     const wrapper = await mountPage()
     createServiceMock.mockResolvedValueOnce({
@@ -213,7 +213,7 @@ describe('CatalogWorkspacePage', () => {
 
   it('says so when a created service could not be offered, and leaves it switchable', async () => {
     setBrand(solo)
-    fetchBarberSummariesMock.mockResolvedValueOnce(oneBarber)
+    fetchProfessionalSummariesMock.mockResolvedValueOnce(oneProfessional)
     fetchAssignmentsMock.mockResolvedValueOnce(assignmentsOf())
     const wrapper = await mountPage()
     createServiceMock.mockResolvedValueOnce({
@@ -251,9 +251,9 @@ describe('CatalogWorkspacePage', () => {
     expect(switches(wrapper).at(-1)!.attributes('aria-checked')).toBe('false')
   })
 
-  it('shows no column when the solo profile has several barbers: there is nobody to pick', async () => {
+  it('shows no column when the solo profile has several professionals: there is nobody to pick', async () => {
     setBrand(solo)
-    fetchBarberSummariesMock.mockResolvedValueOnce({
+    fetchProfessionalSummariesMock.mockResolvedValueOnce({
       kind: 'success',
       items: [
         { id: 'b-1', fullName: 'A' },
@@ -267,8 +267,8 @@ describe('CatalogWorkspacePage', () => {
     expect(fetchAssignmentsMock).not.toHaveBeenCalled()
   })
 
-  it('starts loading what the barber offers when the profile arrives after mounting', async () => {
-    fetchBarberSummariesMock.mockResolvedValueOnce(oneBarber)
+  it('starts loading what the professional offers when the profile arrives after mounting', async () => {
+    fetchProfessionalSummariesMock.mockResolvedValueOnce(oneProfessional)
     fetchAssignmentsMock.mockResolvedValueOnce(assignmentsOf('s-2'))
     const wrapper = await mountPage()
     expect(switches(wrapper)).toHaveLength(0)
@@ -279,9 +279,9 @@ describe('CatalogWorkspacePage', () => {
     expect(switches(wrapper).map((s) => s.attributes('aria-checked'))).toEqual(['false', 'true'])
   })
 
-  it('warns once when what the barber offers cannot be loaded, without breaking the catalog', async () => {
+  it('warns once when what the professional offers cannot be loaded, without breaking the catalog', async () => {
     setBrand(solo)
-    fetchBarberSummariesMock.mockResolvedValueOnce({ kind: 'network-error' })
+    fetchProfessionalSummariesMock.mockResolvedValueOnce({ kind: 'network-error' })
     const wrapper = await mountPage()
 
     expect(wrapper.text()).toContain('Corte clásico')

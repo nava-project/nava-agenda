@@ -1,5 +1,5 @@
 {
-  "name": "system-barbershop",
+  "name": "nava-agenda",
   "private": true,
   "version": "0.1.0",
   "description": "Herramientas de repositorio para el contrato OpenAPI. La aplicación Vue vive en apps/web con su propio package.json.",

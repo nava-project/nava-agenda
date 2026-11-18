@@ -3,7 +3,7 @@
  * unificada por días (cada semana o fechas elegidas), edición por alcance y
  * fechas/excepciones. La API se
  * sustituye por dobles controlables; el recorrido real vive en el E2E de
- * bloqueos dentro de Barberos.
+ * bloqueos dentro de Profesionales.
  */
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { mount, flushPromises, type VueWrapper } from '@vue/test-utils'
@@ -111,8 +111,8 @@ function mountCreate() {
     props: {
       modelValue: true,
       mode: 'create',
-      barberId: 'b-1',
-      barberName: 'Alex',
+      professionalId: 'b-1',
+      professionalName: 'Alex',
       today: '2099-01-01',
     },
     global,
@@ -396,8 +396,8 @@ describe('SeriesFormDialog · edición de una ficha con varios días (#499)', ()
       props: {
         modelValue: true,
         mode: 'edit',
-        barberId: 'b-1',
-        barberName: 'Alex',
+        professionalId: 'b-1',
+        professionalName: 'Alex',
         series: days[0]!,
         group: days,
         today: '2099-01-01',
@@ -419,8 +419,8 @@ describe('SeriesFormDialog · edición de una ficha con varios días (#499)', ()
       props: {
         modelValue: true,
         mode: 'edit',
-        barberId: 'b-1',
-        barberName: 'Alex',
+        professionalId: 'b-1',
+        professionalName: 'Alex',
         series: weekly,
         today: '2099-01-01',
       },
@@ -540,8 +540,8 @@ describe('SeriesFormDialog · edición', () => {
       props: {
         modelValue: true,
         mode: 'edit',
-        barberId: 'b-1',
-        barberName: 'Alex',
+        professionalId: 'b-1',
+        professionalName: 'Alex',
         series,
         today: '2099-01-01',
       },
@@ -670,7 +670,7 @@ describe('SeriesFormDialog · edición', () => {
 describe('SeriesInstancesDialog', () => {
   function mountInstances(series: TimeBlockSeries) {
     return mount(SeriesInstancesDialog, {
-      props: { modelValue: true, barberId: 'b-1', series, today: '2099-01-01' },
+      props: { modelValue: true, professionalId: 'b-1', series, today: '2099-01-01' },
       global,
     })
   }

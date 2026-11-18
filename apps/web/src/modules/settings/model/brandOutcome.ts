@@ -5,7 +5,7 @@
 import type { BrandSettings } from '@/shared/model'
 
 /**
- * Ubicación física de la barbería (DEC-130, HU-102), tal como la guarda el
+ * Ubicación física del negocio (DEC-130, HU-102), tal como la guarda el
  * servidor. Las coordenadas son solo lectura: salen de geocodificar `address`
  * al guardarla. Vive aparte de `BrandSettings` porque solo Configuración la usa.
  */

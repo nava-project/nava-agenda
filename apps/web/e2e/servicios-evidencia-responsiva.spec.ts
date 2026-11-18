@@ -6,7 +6,7 @@ import { fileURLToPath } from 'node:url'
  * Evidencia visual responsive/accesible de HU-022 (docs/03-desarrollo/
  * estandar-diseno-visual.md §16 y estrategia-pruebas.md §5.4): pantalla
  * "Servicios" en 320/360/768/1280 px, más zoom 200% aproximado (mismo
- * criterio que `e2e/barberos-evidencia-responsiva.spec.ts`). Un solo inicio
+ * criterio que `e2e/profesionales-evidencia-responsiva.spec.ts`). Un solo inicio
  * de sesión reutilizado entre los cinco breakpoints. Las capturas se
  * guardan en `e2e/evidence/servicios/`.
  */

@@ -14,7 +14,7 @@ import { pickAgendaDate } from './agenda-fecha'
  *
  * Variables de entorno:
  *   E2E_EMAIL / E2E_PASSWORD: credenciales válidas contra el API real
- *     (barbería A, "shopA").
+ *     (negocio A, "shopA").
  *   APP_BASE_URL: base del frontend (por defecto http://localhost:5173).
  */
 const EMAIL = process.env.E2E_EMAIL ?? 'duena.a@ejemplo.test'
@@ -28,9 +28,9 @@ async function login(page: Page) {
   await expect(page).toHaveURL(/\/panel$/)
 }
 
-async function addBarber(page: Page, fullName: string) {
+async function addProfessional(page: Page, fullName: string) {
   await page.getByRole('link', { name: 'Barberos' }).click()
-  await expect(page).toHaveURL(/\/panel\/barberos$/)
+  await expect(page).toHaveURL(/\/panel\/profesionales$/)
   await page.getByRole('button', { name: 'Agregar barbero' }).click()
   const dialog = page.getByRole('dialog', { name: 'Agregar barbero' })
   await dialog.getByLabel('Nombre').fill(fullName)
@@ -50,10 +50,14 @@ async function addService(page: Page, name: string) {
   await expect(dialog).toBeHidden()
 }
 
-async function assignServiceToBarber(page: Page, barberName: string, serviceName: string) {
+async function assignServiceToProfessional(
+  page: Page,
+  professionalName: string,
+  serviceName: string,
+) {
   await page.getByRole('link', { name: 'Servicios por barbero' }).click()
-  await expect(page).toHaveURL(/\/panel\/servicios-por-barbero$/)
-  await page.getByLabel('Barbero', { exact: true }).selectOption({ label: barberName })
+  await expect(page).toHaveURL(/\/panel\/servicios-por-profesional$/)
+  await page.getByLabel('Barbero', { exact: true }).selectOption({ label: professionalName })
   await page.getByRole('checkbox', { name: serviceName }).check()
   await expect(page.getByRole('checkbox', { name: serviceName })).toBeChecked()
 }
@@ -75,7 +79,7 @@ function nearFutureCivilDateTime(minutesFromNow: number): { date: string; time: 
 
 async function registerManualAppointment(
   page: Page,
-  barberName: string,
+  professionalName: string,
   serviceName: string,
   attendeeName: string,
   customerPhone: string,
@@ -85,7 +89,7 @@ async function registerManualAppointment(
   const { date, time } = nearFutureCivilDateTime(minutesFromNow)
   await page.getByRole('link', { name: 'Nuevo turno' }).click()
   await expect(page).toHaveURL(/\/panel\/turnos\/nuevo$/)
-  await page.getByLabel('Barbero', { exact: true }).selectOption({ label: barberName })
+  await page.getByLabel('Barbero', { exact: true }).selectOption({ label: professionalName })
   await page.getByLabel('Servicio', { exact: true }).selectOption({ label: serviceName })
   await page.getByLabel('Persona atendida').fill(attendeeName)
   await page.getByLabel('Nombre del cliente').fill(attendeeName)
@@ -101,24 +105,24 @@ async function registerManualAppointment(
 test.describe('Detalle e historial de un turno (HU-064)', () => {
   test.describe.configure({ mode: 'serial' })
 
-  test('desde una fecha no actual abre el turno, verifica snapshots e historial, y vuelve a la misma fecha/barbero (CA-064-01 a CA-064-08)', async ({
+  test('desde una fecha no actual abre el turno, verifica snapshots e historial, y vuelve a la misma fecha/profesional (CA-064-01 a CA-064-08)', async ({
     page,
   }) => {
     const stamp = Date.now()
-    const barberName = `E2E Detalle Barbero ${stamp}`
+    const professionalName = `E2E Detalle Barbero ${stamp}`
     const serviceName = `E2E Detalle Servicio ${stamp}`
     const attendeeName = `Cliente detalle E2E ${stamp}`
     const customerPhone = '+573009998877'
     const customerNote = 'Nota de prueba E2E'
 
     await login(page)
-    await addBarber(page, barberName)
+    await addProfessional(page, professionalName)
     await addService(page, serviceName)
-    await assignServiceToBarber(page, barberName, serviceName)
+    await assignServiceToProfessional(page, professionalName, serviceName)
     // Un día completo más adelante: "una fecha no actual" real, no "hoy".
     const { date } = await registerManualAppointment(
       page,
-      barberName,
+      professionalName,
       serviceName,
       attendeeName,
       customerPhone,
@@ -127,12 +131,12 @@ test.describe('Detalle e historial de un turno (HU-064)', () => {
     )
 
     await goToAgenda(page)
-    await page.getByLabel('Barbero').selectOption({ label: barberName })
+    await page.getByLabel('Barbero').selectOption({ label: professionalName })
     await pickAgendaDate(page, date)
     await expect(page).toHaveURL(new RegExp(`date=${date}`))
     await expect(page.getByText(attendeeName)).toBeVisible()
 
-    const barberId = await barberIdFromUrl(page)
+    const professionalId = await professionalIdFromUrl(page)
 
     await page.getByText(attendeeName).click()
     await expect(page).toHaveURL(/\/panel\/turnos\/[^/]+\?/)
@@ -143,21 +147,21 @@ test.describe('Detalle e historial de un turno (HU-064)', () => {
     await expect(page.getByText('20000.00')).toBeVisible()
     await expect(page.getByText(customerPhone)).toBeVisible()
     await expect(page.getByText(customerNote)).toBeVisible()
-    await expect(page.getByText(barberName)).toBeVisible()
+    await expect(page.getByText(professionalName)).toBeVisible()
 
     // Historial: al menos el evento de creación (CA-064-05).
     await expect(page.getByText('Turno creado')).toBeVisible()
 
-    // Volver conserva la misma fecha y barbero (trabajo requerido §3.5).
+    // Volver conserva la misma fecha y profesional (trabajo requerido §3.5).
     await page.getByRole('link', { name: 'Volver a la agenda' }).click()
     await expect(page).toHaveURL(new RegExp(`date=${date}`))
-    await expect(page.getByLabel('Barbero')).toHaveValue(barberId)
+    await expect(page.getByLabel('Barbero')).toHaveValue(professionalId)
     await expect(page.getByText(attendeeName)).toBeVisible()
   })
 
-  async function barberIdFromUrl(page: Page): Promise<string> {
+  async function professionalIdFromUrl(page: Page): Promise<string> {
     const url = new URL(page.url())
-    return url.searchParams.get('barberId') ?? ''
+    return url.searchParams.get('professionalId') ?? ''
   }
 })
 

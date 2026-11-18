@@ -1,17 +1,17 @@
 import { test, expect, type Page } from '@playwright/test'
-import { pickTime, selectBarber } from './horarios-controles'
+import { pickTime, selectProfessional } from './horarios-controles'
 
 /**
  * Recorrido E2E de HU-040 (horario laboral recurrente). Corre contra el API
  * real en local (`go run ./cmd/api` sobre PostgreSQL real con las trece
  * migraciones aplicadas y un usuario con un hash argon2id REAL, mismo
- * criterio que `e2e/servicios-por-barbero.spec.ts`).
+ * criterio que `e2e/servicios-por-profesional.spec.ts`).
  *
  * Variables de entorno:
  *   E2E_EMAIL / E2E_PASSWORD: credenciales válidas contra el API real
- *     (barbería A, "shopA").
+ *     (negocio A, "shopA").
  *   E2E_EMAIL_B / E2E_PASSWORD_B: credenciales válidas de una SEGUNDA
- *     barbería real ("shopB"), usadas solo para la prueba de aislamiento
+ *     negocio real ("shopB"), usadas solo para la prueba de aislamiento
  *     entre tenants.
  *   APP_BASE_URL: base del frontend (por defecto http://localhost:5173).
  */
@@ -28,9 +28,9 @@ async function login(page: Page, email: string, password: string) {
   await expect(page).toHaveURL(/\/panel$/)
 }
 
-async function addBarber(page: Page, fullName: string) {
+async function addProfessional(page: Page, fullName: string) {
   await page.getByRole('link', { name: 'Barberos' }).click()
-  await expect(page).toHaveURL(/\/panel\/barberos$/)
+  await expect(page).toHaveURL(/\/panel\/profesionales$/)
   await page.getByRole('button', { name: 'Agregar barbero' }).click()
   const dialog = page.getByRole('dialog', { name: 'Agregar barbero' })
   await dialog.getByLabel('Nombre').fill(fullName)
@@ -70,8 +70,8 @@ async function addWorkingHour(
 }
 
 test.describe('Horario laboral recurrente (HU-040)', () => {
-  // Serial a propósito: varias pruebas comparten la MISMA barbería real
-  // (shopA/shopB, sin aprovisionamiento de barberías nuevas en esta
+  // Serial a propósito: varias pruebas comparten el mismo negocio real
+  // (shopA/shopB, sin aprovisionamiento de negocios nuevos en esta
   // historia); ejecutarlas en paralelo produciría una carrera entre sus
   // propias escrituras, no un defecto del producto.
   test.describe.configure({ mode: 'serial' })
@@ -80,13 +80,13 @@ test.describe('Horario laboral recurrente (HU-040)', () => {
     page,
   }) => {
     const stamp = Date.now()
-    const barberName = `E2E Barbero Horario ${stamp}`
+    const professionalName = `E2E Barbero Horario ${stamp}`
 
     await login(page, EMAIL, PASSWORD)
-    await addBarber(page, barberName)
+    await addProfessional(page, professionalName)
 
     await openSchedules(page)
-    await selectBarber(page, barberName)
+    await selectProfessional(page, professionalName)
 
     const dialog = await addWorkingHour(page, {
       weekday: 'Lunes',
@@ -97,7 +97,7 @@ test.describe('Horario laboral recurrente (HU-040)', () => {
     await expect(page.getByText('08:00 · 240 min')).toBeVisible()
 
     await page.reload()
-    await selectBarber(page, barberName)
+    await selectProfessional(page, professionalName)
     await expect(page.getByText('08:00 · 240 min')).toBeVisible()
   })
 
@@ -105,13 +105,13 @@ test.describe('Horario laboral recurrente (HU-040)', () => {
     page,
   }) => {
     const stamp = Date.now()
-    const barberName = `E2E Jornada Partida ${stamp}`
+    const professionalName = `E2E Jornada Partida ${stamp}`
 
     await login(page, EMAIL, PASSWORD)
-    await addBarber(page, barberName)
+    await addProfessional(page, professionalName)
 
     await openSchedules(page)
-    await selectBarber(page, barberName)
+    await selectProfessional(page, professionalName)
 
     await addWorkingHour(page, { weekday: 'Martes', startsTime: '08:00', durationMinutes: '240' })
     await expect(page.getByText('08:00 · 240 min')).toBeVisible()
@@ -125,13 +125,13 @@ test.describe('Horario laboral recurrente (HU-040)', () => {
     page,
   }) => {
     const stamp = Date.now()
-    const barberName = `E2E Solape ${stamp}`
+    const professionalName = `E2E Solape ${stamp}`
 
     await login(page, EMAIL, PASSWORD)
-    await addBarber(page, barberName)
+    await addProfessional(page, professionalName)
 
     await openSchedules(page)
-    await selectBarber(page, barberName)
+    await selectProfessional(page, professionalName)
 
     await addWorkingHour(page, {
       weekday: 'Miércoles',
@@ -152,7 +152,7 @@ test.describe('Horario laboral recurrente (HU-040)', () => {
 
     // Nada nuevo se persistió: sigue habiendo un único tramo ese día.
     await page.reload()
-    await selectBarber(page, barberName)
+    await selectProfessional(page, professionalName)
     await expect(page.getByText('09:00 · 60 min')).not.toBeVisible()
   })
 
@@ -160,13 +160,13 @@ test.describe('Horario laboral recurrente (HU-040)', () => {
     page,
   }) => {
     const stamp = Date.now()
-    const barberName = `E2E Editar Retirar ${stamp}`
+    const professionalName = `E2E Editar Retirar ${stamp}`
 
     await login(page, EMAIL, PASSWORD)
-    await addBarber(page, barberName)
+    await addProfessional(page, professionalName)
 
     await openSchedules(page)
-    await selectBarber(page, barberName)
+    await selectProfessional(page, professionalName)
     await addWorkingHour(page, { weekday: 'Jueves', startsTime: '08:00', durationMinutes: '60' })
     await expect(page.getByText('08:00 · 60 min')).toBeVisible()
 
@@ -186,26 +186,26 @@ test.describe('Horario laboral recurrente (HU-040)', () => {
     // Persistencia real: recargar confirma que el retiro fue físico, no
     // solo un cambio visual.
     await page.reload()
-    await selectBarber(page, barberName)
+    await selectProfessional(page, professionalName)
     await expect(page.getByText('09:00 · 60 min')).not.toBeVisible()
   })
 
-  test('un identificador real de otra barbería responde 404 al consultar su horario (RN-TEN-01)', async ({
+  test('un identificador real de otro negocio responde 404 al consultar su horario (RN-TEN-01)', async ({
     page,
   }) => {
     await login(page, EMAIL_B, PASSWORD_B)
     const stamp = Date.now()
     const nameB = `E2E Solo De B ${stamp}`
-    await addBarber(page, nameB)
+    await addProfessional(page, nameB)
 
-    const barberBId = await page.evaluate(async (name) => {
+    const professionalBId = await page.evaluate(async (name) => {
       const res = await fetch('/api/v1/private/professionals?limit=50', { credentials: 'include' })
       const body = (await res.json()) as { items: { id: string; fullName: string }[] }
       return body.items.find((b) => b.fullName === name)?.id ?? null
     }, nameB)
-    expect(barberBId).toBeTruthy()
+    expect(professionalBId).toBeTruthy()
 
-    // Cambia de sesión a la barbería A.
+    // Cambia de sesión al negocio A.
     await page.goto('/acceso')
     await login(page, EMAIL, PASSWORD)
 
@@ -214,12 +214,12 @@ test.describe('Horario laboral recurrente (HU-040)', () => {
         credentials: 'include',
       })
       return res.status
-    }, barberBId)
+    }, professionalBId)
     expect(crossTenantStatus).toBe(404)
 
-    // El selector de A nunca ofrece el barbero de B.
+    // El selector de A nunca ofrece el profesional de B.
     await openSchedules(page)
-    await page.locator('#schedules-barber-select').click()
+    await page.locator('#schedules-professional-select').click()
     await expect(page.getByRole('listbox')).toBeVisible()
     await expect(page.getByRole('option', { name: nameB })).toHaveCount(0)
   })

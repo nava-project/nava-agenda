@@ -2,7 +2,7 @@
 // calendario, franja de horas, cuenta regresiva y progreso. Es solo presentación
 // derivada de `startsAt`/`endsAt`; no decide nada de la política (eso es
 // `cancellationAvailability` y, en última instancia, el servidor). Toda fecha se
-// expresa en la zona de la barbería, nunca en la del dispositivo (CA-098-04).
+// expresa en la zona del negocio, nunca en la del dispositivo (CA-098-04).
 
 export type AppointmentPhase = 'upcoming' | 'in-progress' | 'ended'
 

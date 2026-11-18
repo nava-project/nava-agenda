@@ -1,6 +1,6 @@
 /**
- * Pruebas de SchedulesPage (HU-040): carga (un barbero, cuatro barberos),
- * vacío (sin barberos), error recuperable, cambio de barbero, alta (éxito,
+ * Pruebas de SchedulesPage (HU-040): carga (un profesional, cuatro profesionales),
+ * vacío (sin profesionales), error recuperable, cambio de profesional, alta (éxito,
  * solape -CA-040-04-, validación, no encontrado, error de red), edición
  * (éxito, solape), retiro (éxito, no encontrado, error de red, sin doble
  * envío), agrupación por los siete días y accesibilidad. schedulesApi se
@@ -15,16 +15,16 @@ import { axe } from 'vitest-axe'
 import BaseDatePicker from '@/shared/ui/BaseDatePicker.vue'
 import BaseTimePicker from '@/shared/ui/BaseTimePicker.vue'
 
-const fetchBarberSummariesMock = vi.hoisted(() => vi.fn())
-const fetchBarbershopTimezoneMock = vi.hoisted(() => vi.fn())
+const fetchProfessionalSummariesMock = vi.hoisted(() => vi.fn())
+const fetchBusinessTimezoneMock = vi.hoisted(() => vi.fn())
 const fetchWorkingHoursMock = vi.hoisted(() => vi.fn())
 const createWorkingHourMock = vi.hoisted(() => vi.fn())
 const updateWorkingHourMock = vi.hoisted(() => vi.fn())
 const deleteWorkingHourMock = vi.hoisted(() => vi.fn())
 
 vi.mock('../../api/schedulesApi', () => ({
-  fetchBarberSummaries: fetchBarberSummariesMock,
-  fetchBarbershopTimezone: fetchBarbershopTimezoneMock,
+  fetchProfessionalSummaries: fetchProfessionalSummariesMock,
+  fetchBusinessTimezone: fetchBusinessTimezoneMock,
   fetchWorkingHours: fetchWorkingHoursMock,
   createWorkingHour: createWorkingHourMock,
   updateWorkingHour: updateWorkingHourMock,
@@ -33,7 +33,7 @@ vi.mock('../../api/schedulesApi', () => ({
 
 // HU-041: mismo doble de prueba que schedulesApi, para que el calendario de
 // festivos y las excepciones de jornada (siempre cargados junto al horario
-// semanal del barbero elegido) no dependan de una llamada de red real
+// semanal del profesional elegido) no dependan de una llamada de red real
 // durante estas pruebas de HU-040.
 const fetchHolidayCalendarMock = vi.hoisted(() => vi.fn())
 const updateHolidayCalendarMock = vi.hoisted(() => vi.fn())
@@ -55,8 +55,8 @@ vi.mock('../../api/scheduleExceptionsApi', () => ({
 
 const { default: SchedulesPage } = await import('../SchedulesPage.vue')
 
-const oneBarber = [{ id: 'b-1', fullName: 'Carlos Ramírez' }]
-const fourBarbers = [
+const oneProfessional = [{ id: 'b-1', fullName: 'Carlos Ramírez' }]
+const fourProfessionals = [
   { id: 'b-1', fullName: 'Carlos Ramírez' },
   { id: 'b-2', fullName: 'Ana Torres' },
   { id: 'b-3', fullName: 'Luis Gómez' },
@@ -76,8 +76,8 @@ function mountPage() {
   return mount(SchedulesPage, { global: { stubs: { teleport: true } } })
 }
 
-async function mountReady(barbers = oneBarber, items: (typeof mondayMorning)[] = []) {
-  fetchBarberSummariesMock.mockResolvedValueOnce({ kind: 'success', items: barbers })
+async function mountReady(professionals = oneProfessional, items: (typeof mondayMorning)[] = []) {
+  fetchProfessionalSummariesMock.mockResolvedValueOnce({ kind: 'success', items: professionals })
   fetchWorkingHoursMock.mockResolvedValueOnce({
     kind: 'success',
     page: { items, nextCursor: null },
@@ -87,10 +87,10 @@ async function mountReady(barbers = oneBarber, items: (typeof mondayMorning)[] =
   return wrapper
 }
 
-// El selector de barbero es un listbox propio (BaseSelect): se abre con su
+// El selector de profesional es un listbox propio (BaseSelect): se abre con su
 // disparador y las opciones solo existen mientras está abierto.
-async function openBarberList(wrapper: VueWrapper) {
-  await wrapper.get('#schedules-barber-select').trigger('click')
+async function openProfessionalList(wrapper: VueWrapper) {
+  await wrapper.get('#schedules-professional-select').trigger('click')
   await flushPromises()
   return wrapper.findAll('[role="option"]')
 }
@@ -136,12 +136,12 @@ describe('SchedulesPage', () => {
   beforeEach(() => {
     resetToasts()
     resetBrand()
-    fetchBarberSummariesMock.mockReset()
+    fetchProfessionalSummariesMock.mockReset()
     fetchWorkingHoursMock.mockReset()
     createWorkingHourMock.mockReset()
     updateWorkingHourMock.mockReset()
     deleteWorkingHourMock.mockReset()
-    fetchBarbershopTimezoneMock.mockReset().mockResolvedValue({ kind: 'unavailable' })
+    fetchBusinessTimezoneMock.mockReset().mockResolvedValue({ kind: 'unavailable' })
     fetchHolidayCalendarMock.mockReset().mockResolvedValue({ kind: 'success', enabled: false })
     updateHolidayCalendarMock.mockReset()
     fetchScheduleExceptionsMock
@@ -154,9 +154,9 @@ describe('SchedulesPage', () => {
   })
 
   it('shows a non-blank loading state, then the loaded picker', async () => {
-    let resolveBarbers: (value: unknown) => void = () => {}
-    fetchBarberSummariesMock.mockReturnValueOnce(
-      new Promise((resolve) => (resolveBarbers = resolve)),
+    let resolveProfessionals: (value: unknown) => void = () => {}
+    fetchProfessionalSummariesMock.mockReturnValueOnce(
+      new Promise((resolve) => (resolveProfessionals = resolve)),
     )
     const wrapper = mountPage()
 
@@ -166,54 +166,57 @@ describe('SchedulesPage', () => {
       kind: 'success',
       page: { items: [], nextCursor: null },
     })
-    resolveBarbers({ kind: 'success', items: oneBarber })
+    resolveProfessionals({ kind: 'success', items: oneProfessional })
     await flushPromises()
 
     expect(wrapper.text()).toContain('Carlos Ramírez')
   })
 
-  it('a barber with one tramo and one with a full team select use the same component', async () => {
-    const oneWrapper = await mountReady(oneBarber, [mondayMorning])
-    expect((await openBarberList(oneWrapper)).length).toBe(1)
+  it('a professional with one tramo and one with a full team select use the same component', async () => {
+    const oneWrapper = await mountReady(oneProfessional, [mondayMorning])
+    expect((await openProfessionalList(oneWrapper)).length).toBe(1)
     expect(oneWrapper.text()).toContain('08:00')
 
-    const fourWrapper = await mountReady(fourBarbers, [])
-    expect((await openBarberList(fourWrapper)).length).toBe(4)
+    const fourWrapper = await mountReady(fourProfessionals, [])
+    expect((await openProfessionalList(fourWrapper)).length).toBe(4)
   })
 
   it('always shows all seven weekdays, with or without tramos (CA-040-01)', async () => {
-    const wrapper = await mountReady(oneBarber, [mondayMorning])
+    const wrapper = await mountReady(oneProfessional, [mondayMorning])
     for (const day of ['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado', 'Domingo']) {
       expect(wrapper.text()).toContain(day)
     }
   })
 
-  it('shows the barbershop IANA timezone, never the device one (CA-040-06)', async () => {
-    fetchBarbershopTimezoneMock.mockReset().mockResolvedValueOnce({
+  it('shows the business IANA timezone, never the device one (CA-040-06)', async () => {
+    fetchBusinessTimezoneMock.mockReset().mockResolvedValueOnce({
       kind: 'success',
       timezone: 'America/Bogota',
     })
-    const wrapper = await mountReady(oneBarber, [])
+    const wrapper = await mountReady(oneProfessional, [])
     expect(wrapper.text()).toContain('America/Bogota')
   })
 
-  it('shows an empty state when there are no barbers, without an interactive picker', async () => {
-    fetchBarberSummariesMock.mockResolvedValueOnce({ kind: 'success', items: [] })
+  it('shows an empty state when there are no professionals, without an interactive picker', async () => {
+    fetchProfessionalSummariesMock.mockResolvedValueOnce({ kind: 'success', items: [] })
     const wrapper = mountPage()
     await flushPromises()
 
     expect(wrapper.text()).toContain('Aún no tienes profesionales registrados')
-    expect(wrapper.find('#schedules-barber-select').exists()).toBe(false)
+    expect(wrapper.find('#schedules-professional-select').exists()).toBe(false)
   })
 
   it('shows a recoverable error with Reintentar when the initial load fails', async () => {
-    fetchBarberSummariesMock.mockResolvedValueOnce({ kind: 'network-error' })
+    fetchProfessionalSummariesMock.mockResolvedValueOnce({ kind: 'network-error' })
     const wrapper = mountPage()
     await flushPromises()
 
     expect(wrapper.text()).toContain('No pudimos cargar esta sección')
 
-    fetchBarberSummariesMock.mockResolvedValueOnce({ kind: 'success', items: oneBarber })
+    fetchProfessionalSummariesMock.mockResolvedValueOnce({
+      kind: 'success',
+      items: oneProfessional,
+    })
     fetchWorkingHoursMock.mockResolvedValueOnce({
       kind: 'success',
       page: { items: [], nextCursor: null },
@@ -224,15 +227,15 @@ describe('SchedulesPage', () => {
     expect(wrapper.text()).toContain('Carlos Ramírez')
   })
 
-  it('switching barbers loads that barber schedule independently (cross-barber isolation)', async () => {
-    const wrapper = await mountReady(fourBarbers, [mondayMorning])
+  it('switching professionals loads that professional schedule independently (cross-professional isolation)', async () => {
+    const wrapper = await mountReady(fourProfessionals, [mondayMorning])
     expect(wrapper.text()).toContain('08:00')
 
     fetchWorkingHoursMock.mockResolvedValueOnce({
       kind: 'success',
       page: { items: [{ ...mondayMorning, id: 'wh-2', startsTime: '10:00' }], nextCursor: null },
     })
-    const options = await openBarberList(wrapper)
+    const options = await openProfessionalList(wrapper)
     await options[1]!.trigger('click')
     await flushPromises()
 
@@ -242,7 +245,7 @@ describe('SchedulesPage', () => {
   })
 
   it('creating a tramo succeeds and appends it to its day', async () => {
-    const wrapper = await mountReady(oneBarber, [])
+    const wrapper = await mountReady(oneProfessional, [])
     await openCreateDialog(wrapper)
     await fillCreateForm(wrapper)
 
@@ -256,7 +259,7 @@ describe('SchedulesPage', () => {
   })
 
   it('an overlapping tramo (CA-040-04) shows a recoverable message without closing the dialog', async () => {
-    const wrapper = await mountReady(oneBarber, [])
+    const wrapper = await mountReady(oneProfessional, [])
     await openCreateDialog(wrapper)
     await fillCreateForm(wrapper)
 
@@ -268,7 +271,7 @@ describe('SchedulesPage', () => {
   })
 
   it('rejects an empty starts time on the client without calling the API', async () => {
-    const wrapper = await mountReady(oneBarber, [])
+    const wrapper = await mountReady(oneProfessional, [])
     await openCreateDialog(wrapper)
     await createForm(wrapper).get('button[role="radio"][aria-label="Lunes"]').trigger('click')
     await setTime(createForm(wrapper), '09:00', 1)
@@ -281,7 +284,7 @@ describe('SchedulesPage', () => {
   })
 
   it('editing a tramo succeeds and updates its row in place', async () => {
-    const wrapper = await mountReady(oneBarber, [mondayMorning])
+    const wrapper = await mountReady(oneProfessional, [mondayMorning])
     const editButtons = wrapper.findAll('button').filter((b) => b.text() === 'Editar')
     await editButtons[0]!.trigger('click')
     await flushPromises()
@@ -304,7 +307,7 @@ describe('SchedulesPage', () => {
   })
 
   it('deleting a tramo removes it from the list on success', async () => {
-    const wrapper = await mountReady(oneBarber, [mondayMorning])
+    const wrapper = await mountReady(oneProfessional, [mondayMorning])
     deleteWorkingHourMock.mockResolvedValueOnce({ kind: 'success' })
 
     const retireButton = wrapper.findAll('button').find((b) => b.text() === 'Retirar')!
@@ -317,7 +320,7 @@ describe('SchedulesPage', () => {
   })
 
   it('a 404 while deleting treats the tramo as already gone, without an error message', async () => {
-    const wrapper = await mountReady(oneBarber, [mondayMorning])
+    const wrapper = await mountReady(oneProfessional, [mondayMorning])
     deleteWorkingHourMock.mockResolvedValueOnce({ kind: 'not-found' })
 
     const retireButton = wrapper.findAll('button').find((b) => b.text() === 'Retirar')!
@@ -329,7 +332,7 @@ describe('SchedulesPage', () => {
   })
 
   it('a network error while deleting keeps the row and shows a recoverable message', async () => {
-    const wrapper = await mountReady(oneBarber, [mondayMorning])
+    const wrapper = await mountReady(oneProfessional, [mondayMorning])
     deleteWorkingHourMock.mockResolvedValueOnce({ kind: 'network-error' })
 
     const retireButton = wrapper.findAll('button').find((b) => b.text() === 'Retirar')!
@@ -343,7 +346,7 @@ describe('SchedulesPage', () => {
   })
 
   it('disables the retire button while its own request is in flight (no double submit)', async () => {
-    const wrapper = await mountReady(oneBarber, [mondayMorning])
+    const wrapper = await mountReady(oneProfessional, [mondayMorning])
     let resolveDelete: (value: unknown) => void = () => {}
     deleteWorkingHourMock.mockReturnValueOnce(new Promise((resolve) => (resolveDelete = resolve)))
 
@@ -364,7 +367,7 @@ describe('SchedulesPage', () => {
   })
 
   it('has no axe violations in the ready view', async () => {
-    const wrapper = await mountReady(fourBarbers, [mondayMorning])
+    const wrapper = await mountReady(fourProfessionals, [mondayMorning])
     const results = await axe(wrapper.element, axeOptions)
     expect(results).toHaveNoViolations()
   })
@@ -406,9 +409,9 @@ const closedException = {
 
 describe('SchedulesPage · HU-041', () => {
   beforeEach(() => {
-    fetchBarberSummariesMock.mockReset()
+    fetchProfessionalSummariesMock.mockReset()
     fetchWorkingHoursMock.mockReset()
-    fetchBarbershopTimezoneMock.mockReset().mockResolvedValue({ kind: 'unavailable' })
+    fetchBusinessTimezoneMock.mockReset().mockResolvedValue({ kind: 'unavailable' })
     fetchHolidayCalendarMock.mockReset().mockResolvedValue({ kind: 'success', enabled: false })
     updateHolidayCalendarMock.mockReset()
     fetchScheduleExceptionsMock
@@ -421,13 +424,13 @@ describe('SchedulesPage · HU-041', () => {
 
   it('reflects the current holiday calendar state (CA-041-01)', async () => {
     fetchHolidayCalendarMock.mockReset().mockResolvedValueOnce({ kind: 'success', enabled: true })
-    const wrapper = await mountReady(oneBarber, [])
+    const wrapper = await mountReady(oneProfessional, [])
 
     expect(holidayCalendarCheckbox(wrapper).checked).toBe(true)
   })
 
   it('toggling the holiday calendar persists the new value (CA-041-02)', async () => {
-    const wrapper = await mountReady(oneBarber, [])
+    const wrapper = await mountReady(oneProfessional, [])
     updateHolidayCalendarMock.mockResolvedValueOnce({ kind: 'success', enabled: true })
 
     const checkbox = holidayCalendarCheckbox(wrapper)
@@ -441,7 +444,7 @@ describe('SchedulesPage · HU-041', () => {
   })
 
   it('a failed toggle shows a recoverable message', async () => {
-    const wrapper = await mountReady(oneBarber, [])
+    const wrapper = await mountReady(oneProfessional, [])
     updateHolidayCalendarMock.mockResolvedValueOnce({ kind: 'network-error' })
 
     const checkbox = holidayCalendarCheckbox(wrapper)
@@ -453,19 +456,19 @@ describe('SchedulesPage · HU-041', () => {
     expect(toastState.items).toHaveLength(0)
   })
 
-  it('lists the exceptions of the selected barber (CA-041-04)', async () => {
+  it('lists the exceptions of the selected professional (CA-041-04)', async () => {
     fetchScheduleExceptionsMock.mockReset().mockResolvedValueOnce({
       kind: 'success',
       page: { items: [closedException], nextCursor: null },
     })
-    const wrapper = await mountReady(oneBarber, [])
+    const wrapper = await mountReady(oneProfessional, [])
 
     expect(wrapper.text()).toContain('2026-12-08')
     expect(wrapper.text()).toContain('Cerrado')
   })
 
   it('creating a closed exception succeeds and appends it to the list', async () => {
-    const wrapper = await mountReady(oneBarber, [])
+    const wrapper = await mountReady(oneProfessional, [])
     await openExceptionCreateDialog(wrapper)
     await setDate(exceptionCreateForm(wrapper), '2026-12-08')
 
@@ -489,7 +492,7 @@ describe('SchedulesPage · HU-041', () => {
   })
 
   it('captures an open exception segment as start and end time and sends the derived duration', async () => {
-    const wrapper = await mountReady(oneBarber, [])
+    const wrapper = await mountReady(oneProfessional, [])
     await openExceptionCreateDialog(wrapper)
     let form = exceptionCreateForm(wrapper)
     await setDate(form, '2026-12-24')
@@ -522,7 +525,7 @@ describe('SchedulesPage · HU-041', () => {
   })
 
   it('does not submit an open exception segment that has no end time', async () => {
-    const wrapper = await mountReady(oneBarber, [])
+    const wrapper = await mountReady(oneProfessional, [])
     await openExceptionCreateDialog(wrapper)
     let form = exceptionCreateForm(wrapper)
     await setDate(form, '2026-12-24')
@@ -540,7 +543,7 @@ describe('SchedulesPage · HU-041', () => {
   })
 
   it('a duplicate date (CA-041-05) shows a recoverable message without closing the dialog', async () => {
-    const wrapper = await mountReady(oneBarber, [])
+    const wrapper = await mountReady(oneProfessional, [])
     await openExceptionCreateDialog(wrapper)
     await setDate(exceptionCreateForm(wrapper), '2026-12-08')
 
@@ -552,7 +555,7 @@ describe('SchedulesPage · HU-041', () => {
   })
 
   it('rejects an empty effective date on the client without calling the API', async () => {
-    const wrapper = await mountReady(oneBarber, [])
+    const wrapper = await mountReady(oneProfessional, [])
     await openExceptionCreateDialog(wrapper)
 
     await exceptionCreateForm(wrapper).trigger('submit')
@@ -566,7 +569,7 @@ describe('SchedulesPage · HU-041', () => {
       kind: 'success',
       page: { items: [closedException], nextCursor: null },
     })
-    const wrapper = await mountReady(oneBarber, [])
+    const wrapper = await mountReady(oneProfessional, [])
     deleteScheduleExceptionMock.mockResolvedValueOnce({ kind: 'success' })
 
     const retireButton = wrapper.findAll('button').find((b) => b.text() === 'Retirar')!
@@ -583,7 +586,7 @@ describe('SchedulesPage · HU-041', () => {
       kind: 'success',
       items: [{ date: '2026-12-25', name: 'Navidad' }],
     })
-    const wrapper = await mountReady(oneBarber, [])
+    const wrapper = await mountReady(oneProfessional, [])
 
     expect(wrapper.text()).toContain('Navidad')
 
@@ -605,7 +608,7 @@ describe('SchedulesPage · HU-041', () => {
       kind: 'success',
       items: [{ date: '2026-12-25', name: 'Navidad' }],
     })
-    const wrapper = await mountReady(oneBarber, [])
+    const wrapper = await mountReady(oneProfessional, [])
 
     expect(wrapper.text()).toContain('Con excepción')
     expect(wrapper.findAll('button').some((b) => b.text() === 'Registrar excepción')).toBe(false)
@@ -616,10 +619,10 @@ describe('SchedulesPage · HU-041', () => {
 
 describe('SchedulesPage · tablero semanal', () => {
   beforeEach(() => {
-    fetchBarberSummariesMock.mockReset()
+    fetchProfessionalSummariesMock.mockReset()
     fetchWorkingHoursMock.mockReset()
     createWorkingHourMock.mockReset()
-    fetchBarbershopTimezoneMock.mockReset().mockResolvedValue({ kind: 'unavailable' })
+    fetchBusinessTimezoneMock.mockReset().mockResolvedValue({ kind: 'unavailable' })
     fetchHolidayCalendarMock.mockReset().mockResolvedValue({ kind: 'success', enabled: false })
     fetchScheduleExceptionsMock
       .mockReset()
@@ -628,7 +631,7 @@ describe('SchedulesPage · tablero semanal', () => {
   })
 
   it('totals the week and counts the days with a working schedule', async () => {
-    const wrapper = await mountReady(oneBarber, [
+    const wrapper = await mountReady(oneProfessional, [
       mondayMorning,
       { ...mondayMorning, id: 'wh-2', startsTime: '14:00', durationMinutes: 210 },
       { ...mondayMorning, id: 'wh-3', isoWeekday: 3 },
@@ -640,7 +643,7 @@ describe('SchedulesPage · tablero semanal', () => {
   })
 
   it('labels a day without tramos as free, and still lists it (CA-040-01)', async () => {
-    const wrapper = await mountReady(oneBarber, [mondayMorning])
+    const wrapper = await mountReady(oneProfessional, [mondayMorning])
 
     expect(wrapper.findAll('section.week-board__day')).toHaveLength(7)
     expect(wrapper.findAll('.week-board__day--free')).toHaveLength(6)
@@ -648,14 +651,14 @@ describe('SchedulesPage · tablero semanal', () => {
   })
 
   it('shows when each tramo ends next to its start and duration', async () => {
-    const wrapper = await mountReady(oneBarber, [mondayMorning])
+    const wrapper = await mountReady(oneProfessional, [mondayMorning])
 
     expect(wrapper.text()).toContain('08:00 · 240 min')
     expect(wrapper.text()).toContain('hasta 12:00')
   })
 
   it('opens the create dialog on the day whose + was pressed', async () => {
-    const wrapper = await mountReady(oneBarber, [])
+    const wrapper = await mountReady(oneProfessional, [])
     await wrapper.get('button[aria-label="Agregar un tramo el Martes"]').trigger('click')
     await flushPromises()
 
@@ -678,7 +681,7 @@ describe('SchedulesPage · tablero semanal', () => {
   })
 
   it('previews the tramo being written together with the ones the day already has', async () => {
-    const wrapper = await mountReady(oneBarber, [mondayMorning])
+    const wrapper = await mountReady(oneProfessional, [mondayMorning])
     await wrapper.get('button[aria-label="Agregar un tramo el Lunes"]').trigger('click')
     await flushPromises()
 
@@ -692,16 +695,16 @@ describe('SchedulesPage · tablero semanal', () => {
     expect(createForm(wrapper).findAll('.day-track__bar--muted')).toHaveLength(1)
   })
 
-  it('marks today in the barbershop timezone, not the device one', async () => {
+  it('marks today in the business timezone, not the device one', async () => {
     vi.useFakeTimers({ toFake: ['Date'] })
     try {
       // Domingo 4 de octubre, 22:30 en Bogotá (lunes 5 UTC).
       vi.setSystemTime(new Date('2026-10-05T03:30:00Z'))
-      fetchBarbershopTimezoneMock.mockReset().mockResolvedValueOnce({
+      fetchBusinessTimezoneMock.mockReset().mockResolvedValueOnce({
         kind: 'success',
         timezone: 'America/Bogota',
       })
-      const wrapper = await mountReady(oneBarber, [mondayMorning])
+      const wrapper = await mountReady(oneProfessional, [mondayMorning])
 
       const today = wrapper.findAll('.week-board__day--today')
       expect(today).toHaveLength(1)
@@ -713,7 +716,7 @@ describe('SchedulesPage · tablero semanal', () => {
   })
 
   it('marks no day as today when the timezone is unknown', async () => {
-    const wrapper = await mountReady(oneBarber, [mondayMorning])
+    const wrapper = await mountReady(oneProfessional, [mondayMorning])
 
     expect(wrapper.find('.week-board__day--today').exists()).toBe(false)
   })
@@ -723,7 +726,7 @@ describe('SchedulesPage · tablero semanal', () => {
       kind: 'success',
       items: [{ date: '2026-12-25', name: 'Navidad' }],
     })
-    const wrapper = await mountReady(oneBarber, [])
+    const wrapper = await mountReady(oneProfessional, [])
     const trigger = (title: string) =>
       wrapper.findAll('.accordion-item__trigger').find((t) => t.text().startsWith(title))!
 
@@ -745,7 +748,7 @@ describe('SchedulesPage · tablero semanal', () => {
       kind: 'success',
       page: { items: [closedException], nextCursor: null },
     })
-    const wrapper = await mountReady(oneBarber, [])
+    const wrapper = await mountReady(oneProfessional, [])
     const badge = (title: string) =>
       wrapper
         .findAll('.accordion-item__trigger')
@@ -756,27 +759,31 @@ describe('SchedulesPage · tablero semanal', () => {
     expect(badge('Calendario de festivos')).toBe('Activo')
     expect(badge('Excepciones de jornada')).toBe('1')
   })
-  describe('perfil de barbero individual (DEC-115)', () => {
-    it('hides the barber picker with one barber and still loads that schedule', async () => {
+  describe('perfil de profesional individual (DEC-115)', () => {
+    it('hides the professional picker with one professional and still loads that schedule', async () => {
       setBrand({ ...DEFAULT_BRAND, panelProfile: 'solo' })
-      const wrapper = await mountReady(oneBarber, [mondayMorning])
+      const wrapper = await mountReady(oneProfessional, [mondayMorning])
 
-      expect(wrapper.find('#schedules-barber-select').exists()).toBe(false)
+      expect(wrapper.find('#schedules-professional-select').exists()).toBe(false)
       expect(fetchWorkingHoursMock).toHaveBeenCalledWith('b-1')
       expect(wrapper.text()).toContain('08:00')
     })
 
-    it('keeps the picker in the solo profile with several barbers, and in the full panel', async () => {
+    it('keeps the picker in the solo profile with several professionals, and in the full panel', async () => {
       setBrand({ ...DEFAULT_BRAND, panelProfile: 'solo' })
-      expect((await mountReady(fourBarbers)).find('#schedules-barber-select').exists()).toBe(true)
+      expect(
+        (await mountReady(fourProfessionals)).find('#schedules-professional-select').exists(),
+      ).toBe(true)
 
       resetBrand()
-      expect((await mountReady(oneBarber)).find('#schedules-barber-select').exists()).toBe(true)
+      expect(
+        (await mountReady(oneProfessional)).find('#schedules-professional-select').exists(),
+      ).toBe(true)
     })
 
-    it('points the empty state at "Mi perfil" instead of "Barberos"', async () => {
+    it('points the empty state at "Mi perfil" instead of "Profesionales"', async () => {
       setBrand({ ...DEFAULT_BRAND, panelProfile: 'solo' })
-      fetchBarberSummariesMock.mockResolvedValueOnce({ kind: 'success', items: [] })
+      fetchProfessionalSummariesMock.mockResolvedValueOnce({ kind: 'success', items: [] })
       const wrapper = mountPage()
       await flushPromises()
 
@@ -786,7 +793,7 @@ describe('SchedulesPage · tablero semanal', () => {
 
     it('has no axe violations without the picker', async () => {
       setBrand({ ...DEFAULT_BRAND, panelProfile: 'solo' })
-      const wrapper = await mountReady(oneBarber, [mondayMorning])
+      const wrapper = await mountReady(oneProfessional, [mondayMorning])
 
       expect(await axe(wrapper.element.outerHTML, axeOptions)).toHaveNoViolations()
     })
@@ -806,9 +813,9 @@ describe('SchedulesPage · vocabulario del negocio (DEC-119)', () => {
   beforeEach(() => {
     resetToasts()
     resetBrand()
-    fetchBarberSummariesMock.mockReset()
+    fetchProfessionalSummariesMock.mockReset()
     fetchWorkingHoursMock.mockReset()
-    fetchBarbershopTimezoneMock.mockReset().mockResolvedValue({
+    fetchBusinessTimezoneMock.mockReset().mockResolvedValue({
       kind: 'success',
       timezone: 'America/Bogota',
     })
@@ -820,16 +827,16 @@ describe('SchedulesPage · vocabulario del negocio (DEC-119)', () => {
   })
 
   function expectNoFixedWords(wrapper: VueWrapper) {
-    expect(wrapper.text()).not.toMatch(/barber(o|a|os|as|ía|ías)\b/i)
+    expect(wrapper.text()).not.toMatch(/professional(o|a|os|as|ía|ías)\b/i)
     // Ni las palabras del vocabulario inicial (DEC-183).
     expect(wrapper.text()).not.toMatch(/profesional(es)?\b|negocio/i)
   }
 
   it('names the picker, the timezone note and the holiday switch with the configured words', async () => {
     setBrand(nails)
-    const wrapper = await mountReady(fourBarbers)
+    const wrapper = await mountReady(fourProfessionals)
 
-    expect(wrapper.get('#schedules-barber-select').text()).not.toBe('')
+    expect(wrapper.get('#schedules-professional-select').text()).not.toBe('')
     expect(wrapper.text()).toContain('Manicurista')
     expect(wrapper.text()).toContain('Horas en la zona horaria del estudio:')
     expect(wrapper.text()).toContain('festivos colombianos de esta manicurista')
@@ -838,7 +845,7 @@ describe('SchedulesPage · vocabulario del negocio (DEC-119)', () => {
 
   it('writes the empty state and its link with the configured plural', async () => {
     setBrand(nails)
-    fetchBarberSummariesMock.mockResolvedValueOnce({ kind: 'success', items: [] })
+    fetchProfessionalSummariesMock.mockResolvedValueOnce({ kind: 'success', items: [] })
     const wrapper = mountPage()
     await flushPromises()
 
@@ -849,7 +856,10 @@ describe('SchedulesPage · vocabulario del negocio (DEC-119)', () => {
 
   it('writes the recoverable errors with the configured word', async () => {
     setBrand(nails)
-    fetchBarberSummariesMock.mockResolvedValueOnce({ kind: 'success', items: oneBarber })
+    fetchProfessionalSummariesMock.mockResolvedValueOnce({
+      kind: 'success',
+      items: oneProfessional,
+    })
     fetchWorkingHoursMock.mockResolvedValueOnce({ kind: 'network-error' })
     fetchScheduleExceptionsMock.mockResolvedValueOnce({ kind: 'network-error' })
     const wrapper = mountPage()
@@ -860,7 +870,7 @@ describe('SchedulesPage · vocabulario del negocio (DEC-119)', () => {
   })
 
   it('uses the generic words when the business never configured its own (DEC-183)', async () => {
-    const wrapper = await mountReady(fourBarbers)
+    const wrapper = await mountReady(fourProfessionals)
 
     expect(wrapper.text()).toContain('Horas en la zona horaria del negocio:')
     expect(wrapper.text()).toContain('festivos colombianos de este profesional')

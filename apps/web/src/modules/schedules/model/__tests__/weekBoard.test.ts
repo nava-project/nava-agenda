@@ -74,7 +74,7 @@ describe('weekBoard', () => {
     expect(formatHours(45)).toBe('45 min')
   })
 
-  it('lee el día y la hora en la zona de la barbería, no en la del dispositivo', () => {
+  it('lee el día y la hora en la zona del negocio, no en la del dispositivo', () => {
     // 2026-10-05 03:30 UTC es domingo 4 a las 22:30 en Bogotá (UTC-5).
     const now = nowInTimezone('America/Bogota', new Date('2026-10-05T03:30:00Z'))
     expect(now).toEqual({ isoWeekday: 7, minute: 22 * 60 + 30 })

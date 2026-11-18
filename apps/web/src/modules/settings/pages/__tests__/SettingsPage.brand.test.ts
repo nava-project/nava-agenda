@@ -1,7 +1,7 @@
 /**
  * Pruebas de SettingsPage (HU-020, DEC-110): vista previa y descarte del acento, el panel que deciden los roles (DEC-134) y presets
  * y concordancia del vocabulario.
- * settingsApi, brandApi y auth.updateBarbershopName se sustituyen por dobles de prueba
+ * settingsApi, brandApi y auth.updateBusinessName se sustituyen por dobles de prueba
  * (settingsPageHarness.ts); el recorrido real contra el API vive en el E2E. La suite de la
  * página se reparte en varios archivos SettingsPage*.test.ts para que vitest los ejecute en
  * paralelo (#625).
@@ -202,7 +202,7 @@ describe('SettingsPage', () => {
       },
     )
 
-    it('writes the scope of each section with the confirmed barbershop word', async () => {
+    it('writes the scope of each section with the confirmed business word', async () => {
       // La marca confirmada llega al estado compartido al iniciar la sesión.
       const salon = {
         ...DEFAULT_BRAND,

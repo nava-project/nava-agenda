@@ -4,7 +4,7 @@ import { fileURLToPath } from 'node:url'
 
 /**
  * Canal del código de acceso en Configuración (DEC-139, HU-007). Respuestas
- * simuladas del API: que el servidor derive los destinos, que cada barbería tenga
+ * simuladas del API: que el servidor derive los destinos, que cada negocio tenga
  * su canal, el CHECK de la base y la entrega real por cada canal los cubren las
  * pruebas Go y SQL con PostgreSQL real. Aquí se recorre lo visible:
  *  1. el panel «Código de acceso» muestra los tres canales con el vigente marcado;
@@ -93,7 +93,7 @@ async function openSettings(
       await route.fulfill(json({ title: 'Mock endpoint not found' }, 404))
     }
   })
-  await page.goto('/panel/barberia')
+  await page.goto('/panel/negocio')
   await expect(page.getByRole('heading', { name: 'Código de acceso', level: 2 })).toBeVisible()
   await expect(page.getByRole('radiogroup', { name: 'Canal del código de acceso' })).toBeVisible()
   return api

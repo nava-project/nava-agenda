@@ -27,7 +27,7 @@ const FIXED_STATUS_LABELS: Record<
 }
 
 // El estado técnico `cancelled_by_professional` no se renombra (DEC-016); su etiqueta
-// nombra a quien atendía con la palabra de la barbería (DEC-119).
+// nombra a quien atendía con la palabra del negocio (DEC-119).
 export function appointmentStatusLabel(status: AppointmentStatus, v: Vocabulary): string {
   return status === 'cancelled_by_professional'
     ? `Cancelado ${v.byTheProfessional}`
@@ -59,12 +59,12 @@ export interface CustomerReview {
 /** Lectura mínima del turno del cliente (CA-098-01, CA-098-03): nunca un
  * identificador interno, contacto del cliente, nota ni historial. */
 export interface CustomerAppointment {
-  barbershopName: string
+  businessName: string
   timezone: string
   attendeeName: string
   serviceName: string
   durationMinutes: number
-  barberName: string
+  professionalName: string
   startsAt: string
   endsAt: string
   status: AppointmentStatus
@@ -73,10 +73,10 @@ export interface CustomerAppointment {
   lateCancellationReasonRequired: boolean
   /** Token opaco de versión: se reenvía tal cual como `If-Match` al cancelar (HU-099). */
   versionToken: string
-  /** Contacto público opcional de la barbería: adonde acudir si la política rechaza cancelar. */
-  barbershopContactEmail: string | null
-  barbershopContactPhone: string | null
-  /** Palabras con las que la barbería nombra a su negocio y a su profesional (DEC-119). */
+  /** Contacto público opcional del negocio: adonde acudir si la política rechaza cancelar. */
+  businessContactEmail: string | null
+  businessContactPhone: string | null
+  /** Palabras con las que el negocio nombra a su negocio y a su profesional (DEC-119). */
   vocabulary: VocabularyTerms
   /** «Calificar» solo se ofrece con el turno completado y sin reseña (HU-100, CA-100-01). */
   canReview: boolean
@@ -90,7 +90,7 @@ export interface CustomerAppointment {
  * real. `not-found` cubre las cuatro causas indistinguibles de CA-098-02
  * (forma inválida, inexistente, vencido, revocado); `network-error` y
  * `unexpected-error` son las mismas fronteras defensivas que el resto de la
- * aplicación ya usa (ver public-booking/model/barbershopProfileOutcome.ts). */
+ * aplicación ya usa (ver public-booking/model/businessProfileOutcome.ts). */
 export type GetCustomerAppointmentOutcome =
   | { kind: 'success'; appointment: CustomerAppointment }
   | { kind: 'not-found' }
@@ -146,7 +146,7 @@ export type CancelAppointmentOutcome =
   | { kind: 'unexpected-error'; requestId?: string }
 
 /** Franjas a las que el cliente puede mover su turno (HU-104): instantes UTC en
- * orden cronológico y la zona de la barbería para agruparlos. */
+ * orden cronológico y la zona del negocio para agruparlos. */
 export interface RescheduleSlots {
   timezone: string
   starts: string[]

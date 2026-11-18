@@ -1,0 +1,693 @@
+/**
+ * Pruebas de PublicProfessionalSelectionPage (HU-092): carga, matriz 0/1/N de
+ * profesionales elegibles (preselección automática con uno, elección explícita
+ * con varios, estado vacío distinto de carga/error con cero), enlace no
+ * disponible/desconocido/no publicable (CA-090-02, reutilizado), error de
+ * red con reintento, error inesperado con requestId, selección accesible
+ * por teclado y clic, revalidación al cambiar de servicio (CA-092-04) y
+ * ausencia de violaciones de accesibilidad (axe-core) en cada estado
+ * observable (CA-092-05).
+ */
+import { describe, it, expect, vi, beforeEach } from 'vitest'
+import { mount, flushPromises } from '@vue/test-utils'
+import { axe } from 'vitest-axe'
+
+const getMock = vi.hoisted(() => vi.fn())
+vi.mock('@/shared/api/httpClient', () => ({
+  httpClient: { GET: getMock, POST: vi.fn() },
+}))
+
+const { default: PublicProfessionalSelectionPage } =
+  await import('../PublicProfessionalSelectionPage.vue')
+
+// RouterLink stubbed en vez de un router real (mismo patrón que
+// PublicServiceCatalogPage.test.ts): esta suite verifica el componente en
+// aislamiento, no el enrutamiento, y el CTA "Continuar" (HU-095) navega a
+// la ruta de exploración de fechas y horarios del profesional elegido.
+const RouterLinkStub = { name: 'RouterLink', props: ['to'], template: '<a><slot /></a>' }
+
+const SERVICE_A = '8f3ac2b1-e4d5-46f6-a7c8-d9e0f1a2b3c4'
+const SERVICE_B = '1a2b3c4d-5e6f-4708-9a0b-1c2d3e4f5061'
+
+function okResponse(): Response {
+  return { ok: true, status: 200, headers: new Headers() } as Response
+}
+
+function errorResponse(status: number): Response {
+  return { ok: false, status, headers: new Headers() } as Response
+}
+
+function professionalFixture(overrides: Partial<Record<string, unknown>> = {}) {
+  return {
+    id: 'a1111111-1111-1111-1111-111111111111',
+    fullName: 'Juan Pérez',
+    description: null,
+    photoUpdatedAt: null,
+    rating: null,
+    ratingCount: 0,
+    ...overrides,
+  }
+}
+
+beforeEach(() => {
+  getMock.mockReset()
+})
+
+describe('PublicProfessionalSelectionPage', () => {
+  it('shows the loading state while the request is in flight', async () => {
+    let resolveRequest!: (value: unknown) => void
+    getMock.mockReturnValueOnce(
+      new Promise((resolve) => {
+        resolveRequest = resolve
+      }),
+    )
+    const wrapper = mount(PublicProfessionalSelectionPage, {
+      global: { stubs: { RouterLink: RouterLinkStub } },
+      props: { slug: 'barberia-ejemplo', serviceId: SERVICE_A },
+    })
+
+    expect(wrapper.text()).toContain('Cargando profesionales')
+
+    resolveRequest({ data: undefined, error: undefined, response: errorResponse(500) })
+    await flushPromises()
+  })
+
+  it('resolves slug and serviceId from props (CA-092-03)', async () => {
+    getMock.mockResolvedValueOnce({
+      data: { items: [professionalFixture()] },
+      error: undefined,
+      response: okResponse(),
+    })
+    mount(PublicProfessionalSelectionPage, {
+      global: { stubs: { RouterLink: RouterLinkStub } },
+      props: { slug: 'barberia-ejemplo', serviceId: SERVICE_A },
+    })
+    await flushPromises()
+
+    expect(getMock).toHaveBeenCalledWith(
+      '/public/businesses/{slug}/services/{serviceId}/professionals',
+      expect.objectContaining({
+        params: { path: { slug: 'barberia-ejemplo', serviceId: SERVICE_A } },
+      }),
+    )
+  })
+
+  it('preselects automatically with exactly one eligible professional, without a radiogroup (CA-092-01)', async () => {
+    getMock.mockResolvedValueOnce({
+      data: { items: [professionalFixture({ fullName: 'Juan Pérez' })] },
+      error: undefined,
+      response: okResponse(),
+    })
+    const wrapper = mount(PublicProfessionalSelectionPage, {
+      global: { stubs: { RouterLink: RouterLinkStub } },
+      props: { slug: 'barberia-ejemplo', serviceId: SERVICE_A },
+    })
+    await flushPromises()
+
+    expect(wrapper.text()).toContain('Juan Pérez')
+    expect(wrapper.find('[role="radiogroup"]').exists()).toBe(false)
+  })
+
+  it('requires an explicit choice with several eligible professionals (CA-092-01)', async () => {
+    getMock.mockResolvedValueOnce({
+      data: {
+        items: [
+          professionalFixture({ id: 'a', fullName: 'Ana Gómez' }),
+          professionalFixture({ id: 'b', fullName: 'Luis Rojas' }),
+        ],
+      },
+      error: undefined,
+      response: okResponse(),
+    })
+    const wrapper = mount(PublicProfessionalSelectionPage, {
+      global: { stubs: { RouterLink: RouterLinkStub } },
+      props: { slug: 'barberia-ejemplo', serviceId: SERVICE_A },
+    })
+    await flushPromises()
+
+    const options = wrapper.findAll('[role="radio"]')
+    expect(options).toHaveLength(2)
+    expect(options[0]!.attributes('aria-checked')).toBe('false')
+    expect(options[1]!.attributes('aria-checked')).toBe('false')
+  })
+
+  it('selects a professional on click, marking it with aria-checked', async () => {
+    getMock.mockResolvedValueOnce({
+      data: {
+        items: [
+          professionalFixture({ id: 'a', fullName: 'Ana Gómez' }),
+          professionalFixture({ id: 'b', fullName: 'Luis Rojas' }),
+        ],
+      },
+      error: undefined,
+      response: okResponse(),
+    })
+    const wrapper = mount(PublicProfessionalSelectionPage, {
+      global: { stubs: { RouterLink: RouterLinkStub } },
+      props: { slug: 'barberia-ejemplo', serviceId: SERVICE_A },
+    })
+    await flushPromises()
+
+    const options = wrapper.findAll('[role="radio"]')
+    await options[1]!.trigger('click')
+
+    expect(options[0]!.attributes('aria-checked')).toBe('false')
+    expect(options[1]!.attributes('aria-checked')).toBe('true')
+  })
+
+  it('selects the focused option with the keyboard (Space/Enter)', async () => {
+    getMock.mockResolvedValueOnce({
+      data: {
+        items: [
+          professionalFixture({ id: 'a', fullName: 'Ana Gómez' }),
+          professionalFixture({ id: 'b', fullName: 'Luis Rojas' }),
+        ],
+      },
+      error: undefined,
+      response: okResponse(),
+    })
+    const wrapper = mount(PublicProfessionalSelectionPage, {
+      global: { stubs: { RouterLink: RouterLinkStub } },
+      props: { slug: 'barberia-ejemplo', serviceId: SERVICE_A },
+    })
+    await flushPromises()
+
+    const list = wrapper.find('[role="radiogroup"]')
+    await list.trigger('keydown', { key: 'ArrowDown' })
+    await list.trigger('keydown', { key: 'Enter' })
+
+    const options = wrapper.findAll('[role="radio"]')
+    expect(options[1]!.attributes('aria-checked')).toBe('true')
+  })
+
+  it('shows a distinct empty state with zero eligible professionals (CA-092-03)', async () => {
+    getMock.mockResolvedValueOnce({
+      data: { items: [] },
+      error: undefined,
+      response: okResponse(),
+    })
+    const wrapper = mount(PublicProfessionalSelectionPage, {
+      global: { stubs: { RouterLink: RouterLinkStub } },
+      props: { slug: 'barberia-ejemplo', serviceId: SERVICE_A },
+    })
+    await flushPromises()
+
+    expect(wrapper.text()).toContain('no tiene profesionales disponibles')
+    expect(wrapper.find('[role="radiogroup"]').exists()).toBe(false)
+  })
+
+  it('does not show "Continuar" without a selected professional', async () => {
+    getMock.mockResolvedValueOnce({
+      data: {
+        items: [
+          professionalFixture({ id: 'a', fullName: 'Ana Gómez' }),
+          professionalFixture({ id: 'b', fullName: 'Luis Rojas' }),
+        ],
+      },
+      error: undefined,
+      response: okResponse(),
+    })
+    const wrapper = mount(PublicProfessionalSelectionPage, {
+      global: { stubs: { RouterLink: RouterLinkStub } },
+      props: { slug: 'barberia-ejemplo', serviceId: SERVICE_A },
+    })
+    await flushPromises()
+
+    expect(wrapper.text()).not.toContain('Continuar')
+  })
+
+  it('shows "Continuar" navigating to the availability route of the selected professional (HU-095)', async () => {
+    getMock.mockResolvedValueOnce({
+      data: {
+        items: [
+          professionalFixture({ id: 'a', fullName: 'Ana Gómez' }),
+          professionalFixture({ id: 'b', fullName: 'Luis Rojas' }),
+        ],
+      },
+      error: undefined,
+      response: okResponse(),
+    })
+    const wrapper = mount(PublicProfessionalSelectionPage, {
+      global: { stubs: { RouterLink: RouterLinkStub } },
+      props: { slug: 'barberia-ejemplo', serviceId: SERVICE_A },
+    })
+    await flushPromises()
+
+    await wrapper.findAll('[role="radio"]')[1]!.trigger('click')
+
+    const cta = wrapper.findComponent(RouterLinkStub)
+    expect(cta.text()).toContain('Continuar')
+    expect(cta.props('to')).toEqual({
+      name: 'reserva-publica-horario',
+      params: { slug: 'barberia-ejemplo', serviceId: SERVICE_A, professionalId: 'b' },
+    })
+  })
+
+  it('shows "Continuar" immediately when a single professional is auto-preselected (CA-092-01)', async () => {
+    getMock.mockResolvedValueOnce({
+      data: { items: [professionalFixture()] },
+      error: undefined,
+      response: okResponse(),
+    })
+    const wrapper = mount(PublicProfessionalSelectionPage, {
+      global: { stubs: { RouterLink: RouterLinkStub } },
+      props: { slug: 'barberia-ejemplo', serviceId: SERVICE_A },
+    })
+    await flushPromises()
+
+    const cta = wrapper.findComponent(RouterLinkStub)
+    expect(cta.exists()).toBe(true)
+    expect(cta.props('to')).toEqual({
+      name: 'reserva-publica-horario',
+      params: {
+        slug: 'barberia-ejemplo',
+        serviceId: SERVICE_A,
+        professionalId: 'a1111111-1111-1111-1111-111111111111',
+      },
+    })
+  })
+
+  it('shows the same uniform message for a 404 (malformed, unknown or non-publishable slug, CA-090-02)', async () => {
+    getMock.mockResolvedValueOnce({
+      data: undefined,
+      error: { status: 404 },
+      response: errorResponse(404),
+    })
+    const wrapper = mount(PublicProfessionalSelectionPage, {
+      global: { stubs: { RouterLink: RouterLinkStub } },
+      props: { slug: 'no-existe', serviceId: SERVICE_A },
+    })
+    await flushPromises()
+
+    expect(wrapper.text()).toContain('No encontramos ese enlace')
+  })
+
+  it('offers a retry action on a network error, re-fetching the same slug and serviceId', async () => {
+    getMock.mockRejectedValueOnce(new TypeError('Failed to fetch'))
+    const wrapper = mount(PublicProfessionalSelectionPage, {
+      global: { stubs: { RouterLink: RouterLinkStub } },
+      props: { slug: 'barberia-ejemplo', serviceId: SERVICE_A },
+    })
+    await flushPromises()
+    expect(wrapper.text()).toContain('No pudimos conectar')
+
+    getMock.mockResolvedValueOnce({
+      data: { items: [professionalFixture()] },
+      error: undefined,
+      response: okResponse(),
+    })
+    await wrapper.find('button').trigger('click')
+    await flushPromises()
+
+    expect(wrapper.text()).toContain('Juan Pérez')
+    expect(getMock).toHaveBeenCalledTimes(2)
+  })
+
+  it('shows the requestId on an unexpected error, without leaking the raw problem body', async () => {
+    getMock.mockResolvedValueOnce({
+      data: undefined,
+      error: { status: 500, code: 'internal', title: 'Error interno', requestId: 'req-abc-123' },
+      response: errorResponse(500),
+    })
+    const wrapper = mount(PublicProfessionalSelectionPage, {
+      global: { stubs: { RouterLink: RouterLinkStub } },
+      props: { slug: 'barberia-ejemplo', serviceId: SERVICE_A },
+    })
+    await flushPromises()
+
+    expect(wrapper.text()).toContain('req-abc-123')
+    expect(wrapper.text()).toContain('Ocurrió un error inesperado')
+  })
+
+  it('clears an incompatible selection and reloads when serviceId changes (CA-092-04)', async () => {
+    getMock.mockResolvedValueOnce({
+      data: {
+        items: [
+          professionalFixture({ id: 'a', fullName: 'Ana Gómez' }),
+          professionalFixture({ id: 'b', fullName: 'Luis Rojas' }),
+        ],
+      },
+      error: undefined,
+      response: okResponse(),
+    })
+    const wrapper = mount(PublicProfessionalSelectionPage, {
+      global: { stubs: { RouterLink: RouterLinkStub } },
+      props: { slug: 'barberia-ejemplo', serviceId: SERVICE_A },
+    })
+    await flushPromises()
+    await wrapper.findAll('[role="radio"]')[0]!.trigger('click')
+    expect(wrapper.findAll('[role="radio"]')[0]!.attributes('aria-checked')).toBe('true')
+
+    // El nuevo servicio no tiene al profesional "a" entre sus elegibles: la
+    // selección previa es incompatible y debe limpiarse, nunca conservarse
+    // a ciegas.
+    getMock.mockResolvedValueOnce({
+      data: { items: [professionalFixture({ id: 'c', fullName: 'Carlos Ruiz' })] },
+      error: undefined,
+      response: okResponse(),
+    })
+    await wrapper.setProps({ serviceId: SERVICE_B })
+    await flushPromises()
+
+    expect(wrapper.text()).toContain('Carlos Ruiz')
+    expect(getMock).toHaveBeenLastCalledWith(
+      '/public/businesses/{slug}/services/{serviceId}/professionals',
+      expect.objectContaining({
+        params: { path: { slug: 'barberia-ejemplo', serviceId: SERVICE_B } },
+      }),
+    )
+  })
+
+  it('keeps a compatible selection after revalidating it against the fresh list (CA-092-04)', async () => {
+    getMock.mockResolvedValueOnce({
+      data: {
+        items: [
+          professionalFixture({ id: 'a', fullName: 'Ana Gómez' }),
+          professionalFixture({ id: 'b', fullName: 'Luis Rojas' }),
+        ],
+      },
+      error: undefined,
+      response: okResponse(),
+    })
+    const wrapper = mount(PublicProfessionalSelectionPage, {
+      global: { stubs: { RouterLink: RouterLinkStub } },
+      props: { slug: 'barberia-ejemplo', serviceId: SERVICE_A },
+    })
+    await flushPromises()
+    await wrapper.findAll('[role="radio"]')[0]!.trigger('click')
+
+    // El nuevo servicio SÍ incluye al mismo profesional "a": la selección se
+    // conserva, pero solo porque la lista fresca lo revalida, no porque se
+    // haya asumido compatible sin verificar.
+    getMock.mockResolvedValueOnce({
+      data: {
+        items: [
+          professionalFixture({ id: 'a', fullName: 'Ana Gómez' }),
+          professionalFixture({ id: 'c', fullName: 'Carlos Ruiz' }),
+        ],
+      },
+      error: undefined,
+      response: okResponse(),
+    })
+    await wrapper.setProps({ serviceId: SERVICE_B })
+    await flushPromises()
+
+    const options = wrapper.findAll('[role="radio"]')
+    expect(options[0]!.attributes('aria-checked')).toBe('true')
+  })
+
+  it('discards a stale response for a serviceId already replaced (race guard)', async () => {
+    let resolveFirst!: (value: unknown) => void
+    getMock.mockReturnValueOnce(
+      new Promise((resolve) => {
+        resolveFirst = resolve
+      }),
+    )
+    const wrapper = mount(PublicProfessionalSelectionPage, {
+      global: { stubs: { RouterLink: RouterLinkStub } },
+      props: { slug: 'barberia-ejemplo', serviceId: SERVICE_A },
+    })
+
+    getMock.mockResolvedValueOnce({
+      data: { items: [professionalFixture({ fullName: 'Carlos Ruiz' })] },
+      error: undefined,
+      response: okResponse(),
+    })
+    await wrapper.setProps({ serviceId: SERVICE_B })
+    await flushPromises()
+
+    // La respuesta de la primera petición (para SERVICE_A) llega tarde,
+    // después de que SERVICE_B ya resolvió: debe descartarse.
+    resolveFirst({
+      data: { items: [professionalFixture({ fullName: 'Respuesta tardía' })] },
+      error: undefined,
+      response: okResponse(),
+    })
+    await flushPromises()
+
+    expect(wrapper.text()).toContain('Carlos Ruiz')
+    expect(wrapper.text()).not.toContain('Respuesta tardía')
+  })
+
+  it('has no accessibility violations in the loading state', async () => {
+    getMock.mockReturnValueOnce(new Promise(() => {}))
+    const wrapper = mount(PublicProfessionalSelectionPage, {
+      global: { stubs: { RouterLink: RouterLinkStub } },
+      props: { slug: 'barberia-ejemplo', serviceId: SERVICE_A },
+    })
+    const results = await axe(wrapper.element)
+    expect(results).toHaveNoViolations()
+  })
+
+  it('names the only professional once, without repeating the name in the action bar (DEC-111)', async () => {
+    getMock.mockResolvedValueOnce({
+      data: { items: [professionalFixture({ fullName: 'Ana Gómez' })] },
+      error: undefined,
+      response: okResponse(),
+    })
+    const wrapper = mount(PublicProfessionalSelectionPage, {
+      global: { stubs: { RouterLink: RouterLinkStub } },
+      props: { slug: 'barberia-ejemplo', serviceId: SERVICE_A },
+    })
+    await flushPromises()
+
+    expect(wrapper.text().match(/Ana Gómez/g)).toHaveLength(1)
+    // La acción sigue disponible: la preselección no exige un paso adicional.
+    expect(wrapper.find('.pb-actionbar a').text()).toContain('Continuar')
+  })
+
+  it('has no accessibility violations with a single preselected professional', async () => {
+    getMock.mockResolvedValueOnce({
+      data: { items: [professionalFixture()] },
+      error: undefined,
+      response: okResponse(),
+    })
+    const wrapper = mount(PublicProfessionalSelectionPage, {
+      global: { stubs: { RouterLink: RouterLinkStub } },
+      props: { slug: 'barberia-ejemplo', serviceId: SERVICE_A },
+    })
+    await flushPromises()
+    const results = await axe(wrapper.element)
+    expect(results).toHaveNoViolations()
+  })
+
+  it('has no accessibility violations with several professionals to choose from', async () => {
+    getMock.mockResolvedValueOnce({
+      data: {
+        items: [
+          professionalFixture({ id: 'a' }),
+          professionalFixture({ id: 'b', fullName: 'Luis Rojas' }),
+        ],
+      },
+      error: undefined,
+      response: okResponse(),
+    })
+    const wrapper = mount(PublicProfessionalSelectionPage, {
+      global: { stubs: { RouterLink: RouterLinkStub } },
+      props: { slug: 'barberia-ejemplo', serviceId: SERVICE_A },
+    })
+    await flushPromises()
+    const results = await axe(wrapper.element)
+    expect(results).toHaveNoViolations()
+  })
+
+  it('has no accessibility violations in the empty state', async () => {
+    getMock.mockResolvedValueOnce({
+      data: { items: [] },
+      error: undefined,
+      response: okResponse(),
+    })
+    const wrapper = mount(PublicProfessionalSelectionPage, {
+      global: { stubs: { RouterLink: RouterLinkStub } },
+      props: { slug: 'barberia-ejemplo', serviceId: SERVICE_A },
+    })
+    await flushPromises()
+    const results = await axe(wrapper.element)
+    expect(results).toHaveNoViolations()
+  })
+
+  it('has no accessibility violations on the not-found error state', async () => {
+    getMock.mockResolvedValueOnce({
+      data: undefined,
+      error: { status: 404 },
+      response: errorResponse(404),
+    })
+    const wrapper = mount(PublicProfessionalSelectionPage, {
+      global: { stubs: { RouterLink: RouterLinkStub } },
+      props: { slug: 'no-existe', serviceId: SERVICE_A },
+    })
+    await flushPromises()
+    const results = await axe(wrapper.element)
+    expect(results).toHaveNoViolations()
+  })
+
+  // --- Descripción y fotografía públicas (DEC-127) ----------------------------
+
+  const withProfile = {
+    description: 'Fade, barba y navaja con más de diez años en el oficio.',
+    photoUpdatedAt: '2026-09-30T12:00:00Z',
+  }
+
+  async function mountSeveral() {
+    getMock.mockResolvedValueOnce({
+      data: {
+        items: [
+          professionalFixture({ id: 'a', fullName: 'Ana Gómez', ...withProfile }),
+          professionalFixture({ id: 'b', fullName: 'Luis Rojas' }),
+        ],
+      },
+      error: undefined,
+      response: okResponse(),
+    })
+    const wrapper = mount(PublicProfessionalSelectionPage, {
+      global: { stubs: { RouterLink: RouterLinkStub } },
+      props: { slug: 'barberia ejemplo', serviceId: SERVICE_A },
+    })
+    await flushPromises()
+    return wrapper
+  }
+
+  it('shows each professional with photo, name and description, falling back to the monogram', async () => {
+    const wrapper = await mountSeveral()
+    const [ana, luis] = wrapper.findAll('[role="radio"]')
+
+    expect(ana!.find('.professional-avatar--portrait').exists()).toBe(true)
+    expect(ana!.find('img').attributes('src')).toBe(
+      '/api/v1/public/businesses/barberia%20ejemplo/professionals/a/photo?v=2026-09-30T12%3A00%3A00Z',
+    )
+    expect(ana!.text()).toContain('Ana Gómez')
+    expect(ana!.text()).toContain('Fade, barba y navaja con más de diez años en el oficio.')
+
+    // Sin foto ni descripción: monograma y solo el nombre.
+    expect(luis!.find('img').exists()).toBe(false)
+    expect(luis!.text()).toContain('LR')
+    expect(luis!.find('.pb-choice__description').exists()).toBe(false)
+  })
+
+  it('names each option by the professional name and describes it with the description', async () => {
+    const wrapper = await mountSeveral()
+    const ana = wrapper.findAll('[role="radio"]')[0]!
+    const nameId = ana.attributes('aria-labelledby')!
+    const descriptionId = ana.attributes('aria-describedby')!
+
+    expect(wrapper.get(`#${nameId}`).text()).toBe('Ana Gómez')
+    expect(wrapper.get(`#${descriptionId}`).text()).toContain('Fade, barba y navaja')
+    expect(wrapper.findAll('[role="radio"]')[1]!.attributes('aria-describedby')).toBeUndefined()
+  })
+
+  it('keeps the full long description in the DOM (the row only clamps it visually)', async () => {
+    const long = 'Texto largo. '.repeat(40).trim()
+    getMock.mockResolvedValueOnce({
+      data: {
+        items: [
+          professionalFixture({ id: 'a', fullName: 'Ana Gómez', description: long }),
+          professionalFixture({ id: 'b', fullName: 'Luis Rojas' }),
+        ],
+      },
+      error: undefined,
+      response: okResponse(),
+    })
+    const wrapper = mount(PublicProfessionalSelectionPage, {
+      global: { stubs: { RouterLink: RouterLinkStub } },
+      props: { slug: 'barberia-ejemplo', serviceId: SERVICE_A },
+    })
+    await flushPromises()
+
+    const description = wrapper.get('.pb-choice__description')
+    expect(description.text()).toBe(long)
+    expect(description.classes()).toContain('pb-choice__description--clamped')
+  })
+
+  it('shows the description and photo of the only professional in the preselected card', async () => {
+    getMock.mockResolvedValueOnce({
+      data: { items: [professionalFixture({ fullName: 'Juan Pérez', ...withProfile })] },
+      error: undefined,
+      response: okResponse(),
+    })
+    const wrapper = mount(PublicProfessionalSelectionPage, {
+      global: { stubs: { RouterLink: RouterLinkStub } },
+      props: { slug: 'barberia-ejemplo', serviceId: SERVICE_A },
+    })
+    await flushPromises()
+
+    expect(wrapper.find('[role="radiogroup"]').exists()).toBe(false)
+    expect(wrapper.get('.pb-ficha img').attributes('src')).toContain('/photo?v=')
+    expect(wrapper.get('.pb-ficha__description').text()).toContain('Fade, barba y navaja')
+    expect(wrapper.get('.pb-ficha__text').text()).toContain('Juan Pérez')
+  })
+
+  it('has no accessibility violations with photos and descriptions', async () => {
+    const wrapper = await mountSeveral()
+    const results = await axe(wrapper.element)
+    expect(results).toHaveNoViolations()
+  })
+})
+
+describe('PublicProfessionalSelectionPage · reseñas (HU-100)', () => {
+  const second = '22222222-2222-2222-2222-222222222222'
+
+  it('shows the average only for professionals that have visible reviews', async () => {
+    getMock.mockResolvedValueOnce({
+      data: {
+        items: [
+          professionalFixture({ rating: 4.5, ratingCount: 12 }),
+          professionalFixture({ id: second, fullName: 'Ana Gómez' }),
+        ],
+      },
+      error: undefined,
+      response: okResponse(),
+    })
+    const wrapper = mount(PublicProfessionalSelectionPage, {
+      global: { stubs: { RouterLink: RouterLinkStub } },
+      props: { slug: 'barberia-ejemplo', serviceId: SERVICE_A },
+    })
+    await flushPromises()
+
+    const ratings = wrapper.findAll('[role="img"][aria-label*="de 5"]')
+    expect(ratings).toHaveLength(1)
+    expect(ratings[0]!.attributes('aria-label')).toBe('4,5 de 5 · 12 reseñas')
+  })
+
+  it('offers the review list only for the chosen professional and only if it has reviews', async () => {
+    getMock.mockResolvedValueOnce({
+      data: {
+        items: [
+          professionalFixture({ rating: 4.5, ratingCount: 12 }),
+          professionalFixture({ id: second, fullName: 'Ana Gómez' }),
+        ],
+      },
+      error: undefined,
+      response: okResponse(),
+    })
+    const wrapper = mount(PublicProfessionalSelectionPage, {
+      global: { stubs: { RouterLink: RouterLinkStub } },
+      props: { slug: 'barberia-ejemplo', serviceId: SERVICE_A },
+    })
+    await flushPromises()
+    expect(wrapper.text()).not.toContain('Ver reseñas')
+
+    await wrapper.findAll('[role="radio"]')[1]!.trigger('click')
+    expect(wrapper.text()).not.toContain('Ver reseñas')
+
+    await wrapper.findAll('[role="radio"]')[0]!.trigger('click')
+    expect(wrapper.text()).toContain('Ver reseñas (12)')
+  })
+
+  it('shows the single professional rating and its review list without an extra step', async () => {
+    getMock.mockResolvedValueOnce({
+      data: { items: [professionalFixture({ rating: 5, ratingCount: 1 })] },
+      error: undefined,
+      response: okResponse(),
+    })
+    const wrapper = mount(PublicProfessionalSelectionPage, {
+      global: { stubs: { RouterLink: RouterLinkStub } },
+      props: { slug: 'barberia-ejemplo', serviceId: SERVICE_A },
+    })
+    await flushPromises()
+
+    expect(wrapper.get('.pb-ficha [role="img"]').attributes('aria-label')).toBe(
+      '5,0 de 5 · 1 reseña',
+    )
+    expect(wrapper.text()).toContain('Ver reseñas (1)')
+  })
+})

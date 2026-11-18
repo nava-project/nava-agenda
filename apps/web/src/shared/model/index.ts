@@ -36,7 +36,7 @@ export {
   setAccentPreview,
   setBrand,
   vocabulary,
-  worksOwnBarber,
+  worksOwnProfessional,
 } from './brandStore'
 export {
   buildVocabulary,

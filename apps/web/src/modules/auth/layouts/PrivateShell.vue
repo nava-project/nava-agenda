@@ -20,7 +20,7 @@ import AppNav from '../components/AppNav.vue'
 // módulos.
 defineProps<{ extraNavItems?: NavItem[] }>()
 
-// Modo, tamaño de texto, animaciones y acento de la barbería (DEC-110) se
+// Modo, tamaño de texto, animaciones y acento del negocio (DEC-110) se
 // pintan en <html> solo mientras el cascarón está montado; al salir se retiran,
 // así el acceso y la reserva pública nunca heredan el tema del panel.
 const detachWorkspaceTheme = attachWorkspaceTheme()
@@ -34,7 +34,7 @@ function onRetry() {
 <template>
   <div class="private-shell">
     <template v-if="sessionState.bootstrap.status === 'authenticated'">
-      <AppHeader :barbershop-name="sessionState.bootstrap.barbershopName" />
+      <AppHeader :business-name="sessionState.bootstrap.businessName" />
       <!-- Escenario posicionado entre cabecera y navegación: ancla la región
            de avisos (DEC-095) sin depender de la altura de ninguna de las dos
            ni desplazarse con el contenido. -->

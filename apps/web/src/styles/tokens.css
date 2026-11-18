@@ -93,7 +93,7 @@
   /* Cuerpo de lectura sobre tinta: más claro que --color-on-strong-muted
      para el texto explicativo de un aviso, sin llegar al marfil del título. */
   --color-on-strong-soft: #cbd0d8;
-  /* Campos hundidos sobre tinta (select de barbero, selector de fecha): más
+  /* Campos hundidos sobre tinta (select de profesional, selector de fecha): más
      oscuros que --color-surface-strong, así leen como un hueco en la página y
      no como un velo claro sobre el azul (el 5 % de marfil que usaban antes se
      veía azul grisáceo). Los desplegables se levantan con #16243a. */
@@ -116,9 +116,9 @@
   --color-status-cancelled-customer-surface: var(--color-inactive-surface);
   --color-status-cancelled-customer-text: var(--color-inactive-text);
   --color-status-cancelled-customer-border: var(--color-inactive-border);
-  --color-status-cancelled-barber-surface: var(--color-danger-surface);
-  --color-status-cancelled-barber-text: var(--color-danger-text);
-  --color-status-cancelled-barber-border: var(--color-danger-border);
+  --color-status-cancelled-professional-surface: var(--color-danger-surface);
+  --color-status-cancelled-professional-text: var(--color-danger-text);
+  --color-status-cancelled-professional-border: var(--color-danger-border);
   --color-status-no-show-surface: var(--color-warning-surface);
   --color-status-no-show-text: var(--color-warning-text);
   --color-status-no-show-border: var(--color-warning-border);

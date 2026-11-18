@@ -11,18 +11,25 @@
 // mismo (CA-096-01, RN-RES-02).
 import { computed, nextTick, onMounted, ref, useId, watch } from 'vue'
 import { useRouter } from 'vue-router'
-import { BarberAvatar, BaseAlert, BaseButton, BaseDialog, BaseInput, PhoneField } from '@/shared/ui'
+import {
+  ProfessionalAvatar,
+  BaseAlert,
+  BaseButton,
+  BaseDialog,
+  BaseInput,
+  PhoneField,
+} from '@/shared/ui'
 import type { LatLng } from '@/shared/model/mapPicker'
 import { isPlacesAvailable, type PlaceSelection } from '@/shared/model/placesAutocomplete'
 import { composeHomeAddress } from '../model/homeAddress'
 import HomeLocationField from '../components/HomeLocationField.vue'
 import { confirmPublicAppointment } from '../api/confirmPublicAppointmentApi'
-import { listPublicBarbers } from '../api/listPublicBarbersApi'
+import { listPublicProfessionals } from '../api/listPublicProfessionalsApi'
 import { useBookingChrome } from '../model/bookingChrome'
 import { newIdempotencyKey } from '../model/idempotencyKey'
 import { loadPublicProfile } from '../model/publicProfile'
-import type { PublicBarber } from '../model/publicBarberListOutcome'
-import { publicBarberPhotoUrl } from '../model/publicBarberPhotoUrl'
+import type { PublicProfessional } from '../model/publicProfessionalListOutcome'
+import { publicProfessionalPhotoUrl } from '../model/publicProfessionalPhotoUrl'
 import { DEFAULT_PHONE_COUNTRY, composePhone, phoneCountry } from '@/shared/model/phoneCountries'
 import { usePublicVocabulary } from '../model/publicVocabulary'
 import type {
@@ -45,8 +52,8 @@ interface Props {
   slug: string
   /** Servicio ya elegido (HU-091). */
   serviceId: string
-  /** Barbero ya elegido (HU-092). */
-  barberId: string
+  /** Profesional ya elegido (HU-092). */
+  professionalId: string
   /** Franja ya elegida (HU-095), instante ISO absoluto. El servidor la
    * revalida por completo al confirmar (CA-097-02); esta página solo la
    * conserva y la envía tal cual. */
@@ -74,19 +81,20 @@ const email = ref('')
 const note = ref('')
 const attendeeName = ref('')
 
-// El barbero elegido, para mostrarlo en el resumen con su foto. La página puede
+// El profesional elegido, para mostrarlo en el resumen con su foto. La página puede
 // abrirse directamente desde un enlace, así que se busca por id en la lista
 // pública del servicio. Es solo presentación: si no llega, el resumen sigue
-// siendo completo (el servidor valida el barbero al confirmar).
-const barber = ref<PublicBarber | null>(null)
+// siendo completo (el servidor valida el profesional al confirmar).
+const professional = ref<PublicProfessional | null>(null)
 onMounted(async () => {
-  const outcome = await listPublicBarbers(props.slug, props.serviceId)
+  const outcome = await listPublicProfessionals(props.slug, props.serviceId)
   if (outcome.kind === 'success') {
-    barber.value = outcome.barbers.find((item) => item.id === props.barberId) ?? null
+    professional.value =
+      outcome.professionals.find((item) => item.id === props.professionalId) ?? null
   }
 })
 
-// Servicio a domicilio (DEC-131, HU-103): el paso solo existe si la barbería lo ofrece Y hay
+// Servicio a domicilio (DEC-131, HU-103): el paso solo existe si el negocio lo ofrece Y hay
 // forma de marcar un punto en este entorno (mapa con clave, o el simulado en desarrollo). Se lee fresco al
 // abrir la página; el servidor lo revalida al confirmar (CA-103-05), así que un valor viejo
 // aquí solo produciría un 422 explicado, nunca un turno equivocado.
@@ -96,7 +104,7 @@ const serviceMode = ref<ServiceMode>('local')
 const homePlace = ref<PlaceSelection | null>(null)
 // Torre, apartamento o referencia que escribe el cliente (DEC-155); opcional.
 const homeDetails = ref('')
-// Dónde abre el mapa de «a domicilio»: la barbería, si publicó su ubicación (DEC-138).
+// Dónde abre el mapa de «a domicilio»: el negocio, si publicó su ubicación (DEC-138).
 const homeMapStart = ref<LatLng | null>(null)
 onMounted(async () => {
   const outcome = await loadPublicProfile(props.slug)
@@ -277,7 +285,7 @@ async function handleConfirm() {
   const outcome = await confirmPublicAppointment(
     props.slug,
     props.serviceId,
-    props.barberId,
+    props.professionalId,
     {
       startsAt: selectedStartsAt.value,
       fullName: fullName.value.trim(),
@@ -346,7 +354,7 @@ async function handleConfirm() {
 function pickAnotherSlot() {
   void router.push({
     name: 'reserva-publica-horario',
-    params: { slug: props.slug, serviceId: props.serviceId, barberId: props.barberId },
+    params: { slug: props.slug, serviceId: props.serviceId, professionalId: props.professionalId },
   })
 }
 
@@ -569,15 +577,15 @@ function chooseAlternative(startsAt: string) {
           <span class="customer-details__when-label">Tu turno</span>
           <span class="customer-details__when-time">{{ formatLocalTime(selectedStartsAt) }}</span>
           <span class="customer-details__when-day">{{ formatLocalDay(selectedStartsAt) }}</span>
-          <span v-if="barber" class="customer-details__who">
-            <BarberAvatar
+          <span v-if="professional" class="customer-details__who">
+            <ProfessionalAvatar
               size="row"
-              :full-name="barber.fullName"
-              :photo-url="publicBarberPhotoUrl(slug, barber)"
+              :full-name="professional.fullName"
+              :photo-url="publicProfessionalPhotoUrl(slug, professional)"
             />
             <span class="customer-details__who-text">
               <span class="customer-details__when-label">{{ v.Professional }}</span>
-              <span class="customer-details__who-name">{{ barber.fullName }}</span>
+              <span class="customer-details__who-name">{{ professional.fullName }}</span>
             </span>
           </span>
         </div>
@@ -674,7 +682,7 @@ function chooseAlternative(startsAt: string) {
 
         <article v-if="confirmedAppointment" class="ticket__card">
           <div class="ticket__main">
-            <p class="ticket__shop">{{ confirmedAppointment.barbershopName }}</p>
+            <p class="ticket__shop">{{ confirmedAppointment.businessName }}</p>
             <p class="ticket__service">{{ confirmedAppointment.serviceName }}</p>
             <p class="ticket__meta">
               <span>{{ confirmedAppointment.durationMinutes }} min</span>
@@ -709,15 +717,15 @@ function chooseAlternative(startsAt: string) {
               </span>
             </div>
 
-            <div v-if="barber" class="ticket__who">
-              <BarberAvatar
+            <div v-if="professional" class="ticket__who">
+              <ProfessionalAvatar
                 size="row"
-                :full-name="barber.fullName"
-                :photo-url="publicBarberPhotoUrl(slug, barber)"
+                :full-name="professional.fullName"
+                :photo-url="publicProfessionalPhotoUrl(slug, professional)"
               />
               <span class="ticket__who-text">
                 <span class="ticket__label">{{ v.Professional }}</span>
-                <span class="ticket__who-name">{{ barber.fullName }}</span>
+                <span class="ticket__who-name">{{ professional.fullName }}</span>
               </span>
             </div>
           </div>
@@ -1190,7 +1198,7 @@ function chooseAlternative(startsAt: string) {
   text-transform: uppercase;
 }
 
-/* Barbero elegido: retrato y nombre al pie del talón, separados por un filete. */
+/* Profesional elegido: retrato y nombre al pie del talón, separados por un filete. */
 .customer-details__who {
   display: flex;
   gap: var(--space-3);
@@ -1200,7 +1208,7 @@ function chooseAlternative(startsAt: string) {
   border-top: 1px solid var(--pb-line);
 }
 
-/* En ancho, el barbero pasa a la derecha del talón: la hora y él se leen a la
+/* En ancho, el profesional pasa a la derecha del talón: la hora y él se leen a la
    vez y la hoja gana alto para los datos. */
 @media (min-width: 560px) {
   .customer-details__when {

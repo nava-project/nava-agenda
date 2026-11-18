@@ -7,9 +7,9 @@
 // único landmark de banner) y la transición de entrada/salida entre pasos.
 //
 // Es un lienzo de tinta fijo: no hereda `data-app-theme` del panel privado.
-// Sí lleva el color de marca de SU barbería (DEC-171, amplía DEC-110/DEC-111),
+// Sí lleva el color de marca de SU negocio (DEC-171, amplía DEC-110/DEC-111),
 // leído del perfil público del enlace, y NAVA aparece
-// como firma secundaria, porque el nombre de la barbería es la jerarquía
+// como firma secundaria, porque el nombre del negocio es la jerarquía
 // principal de la entrada (estandar-diseno-visual.md §3.2).
 import { computed, onBeforeUnmount, provide, ref, watch } from 'vue'
 import { RouterLink, RouterView, useRoute, type RouteLocationRaw } from 'vue-router'
@@ -29,11 +29,11 @@ const route = useRoute()
 const completed = ref(false)
 provide(bookingChromeKey, { completed })
 
-// Vocabulario de la barbería (DEC-119): se lee una vez del perfil público del enlace
+// Vocabulario del negocio (DEC-119): se lee una vez del perfil público del enlace
 // y se ofrece a todas las pantallas, que pueden abrirse directamente desde un enlace.
 // Sin respuesta (enlace desconocido, red caída) valen los valores iniciales: cada
 // pantalla muestra su propio estado de error. Las pantallas no se montan hasta que la
-// lectura termina, para que nadie vea un instante «barbero» antes de «manicurista».
+// lectura termina, para que nadie vea un instante «profesional» antes de «manicurista».
 const currentSlug = computed(() => String(route.params.slug ?? ''))
 const vocabularySettled = ref(false)
 const v = computed(() => buildVocabularyFromTerms(publicTermsFor(currentSlug.value)))
@@ -92,20 +92,20 @@ const back = computed<{ to: RouteLocationRaw; label: string } | null>(() => {
   if (completed.value) return null
   const slug = String(route.params.slug ?? '')
   const serviceId = String(route.params.serviceId ?? '')
-  const barberId = String(route.params.barberId ?? '')
+  const professionalId = String(route.params.professionalId ?? '')
   switch (route.name) {
     case 'reserva-publica-servicios':
       return { to: { name: 'reserva-publica-entrada', params: { slug } }, label: 'Inicio' }
-    case 'reserva-publica-barbero':
+    case 'reserva-publica-profesional':
       return { to: { name: 'reserva-publica-servicios', params: { slug } }, label: 'Servicios' }
     case 'reserva-publica-horario':
       return {
-        to: { name: 'reserva-publica-barbero', params: { slug, serviceId } },
+        to: { name: 'reserva-publica-profesional', params: { slug, serviceId } },
         label: v.value.Professional,
       }
     case 'reserva-publica-cliente':
       return {
-        to: { name: 'reserva-publica-horario', params: { slug, serviceId, barberId } },
+        to: { name: 'reserva-publica-horario', params: { slug, serviceId, professionalId } },
         label: 'Horario',
       }
     default:
@@ -161,9 +161,9 @@ watch(
       </Transition>
     </RouterView>
 
-    <!-- Firma secundaria (especificacion-frontend-nava.md §2.1): la barbería
+    <!-- Firma secundaria (especificacion-frontend-nava.md §2.1): el negocio
          lleva la jerarquía principal; NAVA solo firma al pie, para que nadie
-         crea que reserva en una barbería llamada NAVA. -->
+         crea que reserva en un negocio llamado NAVA. -->
     <footer class="pb-footer">
       <span>Reservas con</span>
       <NavaWordmark variant="inverted" size="sm" />

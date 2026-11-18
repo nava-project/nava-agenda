@@ -1,4 +1,4 @@
-// Prepara la fotografía de un barbero en el navegador antes de enviarla
+// Prepara la fotografía de un profesional en el navegador antes de enviarla
 // (DEC-104): la recorta al centro en un cuadrado, la reduce a 512 px y la
 // re-codifica como JPEG. Así el servidor recibe siempre una imagen pequeña
 // (decenas de KiB), sin metadatos EXIF del dispositivo (ubicación, modelo de

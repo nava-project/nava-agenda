@@ -1,7 +1,7 @@
 // Espejo tipado del cuerpo real del contrato (HU-041, CA-041-04/05):
 // exactamente id, effectiveDate, isClosed, reason, segments, createdAt,
-// updatedAt. barbershopId/barberId nunca aparecen: el tenant se deriva de
-// la sesión y el barbero de la ruta.
+// updatedAt. businessId/professionalId nunca aparecen: el tenant se deriva de
+// la sesión y el profesional de la ruta.
 export interface ScheduleExceptionSegment {
   id: string
   startsTime: string
@@ -26,7 +26,7 @@ export interface ScheduleExceptionPage {
 }
 
 // ColombianHoliday es el dato de referencia calendárica de HU-041: exacto,
-// fecha civil y nombre, igual para toda barbería y todo barbero.
+// fecha civil y nombre, igual para todo negocio y todo profesional.
 export interface ColombianHoliday {
   date: string
   name: string

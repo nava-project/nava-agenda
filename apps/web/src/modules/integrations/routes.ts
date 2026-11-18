@@ -10,13 +10,21 @@ import type { RouteRecordRaw } from 'vue-router'
 
 export const integrationsPrivateShellChildRoutes: RouteRecordRaw[] = [
   {
-    path: 'barberia/google-calendar',
+    path: 'negocio/google-calendar',
     name: 'integraciones-google-calendar',
     component: () => import('./pages/GoogleCalendarPage.vue'),
   },
   {
-    path: 'barberia/google-calendar/callback',
+    path: 'negocio/google-calendar/callback',
     name: 'integraciones-google-calendar-retorno',
     component: () => import('./pages/GoogleCalendarCallbackPage.vue'),
+  },
+  // Rutas anteriores a DEC-183 (#662). La de retorno es la URI registrada en Google
+  // Cloud hasta que se cambie por la nueva: la redirección conserva `code` y `state`
+  // (vue-router mantiene query y hash al redirigir a un nombre).
+  { path: 'barberia/google-calendar', redirect: { name: 'integraciones-google-calendar' } },
+  {
+    path: 'barberia/google-calendar/callback',
+    redirect: { name: 'integraciones-google-calendar-retorno' },
   },
 ]

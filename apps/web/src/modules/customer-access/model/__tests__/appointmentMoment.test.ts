@@ -14,7 +14,7 @@ const TZ = 'America/Bogota'
 const at = (iso: string) => Date.parse(iso)
 
 describe('calendarLeaf', () => {
-  it('uses the barbershop timezone, not the device one', () => {
+  it('uses the business timezone, not the device one', () => {
     // 03:00Z del 16 es todavía 15 de marzo en Bogotá.
     const leaf = calendarLeaf('2027-03-16T03:00:00Z', TZ)
     expect(leaf.day).toBe('15')
@@ -39,7 +39,7 @@ describe('appointmentPhase and appointmentProgress', () => {
 })
 
 describe('countdownLabel', () => {
-  it('counts calendar days in the barbershop timezone', () => {
+  it('counts calendar days in the business timezone', () => {
     expect(countdownLabel(START, END, TZ, at('2027-03-12T20:00:00Z'))).toBe('En 3 días')
     // 23:00 del 14 en Bogotá: faltan 11 h pero es «mañana».
     expect(countdownLabel(START, END, TZ, at('2027-03-15T04:00:00Z'))).toBe('Mañana')

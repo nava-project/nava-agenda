@@ -1,6 +1,6 @@
-// Reseñas de un barbero vistas desde el panel (HU-100, DEC-128, CA-100-05).
+// Reseñas de un profesional vistas desde el panel (HU-100, DEC-128, CA-100-05).
 // A diferencia de la lista pública incluyen las ocultas, con la fecha en que se ocultaron.
-export interface BarberReview {
+export interface ProfessionalReview {
   id: string
   rating: number
   comment: string | null
@@ -9,20 +9,20 @@ export interface BarberReview {
   createdAt: string
 }
 
-export interface BarberReviewList {
+export interface ProfessionalReviewList {
   rating: number | null
   ratingCount: number
-  items: BarberReview[]
+  items: ProfessionalReview[]
 }
 
-export type ListBarberReviewsOutcome =
-  | { kind: 'success'; reviews: BarberReviewList }
+export type ListProfessionalReviewsOutcome =
+  | { kind: 'success'; reviews: ProfessionalReviewList }
   | { kind: 'not-found' }
   | { kind: 'network-error' }
   | { kind: 'unexpected-error' }
 
 export type SetReviewHiddenOutcome =
-  | { kind: 'success'; review: BarberReview }
+  | { kind: 'success'; review: ProfessionalReview }
   | { kind: 'not-found' }
   | { kind: 'network-error' }
   | { kind: 'unexpected-error' }

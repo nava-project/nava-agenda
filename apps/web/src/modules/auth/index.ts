@@ -1,4 +1,4 @@
-// Módulo: acceso del barbero (inicio de sesión, sesión privada y
+// Módulo: acceso del profesional (inicio de sesión, sesión privada y
 // recuperación de acceso). API pública mínima para `app`, según
 // docs/03-desarrollo/estandar-frontend-vue.md: las rutas (cargadas de forma
 // diferida), la instalación de la coordinación de sesión que solo `app`
@@ -8,11 +8,11 @@
 // módulo, sin crear un segundo guard ni un árbol de rutas paralelo;
 // `privateShellChildRoutes` está vacío desde HU-062, porque `/panel` ahora
 // lo sirve `agenda`) y una función estrecha para que un módulo hermano
-// actualice el nombre de la barbería ya confirmado por el servidor
-// (`updateBarbershopName`, HU-020) y el estado de la sesión de solo lectura
-// (`sessionStatus`, DEC-110) para que `app` conecte la marca de la barbería
+// actualice el nombre del negocio ya confirmado por el servidor
+// (`updateBusinessName`, HU-020) y el estado de la sesión de solo lectura
+// (`sessionStatus`, DEC-110) para que `app` conecte la marca del negocio
 // con el inicio y el fin de la sesión. Los componentes, el estado y el cliente
 // API internos permanecen privados.
 export { authRoutes, privateShellChildRoutes, privateShellRoute } from './routes'
 export { installSessionHandling } from './bootstrap/installSessionHandling'
-export { sessionStatus, updateBarbershopName } from './model/sessionStore'
+export { sessionStatus, updateBusinessName } from './model/sessionStore'

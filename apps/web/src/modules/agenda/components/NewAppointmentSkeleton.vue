@@ -1,7 +1,7 @@
 <script setup lang="ts">
 /**
  * NewAppointmentSkeleton - Espera con la geometría del formulario por llegar
- * (issue #190, atlas nuevo-turno-eventos evento 01): mientras barberos y zona
+ * (issue #190, atlas nuevo-turno-eventos evento 01): mientras profesionales y zona
  * horaria siguen sin resolverse, la pantalla conserva la hoja de cuatro
  * bandas numeradas y sus campos en vez de dejar un indicador suelto sobre una
  * pantalla vacía. Desde el rediseño del issue #576 calca los pasos con su
@@ -15,7 +15,7 @@
  * fija, sin pulso.
  */
 interface Props {
-  /** Texto exacto ya usado por el código ("Cargando barberos…"): este
+  /** Texto exacto ya usado por el código ("Cargando profesionales…"): este
    * componente no lo redacta. */
   label: string
 }

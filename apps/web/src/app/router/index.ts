@@ -2,9 +2,9 @@ import { createRouter, createWebHistory, type RouteRecordRaw } from 'vue-router'
 import { agendaNavItems, agendaPrivateShellChildRoutes } from '@/modules/agenda'
 import { authRoutes, privateShellChildRoutes, privateShellRoute } from '@/modules/auth'
 import {
-  barberServicesNavItems,
-  barberServicesPrivateShellChildRoutes,
-} from '@/modules/barberServices'
+  professionalServicesNavItems,
+  professionalServicesPrivateShellChildRoutes,
+} from '@/modules/professionalServices'
 import { catalogNavItems, catalogPrivateShellChildRoutes } from '@/modules/catalog'
 import { integrationsPrivateShellChildRoutes } from '@/modules/integrations'
 import { customerAccessRoutes } from '@/modules/customer-access'
@@ -13,6 +13,7 @@ import { schedulesNavItems, schedulesPrivateShellChildRoutes } from '@/modules/s
 import { settingsNavItems, settingsPrivateShellChildRoutes } from '@/modules/settings'
 import { staffNavItems, staffPrivateShellChildRoutes } from '@/modules/staff'
 import { installChunkLoadRecovery } from './chunkLoadRecovery'
+import { legacyQueryRedirect } from './legacyQuery'
 import { installProfileRedirect } from './profileGuard'
 
 // Cada ruta se carga de forma diferida (docs/04-arquitectura/frontend.md):
@@ -30,7 +31,7 @@ const routes: RouteRecordRaw[] = [
   // sin sesión la guarda del cascarón la manda al acceso.
   { path: '/', name: 'inicio', redirect: '/panel' },
   ...authRoutes,
-  // HU-090: entrada pública de reservas, sin sesión del barbero y aislada
+  // HU-090: entrada pública de reservas, sin sesión del profesional y aislada
   // del cascarón privado (CA-090-03: nunca pasa por requireSession).
   ...publicBookingRoutes,
   // HU-098: lectura del turno del cliente por la credencial de su enlace,
@@ -42,7 +43,7 @@ const routes: RouteRecordRaw[] = [
       ...settingsPrivateShellChildRoutes,
       ...integrationsPrivateShellChildRoutes,
       ...staffPrivateShellChildRoutes.map((route) =>
-        route.name === 'staff-barberos'
+        route.name === 'staff-profesionales'
           ? {
               path: route.path,
               name: route.name,
@@ -59,15 +60,15 @@ const routes: RouteRecordRaw[] = [
             }
           : route,
       ),
-      ...barberServicesPrivateShellChildRoutes,
+      ...professionalServicesPrivateShellChildRoutes,
       ...schedulesPrivateShellChildRoutes,
       ...agendaPrivateShellChildRoutes,
     ],
     [
       // Orden de los 5 destinos P0 del dock (especificacion-frontend-nava.md
-      // §5.1): Agenda (entrada base de AppNav) · Servicios · Barberos ·
-      // Horarios · Configuración (siempre última). barberServicesNavItems aporta un sexto
-      // ítem temporal ("Servicios por barbero", ver su propio módulo) hasta
+      // §5.1): Agenda (entrada base de AppNav) · Servicios · Profesionales ·
+      // Horarios · Configuración (siempre última). professionalServicesNavItems aporta un sexto
+      // ítem temporal ("Servicios por profesional", ver su propio módulo) hasta
       // que la Fase 5 lo fusione dentro de "Servicios"; agendaNavItems
       // aporta un arreglo vacío desde la Fase 2 (issue #135, "Nuevo turno"
       // es la acción global del header, no un destino) y se conserva en el
@@ -75,7 +76,7 @@ const routes: RouteRecordRaw[] = [
       ...catalogNavItems,
       ...staffNavItems,
       ...schedulesNavItems,
-      ...barberServicesNavItems,
+      ...professionalServicesNavItems,
       ...agendaNavItems,
       // Configuración siempre al final: es lo que menos se usa a diario.
       ...settingsNavItems,
@@ -112,7 +113,10 @@ export const router = createRouter({
   },
 })
 
-// Perfil de barbero individual (DEC-115): las rutas que ese perfil retira se desvían a
+// `?barberId=` de enlaces anteriores a DEC-183 pasa a `?professionalId=` (#662).
+router.beforeEach((to) => legacyQueryRedirect(to) ?? true)
+
+// Perfil de profesional individual (DEC-115): las rutas que ese perfil retira se desvían a
 // un destino válido (ver profileGuard.ts).
 installProfileRedirect(router)
 

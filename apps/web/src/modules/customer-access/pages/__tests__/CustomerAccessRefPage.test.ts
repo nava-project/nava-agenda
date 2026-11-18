@@ -191,7 +191,7 @@ describe('CustomerAccessRefPage', () => {
     expect(postMock).toHaveBeenCalledTimes(5)
   })
 
-  it('un enlace sin barbería muestra su propio estado', async () => {
+  it('un enlace sin negocio muestra su propio estado', async () => {
     reply(404, undefined, problem(404, 'not-found'))
     const w = await mountPage()
     await typeCode(w, '482913')

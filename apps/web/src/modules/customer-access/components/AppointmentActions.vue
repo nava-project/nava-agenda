@@ -229,11 +229,9 @@ const bookAgainHref = computed(() => `/reservar/${encodeURIComponent(props.slug)
             <span class="actions__time">{{ summary.start }} – {{ summary.end }}</span>
           </h2>
           <p class="actions__what">
-            {{ appointment.serviceName }} con {{ appointment.barberName }}
+            {{ appointment.serviceName }} con {{ appointment.professionalName }}
           </p>
-          <p class="actions__where">
-            {{ appointment.barbershopName }} · Hora de {{ summary.city }}
-          </p>
+          <p class="actions__where">{{ appointment.businessName }} · Hora de {{ summary.city }}</p>
         </div>
       </article>
 

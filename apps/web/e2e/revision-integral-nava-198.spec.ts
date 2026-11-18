@@ -21,11 +21,11 @@ const VIEWPORTS = [
 const PRIVATE_ROUTES = [
   { name: 'agenda', url: '/panel' },
   { name: 'nuevo-turno', url: '/panel/turnos/nuevo' },
-  { name: 'barberos', url: '/panel/barberos' },
+  { name: 'barberos', url: '/panel/profesionales' },
   { name: 'servicios', url: '/panel/servicios' },
-  { name: 'servicios-por-barbero', url: '/panel/servicios-por-barbero' },
+  { name: 'servicios-por-profesional', url: '/panel/servicios-por-profesional' },
   { name: 'horarios', url: '/panel/horarios' },
-  { name: 'barberia', url: '/panel/barberia' },
+  { name: 'barberia', url: '/panel/negocio' },
   { name: 'reserva-publica', url: '/panel/reserva-publica' },
 ]
 const PUBLIC_ROUTES = [
@@ -167,10 +167,10 @@ test('rutas privadas del panel en los cuatro anchos', async ({ page }, testInfo)
       )
     }
   }
-  // /panel/bloqueos ya no es un destino propio (DEC-105): redirige a Barberos.
+  // /panel/bloqueos ya no es un destino propio (DEC-105): redirige a Profesionales.
   await page.setViewportSize(VIEWPORTS[0]!)
   await page.goto('/panel/bloqueos')
-  await expect(page).toHaveURL(/\/panel\/barberos$/)
+  await expect(page).toHaveURL(/\/panel\/profesionales$/)
 })
 
 test('acceso y recuperación en los cuatro anchos', async ({ browser }, testInfo) => {

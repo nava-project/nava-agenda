@@ -38,7 +38,7 @@ const attemptedSubmit = ref(false)
 const summaryRef = ref<{ focus: () => void } | null>(null)
 
 // Solo se muestran errores de campo tras el primer intento de envío: no se
-// regaña al barbero mientras todavía está escribiendo por primera vez.
+// regaña al profesional mientras todavía está escribiendo por primera vez.
 const showFieldErrors = computed(() => attemptedSubmit.value)
 const emailError = computed(() => (showFieldErrors.value ? fieldErrors.value.email : undefined))
 const passwordError = computed(() =>
@@ -49,7 +49,7 @@ const errorCount = computed(() => Object.keys(fieldErrors.value).length)
 const showSummary = computed(() => showFieldErrors.value && errorCount.value > 1)
 
 // Revalida en vivo, tras un intento fallido, en respuesta a la escritura
-// real del barbero (eventos de entrada de BaseInput), NUNCA a un cambio
+// real del profesional (eventos de entrada de BaseInput), NUNCA a un cambio
 // de prop en sí mismo. Esto importa porque LoginPage limpia la
 // contraseña por su cuenta ante credenciales inválidas (CA-010-02): un
 // `watch` sobre `props.email`/`props.password` reaccionaría también a

@@ -49,7 +49,7 @@ const MAX_ADDRESS_LENGTH = 200
 
 interface Props {
   modelValue: PlaceSelection | null
-  /** Dónde abrir el mapa si aún no hay ubicación (p. ej. la de la barbería). */
+  /** Dónde abrir el mapa si aún no hay ubicación (p. ej. la del negocio). */
   start?: LatLng | null
   label?: string
   /** Instrucción bajo el rótulo; por defecto, la de quien reserva a domicilio. */
@@ -195,7 +195,7 @@ function onLocate() {
 /**
  * `auto`: la detección la inició la pantalla, no la persona. Una lectura precisa se marca
  * igual que con el botón; una aproximada solo centra el mapa, porque marcarla sola dejaría un
- * punto equivocado que la persona quizá no revise (el pin manda para que el barbero llegue).
+ * punto equivocado que la persona quizá no revise (el pin manda para que el profesional llegue).
  */
 async function detect(auto: boolean) {
   if (locating.value || props.disabled) return

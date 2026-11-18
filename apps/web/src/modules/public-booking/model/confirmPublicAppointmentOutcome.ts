@@ -10,7 +10,7 @@
  * esta cita por id -HU-098 la resolverá por `accessToken`. */
 export interface ConfirmedPublicAppointment {
   attendeeName: string
-  barbershopName: string
+  businessName: string
   serviceName: string
   durationMinutes: number
   priceAmount: string
@@ -25,7 +25,7 @@ export interface ConfirmedPublicAppointment {
 }
 
 /** Franja alternativa cronológicamente cercana a la elegida (RN-CON-05,
- * DEC-090), mismo barbero y mismo servicio. */
+ * DEC-090), mismo profesional y mismo servicio. */
 export interface PublicAppointmentAlternative {
   startsAt: string
 }
@@ -33,7 +33,7 @@ export interface PublicAppointmentAlternative {
 /** Resultado discriminado de confirmar públicamente el turno elegido
  * contra el API real (HU-097). `not-found` cubre la misma familia
  * indistinguible de causas que el resto del módulo (CA-090-02, CA-092-03):
- * barbería no publicable, o servicio/barbero ajeno, inexistente, inactivo
+ * negocio no publicable, o servicio/profesional ajeno, inexistente, inactivo
  * o sin asignación vigente -a diferencia de la disponibilidad de solo
  * lectura, esta escritura no tiene un "vacío" que devolver, así que la
  * causa uniforme aquí SÍ produce un error, nunca un éxito con datos

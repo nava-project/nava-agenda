@@ -3,7 +3,7 @@ import path from 'node:path'
 import { fileURLToPath } from 'node:url'
 
 /**
- * Ubicación de la barbería en la entrada pública (HU-102, DEC-130): con dirección geocodificada
+ * Ubicación del negocio en la entrada pública (HU-102, DEC-130): con dirección geocodificada
  * la página muestra «Dónde estamos» con el mapa, la dirección en texto y el enlace a Google Maps;
  * sin ubicación (interruptor apagado o sin dirección) la sección no existe. En 320/360/768/1280 px,
  * sin scroll horizontal y con axe-core. Respuestas simuladas del API y del mapa (no dependen de

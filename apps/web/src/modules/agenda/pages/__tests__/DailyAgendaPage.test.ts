@@ -1,8 +1,8 @@
 /**
  * Pruebas de DailyAgendaPage (HU-062): carga (vacío, error), selector
- * obligatorio de un barbero (DEC-074, sin vista consolidada), estados de la
+ * obligatorio de un profesional (DEC-074, sin vista consolidada), estados de la
  * agenda (carga, vacío, error, listo), aislamiento entre selecciones
- * rápidas de barbero, navegación a "Nuevo turno" y accesibilidad.
+ * rápidas de profesional, navegación a "Nuevo turno" y accesibilidad.
  * appointmentsApi se sustituye por un doble de prueba; el recorrido real
  * contra el API vive en el E2E de HU-062.
  */
@@ -19,25 +19,25 @@ import { DEFAULT_BRAND, resetBrand, setBrand } from '@/shared/model'
 // REAL de al menos DEFAULT_MIN_HOLD_MS antes de pasar a listo/error;
 // flushPromises() (solo microtareas) no alcanza a esperarlo. Con margen
 // sobre el valor exacto para no quedar al borde por jitter del entorno de
-// pruebas. No aplica a la actualización por cambio de fecha/barbero (usa
+// pruebas. No aplica a la actualización por cambio de fecha/profesional (usa
 // 'updating', sin retraso propio, sin tocar).
 function waitOutInitialLoadHold() {
   return new Promise((resolve) => setTimeout(resolve, DEFAULT_MIN_HOLD_MS + 50))
 }
 
-const fetchBarberSummariesMock = vi.hoisted(() => vi.fn())
-const fetchBarbershopTimezoneMock = vi.hoisted(() => vi.fn())
+const fetchProfessionalSummariesMock = vi.hoisted(() => vi.fn())
+const fetchBusinessTimezoneMock = vi.hoisted(() => vi.fn())
 const fetchDailyAgendaMock = vi.hoisted(() => vi.fn())
 
 vi.mock('../../api/appointmentsApi', () => ({
-  fetchBarberSummaries: fetchBarberSummariesMock,
-  fetchBarbershopTimezone: fetchBarbershopTimezoneMock,
+  fetchProfessionalSummaries: fetchProfessionalSummariesMock,
+  fetchBusinessTimezone: fetchBusinessTimezoneMock,
   fetchDailyAgenda: fetchDailyAgendaMock,
 }))
 
 const { default: DailyAgendaPage } = await import('../DailyAgendaPage.vue')
 
-const twoBarbers = [
+const twoProfessionals = [
   { id: 'b-1', fullName: 'Carlos Ramírez' },
   { id: 'b-2', fullName: 'Ana Gómez' },
 ]
@@ -108,24 +108,24 @@ function buildRouter() {
         component: { template: '<div>detalle</div>' },
       },
       {
-        path: '/barberos',
-        name: 'staff-barberos',
-        component: { template: '<div>barberos</div>' },
+        path: '/profesionales',
+        name: 'staff-profesionales',
+        component: { template: '<div>profesionales</div>' },
       },
     ],
   })
 }
 
-// El listbox propio de BarberSelect no tiene un <select> nativo que
+// El listbox propio de ProfessionalSelect no tiene un <select> nativo que
 // setValue() pueda usar (issue #189): abre el disparador y hace click en la
 // opción con el nombre buscado, mismo resultado observable que antes.
-async function selectBarber(
+async function selectProfessional(
   wrapper: Awaited<ReturnType<typeof mountPage>>['wrapper'],
   fullName: string,
 ) {
-  await wrapper.get('#daily-agenda-barber-select').trigger('click')
+  await wrapper.get('#daily-agenda-professional-select').trigger('click')
   const option = wrapper.findAll('[role="option"]').find((o) => o.text().includes(fullName))
-  if (!option) throw new Error(`No option found for barber "${fullName}"`)
+  if (!option) throw new Error(`No option found for professional "${fullName}"`)
   await option.trigger('click')
 }
 
@@ -139,9 +139,9 @@ async function mountPage() {
   return { wrapper, router }
 }
 
-async function mountReady(barbers = twoBarbers) {
-  fetchBarberSummariesMock.mockResolvedValueOnce({ kind: 'success', items: barbers })
-  fetchBarbershopTimezoneMock.mockResolvedValueOnce({
+async function mountReady(professionals = twoProfessionals) {
+  fetchProfessionalSummariesMock.mockResolvedValueOnce({ kind: 'success', items: professionals })
+  fetchBusinessTimezoneMock.mockResolvedValueOnce({
     kind: 'success',
     timezone: 'America/Bogota',
   })
@@ -157,47 +157,47 @@ const civilDateMatcher = expect.stringMatching(/^\d{4}-\d{2}-\d{2}$/)
 
 describe('DailyAgendaPage', () => {
   beforeEach(() => {
-    fetchBarberSummariesMock.mockReset()
-    fetchBarbershopTimezoneMock.mockReset()
+    fetchProfessionalSummariesMock.mockReset()
+    fetchBusinessTimezoneMock.mockReset()
     fetchDailyAgendaMock.mockReset()
     resetBrand()
   })
 
-  it('shows a non-blank loading state, then the barber picker (DEC-074: selector obligatorio)', async () => {
-    let resolveBarbers: (value: unknown) => void = () => {}
-    fetchBarberSummariesMock.mockReturnValueOnce(
+  it('shows a non-blank loading state, then the professional picker (DEC-074: selector obligatorio)', async () => {
+    let resolveProfessionals: (value: unknown) => void = () => {}
+    fetchProfessionalSummariesMock.mockReturnValueOnce(
       new Promise((resolve) => {
-        resolveBarbers = resolve
+        resolveProfessionals = resolve
       }),
     )
-    fetchBarbershopTimezoneMock.mockResolvedValueOnce({ kind: 'unavailable' })
+    fetchBusinessTimezoneMock.mockResolvedValueOnce({ kind: 'unavailable' })
     fetchDailyAgendaMock.mockResolvedValueOnce({ kind: 'success', items: [] })
     const { wrapper } = await mountPage()
     expect(wrapper.text()).toContain('Cargando profesionales')
 
-    resolveBarbers({ kind: 'success', items: twoBarbers })
+    resolveProfessionals({ kind: 'success', items: twoProfessionals })
     await flushPromises()
     await waitOutInitialLoadHold()
     await flushPromises()
-    expect(wrapper.find('#daily-agenda-barber-select').exists()).toBe(true)
+    expect(wrapper.find('#daily-agenda-professional-select').exists()).toBe(true)
   })
 
-  it('shows an empty state with no barber picker when there are no barbers', async () => {
-    fetchBarberSummariesMock.mockResolvedValueOnce({ kind: 'success', items: [] })
-    fetchBarbershopTimezoneMock.mockResolvedValueOnce({ kind: 'unavailable' })
+  it('shows an empty state with no professional picker when there are no professionals', async () => {
+    fetchProfessionalSummariesMock.mockResolvedValueOnce({ kind: 'success', items: [] })
+    fetchBusinessTimezoneMock.mockResolvedValueOnce({ kind: 'unavailable' })
     const { wrapper } = await mountPage()
     await flushPromises()
     await waitOutInitialLoadHold()
     await flushPromises()
 
     expect(wrapper.text()).toContain('Aún no tienes profesionales registrados')
-    expect(wrapper.find('#daily-agenda-barber-select').exists()).toBe(false)
+    expect(wrapper.find('#daily-agenda-professional-select').exists()).toBe(false)
     expect(fetchDailyAgendaMock).not.toHaveBeenCalled()
   })
 
   it('shows a recoverable error with Reintentar when the initial load fails', async () => {
-    fetchBarberSummariesMock.mockResolvedValueOnce({ kind: 'network-error' })
-    fetchBarbershopTimezoneMock.mockResolvedValueOnce({ kind: 'unavailable' })
+    fetchProfessionalSummariesMock.mockResolvedValueOnce({ kind: 'network-error' })
+    fetchBusinessTimezoneMock.mockResolvedValueOnce({ kind: 'unavailable' })
     const { wrapper } = await mountPage()
     await flushPromises()
     await waitOutInitialLoadHold()
@@ -205,8 +205,11 @@ describe('DailyAgendaPage', () => {
 
     expect(wrapper.text()).toContain('No pudimos cargar esta sección')
 
-    fetchBarberSummariesMock.mockResolvedValueOnce({ kind: 'success', items: twoBarbers })
-    fetchBarbershopTimezoneMock.mockResolvedValueOnce({
+    fetchProfessionalSummariesMock.mockResolvedValueOnce({
+      kind: 'success',
+      items: twoProfessionals,
+    })
+    fetchBusinessTimezoneMock.mockResolvedValueOnce({
       kind: 'success',
       timezone: 'America/Bogota',
     })
@@ -216,10 +219,10 @@ describe('DailyAgendaPage', () => {
     await waitOutInitialLoadHold()
     await flushPromises()
 
-    expect(wrapper.find('#daily-agenda-barber-select').exists()).toBe(true)
+    expect(wrapper.find('#daily-agenda-professional-select').exists()).toBe(true)
   })
 
-  it('auto-selects the first barber and loads its agenda on open, with an explicit civil date (CA-062-01, CA-063)', async () => {
+  it('auto-selects the first professional and loads its agenda on open, with an explicit civil date (CA-062-01, CA-063)', async () => {
     fetchDailyAgendaMock.mockResolvedValueOnce({ kind: 'success', items: oneEntry })
     const { wrapper, router } = await mountReady()
 
@@ -227,8 +230,8 @@ describe('DailyAgendaPage', () => {
     expect(wrapper.text()).toContain('Juan Pérez')
     expect(wrapper.text()).toContain('Corte clásico')
     expect(wrapper.text()).toContain('Confirmado')
-    // La URL queda normalizada con barbero y fecha explícitos.
-    expect(router.currentRoute.value.query.barberId).toBe('b-1')
+    // La URL queda normalizada con profesional y fecha explícitos.
+    expect(router.currentRoute.value.query.professionalId).toBe('b-1')
     expect(router.currentRoute.value.query.date).toMatch(/^\d{4}-\d{2}-\d{2}$/)
   })
 
@@ -253,14 +256,14 @@ describe('DailyAgendaPage', () => {
     expect(wrapper.text()).not.toContain('Carrera 7')
   })
 
-  it('shows an explicit empty message when the selected barber has no turns today', async () => {
+  it('shows an explicit empty message when the selected professional has no turns today', async () => {
     fetchDailyAgendaMock.mockResolvedValueOnce({ kind: 'success', items: [] })
     const { wrapper } = await mountReady()
 
     expect(wrapper.text()).toContain('No hay turnos para Carlos Ramírez hoy')
   })
 
-  it('switching barbers loads that barber agenda independently (discards a stale in-flight response)', async () => {
+  it('switching professionals loads that professional agenda independently (discards a stale in-flight response)', async () => {
     let resolveFirst: (value: unknown) => void = () => {}
     fetchDailyAgendaMock.mockReturnValueOnce(
       new Promise((resolve) => {
@@ -270,7 +273,7 @@ describe('DailyAgendaPage', () => {
     const { wrapper } = await mountReady()
 
     fetchDailyAgendaMock.mockResolvedValueOnce({ kind: 'success', items: oneEntry })
-    await selectBarber(wrapper, 'Ana Gómez')
+    await selectProfessional(wrapper, 'Ana Gómez')
     await flushPromises()
     // La de b-1 nunca resolvió (sigue pendiente): hasLoadedEntriesOnce
     // sigue en false, así que esta también cuenta como "primera carga" y
@@ -279,7 +282,7 @@ describe('DailyAgendaPage', () => {
     await waitOutInitialLoadHold()
     await flushPromises()
 
-    // La respuesta lenta del primer barbero (b-1) llega tarde: no debe
+    // La respuesta lenta del primer profesional (b-1) llega tarde: no debe
     // pisar la agenda ya cargada de b-2.
     resolveFirst({ kind: 'success', items: [] })
     await flushPromises()
@@ -307,7 +310,7 @@ describe('DailyAgendaPage', () => {
     expect(wrapper.text()).toContain('Juan Pérez')
   })
 
-  it('shows a not-found message when the selected barber no longer exists', async () => {
+  it('shows a not-found message when the selected professional no longer exists', async () => {
     fetchDailyAgendaMock.mockResolvedValueOnce({ kind: 'not-found' })
     const { wrapper } = await mountReady()
 
@@ -323,9 +326,9 @@ describe('DailyAgendaPage', () => {
     await flushPromises()
 
     expect(router.currentRoute.value.name).toBe('agenda-nuevo-turno')
-    // Lleva el barbero y la fecha que se miraban, para que Cancelar vuelva
+    // Lleva el profesional y la fecha que se miraban, para que Cancelar vuelva
     // a este mismo día (issue #576).
-    expect(router.currentRoute.value.query.barberId).toBeTruthy()
+    expect(router.currentRoute.value.query.professionalId).toBeTruthy()
     expect(router.currentRoute.value.query.date).toMatch(/^\d{4}-\d{2}-\d{2}$/)
   })
 
@@ -338,8 +341,8 @@ describe('DailyAgendaPage', () => {
   })
 
   it('has no detectable axe violations in the initial loading state (PageState)', async () => {
-    fetchBarberSummariesMock.mockReturnValueOnce(new Promise(() => {}))
-    fetchBarbershopTimezoneMock.mockReturnValueOnce(new Promise(() => {}))
+    fetchProfessionalSummariesMock.mockReturnValueOnce(new Promise(() => {}))
+    fetchBusinessTimezoneMock.mockReturnValueOnce(new Promise(() => {}))
     const { wrapper } = await mountPage()
     await flushPromises()
 
@@ -399,7 +402,7 @@ describe('DailyAgendaPage', () => {
       return wrapper.findAll('button').find((b) => b.text() === 'Siguiente')!
     }
 
-    it('"Anterior" navigates one civil day back, keeps the same barber and updates the URL (CA-063)', async () => {
+    it('"Anterior" navigates one civil day back, keeps the same professional and updates the URL (CA-063)', async () => {
       fetchDailyAgendaMock.mockResolvedValueOnce({ kind: 'success', items: oneEntry })
       const { wrapper, router } = await mountReady()
       const firstDate = router.currentRoute.value.query.date as string
@@ -411,11 +414,11 @@ describe('DailyAgendaPage', () => {
       const expectedPrevious = shiftCivilDate(firstDate, -1)
 
       expect(router.currentRoute.value.query.date).toBe(expectedPrevious)
-      expect(router.currentRoute.value.query.barberId).toBe('b-1')
+      expect(router.currentRoute.value.query.professionalId).toBe('b-1')
       expect(fetchDailyAgendaMock).toHaveBeenNthCalledWith(2, 'b-1', expectedPrevious)
     })
 
-    it('"Siguiente" navigates one civil day forward, keeps the same barber (CA-063)', async () => {
+    it('"Siguiente" navigates one civil day forward, keeps the same professional (CA-063)', async () => {
       fetchDailyAgendaMock.mockResolvedValueOnce({ kind: 'success', items: oneEntry })
       const { wrapper, router } = await mountReady()
       const firstDate = router.currentRoute.value.query.date as string
@@ -455,16 +458,19 @@ describe('DailyAgendaPage', () => {
       expect(fetchDailyAgendaMock).toHaveBeenNthCalledWith(2, 'b-1', '2026-01-15')
     })
 
-    it('opening the URL with an explicit date/barber (reload) loads exactly that selection, without an extra navigation', async () => {
-      fetchBarberSummariesMock.mockResolvedValueOnce({ kind: 'success', items: twoBarbers })
-      fetchBarbershopTimezoneMock.mockResolvedValueOnce({
+    it('opening the URL with an explicit date/professional (reload) loads exactly that selection, without an extra navigation', async () => {
+      fetchProfessionalSummariesMock.mockResolvedValueOnce({
+        kind: 'success',
+        items: twoProfessionals,
+      })
+      fetchBusinessTimezoneMock.mockResolvedValueOnce({
         kind: 'success',
         timezone: 'America/Bogota',
       })
       fetchDailyAgendaMock.mockResolvedValueOnce({ kind: 'success', items: oneEntry })
 
       const router = buildRouter()
-      await router.push({ name: 'panel', query: { date: '2026-01-15', barberId: 'b-2' } })
+      await router.push({ name: 'panel', query: { date: '2026-01-15', professionalId: 'b-2' } })
       await router.isReady()
       const wrapper = mount(DailyAgendaPage, {
         global: { plugins: [router], stubs: { teleport: true } },
@@ -476,7 +482,7 @@ describe('DailyAgendaPage', () => {
       expect(fetchDailyAgendaMock).toHaveBeenCalledTimes(1)
       expect(fetchDailyAgendaMock).toHaveBeenCalledWith('b-2', '2026-01-15')
       expect(router.currentRoute.value.query.date).toBe('2026-01-15')
-      expect(router.currentRoute.value.query.barberId).toBe('b-2')
+      expect(router.currentRoute.value.query.professionalId).toBe('b-2')
       expect(wrapper.text()).toContain('Ana Gómez')
     })
 
@@ -551,17 +557,20 @@ describe('DailyAgendaPage', () => {
       expect(wrapper.text()).not.toContain('Actualizando…')
     })
 
-    it('disables date navigation when the barbershop timezone is unavailable (RN-DIS-07)', async () => {
-      fetchBarberSummariesMock.mockResolvedValueOnce({ kind: 'success', items: twoBarbers })
-      fetchBarbershopTimezoneMock.mockResolvedValueOnce({ kind: 'unavailable' })
+    it('disables date navigation when the business timezone is unavailable (RN-DIS-07)', async () => {
+      fetchProfessionalSummariesMock.mockResolvedValueOnce({
+        kind: 'success',
+        items: twoProfessionals,
+      })
+      fetchBusinessTimezoneMock.mockResolvedValueOnce({ kind: 'unavailable' })
       fetchDailyAgendaMock.mockResolvedValueOnce({ kind: 'success', items: [] })
       const { wrapper } = await mountPage()
       await flushPromises()
       await waitOutInitialLoadHold()
       await flushPromises()
 
-      // Sin zona conocida, el modelo no puede calcular "hoy" en la
-      // barbería (nunca la sustituye por la del dispositivo): la agenda
+      // Sin zona conocida, el modelo no puede calcular "hoy" en el
+      // negocio (nunca la sustituye por la del dispositivo): la agenda
       // sigue siendo legible (comportamiento degradado de HU-062), pero la
       // navegación por fecha queda deshabilitada en vez de adivinar.
       expect(fetchDailyAgendaMock).toHaveBeenCalledWith('b-1', undefined)
@@ -575,8 +584,11 @@ describe('DailyAgendaPage', () => {
 
   describe('línea temporal de escritorio (Fase 4a, adopción NAVA)', () => {
     async function mountWithFixedDate(items = oneEntry) {
-      fetchBarberSummariesMock.mockResolvedValueOnce({ kind: 'success', items: twoBarbers })
-      fetchBarbershopTimezoneMock.mockResolvedValueOnce({
+      fetchProfessionalSummariesMock.mockResolvedValueOnce({
+        kind: 'success',
+        items: twoProfessionals,
+      })
+      fetchBusinessTimezoneMock.mockResolvedValueOnce({
         kind: 'success',
         timezone: 'America/Bogota',
       })
@@ -586,7 +598,7 @@ describe('DailyAgendaPage', () => {
       // Fecha fija en el pasado: nunca coincide con "hoy" real al correr la
       // prueba, así que el marcador "Ahora" tiene un resultado determinista
       // (no debe aparecer).
-      await router.push({ name: 'panel', query: { date: '2026-08-28', barberId: 'b-1' } })
+      await router.push({ name: 'panel', query: { date: '2026-08-28', professionalId: 'b-1' } })
       await router.isReady()
       const wrapper = mount(DailyAgendaPage, {
         global: { plugins: [router], stubs: { teleport: true } },
@@ -617,7 +629,7 @@ describe('DailyAgendaPage', () => {
       expect(wrapper.find('.daily-agenda-page__timeline').exists()).toBe(false)
     })
 
-    it('does not show "Ahora" for a date other than today in the barbershop timezone', async () => {
+    it('does not show "Ahora" for a date other than today in the business timezone', async () => {
       const { wrapper } = await mountWithFixedDate()
       expect(wrapper.find('.daily-agenda-page__timeline-now').exists()).toBe(false)
     })
@@ -809,8 +821,8 @@ describe('DailyAgendaPage', () => {
       })
     })
   })
-  describe('perfil de barbero individual (DEC-115)', () => {
-    const oneBarber = [{ id: 'b-1', fullName: 'Mateo Rojas' }]
+  describe('perfil de profesional individual (DEC-115)', () => {
+    const oneProfessional = [{ id: 'b-1', fullName: 'Mateo Rojas' }]
     const hhmm = (instant: string) =>
       new Intl.DateTimeFormat('es-CO', {
         timeZone: 'America/Bogota',
@@ -819,7 +831,7 @@ describe('DailyAgendaPage', () => {
         hourCycle: 'h23',
       }).format(new Date(instant))
 
-    // Turnos de hoy en la zona de la barbería, relativos al reloj real: la página
+    // Turnos de hoy en la zona del negocio, relativos al reloj real: la página
     // evalúa «ahora» con Date.now(), igual que su marcador «Ahora».
     function todayEntry(id: string, fromNowMin: number, durationMin: number, serviceName: string) {
       const startsAt = new Date(Date.now() + fromNowMin * 60_000).toISOString()
@@ -833,31 +845,31 @@ describe('DailyAgendaPage', () => {
       }
     }
 
-    it('hides the barber picker when there is one barber, and still loads that agenda', async () => {
+    it('hides the professional picker when there is one professional, and still loads that agenda', async () => {
       setBrand({ ...DEFAULT_BRAND, panelProfile: 'solo' })
       fetchDailyAgendaMock.mockResolvedValueOnce({ kind: 'success', items: oneEntry })
-      const { wrapper, router } = await mountReady(oneBarber)
+      const { wrapper, router } = await mountReady(oneProfessional)
 
-      expect(wrapper.find('#daily-agenda-barber-select').exists()).toBe(false)
+      expect(wrapper.find('#daily-agenda-professional-select').exists()).toBe(false)
       expect(fetchDailyAgendaMock).toHaveBeenCalledWith('b-1', civilDateMatcher)
       // La selección sigue en la URL (DEC-074): solo desaparece el control.
-      expect(router.currentRoute.value.query.barberId).toBe('b-1')
+      expect(router.currentRoute.value.query.professionalId).toBe('b-1')
       expect(wrapper.text()).toContain('Juan Pérez')
     })
 
-    it('keeps the picker in the solo profile if the barbershop actually has several barbers', async () => {
+    it('keeps the picker in the solo profile if the business actually has several professionals', async () => {
       setBrand({ ...DEFAULT_BRAND, panelProfile: 'solo' })
       fetchDailyAgendaMock.mockResolvedValueOnce({ kind: 'success', items: [] })
-      const { wrapper } = await mountReady(twoBarbers)
+      const { wrapper } = await mountReady(twoProfessionals)
 
-      expect(wrapper.find('#daily-agenda-barber-select').exists()).toBe(true)
+      expect(wrapper.find('#daily-agenda-professional-select').exists()).toBe(true)
     })
 
-    it('keeps the picker in the full panel even with one barber', async () => {
+    it('keeps the picker in the full panel even with one professional', async () => {
       fetchDailyAgendaMock.mockResolvedValueOnce({ kind: 'success', items: [] })
-      const { wrapper } = await mountReady(oneBarber)
+      const { wrapper } = await mountReady(oneProfessional)
 
-      expect(wrapper.find('#daily-agenda-barber-select').exists()).toBe(true)
+      expect(wrapper.find('#daily-agenda-professional-select').exists()).toBe(true)
       expect(wrapper.find('.daily-agenda-page__summary').exists()).toBe(false)
     })
 
@@ -868,7 +880,7 @@ describe('DailyAgendaPage', () => {
         kind: 'success',
         items: [todayEntry('a-later', 180, 30, 'Corte clásico'), next],
       })
-      const { wrapper } = await mountReady(oneBarber)
+      const { wrapper } = await mountReady(oneProfessional)
 
       expect(wrapper.get('.daily-agenda-page__summary').text()).toBe(
         `2 turnos por atender · Siguiente a las ${hhmm(next.startsAt)} · Barba perfilada`,
@@ -879,7 +891,7 @@ describe('DailyAgendaPage', () => {
       setBrand({ ...DEFAULT_BRAND, panelProfile: 'solo' })
       const current = todayEntry('a-now', -10, 40, 'Corte clásico')
       fetchDailyAgendaMock.mockResolvedValueOnce({ kind: 'success', items: [current] })
-      const { wrapper } = await mountReady(oneBarber)
+      const { wrapper } = await mountReady(oneProfessional)
 
       expect(wrapper.get('.daily-agenda-page__summary').text()).toBe(
         `1 turno por atender · En curso hasta las ${hhmm(current.endsAt)}`,
@@ -892,13 +904,13 @@ describe('DailyAgendaPage', () => {
         kind: 'success',
         items: [{ ...todayEntry('a-done', -120, 30, 'Barba'), status: 'completed' }],
       })
-      const done = await mountReady(oneBarber)
+      const done = await mountReady(oneProfessional)
       expect(done.wrapper.get('.daily-agenda-page__summary').text()).toBe(
         'No te quedan turnos por atender hoy.',
       )
 
       fetchDailyAgendaMock.mockResolvedValueOnce({ kind: 'success', items: [] })
-      const empty = await mountReady(oneBarber)
+      const empty = await mountReady(oneProfessional)
       expect(empty.wrapper.find('.daily-agenda-page__summary').exists()).toBe(false)
     })
 
@@ -908,7 +920,7 @@ describe('DailyAgendaPage', () => {
         kind: 'success',
         items: [todayEntry('a-next', 60, 30, 'Barba perfilada')],
       })
-      const { wrapper } = await mountReady(oneBarber)
+      const { wrapper } = await mountReady(oneProfessional)
 
       expect(await axe(wrapper.element.outerHTML, axeOptions)).toHaveNoViolations()
     })

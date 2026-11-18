@@ -1,11 +1,11 @@
 import { expect, test, type Page } from '@playwright/test'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
-import { openAsidePanel, pickDate, pickTime, selectBarber } from './horarios-controles'
+import { openAsidePanel, pickDate, pickTime, selectProfessional } from './horarios-controles'
 
 /**
  * Evidencia visual responsive/accesible de la pantalla Horarios rediseñada
- * (tablero semanal de latón sobre tinta, mismo lenguaje que Barberos y
+ * (tablero semanal de latón sobre tinta, mismo lenguaje que Profesionales y
  * Servicios): 320/360/768/1280 px más zoom 200% aproximado, sin scroll
  * horizontal, foco visible, diálogos de tramo y de excepción, y axe-core.
  * Corre con respuestas simuladas del API (sin sesión ni datos reales): el
@@ -64,8 +64,8 @@ async function openSchedules(page: Page, width: number, height: number) {
       await route.fulfill(
         json({
           items: [
-            { id: 'barber-nava', fullName: 'Barbero NAVA' },
-            { id: 'barber-dos', fullName: 'Segundo Barbero' },
+            { id: 'professional-nava', fullName: 'Barbero NAVA' },
+            { id: 'professional-dos', fullName: 'Segundo Barbero' },
           ],
         }),
       )
@@ -241,7 +241,7 @@ test('horarios: el diálogo de tramo y el de excepción se leen en móvil y escr
   }
 })
 
-test('horarios: el selector de barbero se maneja con teclado y cambia el horario', async ({
+test('horarios: el selector de profesional se maneja con teclado y cambia el horario', async ({
   page,
 }) => {
   await openSchedules(page, 1280, 900)
@@ -272,7 +272,7 @@ test('horarios: el alta de un tramo y de una excepción funciona con los control
 }) => {
   await openSchedules(page, 1280, 900)
 
-  await selectBarber(page, 'Segundo Barbero')
+  await selectProfessional(page, 'Segundo Barbero')
 
   await page.getByRole('button', { name: 'Agregar un tramo el Lunes' }).click()
   const tramo = page.getByRole('dialog', { name: 'Agregar tramo' })

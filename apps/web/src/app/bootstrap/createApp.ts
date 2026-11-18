@@ -17,9 +17,9 @@ export function createApplication(): VueApp {
   // (no dentro de `modules/auth`) porque es el único punto que posee la
   // instancia real del router.
   installSessionHandling(router)
-  // DEC-110: la marca y el vocabulario de la barbería viajan con la sesión. Se
+  // DEC-110: la marca y el vocabulario del negocio viajan con la sesión. Se
   // piden al autenticarse y se descartan al salir, para que la siguiente
-  // barbería nunca herede el acento ni las palabras de la anterior.
+  // negocio nunca herede el acento ni las palabras de la anterior.
   watch(
     sessionStatus,
     (status) => {

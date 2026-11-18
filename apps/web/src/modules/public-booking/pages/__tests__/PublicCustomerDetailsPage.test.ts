@@ -25,9 +25,9 @@ vi.mock('vue-router', () => ({
   useRouter: () => ({ push: routerPushMock }),
 }))
 
-const listPublicBarbersMock = vi.hoisted(() => vi.fn())
-vi.mock('../../api/listPublicBarbersApi', () => ({
-  listPublicBarbers: listPublicBarbersMock,
+const listPublicProfessionalsMock = vi.hoisted(() => vi.fn())
+vi.mock('../../api/listPublicProfessionalsApi', () => ({
+  listPublicProfessionals: listPublicProfessionalsMock,
 }))
 
 const loadPublicProfileMock = vi.hoisted(() => vi.fn())
@@ -41,13 +41,13 @@ const { default: PublicCustomerDetailsPage } = await import('../PublicCustomerDe
 const BASE_PROPS = {
   slug: 'barberia-ejemplo',
   serviceId: '8f3ac2b1-e4d5-46f6-a7c8-d9e0f1a2b3c4',
-  barberId: 'a1111111-1111-1111-1111-111111111111',
+  professionalId: 'a1111111-1111-1111-1111-111111111111',
   startsAt: '2026-09-20T14:30:00Z',
 }
 
 const CONFIRMED_APPOINTMENT = {
   attendeeName: 'Ana Ríos',
-  barbershopName: 'Barbería Ejemplo',
+  businessName: 'Barbería Ejemplo',
   serviceName: 'Corte clásico',
   durationMinutes: 30,
   priceAmount: '20000.00',
@@ -70,7 +70,7 @@ function profileOutcome(
       timezone: 'America/Bogota',
       contactEmail: null,
       contactPhone: null,
-      vocabulary: { barber: 'Barbero', service: 'Servicio', appointment: 'Turno' },
+      vocabulary: { professional: 'Barbero', service: 'Servicio', appointment: 'Turno' },
       location,
       offersHomeService,
     },
@@ -87,14 +87,14 @@ beforeEach(() => {
   document.body.innerHTML = ''
   confirmPublicAppointmentMock.mockReset()
   routerPushMock.mockReset()
-  listPublicBarbersMock.mockReset()
+  listPublicProfessionalsMock.mockReset()
   loadPublicProfileMock.mockReset()
   loadPublicProfileMock.mockResolvedValue(profileOutcome(false))
-  listPublicBarbersMock.mockResolvedValue({
+  listPublicProfessionalsMock.mockResolvedValue({
     kind: 'success',
-    barbers: [
+    professionals: [
       {
-        id: BASE_PROPS.barberId,
+        id: BASE_PROPS.professionalId,
         fullName: 'Mateo Cruz',
         description: null,
         photoUpdatedAt: '2026-10-01T10:00:00Z',
@@ -148,7 +148,7 @@ describe('PublicCustomerDetailsPage', () => {
     expect(when.get('.customer-details__when-day').text()).toContain('2026')
   })
 
-  it('shows the chosen barber with their photo in the summary', async () => {
+  it('shows the chosen professional with their photo in the summary', async () => {
     const wrapper = mountPage()
     await flushPromises()
     await fillValidForm(wrapper)
@@ -157,12 +157,12 @@ describe('PublicCustomerDetailsPage', () => {
     const who = wrapper.get('.customer-details__who')
     expect(who.text()).toContain('Mateo Cruz')
     expect(who.get('img').attributes('src')).toContain(
-      `/public/businesses/barberia-ejemplo/professionals/${BASE_PROPS.barberId}/photo`,
+      `/public/businesses/barberia-ejemplo/professionals/${BASE_PROPS.professionalId}/photo`,
     )
   })
 
-  it('still shows a complete summary when the barber cannot be loaded', async () => {
-    listPublicBarbersMock.mockResolvedValue({ kind: 'network-error' })
+  it('still shows a complete summary when the professional cannot be loaded', async () => {
+    listPublicProfessionalsMock.mockResolvedValue({ kind: 'network-error' })
     const wrapper = mountPage()
     await flushPromises()
     await fillValidForm(wrapper)
@@ -455,7 +455,7 @@ describe('PublicCustomerDetailsPage', () => {
       params: {
         slug: BASE_PROPS.slug,
         serviceId: BASE_PROPS.serviceId,
-        barberId: BASE_PROPS.barberId,
+        professionalId: BASE_PROPS.professionalId,
       },
     })
     wrapper.unmount()
@@ -523,7 +523,7 @@ describe('PublicCustomerDetailsPage', () => {
     wrapper.unmount()
   })
 
-  it('presents the confirmation as a ticket with service, price, date, barber and no access token', async () => {
+  it('presents the confirmation as a ticket with service, price, date, professional and no access token', async () => {
     confirmPublicAppointmentMock.mockResolvedValueOnce({
       kind: 'success',
       appointment: CONFIRMED_APPOINTMENT,
@@ -602,7 +602,7 @@ describe('PublicCustomerDetailsPage', () => {
       await flushPromises()
     }
 
-    it('does not offer the modality when the barbershop does not serve at home (CA-103-01)', async () => {
+    it('does not offer the modality when the business does not serve at home (CA-103-01)', async () => {
       const wrapper = mountPage()
       await flushPromises()
       expect(wrapper.find('input[name="service-mode"]').exists()).toBe(false)
@@ -663,7 +663,7 @@ describe('PublicCustomerDetailsPage', () => {
       expect(input.homeService.address).toContain('Punto marcado cerca de')
     })
 
-    it('opens the map on the barbershop when it published a location', async () => {
+    it('opens the map on the business when it published a location', async () => {
       loadPublicProfileMock.mockResolvedValue(
         profileOutcome(true, { address: 'Calle 1', latitude: 6.2442, longitude: -75.5812 }),
       )

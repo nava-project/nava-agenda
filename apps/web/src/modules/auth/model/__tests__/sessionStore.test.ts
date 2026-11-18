@@ -21,8 +21,8 @@ const {
 
 const authenticated: SessionContextOutcome = {
   kind: 'authenticated',
-  barbershopId: 'shop-1',
-  barbershopName: 'Barbería de prueba',
+  businessId: 'shop-1',
+  businessName: 'Barbería de prueba',
   expiresAt: new Date(Date.now() + 60_000).toISOString(),
 }
 

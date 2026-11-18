@@ -1,10 +1,10 @@
-// Borrador de la ubicación de la barbería en Configuración (DEC-130, HU-102):
+// Borrador de la ubicación del negocio en Configuración (DEC-130, HU-102):
 // ayudas puras para normalizar la dirección como la guardará el servidor, saber
 // si cambió y qué enviar. Sin Vue ni red, para probarlas sin montar nada.
 import { samePoint, type LatLng } from '@/shared/model/mapPicker'
 import type { LocationChange, LocationSettings } from './brandOutcome'
 
-/** Largo máximo de la dirección, igual que `barbershop_address_ck`. */
+/** Largo máximo de la dirección, igual que `business_address_ck`. */
 export const ADDRESS_MAX_LENGTH = 200
 
 /** Recorta y colapsa espacios, igual que el servidor; `''` si no queda nada. */
@@ -50,7 +50,7 @@ export function draftFromSaved(saved: LocationSettings): LocationDraft {
   }
 }
 
-/** Punto guardado de la barbería, o `null` si aún no tiene coordenadas. */
+/** Punto guardado del negocio, o `null` si aún no tiene coordenadas. */
 export function savedPoint(saved: LocationSettings): LatLng | null {
   return saved.latitude !== null && saved.longitude !== null
     ? { latitude: saved.latitude, longitude: saved.longitude }

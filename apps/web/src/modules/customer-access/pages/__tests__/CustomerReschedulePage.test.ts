@@ -1,6 +1,6 @@
 /**
  * Pruebas de CustomerReschedulePage (HU-104, DEC-178):
- * - carga del turno y de las franjas, agrupadas por día de la barbería;
+ * - carga del turno y de las franjas, agrupadas por día del negocio;
  * - la hora actual se ve pero no se puede elegir;
  * - elegir con ratón y con teclado (roving tabindex), resumen «antes → ahora»;
  * - confirmar: cabeceras, éxito y foco en el título;
@@ -125,7 +125,7 @@ afterEach(() => {
 })
 
 describe('CustomerReschedulePage', () => {
-  it('muestra el turno actual y los días con horas libres en la zona de la barbería', async () => {
+  it('muestra el turno actual y los días con horas libres en la zona del negocio', async () => {
     mockLoad()
     const w = await mountPage()
 

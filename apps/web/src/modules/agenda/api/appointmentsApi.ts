@@ -1,14 +1,14 @@
 // Único punto del módulo `agenda` que llama al cliente HTTP tipado
 // (docs/03-desarrollo/estandar-frontend-vue.md §6). Traduce las respuestas
-// reales de POST /private/appointments y de los selectores de barbero/
+// reales de POST /private/appointments y de los selectores de profesional/
 // servicio/zona a los outcomes discriminados que la página consume; ningún
 // componente ve `Problem`, `status` HTTP crudo ni cabeceras.
 //
-// fetchBarberSummaries/fetchBarbershopTimezone llaman DIRECTAMENTE al
+// fetchProfessionalSummaries/fetchBusinessTimezone llaman DIRECTAMENTE al
 // cliente HTTP compartido (nunca a schedulesApi.ts/settingsApi.ts,
 // privados de sus propios módulos): mismo criterio que
-// schedulesApi.fetchBarberSummaries frente a staffApi.
-import { barberPhotoUrl } from '@/shared/api/barberPhotoUrl'
+// schedulesApi.fetchProfessionalSummaries frente a staffApi.
+import { professionalPhotoUrl } from '@/shared/api/professionalPhotoUrl'
 import { httpClient } from '@/shared/api/httpClient'
 import type { AppointmentDetail, HistoryEntry } from '../model/appointmentDetail'
 import type {
@@ -20,8 +20,8 @@ import type {
   FetchAppointmentDetailOutcome,
   FetchAppointmentHistoryOutcome,
   FetchAssignedServicesOutcome,
-  FetchBarberSummariesOutcome,
-  FetchBarbershopTimezoneOutcome,
+  FetchProfessionalSummariesOutcome,
+  FetchBusinessTimezoneOutcome,
   FetchDailyAgendaOutcome,
   RescheduleAppointmentOutcome,
 } from '../model/appointmentOutcome'
@@ -29,7 +29,7 @@ import type { DailyAgendaEntry, HomeService } from '../model/dailyAgenda'
 
 const PICKER_LIMIT = 50
 
-export async function fetchBarberSummaries(): Promise<FetchBarberSummariesOutcome> {
+export async function fetchProfessionalSummaries(): Promise<FetchProfessionalSummariesOutcome> {
   try {
     const { data, response } = await httpClient.GET('/private/professionals', {
       params: { query: { limit: PICKER_LIMIT } },
@@ -40,7 +40,7 @@ export async function fetchBarberSummaries(): Promise<FetchBarberSummariesOutcom
         items: data.items.map((b) => ({
           id: b.id,
           fullName: b.fullName,
-          photoUrl: barberPhotoUrl(b),
+          photoUrl: professionalPhotoUrl(b),
         })),
       }
     }
@@ -51,16 +51,16 @@ export async function fetchBarberSummaries(): Promise<FetchBarberSummariesOutcom
 }
 
 // fetchAssignedServices lista solo los servicios activos ya asignados a
-// barberId (DEC-072): el formulario nunca ofrece un servicio que el
+// professionalId (DEC-072): el formulario nunca ofrece un servicio que el
 // servidor rechazaría.
 export async function fetchAssignedServices(
-  barberId: string,
+  professionalId: string,
 ): Promise<FetchAssignedServicesOutcome> {
   try {
     const { data, response } = await httpClient.GET(
       '/private/professionals/{professionalId}/services',
       {
-        params: { path: { professionalId: barberId }, query: { limit: PICKER_LIMIT } },
+        params: { path: { professionalId: professionalId }, query: { limit: PICKER_LIMIT } },
       },
     )
     if (response.ok && data) {
@@ -85,7 +85,7 @@ export async function fetchAssignedServices(
 
 // fetchServiceNames resuelve el catálogo completo una sola vez y filtra en
 // memoria a los activos: GET /private/professionals/{professionalId}/services (HU-023)
-// solo expone barberId/serviceId/createdAt (CA-023-07), nunca el nombre, a
+// solo expone professionalId/serviceId/createdAt (CA-023-07), nunca el nombre, a
 // propósito, para que un consumidor cruce por identificador contra el
 // catálogo real.
 async function fetchServiceNames(serviceIds: string[]): Promise<Map<string, string>> {
@@ -103,14 +103,14 @@ async function fetchServiceNames(serviceIds: string[]): Promise<Map<string, stri
       }
     }
   } catch {
-    // Un catálogo ilegible deja el selector vacío para ese barbero
+    // Un catálogo ilegible deja el selector vacío para ese profesional
     // (fetchAssignedServices filtra por servicesById.has); la página ya
     // trata una lista vacía como estado explícito, no como error oculto.
   }
   return byId
 }
 
-export async function fetchBarbershopTimezone(): Promise<FetchBarbershopTimezoneOutcome> {
+export async function fetchBusinessTimezone(): Promise<FetchBusinessTimezoneOutcome> {
   try {
     const { data, response } = await httpClient.GET('/private/settings/business')
     if (response.ok && data) {
@@ -123,17 +123,17 @@ export async function fetchBarbershopTimezone(): Promise<FetchBarbershopTimezone
 }
 
 // fetchDailyAgenda (HU-062): sin `date`, el servidor decide "hoy" en la
-// zona de la barbería (CA-062-01); esta función nunca calcula ni envía una
+// zona del negocio (CA-062-01); esta función nunca calcula ni envía una
 // fecha por defecto propia.
 export async function fetchDailyAgenda(
-  barberId: string,
+  professionalId: string,
   date?: string,
 ): Promise<FetchDailyAgendaOutcome> {
   try {
     const { data, response } = await httpClient.GET(
       '/private/professionals/{professionalId}/appointments/daily-agenda',
       {
-        params: { path: { professionalId: barberId }, query: date ? { date } : {} },
+        params: { path: { professionalId: professionalId }, query: date ? { date } : {} },
       },
     )
     if (response.ok && data) {
@@ -223,8 +223,8 @@ function toAppointmentDetail(data: {
 }): AppointmentDetail {
   return {
     id: data.id,
-    barberId: data.professionalId,
-    barberFullName: data.professionalFullName,
+    professionalId: data.professionalId,
+    professionalFullName: data.professionalFullName,
     attendeeName: data.attendeeName,
     customerFullName: data.customerFullName,
     customerPhone: data.customerPhone,
@@ -345,12 +345,12 @@ export async function rescheduleAppointment(
   }
 }
 
-// cancelAppointmentByBarber (HU-066, T6): versionToken es el token opaco
+// cancelAppointmentByProfessional (HU-066, T6): versionToken es el token opaco
 // leído del detalle (HU-064), enviado como precondición `If-Match`; el
 // servidor responde `version-conflict` si la representación ya cambió.
 // Sin cuerpo de solicitud: T6 no acepta ningún campo (el servidor deriva
 // tenant/actor/estado destino).
-export async function cancelAppointmentByBarber(
+export async function cancelAppointmentByProfessional(
   appointmentId: string,
   versionToken: string,
   idempotencyKey: string,
@@ -523,7 +523,7 @@ export async function correctAppointmentStatus(
 
 export async function createManualAppointment(
   input: {
-    barberId: string
+    professionalId: string
     serviceId: string
     attendeeName: string
     customerFullName: string
@@ -538,7 +538,7 @@ export async function createManualAppointment(
     const { data, response, error } = await httpClient.POST('/private/appointments', {
       params: { header: { 'Idempotency-Key': idempotencyKey } },
       body: {
-        professionalId: input.barberId,
+        professionalId: input.professionalId,
         serviceId: input.serviceId,
         attendeeName: input.attendeeName,
         customerFullName: input.customerFullName,
@@ -601,7 +601,7 @@ function toAppointment(data: {
 }): CreatedManualAppointment {
   return {
     id: data.id,
-    barberId: data.professionalId,
+    professionalId: data.professionalId,
     serviceId: data.serviceId,
     attendeeName: data.attendeeName,
     startsAt: data.startsAt,

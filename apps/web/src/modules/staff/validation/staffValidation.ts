@@ -1,7 +1,7 @@
 // Validación de forma en cliente (docs/03-desarrollo/estandar-frontend-vue.md
 // §7.6): ayuda a corregir antes de enviar, nunca sustituye al backend
 // (CA-021-03 real vive en el servicio Go). No exige dos palabras ni
-// unicidad: un nombre repetido dentro de la misma barbería es válido.
+// unicidad: un nombre repetido dentro del mismo negocio es válido.
 import type { Vocabulary } from '@/shared/model'
 
 export const FULL_NAME_MAX_LENGTH = 120
@@ -15,7 +15,7 @@ export function validateFullName(fullName: string, v: Vocabulary): string | unde
   return undefined
 }
 
-// Mismo tope que `barber_description_ck` y el contrato (DEC-127). El servidor
+// Mismo tope que `professional_description_ck` y el contrato (DEC-127). El servidor
 // cuenta caracteres Unicode, no unidades UTF-16: aquí igual, para que un emoji
 // no cuente doble y el cliente rechace exactamente lo que el servidor rechaza.
 export const DESCRIPTION_MAX_LENGTH = 280

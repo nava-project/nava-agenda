@@ -5,33 +5,33 @@
 // discriminados que la página consume; ningún componente ve `Problem`,
 // `status` HTTP crudo ni cabeceras.
 //
-// fetchBarberSummaries llama DIRECTAMENTE al cliente HTTP compartido (nunca
+// fetchProfessionalSummaries llama DIRECTAMENTE al cliente HTTP compartido (nunca
 // a staffApi.ts, privado de su propio módulo): mismo criterio que
-// barberServicesApi.fetchBarberSummaries.
-import { barberPhotoUrl } from '@/shared/api/barberPhotoUrl'
+// professionalServicesApi.fetchProfessionalSummaries.
+import { professionalPhotoUrl } from '@/shared/api/professionalPhotoUrl'
 import { httpClient } from '@/shared/api/httpClient'
-import type { BarberSummary, WorkingHour, WorkingHourPage } from '../model/workingHour'
+import type { ProfessionalSummary, WorkingHour, WorkingHourPage } from '../model/workingHour'
 import type {
   CreateWorkingHourOutcome,
   DeleteWorkingHourOutcome,
-  FetchBarberSummariesOutcome,
-  FetchBarbershopTimezoneOutcome,
+  FetchProfessionalSummariesOutcome,
+  FetchBusinessTimezoneOutcome,
   FetchWorkingHoursOutcome,
   UpdateWorkingHourOutcome,
 } from '../model/scheduleOutcome'
 
 // PICKER_LIMIT es el máximo que el contrato admite por página
 // (docs/06-api/estandar-openapi.md §6.10), mismo criterio que
-// barberServicesApi.PICKER_LIMIT.
+// professionalServicesApi.PICKER_LIMIT.
 const PICKER_LIMIT = 50
 
 // WORKING_HOURS_LIMIT cubre en una sola página cualquier configuración real
-// de un barbero (como mucho unos pocos tramos por día, 7 días): evita
+// de un profesional (como mucho unos pocos tramos por día, 7 días): evita
 // paginar internamente una pantalla que muestra la semana completa a la vez
 // (CA-040-01).
 const WORKING_HOURS_LIMIT = 50
 
-export async function fetchBarberSummaries(): Promise<FetchBarberSummariesOutcome> {
+export async function fetchProfessionalSummaries(): Promise<FetchProfessionalSummariesOutcome> {
   try {
     const { data, response } = await httpClient.GET('/private/professionals', {
       params: { query: { limit: PICKER_LIMIT } },
@@ -43,7 +43,7 @@ export async function fetchBarberSummaries(): Promise<FetchBarberSummariesOutcom
         items: data.items.map((b) => ({
           id: b.id,
           fullName: b.fullName,
-          photoUrl: barberPhotoUrl(b),
+          photoUrl: professionalPhotoUrl(b),
         })),
       }
     }
@@ -53,11 +53,11 @@ export async function fetchBarberSummaries(): Promise<FetchBarberSummariesOutcom
   }
 }
 
-// fetchBarbershopTimezone llama DIRECTAMENTE al cliente HTTP compartido
+// fetchBusinessTimezone llama DIRECTAMENTE al cliente HTTP compartido
 // (nunca a settingsApi.ts, privado de su propio módulo, mismo criterio que
-// fetchBarberSummaries): CA-040-06 exige mostrar la zona IANA de la
-// barbería junto a la hora, nunca la del dispositivo.
-export async function fetchBarbershopTimezone(): Promise<FetchBarbershopTimezoneOutcome> {
+// fetchProfessionalSummaries): CA-040-06 exige mostrar la zona IANA del
+// negocio junto a la hora, nunca la del dispositivo.
+export async function fetchBusinessTimezone(): Promise<FetchBusinessTimezoneOutcome> {
   try {
     const { data, response } = await httpClient.GET('/private/settings/business')
     if (response.ok && data) {
@@ -69,12 +69,12 @@ export async function fetchBarbershopTimezone(): Promise<FetchBarbershopTimezone
   }
 }
 
-export async function fetchWorkingHours(barberId: string): Promise<FetchWorkingHoursOutcome> {
+export async function fetchWorkingHours(professionalId: string): Promise<FetchWorkingHoursOutcome> {
   try {
     const { data, response } = await httpClient.GET(
       '/private/professionals/{professionalId}/working-hours',
       {
-        params: { path: { professionalId: barberId }, query: { limit: WORKING_HOURS_LIMIT } },
+        params: { path: { professionalId: professionalId }, query: { limit: WORKING_HOURS_LIMIT } },
       },
     )
 
@@ -94,7 +94,7 @@ export async function fetchWorkingHours(barberId: string): Promise<FetchWorkingH
 }
 
 export async function createWorkingHour(
-  barberId: string,
+  professionalId: string,
   isoWeekday: number,
   startsTime: string,
   durationMinutes: number,
@@ -105,7 +105,7 @@ export async function createWorkingHour(
       '/private/professionals/{professionalId}/working-hours',
       {
         params: {
-          path: { professionalId: barberId },
+          path: { professionalId: professionalId },
           header: { 'Idempotency-Key': idempotencyKey },
         },
         body: { isoWeekday, startsTime, durationMinutes },
@@ -137,7 +137,7 @@ export async function createWorkingHour(
 }
 
 export async function updateWorkingHour(
-  barberId: string,
+  professionalId: string,
   workingHourId: string,
   isoWeekday: number,
   startsTime: string,
@@ -147,7 +147,7 @@ export async function updateWorkingHour(
     const { data, response } = await httpClient.PATCH(
       '/private/professionals/{professionalId}/working-hours/{workingHourId}',
       {
-        params: { path: { professionalId: barberId, workingHourId } },
+        params: { path: { professionalId: professionalId, workingHourId } },
         body: { isoWeekday, startsTime, durationMinutes },
       },
     )
@@ -172,13 +172,13 @@ export async function updateWorkingHour(
 }
 
 export async function deleteWorkingHour(
-  barberId: string,
+  professionalId: string,
   workingHourId: string,
 ): Promise<DeleteWorkingHourOutcome> {
   try {
     const { response } = await httpClient.DELETE(
       '/private/professionals/{professionalId}/working-hours/{workingHourId}',
-      { params: { path: { professionalId: barberId, workingHourId } } },
+      { params: { path: { professionalId: professionalId, workingHourId } } },
     )
 
     if (response.ok) {
@@ -232,4 +232,4 @@ function toPage(data: {
   return { items: data.items.map(toWorkingHour), nextCursor: data.nextCursor }
 }
 
-export type { BarberSummary }
+export type { ProfessionalSummary }

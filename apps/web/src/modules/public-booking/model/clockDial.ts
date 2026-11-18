@@ -1,5 +1,5 @@
-// Ángulos de las agujas del reloj de la entrada pública, en la zona de la
-// barbería. Igual que `formatInstantInTimezone`, la zona es explícita y nunca
+// Ángulos de las agujas del reloj de la entrada pública, en la zona del
+// negocio. Igual que `formatInstantInTimezone`, la zona es explícita y nunca
 // la del dispositivo: el instante solo se construye en el dispositivo, la hora
 // civil que se dibuja la decide `timeZone`. Es presentación pura (sin estado ni
 // red) para que sus casos —medianoche, mediodía, zonas con minutos de desfase—

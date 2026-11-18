@@ -1,4 +1,4 @@
-// Módulo: gestión de los barberos de la barbería (HU-021). API pública
+// Módulo: gestión de los profesionales del negocio (HU-021). API pública
 // mínima para `app`, según docs/03-desarrollo/estandar-frontend-vue.md: la
 // ruta hija privada (cargada de forma diferida) y la entrada de navegación
 // que la representa. `app/router/index.ts` combina esto con las rutas de
@@ -13,11 +13,11 @@ export { staffPrivateShellChildRoutes } from './routes'
 
 export const staffNavItems: NavItem[] = [
   {
-    to: { name: 'staff-barberos' },
+    to: { name: 'staff-profesionales' },
     label: 'Profesionales',
     labelFor: (v) => v.Professionals,
     primary: true,
-    // Un barbero individual no gestiona un equipo: esta misma pantalla es su ficha (DEC-115).
+    // Un profesional individual no gestiona un equipo: esta misma pantalla es su ficha (DEC-115).
     profiles: { solo: { label: 'Mi perfil' }, employee: { label: 'Mi perfil' } },
   },
 ]

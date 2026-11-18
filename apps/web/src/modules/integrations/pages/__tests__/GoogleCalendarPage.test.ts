@@ -1,6 +1,6 @@
 /**
  * Pruebas de GoogleCalendarPage (issue #325, DEC-099/DEC-101/DEC-122): cada estado
- * (no disponible, falta vincular el barbero, no conectado, conectado, sincronizando,
+ * (no disponible, falta vincular el profesional, no conectado, conectado, sincronizando,
  * requiere reconexión, error de sincronización), las acciones (conectar, sincronizar,
  * desconectar con confirmación) seguras ante el doble clic, el recordatorio validado
  * de 0 a 40320 y el texto de «cómo funciona». googleCalendarApi se sustituye por un
@@ -25,14 +25,14 @@ vi.mock('../../api/googleCalendarApi', () => ({
   syncNow: syncMock,
   disconnect: disconnectMock,
   updateReminder: reminderMock,
-  linkSoleBarber: linkSoleMock,
+  linkSoleProfessional: linkSoleMock,
 }))
 
 const { default: GoogleCalendarPage } = await import('../GoogleCalendarPage.vue')
 
 const base = {
   enabled: true,
-  barberLinked: true,
+  professionalLinked: true,
   status: 'not_connected',
   accountEmail: null,
   reminderMinutes: null,
@@ -134,10 +134,13 @@ describe('GoogleCalendarPage', () => {
   describe('independent (solo profile, DEC-155)', () => {
     beforeEach(() => setBrand({ ...DEFAULT_BRAND, panelProfile: 'solo' }))
 
-    it('links the only barber by itself and goes straight to connecting Google', async () => {
+    it('links the only professional by itself and goes straight to connecting Google', async () => {
       linkSoleMock.mockResolvedValue({ kind: 'success' })
       fetchMock
-        .mockResolvedValueOnce({ kind: 'success', connection: { ...base, barberLinked: false } })
+        .mockResolvedValueOnce({
+          kind: 'success',
+          connection: { ...base, professionalLinked: false },
+        })
         .mockResolvedValueOnce({ kind: 'success', connection: base })
       const wrapper = mount(GoogleCalendarPage, {
         global: { stubs: { teleport: true, transition: true } },
@@ -150,21 +153,21 @@ describe('GoogleCalendarPage', () => {
       expect(wrapper.text()).toContain('Conectar Google Calendar')
     })
 
-    it('keeps the manual flow when the sole barber cannot be linked', async () => {
+    it('keeps the manual flow when the sole professional cannot be linked', async () => {
       linkSoleMock.mockResolvedValue({ kind: 'not-applicable' })
-      const wrapper = await mountWith({ ...base, barberLinked: false })
+      const wrapper = await mountWith({ ...base, professionalLinked: false })
       expect(linkSoleMock).toHaveBeenCalledTimes(1)
       expect(fetchMock).toHaveBeenCalledTimes(1)
       expect(wrapper.text()).toContain('Este soy yo')
     })
 
-    it('does not try to link when the barber is already linked', async () => {
+    it('does not try to link when the professional is already linked', async () => {
       await mountWith(base)
       expect(linkSoleMock).not.toHaveBeenCalled()
     })
 
     it('does not try to link when the integration is unavailable', async () => {
-      await mountWith({ ...base, enabled: false, barberLinked: false })
+      await mountWith({ ...base, enabled: false, professionalLinked: false })
       expect(linkSoleMock).not.toHaveBeenCalled()
     })
   })
@@ -172,20 +175,20 @@ describe('GoogleCalendarPage', () => {
   it('never links by itself outside the solo profile', async () => {
     for (const panelProfile of ['shop', 'employee'] as const) {
       setBrand({ ...DEFAULT_BRAND, panelProfile })
-      const wrapper = await mountWith({ ...base, barberLinked: false })
+      const wrapper = await mountWith({ ...base, professionalLinked: false })
       expect(wrapper.text()).toContain('Este soy yo')
     }
     expect(linkSoleMock).not.toHaveBeenCalled()
   })
 
-  it('asks to link the barber first and points to the team screen', async () => {
-    const wrapper = await mountWith({ ...base, barberLinked: false })
+  it('asks to link the professional first and points to the team screen', async () => {
+    const wrapper = await mountWith({ ...base, professionalLinked: false })
     expect(wrapper.text()).toContain('Este soy yo')
     expect(wrapper.text()).not.toContain('Conectar Google Calendar')
   })
 
-  it('walks through the three steps and marks where the barber is', async () => {
-    const linking = await mountWith({ ...base, barberLinked: false })
+  it('walks through the three steps and marks where the professional is', async () => {
+    const linking = await mountWith({ ...base, professionalLinked: false })
     const first = linking.findAll('.gcal-step')
     expect(first).toHaveLength(3)
     expect(first[0].attributes('aria-current')).toBe('step')
@@ -442,7 +445,7 @@ describe('GoogleCalendarPage', () => {
     ['sincronizando', { ...connected, pendingSyncJobs: 2 }],
     ['error', { ...connected, failedSyncJobs: 1 }],
     ['reconexión', { ...base, status: 'reauth_required' }],
-    ['falta vincular', { ...base, barberLinked: false }],
+    ['falta vincular', { ...base, professionalLinked: false }],
     ['no disponible', { ...base, enabled: false }],
   ])('has no axe violations in the «%s» state', async (_name, connection) => {
     const wrapper = await mountWith(connection)

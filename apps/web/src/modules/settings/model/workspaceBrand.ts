@@ -1,4 +1,4 @@
-// Carga la marca de la barbería activa en el estado compartido (DEC-110).
+// Carga la marca del negocio activo en el estado compartido (DEC-110).
 // `app` la invoca al autenticarse la sesión; un fallo no bloquea el panel: la
 // copia guardada en el dispositivo (o los valores iniciales) sigue pintándose.
 import { setBrand } from '@/shared/model'
@@ -10,7 +10,7 @@ export async function loadWorkspaceBrand(): Promise<void> {
   const token = ++requestToken
   const outcome = await fetchBrand()
   // Una respuesta obsoleta (otra sesión inició mientras esta volaba) no
-  // sobrescribe la marca de la barbería vigente.
+  // sobrescribe la marca del negocio vigente.
   if (token !== requestToken) return
   if (outcome.kind === 'success') setBrand(outcome.brand)
 }

@@ -7,7 +7,7 @@ import { INITIAL_VOCABULARY } from './fixtures/vocabularioInicial'
  * Rediseño de la entrada pública de reservas (HU-090, issue #469): nombre y botón a la izquierda,
  * «ficha del local» (reloj, contacto, plano) a la derecha desde 1000 px y en una columna debajo, con el
  * botón antes de la ficha. Respuestas simuladas del API. En 320/360/768/1280 px: sin scroll
- * horizontal, botón visible sin desplazarse, axe-core y el reloj en la hora de la barbería (no la del
+ * horizontal, botón visible sin desplazarse, axe-core y el reloj en la hora del negocio (no la del
  * dispositivo). Capturas en e2e/evidence/entrada-publica-rediseno/.
  */
 const here = path.dirname(fileURLToPath(import.meta.url))
@@ -112,7 +112,7 @@ for (const viewport of viewports) {
   })
 }
 
-test('el reloj dibuja la hora de la barbería, no la del dispositivo', async ({ page }) => {
+test('el reloj dibuja la hora del negocio, no la del dispositivo', async ({ page }) => {
   // 19:30 UTC son las 14:30 en Bogotá: aguja de horas a 75°, de minutos a 180°.
   await page.clock.install({ time: new Date('2026-09-15T19:30:00Z') })
   await installApi(page, { ...fullProfile, location: null })

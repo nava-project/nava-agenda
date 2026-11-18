@@ -61,13 +61,13 @@ describe('requestAccessCode', () => {
     })
   })
 
-  it('traduce 400/422 a contacto inválido y 404 a barbería inexistente', async () => {
+  it('traduce 400/422 a contacto inválido y 404 a negocio inexistente', async () => {
     reply(422, undefined, problem(422, 'validation'))
     expect(await requestAccessCode('s', 'x')).toEqual({ kind: 'invalid-contact' })
     reply(400, undefined, problem(400, 'invalid-request'))
     expect(await requestAccessCode('s', 'x')).toEqual({ kind: 'invalid-contact' })
     reply(404, undefined, problem(404, 'not-found'))
-    expect(await requestAccessCode('s', 'x')).toEqual({ kind: 'barbershop-not-found' })
+    expect(await requestAccessCode('s', 'x')).toEqual({ kind: 'business-not-found' })
   })
 
   it('devuelve el requestId en un error inesperado y network-error si no hay respuesta', async () => {
@@ -89,16 +89,16 @@ describe('verifyAccessCode', () => {
         accessToken: 'tok-1',
         startsAt: '2027-03-15T15:00:00Z',
         serviceName: 'Corte',
-        barberName: 'Juan',
+        professionalName: 'Juan',
       },
     ],
   }
-  // El contrato llama professionalName a lo que el modelo del panel guarda como barberName.
+  // El contrato llama professionalName a lo que el modelo del panel guarda como professionalName.
   const grantedWire = {
     ...granted,
-    appointments: granted.appointments.map(({ barberName, ...rest }) => ({
+    appointments: granted.appointments.map(({ professionalName, ...rest }) => ({
       ...rest,
-      professionalName: barberName,
+      professionalName: professionalName,
     })),
   }
 
@@ -123,7 +123,7 @@ describe('verifyAccessCode', () => {
     expect(await verifyAccessCode('s', 'x', '1')).toEqual({ kind: 'invalid-contact' })
     reply(404, undefined, problem(404, 'not-found'))
     expect(await verifyAccessCode('s', 'a@b.co', '111111')).toEqual({
-      kind: 'barbershop-not-found',
+      kind: 'business-not-found',
     })
     reply(503, undefined, problem(503, 'unavailable'))
     expect(await verifyAccessCode('s', 'a@b.co', '111111')).toEqual({
@@ -149,7 +149,7 @@ describe('verifyAccessRef', () => {
     expect(outcome).toEqual({ kind: 'granted', accessToken: 'tok-1', purpose: 'cancel' })
   })
 
-  it('traduce por status: 401 a código inválido, 400/422 a entrada inválida y 404 a barbería inexistente', async () => {
+  it('traduce por status: 401 a código inválido, 400/422 a entrada inválida y 404 a negocio inexistente', async () => {
     const { verifyAccessRef } = await import('../verifyAccessRefApi')
     reply(401, undefined, problem(401, 'unauthorized'))
     expect(await verifyAccessRef('s', 'r', '111111')).toEqual({ kind: 'invalid-code' })
@@ -158,7 +158,7 @@ describe('verifyAccessRef', () => {
     reply(400, undefined, problem(400, 'invalid-request'))
     expect(await verifyAccessRef('s', 'r', '1')).toEqual({ kind: 'invalid-input' })
     reply(404, undefined, problem(404, 'not-found'))
-    expect(await verifyAccessRef('s', 'r', '111111')).toEqual({ kind: 'barbershop-not-found' })
+    expect(await verifyAccessRef('s', 'r', '111111')).toEqual({ kind: 'business-not-found' })
   })
 
   it('devuelve el requestId en un error inesperado y network-error si no hay respuesta', async () => {

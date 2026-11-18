@@ -4,7 +4,7 @@ import { test, expect, type Page } from '@playwright/test'
  * Recorrido E2E de HU-061 (creación manual de turnos). Corre contra el API
  * real en local (`go run ./cmd/api` sobre PostgreSQL real con las
  * diecisiete migraciones aplicadas y un usuario con un hash argon2id REAL,
- * mismo criterio que `e2e/servicios-por-barbero.spec.ts`).
+ * mismo criterio que `e2e/servicios-por-profesional.spec.ts`).
  *
  * Pendiente de ejecución contra Chromium real en esta entrega (no forma
  * parte de los checks de CI, que solo corren `test:unit`), mismo estado
@@ -13,7 +13,7 @@ import { test, expect, type Page } from '@playwright/test'
  *
  * Variables de entorno:
  *   E2E_EMAIL / E2E_PASSWORD: credenciales válidas contra el API real
- *     (barbería A, "shopA").
+ *     (negocio A, "shopA").
  *   APP_BASE_URL: base del frontend (por defecto http://localhost:5173).
  */
 const EMAIL = process.env.E2E_EMAIL ?? 'duena.a@ejemplo.test'
@@ -27,9 +27,9 @@ async function login(page: Page, email: string, password: string) {
   await expect(page).toHaveURL(/\/panel$/)
 }
 
-async function addBarber(page: Page, fullName: string) {
+async function addProfessional(page: Page, fullName: string) {
   await page.getByRole('link', { name: 'Barberos' }).click()
-  await expect(page).toHaveURL(/\/panel\/barberos$/)
+  await expect(page).toHaveURL(/\/panel\/profesionales$/)
   await page.getByRole('button', { name: 'Agregar barbero' }).click()
   const dialog = page.getByRole('dialog', { name: 'Agregar barbero' })
   await dialog.getByLabel('Nombre').fill(fullName)
@@ -49,21 +49,25 @@ async function addService(page: Page, name: string) {
   await expect(dialog).toBeHidden()
 }
 
-async function assignServiceToBarber(page: Page, barberName: string, serviceName: string) {
+async function assignServiceToProfessional(
+  page: Page,
+  professionalName: string,
+  serviceName: string,
+) {
   await page.getByRole('link', { name: 'Servicios por barbero' }).click()
-  await expect(page).toHaveURL(/\/panel\/servicios-por-barbero$/)
-  await page.getByLabel('Barbero', { exact: true }).selectOption({ label: barberName })
+  await expect(page).toHaveURL(/\/panel\/servicios-por-profesional$/)
+  await page.getByLabel('Barbero', { exact: true }).selectOption({ label: professionalName })
   await page.getByRole('checkbox', { name: serviceName }).check()
   await expect(page.getByRole('checkbox', { name: serviceName })).toBeChecked()
 }
 
-// El campo "Barbero" de esta pantalla es el listbox con monograma
-// (BarberSelect, issue #190): el atlas nuevo-turno-eventos muestra el retrato
+// El campo "Profesional" de esta pantalla es el listbox con monograma
+// (ProfessionalSelect, issue #190): el atlas nuevo-turno-eventos muestra el retrato
 // dentro del control cerrado y una `<option>` nativa no puede llevarlo. El
 // selector de "Servicio" sigue siendo un `<select>` nativo.
-async function chooseBarber(page: Page, barberName: string) {
+async function chooseProfessional(page: Page, professionalName: string) {
   await page.getByRole('button', { name: 'Barbero', exact: true }).click()
-  await page.getByRole('option', { name: barberName }).click()
+  await page.getByRole('option', { name: professionalName }).click()
 }
 
 async function openNewAppointment(page: Page) {
@@ -88,21 +92,21 @@ function nearFutureCivilDateTime(minutesFromNow: number): { date: string; time: 
 test.describe('Creación manual de turnos (HU-061)', () => {
   test.describe.configure({ mode: 'serial' })
 
-  test('el barbero registra un turno manual dentro de la próxima hora, fuera de la rejilla pública (CA-061-01, RN-DIS-04)', async ({
+  test('el profesional registra un turno manual dentro de la próxima hora, fuera de la rejilla pública (CA-061-01, RN-DIS-04)', async ({
     page,
   }) => {
     const stamp = Date.now()
-    const barberName = `E2E Turno Barbero ${stamp}`
+    const professionalName = `E2E Turno Barbero ${stamp}`
     const serviceName = `E2E Turno Servicio ${stamp}`
     const { date, time } = nearFutureCivilDateTime(5)
 
     await login(page, EMAIL, PASSWORD)
-    await addBarber(page, barberName)
+    await addProfessional(page, professionalName)
     await addService(page, serviceName)
-    await assignServiceToBarber(page, barberName, serviceName)
+    await assignServiceToProfessional(page, professionalName, serviceName)
 
     await openNewAppointment(page)
-    await chooseBarber(page, barberName)
+    await chooseProfessional(page, professionalName)
     await expect(
       page
         .getByRole('combobox', { name: 'Servicio', exact: true })
@@ -121,22 +125,22 @@ test.describe('Creación manual de turnos (HU-061)', () => {
     await expect(page.getByText(serviceName)).toBeVisible()
   })
 
-  test('un turno manual que se cruza con uno existente del mismo barbero se rechaza (RN-CON-01)', async ({
+  test('un turno manual que se cruza con uno existente del mismo profesional se rechaza (RN-CON-01)', async ({
     page,
   }) => {
     const stamp = Date.now()
-    const barberName = `E2E Cruce Barbero ${stamp}`
+    const professionalName = `E2E Cruce Barbero ${stamp}`
     const serviceName = `E2E Cruce Servicio ${stamp}`
     const { date, time } = nearFutureCivilDateTime(120)
 
     await login(page, EMAIL, PASSWORD)
-    await addBarber(page, barberName)
+    await addProfessional(page, professionalName)
     await addService(page, serviceName)
-    await assignServiceToBarber(page, barberName, serviceName)
+    await assignServiceToProfessional(page, professionalName, serviceName)
 
     async function submitOnce(attendeeName: string) {
       await openNewAppointment(page)
-      await chooseBarber(page, barberName)
+      await chooseProfessional(page, professionalName)
       await page
         .getByRole('combobox', { name: 'Servicio', exact: true })
         .selectOption({ label: serviceName })
@@ -154,21 +158,21 @@ test.describe('Creación manual de turnos (HU-061)', () => {
     await expect(page.getByText('el profesional ya tiene una cita en ese intervalo')).toBeVisible()
   })
 
-  test('un servicio no asignado al barbero elegido no aparece en el selector (DEC-072)', async ({
+  test('un servicio no asignado al profesional elegido no aparece en el selector (DEC-072)', async ({
     page,
   }) => {
     const stamp = Date.now()
-    const barberName = `E2E Sin Asignar Barbero ${stamp}`
+    const professionalName = `E2E Sin Asignar Barbero ${stamp}`
     const unassignedService = `E2E Sin Asignar Servicio ${stamp}`
 
     await login(page, EMAIL, PASSWORD)
-    await addBarber(page, barberName)
+    await addProfessional(page, professionalName)
     await addService(page, unassignedService)
-    // Deliberadamente SIN assignServiceToBarber: el servicio existe pero no
-    // está asignado a este barbero.
+    // Deliberadamente SIN assignServiceToProfessional: el servicio existe pero no
+    // está asignado a este profesional.
 
     await openNewAppointment(page)
-    await chooseBarber(page, barberName)
+    await chooseProfessional(page, professionalName)
     await expect(
       page
         .getByRole('combobox', { name: 'Servicio', exact: true })

@@ -27,12 +27,12 @@ import { formatTimeInTimezone } from '@/shared/time/formatInstant'
 import type { AccessGrant } from '../model/customerAccessOutcome'
 
 interface Props {
-  /** Slug público de la barbería (`:slug`). No confiado: el servidor lo resuelve. */
+  /** Slug público del negocio (`:slug`). No confiado: el servidor lo resuelve. */
   slug: string
 }
 const props = defineProps<Props>()
 
-type Step = 'contact' | 'code' | 'choose' | 'manage' | 'barbershop-not-found'
+type Step = 'contact' | 'code' | 'choose' | 'manage' | 'business-not-found'
 
 /** Códigos incorrectos que admite el servidor por código (DEC-178): al llegar aquí la
  * pantalla ofrece pedir uno nuevo en vez de seguir probando. */
@@ -152,8 +152,8 @@ async function submitContact() {
         text: `Pediste demasiados códigos. Vuelve a intentarlo en ${waitMinutes(outcome.retryAfterSeconds)} min.`,
       }
       return
-    case 'barbershop-not-found':
-      step.value = 'barbershop-not-found'
+    case 'business-not-found':
+      step.value = 'business-not-found'
       return
     case 'network-error':
       alert.value = {
@@ -203,8 +203,8 @@ async function submitCode() {
         : 'Ese código no es válido o ya venció. Revísalo o pide uno nuevo.'
       if (!isLocked.value) void focusStep()
       return
-    case 'barbershop-not-found':
-      step.value = 'barbershop-not-found'
+    case 'business-not-found':
+      step.value = 'business-not-found'
       return
     case 'network-error':
       alert.value = {
@@ -263,8 +263,8 @@ async function resend() {
         text: `Pediste demasiados códigos. Vuelve a intentarlo en ${waitMinutes(outcome.retryAfterSeconds)} min.`,
       }
       return
-    case 'barbershop-not-found':
-      step.value = 'barbershop-not-found'
+    case 'business-not-found':
+      step.value = 'business-not-found'
       return
     case 'network-error':
       alert.value = {
@@ -284,7 +284,7 @@ function changeContact() {
   step.value = 'contact'
 }
 
-/** Hoja de calendario y hora de cada turno, en la zona de la barbería (RN-DIS-07). */
+/** Hoja de calendario y hora de cada turno, en la zona del negocio (RN-DIS-07). */
 const choices = computed(() => {
   const access = grant.value
   if (!access) return []
@@ -306,7 +306,7 @@ const zoneCity = computed(() => (grant.value ? timezoneCity(grant.value.timezone
       <span class="access__caption">Mi turno</span>
     </header>
 
-    <main v-if="step === 'barbershop-not-found'" class="access__main access__main--state">
+    <main v-if="step === 'business-not-found'" class="access__main access__main--state">
       <h1 class="visually-hidden">Tu turno</h1>
       <PageState
         variant="danger"
@@ -480,7 +480,7 @@ const zoneCity = computed(() => (grant.value ? timezoneCity(grant.value.timezone
               <span class="ticket__when"
                 ><span class="ticket__weekday">{{ a.leaf.weekday }}</span> · {{ a.time }}</span
               >
-              <span class="ticket__what">{{ a.serviceName }} con {{ a.barberName }}</span>
+              <span class="ticket__what">{{ a.serviceName }} con {{ a.professionalName }}</span>
             </span>
             <span class="ticket__go">Abrir mi turno<span aria-hidden="true"> →</span></span>
           </button>

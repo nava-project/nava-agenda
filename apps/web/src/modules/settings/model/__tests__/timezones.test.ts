@@ -24,7 +24,7 @@ describe('listTimezones', () => {
     expect(zones).toEqual([...zones].sort((a, b) => a.localeCompare(b, 'en')))
   })
 
-  it('always includes the current zone of the barbershop, even if the browser does not list it', () => {
+  it('always includes the current zone of the business, even if the browser does not list it', () => {
     expect(listTimezones(['Legacy/Zona_Vieja'])).toContain('Legacy/Zona_Vieja')
   })
 

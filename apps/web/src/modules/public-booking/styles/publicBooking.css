@@ -2,8 +2,8 @@
  * Reserva pública · «mesa de patronaje» sobre tinta.
  *
  * Lenguaje compartido por las cinco pantallas del recorrido (entrada,
- * servicio, barbero, horario y datos): el mismo lienzo de tinta, latón y
- * serif editorial que el panel (agenda, servicios, barberos) y el acceso,
+ * servicio, profesional, horario y datos): el mismo lienzo de tinta, latón y
+ * serif editorial que el panel (agenda, servicios, profesionales) y el acceso,
  * con una hoja de papel marfil para lo que se rellena. Las clases llevan el
  * prefijo `pb-` y las consume solo este módulo; los valores salen de los
  * tokens de `styles/tokens.css`, nunca de un hexadecimal suelto.
@@ -264,7 +264,7 @@
   transform: translateY(-50%) rotate(45deg);
 }
 
-/* ── Lista de opciones (servicio, barbero) ──────────────────────────────── */
+/* ── Lista de opciones (servicio, profesional) ──────────────────────────────── */
 
 .pb-choices {
   padding: 0;
@@ -290,7 +290,7 @@
   -webkit-tap-highlight-color: transparent;
 }
 
-/* Fila de barbero (DEC-127): rombo, retrato y texto (nombre y descripción) en
+/* Fila de profesional (DEC-127): rombo, retrato y texto (nombre y descripción) en
    tres columnas, con la misma altura y jerarquía que las filas de servicio. */
 .pb-choice--person {
   grid-template-columns: auto auto minmax(0, 1fr);
@@ -467,7 +467,7 @@
   stroke-dashoffset: 0;
 }
 
-/* La descripción del barbero se recorta a tres líneas para que una larga no
+/* La descripción del profesional se recorta a tres líneas para que una larga no
    desproporcione la fila; el texto completo sigue en el DOM (y lo lee la
    tecnología de apoyo vía aria-describedby). */
 .pb-choice__description--clamped {
@@ -827,14 +827,14 @@
   height: 100dvh;
 }
 
-/* Servicio y Barbero: a 150–200 % de zoom (853x480, 640x360) la lista quedaba en ~119 px por
+/* Servicio y Profesional: a 150–200 % de zoom (853x480, 640x360) la lista quedaba en ~119 px por
    debajo del fin de la página y el pie y la barra de acción la tapaban (PC-F1, CA-091-05).
    Suelo = cabecera + título + dos filas de lista + barra de acción + pie. */
 .pb-layout:has(.pb-page--scroll-choices) {
   height: max(100dvh, 560px);
 }
 
-/* Con las reseñas del barbero abiertas, solo su bloque se desplaza (#525): el alto de la
+/* Con las reseñas del profesional abiertas, solo su bloque se desplaza (#525): el alto de la
    página sigue fijo y la lista de reseñas cede el sobrante (`.pb-reviews__scroll`), igual que
    las de servicios y horarios. Como piso (cabecera + título + ficha + toggle + unas filas de
    reseñas + barra de acción + pie), por debajo de él la página vuelve a desplazarse en vez de
@@ -961,7 +961,7 @@
     margin-top: 0;
   }
 
-  /* El resumen, con el talón y el barbero ya arriba, cede más alto a la
+  /* El resumen, con el talón y el profesional ya arriba, cede más alto a la
      región desplazable que el formulario: con tres filas basta para verla. */
   .pb-page--scroll-form .customer-details__summary-body {
     min-height: 104px;
@@ -1144,7 +1144,7 @@
   }
 }
 
-/* ── Vacío y ficha de barbero único, sobre tinta ────────────────────────── */
+/* ── Vacío y ficha de profesional único, sobre tinta ────────────────────────── */
 
 .pb-empty {
   display: flex;
@@ -2180,7 +2180,7 @@
   }
 }
 
-/* ── Reseñas del barbero (HU-100, DEC-128) ──────────────────────────────── */
+/* ── Reseñas del profesional (HU-100, DEC-128) ──────────────────────────────── */
 
 .pb-rating {
   --star-filled-color: var(--pb-brass);
@@ -2189,7 +2189,7 @@
   color: var(--pb-muted);
 }
 
-/* Estrellas y conteo («4,4 (8 reseñas)») más grandes en el paso de barbero y en las
+/* Estrellas y conteo («4,4 (8 reseñas)») más grandes en el paso de profesional y en las
    reseñas: los 16 px de las estrellas `sm` y los 12 px del conteo se leían pequeños. El
    selector compuesto vence al estilo propio de StarRating sin tocar el componente. */
 .pb-rating.star-rating--sm .star-rating__star,

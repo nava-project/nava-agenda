@@ -33,14 +33,14 @@ export function rescheduleAvailability(
   return { mode: 'available', remaining: appointment.rescheduleRemaining, deadlineMs }
 }
 
-/** Un día civil de la barbería con sus inicios ofrecidos, en orden. */
+/** Un día civil del negocio con sus inicios ofrecidos, en orden. */
 export interface RescheduleDay {
   civilDate: string
   starts: string[]
 }
 
-/** Agrupa los inicios (ya en orden cronológico) por día civil en la zona de la
- * barbería, nunca en la del dispositivo (RN-DIS-07). */
+/** Agrupa los inicios (ya en orden cronológico) por día civil en la zona del
+ * negocio, nunca en la del dispositivo (RN-DIS-07). */
 export function groupStartsByCivilDate(starts: string[], timezone: string): RescheduleDay[] {
   const byDay = new Map<string, string[]>()
   for (const start of starts) {

@@ -8,7 +8,7 @@
 // del enlace (HU-098): un cascarón propio, separado del panel autenticado
 // (`auth.privateShellRoute`) y del cascarón público de reserva
 // (`public-booking.routes`), y sin el guard `requireSession` -ninguna ruta
-// de esta audiencia exige sesión del barbero (CA-098-01). La ruta coincide
+// de esta audiencia exige sesión del profesional (CA-098-01). La ruta coincide
 // EXACTAMENTE con el enlace que el backend construye
 // (`apps/api/internal/modules/publicbooking/confirm.go`,
 // `webBaseURL + "/mi-turno/" + tokenPlain`, DEC-091): un cambio aquí sin el
@@ -39,7 +39,7 @@ export const customerAccessRoutes: RouteRecordRaw[] = [
   },
   // Entrada sin enlace (HU-105, DEC-178): la persona escribe su correo o celular, recibe un
   // código de 6 dígitos y entra a «Cambiar la hora». Cuelga de `/reservar/:slug` porque el
-  // contacto solo identifica a alguien dentro de una barbería, pero es una ruta propia y no
+  // contacto solo identifica a alguien dentro de un negocio, pero es una ruta propia y no
   // hija del cascarón de reserva: es la audiencia cliente, con la tinta de «Mi turno».
   {
     path: '/reservar/:slug/mi-turno',

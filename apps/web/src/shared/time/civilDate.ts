@@ -1,10 +1,10 @@
 // Fecha civil "AAAA-MM-DD" (HU-063, RN-DIS-07): estas funciones nunca leen
 // la zona del dispositivo. getCivilDateInTimezone es la única que necesita
-// una zona explícita (para saber qué día es "hoy" en la barbería);
+// una zona explícita (para saber qué día es "hoy" en el negocio);
 // shiftCivilDate y formatCivilDateFull operan sobre el triplete
 // año/mes/día ya resuelto y por eso son estables ante DST, fin de mes y fin
 // de año: un día civil siempre avanza "+1", sin importar cuántas horas de
-// reloj tenga ese día en la zona de la barbería.
+// reloj tenga ese día en la zona del negocio.
 const CIVIL_DATE_PATTERN = /^\d{4}-\d{2}-\d{2}$/
 
 function pad2(value: number): string {
@@ -24,7 +24,7 @@ export function isCivilDateString(value: string): boolean {
 }
 
 // getCivilDateInTimezone (CA-063-*): lee el día civil vigente AHORA en
-// `timezone` (la de la barbería), nunca en la zona del dispositivo.
+// `timezone` (la del negocio), nunca en la zona del dispositivo.
 // Intl.DateTimeFormat resuelve el día civil real incluso en un día local de
 // 23/25 horas por DST.
 export function getCivilDateInTimezone(timezone: string, at: Date = new Date()): string {
@@ -42,7 +42,7 @@ export function getCivilDateInTimezone(timezone: string, at: Date = new Date()):
 
 // shiftCivilDate: aritmética de calendario pura en UTC (Date.UTC), nunca
 // suma 24h de reloj. Cruza mes/año correctamente y es indiferente a DST:
-// la zona de la barbería no participa en esta cuenta porque un día civil
+// la zona del negocio no participa en esta cuenta porque un día civil
 // siempre son "+1", sin importar su duración real en horas ahí.
 export function shiftCivilDate(civilDate: string, deltaDays: number): string {
   const [year, month, day] = civilDate.split('-').map(Number)
@@ -52,7 +52,7 @@ export function shiftCivilDate(civilDate: string, deltaDays: number): string {
 
 // formatCivilDateFull (CA-063-*, estandar-diseno-visual.md §13) muestra
 // "jueves, 31 de agosto de 2026" para una fecha civil ya resuelta. Se
-// ancla a mediodía UTC y formatea EN UTC (nunca en la zona de la barbería
+// ancla a mediodía UTC y formatea EN UTC (nunca en la zona del negocio
 // ni del dispositivo): una fecha civil ya no necesita reinterpretarse por
 // zona para mostrarse, y hacerlo arriesgaría cruzar el día en una zona con
 // desfase extremo (p. ej. UTC+14).

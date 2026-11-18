@@ -63,7 +63,7 @@ test.describe('Catálogo público de servicios (HU-091)', () => {
     await expect(page.getByText('20000.00 COP')).toBeVisible()
   })
 
-  test('una barbería sin servicios públicos todavía muestra el estado vacío (CA-091-04)', async ({
+  test('un negocio sin servicios públicos todavía muestra el estado vacío (CA-091-04)', async ({
     page,
   }) => {
     await page.route('**/api/v1/public/businesses/barberia-ejemplo/services**', async (route) => {

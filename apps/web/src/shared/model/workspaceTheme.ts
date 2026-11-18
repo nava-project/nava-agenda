@@ -88,7 +88,7 @@ export function attachWorkspaceTheme(): () => void {
       else delete root.dataset.motion
 
       // El latón sobre Tinta es el valor de tokens.css: no se sobrescribe, así
-      // la barbería que nunca cambia su marca ve exactamente lo de siempre.
+      // el negocio que nunca cambia su marca ve exactamente lo de siempre.
       root.style.setProperty('--color-accent-brass', theme === 'ivory' ? accent.ivory : accent.ink)
       root.style.setProperty('--color-accent-brass-on-surface', accent.ivory)
 

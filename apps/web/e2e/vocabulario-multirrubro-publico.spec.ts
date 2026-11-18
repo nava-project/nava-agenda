@@ -4,7 +4,7 @@ import { fileURLToPath } from 'node:url'
 
 /**
  * Vocabulario multirrubro en lo que ve el cliente (#309, DEC-119): un estudio que llama
- * «manicurista» a su profesional no muestra «barbero» ni «barbería» en la selección pública
+ * «manicurista» a su profesional no muestra «profesional» ni «negocio» en la selección pública
  * ni en el acceso al turno, en 320/360/768/1280 px, sin scroll horizontal y con axe-core.
  * Respuestas simuladas del API (no depende de PostgreSQL); la lectura real del vocabulario
  * la cubren las pruebas Go con dos tenants. Capturas en e2e/evidence/vocabulario-multirrubro/.
@@ -36,7 +36,7 @@ const viewports = [
 ] as const
 
 // Los nombres propios no llevan la palabra: lo que se vigila es el texto de la interfaz.
-const FIXED_WORDS = /barber(o|a|os|as|ía|ías)\b/i
+const FIXED_WORDS = /professional(o|a|os|as|ía|ías)\b/i
 
 function json(body: unknown, status = 200) {
   return { status, contentType: 'application/json', body: JSON.stringify(body) }
@@ -90,7 +90,7 @@ for (const viewport of viewports) {
   }) => {
     await page.setViewportSize({ width: viewport.width, height: viewport.height })
     await mockPublicApi(page)
-    await page.goto(`/reservar/${SLUG}/servicios/${SERVICE_ID}/barbero`)
+    await page.goto(`/reservar/${SLUG}/servicios/${SERVICE_ID}/profesional`)
 
     await expect(page.getByRole('heading', { name: 'Elige tu manicurista' })).toBeVisible()
     await expect(page.getByRole('radiogroup', { name: 'Manicuristas disponibles' })).toBeVisible()

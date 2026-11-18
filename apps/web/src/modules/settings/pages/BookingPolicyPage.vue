@@ -1,11 +1,11 @@
 <script setup lang="ts">
 // Pantalla "Reserva pública" (HU-093): consultar y actualizar anticipación,
-// ventana, rejilla y política de cancelación tardía de la barbería activa, y
-// la ventana propia de cada barbero (DEC-169, BarberWindowPanel).
+// ventana, rejilla y política de cancelación tardía del negocio activo, y
+// la ventana propia de cada profesional (DEC-169, ProfessionalWindowPanel).
 // Estados discriminados: carga inicial, listo, guardando, error de campo,
 // conflicto de versión, error recuperable y éxito (mismo criterio que
 // SettingsPage.vue/HU-020). Un error recuperable NUNCA borra lo que el
-// barbero ya escribió; solo un guardado exitoso confirmado por el servidor
+// profesional ya escribió; solo un guardado exitoso confirmado por el servidor
 // reemplaza los valores del formulario. `versionToken` viaja aparte del
 // formulario (precondición `If-Match` de la siguiente escritura, CA-093-02),
 // nunca como un campo editable.
@@ -14,7 +14,7 @@ import { useToast, useVocabulary } from '@/shared/composables'
 import { isEmployeeProfile } from '@/shared/model'
 import { BaseAlert, BaseButton, BaseInput, DiamondLoader } from '@/shared/ui'
 import { fetchBookingPolicy, saveBookingPolicy } from '../api/bookingPolicyApi'
-import BarberWindowPanel from '../components/BarberWindowPanel.vue'
+import ProfessionalWindowPanel from '../components/ProfessionalWindowPanel.vue'
 import BookingPolicyPreview from '../components/BookingPolicyPreview.vue'
 import SaveBar from '../components/SaveBar.vue'
 import SettingsPanel from '../components/SettingsPanel.vue'
@@ -306,10 +306,10 @@ function onReloadAfterConflict() {
         </template>
       </BaseAlert>
 
-      <!-- El empleado (DEC-173) no cambia las reglas de la barbería: solo la ventana
-           propia de su barbero, que es lo único que el API le deja guardar aquí. -->
+      <!-- El empleado (DEC-173) no cambia las reglas del negocio: solo la ventana
+           propia de su profesional, que es lo único que el API le deja guardar aquí. -->
       <div v-else-if="isEmployeeProfile" key="own" class="booking-policy-page__own policy-ink">
-        <BarberWindowPanel :shop-window="savedForm" own-only />
+        <ProfessionalWindowPanel :shop-window="savedForm" own-only />
       </div>
 
       <div v-else key="ready" class="booking-policy-page__layout">
@@ -423,9 +423,9 @@ function onReloadAfterConflict() {
             </div>
           </SettingsPanel>
 
-          <!-- 02 · Ventana por barbero (DEC-169): carga y guarda por su cuenta;
-               hereda la ventana de la barbería YA guardada, no el borrador. -->
-          <BarberWindowPanel :shop-window="savedForm" />
+          <!-- 02 · Ventana por profesional (DEC-169): carga y guarda por su cuenta;
+               hereda la ventana del negocio YA guardada, no el borrador. -->
+          <ProfessionalWindowPanel :shop-window="savedForm" />
 
           <!-- 03 · Cancelación del cliente -->
           <SettingsPanel
@@ -493,7 +493,7 @@ function onReloadAfterConflict() {
 
 <style scoped>
 /* Superficie tinta de punta a punta, el mismo canvas que Agenda, Servicios,
-   Barberos y Configuración (estandar-diseno-visual.md §3). */
+   Profesionales y Configuración (estandar-diseno-visual.md §3). */
 .booking-policy-page {
   --policy-width: 1040px;
 
@@ -730,7 +730,7 @@ function onReloadAfterConflict() {
   line-height: 18px;
 }
 
-/* --- Campos reglados: mismo tratamiento que Servicios, Barberos y Configuración --- */
+/* --- Campos reglados: mismo tratamiento que Servicios, Profesionales y Configuración --- */
 
 .policy-ink :deep(.base-input) {
   --input-bg: color-mix(in srgb, var(--color-on-strong) 4%, transparent);

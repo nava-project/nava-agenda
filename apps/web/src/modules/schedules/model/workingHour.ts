@@ -1,7 +1,7 @@
 // Espejo tipado del cuerpo real del contrato (HU-040, CA-040-01/02/03):
 // exactamente id, isoWeekday, startsTime, durationMinutes, createdAt,
-// updatedAt. barbershopId/barberId nunca aparecen: el tenant se deriva de
-// la sesión y el barbero de la ruta.
+// updatedAt. businessId/professionalId nunca aparecen: el tenant se deriva de
+// la sesión y el profesional de la ruta.
 export interface WorkingHour {
   id: string
   isoWeekday: number
@@ -66,15 +66,15 @@ export function describeWeekdays(days: number[]): string {
   return text.charAt(0).toUpperCase() + text.slice(1)
 }
 
-// BarberSummary es un subconjunto deliberadamente mínimo del recurso real
+// ProfessionalSummary es un subconjunto deliberadamente mínimo del recurso real
 // de `staff` (id, el nombre visible y la URL de su retrato para el selector),
 // obtenido por este módulo directamente del cliente HTTP compartido -nunca
 // importando staffApi.ts, privado de su propio módulo
 // (docs/03-desarrollo/estandar-frontend-vue.md §3), mismo criterio que
-// barberServices.BarberSummary.
-export interface BarberSummary {
+// professionalServices.ProfessionalSummary.
+export interface ProfessionalSummary {
   id: string
   fullName: string
-  /** Retrato del barbero, o null cuando no tiene (se muestra su monograma). */
+  /** Retrato del profesional, o null cuando no tiene (se muestra su monograma). */
   photoUrl: string | null
 }

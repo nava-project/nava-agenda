@@ -11,7 +11,7 @@
 // confirmación. La franja de tiempo y la cuenta regresiva solo leen
 // `startsAt`/`endsAt`; no deciden nada de la política.
 import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue'
-import { BarberAvatar, BaseAlert, BaseButton, NavaWordmark, PageState } from '@/shared/ui'
+import { ProfessionalAvatar, BaseAlert, BaseButton, NavaWordmark, PageState } from '@/shared/ui'
 import { buildVocabularyFromTerms } from '@/shared/model'
 import { NAVA_PRIVACY_URL, NAVA_TERMS_URL } from '@/shared/model/navaSite'
 import { formatTimeInTimezone } from '@/shared/time/formatInstant'
@@ -204,7 +204,7 @@ const retry = () => {
   void load()
 }
 
-// Vocabulario de la barbería del turno (DEC-119): hasta que el servidor responde, o si
+// Vocabulario del negocio del turno (DEC-119): hasta que el servidor responde, o si
 // no responde, valen los valores iniciales.
 const v = computed(() =>
   buildVocabularyFromTerms(
@@ -233,9 +233,9 @@ const statusTone = computed(() =>
     : 'neutral',
 )
 
-// CA-098-04: hora y política se muestran en la zona de la barbería, nunca
+// CA-098-04: hora y política se muestran en la zona del negocio, nunca
 // en la del dispositivo (mismo criterio que formatInstantInTimezone en
-// public-booking/pages/PublicBarbershopEntryPage.vue).
+// public-booking/pages/PublicBusinessEntryPage.vue).
 const moment = computed(() => {
   if (screenState.value.status !== 'success') return null
   const { appointment: a } = screenState.value
@@ -345,7 +345,7 @@ const unexpectedErrorMessage = computed(() => {
     <main v-else class="customer-appointment__main">
       <div class="customer-appointment__intro">
         <p class="customer-appointment__eyebrow">Tu turno en</p>
-        <h1 class="customer-appointment__title">{{ screenState.appointment.barbershopName }}</h1>
+        <h1 class="customer-appointment__title">{{ screenState.appointment.businessName }}</h1>
         <div class="customer-appointment__status-row">
           <p
             class="customer-appointment__status"
@@ -411,10 +411,15 @@ const unexpectedErrorMessage = computed(() => {
 
           <div class="ticket__people">
             <div class="ticket__person">
-              <BarberAvatar size="option" :full-name="screenState.appointment.barberName" />
+              <ProfessionalAvatar
+                size="option"
+                :full-name="screenState.appointment.professionalName"
+              />
               <p class="ticket__person-text">
                 <span class="ticket__label">{{ v.Professional }}</span>
-                <span class="ticket__person-name">{{ screenState.appointment.barberName }}</span>
+                <span class="ticket__person-name">{{
+                  screenState.appointment.professionalName
+                }}</span>
               </p>
             </div>
             <div class="ticket__person">
@@ -488,14 +493,14 @@ const unexpectedErrorMessage = computed(() => {
       <AppointmentReview
         :can-review="screenState.appointment.canReview"
         :review="screenState.appointment.review"
-        :professional-name="screenState.appointment.barberName"
+        :professional-name="screenState.appointment.professionalName"
         :submitting="reviewSubmitting"
         :error-message="reviewError"
         @submit="submitReview"
       />
     </main>
 
-    <!-- Firma secundaria: la barbería lleva la jerarquía principal (§3.2). Enlaces
+    <!-- Firma secundaria: el negocio lleva la jerarquía principal (§3.2). Enlaces
          simples, sin RouterLink: la página se monta y se prueba sin router. -->
     <footer class="customer-appointment__footer">
       <span>Turnos con</span>

@@ -1,7 +1,7 @@
 // Espejo tipado del cuerpo real del contrato (HU-042): exactamente id,
 // blockType, source, startsAt, endsAt, reason, deletedAt, deletedBy,
-// createdAt, updatedAt. barbershopId/barberId nunca aparecen: el tenant se
-// deriva de la sesión y el barbero de la ruta.
+// createdAt, updatedAt. businessId/professionalId nunca aparecen: el tenant se
+// deriva de la sesión y el profesional de la ruta.
 export interface TimeBlock {
   id: string
   blockType: BlockType

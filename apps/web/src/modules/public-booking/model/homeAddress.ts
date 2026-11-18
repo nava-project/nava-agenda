@@ -1,7 +1,7 @@
 // Dirección de un turno a domicilio (DEC-138, DEC-155). El servidor guarda UN texto de hasta
 // 200 caracteres junto con las coordenadas (`appointment_home_service_ck`); el cliente escribe
 // además los detalles que el mapa no sabe (torre, apartamento, casa, una referencia). Esos
-// detalles se anteponen al texto de la dirección: el barbero lee primero lo que necesita para
+// detalles se anteponen al texto de la dirección: el profesional lee primero lo que necesita para
 // tocar el timbre y el contrato del API no cambia.
 
 /** Largo máximo de los detalles que escribe la persona. */

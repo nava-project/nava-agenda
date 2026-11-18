@@ -17,7 +17,7 @@ function retryAfterSeconds(response: Response): number {
  * - 202: enviado (o no: la respuesta no lo revela, CA-105-01);
  * - 429: demasiados códigos pedidos;
  * - 400/422: contacto con forma inválida;
- * - 404: la barbería del enlace no existe o no está publicada.
+ * - 404: el negocio del enlace no existe o no está publicada.
  */
 export async function requestAccessCode(
   slug: string,
@@ -42,7 +42,7 @@ export async function requestAccessCode(
       case 422:
         return { kind: 'invalid-contact' }
       case 404:
-        return { kind: 'barbershop-not-found' }
+        return { kind: 'business-not-found' }
       default:
         return {
           kind: 'unexpected-error',

@@ -12,14 +12,14 @@ import { fileURLToPath } from 'node:url'
  * Las capturas se guardan en `e2e/evidence/panel/` (no ignorado por git).
  *
  * Un solo inicio de sesión reutilizado entre los cinco breakpoints por
- * prueba (mismo criterio que `e2e/barberos-evidencia-responsiva.spec.ts`):
+ * prueba (mismo criterio que `e2e/profesionales-evidencia-responsiva.spec.ts`):
  * el umbral de intentos de HU-007 es compartido por todo este entorno de
  * pruebas. La versión anterior de este archivo iniciaba sesión una vez por
  * combinación prueba×ancho (20 inicios en segundos) y quedaba bloqueada por
  * la propia defensa contra abuso al ejecutarse localmente.
  *
  * Fase 2 del rediseño Tailored Grid (issue #187): el dock ya no lista los
- * seis destinos en línea plana; solo Agenda/Servicios/Barberos quedan
+ * seis destinos en línea plana; solo Agenda/Servicios/Profesionales quedan
  * siempre visibles y el resto vive dentro de "Más" (BaseDialog). Se agrega
  * cobertura de ese menú (destinos secundarios, incluido "Bloqueos", que
  * antes no tenía entrada de navegación, y cierre de sesión).

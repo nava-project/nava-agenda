@@ -2,7 +2,7 @@
  * Pruebas del cliente tipado de la integración con Google Calendar: mapeo por
  * `status` (nunca por `detail`) a outcomes discriminados, igual que
  * `staff/api/__tests__/staffApi.test.ts`. El cliente nunca envía tokens ni
- * identificadores de usuario o barbero.
+ * identificadores de usuario o profesional.
  */
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
@@ -23,7 +23,7 @@ const {
   syncNow,
   disconnect,
   updateReminder,
-  linkSoleBarber,
+  linkSoleProfessional,
 } = await import('../googleCalendarApi')
 
 const wire = {
@@ -38,9 +38,9 @@ const wire = {
   failedSyncJobs: 0,
 }
 
-// El modelo del panel conserva barberLinked; el contrato lo llama professionalLinked.
+// El modelo del panel conserva professionalLinked; el contrato lo llama professionalLinked.
 const { professionalLinked, ...wireRest } = wire
-const connection = { ...wireRest, barberLinked: professionalLinked }
+const connection = { ...wireRest, professionalLinked: professionalLinked }
 
 function ok(body: unknown) {
   return { data: body, error: undefined, response: new Response(null, { status: 200 }) }
@@ -177,48 +177,48 @@ describe('googleCalendarApi.syncNow / disconnect / updateReminder', () => {
   })
 })
 
-describe('googleCalendarApi.linkSoleBarber (DEC-155)', () => {
+describe('googleCalendarApi.linkSoleProfessional (DEC-155)', () => {
   beforeEach(() => {
     getMock.mockReset()
     putMock.mockReset()
   })
 
-  it('links the only barber with the self-link endpoint', async () => {
+  it('links the only professional with the self-link endpoint', async () => {
     getMock.mockResolvedValueOnce(ok({ items: [{ id: 'b-1' }], nextCursor: null }))
     putMock.mockResolvedValueOnce(ok({ id: 'b-1' }))
-    expect(await linkSoleBarber()).toEqual({ kind: 'success' })
+    expect(await linkSoleProfessional()).toEqual({ kind: 'success' })
     expect(putMock).toHaveBeenCalledWith('/private/me/professional', {
       body: { professionalId: 'b-1' },
     })
   })
 
-  it('does not guess when there are several barbers, none, or more pages', async () => {
+  it('does not guess when there are several professionals, none, or more pages', async () => {
     for (const page of [
       { items: [{ id: 'b-1' }, { id: 'b-2' }], nextCursor: null },
       { items: [], nextCursor: null },
       { items: [{ id: 'b-1' }], nextCursor: 'siguiente' },
     ]) {
       getMock.mockResolvedValueOnce(ok(page))
-      expect(await linkSoleBarber()).toEqual({ kind: 'not-applicable' })
+      expect(await linkSoleProfessional()).toEqual({ kind: 'not-applicable' })
     }
     expect(putMock).not.toHaveBeenCalled()
   })
 
-  it('falls back to the manual flow when the barber is gone or taken', async () => {
+  it('falls back to the manual flow when the professional is gone or taken', async () => {
     for (const code of [404, 409]) {
       getMock.mockResolvedValueOnce(ok({ items: [{ id: 'b-1' }], nextCursor: null }))
       putMock.mockResolvedValueOnce(status(code))
-      expect(await linkSoleBarber()).toEqual({ kind: 'not-applicable' })
+      expect(await linkSoleProfessional()).toEqual({ kind: 'not-applicable' })
     }
   })
 
   it('maps failures', async () => {
     getMock.mockResolvedValueOnce(status(500))
-    expect(await linkSoleBarber()).toEqual({ kind: 'unexpected-error' })
+    expect(await linkSoleProfessional()).toEqual({ kind: 'unexpected-error' })
     getMock.mockResolvedValueOnce(ok({ items: [{ id: 'b-1' }], nextCursor: null }))
     putMock.mockResolvedValueOnce(status(500))
-    expect(await linkSoleBarber()).toEqual({ kind: 'unexpected-error' })
+    expect(await linkSoleProfessional()).toEqual({ kind: 'unexpected-error' })
     getMock.mockRejectedValueOnce(new Error('offline'))
-    expect(await linkSoleBarber()).toEqual({ kind: 'network-error' })
+    expect(await linkSoleProfessional()).toEqual({ kind: 'network-error' })
   })
 })

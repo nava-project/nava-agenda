@@ -14,7 +14,7 @@ import { pickAgendaDate } from './agenda-fecha'
  *
  * Variables de entorno:
  *   E2E_EMAIL / E2E_PASSWORD: credenciales válidas contra el API real
- *     (barbería A, "shopA").
+ *     (negocio A, "shopA").
  *   APP_BASE_URL: base del frontend (por defecto http://localhost:5173).
  */
 const EMAIL = process.env.E2E_EMAIL ?? 'duena.a@ejemplo.test'
@@ -28,9 +28,9 @@ async function login(page: Page) {
   await expect(page).toHaveURL(/\/panel$/)
 }
 
-async function addBarber(page: Page, fullName: string) {
+async function addProfessional(page: Page, fullName: string) {
   await page.getByRole('link', { name: 'Barberos' }).click()
-  await expect(page).toHaveURL(/\/panel\/barberos$/)
+  await expect(page).toHaveURL(/\/panel\/profesionales$/)
   await page.getByRole('button', { name: 'Agregar barbero' }).click()
   const dialog = page.getByRole('dialog', { name: 'Agregar barbero' })
   await dialog.getByLabel('Nombre').fill(fullName)
@@ -50,10 +50,14 @@ async function addService(page: Page, name: string) {
   await expect(dialog).toBeHidden()
 }
 
-async function assignServiceToBarber(page: Page, barberName: string, serviceName: string) {
+async function assignServiceToProfessional(
+  page: Page,
+  professionalName: string,
+  serviceName: string,
+) {
   await page.getByRole('link', { name: 'Servicios por barbero' }).click()
-  await expect(page).toHaveURL(/\/panel\/servicios-por-barbero$/)
-  await page.getByLabel('Barbero', { exact: true }).selectOption({ label: barberName })
+  await expect(page).toHaveURL(/\/panel\/servicios-por-profesional$/)
+  await page.getByLabel('Barbero', { exact: true }).selectOption({ label: professionalName })
   await page.getByRole('checkbox', { name: serviceName }).check()
   await expect(page.getByRole('checkbox', { name: serviceName })).toBeChecked()
 }
@@ -64,7 +68,7 @@ async function goToAgenda(page: Page) {
   await expect(page.getByRole('heading', { name: 'Agenda', exact: true })).toBeVisible()
 }
 
-async function selectAgendaBarber(page: Page, fullName: string) {
+async function selectAgendaProfessional(page: Page, fullName: string) {
   const trigger = page.getByRole('button', { name: 'Barbero', exact: true })
   await trigger.click()
   await page.getByRole('option', { name: fullName, exact: true }).click()
@@ -89,7 +93,7 @@ function nearFutureCivilDateTime(minutesFromNow: number): { date: string; time: 
 
 async function registerManualAppointment(
   page: Page,
-  barberName: string,
+  professionalName: string,
   serviceName: string,
   attendeeName: string,
   minutesFromNow: number,
@@ -97,7 +101,7 @@ async function registerManualAppointment(
   const { date, time } = nearFutureCivilDateTime(minutesFromNow)
   await page.getByRole('link', { name: 'Nuevo turno' }).click()
   await expect(page).toHaveURL(/\/panel\/turnos\/nuevo$/)
-  await page.getByLabel('Barbero', { exact: true }).selectOption({ label: barberName })
+  await page.getByLabel('Barbero', { exact: true }).selectOption({ label: professionalName })
   await page.getByLabel('Servicio', { exact: true }).selectOption({ label: serviceName })
   await page.getByLabel('Persona atendida').fill(attendeeName)
   await page.getByLabel('Nombre del cliente').fill(attendeeName)
@@ -110,30 +114,30 @@ async function registerManualAppointment(
 test.describe('Navegación de la agenda por fecha (HU-063)', () => {
   test.describe.configure({ mode: 'serial' })
 
-  test('hoy → anterior → siguiente → fecha elegida → recarga → atrás/adelante, con fecha y barbero siempre correctos (CA-063-01 a CA-063-08)', async ({
+  test('hoy → anterior → siguiente → fecha elegida → recarga → atrás/adelante, con fecha y profesional siempre correctos (CA-063-01 a CA-063-08)', async ({
     page,
   }) => {
     const stamp = Date.now()
-    const barberName = `E2E Navegacion Barbero ${stamp}`
+    const professionalName = `E2E Navegacion Barbero ${stamp}`
     const serviceName = `E2E Navegacion Servicio ${stamp}`
     const attendeeName = `Cliente navegacion E2E ${stamp}`
 
     await login(page)
-    await addBarber(page, barberName)
+    await addProfessional(page, professionalName)
     await addService(page, serviceName)
-    await assignServiceToBarber(page, barberName, serviceName)
-    await registerManualAppointment(page, barberName, serviceName, attendeeName, 30)
+    await assignServiceToProfessional(page, professionalName, serviceName)
+    await registerManualAppointment(page, professionalName, serviceName, attendeeName, 30)
 
     await goToAgenda(page)
-    await selectAgendaBarber(page, barberName)
+    await selectAgendaProfessional(page, professionalName)
     await expect(page.getByText(attendeeName)).toBeVisible()
     await expect(page).toHaveURL(new RegExp(`date=${civilDateAt(0)}`))
 
-    // Anterior: el turno de hoy deja de verse; barbero se conserva.
+    // Anterior: el turno de hoy deja de verse; profesional se conserva.
     await page.getByRole('button', { name: 'Anterior' }).click()
     await expect(page).toHaveURL(new RegExp(`date=${civilDateAt(-1)}`))
     await expect(page.getByRole('button', { name: 'Barbero', exact: true })).toContainText(
-      barberName,
+      professionalName,
     )
     await expect(page.getByText(attendeeName)).not.toBeVisible()
 
@@ -151,12 +155,12 @@ test.describe('Navegación de la agenda por fecha (HU-063)', () => {
     await pickAgendaDate(page, farDate)
     await expect(page).toHaveURL(new RegExp(`date=${farDate}`))
 
-    // Recarga: conserva la fecha y el barbero de la URL.
+    // Recarga: conserva la fecha y el profesional de la URL.
     await page.reload()
     await expect(page.getByRole('heading', { name: 'Agenda', exact: true })).toBeVisible()
     await expect(page).toHaveURL(new RegExp(`date=${farDate}`))
     await expect(page.getByRole('button', { name: 'Barbero', exact: true })).toContainText(
-      barberName,
+      professionalName,
     )
 
     // Atrás/adelante del navegador restauran la fecha anterior/siguiente.
@@ -170,7 +174,7 @@ test.describe('Navegación de la agenda por fecha (HU-063)', () => {
 test.describe('Agenda en un dispositivo de otra zona horaria durante la navegación (RN-DIS-07)', () => {
   test.use({ timezoneId: 'America/Los_Angeles' })
 
-  test('anterior/siguiente calculan el día civil de la ZONA DE LA BARBERÍA, nunca la del dispositivo', async ({
+  test('anterior/siguiente calculan el día civil de la ZONA DE LA NEGOCIO, nunca la del dispositivo', async ({
     page,
   }) => {
     await login(page)

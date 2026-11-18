@@ -8,7 +8,7 @@ import { fileURLToPath } from 'node:url'
  * selección de franja, navegación de día, vacío total y error "no
  * encontrado" en 320/360/768/1280 px, más una aproximación de zoom de texto
  * 200% (mismo criterio que
- * reserva-publica-barbero-evidencia-responsiva.spec.ts, HU-092). Sin
+ * reserva-publica-profesional-evidencia-responsiva.spec.ts, HU-092). Sin
  * mockup exacto asignado a esta pantalla (composición libre dentro de
  * NAVA, DEC-078). Las capturas se guardan en `e2e/evidence/` (no ignorado
  * por git) para quedar adjuntas como archivos reales del PR.
@@ -33,7 +33,7 @@ async function assertNoAxeViolations(page: import('@playwright/test').Page) {
     const axeGlobal = (window as any).axe
     // color-contrast se desactiva: la paleta ya está verificada en la
     // tabla aprobada de estandar-diseno-visual.md §4.3 (mismo criterio que
-    // reserva-publica-barbero-evidencia-responsiva.spec.ts).
+    // reserva-publica-profesional-evidencia-responsiva.spec.ts).
     return axeGlobal.run(document, { rules: { 'color-contrast': { enabled: false } } })
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
   })) as { violations: any[] }
@@ -50,7 +50,7 @@ const viewports = [
 ]
 
 const SERVICE_ID = '8f3ac2b1-e4d5-46f6-a7c8-d9e0f1a2b3c4'
-const BARBER_ID = 'a1111111-1111-1111-1111-111111111111'
+const PROFESSIONAL_ID = 'a1111111-1111-1111-1111-111111111111'
 
 async function fulfillAvailability(
   route: Route,
@@ -81,9 +81,9 @@ for (const viewport of viewports) {
 
     test(`carga (${viewport.name}px)`, async ({ page }) => {
       await page.route(
-        `**/api/v1/public/businesses/**/services/${SERVICE_ID}/professionals/${BARBER_ID}/availability**`,
+        `**/api/v1/public/businesses/**/services/${SERVICE_ID}/professionals/${PROFESSIONAL_ID}/availability**`,
         async (route) => {
-          // Mismo margen que reserva-publica-barbero-evidencia-responsiva.spec.ts:
+          // Mismo margen que reserva-publica-profesional-evidencia-responsiva.spec.ts:
           // la ruta se carga de forma diferida y debe compilar/servir su
           // propio chunk bajo el servidor de desarrollo de Vite.
           await new Promise((resolve) => setTimeout(resolve, 1500))
@@ -91,7 +91,7 @@ for (const viewport of viewports) {
         },
       )
       await page.goto(
-        `/reservar/barberia-ejemplo/servicios/${SERVICE_ID}/barbero/${BARBER_ID}/horario`,
+        `/reservar/barberia-ejemplo/servicios/${SERVICE_ID}/profesional/${PROFESSIONAL_ID}/horario`,
       )
       await expect(page.getByText('Cargando disponibilidad')).toBeVisible()
       await page.screenshot({
@@ -102,11 +102,11 @@ for (const viewport of viewports) {
 
     test(`día con franjas, sin scroll horizontal (${viewport.name}px)`, async ({ page }) => {
       await page.route(
-        `**/api/v1/public/businesses/**/services/${SERVICE_ID}/professionals/${BARBER_ID}/availability**`,
+        `**/api/v1/public/businesses/**/services/${SERVICE_ID}/professionals/${PROFESSIONAL_ID}/availability**`,
         (route) => fulfillAvailability(route, availability),
       )
       await page.goto(
-        `/reservar/barberia-ejemplo/servicios/${SERVICE_ID}/barbero/${BARBER_ID}/horario`,
+        `/reservar/barberia-ejemplo/servicios/${SERVICE_ID}/profesional/${PROFESSIONAL_ID}/horario`,
       )
       await expect(page.getByRole('radio')).toHaveCount(2)
       await page.screenshot({
@@ -123,11 +123,11 @@ for (const viewport of viewports) {
 
     test(`franja elegida (${viewport.name}px)`, async ({ page }) => {
       await page.route(
-        `**/api/v1/public/businesses/**/services/${SERVICE_ID}/professionals/${BARBER_ID}/availability**`,
+        `**/api/v1/public/businesses/**/services/${SERVICE_ID}/professionals/${PROFESSIONAL_ID}/availability**`,
         (route) => fulfillAvailability(route, availability),
       )
       await page.goto(
-        `/reservar/barberia-ejemplo/servicios/${SERVICE_ID}/barbero/${BARBER_ID}/horario`,
+        `/reservar/barberia-ejemplo/servicios/${SERVICE_ID}/profesional/${PROFESSIONAL_ID}/horario`,
       )
       await page.getByRole('radio').first().click()
       await page.screenshot({
@@ -139,11 +139,11 @@ for (const viewport of viewports) {
 
     test(`vacío total de la ventana (${viewport.name}px)`, async ({ page }) => {
       await page.route(
-        `**/api/v1/public/businesses/**/services/${SERVICE_ID}/professionals/${BARBER_ID}/availability**`,
+        `**/api/v1/public/businesses/**/services/${SERVICE_ID}/professionals/${PROFESSIONAL_ID}/availability**`,
         (route) => fulfillAvailability(route, { ...availability, slots: [] }),
       )
       await page.goto(
-        `/reservar/barberia-ejemplo/servicios/${SERVICE_ID}/barbero/${BARBER_ID}/horario`,
+        `/reservar/barberia-ejemplo/servicios/${SERVICE_ID}/profesional/${PROFESSIONAL_ID}/horario`,
       )
       await expect(page.getByText('No hay franjas disponibles')).toBeVisible()
       await page.screenshot({
@@ -157,7 +157,7 @@ for (const viewport of viewports) {
       page,
     }) => {
       await page.route(
-        `**/api/v1/public/businesses/**/services/${SERVICE_ID}/professionals/${BARBER_ID}/availability**`,
+        `**/api/v1/public/businesses/**/services/${SERVICE_ID}/professionals/${PROFESSIONAL_ID}/availability**`,
         async (route) => {
           await route.fulfill({
             status: 404,
@@ -175,7 +175,7 @@ for (const viewport of viewports) {
         },
       )
       await page.goto(
-        `/reservar/enlace-que-no-existe/servicios/${SERVICE_ID}/barbero/${BARBER_ID}/horario`,
+        `/reservar/enlace-que-no-existe/servicios/${SERVICE_ID}/profesional/${PROFESSIONAL_ID}/horario`,
       )
       await expect(page.getByRole('alert')).toContainText('No encontramos ese enlace')
       await page.screenshot({

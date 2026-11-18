@@ -3,10 +3,10 @@
 // es lo único que `api/listPublicServicesApi.ts` entrega. Ninguno de los dos
 // expone la forma RFC 9457 (`Problem`) del contrato (docs/03-desarrollo/
 // estandar-frontend-vue.md §6), mismo criterio que
-// model/barbershopProfileOutcome.ts.
+// model/businessProfileOutcome.ts.
 
 /** Servicio público mínimo, ya activo y con al menos una asignación
- * vigente a un barbero (CA-091-01). `price` viaja como el string decimal
+ * vigente a un profesional (CA-091-01). `price` viaja como el string decimal
  * exacto del contrato: nunca se convierte a `number` en el cliente
  * (docs/06-api/estandar-openapi.md §6). */
 export interface PublicService {
@@ -21,7 +21,7 @@ export interface PublicService {
 /** Resultado discriminado de listar el catálogo público contra el API
  * real. `not-found` cubre las mismas tres causas indistinguibles de
  * CA-090-02 (forma inválida, desconocido, no publicable) que
- * `ResolveBarbershopOutcome`; `network-error` y `unexpected-error` son las
+ * `ResolveBusinessOutcome`; `network-error` y `unexpected-error` son las
  * mismas fronteras defensivas del resto de la aplicación. */
 export type ListPublicServicesOutcome =
   | { kind: 'success'; services: PublicService[] }

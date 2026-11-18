@@ -3,7 +3,7 @@
  * NavaWordmark - Identidad de plataforma (estandar-diseno-visual.md §2.1,
  * especificacion-frontend-nava.md §6). Texto accesible, nunca imagen
  * raster; variantes tinta (lienzo claro) e invertida (superficie tinta).
- * NAVA identifica la plataforma; el nombre de la barbería es dato del
+ * NAVA identifica la plataforma; el nombre del negocio es dato del
  * tenant y se muestra por separado, nunca sustituido por este componente.
  */
 interface Props {

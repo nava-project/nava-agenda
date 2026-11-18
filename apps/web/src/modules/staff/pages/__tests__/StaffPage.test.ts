@@ -19,12 +19,12 @@ const createMock = vi.hoisted(() => vi.fn())
 const renameMock = vi.hoisted(() => vi.fn())
 const uploadPhotoMock = vi.hoisted(() => vi.fn())
 const removePhotoMock = vi.hoisted(() => vi.fn())
-const fetchMyBarberMock = vi.hoisted(() => vi.fn())
-const linkMyBarberMock = vi.hoisted(() => vi.fn())
-const unlinkMyBarberMock = vi.hoisted(() => vi.fn())
+const fetchMyProfessionalMock = vi.hoisted(() => vi.fn())
+const linkMyProfessionalMock = vi.hoisted(() => vi.fn())
+const unlinkMyProfessionalMock = vi.hoisted(() => vi.fn())
 
 vi.mock('../../api/staffApi', () => ({
-  fetchBarberPage: async (page: number, pageSize: number) => {
+  fetchProfessionalPage: async (page: number, pageSize: number) => {
     const outcome = await fetchMock(page, pageSize)
     if (outcome.kind !== 'success') return outcome
     return {
@@ -38,22 +38,23 @@ vi.mock('../../api/staffApi', () => ({
       },
     }
   },
-  createBarber: createMock,
-  renameBarber: renameMock,
-  uploadBarberPhoto: uploadPhotoMock,
-  removeBarberPhoto: removePhotoMock,
-  fetchMyBarber: fetchMyBarberMock,
-  linkMyBarber: linkMyBarberMock,
-  unlinkMyBarber: unlinkMyBarberMock,
+  createProfessional: createMock,
+  renameProfessional: renameMock,
+  uploadProfessionalPhoto: uploadPhotoMock,
+  removeProfessionalPhoto: removePhotoMock,
+  fetchMyProfessional: fetchMyProfessionalMock,
+  linkMyProfessional: linkMyProfessionalMock,
+  unlinkMyProfessional: unlinkMyProfessionalMock,
   // La URL real depende del cliente HTTP; aquí basta una forma reconocible.
-  barberPhotoUrl: (b: { id: string; photoUpdatedAt: string | null }) =>
+  professionalPhotoUrl: (b: { id: string; photoUpdatedAt: string | null }) =>
     b.photoUpdatedAt ? `/photo/${b.id}?v=${b.photoUpdatedAt}` : null,
 }))
 
 const { default: StaffPage } = await import('../StaffPage.vue')
-const { default: BarberPhotoField } = await import('../../components/BarberPhotoField.vue')
+const { default: ProfessionalPhotoField } =
+  await import('../../components/ProfessionalPhotoField.vue')
 
-function barber(
+function professional(
   id: string,
   fullName: string,
   photoUpdatedAt: string | null = null,
@@ -80,12 +81,12 @@ function setTextareaValue(textarea: HTMLTextAreaElement, value: string) {
   textarea.dispatchEvent(new Event('input'))
 }
 
-const oneBarber = [barber('b-1', 'Carlos Ramírez')]
-const fourBarbers = [
-  barber('b-1', 'Carlos Ramírez'),
-  barber('b-2', 'Ana Torres'),
-  barber('b-3', 'Luis Gómez'),
-  barber('b-4', 'María Pérez'),
+const oneProfessional = [professional('b-1', 'Carlos Ramírez')]
+const fourProfessionals = [
+  professional('b-1', 'Carlos Ramírez'),
+  professional('b-2', 'Ana Torres'),
+  professional('b-3', 'Luis Gómez'),
+  professional('b-4', 'María Pérez'),
 ]
 
 // stubs.teleport hace que Vue Test Utils renderice el contenido de
@@ -118,11 +119,11 @@ function waitOutMoreHold() {
   return new Promise((resolve) => setTimeout(resolve, PAGE_MIN_HOLD_MS + 50))
 }
 
-async function mountReady(items = oneBarber, nextCursor: string | null = null) {
-  // Clona el arreglo (StaffPage.vue asigna barbers.value = outcome.page.items
+async function mountReady(items = oneProfessional, nextCursor: string | null = null) {
+  // Clona el arreglo (StaffPage.vue asigna professionals.value = outcome.page.items
   // por referencia, y "Cargar más" hace push directo sobre ese mismo
   // arreglo): sin clonar, dos pruebas que reutilizan la misma constante
-  // oneBarber/fourBarbers mutarían el fixture compartido de la otra,
+  // oneProfessional/fourProfessionals mutarían el fixture compartido de la otra,
   // exactamente como haría un backend real que SIEMPRE devuelve un arreglo
   // nuevo por respuesta.
   fetchMock.mockResolvedValueOnce({ kind: 'success', page: { items: [...items], nextCursor } })
@@ -173,7 +174,7 @@ function findButtonByText(wrapper: VueWrapper, text: string) {
 
 // Elige una foto en el campo del diálogo abierto. El campo emite `update:draft`
 // con la imagen ya preparada (el recorte y el input de archivo se prueban en
-// BarberPhotoField.test.ts y preparePhoto.test.ts): aquí se ejercita lo que la
+// ProfessionalPhotoField.test.ts y preparePhoto.test.ts): aquí se ejercita lo que la
 // página hace con ese borrador. Se emite desde el componente en vez de
 // disparar `change` en el DOM porque el stub de Teleport de Vue Test Utils
 // vuelve a montar el contenido de los diálogos en cada re-render, y una
@@ -182,7 +183,7 @@ async function pickPhoto(wrapper: VueWrapper, previewUrl = 'blob:preview') {
   const blob = new Blob(['prepared'], { type: 'image/jpeg' })
   const open = openDialogElement(wrapper)
   const field = wrapper
-    .findAllComponents(BarberPhotoField)
+    .findAllComponents(ProfessionalPhotoField)
     .find((candidate) => open.contains(candidate.element))
   if (!field) throw new Error('no photo field in the open dialog')
   field.vm.$emit('update:draft', { kind: 'new', blob, previewUrl })
@@ -206,20 +207,23 @@ describe('StaffPage', () => {
     fetchMock.mockImplementation(async () => {
       const created = await createMock.mock.results.at(-1)?.value
       const photo = await uploadPhotoMock.mock.results.at(-1)?.value
-      const added = photo?.kind === 'success' ? photo.barber : created?.barber
+      const added = photo?.kind === 'success' ? photo.professional : created?.professional
       return {
         kind: 'success',
-        page: { items: added ? [...oneBarber, added] : [...oneBarber], nextCursor: null },
+        page: {
+          items: added ? [...oneProfessional, added] : [...oneProfessional],
+          nextCursor: null,
+        },
       }
     })
     createMock.mockReset()
     renameMock.mockReset()
     uploadPhotoMock.mockReset()
     removePhotoMock.mockReset()
-    fetchMyBarberMock.mockReset()
-    fetchMyBarberMock.mockResolvedValue({ kind: 'none' })
-    linkMyBarberMock.mockReset()
-    unlinkMyBarberMock.mockReset()
+    fetchMyProfessionalMock.mockReset()
+    fetchMyProfessionalMock.mockResolvedValue({ kind: 'none' })
+    linkMyProfessionalMock.mockReset()
+    unlinkMyProfessionalMock.mockReset()
     URL.revokeObjectURL = vi.fn()
   })
 
@@ -234,7 +238,7 @@ describe('StaffPage', () => {
     expect(wrapper.find('.diamond-loader').exists()).toBe(true)
     expect(wrapper.findAll('.staff-page__skeleton-row').length).toBe(3)
 
-    resolveFetch({ kind: 'success', page: { items: [...oneBarber], nextCursor: null } })
+    resolveFetch({ kind: 'success', page: { items: [...oneProfessional], nextCursor: null } })
     await flushPromises()
     // Una respuesta rápida no retira el indicador antes del mínimo.
     expect(wrapper.text()).toContain('Cargando')
@@ -246,7 +250,7 @@ describe('StaffPage', () => {
     expect(wrapper.text()).toContain('Carlos Ramírez')
   })
 
-  it('speaks with the words the barbershop chose, in agreement (DEC-110)', async () => {
+  it('speaks with the words the business chose, in agreement (DEC-110)', async () => {
     setBrand({
       ...DEFAULT_BRAND,
       professionalTerm: 'estilista',
@@ -265,18 +269,18 @@ describe('StaffPage', () => {
   })
 
   it('a one-person shop and a four-person shop use the same list component (CA-021-01/02)', async () => {
-    const oneWrapper = await mountReady(oneBarber)
+    const oneWrapper = await mountReady(oneProfessional)
     expect(oneWrapper.findAll('.staff-page__row').length).toBe(1)
 
-    const fourWrapper = await mountReady(fourBarbers)
+    const fourWrapper = await mountReady(fourProfessionals)
     expect(fourWrapper.findAll('.staff-page__row').length).toBe(4)
     expect(fourWrapper.text()).toContain('Ana Torres')
     expect(fourWrapper.text()).toContain('María Pérez')
   })
 
-  it('shows a decorative, accessible monogram with the initials of each barber without a photo (Fase 5, issue #153)', async () => {
-    const wrapper = await mountReady(fourBarbers)
-    const avatars = wrapper.findAll('.staff-page__row .barber-avatar')
+  it('shows a decorative, accessible monogram with the initials of each professional without a photo (Fase 5, issue #153)', async () => {
+    const wrapper = await mountReady(fourProfessionals)
+    const avatars = wrapper.findAll('.staff-page__row .professional-avatar')
     expect(avatars.map((a) => a.text())).toEqual(['CR', 'AT', 'LG', 'MP'])
     for (const avatar of avatars) {
       expect(avatar.attributes('aria-hidden')).toBe('true')
@@ -284,33 +288,33 @@ describe('StaffPage', () => {
   })
 
   it('uses a single initial for a one-word name', async () => {
-    const wrapper = await mountReady([barber('b-1', 'Madonna')])
-    expect(wrapper.get('.staff-page__row .barber-avatar').text()).toBe('M')
+    const wrapper = await mountReady([professional('b-1', 'Madonna')])
+    expect(wrapper.get('.staff-page__row .professional-avatar').text()).toBe('M')
   })
 
-  it('shows the real photo of a barber who has one and the monogram of one who does not (DEC-104)', async () => {
+  it('shows the real photo of a professional who has one and the monogram of one who does not (DEC-104)', async () => {
     const wrapper = await mountReady([
-      barber('b-1', 'Carlos Ramírez', '2026-09-30T12:00:00Z'),
-      barber('b-2', 'Ana Torres'),
+      professional('b-1', 'Carlos Ramírez', '2026-09-30T12:00:00Z'),
+      professional('b-2', 'Ana Torres'),
     ])
     const rows = wrapper.findAll('.staff-page__row')
 
-    const photo = rows[0]!.get('img.barber-avatar__photo')
+    const photo = rows[0]!.get('img.professional-avatar__photo')
     expect(photo.attributes('src')).toBe('/photo/b-1?v=2026-09-30T12:00:00Z')
     expect(photo.attributes('alt')).toBe('')
     expect(rows[0]!.text()).toContain('Con foto')
 
     expect(rows[1]!.find('img').exists()).toBe(false)
-    expect(rows[1]!.get('.barber-avatar__monogram').text()).toBe('AT')
+    expect(rows[1]!.get('.professional-avatar__monogram').text()).toBe('AT')
     expect(rows[1]!.text()).toContain('Sin foto')
   })
 
-  it('shows the enrolment date of each barber in the shop timezone', async () => {
+  it('shows the enrolment date of each professional in the shop timezone', async () => {
     const wrapper = await mountReady()
     expect(wrapper.get('.staff-page__item-since').text()).toBe('23/08/2026')
   })
 
-  it('shows an empty state with no special data shape when there are no barbers', async () => {
+  it('shows an empty state with no special data shape when there are no professionals', async () => {
     const wrapper = await mountReady([])
     expect(wrapper.text()).toContain('Aún no tienes profesionales registrados')
     expect(wrapper.find('.staff-page__ready--fitting').exists()).toBe(false)
@@ -330,7 +334,7 @@ describe('StaffPage', () => {
 
     fetchMock.mockResolvedValueOnce({
       kind: 'success',
-      page: { items: [...oneBarber], nextCursor: null },
+      page: { items: [...oneProfessional], nextCursor: null },
     })
     await wrapper.get('button').trigger('click')
     await flushPromises()
@@ -342,13 +346,13 @@ describe('StaffPage', () => {
   })
 
   it('replaces the page, shows exact total and returns to the previous page', async () => {
-    const wrapper = await mountReady(oneBarber, 'opaque-cursor')
+    const wrapper = await mountReady(oneProfessional, 'opaque-cursor')
     expect(wrapper.find('nav[aria-label="Paginación de profesionales"]').exists()).toBe(true)
     expect(wrapper.get('.base-pagination__count').text()).toContain('Página 1 de 2')
     fetchMock.mockResolvedValueOnce({
       kind: 'success',
       page: {
-        items: [barber('b-2', 'Ana Torres')],
+        items: [professional('b-2', 'Ana Torres')],
         page: 2,
         pageSize: 20,
         total: 2,
@@ -366,7 +370,7 @@ describe('StaffPage', () => {
     expect(wrapper.get('button[aria-label="Página 2"]').attributes('aria-current')).toBe('page')
     fetchMock.mockResolvedValueOnce({
       kind: 'success',
-      page: { items: oneBarber, page: 1, pageSize: 20, total: 2, totalPages: 2 },
+      page: { items: oneProfessional, page: 1, pageSize: 20, total: 2, totalPages: 2 },
     })
     await wrapper.get('button[aria-label="Página anterior"]').trigger('click')
     await flushPromises()
@@ -377,7 +381,7 @@ describe('StaffPage', () => {
   })
 
   it('keeps the loaded page on error and retries the failed target page', async () => {
-    const wrapper = await mountReady(oneBarber, 'cursor')
+    const wrapper = await mountReady(oneProfessional, 'cursor')
     fetchMock.mockResolvedValueOnce({ kind: 'network-error' })
     await wrapper.get('button[aria-label="Página siguiente"]').trigger('click')
     await flushPromises()
@@ -388,7 +392,7 @@ describe('StaffPage', () => {
     fetchMock.mockResolvedValueOnce({
       kind: 'success',
       page: {
-        items: [barber('b-2', 'Ana Torres')],
+        items: [professional('b-2', 'Ana Torres')],
         page: 2,
         pageSize: 20,
         total: 2,
@@ -431,7 +435,7 @@ describe('StaffPage', () => {
     try {
       fetchMock.mockResolvedValueOnce({
         kind: 'success',
-        page: { items: fourBarbers, page: 1, pageSize: 20, total: 17, totalPages: 1 },
+        page: { items: fourProfessionals, page: 1, pageSize: 20, total: 17, totalPages: 1 },
       })
       wrapper = mount(StaffPage, {
         attachTo: scroller,
@@ -454,7 +458,7 @@ describe('StaffPage', () => {
       await flushPromises()
       fetchMock.mockResolvedValueOnce({
         kind: 'success',
-        page: { items: oneBarber, page: 1, pageSize: 1, total: 17, totalPages: 17 },
+        page: { items: oneProfessional, page: 1, pageSize: 1, total: 17, totalPages: 17 },
       })
       height = 420
       window.dispatchEvent(new Event('resize'))
@@ -465,7 +469,7 @@ describe('StaffPage', () => {
       expect(fetchMock).toHaveBeenLastCalledWith(1, 1)
       resolveOld({
         kind: 'success',
-        page: { items: fourBarbers, page: 2, pageSize: 3, total: 17, totalPages: 6 },
+        page: { items: fourProfessionals, page: 2, pageSize: 3, total: 17, totalPages: 6 },
       })
       await flushPromises()
       await waitOutMoreHold()
@@ -482,15 +486,17 @@ describe('StaffPage', () => {
 
   // --- Detalle ------------------------------------------------------------
 
-  it('opens the barber detail with the portrait, and its Editar button hands over to the edit dialog', async () => {
-    const wrapper = await mountReady([barber('b-1', 'Carlos Ramírez', '2026-09-30T12:00:00Z')])
+  it('opens the professional detail with the portrait, and its Editar button hands over to the edit dialog', async () => {
+    const wrapper = await mountReady([
+      professional('b-1', 'Carlos Ramírez', '2026-09-30T12:00:00Z'),
+    ])
 
     await wrapper.get('.staff-page__item-trigger').trigger('click')
     await flushPromises()
 
     const dialog = openDialogElement(wrapper)
     expect(dialog.textContent).toContain('Carlos Ramírez')
-    expect(dialog.querySelector('img.barber-avatar__photo')).toBeTruthy()
+    expect(dialog.querySelector('img.professional-avatar__photo')).toBeTruthy()
     expect(dialog.textContent).toContain('23/08/2026')
     expect(dialog.textContent).toContain('Con foto')
 
@@ -507,12 +513,12 @@ describe('StaffPage', () => {
     await flushPromises()
   }
 
-  it('offers «Este soy yo» for a barber that is not mine and links it by barber id only', async () => {
-    linkMyBarberMock.mockResolvedValueOnce({
+  it('offers «Este soy yo» for a professional that is not mine and links it by professional id only', async () => {
+    linkMyProfessionalMock.mockResolvedValueOnce({
       kind: 'success',
-      barber: barber('b-1', 'Carlos Ramírez'),
+      professional: professional('b-1', 'Carlos Ramírez'),
     })
-    const wrapper = await mountReady([barber('b-1', 'Carlos Ramírez')])
+    const wrapper = await mountReady([professional('b-1', 'Carlos Ramírez')])
     await openDetail(wrapper)
 
     expect(openDialogElement(wrapper).textContent).toContain('Sin vincular')
@@ -522,8 +528,8 @@ describe('StaffPage', () => {
     dialogButton(wrapper, 'Este soy yo').click()
     await flushPromises()
 
-    expect(linkMyBarberMock).toHaveBeenCalledTimes(1)
-    expect(linkMyBarberMock).toHaveBeenCalledWith('b-1')
+    expect(linkMyProfessionalMock).toHaveBeenCalledTimes(1)
+    expect(linkMyProfessionalMock).toHaveBeenCalledWith('b-1')
     expect(openDialogElement(wrapper).textContent).toContain('Eres tú')
     expect(dialogButton(wrapper, 'Ya no soy yo')).toBeTruthy()
     // Al vincularse aparece el siguiente paso: ir a conectar Google Calendar.
@@ -531,24 +537,27 @@ describe('StaffPage', () => {
     expect(toastState.items.some((t) => t.title.includes('Ahora eres Carlos Ramírez'))).toBe(true)
   })
 
-  it('shows «Eres tú» for my barber and «Ya no soy yo» removes the link', async () => {
-    fetchMyBarberMock.mockResolvedValue({ kind: 'linked', barber: barber('b-1', 'Carlos Ramírez') })
-    unlinkMyBarberMock.mockResolvedValueOnce({ kind: 'success' })
-    const wrapper = await mountReady([barber('b-1', 'Carlos Ramírez')])
+  it('shows «Eres tú» for my professional and «Ya no soy yo» removes the link', async () => {
+    fetchMyProfessionalMock.mockResolvedValue({
+      kind: 'linked',
+      professional: professional('b-1', 'Carlos Ramírez'),
+    })
+    unlinkMyProfessionalMock.mockResolvedValueOnce({ kind: 'success' })
+    const wrapper = await mountReady([professional('b-1', 'Carlos Ramírez')])
     await openDetail(wrapper)
 
     expect(openDialogElement(wrapper).textContent).toContain('Eres tú')
     dialogButton(wrapper, 'Ya no soy yo').click()
     await flushPromises()
 
-    expect(unlinkMyBarberMock).toHaveBeenCalledOnce()
+    expect(unlinkMyProfessionalMock).toHaveBeenCalledOnce()
     expect(openDialogElement(wrapper).textContent).toContain('Sin vincular')
     expect(dialogButton(wrapper, 'Este soy yo')).toBeTruthy()
   })
 
-  it('explains a barber that already belongs to another user and keeps the state', async () => {
-    linkMyBarberMock.mockResolvedValueOnce({ kind: 'taken' })
-    const wrapper = await mountReady([barber('b-1', 'Carlos Ramírez')])
+  it('explains a professional that already belongs to another user and keeps the state', async () => {
+    linkMyProfessionalMock.mockResolvedValueOnce({ kind: 'taken' })
+    const wrapper = await mountReady([professional('b-1', 'Carlos Ramírez')])
     await openDetail(wrapper)
 
     dialogButton(wrapper, 'Este soy yo').click()
@@ -561,8 +570,8 @@ describe('StaffPage', () => {
   })
 
   it('does not offer the link when the current link could not be read', async () => {
-    fetchMyBarberMock.mockResolvedValue({ kind: 'network-error' })
-    const wrapper = await mountReady([barber('b-1', 'Carlos Ramírez')])
+    fetchMyProfessionalMock.mockResolvedValue({ kind: 'network-error' })
+    const wrapper = await mountReady([professional('b-1', 'Carlos Ramírez')])
     await openDetail(wrapper)
 
     const dialog = openDialogElement(wrapper)
@@ -587,7 +596,7 @@ describe('StaffPage', () => {
     expect(wrapper.text()).toContain('Escribe el nombre del profesional.')
   })
 
-  it('on success, prepends the confirmed barber once and closes the dialog', async () => {
+  it('on success, prepends the confirmed professional once and closes the dialog', async () => {
     const wrapper = await mountReady()
     await findButtonByText(wrapper, 'Agregar profesional').trigger('click')
     await flushPromises()
@@ -595,7 +604,10 @@ describe('StaffPage', () => {
     setInputValue(openDialogInput(wrapper), 'Nuevo Barbero')
     await flushPromises()
 
-    createMock.mockResolvedValueOnce({ kind: 'success', barber: barber('b-new', 'Nuevo Barbero') })
+    createMock.mockResolvedValueOnce({
+      kind: 'success',
+      professional: professional('b-new', 'Nuevo Barbero'),
+    })
     submitOpenDialog(wrapper)
     await flushPromises()
     await waitOutMoreHold()
@@ -611,17 +623,20 @@ describe('StaffPage', () => {
     expect(wrapper.find('.base-dialog--open').exists()).toBe(false)
   })
 
-  it('creates the barber and then uploads the chosen photo, showing it in the new row (DEC-104)', async () => {
+  it('creates the professional and then uploads the chosen photo, showing it in the new row (DEC-104)', async () => {
     const wrapper = await mountReady()
     await findButtonByText(wrapper, 'Agregar profesional').trigger('click')
     await flushPromises()
 
     setInputValue(openDialogInput(wrapper), 'Con Foto')
     const blob = await pickPhoto(wrapper)
-    createMock.mockResolvedValueOnce({ kind: 'success', barber: barber('b-new', 'Con Foto') })
+    createMock.mockResolvedValueOnce({
+      kind: 'success',
+      professional: professional('b-new', 'Con Foto'),
+    })
     uploadPhotoMock.mockResolvedValueOnce({
       kind: 'success',
-      barber: barber('b-new', 'Con Foto', '2026-09-30T13:00:00Z'),
+      professional: professional('b-new', 'Con Foto', '2026-09-30T13:00:00Z'),
     })
     submitOpenDialog(wrapper)
     await flushPromises()
@@ -630,27 +645,30 @@ describe('StaffPage', () => {
 
     expect(uploadPhotoMock).toHaveBeenCalledWith('b-new', blob)
     const row = wrapper.findAll('.staff-page__row').find((row) => row.text().includes('Con Foto'))!
-    expect(row.get('img.barber-avatar__photo').attributes('src')).toBe(
+    expect(row.get('img.professional-avatar__photo').attributes('src')).toBe(
       '/photo/b-new?v=2026-09-30T13:00:00Z',
     )
     expect(toastState.items.map((item) => item.title)).toEqual(['Profesional agregado'])
   })
 
-  it('keeps the barber and warns when only the photo fails after a successful create', async () => {
+  it('keeps the professional and warns when only the photo fails after a successful create', async () => {
     const wrapper = await mountReady()
     await findButtonByText(wrapper, 'Agregar profesional').trigger('click')
     await flushPromises()
 
     setInputValue(openDialogInput(wrapper), 'Foto Fallida')
     await pickPhoto(wrapper)
-    createMock.mockResolvedValueOnce({ kind: 'success', barber: barber('b-new', 'Foto Fallida') })
+    createMock.mockResolvedValueOnce({
+      kind: 'success',
+      professional: professional('b-new', 'Foto Fallida'),
+    })
     uploadPhotoMock.mockResolvedValueOnce({ kind: 'network-error' })
     submitOpenDialog(wrapper)
     await flushPromises()
     await waitOutMoreHold()
     await flushPromises()
 
-    // El alta ya ocurrió: el barbero está en la lista y el diálogo se cerró.
+    // El alta ya ocurrió: el profesional está en la lista y el diálogo se cerró.
     expect(wrapper.text()).toContain('Foto Fallida')
     expect(wrapper.find('.base-dialog--open').exists()).toBe(false)
     expect(toastState.items.map((item) => [item.variant, item.title])).toEqual([
@@ -672,7 +690,10 @@ describe('StaffPage', () => {
     await waitOutMoreHold()
     await flushPromises()
 
-    createMock.mockResolvedValueOnce({ kind: 'success', barber: barber('b-retry', 'Reintentado') })
+    createMock.mockResolvedValueOnce({
+      kind: 'success',
+      professional: professional('b-retry', 'Reintentado'),
+    })
     submitOpenDialog(wrapper)
     await flushPromises()
     await waitOutMoreHold()
@@ -701,7 +722,7 @@ describe('StaffPage', () => {
     await flushPromises()
 
     expect(createMock).toHaveBeenCalledTimes(1)
-    resolveCreate({ kind: 'success', barber: barber('b-x', 'Doble Envío') })
+    resolveCreate({ kind: 'success', professional: professional('b-x', 'Doble Envío') })
     await flushPromises()
   })
 
@@ -723,7 +744,7 @@ describe('StaffPage', () => {
 
     expect(wrapper.text()).toContain('No pudimos completar el intento anterior')
     expect(input.value).toBe('Conflicto')
-    expect(openDialogElement(wrapper).querySelector('img.barber-avatar__photo')).toBeTruthy()
+    expect(openDialogElement(wrapper).querySelector('img.professional-avatar__photo')).toBeTruthy()
     expect(uploadPhotoMock).not.toHaveBeenCalled()
   })
 
@@ -769,7 +790,7 @@ describe('StaffPage', () => {
   })
 
   it('never shows placeholders for service, schedule, active status, or linked user', async () => {
-    const wrapper = await mountReady(fourBarbers)
+    const wrapper = await mountReady(fourProfessionals)
     // El nombre del producto («Nava Agenda», DEC-183) no es un marcador de la agenda.
     const text = wrapper.text().toLowerCase().replaceAll('nava agenda', '')
     for (const forbidden of [
@@ -787,7 +808,7 @@ describe('StaffPage', () => {
 
   // --- Edición ----------------------------------------------------------
 
-  it('opens the edit dialog prefilled with the barber name and renames on success', async () => {
+  it('opens the edit dialog prefilled with the professional name and renames on success', async () => {
     const wrapper = await mountReady()
     await findButtonByText(wrapper, 'Editar').trigger('click')
     await flushPromises()
@@ -800,7 +821,7 @@ describe('StaffPage', () => {
 
     renameMock.mockResolvedValueOnce({
       kind: 'success',
-      barber: barber('b-1', 'Carlos A. Ramírez'),
+      professional: professional('b-1', 'Carlos A. Ramírez'),
     })
     submitOpenDialog(wrapper)
     await flushPromises()
@@ -817,7 +838,7 @@ describe('StaffPage', () => {
 
   // --- Descripción pública (DEC-127) -----------------------------------------
 
-  it('creates a barber with the public description the user wrote', async () => {
+  it('creates a professional with the public description the user wrote', async () => {
     const wrapper = await mountReady()
     await findButtonByText(wrapper, 'Agregar profesional').trigger('click')
     await flushPromises()
@@ -832,7 +853,7 @@ describe('StaffPage', () => {
 
     createMock.mockResolvedValueOnce({
       kind: 'success',
-      barber: barber('b-new', 'Nuevo Barbero', null, 'Fade y barba.'),
+      professional: professional('b-new', 'Nuevo Barbero', null, 'Fade y barba.'),
     })
     submitOpenDialog(wrapper)
     await flushPromises()
@@ -867,7 +888,7 @@ describe('StaffPage', () => {
 
   it('prefills the edit dialog with the description and sends only what changed', async () => {
     fetchMock.mockReset()
-    const withDescription = [barber('b-1', 'Carlos Ramírez', null, 'Fade y barba.')]
+    const withDescription = [professional('b-1', 'Carlos Ramírez', null, 'Fade y barba.')]
     const wrapper = await mountReady(withDescription)
     await findButtonByText(wrapper, 'Editar').trigger('click')
     await flushPromises()
@@ -884,7 +905,7 @@ describe('StaffPage', () => {
     setTextareaValue(openDialogDescription(wrapper), 'Navaja clásica.')
     renameMock.mockResolvedValueOnce({
       kind: 'success',
-      barber: barber('b-1', 'Carlos Ramírez', null, 'Navaja clásica.'),
+      professional: professional('b-1', 'Carlos Ramírez', null, 'Navaja clásica.'),
     })
     submitOpenDialog(wrapper)
     await flushPromises()
@@ -897,12 +918,15 @@ describe('StaffPage', () => {
 
   it('removes the description by clearing the field', async () => {
     fetchMock.mockReset()
-    const wrapper = await mountReady([barber('b-1', 'Carlos Ramírez', null, 'Fade y barba.')])
+    const wrapper = await mountReady([professional('b-1', 'Carlos Ramírez', null, 'Fade y barba.')])
     await findButtonByText(wrapper, 'Editar').trigger('click')
     await flushPromises()
 
     setTextareaValue(openDialogDescription(wrapper), '')
-    renameMock.mockResolvedValueOnce({ kind: 'success', barber: barber('b-1', 'Carlos Ramírez') })
+    renameMock.mockResolvedValueOnce({
+      kind: 'success',
+      professional: professional('b-1', 'Carlos Ramírez'),
+    })
     submitOpenDialog(wrapper)
     await flushPromises()
     await waitOutMoreHold()
@@ -912,13 +936,16 @@ describe('StaffPage', () => {
   })
 
   it('replaces the item by id without duplicating or reordering unstably', async () => {
-    const wrapper = await mountReady(fourBarbers)
+    const wrapper = await mountReady(fourProfessionals)
     const editButtons = wrapper.findAll('button').filter((b) => b.text() === 'Editar')
     await editButtons[2]!.trigger('click') // "Luis Gómez", third item
     await flushPromises()
 
     setInputValue(openDialogInput(wrapper), 'Luis A. Gómez')
-    renameMock.mockResolvedValueOnce({ kind: 'success', barber: barber('b-3', 'Luis A. Gómez') })
+    renameMock.mockResolvedValueOnce({
+      kind: 'success',
+      professional: professional('b-3', 'Luis A. Gómez'),
+    })
     submitOpenDialog(wrapper)
     await flushPromises()
     await waitOutMoreHold()
@@ -953,7 +980,7 @@ describe('StaffPage', () => {
     const blob = await pickPhoto(wrapper)
     uploadPhotoMock.mockResolvedValueOnce({
       kind: 'success',
-      barber: barber('b-1', 'Carlos Ramírez', '2026-09-30T13:00:00Z'),
+      professional: professional('b-1', 'Carlos Ramírez', '2026-09-30T13:00:00Z'),
     })
     submitOpenDialog(wrapper)
     await flushPromises()
@@ -962,14 +989,16 @@ describe('StaffPage', () => {
 
     expect(renameMock).not.toHaveBeenCalled()
     expect(uploadPhotoMock).toHaveBeenCalledWith('b-1', blob)
-    expect(wrapper.get('.staff-page__row img.barber-avatar__photo').attributes('src')).toBe(
+    expect(wrapper.get('.staff-page__row img.professional-avatar__photo').attributes('src')).toBe(
       '/photo/b-1?v=2026-09-30T13:00:00Z',
     )
     expect(toastState.items.map((item) => item.title)).toEqual(['Foto actualizada'])
   })
 
   it('removes the photo and shows the monogram again', async () => {
-    const wrapper = await mountReady([barber('b-1', 'Carlos Ramírez', '2026-09-30T12:00:00Z')])
+    const wrapper = await mountReady([
+      professional('b-1', 'Carlos Ramírez', '2026-09-30T12:00:00Z'),
+    ])
     await findButtonByText(wrapper, 'Editar').trigger('click')
     await flushPromises()
 
@@ -985,7 +1014,7 @@ describe('StaffPage', () => {
     expect(renameMock).not.toHaveBeenCalled()
     const row = wrapper.get('.staff-page__row')
     expect(row.find('img').exists()).toBe(false)
-    expect(row.get('.barber-avatar__monogram').text()).toBe('CR')
+    expect(row.get('.professional-avatar__monogram').text()).toBe('CR')
     expect(row.text()).toContain('Sin foto')
     expect(toastState.items.map((item) => item.title)).toEqual(['Foto quitada'])
   })
@@ -1000,13 +1029,13 @@ describe('StaffPage', () => {
     const order: string[] = []
     renameMock.mockImplementationOnce(async () => {
       order.push('rename')
-      return { kind: 'success', barber: barber('b-1', 'Carlos A. Ramírez') }
+      return { kind: 'success', professional: professional('b-1', 'Carlos A. Ramírez') }
     })
     uploadPhotoMock.mockImplementationOnce(async () => {
       order.push('photo')
       return {
         kind: 'success',
-        barber: barber('b-1', 'Carlos A. Ramírez', '2026-09-30T13:00:00Z'),
+        professional: professional('b-1', 'Carlos A. Ramírez', '2026-09-30T13:00:00Z'),
       }
     })
     submitOpenDialog(wrapper)
@@ -1027,7 +1056,7 @@ describe('StaffPage', () => {
     const blob = await pickPhoto(wrapper)
     renameMock.mockResolvedValueOnce({
       kind: 'success',
-      barber: barber('b-1', 'Carlos A. Ramírez'),
+      professional: professional('b-1', 'Carlos A. Ramírez'),
     })
     uploadPhotoMock.mockResolvedValueOnce({ kind: 'validation-error' })
     submitOpenDialog(wrapper)
@@ -1044,7 +1073,7 @@ describe('StaffPage', () => {
 
     uploadPhotoMock.mockResolvedValueOnce({
       kind: 'success',
-      barber: barber('b-1', 'Carlos A. Ramírez', '2026-09-30T13:00:00Z'),
+      professional: professional('b-1', 'Carlos A. Ramírez', '2026-09-30T13:00:00Z'),
     })
     submitOpenDialog(wrapper)
     await flushPromises()
@@ -1070,7 +1099,7 @@ describe('StaffPage', () => {
     await flushPromises()
 
     expect(wrapper.text()).toContain('No pudimos conectar')
-    expect(openDialogElement(wrapper).querySelector('img.barber-avatar__photo')).toBeTruthy()
+    expect(openDialogElement(wrapper).querySelector('img.professional-avatar__photo')).toBeTruthy()
   })
 
   it('on not-found, shows a recoverable message', async () => {
@@ -1091,7 +1120,7 @@ describe('StaffPage', () => {
   // --- Accesibilidad ------------------------------------------------------
 
   it('has no axe violations in the list view', async () => {
-    const wrapper = await mountReady(fourBarbers)
+    const wrapper = await mountReady(fourProfessionals)
     const results = await axe(wrapper.element, axeOptions)
     expect(results).toHaveNoViolations()
   })
@@ -1111,18 +1140,20 @@ describe('StaffPage', () => {
     expect(results).toHaveNoViolations()
   })
 
-  it('has no axe violations with the edit dialog open on a barber with a photo', async () => {
-    const wrapper = await mountReady([barber('b-1', 'Carlos Ramírez', '2026-09-30T12:00:00Z')])
+  it('has no axe violations with the edit dialog open on a professional with a photo', async () => {
+    const wrapper = await mountReady([
+      professional('b-1', 'Carlos Ramírez', '2026-09-30T12:00:00Z'),
+    ])
     await findButtonByText(wrapper, 'Editar').trigger('click')
     await flushPromises()
 
     const results = await axe(wrapper.element, axeOptions)
     expect(results).toHaveNoViolations()
   })
-  describe('perfil de barbero individual (DEC-115)', () => {
+  describe('perfil de profesional individual (DEC-115)', () => {
     const solo = { ...DEFAULT_BRAND, panelProfile: 'solo' as const }
 
-    it('is the card of the only barber: "Mi perfil", no team controls', async () => {
+    it('is the card of the only professional: "Mi perfil", no team controls', async () => {
       setBrand(solo)
       const wrapper = await mountReady()
 
@@ -1139,7 +1170,7 @@ describe('StaffPage', () => {
       expect(wrapper.find('button[aria-label="Editar Carlos Ramírez"]').exists()).toBe(true)
     })
 
-    it('still lets the one barber be edited from the card', async () => {
+    it('still lets the one professional be edited from the card', async () => {
       setBrand(solo)
       const wrapper = await mountReady()
 
@@ -1161,16 +1192,16 @@ describe('StaffPage', () => {
       expect(wrapper.get('.staff-page__empty').text()).not.toContain('Agregar')
     })
 
-    it('goes back to the team screen when there are several barbers', async () => {
+    it('goes back to the team screen when there are several professionals', async () => {
       setBrand(solo)
-      const wrapper = await mountReady(fourBarbers)
+      const wrapper = await mountReady(fourProfessionals)
 
       expect(wrapper.get('h1').text()).toBe('Profesionales')
       expect(wrapper.find('.staff-page__create').exists()).toBe(true)
       expect(wrapper.find('.staff-page__footer').exists()).toBe(true)
     })
 
-    it('keeps the full panel untouched with one barber', async () => {
+    it('keeps the full panel untouched with one professional', async () => {
       const wrapper = await mountReady()
 
       expect(wrapper.get('h1').text()).toBe('Profesionales')
@@ -1189,11 +1220,11 @@ describe('StaffPage', () => {
   describe('panel del empleado (DEC-173)', () => {
     const employee = { ...DEFAULT_BRAND, panelProfile: 'employee' as const }
 
-    it('is the card of their own barber, with Google Calendar and without team controls', async () => {
+    it('is the card of their own professional, with Google Calendar and without team controls', async () => {
       setBrand(employee)
-      fetchMyBarberMock.mockResolvedValue({
+      fetchMyProfessionalMock.mockResolvedValue({
         kind: 'linked',
-        barber: barber('b-1', 'Carlos Ramírez'),
+        professional: professional('b-1', 'Carlos Ramírez'),
       })
       const wrapper = await mountReady()
 
@@ -1207,7 +1238,7 @@ describe('StaffPage', () => {
       expect(wrapper.text()).not.toContain('Ya no soy yo')
     })
 
-    it('asks the barbershop to link the account instead of offering to create a profile', async () => {
+    it('asks the business to link the account instead of offering to create a profile', async () => {
       setBrand(employee)
       const wrapper = await mountReady([])
 

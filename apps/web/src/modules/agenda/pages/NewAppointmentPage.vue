@@ -1,5 +1,5 @@
 <script setup lang="ts">
-// Pantalla "Nuevo turno" (HU-061): el barbero autenticado registra un
+// Pantalla "Nuevo turno" (HU-061): el profesional autenticado registra un
 // turno manual recibido por teléfono, WhatsApp o en persona. No consulta
 // disponibilidad pública ni propone franjas (B4 es dueña); no edita,
 // reprograma, cancela ni cambia estado (fuera de alcance de HU-061). El
@@ -22,13 +22,13 @@
 import { computed, nextTick, ref, watch } from 'vue'
 import { useRoute, useRouter, type LocationQueryRaw } from 'vue-router'
 import { useToast, useVocabulary } from '@/shared/composables'
-import { worksOwnBarber } from '@/shared/model'
+import { worksOwnProfessional } from '@/shared/model'
 import {
   BaseAlert,
   BaseButton,
   BaseInput,
-  BarberAvatar,
-  BarberSelect,
+  ProfessionalAvatar,
+  ProfessionalSelect,
   PageState,
   PhoneField,
 } from '@/shared/ui'
@@ -37,11 +37,11 @@ import { formatCivilDateFull, isCivilDateString } from '@/shared/time/civilDate'
 import {
   createManualAppointment,
   fetchAssignedServices,
-  fetchBarberSummaries,
-  fetchBarbershopTimezone,
+  fetchProfessionalSummaries,
+  fetchBusinessTimezone,
 } from '../api/appointmentsApi'
 import { newIdempotencyKey } from '../model/idempotencyKey'
-import type { BarberSummary, ServiceSummary } from '../model/appointment'
+import type { ProfessionalSummary, ServiceSummary } from '../model/appointment'
 import type { CreatedManualAppointment } from '../model/appointmentOutcome'
 import NewAppointmentSkeleton from '../components/NewAppointmentSkeleton.vue'
 import {
@@ -71,10 +71,10 @@ type SaveStatus =
 const NOTE_MAX_LENGTH = 500
 
 const pageStatus = ref<PageStatus>('loading')
-const barbers = ref<BarberSummary[]>([])
-const barbershopTimezone = ref<string | null>(null)
+const professionals = ref<ProfessionalSummary[]>([])
+const businessTimezone = ref<string | null>(null)
 
-const selectedBarberId = ref('')
+const selectedProfessionalId = ref('')
 const servicesStatus = ref<ServicesStatus>('idle')
 const services = ref<ServiceSummary[]>([])
 const selectedServiceId = ref('')
@@ -115,9 +115,11 @@ watch(customerNote, () => {
 const fieldErrors = ref<Record<string, string | undefined>>({})
 const attempted = ref(false)
 const toast = useToast()
-// Palabras de la barbería (DEC-110): con los valores iniciales, el texto de siempre.
+// Palabras del negocio (DEC-110): con los valores iniciales, el texto de siempre.
 const v = useVocabulary()
-const hideBarberField = computed(() => worksOwnBarber.value && barbers.value.length === 1)
+const hideProfessionalField = computed(
+  () => worksOwnProfessional.value && professionals.value.length === 1,
+)
 const saveStatus = ref<SaveStatus>('idle')
 const saveErrorDetail = ref<string | undefined>(undefined)
 const created = ref<CreatedManualAppointment | null>(null)
@@ -125,34 +127,34 @@ let idempotencyKey = newIdempotencyKey()
 
 async function loadPage() {
   pageStatus.value = 'loading'
-  const [barbersOutcome, timezoneOutcome] = await Promise.all([
-    fetchBarberSummaries(),
-    fetchBarbershopTimezone(),
+  const [professionalsOutcome, timezoneOutcome] = await Promise.all([
+    fetchProfessionalSummaries(),
+    fetchBusinessTimezone(),
   ])
-  barbershopTimezone.value = timezoneOutcome.kind === 'success' ? timezoneOutcome.timezone : null
-  if (barbersOutcome.kind !== 'success') {
+  businessTimezone.value = timezoneOutcome.kind === 'success' ? timezoneOutcome.timezone : null
+  if (professionalsOutcome.kind !== 'success') {
     pageStatus.value = 'load-error'
     return
   }
-  barbers.value = barbersOutcome.items
-  // Perfil de barbero individual (DEC-115): con un solo barbero no hay nada que
+  professionals.value = professionalsOutcome.items
+  // Perfil de profesional individual (DEC-115): con un solo profesional no hay nada que
   // elegir, así que queda seleccionado y el campo se oculta.
-  if (hideBarberField.value) selectedBarberId.value = barbers.value[0]!.id
+  if (hideProfessionalField.value) selectedProfessionalId.value = professionals.value[0]!.id
   pageStatus.value = 'ready'
 }
 
 void loadPage()
 
-watch(selectedBarberId, async (barberId) => {
+watch(selectedProfessionalId, async (professionalId) => {
   selectedServiceId.value = ''
   services.value = []
-  if (!barberId) {
+  if (!professionalId) {
     servicesStatus.value = 'idle'
     return
   }
   servicesStatus.value = 'loading'
-  const outcome = await fetchAssignedServices(barberId)
-  if (selectedBarberId.value !== barberId) return
+  const outcome = await fetchAssignedServices(professionalId)
+  if (selectedProfessionalId.value !== professionalId) return
   if (outcome.kind === 'success') {
     services.value = outcome.items
     servicesStatus.value = 'ready'
@@ -168,8 +170,8 @@ const startsAt = computed(() => buildStartsAt(startsAtDate.value, startsAtTime.v
 // §7.3: "resumen antes del CTA" en móvil). Solo refleja selecciones ya
 // hechas, sin inventar datos que el contrato de servicios no expone
 // todavía (ServiceSummary hoy solo trae id/name, sin duración ni precio).
-const selectedBarberName = computed(
-  () => barbers.value.find((b) => b.id === selectedBarberId.value)?.fullName ?? '',
+const selectedProfessionalName = computed(
+  () => professionals.value.find((b) => b.id === selectedProfessionalId.value)?.fullName ?? '',
 )
 const selectedServiceName = computed(
   () => services.value.find((s) => s.id === selectedServiceId.value)?.name ?? '',
@@ -183,7 +185,7 @@ const summaryDateLabel = computed(() =>
 // boleto. Solo cuentan los tres pasos con campos obligatorios; la nota es
 // opcional y nunca bloquea el avance.
 const stepDone = computed(() => ({
-  selection: !!selectedBarberId.value && !!selectedServiceId.value,
+  selection: !!selectedProfessionalId.value && !!selectedServiceId.value,
   person: !!attendeeName.value.trim() && !!customerFullName.value.trim(),
   when: !!startsAtDate.value && !!startsAtTime.value,
   note: !!customerNote.value.trim(),
@@ -194,37 +196,38 @@ const requiredStepsDone = computed(
     [stepDone.value.selection, stepDone.value.person, stepDone.value.when].filter(Boolean).length,
 )
 
-// El campo de servicio depende del barbero (DEC-072): sin barbero elegido,
+// El campo de servicio depende del profesional (DEC-072): sin profesional elegido,
 // mientras llegan sus servicios, o sin servicios activos que ofrecer, queda
 // deshabilitado y pierde el filete de latón (atlas, eventos 04 y 05).
 const isServiceDisabled = computed(
   () =>
-    !selectedBarberId.value ||
+    !selectedProfessionalId.value ||
     servicesStatus.value === 'loading' ||
     (servicesStatus.value !== 'idle' && services.value.length === 0),
 )
 
-// Rótulo de la opción vacía del `<select>`: sin esto, un barbero sin
+// Rótulo de la opción vacía del `<select>`: sin esto, un profesional sin
 // servicios activos (o cuya carga falló) mostraba "Elige un servicio" como
 // única opción, prometiendo una lista que no existe.
 const serviceSelectPlaceholder = computed(() => {
-  if (!selectedBarberId.value) return `Elige primero ${v.value.aProfessional}`
+  if (!selectedProfessionalId.value) return `Elige primero ${v.value.aProfessional}`
   if (servicesStatus.value === 'loading') return 'Cargando servicios…'
   if (servicesStatus.value === 'error') return 'No pudimos cargar los servicios'
   if (services.value.length === 0) return 'Sin servicios activos asignados'
   return 'Elige un servicio'
 })
 
-// Cancelar vuelve a la agenda sin guardar nada. La agenda pasa su barbero y
-// su fecha al abrir esta pantalla (`?barberId=…&date=…`); se devuelven tal
+// Cancelar vuelve a la agenda sin guardar nada. La agenda pasa su profesional y
+// su fecha al abrir esta pantalla (`?professionalId=…&date=…`); se devuelven tal
 // cual para que la persona aterrice en el mismo día que estaba mirando. Sin
 // ellos, la agenda resuelve su selección por defecto.
 const route = useRoute()
 const router = useRouter()
 const agendaOrigin = computed<LocationQueryRaw>(() => {
   const origin: LocationQueryRaw = {}
-  const { barberId, date } = route.query
-  if (typeof barberId === 'string' && barberId !== '') origin.barberId = barberId
+  const { professionalId, date } = route.query
+  if (typeof professionalId === 'string' && professionalId !== '')
+    origin.professionalId = professionalId
   if (typeof date === 'string' && isCivilDateString(date)) origin.date = date
   return origin
 })
@@ -235,7 +238,7 @@ function onCancel() {
 
 function validateAll(): boolean {
   const errors: Record<string, string | undefined> = {
-    barberId: selectedBarberId.value ? undefined : `Elige ${v.value.aProfessional}.`,
+    professionalId: selectedProfessionalId.value ? undefined : `Elige ${v.value.aProfessional}.`,
     serviceId: selectedServiceId.value ? undefined : 'Elige un servicio.',
     attendeeName: validateAttendeeName(attendeeName.value),
     customerFullName: validateCustomerFullName(customerFullName.value),
@@ -260,7 +263,7 @@ async function onSubmit() {
   saveStatus.value = 'saving'
   const outcome = await createManualAppointment(
     {
-      barberId: selectedBarberId.value,
+      professionalId: selectedProfessionalId.value,
       serviceId: selectedServiceId.value,
       attendeeName: attendeeName.value.trim(),
       customerFullName: customerFullName.value.trim(),
@@ -326,8 +329,8 @@ function onRetryLoad() {
   void loadPage()
 }
 
-function onBarberSelect(barberId: string) {
-  selectedBarberId.value = barberId
+function onProfessionalSelect(professionalId: string) {
+  selectedProfessionalId.value = professionalId
 }
 </script>
 
@@ -335,12 +338,12 @@ function onBarberSelect(barberId: string) {
   <section class="new-appointment-page" aria-labelledby="new-appointment-title">
     <header class="new-appointment-page__header">
       <h1 id="new-appointment-title" class="new-appointment-page__title">Nuevo turno</h1>
-      <p v-if="barbershopTimezone" class="new-appointment-page__timezone">
-        Horas en la zona horaria {{ v.ofTheBusiness }}: {{ barbershopTimezone }}
+      <p v-if="businessTimezone" class="new-appointment-page__timezone">
+        Horas en la zona horaria {{ v.ofTheBusiness }}: {{ businessTimezone }}
       </p>
     </header>
 
-    <!-- Evento 01: sin barberos ni zona resueltos, la espera conserva la
+    <!-- Evento 01: sin profesionales ni zona resueltos, la espera conserva la
          geometría del formulario por llegar (esqueleto, no un indicador
          suelto sobre una pantalla vacía). -->
     <NewAppointmentSkeleton
@@ -367,10 +370,10 @@ function onBarberSelect(barberId: string) {
     </div>
 
     <template v-else>
-      <!-- Evento 03: sin barberos activos no hay formulario que ofrecer. El
+      <!-- Evento 03: sin profesionales activos no hay formulario que ofrecer. El
            destino nombrado en el mensaje se resalta en latón, sin convertirse
            en un enlace que el copy real no promete. -->
-      <div v-if="barbers.length === 0" class="new-appointment-page__state">
+      <div v-if="professionals.length === 0" class="new-appointment-page__state">
         <PageState
           variant="info"
           :headline="`Aún no tienes ${v.professionalsRegistered}.`"
@@ -454,7 +457,7 @@ function onBarberSelect(barberId: string) {
                   </h2>
                   <p class="new-appointment-page__section-hint">
                     {{
-                      hideBarberField
+                      hideProfessionalField
                         ? 'Elige el servicio.'
                         : `Elige ${v.toTheProfessional} y el servicio.`
                     }}
@@ -465,30 +468,31 @@ function onBarberSelect(barberId: string) {
               <div class="new-appointment-page__section-body">
                 <div class="new-appointment-page__row">
                   <div
-                    v-if="!hideBarberField"
+                    v-if="!hideProfessionalField"
                     class="new-appointment-page__field"
                     :class="{
-                      'new-appointment-page__field--filled': !!selectedBarberId,
-                      'new-appointment-page__field--error': attempted && !!fieldErrors.barberId,
+                      'new-appointment-page__field--filled': !!selectedProfessionalId,
+                      'new-appointment-page__field--error':
+                        attempted && !!fieldErrors.professionalId,
                     }"
                   >
-                    <label for="new-appointment-barber" class="new-appointment-page__label">
+                    <label for="new-appointment-professional" class="new-appointment-page__label">
                       {{ v.Professional }}
                       <span class="new-appointment-page__required" aria-hidden="true">*</span>
                     </label>
-                    <BarberSelect
-                      :model-value="selectedBarberId || null"
-                      :barbers="barbers"
-                      trigger-id="new-appointment-barber"
+                    <ProfessionalSelect
+                      :model-value="selectedProfessionalId || null"
+                      :professionals="professionals"
+                      trigger-id="new-appointment-professional"
                       :placeholder="`Elige ${v.aProfessional}`"
-                      @update:model-value="onBarberSelect"
+                      @update:model-value="onProfessionalSelect"
                     />
                     <p
-                      v-if="attempted && fieldErrors.barberId"
+                      v-if="attempted && fieldErrors.professionalId"
                       class="new-appointment-page__error"
                       role="alert"
                     >
-                      {{ fieldErrors.barberId }}
+                      {{ fieldErrors.professionalId }}
                     </p>
                   </div>
 
@@ -840,17 +844,17 @@ function onBarberSelect(barberId: string) {
             <div class="new-appointment-page__resumen-perforation" aria-hidden="true" />
 
             <dl class="new-appointment-page__resumen-list">
-              <div v-if="!hideBarberField" class="new-appointment-page__resumen-item">
+              <div v-if="!hideProfessionalField" class="new-appointment-page__resumen-item">
                 <dt class="new-appointment-page__resumen-label">{{ v.Professional }}</dt>
                 <dd class="new-appointment-page__resumen-value">
                   <Transition name="nt-swap" mode="out-in">
                     <span
-                      v-if="selectedBarberName"
-                      :key="selectedBarberName"
+                      v-if="selectedProfessionalName"
+                      :key="selectedProfessionalName"
                       class="new-appointment-page__resumen-swap"
                     >
-                      <BarberAvatar :full-name="selectedBarberName" size="closed" />
-                      <span>{{ selectedBarberName }}</span>
+                      <ProfessionalAvatar :full-name="selectedProfessionalName" size="closed" />
+                      <span>{{ selectedProfessionalName }}</span>
                     </span>
                     <span
                       v-else
@@ -1013,7 +1017,7 @@ function onBarberSelect(barberId: string) {
   /* `backwards`, no `both`: terminada la entrada no queda ningún efecto de
      animación sobre el paso. Con `both` el `transform` final dejaba a cada
      paso con su propio contexto de apilamiento y la lista desplegable del
-     barbero (paso 1) quedaba debajo del paso 2. */
+     profesional (paso 1) quedaba debajo del paso 2. */
   animation: nt-rise 460ms cubic-bezier(0.2, 0.7, 0.2, 1) backwards;
   animation-delay: calc(var(--i, 0) * 70ms);
 }
@@ -1375,7 +1379,7 @@ function onBarberSelect(barberId: string) {
   border-bottom-color: var(--color-brand-accent-surface);
 }
 
-/* Deshabilitado (servicio sin barbero elegido o cargando): se atenúa y pierde
+/* Deshabilitado (servicio sin profesional elegido o cargando): se atenúa y pierde
    el latón, nunca lo conserva (atlas eventos 04 y 05). */
 .new-appointment-page__field--off .new-appointment-page__select,
 .new-appointment-page__field--off .new-appointment-page__caret {
@@ -1392,11 +1396,11 @@ function onBarberSelect(barberId: string) {
   border-bottom-color: var(--color-danger-on-strong);
 }
 
-/* Selector de barbero (BarberSelect, con monograma): misma altura y piel que
+/* Selector de profesional (ProfessionalSelect, con monograma): misma altura y piel que
    el resto de los campos de esta hoja. Sobre /panel el control vive suelto y
    siempre lleva su línea de latón; aquí obedece la misma regla de "resuelto"
    que los demás. */
-.new-appointment-page__field :deep(.barber-select__trigger) {
+.new-appointment-page__field :deep(.professional-select__trigger) {
   min-height: 46px;
   padding: 0 13px;
   gap: 10px;
@@ -1406,23 +1410,23 @@ function onBarberSelect(barberId: string) {
   border-bottom-color: color-mix(in srgb, var(--color-on-strong) 30%, transparent);
 }
 
-.new-appointment-page__field--filled :deep(.barber-select__trigger) {
+.new-appointment-page__field--filled :deep(.professional-select__trigger) {
   background-color: color-mix(in srgb, var(--color-on-strong) 6%, transparent);
   border-bottom-color: var(--color-brand-accent-surface);
 }
 
-.new-appointment-page__field--error :deep(.barber-select__trigger) {
+.new-appointment-page__field--error :deep(.professional-select__trigger) {
   background-color: color-mix(in srgb, var(--color-danger-on-strong) 7%, transparent);
   border-bottom-color: var(--color-danger-on-strong);
 }
 
-/* Sin barbero elegido el disparador dibuja un cuadrado vacío del tamaño del
+/* Sin profesional elegido el disparador dibuja un cuadrado vacío del tamaño del
    monograma; el atlas deja el campo con solo su placeholder. */
-.new-appointment-page__field :deep(.barber-select__trigger-icon) {
+.new-appointment-page__field :deep(.professional-select__trigger-icon) {
   display: none;
 }
 
-.new-appointment-page__field :deep(.barber-select__trigger-label--placeholder) {
+.new-appointment-page__field :deep(.professional-select__trigger-label--placeholder) {
   color: var(--color-on-strong-muted);
 }
 
@@ -1779,7 +1783,7 @@ function onBarberSelect(barberId: string) {
 /* ------------------------------------------------- estados de página completos */
 
 /* El destino nombrado dentro del mensaje se resalta en latón, igual que
-   «Barberos» en el evento 04 del atlas de /panel. */
+   «Profesionales» en el evento 04 del atlas de /panel. */
 .new-appointment-page__dest {
   font-weight: 600;
   color: var(--color-brand-accent-surface);

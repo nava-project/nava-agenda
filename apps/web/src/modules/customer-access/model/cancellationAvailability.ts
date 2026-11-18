@@ -10,9 +10,9 @@ export const CANCELLATION_REASON_MAX_LENGTH = 500
 export type CancellationAvailability =
   /** Dentro del plazo: se puede cancelar sin motivo obligatorio. */
   | { mode: 'within-deadline'; reasonRequired: false }
-  /** Pasado el plazo pero la barbería permite cancelar; puede exigir motivo. */
+  /** Pasado el plazo pero el negocio permite cancelar; puede exigir motivo. */
   | { mode: 'late-allowed'; reasonRequired: boolean }
-  /** El plazo venció y la barbería no permite cancelar tarde: contactar. */
+  /** El plazo venció y el negocio no permite cancelar tarde: contactar. */
   | { mode: 'unavailable'; reason: 'late-not-allowed' | 'started' }
 
 /**

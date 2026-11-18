@@ -1,6 +1,6 @@
 /**
  * Vocabulario del negocio (DEC-110, DEC-183): los valores iniciales hablan de
- * "negocio" y "profesional"; una barbería que guardó sus palabras conserva cada
+ * "negocio" y "profesional"; un negocio que guardó sus palabras conserva cada
  * frase idéntica; con otros términos, concuerda en género y número.
  */
 import { describe, expect, it } from 'vitest'
@@ -13,8 +13,8 @@ import {
   type BrandSettings,
 } from '../vocabulary'
 
-// Lo que una barbería guardó antes de DEC-183: sus frases no cambian.
-const barbershop: BrandSettings = {
+// Lo que un negocio guardó antes de DEC-183: sus frases no cambian.
+const business: BrandSettings = {
   ...DEFAULT_BRAND,
   businessTerm: 'barbería',
   businessTermGender: 'feminine',
@@ -70,8 +70,8 @@ describe('buildVocabulary con los valores iniciales', () => {
   })
 })
 
-describe('buildVocabulary con el vocabulario de una barbería', () => {
-  const v = buildVocabulary(barbershop)
+describe('buildVocabulary con el vocabulario de un negocio', () => {
+  const v = buildVocabulary(business)
 
   it('reproduces, word for word, the phrases the interface had before DEC-110', () => {
     expect(v.Professionals).toBe('Barberos')

@@ -1,6 +1,6 @@
 // Turnos que quedan bajo un bloqueo recién creado (HU-069, RN-BLQ-03). El bloqueo
 // nunca se rechaza por ellos (CA-042-06); esta lista solo se le muestra al
-// barbero para que decida uno por uno. Se calcula en el cliente con la agenda
+// profesional para que decida uno por uno. Se calcula en el cliente con la agenda
 // diaria que el API ya expone, sin endpoint nuevo.
 import { getCivilDateInTimezone, shiftCivilDate } from '@/shared/time/civilDate'
 
@@ -15,7 +15,7 @@ export type AffectedAppointment = {
   endsAt: string
 }
 
-/** Días civiles (en la zona de la barbería) que toca el intervalo semiabierto [startsAt, endsAt). */
+/** Días civiles (en la zona del negocio) que toca el intervalo semiabierto [startsAt, endsAt). */
 export function civilDaysTouched(startsAt: string, endsAt: string, timeZone: string): string[] {
   const first = getCivilDateInTimezone(timeZone, new Date(startsAt))
   // El fin es exclusivo: un bloqueo que termina justo a medianoche no toca el día siguiente.

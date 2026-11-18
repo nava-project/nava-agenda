@@ -29,7 +29,7 @@ describe('pantalla de horario público: layout en ventanas bajas', () => {
     expect(fixed).not.toContain('scroll-choices')
   })
 
-  it('con las reseñas del barbero abiertas la página conserva un alto con piso y solo el bloque de reseñas se desplaza (#525)', () => {
+  it('con las reseñas del profesional abiertas la página conserva un alto con piso y solo el bloque de reseñas se desplaza (#525)', () => {
     const open = rule('.pb-layout:has(.pb-page--scroll-choices .pb-reviews__panel)')
     expect(open).toMatch(/height:\s*max\(100dvh,/)
     expect(open).not.toMatch(/height:\s*auto/)
@@ -64,7 +64,7 @@ describe('pantalla de horario público: layout en ventanas bajas', () => {
     )
   })
 
-  it('Servicio y Barbero tienen suelo de alto: con zoom 150–200 % el pie no tapa la lista', () => {
+  it('Servicio y Profesional tienen suelo de alto: con zoom 150–200 % el pie no tapa la lista', () => {
     expect(rule('.pb-layout:has(.pb-page--scroll-choices)')).toMatch(/height:\s*max\(100dvh,/)
   })
 })

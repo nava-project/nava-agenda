@@ -8,7 +8,7 @@
 import { describe, expect, it } from 'vitest'
 
 const sources = import.meta.glob(
-  '/src/modules/{agenda,schedules,staff,barberServices,settings,catalog,auth,public-booking,customer-access}/**/*.{vue,ts}',
+  '/src/modules/{agenda,schedules,staff,professionalServices,settings,catalog,auth,public-booking,customer-access}/**/*.{vue,ts}',
   { query: '?raw', import: 'default', eager: true },
 ) as Record<string, string>
 
@@ -16,7 +16,7 @@ const sources = import.meta.glob(
 // ruta, rutas, claves técnicas del contrato (`cancelled_by_professional`, `barber_id`)
 // y los valores iniciales declarados como respaldo.
 const ALLOWED = [
-  /staff-barberos|configuracion-barberia|reserva-publica-barbero|barber-services/,
+  /staff-profesionales|configuracion-negocio|reserva-publica-profesional|professional-services/,
   /servicios-por-barbero|path: '([^']*\/)?barber(o|os|ia)?[/']/,
   /cancelled_by_professional|appointment_cancelled_by_professional|barber_id/,
   /\b(label|term|singular|plural): '(Barberos|Servicios por barbero|barber[a-zí]*)'/,

@@ -6,13 +6,15 @@
 // igual declaran `unexpected-error` como frontera defensiva por si esa
 // solicitud concreta llegara a resolverse antes de que la redirección
 // navegue.
-import type { Barber, BarberPage } from './barber'
+import type { Professional, ProfessionalPage } from './professional'
 
-export type FetchBarbersOutcome =
-  { kind: 'success'; page: BarberPage } | { kind: 'network-error' } | { kind: 'unexpected-error' }
+export type FetchProfessionalsOutcome =
+  | { kind: 'success'; page: ProfessionalPage }
+  | { kind: 'network-error' }
+  | { kind: 'unexpected-error' }
 
-export type CreateBarberOutcome =
-  | { kind: 'success'; barber: Barber }
+export type CreateProfessionalOutcome =
+  | { kind: 'success'; professional: Professional }
   | { kind: 'validation-error' }
   // RN-IDE-01: la misma clave de idempotencia ya se usó con un contenido
   // distinto, o la operación con esa clave sigue en curso (DEC-043). No es
@@ -22,8 +24,8 @@ export type CreateBarberOutcome =
   | { kind: 'network-error' }
   | { kind: 'unexpected-error' }
 
-export type RenameBarberOutcome =
-  | { kind: 'success'; barber: Barber }
+export type RenameProfessionalOutcome =
+  | { kind: 'success'; professional: Professional }
   | { kind: 'validation-error' }
   | { kind: 'not-found' }
   | { kind: 'network-error' }
@@ -33,34 +35,34 @@ export type RenameBarberOutcome =
 // tamaño o dimensiones); la página ya prepara la imagen antes de enviarla, así
 // que solo lo ve un cliente que se salte esa preparación o una regla que
 // cambie en el servidor.
-export type UploadBarberPhotoOutcome =
-  | { kind: 'success'; barber: Barber }
+export type UploadProfessionalPhotoOutcome =
+  | { kind: 'success'; professional: Professional }
   | { kind: 'validation-error' }
   | { kind: 'not-found' }
   | { kind: 'network-error' }
   | { kind: 'unexpected-error' }
 
-export type RemoveBarberPhotoOutcome =
+export type RemoveProfessionalPhotoOutcome =
   | { kind: 'success' }
   | { kind: 'not-found' }
   | { kind: 'network-error' }
   | { kind: 'unexpected-error' }
 
-// Vínculo del usuario con su barbero (DEC-100). `none` en la lectura no es un
+// Vínculo del usuario con su profesional (DEC-100). `none` en la lectura no es un
 // error: el vínculo es opcional (el dueño que no atiende clientes no tiene
-// barbero). `taken` es el 409: ese barbero ya pertenece a otro usuario.
-export type FetchMyBarberOutcome =
-  | { kind: 'linked'; barber: Barber }
+// profesional). `taken` es el 409: ese profesional ya pertenece a otro usuario.
+export type FetchMyProfessionalOutcome =
+  | { kind: 'linked'; professional: Professional }
   | { kind: 'none' }
   | { kind: 'network-error' }
   | { kind: 'unexpected-error' }
 
-export type LinkMyBarberOutcome =
-  | { kind: 'success'; barber: Barber }
+export type LinkMyProfessionalOutcome =
+  | { kind: 'success'; professional: Professional }
   | { kind: 'taken' }
   | { kind: 'not-found' }
   | { kind: 'network-error' }
   | { kind: 'unexpected-error' }
 
-export type UnlinkMyBarberOutcome =
+export type UnlinkMyProfessionalOutcome =
   { kind: 'success' } | { kind: 'network-error' } | { kind: 'unexpected-error' }

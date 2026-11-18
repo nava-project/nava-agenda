@@ -4,9 +4,9 @@
 // sigue siendo dueño de los datos, la carga y los diálogos (alta, edición);
 // este componente es puramente de presentación y emite `edit` para abrir el
 // diálogo de edición que StaffPage ya tiene. Mismo lenguaje visual que el
-// detalle de barbero y los diálogos de Servicios: tinta hundida, filete de
+// detalle de profesional y los diálogos de Servicios: tinta hundida, filete de
 // latón, retrato con marco de esquinas y rombo de estado.
-import { BarberAvatar, BaseButton } from '@/shared/ui'
+import { ProfessionalAvatar, BaseButton } from '@/shared/ui'
 
 defineProps<{
   fullName: string
@@ -25,7 +25,7 @@ defineEmits<{ edit: [] }>()
   <section class="my-profile-card" aria-labelledby="my-profile-card-name">
     <div class="my-profile-card__hero">
       <span class="my-profile-card__frame">
-        <BarberAvatar size="hero" :full-name="fullName" :photo-url="photoUrl" />
+        <ProfessionalAvatar size="hero" :full-name="fullName" :photo-url="photoUrl" />
       </span>
       <p class="my-profile-card__role">{{ roleLabel }}</p>
       <h2 id="my-profile-card-name" class="my-profile-card__name">{{ fullName }}</h2>

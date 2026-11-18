@@ -3,7 +3,7 @@ import { DiamondLoader } from '@/shared/ui'
 
 /**
  * AgendaSkeleton - Espera con la geometría del contenido por llegar (issue
- * #189, atlas panel-agenda-eventos evento 05): se usa cuando barbero y fecha
+ * #189, atlas panel-agenda-eventos evento 05): se usa cuando profesional y fecha
  * ya están resueltos, para que la pantalla no salte al llegar la agenda real
  * (a diferencia del contexto inicial, evento 02, que no tiene nada que
  * anticipar y usa PageState + BaseSpinner en su lugar).
@@ -19,7 +19,7 @@ import { DiamondLoader } from '@/shared/ui'
  */
 interface Props {
   /** Texto exacto ya usado por el código, p. ej. "Cargando la agenda de
-   * {barbero}…" — este componente no lo redacta. */
+   * {profesional}…" — este componente no lo redacta. */
   label: string
   /** Cantidad de filas de placeholder a dibujar. */
   entryCount?: number

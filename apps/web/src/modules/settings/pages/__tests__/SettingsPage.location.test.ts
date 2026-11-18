@@ -1,6 +1,6 @@
 /**
  * Pruebas de SettingsPage (HU-020, DEC-110): ubicación del local y atención a domicilio (DEC-130, DEC-131, DEC-170, HU-102, HU-103).
- * settingsApi, brandApi y auth.updateBarbershopName se sustituyen por dobles de prueba
+ * settingsApi, brandApi y auth.updateBusinessName se sustituyen por dobles de prueba
  * (settingsPageHarness.ts); el recorrido real contra el API vive en el E2E. La suite de la
  * página se reparte en varios archivos SettingsPage*.test.ts para que vitest los ejecute en
  * paralelo (#625).

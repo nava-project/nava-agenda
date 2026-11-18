@@ -30,7 +30,7 @@ export interface ConfirmPublicAppointmentInput {
 export async function confirmPublicAppointment(
   slug: string,
   serviceId: string,
-  barberId: string,
+  professionalId: string,
   input: ConfirmPublicAppointmentInput,
   idempotencyKey: string,
 ): Promise<ConfirmPublicAppointmentOutcome> {
@@ -39,7 +39,7 @@ export async function confirmPublicAppointment(
       '/public/businesses/{slug}/services/{serviceId}/professionals/{professionalId}/appointments',
       {
         params: {
-          path: { slug, serviceId, professionalId: barberId },
+          path: { slug, serviceId, professionalId: professionalId },
           header: { 'Idempotency-Key': idempotencyKey },
         },
         body: {
@@ -60,7 +60,7 @@ export async function confirmPublicAppointment(
         kind: 'success',
         appointment: {
           attendeeName: data.attendeeName,
-          barbershopName: data.businessName,
+          businessName: data.businessName,
           serviceName: data.serviceName,
           durationMinutes: data.durationMinutes,
           priceAmount: data.priceAmount,

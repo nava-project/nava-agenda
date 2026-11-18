@@ -36,7 +36,7 @@ import type {
 const LIST_LIMIT = 50
 
 export async function fetchTimeBlocks(
-  barberId: string,
+  professionalId: string,
   cursor?: string,
 ): Promise<FetchTimeBlocksOutcome> {
   try {
@@ -44,7 +44,7 @@ export async function fetchTimeBlocks(
       '/private/professionals/{professionalId}/time-blocks',
       {
         params: {
-          path: { professionalId: barberId },
+          path: { professionalId: professionalId },
           query: { limit: LIST_LIMIT, ...(cursor ? { cursor } : {}) },
         },
       },
@@ -64,7 +64,7 @@ export async function fetchTimeBlocks(
 }
 
 export async function createTimeBlock(
-  barberId: string,
+  professionalId: string,
   blockType: BlockType,
   startsAt: string,
   endsAt: string,
@@ -76,7 +76,7 @@ export async function createTimeBlock(
       '/private/professionals/{professionalId}/time-blocks',
       {
         params: {
-          path: { professionalId: barberId },
+          path: { professionalId: professionalId },
           header: { 'Idempotency-Key': idempotencyKey },
         },
         body: { blockType, startsAt, endsAt, reason },
@@ -101,14 +101,14 @@ export async function createTimeBlock(
 }
 
 export async function deleteTimeBlock(
-  barberId: string,
+  professionalId: string,
   blockId: string,
 ): Promise<DeleteTimeBlockOutcome> {
   try {
     const { response } = await httpClient.DELETE(
       '/private/professionals/{professionalId}/time-blocks/{blockId}',
       {
-        params: { path: { professionalId: barberId, blockId } },
+        params: { path: { professionalId: professionalId, blockId } },
       },
     )
     if (response.ok) {
@@ -126,7 +126,7 @@ export async function deleteTimeBlock(
 }
 
 export async function fetchTimeBlockSeries(
-  barberId: string,
+  professionalId: string,
   cursor?: string,
 ): Promise<FetchTimeBlockSeriesOutcome> {
   try {
@@ -134,7 +134,7 @@ export async function fetchTimeBlockSeries(
       '/private/professionals/{professionalId}/time-block-series',
       {
         params: {
-          path: { professionalId: barberId },
+          path: { professionalId: professionalId },
           query: { limit: LIST_LIMIT, ...(cursor ? { cursor } : {}) },
         },
       },
@@ -154,7 +154,7 @@ export async function fetchTimeBlockSeries(
 }
 
 export async function createTimeBlockSeries(
-  barberId: string,
+  professionalId: string,
   blockType: BlockType,
   isoWeekday: number,
   startsTime: string,
@@ -169,7 +169,7 @@ export async function createTimeBlockSeries(
       '/private/professionals/{professionalId}/time-block-series',
       {
         params: {
-          path: { professionalId: barberId },
+          path: { professionalId: professionalId },
           header: { 'Idempotency-Key': idempotencyKey },
         },
         body: {
@@ -215,7 +215,7 @@ export interface DateListSeriesInput {
 // Serie por fechas explícitas (RN-BLQ-01: «bloqueo de varios días»): el
 // contrato admite crear la serie con todas sus fechas en una sola operación.
 export async function createDateListSeries(
-  barberId: string,
+  professionalId: string,
   input: DateListSeriesInput,
   idempotencyKey: string,
 ): Promise<CreateTimeBlockSeriesOutcome> {
@@ -224,7 +224,7 @@ export async function createDateListSeries(
       '/private/professionals/{professionalId}/time-block-series',
       {
         params: {
-          path: { professionalId: barberId },
+          path: { professionalId: professionalId },
           header: { 'Idempotency-Key': idempotencyKey },
         },
         body: { recurrenceKind: 'date_list', ...input },
@@ -261,7 +261,7 @@ export interface UpdateSeriesInput {
 // recorta la serie en effectiveDate-1 y responde la serie NUEVA, que la
 // pantalla agrega junto a la original ya recortada.
 export async function updateTimeBlockSeries(
-  barberId: string,
+  professionalId: string,
   seriesId: string,
   input: UpdateSeriesInput,
   split: { effectiveDate: string } | null,
@@ -270,7 +270,7 @@ export async function updateTimeBlockSeries(
     const { data, response } = await httpClient.PATCH(
       '/private/professionals/{professionalId}/time-block-series/{seriesId}',
       {
-        params: { path: { professionalId: barberId, seriesId } },
+        params: { path: { professionalId: professionalId, seriesId } },
         body: split
           ? { scope: 'this_and_following', effectiveDate: split.effectiveDate, ...input }
           : { scope: 'whole', ...input },
@@ -309,14 +309,14 @@ function toChildOutcome(status: number, ok: boolean): SeriesChildOutcome {
 }
 
 export async function addSeriesDate(
-  barberId: string,
+  professionalId: string,
   seriesId: string,
   blockDate: string,
 ): Promise<SeriesChildOutcome> {
   try {
     const { response } = await httpClient.POST(
       '/private/professionals/{professionalId}/time-block-series/{seriesId}/dates',
-      { params: { path: { professionalId: barberId, seriesId } }, body: { blockDate } },
+      { params: { path: { professionalId: professionalId, seriesId } }, body: { blockDate } },
     )
     return toChildOutcome(response.status, response.ok)
   } catch {
@@ -325,14 +325,14 @@ export async function addSeriesDate(
 }
 
 export async function removeSeriesDate(
-  barberId: string,
+  professionalId: string,
   seriesId: string,
   blockDate: string,
 ): Promise<SeriesChildOutcome> {
   try {
     const { response } = await httpClient.DELETE(
       '/private/professionals/{professionalId}/time-block-series/{seriesId}/dates/{blockDate}',
-      { params: { path: { professionalId: barberId, seriesId, blockDate } } },
+      { params: { path: { professionalId: professionalId, seriesId, blockDate } } },
     )
     return toChildOutcome(response.status, response.ok)
   } catch {
@@ -341,7 +341,7 @@ export async function removeSeriesDate(
 }
 
 export async function addSeriesException(
-  barberId: string,
+  professionalId: string,
   seriesId: string,
   excludedDate: string,
   reason: string | null,
@@ -349,7 +349,10 @@ export async function addSeriesException(
   try {
     const { response } = await httpClient.POST(
       '/private/professionals/{professionalId}/time-block-series/{seriesId}/exceptions',
-      { params: { path: { professionalId: barberId, seriesId } }, body: { excludedDate, reason } },
+      {
+        params: { path: { professionalId: professionalId, seriesId } },
+        body: { excludedDate, reason },
+      },
     )
     return toChildOutcome(response.status, response.ok)
   } catch {
@@ -358,14 +361,14 @@ export async function addSeriesException(
 }
 
 export async function removeSeriesException(
-  barberId: string,
+  professionalId: string,
   seriesId: string,
   excludedDate: string,
 ): Promise<SeriesChildOutcome> {
   try {
     const { response } = await httpClient.DELETE(
       '/private/professionals/{professionalId}/time-block-series/{seriesId}/exceptions/{excludedDate}',
-      { params: { path: { professionalId: barberId, seriesId, excludedDate } } },
+      { params: { path: { professionalId: professionalId, seriesId, excludedDate } } },
     )
     return toChildOutcome(response.status, response.ok)
   } catch {
@@ -374,13 +377,13 @@ export async function removeSeriesException(
 }
 
 export async function deleteTimeBlockSeries(
-  barberId: string,
+  professionalId: string,
   seriesId: string,
 ): Promise<DeleteTimeBlockSeriesOutcome> {
   try {
     const { response } = await httpClient.DELETE(
       '/private/professionals/{professionalId}/time-block-series/{seriesId}',
-      { params: { path: { professionalId: barberId, seriesId } } },
+      { params: { path: { professionalId: professionalId, seriesId } } },
     )
     if (response.ok) {
       return { kind: 'success' }
@@ -475,7 +478,7 @@ function toSeriesPage(data: {
 // directo al cliente compartido: este módulo no importa `agenda`. Un fallo de la
 // consulta no deshace el bloqueo, solo impide mostrar la lista.
 export async function fetchAffectedAppointments(
-  barberId: string,
+  professionalId: string,
   startsAt: string,
   endsAt: string,
   timeZone: string,
@@ -487,7 +490,7 @@ export async function fetchAffectedAppointments(
     for (const date of days) {
       const { data, response } = await httpClient.GET(
         '/private/professionals/{professionalId}/appointments/daily-agenda',
-        { params: { path: { professionalId: barberId }, query: { date } } },
+        { params: { path: { professionalId: professionalId }, query: { date } } },
       )
       if (!response.ok || !data) return { kind: 'unavailable' }
       entries.push(...data.items)

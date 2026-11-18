@@ -2,7 +2,7 @@
 // DEC-043, HU-004): un mismo intento (por ejemplo, un reintento de red tras
 // un timeout mientras el diálogo sigue abierto con los mismos datos)
 // reutiliza la MISMA clave, para que el servidor lo trate como la misma
-// solicitud en vez de crear un segundo barbero. Un intento lógico nuevo
+// solicitud en vez de crear un segundo profesional. Un intento lógico nuevo
 // (abrir el formulario de nuevo, o el siguiente envío tras un éxito o tras
 // cerrar y reabrir el diálogo) exige una clave nueva.
 //

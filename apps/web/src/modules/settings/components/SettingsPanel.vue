@@ -1,15 +1,15 @@
 <script setup lang="ts">
 // Sección numerada de Configuración (DEC-110): el mismo lenguaje reglado de
-// Agenda, Servicios y Barberos —superficie tinta, filete de latón, versalitas
+// Agenda, Servicios y Profesionales —superficie tinta, filete de latón, versalitas
 // espaciadas, rombo de estado— con un número editorial en serif como ancla. El
-// encabezado deja claro DÓNDE vale lo que se cambia (este dispositivo o toda la
-// barbería) y si aplica al instante o necesita guardarse.
+// encabezado deja claro DÓNDE vale lo que se cambia (este dispositivo o todo el
+// negocio) y si aplica al instante o necesita guardarse.
 defineProps<{
   id: string
   number: string
   title: string
   description?: string
-  /** `device`: vale en este aparato y se aplica al instante. `shop`: vale para toda la barbería y se guarda. */
+  /** `device`: vale en este aparato y se aplica al instante. `shop`: vale para todo el negocio y se guarda. */
   scope?: 'device' | 'shop'
   scopeLabel?: string
 }>()

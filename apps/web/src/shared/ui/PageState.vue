@@ -142,7 +142,7 @@ const style = computed(() => ({ '--page-state-mark': markVar.value }))
   color: var(--color-on-strong-muted);
 }
 
-/* Destino de otra sección del producto (evento 04, "Barberos"): el
+/* Destino de otra sección del producto (evento 04, "Profesionales"): el
  * consumidor marca el enlace con esta clase para heredar el latón — PageState
  * no expone un prop de color libre (props describen intención, no valores
  * libres, mismo criterio que BaseBadge). */

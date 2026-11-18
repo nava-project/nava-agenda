@@ -27,7 +27,7 @@ import { verifyAccessRef } from '../api/verifyAccessRefApi'
 import type { AccessPurpose } from '../model/customerAccessOutcome'
 
 interface Props {
-  /** Slug público de la barbería (`:slug`). No confiado: el servidor lo resuelve. */
+  /** Slug público del negocio (`:slug`). No confiado: el servidor lo resuelve. */
   slug: string
   /** Referencia de un uso del enlace (`:accessRef`). No confiada ni mostrada. */
   accessRef: string
@@ -35,7 +35,7 @@ interface Props {
 const props = defineProps<Props>()
 const router = useRouter()
 
-type Step = 'code' | 'manage' | 'opening' | 'barbershop-not-found'
+type Step = 'code' | 'manage' | 'opening' | 'business-not-found'
 
 /** Códigos incorrectos que admite el servidor por código (DEC-178). */
 const MAX_WRONG_CODES = 5
@@ -119,8 +119,8 @@ async function submitCode() {
         : 'Ese código no es válido o ya venció. Revísalo o pide un enlace nuevo en WhatsApp.'
       if (!isLocked.value) void focusCode()
       return
-    case 'barbershop-not-found':
-      step.value = 'barbershop-not-found'
+    case 'business-not-found':
+      step.value = 'business-not-found'
       return
     case 'network-error':
       alert.value = {
@@ -148,7 +148,7 @@ async function submitCode() {
       <span class="access__caption">Mi turno</span>
     </header>
 
-    <main v-if="step === 'barbershop-not-found'" class="access__main access__main--state">
+    <main v-if="step === 'business-not-found'" class="access__main access__main--state">
       <h1 class="visually-hidden">Tu turno</h1>
       <PageState
         variant="danger"

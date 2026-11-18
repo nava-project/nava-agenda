@@ -72,10 +72,10 @@ test.describe('Entrada pública de reservas (HU-090)', () => {
 
     // Ni el enlace inválido ni ningún identificador interno aparecen en el DOM.
     const bodyText = await page.locator('body').innerText()
-    expect(bodyText).not.toContain('barbershopId')
+    expect(bodyText).not.toContain('businessId')
   })
 
-  test('el cuerpo de la solicitud pública nunca incluye barbershopId (CA-090-03)', async ({
+  test('el cuerpo de la solicitud pública nunca incluye businessId (CA-090-03)', async ({
     page,
   }) => {
     let capturedUrl = ''
@@ -94,7 +94,7 @@ test.describe('Entrada pública de reservas (HU-090)', () => {
     await expect(page.getByRole('heading', { name: 'Barbería Ejemplo' })).toBeVisible()
 
     expect(capturedUrl).toContain('/public/businesses/barberia-ejemplo')
-    expect(capturedUrl).not.toContain('barbershopId')
+    expect(capturedUrl).not.toContain('businessId')
   })
 
   test('un fallo de red permite reintentar sin recargar la página (CA-090-05)', async ({

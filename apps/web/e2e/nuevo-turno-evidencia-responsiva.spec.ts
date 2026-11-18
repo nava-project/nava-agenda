@@ -1,7 +1,12 @@
 import { test, expect, type Page } from '@playwright/test'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
-import { fillCompleteForm, installNewAppointmentMock, BARBER, SERVICE } from './nuevo-turno-mock'
+import {
+  fillCompleteForm,
+  installNewAppointmentMock,
+  PROFESSIONAL,
+  SERVICE,
+} from './nuevo-turno-mock'
 
 /**
  * Evidencia responsive y accesible de `/panel/turnos/nuevo` (issue #190;
@@ -95,7 +100,7 @@ test.describe('evidencia responsiva de /panel/turnos/nuevo', () => {
     for (const viewport of viewports) {
       await page.setViewportSize({ width: viewport.width, height: viewport.height })
 
-      // El listbox de barbero se abre y se recorre con teclado (patrón
+      // El listbox de profesional se abre y se recorre con teclado (patrón
       // "Collapsible Listbox" de WAI-ARIA): abrir con Enter, elegir con Enter
       // y devolver el foco al disparador.
       const trigger = page.getByRole('button', { name: 'Profesional', exact: true })
@@ -114,7 +119,7 @@ test.describe('evidencia responsiva de /panel/turnos/nuevo', () => {
       })
       await page.keyboard.press('Enter')
       await expect(trigger).toBeFocused()
-      await expect(trigger).toContainText(BARBER.fullName)
+      await expect(trigger).toContainText(PROFESSIONAL.fullName)
 
       await page
         .getByRole('combobox', { name: 'Servicio', exact: true })

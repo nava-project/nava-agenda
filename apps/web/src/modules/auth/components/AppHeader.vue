@@ -1,9 +1,9 @@
 <script setup lang="ts">
-// Cabecera del cascarón privado (HU-012, CA-012-04): muestra siempre la
-// barbería activa y permite cerrar sesión. El nombre viene únicamente de la
+// Cabecera del cascarón privado (HU-012, CA-012-04): muestra siempre el
+// negocio activo y permite cerrar sesión. El nombre viene únicamente de la
 // fuente aprobada por DEC-060 (prop obligatoria, nunca un valor local ni un
 // texto fijo). Recompuesta a la identidad NAVA en la Fase 2
-// (estandar-diseno-visual.md §5.3): wordmark + barbería a la izquierda,
+// (estandar-diseno-visual.md §5.3): wordmark + negocio a la izquierda,
 // "Nuevo turno" como acción primaria global (no un destino del dock,
 // especificacion-frontend-nava.md §5.1) y cierre de sesión conservado tal
 // cual (misma lógica y pruebas, sin convertirlo en un ítem del dock).
@@ -16,7 +16,7 @@ import { NavaWordmark } from '@/shared/ui'
 import { useLogout } from '../model/logout'
 
 defineProps<{
-  barbershopName: string
+  businessName: string
 }>()
 
 const { loggingOut, logout: onLogout } = useLogout()
@@ -26,7 +26,7 @@ const { loggingOut, logout: onLogout } = useLogout()
   <header class="app-header">
     <div class="app-header__identity">
       <NavaWordmark variant="inverted" />
-      <p class="app-header__barbershop" data-testid="barbershop-name">{{ barbershopName }}</p>
+      <p class="app-header__business" data-testid="business-name">{{ businessName }}</p>
     </div>
     <!-- El atlas de /panel no dibuja un botón con relleno en la barra, pero
          "no elimines... logout... existentes solo porque un PNG estático no
@@ -64,7 +64,7 @@ const { loggingOut, logout: onLogout } = useLogout()
   font-size: 34px;
 }
 
-.app-header__barbershop {
+.app-header__business {
   margin: 0;
   overflow: hidden;
   font-size: var(--font-size-body);
@@ -122,7 +122,7 @@ const { loggingOut, logout: onLogout } = useLogout()
     padding: 16px 20px;
   }
 
-  .app-header__barbershop {
+  .app-header__business {
     font-size: var(--font-size-body-sm);
   }
 }
