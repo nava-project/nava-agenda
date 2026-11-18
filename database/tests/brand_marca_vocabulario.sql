@@ -19,17 +19,17 @@
 \echo '=== Issue #292 · pruebas de marca y vocabulario de la barbería ==='
 
 -- ---------------------------------------------------------------------------
--- Columnas NOT NULL con el default que reproduce la interfaz anterior
+-- Columnas NOT NULL con el vocabulario genérico por defecto (DEC-183)
 -- ---------------------------------------------------------------------------
 DO $$
 DECLARE
   v_col record;
   v_expected text[][] := ARRAY[
     ['brand_accent',             '''brass''::text'],
-    ['business_term',            '''barbería''::text'],
-    ['business_term_gender',     '''feminine''::text'],
-    ['professional_term',        '''barbero''::text'],
-    ['professional_term_plural', '''barberos''::text'],
+    ['business_term',            '''negocio''::text'],
+    ['business_term_gender',     '''masculine''::text'],
+    ['professional_term',        '''profesional''::text'],
+    ['professional_term_plural', '''profesionales''::text'],
     ['professional_term_gender', '''masculine''::text']
   ];
   i integer;
@@ -53,7 +53,7 @@ BEGIN
   END LOOP;
 END
 $$;
-\echo 'columnas OK · seis columnas NOT NULL con el default de la interfaz anterior'
+\echo 'columnas OK · seis columnas NOT NULL con el vocabulario genérico de Nava Agenda (DEC-183)'
 
 -- ---------------------------------------------------------------------------
 -- Una barbería que nunca tocó la marca lee los defaults
@@ -67,9 +67,9 @@ DECLARE
   b business%ROWTYPE;
 BEGIN
   SELECT * INTO b FROM business WHERE id = '11111111-1111-1111-1111-111111111111';
-  IF b.brand_accent <> 'brass' OR b.business_term <> 'barbería'
-     OR b.professional_term <> 'barbero' OR b.professional_term_plural <> 'barberos'
-     OR b.business_term_gender <> 'feminine' OR b.professional_term_gender <> 'masculine' THEN
+  IF b.brand_accent <> 'brass' OR b.business_term <> 'negocio'
+     OR b.professional_term <> 'profesional' OR b.professional_term_plural <> 'profesionales'
+     OR b.business_term_gender <> 'masculine' OR b.professional_term_gender <> 'masculine' THEN
     RAISE EXCEPTION 'la barbería existente debe leer los defaults de marca (leyó % / % / %).',
       b.brand_accent, b.business_term, b.professional_term;
   END IF;
@@ -78,7 +78,7 @@ $$;
 
 RESET ROLE;
 ROLLBACK;
-\echo 'defaults OK · una barbería existente conserva latón, barbería y barbero'
+\echo 'defaults OK · un negocio que nunca tocó la marca lee latón, negocio y profesional'
 
 -- ---------------------------------------------------------------------------
 -- Update propio válido dentro del tenant

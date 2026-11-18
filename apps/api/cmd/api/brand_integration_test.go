@@ -32,8 +32,8 @@ type brandBody struct {
 }
 
 var initialBrand = brandBody{
-	Accent: "brass", BusinessTerm: "barbería", BusinessTermGender: "feminine",
-	ProfessionalTerm: "barbero", ProfessionalTermPlural: "barberos", ProfessionalTermGender: "masculine",
+	Accent: "brass", BusinessTerm: "negocio", BusinessTermGender: "masculine",
+	ProfessionalTerm: "profesional", ProfessionalTermPlural: "profesionales", ProfessionalTermGender: "masculine",
 	PanelProfile: "shop",
 }
 
@@ -66,8 +66,8 @@ func restoreBrandRow(t *testing.T, db *database.DB, shop string) {
 		err := db.InTenantTx(context.Background(), database.BarbershopID(shop), func(ctx context.Context, q database.Queries) error {
 			_, err := q.Exec(ctx,
 				`UPDATE business
-				    SET brand_accent = 'brass', business_term = 'barbería', business_term_gender = 'feminine',
-				        professional_term = 'barbero', professional_term_plural = 'barberos',
+				    SET brand_accent = 'brass', business_term = 'negocio', business_term_gender = 'masculine',
+				        professional_term = 'profesional', professional_term_plural = 'profesionales',
 				        professional_term_gender = 'masculine',
 				        has_physical_location = true, address = NULL, latitude = NULL, longitude = NULL,
 				        offers_home_service = false, google_place_id = NULL

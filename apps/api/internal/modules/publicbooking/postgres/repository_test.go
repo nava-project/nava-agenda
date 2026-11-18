@@ -268,8 +268,8 @@ func TestResolveBySlug_Vocabulary_DefaultsAndPerTenant(t *testing.T) {
 	repo := publicbookingpostgres.New(db)
 
 	wantDefault := publicbooking.Vocabulary{
-		BusinessTerm: "barbería", BusinessTermGender: "feminine",
-		ProfessionalTerm: "barbero", ProfessionalTermPlural: "barberos",
+		BusinessTerm: "negocio", BusinessTermGender: "masculine",
+		ProfessionalTerm: "profesional", ProfessionalTermPlural: "profesionales",
 		ProfessionalTermGender: "masculine",
 	}
 	wantNails := publicbooking.Vocabulary{

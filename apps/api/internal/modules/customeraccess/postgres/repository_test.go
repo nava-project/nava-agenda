@@ -397,8 +397,8 @@ func TestResolveAppointmentByTokenHash_Vocabulary_PerTenant(t *testing.T) {
 	if err != nil || !found {
 		t.Fatalf("resolver token de shopUno: found=%v err=%v", found, err)
 	}
-	if v := viewUno.Vocabulary; v.BusinessTerm != "barbería" || v.BusinessTermGender != "feminine" ||
-		v.ProfessionalTerm != "barbero" || v.ProfessionalTermPlural != "barberos" ||
+	if v := viewUno.Vocabulary; v.BusinessTerm != "negocio" || v.BusinessTermGender != "masculine" ||
+		v.ProfessionalTerm != "profesional" || v.ProfessionalTermPlural != "profesionales" ||
 		v.ProfessionalTermGender != "masculine" {
 		t.Fatalf("shopUno debe traer el vocabulario inicial: %+v", v)
 	}
