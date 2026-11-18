@@ -156,6 +156,82 @@ pipelineJob('pedidos/deploy') {
 }
 
 // ---------------------------------------------------------------------------------------
+// Nava · Landing (bcaceres19/nava, /srv/nava; DEC-183). La landing de la familia NAVA y
+// sus documentos legales, servidos en nava.wtf. Mismo patrón que barberia/: el Jenkinsfile
+// y deploy/jenkins/deploy.Jenkinsfile viven en su propio repositorio.
+
+def navaUrl = 'https://github.com/bcaceres19/nava'
+
+folder('nava') {
+  displayName('Nava (landing)')
+  description("Repositorio ${navaUrl}")
+}
+
+multibranchPipelineJob('nava/ci') {
+  displayName('CI')
+  description('Typecheck, lint, formato, vitest, build, shellcheck e imagen. Jenkinsfile en la raíz del repo.')
+  branchSources {
+    branchSource {
+      source {
+        github {
+          id('nava-github')
+          repoOwner('bcaceres19')
+          repository('nava')
+          repositoryUrl("${navaUrl}.git")
+          configuredByUrl(false)
+          credentialsId('github-token')
+          traits {
+            gitHubBranchDiscovery { strategyId(1) }
+            gitHubPullRequestDiscovery { strategyId(1) }
+            headWildcardFilter {
+              includes('main PR-*')
+              excludes('')
+            }
+          }
+        }
+      }
+    }
+  }
+  factory {
+    workflowBranchProjectFactory { scriptPath('Jenkinsfile') }
+  }
+  orphanedItemStrategy {
+    discardOldItems {
+      daysToKeep(14)
+      numToKeep(30)
+    }
+  }
+  triggers {
+    periodicFolderTrigger { interval('5m') }
+  }
+}
+
+pipelineJob('nava/deploy') {
+  displayName('Deploy')
+  description('Despliega un SHA de main en /srv/nava: imagen, arranque, salud por edge y https://nava.wtf/healthz.')
+  parameters {
+    stringParam('SHA', '', 'SHA de main a desplegar (vacío = último commit de main).')
+    booleanParam('AUTO', false, 'Lo marca el CI. Si main ya avanzó, se omite este despliegue.')
+  }
+  logRotator { numToKeep(60) }
+  definition {
+    cpsScm {
+      scm {
+        git {
+          remote {
+            url("${navaUrl}.git")
+            credentials('github-token')
+          }
+          branch('*/main')
+        }
+      }
+      scriptPath('deploy/jenkins/deploy.Jenkinsfile')
+      lightweight(true)
+    }
+  }
+}
+
+// ---------------------------------------------------------------------------------------
 // ODIN (bcaceres19/odin, /srv/odin). Mismo patrón que barberia/: el
 // Jenkinsfile y deploy/jenkins/deploy.Jenkinsfile viven en su propio repositorio.
 
