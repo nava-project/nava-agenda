@@ -1,5 +1,5 @@
 # Respuesta 200 de GET /private/settings/public-link (issue #304, DEC-117).
-description: Enlace público de reservas de la barbería activa.
+description: Enlace público de reservas del negocio activo.
 headers:
   X-Request-Id:
     $ref: '../headers/XRequestId.yaml'
@@ -14,6 +14,6 @@ content:
       $ref: '../schemas/PublicLinkResponse.yaml'
     examples:
       enlace:
-        summary: Barbería con enlace ya generado
+        summary: Negocio con enlace ya generado
         value:
           slug: cortefinok7x2m9q4

@@ -1,5 +1,5 @@
-# Respuesta 200 de GET /private/barbers/{barberId}/time-block-series.
-description: Página de series recurrentes del barbero de la ruta.
+# Respuesta 200 de GET /private/professionals/{professionalId}/time-block-series.
+description: Página de series recurrentes del profesional de la ruta.
 headers:
   X-Request-Id:
     $ref: '../headers/XRequestId.yaml'

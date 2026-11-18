@@ -1,4 +1,4 @@
-# Un término del vocabulario de la barbería (issue #292, DEC-110).
+# Un término del vocabulario del negocio (issue #292, DEC-110).
 type: string
 minLength: 2
 maxLength: 30

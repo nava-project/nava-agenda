@@ -1,6 +1,6 @@
 # Respuesta 200 de PATCH /private/services/{serviceId} (HU-022, CA-022-04,
 # CA-022-05): representación completa ya guardada, mismo criterio que
-# BarberUpdated. Sigue siendo el mismo `id`; solo cambian los campos
+# ProfessionalUpdated. Sigue siendo el mismo `id`; solo cambian los campos
 # editados y `updatedAt`.
 description: Servicio con los campos editados ya guardados.
 headers:

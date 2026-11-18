@@ -1,14 +1,14 @@
 # Cuerpo de PATCH /private/services/{serviceId} (CA-022-04, CA-022-05).
 # Cerrado y limitado a los campos de catálogo de HU-022: nunca isActive,
-# currency ni asignaciones a barberos. La única propagación hacia citas
-# existentes es la que el barbero pide con `applyPriceToUpcoming` (HU-029,
+# currency ni asignaciones a profesionales. La única propagación hacia citas
+# existentes es la que el profesional pide con `applyPriceToUpcoming` (HU-029,
 # DEC-004); por defecto nada cambia (RN-SER-04, DEC-067). Edición PARCIAL: cada
 # campo es opcional, pero un objeto vacío `{}` se rechaza (ningún campo que
 # editar).
 type: object
 description: >
-  Edición parcial de un servicio del catálogo de la barbería activa. Solo
-  cambia `service`, salvo que el barbero pida `applyPriceToUpcoming`
+  Edición parcial de un servicio del catálogo del negocio activo. Solo
+  cambia `service`, salvo que el profesional pida `applyPriceToUpcoming`
   (HU-029, DEC-004): entonces el precio nuevo también se copia a sus turnos
   futuros confirmados (RN-SER-04). Al menos uno de los cuatro campos de
   catálogo debe estar presente.
@@ -20,7 +20,7 @@ properties:
     description: >
       Nuevo nombre visible, ya recortado por el servidor. Vacío, solo
       espacios o mayor de 120 caracteres responde `422`; un nombre igual al
-      de otro servicio activo de la misma barbería responde `409`
+      de otro servicio activo del mismo negocio responde `409`
       (DEC-067).
     examples:
       - Corte clásico + barba

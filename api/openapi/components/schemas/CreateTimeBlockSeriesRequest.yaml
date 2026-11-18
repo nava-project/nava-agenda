@@ -1,4 +1,4 @@
-# Cuerpo de POST /private/barbers/{barberId}/time-block-series (DEC-020).
+# Cuerpo de POST /private/professionals/{professionalId}/time-block-series (DEC-020).
 # Cerrado: el handler rechaza cualquier campo desconocido.
 type: object
 description: >

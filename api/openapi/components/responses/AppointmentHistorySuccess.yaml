@@ -29,5 +29,5 @@ content:
               changes:
                 - fieldName: status
                   previousValue: confirmed
-                  newValue: cancelled_by_barber
+                  newValue: cancelled_by_professional
           nextCursor: null

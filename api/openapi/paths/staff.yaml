@@ -1,22 +1,22 @@
-# Operaciones privadas de registro y listado de barberos (HU-021,
+# Operaciones privadas de registro y listado de profesionales (HU-021,
 # F-CONF-02 parcial: solo registrar, listar, consultar y renombrar. No
-# mezcla con servicios, horario ni agenda por barbero -esas capacidades
+# mezcla con servicios, horario ni agenda por profesional -esas capacidades
 # tienen su propio archivo cuando existan (catalog.yaml, schedules.yaml)-
 # ni con credenciales o roles de staff_user (DEC-047).
-/private/barbers:
+/private/professionals:
   get:
     tags: [Staff]
-    summary: Listar los barberos de la barbería activa
+    summary: Listar los profesionales del negocio activo
     description: >
       Lista paginada por cursor (HU-021, CA-021-01, CA-021-02) de los
-      barberos de la barbería derivada de la sesión vigente. Una barbería
-      unipersonal y una de cuatro barberos usan exactamente la misma forma
-      de respuesta: nunca una rama especial para "barbero único". Orden
+      profesionales del negocio derivado de la sesión vigente. Un negocio
+      unipersonal y una de cuatro profesionales usan exactamente la misma forma
+      de respuesta: nunca una rama especial para "profesional único". Orden
       estable por fecha de alta y luego por identificador; sin paginación
       por offset porque la colección no tiene un máximo de negocio
       aprobado. Para una cuenta de empleado (`DEC-173`) la lista contiene
-      solo su propio barbero, o ninguno si no tiene uno vinculado.
-    operationId: listBarbers
+      solo su propio profesional, o ninguno si no tiene uno vinculado.
+    operationId: listProfessionals
     security:
       - SessionCookie: []
     x-business-rules: [RN-TEN-01, RN-DAT-02]
@@ -36,7 +36,7 @@
       - name: limit
         in: query
         required: false
-        description: Máximo de barberos por página.
+        description: Máximo de profesionales por página.
         schema:
           type: integer
           minimum: 1
@@ -62,7 +62,7 @@
           default: 20
     responses:
       "200":
-        $ref: '../components/responses/BarberListSuccess.yaml'
+        $ref: '../components/responses/ProfessionalListSuccess.yaml'
       "400":
         $ref: '../components/responses/InvalidRequestProblem.yaml'
       "401":
@@ -71,18 +71,18 @@
         $ref: '../components/responses/InternalErrorProblem.yaml'
   post:
     tags: [Staff]
-    summary: Registrar un barbero en la barbería activa
+    summary: Registrar un profesional en el negocio activo
     description: >
-      Alta de un barbero (HU-021, CA-021-02) protegida con clave de
+      Alta de un profesional (HU-021, CA-021-02) protegida con clave de
       idempotencia (RN-IDE-01, DEC-043): repetir el mismo `POST` con la
       misma `Idempotency-Key` y el mismo cuerpo devuelve la misma
       representación creada sin crear una segunda fila. La misma clave con
       un `fullName` distinto responde `409` (conflicto de idempotencia); una
-      clave nueva con el mismo `fullName` que un barbero existente SÍ crea
-      un segundo barbero -esta historia no impone unicidad de nombre-. El
+      clave nueva con el mismo `fullName` que un profesional existente SÍ crea
+      un segundo profesional -esta historia no impone unicidad de nombre-. El
       tenant se deriva exclusivamente de `SessionCookie`; el cuerpo nunca
-      acepta `barbershopId`.
-    operationId: createBarber
+      acepta `businessId`.
+    operationId: createProfessional
     security:
       - SessionCookie: []
     x-business-rules: [RN-TEN-01, RN-DAT-02, RN-IDE-01]
@@ -94,15 +94,15 @@
       content:
         application/json:
           schema:
-            $ref: '../components/schemas/CreateBarberRequest.yaml'
+            $ref: '../components/schemas/CreateProfessionalRequest.yaml'
           examples:
             altaSimple:
-              summary: Alta de un barbero
+              summary: Alta de un profesional
               value:
                 fullName: Carlos Ramírez
     responses:
       "201":
-        $ref: '../components/responses/BarberCreated.yaml'
+        $ref: '../components/responses/ProfessionalCreated.yaml'
       "400":
         $ref: '../components/responses/InvalidRequestProblem.yaml'
       "401":
@@ -145,38 +145,38 @@
                   code: idempotency-locked
                   requestId: 8f3ac2b1e4d5f6a7c8d9e0f1a2b3c4d5
       "422":
-        $ref: '../components/responses/BarberValidationProblem.yaml'
+        $ref: '../components/responses/ProfessionalValidationProblem.yaml'
       "500":
         $ref: '../components/responses/InternalErrorProblem.yaml'
-/private/barbers/{barberId}:
+/private/professionals/{professionalId}:
   get:
     tags: [Staff]
-    summary: Consultar un barbero de la barbería activa
+    summary: Consultar un profesional del negocio activo
     description: >
-      Lectura autenticada de un barbero por identificador (HU-021). Un
-      identificador inexistente o perteneciente a otra barbería responde
+      Lectura autenticada de un profesional por identificador (HU-021). Un
+      identificador inexistente o perteneciente a otro negocio responde
       exactamente el mismo `404` (`CA-021-05`, `RN-TEN-01`): esta operación
       permite demostrar ese criterio de forma directa, sin depender solo del
       listado.
-    operationId: getBarber
+    operationId: getProfessional
     security:
       - SessionCookie: []
     x-business-rules: [RN-TEN-01, RN-DAT-02]
     x-decisions: [DEC-019, DEC-024, DEC-047]
     parameters:
-      - name: barberId
+      - name: professionalId
         in: path
         required: true
-        description: Identificador del barbero.
+        description: Identificador del profesional.
         schema:
           type: string
           format: uuid
         examples:
-          barbero:
+          profesional:
             value: 8f3ac2b1-e4d5-46f6-a7c8-d9e0f1a2b3c4
     responses:
       "200":
-        $ref: '../components/responses/BarberSuccess.yaml'
+        $ref: '../components/responses/ProfessionalSuccess.yaml'
       "401":
         $ref: '../components/responses/UnauthorizedProblem.yaml'
       "403":
@@ -187,36 +187,36 @@
         $ref: '../components/responses/InternalErrorProblem.yaml'
   patch:
     tags: [Staff]
-    summary: Renombrar un barbero de la barbería activa
+    summary: Renombrar un profesional del negocio activo
     description: >
       Actualización parcial limitada al nombre (HU-021, CA-021-04). Rechaza
       objetos vacíos y cualquier campo distinto de `fullName` -en particular
       `active`, `deletedAt`, `sortOrder`, `staffUserId`, servicios u
       horarios, todos fuera de alcance (`DEC-047`, `CA-021-07`)-. Un
-      identificador inexistente o de otra barbería responde el mismo `404`
+      identificador inexistente o de otro negocio responde el mismo `404`
       que `GET` (`CA-021-05`).
-    operationId: renameBarber
+    operationId: renameProfessional
     security:
       - SessionCookie: []
     x-business-rules: [RN-TEN-01, RN-DAT-02]
     x-decisions: [DEC-019, DEC-024, DEC-047]
     parameters:
-      - name: barberId
+      - name: professionalId
         in: path
         required: true
-        description: Identificador del barbero.
+        description: Identificador del profesional.
         schema:
           type: string
           format: uuid
         examples:
-          barbero:
+          profesional:
             value: 8f3ac2b1-e4d5-46f6-a7c8-d9e0f1a2b3c4
     requestBody:
       required: true
       content:
         application/json:
           schema:
-            $ref: '../components/schemas/UpdateBarberRequest.yaml'
+            $ref: '../components/schemas/UpdateProfessionalRequest.yaml'
           examples:
             renombrar:
               summary: Nuevo nombre
@@ -224,7 +224,7 @@
                 fullName: Carlos A. Ramírez
     responses:
       "200":
-        $ref: '../components/responses/BarberUpdated.yaml'
+        $ref: '../components/responses/ProfessionalUpdated.yaml'
       "400":
         $ref: '../components/responses/InvalidRequestProblem.yaml'
       "401":
@@ -234,40 +234,40 @@
       "404":
         $ref: '../components/responses/NotFoundProblem.yaml'
       "422":
-        $ref: '../components/responses/BarberValidationProblem.yaml'
+        $ref: '../components/responses/ProfessionalValidationProblem.yaml'
       "500":
         $ref: '../components/responses/InternalErrorProblem.yaml'
-/private/barbers/{barberId}/photo:
+/private/professionals/{professionalId}/photo:
   put:
     tags: [Staff]
-    summary: Subir o reemplazar la fotografía de un barbero
+    summary: Subir o reemplazar la fotografía de un profesional
     description: >
-      Guarda la fotografía del barbero (DEC-104), el retrato que la lista del
-      equipo y los selectores de barbero muestran en lugar del monograma. El
+      Guarda la fotografía del profesional (DEC-104), el retrato que la lista del
+      equipo y los selectores de profesional muestran en lugar del monograma. El
       cuerpo es la imagen binaria (`image/jpeg` o `image/png`), no JSON ni
       base64: el cliente la recorta a un cuadrado y la reduce a 512 px antes de
       enviarla, y el servidor la valida (formato real por sus bytes, no por el
       `Content-Type`; máximo 512 KiB; entre 64 y 1024 px por lado). Es un `PUT`:
       repetir la misma imagen deja el mismo estado y reemplazar una fotografía
       existente nunca crea una segunda, por eso no lleva `Idempotency-Key`.
-      Responde el barbero completo con el nuevo `photoUpdatedAt`. Un
-      identificador inexistente o de otra barbería responde el mismo `404`
-      que `GET /private/barbers/{barberId}` (`CA-021-05`).
-    operationId: putBarberPhoto
+      Responde el profesional completo con el nuevo `photoUpdatedAt`. Un
+      identificador inexistente o de otro negocio responde el mismo `404`
+      que `GET /private/professionals/{professionalId}` (`CA-021-05`).
+    operationId: putProfessionalPhoto
     security:
       - SessionCookie: []
     x-business-rules: [RN-TEN-01]
     x-decisions: [DEC-019, DEC-024, DEC-047, DEC-104]
     parameters:
-      - name: barberId
+      - name: professionalId
         in: path
         required: true
-        description: Identificador del barbero.
+        description: Identificador del profesional.
         schema:
           type: string
           format: uuid
         examples:
-          barbero:
+          profesional:
             value: 8f3ac2b1-e4d5-46f6-a7c8-d9e0f1a2b3c4
     requestBody:
       required: true
@@ -285,7 +285,7 @@
             format: binary
     responses:
       "200":
-        $ref: '../components/responses/BarberPhotoUpdated.yaml'
+        $ref: '../components/responses/ProfessionalPhotoUpdated.yaml'
       "400":
         $ref: '../components/responses/PayloadTooLargeProblem.yaml'
       "401":
@@ -295,36 +295,36 @@
       "404":
         $ref: '../components/responses/NotFoundProblem.yaml'
       "422":
-        $ref: '../components/responses/BarberPhotoValidationProblem.yaml'
+        $ref: '../components/responses/ProfessionalPhotoValidationProblem.yaml'
       "500":
         $ref: '../components/responses/InternalErrorProblem.yaml'
   get:
     tags: [Staff]
-    summary: Leer la fotografía de un barbero
+    summary: Leer la fotografía de un profesional
     description: >
-      Sirve los bytes de la fotografía del barbero (DEC-104). Se usa como
+      Sirve los bytes de la fotografía del profesional (DEC-104). Se usa como
       `src` de una imagen: la cookie de sesión viaja sola y el tenant se
       deriva de ella. Lleva `ETag` (derivado de `photoUpdatedAt`) y responde
       `304` a una solicitud condicional con `If-None-Match`; el cliente añade
       `photoUpdatedAt` como parámetro de consulta de la URL solo para
-      invalidar su propia caché, el servidor lo ignora. Un barbero sin
-      fotografía, inexistente o de otra barbería responde exactamente el mismo
+      invalidar su propia caché, el servidor lo ignora. Un profesional sin
+      fotografía, inexistente o de otro negocio responde exactamente el mismo
       `404`: la lista ya dice cuáles tienen fotografía con `photoUpdatedAt`.
-    operationId: getBarberPhoto
+    operationId: getProfessionalPhoto
     security:
       - SessionCookie: []
     x-business-rules: [RN-TEN-01]
     x-decisions: [DEC-019, DEC-024, DEC-047, DEC-104]
     parameters:
-      - name: barberId
+      - name: professionalId
         in: path
         required: true
-        description: Identificador del barbero.
+        description: Identificador del profesional.
         schema:
           type: string
           format: uuid
         examples:
-          barbero:
+          profesional:
             value: 8f3ac2b1-e4d5-46f6-a7c8-d9e0f1a2b3c4
       - name: If-None-Match
         in: header
@@ -334,9 +334,9 @@
           type: string
     responses:
       "200":
-        $ref: '../components/responses/BarberPhotoSuccess.yaml'
+        $ref: '../components/responses/ProfessionalPhotoSuccess.yaml'
       "304":
-        $ref: '../components/responses/BarberPhotoNotModified.yaml'
+        $ref: '../components/responses/ProfessionalPhotoNotModified.yaml'
       "401":
         $ref: '../components/responses/UnauthorizedProblem.yaml'
       "403":
@@ -347,33 +347,33 @@
         $ref: '../components/responses/InternalErrorProblem.yaml'
   delete:
     tags: [Staff]
-    summary: Quitar la fotografía de un barbero
+    summary: Quitar la fotografía de un profesional
     description: >
-      Borra la fotografía del barbero (DEC-104): la imagen se elimina, no se
-      oculta, y el barbero vuelve a mostrarse con su monograma. Es idempotente:
+      Borra la fotografía del profesional (DEC-104): la imagen se elimina, no se
+      oculta, y el profesional vuelve a mostrarse con su monograma. Es idempotente:
       quitar una fotografía que no existe también responde `204`. No modifica
-      el nombre ni ningún otro dato. Un identificador inexistente o de otra
-      barbería responde el mismo `404` que el resto de operaciones del
-      barbero (`CA-021-05`).
-    operationId: deleteBarberPhoto
+      el nombre ni ningún otro dato. Un identificador inexistente o de otro
+      negocio responde el mismo `404` que el resto de operaciones del
+      profesional (`CA-021-05`).
+    operationId: deleteProfessionalPhoto
     security:
       - SessionCookie: []
     x-business-rules: [RN-TEN-01]
     x-decisions: [DEC-019, DEC-024, DEC-047, DEC-104]
     parameters:
-      - name: barberId
+      - name: professionalId
         in: path
         required: true
-        description: Identificador del barbero.
+        description: Identificador del profesional.
         schema:
           type: string
           format: uuid
         examples:
-          barbero:
+          profesional:
             value: 8f3ac2b1-e4d5-46f6-a7c8-d9e0f1a2b3c4
     responses:
       "204":
-        $ref: '../components/responses/BarberPhotoDeleted.yaml'
+        $ref: '../components/responses/ProfessionalPhotoDeleted.yaml'
       "401":
         $ref: '../components/responses/UnauthorizedProblem.yaml'
       "403":
@@ -382,22 +382,22 @@
         $ref: '../components/responses/NotFoundProblem.yaml'
       "500":
         $ref: '../components/responses/InternalErrorProblem.yaml'
-/private/me/barber:
+/private/me/professional:
   get:
     tags: [Staff]
-    summary: Consultar el barbero vinculado al usuario autenticado
+    summary: Consultar el profesional vinculado al usuario autenticado
     description: >
-      Devuelve el barbero que el usuario autenticado declaró ser (`DEC-100`).
+      Devuelve el profesional que el usuario autenticado declaró ser (`DEC-100`).
       El vínculo es opcional: el dueño que no atiende clientes puede no tener
-      barbero y recibe `404`. Nunca expone la identidad de otro usuario.
-    operationId: getMyBarber
+      profesional y recibe `404`. Nunca expone la identidad de otro usuario.
+    operationId: getMyProfessional
     security:
       - SessionCookie: []
     x-business-rules: [RN-TEN-01, RN-DAT-02]
     x-decisions: [DEC-019, DEC-047, DEC-099, DEC-100]
     responses:
       "200":
-        $ref: '../components/responses/BarberSuccess.yaml'
+        $ref: '../components/responses/ProfessionalSuccess.yaml'
       "401":
         $ref: '../components/responses/UnauthorizedProblem.yaml'
       "404":
@@ -406,18 +406,18 @@
         $ref: '../components/responses/InternalErrorProblem.yaml'
   put:
     tags: [Staff]
-    summary: Declarar cuál barbero es el usuario autenticado
+    summary: Declarar cuál profesional es el usuario autenticado
     description: >
-      Vincula al usuario autenticado con un barbero de la barbería activa
+      Vincula al usuario autenticado con un profesional del negocio activo
       (`DEC-100`). Actúa siempre sobre el principal de la sesión y el cuerpo
       nunca acepta un identificador de usuario, así que nadie asigna el vínculo
-      de otra persona. Si el usuario ya estaba vinculado a otro barbero, ese
+      de otra persona. Si el usuario ya estaba vinculado a otro profesional, ese
       vínculo se libera en la misma transacción. Es idempotente: repetir la
       misma selección deja el mismo estado y responde `200`, por eso no lleva
-      `Idempotency-Key`. Un barbero ya vinculado a otro usuario responde `409`.
-      Un identificador inexistente o de otra barbería responde el mismo `404`
-      que el resto de operaciones del barbero (`CA-021-05`).
-    operationId: linkMyBarber
+      `Idempotency-Key`. Un profesional ya vinculado a otro usuario responde `409`.
+      Un identificador inexistente o de otro negocio responde el mismo `404`
+      que el resto de operaciones del profesional (`CA-021-05`).
+    operationId: linkMyProfessional
     security:
       - SessionCookie: []
     x-business-rules: [RN-TEN-01, RN-DAT-02]
@@ -427,15 +427,15 @@
       content:
         application/json:
           schema:
-            $ref: '../components/schemas/LinkMyBarberRequest.yaml'
+            $ref: '../components/schemas/LinkMyProfessionalRequest.yaml'
           examples:
             vincular:
-              summary: Soy este barbero
+              summary: Soy este profesional
               value:
-                barberId: 8f3ac2b1-e4d5-46f6-a7c8-d9e0f1a2b3c4
+                professionalId: 8f3ac2b1-e4d5-46f6-a7c8-d9e0f1a2b3c4
     responses:
       "200":
-        $ref: '../components/responses/BarberUpdated.yaml'
+        $ref: '../components/responses/ProfessionalUpdated.yaml'
       "400":
         $ref: '../components/responses/InvalidRequestProblem.yaml'
       "401":
@@ -445,24 +445,24 @@
       "404":
         $ref: '../components/responses/NotFoundProblem.yaml'
       "409":
-        $ref: '../components/responses/MyBarberLinkConflictProblem.yaml'
+        $ref: '../components/responses/MyProfessionalLinkConflictProblem.yaml'
       "500":
         $ref: '../components/responses/InternalErrorProblem.yaml'
   delete:
     tags: [Staff]
-    summary: Quitar el vínculo del usuario autenticado con su barbero
+    summary: Quitar el vínculo del usuario autenticado con su profesional
     description: >
       Libera el vínculo propio (`DEC-100`). Es idempotente: sin vínculo también
-      responde `204`. No borra ni desactiva al barbero (`DEC-047`) y no afecta
+      responde `204`. No borra ni desactiva al profesional (`DEC-047`) y no afecta
       a sus citas.
-    operationId: unlinkMyBarber
+    operationId: unlinkMyProfessional
     security:
       - SessionCookie: []
     x-business-rules: [RN-TEN-01]
     x-decisions: [DEC-019, DEC-047, DEC-099, DEC-100]
     responses:
       "204":
-        $ref: '../components/responses/MyBarberUnlinked.yaml'
+        $ref: '../components/responses/MyProfessionalUnlinked.yaml'
       "401":
         $ref: '../components/responses/UnauthorizedProblem.yaml'
       "403":
@@ -470,31 +470,31 @@
       "500":
         $ref: '../components/responses/InternalErrorProblem.yaml'
 
-/private/barbers/{barberId}/reviews:
+/private/professionals/{professionalId}/reviews:
   get:
     tags: [Staff]
-    summary: Listar las reseñas de un barbero para moderarlas
+    summary: Listar las reseñas de un profesional para moderarlas
     description: >
-      Todas las reseñas del barbero, ocultas incluidas y con su fecha de
+      Todas las reseñas del profesional, ocultas incluidas y con su fecha de
       ocultamiento, de la más reciente a la más antigua (hasta 100), más el
       promedio y el total públicos (HU-100, `CA-100-05`, `DEC-128`). Un
-      identificador inexistente o de otra barbería responde el mismo `404`
+      identificador inexistente o de otro negocio responde el mismo `404`
       (`RN-TEN-01`).
-    operationId: listBarberReviews
+    operationId: listProfessionalReviews
     security:
       - SessionCookie: []
     x-business-rules: [RN-TEN-01, RN-DAT-02]
     x-decisions: [DEC-024, DEC-128]
     parameters:
-      - name: barberId
+      - name: professionalId
         in: path
         required: true
-        description: Identificador del barbero.
+        description: Identificador del profesional.
         schema:
           type: string
           format: uuid
         examples:
-          barbero:
+          profesional:
             value: 8f3ac2b1-e4d5-46f6-a7c8-d9e0f1a2b3c4
     responses:
       "200":
@@ -507,33 +507,33 @@
         $ref: '../components/responses/NotFoundProblem.yaml'
       "500":
         $ref: '../components/responses/InternalErrorProblem.yaml'
-/private/barbers/{barberId}/reviews/{reviewId}:
+/private/professionals/{professionalId}/reviews/{reviewId}:
   patch:
     tags: [Staff]
     summary: Ocultar o volver a mostrar una reseña
     description: >
-      El barbero o el propietario oculta (`hidden: true`) una reseña ofensiva o
+      El profesional o el propietario oculta (`hidden: true`) una reseña ofensiva o
       falsa, o la vuelve a mostrar (`hidden: false`) (HU-100, `CA-100-05`,
       `DEC-128`, mismo patrón reversible que quitar la foto, `DEC-104`). Ocultar
       la retira del promedio y de la lista pública de inmediato, pero la fila se
       conserva con su fecha; mostrarla de nuevo la reincorpora sin perder su
       contenido. Repetir la misma orden deja el mismo estado. Una reseña
-      inexistente, de otro barbero o de otra barbería responde el mismo `404`.
-    operationId: updateBarberReview
+      inexistente, de otro profesional o de otro negocio responde el mismo `404`.
+    operationId: updateProfessionalReview
     security:
       - SessionCookie: []
     x-business-rules: [RN-TEN-01, RN-DAT-02]
     x-decisions: [DEC-024, DEC-104, DEC-128]
     parameters:
-      - name: barberId
+      - name: professionalId
         in: path
         required: true
-        description: Identificador del barbero.
+        description: Identificador del profesional.
         schema:
           type: string
           format: uuid
         examples:
-          barbero:
+          profesional:
             value: 8f3ac2b1-e4d5-46f6-a7c8-d9e0f1a2b3c4
       - name: reviewId
         in: path

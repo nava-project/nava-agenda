@@ -10,5 +10,5 @@ schema:
   type: string
   format: uri-reference
 examples:
-  barbero:
-    value: /private/barbers/8f3ac2b1-e4d5-46f6-a7c8-d9e0f1a2b3c4
+  profesional:
+    value: /private/professionals/8f3ac2b1-e4d5-46f6-a7c8-d9e0f1a2b3c4

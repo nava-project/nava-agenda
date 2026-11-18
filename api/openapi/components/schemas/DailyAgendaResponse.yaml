@@ -1,11 +1,11 @@
 # Lista cronológica cerrada de GET
-# /private/barbers/{barberId}/appointments/daily-agenda (HU-062): sin
+# /private/professionals/{professionalId}/appointments/daily-agenda (HU-062): sin
 # cursor ni siguiente página, a diferencia de WorkingHourListResponse. Un
-# solo día de un solo barbero (DEC-074) está acotado por diseño, así que
+# solo día de un solo profesional (DEC-074) está acotado por diseño, así que
 # esta colección nunca necesita paginación real (CA-062-07).
 type: object
 description: >
-  Turnos del barbero de la ruta cuyo intervalo interseca el día pedido,
+  Turnos del profesional de la ruta cuyo intervalo interseca el día pedido,
   ordenados de forma estable por `startsAt` y luego por `id` (CA-062-03).
 properties:
   items:

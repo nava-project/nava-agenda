@@ -1,0 +1,16 @@
+# Colección completa (sin paginar, como PublicProfessionalListResponse) de profesionales
+# elegibles con los servicios activos que hacen (DEC-162).
+type: object
+description: >
+  Profesionales del negocio resuelto con al menos una asignación vigente a un
+  servicio activo, ordenados de forma estable por fecha de alta y luego por
+  id. Un arreglo vacío cubre un negocio publicado sin ningún profesional
+  elegible.
+properties:
+  items:
+    type: array
+    description: Profesionales elegibles, en el orden estable del servidor.
+    items:
+      $ref: './PublicProfessionalServicesResponse.yaml'
+required:
+  - items

@@ -1,6 +1,6 @@
 # Respuesta 200 de
-# GET /private/barbers/{barberId}/time-block-series/{seriesId}.
-description: Serie recurrente del barbero de la ruta, con sus fechas/excepciones.
+# GET /private/professionals/{professionalId}/time-block-series/{seriesId}.
+description: Serie recurrente del profesional de la ruta, con sus fechas/excepciones.
 headers:
   X-Request-Id:
     $ref: '../headers/XRequestId.yaml'
@@ -26,5 +26,5 @@ content:
           dates: []
           exceptions:
             - excludedDate: "2027-01-08"
-              reason: "El barbero libró ese día"
+              reason: "El profesional libró ese día"
               createdAt: "2026-08-26T15:04:05Z"

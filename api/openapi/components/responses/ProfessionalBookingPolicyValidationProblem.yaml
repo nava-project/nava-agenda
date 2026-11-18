@@ -1,0 +1,34 @@
+# 422 de PUT /private/settings/booking-policy/professionals/{professionalId} (DEC-169):
+# mismos rangos y misma coherencia que la ventana del negocio (DEC-083,
+# DEC-133). Ninguna escritura ocurre.
+description: >
+  El cuerpo es JSON válido con los tres campos, pero uno está fuera de rango
+  (DEC-083, DEC-133) o la anticipación mínima alcanza o supera la ventana.
+headers:
+  X-Request-Id:
+    $ref: '../headers/XRequestId.yaml'
+content:
+  application/problem+json:
+    schema:
+      $ref: '../schemas/Problem.yaml'
+    examples:
+      fueraDeRango:
+        summary: slotGridMinutes fuera del rango permitido (1 a 60)
+        value:
+          type: /api/v1/problems/validation-error
+          title: Error de validación
+          status: 422
+          detail: slotGridMinutes está fuera del rango permitido
+          instance: 8f3ac2b1e4d5f6a7c8d9e0f1a2b3c4d5
+          code: validation-error
+          requestId: 8f3ac2b1e4d5f6a7c8d9e0f1a2b3c4d5
+      anticipacionSuperaVentana:
+        summary: La anticipación mínima alcanza o supera la ventana máxima
+        value:
+          type: /api/v1/problems/validation-error
+          title: Error de validación
+          status: 422
+          detail: la anticipación mínima no puede alcanzar ni superar la ventana máxima de reserva
+          instance: 8f3ac2b1e4d5f6a7c8d9e0f1a2b3c4d5
+          code: validation-error
+          requestId: 8f3ac2b1e4d5f6a7c8d9e0f1a2b3c4d5

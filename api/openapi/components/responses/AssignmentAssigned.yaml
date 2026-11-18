@@ -1,4 +1,4 @@
-# 200/201 de PUT /private/barbers/{barberId}/services/{serviceId} (HU-023,
+# 200/201 de PUT /private/professionals/{professionalId}/services/{serviceId} (HU-023,
 # CA-023-02, CA-023-03). Semántica HTTP naturalmente repetible: la primera
 # vez responde 201 (Location apunta al propio recurso recién creado); una
 # repetición exacta de la misma asignación responde 200 con el MISMO
@@ -6,7 +6,7 @@
 # decide el servidor según haya insertado o no; ambos comparten este mismo
 # cuerpo.
 description: >
-  El barbero ahora tiene asignado el servicio. `createdAt` refleja siempre
+  El profesional ahora tiene asignado el servicio. `createdAt` refleja siempre
   la primera vez que se creó la asociación, incluso en una repetición.
 headers:
   X-Request-Id:
@@ -20,6 +20,6 @@ content:
     examples:
       asignacion:
         value:
-          barberId: 8f3ac2b1-e4d5-46f6-a7c8-d9e0f1a2b3c4
+          professionalId: 8f3ac2b1-e4d5-46f6-a7c8-d9e0f1a2b3c4
           serviceId: 1a2b3c4d-5e6f-4708-9a0b-1c2d3e4f5061
           createdAt: "2026-08-24T15:04:05Z"

@@ -3,7 +3,7 @@
 # reintenta POST /auth/login normalmente, sin ningún token adicional.
 description: >
   Código verificado. La IP solicitante deja de estar en verificación
-  telefónica; el barbero puede reintentar el inicio de sesión normalmente.
+  telefónica; el profesional puede reintentar el inicio de sesión normalmente.
 headers:
   X-Request-Id:
     $ref: '../headers/XRequestId.yaml'

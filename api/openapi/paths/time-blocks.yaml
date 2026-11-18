@@ -5,15 +5,15 @@
 # jornada/festivos (schedule-exceptions, HU-041) -esas capacidades tienen su
 # propio archivo-. Crear un bloqueo o una serie NUNCA cancela, reprograma ni
 # consulta citas: la lista de citas afectadas (RN-BLQ-03) la resuelve B3/B5.
-/private/barbers/{barberId}/time-blocks:
+/private/professionals/{professionalId}/time-blocks:
   get:
     tags: [Schedule]
-    summary: Listar los bloqueos puntuales de un barbero de la barbería activa
+    summary: Listar los bloqueos puntuales de un profesional del negocio activo
     description: >
-      Lista paginada por cursor de los bloqueos puntuales del barbero de la
+      Lista paginada por cursor de los bloqueos puntuales del profesional de la
       ruta, ordenada por instante de inicio y luego por identificador.
       includeDeleted=true también trae los retirados lógicamente
-      (RN-BLQ-04, auditoría). Un barberId inexistente o de otra barbería
+      (RN-BLQ-04, auditoría). Un professionalId inexistente o de otro negocio
       responde 404 (RN-TEN-01).
     operationId: listTimeBlocks
     security:
@@ -21,12 +21,12 @@
     x-business-rules: [RN-TEN-01, RN-BLQ-01, RN-BLQ-04, RN-DIS-05, RN-DIS-07]
     x-decisions: [DEC-007, DEC-008, DEC-009, DEC-013, DEC-070]
     parameters:
-      - name: barberId
+      - name: professionalId
         in: path
         required: true
         schema: { type: string, format: uuid }
         examples:
-          barbero: { value: 8f3ac2b1-e4d5-46f6-a7c8-d9e0f1a2b3c4 }
+          profesional: { value: 8f3ac2b1-e4d5-46f6-a7c8-d9e0f1a2b3c4 }
       - name: cursor
         in: query
         required: false
@@ -55,28 +55,28 @@
         $ref: '../components/responses/InternalErrorProblem.yaml'
   post:
     tags: [Schedule]
-    summary: Crear un bloqueo puntual para un barbero de la barbería activa
+    summary: Crear un bloqueo puntual para un profesional del negocio activo
     description: >
       Alta de un bloqueo puntual, incluida la emergencia (RN-BLQ-01),
       protegida con clave de idempotencia (RN-IDE-01, DEC-043). Crear un
       bloqueo NUNCA falla por chocar con citas ya agendadas ni con otro
       bloqueo existente (RN-BLQ-03, DEC-008): la lista de citas afectadas
       la resuelve B3/B5, no esta operación. El tenant se deriva
-      exclusivamente de SessionCookie y el barbero de barberId; el cuerpo
-      nunca acepta barbershopId ni barberId. Un barberId inexistente o de
-      otra barbería responde 404.
+      exclusivamente de SessionCookie y el profesional de professionalId; el cuerpo
+      nunca acepta businessId ni professionalId. Un professionalId inexistente o de
+      otro negocio responde 404.
     operationId: createTimeBlock
     security:
       - SessionCookie: []
     x-business-rules: [RN-TEN-01, RN-BLQ-01, RN-BLQ-03, RN-DIS-05, RN-DIS-07, RN-IDE-01]
     x-decisions: [DEC-007, DEC-008, DEC-013, DEC-043, DEC-070]
     parameters:
-      - name: barberId
+      - name: professionalId
         in: path
         required: true
         schema: { type: string, format: uuid }
         examples:
-          barbero: { value: 8f3ac2b1-e4d5-46f6-a7c8-d9e0f1a2b3c4 }
+          profesional: { value: 8f3ac2b1-e4d5-46f6-a7c8-d9e0f1a2b3c4 }
       - $ref: '../components/parameters/IdempotencyKey.yaml'
     requestBody:
       required: true
@@ -139,10 +139,10 @@
         $ref: '../components/responses/ValidationProblem.yaml'
       "500":
         $ref: '../components/responses/InternalErrorProblem.yaml'
-/private/barbers/{barberId}/time-blocks/effective:
+/private/professionals/{professionalId}/time-blocks/effective:
   get:
     tags: [Schedule]
-    summary: Proyectar los bloqueos efectivos de un barbero en un rango de fechas
+    summary: Proyectar los bloqueos efectivos de un profesional en un rango de fechas
     description: >
       Operación interna de proyección/consulta (CA-042): expande las
       series activas dentro de [from, to] (fechas civiles, ambos límites
@@ -150,20 +150,20 @@
       con ese rango, SIN materializar instancias de una serie en
       time_block. No es disponibilidad pública ni reserva (esas
       capacidades viven en B4); manualBlocks y seriesOccurrences vienen
-      deliberadamente separados porque unirlos exige la zona IANA de la
-      barbería, que ningún consumidor actual necesita.
+      deliberadamente separados porque unirlos exige la zona IANA del
+      negocio, que ningún consumidor actual necesita.
     operationId: getEffectiveTimeBlocks
     security:
       - SessionCookie: []
     x-business-rules: [RN-TEN-01, RN-BLQ-01, RN-BLQ-04, RN-DIS-05, RN-DIS-07]
     x-decisions: [DEC-007, DEC-008, DEC-013, DEC-020, DEC-070]
     parameters:
-      - name: barberId
+      - name: professionalId
         in: path
         required: true
         schema: { type: string, format: uuid }
         examples:
-          barbero: { value: 8f3ac2b1-e4d5-46f6-a7c8-d9e0f1a2b3c4 }
+          profesional: { value: 8f3ac2b1-e4d5-46f6-a7c8-d9e0f1a2b3c4 }
       - name: from
         in: query
         required: true
@@ -191,14 +191,14 @@
         $ref: '../components/responses/NotFoundProblem.yaml'
       "500":
         $ref: '../components/responses/InternalErrorProblem.yaml'
-/private/barbers/{barberId}/time-blocks/{blockId}:
+/private/professionals/{professionalId}/time-blocks/{blockId}:
   get:
     tags: [Schedule]
-    summary: Consultar un bloqueo puntual de un barbero de la barbería activa
+    summary: Consultar un bloqueo puntual de un profesional del negocio activo
     description: >
       Lectura autenticada de un bloqueo por identificador, incluidos los
       retirados lógicamente (RN-BLQ-04: el registro se conserva). Un
-      barberId/blockId inexistente, de otro barbero o de otra barbería
+      professionalId/blockId inexistente, de otro profesional o de otro negocio
       responde exactamente el mismo 404 (RN-TEN-01).
     operationId: getTimeBlock
     security:
@@ -206,12 +206,12 @@
     x-business-rules: [RN-TEN-01, RN-BLQ-01, RN-BLQ-04]
     x-decisions: [DEC-007, DEC-008, DEC-009, DEC-070]
     parameters:
-      - name: barberId
+      - name: professionalId
         in: path
         required: true
         schema: { type: string, format: uuid }
         examples:
-          barbero: { value: 8f3ac2b1-e4d5-46f6-a7c8-d9e0f1a2b3c4 }
+          profesional: { value: 8f3ac2b1-e4d5-46f6-a7c8-d9e0f1a2b3c4 }
       - name: blockId
         in: path
         required: true
@@ -231,12 +231,12 @@
         $ref: '../components/responses/InternalErrorProblem.yaml'
   delete:
     tags: [Schedule]
-    summary: Retirar lógicamente un bloqueo puntual de un barbero de la barbería activa
+    summary: Retirar lógicamente un bloqueo puntual de un profesional del negocio activo
     description: >
       Retira lógicamente el bloqueo (RN-BLQ-04): fija deletedAt/deletedBy y
       deja de restar disponibilidad, pero el registro se conserva; nunca
-      hace DELETE físico. Un barberId/blockId inexistente, de otro
-      barbero, de otra barbería, o ya retirado antes, responden el mismo
+      hace DELETE físico. Un professionalId/blockId inexistente, de otro
+      profesional, de otro negocio, o ya retirado antes, responden el mismo
       404 uniforme; reintentar la misma operación tras un 404 es seguro.
     operationId: deleteTimeBlock
     security:
@@ -244,12 +244,12 @@
     x-business-rules: [RN-TEN-01, RN-BLQ-04]
     x-decisions: [DEC-007, DEC-009, DEC-070]
     parameters:
-      - name: barberId
+      - name: professionalId
         in: path
         required: true
         schema: { type: string, format: uuid }
         examples:
-          barbero: { value: 8f3ac2b1-e4d5-46f6-a7c8-d9e0f1a2b3c4 }
+          profesional: { value: 8f3ac2b1-e4d5-46f6-a7c8-d9e0f1a2b3c4 }
       - name: blockId
         in: path
         required: true
@@ -267,13 +267,13 @@
         $ref: '../components/responses/NotFoundProblem.yaml'
       "500":
         $ref: '../components/responses/InternalErrorProblem.yaml'
-/private/barbers/{barberId}/time-block-series:
+/private/professionals/{professionalId}/time-block-series:
   get:
     tags: [Schedule]
-    summary: Listar las series de bloqueo de un barbero de la barbería activa
+    summary: Listar las series de bloqueo de un profesional del negocio activo
     description: >
       Lista paginada por cursor de las definiciones recurrentes (weekly o
-      date_list) del barbero de la ruta, con sus fechas/excepciones
+      date_list) del profesional de la ruta, con sus fechas/excepciones
       embebidas, ordenada por rango efectivo y luego por identificador.
       includeDeleted=true también trae las retiradas lógicamente.
     operationId: listTimeBlockSeries
@@ -282,12 +282,12 @@
     x-business-rules: [RN-TEN-01, RN-BLQ-01, RN-BLQ-04, RN-DIS-05, RN-DIS-07]
     x-decisions: [DEC-007, DEC-008, DEC-013, DEC-019, DEC-020, DEC-024, DEC-070]
     parameters:
-      - name: barberId
+      - name: professionalId
         in: path
         required: true
         schema: { type: string, format: uuid }
         examples:
-          barbero: { value: 8f3ac2b1-e4d5-46f6-a7c8-d9e0f1a2b3c4 }
+          profesional: { value: 8f3ac2b1-e4d5-46f6-a7c8-d9e0f1a2b3c4 }
       - name: cursor
         in: query
         required: false
@@ -315,27 +315,27 @@
         $ref: '../components/responses/InternalErrorProblem.yaml'
   post:
     tags: [Schedule]
-    summary: Crear una serie de bloqueo para un barbero de la barbería activa
+    summary: Crear una serie de bloqueo para un profesional del negocio activo
     description: >
       Alta de una definición recurrente semanal o por lista de fechas
       (RN-BLQ-01, DEC-020), protegida con clave de idempotencia
       (RN-IDE-01, DEC-043). explicitDates permite crear varias fechas de
       una serie date_list en la misma operación ("bloqueo de varios días
       debe poder crearse en una sola operación"). Crear la serie no
-      materializa ninguna instancia en time_block. Un barberId inexistente
-      o de otra barbería responde 404.
+      materializa ninguna instancia en time_block. Un professionalId inexistente
+      o de otro negocio responde 404.
     operationId: createTimeBlockSeries
     security:
       - SessionCookie: []
     x-business-rules: [RN-TEN-01, RN-BLQ-01, RN-DIS-05, RN-DIS-07, RN-IDE-01]
     x-decisions: [DEC-007, DEC-008, DEC-013, DEC-019, DEC-020, DEC-024, DEC-043, DEC-070]
     parameters:
-      - name: barberId
+      - name: professionalId
         in: path
         required: true
         schema: { type: string, format: uuid }
         examples:
-          barbero: { value: 8f3ac2b1-e4d5-46f6-a7c8-d9e0f1a2b3c4 }
+          profesional: { value: 8f3ac2b1-e4d5-46f6-a7c8-d9e0f1a2b3c4 }
       - $ref: '../components/parameters/IdempotencyKey.yaml'
     requestBody:
       required: true
@@ -409,14 +409,14 @@
         $ref: '../components/responses/ValidationProblem.yaml'
       "500":
         $ref: '../components/responses/InternalErrorProblem.yaml'
-/private/barbers/{barberId}/time-block-series/{seriesId}:
+/private/professionals/{professionalId}/time-block-series/{seriesId}:
   get:
     tags: [Schedule]
-    summary: Consultar una serie de bloqueo de un barbero de la barbería activa
+    summary: Consultar una serie de bloqueo de un profesional del negocio activo
     description: >
       Lectura autenticada de una serie por identificador, con sus
       fechas/excepciones, incluidas las retiradas lógicamente. Un
-      barberId/seriesId inexistente, de otro barbero o de otra barbería
+      professionalId/seriesId inexistente, de otro profesional o de otro negocio
       responde el mismo 404.
     operationId: getTimeBlockSeries
     security:
@@ -424,12 +424,12 @@
     x-business-rules: [RN-TEN-01, RN-BLQ-01, RN-BLQ-04]
     x-decisions: [DEC-007, DEC-008, DEC-019, DEC-020, DEC-070]
     parameters:
-      - name: barberId
+      - name: professionalId
         in: path
         required: true
         schema: { type: string, format: uuid }
         examples:
-          barbero: { value: 8f3ac2b1-e4d5-46f6-a7c8-d9e0f1a2b3c4 }
+          profesional: { value: 8f3ac2b1-e4d5-46f6-a7c8-d9e0f1a2b3c4 }
       - name: seriesId
         in: path
         required: true
@@ -449,7 +449,7 @@
         $ref: '../components/responses/InternalErrorProblem.yaml'
   patch:
     tags: [Schedule]
-    summary: Editar una serie de bloqueo de un barbero de la barbería activa
+    summary: Editar una serie de bloqueo de un profesional del negocio activo
     description: >
       Edita una recurrencia distinguiendo "esta y las siguientes" o "toda
       la serie" (RN-BLQ-01; "esta instancia" se resuelve con el
@@ -458,20 +458,20 @@
       la serie original en effectiveDate-1 día y crea una serie NUEVA
       desde effectiveDate con los campos nuevos -el cuerpo de la respuesta
       es esa serie nueva, no la original truncada-; solo se admite sobre
-      una serie weekly. Un barberId/seriesId inexistente, de otro barbero,
-      de otra barbería, o ya retirada, responde 404.
+      una serie weekly. Un professionalId/seriesId inexistente, de otro profesional,
+      de otro negocio, o ya retirada, responde 404.
     operationId: updateTimeBlockSeries
     security:
       - SessionCookie: []
     x-business-rules: [RN-TEN-01, RN-BLQ-01, RN-BLQ-04, RN-DIS-05, RN-DIS-07]
     x-decisions: [DEC-007, DEC-008, DEC-019, DEC-020, DEC-024, DEC-070]
     parameters:
-      - name: barberId
+      - name: professionalId
         in: path
         required: true
         schema: { type: string, format: uuid }
         examples:
-          barbero: { value: 8f3ac2b1-e4d5-46f6-a7c8-d9e0f1a2b3c4 }
+          profesional: { value: 8f3ac2b1-e4d5-46f6-a7c8-d9e0f1a2b3c4 }
       - name: seriesId
         in: path
         required: true
@@ -519,11 +519,11 @@
         $ref: '../components/responses/InternalErrorProblem.yaml'
   delete:
     tags: [Schedule]
-    summary: Retirar lógicamente una serie de bloqueo de un barbero de la barbería activa
+    summary: Retirar lógicamente una serie de bloqueo de un profesional del negocio activo
     description: >
       Retira lógicamente la cabecera completa (RN-BLQ-04). No borra sus
       fechas/excepciones (DEC-070: RESTRICT, nunca cascada). Un
-      barberId/seriesId inexistente, de otro barbero, de otra barbería, o
+      professionalId/seriesId inexistente, de otro profesional, de otro negocio, o
       ya retirada antes, responden el mismo 404; reintentar tras un 404 es
       seguro.
     operationId: deleteTimeBlockSeries
@@ -532,12 +532,12 @@
     x-business-rules: [RN-TEN-01, RN-BLQ-04]
     x-decisions: [DEC-007, DEC-009, DEC-070]
     parameters:
-      - name: barberId
+      - name: professionalId
         in: path
         required: true
         schema: { type: string, format: uuid }
         examples:
-          barbero: { value: 8f3ac2b1-e4d5-46f6-a7c8-d9e0f1a2b3c4 }
+          profesional: { value: 8f3ac2b1-e4d5-46f6-a7c8-d9e0f1a2b3c4 }
       - name: seriesId
         in: path
         required: true
@@ -555,7 +555,7 @@
         $ref: '../components/responses/NotFoundProblem.yaml'
       "500":
         $ref: '../components/responses/InternalErrorProblem.yaml'
-/private/barbers/{barberId}/time-block-series/{seriesId}/dates:
+/private/professionals/{professionalId}/time-block-series/{seriesId}/dates:
   post:
     tags: [Schedule]
     summary: Agregar una fecha explícita a una serie date_list
@@ -571,12 +571,12 @@
     x-business-rules: [RN-TEN-01, RN-BLQ-01]
     x-decisions: [DEC-007, DEC-019, DEC-020, DEC-070]
     parameters:
-      - name: barberId
+      - name: professionalId
         in: path
         required: true
         schema: { type: string, format: uuid }
         examples:
-          barbero: { value: 8f3ac2b1-e4d5-46f6-a7c8-d9e0f1a2b3c4 }
+          profesional: { value: 8f3ac2b1-e4d5-46f6-a7c8-d9e0f1a2b3c4 }
       - name: seriesId
         in: path
         required: true
@@ -610,14 +610,14 @@
         $ref: '../components/responses/ValidationProblem.yaml'
       "500":
         $ref: '../components/responses/InternalErrorProblem.yaml'
-/private/barbers/{barberId}/time-block-series/{seriesId}/dates/{blockDate}:
+/private/professionals/{professionalId}/time-block-series/{seriesId}/dates/{blockDate}:
   delete:
     tags: [Schedule]
     summary: Retirar una fecha explícita de una serie date_list
     description: >
       Retiro físico (fila hija sin ciclo de vida propio, análoga a un
       tramo de excepción de HU-041). Una fecha inexistente, ya retirada
-      antes, o de otra serie/barbero/barbería, responde el mismo 404;
+      antes, o de otra serie/profesional/negocio, responde el mismo 404;
       reintentar tras un 404 es seguro.
     operationId: removeTimeBlockSeriesDate
     security:
@@ -625,12 +625,12 @@
     x-business-rules: [RN-TEN-01, RN-BLQ-01]
     x-decisions: [DEC-007, DEC-019, DEC-020, DEC-070]
     parameters:
-      - name: barberId
+      - name: professionalId
         in: path
         required: true
         schema: { type: string, format: uuid }
         examples:
-          barbero: { value: 8f3ac2b1-e4d5-46f6-a7c8-d9e0f1a2b3c4 }
+          profesional: { value: 8f3ac2b1-e4d5-46f6-a7c8-d9e0f1a2b3c4 }
       - name: seriesId
         in: path
         required: true
@@ -654,7 +654,7 @@
         $ref: '../components/responses/NotFoundProblem.yaml'
       "500":
         $ref: '../components/responses/InternalErrorProblem.yaml'
-/private/barbers/{barberId}/time-block-series/{seriesId}/exceptions:
+/private/professionals/{professionalId}/time-block-series/{seriesId}/exceptions:
   post:
     tags: [Schedule]
     summary: Suprimir una instancia puntual de una serie ("esta instancia no")
@@ -670,12 +670,12 @@
     x-business-rules: [RN-TEN-01, RN-BLQ-01]
     x-decisions: [DEC-007, DEC-019, DEC-020, DEC-070]
     parameters:
-      - name: barberId
+      - name: professionalId
         in: path
         required: true
         schema: { type: string, format: uuid }
         examples:
-          barbero: { value: 8f3ac2b1-e4d5-46f6-a7c8-d9e0f1a2b3c4 }
+          profesional: { value: 8f3ac2b1-e4d5-46f6-a7c8-d9e0f1a2b3c4 }
       - name: seriesId
         in: path
         required: true
@@ -692,7 +692,7 @@
             excepcion:
               value:
                 excludedDate: "2027-01-08"
-                reason: "El barbero libró ese día"
+                reason: "El profesional libró ese día"
     responses:
       "204":
         $ref: '../components/responses/SeriesExceptionAdded.yaml'
@@ -710,26 +710,26 @@
         $ref: '../components/responses/ValidationProblem.yaml'
       "500":
         $ref: '../components/responses/InternalErrorProblem.yaml'
-/private/barbers/{barberId}/time-block-series/{seriesId}/exceptions/{excludedDate}:
+/private/professionals/{professionalId}/time-block-series/{seriesId}/exceptions/{excludedDate}:
   delete:
     tags: [Schedule]
     summary: Retirar una excepción de una serie ("restaura" la instancia)
     description: >
       Retiro físico de la excepción: la instancia vuelve a proyectarse. Una
-      excepción inexistente, ya retirada antes, o de otra serie/barbero/
-      barbería, responde el mismo 404; reintentar tras un 404 es seguro.
+      excepción inexistente, ya retirada antes, o de otra serie/profesional/
+      negocio, responde el mismo 404; reintentar tras un 404 es seguro.
     operationId: removeTimeBlockSeriesException
     security:
       - SessionCookie: []
     x-business-rules: [RN-TEN-01, RN-BLQ-01]
     x-decisions: [DEC-007, DEC-019, DEC-020, DEC-070]
     parameters:
-      - name: barberId
+      - name: professionalId
         in: path
         required: true
         schema: { type: string, format: uuid }
         examples:
-          barbero: { value: 8f3ac2b1-e4d5-46f6-a7c8-d9e0f1a2b3c4 }
+          profesional: { value: 8f3ac2b1-e4d5-46f6-a7c8-d9e0f1a2b3c4 }
       - name: seriesId
         in: path
         required: true

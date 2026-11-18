@@ -1,5 +1,5 @@
 # Respuesta 200 de GET y PATCH /private/settings/login-otp (DEC-139).
-description: Canal vigente del código del reto de acceso de la barbería activa.
+description: Canal vigente del código del reto de acceso del negocio activo.
 headers:
   X-Request-Id:
     $ref: '../headers/XRequestId.yaml'
@@ -14,7 +14,7 @@ content:
       $ref: '../schemas/LoginOtpSettings.yaml'
     examples:
       correo:
-        summary: Correo (valor de las barberías nuevas)
+        summary: Correo (valor de los negocios nuevos)
         value:
           channel: email
       ambos:

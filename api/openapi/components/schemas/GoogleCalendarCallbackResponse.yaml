@@ -7,7 +7,7 @@ properties:
     type: string
     enum: [connected, denied, failed]
     description: >
-      `connected`: quedó conectado. `denied`: el barbero rechazó el permiso o no
+      `connected`: quedó conectado. `denied`: el profesional rechazó el permiso o no
       concedió el de calendario. `failed`: Google no completó el intercambio;
       se puede volver a intentar.
 required:

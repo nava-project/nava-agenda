@@ -5,7 +5,7 @@ description: Los turnos futuros confirmados del cliente, del más próximo al m�
 properties:
   timezone:
     type: string
-    description: Zona IANA de la barbería; las horas se muestran en ella (RN-DIS-07).
+    description: Zona IANA del negocio; las horas se muestran en ella (RN-DIS-07).
     examples: [America/Bogota]
   appointments:
     type: array

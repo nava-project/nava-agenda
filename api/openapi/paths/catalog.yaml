@@ -1,15 +1,15 @@
 # Operaciones privadas del catálogo básico de servicios (HU-022): listar,
-# consultar, crear y editar. No mezcla con asignaciones a barberos
-# (barber_service, HU-023, staff.yaml se mantiene aparte), ciclo de
+# consultar, crear y editar. No mezcla con asignaciones a profesionales
+# (professional_service, HU-023, staff.yaml se mantiene aparte), ciclo de
 # activación (HU-024) ni horario/agenda -esas capacidades tienen su propio
 # archivo cuando existan-.
 /private/services:
   get:
     tags: [Catalog]
-    summary: Listar los servicios del catálogo de la barbería activa
+    summary: Listar los servicios del catálogo del negocio activo
     description: >
       Lista paginada por número de página (HU-022, CA-022-01, DEC-103) de
-      los servicios de la barbería derivada de la sesión vigente. Orden
+      los servicios del negocio derivado de la sesión vigente. Orden
       estable por fecha de alta y luego por identificador. Excepción
       explícita del propietario a la regla general de paginación por cursor
       (docs/06-api/estandar-openapi.md §6.10): solo este endpoint pagina por
@@ -73,17 +73,17 @@
         $ref: '../components/responses/InternalErrorProblem.yaml'
   post:
     tags: [Catalog]
-    summary: Crear un servicio en el catálogo de la barbería activa
+    summary: Crear un servicio en el catálogo del negocio activo
     description: >
       Alta de un servicio (HU-022, CA-022-02) protegida con clave de
       idempotencia (RN-IDE-01, DEC-043): repetir el mismo `POST` con la
       misma `Idempotency-Key` y el mismo cuerpo devuelve la misma
       representación creada sin crear una segunda fila. El nombre debe ser
-      único entre los servicios ACTIVOS de la misma barbería (DEC-067): una
+      único entre los servicios ACTIVOS del mismo negocio (DEC-067): una
       clave nueva con un nombre que ya usa otro servicio activo responde
       `409` sin crear nada; el mismo nombre que un servicio ya DESACTIVADO
       sí se acepta. El tenant se deriva exclusivamente de `SessionCookie`;
-      el cuerpo nunca acepta `barbershopId`, `currency` ni `isActive`.
+      el cuerpo nunca acepta `businessId`, `currency` ni `isActive`.
     operationId: createService
     security:
       - SessionCookie: []
@@ -119,7 +119,7 @@
           Conflicto de idempotencia (misma clave con otro contenido u otra
           operación, `IdempotencyConflictProblem`), operación en curso con
           la misma clave (`IdempotencyLockedProblem`, DEC-043), o nombre ya
-          usado por otro servicio activo de la misma barbería
+          usado por otro servicio activo del mismo negocio
           (`ServiceConflictProblem`, DEC-067). Los tres problem types
           comparten status pero tienen `code` distinto: el cliente decide
           por `code`, nunca por `detail`.
@@ -152,12 +152,12 @@
                   code: idempotency-locked
                   requestId: 8f3ac2b1e4d5f6a7c8d9e0f1a2b3c4d5
               nombreDuplicado:
-                summary: Nombre ya usado por otro servicio activo de la misma barbería
+                summary: Nombre ya usado por otro servicio activo del mismo negocio
                 value:
                   type: /api/v1/problems/conflict
                   title: Conflicto
                   status: 409
-                  detail: ya existe un servicio activo con ese nombre en esta barbería
+                  detail: ya existe un servicio activo con ese nombre en este negocio
                   instance: 8f3ac2b1e4d5f6a7c8d9e0f1a2b3c4d5
                   code: conflict
                   requestId: 8f3ac2b1e4d5f6a7c8d9e0f1a2b3c4d5
@@ -168,10 +168,10 @@
 /private/services/{serviceId}:
   get:
     tags: [Catalog]
-    summary: Consultar un servicio del catálogo de la barbería activa
+    summary: Consultar un servicio del catálogo del negocio activo
     description: >
       Lectura autenticada de un servicio por identificador (HU-022). Un
-      identificador inexistente o perteneciente a otra barbería responde
+      identificador inexistente o perteneciente a otro negocio responde
       exactamente el mismo `404` (`CA-022-06`, `RN-TEN-01`).
     operationId: getService
     security:
@@ -200,15 +200,15 @@
         $ref: '../components/responses/InternalErrorProblem.yaml'
   patch:
     tags: [Catalog]
-    summary: Editar un servicio del catálogo de la barbería activa
+    summary: Editar un servicio del catálogo del negocio activo
     description: >
       Edición parcial limitada a los campos de catálogo (HU-022, CA-022-04,
       CA-022-05): `name`, `description`, `durationMinutes`, `price`. Rechaza
       un objeto vacío y cualquier campo fuera de esos cuatro -en particular
-      `isActive`, `currency` o asignaciones a barberos (RN-SER-04, DEC-067)-.
-      Un identificador inexistente o de otra barbería responde el mismo
+      `isActive`, `currency` o asignaciones a profesionales (RN-SER-04, DEC-067)-.
+      Un identificador inexistente o de otro negocio responde el mismo
       `404` que `GET` (`CA-022-06`). Un nombre editado que choque con otro
-      servicio activo de la misma barbería responde `409` (DEC-067). Por
+      servicio activo del mismo negocio responde `409` (DEC-067). Por
       defecto ningún cambio de esta operación afecta una cita existente
       (RN-SER-04); con `applyPriceToUpcoming: true` y `price`, el precio nuevo
       se copia además a los turnos `confirmed` futuros del servicio en la misma

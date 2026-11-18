@@ -19,7 +19,7 @@ properties:
       lleva datos personales. Solo aparece si el despliegue conoce su web pública
       (`APP_PUBLIC_WEB_BASE_URL`); si falta, Odin arma el enlace con `accessRef`.
     examples:
-      - https://nava.wtf/reservar/barberia-ejemplo/mi-turno/Xr4tN8bQ2vLm7KpZ9wYc3HdF6sJ1aGeU0iO5nTqRhBk
+      - https://nava.wtf/reservar/negocio-ejemplo/mi-turno/Xr4tN8bQ2vLm7KpZ9wYc3HdF6sJ1aGeU0iO5nTqRhBk
   purpose:
     $ref: './CustomerAccessPurpose.yaml'
   expiresAt:

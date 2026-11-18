@@ -1,0 +1,72 @@
+# Proyección pública de un profesional (HU-092, CA-092-02; DEC-127): id, fullName,
+# description y photoUpdatedAt. Nunca preferencia, businessId ni ningún otro
+# identificador de tenant.
+type: object
+description: >
+  Profesional del negocio resuelto con asignación vigente al servicio activo
+  elegido (HU-092, CA-092-02).
+properties:
+  id:
+    type: string
+    format: uuid
+    description: Identificador del profesional, necesario para seleccionarlo al reservar.
+    examples:
+      - 8f3ac2b1-e4d5-46f6-a7c8-d9e0f1a2b3c4
+  fullName:
+    type: string
+    minLength: 1
+    maxLength: 120
+    description: Nombre completo visible del profesional.
+    examples:
+      - Juan Pérez
+  description:
+    type:
+      - string
+      - "null"
+    minLength: 1
+    maxLength: 280
+    description: >
+      Descripción corta del profesional (DEC-127), o `null` si el negocio no
+      escribió ninguna.
+    examples:
+      - Fade, barba y navaja con más de diez años en el oficio.
+      - null
+  photoUpdatedAt:
+    type:
+      - string
+      - "null"
+    format: date-time
+    description: >
+      Versión de la fotografía del profesional (DEC-127), o `null` si no tiene
+      (el cliente muestra su monograma). Se añade como parámetro de consulta a
+      la URL de `GET /public/businesses/{slug}/professionals/{professionalId}/photo` para
+      no reutilizar una copia vieja al cambiarla.
+    examples:
+      - "2026-09-30T12:00:00Z"
+      - null
+  rating:
+    type:
+      - number
+      - "null"
+    minimum: 1
+    maximum: 5
+    description: >
+      Promedio de 1 decimal de las reseñas no ocultas del profesional (`DEC-128`),
+      o `null` mientras no tenga ninguna visible. Se calcula en cada consulta.
+    examples:
+      - 4.8
+      - null
+  ratingCount:
+    type: integer
+    minimum: 0
+    description: Total de reseñas no ocultas del profesional (`DEC-128`); `0` sin ninguna.
+    examples:
+      - 12
+
+required:
+  - id
+  - fullName
+  - description
+  - photoUpdatedAt
+  - rating
+  - ratingCount

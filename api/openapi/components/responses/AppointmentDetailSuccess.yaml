@@ -12,8 +12,8 @@ content:
         summary: Turno manual con teléfono y nota
         value:
           id: 3f4a5b6c-7d8e-49f0-a1b2-c3d4e5f60718
-          barberId: 8f3ac2b1-e4d5-46f6-a7c8-d9e0f1a2b3c4
-          barberFullName: Ana Gómez
+          professionalId: 8f3ac2b1-e4d5-46f6-a7c8-d9e0f1a2b3c4
+          professionalFullName: Ana Gómez
           attendeeName: Carlos Restrepo
           customerFullName: Carlos Restrepo
           customerPhone: "+573001234567"
@@ -34,8 +34,8 @@ content:
         summary: Turno público a domicilio, con la dirección del cliente
         value:
           id: 4a5b6c7d-8e9f-40a1-b2c3-d4e5f6071829
-          barberId: 8f3ac2b1-e4d5-46f6-a7c8-d9e0f1a2b3c4
-          barberFullName: Ana Gómez
+          professionalId: 8f3ac2b1-e4d5-46f6-a7c8-d9e0f1a2b3c4
+          professionalFullName: Ana Gómez
           attendeeName: Carlos Restrepo
           customerFullName: Carlos Restrepo
           customerPhone: "+573001234567"

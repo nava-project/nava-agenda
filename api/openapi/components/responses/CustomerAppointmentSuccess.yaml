@@ -18,12 +18,12 @@ content:
       turnoConfirmado:
         summary: Turno confirmado, cancelación tardía permitida con motivo
         value:
-          barbershopName: Barbería Ejemplo
+          businessName: Negocio Ejemplo
           timezone: America/Bogota
           attendeeName: Cliente Ejemplo
           serviceName: Corte clásico
           durationMinutes: 30
-          barberName: Barbero Ejemplo
+          professionalName: Profesional Ejemplo
           startsAt: "2027-03-15T15:00:00Z"
           endsAt: "2027-03-15T15:30:00Z"
           status: confirmed
@@ -31,13 +31,13 @@ content:
           lateCancellationClientAllowed: true
           lateCancellationReasonRequired: true
           versionToken: 3n9Kq1x2v8pQwZbJt5Yc0Rr6Hh4Ss7Ff1Gg3Dd8Ee2Aa
-          barbershopContactEmail: contacto@barberia-ejemplo.test
-          barbershopContactPhone: "+573001234567"
+          businessContactEmail: contacto@negocio-ejemplo.test
+          businessContactPhone: "+573001234567"
           vocabulary:
-            businessTerm: barbería
+            businessTerm: negocio
             businessTermGender: feminine
-            professionalTerm: barbero
-            professionalTermPlural: barberos
+            professionalTerm: profesional
+            professionalTermPlural: profesionales
             professionalTermGender: masculine
           canReview: false
           review: null
@@ -45,12 +45,12 @@ content:
       turnoCompletadoSinReseña:
         summary: Turno completado; el cliente aún puede calificar (HU-100)
         value:
-          barbershopName: Barbería Ejemplo
+          businessName: Negocio Ejemplo
           timezone: America/Bogota
           attendeeName: Cliente Ejemplo
           serviceName: Corte clásico
           durationMinutes: 30
-          barberName: Barbero Ejemplo
+          professionalName: Profesional Ejemplo
           startsAt: "2027-03-15T15:00:00Z"
           endsAt: "2027-03-15T15:30:00Z"
           status: completed
@@ -58,13 +58,13 @@ content:
           lateCancellationClientAllowed: true
           lateCancellationReasonRequired: true
           versionToken: 3n9Kq1x2v8pQwZbJt5Yc0Rr6Hh4Ss7Ff1Gg3Dd8Ee2Aa
-          barbershopContactEmail: null
-          barbershopContactPhone: null
+          businessContactEmail: null
+          businessContactPhone: null
           vocabulary:
-            businessTerm: barbería
+            businessTerm: negocio
             businessTermGender: feminine
-            professionalTerm: barbero
-            professionalTermPlural: barberos
+            professionalTerm: profesional
+            professionalTermPlural: profesionales
             professionalTermGender: masculine
           canReview: true
           review: null

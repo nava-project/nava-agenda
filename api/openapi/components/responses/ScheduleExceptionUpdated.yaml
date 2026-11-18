@@ -1,5 +1,5 @@
 # Respuesta 200 de PATCH
-# /private/barbers/{barberId}/schedule-exceptions/{exceptionId} (HU-041,
+# /private/professionals/{professionalId}/schedule-exceptions/{exceptionId} (HU-041,
 # CA-041-04/05): excepción completa ya guardada, mismo `id`.
 description: Excepción con la fecha/forma/tramos ya actualizados.
 headers:

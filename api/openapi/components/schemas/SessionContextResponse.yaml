@@ -1,28 +1,28 @@
 # Cuerpo de una respuesta 200 exitosa de GET /private/auth/session
 # (HU-012, DEC-060). Payload mínimo: ni staffUserID, ni correo, ni nombre
-# del barbero (RN-DAT-02, mismo patrón que auth.Principal). barbershop.name
-# es la columna real barbershop.name (existente desde
+# del profesional (RN-DAT-02, mismo patrón que auth.Principal). business.name
+# es la columna real business.name (existente desde
 # 20260807170000_create_tenant_foundation.sql), aislada por tenant vía RLS
-# (barbershop_select_tenant_policy).
+# (business_select_tenant_policy).
 type: object
 additionalProperties: false
 description: >
-  Contexto mínimo de sesión ya autoritativo: barbería activa y expiración de
+  Contexto mínimo de sesión ya autoritativo: negocio activo y expiración de
   la sesión que SessionMiddleware ya validó y renovó para esta misma
   solicitud, igual que cualquier otra ruta bajo /api/v1/private.
 properties:
-  barbershop:
+  business:
     type: object
     additionalProperties: false
-    description: Barbería activa del barbero autenticado.
+    description: Negocio activo del profesional autenticado.
     properties:
       id:
         type: string
         format: uuid
-        description: Identificador de la barbería activa.
+        description: Identificador del negocio activo.
       name:
         type: string
-        description: Nombre de la barbería activa.
+        description: Nombre del negocio activo.
     required:
       - id
       - name
@@ -35,5 +35,5 @@ properties:
     examples:
       - "2026-09-12T12:00:00Z"
 required:
-  - barbershop
+  - business
   - expiresAt

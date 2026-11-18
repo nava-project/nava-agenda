@@ -1,21 +1,21 @@
-# Estado de la integración del barbero con su Google Calendar (issue #323,
+# Estado de la integración del profesional con su Google Calendar (issue #323,
 # DEC-099, DEC-102). Nunca contiene tokens, secretos, el código OAuth ni el
-# `state`: solo lo que el barbero necesita ver.
+# `state`: solo lo que el profesional necesita ver.
 type: object
 additionalProperties: false
 description: >
   Estado de la integración del usuario autenticado. `enabled` es falso cuando
   el servidor no tiene credenciales de Google configuradas (la integración
-  queda desactivada y el resto del producto funciona). `barberLinked` es falso
-  mientras el usuario no haya declarado cuál barbero es (`DEC-100`): sin
-  barbero no se puede conectar.
+  queda desactivada y el resto del producto funciona). `professionalLinked` es falso
+  mientras el usuario no haya declarado cuál profesional es (`DEC-100`): sin
+  profesional no se puede conectar.
 properties:
   enabled:
     type: boolean
     description: El servidor tiene la integración con Google Calendar configurada.
-  barberLinked:
+  professionalLinked:
     type: boolean
-    description: El usuario autenticado está vinculado a un barbero.
+    description: El usuario autenticado está vinculado a un profesional.
   status:
     type: string
     enum: [not_connected, connected, reauth_required, error, disconnected]
@@ -23,7 +23,7 @@ properties:
       `not_connected`: nunca conectó. `connected`: publica con normalidad.
       `reauth_required`: Google revocó o caducó el permiso; hay que reconectar.
       `error`: fallo transitorio, el permiso sigue siendo válido.
-      `disconnected`: el barbero desconectó.
+      `disconnected`: el profesional desconectó.
   accountEmail:
     type:
       - string
@@ -31,7 +31,7 @@ properties:
     maxLength: 254
     description: Cuenta de Google conectada, o `null` sin conexión.
     examples:
-      - barbero@ejemplo.test
+      - profesional@ejemplo.test
   reminderMinutes:
     type:
       - integer
@@ -40,7 +40,7 @@ properties:
     maximum: 40320
     description: >
       Anticipación, en minutos, del recordatorio de cada evento (0 a 40320).
-      `null` usa los recordatorios predeterminados del calendario del barbero.
+      `null` usa los recordatorios predeterminados del calendario del profesional.
     examples:
       - 30
   connectedAt:
@@ -65,11 +65,11 @@ properties:
     type: integer
     minimum: 0
     description: >
-      Cambios que agotaron sus intentos de publicación. El barbero los reintenta
+      Cambios que agotaron sus intentos de publicación. El profesional los reintenta
       con «Sincronizar ahora».
 required:
   - enabled
-  - barberLinked
+  - professionalLinked
   - status
   - accountEmail
   - reminderMinutes

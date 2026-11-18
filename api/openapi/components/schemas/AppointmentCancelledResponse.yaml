@@ -1,4 +1,4 @@
-# Representación de una cita ya cancelada por el barbero mediante POST
+# Representación de una cita ya cancelada por el profesional mediante POST
 # /private/appointments/{appointmentId}/cancel (HU-066, T6). Deliberadamente
 # SIN updatedAt crudo (HU-064): versionToken es el único dato de
 # concurrencia expuesto, ya actualizado tras la cancelación (o, en una
@@ -8,7 +8,7 @@ properties:
   id:
     type: string
     format: uuid
-  barberId:
+  professionalId:
     type: string
     format: uuid
   serviceId:
@@ -27,7 +27,7 @@ properties:
     format: date-time
   status:
     type: string
-    enum: [confirmed, completed, cancelled_by_customer, cancelled_by_barber, no_show]
+    enum: [confirmed, completed, cancelled_by_customer, cancelled_by_professional, no_show]
   origin:
     type: string
     enum: [public, manual]
@@ -55,7 +55,7 @@ properties:
     format: date-time
 required:
   - id
-  - barberId
+  - professionalId
   - serviceId
   - customerId
   - attendeeName

@@ -1,12 +1,12 @@
 # Sesión válida sin permiso para la operación (DEC-173). Hoy lo recibe el
 # empleado restringido —rol `empleado` sin `empresa` ni `independiente`— cuando
-# intenta cambiar la configuración de la barbería o tocar lo de un barbero que
-# no es el suyo. Un recurso de otra barbería, o un turno de otro barbero, sigue
+# intenta cambiar la configuración del negocio o tocar lo de un profesional que
+# no es el suyo. Un recurso de otro negocio, o un turno de otro profesional, sigue
 # respondiendo 404 para no revelar que existe.
 description: >
   Tu cuenta no tiene permiso para esta operación. Una cuenta de empleado solo
-  puede cambiar lo de su propio barbero (horarios, servicios que ofrece,
-  ventana propia, perfil, agenda y turnos), no la configuración de la barbería.
+  puede cambiar lo de su propio profesional (horarios, servicios que ofrece,
+  ventana propia, perfil, agenda y turnos), no la configuración del negocio.
 headers:
   X-Request-Id:
     $ref: '../headers/XRequestId.yaml'
@@ -16,12 +16,12 @@ content:
       $ref: '../schemas/Problem.yaml'
     examples:
       empleadoSinPermiso:
-        summary: Un empleado intenta cambiar algo fuera de su barbero
+        summary: Un empleado intenta cambiar algo fuera de su profesional
         value:
           type: /api/v1/problems/forbidden
           title: Sin permiso
           status: 403
-          detail: Tu cuenta de empleado solo puede cambiar lo de tu propio perfil de barbero.
+          detail: Tu cuenta de empleado solo puede cambiar lo de tu propio perfil de profesional.
           instance: 8f3ac2b1e4d5f6a7c8d9e0f1a2b3c4d5
           code: forbidden
           requestId: 8f3ac2b1e4d5f6a7c8d9e0f1a2b3c4d5

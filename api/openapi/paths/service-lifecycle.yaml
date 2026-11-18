@@ -1,7 +1,7 @@
 # Ciclo de vida del catálogo básico de servicios (HU-024): previsualizar el
 # impacto de una desactivación, desactivar y reactivar. No mezcla con alta,
-# edición ni lectura (catalog.yaml, HU-022) ni con asignaciones a barberos
-# (barber-services.yaml, HU-023). Nunca expone DELETE físico: RN-SER-03
+# edición ni lectura (catalog.yaml, HU-022) ni con asignaciones a profesionales
+# (professional-services.yaml, HU-023). Nunca expone DELETE físico: RN-SER-03
 # prohíbe borrar un servicio; estas tres operaciones son las únicas
 # transiciones de `is_active`. Ninguna de las tres acepta name, description,
 # durationMinutes, price ni asignaciones (RN-SER-04): esos campos solo
@@ -16,7 +16,7 @@
       servicio se desactivara ahora mismo. Siempre `0` en B1 (DEC-069):
       `appointment` no existe todavía en la cadena migrada, así que cero es
       el conteo real del sistema actual, no un valor por defecto. Un
-      identificador inexistente o de otra barbería responde `404` uniforme
+      identificador inexistente o de otro negocio responde `404` uniforme
       (RN-TEN-01), igual que `GET /private/services/{serviceId}`.
     operationId: getServiceDeactivationImpact
     security:
@@ -48,7 +48,7 @@
 /private/services/{serviceId}/deactivate:
   post:
     tags: [Catalog]
-    summary: Desactivar un servicio del catálogo de la barbería activa
+    summary: Desactivar un servicio del catálogo del negocio activo
     description: >
       Transición explícita activo → inactivo sobre el mismo `service`
       (HU-024, CA-024-02, CA-024-03), protegida con clave de idempotencia
@@ -60,7 +60,7 @@
       porque en B1 ese conteo no puede cambiar entre ambas llamadas
       (DEC-069). Nunca borra la fila, sus asignaciones ni ninguna cita
       (RN-SER-03, RN-SER-04): solo cambia `isActive`/`deactivatedAt`. Un
-      identificador inexistente o de otra barbería responde `404` uniforme.
+      identificador inexistente o de otro negocio responde `404` uniforme.
       Un servicio ya inactivo, con una clave de idempotencia nueva, responde
       `409` (transición inválida): la interfaz debe recargar el estado real
       en vez de asumir éxito.
@@ -143,15 +143,15 @@
 /private/services/{serviceId}/reactivate:
   post:
     tags: [Catalog]
-    summary: Reactivar un servicio del catálogo de la barbería activa
+    summary: Reactivar un servicio del catálogo del negocio activo
     description: >
       Transición explícita inactivo → activo sobre el mismo `service`
       (HU-024, CA-024-05), protegida con clave de idempotencia (RN-IDE-01,
       DEC-043): repetir el mismo `POST` con la misma `Idempotency-Key`
       reproduce la misma respuesta sin ejecutar la transición de nuevo.
       Nunca crea otra fila ni altera `name`, `durationMinutes`, `price` ni
-      asignaciones (RN-SER-04). Un identificador inexistente o de otra
-      barbería responde `404` uniforme. Un servicio ya activo, con una clave
+      asignaciones (RN-SER-04). Un identificador inexistente o de otro
+      negocio responde `404` uniforme. Un servicio ya activo, con una clave
       de idempotencia nueva, responde `409` (transición inválida); también
       `409` si otro servicio activo ya usa su nombre (`ServiceConflictProblem`,
       RN-SER-01), sin escribir y sin consumir la clave.

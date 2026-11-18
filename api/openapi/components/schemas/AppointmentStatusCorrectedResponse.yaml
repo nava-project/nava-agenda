@@ -11,7 +11,7 @@ properties:
   id:
     type: string
     format: uuid
-  barberId:
+  professionalId:
     type: string
     format: uuid
   serviceId:
@@ -30,7 +30,7 @@ properties:
     format: date-time
   status:
     type: string
-    enum: [confirmed, completed, cancelled_by_customer, cancelled_by_barber, no_show]
+    enum: [confirmed, completed, cancelled_by_customer, cancelled_by_professional, no_show]
   origin:
     type: string
     enum: [public, manual]
@@ -58,7 +58,7 @@ properties:
     format: date-time
 required:
   - id
-  - barberId
+  - professionalId
   - serviceId
   - customerId
   - attendeeName

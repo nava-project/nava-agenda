@@ -1,4 +1,4 @@
-# Cuerpo de PATCH /private/barbers/{barberId}/time-block-series/{seriesId}
+# Cuerpo de PATCH /private/professionals/{professionalId}/time-block-series/{seriesId}
 # (RN-BLQ-01: "esta y las siguientes" o "toda la serie"; "esta instancia" se
 # resuelve con el sub-recurso de excepciones). Cerrado.
 type: object

@@ -1,16 +1,16 @@
-# Representación canónica de la marca y el vocabulario de la barbería
+# Representación canónica de la marca y el vocabulario del negocio
 # (issue #292, DEC-110): la misma forma para GET y para la respuesta 200 de
 # PATCH. Recurso propio de /private/settings/brand: el contrato de
-# BarbershopSettingsResponse (HU-020, CA-020-07) conserva sus cuatro campos.
+# BusinessSettingsResponse (HU-020, CA-020-07) conserva sus cuatro campos.
 type: object
 additionalProperties: false
 description: >
-  Marca y vocabulario de la barbería activa: color de acento de una lista
+  Marca y vocabulario del negocio activo: color de acento de una lista
   cerrada, la palabra con la que llama a su negocio y a su profesional (con
   plural y género gramatical, para que la interfaz concuerde). Los términos
   viajan recortados y en minúsculas; la interfaz capitaliza donde corresponde.
   Incluye el panel del usuario que consulta (`panelProfile`), derivado de sus
-  roles en la base de datos (`DEC-134`); no es un dato de la barbería. Incluye
+  roles en la base de datos (`DEC-134`); no es un dato del negocio. Incluye
   la ubicación física opcional que la reserva pública muestra (`DEC-130`).
 properties:
   accent:
@@ -30,9 +30,9 @@ properties:
   hasPhysicalLocation:
     type: boolean
     description: >
-      Interruptor explícito de `DEC-130`: `true` = la barbería tiene un local que
+      Interruptor explícito de `DEC-130`: `true` = el negocio tiene un local que
       mostrar en la reserva pública. Apagarlo conserva `address` y las
-      coordenadas. Una barbería nueva nace con `true` y sin dirección.
+      coordenadas. Un negocio nuevo nace con `true` y sin dirección.
   address:
     type: [string, "null"]
     maxLength: 200

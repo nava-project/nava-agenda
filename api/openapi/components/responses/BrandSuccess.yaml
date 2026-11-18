@@ -1,5 +1,5 @@
 # Respuesta 200 de GET /private/settings/brand (issue #292, DEC-110).
-description: Marca y vocabulario de la barbería activa.
+description: Marca y vocabulario del negocio activo.
 headers:
   X-Request-Id:
     $ref: '../headers/XRequestId.yaml'
@@ -9,13 +9,13 @@ content:
       $ref: '../schemas/BrandResponse.yaml'
     examples:
       valoresIniciales:
-        summary: Barbería que nunca cambió su marca
+        summary: Negocio que nunca cambió su marca
         value:
           accent: brass
-          businessTerm: barbería
+          businessTerm: negocio
           businessTermGender: feminine
-          professionalTerm: barbero
-          professionalTermPlural: barberos
+          professionalTerm: profesional
+          professionalTermPlural: profesionales
           professionalTermGender: masculine
           panelProfile: shop
           hasPhysicalLocation: true
@@ -38,14 +38,14 @@ content:
           latitude: 4.598056
           longitude: -74.076111
           offersHomeService: true
-      barberoIndividual:
+      profesionalIndividual:
         summary: "Usuario con el rol independiente: panel individual completo"
         value:
           accent: brass
-          businessTerm: barbería
+          businessTerm: negocio
           businessTermGender: feminine
-          professionalTerm: barbero
-          professionalTermPlural: barberos
+          professionalTerm: profesional
+          professionalTermPlural: profesionales
           professionalTermGender: masculine
           panelProfile: solo
           hasPhysicalLocation: true
@@ -57,10 +57,10 @@ content:
         summary: "Usuario con el rol empleado: panel individual limitado"
         value:
           accent: brass
-          businessTerm: barbería
+          businessTerm: negocio
           businessTermGender: feminine
-          professionalTerm: barbero
-          professionalTermPlural: barberos
+          professionalTerm: profesional
+          professionalTermPlural: profesionales
           professionalTermGender: masculine
           panelProfile: employee
           hasPhysicalLocation: true

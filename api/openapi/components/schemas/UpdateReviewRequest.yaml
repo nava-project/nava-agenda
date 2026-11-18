@@ -1,4 +1,4 @@
-# Cuerpo de PATCH /private/barbers/{barberId}/reviews/{reviewId} (HU-100, DEC-128).
+# Cuerpo de PATCH /private/professionals/{professionalId}/reviews/{reviewId} (HU-100, DEC-128).
 type: object
 description: >
   Oculta o vuelve a mostrar una reseña. Cerrado: solo `hidden`. La calificación y

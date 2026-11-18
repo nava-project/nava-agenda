@@ -23,7 +23,7 @@ properties:
     maxLength: 254
     description: Correo de la cuenta. Obligatorio cuando channel es email; no se admite con whatsapp.
     examples:
-      - barbero.ejemplo@correo.test
+      - profesional.ejemplo@correo.test
   phone:
     type: string
     maxLength: 32

@@ -1,4 +1,4 @@
-# Respuesta 201 de POST /private/barbers/{barberId}/schedule-exceptions
+# Respuesta 201 de POST /private/professionals/{professionalId}/schedule-exceptions
 # (HU-041, CA-041-04/05, RN-IDE-01). Una repetición exacta de la misma
 # Idempotency-Key con el mismo contenido reproduce esta MISMA respuesta
 # byte a byte: no crea una segunda excepción.

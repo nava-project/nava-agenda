@@ -1,5 +1,5 @@
-# Respuesta 201 de POST /public/barbershops/{slug}/services/{serviceId}/
-# barbers/{barberId}/appointments (HU-097, RN-IDE-01). Una repetición exacta
+# Respuesta 201 de POST /public/businesses/{slug}/services/{serviceId}/
+# professionals/{professionalId}/appointments (HU-097, RN-IDE-01). Una repetición exacta
 # de la misma Idempotency-Key con el mismo contenido reproduce esta MISMA
 # respuesta byte a byte: no crea una segunda cita ni un segundo correo.
 description: >
@@ -17,7 +17,7 @@ content:
       turnoPublico:
         value:
           attendeeName: Carlos Restrepo
-          barbershopName: Barbería Ejemplo
+          businessName: Negocio Ejemplo
           serviceName: Corte clásico
           durationMinutes: 30
           priceAmount: "20000.00"

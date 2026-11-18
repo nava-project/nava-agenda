@@ -1,5 +1,5 @@
 # Respuesta 201 de POST /customer/appointments/{token}/review (HU-100).
-description: Reseña guardada; ya cuenta en el promedio público del barbero.
+description: Reseña guardada; ya cuenta en el promedio público del profesional.
 headers:
   X-Request-Id:
     $ref: '../headers/XRequestId.yaml'

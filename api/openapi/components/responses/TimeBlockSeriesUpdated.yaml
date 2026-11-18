@@ -1,5 +1,5 @@
 # Respuesta 200 de
-# PATCH /private/barbers/{barberId}/time-block-series/{seriesId}. Con
+# PATCH /private/professionals/{professionalId}/time-block-series/{seriesId}. Con
 # scope=this_and_following, el cuerpo es la serie NUEVA (la definición
 # "futura" que nace en effectiveDate), no la original truncada.
 description: Serie tras la edición.

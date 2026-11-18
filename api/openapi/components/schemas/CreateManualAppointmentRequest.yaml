@@ -1,6 +1,6 @@
 # Cuerpo de POST /private/appointments (HU-061, CA-061-01 a CA-061-08).
 # Cerrado: el handler rechaza cualquier campo desconocido. Nunca declara
-# barbershopId, customerId, status, origin, actor ni ningún dato de
+# businessId, customerId, status, origin, actor ni ningún dato de
 # servicio (nombre/duración/precio/moneda): el servidor los deriva o los
 # congela desde el catálogo autorizado (DEC-004, DEC-072). El cliente se
 # reconcilia por teléfono o correo (DEC-071); si faltan ambos, siempre se
@@ -8,24 +8,24 @@
 type: object
 description: >
   Alta de un turno manual (recibido por teléfono, WhatsApp o en persona)
-  registrado por el barbero autenticado. No está sujeto a la anticipación
+  registrado por el profesional autenticado. No está sujeto a la anticipación
   mínima ni a la ventana máxima de la reserva pública (RN-DIS-04): puede
   registrarse para dentro de pocos minutos, para un instante que ya
   empezó, o más allá de la ventana pública, siempre que respete la
   integridad de agenda (sin cruce con otra cita, RN-CON-01) y no exista un
   bloqueo vigente en ese intervalo (DEC-073).
 properties:
-  barberId:
+  professionalId:
     type: string
     format: uuid
-    description: Barbero que atiende el turno.
+    description: Profesional que atiende el turno.
     examples:
       - 8f3ac2b1-e4d5-46f6-a7c8-d9e0f1a2b3c4
   serviceId:
     type: string
     format: uuid
     description: >
-      Servicio a prestar. Debe estar activo y asignado a barberId
+      Servicio a prestar. Debe estar activo y asignado a professionalId
       (DEC-072); en caso contrario la solicitud responde 404.
     examples:
       - 6f1a2b3c-4d5e-4f60-8172-8394a5b6c7d8
@@ -48,8 +48,8 @@ properties:
     pattern: '^\+[1-9][0-9]{7,14}$'
     description: >
       Teléfono del cliente en formato E.164, opcional (RN-CIT-02). Si se
-      da, el cliente se busca/reutiliza por teléfono dentro de la
-      barbería (DEC-045).
+      da, el cliente se busca/reutiliza por teléfono dentro del
+      negocio (DEC-045).
     examples:
       - "+573001234567"
   customerEmail:
@@ -57,7 +57,7 @@ properties:
     format: email
     description: >
       Correo del cliente, opcional. Si se da y no hay teléfono, el
-      cliente se busca/reutiliza por correo dentro de la barbería
+      cliente se busca/reutiliza por correo dentro del negocio
       (DEC-046, DEC-071). Sin teléfono ni correo, siempre se crea un
       cliente nuevo.
     examples:
@@ -65,7 +65,7 @@ properties:
   customerNote:
     type: [string, "null"]
     maxLength: 500
-    description: Nota opcional visible solo para el equipo de la barbería.
+    description: Nota opcional visible solo para el equipo del negocio.
     examples:
       - Prefiere máquina 2 en los laterales.
   startsAt:
@@ -73,12 +73,12 @@ properties:
     pattern: '^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}$'
     description: >
       Fecha y hora civiles del turno ("AAAA-MM-DDTHH:MM:SS"), sin
-      desplazamiento de zona: se interpreta en la zona IANA vigente de la
-      barbería (RN-DIS-07), nunca en la del servidor o del dispositivo.
+      desplazamiento de zona: se interpreta en la zona IANA vigente del
+      negocio (RN-DIS-07), nunca en la del servidor o del dispositivo.
     examples:
       - "2026-09-03T14:30:00"
 required:
-  - barberId
+  - professionalId
   - serviceId
   - attendeeName
   - customerFullName

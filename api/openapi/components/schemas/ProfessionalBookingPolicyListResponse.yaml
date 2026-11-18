@@ -1,0 +1,12 @@
+# Respuesta de GET /private/settings/booking-policy/professionals (DEC-169): las
+# ventanas propias del negocio activo, ordenadas por professionalId. Un profesional
+# ausente hereda la ventana del negocio.
+type: object
+description: Ventanas de reserva propias de los profesionales del negocio activo.
+properties:
+  items:
+    type: array
+    items:
+      $ref: './ProfessionalBookingPolicyResponse.yaml'
+required:
+  - items

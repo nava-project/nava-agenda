@@ -11,7 +11,7 @@ properties:
     type: [string, "null"]
     maxLength: 200
     examples:
-      - "El barbero libró ese día"
+      - "El profesional libró ese día"
 required:
   - excludedDate
 additionalProperties: false

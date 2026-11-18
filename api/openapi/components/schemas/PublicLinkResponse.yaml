@@ -1,11 +1,11 @@
-# Enlace público de reservas de la barbería activa (issue #304, DEC-117).
+# Enlace público de reservas del negocio activo (issue #304, DEC-117).
 type: object
 additionalProperties: false
 description: >
-  Identificador del enlace público de reservas de la barbería de la sesión.
+  Identificador del enlace público de reservas del negocio de la sesión.
   El cliente compone la URL completa con su propio origen:
   `{origen}/reservar/{slug}`. Tiene la forma `<nombre><código aleatorio de 8>` sin guiones (`DEC-118`; los generados antes pueden llevarlos),
-  es único globalmente y no cambia al renombrar la barbería. No contiene
+  es único globalmente y no cambia al renombrar el negocio. No contiene
   ningún identificador interno.
 properties:
   slug:

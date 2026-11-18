@@ -1,6 +1,6 @@
 # Ocurrencia expandida de una serie dentro del rango consultado por
 # GET .../time-blocks/effective (civil: fecha + hora local de la
-# barbería). Deliberadamente sin instante absoluto: ver
+# negocio). Deliberadamente sin instante absoluto: ver
 # EffectiveBlocksResponse.
 type: object
 description: Instancia expandida de una definición recurrente dentro del rango solicitado.

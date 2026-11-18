@@ -1,30 +1,30 @@
-# Operaciones privadas de configuración de la barbería. HU-020 agrega la
+# Operaciones privadas de configuración del negocio. HU-020 agrega la
 # primera capacidad real: consultar y actualizar el nombre, la zona horaria
-# IANA y el contacto opcional (correo, teléfono) de la barbería activa.
+# IANA y el contacto opcional (correo, teléfono) del negocio activo.
 # HU-093 agrega la política pública de reserva y cancelación (anticipación,
 # ventana, rejilla, plazo y cancelación tardía) como una operación propia
 # bajo /private/settings/booking-policy, con su propia precondición de
 # versión (If-Match): nunca comparte el schema ni el versionado de
-# /private/settings/barbershop.
-/private/settings/barbershop:
+# /private/settings/business.
+/private/settings/business:
   get:
     tags: [Settings]
-    summary: Consultar la configuración básica de la barbería activa
+    summary: Consultar la configuración básica del negocio activo
     description: >
       Lectura autenticada (HU-020, CA-020-01) de los cuatro campos
-      autorizados de la barbería derivada de la sesión vigente: nombre,
+      autorizados del negocio derivado de la sesión vigente: nombre,
       zona horaria IANA y contacto opcional (correo, teléfono).
-      `barbershopId` nunca es un parámetro de esta operación -el tenant se
+      `businessId` nunca es un parámetro de esta operación -el tenant se
       deriva exclusivamente de `SessionCookie`- así que no existe un canal
-      para pedir la configuración de otra barbería (`CA-020-05`).
-    operationId: getBarbershopSettings
+      para pedir la configuración de otro negocio (`CA-020-05`).
+    operationId: getBusinessSettings
     security:
       - SessionCookie: []
     x-business-rules: [RN-DIS-07, RN-TEN-01, RN-DAT-02]
     x-decisions: [DEC-024]
     responses:
       "200":
-        $ref: '../components/responses/BarbershopSettingsSuccess.yaml'
+        $ref: '../components/responses/BusinessSettingsSuccess.yaml'
       "401":
         $ref: '../components/responses/UnauthorizedProblem.yaml'
       "404":
@@ -33,12 +33,12 @@
         $ref: '../components/responses/InternalErrorProblem.yaml'
   patch:
     tags: [Settings]
-    summary: Actualizar la configuración básica de la barbería activa
+    summary: Actualizar la configuración básica del negocio activo
     description: >
       Actualización autenticada (HU-020, CA-020-02) de nombre, zona horaria
       IANA y contacto opcional. El cuerpo declara únicamente `name`,
       `timezone`, `contactEmail` y `contactPhone`; cualquier otro campo -en
-      particular un identificador de barbería- se rechaza como forma
+      particular un identificador de negocio- se rechaza como forma
       inválida (`CA-020-05`). `contactEmail`/`contactPhone` vacíos
       significan "sin contacto": el servidor los normaliza a ausencia antes
       de guardar y nunca los registra en texto plano (`CA-020-06`). La zona
@@ -47,7 +47,7 @@
       responde `422` sin modificar ningún campo, ni siquiera los que sí
       eran válidos (`CA-020-03`). La respuesta exitosa devuelve la
       representación completa ya guardada, la misma forma que `GET`.
-    operationId: updateBarbershopSettings
+    operationId: updateBusinessSettings
     security:
       - SessionCookie: []
     x-business-rules: [RN-DIS-07, RN-TEN-01, RN-DAT-02]
@@ -57,25 +57,25 @@
       content:
         application/json:
           schema:
-            $ref: '../components/schemas/UpdateBarbershopSettingsRequest.yaml'
+            $ref: '../components/schemas/UpdateBusinessSettingsRequest.yaml'
           examples:
             actualizacionCompleta:
               summary: Nombre, zona y contacto completo
               value:
-                name: Barbería Ejemplo
+                name: Negocio Ejemplo
                 timezone: America/Bogota
                 contactEmail: contacto@ejemplo.test
                 contactPhone: "+573001234567"
             sinContacto:
               summary: Sin correo ni teléfono de contacto
               value:
-                name: Barbería Ejemplo
+                name: Negocio Ejemplo
                 timezone: America/Bogota
                 contactEmail: ""
                 contactPhone: ""
     responses:
       "200":
-        $ref: '../components/responses/BarbershopSettingsUpdated.yaml'
+        $ref: '../components/responses/BusinessSettingsUpdated.yaml'
       "400":
         $ref: '../components/responses/InvalidRequestProblem.yaml'
       "401":
@@ -85,7 +85,7 @@
       "404":
         $ref: '../components/responses/NotFoundProblem.yaml'
       "422":
-        $ref: '../components/responses/BarbershopSettingsValidationProblem.yaml'
+        $ref: '../components/responses/BusinessSettingsValidationProblem.yaml'
       "500":
         $ref: '../components/responses/InternalErrorProblem.yaml'
 /private/settings/booking-policy:
@@ -95,10 +95,10 @@
     description: >
       Lectura autenticada (HU-093, CA-093-01) de anticipación mínima,
       ventana máxima, rejilla, plazo de cancelación y política de
-      cancelación tardía de la barbería derivada de la sesión vigente. Una
-      barbería nueva recibe exactamente los defaults de DEC-083 (60/3/15/20
+      cancelación tardía del negocio derivado de la sesión vigente. Un
+      negocio nuevo recibe exactamente los defaults de DEC-083 (60/3/15/20
       minutos-días, `lateCancellationClientAllowed`/
-      `lateCancellationReasonRequired` en `true`). `barbershopId` nunca es
+      `lateCancellationReasonRequired` en `true`). `businessId` nunca es
       un parámetro de esta operación -el tenant se deriva exclusivamente de
       `SessionCookie`- (CA-093-03).
     operationId: getBookingPolicy
@@ -133,7 +133,7 @@
       incoherente responde `422` sin escribir nada, ni siquiera
       parcialmente (`CA-093-02`). Cambiar la política nunca reescribe citas,
       historial ni cancelaciones ya realizadas (`CA-093-04`). El cuerpo no
-      declara `barbershopId`: el tenant se deriva exclusivamente de
+      declara `businessId`: el tenant se deriva exclusivamente de
       `SessionCookie` (`CA-093-03`).
     operationId: updateBookingPolicy
     security:
@@ -172,7 +172,7 @@
       "409":
         description: >
           El `If-Match` enviado ya no coincide con la representación
-          vigente porque otra escritura tocó la barbería primero
+          vigente porque otra escritura tocó el negocio primero
           (`code: version-conflict`).
         headers:
           X-Request-Id:
@@ -195,55 +195,55 @@
         $ref: '../components/responses/BookingPolicyValidationProblem.yaml'
       "500":
         $ref: '../components/responses/InternalErrorProblem.yaml'
-/private/settings/booking-policy/barbers:
+/private/settings/booking-policy/professionals:
   get:
     tags: [Settings]
-    summary: Listar las ventanas de reserva propias de los barberos
+    summary: Listar las ventanas de reserva propias de los profesionales
     description: >
       Lectura autenticada (DEC-169) de las ventanas de reserva públicas
-      propias de los barberos de la barbería de la sesión (para una cuenta de
-      empleado, `DEC-173`, solo la de su propio barbero): anticipación
-      mínima, ventana máxima y rejilla. Un barbero que no aparece hereda la
-      política de la barbería (`getBookingPolicy`), incluidos sus cambios
-      futuros. El plazo y la política de cancelación no son por barbero.
-    operationId: listBarberBookingPolicies
+      propias de los profesionales del negocio de la sesión (para una cuenta de
+      empleado, `DEC-173`, solo la de su propio profesional): anticipación
+      mínima, ventana máxima y rejilla. Un profesional que no aparece hereda la
+      política del negocio (`getBookingPolicy`), incluidos sus cambios
+      futuros. El plazo y la política de cancelación no son por profesional.
+    operationId: listProfessionalBookingPolicies
     security:
       - SessionCookie: []
     x-business-rules: [RN-DIS-04, RN-DIS-06, RN-TEN-01]
     x-decisions: [DEC-024, DEC-083, DEC-133, DEC-169]
     responses:
       "200":
-        $ref: '../components/responses/BarberBookingPolicyListSuccess.yaml'
+        $ref: '../components/responses/ProfessionalBookingPolicyListSuccess.yaml'
       "401":
         $ref: '../components/responses/UnauthorizedProblem.yaml'
       "500":
         $ref: '../components/responses/InternalErrorProblem.yaml'
-/private/settings/booking-policy/barbers/{barberId}:
+/private/settings/booking-policy/professionals/{professionalId}:
   parameters:
-    - name: barberId
+    - name: professionalId
       in: path
       required: true
-      description: Identificador del barbero de la barbería de la sesión.
+      description: Identificador del profesional del negocio de la sesión.
       schema:
         type: string
         format: uuid
       examples:
-        barbero:
+        profesional:
           value: 3f1c9a52-7d4e-4b8a-9c21-5e6f7a8b9c0d
   put:
     tags: [Settings]
-    summary: Guardar la ventana de reserva propia de un barbero
+    summary: Guardar la ventana de reserva propia de un profesional
     description: >
       Reemplazo completo e idempotente (DEC-169) de la ventana propia del
-      barbero: mismos rangos y misma coherencia que la de la barbería
+      profesional: mismos rangos y misma coherencia que la del negocio
       (`DEC-083`; rejilla entera de 1 a 60, `DEC-133`; la anticipación no
       puede alcanzar ni superar `maxAdvanceDays * 1440`). Sin `If-Match`:
       cada escritura deja un estado completo y válido (último escritor). Un
-      barbero inexistente, de otra barbería o con identificador mal formado
+      profesional inexistente, de otro negocio o con identificador mal formado
       responde el mismo `404`, sin escribir nada. Rige desde ya la
-      disponibilidad pública y la revalidación al confirmar de ese barbero;
+      disponibilidad pública y la revalidación al confirmar de ese profesional;
       no cambia citas existentes ni la creación manual.
-    operationId: putBarberBookingPolicy
+    operationId: putProfessionalBookingPolicy
     security:
       - SessionCookie: []
     x-business-rules: [RN-DIS-04, RN-DIS-06, RN-TEN-01]
@@ -253,7 +253,7 @@
       content:
         application/json:
           schema:
-            $ref: '../components/schemas/PutBarberBookingPolicyRequest.yaml'
+            $ref: '../components/schemas/PutProfessionalBookingPolicyRequest.yaml'
           examples:
             ventanaPropia:
               summary: Corta cada 40 minutos y recibe reservas con 30 minutos de anticipación
@@ -263,7 +263,7 @@
                 slotGridMinutes: 40
     responses:
       "200":
-        $ref: '../components/responses/BarberBookingPolicySaved.yaml'
+        $ref: '../components/responses/ProfessionalBookingPolicySaved.yaml'
       "400":
         $ref: '../components/responses/InvalidRequestProblem.yaml'
       "401":
@@ -273,24 +273,24 @@
       "404":
         $ref: '../components/responses/NotFoundProblem.yaml'
       "422":
-        $ref: '../components/responses/BarberBookingPolicyValidationProblem.yaml'
+        $ref: '../components/responses/ProfessionalBookingPolicyValidationProblem.yaml'
       "500":
         $ref: '../components/responses/InternalErrorProblem.yaml'
   delete:
     tags: [Settings]
-    summary: Quitar la ventana propia de un barbero (vuelve a heredar)
+    summary: Quitar la ventana propia de un profesional (vuelve a heredar)
     description: >
-      Borra la ventana propia del barbero (DEC-169): desde ese momento hereda
-      la política de la barbería. Idempotente: responde `204` también si no
+      Borra la ventana propia del profesional (DEC-169): desde ese momento hereda
+      la política del negocio. Idempotente: responde `204` también si no
       tenía una. Un identificador mal formado responde `404`.
-    operationId: deleteBarberBookingPolicy
+    operationId: deleteProfessionalBookingPolicy
     security:
       - SessionCookie: []
     x-business-rules: [RN-DIS-04, RN-DIS-06, RN-TEN-01]
     x-decisions: [DEC-024, DEC-169]
     responses:
       "204":
-        $ref: '../components/responses/BarberBookingPolicyDeleted.yaml'
+        $ref: '../components/responses/ProfessionalBookingPolicyDeleted.yaml'
       "401":
         $ref: '../components/responses/UnauthorizedProblem.yaml'
       "403":
@@ -302,17 +302,17 @@
 /private/settings/brand:
   get:
     tags: [Settings]
-    summary: Consultar la marca y el vocabulario de la barbería activa
+    summary: Consultar la marca y el vocabulario del negocio activo
     description: >
       Lectura autenticada (issue #292, DEC-110) del color de acento y del
       vocabulario (palabra del negocio y del profesional, con plural y
-      género gramatical) de la barbería derivada de la sesión vigente. Una
-      barbería que nunca los cambió recibe los valores iniciales (`brass`,
-      `barbería`, `barbero`), exactamente la interfaz anterior. Incluye el
+      género gramatical) del negocio derivado de la sesión vigente. Un
+      negocio que nunca los cambió recibe los valores iniciales (`brass`,
+      `negocio`, `profesional`), exactamente la interfaz anterior. Incluye el
       panel del usuario que consulta (`panelProfile`), derivado de sus roles en
-      la base de datos (`DEC-134`) y no de un ajuste de la barbería. Recurso
-      propio, separado de `/private/settings/barbershop` para no ampliar el
-      contrato cerrado de `HU-020` (`CA-020-07`). `barbershopId` nunca es un
+      la base de datos (`DEC-134`) y no de un ajuste del negocio. Recurso
+      propio, separado de `/private/settings/business` para no ampliar el
+      contrato cerrado de `HU-020` (`CA-020-07`). `businessId` nunca es un
       parámetro: el tenant se deriva exclusivamente de `SessionCookie`.
     operationId: getBrand
     security:
@@ -330,11 +330,11 @@
         $ref: '../components/responses/InternalErrorProblem.yaml'
   patch:
     tags: [Settings]
-    summary: Actualizar la marca y el vocabulario de la barbería activa
+    summary: Actualizar la marca y el vocabulario del negocio activo
     description: >
       Actualización autenticada (issue #292, DEC-110) de los seis campos de
       marca y vocabulario, que viajan siempre presentes; cualquier otro
-      campo -en particular un identificador de barbería o `panelProfile`, que
+      campo -en particular un identificador de negocio o `panelProfile`, que
       desde `DEC-134` lo deciden los roles del usuario- se rechaza como
       forma inválida. `accent` pertenece a una lista cerrada (nunca un color
       libre) y cada término se recorta, se colapsa y se pasa a minúsculas
@@ -377,10 +377,10 @@
               summary: Fijar la dirección del local (se geocodifica al guardar)
               value:
                 accent: brass
-                businessTerm: barbería
+                businessTerm: negocio
                 businessTermGender: feminine
-                professionalTerm: barbero
-                professionalTermPlural: barberos
+                professionalTerm: profesional
+                professionalTermPlural: profesionales
                 professionalTermGender: masculine
                 hasPhysicalLocation: true
                 address: Calle 10 # 5-20, Bogotá
@@ -388,10 +388,10 @@
               summary: Volver a los valores iniciales
               value:
                 accent: brass
-                businessTerm: barbería
+                businessTerm: negocio
                 businessTermGender: feminine
-                professionalTerm: barbero
-                professionalTermPlural: barberos
+                professionalTerm: profesional
+                professionalTermPlural: profesionales
                 professionalTermGender: masculine
     responses:
       "200":
@@ -411,18 +411,18 @@
 /private/settings/public-link:
   get:
     tags: [Settings]
-    summary: Consultar el enlace público de reservas de la barbería activa
+    summary: Consultar el enlace público de reservas del negocio activo
     description: >
       Lectura autenticada (issue #304, DEC-117) del identificador del enlace
-      público de reservas de la barbería derivada de la sesión vigente, para
-      que su dueño pueda verlo y copiarlo cuando lo necesite. Si la barbería
+      público de reservas del negocio derivado de la sesión vigente, para
+      que su dueño pueda verlo y copiarlo cuando lo necesite. Si el negocio
       todavía no tiene enlace, esta primera lectura lo genera
       (`<nombre><código aleatorio>` sin guiones, único globalmente) y lo conserva: las
-      lecturas siguientes devuelven el mismo y renombrar la barbería no lo
-      cambia. No hay operación para editarlo ni regenerarlo. `barbershopId`
+      lecturas siguientes devuelven el mismo y renombrar el negocio no lo
+      cambia. No hay operación para editarlo ni regenerarlo. `businessId`
       nunca es un parámetro: el tenant se deriva exclusivamente de
-      `SessionCookie`, de modo que no existe forma de pedir el enlace de otra
-      barbería. La respuesta no se almacena en caché.
+      `SessionCookie`, de modo que no existe forma de pedir el enlace de otro
+      negocio. La respuesta no se almacena en caché.
     operationId: getPublicLink
     security:
       - SessionCookie: []
@@ -441,11 +441,11 @@
 /private/settings/login-otp:
   get:
     tags: [Settings]
-    summary: Consultar el canal del código de acceso de la barbería activa
+    summary: Consultar el canal del código de acceso del negocio activo
     description: >
-      Lectura autenticada (DEC-139) del canal por el que la barbería recibe el
+      Lectura autenticada (DEC-139) del canal por el que el negocio recibe el
       código del reto adicional de acceso (`HU-007`): `email`, `whatsapp` o
-      `both`. `barbershopId` nunca es un parámetro: el tenant se deriva
+      `both`. `businessId` nunca es un parámetro: el tenant se deriva
       exclusivamente de `SessionCookie`. La respuesta no se almacena en caché.
     operationId: getLoginOtpSettings
     security:
@@ -465,10 +465,10 @@
         $ref: '../components/responses/InternalErrorProblem.yaml'
   patch:
     tags: [Settings]
-    summary: Cambiar el canal del código de acceso de la barbería activa
+    summary: Cambiar el canal del código de acceso del negocio activo
     description: >
       Actualización autenticada (DEC-139) del canal del código del reto
-      adicional de acceso. Aplica a la barbería de la sesión y a todas sus
+      adicional de acceso. Aplica al negocio de la sesión y a todas sus
       cuentas; el servidor deriva los destinos (teléfono verificado y/o correo de
       cada cuenta) y nunca acepta uno del cliente (`DEC-081`): un campo
       desconocido responde `400`. Con `whatsapp`, una cuenta sin teléfono
@@ -513,11 +513,11 @@
 /private/settings/reminders:
   get:
     tags: [Settings]
-    summary: Consultar la anticipación del recordatorio de la barbería activa
+    summary: Consultar la anticipación del recordatorio del negocio activo
     description: >
       Lectura autenticada (DEC-174) de con cuántos minutos de anticipación sale
       el recordatorio al cliente (`HU-131`), junto con las opciones admitidas.
-      `barbershopId` nunca es un parámetro: el tenant se deriva exclusivamente de
+      `businessId` nunca es un parámetro: el tenant se deriva exclusivamente de
       `SessionCookie`. Una cuenta de empleado recibe `403` (`DEC-173`). La
       respuesta no se almacena en caché.
     operationId: getReminderSettings
@@ -538,7 +538,7 @@
         $ref: '../components/responses/InternalErrorProblem.yaml'
   patch:
     tags: [Settings]
-    summary: Cambiar la anticipación del recordatorio de la barbería activa
+    summary: Cambiar la anticipación del recordatorio del negocio activo
     description: >
       Actualización autenticada (DEC-174). Se usa en cada turno que se crea o
       se reprograma desde ese momento y, en la misma transacción, mueve a la
@@ -582,7 +582,7 @@
     summary: Consultar el horario de atención del local
     description: >
       Lectura autenticada (HU-107, DEC-182) del horario semanal del local y de si
-      cierra los festivos colombianos. `barbershopId` nunca es un parámetro: el
+      cierra los festivos colombianos. `businessId` nunca es un parámetro: el
       tenant se deriva exclusivamente de `SessionCookie`. Una cuenta de empleado
       recibe `403` (`DEC-173`). La respuesta no se almacena en caché.
     operationId: getOpeningHours
@@ -607,7 +607,7 @@
     description: >
       Reemplaza la semana completa en una sola transacción (HU-107, DEC-182): o
       queda el horario nuevo entero o el anterior. El horario del local es
-      informativo y no cambia la disponibilidad de los barberos. Sin
+      informativo y no cambia la disponibilidad de los profesionales. Sin
       precondición de versión: la última escritura gana. Una cuenta de empleado
       recibe `403` (`DEC-173`).
     operationId: replaceOpeningHours

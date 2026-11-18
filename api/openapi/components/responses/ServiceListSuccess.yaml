@@ -1,6 +1,6 @@
 # Respuesta 200 de GET /private/services (HU-022, CA-022-01, DEC-103).
 description: >
-  Página de servicios del catálogo de la barbería activa, paginada por
+  Página de servicios del catálogo del negocio activo, paginada por
   número de página con conteo total y búsqueda opcional por nombre.
 headers:
   X-Request-Id:
@@ -39,7 +39,7 @@ content:
           total: 2
           totalPages: 1
       catalogoVacio:
-        summary: Barbería sin servicios todavía, o búsqueda sin coincidencias
+        summary: Negocio sin servicios todavía, o búsqueda sin coincidencias
         value:
           items: []
           page: 1

@@ -1,10 +1,10 @@
 # Respuesta 409 de .../customer-access/challenge de Odin (HU-106, CA-106-03): una sola
-# respuesta para una referencia ajena, vencida o de otra barbería, un teléfono que no es
+# respuesta para una referencia ajena, vencida o de otro negocio, un teléfono que no es
 # el del turno y un turno que ya no es elegible para el propósito. No se puede saber
 # cuál ocurrió.
 description: >
   El turno no está disponible para este cambio. Cubre una referencia ajena, vencida
-  o de otra barbería, un teléfono que no es el del turno y un turno que ya no
+  o de otro negocio, un teléfono que no es el del turno y un turno que ya no
   admite ese propósito, sin distinguir la causa.
 headers:
   X-Request-Id:

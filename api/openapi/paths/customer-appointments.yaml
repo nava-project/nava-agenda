@@ -4,7 +4,7 @@
 # únicamente por la credencial del enlace, sin sesión. La cancelación
 # (HU-099, T5) vive en este mismo archivo: POST .../cancel.
 # security: [] en cada operación, según docs/06-api/estandar-openapi.md: la
-# audiencia customer no usa el esquema de sesión del barbero, la credencial
+# audiencia customer no usa el esquema de sesión del profesional, la credencial
 # viaja en la ruta, no en una cabecera de autorización.
 /customer/appointments/{token}:
   get:
@@ -19,15 +19,15 @@
       tenant mediante `public_resolve_appointment_token_tenant`, la función
       `SECURITY DEFINER` estrecha que agrega la migración
       `20260916120000_add_public_resolve_appointment_token_tenant.sql`
-      (mismo patrón exacto que `public_resolve_barbershop_by_slug`, HU-090).
+      (mismo patrón exacto que `public_resolve_business_by_slug`, HU-090).
       Un `token` con forma inválida, inexistente, vencido o ya revocado
       (al anonimizarse la cita, RN-DAT-03) produce
       EXACTAMENTE la misma respuesta `404` uniforme (CA-098-02, RN-TEN-01):
       esta operación nunca distingue la causa. Cancelar NO revoca el enlace
       (`DEC-136`): un turno cancelado responde `200` con su `status`
       cancelado, sin acciones disponibles. La respuesta trae solo los
-      datos mínimos ya autorizados por HU-098 (barbería, persona atendida,
-      servicio, barbero, intervalo/zona, estado y política vigente de
+      datos mínimos ya autorizados por HU-098 (negocio, persona atendida,
+      servicio, profesional, intervalo/zona, estado y política vigente de
       cancelación); nunca un identificador interno, contacto del cliente,
       nota, historial ni ningún otro turno (CA-098-03). `status` nunca
       implica que la falta de respuesta del cliente vaya a cancelar el
@@ -81,10 +81,10 @@
 /customer/appointments/{token}/review:
   post:
     tags: [CustomerAccess]
-    summary: Calificar al barbero de un turno completado
+    summary: Calificar al profesional de un turno completado
     description: >
       El cliente deja una calificación de 1 a 5 y un comentario opcional sobre
-      el barbero que lo atendió (HU-100, `DEC-128`), con la misma credencial del
+      el profesional que lo atendió (HU-100, `DEC-128`), con la misma credencial del
       enlace de su turno y sin sesión. Solo un turno `completed` sin reseña
       admite una: un turno no completado, cancelado o ya calificado responde
       siempre el mismo `409`, sin distinguir la causa (`CA-100-01`); un `token`
@@ -92,7 +92,7 @@
       `GET`. Como máximo una reseña por turno (`CA-100-03`): repetir la llamada
       no crea otra fila ni modifica la existente, así que no necesita
       `Idempotency-Key`. La reseña queda visible de inmediato en la selección
-      pública del barbero y cuenta en su promedio.
+      pública del profesional y cuenta en su promedio.
     operationId: createCustomerAppointmentReview
     security: []
     x-business-rules: [RN-TEN-01, RN-DAT-02]
@@ -143,7 +143,7 @@
     description: >
       El cliente cancela su turno `confirmed` con la credencial del enlace y
       sin sesión (`HU-099`, `T5` de `estados-citas.md`). Solo procede si la
-      política VIGENTE de la barbería lo autoriza, evaluada con el reloj del
+      política VIGENTE del negocio lo autoriza, evaluada con el reloj del
       servidor y nunca con uno enviado por el cliente (`RN-CAN-01`,
       `RN-CAN-02`): hasta `startsAt - cancellationDeadlineMinutes` inclusive es
       dentro de plazo; después y antes de `startsAt` solo procede con
@@ -159,7 +159,7 @@
       reproduce la respuesta original. La franja vuelve de inmediato a la
       disponibilidad pública (`HU-094`). Un `token` inexistente, vencido o
       revocado responde el mismo `404` uniforme que `GET`, sin revelar la
-      causa. Notificar al barbero queda para B5.
+      causa. Notificar al profesional queda para B5.
     operationId: cancelCustomerAppointment
     security: []
     x-business-rules: [RN-CAN-01, RN-CAN-02, RN-CIT-03, RN-HIS-01, RN-HIS-02, RN-IDE-01, RN-TEN-01]
@@ -205,7 +205,7 @@
           versión (`code: version-conflict`, el `If-Match` ya no coincide: el
           turno cambió desde que se leyó); o estado inválido
           (`code: invalid-state`, el turno ya no está `confirmed`, p. ej. ya lo
-          resolvió el barbero).
+          resolvió el profesional).
         headers:
           X-Request-Id:
             $ref: '../components/headers/XRequestId.yaml'
@@ -392,9 +392,9 @@
         $ref: '../components/responses/InternalErrorProblem.yaml'
 
 # HU-105 (DEC-178): acceso al turno con un código de un solo uso, para quien no
-# tiene el enlace del correo. Cuelga de la barbería (`/public/barbershops/{slug}`)
-# porque el contacto solo identifica a alguien dentro de una barbería.
-/public/barbershops/{slug}/customer-access/challenge:
+# tiene el enlace del correo. Cuelga del negocio (`/public/businesses/{slug}`)
+# porque el contacto solo identifica a alguien dentro de un negocio.
+/public/businesses/{slug}/customer-access/challenge:
   post:
     tags: [CustomerAccess]
     summary: Pedir un código para entrar a tu turno
@@ -408,7 +408,7 @@
       el anterior. Límites: 3 solicitudes por contacto y 10 por IP en 15 minutos,
       contando también los contactos que no existen; superarlos responde `429`
       con `Retry-After`. Un `slug` inexistente o no publicable responde el mismo
-      `404` uniforme de `GET /public/barbershops/{slug}`. Un contacto con forma
+      `404` uniforme de `GET /public/businesses/{slug}`. Un contacto con forma
       inválida responde `422` sin decir nada de si existe.
     operationId: requestCustomerAccessCode
     security: []
@@ -418,13 +418,13 @@
       - name: slug
         in: path
         required: true
-        description: Identificador público de la barbería (HU-090).
+        description: Identificador público del negocio (HU-090).
         schema:
           type: string
           maxLength: 120
         examples:
           slug:
-            value: barberia-ejemplo
+            value: negocio-ejemplo
     requestBody:
       required: true
       content:
@@ -452,7 +452,7 @@
       "500":
         $ref: '../components/responses/InternalErrorProblem.yaml'
 
-/public/barbershops/{slug}/customer-access/verify:
+/public/businesses/{slug}/customer-access/verify:
   post:
     tags: [CustomerAccess]
     summary: Canjear el código por el acceso a tus turnos
@@ -475,13 +475,13 @@
       - name: slug
         in: path
         required: true
-        description: Identificador público de la barbería (HU-090).
+        description: Identificador público del negocio (HU-090).
         schema:
           type: string
           maxLength: 120
         examples:
           slug:
-            value: barberia-ejemplo
+            value: negocio-ejemplo
     requestBody:
       required: true
       content:
@@ -526,7 +526,7 @@
       "500":
         $ref: '../components/responses/InternalErrorProblem.yaml'
 
-/public/barbershops/{slug}/customer-access/verify-ref:
+/public/businesses/{slug}/customer-access/verify-ref:
   post:
     tags: [CustomerAccess]
     summary: Canjear el código de un enlace de Odin por el acceso a ese turno
@@ -535,7 +535,7 @@
       `/reservar/{slug}/mi-turno/{accessRef}` (HU-106, CA-106-05) y, si es válido,
       lo consume y emite UN acceso de 60 minutos a ese turno, con el propósito para
       el que se pidió. El código vale 10 minutos, sirve una vez y admite 5 intentos.
-      Una referencia inexistente, de otra barbería, vencida, ya usada o agotada, o
+      Una referencia inexistente, de otro negocio, vencida, ya usada o agotada, o
       un código incorrecto, producen exactamente el mismo `401`: no se puede saber
       cuál ocurrió. El acceso emitido es el mismo de `HU-105` y se usa como el
       `token` de `/customer/appointments/{token}…`. La respuesta lleva una credencial
@@ -548,13 +548,13 @@
       - name: slug
         in: path
         required: true
-        description: Identificador público de la barbería (HU-090).
+        description: Identificador público del negocio (HU-090).
         schema:
           type: string
           maxLength: 120
         examples:
           slug:
-            value: barberia-ejemplo
+            value: negocio-ejemplo
     requestBody:
       required: true
       content:

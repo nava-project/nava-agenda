@@ -1,35 +1,35 @@
 # Operaciones privadas de horario laboral recurrente (HU-040): consultar,
-# crear, editar y retirar tramos de working_hour de un barbero de la
-# barbería activa. No mezcla con excepciones por fecha/festivos (HU-041) ni
+# crear, editar y retirar tramos de working_hour de un profesional de la
+# negocio activo. No mezcla con excepciones por fecha/festivos (HU-041) ni
 # con bloqueos (HU-042) -esas capacidades tienen su propio archivo cuando
 # existan-, ni con disponibilidad, citas, agenda o reserva pública.
-/private/barbers/{barberId}/working-hours:
+/private/professionals/{professionalId}/working-hours:
   get:
     tags: [Schedule]
-    summary: Listar los tramos de horario laboral de un barbero de la barbería activa
+    summary: Listar los tramos de horario laboral de un profesional del negocio activo
     description: >
       Lista paginada por cursor (HU-040, CA-040-01) de los tramos
-      recurrentes del barbero de la ruta, ordenada por día ISO de la semana
+      recurrentes del profesional de la ruta, ordenada por día ISO de la semana
       y luego por hora de inicio. Los siete días aparecen representados por
       sus propios tramos; un día sin ninguno simplemente no aporta
-      elementos, sin fila vacía. Un `barberId` inexistente o de otra
-      barbería responde `404` (RN-TEN-01), igual que
-      GET /private/barbers/{barberId}.
+      elementos, sin fila vacía. Un `professionalId` inexistente o de otro
+      negocio responde `404` (RN-TEN-01), igual que
+      GET /private/professionals/{professionalId}.
     operationId: listWorkingHours
     security:
       - SessionCookie: []
     x-business-rules: [RN-TEN-01, RN-DIS-05, RN-DIS-07]
     x-decisions: [DEC-007, DEC-020, DEC-024, DEC-070]
     parameters:
-      - name: barberId
+      - name: professionalId
         in: path
         required: true
-        description: Identificador del barbero.
+        description: Identificador del profesional.
         schema:
           type: string
           format: uuid
         examples:
-          barbero:
+          profesional:
             value: 8f3ac2b1-e4d5-46f6-a7c8-d9e0f1a2b3c4
       - name: cursor
         in: query
@@ -69,7 +69,7 @@
         $ref: '../components/responses/InternalErrorProblem.yaml'
   post:
     tags: [Schedule]
-    summary: Crear un tramo de horario laboral para un barbero de la barbería activa
+    summary: Crear un tramo de horario laboral para un profesional del negocio activo
     description: >
       Alta de un tramo recurrente (HU-040, CA-040-02) protegida con clave
       de idempotencia (RN-IDE-01, DEC-043): repetir el mismo `POST` con la
@@ -78,26 +78,26 @@
       solapados el mismo día representan una jornada partida; un tramo cuyo
       `startsTime` + `durationMinutes` cruza medianoche es válido
       (DEC-020). Un intervalo que se solapa con otro tramo existente del
-      mismo barbero y día, o que repite exactamente su hora de inicio,
+      mismo profesional y día, o que repite exactamente su hora de inicio,
       responde `409` sin crear nada. El tenant se deriva exclusivamente de
-      `SessionCookie` y el barbero de `barberId`; el cuerpo nunca acepta
-      `barbershopId` ni `barberId`. Un `barberId` inexistente o de otra
-      barbería responde `404`.
+      `SessionCookie` y el profesional de `professionalId`; el cuerpo nunca acepta
+      `businessId` ni `professionalId`. Un `professionalId` inexistente o de otro
+      negocio responde `404`.
     operationId: createWorkingHour
     security:
       - SessionCookie: []
     x-business-rules: [RN-TEN-01, RN-DIS-05, RN-DIS-07, RN-IDE-01]
     x-decisions: [DEC-007, DEC-020, DEC-024, DEC-043, DEC-070]
     parameters:
-      - name: barberId
+      - name: professionalId
         in: path
         required: true
-        description: Identificador del barbero.
+        description: Identificador del profesional.
         schema:
           type: string
           format: uuid
         examples:
-          barbero:
+          profesional:
             value: 8f3ac2b1-e4d5-46f6-a7c8-d9e0f1a2b3c4
       - $ref: '../components/parameters/IdempotencyKey.yaml'
     requestBody:
@@ -129,7 +129,7 @@
           Conflicto de idempotencia (misma clave con otro contenido u otra
           operación, `IdempotencyConflictProblem`), operación en curso con
           la misma clave (`IdempotencyLockedProblem`, DEC-043), o solape/
-          repetición de hora de inicio con otro tramo del mismo barbero y
+          repetición de hora de inicio con otro tramo del mismo profesional y
           día (`WorkingHourConflictProblem`). Los problem types comparten
           status pero tienen `code` distinto: el cliente decide por `code`,
           nunca por `detail`.
@@ -162,12 +162,12 @@
                   code: idempotency-locked
                   requestId: 8f3ac2b1e4d5f6a7c8d9e0f1a2b3c4d5
               solape:
-                summary: El tramo se solapa con otro del mismo barbero y día
+                summary: El tramo se solapa con otro del mismo profesional y día
                 value:
                   type: /api/v1/problems/conflict
                   title: Conflicto
                   status: 409
-                  detail: el tramo se solapa con otro existente del mismo barbero y día
+                  detail: el tramo se solapa con otro existente del mismo profesional y día
                   instance: 8f3ac2b1e4d5f6a7c8d9e0f1a2b3c4d5
                   code: conflict
                   requestId: 8f3ac2b1e4d5f6a7c8d9e0f1a2b3c4d5
@@ -175,29 +175,29 @@
         $ref: '../components/responses/WorkingHourValidationProblem.yaml'
       "500":
         $ref: '../components/responses/InternalErrorProblem.yaml'
-/private/barbers/{barberId}/working-hours/{workingHourId}:
+/private/professionals/{professionalId}/working-hours/{workingHourId}:
   get:
     tags: [Schedule]
-    summary: Consultar un tramo de horario laboral de un barbero de la barbería activa
+    summary: Consultar un tramo de horario laboral de un profesional del negocio activo
     description: >
       Lectura autenticada de un tramo por identificador (HU-040). Un
-      `barberId`/`workingHourId` inexistente, de otro barbero o de otra
-      barbería responde exactamente el mismo `404` (CA-040-05, RN-TEN-01).
+      `professionalId`/`workingHourId` inexistente, de otro profesional o de otro
+      negocio responde exactamente el mismo `404` (CA-040-05, RN-TEN-01).
     operationId: getWorkingHour
     security:
       - SessionCookie: []
     x-business-rules: [RN-TEN-01, RN-DIS-05, RN-DIS-07]
     x-decisions: [DEC-007, DEC-020, DEC-024, DEC-070]
     parameters:
-      - name: barberId
+      - name: professionalId
         in: path
         required: true
-        description: Identificador del barbero.
+        description: Identificador del profesional.
         schema:
           type: string
           format: uuid
         examples:
-          barbero:
+          profesional:
             value: 8f3ac2b1-e4d5-46f6-a7c8-d9e0f1a2b3c4
       - name: workingHourId
         in: path
@@ -222,15 +222,15 @@
         $ref: '../components/responses/InternalErrorProblem.yaml'
   patch:
     tags: [Schedule]
-    summary: Editar un tramo de horario laboral de un barbero de la barbería activa
+    summary: Editar un tramo de horario laboral de un profesional del negocio activo
     description: >
       Reemplaza el intervalo completo de un tramo existente (HU-040,
       CA-040-04): `isoWeekday`, `startsTime` y `durationMinutes` son los
       tres obligatorios, porque forman un único intervalo y una edición
-      parcial sería ambigua. Un `barberId`/`workingHourId` inexistente, de
-      otro barbero o de otra barbería responde el mismo `404` que `GET`
+      parcial sería ambigua. Un `professionalId`/`workingHourId` inexistente, de
+      otro profesional o de otro negocio responde el mismo `404` que `GET`
       (CA-040-05). Un intervalo nuevo que se solapa con otro tramo del
-      mismo barbero y día (excluyendo el propio tramo editado), o que
+      mismo profesional y día (excluyendo el propio tramo editado), o que
       repite exactamente la hora de inicio de otro, responde `409`.
     operationId: updateWorkingHour
     security:
@@ -238,15 +238,15 @@
     x-business-rules: [RN-TEN-01, RN-DIS-05, RN-DIS-07]
     x-decisions: [DEC-007, DEC-020, DEC-024, DEC-070]
     parameters:
-      - name: barberId
+      - name: professionalId
         in: path
         required: true
-        description: Identificador del barbero.
+        description: Identificador del profesional.
         schema:
           type: string
           format: uuid
         examples:
-          barbero:
+          profesional:
             value: 8f3ac2b1-e4d5-46f6-a7c8-d9e0f1a2b3c4
       - name: workingHourId
         in: path
@@ -290,11 +290,11 @@
         $ref: '../components/responses/InternalErrorProblem.yaml'
   delete:
     tags: [Schedule]
-    summary: Retirar un tramo de horario laboral de un barbero de la barbería activa
+    summary: Retirar un tramo de horario laboral de un profesional del negocio activo
     description: >
       Retira físicamente el tramo (HU-040, CA-040-05): working_hour no
-      tiene eliminación lógica. Un `barberId`/`workingHourId` inexistente,
-      de otro barbero, de otra barbería, o ya retirado antes, responden el
+      tiene eliminación lógica. Un `professionalId`/`workingHourId` inexistente,
+      de otro profesional, de otro negocio, o ya retirado antes, responden el
       mismo `404` uniforme; reintentar la misma operación tras un `404` es
       seguro (nunca retira un segundo tramo por error).
     operationId: deleteWorkingHour
@@ -303,15 +303,15 @@
     x-business-rules: [RN-TEN-01, RN-DIS-05, RN-DIS-07]
     x-decisions: [DEC-007, DEC-020, DEC-024, DEC-070]
     parameters:
-      - name: barberId
+      - name: professionalId
         in: path
         required: true
-        description: Identificador del barbero.
+        description: Identificador del profesional.
         schema:
           type: string
           format: uuid
         examples:
-          barbero:
+          profesional:
             value: 8f3ac2b1-e4d5-46f6-a7c8-d9e0f1a2b3c4
       - name: workingHourId
         in: path

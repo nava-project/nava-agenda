@@ -1,4 +1,4 @@
-# Respuesta 201 de POST /private/barbers/{barberId}/time-block-series
+# Respuesta 201 de POST /private/professionals/{professionalId}/time-block-series
 # (RN-IDE-01): una repetición exacta de la misma Idempotency-Key con el
 # mismo contenido reproduce esta MISMA respuesta byte a byte.
 description: >

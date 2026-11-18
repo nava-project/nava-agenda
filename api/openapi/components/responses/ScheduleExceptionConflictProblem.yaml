@@ -1,11 +1,11 @@
 # 409 de POST/PATCH .../schedule-exceptions[/{exceptionId}] (CA-041-05):
-# ya existe otra excepción del mismo barbero para esa fecha, o dos tramos
+# ya existe otra excepción del mismo profesional para esa fecha, o dos tramos
 # de la misma excepción se solapan. Distinto de
 # IdempotencyConflictProblem/IdempotencyLockedProblem (RN-IDE-01): este
 # conflicto no depende de ninguna cabecera Idempotency-Key ni de un
 # reintento.
 description: >
-  Ya existe otra excepción del barbero para esa fecha, o dos tramos de la
+  Ya existe otra excepción del profesional para esa fecha, o dos tramos de la
   excepción se solapan entre sí. No se persistió ningún cambio.
 headers:
   X-Request-Id:
@@ -16,12 +16,12 @@ content:
       $ref: '../schemas/Problem.yaml'
     examples:
       fechaDuplicada:
-        summary: Ya existe una excepción de este barbero para esa fecha
+        summary: Ya existe una excepción de este profesional para esa fecha
         value:
           type: /api/v1/problems/conflict
           title: Conflicto
           status: 409
-          detail: ya existe una excepción de este barbero para esa fecha
+          detail: ya existe una excepción de este profesional para esa fecha
           instance: 8f3ac2b1e4d5f6a7c8d9e0f1a2b3c4d5
           code: conflict
           requestId: 8f3ac2b1e4d5f6a7c8d9e0f1a2b3c4d5

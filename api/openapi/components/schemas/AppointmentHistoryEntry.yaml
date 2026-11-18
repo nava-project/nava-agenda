@@ -14,7 +14,7 @@ properties:
       - appointment_service_changed
       - appointment_completed
       - appointment_cancelled_by_customer
-      - appointment_cancelled_by_barber
+      - appointment_cancelled_by_professional
       - appointment_no_show
       - appointment_status_corrected
   actorType:

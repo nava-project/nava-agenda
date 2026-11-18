@@ -1,7 +1,7 @@
 # Cuerpo de POST /customer/appointments/{token}/review (HU-100, DEC-128).
 type: object
 description: >
-  Reseña del cliente sobre el barbero que lo atendió. Cerrado: cualquier otro
+  Reseña del cliente sobre el profesional que lo atendió. Cerrado: cualquier otro
   campo se rechaza. Nunca lleva datos del cliente: el turno sale del `token`.
 additionalProperties: false
 properties:

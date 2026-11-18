@@ -1,0 +1,84 @@
+# Respuesta 200 de GET /public/businesses/{slug} (HU-090, CA-090-01).
+description: Contexto público del negocio resuelto por su enlace de reservas.
+headers:
+  X-Request-Id:
+    $ref: '../headers/XRequestId.yaml'
+content:
+  application/json:
+    schema:
+      $ref: '../schemas/PublicBusinessProfile.yaml'
+    examples:
+      conContacto:
+        summary: Negocio con contacto público y local con mapa
+        value:
+          name: Negocio Ejemplo
+          timezone: America/Bogota
+          contactEmail: contacto@ejemplo.test
+          contactPhone: "+573001234567"
+          vocabulary:
+            businessTerm: negocio
+            businessTermGender: feminine
+            professionalTerm: profesional
+            professionalTermPlural: profesionales
+            professionalTermGender: masculine
+          location:
+            address: Calle 10 # 5-20, Bogotá
+            latitude: 4.598056
+            longitude: -74.076111
+          offersHomeService: true
+          brandAccent: brass
+          openingHours:
+            - { dayOfWeek: MONDAY, opens: '09:00', closes: '12:30' }
+            - { dayOfWeek: MONDAY, opens: '14:00', closes: '19:00' }
+            - { dayOfWeek: TUESDAY, opens: '09:00', closes: '19:00' }
+            - { dayOfWeek: SATURDAY, opens: '08:00', closes: '16:00' }
+          closedOnHolidays: true
+          today:
+            date: '2026-11-17'
+            dayOfWeek: TUESDAY
+            holiday: null
+            hours:
+              - { opens: '09:00', closes: '19:00' }
+      sinContacto:
+        summary: Negocio sin contacto público configurado
+        value:
+          name: Negocio Ejemplo
+          timezone: America/Bogota
+          contactEmail: null
+          contactPhone: null
+          vocabulary:
+            businessTerm: negocio
+            businessTermGender: feminine
+            professionalTerm: profesional
+            professionalTermPlural: profesionales
+            professionalTermGender: masculine
+          location: null
+          offersHomeService: false
+          brandAccent: brass
+          openingHours: []
+          closedOnHolidays: false
+          today: null
+      otroRubro:
+        summary: Estudio de uñas que llama «manicurista» a su profesional
+        value:
+          name: Estudio Lila
+          timezone: America/Bogota
+          contactEmail: null
+          contactPhone: null
+          vocabulary:
+            businessTerm: estudio de uñas
+            businessTermGender: masculine
+            professionalTerm: manicurista
+            professionalTermPlural: manicuristas
+            professionalTermGender: feminine
+          location: null
+          offersHomeService: false
+          brandAccent: amethyst
+          openingHours:
+            - { dayOfWeek: MONDAY, opens: '10:00', closes: '18:00' }
+          closedOnHolidays: true
+          today:
+            date: '2026-11-16'
+            dayOfWeek: MONDAY
+            holiday: Independencia de Cartagena
+            hours: []

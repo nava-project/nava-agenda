@@ -3,13 +3,17 @@
 # turno, para que el cliente cancele o reprograme él mismo. Se protegen con el
 # secreto de servicio (`OdinServiceToken`); sin `APP_ODIN_SERVICE_TOKEN` en el
 # despliegue estas rutas no existen. Ver docs/06-api/estandar-openapi.md.
-/integrations/odin/barbershops/{slug}/customer-appointments/lookup:
+#
+# DEC-183 (issue #661): las rutas pasan de `/barbershops/{slug}` a
+# `/businesses/{slug}`. Las viejas siguen respondiendo igual, como alias
+# deprecados, hasta que Odin confirme el cambio; después se retiran.
+/integrations/odin/businesses/{slug}/customer-appointments/lookup:
   post:
     tags: [Integrations]
     summary: Buscar los turnos de un teléfono
     description: >
-      Devuelve los turnos futuros `confirmed` del cliente con ese teléfono en esa
-      barbería, del más próximo al más lejano, con lo que puede hacer hoy con cada
+      Devuelve los turnos futuros `confirmed` del cliente con ese teléfono en ese
+      negocio, del más próximo al más lejano, con lo que puede hacer hoy con cada
       uno (`canCancel`, `canReschedule`, según `RN-CAN-01` y el máximo de 2 cambios
       de `DEC-178`). Cada turno trae una referencia opaca de 30 minutos y nunca un
       identificador interno ni datos del cliente. Un teléfono sin turnos recibe una
@@ -23,13 +27,123 @@
       - name: slug
         in: path
         required: true
-        description: Identificador público de la barbería (HU-090).
+        description: Identificador público del negocio (HU-090).
         schema:
           type: string
           maxLength: 120
         examples:
           slug:
-            value: barberia-ejemplo
+            value: negocio-ejemplo
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            $ref: '../components/schemas/OdinAppointmentLookupRequest.yaml'
+    responses:
+      "200":
+        $ref: '../components/responses/OdinAppointmentLookup.yaml'
+      "400":
+        $ref: '../components/responses/InvalidRequestProblem.yaml'
+      "401":
+        $ref: '../components/responses/ServiceCredentialProblem.yaml'
+      "404":
+        $ref: '../components/responses/NotFoundProblem.yaml'
+      "422":
+        $ref: '../components/responses/ValidationProblem.yaml'
+      "500":
+        $ref: '../components/responses/InternalErrorProblem.yaml'
+
+/integrations/odin/businesses/{slug}/customer-access/challenge:
+  post:
+    tags: [Integrations]
+    summary: Pedir un código atado a un turno
+    description: >
+      Crea un reto atado a ESE turno y a ESE propósito y envía el código de 6 dígitos
+      por WhatsApp a ese teléfono (HU-106, CA-106-03). Sin `purpose` el reto queda en
+      `manage` (DEC-181): Odin ya tiene el teléfono y ya confirmó el turno con el
+      cliente, así que el enlace abre directo en el código y, tras él, en el paso 03
+      con las dos acciones. Devuelve `accessUrl`, el enlace listo para el chat.
+      Solo prospera si la referencia es de ese teléfono en ese negocio y el turno
+      sigue elegible para el propósito (con `manage`, que admita al menos una de las
+      dos acciones); en cualquier otro caso responde el mismo
+      `409` `appointment-not-available`. El código vale 10 minutos, sirve una vez y
+      admite 5 intentos. Pedir otro deja inútil el anterior. El límite de 3
+      solicitudes por contacto cada 15 minutos cuenta también estas solicitudes y
+      comparte la cuenta con la pantalla pública; además hay un tope por negocio
+      para el servicio. Superarlos responde `429` con `Retry-After`; Odin no
+      reintenta, avisa al cliente que espere. Sin WhatsApp configurado responde
+      `503`. Odin no ve el código ni ningún acceso: el cliente lo escribe en
+      `/reservar/{slug}/mi-turno/{accessRef}`.
+    operationId: requestCustomerAccessCodeForOdin
+    security:
+      - OdinServiceToken: []
+    x-business-rules: [RN-CAN-01, RN-DAT-01, RN-DAT-02, RN-TEN-01]
+    x-decisions: [DEC-062, DEC-123, DEC-178, DEC-179, DEC-181]
+    parameters:
+      - name: slug
+        in: path
+        required: true
+        description: Identificador público del negocio (HU-090).
+        schema:
+          type: string
+          maxLength: 120
+        examples:
+          slug:
+            value: negocio-ejemplo
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            $ref: '../components/schemas/OdinAccessChallengeRequest.yaml'
+          examples:
+            elegirEnLaPagina:
+              summary: Sin propósito; la persona elige en el paso 03
+              value:
+                phone: "+573001234567"
+                appointmentRef: kP3x9Qm2LwT7yVb1NcH8sJ4dRfE0uZaG6iO5tXnYhBqMlKjWvCpDrA
+            reprogramar:
+              value:
+                phone: "+573001234567"
+                appointmentRef: kP3x9Qm2LwT7yVb1NcH8sJ4dRfE0uZaG6iO5tXnYhBqMlKjWvCpDrA
+                purpose: reschedule
+    responses:
+      "201":
+        $ref: '../components/responses/OdinAccessChallengeCreated.yaml'
+      "400":
+        $ref: '../components/responses/InvalidRequestProblem.yaml'
+      "401":
+        $ref: '../components/responses/ServiceCredentialProblem.yaml'
+      "404":
+        $ref: '../components/responses/NotFoundProblem.yaml'
+      "409":
+        $ref: '../components/responses/AppointmentNotAvailableProblem.yaml'
+      "422":
+        $ref: '../components/responses/ValidationProblem.yaml'
+      "429":
+        $ref: '../components/responses/RateLimitedProblem.yaml'
+      "500":
+        $ref: '../components/responses/InternalErrorProblem.yaml'
+      "503":
+        $ref: '../components/responses/ServiceUnavailableProblem.yaml'
+
+/integrations/odin/barbershops/{slug}/customer-appointments/lookup:
+  post:
+    tags: [Integrations]
+    summary: Buscar los turnos de un teléfono (ruta anterior)
+    description: >
+      Alias deprecado de `POST /integrations/odin/businesses/{slug}/customer-appointments/lookup`
+      (DEC-183, issue #661): misma petición, misma respuesta y mismos errores. Se
+      conserva mientras Odin no use la ruta nueva.
+    operationId: lookupCustomerAppointmentsForOdinDeprecated
+    deprecated: true
+    security:
+      - OdinServiceToken: []
+    x-business-rules: [RN-CAN-01, RN-DAT-02, RN-TEN-01]
+    x-decisions: [DEC-179, DEC-183]
+    parameters:
+      - $ref: '../components/parameters/OdinBusinessSlug.yaml'
     requestBody:
       required: true
       content:
@@ -53,57 +167,25 @@
 /integrations/odin/barbershops/{slug}/customer-access/challenge:
   post:
     tags: [Integrations]
-    summary: Pedir un código atado a un turno
+    summary: Pedir un código atado a un turno (ruta anterior)
     description: >
-      Crea un reto atado a ESE turno y a ESE propósito y envía el código de 6 dígitos
-      por WhatsApp a ese teléfono (HU-106, CA-106-03). Sin `purpose` el reto queda en
-      `manage` (DEC-181): Odin ya tiene el teléfono y ya confirmó el turno con el
-      cliente, así que el enlace abre directo en el código y, tras él, en el paso 03
-      con las dos acciones. Devuelve `accessUrl`, el enlace listo para el chat.
-      Solo prospera si la referencia es de ese teléfono en esa barbería y el turno
-      sigue elegible para el propósito (con `manage`, que admita al menos una de las
-      dos acciones); en cualquier otro caso responde el mismo
-      `409` `appointment-not-available`. El código vale 10 minutos, sirve una vez y
-      admite 5 intentos. Pedir otro deja inútil el anterior. El límite de 3
-      solicitudes por contacto cada 15 minutos cuenta también estas solicitudes y
-      comparte la cuenta con la pantalla pública; además hay un tope por barbería
-      para el servicio. Superarlos responde `429` con `Retry-After`; Odin no
-      reintenta, avisa al cliente que espere. Sin WhatsApp configurado responde
-      `503`. Odin no ve el código ni ningún acceso: el cliente lo escribe en
-      `/reservar/{slug}/mi-turno/{accessRef}`.
-    operationId: requestCustomerAccessCodeForOdin
+      Alias deprecado de `POST /integrations/odin/businesses/{slug}/customer-access/challenge`
+      (DEC-183, issue #661): misma petición, misma respuesta y mismos errores. Se
+      conserva mientras Odin no use la ruta nueva.
+    operationId: requestCustomerAccessCodeForOdinDeprecated
+    deprecated: true
     security:
       - OdinServiceToken: []
     x-business-rules: [RN-CAN-01, RN-DAT-01, RN-DAT-02, RN-TEN-01]
-    x-decisions: [DEC-062, DEC-123, DEC-178, DEC-179, DEC-181]
+    x-decisions: [DEC-179, DEC-181, DEC-183]
     parameters:
-      - name: slug
-        in: path
-        required: true
-        description: Identificador público de la barbería (HU-090).
-        schema:
-          type: string
-          maxLength: 120
-        examples:
-          slug:
-            value: barberia-ejemplo
+      - $ref: '../components/parameters/OdinBusinessSlug.yaml'
     requestBody:
       required: true
       content:
         application/json:
           schema:
             $ref: '../components/schemas/OdinAccessChallengeRequest.yaml'
-          examples:
-            elegirEnLaPagina:
-              summary: Sin propósito; la persona elige en el paso 03
-              value:
-                phone: "+573001234567"
-                appointmentRef: kP3x9Qm2LwT7yVb1NcH8sJ4dRfE0uZaG6iO5tXnYhBqMlKjWvCpDrA
-            reprogramar:
-              value:
-                phone: "+573001234567"
-                appointmentRef: kP3x9Qm2LwT7yVb1NcH8sJ4dRfE0uZaG6iO5tXnYhBqMlKjWvCpDrA
-                purpose: reschedule
     responses:
       "201":
         $ref: '../components/responses/OdinAccessChallengeCreated.yaml'

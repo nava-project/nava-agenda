@@ -17,10 +17,10 @@ properties:
     description: Inicio del turno (UTC).
   serviceName:
     type: string
-  barberName:
+  professionalName:
     type: string
 required:
   - accessToken
   - startsAt
   - serviceName
-  - barberName
+  - professionalName

@@ -1,5 +1,5 @@
-# Respuesta 200 de GET /public/barbershops/{slug}/barbers/{barberId}/reviews (HU-100).
-description: Resumen y reseñas visibles más recientes del barbero.
+# Respuesta 200 de GET /public/businesses/{slug}/professionals/{professionalId}/reviews (HU-100).
+description: Resumen y reseñas visibles más recientes del profesional.
 headers:
   X-Request-Id:
     $ref: '../headers/XRequestId.yaml'

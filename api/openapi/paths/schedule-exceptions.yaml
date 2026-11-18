@@ -1,16 +1,16 @@
 # Operaciones privadas de excepciones de jornada y festivos (HU-041): el
-# interruptor de calendario colombiano por barbero, el CRUD de excepciones
+# interruptor de calendario colombiano por profesional, el CRUD de excepciones
 # por fecha, y la consulta de referencia de festivos colombianos de un
 # año. No mezcla con horario semanal (working-hours, HU-040) ni con
 # bloqueos (HU-042) -esas capacidades tienen su propio archivo-.
-/private/barbers/{barberId}/holiday-calendar:
+/private/professionals/{professionalId}/holiday-calendar:
   get:
     tags: [Schedule]
-    summary: Consultar el calendario colombiano de festivos de un barbero de la barbería activa
+    summary: Consultar el calendario colombiano de festivos de un profesional del negocio activo
     description: >
       Lectura autenticada del interruptor de calendario colombiano de
-      festivos del barbero de la ruta (HU-041, CA-041-01/02). Un
-      `barberId` inexistente o de otra barbería responde `404`
+      festivos del profesional de la ruta (HU-041, CA-041-01/02). Un
+      `professionalId` inexistente o de otro negocio responde `404`
       (RN-TEN-01).
     operationId: getHolidayCalendar
     security:
@@ -18,15 +18,15 @@
     x-business-rules: [RN-TEN-01, RN-BLQ-02]
     x-decisions: [DEC-020, DEC-024, DEC-070]
     parameters:
-      - name: barberId
+      - name: professionalId
         in: path
         required: true
-        description: Identificador del barbero.
+        description: Identificador del profesional.
         schema:
           type: string
           format: uuid
         examples:
-          barbero:
+          profesional:
             value: 8f3ac2b1-e4d5-46f6-a7c8-d9e0f1a2b3c4
     responses:
       "200":
@@ -41,27 +41,27 @@
         $ref: '../components/responses/InternalErrorProblem.yaml'
   patch:
     tags: [Schedule]
-    summary: Activar o desactivar el calendario colombiano de festivos de un barbero de la barbería activa
+    summary: Activar o desactivar el calendario colombiano de festivos de un profesional del negocio activo
     description: >
-      Activa o desactiva el calendario colombiano de festivos del barbero
+      Activa o desactiva el calendario colombiano de festivos del profesional
       de la ruta (HU-041, CA-041-01/02). La decisión nunca afecta a otro
-      barbero de la misma barbería. Un `barberId` inexistente o de otra
-      barbería responde `404`.
+      profesional del mismo negocio. Un `professionalId` inexistente o de otro
+      negocio responde `404`.
     operationId: updateHolidayCalendar
     security:
       - SessionCookie: []
     x-business-rules: [RN-TEN-01, RN-BLQ-02]
     x-decisions: [DEC-020, DEC-024, DEC-070]
     parameters:
-      - name: barberId
+      - name: professionalId
         in: path
         required: true
-        description: Identificador del barbero.
+        description: Identificador del profesional.
         schema:
           type: string
           format: uuid
         examples:
-          barbero:
+          profesional:
             value: 8f3ac2b1-e4d5-46f6-a7c8-d9e0f1a2b3c4
     requestBody:
       required: true
@@ -87,14 +87,14 @@
         $ref: '../components/responses/NotFoundProblem.yaml'
       "500":
         $ref: '../components/responses/InternalErrorProblem.yaml'
-/private/barbers/{barberId}/schedule-exceptions:
+/private/professionals/{professionalId}/schedule-exceptions:
   get:
     tags: [Schedule]
-    summary: Listar las excepciones de jornada de un barbero de la barbería activa
+    summary: Listar las excepciones de jornada de un profesional del negocio activo
     description: >
       Lista paginada por cursor (HU-041, CA-041-04/05) de las excepciones
-      del barbero de la ruta, ordenada por fecha efectiva y luego por
-      identificador. Un `barberId` inexistente o de otra barbería responde
+      del profesional de la ruta, ordenada por fecha efectiva y luego por
+      identificador. Un `professionalId` inexistente o de otro negocio responde
       `404`.
     operationId: listScheduleExceptions
     security:
@@ -102,15 +102,15 @@
     x-business-rules: [RN-TEN-01, RN-BLQ-02, RN-DIS-05, RN-DIS-07]
     x-decisions: [DEC-020, DEC-024, DEC-070]
     parameters:
-      - name: barberId
+      - name: professionalId
         in: path
         required: true
-        description: Identificador del barbero.
+        description: Identificador del profesional.
         schema:
           type: string
           format: uuid
         examples:
-          barbero:
+          profesional:
             value: 8f3ac2b1-e4d5-46f6-a7c8-d9e0f1a2b3c4
       - name: cursor
         in: query
@@ -150,7 +150,7 @@
         $ref: '../components/responses/InternalErrorProblem.yaml'
   post:
     tags: [Schedule]
-    summary: Crear una excepción de jornada para un barbero de la barbería activa
+    summary: Crear una excepción de jornada para un profesional del negocio activo
     description: >
       Alta de una excepción de jornada (HU-041, CA-041-04, CA-041-05)
       protegida con clave de idempotencia (RN-IDE-01, DEC-043): repetir el
@@ -159,26 +159,26 @@
       excepción. `isClosed: true` cierra el día completo (`segments` debe
       venir vacío u omitido); `isClosed: false` exige al menos un tramo sin
       solapes entre sí (DEC-020 permite cruzar medianoche). Ya existe una
-      excepción de este barbero para esa fecha responde `409` sin crear
-      nada (CA-041-05: como máximo una excepción por barbero y fecha). El
-      tenant se deriva exclusivamente de `SessionCookie` y el barbero de
-      `barberId`; el cuerpo nunca acepta `barbershopId` ni `barberId`. Un
-      `barberId` inexistente o de otra barbería responde `404`.
+      excepción de este profesional para esa fecha responde `409` sin crear
+      nada (CA-041-05: como máximo una excepción por profesional y fecha). El
+      tenant se deriva exclusivamente de `SessionCookie` y el profesional de
+      `professionalId`; el cuerpo nunca acepta `businessId` ni `professionalId`. Un
+      `professionalId` inexistente o de otro negocio responde `404`.
     operationId: createScheduleException
     security:
       - SessionCookie: []
     x-business-rules: [RN-TEN-01, RN-BLQ-02, RN-DIS-05, RN-DIS-07, RN-IDE-01]
     x-decisions: [DEC-020, DEC-024, DEC-043, DEC-070]
     parameters:
-      - name: barberId
+      - name: professionalId
         in: path
         required: true
-        description: Identificador del barbero.
+        description: Identificador del profesional.
         schema:
           type: string
           format: uuid
         examples:
-          barbero:
+          profesional:
             value: 8f3ac2b1-e4d5-46f6-a7c8-d9e0f1a2b3c4
       - $ref: '../components/parameters/IdempotencyKey.yaml'
     requestBody:
@@ -250,12 +250,12 @@
                   code: idempotency-locked
                   requestId: 8f3ac2b1e4d5f6a7c8d9e0f1a2b3c4d5
               fechaDuplicada:
-                summary: Ya existe una excepción de este barbero para esa fecha
+                summary: Ya existe una excepción de este profesional para esa fecha
                 value:
                   type: /api/v1/problems/conflict
                   title: Conflicto
                   status: 409
-                  detail: ya existe una excepción de este barbero para esa fecha
+                  detail: ya existe una excepción de este profesional para esa fecha
                   instance: 8f3ac2b1e4d5f6a7c8d9e0f1a2b3c4d5
                   code: conflict
                   requestId: 8f3ac2b1e4d5f6a7c8d9e0f1a2b3c4d5
@@ -263,29 +263,29 @@
         $ref: '../components/responses/ScheduleExceptionValidationProblem.yaml'
       "500":
         $ref: '../components/responses/InternalErrorProblem.yaml'
-/private/barbers/{barberId}/schedule-exceptions/{exceptionId}:
+/private/professionals/{professionalId}/schedule-exceptions/{exceptionId}:
   get:
     tags: [Schedule]
-    summary: Consultar una excepción de jornada de un barbero de la barbería activa
+    summary: Consultar una excepción de jornada de un profesional del negocio activo
     description: >
       Lectura autenticada de una excepción por identificador (HU-041). Un
-      `barberId`/`exceptionId` inexistente, de otro barbero o de otra
-      barbería responde exactamente el mismo `404` (CA-041-06, RN-TEN-01).
+      `professionalId`/`exceptionId` inexistente, de otro profesional o de otro
+      negocio responde exactamente el mismo `404` (CA-041-06, RN-TEN-01).
     operationId: getScheduleException
     security:
       - SessionCookie: []
     x-business-rules: [RN-TEN-01, RN-BLQ-02]
     x-decisions: [DEC-020, DEC-024, DEC-070]
     parameters:
-      - name: barberId
+      - name: professionalId
         in: path
         required: true
-        description: Identificador del barbero.
+        description: Identificador del profesional.
         schema:
           type: string
           format: uuid
         examples:
-          barbero:
+          profesional:
             value: 8f3ac2b1-e4d5-46f6-a7c8-d9e0f1a2b3c4
       - name: exceptionId
         in: path
@@ -310,14 +310,14 @@
         $ref: '../components/responses/InternalErrorProblem.yaml'
   patch:
     tags: [Schedule]
-    summary: Editar una excepción de jornada de un barbero de la barbería activa
+    summary: Editar una excepción de jornada de un profesional del negocio activo
     description: >
       Reemplaza la excepción completa (HU-041, CA-041-04, CA-041-05):
       `effectiveDate` e `isClosed` son obligatorios, con las mismas reglas
-      de `segments` que la creación. Un `barberId`/`exceptionId`
-      inexistente, de otro barbero o de otra barbería responde el mismo
+      de `segments` que la creación. Un `professionalId`/`exceptionId`
+      inexistente, de otro profesional o de otro negocio responde el mismo
       `404` que `GET` (CA-041-06). Mover la excepción a una fecha que ya
-      tiene otra excepción del mismo barbero, o un solape entre tramos,
+      tiene otra excepción del mismo profesional, o un solape entre tramos,
       responde `409`.
     operationId: updateScheduleException
     security:
@@ -325,15 +325,15 @@
     x-business-rules: [RN-TEN-01, RN-BLQ-02, RN-DIS-05, RN-DIS-07]
     x-decisions: [DEC-020, DEC-024, DEC-070]
     parameters:
-      - name: barberId
+      - name: professionalId
         in: path
         required: true
-        description: Identificador del barbero.
+        description: Identificador del profesional.
         schema:
           type: string
           format: uuid
         examples:
-          barbero:
+          profesional:
             value: 8f3ac2b1-e4d5-46f6-a7c8-d9e0f1a2b3c4
       - name: exceptionId
         in: path
@@ -377,11 +377,11 @@
         $ref: '../components/responses/InternalErrorProblem.yaml'
   delete:
     tags: [Schedule]
-    summary: Retirar una excepción de jornada de un barbero de la barbería activa
+    summary: Retirar una excepción de jornada de un profesional del negocio activo
     description: >
       Retira físicamente la excepción (HU-041, CA-041-06): sin eliminación
-      lógica. Un `barberId`/`exceptionId` inexistente, de otro barbero, de
-      otra barbería, o ya retirado antes, responden el mismo `404`
+      lógica. Un `professionalId`/`exceptionId` inexistente, de otro profesional, de
+      otro negocio, o ya retirado antes, responden el mismo `404`
       uniforme; reintentar la misma operación tras un `404` es seguro.
     operationId: deleteScheduleException
     security:
@@ -389,15 +389,15 @@
     x-business-rules: [RN-TEN-01, RN-BLQ-02]
     x-decisions: [DEC-020, DEC-024, DEC-070]
     parameters:
-      - name: barberId
+      - name: professionalId
         in: path
         required: true
-        description: Identificador del barbero.
+        description: Identificador del profesional.
         schema:
           type: string
           format: uuid
         examples:
-          barbero:
+          profesional:
             value: 8f3ac2b1-e4d5-46f6-a7c8-d9e0f1a2b3c4
       - name: exceptionId
         in: path
@@ -426,8 +426,8 @@
     summary: Consultar los festivos colombianos de un año calendario
     description: >
       Dato de referencia calendárica (HU-041, RN-BLQ-02), calculado de
-      forma determinista (Ley 51 de 1983, "Ley Emiliani"): igual para toda
-      barbería y todo barbero, no depende de ningún dato propio de la
+      forma determinista (Ley 51 de 1983, "Ley Emiliani"): igual para todo
+      negocio y todo profesional, no depende de ningún dato propio de la
       sesión más allá de exigirla. Útil para que la pantalla ofrezca
       "abrir este festivo" sin que el cliente reimplemente el cálculo.
     operationId: listColombianHolidays

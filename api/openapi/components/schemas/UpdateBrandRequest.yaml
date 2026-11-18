@@ -1,6 +1,6 @@
 # Cuerpo de PATCH /private/settings/brand (issue #292, DEC-110). Cerrado: el
 # handler rechaza cualquier campo desconocido, en particular un identificador
-# de barbería (el contrato ni siquiera lo declara) y `panelProfile`, que desde
+# de negocio (el contrato ni siquiera lo declara) y `panelProfile`, que desde
 # DEC-134 no se edita: lo deciden los roles del usuario en la base de datos.
 type: object
 additionalProperties: false

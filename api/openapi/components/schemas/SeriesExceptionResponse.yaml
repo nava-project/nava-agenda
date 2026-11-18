@@ -12,7 +12,7 @@ properties:
     type: [string, "null"]
     maxLength: 200
     examples:
-      - "El barbero libró ese día"
+      - "El profesional libró ese día"
   createdAt:
     type: string
     format: date-time

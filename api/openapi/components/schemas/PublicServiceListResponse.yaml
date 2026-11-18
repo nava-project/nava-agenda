@@ -1,9 +1,9 @@
 # Colección paginada por cursor (docs/06-api/estandar-openapi.md §6.10),
 # mismo criterio que ServiceListResponse.yaml: el catálogo público de una
-# barbería no tiene un máximo de negocio aprobado.
+# negocio no tiene un máximo de negocio aprobado.
 type: object
 description: >
-  Página del catálogo público de servicios de la barbería resuelta (HU-091),
+  Página del catálogo público de servicios del negocio resuelto (HU-091),
   ordenada de forma estable por fecha de alta y luego por identificador.
 properties:
   items:

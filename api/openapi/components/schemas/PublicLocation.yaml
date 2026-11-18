@@ -1,11 +1,11 @@
-# Ubicación física pública de la barbería (DEC-130, HU-102): lo mínimo para que
+# Ubicación física pública del negocio (DEC-130, HU-102): lo mínimo para que
 # la reserva pública dibuje un mapa con marcador y la dirección en texto. Solo
-# existe cuando la barbería activó `hasPhysicalLocation` Y hay coordenadas; en
-# cualquier otro caso `PublicBarbershopProfile.location` es `null`.
+# existe cuando el negocio activó `hasPhysicalLocation` Y hay coordenadas; en
+# cualquier otro caso `PublicBusinessProfile.location` es `null`.
 type: object
 additionalProperties: false
 description: >
-  Dónde queda la barbería. La dirección es contenido público por diseño; las
+  Dónde queda el negocio. La dirección es contenido público por diseño; las
   coordenadas son el resultado de geocodificarla una vez en el servidor.
 properties:
   address:

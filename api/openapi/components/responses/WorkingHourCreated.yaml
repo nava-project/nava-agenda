@@ -1,4 +1,4 @@
-# Respuesta 201 de POST /private/barbers/{barberId}/working-hours (HU-040,
+# Respuesta 201 de POST /private/professionals/{professionalId}/working-hours (HU-040,
 # CA-040-02, RN-IDE-01). Una repetición exacta de la misma
 # Idempotency-Key con el mismo contenido reproduce esta MISMA respuesta
 # byte a byte: no crea un segundo tramo.

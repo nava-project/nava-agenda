@@ -1,9 +1,9 @@
 # Proyección mínima del turno del cliente (HU-098, CA-098-01, CA-098-03):
-# nunca un identificador interno (id, barbershopId, appointmentId,
+# nunca un identificador interno (id, businessId, appointmentId,
 # customerId), contacto del cliente, nota, historial ni ningún otro turno.
 # cancellationDeadlineMinutes/lateCancellation* son la política VIGENTE de
-# la barbería (misma forma que BookingPolicyResponse.yaml, HU-093), no un
-# valor fijado al reservar: cambia si la barbería edita su política después.
+# el negocio (misma forma que BookingPolicyResponse.yaml, HU-093), no un
+# valor fijado al reservar: cambia si el negocio edita su política después.
 type: object
 additionalProperties: false
 description: >
@@ -12,16 +12,16 @@ description: >
   datos de contacto: el cliente ya los conoce, y exponerlos aquí no cumple
   ningún criterio de aceptación.
 properties:
-  barbershopName:
+  businessName:
     type: string
-    description: Nombre de la barbería, mismo campo que PublicBarbershopProfile.name.
+    description: Nombre del negocio, mismo campo que PublicBusinessProfile.name.
     maxLength: 120
     examples:
-      - Barbería Ejemplo
+      - Negocio Ejemplo
   timezone:
     type: string
     description: >
-      Zona horaria IANA de la barbería (RN-DIS-07). startsAt/endsAt viajan
+      Zona horaria IANA del negocio (RN-DIS-07). startsAt/endsAt viajan
       en UTC; el cliente los presenta en esta zona, nunca en la del
       dispositivo.
     maxLength: 64
@@ -46,12 +46,12 @@ properties:
     maximum: 1440
     examples:
       - 30
-  barberName:
+  professionalName:
     type: string
-    description: Nombre del barbero asignado al turno.
+    description: Nombre del profesional asignado al turno.
     maxLength: 120
     examples:
-      - Barbero Ejemplo
+      - Profesional Ejemplo
   startsAt:
     type: string
     format: date-time
@@ -66,15 +66,15 @@ properties:
       Estado vigente del turno (docs/02-requisitos/estados-citas.md).
       `confirmed` NUNCA implica que la falta de respuesta del cliente vaya a
       cancelarlo (RN-CNF-02, CA-098-04).
-    enum: [confirmed, completed, cancelled_by_customer, cancelled_by_barber, no_show]
+    enum: [confirmed, completed, cancelled_by_customer, cancelled_by_professional, no_show]
     examples:
       - confirmed
   cancellationDeadlineMinutes:
     type: integer
     description: >
       Minutos de anticipación exigidos para cancelar sin política tardía
-      (HU-093), medidos hacia atrás desde startsAt. Política VIGENTE de la
-      barbería, no un valor fijado al reservar.
+      (HU-093), medidos hacia atrás desde startsAt. Política VIGENTE del
+      negocio, no un valor fijado al reservar.
     minimum: 0
     maximum: 10080
     examples:
@@ -99,17 +99,17 @@ properties:
       `code: version-conflict`.
     examples:
       - 3n9Kq1x2v8pQwZbJt5Yc0Rr6Hh4Ss7Ff1Gg3Dd8Ee2Aa
-  barbershopContactEmail:
+  businessContactEmail:
     type: [string, "null"]
     maxLength: 254
     description: >
-      Correo público opcional de la barbería (`HU-020`, el mismo de la reserva
+      Correo público opcional del negocio (`HU-020`, el mismo de la reserva
       pública): el contacto seguro al que acudir cuando la política rechaza
       la cancelación (`CA-099-06`). `null` si no lo configuró.
-  barbershopContactPhone:
+  businessContactPhone:
     type: [string, "null"]
     maxLength: 32
-    description: Teléfono público opcional de la barbería; mismo propósito que `barbershopContactEmail`.
+    description: Teléfono público opcional del negocio; mismo propósito que `businessContactEmail`.
   vocabulary:
     $ref: './PublicVocabulary.yaml'
   canReview:
@@ -130,7 +130,7 @@ properties:
     maximum: 2
     description: >
       Veces que el cliente todavía puede cambiar la hora de este turno por su
-      cuenta (`HU-104`, `DEC-178`: máximo 2 por turno; las del barbero no
+      cuenta (`HU-104`, `DEC-178`: máximo 2 por turno; las del profesional no
       cuentan). El plazo es el mismo de la cancelación: hasta
       `startsAt - cancellationDeadlineMinutes`, y con plazo 0 nunca. La
       interfaz ofrece «Cambiar la hora» solo con el turno `confirmed`, dentro
@@ -138,12 +138,12 @@ properties:
     examples:
       - 2
 required:
-  - barbershopName
+  - businessName
   - timezone
   - attendeeName
   - serviceName
   - durationMinutes
-  - barberName
+  - professionalName
   - startsAt
   - endsAt
   - status
@@ -151,8 +151,8 @@ required:
   - lateCancellationClientAllowed
   - lateCancellationReasonRequired
   - versionToken
-  - barbershopContactEmail
-  - barbershopContactPhone
+  - businessContactEmail
+  - businessContactPhone
   - vocabulary
   - canReview
   - review

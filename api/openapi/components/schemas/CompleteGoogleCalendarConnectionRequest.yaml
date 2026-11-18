@@ -6,8 +6,8 @@ additionalProperties: false
 description: >
   Parámetros que Google agregó a la URL de retorno. `state` es obligatorio y de
   un solo uso. `code` viene con un consentimiento correcto; `error` (por
-  ejemplo `access_denied`) viene cuando el barbero rechazó el permiso. Nunca
-  lleva identificadores de barbero, usuario ni barbería.
+  ejemplo `access_denied`) viene cuando el profesional rechazó el permiso. Nunca
+  lleva identificadores de profesional, usuario ni negocio.
 properties:
   state:
     type: string
@@ -17,7 +17,7 @@ properties:
   code:
     type: string
     maxLength: 2048
-    description: Código de autorización de Google (ausente si el barbero rechazó).
+    description: Código de autorización de Google (ausente si el profesional rechazó).
   error:
     type: string
     maxLength: 128

@@ -1,19 +1,19 @@
 # Cuerpo de PATCH
-# /private/barbers/{barberId}/schedule-exceptions/{exceptionId}
+# /private/professionals/{professionalId}/schedule-exceptions/{exceptionId}
 # (CA-041-04, CA-041-05). Reemplaza la excepción completa (fecha, forma y
 # tramos), mismo criterio que UpdateWorkingHourRequest: una excepción es un
 # único recurso compuesto, así que editarla reemplaza la forma completa en
 # vez de aceptar una edición parcial ambigua.
 type: object
 description: >
-  Reemplazo completo de una excepción existente del barbero de la ruta.
+  Reemplazo completo de una excepción existente del profesional de la ruta.
   Mismas reglas que la creación: isClosed: true exige `segments` vacío u
   omitido; isClosed: false exige al menos un tramo sin solapes.
 properties:
   effectiveDate:
     type: string
     format: date
-    description: Fecha civil a la que aplica la excepción, en la zona IANA de la barbería.
+    description: Fecha civil a la que aplica la excepción, en la zona IANA del negocio.
     examples:
       - "2026-12-08"
   isClosed:
@@ -24,7 +24,7 @@ properties:
   reason:
     type: [string, "null"]
     maxLength: 200
-    description: Motivo breve y opcional, visible solo para el barbero.
+    description: Motivo breve y opcional, visible solo para el profesional.
     examples:
       - "Festivo trabajado con horario reducido"
   segments:

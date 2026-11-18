@@ -1,5 +1,5 @@
 # Respuesta 200 de .../customer-appointments/lookup (HU-106, CA-106-02).
-description: Los turnos futuros confirmados de ese teléfono en esa barbería, o una lista vacía.
+description: Los turnos futuros confirmados de ese teléfono en ese negocio, o una lista vacía.
 headers:
   X-Request-Id:
     $ref: '../headers/XRequestId.yaml'
@@ -19,6 +19,7 @@ content:
             - appointmentRef: kP3x9Qm2LwT7yVb1NcH8sJ4dRfE0uZaG6iO5tXnYhBqMlKjWvCpDrA
               startsAt: "2026-11-20T14:00:00-05:00"
               serviceName: Corte Vbras
+              professionalName: Jhonner Bustamante
               barberName: Jhonner Bustamante
               canCancel: true
               canReschedule: true

@@ -34,7 +34,7 @@ properties:
     description: >
       Explicación segura de esta ocurrencia. Nunca contiene SQL, rutas de
       archivo, nombres de proveedor, versiones de dependencias, trazas ni
-      la existencia de un recurso de otra barbería.
+      la existencia de un recurso de otro negocio.
     examples:
       - no existe un turno con ese identificador
   instance:

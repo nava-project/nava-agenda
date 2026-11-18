@@ -1,4 +1,4 @@
-# Recordatorios de la barbería activa (DEC-174).
+# Recordatorios del negocio activo (DEC-174).
 type: object
 additionalProperties: false
 description: Con cuánta anticipación sale el recordatorio al cliente, y las opciones admitidas.
