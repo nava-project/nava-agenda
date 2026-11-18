@@ -76,16 +76,15 @@ const (
 // (apps/web/src/shared/model/brandPalette.ts), que prueba su contraste.
 var AllowedAccents = [...]string{"brass", "emerald", "sapphire", "ruby", "amethyst", "copper"}
 
-// DefaultBrand es el vocabulario genérico de Nava Agenda (DEC-183): "negocio" y
-// "profesional". Coincide con el vocabulario por defecto del cliente
-// (apps/web/src/shared/model/vocabulary.ts); los DEFAULT de la base los alinea la
-// migración del esquema (#660). Un negocio que ya guardó su vocabulario no cambia.
+// DefaultBrand reproduce la interfaz anterior a DEC-110 y coincide con los
+// DEFAULT de la migración 20261003120000_add_barbershop_brand.sql: una
+// barbería que nunca toca esta configuración no cambia de aspecto.
 var DefaultBrand = Brand{
 	Accent:                 "brass",
-	BusinessTerm:           "negocio",
-	BusinessTermGender:     GenderMasculine,
-	ProfessionalTerm:       "profesional",
-	ProfessionalTermPlural: "profesionales",
+	BusinessTerm:           "barbería",
+	BusinessTermGender:     GenderFeminine,
+	ProfessionalTerm:       "barbero",
+	ProfessionalTermPlural: "barberos",
 	ProfessionalTermGender: GenderMasculine,
 	// La ubicación nace con el interruptor activo y sin dirección (DEC-130): no
 	// muestra mapa hasta que alguien captura una dirección.
