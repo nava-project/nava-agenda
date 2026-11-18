@@ -74,7 +74,7 @@ describe('staffApi.fetchBarbers', () => {
 
     await fetchBarbers('opaque-cursor')
 
-    expect(getMock).toHaveBeenCalledWith('/private/barbers', {
+    expect(getMock).toHaveBeenCalledWith('/private/professionals', {
       params: { query: { cursor: 'opaque-cursor' } },
     })
   })
@@ -84,7 +84,7 @@ describe('staffApi.fetchBarbers', () => {
 
     await fetchBarbers()
 
-    expect(getMock).toHaveBeenCalledWith('/private/barbers', { params: { query: {} } })
+    expect(getMock).toHaveBeenCalledWith('/private/professionals', { params: { query: {} } })
   })
 
   it('maps any non-2xx status to unexpected-error (401 handled globally)', async () => {
@@ -112,7 +112,7 @@ describe('staffApi.createBarber', () => {
 
     await createBarber('Carlos Ramírez', 'idem-key-1')
 
-    expect(postMock).toHaveBeenCalledWith('/private/barbers', {
+    expect(postMock).toHaveBeenCalledWith('/private/professionals', {
       params: { header: { 'Idempotency-Key': 'idem-key-1' } },
       body: { fullName: 'Carlos Ramírez' },
     })
@@ -123,7 +123,7 @@ describe('staffApi.createBarber', () => {
 
     const outcome = await createBarber('Carlos Ramírez', 'idem-key-1', '  Fade y barba.  ')
 
-    expect(postMock).toHaveBeenCalledWith('/private/barbers', {
+    expect(postMock).toHaveBeenCalledWith('/private/professionals', {
       params: { header: { 'Idempotency-Key': 'idem-key-1' } },
       body: { fullName: 'Carlos Ramírez', description: 'Fade y barba.' },
     })
@@ -138,7 +138,7 @@ describe('staffApi.createBarber', () => {
 
     await createBarber('Carlos Ramírez', 'idem-key-1', '   ')
 
-    expect(postMock).toHaveBeenCalledWith('/private/barbers', {
+    expect(postMock).toHaveBeenCalledWith('/private/professionals', {
       params: { header: { 'Idempotency-Key': 'idem-key-1' } },
       body: { fullName: 'Carlos Ramírez' },
     })
@@ -193,8 +193,8 @@ describe('staffApi.renameBarber', () => {
 
     await renameBarber(barberBody.id, 'Nuevo Nombre')
 
-    expect(patchMock).toHaveBeenCalledWith('/private/barbers/{barberId}', {
-      params: { path: { barberId: barberBody.id } },
+    expect(patchMock).toHaveBeenCalledWith('/private/professionals/{professionalId}', {
+      params: { path: { professionalId: barberBody.id } },
       body: { fullName: 'Nuevo Nombre' },
     })
   })
@@ -205,12 +205,12 @@ describe('staffApi.renameBarber', () => {
     await renameBarber(barberBody.id, 'Carlos', ' Fade y barba. ')
     await renameBarber(barberBody.id, 'Carlos', '   ')
 
-    expect(patchMock).toHaveBeenNthCalledWith(1, '/private/barbers/{barberId}', {
-      params: { path: { barberId: barberBody.id } },
+    expect(patchMock).toHaveBeenNthCalledWith(1, '/private/professionals/{professionalId}', {
+      params: { path: { professionalId: barberBody.id } },
       body: { fullName: 'Carlos', description: 'Fade y barba.' },
     })
-    expect(patchMock).toHaveBeenNthCalledWith(2, '/private/barbers/{barberId}', {
-      params: { path: { barberId: barberBody.id } },
+    expect(patchMock).toHaveBeenNthCalledWith(2, '/private/professionals/{professionalId}', {
+      params: { path: { professionalId: barberBody.id } },
       body: { fullName: 'Carlos', description: null },
     })
   })
@@ -288,7 +288,7 @@ describe('staffApi.barberPhotoUrl', () => {
 
   it('versions the URL with photoUpdatedAt so a new photo never reuses a stale cache entry', () => {
     const url = barberPhotoUrl({ id: 'b-1', photoUpdatedAt: '2026-09-30T12:00:00Z' })
-    expect(url).toBe('/api/v1/private/barbers/b-1/photo?v=2026-09-30T12%3A00%3A00Z')
+    expect(url).toBe('/api/v1/private/professionals/b-1/photo?v=2026-09-30T12%3A00%3A00Z')
     expect(barberPhotoUrl({ id: 'b-1', photoUpdatedAt: '2026-10-01T09:00:00Z' })).not.toBe(url)
   })
 })
@@ -304,8 +304,8 @@ describe('staffApi.uploadBarberPhoto', () => {
     await uploadBarberPhoto(barberBody.id, blob)
 
     const [path, init] = putMock.mock.calls[0]!
-    expect(path).toBe('/private/barbers/{barberId}/photo')
-    expect(init.params).toEqual({ path: { barberId: barberBody.id } })
+    expect(path).toBe('/private/professionals/{professionalId}/photo')
+    expect(init.params).toEqual({ path: { professionalId: barberBody.id } })
     expect(init.headers).toEqual({ 'Content-Type': 'image/jpeg' })
     expect(init.body).toBe(blob)
     // El serializador deja pasar el Blob: nunca lo convierte a JSON.
@@ -347,8 +347,8 @@ describe('staffApi.removeBarberPhoto', () => {
     })
 
     expect(await removeBarberPhoto(barberBody.id)).toEqual({ kind: 'success' })
-    expect(deleteMock).toHaveBeenCalledWith('/private/barbers/{barberId}/photo', {
-      params: { path: { barberId: barberBody.id } },
+    expect(deleteMock).toHaveBeenCalledWith('/private/professionals/{professionalId}/photo', {
+      params: { path: { professionalId: barberBody.id } },
     })
   })
 
@@ -376,7 +376,7 @@ describe('staffApi.fetchBarberPage (#288)', () => {
       kind: 'success',
       page: { items: [barberBody], page: 2, pageSize: 3, total: 4, totalPages: 2 },
     })
-    expect(getMock).toHaveBeenCalledWith('/private/barbers', {
+    expect(getMock).toHaveBeenCalledWith('/private/professionals', {
       params: { query: { page: 2, pageSize: 3 } },
     })
   })
@@ -393,7 +393,7 @@ describe('staffApi.fetchMyBarber', () => {
   it('maps a 200 to the linked barber and sends no user identifier', async () => {
     getMock.mockResolvedValueOnce(ok(barberBody))
     expect(await fetchMyBarber()).toEqual({ kind: 'linked', barber: barberBody })
-    expect(getMock).toHaveBeenCalledWith('/private/me/barber')
+    expect(getMock).toHaveBeenCalledWith('/private/me/professional')
   })
 
   it('maps a 404 to none: the link is optional, not an error', async () => {
@@ -415,8 +415,8 @@ describe('staffApi.linkMyBarber', () => {
   it('sends only the barberId in the body', async () => {
     putMock.mockResolvedValueOnce(ok(barberBody))
     expect(await linkMyBarber(barberBody.id)).toEqual({ kind: 'success', barber: barberBody })
-    expect(putMock).toHaveBeenCalledWith('/private/me/barber', {
-      body: { barberId: barberBody.id },
+    expect(putMock).toHaveBeenCalledWith('/private/me/professional', {
+      body: { professionalId: barberBody.id },
     })
   })
 
@@ -444,7 +444,7 @@ describe('staffApi.unlinkMyBarber', () => {
       response: new Response(null, { status: 204 }),
     })
     expect(await unlinkMyBarber()).toEqual({ kind: 'success' })
-    expect(deleteMock).toHaveBeenCalledWith('/private/me/barber')
+    expect(deleteMock).toHaveBeenCalledWith('/private/me/professional')
   })
 
   it('maps other statuses and a rejected request', async () => {

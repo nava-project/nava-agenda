@@ -1,5 +1,5 @@
 // Canjear el código de un enlace de Odin por el acceso a ese turno (HU-106): único
-// punto que llama a `POST /public/barbershops/{slug}/customer-access/verify-ref`.
+// punto que llama a `POST /public/businesses/{slug}/customer-access/verify-ref`.
 import { httpClient } from '@/shared/api/httpClient'
 import { isProblem } from '@/shared/api/problem'
 import type { VerifyAccessRefOutcome } from '../model/customerAccessOutcome'
@@ -17,7 +17,7 @@ export async function verifyAccessRef(
 ): Promise<VerifyAccessRefOutcome> {
   try {
     const { data, error, response } = await httpClient.POST(
-      '/public/barbershops/{slug}/customer-access/verify-ref',
+      '/public/businesses/{slug}/customer-access/verify-ref',
       { params: { path: { slug } }, body: { accessRef, code } },
     )
     if (response.ok && data) {

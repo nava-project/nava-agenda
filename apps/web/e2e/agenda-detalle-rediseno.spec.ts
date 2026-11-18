@@ -26,8 +26,8 @@ const viewports = [
 function detail(status: 'confirmed' | 'cancelled_by_customer') {
   return {
     id: 'turno-demo',
-    barberId: 'barbero-demo',
-    barberFullName: 'Iván Carvajal',
+    professionalId: 'barbero-demo',
+    professionalFullName: 'Iván Carvajal',
     attendeeName: 'Valentina Pardo',
     customerFullName: 'Valentina Pardo',
     customerPhone: '+573000000001',
@@ -86,11 +86,11 @@ async function installApi(page: Page, status: 'confirmed' | 'cancelled_by_custom
     if (pathname.endsWith('/auth/session')) {
       await route.fulfill(
         json({
-          barbershop: { id: 'shop-demo', name: 'Barbería Ejemplo' },
+          business: { id: 'shop-demo', name: 'Barbería Ejemplo' },
           expiresAt: '2099-01-01T00:00:00Z',
         }),
       )
-    } else if (pathname.endsWith('/settings/barbershop')) {
+    } else if (pathname.endsWith('/settings/business')) {
       await route.fulfill(json({ timezone: 'America/Bogota' }))
     } else if (pathname.endsWith('/appointments/turno-demo/history')) {
       await route.fulfill(json(history))

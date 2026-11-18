@@ -118,28 +118,28 @@ async function mockApi(page: Page) {
     if (pathname.endsWith('/auth/session')) {
       await route.fulfill(
         json({
-          barbershop: { id: 'mateo', name: 'Mateo · Barbero' },
+          business: { id: 'mateo', name: 'Mateo · Barbero' },
           expiresAt: '2099-01-01T00:00:00Z',
         }),
       )
     } else if (pathname.endsWith('/settings/brand')) {
       await route.fulfill(json(brand))
-    } else if (pathname.endsWith('/settings/barbershop')) {
+    } else if (pathname.endsWith('/settings/business')) {
       await route.fulfill(json(settings))
     } else if (pathname.endsWith('/daily-agenda')) {
       await route.fulfill(json({ items: todayAgenda() }))
-    } else if (pathname.endsWith(`/barbers/${BARBER}/services`)) {
+    } else if (pathname.endsWith(`/professionals/${BARBER}/services`)) {
       await route.fulfill(
         json({
           items: offered.map((serviceId) => ({
-            barberId: BARBER,
+            professionalId: BARBER,
             serviceId,
             createdAt: '2026-10-04T00:00:00Z',
           })),
           nextCursor: null,
         }),
       )
-    } else if (pathname.endsWith('/barbers')) {
+    } else if (pathname.endsWith('/professionals')) {
       await route.fulfill(
         json({
           items: [barberRow],

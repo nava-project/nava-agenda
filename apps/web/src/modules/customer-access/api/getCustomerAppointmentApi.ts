@@ -28,12 +28,12 @@ export async function getCustomerAppointment(
 
     if (response.ok && data) {
       const appointment: CustomerAppointment = {
-        barbershopName: data.barbershopName,
+        barbershopName: data.businessName,
         timezone: data.timezone,
         attendeeName: data.attendeeName,
         serviceName: data.serviceName,
         durationMinutes: data.durationMinutes,
-        barberName: data.barberName,
+        barberName: data.professionalName,
         startsAt: data.startsAt,
         endsAt: data.endsAt,
         status: data.status as CustomerAppointment['status'],
@@ -41,8 +41,8 @@ export async function getCustomerAppointment(
         lateCancellationClientAllowed: data.lateCancellationClientAllowed,
         lateCancellationReasonRequired: data.lateCancellationReasonRequired,
         versionToken: data.versionToken,
-        barbershopContactEmail: data.barbershopContactEmail,
-        barbershopContactPhone: data.barbershopContactPhone,
+        barbershopContactEmail: data.businessContactEmail,
+        barbershopContactPhone: data.businessContactPhone,
         vocabulary: {
           businessTerm: data.vocabulary.businessTerm,
           businessTermGender: data.vocabulary.businessTermGender,

@@ -56,8 +56,10 @@ describe('BarberReviews', () => {
     await flushPromises()
 
     expect(getMock).toHaveBeenCalledWith(
-      '/public/barbershops/{slug}/barbers/{barberId}/reviews',
-      expect.objectContaining({ params: { path: { slug: 'barberia-ejemplo', barberId: BARBER } } }),
+      '/public/businesses/{slug}/professionals/{professionalId}/reviews',
+      expect.objectContaining({
+        params: { path: { slug: 'barberia-ejemplo', professionalId: BARBER } },
+      }),
     )
     const items = wrapper.findAll('li')
     expect(items).toHaveLength(2)

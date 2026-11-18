@@ -69,13 +69,13 @@ export async function installNewAppointmentMock(
 
     if (pathname === '/api/v1/private/auth/session') {
       await respondJson(route, {
-        barbershop: { id: 'shop-mock', name: 'NAVA QA Local' },
+        business: { id: 'shop-mock', name: 'NAVA QA Local' },
         expiresAt: '2026-09-05T00:00:00Z',
       })
       return
     }
 
-    if (pathname === '/api/v1/private/barbers') {
+    if (pathname === '/api/v1/private/professionals') {
       if (scenario === 'context-loading' && pending) await pending.promise
       if (scenario === 'context-error') {
         await respondJson(route, { title: 'No disponible' }, 500)
@@ -85,7 +85,7 @@ export async function installNewAppointmentMock(
       return
     }
 
-    if (pathname === '/api/v1/private/settings/barbershop') {
+    if (pathname === '/api/v1/private/settings/business') {
       if (scenario === 'context-loading' && pending) await pending.promise
       await respondJson(route, { timezone: 'America/Bogota' })
       return
@@ -93,7 +93,7 @@ export async function installNewAppointmentMock(
 
     // Servicios asignados al barbero (HU-023): solo identificadores, el
     // nombre se cruza contra el catálogo real.
-    if (pathname.includes('/barbers/') && pathname.endsWith('/services')) {
+    if (pathname.includes('/professionals/') && pathname.endsWith('/services')) {
       if (scenario === 'services-loading' && pending) await pending.promise
       if (scenario === 'services-error') {
         await respondJson(route, { title: 'No disponible' }, 500)
@@ -104,7 +104,9 @@ export async function installNewAppointmentMock(
         return
       }
       await respondJson(route, {
-        items: [{ barberId: BARBER.id, serviceId: SERVICE.id, createdAt: '2026-09-01T12:00:00Z' }],
+        items: [
+          { professionalId: BARBER.id, serviceId: SERVICE.id, createdAt: '2026-09-01T12:00:00Z' },
+        ],
       })
       return
     }
@@ -135,7 +137,7 @@ export async function installNewAppointmentMock(
         route,
         {
           id: 'appt-mock',
-          barberId: BARBER.id,
+          professionalId: BARBER.id,
           serviceId: SERVICE.id,
           attendeeName: ATTENDEE,
           startsAt: `${CIVIL_DATE}T${TIME}:00-05:00`,

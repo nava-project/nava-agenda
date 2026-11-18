@@ -50,7 +50,7 @@ interface Connection {
 
 const disconnected: Connection = {
   enabled: true,
-  barberLinked: true,
+  professionalLinked: true,
   status: 'not_connected',
   accountEmail: null,
   reminderMinutes: null,
@@ -74,7 +74,7 @@ const states: Array<{ name: string; connection: Connection }> = [
   { name: 'sincronizando', connection: { ...connected, pendingSyncJobs: 3 } },
   { name: 'error-de-sincronizacion', connection: { ...connected, failedSyncJobs: 2 } },
   { name: 'requiere-reconexion', connection: { ...disconnected, status: 'reauth_required' } },
-  { name: 'falta-vincular', connection: { ...disconnected, barberLinked: false } },
+  { name: 'falta-vincular', connection: { ...disconnected, professionalLinked: false } },
   { name: 'no-disponible', connection: { ...disconnected, enabled: false } },
 ]
 
@@ -102,13 +102,13 @@ async function mockApi(page: Page, initial: Connection): Promise<Mock> {
     if (pathname.endsWith('/auth/session')) {
       await route.fulfill(
         json({
-          barbershop: { id: 'demo', name: 'Barbería de prueba' },
+          business: { id: 'demo', name: 'Barbería de prueba' },
           expiresAt: '2099-01-01T00:00:00Z',
         }),
       )
     } else if (pathname.endsWith('/settings/brand')) {
       await route.fulfill(json(brand))
-    } else if (pathname.endsWith('/settings/barbershop')) {
+    } else if (pathname.endsWith('/settings/business')) {
       await route.fulfill(json(settings))
     } else if (pathname.endsWith('/integrations/google-calendar/connect')) {
       mock.calls.push('connect')
@@ -331,12 +331,12 @@ for (const viewport of [viewports[1], viewports[3]]) {
   }) => {
     const calls: string[] = []
     let linked = false
-    const mock = await mockApi(page, { ...disconnected, barberLinked: false })
+    const mock = await mockApi(page, { ...disconnected, professionalLinked: false })
     // Las rutas registradas después tienen prioridad sobre las de `mockApi`.
     await page.route('**/api/v1/private/settings/brand', (route) =>
       route.fulfill(json({ ...brand, panelProfile: 'solo' })),
     )
-    await page.route('**/api/v1/private/barbers**', (route) =>
+    await page.route('**/api/v1/private/professionals**', (route) =>
       route.fulfill(
         json({
           items: [
@@ -351,10 +351,10 @@ for (const viewport of [viewports[1], viewports[3]]) {
         }),
       ),
     )
-    await page.route('**/api/v1/private/me/barber', async (route) => {
+    await page.route('**/api/v1/private/me/professional', async (route) => {
       calls.push(`${route.request().method()}:${JSON.stringify(route.request().postDataJSON())}`)
       linked = true
-      mock.connection = { ...mock.connection, barberLinked: true }
+      mock.connection = { ...mock.connection, professionalLinked: true }
       await route.fulfill(
         json({
           id: 'b-unico',

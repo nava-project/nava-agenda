@@ -35,9 +35,9 @@ export interface ScheduleExceptionSegmentInput {
 export async function fetchHolidayCalendar(barberId: string): Promise<FetchHolidayCalendarOutcome> {
   try {
     const { data, response } = await httpClient.GET(
-      '/private/barbers/{barberId}/holiday-calendar',
+      '/private/professionals/{professionalId}/holiday-calendar',
       {
-        params: { path: { barberId } },
+        params: { path: { professionalId: barberId } },
       },
     )
 
@@ -62,9 +62,9 @@ export async function updateHolidayCalendar(
 ): Promise<UpdateHolidayCalendarOutcome> {
   try {
     const { data, response } = await httpClient.PATCH(
-      '/private/barbers/{barberId}/holiday-calendar',
+      '/private/professionals/{professionalId}/holiday-calendar',
       {
-        params: { path: { barberId } },
+        params: { path: { professionalId: barberId } },
         body: { enabled },
       },
     )
@@ -89,8 +89,8 @@ export async function fetchScheduleExceptions(
 ): Promise<FetchScheduleExceptionsOutcome> {
   try {
     const { data, response } = await httpClient.GET(
-      '/private/barbers/{barberId}/schedule-exceptions',
-      { params: { path: { barberId }, query: { limit: EXCEPTIONS_LIMIT } } },
+      '/private/professionals/{professionalId}/schedule-exceptions',
+      { params: { path: { professionalId: barberId }, query: { limit: EXCEPTIONS_LIMIT } } },
     )
 
     if (response.ok && data) {
@@ -118,9 +118,12 @@ export async function createScheduleException(
 ): Promise<CreateScheduleExceptionOutcome> {
   try {
     const { data, response, error } = await httpClient.POST(
-      '/private/barbers/{barberId}/schedule-exceptions',
+      '/private/professionals/{professionalId}/schedule-exceptions',
       {
-        params: { path: { barberId }, header: { 'Idempotency-Key': idempotencyKey } },
+        params: {
+          path: { professionalId: barberId },
+          header: { 'Idempotency-Key': idempotencyKey },
+        },
         body: { effectiveDate, isClosed, reason, segments },
       },
     )
@@ -160,9 +163,9 @@ export async function updateScheduleException(
 ): Promise<UpdateScheduleExceptionOutcome> {
   try {
     const { data, response } = await httpClient.PATCH(
-      '/private/barbers/{barberId}/schedule-exceptions/{exceptionId}',
+      '/private/professionals/{professionalId}/schedule-exceptions/{exceptionId}',
       {
-        params: { path: { barberId, exceptionId } },
+        params: { path: { professionalId: barberId, exceptionId } },
         body: { effectiveDate, isClosed, reason, segments },
       },
     )
@@ -192,8 +195,8 @@ export async function deleteScheduleException(
 ): Promise<DeleteScheduleExceptionOutcome> {
   try {
     const { response } = await httpClient.DELETE(
-      '/private/barbers/{barberId}/schedule-exceptions/{exceptionId}',
-      { params: { path: { barberId, exceptionId } } },
+      '/private/professionals/{professionalId}/schedule-exceptions/{exceptionId}',
+      { params: { path: { professionalId: barberId, exceptionId } } },
     )
 
     if (response.ok) {

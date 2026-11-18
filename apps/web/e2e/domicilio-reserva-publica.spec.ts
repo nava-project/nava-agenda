@@ -56,7 +56,7 @@ function json(body: unknown, status = 200) {
 async function installApi(page: Page, offersHomeService: boolean): Promise<ConfirmBody[]> {
   const confirmations: ConfirmBody[] = []
 
-  await page.route(`**/api/v1/public/barbershops/${SLUG}`, (route) =>
+  await page.route(`**/api/v1/public/businesses/${SLUG}`, (route) =>
     route.fulfill(
       json({
         name: 'Barbería Ejemplo',
@@ -69,31 +69,33 @@ async function installApi(page: Page, offersHomeService: boolean): Promise<Confi
       }),
     ),
   )
-  await page.route(`**/api/v1/public/barbershops/${SLUG}/services/${SERVICE_ID}/barbers`, (route) =>
-    route.fulfill(
-      json({
-        items: [
-          {
-            id: BARBER_ID,
-            fullName: 'Mateo Cruz',
-            description: null,
-            photoUpdatedAt: null,
-            rating: null,
-            ratingCount: 0,
-          },
-        ],
-      }),
-    ),
+  await page.route(
+    `**/api/v1/public/businesses/${SLUG}/services/${SERVICE_ID}/professionals`,
+    (route) =>
+      route.fulfill(
+        json({
+          items: [
+            {
+              id: BARBER_ID,
+              fullName: 'Mateo Cruz',
+              description: null,
+              photoUpdatedAt: null,
+              rating: null,
+              ratingCount: 0,
+            },
+          ],
+        }),
+      ),
   )
   await page.route(
-    `**/api/v1/public/barbershops/${SLUG}/services/${SERVICE_ID}/barbers/${BARBER_ID}/appointments`,
+    `**/api/v1/public/businesses/${SLUG}/services/${SERVICE_ID}/professionals/${BARBER_ID}/appointments`,
     async (route) => {
       confirmations.push(route.request().postDataJSON() as ConfirmBody)
       await route.fulfill(
         json(
           {
             attendeeName: 'Ana Ríos',
-            barbershopName: 'Barbería Ejemplo',
+            businessName: 'Barbería Ejemplo',
             serviceName: 'Corte clásico',
             durationMinutes: 30,
             priceAmount: '20000.00',

@@ -34,7 +34,7 @@ describe('requestAccessCode', () => {
     reply(202, { expiresInSeconds: 600, resendAfterSeconds: 60 })
     const outcome = await requestAccessCode('mi-barberia', ' Ana@Correo.Test ')
 
-    expect(postMock).toHaveBeenCalledWith('/public/barbershops/{slug}/customer-access/challenge', {
+    expect(postMock).toHaveBeenCalledWith('/public/businesses/{slug}/customer-access/challenge', {
       params: { path: { slug: 'mi-barberia' } },
       body: { contact: ' Ana@Correo.Test ' },
     })
@@ -93,12 +93,20 @@ describe('verifyAccessCode', () => {
       },
     ],
   }
+  // El contrato llama professionalName a lo que el modelo del panel guarda como barberName.
+  const grantedWire = {
+    ...granted,
+    appointments: granted.appointments.map(({ barberName, ...rest }) => ({
+      ...rest,
+      professionalName: barberName,
+    })),
+  }
 
   it('devuelve el acceso concedido con un token por turno', async () => {
-    reply(200, granted)
+    reply(200, grantedWire)
     const outcome = await verifyAccessCode('mi-barberia', 'a@b.co', '482913')
 
-    expect(postMock).toHaveBeenCalledWith('/public/barbershops/{slug}/customer-access/verify', {
+    expect(postMock).toHaveBeenCalledWith('/public/businesses/{slug}/customer-access/verify', {
       params: { path: { slug: 'mi-barberia' } },
       body: { contact: 'a@b.co', code: '482913' },
     })
@@ -134,7 +142,7 @@ describe('verifyAccessRef', () => {
     reply(200, { accessToken: 'tok-1', purpose: 'cancel' })
     const outcome = await verifyAccessRef('mi-barberia', 'ref-opaca', '482913')
 
-    expect(postMock).toHaveBeenCalledWith('/public/barbershops/{slug}/customer-access/verify-ref', {
+    expect(postMock).toHaveBeenCalledWith('/public/businesses/{slug}/customer-access/verify-ref', {
       params: { path: { slug: 'mi-barberia' } },
       body: { accessRef: 'ref-opaca', code: '482913' },
     })

@@ -4,7 +4,7 @@ import { test, expect, type Route } from '@playwright/test'
  * Recorrido E2E de HU-092 (docs/03-desarrollo/estrategia-pruebas.md §5.3):
  * selección pública de barbero. Mismo criterio que
  * reserva-publica-catalogo.spec.ts (HU-091): un único endpoint sin sesión
- * (`GET /public/barbershops/{slug}/services/{serviceId}/barbers`),
+ * (`GET /public/businesses/{slug}/services/{serviceId}/professionals`),
  * interceptado con `page.route(...).fulfill(...)` para cubrir cada estado
  * observable de forma determinista, sin depender de `database/testdata/
  * hu092_seleccion_barbero.sql` ni de un servidor Go real detrás.
@@ -27,7 +27,7 @@ test.describe('Selección pública de barbero (HU-092)', () => {
     page,
   }) => {
     await page.route(
-      `**/api/v1/public/barbershops/barberia-ejemplo/services/${SERVICE_ID}/barbers**`,
+      `**/api/v1/public/businesses/barberia-ejemplo/services/${SERVICE_ID}/professionals**`,
       async (route) => {
         await fulfillBarbers(route, [ana])
       },
@@ -43,7 +43,7 @@ test.describe('Selección pública de barbero (HU-092)', () => {
     page,
   }) => {
     await page.route(
-      `**/api/v1/public/barbershops/barberia-ejemplo/services/${SERVICE_ID}/barbers**`,
+      `**/api/v1/public/businesses/barberia-ejemplo/services/${SERVICE_ID}/professionals**`,
       async (route) => {
         await fulfillBarbers(route, [ana, luis])
       },
@@ -71,7 +71,7 @@ test.describe('Selección pública de barbero (HU-092)', () => {
     page,
   }) => {
     await page.route(
-      `**/api/v1/public/barbershops/barberia-ejemplo/services/${SERVICE_ID}/barbers**`,
+      `**/api/v1/public/businesses/barberia-ejemplo/services/${SERVICE_ID}/professionals**`,
       async (route) => {
         await fulfillBarbers(route, [])
       },
@@ -87,7 +87,7 @@ test.describe('Selección pública de barbero (HU-092)', () => {
     page,
   }) => {
     await page.route(
-      `**/api/v1/public/barbershops/**/services/${SERVICE_ID}/barbers**`,
+      `**/api/v1/public/businesses/**/services/${SERVICE_ID}/professionals**`,
       async (route) => {
         await route.fulfill({
           status: 404,
@@ -112,7 +112,7 @@ test.describe('Selección pública de barbero (HU-092)', () => {
   test('un fallo de red permite reintentar sin recargar la página', async ({ page }) => {
     let attempt = 0
     await page.route(
-      `**/api/v1/public/barbershops/barberia-ejemplo/services/${SERVICE_ID}/barbers**`,
+      `**/api/v1/public/businesses/barberia-ejemplo/services/${SERVICE_ID}/professionals**`,
       async (route) => {
         attempt += 1
         if (attempt === 1) {
@@ -142,7 +142,7 @@ test.describe('Selección pública de barbero (HU-092)', () => {
       price: '45000.00',
       currency: 'COP',
     }
-    await page.route('**/api/v1/public/barbershops/barberia-ejemplo/services**', async (route) => {
+    await page.route('**/api/v1/public/businesses/barberia-ejemplo/services**', async (route) => {
       await route.fulfill({
         status: 200,
         contentType: 'application/json',
@@ -150,7 +150,7 @@ test.describe('Selección pública de barbero (HU-092)', () => {
       })
     })
     await page.route(
-      `**/api/v1/public/barbershops/barberia-ejemplo/services/${SERVICE_ID}/barbers**`,
+      `**/api/v1/public/businesses/barberia-ejemplo/services/${SERVICE_ID}/professionals**`,
       async (route) => {
         await fulfillBarbers(route, [ana])
       },

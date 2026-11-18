@@ -56,9 +56,12 @@ describe('scheduleExceptionsApi.fetchHolidayCalendar', () => {
     const outcome = await fetchHolidayCalendar('b-1')
 
     expect(outcome).toEqual({ kind: 'success', enabled: true })
-    expect(getMock).toHaveBeenCalledWith('/private/barbers/{barberId}/holiday-calendar', {
-      params: { path: { barberId: 'b-1' } },
-    })
+    expect(getMock).toHaveBeenCalledWith(
+      '/private/professionals/{professionalId}/holiday-calendar',
+      {
+        params: { path: { professionalId: 'b-1' } },
+      },
+    )
   })
 
   it('maps a 404 to not-found (RN-TEN-01)', async () => {
@@ -81,10 +84,13 @@ describe('scheduleExceptionsApi.updateHolidayCalendar', () => {
     const outcome = await updateHolidayCalendar('b-1', true)
 
     expect(outcome).toEqual({ kind: 'success', enabled: true })
-    expect(patchMock).toHaveBeenCalledWith('/private/barbers/{barberId}/holiday-calendar', {
-      params: { path: { barberId: 'b-1' } },
-      body: { enabled: true },
-    })
+    expect(patchMock).toHaveBeenCalledWith(
+      '/private/professionals/{professionalId}/holiday-calendar',
+      {
+        params: { path: { professionalId: 'b-1' } },
+        body: { enabled: true },
+      },
+    )
   })
 
   it('maps a 404 to not-found', async () => {
@@ -105,9 +111,12 @@ describe('scheduleExceptionsApi.fetchScheduleExceptions', () => {
       kind: 'success',
       page: { items: [exceptionBody], nextCursor: null },
     })
-    expect(getMock).toHaveBeenCalledWith('/private/barbers/{barberId}/schedule-exceptions', {
-      params: { path: { barberId: 'b-1' }, query: { limit: 50 } },
-    })
+    expect(getMock).toHaveBeenCalledWith(
+      '/private/professionals/{professionalId}/schedule-exceptions',
+      {
+        params: { path: { professionalId: 'b-1' }, query: { limit: 50 } },
+      },
+    )
   })
 
   it('maps a 404 to not-found', async () => {
@@ -130,10 +139,13 @@ describe('scheduleExceptionsApi.createScheduleException', () => {
     const outcome = await createScheduleException('b-1', '2026-12-08', true, null, [], 'key-1')
 
     expect(outcome).toEqual({ kind: 'success', exception: exceptionBody })
-    expect(postMock).toHaveBeenCalledWith('/private/barbers/{barberId}/schedule-exceptions', {
-      params: { path: { barberId: 'b-1' }, header: { 'Idempotency-Key': 'key-1' } },
-      body: { effectiveDate: '2026-12-08', isClosed: true, reason: null, segments: [] },
-    })
+    expect(postMock).toHaveBeenCalledWith(
+      '/private/professionals/{professionalId}/schedule-exceptions',
+      {
+        params: { path: { professionalId: 'b-1' }, header: { 'Idempotency-Key': 'key-1' } },
+        body: { effectiveDate: '2026-12-08', isClosed: true, reason: null, segments: [] },
+      },
+    )
   })
 
   it('maps a 404 to not-found', async () => {
@@ -182,9 +194,9 @@ describe('scheduleExceptionsApi.updateScheduleException', () => {
 
     expect(outcome).toEqual({ kind: 'success', exception: exceptionBody })
     expect(patchMock).toHaveBeenCalledWith(
-      '/private/barbers/{barberId}/schedule-exceptions/{exceptionId}',
+      '/private/professionals/{professionalId}/schedule-exceptions/{exceptionId}',
       {
-        params: { path: { barberId: 'b-1', exceptionId: 'exc-1' } },
+        params: { path: { professionalId: 'b-1', exceptionId: 'exc-1' } },
         body: { effectiveDate: '2026-12-08', isClosed: true, reason: null, segments: [] },
       },
     )

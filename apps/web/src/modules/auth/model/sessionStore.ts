@@ -91,7 +91,7 @@ export async function ensureBootstrapped(): Promise<void> {
  * autenticado (HU-020, CA-020-02): la cabecera refleja el nuevo nombre sin
  * recargar la aplicación. Se llama SOLO después de que el servidor
  * confirma el guardado (respuesta 200 de
- * `PATCH /private/settings/barbershop`); un fallo de guardado nunca invoca
+ * `PATCH /private/settings/business`); un fallo de guardado nunca invoca
  * esta función (sin optimismo). No hace nada si el estado no está
  * `authenticated` (defecto de orden de llamada: la sección de
  * configuración solo es alcanzable ya autenticado). La próxima

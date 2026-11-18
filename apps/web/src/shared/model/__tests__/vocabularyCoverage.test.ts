@@ -13,12 +13,12 @@ const sources = import.meta.glob(
 ) as Record<string, string>
 
 // Identificadores que contienen la palabra y no son texto de pantalla: nombres de
-// ruta, rutas, claves técnicas del contrato (`cancelled_by_barber`, `barber_id`)
+// ruta, rutas, claves técnicas del contrato (`cancelled_by_professional`, `barber_id`)
 // y los valores iniciales declarados como respaldo.
 const ALLOWED = [
   /staff-barberos|configuracion-barberia|reserva-publica-barbero|barber-services/,
   /servicios-por-barbero|path: '([^']*\/)?barber(o|os|ia)?[/']/,
-  /cancelled_by_barber|appointment_cancelled_by_barber|barber_id/,
+  /cancelled_by_professional|appointment_cancelled_by_professional|barber_id/,
   /\b(label|term|singular|plural): '(Barberos|Servicios por barbero|barber[a-zí]*)'/,
   /label: 'Servicios por barbero'|label: 'Barberos'/,
 ]

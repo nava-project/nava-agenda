@@ -27,12 +27,12 @@ function errorResponse(status: number): Response {
 
 function successData() {
   return {
-    barbershopName: 'Barbería Ejemplo',
+    businessName: 'Barbería Ejemplo',
     timezone: 'America/Bogota',
     attendeeName: 'Cliente Ejemplo',
     serviceName: 'Corte clásico',
     durationMinutes: 30,
-    barberName: 'Barbero Ejemplo',
+    professionalName: 'Barbero Ejemplo',
     startsAt: '2027-03-15T15:00:00Z',
     endsAt: '2027-03-15T15:30:00Z',
     status: 'confirmed',
@@ -40,8 +40,8 @@ function successData() {
     lateCancellationClientAllowed: true,
     lateCancellationReasonRequired: true,
     versionToken: 'version-token-1',
-    barbershopContactEmail: 'contacto@barberia-ejemplo.test',
-    barbershopContactPhone: '+573001234567',
+    businessContactEmail: 'contacto@barberia-ejemplo.test',
+    businessContactPhone: '+573001234567',
     vocabulary: {
       businessTerm: 'barbería',
       businessTermGender: 'feminine',
@@ -96,7 +96,7 @@ describe('CustomerAppointmentPage', () => {
     expect(wrapper.text()).toContain('Buscando tu turno')
 
     getMock.mockResolvedValueOnce({
-      data: { ...successData(), barbershopName: 'Barbería B' },
+      data: { ...successData(), businessName: 'Barbería B' },
       error: undefined,
       response: okResponse(),
     })
@@ -109,7 +109,7 @@ describe('CustomerAppointmentPage', () => {
     expect(wrapper.text()).toContain('Barbería B')
 
     resolveFirst({
-      data: { ...successData(), barbershopName: 'Barbería A' },
+      data: { ...successData(), businessName: 'Barbería A' },
       error: undefined,
       response: okResponse(),
     })
@@ -244,9 +244,9 @@ describe('CustomerAppointmentPage', () => {
     getMock.mockResolvedValueOnce({
       data: {
         ...successData(),
-        barbershopName: 'Estudio Lila',
-        barberName: 'Laura Mejía',
-        status: 'cancelled_by_barber',
+        businessName: 'Estudio Lila',
+        professionalName: 'Laura Mejía',
+        status: 'cancelled_by_professional',
         lateCancellationClientAllowed: false,
         vocabulary: {
           businessTerm: 'estudio',
@@ -273,8 +273,8 @@ describe('CustomerAppointmentPage', () => {
     getMock.mockResolvedValueOnce({
       data: {
         ...successData(),
-        barbershopName: 'Estudio Lila',
-        barberName: 'Laura Mejía',
+        businessName: 'Estudio Lila',
+        professionalName: 'Laura Mejía',
         status: 'confirmed',
         lateCancellationClientAllowed: false,
         vocabulary: {
@@ -660,7 +660,7 @@ describe('CustomerAppointmentPage · cancelación (HU-099)', () => {
     const wrapper = await mountConfirmed()
     await openForm(wrapper)
     getMock.mockResolvedValueOnce({
-      data: { ...successData(), status: 'cancelled_by_barber' },
+      data: { ...successData(), status: 'cancelled_by_professional' },
       error: undefined,
       response: okResponse(),
     })

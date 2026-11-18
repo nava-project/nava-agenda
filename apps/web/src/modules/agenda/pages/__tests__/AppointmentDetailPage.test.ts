@@ -328,7 +328,11 @@ describe('AppointmentDetailPage', () => {
           reason: 'corrección administrativa de estado',
           occurredAt: '2026-08-21T09:15:00Z',
           changes: [
-            { fieldName: 'status', previousValue: 'confirmed', newValue: 'cancelled_by_barber' },
+            {
+              fieldName: 'status',
+              previousValue: 'confirmed',
+              newValue: 'cancelled_by_professional',
+            },
           ],
         },
       ],
@@ -338,7 +342,7 @@ describe('AppointmentDetailPage', () => {
 
     expect(wrapper.text()).toContain('Estado corregido')
     expect(wrapper.text()).toContain('corrección administrativa de estado')
-    expect(wrapper.text()).toContain('Estado: confirmed → cancelled_by_barber')
+    expect(wrapper.text()).toContain('Estado: confirmed → cancelled_by_professional')
   })
 
   it('shows a "Cargar más" button when the history has a next page, and loads it', async () => {
@@ -637,7 +641,7 @@ describe('AppointmentDetailPage', () => {
     cancelAppointmentByBarberMock.mockResolvedValueOnce({ kind: 'success' })
     fetchAppointmentDetailMock.mockResolvedValueOnce({
       kind: 'success',
-      detail: { ...readyDetail, status: 'cancelled_by_barber' },
+      detail: { ...readyDetail, status: 'cancelled_by_professional' },
     })
     await confirmCancel(wrapper)
 
@@ -748,10 +752,10 @@ describe('AppointmentDetailPage', () => {
     expect(wrapper.element.querySelector('.base-dialog--open')).toBeTruthy()
   })
 
-  it('renders a status badge reflecting the terminal cancelled_by_barber state', async () => {
+  it('renders a status badge reflecting the terminal cancelled_by_professional state', async () => {
     fetchAppointmentDetailMock.mockResolvedValue({
       kind: 'success',
-      detail: { ...readyDetail, status: 'cancelled_by_barber' },
+      detail: { ...readyDetail, status: 'cancelled_by_professional' },
     })
     const { wrapper } = await mountPage()
 
@@ -798,7 +802,7 @@ describe('AppointmentDetailPage', () => {
   it('does not show the close actions for a non-confirmed appointment', async () => {
     fetchAppointmentDetailMock.mockResolvedValue({
       kind: 'success',
-      detail: { ...readyDetail, status: 'cancelled_by_barber' },
+      detail: { ...readyDetail, status: 'cancelled_by_professional' },
     })
     const { wrapper } = await mountPage()
 
@@ -1074,7 +1078,7 @@ describe('AppointmentDetailPage', () => {
   it('offers only the other three terminals as destination, never confirmed', async () => {
     fetchAppointmentDetailMock.mockResolvedValue({
       kind: 'success',
-      detail: { ...readyDetail, status: 'cancelled_by_barber' },
+      detail: { ...readyDetail, status: 'cancelled_by_professional' },
     })
     const { wrapper } = await mountPage()
     await openCorrectDialog(wrapper)
@@ -1084,7 +1088,7 @@ describe('AppointmentDetailPage', () => {
       .filter((v): v is string => !!v)
     expect(options.sort()).toEqual(['cancelled_by_customer', 'completed', 'no_show'].sort())
     expect(options).not.toContain('confirmed')
-    expect(options).not.toContain('cancelled_by_barber')
+    expect(options).not.toContain('cancelled_by_professional')
   })
 
   it('disables the confirm button until both a destination and a reason are filled', async () => {
@@ -1264,7 +1268,7 @@ describe('AppointmentDetailPage', () => {
   it('on a schedule conflict, shows the server message without offering a reload', async () => {
     fetchAppointmentDetailMock.mockResolvedValue({
       kind: 'success',
-      detail: { ...readyDetail, status: 'cancelled_by_barber' },
+      detail: { ...readyDetail, status: 'cancelled_by_professional' },
     })
     const { wrapper } = await mountPage()
     await openCorrectDialog(wrapper)
@@ -1284,7 +1288,7 @@ describe('AppointmentDetailPage', () => {
   it('on a validation error, shows the server message', async () => {
     fetchAppointmentDetailMock.mockResolvedValue({
       kind: 'success',
-      detail: { ...readyDetail, status: 'cancelled_by_barber' },
+      detail: { ...readyDetail, status: 'cancelled_by_professional' },
     })
     const { wrapper } = await mountPage()
     await openCorrectDialog(wrapper)

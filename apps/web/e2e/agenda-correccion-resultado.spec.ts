@@ -8,12 +8,12 @@ import { pickAgendaDate } from './agenda-fecha'
  * un hash argon2id REAL), mismo criterio que
  * `e2e/agenda-cancelacion-turno.spec.ts` (HU-066).
  *
- * La cita se lleva a `cancelled_by_barber` (T6, "Cancelar turno") antes de
+ * La cita se lleva a `cancelled_by_professional` (T6, "Cancelar turno") antes de
  * corregirla: es el único camino real de la interfaz para obtener un
  * terminal sin esperar a que `startsAt` pase (el formulario de alta exige
  * un inicio futuro, y "Marcar como atendido"/"que no asistió" solo
  * aparecen una vez que ya pasó). La corrección de destino usada aquí
- * (`cancelled_by_barber` -> `cancelled_by_customer`) no cruza la frontera
+ * (`cancelled_by_professional` -> `cancelled_by_customer`) no cruza la frontera
  * temporal de CA-068-04 porque ninguno de los dos ocupa agenda. La matriz
  * completa de doce transiciones -- incluidas `completed`/`no_show`, la
  * frontera temporal y el cruce de agenda -- ya está cubierta contra
@@ -169,7 +169,7 @@ test.describe('Corrección auditada de un resultado terminal (HU-068, T8)', () =
     await expect(correctDialog).toBeHidden()
 
     // El detalle recargado muestra el nuevo estado terminal; el historial
-    // conserva el evento original (cancelled_by_barber) Y agrega el de
+    // conserva el evento original (cancelled_by_professional) Y agrega el de
     // corrección, nunca reemplaza ni oculta el anterior (CA-068-03).
     await expect(page.getByRole('heading', { name: attendeeName })).toBeVisible()
     await expect(page.getByText('Cancelado por el cliente')).toBeVisible()

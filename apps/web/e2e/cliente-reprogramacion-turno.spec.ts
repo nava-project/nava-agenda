@@ -27,12 +27,12 @@ const RESCHEDULE_URL = `**/api/v1/customer/appointments/${TOKEN}/reschedule`
 
 // Lunes 15 de marzo de 2027, 10:00 en Bogotá; plazo de 60 minutos.
 const APPOINTMENT_VIEW = {
-  barbershopName: 'Barbería Ejemplo',
+  businessName: 'Barbería Ejemplo',
   timezone: 'America/Bogota',
   attendeeName: 'Cliente Ejemplo',
   serviceName: 'Corte clásico',
   durationMinutes: 30,
-  barberName: 'Barbero Ejemplo',
+  professionalName: 'Barbero Ejemplo',
   startsAt: '2027-03-15T15:00:00Z',
   endsAt: '2027-03-15T15:30:00Z',
   status: 'confirmed',
@@ -40,8 +40,8 @@ const APPOINTMENT_VIEW = {
   lateCancellationClientAllowed: false,
   lateCancellationReasonRequired: false,
   versionToken: 'version-token-1',
-  barbershopContactEmail: 'contacto@barberia-ejemplo.test',
-  barbershopContactPhone: '+573001234567',
+  businessContactEmail: 'contacto@barberia-ejemplo.test',
+  businessContactPhone: '+573001234567',
   vocabulary: INITIAL_VOCABULARY,
   canReview: false,
   review: null,

@@ -14,19 +14,22 @@ import type { Vocabulary, VocabularyTerms } from '@/shared/model'
  * criterio que publicbooking frente a booking en el backend): los módulos
  * de frontend no se importan entre sí, solo desde `shared`. */
 export type AppointmentStatus =
-  'confirmed' | 'completed' | 'cancelled_by_customer' | 'cancelled_by_barber' | 'no_show'
+  'confirmed' | 'completed' | 'cancelled_by_customer' | 'cancelled_by_professional' | 'no_show'
 
-const FIXED_STATUS_LABELS: Record<Exclude<AppointmentStatus, 'cancelled_by_barber'>, string> = {
+const FIXED_STATUS_LABELS: Record<
+  Exclude<AppointmentStatus, 'cancelled_by_professional'>,
+  string
+> = {
   confirmed: 'Confirmado',
   completed: 'Completado',
   cancelled_by_customer: 'Cancelado por el cliente',
   no_show: 'No se presentó',
 }
 
-// El estado técnico `cancelled_by_barber` no se renombra (DEC-016); su etiqueta
+// El estado técnico `cancelled_by_professional` no se renombra (DEC-016); su etiqueta
 // nombra a quien atendía con la palabra de la barbería (DEC-119).
 export function appointmentStatusLabel(status: AppointmentStatus, v: Vocabulary): string {
-  return status === 'cancelled_by_barber'
+  return status === 'cancelled_by_professional'
     ? `Cancelado ${v.byTheProfessional}`
     : FIXED_STATUS_LABELS[status]
 }
@@ -42,7 +45,7 @@ export const APPOINTMENT_STATUS_BADGE_VARIANT: Record<
   confirmed: 'info',
   completed: 'success',
   cancelled_by_customer: 'neutral',
-  cancelled_by_barber: 'danger',
+  cancelled_by_professional: 'danger',
   no_show: 'warning',
 }
 

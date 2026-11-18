@@ -23,12 +23,12 @@ const ok = (status = 200) => ({ ok: true, status, headers: new Headers() }) as R
 
 function view(over: Record<string, unknown> = {}) {
   return {
-    barbershopName: 'Casa Ejemplo',
+    businessName: 'Casa Ejemplo',
     timezone: 'America/Bogota',
     attendeeName: 'Cliente Ejemplo',
     serviceName: 'Corte clásico',
     durationMinutes: 30,
-    barberName: 'Juan',
+    professionalName: 'Juan',
     startsAt: STARTS_AT,
     endsAt: '2027-03-15T15:30:00Z',
     status: 'confirmed',
@@ -36,8 +36,8 @@ function view(over: Record<string, unknown> = {}) {
     lateCancellationClientAllowed: false,
     lateCancellationReasonRequired: false,
     versionToken: 'v-1',
-    barbershopContactEmail: 'contacto@ejemplo.test',
-    barbershopContactPhone: '+573001234567',
+    businessContactEmail: 'contacto@ejemplo.test',
+    businessContactPhone: '+573001234567',
     vocabulary: {
       businessTerm: 'barbería',
       businessTermGender: 'feminine',

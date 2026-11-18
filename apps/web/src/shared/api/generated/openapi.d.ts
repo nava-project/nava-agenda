@@ -4,7 +4,7 @@
  */
 
 export interface paths {
-    "/public/barbershops/{slug}": {
+    "/public/businesses/{slug}": {
         parameters: {
             query?: never;
             header?: never;
@@ -12,10 +12,10 @@ export interface paths {
             cookie?: never;
         };
         /**
-         * Abrir el contexto público de una barbería por su enlace de reservas
-         * @description Resuelve `slug` -el identificador del enlace público de reservas (F-PUB-01, DEC-082)- a la barbería habilitada correspondiente, sin sesión (HU-090, CA-090-01). El cliente nunca fija `barbershopId`: ni este parámetro de ruta ni ningún otro dato de la solicitud lo declaran (CA-090-03); API, aplicación y PostgreSQL resuelven y aíslan el tenant mediante `public_resolve_barbershop_by_slug`, la función `SECURITY DEFINER` estrecha que agrega la migración `20260911045044_add_barbershop_public_slug.sql`. Un `slug` mal formado, desconocido o de una barbería no publicable (`public_slug` `NULL`) produce EXACTAMENTE la misma respuesta `404` uniforme (CA-090-02, RN-TEN-01): esta operación nunca distingue la causa. La respuesta trae solo los datos públicos ya autorizados por HU-020 (nombre, zona horaria IANA, contacto opcional); nunca un identificador interno, el slug mismo, ni ningún dato de configuración privada (CA-090-04).
+         * Abrir el contexto público de un negocio por su enlace de reservas
+         * @description Resuelve `slug` -el identificador del enlace público de reservas (F-PUB-01, DEC-082)- al negocio habilitado correspondiente, sin sesión (HU-090, CA-090-01). El cliente nunca fija `businessId`: ni este parámetro de ruta ni ningún otro dato de la solicitud lo declaran (CA-090-03); API, aplicación y PostgreSQL resuelven y aíslan el tenant mediante `public_resolve_business_by_slug`, la función `SECURITY DEFINER` estrecha de DEC-082 (renombrada por DEC-183). Un `slug` mal formado, desconocido o de un negocio no publicable (`public_slug` `NULL`) produce EXACTAMENTE la misma respuesta `404` uniforme (CA-090-02, RN-TEN-01): esta operación nunca distingue la causa. La respuesta trae solo los datos públicos ya autorizados por HU-020 (nombre, zona horaria IANA, contacto opcional); nunca un identificador interno, el slug mismo, ni ningún dato de configuración privada (CA-090-04).
          */
-        get: operations["resolvePublicBarbershop"];
+        get: operations["resolvePublicBusiness"];
         put?: never;
         post?: never;
         delete?: never;
@@ -24,7 +24,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/public/barbershops/{slug}/services": {
+    "/public/businesses/{slug}/services": {
         parameters: {
             query?: never;
             header?: never;
@@ -32,8 +32,8 @@ export interface paths {
             cookie?: never;
         };
         /**
-         * Listar el catálogo público de servicios de una barbería
-         * @description Lista paginada por cursor (HU-091, CA-091-01) de los servicios ACTIVOS con al menos una asignación vigente a un barbero de la barbería resuelta por `slug`, sin sesión. Mismo `slug` y misma resolución sin contexto de tenant que `GET /public/barbershops/{slug}` (`public_resolve_barbershop_by_slug`); un `slug` mal formado, desconocido o de una barbería no publicable produce EXACTAMENTE la misma respuesta `404` uniforme (CA-090-02, RN-TEN-01). Un servicio inactivo o sin ninguna asignación vigente nunca aparece (CA-091-01, CA-091-02); desactivar un servicio lo retira de esta lista sin alterar ninguna cita existente (RN-SER-04). La proyección es mínima: nombre, descripción, duración, precio y moneda; nunca estado de ciclo de vida, auditoría ni ningún identificador de tenant (CA-091-01, RN-DAT-02).
+         * Listar el catálogo público de servicios de un negocio
+         * @description Lista paginada por cursor (HU-091, CA-091-01) de los servicios ACTIVOS con al menos una asignación vigente a un profesional del negocio resuelto por `slug`, sin sesión. Mismo `slug` y misma resolución sin contexto de tenant que `GET /public/businesses/{slug}` (`public_resolve_business_by_slug`); un `slug` mal formado, desconocido o de un negocio no publicable produce EXACTAMENTE la misma respuesta `404` uniforme (CA-090-02, RN-TEN-01). Un servicio inactivo o sin ninguna asignación vigente nunca aparece (CA-091-01, CA-091-02); desactivar un servicio lo retira de esta lista sin alterar ninguna cita existente (RN-SER-04). La proyección es mínima: nombre, descripción, duración, precio y moneda; nunca estado de ciclo de vida, auditoría ni ningún identificador de tenant (CA-091-01, RN-DAT-02).
          */
         get: operations["listPublicServices"];
         put?: never;
@@ -44,7 +44,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/public/barbershops/{slug}/barbers": {
+    "/public/businesses/{slug}/professionals": {
         parameters: {
             query?: never;
             header?: never;
@@ -52,10 +52,10 @@ export interface paths {
             cookie?: never;
         };
         /**
-         * Listar los barberos elegibles de la barbería con los servicios que hacen
-         * @description Agregado de solo lectura (DEC-162) para clientes que necesitan el mapa barbero-servicio completo en una sola lectura (por ejemplo el agente Odin), en lugar de llamar `GET /public/barbershops/{slug}/services/{serviceId}/barbers` una vez por servicio. Lista todos los barberos de la barbería resuelta por `slug` con al menos una asignación vigente a un servicio ACTIVO; cada uno con `id`, `fullName` (mismo saneamiento que el elemento de la operación por servicio) y `serviceIds`, los ids de los servicios activos que hace. Un servicio inactivo no aparece en `serviceIds`, y un barbero cuyas únicas asignaciones son a servicios inactivos no aparece en la lista. Orden estable: barberos por fecha de alta y luego `id`; `serviceIds` por fecha de alta del servicio y luego `id`. Sin paginar (mismo criterio que la operación por servicio). Mismo `slug` y misma resolución sin contexto de tenant que `GET /public/barbershops/{slug}`; un `slug` mal formado, desconocido o de una barbería no publicable produce EXACTAMENTE la misma respuesta `404` uniforme (CA-090-02, RN-TEN-01). La barbería sale siempre del `slug` resuelto en servidor; no existe ningún parámetro de tenant. Es de solo lectura (no crea filas ni sesiones). La operación por servicio sigue vigente y sin cambios.
+         * Listar los profesionales elegibles del negocio con los servicios que hacen
+         * @description Agregado de solo lectura (DEC-162) para clientes que necesitan el mapa profesional-servicio completo en una sola lectura (por ejemplo el agente Odin), en lugar de llamar `GET /public/businesses/{slug}/services/{serviceId}/professionals` una vez por servicio. Lista todos los profesionales del negocio resuelto por `slug` con al menos una asignación vigente a un servicio ACTIVO; cada uno con `id`, `fullName` (mismo saneamiento que el elemento de la operación por servicio) y `serviceIds`, los ids de los servicios activos que hace. Un servicio inactivo no aparece en `serviceIds`, y un profesional cuyas únicas asignaciones son a servicios inactivos no aparece en la lista. Orden estable: profesionales por fecha de alta y luego `id`; `serviceIds` por fecha de alta del servicio y luego `id`. Sin paginar (mismo criterio que la operación por servicio). Mismo `slug` y misma resolución sin contexto de tenant que `GET /public/businesses/{slug}`; un `slug` mal formado, desconocido o de un negocio no publicable produce EXACTAMENTE la misma respuesta `404` uniforme (CA-090-02, RN-TEN-01). El negocio sale siempre del `slug` resuelto en servidor; no existe ningún parámetro de tenant. Es de solo lectura (no crea filas ni sesiones). La operación por servicio sigue vigente y sin cambios.
          */
-        get: operations["listPublicBarbersWithServices"];
+        get: operations["listPublicProfessionalsWithServices"];
         put?: never;
         post?: never;
         delete?: never;
@@ -64,7 +64,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/public/barbershops/{slug}/services/{serviceId}/availability": {
+    "/public/businesses/{slug}/services/{serviceId}/availability": {
         parameters: {
             query?: never;
             header?: never;
@@ -72,8 +72,8 @@ export interface paths {
             cookie?: never;
         };
         /**
-         * Listar los inicios públicos válidos de un servicio con todos sus barberos
-         * @description Agregado de solo lectura (DEC-162) de la disponibilidad pública: en una sola respuesta, los inicios válidos del servicio activo `serviceId` para TODOS los barberos con asignación vigente a él, en lugar de llamar `GET /public/barbershops/{slug}/services/{serviceId}/barbers/{barberId}/availability` una vez por barbero. Reutiliza exactamente el mismo cálculo que esa operación (jornada efectiva, bloqueos, citas que ocupan agenda, duración del servicio, anticipación mínima, ventana máxima y rejilla de la barbería, DEC-135), así que cada barbero obtiene las mismas franjas que por la operación individual y la ventana es idéntica. `slots` va ordenado por (`startsAt`, `barberId`); `durationMinutes`, `timezone` y `slotGridMinutes` se comparten por todos los barberos. El tamaño crece con barberos x días x franjas por día. Mismo `slug` y misma resolución sin contexto de tenant que `GET /public/barbershops/{slug}`; un `slug` mal formado, desconocido o de una barbería no publicable produce EXACTAMENTE la misma respuesta `404` uniforme (CA-090-02, RN-TEN-01). `serviceId` sin forma de UUID, ajeno a esta barbería, inexistente, inactivo o sin ningún barbero con asignación vigente NUNCA produce un error distinto (mismo criterio que CA-092-03): la respuesta es `200` con `slots: []`, `durationMinutes: 0`, `timezone: ""` y `slotGridMinutes: 0` -la causa no se distingue. Consultar esta operación no reserva ni aparta ninguna franja (RN-DIS-03) y no crea filas, bloqueos ni sesiones. La operación por barbero sigue vigente y sin cambios.
+         * Listar los inicios públicos válidos de un servicio con todos sus profesionales
+         * @description Agregado de solo lectura (DEC-162) de la disponibilidad pública: en una sola respuesta, los inicios válidos del servicio activo `serviceId` para TODOS los profesionales con asignación vigente a él, en lugar de llamar `GET /public/businesses/{slug}/services/{serviceId}/professionals/{professionalId}/availability` una vez por profesional. Reutiliza exactamente el mismo cálculo que esa operación (jornada efectiva, bloqueos, citas que ocupan agenda, duración del servicio, anticipación mínima, ventana máxima y rejilla del negocio, DEC-135), así que cada profesional obtiene las mismas franjas que por la operación individual y la ventana es idéntica. `slots` va ordenado por (`startsAt`, `professionalId`); `durationMinutes`, `timezone` y `slotGridMinutes` se comparten por todos los profesionales. El tamaño crece con profesionales x días x franjas por día. Mismo `slug` y misma resolución sin contexto de tenant que `GET /public/businesses/{slug}`; un `slug` mal formado, desconocido o de un negocio no publicable produce EXACTAMENTE la misma respuesta `404` uniforme (CA-090-02, RN-TEN-01). `serviceId` sin forma de UUID, ajeno a este negocio, inexistente, inactivo o sin ningún profesional con asignación vigente NUNCA produce un error distinto (mismo criterio que CA-092-03): la respuesta es `200` con `slots: []`, `durationMinutes: 0`, `timezone: ""` y `slotGridMinutes: 0` -la causa no se distingue. Consultar esta operación no reserva ni aparta ninguna franja (RN-DIS-03) y no crea filas, bloqueos ni sesiones. La operación por profesional sigue vigente y sin cambios.
          */
         get: operations["listPublicServiceAvailability"];
         put?: never;
@@ -84,7 +84,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/public/barbershops/{slug}/barbers/{barberId}/photo": {
+    "/public/businesses/{slug}/professionals/{professionalId}/photo": {
         parameters: {
             query?: never;
             header?: never;
@@ -92,10 +92,10 @@ export interface paths {
             cookie?: never;
         };
         /**
-         * Leer la fotografía pública de un barbero
-         * @description Sirve los bytes de la fotografía de un barbero que la reserva pública ya muestra (DEC-127), sin sesión. Se usa como `src` de una imagen. Lleva `ETag` (derivado de `photoUpdatedAt`) y responde `304` a una solicitud condicional con `If-None-Match`; el cliente añade `photoUpdatedAt` como parámetro de consulta de la URL solo para invalidar su propia caché, el servidor lo ignora. Solo se sirve la imagen de un barbero con asignación vigente a un servicio activo: un `slug` inválido o de una barbería no publicable, un `barberId` inexistente, de otra barbería, sin fotografía o sin asignación vigente responden exactamente el mismo `404`, sin distinguir la causa (CA-090-02, RN-TEN-01, RN-DAT-02).
+         * Leer la fotografía pública de un profesional
+         * @description Sirve los bytes de la fotografía de un profesional que la reserva pública ya muestra (DEC-127), sin sesión. Se usa como `src` de una imagen. Lleva `ETag` (derivado de `photoUpdatedAt`) y responde `304` a una solicitud condicional con `If-None-Match`; el cliente añade `photoUpdatedAt` como parámetro de consulta de la URL solo para invalidar su propia caché, el servidor lo ignora. Solo se sirve la imagen de un profesional con asignación vigente a un servicio activo: un `slug` inválido o de un negocio no publicable, un `professionalId` inexistente, de otro negocio, sin fotografía o sin asignación vigente responden exactamente el mismo `404`, sin distinguir la causa (CA-090-02, RN-TEN-01, RN-DAT-02).
          */
-        get: operations["getPublicBarberPhoto"];
+        get: operations["getPublicProfessionalPhoto"];
         put?: never;
         post?: never;
         delete?: never;
@@ -104,7 +104,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/public/barbershops/{slug}/services/{serviceId}/barbers": {
+    "/public/businesses/{slug}/services/{serviceId}/professionals": {
         parameters: {
             query?: never;
             header?: never;
@@ -112,10 +112,10 @@ export interface paths {
             cookie?: never;
         };
         /**
-         * Listar los barberos elegibles para un servicio público
-         * @description Lista (HU-092, CA-092-02) los barberos de la barbería resuelta por `slug` con asignación vigente al servicio activo `serviceId`. Mismo `slug` y misma resolución sin contexto de tenant que `GET /public/barbershops/{slug}` (`public_resolve_barbershop_by_slug`); un `slug` mal formado, desconocido o de una barbería no publicable produce EXACTAMENTE la misma respuesta `404` uniforme (CA-090-02, RN-TEN-01). `serviceId` sin forma de UUID, ajeno a esta barbería, inexistente o de un servicio inactivo NUNCA produce un error distinto (CA-092-03): en todos esos casos la respuesta es `200` con `items: []`, exactamente igual que un servicio sin ningún barbero asignado hoy -la causa no se distingue. La proyección es mínima: id, nombre completo y, por DEC-127, descripción opcional y versión de la fotografía opcional (`photoUpdatedAt`; los bytes se piden aparte); nunca preferencia ni ningún identificador de tenant (CA-092-02, RN-DAT-02). El cliente decide la preselección automática (exactamente un elemento) o la elección explícita (varios elementos) a partir del tamaño de `items`; el contrato no agrega un campo adicional para eso (CA-092-01).
+         * Listar los profesionales elegibles para un servicio público
+         * @description Lista (HU-092, CA-092-02) los profesionales del negocio resuelto por `slug` con asignación vigente al servicio activo `serviceId`. Mismo `slug` y misma resolución sin contexto de tenant que `GET /public/businesses/{slug}` (`public_resolve_business_by_slug`); un `slug` mal formado, desconocido o de un negocio no publicable produce EXACTAMENTE la misma respuesta `404` uniforme (CA-090-02, RN-TEN-01). `serviceId` sin forma de UUID, ajeno a este negocio, inexistente o de un servicio inactivo NUNCA produce un error distinto (CA-092-03): en todos esos casos la respuesta es `200` con `items: []`, exactamente igual que un servicio sin ningún profesional asignado hoy -la causa no se distingue. La proyección es mínima: id, nombre completo y, por DEC-127, descripción opcional y versión de la fotografía opcional (`photoUpdatedAt`; los bytes se piden aparte); nunca preferencia ni ningún identificador de tenant (CA-092-02, RN-DAT-02). El cliente decide la preselección automática (exactamente un elemento) o la elección explícita (varios elementos) a partir del tamaño de `items`; el contrato no agrega un campo adicional para eso (CA-092-01).
          */
-        get: operations["listPublicBarbers"];
+        get: operations["listPublicProfessionals"];
         put?: never;
         post?: never;
         delete?: never;
@@ -124,7 +124,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/public/barbershops/{slug}/services/{serviceId}/barbers/{barberId}/availability": {
+    "/public/businesses/{slug}/services/{serviceId}/professionals/{professionalId}/availability": {
         parameters: {
             query?: never;
             header?: never;
@@ -132,8 +132,8 @@ export interface paths {
             cookie?: never;
         };
         /**
-         * Listar los inicios públicos válidos de un servicio con un barbero
-         * @description Proyecta (HU-094, CA-094-01 a CA-094-06) los instantes donde el servicio activo `serviceId` completo cabe con el barbero `barberId`, dentro de la barbería resuelta por `slug`: intersección de jornada efectiva (recurrente, excepciones, festivos, B2), bloqueos vigentes y citas que ocupan agenda (B3), aplicando la duración del servicio, la anticipación mínima, la ventana máxima y la rejilla vigentes de la barbería (HU-093). Las franjas caen siempre en la rejilla fija del tramo laboral (inicio del tramo + k × `slotGridMinutes`), aunque una interrupción termine fuera de ella: no se reinicia desde ese instante (`DEC-135`, que sustituye `DEC-084`). Mismo `slug` y misma resolución sin contexto de tenant que `GET /public/barbershops/{slug}`; un `slug` mal formado, desconocido o de una barbería no publicable produce EXACTAMENTE la misma respuesta `404` uniforme (CA-090-02, RN-TEN-01). `serviceId`/`barberId` sin forma de UUID, ajeno a esta barbería, inexistente, inactivo o sin asignación vigente NUNCA producen un error distinto (mismo criterio que CA-092-03): la respuesta es `200` con `slots: []`, exactamente igual que "sin franjas hoy" -la causa no se distingue. Consultar esta operación no reserva ni aparta ninguna franja (RN-DIS-03): es de solo lectura y no crea filas, bloqueos ni sesiones (CA-094-04).
+         * Listar los inicios públicos válidos de un servicio con un profesional
+         * @description Proyecta (HU-094, CA-094-01 a CA-094-06) los instantes donde el servicio activo `serviceId` completo cabe con el profesional `professionalId`, dentro del negocio resuelto por `slug`: intersección de jornada efectiva (recurrente, excepciones, festivos, B2), bloqueos vigentes y citas que ocupan agenda (B3), aplicando la duración del servicio, la anticipación mínima, la ventana máxima y la rejilla vigentes del negocio (HU-093). Las franjas caen siempre en la rejilla fija del tramo laboral (inicio del tramo + k × `slotGridMinutes`), aunque una interrupción termine fuera de ella: no se reinicia desde ese instante (`DEC-135`, que sustituye `DEC-084`). Mismo `slug` y misma resolución sin contexto de tenant que `GET /public/businesses/{slug}`; un `slug` mal formado, desconocido o de un negocio no publicable produce EXACTAMENTE la misma respuesta `404` uniforme (CA-090-02, RN-TEN-01). `serviceId`/`professionalId` sin forma de UUID, ajeno a este negocio, inexistente, inactivo o sin asignación vigente NUNCA producen un error distinto (mismo criterio que CA-092-03): la respuesta es `200` con `slots: []`, exactamente igual que "sin franjas hoy" -la causa no se distingue. Consultar esta operación no reserva ni aparta ninguna franja (RN-DIS-03): es de solo lectura y no crea filas, bloqueos ni sesiones (CA-094-04).
          */
         get: operations["listPublicAvailability"];
         put?: never;
@@ -144,7 +144,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/public/barbershops/{slug}/services/{serviceId}/barbers/{barberId}/appointments": {
+    "/public/businesses/{slug}/services/{serviceId}/professionals/{professionalId}/appointments": {
         parameters: {
             query?: never;
             header?: never;
@@ -155,7 +155,7 @@ export interface paths {
         put?: never;
         /**
          * Confirmar públicamente el turno elegido (T1 pública)
-         * @description Confirma en el acto (RN-CNF-01) el turno público que el cliente armó en los pasos anteriores (HU-091, HU-092, HU-094, HU-096), protegido con clave de idempotencia (RN-IDE-01, DEC-043): repetir el mismo `POST` con la misma `Idempotency-Key` y el mismo cuerpo devuelve la misma representación creada sin crear una segunda cita ni un segundo correo. El servidor revalida todo contra PostgreSQL real -barbería, asignación de servicio/barbero, jornada efectiva, bloqueos vigentes, política de reserva vigente y que `startsAt` siga siendo un inicio válido- antes de intentar persistir (CA-097-02); la restricción de exclusión de PostgreSQL (RN-CON-03) es la última defensa contra una carrera entre dos confirmaciones simultáneas por la misma franja (RN-CON-01, RN-CON-02). El cliente se reconcilia por teléfono y correo dentro de la misma barbería (DEC-085): un `customer` existente se reutiliza (sobrescribiendo el campo que no coincidió con el valor nuevo dado), sin coincidencia siempre se crea uno nuevo, nunca por nombre. Al confirmar, el servidor emite el token de acceso al turno (`appointment_access_token`, 256 bits, hash SHA-256, vigencia 90 días sin rotación, DEC-089) dentro de la misma transacción atómica, y envía un único correo de confirmación síncrono con el enlace de acceso reutilizando el proveedor ya integrado (Resend, DEC-091): un fallo de ese envío nunca revierte la cita ya confirmada. Mismo `slug` y misma resolución sin contexto de tenant que `GET /public/barbershops/{slug}`; un `slug` mal formado, desconocido o de una barbería no publicable, o un `serviceId`/`barberId` sin forma de UUID, ajeno, inexistente, inactivo o sin asignación vigente, producen el mismo `404` uniforme (CA-090-02, RN-TEN-01) -a diferencia de la disponibilidad de solo lectura, esta operación de escritura no tiene un "vacío" que devolver. El cuerpo nunca acepta `barbershopId`, `customerId`, `status`, `origin`, precio, duración ni ningún otro dato que el servidor derive o revalide.
+         * @description Confirma en el acto (RN-CNF-01) el turno público que el cliente armó en los pasos anteriores (HU-091, HU-092, HU-094, HU-096), protegido con clave de idempotencia (RN-IDE-01, DEC-043): repetir el mismo `POST` con la misma `Idempotency-Key` y el mismo cuerpo devuelve la misma representación creada sin crear una segunda cita ni un segundo correo. El servidor revalida todo contra PostgreSQL real -negocio, asignación de servicio/profesional, jornada efectiva, bloqueos vigentes, política de reserva vigente y que `startsAt` siga siendo un inicio válido- antes de intentar persistir (CA-097-02); la restricción de exclusión de PostgreSQL (RN-CON-03) es la última defensa contra una carrera entre dos confirmaciones simultáneas por la misma franja (RN-CON-01, RN-CON-02). El cliente se reconcilia por teléfono y correo dentro del mismo negocio (DEC-085): un `customer` existente se reutiliza (sobrescribiendo el campo que no coincidió con el valor nuevo dado), sin coincidencia siempre se crea uno nuevo, nunca por nombre. Al confirmar, el servidor emite el token de acceso al turno (`appointment_access_token`, 256 bits, hash SHA-256, vigencia 90 días sin rotación, DEC-089) dentro de la misma transacción atómica, y envía un único correo de confirmación síncrono con el enlace de acceso reutilizando el proveedor ya integrado (Resend, DEC-091): un fallo de ese envío nunca revierte la cita ya confirmada. Mismo `slug` y misma resolución sin contexto de tenant que `GET /public/businesses/{slug}`; un `slug` mal formado, desconocido o de un negocio no publicable, o un `serviceId`/`professionalId` sin forma de UUID, ajeno, inexistente, inactivo o sin asignación vigente, producen el mismo `404` uniforme (CA-090-02, RN-TEN-01) -a diferencia de la disponibilidad de solo lectura, esta operación de escritura no tiene un "vacío" que devolver. El cuerpo nunca acepta `businessId`, `customerId`, `status`, `origin`, precio, duración ni ningún otro dato que el servidor derive o revalide.
          */
         post: operations["confirmPublicAppointment"];
         delete?: never;
@@ -173,7 +173,7 @@ export interface paths {
         };
         /**
          * Consultar el turno del cliente mediante la credencial de su enlace
-         * @description Resuelve `token` -la credencial aleatoria larga que HU-097 emitió una sola vez dentro de la transacción de confirmación y envió por correo (DEC-089)- al turno correspondiente, sin sesión (HU-098, CA-098-01). El servidor nunca recibe ni compara el valor en claro directamente contra la base de datos: lo hashea con SHA-256 antes de resolver el tenant mediante `public_resolve_appointment_token_tenant`, la función `SECURITY DEFINER` estrecha que agrega la migración `20260916120000_add_public_resolve_appointment_token_tenant.sql` (mismo patrón exacto que `public_resolve_barbershop_by_slug`, HU-090). Un `token` con forma inválida, inexistente, vencido o ya revocado (al anonimizarse la cita, RN-DAT-03) produce EXACTAMENTE la misma respuesta `404` uniforme (CA-098-02, RN-TEN-01): esta operación nunca distingue la causa. Cancelar NO revoca el enlace (`DEC-136`): un turno cancelado responde `200` con su `status` cancelado, sin acciones disponibles. La respuesta trae solo los datos mínimos ya autorizados por HU-098 (barbería, persona atendida, servicio, barbero, intervalo/zona, estado y política vigente de cancelación); nunca un identificador interno, contacto del cliente, nota, historial ni ningún otro turno (CA-098-03). `status` nunca implica que la falta de respuesta del cliente vaya a cancelar el turno (RN-CNF-02, CA-098-04).
+         * @description Resuelve `token` -la credencial aleatoria larga que HU-097 emitió una sola vez dentro de la transacción de confirmación y envió por correo (DEC-089)- al turno correspondiente, sin sesión (HU-098, CA-098-01). El servidor nunca recibe ni compara el valor en claro directamente contra la base de datos: lo hashea con SHA-256 antes de resolver el tenant mediante `public_resolve_appointment_token_tenant`, la función `SECURITY DEFINER` estrecha que agrega la migración `20260916120000_add_public_resolve_appointment_token_tenant.sql` (mismo patrón exacto que `public_resolve_business_by_slug`, HU-090). Un `token` con forma inválida, inexistente, vencido o ya revocado (al anonimizarse la cita, RN-DAT-03) produce EXACTAMENTE la misma respuesta `404` uniforme (CA-098-02, RN-TEN-01): esta operación nunca distingue la causa. Cancelar NO revoca el enlace (`DEC-136`): un turno cancelado responde `200` con su `status` cancelado, sin acciones disponibles. La respuesta trae solo los datos mínimos ya autorizados por HU-098 (negocio, persona atendida, servicio, profesional, intervalo/zona, estado y política vigente de cancelación); nunca un identificador interno, contacto del cliente, nota, historial ni ningún otro turno (CA-098-03). `status` nunca implica que la falta de respuesta del cliente vaya a cancelar el turno (RN-CNF-02, CA-098-04).
          */
         get: operations["getCustomerAppointment"];
         put?: never;
@@ -195,7 +195,7 @@ export interface paths {
         put?: never;
         /**
          * Cancelar el turno por el cliente (T5)
-         * @description El cliente cancela su turno `confirmed` con la credencial del enlace y sin sesión (`HU-099`, `T5` de `estados-citas.md`). Solo procede si la política VIGENTE de la barbería lo autoriza, evaluada con el reloj del servidor y nunca con uno enviado por el cliente (`RN-CAN-01`, `RN-CAN-02`): hasta `startsAt - cancellationDeadlineMinutes` inclusive es dentro de plazo; después y antes de `startsAt` solo procede con `lateCancellationClientAllowed` y, si `lateCancellationReasonRequired`, con un `reason` no vacío; con el turno ya iniciado nunca procede. Un plazo de 0 minutos trata toda cancelación como tardía (`DEC-083`). Protegida con `Idempotency-Key` (`RN-IDE-01`, `DEC-043`) y con la precondición `If-Match` (el `versionToken` de `GET`): una repetición exacta reproduce la respuesta sin duplicar el historial. En una sola transacción el turno pasa a `cancelled_by_customer`, se registra el motivo y un único evento con actor cliente. El enlace NO se revoca (`DEC-136`): `GET` sigue mostrando el turno cancelado y repetir la misma llamada (misma `Idempotency-Key`) reproduce la respuesta original. La franja vuelve de inmediato a la disponibilidad pública (`HU-094`). Un `token` inexistente, vencido o revocado responde el mismo `404` uniforme que `GET`, sin revelar la causa. Notificar al barbero queda para B5.
+         * @description El cliente cancela su turno `confirmed` con la credencial del enlace y sin sesión (`HU-099`, `T5` de `estados-citas.md`). Solo procede si la política VIGENTE del negocio lo autoriza, evaluada con el reloj del servidor y nunca con uno enviado por el cliente (`RN-CAN-01`, `RN-CAN-02`): hasta `startsAt - cancellationDeadlineMinutes` inclusive es dentro de plazo; después y antes de `startsAt` solo procede con `lateCancellationClientAllowed` y, si `lateCancellationReasonRequired`, con un `reason` no vacío; con el turno ya iniciado nunca procede. Un plazo de 0 minutos trata toda cancelación como tardía (`DEC-083`). Protegida con `Idempotency-Key` (`RN-IDE-01`, `DEC-043`) y con la precondición `If-Match` (el `versionToken` de `GET`): una repetición exacta reproduce la respuesta sin duplicar el historial. En una sola transacción el turno pasa a `cancelled_by_customer`, se registra el motivo y un único evento con actor cliente. El enlace NO se revoca (`DEC-136`): `GET` sigue mostrando el turno cancelado y repetir la misma llamada (misma `Idempotency-Key`) reproduce la respuesta original. La franja vuelve de inmediato a la disponibilidad pública (`HU-094`). Un `token` inexistente, vencido o revocado responde el mismo `404` uniforme que `GET`, sin revelar la causa. Notificar al profesional queda para B5.
          */
         post: operations["cancelCustomerAppointment"];
         delete?: never;
@@ -214,8 +214,8 @@ export interface paths {
         get?: never;
         put?: never;
         /**
-         * Calificar al barbero de un turno completado
-         * @description El cliente deja una calificación de 1 a 5 y un comentario opcional sobre el barbero que lo atendió (HU-100, `DEC-128`), con la misma credencial del enlace de su turno y sin sesión. Solo un turno `completed` sin reseña admite una: un turno no completado, cancelado o ya calificado responde siempre el mismo `409`, sin distinguir la causa (`CA-100-01`); un `token` inexistente, vencido o revocado responde el mismo `404` uniforme que `GET`. Como máximo una reseña por turno (`CA-100-03`): repetir la llamada no crea otra fila ni modifica la existente, así que no necesita `Idempotency-Key`. La reseña queda visible de inmediato en la selección pública del barbero y cuenta en su promedio.
+         * Calificar al profesional de un turno completado
+         * @description El cliente deja una calificación de 1 a 5 y un comentario opcional sobre el profesional que lo atendió (HU-100, `DEC-128`), con la misma credencial del enlace de su turno y sin sesión. Solo un turno `completed` sin reseña admite una: un turno no completado, cancelado o ya calificado responde siempre el mismo `409`, sin distinguir la causa (`CA-100-01`); un `token` inexistente, vencido o revocado responde el mismo `404` uniforme que `GET`. Como máximo una reseña por turno (`CA-100-03`): repetir la llamada no crea otra fila ni modifica la existente, así que no necesita `Idempotency-Key`. La reseña queda visible de inmediato en la selección pública del profesional y cuenta en su promedio.
          */
         post: operations["createCustomerAppointmentReview"];
         delete?: never;
@@ -264,7 +264,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/public/barbershops/{slug}/customer-access/challenge": {
+    "/public/businesses/{slug}/customer-access/challenge": {
         parameters: {
             query?: never;
             header?: never;
@@ -275,7 +275,7 @@ export interface paths {
         put?: never;
         /**
          * Pedir un código para entrar a tu turno
-         * @description Pide un código de 6 dígitos para entrar a cambiar la hora de un turno (HU-105). Responde siempre `202` con el mismo cuerpo, exista o no un cliente con ese contacto (CA-105-01); solo si lo hay y tiene algún turno futuro confirmado se envía el código, en segundo plano: por correo si el contacto es un correo y por WhatsApp si es un celular. El código vence a los 10 minutos, sirve una vez y admite 5 intentos. Pedir otro deja inútil el anterior. Límites: 3 solicitudes por contacto y 10 por IP en 15 minutos, contando también los contactos que no existen; superarlos responde `429` con `Retry-After`. Un `slug` inexistente o no publicable responde el mismo `404` uniforme de `GET /public/barbershops/{slug}`. Un contacto con forma inválida responde `422` sin decir nada de si existe.
+         * @description Pide un código de 6 dígitos para entrar a cambiar la hora de un turno (HU-105). Responde siempre `202` con el mismo cuerpo, exista o no un cliente con ese contacto (CA-105-01); solo si lo hay y tiene algún turno futuro confirmado se envía el código, en segundo plano: por correo si el contacto es un correo y por WhatsApp si es un celular. El código vence a los 10 minutos, sirve una vez y admite 5 intentos. Pedir otro deja inútil el anterior. Límites: 3 solicitudes por contacto y 10 por IP en 15 minutos, contando también los contactos que no existen; superarlos responde `429` con `Retry-After`. Un `slug` inexistente o no publicable responde el mismo `404` uniforme de `GET /public/businesses/{slug}`. Un contacto con forma inválida responde `422` sin decir nada de si existe.
          */
         post: operations["requestCustomerAccessCode"];
         delete?: never;
@@ -284,7 +284,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/public/barbershops/{slug}/customer-access/verify": {
+    "/public/businesses/{slug}/customer-access/verify": {
         parameters: {
             query?: never;
             header?: never;
@@ -304,7 +304,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/public/barbershops/{slug}/customer-access/verify-ref": {
+    "/public/businesses/{slug}/customer-access/verify-ref": {
         parameters: {
             query?: never;
             header?: never;
@@ -315,9 +315,49 @@ export interface paths {
         put?: never;
         /**
          * Canjear el código de un enlace de Odin por el acceso a ese turno
-         * @description Verifica el código que llegó por WhatsApp para la referencia del enlace `/reservar/{slug}/mi-turno/{accessRef}` (HU-106, CA-106-05) y, si es válido, lo consume y emite UN acceso de 60 minutos a ese turno, con el propósito para el que se pidió. El código vale 10 minutos, sirve una vez y admite 5 intentos. Una referencia inexistente, de otra barbería, vencida, ya usada o agotada, o un código incorrecto, producen exactamente el mismo `401`: no se puede saber cuál ocurrió. El acceso emitido es el mismo de `HU-105` y se usa como el `token` de `/customer/appointments/{token}…`. La respuesta lleva una credencial en claro: `Cache-Control: no-store`.
+         * @description Verifica el código que llegó por WhatsApp para la referencia del enlace `/reservar/{slug}/mi-turno/{accessRef}` (HU-106, CA-106-05) y, si es válido, lo consume y emite UN acceso de 60 minutos a ese turno, con el propósito para el que se pidió. El código vale 10 minutos, sirve una vez y admite 5 intentos. Una referencia inexistente, de otro negocio, vencida, ya usada o agotada, o un código incorrecto, producen exactamente el mismo `401`: no se puede saber cuál ocurrió. El acceso emitido es el mismo de `HU-105` y se usa como el `token` de `/customer/appointments/{token}…`. La respuesta lleva una credencial en claro: `Cache-Control: no-store`.
          */
         post: operations["verifyCustomerAccessRef"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/integrations/odin/businesses/{slug}/customer-appointments/lookup": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Buscar los turnos de un teléfono
+         * @description Devuelve los turnos futuros `confirmed` del cliente con ese teléfono en ese negocio, del más próximo al más lejano, con lo que puede hacer hoy con cada uno (`canCancel`, `canReschedule`, según `RN-CAN-01` y el máximo de 2 cambios de `DEC-178`). Cada turno trae una referencia opaca de 30 minutos y nunca un identificador interno ni datos del cliente. Un teléfono sin turnos recibe una lista vacía. Un `slug` inexistente responde `404`.
+         */
+        post: operations["lookupCustomerAppointmentsForOdin"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/integrations/odin/businesses/{slug}/customer-access/challenge": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Pedir un código atado a un turno
+         * @description Crea un reto atado a ESE turno y a ESE propósito y envía el código de 6 dígitos por WhatsApp a ese teléfono (HU-106, CA-106-03). Sin `purpose` el reto queda en `manage` (DEC-181): Odin ya tiene el teléfono y ya confirmó el turno con el cliente, así que el enlace abre directo en el código y, tras él, en el paso 03 con las dos acciones. Devuelve `accessUrl`, el enlace listo para el chat. Solo prospera si la referencia es de ese teléfono en ese negocio y el turno sigue elegible para el propósito (con `manage`, que admita al menos una de las dos acciones); en cualquier otro caso responde el mismo `409` `appointment-not-available`. El código vale 10 minutos, sirve una vez y admite 5 intentos. Pedir otro deja inútil el anterior. El límite de 3 solicitudes por contacto cada 15 minutos cuenta también estas solicitudes y comparte la cuenta con la pantalla pública; además hay un tope por negocio para el servicio. Superarlos responde `429` con `Retry-After`; Odin no reintenta, avisa al cliente que espere. Sin WhatsApp configurado responde `503`. Odin no ve el código ni ningún acceso: el cliente lo escribe en `/reservar/{slug}/mi-turno/{accessRef}`.
+         */
+        post: operations["requestCustomerAccessCodeForOdin"];
         delete?: never;
         options?: never;
         head?: never;
@@ -334,10 +374,11 @@ export interface paths {
         get?: never;
         put?: never;
         /**
-         * Buscar los turnos de un teléfono
-         * @description Devuelve los turnos futuros `confirmed` del cliente con ese teléfono en esa barbería, del más próximo al más lejano, con lo que puede hacer hoy con cada uno (`canCancel`, `canReschedule`, según `RN-CAN-01` y el máximo de 2 cambios de `DEC-178`). Cada turno trae una referencia opaca de 30 minutos y nunca un identificador interno ni datos del cliente. Un teléfono sin turnos recibe una lista vacía. Un `slug` inexistente responde `404`.
+         * Buscar los turnos de un teléfono (ruta anterior)
+         * @deprecated
+         * @description Alias deprecado de `POST /integrations/odin/businesses/{slug}/customer-appointments/lookup` (DEC-183, issue #661): misma petición, misma respuesta y mismos errores. Se conserva mientras Odin no use la ruta nueva.
          */
-        post: operations["lookupCustomerAppointmentsForOdin"];
+        post: operations["lookupCustomerAppointmentsForOdinDeprecated"];
         delete?: never;
         options?: never;
         head?: never;
@@ -354,17 +395,18 @@ export interface paths {
         get?: never;
         put?: never;
         /**
-         * Pedir un código atado a un turno
-         * @description Crea un reto atado a ESE turno y a ESE propósito y envía el código de 6 dígitos por WhatsApp a ese teléfono (HU-106, CA-106-03). Sin `purpose` el reto queda en `manage` (DEC-181): Odin ya tiene el teléfono y ya confirmó el turno con el cliente, así que el enlace abre directo en el código y, tras él, en el paso 03 con las dos acciones. Devuelve `accessUrl`, el enlace listo para el chat. Solo prospera si la referencia es de ese teléfono en esa barbería y el turno sigue elegible para el propósito (con `manage`, que admita al menos una de las dos acciones); en cualquier otro caso responde el mismo `409` `appointment-not-available`. El código vale 10 minutos, sirve una vez y admite 5 intentos. Pedir otro deja inútil el anterior. El límite de 3 solicitudes por contacto cada 15 minutos cuenta también estas solicitudes y comparte la cuenta con la pantalla pública; además hay un tope por barbería para el servicio. Superarlos responde `429` con `Retry-After`; Odin no reintenta, avisa al cliente que espere. Sin WhatsApp configurado responde `503`. Odin no ve el código ni ningún acceso: el cliente lo escribe en `/reservar/{slug}/mi-turno/{accessRef}`.
+         * Pedir un código atado a un turno (ruta anterior)
+         * @deprecated
+         * @description Alias deprecado de `POST /integrations/odin/businesses/{slug}/customer-access/challenge` (DEC-183, issue #661): misma petición, misma respuesta y mismos errores. Se conserva mientras Odin no use la ruta nueva.
          */
-        post: operations["requestCustomerAccessCodeForOdin"];
+        post: operations["requestCustomerAccessCodeForOdinDeprecated"];
         delete?: never;
         options?: never;
         head?: never;
         patch?: never;
         trace?: never;
     };
-    "/public/barbershops/{slug}/barbers/{barberId}/reviews": {
+    "/public/businesses/{slug}/professionals/{professionalId}/reviews": {
         parameters: {
             query?: never;
             header?: never;
@@ -372,10 +414,10 @@ export interface paths {
             cookie?: never;
         };
         /**
-         * Leer las reseñas visibles de un barbero
-         * @description Devuelve el promedio, el total y hasta 20 reseñas no ocultas del barbero, de la más reciente a la más antigua (HU-100, `CA-100-04`, `DEC-128`), sin sesión. Una reseña oculta no aparece ni cuenta (`CA-100-05`). Un `slug` inválido o de una barbería no publicable y un `barberId` inexistente o de otra barbería responden exactamente el mismo `404`, sin distinguir la causa (`CA-090-02`, `RN-TEN-01`).
+         * Leer las reseñas visibles de un profesional
+         * @description Devuelve el promedio, el total y hasta 20 reseñas no ocultas del profesional, de la más reciente a la más antigua (HU-100, `CA-100-04`, `DEC-128`), sin sesión. Una reseña oculta no aparece ni cuenta (`CA-100-05`). Un `slug` inválido o de un negocio no publicable y un `professionalId` inexistente o de otro negocio responden exactamente el mismo `404`, sin distinguir la causa (`CA-090-02`, `RN-TEN-01`).
          */
-        get: operations["listPublicBarberReviews"];
+        get: operations["listPublicProfessionalReviews"];
         put?: never;
         post?: never;
         delete?: never;
@@ -384,7 +426,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/public/barbershops/{slug}/reviews": {
+    "/public/businesses/{slug}/reviews": {
         parameters: {
             query?: never;
             header?: never;
@@ -393,7 +435,7 @@ export interface paths {
         };
         /**
          * Leer la calificación y las reseñas de Google del negocio
-         * @description Devuelve la calificación, el total y hasta 5 reseñas de la ficha de Google de la barbería (HU-101, `CA-101-02`, `DEC-129`), sin sesión. El servidor consulta a Google Places con su propia clave (`CA-101-04`: nunca llega al navegador) y guarda el resultado 6 horas en memoria (`CA-101-05`); el texto de una reseña no se persiste. Sin Place ID guardado en la base de datos (`DEC-137`: lo fija quien opera la base, no el panel), sin credencial de Google o ante una consulta fallida (red, cuota agotada, identificador inválido) responde `200` con la estructura vacía explícita, nunca un error visible (`CA-101-01`, `CA-101-03`). Un `slug` inválido o de una barbería no publicable responde el mismo `404` uniforme (`CA-090-02`, `RN-TEN-01`).
+         * @description Devuelve la calificación, el total y hasta 5 reseñas de la ficha de Google del negocio (HU-101, `CA-101-02`, `DEC-129`), sin sesión. El servidor consulta a Google Places con su propia clave (`CA-101-04`: nunca llega al navegador) y guarda el resultado 6 horas en memoria (`CA-101-05`); el texto de una reseña no se persiste. Sin Place ID guardado en la base de datos (`DEC-137`: lo fija quien opera la base, no el panel), sin credencial de Google o ante una consulta fallida (red, cuota agotada, identificador inválido) responde `200` con la estructura vacía explícita, nunca un error visible (`CA-101-01`, `CA-101-03`). Un `slug` inválido o de un negocio no publicable responde el mismo `404` uniforme (`CA-090-02`, `RN-TEN-01`).
          */
         get: operations["getPublicGoogleReviews"];
         put?: never;
@@ -439,7 +481,7 @@ export interface paths {
         put?: never;
         /**
          * Iniciar sesión con correo y contraseña
-         * @description Verifica correo y contraseña y, si son válidos para un barbero activo, emite una sesión de 30 días como cookie opaca y revocable (DEC-050). Un correo inexistente y una contraseña incorrecta para un correo existente producen exactamente la misma respuesta 401 (CA-005-02); un usuario inactivo o eliminado también (CA-005-07). El token de sesión viaja únicamente en Set-Cookie, nunca en el cuerpo de la respuesta (CA-005-04). Antes de evaluar la contraseña, la IP solicitante se cuenta con una ventana de 15 minutos y un umbral de 5 solicitudes (DEC-052); al superarlo (la sexta solicitud) responde 429 y no evalúa la contraseña hasta completar el reto telefónico de POST /auth/challenge y POST /auth/challenge/verify (CA-007-01, CA-007-02, DEC-061).
+         * @description Verifica correo y contraseña y, si son válidos para un profesional activo, emite una sesión de 30 días como cookie opaca y revocable (DEC-050). Un correo inexistente y una contraseña incorrecta para un correo existente producen exactamente la misma respuesta 401 (CA-005-02); un usuario inactivo o eliminado también (CA-005-07). El token de sesión viaja únicamente en Set-Cookie, nunca en el cuerpo de la respuesta (CA-005-04). Antes de evaluar la contraseña, la IP solicitante se cuenta con una ventana de 15 minutos y un umbral de 5 solicitudes (DEC-052); al superarlo (la sexta solicitud) responde 429 y no evalúa la contraseña hasta completar el reto telefónico de POST /auth/challenge y POST /auth/challenge/verify (CA-007-01, CA-007-02, DEC-061).
          */
         post: operations["loginWithPassword"];
         delete?: never;
@@ -479,7 +521,7 @@ export interface paths {
         put?: never;
         /**
          * Verificar el código del reto telefónico
-         * @description Verifica el código de 6 dígitos recibido por WhatsApp (DEC-062). Código incorrecto, vencido, agotado o de una cuenta inexistente producen exactamente la misma respuesta 401 (no enumeración). Un código correcto limpia el escalamiento de esa IP en el mismo paso atómico: el barbero reintenta POST /auth/login normalmente después, sin ningún token adicional.
+         * @description Verifica el código de 6 dígitos recibido por WhatsApp (DEC-062). Código incorrecto, vencido, agotado o de una cuenta inexistente producen exactamente la misma respuesta 401 (no enumeración). Un código correcto limpia el escalamiento de esa IP en el mismo paso atómico: el profesional reintenta POST /auth/login normalmente después, sin ningún token adicional.
          */
         post: operations["verifyPhoneChallenge"];
         delete?: never;
@@ -499,7 +541,7 @@ export interface paths {
         put?: never;
         /**
          * Solicitar recuperación de acceso
-         * @description Solicita el código de recuperación de acceso por el canal que la persona elige (DEC-092): correo, identificando la cuenta por su correo, o WhatsApp, identificándola por su número. Responde siempre 202 con el mismo cuerpo genérico, exista o no la cuenta, esté o no el teléfono verificado y sea o no el número ambiguo entre barberías (CA-008-01, CA-008-10, no enumeración, DEC-065, DEC-093): nunca incluye el destino, ni siquiera enmascarado. Solo se envía un código real, únicamente por el canal elegido (CA-008-09), cuando la cuenta existe y está activa: por correo basta la cuenta activa con ese correo, aunque no tenga teléfono (DEC-094, CA-008-11); por WhatsApp hace falta además que el número esté verificado e identifique exactamente una cuenta. Un canal desconocido, el campo del otro canal o un número que no está en formato internacional responden 422, una respuesta de forma que no revela nada de la cuenta. Límite propio: cooldown de 60 segundos entre solicitudes y máximo 3 códigos por cuenta por hora (DEC-064); un reenvío aceptado invalida atómicamente el código vigente anterior (CA-008-07).
+         * @description Solicita el código de recuperación de acceso por el canal que la persona elige (DEC-092): correo, identificando la cuenta por su correo, o WhatsApp, identificándola por su número. Responde siempre 202 con el mismo cuerpo genérico, exista o no la cuenta, esté o no el teléfono verificado y sea o no el número ambiguo entre negocios (CA-008-01, CA-008-10, no enumeración, DEC-065, DEC-093): nunca incluye el destino, ni siquiera enmascarado. Solo se envía un código real, únicamente por el canal elegido (CA-008-09), cuando la cuenta existe y está activa: por correo basta la cuenta activa con ese correo, aunque no tenga teléfono (DEC-094, CA-008-11); por WhatsApp hace falta además que el número esté verificado e identifique exactamente una cuenta. Un canal desconocido, el campo del otro canal o un número que no está en formato internacional responden 422, una respuesta de forma que no revela nada de la cuenta. Límite propio: cooldown de 60 segundos entre solicitudes y máximo 3 códigos por cuenta por hora (DEC-064); un reenvío aceptado invalida atómicamente el código vigente anterior (CA-008-07).
          */
         post: operations["requestRecovery"];
         delete?: never;
@@ -559,7 +601,7 @@ export interface paths {
         put?: never;
         /**
          * Cerrar la sesión actual
-         * @description Revoca en el servidor la sesión asociada a la cookie de sesión vigente (fija revoked_at, DEC-050) y limpia esa cookie en el navegador. No afecta ninguna otra sesión del mismo barbero (CA-006-06): cerrar sesión en un dispositivo no invalida los demás. El tenant se deriva exclusivamente de la identidad ya autenticada por la cookie, nunca de un parámetro del cliente, así que una sesión de una barbería nunca puede revocar la sesión de otra (CA-006-07, DEC-058). Repetir la llamada con el mismo material ya revocado responde 401 uniforme, igual que cualquier otra sesión inválida (CA-006-02): no ejecuta la revocación de nuevo ni produce un error distinto que revele el motivo.
+         * @description Revoca en el servidor la sesión asociada a la cookie de sesión vigente (fija revoked_at, DEC-050) y limpia esa cookie en el navegador. No afecta ninguna otra sesión del mismo profesional (CA-006-06): cerrar sesión en un dispositivo no invalida los demás. El tenant se deriva exclusivamente de la identidad ya autenticada por la cookie, nunca de un parámetro del cliente, así que una sesión de un negocio nunca puede revocar la sesión de otra (CA-006-07, DEC-058). Repetir la llamada con el mismo material ya revocado responde 401 uniforme, igual que cualquier otra sesión inválida (CA-006-02): no ejecuta la revocación de nuevo ni produce un error distinto que revele el motivo.
          */
         post: operations["logout"];
         delete?: never;
@@ -577,7 +619,7 @@ export interface paths {
         };
         /**
          * Obtener el contexto de sesión vigente
-         * @description Lectura no destructiva (HU-012, `DEC-060`) que rehidrata la cookie de sesión `HttpOnly` al abrir o recargar la aplicación: confirma que la sesión sigue vigente -`SessionMiddleware` ya la validó y renovó para esta misma solicitud, igual que cualquier otra ruta bajo `/api/v1/private`- y devuelve el nombre de la barbería activa (`barbershop.name`, columna real aislada por tenant vía RLS) y la expiración ya renovada. Como en cualquier otra ruta bajo `/api/v1/private`, la renovación deslizante de `DEC-050` también se refleja en el navegador: la respuesta reemite la misma cookie con el `Expires` renovado (mismos atributos que el login); no cambia el token ni abre otra sesión. El payload nunca incluye `staffUserID`, correo ni nombre del barbero (`RN-DAT-02`, mismo patrón que `auth.Principal`).
+         * @description Lectura no destructiva (HU-012, `DEC-060`) que rehidrata la cookie de sesión `HttpOnly` al abrir o recargar la aplicación: confirma que la sesión sigue vigente -`SessionMiddleware` ya la validó y renovó para esta misma solicitud, igual que cualquier otra ruta bajo `/api/v1/private`- y devuelve el nombre del negocio activo (`business.name`, columna real aislada por tenant vía RLS) y la expiración ya renovada. Como en cualquier otra ruta bajo `/api/v1/private`, la renovación deslizante de `DEC-050` también se refleja en el navegador: la respuesta reemite la misma cookie con el `Expires` renovado (mismos atributos que el login); no cambia el token ni abre otra sesión. El payload nunca incluye `staffUserID`, correo ni nombre del profesional (`RN-DAT-02`, mismo patrón que `auth.Principal`).
          */
         get: operations["getSessionContext"];
         put?: never;
@@ -588,7 +630,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/private/settings/barbershop": {
+    "/private/settings/business": {
         parameters: {
             query?: never;
             header?: never;
@@ -596,20 +638,20 @@ export interface paths {
             cookie?: never;
         };
         /**
-         * Consultar la configuración básica de la barbería activa
-         * @description Lectura autenticada (HU-020, CA-020-01) de los cuatro campos autorizados de la barbería derivada de la sesión vigente: nombre, zona horaria IANA y contacto opcional (correo, teléfono). `barbershopId` nunca es un parámetro de esta operación -el tenant se deriva exclusivamente de `SessionCookie`- así que no existe un canal para pedir la configuración de otra barbería (`CA-020-05`).
+         * Consultar la configuración básica del negocio activo
+         * @description Lectura autenticada (HU-020, CA-020-01) de los cuatro campos autorizados del negocio derivado de la sesión vigente: nombre, zona horaria IANA y contacto opcional (correo, teléfono). `businessId` nunca es un parámetro de esta operación -el tenant se deriva exclusivamente de `SessionCookie`- así que no existe un canal para pedir la configuración de otro negocio (`CA-020-05`).
          */
-        get: operations["getBarbershopSettings"];
+        get: operations["getBusinessSettings"];
         put?: never;
         post?: never;
         delete?: never;
         options?: never;
         head?: never;
         /**
-         * Actualizar la configuración básica de la barbería activa
-         * @description Actualización autenticada (HU-020, CA-020-02) de nombre, zona horaria IANA y contacto opcional. El cuerpo declara únicamente `name`, `timezone`, `contactEmail` y `contactPhone`; cualquier otro campo -en particular un identificador de barbería- se rechaza como forma inválida (`CA-020-05`). `contactEmail`/`contactPhone` vacíos significan "sin contacto": el servidor los normaliza a ausencia antes de guardar y nunca los registra en texto plano (`CA-020-06`). La zona se confirma contra el catálogo real de zonas IANA del servidor dentro de la misma operación que la escritura: una zona no reconocida responde `422` sin modificar ningún campo, ni siquiera los que sí eran válidos (`CA-020-03`). La respuesta exitosa devuelve la representación completa ya guardada, la misma forma que `GET`.
+         * Actualizar la configuración básica del negocio activo
+         * @description Actualización autenticada (HU-020, CA-020-02) de nombre, zona horaria IANA y contacto opcional. El cuerpo declara únicamente `name`, `timezone`, `contactEmail` y `contactPhone`; cualquier otro campo -en particular un identificador de negocio- se rechaza como forma inválida (`CA-020-05`). `contactEmail`/`contactPhone` vacíos significan "sin contacto": el servidor los normaliza a ausencia antes de guardar y nunca los registra en texto plano (`CA-020-06`). La zona se confirma contra el catálogo real de zonas IANA del servidor dentro de la misma operación que la escritura: una zona no reconocida responde `422` sin modificar ningún campo, ni siquiera los que sí eran válidos (`CA-020-03`). La respuesta exitosa devuelve la representación completa ya guardada, la misma forma que `GET`.
          */
-        patch: operations["updateBarbershopSettings"];
+        patch: operations["updateBusinessSettings"];
         trace?: never;
     };
     "/private/settings/booking-policy": {
@@ -621,12 +663,12 @@ export interface paths {
         };
         /**
          * Consultar la política pública de reserva y cancelación
-         * @description Lectura autenticada (HU-093, CA-093-01) de anticipación mínima, ventana máxima, rejilla, plazo de cancelación y política de cancelación tardía de la barbería derivada de la sesión vigente. Una barbería nueva recibe exactamente los defaults de DEC-083 (60/3/15/20 minutos-días, `lateCancellationClientAllowed`/ `lateCancellationReasonRequired` en `true`). `barbershopId` nunca es un parámetro de esta operación -el tenant se deriva exclusivamente de `SessionCookie`- (CA-093-03).
+         * @description Lectura autenticada (HU-093, CA-093-01) de anticipación mínima, ventana máxima, rejilla, plazo de cancelación y política de cancelación tardía del negocio derivado de la sesión vigente. Un negocio nuevo recibe exactamente los defaults de DEC-083 (60/3/15/20 minutos-días, `lateCancellationClientAllowed`/ `lateCancellationReasonRequired` en `true`). `businessId` nunca es un parámetro de esta operación -el tenant se deriva exclusivamente de `SessionCookie`- (CA-093-03).
          */
         get: operations["getBookingPolicy"];
         /**
          * Actualizar la política pública de reserva y cancelación
-         * @description Reemplazo completo y autenticado (HU-093, CA-093-02) de los seis campos de la política pública, protegido por la precondición de versión `If-Match` (concurrencia optimista, mismo criterio que `HU-065`): si la representación vigente ya cambió, responde `409` con `code: version-conflict` en vez de aplicar un último escritor silencioso. Cada campo se valida contra su rango (`DEC-083`; la rejilla `slotGridMinutes`, entero de 1 a 60, `DEC-133`); `lateCancellationReasonRequired` no puede ser `true` si `lateCancellationClientAllowed` es `false` (combinación incoherente), y `minAdvanceMinutes` no puede alcanzar ni superar `maxAdvanceDays * 1440`. Un campo fuera de rango o una combinación incoherente responde `422` sin escribir nada, ni siquiera parcialmente (`CA-093-02`). Cambiar la política nunca reescribe citas, historial ni cancelaciones ya realizadas (`CA-093-04`). El cuerpo no declara `barbershopId`: el tenant se deriva exclusivamente de `SessionCookie` (`CA-093-03`).
+         * @description Reemplazo completo y autenticado (HU-093, CA-093-02) de los seis campos de la política pública, protegido por la precondición de versión `If-Match` (concurrencia optimista, mismo criterio que `HU-065`): si la representación vigente ya cambió, responde `409` con `code: version-conflict` en vez de aplicar un último escritor silencioso. Cada campo se valida contra su rango (`DEC-083`; la rejilla `slotGridMinutes`, entero de 1 a 60, `DEC-133`); `lateCancellationReasonRequired` no puede ser `true` si `lateCancellationClientAllowed` es `false` (combinación incoherente), y `minAdvanceMinutes` no puede alcanzar ni superar `maxAdvanceDays * 1440`. Un campo fuera de rango o una combinación incoherente responde `422` sin escribir nada, ni siquiera parcialmente (`CA-093-02`). Cambiar la política nunca reescribe citas, historial ni cancelaciones ya realizadas (`CA-093-04`). El cuerpo no declara `businessId`: el tenant se deriva exclusivamente de `SessionCookie` (`CA-093-03`).
          */
         put: operations["updateBookingPolicy"];
         post?: never;
@@ -636,7 +678,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/private/settings/booking-policy/barbers": {
+    "/private/settings/booking-policy/professionals": {
         parameters: {
             query?: never;
             header?: never;
@@ -644,10 +686,10 @@ export interface paths {
             cookie?: never;
         };
         /**
-         * Listar las ventanas de reserva propias de los barberos
-         * @description Lectura autenticada (DEC-169) de las ventanas de reserva públicas propias de los barberos de la barbería de la sesión (para una cuenta de empleado, `DEC-173`, solo la de su propio barbero): anticipación mínima, ventana máxima y rejilla. Un barbero que no aparece hereda la política de la barbería (`getBookingPolicy`), incluidos sus cambios futuros. El plazo y la política de cancelación no son por barbero.
+         * Listar las ventanas de reserva propias de los profesionales
+         * @description Lectura autenticada (DEC-169) de las ventanas de reserva públicas propias de los profesionales del negocio de la sesión (para una cuenta de empleado, `DEC-173`, solo la de su propio profesional): anticipación mínima, ventana máxima y rejilla. Un profesional que no aparece hereda la política del negocio (`getBookingPolicy`), incluidos sus cambios futuros. El plazo y la política de cancelación no son por profesional.
          */
-        get: operations["listBarberBookingPolicies"];
+        get: operations["listProfessionalBookingPolicies"];
         put?: never;
         post?: never;
         delete?: never;
@@ -656,28 +698,28 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/private/settings/booking-policy/barbers/{barberId}": {
+    "/private/settings/booking-policy/professionals/{professionalId}": {
         parameters: {
             query?: never;
             header?: never;
             path: {
-                /** @description Identificador del barbero de la barbería de la sesión. */
-                barberId: string;
+                /** @description Identificador del profesional del negocio de la sesión. */
+                professionalId: string;
             };
             cookie?: never;
         };
         get?: never;
         /**
-         * Guardar la ventana de reserva propia de un barbero
-         * @description Reemplazo completo e idempotente (DEC-169) de la ventana propia del barbero: mismos rangos y misma coherencia que la de la barbería (`DEC-083`; rejilla entera de 1 a 60, `DEC-133`; la anticipación no puede alcanzar ni superar `maxAdvanceDays * 1440`). Sin `If-Match`: cada escritura deja un estado completo y válido (último escritor). Un barbero inexistente, de otra barbería o con identificador mal formado responde el mismo `404`, sin escribir nada. Rige desde ya la disponibilidad pública y la revalidación al confirmar de ese barbero; no cambia citas existentes ni la creación manual.
+         * Guardar la ventana de reserva propia de un profesional
+         * @description Reemplazo completo e idempotente (DEC-169) de la ventana propia del profesional: mismos rangos y misma coherencia que la del negocio (`DEC-083`; rejilla entera de 1 a 60, `DEC-133`; la anticipación no puede alcanzar ni superar `maxAdvanceDays * 1440`). Sin `If-Match`: cada escritura deja un estado completo y válido (último escritor). Un profesional inexistente, de otro negocio o con identificador mal formado responde el mismo `404`, sin escribir nada. Rige desde ya la disponibilidad pública y la revalidación al confirmar de ese profesional; no cambia citas existentes ni la creación manual.
          */
-        put: operations["putBarberBookingPolicy"];
+        put: operations["putProfessionalBookingPolicy"];
         post?: never;
         /**
-         * Quitar la ventana propia de un barbero (vuelve a heredar)
-         * @description Borra la ventana propia del barbero (DEC-169): desde ese momento hereda la política de la barbería. Idempotente: responde `204` también si no tenía una. Un identificador mal formado responde `404`.
+         * Quitar la ventana propia de un profesional (vuelve a heredar)
+         * @description Borra la ventana propia del profesional (DEC-169): desde ese momento hereda la política del negocio. Idempotente: responde `204` también si no tenía una. Un identificador mal formado responde `404`.
          */
-        delete: operations["deleteBarberBookingPolicy"];
+        delete: operations["deleteProfessionalBookingPolicy"];
         options?: never;
         head?: never;
         patch?: never;
@@ -691,8 +733,8 @@ export interface paths {
             cookie?: never;
         };
         /**
-         * Consultar la marca y el vocabulario de la barbería activa
-         * @description Lectura autenticada (issue #292, DEC-110) del color de acento y del vocabulario (palabra del negocio y del profesional, con plural y género gramatical) de la barbería derivada de la sesión vigente. Una barbería que nunca los cambió recibe los valores iniciales (`brass`, `barbería`, `barbero`), exactamente la interfaz anterior. Incluye el panel del usuario que consulta (`panelProfile`), derivado de sus roles en la base de datos (`DEC-134`) y no de un ajuste de la barbería. Recurso propio, separado de `/private/settings/barbershop` para no ampliar el contrato cerrado de `HU-020` (`CA-020-07`). `barbershopId` nunca es un parámetro: el tenant se deriva exclusivamente de `SessionCookie`.
+         * Consultar la marca y el vocabulario del negocio activo
+         * @description Lectura autenticada (issue #292, DEC-110) del color de acento y del vocabulario (palabra del negocio y del profesional, con plural y género gramatical) del negocio derivado de la sesión vigente. Un negocio que nunca los cambió recibe los valores iniciales (`brass`, `negocio`, `profesional`), exactamente la interfaz anterior. Incluye el panel del usuario que consulta (`panelProfile`), derivado de sus roles en la base de datos (`DEC-134`) y no de un ajuste del negocio. Recurso propio, separado de `/private/settings/business` para no ampliar el contrato cerrado de `HU-020` (`CA-020-07`). `businessId` nunca es un parámetro: el tenant se deriva exclusivamente de `SessionCookie`.
          */
         get: operations["getBrand"];
         put?: never;
@@ -701,8 +743,8 @@ export interface paths {
         options?: never;
         head?: never;
         /**
-         * Actualizar la marca y el vocabulario de la barbería activa
-         * @description Actualización autenticada (issue #292, DEC-110) de los seis campos de marca y vocabulario, que viajan siempre presentes; cualquier otro campo -en particular un identificador de barbería o `panelProfile`, que desde `DEC-134` lo deciden los roles del usuario- se rechaza como forma inválida. `accent` pertenece a una lista cerrada (nunca un color libre) y cada término se recorta, se colapsa y se pasa a minúsculas antes de validarlo y guardarlo. `hasPhysicalLocation` y `address` son opcionales (`DEC-130`, `HU-102`): ausentes no tocan la ubicación; una dirección nueva se geocodifica en el servidor antes de guardar y, si no se puede ubicar con precisión de calle, responde `422` sin escribir nada (ni la marca); apagar el interruptor conserva la dirección y sus coordenadas. Con `latitude`/`longitude` (`DEC-170`), el punto que el dueño ajustó a mano en el mapa, el servidor guarda ese punto junto a la dirección sin geocodificarla. Un valor inválido responde `422` sin escribir nada. Son preferencias de presentación: no hay precondición de versión y la última escritura gana. Escribir toca `updated_at` de la fila, así que invalida el token `If-Match` de una política de reserva leída antes (`HU-093`), igual que una escritura de `HU-020`. La respuesta devuelve la representación canónica ya guardada, la misma forma que `GET`.
+         * Actualizar la marca y el vocabulario del negocio activo
+         * @description Actualización autenticada (issue #292, DEC-110) de los seis campos de marca y vocabulario, que viajan siempre presentes; cualquier otro campo -en particular un identificador de negocio o `panelProfile`, que desde `DEC-134` lo deciden los roles del usuario- se rechaza como forma inválida. `accent` pertenece a una lista cerrada (nunca un color libre) y cada término se recorta, se colapsa y se pasa a minúsculas antes de validarlo y guardarlo. `hasPhysicalLocation` y `address` son opcionales (`DEC-130`, `HU-102`): ausentes no tocan la ubicación; una dirección nueva se geocodifica en el servidor antes de guardar y, si no se puede ubicar con precisión de calle, responde `422` sin escribir nada (ni la marca); apagar el interruptor conserva la dirección y sus coordenadas. Con `latitude`/`longitude` (`DEC-170`), el punto que el dueño ajustó a mano en el mapa, el servidor guarda ese punto junto a la dirección sin geocodificarla. Un valor inválido responde `422` sin escribir nada. Son preferencias de presentación: no hay precondición de versión y la última escritura gana. Escribir toca `updated_at` de la fila, así que invalida el token `If-Match` de una política de reserva leída antes (`HU-093`), igual que una escritura de `HU-020`. La respuesta devuelve la representación canónica ya guardada, la misma forma que `GET`.
          */
         patch: operations["updateBrand"];
         trace?: never;
@@ -715,8 +757,8 @@ export interface paths {
             cookie?: never;
         };
         /**
-         * Consultar el enlace público de reservas de la barbería activa
-         * @description Lectura autenticada (issue #304, DEC-117) del identificador del enlace público de reservas de la barbería derivada de la sesión vigente, para que su dueño pueda verlo y copiarlo cuando lo necesite. Si la barbería todavía no tiene enlace, esta primera lectura lo genera (`<nombre><código aleatorio>` sin guiones, único globalmente) y lo conserva: las lecturas siguientes devuelven el mismo y renombrar la barbería no lo cambia. No hay operación para editarlo ni regenerarlo. `barbershopId` nunca es un parámetro: el tenant se deriva exclusivamente de `SessionCookie`, de modo que no existe forma de pedir el enlace de otra barbería. La respuesta no se almacena en caché.
+         * Consultar el enlace público de reservas del negocio activo
+         * @description Lectura autenticada (issue #304, DEC-117) del identificador del enlace público de reservas del negocio derivado de la sesión vigente, para que su dueño pueda verlo y copiarlo cuando lo necesite. Si el negocio todavía no tiene enlace, esta primera lectura lo genera (`<nombre><código aleatorio>` sin guiones, único globalmente) y lo conserva: las lecturas siguientes devuelven el mismo y renombrar el negocio no lo cambia. No hay operación para editarlo ni regenerarlo. `businessId` nunca es un parámetro: el tenant se deriva exclusivamente de `SessionCookie`, de modo que no existe forma de pedir el enlace de otro negocio. La respuesta no se almacena en caché.
          */
         get: operations["getPublicLink"];
         put?: never;
@@ -735,8 +777,8 @@ export interface paths {
             cookie?: never;
         };
         /**
-         * Consultar el canal del código de acceso de la barbería activa
-         * @description Lectura autenticada (DEC-139) del canal por el que la barbería recibe el código del reto adicional de acceso (`HU-007`): `email`, `whatsapp` o `both`. `barbershopId` nunca es un parámetro: el tenant se deriva exclusivamente de `SessionCookie`. La respuesta no se almacena en caché.
+         * Consultar el canal del código de acceso del negocio activo
+         * @description Lectura autenticada (DEC-139) del canal por el que el negocio recibe el código del reto adicional de acceso (`HU-007`): `email`, `whatsapp` o `both`. `businessId` nunca es un parámetro: el tenant se deriva exclusivamente de `SessionCookie`. La respuesta no se almacena en caché.
          */
         get: operations["getLoginOtpSettings"];
         put?: never;
@@ -745,8 +787,8 @@ export interface paths {
         options?: never;
         head?: never;
         /**
-         * Cambiar el canal del código de acceso de la barbería activa
-         * @description Actualización autenticada (DEC-139) del canal del código del reto adicional de acceso. Aplica a la barbería de la sesión y a todas sus cuentas; el servidor deriva los destinos (teléfono verificado y/o correo de cada cuenta) y nunca acepta uno del cliente (`DEC-081`): un campo desconocido responde `400`. Con `whatsapp`, una cuenta sin teléfono verificado no recibe código y no se usa el correo como respaldo; con `both`, basta que un canal entregue. No cambia la recuperación de acceso (`DEC-092`). Sin precondición de versión: la última escritura gana.
+         * Cambiar el canal del código de acceso del negocio activo
+         * @description Actualización autenticada (DEC-139) del canal del código del reto adicional de acceso. Aplica al negocio de la sesión y a todas sus cuentas; el servidor deriva los destinos (teléfono verificado y/o correo de cada cuenta) y nunca acepta uno del cliente (`DEC-081`): un campo desconocido responde `400`. Con `whatsapp`, una cuenta sin teléfono verificado no recibe código y no se usa el correo como respaldo; con `both`, basta que un canal entregue. No cambia la recuperación de acceso (`DEC-092`). Sin precondición de versión: la última escritura gana.
          */
         patch: operations["updateLoginOtpSettings"];
         trace?: never;
@@ -759,8 +801,8 @@ export interface paths {
             cookie?: never;
         };
         /**
-         * Consultar la anticipación del recordatorio de la barbería activa
-         * @description Lectura autenticada (DEC-174) de con cuántos minutos de anticipación sale el recordatorio al cliente (`HU-131`), junto con las opciones admitidas. `barbershopId` nunca es un parámetro: el tenant se deriva exclusivamente de `SessionCookie`. Una cuenta de empleado recibe `403` (`DEC-173`). La respuesta no se almacena en caché.
+         * Consultar la anticipación del recordatorio del negocio activo
+         * @description Lectura autenticada (DEC-174) de con cuántos minutos de anticipación sale el recordatorio al cliente (`HU-131`), junto con las opciones admitidas. `businessId` nunca es un parámetro: el tenant se deriva exclusivamente de `SessionCookie`. Una cuenta de empleado recibe `403` (`DEC-173`). La respuesta no se almacena en caché.
          */
         get: operations["getReminderSettings"];
         put?: never;
@@ -769,7 +811,7 @@ export interface paths {
         options?: never;
         head?: never;
         /**
-         * Cambiar la anticipación del recordatorio de la barbería activa
+         * Cambiar la anticipación del recordatorio del negocio activo
          * @description Actualización autenticada (DEC-174). Se usa en cada turno que se crea o se reprograma desde ese momento y, en la misma transacción, mueve a la nueva hora los recordatorios pendientes de turnos futuros; uno cuya nueva hora ya pasó se deja como estaba. Sin precondición de versión: la última escritura gana. Una cuenta de empleado recibe `403` (`DEC-173`).
          */
         patch: operations["updateReminderSettings"];
@@ -784,12 +826,12 @@ export interface paths {
         };
         /**
          * Consultar el horario de atención del local
-         * @description Lectura autenticada (HU-107, DEC-182) del horario semanal del local y de si cierra los festivos colombianos. `barbershopId` nunca es un parámetro: el tenant se deriva exclusivamente de `SessionCookie`. Una cuenta de empleado recibe `403` (`DEC-173`). La respuesta no se almacena en caché.
+         * @description Lectura autenticada (HU-107, DEC-182) del horario semanal del local y de si cierra los festivos colombianos. `businessId` nunca es un parámetro: el tenant se deriva exclusivamente de `SessionCookie`. Una cuenta de empleado recibe `403` (`DEC-173`). La respuesta no se almacena en caché.
          */
         get: operations["getOpeningHours"];
         /**
          * Guardar el horario de atención del local
-         * @description Reemplaza la semana completa en una sola transacción (HU-107, DEC-182): o queda el horario nuevo entero o el anterior. El horario del local es informativo y no cambia la disponibilidad de los barberos. Sin precondición de versión: la última escritura gana. Una cuenta de empleado recibe `403` (`DEC-173`).
+         * @description Reemplaza la semana completa en una sola transacción (HU-107, DEC-182): o queda el horario nuevo entero o el anterior. El horario del local es informativo y no cambia la disponibilidad de los profesionales. Sin precondición de versión: la última escritura gana. Una cuenta de empleado recibe `403` (`DEC-173`).
          */
         put: operations["replaceOpeningHours"];
         post?: never;
@@ -808,7 +850,7 @@ export interface paths {
         };
         /**
          * Consultar el estado de la integración con Google Calendar
-         * @description Estado de la integración del barbero vinculado al usuario autenticado (`DEC-100`). Nunca devuelve tokens ni secretos. Sin barbero vinculado responde `barberLinked: false`; sin credenciales de Google configuradas en el servidor, `enabled: false`.
+         * @description Estado de la integración del profesional vinculado al usuario autenticado (`DEC-100`). Nunca devuelve tokens ni secretos. Sin profesional vinculado responde `professionalLinked: false`; sin credenciales de Google configuradas en el servidor, `enabled: false`.
          */
         get: operations["getGoogleCalendarConnection"];
         put?: never;
@@ -838,7 +880,7 @@ export interface paths {
         put?: never;
         /**
          * Iniciar la conexión con Google Calendar
-         * @description Devuelve la URL de consentimiento de Google (código de autorización con PKCE, acceso offline y consentimiento forzado; alcances mínimos `calendar.events`, `openid` y `email`). Guarda un `state` de un solo uso, ligado a barbería, barbero, usuario y sesión, que vence a los 10 minutos. No es idempotente a propósito: cada solicitud emite un `state` nuevo. Responde `409` si la integración no está configurada o el usuario no tiene barbero vinculado.
+         * @description Devuelve la URL de consentimiento de Google (código de autorización con PKCE, acceso offline y consentimiento forzado; alcances mínimos `calendar.events`, `openid` y `email`). Guarda un `state` de un solo uso, ligado a negocio, profesional, usuario y sesión, que vence a los 10 minutos. No es idempotente a propósito: cada solicitud emite un `state` nuevo. Responde `409` si la integración no está configurada o el usuario no tiene profesional vinculado.
          */
         post: operations["startGoogleCalendarConnection"];
         delete?: never;
@@ -858,7 +900,7 @@ export interface paths {
         put?: never;
         /**
          * Sincronizar ahora
-         * @description Hace vencer ya los cambios pendientes de la conexión del barbero y reintenta los que agotaron sus intentos; el worker los publica en segundos. Solo reordena la cola de ESA conexión: no llama a Google, no modifica citas ni bloqueos y es segura ante varios clics (la misma operación repetida deja el mismo estado). Responde `404` sin conexión que publique y `409` si la integración no está configurada o no hay barbero vinculado.
+         * @description Hace vencer ya los cambios pendientes de la conexión del profesional y reintenta los que agotaron sus intentos; el worker los publica en segundos. Solo reordena la cola de ESA conexión: no llama a Google, no modifica citas ni bloqueos y es segura ante varios clics (la misma operación repetida deja el mismo estado). Responde `404` sin conexión que publique y `409` si la integración no está configurada o no hay profesional vinculado.
          */
         post: operations["syncGoogleCalendarNow"];
         delete?: never;
@@ -878,7 +920,7 @@ export interface paths {
         put?: never;
         /**
          * Completar la conexión tras el consentimiento de Google
-         * @description Google redirige al navegador a la pantalla de retorno del frontend (el `redirect_uri` registrado en Google Cloud) con `code` y `state`; esa pantalla los reenvía aquí. Exige la sesión que inició la conexión y un `state` vigente, de un solo uso y emitido por esa misma sesión y barbero; cualquier otro caso responde `400` con el mismo mensaje, sin revelar cuál falló, y el `state` queda consumido. Canjea el código con PKCE y guarda el refresh token cifrado. Nunca devuelve ni registra el código, el `state` ni tokens. No es idempotente por diseño: el `state` solo sirve una vez.
+         * @description Google redirige al navegador a la pantalla de retorno del frontend (el `redirect_uri` registrado en Google Cloud) con `code` y `state`; esa pantalla los reenvía aquí. Exige la sesión que inició la conexión y un `state` vigente, de un solo uso y emitido por esa misma sesión y profesional; cualquier otro caso responde `400` con el mismo mensaje, sin revelar cuál falló, y el `state` queda consumido. Canjea el código con PKCE y guarda el refresh token cifrado. Nunca devuelve ni registra el código, el `state` ni tokens. No es idempotente por diseño: el `state` solo sirve una vez.
          */
         post: operations["completeGoogleCalendarConnection"];
         delete?: never;
@@ -887,7 +929,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/private/me/barber": {
+    "/private/me/professional": {
         parameters: {
             query?: never;
             header?: never;
@@ -895,27 +937,27 @@ export interface paths {
             cookie?: never;
         };
         /**
-         * Consultar el barbero vinculado al usuario autenticado
-         * @description Devuelve el barbero que el usuario autenticado declaró ser (`DEC-100`). El vínculo es opcional: el dueño que no atiende clientes puede no tener barbero y recibe `404`. Nunca expone la identidad de otro usuario.
+         * Consultar el profesional vinculado al usuario autenticado
+         * @description Devuelve el profesional que el usuario autenticado declaró ser (`DEC-100`). El vínculo es opcional: el dueño que no atiende clientes puede no tener profesional y recibe `404`. Nunca expone la identidad de otro usuario.
          */
-        get: operations["getMyBarber"];
+        get: operations["getMyProfessional"];
         /**
-         * Declarar cuál barbero es el usuario autenticado
-         * @description Vincula al usuario autenticado con un barbero de la barbería activa (`DEC-100`). Actúa siempre sobre el principal de la sesión y el cuerpo nunca acepta un identificador de usuario, así que nadie asigna el vínculo de otra persona. Si el usuario ya estaba vinculado a otro barbero, ese vínculo se libera en la misma transacción. Es idempotente: repetir la misma selección deja el mismo estado y responde `200`, por eso no lleva `Idempotency-Key`. Un barbero ya vinculado a otro usuario responde `409`. Un identificador inexistente o de otra barbería responde el mismo `404` que el resto de operaciones del barbero (`CA-021-05`).
+         * Declarar cuál profesional es el usuario autenticado
+         * @description Vincula al usuario autenticado con un profesional del negocio activo (`DEC-100`). Actúa siempre sobre el principal de la sesión y el cuerpo nunca acepta un identificador de usuario, así que nadie asigna el vínculo de otra persona. Si el usuario ya estaba vinculado a otro profesional, ese vínculo se libera en la misma transacción. Es idempotente: repetir la misma selección deja el mismo estado y responde `200`, por eso no lleva `Idempotency-Key`. Un profesional ya vinculado a otro usuario responde `409`. Un identificador inexistente o de otro negocio responde el mismo `404` que el resto de operaciones del profesional (`CA-021-05`).
          */
-        put: operations["linkMyBarber"];
+        put: operations["linkMyProfessional"];
         post?: never;
         /**
-         * Quitar el vínculo del usuario autenticado con su barbero
-         * @description Libera el vínculo propio (`DEC-100`). Es idempotente: sin vínculo también responde `204`. No borra ni desactiva al barbero (`DEC-047`) y no afecta a sus citas.
+         * Quitar el vínculo del usuario autenticado con su profesional
+         * @description Libera el vínculo propio (`DEC-100`). Es idempotente: sin vínculo también responde `204`. No borra ni desactiva al profesional (`DEC-047`) y no afecta a sus citas.
          */
-        delete: operations["unlinkMyBarber"];
+        delete: operations["unlinkMyProfessional"];
         options?: never;
         head?: never;
         patch?: never;
         trace?: never;
     };
-    "/private/barbers": {
+    "/private/professionals": {
         parameters: {
             query?: never;
             header?: never;
@@ -923,23 +965,23 @@ export interface paths {
             cookie?: never;
         };
         /**
-         * Listar los barberos de la barbería activa
-         * @description Lista paginada por cursor (HU-021, CA-021-01, CA-021-02) de los barberos de la barbería derivada de la sesión vigente. Una barbería unipersonal y una de cuatro barberos usan exactamente la misma forma de respuesta: nunca una rama especial para "barbero único". Orden estable por fecha de alta y luego por identificador; sin paginación por offset porque la colección no tiene un máximo de negocio aprobado. Para una cuenta de empleado (`DEC-173`) la lista contiene solo su propio barbero, o ninguno si no tiene uno vinculado.
+         * Listar los profesionales del negocio activo
+         * @description Lista paginada por cursor (HU-021, CA-021-01, CA-021-02) de los profesionales del negocio derivado de la sesión vigente. Un negocio unipersonal y una de cuatro profesionales usan exactamente la misma forma de respuesta: nunca una rama especial para "profesional único". Orden estable por fecha de alta y luego por identificador; sin paginación por offset porque la colección no tiene un máximo de negocio aprobado. Para una cuenta de empleado (`DEC-173`) la lista contiene solo su propio profesional, o ninguno si no tiene uno vinculado.
          */
-        get: operations["listBarbers"];
+        get: operations["listProfessionals"];
         put?: never;
         /**
-         * Registrar un barbero en la barbería activa
-         * @description Alta de un barbero (HU-021, CA-021-02) protegida con clave de idempotencia (RN-IDE-01, DEC-043): repetir el mismo `POST` con la misma `Idempotency-Key` y el mismo cuerpo devuelve la misma representación creada sin crear una segunda fila. La misma clave con un `fullName` distinto responde `409` (conflicto de idempotencia); una clave nueva con el mismo `fullName` que un barbero existente SÍ crea un segundo barbero -esta historia no impone unicidad de nombre-. El tenant se deriva exclusivamente de `SessionCookie`; el cuerpo nunca acepta `barbershopId`.
+         * Registrar un profesional en el negocio activo
+         * @description Alta de un profesional (HU-021, CA-021-02) protegida con clave de idempotencia (RN-IDE-01, DEC-043): repetir el mismo `POST` con la misma `Idempotency-Key` y el mismo cuerpo devuelve la misma representación creada sin crear una segunda fila. La misma clave con un `fullName` distinto responde `409` (conflicto de idempotencia); una clave nueva con el mismo `fullName` que un profesional existente SÍ crea un segundo profesional -esta historia no impone unicidad de nombre-. El tenant se deriva exclusivamente de `SessionCookie`; el cuerpo nunca acepta `businessId`.
          */
-        post: operations["createBarber"];
+        post: operations["createProfessional"];
         delete?: never;
         options?: never;
         head?: never;
         patch?: never;
         trace?: never;
     };
-    "/private/barbers/{barberId}": {
+    "/private/professionals/{professionalId}": {
         parameters: {
             query?: never;
             header?: never;
@@ -947,23 +989,23 @@ export interface paths {
             cookie?: never;
         };
         /**
-         * Consultar un barbero de la barbería activa
-         * @description Lectura autenticada de un barbero por identificador (HU-021). Un identificador inexistente o perteneciente a otra barbería responde exactamente el mismo `404` (`CA-021-05`, `RN-TEN-01`): esta operación permite demostrar ese criterio de forma directa, sin depender solo del listado.
+         * Consultar un profesional del negocio activo
+         * @description Lectura autenticada de un profesional por identificador (HU-021). Un identificador inexistente o perteneciente a otro negocio responde exactamente el mismo `404` (`CA-021-05`, `RN-TEN-01`): esta operación permite demostrar ese criterio de forma directa, sin depender solo del listado.
          */
-        get: operations["getBarber"];
+        get: operations["getProfessional"];
         put?: never;
         post?: never;
         delete?: never;
         options?: never;
         head?: never;
         /**
-         * Renombrar un barbero de la barbería activa
-         * @description Actualización parcial limitada al nombre (HU-021, CA-021-04). Rechaza objetos vacíos y cualquier campo distinto de `fullName` -en particular `active`, `deletedAt`, `sortOrder`, `staffUserId`, servicios u horarios, todos fuera de alcance (`DEC-047`, `CA-021-07`)-. Un identificador inexistente o de otra barbería responde el mismo `404` que `GET` (`CA-021-05`).
+         * Renombrar un profesional del negocio activo
+         * @description Actualización parcial limitada al nombre (HU-021, CA-021-04). Rechaza objetos vacíos y cualquier campo distinto de `fullName` -en particular `active`, `deletedAt`, `sortOrder`, `staffUserId`, servicios u horarios, todos fuera de alcance (`DEC-047`, `CA-021-07`)-. Un identificador inexistente o de otro negocio responde el mismo `404` que `GET` (`CA-021-05`).
          */
-        patch: operations["renameBarber"];
+        patch: operations["renameProfessional"];
         trace?: never;
     };
-    "/private/barbers/{barberId}/photo": {
+    "/private/professionals/{professionalId}/photo": {
         parameters: {
             query?: never;
             header?: never;
@@ -971,27 +1013,27 @@ export interface paths {
             cookie?: never;
         };
         /**
-         * Leer la fotografía de un barbero
-         * @description Sirve los bytes de la fotografía del barbero (DEC-104). Se usa como `src` de una imagen: la cookie de sesión viaja sola y el tenant se deriva de ella. Lleva `ETag` (derivado de `photoUpdatedAt`) y responde `304` a una solicitud condicional con `If-None-Match`; el cliente añade `photoUpdatedAt` como parámetro de consulta de la URL solo para invalidar su propia caché, el servidor lo ignora. Un barbero sin fotografía, inexistente o de otra barbería responde exactamente el mismo `404`: la lista ya dice cuáles tienen fotografía con `photoUpdatedAt`.
+         * Leer la fotografía de un profesional
+         * @description Sirve los bytes de la fotografía del profesional (DEC-104). Se usa como `src` de una imagen: la cookie de sesión viaja sola y el tenant se deriva de ella. Lleva `ETag` (derivado de `photoUpdatedAt`) y responde `304` a una solicitud condicional con `If-None-Match`; el cliente añade `photoUpdatedAt` como parámetro de consulta de la URL solo para invalidar su propia caché, el servidor lo ignora. Un profesional sin fotografía, inexistente o de otro negocio responde exactamente el mismo `404`: la lista ya dice cuáles tienen fotografía con `photoUpdatedAt`.
          */
-        get: operations["getBarberPhoto"];
+        get: operations["getProfessionalPhoto"];
         /**
-         * Subir o reemplazar la fotografía de un barbero
-         * @description Guarda la fotografía del barbero (DEC-104), el retrato que la lista del equipo y los selectores de barbero muestran en lugar del monograma. El cuerpo es la imagen binaria (`image/jpeg` o `image/png`), no JSON ni base64: el cliente la recorta a un cuadrado y la reduce a 512 px antes de enviarla, y el servidor la valida (formato real por sus bytes, no por el `Content-Type`; máximo 512 KiB; entre 64 y 1024 px por lado). Es un `PUT`: repetir la misma imagen deja el mismo estado y reemplazar una fotografía existente nunca crea una segunda, por eso no lleva `Idempotency-Key`. Responde el barbero completo con el nuevo `photoUpdatedAt`. Un identificador inexistente o de otra barbería responde el mismo `404` que `GET /private/barbers/{barberId}` (`CA-021-05`).
+         * Subir o reemplazar la fotografía de un profesional
+         * @description Guarda la fotografía del profesional (DEC-104), el retrato que la lista del equipo y los selectores de profesional muestran en lugar del monograma. El cuerpo es la imagen binaria (`image/jpeg` o `image/png`), no JSON ni base64: el cliente la recorta a un cuadrado y la reduce a 512 px antes de enviarla, y el servidor la valida (formato real por sus bytes, no por el `Content-Type`; máximo 512 KiB; entre 64 y 1024 px por lado). Es un `PUT`: repetir la misma imagen deja el mismo estado y reemplazar una fotografía existente nunca crea una segunda, por eso no lleva `Idempotency-Key`. Responde el profesional completo con el nuevo `photoUpdatedAt`. Un identificador inexistente o de otro negocio responde el mismo `404` que `GET /private/professionals/{professionalId}` (`CA-021-05`).
          */
-        put: operations["putBarberPhoto"];
+        put: operations["putProfessionalPhoto"];
         post?: never;
         /**
-         * Quitar la fotografía de un barbero
-         * @description Borra la fotografía del barbero (DEC-104): la imagen se elimina, no se oculta, y el barbero vuelve a mostrarse con su monograma. Es idempotente: quitar una fotografía que no existe también responde `204`. No modifica el nombre ni ningún otro dato. Un identificador inexistente o de otra barbería responde el mismo `404` que el resto de operaciones del barbero (`CA-021-05`).
+         * Quitar la fotografía de un profesional
+         * @description Borra la fotografía del profesional (DEC-104): la imagen se elimina, no se oculta, y el profesional vuelve a mostrarse con su monograma. Es idempotente: quitar una fotografía que no existe también responde `204`. No modifica el nombre ni ningún otro dato. Un identificador inexistente o de otro negocio responde el mismo `404` que el resto de operaciones del profesional (`CA-021-05`).
          */
-        delete: operations["deleteBarberPhoto"];
+        delete: operations["deleteProfessionalPhoto"];
         options?: never;
         head?: never;
         patch?: never;
         trace?: never;
     };
-    "/private/barbers/{barberId}/reviews": {
+    "/private/professionals/{professionalId}/reviews": {
         parameters: {
             query?: never;
             header?: never;
@@ -999,10 +1041,10 @@ export interface paths {
             cookie?: never;
         };
         /**
-         * Listar las reseñas de un barbero para moderarlas
-         * @description Todas las reseñas del barbero, ocultas incluidas y con su fecha de ocultamiento, de la más reciente a la más antigua (hasta 100), más el promedio y el total públicos (HU-100, `CA-100-05`, `DEC-128`). Un identificador inexistente o de otra barbería responde el mismo `404` (`RN-TEN-01`).
+         * Listar las reseñas de un profesional para moderarlas
+         * @description Todas las reseñas del profesional, ocultas incluidas y con su fecha de ocultamiento, de la más reciente a la más antigua (hasta 100), más el promedio y el total públicos (HU-100, `CA-100-05`, `DEC-128`). Un identificador inexistente o de otro negocio responde el mismo `404` (`RN-TEN-01`).
          */
-        get: operations["listBarberReviews"];
+        get: operations["listProfessionalReviews"];
         put?: never;
         post?: never;
         delete?: never;
@@ -1011,7 +1053,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/private/barbers/{barberId}/reviews/{reviewId}": {
+    "/private/professionals/{professionalId}/reviews/{reviewId}": {
         parameters: {
             query?: never;
             header?: never;
@@ -1026,9 +1068,9 @@ export interface paths {
         head?: never;
         /**
          * Ocultar o volver a mostrar una reseña
-         * @description El barbero o el propietario oculta (`hidden: true`) una reseña ofensiva o falsa, o la vuelve a mostrar (`hidden: false`) (HU-100, `CA-100-05`, `DEC-128`, mismo patrón reversible que quitar la foto, `DEC-104`). Ocultar la retira del promedio y de la lista pública de inmediato, pero la fila se conserva con su fecha; mostrarla de nuevo la reincorpora sin perder su contenido. Repetir la misma orden deja el mismo estado. Una reseña inexistente, de otro barbero o de otra barbería responde el mismo `404`.
+         * @description El profesional o el propietario oculta (`hidden: true`) una reseña ofensiva o falsa, o la vuelve a mostrar (`hidden: false`) (HU-100, `CA-100-05`, `DEC-128`, mismo patrón reversible que quitar la foto, `DEC-104`). Ocultar la retira del promedio y de la lista pública de inmediato, pero la fila se conserva con su fecha; mostrarla de nuevo la reincorpora sin perder su contenido. Repetir la misma orden deja el mismo estado. Una reseña inexistente, de otro profesional o de otro negocio responde el mismo `404`.
          */
-        patch: operations["updateBarberReview"];
+        patch: operations["updateProfessionalReview"];
         trace?: never;
     };
     "/private/services": {
@@ -1039,14 +1081,14 @@ export interface paths {
             cookie?: never;
         };
         /**
-         * Listar los servicios del catálogo de la barbería activa
-         * @description Lista paginada por número de página (HU-022, CA-022-01, DEC-103) de los servicios de la barbería derivada de la sesión vigente. Orden estable por fecha de alta y luego por identificador. Excepción explícita del propietario a la regla general de paginación por cursor (docs/06-api/estandar-openapi.md §6.10): solo este endpoint pagina por página/offset con conteo total, para que el panel privado ofrezca un paginador numerado; el resto de listas del contrato conserva cursor. `search` filtra por coincidencia parcial insensible a mayúsculas en `name` únicamente (no busca en `description`).
+         * Listar los servicios del catálogo del negocio activo
+         * @description Lista paginada por número de página (HU-022, CA-022-01, DEC-103) de los servicios del negocio derivado de la sesión vigente. Orden estable por fecha de alta y luego por identificador. Excepción explícita del propietario a la regla general de paginación por cursor (docs/06-api/estandar-openapi.md §6.10): solo este endpoint pagina por página/offset con conteo total, para que el panel privado ofrezca un paginador numerado; el resto de listas del contrato conserva cursor. `search` filtra por coincidencia parcial insensible a mayúsculas en `name` únicamente (no busca en `description`).
          */
         get: operations["listServices"];
         put?: never;
         /**
-         * Crear un servicio en el catálogo de la barbería activa
-         * @description Alta de un servicio (HU-022, CA-022-02) protegida con clave de idempotencia (RN-IDE-01, DEC-043): repetir el mismo `POST` con la misma `Idempotency-Key` y el mismo cuerpo devuelve la misma representación creada sin crear una segunda fila. El nombre debe ser único entre los servicios ACTIVOS de la misma barbería (DEC-067): una clave nueva con un nombre que ya usa otro servicio activo responde `409` sin crear nada; el mismo nombre que un servicio ya DESACTIVADO sí se acepta. El tenant se deriva exclusivamente de `SessionCookie`; el cuerpo nunca acepta `barbershopId`, `currency` ni `isActive`.
+         * Crear un servicio en el catálogo del negocio activo
+         * @description Alta de un servicio (HU-022, CA-022-02) protegida con clave de idempotencia (RN-IDE-01, DEC-043): repetir el mismo `POST` con la misma `Idempotency-Key` y el mismo cuerpo devuelve la misma representación creada sin crear una segunda fila. El nombre debe ser único entre los servicios ACTIVOS del mismo negocio (DEC-067): una clave nueva con un nombre que ya usa otro servicio activo responde `409` sin crear nada; el mismo nombre que un servicio ya DESACTIVADO sí se acepta. El tenant se deriva exclusivamente de `SessionCookie`; el cuerpo nunca acepta `businessId`, `currency` ni `isActive`.
          */
         post: operations["createService"];
         delete?: never;
@@ -1063,8 +1105,8 @@ export interface paths {
             cookie?: never;
         };
         /**
-         * Consultar un servicio del catálogo de la barbería activa
-         * @description Lectura autenticada de un servicio por identificador (HU-022). Un identificador inexistente o perteneciente a otra barbería responde exactamente el mismo `404` (`CA-022-06`, `RN-TEN-01`).
+         * Consultar un servicio del catálogo del negocio activo
+         * @description Lectura autenticada de un servicio por identificador (HU-022). Un identificador inexistente o perteneciente a otro negocio responde exactamente el mismo `404` (`CA-022-06`, `RN-TEN-01`).
          */
         get: operations["getService"];
         put?: never;
@@ -1073,13 +1115,13 @@ export interface paths {
         options?: never;
         head?: never;
         /**
-         * Editar un servicio del catálogo de la barbería activa
-         * @description Edición parcial limitada a los campos de catálogo (HU-022, CA-022-04, CA-022-05): `name`, `description`, `durationMinutes`, `price`. Rechaza un objeto vacío y cualquier campo fuera de esos cuatro -en particular `isActive`, `currency` o asignaciones a barberos (RN-SER-04, DEC-067)-. Un identificador inexistente o de otra barbería responde el mismo `404` que `GET` (`CA-022-06`). Un nombre editado que choque con otro servicio activo de la misma barbería responde `409` (DEC-067). Por defecto ningún cambio de esta operación afecta una cita existente (RN-SER-04); con `applyPriceToUpcoming: true` y `price`, el precio nuevo se copia además a los turnos `confirmed` futuros del servicio en la misma transacción, con un evento de historial por turno (HU-029, DEC-004); la respuesta informa cuántos cambiaron en `upcomingAppointmentsUpdated`. `applyPriceToUpcoming` sin `price` responde `422`.
+         * Editar un servicio del catálogo del negocio activo
+         * @description Edición parcial limitada a los campos de catálogo (HU-022, CA-022-04, CA-022-05): `name`, `description`, `durationMinutes`, `price`. Rechaza un objeto vacío y cualquier campo fuera de esos cuatro -en particular `isActive`, `currency` o asignaciones a profesionales (RN-SER-04, DEC-067)-. Un identificador inexistente o de otro negocio responde el mismo `404` que `GET` (`CA-022-06`). Un nombre editado que choque con otro servicio activo del mismo negocio responde `409` (DEC-067). Por defecto ningún cambio de esta operación afecta una cita existente (RN-SER-04); con `applyPriceToUpcoming: true` y `price`, el precio nuevo se copia además a los turnos `confirmed` futuros del servicio en la misma transacción, con un evento de historial por turno (HU-029, DEC-004); la respuesta informa cuántos cambiaron en `upcomingAppointmentsUpdated`. `applyPriceToUpcoming` sin `price` responde `422`.
          */
         patch: operations["updateService"];
         trace?: never;
     };
-    "/private/barbers/{barberId}/services": {
+    "/private/professionals/{professionalId}/services": {
         parameters: {
             query?: never;
             header?: never;
@@ -1087,10 +1129,10 @@ export interface paths {
             cookie?: never;
         };
         /**
-         * Listar los servicios asignados a un barbero de la barbería activa
-         * @description Lista paginada por cursor (HU-023, CA-023-01) de los servicios que presta un barbero de la barbería derivada de la sesión vigente. Un barbero con un solo servicio y uno con todo el catálogo usan exactamente la misma forma de respuesta. Un `barberId` inexistente o de otra barbería responde `404` (RN-TEN-01), igual que GET /private/barbers/{barberId}.
+         * Listar los servicios asignados a un profesional del negocio activo
+         * @description Lista paginada por cursor (HU-023, CA-023-01) de los servicios que presta un profesional del negocio derivado de la sesión vigente. Un profesional con un solo servicio y uno con todo el catálogo usan exactamente la misma forma de respuesta. Un `professionalId` inexistente o de otro negocio responde `404` (RN-TEN-01), igual que GET /private/professionals/{professionalId}.
          */
-        get: operations["listBarberServices"];
+        get: operations["listProfessionalServices"];
         put?: never;
         post?: never;
         delete?: never;
@@ -1099,7 +1141,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/private/barbers/{barberId}/services/{serviceId}": {
+    "/private/professionals/{professionalId}/services/{serviceId}": {
         parameters: {
             query?: never;
             header?: never;
@@ -1108,16 +1150,16 @@ export interface paths {
         };
         get?: never;
         /**
-         * Asignar un servicio a un barbero de la barbería activa
-         * @description Asigna `serviceId` a `barberId` (HU-023, CA-023-02, CA-023-03). Semántica HTTP naturalmente repetible: no usa `Idempotency-Key` (RN-IDE-01 protege un `POST` que no es idempotente por sí mismo; este `PUT` sobre un recurso identificado por sus propios dos identificadores ya lo es). Repetir exactamente la misma operación no crea una segunda fila (responde `200` en vez de `201`, con el mismo `createdAt` original). Un mismo servicio puede asignarse a varios barberos de la misma barbería; cada asociación es un recurso independiente. Un `barberId` o `serviceId` inexistente o de otra barbería responde `404` uniforme (CA-023-04, RN-TEN-01): esta operación nunca revela si el recurso ajeno existe. Sin cuerpo: el contrato no declara ningún campo escribible más allá de los dos identificadores de la ruta -nunca nombre, duración, precio, orden ni disponibilidad-.
+         * Asignar un servicio a un profesional del negocio activo
+         * @description Asigna `serviceId` a `professionalId` (HU-023, CA-023-02, CA-023-03). Semántica HTTP naturalmente repetible: no usa `Idempotency-Key` (RN-IDE-01 protege un `POST` que no es idempotente por sí mismo; este `PUT` sobre un recurso identificado por sus propios dos identificadores ya lo es). Repetir exactamente la misma operación no crea una segunda fila (responde `200` en vez de `201`, con el mismo `createdAt` original). Un mismo servicio puede asignarse a varios profesionales del mismo negocio; cada asociación es un recurso independiente. Un `professionalId` o `serviceId` inexistente o de otro negocio responde `404` uniforme (CA-023-04, RN-TEN-01): esta operación nunca revela si el recurso ajeno existe. Sin cuerpo: el contrato no declara ningún campo escribible más allá de los dos identificadores de la ruta -nunca nombre, duración, precio, orden ni disponibilidad-.
          */
-        put: operations["assignServiceToBarber"];
+        put: operations["assignServiceToProfessional"];
         post?: never;
         /**
-         * Retirar la asignación de un servicio a un barbero de la barbería activa
-         * @description Retira la asociación entre `barberId` y `serviceId` (HU-023, CA-023-05). Un `barberId`/`serviceId` inexistente o de otra barbería, o una asociación que nunca existió (o que ya se había retirado), responden el mismo `404` uniforme (CA-023-04), de modo que repetir la operación es seguro. Se puede retirar a cualquier barbero, también al último de un servicio activo (DEC-114, que sustituye a DEC-068): ese servicio deja de ofrecerse al público hasta que se asigne otro barbero. Esta operación nunca borra al barbero, al servicio ni una cita.
+         * Retirar la asignación de un servicio a un profesional del negocio activo
+         * @description Retira la asociación entre `professionalId` y `serviceId` (HU-023, CA-023-05). Un `professionalId`/`serviceId` inexistente o de otro negocio, o una asociación que nunca existió (o que ya se había retirado), responden el mismo `404` uniforme (CA-023-04), de modo que repetir la operación es seguro. Se puede retirar a cualquier profesional, también al último de un servicio activo (DEC-114, que sustituye a DEC-068): ese servicio deja de ofrecerse al público hasta que se asigne otro profesional. Esta operación nunca borra al profesional, al servicio ni una cita.
          */
-        delete: operations["unassignServiceFromBarber"];
+        delete: operations["unassignServiceFromProfessional"];
         options?: never;
         head?: never;
         patch?: never;
@@ -1132,7 +1174,7 @@ export interface paths {
         };
         /**
          * Previsualizar el impacto de desactivar un servicio del catálogo
-         * @description Consulta real (HU-024, CA-024-01), calculada en el momento de esta solicitud, de cuántas citas futuras quedarían afectadas si el servicio se desactivara ahora mismo. Siempre `0` en B1 (DEC-069): `appointment` no existe todavía en la cadena migrada, así que cero es el conteo real del sistema actual, no un valor por defecto. Un identificador inexistente o de otra barbería responde `404` uniforme (RN-TEN-01), igual que `GET /private/services/{serviceId}`.
+         * @description Consulta real (HU-024, CA-024-01), calculada en el momento de esta solicitud, de cuántas citas futuras quedarían afectadas si el servicio se desactivara ahora mismo. Siempre `0` en B1 (DEC-069): `appointment` no existe todavía en la cadena migrada, así que cero es el conteo real del sistema actual, no un valor por defecto. Un identificador inexistente o de otro negocio responde `404` uniforme (RN-TEN-01), igual que `GET /private/services/{serviceId}`.
          */
         get: operations["getServiceDeactivationImpact"];
         put?: never;
@@ -1153,8 +1195,8 @@ export interface paths {
         get?: never;
         put?: never;
         /**
-         * Desactivar un servicio del catálogo de la barbería activa
-         * @description Transición explícita activo → inactivo sobre el mismo `service` (HU-024, CA-024-02, CA-024-03), protegida con clave de idempotencia (RN-IDE-01, DEC-043): repetir el mismo `POST` con la misma `Idempotency-Key` reproduce la misma respuesta sin ejecutar la transición de nuevo. Vuelve a consultar el impacto real dentro de esta misma operación, sin depender de un valor cacheado de `.../deactivation-impact` (CA-024-04): no requiere bloqueo optimista porque en B1 ese conteo no puede cambiar entre ambas llamadas (DEC-069). Nunca borra la fila, sus asignaciones ni ninguna cita (RN-SER-03, RN-SER-04): solo cambia `isActive`/`deactivatedAt`. Un identificador inexistente o de otra barbería responde `404` uniforme. Un servicio ya inactivo, con una clave de idempotencia nueva, responde `409` (transición inválida): la interfaz debe recargar el estado real en vez de asumir éxito.
+         * Desactivar un servicio del catálogo del negocio activo
+         * @description Transición explícita activo → inactivo sobre el mismo `service` (HU-024, CA-024-02, CA-024-03), protegida con clave de idempotencia (RN-IDE-01, DEC-043): repetir el mismo `POST` con la misma `Idempotency-Key` reproduce la misma respuesta sin ejecutar la transición de nuevo. Vuelve a consultar el impacto real dentro de esta misma operación, sin depender de un valor cacheado de `.../deactivation-impact` (CA-024-04): no requiere bloqueo optimista porque en B1 ese conteo no puede cambiar entre ambas llamadas (DEC-069). Nunca borra la fila, sus asignaciones ni ninguna cita (RN-SER-03, RN-SER-04): solo cambia `isActive`/`deactivatedAt`. Un identificador inexistente o de otro negocio responde `404` uniforme. Un servicio ya inactivo, con una clave de idempotencia nueva, responde `409` (transición inválida): la interfaz debe recargar el estado real en vez de asumir éxito.
          */
         post: operations["deactivateService"];
         delete?: never;
@@ -1173,8 +1215,8 @@ export interface paths {
         get?: never;
         put?: never;
         /**
-         * Reactivar un servicio del catálogo de la barbería activa
-         * @description Transición explícita inactivo → activo sobre el mismo `service` (HU-024, CA-024-05), protegida con clave de idempotencia (RN-IDE-01, DEC-043): repetir el mismo `POST` con la misma `Idempotency-Key` reproduce la misma respuesta sin ejecutar la transición de nuevo. Nunca crea otra fila ni altera `name`, `durationMinutes`, `price` ni asignaciones (RN-SER-04). Un identificador inexistente o de otra barbería responde `404` uniforme. Un servicio ya activo, con una clave de idempotencia nueva, responde `409` (transición inválida); también `409` si otro servicio activo ya usa su nombre (`ServiceConflictProblem`, RN-SER-01), sin escribir y sin consumir la clave.
+         * Reactivar un servicio del catálogo del negocio activo
+         * @description Transición explícita inactivo → activo sobre el mismo `service` (HU-024, CA-024-05), protegida con clave de idempotencia (RN-IDE-01, DEC-043): repetir el mismo `POST` con la misma `Idempotency-Key` reproduce la misma respuesta sin ejecutar la transición de nuevo. Nunca crea otra fila ni altera `name`, `durationMinutes`, `price` ni asignaciones (RN-SER-04). Un identificador inexistente o de otro negocio responde `404` uniforme. Un servicio ya activo, con una clave de idempotencia nueva, responde `409` (transición inválida); también `409` si otro servicio activo ya usa su nombre (`ServiceConflictProblem`, RN-SER-01), sin escribir y sin consumir la clave.
          */
         post: operations["reactivateService"];
         delete?: never;
@@ -1183,7 +1225,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/private/barbers/{barberId}/working-hours": {
+    "/private/professionals/{professionalId}/working-hours": {
         parameters: {
             query?: never;
             header?: never;
@@ -1191,14 +1233,14 @@ export interface paths {
             cookie?: never;
         };
         /**
-         * Listar los tramos de horario laboral de un barbero de la barbería activa
-         * @description Lista paginada por cursor (HU-040, CA-040-01) de los tramos recurrentes del barbero de la ruta, ordenada por día ISO de la semana y luego por hora de inicio. Los siete días aparecen representados por sus propios tramos; un día sin ninguno simplemente no aporta elementos, sin fila vacía. Un `barberId` inexistente o de otra barbería responde `404` (RN-TEN-01), igual que GET /private/barbers/{barberId}.
+         * Listar los tramos de horario laboral de un profesional del negocio activo
+         * @description Lista paginada por cursor (HU-040, CA-040-01) de los tramos recurrentes del profesional de la ruta, ordenada por día ISO de la semana y luego por hora de inicio. Los siete días aparecen representados por sus propios tramos; un día sin ninguno simplemente no aporta elementos, sin fila vacía. Un `professionalId` inexistente o de otro negocio responde `404` (RN-TEN-01), igual que GET /private/professionals/{professionalId}.
          */
         get: operations["listWorkingHours"];
         put?: never;
         /**
-         * Crear un tramo de horario laboral para un barbero de la barbería activa
-         * @description Alta de un tramo recurrente (HU-040, CA-040-02) protegida con clave de idempotencia (RN-IDE-01, DEC-043): repetir el mismo `POST` con la misma `Idempotency-Key` y el mismo cuerpo devuelve la misma representación creada sin crear un segundo tramo. Varios tramos no solapados el mismo día representan una jornada partida; un tramo cuyo `startsTime` + `durationMinutes` cruza medianoche es válido (DEC-020). Un intervalo que se solapa con otro tramo existente del mismo barbero y día, o que repite exactamente su hora de inicio, responde `409` sin crear nada. El tenant se deriva exclusivamente de `SessionCookie` y el barbero de `barberId`; el cuerpo nunca acepta `barbershopId` ni `barberId`. Un `barberId` inexistente o de otra barbería responde `404`.
+         * Crear un tramo de horario laboral para un profesional del negocio activo
+         * @description Alta de un tramo recurrente (HU-040, CA-040-02) protegida con clave de idempotencia (RN-IDE-01, DEC-043): repetir el mismo `POST` con la misma `Idempotency-Key` y el mismo cuerpo devuelve la misma representación creada sin crear un segundo tramo. Varios tramos no solapados el mismo día representan una jornada partida; un tramo cuyo `startsTime` + `durationMinutes` cruza medianoche es válido (DEC-020). Un intervalo que se solapa con otro tramo existente del mismo profesional y día, o que repite exactamente su hora de inicio, responde `409` sin crear nada. El tenant se deriva exclusivamente de `SessionCookie` y el profesional de `professionalId`; el cuerpo nunca acepta `businessId` ni `professionalId`. Un `professionalId` inexistente o de otro negocio responde `404`.
          */
         post: operations["createWorkingHour"];
         delete?: never;
@@ -1207,7 +1249,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/private/barbers/{barberId}/working-hours/{workingHourId}": {
+    "/private/professionals/{professionalId}/working-hours/{workingHourId}": {
         parameters: {
             query?: never;
             header?: never;
@@ -1215,27 +1257,27 @@ export interface paths {
             cookie?: never;
         };
         /**
-         * Consultar un tramo de horario laboral de un barbero de la barbería activa
-         * @description Lectura autenticada de un tramo por identificador (HU-040). Un `barberId`/`workingHourId` inexistente, de otro barbero o de otra barbería responde exactamente el mismo `404` (CA-040-05, RN-TEN-01).
+         * Consultar un tramo de horario laboral de un profesional del negocio activo
+         * @description Lectura autenticada de un tramo por identificador (HU-040). Un `professionalId`/`workingHourId` inexistente, de otro profesional o de otro negocio responde exactamente el mismo `404` (CA-040-05, RN-TEN-01).
          */
         get: operations["getWorkingHour"];
         put?: never;
         post?: never;
         /**
-         * Retirar un tramo de horario laboral de un barbero de la barbería activa
-         * @description Retira físicamente el tramo (HU-040, CA-040-05): working_hour no tiene eliminación lógica. Un `barberId`/`workingHourId` inexistente, de otro barbero, de otra barbería, o ya retirado antes, responden el mismo `404` uniforme; reintentar la misma operación tras un `404` es seguro (nunca retira un segundo tramo por error).
+         * Retirar un tramo de horario laboral de un profesional del negocio activo
+         * @description Retira físicamente el tramo (HU-040, CA-040-05): working_hour no tiene eliminación lógica. Un `professionalId`/`workingHourId` inexistente, de otro profesional, de otro negocio, o ya retirado antes, responden el mismo `404` uniforme; reintentar la misma operación tras un `404` es seguro (nunca retira un segundo tramo por error).
          */
         delete: operations["deleteWorkingHour"];
         options?: never;
         head?: never;
         /**
-         * Editar un tramo de horario laboral de un barbero de la barbería activa
-         * @description Reemplaza el intervalo completo de un tramo existente (HU-040, CA-040-04): `isoWeekday`, `startsTime` y `durationMinutes` son los tres obligatorios, porque forman un único intervalo y una edición parcial sería ambigua. Un `barberId`/`workingHourId` inexistente, de otro barbero o de otra barbería responde el mismo `404` que `GET` (CA-040-05). Un intervalo nuevo que se solapa con otro tramo del mismo barbero y día (excluyendo el propio tramo editado), o que repite exactamente la hora de inicio de otro, responde `409`.
+         * Editar un tramo de horario laboral de un profesional del negocio activo
+         * @description Reemplaza el intervalo completo de un tramo existente (HU-040, CA-040-04): `isoWeekday`, `startsTime` y `durationMinutes` son los tres obligatorios, porque forman un único intervalo y una edición parcial sería ambigua. Un `professionalId`/`workingHourId` inexistente, de otro profesional o de otro negocio responde el mismo `404` que `GET` (CA-040-05). Un intervalo nuevo que se solapa con otro tramo del mismo profesional y día (excluyendo el propio tramo editado), o que repite exactamente la hora de inicio de otro, responde `409`.
          */
         patch: operations["updateWorkingHour"];
         trace?: never;
     };
-    "/private/barbers/{barberId}/holiday-calendar": {
+    "/private/professionals/{professionalId}/holiday-calendar": {
         parameters: {
             query?: never;
             header?: never;
@@ -1243,8 +1285,8 @@ export interface paths {
             cookie?: never;
         };
         /**
-         * Consultar el calendario colombiano de festivos de un barbero de la barbería activa
-         * @description Lectura autenticada del interruptor de calendario colombiano de festivos del barbero de la ruta (HU-041, CA-041-01/02). Un `barberId` inexistente o de otra barbería responde `404` (RN-TEN-01).
+         * Consultar el calendario colombiano de festivos de un profesional del negocio activo
+         * @description Lectura autenticada del interruptor de calendario colombiano de festivos del profesional de la ruta (HU-041, CA-041-01/02). Un `professionalId` inexistente o de otro negocio responde `404` (RN-TEN-01).
          */
         get: operations["getHolidayCalendar"];
         put?: never;
@@ -1253,13 +1295,13 @@ export interface paths {
         options?: never;
         head?: never;
         /**
-         * Activar o desactivar el calendario colombiano de festivos de un barbero de la barbería activa
-         * @description Activa o desactiva el calendario colombiano de festivos del barbero de la ruta (HU-041, CA-041-01/02). La decisión nunca afecta a otro barbero de la misma barbería. Un `barberId` inexistente o de otra barbería responde `404`.
+         * Activar o desactivar el calendario colombiano de festivos de un profesional del negocio activo
+         * @description Activa o desactiva el calendario colombiano de festivos del profesional de la ruta (HU-041, CA-041-01/02). La decisión nunca afecta a otro profesional del mismo negocio. Un `professionalId` inexistente o de otro negocio responde `404`.
          */
         patch: operations["updateHolidayCalendar"];
         trace?: never;
     };
-    "/private/barbers/{barberId}/schedule-exceptions": {
+    "/private/professionals/{professionalId}/schedule-exceptions": {
         parameters: {
             query?: never;
             header?: never;
@@ -1267,14 +1309,14 @@ export interface paths {
             cookie?: never;
         };
         /**
-         * Listar las excepciones de jornada de un barbero de la barbería activa
-         * @description Lista paginada por cursor (HU-041, CA-041-04/05) de las excepciones del barbero de la ruta, ordenada por fecha efectiva y luego por identificador. Un `barberId` inexistente o de otra barbería responde `404`.
+         * Listar las excepciones de jornada de un profesional del negocio activo
+         * @description Lista paginada por cursor (HU-041, CA-041-04/05) de las excepciones del profesional de la ruta, ordenada por fecha efectiva y luego por identificador. Un `professionalId` inexistente o de otro negocio responde `404`.
          */
         get: operations["listScheduleExceptions"];
         put?: never;
         /**
-         * Crear una excepción de jornada para un barbero de la barbería activa
-         * @description Alta de una excepción de jornada (HU-041, CA-041-04, CA-041-05) protegida con clave de idempotencia (RN-IDE-01, DEC-043): repetir el mismo `POST` con la misma `Idempotency-Key` y el mismo cuerpo devuelve la misma representación creada sin crear una segunda excepción. `isClosed: true` cierra el día completo (`segments` debe venir vacío u omitido); `isClosed: false` exige al menos un tramo sin solapes entre sí (DEC-020 permite cruzar medianoche). Ya existe una excepción de este barbero para esa fecha responde `409` sin crear nada (CA-041-05: como máximo una excepción por barbero y fecha). El tenant se deriva exclusivamente de `SessionCookie` y el barbero de `barberId`; el cuerpo nunca acepta `barbershopId` ni `barberId`. Un `barberId` inexistente o de otra barbería responde `404`.
+         * Crear una excepción de jornada para un profesional del negocio activo
+         * @description Alta de una excepción de jornada (HU-041, CA-041-04, CA-041-05) protegida con clave de idempotencia (RN-IDE-01, DEC-043): repetir el mismo `POST` con la misma `Idempotency-Key` y el mismo cuerpo devuelve la misma representación creada sin crear una segunda excepción. `isClosed: true` cierra el día completo (`segments` debe venir vacío u omitido); `isClosed: false` exige al menos un tramo sin solapes entre sí (DEC-020 permite cruzar medianoche). Ya existe una excepción de este profesional para esa fecha responde `409` sin crear nada (CA-041-05: como máximo una excepción por profesional y fecha). El tenant se deriva exclusivamente de `SessionCookie` y el profesional de `professionalId`; el cuerpo nunca acepta `businessId` ni `professionalId`. Un `professionalId` inexistente o de otro negocio responde `404`.
          */
         post: operations["createScheduleException"];
         delete?: never;
@@ -1283,7 +1325,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/private/barbers/{barberId}/schedule-exceptions/{exceptionId}": {
+    "/private/professionals/{professionalId}/schedule-exceptions/{exceptionId}": {
         parameters: {
             query?: never;
             header?: never;
@@ -1291,22 +1333,22 @@ export interface paths {
             cookie?: never;
         };
         /**
-         * Consultar una excepción de jornada de un barbero de la barbería activa
-         * @description Lectura autenticada de una excepción por identificador (HU-041). Un `barberId`/`exceptionId` inexistente, de otro barbero o de otra barbería responde exactamente el mismo `404` (CA-041-06, RN-TEN-01).
+         * Consultar una excepción de jornada de un profesional del negocio activo
+         * @description Lectura autenticada de una excepción por identificador (HU-041). Un `professionalId`/`exceptionId` inexistente, de otro profesional o de otro negocio responde exactamente el mismo `404` (CA-041-06, RN-TEN-01).
          */
         get: operations["getScheduleException"];
         put?: never;
         post?: never;
         /**
-         * Retirar una excepción de jornada de un barbero de la barbería activa
-         * @description Retira físicamente la excepción (HU-041, CA-041-06): sin eliminación lógica. Un `barberId`/`exceptionId` inexistente, de otro barbero, de otra barbería, o ya retirado antes, responden el mismo `404` uniforme; reintentar la misma operación tras un `404` es seguro.
+         * Retirar una excepción de jornada de un profesional del negocio activo
+         * @description Retira físicamente la excepción (HU-041, CA-041-06): sin eliminación lógica. Un `professionalId`/`exceptionId` inexistente, de otro profesional, de otro negocio, o ya retirado antes, responden el mismo `404` uniforme; reintentar la misma operación tras un `404` es seguro.
          */
         delete: operations["deleteScheduleException"];
         options?: never;
         head?: never;
         /**
-         * Editar una excepción de jornada de un barbero de la barbería activa
-         * @description Reemplaza la excepción completa (HU-041, CA-041-04, CA-041-05): `effectiveDate` e `isClosed` son obligatorios, con las mismas reglas de `segments` que la creación. Un `barberId`/`exceptionId` inexistente, de otro barbero o de otra barbería responde el mismo `404` que `GET` (CA-041-06). Mover la excepción a una fecha que ya tiene otra excepción del mismo barbero, o un solape entre tramos, responde `409`.
+         * Editar una excepción de jornada de un profesional del negocio activo
+         * @description Reemplaza la excepción completa (HU-041, CA-041-04, CA-041-05): `effectiveDate` e `isClosed` son obligatorios, con las mismas reglas de `segments` que la creación. Un `professionalId`/`exceptionId` inexistente, de otro profesional o de otro negocio responde el mismo `404` que `GET` (CA-041-06). Mover la excepción a una fecha que ya tiene otra excepción del mismo profesional, o un solape entre tramos, responde `409`.
          */
         patch: operations["updateScheduleException"];
         trace?: never;
@@ -1320,7 +1362,7 @@ export interface paths {
         };
         /**
          * Consultar los festivos colombianos de un año calendario
-         * @description Dato de referencia calendárica (HU-041, RN-BLQ-02), calculado de forma determinista (Ley 51 de 1983, "Ley Emiliani"): igual para toda barbería y todo barbero, no depende de ningún dato propio de la sesión más allá de exigirla. Útil para que la pantalla ofrezca "abrir este festivo" sin que el cliente reimplemente el cálculo.
+         * @description Dato de referencia calendárica (HU-041, RN-BLQ-02), calculado de forma determinista (Ley 51 de 1983, "Ley Emiliani"): igual para todo negocio y todo profesional, no depende de ningún dato propio de la sesión más allá de exigirla. Útil para que la pantalla ofrezca "abrir este festivo" sin que el cliente reimplemente el cálculo.
          */
         get: operations["listColombianHolidays"];
         put?: never;
@@ -1331,7 +1373,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/private/barbers/{barberId}/time-blocks": {
+    "/private/professionals/{professionalId}/time-blocks": {
         parameters: {
             query?: never;
             header?: never;
@@ -1339,14 +1381,14 @@ export interface paths {
             cookie?: never;
         };
         /**
-         * Listar los bloqueos puntuales de un barbero de la barbería activa
-         * @description Lista paginada por cursor de los bloqueos puntuales del barbero de la ruta, ordenada por instante de inicio y luego por identificador. includeDeleted=true también trae los retirados lógicamente (RN-BLQ-04, auditoría). Un barberId inexistente o de otra barbería responde 404 (RN-TEN-01).
+         * Listar los bloqueos puntuales de un profesional del negocio activo
+         * @description Lista paginada por cursor de los bloqueos puntuales del profesional de la ruta, ordenada por instante de inicio y luego por identificador. includeDeleted=true también trae los retirados lógicamente (RN-BLQ-04, auditoría). Un professionalId inexistente o de otro negocio responde 404 (RN-TEN-01).
          */
         get: operations["listTimeBlocks"];
         put?: never;
         /**
-         * Crear un bloqueo puntual para un barbero de la barbería activa
-         * @description Alta de un bloqueo puntual, incluida la emergencia (RN-BLQ-01), protegida con clave de idempotencia (RN-IDE-01, DEC-043). Crear un bloqueo NUNCA falla por chocar con citas ya agendadas ni con otro bloqueo existente (RN-BLQ-03, DEC-008): la lista de citas afectadas la resuelve B3/B5, no esta operación. El tenant se deriva exclusivamente de SessionCookie y el barbero de barberId; el cuerpo nunca acepta barbershopId ni barberId. Un barberId inexistente o de otra barbería responde 404.
+         * Crear un bloqueo puntual para un profesional del negocio activo
+         * @description Alta de un bloqueo puntual, incluida la emergencia (RN-BLQ-01), protegida con clave de idempotencia (RN-IDE-01, DEC-043). Crear un bloqueo NUNCA falla por chocar con citas ya agendadas ni con otro bloqueo existente (RN-BLQ-03, DEC-008): la lista de citas afectadas la resuelve B3/B5, no esta operación. El tenant se deriva exclusivamente de SessionCookie y el profesional de professionalId; el cuerpo nunca acepta businessId ni professionalId. Un professionalId inexistente o de otro negocio responde 404.
          */
         post: operations["createTimeBlock"];
         delete?: never;
@@ -1355,7 +1397,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/private/barbers/{barberId}/time-blocks/effective": {
+    "/private/professionals/{professionalId}/time-blocks/effective": {
         parameters: {
             query?: never;
             header?: never;
@@ -1363,8 +1405,8 @@ export interface paths {
             cookie?: never;
         };
         /**
-         * Proyectar los bloqueos efectivos de un barbero en un rango de fechas
-         * @description Operación interna de proyección/consulta (CA-042): expande las series activas dentro de [from, to] (fechas civiles, ambos límites inclusive) y lista los bloqueos puntuales vigentes que se solapan con ese rango, SIN materializar instancias de una serie en time_block. No es disponibilidad pública ni reserva (esas capacidades viven en B4); manualBlocks y seriesOccurrences vienen deliberadamente separados porque unirlos exige la zona IANA de la barbería, que ningún consumidor actual necesita.
+         * Proyectar los bloqueos efectivos de un profesional en un rango de fechas
+         * @description Operación interna de proyección/consulta (CA-042): expande las series activas dentro de [from, to] (fechas civiles, ambos límites inclusive) y lista los bloqueos puntuales vigentes que se solapan con ese rango, SIN materializar instancias de una serie en time_block. No es disponibilidad pública ni reserva (esas capacidades viven en B4); manualBlocks y seriesOccurrences vienen deliberadamente separados porque unirlos exige la zona IANA del negocio, que ningún consumidor actual necesita.
          */
         get: operations["getEffectiveTimeBlocks"];
         put?: never;
@@ -1375,7 +1417,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/private/barbers/{barberId}/time-blocks/{blockId}": {
+    "/private/professionals/{professionalId}/time-blocks/{blockId}": {
         parameters: {
             query?: never;
             header?: never;
@@ -1383,15 +1425,15 @@ export interface paths {
             cookie?: never;
         };
         /**
-         * Consultar un bloqueo puntual de un barbero de la barbería activa
-         * @description Lectura autenticada de un bloqueo por identificador, incluidos los retirados lógicamente (RN-BLQ-04: el registro se conserva). Un barberId/blockId inexistente, de otro barbero o de otra barbería responde exactamente el mismo 404 (RN-TEN-01).
+         * Consultar un bloqueo puntual de un profesional del negocio activo
+         * @description Lectura autenticada de un bloqueo por identificador, incluidos los retirados lógicamente (RN-BLQ-04: el registro se conserva). Un professionalId/blockId inexistente, de otro profesional o de otro negocio responde exactamente el mismo 404 (RN-TEN-01).
          */
         get: operations["getTimeBlock"];
         put?: never;
         post?: never;
         /**
-         * Retirar lógicamente un bloqueo puntual de un barbero de la barbería activa
-         * @description Retira lógicamente el bloqueo (RN-BLQ-04): fija deletedAt/deletedBy y deja de restar disponibilidad, pero el registro se conserva; nunca hace DELETE físico. Un barberId/blockId inexistente, de otro barbero, de otra barbería, o ya retirado antes, responden el mismo 404 uniforme; reintentar la misma operación tras un 404 es seguro.
+         * Retirar lógicamente un bloqueo puntual de un profesional del negocio activo
+         * @description Retira lógicamente el bloqueo (RN-BLQ-04): fija deletedAt/deletedBy y deja de restar disponibilidad, pero el registro se conserva; nunca hace DELETE físico. Un professionalId/blockId inexistente, de otro profesional, de otro negocio, o ya retirado antes, responden el mismo 404 uniforme; reintentar la misma operación tras un 404 es seguro.
          */
         delete: operations["deleteTimeBlock"];
         options?: never;
@@ -1399,7 +1441,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/private/barbers/{barberId}/time-block-series": {
+    "/private/professionals/{professionalId}/time-block-series": {
         parameters: {
             query?: never;
             header?: never;
@@ -1407,14 +1449,14 @@ export interface paths {
             cookie?: never;
         };
         /**
-         * Listar las series de bloqueo de un barbero de la barbería activa
-         * @description Lista paginada por cursor de las definiciones recurrentes (weekly o date_list) del barbero de la ruta, con sus fechas/excepciones embebidas, ordenada por rango efectivo y luego por identificador. includeDeleted=true también trae las retiradas lógicamente.
+         * Listar las series de bloqueo de un profesional del negocio activo
+         * @description Lista paginada por cursor de las definiciones recurrentes (weekly o date_list) del profesional de la ruta, con sus fechas/excepciones embebidas, ordenada por rango efectivo y luego por identificador. includeDeleted=true también trae las retiradas lógicamente.
          */
         get: operations["listTimeBlockSeries"];
         put?: never;
         /**
-         * Crear una serie de bloqueo para un barbero de la barbería activa
-         * @description Alta de una definición recurrente semanal o por lista de fechas (RN-BLQ-01, DEC-020), protegida con clave de idempotencia (RN-IDE-01, DEC-043). explicitDates permite crear varias fechas de una serie date_list en la misma operación ("bloqueo de varios días debe poder crearse en una sola operación"). Crear la serie no materializa ninguna instancia en time_block. Un barberId inexistente o de otra barbería responde 404.
+         * Crear una serie de bloqueo para un profesional del negocio activo
+         * @description Alta de una definición recurrente semanal o por lista de fechas (RN-BLQ-01, DEC-020), protegida con clave de idempotencia (RN-IDE-01, DEC-043). explicitDates permite crear varias fechas de una serie date_list en la misma operación ("bloqueo de varios días debe poder crearse en una sola operación"). Crear la serie no materializa ninguna instancia en time_block. Un professionalId inexistente o de otro negocio responde 404.
          */
         post: operations["createTimeBlockSeries"];
         delete?: never;
@@ -1423,7 +1465,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/private/barbers/{barberId}/time-block-series/{seriesId}": {
+    "/private/professionals/{professionalId}/time-block-series/{seriesId}": {
         parameters: {
             query?: never;
             header?: never;
@@ -1431,27 +1473,27 @@ export interface paths {
             cookie?: never;
         };
         /**
-         * Consultar una serie de bloqueo de un barbero de la barbería activa
-         * @description Lectura autenticada de una serie por identificador, con sus fechas/excepciones, incluidas las retiradas lógicamente. Un barberId/seriesId inexistente, de otro barbero o de otra barbería responde el mismo 404.
+         * Consultar una serie de bloqueo de un profesional del negocio activo
+         * @description Lectura autenticada de una serie por identificador, con sus fechas/excepciones, incluidas las retiradas lógicamente. Un professionalId/seriesId inexistente, de otro profesional o de otro negocio responde el mismo 404.
          */
         get: operations["getTimeBlockSeries"];
         put?: never;
         post?: never;
         /**
-         * Retirar lógicamente una serie de bloqueo de un barbero de la barbería activa
-         * @description Retira lógicamente la cabecera completa (RN-BLQ-04). No borra sus fechas/excepciones (DEC-070: RESTRICT, nunca cascada). Un barberId/seriesId inexistente, de otro barbero, de otra barbería, o ya retirada antes, responden el mismo 404; reintentar tras un 404 es seguro.
+         * Retirar lógicamente una serie de bloqueo de un profesional del negocio activo
+         * @description Retira lógicamente la cabecera completa (RN-BLQ-04). No borra sus fechas/excepciones (DEC-070: RESTRICT, nunca cascada). Un professionalId/seriesId inexistente, de otro profesional, de otro negocio, o ya retirada antes, responden el mismo 404; reintentar tras un 404 es seguro.
          */
         delete: operations["deleteTimeBlockSeries"];
         options?: never;
         head?: never;
         /**
-         * Editar una serie de bloqueo de un barbero de la barbería activa
-         * @description Edita una recurrencia distinguiendo "esta y las siguientes" o "toda la serie" (RN-BLQ-01; "esta instancia" se resuelve con el sub-recurso de excepciones). scope=whole reemplaza los campos editables de la cabecera completa. scope=this_and_following trunca la serie original en effectiveDate-1 día y crea una serie NUEVA desde effectiveDate con los campos nuevos -el cuerpo de la respuesta es esa serie nueva, no la original truncada-; solo se admite sobre una serie weekly. Un barberId/seriesId inexistente, de otro barbero, de otra barbería, o ya retirada, responde 404.
+         * Editar una serie de bloqueo de un profesional del negocio activo
+         * @description Edita una recurrencia distinguiendo "esta y las siguientes" o "toda la serie" (RN-BLQ-01; "esta instancia" se resuelve con el sub-recurso de excepciones). scope=whole reemplaza los campos editables de la cabecera completa. scope=this_and_following trunca la serie original en effectiveDate-1 día y crea una serie NUEVA desde effectiveDate con los campos nuevos -el cuerpo de la respuesta es esa serie nueva, no la original truncada-; solo se admite sobre una serie weekly. Un professionalId/seriesId inexistente, de otro profesional, de otro negocio, o ya retirada, responde 404.
          */
         patch: operations["updateTimeBlockSeries"];
         trace?: never;
     };
-    "/private/barbers/{barberId}/time-block-series/{seriesId}/dates": {
+    "/private/professionals/{professionalId}/time-block-series/{seriesId}/dates": {
         parameters: {
             query?: never;
             header?: never;
@@ -1471,7 +1513,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/private/barbers/{barberId}/time-block-series/{seriesId}/dates/{blockDate}": {
+    "/private/professionals/{professionalId}/time-block-series/{seriesId}/dates/{blockDate}": {
         parameters: {
             query?: never;
             header?: never;
@@ -1483,7 +1525,7 @@ export interface paths {
         post?: never;
         /**
          * Retirar una fecha explícita de una serie date_list
-         * @description Retiro físico (fila hija sin ciclo de vida propio, análoga a un tramo de excepción de HU-041). Una fecha inexistente, ya retirada antes, o de otra serie/barbero/barbería, responde el mismo 404; reintentar tras un 404 es seguro.
+         * @description Retiro físico (fila hija sin ciclo de vida propio, análoga a un tramo de excepción de HU-041). Una fecha inexistente, ya retirada antes, o de otra serie/profesional/negocio, responde el mismo 404; reintentar tras un 404 es seguro.
          */
         delete: operations["removeTimeBlockSeriesDate"];
         options?: never;
@@ -1491,7 +1533,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/private/barbers/{barberId}/time-block-series/{seriesId}/exceptions": {
+    "/private/professionals/{professionalId}/time-block-series/{seriesId}/exceptions": {
         parameters: {
             query?: never;
             header?: never;
@@ -1511,7 +1553,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/private/barbers/{barberId}/time-block-series/{seriesId}/exceptions/{excludedDate}": {
+    "/private/professionals/{professionalId}/time-block-series/{seriesId}/exceptions/{excludedDate}": {
         parameters: {
             query?: never;
             header?: never;
@@ -1523,7 +1565,7 @@ export interface paths {
         post?: never;
         /**
          * Retirar una excepción de una serie ("restaura" la instancia)
-         * @description Retiro físico de la excepción: la instancia vuelve a proyectarse. Una excepción inexistente, ya retirada antes, o de otra serie/barbero/ barbería, responde el mismo 404; reintentar tras un 404 es seguro.
+         * @description Retiro físico de la excepción: la instancia vuelve a proyectarse. Una excepción inexistente, ya retirada antes, o de otra serie/profesional/ negocio, responde el mismo 404; reintentar tras un 404 es seguro.
          */
         delete: operations["removeTimeBlockSeriesException"];
         options?: never;
@@ -1542,7 +1584,7 @@ export interface paths {
         put?: never;
         /**
          * Registrar un turno manual
-         * @description Alta de una cita `confirmed` a partir de un turno recibido por teléfono, WhatsApp o en persona (HU-061, CA-061-01 a CA-061-08), protegida con clave de idempotencia (RN-IDE-01, DEC-043): repetir el mismo `POST` con la misma `Idempotency-Key` y el mismo cuerpo devuelve la misma representación creada sin crear una segunda cita. No está sujeta a la anticipación mínima ni a la ventana máxima de la reserva pública (RN-DIS-04, DEC-005/DEC-018): admite un instante que ya empezó o uno más allá de la ventana pública. El servicio elegido debe estar activo y asignado al barbero elegido (DEC-072); un intervalo que no cabe completo en la jornada efectiva del barbero (excepción manual, festivo activado u horario semanal; CA-061-02) responde `422` sin escribir nada; uno que se solapa con otra cita del mismo barbero (RN-CON-01) o con un bloqueo vigente (DEC-073) responde `409`. El cliente se reconcilia por teléfono o, si falta, por correo (DEC-045, DEC-046, DEC-071); sin ninguno de los dos, siempre se crea un cliente nuevo, nunca por nombre. El tenant y el actor se derivan exclusivamente de `SessionCookie`; el cuerpo nunca acepta `barbershopId`, `customerId`, `status`, `origin` ni ningún dato de servicio.
+         * @description Alta de una cita `confirmed` a partir de un turno recibido por teléfono, WhatsApp o en persona (HU-061, CA-061-01 a CA-061-08), protegida con clave de idempotencia (RN-IDE-01, DEC-043): repetir el mismo `POST` con la misma `Idempotency-Key` y el mismo cuerpo devuelve la misma representación creada sin crear una segunda cita. No está sujeta a la anticipación mínima ni a la ventana máxima de la reserva pública (RN-DIS-04, DEC-005/DEC-018): admite un instante que ya empezó o uno más allá de la ventana pública. El servicio elegido debe estar activo y asignado al profesional elegido (DEC-072); un intervalo que no cabe completo en la jornada efectiva del profesional (excepción manual, festivo activado u horario semanal; CA-061-02) responde `422` sin escribir nada; uno que se solapa con otra cita del mismo profesional (RN-CON-01) o con un bloqueo vigente (DEC-073) responde `409`. El cliente se reconcilia por teléfono o, si falta, por correo (DEC-045, DEC-046, DEC-071); sin ninguno de los dos, siempre se crea un cliente nuevo, nunca por nombre. El tenant y el actor se derivan exclusivamente de `SessionCookie`; el cuerpo nunca acepta `businessId`, `customerId`, `status`, `origin` ni ningún dato de servicio.
          */
         post: operations["createManualAppointment"];
         delete?: never;
@@ -1551,7 +1593,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/private/barbers/{barberId}/appointments/daily-agenda": {
+    "/private/professionals/{professionalId}/appointments/daily-agenda": {
         parameters: {
             query?: never;
             header?: never;
@@ -1559,8 +1601,8 @@ export interface paths {
             cookie?: never;
         };
         /**
-         * Consultar la agenda diaria de un barbero
-         * @description Lista cronológica, cerrada y sin cursor (HU-062, CA-062-01 a CA-062-07) de los turnos del barbero de la ruta cuyo intervalo interseca el rango civil de `date` en la zona IANA de la barbería: un turno que cruza medianoche aparece en cada agenda diaria cuyo rango interseca su intervalo (DEC-075), no solo en el día en que empieza. Sin `date`, la respuesta usa "hoy" en esa misma zona (CA-062-01). La ruta exige un `barberId` explícito: no existe una vista consolidada de varios barberos (DEC-074, DEC-047). La respuesta nunca expone teléfono, correo, nota ni `customerId` (CA-062-05); el snapshot de servicio ya congelado en la cita es la única fuente visible (DEC-004), sin unir contra el catálogo vigente.
+         * Consultar la agenda diaria de un profesional
+         * @description Lista cronológica, cerrada y sin cursor (HU-062, CA-062-01 a CA-062-07) de los turnos del profesional de la ruta cuyo intervalo interseca el rango civil de `date` en la zona IANA del negocio: un turno que cruza medianoche aparece en cada agenda diaria cuyo rango interseca su intervalo (DEC-075), no solo en el día en que empieza. Sin `date`, la respuesta usa "hoy" en esa misma zona (CA-062-01). La ruta exige un `professionalId` explícito: no existe una vista consolidada de varios profesionales (DEC-074, DEC-047). La respuesta nunca expone teléfono, correo, nota ni `customerId` (CA-062-05); el snapshot de servicio ya congelado en la cita es la única fuente visible (DEC-004), sin unir contra el catálogo vigente.
          */
         get: operations["listDailyAgenda"];
         put?: never;
@@ -1580,7 +1622,7 @@ export interface paths {
         };
         /**
          * Consultar el detalle de un turno
-         * @description Detalle completo de una cita (HU-064, CA-064-01 a CA-064-04): persona atendida, cliente que reservó con su contacto opcional y nota, barbero, origen, intervalo, estado y el snapshot de servicio congelado al crear la cita (DEC-004), nunca el catálogo vigente. La respuesta nunca incluye `customerId`, ningún identificador de actor de historial, `barbershopId` ni `updatedAt` crudo: `versionToken` es el único dato de concurrencia expuesto, opaco.
+         * @description Detalle completo de una cita (HU-064, CA-064-01 a CA-064-04): persona atendida, cliente que reservó con su contacto opcional y nota, profesional, origen, intervalo, estado y el snapshot de servicio congelado al crear la cita (DEC-004), nunca el catálogo vigente. La respuesta nunca incluye `customerId`, ningún identificador de actor de historial, `businessId` ni `updatedAt` crudo: `versionToken` es el único dato de concurrencia expuesto, opaco.
          */
         get: operations["getAppointmentDetail"];
         put?: never;
@@ -1622,7 +1664,7 @@ export interface paths {
         put?: never;
         /**
          * Reprogramar un turno (T2)
-         * @description Mueve el intervalo de una cita `confirmed` a un nuevo inicio futuro (HU-065, `T2` de `estados-citas.md`), sin cambiar ningún otro dato: barbero, servicio, duración, precio, cliente, persona, origen, nota y estado permanecen iguales. El fin se deriva de `durationMinutesSnapshot`, nunca del cliente. Protegida con clave de idempotencia (RN-IDE-01, DEC-043) y con la precondición `If-Match` (el `versionToken` de una lectura anterior del detalle, HU-064): si la representación vigente ya cambió, responde `409` con `code: version-conflict` en vez de aplicar un último escritor silencioso. Un intervalo idéntico al vigente es un no-op exitoso: no genera una entrada de historial nueva. Un nuevo intervalo que no cabe completo en la jornada efectiva del barbero (CA-065-04) responde `422` sin escribir nada. Un bloqueo vigente del barbero en el nuevo intervalo rechaza la operación con el mismo `409` que un cruce con otra cita (`DEC-076`). El tenant y el actor se derivan exclusivamente de `SessionCookie`.
+         * @description Mueve el intervalo de una cita `confirmed` a un nuevo inicio futuro (HU-065, `T2` de `estados-citas.md`), sin cambiar ningún otro dato: profesional, servicio, duración, precio, cliente, persona, origen, nota y estado permanecen iguales. El fin se deriva de `durationMinutesSnapshot`, nunca del cliente. Protegida con clave de idempotencia (RN-IDE-01, DEC-043) y con la precondición `If-Match` (el `versionToken` de una lectura anterior del detalle, HU-064): si la representación vigente ya cambió, responde `409` con `code: version-conflict` en vez de aplicar un último escritor silencioso. Un intervalo idéntico al vigente es un no-op exitoso: no genera una entrada de historial nueva. Un nuevo intervalo que no cabe completo en la jornada efectiva del profesional (CA-065-04) responde `422` sin escribir nada. Un bloqueo vigente del profesional en el nuevo intervalo rechaza la operación con el mismo `409` que un cruce con otra cita (`DEC-076`). El tenant y el actor se derivan exclusivamente de `SessionCookie`.
          */
         post: operations["rescheduleAppointment"];
         delete?: never;
@@ -1641,10 +1683,10 @@ export interface paths {
         get?: never;
         put?: never;
         /**
-         * Cancelar un turno por el barbero (T6)
-         * @description Cancela una cita `confirmed` (HU-066, `T6` de `estados-citas.md`) en cualquier momento antes, durante o después de su intervalo: ningún reloj del cliente ni ventana de tiempo lo restringe (CA-066-02). Cambia el estado a `cancelled_by_barber` e inserta un único evento `appointment_cancelled_by_barber` dentro de la misma transacción que la actualización de estado. La cita deja de participar en la restricción de exclusión de inmediato, liberando su franja si es futura (CA-066-03). Protegida con clave de idempotencia (RN-IDE-01, DEC-043) y con la precondición `If-Match` (el `versionToken` de una lectura anterior del detalle, HU-064). Repetir la cancelación sobre una cita ya `cancelled_by_barber` es un no-op exitoso, sin duplicar el evento (CA-066-04); una cita ya terminada de otra forma (`completed`, `no_show`, `cancelled_by_customer`) responde `409`. No cambia intervalo, snapshots, cliente, persona, contacto, nota ni barbero (CA-066-07). El tenant y el actor se derivan exclusivamente de `SessionCookie`; el cuerpo no acepta ningún campo.
+         * Cancelar un turno por el profesional (T6)
+         * @description Cancela una cita `confirmed` (HU-066, `T6` de `estados-citas.md`) en cualquier momento antes, durante o después de su intervalo: ningún reloj del cliente ni ventana de tiempo lo restringe (CA-066-02). Cambia el estado a `cancelled_by_professional` e inserta un único evento `appointment_cancelled_by_professional` dentro de la misma transacción que la actualización de estado. La cita deja de participar en la restricción de exclusión de inmediato, liberando su franja si es futura (CA-066-03). Protegida con clave de idempotencia (RN-IDE-01, DEC-043) y con la precondición `If-Match` (el `versionToken` de una lectura anterior del detalle, HU-064). Repetir la cancelación sobre una cita ya `cancelled_by_professional` es un no-op exitoso, sin duplicar el evento (CA-066-04); una cita ya terminada de otra forma (`completed`, `no_show`, `cancelled_by_customer`) responde `409`. No cambia intervalo, snapshots, cliente, persona, contacto, nota ni profesional (CA-066-07). El tenant y el actor se derivan exclusivamente de `SessionCookie`; el cuerpo no acepta ningún campo.
          */
-        post: operations["cancelAppointmentByBarber"];
+        post: operations["cancelAppointmentByProfessional"];
         delete?: never;
         options?: never;
         head?: never;
@@ -1662,7 +1704,7 @@ export interface paths {
         put?: never;
         /**
          * Cerrar un turno como atendido (T4 manual)
-         * @description Cierra una cita `confirmed` cuyo `starts_at` ya pasó (HU-067, `T4` manual de `estados-citas.md`) como `completed`, insertando un único evento `appointment_completed` dentro de la misma transacción que la actualización de estado (CA-067-01). Exactamente en `starts_at` la acción ya es válida según el reloj del servidor; antes de ese instante responde `422` sin persistir nada, ni siquiera una reclamación de idempotencia que impida reintentar (CA-067-03). No cambia intervalo, snapshots, cliente, persona, contacto, nota ni barbero; el turno sigue ocupando agenda (CA-067-04). Protegida con clave de idempotencia (RN-IDE-01, DEC-043) y con la precondición `If-Match` (el `versionToken` de una lectura anterior del detalle, HU-064). Repetir el cierre sobre una cita ya `completed` es un no-op exitoso, sin duplicar el evento; intentar `no_show` sobre una cita ya `completed`, o cerrar cualquier otro estado terminal (`cancelled_by_barber`, `cancelled_by_customer`), responde `409` orientando a la futura corrección `T8` (CA-067-05). El tenant y el actor se derivan exclusivamente de `SessionCookie`; el cuerpo no acepta ningún campo.
+         * @description Cierra una cita `confirmed` cuyo `starts_at` ya pasó (HU-067, `T4` manual de `estados-citas.md`) como `completed`, insertando un único evento `appointment_completed` dentro de la misma transacción que la actualización de estado (CA-067-01). Exactamente en `starts_at` la acción ya es válida según el reloj del servidor; antes de ese instante responde `422` sin persistir nada, ni siquiera una reclamación de idempotencia que impida reintentar (CA-067-03). No cambia intervalo, snapshots, cliente, persona, contacto, nota ni profesional; el turno sigue ocupando agenda (CA-067-04). Protegida con clave de idempotencia (RN-IDE-01, DEC-043) y con la precondición `If-Match` (el `versionToken` de una lectura anterior del detalle, HU-064). Repetir el cierre sobre una cita ya `completed` es un no-op exitoso, sin duplicar el evento; intentar `no_show` sobre una cita ya `completed`, o cerrar cualquier otro estado terminal (`cancelled_by_professional`, `cancelled_by_customer`), responde `409` orientando a la futura corrección `T8` (CA-067-05). El tenant y el actor se derivan exclusivamente de `SessionCookie`; el cuerpo no acepta ningún campo.
          */
         post: operations["completeAppointment"];
         delete?: never;
@@ -1682,7 +1724,7 @@ export interface paths {
         put?: never;
         /**
          * Cerrar un turno como inasistencia (T7)
-         * @description Cierra una cita `confirmed` cuyo `starts_at` ya pasó (HU-067, `T7` de `estados-citas.md`) como `no_show`, insertando un único evento `appointment_no_show` dentro de la misma transacción que la actualización de estado (CA-067-02). Exactamente en `starts_at` la acción ya es válida según el reloj del servidor; antes de ese instante responde `422` sin persistir nada, ni siquiera una reclamación de idempotencia que impida reintentar (CA-067-03). No cambia intervalo, snapshots, cliente, persona, contacto, nota ni barbero; el turno sigue ocupando agenda (CA-067-04). Protegida con clave de idempotencia (RN-IDE-01, DEC-043) y con la precondición `If-Match` (el `versionToken` de una lectura anterior del detalle, HU-064). Repetir el cierre sobre una cita ya `no_show` es un no-op exitoso, sin duplicar el evento; intentar `completed` sobre una cita ya `no_show`, o cerrar cualquier otro estado terminal (`cancelled_by_barber`, `cancelled_by_customer`), responde `409` orientando a la futura corrección `T8` (CA-067-05). El tenant y el actor se derivan exclusivamente de `SessionCookie`; el cuerpo no acepta ningún campo.
+         * @description Cierra una cita `confirmed` cuyo `starts_at` ya pasó (HU-067, `T7` de `estados-citas.md`) como `no_show`, insertando un único evento `appointment_no_show` dentro de la misma transacción que la actualización de estado (CA-067-02). Exactamente en `starts_at` la acción ya es válida según el reloj del servidor; antes de ese instante responde `422` sin persistir nada, ni siquiera una reclamación de idempotencia que impida reintentar (CA-067-03). No cambia intervalo, snapshots, cliente, persona, contacto, nota ni profesional; el turno sigue ocupando agenda (CA-067-04). Protegida con clave de idempotencia (RN-IDE-01, DEC-043) y con la precondición `If-Match` (el `versionToken` de una lectura anterior del detalle, HU-064). Repetir el cierre sobre una cita ya `no_show` es un no-op exitoso, sin duplicar el evento; intentar `completed` sobre una cita ya `no_show`, o cerrar cualquier otro estado terminal (`cancelled_by_professional`, `cancelled_by_customer`), responde `409` orientando a la futura corrección `T8` (CA-067-05). El tenant y el actor se derivan exclusivamente de `SessionCookie`; el cuerpo no acepta ningún campo.
          */
         post: operations["markAppointmentNoShow"];
         delete?: never;
@@ -1702,7 +1744,7 @@ export interface paths {
         put?: never;
         /**
          * Corregir un resultado terminal (T8)
-         * @description Corrige una clasificación terminal errónea hacia otro terminal distinto (HU-068, `T8` de `estados-citas.md`): `completed`, `no_show`, `cancelled_by_customer` o `cancelled_by_barber`. `confirmed` nunca es origen ni destino (CA-068-01/02) — corregir una cita que sigue `confirmed` responde `409 invalid-state`; enviar `confirmed` como destino responde `422 validation-error`. El estado y un único evento `appointment_status_corrected` (con estado anterior, nuevo y el motivo obligatorio) se escriben en la misma transacción tenant-aware (CA-068-01/03); los eventos anteriores permanecen intactos, sin editar ni borrar nada. Repetir la corrección hacia el MISMO estado vigente es un `200` no-op exitoso, sin duplicar el evento (CA-068-02). Al corregir desde un cancelado hacia `completed`/`no_show`, se revalida la misma frontera temporal que T4/T7 (`422` si `startsAt` todavía no pasó) y la misma restricción de exclusión de PostgreSQL que protege reprogramar: un cruce con otra cita del mismo barbero responde `409 conflict` sin escribir nada (CA-068-04). Al corregir desde `completed`/`no_show` hacia un cancelado, la cita deja de ocupar agenda en la misma confirmación (CA-068-05). Protegida con clave de idempotencia (RN-IDE-01, DEC-043) y con la precondición `If-Match` (el `versionToken` de una lectura anterior del detalle, HU-064). El tenant y el actor se derivan exclusivamente de `SessionCookie`; el cuerpo nunca acepta un estado de origen, actor, tenant ni ningún dato de la cita.
+         * @description Corrige una clasificación terminal errónea hacia otro terminal distinto (HU-068, `T8` de `estados-citas.md`): `completed`, `no_show`, `cancelled_by_customer` o `cancelled_by_professional`. `confirmed` nunca es origen ni destino (CA-068-01/02) — corregir una cita que sigue `confirmed` responde `409 invalid-state`; enviar `confirmed` como destino responde `422 validation-error`. El estado y un único evento `appointment_status_corrected` (con estado anterior, nuevo y el motivo obligatorio) se escriben en la misma transacción tenant-aware (CA-068-01/03); los eventos anteriores permanecen intactos, sin editar ni borrar nada. Repetir la corrección hacia el MISMO estado vigente es un `200` no-op exitoso, sin duplicar el evento (CA-068-02). Al corregir desde un cancelado hacia `completed`/`no_show`, se revalida la misma frontera temporal que T4/T7 (`422` si `startsAt` todavía no pasó) y la misma restricción de exclusión de PostgreSQL que protege reprogramar: un cruce con otra cita del mismo profesional responde `409 conflict` sin escribir nada (CA-068-04). Al corregir desde `completed`/`no_show` hacia un cancelado, la cita deja de ocupar agenda en la misma confirmación (CA-068-05). Protegida con clave de idempotencia (RN-IDE-01, DEC-043) y con la precondición `If-Match` (el `versionToken` de una lectura anterior del detalle, HU-064). El tenant y el actor se derivan exclusivamente de `SessionCookie`; el cuerpo nunca acepta un estado de origen, actor, tenant ni ningún dato de la cita.
          */
         post: operations["correctAppointmentStatus"];
         delete?: never;
@@ -1734,7 +1776,7 @@ export interface components {
              */
             status: number;
             /**
-             * @description Explicación segura de esta ocurrencia. Nunca contiene SQL, rutas de archivo, nombres de proveedor, versiones de dependencias, trazas ni la existencia de un recurso de otra barbería.
+             * @description Explicación segura de esta ocurrencia. Nunca contiene SQL, rutas de archivo, nombres de proveedor, versiones de dependencias, trazas ni la existencia de un recurso de otro negocio.
              * @example no existe un turno con ese identificador
              */
             detail?: string;
@@ -1754,12 +1796,12 @@ export interface components {
              */
             requestId: string;
         };
-        /** @description Credenciales de acceso del barbero. */
+        /** @description Credenciales de acceso del profesional. */
         LoginRequest: {
             /**
              * Format: email
-             * @description Correo de acceso, normalizado a minúsculas por el servidor antes de resolver la barbería.
-             * @example barbero.ejemplo@correo.test
+             * @description Correo de acceso, normalizado a minúsculas por el servidor antes de resolver el negocio.
+             * @example profesional.ejemplo@correo.test
              */
             email: string;
             /** @description Contraseña en texto plano, transportada solo en esta solicitud. Nunca se refleja en ninguna respuesta. */
@@ -1774,16 +1816,16 @@ export interface components {
              */
             expiresAt: string;
         };
-        /** @description Contexto mínimo de sesión ya autoritativo: barbería activa y expiración de la sesión que SessionMiddleware ya validó y renovó para esta misma solicitud, igual que cualquier otra ruta bajo /api/v1/private. */
+        /** @description Contexto mínimo de sesión ya autoritativo: negocio activo y expiración de la sesión que SessionMiddleware ya validó y renovó para esta misma solicitud, igual que cualquier otra ruta bajo /api/v1/private. */
         SessionContextResponse: {
-            /** @description Barbería activa del barbero autenticado. */
-            barbershop: {
+            /** @description Negocio activo del profesional autenticado. */
+            business: {
                 /**
                  * Format: uuid
-                 * @description Identificador de la barbería activa.
+                 * @description Identificador del negocio activo.
                  */
                 id: string;
-                /** @description Nombre de la barbería activa. */
+                /** @description Nombre del negocio activo. */
                 name: string;
             };
             /**
@@ -1798,7 +1840,7 @@ export interface components {
             /**
              * Format: email
              * @description Correo de la cuenta cuyo teléfono verificado recibirá el código, si corresponde.
-             * @example barbero.ejemplo@correo.test
+             * @example profesional.ejemplo@correo.test
              */
             email: string;
         };
@@ -1807,7 +1849,7 @@ export interface components {
             /**
              * Format: email
              * @description Correo de la cuenta que solicitó el reto.
-             * @example barbero.ejemplo@correo.test
+             * @example profesional.ejemplo@correo.test
              */
             email: string;
             /**
@@ -1824,35 +1866,35 @@ export interface components {
              */
             message: string;
         };
-        /** @description Configuración básica de la barbería activa: nombre, zona horaria IANA y contacto opcional. contactEmail/contactPhone viajan siempre presentes en el cuerpo, con valor `null` explícito cuando la barbería no tiene ese contacto configurado (nunca se omiten ni se representan como cadena vacía). */
-        BarbershopSettingsResponse: {
+        /** @description Configuración básica del negocio activo: nombre, zona horaria IANA y contacto opcional. contactEmail/contactPhone viajan siempre presentes en el cuerpo, con valor `null` explícito cuando el negocio no tiene ese contacto configurado (nunca se omiten ni se representan como cadena vacía). */
+        BusinessSettingsResponse: {
             /**
-             * @description Nombre de la barbería, ya recortado.
-             * @example Barbería Ejemplo
+             * @description Nombre del negocio, ya recortado.
+             * @example Negocio Ejemplo
              */
             name: string;
             /**
-             * @description Zona horaria IANA de la barbería (RN-DIS-07). Gobierna toda hora que la aplicación presente para esta barbería; no es la zona del navegador ni la del servidor.
+             * @description Zona horaria IANA del negocio (RN-DIS-07). Gobierna toda hora que la aplicación presente para este negocio; no es la zona del navegador ni la del servidor.
              * @example America/Bogota
              */
             timezone: string;
             /**
              * Format: email
-             * @description Correo de contacto de la barbería, normalizado a minúsculas; null cuando no está configurado.
+             * @description Correo de contacto del negocio, normalizado a minúsculas; null cuando no está configurado.
              * @example contacto@ejemplo.test
              */
             contactEmail: string | null;
             /**
-             * @description Teléfono de contacto de la barbería en formato E.164; null cuando no está configurado.
+             * @description Teléfono de contacto del negocio en formato E.164; null cuando no está configurado.
              * @example +573001234567
              */
             contactPhone: string | null;
         };
         /** @description Nombre, zona horaria y contacto opcional a guardar. Los cuatro campos viajan siempre presentes. */
-        UpdateBarbershopSettingsRequest: {
+        UpdateBusinessSettingsRequest: {
             /**
-             * @description Nombre de la barbería. Espacios sueltos no cuentan como valor (se recorta y valida como no vacío).
-             * @example Barbería Ejemplo
+             * @description Nombre del negocio. Espacios sueltos no cuentan como valor (se recorta y valida como no vacío).
+             * @example Negocio Ejemplo
              */
             name: string;
             /**
@@ -1871,7 +1913,7 @@ export interface components {
              */
             contactPhone: string;
         };
-        /** @description Marca y vocabulario de la barbería activa: color de acento de una lista cerrada, la palabra con la que llama a su negocio y a su profesional (con plural y género gramatical, para que la interfaz concuerde). Los términos viajan recortados y en minúsculas; la interfaz capitaliza donde corresponde. Incluye el panel del usuario que consulta (`panelProfile`), derivado de sus roles en la base de datos (`DEC-134`); no es un dato de la barbería. Incluye la ubicación física opcional que la reserva pública muestra (`DEC-130`). */
+        /** @description Marca y vocabulario del negocio activo: color de acento de una lista cerrada, la palabra con la que llama a su negocio y a su profesional (con plural y género gramatical, para que la interfaz concuerde). Los términos viajan recortados y en minúsculas; la interfaz capitaliza donde corresponde. Incluye el panel del usuario que consulta (`panelProfile`), derivado de sus roles en la base de datos (`DEC-134`); no es un dato del negocio. Incluye la ubicación física opcional que la reserva pública muestra (`DEC-130`). */
         BrandResponse: {
             accent: components["schemas"]["BrandAccent"];
             businessTerm: components["schemas"]["BrandTerm"];
@@ -1880,7 +1922,7 @@ export interface components {
             professionalTermPlural: components["schemas"]["BrandTerm"];
             professionalTermGender: components["schemas"]["BrandTermGender"];
             panelProfile: components["schemas"]["PanelProfile"];
-            /** @description Interruptor explícito de `DEC-130`: `true` = la barbería tiene un local que mostrar en la reserva pública. Apagarlo conserva `address` y las coordenadas. Una barbería nueva nace con `true` y sin dirección. */
+            /** @description Interruptor explícito de `DEC-130`: `true` = el negocio tiene un local que mostrar en la reserva pública. Apagarlo conserva `address` y las coordenadas. Un negocio nuevo nace con `true` y sin dirección. */
             hasPhysicalLocation: boolean;
             /**
              * @description Dirección del local en texto; `null` mientras no se ha capturado.
@@ -1923,7 +1965,7 @@ export interface components {
             offersHomeService?: boolean;
         };
         /**
-         * @description Color de acento del panel y de la reserva pública de la barbería (`DEC-171`): `brass` (el latón NAVA, valor inicial), `emerald`, `sapphire`, `ruby`, `amethyst` o `copper`.
+         * @description Color de acento del panel y de la reserva pública del negocio (`DEC-171`): `brass` (el latón NAVA, valor inicial), `emerald`, `sapphire`, `ruby`, `amethyst` o `copper`.
          * @example brass
          * @enum {string}
          */
@@ -1939,16 +1981,16 @@ export interface components {
          * @enum {string}
          */
         BrandTermGender: "masculine" | "feminine";
-        /** @description Barbero de la barbería activa. La misma forma representa tanto a la única persona de una barbería unipersonal como a cualquiera de los varios barberos de un equipo (CA-021-01): no existe una forma especial para "barbero único". */
-        BarberResponse: {
+        /** @description Profesional del negocio activo. La misma forma representa tanto a la única persona de un negocio unipersonal como a cualquiera de los varios profesionales de un equipo (CA-021-01): no existe una forma especial para "profesional único". */
+        ProfessionalResponse: {
             /**
              * Format: uuid
-             * @description Identificador del barbero, opaco para el cliente.
+             * @description Identificador del profesional, opaco para el cliente.
              * @example 8f3ac2b1-e4d5-46f6-a7c8-d9e0f1a2b3c4
              */
             id: string;
             /**
-             * @description Nombre visible del barbero, ya recortado por el servidor.
+             * @description Nombre visible del profesional, ya recortado por el servidor.
              * @example Carlos Ramírez
              */
             fullName: string;
@@ -1966,33 +2008,33 @@ export interface components {
             updatedAt: string;
             /**
              * Format: date-time
-             * @description Instante de la última fotografía del barbero (DEC-104), con offset, o `null` si no tiene ninguna (el cliente muestra su monograma). Es la versión de la imagen: el cliente la añade a la URL de `GET /private/barbers/{barberId}/photo` para no reutilizar una copia vieja al cambiarla.
+             * @description Instante de la última fotografía del profesional (DEC-104), con offset, o `null` si no tiene ninguna (el cliente muestra su monograma). Es la versión de la imagen: el cliente la añade a la URL de `GET /private/professionals/{professionalId}/photo` para no reutilizar una copia vieja al cambiarla.
              * @example 2026-09-30T12:00:00Z
              * @example null
              */
             photoUpdatedAt: string | null;
             /**
-             * @description Descripción corta del barbero (DEC-127), o `null` si no tiene. Es contenido público: la reserva pública la muestra junto a su nombre y su fotografía.
+             * @description Descripción corta del profesional (DEC-127), o `null` si no tiene. Es contenido público: la reserva pública la muestra junto a su nombre y su fotografía.
              * @example Fade, barba y navaja con más de diez años en el oficio.
              * @example null
              */
             description: string | null;
             /**
-             * @description Promedio de 1 decimal de las reseñas no ocultas del barbero (`DEC-128`), o `null` mientras no tenga ninguna visible. Se calcula en cada consulta.
+             * @description Promedio de 1 decimal de las reseñas no ocultas del profesional (`DEC-128`), o `null` mientras no tenga ninguna visible. Se calcula en cada consulta.
              * @example 4.8
              * @example null
              */
             rating: number | null;
             /**
-             * @description Total de reseñas no ocultas del barbero (`DEC-128`); `0` sin ninguna.
+             * @description Total de reseñas no ocultas del profesional (`DEC-128`); `0` sin ninguna.
              * @example 12
              */
             ratingCount: number;
         };
-        /** @description Página de barberos de la barbería activa, ordenada de forma estable por fecha de alta y luego por identificador. Conserva cursor por defecto y admite modo numerado con page/pageSize (DEC-107); nextCursor es null en modo numerado. */
-        BarberListResponse: {
-            /** @description Barberos de esta página, en el orden estable del servidor. */
-            items: components["schemas"]["BarberResponse"][];
+        /** @description Página de profesionales del negocio activo, ordenada de forma estable por fecha de alta y luego por identificador. Conserva cursor por defecto y admite modo numerado con page/pageSize (DEC-107); nextCursor es null en modo numerado. */
+        ProfessionalListResponse: {
+            /** @description Profesionales de esta página, en el orden estable del servidor. */
+            items: components["schemas"]["ProfessionalResponse"][];
             /**
              * @description Cursor opaco para pedir la siguiente página con el parámetro `cursor`. `null` cuando esta página es la última.
              * @example eyJjcmVhdGVkQXQiOiIyMDI2LTA4LTIzVDE1OjA0OjA1WiIsImlkIjoiOGYzYWMyYjEtZTRkNS00NmY2LWE3YzgtZDllMGYxYTJiM2M0In0=
@@ -2007,33 +2049,33 @@ export interface components {
             /** @description Total de páginas, presente únicamente en modo numerado. */
             totalPages?: number;
         };
-        /** @description Alta de un barbero de la barbería activa. La clave de idempotencia no convierte el nombre en único: dos claves distintas pueden crear dos barberos con el mismo `fullName` (fuera de alcance de HU-021 inventar esa restricción). */
-        CreateBarberRequest: {
+        /** @description Alta de un profesional del negocio activo. La clave de idempotencia no convierte el nombre en único: dos claves distintas pueden crear dos profesionales con el mismo `fullName` (fuera de alcance de HU-021 inventar esa restricción). */
+        CreateProfessionalRequest: {
             /**
-             * @description Nombre visible del barbero. El servidor recorta espacios; un valor vacío, compuesto solo por espacios o mayor de 120 caracteres responde `422` sin persistir nada (CA-021-03).
+             * @description Nombre visible del profesional. El servidor recorta espacios; un valor vacío, compuesto solo por espacios o mayor de 120 caracteres responde `422` sin persistir nada (CA-021-03).
              * @example Carlos Ramírez
              */
             fullName: string;
             /**
-             * @description Descripción corta y opcional del barbero (DEC-127), visible en la reserva pública. El servidor recorta espacios; ausente, `null`, vacía o de solo espacios equivale a «sin descripción». Más de 280 caracteres responde `422` sin persistir nada.
+             * @description Descripción corta y opcional del profesional (DEC-127), visible en la reserva pública. El servidor recorta espacios; ausente, `null`, vacía o de solo espacios equivale a «sin descripción». Más de 280 caracteres responde `422` sin persistir nada.
              * @example Fade, barba y navaja con más de diez años en el oficio.
              */
             description?: string | null;
         };
-        /** @description Actualización del nombre y, opcionalmente, la descripción de un barbero de la barbería activa. Nunca modifica su identificador, su fecha de alta ni ningún otro campo: `updatedAt` es lo único adicional que cambia, gestionado por el servidor. */
-        UpdateBarberRequest: {
+        /** @description Actualización del nombre y, opcionalmente, la descripción de un profesional del negocio activo. Nunca modifica su identificador, su fecha de alta ni ningún otro campo: `updatedAt` es lo único adicional que cambia, gestionado por el servidor. */
+        UpdateProfessionalRequest: {
             /**
-             * @description Nuevo nombre visible del barbero, ya recortado por el servidor. Un valor vacío, compuesto solo por espacios o mayor de 120 caracteres responde `422` sin persistir nada (CA-021-03); nombres repetidos dentro de la misma barbería son válidos.
+             * @description Nuevo nombre visible del profesional, ya recortado por el servidor. Un valor vacío, compuesto solo por espacios o mayor de 120 caracteres responde `422` sin persistir nada (CA-021-03); nombres repetidos dentro del mismo negocio son válidos.
              * @example Carlos A. Ramírez
              */
             fullName: string;
             /**
-             * @description Nueva descripción del barbero (DEC-127). Ausente conserva la actual; `null`, vacía o de solo espacios la quita; más de 280 caracteres responde `422` sin persistir nada. El servidor recorta espacios.
+             * @description Nueva descripción del profesional (DEC-127). Ausente conserva la actual; `null`, vacía o de solo espacios la quita; más de 280 caracteres responde `422` sin persistir nada. El servidor recorta espacios.
              * @example Fade, barba y navaja con más de diez años en el oficio.
              */
             description?: string | null;
         };
-        /** @description Servicio del catálogo de la barbería activa. currency es siempre "COP" (DEC-067): fija para todo el MVP, nunca aceptada como entrada del cliente. isActive/deactivatedAt son de solo lectura: ningún endpoint de HU-022 (create/update) los acepta como entrada; solo cambian mediante POST .../deactivate y POST .../reactivate (HU-024). */
+        /** @description Servicio del catálogo del negocio activo. currency es siempre "COP" (DEC-067): fija para todo el MVP, nunca aceptada como entrada del cliente. isActive/deactivatedAt son de solo lectura: ningún endpoint de HU-022 (create/update) los acepta como entrada; solo cambian mediante POST .../deactivate y POST .../reactivate (HU-024). */
         ServiceResponse: {
             /**
              * Format: uuid
@@ -2099,7 +2141,7 @@ export interface components {
              */
             upcomingAppointmentsUpdated: number;
         };
-        /** @description Página de servicios del catálogo de la barbería activa, ordenada de forma estable por fecha de alta y luego por identificador, con conteo total y filtro opcional de búsqueda por nombre. */
+        /** @description Página de servicios del catálogo del negocio activo, ordenada de forma estable por fecha de alta y luego por identificador, con conteo total y filtro opcional de búsqueda por nombre. */
         ServiceListResponse: {
             /** @description Servicios de esta página, en el orden estable del servidor. */
             items: components["schemas"]["ServiceResponse"][];
@@ -2114,7 +2156,7 @@ export interface components {
              */
             pageSize: number;
             /**
-             * @description Cantidad total de servicios que coinciden con el filtro de búsqueda vigente (o de toda la barbería, sin filtro), sin paginar.
+             * @description Cantidad total de servicios que coinciden con el filtro de búsqueda vigente (o de todo el negocio, sin filtro), sin paginar.
              * @example 2
              */
             total: number;
@@ -2124,10 +2166,10 @@ export interface components {
              */
             totalPages: number;
         };
-        /** @description Alta de un servicio del catálogo de la barbería activa, protegida con clave de idempotencia (RN-IDE-01). El nombre debe ser único entre los servicios ACTIVOS de la misma barbería (DEC-067): un nombre igual al de un servicio ya desactivado sí se acepta. */
+        /** @description Alta de un servicio del catálogo del negocio activo, protegida con clave de idempotencia (RN-IDE-01). El nombre debe ser único entre los servicios ACTIVOS del mismo negocio (DEC-067): un nombre igual al de un servicio ya desactivado sí se acepta. */
         CreateServiceRequest: {
             /**
-             * @description Nombre visible del servicio. El servidor recorta espacios; un valor vacío, compuesto solo por espacios o mayor de 120 caracteres responde `422`; un nombre igual al de otro servicio activo de la misma barbería responde `409` (DEC-067). Nada se persiste en ninguno de los dos casos.
+             * @description Nombre visible del servicio. El servidor recorta espacios; un valor vacío, compuesto solo por espacios o mayor de 120 caracteres responde `422`; un nombre igual al de otro servicio activo del mismo negocio responde `409` (DEC-067). Nada se persiste en ninguno de los dos casos.
              * @example Corte clásico
              */
             name: string;
@@ -2147,10 +2189,10 @@ export interface components {
              */
             price: string;
         };
-        /** @description Edición parcial de un servicio del catálogo de la barbería activa. Solo cambia `service`, salvo que el barbero pida `applyPriceToUpcoming` (HU-029, DEC-004): entonces el precio nuevo también se copia a sus turnos futuros confirmados (RN-SER-04). Al menos uno de los cuatro campos de catálogo debe estar presente. */
+        /** @description Edición parcial de un servicio del catálogo del negocio activo. Solo cambia `service`, salvo que el profesional pida `applyPriceToUpcoming` (HU-029, DEC-004): entonces el precio nuevo también se copia a sus turnos futuros confirmados (RN-SER-04). Al menos uno de los cuatro campos de catálogo debe estar presente. */
         UpdateServiceRequest: {
             /**
-             * @description Nuevo nombre visible, ya recortado por el servidor. Vacío, solo espacios o mayor de 120 caracteres responde `422`; un nombre igual al de otro servicio activo de la misma barbería responde `409` (DEC-067).
+             * @description Nuevo nombre visible, ya recortado por el servidor. Vacío, solo espacios o mayor de 120 caracteres responde `422`; un nombre igual al de otro servicio activo del mismo negocio responde `409` (DEC-067).
              * @example Corte clásico + barba
              */
             name?: string;
@@ -2176,14 +2218,14 @@ export interface components {
              */
             applyPriceToUpcoming: boolean;
         };
-        /** @description Asociación entre un barbero y un servicio de la misma barbería. Sin columnas propias de negocio: nunca duplica nombre, duración, precio ni estado de ninguna de las dos tablas dueñas. */
+        /** @description Asociación entre un profesional y un servicio del mismo negocio. Sin columnas propias de negocio: nunca duplica nombre, duración, precio ni estado de ninguna de las dos tablas dueñas. */
         AssignmentResponse: {
             /**
              * Format: uuid
-             * @description Identificador del barbero.
+             * @description Identificador del profesional.
              * @example 8f3ac2b1-e4d5-46f6-a7c8-d9e0f1a2b3c4
              */
-            barberId: string;
+            professionalId: string;
             /**
              * Format: uuid
              * @description Identificador del servicio.
@@ -2192,12 +2234,12 @@ export interface components {
             serviceId: string;
             /**
              * Format: date-time
-             * @description Instante en que se asignó el servicio a este barbero. Repetir la asignación (CA-023-02) no cambia este valor: refleja siempre la primera vez que se creó la asociación.
+             * @description Instante en que se asignó el servicio a este profesional. Repetir la asignación (CA-023-02) no cambia este valor: refleja siempre la primera vez que se creó la asociación.
              * @example 2026-08-24T15:04:05Z
              */
             createdAt: string;
         };
-        /** @description Página de servicios asignados a un barbero, ordenada de forma estable por fecha de asignación y luego por identificador de servicio. */
+        /** @description Página de servicios asignados a un profesional, ordenada de forma estable por fecha de asignación y luego por identificador de servicio. */
         AssignmentListResponse: {
             /** @description Asignaciones de esta página, en el orden estable del servidor. */
             items: components["schemas"]["AssignmentResponse"][];
@@ -2224,7 +2266,7 @@ export interface components {
              */
             affectedAppointments: number;
         };
-        /** @description Palabra con la que la barbería llama a su negocio y a su profesional, con el plural del profesional y el género gramatical de ambas para que los artículos concuerden. Viaja siempre presente: una barbería que nunca lo configuró recibe los valores iniciales (`barbería` y `barbero`). */
+        /** @description Palabra con la que el negocio llama a su negocio y a su profesional, con el plural del profesional y el género gramatical de ambas para que los artículos concuerden. Viaja siempre presente: un negocio que nunca lo configuró recibe los valores iniciales (`negocio` y `profesional`). */
         PublicVocabulary: {
             businessTerm: components["schemas"]["BrandTerm"];
             businessTermGender: components["schemas"]["BrandTermGender"];
@@ -2232,7 +2274,7 @@ export interface components {
             professionalTermPlural: components["schemas"]["BrandTerm"];
             professionalTermGender: components["schemas"]["BrandTermGender"];
         };
-        /** @description Dónde queda la barbería. La dirección es contenido público por diseño; las coordenadas son el resultado de geocodificarla una vez en el servidor. */
+        /** @description Dónde queda el negocio. La dirección es contenido público por diseño; las coordenadas son el resultado de geocodificarla una vez en el servidor. */
         PublicLocation: {
             /**
              * @description Dirección del local en texto, junto al mapa para quien no pueda usarlo.
@@ -2291,44 +2333,44 @@ export interface components {
             /** @description Tramos de hoy ordenados por apertura; vacío si hoy cierra. */
             hours: components["schemas"]["PublicOpeningInterval"][];
         };
-        /** @description Contexto público de la barbería resuelta por su enlace de reservas. contactEmail/contactPhone viajan siempre presentes en el cuerpo, con valor `null` explícito cuando la barbería no tiene ese contacto configurado (nunca se omiten ni se representan como cadena vacía), misma convención que BarbershopSettingsResponse. */
-        PublicBarbershopProfile: {
+        /** @description Contexto público del negocio resuelto por su enlace de reservas. contactEmail/contactPhone viajan siempre presentes en el cuerpo, con valor `null` explícito cuando el negocio no tiene ese contacto configurado (nunca se omiten ni se representan como cadena vacía), misma convención que BusinessSettingsResponse. */
+        PublicBusinessProfile: {
             /**
-             * @description Nombre público de la barbería, ya recortado.
-             * @example Barbería Ejemplo
+             * @description Nombre público del negocio, ya recortado.
+             * @example Negocio Ejemplo
              */
             name: string;
             /**
-             * @description Zona horaria IANA de la barbería (RN-DIS-07). El cliente la usa para mostrar la hora local de la barbería, nunca la del dispositivo.
+             * @description Zona horaria IANA del negocio (RN-DIS-07). El cliente la usa para mostrar la hora local del negocio, nunca la del dispositivo.
              * @example America/Bogota
              */
             timezone: string;
             /**
              * Format: email
-             * @description Correo de contacto público de la barbería; null cuando no está configurado.
+             * @description Correo de contacto público del negocio; null cuando no está configurado.
              * @example contacto@ejemplo.test
              */
             contactEmail: string | null;
             /**
-             * @description Teléfono de contacto público de la barbería en formato E.164; null cuando no está configurado.
+             * @description Teléfono de contacto público del negocio en formato E.164; null cuando no está configurado.
              * @example +573001234567
              */
             contactPhone: string | null;
             vocabulary: components["schemas"]["PublicVocabulary"];
-            /** @description Ubicación física de la barbería (`DEC-130`). `null` salvo que la barbería haya activado la ubicación y tenga coordenadas: con el interruptor apagado, o sin dirección geocodificada, la reserva pública no pinta ninguna sección. */
+            /** @description Ubicación física del negocio (`DEC-130`). `null` salvo que el negocio haya activado la ubicación y tenga coordenadas: con el interruptor apagado, o sin dirección geocodificada, la reserva pública no pinta ninguna sección. */
             location: components["schemas"]["PublicLocation"] | null;
-            /** @description Si la barbería atiende a domicilio (`DEC-131`). Con `true` el cliente puede elegir «a domicilio» al reservar e indicar su dirección. */
+            /** @description Si el negocio atiende a domicilio (`DEC-131`). Con `true` el cliente puede elegir «a domicilio» al reservar e indicar su dirección. */
             offersHomeService: boolean;
-            /** @description Color de acento que la barbería eligió en Configuración (`DEC-110`). La reserva pública de esta barbería pinta con él sus acentos (`DEC-171`). Siempre presente; `brass` es el valor inicial. */
+            /** @description Color de acento que el negocio eligió en Configuración (`DEC-110`). La reserva pública de este negocio pinta con él sus acentos (`DEC-171`). Siempre presente; `brass` es el valor inicial. */
             brandAccent: components["schemas"]["BrandAccent"];
-            /** @description Horario semanal del local (`DEC-182`), ordenado por día (lunes primero) y apertura, en la hora civil de `timezone`. Un día sin tramos está cerrado. Vacío significa que la barbería no lo ha configurado: no se sabe, no que cierre toda la semana. Es informativo; la disponibilidad real sale de los horarios de los barberos. */
+            /** @description Horario semanal del local (`DEC-182`), ordenado por día (lunes primero) y apertura, en la hora civil de `timezone`. Un día sin tramos está cerrado. Vacío significa que el negocio no lo ha configurado: no se sabe, no que cierre toda la semana. Es informativo; la disponibilidad real sale de los horarios de los profesionales. */
             openingHours: components["schemas"]["OpeningHoursSegment"][];
             /** @description El local cierra los festivos colombianos (`DEC-182`). */
             closedOnHolidays: boolean;
             /** @description Lo que rige hoy con el festivo aplicado (`DEC-182`); `null` cuando `openingHours` está vacío. */
             today: components["schemas"]["PublicOpeningToday"] | null;
         };
-        /** @description Servicio ofrecido públicamente por la barbería resuelta: activo y con al menos una asignación vigente a un barbero (HU-091, CA-091-01). currency es siempre "COP" (DEC-067). */
+        /** @description Servicio ofrecido públicamente por el negocio resuelto: activo y con al menos una asignación vigente a un profesional (HU-091, CA-091-01). currency es siempre "COP" (DEC-067). */
         PublicServiceResponse: {
             /**
              * Format: uuid
@@ -2363,7 +2405,7 @@ export interface components {
              */
             currency: "COP";
         };
-        /** @description Página del catálogo público de servicios de la barbería resuelta (HU-091), ordenada de forma estable por fecha de alta y luego por identificador. */
+        /** @description Página del catálogo público de servicios del negocio resuelto (HU-091), ordenada de forma estable por fecha de alta y luego por identificador. */
         PublicServiceListResponse: {
             /** @description Servicios públicos de esta página, en el orden estable del servidor. */
             items: components["schemas"]["PublicServiceResponse"][];
@@ -2373,21 +2415,21 @@ export interface components {
              */
             nextCursor: string | null;
         };
-        /** @description Barbero de la barbería resuelta con al menos una asignación vigente a un servicio activo, junto con los ids de esos servicios (DEC-162). */
-        PublicBarberServicesResponse: {
+        /** @description Profesional del negocio resuelto con al menos una asignación vigente a un servicio activo, junto con los ids de esos servicios (DEC-162). */
+        PublicProfessionalServicesResponse: {
             /**
              * Format: uuid
-             * @description Identificador del barbero, necesario para seleccionarlo al reservar.
+             * @description Identificador del profesional, necesario para seleccionarlo al reservar.
              * @example 8f3ac2b1-e4d5-46f6-a7c8-d9e0f1a2b3c4
              */
             id: string;
             /**
-             * @description Nombre completo visible del barbero.
+             * @description Nombre completo visible del profesional.
              * @example Juan Pérez
              */
             fullName: string;
             /**
-             * @description Ids de los servicios ACTIVOS que el barbero tiene asignados, ordenados por fecha de alta del servicio y luego por id. Un servicio inactivo no figura aunque conserve la asignación.
+             * @description Ids de los servicios ACTIVOS que el profesional tiene asignados, ordenados por fecha de alta del servicio y luego por id. Un servicio inactivo no figura aunque conserve la asignación.
              * @example [
              *       "1c9a7f2d-3b4e-4a5f-9c6d-7e8f9a0b1c2d",
              *       "5e2d9b7a-6c1f-4d38-8a40-b3c5e7f90a12"
@@ -2395,119 +2437,119 @@ export interface components {
              */
             serviceIds: string[];
         };
-        /** @description Barberos de la barbería resuelta con al menos una asignación vigente a un servicio activo, ordenados de forma estable por fecha de alta y luego por id. Un arreglo vacío cubre una barbería publicada sin ningún barbero elegible. */
-        PublicBarberServicesListResponse: {
-            /** @description Barberos elegibles, en el orden estable del servidor. */
-            items: components["schemas"]["PublicBarberServicesResponse"][];
+        /** @description Profesionales del negocio resuelto con al menos una asignación vigente a un servicio activo, ordenados de forma estable por fecha de alta y luego por id. Un arreglo vacío cubre un negocio publicado sin ningún profesional elegible. */
+        PublicProfessionalServicesListResponse: {
+            /** @description Profesionales elegibles, en el orden estable del servidor. */
+            items: components["schemas"]["PublicProfessionalServicesResponse"][];
         };
-        /** @description Inicio válido de `barberId`: el intervalo [startsAt, startsAt + durationMinutes) cabe entero en su jornada efectiva y no interseca ninguna cita que ocupe agenda ni ningún bloqueo vigente. Es el mismo inicio que la operación por barbero devuelve para ese barbero. */
-        BarberAvailabilitySlotResponse: {
+        /** @description Inicio válido de `professionalId`: el intervalo [startsAt, startsAt + durationMinutes) cabe entero en su jornada efectiva y no interseca ninguna cita que ocupe agenda ni ningún bloqueo vigente. Es el mismo inicio que la operación por profesional devuelve para ese profesional. */
+        ProfessionalAvailabilitySlotResponse: {
             /**
              * Format: uuid
-             * @description Barbero al que pertenece el inicio.
+             * @description Profesional al que pertenece el inicio.
              * @example 8f3ac2b1-e4d5-46f6-a7c8-d9e0f1a2b3c4
              */
-            barberId: string;
+            professionalId: string;
             /**
              * Format: date-time
-             * @description Instante absoluto de inicio (ISO 8601 con offset explícito). El cliente lo presenta en la zona horaria de la barbería (`timezone`), nunca en la del dispositivo (RN-DIS-07).
+             * @description Instante absoluto de inicio (ISO 8601 con offset explícito). El cliente lo presenta en la zona horaria del negocio (`timezone`), nunca en la del dispositivo (RN-DIS-07).
              * @example 2026-09-15T09:00:00-05:00
              */
             startsAt: string;
         };
-        /** @description Inicios públicos válidos del servicio para todos sus barberos elegibles, ordenados por (`startsAt`, `barberId`), más el contexto mínimo para interpretarlos (RN-DIS-07). Un arreglo `slots` vacío cubre por igual "sin disponibilidad en la ventana pública vigente" y un `serviceId` ajeno, inexistente, inactivo o sin ningún barbero con asignación vigente: la causa nunca se distingue (mismo criterio que CA-092-03). Nunca reserva ni aparta ninguna franja (RN-DIS-03): es una proyección de solo lectura. */
+        /** @description Inicios públicos válidos del servicio para todos sus profesionales elegibles, ordenados por (`startsAt`, `professionalId`), más el contexto mínimo para interpretarlos (RN-DIS-07). Un arreglo `slots` vacío cubre por igual "sin disponibilidad en la ventana pública vigente" y un `serviceId` ajeno, inexistente, inactivo o sin ningún profesional con asignación vigente: la causa nunca se distingue (mismo criterio que CA-092-03). Nunca reserva ni aparta ninguna franja (RN-DIS-03): es una proyección de solo lectura. */
         ServiceAvailabilityResponse: {
-            /** @description Inicios válidos de todos los barberos elegibles, ordenados por (`startsAt`, `barberId`). */
-            slots: components["schemas"]["BarberAvailabilitySlotResponse"][];
+            /** @description Inicios válidos de todos los profesionales elegibles, ordenados por (`startsAt`, `professionalId`). */
+            slots: components["schemas"]["ProfessionalAvailabilitySlotResponse"][];
             /**
-             * @description Duración planificada del servicio (DEC-002). 0 cuando `serviceId` no produjo ningún barbero con asignación activa vigente.
+             * @description Duración planificada del servicio (DEC-002). 0 cuando `serviceId` no produjo ningún profesional con asignación activa vigente.
              * @example 45
              */
             durationMinutes: number;
             /**
-             * @description Zona horaria IANA de la barbería (RN-DIS-07). Cadena vacía cuando `serviceId` no produjo ningún barbero con asignación activa vigente.
+             * @description Zona horaria IANA del negocio (RN-DIS-07). Cadena vacía cuando `serviceId` no produjo ningún profesional con asignación activa vigente.
              * @example America/Bogota
              */
             timezone: string;
             /**
-             * @description Paso de la rejilla vigente de la barbería (RN-DIS-06, DEC-083). 0 cuando `serviceId` no produjo ningún barbero con asignación activa vigente.
+             * @description Paso de la rejilla vigente del negocio (RN-DIS-06, DEC-083). 0 cuando `serviceId` no produjo ningún profesional con asignación activa vigente.
              * @example 30
              */
             slotGridMinutes: number;
         };
-        /** @description Barbero de la barbería resuelta con asignación vigente al servicio activo elegido (HU-092, CA-092-02). */
-        PublicBarberResponse: {
+        /** @description Profesional del negocio resuelto con asignación vigente al servicio activo elegido (HU-092, CA-092-02). */
+        PublicProfessionalResponse: {
             /**
              * Format: uuid
-             * @description Identificador del barbero, necesario para seleccionarlo al reservar.
+             * @description Identificador del profesional, necesario para seleccionarlo al reservar.
              * @example 8f3ac2b1-e4d5-46f6-a7c8-d9e0f1a2b3c4
              */
             id: string;
             /**
-             * @description Nombre completo visible del barbero.
+             * @description Nombre completo visible del profesional.
              * @example Juan Pérez
              */
             fullName: string;
             /**
-             * @description Descripción corta del barbero (DEC-127), o `null` si la barbería no escribió ninguna.
+             * @description Descripción corta del profesional (DEC-127), o `null` si el negocio no escribió ninguna.
              * @example Fade, barba y navaja con más de diez años en el oficio.
              * @example null
              */
             description: string | null;
             /**
              * Format: date-time
-             * @description Versión de la fotografía del barbero (DEC-127), o `null` si no tiene (el cliente muestra su monograma). Se añade como parámetro de consulta a la URL de `GET /public/barbershops/{slug}/barbers/{barberId}/photo` para no reutilizar una copia vieja al cambiarla.
+             * @description Versión de la fotografía del profesional (DEC-127), o `null` si no tiene (el cliente muestra su monograma). Se añade como parámetro de consulta a la URL de `GET /public/businesses/{slug}/professionals/{professionalId}/photo` para no reutilizar una copia vieja al cambiarla.
              * @example 2026-09-30T12:00:00Z
              * @example null
              */
             photoUpdatedAt: string | null;
             /**
-             * @description Promedio de 1 decimal de las reseñas no ocultas del barbero (`DEC-128`), o `null` mientras no tenga ninguna visible. Se calcula en cada consulta.
+             * @description Promedio de 1 decimal de las reseñas no ocultas del profesional (`DEC-128`), o `null` mientras no tenga ninguna visible. Se calcula en cada consulta.
              * @example 4.8
              * @example null
              */
             rating: number | null;
             /**
-             * @description Total de reseñas no ocultas del barbero (`DEC-128`); `0` sin ninguna.
+             * @description Total de reseñas no ocultas del profesional (`DEC-128`); `0` sin ninguna.
              * @example 12
              */
             ratingCount: number;
         };
-        /** @description Barberos con asignación vigente al servicio activo resuelto (HU-092, CA-092-02), ordenados de forma estable por fecha de asignación y luego por identificador. Un arreglo vacío (CA-092-03) cubre por igual un servicio sin ningún barbero asignado, ajeno a esta barbería, inexistente o inactivo: la causa nunca se distingue. */
-        PublicBarberListResponse: {
-            /** @description Barberos elegibles, en el orden estable del servidor. */
-            items: components["schemas"]["PublicBarberResponse"][];
+        /** @description Profesionales con asignación vigente al servicio activo resuelto (HU-092, CA-092-02), ordenados de forma estable por fecha de asignación y luego por identificador. Un arreglo vacío (CA-092-03) cubre por igual un servicio sin ningún profesional asignado, ajeno a este negocio, inexistente o inactivo: la causa nunca se distingue. */
+        PublicProfessionalListResponse: {
+            /** @description Profesionales elegibles, en el orden estable del servidor. */
+            items: components["schemas"]["PublicProfessionalResponse"][];
         };
-        /** @description Inicio válido: el intervalo [startsAt, startsAt + durationMinutes) cabe entero en la jornada efectiva del barbero y no interseca ninguna cita que ocupe agenda ni ningún bloqueo vigente (CA-094-01, CA-094-02, CA-094-03). */
+        /** @description Inicio válido: el intervalo [startsAt, startsAt + durationMinutes) cabe entero en la jornada efectiva del profesional y no interseca ninguna cita que ocupe agenda ni ningún bloqueo vigente (CA-094-01, CA-094-02, CA-094-03). */
         AvailabilitySlotResponse: {
             /**
              * Format: date-time
-             * @description Instante absoluto de inicio, en UTC con offset explícito. El cliente lo presenta en la zona horaria de la barbería (`timezone`), nunca en la del dispositivo (RN-DIS-07).
+             * @description Instante absoluto de inicio, en UTC con offset explícito. El cliente lo presenta en la zona horaria del negocio (`timezone`), nunca en la del dispositivo (RN-DIS-07).
              * @example 2026-09-15T14:00:00Z
              */
             startsAt: string;
         };
-        /** @description Inicios públicos válidos ya ordenados de forma estable (cronológica), más el contexto mínimo para interpretarlos sin ambigüedad (RN-DIS-07). Un arreglo `slots` vacío cubre por igual "sin disponibilidad en la ventana pública vigente" y `serviceId`/`barberId` ajeno, inexistente, inactivo o sin asignación vigente: la causa nunca se distingue (mismo criterio que CA-092-03). Nunca reserva ni aparta ninguna franja (RN-DIS-03): es una proyección de solo lectura. */
+        /** @description Inicios públicos válidos ya ordenados de forma estable (cronológica), más el contexto mínimo para interpretarlos sin ambigüedad (RN-DIS-07). Un arreglo `slots` vacío cubre por igual "sin disponibilidad en la ventana pública vigente" y `serviceId`/`professionalId` ajeno, inexistente, inactivo o sin asignación vigente: la causa nunca se distingue (mismo criterio que CA-092-03). Nunca reserva ni aparta ninguna franja (RN-DIS-03): es una proyección de solo lectura. */
         AvailabilityResponse: {
             /** @description Inicios válidos, en el orden estable del servidor. */
             slots: components["schemas"]["AvailabilitySlotResponse"][];
             /**
-             * @description Duración planificada del servicio elegido (DEC-002). 0 cuando `serviceId`/`barberId` no produjo una asignación activa vigente.
+             * @description Duración planificada del servicio elegido (DEC-002). 0 cuando `serviceId`/`professionalId` no produjo una asignación activa vigente.
              * @example 30
              */
             durationMinutes: number;
             /**
-             * @description Zona horaria IANA de la barbería (RN-DIS-07), la misma que expone `GET /public/barbershops/{slug}`. Cadena vacía cuando `serviceId`/`barberId` no produjo una asignación activa vigente.
+             * @description Zona horaria IANA del negocio (RN-DIS-07), la misma que expone `GET /public/businesses/{slug}`. Cadena vacía cuando `serviceId`/`professionalId` no produjo una asignación activa vigente.
              * @example America/Bogota
              */
             timezone: string;
             /**
-             * @description Paso de la rejilla vigente de la barbería (RN-DIS-06, DEC-083). 0 cuando `serviceId`/`barberId` no produjo una asignación activa vigente.
+             * @description Paso de la rejilla vigente del negocio (RN-DIS-06, DEC-083). 0 cuando `serviceId`/`professionalId` no produjo una asignación activa vigente.
              * @example 15
              */
             slotGridMinutes: number;
         };
-        /** @description A dónde va el barbero. Se guardan los tres datos juntos o ninguno (`appointment_home_service_ck`). */
+        /** @description A dónde va el profesional. Se guardan los tres datos juntos o ninguno (`appointment_home_service_ck`). */
         HomeServiceAddress: {
             /**
              * @description Texto de la ubicación; el servidor recorta y colapsa los espacios. Puede ser la sugerencia elegida, una dirección aproximada del punto marcado en el mapa o «Ubicación marcada en el mapa» (`DEC-138`).
@@ -2544,7 +2586,7 @@ export interface components {
              */
             email: string;
             /**
-             * @description Nota opcional visible solo para el equipo de la barbería.
+             * @description Nota opcional visible solo para el equipo del negocio.
              * @example Prefiere máquina 2 en los laterales.
              */
             note?: string | null;
@@ -2558,7 +2600,7 @@ export interface components {
              * @example Ana Gómez
              */
             attendeeName?: string | null;
-            /** @description `null` o ausente: el turno es en el local. Con valor, el turno es a domicilio en esa dirección (`DEC-131`, `HU-103`). Solo se acepta si la barbería ofrece domicilio en el momento de confirmar; si no, `422` sin crear el turno. Dato personal (`RN-DAT-02`). */
+            /** @description `null` o ausente: el turno es en el local. Con valor, el turno es a domicilio en esa dirección (`DEC-131`, `HU-103`). Solo se acepta si el negocio ofrece domicilio en el momento de confirmar; si no, `422` sin crear el turno. Dato personal (`RN-DAT-02`). */
             homeService?: components["schemas"]["HomeServiceAddress"] | null;
         };
         ConfirmedPublicAppointmentResponse: {
@@ -2567,8 +2609,8 @@ export interface components {
              * @example Carlos Restrepo
              */
             attendeeName: string;
-            /** @example Barbería Ejemplo */
-            barbershopName: string;
+            /** @example Negocio Ejemplo */
+            businessName: string;
             /**
              * @description Nombre del servicio congelado al confirmar (DEC-004).
              * @example Corte clásico
@@ -2588,7 +2630,7 @@ export interface components {
             /** Format: date-time */
             endsAt: string;
             /**
-             * @description Zona horaria IANA de la barbería (RN-DIS-07).
+             * @description Zona horaria IANA del negocio (RN-DIS-07).
              * @example America/Bogota
              */
             timezone: string;
@@ -2602,13 +2644,13 @@ export interface components {
         AlternativeSlotResponse: {
             /**
              * Format: date-time
-             * @description Instante absoluto de un inicio todavía válido, mismo barbero y mismo servicio que la franja perdida.
+             * @description Instante absoluto de un inicio todavía válido, mismo profesional y mismo servicio que la franja perdida.
              * @example 2026-09-20T14:30:00-05:00
              */
             startsAt: string;
         };
         ScheduleConflictProblem: components["schemas"]["Problem"] & {
-            /** @description Presente solo cuando `code` vale `slot-conflict`: hasta 3 franjas cronológicamente cercanas a la elegida, mismo barbero y mismo servicio (DEC-090). Vacío solo cuando la ventana pública vigente no tiene ninguna franja restante en absoluto. */
+            /** @description Presente solo cuando `code` vale `slot-conflict`: hasta 3 franjas cronológicamente cercanas a la elegida, mismo profesional y mismo servicio (DEC-090). Vacío solo cuando la ventana pública vigente no tiene ninguna franja restante en absoluto. */
             alternatives?: components["schemas"]["AlternativeSlotResponse"][];
         };
         /** @description Reseña propia del turno que el cliente ve en el acceso a su cita. Solo calificación, comentario y fecha: nunca un identificador interno. */
@@ -2629,12 +2671,12 @@ export interface components {
         /** @description Lectura mínima del turno del cliente, autenticada únicamente por la credencial del enlace (HU-098). Nunca incluye un identificador interno ni datos de contacto: el cliente ya los conoce, y exponerlos aquí no cumple ningún criterio de aceptación. */
         CustomerAppointmentResponse: {
             /**
-             * @description Nombre de la barbería, mismo campo que PublicBarbershopProfile.name.
-             * @example Barbería Ejemplo
+             * @description Nombre del negocio, mismo campo que PublicBusinessProfile.name.
+             * @example Negocio Ejemplo
              */
-            barbershopName: string;
+            businessName: string;
             /**
-             * @description Zona horaria IANA de la barbería (RN-DIS-07). startsAt/endsAt viajan en UTC; el cliente los presenta en esta zona, nunca en la del dispositivo.
+             * @description Zona horaria IANA del negocio (RN-DIS-07). startsAt/endsAt viajan en UTC; el cliente los presenta en esta zona, nunca en la del dispositivo.
              * @example America/Bogota
              */
             timezone: string;
@@ -2654,10 +2696,10 @@ export interface components {
              */
             durationMinutes: number;
             /**
-             * @description Nombre del barbero asignado al turno.
-             * @example Barbero Ejemplo
+             * @description Nombre del profesional asignado al turno.
+             * @example Profesional Ejemplo
              */
-            barberName: string;
+            professionalName: string;
             /**
              * Format: date-time
              * @description Instante absoluto de inicio del turno, en UTC.
@@ -2673,9 +2715,9 @@ export interface components {
              * @example confirmed
              * @enum {string}
              */
-            status: "confirmed" | "completed" | "cancelled_by_customer" | "cancelled_by_barber" | "no_show";
+            status: "confirmed" | "completed" | "cancelled_by_customer" | "cancelled_by_professional" | "no_show";
             /**
-             * @description Minutos de anticipación exigidos para cancelar sin política tardía (HU-093), medidos hacia atrás desde startsAt. Política VIGENTE de la barbería, no un valor fijado al reservar.
+             * @description Minutos de anticipación exigidos para cancelar sin política tardía (HU-093), medidos hacia atrás desde startsAt. Política VIGENTE del negocio, no un valor fijado al reservar.
              * @example 20
              */
             cancellationDeadlineMinutes: number;
@@ -2694,10 +2736,10 @@ export interface components {
              * @example 3n9Kq1x2v8pQwZbJt5Yc0Rr6Hh4Ss7Ff1Gg3Dd8Ee2Aa
              */
             versionToken: string;
-            /** @description Correo público opcional de la barbería (`HU-020`, el mismo de la reserva pública): el contacto seguro al que acudir cuando la política rechaza la cancelación (`CA-099-06`). `null` si no lo configuró. */
-            barbershopContactEmail: string | null;
-            /** @description Teléfono público opcional de la barbería; mismo propósito que `barbershopContactEmail`. */
-            barbershopContactPhone: string | null;
+            /** @description Correo público opcional del negocio (`HU-020`, el mismo de la reserva pública): el contacto seguro al que acudir cuando la política rechaza la cancelación (`CA-099-06`). `null` si no lo configuró. */
+            businessContactEmail: string | null;
+            /** @description Teléfono público opcional del negocio; mismo propósito que `businessContactEmail`. */
+            businessContactPhone: string | null;
             vocabulary: components["schemas"]["PublicVocabulary"];
             /**
              * @description `true` solo con el turno `completed` y sin reseña todavía (`HU-100`, `CA-100-01`): es la señal para ofrecer «Calificar».
@@ -2707,7 +2749,7 @@ export interface components {
             /** @description La reseña que el cliente ya dejó sobre este turno, o `null`. */
             review: components["schemas"]["CustomerReview"] | null;
             /**
-             * @description Veces que el cliente todavía puede cambiar la hora de este turno por su cuenta (`HU-104`, `DEC-178`: máximo 2 por turno; las del barbero no cuentan). El plazo es el mismo de la cancelación: hasta `startsAt - cancellationDeadlineMinutes`, y con plazo 0 nunca. La interfaz ofrece «Cambiar la hora» solo con el turno `confirmed`, dentro de plazo y con este valor mayor que 0; el servidor lo vuelve a decidir.
+             * @description Veces que el cliente todavía puede cambiar la hora de este turno por su cuenta (`HU-104`, `DEC-178`: máximo 2 por turno; las del profesional no cuentan). El plazo es el mismo de la cancelación: hasta `startsAt - cancellationDeadlineMinutes`, y con plazo 0 nunca. La interfaz ofrece «Cambiar la hora» solo con el turno `confirmed`, dentro de plazo y con este valor mayor que 0; el servidor lo vuelve a decidir.
              * @example 2
              */
             rescheduleRemaining: number;
@@ -2728,7 +2770,7 @@ export interface components {
              */
             status: "cancelled_by_customer";
         };
-        /** @description Reseña del cliente sobre el barbero que lo atendió. Cerrado: cualquier otro campo se rechaza. Nunca lleva datos del cliente: el turno sale del `token`. */
+        /** @description Reseña del cliente sobre el profesional que lo atendió. Cerrado: cualquier otro campo se rechaza. Nunca lleva datos del cliente: el turno sale del `token`. */
         CreateReviewRequest: {
             /**
              * @description Calificación obligatoria de 1 a 5.
@@ -2745,7 +2787,7 @@ export interface components {
         /** @description Inicios a los que el cliente puede mover su turno. */
         CustomerRescheduleSlots: {
             /**
-             * @description Zona horaria IANA de la barbería (RN-DIS-07). `starts` viaja en UTC; el cliente agrupa y presenta las franjas en esta zona, nunca en la del dispositivo.
+             * @description Zona horaria IANA del negocio (RN-DIS-07). `starts` viaja en UTC; el cliente agrupa y presenta las franjas en esta zona, nunca en la del dispositivo.
              * @example America/Bogota
              */
             timezone: string;
@@ -2816,12 +2858,12 @@ export interface components {
              */
             startsAt: string;
             serviceName: string;
-            barberName: string;
+            professionalName: string;
         };
         /** @description Los turnos futuros confirmados del cliente, del más próximo al más lejano. */
         CustomerAccessVerifyResponse: {
             /**
-             * @description Zona IANA de la barbería; las horas se muestran en ella (RN-DIS-07).
+             * @description Zona IANA del negocio; las horas se muestran en ella (RN-DIS-07).
              * @example America/Bogota
              */
             timezone: string;
@@ -2857,25 +2899,34 @@ export interface components {
         };
         /** @description Sin identificadores internos, sin nombre ni contacto del cliente. `appointmentRef` solo sirve para pedir el código de ese turno. */
         OdinAppointment: {
-            /** @description Referencia opaca del turno, ligada a la barbería y válida 30 minutos desde que se entrega. No es un identificador y no se puede deducir ni reutilizar en otra barbería. */
+            /** @description Referencia opaca del turno, ligada al negocio y válida 30 minutos desde que se entrega. No es un identificador y no se puede deducir ni reutilizar en otro negocio. */
             appointmentRef: string;
             /**
              * Format: date-time
-             * @description Inicio del turno, con la zona horaria de la barbería.
+             * @description Inicio del turno, con la zona horaria del negocio.
              * @example 2026-11-20T14:00:00-05:00
              */
             startsAt: string;
             /** @example Corte Vbras */
             serviceName: string;
-            /** @example Jhonner Bustamante */
+            /**
+             * @description Nombre del profesional que atiende el turno.
+             * @example Jhonner Bustamante
+             */
+            professionalName: string;
+            /**
+             * @deprecated
+             * @description Mismo valor que `professionalName`. Se conserva mientras Odin no confirme que lee `professionalName` (DEC-183, issue #661); después se retira.
+             * @example Jhonner Bustamante
+             */
             barberName: string;
-            /** @description Hoy el cliente puede cancelar este turno por su cuenta, según el plazo y la cancelación tardía que configuró la barbería (`RN-CAN-01`). */
+            /** @description Hoy el cliente puede cancelar este turno por su cuenta, según el plazo y la cancelación tardía que configuró el negocio (`RN-CAN-01`). */
             canCancel: boolean;
             /** @description Hoy el cliente puede cambiar la hora: dentro del plazo y con cambios propios disponibles (máximo 2, `DEC-178`). */
             canReschedule: boolean;
         };
         OdinAppointmentLookupResponse: {
-            /** @description Turnos futuros confirmados de ese teléfono en esa barbería, del más próximo al más lejano. Vacía si no hay. */
+            /** @description Turnos futuros confirmados de ese teléfono en ese negocio, del más próximo al más lejano. Vacía si no hay. */
             appointments: components["schemas"]["OdinAppointment"][];
         };
         OdinAccessChallengeRequest: {
@@ -2895,7 +2946,7 @@ export interface components {
             /**
              * Format: uri
              * @description Enlace completo `<web pública>/reservar/{slug}/mi-turno/{accessRef}`, listo para pegarlo en el chat (DEC-181). Abre directo en el código, sin pedir el contacto. No lleva datos personales. Solo aparece si el despliegue conoce su web pública (`APP_PUBLIC_WEB_BASE_URL`); si falta, Odin arma el enlace con `accessRef`.
-             * @example https://nava.wtf/reservar/barberia-ejemplo/mi-turno/Xr4tN8bQ2vLm7KpZ9wYc3HdF6sJ1aGeU0iO5nTqRhBk
+             * @example https://nava.wtf/reservar/negocio-ejemplo/mi-turno/Xr4tN8bQ2vLm7KpZ9wYc3HdF6sJ1aGeU0iO5nTqRhBk
              */
             accessUrl?: string;
             purpose: components["schemas"]["CustomerAccessPurpose"];
@@ -2905,7 +2956,7 @@ export interface components {
              */
             expiresAt: string;
         };
-        /** @description Reseña no oculta de un barbero. Sin identificador del turno ni del cliente: la reseña es anónima para el visitante. */
+        /** @description Reseña no oculta de un profesional. Sin identificador del turno ni del cliente: la reseña es anónima para el visitante. */
         PublicReview: {
             /** @example 5 */
             rating: number;
@@ -2920,7 +2971,7 @@ export interface components {
              */
             createdAt: string;
         };
-        /** @description Resumen y las reseñas no ocultas más recientes de un barbero (hasta 20), de la más reciente a la más antigua. */
+        /** @description Resumen y las reseñas no ocultas más recientes de un profesional (hasta 20), de la más reciente a la más antigua. */
         PublicReviewList: {
             /**
              * @description Promedio de 1 decimal de las reseñas no ocultas, o `null` sin ninguna.
@@ -2960,7 +3011,7 @@ export interface components {
              */
             relativeTime: string | null;
         };
-        /** @description Calificación, total y hasta 5 reseñas de la ficha de Google de la barbería. La respuesta vacía explícita (`rating: null`, `ratingCount: 0`, `mapsUrl: null`, `reviews: []`) significa «no hay nada que mostrar» y cubre, sin distinguirlos, una barbería sin ficha configurada, un servidor sin credencial de Google y una consulta fallida (red, cuota agotada, identificador inválido, `CA-101-03`): nunca un error visible para el cliente. */
+        /** @description Calificación, total y hasta 5 reseñas de la ficha de Google del negocio. La respuesta vacía explícita (`rating: null`, `ratingCount: 0`, `mapsUrl: null`, `reviews: []`) significa «no hay nada que mostrar» y cubre, sin distinguirlos, un negocio sin ficha configurada, un servidor sin credencial de Google y una consulta fallida (red, cuota agotada, identificador inválido, `CA-101-03`): nunca un error visible para el cliente. */
         PublicGoogleReviews: {
             /**
              * @description Calificación promedio de Google (hasta 1 decimal), o `null` si no hay datos.
@@ -3048,7 +3099,7 @@ export interface components {
             /**
              * Format: email
              * @description Correo de la cuenta. Obligatorio cuando channel es email; no se admite con whatsapp.
-             * @example barbero.ejemplo@correo.test
+             * @example profesional.ejemplo@correo.test
              */
             email?: string;
             /**
@@ -3082,7 +3133,7 @@ export interface components {
             /**
              * Format: email
              * @description Correo de la cuenta. Obligatorio cuando channel es email; no se admite con whatsapp.
-             * @example barbero.ejemplo@correo.test
+             * @example profesional.ejemplo@correo.test
              */
             email?: string;
             /**
@@ -3131,7 +3182,7 @@ export interface components {
             /**
              * Format: email
              * @description Correo de la cuenta. Obligatorio cuando channel es email; no se admite con whatsapp.
-             * @example barbero.ejemplo@correo.test
+             * @example profesional.ejemplo@correo.test
              */
             email?: string;
             /**
@@ -3156,7 +3207,7 @@ export interface components {
             /** @constant */
             channel?: "whatsapp";
         });
-        /** @description Configuración de anticipación, ventana, rejilla y cancelación tardía de la barbería activa. Los rangos están fijados por DEC-083 y el de slotGridMinutes (entero de 1 a 60) por DEC-133. */
+        /** @description Configuración de anticipación, ventana, rejilla y cancelación tardía de el negocio activo. Los rangos están fijados por DEC-083 y el de slotGridMinutes (entero de 1 a 60) por DEC-133. */
         BookingPolicyResponse: {
             /**
              * @description Anticipación mínima en minutos para reservar públicamente (RN-DIS-04). 0 desactiva el mínimo.
@@ -3209,13 +3260,13 @@ export interface components {
             /** @example true */
             lateCancellationReasonRequired: boolean;
         };
-        /** @description Ventana de reserva pública propia de un barbero. */
-        BarberBookingPolicyResponse: {
+        /** @description Ventana de reserva pública propia de un profesional. */
+        ProfessionalBookingPolicyResponse: {
             /**
              * Format: uuid
              * @example 3f1c9a52-7d4e-4b8a-9c21-5e6f7a8b9c0d
              */
-            barberId: string;
+            professionalId: string;
             /** @example 30 */
             minAdvanceMinutes: number;
             /** @example 7 */
@@ -3223,12 +3274,12 @@ export interface components {
             /** @example 40 */
             slotGridMinutes: number;
         };
-        /** @description Ventanas de reserva propias de los barberos de la barbería activa. */
-        BarberBookingPolicyListResponse: {
-            items: components["schemas"]["BarberBookingPolicyResponse"][];
+        /** @description Ventanas de reserva propias de los profesionales del negocio activo. */
+        ProfessionalBookingPolicyListResponse: {
+            items: components["schemas"]["ProfessionalBookingPolicyResponse"][];
         };
-        /** @description Reemplazo completo de la ventana de reserva propia de un barbero. */
-        PutBarberBookingPolicyRequest: {
+        /** @description Reemplazo completo de la ventana de reserva propia de un profesional. */
+        PutProfessionalBookingPolicyRequest: {
             /** @example 30 */
             minAdvanceMinutes: number;
             /** @example 7 */
@@ -3237,23 +3288,23 @@ export interface components {
             slotGridMinutes: number;
         };
         /**
-         * @description Panel que ve el usuario: `shop` (rol `empresa`, o sin ningún rol: el panel completo con gestión de equipo), `solo` (rol `independiente`: barbero individual, sin gestión de equipo ni selector de barbero) o `employee` (rol `empleado`: panel individual limitado, sin Servicios, Reserva pública ni Configuración). Con varios roles prevalece `empresa`, luego `independiente` y luego `empleado`. Un barbero independiente sigue siendo una barbería con un solo barbero (`DEC-019`); el perfil solo cambia lo que el panel muestra.
+         * @description Panel que ve el usuario: `shop` (rol `empresa`, o sin ningún rol: el panel completo con gestión de equipo), `solo` (rol `independiente`: profesional individual, sin gestión de equipo ni selector de profesional) o `employee` (rol `empleado`: panel individual limitado, sin Servicios, Reserva pública ni Configuración). Con varios roles prevalece `empresa`, luego `independiente` y luego `empleado`. Un profesional independiente sigue siendo un negocio con un solo profesional (`DEC-019`); el perfil solo cambia lo que el panel muestra.
          * @example solo
          * @enum {string}
          */
         PanelProfile: "shop" | "solo" | "employee";
-        /** @description Identificador del enlace público de reservas de la barbería de la sesión. El cliente compone la URL completa con su propio origen: `{origen}/reservar/{slug}`. Tiene la forma `<nombre><código aleatorio de 8>` sin guiones (`DEC-118`; los generados antes pueden llevarlos), es único globalmente y no cambia al renombrar la barbería. No contiene ningún identificador interno. */
+        /** @description Identificador del enlace público de reservas del negocio de la sesión. El cliente compone la URL completa con su propio origen: `{origen}/reservar/{slug}`. Tiene la forma `<nombre><código aleatorio de 8>` sin guiones (`DEC-118`; los generados antes pueden llevarlos), es único globalmente y no cambia al renombrar el negocio. No contiene ningún identificador interno. */
         PublicLinkResponse: {
             /** @example cortefinok7x2m9q4 */
             slug: string;
         };
         /**
-         * @description Por dónde se entrega el código del reto adicional de acceso (`HU-007`): `email` al correo de la cuenta, `whatsapp` al teléfono verificado de la cuenta por WhatsApp oficial, o `both` por los dos con el mismo código. Es un valor por barbería: las nuevas nacen en `email` (`DEC-081`) y las anteriores a `DEC-139` quedaron en `whatsapp`. El destino nunca lo envía el cliente: el servidor lo deriva de la cuenta. No cambia la recuperación de acceso (`DEC-092`), donde la persona elige el canal.
+         * @description Por dónde se entrega el código del reto adicional de acceso (`HU-007`): `email` al correo de la cuenta, `whatsapp` al teléfono verificado de la cuenta por WhatsApp oficial, o `both` por los dos con el mismo código. Es un valor por negocio: las nuevas nacen en `email` (`DEC-081`) y las anteriores a `DEC-139` quedaron en `whatsapp`. El destino nunca lo envía el cliente: el servidor lo deriva de la cuenta. No cambia la recuperación de acceso (`DEC-092`), donde la persona elige el canal.
          * @example email
          * @enum {string}
          */
         LoginOtpChannel: "email" | "whatsapp" | "both";
-        /** @description Canal del código del reto adicional de acceso de la barbería de la sesión. */
+        /** @description Canal del código del reto adicional de acceso del negocio de la sesión. */
         LoginOtpSettings: {
             channel: components["schemas"]["LoginOtpChannel"];
         };
@@ -3281,7 +3332,7 @@ export interface components {
              */
             leadMinutes: number;
         };
-        /** @description El horario semanal del local y si cierra los festivos colombianos. Es informativo: no limita la disponibilidad, que sale del horario de cada barbero. */
+        /** @description El horario semanal del local y si cierra los festivos colombianos. Es informativo: no limita la disponibilidad, que sale del horario de cada profesional. */
         OpeningHoursSettings: {
             /** @description Tramos ordenados por día (lunes primero) y apertura. Vacío significa que el dueño todavía no configuró el horario. */
             openingHours: components["schemas"]["OpeningHoursSegment"][];
@@ -3300,24 +3351,24 @@ export interface components {
             /** @description El local cierra los festivos colombianos. */
             closedOnHolidays: boolean;
         };
-        /** @description Estado de la integración del usuario autenticado. `enabled` es falso cuando el servidor no tiene credenciales de Google configuradas (la integración queda desactivada y el resto del producto funciona). `barberLinked` es falso mientras el usuario no haya declarado cuál barbero es (`DEC-100`): sin barbero no se puede conectar. */
+        /** @description Estado de la integración del usuario autenticado. `enabled` es falso cuando el servidor no tiene credenciales de Google configuradas (la integración queda desactivada y el resto del producto funciona). `professionalLinked` es falso mientras el usuario no haya declarado cuál profesional es (`DEC-100`): sin profesional no se puede conectar. */
         GoogleCalendarConnectionResponse: {
             /** @description El servidor tiene la integración con Google Calendar configurada. */
             enabled: boolean;
-            /** @description El usuario autenticado está vinculado a un barbero. */
-            barberLinked: boolean;
+            /** @description El usuario autenticado está vinculado a un profesional. */
+            professionalLinked: boolean;
             /**
-             * @description `not_connected`: nunca conectó. `connected`: publica con normalidad. `reauth_required`: Google revocó o caducó el permiso; hay que reconectar. `error`: fallo transitorio, el permiso sigue siendo válido. `disconnected`: el barbero desconectó.
+             * @description `not_connected`: nunca conectó. `connected`: publica con normalidad. `reauth_required`: Google revocó o caducó el permiso; hay que reconectar. `error`: fallo transitorio, el permiso sigue siendo válido. `disconnected`: el profesional desconectó.
              * @enum {string}
              */
             status: "not_connected" | "connected" | "reauth_required" | "error" | "disconnected";
             /**
              * @description Cuenta de Google conectada, o `null` sin conexión.
-             * @example barbero@ejemplo.test
+             * @example profesional@ejemplo.test
              */
             accountEmail: string | null;
             /**
-             * @description Anticipación, en minutos, del recordatorio de cada evento (0 a 40320). `null` usa los recordatorios predeterminados del calendario del barbero.
+             * @description Anticipación, en minutos, del recordatorio de cada evento (0 a 40320). `null` usa los recordatorios predeterminados del calendario del profesional.
              * @example 30
              */
             reminderMinutes: number | null;
@@ -3333,13 +3384,13 @@ export interface components {
             lastSyncedAt: string | null;
             /** @description Cambios de citas y bloqueos que esperan publicarse en Google. Con valor mayor que cero la pantalla puede mostrar «Sincronizando». */
             pendingSyncJobs: number;
-            /** @description Cambios que agotaron sus intentos de publicación. El barbero los reintenta con «Sincronizar ahora». */
+            /** @description Cambios que agotaron sus intentos de publicación. El profesional los reintenta con «Sincronizar ahora». */
             failedSyncJobs: number;
         };
-        /** @description Anticipación del recordatorio de los eventos del barbero. Es el único campo editable de la conexión; nunca acepta tokens, estado ni el barbero. */
+        /** @description Anticipación del recordatorio de los eventos del profesional. Es el único campo editable de la conexión; nunca acepta tokens, estado ni el profesional. */
         UpdateGoogleCalendarReminderRequest: {
             /**
-             * @description Minutos entre 0 y 40320 (el límite de Google), o `null` para usar los recordatorios predeterminados del calendario del barbero. Fuera de rango responde `422` sin guardar nada.
+             * @description Minutos entre 0 y 40320 (el límite de Google), o `null` para usar los recordatorios predeterminados del calendario del profesional. Fuera de rango responde `422` sin guardar nada.
              * @example 30
              */
             reminderMinutes: number | null;
@@ -3359,11 +3410,11 @@ export interface components {
             /** @description Cambios que siguen fallidos; normalmente 0 tras reintentarlos. */
             failedSyncJobs: number;
         };
-        /** @description Parámetros que Google agregó a la URL de retorno. `state` es obligatorio y de un solo uso. `code` viene con un consentimiento correcto; `error` (por ejemplo `access_denied`) viene cuando el barbero rechazó el permiso. Nunca lleva identificadores de barbero, usuario ni barbería. */
+        /** @description Parámetros que Google agregó a la URL de retorno. `state` es obligatorio y de un solo uso. `code` viene con un consentimiento correcto; `error` (por ejemplo `access_denied`) viene cuando el profesional rechazó el permiso. Nunca lleva identificadores de profesional, usuario ni negocio. */
         CompleteGoogleCalendarConnectionRequest: {
             /** @description Valor de un solo uso emitido al iniciar la conexión. */
             state: string;
-            /** @description Código de autorización de Google (ausente si el barbero rechazó). */
+            /** @description Código de autorización de Google (ausente si el profesional rechazó). */
             code?: string;
             /** @description Código de error OAuth de Google, por ejemplo `access_denied`. */
             error?: string;
@@ -3371,19 +3422,19 @@ export interface components {
         /** @description Desenlace de la conexión con Google Calendar. */
         GoogleCalendarCallbackResponse: {
             /**
-             * @description `connected`: quedó conectado. `denied`: el barbero rechazó el permiso o no concedió el de calendario. `failed`: Google no completó el intercambio; se puede volver a intentar.
+             * @description `connected`: quedó conectado. `denied`: el profesional rechazó el permiso o no concedió el de calendario. `failed`: Google no completó el intercambio; se puede volver a intentar.
              * @enum {string}
              */
             result: "connected" | "denied" | "failed";
         };
-        /** @description Selección del barbero propio del usuario autenticado. Si el usuario ya estaba vinculado a otro barbero, el vínculo anterior se libera en la misma operación. */
-        LinkMyBarberRequest: {
+        /** @description Selección del profesional propio del usuario autenticado. Si el usuario ya estaba vinculado a otro profesional, el vínculo anterior se libera en la misma operación. */
+        LinkMyProfessionalRequest: {
             /**
              * Format: uuid
-             * @description Identificador del barbero de la barbería activa que el usuario declara ser. Un identificador inexistente o de otra barbería responde el mismo `404` que el resto de operaciones del barbero (`CA-021-05`).
+             * @description Identificador del profesional del negocio activo que el usuario declara ser. Un identificador inexistente o de otro negocio responde el mismo `404` que el resto de operaciones del profesional (`CA-021-05`).
              * @example 8f3ac2b1-e4d5-46f6-a7c8-d9e0f1a2b3c4
              */
-            barberId: string;
+            professionalId: string;
         };
         /** @description Reseña con su identificador y la fecha de ocultamiento. Una oculta sigue visible en el panel con su fecha y no cuenta en el promedio público. */
         Review: {
@@ -3408,7 +3459,7 @@ export interface components {
              */
             createdAt: string;
         };
-        /** @description Resumen público y todas las reseñas del barbero, ocultas incluidas (hasta 100), de la más reciente a la más antigua. */
+        /** @description Resumen público y todas las reseñas del profesional, ocultas incluidas (hasta 100), de la más reciente a la más antigua. */
         ReviewList: {
             /**
              * @description Promedio de 1 decimal de las reseñas no ocultas, o `null` sin ninguna.
@@ -3430,7 +3481,7 @@ export interface components {
              */
             hidden: boolean;
         };
-        /** @description Tramo recurrente de la jornada laboral de un barbero, para un único día ISO de la semana. Una jornada partida se representa con varios tramos del mismo día (CA-040-02); un tramo nocturno cruza medianoche cuando startsTime + durationMinutes supera las 24:00 (DEC-020, CA-040-03). */
+        /** @description Tramo recurrente de la jornada laboral de un profesional, para un único día ISO de la semana. Una jornada partida se representa con varios tramos del mismo día (CA-040-02); un tramo nocturno cruza medianoche cuando startsTime + durationMinutes supera las 24:00 (DEC-020, CA-040-03). */
         WorkingHourResponse: {
             /**
              * Format: uuid
@@ -3444,7 +3495,7 @@ export interface components {
              */
             isoWeekday: number;
             /**
-             * @description Hora civil de inicio del tramo, en la zona IANA de la barbería (nunca la del dispositivo del cliente), formato HH:MM de 24 horas.
+             * @description Hora civil de inicio del tramo, en la zona IANA del negocio (nunca la del dispositivo del cliente), formato HH:MM de 24 horas.
              * @example 08:00
              */
             startsTime: string;
@@ -3466,7 +3517,7 @@ export interface components {
              */
             updatedAt: string;
         };
-        /** @description Página de tramos de horario laboral del barbero de la ruta, ordenada de forma estable por día ISO de la semana y luego por hora de inicio (CA-040-01): los siete días aparecen representados por sus tramos, nunca por una fila vacía cuando un día no tiene ninguno. */
+        /** @description Página de tramos de horario laboral del profesional de la ruta, ordenada de forma estable por día ISO de la semana y luego por hora de inicio (CA-040-01): los siete días aparecen representados por sus tramos, nunca por una fila vacía cuando un día no tiene ninguno. */
         WorkingHourListResponse: {
             /** @description Tramos de esta página, en el orden estable del servidor. */
             items: components["schemas"]["WorkingHourResponse"][];
@@ -3476,7 +3527,7 @@ export interface components {
              */
             nextCursor: string | null;
         };
-        /** @description Alta de un tramo recurrente de la jornada laboral del barbero de la ruta. Un día ISO fuera de 1-7, una hora con formato inválido, una duración fuera de [1, 1440] o un tramo que se solapa con otro del mismo barbero y día responden 422/409 sin persistir nada (CA-040-04). */
+        /** @description Alta de un tramo recurrente de la jornada laboral del profesional de la ruta. Un día ISO fuera de 1-7, una hora con formato inválido, una duración fuera de [1, 1440] o un tramo que se solapa con otro del mismo profesional y día responden 422/409 sin persistir nada (CA-040-04). */
         CreateWorkingHourRequest: {
             /**
              * @description Día ISO 8601 de la semana (1 = lunes, 7 = domingo).
@@ -3484,7 +3535,7 @@ export interface components {
              */
             isoWeekday: number;
             /**
-             * @description Hora civil de inicio del tramo, en la zona IANA de la barbería, formato HH:MM de 24 horas.
+             * @description Hora civil de inicio del tramo, en la zona IANA del negocio, formato HH:MM de 24 horas.
              * @example 08:00
              */
             startsTime: string;
@@ -3494,7 +3545,7 @@ export interface components {
              */
             durationMinutes: number;
         };
-        /** @description Reemplazo completo del intervalo de un tramo existente del barbero de la ruta. Un objeto vacío `{}` se rechaza igual que en la creación. */
+        /** @description Reemplazo completo del intervalo de un tramo existente del profesional de la ruta. Un objeto vacío `{}` se rechaza igual que en la creación. */
         UpdateWorkingHourRequest: {
             /**
              * @description Día ISO 8601 de la semana (1 = lunes, 7 = domingo).
@@ -3502,7 +3553,7 @@ export interface components {
              */
             isoWeekday: number;
             /**
-             * @description Hora civil de inicio del tramo, en la zona IANA de la barbería, formato HH:MM de 24 horas.
+             * @description Hora civil de inicio del tramo, en la zona IANA del negocio, formato HH:MM de 24 horas.
              * @example 09:00
              */
             startsTime: string;
@@ -3512,15 +3563,15 @@ export interface components {
              */
             durationMinutes: number;
         };
-        /** @description Estado del calendario colombiano de festivos del barbero de la ruta. Desactivado (por defecto): los festivos no agregan ningún bloqueo automático. Activado: un festivo queda cerrado por defecto en la resolución de jornada efectiva, salvo que exista una excepción manual para esa fecha. */
+        /** @description Estado del calendario colombiano de festivos del profesional de la ruta. Desactivado (por defecto): los festivos no agregan ningún bloqueo automático. Activado: un festivo queda cerrado por defecto en la resolución de jornada efectiva, salvo que exista una excepción manual para esa fecha. */
         HolidayCalendarResponse: {
             /**
-             * @description Si el calendario colombiano de festivos está activo para este barbero.
+             * @description Si el calendario colombiano de festivos está activo para este profesional.
              * @example true
              */
             enabled: boolean;
         };
-        /** @description Activa o desactiva el calendario colombiano de festivos del barbero de la ruta. La decisión nunca afecta a otro barbero de la misma barbería. */
+        /** @description Activa o desactiva el calendario colombiano de festivos del profesional de la ruta. La decisión nunca afecta a otro profesional del mismo negocio. */
         UpdateHolidayCalendarRequest: {
             /**
              * @description Nuevo estado del calendario colombiano de festivos.
@@ -3537,7 +3588,7 @@ export interface components {
              */
             id: string;
             /**
-             * @description Hora civil de inicio del tramo, en la zona IANA de la barbería.
+             * @description Hora civil de inicio del tramo, en la zona IANA del negocio.
              * @example 08:00
              */
             startsTime: string;
@@ -3547,7 +3598,7 @@ export interface components {
              */
             durationMinutes: number;
         };
-        /** @description Excepción de jornada de un barbero para una fecha concreta. isClosed decide la forma: true significa día completamente cerrado (segments siempre vacío); false significa día abierto con uno o varios tramos propios (segments siempre no vacío). Nunca ambas formas a la vez (CA-041-04). */
+        /** @description Excepción de jornada de un profesional para una fecha concreta. isClosed decide la forma: true significa día completamente cerrado (segments siempre vacío); false significa día abierto con uno o varios tramos propios (segments siempre no vacío). Nunca ambas formas a la vez (CA-041-04). */
         ScheduleExceptionResponse: {
             /**
              * Format: uuid
@@ -3557,7 +3608,7 @@ export interface components {
             id: string;
             /**
              * Format: date
-             * @description Fecha civil a la que aplica la excepción, en la zona IANA de la barbería.
+             * @description Fecha civil a la que aplica la excepción, en la zona IANA del negocio.
              * @example 2026-12-08
              */
             effectiveDate: string;
@@ -3567,7 +3618,7 @@ export interface components {
              */
             isClosed: boolean;
             /**
-             * @description Motivo breve y opcional, visible solo para el barbero.
+             * @description Motivo breve y opcional, visible solo para el profesional.
              * @example Festivo trabajado con horario reducido
              */
             reason: string | null;
@@ -3586,7 +3637,7 @@ export interface components {
              */
             updatedAt: string;
         };
-        /** @description Página de excepciones de jornada del barbero de la ruta, ordenada de forma estable por fecha efectiva y luego por identificador. */
+        /** @description Página de excepciones de jornada del profesional de la ruta, ordenada de forma estable por fecha efectiva y luego por identificador. */
         ScheduleExceptionListResponse: {
             /** @description Excepciones de esta página, en el orden estable del servidor. */
             items: components["schemas"]["ScheduleExceptionResponse"][];
@@ -3599,7 +3650,7 @@ export interface components {
         /** @description Tramo especial dentro de una fecha excepcional abierta. Solo válido cuando la cabecera declara isClosed: false; una cabecera cerrada no admite tramos. */
         ScheduleExceptionSegmentInput: {
             /**
-             * @description Hora civil de inicio del tramo, en la zona IANA de la barbería, formato HH:MM de 24 horas.
+             * @description Hora civil de inicio del tramo, en la zona IANA del negocio, formato HH:MM de 24 horas.
              * @example 08:00
              */
             startsTime: string;
@@ -3609,11 +3660,11 @@ export interface components {
              */
             durationMinutes: number;
         };
-        /** @description Alta de una excepción de jornada para la fecha efectiva del barbero de la ruta. isClosed: true cierra el día completo y `segments` debe venir vacío u omitido; isClosed: false exige al menos un tramo en `segments`, sin solapes entre sí (CA-041-04). Ya existe una excepción para esa fecha y ese barbero responde 409 sin crear nada (CA-041-05: como máximo una excepción por barbero y fecha). */
+        /** @description Alta de una excepción de jornada para la fecha efectiva del profesional de la ruta. isClosed: true cierra el día completo y `segments` debe venir vacío u omitido; isClosed: false exige al menos un tramo en `segments`, sin solapes entre sí (CA-041-04). Ya existe una excepción para esa fecha y ese profesional responde 409 sin crear nada (CA-041-05: como máximo una excepción por profesional y fecha). */
         CreateScheduleExceptionRequest: {
             /**
              * Format: date
-             * @description Fecha civil a la que aplica la excepción, en la zona IANA de la barbería.
+             * @description Fecha civil a la que aplica la excepción, en la zona IANA del negocio.
              * @example 2026-12-08
              */
             effectiveDate: string;
@@ -3623,18 +3674,18 @@ export interface components {
              */
             isClosed: boolean;
             /**
-             * @description Motivo breve y opcional, visible solo para el barbero.
+             * @description Motivo breve y opcional, visible solo para el profesional.
              * @example Festivo trabajado con horario reducido
              */
             reason?: string | null;
             /** @description Tramos especiales de esa fecha, requeridos y no vacíos cuando isClosed es false; deben venir vacíos u omitidos cuando isClosed es true. */
             segments?: components["schemas"]["ScheduleExceptionSegmentInput"][];
         };
-        /** @description Reemplazo completo de una excepción existente del barbero de la ruta. Mismas reglas que la creación: isClosed: true exige `segments` vacío u omitido; isClosed: false exige al menos un tramo sin solapes. */
+        /** @description Reemplazo completo de una excepción existente del profesional de la ruta. Mismas reglas que la creación: isClosed: true exige `segments` vacío u omitido; isClosed: false exige al menos un tramo sin solapes. */
         UpdateScheduleExceptionRequest: {
             /**
              * Format: date
-             * @description Fecha civil a la que aplica la excepción, en la zona IANA de la barbería.
+             * @description Fecha civil a la que aplica la excepción, en la zona IANA del negocio.
              * @example 2026-12-08
              */
             effectiveDate: string;
@@ -3644,7 +3695,7 @@ export interface components {
              */
             isClosed: boolean;
             /**
-             * @description Motivo breve y opcional, visible solo para el barbero.
+             * @description Motivo breve y opcional, visible solo para el profesional.
              * @example Festivo trabajado con horario reducido
              */
             reason?: string | null;
@@ -3703,7 +3754,7 @@ export interface components {
              */
             endsAt: string;
             /**
-             * @description Motivo breve y opcional, visible solo para el barbero.
+             * @description Motivo breve y opcional, visible solo para el profesional.
              * @example Urgencia médica
              */
             reason: string | null;
@@ -3730,13 +3781,13 @@ export interface components {
              */
             updatedAt: string;
         };
-        /** @description Página de bloqueos puntuales del barbero de la ruta. */
+        /** @description Página de bloqueos puntuales del profesional de la ruta. */
         TimeBlockListResponse: {
             items: components["schemas"]["TimeBlockResponse"][];
             /** @description Cursor opaco de la página siguiente, o null si esta es la última. */
             nextCursor: string | null;
         };
-        /** @description Alta de un bloqueo puntual del barbero de la ruta. Crear un bloqueo NUNCA falla por chocar con citas ya agendadas ni con otro bloqueo existente (RN-BLQ-03, DEC-008): la lista de citas afectadas la resuelve B3/B5, no esta operación. */
+        /** @description Alta de un bloqueo puntual del profesional de la ruta. Crear un bloqueo NUNCA falla por chocar con citas ya agendadas ni con otro bloqueo existente (RN-BLQ-03, DEC-008): la lista de citas afectadas la resuelve B3/B5, no esta operación. */
         CreateTimeBlockRequest: {
             /**
              * @example emergency
@@ -3745,7 +3796,7 @@ export interface components {
             blockType: "break" | "lunch" | "unavailable" | "day_off" | "holiday" | "vacation" | "emergency";
             /**
              * Format: date-time
-             * @description Instante de inicio, con offset explícito (el cliente ya conoce la zona IANA de la barbería).
+             * @description Instante de inicio, con offset explícito (el cliente ya conoce la zona IANA del negocio).
              * @example 2026-07-20T15:00:00-05:00
              */
             startsAt: string;
@@ -3794,7 +3845,7 @@ export interface components {
              * @example 2027-01-08
              */
             excludedDate: string;
-            /** @example El barbero libró ese día */
+            /** @example El profesional libró ese día */
             reason: string | null;
             /**
              * Format: date-time
@@ -3853,7 +3904,7 @@ export interface components {
             /** @description Instancias suprimidas ("esta instancia no"). */
             exceptions: components["schemas"]["SeriesExceptionResponse"][];
         };
-        /** @description Página de series recurrentes del barbero de la ruta. */
+        /** @description Página de series recurrentes del profesional de la ruta. */
         TimeBlockSeriesListResponse: {
             items: components["schemas"]["TimeBlockSeriesResponse"][];
             nextCursor: string | null;
@@ -3939,20 +3990,20 @@ export interface components {
              * @example 2027-01-08
              */
             excludedDate: string;
-            /** @example El barbero libró ese día */
+            /** @example El profesional libró ese día */
             reason?: string | null;
         };
-        /** @description Alta de un turno manual (recibido por teléfono, WhatsApp o en persona) registrado por el barbero autenticado. No está sujeto a la anticipación mínima ni a la ventana máxima de la reserva pública (RN-DIS-04): puede registrarse para dentro de pocos minutos, para un instante que ya empezó, o más allá de la ventana pública, siempre que respete la integridad de agenda (sin cruce con otra cita, RN-CON-01) y no exista un bloqueo vigente en ese intervalo (DEC-073). */
+        /** @description Alta de un turno manual (recibido por teléfono, WhatsApp o en persona) registrado por el profesional autenticado. No está sujeto a la anticipación mínima ni a la ventana máxima de la reserva pública (RN-DIS-04): puede registrarse para dentro de pocos minutos, para un instante que ya empezó, o más allá de la ventana pública, siempre que respete la integridad de agenda (sin cruce con otra cita, RN-CON-01) y no exista un bloqueo vigente en ese intervalo (DEC-073). */
         CreateManualAppointmentRequest: {
             /**
              * Format: uuid
-             * @description Barbero que atiende el turno.
+             * @description Profesional que atiende el turno.
              * @example 8f3ac2b1-e4d5-46f6-a7c8-d9e0f1a2b3c4
              */
-            barberId: string;
+            professionalId: string;
             /**
              * Format: uuid
-             * @description Servicio a prestar. Debe estar activo y asignado a barberId (DEC-072); en caso contrario la solicitud responde 404.
+             * @description Servicio a prestar. Debe estar activo y asignado a professionalId (DEC-072); en caso contrario la solicitud responde 404.
              * @example 6f1a2b3c-4d5e-4f60-8172-8394a5b6c7d8
              */
             serviceId: string;
@@ -3967,23 +4018,23 @@ export interface components {
              */
             customerFullName: string;
             /**
-             * @description Teléfono del cliente en formato E.164, opcional (RN-CIT-02). Si se da, el cliente se busca/reutiliza por teléfono dentro de la barbería (DEC-045).
+             * @description Teléfono del cliente en formato E.164, opcional (RN-CIT-02). Si se da, el cliente se busca/reutiliza por teléfono dentro del negocio (DEC-045).
              * @example +573001234567
              */
             customerPhone?: string | null;
             /**
              * Format: email
-             * @description Correo del cliente, opcional. Si se da y no hay teléfono, el cliente se busca/reutiliza por correo dentro de la barbería (DEC-046, DEC-071). Sin teléfono ni correo, siempre se crea un cliente nuevo.
+             * @description Correo del cliente, opcional. Si se da y no hay teléfono, el cliente se busca/reutiliza por correo dentro del negocio (DEC-046, DEC-071). Sin teléfono ni correo, siempre se crea un cliente nuevo.
              * @example carlos.restrepo@example.com
              */
             customerEmail?: string | null;
             /**
-             * @description Nota opcional visible solo para el equipo de la barbería.
+             * @description Nota opcional visible solo para el equipo del negocio.
              * @example Prefiere máquina 2 en los laterales.
              */
             customerNote?: string | null;
             /**
-             * @description Fecha y hora civiles del turno ("AAAA-MM-DDTHH:MM:SS"), sin desplazamiento de zona: se interpreta en la zona IANA vigente de la barbería (RN-DIS-07), nunca en la del servidor o del dispositivo.
+             * @description Fecha y hora civiles del turno ("AAAA-MM-DDTHH:MM:SS"), sin desplazamiento de zona: se interpreta en la zona IANA vigente del negocio (RN-DIS-07), nunca en la del servidor o del dispositivo.
              * @example 2026-09-03T14:30:00
              */
             startsAt: string;
@@ -3992,7 +4043,7 @@ export interface components {
             /** Format: uuid */
             id: string;
             /** Format: uuid */
-            barberId: string;
+            professionalId: string;
             /** Format: uuid */
             serviceId: string;
             /** Format: uuid */
@@ -4003,7 +4054,7 @@ export interface components {
             /** Format: date-time */
             endsAt: string;
             /** @enum {string} */
-            status: "confirmed" | "completed" | "cancelled_by_customer" | "cancelled_by_barber" | "no_show";
+            status: "confirmed" | "completed" | "cancelled_by_customer" | "cancelled_by_professional" | "no_show";
             /** @enum {string} */
             origin: "public" | "manual";
             /** @description Nombre del servicio congelado al momento de crear la cita (DEC-004). */
@@ -4031,7 +4082,7 @@ export interface components {
             /** Format: date-time */
             endsAt: string;
             /** @enum {string} */
-            status: "confirmed" | "completed" | "cancelled_by_customer" | "cancelled_by_barber" | "no_show";
+            status: "confirmed" | "completed" | "cancelled_by_customer" | "cancelled_by_professional" | "no_show";
             /** @enum {string} */
             origin: "public" | "manual";
             /** @description Nombre del servicio congelado al momento de crear la cita (DEC-004). */
@@ -4044,10 +4095,10 @@ export interface components {
             priceAmount: string;
             /** @example COP */
             currency: string;
-            /** @description Dirección del cliente cuando el turno es a domicilio (`DEC-131`); `null` en el local. Solo la ve el panel de esa barbería (`CA-103-06`). */
+            /** @description Dirección del cliente cuando el turno es a domicilio (`DEC-131`); `null` en el local. Solo la ve el panel de ese negocio (`CA-103-06`). */
             homeService: components["schemas"]["HomeServiceAddress"] | null;
         };
-        /** @description Turnos del barbero de la ruta cuyo intervalo interseca el día pedido, ordenados de forma estable por `startsAt` y luego por `id` (CA-062-03). */
+        /** @description Turnos del profesional de la ruta cuyo intervalo interseca el día pedido, ordenados de forma estable por `startsAt` y luego por `id` (CA-062-03). */
         DailyAgendaResponse: {
             /** @description Turnos de la agenda, en el orden estable del servidor. Un turno que cruza medianoche puede aparecer en la respuesta de más de un día distinto (DEC-075), nunca duplicado dentro de la misma respuesta. */
             items: components["schemas"]["DailyAgendaEntry"][];
@@ -4057,8 +4108,8 @@ export interface components {
             /** Format: uuid */
             id: string;
             /** Format: uuid */
-            barberId: string;
-            barberFullName: string;
+            professionalId: string;
+            professionalFullName: string;
             /** @description Persona atendida (RN-RES-03); puede diferir de customerFullName. */
             attendeeName: string;
             /** @description Persona que reservó (RN-RES-02). */
@@ -4071,7 +4122,7 @@ export interface components {
             /** Format: date-time */
             endsAt: string;
             /** @enum {string} */
-            status: "confirmed" | "completed" | "cancelled_by_customer" | "cancelled_by_barber" | "no_show";
+            status: "confirmed" | "completed" | "cancelled_by_customer" | "cancelled_by_professional" | "no_show";
             /** @enum {string} */
             origin: "public" | "manual";
             serviceName: string;
@@ -4087,7 +4138,7 @@ export interface components {
             versionToken: string;
             /** Format: date-time */
             createdAt: string;
-            /** @description Dirección del cliente cuando el turno es a domicilio (`DEC-131`); `null` en el local. Solo la ve el panel de esa barbería (`CA-103-06`). */
+            /** @description Dirección del cliente cuando el turno es a domicilio (`DEC-131`); `null` en el local. Solo la ve el panel de ese negocio (`CA-103-06`). */
             homeService: components["schemas"]["HomeServiceAddress"] | null;
         };
         AppointmentHistoryChange: {
@@ -4099,7 +4150,7 @@ export interface components {
             /** Format: uuid */
             id: string;
             /** @enum {string} */
-            eventType: "appointment_created" | "appointment_rescheduled" | "appointment_service_changed" | "appointment_completed" | "appointment_cancelled_by_customer" | "appointment_cancelled_by_barber" | "appointment_no_show" | "appointment_status_corrected";
+            eventType: "appointment_created" | "appointment_rescheduled" | "appointment_service_changed" | "appointment_completed" | "appointment_cancelled_by_customer" | "appointment_cancelled_by_professional" | "appointment_no_show" | "appointment_status_corrected";
             /** @enum {string} */
             actorType: "staff" | "customer" | "system";
             /** @description Nombre visible seguro del actor (nunca correo ni ningún identificador interno). Una etiqueta de reserva ("Miembro del equipo", "Cliente", "Sistema") cuando el nombre autorizado no está disponible. */
@@ -4120,7 +4171,7 @@ export interface components {
         /** @description Nuevo inicio de un turno `confirmed`. El fin se deriva de la duración ya congelada (`durationMinutesSnapshot`), nunca del cliente ni del catálogo vigente. */
         RescheduleAppointmentRequest: {
             /**
-             * @description Fecha y hora civiles del nuevo inicio ("AAAA-MM-DDTHH:MM:SS"), sin desplazamiento de zona: se interpreta en la zona IANA vigente de la barbería (RN-DIS-07). Debe ser estrictamente futuro.
+             * @description Fecha y hora civiles del nuevo inicio ("AAAA-MM-DDTHH:MM:SS"), sin desplazamiento de zona: se interpreta en la zona IANA vigente del negocio (RN-DIS-07). Debe ser estrictamente futuro.
              * @example 2026-09-10T14:30:00
              */
             startsAt: string;
@@ -4129,7 +4180,7 @@ export interface components {
             /** Format: uuid */
             id: string;
             /** Format: uuid */
-            barberId: string;
+            professionalId: string;
             /** Format: uuid */
             serviceId: string;
             /** Format: uuid */
@@ -4140,7 +4191,7 @@ export interface components {
             /** Format: date-time */
             endsAt: string;
             /** @enum {string} */
-            status: "confirmed" | "completed" | "cancelled_by_customer" | "cancelled_by_barber" | "no_show";
+            status: "confirmed" | "completed" | "cancelled_by_customer" | "cancelled_by_professional" | "no_show";
             /** @enum {string} */
             origin: "public" | "manual";
             serviceName: string;
@@ -4159,7 +4210,7 @@ export interface components {
             /** Format: uuid */
             id: string;
             /** Format: uuid */
-            barberId: string;
+            professionalId: string;
             /** Format: uuid */
             serviceId: string;
             /** Format: uuid */
@@ -4170,7 +4221,7 @@ export interface components {
             /** Format: date-time */
             endsAt: string;
             /** @enum {string} */
-            status: "confirmed" | "completed" | "cancelled_by_customer" | "cancelled_by_barber" | "no_show";
+            status: "confirmed" | "completed" | "cancelled_by_customer" | "cancelled_by_professional" | "no_show";
             /** @enum {string} */
             origin: "public" | "manual";
             serviceName: string;
@@ -4189,7 +4240,7 @@ export interface components {
             /** Format: uuid */
             id: string;
             /** Format: uuid */
-            barberId: string;
+            professionalId: string;
             /** Format: uuid */
             serviceId: string;
             /** Format: uuid */
@@ -4200,7 +4251,7 @@ export interface components {
             /** Format: date-time */
             endsAt: string;
             /** @enum {string} */
-            status: "confirmed" | "completed" | "cancelled_by_customer" | "cancelled_by_barber" | "no_show";
+            status: "confirmed" | "completed" | "cancelled_by_customer" | "cancelled_by_professional" | "no_show";
             /** @enum {string} */
             origin: "public" | "manual";
             serviceName: string;
@@ -4219,7 +4270,7 @@ export interface components {
             /** Format: uuid */
             id: string;
             /** Format: uuid */
-            barberId: string;
+            professionalId: string;
             /** Format: uuid */
             serviceId: string;
             /** Format: uuid */
@@ -4230,7 +4281,7 @@ export interface components {
             /** Format: date-time */
             endsAt: string;
             /** @enum {string} */
-            status: "confirmed" | "completed" | "cancelled_by_customer" | "cancelled_by_barber" | "no_show";
+            status: "confirmed" | "completed" | "cancelled_by_customer" | "cancelled_by_professional" | "no_show";
             /** @enum {string} */
             origin: "public" | "manual";
             serviceName: string;
@@ -4252,10 +4303,10 @@ export interface components {
              * @example no_show
              * @enum {string}
              */
-            status: "completed" | "no_show" | "cancelled_by_customer" | "cancelled_by_barber";
+            status: "completed" | "no_show" | "cancelled_by_customer" | "cancelled_by_professional";
             /**
              * @description Motivo obligatorio de la corrección, no vacío ni en blanco (mismo límite que `appointment_history_reason_ck`).
-             * @example El barbero marcó completed por error; el cliente nunca llegó.
+             * @example El profesional marcó completed por error; el cliente nunca llegó.
              */
             reason: string;
         };
@@ -4263,7 +4314,7 @@ export interface components {
             /** Format: uuid */
             id: string;
             /** Format: uuid */
-            barberId: string;
+            professionalId: string;
             /** Format: uuid */
             serviceId: string;
             /** Format: uuid */
@@ -4274,7 +4325,7 @@ export interface components {
             /** Format: date-time */
             endsAt: string;
             /** @enum {string} */
-            status: "confirmed" | "completed" | "cancelled_by_customer" | "cancelled_by_barber" | "no_show";
+            status: "confirmed" | "completed" | "cancelled_by_customer" | "cancelled_by_professional" | "no_show";
             /** @enum {string} */
             origin: "public" | "manual";
             serviceName: string;
@@ -4300,7 +4351,7 @@ export interface components {
             };
             content?: never;
         };
-        /** @description El recurso solicitado no existe, o existe pero pertenece a otra barbería. Ambos casos producen la misma respuesta a propósito: el cuerpo nunca revela que el recurso existe. */
+        /** @description El recurso solicitado no existe, o existe pero pertenece a otro negocio. Ambos casos producen la misma respuesta a propósito: el cuerpo nunca revela que el recurso existe. */
         NotFoundProblem: {
             headers: {
                 "X-Request-Id": components["headers"]["XRequestId"];
@@ -4411,7 +4462,7 @@ export interface components {
                 "application/json": components["schemas"]["ChallengeAcceptedResponse"];
             };
         };
-        /** @description Código verificado. La IP solicitante deja de estar en verificación telefónica; el barbero puede reintentar el inicio de sesión normalmente. */
+        /** @description Código verificado. La IP solicitante deja de estar en verificación telefónica; el profesional puede reintentar el inicio de sesión normalmente. */
         ChallengeVerifySuccess: {
             headers: {
                 "X-Request-Id": components["headers"]["XRequestId"];
@@ -4430,27 +4481,27 @@ export interface components {
                 "application/problem+json": components["schemas"]["Problem"];
             };
         };
-        /** @description Configuración básica de la barbería activa. */
-        BarbershopSettingsSuccess: {
+        /** @description Configuración básica del negocio activo. */
+        BusinessSettingsSuccess: {
             headers: {
                 "X-Request-Id": components["headers"]["XRequestId"];
                 [name: string]: unknown;
             };
             content: {
-                "application/json": components["schemas"]["BarbershopSettingsResponse"];
+                "application/json": components["schemas"]["BusinessSettingsResponse"];
             };
         };
-        /** @description Configuración básica de la barbería ya guardada, en su representación canónica completa. */
-        BarbershopSettingsUpdated: {
+        /** @description Configuración básica del negocio ya guardada, en su representación canónica completa. */
+        BusinessSettingsUpdated: {
             headers: {
                 "X-Request-Id": components["headers"]["XRequestId"];
                 [name: string]: unknown;
             };
             content: {
-                "application/json": components["schemas"]["BarbershopSettingsResponse"];
+                "application/json": components["schemas"]["BusinessSettingsResponse"];
             };
         };
-        /** @description Marca y vocabulario de la barbería activa. */
+        /** @description Marca y vocabulario del negocio activo. */
         BrandSuccess: {
             headers: {
                 "X-Request-Id": components["headers"]["XRequestId"];
@@ -4481,7 +4532,7 @@ export interface components {
             };
         };
         /** @description El cuerpo es JSON válido con los campos esperados, pero uno de ellos incumple una validación de campo o de negocio: name vacío o demasiado largo, timezone vacía, demasiado larga o no reconocida por el catálogo IANA del servidor, o contactEmail/contactPhone con una forma inválida. Ninguna escritura ocurre cuando esto sucede, ni siquiera parcial (CA-020-03). */
-        BarbershopSettingsValidationProblem: {
+        BusinessSettingsValidationProblem: {
             headers: {
                 "X-Request-Id": components["headers"]["XRequestId"];
                 [name: string]: unknown;
@@ -4490,49 +4541,49 @@ export interface components {
                 "application/problem+json": components["schemas"]["Problem"];
             };
         };
-        /** @description Página de barberos de la barbería activa. Una barbería con una sola persona y una con cuatro personas devuelven exactamente la misma forma (`items` con 1 o 4 elementos): no existe una rama de respuesta distinta para "barbero único". */
-        BarberListSuccess: {
+        /** @description Página de profesionales del negocio activo. Un negocio con una sola persona y una con cuatro personas devuelven exactamente la misma forma (`items` con 1 o 4 elementos): no existe una rama de respuesta distinta para "profesional único". */
+        ProfessionalListSuccess: {
             headers: {
                 "X-Request-Id": components["headers"]["XRequestId"];
                 [name: string]: unknown;
             };
             content: {
-                "application/json": components["schemas"]["BarberListResponse"];
+                "application/json": components["schemas"]["ProfessionalListResponse"];
             };
         };
-        /** @description Barbero de la barbería activa. */
-        BarberSuccess: {
+        /** @description Profesional del negocio activo. */
+        ProfessionalSuccess: {
             headers: {
                 "X-Request-Id": components["headers"]["XRequestId"];
                 [name: string]: unknown;
             };
             content: {
-                "application/json": components["schemas"]["BarberResponse"];
+                "application/json": components["schemas"]["ProfessionalResponse"];
             };
         };
-        /** @description Barbero creado. `Location` apunta al recurso individual recién creado. */
-        BarberCreated: {
+        /** @description Profesional creado. `Location` apunta al recurso individual recién creado. */
+        ProfessionalCreated: {
             headers: {
                 "X-Request-Id": components["headers"]["XRequestId"];
                 Location: components["headers"]["Location"];
                 [name: string]: unknown;
             };
             content: {
-                "application/json": components["schemas"]["BarberResponse"];
+                "application/json": components["schemas"]["ProfessionalResponse"];
             };
         };
-        /** @description Barbero con el nombre ya actualizado. */
-        BarberUpdated: {
+        /** @description Profesional con el nombre ya actualizado. */
+        ProfessionalUpdated: {
             headers: {
                 "X-Request-Id": components["headers"]["XRequestId"];
                 [name: string]: unknown;
             };
             content: {
-                "application/json": components["schemas"]["BarberResponse"];
+                "application/json": components["schemas"]["ProfessionalResponse"];
             };
         };
         /** @description El cuerpo es JSON válido, pero `fullName` incumple una validación (vacío, solo espacios o mayor de 120 caracteres). No se persistió ningún cambio. */
-        BarberValidationProblem: {
+        ProfessionalValidationProblem: {
             headers: {
                 "X-Request-Id": components["headers"]["XRequestId"];
                 [name: string]: unknown;
@@ -4541,18 +4592,18 @@ export interface components {
                 "application/problem+json": components["schemas"]["Problem"];
             };
         };
-        /** @description Barbero con la fotografía ya guardada. */
-        BarberPhotoUpdated: {
+        /** @description Profesional con la fotografía ya guardada. */
+        ProfessionalPhotoUpdated: {
             headers: {
                 "X-Request-Id": components["headers"]["XRequestId"];
                 [name: string]: unknown;
             };
             content: {
-                "application/json": components["schemas"]["BarberResponse"];
+                "application/json": components["schemas"]["ProfessionalResponse"];
             };
         };
-        /** @description Fotografía del barbero (JPEG o PNG). */
-        BarberPhotoSuccess: {
+        /** @description Fotografía del profesional (JPEG o PNG). */
+        ProfessionalPhotoSuccess: {
             headers: {
                 "X-Request-Id": components["headers"]["XRequestId"];
                 /** @description Validador de la versión de la imagen, derivado de `photoUpdatedAt`. El navegador lo devuelve en `If-None-Match` y recibe `304` mientras no cambie. */
@@ -4567,7 +4618,7 @@ export interface components {
             };
         };
         /** @description La fotografía no cambió desde la versión que el cliente ya tiene. */
-        BarberPhotoNotModified: {
+        ProfessionalPhotoNotModified: {
             headers: {
                 /** @description Validador vigente de la imagen. */
                 ETag?: string;
@@ -4577,8 +4628,8 @@ export interface components {
             };
             content?: never;
         };
-        /** @description El barbero ya no tiene fotografía y vuelve a mostrarse con su monograma. Quitar una fotografía que no existe también responde `204`: la operación es idempotente. No afecta al nombre ni a ningún otro dato del barbero. */
-        BarberPhotoDeleted: {
+        /** @description El profesional ya no tiene fotografía y vuelve a mostrarse con su monograma. Quitar una fotografía que no existe también responde `204`: la operación es idempotente. No afecta al nombre ni a ningún otro dato del profesional. */
+        ProfessionalPhotoDeleted: {
             headers: {
                 "X-Request-Id": components["headers"]["XRequestId"];
                 [name: string]: unknown;
@@ -4586,7 +4637,7 @@ export interface components {
             content?: never;
         };
         /** @description El cuerpo no es una fotografía admisible: vacío, mayor de 512 KiB, no es una imagen JPEG o PNG real, su formato no coincide con el `Content-Type` o mide menos de 64 o más de 1024 píxeles por lado. No se persistió ningún cambio. */
-        BarberPhotoValidationProblem: {
+        ProfessionalPhotoValidationProblem: {
             headers: {
                 "X-Request-Id": components["headers"]["XRequestId"];
                 [name: string]: unknown;
@@ -4595,7 +4646,7 @@ export interface components {
                 "application/problem+json": components["schemas"]["Problem"];
             };
         };
-        /** @description Página de servicios del catálogo de la barbería activa, paginada por número de página con conteo total y búsqueda opcional por nombre. */
+        /** @description Página de servicios del catálogo del negocio activo, paginada por número de página con conteo total y búsqueda opcional por nombre. */
         ServiceListSuccess: {
             headers: {
                 "X-Request-Id": components["headers"]["XRequestId"];
@@ -4605,7 +4656,7 @@ export interface components {
                 "application/json": components["schemas"]["ServiceListResponse"];
             };
         };
-        /** @description Servicio del catálogo de la barbería activa. */
+        /** @description Servicio del catálogo del negocio activo. */
         ServiceSuccess: {
             headers: {
                 "X-Request-Id": components["headers"]["XRequestId"];
@@ -4646,7 +4697,7 @@ export interface components {
                 "application/problem+json": components["schemas"]["Problem"];
             };
         };
-        /** @description Ya existe un servicio ACTIVO de esta barbería con ese nombre exacto. No se persistió ningún cambio; un servicio DESACTIVADO con el mismo nombre no produce este conflicto (DEC-067). */
+        /** @description Ya existe un servicio ACTIVO de este negocio con ese nombre exacto. No se persistió ningún cambio; un servicio DESACTIVADO con el mismo nombre no produce este conflicto (DEC-067). */
         ServiceConflictProblem: {
             headers: {
                 "X-Request-Id": components["headers"]["XRequestId"];
@@ -4656,7 +4707,7 @@ export interface components {
                 "application/problem+json": components["schemas"]["Problem"];
             };
         };
-        /** @description Página de servicios asignados al barbero, ordenada de forma estable. */
+        /** @description Página de servicios asignados al profesional, ordenada de forma estable. */
         AssignmentListSuccess: {
             headers: {
                 "X-Request-Id": components["headers"]["XRequestId"];
@@ -4666,7 +4717,7 @@ export interface components {
                 "application/json": components["schemas"]["AssignmentListResponse"];
             };
         };
-        /** @description El barbero ahora tiene asignado el servicio. `createdAt` refleja siempre la primera vez que se creó la asociación, incluso en una repetición. */
+        /** @description El profesional ahora tiene asignado el servicio. `createdAt` refleja siempre la primera vez que se creó la asociación, incluso en una repetición. */
         AssignmentAssigned: {
             headers: {
                 "X-Request-Id": components["headers"]["XRequestId"];
@@ -4677,7 +4728,7 @@ export interface components {
                 "application/json": components["schemas"]["AssignmentResponse"];
             };
         };
-        /** @description El barbero ya no tiene asignado el servicio. No borra al barbero, al servicio ni ninguna cita: solo retira la asociación. */
+        /** @description El profesional ya no tiene asignado el servicio. No borra al profesional, al servicio ni ninguna cita: solo retira la asociación. */
         AssignmentUnassigned: {
             headers: {
                 "X-Request-Id": components["headers"]["XRequestId"];
@@ -4715,17 +4766,17 @@ export interface components {
                 "application/json": components["schemas"]["ServiceResponse"];
             };
         };
-        /** @description Contexto público de la barbería resuelta por su enlace de reservas. */
-        PublicBarbershopProfileSuccess: {
+        /** @description Contexto público del negocio resuelto por su enlace de reservas. */
+        PublicBusinessProfileSuccess: {
             headers: {
                 "X-Request-Id": components["headers"]["XRequestId"];
                 [name: string]: unknown;
             };
             content: {
-                "application/json": components["schemas"]["PublicBarbershopProfile"];
+                "application/json": components["schemas"]["PublicBusinessProfile"];
             };
         };
-        /** @description Página del catálogo público de servicios activos y asignados de la barbería resuelta. */
+        /** @description Página del catálogo público de servicios activos y asignados del negocio resuelto. */
         PublicServiceListSuccess: {
             headers: {
                 "X-Request-Id": components["headers"]["XRequestId"];
@@ -4735,17 +4786,17 @@ export interface components {
                 "application/json": components["schemas"]["PublicServiceListResponse"];
             };
         };
-        /** @description Barberos elegibles de la barbería con los ids de los servicios activos que hacen. */
-        PublicBarberServicesListSuccess: {
+        /** @description Profesionales elegibles del negocio con los ids de los servicios activos que hacen. */
+        PublicProfessionalServicesListSuccess: {
             headers: {
                 "X-Request-Id": components["headers"]["XRequestId"];
                 [name: string]: unknown;
             };
             content: {
-                "application/json": components["schemas"]["PublicBarberServicesListResponse"];
+                "application/json": components["schemas"]["PublicProfessionalServicesListResponse"];
             };
         };
-        /** @description Inicios públicos válidos del servicio elegido para todos sus barberos elegibles. */
+        /** @description Inicios públicos válidos del servicio elegido para todos sus profesionales elegibles. */
         ServiceAvailabilitySuccess: {
             headers: {
                 "X-Request-Id": components["headers"]["XRequestId"];
@@ -4755,8 +4806,8 @@ export interface components {
                 "application/json": components["schemas"]["ServiceAvailabilityResponse"];
             };
         };
-        /** @description Fotografía del barbero (JPEG o PNG). */
-        PublicBarberPhotoSuccess: {
+        /** @description Fotografía del profesional (JPEG o PNG). */
+        PublicProfessionalPhotoSuccess: {
             headers: {
                 "X-Request-Id": components["headers"]["XRequestId"];
                 /** @description Validador de la versión de la imagen, derivado de `photoUpdatedAt`. El navegador lo devuelve en `If-None-Match` y recibe `304` mientras no cambie. */
@@ -4770,17 +4821,17 @@ export interface components {
                 "image/png": string;
             };
         };
-        /** @description Barberos con asignación vigente al servicio activo resuelto. */
-        PublicBarberListSuccess: {
+        /** @description Profesionales con asignación vigente al servicio activo resuelto. */
+        PublicProfessionalListSuccess: {
             headers: {
                 "X-Request-Id": components["headers"]["XRequestId"];
                 [name: string]: unknown;
             };
             content: {
-                "application/json": components["schemas"]["PublicBarberListResponse"];
+                "application/json": components["schemas"]["PublicProfessionalListResponse"];
             };
         };
-        /** @description Inicios públicos válidos del servicio elegido con el barbero elegido. */
+        /** @description Inicios públicos válidos del servicio elegido con el profesional elegido. */
         AvailabilitySuccess: {
             headers: {
                 "X-Request-Id": components["headers"]["XRequestId"];
@@ -4824,7 +4875,7 @@ export interface components {
                 "application/json": components["schemas"]["CustomerAppointmentCancelled"];
             };
         };
-        /** @description Tres rechazos distinguibles por `code`, nunca por `detail`: `cancellation-window-closed` (el plazo venció y la política no permite cancelar fuera de plazo, o el turno ya empezó: el cliente debe contactar a la barbería, `barbershopContactEmail`/`barbershopContactPhone`), `cancellation-reason-required` (la cancelación fuera de plazo exige un motivo y no llegó o llegó en blanco) y `validation-error` (el motivo excede 500 caracteres). */
+        /** @description Tres rechazos distinguibles por `code`, nunca por `detail`: `cancellation-window-closed` (el plazo venció y la política no permite cancelar fuera de plazo, o el turno ya empezó: el cliente debe contactar a el negocio, `businessContactEmail`/`businessContactPhone`), `cancellation-reason-required` (la cancelación fuera de plazo exige un motivo y no llegó o llegó en blanco) y `validation-error` (el motivo excede 500 caracteres). */
         CancellationRejectedProblem: {
             headers: {
                 "X-Request-Id": components["headers"]["XRequestId"];
@@ -4834,7 +4885,7 @@ export interface components {
                 "application/problem+json": components["schemas"]["Problem"];
             };
         };
-        /** @description Reseña guardada; ya cuenta en el promedio público del barbero. */
+        /** @description Reseña guardada; ya cuenta en el promedio público del profesional. */
         ReviewCreated: {
             headers: {
                 "X-Request-Id": components["headers"]["XRequestId"];
@@ -4880,7 +4931,7 @@ export interface components {
                 "application/json": components["schemas"]["CustomerAppointmentRescheduled"];
             };
         };
-        /** @description Tres rechazos distinguibles por `code`, nunca por `detail`: `reschedule-window-closed` (pasó el plazo, el mismo de la cancelación: el cliente debe contactar a la barbería), `reschedule-limit-reached` (el cliente ya cambió la hora de este turno las veces permitidas) y `validation-error` (`startsAt` no es un instante RFC 3339). */
+        /** @description Tres rechazos distinguibles por `code`, nunca por `detail`: `reschedule-window-closed` (pasó el plazo, el mismo de la cancelación: el cliente debe contactar al negocio), `reschedule-limit-reached` (el cliente ya cambió la hora de este turno las veces permitidas) y `validation-error` (`startsAt` no es un instante RFC 3339). */
         RescheduleRejectedProblem: {
             headers: {
                 "X-Request-Id": components["headers"]["XRequestId"];
@@ -4937,7 +4988,7 @@ export interface components {
                 "application/json": components["schemas"]["CustomerAccessVerifyRefResponse"];
             };
         };
-        /** @description Los turnos futuros confirmados de ese teléfono en esa barbería, o una lista vacía. */
+        /** @description Los turnos futuros confirmados de ese teléfono en ese negocio, o una lista vacía. */
         OdinAppointmentLookup: {
             headers: {
                 "X-Request-Id": components["headers"]["XRequestId"];
@@ -4973,7 +5024,7 @@ export interface components {
                 "application/json": components["schemas"]["OdinAccessChallengeResponse"];
             };
         };
-        /** @description El turno no está disponible para este cambio. Cubre una referencia ajena, vencida o de otra barbería, un teléfono que no es el del turno y un turno que ya no admite ese propósito, sin distinguir la causa. */
+        /** @description El turno no está disponible para este cambio. Cubre una referencia ajena, vencida o de otro negocio, un teléfono que no es el del turno y un turno que ya no admite ese propósito, sin distinguir la causa. */
         AppointmentNotAvailableProblem: {
             headers: {
                 "X-Request-Id": components["headers"]["XRequestId"];
@@ -4993,7 +5044,7 @@ export interface components {
                 "application/problem+json": components["schemas"]["Problem"];
             };
         };
-        /** @description Resumen y reseñas visibles más recientes del barbero. */
+        /** @description Resumen y reseñas visibles más recientes del profesional. */
         PublicReviewListSuccess: {
             headers: {
                 "X-Request-Id": components["headers"]["XRequestId"];
@@ -5041,7 +5092,7 @@ export interface components {
             };
             content?: never;
         };
-        /** @description Tu cuenta no tiene permiso para esta operación. Una cuenta de empleado solo puede cambiar lo de su propio barbero (horarios, servicios que ofrece, ventana propia, perfil, agenda y turnos), no la configuración de la barbería. */
+        /** @description Tu cuenta no tiene permiso para esta operación. Una cuenta de empleado solo puede cambiar lo de su propio profesional (horarios, servicios que ofrece, ventana propia, perfil, agenda y turnos), no la configuración del negocio. */
         ForbiddenProblem: {
             headers: {
                 "X-Request-Id": components["headers"]["XRequestId"];
@@ -5051,7 +5102,7 @@ export interface components {
                 "application/problem+json": components["schemas"]["Problem"];
             };
         };
-        /** @description Política pública de reserva y cancelación de la barbería activa. */
+        /** @description Política pública de reserva y cancelación del negocio activo. */
         BookingPolicySuccess: {
             headers: {
                 "X-Request-Id": components["headers"]["XRequestId"];
@@ -5081,28 +5132,28 @@ export interface components {
                 "application/problem+json": components["schemas"]["Problem"];
             };
         };
-        /** @description Ventanas de reserva propias de la barbería activa (los barberos ausentes heredan). */
-        BarberBookingPolicyListSuccess: {
+        /** @description Ventanas de reserva propias del negocio activo (los profesionales ausentes heredan). */
+        ProfessionalBookingPolicyListSuccess: {
             headers: {
                 "X-Request-Id": components["headers"]["XRequestId"];
                 [name: string]: unknown;
             };
             content: {
-                "application/json": components["schemas"]["BarberBookingPolicyListResponse"];
+                "application/json": components["schemas"]["ProfessionalBookingPolicyListResponse"];
             };
         };
-        /** @description Ventana propia guardada; rige desde ya la disponibilidad pública del barbero. */
-        BarberBookingPolicySaved: {
+        /** @description Ventana propia guardada; rige desde ya la disponibilidad pública del profesional. */
+        ProfessionalBookingPolicySaved: {
             headers: {
                 "X-Request-Id": components["headers"]["XRequestId"];
                 [name: string]: unknown;
             };
             content: {
-                "application/json": components["schemas"]["BarberBookingPolicyResponse"];
+                "application/json": components["schemas"]["ProfessionalBookingPolicyResponse"];
             };
         };
         /** @description El cuerpo es JSON válido con los tres campos, pero uno está fuera de rango (DEC-083, DEC-133) o la anticipación mínima alcanza o supera la ventana. */
-        BarberBookingPolicyValidationProblem: {
+        ProfessionalBookingPolicyValidationProblem: {
             headers: {
                 "X-Request-Id": components["headers"]["XRequestId"];
                 [name: string]: unknown;
@@ -5111,15 +5162,15 @@ export interface components {
                 "application/problem+json": components["schemas"]["Problem"];
             };
         };
-        /** @description El barbero ya no tiene ventana propia y hereda la de la barbería, incluidos sus cambios futuros. Idempotente: también responde 204 si no tenía una. */
-        BarberBookingPolicyDeleted: {
+        /** @description El profesional ya no tiene ventana propia y hereda la del negocio, incluidos sus cambios futuros. Idempotente: también responde 204 si no tenía una. */
+        ProfessionalBookingPolicyDeleted: {
             headers: {
                 "X-Request-Id": components["headers"]["XRequestId"];
                 [name: string]: unknown;
             };
             content?: never;
         };
-        /** @description Enlace público de reservas de la barbería activa. */
+        /** @description Enlace público de reservas del negocio activo. */
         PublicLinkSuccess: {
             headers: {
                 "X-Request-Id": components["headers"]["XRequestId"];
@@ -5131,7 +5182,7 @@ export interface components {
                 "application/json": components["schemas"]["PublicLinkResponse"];
             };
         };
-        /** @description Canal vigente del código del reto de acceso de la barbería activa. */
+        /** @description Canal vigente del código del reto de acceso del negocio activo. */
         LoginOtpSettings: {
             headers: {
                 "X-Request-Id": components["headers"]["XRequestId"];
@@ -5153,7 +5204,7 @@ export interface components {
                 "application/problem+json": components["schemas"]["Problem"];
             };
         };
-        /** @description Anticipación vigente del recordatorio de la barbería activa. */
+        /** @description Anticipación vigente del recordatorio del negocio activo. */
         ReminderSettings: {
             headers: {
                 "X-Request-Id": components["headers"]["XRequestId"];
@@ -5175,7 +5226,7 @@ export interface components {
                 "application/problem+json": components["schemas"]["Problem"];
             };
         };
-        /** @description Horario de atención vigente de la barbería activa. */
+        /** @description Horario de atención vigente del negocio activo. */
         OpeningHoursSettingsSuccess: {
             headers: {
                 "X-Request-Id": components["headers"]["XRequestId"];
@@ -5197,7 +5248,7 @@ export interface components {
                 "application/problem+json": components["schemas"]["Problem"];
             };
         };
-        /** @description Estado de la integración del barbero con Google Calendar. */
+        /** @description Estado de la integración del profesional con Google Calendar. */
         GoogleCalendarConnectionSuccess: {
             headers: {
                 "X-Request-Id": components["headers"]["XRequestId"];
@@ -5235,7 +5286,7 @@ export interface components {
                 "application/json": components["schemas"]["GoogleCalendarAuthorizationResponse"];
             };
         };
-        /** @description La operación no es posible en el estado actual: la integración no está configurada en el servidor, o el usuario todavía no declaró cuál barbero es (`DEC-100`). No se ejecutó ningún efecto. */
+        /** @description La operación no es posible en el estado actual: la integración no está configurada en el servidor, o el usuario todavía no declaró cuál profesional es (`DEC-100`). No se ejecutó ningún efecto. */
         GoogleCalendarInvalidStateProblem: {
             headers: {
                 "X-Request-Id": components["headers"]["XRequestId"];
@@ -5265,8 +5316,8 @@ export interface components {
                 "application/json": components["schemas"]["GoogleCalendarCallbackResponse"];
             };
         };
-        /** @description El barbero ya está vinculado a otro usuario de esta barbería. No se persistió ningún cambio y el vínculo anterior del solicitante, si existía, se conserva. Quien lo tenga puede liberarlo desde su propia sesión. */
-        MyBarberLinkConflictProblem: {
+        /** @description El profesional ya está vinculado a otro usuario de este negocio. No se persistió ningún cambio y el vínculo anterior del solicitante, si existía, se conserva. Quien lo tenga puede liberarlo desde su propia sesión. */
+        MyProfessionalLinkConflictProblem: {
             headers: {
                 "X-Request-Id": components["headers"]["XRequestId"];
                 [name: string]: unknown;
@@ -5275,15 +5326,15 @@ export interface components {
                 "application/problem+json": components["schemas"]["Problem"];
             };
         };
-        /** @description El usuario autenticado ya no está vinculado a ningún barbero. Quitar un vínculo que no existe también responde `204`: la operación es idempotente. No modifica al barbero, sus citas ni su agenda. */
-        MyBarberUnlinked: {
+        /** @description El usuario autenticado ya no está vinculado a ningún profesional. Quitar un vínculo que no existe también responde `204`: la operación es idempotente. No modifica al profesional, sus citas ni su agenda. */
+        MyProfessionalUnlinked: {
             headers: {
                 "X-Request-Id": components["headers"]["XRequestId"];
                 [name: string]: unknown;
             };
             content?: never;
         };
-        /** @description Resumen público y todas las reseñas del barbero, ocultas incluidas. */
+        /** @description Resumen público y todas las reseñas del profesional, ocultas incluidas. */
         ReviewListSuccess: {
             headers: {
                 "X-Request-Id": components["headers"]["XRequestId"];
@@ -5303,7 +5354,7 @@ export interface components {
                 "application/json": components["schemas"]["Review"];
             };
         };
-        /** @description Página de tramos de horario laboral del barbero de la ruta, ordenada por día ISO de la semana y hora de inicio. */
+        /** @description Página de tramos de horario laboral del profesional de la ruta, ordenada por día ISO de la semana y hora de inicio. */
         WorkingHourListSuccess: {
             headers: {
                 "X-Request-Id": components["headers"]["XRequestId"];
@@ -5334,7 +5385,7 @@ export interface components {
                 "application/problem+json": components["schemas"]["Problem"];
             };
         };
-        /** @description Tramo de horario laboral del barbero de la ruta. */
+        /** @description Tramo de horario laboral del profesional de la ruta. */
         WorkingHourSuccess: {
             headers: {
                 "X-Request-Id": components["headers"]["XRequestId"];
@@ -5344,7 +5395,7 @@ export interface components {
                 "application/json": components["schemas"]["WorkingHourResponse"];
             };
         };
-        /** @description El tramo ya no forma parte de la jornada laboral del barbero. Retiro físico (working_hour no tiene eliminación lógica); no afecta al barbero, a la barbería ni a ningún otro tramo. */
+        /** @description El tramo ya no forma parte de la jornada laboral del profesional. Retiro físico (working_hour no tiene eliminación lógica); no afecta al profesional, al negocio ni a ningún otro tramo. */
         WorkingHourDeleted: {
             headers: {
                 "X-Request-Id": components["headers"]["XRequestId"];
@@ -5362,7 +5413,7 @@ export interface components {
                 "application/json": components["schemas"]["WorkingHourResponse"];
             };
         };
-        /** @description El intervalo solicitado se solapa con otro tramo existente del mismo barbero y día, o repite su hora de inicio exacta. No se persistió ningún cambio. */
+        /** @description El intervalo solicitado se solapa con otro tramo existente del mismo profesional y día, o repite su hora de inicio exacta. No se persistió ningún cambio. */
         WorkingHourConflictProblem: {
             headers: {
                 "X-Request-Id": components["headers"]["XRequestId"];
@@ -5372,7 +5423,7 @@ export interface components {
                 "application/problem+json": components["schemas"]["Problem"];
             };
         };
-        /** @description Estado del calendario colombiano de festivos del barbero de la ruta. */
+        /** @description Estado del calendario colombiano de festivos del profesional de la ruta. */
         HolidayCalendarSuccess: {
             headers: {
                 "X-Request-Id": components["headers"]["XRequestId"];
@@ -5392,7 +5443,7 @@ export interface components {
                 "application/json": components["schemas"]["HolidayCalendarResponse"];
             };
         };
-        /** @description Página de excepciones de jornada del barbero de la ruta. */
+        /** @description Página de excepciones de jornada del profesional de la ruta. */
         ScheduleExceptionListSuccess: {
             headers: {
                 "X-Request-Id": components["headers"]["XRequestId"];
@@ -5423,7 +5474,7 @@ export interface components {
                 "application/problem+json": components["schemas"]["Problem"];
             };
         };
-        /** @description Excepción de jornada del barbero de la ruta. */
+        /** @description Excepción de jornada del profesional de la ruta. */
         ScheduleExceptionSuccess: {
             headers: {
                 "X-Request-Id": components["headers"]["XRequestId"];
@@ -5433,7 +5484,7 @@ export interface components {
                 "application/json": components["schemas"]["ScheduleExceptionResponse"];
             };
         };
-        /** @description La excepción ya no forma parte de la configuración del barbero (retiro físico; deja de aplicar en la próxima resolución de jornada, que vuelve al festivo automático o al horario semanal). No afecta al barbero, a la barbería ni a ninguna otra excepción. */
+        /** @description La excepción ya no forma parte de la configuración del profesional (retiro físico; deja de aplicar en la próxima resolución de jornada, que vuelve al festivo automático o al horario semanal). No afecta al profesional, al negocio ni a ninguna otra excepción. */
         ScheduleExceptionDeleted: {
             headers: {
                 "X-Request-Id": components["headers"]["XRequestId"];
@@ -5451,7 +5502,7 @@ export interface components {
                 "application/json": components["schemas"]["ScheduleExceptionResponse"];
             };
         };
-        /** @description Ya existe otra excepción del barbero para esa fecha, o dos tramos de la excepción se solapan entre sí. No se persistió ningún cambio. */
+        /** @description Ya existe otra excepción del profesional para esa fecha, o dos tramos de la excepción se solapan entre sí. No se persistió ningún cambio. */
         ScheduleExceptionConflictProblem: {
             headers: {
                 "X-Request-Id": components["headers"]["XRequestId"];
@@ -5461,7 +5512,7 @@ export interface components {
                 "application/problem+json": components["schemas"]["Problem"];
             };
         };
-        /** @description Festivos colombianos del año consultado. Dato de referencia calendárica, igual para toda barbería y todo barbero. */
+        /** @description Festivos colombianos del año consultado. Dato de referencia calendárica, igual para todo negocio y todo profesional. */
         ColombianHolidayListSuccess: {
             headers: {
                 "X-Request-Id": components["headers"]["XRequestId"];
@@ -5471,7 +5522,7 @@ export interface components {
                 "application/json": components["schemas"]["ColombianHolidayListResponse"];
             };
         };
-        /** @description Página de bloqueos puntuales del barbero de la ruta. */
+        /** @description Página de bloqueos puntuales del profesional de la ruta. */
         TimeBlockListSuccess: {
             headers: {
                 "X-Request-Id": components["headers"]["XRequestId"];
@@ -5502,7 +5553,7 @@ export interface components {
                 "application/json": components["schemas"]["EffectiveBlocksResponse"];
             };
         };
-        /** @description Bloqueo puntual del barbero de la ruta. */
+        /** @description Bloqueo puntual del profesional de la ruta. */
         TimeBlockSuccess: {
             headers: {
                 "X-Request-Id": components["headers"]["XRequestId"];
@@ -5520,7 +5571,7 @@ export interface components {
             };
             content?: never;
         };
-        /** @description Página de series recurrentes del barbero de la ruta. */
+        /** @description Página de series recurrentes del profesional de la ruta. */
         TimeBlockSeriesListSuccess: {
             headers: {
                 "X-Request-Id": components["headers"]["XRequestId"];
@@ -5541,7 +5592,7 @@ export interface components {
                 "application/json": components["schemas"]["TimeBlockSeriesResponse"];
             };
         };
-        /** @description Serie recurrente del barbero de la ruta, con sus fechas/excepciones. */
+        /** @description Serie recurrente del profesional de la ruta, con sus fechas/excepciones. */
         TimeBlockSeriesSuccess: {
             headers: {
                 "X-Request-Id": components["headers"]["XRequestId"];
@@ -5632,7 +5683,7 @@ export interface components {
                 "application/json": components["schemas"]["AppointmentResponse"];
             };
         };
-        /** @description El cuerpo es JSON válido, pero uno de sus campos (nombre, contacto, nota o startsAt) incumple una validación, o el intervalo no cabe en la jornada efectiva del barbero (CA-061-02). No se persistió nada. */
+        /** @description El cuerpo es JSON válido, pero uno de sus campos (nombre, contacto, nota o startsAt) incumple una validación, o el intervalo no cabe en la jornada efectiva del profesional (CA-061-02). No se persistió nada. */
         AppointmentValidationProblem: {
             headers: {
                 "X-Request-Id": components["headers"]["XRequestId"];
@@ -5682,7 +5733,7 @@ export interface components {
                 "application/problem+json": components["schemas"]["Problem"];
             };
         };
-        /** @description El turno se canceló (o, si ya estaba `cancelled_by_barber`, la operación fue un no-op exitoso sin nueva entrada de historial, CA-066-04). */
+        /** @description El turno se canceló (o, si ya estaba `cancelled_by_professional`, la operación fue un no-op exitoso sin nueva entrada de historial, CA-066-04). */
         AppointmentCancelled: {
             headers: {
                 "X-Request-Id": components["headers"]["XRequestId"];
@@ -5748,6 +5799,8 @@ export interface components {
         IdempotencyKey: string;
         /** @description Token opaco de versión de la representación que el cliente leyó antes de esta escritura (`versionToken` de la respuesta de detalle). Si ya no coincide con la versión vigente del recurso, la operación responde `409` con `code: version-conflict`. */
         IfMatch: string;
+        /** @description Identificador público del negocio (HU-090). */
+        OdinBusinessSlug: string;
     };
     requestBodies: never;
     headers: {
@@ -5769,7 +5822,7 @@ export interface components {
 }
 export type $defs = Record<string, never>;
 export interface operations {
-    resolvePublicBarbershop: {
+    resolvePublicBusiness: {
         parameters: {
             query?: never;
             header?: never;
@@ -5781,8 +5834,8 @@ export interface operations {
         };
         requestBody?: never;
         responses: {
-            200: components["responses"]["PublicBarbershopProfileSuccess"];
-            /** @description `slug` con forma inválida, inexistente o de una barbería no publicable, sin distinguir la causa (CA-090-02, RN-TEN-01). */
+            200: components["responses"]["PublicBusinessProfileSuccess"];
+            /** @description `slug` con forma inválida, inexistente o de un negocio no publicable, sin distinguir la causa (CA-090-02, RN-TEN-01). */
             404: {
                 headers: {
                     "X-Request-Id": components["headers"]["XRequestId"];
@@ -5814,7 +5867,7 @@ export interface operations {
         responses: {
             200: components["responses"]["PublicServiceListSuccess"];
             400: components["responses"]["InvalidRequestProblem"];
-            /** @description `slug` con forma inválida, inexistente o de una barbería no publicable, sin distinguir la causa (CA-090-02, RN-TEN-01). */
+            /** @description `slug` con forma inválida, inexistente o de un negocio no publicable, sin distinguir la causa (CA-090-02, RN-TEN-01). */
             404: {
                 headers: {
                     "X-Request-Id": components["headers"]["XRequestId"];
@@ -5827,7 +5880,7 @@ export interface operations {
             500: components["responses"]["InternalErrorProblem"];
         };
     };
-    listPublicBarbersWithServices: {
+    listPublicProfessionalsWithServices: {
         parameters: {
             query?: never;
             header?: never;
@@ -5839,8 +5892,8 @@ export interface operations {
         };
         requestBody?: never;
         responses: {
-            200: components["responses"]["PublicBarberServicesListSuccess"];
-            /** @description `slug` con forma inválida, inexistente o de una barbería no publicable, sin distinguir la causa (CA-090-02, RN-TEN-01). */
+            200: components["responses"]["PublicProfessionalServicesListSuccess"];
+            /** @description `slug` con forma inválida, inexistente o de un negocio no publicable, sin distinguir la causa (CA-090-02, RN-TEN-01). */
             404: {
                 headers: {
                     "X-Request-Id": components["headers"]["XRequestId"];
@@ -5860,7 +5913,7 @@ export interface operations {
             path: {
                 /** @description Identificador del enlace público de reservas, tal como aparece en la URL. No es un identificador interno: su forma, generación y ciclo de vida los fija DEC-082 (resuelve DP-PUB-01). */
                 slug: string;
-                /** @description Identificador del servicio activo ya elegido (HU-091). No confiado: se revalida pertenencia y vigencia contra la barbería resuelta por `slug` en cada lectura (mismo criterio que CA-092-03). */
+                /** @description Identificador del servicio activo ya elegido (HU-091). No confiado: se revalida pertenencia y vigencia contra el negocio resuelto por `slug` en cada lectura (mismo criterio que CA-092-03). */
                 serviceId: string;
             };
             cookie?: never;
@@ -5868,7 +5921,7 @@ export interface operations {
         requestBody?: never;
         responses: {
             200: components["responses"]["ServiceAvailabilitySuccess"];
-            /** @description `slug` con forma inválida, inexistente o de una barbería no publicable, sin distinguir la causa (CA-090-02, RN-TEN-01). */
+            /** @description `slug` con forma inválida, inexistente o de un negocio no publicable, sin distinguir la causa (CA-090-02, RN-TEN-01). */
             404: {
                 headers: {
                     "X-Request-Id": components["headers"]["XRequestId"];
@@ -5881,7 +5934,7 @@ export interface operations {
             500: components["responses"]["InternalErrorProblem"];
         };
     };
-    getPublicBarberPhoto: {
+    getPublicProfessionalPhoto: {
         parameters: {
             query?: never;
             header?: {
@@ -5891,35 +5944,35 @@ export interface operations {
             path: {
                 /** @description Identificador del enlace público de reservas, tal como aparece en la URL (DEC-082). */
                 slug: string;
-                /** @description Identificador del barbero, tal como lo entrega la lista pública. */
-                barberId: string;
+                /** @description Identificador del profesional, tal como lo entrega la lista pública. */
+                professionalId: string;
             };
             cookie?: never;
         };
         requestBody?: never;
         responses: {
-            200: components["responses"]["PublicBarberPhotoSuccess"];
-            304: components["responses"]["BarberPhotoNotModified"];
+            200: components["responses"]["PublicProfessionalPhotoSuccess"];
+            304: components["responses"]["ProfessionalPhotoNotModified"];
             404: components["responses"]["NotFoundProblem"];
             500: components["responses"]["InternalErrorProblem"];
         };
     };
-    listPublicBarbers: {
+    listPublicProfessionals: {
         parameters: {
             query?: never;
             header?: never;
             path: {
                 /** @description Identificador del enlace público de reservas, tal como aparece en la URL. No es un identificador interno: su forma, generación y ciclo de vida los fija DEC-082 (resuelve DP-PUB-01). */
                 slug: string;
-                /** @description Identificador del servicio activo ya elegido (HU-091). No confiado: se revalida pertenencia, vigencia y asignación contra la barbería resuelta por `slug` en cada lectura (CA-092-03). */
+                /** @description Identificador del servicio activo ya elegido (HU-091). No confiado: se revalida pertenencia, vigencia y asignación contra el negocio resuelto por `slug` en cada lectura (CA-092-03). */
                 serviceId: string;
             };
             cookie?: never;
         };
         requestBody?: never;
         responses: {
-            200: components["responses"]["PublicBarberListSuccess"];
-            /** @description `slug` con forma inválida, inexistente o de una barbería no publicable, sin distinguir la causa (CA-090-02, RN-TEN-01). */
+            200: components["responses"]["PublicProfessionalListSuccess"];
+            /** @description `slug` con forma inválida, inexistente o de un negocio no publicable, sin distinguir la causa (CA-090-02, RN-TEN-01). */
             404: {
                 headers: {
                     "X-Request-Id": components["headers"]["XRequestId"];
@@ -5939,17 +5992,17 @@ export interface operations {
             path: {
                 /** @description Identificador del enlace público de reservas, tal como aparece en la URL. No es un identificador interno: su forma, generación y ciclo de vida los fija DEC-082 (resuelve DP-PUB-01). */
                 slug: string;
-                /** @description Identificador del servicio activo ya elegido (HU-091). No confiado: se revalida pertenencia, vigencia y asignación contra la barbería resuelta por `slug` en cada lectura (mismo criterio que CA-092-03). */
+                /** @description Identificador del servicio activo ya elegido (HU-091). No confiado: se revalida pertenencia, vigencia y asignación contra el negocio resuelto por `slug` en cada lectura (mismo criterio que CA-092-03). */
                 serviceId: string;
-                /** @description Identificador del barbero ya elegido (HU-092). No confiado: se revalida que tenga asignación vigente al servicio activo `serviceId` dentro de la barbería resuelta por `slug` en cada lectura (mismo criterio que CA-092-03). */
-                barberId: string;
+                /** @description Identificador del profesional ya elegido (HU-092). No confiado: se revalida que tenga asignación vigente al servicio activo `serviceId` dentro del negocio resuelto por `slug` en cada lectura (mismo criterio que CA-092-03). */
+                professionalId: string;
             };
             cookie?: never;
         };
         requestBody?: never;
         responses: {
             200: components["responses"]["AvailabilitySuccess"];
-            /** @description `slug` con forma inválida, inexistente o de una barbería no publicable, sin distinguir la causa (CA-090-02, RN-TEN-01). */
+            /** @description `slug` con forma inválida, inexistente o de un negocio no publicable, sin distinguir la causa (CA-090-02, RN-TEN-01). */
             404: {
                 headers: {
                     "X-Request-Id": components["headers"]["XRequestId"];
@@ -5972,10 +6025,10 @@ export interface operations {
             path: {
                 /** @description Identificador del enlace público de reservas, tal como aparece en la URL. No es un identificador interno: su forma, generación y ciclo de vida los fija DEC-082 (resuelve DP-PUB-01). */
                 slug: string;
-                /** @description Servicio activo ya elegido (HU-091). No confiado: se revalida pertenencia, vigencia y asignación contra la barbería resuelta por `slug` en cada intento (mismo criterio que CA-092-03). */
+                /** @description Servicio activo ya elegido (HU-091). No confiado: se revalida pertenencia, vigencia y asignación contra el negocio resuelto por `slug` en cada intento (mismo criterio que CA-092-03). */
                 serviceId: string;
-                /** @description Barbero ya elegido (HU-092). No confiado: se revalida que tenga asignación vigente al servicio activo `serviceId` dentro de la barbería resuelta por `slug` en cada intento. */
-                barberId: string;
+                /** @description Profesional ya elegido (HU-092). No confiado: se revalida que tenga asignación vigente al servicio activo `serviceId` dentro del negocio resuelto por `slug` en cada intento. */
+                professionalId: string;
             };
             cookie?: never;
         };
@@ -5987,7 +6040,7 @@ export interface operations {
         responses: {
             201: components["responses"]["PublicAppointmentConfirmed"];
             400: components["responses"]["InvalidRequestProblem"];
-            /** @description `slug` con forma inválida, inexistente o de una barbería no publicable, o `serviceId`/`barberId` ajeno, inexistente, inactivo o sin asignación vigente, sin distinguir la causa (CA-090-02, CA-092-03, RN-TEN-01). */
+            /** @description `slug` con forma inválida, inexistente o de un negocio no publicable, o `serviceId`/`professionalId` ajeno, inexistente, inactivo o sin asignación vigente, sin distinguir la causa (CA-090-02, CA-092-03, RN-TEN-01). */
             404: {
                 headers: {
                     "X-Request-Id": components["headers"]["XRequestId"];
@@ -6061,7 +6114,7 @@ export interface operations {
             200: components["responses"]["CustomerAppointmentCancelled"];
             400: components["responses"]["InvalidRequestProblem"];
             404: components["responses"]["NotFoundProblem"];
-            /** @description Tres conflictos distinguibles por `code`, nunca por `detail`: conflicto de idempotencia (misma clave con otro contenido u otra operación) u operación en curso con la misma clave; conflicto de versión (`code: version-conflict`, el `If-Match` ya no coincide: el turno cambió desde que se leyó); o estado inválido (`code: invalid-state`, el turno ya no está `confirmed`, p. ej. ya lo resolvió el barbero). */
+            /** @description Tres conflictos distinguibles por `code`, nunca por `detail`: conflicto de idempotencia (misma clave con otro contenido u otra operación) u operación en curso con la misma clave; conflicto de versión (`code: version-conflict`, el `If-Match` ya no coincide: el turno cambió desde que se leyó); o estado inválido (`code: invalid-state`, el turno ya no está `confirmed`, p. ej. ya lo resolvió el profesional). */
             409: {
                 headers: {
                     "X-Request-Id": components["headers"]["XRequestId"];
@@ -6159,7 +6212,7 @@ export interface operations {
             query?: never;
             header?: never;
             path: {
-                /** @description Identificador público de la barbería (HU-090). */
+                /** @description Identificador público del negocio (HU-090). */
                 slug: string;
             };
             cookie?: never;
@@ -6183,7 +6236,7 @@ export interface operations {
             query?: never;
             header?: never;
             path: {
-                /** @description Identificador público de la barbería (HU-090). */
+                /** @description Identificador público del negocio (HU-090). */
                 slug: string;
             };
             cookie?: never;
@@ -6216,7 +6269,7 @@ export interface operations {
             query?: never;
             header?: never;
             path: {
-                /** @description Identificador público de la barbería (HU-090). */
+                /** @description Identificador público del negocio (HU-090). */
                 slug: string;
             };
             cookie?: never;
@@ -6249,7 +6302,7 @@ export interface operations {
             query?: never;
             header?: never;
             path: {
-                /** @description Identificador público de la barbería (HU-090). */
+                /** @description Identificador público del negocio (HU-090). */
                 slug: string;
             };
             cookie?: never;
@@ -6273,7 +6326,7 @@ export interface operations {
             query?: never;
             header?: never;
             path: {
-                /** @description Identificador público de la barbería (HU-090). */
+                /** @description Identificador público del negocio (HU-090). */
                 slug: string;
             };
             cookie?: never;
@@ -6295,15 +6348,66 @@ export interface operations {
             503: components["responses"]["ServiceUnavailableProblem"];
         };
     };
-    listPublicBarberReviews: {
+    lookupCustomerAppointmentsForOdinDeprecated: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Identificador público del negocio (HU-090). */
+                slug: components["parameters"]["OdinBusinessSlug"];
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["OdinAppointmentLookupRequest"];
+            };
+        };
+        responses: {
+            200: components["responses"]["OdinAppointmentLookup"];
+            400: components["responses"]["InvalidRequestProblem"];
+            401: components["responses"]["ServiceCredentialProblem"];
+            404: components["responses"]["NotFoundProblem"];
+            422: components["responses"]["ValidationProblem"];
+            500: components["responses"]["InternalErrorProblem"];
+        };
+    };
+    requestCustomerAccessCodeForOdinDeprecated: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Identificador público del negocio (HU-090). */
+                slug: components["parameters"]["OdinBusinessSlug"];
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["OdinAccessChallengeRequest"];
+            };
+        };
+        responses: {
+            201: components["responses"]["OdinAccessChallengeCreated"];
+            400: components["responses"]["InvalidRequestProblem"];
+            401: components["responses"]["ServiceCredentialProblem"];
+            404: components["responses"]["NotFoundProblem"];
+            409: components["responses"]["AppointmentNotAvailableProblem"];
+            422: components["responses"]["ValidationProblem"];
+            429: components["responses"]["RateLimitedProblem"];
+            500: components["responses"]["InternalErrorProblem"];
+            503: components["responses"]["ServiceUnavailableProblem"];
+        };
+    };
+    listPublicProfessionalReviews: {
         parameters: {
             query?: never;
             header?: never;
             path: {
                 /** @description Identificador del enlace público de reservas (DEC-082). */
                 slug: string;
-                /** @description Identificador del barbero, tal como lo entrega la lista pública. */
-                barberId: string;
+                /** @description Identificador del profesional, tal como lo entrega la lista pública. */
+                professionalId: string;
             };
             cookie?: never;
         };
@@ -6545,7 +6649,7 @@ export interface operations {
             500: components["responses"]["InternalErrorProblem"];
         };
     };
-    getBarbershopSettings: {
+    getBusinessSettings: {
         parameters: {
             query?: never;
             header?: never;
@@ -6554,13 +6658,13 @@ export interface operations {
         };
         requestBody?: never;
         responses: {
-            200: components["responses"]["BarbershopSettingsSuccess"];
+            200: components["responses"]["BusinessSettingsSuccess"];
             401: components["responses"]["UnauthorizedProblem"];
             404: components["responses"]["NotFoundProblem"];
             500: components["responses"]["InternalErrorProblem"];
         };
     };
-    updateBarbershopSettings: {
+    updateBusinessSettings: {
         parameters: {
             query?: never;
             header?: never;
@@ -6569,16 +6673,16 @@ export interface operations {
         };
         requestBody: {
             content: {
-                "application/json": components["schemas"]["UpdateBarbershopSettingsRequest"];
+                "application/json": components["schemas"]["UpdateBusinessSettingsRequest"];
             };
         };
         responses: {
-            200: components["responses"]["BarbershopSettingsUpdated"];
+            200: components["responses"]["BusinessSettingsUpdated"];
             400: components["responses"]["InvalidRequestProblem"];
             401: components["responses"]["UnauthorizedProblem"];
             403: components["responses"]["ForbiddenProblem"];
             404: components["responses"]["NotFoundProblem"];
-            422: components["responses"]["BarbershopSettingsValidationProblem"];
+            422: components["responses"]["BusinessSettingsValidationProblem"];
             500: components["responses"]["InternalErrorProblem"];
         };
     };
@@ -6618,7 +6722,7 @@ export interface operations {
             401: components["responses"]["UnauthorizedProblem"];
             403: components["responses"]["ForbiddenProblem"];
             404: components["responses"]["NotFoundProblem"];
-            /** @description El `If-Match` enviado ya no coincide con la representación vigente porque otra escritura tocó la barbería primero (`code: version-conflict`). */
+            /** @description El `If-Match` enviado ya no coincide con la representación vigente porque otra escritura tocó el negocio primero (`code: version-conflict`). */
             409: {
                 headers: {
                     "X-Request-Id": components["headers"]["XRequestId"];
@@ -6632,7 +6736,7 @@ export interface operations {
             500: components["responses"]["InternalErrorProblem"];
         };
     };
-    listBarberBookingPolicies: {
+    listProfessionalBookingPolicies: {
         parameters: {
             query?: never;
             header?: never;
@@ -6641,49 +6745,49 @@ export interface operations {
         };
         requestBody?: never;
         responses: {
-            200: components["responses"]["BarberBookingPolicyListSuccess"];
+            200: components["responses"]["ProfessionalBookingPolicyListSuccess"];
             401: components["responses"]["UnauthorizedProblem"];
             500: components["responses"]["InternalErrorProblem"];
         };
     };
-    putBarberBookingPolicy: {
+    putProfessionalBookingPolicy: {
         parameters: {
             query?: never;
             header?: never;
             path: {
-                /** @description Identificador del barbero de la barbería de la sesión. */
-                barberId: string;
+                /** @description Identificador del profesional del negocio de la sesión. */
+                professionalId: string;
             };
             cookie?: never;
         };
         requestBody: {
             content: {
-                "application/json": components["schemas"]["PutBarberBookingPolicyRequest"];
+                "application/json": components["schemas"]["PutProfessionalBookingPolicyRequest"];
             };
         };
         responses: {
-            200: components["responses"]["BarberBookingPolicySaved"];
+            200: components["responses"]["ProfessionalBookingPolicySaved"];
             400: components["responses"]["InvalidRequestProblem"];
             401: components["responses"]["UnauthorizedProblem"];
             403: components["responses"]["ForbiddenProblem"];
             404: components["responses"]["NotFoundProblem"];
-            422: components["responses"]["BarberBookingPolicyValidationProblem"];
+            422: components["responses"]["ProfessionalBookingPolicyValidationProblem"];
             500: components["responses"]["InternalErrorProblem"];
         };
     };
-    deleteBarberBookingPolicy: {
+    deleteProfessionalBookingPolicy: {
         parameters: {
             query?: never;
             header?: never;
             path: {
-                /** @description Identificador del barbero de la barbería de la sesión. */
-                barberId: string;
+                /** @description Identificador del profesional del negocio de la sesión. */
+                professionalId: string;
             };
             cookie?: never;
         };
         requestBody?: never;
         responses: {
-            204: components["responses"]["BarberBookingPolicyDeleted"];
+            204: components["responses"]["ProfessionalBookingPolicyDeleted"];
             401: components["responses"]["UnauthorizedProblem"];
             403: components["responses"]["ForbiddenProblem"];
             404: components["responses"]["NotFoundProblem"];
@@ -6956,7 +7060,7 @@ export interface operations {
             500: components["responses"]["InternalErrorProblem"];
         };
     };
-    getMyBarber: {
+    getMyProfessional: {
         parameters: {
             query?: never;
             header?: never;
@@ -6965,13 +7069,13 @@ export interface operations {
         };
         requestBody?: never;
         responses: {
-            200: components["responses"]["BarberSuccess"];
+            200: components["responses"]["ProfessionalSuccess"];
             401: components["responses"]["UnauthorizedProblem"];
             404: components["responses"]["NotFoundProblem"];
             500: components["responses"]["InternalErrorProblem"];
         };
     };
-    linkMyBarber: {
+    linkMyProfessional: {
         parameters: {
             query?: never;
             header?: never;
@@ -6980,20 +7084,20 @@ export interface operations {
         };
         requestBody: {
             content: {
-                "application/json": components["schemas"]["LinkMyBarberRequest"];
+                "application/json": components["schemas"]["LinkMyProfessionalRequest"];
             };
         };
         responses: {
-            200: components["responses"]["BarberUpdated"];
+            200: components["responses"]["ProfessionalUpdated"];
             400: components["responses"]["InvalidRequestProblem"];
             401: components["responses"]["UnauthorizedProblem"];
             403: components["responses"]["ForbiddenProblem"];
             404: components["responses"]["NotFoundProblem"];
-            409: components["responses"]["MyBarberLinkConflictProblem"];
+            409: components["responses"]["MyProfessionalLinkConflictProblem"];
             500: components["responses"]["InternalErrorProblem"];
         };
     };
-    unlinkMyBarber: {
+    unlinkMyProfessional: {
         parameters: {
             query?: never;
             header?: never;
@@ -7002,18 +7106,18 @@ export interface operations {
         };
         requestBody?: never;
         responses: {
-            204: components["responses"]["MyBarberUnlinked"];
+            204: components["responses"]["MyProfessionalUnlinked"];
             401: components["responses"]["UnauthorizedProblem"];
             403: components["responses"]["ForbiddenProblem"];
             500: components["responses"]["InternalErrorProblem"];
         };
     };
-    listBarbers: {
+    listProfessionals: {
         parameters: {
             query?: {
                 /** @description Cursor opaco devuelto por una página anterior (`nextCursor`). Sin este parámetro, la respuesta empieza en la primera página. */
                 cursor?: string;
-                /** @description Máximo de barberos por página. */
+                /** @description Máximo de profesionales por página. */
                 limit?: number;
                 /** @description Modo numerado (DEC-107). No combinar con cursor/limit; fuera de rango se ajusta a la última página. */
                 page?: number;
@@ -7026,13 +7130,13 @@ export interface operations {
         };
         requestBody?: never;
         responses: {
-            200: components["responses"]["BarberListSuccess"];
+            200: components["responses"]["ProfessionalListSuccess"];
             400: components["responses"]["InvalidRequestProblem"];
             401: components["responses"]["UnauthorizedProblem"];
             500: components["responses"]["InternalErrorProblem"];
         };
     };
-    createBarber: {
+    createProfessional: {
         parameters: {
             query?: never;
             header: {
@@ -7044,11 +7148,11 @@ export interface operations {
         };
         requestBody: {
             content: {
-                "application/json": components["schemas"]["CreateBarberRequest"];
+                "application/json": components["schemas"]["CreateProfessionalRequest"];
             };
         };
         responses: {
-            201: components["responses"]["BarberCreated"];
+            201: components["responses"]["ProfessionalCreated"];
             400: components["responses"]["InvalidRequestProblem"];
             401: components["responses"]["UnauthorizedProblem"];
             403: components["responses"]["ForbiddenProblem"];
@@ -7062,55 +7166,55 @@ export interface operations {
                     "application/problem+json": components["schemas"]["Problem"];
                 };
             };
-            422: components["responses"]["BarberValidationProblem"];
+            422: components["responses"]["ProfessionalValidationProblem"];
             500: components["responses"]["InternalErrorProblem"];
         };
     };
-    getBarber: {
+    getProfessional: {
         parameters: {
             query?: never;
             header?: never;
             path: {
-                /** @description Identificador del barbero. */
-                barberId: string;
+                /** @description Identificador del profesional. */
+                professionalId: string;
             };
             cookie?: never;
         };
         requestBody?: never;
         responses: {
-            200: components["responses"]["BarberSuccess"];
+            200: components["responses"]["ProfessionalSuccess"];
             401: components["responses"]["UnauthorizedProblem"];
             403: components["responses"]["ForbiddenProblem"];
             404: components["responses"]["NotFoundProblem"];
             500: components["responses"]["InternalErrorProblem"];
         };
     };
-    renameBarber: {
+    renameProfessional: {
         parameters: {
             query?: never;
             header?: never;
             path: {
-                /** @description Identificador del barbero. */
-                barberId: string;
+                /** @description Identificador del profesional. */
+                professionalId: string;
             };
             cookie?: never;
         };
         requestBody: {
             content: {
-                "application/json": components["schemas"]["UpdateBarberRequest"];
+                "application/json": components["schemas"]["UpdateProfessionalRequest"];
             };
         };
         responses: {
-            200: components["responses"]["BarberUpdated"];
+            200: components["responses"]["ProfessionalUpdated"];
             400: components["responses"]["InvalidRequestProblem"];
             401: components["responses"]["UnauthorizedProblem"];
             403: components["responses"]["ForbiddenProblem"];
             404: components["responses"]["NotFoundProblem"];
-            422: components["responses"]["BarberValidationProblem"];
+            422: components["responses"]["ProfessionalValidationProblem"];
             500: components["responses"]["InternalErrorProblem"];
         };
     };
-    getBarberPhoto: {
+    getProfessionalPhoto: {
         parameters: {
             query?: never;
             header?: {
@@ -7118,28 +7222,28 @@ export interface operations {
                 "If-None-Match"?: string;
             };
             path: {
-                /** @description Identificador del barbero. */
-                barberId: string;
+                /** @description Identificador del profesional. */
+                professionalId: string;
             };
             cookie?: never;
         };
         requestBody?: never;
         responses: {
-            200: components["responses"]["BarberPhotoSuccess"];
-            304: components["responses"]["BarberPhotoNotModified"];
+            200: components["responses"]["ProfessionalPhotoSuccess"];
+            304: components["responses"]["ProfessionalPhotoNotModified"];
             401: components["responses"]["UnauthorizedProblem"];
             403: components["responses"]["ForbiddenProblem"];
             404: components["responses"]["NotFoundProblem"];
             500: components["responses"]["InternalErrorProblem"];
         };
     };
-    putBarberPhoto: {
+    putProfessionalPhoto: {
         parameters: {
             query?: never;
             header?: never;
             path: {
-                /** @description Identificador del barbero. */
-                barberId: string;
+                /** @description Identificador del profesional. */
+                professionalId: string;
             };
             cookie?: never;
         };
@@ -7151,41 +7255,41 @@ export interface operations {
             };
         };
         responses: {
-            200: components["responses"]["BarberPhotoUpdated"];
+            200: components["responses"]["ProfessionalPhotoUpdated"];
             400: components["responses"]["PayloadTooLargeProblem"];
             401: components["responses"]["UnauthorizedProblem"];
             403: components["responses"]["ForbiddenProblem"];
             404: components["responses"]["NotFoundProblem"];
-            422: components["responses"]["BarberPhotoValidationProblem"];
+            422: components["responses"]["ProfessionalPhotoValidationProblem"];
             500: components["responses"]["InternalErrorProblem"];
         };
     };
-    deleteBarberPhoto: {
+    deleteProfessionalPhoto: {
         parameters: {
             query?: never;
             header?: never;
             path: {
-                /** @description Identificador del barbero. */
-                barberId: string;
+                /** @description Identificador del profesional. */
+                professionalId: string;
             };
             cookie?: never;
         };
         requestBody?: never;
         responses: {
-            204: components["responses"]["BarberPhotoDeleted"];
+            204: components["responses"]["ProfessionalPhotoDeleted"];
             401: components["responses"]["UnauthorizedProblem"];
             403: components["responses"]["ForbiddenProblem"];
             404: components["responses"]["NotFoundProblem"];
             500: components["responses"]["InternalErrorProblem"];
         };
     };
-    listBarberReviews: {
+    listProfessionalReviews: {
         parameters: {
             query?: never;
             header?: never;
             path: {
-                /** @description Identificador del barbero. */
-                barberId: string;
+                /** @description Identificador del profesional. */
+                professionalId: string;
             };
             cookie?: never;
         };
@@ -7198,13 +7302,13 @@ export interface operations {
             500: components["responses"]["InternalErrorProblem"];
         };
     };
-    updateBarberReview: {
+    updateProfessionalReview: {
         parameters: {
             query?: never;
             header?: never;
             path: {
-                /** @description Identificador del barbero. */
-                barberId: string;
+                /** @description Identificador del profesional. */
+                professionalId: string;
                 /** @description Identificador de la reseña. */
                 reviewId: string;
             };
@@ -7267,7 +7371,7 @@ export interface operations {
             400: components["responses"]["InvalidRequestProblem"];
             401: components["responses"]["UnauthorizedProblem"];
             403: components["responses"]["ForbiddenProblem"];
-            /** @description Conflicto de idempotencia (misma clave con otro contenido u otra operación, `IdempotencyConflictProblem`), operación en curso con la misma clave (`IdempotencyLockedProblem`, DEC-043), o nombre ya usado por otro servicio activo de la misma barbería (`ServiceConflictProblem`, DEC-067). Los tres problem types comparten status pero tienen `code` distinto: el cliente decide por `code`, nunca por `detail`. */
+            /** @description Conflicto de idempotencia (misma clave con otro contenido u otra operación, `IdempotencyConflictProblem`), operación en curso con la misma clave (`IdempotencyLockedProblem`, DEC-043), o nombre ya usado por otro servicio activo del mismo negocio (`ServiceConflictProblem`, DEC-067). Los tres problem types comparten status pero tienen `code` distinto: el cliente decide por `code`, nunca por `detail`. */
             409: {
                 headers: {
                     "X-Request-Id": components["headers"]["XRequestId"];
@@ -7325,7 +7429,7 @@ export interface operations {
             500: components["responses"]["InternalErrorProblem"];
         };
     };
-    listBarberServices: {
+    listProfessionalServices: {
         parameters: {
             query?: {
                 /** @description Cursor opaco devuelto por una página anterior (`nextCursor`). Sin este parámetro, la respuesta empieza en la primera página. */
@@ -7335,8 +7439,8 @@ export interface operations {
             };
             header?: never;
             path: {
-                /** @description Identificador del barbero. */
-                barberId: string;
+                /** @description Identificador del profesional. */
+                professionalId: string;
             };
             cookie?: never;
         };
@@ -7350,13 +7454,13 @@ export interface operations {
             500: components["responses"]["InternalErrorProblem"];
         };
     };
-    assignServiceToBarber: {
+    assignServiceToProfessional: {
         parameters: {
             query?: never;
             header?: never;
             path: {
-                /** @description Identificador del barbero. */
-                barberId: string;
+                /** @description Identificador del profesional. */
+                professionalId: string;
                 /** @description Identificador del servicio. */
                 serviceId: string;
             };
@@ -7372,13 +7476,13 @@ export interface operations {
             500: components["responses"]["InternalErrorProblem"];
         };
     };
-    unassignServiceFromBarber: {
+    unassignServiceFromProfessional: {
         parameters: {
             query?: never;
             header?: never;
             path: {
-                /** @description Identificador del barbero. */
-                barberId: string;
+                /** @description Identificador del profesional. */
+                professionalId: string;
                 /** @description Identificador del servicio. */
                 serviceId: string;
             };
@@ -7488,8 +7592,8 @@ export interface operations {
             };
             header?: never;
             path: {
-                /** @description Identificador del barbero. */
-                barberId: string;
+                /** @description Identificador del profesional. */
+                professionalId: string;
             };
             cookie?: never;
         };
@@ -7511,8 +7615,8 @@ export interface operations {
                 "Idempotency-Key": components["parameters"]["IdempotencyKey"];
             };
             path: {
-                /** @description Identificador del barbero. */
-                barberId: string;
+                /** @description Identificador del profesional. */
+                professionalId: string;
             };
             cookie?: never;
         };
@@ -7527,7 +7631,7 @@ export interface operations {
             401: components["responses"]["UnauthorizedProblem"];
             403: components["responses"]["ForbiddenProblem"];
             404: components["responses"]["NotFoundProblem"];
-            /** @description Conflicto de idempotencia (misma clave con otro contenido u otra operación, `IdempotencyConflictProblem`), operación en curso con la misma clave (`IdempotencyLockedProblem`, DEC-043), o solape/ repetición de hora de inicio con otro tramo del mismo barbero y día (`WorkingHourConflictProblem`). Los problem types comparten status pero tienen `code` distinto: el cliente decide por `code`, nunca por `detail`. */
+            /** @description Conflicto de idempotencia (misma clave con otro contenido u otra operación, `IdempotencyConflictProblem`), operación en curso con la misma clave (`IdempotencyLockedProblem`, DEC-043), o solape/ repetición de hora de inicio con otro tramo del mismo profesional y día (`WorkingHourConflictProblem`). Los problem types comparten status pero tienen `code` distinto: el cliente decide por `code`, nunca por `detail`. */
             409: {
                 headers: {
                     "X-Request-Id": components["headers"]["XRequestId"];
@@ -7546,8 +7650,8 @@ export interface operations {
             query?: never;
             header?: never;
             path: {
-                /** @description Identificador del barbero. */
-                barberId: string;
+                /** @description Identificador del profesional. */
+                professionalId: string;
                 /** @description Identificador del tramo. */
                 workingHourId: string;
             };
@@ -7567,8 +7671,8 @@ export interface operations {
             query?: never;
             header?: never;
             path: {
-                /** @description Identificador del barbero. */
-                barberId: string;
+                /** @description Identificador del profesional. */
+                professionalId: string;
                 /** @description Identificador del tramo. */
                 workingHourId: string;
             };
@@ -7588,8 +7692,8 @@ export interface operations {
             query?: never;
             header?: never;
             path: {
-                /** @description Identificador del barbero. */
-                barberId: string;
+                /** @description Identificador del profesional. */
+                professionalId: string;
                 /** @description Identificador del tramo. */
                 workingHourId: string;
             };
@@ -7616,8 +7720,8 @@ export interface operations {
             query?: never;
             header?: never;
             path: {
-                /** @description Identificador del barbero. */
-                barberId: string;
+                /** @description Identificador del profesional. */
+                professionalId: string;
             };
             cookie?: never;
         };
@@ -7635,8 +7739,8 @@ export interface operations {
             query?: never;
             header?: never;
             path: {
-                /** @description Identificador del barbero. */
-                barberId: string;
+                /** @description Identificador del profesional. */
+                professionalId: string;
             };
             cookie?: never;
         };
@@ -7664,8 +7768,8 @@ export interface operations {
             };
             header?: never;
             path: {
-                /** @description Identificador del barbero. */
-                barberId: string;
+                /** @description Identificador del profesional. */
+                professionalId: string;
             };
             cookie?: never;
         };
@@ -7687,8 +7791,8 @@ export interface operations {
                 "Idempotency-Key": components["parameters"]["IdempotencyKey"];
             };
             path: {
-                /** @description Identificador del barbero. */
-                barberId: string;
+                /** @description Identificador del profesional. */
+                professionalId: string;
             };
             cookie?: never;
         };
@@ -7722,8 +7826,8 @@ export interface operations {
             query?: never;
             header?: never;
             path: {
-                /** @description Identificador del barbero. */
-                barberId: string;
+                /** @description Identificador del profesional. */
+                professionalId: string;
                 /** @description Identificador de la excepción. */
                 exceptionId: string;
             };
@@ -7743,8 +7847,8 @@ export interface operations {
             query?: never;
             header?: never;
             path: {
-                /** @description Identificador del barbero. */
-                barberId: string;
+                /** @description Identificador del profesional. */
+                professionalId: string;
                 /** @description Identificador de la excepción. */
                 exceptionId: string;
             };
@@ -7764,8 +7868,8 @@ export interface operations {
             query?: never;
             header?: never;
             path: {
-                /** @description Identificador del barbero. */
-                barberId: string;
+                /** @description Identificador del profesional. */
+                professionalId: string;
                 /** @description Identificador de la excepción. */
                 exceptionId: string;
             };
@@ -7815,7 +7919,7 @@ export interface operations {
             };
             header?: never;
             path: {
-                barberId: string;
+                professionalId: string;
             };
             cookie?: never;
         };
@@ -7837,7 +7941,7 @@ export interface operations {
                 "Idempotency-Key": components["parameters"]["IdempotencyKey"];
             };
             path: {
-                barberId: string;
+                professionalId: string;
             };
             cookie?: never;
         };
@@ -7876,7 +7980,7 @@ export interface operations {
             };
             header?: never;
             path: {
-                barberId: string;
+                professionalId: string;
             };
             cookie?: never;
         };
@@ -7895,7 +7999,7 @@ export interface operations {
             query?: never;
             header?: never;
             path: {
-                barberId: string;
+                professionalId: string;
                 blockId: string;
             };
             cookie?: never;
@@ -7914,7 +8018,7 @@ export interface operations {
             query?: never;
             header?: never;
             path: {
-                barberId: string;
+                professionalId: string;
                 blockId: string;
             };
             cookie?: never;
@@ -7937,7 +8041,7 @@ export interface operations {
             };
             header?: never;
             path: {
-                barberId: string;
+                professionalId: string;
             };
             cookie?: never;
         };
@@ -7959,7 +8063,7 @@ export interface operations {
                 "Idempotency-Key": components["parameters"]["IdempotencyKey"];
             };
             path: {
-                barberId: string;
+                professionalId: string;
             };
             cookie?: never;
         };
@@ -7993,7 +8097,7 @@ export interface operations {
             query?: never;
             header?: never;
             path: {
-                barberId: string;
+                professionalId: string;
                 seriesId: string;
             };
             cookie?: never;
@@ -8012,7 +8116,7 @@ export interface operations {
             query?: never;
             header?: never;
             path: {
-                barberId: string;
+                professionalId: string;
                 seriesId: string;
             };
             cookie?: never;
@@ -8031,7 +8135,7 @@ export interface operations {
             query?: never;
             header?: never;
             path: {
-                barberId: string;
+                professionalId: string;
                 seriesId: string;
             };
             cookie?: never;
@@ -8056,7 +8160,7 @@ export interface operations {
             query?: never;
             header?: never;
             path: {
-                barberId: string;
+                professionalId: string;
                 seriesId: string;
             };
             cookie?: never;
@@ -8082,7 +8186,7 @@ export interface operations {
             query?: never;
             header?: never;
             path: {
-                barberId: string;
+                professionalId: string;
                 seriesId: string;
                 blockDate: string;
             };
@@ -8102,7 +8206,7 @@ export interface operations {
             query?: never;
             header?: never;
             path: {
-                barberId: string;
+                professionalId: string;
                 seriesId: string;
             };
             cookie?: never;
@@ -8128,7 +8232,7 @@ export interface operations {
             query?: never;
             header?: never;
             path: {
-                barberId: string;
+                professionalId: string;
                 seriesId: string;
                 excludedDate: string;
             };
@@ -8163,7 +8267,7 @@ export interface operations {
             400: components["responses"]["InvalidRequestProblem"];
             401: components["responses"]["UnauthorizedProblem"];
             403: components["responses"]["ForbiddenProblem"];
-            /** @description `barberId` inexistente o de otra barbería, o `serviceId` inexistente, inactivo o no asignado a `barberId` (DEC-072). Un único `code` sin distinguir la causa (RN-TEN-01). */
+            /** @description `professionalId` inexistente o de otro negocio, o `serviceId` inexistente, inactivo o no asignado a `professionalId` (DEC-072). Un único `code` sin distinguir la causa (RN-TEN-01). */
             404: {
                 headers: {
                     "X-Request-Id": components["headers"]["XRequestId"];
@@ -8173,7 +8277,7 @@ export interface operations {
                     "application/problem+json": components["schemas"]["Problem"];
                 };
             };
-            /** @description Conflicto de idempotencia (misma clave con otro contenido u otra operación, `IdempotencyConflictProblem`), operación en curso con la misma clave (`IdempotencyLockedProblem`, DEC-043), cruce con otra cita del mismo barbero (RN-CON-01) o bloqueo vigente en ese intervalo (DEC-073, mismo tratamiento que un cruce). Los problem types comparten status pero tienen `code` distinto: el cliente decide por `code`, nunca por `detail`. */
+            /** @description Conflicto de idempotencia (misma clave con otro contenido u otra operación, `IdempotencyConflictProblem`), operación en curso con la misma clave (`IdempotencyLockedProblem`, DEC-043), cruce con otra cita del mismo profesional (RN-CON-01) o bloqueo vigente en ese intervalo (DEC-073, mismo tratamiento que un cruce). Los problem types comparten status pero tienen `code` distinto: el cliente decide por `code`, nunca por `detail`. */
             409: {
                 headers: {
                     "X-Request-Id": components["headers"]["XRequestId"];
@@ -8190,19 +8294,19 @@ export interface operations {
     listDailyAgenda: {
         parameters: {
             query?: {
-                /** @description Fecha civil `AAAA-MM-DD` en la zona de la barbería. Sin este parámetro, la respuesta usa "hoy" en esa zona (CA-062-01). */
+                /** @description Fecha civil `AAAA-MM-DD` en la zona del negocio. Sin este parámetro, la respuesta usa "hoy" en esa zona (CA-062-01). */
                 date?: string;
             };
             header?: never;
             path: {
-                /** @description Identificador del único barbero cuya agenda se consulta (DEC-074). */
-                barberId: string;
+                /** @description Identificador del único profesional cuya agenda se consulta (DEC-074). */
+                professionalId: string;
             };
             cookie?: never;
         };
         requestBody?: never;
         responses: {
-            /** @description Turnos del barbero cuyo intervalo interseca el día pedido, ordenados por `startsAt` y luego por `id` (orden estable). */
+            /** @description Turnos del profesional cuyo intervalo interseca el día pedido, ordenados por `startsAt` y luego por `id` (orden estable). */
             200: {
                 headers: {
                     "X-Request-Id": components["headers"]["XRequestId"];
@@ -8215,7 +8319,7 @@ export interface operations {
             400: components["responses"]["InvalidRequestProblem"];
             401: components["responses"]["UnauthorizedProblem"];
             403: components["responses"]["ForbiddenProblem"];
-            /** @description `barberId` con forma inválida, inexistente o de otra barbería (RN-TEN-01), sin distinguir la causa. */
+            /** @description `professionalId` con forma inválida, inexistente o de otro negocio (RN-TEN-01), sin distinguir la causa. */
             404: {
                 headers: {
                     "X-Request-Id": components["headers"]["XRequestId"];
@@ -8242,7 +8346,7 @@ export interface operations {
         responses: {
             200: components["responses"]["AppointmentDetailSuccess"];
             401: components["responses"]["UnauthorizedProblem"];
-            /** @description `appointmentId` con forma inválida, inexistente o de otra barbería (RN-TEN-01), sin distinguir la causa. */
+            /** @description `appointmentId` con forma inválida, inexistente o de otro negocio (RN-TEN-01), sin distinguir la causa. */
             404: {
                 headers: {
                     "X-Request-Id": components["headers"]["XRequestId"];
@@ -8275,7 +8379,7 @@ export interface operations {
             200: components["responses"]["AppointmentHistorySuccess"];
             400: components["responses"]["InvalidRequestProblem"];
             401: components["responses"]["UnauthorizedProblem"];
-            /** @description `appointmentId` con forma inválida, inexistente o de otra barbería (RN-TEN-01), sin distinguir la causa. */
+            /** @description `appointmentId` con forma inválida, inexistente o de otro negocio (RN-TEN-01), sin distinguir la causa. */
             404: {
                 headers: {
                     "X-Request-Id": components["headers"]["XRequestId"];
@@ -8312,7 +8416,7 @@ export interface operations {
             200: components["responses"]["AppointmentRescheduled"];
             400: components["responses"]["InvalidRequestProblem"];
             401: components["responses"]["UnauthorizedProblem"];
-            /** @description `appointmentId` con forma inválida, inexistente o de otra barbería (RN-TEN-01), sin distinguir la causa. */
+            /** @description `appointmentId` con forma inválida, inexistente o de otro negocio (RN-TEN-01), sin distinguir la causa. */
             404: {
                 headers: {
                     "X-Request-Id": components["headers"]["XRequestId"];
@@ -8336,7 +8440,7 @@ export interface operations {
             500: components["responses"]["InternalErrorProblem"];
         };
     };
-    cancelAppointmentByBarber: {
+    cancelAppointmentByProfessional: {
         parameters: {
             query?: never;
             header: {
@@ -8356,7 +8460,7 @@ export interface operations {
             200: components["responses"]["AppointmentCancelled"];
             400: components["responses"]["InvalidRequestProblem"];
             401: components["responses"]["UnauthorizedProblem"];
-            /** @description `appointmentId` con forma inválida, inexistente o de otra barbería (RN-TEN-01), sin distinguir la causa. */
+            /** @description `appointmentId` con forma inválida, inexistente o de otro negocio (RN-TEN-01), sin distinguir la causa. */
             404: {
                 headers: {
                     "X-Request-Id": components["headers"]["XRequestId"];
@@ -8366,7 +8470,7 @@ export interface operations {
                     "application/problem+json": components["schemas"]["Problem"];
                 };
             };
-            /** @description Tres conflictos distinguibles por `code`, nunca por `detail`: conflicto de idempotencia (misma clave con otro contenido u otra operación, `IdempotencyConflictProblem`) u operación en curso con la misma clave (`IdempotencyLockedProblem`, DEC-043); conflicto de versión (`code: version-conflict`, el `If-Match` enviado ya no coincide con la representación vigente mientras el turno sigue `confirmed`); o estado inválido (`code: invalid-state`, el turno ya terminó de otra forma: `completed`, `no_show` o `cancelled_by_customer`). Cancelar una cita ya `cancelled_by_barber` NUNCA produce este `409`: es un `200` no-op (CA-066-04). */
+            /** @description Tres conflictos distinguibles por `code`, nunca por `detail`: conflicto de idempotencia (misma clave con otro contenido u otra operación, `IdempotencyConflictProblem`) u operación en curso con la misma clave (`IdempotencyLockedProblem`, DEC-043); conflicto de versión (`code: version-conflict`, el `If-Match` enviado ya no coincide con la representación vigente mientras el turno sigue `confirmed`); o estado inválido (`code: invalid-state`, el turno ya terminó de otra forma: `completed`, `no_show` o `cancelled_by_customer`). Cancelar una cita ya `cancelled_by_professional` NUNCA produce este `409`: es un `200` no-op (CA-066-04). */
             409: {
                 headers: {
                     "X-Request-Id": components["headers"]["XRequestId"];
@@ -8399,7 +8503,7 @@ export interface operations {
             200: components["responses"]["AppointmentCompleted"];
             400: components["responses"]["InvalidRequestProblem"];
             401: components["responses"]["UnauthorizedProblem"];
-            /** @description `appointmentId` con forma inválida, inexistente o de otra barbería (RN-TEN-01), sin distinguir la causa. */
+            /** @description `appointmentId` con forma inválida, inexistente o de otro negocio (RN-TEN-01), sin distinguir la causa. */
             404: {
                 headers: {
                     "X-Request-Id": components["headers"]["XRequestId"];
@@ -8409,7 +8513,7 @@ export interface operations {
                     "application/problem+json": components["schemas"]["Problem"];
                 };
             };
-            /** @description Tres conflictos distinguibles por `code`, nunca por `detail`: conflicto de idempotencia (misma clave con otro contenido u otra operación, `IdempotencyConflictProblem`) u operación en curso con la misma clave (`IdempotencyLockedProblem`, DEC-043); conflicto de versión (`code: version-conflict`, el `If-Match` enviado ya no coincide con la representación vigente mientras el turno sigue `confirmed`); o estado inválido (`code: invalid-state`, el turno ya tiene un resultado terminal distinto: `no_show`, `cancelled_by_barber` o `cancelled_by_customer`). Cerrar una cita ya `completed` NUNCA produce este `409`: es un `200` no-op (CA-067-05). */
+            /** @description Tres conflictos distinguibles por `code`, nunca por `detail`: conflicto de idempotencia (misma clave con otro contenido u otra operación, `IdempotencyConflictProblem`) u operación en curso con la misma clave (`IdempotencyLockedProblem`, DEC-043); conflicto de versión (`code: version-conflict`, el `If-Match` enviado ya no coincide con la representación vigente mientras el turno sigue `confirmed`); o estado inválido (`code: invalid-state`, el turno ya tiene un resultado terminal distinto: `no_show`, `cancelled_by_professional` o `cancelled_by_customer`). Cerrar una cita ya `completed` NUNCA produce este `409`: es un `200` no-op (CA-067-05). */
             409: {
                 headers: {
                     "X-Request-Id": components["headers"]["XRequestId"];
@@ -8443,7 +8547,7 @@ export interface operations {
             200: components["responses"]["AppointmentNoShow"];
             400: components["responses"]["InvalidRequestProblem"];
             401: components["responses"]["UnauthorizedProblem"];
-            /** @description `appointmentId` con forma inválida, inexistente o de otra barbería (RN-TEN-01), sin distinguir la causa. */
+            /** @description `appointmentId` con forma inválida, inexistente o de otro negocio (RN-TEN-01), sin distinguir la causa. */
             404: {
                 headers: {
                     "X-Request-Id": components["headers"]["XRequestId"];
@@ -8453,7 +8557,7 @@ export interface operations {
                     "application/problem+json": components["schemas"]["Problem"];
                 };
             };
-            /** @description Tres conflictos distinguibles por `code`, nunca por `detail`: conflicto de idempotencia (misma clave con otro contenido u otra operación, `IdempotencyConflictProblem`) u operación en curso con la misma clave (`IdempotencyLockedProblem`, DEC-043); conflicto de versión (`code: version-conflict`, el `If-Match` enviado ya no coincide con la representación vigente mientras el turno sigue `confirmed`); o estado inválido (`code: invalid-state`, el turno ya tiene un resultado terminal distinto: `completed`, `cancelled_by_barber` o `cancelled_by_customer`). Cerrar una cita ya `no_show` NUNCA produce este `409`: es un `200` no-op (CA-067-05). */
+            /** @description Tres conflictos distinguibles por `code`, nunca por `detail`: conflicto de idempotencia (misma clave con otro contenido u otra operación, `IdempotencyConflictProblem`) u operación en curso con la misma clave (`IdempotencyLockedProblem`, DEC-043); conflicto de versión (`code: version-conflict`, el `If-Match` enviado ya no coincide con la representación vigente mientras el turno sigue `confirmed`); o estado inválido (`code: invalid-state`, el turno ya tiene un resultado terminal distinto: `completed`, `cancelled_by_professional` o `cancelled_by_customer`). Cerrar una cita ya `no_show` NUNCA produce este `409`: es un `200` no-op (CA-067-05). */
             409: {
                 headers: {
                     "X-Request-Id": components["headers"]["XRequestId"];
@@ -8491,7 +8595,7 @@ export interface operations {
             200: components["responses"]["AppointmentStatusCorrected"];
             400: components["responses"]["InvalidRequestProblem"];
             401: components["responses"]["UnauthorizedProblem"];
-            /** @description `appointmentId` con forma inválida, inexistente o de otra barbería (RN-TEN-01), sin distinguir la causa. */
+            /** @description `appointmentId` con forma inválida, inexistente o de otro negocio (RN-TEN-01), sin distinguir la causa. */
             404: {
                 headers: {
                     "X-Request-Id": components["headers"]["XRequestId"];
@@ -8501,7 +8605,7 @@ export interface operations {
                     "application/problem+json": components["schemas"]["Problem"];
                 };
             };
-            /** @description Cinco conflictos distinguibles por `code`, nunca por `detail`: conflicto de idempotencia (misma clave con otro contenido u otra operación, `IdempotencyConflictProblem`) u operación en curso con la misma clave (`IdempotencyLockedProblem`, DEC-043); conflicto de versión (`code: version-conflict`, el `If-Match` enviado ya no coincide con la representación vigente); estado inválido (`code: invalid-state`, el turno todavía está `confirmed`, sin ningún resultado terminal que corregir, CA-068-01); o cruce de agenda (`code: conflict`, corregir desde un cancelado hacia `completed`/`no_show` volvería a ocupar una franja que otra cita del mismo barbero ya ocupa, CA-068-04). */
+            /** @description Cinco conflictos distinguibles por `code`, nunca por `detail`: conflicto de idempotencia (misma clave con otro contenido u otra operación, `IdempotencyConflictProblem`) u operación en curso con la misma clave (`IdempotencyLockedProblem`, DEC-043); conflicto de versión (`code: version-conflict`, el `If-Match` enviado ya no coincide con la representación vigente); estado inválido (`code: invalid-state`, el turno todavía está `confirmed`, sin ningún resultado terminal que corregir, CA-068-01); o cruce de agenda (`code: conflict`, corregir desde un cancelado hacia `completed`/`no_show` volvería a ocupar una franja que otra cita del mismo profesional ya ocupa, CA-068-04). */
             409: {
                 headers: {
                     "X-Request-Id": components["headers"]["XRequestId"];

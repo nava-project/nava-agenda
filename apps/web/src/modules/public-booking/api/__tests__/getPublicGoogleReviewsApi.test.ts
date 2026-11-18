@@ -43,7 +43,7 @@ describe('getPublicGoogleReviews', () => {
       kind: 'success',
       reviews: full,
     })
-    expect(getMock).toHaveBeenCalledWith('/public/barbershops/{slug}/reviews', {
+    expect(getMock).toHaveBeenCalledWith('/public/businesses/{slug}/reviews', {
       params: { path: { slug: 'barberia-ejemplo' } },
     })
   })

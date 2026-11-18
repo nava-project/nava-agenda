@@ -62,22 +62,24 @@ async function mockApi(page: Page, initialLinked: string | null) {
     if (pathname.endsWith('/auth/session')) {
       await route.fulfill(
         json({
-          barbershop: { id: 'demo', name: 'Barbería de prueba' },
+          business: { id: 'demo', name: 'Barbería de prueba' },
           expiresAt: '2099-01-01T00:00:00Z',
         }),
       )
     } else if (pathname.endsWith('/settings/brand')) {
       await route.fulfill(json(brand))
-    } else if (pathname.endsWith('/settings/barbershop')) {
+    } else if (pathname.endsWith('/settings/business')) {
       await route.fulfill(json(settings))
-    } else if (pathname.endsWith('/me/barber')) {
+    } else if (pathname.endsWith('/me/professional')) {
       if (method === 'GET') {
         const mine = barbers.find((b) => b.id === linked)
         await route.fulfill(
           mine ? json(mine) : json({ title: 'No encontrado', status: 404, code: 'not_found' }, 404),
         )
       } else if (method === 'PUT') {
-        const { barberId } = route.request().postDataJSON() as { barberId: string }
+        const { professionalId: barberId } = route.request().postDataJSON() as {
+          professionalId: string
+        }
         if (barberId === TAKEN_BARBER) {
           await route.fulfill(json({ title: 'Conflicto', status: 409, code: 'conflict' }, 409))
         } else {
@@ -88,7 +90,7 @@ async function mockApi(page: Page, initialLinked: string | null) {
         linked = null
         await route.fulfill({ status: 204 })
       }
-    } else if (pathname.endsWith('/barbers')) {
+    } else if (pathname.endsWith('/professionals')) {
       await route.fulfill(
         json({
           items: barbers,

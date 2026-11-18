@@ -43,7 +43,7 @@ function json(body: unknown, status = 200) {
 }
 
 async function mockPublicApi(page: Page) {
-  await page.route(`**/api/v1/public/barbershops/${SLUG}`, (route) =>
+  await page.route(`**/api/v1/public/businesses/${SLUG}`, (route) =>
     route.fulfill(
       json({
         name: 'Estudio Lila',
@@ -55,7 +55,7 @@ async function mockPublicApi(page: Page) {
     ),
   )
   await page.route(
-    `**/api/v1/public/barbershops/${SLUG}/services/${SERVICE_ID}/barbers**`,
+    `**/api/v1/public/businesses/${SLUG}/services/${SERVICE_ID}/professionals**`,
     (route) =>
       route.fulfill(
         json({
@@ -109,21 +109,21 @@ for (const viewport of viewports) {
     await page.route(`**/api/v1/customer/appointments/${TOKEN}`, (route) =>
       route.fulfill(
         json({
-          barbershopName: 'Estudio Lila',
+          businessName: 'Estudio Lila',
           timezone: 'America/Bogota',
           attendeeName: 'Ana Ríos',
           serviceName: 'Manicure semipermanente',
           durationMinutes: 60,
-          barberName: 'Laura Mejía',
+          professionalName: 'Laura Mejía',
           startsAt: '2027-03-15T15:00:00Z',
           endsAt: '2027-03-15T16:00:00Z',
-          status: 'cancelled_by_barber',
+          status: 'cancelled_by_professional',
           cancellationDeadlineMinutes: 20,
           lateCancellationClientAllowed: false,
           lateCancellationReasonRequired: false,
           versionToken: 'version-token-1',
-          barbershopContactEmail: null,
-          barbershopContactPhone: null,
+          businessContactEmail: null,
+          businessContactPhone: null,
           rescheduleRemaining: 2,
           vocabulary: nails,
         }),

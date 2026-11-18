@@ -69,10 +69,13 @@ describe('timeBlocksApi.createDateListSeries', () => {
     const outcome = await createDateListSeries('b-1', dateListInput, 'key-1')
 
     expect(outcome).toMatchObject({ kind: 'success', series: { id: 'ser-1' } })
-    expect(postMock).toHaveBeenCalledWith('/private/barbers/{barberId}/time-block-series', {
-      params: { path: { barberId: 'b-1' }, header: { 'Idempotency-Key': 'key-1' } },
-      body: { recurrenceKind: 'date_list', ...dateListInput },
-    })
+    expect(postMock).toHaveBeenCalledWith(
+      '/private/professionals/{professionalId}/time-block-series',
+      {
+        params: { path: { professionalId: 'b-1' }, header: { 'Idempotency-Key': 'key-1' } },
+        body: { recurrenceKind: 'date_list', ...dateListInput },
+      },
+    )
   })
 
   it.each([
@@ -111,19 +114,22 @@ describe('timeBlocksApi.createTimeBlockSeries', () => {
       '2027-03-01',
     )
 
-    expect(postMock).toHaveBeenCalledWith('/private/barbers/{barberId}/time-block-series', {
-      params: { path: { barberId: 'b-1' }, header: { 'Idempotency-Key': 'key-1' } },
-      body: {
-        blockType: 'lunch',
-        recurrenceKind: 'weekly',
-        isoWeekday: 3,
-        startsTime: '13:00',
-        durationMinutes: 60,
-        effectiveFrom: '2027-01-04',
-        effectiveUntil: '2027-03-01',
-        reason: null,
+    expect(postMock).toHaveBeenCalledWith(
+      '/private/professionals/{professionalId}/time-block-series',
+      {
+        params: { path: { professionalId: 'b-1' }, header: { 'Idempotency-Key': 'key-1' } },
+        body: {
+          blockType: 'lunch',
+          recurrenceKind: 'weekly',
+          isoWeekday: 3,
+          startsTime: '13:00',
+          durationMinutes: 60,
+          effectiveFrom: '2027-01-04',
+          effectiveUntil: '2027-03-01',
+          reason: null,
+        },
       },
-    })
+    )
   })
 
   it('leaves the validity open when no end is given', async () => {
@@ -152,9 +158,9 @@ describe('timeBlocksApi.updateTimeBlockSeries', () => {
     await updateTimeBlockSeries('b-1', 'ser-1', input, null)
 
     expect(patchMock).toHaveBeenCalledWith(
-      '/private/barbers/{barberId}/time-block-series/{seriesId}',
+      '/private/professionals/{professionalId}/time-block-series/{seriesId}',
       {
-        params: { path: { barberId: 'b-1', seriesId: 'ser-1' } },
+        params: { path: { professionalId: 'b-1', seriesId: 'ser-1' } },
         body: { scope: 'whole', ...input },
       },
     )
@@ -203,9 +209,9 @@ describe('timeBlocksApi fechas explícitas y excepciones', () => {
 
     expect(await addSeriesDate('b-1', 'ser-1', '2027-12-20')).toEqual({ kind: 'success' })
     expect(postMock).toHaveBeenCalledWith(
-      '/private/barbers/{barberId}/time-block-series/{seriesId}/dates',
+      '/private/professionals/{professionalId}/time-block-series/{seriesId}/dates',
       {
-        params: { path: { barberId: 'b-1', seriesId: 'ser-1' } },
+        params: { path: { professionalId: 'b-1', seriesId: 'ser-1' } },
         body: { blockDate: '2027-12-20' },
       },
     )
@@ -226,8 +232,8 @@ describe('timeBlocksApi fechas explícitas y excepciones', () => {
 
     expect(await removeSeriesDate('b-1', 'ser-1', '2027-12-15')).toEqual({ kind: 'success' })
     expect(deleteMock).toHaveBeenCalledWith(
-      '/private/barbers/{barberId}/time-block-series/{seriesId}/dates/{blockDate}',
-      { params: { path: { barberId: 'b-1', seriesId: 'ser-1', blockDate: '2027-12-15' } } },
+      '/private/professionals/{professionalId}/time-block-series/{seriesId}/dates/{blockDate}',
+      { params: { path: { professionalId: 'b-1', seriesId: 'ser-1', blockDate: '2027-12-15' } } },
     )
   })
 
@@ -238,9 +244,9 @@ describe('timeBlocksApi fechas explícitas y excepciones', () => {
       kind: 'success',
     })
     expect(postMock).toHaveBeenCalledWith(
-      '/private/barbers/{barberId}/time-block-series/{seriesId}/exceptions',
+      '/private/professionals/{professionalId}/time-block-series/{seriesId}/exceptions',
       {
-        params: { path: { barberId: 'b-1', seriesId: 'ser-1' } },
+        params: { path: { professionalId: 'b-1', seriesId: 'ser-1' } },
         body: { excludedDate: '2027-01-08', reason: 'Libró' },
       },
     )
@@ -261,7 +267,7 @@ describe('timeBlocksApi fechas explícitas y excepciones', () => {
       kind: 'not-found',
     })
     expect(deleteMock.mock.calls[0]![0]).toBe(
-      '/private/barbers/{barberId}/time-block-series/{seriesId}/exceptions/{excludedDate}',
+      '/private/professionals/{professionalId}/time-block-series/{seriesId}/exceptions/{excludedDate}',
     )
   })
 

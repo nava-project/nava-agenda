@@ -49,7 +49,7 @@ async function apiGet<T>(url: string): Promise<{ status: number; body: T }> {
 
 async function offeredServiceNames() {
   const assigned = await apiGet<{ items: { serviceId: string }[] }>(
-    `/api/v1/private/barbers/${BARBER}/services`,
+    `/api/v1/private/professionals/${BARBER}/services`,
   )
   expect(assigned.status).toBe(200)
   const ids = new Set(assigned.body.items.map((i) => i.serviceId))

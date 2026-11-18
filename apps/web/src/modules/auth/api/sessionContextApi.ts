@@ -13,8 +13,8 @@ export async function fetchSessionContext(): Promise<SessionContextOutcome> {
     if (response.ok && data) {
       return {
         kind: 'authenticated',
-        barbershopId: data.barbershop.id,
-        barbershopName: data.barbershop.name,
+        barbershopId: data.business.id,
+        barbershopName: data.business.name,
         expiresAt: data.expiresAt,
       }
     }

@@ -1,5 +1,5 @@
 // Único punto del módulo `public-booking` que llama a
-// `GET /public/barbershops/{slug}/services` (HU-091). Traduce la respuesta
+// `GET /public/businesses/{slug}/services` (HU-091). Traduce la respuesta
 // real a `ListPublicServicesOutcome`: la página coordinadora nunca ve
 // `Problem`, `status` HTTP crudo ni cabeceras. No pagina: pide una sola
 // página con el límite máximo del contrato (50) porque HU-091 no incluye
@@ -20,7 +20,7 @@ const MAX_PAGE_LIMIT = 50
  */
 export async function listPublicServices(slug: string): Promise<ListPublicServicesOutcome> {
   try {
-    const { data, error, response } = await httpClient.GET('/public/barbershops/{slug}/services', {
+    const { data, error, response } = await httpClient.GET('/public/businesses/{slug}/services', {
       params: { path: { slug }, query: { limit: MAX_PAGE_LIMIT } },
     })
 

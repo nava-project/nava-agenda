@@ -55,7 +55,9 @@ describe('barberServicesApi.fetchBarberSummaries', () => {
     const outcome = await fetchBarberSummaries()
 
     expect(outcome).toEqual({ kind: 'success', items: [{ id: 'b-1', fullName: 'Carlos Ramírez' }] })
-    expect(getMock).toHaveBeenCalledWith('/private/barbers', { params: { query: { limit: 50 } } })
+    expect(getMock).toHaveBeenCalledWith('/private/professionals', {
+      params: { query: { limit: 50 } },
+    })
   })
 
   it('maps a network failure to network-error', async () => {
@@ -98,7 +100,7 @@ describe('barberServicesApi.fetchAssignments', () => {
   it('maps a 200 success body to a page of assignments', async () => {
     getMock.mockResolvedValueOnce(
       ok({
-        items: [{ barberId: 'b-1', serviceId: 's-1', createdAt: '2026-08-24T15:04:05Z' }],
+        items: [{ professionalId: 'b-1', serviceId: 's-1', createdAt: '2026-08-24T15:04:05Z' }],
         nextCursor: null,
       }),
     )
@@ -112,8 +114,8 @@ describe('barberServicesApi.fetchAssignments', () => {
         nextCursor: null,
       },
     })
-    expect(getMock).toHaveBeenCalledWith('/private/barbers/{barberId}/services', {
-      params: { path: { barberId: 'b-1' }, query: {} },
+    expect(getMock).toHaveBeenCalledWith('/private/professionals/{professionalId}/services', {
+      params: { path: { professionalId: 'b-1' }, query: {} },
     })
   })
 
@@ -125,8 +127,8 @@ describe('barberServicesApi.fetchAssignments', () => {
   it('forwards the cursor as a query parameter when provided', async () => {
     getMock.mockResolvedValueOnce(ok({ items: [], nextCursor: null }))
     await fetchAssignments('b-1', 'opaque-cursor')
-    expect(getMock).toHaveBeenCalledWith('/private/barbers/{barberId}/services', {
-      params: { path: { barberId: 'b-1' }, query: { cursor: 'opaque-cursor' } },
+    expect(getMock).toHaveBeenCalledWith('/private/professionals/{professionalId}/services', {
+      params: { path: { professionalId: 'b-1' }, query: { cursor: 'opaque-cursor' } },
     })
   })
 })
@@ -136,7 +138,7 @@ describe('barberServicesApi.assignService', () => {
 
   it('maps a 201 success body to a success outcome', async () => {
     putMock.mockResolvedValueOnce(
-      created({ barberId: 'b-1', serviceId: 's-1', createdAt: '2026-08-24T15:04:05Z' }),
+      created({ professionalId: 'b-1', serviceId: 's-1', createdAt: '2026-08-24T15:04:05Z' }),
     )
 
     const outcome = await assignService('b-1', 's-1')
@@ -145,14 +147,17 @@ describe('barberServicesApi.assignService', () => {
       kind: 'success',
       assignment: { barberId: 'b-1', serviceId: 's-1', createdAt: '2026-08-24T15:04:05Z' },
     })
-    expect(putMock).toHaveBeenCalledWith('/private/barbers/{barberId}/services/{serviceId}', {
-      params: { path: { barberId: 'b-1', serviceId: 's-1' } },
-    })
+    expect(putMock).toHaveBeenCalledWith(
+      '/private/professionals/{professionalId}/services/{serviceId}',
+      {
+        params: { path: { professionalId: 'b-1', serviceId: 's-1' } },
+      },
+    )
   })
 
   it('maps a 200 replay body to a success outcome too (CA-023-02)', async () => {
     putMock.mockResolvedValueOnce(
-      ok({ barberId: 'b-1', serviceId: 's-1', createdAt: '2026-08-24T15:04:05Z' }),
+      ok({ professionalId: 'b-1', serviceId: 's-1', createdAt: '2026-08-24T15:04:05Z' }),
     )
     const outcome = await assignService('b-1', 's-1')
     expect(outcome.kind).toBe('success')

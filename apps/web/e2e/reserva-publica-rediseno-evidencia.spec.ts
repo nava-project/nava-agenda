@@ -38,7 +38,7 @@ interface MockOptions {
 /** Intercepta los cinco endpoints públicos: ningún dato real, ningún
  * servidor Go detrás (mismo criterio que el resto de specs `reserva-publica-*`). */
 async function mockApi(page: Page, options: MockOptions = {}) {
-  const base = `**/api/v1/public/barbershops/${SLUG}`
+  const base = `**/api/v1/public/businesses/${SLUG}`
   await page.route(base, (route) =>
     json(route, {
       name: 'Barbería Ejemplo',
@@ -80,7 +80,7 @@ async function mockApi(page: Page, options: MockOptions = {}) {
       nextCursor: null,
     }),
   )
-  await page.route(`${base}/services/*/barbers**`, (route) =>
+  await page.route(`${base}/services/*/professionals**`, (route) =>
     json(route, {
       items: options.barbers ?? [
         { id: BARBER_ID, fullName: 'Julián Rodríguez' },
@@ -89,7 +89,7 @@ async function mockApi(page: Page, options: MockOptions = {}) {
       ],
     }),
   )
-  await page.route(`${base}/services/*/barbers/*/availability**`, (route) => {
+  await page.route(`${base}/services/*/professionals/*/availability**`, (route) => {
     const slots: Array<{ startsAt: string }> = []
     for (const day of ['15', '16', '17', '18', '19', '21', '22']) {
       for (const hour of [14, 15, 16, 17, 19, 20, 21, 22]) {
@@ -104,7 +104,7 @@ async function mockApi(page: Page, options: MockOptions = {}) {
       slotGridMinutes: 30,
     })
   })
-  await page.route(`${base}/services/*/barbers/*/appointments**`, (route) => {
+  await page.route(`${base}/services/*/professionals/*/appointments**`, (route) => {
     if (options.confirm === 'conflict') {
       return json(
         route,
@@ -126,7 +126,7 @@ async function mockApi(page: Page, options: MockOptions = {}) {
       route,
       {
         attendeeName: 'Ana Ríos',
-        barbershopName: 'Barbería Ejemplo',
+        businessName: 'Barbería Ejemplo',
         serviceName: 'Corte clásico',
         durationMinutes: 30,
         priceAmount: '45000.00',
@@ -264,7 +264,7 @@ for (const viewport of viewports) {
     })
 
     test('estados: carga, enlace no encontrado y vacío', async ({ page }) => {
-      await page.route(`**/api/v1/public/barbershops/${SLUG}/services**`, async (route) => {
+      await page.route(`**/api/v1/public/businesses/${SLUG}/services**`, async (route) => {
         await new Promise((resolve) => setTimeout(resolve, 1500))
         await json(route, { items: [], nextCursor: null })
       })
@@ -278,7 +278,7 @@ for (const viewport of viewports) {
       await assertNoHorizontalScroll(page)
       await snap(page, viewport.name, '13-vacio')
 
-      await page.route('**/api/v1/public/barbershops/enlace-inexistente', (route) =>
+      await page.route('**/api/v1/public/businesses/enlace-inexistente', (route) =>
         json(
           route,
           {
@@ -347,7 +347,7 @@ test.describe('Rediseño reserva pública: accesibilidad con contraste (movimien
   })
 
   test('estados de página: no encontrado, sin conexión y error inesperado', async ({ page }) => {
-    await page.route('**/api/v1/public/barbershops/enlace-inexistente', (route) =>
+    await page.route('**/api/v1/public/businesses/enlace-inexistente', (route) =>
       json(
         route,
         {
@@ -363,12 +363,12 @@ test.describe('Rediseño reserva pública: accesibilidad con contraste (movimien
     await expect(page.getByRole('alert')).toContainText('No encontramos ese enlace')
     await assertAccessible(page)
 
-    await page.route('**/api/v1/public/barbershops/sin-red', (route) => route.abort())
+    await page.route('**/api/v1/public/businesses/sin-red', (route) => route.abort())
     await page.goto('/reservar/sin-red')
     await expect(page.getByRole('alert')).toContainText('No pudimos conectar')
     await assertAccessible(page)
 
-    await page.route('**/api/v1/public/barbershops/con-fallo', (route) =>
+    await page.route('**/api/v1/public/businesses/con-fallo', (route) =>
       json(
         route,
         {

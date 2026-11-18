@@ -172,7 +172,7 @@ test.describe('Cancelación de un turno por el barbero (HU-066, T6)', () => {
   })
 
   // La repetición de una cancelación por el mismo barbero (CA-066-04, un
-  // reintento con clave nueva sobre una cita ya cancelled_by_barber) no es
+  // reintento con clave nueva sobre una cita ya cancelled_by_professional) no es
   // observable desde esta pantalla: el botón "Cancelar turno" desaparece en
   // cuanto el turno deja de estar confirmed (CA-066-08), así que la UI real
   // nunca ofrece una segunda cancelación sobre el mismo turno. Ese

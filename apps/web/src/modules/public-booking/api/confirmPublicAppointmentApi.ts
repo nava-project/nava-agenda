@@ -1,5 +1,5 @@
 // Único punto del módulo `public-booking` que llama a
-// POST /public/barbershops/{slug}/services/{serviceId}/barbers/{barberId}/appointments
+// POST /public/businesses/{slug}/services/{serviceId}/professionals/{professionalId}/appointments
 // (HU-097). Traduce la respuesta real a ConfirmPublicAppointmentOutcome: la
 // página coordinadora nunca ve `Problem`, `status` HTTP crudo ni cabeceras.
 import { httpClient } from '@/shared/api/httpClient'
@@ -36,10 +36,10 @@ export async function confirmPublicAppointment(
 ): Promise<ConfirmPublicAppointmentOutcome> {
   try {
     const { data, response, error } = await httpClient.POST(
-      '/public/barbershops/{slug}/services/{serviceId}/barbers/{barberId}/appointments',
+      '/public/businesses/{slug}/services/{serviceId}/professionals/{professionalId}/appointments',
       {
         params: {
-          path: { slug, serviceId, barberId },
+          path: { slug, serviceId, professionalId: barberId },
           header: { 'Idempotency-Key': idempotencyKey },
         },
         body: {
@@ -60,7 +60,7 @@ export async function confirmPublicAppointment(
         kind: 'success',
         appointment: {
           attendeeName: data.attendeeName,
-          barbershopName: data.barbershopName,
+          barbershopName: data.businessName,
           serviceName: data.serviceName,
           durationMinutes: data.durationMinutes,
           priceAmount: data.priceAmount,

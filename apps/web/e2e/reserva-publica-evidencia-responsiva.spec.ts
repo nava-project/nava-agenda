@@ -72,7 +72,7 @@ for (const viewport of viewports) {
     test.use({ viewport: { width: viewport.width, height: viewport.height } })
 
     test(`carga (${viewport.name}px)`, async ({ page }) => {
-      await page.route('**/api/v1/public/barbershops/**', async (route) => {
+      await page.route('**/api/v1/public/businesses/**', async (route) => {
         // 1500ms (no 400ms como en acceso-evidencia-responsiva.spec.ts):
         // esa prueba dispara la solicitud desde una SPA ya cargada (clic de
         // botón); esta navega con `page.goto` a una ruta cargada de forma
@@ -93,7 +93,7 @@ for (const viewport of viewports) {
     })
 
     test(`normal, foco y sin scroll horizontal (${viewport.name}px)`, async ({ page }) => {
-      await page.route('**/api/v1/public/barbershops/**', fulfillProfile)
+      await page.route('**/api/v1/public/businesses/**', fulfillProfile)
       await page.goto('/reservar/barberia-ejemplo')
       await expect(page.getByRole('heading', { name: 'Barbería Ejemplo' })).toBeVisible()
       await page.screenshot({
@@ -112,7 +112,7 @@ for (const viewport of viewports) {
     test(`error de enlace no disponible, con foco en reintentar (${viewport.name}px)`, async ({
       page,
     }) => {
-      await page.route('**/api/v1/public/barbershops/**', async (route) => {
+      await page.route('**/api/v1/public/businesses/**', async (route) => {
         await route.fulfill({
           status: 404,
           contentType: 'application/problem+json',

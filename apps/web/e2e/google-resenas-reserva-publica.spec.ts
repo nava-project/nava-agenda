@@ -56,7 +56,7 @@ function json(body: unknown, status = 200) {
 }
 
 async function installApi(page: Page, reviews: { status: number; body: unknown }) {
-  await page.route(`**/api/v1/public/barbershops/${SLUG}`, (route) =>
+  await page.route(`**/api/v1/public/businesses/${SLUG}`, (route) =>
     route.fulfill(
       json({
         name: 'Barbería Ejemplo',
@@ -69,7 +69,7 @@ async function installApi(page: Page, reviews: { status: number; body: unknown }
       }),
     ),
   )
-  await page.route(`**/api/v1/public/barbershops/${SLUG}/reviews`, (route) =>
+  await page.route(`**/api/v1/public/businesses/${SLUG}/reviews`, (route) =>
     route.fulfill(json(reviews.body, reviews.status)),
   )
 }

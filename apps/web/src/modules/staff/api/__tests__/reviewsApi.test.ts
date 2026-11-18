@@ -69,10 +69,13 @@ describe('reviewsApi.setReviewHidden', () => {
 
     const outcome = await setReviewHidden('barber-1', review.id, true)
 
-    expect(patchMock).toHaveBeenCalledWith('/private/barbers/{barberId}/reviews/{reviewId}', {
-      params: { path: { barberId: 'barber-1', reviewId: review.id } },
-      body: { hidden: true },
-    })
+    expect(patchMock).toHaveBeenCalledWith(
+      '/private/professionals/{professionalId}/reviews/{reviewId}',
+      {
+        params: { path: { professionalId: 'barber-1', reviewId: review.id } },
+        body: { hidden: true },
+      },
+    )
     expect(outcome).toEqual({
       kind: 'success',
       review: { ...review, hiddenAt: '2027-03-16T10:00:00Z' },

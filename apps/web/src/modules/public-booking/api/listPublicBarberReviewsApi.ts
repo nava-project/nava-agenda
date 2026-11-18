@@ -1,5 +1,5 @@
 // Único punto del módulo `public-booking` que llama a
-// `GET /public/barbershops/{slug}/barbers/{barberId}/reviews` (HU-100).
+// `GET /public/businesses/{slug}/professionals/{professionalId}/reviews` (HU-100).
 import { httpClient } from '@/shared/api/httpClient'
 import { isProblem } from '@/shared/api/problem'
 import type { ListPublicBarberReviewsOutcome } from '../model/publicBarberReviewsOutcome'
@@ -15,8 +15,8 @@ export async function listPublicBarberReviews(
 ): Promise<ListPublicBarberReviewsOutcome> {
   try {
     const { data, error, response } = await httpClient.GET(
-      '/public/barbershops/{slug}/barbers/{barberId}/reviews',
-      { params: { path: { slug, barberId } } },
+      '/public/businesses/{slug}/professionals/{professionalId}/reviews',
+      { params: { path: { slug, professionalId: barberId } } },
     )
 
     if (response.ok && data) {

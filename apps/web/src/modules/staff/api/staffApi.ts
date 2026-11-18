@@ -1,6 +1,6 @@
 // Único punto del módulo `staff` que llama al cliente HTTP tipado
 // (docs/03-desarrollo/estandar-frontend-vue.md §6). Traduce las respuestas
-// reales de GET/POST /private/barbers y GET/PATCH /private/barbers/{id} a
+// reales de GET/POST /private/professionals y GET/PATCH /private/professionals/{id} a
 // los outcomes discriminados que la página consume; ningún componente ve
 // `Problem`, `status` HTTP crudo ni cabeceras.
 import { httpClient } from '@/shared/api/httpClient'
@@ -18,7 +18,7 @@ import type {
 
 export async function fetchBarbers(cursor?: string): Promise<FetchBarbersOutcome> {
   try {
-    const { data, response } = await httpClient.GET('/private/barbers', {
+    const { data, response } = await httpClient.GET('/private/professionals', {
       params: { query: cursor ? { cursor } : {} },
     })
 
@@ -44,7 +44,7 @@ export async function fetchBarberPage(
   { kind: 'success'; page: NumberedBarberPage } | { kind: 'network-error' | 'unexpected-error' }
 > {
   try {
-    const { data, response } = await httpClient.GET('/private/barbers', {
+    const { data, response } = await httpClient.GET('/private/professionals', {
       params: { query: { page, pageSize } },
     })
     if (
@@ -80,7 +80,7 @@ export async function createBarber(
   description?: string,
 ): Promise<CreateBarberOutcome> {
   try {
-    const { data, response } = await httpClient.POST('/private/barbers', {
+    const { data, response } = await httpClient.POST('/private/professionals', {
       params: { header: { 'Idempotency-Key': idempotencyKey } },
       body: description?.trim() ? { fullName, description: description.trim() } : { fullName },
     })
@@ -111,8 +111,8 @@ export async function renameBarber(
   description?: string,
 ): Promise<RenameBarberOutcome> {
   try {
-    const { data, response } = await httpClient.PATCH('/private/barbers/{barberId}', {
-      params: { path: { barberId } },
+    const { data, response } = await httpClient.PATCH('/private/professionals/{professionalId}', {
+      params: { path: { professionalId: barberId } },
       body:
         description === undefined
           ? { fullName }
@@ -143,15 +143,18 @@ export async function uploadBarberPhoto(
   photo: Blob,
 ): Promise<UploadBarberPhotoOutcome> {
   try {
-    const { data, response } = await httpClient.PUT('/private/barbers/{barberId}/photo', {
-      params: { path: { barberId } },
-      // openapi-typescript tipa un cuerpo `format: binary` como `string`, pero
-      // fetch envía un Blob tal cual: bodySerializer lo deja pasar sin
-      // convertirlo a JSON y la cabecera declara el tipo real de la imagen.
-      body: photo as unknown as string,
-      bodySerializer: (body: unknown) => body as Blob,
-      headers: { 'Content-Type': photo.type },
-    })
+    const { data, response } = await httpClient.PUT(
+      '/private/professionals/{professionalId}/photo',
+      {
+        params: { path: { professionalId: barberId } },
+        // openapi-typescript tipa un cuerpo `format: binary` como `string`, pero
+        // fetch envía un Blob tal cual: bodySerializer lo deja pasar sin
+        // convertirlo a JSON y la cabecera declara el tipo real de la imagen.
+        body: photo as unknown as string,
+        bodySerializer: (body: unknown) => body as Blob,
+        headers: { 'Content-Type': photo.type },
+      },
+    )
 
     if (response.ok && data) {
       return { kind: 'success', barber: toBarber(data) }
@@ -172,8 +175,8 @@ export async function uploadBarberPhoto(
 
 export async function removeBarberPhoto(barberId: string): Promise<RemoveBarberPhotoOutcome> {
   try {
-    const { response } = await httpClient.DELETE('/private/barbers/{barberId}/photo', {
-      params: { path: { barberId } },
+    const { response } = await httpClient.DELETE('/private/professionals/{professionalId}/photo', {
+      params: { path: { professionalId: barberId } },
     })
 
     if (response.ok) return { kind: 'success' }
@@ -188,7 +191,7 @@ export async function removeBarberPhoto(barberId: string): Promise<RemoveBarberP
 // operaciones actúan sobre la sesión: ninguna envía un identificador de usuario.
 export async function fetchMyBarber(): Promise<FetchMyBarberOutcome> {
   try {
-    const { data, response } = await httpClient.GET('/private/me/barber')
+    const { data, response } = await httpClient.GET('/private/me/professional')
     if (response.ok && data) return { kind: 'linked', barber: toBarber(data) }
     if (response.status === 404) return { kind: 'none' }
     return { kind: 'unexpected-error' }
@@ -199,7 +202,9 @@ export async function fetchMyBarber(): Promise<FetchMyBarberOutcome> {
 
 export async function linkMyBarber(barberId: string): Promise<LinkMyBarberOutcome> {
   try {
-    const { data, response } = await httpClient.PUT('/private/me/barber', { body: { barberId } })
+    const { data, response } = await httpClient.PUT('/private/me/professional', {
+      body: { professionalId: barberId },
+    })
     if (response.ok && data) return { kind: 'success', barber: toBarber(data) }
     switch (response.status) {
       case 404:
@@ -216,7 +221,7 @@ export async function linkMyBarber(barberId: string): Promise<LinkMyBarberOutcom
 
 export async function unlinkMyBarber(): Promise<UnlinkMyBarberOutcome> {
   try {
-    const { response } = await httpClient.DELETE('/private/me/barber')
+    const { response } = await httpClient.DELETE('/private/me/professional')
     if (response.ok) return { kind: 'success' }
     return { kind: 'unexpected-error' }
   } catch {

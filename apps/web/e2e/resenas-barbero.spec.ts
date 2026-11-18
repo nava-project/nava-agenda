@@ -58,7 +58,7 @@ async function installApi(page: Page, initial: StoredReview[] = []) {
   const reviews: StoredReview[] = initial.map((r) => ({ ...r }))
   let myReview: StoredReview | null = null
 
-  await page.route(`**/api/v1/public/barbershops/${SLUG}`, (route) =>
+  await page.route(`**/api/v1/public/businesses/${SLUG}`, (route) =>
     route.fulfill(
       json({
         name: 'Barbería Ejemplo',
@@ -77,39 +77,43 @@ async function installApi(page: Page, initial: StoredReview[] = []) {
     ),
   )
 
-  await page.route(`**/api/v1/public/barbershops/${SLUG}/services/${SERVICE_ID}/barbers`, (route) =>
-    route.fulfill(
-      json({
-        items: [
-          {
-            id: BARBER_ID,
-            fullName: 'Juan Pérez',
-            description: 'Fade y barba.',
-            photoUpdatedAt: null,
-            ...summary(reviews),
-          },
-          {
-            id: OTHER_BARBER_ID,
-            fullName: 'Ana Gómez',
-            description: null,
-            photoUpdatedAt: null,
-            rating: null,
-            ratingCount: 0,
-          },
-        ],
-      }),
-    ),
+  await page.route(
+    `**/api/v1/public/businesses/${SLUG}/services/${SERVICE_ID}/professionals`,
+    (route) =>
+      route.fulfill(
+        json({
+          items: [
+            {
+              id: BARBER_ID,
+              fullName: 'Juan Pérez',
+              description: 'Fade y barba.',
+              photoUpdatedAt: null,
+              ...summary(reviews),
+            },
+            {
+              id: OTHER_BARBER_ID,
+              fullName: 'Ana Gómez',
+              description: null,
+              photoUpdatedAt: null,
+              rating: null,
+              ratingCount: 0,
+            },
+          ],
+        }),
+      ),
   )
 
-  await page.route(`**/api/v1/public/barbershops/${SLUG}/barbers/${BARBER_ID}/reviews`, (route) =>
-    route.fulfill(
-      json({
-        ...summary(reviews),
-        items: reviews
-          .filter((r) => r.hiddenAt === null)
-          .map(({ rating, comment, createdAt }) => ({ rating, comment, createdAt })),
-      }),
-    ),
+  await page.route(
+    `**/api/v1/public/businesses/${SLUG}/professionals/${BARBER_ID}/reviews`,
+    (route) =>
+      route.fulfill(
+        json({
+          ...summary(reviews),
+          items: reviews
+            .filter((r) => r.hiddenAt === null)
+            .map(({ rating, comment, createdAt }) => ({ rating, comment, createdAt })),
+        }),
+      ),
   )
 
   await page.route(`**/api/v1/customer/appointments/${TOKEN}/review`, async (route) => {
@@ -133,12 +137,12 @@ async function installApi(page: Page, initial: StoredReview[] = []) {
   await page.route(`**/api/v1/customer/appointments/${TOKEN}`, (route) =>
     route.fulfill(
       json({
-        barbershopName: 'Barbería Ejemplo',
+        businessName: 'Barbería Ejemplo',
         timezone: 'America/Bogota',
         attendeeName: 'Ana Ríos',
         serviceName: 'Corte clásico',
         durationMinutes: 30,
-        barberName: 'Juan Pérez',
+        professionalName: 'Juan Pérez',
         startsAt: '2027-03-15T15:00:00Z',
         endsAt: '2027-03-15T15:30:00Z',
         status: 'completed',
@@ -146,8 +150,8 @@ async function installApi(page: Page, initial: StoredReview[] = []) {
         lateCancellationClientAllowed: true,
         lateCancellationReasonRequired: true,
         versionToken: 'version-token-1',
-        barbershopContactEmail: null,
-        barbershopContactPhone: null,
+        businessContactEmail: null,
+        businessContactPhone: null,
         rescheduleRemaining: 2,
         vocabulary: INITIAL_VOCABULARY,
         canReview: myReview === null,
@@ -164,10 +168,10 @@ async function installApi(page: Page, initial: StoredReview[] = []) {
     const method = route.request().method()
     if (url.pathname.endsWith('/auth/session')) {
       return route.fulfill(
-        json({ barbershop: { id: 'shop-nava', name: 'NAVA' }, expiresAt: '2099-01-01T00:00:00Z' }),
+        json({ business: { id: 'shop-nava', name: 'NAVA' }, expiresAt: '2099-01-01T00:00:00Z' }),
       )
     }
-    if (url.pathname.endsWith('/private/barbers') && method === 'GET') {
+    if (url.pathname.endsWith('/private/professionals') && method === 'GET') {
       const items = [
         {
           id: BARBER_ID,
@@ -184,7 +188,9 @@ async function installApi(page: Page, initial: StoredReview[] = []) {
         json({ items, page: 1, pageSize: 20, total: items.length, totalPages: 1 }),
       )
     }
-    const reviewMatch = url.pathname.match(/\/private\/barbers\/([^/]+)\/reviews(?:\/([^/]+))?$/)
+    const reviewMatch = url.pathname.match(
+      /\/private\/professionals\/([^/]+)\/reviews(?:\/([^/]+))?$/,
+    )
     if (reviewMatch && method === 'GET') {
       return route.fulfill(json({ ...summary(reviews), items: reviews }))
     }

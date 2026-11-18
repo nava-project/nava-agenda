@@ -199,7 +199,7 @@ test.describe('Horario laboral recurrente (HU-040)', () => {
     await addBarber(page, nameB)
 
     const barberBId = await page.evaluate(async (name) => {
-      const res = await fetch('/api/v1/private/barbers?limit=50', { credentials: 'include' })
+      const res = await fetch('/api/v1/private/professionals?limit=50', { credentials: 'include' })
       const body = (await res.json()) as { items: { id: string; fullName: string }[] }
       return body.items.find((b) => b.fullName === name)?.id ?? null
     }, nameB)
@@ -210,7 +210,7 @@ test.describe('Horario laboral recurrente (HU-040)', () => {
     await login(page, EMAIL, PASSWORD)
 
     const crossTenantStatus = await page.evaluate(async (id) => {
-      const res = await fetch(`/api/v1/private/barbers/${id}/working-hours`, {
+      const res = await fetch(`/api/v1/private/professionals/${id}/working-hours`, {
         credentials: 'include',
       })
       return res.status

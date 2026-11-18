@@ -5,7 +5,7 @@ import { INITIAL_VOCABULARY } from './fixtures/vocabularioInicial'
  * Recorrido E2E de HU-091 (docs/03-desarrollo/estrategia-pruebas.md §5.3):
  * catálogo público de servicios. Mismo criterio que
  * reserva-publica.spec.ts (HU-090): un único endpoint sin sesión (`GET
- * /public/barbershops/{slug}/services`), interceptado con
+ * /public/businesses/{slug}/services`), interceptado con
  * `page.route(...).fulfill(...)` para cubrir cada estado observable de
  * forma determinista, sin depender de `database/testdata/
  * hu091_catalogo_publico.sql` ni de un servidor Go real detrás.
@@ -49,7 +49,7 @@ test.describe('Catálogo público de servicios (HU-091)', () => {
   test('un enlace válido lista solo los servicios activos y asignados (CA-091-01)', async ({
     page,
   }) => {
-    await page.route('**/api/v1/public/barbershops/barberia-ejemplo/services**', async (route) => {
+    await page.route('**/api/v1/public/businesses/barberia-ejemplo/services**', async (route) => {
       await fulfillServices(route, [corteClasico, barba])
     })
 
@@ -66,7 +66,7 @@ test.describe('Catálogo público de servicios (HU-091)', () => {
   test('una barbería sin servicios públicos todavía muestra el estado vacío (CA-091-04)', async ({
     page,
   }) => {
-    await page.route('**/api/v1/public/barbershops/barberia-ejemplo/services**', async (route) => {
+    await page.route('**/api/v1/public/businesses/barberia-ejemplo/services**', async (route) => {
       await fulfillServices(route, [])
     })
 
@@ -79,7 +79,7 @@ test.describe('Catálogo público de servicios (HU-091)', () => {
   test('un enlace inválido, desconocido o no publicable produce la misma pantalla de "no encontrado" (CA-090-02, reutilizado)', async ({
     page,
   }) => {
-    await page.route('**/api/v1/public/barbershops/**/services**', async (route) => {
+    await page.route('**/api/v1/public/businesses/**/services**', async (route) => {
       await route.fulfill({
         status: 404,
         contentType: 'application/problem+json',
@@ -101,7 +101,7 @@ test.describe('Catálogo público de servicios (HU-091)', () => {
 
   test('un fallo de red permite reintentar sin recargar la página', async ({ page }) => {
     let attempt = 0
-    await page.route('**/api/v1/public/barbershops/barberia-ejemplo/services**', async (route) => {
+    await page.route('**/api/v1/public/businesses/barberia-ejemplo/services**', async (route) => {
       attempt += 1
       if (attempt === 1) {
         await route.abort('connectionfailed')
@@ -119,7 +119,7 @@ test.describe('Catálogo público de servicios (HU-091)', () => {
   })
 
   test('selecciona un servicio con clic y con teclado (CA-091-04)', async ({ page }) => {
-    await page.route('**/api/v1/public/barbershops/barberia-ejemplo/services**', async (route) => {
+    await page.route('**/api/v1/public/businesses/barberia-ejemplo/services**', async (route) => {
       await fulfillServices(route, [corteClasico, barba])
     })
 
@@ -142,7 +142,7 @@ test.describe('Catálogo público de servicios (HU-091)', () => {
   test('el botón "Reservar un turno" de la entrada pública navega al catálogo de servicios', async ({
     page,
   }) => {
-    await page.route('**/api/v1/public/barbershops/barberia-ejemplo', async (route) => {
+    await page.route('**/api/v1/public/businesses/barberia-ejemplo', async (route) => {
       await route.fulfill({
         status: 200,
         contentType: 'application/json',
@@ -155,7 +155,7 @@ test.describe('Catálogo público de servicios (HU-091)', () => {
         }),
       })
     })
-    await page.route('**/api/v1/public/barbershops/barberia-ejemplo/services**', async (route) => {
+    await page.route('**/api/v1/public/businesses/barberia-ejemplo/services**', async (route) => {
       await fulfillServices(route, [corteClasico])
     })
 

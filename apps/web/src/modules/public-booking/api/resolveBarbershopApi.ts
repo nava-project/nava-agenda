@@ -1,6 +1,6 @@
 // Único punto del módulo `public-booking` que llama al cliente HTTP tipado
 // (docs/03-desarrollo/estandar-frontend-vue.md §6). Traduce la respuesta
-// real de `GET /public/barbershops/{slug}` a `ResolveBarbershopOutcome`: la
+// real de `GET /public/businesses/{slug}` a `ResolveBarbershopOutcome`: la
 // página coordinadora nunca ve `Problem`, `status` HTTP crudo ni cabeceras.
 import { httpClient } from '@/shared/api/httpClient'
 import { isProblem } from '@/shared/api/problem'
@@ -18,7 +18,7 @@ import type { ResolveBarbershopOutcome } from '../model/barbershopProfileOutcome
  */
 export async function resolveBarbershop(slug: string): Promise<ResolveBarbershopOutcome> {
   try {
-    const { data, error, response } = await httpClient.GET('/public/barbershops/{slug}', {
+    const { data, error, response } = await httpClient.GET('/public/businesses/{slug}', {
       params: { path: { slug } },
     })
 

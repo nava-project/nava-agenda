@@ -67,7 +67,7 @@ for (const viewport of viewports) {
 
     test(`carga (${viewport.name}px)`, async ({ page }) => {
       await page.route(
-        `**/api/v1/public/barbershops/**/services/${SERVICE_ID}/barbers**`,
+        `**/api/v1/public/businesses/**/services/${SERVICE_ID}/professionals**`,
         async (route) => {
           // Mismo margen que reserva-publica-catalogo-evidencia-responsiva.spec.ts:
           // la ruta se carga de forma diferida y debe compilar/servir su
@@ -88,7 +88,7 @@ for (const viewport of viewports) {
       page,
     }) => {
       await page.route(
-        `**/api/v1/public/barbershops/**/services/${SERVICE_ID}/barbers**`,
+        `**/api/v1/public/businesses/**/services/${SERVICE_ID}/professionals**`,
         (route) => fulfillBarbers(route, [ana]),
       )
       await page.goto(`/reservar/barberia-ejemplo/servicios/${SERVICE_ID}/barbero`)
@@ -107,7 +107,7 @@ for (const viewport of viewports) {
 
     test(`elección explícita con varios barberos (${viewport.name}px)`, async ({ page }) => {
       await page.route(
-        `**/api/v1/public/barbershops/**/services/${SERVICE_ID}/barbers**`,
+        `**/api/v1/public/businesses/**/services/${SERVICE_ID}/professionals**`,
         (route) => fulfillBarbers(route, [ana, luis]),
       )
       await page.goto(`/reservar/barberia-ejemplo/servicios/${SERVICE_ID}/barbero`)
@@ -128,7 +128,7 @@ for (const viewport of viewports) {
 
     test(`estado vacío (${viewport.name}px)`, async ({ page }) => {
       await page.route(
-        `**/api/v1/public/barbershops/**/services/${SERVICE_ID}/barbers**`,
+        `**/api/v1/public/businesses/**/services/${SERVICE_ID}/professionals**`,
         (route) => fulfillBarbers(route, []),
       )
       await page.goto(`/reservar/barberia-ejemplo/servicios/${SERVICE_ID}/barbero`)
@@ -146,7 +146,7 @@ for (const viewport of viewports) {
       page,
     }) => {
       await page.route(
-        `**/api/v1/public/barbershops/**/services/${SERVICE_ID}/barbers**`,
+        `**/api/v1/public/businesses/**/services/${SERVICE_ID}/professionals**`,
         async (route) => {
           await route.fulfill({
             status: 404,

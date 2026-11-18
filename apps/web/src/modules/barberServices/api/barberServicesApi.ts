@@ -1,6 +1,6 @@
 // Único punto del módulo `barberServices` que llama al cliente HTTP tipado
 // (docs/03-desarrollo/estandar-frontend-vue.md §6). Traduce las respuestas
-// reales de GET/PUT/DELETE /private/barbers/{barberId}/services[/{serviceId}]
+// reales de GET/PUT/DELETE /private/professionals/{professionalId}/services[/{serviceId}]
 // a los outcomes discriminados que la página consume; ningún componente ve
 // `Problem`, `status` HTTP crudo ni cabeceras.
 //
@@ -29,7 +29,7 @@ const PICKER_LIMIT = 50
 
 export async function fetchBarberSummaries(): Promise<FetchBarberSummariesOutcome> {
   try {
-    const { data, response } = await httpClient.GET('/private/barbers', {
+    const { data, response } = await httpClient.GET('/private/professionals', {
       params: { query: { limit: PICKER_LIMIT } },
     })
 
@@ -64,12 +64,15 @@ export async function fetchAssignments(
   cursor?: string,
 ): Promise<FetchAssignmentsOutcome> {
   try {
-    const { data, response } = await httpClient.GET('/private/barbers/{barberId}/services', {
-      params: {
-        path: { barberId },
-        query: cursor ? { cursor } : {},
+    const { data, response } = await httpClient.GET(
+      '/private/professionals/{professionalId}/services',
+      {
+        params: {
+          path: { professionalId: barberId },
+          query: cursor ? { cursor } : {},
+        },
       },
-    })
+    )
 
     if (response.ok && data) {
       return { kind: 'success', page: toPage(data) }
@@ -92,9 +95,9 @@ export async function assignService(
 ): Promise<AssignServiceOutcome> {
   try {
     const { data, response } = await httpClient.PUT(
-      '/private/barbers/{barberId}/services/{serviceId}',
+      '/private/professionals/{professionalId}/services/{serviceId}',
       {
-        params: { path: { barberId, serviceId } },
+        params: { path: { professionalId: barberId, serviceId } },
       },
     )
 
@@ -119,9 +122,9 @@ export async function unassignService(
 ): Promise<UnassignServiceOutcome> {
   try {
     const { response } = await httpClient.DELETE(
-      '/private/barbers/{barberId}/services/{serviceId}',
+      '/private/professionals/{professionalId}/services/{serviceId}',
       {
-        params: { path: { barberId, serviceId } },
+        params: { path: { professionalId: barberId, serviceId } },
       },
     )
 
@@ -141,15 +144,15 @@ export async function unassignService(
 }
 
 function toAssignment(data: {
-  barberId: string
+  professionalId: string
   serviceId: string
   createdAt: string
 }): Assignment {
-  return { barberId: data.barberId, serviceId: data.serviceId, createdAt: data.createdAt }
+  return { barberId: data.professionalId, serviceId: data.serviceId, createdAt: data.createdAt }
 }
 
 function toPage(data: {
-  items: { barberId: string; serviceId: string; createdAt: string }[]
+  items: { professionalId: string; serviceId: string; createdAt: string }[]
   nextCursor: string | null
 }): AssignmentPage {
   return { items: data.items.map(toAssignment), nextCursor: data.nextCursor }

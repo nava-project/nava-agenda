@@ -68,11 +68,11 @@ async function openSettings(
     if (pathname.endsWith('/auth/session')) {
       await route.fulfill(
         json({
-          barbershop: { id: 'nava', name: 'NAVA QA Local' },
+          business: { id: 'nava', name: 'NAVA QA Local' },
           expiresAt: '2099-01-01T00:00:00Z',
         }),
       )
-    } else if (pathname.endsWith('/settings/barbershop')) {
+    } else if (pathname.endsWith('/settings/business')) {
       await route.fulfill(json(settings))
     } else if (pathname.endsWith('/settings/brand')) {
       await route.fulfill(json(brand))

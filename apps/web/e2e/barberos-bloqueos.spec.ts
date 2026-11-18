@@ -137,7 +137,8 @@ test('bloqueos dentro de Barberos: ciclo real, aislamiento, errores y evidencia 
     })
     const created = page.waitForResponse(
       (r) =>
-        r.request().method() === 'POST' && r.url().endsWith(`/barbers/${BARBER_A}/time-blocks`),
+        r.request().method() === 'POST' &&
+        r.url().endsWith(`/professionals/${BARBER_A}/time-blocks`),
     )
     await dialog.getByRole('button', { name: 'Guardar bloqueo' }).click()
     const result = await created
@@ -162,7 +163,7 @@ test('bloqueos dentro de Barberos: ciclo real, aislamiento, errores y evidencia 
     const createdSeries = page.waitForResponse(
       (r) =>
         r.request().method() === 'POST' &&
-        r.url().endsWith(`/barbers/${BARBER_A}/time-block-series`),
+        r.url().endsWith(`/professionals/${BARBER_A}/time-block-series`),
     )
     await weekly.getByRole('button', { name: 'Guardar bloqueo' }).click()
     const seriesResponse = await createdSeries
@@ -331,13 +332,13 @@ test('bloqueos dentro de Barberos: ciclo real, aislamiento, errores y evidencia 
     await pickBlockDate(page, 'Fecha de fin', '2099-02-01')
     await pickBlockTime(page, 'Hora de fin', '10:00')
     await dialog.getByLabel('Motivo (opcional)').fill('Datos conservados de prueba')
-    await page.route(`**/barbers/${BARBER_A}/time-blocks`, (route) =>
+    await page.route(`**/professionals/${BARBER_A}/time-blocks`, (route) =>
       route.request().method() === 'POST' ? route.abort() : route.continue(),
     )
     await dialog.getByRole('button', { name: 'Guardar bloqueo' }).click()
     await expect(dialog.getByText(/Tus datos siguen aquí/)).toBeVisible()
     await expect(dialog.getByLabel('Motivo (opcional)')).toHaveValue('Datos conservados de prueba')
-    await page.unroute(`**/barbers/${BARBER_A}/time-blocks`)
+    await page.unroute(`**/professionals/${BARBER_A}/time-blocks`)
     await page.keyboard.press('Escape')
 
     const contextB = await browser.newContext({ baseURL: 'http://localhost:5173' })
@@ -345,17 +346,17 @@ test('bloqueos dentro de Barberos: ciclo real, aislamiento, errores y evidencia 
       const other = await contextB.newPage()
       await login(other, 2)
       for (const route of [
-        `/barbers/${BARBER_A}/time-blocks`,
-        `/barbers/${BARBER_A}/time-block-series`,
+        `/professionals/${BARBER_A}/time-blocks`,
+        `/professionals/${BARBER_A}/time-block-series`,
       ]) {
         const response = await other.request.get(`/api/v1/private${route}`)
         expect(response.status()).toBe(404)
       }
-      const own = await other.request.get(`/api/v1/private/barbers/${BARBER_B}/time-blocks`)
+      const own = await other.request.get(`/api/v1/private/professionals/${BARBER_B}/time-blocks`)
       expect(own.status()).toBe(200)
       expect(JSON.stringify(await own.json())).not.toContain(marker)
       const secondBarber = await page.request.get(
-        `/api/v1/private/barbers/${BARBER_OTHER}/time-blocks`,
+        `/api/v1/private/professionals/${BARBER_OTHER}/time-blocks`,
       )
       expect(JSON.stringify(await secondBarber.json())).not.toContain(marker)
     } finally {
@@ -379,9 +380,11 @@ test('bloqueos dentro de Barberos: ciclo real, aislamiento, errores y evidencia 
     expect(pageErrors).toEqual([])
   } finally {
     if (blockId)
-      await page.request.delete(`/api/v1/private/barbers/${BARBER_A}/time-blocks/${blockId}`)
+      await page.request.delete(`/api/v1/private/professionals/${BARBER_A}/time-blocks/${blockId}`)
     if (seriesId)
-      await page.request.delete(`/api/v1/private/barbers/${BARBER_A}/time-block-series/${seriesId}`)
+      await page.request.delete(
+        `/api/v1/private/professionals/${BARBER_A}/time-block-series/${seriesId}`,
+      )
   }
 })
 

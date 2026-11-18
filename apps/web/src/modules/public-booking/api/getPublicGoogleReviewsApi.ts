@@ -1,5 +1,5 @@
 // Único punto del módulo `public-booking` que llama a
-// `GET /public/barbershops/{slug}/reviews` (HU-101, DEC-129).
+// `GET /public/businesses/{slug}/reviews` (HU-101, DEC-129).
 import { httpClient } from '@/shared/api/httpClient'
 import type { GetPublicGoogleReviewsOutcome } from '../model/publicGoogleReviewsOutcome'
 
@@ -10,7 +10,7 @@ import type { GetPublicGoogleReviewsOutcome } from '../model/publicGoogleReviews
  */
 export async function getPublicGoogleReviews(slug: string): Promise<GetPublicGoogleReviewsOutcome> {
   try {
-    const { data, response } = await httpClient.GET('/public/barbershops/{slug}/reviews', {
+    const { data, response } = await httpClient.GET('/public/businesses/{slug}/reviews', {
       params: { path: { slug } },
     })
     if (!response.ok || !data) return { kind: 'empty' }

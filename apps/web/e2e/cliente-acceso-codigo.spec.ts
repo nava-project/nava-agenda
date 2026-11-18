@@ -22,9 +22,9 @@ const evidenceDir = path.join(here, 'evidence', 'cliente-acceso-codigo')
 const axeScriptPath = path.join(here, '..', 'node_modules', 'axe-core', 'axe.min.js')
 
 const SLUG = 'barberia-ejemplo'
-const CHALLENGE_URL = `**/api/v1/public/barbershops/${SLUG}/customer-access/challenge`
-const VERIFY_URL = `**/api/v1/public/barbershops/${SLUG}/customer-access/verify`
-const PROFILE_URL = `**/api/v1/public/barbershops/${SLUG}`
+const CHALLENGE_URL = `**/api/v1/public/businesses/${SLUG}/customer-access/challenge`
+const VERIFY_URL = `**/api/v1/public/businesses/${SLUG}/customer-access/verify`
+const PROFILE_URL = `**/api/v1/public/businesses/${SLUG}`
 
 const TOKEN_A = '7kQ2mZ9xR4tW1vB8nC3pL6yH0sD5fG2jA9eU4iO7rT1'
 const TOKEN_B = '3n9F1sQe2z8mM5wYtR7pL0oXhC4bV6dK1aE9jU2gN8i'
@@ -48,12 +48,12 @@ const problem = (status: number, code: string) => ({
 })
 
 const APPOINTMENT_VIEW = {
-  barbershopName: 'Barbería Ejemplo',
+  businessName: 'Barbería Ejemplo',
   timezone: 'America/Bogota',
   attendeeName: 'Cliente Ejemplo',
   serviceName: 'Corte clásico',
   durationMinutes: 30,
-  barberName: 'Barbero Ejemplo',
+  professionalName: 'Barbero Ejemplo',
   startsAt: '2027-03-15T15:00:00Z',
   endsAt: '2027-03-15T15:30:00Z',
   status: 'confirmed',
@@ -61,8 +61,8 @@ const APPOINTMENT_VIEW = {
   lateCancellationClientAllowed: false,
   lateCancellationReasonRequired: false,
   versionToken: 'version-token-1',
-  barbershopContactEmail: 'contacto@barberia-ejemplo.test',
-  barbershopContactPhone: '+573001234567',
+  businessContactEmail: 'contacto@barberia-ejemplo.test',
+  businessContactPhone: '+573001234567',
   vocabulary: INITIAL_VOCABULARY,
   canReview: false,
   review: null,
@@ -76,7 +76,7 @@ const ONE_APPOINTMENT = {
       accessToken: TOKEN_A,
       startsAt: '2027-03-15T15:00:00Z',
       serviceName: 'Corte clásico',
-      barberName: 'Barbero Ejemplo',
+      professionalName: 'Barbero Ejemplo',
     },
   ],
 }
@@ -89,7 +89,7 @@ const TWO_APPOINTMENTS = {
       accessToken: TOKEN_B,
       startsAt: '2027-03-22T20:30:00Z',
       serviceName: 'Corte y barba',
-      barberName: 'Otra Barbera Ejemplo',
+      professionalName: 'Otra Barbera Ejemplo',
     },
   ],
 }
