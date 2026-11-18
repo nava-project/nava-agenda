@@ -1115,7 +1115,12 @@ lo necesita para layout; la apariencia semántica solo se elige con `variant`
 
 ```vue
 <BaseBadge variant="info">Confirmada</BaseBadge>
-<BaseBadge variant="neutral" dismissible label="Filtro profesional" @dismiss="onRemove">Juan</BaseBadge>
+<BaseBadge
+  variant="neutral"
+  dismissible
+  label="Filtro profesional"
+  @dismiss="onRemove"
+>Juan</BaseBadge>
 ```
 
 - `variant`: `neutral` | `primary` | `success` | `warning` | `danger` | `info`.
