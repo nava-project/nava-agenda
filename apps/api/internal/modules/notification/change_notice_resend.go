@@ -84,7 +84,7 @@ func (s ResendChangeNoticeSender) SendChangeNotice(
 		content.Title = "Tu turno fue cancelado"
 		content.Paragraphs = []string{
 			fmt.Sprintf("%s canceló tu turno. Estos son los datos del turno cancelado:", barbershopName),
-			"Si quieres otro horario, comunícate con la barbería o reserva de nuevo.",
+			"Si quieres otro horario, comunícate con el negocio o reserva de nuevo.",
 		}
 	case changeNoticeRescheduled:
 		subject = "Tu turno cambió de horario"
@@ -93,7 +93,7 @@ func (s ResendChangeNoticeSender) SendChangeNotice(
 		content.Title = "Tu turno cambió de horario"
 		content.Paragraphs = []string{
 			fmt.Sprintf("%s cambió el horario de tu turno. Este es el horario vigente:", barbershopName),
-			"Si no puedes asistir, comunícate con la barbería.",
+			"Si no puedes asistir, comunícate con el negocio.",
 		}
 	case changeNoticeReminder:
 		subject = "Recordatorio de tu turno"
@@ -102,7 +102,7 @@ func (s ResendChangeNoticeSender) SendChangeNotice(
 		content.Title = "Tu turno es muy pronto"
 		content.Paragraphs = []string{
 			fmt.Sprintf("Te recordamos tu turno en %s. Te esperamos:", barbershopName),
-			"Si no puedes asistir, avísale a la barbería con tiempo.",
+			"Si no puedes asistir, avísale al negocio con tiempo.",
 		}
 	default:
 		return errors.New("notification: tipo de aviso desconocido")

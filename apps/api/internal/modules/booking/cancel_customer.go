@@ -64,7 +64,7 @@ func (p CustomerCancellationPolicy) Evaluate(startsAt, now time.Time, reason str
 }
 
 func errCancellationWindowClosed() error {
-	return apperr.CancellationWindowClosed("el plazo para cancelar por tu cuenta ya venció; contacta a la barbería")
+	return apperr.CancellationWindowClosed("el plazo para cancelar por tu cuenta ya venció; contacta al negocio")
 }
 
 func errCancellationReasonRequired() error {

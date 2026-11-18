@@ -67,7 +67,7 @@ func (s *LoginOTPService) Get(ctx context.Context, barbershopID string) (LoginOT
 		return "", apperr.Internal(fmt.Errorf("shops: leer canal del código de acceso: %w", err))
 	}
 	if !found {
-		return "", apperr.NotFound("barbería no encontrada")
+		return "", apperr.NotFound("negocio no encontrado")
 	}
 	return channel, nil
 }
@@ -86,7 +86,7 @@ func (s *LoginOTPService) Update(ctx context.Context, barbershopID string, chann
 		return "", apperr.Internal(fmt.Errorf("shops: actualizar canal del código de acceso: %w", err))
 	}
 	if !found {
-		return "", apperr.NotFound("barbería no encontrada")
+		return "", apperr.NotFound("negocio no encontrado")
 	}
 	return stored, nil
 }

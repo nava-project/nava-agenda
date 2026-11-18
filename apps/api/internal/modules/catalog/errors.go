@@ -48,7 +48,7 @@ func errServiceNotFound() error {
 // apperr.KindValidation: no es un defecto de forma del campo, es un
 // conflicto con otra fila ya persistida.
 func errNameConflict() error {
-	return apperr.Conflict("ya existe un servicio activo con ese nombre en esta barbería")
+	return apperr.Conflict("ya existe un servicio activo con ese nombre en este negocio")
 }
 
 // errUpdateEmptyBody cubre CA-022-04/CA-022-07: PATCH exige al menos un

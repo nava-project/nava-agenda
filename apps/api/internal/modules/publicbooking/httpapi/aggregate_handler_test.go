@@ -121,7 +121,7 @@ func TestListPublicBarbersWithServicesHandler_UnknownOrMalformedSlug_ReturnsUnif
 		if ct := rec.Header().Get("Content-Type"); ct != "application/problem+json" {
 			t.Fatalf("Content-Type = %q", ct)
 		}
-		if !strings.Contains(rec.Body.String(), "no existe una barbería pública con ese enlace") {
+		if !strings.Contains(rec.Body.String(), "no existe un negocio público con ese enlace") {
 			t.Fatalf("debe ser el 404 uniforme de HU-090: %s", rec.Body.String())
 		}
 	}

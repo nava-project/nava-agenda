@@ -72,7 +72,7 @@ func TestTransactionalEmails_SendBrandedHTMLAndText(t *testing.T) {
 			if html == "" || text == "" {
 				t.Fatalf("la petición debe llevar html y text: html=%d text=%d", len(html), len(text))
 			}
-			if !strings.Contains(html, "NAVA") || !strings.Contains(text, "NAVA") {
+			if !strings.Contains(html, "Nava Agenda") || !strings.Contains(text, "Nava Agenda") {
 				t.Error("ambas versiones llevan la marca")
 			}
 			for _, want := range tc.wants {

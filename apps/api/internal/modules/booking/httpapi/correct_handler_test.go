@@ -224,7 +224,7 @@ func TestCorrectAppointmentStatusHandler_VersionConflict_Returns409WithDistingui
 // ya ocupada por otra cita.
 func TestCorrectAppointmentStatusHandler_ScheduleConflict_Returns409WithDistinguishableCode(t *testing.T) {
 	repo := &fakeCorrectRepository{
-		correctErr: apperr.Conflict("el barbero ya tiene una cita en ese intervalo"),
+		correctErr: apperr.Conflict("el profesional ya tiene una cita en ese intervalo"),
 	}
 	h := newCorrectHandler(repo)
 

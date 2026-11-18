@@ -36,7 +36,7 @@ func errSegmentsOverlap() error {
 // idempotencia (apperr.KindConflict, mismo criterio que
 // errOverlapConflict de HU-040).
 func errExceptionDateConflict() error {
-	return apperr.Conflict("ya existe una excepción de este barbero para esa fecha")
+	return apperr.Conflict("ya existe una excepción de este profesional para esa fecha")
 }
 
 func errExceptionSegmentsConflict() error {

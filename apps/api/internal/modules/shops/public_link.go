@@ -50,7 +50,7 @@ func (s *PublicLinkService) Get(ctx context.Context, barbershopID string) (Publi
 		return PublicLink{}, apperr.Internal(fmt.Errorf("shops: obtener enlace público: %w", err))
 	}
 	if !found {
-		return PublicLink{}, apperr.NotFound("barbería no encontrada")
+		return PublicLink{}, apperr.NotFound("negocio no encontrado")
 	}
 	return PublicLink{Slug: slug}, nil
 }

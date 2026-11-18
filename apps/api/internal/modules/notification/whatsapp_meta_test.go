@@ -110,7 +110,7 @@ func TestMetaSender_TextMode_PostsFreeTextWithExactCode(t *testing.T) {
 	if text["preview_url"] != false {
 		t.Fatalf("expected preview_url=false, got %v", text["preview_url"])
 	}
-	want := "NAVA — Tu código de verificación es: 583921\n\nNo lo compartas con nadie. Si no lo solicitaste, ignora este mensaje."
+	want := "Nava Agenda — Tu código de verificación es: 583921\n\nNo lo compartas con nadie. Si no lo solicitaste, ignora este mensaje."
 	if text["body"] != want {
 		t.Fatalf("unexpected body:\n%q", text["body"])
 	}

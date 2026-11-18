@@ -80,8 +80,8 @@ func TestGetBrandHandler_Success_ReturnsTheThirteenFields(t *testing.T) {
 	// La ubicación (DEC-130) viaja siempre: sin dirección ni coordenadas, con
 	// null explícito, nunca omitida.
 	want := map[string]any{
-		"accent": "brass", "businessTerm": "barbería", "businessTermGender": "feminine",
-		"professionalTerm": "barbero", "professionalTermPlural": "barberos", "professionalTermGender": "masculine",
+		"accent": "brass", "businessTerm": "negocio", "businessTermGender": "masculine",
+		"professionalTerm": "profesional", "professionalTermPlural": "profesionales", "professionalTermGender": "masculine",
 		"panelProfile":        "shop",
 		"hasPhysicalLocation": true, "address": nil, "latitude": nil, "longitude": nil,
 		// El interruptor de domicilio (DEC-131) viaja siempre; nace apagado.

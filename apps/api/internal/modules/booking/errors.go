@@ -7,7 +7,7 @@ import (
 )
 
 func errBarberIDRequired() error {
-	return apperr.Validation("el barbero es obligatorio")
+	return apperr.Validation("el profesional es obligatorio")
 }
 
 func errServiceIDRequired() error {
@@ -88,7 +88,7 @@ func errActorInvalid() error {
 // errBarberNotFound cubre HU-062 (CA-062-02): barberID con forma inválida,
 // inexistente o de otra barbería, sin distinguir la causa (RN-TEN-01).
 func errBarberNotFound() error {
-	return apperr.NotFound("no existe un barbero con ese identificador")
+	return apperr.NotFound("no existe un profesional con ese identificador")
 }
 
 // errDateInvalid cubre HU-062: el parámetro date no es una fecha civil

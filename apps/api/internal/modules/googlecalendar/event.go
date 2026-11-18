@@ -98,7 +98,7 @@ func BuildEvent(jc JobContext, connectionID string) (Event, string) {
 		if ev.Summary == "" {
 			ev.Summary = "Bloqueo"
 		}
-		ev.Description = "Bloqueo de agenda publicado por NAVA"
+		ev.Description = "Bloqueo de agenda publicado por Nava Agenda"
 	}
 	return ev, visibleHash(ev)
 }

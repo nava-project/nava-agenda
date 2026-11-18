@@ -184,7 +184,7 @@ func (c emailContent) Text() string {
 		b.WriteString(f)
 		b.WriteString("\n\n")
 	}
-	b.WriteString("NAVA · gestión para barberías")
+	b.WriteString("Nava Agenda · agenda de citas para negocios")
 	return b.String()
 }
 
@@ -270,7 +270,7 @@ const emailHTML = `<!doctype html>
       {{- end}}
     </td></tr>
     <tr><td class="px" align="center" style="padding:20px 32px 4px 32px;font-family:-apple-system,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;">
-      <div class="muted" style="font-size:12px;line-height:1.5;letter-spacing:1.5px;text-transform:uppercase;color:{{.TextMuted}};">NAVA · gestión para barberías</div>
+      <div class="muted" style="font-size:12px;line-height:1.5;letter-spacing:1.5px;text-transform:uppercase;color:{{.TextMuted}};">Nava Agenda · agenda de citas para negocios</div>
     </td></tr>
   </table>
 </td></tr>

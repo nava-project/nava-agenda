@@ -184,17 +184,17 @@ func TestBrandService_Update_CanceledContext_NeverWrites(t *testing.T) {
 	}
 }
 
-func TestDefaultBrand_IsValidAndMatchesTheMigrationDefaults(t *testing.T) {
+func TestDefaultBrand_IsValidAndIsTheGenericVocabulary(t *testing.T) {
 	b := shops.DefaultBrand
 	if !shops.IsAllowedAccent(b.Accent) || !shops.IsValidTerm(b.BusinessTerm) ||
 		!shops.IsValidTerm(b.ProfessionalTerm) || !shops.IsValidTerm(b.ProfessionalTermPlural) ||
 		!b.BusinessTermGender.IsValid() || !b.ProfessionalTermGender.IsValid() {
 		t.Fatalf("DefaultBrand must satisfy its own validation: %+v", b)
 	}
-	// Los literales de la migración 20261003120000_add_barbershop_brand.sql.
-	if b.Accent != "brass" || b.BusinessTerm != "barbería" || b.ProfessionalTerm != "barbero" ||
-		b.ProfessionalTermPlural != "barberos" || b.BusinessTermGender != shops.GenderFeminine ||
+	// El vocabulario genérico de Nava Agenda (DEC-183), igual que DEFAULT_BRAND del cliente.
+	if b.Accent != "brass" || b.BusinessTerm != "negocio" || b.ProfessionalTerm != "profesional" ||
+		b.ProfessionalTermPlural != "profesionales" || b.BusinessTermGender != shops.GenderMasculine ||
 		b.ProfessionalTermGender != shops.GenderMasculine {
-		t.Fatalf("DefaultBrand drifted from the migration defaults: %+v", b)
+		t.Fatalf("DefaultBrand drifted from the generic vocabulary: %+v", b)
 	}
 }

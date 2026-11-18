@@ -89,7 +89,7 @@ func errIntegrationDisabled() error {
 }
 
 func errNoLinkedBarber() error {
-	return apperr.InvalidState("vincula tu usuario con un barbero antes de conectar Google Calendar")
+	return apperr.InvalidState("vincula tu usuario con un profesional antes de conectar Google Calendar")
 }
 
 func errNotConnected() error {
