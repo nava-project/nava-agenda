@@ -8,9 +8,11 @@ description: >
   docs/00-control/dudas-pendientes.md), Path=/api/v1, vigencia de 30 días.
   El valor de la cookie es un token opaco aleatorio; nunca aparece en el
   cuerpo de la respuesta ni en ningún ejemplo de esta documentación.
+  Si la solicitud traía la cookie con el nombre anterior a DEC-183
+  (`barberia_session`), una segunda cabecera Set-Cookie la borra (Max-Age=0).
 schema:
   type: string
 examples:
   formaIlustrativa:
     summary: Forma ilustrativa, no un valor real
-    value: barberia_session=***; Path=/api/v1; Max-Age=2592000; HttpOnly; Secure; SameSite=Lax
+    value: nava_agenda_session=***; Path=/api/v1; Max-Age=2592000; HttpOnly; Secure; SameSite=Lax

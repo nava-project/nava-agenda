@@ -4,6 +4,17 @@ Formato basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/).
 Ver [`docs/06-api/estandar-openapi.md`](../../docs/06-api/estandar-openapi.md)
 sección 18 para qué cuenta como cambio compatible o incompatible.
 
+## 1.1.0 · 2026-11-18
+
+### Cambiado (compatible)
+
+- La cookie de sesión pasa a llamarse `nava_agenda_session` (`DEC-183`, issue #662;
+  `SessionCookie`, `SetCookieSession`, `ClearCookieSession`). Las sesiones abiertas
+  no se cierran: si falta la cookie nueva, el servidor acepta `barberia_session`
+  con las mismas reglas; al iniciar o renovar la sesión escribe la nueva y borra la
+  vieja, y al cerrar sesión borra las dos. El navegador gestiona la cookie por su
+  cuenta (HttpOnly), así que ningún cliente tiene que cambiar.
+
 ## 1.0.0 · 2026-11-18
 
 ### Cambiado (incompatible)

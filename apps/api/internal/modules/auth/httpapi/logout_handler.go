@@ -3,7 +3,6 @@ package httpapi
 import (
 	"errors"
 	"net/http"
-	"time"
 
 	"nava-agenda/internal/modules/auth"
 	"nava-agenda/internal/platform/apperr"
@@ -47,16 +46,7 @@ func (h *LogoutHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	http.SetCookie(w, &http.Cookie{
-		Name:     h.cookie.Name,
-		Value:    "",
-		Path:     h.cookie.Path,
-		Expires:  time.Unix(0, 0),
-		MaxAge:   -1,
-		HttpOnly: true,
-		Secure:   h.cookie.Secure,
-		SameSite: h.cookie.SameSite,
-	})
+	h.cookie.clear(w)
 
 	w.WriteHeader(http.StatusNoContent)
 }

@@ -134,7 +134,7 @@ func createSessionCookie(t *testing.T, db *database.DB, shop, staffUserID, label
 	return raw
 }
 
-const cookieName = "barberia_session"
+const cookieName = "nava_agenda_session"
 
 func doLogoutRequest(router *chi.Mux, rawToken string) *httptest.ResponseRecorder {
 	req := httptest.NewRequest(http.MethodPost, "/api/v1/private/auth/logout", nil)

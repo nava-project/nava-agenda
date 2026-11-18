@@ -20,9 +20,13 @@
 # descripción se actualiza si el propietario confirma valores distintos.
 type: apiKey
 in: cookie
-name: barberia_session
+name: nava_agenda_session
 description: >
   Cookie de sesión opaca y revocable (DEC-050). HttpOnly, Secure,
   SameSite=Lax (provisional, DP-SEG-07), 30 días de vigencia desde la
   emisión. El valor no tiene significado fuera del servidor: es un token
   aleatorio cuyo hash SHA-256 se compara contra staff_session.token_hash.
+  Transición (DEC-183, #662): si falta `nava_agenda_session`, el servidor
+  acepta la cookie con el nombre anterior, `barberia_session`, con las mismas
+  reglas; al renovar la sesión la reemite como `nava_agenda_session` y borra la
+  vieja.

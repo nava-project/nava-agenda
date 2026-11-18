@@ -52,7 +52,7 @@ func TestSessionContext_HTTP_ValidSession_ReturnsRealBusinessName(t *testing.T) 
 	}
 	var renewed *http.Cookie
 	for _, c := range rec.Result().Cookies() {
-		if c.Name == "barberia_session" {
+		if c.Name == "nava_agenda_session" {
 			renewed = c
 		}
 	}
