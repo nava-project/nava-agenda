@@ -107,6 +107,8 @@ rename_roles() {
   pending="$(psql_db -c "SELECT EXISTS (SELECT 1 FROM pg_roles WHERE rolname LIKE 'barberia\_%')")"
   [ "$pending" = t ] || return 0
   log "roles barberia_* → agenda_* (DEC-183)"
+  [ -f "$here/../database/roles/rename_to_agenda.sql" ] \
+    || fail "falta database/roles/rename_to_agenda.sql en el release: no se renombran los roles"
   psql_db -c "$(cat "$here/../database/roles/rename_to_agenda.sql")" \
     || fail "el renombrado de roles falló: la aplicación en ejecución no se tocó"
   sed -i -E 's#://barberia_(app|worker|migrator):#://agenda_\1:#' \

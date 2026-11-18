@@ -75,10 +75,11 @@ case "$phase" in
     . "$state/src/.nava-release"   # DB_TAG
     [[ "$DB_TAG" =~ ^[0-9a-f]{12}$ ]] || fail "DB_TAG inválido: $DB_TAG"
     ssh_opts=(-i "$SSH_KEY" -o BatchMode=yes -o StrictHostKeyChecking=yes -o "UserKnownHostsFile=$known_hosts")
-    # Solo lo necesario: compose, scripts y migraciones, del mismo commit que probó el CI.
+    # Solo lo necesario: compose, scripts, migraciones y el renombrado de roles que aplica
+    # deploy.sh (DEC-183), del mismo commit que probó el CI.
     # SHA y DB_TAG se expanden aquí, en el cliente, a propósito (son hexadecimales).
     # shellcheck disable=SC2029
-    tar -C "$state/src" -czf - deploy database/atlas.hcl database/migrations \
+    tar -C "$state/src" -czf - deploy database/atlas.hcl database/migrations database/roles \
       | ssh "${ssh_opts[@]}" "deploy@$deploy_host" \
           "set -e; d=/srv/barberia/releases/$sha; rm -rf \"\$d\"; mkdir -p \"\$d\"; tar xzpf - -C \"\$d\""
     # Las imágenes ya están en el Docker del host (las construyó este Jenkins). --no-pull no
