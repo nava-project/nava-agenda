@@ -1,9 +1,9 @@
 ---
 titulo: "Registro de decisiones"
-version: "1.78"
+version: "1.79"
 estado: "Vigente"
 responsable: "Propietario del proyecto"
-ultima_actualizacion: "2026-11-17"
+ultima_actualizacion: "2026-11-18"
 documentos_relacionados:
   - "contradicciones.md"
   - "matriz-trazabilidad.md"
@@ -2396,3 +2396,24 @@ Cada código `DEC-*` es estable y no se reutiliza. Este registro normaliza respu
   - Un tramo que cruce medianoche en una sola fila: complica responder «¿qué rige el sábado?»; dos tramos lo dejan explícito.
 - **Documentos afectados:** migración `20261120090000_create_barbershop_opening_hour.sql`, `database/README.md`, suite `database/tests/barbershop_horario.sql`, contrato OpenAPI (0.59.0), `historias-usuario.md` (`HU-107`), `matriz-trazabilidad.md`, `historial-cambios.md`.
 - **Fuente:** decisión del propietario del 2026-11-17; issue [#654](https://github.com/bcaceres19/barberia/issues/654).
+
+### DEC-183 · Nava Agenda: la app sirve a cualquier negocio que agenda citas, vive en `agenda.nava.wtf` y la landing pasa a un proyecto aparte en `nava.wtf`
+
+- **Fecha:** 2026-11-18.
+- **Decisión:**
+  1. **Nombre.** El producto se llama **Nava Agenda**. Deja de ser solo para barberías: sirve a cualquier negocio que muestra servicios y agenda citas (salones, consultorios, estudios, barberías).
+  2. **Términos.** En todo lo que ve una persona, «barbería» pasa a **«negocio»** y «barbero» a **«profesional»** («profesional independiente», «elige profesional»). El nombre propio de un negocio (p. ej. «Vibras Barbería») no se toca.
+  3. **Dominio.** La app y su API viven en **`agenda.nava.wtf`**. `nava.wtf` queda para la **landing de la familia NAVA**, que se separa a un repositorio propio (`bcaceres19/nava`, local `~/Proyectos/nava`) junto con `/privacidad` y `/terminos`, cuyas URL están registradas en Google y no cambian. Las rutas de la app que lleguen a `nava.wtf` redirigen a `agenda.nava.wtf` con la misma ruta; `nava.wtf/api/*` sigue llegando al API durante la transición de Odin.
+  4. **Alcance del cambio de nombre: todo.** Además de la marca y los textos, se renombran el esquema de base de datos (`barbershop` → `business`, `barber` → `professional` y derivadas, `barbershop_id` → `business_id`, GUC `app.business_id`, roles `barberia_*` → `agenda_*`), el contrato HTTP (`/barbershops` → `/businesses`, `/barbers` → `/professionals`, campos JSON equivalentes; OpenAPI 1.0.0), los identificadores de Go y Vue (módulo Go `nava-agenda`), la documentación vigente, el repositorio de GitHub (`bcaceres19/nava-agenda`), Jenkins, las imágenes, la ruta del servidor y la carpeta local (`~/Proyectos/nava-agenda`).
+  5. **Entregas separadas** (issues #656–#664), en este orden para no romper producción: DEC y plan → app en `agenda.nava.wtf` → landing aparte → textos → base de datos → contrato → identificadores → documentación → repositorio e infraestructura. El plan vive en `docs/10-backlog/prompts/orchestration/nava-agenda.md`.
+  6. **Lo que no se reescribe.** Las migraciones ya aplicadas son inmutables: el cambio de esquema es una migración nueva. Las decisiones, el historial y los prompts ya ejecutados conservan sus términos de entonces; la documentación vigente anota la equivalencia.
+  7. **Compatibilidad.** Las rutas de integración de Odin conservan un alias con la forma vieja hasta que Odin publique su cambio; los volúmenes y la base de datos de producción no cambian de nombre físico, para no mover datos.
+- **Fuera de alcance:** cambiar el nombre de las plantillas de WhatsApp ya aprobadas por Meta (su pie dice «NAVA Agendas»; una plantilla nueva exige otra aprobación), un catálogo de tipos de negocio o vocabulario por negocio, y el contenido de la landing nueva más allá de moverla.
+- **Quién lo decidió:** el propietario, el 2026-11-18: «Cambia todo de este proyecto a Nava Agenda… ya no será solo barberías… ajusta el nombre de la carpeta, el repo, todo… se usará agenda.nava.wtf». En la consulta eligió «Todo, también BD y API», «Negocio / profesional», `nava-agenda` como repositorio y carpeta, y que la landing quede en `nava.wtf` como proyecto aparte.
+- **Responsable:** propietario del proyecto.
+- **Motivo:** diversificar y llegar a más negocios. Un nombre y un vocabulario de barbería espantan a un salón o un consultorio, y mantener nombres internos distintos de los visibles confunde a quien mantiene el código.
+- **Alternativas descartadas:**
+  - Cambiar solo marca y textos y dejar los identificadores internos: menos riesgo, pero el propietario pidió cambiarlo todo.
+  - Servir la app en los dos dominios: duplica cookies, URI de OAuth y referrers de Maps.
+- **Documentos afectados:** este registro, `historial-cambios.md`, `docs/10-backlog/prompts/orchestration/nava-agenda.md` y su índice; las entregas siguientes enlazan esta decisión.
+- **Fuente:** decisión del propietario del 2026-11-18; issues [#656](https://github.com/bcaceres19/barberia/issues/656)–[#664](https://github.com/bcaceres19/barberia/issues/664).
