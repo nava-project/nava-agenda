@@ -1,25 +1,25 @@
 // Jobs del Jenkins de la VPS (DEC-177), como código (Job DSL). Una carpeta por proyecto;
 // cada proyecto trae sus Jenkinsfiles en su propio repositorio.
 
-def repoUrl = 'https://github.com/bcaceres19/barberia'
+def repoUrl = 'https://github.com/bcaceres19/nava-agenda'
 
-folder('barberia') {
-  displayName('Barbería (NAVA)')
+folder('agenda') {
+  displayName('Nava Agenda')
   description("Repositorio ${repoUrl}")
 }
 
 // CI: cada PR contra main y cada commit de main (equivale al antiguo ci.yml). El estado se
-// publica en el commit de GitHub. En main, si pasa, dispara barberia/deploy.
-multibranchPipelineJob('barberia/ci') {
+// publica en el commit de GitHub. En main, si pasa, dispara agenda/deploy.
+multibranchPipelineJob('agenda/ci') {
   displayName('CI')
   description('Checks de Go, OpenAPI, frontend, base de datos y despliegue. Jenkinsfile en la raíz del repo.')
   branchSources {
     branchSource {
       source {
         github {
-          id('barberia-github')
+          id('nava-agenda-github')
           repoOwner('bcaceres19')
-          repository('barberia')
+          repository('nava-agenda')
           repositoryUrl("${repoUrl}.git")
           configuredByUrl(false)
           credentialsId('github-token')
@@ -55,7 +55,7 @@ multibranchPipelineJob('barberia/ci') {
 
 // Deploy: lo dispara el CI de main con el SHA probado (AUTO=true) o una persona para
 // reintentar o volver a un SHA anterior de main (AUTO=false).
-pipelineJob('barberia/deploy') {
+pipelineJob('agenda/deploy') {
   displayName('Deploy')
   description('Despliega un SHA de main en la VPS: imágenes, respaldo, migraciones, arranque y humo.')
   parameters {
@@ -81,7 +81,7 @@ pipelineJob('barberia/deploy') {
 }
 
 // ---------------------------------------------------------------------------------------
-// Nava · Pedidos (bcaceres19/nava-pedidos, /srv/pedidos). Mismo patrón que barberia/: el
+// Nava · Pedidos (bcaceres19/nava-pedidos, /srv/pedidos). Mismo patrón que agenda/: el
 // Jenkinsfile y deploy/jenkins/deploy.Jenkinsfile viven en su propio repositorio.
 
 def pedidosUrl = 'https://github.com/bcaceres19/nava-pedidos'
@@ -157,7 +157,7 @@ pipelineJob('pedidos/deploy') {
 
 // ---------------------------------------------------------------------------------------
 // Nava · Landing (bcaceres19/nava, /srv/nava; DEC-183). La landing de la familia NAVA y
-// sus documentos legales, servidos en nava.wtf. Mismo patrón que barberia/: el Jenkinsfile
+// sus documentos legales, servidos en nava.wtf. Mismo patrón que agenda/: el Jenkinsfile
 // y deploy/jenkins/deploy.Jenkinsfile viven en su propio repositorio.
 
 def navaUrl = 'https://github.com/bcaceres19/nava'
@@ -232,7 +232,7 @@ pipelineJob('nava/deploy') {
 }
 
 // ---------------------------------------------------------------------------------------
-// Nava Nexos, antes Odin (bcaceres19/nava-nexos, /srv/odin). Mismo patrón que barberia/: el
+// Nava Nexos, antes Odin (bcaceres19/nava-nexos, /srv/odin). Mismo patrón que agenda/: el
 // Jenkinsfile y deploy/jenkins/deploy.Jenkinsfile viven en su propio repositorio.
 
 def odinUrl = 'https://github.com/bcaceres19/nava-nexos'

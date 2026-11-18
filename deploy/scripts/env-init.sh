@@ -1,13 +1,13 @@
 #!/usr/bin/env bash
 # Prepara la configuración y los secretos que usa Docker Compose en el VPS.
 #
-# CONFIGURACIÓN (sin secretos) en /srv/barberia/env/, cargada con `env_file`:
+# CONFIGURACIÓN (sin secretos) en /srv/nava-agenda/env/, cargada con `env_file`:
 #   stack.env    interpolación de compose (dominio, registro, rutas, puertos)
 #   db.env       usuario y nombre de la base
 #   app.env      API y worker (entorno, proxies, proveedores no sensibles)
 #   backup.env   servicio de respaldos
 #
-# SECRETOS en /srv/barberia/secrets/<servicio>/<NOMBRE>, un archivo por secreto
+# SECRETOS en /srv/nava-agenda/secrets/<servicio>/<NOMBRE>, un archivo por secreto
 # (modo 600, carpetas 700). Docker monta cada carpeta en /run/secrets del servicio
 # correspondiente y `with-secrets` exporta cada archivo como variable de entorno:
 #   db/      POSTGRES_PASSWORD, NAVA_{MIGRATOR,APP,WORKER,BACKUP}_PASSWORD
@@ -25,9 +25,9 @@
 set -euo pipefail
 umask 077
 
-ENV_DIR="${NAVA_ENV_DIR:-/srv/barberia/env}"
-SECRETS_DIR="${NAVA_SECRETS_DIR:-/srv/barberia/secrets}"
-BACKUP_DIR="${NAVA_BACKUP_DIR:-/srv/barberia/backups}"
+ENV_DIR="${NAVA_ENV_DIR:-/srv/nava-agenda/env}"
+SECRETS_DIR="${NAVA_SECRETS_DIR:-/srv/nava-agenda/secrets}"
+BACKUP_DIR="${NAVA_BACKUP_DIR:-/srv/nava-agenda/backups}"
 REGISTRY="${NAVA_REGISTRY:-ghcr.io/bcaceres19}"
 DOMAIN=""
 ACME_EMAIL=""
@@ -130,7 +130,7 @@ APP_META_WHATSAPP_LANGUAGE_CODE=es
 # --- Opcionales ---
 # Google Calendar: o se configuran las cuatro variables (client id, client secret,
 # redirect URI y llave de cifrado; las dos últimas sensibles van en secretos) o ninguna.
-# URI de redirección a registrar en Google Cloud: https://agenda.$DOMAIN/panel/barberia/google-calendar/callback
+# URI de redirección a registrar en Google Cloud: https://agenda.$DOMAIN/panel/negocio/google-calendar/callback
 GOOGLE_CALENDAR_CLIENT_ID=
 GOOGLE_CALENDAR_REDIRECT_URI=
 EOF

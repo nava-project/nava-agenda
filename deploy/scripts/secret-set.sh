@@ -14,7 +14,7 @@
 set -euo pipefail
 umask 077
 
-SECRETS_DIR="${NAVA_SECRETS_DIR:-/srv/barberia/secrets}"
+SECRETS_DIR="${NAVA_SECRETS_DIR:-/srv/nava-agenda/secrets}"
 scope="${1:?uso: secret-set.sh <app|backup> <NOMBRE>}"
 name="${2:?uso: secret-set.sh <app|backup> <NOMBRE>}"
 

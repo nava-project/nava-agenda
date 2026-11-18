@@ -36,16 +36,16 @@ x-hardening: &hardening
   security_opt: ["no-new-privileges:true"]
 
 x-app-env: &app-env
-  - path: ${NAVA_ENV_DIR:-/srv/barberia/env}/app.env
+  - path: ${NAVA_ENV_DIR:-/srv/nava-agenda/env}/app.env
     format: raw
 
 services:
   db:
     <<: *hardening
-    image: ${NAVA_REGISTRY:-ghcr.io/bcaceres19}/barberia-db:${DB_IMAGE_TAG:?DB_IMAGE_TAG es obligatorio}
+    image: ${NAVA_REGISTRY:-ghcr.io/bcaceres19}/nava-agenda-db:${DB_IMAGE_TAG:?DB_IMAGE_TAG es obligatorio}
     command: ["postgres", "-c", "config_file=/etc/postgresql/postgresql.conf"]
     env_file:
-      - path: ${NAVA_ENV_DIR:-/srv/barberia/env}/db.env
+      - path: ${NAVA_ENV_DIR:-/srv/nava-agenda/env}/db.env
         format: raw
     # La imagen oficial arranca como root, ajusta permisos y baja a `postgres`.
     cap_add: [CHOWN, DAC_OVERRIDE, FOWNER, SETUID, SETGID]
@@ -53,7 +53,7 @@ services:
     stop_grace_period: 60s
     volumes:
       - db-data:/var/lib/postgresql/data
-      - ${NAVA_SECRETS_DIR:-/srv/barberia/secrets}/db:/run/secrets:ro,z
+      - ${NAVA_SECRETS_DIR:-/srv/nava-agenda/secrets}/db:/run/secrets:ro,z
     tmpfs:
       - /tmp
       - /var/run/postgresql
@@ -73,14 +73,14 @@ services:
 
   api:
     <<: *hardening
-    image: ${NAVA_REGISTRY:-ghcr.io/bcaceres19}/barberia-backend:${IMAGE_TAG:?IMAGE_TAG es obligatorio}
+    image: ${NAVA_REGISTRY:-ghcr.io/bcaceres19}/nava-agenda-backend:${IMAGE_TAG:?IMAGE_TAG es obligatorio}
     user: "1001:1001"
     command: ["api"]
     env_file: *app-env
     environment:
       GOMEMLIMIT: 400MiB
     volumes:
-      - ${NAVA_SECRETS_DIR:-/srv/barberia/secrets}/app:/run/secrets:ro,z
+      - ${NAVA_SECRETS_DIR:-/srv/nava-agenda/secrets}/app:/run/secrets:ro,z
     tmpfs: [/tmp]
     networks: [app, data, egress]
     depends_on:
@@ -97,14 +97,14 @@ services:
 
   worker:
     <<: *hardening
-    image: ${NAVA_REGISTRY:-ghcr.io/bcaceres19}/barberia-backend:${IMAGE_TAG:?IMAGE_TAG es obligatorio}
+    image: ${NAVA_REGISTRY:-ghcr.io/bcaceres19}/nava-agenda-backend:${IMAGE_TAG:?IMAGE_TAG es obligatorio}
     user: "1001:1001"
     command: ["worker"]
     env_file: *app-env
     environment:
       GOMEMLIMIT: 200MiB
     volumes:
-      - ${NAVA_SECRETS_DIR:-/srv/barberia/secrets}/app:/run/secrets:ro,z
+      - ${NAVA_SECRETS_DIR:-/srv/nava-agenda/secrets}/app:/run/secrets:ro,z
     tmpfs: [/tmp]
     networks: [data, egress]
     depends_on:
@@ -115,7 +115,7 @@ services:
 
   web:
     <<: *hardening
-    image: ${NAVA_REGISTRY:-ghcr.io/bcaceres19}/barberia-web:${IMAGE_TAG:?}
+    image: ${NAVA_REGISTRY:-ghcr.io/bcaceres19}/nava-agenda-web:${IMAGE_TAG:?}
     user: "10002:10002"
     # Puertos <1024 sin ser root: el contenedor los habilita en su propio espacio de red.
     sysctls:
@@ -157,15 +157,15 @@ services:
   # semanal. Misma imagen que la base (misma versión de pg_dump).
   backup:
     <<: *hardening
-    image: ${NAVA_REGISTRY:-ghcr.io/bcaceres19}/barberia-db:${DB_IMAGE_TAG:?}
+    image: ${NAVA_REGISTRY:-ghcr.io/bcaceres19}/nava-agenda-db:${DB_IMAGE_TAG:?}
     user: "1001:1001"
     entrypoint: ["with-secrets", "scheduler.sh"]
     env_file:
-      - path: ${NAVA_ENV_DIR:-/srv/barberia/env}/backup.env
+      - path: ${NAVA_ENV_DIR:-/srv/nava-agenda/env}/backup.env
         format: raw
     volumes:
-      - ${NAVA_BACKUP_DIR:-/srv/barberia/backups}:/backups:z
-      - ${NAVA_SECRETS_DIR:-/srv/barberia/secrets}/backup:/run/secrets:ro,z
+      - ${NAVA_BACKUP_DIR:-/srv/nava-agenda/backups}:/backups:z
+      - ${NAVA_SECRETS_DIR:-/srv/nava-agenda/secrets}/backup:/run/secrets:ro,z
     tmpfs:
       - /tmp:size=512m,mode=1777
     networks: [data, egress]
@@ -188,7 +188,7 @@ services:
   # trae shell y no podría leer los archivos de secreto.
   migrate:
     profiles: [tools]
-    image: ${NAVA_REGISTRY:-ghcr.io/bcaceres19}/barberia-db:${DB_IMAGE_TAG:?}
+    image: ${NAVA_REGISTRY:-ghcr.io/bcaceres19}/nava-agenda-db:${DB_IMAGE_TAG:?}
     user: "1001:1001"
     entrypoint: ["with-secrets", "atlas"]
     working_dir: /database
@@ -197,7 +197,7 @@ services:
     volumes:
       - ../database:/database:ro,z
       - ./atlas-bootstrap.hcl:/atlas-bootstrap.hcl:ro,z
-      - ${NAVA_SECRETS_DIR:-/srv/barberia/secrets}/migrate:/run/secrets:ro,z
+      - ${NAVA_SECRETS_DIR:-/srv/nava-agenda/secrets}/migrate:/run/secrets:ro,z
     tmpfs: [/tmp]
     networks: [data]
     read_only: true

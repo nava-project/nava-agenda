@@ -47,7 +47,7 @@ restored="$(q "$db" "SELECT count(*) FROM information_schema.tables WHERE table_
 revisions="$(q "$db" "SELECT count(*) FROM atlas_schema_revisions.atlas_schema_revisions")"
 [ "$revisions" -ge 1 ] || { log "ERROR: sin historial de migraciones en la copia restaurada"; exit 1; }
 
-# Las políticas RLS deben haber sobrevivido: sin ellas habría fuga entre barberías.
+# Las políticas RLS deben haber sobrevivido: sin ellas habría fuga entre negocios.
 rls="$(q "$db" "SELECT count(*) FROM pg_policies WHERE schemaname='public'")"
 [ "$rls" -ge 1 ] || { log "ERROR: la copia restaurada no tiene políticas RLS"; exit 1; }
 

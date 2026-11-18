@@ -6,7 +6,7 @@
 # toma tal cual, sin el salto de línea final.
 #
 #   sudo bash jenkins-secret-set.sh GITHUB_TOKEN               # pide el valor sin eco
-#   gh auth token | ssh barberia-vps 'sudo bash .../jenkins-secret-set.sh GITHUB_TOKEN'
+#   gh auth token | ssh nava-vps 'sudo bash .../jenkins-secret-set.sh GITHUB_TOKEN'
 #
 # Jenkins lee los secretos al arrancar: aplícalo con `sudo bash jenkins-up.sh --restart`.
 set -euo pipefail

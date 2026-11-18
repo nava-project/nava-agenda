@@ -22,6 +22,6 @@ El catálogo cubre las 17 pantallas implementadas en el checkout de #300, diálo
 | [Combinaciones](07-combinaciones.md) | Factores de su pantalla |
 | [Cobertura y límites](08-cobertura.md) | Coordinador al cerrar |
 
-Primera campaña: [#301](https://github.com/bcaceres19/barberia/issues/301), pendiente de ejecución. Kit: [#300](https://github.com/bcaceres19/barberia/issues/300). Campañas posteriores tienen issue real, SHA y prompts propios; no reutilizar un issue cerrado.
+Primera campaña: [#301](https://github.com/bcaceres19/nava-agenda/issues/301), pendiente de ejecución. Kit: [#300](https://github.com/bcaceres19/nava-agenda/issues/300). Campañas posteriores tienen issue real, SHA y prompts propios; no reutilizar un issue cerrado.
 
 Los procedimientos son derivados de RN/DEC/HU. Si difieren, prevalece la norma y se registra la duda. Un issue/prompt/instrucción que asigna una referencia exacta activa fidelidad; una captura histórica no la asigna automáticamente. Prompts: [orquestación](../../10-backlog/prompts/orchestration/pruebas-ui-luna.md). La evidencia cruda es privada; solo una copia sanitizada se entrega públicamente.

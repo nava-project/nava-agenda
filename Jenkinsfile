@@ -1,10 +1,10 @@
 // CI de NAVA en Jenkins (DEC-177); sustituye a .github/workflows/ci.yml.
 //
-// Lo ejecuta el job multibranch barberia/ci de la VPS para cada PR contra main y cada
+// Lo ejecuta el job multibranch agenda/ci de la VPS para cada PR contra main y cada
 // commit de main, y publica el resultado como estado del commit en GitHub. Cada check
 // corre en un contenedor de la imagen tools/ci/ci.Dockerfile (tools/ci/run.sh), con un
 // PostgreSQL 14 efímero cuando lo necesita. En main, si todo pasa, construye las
-// imágenes de la versión y dispara barberia/deploy con el mismo SHA (DEC-160).
+// imágenes de la versión y dispara agenda/deploy con el mismo SHA (DEC-160).
 //
 // tools/ci/plan.sh decide antes qué checks hacen falta (#625): ninguno si el mismo árbol
 // de git ya pasó un CI (p. ej. el squash-merge de un PR al día), y si no, los afectados por
@@ -102,7 +102,7 @@ pipeline {
       sh 'tools/ci/plan.sh record'
       script {
         if (env.BRANCH_NAME == 'main') {
-          build job: '/barberia/deploy', wait: false, parameters: [
+          build job: '/agenda/deploy', wait: false, parameters: [
             string(name: 'SHA', value: env.GIT_COMMIT),
             booleanParam(name: 'AUTO', value: true),
           ]

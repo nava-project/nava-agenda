@@ -19,7 +19,7 @@ documentos_relacionados:
 
 > **Nava Agenda (`DEC-183`).** El producto sirve a cualquier negocio que agenda citas: estas historias hablan de **negocio** y **profesional**, y citan las tablas, rutas y archivos con sus nombres actuales. Las equivalencias con los nombres anteriores están en el [glosario](../00-control/glosario.md); las ramas, issues y PR enlazados conservan su nombre original.
 
-> **Estado del contenido: Propuesta.** Estas historias **derivan** de funciones P0 y reglas confirmadas; no crean alcance por sí solas y requieren aprobación antes de implementarse. B0, `HU-020`–`HU-024` y `HU-040`–`HU-042` ya están integradas en `main`. Las dudas históricas de B0 quedaron resueltas por `DEC-050`–`DEC-066`; `DP-SER-01`–`DP-SER-03` del lote de B1 quedaron resueltas por `DEC-067`–`DEC-069`; `CT-008` del lote de B2 quedó resuelta por `DEC-070`. Los issues [#90](https://github.com/bcaceres19/barberia/issues/90), [#95](https://github.com/bcaceres19/barberia/issues/95), [#98](https://github.com/bcaceres19/barberia/issues/98) y [#100](https://github.com/bcaceres19/barberia/issues/100) conservan seguimientos visuales/E2E parciales de B2; el de `HU-042` (#100) quedó completo el 2026-10-08. `HU-060`–`HU-062` están integradas en `main` mediante [PR #105](https://github.com/bcaceres19/barberia/pull/105), [PR #109](https://github.com/bcaceres19/barberia/pull/109) y [PR #113](https://github.com/bcaceres19/barberia/pull/113); `DP-CIT-01`–`DP-CIT-05` quedaron resueltas por `DEC-071`–`DEC-075`. `HU-063` (navegación de la agenda por fecha) tiene issue real [#116](https://github.com/bcaceres19/barberia/issues/116) y está implementada en `feat/116-hu063-navegacion-agenda`, integrada en `main` mediante [PR #118](https://github.com/bcaceres19/barberia/pull/118). `HU-064` (detalle e historial) tiene issue real [#120](https://github.com/bcaceres19/barberia/issues/120) e integrada en `main` mediante [PR #121](https://github.com/bcaceres19/barberia/pull/121). `DP-CIT-06` quedó resuelta el 2026-09-01 como `DEC-076` (bloqueo duro frente a un intervalo bloqueado, mismo tratamiento que un cruce de citas); `HU-065` (reprogramación T2) está implementada contra el issue real [#123](https://github.com/bcaceres19/barberia/issues/123), integrada en `main` mediante [PR #125](https://github.com/bcaceres19/barberia/pull/125).
+> **Estado del contenido: Propuesta.** Estas historias **derivan** de funciones P0 y reglas confirmadas; no crean alcance por sí solas y requieren aprobación antes de implementarse. B0, `HU-020`–`HU-024` y `HU-040`–`HU-042` ya están integradas en `main`. Las dudas históricas de B0 quedaron resueltas por `DEC-050`–`DEC-066`; `DP-SER-01`–`DP-SER-03` del lote de B1 quedaron resueltas por `DEC-067`–`DEC-069`; `CT-008` del lote de B2 quedó resuelta por `DEC-070`. Los issues [#90](https://github.com/bcaceres19/nava-agenda/issues/90), [#95](https://github.com/bcaceres19/nava-agenda/issues/95), [#98](https://github.com/bcaceres19/nava-agenda/issues/98) y [#100](https://github.com/bcaceres19/nava-agenda/issues/100) conservan seguimientos visuales/E2E parciales de B2; el de `HU-042` (#100) quedó completo el 2026-10-08. `HU-060`–`HU-062` están integradas en `main` mediante [PR #105](https://github.com/bcaceres19/nava-agenda/pull/105), [PR #109](https://github.com/bcaceres19/nava-agenda/pull/109) y [PR #113](https://github.com/bcaceres19/nava-agenda/pull/113); `DP-CIT-01`–`DP-CIT-05` quedaron resueltas por `DEC-071`–`DEC-075`. `HU-063` (navegación de la agenda por fecha) tiene issue real [#116](https://github.com/bcaceres19/nava-agenda/issues/116) y está implementada en `feat/116-hu063-navegacion-agenda`, integrada en `main` mediante [PR #118](https://github.com/bcaceres19/nava-agenda/pull/118). `HU-064` (detalle e historial) tiene issue real [#120](https://github.com/bcaceres19/nava-agenda/issues/120) e integrada en `main` mediante [PR #121](https://github.com/bcaceres19/nava-agenda/pull/121). `DP-CIT-06` quedó resuelta el 2026-09-01 como `DEC-076` (bloqueo duro frente a un intervalo bloqueado, mismo tratamiento que un cruce de citas); `HU-065` (reprogramación T2) está implementada contra el issue real [#123](https://github.com/bcaceres19/nava-agenda/issues/123), integrada en `main` mediante [PR #125](https://github.com/bcaceres19/nava-agenda/pull/125).
 
 ---
 
@@ -51,11 +51,11 @@ La secuencia de bloques vive en [plan-bloques.md](../10-backlog/plan-bloques.md)
 | Bloque | Historias | Estado |
 | --- | --- | --- |
 | B0 · Cimientos, seguridad y primeras pantallas | `HU-001` – `HU-012` | Redactadas en este documento |
-| B1 · Identidad del negocio y catálogo | `HU-020` – `HU-025` | `HU-020`–`HU-024` integradas en `main` ([PR #79](https://github.com/bcaceres19/barberia/pull/79), [PR #83](https://github.com/bcaceres19/barberia/pull/83), [PR #84](https://github.com/bcaceres19/barberia/pull/84)); `HU-025` implementada contra el issue [#292](https://github.com/bcaceres19/barberia/issues/292) (`DEC-110`) |
-| B2 · Horario laboral y bloqueos | `HU-040` – `HU-042` | Integradas en `main` ([PR #93](https://github.com/bcaceres19/barberia/pull/93), [PR #96](https://github.com/bcaceres19/barberia/pull/96), [PR #99](https://github.com/bcaceres19/barberia/pull/99)); seguimientos parciales en `#90`, `#95`, `#98` y `#100` |
-| B3 · Agenda, estados e integridad | `HU-060` – `HU-068` | `HU-060`–`HU-068` integradas en `main`, issues reales [#225](https://github.com/bcaceres19/barberia/issues/225)–[#227](https://github.com/bcaceres19/barberia/issues/227); tercer lote de B3 completo, T3/cierre automático pendientes |
-| B4 · Reserva pública y disponibilidad | `HU-090` – `HU-106` | `HU-090`–`HU-099` redactadas como propuesta en issue [#240](https://github.com/bcaceres19/barberia/issues/240), `DP-PUB-01`–`DP-PUB-06`/`CT-011` resueltas; `HU-100`–`HU-103` (reseñas internas, reseñas de Google, ubicación y domicilio) redactadas el 2026-10-26 (`DEC-128`–`DEC-131`), sin issue real todavía; `HU-104`–`HU-105` (reprogramación por el cliente) redactadas el 2026-11-17 (`DEC-178`, issues [#636](https://github.com/bcaceres19/barberia/issues/636) y [#637](https://github.com/bcaceres19/barberia/issues/637)); `HU-106` (enlace de Odin para cancelar o reprogramar, `DEC-179`, issue [#645](https://github.com/bcaceres19/barberia/issues/645)) |
-| B5 · Notificaciones y recordatorios | `HU-130` – `HU-131` | `HU-130` implementada (issue [#463](https://github.com/bcaceres19/barberia/issues/463), `DEC-142`); `HU-131` implementada (issue [#467](https://github.com/bcaceres19/barberia/issues/467), `DEC-144`); WhatsApp, varios recordatorios y configuración por evento pendientes |
+| B1 · Identidad del negocio y catálogo | `HU-020` – `HU-025` | `HU-020`–`HU-024` integradas en `main` ([PR #79](https://github.com/bcaceres19/nava-agenda/pull/79), [PR #83](https://github.com/bcaceres19/nava-agenda/pull/83), [PR #84](https://github.com/bcaceres19/nava-agenda/pull/84)); `HU-025` implementada contra el issue [#292](https://github.com/bcaceres19/nava-agenda/issues/292) (`DEC-110`) |
+| B2 · Horario laboral y bloqueos | `HU-040` – `HU-042` | Integradas en `main` ([PR #93](https://github.com/bcaceres19/nava-agenda/pull/93), [PR #96](https://github.com/bcaceres19/nava-agenda/pull/96), [PR #99](https://github.com/bcaceres19/nava-agenda/pull/99)); seguimientos parciales en `#90`, `#95`, `#98` y `#100` |
+| B3 · Agenda, estados e integridad | `HU-060` – `HU-068` | `HU-060`–`HU-068` integradas en `main`, issues reales [#225](https://github.com/bcaceres19/nava-agenda/issues/225)–[#227](https://github.com/bcaceres19/nava-agenda/issues/227); tercer lote de B3 completo, T3/cierre automático pendientes |
+| B4 · Reserva pública y disponibilidad | `HU-090` – `HU-106` | `HU-090`–`HU-099` redactadas como propuesta en issue [#240](https://github.com/bcaceres19/nava-agenda/issues/240), `DP-PUB-01`–`DP-PUB-06`/`CT-011` resueltas; `HU-100`–`HU-103` (reseñas internas, reseñas de Google, ubicación y domicilio) redactadas el 2026-10-26 (`DEC-128`–`DEC-131`), sin issue real todavía; `HU-104`–`HU-105` (reprogramación por el cliente) redactadas el 2026-11-17 (`DEC-178`, issues [#636](https://github.com/bcaceres19/nava-agenda/issues/636) y [#637](https://github.com/bcaceres19/nava-agenda/issues/637)); `HU-106` (enlace de Odin para cancelar o reprogramar, `DEC-179`, issue [#645](https://github.com/bcaceres19/nava-agenda/issues/645)) |
+| B5 · Notificaciones y recordatorios | `HU-130` – `HU-131` | `HU-130` implementada (issue [#463](https://github.com/bcaceres19/nava-agenda/issues/463), `DEC-142`); `HU-131` implementada (issue [#467](https://github.com/bcaceres19/nava-agenda/issues/467), `DEC-144`); WhatsApp, varios recordatorios y configuración por evento pendientes |
 | B6 · Operación, privacidad y piloto | `HU-150` – | Pendientes |
 
 ---
@@ -424,9 +424,9 @@ La base transversal de experiencia (`HU-009`) se adelanta a las pantallas para c
 
 > Como profesional que olvidó su contraseña, quiero recuperar el acceso con un código enviado por el canal que yo elija —WhatsApp o correo—, para volver a mi agenda el mismo día sin depender de que alguien me responda.
 
-> **Cambio del 2026-09-19 (`DEC-092`):** la persona elige el canal y escribe su valor en el paso 1; el código se envía solo por ese canal. `CA-008-01` se reescribe y nacen `CA-008-09` y `CA-008-10`. `DEC-093` resolvió `DP-SEG-14`–`DP-SEG-16` y la implementación (migración `20260919200000`, contrato `0.22.0`, API y pantalla) se entrega en el issue [#276](https://github.com/bcaceres19/barberia/issues/276).
+> **Cambio del 2026-09-19 (`DEC-092`):** la persona elige el canal y escribe su valor en el paso 1; el código se envía solo por ese canal. `CA-008-01` se reescribe y nacen `CA-008-09` y `CA-008-10`. `DEC-093` resolvió `DP-SEG-14`–`DP-SEG-16` y la implementación (migración `20260919200000`, contrato `0.22.0`, API y pantalla) se entrega en el issue [#276](https://github.com/bcaceres19/nava-agenda/issues/276).
 
-> **Cambio del 2026-09-19 (`DEC-094`):** con el canal correo basta una cuenta activa con ese correo; no se exige teléfono ni que esté verificado. `CA-008-01` se ajusta y nace `CA-008-11`. Se entrega en el issue [#278](https://github.com/bcaceres19/barberia/issues/278).
+> **Cambio del 2026-09-19 (`DEC-094`):** con el canal correo basta una cuenta activa con ese correo; no se exige teléfono ni que esté verificado. `CA-008-01` se ajusta y nace `CA-008-11`. Se entrega en el issue [#278](https://github.com/bcaceres19/nava-agenda/issues/278).
 
 > **Bloqueo resuelto:** `DEC-026` definía el mecanismo (código al teléfono verificado) sin fijar canal ni proveedor. `DP-SEG-05` quedó resuelta el 2026-08-11 como `DEC-051`: WhatsApp oficial y correo, reutilizando el proveedor ya habilitado por `DEC-027`. El 2026-08-17 se resolvieron las últimas cuatro dudas: `DP-SEG-11` (política de contraseña) como `DEC-063`, `DP-SEG-12` (formato/vigencia/intentos/token de reinicio del código) como `DEC-064`, `CT-006` (respuesta idéntica frente a destino enmascarado) como `DEC-065`, y `DP-NOT-05` (proveedor/adaptador real de WhatsApp y correo: Meta Cloud API + Resend) como `DEC-066`. `HU-008` ya no depende de ninguna decisión pendiente; solo espera que `HU-007` se integre en `main`.
 
@@ -663,7 +663,7 @@ La base transversal de experiencia (`HU-009`) se adelanta a las pantallas para c
 
 ## 4. Bloque B1 · Identidad del negocio y catálogo
 
-> **B1 integrado.** `HU-020`–`HU-024` están integradas en `main`; `DP-SER-01`–`DP-SER-03` quedaron resueltas por `DEC-067`–`DEC-069` y el cierre de B1 está respaldado por [PR #84](https://github.com/bcaceres19/barberia/pull/84).
+> **B1 integrado.** `HU-020`–`HU-024` están integradas en `main`; `DP-SER-01`–`DP-SER-03` quedaron resueltas por `DEC-067`–`DEC-069` y el cierre de B1 está respaldado por [PR #84](https://github.com/bcaceres19/nava-agenda/pull/84).
 
 Orden de construcción recomendado para esta parte del bloque: `HU-020` → `HU-021` → `HU-022` → `HU-023` → `HU-024`.
 
@@ -733,7 +733,7 @@ Orden de construcción recomendado para esta parte del bloque: `HU-020` → `HU-
 | --- | --- |
 | Función | `F-CONF-02` (registro y listado; servicios y horario se completan en historias posteriores) |
 | Reglas | `RN-TEN-01` |
-| Decisiones | `DEC-019`, `DEC-024`, `DEC-033`, `DEC-037`, `DEC-078`, `DEC-100` (vínculo opcional, issue [#322](https://github.com/bcaceres19/barberia/issues/322)) |
+| Decisiones | `DEC-019`, `DEC-024`, `DEC-033`, `DEC-037`, `DEC-078`, `DEC-100` (vínculo opcional, issue [#322](https://github.com/bcaceres19/nava-agenda/issues/322)) |
 | Actor | Profesional autenticado |
 | Depende de | `HU-020` y criterio de salida de B0 |
 | Bloquea | Historias de servicios por profesional, B2 y la selección pública de profesional en B4 |
@@ -800,7 +800,7 @@ Orden de construcción recomendado para esta parte del bloque: `HU-020` → `HU-
 | Actor | Profesional autenticado |
 | Depende de | `HU-020`, `HU-021` |
 | Bloquea | `HU-023`, `HU-024`, disponibilidad y reserva pública |
-| Estado | Integrada en `main` ([PR #79](https://github.com/bcaceres19/barberia/pull/79), squash-merge, CI 4/4 verde) |
+| Estado | Integrada en `main` ([PR #79](https://github.com/bcaceres19/nava-agenda/pull/79), squash-merge, CI 4/4 verde) |
 | Riesgo | Tratar precio como punto flotante, aceptar precio 0 o nombres duplicados entre servicios activos, o propagar cambios a citas, rompería `DEC-067`, integridad e historia. |
 
 **Historia**
@@ -857,7 +857,7 @@ Orden de construcción recomendado para esta parte del bloque: `HU-020` → `HU-
 | Actor | Profesional autenticado |
 | Depende de | `HU-021`, `HU-022` integradas en `main` (cumplido) |
 | Bloquea | Horarios por profesional, disponibilidad y selección pública de profesional |
-| Estado | Implementada; issue real [#76](https://github.com/bcaceres19/barberia/issues/76); [PR #83](https://github.com/bcaceres19/barberia/pull/83) abierto contra `main`, pendiente de revisión/CI/merge |
+| Estado | Implementada; issue real [#76](https://github.com/bcaceres19/nava-agenda/issues/76); [PR #83](https://github.com/bcaceres19/nava-agenda/pull/83) abierto contra `main`, pendiente de revisión/CI/merge |
 | Riesgo | Una relación sin tenant compuesto puede asociar recursos de negocios distintos; retirar la última asignación de un servicio activo (`DEC-114`) lo deja sin profesionales y, mientras tanto, fuera de la reserva pública. |
 
 **Historia**
@@ -912,7 +912,7 @@ Orden de construcción recomendado para esta parte del bloque: `HU-020` → `HU-
 | Actor | Profesional autenticado |
 | Depende de | `HU-022`, `HU-023` integradas en `main` |
 | Bloquea | Cierre de B1, consulta pública de servicios y flujos futuros con citas |
-| Estado | Integrada en `main` contra el issue real [#77](https://github.com/bcaceres19/barberia/issues/77); [PR #84](https://github.com/bcaceres19/barberia/pull/84) |
+| Estado | Integrada en `main` contra el issue real [#77](https://github.com/bcaceres19/nava-agenda/issues/77); [PR #84](https://github.com/bcaceres19/nava-agenda/pull/84) |
 | Riesgo | Desactivar sin una advertencia real omite compromisos futuros; simular citas antes de B3 crea contrato ficticio; construir protección de concurrencia sobre un conteo que en B1 nunca cambia (`DEC-069`) sería alcance inventado. |
 
 **Historia**
@@ -981,7 +981,7 @@ Orden de construcción recomendado para esta parte del bloque: `HU-020` → `HU-
 - Recurso `GET`/`PATCH /private/settings/brand` y seis columnas con `CHECK` en `business`; el contrato de `HU-020` no se amplía.
 - Pantalla de Configuración rediseñada sobre tinta: índice de secciones, selector de zona horaria con buscador y reloj en vivo, vista previa del vocabulario, barra de cambios sin guardar y animaciones con movimiento reducido.
 - Aplicación del vocabulario a navegación, Profesionales, Agenda, Nuevo turno, Detalle del turno, Servicios, Servicios por profesional y Configuración.
-- Perfil del panel (`DEC-115`, reemplazada en su origen por `DEC-134`, issue [#365](https://github.com/bcaceres19/barberia/issues/365)): `shop` (con equipo, valor inicial), `solo` (profesional independiente) o `employee` (empleado, panel individual limitado). **Desde `DEC-134` lo deciden los roles del usuario en la base de datos (`empresa`, `independiente`, `empleado`), no un ajuste editable de Configuración**; la sección «Perfil del panel» ya no existe y el `PATCH` no admite `panelProfile`. Con `solo`: dock sin «Servicios por profesional» y con «Mi perfil», Agenda/Nuevo turno/Horarios sin selector cuando hay un único profesional, «mi día» en la Agenda e interruptor «Lo ofrezco» por servicio. Es presentación: no cambia datos ni permisos.
+- Perfil del panel (`DEC-115`, reemplazada en su origen por `DEC-134`, issue [#365](https://github.com/bcaceres19/nava-agenda/issues/365)): `shop` (con equipo, valor inicial), `solo` (profesional independiente) o `employee` (empleado, panel individual limitado). **Desde `DEC-134` lo deciden los roles del usuario en la base de datos (`empresa`, `independiente`, `empleado`), no un ajuste editable de Configuración**; la sección «Perfil del panel» ya no existe y el `PATCH` no admite `panelProfile`. Con `solo`: dock sin «Servicios por profesional» y con «Mi perfil», Agenda/Nuevo turno/Horarios sin selector cuando hay un único profesional, «mi día» en la Agenda e interruptor «Lo ofrezco» por servicio. Es presentación: no cambia datos ni permisos.
 
 **Alcance excluido**
 
@@ -1202,7 +1202,7 @@ Orden recomendado: HU-040 → HU-041 → HU-042. La disponibilidad, las citas af
 | Actor | Profesional autenticado |
 | Depende de | `HU-022`, `HU-024` (recuento de turnos futuros) integradas |
 | Bloquea | Ninguna |
-| Estado | Implementada en [#456](https://github.com/bcaceres19/barberia/issues/456); aceptada por el propietario el 2026-10-31 |
+| Estado | Implementada en [#456](https://github.com/bcaceres19/nava-agenda/issues/456); aceptada por el propietario el 2026-10-31 |
 | Riesgo | Cambiar el precio de turnos ya agendados sin que el profesional lo elija sorprende al cliente; no ofrecer la opción obliga a editar turno por turno. |
 
 **Historia**
@@ -1307,7 +1307,7 @@ Orden recomendado: HU-040 → HU-041 → HU-042. La disponibilidad, las citas af
 | Actor | Profesional autenticado |
 | Depende de | HU-040 integrada en main y B1 cerrado |
 | Bloquea | HU-042 y la resolución posterior de jornada efectiva |
-| Estado | Integrada en `main`; prompt PROMPT-HU-041-v1.3 executed; issue real [#95](https://github.com/bcaceres19/barberia/issues/95), abierto por `CA-041-08` parcial; [PR #96](https://github.com/bcaceres19/barberia/pull/96) |
+| Estado | Integrada en `main`; prompt PROMPT-HU-041-v1.3 executed; issue real [#95](https://github.com/bcaceres19/nava-agenda/issues/95), abierto por `CA-041-08` parcial; [PR #96](https://github.com/bcaceres19/nava-agenda/pull/96) |
 | Riesgo | Compartir el calendario entre profesionales o dejar que un festivo automático venza una apertura manual produce disponibilidad falsa. |
 
 **Historia**
@@ -1367,7 +1367,7 @@ Orden recomendado: HU-040 → HU-041 → HU-042. La disponibilidad, las citas af
 | Actor | Profesional autenticado |
 | Depende de | HU-040 y HU-041 integradas en main |
 | Bloquea | Proyección completa de disponibilidad y la integración B3 de citas afectadas |
-| Estado | Integrada en `main` mediante [PR #99](https://github.com/bcaceres19/barberia/pull/99); prompt `PROMPT-HU-042-v1` `executed`; issues [#98](https://github.com/bcaceres19/barberia/issues/98) y [#100](https://github.com/bcaceres19/barberia/issues/100) con seguimientos parciales; el de UI/E2E de `date_list`, excepciones y edición de serie (#100) quedó completo el 2026-10-08 |
+| Estado | Integrada en `main` mediante [PR #99](https://github.com/bcaceres19/nava-agenda/pull/99); prompt `PROMPT-HU-042-v1` `executed`; issues [#98](https://github.com/bcaceres19/nava-agenda/issues/98) y [#100](https://github.com/bcaceres19/nava-agenda/issues/100) con seguimientos parciales; el de UI/E2E de `date_list`, excepciones y edición de serie (#100) quedó completo el 2026-10-08 |
 | Riesgo | Rechazar una emergencia por una cita existente, borrar el registro o duplicar una recurrencia destruye la confianza operativa del profesional. |
 
 **Historia**
@@ -1424,7 +1424,7 @@ Orden recomendado: HU-040 → HU-041 → HU-042. La disponibilidad, las citas af
 
 ## 6. Bloque B3 · Agenda, estados e integridad
 
-> **B3 en ejecución.** Las primeras tres historias separaron la última defensa de datos (`HU-060`), la primera escritura vertical de negocio (`HU-061`) y la pantalla operativa mínima (`HU-062`); las tres están integradas. El segundo lote amplía esa base en cortes independientes: navegación por fecha (`HU-063`), detalle con historial (`HU-064`) y reprogramación auditada T2 (`HU-065`). `HU-063` tiene issue real ([#116](https://github.com/bcaceres19/barberia/issues/116)) y está implementada, integrada en `main` mediante [PR #118](https://github.com/bcaceres19/barberia/pull/118). `HU-064` tiene issue real ([#120](https://github.com/bcaceres19/barberia/issues/120)) e integrada en `main` mediante [PR #121](https://github.com/bcaceres19/barberia/pull/121). `HU-065` tiene issue real ([#123](https://github.com/bcaceres19/barberia/issues/123)) e integrada en `main` mediante [PR #125](https://github.com/bcaceres19/barberia/pull/125) (`DP-CIT-06` resuelta como `DEC-076`).
+> **B3 en ejecución.** Las primeras tres historias separaron la última defensa de datos (`HU-060`), la primera escritura vertical de negocio (`HU-061`) y la pantalla operativa mínima (`HU-062`); las tres están integradas. El segundo lote amplía esa base en cortes independientes: navegación por fecha (`HU-063`), detalle con historial (`HU-064`) y reprogramación auditada T2 (`HU-065`). `HU-063` tiene issue real ([#116](https://github.com/bcaceres19/nava-agenda/issues/116)) y está implementada, integrada en `main` mediante [PR #118](https://github.com/bcaceres19/nava-agenda/pull/118). `HU-064` tiene issue real ([#120](https://github.com/bcaceres19/nava-agenda/issues/120)) e integrada en `main` mediante [PR #121](https://github.com/bcaceres19/nava-agenda/pull/121). `HU-065` tiene issue real ([#123](https://github.com/bcaceres19/nava-agenda/issues/123)) e integrada en `main` mediante [PR #125](https://github.com/bcaceres19/nava-agenda/pull/125) (`DP-CIT-06` resuelta como `DEC-076`).
 
 Orden recomendado: `HU-060` → `HU-061` → `HU-062` → `HU-063` → `HU-064` → `HU-065`. La edición de servicio/datos (T3), cancelación, completar, marcar inasistencia, corregir estados y cierre automático se redactan después de verificar este segundo lote.
 
@@ -1440,7 +1440,7 @@ Orden recomendado: `HU-060` → `HU-061` → `HU-062` → `HU-063` → `HU-064` 
 | Actor | Propietario del producto y capacidades futuras de citas |
 | Depende de | `HU-040`–`HU-042` integradas; criterio de salida de B2 verificado; modelo de referencia revisado, no copiado ciegamente |
 | Bloquea | `HU-061` y toda escritura, lectura o transición de citas de B3–B5 |
-| Estado | Integrada en `main` (rama `feat/104-hu060-nucleo-citas`, issue real [#104](https://github.com/bcaceres19/barberia/issues/104), integrada mediante [PR #105](https://github.com/bcaceres19/barberia/pull/105)); prompt `PROMPT-HU-060-v1` `executed` |
+| Estado | Integrada en `main` (rama `feat/104-hu060-nucleo-citas`, issue real [#104](https://github.com/bcaceres19/nava-agenda/issues/104), integrada mediante [PR #105](https://github.com/bcaceres19/nava-agenda/pull/105)); prompt `PROMPT-HU-060-v1` `executed` |
 | Riesgo | Sin una exclusión real y un historial append-only, dos procesos pueden guardar turnos cruzados o reescribir la evidencia operativa. |
 
 **Historia**
@@ -1501,7 +1501,7 @@ Orden recomendado: `HU-060` → `HU-061` → `HU-062` → `HU-063` → `HU-064` 
 | Actor | Profesional autenticado |
 | Depende de | `HU-060` integrada (PR #105); B2 integrado y verificado |
 | Bloquea | `HU-062`, modificaciones, reprogramaciones, cancelación y recorridos posteriores de B3 |
-| Estado | Implementada; issue real [#107](https://github.com/bcaceres19/barberia/issues/107); prompt `PROMPT-HU-061-v1` `executed` |
+| Estado | Implementada; issue real [#107](https://github.com/bcaceres19/nava-agenda/issues/107); prompt `PROMPT-HU-061-v1` `executed` |
 | Riesgo | Una cita manual que salte asignaciones, jornada, bloqueos o reconciliación de cliente puede reservar tiempo imposible, duplicar personas o contradecir la agenda pública futura. |
 
 **Historia**
@@ -1560,9 +1560,9 @@ Orden recomendado: `HU-060` → `HU-061` → `HU-062` → `HU-063` → `HU-064` 
 | Reglas | `RN-CIT-01`, `RN-RES-02`, `RN-RES-03`, `RN-DIS-07`, `RN-TEN-01` y estados confirmados de `estados-citas.md` |
 | Decisiones | `DEC-007`, `DEC-016`, `DEC-019`, `DEC-024`, `DEC-033`–`DEC-038`, `DEC-047`, `DEC-078` |
 | Actor | Profesional autenticado |
-| Depende de | `HU-061` integrada (cumplida); `DP-CIT-04` y `DP-CIT-05` resueltas como `DEC-074`–`DEC-075` (cumplida); issue real [#111](https://github.com/bcaceres19/barberia/issues/111) (cumplida) |
+| Depende de | `HU-061` integrada (cumplida); `DP-CIT-04` y `DP-CIT-05` resueltas como `DEC-074`–`DEC-075` (cumplida); issue real [#111](https://github.com/bcaceres19/nava-agenda/issues/111) (cumplida) |
 | Bloquea | Navegación por fecha, detalle, modificación, reprogramación, cancelación y transiciones visibles |
-| Estado | Implementada contra el issue real [#111](https://github.com/bcaceres19/barberia/issues/111): backend y frontend con pruebas reales; `CA-062-08` (E2E/evidencia responsiva) pendiente de ejecución contra un stack real, mismo estado que `HU-061` |
+| Estado | Implementada contra el issue real [#111](https://github.com/bcaceres19/nava-agenda/issues/111): backend y frontend con pruebas reales; `CA-062-08` (E2E/evidencia responsiva) pendiente de ejecución contra un stack real, mismo estado que `HU-061` |
 | Riesgo | Una agenda que usa la zona del dispositivo, oculta estados terminales o elige un profesional implícito muestra una operación distinta de la realidad persistida. |
 
 **Historia**
@@ -1623,7 +1623,7 @@ Orden recomendado: `HU-060` → `HU-061` → `HU-062` → `HU-063` → `HU-064` 
 | Actor | Profesional autenticado |
 | Depende de | `HU-062` integrada mediante PR #113; contrato diario con parámetro `date` vigente |
 | Bloquea | `HU-064` y recorridos posteriores que deben regresar a la fecha operativa de origen |
-| Estado | Integrada en `main` mediante [PR #118](https://github.com/bcaceres19/barberia/pull/118) contra el issue real [#116](https://github.com/bcaceres19/barberia/issues/116), que permanece abierto por E2E/evidencia responsiva pendientes; prompt `PROMPT-HU-063-v1` `executed` |
+| Estado | Integrada en `main` mediante [PR #118](https://github.com/bcaceres19/nava-agenda/pull/118) contra el issue real [#116](https://github.com/bcaceres19/nava-agenda/issues/116), que permanece abierto por E2E/evidencia responsiva pendientes; prompt `PROMPT-HU-063-v1` `executed` |
 | Riesgo | Sumar 24 horas, usar la zona del dispositivo o aceptar respuestas fuera de orden puede mostrar otro día, perder turnos nocturnos o reemplazar una consulta reciente con datos obsoletos. |
 
 **Historia**
@@ -1683,7 +1683,7 @@ Orden recomendado: `HU-060` → `HU-061` → `HU-062` → `HU-063` → `HU-064` 
 | Actor | Profesional autenticado |
 | Depende de | `HU-063` integrada mediante PR #118; núcleo e historial append-only de `HU-060` vigentes |
 | Bloquea | `HU-065` y las acciones posteriores que necesitan contexto, estado e historial visibles |
-| Estado | Implementada contra el issue real [#120](https://github.com/bcaceres19/barberia/issues/120), que permanece abierto por E2E/evidencia responsiva pendientes: backend y frontend con pruebas reales; `CA-064-08` (E2E/evidencia responsiva) pendiente de ejecución contra un stack real, mismo estado que `HU-061`/`HU-062`/`HU-063`. Integrada en `main` mediante [PR #121](https://github.com/bcaceres19/barberia/pull/121); prompt `PROMPT-HU-064-v1` `executed` |
+| Estado | Implementada contra el issue real [#120](https://github.com/bcaceres19/nava-agenda/issues/120), que permanece abierto por E2E/evidencia responsiva pendientes: backend y frontend con pruebas reales; `CA-064-08` (E2E/evidencia responsiva) pendiente de ejecución contra un stack real, mismo estado que `HU-061`/`HU-062`/`HU-063`. Integrada en `main` mediante [PR #121](https://github.com/bcaceres19/nava-agenda/pull/121); prompt `PROMPT-HU-064-v1` `executed` |
 | Riesgo | Cargar el nombre actual del catálogo, exponer contacto en la lista o presentar un historial incompleto puede reescribir el pasado, filtrar datos personales o impedir auditar una disputa. |
 
 **Historia**
@@ -1743,9 +1743,9 @@ Orden recomendado: `HU-060` → `HU-061` → `HU-062` → `HU-063` → `HU-064` 
 | Reglas | `RN-CIT-01`, `RN-CIT-03`, `RN-CON-01`, `RN-CON-03`, `RN-DIS-05`, `RN-DIS-07`, `RN-HIS-01`, `RN-HIS-02`, `RN-TEN-01`, `RN-IDE-01` |
 | Decisiones | `DEC-002`, `DEC-004`, `DEC-007`, `DEC-014`, `DEC-016`, `DEC-020`, `DEC-024`, `DEC-035`–`DEC-038`, `DEC-043`, `DEC-074`, `DEC-075`, `DEC-076`, `DEC-078` |
 | Actor | Profesional autenticado |
-| Depende de | `HU-064` integrada en `main` mediante [PR #121](https://github.com/bcaceres19/barberia/pull/121) (cumplido); `DP-CIT-06` resuelta como `DEC-076` (cumplido) |
+| Depende de | `HU-064` integrada en `main` mediante [PR #121](https://github.com/bcaceres19/nava-agenda/pull/121) (cumplido); `DP-CIT-06` resuelta como `DEC-076` (cumplido) |
 | Bloquea | Modificación T3, cancelación y demás transiciones visibles de B3 |
-| Estado | Implementada contra el issue real [#123](https://github.com/bcaceres19/barberia/issues/123), que permanece abierto por E2E/evidencia responsiva pendientes, integrada en `main` mediante [PR #125](https://github.com/bcaceres19/barberia/pull/125); prompt `PROMPT-HU-065-v1` `executed` |
+| Estado | Implementada contra el issue real [#123](https://github.com/bcaceres19/nava-agenda/issues/123), que permanece abierto por E2E/evidencia responsiva pendientes, integrada en `main` mediante [PR #125](https://github.com/bcaceres19/nava-agenda/pull/125); prompt `PROMPT-HU-065-v1` `executed` |
 | Riesgo | Una reprogramación no atómica, sin precondición de versión o sin la exclusión PostgreSQL puede perder un cambio concurrente, dejar el historial incompleto o guardar dos turnos cruzados. |
 
 **Historia**
@@ -1807,7 +1807,7 @@ Orden recomendado: `HU-060` → `HU-061` → `HU-062` → `HU-063` → `HU-064` 
 | Actor | Profesional autenticado |
 | Depende de | `HU-064` y `HU-065` integradas en `main` |
 | Bloquea | Cancelación pública de B4 y efectos de notificación de B5 |
-| Estado | Implementada contra el issue real [#225](https://github.com/bcaceres19/barberia/issues/225); prompt `PROMPT-HU-066-v1` `executed`; [PR #235](https://github.com/bcaceres19/barberia/pull/235) abierto contra `main`, pendiente de CI/merge |
+| Estado | Implementada contra el issue real [#225](https://github.com/bcaceres19/nava-agenda/issues/225); prompt `PROMPT-HU-066-v1` `executed`; [PR #235](https://github.com/bcaceres19/nava-agenda/pull/235) abierto contra `main`, pendiente de CI/merge |
 | Riesgo | Una cancelación no atómica puede liberar la agenda sin dejar rastro, atribuirla al actor equivocado o aplicar un cambio sobre una versión ya obsoleta. |
 
 **Historia**
@@ -1866,7 +1866,7 @@ Orden recomendado: `HU-060` → `HU-061` → `HU-062` → `HU-063` → `HU-064` 
 | Actor | Profesional autenticado |
 | Depende de | `HU-066` integrada en `main` sin romper el núcleo de `HU-060` |
 | Bloquea | `HU-068` y cierre automático posterior |
-| Estado | Implementada contra el issue real [#226](https://github.com/bcaceres19/barberia/issues/226); prompt `PROMPT-HU-067-v1` `executed`; [PR #237](https://github.com/bcaceres19/barberia/pull/237) integrado en `main` |
+| Estado | Implementada contra el issue real [#226](https://github.com/bcaceres19/nava-agenda/issues/226); prompt `PROMPT-HU-067-v1` `executed`; [PR #237](https://github.com/bcaceres19/nava-agenda/pull/237) integrado en `main` |
 | Riesgo | Cerrar antes de tiempo o duplicar el evento falsea las métricas del piloto; confundir `completed` con `no_show` exige después una corrección auditable. |
 
 **Historia**
@@ -1924,7 +1924,7 @@ Orden recomendado: `HU-060` → `HU-061` → `HU-062` → `HU-063` → `HU-064` 
 | Actor | Profesional autenticado |
 | Depende de | `HU-066` y `HU-067` integradas |
 | Bloquea | Verificación completa de T8 y del criterio de salida de B3 |
-| Estado | Implementada contra el issue real [#227](https://github.com/bcaceres19/barberia/issues/227); prompt `PROMPT-HU-068-v1` `executed`, integrada en `main` mediante [PR #239](https://github.com/bcaceres19/barberia/pull/239) |
+| Estado | Implementada contra el issue real [#227](https://github.com/bcaceres19/nava-agenda/issues/227); prompt `PROMPT-HU-068-v1` `executed`, integrada en `main` mediante [PR #239](https://github.com/bcaceres19/nava-agenda/pull/239) |
 | Riesgo | Editar el evento original o reocupar una franja sin verificar la exclusión destruye la auditoría o permite dos turnos superpuestos. |
 
 **Historia**
@@ -1981,7 +1981,7 @@ Orden recomendado: `HU-060` → `HU-061` → `HU-062` → `HU-063` → `HU-064` 
 | Actor | Profesional autenticado |
 | Depende de | `HU-042` y `HU-062`–`HU-066` integradas |
 | Bloquea | Ninguna |
-| Estado | Implementada en [#455](https://github.com/bcaceres19/barberia/issues/455); aceptada por el propietario el 2026-10-31 |
+| Estado | Implementada en [#455](https://github.com/bcaceres19/nava-agenda/issues/455); aceptada por el propietario el 2026-10-31 |
 | Riesgo | Un bloqueo creado encima de turnos que nadie revisa deja al cliente esperando a alguien que no va a estar. |
 
 **Historia**
@@ -2034,7 +2034,7 @@ Orden recomendado: `HU-090` → `HU-091` → `HU-092` → `HU-093` → `HU-094` 
 | Actor | Visitante sin cuenta |
 | Depende de | Criterio de salida de B3 |
 | Bloquea | `HU-091`–`HU-099` |
-| Estado | Implementada contra el issue real [#243](https://github.com/bcaceres19/barberia/issues/243); `DP-PUB-01` resuelta (`DEC-082`); prompt `PROMPT-HU-090-v1` en `in_progress`, [PR #244](https://github.com/bcaceres19/barberia/pull/244) abierto pendiente de CI/merge |
+| Estado | Implementada contra el issue real [#243](https://github.com/bcaceres19/nava-agenda/issues/243); `DP-PUB-01` resuelta (`DEC-082`); prompt `PROMPT-HU-090-v1` en `in_progress`, [PR #244](https://github.com/bcaceres19/nava-agenda/pull/244) abierto pendiente de CI/merge |
 | Riesgo | Un identificador público enumerable o una resolución tenant incorrecta expone negocios ajenos o abre el flujo con contexto falso. |
 
 **Historia**
@@ -2082,7 +2082,7 @@ Orden recomendado: `HU-090` → `HU-091` → `HU-092` → `HU-093` → `HU-094` 
 | Actor | Visitante en un negocio público |
 | Depende de | `HU-090`; `HU-022`–`HU-024` integradas |
 | Bloquea | `HU-092`, `HU-094`–`HU-097` |
-| Estado | En desarrollo; issue real [#245](https://github.com/bcaceres19/barberia/issues/245), rama `feat/245-hu091-catalogo-publico` |
+| Estado | En desarrollo; issue real [#245](https://github.com/bcaceres19/nava-agenda/issues/245), rama `feat/245-hu091-catalogo-publico` |
 | Riesgo | Ofrecer servicios inactivos, sin profesional o con datos no vigentes conduce a reservas imposibles o engañosas. |
 
 **Historia**
@@ -2126,7 +2126,7 @@ Orden recomendado: `HU-090` → `HU-091` → `HU-092` → `HU-093` → `HU-094` 
 | Actor | Cliente que ya eligió un servicio |
 | Depende de | `HU-091`; `HU-021`/`HU-023` integradas |
 | Bloquea | `HU-094`–`HU-097` |
-| Estado | En desarrollo; issue real [#247](https://github.com/bcaceres19/barberia/issues/247), rama `feat/247-hu092-seleccion-barbero` |
+| Estado | En desarrollo; issue real [#247](https://github.com/bcaceres19/nava-agenda/issues/247), rama `feat/247-hu092-seleccion-barbero` |
 | Riesgo | Permitir un profesional no asignado al servicio produce disponibilidad y reservas inválidas. |
 
 **Historia**
@@ -2170,7 +2170,7 @@ Orden recomendado: `HU-090` → `HU-091` → `HU-092` → `HU-093` → `HU-094` 
 | Actor | Profesional autenticado |
 | Depende de | B3; `HU-020`/`HU-012`; `DP-PUB-02` resuelta |
 | Bloquea | `HU-094`, `HU-095`, `HU-099` |
-| Estado | En desarrollo; issue real [#249](https://github.com/bcaceres19/barberia/issues/249), rama `feat/249-hu093-configuracion-reserva-cancelacion` |
+| Estado | En desarrollo; issue real [#249](https://github.com/bcaceres19/nava-agenda/issues/249), rama `feat/249-hu093-configuracion-reserva-cancelacion` |
 | Riesgo | Rangos inventados o una política ambigua pueden ocultar horarios válidos o permitir cancelaciones contrarias a la decisión del negocio. |
 
 **Historia**
@@ -2214,7 +2214,7 @@ Orden recomendado: `HU-090` → `HU-091` → `HU-092` → `HU-093` → `HU-094` 
 | Actor | Cliente con servicio y profesional válidos |
 | Depende de | `HU-091`–`HU-093`; B2/B3; `DP-PUB-03` resuelta (`DEC-084`, 2026-09-11) |
 | Bloquea | `HU-095`, `HU-097`, `HU-099` |
-| Estado | Implementada contra el issue real [#251](https://github.com/bcaceres19/barberia/issues/251), rama `feat/251-hu094-disponibilidad-publica`; prompt `PROMPT-HU-094-v1` en `in_progress` |
+| Estado | Implementada contra el issue real [#251](https://github.com/bcaceres19/nava-agenda/issues/251), rama `feat/251-hu094-disponibilidad-publica`; prompt `PROMPT-HU-094-v1` en `in_progress` |
 | Riesgo | Restar mal un solo factor ofrece un turno imposible o esconde capacidad vendible. |
 
 **Historia**
@@ -2260,7 +2260,7 @@ Orden recomendado: `HU-090` → `HU-091` → `HU-092` → `HU-093` → `HU-094` 
 | Actor | Cliente con servicio y profesional elegidos |
 | Depende de | `HU-094` integrada en `main` (satisfecho, PR #253) |
 | Bloquea | `HU-096`, `HU-097` |
-| Estado | Implementada contra el issue real [#254](https://github.com/bcaceres19/barberia/issues/254), rama `feat/254-hu095-fechas-horarios`; prompt `PROMPT-HU-095-v1` en `in_progress` |
+| Estado | Implementada contra el issue real [#254](https://github.com/bcaceres19/nava-agenda/issues/254), rama `feat/254-hu095-fechas-horarios`; prompt `PROMPT-HU-095-v1` en `in_progress` |
 | Riesgo | Una pantalla que conserva horas obsoletas o usa la zona del dispositivo induce al cliente a confirmar otra hora. |
 
 **Historia**
@@ -2304,7 +2304,7 @@ Orden recomendado: `HU-090` → `HU-091` → `HU-092` → `HU-093` → `HU-094` 
 | Actor | Cliente con una franja elegida |
 | Depende de | `HU-095`; `DP-PUB-04` resuelta (`DEC-085`, 2026-09-11) |
 | Bloquea | `HU-097` |
-| Estado | Implementada; prompt `PROMPT-HU-096-v1` en `executed`, issue real [#266](https://github.com/bcaceres19/barberia/issues/266), rama `feat/266-hu096-datos-cliente`, [PR #267](https://github.com/bcaceres19/barberia/pull/267) integrado en `main` |
+| Estado | Implementada; prompt `PROMPT-HU-096-v1` en `executed`, issue real [#266](https://github.com/bcaceres19/nava-agenda/issues/266), rama `feat/266-hu096-datos-cliente`, [PR #267](https://github.com/bcaceres19/nava-agenda/pull/267) integrado en `main` |
 | Riesgo | Reconciliar contactos de forma ambigua puede unir personas distintas; pedir datos extra incumple minimización. |
 
 **Historia**
@@ -2349,7 +2349,7 @@ Orden recomendado: `HU-090` → `HU-091` → `HU-092` → `HU-093` → `HU-094` 
 | Actor | Cliente que confirma el resumen público |
 | Depende de | `HU-090`–`HU-096` integradas (satisfecho); `DP-PUB-05` resuelta (`DEC-089`, 2026-09-15); `DP-PUB-06` resuelta (`DEC-090`, 2026-09-15); `CT-011` resuelta (`DEC-091`, 2026-09-15) |
 | Bloquea | `HU-098`, `HU-099`, B5 |
-| Estado | Implementada; prompt `PROMPT-HU-097-v1` en `executed`, issue real [#268](https://github.com/bcaceres19/barberia/issues/268), rama `feat/268-hu-097-confirmacion-publica-concurrente`, [PR #270](https://github.com/bcaceres19/barberia/pull/270) integrado en `main` |
+| Estado | Implementada; prompt `PROMPT-HU-097-v1` en `executed`, issue real [#268](https://github.com/bcaceres19/nava-agenda/issues/268), rama `feat/268-hu-097-confirmacion-publica-concurrente`, [PR #270](https://github.com/bcaceres19/nava-agenda/pull/270) integrado en `main` |
 | Riesgo | Una carrera mal resuelta crea dos citas o pierde datos; una confirmación parcial deja cita sin historial o acceso del cliente. |
 
 **Historia**
@@ -2397,7 +2397,7 @@ Orden recomendado: `HU-090` → `HU-091` → `HU-092` → `HU-093` → `HU-094` 
 | Actor | Cliente con enlace aleatorio del turno |
 | Depende de | `HU-097` integrada; `DP-PUB-05` resuelta (`DEC-089`, 2026-09-15); `CT-011` resuelta (`DEC-091`, 2026-09-15) |
 | Bloquea | `HU-099`, B5 |
-| Estado | Implementada; prompt `PROMPT-HU-098-v1` en `executed`, issue real [#271](https://github.com/bcaceres19/barberia/issues/271), rama `feat/271-hu-098-acceso-cliente-turno`, [PR #272](https://github.com/bcaceres19/barberia/pull/272) integrado en `main` |
+| Estado | Implementada; prompt `PROMPT-HU-098-v1` en `executed`, issue real [#271](https://github.com/bcaceres19/nava-agenda/issues/271), rama `feat/271-hu-098-acceso-cliente-turno`, [PR #272](https://github.com/bcaceres19/nava-agenda/pull/272) integrado en `main` |
 | Riesgo | Filtrar o registrar el token permite consultar/cancelar una cita ajena; una expiración inventada puede dejar al cliente sin acceso. |
 
 **Historia**
@@ -2443,7 +2443,7 @@ Orden recomendado: `HU-090` → `HU-091` → `HU-092` → `HU-093` → `HU-094` 
 | Actor | Cliente con acceso válido a su turno |
 | Depende de | `HU-093`/`HU-094` integradas (satisfecho); `HU-098` integrada (satisfecho, PR #272); `DP-PUB-02` resuelta (`DEC-083`, satisfecho); `DP-PUB-05` resuelta (`DEC-089`, 2026-09-15) |
 | Bloquea | Criterio de salida de B4 y efectos de B5 |
-| Estado | Implementada; issue real [#374](https://github.com/bcaceres19/barberia/issues/374), prompt `PROMPT-HU-099-v1` |
+| Estado | Implementada; issue real [#374](https://github.com/bcaceres19/nava-agenda/issues/374), prompt `PROMPT-HU-099-v1` |
 | Riesgo | Evaluar el plazo en el navegador o aplicar mal la política cancela compromisos sin autorización o deja una franja bloqueada. |
 
 **Historia**
@@ -2492,7 +2492,7 @@ Orden recomendado: `HU-090` → `HU-091` → `HU-092` → `HU-093` → `HU-094` 
 | Actor | Cliente de un turno ya `completed` |
 | Depende de | `HU-098` integrada (satisfecho, PR #272) |
 | Bloquea | Ninguna |
-| Estado | Implementada en [#357](https://github.com/bcaceres19/barberia/issues/357) |
+| Estado | Implementada en [#357](https://github.com/bcaceres19/nava-agenda/issues/357) |
 | Riesgo | Aceptar una reseña sin turno completado único detrás, o sin ocultamiento reversible, abre abuso y daña la confianza del listado público. |
 
 **Historia**
@@ -2538,7 +2538,7 @@ Orden recomendado: `HU-090` → `HU-091` → `HU-092` → `HU-093` → `HU-094` 
 | Actor | Cliente que visita la reserva pública |
 | Depende de | Credencial de servidor de Google Places configurada en el ambiente de despliegue |
 | Bloquea | Ninguna |
-| Estado | Implementada en [#358](https://github.com/bcaceres19/barberia/issues/358) |
+| Estado | Implementada en [#358](https://github.com/bcaceres19/nava-agenda/issues/358) |
 | Riesgo | Exponer la clave de servidor en el navegador o incumplir los términos de caché de Google Maps Platform puede suspender la credencial de toda la plataforma. |
 
 **Historia**
@@ -2583,7 +2583,7 @@ Orden recomendado: `HU-090` → `HU-091` → `HU-092` → `HU-093` → `HU-094` 
 | Actor | Cliente que visita la reserva pública |
 | Depende de | Credencial de Geocoding/Maps configurada en el ambiente de despliegue |
 | Bloquea | Ninguna |
-| Estado | Implementada en [#359](https://github.com/bcaceres19/barberia/issues/359) |
+| Estado | Implementada en [#359](https://github.com/bcaceres19/nava-agenda/issues/359) |
 | Riesgo | Geocodificar mal una dirección, o mostrar un mapa de un negocio que solo atiende a domicilio, confunde al cliente sobre dónde se presta el servicio. |
 
 **Historia**
@@ -2627,7 +2627,7 @@ Orden recomendado: `HU-090` → `HU-091` → `HU-092` → `HU-093` → `HU-094` 
 | Actor | Cliente que reserva un turno |
 | Depende de | `HU-096`, `HU-097` integradas (satisfecho); credencial de Google Places Autocomplete configurada |
 | Bloquea | Ninguna |
-| Estado | Implementada en [#360](https://github.com/bcaceres19/barberia/issues/360) |
+| Estado | Implementada en [#360](https://github.com/bcaceres19/nava-agenda/issues/360) |
 | Riesgo | Confirmar un turno a domicilio sin coordenadas reales deja al profesional sin saber a dónde ir; aceptar domicilio cuando el negocio lo desactivó entre la elección y el envío crea una expectativa que no se cumple. |
 
 **Historia**
@@ -2677,7 +2677,7 @@ Orden recomendado: `HU-090` → `HU-091` → `HU-092` → `HU-093` → `HU-094` 
 | Actor | Cliente con el enlace de su turno |
 | Depende de | `HU-065`, `HU-094`, `HU-098` y `HU-099` integradas |
 | Bloquea | `HU-105` |
-| Estado | Implementada contra el issue real [#636](https://github.com/bcaceres19/barberia/issues/636), [PR #638](https://github.com/bcaceres19/barberia/pull/638) |
+| Estado | Implementada contra el issue real [#636](https://github.com/bcaceres19/nava-agenda/issues/636), [PR #638](https://github.com/bcaceres19/nava-agenda/pull/638) |
 | Riesgo | Aceptar una franja que la reserva pública no ofrecería, reprogramar fuera de plazo o sin límite, avisar al cliente de su propio cambio o mover un turno ajeno. |
 
 **Historia**
@@ -2724,7 +2724,7 @@ Orden recomendado: `HU-090` → `HU-091` → `HU-092` → `HU-093` → `HU-094` 
 | Decisiones | `DEC-022`, `DEC-045`, `DEC-046`, `DEC-062`, `DEC-066`, `DEC-089`, `DEC-123`, `DEC-178` |
 | Actor | Cliente sin el enlace a la mano |
 | Depende de | `HU-104` integrada |
-| Estado | Implementada contra el issue real [#637](https://github.com/bcaceres19/barberia/issues/637), [PR #643](https://github.com/bcaceres19/barberia/pull/643) |
+| Estado | Implementada contra el issue real [#637](https://github.com/bcaceres19/nava-agenda/issues/637), [PR #643](https://github.com/bcaceres19/nava-agenda/pull/643) |
 | Riesgo | Revelar si un contacto tiene turnos, permitir adivinar el código, enviar códigos sin límite o abrir turnos de otro negocio. |
 
 **Historia**
@@ -2768,7 +2768,7 @@ Orden recomendado: `HU-090` → `HU-091` → `HU-092` → `HU-093` → `HU-094` 
 | Decisiones | `DEC-062`, `DEC-089`, `DEC-123`, `DEC-141`, `DEC-178`, `DEC-179`, `DEC-180`, `DEC-181` |
 | Actor | Cliente que escribe a Odin por WhatsApp; Odin como servicio |
 | Depende de | `HU-104` y `HU-105` integradas |
-| Estado | Implementada contra el issue real [#645](https://github.com/bcaceres19/barberia/issues/645), rama `feat/645-hu106-odin-enlace-cancelar-reprogramar`; ampliada por `DEC-181` (issue [#651](https://github.com/bcaceres19/barberia/issues/651)): propósito opcional `manage` y `accessUrl` |
+| Estado | Implementada contra el issue real [#645](https://github.com/bcaceres19/nava-agenda/issues/645), rama `feat/645-hu106-odin-enlace-cancelar-reprogramar`; ampliada por `DEC-181` (issue [#651](https://github.com/bcaceres19/nava-agenda/issues/651)): propósito opcional `manage` y `accessUrl` |
 | Riesgo | Que alguien use un teléfono ajeno para cancelar o mover un turno, que el secreto de servicio se filtre o que el límite no frene a un cliente que pide códigos sin parar. |
 
 **Historia**
@@ -2813,7 +2813,7 @@ Orden recomendado: `HU-090` → `HU-091` → `HU-092` → `HU-093` → `HU-094` 
 | Decisiones | `DEC-020`, `DEC-173`, `DEC-182` |
 | Actor | Dueño del negocio; cliente en la reserva pública; Odin como servicio |
 | Depende de | `HU-020` (Configuración) y `HU-090` (perfil público) integradas |
-| Estado | Implementada contra el issue real [#654](https://github.com/bcaceres19/barberia/issues/654), rama `feat/654-horario-del-local` |
+| Estado | Implementada contra el issue real [#654](https://github.com/bcaceres19/nava-agenda/issues/654), rama `feat/654-horario-del-local` |
 | Riesgo | Que el horario publicado contradiga la agenda real y un cliente llegue a un local cerrado, o que «sin horario» se lea como «cerrado». |
 
 **Historia**
@@ -2863,7 +2863,7 @@ Orden recomendado: `HU-090` → `HU-091` → `HU-092` → `HU-093` → `HU-094` 
 | Decisiones | `DEC-004`, `DEC-008`, `DEC-027`, `DEC-032`, `DEC-040`, `DEC-102`, `DEC-142` |
 | Actor | Sistema (worker), a raíz de una acción del profesional |
 | Depende de | `HU-065` y `HU-066` integradas |
-| Estado | Implementada contra el issue real [#463](https://github.com/bcaceres19/barberia/issues/463) |
+| Estado | Implementada contra el issue real [#463](https://github.com/bcaceres19/nava-agenda/issues/463) |
 | Riesgo | Avisar una hora que ya cambió, avisar dos veces el mismo cambio, perder el aviso si cae el proceso o dejar un correo en claro en la evidencia. |
 
 **Historia**
@@ -2918,7 +2918,7 @@ Orden recomendado: `HU-090` → `HU-091` → `HU-092` → `HU-093` → `HU-094` 
 | Decisiones | `DEC-018`, `DEC-027`, `DEC-032`, `DEC-040`, `DEC-102`, `DEC-142`, `DEC-143`, `DEC-144` |
 | Actor | Sistema (worker), a raíz de una reserva o reprogramación |
 | Depende de | `HU-130` integrada |
-| Estado | Implementada contra el issue real [#467](https://github.com/bcaceres19/barberia/issues/467) |
+| Estado | Implementada contra el issue real [#467](https://github.com/bcaceres19/nava-agenda/issues/467) |
 | Riesgo | Recordar una hora que ya cambió, recordar un turno cancelado, recordar dos veces o dejar un correo en claro en la evidencia. |
 
 **Historia**
