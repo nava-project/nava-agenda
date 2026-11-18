@@ -33,7 +33,7 @@ import (
 )
 
 const (
-	testDatabaseURL = "postgres://agenda_app@localhost:5432/barberia_test?sslmode=disable"
+	testDatabaseURL = "postgres://agenda_app@localhost:5432/agenda_test?sslmode=disable"
 
 	// Par dedicado de hu098_acceso_turno.sql: shopUno exige razón NUNCA
 	// (client_allowed=true, reason_required=false, deadline=30) y shopDos

@@ -39,11 +39,11 @@ func openDB(t *testing.T, envVar, fallback string) *database.DB {
 }
 
 func appDB(t *testing.T) *database.DB {
-	return openDB(t, "TEST_DATABASE_URL", "postgres://agenda_app@localhost:5432/barberia_test?sslmode=disable")
+	return openDB(t, "TEST_DATABASE_URL", "postgres://agenda_app@localhost:5432/agenda_test?sslmode=disable")
 }
 
 func workerDB(t *testing.T) *database.DB {
-	return openDB(t, "TEST_WORKER_DATABASE_URL", "postgres://agenda_worker@localhost:5432/barberia_test?sslmode=disable")
+	return openDB(t, "TEST_WORKER_DATABASE_URL", "postgres://agenda_worker@localhost:5432/agenda_test?sslmode=disable")
 }
 
 func hashOf(seed string) string {

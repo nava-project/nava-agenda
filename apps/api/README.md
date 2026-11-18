@@ -2162,7 +2162,7 @@ Conéctate como `agenda_app` (rol SIN `BYPASSRLS`, SIN propiedad).
 Ejecución:
 
 ```bash
-export TEST_DATABASE_URL="postgres://agenda_app@localhost:5432/barberia_test?sslmode=disable"
+export TEST_DATABASE_URL="postgres://agenda_app@localhost:5432/agenda_test?sslmode=disable"
 go test -race ./internal/platform/database/...
 ```
 
@@ -2171,7 +2171,7 @@ requiere ADEMÁS `TEST_WORKER_DATABASE_URL` conectado como `agenda_worker`
 (las funciones de purga no están concedidas a `agenda_app`, `DDL-AUT-01`):
 
 ```bash
-export TEST_WORKER_DATABASE_URL="postgres://agenda_worker@localhost:5432/barberia_test?sslmode=disable"
+export TEST_WORKER_DATABASE_URL="postgres://agenda_worker@localhost:5432/agenda_test?sslmode=disable"
 ```
 
 Criterios verificados (numeración según docs/02-requisitos/historias-usuario.md,

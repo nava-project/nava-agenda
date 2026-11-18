@@ -24,7 +24,7 @@ import (
 )
 
 const (
-	testDatabaseURL = "postgres://agenda_app@localhost:5432/barberia_test?sslmode=disable"
+	testDatabaseURL = "postgres://agenda_app@localhost:5432/agenda_test?sslmode=disable"
 
 	// Par dedicado de hu090_reserva_publica.sql: shopUno tiene contacto
 	// completo y slug, shopDos tiene slug pero sin contacto (contactos
