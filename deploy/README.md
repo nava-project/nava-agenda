@@ -26,6 +26,8 @@ Internet ──443──▶ web (Caddy) ── red "edge" (externa, compartida) 
                                                                         (pila aparte, DEC-177)
 ```
 
+**Landing en `nava.wtf` (`DEC-183`, #658).** La app vive en `agenda.nava.wtf`. `nava.wtf` sirve la landing de la familia NAVA y `/privacidad` y `/terminos` desde el repo `bcaceres19/nava` (pila `nava-landing` en `/srv/nava`, alias `nava-landing` en `edge`, jobs `nava/ci` y `nava/deploy`). En `nava.wtf`, las rutas de la app (`/acceso`, `/recuperar-acceso`, `/panel/*`, `/reservar/*`, `/mi-turno/*`) redirigen con 308 a `agenda.nava.wtf` con la misma ruta, y `/api/*` y `/health` siguen llegando al API mientras Odin y el webhook de Meta cambian su URL. En `agenda.nava.wtf`, `/privacidad` y `/terminos` redirigen a `nava.wtf`.
+
 **Otros proyectos en la misma VPS (`DEC-176`).** Este Caddy es el único dueño de 80/443.
 Nava · Pedidos (repo `odin-pedidos`, pila `pedidos` en `/srv/pedidos`) no publica puertos:
 se une a la red Docker externa `edge` con el alias `pedidos`, y el sitio `pedidos.{$DOMAIN}`
