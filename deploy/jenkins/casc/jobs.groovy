@@ -81,10 +81,10 @@ pipelineJob('barberia/deploy') {
 }
 
 // ---------------------------------------------------------------------------------------
-// Nava · Pedidos (bcaceres19/odin-pedidos, /srv/pedidos). Mismo patrón que barberia/: el
+// Nava · Pedidos (bcaceres19/nava-pedidos, /srv/pedidos). Mismo patrón que barberia/: el
 // Jenkinsfile y deploy/jenkins/deploy.Jenkinsfile viven en su propio repositorio.
 
-def pedidosUrl = 'https://github.com/bcaceres19/odin-pedidos'
+def pedidosUrl = 'https://github.com/bcaceres19/nava-pedidos'
 
 folder('pedidos') {
   displayName('Pedidos (bandeja)')
@@ -100,7 +100,7 @@ multibranchPipelineJob('pedidos/ci') {
         github {
           id('pedidos-github')
           repoOwner('bcaceres19')
-          repository('odin-pedidos')
+          repository('nava-pedidos')
           repositoryUrl("${pedidosUrl}.git")
           configuredByUrl(false)
           credentialsId('github-token')
@@ -232,10 +232,10 @@ pipelineJob('nava/deploy') {
 }
 
 // ---------------------------------------------------------------------------------------
-// ODIN (bcaceres19/odin, /srv/odin). Mismo patrón que barberia/: el
+// Nava Nexos, antes Odin (bcaceres19/nava-nexos, /srv/odin). Mismo patrón que barberia/: el
 // Jenkinsfile y deploy/jenkins/deploy.Jenkinsfile viven en su propio repositorio.
 
-def odinUrl = 'https://github.com/bcaceres19/odin'
+def odinUrl = 'https://github.com/bcaceres19/nava-nexos'
 
 folder('odin') {
   displayName('Odin')
@@ -251,7 +251,7 @@ multibranchPipelineJob('odin/ci') {
         github {
           id('odin-github')
           repoOwner('bcaceres19')
-          repository('odin')
+          repository('nava-nexos')
           repositoryUrl("${odinUrl}.git")
           configuredByUrl(false)
           credentialsId('github-token')
