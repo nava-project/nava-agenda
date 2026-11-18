@@ -1,9 +1,9 @@
 ---
 titulo: "Supuestos temporales del proyecto"
-version: "1.0"
+version: "1.1"
 estado: "Vigente"
 responsable: "Propietario del proyecto"
-ultima_actualizacion: "2026-08-05"
+ultima_actualizacion: "2026-11-18"
 documentos_relacionados:
   - "registro-decisiones.md"
   - "../01-producto/reglas-negocio.md"
@@ -11,6 +11,8 @@ documentos_relacionados:
 ---
 
 # Supuestos temporales del proyecto
+
+> **Equivalencia de términos (`DEC-183`).** Este registro conserva los términos de la fecha de cada entrada. Desde `DEC-183` el producto se llama Nava Agenda y la documentación vigente dice «negocio» y «profesional» con los nombres técnicos `business`, `professional` y `agenda_*`; la tabla de equivalencias está en el [glosario](glosario.md#12-equivalencias-de-nava-agenda-dec-183).
 
 ## 1. Regla de uso
 

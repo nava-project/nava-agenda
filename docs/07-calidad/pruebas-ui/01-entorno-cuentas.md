@@ -3,7 +3,7 @@
 ## Preparación del coordinador
 
 1. Releer AGENTS.md, DEC-050/057/106/116 y estrategia-pruebas.md. Aplicar local-app-startup: identificar procesos, conexiones y contenedor reales, Atlas y recorrido autenticado. No crear otra BD porque el sandbox no pueda verla.
-2. Comprobar apps/api/.env.local sin mostrar sus valores. NAVA_QA_DATABASE_URL recibe DATABASE_URL del migrador; APP_DATABASE_URL conserva barberia_app. El aprovisionador exige loopback, base terminada en _test/_qa, local/test y ambos DSN apuntando al mismo destino.
+2. Comprobar apps/api/.env.local sin mostrar sus valores. NAVA_QA_DATABASE_URL recibe DATABASE_URL del migrador; APP_DATABASE_URL conserva agenda_app. El aprovisionador exige loopback, base terminada en _test/_qa, local/test y ambos DSN apuntando al mismo destino.
 3. Con PostgreSQL y esquema listos, desde raíz:
 
 ~~~sh
@@ -19,7 +19,7 @@ pnpm dev --host 127.0.0.1
 
 El wrapper conserva .env.local. Quita del entorno de ese proceso credenciales Meta/Resend y selecciona OTP_PROVIDER=meta, marcador local. **Una captura sola no impide un envío real:** el remitente interno actúa primero. No arrancar worker/proveedores reales.
 
-4. Verificar /health, /health/db, frontend y proxy. Abrir /acceso en Chromium, autenticar, ver Agenda y recibir 200 en Barberos y agenda diaria. Un puerto disponible no equivale a app funcional.
+4. Verificar /health, /health/db, frontend y proxy. Abrir /acceso en Chromium, autenticar, ver Agenda y recibir 200 en Profesionales y agenda diaria. Un puerto disponible no equivale a app funcional.
 5. Ejecutar **node tools/qa/verify-ui-ready.mjs**. Este smoke acredita preparación, no la campaña completa.
 
 ## Cuentas y fixture

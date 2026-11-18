@@ -23,7 +23,7 @@ Use Conventional Commits y una descripción breve en imperativo:
 
 ```text
 feat(booking): crea una reserva pública idempotente
-fix(db): impide cruces de citas del mismo barbero
+fix(db): impide cruces de citas del mismo profesional
 docs(api): documenta errores de disponibilidad
 ```
 

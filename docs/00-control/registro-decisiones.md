@@ -1,6 +1,6 @@
 ---
 titulo: "Registro de decisiones"
-version: "1.79"
+version: "1.80"
 estado: "Vigente"
 responsable: "Propietario del proyecto"
 ultima_actualizacion: "2026-11-18"
@@ -2416,4 +2416,5 @@ Cada código `DEC-*` es estable y no se reutiliza. Este registro normaliza respu
   - Cambiar solo marca y textos y dejar los identificadores internos: menos riesgo, pero el propietario pidió cambiarlo todo.
   - Servir la app en los dos dominios: duplica cookies, URI de OAuth y referrers de Maps.
 - **Documentos afectados:** este registro, `historial-cambios.md`, `docs/10-backlog/prompts/orchestration/nava-agenda.md` y su índice; las entregas siguientes enlazan esta decisión.
+- **Equivalencias:** la tabla de términos y nombres anteriores y actuales está en el [glosario](glosario.md#12-equivalencias-de-nava-agenda-dec-183) (issue #663).
 - **Fuente:** decisión del propietario del 2026-11-18; issues [#656](https://github.com/bcaceres19/barberia/issues/656)–[#664](https://github.com/bcaceres19/barberia/issues/664).

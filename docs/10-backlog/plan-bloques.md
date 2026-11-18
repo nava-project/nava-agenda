@@ -1,9 +1,9 @@
 ---
 titulo: "Plan de bloques de construcción del MVP"
-version: "1.33"
+version: "1.34"
 estado: "Propuesta"
 responsable: "Propietario del proyecto"
-ultima_actualizacion: "2026-09-15"
+ultima_actualizacion: "2026-11-18"
 documentos_relacionados:
   - "../01-producto/alcance-mvp.md"
   - "../01-producto/prioridades.md"
@@ -14,6 +14,8 @@ documentos_relacionados:
   - "prompts-implementacion.md"
 ---
 
+> Desde `DEC-183` (Nava Agenda) este documento dice «negocio» y «profesional»; las decisiones, el historial y los registros anteriores conservan los términos de entonces. Equivalencias en el [glosario](../00-control/glosario.md).
+
 # Plan de bloques de construcción del MVP
 
 > **Estado del contenido: Propuesta.** Este documento **no crea alcance**. Ordena las 45 funciones P0 ya confirmadas en [alcance-mvp.md](../01-producto/alcance-mvp.md) y define en qué secuencia se construyen. Ninguna función entra, sale ni cambia de prioridad aquí; hacerlo exigiría un `DEC-*` conforme a [prioridades.md](../01-producto/prioridades.md), sección 5.
@@ -22,7 +24,7 @@ documentos_relacionados:
 
 ## 1. Para qué sirve este documento
 
-El alcance dice **qué** se construye y las prioridades dicen **por qué**. Faltaba decir **en qué orden**, porque 45 funciones P0 no se pueden abordar en paralelo por una sola persona y algunas dependen físicamente de otras: no existe agenda sin restricción de exclusión, y no existe restricción de exclusión sin tabla de citas, y no existe tabla de citas sin aislamiento por barbería.
+El alcance dice **qué** se construye y las prioridades dicen **por qué**. Faltaba decir **en qué orden**, porque 45 funciones P0 no se pueden abordar en paralelo por una sola persona y algunas dependen físicamente de otras: no existe agenda sin restricción de exclusión, y no existe restricción de exclusión sin tabla de citas, y no existe tabla de citas sin aislamiento por negocio.
 
 Un bloque es un conjunto de historias que se entrega completo y verificable antes de empezar el siguiente. Cada bloque tiene un **criterio de salida comprobable**: si no se cumple, el bloque no está terminado y el siguiente no empieza.
 
@@ -32,7 +34,7 @@ Un bloque es un conjunto de historias que se entrega completo y verificable ante
 
 Los bloques se ordenaron con tres reglas, en este orden de peso:
 
-1. **Lo que es caro de corregir después va primero.** Aislamiento entre barberías, restricción de cruces, historial inmutable e idempotencia no se pueden "agregar al final" sin reescribir migraciones ya aplicadas (una migración aplicada es inmutable, `DEC-036`).
+1. **Lo que es caro de corregir después va primero.** Aislamiento entre negocios, restricción de cruces, historial inmutable e idempotencia no se pueden "agregar al final" sin reescribir migraciones ya aplicadas (una migración aplicada es inmutable, `DEC-036`).
 2. **Lo que otras cosas necesitan para existir va antes que ellas.** Nadie puede configurar servicios sin poder iniciar sesión; nadie puede calcular disponibilidad sin horario laboral.
 3. **Lo que el piloto mide va antes que lo que el piloto no mide.** Los criterios de inicio del piloto (`alcance-mvp.md`, sección 8) son la lista de verificación final de este plan.
 
@@ -45,9 +47,9 @@ Consecuencia deliberada: **el flujo público de reserva, que es la cara visible 
 | Bloque | Nombre | Funciones P0 cubiertas | Rango de historias | Estado |
 | --- | --- | --- | --- | --- |
 | **B0** | Cimientos, seguridad y primeras pantallas | 8 | `HU-001` – `HU-012` | Redactado |
-| **B1** | Identidad de la barbería y catálogo | 4 | `HU-020` – `HU-0xx` | `HU-020`–`HU-024` integradas en `main` ([PR #84](https://github.com/bcaceres19/barberia/pull/84), issue real `#77`) |
+| **B1** | Identidad del negocio y catálogo | 4 | `HU-020` – `HU-0xx` | `HU-020`–`HU-024` integradas en `main` ([PR #84](https://github.com/bcaceres19/barberia/pull/84), issue real `#77`) |
 | **B2** | Horario laboral y bloqueos | 2 | `HU-040` – `HU-042` | `CT-008` resuelta (`DEC-070`); `HU-040` integrada en `main` ([PR #93](https://github.com/bcaceres19/barberia/pull/93), issue real [#90](https://github.com/bcaceres19/barberia/issues/90) abierto por `CA-040-08` parcial); `HU-041` integrada en `main` ([PR #96](https://github.com/bcaceres19/barberia/pull/96), issue real [#95](https://github.com/bcaceres19/barberia/issues/95) abierto por `CA-041-08` parcial); `HU-042` integrada en `main` ([PR #99](https://github.com/bcaceres19/barberia/pull/99), issue real [#98](https://github.com/bcaceres19/barberia/issues/98) abierto por seguimiento de UI/E2E, issue [#100](https://github.com/bcaceres19/barberia/issues/100), completo el 2026-10-08) |
-| **B3** | Agenda del barbero, estados e integridad | 11 | `HU-060` – `HU-0xx` | `HU-060`–`HU-068` integradas ([PR #235](https://github.com/bcaceres19/barberia/pull/235), [#225](https://github.com/bcaceres19/barberia/issues/225); [PR #237](https://github.com/bcaceres19/barberia/pull/237), [#226](https://github.com/bcaceres19/barberia/issues/226); [PR #239](https://github.com/bcaceres19/barberia/pull/239), [#227](https://github.com/bcaceres19/barberia/issues/227)); tercer lote de B3 completo |
+| **B3** | Agenda del profesional, estados e integridad | 11 | `HU-060` – `HU-0xx` | `HU-060`–`HU-068` integradas ([PR #235](https://github.com/bcaceres19/barberia/pull/235), [#225](https://github.com/bcaceres19/barberia/issues/225); [PR #237](https://github.com/bcaceres19/barberia/pull/237), [#226](https://github.com/bcaceres19/barberia/issues/226); [PR #239](https://github.com/bcaceres19/barberia/pull/239), [#227](https://github.com/bcaceres19/barberia/issues/227)); tercer lote de B3 completo |
 | **B4** | Reserva pública y disponibilidad | 13 | `HU-090` – `HU-099` | `HU-090`–`HU-096` integradas en `main`; `HU-097` implementada, issue real [#268](https://github.com/bcaceres19/barberia/issues/268), rama `feat/268-hu-097-confirmacion-publica-concurrente`, [PR #270](https://github.com/bcaceres19/barberia/pull/270) sin integrar todavía; `HU-098`–`HU-099` desbloqueadas (`DEC-089`–`DEC-091`), pendientes de implementar |
 | **B5** | Notificaciones y recordatorios | 3 | `HU-130` – `HU-1xx` | Pendiente de redacción |
 | **B6** | Operación, privacidad y preparación del piloto | 4 | `HU-150` – `HU-1xx` | Pendiente de redacción |
@@ -60,21 +62,21 @@ Los rangos se reservan por bloque para que los códigos `HU-*` no se renumeren c
 
 ### B0 · Cimientos, seguridad y primeras pantallas
 
-**Objetivo:** que exista un sistema en el que un barbero real pueda entrar, que ninguna barbería pueda ver datos de otra, que los errores se comporten igual en todas partes y que las pantallas siguientes se construyan sobre componentes ya definidos.
+**Objetivo:** que exista un sistema en el que un profesional real pueda entrar, que ningún negocio pueda ver datos de otro, que los errores se comporten igual en todas partes y que las pantallas siguientes se construyan sobre componentes ya definidos.
 
 **Funciones:** `F-SEG-01`, `F-SEG-03`, `F-AUTH-01`, `F-AUTH-02`, `F-OPS-01`, `F-OPS-02`, `F-OPS-03`, `F-OPS-04`.
 
-**Incluye:** esquema inicial con `barbershop_id` y RLS activa; rol de aplicación sin `BYPASSRLS`; contexto de barbería por transacción; Chi v5 y el orden de middleware; errores RFC 9457; registro técnico sin datos personales; idempotencia reutilizable; inicio y cierre de sesión; defensa escalonada contra abuso; recuperación de acceso; sistema visual aplicado en componentes base; pantallas de acceso, recuperación y cascarón del panel.
+**Incluye:** esquema inicial con `business_id` y RLS activa; rol de aplicación sin `BYPASSRLS`; contexto de negocio por transacción; Chi v5 y el orden de middleware; errores RFC 9457; registro técnico sin datos personales; idempotencia reutilizable; inicio y cierre de sesión; defensa escalonada contra abuso; recuperación de acceso; sistema visual aplicado en componentes base; pantallas de acceso, recuperación y cascarón del panel.
 
 **No incluye:** ninguna entidad de negocio (servicios, horarios, citas, bloqueos). Si una historia de B0 necesita una tabla de negocio para demostrarse, la historia está mal delimitada.
 
 **Criterio de salida:**
 
-- [ ] Un usuario de la barbería A recibe `404` al pedir cualquier recurso de la barbería B, verificado endpoint por endpoint de los que existan.
+- [ ] Un usuario del negocio A recibe `404` al pedir cualquier recurso del negocio B, verificado endpoint por endpoint de los que existan.
 - [ ] Una consulta ejecutada con el rol de aplicación y el contexto de A no devuelve filas de B, verificado también con SQL directo.
-- [ ] El barbero inicia sesión, la sesión sobrevive al cierre del navegador y el cierre de sesión la invalida de inmediato.
+- [ ] El profesional inicia sesión, la sesión sobrevive al cierre del navegador y el cierre de sesión la invalida de inmediato.
 - [ ] Superado el umbral de intentos por IP, el formulario exige verificación telefónica.
-- [ ] El barbero recupera el acceso con un código enviado a su teléfono verificado.
+- [ ] El profesional recupera el acceso con un código enviado a su teléfono verificado.
 - [ ] Todo error responde con el formato uniforme del contrato y ningún registro técnico contiene nombre, teléfono, correo ni contraseña.
 - [ ] Repetir una operación crítica con la misma clave no produce un segundo efecto.
 - [ ] Las pantallas de acceso, recuperación y panel se ven correctas en 320, 360, 768 y 1280 px y son operables con teclado.
@@ -83,11 +85,11 @@ Los rangos se reservan por bloque para que los códigos `HU-*` no se renumeren c
 
 ---
 
-### B1 · Identidad de la barbería y catálogo
+### B1 · Identidad del negocio y catálogo
 
 `HU-020`, `HU-021`, `HU-022`, `HU-023` y `HU-024` están integradas en `main`. `DP-SER-01`–`DP-SER-03` quedaron resueltas por `DEC-067`–`DEC-069` y cada HU tiene issue real (`#75`, `#76`, `#77`); `HU-024` (ciclo de vida del servicio, cierre de B1) está verificada contra PostgreSQL real, con [PR #84](https://github.com/bcaceres19/barberia/pull/84) integrado contra el issue real `#77`.
 
-**Objetivo:** que la barbería tenga nombre, zona horaria, contacto, barberos y servicios con duración y precio.
+**Objetivo:** que el negocio tenga nombre, zona horaria, contacto, profesionales y servicios con duración y precio.
 
 **Funciones:** `F-CONF-01`, `F-CONF-02`, `F-SERV-01`, `F-SERV-02`.
 
@@ -95,8 +97,8 @@ Los rangos se reservan por bloque para que los códigos `HU-*` no se renumeren c
 
 **Criterio de salida:**
 
-- [ ] La zona horaria de la barbería se almacena como zona IANA y toda hora mostrada la respeta.
-- [ ] Una barbería con un barbero y otra con tres se configuran sin casos especiales en el código.
+- [ ] La zona horaria del negocio se almacena como zona IANA y toda hora mostrada la respeta.
+- [ ] Un negocio con un profesional y otro con tres se configuran sin casos especiales en el código.
 - [ ] Desactivar un servicio con citas futuras advierte cuántas hay y no cancela nada por su cuenta *(la parte de citas se cierra en B3; en B1 se construye la advertencia sobre el catálogo)*.
 - [ ] Cambiar duración o precio no altera ninguna cita existente sin decisión explícita.
 
@@ -106,7 +108,7 @@ Los rangos se reservan por bloque para que los códigos `HU-*` no se renumeren c
 
 ### B2 · Horario laboral y bloqueos
 
-**Objetivo:** que el sistema sepa cuándo trabaja cada barbero y cuándo no.
+**Objetivo:** que el sistema sepa cuándo trabaja cada profesional y cuándo no.
 
 **Historias propuestas:** `HU-040` horario laboral recurrente → `HU-041` excepciones de jornada y festivos → `HU-042` bloqueos de agenda. Cada una tiene un prompt individual en `docs/10-backlog/prompts/hu/`. `CT-008` se resolvió como `DEC-070` (FK en `ON DELETE RESTRICT`); `HU-040` está integrada en `main` ([PR #93](https://github.com/bcaceres19/barberia/pull/93)), con `CA-040-08` parcial (falta evidencia responsive real) y el issue real [#90](https://github.com/bcaceres19/barberia/issues/90) abierto por ese pendiente. `HU-041` está integrada en `main` ([PR #96](https://github.com/bcaceres19/barberia/pull/96)), con `CA-041-08` parcial por el mismo motivo que `CA-040-08` y el issue real [#95](https://github.com/bcaceres19/barberia/issues/95) abierto por ese pendiente. `HU-042` está integrada en `main` ([PR #99](https://github.com/bcaceres19/barberia/pull/99)), con el backend completo probado contra PostgreSQL real y el frontend cubriendo bloqueos puntuales y series `weekly`; el issue real [#98](https://github.com/bcaceres19/barberia/issues/98) sigue abierto por el seguimiento de UI de `date_list`/excepciones/edición de serie y evidencia E2E/responsive, detallado en el issue [#100](https://github.com/bcaceres19/barberia/issues/100) (mismo criterio que `CA-040-08`/`CA-041-08`); ese seguimiento quedó completo el 2026-10-08.
 
@@ -118,23 +120,23 @@ Los rangos se reservan por bloque para que los códigos `HU-*` no se renumeren c
 
 - [ ] Los siete tipos de bloqueo (`break`, `lunch`, `unavailable`, `day_off`, `holiday`, `vacation`, `emergency`) se crean y restan tiempo.
 - [ ] Recurrencias, listas explícitas de fechas y excepciones individuales funcionan.
-- [ ] El calendario colombiano de festivos se activa por barbero y un festivo puede abrirse manualmente.
+- [ ] El calendario colombiano de festivos se activa por profesional y un festivo puede abrirse manualmente.
 - [ ] Un bloqueo eliminado deja de restar disponibilidad y conserva su registro.
 - [ ] Un tramo que cruza la medianoche cabe completo en el horario configurado.
 
-**Depende de:** B1 (los bloqueos son por barbero).
+**Depende de:** B1 (los bloqueos son por profesional).
 
 ---
 
-### B3 · Agenda del barbero, estados e integridad
+### B3 · Agenda del profesional, estados e integridad
 
-**Objetivo:** el corazón del producto. Que exista la cita, que no se pueda cruzar, que el barbero opere su día y que todo cambio quede registrado.
+**Objetivo:** el corazón del producto. Que exista la cita, que no se pueda cruzar, que el profesional opere su día y que todo cambio quede registrado.
 
 **Funciones:** `F-CITA-01` a `F-CITA-06`, `F-EST-01` a `F-EST-04`, `F-DISP-02`.
 
 **Reglas que gobiernan el bloque:** `RN-CIT-01` a `RN-CIT-05`, `RN-CON-01`, `RN-CON-03`, `RN-CAN-03`, `RN-CAN-04`, `RN-HIS-01`, `RN-HIS-02`, `RN-RES-01` a `RN-RES-03`, y la máquina completa de [estados-citas.md](../02-requisitos/estados-citas.md).
 
-**Secuencia redactada:** `HU-060` núcleo persistente y exclusión PostgreSQL → `HU-061` creación manual → `HU-062` agenda diaria de hoy → `HU-063` navegación por fecha → `HU-064` detalle e historial → `HU-065` reprogramación auditada T2 → `HU-066` cancelación por barbero T6 → `HU-067` cierre manual T4/T7 → `HU-068` corrección auditada T8. `HU-060`–`HU-068` están integradas en `main` ([PR #235](https://github.com/bcaceres19/barberia/pull/235), [PR #237](https://github.com/bcaceres19/barberia/pull/237), [PR #239](https://github.com/bcaceres19/barberia/pull/239)): el tercer lote de B3 queda completo. T3 y cierre automático permanecen pendientes porque requieren un lote posterior que precise, respectivamente, snapshots/precio/duración y configuración de modo/demora.
+**Secuencia redactada:** `HU-060` núcleo persistente y exclusión PostgreSQL → `HU-061` creación manual → `HU-062` agenda diaria de hoy → `HU-063` navegación por fecha → `HU-064` detalle e historial → `HU-065` reprogramación auditada T2 → `HU-066` cancelación por profesional T6 → `HU-067` cierre manual T4/T7 → `HU-068` corrección auditada T8. `HU-060`–`HU-068` están integradas en `main` ([PR #235](https://github.com/bcaceres19/barberia/pull/235), [PR #237](https://github.com/bcaceres19/barberia/pull/237), [PR #239](https://github.com/bcaceres19/barberia/pull/239)): el tercer lote de B3 queda completo. T3 y cierre automático permanecen pendientes porque requieren un lote posterior que precise, respectivamente, snapshots/precio/duración y configuración de modo/demora.
 
 **Criterio de salida:**
 
@@ -155,14 +157,14 @@ Los rangos se reservan por bloque para que los códigos `HU-*` no se renumeren c
 
 **Reglas que gobiernan el bloque:** `RN-DIS-01` a `RN-DIS-06`, `RN-CON-02`, `RN-CON-04` a `RN-CON-06`, `RN-CNF-01`, `RN-CNF-02`, `RN-CAN-01`, `RN-CAN-02`, `RN-DAT-01`, `RN-IDE-01`.
 
-**Secuencia redactada como propuesta:** `HU-090` entrada pública → `HU-091` servicios → `HU-092` selección de barbero → `HU-093` configuración de políticas → `HU-094` motor de disponibilidad → `HU-095` exploración de fechas/horas → `HU-096` datos de cliente/persona atendida → `HU-097` confirmación concurrente → `HU-098` acceso del cliente → `HU-099` cancelación pública. El lote documental vive en el issue [#240](https://github.com/bcaceres19/barberia/issues/240). B3 ya cerró y `DP-PUB-01` quedó resuelta como `DEC-082`, lo que autorizó `HU-090` (integrada en `main`, [PR #244](https://github.com/bcaceres19/barberia/pull/244)). `HU-091` no dependía de ninguna `DP-PUB-*` abierta (solo de `HU-090` integrada y `HU-022`–`HU-024`, ya cumplidas): issue real [#245](https://github.com/bcaceres19/barberia/issues/245), rama `feat/245-hu091-catalogo-publico`, integrada en `main` ([PR #246](https://github.com/bcaceres19/barberia/pull/246)). `HU-092` tampoco dependía de ninguna `DP-PUB-*` abierta: issue real [#247](https://github.com/bcaceres19/barberia/issues/247), rama `feat/247-hu092-seleccion-barbero`, integrada en `main` ([PR #248](https://github.com/bcaceres19/barberia/pull/248)). El propietario resolvió `DP-PUB-02` como `DEC-083` y `DP-PUB-03` como `DEC-084` el 11 de septiembre de 2026, desbloqueando `HU-093` (issue real [#249](https://github.com/bcaceres19/barberia/issues/249), rama `feat/249-hu093-configuracion-reserva-cancelacion`) y, en cadena, `HU-094` (depende además de `HU-093` integrada). `DP-PUB-04` quedó resuelta como `DEC-085` el 11 de septiembre de 2026, desbloqueando `HU-096` (issue real [#266](https://github.com/bcaceres19/barberia/issues/266), rama `feat/266-hu096-datos-cliente`). `DP-PUB-05`/`DP-PUB-06`/`CT-011` quedaron resueltas el 15 de septiembre de 2026 como `DEC-089`/`DEC-090`/`DEC-091`, desbloqueando `HU-097`–`HU-099`. `HU-097` queda implementada contra el issue real [#268](https://github.com/bcaceres19/barberia/issues/268), rama `feat/268-hu-097-confirmacion-publica-concurrente`, [PR #270](https://github.com/bcaceres19/barberia/pull/270) sin integrar todavía.
+**Secuencia redactada como propuesta:** `HU-090` entrada pública → `HU-091` servicios → `HU-092` selección de profesional → `HU-093` configuración de políticas → `HU-094` motor de disponibilidad → `HU-095` exploración de fechas/horas → `HU-096` datos de cliente/persona atendida → `HU-097` confirmación concurrente → `HU-098` acceso del cliente → `HU-099` cancelación pública. El lote documental vive en el issue [#240](https://github.com/bcaceres19/barberia/issues/240). B3 ya cerró y `DP-PUB-01` quedó resuelta como `DEC-082`, lo que autorizó `HU-090` (integrada en `main`, [PR #244](https://github.com/bcaceres19/barberia/pull/244)). `HU-091` no dependía de ninguna `DP-PUB-*` abierta (solo de `HU-090` integrada y `HU-022`–`HU-024`, ya cumplidas): issue real [#245](https://github.com/bcaceres19/barberia/issues/245), rama `feat/245-hu091-catalogo-publico`, integrada en `main` ([PR #246](https://github.com/bcaceres19/barberia/pull/246)). `HU-092` tampoco dependía de ninguna `DP-PUB-*` abierta: issue real [#247](https://github.com/bcaceres19/barberia/issues/247), rama `feat/247-hu092-seleccion-barbero`, integrada en `main` ([PR #248](https://github.com/bcaceres19/barberia/pull/248)). El propietario resolvió `DP-PUB-02` como `DEC-083` y `DP-PUB-03` como `DEC-084` el 11 de septiembre de 2026, desbloqueando `HU-093` (issue real [#249](https://github.com/bcaceres19/barberia/issues/249), rama `feat/249-hu093-configuracion-reserva-cancelacion`) y, en cadena, `HU-094` (depende además de `HU-093` integrada). `DP-PUB-04` quedó resuelta como `DEC-085` el 11 de septiembre de 2026, desbloqueando `HU-096` (issue real [#266](https://github.com/bcaceres19/barberia/issues/266), rama `feat/266-hu096-datos-cliente`). `DP-PUB-05`/`DP-PUB-06`/`CT-011` quedaron resueltas el 15 de septiembre de 2026 como `DEC-089`/`DEC-090`/`DEC-091`, desbloqueando `HU-097`–`HU-099`. `HU-097` queda implementada contra el issue real [#268](https://github.com/bcaceres19/barberia/issues/268), rama `feat/268-hu-097-confirmacion-publica-concurrente`, [PR #270](https://github.com/bcaceres19/barberia/pull/270) sin integrar todavía.
 
 **Criterio de salida:**
 
 - [ ] N solicitudes simultáneas sobre la misma franja producen exactamente una cita; las demás reciben un mensaje comprensible con alternativas y **sin perder los datos escritos**.
 - [ ] Solo se ofrecen franjas donde cabe el servicio completo, con los once factores de `RN-DIS-02` aplicados.
 - [ ] Doble toque en "Confirmar turno" no crea dos citas.
-- [ ] El enlace del turno permite consultar y cancelar según la política vigente de la barbería.
+- [ ] El enlace del turno permite consultar y cancelar según la política vigente del negocio.
 
 **Depende de:** B3.
 

@@ -1,9 +1,9 @@
 ---
 titulo: "Alcance del MVP"
-version: "1.2"
+version: "1.3"
 estado: "Borrador"
 responsable: "Propietario del proyecto"
-ultima_actualizacion: "2026-11-17"
+ultima_actualizacion: "2026-11-18"
 documentos_relacionados:
   - "reglas-negocio.md"
   - "prioridades.md"
@@ -13,6 +13,8 @@ documentos_relacionados:
   - "../00-control/registro-decisiones.md"
 ---
 
+> Desde `DEC-183` (Nava Agenda) este documento dice «negocio» y «profesional»; las decisiones, el historial y los registros anteriores conservan los términos de entonces. Equivalencias en el [glosario](../00-control/glosario.md).
+
 > **Estado del contenido:** Hay 50 funciones P0 confirmadas. No queda ninguna elevación pendiente del lote de decisiones del 5 de agosto de 2026; `F-PUB-09`–`F-PUB-12` se elevan el 2026-10-26 por instrucción directa del propietario (`DEC-128`–`DEC-131`), `F-PUB-13` el 2026-11-17 (`DEC-178`) y `F-PUB-14` el mismo día (`DEC-182`).
 >
 > Este documento no convierte automáticamente las propuestas en decisiones aprobadas.
@@ -21,11 +23,11 @@ documentos_relacionados:
 
 ## 1. Objetivo del MVP
 
-**Construir la versión mínima que permita a un barbero real operar toda su agenda durante su jornada, sin volver a WhatsApp para agendar, y sin que ocurra un solo cruce de horarios.**
+**Construir la versión mínima que permita a un profesional real operar toda su agenda durante su jornada, sin volver a WhatsApp para agendar, y sin que ocurra un solo cruce de horarios.**
 
 El MVP no busca ser un producto completo. Busca responder una sola pregunta:
 
-> ¿Un barbero independiente que hoy agenda por WhatsApp cambia su forma de trabajar y sostiene el cambio durante varias semanas?
+> ¿Un profesional independiente que hoy agenda por WhatsApp cambia su forma de trabajar y sostiene el cambio durante varias semanas?
 
 Todo lo que no ayude a responder esa pregunta está fuera.
 
@@ -33,10 +35,10 @@ Todo lo que no ayude a responder esa pregunta está fuera.
 
 | Debe demostrar | No pretende demostrar todavía |
 | --- | --- |
-| Que un barbero puede operar su día completo en la plataforma | Que el producto es rentable |
-| Que sus clientes reservan solos, sin ayuda | Que funciona para barberías de cinco sillas |
+| Que un profesional puede operar su día completo en la plataforma | Que el producto es rentable |
+| Que sus clientes reservan solos, sin ayuda | Que funciona para negocios de cinco profesionales o más |
 | Que no se producen cruces de horarios | Que se puede vender a escala |
-| Que el barbero recibe menos mensajes preguntando disponibilidad | Que el barbero pagará |
+| Que el profesional recibe menos mensajes preguntando disponibilidad | Que el profesional pagará |
 
 > **Advertencia sobre la última fila:** el piloto puede producir una conversación sobre precio y una intención declarada de pagar. Eso **no** es pago efectivo y ningún documento debe presentarlo como tal.
 
@@ -44,9 +46,9 @@ Todo lo que no ayude a responder esa pregunta está fuera.
 
 ## 2. Usuarios iniciales
 
-### Usuario principal — El barbero
+### Usuario principal — El profesional
 
-Barbero independiente o dueño de una barbería pequeña en Armenia, Quindío. Trabaja de pie, con las manos ocupadas, y responde su teléfono entre cliente y cliente. Su herramienta es un celular de gama media, con conexión que no siempre es buena.
+Profesional independiente o dueño de un negocio pequeño que agenda citas; el piloto empezó con barberías de Armenia, Quindío. Trabaja de pie, con las manos ocupadas, y responde su teléfono entre cliente y cliente. Su herramienta es un celular de gama media, con conexión que no siempre es buena.
 
 **Lo que necesita:** ver su día de un vistazo, agendar en menos de treinta segundos, bloquear tiempo cuando surge un imprevisto y dejar de contestar "¿tienes espacio hoy?".
 
@@ -60,7 +62,7 @@ Persona que quiere cortarse el pelo. Abre un enlace que le llegó por WhatsApp o
 
 ### Usuario operativo — El propietario
 
-Desarrolla, opera y soporta el producto. Necesita poder diagnosticar un problema, restaurar datos y responder al barbero el mismo día.
+Desarrolla, opera y soporta el producto. Necesita poder diagnosticar un problema, restaurar datos y responder al profesional el mismo día.
 
 Detalle completo en `usuarios-iniciales.md` *(pendiente de creación)*.
 
@@ -75,7 +77,7 @@ Ordenados por el daño que causan hoy.
 | 1 | Cruces de horarios y doble reserva | Restricción en la base de datos que hace imposible almacenar dos citas cruzadas | `RN-CON-01`, `RN-CON-03` |
 | 2 | Olvido de citas | Recordatorios automáticos P0 | `RN-REC-01`, `DEC-032` |
 | 3 | Tiempo perdido informando horarios disponibles | Enlace público que muestra la disponibilidad real y actualizada | `RN-DIS-01` |
-| 4 | Interrupciones mientras atiende a un cliente | El cliente reserva solo, sin intervención del barbero | `RN-CNF-01` |
+| 4 | Interrupciones mientras atiende a un cliente | El cliente reserva solo, sin intervención del profesional | `RN-CNF-01` |
 | 5 | Horarios que parecen libres pero no caben | Solo se ofrece una franja si cabe el servicio completo | `RN-DIS-01` |
 | 6 | Dificultad para bloquear descansos, días libres o emergencias | Bloqueos de todo tipo, incluso sobre citas ya agendadas | `RN-BLQ-01`, `RN-BLQ-03` |
 | 7 | No saber a quién se atiende cuando alguien reserva por otro | Persona atendida como dato obligatorio y distinto del cliente | `RN-RES-02`, `RN-RES-03` |
@@ -87,8 +89,8 @@ Ordenados por el daño que causan hoy.
 
 Se dejan explícitos para que nadie asuma lo contrario:
 
-- **Dependencia de WhatsApp para conversar.** El barbero seguirá usando WhatsApp para hablar con sus clientes. El MVP le quita la tarea de *agendar*, no la de conversar.
-- **Retrasos que desordenan el día.** El sistema nunca reacomoda la agenda automáticamente. La gestión y el aviso asistido están clasificados como `F-CITA-10` P1; mientras no existan, el barbero usa contacto directo (`RN-RET-01`).
+- **Dependencia de WhatsApp para conversar.** El profesional seguirá usando WhatsApp para hablar con sus clientes. El MVP le quita la tarea de *agendar*, no la de conversar.
+- **Retrasos que desordenan el día.** El sistema nunca reacomoda la agenda automáticamente. La gestión y el aviso asistido están clasificados como `F-CITA-10` P1; mientras no existan, el profesional usa contacto directo (`RN-RET-01`).
 - **Clientes que no se presentan.** Se pueden registrar y contar, pero el MVP no incorpora ningún mecanismo para evitarlos.
 
 ---
@@ -101,15 +103,15 @@ Se dejan explícitos para que nadie asuma lo contrario:
 
 | Código | Función | Nota |
 | --- | --- | --- |
-| `F-AUTH-01` | Autenticación del barbero | Correo, contraseña y sesión larga. `DEC-026` |
+| `F-AUTH-01` | Autenticación del profesional | Correo, contraseña y sesión larga. `DEC-026` |
 | `F-AUTH-02` | Recuperación de acceso | Código al teléfono verificado. `DEC-026` |
 
 ### Configuración — `CONF`, `SERV`, `HOR`
 
 | Código | Función | Nota |
 | --- | --- | --- |
-| `F-CONF-01` | Configuración básica de la barbería | Nombre, zona horaria, datos de contacto |
-| `F-CONF-02` | Gestión de barberos | Uno o varios barberos por barbería; servicios y horario por barbero. `DEC-019` |
+| `F-CONF-01` | Configuración básica del negocio | Nombre, zona horaria, datos de contacto |
+| `F-CONF-02` | Gestión de profesionales | Uno o varios profesionales por negocio; servicios y horario por profesional. `DEC-019` |
 | `F-SERV-01` | Gestión de servicios | Crear, editar y desactivar con control sobre citas futuras. `RN-SER-03`, `RN-SER-04` |
 | `F-SERV-02` | Duraciones configurables | Minutos enteros y tiempo planificado, sin lista cerrada. `RN-SER-01`, `RN-SER-02` |
 | `F-HOR-01` | Configuración del horario laboral | Por día de la semana |
@@ -122,15 +124,15 @@ Se dejan explícitos para que nadie asuma lo contrario:
 | `F-PUB-01` | Enlace público de reservas | Sin registro ni contraseña |
 | `F-PUB-02` | Consulta pública de servicios | Solo servicios activos |
 | `F-PUB-03` | Consulta pública de fechas y horarios | Disponibilidad real |
-| `F-PUB-04` | Selección de barbero y creación pública | Elige cuando hay varios; nace en `confirmed`. `DEC-019` |
+| `F-PUB-04` | Selección de profesional y creación pública | Elige cuando hay varios; nace en `confirmed`. `DEC-019` |
 | `F-PUB-05` | Identificación de quien reserva | Nombre, teléfono y correo obligatorios. `DEC-022` |
 | `F-PUB-06` | Identificación de la persona atendida | Se reutiliza el reservante; campo adicional solo si difiere. `RN-RES-02` |
 | `F-PUB-07` | Confirmación y acceso al turno | Pantalla, correo y enlace aleatorio largo para consultar o cancelar. `DEC-022` |
 | `F-PUB-08` | Cancelación por parte del cliente | Sujeta al plazo y a la política configurable posterior. `RN-CAN-01`, `RN-CAN-02` |
-| `F-PUB-09` | Reseñas y calificación interna por barbero | Solo tras turno `completed`, una por turno, publicación inmediata y ocultable. `DEC-128` |
-| `F-PUB-10` | Reseñas y estrellas de Google del negocio | Ficha de Google por barbería (o del barbero independiente); integración de pago. `DEC-129` |
-| `F-PUB-11` | Ubicación de la barbería en la reserva pública | Configurable; oculta si la barbería no tiene local. `DEC-130` |
-| `F-PUB-12` | Domicilio con dirección del cliente y mapa | Interruptor general de la barbería; dirección geocodificada obligatoria. `DEC-131` |
+| `F-PUB-09` | Reseñas y calificación interna por profesional | Solo tras turno `completed`, una por turno, publicación inmediata y ocultable. `DEC-128` |
+| `F-PUB-10` | Reseñas y estrellas de Google del negocio | Ficha de Google por negocio (o del profesional independiente); integración de pago. `DEC-129` |
+| `F-PUB-11` | Ubicación del negocio en la reserva pública | Configurable; oculta si el negocio no tiene local. `DEC-130` |
+| `F-PUB-12` | Domicilio con dirección del cliente y mapa | Interruptor general del negocio; dirección geocodificada obligatoria. `DEC-131` |
 | `F-PUB-13` | Reprogramación por parte del cliente | Solo fecha y hora, mismo plazo que la cancelación, máximo 2 por turno; acceso por el enlace o con un código de un solo uso al correo o WhatsApp. `DEC-178` |
 | `F-PUB-14` | Horario de atención del local | Propio del local, editado por el dueño; se muestra en la reserva pública con el estado de hoy y lo consulta Odin. Informativo: no limita la disponibilidad. `DEC-182` |
 
@@ -144,17 +146,17 @@ Se dejan explícitos para que nadie asuma lo contrario:
 | `F-DISP-04` | Anticipación mínima configurable | Valor inicial: 60 minutos. `DEC-018` |
 | `F-DISP-05` | Ventana máxima configurable | Valor inicial: 3 días. `DEC-018` |
 
-### Agenda del barbero — `CITA`
+### Agenda del profesional — `CITA`
 
 | Código | Función | Nota |
 | --- | --- | --- |
-| `F-CITA-01` | Agenda diaria del barbero | Pantalla principal del producto |
+| `F-CITA-01` | Agenda diaria del profesional | Pantalla principal del producto |
 | `F-CITA-02` | Navegación por fecha | Día anterior, siguiente, selector |
 | `F-CITA-03` | Creación manual de citas | `RN-CIT-02` |
 | `F-CITA-04` | Modificación de citas | Servicio, duración, datos |
 | `F-CITA-05` | Reprogramación de citas | Con las mismas garantías de concurrencia |
-| `F-CITA-06` | Cancelación por parte del barbero | Sin límite temporal. `RN-CAN-03` |
-| `F-CITA-07` | Política y motivo de cancelación fuera de plazo | Configurable por barbería. `RN-CAN-02`, `DEC-010` |
+| `F-CITA-06` | Cancelación por parte del profesional | Sin límite temporal. `RN-CAN-03` |
+| `F-CITA-07` | Política y motivo de cancelación fuera de plazo | Configurable por negocio. `RN-CAN-02`, `DEC-010` |
 
 ### Estados e historial — `EST`
 
@@ -177,7 +179,7 @@ Se dejan explícitos para que nadie asuma lo contrario:
 
 | Código | Función | Nota |
 | --- | --- | --- |
-| `F-SEG-01` | Separación de datos entre barberías | `RN-TEN-01` |
+| `F-SEG-01` | Separación de datos entre negocios | `RN-TEN-01` |
 | `F-SEG-02` | Protección de datos personales | `RN-DAT-01`, `RN-DAT-02` |
 | `F-SEG-03` | Protección escalonada contra abuso | Límite por IP y código telefónico al superar el umbral. `DEC-026` |
 
@@ -207,14 +209,14 @@ Costo muy bajo, valor concentrado en la calidad de lo que el piloto enseñará.
 
 | Código | Función | Qué se pierde sin ella |
 | --- | --- | --- |
-| `F-CITA-08` | Notas internas del barbero | El barbero seguirá usando papel |
+| `F-CITA-08` | Notas internas del profesional | El profesional seguirá usando papel |
 
 ### Resto de P1
 
 | Código | Función | Alternativa mientras no exista |
 | --- | --- | --- |
 | `F-CITA-09` | Búsqueda de clientes | Desplazarse por la agenda |
-| `F-CITA-10` | Gestión y comunicación de retrasos | P1 confirmada: el barbero decide y avisa manualmente; no hay desplazamiento automático. `DEC-021` |
+| `F-CITA-10` | Gestión y comunicación de retrasos | P1 confirmada: el profesional decide y avisa manualmente; no hay desplazamiento automático. `DEC-021` |
 | `F-OPS-07` | Métricas básicas *(sin interfaz)* | Consultas directas a la base de datos durante el piloto |
 
 ### P2
@@ -233,7 +235,7 @@ Costo muy bajo, valor concentrado en la calidad de lo que el piloto enseñará.
 
 ### De producto
 
-Pagos en línea · facturación electrónica · inventario · nómina · contabilidad completa · comisiones internas avanzadas · programa de fidelización · aplicación móvil nativa · marketplace público de barberías · CRM completo · mercadeo automatizado.
+Pagos en línea · facturación electrónica · inventario · nómina · contabilidad completa · comisiones internas avanzadas · programa de fidelización · aplicación móvil nativa · marketplace público de negocios · CRM completo · mercadeo automatizado.
 
 ### De inteligencia artificial y automatización
 
@@ -245,7 +247,7 @@ Múltiples sedes con administración compleja · roles administrativos altamente
 
 ### De integraciones
 
-Integraciones contables · integraciones avanzadas con redes sociales · integración bidireccional completa con calendarios externos *(`DEC-099` admite únicamente publicar las citas y bloqueos de un barbero en su Google Calendar, sin importar cambios de vuelta (solo comprueba que sus eventos sigan existiendo); el cliente solo recibe una invitación como asistente del evento del barbero (`DEC-122`), sin cuenta ni conexión propia; siguen fuera los calendarios conectados de clientes, administradores, globales o de recursos y otros proveedores)*.
+Integraciones contables · integraciones avanzadas con redes sociales · integración bidireccional completa con calendarios externos *(`DEC-099` admite únicamente publicar las citas y bloqueos de un profesional en su Google Calendar, sin importar cambios de vuelta (solo comprueba que sus eventos sigan existiendo); el cliente solo recibe una invitación como asistente del evento del profesional (`DEC-122`), sin cuenta ni conexión propia; siguen fuera los calendarios conectados de clientes, administradores, globales o de recursos y otros proveedores)*.
 
 ### De arquitectura
 
@@ -266,12 +268,12 @@ No quedan dudas de este lote que cambien qué se construye. Las incorporaciones 
 | Decisión | Efecto en alcance |
 | --- | --- |
 | `DEC-017` | `F-EST-04` pasa a P0 y se incorpora el cierre configurable |
-| `DEC-019` | El MVP administra uno o varios barberos |
+| `DEC-019` | El MVP administra uno o varios profesionales |
 | `DEC-020` | Bloqueos recurrentes, festivos activables y turnos nocturnos entran en horario/disponibilidad |
 | `DEC-026` | Defensa escalonada e incidente escrito entran en P0 |
 | `DEC-027` | Correo y WhatsApp oficial son canales del MVP |
 | `DEC-032` | `F-NOT-03` pasa a P0; `CT-001` queda resuelta |
-| `DEC-128`–`DEC-131` | `F-PUB-09`–`F-PUB-12` pasan a P0: reseñas internas por barbero, reseñas y estrellas de Google del negocio, ubicación configurable de la barbería y domicilio con dirección del cliente, todas por instrucción directa del propietario el 2026-10-26 |
+| `DEC-128`–`DEC-131` | `F-PUB-09`–`F-PUB-12` pasan a P0: reseñas internas por profesional, reseñas y estrellas de Google del negocio, ubicación configurable del negocio y domicilio con dirección del cliente, todas por instrucción directa del propietario el 2026-10-26 |
 | `DEC-182` | `F-PUB-14` pasa a P0: horario de atención propio del local en Configuración, el perfil público y la reserva, por instrucción del propietario el 2026-11-17 |
 
 ---
@@ -288,9 +290,9 @@ Ningún punto es negociable el día antes de empezar. **Si uno falla, el piloto 
 - [ ] Servicios y horario laboral configurables
 - [ ] Los siete tipos de bloqueo funcionando
 - [ ] Recurrencias, excepciones y calendario colombiano de festivos funcionando
-- [ ] Una barbería de prueba con más de un barbero puede configurarse y reservarse
+- [ ] Un negocio de prueba con más de un profesional puede configurarse y reservarse
 - [ ] Reprogramación funcionando
-- [ ] Cancelación por barbero y por cliente funcionando
+- [ ] Cancelación por profesional y por cliente funcionando
 - [ ] Historial visible y completo
 - [ ] Notificaciones esenciales operativas
 - [ ] Recordatorios automáticos operativos por correo y WhatsApp oficial según configuración
@@ -303,7 +305,7 @@ Ningún punto es negociable el día antes de empezar. **Si uno falla, el piloto 
 - [ ] Recordatorios antiguos correctamente invalidados tras una reprogramación
 
 ### Seguridad
-- [ ] Aislamiento entre barberías probado endpoint por endpoint con una segunda barbería de prueba
+- [ ] Aislamiento entre negocios probado endpoint por endpoint con un segundo negocio de prueba
 - [ ] Políticas RLS activas y rol de aplicación sin `BYPASSRLS`
 - [ ] Límite por IP y escalamiento a código telefónico verificados
 - [ ] Cero vulnerabilidades críticas conocidas
@@ -318,8 +320,8 @@ Ningún punto es negociable el día antes de empezar. **Si uno falla, el piloto 
 ### Operación
 - [ ] Copias de seguridad automáticas funcionando
 - [ ] **Restauración probada al menos una vez de forma completa**
-- [ ] Canal de soporte acordado con el barbero y tiempo de respuesta comprometido
-- [ ] Procedimiento de contingencia escrito: qué hace el barbero si la plataforma falla en plena jornada
+- [ ] Canal de soporte acordado con el profesional y tiempo de respuesta comprometido
+- [ ] Procedimiento de contingencia escrito: qué hace el profesional si la plataforma falla en plena jornada
 - [ ] Procedimiento de incidentes escrito y ensayado
 - [ ] Política de datos visible y acuerdo breve con cada participante
 - [ ] Compromiso de soporte: menos de una hora la primera semana y el mismo día después
@@ -340,7 +342,7 @@ El marco operativo sí está confirmado: 4 semanas, 2 o 3 participantes, método
 | --- | --- |
 | Citas cruzadas activas | **Cero** |
 | Citas perdidas o corrompidas | **Cero** |
-| Accesos entre barberías | **Cero** |
+| Accesos entre negocios | **Cero** |
 | Datos personales expuestos | **Cero** |
 
 ### Uso real
@@ -348,20 +350,20 @@ El marco operativo sí está confirmado: 4 semanas, 2 o 3 participantes, método
 | Criterio | Umbral propuesto | Por qué importa |
 | --- | --- | --- |
 | Días trabajados con la agenda abierta y actualizada | ≥ 80 % | Uso real, no interés |
-| Citas reales registradas en la plataforma | ≥ 80 % del total | Si el barbero mantiene una agenda paralela, no adoptó la herramienta |
-| Reservas completadas por el cliente sin ayuda | ≥ 70 % de las públicas | Si el barbero tiene que explicar cómo reservar, el flujo falló |
+| Citas reales registradas en la plataforma | ≥ 80 % del total | Si el profesional mantiene una agenda paralela, no adoptó la herramienta |
+| Reservas completadas por el cliente sin ayuda | ≥ 70 % de las públicas | Si el profesional tiene que explicar cómo reservar, el flujo falló |
 | Clientes reales que usaron el enlace | ≥ 10 personas distintas | Volumen mínimo para que el dato signifique algo |
 
 ### Señales cualitativas
 
 | Señal | Cómo se verifica |
 | --- | --- |
-| Menos mensajes preguntando disponibilidad | Comparación declarada por el barbero al inicio y al final |
+| Menos mensajes preguntando disponibilidad | Comparación declarada por el profesional al inicio y al final |
 | Menos interrupciones mientras atiende | Entrevista final |
-| Facilidad de uso | El barbero opera sin consultar al propietario en la última semana |
+| Facilidad de uso | El profesional opera sin consultar al propietario en la última semana |
 | Intención concreta de continuar | Lo pide sin que se le ofrezca |
-| Conversación sobre precio | El barbero la inicia |
-| Referidos | Menciona a otro barbero por su nombre |
+| Conversación sobre precio | El profesional la inicia |
+| Referidos | Menciona a otro profesional por su nombre |
 
 ### Clasificación del resultado
 
@@ -370,9 +372,9 @@ El marco operativo sí está confirmado: 4 semanas, 2 o 3 participantes, método
 | **Exitoso** | Se cumplen los umbrales absolutos, los cuatro de uso real y hay intención concreta de continuar |
 | **Parcialmente exitoso** | Umbrales absolutos cumplidos, uso real por debajo del umbral pero con una causa identificada y corregible |
 | **No concluyente** | Volumen insuficiente, interrupción del piloto o problema técnico que impidió el uso normal |
-| **Fallido** | Se incumple un umbral absoluto, o el barbero abandona el uso antes del final |
+| **Fallido** | Se incumple un umbral absoluto, o el profesional abandona el uso antes del final |
 
-> **Advertencia obligatoria:** ninguno de estos criterios demuestra que el barbero pagará. Interés, intención de usar, uso real, intención de pagar y pago efectivo son cinco cosas distintas, y el piloto solo puede medir las tres primeras.
+> **Advertencia obligatoria:** ninguno de estos criterios demuestra que el profesional pagará. Interés, intención de usar, uso real, intención de pagar y pago efectivo son cinco cosas distintas, y el piloto solo puede medir las tres primeras.
 
 ---
 

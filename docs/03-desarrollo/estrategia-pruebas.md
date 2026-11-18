@@ -1,9 +1,9 @@
 ---
 titulo: "Estrategia de pruebas y controles de calidad"
-version: "1.6"
+version: "1.7"
 estado: "Obligatorio para desarrollo"
 responsable: "Propietario del proyecto"
-ultima_actualizacion: "2026-09-03"
+ultima_actualizacion: "2026-11-18"
 documentos_relacionados:
   - "../00-control/matriz-trazabilidad.md"
   - "../01-producto/alcance-mvp.md"
@@ -21,7 +21,7 @@ documentos_relacionados:
 
 ## 1. Objetivo
 
-Las pruebas deben demostrar que el MVP permite operar la agenda sin cruces, fugas entre barberías, duplicados ni pérdida silenciosa del historial. Se prioriza una pirámide práctica: muchas pruebas unitarias y de componente, integración suficiente con PostgreSQL real y un conjunto pequeño de E2E para recorridos completos.
+Las pruebas deben demostrar que el MVP permite operar la agenda sin cruces, fugas entre negocios, duplicados ni pérdida silenciosa del historial. Se prioriza una pirámide práctica: muchas pruebas unitarias y de componente, integración suficiente con PostgreSQL real y un conjunto pequeño de E2E para recorridos completos.
 
 Toda corrección de defecto comienza con una prueba que falle por el defecto y termina conservando esa prueba como regresión.
 
@@ -74,7 +74,7 @@ Cobertura obligatoria por comportamiento:
 - horario recurrente, excepciones, festivos y bloqueos;
 - transiciones de cita, `no_show`, corrección y cierre;
 - política de cancelación por actor y plazo;
-- permisos y pertenencia a barbería;
+- permisos y pertenencia al negocio;
 - programación, invalidación y reintentos de recordatorios;
 - anonimización y revocación de tokens;
 - idempotencia de creación y cambios críticos.
@@ -94,7 +94,7 @@ Cada endpoint prueba como mínimo:
 - solicitud válida y forma exacta de la respuesta;
 - JSON inválido, campo desconocido, cuerpo excesivo y dato faltante;
 - autenticación ausente, inválida y válida cuando corresponda;
-- recurso de otra barbería tratado como no encontrado;
+- recurso de otro negocio tratado como no encontrado;
 - traducción estable de conflicto, validación y error interno;
 - propagación de `request_id`, timeout y cancelación;
 - idempotencia repetida con igual y diferente contenido;
@@ -151,7 +151,7 @@ RLS se prueba con el rol normal de la aplicación, nunca solo con el propietario
 Vitest cubre:
 
 - validadores y transformación de formularios;
-- formato de fecha en la zona de la barbería;
+- formato de fecha en la zona del negocio;
 - cálculo exclusivamente visual, nunca la autoridad de disponibilidad;
 - composables sin y con ciclo de vida;
 - estados discriminados de carga, vacío, éxito y error;
@@ -185,11 +185,11 @@ Recorridos P0 mínimos antes del piloto:
 1. cliente consulta disponibilidad y reserva un turno;
 2. doble envío o reintento conserva una sola cita;
 3. cliente abre su enlace y cancela según la política;
-4. barbero inicia sesión y recupera acceso;
-5. barbero crea una cita manual fuera de la rejilla pública válida;
-6. barbero reprograma, cancela y cambia estado con historial;
+4. profesional inicia sesión y recupera acceso;
+5. profesional crea una cita manual fuera de la rejilla pública válida;
+6. profesional reprograma, cancela y cambia estado con historial;
 7. bloqueo urgente muestra citas afectadas sin cancelarlas automáticamente;
-8. una barbería no ve ni modifica datos de otra;
+8. un negocio no ve ni modifica datos de otro;
 9. un cambio de cita reprograma recordatorios sin duplicarlos;
 10. conexión o respuesta fallida muestra reintento seguro y conserva datos no sensibles.
 
@@ -228,7 +228,7 @@ El flujo de promoción, trazabilidad y `dry-run` se define en [migraciones-atlas
 
 - Solo datos ficticios; nunca copiar información del piloto o producción.
 - Builders declaran los campos relevantes y proporcionan valores válidos para el resto.
-- Cada prueba controla su barbería, usuario, reloj y zona horaria.
+- Cada prueba controla su negocio, usuario, reloj y zona horaria.
 - Las pruebas pueden ejecutarse solas, en otro orden y en paralelo cuando estén marcadas como paralelas.
 - No usar `sleep` para coordinar concurrencia; usar barreras, canales o condiciones observables.
 - Semillas del entorno local son repetibles y no forman parte de migraciones de producción salvo datos de referencia.
