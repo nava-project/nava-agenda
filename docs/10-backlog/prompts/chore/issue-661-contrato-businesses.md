@@ -13,8 +13,8 @@ issue: 661
 issue_url: "https://github.com/bcaceres19/barberia/issues/661"
 suggested_issue_title: null
 branch: "refactor/661-contrato-businesses"
-pr: null
-pr_url: null
+pr: 673
+pr_url: "https://github.com/bcaceres19/barberia/pull/673"
 depends_on:
   - "DEC-183"
   - "#660"
