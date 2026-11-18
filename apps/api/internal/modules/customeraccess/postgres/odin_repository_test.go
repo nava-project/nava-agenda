@@ -405,7 +405,7 @@ func TestRef_ServiceCapPerBarbershopApplies(t *testing.T) {
 	err := f.db.InTenantTx(ctx, database.BarbershopID(accessShopUno), func(ctx context.Context, q database.Queries) error {
 		for i := 0; i < customeraccess.ServiceRequestsPerBarbershop; i++ {
 			if _, err := q.Exec(ctx,
-				`INSERT INTO customer_access_challenge (barbershop_id, channel, contact_hash, ip_hash, created_at, expires_at)
+				`INSERT INTO customer_access_challenge (business_id, channel, contact_hash, ip_hash, created_at, expires_at)
 				 VALUES ($1, 'whatsapp', $2, $3, $4, $5)`,
 				accessShopUno, strings.Repeat("f", 63)+uniqueDigits(t, 1), serviceHash, f.clock.Now(), f.clock.Now().Add(10*time.Minute)); err != nil {
 				return err

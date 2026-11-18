@@ -45,7 +45,7 @@ var _ publicbooking.CustomerRepository = (*Repository)(nil)
 // adicional sobre la tabla.
 func (r *Repository) ResolveBySlug(ctx context.Context, slug string) (publicbooking.BarbershopProfile, bool, error) {
 	barbershopID, found, err := r.db.ResolveTenant(ctx,
-		`SELECT public_resolve_barbershop_by_slug($1)`,
+		`SELECT public_resolve_business_by_slug($1)`,
 		slug,
 	)
 	if err != nil {
@@ -69,7 +69,7 @@ func (r *Repository) ResolveBySlug(ctx context.Context, slug string) (publicbook
 			        professional_term, professional_term_plural, professional_term_gender,
 			        has_physical_location, address, latitude, longitude, offers_home_service,
 			        google_place_id, brand_accent, closed_on_holidays
-			   FROM barbershop
+			   FROM business
 			  WHERE id = $1`,
 			string(barbershopID),
 		).Scan(
@@ -121,7 +121,7 @@ func (r *Repository) ResolveBySlug(ctx context.Context, slug string) (publicbook
 // schedule/shops/catalog, no un perfil público.
 func (r *Repository) ResolveBarbershopID(ctx context.Context, slug string) (string, bool, error) {
 	barbershopID, found, err := r.db.ResolveTenant(ctx,
-		`SELECT public_resolve_barbershop_by_slug($1)`,
+		`SELECT public_resolve_business_by_slug($1)`,
 		slug,
 	)
 	if err != nil {
@@ -148,8 +148,8 @@ func (r *Repository) ListOccupiedIntervals(ctx context.Context, barbershopID, ba
 		rows, err := q.Query(ctx, `
 			SELECT starts_at, ends_at
 			  FROM appointment
-			 WHERE barbershop_id = $1
-			   AND barber_id = $2
+			 WHERE business_id = $1
+			   AND professional_id = $2
 			   AND occupies_schedule
 			   AND starts_at < $4
 			   AND ends_at > $3
@@ -218,7 +218,7 @@ func centsFromNumeric(n pgtype.Numeric) (int64, error) {
 // Paginación "pedir uno de más" (mismo patrón que catalog.Repository.List).
 func (r *Repository) ListPublicServices(ctx context.Context, slug string, cursor *publicbooking.ServiceCursor, limit int) (publicbooking.PublicServiceListResult, bool, error) {
 	barbershopID, found, err := r.db.ResolveTenant(ctx,
-		`SELECT public_resolve_barbershop_by_slug($1)`,
+		`SELECT public_resolve_business_by_slug($1)`,
 		slug,
 	)
 	if err != nil {
@@ -232,11 +232,11 @@ func (r *Repository) ListPublicServices(ctx context.Context, slug string, cursor
 		SELECT s.id, s.name, s.description, s.duration_minutes, s.price_amount, s.price_currency,
 		       s.created_at
 		  FROM service s
-		 WHERE s.barbershop_id = $1
+		 WHERE s.business_id = $1
 		   AND s.is_active = true
 		   AND EXISTS (
-		       SELECT 1 FROM barber_service bs
-		        WHERE bs.barbershop_id = s.barbershop_id AND bs.service_id = s.id
+		       SELECT 1 FROM professional_service bs
+		        WHERE bs.business_id = s.business_id AND bs.service_id = s.id
 		   )`
 
 	var result publicbooking.PublicServiceListResult
@@ -326,7 +326,7 @@ func (r *Repository) ListPublicServices(ctx context.Context, slug string, cursor
 // inactivo produce la MISMA lista vacía que uno sin barberos asignados).
 func (r *Repository) ListPublicBarbers(ctx context.Context, slug string, serviceID string) (publicbooking.PublicBarberListResult, bool, error) {
 	barbershopID, found, err := r.db.ResolveTenant(ctx,
-		`SELECT public_resolve_barbershop_by_slug($1)`,
+		`SELECT public_resolve_business_by_slug($1)`,
 		slug,
 	)
 	if err != nil {
@@ -344,19 +344,19 @@ func (r *Repository) ListPublicBarbers(ctx context.Context, slug string, service
 	err = r.db.InTenantTx(ctx, barbershopID, func(ctx context.Context, q database.Queries) error {
 		rows, err := q.Query(ctx,
 			`SELECT b.id, b.full_name, b.description, p.updated_at, rv.rating, rv.rating_count
-			   FROM barber b
-			   LEFT JOIN barber_photo p
-			     ON p.barbershop_id = b.barbershop_id AND p.barber_id = b.id
+			   FROM professional b
+			   LEFT JOIN professional_photo p
+			     ON p.business_id = b.business_id AND p.professional_id = b.id
 			   LEFT JOIN LATERAL (
 			     SELECT round(avg(r.rating)::numeric, 1)::float8 AS rating, count(*) AS rating_count
-			       FROM barber_review r
-			      WHERE r.barbershop_id = b.barbershop_id AND r.barber_id = b.id AND r.hidden_at IS NULL
+			       FROM professional_review r
+			      WHERE r.business_id = b.business_id AND r.professional_id = b.id AND r.hidden_at IS NULL
 			   ) rv ON true
-			   JOIN barber_service bs
-			     ON bs.barbershop_id = b.barbershop_id AND bs.barber_id = b.id
+			   JOIN professional_service bs
+			     ON bs.business_id = b.business_id AND bs.professional_id = b.id
 			   JOIN service s
-			     ON s.barbershop_id = bs.barbershop_id AND s.id = bs.service_id
-			  WHERE b.barbershop_id = $1
+			     ON s.business_id = bs.business_id AND s.id = bs.service_id
+			  WHERE b.business_id = $1
 			    AND bs.service_id = $2
 			    AND s.is_active = true
 			  ORDER BY bs.created_at, b.id`,
@@ -401,7 +401,7 @@ func (r *Repository) ListPublicBarbers(ctx context.Context, slug string, service
 // a []string sin depender del códec de uuid[].
 func (r *Repository) ListPublicBarbersWithServices(ctx context.Context, slug string) (publicbooking.PublicBarberServicesListResult, bool, error) {
 	barbershopID, found, err := r.db.ResolveTenant(ctx,
-		`SELECT public_resolve_barbershop_by_slug($1)`,
+		`SELECT public_resolve_business_by_slug($1)`,
 		slug,
 	)
 	if err != nil {
@@ -416,12 +416,12 @@ func (r *Repository) ListPublicBarbersWithServices(ctx context.Context, slug str
 		rows, err := q.Query(ctx,
 			`SELECT b.id, b.full_name,
 			        array_agg(s.id::text ORDER BY s.created_at, s.id) AS service_ids
-			   FROM barber b
-			   JOIN barber_service bs
-			     ON bs.barbershop_id = b.barbershop_id AND bs.barber_id = b.id
+			   FROM professional b
+			   JOIN professional_service bs
+			     ON bs.business_id = b.business_id AND bs.professional_id = b.id
 			   JOIN service s
-			     ON s.barbershop_id = bs.barbershop_id AND s.id = bs.service_id
-			  WHERE b.barbershop_id = $1
+			     ON s.business_id = bs.business_id AND s.id = bs.service_id
+			  WHERE b.business_id = $1
 			    AND s.is_active = true
 			  GROUP BY b.id, b.full_name, b.created_at
 			  ORDER BY b.created_at, b.id`,
@@ -460,14 +460,14 @@ func (r *Repository) ListServiceBarberIDs(ctx context.Context, barbershopID, ser
 	ids := make([]string, 0)
 	err := r.db.InTenantTx(ctx, database.BarbershopID(barbershopID), func(ctx context.Context, q database.Queries) error {
 		rows, err := q.Query(ctx,
-			`SELECT bs.barber_id::text
-			   FROM barber_service bs
+			`SELECT bs.professional_id::text
+			   FROM professional_service bs
 			   JOIN service s
-			     ON s.barbershop_id = bs.barbershop_id AND s.id = bs.service_id
-			  WHERE bs.barbershop_id = $1
+			     ON s.business_id = bs.business_id AND s.id = bs.service_id
+			  WHERE bs.business_id = $1
 			    AND bs.service_id = $2
 			    AND s.is_active = true
-			  ORDER BY bs.created_at, bs.barber_id`,
+			  ORDER BY bs.created_at, bs.professional_id`,
 			barbershopID, serviceID,
 		)
 		if err != nil {
@@ -498,7 +498,7 @@ func (r *Repository) ListServiceBarberIDs(ctx context.Context, barbershopID, ser
 // publica por adivinar su identificador.
 func (r *Repository) GetPublicBarberPhoto(ctx context.Context, slug string, barberID string) (publicbooking.PublicBarberPhoto, bool, error) {
 	barbershopID, found, err := r.db.ResolveTenant(ctx,
-		`SELECT public_resolve_barbershop_by_slug($1)`,
+		`SELECT public_resolve_business_by_slug($1)`,
 		slug,
 	)
 	if err != nil {
@@ -513,16 +513,16 @@ func (r *Repository) GetPublicBarberPhoto(ctx context.Context, slug string, barb
 	err = r.db.InTenantTx(ctx, barbershopID, func(ctx context.Context, q database.Queries) error {
 		err := q.QueryRow(ctx,
 			`SELECT p.content_type, p.image, p.updated_at
-			   FROM barber_photo p
-			  WHERE p.barbershop_id = $1
-			    AND p.barber_id = $2
+			   FROM professional_photo p
+			  WHERE p.business_id = $1
+			    AND p.professional_id = $2
 			    AND EXISTS (
 			          SELECT 1
-			            FROM barber_service bs
+			            FROM professional_service bs
 			            JOIN service s
-			              ON s.barbershop_id = bs.barbershop_id AND s.id = bs.service_id
-			           WHERE bs.barbershop_id = p.barbershop_id
-			             AND bs.barber_id = p.barber_id
+			              ON s.business_id = bs.business_id AND s.id = bs.service_id
+			           WHERE bs.business_id = p.business_id
+			             AND bs.professional_id = p.professional_id
 			             AND s.is_active = true)`,
 			string(barbershopID), barberID,
 		).Scan(&photo.ContentType, &photo.Data, &photo.UpdatedAt)
@@ -559,7 +559,7 @@ func (r *Repository) FindCustomerMatches(ctx context.Context, barbershopID, phon
 		var phoneID string
 		err := q.QueryRow(ctx,
 			`SELECT id FROM customer
-			  WHERE barbershop_id = $1 AND anonymized_at IS NULL AND phone = $2
+			  WHERE business_id = $1 AND anonymized_at IS NULL AND phone = $2
 			  LIMIT 1`,
 			barbershopID, phone,
 		).Scan(&phoneID)
@@ -575,7 +575,7 @@ func (r *Repository) FindCustomerMatches(ctx context.Context, barbershopID, phon
 		var emailID string
 		err = q.QueryRow(ctx,
 			`SELECT id FROM customer
-			  WHERE barbershop_id = $1 AND anonymized_at IS NULL AND email = $2
+			  WHERE business_id = $1 AND anonymized_at IS NULL AND email = $2
 			  LIMIT 1`,
 			barbershopID, email,
 		).Scan(&emailID)
@@ -602,8 +602,8 @@ func readOpeningHours(ctx context.Context, q database.Queries, barbershopID stri
 		`SELECT iso_weekday,
 		        (EXTRACT(EPOCH FROM opens_time)  / 60)::int,
 		        (EXTRACT(EPOCH FROM closes_time) / 60)::int
-		   FROM barbershop_opening_hour
-		  WHERE barbershop_id = $1
+		   FROM business_opening_hour
+		  WHERE business_id = $1
 		  ORDER BY iso_weekday, opens_time`, barbershopID)
 	if err != nil {
 		return nil, fmt.Errorf("select opening hours: %w", err)

@@ -1,18 +1,18 @@
 -- Pruebas SQL de HU-007: login_throttle, auth_phone_challenge y las cinco
 -- funciones SECURITY DEFINER (login_throttle_register_attempt/purge_expired,
 -- auth_phone_challenge_request/verify/purge_expired). Cubren DDL-AUT-01
--- (sin GRANT directo a barberia_app), DEC-061/CT-005 (la sexta solicitud
+-- (sin GRANT directo a agenda_app), DEC-061/CT-005 (la sexta solicitud
 -- escala, no la quinta) y DEC-062 (reto telefónico: tres condiciones para
 -- aceptar, ip_hash ata el reto a su IP, verificar limpia el escalamiento).
 --
 -- Uso:
---   psql "$DATABASE_TEST_URL" -v ON_ERROR_STOP=1 -f testdata/dos_barberias.sql
+--   psql "$DATABASE_TEST_URL" -v ON_ERROR_STOP=1 -f testdata/dos_professionalias.sql
 --   psql "$DATABASE_TEST_URL" -v ON_ERROR_STOP=1 -f testdata/hu005_credenciales_sesiones.sql
 --   psql "$DATABASE_TEST_URL" -v ON_ERROR_STOP=1 -f testdata/hu007_reto_telefonico.sql
 --   psql "$DATABASE_TEST_URL" -v ON_ERROR_STOP=1 -f tests/hu007_defensa_abuso.sql
 --
 -- Mismo requisito de arnés que hu001_aislamiento_rls.sql: la conexión debe
--- poder ejecutar `SET ROLE barberia_app` y `SET ROLE barberia_worker`.
+-- poder ejecutar `SET ROLE agenda_app` y `SET ROLE agenda_worker`.
 --
 -- Cada comprobación falla lanzando una excepción. Si el archivo termina, pasó.
 
@@ -21,17 +21,17 @@
 \echo '=== HU-007 · pruebas de defensa escalonada contra abuso ==='
 
 -- ---------------------------------------------------------------------------
--- DDL-AUT-01 · barberia_app no puede leer/escribir login_throttle ni
+-- DDL-AUT-01 · agenda_app no puede leer/escribir login_throttle ni
 -- auth_phone_challenge directamente
 -- ---------------------------------------------------------------------------
 BEGIN;
-SET ROLE barberia_app;
+SET ROLE agenda_app;
 
 DO $$
 BEGIN
   BEGIN
     PERFORM * FROM login_throttle LIMIT 1;
-    RAISE EXCEPTION 'DDL-AUT-01: barberia_app pudo leer login_throttle directamente.';
+    RAISE EXCEPTION 'DDL-AUT-01: agenda_app pudo leer login_throttle directamente.';
   EXCEPTION
     WHEN insufficient_privilege THEN
       NULL; -- Esperado.
@@ -39,7 +39,7 @@ BEGIN
 
   BEGIN
     PERFORM * FROM auth_phone_challenge LIMIT 1;
-    RAISE EXCEPTION 'DDL-AUT-01: barberia_app pudo leer auth_phone_challenge directamente.';
+    RAISE EXCEPTION 'DDL-AUT-01: agenda_app pudo leer auth_phone_challenge directamente.';
   EXCEPTION
     WHEN insufficient_privilege THEN
       NULL; -- Esperado.
@@ -47,7 +47,7 @@ BEGIN
 
   BEGIN
     DELETE FROM login_throttle;
-    RAISE EXCEPTION 'DDL-AUT-01: barberia_app pudo borrar login_throttle directamente.';
+    RAISE EXCEPTION 'DDL-AUT-01: agenda_app pudo borrar login_throttle directamente.';
   EXCEPTION
     WHEN insufficient_privilege THEN
       NULL; -- Esperado.
@@ -57,19 +57,19 @@ $$;
 
 RESET ROLE;
 ROLLBACK;
-\echo 'DDL-AUT-01 OK · login_throttle/auth_phone_challenge no admiten DML directo de barberia_app'
+\echo 'DDL-AUT-01 OK · login_throttle/auth_phone_challenge no admiten DML directo de agenda_app'
 
 -- ---------------------------------------------------------------------------
--- DDL-AUT-01 · las funciones de purga son exclusivas de barberia_worker
+-- DDL-AUT-01 · las funciones de purga son exclusivas de agenda_worker
 -- ---------------------------------------------------------------------------
 BEGIN;
-SET ROLE barberia_app;
+SET ROLE agenda_app;
 
 DO $$
 BEGIN
   BEGIN
     PERFORM login_throttle_purge_expired(10);
-    RAISE EXCEPTION 'DDL-AUT-01: barberia_app pudo ejecutar login_throttle_purge_expired.';
+    RAISE EXCEPTION 'DDL-AUT-01: agenda_app pudo ejecutar login_throttle_purge_expired.';
   EXCEPTION
     WHEN insufficient_privilege THEN
       NULL; -- Esperado.
@@ -77,7 +77,7 @@ BEGIN
 
   BEGIN
     PERFORM auth_phone_challenge_purge_expired(10);
-    RAISE EXCEPTION 'DDL-AUT-01: barberia_app pudo ejecutar auth_phone_challenge_purge_expired.';
+    RAISE EXCEPTION 'DDL-AUT-01: agenda_app pudo ejecutar auth_phone_challenge_purge_expired.';
   EXCEPTION
     WHEN insufficient_privilege THEN
       NULL; -- Esperado.
@@ -87,10 +87,10 @@ $$;
 
 RESET ROLE;
 ROLLBACK;
-\echo 'DDL-AUT-01 OK · purga exclusiva de barberia_worker'
+\echo 'DDL-AUT-01 OK · purga exclusiva de agenda_worker'
 
 BEGIN;
-SET ROLE barberia_worker;
+SET ROLE agenda_worker;
 DO $$
 BEGIN
   PERFORM login_throttle_purge_expired(10);
@@ -99,13 +99,13 @@ END
 $$;
 RESET ROLE;
 ROLLBACK;
-\echo 'OK · barberia_worker sí puede purgar ambas tablas'
+\echo 'OK · agenda_worker sí puede purgar ambas tablas'
 
 -- ---------------------------------------------------------------------------
 -- DEC-061/CT-005 · la sexta solicitud escala, no la quinta
 -- ---------------------------------------------------------------------------
 BEGIN;
-SET ROLE barberia_app;
+SET ROLE agenda_app;
 
 DO $$
 DECLARE
@@ -140,7 +140,7 @@ ROLLBACK;
 -- DEC-062 · auth_phone_challenge_request exige las tres condiciones
 -- ---------------------------------------------------------------------------
 BEGIN;
-SET ROLE barberia_app;
+SET ROLE agenda_app;
 
 DO $$
 DECLARE
@@ -194,7 +194,7 @@ ROLLBACK;
 -- DEC-062 · verificar limpia el escalamiento; el código está atado a su IP
 -- ---------------------------------------------------------------------------
 BEGIN;
-SET ROLE barberia_app;
+SET ROLE agenda_app;
 
 DO $$
 DECLARE
@@ -233,7 +233,7 @@ BEGIN
     RAISE EXCEPTION 'DEC-062: el código correcto desde la IP correcta debía verificar.';
   END IF;
 
-  -- barberia_app no puede leer login_throttle directamente (DDL-AUT-01, ya
+  -- agenda_app no puede leer login_throttle directamente (DDL-AUT-01, ya
   -- probado arriba): se verifica la limpieza del escalamiento registrando
   -- UN intento más. Si verify no hubiera limpiado escalated_until/
   -- attempt_count, este intento arrastraría el conteo alto anterior y

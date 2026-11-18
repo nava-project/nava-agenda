@@ -118,7 +118,7 @@ func (r *Repository) CreateSession(ctx context.Context, barbershopID, staffUserI
 	err := r.db.InTenantTx(ctx, database.BarbershopID(barbershopID), func(ctx context.Context, q database.Queries) error {
 		_, err := q.Exec(ctx,
 			`INSERT INTO staff_session
-			   (barbershop_id, staff_user_id, token_hash, issued_at, expires_at, last_used_at)
+			   (business_id, staff_user_id, token_hash, issued_at, expires_at, last_used_at)
 			 VALUES ($1, $2, $3, $4, $5, $4)`,
 			barbershopID, staffUserID, tokenHash, issuedAt, expiresAt,
 		)
@@ -147,7 +147,7 @@ func (r *Repository) StaffUserNames(ctx context.Context, barbershopID string, st
 
 	err = r.db.InTenantTx(ctx, shop, func(ctx context.Context, q database.Queries) error {
 		rows, err := q.Query(ctx,
-			`SELECT id, full_name FROM staff_user WHERE barbershop_id = $1 AND id = ANY($2)`,
+			`SELECT id, full_name FROM staff_user WHERE business_id = $1 AND id = ANY($2)`,
 			barbershopID, staffUserIDs)
 		if err != nil {
 			return err

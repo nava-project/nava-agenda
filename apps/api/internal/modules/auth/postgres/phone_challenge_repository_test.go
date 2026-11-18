@@ -323,7 +323,7 @@ func setLoginChannel(t *testing.T, db *database.DB, shopID, channel string) {
 	t.Helper()
 	write := func(db *database.DB, value string) {
 		err := db.InTenantTx(context.Background(), database.BarbershopID(shopID), func(ctx context.Context, q database.Queries) error {
-			_, err := q.Exec(ctx, `UPDATE barbershop SET login_otp_channel = $2 WHERE id = $1`, shopID, value)
+			_, err := q.Exec(ctx, `UPDATE business SET login_otp_channel = $2 WHERE id = $1`, shopID, value)
 			return err
 		})
 		if err != nil {

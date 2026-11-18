@@ -18,7 +18,7 @@ import (
 	"system-barbershop/internal/platform/database"
 )
 
-const testWorkerDatabaseURL = "postgres://barberia_worker@localhost:5432/barberia_test?sslmode=disable"
+const testWorkerDatabaseURL = "postgres://agenda_worker@localhost:5432/barberia_test?sslmode=disable"
 
 func setupWorkerTestDB(t *testing.T) *database.DB {
 	t.Helper()

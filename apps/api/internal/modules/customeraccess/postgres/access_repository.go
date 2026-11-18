@@ -29,7 +29,7 @@ func NewAccessRepository(db *database.DB) *AccessRepository {
 var _ customeraccess.AccessRepository = (*AccessRepository)(nil)
 
 func (r *AccessRepository) resolveShop(ctx context.Context, slug string) (database.BarbershopID, bool, error) {
-	shop, found, err := r.db.ResolveTenant(ctx, `SELECT public_resolve_barbershop_by_slug($1)`, slug)
+	shop, found, err := r.db.ResolveTenant(ctx, `SELECT public_resolve_business_by_slug($1)`, slug)
 	if err != nil {
 		return "", false, fmt.Errorf("customeraccess/postgres: resolve tenant by slug: %w", err)
 	}
@@ -90,7 +90,7 @@ func (r *AccessRepository) RequestChallenge(ctx context.Context, req customeracc
 		}
 		_, err = q.Exec(ctx,
 			`INSERT INTO customer_access_challenge
-			   (barbershop_id, customer_id, channel, contact_hash, ip_hash, code_hash, created_at, expires_at)
+			   (business_id, customer_id, channel, contact_hash, ip_hash, code_hash, created_at, expires_at)
 			 VALUES ($1, $2, $3, $4, $5, $6, $7, $8)`,
 			string(shop), customerID, string(req.Contact.Channel), req.ContactHash, req.IPHash, codeHash, req.Now, req.ExpiresAt,
 		)
@@ -117,10 +117,10 @@ func recentRequestsExceeded(
 	switch column {
 	case "contact_hash":
 		query = `SELECT count(*), min(created_at) FROM customer_access_challenge
-		          WHERE barbershop_id = $1 AND contact_hash = $2 AND created_at > $3`
+		          WHERE business_id = $1 AND contact_hash = $2 AND created_at > $3`
 	case "ip_hash":
 		query = `SELECT count(*), min(created_at) FROM customer_access_challenge
-		          WHERE barbershop_id = $1 AND ip_hash = $2 AND created_at > $3`
+		          WHERE business_id = $1 AND ip_hash = $2 AND created_at > $3`
 	default:
 		return 0, false, fmt.Errorf("columna de límite desconocida %q", column)
 	}
@@ -144,15 +144,15 @@ func findCustomerWithUpcomingAppointment(ctx context.Context, q database.Queries
 	switch contact.Channel {
 	case customeraccess.ChannelEmail:
 		query = `SELECT c.id FROM customer c
-		          WHERE c.barbershop_id = $1 AND c.email = $2
+		          WHERE c.business_id = $1 AND c.email = $2
 		            AND EXISTS (SELECT 1 FROM appointment a
-		                         WHERE a.barbershop_id = c.barbershop_id AND a.customer_id = c.id
+		                         WHERE a.business_id = c.business_id AND a.customer_id = c.id
 		                           AND a.status = 'confirmed' AND a.starts_at > $3)`
 	case customeraccess.ChannelWhatsApp:
 		query = `SELECT c.id FROM customer c
-		          WHERE c.barbershop_id = $1 AND c.phone = $2
+		          WHERE c.business_id = $1 AND c.phone = $2
 		            AND EXISTS (SELECT 1 FROM appointment a
-		                         WHERE a.barbershop_id = c.barbershop_id AND a.customer_id = c.id
+		                         WHERE a.business_id = c.business_id AND a.customer_id = c.id
 		                           AND a.status = 'confirmed' AND a.starts_at > $3)`
 	default:
 		return nil, fmt.Errorf("canal desconocido %q", contact.Channel)
@@ -201,7 +201,7 @@ func (r *AccessRepository) VerifyChallenge(
 		err := q.QueryRow(ctx,
 			`SELECT id, customer_id, code_hash, attempts, expires_at, consumed_at
 			   FROM customer_access_challenge
-			  WHERE barbershop_id = $1 AND contact_hash = $2 AND code_hash IS NOT NULL
+			  WHERE business_id = $1 AND contact_hash = $2 AND code_hash IS NOT NULL
 			    AND appointment_id IS NULL
 			  ORDER BY created_at DESC
 			  LIMIT 1
@@ -220,7 +220,7 @@ func (r *AccessRepository) VerifyChallenge(
 
 		if subtle.ConstantTimeCompare([]byte(storedHash), []byte(req.CodeHash)) != 1 {
 			if _, err := q.Exec(ctx,
-				`UPDATE customer_access_challenge SET attempts = attempts + 1 WHERE barbershop_id = $1 AND id = $2`,
+				`UPDATE customer_access_challenge SET attempts = attempts + 1 WHERE business_id = $1 AND id = $2`,
 				string(shop), id,
 			); err != nil {
 				return fmt.Errorf("count failed attempt: %w", err)
@@ -229,12 +229,12 @@ func (r *AccessRepository) VerifyChallenge(
 		}
 
 		if _, err := q.Exec(ctx,
-			`UPDATE customer_access_challenge SET consumed_at = $3 WHERE barbershop_id = $1 AND id = $2`,
+			`UPDATE customer_access_challenge SET consumed_at = $3 WHERE business_id = $1 AND id = $2`,
 			string(shop), id, req.Now,
 		); err != nil {
 			return fmt.Errorf("consume challenge: %w", err)
 		}
-		if err := q.QueryRow(ctx, `SELECT timezone FROM barbershop WHERE id = $1`, string(shop)).Scan(&outcome.Timezone); err != nil {
+		if err := q.QueryRow(ctx, `SELECT timezone FROM business WHERE id = $1`, string(shop)).Scan(&outcome.Timezone); err != nil {
 			return fmt.Errorf("select timezone: %w", err)
 		}
 
@@ -248,7 +248,7 @@ func (r *AccessRepository) VerifyChallenge(
 				return err
 			}
 			if _, err := q.Exec(ctx,
-				`INSERT INTO appointment_access_token (barbershop_id, appointment_id, token_hash, issued_at, expires_at)
+				`INSERT INTO appointment_access_token (business_id, appointment_id, token_hash, issued_at, expires_at)
 				 VALUES ($1, $2, $3, $4, $5)`,
 				string(shop), appt.id, hash, req.Now, req.Now.Add(req.TokenTTL),
 			); err != nil {
@@ -292,8 +292,8 @@ func upcomingConfirmedAppointments(ctx context.Context, q database.Queries, shop
 	rows, err := q.Query(ctx,
 		`SELECT a.id, a.starts_at, a.service_name_snapshot, br.full_name
 		   FROM appointment a
-		   JOIN barber br ON br.barbershop_id = a.barbershop_id AND br.id = a.barber_id
-		  WHERE a.barbershop_id = $1 AND a.customer_id = $2
+		   JOIN professional br ON br.business_id = a.business_id AND br.id = a.professional_id
+		  WHERE a.business_id = $1 AND a.customer_id = $2
 		    AND a.status = 'confirmed' AND a.starts_at > $3
 		  ORDER BY a.starts_at
 		  LIMIT $4`,

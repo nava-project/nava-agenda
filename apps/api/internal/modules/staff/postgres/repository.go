@@ -97,12 +97,12 @@ const (
 	// barberPhotoJoin trae también el resumen de reseñas (DEC-128 §5): promedio de
 	// 1 decimal y total sobre las no ocultas, calculados en la consulta, sin
 	// columna derivada. Sin reseñas visibles el promedio es NULL y el total 0.
-	barberPhotoJoin = `LEFT JOIN barber_photo p
-	                     ON p.barbershop_id = b.barbershop_id AND p.barber_id = b.id
+	barberPhotoJoin = `LEFT JOIN professional_photo p
+	                     ON p.business_id = b.business_id AND p.professional_id = b.id
 	                   LEFT JOIN LATERAL (
 	                     SELECT round(avg(r.rating)::numeric, 1)::float8 AS rating, count(*) AS rating_count
-	                       FROM barber_review r
-	                      WHERE r.barbershop_id = b.barbershop_id AND r.barber_id = b.id AND r.hidden_at IS NULL
+	                       FROM professional_review r
+	                      WHERE r.business_id = b.business_id AND r.professional_id = b.id AND r.hidden_at IS NULL
 	                   ) rv ON true`
 )
 
@@ -124,8 +124,8 @@ func (r *Repository) List(ctx context.Context, barbershopID string, cursor *staf
 		if cursor == nil {
 			rows, err = q.Query(ctx,
 				`SELECT `+barberColumns+`
-				   FROM barber b `+barberPhotoJoin+`
-				  WHERE b.barbershop_id = $1
+				   FROM professional b `+barberPhotoJoin+`
+				  WHERE b.business_id = $1
 				  ORDER BY b.created_at, b.id
 				  LIMIT $2`,
 				barbershopID, fetchLimit,
@@ -133,8 +133,8 @@ func (r *Repository) List(ctx context.Context, barbershopID string, cursor *staf
 		} else {
 			rows, err = q.Query(ctx,
 				`SELECT `+barberColumns+`
-				   FROM barber b `+barberPhotoJoin+`
-				  WHERE b.barbershop_id = $1
+				   FROM professional b `+barberPhotoJoin+`
+				  WHERE b.business_id = $1
 				    AND (b.created_at, b.id) > ($2, $3)
 				  ORDER BY b.created_at, b.id
 				  LIMIT $4`,
@@ -241,7 +241,7 @@ func (r *Repository) Create(
 
 		var b staff.Barber
 		if err := q.QueryRow(ctx,
-			`INSERT INTO barber (barbershop_id, full_name, description)
+			`INSERT INTO professional (business_id, full_name, description)
 			      VALUES ($1, $2, $3)
 			   RETURNING id, full_name, created_at, updated_at, description`,
 			barbershopID, fullName, description,
@@ -295,11 +295,11 @@ func (r *Repository) Update(ctx context.Context, barbershopID, barberID, fullNam
 		var b staff.Barber
 		err := q.QueryRow(ctx,
 			`WITH updated AS (
-			    UPDATE barber
+			    UPDATE professional
 			       SET full_name = $3,
 			           description = CASE WHEN $4 THEN $5 ELSE description END
-			     WHERE id = $1 AND barbershop_id = $2
-			 RETURNING id, barbershop_id, full_name, created_at, updated_at, description
+			     WHERE id = $1 AND business_id = $2
+			 RETURNING id, business_id, full_name, created_at, updated_at, description
 			 )
 			 SELECT `+barberColumns+`
 			   FROM updated b `+barberPhotoJoin,
@@ -328,8 +328,8 @@ func (r *Repository) Update(ctx context.Context, barbershopID, barberID, fullNam
 func selectBarber(ctx context.Context, q database.Queries, barbershopID, barberID string) pgx.Row {
 	return q.QueryRow(ctx,
 		`SELECT `+barberColumns+`
-		   FROM barber b `+barberPhotoJoin+`
-		  WHERE b.id = $1 AND b.barbershop_id = $2`,
+		   FROM professional b `+barberPhotoJoin+`
+		  WHERE b.id = $1 AND b.business_id = $2`,
 		barberID, barbershopID,
 	)
 }
@@ -345,11 +345,11 @@ func (r *Repository) PutPhoto(ctx context.Context, barbershopID, barberID string
 
 	err := r.db.InTenantTx(ctx, database.BarbershopID(barbershopID), func(ctx context.Context, q database.Queries) error {
 		tag, err := q.Exec(ctx,
-			`INSERT INTO barber_photo (barbershop_id, barber_id, content_type, image)
-			 SELECT b.barbershop_id, b.id, $3, $4
-			   FROM barber b
-			  WHERE b.id = $1 AND b.barbershop_id = $2
-			 ON CONFLICT (barbershop_id, barber_id)
+			`INSERT INTO professional_photo (business_id, professional_id, content_type, image)
+			 SELECT b.business_id, b.id, $3, $4
+			   FROM professional b
+			  WHERE b.id = $1 AND b.business_id = $2
+			 ON CONFLICT (business_id, professional_id)
 			 DO UPDATE SET content_type = EXCLUDED.content_type, image = EXCLUDED.image`,
 			barberID, barbershopID, photo.ContentType, photo.Data,
 		)
@@ -383,8 +383,8 @@ func (r *Repository) GetPhoto(ctx context.Context, barbershopID, barberID string
 	err := r.db.InTenantTx(ctx, database.BarbershopID(barbershopID), func(ctx context.Context, q database.Queries) error {
 		err := q.QueryRow(ctx,
 			`SELECT content_type, image, updated_at
-			   FROM barber_photo
-			  WHERE barbershop_id = $1 AND barber_id = $2`,
+			   FROM professional_photo
+			  WHERE business_id = $1 AND professional_id = $2`,
 			barbershopID, barberID,
 		).Scan(&photo.ContentType, &photo.Data, &photo.UpdatedAt)
 		switch {
@@ -416,7 +416,7 @@ func (r *Repository) DeletePhoto(ctx context.Context, barbershopID, barberID str
 	err := r.db.InTenantTx(ctx, database.BarbershopID(barbershopID), func(ctx context.Context, q database.Queries) error {
 		var exists bool
 		if err := q.QueryRow(ctx,
-			`SELECT EXISTS (SELECT 1 FROM barber WHERE id = $1 AND barbershop_id = $2)`,
+			`SELECT EXISTS (SELECT 1 FROM professional WHERE id = $1 AND business_id = $2)`,
 			barberID, barbershopID,
 		).Scan(&exists); err != nil {
 			return fmt.Errorf("check barber exists: %w", err)
@@ -427,7 +427,7 @@ func (r *Repository) DeletePhoto(ctx context.Context, barbershopID, barberID str
 		found = true
 
 		if _, err := q.Exec(ctx,
-			`DELETE FROM barber_photo WHERE barbershop_id = $1 AND barber_id = $2`,
+			`DELETE FROM professional_photo WHERE business_id = $1 AND professional_id = $2`,
 			barbershopID, barberID,
 		); err != nil {
 			return fmt.Errorf("delete barber photo: %w", err)
@@ -446,13 +446,13 @@ func (r *Repository) ListPage(ctx context.Context, shop string, page, size int) 
 	result := staff.PageResult{Items: []staff.Barber{}, PageSize: size}
 	err := r.db.InTenantTx(ctx, database.BarbershopID(shop), func(ctx context.Context, q database.Queries) error {
 		rows, err := q.Query(ctx, `WITH counted AS (
-   SELECT count(*) AS total FROM barber WHERE barbershop_id = $1
+   SELECT count(*) AS total FROM professional WHERE business_id = $1
   ), bounds AS (
    SELECT total, GREATEST(1, (total + $2 - 1) / $2) AS pages FROM counted
   ), selected AS (
    SELECT b.id, b.full_name, b.created_at, b.updated_at, p.updated_at AS photo_updated_at, b.description,
-          rv.rating AS rating, rv.rating_count AS rating_count FROM barber b `+barberPhotoJoin+`
-   WHERE b.barbershop_id = $1 ORDER BY b.created_at, b.id
+          rv.rating AS rating, rv.rating_count AS rating_count FROM professional b `+barberPhotoJoin+`
+   WHERE b.business_id = $1 ORDER BY b.created_at, b.id
    LIMIT $2 OFFSET (SELECT (LEAST($3, pages) - 1) * $2 FROM bounds)
   )
   SELECT total, pages, LEAST($3, pages), s.id, s.full_name,
@@ -487,8 +487,8 @@ func (r *Repository) GetLinked(ctx context.Context, barbershopID, staffUserID st
 	err := r.db.InTenantTx(ctx, database.BarbershopID(barbershopID), func(ctx context.Context, q database.Queries) error {
 		err := q.QueryRow(ctx,
 			`SELECT `+barberColumns+`
-			   FROM barber b `+barberPhotoJoin+`
-			  WHERE b.barbershop_id = $1 AND b.staff_user_id = $2`,
+			   FROM professional b `+barberPhotoJoin+`
+			  WHERE b.business_id = $1 AND b.staff_user_id = $2`,
 			barbershopID, staffUserID,
 		).Scan(scanBarber(&b)...)
 		switch {
@@ -516,7 +516,7 @@ func (r *Repository) Link(ctx context.Context, barbershopID, staffUserID, barber
 	var result staff.LinkResult
 	err := r.db.InTenantTx(ctx, database.BarbershopID(barbershopID), func(ctx context.Context, q database.Queries) error {
 		if _, err := q.Exec(ctx,
-			`SELECT pg_advisory_xact_lock(hashtextextended('barber_link:' || $1::text, 0))`,
+			`SELECT pg_advisory_xact_lock(hashtextextended('professional_link:' || $1::text, 0))`,
 			staffUserID,
 		); err != nil {
 			return fmt.Errorf("lock link: %w", err)
@@ -524,7 +524,7 @@ func (r *Repository) Link(ctx context.Context, barbershopID, staffUserID, barber
 
 		var currentOwner *string
 		err := q.QueryRow(ctx,
-			`SELECT staff_user_id::text FROM barber WHERE id = $1 AND barbershop_id = $2`,
+			`SELECT staff_user_id::text FROM professional WHERE id = $1 AND business_id = $2`,
 			barberID, barbershopID,
 		).Scan(&currentOwner)
 		if errors.Is(err, pgx.ErrNoRows) {
@@ -544,8 +544,8 @@ func (r *Repository) Link(ctx context.Context, barbershopID, staffUserID, barber
 		default:
 			var released *string
 			err := q.QueryRow(ctx,
-				`UPDATE barber SET staff_user_id = NULL
-				  WHERE barbershop_id = $1 AND staff_user_id = $2
+				`UPDATE professional SET staff_user_id = NULL
+				  WHERE business_id = $1 AND staff_user_id = $2
 				  RETURNING id::text`,
 				barbershopID, staffUserID,
 			).Scan(&released)
@@ -557,8 +557,8 @@ func (r *Repository) Link(ctx context.Context, barbershopID, staffUserID, barber
 			}
 
 			tag, err := q.Exec(ctx,
-				`UPDATE barber SET staff_user_id = $3
-				  WHERE id = $1 AND barbershop_id = $2 AND staff_user_id IS NULL`,
+				`UPDATE professional SET staff_user_id = $3
+				  WHERE id = $1 AND business_id = $2 AND staff_user_id IS NULL`,
 				barberID, barbershopID, staffUserID,
 			)
 			if err != nil {
@@ -595,8 +595,8 @@ func (r *Repository) Unlink(ctx context.Context, barbershopID, staffUserID strin
 	err := r.db.InTenantTx(ctx, database.BarbershopID(barbershopID), func(ctx context.Context, q database.Queries) error {
 		var id *string
 		err := q.QueryRow(ctx,
-			`UPDATE barber SET staff_user_id = NULL
-			  WHERE barbershop_id = $1 AND staff_user_id = $2
+			`UPDATE professional SET staff_user_id = NULL
+			  WHERE business_id = $1 AND staff_user_id = $2
 			  RETURNING id::text`,
 			barbershopID, staffUserID,
 		).Scan(&id)

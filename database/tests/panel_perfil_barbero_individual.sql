@@ -5,10 +5,10 @@
 -- (internal/modules/shops), no aquí.
 --
 -- Uso:
---   psql "$DATABASE_TEST_URL" -v ON_ERROR_STOP=1 -f testdata/dos_barberias.sql
---   psql "$DATABASE_TEST_URL" -v ON_ERROR_STOP=1 -f tests/panel_perfil_barbero_individual.sql
+--   psql "$DATABASE_TEST_URL" -v ON_ERROR_STOP=1 -f testdata/dos_professionalias.sql
+--   psql "$DATABASE_TEST_URL" -v ON_ERROR_STOP=1 -f tests/panel_perfil_professionalo_individual.sql
 --
--- Requisito del arnés: la conexión debe poder ejecutar `SET ROLE barberia_app`
+-- Requisito del arnés: la conexión debe poder ejecutar `SET ROLE agenda_app`
 -- (estandar-base-datos.md §9.8), igual que brand_marca_vocabulario.sql.
 --
 -- Cada comprobación falla lanzando una excepción. Si el archivo termina, pasó.
@@ -26,17 +26,17 @@ DECLARE
 BEGIN
   SELECT is_nullable, column_default INTO v_col
   FROM information_schema.columns
-  WHERE table_schema = 'public' AND table_name = 'barbershop'
+  WHERE table_schema = 'public' AND table_name = 'business'
     AND column_name = 'panel_profile';
 
   IF NOT FOUND THEN
-    RAISE EXCEPTION 'barbershop.panel_profile debe existir.';
+    RAISE EXCEPTION 'business.panel_profile debe existir.';
   END IF;
   IF v_col.is_nullable <> 'NO' THEN
-    RAISE EXCEPTION 'barbershop.panel_profile debe ser NOT NULL.';
+    RAISE EXCEPTION 'business.panel_profile debe ser NOT NULL.';
   END IF;
   IF v_col.column_default <> '''shop''::text' THEN
-    RAISE EXCEPTION 'barbershop.panel_profile: default % distinto de shop.', v_col.column_default;
+    RAISE EXCEPTION 'business.panel_profile: default % distinto de shop.', v_col.column_default;
   END IF;
 END
 $$;
@@ -47,42 +47,42 @@ $$;
 -- a los barberos (un independiente sigue siendo una barbería con uno solo).
 -- ---------------------------------------------------------------------------
 BEGIN;
-SET ROLE barberia_app;
-SET LOCAL app.barbershop_id = '11111111-1111-1111-1111-111111111111';
+SET ROLE agenda_app;
+SET LOCAL app.business_id = '11111111-1111-1111-1111-111111111111';
 
 DO $$
 DECLARE
   v_profile text;
-  v_barbers_before integer;
-  v_barbers_after integer;
+  v_professionals_before integer;
+  v_professionals_after integer;
 BEGIN
-  SELECT panel_profile INTO v_profile FROM barbershop
+  SELECT panel_profile INTO v_profile FROM business
    WHERE id = '11111111-1111-1111-1111-111111111111';
   IF v_profile <> 'shop' THEN
     RAISE EXCEPTION 'la barbería existente debe leer shop (leyó %).', v_profile;
   END IF;
 
-  SELECT count(*) INTO v_barbers_before FROM barber;
+  SELECT count(*) INTO v_professionals_before FROM professional;
 
-  UPDATE barbershop SET panel_profile = 'solo'
+  UPDATE business SET panel_profile = 'solo'
    WHERE id = '11111111-1111-1111-1111-111111111111';
-  SELECT panel_profile INTO v_profile FROM barbershop
+  SELECT panel_profile INTO v_profile FROM business
    WHERE id = '11111111-1111-1111-1111-111111111111';
   IF v_profile <> 'solo' THEN
     RAISE EXCEPTION 'el perfil solo no se guardó (leyó %).', v_profile;
   END IF;
 
-  UPDATE barbershop SET panel_profile = 'shop'
+  UPDATE business SET panel_profile = 'shop'
    WHERE id = '11111111-1111-1111-1111-111111111111';
-  SELECT panel_profile INTO v_profile FROM barbershop
+  SELECT panel_profile INTO v_profile FROM business
    WHERE id = '11111111-1111-1111-1111-111111111111';
   IF v_profile <> 'shop' THEN
     RAISE EXCEPTION 'volver a shop no se guardó (leyó %).', v_profile;
   END IF;
 
-  SELECT count(*) INTO v_barbers_after FROM barber;
-  IF v_barbers_after <> v_barbers_before THEN
-    RAISE EXCEPTION 'cambiar de perfil alteró a los barberos (% → %).', v_barbers_before, v_barbers_after;
+  SELECT count(*) INTO v_professionals_after FROM professional;
+  IF v_professionals_after <> v_professionals_before THEN
+    RAISE EXCEPTION 'cambiar de perfil alteró a los barberos (% → %).', v_professionals_before, v_professionals_after;
   END IF;
 END
 $$;
@@ -95,8 +95,8 @@ ROLLBACK;
 -- CHECK: cualquier valor fuera de la lista cerrada se rechaza en la base
 -- ---------------------------------------------------------------------------
 BEGIN;
-SET ROLE barberia_app;
-SET LOCAL app.barbershop_id = '11111111-1111-1111-1111-111111111111';
+SET ROLE agenda_app;
+SET LOCAL app.business_id = '11111111-1111-1111-1111-111111111111';
 
 DO $$
 DECLARE
@@ -106,9 +106,9 @@ BEGIN
   LOOP
     BEGIN
       EXECUTE format(
-        'UPDATE barbershop SET panel_profile = %L WHERE id = %L',
+        'UPDATE business SET panel_profile = %L WHERE id = %L',
         v_value, '11111111-1111-1111-1111-111111111111');
-      RAISE EXCEPTION 'se aceptó panel_profile = % (esperaba barbershop_panel_profile_ck).', v_value;
+      RAISE EXCEPTION 'se aceptó panel_profile = % (esperaba business_panel_profile_ck).', v_value;
     EXCEPTION
       WHEN check_violation THEN
         NULL; -- Esperado.
@@ -125,22 +125,22 @@ ROLLBACK;
 -- RLS: un tenant no lee ni modifica el perfil de otro
 -- ---------------------------------------------------------------------------
 BEGIN;
-SET ROLE barberia_app;
-SET LOCAL app.barbershop_id = '11111111-1111-1111-1111-111111111111';
+SET ROLE agenda_app;
+SET LOCAL app.business_id = '11111111-1111-1111-1111-111111111111';
 
 DO $$
 DECLARE
   v_rows integer;
   v_visible integer;
 BEGIN
-  UPDATE barbershop SET panel_profile = 'solo'
+  UPDATE business SET panel_profile = 'solo'
    WHERE id = '22222222-2222-2222-2222-222222222222';
   GET DIAGNOSTICS v_rows = ROW_COUNT;
   IF v_rows <> 0 THEN
     RAISE EXCEPTION 'RLS: el tenant A modificó el perfil del tenant B (% filas).', v_rows;
   END IF;
 
-  SELECT count(*) INTO v_visible FROM barbershop
+  SELECT count(*) INTO v_visible FROM business
    WHERE id = '22222222-2222-2222-2222-222222222222';
   IF v_visible <> 0 THEN
     RAISE EXCEPTION 'RLS: el tenant A puede leer el perfil del tenant B.';
@@ -156,7 +156,7 @@ DO $$
 DECLARE
   v_profile text;
 BEGIN
-  SELECT panel_profile INTO v_profile FROM barbershop
+  SELECT panel_profile INTO v_profile FROM business
    WHERE id = '22222222-2222-2222-2222-222222222222';
   IF v_profile <> 'shop' THEN
     RAISE EXCEPTION 'el perfil del tenant B cambió a % tras el intento del tenant A.', v_profile;

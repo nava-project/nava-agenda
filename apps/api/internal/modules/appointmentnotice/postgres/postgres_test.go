@@ -51,11 +51,11 @@ func openDB(t *testing.T, envVar, fallback string) *database.DB {
 }
 
 func appDB(t *testing.T) *database.DB {
-	return openDB(t, "TEST_DATABASE_URL", "postgres://barberia_app@localhost:5432/barberia_test?sslmode=disable")
+	return openDB(t, "TEST_DATABASE_URL", "postgres://agenda_app@localhost:5432/barberia_test?sslmode=disable")
 }
 
 func workerDB(t *testing.T) *database.DB {
-	return openDB(t, "TEST_WORKER_DATABASE_URL", "postgres://barberia_worker@localhost:5432/barberia_test?sslmode=disable")
+	return openDB(t, "TEST_WORKER_DATABASE_URL", "postgres://agenda_worker@localhost:5432/barberia_test?sslmode=disable")
 }
 
 func hex8(t *testing.T) string {
@@ -86,12 +86,12 @@ func sharedFixture(t *testing.T, db *database.DB, shop database.BarbershopID) sh
 	}
 	var f shopFixture
 	err := db.InTenantTx(context.Background(), shop, func(ctx context.Context, q database.Queries) error {
-		if err := q.QueryRow(ctx, `INSERT INTO barber (barbershop_id, full_name) VALUES ($1, $2) RETURNING id::text`,
+		if err := q.QueryRow(ctx, `INSERT INTO professional (business_id, full_name) VALUES ($1, $2) RETURNING id::text`,
 			string(shop), "Barbero aviso "+hex8(t)).Scan(&f.barberID); err != nil {
 			return err
 		}
 		return q.QueryRow(ctx,
-			`INSERT INTO service (barbershop_id, name, duration_minutes, price_amount) VALUES ($1, $2, 40, 30000) RETURNING id::text`,
+			`INSERT INTO service (business_id, name, duration_minutes, price_amount) VALUES ($1, $2, 40, 30000) RETURNING id::text`,
 			string(shop), "Corte "+hex8(t)).Scan(&f.serviceID)
 	})
 	if err != nil {
@@ -139,13 +139,13 @@ func insertSeedAppointment(t *testing.T, db *database.DB, shop database.Barbersh
 			emailArg = &email
 		}
 		if err := q.QueryRow(ctx,
-			`INSERT INTO customer (barbershop_id, full_name, email) VALUES ($1, 'Cliente Aviso', $2) RETURNING id::text`,
+			`INSERT INTO customer (business_id, full_name, email) VALUES ($1, 'Cliente Aviso', $2) RETURNING id::text`,
 			string(shop), emailArg).Scan(&customerID); err != nil {
 			return err
 		}
 		start := time.Now().UTC().Add(72*time.Hour + time.Duration(offsetMinutes)*time.Minute).Truncate(time.Minute)
 		return q.QueryRow(ctx,
-			`INSERT INTO appointment (barbershop_id, barber_id, service_id, customer_id, attendee_name, starts_at, ends_at,
+			`INSERT INTO appointment (business_id, professional_id, service_id, customer_id, attendee_name, starts_at, ends_at,
 			                          status, origin, service_name_snapshot, duration_minutes_snapshot,
 			                          price_amount_snapshot, price_currency_snapshot)
 			 VALUES ($1, $2, $3, $4, 'Ana Pérez', $5::timestamptz, $5::timestamptz + interval '40 minutes',
@@ -458,7 +458,7 @@ func TestDispatcher_OverTheRealQueue_RescheduleOfACancelledAppointmentIsNotSent(
 	// El cliente cancela mientras el aviso espera (RN-REC-02).
 	err := app.InTenantTx(context.Background(), shopA, func(ctx context.Context, q database.Queries) error {
 		_, err := q.Exec(ctx,
-			`UPDATE appointment SET status = 'cancelled_by_customer', resolved_at = now() WHERE barbershop_id = $1 AND id = $2`,
+			`UPDATE appointment SET status = 'cancelled_by_customer', resolved_at = now() WHERE business_id = $1 AND id = $2`,
 			string(shopA), id)
 		return err
 	})
@@ -539,7 +539,7 @@ func startsAt(t *testing.T, db *database.DB, shop database.BarbershopID, appoint
 	t.Helper()
 	var at time.Time
 	err := db.InTenantTx(context.Background(), shop, func(ctx context.Context, q database.Queries) error {
-		return q.QueryRow(ctx, `SELECT starts_at FROM appointment WHERE barbershop_id = $1 AND id = $2`,
+		return q.QueryRow(ctx, `SELECT starts_at FROM appointment WHERE business_id = $1 AND id = $2`,
 			string(shop), appointmentID).Scan(&at)
 	})
 	if err != nil {
@@ -555,7 +555,7 @@ func reminderRunAt(t *testing.T, db *database.DB, shop database.BarbershopID, ap
 	err := db.InTenantTx(context.Background(), shop, func(ctx context.Context, q database.Queries) error {
 		return q.QueryRow(ctx,
 			`SELECT coalesce(max(run_at), 'epoch'), count(*) FROM appointment_notice
-			  WHERE barbershop_id = $1 AND appointment_id = $2 AND kind = 'reminder' AND status = 'pending'`,
+			  WHERE business_id = $1 AND appointment_id = $2 AND kind = 'reminder' AND status = 'pending'`,
 			string(shop), appointmentID).Scan(&runAt, &n)
 	})
 	if err != nil {
@@ -569,10 +569,10 @@ func setStart(t *testing.T, db *database.DB, shop database.BarbershopID, appoint
 	err := db.InTenantTx(context.Background(), shop, func(ctx context.Context, q database.Queries) error {
 		if status == "confirmed" {
 			_, err := q.Exec(ctx, `UPDATE appointment SET starts_at = $3::timestamptz, ends_at = $3::timestamptz + interval '40 minutes'
-			                        WHERE barbershop_id = $1 AND id = $2`, string(shop), appointmentID, start)
+			                        WHERE business_id = $1 AND id = $2`, string(shop), appointmentID, start)
 			return err
 		}
-		_, err := q.Exec(ctx, `UPDATE appointment SET status = $3, resolved_at = now() WHERE barbershop_id = $1 AND id = $2`,
+		_, err := q.Exec(ctx, `UPDATE appointment SET status = $3, resolved_at = now() WHERE business_id = $1 AND id = $2`,
 			string(shop), appointmentID, status)
 		return err
 	})
@@ -800,8 +800,8 @@ func givePhone(t *testing.T, db *database.DB, shop database.BarbershopID, appoin
 	phone := "+57300" + leftPad(n%10000000)
 	err := db.InTenantTx(context.Background(), shop, func(ctx context.Context, q database.Queries) error {
 		_, err := q.Exec(ctx, `UPDATE customer SET phone = $3
-		                        WHERE barbershop_id = $1
-		                          AND id = (SELECT customer_id FROM appointment WHERE barbershop_id = $1 AND id = $2)`,
+		                        WHERE business_id = $1
+		                          AND id = (SELECT customer_id FROM appointment WHERE business_id = $1 AND id = $2)`,
 			string(shop), appointmentID, phone)
 		return err
 	})
@@ -821,7 +821,7 @@ func pendingKinds(t *testing.T, db *database.DB, shop database.BarbershopID, app
 	out := map[string]time.Time{}
 	err := db.InTenantTx(context.Background(), shop, func(ctx context.Context, q database.Queries) error {
 		rows, err := q.Query(ctx, `SELECT kind, run_at FROM appointment_notice
-		                            WHERE barbershop_id = $1 AND appointment_id = $2 AND status = 'pending'`,
+		                            WHERE business_id = $1 AND appointment_id = $2 AND status = 'pending'`,
 			string(shop), appointmentID)
 		if err != nil {
 			return err

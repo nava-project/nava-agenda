@@ -6,11 +6,11 @@
 -- (internal/modules/shops), no aquí.
 --
 -- Uso:
---   psql "$DATABASE_TEST_URL" -v ON_ERROR_STOP=1 -f testdata/dos_barberias.sql
+--   psql "$DATABASE_TEST_URL" -v ON_ERROR_STOP=1 -f testdata/dos_professionalias.sql
 --   psql "$DATABASE_TEST_URL" -v ON_ERROR_STOP=1 -f tests/brand_marca_vocabulario.sql
 --
--- Requisito del arnés: la conexión debe poder ejecutar `SET ROLE barberia_app`
--- (estandar-base-datos.md §9.8), igual que hu020_configuracion_barberia.sql.
+-- Requisito del arnés: la conexión debe poder ejecutar `SET ROLE agenda_app`
+-- (estandar-base-datos.md §9.8), igual que hu020_configuracion_professionalia.sql.
 --
 -- Cada comprobación falla lanzando una excepción. Si el archivo termina, pasó.
 
@@ -37,17 +37,17 @@ BEGIN
   FOR i IN 1 .. array_length(v_expected, 1) LOOP
     SELECT is_nullable, column_default INTO v_col
     FROM information_schema.columns
-    WHERE table_schema = 'public' AND table_name = 'barbershop'
+    WHERE table_schema = 'public' AND table_name = 'business'
       AND column_name = v_expected[i][1];
 
     IF NOT FOUND THEN
-      RAISE EXCEPTION 'barbershop.% debe existir.', v_expected[i][1];
+      RAISE EXCEPTION 'business.% debe existir.', v_expected[i][1];
     END IF;
     IF v_col.is_nullable <> 'NO' THEN
-      RAISE EXCEPTION 'barbershop.% debe ser NOT NULL.', v_expected[i][1];
+      RAISE EXCEPTION 'business.% debe ser NOT NULL.', v_expected[i][1];
     END IF;
     IF v_col.column_default <> v_expected[i][2] THEN
-      RAISE EXCEPTION 'barbershop.%: default % distinto del esperado %.',
+      RAISE EXCEPTION 'business.%: default % distinto del esperado %.',
         v_expected[i][1], v_col.column_default, v_expected[i][2];
     END IF;
   END LOOP;
@@ -59,14 +59,14 @@ $$;
 -- Una barbería que nunca tocó la marca lee los defaults
 -- ---------------------------------------------------------------------------
 BEGIN;
-SET ROLE barberia_app;
-SET LOCAL app.barbershop_id = '11111111-1111-1111-1111-111111111111';
+SET ROLE agenda_app;
+SET LOCAL app.business_id = '11111111-1111-1111-1111-111111111111';
 
 DO $$
 DECLARE
-  b barbershop%ROWTYPE;
+  b business%ROWTYPE;
 BEGIN
-  SELECT * INTO b FROM barbershop WHERE id = '11111111-1111-1111-1111-111111111111';
+  SELECT * INTO b FROM business WHERE id = '11111111-1111-1111-1111-111111111111';
   IF b.brand_accent <> 'brass' OR b.business_term <> 'barbería'
      OR b.professional_term <> 'barbero' OR b.professional_term_plural <> 'barberos'
      OR b.business_term_gender <> 'feminine' OR b.professional_term_gender <> 'masculine' THEN
@@ -84,14 +84,14 @@ ROLLBACK;
 -- Update propio válido dentro del tenant
 -- ---------------------------------------------------------------------------
 BEGIN;
-SET ROLE barberia_app;
-SET LOCAL app.barbershop_id = '11111111-1111-1111-1111-111111111111';
+SET ROLE agenda_app;
+SET LOCAL app.business_id = '11111111-1111-1111-1111-111111111111';
 
 DO $$
 DECLARE
-  b barbershop%ROWTYPE;
+  b business%ROWTYPE;
 BEGIN
-  UPDATE barbershop
+  UPDATE business
      SET brand_accent = 'emerald',
          business_term = 'salón de belleza',
          business_term_gender = 'masculine',
@@ -100,7 +100,7 @@ BEGIN
          professional_term_gender = 'feminine'
    WHERE id = '11111111-1111-1111-1111-111111111111';
 
-  SELECT * INTO b FROM barbershop WHERE id = '11111111-1111-1111-1111-111111111111';
+  SELECT * INTO b FROM business WHERE id = '11111111-1111-1111-1111-111111111111';
   IF b.brand_accent <> 'emerald' OR b.business_term <> 'salón de belleza'
      OR b.professional_term <> 'estilista' OR b.professional_term_plural <> 'estilistas'
      OR b.professional_term_gender <> 'feminine' THEN
@@ -117,8 +117,8 @@ ROLLBACK;
 -- CHECK: cada valor fuera de contrato se rechaza en la base
 -- ---------------------------------------------------------------------------
 BEGIN;
-SET ROLE barberia_app;
-SET LOCAL app.barbershop_id = '11111111-1111-1111-1111-111111111111';
+SET ROLE agenda_app;
+SET LOCAL app.business_id = '11111111-1111-1111-1111-111111111111';
 
 DO $$
 DECLARE
@@ -126,24 +126,24 @@ DECLARE
 BEGIN
   FOR v_case IN
     SELECT * FROM (VALUES
-      ('brand_accent',             'rojo-libre',                'barbershop_brand_accent_ck'),
-      ('brand_accent',             '#b8955a',                   'barbershop_brand_accent_ck'),
-      ('business_term_gender',     'neutral',                   'barbershop_business_term_gender_ck'),
-      ('professional_term_gender', '',                          'barbershop_professional_term_gender_ck'),
-      ('business_term',            'Salón',                     'barbershop_business_term_ck'),
-      ('business_term',            ' salón',                    'barbershop_business_term_ck'),
-      ('business_term',            's',                         'barbershop_business_term_ck'),
-      ('business_term',            repeat('a', 31),             'barbershop_business_term_ck'),
-      ('business_term',            'salón 2',                   'barbershop_business_term_ck'),
-      ('professional_term',        E'estilista\n',              'barbershop_professional_term_ck'),
-      ('professional_term',        'ESTILISTA',                 'barbershop_professional_term_ck'),
-      ('professional_term_plural', 'estilistas9',               'barbershop_professional_term_plural_ck'),
-      ('professional_term_plural', '',                          'barbershop_professional_term_plural_ck')
+      ('brand_accent',             'rojo-libre',                'business_brand_accent_ck'),
+      ('brand_accent',             '#b8955a',                   'business_brand_accent_ck'),
+      ('business_term_gender',     'neutral',                   'business_business_term_gender_ck'),
+      ('professional_term_gender', '',                          'business_professional_term_gender_ck'),
+      ('business_term',            'Salón',                     'business_business_term_ck'),
+      ('business_term',            ' salón',                    'business_business_term_ck'),
+      ('business_term',            's',                         'business_business_term_ck'),
+      ('business_term',            repeat('a', 31),             'business_business_term_ck'),
+      ('business_term',            'salón 2',                   'business_business_term_ck'),
+      ('professional_term',        E'estilista\n',              'business_professional_term_ck'),
+      ('professional_term',        'ESTILISTA',                 'business_professional_term_ck'),
+      ('professional_term_plural', 'estilistas9',               'business_professional_term_plural_ck'),
+      ('professional_term_plural', '',                          'business_professional_term_plural_ck')
     ) AS t(col, val, expected_constraint)
   LOOP
     BEGIN
       EXECUTE format(
-        'UPDATE barbershop SET %I = %L WHERE id = %L',
+        'UPDATE business SET %I = %L WHERE id = %L',
         v_case.col, v_case.val, '11111111-1111-1111-1111-111111111111');
       RAISE EXCEPTION 'se aceptó % = % (esperaba rechazo por %).',
         v_case.col, v_case.val, v_case.expected_constraint;
@@ -163,22 +163,22 @@ ROLLBACK;
 -- RLS: un tenant no lee ni modifica la marca de otro
 -- ---------------------------------------------------------------------------
 BEGIN;
-SET ROLE barberia_app;
-SET LOCAL app.barbershop_id = '11111111-1111-1111-1111-111111111111';
+SET ROLE agenda_app;
+SET LOCAL app.business_id = '11111111-1111-1111-1111-111111111111';
 
 DO $$
 DECLARE
   v_rows integer;
   v_visible integer;
 BEGIN
-  UPDATE barbershop SET brand_accent = 'ruby'
+  UPDATE business SET brand_accent = 'ruby'
    WHERE id = '22222222-2222-2222-2222-222222222222';
   GET DIAGNOSTICS v_rows = ROW_COUNT;
   IF v_rows <> 0 THEN
     RAISE EXCEPTION 'RLS: el tenant A modificó la marca del tenant B (% filas).', v_rows;
   END IF;
 
-  SELECT count(*) INTO v_visible FROM barbershop
+  SELECT count(*) INTO v_visible FROM business
    WHERE id = '22222222-2222-2222-2222-222222222222';
   IF v_visible <> 0 THEN
     RAISE EXCEPTION 'RLS: el tenant A puede leer la marca del tenant B.';
@@ -194,7 +194,7 @@ DO $$
 DECLARE
   v_accent text;
 BEGIN
-  SELECT brand_accent INTO v_accent FROM barbershop
+  SELECT brand_accent INTO v_accent FROM business
    WHERE id = '22222222-2222-2222-2222-222222222222';
   IF v_accent <> 'brass' THEN
     RAISE EXCEPTION 'la marca del tenant B cambió a % tras el intento del tenant A.', v_accent;

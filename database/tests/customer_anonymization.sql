@@ -4,12 +4,12 @@
 -- customer_anonymize.
 --
 -- Uso:
---   psql "$DATABASE_TEST_URL" -v ON_ERROR_STOP=1 -f testdata/dos_barberias.sql
+--   psql "$DATABASE_TEST_URL" -v ON_ERROR_STOP=1 -f testdata/dos_professionalias.sql
 --   psql "$DATABASE_TEST_URL" -v ON_ERROR_STOP=1 -f testdata/customer_anonymization_fixture.sql
 --   psql "$DATABASE_TEST_URL" -v ON_ERROR_STOP=1 -f tests/customer_anonymization.sql
 --
 -- Requisito del arnés: igual que hu001_aislamiento_rls.sql, la conexión debe
--- poder ejecutar `SET ROLE barberia_app` y `SET ROLE barberia_worker` sin
+-- poder ejecutar `SET ROLE agenda_app` y `SET ROLE agenda_worker` sin
 -- pertenecer a esos roles (conectada como superusuario en local/CI).
 --
 -- Cada escenario fija todos los instantes explícitamente (created_at,
@@ -28,15 +28,15 @@
 -- Escenario 1 · Solicitud individual: cobertura completa de DEC-049
 -- ---------------------------------------------------------------------------
 BEGIN;
-SET ROLE barberia_migrator;
+SET ROLE agenda_migrator;
 
-INSERT INTO customer (id, barbershop_id, full_name, phone, created_at)
+INSERT INTO customer (id, business_id, full_name, phone, created_at)
 VALUES ('00000000-0000-0000-0000-000000000101',
         '11111111-1111-1111-1111-111111111111',
         'Cliente Original Uno', '+573000000001', '2020-01-01 00:00:00-05');
 
 INSERT INTO appointment (
-  id, barbershop_id, barber_id, service_id, customer_id, attendee_name,
+  id, business_id, professional_id, service_id, customer_id, attendee_name,
   starts_at, ends_at, origin,
   service_name_snapshot, duration_minutes_snapshot, price_amount_snapshot, price_currency_snapshot,
   customer_note, created_at
@@ -53,7 +53,7 @@ INSERT INTO appointment (
 );
 
 INSERT INTO appointment_history (
-  id, barbershop_id, appointment_id, event_type, actor_type, actor_customer_id, reason, occurred_at
+  id, business_id, appointment_id, event_type, actor_type, actor_customer_id, reason, occurred_at
 ) VALUES (
   '00000000-0000-0000-0000-000000000301',
   '11111111-1111-1111-1111-111111111111',
@@ -63,18 +63,18 @@ INSERT INTO appointment_history (
   'Motivo personal de prueba', '2020-01-03 00:00:00-05'
 );
 
-INSERT INTO appointment_history_change (barbershop_id, history_id, field_name, previous_value, new_value)
+INSERT INTO appointment_history_change (business_id, history_id, field_name, previous_value, new_value)
 VALUES
   ('11111111-1111-1111-1111-111111111111', '00000000-0000-0000-0000-000000000301',
    'attendee_name', 'Nombre Anterior', 'Hijo De Prueba'),
   ('11111111-1111-1111-1111-111111111111', '00000000-0000-0000-0000-000000000301',
    'status', 'confirmed', 'cancelled_by_customer');
 
-INSERT INTO appointment_access_token (barbershop_id, appointment_id, token_hash, issued_at)
+INSERT INTO appointment_access_token (business_id, appointment_id, token_hash, issued_at)
 VALUES ('11111111-1111-1111-1111-111111111111', '00000000-0000-0000-0000-000000000201',
         repeat('a', 64), '2020-01-02 00:00:00-05');
 
-SET ROLE barberia_worker;
+SET ROLE agenda_worker;
 
 DO $$
 DECLARE
@@ -98,7 +98,7 @@ BEGIN
 END
 $$;
 
-SET ROLE barberia_migrator;
+SET ROLE agenda_migrator;
 
 DO $$
 DECLARE
@@ -161,16 +161,16 @@ ROLLBACK;
 -- de p_limit hasta que no queda nada vencido
 -- ---------------------------------------------------------------------------
 BEGIN;
-SET ROLE barberia_migrator;
+SET ROLE agenda_migrator;
 
-INSERT INTO customer (id, barbershop_id, full_name, created_at) VALUES
+INSERT INTO customer (id, business_id, full_name, created_at) VALUES
   ('00000000-0000-0000-0000-000000000401', '11111111-1111-1111-1111-111111111111', 'Cliente Masivo Uno',   '2020-01-01 00:00:00-05'),
   ('00000000-0000-0000-0000-000000000402', '11111111-1111-1111-1111-111111111111', 'Cliente Masivo Dos',   '2020-01-02 00:00:00-05'),
   ('00000000-0000-0000-0000-000000000403', '11111111-1111-1111-1111-111111111111', 'Cliente Masivo Tres',  '2020-01-03 00:00:00-05'),
   ('00000000-0000-0000-0000-000000000404', '11111111-1111-1111-1111-111111111111', 'Cliente Masivo Cuatro','2020-01-04 00:00:00-05'),
   ('00000000-0000-0000-0000-000000000405', '11111111-1111-1111-1111-111111111111', 'Cliente Masivo Cinco', '2020-01-05 00:00:00-05');
 
-SET ROLE barberia_worker;
+SET ROLE agenda_worker;
 
 DO $$
 DECLARE
@@ -221,16 +221,16 @@ ROLLBACK;
 
 -- ---------------------------------------------------------------------------
 -- Escenario 3 · Dos tenants: anonimizar en A no toca a B, y un intento con
--- barbershop_id/customer_id cruzados no hace nada
+-- business_id/customer_id cruzados no hace nada
 -- ---------------------------------------------------------------------------
 BEGIN;
-SET ROLE barberia_migrator;
+SET ROLE agenda_migrator;
 
-INSERT INTO customer (id, barbershop_id, full_name, created_at) VALUES
+INSERT INTO customer (id, business_id, full_name, created_at) VALUES
   ('00000000-0000-0000-0000-000000000501', '11111111-1111-1111-1111-111111111111', 'Cliente Tenant A', '2020-01-01 00:00:00-05'),
   ('00000000-0000-0000-0000-000000000502', '22222222-2222-2222-2222-222222222222', 'Cliente Tenant B', '2020-01-01 00:00:00-05');
 
-SET ROLE barberia_worker;
+SET ROLE agenda_worker;
 
 DO $$
 DECLARE
@@ -244,20 +244,20 @@ BEGIN
     WHERE customer_id IN ('00000000-0000-0000-0000-000000000501', '00000000-0000-0000-0000-000000000502')
   LOOP
     IF v_row.customer_id = '00000000-0000-0000-0000-000000000501'
-       AND v_row.barbershop_id = '11111111-1111-1111-1111-111111111111' THEN
+       AND v_row.business_id = '11111111-1111-1111-1111-111111111111' THEN
       v_a_seen := true;
     END IF;
     IF v_row.customer_id = '00000000-0000-0000-0000-000000000502'
-       AND v_row.barbershop_id = '22222222-2222-2222-2222-222222222222' THEN
+       AND v_row.business_id = '22222222-2222-2222-2222-222222222222' THEN
       v_b_seen := true;
     END IF;
   END LOOP;
 
   IF NOT v_a_seen OR NOT v_b_seen THEN
-    RAISE EXCEPTION 'Escenario 3: el claim no devolvió ambos tenants con su barbershop_id correcto.';
+    RAISE EXCEPTION 'Escenario 3: el claim no devolvió ambos tenants con su business_id correcto.';
   END IF;
 
-  -- Cruzar el tenant del cliente B con el barbershop_id de A no encuentra
+  -- Cruzar el tenant del cliente B con el business_id de A no encuentra
   -- fila: el WHERE exige ambos a la vez, así que no hay forma de anonimizar
   -- un cliente ajeno adivinando o reutilizando su identificador.
   IF customer_anonymize(
@@ -265,7 +265,7 @@ BEGIN
     '00000000-0000-0000-0000-000000000502',
     v_now
   ) THEN
-    RAISE EXCEPTION 'Escenario 3: se pudo anonimizar un cliente de B usando el barbershop_id de A.';
+    RAISE EXCEPTION 'Escenario 3: se pudo anonimizar un cliente de B usando el business_id de A.';
   END IF;
 
   IF NOT customer_anonymize('11111111-1111-1111-1111-111111111111', '00000000-0000-0000-0000-000000000501', v_now) THEN
@@ -274,7 +274,7 @@ BEGIN
 END
 $$;
 
-SET ROLE barberia_migrator;
+SET ROLE agenda_migrator;
 
 DO $$
 DECLARE
@@ -295,19 +295,19 @@ $$;
 
 RESET ROLE;
 ROLLBACK;
-\echo 'Escenario 3 OK · aislamiento entre tenants; barbershop_id/customer_id cruzados no anonimizan nada'
+\echo 'Escenario 3 OK · aislamiento entre tenants; business_id/customer_id cruzados no anonimizan nada'
 
 -- ---------------------------------------------------------------------------
 -- Escenario 4 · Repetición: idempotente, sin doble efecto ni error
 -- ---------------------------------------------------------------------------
 BEGIN;
-SET ROLE barberia_migrator;
+SET ROLE agenda_migrator;
 
-INSERT INTO customer (id, barbershop_id, full_name, created_at)
+INSERT INTO customer (id, business_id, full_name, created_at)
 VALUES ('00000000-0000-0000-0000-000000000601',
         '11111111-1111-1111-1111-111111111111', 'Cliente Repetido', '2020-01-01 00:00:00-05');
 
-SET ROLE barberia_worker;
+SET ROLE agenda_worker;
 
 DO $$
 DECLARE
@@ -327,7 +327,7 @@ BEGIN
 END
 $$;
 
-SET ROLE barberia_migrator;
+SET ROLE agenda_migrator;
 
 DO $$
 DECLARE
@@ -351,9 +351,9 @@ ROLLBACK;
 -- deja ningún cliente a medio anonimizar
 -- ---------------------------------------------------------------------------
 BEGIN;
-SET ROLE barberia_migrator;
+SET ROLE agenda_migrator;
 
-INSERT INTO customer (id, barbershop_id, full_name, created_at) VALUES
+INSERT INTO customer (id, business_id, full_name, created_at) VALUES
   ('00000000-0000-0000-0000-000000000701', '11111111-1111-1111-1111-111111111111', 'Cliente Lote Uno',  '2020-01-01 00:00:00-05'),
   ('00000000-0000-0000-0000-000000000702', '11111111-1111-1111-1111-111111111111', 'Cliente Lote Dos',  '2020-01-02 00:00:00-05'),
   ('00000000-0000-0000-0000-000000000703', '11111111-1111-1111-1111-111111111111', 'Cliente Lote Tres', '2020-01-03 00:00:00-05');
@@ -363,7 +363,7 @@ COMMIT;
 -- "Caída": la transacción del trabajador reclama y anonimiza 2 de 3 y
 -- nunca confirma (se revierte, como haría un proceso que muere a mitad).
 BEGIN;
-SET ROLE barberia_worker;
+SET ROLE agenda_worker;
 
 DO $$
 DECLARE
@@ -387,7 +387,7 @@ $$;
 
 ROLLBACK;
 
-SET ROLE barberia_migrator;
+SET ROLE agenda_migrator;
 
 DO $$
 DECLARE
@@ -411,7 +411,7 @@ RESET ROLE;
 -- Reintento real: la misma reclamación, esta vez confirmada de punta a
 -- punta, procesa los tres sin que la caída anterior haya dejado nada roto.
 BEGIN;
-SET ROLE barberia_worker;
+SET ROLE agenda_worker;
 
 DO $$
 DECLARE
@@ -436,7 +436,7 @@ BEGIN
 END
 $$;
 
-SET ROLE barberia_migrator;
+SET ROLE agenda_migrator;
 
 DO $$
 DECLARE
@@ -472,16 +472,16 @@ COMMIT;
 -- antiguo con actividad reciente NO vence
 -- ---------------------------------------------------------------------------
 BEGIN;
-SET ROLE barberia_migrator;
+SET ROLE agenda_migrator;
 
 -- Creado hace años, pero con una transición de historial reciente: no debe
 -- vencer, porque la actividad -no la creación- es la fecha ancla.
-INSERT INTO customer (id, barbershop_id, full_name, created_at)
+INSERT INTO customer (id, business_id, full_name, created_at)
 VALUES ('00000000-0000-0000-0000-000000000801',
         '11111111-1111-1111-1111-111111111111', 'Cliente Activo Antiguo', '2020-01-01 00:00:00-05');
 
 INSERT INTO appointment (
-  id, barbershop_id, barber_id, service_id, customer_id, attendee_name,
+  id, business_id, professional_id, service_id, customer_id, attendee_name,
   starts_at, ends_at, origin,
   service_name_snapshot, duration_minutes_snapshot, price_amount_snapshot, price_currency_snapshot,
   created_at
@@ -499,7 +499,7 @@ INSERT INTO appointment (
 
 -- La transición ocurre 10 días antes de p_now: mantiene al cliente activo.
 INSERT INTO appointment_history (
-  id, barbershop_id, appointment_id, event_type, actor_type, actor_customer_id, occurred_at
+  id, business_id, appointment_id, event_type, actor_type, actor_customer_id, occurred_at
 ) VALUES (
   '00000000-0000-0000-0000-000000000803',
   '11111111-1111-1111-1111-111111111111',
@@ -510,11 +510,11 @@ INSERT INTO appointment_history (
 
 -- Cliente igual de antiguo, misma cita antigua, pero SIN actividad
 -- reciente: debe vencer (control del mismo escenario).
-INSERT INTO customer (id, barbershop_id, full_name, created_at)
+INSERT INTO customer (id, business_id, full_name, created_at)
 VALUES ('00000000-0000-0000-0000-000000000811',
         '11111111-1111-1111-1111-111111111111', 'Cliente Realmente Inactivo', '2020-01-01 00:00:00-05');
 
-SET ROLE barberia_worker;
+SET ROLE agenda_worker;
 
 DO $$
 DECLARE
@@ -544,17 +544,17 @@ ROLLBACK;
 \echo 'Escenario 6 OK · la fecha ancla es la última actividad (historial), no la creación (DEC-042)'
 
 -- ---------------------------------------------------------------------------
--- Escenario 7 · barberia_app no puede reclamar ni anonimizar (DEC-040, DDL-SEC-04)
+-- Escenario 7 · agenda_app no puede reclamar ni anonimizar (DEC-040, DDL-SEC-04)
 -- ---------------------------------------------------------------------------
 BEGIN;
-SET ROLE barberia_app;
-SET LOCAL app.barbershop_id = '11111111-1111-1111-1111-111111111111';
+SET ROLE agenda_app;
+SET LOCAL app.business_id = '11111111-1111-1111-1111-111111111111';
 
 DO $$
 BEGIN
   BEGIN
     PERFORM * FROM retention_claim_due_customers(10, '2026-08-11 00:00:00-05'::timestamptz);
-    RAISE EXCEPTION 'Escenario 7: barberia_app pudo ejecutar retention_claim_due_customers.';
+    RAISE EXCEPTION 'Escenario 7: agenda_app pudo ejecutar retention_claim_due_customers.';
   EXCEPTION
     WHEN insufficient_privilege THEN
       NULL;  -- Esperado.
@@ -564,7 +564,7 @@ BEGIN
     PERFORM customer_anonymize(
       '11111111-1111-1111-1111-111111111111', gen_random_uuid(), '2026-08-11 00:00:00-05'::timestamptz
     );
-    RAISE EXCEPTION 'Escenario 7: barberia_app pudo ejecutar customer_anonymize.';
+    RAISE EXCEPTION 'Escenario 7: agenda_app pudo ejecutar customer_anonymize.';
   EXCEPTION
     WHEN insufficient_privilege THEN
       NULL;  -- Esperado.
@@ -574,13 +574,13 @@ $$;
 
 RESET ROLE;
 ROLLBACK;
-\echo 'Escenario 7 OK · barberia_app no tiene EXECUTE ni sobre el claim ni sobre la anonimización'
+\echo 'Escenario 7 OK · agenda_app no tiene EXECUTE ni sobre el claim ni sobre la anonimización'
 
 -- ---------------------------------------------------------------------------
 -- Escenario 8 · Validación de p_limit/p_now (DDL-OPS-01) en ambas funciones
 -- ---------------------------------------------------------------------------
 BEGIN;
-SET ROLE barberia_worker;
+SET ROLE agenda_worker;
 
 DO $$
 DECLARE

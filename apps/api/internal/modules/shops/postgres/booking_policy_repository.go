@@ -50,7 +50,7 @@ func (r *BookingPolicyRepository) Get(ctx context.Context, barbershopID string) 
 			`SELECT min_advance_minutes, max_advance_days, slot_grid_minutes,
 			        cancellation_deadline_minutes, late_cancellation_client_allowed,
 			        late_cancellation_reason_required, updated_at
-			   FROM barbershop
+			   FROM business
 			  WHERE id = $1`,
 			barbershopID,
 		).Scan(
@@ -91,7 +91,7 @@ func (r *BookingPolicyRepository) Update(ctx context.Context, barbershopID strin
 	err := r.db.InTenantTx(ctx, database.BarbershopID(barbershopID), func(ctx context.Context, q database.Queries) error {
 		var currentUpdatedAt time.Time
 		if err := q.QueryRow(ctx,
-			`SELECT updated_at FROM barbershop WHERE id = $1 FOR UPDATE`,
+			`SELECT updated_at FROM business WHERE id = $1 FOR UPDATE`,
 			barbershopID,
 		).Scan(&currentUpdatedAt); err != nil {
 			if errors.Is(err, pgx.ErrNoRows) {
@@ -111,7 +111,7 @@ func (r *BookingPolicyRepository) Update(ctx context.Context, barbershopID strin
 			newUpdatedAt time.Time
 		)
 		err := q.QueryRow(ctx,
-			`UPDATE barbershop
+			`UPDATE business
 			    SET min_advance_minutes = $2,
 			        max_advance_days = $3,
 			        slot_grid_minutes = $4,

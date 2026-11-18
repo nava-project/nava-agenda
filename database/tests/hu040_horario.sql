@@ -9,9 +9,9 @@
 --   psql "$DATABASE_TEST_URL" -v ON_ERROR_STOP=1 -f testdata/hu040_horario.sql
 --   psql "$DATABASE_TEST_URL" -v ON_ERROR_STOP=1 -f tests/hu040_horario.sql
 --
--- Requisito del arnés: la conexión debe poder ejecutar `SET ROLE barberia_app`
+-- Requisito del arnés: la conexión debe poder ejecutar `SET ROLE agenda_app`
 -- y `RESET ROLE` hacia un rol con privilegios administrativos (mismo
--- criterio que hu021_barberos.sql).
+-- criterio que hu021_professionalos.sql).
 --
 -- Cada comprobación falla lanzando una excepción. Si el archivo termina, pasó.
 
@@ -62,50 +62,50 @@ $$;
 -- CA-040-04 (nivel base de datos) · CHECK de día [1,7] y duración [1,1440]
 -- ---------------------------------------------------------------------------
 BEGIN;
-SET ROLE barberia_app;
-SET LOCAL app.barbershop_id = 'cccccccc-cccc-cccc-cccc-cccccccccccc';
+SET ROLE agenda_app;
+SET LOCAL app.business_id = 'cccccccc-cccc-cccc-cccc-cccccccccccc';
 
 DO $$
 DECLARE
-  v_barber uuid := 'cccc0001-0001-0001-0001-000100010001';
+  v_professional uuid := 'cccc0001-0001-0001-0001-000100010001';
 BEGIN
   BEGIN
-    INSERT INTO working_hour (barbershop_id, barber_id, iso_weekday, starts_time, duration_minutes)
-    VALUES ('cccccccc-cccc-cccc-cccc-cccccccccccc', v_barber, 0, '08:00', 60);
+    INSERT INTO working_hour (business_id, professional_id, iso_weekday, starts_time, duration_minutes)
+    VALUES ('cccccccc-cccc-cccc-cccc-cccccccccccc', v_professional, 0, '08:00', 60);
     RAISE EXCEPTION 'working_hour_iso_weekday_ck: se aceptó iso_weekday = 0.';
   EXCEPTION
     WHEN check_violation THEN NULL;
   END;
 
   BEGIN
-    INSERT INTO working_hour (barbershop_id, barber_id, iso_weekday, starts_time, duration_minutes)
-    VALUES ('cccccccc-cccc-cccc-cccc-cccccccccccc', v_barber, 8, '08:00', 60);
+    INSERT INTO working_hour (business_id, professional_id, iso_weekday, starts_time, duration_minutes)
+    VALUES ('cccccccc-cccc-cccc-cccc-cccccccccccc', v_professional, 8, '08:00', 60);
     RAISE EXCEPTION 'working_hour_iso_weekday_ck: se aceptó iso_weekday = 8.';
   EXCEPTION
     WHEN check_violation THEN NULL;
   END;
 
   BEGIN
-    INSERT INTO working_hour (barbershop_id, barber_id, iso_weekday, starts_time, duration_minutes)
-    VALUES ('cccccccc-cccc-cccc-cccc-cccccccccccc', v_barber, 1, '08:00', 0);
+    INSERT INTO working_hour (business_id, professional_id, iso_weekday, starts_time, duration_minutes)
+    VALUES ('cccccccc-cccc-cccc-cccc-cccccccccccc', v_professional, 1, '08:00', 0);
     RAISE EXCEPTION 'working_hour_duration_minutes_ck: se aceptó duration_minutes = 0.';
   EXCEPTION
     WHEN check_violation THEN NULL;
   END;
 
   BEGIN
-    INSERT INTO working_hour (barbershop_id, barber_id, iso_weekday, starts_time, duration_minutes)
-    VALUES ('cccccccc-cccc-cccc-cccc-cccccccccccc', v_barber, 1, '08:00', 1441);
+    INSERT INTO working_hour (business_id, professional_id, iso_weekday, starts_time, duration_minutes)
+    VALUES ('cccccccc-cccc-cccc-cccc-cccccccccccc', v_professional, 1, '08:00', 1441);
     RAISE EXCEPTION 'working_hour_duration_minutes_ck: se aceptó duration_minutes = 1441.';
   EXCEPTION
     WHEN check_violation THEN NULL;
   END;
 
   -- Límites inclusivos válidos: día 1 y 7, duración 1 y 1440.
-  INSERT INTO working_hour (barbershop_id, barber_id, iso_weekday, starts_time, duration_minutes)
-  VALUES ('cccccccc-cccc-cccc-cccc-cccccccccccc', v_barber, 1, '00:00', 1);
-  INSERT INTO working_hour (barbershop_id, barber_id, iso_weekday, starts_time, duration_minutes)
-  VALUES ('cccccccc-cccc-cccc-cccc-cccccccccccc', v_barber, 7, '22:00', 1440);
+  INSERT INTO working_hour (business_id, professional_id, iso_weekday, starts_time, duration_minutes)
+  VALUES ('cccccccc-cccc-cccc-cccc-cccccccccccc', v_professional, 1, '00:00', 1);
+  INSERT INTO working_hour (business_id, professional_id, iso_weekday, starts_time, duration_minutes)
+  VALUES ('cccccccc-cccc-cccc-cccc-cccccccccccc', v_professional, 7, '22:00', 1440);
 END
 $$;
 
@@ -118,30 +118,30 @@ ROLLBACK;
 -- tramo nocturno que cruza medianoche (DEC-020) persisten sin caso especial
 -- ---------------------------------------------------------------------------
 BEGIN;
-SET ROLE barberia_app;
-SET LOCAL app.barbershop_id = 'cccccccc-cccc-cccc-cccc-cccccccccccc';
+SET ROLE agenda_app;
+SET LOCAL app.business_id = 'cccccccc-cccc-cccc-cccc-cccccccccccc';
 
 DO $$
 DECLARE
-  v_barber uuid := 'cccc0001-0001-0001-0001-000100010001';
+  v_professional uuid := 'cccc0001-0001-0001-0001-000100010001';
   v_count integer;
 BEGIN
   -- Jornada partida: mañana y tarde, mismo barbero y día, sin solape.
-  INSERT INTO working_hour (barbershop_id, barber_id, iso_weekday, starts_time, duration_minutes)
-  VALUES ('cccccccc-cccc-cccc-cccc-cccccccccccc', v_barber, 1, '08:00', 240);
-  INSERT INTO working_hour (barbershop_id, barber_id, iso_weekday, starts_time, duration_minutes)
-  VALUES ('cccccccc-cccc-cccc-cccc-cccccccccccc', v_barber, 1, '14:00', 240);
+  INSERT INTO working_hour (business_id, professional_id, iso_weekday, starts_time, duration_minutes)
+  VALUES ('cccccccc-cccc-cccc-cccc-cccccccccccc', v_professional, 1, '08:00', 240);
+  INSERT INTO working_hour (business_id, professional_id, iso_weekday, starts_time, duration_minutes)
+  VALUES ('cccccccc-cccc-cccc-cccc-cccccccccccc', v_professional, 1, '14:00', 240);
 
   SELECT count(*) INTO v_count FROM working_hour
-  WHERE barbershop_id = 'cccccccc-cccc-cccc-cccc-cccccccccccc' AND barber_id = v_barber AND iso_weekday = 1;
+  WHERE business_id = 'cccccccc-cccc-cccc-cccc-cccccccccccc' AND professional_id = v_professional AND iso_weekday = 1;
   IF v_count <> 2 THEN
     RAISE EXCEPTION 'CA-040-02: se esperaban 2 tramos de jornada partida, hay %.', v_count;
   END IF;
 
   -- Tramo nocturno: 22:00 + 300 min termina a las 03:00 del día siguiente,
   -- sin ambigüedad porque se almacena inicio + duración, no ends_time.
-  INSERT INTO working_hour (barbershop_id, barber_id, iso_weekday, starts_time, duration_minutes)
-  VALUES ('cccccccc-cccc-cccc-cccc-cccccccccccc', v_barber, 5, '22:00', 300);
+  INSERT INTO working_hour (business_id, professional_id, iso_weekday, starts_time, duration_minutes)
+  VALUES ('cccccccc-cccc-cccc-cccc-cccccccccccc', v_professional, 5, '22:00', 300);
 END
 $$;
 
@@ -151,26 +151,26 @@ ROLLBACK;
 
 -- ---------------------------------------------------------------------------
 -- CA-040-04 · Un mismo barbero no repite exactamente el mismo día e inicio
--- (working_hour_shop_barber_weekday_start_uk). El solape PARCIAL entre dos
+-- (working_hour_shop_professional_weekday_start_uk). El solape PARCIAL entre dos
 -- tramos que no comparten starts_time se valida en el servicio Go, no aquí
 -- (ver comentario de la migración): una restricción de exclusión sobre una
 -- envolvente semanal con jornadas nocturnas sería frágil.
 -- ---------------------------------------------------------------------------
 BEGIN;
-SET ROLE barberia_app;
-SET LOCAL app.barbershop_id = 'cccccccc-cccc-cccc-cccc-cccccccccccc';
+SET ROLE agenda_app;
+SET LOCAL app.business_id = 'cccccccc-cccc-cccc-cccc-cccccccccccc';
 
 DO $$
 DECLARE
-  v_barber uuid := 'cccc0001-0001-0001-0001-000100010001';
+  v_professional uuid := 'cccc0001-0001-0001-0001-000100010001';
 BEGIN
-  INSERT INTO working_hour (barbershop_id, barber_id, iso_weekday, starts_time, duration_minutes)
-  VALUES ('cccccccc-cccc-cccc-cccc-cccccccccccc', v_barber, 2, '08:00', 240);
+  INSERT INTO working_hour (business_id, professional_id, iso_weekday, starts_time, duration_minutes)
+  VALUES ('cccccccc-cccc-cccc-cccc-cccccccccccc', v_professional, 2, '08:00', 240);
 
   BEGIN
-    INSERT INTO working_hour (barbershop_id, barber_id, iso_weekday, starts_time, duration_minutes)
-    VALUES ('cccccccc-cccc-cccc-cccc-cccccccccccc', v_barber, 2, '08:00', 60);
-    RAISE EXCEPTION 'working_hour_shop_barber_weekday_start_uk: se aceptó repetir día e inicio exactos.';
+    INSERT INTO working_hour (business_id, professional_id, iso_weekday, starts_time, duration_minutes)
+    VALUES ('cccccccc-cccc-cccc-cccc-cccccccccccc', v_professional, 2, '08:00', 60);
+    RAISE EXCEPTION 'working_hour_shop_professional_weekday_start_uk: se aceptó repetir día e inicio exactos.';
   EXCEPTION
     WHEN unique_violation THEN NULL;
   END;
@@ -179,7 +179,7 @@ $$;
 
 RESET ROLE;
 ROLLBACK;
-\echo 'CA-040-04 OK · working_hour_shop_barber_weekday_start_uk rechaza el mismo barbero+día+inicio exacto'
+\echo 'CA-040-04 OK · working_hour_shop_professional_weekday_start_uk rechaza el mismo barbero+día+inicio exacto'
 
 -- ---------------------------------------------------------------------------
 -- CA-040-06 (nivel base de datos) · RLS forzada, sin BYPASSRLS
@@ -198,17 +198,17 @@ BEGIN
   END IF;
 
   IF EXISTS (
-    SELECT 1 FROM pg_roles WHERE rolname = 'barberia_app' AND rolbypassrls
+    SELECT 1 FROM pg_roles WHERE rolname = 'agenda_app' AND rolbypassrls
   ) THEN
-    RAISE EXCEPTION 'barberia_app no puede tener BYPASSRLS.';
+    RAISE EXCEPTION 'agenda_app no puede tener BYPASSRLS.';
   END IF;
 END
 $$;
-\echo 'RLS OK · working_hour tiene RLS habilitada y forzada, barberia_app sin BYPASSRLS'
+\echo 'RLS OK · working_hour tiene RLS habilitada y forzada, agenda_app sin BYPASSRLS'
 
 -- ---------------------------------------------------------------------------
--- Grants de barberia_app: SELECT/INSERT/UPDATE/DELETE, a diferencia de
--- barber (sin ciclo de vida, DEC-047): un tramo sí se edita y se retira.
+-- Grants de agenda_app: SELECT/INSERT/UPDATE/DELETE, a diferencia de
+-- professional (sin ciclo de vida, DEC-047): un tramo sí se edita y se retira.
 -- ---------------------------------------------------------------------------
 DO $$
 DECLARE
@@ -219,24 +219,24 @@ BEGIN
   WHERE NOT EXISTS (
     SELECT 1 FROM information_schema.table_privileges
     WHERE table_schema = 'public' AND table_name = 'working_hour'
-      AND grantee = 'barberia_app' AND privilege_type = expected
+      AND grantee = 'agenda_app' AND privilege_type = expected
   );
   IF v_missing IS NOT NULL THEN
-    RAISE EXCEPTION 'barberia_app debe tener % sobre working_hour.', v_missing;
+    RAISE EXCEPTION 'agenda_app debe tener % sobre working_hour.', v_missing;
   END IF;
 END
 $$;
-\echo 'grants OK · barberia_app tiene SELECT/INSERT/UPDATE/DELETE sobre working_hour'
+\echo 'grants OK · agenda_app tiene SELECT/INSERT/UPDATE/DELETE sobre working_hour'
 
 -- ---------------------------------------------------------------------------
 -- CA-040-05 · El contexto de K no ve, no puede actualizar ni retirar un
 -- tramo de L (aislamiento de tenant con identificador real)
 -- ---------------------------------------------------------------------------
 BEGIN;
-SET ROLE barberia_app;
-SET LOCAL app.barbershop_id = 'dddddddd-dddd-dddd-dddd-dddddddddddd';
+SET ROLE agenda_app;
+SET LOCAL app.business_id = 'dddddddd-dddd-dddd-dddd-dddddddddddd';
 
-INSERT INTO working_hour (id, barbershop_id, barber_id, iso_weekday, starts_time, duration_minutes)
+INSERT INTO working_hour (id, business_id, professional_id, iso_weekday, starts_time, duration_minutes)
 VALUES (
   'ffff0001-0001-0001-0001-000100010001', 'dddddddd-dddd-dddd-dddd-dddddddddddd',
   'dddd0001-0001-0001-0001-000100010001', 3, '09:00', 120
@@ -246,8 +246,8 @@ RESET ROLE;
 COMMIT;
 
 BEGIN;
-SET ROLE barberia_app;
-SET LOCAL app.barbershop_id = 'cccccccc-cccc-cccc-cccc-cccccccccccc';
+SET ROLE agenda_app;
+SET LOCAL app.business_id = 'cccccccc-cccc-cccc-cccc-cccccccccccc';
 
 DO $$
 DECLARE
@@ -283,16 +283,16 @@ ROLLBACK;
 DELETE FROM working_hour WHERE id = 'ffff0001-0001-0001-0001-000100010001';
 
 -- ---------------------------------------------------------------------------
--- DEC-070/CT-008 · La FK hacia barber usa ON DELETE RESTRICT, no CASCADE:
+-- DEC-070/CT-008 · La FK hacia professional usa ON DELETE RESTRICT, no CASCADE:
 -- un barbero con al menos un tramo no se puede borrar físicamente. Se
--- ejecuta con el rol administrativo (barberia_app no tiene GRANT DELETE
--- sobre barber, DEC-047): esto prueba la FK en sí, no un permiso.
+-- ejecuta con el rol administrativo (agenda_app no tiene GRANT DELETE
+-- sobre professional, DEC-047): esto prueba la FK en sí, no un permiso.
 -- ---------------------------------------------------------------------------
 BEGIN;
-SET ROLE barberia_app;
-SET LOCAL app.barbershop_id = 'cccccccc-cccc-cccc-cccc-cccccccccccc';
+SET ROLE agenda_app;
+SET LOCAL app.business_id = 'cccccccc-cccc-cccc-cccc-cccccccccccc';
 
-INSERT INTO working_hour (barbershop_id, barber_id, iso_weekday, starts_time, duration_minutes)
+INSERT INTO working_hour (business_id, professional_id, iso_weekday, starts_time, duration_minutes)
 VALUES (
   'cccccccc-cccc-cccc-cccc-cccccccccccc', 'cccc0002-0002-0002-0002-000200020002', 4, '10:00', 60
 );
@@ -303,27 +303,27 @@ COMMIT;
 DO $$
 BEGIN
   BEGIN
-    DELETE FROM barber WHERE id = 'cccc0002-0002-0002-0002-000200020002';
-    RAISE EXCEPTION 'DEC-070/CT-008: se permitió borrar un barber con un working_hour asociado (CASCADE en vez de RESTRICT).';
+    DELETE FROM professional WHERE id = 'cccc0002-0002-0002-0002-000200020002';
+    RAISE EXCEPTION 'DEC-070/CT-008: se permitió borrar un professional con un working_hour asociado (CASCADE en vez de RESTRICT).';
   EXCEPTION
-    WHEN foreign_key_violation THEN NULL; -- Esperado: working_hour_barbershop_id_barber_id_fk en RESTRICT.
+    WHEN foreign_key_violation THEN NULL; -- Esperado: working_hour_business_id_professional_id_fk en RESTRICT.
   END;
 END
 $$;
 
 -- Limpieza del tramo confirmado arriba.
-DELETE FROM working_hour WHERE barber_id = 'cccc0002-0002-0002-0002-000200020002';
-\echo 'DEC-070/CT-008 OK · borrar un barber con horario asociado se rechaza (ON DELETE RESTRICT, no CASCADE)'
+DELETE FROM working_hour WHERE professional_id = 'cccc0002-0002-0002-0002-000200020002';
+\echo 'DEC-070/CT-008 OK · borrar un professional con horario asociado se rechaza (ON DELETE RESTRICT, no CASCADE)'
 
 -- ---------------------------------------------------------------------------
 -- Trigger de updated_at (dos transacciones separadas, mismo criterio que
--- hu021_barberos.sql: now() es transaction_timestamp())
+-- hu021_professionalos.sql: now() es transaction_timestamp())
 -- ---------------------------------------------------------------------------
 BEGIN;
-SET ROLE barberia_app;
-SET LOCAL app.barbershop_id = 'cccccccc-cccc-cccc-cccc-cccccccccccc';
+SET ROLE agenda_app;
+SET LOCAL app.business_id = 'cccccccc-cccc-cccc-cccc-cccccccccccc';
 
-INSERT INTO working_hour (id, barbershop_id, barber_id, iso_weekday, starts_time, duration_minutes)
+INSERT INTO working_hour (id, business_id, professional_id, iso_weekday, starts_time, duration_minutes)
 VALUES (
   'eeee0001-0001-0001-0001-000100010001', 'cccccccc-cccc-cccc-cccc-cccccccccccc',
   'cccc0001-0001-0001-0001-000100010001', 6, '08:00', 120
@@ -333,8 +333,8 @@ RESET ROLE;
 COMMIT;
 
 BEGIN;
-SET ROLE barberia_app;
-SET LOCAL app.barbershop_id = 'cccccccc-cccc-cccc-cccc-cccccccccccc';
+SET ROLE agenda_app;
+SET LOCAL app.business_id = 'cccccccc-cccc-cccc-cccc-cccccccccccc';
 
 DO $$
 DECLARE

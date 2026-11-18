@@ -8,11 +8,11 @@
 -- (internal/modules/appointmentnotice), no aquí.
 --
 -- Uso:
---   psql "$DATABASE_TEST_URL" -v ON_ERROR_STOP=1 -f testdata/dos_barberias.sql
+--   psql "$DATABASE_TEST_URL" -v ON_ERROR_STOP=1 -f testdata/dos_professionalias.sql
 --   psql "$DATABASE_TEST_URL" -v ON_ERROR_STOP=1 -f tests/appointment_notice.sql
 --
--- Requisito del arnés: la conexión debe poder ejecutar `SET ROLE barberia_app` y
--- `SET ROLE barberia_worker` (superusuario en local/CI efímero). Cada escenario usa
+-- Requisito del arnés: la conexión debe poder ejecutar `SET ROLE agenda_app` y
+-- `SET ROLE agenda_worker` (superusuario en local/CI efímero). Cada escenario usa
 -- un `p_now` explícito en vez de esperar al reloj (estrategia-pruebas.md §7).
 -- Todo se revierte con ROLLBACK.
 --
@@ -32,11 +32,11 @@ DECLARE
 BEGIN
   FOREACH v_table IN ARRAY ARRAY['appointment_notice', 'appointment_notice_attempt', 'appointment', 'customer']
   LOOP
-    IF has_table_privilege('barberia_worker', v_table, 'SELECT')
-       OR has_table_privilege('barberia_worker', v_table, 'INSERT')
-       OR has_table_privilege('barberia_worker', v_table, 'UPDATE')
-       OR has_table_privilege('barberia_worker', v_table, 'DELETE') THEN
-      RAISE EXCEPTION 'barberia_worker no debe tener acceso directo a % (DEC-040).', v_table;
+    IF has_table_privilege('agenda_worker', v_table, 'SELECT')
+       OR has_table_privilege('agenda_worker', v_table, 'INSERT')
+       OR has_table_privilege('agenda_worker', v_table, 'UPDATE')
+       OR has_table_privilege('agenda_worker', v_table, 'DELETE') THEN
+      RAISE EXCEPTION 'agenda_worker no debe tener acceso directo a % (DEC-040).', v_table;
     END IF;
     IF NOT (SELECT relrowsecurity AND relforcerowsecurity FROM pg_class WHERE relname = v_table) THEN
       RAISE EXCEPTION '% debe tener RLS habilitada y forzada.', v_table;
@@ -48,11 +48,11 @@ BEGIN
     'notice_context(uuid, uuid)',
     'notice_finish(uuid, uuid, text, text, integer, integer, timestamptz, timestamptz)']
   LOOP
-    IF NOT has_function_privilege('barberia_worker', v_fn, 'EXECUTE') THEN
-      RAISE EXCEPTION 'barberia_worker debe poder ejecutar %.', v_fn;
+    IF NOT has_function_privilege('agenda_worker', v_fn, 'EXECUTE') THEN
+      RAISE EXCEPTION 'agenda_worker debe poder ejecutar %.', v_fn;
     END IF;
-    IF has_function_privilege('barberia_app', v_fn, 'EXECUTE') THEN
-      RAISE EXCEPTION 'barberia_app no debe poder ejecutar % (exclusivo del worker).', v_fn;
+    IF has_function_privilege('agenda_app', v_fn, 'EXECUTE') THEN
+      RAISE EXCEPTION 'agenda_app no debe poder ejecutar % (exclusivo del worker).', v_fn;
     END IF;
     IF NOT (SELECT prosecdef FROM pg_proc WHERE oid = v_fn::regprocedure) THEN
       RAISE EXCEPTION '% debe ser SECURITY DEFINER.', v_fn;
@@ -60,19 +60,19 @@ BEGIN
   END LOOP;
 
   -- La aplicación encola y lee; nada más.
-  IF NOT has_table_privilege('barberia_app', 'appointment_notice', 'SELECT')
-     OR has_table_privilege('barberia_app', 'appointment_notice', 'DELETE')
-     OR has_column_privilege('barberia_app', 'appointment_notice', 'status', 'INSERT')
-     OR has_column_privilege('barberia_app', 'appointment_notice', 'status', 'UPDATE')
-     OR has_column_privilege('barberia_app', 'appointment_notice', 'claim_token', 'UPDATE')
-     OR has_column_privilege('barberia_app', 'appointment_notice', 'covers_state_at', 'INSERT')
-     OR NOT has_column_privilege('barberia_app', 'appointment_notice', 'kind', 'UPDATE') THEN
-    RAISE EXCEPTION 'barberia_app solo debe encolar (kind/state_at/run_at) y leer.';
+  IF NOT has_table_privilege('agenda_app', 'appointment_notice', 'SELECT')
+     OR has_table_privilege('agenda_app', 'appointment_notice', 'DELETE')
+     OR has_column_privilege('agenda_app', 'appointment_notice', 'status', 'INSERT')
+     OR has_column_privilege('agenda_app', 'appointment_notice', 'status', 'UPDATE')
+     OR has_column_privilege('agenda_app', 'appointment_notice', 'claim_token', 'UPDATE')
+     OR has_column_privilege('agenda_app', 'appointment_notice', 'covers_state_at', 'INSERT')
+     OR NOT has_column_privilege('agenda_app', 'appointment_notice', 'kind', 'UPDATE') THEN
+    RAISE EXCEPTION 'agenda_app solo debe encolar (kind/state_at/run_at) y leer.';
   END IF;
-  IF has_table_privilege('barberia_app', 'appointment_notice_attempt', 'INSERT')
-     OR has_table_privilege('barberia_app', 'appointment_notice_attempt', 'UPDATE')
-     OR has_table_privilege('barberia_app', 'appointment_notice_attempt', 'DELETE') THEN
-    RAISE EXCEPTION 'la evidencia solo la escribe notice_finish: barberia_app solo lee.';
+  IF has_table_privilege('agenda_app', 'appointment_notice_attempt', 'INSERT')
+     OR has_table_privilege('agenda_app', 'appointment_notice_attempt', 'UPDATE')
+     OR has_table_privilege('agenda_app', 'appointment_notice_attempt', 'DELETE') THEN
+    RAISE EXCEPTION 'la evidencia solo la escribe notice_finish: agenda_app solo lee.';
   END IF;
 END
 $$;
@@ -84,17 +84,17 @@ $$;
 BEGIN;
 RESET ROLE; -- el arnés conecta como superusuario: crea fixtures sin pasar por RLS
 
-INSERT INTO barber (id, barbershop_id, full_name) VALUES
+INSERT INTO professional (id, business_id, full_name) VALUES
   ('b4630001-0000-4000-8000-00000000000a', '11111111-1111-1111-1111-111111111111', 'Barbero aviso A'),
   ('b4630001-0000-4000-8000-00000000000b', '22222222-2222-2222-2222-222222222222', 'Barbero aviso B');
-INSERT INTO service (id, barbershop_id, name, duration_minutes, price_amount, price_currency) VALUES
+INSERT INTO service (id, business_id, name, duration_minutes, price_amount, price_currency) VALUES
   ('b4630002-0000-4000-8000-00000000000a', '11111111-1111-1111-1111-111111111111', 'Corte aviso A', 30, 20000.00, 'COP'),
   ('b4630002-0000-4000-8000-00000000000b', '22222222-2222-2222-2222-222222222222', 'Corte aviso B', 30, 20000.00, 'COP');
-INSERT INTO customer (id, barbershop_id, full_name, email) VALUES
+INSERT INTO customer (id, business_id, full_name, email) VALUES
   ('b4630003-0000-4000-8000-00000000000a', '11111111-1111-1111-1111-111111111111', 'Cliente aviso A', 'cliente.a@ejemplo.test'),
   ('b4630003-0000-4000-8000-00000000000b', '22222222-2222-2222-2222-222222222222', 'Cliente aviso B', 'cliente.b@ejemplo.test');
 INSERT INTO appointment (
-  id, barbershop_id, barber_id, service_id, customer_id, attendee_name,
+  id, business_id, professional_id, service_id, customer_id, attendee_name,
   starts_at, ends_at, status, origin,
   service_name_snapshot, duration_minutes_snapshot, price_amount_snapshot, price_currency_snapshot
 ) VALUES
@@ -108,22 +108,22 @@ INSERT INTO appointment (
 -- ---------------------------------------------------------------------------
 -- La aplicación encola; RLS aísla; un solo pendiente por turno que se reemplaza
 -- ---------------------------------------------------------------------------
-SET ROLE barberia_app;
-SELECT set_config('app.barbershop_id', '11111111-1111-1111-1111-111111111111', true);
+SET ROLE agenda_app;
+SELECT set_config('app.business_id', '11111111-1111-1111-1111-111111111111', true);
 
 DO $$
 DECLARE
   v_count integer;
   v_kind  text;
 BEGIN
-  INSERT INTO appointment_notice (barbershop_id, appointment_id, kind, state_at, run_at)
+  INSERT INTO appointment_notice (business_id, appointment_id, kind, state_at, run_at)
   VALUES ('11111111-1111-1111-1111-111111111111', 'b4630004-0000-4000-8000-00000000000a',
           'rescheduled', '2026-01-05 09:00:00-05', '2026-01-05 09:01:00-05')
   ON CONFLICT (appointment_id, (CASE WHEN kind IN ('reminder', 'reminder_whatsapp') THEN kind ELSE 'change' END)) WHERE status = 'pending'
   DO UPDATE SET kind = EXCLUDED.kind, state_at = EXCLUDED.state_at, run_at = EXCLUDED.run_at;
 
   -- Un cambio posterior REEMPLAZA al pendiente (la cancelación sustituye a la reprogramación).
-  INSERT INTO appointment_notice (barbershop_id, appointment_id, kind, state_at, run_at)
+  INSERT INTO appointment_notice (business_id, appointment_id, kind, state_at, run_at)
   VALUES ('11111111-1111-1111-1111-111111111111', 'b4630004-0000-4000-8000-00000000000a',
           'cancelled_by_barber', '2026-01-05 09:00:20-05', '2026-01-05 09:01:20-05')
   ON CONFLICT (appointment_id, (CASE WHEN kind IN ('reminder', 'reminder_whatsapp') THEN kind ELSE 'change' END)) WHERE status = 'pending'
@@ -136,7 +136,7 @@ BEGIN
 
   -- La aplicación no puede fijar estado ni fabricar un enviado.
   BEGIN
-    INSERT INTO appointment_notice (barbershop_id, appointment_id, kind, state_at, status)
+    INSERT INTO appointment_notice (business_id, appointment_id, kind, state_at, status)
     VALUES ('11111111-1111-1111-1111-111111111111', 'b4630004-0000-4000-8000-00000000000a',
             'rescheduled', now(), 'sent');
     RAISE EXCEPTION 'la aplicación no debe poder insertar un aviso con estado.';
@@ -150,7 +150,7 @@ BEGIN
 
   -- Aislamiento: encolar sobre la barbería B desde el tenant A falla por RLS.
   BEGIN
-    INSERT INTO appointment_notice (barbershop_id, appointment_id, kind, state_at)
+    INSERT INTO appointment_notice (business_id, appointment_id, kind, state_at)
     VALUES ('22222222-2222-2222-2222-222222222222', 'b4630004-0000-4000-8000-00000000000b',
             'rescheduled', now());
     RAISE EXCEPTION 'encolar en otra barbería debe rechazarse.';
@@ -162,16 +162,16 @@ $$;
 
 RESET ROLE;
 -- Un aviso pendiente de B, para comprobar el aislamiento de lectura.
-INSERT INTO appointment_notice (id, barbershop_id, appointment_id, kind, state_at, run_at)
+INSERT INTO appointment_notice (id, business_id, appointment_id, kind, state_at, run_at)
 VALUES ('b4630005-0000-4000-8000-00000000000b', '22222222-2222-2222-2222-222222222222',
         'b4630004-0000-4000-8000-00000000000b', 'rescheduled', '2026-01-05 09:00:00-05', '2026-01-05 09:01:00-05');
 
-SET ROLE barberia_app;
-SELECT set_config('app.barbershop_id', '11111111-1111-1111-1111-111111111111', true);
+SET ROLE agenda_app;
+SELECT set_config('app.business_id', '11111111-1111-1111-1111-111111111111', true);
 DO $$
 BEGIN
   IF (SELECT count(*) FROM appointment_notice) <> 1
-     OR EXISTS (SELECT 1 FROM appointment_notice WHERE barbershop_id <> '11111111-1111-1111-1111-111111111111') THEN
+     OR EXISTS (SELECT 1 FROM appointment_notice WHERE business_id <> '11111111-1111-1111-1111-111111111111') THEN
     RAISE EXCEPTION 'el tenant A solo debe ver sus avisos.';
   END IF;
 END
@@ -181,7 +181,7 @@ $$;
 -- ---------------------------------------------------------------------------
 -- Reclamo con lease, contexto y cierre por CAS
 -- ---------------------------------------------------------------------------
-SET ROLE barberia_worker;
+SET ROLE agenda_worker;
 
 DO $$
 DECLARE
@@ -276,7 +276,7 @@ BEGIN
 END
 $$;
 
-SET ROLE barberia_worker;
+SET ROLE agenda_worker;
 CREATE TEMP TABLE claimed_a AS
   SELECT * FROM notice_claim(10, 60, 5, '2026-01-05 09:08:00-05'::timestamptz);
 CREATE TEMP TABLE ctx_a AS
@@ -315,7 +315,7 @@ $$;
 \echo 'envío OK · reintento con espera, sent con el estado cubierto y su evidencia'
 
 -- Intentos agotados: el aviso de B (con 3 reclamos hechos por los barridos anteriores) falla en el quinto.
-SET ROLE barberia_worker;
+SET ROLE agenda_worker;
 DO $$
 DECLARE
   v_c  record;
@@ -349,10 +349,10 @@ $$;
 
 -- Estado ya cubierto: otro aviso de A con state_at <= covers_state_at se descarta;
 -- uno más reciente no.
-INSERT INTO appointment_notice (id, barbershop_id, appointment_id, kind, state_at, run_at) VALUES
+INSERT INTO appointment_notice (id, business_id, appointment_id, kind, state_at, run_at) VALUES
   ('b4630006-0000-4000-8000-00000000000a', '11111111-1111-1111-1111-111111111111',
    'b4630004-0000-4000-8000-00000000000a', 'rescheduled', '2026-01-05 09:00:10-05', '2026-01-05 13:00:00-05');
-SET ROLE barberia_worker;
+SET ROLE agenda_worker;
 CREATE TEMP TABLE claimed_covered AS SELECT * FROM notice_claim(10, 60, 5, '2026-01-05 13:00:00-05'::timestamptz);
 DO $$
 DECLARE
@@ -380,10 +380,10 @@ BEGIN
 END
 $$;
 
-INSERT INTO appointment_notice (id, barbershop_id, appointment_id, kind, state_at, run_at) VALUES
+INSERT INTO appointment_notice (id, business_id, appointment_id, kind, state_at, run_at) VALUES
   ('b4630007-0000-4000-8000-00000000000a', '11111111-1111-1111-1111-111111111111',
    'b4630004-0000-4000-8000-00000000000a', 'cancelled_by_barber', '2100-01-01T00:00:00Z', '2026-01-05 14:00:00-05');
-SET ROLE barberia_worker;
+SET ROLE agenda_worker;
 DO $$
 DECLARE
   v_c   record;
@@ -413,12 +413,12 @@ $$;
 \echo 'cubierto OK · skipped/superseded y rechazo permanente sin reintento'
 
 -- Expiración con intentos agotados: un worker que cae siempre no reclama para siempre.
-INSERT INTO appointment_notice (id, barbershop_id, appointment_id, kind, state_at, run_at, status, attempts,
+INSERT INTO appointment_notice (id, business_id, appointment_id, kind, state_at, run_at, status, attempts,
                                 claim_token, lease_expires_at)
 SELECT 'b4630008-0000-4000-8000-00000000000a', '11111111-1111-1111-1111-111111111111',
        'b4630004-0000-4000-8000-00000000000a', 'rescheduled', now(), now(), 'processing', 5,
        gen_random_uuid(), '2026-01-05 15:00:00-05';
-SET ROLE barberia_worker;
+SET ROLE agenda_worker;
 SELECT count(*) FROM notice_claim(10, 60, 5, '2026-01-05 16:00:00-05'::timestamptz);
 RESET ROLE;
 DO $$
@@ -437,10 +437,10 @@ $$;
 DO $$
 BEGIN
   -- Un único pendiente por turno aun para el propietario.
-  INSERT INTO appointment_notice (barbershop_id, appointment_id, kind, state_at)
+  INSERT INTO appointment_notice (business_id, appointment_id, kind, state_at)
   VALUES ('11111111-1111-1111-1111-111111111111', 'b4630004-0000-4000-8000-00000000000a', 'rescheduled', now());
   BEGIN
-    INSERT INTO appointment_notice (barbershop_id, appointment_id, kind, state_at)
+    INSERT INTO appointment_notice (business_id, appointment_id, kind, state_at)
     VALUES ('11111111-1111-1111-1111-111111111111', 'b4630004-0000-4000-8000-00000000000a', 'rescheduled', now());
     RAISE EXCEPTION 'dos avisos pendientes del mismo turno deben rechazarse.';
   EXCEPTION WHEN unique_violation THEN NULL;
@@ -448,14 +448,14 @@ BEGIN
 
   -- Un aviso no puede apuntar a una cita de otra barbería.
   BEGIN
-    INSERT INTO appointment_notice (barbershop_id, appointment_id, kind, state_at)
+    INSERT INTO appointment_notice (business_id, appointment_id, kind, state_at)
     VALUES ('11111111-1111-1111-1111-111111111111', 'b4630004-0000-4000-8000-00000000000b', 'rescheduled', now());
     RAISE EXCEPTION 'un aviso no puede cruzar tenants.';
   EXCEPTION WHEN foreign_key_violation THEN NULL;
   END;
 
   BEGIN
-    INSERT INTO appointment_notice (barbershop_id, appointment_id, kind, state_at)
+    INSERT INTO appointment_notice (business_id, appointment_id, kind, state_at)
     VALUES ('22222222-2222-2222-2222-222222222222', 'b4630004-0000-4000-8000-00000000000b', 'inventado', now());
     RAISE EXCEPTION 'un kind fuera de la lista cerrada debe rechazarse.';
   EXCEPTION WHEN check_violation THEN NULL;
@@ -477,14 +477,14 @@ BEGIN
 
   -- La evidencia no admite un destino ni texto libre: error_code es un código corto.
   BEGIN
-    INSERT INTO appointment_notice_attempt (barbershop_id, notice_id, attempt_no, channel, outcome, error_code)
+    INSERT INTO appointment_notice_attempt (business_id, notice_id, attempt_no, channel, outcome, error_code)
     VALUES ('11111111-1111-1111-1111-111111111111', 'b4630006-0000-4000-8000-00000000000a', 9, 'email', 'failed',
             'cliente.a@ejemplo.test');
     RAISE EXCEPTION 'un correo en error_code debe rechazarse.';
   EXCEPTION WHEN check_violation THEN NULL;
   END;
   BEGIN
-    INSERT INTO appointment_notice_attempt (barbershop_id, notice_id, attempt_no, channel, outcome)
+    INSERT INTO appointment_notice_attempt (business_id, notice_id, attempt_no, channel, outcome)
     VALUES ('11111111-1111-1111-1111-111111111111', 'b4630006-0000-4000-8000-00000000000a', 9, 'sms', 'sent');
     RAISE EXCEPTION 'solo correo y WhatsApp son canales de la evidencia (DEC-027, DEC-175).';
   EXCEPTION WHEN check_violation THEN NULL;
@@ -493,7 +493,7 @@ BEGIN
   -- Ninguna columna de la evidencia puede contener contacto: se fija el conjunto.
   IF (SELECT array_agg(column_name::text ORDER BY column_name) FROM information_schema.columns
        WHERE table_schema = 'public' AND table_name = 'appointment_notice_attempt')
-     IS DISTINCT FROM ARRAY['attempt_no', 'barbershop_id', 'channel', 'created_at', 'error_code', 'id',
+     IS DISTINCT FROM ARRAY['attempt_no', 'business_id', 'channel', 'created_at', 'error_code', 'id',
                             'notice_id', 'outcome']::text[] THEN
     RAISE EXCEPTION 'appointment_notice_attempt no debe ganar columnas sin revisar RN-DAT-02.';
   END IF;
@@ -506,7 +506,7 @@ $$;
 -- ---------------------------------------------------------------------------
 RESET ROLE;
 INSERT INTO appointment (
-  id, barbershop_id, barber_id, service_id, customer_id, attendee_name,
+  id, business_id, professional_id, service_id, customer_id, attendee_name,
   starts_at, ends_at, status, origin,
   service_name_snapshot, duration_minutes_snapshot, price_amount_snapshot, price_currency_snapshot
 ) VALUES
@@ -514,24 +514,24 @@ INSERT INTO appointment (
    'b4630002-0000-4000-8000-00000000000a', 'b4630003-0000-4000-8000-00000000000a', 'Cliente recordatorio',
    '2099-01-09T10:00:00Z', '2099-01-09T10:30:00Z', 'confirmed', 'manual', 'Corte aviso A', 30, 20000.00, 'COP');
 
-SET ROLE barberia_app;
-SELECT set_config('app.barbershop_id', '11111111-1111-1111-1111-111111111111', true);
+SET ROLE agenda_app;
+SELECT set_config('app.business_id', '11111111-1111-1111-1111-111111111111', true);
 DO $$
 DECLARE
   v_count integer;
 BEGIN
   -- Un recordatorio y un aviso de cambio pueden esperar a la vez: ninguno sustituye al otro.
-  INSERT INTO appointment_notice (barbershop_id, appointment_id, kind, state_at, run_at)
+  INSERT INTO appointment_notice (business_id, appointment_id, kind, state_at, run_at)
   VALUES ('11111111-1111-1111-1111-111111111111', 'b4630004-0000-4000-8000-0000000000c1',
           'reminder', '2099-01-09T10:00:00Z', '2099-01-09T09:30:00Z');
-  INSERT INTO appointment_notice (barbershop_id, appointment_id, kind, state_at, run_at)
+  INSERT INTO appointment_notice (business_id, appointment_id, kind, state_at, run_at)
   VALUES ('11111111-1111-1111-1111-111111111111', 'b4630004-0000-4000-8000-0000000000c1',
           'rescheduled', '2026-01-05 09:00:00-05', '2026-01-05 09:01:00-05')
   ON CONFLICT (appointment_id, (CASE WHEN kind IN ('reminder', 'reminder_whatsapp') THEN kind ELSE 'change' END)) WHERE status = 'pending'
   DO UPDATE SET kind = EXCLUDED.kind, state_at = EXCLUDED.state_at, run_at = EXCLUDED.run_at;
 
   -- Reprogramar regenera el recordatorio: se actualiza el pendiente, no se duplica.
-  INSERT INTO appointment_notice (barbershop_id, appointment_id, kind, state_at, run_at)
+  INSERT INTO appointment_notice (business_id, appointment_id, kind, state_at, run_at)
   VALUES ('11111111-1111-1111-1111-111111111111', 'b4630004-0000-4000-8000-0000000000c1',
           'reminder', '2099-01-09T13:00:00Z', '2099-01-09T12:30:00Z')
   ON CONFLICT (appointment_id, (CASE WHEN kind IN ('reminder', 'reminder_whatsapp') THEN kind ELSE 'change' END)) WHERE status = 'pending'
@@ -549,7 +549,7 @@ BEGIN
 
   -- Dos recordatorios pendientes del mismo turno se rechazan.
   BEGIN
-    INSERT INTO appointment_notice (barbershop_id, appointment_id, kind, state_at, run_at)
+    INSERT INTO appointment_notice (business_id, appointment_id, kind, state_at, run_at)
     VALUES ('11111111-1111-1111-1111-111111111111', 'b4630004-0000-4000-8000-0000000000c1',
             'reminder', '2099-01-09T14:00:00Z', '2099-01-09T13:30:00Z');
     RAISE EXCEPTION 'un segundo recordatorio pendiente debe rechazarse.';
@@ -558,7 +558,7 @@ BEGIN
 
   -- Una clase desconocida sigue rechazándose.
   BEGIN
-    INSERT INTO appointment_notice (barbershop_id, appointment_id, kind, state_at)
+    INSERT INTO appointment_notice (business_id, appointment_id, kind, state_at)
     VALUES ('11111111-1111-1111-1111-111111111111', 'b4630004-0000-4000-8000-00000000000a', 'whatsapp_reminder', now());
     RAISE EXCEPTION 'una clase de aviso desconocida debe rechazarse.';
   EXCEPTION WHEN check_violation THEN NULL;
@@ -571,10 +571,10 @@ RESET ROLE;
 UPDATE appointment_notice SET status = 'sent', attempts = 1, covers_state_at = '2100-01-01T00:00:00Z', finished_at = now()
  WHERE appointment_id = 'b4630004-0000-4000-8000-0000000000c1' AND kind = 'rescheduled';
 DELETE FROM appointment_notice WHERE appointment_id = 'b4630004-0000-4000-8000-0000000000c1' AND kind = 'reminder';
-INSERT INTO appointment_notice (id, barbershop_id, appointment_id, kind, state_at, run_at) VALUES
+INSERT INTO appointment_notice (id, business_id, appointment_id, kind, state_at, run_at) VALUES
   ('b4630011-0000-4000-8000-0000000000c1', '11111111-1111-1111-1111-111111111111',
    'b4630004-0000-4000-8000-0000000000c1', 'reminder', '2099-01-09T10:00:00Z', '2099-01-09T09:30:00Z');
-SET ROLE barberia_worker;
+SET ROLE agenda_worker;
 DO $$
 DECLARE
   v_c   record;
@@ -593,10 +593,10 @@ BEGIN
 END
 $$;
 RESET ROLE;
-INSERT INTO appointment_notice (id, barbershop_id, appointment_id, kind, state_at, run_at) VALUES
+INSERT INTO appointment_notice (id, business_id, appointment_id, kind, state_at, run_at) VALUES
   ('b4630012-0000-4000-8000-0000000000c1', '11111111-1111-1111-1111-111111111111',
    'b4630004-0000-4000-8000-0000000000c1', 'reminder', '2099-01-09T10:00:00Z', '2099-01-09T09:30:00Z');
-SET ROLE barberia_worker;
+SET ROLE agenda_worker;
 DO $$
 DECLARE
   v_c record;
@@ -610,10 +610,10 @@ BEGIN
 END
 $$;
 RESET ROLE;
-INSERT INTO appointment_notice (id, barbershop_id, appointment_id, kind, state_at, run_at) VALUES
+INSERT INTO appointment_notice (id, business_id, appointment_id, kind, state_at, run_at) VALUES
   ('b4630013-0000-4000-8000-0000000000c1', '11111111-1111-1111-1111-111111111111',
    'b4630004-0000-4000-8000-0000000000c1', 'reminder', '2099-01-09T08:00:00Z', '2099-01-09T07:30:00Z');
-SET ROLE barberia_worker;
+SET ROLE agenda_worker;
 DO $$
 DECLARE
   v_c record;
@@ -631,7 +631,7 @@ RESET ROLE;
 -- DEC-175: recordatorio por WhatsApp. Es una clase propia: convive con el de
 -- correo del mismo instante, su intento se registra con channel = 'whatsapp' y
 -- enviarlo no cubre el de correo (ni al revés).
-INSERT INTO appointment_notice (id, barbershop_id, appointment_id, kind, state_at, run_at) VALUES
+INSERT INTO appointment_notice (id, business_id, appointment_id, kind, state_at, run_at) VALUES
   ('b4630014-0000-4000-8000-0000000000c1', '11111111-1111-1111-1111-111111111111',
    'b4630004-0000-4000-8000-0000000000c1', 'reminder_whatsapp', '2099-01-09T12:00:00Z', '2099-01-09T11:30:00Z'),
   ('b4630015-0000-4000-8000-0000000000c1', '11111111-1111-1111-1111-111111111111',
@@ -639,14 +639,14 @@ INSERT INTO appointment_notice (id, barbershop_id, appointment_id, kind, state_a
 DO $$
 BEGIN
   BEGIN
-    INSERT INTO appointment_notice (barbershop_id, appointment_id, kind, state_at, run_at) VALUES
+    INSERT INTO appointment_notice (business_id, appointment_id, kind, state_at, run_at) VALUES
       ('11111111-1111-1111-1111-111111111111', 'b4630004-0000-4000-8000-0000000000c1',
        'reminder_whatsapp', '2099-01-09T12:00:00Z', '2099-01-09T11:30:00Z');
     RAISE EXCEPTION 'dos recordatorios por WhatsApp pendientes del mismo turno deben chocar.';
   EXCEPTION WHEN unique_violation THEN NULL;
   END;
   BEGIN
-    INSERT INTO appointment_notice (barbershop_id, appointment_id, kind, state_at, run_at) VALUES
+    INSERT INTO appointment_notice (business_id, appointment_id, kind, state_at, run_at) VALUES
       ('11111111-1111-1111-1111-111111111111', 'b4630004-0000-4000-8000-0000000000c1',
        'reminder_sms', '2099-01-09T12:00:00Z', '2099-01-09T11:30:00Z');
     RAISE EXCEPTION 'una clase de aviso desconocida debe rechazarse.';
@@ -654,7 +654,7 @@ BEGIN
   END;
 END
 $$;
-SET ROLE barberia_worker;
+SET ROLE agenda_worker;
 DO $$
 DECLARE
   v_w   record;
@@ -667,7 +667,7 @@ BEGIN
     RAISE EXCEPTION 'el worker debe reclamar el recordatorio por WhatsApp.';
   END IF;
   SELECT * INTO v_ctx FROM notice_context(v_w.notice_id, v_w.claim_token);
-  IF v_ctx.kind <> 'reminder_whatsapp' OR v_ctx.barber_name IS NULL OR v_ctx.already_covered THEN
+  IF v_ctx.kind <> 'reminder_whatsapp' OR v_ctx.professional_name IS NULL OR v_ctx.already_covered THEN
     RAISE EXCEPTION 'contexto del recordatorio por WhatsApp inesperado: %', row_to_json(v_ctx);
   END IF;
   PERFORM notice_finish(v_w.notice_id, v_w.claim_token, 'sent', NULL, NULL, 5, v_ctx.notice_state_at, '2099-01-09T11:31:01Z');

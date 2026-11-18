@@ -102,7 +102,7 @@ func TestSyncHook_HookFailureRollsBackTheBusinessChange(t *testing.T) {
 
 	var count int
 	if err := db.InTenantTx(context.Background(), shopQ, func(ctx context.Context, q database.Queries) error {
-		return q.QueryRow(ctx, `SELECT count(*) FROM appointment WHERE barbershop_id = $1 AND attendee_name = $2`,
+		return q.QueryRow(ctx, `SELECT count(*) FROM appointment WHERE business_id = $1 AND attendee_name = $2`,
 			string(shopQ), "Persona atendida "+suffix).Scan(&count)
 	}); err != nil {
 		t.Fatal(err)

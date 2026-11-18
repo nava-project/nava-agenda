@@ -522,7 +522,7 @@ func TestContract_PublicLinkSchema_MatchesDTOAndDatabaseLimits(t *testing.T) {
 		t.Fatalf("slug declara [%d,%d], shops espera [%d,%d]", slug.MinLength, slug.MaxLength, shops.SlugMinLength, shops.SlugMaxLength)
 	}
 	if slug.Pattern != `^[a-z0-9]([a-z0-9-]{1,38}[a-z0-9])$` {
-		t.Fatalf("slug.pattern no coincide con barbershop_public_slug_ck: %q", slug.Pattern)
+		t.Fatalf("slug.pattern no coincide con business_public_slug_ck: %q", slug.Pattern)
 	}
 }
 

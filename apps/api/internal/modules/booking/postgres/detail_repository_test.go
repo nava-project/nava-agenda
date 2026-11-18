@@ -37,7 +37,7 @@ func insertSyntheticHistoryRow(t *testing.T, db *database.DB, shop database.Barb
 		// que este evento se eligió como sintético: no exige ningún otro
 		// dato ni FK que resolver).
 		_, err := q.Exec(ctx, `
-			INSERT INTO appointment_history (id, barbershop_id, appointment_id, event_type, actor_type, reason, occurred_at)
+			INSERT INTO appointment_history (id, business_id, appointment_id, event_type, actor_type, reason, occurred_at)
 			VALUES ($1, $2, $3, 'appointment_status_corrected', 'system', 'corrección sintética de prueba', $4)`,
 			id, string(shop), appointmentID, occurredAt)
 		return err
@@ -301,7 +301,7 @@ func TestListAppointmentHistory_ChangesAttachedToTheirOwnEntry(t *testing.T) {
 
 	err = db.InTenantTx(context.Background(), shopQ, func(ctx context.Context, q database.Queries) error {
 		_, err := q.Exec(ctx, `
-			INSERT INTO appointment_history_change (barbershop_id, history_id, field_name, previous_value, new_value)
+			INSERT INTO appointment_history_change (business_id, history_id, field_name, previous_value, new_value)
 			VALUES ($1, $2, 'status', 'confirmed', 'cancelled_by_barber')`,
 			string(shopQ), historyID)
 		return err

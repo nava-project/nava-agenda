@@ -64,7 +64,7 @@ func restoreBarbershopRow(t *testing.T, db *database.DB, shop, name string) {
 	t.Cleanup(func() {
 		err := db.InTenantTx(context.Background(), database.BarbershopID(shop), func(ctx context.Context, q database.Queries) error {
 			_, err := q.Exec(ctx,
-				`UPDATE barbershop SET name = $2, timezone = 'America/Bogota', contact_email = NULL, contact_phone = NULL WHERE id = $1`,
+				`UPDATE business SET name = $2, timezone = 'America/Bogota', contact_email = NULL, contact_phone = NULL WHERE id = $1`,
 				shop, name,
 			)
 			return err

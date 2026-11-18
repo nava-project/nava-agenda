@@ -3,7 +3,7 @@
 -- número compartido entre dos barberías para probar la ambigüedad
 -- (DP-SEG-14). Usa cuentas que ninguna otra suite de recuperación toca
 -- (duena.a y dueno.b siguen reservadas para el recorrido por correo, con su
--- cooldown propio). Requiere testdata/dos_barberias.sql y
+-- cooldown propio). Requiere testdata/dos_professionalias.sql y
 -- testdata/hu042_bloqueos.sql y testdata/hu060_citas.sql cargados primero.
 --
 -- Uso:
@@ -27,7 +27,7 @@ WHERE email = 'dueno.o@ejemplo.test';
 -- Credencial ficticia para poder completar el paso 3 por WhatsApp. Igual que
 -- en hu005_credenciales_sesiones.sql, no es un hash argon2id real: solo
 -- cumple staff_credential_password_hash_ck.
-INSERT INTO staff_credential (staff_user_id, barbershop_id, password_hash, password_algorithm)
+INSERT INTO staff_credential (staff_user_id, business_id, password_hash, password_algorithm)
 VALUES ('b10c9001-9001-9001-9001-900190019001',
         'b10c0001-b10c-b10c-b10c-b10c00010001',
         'fixture-no-es-un-hash-real-de-prueba-dueno-o-0011', 'argon2id')

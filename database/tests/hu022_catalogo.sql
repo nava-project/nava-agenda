@@ -6,13 +6,13 @@
 -- (internal/modules/catalog), probados aparte contra PostgreSQL real.
 --
 -- Uso:
---   psql "$DATABASE_TEST_URL" -v ON_ERROR_STOP=1 -f testdata/dos_barberias.sql
+--   psql "$DATABASE_TEST_URL" -v ON_ERROR_STOP=1 -f testdata/dos_professionalias.sql
 --   psql "$DATABASE_TEST_URL" -v ON_ERROR_STOP=1 -f testdata/hu022_catalogo.sql
 --   psql "$DATABASE_TEST_URL" -v ON_ERROR_STOP=1 -f tests/hu022_catalogo.sql
 --
--- Requisito del arnés: la conexión debe poder ejecutar `SET ROLE barberia_app`
+-- Requisito del arnés: la conexión debe poder ejecutar `SET ROLE agenda_app`
 -- (estandar-base-datos.md §9.8), igual que hu001_aislamiento_rls.sql /
--- hu021_barberos.sql.
+-- hu021_professionalos.sql.
 --
 -- Cada comprobación falla lanzando una excepción. Si el archivo termina, pasó.
 
@@ -70,7 +70,7 @@ BEGIN
   IF EXISTS (
     SELECT 1 FROM information_schema.columns
     WHERE table_schema = 'public' AND table_name = 'service'
-      AND column_name IN ('barber_id', 'staff_user_id')
+      AND column_name IN ('professional_id', 'staff_user_id')
   ) THEN
     RAISE EXCEPTION 'DEC-067/HU-023: service no debe tener columnas de asignación a barberos.';
   END IF;
@@ -96,17 +96,17 @@ BEGIN
   END IF;
 
   IF EXISTS (
-    SELECT 1 FROM pg_roles WHERE rolname = 'barberia_app' AND rolbypassrls
+    SELECT 1 FROM pg_roles WHERE rolname = 'agenda_app' AND rolbypassrls
   ) THEN
-    RAISE EXCEPTION 'CA-022-06: barberia_app no puede tener BYPASSRLS.';
+    RAISE EXCEPTION 'CA-022-06: agenda_app no puede tener BYPASSRLS.';
   END IF;
 
   IF EXISTS (
     SELECT 1 FROM information_schema.table_privileges
     WHERE table_schema = 'public' AND table_name = 'service'
-      AND grantee = 'barberia_app' AND privilege_type = 'DELETE'
+      AND grantee = 'agenda_app' AND privilege_type = 'DELETE'
   ) THEN
-    RAISE EXCEPTION 'RN-SER-03: barberia_app no debe tener GRANT DELETE sobre service.';
+    RAISE EXCEPTION 'RN-SER-03: agenda_app no debe tener GRANT DELETE sobre service.';
   END IF;
 
   IF EXISTS (
@@ -121,20 +121,20 @@ $$;
 
 -- ---------------------------------------------------------------------------
 -- Ausencia de contexto de tenant: falla cerrado, no devuelve el conjunto
--- completo. DEBE ejecutarse antes de cualquier SET LOCAL app.barbershop_id
+-- completo. DEBE ejecutarse antes de cualquier SET LOCAL app.business_id
 -- de este archivo (mismo orden que hu001/hu021).
 -- ---------------------------------------------------------------------------
 BEGIN;
-SET ROLE barberia_app;
+SET ROLE agenda_app;
 
 DO $$
 BEGIN
   BEGIN
     PERFORM count(*) FROM service;
-    RAISE EXCEPTION 'sin contexto: se pudo leer service sin app.barbershop_id fijado.';
+    RAISE EXCEPTION 'sin contexto: se pudo leer service sin app.business_id fijado.';
   EXCEPTION
     WHEN OTHERS THEN
-      IF SQLERRM NOT LIKE '%app.barbershop_id%' THEN
+      IF SQLERRM NOT LIKE '%app.business_id%' THEN
         RAISE EXCEPTION 'sin contexto: error inesperado distinto al de falta de configuración: %', SQLERRM;
       END IF;
   END;
@@ -143,26 +143,26 @@ $$;
 
 RESET ROLE;
 ROLLBACK;
-\echo 'sin contexto OK · leer service sin app.barbershop_id fijado falla cerrado'
+\echo 'sin contexto OK · leer service sin app.business_id fijado falla cerrado'
 
 -- ---------------------------------------------------------------------------
 -- CA-022-01 · Alta dentro del propio tenant: varios servicios en el mismo
 -- catálogo son recursos distintos
 -- ---------------------------------------------------------------------------
 BEGIN;
-SET ROLE barberia_app;
-SET LOCAL app.barbershop_id = '55555555-5555-5555-5555-555555555555';
+SET ROLE agenda_app;
+SET LOCAL app.business_id = '55555555-5555-5555-5555-555555555555';
 
 DO $$
 DECLARE
   v_id1 uuid;
   v_id2 uuid;
 BEGIN
-  INSERT INTO service (barbershop_id, name, duration_minutes, price_amount)
+  INSERT INTO service (business_id, name, duration_minutes, price_amount)
   VALUES ('55555555-5555-5555-5555-555555555555', 'SQL Suite Servicio Uno', 30, 45000.00)
   RETURNING id INTO v_id1;
 
-  INSERT INTO service (barbershop_id, name, duration_minutes, price_amount)
+  INSERT INTO service (business_id, name, duration_minutes, price_amount)
   VALUES ('55555555-5555-5555-5555-555555555555', 'SQL Suite Servicio Dos', 60, 65000.00)
   RETURNING id INTO v_id2;
 
@@ -177,20 +177,20 @@ ROLLBACK;
 \echo 'CA-022-01 OK · el catálogo admite varios servicios distintos en la misma barbería'
 
 -- ---------------------------------------------------------------------------
--- CA-022-06 · La base rechaza insertar un service con un barbershop_id
+-- CA-022-06 · La base rechaza insertar un service con un business_id
 -- distinto del contexto de la transacción, incluso con el rol de aplicación
 -- real
 -- ---------------------------------------------------------------------------
 BEGIN;
-SET ROLE barberia_app;
-SET LOCAL app.barbershop_id = '55555555-5555-5555-5555-555555555555';
+SET ROLE agenda_app;
+SET LOCAL app.business_id = '55555555-5555-5555-5555-555555555555';
 
 DO $$
 BEGIN
   BEGIN
-    INSERT INTO service (barbershop_id, name, duration_minutes, price_amount)
+    INSERT INTO service (business_id, name, duration_minutes, price_amount)
     VALUES ('66666666-6666-6666-6666-666666666666', 'Intruso', 30, 1.00);
-    RAISE EXCEPTION 'CA-022-06: se permitió insertar un service con barbershop_id ajeno al contexto.';
+    RAISE EXCEPTION 'CA-022-06: se permitió insertar un service con business_id ajeno al contexto.';
   EXCEPTION
     WHEN insufficient_privilege THEN
       NULL; -- Esperado: service_insert_tenant_policy rechaza el WITH CHECK.
@@ -200,7 +200,7 @@ $$;
 
 RESET ROLE;
 ROLLBACK;
-\echo 'CA-022-06 OK · INSERT con barbershop_id ajeno al contexto se rechaza (WITH CHECK de RLS)'
+\echo 'CA-022-06 OK · INSERT con business_id ajeno al contexto se rechaza (WITH CHECK de RLS)'
 
 -- ---------------------------------------------------------------------------
 -- CA-022-06 · El contexto de E no ve ni puede actualizar un service de F
@@ -209,10 +209,10 @@ ROLLBACK;
 -- el identificador real desde una sesión/transacción distinta a la que lo
 -- creó. Se limpia al final de esta sección.
 BEGIN;
-SET ROLE barberia_app;
-SET LOCAL app.barbershop_id = '66666666-6666-6666-6666-666666666666';
+SET ROLE agenda_app;
+SET LOCAL app.business_id = '66666666-6666-6666-6666-666666666666';
 
-INSERT INTO service (id, barbershop_id, name, duration_minutes, price_amount)
+INSERT INTO service (id, business_id, name, duration_minutes, price_amount)
 VALUES ('77777777-7777-7777-7777-777777777777', '66666666-6666-6666-6666-666666666666',
         'Servicio de F para aislamiento SQL', 30, 1.00);
 
@@ -220,8 +220,8 @@ RESET ROLE;
 COMMIT;
 
 BEGIN;
-SET ROLE barberia_app;
-SET LOCAL app.barbershop_id = '55555555-5555-5555-5555-555555555555';
+SET ROLE agenda_app;
+SET LOCAL app.business_id = '55555555-5555-5555-5555-555555555555';
 
 DO $$
 DECLARE
@@ -256,16 +256,16 @@ DELETE FROM service WHERE id = '77777777-7777-7777-7777-777777777777';
 -- exacto sin conflicto
 -- ---------------------------------------------------------------------------
 BEGIN;
-SET ROLE barberia_app;
-SET LOCAL app.barbershop_id = '55555555-5555-5555-5555-555555555555';
+SET ROLE agenda_app;
+SET LOCAL app.business_id = '55555555-5555-5555-5555-555555555555';
 
 DO $$
 BEGIN
-  INSERT INTO service (barbershop_id, name, duration_minutes, price_amount)
+  INSERT INTO service (business_id, name, duration_minutes, price_amount)
   VALUES ('55555555-5555-5555-5555-555555555555', 'SQL Suite Nombre Único', 30, 1.00);
 
   BEGIN
-    INSERT INTO service (barbershop_id, name, duration_minutes, price_amount)
+    INSERT INTO service (business_id, name, duration_minutes, price_amount)
     VALUES ('55555555-5555-5555-5555-555555555555', 'SQL Suite Nombre Único', 45, 2.00);
     RAISE EXCEPTION 'DEC-067: se aceptó un nombre duplicado entre servicios activos de la misma barbería.';
   EXCEPTION
@@ -279,22 +279,22 @@ ROLLBACK;
 \echo 'CA-022-04/DEC-067 OK · idx_service_active_name rechaza el nombre duplicado entre activos'
 
 BEGIN;
-SET ROLE barberia_app;
-SET LOCAL app.barbershop_id = '55555555-5555-5555-5555-555555555555';
-INSERT INTO service (barbershop_id, name, duration_minutes, price_amount)
+SET ROLE agenda_app;
+SET LOCAL app.business_id = '55555555-5555-5555-5555-555555555555';
+INSERT INTO service (business_id, name, duration_minutes, price_amount)
 VALUES ('55555555-5555-5555-5555-555555555555', 'SQL Suite Nombre Compartido Entre Tenants', 30, 1.00);
 RESET ROLE;
 ROLLBACK;
 
 BEGIN;
-SET ROLE barberia_app;
-SET LOCAL app.barbershop_id = '66666666-6666-6666-6666-666666666666';
+SET ROLE agenda_app;
+SET LOCAL app.business_id = '66666666-6666-6666-6666-666666666666';
 -- El mismo nombre exacto en OTRA barbería no conflictúa (DEC-067: la
 -- unicidad es tenant-aware, no global). Ambos INSERT se hacen dentro de
 -- transacciones separadas que hacen ROLLBACK, así que esto solo confirma
 -- que el segundo INSERT NO lanza unique_violation por sí mismo (no depende
 -- de que el primero haya persistido).
-INSERT INTO service (barbershop_id, name, duration_minutes, price_amount)
+INSERT INTO service (business_id, name, duration_minutes, price_amount)
 VALUES ('66666666-6666-6666-6666-666666666666', 'SQL Suite Nombre Compartido Entre Tenants', 30, 1.00);
 RESET ROLE;
 ROLLBACK;
@@ -306,12 +306,12 @@ ROLLBACK;
 -- WHERE is_active permite esa reutilización cuando is_active = false)
 -- ---------------------------------------------------------------------------
 BEGIN;
-SET ROLE barberia_app;
-SET LOCAL app.barbershop_id = '55555555-5555-5555-5555-555555555555';
+SET ROLE agenda_app;
+SET LOCAL app.business_id = '55555555-5555-5555-5555-555555555555';
 
 DO $$
 BEGIN
-  -- barberia_app no puede fijar is_active=false (RLS/CHECK no lo prohíben
+  -- agenda_app no puede fijar is_active=false (RLS/CHECK no lo prohíben
   -- directamente, pero HU-022 no expone ningún camino de aplicación para
   -- hacerlo); se usa el rol administrativo dentro de este bloque para
   -- simular el estado que HU-024 producirá, y confirmar que el índice
@@ -323,12 +323,12 @@ $$;
 RESET ROLE;
 ROLLBACK;
 
--- Verificación directa con el rol administrativo (barberia_owner por
--- membresía de barberia_migrator), fuera de la política tenant-aware.
-INSERT INTO service (id, barbershop_id, name, duration_minutes, price_amount, is_active, deactivated_at)
+-- Verificación directa con el rol administrativo (agenda_owner por
+-- membresía de agenda_migrator), fuera de la política tenant-aware.
+INSERT INTO service (id, business_id, name, duration_minutes, price_amount, is_active, deactivated_at)
 VALUES ('88888888-8888-8888-8888-888888888888', '55555555-5555-5555-5555-555555555555',
         'SQL Suite Nombre Reutilizable', 30, 1.00, false, now());
-INSERT INTO service (barbershop_id, name, duration_minutes, price_amount)
+INSERT INTO service (business_id, name, duration_minutes, price_amount)
 VALUES ('55555555-5555-5555-5555-555555555555', 'SQL Suite Nombre Reutilizable', 45, 2.00)
 ON CONFLICT DO NOTHING;
 DO $$
@@ -336,7 +336,7 @@ DECLARE
   v_count integer;
 BEGIN
   SELECT count(*) INTO v_count FROM service
-   WHERE barbershop_id = '55555555-5555-5555-5555-555555555555'
+   WHERE business_id = '55555555-5555-5555-5555-555555555555'
      AND name = 'SQL Suite Nombre Reutilizable';
   IF v_count <> 2 THEN
     RAISE EXCEPTION 'DEC-067: se esperaban 2 filas (una desactivada, una activa) con el mismo nombre, hay %.', v_count;
@@ -350,13 +350,13 @@ $$;
 -- mensaje de campo completo lo prueba el servicio Go)
 -- ---------------------------------------------------------------------------
 BEGIN;
-SET ROLE barberia_app;
-SET LOCAL app.barbershop_id = '55555555-5555-5555-5555-555555555555';
+SET ROLE agenda_app;
+SET LOCAL app.business_id = '55555555-5555-5555-5555-555555555555';
 
 DO $$
 BEGIN
   BEGIN
-    INSERT INTO service (barbershop_id, name, duration_minutes, price_amount)
+    INSERT INTO service (business_id, name, duration_minutes, price_amount)
     VALUES ('55555555-5555-5555-5555-555555555555', 'Duración Cero', 0, 1.00);
     RAISE EXCEPTION 'service_duration_minutes_ck: se aceptó una duración de 0 minutos.';
   EXCEPTION
@@ -364,7 +364,7 @@ BEGIN
   END;
 
   BEGIN
-    INSERT INTO service (barbershop_id, name, duration_minutes, price_amount)
+    INSERT INTO service (business_id, name, duration_minutes, price_amount)
     VALUES ('55555555-5555-5555-5555-555555555555', 'Duración Excesiva', 1441, 1.00);
     RAISE EXCEPTION 'service_duration_minutes_ck: se aceptó una duración de 1441 minutos.';
   EXCEPTION
@@ -373,7 +373,7 @@ BEGIN
 
   -- DEC-067: precio 0 o negativo se rechaza (sin servicios gratuitos).
   BEGIN
-    INSERT INTO service (barbershop_id, name, duration_minutes, price_amount)
+    INSERT INTO service (business_id, name, duration_minutes, price_amount)
     VALUES ('55555555-5555-5555-5555-555555555555', 'Precio Cero', 30, 0.00);
     RAISE EXCEPTION 'service_price_amount_ck: se aceptó un precio de 0 (DEC-067).';
   EXCEPTION
@@ -381,7 +381,7 @@ BEGIN
   END;
 
   BEGIN
-    INSERT INTO service (barbershop_id, name, duration_minutes, price_amount)
+    INSERT INTO service (business_id, name, duration_minutes, price_amount)
     VALUES ('55555555-5555-5555-5555-555555555555', 'Precio Negativo', 30, -1.00);
     RAISE EXCEPTION 'service_price_amount_ck: se aceptó un precio negativo.';
   EXCEPTION
@@ -390,7 +390,7 @@ BEGIN
 
   -- DEC-067: moneda distinta de COP se rechaza (fija, no editable).
   BEGIN
-    INSERT INTO service (barbershop_id, name, duration_minutes, price_amount, price_currency)
+    INSERT INTO service (business_id, name, duration_minutes, price_amount, price_currency)
     VALUES ('55555555-5555-5555-5555-555555555555', 'Moneda Ajena', 30, 1.00, 'USD');
     RAISE EXCEPTION 'service_price_currency_ck: se aceptó una moneda distinta de COP (DEC-067).';
   EXCEPTION
@@ -398,9 +398,9 @@ BEGIN
   END;
 
   -- Valores límite válidos: 1 y 1440 minutos, precio positivo mínimo.
-  INSERT INTO service (barbershop_id, name, duration_minutes, price_amount)
+  INSERT INTO service (business_id, name, duration_minutes, price_amount)
   VALUES ('55555555-5555-5555-5555-555555555555', 'Duración Mínima Válida', 1, 0.01);
-  INSERT INTO service (barbershop_id, name, duration_minutes, price_amount)
+  INSERT INTO service (business_id, name, duration_minutes, price_amount)
   VALUES ('55555555-5555-5555-5555-555555555555', 'Duración Máxima Válida', 1440, 0.01);
 END
 $$;
@@ -410,18 +410,18 @@ ROLLBACK;
 \echo 'constraint OK · duración fuera de [1,1440], precio <= 0 y moneda != COP se rechazan; los límites 1/1440/0.01 se aceptan'
 
 -- ---------------------------------------------------------------------------
--- DELETE se deniega para barberia_app, incluso sobre su propia fila
+-- DELETE se deniega para agenda_app, incluso sobre su propia fila
 -- (RN-SER-03: el borrado físico nunca se expone)
 -- ---------------------------------------------------------------------------
 BEGIN;
-SET ROLE barberia_app;
-SET LOCAL app.barbershop_id = '55555555-5555-5555-5555-555555555555';
+SET ROLE agenda_app;
+SET LOCAL app.business_id = '55555555-5555-5555-5555-555555555555';
 
 DO $$
 DECLARE
   v_id uuid;
 BEGIN
-  INSERT INTO service (barbershop_id, name, duration_minutes, price_amount)
+  INSERT INTO service (business_id, name, duration_minutes, price_amount)
   VALUES ('55555555-5555-5555-5555-555555555555', 'Para Intentar Borrar', 30, 1.00)
   RETURNING id INTO v_id;
 
@@ -436,7 +436,7 @@ $$;
 
 RESET ROLE;
 ROLLBACK;
-\echo 'DELETE OK · denegado para barberia_app incluso sobre su propia fila (sin GRANT, RN-SER-03)'
+\echo 'DELETE OK · denegado para agenda_app incluso sobre su propia fila (sin GRANT, RN-SER-03)'
 
 -- ---------------------------------------------------------------------------
 -- El rol de aplicación real no tiene BYPASSRLS (repetido explícitamente
@@ -444,12 +444,12 @@ ROLLBACK;
 -- ---------------------------------------------------------------------------
 DO $$
 BEGIN
-  IF EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'barberia_app' AND rolbypassrls) THEN
-    RAISE EXCEPTION 'barberia_app no puede tener BYPASSRLS.';
+  IF EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'agenda_app' AND rolbypassrls) THEN
+    RAISE EXCEPTION 'agenda_app no puede tener BYPASSRLS.';
   END IF;
 END
 $$;
-\echo 'rol OK · barberia_app sin BYPASSRLS'
+\echo 'rol OK · agenda_app sin BYPASSRLS'
 
 -- ---------------------------------------------------------------------------
 -- Trigger de updated_at. now() es transaction_timestamp(): dentro de UNA
@@ -457,12 +457,12 @@ $$;
 -- posterior, así que la prueba usa dos transacciones separadas.
 -- ---------------------------------------------------------------------------
 BEGIN;
-SET ROLE barberia_app;
-SET LOCAL app.barbershop_id = '55555555-5555-5555-5555-555555555555';
+SET ROLE agenda_app;
+SET LOCAL app.business_id = '55555555-5555-5555-5555-555555555555';
 
 DO $$
 BEGIN
-  INSERT INTO service (id, barbershop_id, name, duration_minutes, price_amount)
+  INSERT INTO service (id, business_id, name, duration_minutes, price_amount)
   VALUES ('99999999-8888-8888-8888-888888888888', '55555555-5555-5555-5555-555555555555',
           'Nombre Original Trigger', 30, 1.00);
 END
@@ -472,8 +472,8 @@ RESET ROLE;
 COMMIT;
 
 BEGIN;
-SET ROLE barberia_app;
-SET LOCAL app.barbershop_id = '55555555-5555-5555-5555-555555555555';
+SET ROLE agenda_app;
+SET LOCAL app.business_id = '55555555-5555-5555-5555-555555555555';
 
 DO $$
 DECLARE
@@ -508,7 +508,7 @@ DELETE FROM service WHERE id IN (
   '99999999-8888-8888-8888-888888888888'
 );
 DELETE FROM service
- WHERE barbershop_id = '55555555-5555-5555-5555-555555555555'
+ WHERE business_id = '55555555-5555-5555-5555-555555555555'
    AND name = 'SQL Suite Nombre Reutilizable';
 
 \echo '=== HU-022 · todas las comprobaciones pasaron ==='

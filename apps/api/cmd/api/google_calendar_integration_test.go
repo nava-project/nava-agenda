@@ -207,7 +207,7 @@ func TestGoogleCalendar_HTTP_ConnectJourney_EncryptedAtRestAndDisconnect(t *test
 	if err := db.InTenantTx(context.Background(), database.BarbershopID(shopA), func(ctx context.Context, q database.Queries) error {
 		return q.QueryRow(ctx,
 			`SELECT refresh_token_ciphertext, token_key_id FROM google_calendar_connection
-			  WHERE barbershop_id = $1 AND barber_id = $2`, shopA, barber.ID).Scan(&ciphertext, &keyID)
+			  WHERE business_id = $1 AND professional_id = $2`, shopA, barber.ID).Scan(&ciphertext, &keyID)
 	}); err != nil {
 		t.Fatal(err)
 	}
@@ -238,7 +238,7 @@ func TestGoogleCalendar_HTTP_ConnectJourney_EncryptedAtRestAndDisconnect(t *test
 	_ = db.InTenantTx(context.Background(), database.BarbershopID(shopA), func(ctx context.Context, q database.Queries) error {
 		return q.QueryRow(ctx,
 			`SELECT count(*) FROM google_calendar_connection
-			  WHERE barber_id = $1 AND refresh_token_ciphertext IS NOT NULL`, barber.ID).Scan(&left)
+			  WHERE professional_id = $1 AND refresh_token_ciphertext IS NOT NULL`, barber.ID).Scan(&left)
 	})
 	if left != 0 {
 		t.Fatal("desconectar borra las credenciales de la base")
@@ -364,7 +364,7 @@ func TestGoogleCalendar_HTTP_ChangingTheBarberLinkDisconnectsThePreviousBarber(t
 	}
 	var status string
 	if err := db.InTenantTx(context.Background(), database.BarbershopID(shopA), func(ctx context.Context, q database.Queries) error {
-		return q.QueryRow(ctx, `SELECT status FROM google_calendar_connection WHERE barber_id = $1`, first.ID).Scan(&status)
+		return q.QueryRow(ctx, `SELECT status FROM google_calendar_connection WHERE professional_id = $1`, first.ID).Scan(&status)
 	}); err != nil || status != "disconnected" {
 		t.Fatalf("la conexión del primer barbero debe quedar desconectada: %q %v", status, err)
 	}

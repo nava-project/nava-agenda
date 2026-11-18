@@ -3,13 +3,13 @@ import assert from 'node:assert/strict'
 import { databaseEnvironment, newManifest, validateManifest, fixtureSQL, scopes } from './provision-ui.mjs'
 
 test('solo permite destino local de pruebas y rol migrador', () => {
-  assert.equal(databaseEnvironment('postgres://barberia_migrator:p@127.0.0.1:5432/nava_test', 'local').PGDATABASE, 'nava_test')
-  for (const dsn of ['postgres://barberia_migrator:p@remote.test/nava_test',
-    'postgres://barberia_migrator:p@localhost/nava', 'postgres://postgres:p@localhost/nava_test',
-    'https://barberia_migrator:p@localhost/nava_test']) {
+  assert.equal(databaseEnvironment('postgres://agenda_migrator:p@127.0.0.1:5432/nava_test', 'local').PGDATABASE, 'nava_test')
+  for (const dsn of ['postgres://agenda_migrator:p@remote.test/nava_test',
+    'postgres://agenda_migrator:p@localhost/nava', 'postgres://postgres:p@localhost/nava_test',
+    'https://agenda_migrator:p@localhost/nava_test']) {
     assert.throws(() => databaseEnvironment(dsn, 'local'))
   }
-  assert.throws(() => databaseEnvironment('postgres://barberia_migrator:p@localhost/nava_test', 'production'))
+  assert.throws(() => databaseEnvironment('postgres://agenda_migrator:p@localhost/nava_test', 'production'))
 })
 test('cada tarea y cada campaña tienen identidades independientes', () => {
   const first = newManifest(), second = newManifest()
@@ -31,6 +31,6 @@ test('el fixture no borra ni restaura cuentas y no incluye contraseñas en claro
   assert.doesNotMatch(sql, /\b(DELETE|TRUNCATE|UPDATE)\b/)
   assert.doesNotMatch(sql, /CASCADE/)
   for (const a of m.accounts) assert.equal(sql.includes(a.password), false)
-  assert.match(sql, /SET LOCAL ROLE barberia_owner/)
+  assert.match(sql, /SET LOCAL ROLE agenda_owner/)
   assert.throws(() => fixtureSQL(m, []))
 })

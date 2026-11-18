@@ -7,11 +7,11 @@
 -- (internal/modules/googlecalendar), no aquí.
 --
 -- Uso:
---   psql "$DATABASE_TEST_URL" -v ON_ERROR_STOP=1 -f testdata/dos_barberias.sql
+--   psql "$DATABASE_TEST_URL" -v ON_ERROR_STOP=1 -f testdata/dos_professionalias.sql
 --   psql "$DATABASE_TEST_URL" -v ON_ERROR_STOP=1 -f tests/google_calendar_sync.sql
 --
--- Requisito del arnés: la conexión debe poder ejecutar `SET ROLE barberia_app` y
--- `SET ROLE barberia_worker` (superusuario en local/CI efímero). Cada escenario
+-- Requisito del arnés: la conexión debe poder ejecutar `SET ROLE agenda_app` y
+-- `SET ROLE agenda_worker` (superusuario en local/CI efímero). Cada escenario
 -- usa un `p_now` explícito en vez de esperar al reloj (estrategia-pruebas.md §7).
 -- Todo se revierte con ROLLBACK.
 --
@@ -32,11 +32,11 @@ BEGIN
   FOREACH v_table IN ARRAY ARRAY['google_calendar_connection', 'google_calendar_sync_job',
                                  'google_calendar_event_link', 'appointment', 'customer', 'time_block']
   LOOP
-    IF has_table_privilege('barberia_worker', v_table, 'SELECT')
-       OR has_table_privilege('barberia_worker', v_table, 'INSERT')
-       OR has_table_privilege('barberia_worker', v_table, 'UPDATE')
-       OR has_table_privilege('barberia_worker', v_table, 'DELETE') THEN
-      RAISE EXCEPTION 'barberia_worker no debe tener acceso directo a % (DEC-040).', v_table;
+    IF has_table_privilege('agenda_worker', v_table, 'SELECT')
+       OR has_table_privilege('agenda_worker', v_table, 'INSERT')
+       OR has_table_privilege('agenda_worker', v_table, 'UPDATE')
+       OR has_table_privilege('agenda_worker', v_table, 'DELETE') THEN
+      RAISE EXCEPTION 'agenda_worker no debe tener acceso directo a % (DEC-040).', v_table;
     END IF;
   END LOOP;
 
@@ -48,21 +48,21 @@ BEGIN
     'gcal_restore_links(uuid, timestamptz)',
     'gcal_enqueue_missing(uuid, text, uuid)']
   LOOP
-    IF NOT has_function_privilege('barberia_worker', v_fn, 'EXECUTE') THEN
-      RAISE EXCEPTION 'barberia_worker debe poder ejecutar %.', v_fn;
+    IF NOT has_function_privilege('agenda_worker', v_fn, 'EXECUTE') THEN
+      RAISE EXCEPTION 'agenda_worker debe poder ejecutar %.', v_fn;
     END IF;
-    IF has_function_privilege('barberia_app', v_fn, 'EXECUTE') THEN
-      RAISE EXCEPTION 'barberia_app no debe poder ejecutar % (exclusivo del worker).', v_fn;
+    IF has_function_privilege('agenda_app', v_fn, 'EXECUTE') THEN
+      RAISE EXCEPTION 'agenda_app no debe poder ejecutar % (exclusivo del worker).', v_fn;
     END IF;
     IF NOT (SELECT prosecdef FROM pg_proc WHERE oid = v_fn::regprocedure) THEN
       RAISE EXCEPTION '% debe ser SECURITY DEFINER.', v_fn;
     END IF;
   END LOOP;
 
-  IF has_table_privilege('barberia_app', 'google_calendar_event_link', 'INSERT')
-     OR has_table_privilege('barberia_app', 'google_calendar_event_link', 'UPDATE')
-     OR has_table_privilege('barberia_app', 'google_calendar_event_link', 'DELETE') THEN
-    RAISE EXCEPTION 'los vínculos solo los escribe el worker: barberia_app solo lee.';
+  IF has_table_privilege('agenda_app', 'google_calendar_event_link', 'INSERT')
+     OR has_table_privilege('agenda_app', 'google_calendar_event_link', 'UPDATE')
+     OR has_table_privilege('agenda_app', 'google_calendar_event_link', 'DELETE') THEN
+    RAISE EXCEPTION 'los vínculos solo los escribe el worker: agenda_app solo lee.';
   END IF;
 END
 $$;
@@ -74,18 +74,18 @@ $$;
 BEGIN;
 RESET ROLE; -- el arnés conecta como superusuario: crea fixtures sin pasar por RLS
 
-INSERT INTO barber (id, barbershop_id, full_name) VALUES
+INSERT INTO professional (id, business_id, full_name) VALUES
   ('c3240001-0000-4000-8000-000000000001', '11111111-1111-1111-1111-111111111111', 'Barbero cola'),
   ('c3240001-0000-4000-8000-0000000000b1', '22222222-2222-2222-2222-222222222222', 'Barbero cola B');
 INSERT INTO google_calendar_connection
-  (id, barbershop_id, barber_id, status, google_account_email, refresh_token_ciphertext, token_key_id)
+  (id, business_id, professional_id, status, google_account_email, refresh_token_ciphertext, token_key_id)
 VALUES
   ('c3240002-0000-4000-8000-000000000001', '11111111-1111-1111-1111-111111111111',
    'c3240001-0000-4000-8000-000000000001', 'connected', 'barbero@ejemplo.test', '\x0102'::bytea, 'v1'),
   ('c3240002-0000-4000-8000-0000000000b1', '22222222-2222-2222-2222-222222222222',
    'c3240001-0000-4000-8000-0000000000b1', 'connected', 'b@ejemplo.test', '\x0102'::bytea, 'v1');
 
-INSERT INTO google_calendar_sync_job (id, barbershop_id, connection_id, resource_type, resource_id, run_at) VALUES
+INSERT INTO google_calendar_sync_job (id, business_id, connection_id, resource_type, resource_id, run_at) VALUES
   ('c3240003-0000-4000-8000-000000000001', '11111111-1111-1111-1111-111111111111',
    'c3240002-0000-4000-8000-000000000001', 'appointment', 'a3240000-0000-4000-8000-000000000001',
    '2026-01-05 09:00:00-05'),
@@ -97,7 +97,7 @@ INSERT INTO google_calendar_sync_job (id, barbershop_id, connection_id, resource
 DO $$
 BEGIN
   BEGIN
-    INSERT INTO google_calendar_sync_job (barbershop_id, connection_id, resource_type, resource_id)
+    INSERT INTO google_calendar_sync_job (business_id, connection_id, resource_type, resource_id)
     VALUES ('11111111-1111-1111-1111-111111111111', 'c3240002-0000-4000-8000-000000000001',
             'appointment', 'a3240000-0000-4000-8000-000000000001');
     RAISE EXCEPTION 'dos trabajos pendientes del mismo recurso deben rechazarse.';
@@ -130,7 +130,7 @@ $$;
 -- ---------------------------------------------------------------------------
 -- Reclamo con lease, sin doble claim vigente, y finalización por CAS
 -- ---------------------------------------------------------------------------
-SET ROLE barberia_worker;
+SET ROLE agenda_worker;
 
 DO $$
 DECLARE
@@ -199,14 +199,14 @@ $$;
 -- Finalización: published crea el vínculo; retry agota intentos; reauth vacía la cola
 -- ---------------------------------------------------------------------------
 RESET ROLE; -- el arnés conecta como superusuario: crea fixtures sin pasar por RLS
-INSERT INTO google_calendar_sync_job (id, barbershop_id, connection_id, resource_type, resource_id, run_at) VALUES
+INSERT INTO google_calendar_sync_job (id, business_id, connection_id, resource_type, resource_id, run_at) VALUES
   ('c3240004-0000-4000-8000-000000000001', '11111111-1111-1111-1111-111111111111',
    'c3240002-0000-4000-8000-000000000001', 'appointment', 'a3240000-0000-4000-8000-000000000002',
    '2026-02-01 09:00:00-05'),
   ('c3240004-0000-4000-8000-000000000002', '11111111-1111-1111-1111-111111111111',
    'c3240002-0000-4000-8000-000000000001', 'appointment', 'a3240000-0000-4000-8000-000000000003',
    '2026-02-01 09:00:00-05');
-SET ROLE barberia_worker;
+SET ROLE agenda_worker;
 
 DO $$
 DECLARE
@@ -277,11 +277,11 @@ $$;
 \echo 'finalización OK · published crea el vínculo, retry con backoff y failed al agotar intentos'
 
 -- reauth: credenciales borradas y cola de la conexión vaciada.
-INSERT INTO google_calendar_sync_job (id, barbershop_id, connection_id, resource_type, resource_id, run_at) VALUES
+INSERT INTO google_calendar_sync_job (id, business_id, connection_id, resource_type, resource_id, run_at) VALUES
   ('c3240005-0000-4000-8000-000000000001', '11111111-1111-1111-1111-111111111111',
    'c3240002-0000-4000-8000-000000000001', 'appointment', 'a3240000-0000-4000-8000-000000000004',
    '2026-03-01 09:00:00-05');
-SET ROLE barberia_worker;
+SET ROLE agenda_worker;
 DO $$
 DECLARE
   v_job record;
@@ -313,11 +313,11 @@ $$;
 \echo 'reauth OK · credenciales borradas y cola de esa conexión vacía, sin tocar la conexión de otra barbería'
 
 -- Una conexión sin permiso deja de reclamar trabajos aunque queden filas.
-INSERT INTO google_calendar_sync_job (id, barbershop_id, connection_id, resource_type, resource_id, run_at) VALUES
+INSERT INTO google_calendar_sync_job (id, business_id, connection_id, resource_type, resource_id, run_at) VALUES
   ('c3240006-0000-4000-8000-000000000001', '11111111-1111-1111-1111-111111111111',
    'c3240002-0000-4000-8000-000000000001', 'appointment', 'a3240000-0000-4000-8000-000000000005',
    '2026-03-01 09:00:00-05');
-SET ROLE barberia_worker;
+SET ROLE agenda_worker;
 DO $$
 BEGIN
   IF EXISTS (SELECT 1 FROM gcal_claim_jobs(50, 60, '2026-03-02 09:00:00-05'::timestamptz)
@@ -336,22 +336,22 @@ ROLLBACK;
 -- ---------------------------------------------------------------------------
 BEGIN;
 RESET ROLE; -- el arnés conecta como superusuario: crea fixtures sin pasar por RLS
-INSERT INTO barber (id, barbershop_id, full_name) VALUES
+INSERT INTO professional (id, business_id, full_name) VALUES
   ('c3240011-0000-4000-8000-000000000001', '11111111-1111-1111-1111-111111111111', 'Barbero restaurar'),
   ('c3240011-0000-4000-8000-0000000000b1', '22222222-2222-2222-2222-222222222222', 'Barbero restaurar B');
 INSERT INTO google_calendar_connection
-  (id, barbershop_id, barber_id, status, refresh_token_ciphertext, token_key_id)
+  (id, business_id, professional_id, status, refresh_token_ciphertext, token_key_id)
 VALUES
   ('c3240012-0000-4000-8000-000000000001', '11111111-1111-1111-1111-111111111111',
    'c3240011-0000-4000-8000-000000000001', 'connected', '\x0102'::bytea, 'v1'),
   ('c3240012-0000-4000-8000-0000000000b1', '22222222-2222-2222-2222-222222222222',
    'c3240011-0000-4000-8000-0000000000b1', 'connected', '\x0102'::bytea, 'v1');
-INSERT INTO google_calendar_sync_job (barbershop_id, connection_id, resource_type, resource_id) VALUES
+INSERT INTO google_calendar_sync_job (business_id, connection_id, resource_type, resource_id) VALUES
   ('11111111-1111-1111-1111-111111111111', 'c3240012-0000-4000-8000-000000000001', 'appointment',
    'a3240000-0000-4000-8000-0000000000c1');
 
-SET ROLE barberia_app;
-SET LOCAL app.barbershop_id = '22222222-2222-2222-2222-222222222222';
+SET ROLE agenda_app;
+SET LOCAL app.business_id = '22222222-2222-2222-2222-222222222222';
 DO $$
 DECLARE
   v_rows integer;
@@ -368,7 +368,7 @@ BEGIN
 
   -- B no puede encolar un recurso en la conexión de A (FK compuesta + RLS).
   BEGIN
-    INSERT INTO google_calendar_sync_job (barbershop_id, connection_id, resource_type, resource_id)
+    INSERT INTO google_calendar_sync_job (business_id, connection_id, resource_type, resource_id)
     VALUES ('22222222-2222-2222-2222-222222222222', 'c3240012-0000-4000-8000-000000000001',
             'appointment', 'a3240000-0000-4000-8000-0000000000c2');
     RAISE EXCEPTION 'B no debe poder encolar sobre la conexión de A.';
@@ -379,7 +379,7 @@ $$;
 RESET ROLE;
 
 -- Chequeo de eventos borrados: se reserva una conexión vencida y no vuelve hasta el intervalo.
-SET ROLE barberia_worker;
+SET ROLE agenda_worker;
 DO $$
 DECLARE
   v_target record;
@@ -398,7 +398,7 @@ BEGIN
   IF v_target IS NULL OR v_target.connection_id <> 'c3240012-0000-4000-8000-000000000001' THEN
     RAISE EXCEPTION 'debe reservarse la conexión pendiente de comprobar.';
   END IF;
-  IF v_target.barber_id IS NULL OR v_target.token_ciphertext IS NULL THEN
+  IF v_target.professional_id IS NULL OR v_target.token_ciphertext IS NULL THEN
     RAISE EXCEPTION 'la reserva debe devolver barbero y credenciales cifradas.';
   END IF;
 

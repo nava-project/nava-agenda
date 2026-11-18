@@ -29,7 +29,7 @@ var _ googlecalendar.JobStore = (*WorkerRepository)(nil)
 func (r *WorkerRepository) ClaimJobs(ctx context.Context, limit, leaseSeconds int, now time.Time) ([]googlecalendar.Job, error) {
 	var jobs []googlecalendar.Job
 	err := r.db.CallSecurityDefinerRows(ctx,
-		`SELECT job_id::text, claim_token::text, barbershop_id::text, connection_id::text,
+		`SELECT job_id::text, claim_token::text, business_id::text, connection_id::text,
 		        resource_type, resource_id::text, attempts
 		   FROM gcal_claim_jobs($1, $2, $3)`,
 		[]any{limit, leaseSeconds, now},
@@ -55,10 +55,10 @@ func (r *WorkerRepository) JobContext(ctx context.Context, jobID, claimToken str
 	var jc googlecalendar.JobContext
 	found := false
 	err := r.db.CallSecurityDefinerRow(ctx,
-		`SELECT barber_id::text, connection_status, calendar_id, reminder_minutes, token_ciphertext,
-		        coalesce(token_key_id, ''), barbershop_timezone,
+		`SELECT professional_id::text, connection_status, calendar_id, reminder_minutes, token_ciphertext,
+		        coalesce(token_key_id, ''), business_timezone,
 		        coalesce(link_event_id, ''), coalesce(link_generation, 0), coalesce(link_visible_hash, ''),
-		        resource_type, resource_id::text, resource_found, coalesce(barber_matches, false),
+		        resource_type, resource_id::text, resource_found, coalesce(professional_matches, false),
 		        coalesce(appt_status, ''), starts_at, ends_at,
 		        coalesce(attendee_name, ''), coalesce(service_name, ''), coalesce(customer_email, ''),
 		        coalesce(block_type, ''), coalesce(block_source, ''), coalesce(block_deleted, false)
@@ -114,7 +114,7 @@ func (r *WorkerRepository) RestoreClaimConnection(ctx context.Context, intervalS
 	var t googlecalendar.RestoreTarget
 	found := false
 	err := r.db.CallSecurityDefinerRow(ctx,
-		`SELECT connection_id::text, barbershop_id::text, barber_id::text, calendar_id, token_ciphertext,
+		`SELECT connection_id::text, business_id::text, professional_id::text, calendar_id, token_ciphertext,
 		        coalesce(token_key_id, '')
 		   FROM gcal_restore_claim_connection($1, $2)`,
 		[]any{intervalSeconds, now},

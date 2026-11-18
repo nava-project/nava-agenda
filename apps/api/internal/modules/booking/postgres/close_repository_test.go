@@ -49,7 +49,7 @@ func setAppointmentStatus(t *testing.T, db *database.DB, shop database.Barbersho
 	t.Helper()
 	err := db.InTenantTx(context.Background(), shop, func(ctx context.Context, q database.Queries) error {
 		_, err := q.Exec(ctx,
-			`UPDATE appointment SET status = $3, resolved_at = now() WHERE barbershop_id = $1 AND id = $2`,
+			`UPDATE appointment SET status = $3, resolved_at = now() WHERE business_id = $1 AND id = $2`,
 			string(shop), appointmentID, status)
 		return err
 	})

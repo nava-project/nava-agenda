@@ -460,7 +460,7 @@ func TestAccess_ChallengeTable_StoresNoPlaintextAndHidesRowsFromOtherTenants(t *
 
 	var visibleToOtherTenant int
 	err = f.db.InTenantTx(ctx, database.BarbershopID(accessShopDos), func(ctx context.Context, q database.Queries) error {
-		return q.QueryRow(ctx, `SELECT count(*) FROM customer_access_challenge WHERE barbershop_id = $1`, accessShopUno).Scan(&visibleToOtherTenant)
+		return q.QueryRow(ctx, `SELECT count(*) FROM customer_access_challenge WHERE business_id = $1`, accessShopUno).Scan(&visibleToOtherTenant)
 	})
 	if err != nil {
 		t.Fatalf("query: %v", err)

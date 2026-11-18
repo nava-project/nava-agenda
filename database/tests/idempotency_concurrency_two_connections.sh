@@ -17,7 +17,7 @@
 #     ./idempotency_concurrency_two_connections.sh
 #
 # Requiere, ya aplicadas sobre esa base: las cinco migraciones de
-# database/migrations y testdata/dos_barberias.sql.
+# database/migrations y testdata/dos_professionalias.sql.
 #
 # Coordinación sin sleeps de negocio (estrategia-pruebas.md §7): el orden
 # A-antes-que-B lo fija un archivo marcador (a_ready) que A escribe justo
@@ -46,8 +46,8 @@ trap cleanup EXIT
 
 # No hace falta borrar nada antes ni después: tanto la sesión A como la B
 # terminan con ROLLBACK (abajo), así que ninguna fila queda commiteada en
-# una ejecución normal. $DATABASE_TEST_URL se conecta como barberia_app -el
-# rol real de la aplicación, sin GRANT sobre barberia_owner- a propósito:
+# una ejecución normal. $DATABASE_TEST_URL se conecta como agenda_app -el
+# rol real de la aplicación, sin GRANT sobre agenda_owner- a propósito:
 # esta prueba verifica el comportamiento real del rol de producción, no el
 # de un rol administrativo.
 
@@ -58,7 +58,7 @@ echo "=== idempotency_begin · concurrencia real con dos conexiones (CA-004-03) 
 # que B termine su propio intento.
 cat > "$WORKDIR/a.sql" <<SQL
 \\set ON_ERROR_STOP on
-SET ROLE barberia_app;
+SET ROLE agenda_app;
 BEGIN;
 SELECT outcome AS a_outcome
 FROM idempotency_begin(
@@ -91,7 +91,7 @@ done
 # pg_try_advisory_xact_lock funciona, B debe recibir 'locked' de inmediato,
 # sin quedar bloqueado dentro de la función.
 psql "$DATABASE_TEST_URL" -v ON_ERROR_STOP=1 -q -c "
-SET ROLE barberia_app;
+SET ROLE agenda_app;
 SELECT outcome
 FROM idempotency_begin(
   '$BARBERSHOP_ID'::uuid, '$IDEMPOTENCY_KEY', 'audit_test_operation', '$FINGERPRINT_B', 60

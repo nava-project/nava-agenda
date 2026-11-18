@@ -14,7 +14,13 @@ atlas version
   cd database
   echo "== atlas migrate validate"
   atlas migrate validate --env local
-  echo "== atlas migrate apply (desde base vacía)"
+  echo "== atlas migrate apply (desde base vacía) hasta el renombrado del esquema"
+  atlas migrate apply --env local --to-version 20261121090000
+  # Los roles barberia_* pasan a agenda_* con el superusuario entre la migración que
+  # renombra el esquema y las siguientes (DEC-183, #660; migraciones-atlas.md).
+  echo "== roles barberia_* → agenda_*"
+  psql -v ON_ERROR_STOP=1 -f roles/rename_to_agenda.sql
+  echo "== atlas migrate apply (resto)"
   atlas migrate apply --env local
   echo "== atlas migrate apply (segunda vez, sin cambios esperados)"
   salida="$(atlas migrate apply --env local)"
@@ -22,9 +28,9 @@ atlas version
   grep -q "No migration files to execute" <<<"$salida"
 )
 
-echo "== contraseñas de barberia_app y barberia_worker"
-psql -c "ALTER ROLE barberia_app PASSWORD 'app_test';"
-psql -c "ALTER ROLE barberia_worker PASSWORD 'worker_test';"
+echo "== contraseñas de agenda_app y agenda_worker"
+psql -c "ALTER ROLE agenda_app PASSWORD 'app_test';"
+psql -c "ALTER ROLE agenda_worker PASSWORD 'worker_test';"
 
 echo "== testdata de dos barberías"
 for f in database/testdata/dos_barberias.sql \
@@ -71,4 +77,4 @@ suite "Suite de excepciones de jornada y festivos HU-041" psql_file database/tes
 suite "Suite de bloqueos de agenda HU-042" psql_file database/tests/hu042_bloqueos.sql
 suite "Suite del núcleo de citas HU-060" psql_file database/tests/hu060_citas.sql
 suite "Suite de idempotencia (secuencial, una conexión)" psql_file database/tests/idempotency_concurrency.sql
-suite "Suite de idempotencia (dos conexiones reales)" env DATABASE_TEST_URL="postgres://barberia_app:app_test@localhost:5432/postgres?sslmode=disable" bash database/tests/idempotency_concurrency_two_connections.sh
+suite "Suite de idempotencia (dos conexiones reales)" env DATABASE_TEST_URL="postgres://agenda_app:app_test@localhost:5432/postgres?sslmode=disable" bash database/tests/idempotency_concurrency_two_connections.sh

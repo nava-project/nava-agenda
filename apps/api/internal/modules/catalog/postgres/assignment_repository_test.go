@@ -58,7 +58,7 @@ func createBarberFixture(t *testing.T, db *database.DB, shop database.Barbershop
 	var id string
 	err := db.InTenantTx(context.Background(), shop, func(ctx context.Context, q database.Queries) error {
 		return q.QueryRow(ctx,
-			`INSERT INTO barber (barbershop_id, full_name) VALUES ($1, $2) RETURNING id`,
+			`INSERT INTO professional (business_id, full_name) VALUES ($1, $2) RETURNING id`,
 			string(shop), name,
 		).Scan(&id)
 	})
@@ -270,7 +270,7 @@ func TestRawSQL_CompositeFK_RejectsCrossTenantAssociation(t *testing.T) {
 
 	err := db.InTenantTx(context.Background(), shopG, func(ctx context.Context, q database.Queries) error {
 		_, execErr := q.Exec(ctx,
-			`INSERT INTO barber_service (barbershop_id, barber_id, service_id) VALUES ($1, $2, $3)`,
+			`INSERT INTO professional_service (business_id, professional_id, service_id) VALUES ($1, $2, $3)`,
 			string(shopG), barberG.ID, serviceH.ID,
 		)
 		return execErr

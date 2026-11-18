@@ -33,7 +33,7 @@ import (
 )
 
 const (
-	testDatabaseURL = "postgres://barberia_app@localhost:5432/barberia_test?sslmode=disable"
+	testDatabaseURL = "postgres://agenda_app@localhost:5432/barberia_test?sslmode=disable"
 
 	// Par dedicado de hu098_acceso_turno.sql: shopUno exige razón NUNCA
 	// (client_allowed=true, reason_required=false, deadline=30) y shopDos
@@ -192,7 +192,7 @@ func insertAccessToken(t *testing.T, db *database.DB, shopID, appointmentID stri
 
 	err := db.InTenantTx(context.Background(), database.BarbershopID(shopID), func(ctx context.Context, q database.Queries) error {
 		_, err := q.Exec(ctx,
-			`INSERT INTO appointment_access_token (barbershop_id, appointment_id, token_hash, issued_at, expires_at, revoked_at)
+			`INSERT INTO appointment_access_token (business_id, appointment_id, token_hash, issued_at, expires_at, revoked_at)
 			 VALUES ($1, $2, $3, $4, $5, $6)`,
 			shopID, appointmentID, hash, issuedAt, expiresAt, revokedAt,
 		)
@@ -373,7 +373,7 @@ func TestResolveAppointmentByTokenHash_Vocabulary_PerTenant(t *testing.T) {
 	write := func(business, businessGender, term, plural, gender string) error {
 		return db.InTenantTx(context.Background(), database.BarbershopID(shopDos), func(ctx context.Context, q database.Queries) error {
 			_, err := q.Exec(ctx,
-				`UPDATE barbershop
+				`UPDATE business
 				    SET business_term = $2, business_term_gender = $3,
 				        professional_term = $4, professional_term_plural = $5, professional_term_gender = $6
 				  WHERE id = $1`,
@@ -441,7 +441,7 @@ func TestResolveAppointmentByTokenHash_CanReview_FollowsStatusAndExistingReview(
 
 	err = db.InTenantTx(context.Background(), database.BarbershopID(shopUno), func(ctx context.Context, q database.Queries) error {
 		_, err := q.Exec(ctx,
-			`INSERT INTO barber_review (barbershop_id, barber_id, appointment_id, rating, comment) VALUES ($1, $2, $3, 4, 'Bien')`,
+			`INSERT INTO professional_review (business_id, professional_id, appointment_id, rating, comment) VALUES ($1, $2, $3, 4, 'Bien')`,
 			shopUno, barberUno, completed.ID)
 		return err
 	})
@@ -553,7 +553,7 @@ func TestResolveAppointmentByTokenHash_CountsOnlyCustomerReschedules(t *testing.
 				customer = appointment.CustomerID
 			}
 			if _, err := q.Exec(ctx, `
-				INSERT INTO appointment_history (barbershop_id, appointment_id, event_type, actor_type, actor_customer_id)
+				INSERT INTO appointment_history (business_id, appointment_id, event_type, actor_type, actor_customer_id)
 				VALUES ($1, $2, 'appointment_rescheduled', $3, $4)`,
 				shopUno, appointment.ID, actor, customer); err != nil {
 				return err

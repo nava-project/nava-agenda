@@ -73,15 +73,15 @@ func (r *Repository) ResolveAppointmentByTokenHash(ctx context.Context, tokenHas
 			        bs.contact_email, bs.contact_phone, ap.id, ap.updated_at,
 			        (SELECT count(*)
 			           FROM appointment_history h
-			          WHERE h.barbershop_id = ap.barbershop_id
+			          WHERE h.business_id = ap.business_id
 			            AND h.appointment_id = ap.id
 			            AND h.event_type = 'appointment_rescheduled'
 			            AND h.actor_type = 'customer')
 			   FROM appointment_access_token t
-			   JOIN appointment ap ON ap.barbershop_id = t.barbershop_id AND ap.id = t.appointment_id
-			   JOIN barbershop bs ON bs.id = t.barbershop_id
-			   JOIN barber br    ON br.barbershop_id = t.barbershop_id AND br.id = ap.barber_id
-			   LEFT JOIN barber_review rv ON rv.barbershop_id = t.barbershop_id AND rv.appointment_id = ap.id
+			   JOIN appointment ap ON ap.business_id = t.business_id AND ap.id = t.appointment_id
+			   JOIN business bs ON bs.id = t.business_id
+			   JOIN professional br    ON br.business_id = t.business_id AND br.id = ap.professional_id
+			   LEFT JOIN professional_review rv ON rv.business_id = t.business_id AND rv.appointment_id = ap.id
 			  WHERE t.token_hash = $1
 			    AND t.revoked_at IS NULL
 			    AND (t.expires_at IS NULL OR t.expires_at > now())`,
@@ -148,7 +148,7 @@ func (r *Repository) ResolveCancellationTarget(ctx context.Context, tokenHash st
 		err := q.QueryRow(ctx,
 			`SELECT t.appointment_id, bs.timezone
 			   FROM appointment_access_token t
-			   JOIN barbershop bs ON bs.id = t.barbershop_id
+			   JOIN business bs ON bs.id = t.business_id
 			  WHERE t.token_hash = $1
 			    AND t.revoked_at IS NULL
 			    AND (t.expires_at IS NULL OR t.expires_at > now())`,

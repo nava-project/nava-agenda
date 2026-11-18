@@ -164,7 +164,7 @@ func setupWorkerTestDB(t *testing.T) *database.DB {
 	t.Helper()
 	dsn := os.Getenv("TEST_WORKER_DATABASE_URL")
 	if dsn == "" {
-		dsn = "postgres://barberia_worker@localhost:5432/barberia_test?sslmode=disable"
+		dsn = "postgres://agenda_worker@localhost:5432/barberia_test?sslmode=disable"
 	}
 	cfg := config.Config{
 		Environment: "test", DatabaseMaxConns: 5, DatabaseMinConns: 1,
@@ -262,7 +262,7 @@ func (p *publication) ageRestoreCheck(t *testing.T) {
 	err := db.InTenantTx(context.Background(), database.BarbershopID(shopA), func(ctx context.Context, q database.Queries) error {
 		_, err := q.Exec(ctx,
 			`UPDATE google_calendar_connection SET last_restore_check_at = now() - interval '1 hour'
-			  WHERE barbershop_id = $1 AND barber_id = $2`, shopA, p.barber.ID)
+			  WHERE business_id = $1 AND professional_id = $2`, shopA, p.barber.ID)
 		return err
 	})
 	if err != nil {
@@ -287,7 +287,7 @@ func openEveryDay(t *testing.T, db *database.DB, barberID string) {
 	t.Helper()
 	err := db.InTenantTx(context.Background(), database.BarbershopID(shopA), func(ctx context.Context, q database.Queries) error {
 		_, err := q.Exec(ctx,
-			`INSERT INTO working_hour (barbershop_id, barber_id, iso_weekday, starts_time, duration_minutes)
+			`INSERT INTO working_hour (business_id, professional_id, iso_weekday, starts_time, duration_minutes)
 			 SELECT $1, $2, d, '08:00', 840 FROM generate_series(1, 7) AS d`, shopA, barberID)
 		return err
 	})

@@ -40,7 +40,7 @@ func countCustomerReschedules(ctx context.Context, q database.Queries, barbersho
 	err := q.QueryRow(ctx, `
 		SELECT count(*)
 		  FROM appointment_history
-		 WHERE barbershop_id = $1
+		 WHERE business_id = $1
 		   AND appointment_id = $2
 		   AND event_type = 'appointment_rescheduled'
 		   AND actor_type = 'customer'`,
@@ -64,11 +64,11 @@ func (r *Repository) CustomerRescheduleState(ctx context.Context, barbershopID, 
 	err = r.db.InTenantTx(ctx, shop, func(ctx context.Context, q database.Queries) error {
 		var status string
 		err := q.QueryRow(ctx, `
-			SELECT a.barber_id, a.duration_minutes_snapshot, a.starts_at, a.ends_at, a.status,
+			SELECT a.professional_id, a.duration_minutes_snapshot, a.starts_at, a.ends_at, a.status,
 			       b.cancellation_deadline_minutes
 			  FROM appointment a
-			  JOIN barbershop b ON b.id = a.barbershop_id
-			 WHERE a.barbershop_id = $1 AND a.id = $2`,
+			  JOIN business b ON b.id = a.business_id
+			 WHERE a.business_id = $1 AND a.id = $2`,
 			barbershopID, appointmentID,
 		).Scan(&state.BarberID, &state.DurationMinutes, &state.StartsAt, &state.EndsAt, &status, &state.DeadlineMinutes)
 		if errors.Is(err, pgx.ErrNoRows) {

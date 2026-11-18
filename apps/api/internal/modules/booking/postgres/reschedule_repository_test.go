@@ -52,7 +52,7 @@ func markAppointmentTerminal(t *testing.T, db *database.DB, shop database.Barber
 	t.Helper()
 	err := db.InTenantTx(context.Background(), shop, func(ctx context.Context, q database.Queries) error {
 		_, err := q.Exec(ctx,
-			`UPDATE appointment SET status = 'completed', resolved_at = now() WHERE barbershop_id = $1 AND id = $2`,
+			`UPDATE appointment SET status = 'completed', resolved_at = now() WHERE business_id = $1 AND id = $2`,
 			string(shop), appointmentID)
 		return err
 	})

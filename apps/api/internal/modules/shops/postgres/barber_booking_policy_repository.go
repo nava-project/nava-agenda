@@ -32,10 +32,10 @@ func (r *BarberBookingPolicyRepository) List(ctx context.Context, barbershopID s
 	policies := []shops.BarberBookingPolicy{}
 	err := r.db.InTenantTx(ctx, database.BarbershopID(barbershopID), func(ctx context.Context, q database.Queries) error {
 		rows, err := q.Query(ctx,
-			`SELECT barber_id::text, min_advance_minutes, max_advance_days, slot_grid_minutes, updated_at
-			   FROM barber_booking_policy
-			  WHERE barbershop_id = $1
-			  ORDER BY barber_id`,
+			`SELECT professional_id::text, min_advance_minutes, max_advance_days, slot_grid_minutes, updated_at
+			   FROM professional_booking_policy
+			  WHERE business_id = $1
+			  ORDER BY professional_id`,
 			barbershopID,
 		)
 		if err != nil {
@@ -65,9 +65,9 @@ func (r *BarberBookingPolicyRepository) Get(ctx context.Context, barbershopID, b
 	)
 	err := r.db.InTenantTx(ctx, database.BarbershopID(barbershopID), func(ctx context.Context, q database.Queries) error {
 		err := q.QueryRow(ctx,
-			`SELECT barber_id::text, min_advance_minutes, max_advance_days, slot_grid_minutes, updated_at
-			   FROM barber_booking_policy
-			  WHERE barbershop_id = $1 AND barber_id = $2`,
+			`SELECT professional_id::text, min_advance_minutes, max_advance_days, slot_grid_minutes, updated_at
+			   FROM professional_booking_policy
+			  WHERE business_id = $1 AND professional_id = $2`,
 			barbershopID, barberID,
 		).Scan(&p.BarberID, &p.MinAdvanceMinutes, &p.MaxAdvanceDays, &p.SlotGridMinutes, &p.UpdatedAt)
 		switch {
@@ -98,16 +98,16 @@ func (r *BarberBookingPolicyRepository) Upsert(ctx context.Context, barbershopID
 	)
 	err := r.db.InTenantTx(ctx, database.BarbershopID(barbershopID), func(ctx context.Context, q database.Queries) error {
 		err := q.QueryRow(ctx,
-			`INSERT INTO barber_booking_policy
-			        (barbershop_id, barber_id, min_advance_minutes, max_advance_days, slot_grid_minutes)
-			 SELECT b.barbershop_id, b.id, $3, $4, $5
-			   FROM barber b
-			  WHERE b.barbershop_id = $1 AND b.id = $2
-			 ON CONFLICT (barbershop_id, barber_id) DO UPDATE
+			`INSERT INTO professional_booking_policy
+			        (business_id, professional_id, min_advance_minutes, max_advance_days, slot_grid_minutes)
+			 SELECT b.business_id, b.id, $3, $4, $5
+			   FROM professional b
+			  WHERE b.business_id = $1 AND b.id = $2
+			 ON CONFLICT (business_id, professional_id) DO UPDATE
 			    SET min_advance_minutes = EXCLUDED.min_advance_minutes,
 			        max_advance_days    = EXCLUDED.max_advance_days,
 			        slot_grid_minutes   = EXCLUDED.slot_grid_minutes
-			 RETURNING barber_id::text, min_advance_minutes, max_advance_days, slot_grid_minutes, updated_at`,
+			 RETURNING professional_id::text, min_advance_minutes, max_advance_days, slot_grid_minutes, updated_at`,
 			barbershopID, barberID, input.MinAdvanceMinutes, input.MaxAdvanceDays, input.SlotGridMinutes,
 		).Scan(&p.BarberID, &p.MinAdvanceMinutes, &p.MaxAdvanceDays, &p.SlotGridMinutes, &p.UpdatedAt)
 		switch {
@@ -130,7 +130,7 @@ func (r *BarberBookingPolicyRepository) Upsert(ctx context.Context, barbershopID
 func (r *BarberBookingPolicyRepository) Delete(ctx context.Context, barbershopID, barberID string) error {
 	err := r.db.InTenantTx(ctx, database.BarbershopID(barbershopID), func(ctx context.Context, q database.Queries) error {
 		if _, err := q.Exec(ctx,
-			`DELETE FROM barber_booking_policy WHERE barbershop_id = $1 AND barber_id = $2`,
+			`DELETE FROM professional_booking_policy WHERE business_id = $1 AND professional_id = $2`,
 			barbershopID, barberID,
 		); err != nil {
 			return fmt.Errorf("delete barber booking policy: %w", err)

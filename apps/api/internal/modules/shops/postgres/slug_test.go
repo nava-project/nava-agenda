@@ -26,7 +26,7 @@ func readPublicSlug(t *testing.T, db *database.DB, id string) *string {
 	t.Helper()
 	var slug *string
 	err := db.InTenantTx(context.Background(), database.BarbershopID(id), func(ctx context.Context, q database.Queries) error {
-		return q.QueryRow(ctx, `SELECT public_slug FROM barbershop WHERE id = $1`, id).Scan(&slug)
+		return q.QueryRow(ctx, `SELECT public_slug FROM business WHERE id = $1`, id).Scan(&slug)
 	})
 	if err != nil {
 		t.Fatalf("readPublicSlug(%s): %v", id, err)
@@ -43,7 +43,7 @@ func resetSlugFixture(t *testing.T, db *database.DB, id, originalName string) {
 	reset := func() {
 		err := db.InTenantTx(context.Background(), database.BarbershopID(id), func(ctx context.Context, q database.Queries) error {
 			_, err := q.Exec(ctx,
-				`UPDATE barbershop SET name = $2, timezone = 'America/Bogota', public_slug = NULL WHERE id = $1`,
+				`UPDATE business SET name = $2, timezone = 'America/Bogota', public_slug = NULL WHERE id = $1`,
 				id, originalName,
 			)
 			return err

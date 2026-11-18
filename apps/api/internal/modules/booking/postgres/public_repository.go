@@ -241,8 +241,8 @@ func updateExistingCustomerContact(
 		UPDATE customer
 		   SET phone = COALESCE($3, phone),
 		       email = COALESCE($4, email)
-		 WHERE barbershop_id = $1 AND id = $2
-		RETURNING id, barbershop_id, full_name, phone, email, created_at, updated_at`,
+		 WHERE business_id = $1 AND id = $2
+		RETURNING id, business_id, full_name, phone, email, created_at, updated_at`,
 		barbershopID, customerID, updatePhone, updateEmail,
 	).Scan(&c.ID, &c.BarbershopID, &c.FullName, &c.Phone, &c.Email, &c.CreatedAt, &c.UpdatedAt)
 	if err != nil {
@@ -270,7 +270,7 @@ func insertAppointmentAccessToken(
 	issuedAt, expiresAt time.Time,
 ) error {
 	_, err := q.Exec(ctx, `
-		INSERT INTO appointment_access_token (barbershop_id, appointment_id, token_hash, issued_at, expires_at)
+		INSERT INTO appointment_access_token (business_id, appointment_id, token_hash, issued_at, expires_at)
 		VALUES ($1, $2, $3, $4, $5)`,
 		barbershopID, appointmentID, tokenHash, issuedAt, expiresAt,
 	)

@@ -49,7 +49,7 @@ func clearPublicSlugs(t *testing.T, db *database.DB) {
 	clear := func() {
 		for _, shop := range []string{shopA, shopB} {
 			err := db.InTenantTx(context.Background(), database.BarbershopID(shop), func(ctx context.Context, q database.Queries) error {
-				_, err := q.Exec(ctx, `UPDATE barbershop SET public_slug = NULL WHERE id = $1`, shop)
+				_, err := q.Exec(ctx, `UPDATE business SET public_slug = NULL WHERE id = $1`, shop)
 				return err
 			})
 			if err != nil {
@@ -89,7 +89,7 @@ func TestPublicLink_HTTP_FirstReadGeneratesAndLaterReadsKeepIt(t *testing.T) {
 	first := doPublicLinkRequest(router, raw)
 	slug := decodePublicLinkSlug(t, first)
 	if !regexp.MustCompile(`^[a-z0-9]([a-z0-9-]{1,38}[a-z0-9])$`).MatchString(slug) {
-		t.Fatalf("generated slug %q does not satisfy barbershop_public_slug_ck", slug)
+		t.Fatalf("generated slug %q does not satisfy business_public_slug_ck", slug)
 	}
 	if got := first.Header().Get("Cache-Control"); got != "no-store" {
 		t.Fatalf("expected Cache-Control no-store, got %q", got)
