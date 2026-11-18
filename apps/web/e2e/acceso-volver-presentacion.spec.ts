@@ -3,9 +3,9 @@ import path from 'node:path'
 import { fileURLToPath } from 'node:url'
 
 /**
- * Barra «Volver a la presentación» del acceso y la recuperación (issue #517): lleva a «/» (la landing,
- * DEC-151), no tapa ni desplaza el formulario y no desborda en 320/360/768/1280 px. Sin API. Capturas
- * en e2e/evidence/acceso-volver-presentacion/.
+ * Barra «Volver a la presentación» del acceso y la recuperación (issue #517): lleva a la landing
+ * de https://nava.wtf (DEC-151, DEC-183), no tapa ni desplaza el formulario y no desborda en
+ * 320/360/768/1280 px. Sin API. Capturas en e2e/evidence/acceso-volver-presentacion/.
  */
 const here = path.dirname(fileURLToPath(import.meta.url))
 const evidenceDir = path.join(here, 'evidence', 'acceso-volver-presentacion')
@@ -69,12 +69,13 @@ for (const route of routes) {
   }
 }
 
-test('«Volver a la presentación» lleva a la landing y se alcanza con teclado', async ({ page }) => {
+test('«Volver a la presentación» apunta a la landing de nava.wtf y se alcanza con teclado', async ({
+  page,
+}) => {
+  // DEC-183: la landing es otro proyecto; no se navega fuera del servidor de pruebas.
   await page.goto('/acceso')
   const back = page.getByRole('link', { name: 'Volver a la presentación' })
   await back.focus()
   await expect(back).toBeFocused()
-  await page.keyboard.press('Enter')
-  await expect(page).toHaveURL(/\/$/)
-  await expect(page.getByRole('heading', { level: 1 })).toContainText('La agenda de tu negocio')
+  await expect(back).toHaveAttribute('href', 'https://nava.wtf')
 })

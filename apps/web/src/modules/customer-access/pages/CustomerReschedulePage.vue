@@ -10,6 +10,7 @@
 import { computed, nextTick, onMounted, ref, watch } from 'vue'
 import { BaseAlert, BaseButton, NavaWordmark, PageState } from '@/shared/ui'
 import { buildVocabularyFromTerms } from '@/shared/model'
+import { NAVA_PRIVACY_URL, NAVA_TERMS_URL } from '@/shared/model/navaSite'
 import { civilDateChip, formatCivilDateFull, getCivilDateInTimezone } from '@/shared/time/civilDate'
 import { formatTimeInTimezone } from '@/shared/time/formatInstant'
 import { BookingBackdrop } from '@/modules/public-booking'
@@ -737,8 +738,8 @@ const unexpectedErrorMessage = computed(() => {
       <span>Turnos con</span>
       <NavaWordmark variant="inverted" size="sm" />
       <nav class="reschedule__legal" aria-label="Documentos legales">
-        <a href="/privacidad">Privacidad</a>
-        <a href="/terminos">Condiciones</a>
+        <a :href="NAVA_PRIVACY_URL">Privacidad</a>
+        <a :href="NAVA_TERMS_URL">Condiciones</a>
       </nav>
     </footer>
   </div>

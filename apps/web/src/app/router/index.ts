@@ -7,8 +7,6 @@ import {
 } from '@/modules/barberServices'
 import { catalogNavItems, catalogPrivateShellChildRoutes } from '@/modules/catalog'
 import { integrationsPrivateShellChildRoutes } from '@/modules/integrations'
-import { landingRoutes } from '@/modules/landing'
-import { legalRoutes } from '@/modules/legal'
 import { customerAccessRoutes } from '@/modules/customer-access'
 import { publicBookingRoutes } from '@/modules/public-booking'
 import { schedulesNavItems, schedulesPrivateShellChildRoutes } from '@/modules/schedules'
@@ -27,14 +25,10 @@ import { installProfileRedirect } from './profileGuard'
 // navegación combinadas de `auth` y de cada módulo con pantalla privada,
 // sin que ningún módulo importe a otro (app → modules → shared).
 const routes: RouteRecordRaw[] = [
-  // DEC-151: la raíz presenta NAVA (landing pública) en lugar de redirigir al
-  // acceso; «Iniciar sesión» lleva a /acceso. Sin sesión y fuera del cascarón
-  // privado.
-  ...landingRoutes,
-  // Issue #545: política de privacidad y condiciones del servicio, públicas y
-  // sin sesión. Sus URL se registran en la pantalla de consentimiento de OAuth
-  // de Google, así que no se renombran.
-  ...legalRoutes,
+  // DEC-183 (issue #658): la landing y los documentos legales viven en otro
+  // proyecto (nava.wtf). La raíz de la app lleva al panel: con sesión entra,
+  // sin sesión la guarda del cascarón la manda al acceso.
+  { path: '/', name: 'inicio', redirect: '/panel' },
   ...authRoutes,
   // HU-090: entrada pública de reservas, sin sesión del barbero y aislada
   // del cascarón privado (CA-090-03: nunca pasa por requireSession).
@@ -96,17 +90,16 @@ const routes: RouteRecordRaw[] = [
   },
 ]
 
-// Altura de la cabecera fija de la landing y de los documentos legales: el
-// ancla de destino queda justo debajo.
+// Margen superior al llegar a un ancla (`#seccion`): el destino no queda pegado
+// al borde ni bajo una cabecera fija.
 const ANCHOR_OFFSET = 72
 
 export const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
   routes,
-  // El pie del sitio enlaza secciones de la landing desde cualquier página
-  // (`/#contacto`) y las pantallas públicas son largas: llegar a una ruta nueva
-  // empieza arriba y un ancla se alcanza con desplazamiento suave (salvo si la
-  // persona pidió menos movimiento). Atrás/adelante restauran la posición.
+  // Las pantallas públicas son largas: llegar a una ruta nueva empieza arriba y
+  // un ancla se alcanza con desplazamiento suave (salvo si la persona pidió
+  // menos movimiento). Atrás/adelante restauran la posición.
   scrollBehavior(to, from, savedPosition) {
     if (savedPosition) return savedPosition
     if (to.hash) {

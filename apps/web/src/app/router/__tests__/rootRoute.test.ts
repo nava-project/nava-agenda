@@ -1,18 +1,20 @@
 /**
- * Ruta raíz (DEC-151, issue #515): `/` presenta la landing pública en lugar de
- * redirigir al acceso, sin pasar por el guard de sesión.
+ * Ruta raíz (DEC-183, issue #658): la landing vive en nava.wtf; en la app `/`
+ * lleva al panel, cuya guarda manda al acceso si no hay sesión.
  */
 import { describe, it, expect } from 'vitest'
-import { landingRoutes } from '@/modules/landing'
+import { router } from '../index'
 
-describe('landingRoutes', () => {
-  it('registra «/» como una ruta pública con nombre y sin redirección', () => {
-    expect(landingRoutes).toHaveLength(1)
-    const [route] = landingRoutes
-    expect(route.path).toBe('/')
-    expect(route.name).toBe('inicio')
-    expect(route.redirect).toBeUndefined()
-    expect(route.beforeEnter).toBeUndefined()
-    expect(route.meta?.requiresAuth).toBeUndefined()
+describe('ruta raíz', () => {
+  it('redirige «/» al panel', () => {
+    const root = router.getRoutes().find((route) => route.path === '/')
+    expect(root?.name).toBe('inicio')
+    expect(root?.redirect).toBe('/panel')
+  })
+
+  it('ya no sirve la landing ni los documentos legales', () => {
+    for (const path of ['/privacidad', '/terminos']) {
+      expect(router.resolve(path).name).toBe('no-encontrada')
+    }
   })
 })
