@@ -40,7 +40,7 @@ Internet ──443──▶ web (Caddy) ── red "edge" (externa, compartida) 
 
 **Webhook de WhatsApp de Nava Nexos (#679, ADR 027 de `bcaceres19/nava-nexos`).** El sitio `nexos.{$DOMAIN}` solo deja pasar `GET`/`POST /webhooks/whatsapp` hacia `nexos:7870`, con cuerpo de hasta 1 MB; cualquier otra ruta responde 404 en el propio Caddy. Llega por la red externa `nexos-edge`, separada de `edge` para que Pedidos, Jenkins y la landing no alcancen el simulador ni los otros webhooks de Nexos. `deploy.sh` crea esa red si falta. La firma HMAC de Meta la valida Nexos.
 
-**Landing en `nava.wtf` (`DEC-183`, #658).** La app vive en `agenda.nava.wtf`. `nava.wtf` sirve la landing de la familia NAVA y `/privacidad` y `/terminos` desde el repo `bcaceres19/nava` (pila `nava-landing` en `/srv/nava`, alias `nava-landing` en `edge`, jobs `nava/ci` y `nava/deploy`). En `nava.wtf`, las rutas de la app (`/acceso`, `/recuperar-acceso`, `/panel/*`, `/reservar/*`, `/mi-turno/*`) redirigen con 308 a `agenda.nava.wtf` con la misma ruta, y `/api/*` y `/health` siguen llegando al API mientras Odin y el webhook de Meta cambian su URL. En `agenda.nava.wtf`, `/privacidad` y `/terminos` redirigen a `nava.wtf`.
+**Landing en `nava.wtf` (`DEC-183`, #658).** La app vive en `agenda.nava.wtf`. `nava.wtf` sirve la landing de la familia NAVA y `/privacidad` y `/terminos` desde el repo `bcaceres19/nava` (pila `nava-landing` en `/srv/nava`, alias `nava-landing` en `edge`, jobs `nava/ci` y `nava/deploy`). En `nava.wtf`, las rutas de la app (`/acceso`, `/recuperar-acceso`, `/panel/*`, `/reservar/*`, `/mi-turno/*`) redirigen con 308 a `agenda.nava.wtf` con la misma ruta; el API ya no responde en `nava.wtf` (#685). En `agenda.nava.wtf`, `/privacidad` y `/terminos` redirigen a `nava.wtf`.
 
 **Otros proyectos en la misma VPS (`DEC-176`).** Este Caddy es el único dueño de 80/443.
 Nava · Pedidos (repo `nava-pedidos`, pila `pedidos` en `/srv/pedidos`) no publica puertos:
@@ -195,7 +195,7 @@ ejecuta la pila y conserva los nombres `ghcr.io/bcaceres19/nava-agenda-*`.
 | --- | --- |
 | Google Cloud, clave de navegador | Añadir `https://agenda.nava.wtf/*` a las referencias HTTP permitidas (`https://nava.wtf/*` mientras dure la transición) |
 | Google Cloud, cliente OAuth de Calendar | Origen `https://agenda.nava.wtf` y URI de redirección `https://agenda.nava.wtf/panel/negocio/google-calendar/callback` (y la futura `…/panel/negocio/google-calendar/callback`, #662); las mismas cuatro variables `GOOGLE_CALENDAR_*` en `app.env` |
-| Meta, webhook de WhatsApp | URL `https://agenda.nava.wtf/api/v1/public/webhooks/meta/whatsapp` y el token de verificación de `app.env` (`nava.wtf/api/*` sigue llegando al API durante la transición) |
+| Meta, webhook de WhatsApp | URL `https://agenda.nava.wtf/api/v1/public/webhooks/meta/whatsapp` y el token de verificación de `app.env` |
 | Resend | Dominio `nava.wtf` verificado (sección 4) |
 
 ## 7. Operación

@@ -85,42 +85,4 @@ export const publicBookingRoutes: RouteRecordRaw[] = [
       },
     ],
   },
-  // Pasos con la forma anterior a DEC-183 (#662): `…/barbero/:barberId/…`. Un enlace
-  // guardado o compartido sigue llegando al mismo paso, con su query y su ancla.
-  {
-    path: '/reservar/:slug/servicios/:serviceId/barbero',
-    redirect: (to) => ({
-      name: 'reserva-publica-profesional',
-      params: { slug: to.params.slug, serviceId: to.params.serviceId },
-      query: to.query,
-      hash: to.hash,
-    }),
-  },
-  {
-    path: '/reservar/:slug/servicios/:serviceId/barbero/:barberId/horario',
-    redirect: (to) => ({
-      name: 'reserva-publica-horario',
-      params: {
-        slug: to.params.slug,
-        serviceId: to.params.serviceId,
-        professionalId: to.params.barberId,
-      },
-      query: to.query,
-      hash: to.hash,
-    }),
-  },
-  {
-    path: '/reservar/:slug/servicios/:serviceId/barbero/:barberId/horario/:startsAt/cliente',
-    redirect: (to) => ({
-      name: 'reserva-publica-cliente',
-      params: {
-        slug: to.params.slug,
-        serviceId: to.params.serviceId,
-        professionalId: to.params.barberId,
-        startsAt: to.params.startsAt,
-      },
-      query: to.query,
-      hash: to.hash,
-    }),
-  },
 ]

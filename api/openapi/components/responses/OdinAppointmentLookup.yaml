@@ -20,7 +20,6 @@ content:
               startsAt: "2026-11-20T14:00:00-05:00"
               serviceName: Corte Vbras
               professionalName: Jhonner Bustamante
-              barberName: Jhonner Bustamante
               canCancel: true
               canReschedule: true
       sinTurnos:

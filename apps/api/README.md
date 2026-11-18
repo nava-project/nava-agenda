@@ -499,9 +499,7 @@ en `internal/modules/auth/service_test.go`.
 `SameSite`, `Path`, `Domain` ni el nombre de la cookie; tampoco lo fija el
 issue `#44`. `docs/00-control/dudas-pendientes.md` registra este vacío como
 `DP-SEG-07` y documenta la elección aplicada mientras se confirma:
-`httpapi.DefaultCookieConfig()` usa nombre `nava_agenda_session` (y lee
-`barberia_session`, el nombre anterior a `DEC-183`, mientras queden sesiones
-abiertas con él; #662), `Path=/api/v1`, `SameSite=Lax`, `Secure=true`, sin `Domain` explícito
+`httpapi.DefaultCookieConfig()` usa nombre `nava_agenda_session`, `Path=/api/v1`, `SameSite=Lax`, `Secure=true`, sin `Domain` explícito
 (host-only), 30 días de vigencia. **Estos valores son provisionales**; si
 el propietario confirma otros, se actualizan aquí, en
 `api/openapi/components/security-schemes/SessionCookie.yaml` y en el

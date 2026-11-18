@@ -1,6 +1,6 @@
 ---
 titulo: "Glosario y convenciones de nombres"
-version: "1.2"
+version: "1.3"
 estado: "Vigente"
 responsable: "Propietario del proyecto"
 ultima_actualizacion: "2026-11-18"
@@ -394,11 +394,11 @@ Toda afirmación relevante debe poder clasificarse en una de estas siete etiquet
 | `/public/barbershops/{slug}/…` | `/public/businesses/{slug}/…` | Rutas HTTP públicas |
 | `…/barbers`, `/private/barbers…`, `/private/me/barber` | `…/professionals`, `/private/professionals…`, `/private/me/professional` | Rutas HTTP |
 | `/private/settings/barbershop` | `/private/settings/business` | Ruta HTTP de Configuración |
-| `/integrations/odin/barbershops/{slug}/…` | `/integrations/odin/businesses/{slug}/…` | Integración de Odin; la forma vieja queda como alias deprecado hasta que Odin migre |
+| `/integrations/odin/barbershops/{slug}/…` | `/integrations/odin/businesses/{slug}/…` | Integración de Odin; el alias viejo se retiró en #685 (OpenAPI 2.0.0) |
 | `barberId`, `barberName`, `barbershopId`… | `professionalId`, `professionalName`, `businessId`… | Campos JSON (detalle en `api/openapi/CHANGELOG.md`, 1.0.0) |
-| `/panel/barberia`, `/panel/barberos`, `/panel/servicios-por-barbero` | `/panel/negocio`, `/panel/profesionales`, `/panel/servicios-por-profesional` | Rutas del panel; las viejas redirigen |
+| `/panel/barberia`, `/panel/barberos`, `/panel/servicios-por-barbero` | `/panel/negocio`, `/panel/profesionales`, `/panel/servicios-por-profesional` | Rutas del panel; las redirecciones viejas se retiraron en #685 |
 | `/reservar/:slug/servicios/:serviceId/barbero/…` | `/reservar/:slug/servicios/:serviceId/profesional/…` | Pasos de la reserva pública; los viejos redirigen |
-| cookie `barberia_session` | cookie `nava_agenda_session` | Sesión; el API acepta la vieja si falta la nueva (OpenAPI 1.1.0) |
+| cookie `barberia_session` | cookie `nava_agenda_session` | Sesión; el API aceptó la vieja como respaldo hasta #685 |
 | módulo Go `system-barbershop` | módulo Go `nava-agenda` | `apps/api/go.mod` |
 | `nava.wtf` (app y landing) | `agenda.nava.wtf` (app y API); `nava.wtf` (landing de la familia NAVA, repositorio `bcaceres19/nava`) | Dominios |
 

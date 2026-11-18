@@ -548,19 +548,6 @@ func buildRouter(db *database.DB, logger *slog.Logger, cfg config.Config) (*chi.
 	listPublicServiceAvailabilityHandler := publicbookinghttpapi.NewListPublicServiceAvailabilityHandler(publicAvailabilityService)
 	router.Get("/api/v1/public/businesses/{slug}/services/{serviceId}/availability", listPublicServiceAvailabilityHandler.ServeHTTP)
 
-	// Alias deprecados de las lecturas públicas que Odin hace con la ruta
-	// anterior a DEC-183 (#661): mismos handlers, mismo router público sin
-	// sesión. El nombre del parámetro de chi es el del handler (professionalId);
-	// la URL es la de siempre. Se retiran cuando Odin migre a /businesses.
-	legacyPublic := "/api/v1/public/barbershops/{slug}"
-	router.Get(legacyPublic, resolveBusinessHandler.ServeHTTP)
-	router.Get(legacyPublic+"/services", listPublicServicesHandler.ServeHTTP)
-	router.Get(legacyPublic+"/reviews", googleReviewsHandler.ServeHTTP)
-	router.Get(legacyPublic+"/barbers", listPublicProfessionalsWithServicesHandler.ServeHTTP)
-	router.Get(legacyPublic+"/services/{serviceId}/barbers", listPublicProfessionalsHandler.ServeHTTP)
-	router.Get(legacyPublic+"/services/{serviceId}/availability", listPublicServiceAvailabilityHandler.ServeHTTP)
-	router.Get(legacyPublic+"/services/{serviceId}/barbers/{professionalId}/availability", listPublicAvailabilityHandler.ServeHTTP)
-
 	// HU-061: creación manual de turnos. ManualBookingService (booking, dueño
 	// de la primitiva de HU-060) colabora con catalog/schedule/shops SOLO a
 	// través de los puertos pequeños que booking declara
@@ -685,10 +672,6 @@ func buildRouter(db *database.DB, logger *slog.Logger, cfg config.Config) (*chi.
 		odinChallenge := customeraccesshttpapi.NewOdinChallengeHandler(refService, cfg.PublicWebBaseURL).ServeHTTP
 		odinOnly.Post("/api/v1/integrations/odin/businesses/{slug}/customer-appointments/lookup", odinLookup)
 		odinOnly.Post("/api/v1/integrations/odin/businesses/{slug}/customer-access/challenge", odinChallenge)
-		// Alias deprecados con la ruta anterior a DEC-183 (#661): responden igual
-		// hasta que Odin confirme el cambio; después se retiran.
-		odinOnly.Post("/api/v1/integrations/odin/barbershops/{slug}/customer-appointments/lookup", odinLookup)
-		odinOnly.Post("/api/v1/integrations/odin/barbershops/{slug}/customer-access/challenge", odinChallenge)
 	} else {
 		logger.Info("integración de Odin desactivada: APP_ODIN_SERVICE_TOKEN no está definido")
 	}

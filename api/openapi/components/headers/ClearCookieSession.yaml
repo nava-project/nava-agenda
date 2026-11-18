@@ -8,8 +8,6 @@ description: >
   mismos Path=/api/v1, SameSite=Lax (provisional, DP-SEG-07 en
   docs/00-control/dudas-pendientes.md), Secure, HttpOnly que la cookie
   original, con Max-Age=0 para que el navegador la elimine de inmediato.
-  Se borran los dos nombres: `nava_agenda_session` y el anterior a DEC-183,
-  `barberia_session` (dos cabeceras Set-Cookie).
 schema:
   type: string
 examples:

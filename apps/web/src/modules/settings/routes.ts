@@ -12,9 +12,6 @@ export const settingsPrivateShellChildRoutes: RouteRecordRaw[] = [
     name: 'configuracion-negocio',
     component: () => import('./pages/SettingsPage.vue'),
   },
-  // Ruta anterior a DEC-183 (#662): un enlace guardado sigue llegando, con su
-  // query y su ancla (`#configuracion-horario`).
-  { path: 'barberia', redirect: { name: 'configuracion-negocio' } },
   {
     path: 'reserva-publica',
     name: 'configuracion-reserva-publica',
