@@ -199,7 +199,7 @@ tail /srv/barberia/deploy.log       # historial de despliegues (versión, actor,
 anterior): Jenkins → *Barbería* → *Deploy* → *Build with Parameters* (`SHA` vacío = último commit de
 `main`; o un SHA). Verifica que el CI de Jenkins del commit esté en verde (un commit anterior a la migración del
 2026-11-16 ya no se acepta: sus resultados de GitHub Actions se borraron), construye las imágenes que falten en el
-Docker del servidor y entonces: respaldo previo verificado → migraciones con `barberia_migrator` →
+Docker del servidor y entonces: respaldo previo verificado → migraciones con `agenda_migrator` (en dos fases: los roles `barberia_*` pasan a `agenda_*` tras `20261121090000`, DEC-183) →
 arranque → pruebas de humo. **Si la migración falla, la aplicación en ejecución no se toca.**
 
 **Revertir la aplicación** (roll-forward es lo normal; esto solo es seguro si el esquema actual es
