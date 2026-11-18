@@ -11,7 +11,7 @@
 // alcance: cualquier endpoint HTTP, formulario Vue o pantalla de agenda; la
 // política de creación manual completa, incluida la reconciliación de un
 // cliente sin teléfono (DP-CIT-01) y la validación de jornada, bloqueos o
-// asignación servicio-barbero (HU-061); modificar, reprogramar, cancelar,
+// asignación servicio-profesional (HU-061); modificar, reprogramar, cancelar,
 // completar o corregir una cita existente; tokens públicos, recordatorios,
 // notificaciones, cierre automático, anonimización o métricas del piloto.
 // `schedule` y `catalog` no importan este paquete ni sus tablas, y este

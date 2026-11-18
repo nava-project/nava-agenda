@@ -1,7 +1,7 @@
 // Pruebas de integración de la conexión con Google Calendar (issue #323,
 // DEC-099, DEC-102) contra el router REAL (buildRouter), PostgreSQL real con dos
-// barberías y un Google FALSO: ninguna prueba toca la red real. Requieren
-// database/testdata/dos_barberias.sql y hu005_credenciales_sesiones.sql.
+// negocios y un Google FALSO: ninguna prueba toca la red real. Requieren
+// database/testdata/dos_negocios.sql y hu005_credenciales_sesiones.sql.
 package main
 
 import (
@@ -18,10 +18,10 @@ import (
 
 	"golang.org/x/oauth2"
 
-	"system-barbershop/internal/modules/googlecalendar"
-	googlecalendargoogle "system-barbershop/internal/modules/googlecalendar/google"
-	"system-barbershop/internal/platform/config"
-	"system-barbershop/internal/platform/database"
+	"nava-agenda/internal/modules/googlecalendar"
+	googlecalendargoogle "nava-agenda/internal/modules/googlecalendar/google"
+	"nava-agenda/internal/platform/config"
+	"nava-agenda/internal/platform/database"
 )
 
 const googleStubRefreshToken = "1//refresh-token-de-prueba-no-es-real"
@@ -93,7 +93,7 @@ func googleCalendarRouter(t *testing.T, db *database.DB, stub *googleStub) http.
 	cfg := testRouterConfig()
 	cfg.GoogleCalendarClientID = "cliente-de-prueba.apps.googleusercontent.com"
 	cfg.GoogleCalendarClientSecret = "secreto-de-prueba"
-	cfg.GoogleCalendarRedirectURI = "http://localhost:5173/panel/barberia/google-calendar/callback"
+	cfg.GoogleCalendarRedirectURI = "http://localhost:5173/panel/negocio/google-calendar/callback"
 	cfg.GoogleCalendarTokenEncryptionKey = base64.StdEncoding.EncodeToString(bytes.Repeat([]byte{5}, 32))
 	cfg.GoogleCalendarTokenKeyID = "v1"
 
@@ -152,9 +152,9 @@ func startConnection(t *testing.T, router http.Handler, raw string) string {
 	return q.Get("state")
 }
 
-func linkMe(t *testing.T, router http.Handler, raw, barberID string) {
+func linkMe(t *testing.T, router http.Handler, raw, professionalID string) {
 	t.Helper()
-	rec := doMyBarberRequest(router, raw, http.MethodPut, `{"professionalId":"`+barberID+`"}`)
+	rec := doMyProfessionalRequest(router, raw, http.MethodPut, `{"professionalId":"`+professionalID+`"}`)
 	if rec.Code != http.StatusOK {
 		t.Fatalf("vincular: expected 200, got %d: %s", rec.Code, rec.Body.String())
 	}
@@ -167,20 +167,20 @@ func TestGoogleCalendar_HTTP_ConnectJourney_EncryptedAtRestAndDisconnect(t *test
 	raw := createSessionCookie(t, db, shopA, staffUserActiveA, "gcal-journey")
 	t.Cleanup(func() {
 		doGCal(router, raw, http.MethodDelete, "", "")
-		doMyBarberRequest(router, raw, http.MethodDelete, "")
+		doMyProfessionalRequest(router, raw, http.MethodDelete, "")
 	})
-	barber := createBarberVia(t, router, raw, "Gcal "+uniqueToken(t, "n"))
+	professional := createProfessionalVia(t, router, raw, "Gcal "+uniqueToken(t, "n"))
 
-	// Sin barbero vinculado: el estado lo dice y conectar responde 409.
+	// Sin profesional vinculado: el estado lo dice y conectar responde 409.
 	rec := doGCal(router, raw, http.MethodGet, "", "")
 	if body := gcalJSON(t, rec); rec.Code != http.StatusOK || body["professionalLinked"] != false || body["enabled"] != true {
 		t.Fatalf("sin vínculo: %d %v", rec.Code, body)
 	}
 	if rec := doGCal(router, raw, http.MethodPost, "/connect", ""); rec.Code != http.StatusConflict {
-		t.Fatalf("conectar sin barbero: expected 409, got %d", rec.Code)
+		t.Fatalf("conectar sin profesional: expected 409, got %d", rec.Code)
 	}
 
-	linkMe(t, router, raw, barber.ID)
+	linkMe(t, router, raw, professional.ID)
 	state := startConnection(t, router, raw)
 
 	rec = doGCal(router, raw, http.MethodPost, "/callback", `{"state":"`+state+`","code":"codigo-de-google"}`)
@@ -204,10 +204,10 @@ func TestGoogleCalendar_HTTP_ConnectJourney_EncryptedAtRestAndDisconnect(t *test
 	// En la base solo hay texto cifrado, nunca el token en claro.
 	var ciphertext []byte
 	var keyID string
-	if err := db.InTenantTx(context.Background(), database.BarbershopID(shopA), func(ctx context.Context, q database.Queries) error {
+	if err := db.InTenantTx(context.Background(), database.BusinessID(shopA), func(ctx context.Context, q database.Queries) error {
 		return q.QueryRow(ctx,
 			`SELECT refresh_token_ciphertext, token_key_id FROM google_calendar_connection
-			  WHERE business_id = $1 AND professional_id = $2`, shopA, barber.ID).Scan(&ciphertext, &keyID)
+			  WHERE business_id = $1 AND professional_id = $2`, shopA, professional.ID).Scan(&ciphertext, &keyID)
 	}); err != nil {
 		t.Fatal(err)
 	}
@@ -235,10 +235,10 @@ func TestGoogleCalendar_HTTP_ConnectJourney_EncryptedAtRestAndDisconnect(t *test
 		t.Fatalf("desconectado: %v", body)
 	}
 	var left int
-	_ = db.InTenantTx(context.Background(), database.BarbershopID(shopA), func(ctx context.Context, q database.Queries) error {
+	_ = db.InTenantTx(context.Background(), database.BusinessID(shopA), func(ctx context.Context, q database.Queries) error {
 		return q.QueryRow(ctx,
 			`SELECT count(*) FROM google_calendar_connection
-			  WHERE professional_id = $1 AND refresh_token_ciphertext IS NOT NULL`, barber.ID).Scan(&left)
+			  WHERE professional_id = $1 AND refresh_token_ciphertext IS NOT NULL`, professional.ID).Scan(&left)
 	})
 	if left != 0 {
 		t.Fatal("desconectar borra las credenciales de la base")
@@ -257,17 +257,17 @@ func TestGoogleCalendar_HTTP_StateIsBoundToSessionTenantAndSingleUse(t *testing.
 	rawB := createSessionCookie(t, db, shopB, staffUserActiveB, "gcal-state-b")
 	t.Cleanup(func() {
 		doGCal(router, rawA, http.MethodDelete, "", "")
-		doMyBarberRequest(router, rawA, http.MethodDelete, "")
-		doMyBarberRequest(router, rawB, http.MethodDelete, "")
+		doMyProfessionalRequest(router, rawA, http.MethodDelete, "")
+		doMyProfessionalRequest(router, rawB, http.MethodDelete, "")
 	})
-	linkMe(t, router, rawA, createBarberVia(t, router, rawA, "Estado A "+uniqueToken(t, "n")).ID)
-	linkMe(t, router, rawB, createBarberVia(t, router, rawB, "Estado B "+uniqueToken(t, "n")).ID)
+	linkMe(t, router, rawA, createProfessionalVia(t, router, rawA, "Estado A "+uniqueToken(t, "n")).ID)
+	linkMe(t, router, rawB, createProfessionalVia(t, router, rawB, "Estado B "+uniqueToken(t, "n")).ID)
 
 	state := startConnection(t, router, rawA)
 	callback := `{"state":"` + state + `","code":"codigo"}`
 
-	// Otra sesión (aun de la misma persona) y otra barbería no pueden usarlo.
-	for name, cookie := range map[string]string{"otra sesión": rawA2, "otra barbería": rawB, "sin cookie": ""} {
+	// Otra sesión (aun de la misma persona) y otro negocio no pueden usarlo.
+	for name, cookie := range map[string]string{"otra sesión": rawA2, "otro negocio": rawB, "sin cookie": ""} {
 		rec := doGCal(router, cookie, http.MethodPost, "/callback", callback)
 		want := http.StatusBadRequest
 		if cookie == "" {
@@ -281,7 +281,7 @@ func TestGoogleCalendar_HTTP_StateIsBoundToSessionTenantAndSingleUse(t *testing.
 		t.Fatal("un state ajeno nunca debe llegar a Google")
 	}
 
-	// Un intento de otra sesión de la MISMA barbería ya consumió ese state (se
+	// Un intento de otra sesión del mismo negocio ya consumió ese state (se
 	// consume antes de comprobar a quién pertenece): ni siquiera su dueño puede
 	// reutilizarlo y debe iniciar de nuevo. Un state filtrado queda inservible.
 	if rec := doGCal(router, rawA, http.MethodPost, "/callback", callback); rec.Code != http.StatusBadRequest {
@@ -311,9 +311,9 @@ func TestGoogleCalendar_HTTP_DeniedAndFailedExchangeConnectNothing(t *testing.T)
 	raw := createSessionCookie(t, db, shopA, staffUserActiveA, "gcal-denied")
 	t.Cleanup(func() {
 		doGCal(router, raw, http.MethodDelete, "", "")
-		doMyBarberRequest(router, raw, http.MethodDelete, "")
+		doMyProfessionalRequest(router, raw, http.MethodDelete, "")
 	})
-	linkMe(t, router, raw, createBarberVia(t, router, raw, "Rechazo "+uniqueToken(t, "n")).ID)
+	linkMe(t, router, raw, createProfessionalVia(t, router, raw, "Rechazo "+uniqueToken(t, "n")).ID)
 
 	state := startConnection(t, router, raw)
 	rec := doGCal(router, raw, http.MethodPost, "/callback", `{"state":"`+state+`","error":"access_denied"}`)
@@ -334,19 +334,19 @@ func TestGoogleCalendar_HTTP_DeniedAndFailedExchangeConnectNothing(t *testing.T)
 	}
 }
 
-// DEC-100: si el usuario cambia o quita su vínculo, la conexión del barbero
+// DEC-100: si el usuario cambia o quita su vínculo, la conexión del profesional
 // anterior se desconecta y se revoca, para que nadie herede una cuenta ajena.
-func TestGoogleCalendar_HTTP_ChangingTheBarberLinkDisconnectsThePreviousBarber(t *testing.T) {
+func TestGoogleCalendar_HTTP_ChangingTheProfessionalLinkDisconnectsThePreviousProfessional(t *testing.T) {
 	db := setupTestDB(t)
 	stub := newGoogleStub(t)
 	router := googleCalendarRouter(t, db, stub)
 	raw := createSessionCookie(t, db, shopA, staffUserActiveA, "gcal-link-change")
 	t.Cleanup(func() {
 		doGCal(router, raw, http.MethodDelete, "", "")
-		doMyBarberRequest(router, raw, http.MethodDelete, "")
+		doMyProfessionalRequest(router, raw, http.MethodDelete, "")
 	})
-	first := createBarberVia(t, router, raw, "Primero "+uniqueToken(t, "n"))
-	second := createBarberVia(t, router, raw, "Segundo "+uniqueToken(t, "n"))
+	first := createProfessionalVia(t, router, raw, "Primero "+uniqueToken(t, "n"))
+	second := createProfessionalVia(t, router, raw, "Segundo "+uniqueToken(t, "n"))
 
 	linkMe(t, router, raw, first.ID)
 	state := startConnection(t, router, raw)
@@ -354,19 +354,19 @@ func TestGoogleCalendar_HTTP_ChangingTheBarberLinkDisconnectsThePreviousBarber(t
 		t.Fatalf("conectar: %d", rec.Code)
 	}
 
-	// Cambiar a otro barbero desconecta al primero.
+	// Cambiar a otro profesional desconecta al primero.
 	linkMe(t, router, raw, second.ID)
 	if got := stub.revokedTokens(); len(got) != 1 || got[0] != googleStubRefreshToken {
-		t.Fatalf("cambiar de barbero debe revocar el token del anterior: %v", got)
+		t.Fatalf("cambiar de profesional debe revocar el token del anterior: %v", got)
 	}
 	if body := gcalJSON(t, doGCal(router, raw, http.MethodGet, "", "")); body["status"] != "not_connected" {
-		t.Fatalf("el nuevo barbero no hereda la conexión del anterior: %v", body)
+		t.Fatalf("el nuevo profesional no hereda la conexión del anterior: %v", body)
 	}
 	var status string
-	if err := db.InTenantTx(context.Background(), database.BarbershopID(shopA), func(ctx context.Context, q database.Queries) error {
+	if err := db.InTenantTx(context.Background(), database.BusinessID(shopA), func(ctx context.Context, q database.Queries) error {
 		return q.QueryRow(ctx, `SELECT status FROM google_calendar_connection WHERE professional_id = $1`, first.ID).Scan(&status)
 	}); err != nil || status != "disconnected" {
-		t.Fatalf("la conexión del primer barbero debe quedar desconectada: %q %v", status, err)
+		t.Fatalf("la conexión del primer profesional debe quedar desconectada: %q %v", status, err)
 	}
 
 	// Quitar el vínculo también: reconecta el segundo y luego sin vínculo.
@@ -374,7 +374,7 @@ func TestGoogleCalendar_HTTP_ChangingTheBarberLinkDisconnectsThePreviousBarber(t
 	if rec := doGCal(router, raw, http.MethodPost, "/callback", `{"state":"`+state+`","code":"c"}`); rec.Code != http.StatusOK {
 		t.Fatalf("reconectar: %d", rec.Code)
 	}
-	doMyBarberRequest(router, raw, http.MethodDelete, "")
+	doMyProfessionalRequest(router, raw, http.MethodDelete, "")
 	if got := stub.revokedTokens(); len(got) != 2 {
 		t.Fatalf("quitar el vínculo también revoca: %v", got)
 	}
@@ -396,8 +396,8 @@ func TestGoogleCalendar_HTTP_DisabledIntegrationKeepsTheProductWorking(t *testin
 		t.Fatalf("conectar desactivada: expected 409, got %d", rec.Code)
 	}
 	// El resto del producto sigue funcionando.
-	if rec := doListBarbersRequest(router, raw, "limit=1"); rec.Code != http.StatusOK {
-		t.Fatalf("la lista de barberos debe seguir funcionando: %d", rec.Code)
+	if rec := doListProfessionalsRequest(router, raw, "limit=1"); rec.Code != http.StatusOK {
+		t.Fatalf("la lista de profesionales debe seguir funcionando: %d", rec.Code)
 	}
 }
 

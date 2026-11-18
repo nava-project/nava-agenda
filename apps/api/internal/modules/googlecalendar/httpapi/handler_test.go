@@ -15,16 +15,16 @@ import (
 
 	"gopkg.in/yaml.v3"
 
-	"system-barbershop/internal/modules/auth"
-	"system-barbershop/internal/modules/googlecalendar"
-	"system-barbershop/internal/modules/googlecalendar/httpapi"
+	"nava-agenda/internal/modules/auth"
+	"nava-agenda/internal/modules/googlecalendar"
+	"nava-agenda/internal/modules/googlecalendar/httpapi"
 )
 
 const (
-	shop    = "11111111-1111-1111-1111-111111111111"
-	user    = "aaaaaaa2-aaaa-aaaa-aaaa-aaaaaaaaaaa2"
-	barber  = "c0000001-0000-4000-8000-000000000001"
-	session = "5e550001-0000-4000-8000-000000000001"
+	shop         = "11111111-1111-1111-1111-111111111111"
+	user         = "aaaaaaa2-aaaa-aaaa-aaaa-aaaaaaaaaaa2"
+	professional = "c0000001-0000-4000-8000-000000000001"
+	session      = "5e550001-0000-4000-8000-000000000001"
 )
 
 type memRepo struct {
@@ -52,7 +52,7 @@ func (r *memRepo) SaveConnected(_ context.Context, s, b string, d googlecalendar
 	r.mu.Lock()
 	defer r.mu.Unlock()
 	at := d.At
-	r.conn = &googlecalendar.Connection{BarbershopID: s, BarberID: b, Status: googlecalendar.StatusConnected,
+	r.conn = &googlecalendar.Connection{BusinessID: s, ProfessionalID: b, Status: googlecalendar.StatusConnected,
 		AccountEmail: d.AccountEmail, CalendarID: "primary", Credentials: d.Credentials, KeyID: d.KeyID, ConnectedAt: &at}
 	return *r.conn, nil
 }
@@ -111,8 +111,8 @@ func (r *memRepo) RequeueConnection(context.Context, string, string, time.Time) 
 	return googlecalendar.JobCounts{Pending: 3}, true, nil
 }
 
-func (r *memRepo) BarberOfUser(context.Context, string, string) (string, bool, error) {
-	return barber, r.linked, nil
+func (r *memRepo) ProfessionalOfUser(context.Context, string, string) (string, bool, error) {
+	return professional, r.linked, nil
 }
 
 type stubProvider struct{ tokens googlecalendar.Tokens }
@@ -154,7 +154,7 @@ func request(method, body string) *http.Request {
 		r = httptest.NewRequest(method, "/api/v1/private/integrations/google-calendar", strings.NewReader(body))
 	}
 	return r.WithContext(auth.ContextWithPrincipal(r.Context(),
-		auth.Principal{SessionID: session, StaffUserID: user, BarbershopID: shop}))
+		auth.Principal{SessionID: session, StaffUserID: user, BusinessID: shop}))
 }
 
 func do(h http.HandlerFunc, r *http.Request) *httptest.ResponseRecorder {
@@ -207,10 +207,10 @@ func TestGet_ReportsNotConnectedThenConnectedAndNeverLeaksCredentials(t *testing
 	}
 }
 
-func TestGet_WithoutBarberOrWithIntegrationOff(t *testing.T) {
+func TestGet_WithoutProfessionalOrWithIntegrationOff(t *testing.T) {
 	rec := do(newHandlers(t, newRepo(false), true).Get, request(http.MethodGet, ""))
 	if body := decode(t, rec); body["professionalLinked"] != false || body["status"] != "not_connected" {
-		t.Fatalf("sin barbero: %v", body)
+		t.Fatalf("sin profesional: %v", body)
 	}
 	rec = do(newHandlers(t, newRepo(true), false).Get, request(http.MethodGet, ""))
 	if body := decode(t, rec); body["enabled"] != false {
@@ -218,10 +218,10 @@ func TestGet_WithoutBarberOrWithIntegrationOff(t *testing.T) {
 	}
 }
 
-func TestConnect_DisabledOrWithoutBarber_Is409(t *testing.T) {
+func TestConnect_DisabledOrWithoutProfessional_Is409(t *testing.T) {
 	for name, h := range map[string]*httpapi.Handlers{
-		"desactivada": newHandlers(t, newRepo(true), false),
-		"sin barbero": newHandlers(t, newRepo(false), true),
+		"desactivada":     newHandlers(t, newRepo(true), false),
+		"sin profesional": newHandlers(t, newRepo(false), true),
 	} {
 		t.Run(name, func(t *testing.T) {
 			rec := do(h.Connect, request(http.MethodPost, ""))
@@ -258,7 +258,7 @@ func TestCallback_StrictBodyAndUniformInvalidStateError(t *testing.T) {
 	}
 }
 
-func TestCallback_DeniedByTheBarber(t *testing.T) {
+func TestCallback_DeniedByTheProfessional(t *testing.T) {
 	repo := newRepo(true)
 	h := newHandlers(t, repo, true)
 	rec := do(h.Connect, request(http.MethodPost, ""))
@@ -465,7 +465,7 @@ func TestSyncNow_ReportsTheQueueAndRequiresAConnection(t *testing.T) {
 	}
 
 	if rec := do(newHandlers(t, newRepo(false), true).SyncNow, request(http.MethodPost, "")); rec.Code != http.StatusConflict {
-		t.Fatalf("sin barbero vinculado: expected 409, got %d", rec.Code)
+		t.Fatalf("sin profesional vinculado: expected 409, got %d", rec.Code)
 	}
 	if rec := do(newHandlers(t, newRepo(true), false).SyncNow, request(http.MethodPost, "")); rec.Code != http.StatusConflict {
 		t.Fatalf("integración desactivada: expected 409, got %d", rec.Code)

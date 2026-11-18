@@ -8,10 +8,10 @@ import (
 	"net/http"
 	"strconv"
 
-	"system-barbershop/internal/modules/schedule"
-	"system-barbershop/internal/platform/apperr"
-	"system-barbershop/internal/platform/httpserver"
-	"system-barbershop/internal/platform/idempotency"
+	"nava-agenda/internal/modules/schedule"
+	"nava-agenda/internal/platform/apperr"
+	"nava-agenda/internal/platform/httpserver"
+	"nava-agenda/internal/platform/idempotency"
 )
 
 // blockIDParam, seriesIDParam, blockDateParam y excludedDateParam son los
@@ -25,12 +25,12 @@ const (
 	excludedDateParam = "excludedDate"
 )
 
-func timeBlockBasePath(barberID string) string {
-	return "/private/professionals/" + barberID + "/time-blocks/"
+func timeBlockBasePath(professionalID string) string {
+	return "/private/professionals/" + professionalID + "/time-blocks/"
 }
 
-func timeBlockSeriesBasePath(barberID string) string {
-	return "/private/professionals/" + barberID + "/time-block-series/"
+func timeBlockSeriesBasePath(professionalID string) string {
+	return "/private/professionals/" + professionalID + "/time-block-series/"
 }
 
 func newTimeBlockResponse(b schedule.TimeBlock) TimeBlockResponse {
@@ -123,7 +123,7 @@ func (h *ListTimeBlocksHandler) ServeHTTP(w http.ResponseWriter, r *http.Request
 	if !ok {
 		return
 	}
-	barberID := httpserver.URLParam(r, barberIDParam)
+	professionalID := httpserver.URLParam(r, professionalIDParam)
 	query := r.URL.Query()
 
 	limit := 0
@@ -136,7 +136,7 @@ func (h *ListTimeBlocksHandler) ServeHTTP(w http.ResponseWriter, r *http.Request
 		limit = parsed
 	}
 
-	result, err := h.service.ListBlocks(r.Context(), principal.BarbershopID, barberID, query.Get("cursor"), limit, parseIncludeDeleted(query))
+	result, err := h.service.ListBlocks(r.Context(), principal.BusinessID, professionalID, query.Get("cursor"), limit, parseIncludeDeleted(query))
 	if err != nil {
 		httpserver.WriteProblem(w, httpserver.Translate(err, requestID))
 		return
@@ -160,10 +160,10 @@ func (h *GetTimeBlockHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) 
 	if !ok {
 		return
 	}
-	barberID := httpserver.URLParam(r, barberIDParam)
+	professionalID := httpserver.URLParam(r, professionalIDParam)
 	blockID := httpserver.URLParam(r, blockIDParam)
 
-	block, err := h.service.GetBlock(r.Context(), principal.BarbershopID, barberID, blockID)
+	block, err := h.service.GetBlock(r.Context(), principal.BusinessID, professionalID, blockID)
 	if err != nil {
 		httpserver.WriteProblem(w, httpserver.Translate(err, requestID))
 		return
@@ -188,7 +188,7 @@ func (h *CreateTimeBlockHandler) ServeHTTP(w http.ResponseWriter, r *http.Reques
 	if !ok {
 		return
 	}
-	barberID := httpserver.URLParam(r, barberIDParam)
+	professionalID := httpserver.URLParam(r, professionalIDParam)
 
 	key, err := httpserver.IdempotencyKeyFromRequest(r)
 	if err != nil {
@@ -217,7 +217,7 @@ func (h *CreateTimeBlockHandler) ServeHTTP(w http.ResponseWriter, r *http.Reques
 
 	fingerprint := httpserver.IdempotencyFingerprint(r, body)
 
-	result, err := h.service.CreateBlock(r.Context(), principal.BarbershopID, barberID, req.BlockType, req.StartsAt, req.EndsAt, req.Reason, key, fingerprint)
+	result, err := h.service.CreateBlock(r.Context(), principal.BusinessID, professionalID, req.BlockType, req.StartsAt, req.EndsAt, req.Reason, key, fingerprint)
 	if err != nil {
 		httpserver.WriteProblem(w, httpserver.Translate(err, requestID))
 		return
@@ -229,7 +229,7 @@ func (h *CreateTimeBlockHandler) ServeHTTP(w http.ResponseWriter, r *http.Reques
 			ID string `json:"id"`
 		}
 		_ = json.Unmarshal([]byte(result.Response.Body), &parsed)
-		w.Header().Set("Location", timeBlockBasePath(barberID)+parsed.ID)
+		w.Header().Set("Location", timeBlockBasePath(professionalID)+parsed.ID)
 		httpserver.WriteStoredResponse(w, result.Response)
 	default:
 		httpserver.WriteProblem(w, httpserver.Translate(result.Decision.AsError(), requestID))
@@ -251,10 +251,10 @@ func (h *DeleteTimeBlockHandler) ServeHTTP(w http.ResponseWriter, r *http.Reques
 	if !ok {
 		return
 	}
-	barberID := httpserver.URLParam(r, barberIDParam)
+	professionalID := httpserver.URLParam(r, professionalIDParam)
 	blockID := httpserver.URLParam(r, blockIDParam)
 
-	if err := h.service.DeleteBlock(r.Context(), principal.BarbershopID, barberID, blockID, principal.StaffUserID); err != nil {
+	if err := h.service.DeleteBlock(r.Context(), principal.BusinessID, professionalID, blockID, principal.StaffUserID); err != nil {
 		httpserver.WriteProblem(w, httpserver.Translate(err, requestID))
 		return
 	}
@@ -278,10 +278,10 @@ func (h *EffectiveBlocksHandler) ServeHTTP(w http.ResponseWriter, r *http.Reques
 	if !ok {
 		return
 	}
-	barberID := httpserver.URLParam(r, barberIDParam)
+	professionalID := httpserver.URLParam(r, professionalIDParam)
 	query := r.URL.Query()
 
-	result, err := h.service.EffectiveBlocks(r.Context(), principal.BarbershopID, barberID, query.Get("from"), query.Get("to"))
+	result, err := h.service.EffectiveBlocks(r.Context(), principal.BusinessID, professionalID, query.Get("from"), query.Get("to"))
 	if err != nil {
 		httpserver.WriteProblem(w, httpserver.Translate(err, requestID))
 		return
@@ -320,7 +320,7 @@ func (h *ListTimeBlockSeriesHandler) ServeHTTP(w http.ResponseWriter, r *http.Re
 	if !ok {
 		return
 	}
-	barberID := httpserver.URLParam(r, barberIDParam)
+	professionalID := httpserver.URLParam(r, professionalIDParam)
 	query := r.URL.Query()
 
 	limit := 0
@@ -333,7 +333,7 @@ func (h *ListTimeBlockSeriesHandler) ServeHTTP(w http.ResponseWriter, r *http.Re
 		limit = parsed
 	}
 
-	result, err := h.service.ListSeries(r.Context(), principal.BarbershopID, barberID, query.Get("cursor"), limit, parseIncludeDeleted(query))
+	result, err := h.service.ListSeries(r.Context(), principal.BusinessID, professionalID, query.Get("cursor"), limit, parseIncludeDeleted(query))
 	if err != nil {
 		httpserver.WriteProblem(w, httpserver.Translate(err, requestID))
 		return
@@ -357,10 +357,10 @@ func (h *GetTimeBlockSeriesHandler) ServeHTTP(w http.ResponseWriter, r *http.Req
 	if !ok {
 		return
 	}
-	barberID := httpserver.URLParam(r, barberIDParam)
+	professionalID := httpserver.URLParam(r, professionalIDParam)
 	seriesID := httpserver.URLParam(r, seriesIDParam)
 
-	series, err := h.service.GetSeries(r.Context(), principal.BarbershopID, barberID, seriesID)
+	series, err := h.service.GetSeries(r.Context(), principal.BusinessID, professionalID, seriesID)
 	if err != nil {
 		httpserver.WriteProblem(w, httpserver.Translate(err, requestID))
 		return
@@ -385,7 +385,7 @@ func (h *CreateTimeBlockSeriesHandler) ServeHTTP(w http.ResponseWriter, r *http.
 	if !ok {
 		return
 	}
-	barberID := httpserver.URLParam(r, barberIDParam)
+	professionalID := httpserver.URLParam(r, professionalIDParam)
 
 	key, err := httpserver.IdempotencyKeyFromRequest(r)
 	if err != nil {
@@ -414,7 +414,7 @@ func (h *CreateTimeBlockSeriesHandler) ServeHTTP(w http.ResponseWriter, r *http.
 
 	fingerprint := httpserver.IdempotencyFingerprint(r, body)
 
-	result, err := h.service.CreateSeries(r.Context(), principal.BarbershopID, barberID,
+	result, err := h.service.CreateSeries(r.Context(), principal.BusinessID, professionalID,
 		req.BlockType, req.RecurrenceKind, req.ISOWeekday, req.StartsTime, req.DurationMinutes,
 		req.EffectiveFrom, req.EffectiveUntil, req.Reason, req.ExplicitDates, key, fingerprint)
 	if err != nil {
@@ -428,7 +428,7 @@ func (h *CreateTimeBlockSeriesHandler) ServeHTTP(w http.ResponseWriter, r *http.
 			ID string `json:"id"`
 		}
 		_ = json.Unmarshal([]byte(result.Response.Body), &parsed)
-		w.Header().Set("Location", timeBlockSeriesBasePath(barberID)+parsed.ID)
+		w.Header().Set("Location", timeBlockSeriesBasePath(professionalID)+parsed.ID)
 		httpserver.WriteStoredResponse(w, result.Response)
 	default:
 		httpserver.WriteProblem(w, httpserver.Translate(result.Decision.AsError(), requestID))
@@ -450,7 +450,7 @@ func (h *UpdateTimeBlockSeriesHandler) ServeHTTP(w http.ResponseWriter, r *http.
 	if !ok {
 		return
 	}
-	barberID := httpserver.URLParam(r, barberIDParam)
+	professionalID := httpserver.URLParam(r, professionalIDParam)
 	seriesID := httpserver.URLParam(r, seriesIDParam)
 
 	req, ok := decodeJSONBody[UpdateTimeBlockSeriesRequest](w, r, requestID)
@@ -458,7 +458,7 @@ func (h *UpdateTimeBlockSeriesHandler) ServeHTTP(w http.ResponseWriter, r *http.
 		return
 	}
 
-	series, err := h.service.UpdateSeries(r.Context(), principal.BarbershopID, barberID, seriesID,
+	series, err := h.service.UpdateSeries(r.Context(), principal.BusinessID, professionalID, seriesID,
 		req.Scope, req.BlockType, req.StartsTime, req.DurationMinutes, req.EffectiveFrom, req.EffectiveUntil, req.Reason, req.EffectiveDate)
 	if err != nil {
 		httpserver.WriteProblem(w, httpserver.Translate(err, requestID))
@@ -484,10 +484,10 @@ func (h *DeleteTimeBlockSeriesHandler) ServeHTTP(w http.ResponseWriter, r *http.
 	if !ok {
 		return
 	}
-	barberID := httpserver.URLParam(r, barberIDParam)
+	professionalID := httpserver.URLParam(r, professionalIDParam)
 	seriesID := httpserver.URLParam(r, seriesIDParam)
 
-	if err := h.service.DeleteSeries(r.Context(), principal.BarbershopID, barberID, seriesID); err != nil {
+	if err := h.service.DeleteSeries(r.Context(), principal.BusinessID, professionalID, seriesID); err != nil {
 		httpserver.WriteProblem(w, httpserver.Translate(err, requestID))
 		return
 	}
@@ -508,7 +508,7 @@ func (h *AddSeriesDateHandler) ServeHTTP(w http.ResponseWriter, r *http.Request)
 	if !ok {
 		return
 	}
-	barberID := httpserver.URLParam(r, barberIDParam)
+	professionalID := httpserver.URLParam(r, professionalIDParam)
 	seriesID := httpserver.URLParam(r, seriesIDParam)
 
 	req, ok := decodeJSONBody[AddSeriesDateRequest](w, r, requestID)
@@ -516,7 +516,7 @@ func (h *AddSeriesDateHandler) ServeHTTP(w http.ResponseWriter, r *http.Request)
 		return
 	}
 
-	if err := h.service.AddSeriesDate(r.Context(), principal.BarbershopID, barberID, seriesID, req.BlockDate); err != nil {
+	if err := h.service.AddSeriesDate(r.Context(), principal.BusinessID, professionalID, seriesID, req.BlockDate); err != nil {
 		httpserver.WriteProblem(w, httpserver.Translate(err, requestID))
 		return
 	}
@@ -537,11 +537,11 @@ func (h *RemoveSeriesDateHandler) ServeHTTP(w http.ResponseWriter, r *http.Reque
 	if !ok {
 		return
 	}
-	barberID := httpserver.URLParam(r, barberIDParam)
+	professionalID := httpserver.URLParam(r, professionalIDParam)
 	seriesID := httpserver.URLParam(r, seriesIDParam)
 	blockDate := httpserver.URLParam(r, blockDateParam)
 
-	if err := h.service.RemoveSeriesDate(r.Context(), principal.BarbershopID, barberID, seriesID, blockDate); err != nil {
+	if err := h.service.RemoveSeriesDate(r.Context(), principal.BusinessID, professionalID, seriesID, blockDate); err != nil {
 		httpserver.WriteProblem(w, httpserver.Translate(err, requestID))
 		return
 	}
@@ -562,7 +562,7 @@ func (h *AddSeriesExceptionHandler) ServeHTTP(w http.ResponseWriter, r *http.Req
 	if !ok {
 		return
 	}
-	barberID := httpserver.URLParam(r, barberIDParam)
+	professionalID := httpserver.URLParam(r, professionalIDParam)
 	seriesID := httpserver.URLParam(r, seriesIDParam)
 
 	req, ok := decodeJSONBody[AddSeriesExceptionRequest](w, r, requestID)
@@ -570,7 +570,7 @@ func (h *AddSeriesExceptionHandler) ServeHTTP(w http.ResponseWriter, r *http.Req
 		return
 	}
 
-	if err := h.service.AddSeriesException(r.Context(), principal.BarbershopID, barberID, seriesID, req.ExcludedDate, req.Reason); err != nil {
+	if err := h.service.AddSeriesException(r.Context(), principal.BusinessID, professionalID, seriesID, req.ExcludedDate, req.Reason); err != nil {
 		httpserver.WriteProblem(w, httpserver.Translate(err, requestID))
 		return
 	}
@@ -592,11 +592,11 @@ func (h *RemoveSeriesExceptionHandler) ServeHTTP(w http.ResponseWriter, r *http.
 	if !ok {
 		return
 	}
-	barberID := httpserver.URLParam(r, barberIDParam)
+	professionalID := httpserver.URLParam(r, professionalIDParam)
 	seriesID := httpserver.URLParam(r, seriesIDParam)
 	excludedDate := httpserver.URLParam(r, excludedDateParam)
 
-	if err := h.service.RemoveSeriesException(r.Context(), principal.BarbershopID, barberID, seriesID, excludedDate); err != nil {
+	if err := h.service.RemoveSeriesException(r.Context(), principal.BusinessID, professionalID, seriesID, excludedDate); err != nil {
 		httpserver.WriteProblem(w, httpserver.Translate(err, requestID))
 		return
 	}

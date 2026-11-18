@@ -36,7 +36,7 @@ const API_BASE_URL = '/api/v1'
 
 /**
  * Cliente HTTP tipado compartido por toda la aplicación. `credentials:
- * 'include'` envía y recibe la cookie de sesión `barberia_session`
+ * 'include'` envía y recibe la cookie de sesión `nava_agenda_session`
  * (HttpOnly): JavaScript nunca lee su valor, solo reacciona al resultado
  * HTTP (docs/03-desarrollo/estandar-frontend-vue.md §6).
  */

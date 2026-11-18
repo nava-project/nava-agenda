@@ -1,10 +1,10 @@
 // Pruebas de integración de HU-012 (DEC-060) contra el router REAL de
 // producción (buildRouter) y PostgreSQL real, mismo patrón que
 // session_integration_test.go (HU-006). Requieren las seis migraciones
-// aplicadas y database/testdata/dos_barberias.sql +
+// aplicadas y database/testdata/dos_negocios.sql +
 // testdata/hu005_credenciales_sesiones.sql cargados.
 //
-//	export TEST_DATABASE_URL="postgres://barberia_app:app_test@localhost:5432/barberia_test?sslmode=disable"
+//	export TEST_DATABASE_URL="postgres://agenda_app:app_test@localhost:5432/postgres?sslmode=disable"
 //	go test -race ./cmd/api/...
 package main
 
@@ -18,7 +18,7 @@ import (
 	"testing"
 	"time"
 
-	"system-barbershop/internal/modules/auth"
+	"nava-agenda/internal/modules/auth"
 )
 
 func doSessionContextRequest(router http.Handler, rawToken string) *httptest.ResponseRecorder {
@@ -31,12 +31,12 @@ func doSessionContextRequest(router http.Handler, rawToken string) *httptest.Res
 	return rec
 }
 
-// TestSessionContext_HTTP_ValidSession_ReturnsRealBarbershopName cubre
+// TestSessionContext_HTTP_ValidSession_ReturnsRealBusinessName cubre
 // CA-012-01/CA-012-04 a nivel HTTP/PostgreSQL real: el nombre devuelto es la
-// columna real de la barbería propietaria de la sesión, nunca un valor
+// columna real del negocio propietario de la sesión, nunca un valor
 // fijo, y la respuesta no reemite la cookie con el Expires renovado (DEC-050:
 // la renovación deslizante llega al navegador en cada uso, también en esta lectura).
-func TestSessionContext_HTTP_ValidSession_ReturnsRealBarbershopName(t *testing.T) {
+func TestSessionContext_HTTP_ValidSession_ReturnsRealBusinessName(t *testing.T) {
 	db := setupTestDB(t)
 	defer db.Close()
 	router, err := buildRouter(db, discardLogger(), testRouterConfig())
@@ -52,7 +52,7 @@ func TestSessionContext_HTTP_ValidSession_ReturnsRealBarbershopName(t *testing.T
 	}
 	var renewed *http.Cookie
 	for _, c := range rec.Result().Cookies() {
-		if c.Name == "barberia_session" {
+		if c.Name == "nava_agenda_session" {
 			renewed = c
 		}
 	}
@@ -61,7 +61,7 @@ func TestSessionContext_HTTP_ValidSession_ReturnsRealBarbershopName(t *testing.T
 	}
 
 	var body struct {
-		Barbershop struct {
+		Business struct {
 			ID   string `json:"id"`
 			Name string `json:"name"`
 		} `json:"business"`
@@ -70,23 +70,23 @@ func TestSessionContext_HTTP_ValidSession_ReturnsRealBarbershopName(t *testing.T
 	if err := json.Unmarshal(rec.Body.Bytes(), &body); err != nil {
 		t.Fatalf("decode response: %v: %s", err, rec.Body.String())
 	}
-	if body.Barbershop.ID != shopA {
-		t.Fatalf("expected barbershop.id=%q, got %q", shopA, body.Barbershop.ID)
+	if body.Business.ID != shopA {
+		t.Fatalf("expected business.id=%q, got %q", shopA, body.Business.ID)
 	}
-	if body.Barbershop.Name != "Barbería de prueba A" {
-		t.Fatalf("expected barbershop.name=%q (real column, database/testdata/dos_barberias.sql), got %q",
-			"Barbería de prueba A", body.Barbershop.Name)
+	if body.Business.Name != "Barbería de prueba A" {
+		t.Fatalf("expected business.name=%q (real column, database/testdata/dos_negocios.sql), got %q",
+			"Barbería de prueba A", body.Business.Name)
 	}
 	if body.ExpiresAt == "" {
 		t.Fatal("expected a non-empty expiresAt")
 	}
 }
 
-// TestSessionContext_HTTP_TwoTenants_NeverCrossesBarbershopNames es la
+// TestSessionContext_HTTP_TwoTenants_NeverCrossesBusinessNames es la
 // prueba de aislamiento por tenant exigida por el prompt: la sesión de A
 // nunca ve el nombre de B ni viceversa, contra el endpoint real con dos
 // tenants reales (mismo patrón que TestLogout_HTTP_SessionOfShopA_NeverExecutesShopBsLogout).
-func TestSessionContext_HTTP_TwoTenants_NeverCrossesBarbershopNames(t *testing.T) {
+func TestSessionContext_HTTP_TwoTenants_NeverCrossesBusinessNames(t *testing.T) {
 	db := setupTestDB(t)
 	defer db.Close()
 	router, err := buildRouter(db, discardLogger(), testRouterConfig())
@@ -101,7 +101,7 @@ func TestSessionContext_HTTP_TwoTenants_NeverCrossesBarbershopNames(t *testing.T
 	recB := doSessionContextRequest(router, rawB)
 
 	var bodyA, bodyB struct {
-		Barbershop struct {
+		Business struct {
 			ID   string `json:"id"`
 			Name string `json:"name"`
 		} `json:"business"`
@@ -113,11 +113,11 @@ func TestSessionContext_HTTP_TwoTenants_NeverCrossesBarbershopNames(t *testing.T
 		t.Fatalf("decode shopB response: %v", err)
 	}
 
-	if bodyA.Barbershop.ID != shopA || bodyA.Barbershop.Name == bodyB.Barbershop.Name {
-		t.Fatalf("RN-TEN-01: expected distinct barbershop identities, got A=%+v B=%+v", bodyA, bodyB)
+	if bodyA.Business.ID != shopA || bodyA.Business.Name == bodyB.Business.Name {
+		t.Fatalf("RN-TEN-01: expected distinct business identities, got A=%+v B=%+v", bodyA, bodyB)
 	}
-	if bodyB.Barbershop.ID != shopB {
-		t.Fatalf("expected shopB's own id, got %q", bodyB.Barbershop.ID)
+	if bodyB.Business.ID != shopB {
+		t.Fatalf("expected shopB's own id, got %q", bodyB.Business.ID)
 	}
 }
 
@@ -140,8 +140,8 @@ func TestSessionContext_HTTP_NoCookie_Returns401Uniform(t *testing.T) {
 }
 
 // TestSessionContext_HTTP_RevokedSession_Returns401AndNeverExposesName
-// confirma que cerrar sesión invalida también esta lectura: el nombre de la
-// barbería nunca se filtra a través de una cookie ya revocada.
+// confirma que cerrar sesión invalida también esta lectura: el nombre del
+// negocio nunca se filtra a través de una cookie ya revocada.
 func TestSessionContext_HTTP_RevokedSession_Returns401AndNeverExposesName(t *testing.T) {
 	db := setupTestDB(t)
 	defer db.Close()
@@ -161,7 +161,7 @@ func TestSessionContext_HTTP_RevokedSession_Returns401AndNeverExposesName(t *tes
 		t.Fatalf("expected 401 for a revoked session, got %d: %s", rec.Code, rec.Body.String())
 	}
 	if strings.Contains(rec.Body.String(), "Barbería") {
-		t.Fatalf("a revoked session must never expose the barbershop name: %s", rec.Body.String())
+		t.Fatalf("a revoked session must never expose the business name: %s", rec.Body.String())
 	}
 }
 

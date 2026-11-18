@@ -4,12 +4,12 @@ import "time"
 
 // CreateManualAppointmentRequest es el cuerpo JSON de
 // POST /private/appointments (HU-061): exactamente los campos que el
-// barbero aporta al registrar un turno manual. Ningún campo de estado,
-// origen, actor, barbershopId, snapshot de servicio ni identificador de
+// profesional aporta al registrar un turno manual. Ningún campo de estado,
+// origen, actor, businessId, snapshot de servicio ni identificador de
 // cliente existente: el servidor los deriva o los decide (DEC-071,
 // DEC-072).
 type CreateManualAppointmentRequest struct {
-	BarberID         string  `json:"professionalId"`
+	ProfessionalID   string  `json:"professionalId"`
 	ServiceID        string  `json:"serviceId"`
 	AttendeeName     string  `json:"attendeeName"`
 	CustomerFullName string  `json:"customerFullName"`
@@ -17,8 +17,8 @@ type CreateManualAppointmentRequest struct {
 	CustomerEmail    *string `json:"customerEmail"`
 	CustomerNote     *string `json:"customerNote"`
 	// StartsAt es el instante civil "AAAA-MM-DDTHH:MM:SS" (sin zona) que el
-	// barbero eligió en su propio reloj, interpretado contra la zona IANA
-	// vigente de la barbería (RN-DIS-07).
+	// profesional eligió en su propio reloj, interpretado contra la zona IANA
+	// vigente del negocio (RN-DIS-07).
 	StartsAt string `json:"startsAt"`
 }
 
@@ -29,7 +29,7 @@ type CreateManualAppointmentRequest struct {
 // de una repetición idempotente (RN-IDE-01).
 type AppointmentResponse struct {
 	ID              string    `json:"id"`
-	BarberID        string    `json:"professionalId"`
+	ProfessionalID  string    `json:"professionalId"`
 	ServiceID       string    `json:"serviceId"`
 	CustomerID      string    `json:"customerId"`
 	AttendeeName    string    `json:"attendeeName"`
@@ -48,12 +48,12 @@ type AppointmentResponse struct {
 
 // RescheduleAppointmentRequest es el cuerpo JSON de
 // POST /private/appointments/{appointmentId}/reschedule (HU-065, T2):
-// exactamente el nuevo inicio. Ningún otro campo: barbero, servicio,
+// exactamente el nuevo inicio. Ningún otro campo: profesional, servicio,
 // duración, precio, cliente, persona, origen, nota y estado permanecen
 // iguales (el servidor los conserva, nunca los acepta de este cuerpo).
 type RescheduleAppointmentRequest struct {
 	// StartsAt es el instante civil "AAAA-MM-DDTHH:MM:SS" (sin zona) que el
-	// barbero eligió en su propio reloj, mismo formato que
+	// profesional eligió en su propio reloj, mismo formato que
 	// CreateManualAppointmentRequest.StartsAt (RN-DIS-07).
 	StartsAt string `json:"startsAt"`
 }
@@ -82,7 +82,7 @@ type CorrectAppointmentStatusRequest struct {
 // para una reprogramación posterior sin volver a pedir el detalle.
 type AppointmentRescheduledResponse struct {
 	ID              string    `json:"id"`
-	BarberID        string    `json:"professionalId"`
+	ProfessionalID  string    `json:"professionalId"`
 	ServiceID       string    `json:"serviceId"`
 	CustomerID      string    `json:"customerId"`
 	AttendeeName    string    `json:"attendeeName"`
@@ -99,14 +99,14 @@ type AppointmentRescheduledResponse struct {
 	CreatedAt       time.Time `json:"createdAt"`
 }
 
-// CancelAppointmentByBarberResponse es la representación de la cita ya
-// cancelada por el barbero (o, en una repetición no-op, la representación
+// CancelAppointmentByProfessionalResponse es la representación de la cita ya
+// cancelada por el profesional (o, en una repetición no-op, la representación
 // vigente sin cambios adicionales). No hay cuerpo de solicitud: T6
 // (POST /private/appointments/{appointmentId}/cancel) no acepta ningún
 // campo, el servidor deriva tenant/actor/estado destino (CA-066-02).
-type CancelAppointmentByBarberResponse struct {
+type CancelAppointmentByProfessionalResponse struct {
 	ID              string    `json:"id"`
-	BarberID        string    `json:"professionalId"`
+	ProfessionalID  string    `json:"professionalId"`
 	ServiceID       string    `json:"serviceId"`
 	CustomerID      string    `json:"customerId"`
 	AttendeeName    string    `json:"attendeeName"`
@@ -128,10 +128,10 @@ type CancelAppointmentByBarberResponse struct {
 // sin cambios adicionales). No hay cuerpo de solicitud: T4 manual
 // (POST /private/appointments/{appointmentId}/complete) no acepta ningún
 // campo, el servidor deriva tenant/actor/estado destino (CA-067-*), mismo
-// criterio que CancelAppointmentByBarberResponse.
+// criterio que CancelAppointmentByProfessionalResponse.
 type AppointmentCompletedResponse struct {
 	ID              string    `json:"id"`
-	BarberID        string    `json:"professionalId"`
+	ProfessionalID  string    `json:"professionalId"`
 	ServiceID       string    `json:"serviceId"`
 	CustomerID      string    `json:"customerId"`
 	AttendeeName    string    `json:"attendeeName"`
@@ -155,7 +155,7 @@ type AppointmentCompletedResponse struct {
 // campo, mismo criterio que AppointmentCompletedResponse.
 type AppointmentNoShowResponse struct {
 	ID              string    `json:"id"`
-	BarberID        string    `json:"professionalId"`
+	ProfessionalID  string    `json:"professionalId"`
 	ServiceID       string    `json:"serviceId"`
 	CustomerID      string    `json:"customerId"`
 	AttendeeName    string    `json:"attendeeName"`
@@ -181,7 +181,7 @@ type AppointmentNoShowResponse struct {
 // AppointmentCompletedResponse.
 type AppointmentStatusCorrectedResponse struct {
 	ID              string    `json:"id"`
-	BarberID        string    `json:"professionalId"`
+	ProfessionalID  string    `json:"professionalId"`
 	ServiceID       string    `json:"serviceId"`
 	CustomerID      string    `json:"customerId"`
 	AttendeeName    string    `json:"attendeeName"`
@@ -201,13 +201,13 @@ type AppointmentStatusCorrectedResponse struct {
 // DailyAgendaResponse es el cuerpo de
 // GET /private/professionals/{professionalId}/appointments/daily-agenda (HU-062):
 // lista cronológica cerrada, sin cursor ni siguiente página (CA-062-07,
-// un solo día de un solo barbero está acotado por diseño).
+// un solo día de un solo profesional está acotado por diseño).
 type DailyAgendaResponse struct {
 	Items []DailyAgendaEntryResponse `json:"items"`
 }
 
 // DailyAgendaEntryResponse es la proyección mínima de un turno que HU-062
-// expone (CA-062-05): nunca teléfono, correo, nota ni customerId. barberId
+// expone (CA-062-05): nunca teléfono, correo, nota ni customerId. professionalId
 // no aparece: la ruta ya lo fija (DEC-074) y repetirlo sería un campo
 // interno innecesario.
 type DailyAgendaEntryResponse struct {
@@ -228,7 +228,7 @@ type DailyAgendaEntryResponse struct {
 
 // HomeServiceResponse es la forma exacta del componente OpenAPI
 // HomeServiceAddress.yaml: dirección en texto y coordenadas de un turno a
-// domicilio. Dato personal (RN-DAT-02): solo el panel de esa barbería la lee.
+// domicilio. Dato personal (RN-DAT-02): solo el panel de ese negocio la lee.
 type HomeServiceResponse struct {
 	Address   string  `json:"address"`
 	Latitude  float64 `json:"latitude"`
@@ -241,30 +241,30 @@ type HomeServiceResponse struct {
 // requerido, "Fuera de alcance"): VersionToken es el único dato de
 // concurrencia expuesto, opaco (booking.EncodeVersionToken).
 type AppointmentDetailResponse struct {
-	ID               string               `json:"id"`
-	BarberID         string               `json:"professionalId"`
-	BarberFullName   string               `json:"professionalFullName"`
-	AttendeeName     string               `json:"attendeeName"`
-	CustomerFullName string               `json:"customerFullName"`
-	CustomerPhone    *string              `json:"customerPhone"`
-	CustomerEmail    *string              `json:"customerEmail"`
-	CustomerNote     *string              `json:"customerNote"`
-	StartsAt         time.Time            `json:"startsAt"`
-	EndsAt           time.Time            `json:"endsAt"`
-	Status           string               `json:"status"`
-	Origin           string               `json:"origin"`
-	ServiceName      string               `json:"serviceName"`
-	DurationMinutes  int                  `json:"durationMinutes"`
-	PriceAmount      string               `json:"priceAmount"`
-	Currency         string               `json:"currency"`
-	HomeService      *HomeServiceResponse `json:"homeService"`
-	VersionToken     string               `json:"versionToken"`
-	CreatedAt        time.Time            `json:"createdAt"`
+	ID                   string               `json:"id"`
+	ProfessionalID       string               `json:"professionalId"`
+	ProfessionalFullName string               `json:"professionalFullName"`
+	AttendeeName         string               `json:"attendeeName"`
+	CustomerFullName     string               `json:"customerFullName"`
+	CustomerPhone        *string              `json:"customerPhone"`
+	CustomerEmail        *string              `json:"customerEmail"`
+	CustomerNote         *string              `json:"customerNote"`
+	StartsAt             time.Time            `json:"startsAt"`
+	EndsAt               time.Time            `json:"endsAt"`
+	Status               string               `json:"status"`
+	Origin               string               `json:"origin"`
+	ServiceName          string               `json:"serviceName"`
+	DurationMinutes      int                  `json:"durationMinutes"`
+	PriceAmount          string               `json:"priceAmount"`
+	Currency             string               `json:"currency"`
+	HomeService          *HomeServiceResponse `json:"homeService"`
+	VersionToken         string               `json:"versionToken"`
+	CreatedAt            time.Time            `json:"createdAt"`
 }
 
 // AppointmentHistoryResponse es el cuerpo de
 // GET /private/appointments/{appointmentId}/history (HU-064, CA-064-05):
-// página paginada por cursor opaco, mismo criterio que BarberListResponse
+// página paginada por cursor opaco, mismo criterio que ProfessionalListResponse
 // (staff/httpapi). NextCursor es nil cuando esta página es la última.
 type AppointmentHistoryResponse struct {
 	Items      []AppointmentHistoryEntryResponse `json:"items"`

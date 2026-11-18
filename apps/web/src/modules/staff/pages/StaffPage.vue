@@ -1,22 +1,22 @@
 <script setup lang="ts">
-// Pantalla "Barberos" (HU-021, DEC-104): consultar y listar el equipo de la
-// barbería activa, agregar un barbero, renombrarlo y ponerle (o quitarle) una
-// fotografía. Una barbería unipersonal y una de cuatro personas usan
+// Pantalla "Profesionales" (HU-021, DEC-104): consultar y listar el equipo del
+// negocio activo, agregar un profesional, renombrarlo y ponerle (o quitarle) una
+// fotografía. Un negocio unipersonal y una de cuatro personas usan
 // exactamente el mismo componente y el mismo estado de datos (CA-021-01/02): la
 // lista con 1 elemento y la lista con 4 no tienen ninguna rama especial.
 // Estados discriminados: carga inicial, listo, vacío, error recuperable,
 // guardando (trabajo requerido §4.3/§4.4). Un error recuperable NUNCA borra lo
-// que el barbero ya escribió ni la foto que ya eligió; solo un guardado exitoso
+// que el profesional ya escribió ni la foto que ya eligió; solo un guardado exitoso
 // confirmado por el servidor cierra el diálogo. Cada guardado confirmado añade
 // un aviso emergente (DEC-095); los errores siguen dentro del diálogo, junto al
 // formulario. Mismo lenguaje visual que Servicios (tinta, latón, tabla hundida,
-// entrada escalonada, carga con el rombo) con el retrato del barbero como
+// entrada escalonada, carga con el rombo) con el retrato del profesional como
 // protagonista.
 import { computed, nextTick, onMounted, onUnmounted, ref, watch } from 'vue'
 import { RouterLink } from 'vue-router'
 import { PAGE_MIN_HOLD_MS, useMinHoldLoading, useToast, useVocabulary } from '@/shared/composables'
 import {
-  BarberAvatar,
+  ProfessionalAvatar,
   BaseAlert,
   BasePagination,
   EmptyScene,
@@ -26,28 +26,28 @@ import {
   DiamondLoader,
 } from '@/shared/ui'
 import {
-  barberPhotoUrl,
-  createBarber,
-  fetchBarberPage,
-  fetchMyBarber,
-  linkMyBarber,
-  removeBarberPhoto,
-  renameBarber,
-  unlinkMyBarber,
-  uploadBarberPhoto,
+  professionalPhotoUrl,
+  createProfessional,
+  fetchProfessionalPage,
+  fetchMyProfessional,
+  linkMyProfessional,
+  removeProfessionalPhoto,
+  renameProfessional,
+  unlinkMyProfessional,
+  uploadProfessionalPhoto,
 } from '../api/staffApi'
-import BarberPhotoField from '../components/BarberPhotoField.vue'
-import BarberDescriptionField from '../components/BarberDescriptionField.vue'
+import ProfessionalPhotoField from '../components/ProfessionalPhotoField.vue'
+import ProfessionalDescriptionField from '../components/ProfessionalDescriptionField.vue'
 import MyProfileCard from '../components/MyProfileCard.vue'
-import BarberReviewsPanel from '../components/BarberReviewsPanel.vue'
+import ProfessionalReviewsPanel from '../components/ProfessionalReviewsPanel.vue'
 import { newIdempotencyKey } from '../model/idempotencyKey'
-import type { Barber } from '../model/barber'
+import type { Professional } from '../model/professional'
 import { NO_PHOTO_CHANGE, type PhotoDraft } from '../model/photoDraft'
-import { capitalize, isEmployeeProfile, worksOwnBarber } from '@/shared/model'
+import { capitalize, isEmployeeProfile, worksOwnProfessional } from '@/shared/model'
 import { validateDescription, validateFullName } from '../validation/staffValidation'
 
 const toast = useToast()
-// Palabras de la barbería (DEC-110): con los valores iniciales, el mismo texto de siempre.
+// Palabras del negocio (DEC-110): con los valores iniciales, el mismo texto de siempre.
 const v = useVocabulary()
 
 // Frases decorativas del rombo de carga: las de la casa, con voz de equipo.
@@ -70,7 +70,7 @@ type SaveStatus =
   | 'unexpected-error'
 
 const loadStatus = ref<LoadStatus>('loading')
-const barbers = ref<Barber[]>([])
+const professionals = ref<Professional[]>([])
 const currentPage = ref(1)
 const pageSize = ref(20)
 const totalItems = ref(0)
@@ -107,13 +107,13 @@ async function load(page = 1, initial = false) {
     pageFailed.value = false
     startPageHold()
   }
-  const outcome = await fetchBarberPage(page, pageSize.value)
+  const outcome = await fetchProfessionalPage(page, pageSize.value)
   if (token !== requestToken) return
   const reveal = () => {
     if (token !== requestToken) return
     pageLoading.value = false
     if (outcome.kind === 'success') {
-      barbers.value = outcome.page.items
+      professionals.value = outcome.page.items
       currentPage.value = outcome.page.page
       pageSize.value = outcome.page.pageSize
       totalItems.value = outcome.page.total
@@ -122,7 +122,7 @@ async function load(page = 1, initial = false) {
       // La tarjeta del perfil individual no pagina ni mide filas de tabla
       // (DEC-115): sin esto, fitPending se quedaría en true para siempre
       // porque listRef nunca se monta en ese caso.
-      if (barbers.value.length === 0 || soloCard.value) fitPending.value = false
+      if (professionals.value.length === 0 || soloCard.value) fitPending.value = false
     } else if (initial) loadStatus.value = 'load-error'
     else pageFailed.value = true
     if (pendingPaginationFocus) {
@@ -202,8 +202,8 @@ async function fitPage() {
     pageSize.value = fitting
     const targetPage = Math.floor(firstIndex / fitting) + 1
     // Recortar la primera carga evita un segundo lote grande en pantalla.
-    if (currentPage.value === 1 && !pageLoading.value && fitting <= barbers.value.length) {
-      barbers.value = barbers.value.slice(0, fitting)
+    if (currentPage.value === 1 && !pageLoading.value && fitting <= professionals.value.length) {
+      professionals.value = professionals.value.slice(0, fitting)
       totalPages.value = Math.max(1, Math.ceil(totalItems.value / fitting))
     } else {
       await load(targetPage)
@@ -237,7 +237,7 @@ watch(
 )
 onMounted(() => {
   void load(1, true)
-  void loadMyBarber()
+  void loadMyProfessional()
   window.addEventListener('resize', scheduleFit)
 })
 onUnmounted(() => {
@@ -256,14 +256,14 @@ function goToPage(page: number) {
   if (page < 1 || page > totalPages.value || page === currentPage.value || pageLoading.value) return
   void load(page)
 }
-// Perfil de barbero individual (DEC-115): esta pantalla es la ficha de quien trabaja
-// solo. `soloView` cambia los textos; `soloCard` (un único barbero ya cargado) además
+// Perfil de profesional individual (DEC-115): esta pantalla es la ficha de quien trabaja
+// solo. `soloView` cambia los textos; `soloCard` (un único profesional ya cargado) además
 // quita lo que solo tiene sentido con un equipo: «Agregar», encabezados de tabla y
-// paginador. Con más de un barbero la pantalla vuelve a ser la de siempre.
-// El empleado (DEC-173) ve la misma ficha: el API solo le devuelve su barbero, y
+// paginador. Con más de un profesional la pantalla vuelve a ser la de siempre.
+// El empleado (DEC-173) ve la misma ficha: el API solo le devuelve su profesional, y
 // no puede dar de alta, vincularse ni moderar reseñas, así que esas acciones no se ofrecen.
 const soloView = computed(
-  () => worksOwnBarber.value && !(loadStatus.value === 'ready' && totalItems.value > 1),
+  () => worksOwnProfessional.value && !(loadStatus.value === 'ready' && totalItems.value > 1),
 )
 // Cuadro lateral de reseñas abierto (issue #487): la ficha deja de centrarse sola.
 const soloReviewsOpen = ref(false)
@@ -275,13 +275,13 @@ const countLabel = computed(
   () =>
     `${totalItems.value} ${totalItems.value === 1 ? v.value.professional : v.value.professionals}`,
 )
-// Fotografía (DEC-104): la URL solo existe cuando el barbero tiene una.
-function photoOf(barber: Barber): string | null {
-  return barberPhotoUrl(barber)
+// Fotografía (DEC-104): la URL solo existe cuando el profesional tiene una.
+function photoOf(professional: Professional): string | null {
+  return professionalPhotoUrl(professional)
 }
 
-function hasPhoto(barber: Barber): boolean {
-  return barber.photoUpdatedAt !== null
+function hasPhoto(professional: Professional): boolean {
+  return professional.photoUpdatedAt !== null
 }
 
 // Monograma de la ficha del encabezado de un diálogo: la primera letra del
@@ -293,9 +293,9 @@ function firstInitial(fullName: string): string {
 // Ritmo propio del rombo de estado, igual técnica que Servicios/Agenda: hash
 // estable del id para que la duración y el desfase del parpadeo no cambien al
 // volver a pintar la lista y las filas no latan sincronizadas.
-function diamondStyle(barber: Barber): Record<string, string> {
+function diamondStyle(professional: Professional): Record<string, string> {
   let hash = 0
-  for (const char of barber.id) hash = (hash * 31 + char.charCodeAt(0)) >>> 0
+  for (const char of professional.id) hash = (hash * 31 + char.charCodeAt(0)) >>> 0
   const spread = (hash % 1000) / 1000
   const phase = ((hash >>> 10) % 1000) / 1000
   const duration = 6 + spread * 5
@@ -319,9 +319,9 @@ function formatDate(iso: string | null | undefined): string {
   }).format(date)
 }
 
-function replaceInList(barber: Barber) {
-  const index = barbers.value.findIndex((b) => b.id === barber.id)
-  if (index !== -1) barbers.value[index] = barber
+function replaceInList(professional: Professional) {
+  const index = professionals.value.findIndex((b) => b.id === professional.id)
+  if (index !== -1) professionals.value[index] = professional
 }
 
 // --- Detalle --------------------------------------------------------------
@@ -329,65 +329,67 @@ function replaceInList(barber: Barber) {
 // detailTarget no se borra al cerrar: el diálogo sigue visible mientras dura su
 // animación de salida y vaciarlo aquí lo dejaría en blanco a media salida.
 const isDetailOpen = ref(false)
-const detailTarget = ref<Barber | null>(null)
+const detailTarget = ref<Professional | null>(null)
 
 // Moderar una reseña cambia el promedio que el servidor calcula (DEC-128): se refleja
-// en la fila y en el detalle sin recargar la página de barberos.
+// en la fila y en el detalle sin recargar la página de profesionales.
 function onReviewsChanged(
-  barberId: string,
+  professionalId: string,
   summary: { rating: number | null; ratingCount: number },
 ) {
-  barbers.value = barbers.value.map((b) => (b.id === barberId ? { ...b, ...summary } : b))
-  if (detailTarget.value?.id === barberId) {
+  professionals.value = professionals.value.map((b) =>
+    b.id === professionalId ? { ...b, ...summary } : b,
+  )
+  if (detailTarget.value?.id === professionalId) {
     detailTarget.value = { ...detailTarget.value, ...summary }
   }
 }
 
-function openDetailDialog(barber: Barber) {
-  detailTarget.value = barber
+function openDetailDialog(professional: Professional) {
+  detailTarget.value = professional
   linkError.value = null
   isDetailOpen.value = true
 }
 
 // --- Vínculo con mi usuario (DEC-100) ---------------------------------------
 
-// Cuál barbero es el usuario autenticado, o null si ninguno (el vínculo es
+// Cuál profesional es el usuario autenticado, o null si ninguno (el vínculo es
 // opcional). Se lee una vez al montar; si falla, la ficha simplemente no ofrece
 // la acción en vez de bloquear la pantalla: el equipo se consulta igual.
-const myBarberId = ref<string | null>(null)
-const myBarberKnown = ref(false)
+const myProfessionalId = ref<string | null>(null)
+const myProfessionalKnown = ref(false)
 const linkStatus = ref<'idle' | 'saving'>('idle')
 const linkError = ref<string | null>(null)
 
-async function loadMyBarber() {
-  const outcome = await fetchMyBarber()
-  if (outcome.kind === 'linked') myBarberId.value = outcome.barber.id
-  else if (outcome.kind === 'none') myBarberId.value = null
-  myBarberKnown.value = outcome.kind === 'linked' || outcome.kind === 'none'
+async function loadMyProfessional() {
+  const outcome = await fetchMyProfessional()
+  if (outcome.kind === 'linked') myProfessionalId.value = outcome.professional.id
+  else if (outcome.kind === 'none') myProfessionalId.value = null
+  myProfessionalKnown.value = outcome.kind === 'linked' || outcome.kind === 'none'
 }
 
 const detailIsMine = computed(
-  () => detailTarget.value !== null && detailTarget.value.id === myBarberId.value,
+  () => detailTarget.value !== null && detailTarget.value.id === myProfessionalId.value,
 )
 
 async function onToggleMine() {
-  const barber = detailTarget.value
-  if (!barber || linkStatus.value === 'saving') return
+  const professional = detailTarget.value
+  if (!professional || linkStatus.value === 'saving') return
   linkStatus.value = 'saving'
   linkError.value = null
   if (detailIsMine.value) {
-    const outcome = await unlinkMyBarber()
+    const outcome = await unlinkMyProfessional()
     if (outcome.kind === 'success') {
-      myBarberId.value = null
-      toast.success(`Ya no eres ${barber.fullName} en Nava Agenda`)
+      myProfessionalId.value = null
+      toast.success(`Ya no eres ${professional.fullName} en Nava Agenda`)
     } else {
       linkError.value = 'No pudimos quitar el vínculo. Inténtalo de nuevo.'
     }
   } else {
-    const outcome = await linkMyBarber(barber.id)
+    const outcome = await linkMyProfessional(professional.id)
     if (outcome.kind === 'success') {
-      myBarberId.value = barber.id
-      toast.success(`Ahora eres ${barber.fullName} en Nava Agenda`, {
+      myProfessionalId.value = professional.id
+      toast.success(`Ahora eres ${professional.fullName} en Nava Agenda`, {
         detail: 'Siguiente paso: conecta tu Google Calendar desde esta ficha.',
       })
     } else if (outcome.kind === 'taken') {
@@ -402,10 +404,10 @@ async function onToggleMine() {
 }
 
 function onDetailEdit() {
-  const barber = detailTarget.value
-  if (!barber) return
+  const professional = detailTarget.value
+  if (!professional) return
   isDetailOpen.value = false
-  openRenameDialog(barber)
+  openRenameDialog(professional)
 }
 
 // --- Alta -----------------------------------------------------------------
@@ -466,7 +468,7 @@ async function onSubmitCreate() {
   if (error || descriptionError) return
 
   createStatus.value = 'saving'
-  const outcome = await createBarber(
+  const outcome = await createProfessional(
     createFullName.value.trim(),
     createIdempotencyKey,
     createDescription.value,
@@ -474,7 +476,7 @@ async function onSubmitCreate() {
 
   switch (outcome.kind) {
     case 'success':
-      await onBarberCreated(outcome.barber)
+      await onProfessionalCreated(outcome.professional)
       return
     case 'validation-error':
       createStatus.value = 'validation-error'
@@ -490,25 +492,25 @@ async function onSubmitCreate() {
   }
 }
 
-// El barbero ya existe en el servidor: aunque la foto falle, el alta está
+// El profesional ya existe en el servidor: aunque la foto falle, el alta está
 // hecha. Por eso el diálogo se cierra igual y el fallo de la foto se avisa
-// aparte, con la salida (Editar) a la vista, en vez de dejar al barbero
+// aparte, con la salida (Editar) a la vista, en vez de dejar al profesional
 // atrapado en un formulario que ya no puede repetir el alta.
-async function onBarberCreated(created: Barber) {
-  let barber = created
+async function onProfessionalCreated(created: Professional) {
+  let professional = created
   const draft = createPhotoDraft.value
   let photoFailed = false
 
   if (draft.kind === 'new') {
-    const photo = await uploadBarberPhoto(created.id, draft.blob)
-    if (photo.kind === 'success') barber = photo.barber
+    const photo = await uploadProfessionalPhoto(created.id, draft.blob)
+    if (photo.kind === 'success') professional = photo.professional
     else photoFailed = true
   }
 
   totalItems.value += 1
   totalPages.value = Math.max(1, Math.ceil(totalItems.value / pageSize.value))
   await load(totalPages.value)
-  justAddedId.value = barber.id
+  justAddedId.value = professional.id
   isCreateOpen.value = false
   createStatus.value = 'idle'
   createPhotoDraft.value = NO_PHOTO_CHANGE
@@ -530,7 +532,7 @@ async function onBarberCreated(created: Barber) {
 // --- Edición (nombre y foto) ------------------------------------------------
 
 const isRenameOpen = ref(false)
-const renameTarget = ref<Barber | null>(null)
+const renameTarget = ref<Professional | null>(null)
 const renameFullName = ref('')
 const renameFieldError = ref<string | undefined>(undefined)
 const renameDescription = ref('')
@@ -539,11 +541,11 @@ const renameStatus = ref<SaveStatus>('idle')
 const renameAttempted = ref(false)
 const renamePhotoDraft = ref<PhotoDraft>(NO_PHOTO_CHANGE)
 
-function openRenameDialog(barber: Barber) {
-  renameTarget.value = barber
-  renameFullName.value = barber.fullName
+function openRenameDialog(professional: Professional) {
+  renameTarget.value = professional
+  renameFullName.value = professional.fullName
   renameFieldError.value = undefined
-  renameDescription.value = barber.description ?? ''
+  renameDescription.value = professional.description ?? ''
   renameDescriptionError.value = undefined
   renameStatus.value = 'idle'
   renameAttempted.value = false
@@ -577,7 +579,7 @@ function failureStatus(kind: StepFailure, isPhoto: boolean): SaveStatus {
 
 // Guardar aplica en orden lo que cambió: primero el nombre y la descripción (un
 // solo PATCH) y luego la foto. Cada
-// paso confirmado actualiza al barbero de la lista y el objetivo del diálogo,
+// paso confirmado actualiza al profesional de la lista y el objetivo del diálogo,
 // así un reintento tras un fallo a medias (el nombre ya quedó, la foto no)
 // nunca repite lo que ya se guardó. Sin cambios no envía nada.
 async function onSubmitRename() {
@@ -607,7 +609,7 @@ async function onSubmitRename() {
 
   if (detailsChanged) {
     // La descripción solo viaja si cambió: si no, el PATCH la conserva.
-    const renamed = await renameBarber(
+    const renamed = await renameProfessional(
       current.id,
       fullName,
       descriptionChanged ? description : undefined,
@@ -616,22 +618,22 @@ async function onSubmitRename() {
       renameStatus.value = failureStatus(renamed.kind, false)
       return
     }
-    current = renamed.barber
+    current = renamed.professional
     renameTarget.value = current
     replaceInList(current)
   }
 
   if (draft.kind === 'new') {
-    const uploaded = await uploadBarberPhoto(current.id, draft.blob)
+    const uploaded = await uploadProfessionalPhoto(current.id, draft.blob)
     if (uploaded.kind !== 'success') {
       renameStatus.value = failureStatus(uploaded.kind, true)
       return
     }
-    current = uploaded.barber
+    current = uploaded.professional
     renameTarget.value = current
     replaceInList(current)
   } else if (draft.kind === 'remove') {
-    const removed = await removeBarberPhoto(current.id)
+    const removed = await removeProfessionalPhoto(current.id)
     if (removed.kind !== 'success') {
       renameStatus.value = failureStatus(removed.kind, true)
       return
@@ -685,7 +687,7 @@ async function onSubmitRename() {
       <!-- Una acción principal por región: con el equipo vacío, el CTA vive en el
            propio estado vacío y no se repite en la cabecera. -->
       <BaseButton
-        v-if="loadStatus === 'ready' && barbers.length > 0 && !soloCard && !isEmployeeProfile"
+        v-if="loadStatus === 'ready' && professionals.length > 0 && !soloCard && !isEmployeeProfile"
         type="button"
         variant="primary"
         class="staff-page__create"
@@ -736,7 +738,7 @@ async function onSubmitRename() {
         :class="{ 'staff-page__ready--fitting': fitPending }"
         :aria-busy="pageLoading"
       >
-        <EmptyScene v-if="barbers.length === 0" scene="team" class="staff-page__empty">
+        <EmptyScene v-if="professionals.length === 0" scene="team" class="staff-page__empty">
           <template #title>{{
             soloView ? 'Aún no tienes tu perfil.' : `Aún no tienes ${v.professionalsRegistered}.`
           }}</template>
@@ -765,29 +767,29 @@ async function onSubmitRename() {
           :class="{ 'staff-page__solo--reviews': soloReviewsOpen }"
         >
           <MyProfileCard
-            :full-name="barbers[0]!.fullName"
-            :description="barbers[0]!.description"
-            :photo-url="photoOf(barbers[0]!)"
-            :has-photo="hasPhoto(barbers[0]!)"
-            :since-label="formatDate(barbers[0]!.createdAt)"
+            :full-name="professionals[0]!.fullName"
+            :description="professionals[0]!.description"
+            :photo-url="photoOf(professionals[0]!)"
+            :has-photo="hasPhoto(professionals[0]!)"
+            :since-label="formatDate(professionals[0]!.createdAt)"
             :role-label="v.Professional"
-            @edit="openRenameDialog(barbers[0]!)"
+            @edit="openRenameDialog(professionals[0]!)"
           >
             <template #reviews>
               <!-- Las reseñas se abren en un cuadro a la derecha de la tarjeta
                    (issue #487), no dentro de ella. -->
-              <BarberReviewsPanel
-                :barber-id="barbers[0]!.id"
-                :rating="barbers[0]!.rating"
-                :rating-count="barbers[0]!.ratingCount"
+              <ProfessionalReviewsPanel
+                :professional-id="professionals[0]!.id"
+                :rating="professionals[0]!.rating"
+                :rating-count="professionals[0]!.ratingCount"
                 aside-to="#staff-solo-reviews"
                 :read-only="isEmployeeProfile"
-                @changed="onReviewsChanged(barbers[0]!.id, $event)"
+                @changed="onReviewsChanged(professionals[0]!.id, $event)"
                 @open-change="soloReviewsOpen = $event"
               />
             </template>
             <template #actions>
-              <slot name="barber-actions" :barber="barbers[0]!" />
+              <slot name="professional-actions" :professional="professionals[0]!" />
               <!-- El empleado no tiene «Configuración»: llega aquí a su Google Calendar. -->
               <RouterLink
                 v-if="isEmployeeProfile"
@@ -812,20 +814,20 @@ async function onSubmitRename() {
             :aria-label="`${v.Professionals} ${v.ofTheBusiness}`"
           >
             <li
-              v-for="(barber, index) in pageLoading ? [] : barbers"
-              :key="barber.id"
+              v-for="(professional, index) in pageLoading ? [] : professionals"
+              :key="professional.id"
               class="staff-page__row"
               :class="{
-                'staff-page__row--new': barber.id === justAddedId,
+                'staff-page__row--new': professional.id === justAddedId,
               }"
               :style="{ '--row-index': rowIndex(index) }"
             >
               <div class="staff-page__item-heading">
-                <BarberAvatar
+                <ProfessionalAvatar
                   class="staff-page__portrait"
                   size="row"
-                  :full-name="barber.fullName"
-                  :photo-url="photoOf(barber)"
+                  :full-name="professional.fullName"
+                  :photo-url="photoOf(professional)"
                 />
                 <div class="staff-page__item-text">
                   <!-- El nombre es el disparador real del detalle: un <button>
@@ -837,35 +839,35 @@ async function onSubmitRename() {
                     type="button"
                     class="staff-page__item-trigger"
                     aria-haspopup="dialog"
-                    @click="openDetailDialog(barber)"
+                    @click="openDetailDialog(professional)"
                   >
-                    <span class="staff-page__item-name" :title="barber.fullName">{{
-                      barber.fullName
+                    <span class="staff-page__item-name" :title="professional.fullName">{{
+                      professional.fullName
                     }}</span>
                     <span class="staff-page__item-chevron" aria-hidden="true">›</span>
                   </button>
                   <span class="staff-page__item-since-inline">
-                    Desde {{ formatDate(barber.createdAt) }}
+                    Desde {{ formatDate(professional.createdAt) }}
                   </span>
                 </div>
               </div>
               <span class="staff-page__item-meta staff-page__item-since">
-                {{ formatDate(barber.createdAt) }}
+                {{ formatDate(professional.createdAt) }}
               </span>
               <span
                 class="staff-page__photo-state"
-                :class="{ 'staff-page__photo-state--has': hasPhoto(barber) }"
-                :style="diamondStyle(barber)"
+                :class="{ 'staff-page__photo-state--has': hasPhoto(professional) }"
+                :style="diamondStyle(professional)"
               >
-                {{ hasPhoto(barber) ? 'Con foto' : 'Sin foto' }}
+                {{ hasPhoto(professional) ? 'Con foto' : 'Sin foto' }}
               </span>
               <div class="staff-page__item-actions">
-                <slot name="barber-actions" :barber="barber" />
+                <slot name="professional-actions" :professional="professional" />
                 <BaseButton
                   type="button"
                   variant="secondary"
-                  :aria-label="`Editar ${barber.fullName}`"
-                  @click="openRenameDialog(barber)"
+                  :aria-label="`Editar ${professional.fullName}`"
+                  @click="openRenameDialog(professional)"
                 >
                   Editar
                 </BaseButton>
@@ -875,7 +877,7 @@ async function onSubmitRename() {
                  una fila en el lugar donde van a entrar. -->
             <template v-if="pageLoading">
               <li
-                v-for="n in Math.min(pageSize, Math.max(1, barbers.length))"
+                v-for="n in Math.min(pageSize, Math.max(1, professionals.length))"
                 :key="`skeleton-${n}`"
                 class="staff-page__skeleton-row staff-page__skeleton-row--page"
                 aria-hidden="true"
@@ -891,7 +893,11 @@ async function onSubmitRename() {
           </ul>
         </div>
 
-        <div v-if="barbers.length > 0 && !soloCard" ref="footerRef" class="staff-page__footer">
+        <div
+          v-if="professionals.length > 0 && !soloCard"
+          ref="footerRef"
+          class="staff-page__footer"
+        >
           <BaseAlert
             v-if="pageFailed"
             variant="warning"
@@ -919,7 +925,7 @@ async function onSubmitRename() {
       </div>
     </Transition>
 
-    <!-- Detalle: ficha del barbero con su retrato grande. Va ANTES de los demás
+    <!-- Detalle: ficha del profesional con su retrato grande. Va ANTES de los demás
          diálogos a propósito: al pulsar "Editar" se cierra este y se abre el de
          edición en el mismo ciclo, y BaseDialog guarda como "foco previo" el
          elemento activo al abrirse; con este orden el foco ya volvió a la fila
@@ -933,7 +939,7 @@ async function onSubmitRename() {
       <div v-if="detailTarget" class="staff-page__ink staff-page__detail">
         <div class="staff-page__detail-hero" :style="{ '--row-index': 0 }">
           <span class="staff-page__detail-frame">
-            <BarberAvatar
+            <ProfessionalAvatar
               size="hero"
               :full-name="detailTarget.fullName"
               :photo-url="photoOf(detailTarget)"
@@ -955,8 +961,8 @@ async function onSubmitRename() {
             <dd>{{ hasPhoto(detailTarget) ? 'Con foto' : 'Sin foto' }}</dd>
           </div>
         </dl>
-        <BarberReviewsPanel
-          :barber-id="detailTarget.id"
+        <ProfessionalReviewsPanel
+          :professional-id="detailTarget.id"
           :rating="detailTarget.rating"
           :rating-count="detailTarget.ratingCount"
           :read-only="isEmployeeProfile"
@@ -967,7 +973,7 @@ async function onSubmitRename() {
              pie y, si en una pantalla baja se vuelve desplazable, la región ya
              contiene un control enfocable (axe: scrollable-region-focusable). -->
         <div
-          v-if="myBarberKnown && !isEmployeeProfile"
+          v-if="myProfessionalKnown && !isEmployeeProfile"
           class="staff-page__link"
           :style="{ '--row-index': 3 }"
         >
@@ -992,7 +998,7 @@ async function onSubmitRename() {
         <BaseAlert v-if="linkError" variant="danger" role="alert">{{ linkError }}</BaseAlert>
         <!-- Siguiente paso natural tras vincularse: ir a conectar Google Calendar. -->
         <RouterLink
-          v-if="myBarberKnown && detailIsMine"
+          v-if="myProfessionalKnown && detailIsMine"
           :to="{ name: 'integraciones-google-calendar' }"
           class="staff-page__gcal"
           :style="{ '--row-index': 4 }"
@@ -1068,7 +1074,7 @@ async function onSubmitRename() {
           Inténtalo de nuevo en unos segundos. No perdiste lo que escribiste.
         </BaseAlert>
 
-        <BarberPhotoField
+        <ProfessionalPhotoField
           v-model:draft="createPhotoDraft"
           :full-name="createFullName || `Nuev${v.professionalEnding} ${v.professional}`"
           :current-url="null"
@@ -1087,7 +1093,7 @@ async function onSubmitRename() {
           @update:model-value="onCreateFullNameInput"
         />
 
-        <BarberDescriptionField
+        <ProfessionalDescriptionField
           :model-value="createDescription"
           :disabled="createStatus === 'saving'"
           :error="createDescriptionError"
@@ -1169,7 +1175,7 @@ async function onSubmitRename() {
           Inténtalo de nuevo en unos segundos. No perdiste lo que escribiste.
         </BaseAlert>
 
-        <BarberPhotoField
+        <ProfessionalPhotoField
           v-model:draft="renamePhotoDraft"
           :full-name="renameFullName || renameTarget?.fullName || ''"
           :current-url="renameTarget ? photoOf(renameTarget) : null"
@@ -1188,7 +1194,7 @@ async function onSubmitRename() {
           @update:model-value="onRenameFullNameInput"
         />
 
-        <BarberDescriptionField
+        <ProfessionalDescriptionField
           :model-value="renameDescription"
           :disabled="renameStatus === 'saving'"
           :error="renameDescriptionError"
@@ -1237,7 +1243,7 @@ async function onSubmitRename() {
 
   display: flex;
   flex-direction: column;
-  /* Con pocos barberos el bloque queda centrado en el visor en vez de pegado
+  /* Con pocos profesionales el bloque queda centrado en el visor en vez de pegado
      arriba con un gran vacío debajo (issue #575); con muchos llena el alto y
      el centrado no desplaza nada. */
   justify-content: center;
@@ -1319,7 +1325,7 @@ async function onSubmitRename() {
 
 /* El cuadro toma la altura de la ficha (no la empuja): si hay más reseñas de las que
    caben, la lista se desplaza dentro de él. */
-.staff-page__solo-aside > :deep(.barber-reviews__panel--aside) {
+.staff-page__solo-aside > :deep(.professional-reviews__panel--aside) {
   position: absolute;
   inset: 0;
 }
@@ -1338,7 +1344,7 @@ async function onSubmitRename() {
     max-width: none;
   }
 
-  .staff-page__solo-aside > :deep(.barber-reviews__panel--aside) {
+  .staff-page__solo-aside > :deep(.professional-reviews__panel--aside) {
     position: static;
     max-height: 70dvh;
   }
@@ -1375,7 +1381,7 @@ async function onSubmitRename() {
   color: var(--color-on-strong-muted);
 }
 
-/* CTA "Agregar barbero": el relleno tinta de BaseButton--primary es el MISMO
+/* CTA "Agregar profesional": el relleno tinta de BaseButton--primary es el MISMO
    color que el fondo de la página, así que se levanta con el dorado de marca
    (mismo criterio que "Agregar servicio"). */
 .staff-page__create.base-button {
@@ -1546,7 +1552,7 @@ async function onSubmitRename() {
   }
 }
 
-/* Barbero recién agregado: un velo de latón que se apaga, detrás del contenido. */
+/* Profesional recién agregado: un velo de latón que se apaga, detrás del contenido. */
 .staff-page__row--new::before {
   content: '';
   position: absolute;
@@ -2338,7 +2344,7 @@ async function onSubmitRename() {
 }
 
 /* Mismo rebote de apertura que ya usan los diálogos de Servicios y
-   BarberSelect: un elemento que llega y se asienta. */
+   ProfessionalSelect: un elemento que llega y se asienta. */
 /* `size` solo fija max-width: el ancho real de cada diálogo se declara aquí. */
 .staff-page__create-dialog.base-dialog,
 .staff-page__edit-dialog.base-dialog {

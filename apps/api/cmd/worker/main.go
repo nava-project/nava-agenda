@@ -12,20 +12,20 @@ import (
 	"syscall"
 	"time"
 
-	"system-barbershop/internal/modules/appointmentnotice"
-	appointmentnoticepostgres "system-barbershop/internal/modules/appointmentnotice/postgres"
-	"system-barbershop/internal/modules/auth"
-	authpostgres "system-barbershop/internal/modules/auth/postgres"
-	customeraccesspostgres "system-barbershop/internal/modules/customeraccess/postgres"
-	"system-barbershop/internal/modules/googlecalendar"
-	googlecalendargoogle "system-barbershop/internal/modules/googlecalendar/google"
-	googlecalendarpostgres "system-barbershop/internal/modules/googlecalendar/postgres"
-	"system-barbershop/internal/modules/notification"
-	notificationpostgres "system-barbershop/internal/modules/notification/postgres"
-	"system-barbershop/internal/platform/clock"
-	"system-barbershop/internal/platform/config"
-	"system-barbershop/internal/platform/database"
-	"system-barbershop/internal/platform/observability"
+	"nava-agenda/internal/modules/appointmentnotice"
+	appointmentnoticepostgres "nava-agenda/internal/modules/appointmentnotice/postgres"
+	"nava-agenda/internal/modules/auth"
+	authpostgres "nava-agenda/internal/modules/auth/postgres"
+	customeraccesspostgres "nava-agenda/internal/modules/customeraccess/postgres"
+	"nava-agenda/internal/modules/googlecalendar"
+	googlecalendargoogle "nava-agenda/internal/modules/googlecalendar/google"
+	googlecalendarpostgres "nava-agenda/internal/modules/googlecalendar/postgres"
+	"nava-agenda/internal/modules/notification"
+	notificationpostgres "nava-agenda/internal/modules/notification/postgres"
+	"nava-agenda/internal/platform/clock"
+	"nava-agenda/internal/platform/config"
+	"nava-agenda/internal/platform/database"
+	"nava-agenda/internal/platform/observability"
 )
 
 // purgeInterval es la cadencia del lote de purga de HU-007
@@ -50,7 +50,7 @@ func run() error {
 
 	logger := observability.NewLogger(cfg.LogLevel)
 
-	// El worker se conecta como barberia_worker (cfg.WorkerDatabaseURL), NO
+	// El worker se conecta como agenda_worker (cfg.WorkerDatabaseURL), NO
 	// como cfg.DatabaseURL (esa es la credencial del proceso api): DEC-040
 	// exige roles separados, y config.Load ya rechaza que ambas URLs sean
 	// iguales fuera de local/test. WorkerDatabaseURL solo puede llegar vacío
@@ -73,7 +73,7 @@ func run() error {
 
 	// HU-007/HU-008 (CA-007-06, DEC-064): purga en lote de login_throttle,
 	// auth_phone_challenge y staff_recovery_code, exclusiva de
-	// barberia_worker (DDL-AUT-01, DEC-040). El reclamo de recordatorios
+	// agenda_worker (DDL-AUT-01, DEC-040). El reclamo de recordatorios
 	// con SKIP LOCKED, el envío por canal y los reintentos se agregan junto
 	// con la maquinaria general de notificaciones de B5, según
 	// docs/05-backend/estandar-base-datos.md.
@@ -109,7 +109,7 @@ func run() error {
 			"detail", "faltan variables GOOGLE_CALENDAR_*; la publicación queda desactivada")
 	}
 
-	// HU-130 (DEC-142): avisos al cliente cuando el barbero cancela o reprograma.
+	// HU-130 (DEC-142): avisos al cliente cuando el profesional cancela o reprograma.
 	// Reutiliza las credenciales de Resend del resto de correos; sin ellas el
 	// worker sigue purgando y los avisos esperan en la cola hasta configurarlas.
 	if cfg.ResendAPIKey != "" && cfg.ResendFromAddress != "" {
@@ -168,7 +168,7 @@ func run() error {
 }
 
 // buildGoogleCalendarPublisher arma el publicador de Google Calendar. db es el
-// pool del worker (barberia_worker): solo ejecuta las funciones de reclamo y
+// pool del worker (agenda_worker): solo ejecuta las funciones de reclamo y
 // finalización (DEC-040, DEC-102).
 func buildGoogleCalendarPublisher(db *database.DB, logger *slog.Logger, cfg config.Config) (*googlecalendar.Publisher, error) {
 	cipher, err := googlecalendar.NewCipherFromKeys(cfg.GoogleCalendarTokenKeyID,

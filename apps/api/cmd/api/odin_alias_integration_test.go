@@ -17,18 +17,18 @@ import (
 	"testing"
 	"time"
 
-	"system-barbershop/internal/modules/booking"
-	bookingpostgres "system-barbershop/internal/modules/booking/postgres"
-	"system-barbershop/internal/platform/database"
-	"system-barbershop/internal/platform/idempotency"
+	"nava-agenda/internal/modules/booking"
+	bookingpostgres "nava-agenda/internal/modules/booking/postgres"
+	"nava-agenda/internal/platform/database"
+	"nava-agenda/internal/platform/idempotency"
 )
 
 const (
-	odinAliasShop    = "01050001-0105-0105-0105-010500010001"
-	odinAliasBarber  = "01050011-0105-0105-0105-010500110011"
-	odinAliasService = "01050012-0105-0105-0105-010500120012"
-	odinAliasSlug    = "hu105-uno"
-	odinAliasName    = "Barbero HU-105 Uno"
+	odinAliasShop         = "01050001-0105-0105-0105-010500010001"
+	odinAliasProfessional = "01050011-0105-0105-0105-010500110011"
+	odinAliasService      = "01050012-0105-0105-0105-010500120012"
+	odinAliasSlug         = "hu105-uno"
+	odinAliasName         = "Barbero HU-105 Uno"
 	// Secreto sintético de prueba: no corresponde a ningún despliegue.
 	odinAliasToken = "token-de-prueba-odin-661-no-real-0123456789"
 )
@@ -78,7 +78,7 @@ func odinAliasBook(t *testing.T, db *database.DB) string {
 		AddDate(0, 0, int(days.Int64())).Add(time.Duration(hours.Int64()) * time.Hour)
 	repo := bookingpostgres.New(db, idempotency.NewSQLCoordinator())
 	_, err = repo.CreateInternal(context.Background(), odinAliasShop, booking.CreateInternalInput{
-		BarberID: odinAliasBarber, ServiceID: odinAliasService,
+		ProfessionalID: odinAliasProfessional, ServiceID: odinAliasService,
 		AttendeeName: "Cliente de prueba 661", StartsAt: starts, EndsAt: starts.Add(30 * time.Minute),
 		Origin: booking.OriginPublic,
 		Service: booking.ServiceSnapshot{

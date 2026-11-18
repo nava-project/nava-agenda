@@ -2,7 +2,7 @@
  * Pruebas de SettingsPage (HU-020, DEC-110): carga de los dos recursos (datos básicos y marca), borrador con detección de cambios,
  * guardado por grupos, error de validación y de red conservando lo escrito (CA-020-08) y
  * doble envío bloqueado.
- * settingsApi, brandApi y auth.updateBarbershopName se sustituyen por dobles de prueba
+ * settingsApi, brandApi y auth.updateBusinessName se sustituyen por dobles de prueba
  * (settingsPageHarness.ts); el recorrido real contra el API vive en el E2E. La suite de la
  * página se reparte en varios archivos SettingsPage*.test.ts para que vitest los ejecute en
  * paralelo (#625).
@@ -17,7 +17,7 @@ import {
   saveMock,
   fetchBrandMock,
   saveBrandMock,
-  updateBarbershopNameMock,
+  updateBusinessNameMock,
   loadedSettings,
   mountOptions,
   settle,
@@ -109,7 +109,7 @@ describe('SettingsPage', () => {
       },
     )
 
-    it('renders empty contact fields (not "null") when the barbershop has none configured', async () => {
+    it('renders empty contact fields (not "null") when the business has none configured', async () => {
       fetchMock.mockResolvedValueOnce({
         kind: 'success',
         settings: { ...loadedSettings, contactEmail: null, contactPhone: null },
@@ -176,7 +176,7 @@ describe('SettingsPage', () => {
 
       expect(saveMock).toHaveBeenCalledTimes(1)
       expect(saveBrandMock).not.toHaveBeenCalled()
-      expect(updateBarbershopNameMock).toHaveBeenCalledWith('Barbería Renombrada')
+      expect(updateBusinessNameMock).toHaveBeenCalledWith('Barbería Renombrada')
       expect(wrapper.find('.save-bar').exists()).toBe(false)
       expect(toastState.items.map((item) => item.title)).toEqual(['Configuración guardada'])
     })
@@ -312,7 +312,7 @@ describe('SettingsPage', () => {
       await submit(wrapper)
 
       // Lo guardado no se vuelve a enviar, lo fallido sigue pendiente y escrito.
-      expect(updateBarbershopNameMock).toHaveBeenCalledWith('Nuevo')
+      expect(updateBusinessNameMock).toHaveBeenCalledWith('Nuevo')
       expect(toastState.items.map((item) => item.title)).toContain('No pudimos conectar')
       expect(wrapper.get('.save-bar').text()).toContain('Marca y vocabulario')
       expect(wrapper.get('.save-bar').text()).not.toContain('Datos básicos')
@@ -327,7 +327,7 @@ describe('SettingsPage', () => {
       await submit(wrapper)
 
       expect(toastState.items.map((item) => item.title)).toContain('No pudimos conectar')
-      expect(updateBarbershopNameMock).not.toHaveBeenCalled()
+      expect(updateBusinessNameMock).not.toHaveBeenCalled()
       expect(input(wrapper, 'name').value).toBe('Nombre editado sin guardar')
       expect(wrapper.find('.save-bar').exists()).toBe(true)
     })
@@ -381,7 +381,7 @@ describe('SettingsPage', () => {
       await submit(wrapper)
 
       expect(wrapper.text()).toContain('No pudimos guardar los datos básicos')
-      expect(updateBarbershopNameMock).not.toHaveBeenCalled()
+      expect(updateBusinessNameMock).not.toHaveBeenCalled()
       expect(input(wrapper, 'name').value).toBe('Nombre nuevo')
     })
 

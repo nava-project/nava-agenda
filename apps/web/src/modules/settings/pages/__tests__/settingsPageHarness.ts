@@ -20,7 +20,7 @@ export const fetchMock = vi.fn()
 export const saveMock = vi.fn()
 export const fetchBrandMock = vi.fn()
 export const saveBrandMock = vi.fn()
-export const updateBarbershopNameMock = vi.fn()
+export const updateBusinessNameMock = vi.fn()
 // El enlace público tiene su propio recurso y su propia prueba
 // (PublicLinkPanel.test.ts): aquí solo se evita la red.
 export const fetchPublicLinkMock = vi.fn(() =>
@@ -30,8 +30,8 @@ export const fetchPublicLinkMock = vi.fn(() =>
 /** Módulos sustituidos, uno por cada `vi.mock` de los archivos de prueba. */
 export const doubles = {
   settingsApi: {
-    fetchBarbershopSettings: fetchMock,
-    saveBarbershopSettings: saveMock,
+    fetchBusinessSettings: fetchMock,
+    saveBusinessSettings: saveMock,
   },
   brandApi: {
     fetchBrand: fetchBrandMock,
@@ -56,7 +56,7 @@ export const doubles = {
     ),
     saveOpeningHours: vi.fn(),
   },
-  auth: { updateBarbershopName: updateBarbershopNameMock },
+  auth: { updateBusinessName: updateBusinessNameMock },
 }
 
 export function resetSettingsPageDoubles() {
@@ -68,7 +68,7 @@ export function resetSettingsPageDoubles() {
   saveMock.mockReset()
   fetchBrandMock.mockReset()
   saveBrandMock.mockReset()
-  updateBarbershopNameMock.mockReset()
+  updateBusinessNameMock.mockReset()
 }
 
 export const loadedSettings = {

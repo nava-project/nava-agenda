@@ -13,7 +13,7 @@ import type {
   CompleteCallbackOutcome,
   DisconnectOutcome,
   FetchConnectionOutcome,
-  LinkSoleBarberOutcome,
+  LinkSoleProfessionalOutcome,
   StartConnectOutcome,
   SyncNowOutcome,
   UpdateReminderOutcome,
@@ -34,7 +34,7 @@ interface ConnectionWire {
 function toConnection(data: ConnectionWire): GoogleCalendarConnection {
   return {
     enabled: data.enabled,
-    barberLinked: data.professionalLinked,
+    professionalLinked: data.professionalLinked,
     status: data.status,
     accountEmail: data.accountEmail,
     reminderMinutes: data.reminderMinutes,
@@ -140,12 +140,12 @@ export async function updateReminder(minutes: number | null): Promise<UpdateRemi
 }
 
 /**
- * Independiente (DEC-155): vincula al usuario con su única ficha de barbero usando
+ * Independiente (DEC-155): vincula al usuario con su única ficha de profesional usando
  * el mismo autovínculo de DEC-100 (`PUT /private/me/professional`, que siempre actúa sobre
- * el usuario autenticado). Solo procede si la barbería tiene exactamente una ficha;
+ * el usuario autenticado). Solo procede si el negocio tiene exactamente una ficha;
  * con varias no adivina cuál es y devuelve `not-applicable`.
  */
-export async function linkSoleBarber(): Promise<LinkSoleBarberOutcome> {
+export async function linkSoleProfessional(): Promise<LinkSoleProfessionalOutcome> {
   try {
     const list = await httpClient.GET('/private/professionals', { params: { query: {} } })
     if (!list.response.ok || !list.data) return { kind: 'unexpected-error' }

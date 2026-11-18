@@ -12,7 +12,7 @@ import (
 
 	"gopkg.in/yaml.v3"
 
-	"system-barbershop/internal/modules/shops"
+	"nava-agenda/internal/modules/shops"
 )
 
 type schemaDoc struct {
@@ -38,8 +38,8 @@ type bookingPolicyOperation struct {
 	Responses   map[string]any `yaml:"responses"`
 }
 
-type barbershopSettingsPathFile struct {
-	BarbershopSettings struct {
+type businessSettingsPathFile struct {
+	BusinessSettings struct {
 		Get   operation `yaml:"get"`
 		Patch operation `yaml:"patch"`
 	} `yaml:"/private/settings/business"`
@@ -107,22 +107,22 @@ func requireProps(t *testing.T, schema schemaDoc, want []string) {
 	}
 }
 
-// TestContract_BarbershopSettingsResponseSchema_MatchesDTOFields verifica
-// que httpapi.BarbershopSettingsResponse (name, timezone, contactEmail,
+// TestContract_BusinessSettingsResponseSchema_MatchesDTOFields verifica
+// que httpapi.BusinessSettingsResponse (name, timezone, contactEmail,
 // contactPhone) coincide exactamente con las propiedades y los required de
-// BarbershopSettingsResponse.yaml (CA-020-07: exactamente esos cuatro
+// BusinessSettingsResponse.yaml (CA-020-07: exactamente esos cuatro
 // campos, nunca public_slug ni logo).
-func TestContract_BarbershopSettingsResponseSchema_MatchesDTOFields(t *testing.T) {
+func TestContract_BusinessSettingsResponseSchema_MatchesDTOFields(t *testing.T) {
 	schema := loadYAML[schemaDoc](t, "api/openapi/components/schemas/BusinessSettingsResponse.yaml")
 	requireProps(t, schema, []string{"name", "timezone", "contactEmail", "contactPhone"})
 }
 
-// TestContract_UpdateBarbershopSettingsRequestSchema_MatchesDTOFields
-// verifica httpapi.UpdateBarbershopSettingsRequest contra
-// UpdateBarbershopSettingsRequest.yaml. barbershopId NUNCA aparece
+// TestContract_UpdateBusinessSettingsRequestSchema_MatchesDTOFields
+// verifica httpapi.UpdateBusinessSettingsRequest contra
+// UpdateBusinessSettingsRequest.yaml. businessId NUNCA aparece
 // (CA-020-05): esta comprobación de "exactamente 4 propiedades" es la
 // defensa de contrato contra que alguien lo agregue sin darse cuenta.
-func TestContract_UpdateBarbershopSettingsRequestSchema_MatchesDTOFields(t *testing.T) {
+func TestContract_UpdateBusinessSettingsRequestSchema_MatchesDTOFields(t *testing.T) {
 	schema := loadYAML[schemaDoc](t, "api/openapi/components/schemas/UpdateBusinessSettingsRequest.yaml")
 	requireProps(t, schema, []string{"name", "timezone", "contactEmail", "contactPhone"})
 	if _, ok := schema.Properties["businessId"]; ok {
@@ -130,13 +130,13 @@ func TestContract_UpdateBarbershopSettingsRequestSchema_MatchesDTOFields(t *test
 	}
 }
 
-// TestContract_GetBarbershopSettingsOperation_MethodPathSecurityAndResponses
+// TestContract_GetBusinessSettingsOperation_MethodPathSecurityAndResponses
 // verifica que el path fuente declara exactamente la operación de lectura:
 // SessionCookie y los códigos que el handler realmente produce (200, 401,
 // 404 defensivo, 500), sin inventar códigos no ejercitados.
-func TestContract_GetBarbershopSettingsOperation_MethodPathSecurityAndResponses(t *testing.T) {
-	doc := loadYAML[barbershopSettingsPathFile](t, "api/openapi/paths/settings.yaml")
-	op := doc.BarbershopSettings.Get
+func TestContract_GetBusinessSettingsOperation_MethodPathSecurityAndResponses(t *testing.T) {
+	doc := loadYAML[businessSettingsPathFile](t, "api/openapi/paths/settings.yaml")
+	op := doc.BusinessSettings.Get
 
 	if op.OperationID != "getBusinessSettings" {
 		t.Fatalf("expected operationId getBusinessSettings, got %q", op.OperationID)
@@ -157,12 +157,12 @@ func TestContract_GetBarbershopSettingsOperation_MethodPathSecurityAndResponses(
 	}
 }
 
-// TestContract_UpdateBarbershopSettingsOperation_MethodPathSecurityAndResponses
+// TestContract_UpdateBusinessSettingsOperation_MethodPathSecurityAndResponses
 // cubre la operación de actualización: 200 éxito, 400 JSON/campo
 // desconocido, 401, 404 defensivo, 422 validación de campo, 500.
-func TestContract_UpdateBarbershopSettingsOperation_MethodPathSecurityAndResponses(t *testing.T) {
-	doc := loadYAML[barbershopSettingsPathFile](t, "api/openapi/paths/settings.yaml")
-	op := doc.BarbershopSettings.Patch
+func TestContract_UpdateBusinessSettingsOperation_MethodPathSecurityAndResponses(t *testing.T) {
+	doc := loadYAML[businessSettingsPathFile](t, "api/openapi/paths/settings.yaml")
+	op := doc.BusinessSettings.Patch
 
 	if op.OperationID != "updateBusinessSettings" {
 		t.Fatalf("expected operationId updateBusinessSettings, got %q", op.OperationID)
@@ -183,10 +183,10 @@ func TestContract_UpdateBarbershopSettingsOperation_MethodPathSecurityAndRespons
 	}
 }
 
-// TestContract_OpenAPIYAML_RegistersBarbershopSettingsPath confirma que
+// TestContract_OpenAPIYAML_RegistersBusinessSettingsPath confirma que
 // openapi.yaml registra el path bajo el mismo documento raíz que las demás
 // operaciones privadas, con la misma técnica de referencia JSON pointer.
-func TestContract_OpenAPIYAML_RegistersBarbershopSettingsPath(t *testing.T) {
+func TestContract_OpenAPIYAML_RegistersBusinessSettingsPath(t *testing.T) {
 	type pathsDoc struct {
 		Paths map[string]any `yaml:"paths"`
 	}
@@ -211,7 +211,7 @@ func TestContract_BookingPolicyResponseSchema_MatchesDTOFields(t *testing.T) {
 
 // TestContract_UpdateBookingPolicyRequestSchema_MatchesDTOFields verifica
 // httpapi.UpdateBookingPolicyRequest contra UpdateBookingPolicyRequest.yaml.
-// barbershopId y versionToken NUNCA aparecen en el cuerpo (CA-093-03: el
+// businessId y versionToken NUNCA aparecen en el cuerpo (CA-093-03: el
 // tenant se deriva de la sesión; la precondición de versión viaja en
 // If-Match, no en el cuerpo).
 func TestContract_UpdateBookingPolicyRequestSchema_MatchesDTOFields(t *testing.T) {
@@ -333,7 +333,7 @@ var brandFields = []string{
 // desde DEC-134 lo deriva el API de los roles del usuario y ya no se envía.
 const panelProfileField = "panelProfile"
 
-// Ubicación de la barbería (DEC-130, HU-102): la respuesta siempre trae los
+// Ubicación del negocio (DEC-130, HU-102): la respuesta siempre trae los
 // cuatro; la petición admite el interruptor, la dirección y, desde DEC-170,
 // el punto ajustado a mano (todo opcional: ausente = sin cambio).
 var (
@@ -344,7 +344,7 @@ var (
 
 // TestContract_BrandSchemas_MatchDTOFields verifica que BrandResponse y
 // UpdateBrandRequest declaran exactamente los campos de los DTO y que ninguno
-// declara barbershopId (el tenant sale solo de la sesión). panelProfile solo
+// declara businessId (el tenant sale solo de la sesión). panelProfile solo
 // existe en la respuesta: el panel lo deciden los roles (DEC-134).
 func TestContract_BrandSchemas_MatchDTOFields(t *testing.T) {
 	response := loadYAML[schemaDoc](t, "api/openapi/components/schemas/BrandResponse.yaml")
@@ -413,7 +413,7 @@ func TestContract_PanelProfileEnum_MatchesShopsProfiles(t *testing.T) {
 }
 
 // TestContract_BrandAccentEnum_MatchesShopsAllowedAccents ata el contrato a la
-// lista cerrada del dominio (y esta, a barbershop_brand_accent_ck): si una de
+// lista cerrada del dominio (y esta, a business_brand_accent_ck): si una de
 // las tres cambia sin las otras, esta prueba falla.
 func TestContract_BrandAccentEnum_MatchesShopsAllowedAccents(t *testing.T) {
 	doc := loadYAML[enumSchemaDoc](t, "api/openapi/components/schemas/BrandAccent.yaml")
@@ -509,7 +509,7 @@ type slugSchemaDoc struct {
 
 // TestContract_PublicLinkSchema_MatchesDTOAndDatabaseLimits: la respuesta
 // declara solo `slug` (ningún identificador interno) y sus límites son los de
-// barbershop_public_slug_ck / shops.SlugMinLength-SlugMaxLength.
+// business_public_slug_ck / shops.SlugMinLength-SlugMaxLength.
 func TestContract_PublicLinkSchema_MatchesDTOAndDatabaseLimits(t *testing.T) {
 	response := loadYAML[schemaDoc](t, "api/openapi/components/schemas/PublicLinkResponse.yaml")
 	requireProps(t, response, []string{"slug"})

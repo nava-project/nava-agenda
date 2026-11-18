@@ -22,15 +22,15 @@ type Repository interface {
 	// CreateByTokenHash guarda la reseña del turno al que apunta el token, en una
 	// sola sentencia que exige turno `completed` y ninguna reseña previa.
 	CreateByTokenHash(ctx context.Context, tokenHash string, rating int, comment *string) (Review, CreateOutcome, error)
-	// ListPublic devuelve el resumen y las reseñas visibles del barbero de la
-	// barbería con ese slug. found=false cubre slug inválido o no publicable y
-	// barbero inexistente o de otra barbería, sin distinguirlos.
-	ListPublic(ctx context.Context, slug, barberID string, limit int) (PublicList, bool, error)
-	// ListForBarber devuelve todas las reseñas del barbero de la barbería de la
-	// sesión (incluidas las ocultas). found=false si el barbero no existe ahí.
-	ListForBarber(ctx context.Context, barbershopID, barberID string, limit int) (PanelList, bool, error)
-	// SetHidden oculta (true) o vuelve a mostrar (false) una reseña del barbero.
+	// ListPublic devuelve el resumen y las reseñas visibles del profesional del
+	// negocio con ese slug. found=false cubre slug inválido o no publicable y
+	// profesional inexistente o de otro negocio, sin distinguirlos.
+	ListPublic(ctx context.Context, slug, professionalID string, limit int) (PublicList, bool, error)
+	// ListForProfessional devuelve todas las reseñas del profesional del negocio de la
+	// sesión (incluidas las ocultas). found=false si el profesional no existe ahí.
+	ListForProfessional(ctx context.Context, businessID, professionalID string, limit int) (PanelList, bool, error)
+	// SetHidden oculta (true) o vuelve a mostrar (false) una reseña del profesional.
 	// Ocultar una ya oculta conserva su fecha original. found=false si la
-	// reseña no existe para ese barbero en esa barbería.
-	SetHidden(ctx context.Context, barbershopID, barberID, reviewID string, hidden bool) (Review, bool, error)
+	// reseña no existe para ese profesional en ese negocio.
+	SetHidden(ctx context.Context, businessID, professionalID, reviewID string, hidden bool) (Review, bool, error)
 }

@@ -3,10 +3,10 @@ package booking
 import (
 	"errors"
 
-	"system-barbershop/internal/platform/apperr"
+	"nava-agenda/internal/platform/apperr"
 )
 
-func errBarberIDRequired() error {
+func errProfessionalIDRequired() error {
 	return apperr.Validation("el profesional es obligatorio")
 }
 
@@ -85,9 +85,9 @@ func errActorInvalid() error {
 	return apperr.Validation("el actor del historial tiene una forma inválida")
 }
 
-// errBarberNotFound cubre HU-062 (CA-062-02): barberID con forma inválida,
-// inexistente o de otra barbería, sin distinguir la causa (RN-TEN-01).
-func errBarberNotFound() error {
+// errProfessionalNotFound cubre HU-062 (CA-062-02): professionalID con forma inválida,
+// inexistente o de otro negocio, sin distinguir la causa (RN-TEN-01).
+func errProfessionalNotFound() error {
 	return apperr.NotFound("no existe un profesional con ese identificador")
 }
 
@@ -98,8 +98,8 @@ func errDateInvalid() error {
 }
 
 // errAppointmentNotFound cubre HU-064 (CA-064-01, CA-064-07): appointmentId
-// con forma inválida, inexistente o de otra barbería, sin distinguir la
-// causa (RN-TEN-01), mismo criterio que errBarberNotFound.
+// con forma inválida, inexistente o de otro negocio, sin distinguir la
+// causa (RN-TEN-01), mismo criterio que errProfessionalNotFound.
 func errAppointmentNotFound() error {
 	return apperr.NotFound("no existe una cita con ese identificador")
 }
@@ -118,7 +118,7 @@ func errVersionTokenRequired() error {
 }
 
 // errStartsAtNotFuture cubre HU-065 (CA-065-*): T2 exige un nuevo inicio
-// estrictamente futuro en la zona de la barbería.
+// estrictamente futuro en la zona del negocio.
 func errStartsAtNotFuture() error {
 	return apperr.Validation("el nuevo inicio debe ser un instante futuro")
 }

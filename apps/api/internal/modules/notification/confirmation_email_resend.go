@@ -48,7 +48,7 @@ func NewResendConfirmationEmailSender(cfg ResendConfirmationEmailConfig, httpCli
 // un enlace.
 func (s ResendConfirmationEmailSender) SendConfirmation(
 	ctx context.Context,
-	email, barbershopName, serviceName, attendeeName string,
+	email, businessName, serviceName, attendeeName string,
 	startsAtLocalFormatted string,
 	accessLink string,
 ) error {
@@ -56,13 +56,13 @@ func (s ResendConfirmationEmailSender) SendConfirmation(
 	defer cancel()
 
 	content := emailContent{
-		Preheader: fmt.Sprintf("Tu turno en %s quedó confirmado.", barbershopName),
-		Brand:     barbershopName,
+		Preheader: fmt.Sprintf("Tu turno en %s quedó confirmado.", businessName),
+		Brand:     businessName,
 		Badge:     &emailBadge{Label: "Turno confirmado", Tone: toneSuccess},
 		Title:     "Tu turno está listo",
 		Greeting:  fmt.Sprintf("Hola %s,", attendeeName),
 		Paragraphs: []string{
-			fmt.Sprintf("Tu turno en %s quedó confirmado.", barbershopName),
+			fmt.Sprintf("Tu turno en %s quedó confirmado.", businessName),
 		},
 		Details: []emailDetail{
 			{Label: "Servicio", Value: serviceName},

@@ -2,7 +2,7 @@
 // Página coordinadora de la pantalla de acceso (P0, estandar-diseno-visual.md
 // §10): posee estado y navegación; `LoginForm.vue` solo presenta. Traduce
 // `LoginOutcome` (ya libre de detalles de transporte) a texto seguro para
-// el barbero, nunca al revés.
+// el profesional, nunca al revés.
 import { computed, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { BaseAlert } from '@/shared/ui'
@@ -35,7 +35,7 @@ const isSubmitting = computed(() => screenState.value.status === 'submitting')
 // ya empuja este query param al redirigir tras un 401 fuera de acceso; esta
 // pantalla solo le da el mensaje en contexto que el estándar exige. No
 // distingue más motivo que este (nunca revela detalle de seguridad) y deja
-// de mostrarse en cuanto el barbero reintenta un envío.
+// de mostrarse en cuanto el profesional reintenta un envío.
 const showSessionExpired = computed(
   () => route.query.motivo === 'sesion-expirada' && screenState.value.status === 'idle',
 )
@@ -75,7 +75,7 @@ async function attemptLogin() {
       // contraseña se limpia. Se limpia aquí a propósito: el intento fue
       // rechazado por el servidor (credencial evaluada e incorrecta), así
       // que no hay razón funcional para reenviar el mismo valor sin que
-      // el barbero lo revise. CA-010-03 (fallo de red) es distinto: ahí
+      // el profesional lo revise. CA-010-03 (fallo de red) es distinto: ahí
       // el servidor nunca evaluó la credencial, así que sí se conserva
       // para permitir un reintento de un solo toque.
       password.value = ''
@@ -115,7 +115,7 @@ const onSubmit = () => {
 
 // El servidor ya limpió el escalamiento de esta IP en la misma verificación
 // exitosa (DEC-062): reintenta el login normalmente, con las credenciales
-// que el barbero ya escribió, sin pedirle que las repita a mano.
+// que el profesional ya escribió, sin pedirle que las repita a mano.
 const onChallengeVerified = () => {
   void attemptLogin()
 }

@@ -3,25 +3,25 @@ package booking
 import (
 	"errors"
 
-	"system-barbershop/internal/platform/apperr"
+	"nava-agenda/internal/platform/apperr"
 )
 
 // errServiceNotAssigned cubre DEC-072: el servicio no existe, está
-// inactivo o no está asignado al barbero elegido. Un único 404 sin
+// inactivo o no está asignado al profesional elegido. Un único 404 sin
 // distinguir la causa (mismo criterio uniforme que RN-TEN-01).
 func errServiceNotAssigned() error {
 	return apperr.NotFound("no existe un servicio activo asignado a ese profesional")
 }
 
 // errBlockedInterval cubre DEC-073: el intervalo elegido se solapa con un
-// bloqueo vigente del barbero. Mismo tratamiento HTTP que un cruce de
+// bloqueo vigente del profesional. Mismo tratamiento HTTP que un cruce de
 // citas (409).
 func errBlockedInterval() error {
 	return apperr.Conflict("el profesional tiene un bloqueo vigente en ese intervalo")
 }
 
 // errOutsideWorkingHours cubre CA-061-02 y CA-065-04: el intervalo no cabe
-// dentro de la jornada efectiva del barbero. 422 (no 409): no hay otro
+// dentro de la jornada efectiva del profesional. 422 (no 409): no hay otro
 // recurso con el que chocar, la entrada pide algo que el horario no admite.
 func errOutsideWorkingHours() error {
 	return apperr.Validation("el intervalo queda fuera de la jornada del profesional")
@@ -32,7 +32,7 @@ func errOutsideWorkingHours() error {
 // nunca (shops.Repository.Update ya la valida contra pg_timezone_names
 // antes de persistirla), pero un caso defensivo se distingue de un pánico.
 func errTimezoneUnresolvable() error {
-	return apperr.Internal(errors.New("booking: zona IANA de la barbería no reconocida por time.LoadLocation"))
+	return apperr.Internal(errors.New("booking: zona IANA del negocio no reconocida por time.LoadLocation"))
 }
 
 func errStartsAtInvalid() error {

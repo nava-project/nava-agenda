@@ -13,11 +13,11 @@ import (
 	"testing"
 	"time"
 
-	"system-barbershop/internal/modules/customeraccess"
-	"system-barbershop/internal/modules/customeraccess/httpapi"
-	"system-barbershop/internal/platform/apperr"
-	"system-barbershop/internal/platform/httpserver"
-	"system-barbershop/internal/platform/idempotency"
+	"nava-agenda/internal/modules/customeraccess"
+	"nava-agenda/internal/modules/customeraccess/httpapi"
+	"nava-agenda/internal/platform/apperr"
+	"nava-agenda/internal/platform/httpserver"
+	"nava-agenda/internal/platform/idempotency"
 )
 
 type fakeRescheduler struct {
@@ -48,7 +48,7 @@ func (f *fakeRescheduler) RescheduleAppointment(
 func rescheduleService(r *fakeRescheduler, found bool) *customeraccess.Service {
 	repo := &fakeRepository{
 		targetFound: found,
-		target:      customeraccess.CancellationTarget{BarbershopID: "shop-1", AppointmentID: "appt-1", Timezone: "America/Bogota"},
+		target:      customeraccess.CancellationTarget{BusinessID: "shop-1", AppointmentID: "appt-1", Timezone: "America/Bogota"},
 	}
 	return customeraccess.NewService(repo, customeraccess.WithRescheduler(r, func(done int) int { return 2 - done }))
 }

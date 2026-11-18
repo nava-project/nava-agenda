@@ -1,6 +1,6 @@
 <script setup lang="ts">
 // Barra de guardado flotante (DEC-110): aparece al pie de la columna cuando hay
-// cambios de la barbería sin guardar, con un rombo que late, el resumen de qué
+// cambios del negocio sin guardar, con un rombo que late, el resumen de qué
 // cambió y las dos acciones. Mientras no hay nada pendiente no ocupa espacio ni
 // entra en el orden de foco (`v-if`). El resultado se anuncia con
 // `role="status"` y el rombo es decorativo.

@@ -14,24 +14,24 @@ import (
 // puertos pequeños ... no mediante acoplamiento del núcleo a su
 // repositorio") exige mantener SIN dependencia de compilación directa en
 // ninguna dirección: catalog.AssignmentService consulta staff solo a
-// través de catalog.BarberPort (una interfaz que catalog declara), y
+// través de catalog.ProfessionalPort (una interfaz que catalog declara), y
 // cmd/api (la raíz de composición) es quien construye
-// staff.NewBarberLookup(...) y lo pasa donde ese puerto lo espera. Ningún
+// staff.NewProfessionalLookup(...) y lo pasa donde ese puerto lo espera. Ningún
 // archivo de internal/modules/catalog debe importar
-// system-barbershop/internal/modules/staff, y viceversa.
+// nava-agenda/internal/modules/staff, y viceversa.
 var modulePairsForbiddenToImport = [][2]string{
-	{"internal/modules/catalog", "system-barbershop/internal/modules/staff"},
-	{"internal/modules/staff", "system-barbershop/internal/modules/catalog"},
+	{"internal/modules/catalog", "nava-agenda/internal/modules/staff"},
+	{"internal/modules/staff", "nava-agenda/internal/modules/catalog"},
 	// Issue #324 (DEC-102): booking y schedule solo definen un puerto de enganche
 	// (SyncHook) que la raíz de composición implementa con googlecalendar; ni ellos
 	// importan la integración ni la integración importa a booking, schedule o staff
 	// (lee `appointment`, `time_block` y el vínculo por SQL propio).
-	{"internal/modules/booking", "system-barbershop/internal/modules/googlecalendar"},
-	{"internal/modules/schedule", "system-barbershop/internal/modules/googlecalendar"},
-	{"internal/modules/staff", "system-barbershop/internal/modules/googlecalendar"},
-	{"internal/modules/googlecalendar", "system-barbershop/internal/modules/booking"},
-	{"internal/modules/googlecalendar", "system-barbershop/internal/modules/schedule"},
-	{"internal/modules/googlecalendar", "system-barbershop/internal/modules/staff"},
+	{"internal/modules/booking", "nava-agenda/internal/modules/googlecalendar"},
+	{"internal/modules/schedule", "nava-agenda/internal/modules/googlecalendar"},
+	{"internal/modules/staff", "nava-agenda/internal/modules/googlecalendar"},
+	{"internal/modules/googlecalendar", "nava-agenda/internal/modules/booking"},
+	{"internal/modules/googlecalendar", "nava-agenda/internal/modules/schedule"},
+	{"internal/modules/googlecalendar", "nava-agenda/internal/modules/staff"},
 }
 
 // TestModulesDoNotImportEachOther recorre internal/modules/<módulo> y falla

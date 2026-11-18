@@ -7,42 +7,42 @@ import (
 	"net/http/httptest"
 	"testing"
 
-	"system-barbershop/internal/modules/booking"
-	"system-barbershop/internal/modules/booking/httpapi"
-	"system-barbershop/internal/platform/apperr"
-	"system-barbershop/internal/platform/httpserver"
-	"system-barbershop/internal/platform/idempotency"
+	"nava-agenda/internal/modules/booking"
+	"nava-agenda/internal/modules/booking/httpapi"
+	"nava-agenda/internal/platform/apperr"
+	"nava-agenda/internal/platform/httpserver"
+	"nava-agenda/internal/platform/idempotency"
 )
 
 // fakeCancelRepository es un doble mínimo para probar
-// CancelAppointmentByBarberHandler en aislamiento (cabeceras, forma cerrada
+// CancelAppointmentByProfessionalHandler en aislamiento (cabeceras, forma cerrada
 // del cuerpo, forma de la respuesta, traducción de errores/Decision), no
 // PostgreSQL real (esa cobertura vive en
 // internal/modules/booking/postgres/cancel_repository_test.go) ni la
-// orquestación de CancelAppointmentByBarberService (esa vive en
+// orquestación de CancelAppointmentByProfessionalService (esa vive en
 // internal/modules/booking/cancel_test.go). Mismo criterio que
 // fakeRescheduleRepository en reschedule_handler_test.go.
 type fakeCancelRepository struct {
 	fakeRepository
 
-	cancelResult booking.CancelAppointmentByBarberResult
+	cancelResult booking.CancelAppointmentByProfessionalResult
 	cancelErr    error
 }
 
-func (f *fakeCancelRepository) CancelByBarber(
-	context.Context, string, booking.CancelAppointmentByBarberInput, idempotency.Key, idempotency.Fingerprint,
-) (booking.CancelAppointmentByBarberResult, error) {
+func (f *fakeCancelRepository) CancelByProfessional(
+	context.Context, string, booking.CancelAppointmentByProfessionalInput, idempotency.Key, idempotency.Fingerprint,
+) (booking.CancelAppointmentByProfessionalResult, error) {
 	if f.cancelErr != nil {
-		return booking.CancelAppointmentByBarberResult{}, f.cancelErr
+		return booking.CancelAppointmentByProfessionalResult{}, f.cancelErr
 	}
 	return f.cancelResult, nil
 }
 
 const validCancelAppointmentID = "8f3ac2b1-e4d5-46f6-a7c8-d9e0f1a2b3c4"
 
-func newCancelHandler(repo *fakeCancelRepository) *httpapi.CancelAppointmentByBarberHandler {
-	service := booking.NewCancelAppointmentByBarberService(repo)
-	return httpapi.NewCancelAppointmentByBarberHandler(service)
+func newCancelHandler(repo *fakeCancelRepository) *httpapi.CancelAppointmentByProfessionalHandler {
+	service := booking.NewCancelAppointmentByProfessionalService(repo)
+	return httpapi.NewCancelAppointmentByProfessionalHandler(service)
 }
 
 func cancelRequest(body []byte, idempotencyKey, ifMatch string) *http.Request {
@@ -61,9 +61,9 @@ func cancelRequest(body []byte, idempotencyKey, ifMatch string) *http.Request {
 	return req
 }
 
-func TestCancelAppointmentByBarberHandler_ValidRequest_NoBody_Returns200(t *testing.T) {
+func TestCancelAppointmentByProfessionalHandler_ValidRequest_NoBody_Returns200(t *testing.T) {
 	repo := &fakeCancelRepository{
-		cancelResult: booking.CancelAppointmentByBarberResult{
+		cancelResult: booking.CancelAppointmentByProfessionalResult{
 			Decision: idempotency.Decision{Outcome: idempotency.OutcomeProceed},
 			Response: idempotency.StoredResponse{
 				Status:      200,
@@ -81,7 +81,7 @@ func TestCancelAppointmentByBarberHandler_ValidRequest_NoBody_Returns200(t *test
 	if rec.Code != http.StatusOK {
 		t.Fatalf("expected 200, got %d: %s", rec.Code, rec.Body.String())
 	}
-	var got httpapi.CancelAppointmentByBarberResponse
+	var got httpapi.CancelAppointmentByProfessionalResponse
 	if err := json.Unmarshal(rec.Body.Bytes(), &got); err != nil {
 		t.Fatalf("unmarshal response: %v", err)
 	}
@@ -90,9 +90,9 @@ func TestCancelAppointmentByBarberHandler_ValidRequest_NoBody_Returns200(t *test
 	}
 }
 
-func TestCancelAppointmentByBarberHandler_ValidRequest_EmptyJSONBody_Returns200(t *testing.T) {
+func TestCancelAppointmentByProfessionalHandler_ValidRequest_EmptyJSONBody_Returns200(t *testing.T) {
 	repo := &fakeCancelRepository{
-		cancelResult: booking.CancelAppointmentByBarberResult{
+		cancelResult: booking.CancelAppointmentByProfessionalResult{
 			Decision: idempotency.Decision{Outcome: idempotency.OutcomeProceed},
 			Response: idempotency.StoredResponse{
 				Status:      200,
@@ -112,7 +112,7 @@ func TestCancelAppointmentByBarberHandler_ValidRequest_EmptyJSONBody_Returns200(
 	}
 }
 
-func TestCancelAppointmentByBarberHandler_MissingIdempotencyKey_Returns400(t *testing.T) {
+func TestCancelAppointmentByProfessionalHandler_MissingIdempotencyKey_Returns400(t *testing.T) {
 	repo := &fakeCancelRepository{}
 	h := newCancelHandler(repo)
 
@@ -125,7 +125,7 @@ func TestCancelAppointmentByBarberHandler_MissingIdempotencyKey_Returns400(t *te
 	}
 }
 
-func TestCancelAppointmentByBarberHandler_MissingIfMatch_Returns400(t *testing.T) {
+func TestCancelAppointmentByProfessionalHandler_MissingIfMatch_Returns400(t *testing.T) {
 	repo := &fakeCancelRepository{}
 	h := newCancelHandler(repo)
 
@@ -145,7 +145,7 @@ func TestCancelAppointmentByBarberHandler_MissingIfMatch_Returns400(t *testing.T
 	}
 }
 
-func TestCancelAppointmentByBarberHandler_UnknownField_Returns400(t *testing.T) {
+func TestCancelAppointmentByProfessionalHandler_UnknownField_Returns400(t *testing.T) {
 	repo := &fakeCancelRepository{}
 	h := newCancelHandler(repo)
 
@@ -158,7 +158,7 @@ func TestCancelAppointmentByBarberHandler_UnknownField_Returns400(t *testing.T) 
 	}
 }
 
-func TestCancelAppointmentByBarberHandler_AppointmentNotFound_Returns404(t *testing.T) {
+func TestCancelAppointmentByProfessionalHandler_AppointmentNotFound_Returns404(t *testing.T) {
 	repo := &fakeCancelRepository{cancelErr: apperr.NotFound("no existe una cita con ese identificador")}
 	h := newCancelHandler(repo)
 
@@ -171,7 +171,7 @@ func TestCancelAppointmentByBarberHandler_AppointmentNotFound_Returns404(t *test
 	}
 }
 
-func TestCancelAppointmentByBarberHandler_VersionConflict_Returns409WithDistinguishableCode(t *testing.T) {
+func TestCancelAppointmentByProfessionalHandler_VersionConflict_Returns409WithDistinguishableCode(t *testing.T) {
 	repo := &fakeCancelRepository{
 		cancelErr: apperr.VersionConflict("el turno cambió desde que se leyó; recarga antes de reintentar"),
 	}
@@ -193,7 +193,7 @@ func TestCancelAppointmentByBarberHandler_VersionConflict_Returns409WithDistingu
 	}
 }
 
-func TestCancelAppointmentByBarberHandler_InvalidState_Returns409WithDistinguishableCode(t *testing.T) {
+func TestCancelAppointmentByProfessionalHandler_InvalidState_Returns409WithDistinguishableCode(t *testing.T) {
 	repo := &fakeCancelRepository{
 		cancelErr: apperr.InvalidState("el turno ya no está confirmado; recarga para ver su estado actual"),
 	}
@@ -215,9 +215,9 @@ func TestCancelAppointmentByBarberHandler_InvalidState_Returns409WithDistinguish
 	}
 }
 
-func TestCancelAppointmentByBarberHandler_IdempotencyConflictDecision_Returns409(t *testing.T) {
+func TestCancelAppointmentByProfessionalHandler_IdempotencyConflictDecision_Returns409(t *testing.T) {
 	repo := &fakeCancelRepository{
-		cancelResult: booking.CancelAppointmentByBarberResult{
+		cancelResult: booking.CancelAppointmentByProfessionalResult{
 			Decision: idempotency.Decision{Outcome: idempotency.OutcomeConflictFingerprint},
 		},
 	}
@@ -239,9 +239,9 @@ func TestCancelAppointmentByBarberHandler_IdempotencyConflictDecision_Returns409
 	}
 }
 
-func TestCancelAppointmentByBarberHandler_ReplayDecision_ReturnsStoredStatus(t *testing.T) {
+func TestCancelAppointmentByProfessionalHandler_ReplayDecision_ReturnsStoredStatus(t *testing.T) {
 	repo := &fakeCancelRepository{
-		cancelResult: booking.CancelAppointmentByBarberResult{
+		cancelResult: booking.CancelAppointmentByProfessionalResult{
 			Decision: idempotency.Decision{Outcome: idempotency.OutcomeReplay},
 			Response: idempotency.StoredResponse{
 				Status:      200,
@@ -259,7 +259,7 @@ func TestCancelAppointmentByBarberHandler_ReplayDecision_ReturnsStoredStatus(t *
 	if rec.Code != http.StatusOK {
 		t.Fatalf("expected 200, got %d: %s", rec.Code, rec.Body.String())
 	}
-	var got httpapi.CancelAppointmentByBarberResponse
+	var got httpapi.CancelAppointmentByProfessionalResponse
 	if err := json.Unmarshal(rec.Body.Bytes(), &got); err != nil {
 		t.Fatalf("unmarshal response: %v", err)
 	}
@@ -268,7 +268,7 @@ func TestCancelAppointmentByBarberHandler_ReplayDecision_ReturnsStoredStatus(t *
 	}
 }
 
-func TestCancelAppointmentByBarberHandler_NoPrincipal_Returns500(t *testing.T) {
+func TestCancelAppointmentByProfessionalHandler_NoPrincipal_Returns500(t *testing.T) {
 	repo := &fakeCancelRepository{}
 	h := newCancelHandler(repo)
 

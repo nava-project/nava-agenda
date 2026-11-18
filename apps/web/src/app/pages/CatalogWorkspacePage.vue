@@ -1,19 +1,19 @@
 <script setup lang="ts">
 // app compone «Servicios» por los índices públicos de `catalog` y
-// `barberServices`; ninguno conoce al otro (mismo patrón que StaffWorkspacePage).
-// En el perfil de barbero individual (DEC-115) cada servicio gana un
-// interruptor «Lo ofrezco» —la asignación de HU-023 al único barbero— y un
-// servicio nuevo queda ofrecido sin pasar por la matriz «Servicios por barbero».
+// `professionalServices`; ninguno conoce al otro (mismo patrón que StaffWorkspacePage).
+// En el perfil de profesional individual (DEC-115) cada servicio gana un
+// interruptor «Lo ofrezco» —la asignación de HU-023 al único profesional— y un
+// servicio nuevo queda ofrecido sin pasar por la matriz «Servicios por profesional».
 // En el panel completo no se aporta nada: la pantalla es la de siempre.
 import { onMounted, watch } from 'vue'
 import { CatalogPage } from '@/modules/catalog'
 import type { CatalogService } from '@/modules/catalog'
-import { OfferServiceSwitch, useBarberOffering } from '@/modules/barberServices'
+import { OfferServiceSwitch, useProfessionalOffering } from '@/modules/professionalServices'
 import { useToast } from '@/shared/composables'
 import { isSoloProfile } from '@/shared/model'
 
 const toast = useToast()
-const offering = useBarberOffering()
+const offering = useProfessionalOffering()
 
 async function loadOffering() {
   await offering.load()
@@ -33,7 +33,7 @@ watch(isSoloProfile, (solo) => {
   if (solo && offering.status.value === 'idle') void loadOffering()
 })
 
-// Ofrecer el servicio recién creado al único barbero; si falla, el servicio existe y la
+// Ofrecer el servicio recién creado al único profesional; si falla, el servicio existe y la
 // persona puede activarlo con su interruptor (el aviso lo dice).
 async function onServiceCreated(service: CatalogService) {
   if (!isSoloProfile.value || offering.status.value !== 'ready') return

@@ -6,11 +6,11 @@ import (
 
 	"github.com/jackc/pgx/v5"
 
-	"system-barbershop/internal/platform/database"
+	"nava-agenda/internal/platform/database"
 )
 
 // PurgeRepository purga los retos de acceso vencidos (HU-105) con
-// customer_access_challenge_purge_expired, concedida solo a barberia_worker. db
+// customer_access_challenge_purge_expired, concedida solo a agenda_worker. db
 // debe ser el pool del proceso worker (DEC-040), nunca el de api.
 type PurgeRepository struct {
 	db *database.DB

@@ -8,12 +8,12 @@ import (
 
 	"github.com/jackc/pgx/v5"
 
-	"system-barbershop/internal/modules/googlecalendar"
-	"system-barbershop/internal/platform/database"
+	"nava-agenda/internal/modules/googlecalendar"
+	"nava-agenda/internal/platform/database"
 )
 
 // WorkerRepository implementa googlecalendar.JobStore contra las funciones
-// SECURITY DEFINER concedidas exclusivamente a barberia_worker (DEC-040,
+// SECURITY DEFINER concedidas exclusivamente a agenda_worker (DEC-040,
 // DEC-102): el worker no tiene acceso directo a ninguna tabla ni fija contexto
 // de tenant. db debe ser el pool del proceso worker (cfg.WorkerDatabaseURL).
 type WorkerRepository struct {
@@ -36,7 +36,7 @@ func (r *WorkerRepository) ClaimJobs(ctx context.Context, limit, leaseSeconds in
 		func(rows pgx.Rows) error {
 			for rows.Next() {
 				var j googlecalendar.Job
-				if err := rows.Scan(&j.ID, &j.ClaimToken, &j.BarbershopID, &j.ConnectionID,
+				if err := rows.Scan(&j.ID, &j.ClaimToken, &j.BusinessID, &j.ConnectionID,
 					&j.ResourceType, &j.ResourceID, &j.Attempts); err != nil {
 					return err
 				}
@@ -66,10 +66,10 @@ func (r *WorkerRepository) JobContext(ctx context.Context, jobID, claimToken str
 		[]any{jobID, claimToken},
 		func(row pgx.Row) error {
 			var startsAt, endsAt *time.Time
-			err := row.Scan(&jc.BarberID, &jc.ConnectionStatus, &jc.CalendarID, &jc.ReminderMinutes, &jc.TokenCiphertext,
+			err := row.Scan(&jc.ProfessionalID, &jc.ConnectionStatus, &jc.CalendarID, &jc.ReminderMinutes, &jc.TokenCiphertext,
 				&jc.TokenKeyID, &jc.Timezone,
 				&jc.LinkEventID, &jc.LinkGeneration, &jc.LinkVisibleHash,
-				&jc.ResourceType, &jc.ResourceID, &jc.ResourceFound, &jc.BarberMatches,
+				&jc.ResourceType, &jc.ResourceID, &jc.ResourceFound, &jc.ProfessionalMatches,
 				&jc.ApptStatus, &startsAt, &endsAt,
 				&jc.AttendeeName, &jc.ServiceName, &jc.CustomerEmail,
 				&jc.BlockType, &jc.BlockSource, &jc.BlockDeleted)
@@ -119,7 +119,7 @@ func (r *WorkerRepository) RestoreClaimConnection(ctx context.Context, intervalS
 		   FROM gcal_restore_claim_connection($1, $2)`,
 		[]any{intervalSeconds, now},
 		func(row pgx.Row) error {
-			err := row.Scan(&t.ConnectionID, &t.BarbershopID, &t.BarberID, &t.CalendarID, &t.TokenCiphertext, &t.TokenKeyID)
+			err := row.Scan(&t.ConnectionID, &t.BusinessID, &t.ProfessionalID, &t.CalendarID, &t.TokenCiphertext, &t.TokenKeyID)
 			if errors.Is(err, pgx.ErrNoRows) {
 				return nil
 			}

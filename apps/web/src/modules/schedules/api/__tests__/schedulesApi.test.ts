@@ -1,7 +1,7 @@
 /**
  * Pruebas del cliente tipado (`schedulesApi` sobre `shared/api/httpClient`):
  * mapeo por `status`/`code` (nunca por `detail`), mismo criterio que
- * `barberServices/api/__tests__/barberServicesApi.test.ts`. El recorrido de
+ * `professionalServices/api/__tests__/professionalServicesApi.test.ts`. El recorrido de
  * red real vive en un E2E propio de HU-040.
  */
 import { describe, it, expect, beforeEach, vi } from 'vitest'
@@ -16,8 +16,8 @@ vi.mock('@/shared/api/httpClient', () => ({
 }))
 
 const {
-  fetchBarberSummaries,
-  fetchBarbershopTimezone,
+  fetchProfessionalSummaries,
+  fetchBusinessTimezone,
   fetchWorkingHours,
   createWorkingHour,
   updateWorkingHour,
@@ -45,7 +45,7 @@ const workingHourBody = {
   updatedAt: '2026-08-25T15:04:05Z',
 }
 
-describe('schedulesApi.fetchBarberSummaries', () => {
+describe('schedulesApi.fetchProfessionalSummaries', () => {
   beforeEach(() => getMock.mockReset())
 
   it('maps a 200 success body to a minimal summary, dropping timestamps', async () => {
@@ -56,7 +56,7 @@ describe('schedulesApi.fetchBarberSummaries', () => {
       }),
     )
 
-    const outcome = await fetchBarberSummaries()
+    const outcome = await fetchProfessionalSummaries()
 
     expect(outcome).toEqual({
       kind: 'success',
@@ -67,7 +67,7 @@ describe('schedulesApi.fetchBarberSummaries', () => {
     })
   })
 
-  it('exposes the portrait URL only for barbers that have a photo', async () => {
+  it('exposes the portrait URL only for professionals that have a photo', async () => {
     getMock.mockResolvedValueOnce(
       ok({
         items: [
@@ -78,7 +78,7 @@ describe('schedulesApi.fetchBarberSummaries', () => {
       }),
     )
 
-    const outcome = await fetchBarberSummaries()
+    const outcome = await fetchProfessionalSummaries()
 
     expect(outcome).toEqual({
       kind: 'success',
@@ -95,17 +95,17 @@ describe('schedulesApi.fetchBarberSummaries', () => {
 
   it('maps a network failure to network-error', async () => {
     getMock.mockRejectedValueOnce(new Error('fetch failed'))
-    expect(await fetchBarberSummaries()).toEqual({ kind: 'network-error' })
+    expect(await fetchProfessionalSummaries()).toEqual({ kind: 'network-error' })
   })
 })
 
-describe('schedulesApi.fetchBarbershopTimezone', () => {
+describe('schedulesApi.fetchBusinessTimezone', () => {
   beforeEach(() => getMock.mockReset())
 
   it('maps a 200 success body to its IANA timezone (CA-040-06)', async () => {
     getMock.mockResolvedValueOnce(ok({ name: 'Barbería A', timezone: 'America/Bogota' }))
 
-    const outcome = await fetchBarbershopTimezone()
+    const outcome = await fetchBusinessTimezone()
 
     expect(outcome).toEqual({ kind: 'success', timezone: 'America/Bogota' })
     expect(getMock).toHaveBeenCalledWith('/private/settings/business')
@@ -113,10 +113,10 @@ describe('schedulesApi.fetchBarbershopTimezone', () => {
 
   it('maps any failure to unavailable, never blocking the schedule from loading', async () => {
     getMock.mockResolvedValueOnce(problem(500))
-    expect(await fetchBarbershopTimezone()).toEqual({ kind: 'unavailable' })
+    expect(await fetchBusinessTimezone()).toEqual({ kind: 'unavailable' })
 
     getMock.mockRejectedValueOnce(new Error('fetch failed'))
-    expect(await fetchBarbershopTimezone()).toEqual({ kind: 'unavailable' })
+    expect(await fetchBusinessTimezone()).toEqual({ kind: 'unavailable' })
   })
 })
 
@@ -137,7 +137,7 @@ describe('schedulesApi.fetchWorkingHours', () => {
     })
   })
 
-  it('maps a 404 to not-found (RN-TEN-01: unknown or cross-tenant barber)', async () => {
+  it('maps a 404 to not-found (RN-TEN-01: unknown or cross-tenant professional)', async () => {
     getMock.mockResolvedValueOnce(problem(404))
     expect(await fetchWorkingHours('unknown')).toEqual({ kind: 'not-found' })
   })

@@ -12,8 +12,8 @@ import (
 
 	"github.com/jackc/pgx/v5"
 
-	"system-barbershop/internal/modules/customeraccess"
-	"system-barbershop/internal/platform/database"
+	"nava-agenda/internal/modules/customeraccess"
+	"nava-agenda/internal/platform/database"
 )
 
 // Repository implementa customeraccess.Repository sobre database.DB.
@@ -30,19 +30,19 @@ var _ customeraccess.Repository = (*Repository)(nil)
 
 // ResolveAppointmentByTokenHash implementa customeraccess.Repository en dos
 // pasos, exactamente el patrón ya establecido por
-// publicbooking.Repository.ResolveBySlug (public_resolve_barbershop_by_slug,
+// publicbooking.Repository.ResolveBySlug (public_resolve_business_by_slug,
 // HU-090, database.DB.ResolveTenant): primero resuelve el hash a un
-// identificador de barbería SIN contexto de tenant, mediante la función
+// identificador de negocio SIN contexto de tenant, mediante la función
 // SECURITY DEFINER estrecha public_resolve_appointment_token_tenant (que
 // responde igual -NULL- a un hash inexistente, vencido o revocado,
 // CA-098-02); si resuelve, abre una transacción tenant-aware normal
 // (InTenantTx) sobre ESE identificador para leer la proyección mínima ya
 // protegida por RLS, exigiendo de nuevo el mismo hash vigente -defensa en
 // profundidad frente a una revocación ocurrida entre ambos pasos, sin
-// necesitar ningún privilegio adicional sobre appointment/barber/
-// barbershop.
+// necesitar ningún privilegio adicional sobre appointment/professional/
+// business.
 func (r *Repository) ResolveAppointmentByTokenHash(ctx context.Context, tokenHash string) (customeraccess.AppointmentView, bool, error) {
-	barbershopID, found, err := r.db.ResolveTenant(ctx,
+	businessID, found, err := r.db.ResolveTenant(ctx,
 		`SELECT public_resolve_appointment_token_tenant($1)`,
 		tokenHash,
 	)
@@ -60,7 +60,7 @@ func (r *Repository) ResolveAppointmentByTokenHash(ctx context.Context, tokenHas
 		reviewCreatedAt *time.Time
 	)
 	viewFound := false
-	err = r.db.InTenantTx(ctx, barbershopID, func(ctx context.Context, q database.Queries) error {
+	err = r.db.InTenantTx(ctx, businessID, func(ctx context.Context, q database.Queries) error {
 		err := q.QueryRow(ctx,
 			`SELECT bs.name, bs.timezone,
 			        ap.attendee_name, ap.service_name_snapshot, ap.duration_minutes_snapshot,
@@ -87,16 +87,16 @@ func (r *Repository) ResolveAppointmentByTokenHash(ctx context.Context, tokenHas
 			    AND (t.expires_at IS NULL OR t.expires_at > now())`,
 			tokenHash,
 		).Scan(
-			&view.BarbershopName, &view.Timezone,
+			&view.BusinessName, &view.Timezone,
 			&view.AttendeeName, &view.ServiceName, &view.DurationMinutes,
-			&view.BarberName, &view.StartsAt, &view.EndsAt, &view.Status,
+			&view.ProfessionalName, &view.StartsAt, &view.EndsAt, &view.Status,
 			&view.CancellationDeadlineMinutes, &view.LateCancellationClientAllowed,
 			&view.LateCancellationReasonRequired,
 			&view.Vocabulary.BusinessTerm, &view.Vocabulary.BusinessTermGender,
 			&view.Vocabulary.ProfessionalTerm, &view.Vocabulary.ProfessionalTermPlural,
 			&view.Vocabulary.ProfessionalTermGender,
 			&reviewRating, &reviewComment, &reviewCreatedAt,
-			&view.BarbershopContactEmail, &view.BarbershopContactPhone, &view.AppointmentID, &view.UpdatedAt,
+			&view.BusinessContactEmail, &view.BusinessContactPhone, &view.AppointmentID, &view.UpdatedAt,
 			&view.CustomerReschedules,
 		)
 		switch {
@@ -131,7 +131,7 @@ func (r *Repository) ResolveAppointmentByTokenHash(ctx context.Context, tokenHas
 // hash vigente da acceso. Devuelve solo identificadores internos para que
 // booking ejecute T5; nunca llegan al cliente.
 func (r *Repository) ResolveCancellationTarget(ctx context.Context, tokenHash string) (customeraccess.CancellationTarget, bool, error) {
-	barbershopID, found, err := r.db.ResolveTenant(ctx,
+	businessID, found, err := r.db.ResolveTenant(ctx,
 		`SELECT public_resolve_appointment_token_tenant($1)`,
 		tokenHash,
 	)
@@ -142,9 +142,9 @@ func (r *Repository) ResolveCancellationTarget(ctx context.Context, tokenHash st
 		return customeraccess.CancellationTarget{}, false, nil
 	}
 
-	target := customeraccess.CancellationTarget{BarbershopID: string(barbershopID)}
+	target := customeraccess.CancellationTarget{BusinessID: string(businessID)}
 	targetFound := false
-	err = r.db.InTenantTx(ctx, barbershopID, func(ctx context.Context, q database.Queries) error {
+	err = r.db.InTenantTx(ctx, businessID, func(ctx context.Context, q database.Queries) error {
 		err := q.QueryRow(ctx,
 			`SELECT t.appointment_id, bs.timezone
 			   FROM appointment_access_token t

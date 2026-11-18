@@ -5,7 +5,7 @@ import (
 	"encoding/hex"
 	"testing"
 
-	"system-barbershop/internal/modules/auth"
+	"nava-agenda/internal/modules/auth"
 )
 
 func TestCryptoTokenGenerator_New_ProducesDistinctTokens(t *testing.T) {

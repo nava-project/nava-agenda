@@ -2,7 +2,7 @@
 // PostgreSQL REAL, mismos requisitos que repository_test.go: migraciones
 // aplicadas hasta 20260824150000_create_barber_service.sql y
 // database/testdata/hu022_catalogo.sql cargado. Conéctate como
-// barberia_app.
+// agenda_app.
 package postgres_test
 
 import (
@@ -12,9 +12,9 @@ import (
 	"testing"
 	"time"
 
-	"system-barbershop/internal/modules/catalog"
-	"system-barbershop/internal/platform/database"
-	"system-barbershop/internal/platform/idempotency"
+	"nava-agenda/internal/modules/catalog"
+	"nava-agenda/internal/platform/database"
+	"nava-agenda/internal/platform/idempotency"
 )
 
 func deactivateFP(serviceID string) idempotency.Fingerprint {
@@ -156,7 +156,7 @@ func TestDeactivate_CrossTenant_NeverLeaksAnotherShopsService(t *testing.T) {
 	repo := newRepository(db)
 	suffix := uniqueSuffix(t)
 
-	svc := createService(t, repo, shopF, "De la barbería F "+suffix)
+	svc := createService(t, repo, shopF, "Del negocio F "+suffix)
 
 	result, err := repo.Deactivate(context.Background(), string(shopE), svc.ID, idempotency.Key("deactivate-cross-"+suffix), deactivateFP(svc.ID))
 	if err != nil {
@@ -357,7 +357,7 @@ func TestDeactivate_TwoRealConcurrentConnections_ExactlyOneSucceeds(t *testing.T
 
 // insertAppointmentFixture crea una cita para el recuento de impacto; el
 // estado y el inicio son lo único que el recuento distingue.
-func insertAppointmentFixture(t *testing.T, db *database.DB, shop database.BarbershopID, barberID, serviceID, customerID, status string, startsAt time.Time) {
+func insertAppointmentFixture(t *testing.T, db *database.DB, shop database.BusinessID, professionalID, serviceID, customerID, status string, startsAt time.Time) {
 	t.Helper()
 	err := db.InTenantTx(context.Background(), shop, func(ctx context.Context, q database.Queries) error {
 		_, err := q.Exec(ctx,
@@ -367,7 +367,7 @@ func insertAppointmentFixture(t *testing.T, db *database.DB, shop database.Barbe
 			                          price_amount_snapshot, price_currency_snapshot, resolved_at)
 			 VALUES ($1, $2, $3, $4, 'Persona atendida', $5, $6, $7, 'manual', 'Servicio', 30, 20000.00, 'COP',
 			         CASE WHEN $7 = 'confirmed' THEN NULL ELSE now() END)`,
-			string(shop), barberID, serviceID, customerID, startsAt, startsAt.Add(30*time.Minute), status)
+			string(shop), professionalID, serviceID, customerID, startsAt, startsAt.Add(30*time.Minute), status)
 		return err
 	})
 	if err != nil {
@@ -375,7 +375,7 @@ func insertAppointmentFixture(t *testing.T, db *database.DB, shop database.Barbe
 	}
 }
 
-func createCustomerFixture(t *testing.T, db *database.DB, shop database.BarbershopID) string {
+func createCustomerFixture(t *testing.T, db *database.DB, shop database.BusinessID) string {
 	t.Helper()
 	var id string
 	err := db.InTenantTx(context.Background(), shop, func(ctx context.Context, q database.Queries) error {
@@ -389,8 +389,8 @@ func createCustomerFixture(t *testing.T, db *database.DB, shop database.Barbersh
 	return id
 }
 
-// El recuento solo incluye citas `confirmed` futuras de ESE servicio y de la
-// barbería de la sesión; desactivar no toca ninguna cita (CA-024-03).
+// El recuento solo incluye citas `confirmed` futuras de ESE servicio y del
+// negocio de la sesión; desactivar no toca ninguna cita (CA-024-03).
 func TestCountFutureAppointments_CountsOnlyConfirmedFutureOfThatServiceAndTenant(t *testing.T) {
 	db := setupTestDB(t)
 	repo := newRepository(db)
@@ -398,15 +398,15 @@ func TestCountFutureAppointments_CountsOnlyConfirmedFutureOfThatServiceAndTenant
 
 	target := createService(t, repo, shopE, "Servicio con citas "+suffix)
 	other := createService(t, repo, shopE, "Otro servicio "+suffix)
-	barber := createBarberFixture(t, db, shopE, "Barbero impacto "+suffix)
+	professional := createProfessionalFixture(t, db, shopE, "Barbero impacto "+suffix)
 	customer := createCustomerFixture(t, db, shopE)
 	now := time.Now()
 
-	insertAppointmentFixture(t, db, shopE, barber.ID, target.ID, customer, "confirmed", now.Add(48*time.Hour))
-	insertAppointmentFixture(t, db, shopE, barber.ID, target.ID, customer, "confirmed", now.Add(72*time.Hour))
-	insertAppointmentFixture(t, db, shopE, barber.ID, target.ID, customer, "confirmed", now.Add(-48*time.Hour))
-	insertAppointmentFixture(t, db, shopE, barber.ID, target.ID, customer, "cancelled_by_professional", now.Add(96*time.Hour))
-	insertAppointmentFixture(t, db, shopE, barber.ID, other.ID, customer, "confirmed", now.Add(120*time.Hour))
+	insertAppointmentFixture(t, db, shopE, professional.ID, target.ID, customer, "confirmed", now.Add(48*time.Hour))
+	insertAppointmentFixture(t, db, shopE, professional.ID, target.ID, customer, "confirmed", now.Add(72*time.Hour))
+	insertAppointmentFixture(t, db, shopE, professional.ID, target.ID, customer, "confirmed", now.Add(-48*time.Hour))
+	insertAppointmentFixture(t, db, shopE, professional.ID, target.ID, customer, "cancelled_by_professional", now.Add(96*time.Hour))
+	insertAppointmentFixture(t, db, shopE, professional.ID, other.ID, customer, "confirmed", now.Add(120*time.Hour))
 
 	got, err := repo.CountFutureAppointments(context.Background(), string(shopE), target.ID)
 	if err != nil {
@@ -445,7 +445,7 @@ func TestCountFutureAppointments_CountsOnlyConfirmedFutureOfThatServiceAndTenant
 
 const staffPriceE = "eeeeee01-eeee-4eee-8eee-eeeeeeeeee01"
 
-func appointmentPrice(t *testing.T, db *database.DB, shop database.BarbershopID, appointmentID string) string {
+func appointmentPrice(t *testing.T, db *database.DB, shop database.BusinessID, appointmentID string) string {
 	t.Helper()
 	var price string
 	err := db.InTenantTx(context.Background(), shop, func(ctx context.Context, q database.Queries) error {
@@ -457,7 +457,7 @@ func appointmentPrice(t *testing.T, db *database.DB, shop database.BarbershopID,
 	return price
 }
 
-func appointmentIDs(t *testing.T, db *database.DB, shop database.BarbershopID, serviceID string) []string {
+func appointmentIDs(t *testing.T, db *database.DB, shop database.BusinessID, serviceID string) []string {
 	t.Helper()
 	var ids []string
 	err := db.InTenantTx(context.Background(), shop, func(ctx context.Context, q database.Queries) error {
@@ -481,7 +481,7 @@ func appointmentIDs(t *testing.T, db *database.DB, shop database.BarbershopID, s
 	return ids
 }
 
-func priceHistory(t *testing.T, db *database.DB, shop database.BarbershopID, appointmentID string) (events int, previous, next string) {
+func priceHistory(t *testing.T, db *database.DB, shop database.BusinessID, appointmentID string) (events int, previous, next string) {
 	t.Helper()
 	err := db.InTenantTx(context.Background(), shop, func(ctx context.Context, q database.Queries) error {
 		if err := q.QueryRow(ctx,
@@ -512,15 +512,15 @@ func TestUpdate_ApplyPriceToUpcoming_ChangesOnlyConfirmedFutureOfThatService(t *
 
 	target := createService(t, repo, shopE, "Precio a futuras "+suffix)
 	other := createService(t, repo, shopE, "Precio otro "+suffix)
-	barber := createBarberFixture(t, db, shopE, "Barbero precio "+suffix)
+	professional := createProfessionalFixture(t, db, shopE, "Barbero precio "+suffix)
 	customer := createCustomerFixture(t, db, shopE)
 	now := time.Now()
 
-	insertAppointmentFixture(t, db, shopE, barber.ID, target.ID, customer, "confirmed", now.Add(48*time.Hour))
-	insertAppointmentFixture(t, db, shopE, barber.ID, target.ID, customer, "confirmed", now.Add(72*time.Hour))
-	insertAppointmentFixture(t, db, shopE, barber.ID, target.ID, customer, "confirmed", now.Add(-48*time.Hour))
-	insertAppointmentFixture(t, db, shopE, barber.ID, target.ID, customer, "cancelled_by_professional", now.Add(96*time.Hour))
-	insertAppointmentFixture(t, db, shopE, barber.ID, other.ID, customer, "confirmed", now.Add(120*time.Hour))
+	insertAppointmentFixture(t, db, shopE, professional.ID, target.ID, customer, "confirmed", now.Add(48*time.Hour))
+	insertAppointmentFixture(t, db, shopE, professional.ID, target.ID, customer, "confirmed", now.Add(72*time.Hour))
+	insertAppointmentFixture(t, db, shopE, professional.ID, target.ID, customer, "confirmed", now.Add(-48*time.Hour))
+	insertAppointmentFixture(t, db, shopE, professional.ID, target.ID, customer, "cancelled_by_professional", now.Add(96*time.Hour))
+	insertAppointmentFixture(t, db, shopE, professional.ID, other.ID, customer, "confirmed", now.Add(120*time.Hour))
 	ids := appointmentIDs(t, db, shopE, target.ID)
 	otherIDs := appointmentIDs(t, db, shopE, other.ID)
 
@@ -564,9 +564,9 @@ func TestUpdate_WithoutApplyPriceToUpcoming_LeavesAppointmentsUntouched(t *testi
 	suffix := uniqueSuffix(t)
 
 	svc := createService(t, repo, shopE, "Precio sin propagar "+suffix)
-	barber := createBarberFixture(t, db, shopE, "Barbero sin propagar "+suffix)
+	professional := createProfessionalFixture(t, db, shopE, "Barbero sin propagar "+suffix)
 	customer := createCustomerFixture(t, db, shopE)
-	insertAppointmentFixture(t, db, shopE, barber.ID, svc.ID, customer, "confirmed", time.Now().Add(48*time.Hour))
+	insertAppointmentFixture(t, db, shopE, professional.ID, svc.ID, customer, "confirmed", time.Now().Add(48*time.Hour))
 
 	newPrice := int64(4_000_000)
 	result, err := repo.Update(context.Background(), string(shopE), svc.ID, catalog.UpdateFields{PriceCents: &newPrice})
@@ -591,9 +591,9 @@ func TestUpdate_ApplyPriceToUpcoming_NeverCrossesTenants(t *testing.T) {
 	suffix := uniqueSuffix(t)
 
 	svc := createService(t, repo, shopE, "Precio aislado "+suffix)
-	barber := createBarberFixture(t, db, shopE, "Barbero aislado "+suffix)
+	professional := createProfessionalFixture(t, db, shopE, "Barbero aislado "+suffix)
 	customer := createCustomerFixture(t, db, shopE)
-	insertAppointmentFixture(t, db, shopE, barber.ID, svc.ID, customer, "confirmed", time.Now().Add(48*time.Hour))
+	insertAppointmentFixture(t, db, shopE, professional.ID, svc.ID, customer, "confirmed", time.Now().Add(48*time.Hour))
 
 	newPrice := int64(5_000_000)
 	result, err := repo.Update(context.Background(), string(shopF), svc.ID, catalog.UpdateFields{

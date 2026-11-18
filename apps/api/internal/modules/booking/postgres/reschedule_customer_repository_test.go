@@ -1,5 +1,5 @@
 // Pruebas de integración de HU-104 (T2 del cliente, DEC-178) contra PostgreSQL
-// REAL con dos barberías (shopQ y shopR), con los mismos fixtures que
+// REAL con dos negocios (shopQ y shopR), con los mismos fixtures que
 // cancel_customer_repository_test.go. El reloj llega por
 // RescheduleAppointmentByCustomerInput.Now para fijar el plazo sin dormir.
 package postgres_test
@@ -10,11 +10,11 @@ import (
 	"testing"
 	"time"
 
-	"system-barbershop/internal/modules/booking"
-	bookingpostgres "system-barbershop/internal/modules/booking/postgres"
-	"system-barbershop/internal/platform/apperr"
-	"system-barbershop/internal/platform/database"
-	"system-barbershop/internal/platform/idempotency"
+	"nava-agenda/internal/modules/booking"
+	bookingpostgres "nava-agenda/internal/modules/booking/postgres"
+	"nava-agenda/internal/platform/apperr"
+	"nava-agenda/internal/platform/database"
+	"nava-agenda/internal/platform/idempotency"
 )
 
 type customerRescheduleFixture struct {
@@ -40,7 +40,7 @@ func newCustomerRescheduleFixture(t *testing.T) customerRescheduleFixture {
 	suffix := uniqueSuffix(t)
 	start := baseStart(t)
 
-	created, err := repo.CreateInternal(context.Background(), string(shopQ), validInput(t, barberQ1, serviceQ, start, 30, suffix))
+	created, err := repo.CreateInternal(context.Background(), string(shopQ), validInput(t, professionalQ1, serviceQ, start, 30, suffix))
 	if err != nil {
 		t.Fatalf("CreateInternal: %v", err)
 	}
@@ -52,7 +52,7 @@ func newCustomerRescheduleFixture(t *testing.T) customerRescheduleFixture {
 	return f
 }
 
-func (f customerRescheduleFixture) setDeadline(t *testing.T, shop database.BarbershopID, minutes int) {
+func (f customerRescheduleFixture) setDeadline(t *testing.T, shop database.BusinessID, minutes int) {
 	t.Helper()
 	err := f.db.InTenantTx(context.Background(), shop, func(ctx context.Context, q database.Queries) error {
 		_, err := q.Exec(ctx, `UPDATE business SET cancellation_deadline_minutes = $2 WHERE id = $1`, shop, minutes)
@@ -82,7 +82,7 @@ func (f customerRescheduleFixture) input(t *testing.T, newStart, now time.Time) 
 	}
 }
 
-func (f customerRescheduleFixture) reschedule(t *testing.T, shop database.BarbershopID, in booking.RescheduleAppointmentByCustomerInput, key string) (booking.RescheduleByCustomerResult, error) {
+func (f customerRescheduleFixture) reschedule(t *testing.T, shop database.BusinessID, in booking.RescheduleAppointmentByCustomerInput, key string) (booking.RescheduleByCustomerResult, error) {
 	t.Helper()
 	return f.repo.RescheduleByCustomer(context.Background(), string(shop), in,
 		idempotency.Key("cresched-"+key+"-"+f.suffix), rescheduleFingerprint("cresched-"+key+"-"+f.suffix))
@@ -221,18 +221,18 @@ func TestRescheduleByCustomer_Deadline(t *testing.T) {
 	}
 }
 
-// CA-104-05: dos reprogramaciones del cliente como máximo; las del barbero no
+// CA-104-05: dos reprogramaciones del cliente como máximo; las del profesional no
 // cuentan.
 func TestRescheduleByCustomer_LimitCountsOnlyCustomerReschedules(t *testing.T) {
 	f := newCustomerRescheduleFixture(t)
 	now := f.start.Add(-48 * time.Hour)
 
-	// El barbero mueve el turno: no consume el cupo del cliente.
+	// El profesional mueve el turno: no consume el cupo del cliente.
 	staffMove := f.start.Add(time.Hour)
 	if _, err := f.repo.Reschedule(context.Background(), string(shopQ),
 		newRescheduleInput(f.appointment, f.version(t), staffMove, staffMove.Add(30*time.Minute)),
 		idempotency.Key("staff-"+f.suffix), rescheduleFingerprint("staff-"+f.suffix)); err != nil {
-		t.Fatalf("Reschedule (barbero): %v", err)
+		t.Fatalf("Reschedule (profesional): %v", err)
 	}
 
 	for i, offset := range []time.Duration{2 * time.Hour, 3 * time.Hour} {
@@ -279,13 +279,13 @@ func TestRescheduleByCustomer_OverlapAndRace(t *testing.T) {
 	now := f.start.Add(-48 * time.Hour)
 
 	busy := f.start.Add(2 * time.Hour)
-	if _, err := f.repo.CreateInternal(context.Background(), string(shopQ), validInput(t, barberQ1, serviceQ, busy, 30, f.suffix+"-busy")); err != nil {
+	if _, err := f.repo.CreateInternal(context.Background(), string(shopQ), validInput(t, professionalQ1, serviceQ, busy, 30, f.suffix+"-busy")); err != nil {
 		t.Fatalf("CreateInternal (ocupada): %v", err)
 	}
 	_, err := f.reschedule(t, shopQ, f.input(t, busy.Add(15*time.Minute), now), "overlap")
 	assertAppKind(t, err, apperr.KindScheduleConflict)
 
-	other, err := f.repo.CreateInternal(context.Background(), string(shopQ), validInput(t, barberQ1, serviceQ, f.start.Add(4*time.Hour), 30, f.suffix+"-other"))
+	other, err := f.repo.CreateInternal(context.Background(), string(shopQ), validInput(t, professionalQ1, serviceQ, f.start.Add(4*time.Hour), 30, f.suffix+"-other"))
 	if err != nil {
 		t.Fatalf("CreateInternal (otra): %v", err)
 	}
@@ -325,7 +325,7 @@ func TestRescheduleByCustomer_OverlapAndRace(t *testing.T) {
 	}
 }
 
-// CA-104-07: la cita de una barbería no existe para la otra.
+// CA-104-07: la cita de un negocio no existe para la otra.
 func TestRescheduleByCustomer_TwoTenants(t *testing.T) {
 	f := newCustomerRescheduleFixture(t)
 	now := f.start.Add(-48 * time.Hour)
@@ -333,10 +333,10 @@ func TestRescheduleByCustomer_TwoTenants(t *testing.T) {
 	_, err := f.reschedule(t, shopR, f.input(t, f.start.Add(2*time.Hour), now), "tenant")
 	assertAppKind(t, err, apperr.KindNotFound)
 	if _, found, err := f.repo.CustomerRescheduleState(context.Background(), string(shopR), f.appointment); err != nil || found {
-		t.Fatalf("la otra barbería no ve el turno: found=%v err=%v", found, err)
+		t.Fatalf("el otro negocio no ve el turno: found=%v err=%v", found, err)
 	}
 	if r := f.row(t); !r.startsAt.Equal(f.start) {
-		t.Fatalf("la otra barbería no mueve el turno: %+v", r)
+		t.Fatalf("el otro negocio no mueve el turno: %+v", r)
 	}
 }
 

@@ -3,14 +3,14 @@
 // 20260916120000_add_public_resolve_appointment_token_tenant.sql) y
 // database/testdata/{hu098_acceso_turno.sql} cargado. Cada prueba crea su
 // propia cita con booking/postgres.Repository.CreateInternal (la misma
-// primitiva ya probada en booking/postgres/repository_test.go) sobre las
-// barberías dedicadas del fixture, y agrega su propia fila
+// primitiva ya probada en booking/postgres/repository_test.go) sobre los
+// negocios dedicados del fixture, y agrega su propia fila
 // appointment_access_token con SQL directo: esa tabla es responsabilidad
 // de customeraccess/publicbooking, no de booking (docs/03-desarrollo/
 // estrategia-pruebas.md §2 prohíbe mocks para RLS/resolución de tenant sin
 // contexto).
 //
-//	export TEST_DATABASE_URL="postgres://barberia_app:app_test@localhost:5432/barberia_test?sslmode=disable"
+//	export TEST_DATABASE_URL="postgres://agenda_app:app_test@localhost:5432/postgres?sslmode=disable"
 //	go test -race ./internal/modules/customeraccess/postgres/...
 package postgres_test
 
@@ -24,12 +24,12 @@ import (
 	"testing"
 	"time"
 
-	"system-barbershop/internal/modules/booking"
-	bookingpostgres "system-barbershop/internal/modules/booking/postgres"
-	customeraccesspostgres "system-barbershop/internal/modules/customeraccess/postgres"
-	"system-barbershop/internal/platform/config"
-	"system-barbershop/internal/platform/database"
-	"system-barbershop/internal/platform/idempotency"
+	"nava-agenda/internal/modules/booking"
+	bookingpostgres "nava-agenda/internal/modules/booking/postgres"
+	customeraccesspostgres "nava-agenda/internal/modules/customeraccess/postgres"
+	"nava-agenda/internal/platform/config"
+	"nava-agenda/internal/platform/database"
+	"nava-agenda/internal/platform/idempotency"
 )
 
 const (
@@ -41,13 +41,13 @@ const (
 	// (client_allowed=false, reason_required=false, deadline=90) -valores
 	// deliberadamente distintos para que una fuga cruzada de política sea
 	// detectable (CA-098-05).
-	shopUno    = "00980001-0098-0098-0098-009800010001"
-	barberUno  = "00980011-0098-0098-0098-009800110011"
-	serviceUno = "00980012-0098-0098-0098-009800120012"
+	shopUno         = "00980001-0098-0098-0098-009800010001"
+	professionalUno = "00980011-0098-0098-0098-009800110011"
+	serviceUno      = "00980012-0098-0098-0098-009800120012"
 
-	shopDos    = "00980002-0098-0098-0098-009800020002"
-	barberDos  = "00980021-0098-0098-0098-009800210021"
-	serviceDos = "00980022-0098-0098-0098-009800220022"
+	shopDos         = "00980002-0098-0098-0098-009800020002"
+	professionalDos = "00980021-0098-0098-0098-009800210021"
+	serviceDos      = "00980022-0098-0098-0098-009800220022"
 )
 
 func setupTestDB(t *testing.T) *database.DB {
@@ -89,15 +89,15 @@ func uniqueDigits(t *testing.T, n int) string {
 // createTestAppointment crea una cita real (booking.CreateInternal) dentro
 // de shopID, con un cliente nuevo propio de la prueba, y devuelve la cita
 // creada.
-func createTestAppointment(t *testing.T, db *database.DB, shopID, barberID, serviceID string, status booking.Status) booking.Appointment {
+func createTestAppointment(t *testing.T, db *database.DB, shopID, professionalID, serviceID string, status booking.Status) booking.Appointment {
 	t.Helper()
 	repo := bookingpostgres.New(db, idempotency.NewSQLCoordinator())
 
 	fullName := "Cliente de prueba HU-098 " + uniqueDigits(t, 6)
 	// Desplazamiento aleatorio de días/minutos para que llamadas repetidas
-	// (incluso dentro de la misma prueba, mismo barbero) nunca choquen con
-	// appointment_barber_interval_excl ni con una corrida anterior contra el
-	// mismo PostgreSQL persistente (barberia_app no puede DELETE
+	// (incluso dentro de la misma prueba, mismo profesional) nunca choquen con
+	// appointment_professional_interval_excl ni con una corrida anterior contra el
+	// mismo PostgreSQL persistente (agenda_app no puede DELETE
 	// appointment, RN-HIS-02, mismo motivo que uniqueSuffix en
 	// booking/postgres/repository_test.go).
 	offsetDays, err := rand.Int(rand.Reader, big.NewInt(3650))
@@ -113,12 +113,12 @@ func createTestAppointment(t *testing.T, db *database.DB, shopID, barberID, serv
 		Add(time.Duration(offsetMinutes.Int64()) * time.Hour)
 
 	created, err := repo.CreateInternal(context.Background(), shopID, booking.CreateInternalInput{
-		BarberID:     barberID,
-		ServiceID:    serviceID,
-		AttendeeName: fullName,
-		StartsAt:     starts,
-		EndsAt:       starts.Add(30 * time.Minute),
-		Origin:       booking.OriginPublic,
+		ProfessionalID: professionalID,
+		ServiceID:      serviceID,
+		AttendeeName:   fullName,
+		StartsAt:       starts,
+		EndsAt:         starts.Add(30 * time.Minute),
+		Origin:         booking.OriginPublic,
 		Service: booking.ServiceSnapshot{
 			Name:             "Corte de prueba HU-098",
 			DurationMinutes:  30,
@@ -136,7 +136,7 @@ func createTestAppointment(t *testing.T, db *database.DB, shopID, barberID, serv
 	appointment := created.Appointment
 
 	if status != booking.StatusConfirmed {
-		err := db.InTenantTx(context.Background(), database.BarbershopID(shopID), func(ctx context.Context, q database.Queries) error {
+		err := db.InTenantTx(context.Background(), database.BusinessID(shopID), func(ctx context.Context, q database.Queries) error {
 			_, err := q.Exec(ctx, `UPDATE appointment SET status = $1, resolved_at = now() WHERE id = $2`, string(status), appointment.ID)
 			return err
 		})
@@ -190,7 +190,7 @@ func insertAccessToken(t *testing.T, db *database.DB, shopID, appointmentID stri
 		revokedAt = &r
 	}
 
-	err := db.InTenantTx(context.Background(), database.BarbershopID(shopID), func(ctx context.Context, q database.Queries) error {
+	err := db.InTenantTx(context.Background(), database.BusinessID(shopID), func(ctx context.Context, q database.Queries) error {
 		_, err := q.Exec(ctx,
 			`INSERT INTO appointment_access_token (business_id, appointment_id, token_hash, issued_at, expires_at, revoked_at)
 			 VALUES ($1, $2, $3, $4, $5, $6)`,
@@ -208,7 +208,7 @@ func TestResolveAppointmentByTokenHash_ValidToken_ReturnsView(t *testing.T) {
 	db := setupTestDB(t)
 	repo := customeraccesspostgres.New(db)
 
-	appointment := createTestAppointment(t, db, shopUno, barberUno, serviceUno, booking.StatusConfirmed)
+	appointment := createTestAppointment(t, db, shopUno, professionalUno, serviceUno, booking.StatusConfirmed)
 	tokenPlain := insertAccessToken(t, db, shopUno, appointment.ID, tokenState{expiresIn: 90 * 24 * time.Hour})
 
 	sum := sha256.Sum256([]byte(tokenPlain))
@@ -221,8 +221,8 @@ func TestResolveAppointmentByTokenHash_ValidToken_ReturnsView(t *testing.T) {
 	if !found {
 		t.Fatal("expected found = true for a valid token")
 	}
-	if view.BarbershopName != "Barbería de prueba HU-098 Uno" {
-		t.Fatalf("BarbershopName = %q", view.BarbershopName)
+	if view.BusinessName != "Barbería de prueba HU-098 Uno" {
+		t.Fatalf("BusinessName = %q", view.BusinessName)
 	}
 	if view.Timezone != "America/Bogota" {
 		t.Fatalf("Timezone = %q", view.Timezone)
@@ -233,8 +233,8 @@ func TestResolveAppointmentByTokenHash_ValidToken_ReturnsView(t *testing.T) {
 	if view.ServiceName != "Corte de prueba HU-098" || view.DurationMinutes != 30 {
 		t.Fatalf("service snapshot inesperado: %+v", view)
 	}
-	if view.BarberName != "Barbero HU-098 Uno" {
-		t.Fatalf("BarberName = %q", view.BarberName)
+	if view.ProfessionalName != "Barbero HU-098 Uno" {
+		t.Fatalf("ProfessionalName = %q", view.ProfessionalName)
 	}
 	if !view.StartsAt.Equal(appointment.StartsAt) || !view.EndsAt.Equal(appointment.EndsAt) {
 		t.Fatalf("intervalo inesperado: %+v", view)
@@ -251,7 +251,7 @@ func TestResolveAppointmentByTokenHash_ExpiredToken_NotFound(t *testing.T) {
 	db := setupTestDB(t)
 	repo := customeraccesspostgres.New(db)
 
-	appointment := createTestAppointment(t, db, shopUno, barberUno, serviceUno, booking.StatusConfirmed)
+	appointment := createTestAppointment(t, db, shopUno, professionalUno, serviceUno, booking.StatusConfirmed)
 	tokenPlain := insertAccessToken(t, db, shopUno, appointment.ID, tokenState{expired: true})
 
 	sum := sha256.Sum256([]byte(tokenPlain))
@@ -270,7 +270,7 @@ func TestResolveAppointmentByTokenHash_RevokedToken_NotFound(t *testing.T) {
 	db := setupTestDB(t)
 	repo := customeraccesspostgres.New(db)
 
-	appointment := createTestAppointment(t, db, shopUno, barberUno, serviceUno, booking.StatusConfirmed)
+	appointment := createTestAppointment(t, db, shopUno, professionalUno, serviceUno, booking.StatusConfirmed)
 	tokenPlain := insertAccessToken(t, db, shopUno, appointment.ID, tokenState{expiresIn: 90 * 24 * time.Hour, revoked: true})
 
 	sum := sha256.Sum256([]byte(tokenPlain))
@@ -291,7 +291,7 @@ func TestResolveAppointmentByTokenHash_CancelledAppointment_StillResolves(t *tes
 	db := setupTestDB(t)
 	repo := customeraccesspostgres.New(db)
 
-	appointment := createTestAppointment(t, db, shopUno, barberUno, serviceUno, booking.StatusCancelledByCustomer)
+	appointment := createTestAppointment(t, db, shopUno, professionalUno, serviceUno, booking.StatusCancelledByCustomer)
 	tokenPlain := insertAccessToken(t, db, shopUno, appointment.ID, tokenState{expiresIn: 90 * 24 * time.Hour})
 
 	view, found, err := repo.ResolveAppointmentByTokenHash(context.Background(), tokenHash(tokenPlain))
@@ -330,10 +330,10 @@ func TestResolveAppointmentByTokenHash_TenantIsolation(t *testing.T) {
 	db := setupTestDB(t)
 	repo := customeraccesspostgres.New(db)
 
-	apptUno := createTestAppointment(t, db, shopUno, barberUno, serviceUno, booking.StatusConfirmed)
+	apptUno := createTestAppointment(t, db, shopUno, professionalUno, serviceUno, booking.StatusConfirmed)
 	tokenUno := insertAccessToken(t, db, shopUno, apptUno.ID, tokenState{expiresIn: 90 * 24 * time.Hour})
 
-	apptDos := createTestAppointment(t, db, shopDos, barberDos, serviceDos, booking.StatusConfirmed)
+	apptDos := createTestAppointment(t, db, shopDos, professionalDos, serviceDos, booking.StatusConfirmed)
 	tokenDos := insertAccessToken(t, db, shopDos, apptDos.ID, tokenState{expiresIn: 90 * 24 * time.Hour})
 
 	sumUno := sha256.Sum256([]byte(tokenUno))
@@ -341,11 +341,11 @@ func TestResolveAppointmentByTokenHash_TenantIsolation(t *testing.T) {
 	if err != nil || !foundUno {
 		t.Fatalf("resolver token de shopUno: found=%v err=%v", foundUno, err)
 	}
-	if viewUno.BarbershopName != "Barbería de prueba HU-098 Uno" {
-		t.Fatalf("el token de shopUno resolvió otra barbería: %+v", viewUno)
+	if viewUno.BusinessName != "Barbería de prueba HU-098 Uno" {
+		t.Fatalf("el token de shopUno resolvió otro negocio: %+v", viewUno)
 	}
 	if viewUno.CancellationDeadlineMinutes != 30 || !viewUno.LateCancellationClientAllowed {
-		t.Fatalf("el token de shopUno trae la política de otra barbería: %+v", viewUno)
+		t.Fatalf("el token de shopUno trae la política de otro negocio: %+v", viewUno)
 	}
 
 	sumDos := sha256.Sum256([]byte(tokenDos))
@@ -353,25 +353,25 @@ func TestResolveAppointmentByTokenHash_TenantIsolation(t *testing.T) {
 	if err != nil || !foundDos {
 		t.Fatalf("resolver token de shopDos: found=%v err=%v", foundDos, err)
 	}
-	if viewDos.BarbershopName != "Barbería de prueba HU-098 Dos" {
-		t.Fatalf("el token de shopDos resolvió otra barbería: %+v", viewDos)
+	if viewDos.BusinessName != "Barbería de prueba HU-098 Dos" {
+		t.Fatalf("el token de shopDos resolvió otro negocio: %+v", viewDos)
 	}
 	if viewDos.CancellationDeadlineMinutes != 90 || viewDos.LateCancellationClientAllowed {
-		t.Fatalf("el token de shopDos trae la política de otra barbería: %+v", viewDos)
+		t.Fatalf("el token de shopDos trae la política de otro negocio: %+v", viewDos)
 	}
 }
 
 // TestResolveAppointmentByTokenHash_Vocabulary_PerTenant cubre DEC-119: el turno
-// trae el vocabulario de SU barbería (el inicial en shopUno, el configurado en
+// trae el vocabulario de SU negocio (el inicial en shopUno, el configurado en
 // shopDos) sin mezclar el de la otra (CA-098-05, RN-TEN-01).
 func TestResolveAppointmentByTokenHash_Vocabulary_PerTenant(t *testing.T) {
 	db := setupTestDB(t)
 	repo := customeraccesspostgres.New(db)
 
 	// shopDos pasa a llamarse «estudio» y su profesional «tatuadora»; se restaura
-	// al terminar porque la barbería del fixture es compartida.
+	// al terminar porque el negocio del fixture es compartida.
 	write := func(business, businessGender, term, plural, gender string) error {
-		return db.InTenantTx(context.Background(), database.BarbershopID(shopDos), func(ctx context.Context, q database.Queries) error {
+		return db.InTenantTx(context.Background(), database.BusinessID(shopDos), func(ctx context.Context, q database.Queries) error {
 			_, err := q.Exec(ctx,
 				`UPDATE business
 				    SET business_term = $2, business_term_gender = $3,
@@ -387,9 +387,9 @@ func TestResolveAppointmentByTokenHash_Vocabulary_PerTenant(t *testing.T) {
 	}
 	t.Cleanup(func() { _ = write("barbería", "feminine", "barbero", "barberos", "masculine") })
 
-	apptUno := createTestAppointment(t, db, shopUno, barberUno, serviceUno, booking.StatusConfirmed)
+	apptUno := createTestAppointment(t, db, shopUno, professionalUno, serviceUno, booking.StatusConfirmed)
 	tokenUno := insertAccessToken(t, db, shopUno, apptUno.ID, tokenState{expiresIn: 90 * 24 * time.Hour})
-	apptDos := createTestAppointment(t, db, shopDos, barberDos, serviceDos, booking.StatusConfirmed)
+	apptDos := createTestAppointment(t, db, shopDos, professionalDos, serviceDos, booking.StatusConfirmed)
 	tokenDos := insertAccessToken(t, db, shopDos, apptDos.ID, tokenState{expiresIn: 90 * 24 * time.Hour})
 
 	sumUno := sha256.Sum256([]byte(tokenUno))
@@ -425,24 +425,24 @@ func TestResolveAppointmentByTokenHash_CanReview_FollowsStatusAndExistingReview(
 		return hex.EncodeToString(sum[:])
 	}
 
-	confirmed := createTestAppointment(t, db, shopUno, barberUno, serviceUno, booking.StatusConfirmed)
+	confirmed := createTestAppointment(t, db, shopUno, professionalUno, serviceUno, booking.StatusConfirmed)
 	view, found, err := repo.ResolveAppointmentByTokenHash(context.Background(),
 		hashOf(insertAccessToken(t, db, shopUno, confirmed.ID, tokenState{expiresIn: 90 * 24 * time.Hour})))
 	if err != nil || !found || view.CanReview || view.Review != nil {
 		t.Fatalf("confirmado: found=%v err=%v canReview=%v review=%v", found, err, view.CanReview, view.Review)
 	}
 
-	completed := createTestAppointment(t, db, shopUno, barberUno, serviceUno, booking.StatusCompleted)
+	completed := createTestAppointment(t, db, shopUno, professionalUno, serviceUno, booking.StatusCompleted)
 	plain := insertAccessToken(t, db, shopUno, completed.ID, tokenState{expiresIn: 90 * 24 * time.Hour})
 	view, found, err = repo.ResolveAppointmentByTokenHash(context.Background(), hashOf(plain))
 	if err != nil || !found || !view.CanReview || view.Review != nil {
 		t.Fatalf("completado sin reseña: found=%v err=%v canReview=%v review=%v", found, err, view.CanReview, view.Review)
 	}
 
-	err = db.InTenantTx(context.Background(), database.BarbershopID(shopUno), func(ctx context.Context, q database.Queries) error {
+	err = db.InTenantTx(context.Background(), database.BusinessID(shopUno), func(ctx context.Context, q database.Queries) error {
 		_, err := q.Exec(ctx,
 			`INSERT INTO professional_review (business_id, professional_id, appointment_id, rating, comment) VALUES ($1, $2, $3, 4, 'Bien')`,
-			shopUno, barberUno, completed.ID)
+			shopUno, professionalUno, completed.ID)
 		return err
 	})
 	if err != nil {
@@ -467,7 +467,7 @@ func TestResolveAppointmentByTokenHash_ExposesDataForVersionToken(t *testing.T) 
 	repo := customeraccesspostgres.New(db)
 	bookingRepo := bookingpostgres.New(db, idempotency.NewSQLCoordinator())
 
-	appointment := createTestAppointment(t, db, shopUno, barberUno, serviceUno, booking.StatusConfirmed)
+	appointment := createTestAppointment(t, db, shopUno, professionalUno, serviceUno, booking.StatusConfirmed)
 	tokenPlain := insertAccessToken(t, db, shopUno, appointment.ID, tokenState{expiresIn: 90 * 24 * time.Hour})
 
 	view, found, err := repo.ResolveAppointmentByTokenHash(context.Background(), tokenHash(tokenPlain))
@@ -487,14 +487,14 @@ func TestResolveCancellationTarget_ValidToken_ReturnsInternalIDs(t *testing.T) {
 	db := setupTestDB(t)
 	repo := customeraccesspostgres.New(db)
 
-	appointment := createTestAppointment(t, db, shopUno, barberUno, serviceUno, booking.StatusConfirmed)
+	appointment := createTestAppointment(t, db, shopUno, professionalUno, serviceUno, booking.StatusConfirmed)
 	tokenPlain := insertAccessToken(t, db, shopUno, appointment.ID, tokenState{expiresIn: 90 * 24 * time.Hour})
 
 	target, found, err := repo.ResolveCancellationTarget(context.Background(), tokenHash(tokenPlain))
 	if err != nil || !found {
 		t.Fatalf("ResolveCancellationTarget: found=%v err=%v", found, err)
 	}
-	if target.BarbershopID != shopUno || target.AppointmentID != appointment.ID {
+	if target.BusinessID != shopUno || target.AppointmentID != appointment.ID {
 		t.Fatalf("target = %+v", target)
 	}
 }
@@ -503,7 +503,7 @@ func TestResolveCancellationTarget_UnusableTokensAreAllNotFound(t *testing.T) {
 	db := setupTestDB(t)
 	repo := customeraccesspostgres.New(db)
 
-	appointment := createTestAppointment(t, db, shopUno, barberUno, serviceUno, booking.StatusConfirmed)
+	appointment := createTestAppointment(t, db, shopUno, professionalUno, serviceUno, booking.StatusConfirmed)
 	cases := map[string]string{
 		"vencido":     insertAccessToken(t, db, shopUno, appointment.ID, tokenState{expired: true}),
 		"revocado":    insertAccessToken(t, db, shopUno, appointment.ID, tokenState{expiresIn: 90 * 24 * time.Hour, revoked: true}),
@@ -517,36 +517,36 @@ func TestResolveCancellationTarget_UnusableTokensAreAllNotFound(t *testing.T) {
 	}
 }
 
-// RN-TEN-01: cada token resuelve únicamente a la cita de SU barbería.
+// RN-TEN-01: cada token resuelve únicamente a la cita de SU negocio.
 func TestResolveCancellationTarget_TenantIsolation(t *testing.T) {
 	db := setupTestDB(t)
 	repo := customeraccesspostgres.New(db)
 
-	apptUno := createTestAppointment(t, db, shopUno, barberUno, serviceUno, booking.StatusConfirmed)
+	apptUno := createTestAppointment(t, db, shopUno, professionalUno, serviceUno, booking.StatusConfirmed)
 	tokenUno := insertAccessToken(t, db, shopUno, apptUno.ID, tokenState{expiresIn: 90 * 24 * time.Hour})
-	apptDos := createTestAppointment(t, db, shopDos, barberDos, serviceDos, booking.StatusConfirmed)
+	apptDos := createTestAppointment(t, db, shopDos, professionalDos, serviceDos, booking.StatusConfirmed)
 	tokenDos := insertAccessToken(t, db, shopDos, apptDos.ID, tokenState{expiresIn: 90 * 24 * time.Hour})
 
 	uno, foundUno, err := repo.ResolveCancellationTarget(context.Background(), tokenHash(tokenUno))
-	if err != nil || !foundUno || uno.BarbershopID != shopUno || uno.AppointmentID != apptUno.ID {
+	if err != nil || !foundUno || uno.BusinessID != shopUno || uno.AppointmentID != apptUno.ID {
 		t.Fatalf("token de shopUno: %+v found=%v err=%v", uno, foundUno, err)
 	}
 	dos, foundDos, err := repo.ResolveCancellationTarget(context.Background(), tokenHash(tokenDos))
-	if err != nil || !foundDos || dos.BarbershopID != shopDos || dos.AppointmentID != apptDos.ID {
+	if err != nil || !foundDos || dos.BusinessID != shopDos || dos.AppointmentID != apptDos.ID {
 		t.Fatalf("token de shopDos: %+v found=%v err=%v", dos, foundDos, err)
 	}
 }
 
 // HU-104 (DEC-178): la lectura cuenta solo las reprogramaciones hechas por el
-// cliente, y el destino del token trae la zona de la barbería.
+// cliente, y el destino del token trae la zona del negocio.
 func TestResolveAppointmentByTokenHash_CountsOnlyCustomerReschedules(t *testing.T) {
 	db := setupTestDB(t)
 	repo := customeraccesspostgres.New(db)
 
-	appointment := createTestAppointment(t, db, shopUno, barberUno, serviceUno, booking.StatusConfirmed)
+	appointment := createTestAppointment(t, db, shopUno, professionalUno, serviceUno, booking.StatusConfirmed)
 	tokenPlain := insertAccessToken(t, db, shopUno, appointment.ID, tokenState{expiresIn: 90 * 24 * time.Hour})
 
-	err := db.InTenantTx(context.Background(), database.BarbershopID(shopUno), func(ctx context.Context, q database.Queries) error {
+	err := db.InTenantTx(context.Background(), database.BusinessID(shopUno), func(ctx context.Context, q database.Queries) error {
 		for _, actor := range []string{"customer", "system"} {
 			var customer any
 			if actor == "customer" {

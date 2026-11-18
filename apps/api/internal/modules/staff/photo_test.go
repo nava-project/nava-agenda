@@ -9,7 +9,7 @@ import (
 	"strings"
 	"testing"
 
-	"system-barbershop/internal/modules/staff"
+	"nava-agenda/internal/modules/staff"
 )
 
 // solidImage codifica una imagen lisa de w×h como JPEG o PNG. Las pruebas

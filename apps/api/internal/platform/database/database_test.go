@@ -3,10 +3,10 @@
 // porque no reproducen RLS.
 //
 // Prepara el esquema aplicando las migraciones con Atlas v1.3.0 sobre una base
-// efímera, y carga database/testdata/dos_barberias.sql. Barbería A =
-// 11111111-1111-1111-1111-111111111111 con 2 usuarios; barbería B =
+// efímera, y carga database/testdata/dos_negocios.sql. Negocio A =
+// 11111111-1111-1111-1111-111111111111 con 2 usuarios; negocio B =
 // 22222222-2222-2222-2222-222222222222 con 2 usuarios. Conéctate como
-// barberia_app.
+// agenda_app.
 package database_test
 
 import (
@@ -21,7 +21,7 @@ import (
 
 	"github.com/jackc/pgx/v5/pgxpool"
 
-	"system-barbershop/internal/platform/database"
+	"nava-agenda/internal/platform/database"
 )
 
 const (
@@ -31,7 +31,7 @@ const (
 	testDatabaseURL = "postgres://agenda_app@localhost:5432/barberia_test?sslmode=disable"
 )
 
-// setupTestDB crea un pool de prueba conectado como barberia_app.
+// setupTestDB crea un pool de prueba conectado como agenda_app.
 // Falla la prueba si no está disponible.
 func setupTestDB(t *testing.T) *pgxpool.Pool {
 	t.Helper()
@@ -73,10 +73,10 @@ func TestInTenantTx_CA002_01(t *testing.T) {
 
 	db := database.NewForTest(pool)
 
-	shopA := database.BarbershopID("11111111-1111-1111-1111-111111111111")
-	shopB := database.BarbershopID("22222222-2222-2222-2222-222222222222")
+	shopA := database.BusinessID("11111111-1111-1111-1111-111111111111")
+	shopB := database.BusinessID("22222222-2222-2222-2222-222222222222")
 
-	// Barbería A
+	// Negocio A
 	err := db.InTenantTx(context.Background(), shopA, func(ctx context.Context, q database.Queries) error {
 		var setting string
 		err := q.QueryRow(ctx, "SELECT current_setting('app.business_id')").Scan(&setting)
@@ -87,7 +87,7 @@ func TestInTenantTx_CA002_01(t *testing.T) {
 			return fmt.Errorf("expected %q, got %q", shopA, setting)
 		}
 
-		// Verificar que solo ve usuarios de A. 3, no 2: dos_barberias.sql
+		// Verificar que solo ve usuarios de A. 3, no 2: dos_negocios.sql
 		// añadió un tercer usuario (aaaaaaa3) dedicado a que cmd/api abra
 		// sesiones sin pisar las cuentas de recuperación (issue #158); este
 		// conteo sigue probando aislamiento RLS por tenant, solo con el
@@ -106,7 +106,7 @@ func TestInTenantTx_CA002_01(t *testing.T) {
 		t.Fatalf("InTenantTx shop A: %v", err)
 	}
 
-	// Barbería B
+	// Negocio B
 	err = db.InTenantTx(context.Background(), shopB, func(ctx context.Context, q database.Queries) error {
 		var setting string
 		err := q.QueryRow(ctx, "SELECT current_setting('app.business_id')").Scan(&setting)
@@ -132,7 +132,7 @@ func TestInTenantTx_CA002_01(t *testing.T) {
 	}
 }
 
-// TestInTenantTx_CA002_02 verifica aislamiento con dos barberías concurrentes
+// TestInTenantTx_CA002_02 verifica aislamiento con dos negocios concurrentes
 // sobre el MISMO pool. Lanza N goroutines alternando A y B, con varias
 // iteraciones, y comprueba que ninguna observó filas de la otra. Ejecútalo
 // con -race.
@@ -142,8 +142,8 @@ func TestInTenantTx_CA002_02(t *testing.T) {
 
 	db := database.NewForTest(pool)
 
-	shopA := database.BarbershopID("11111111-1111-1111-1111-111111111111")
-	shopB := database.BarbershopID("22222222-2222-2222-2222-222222222222")
+	shopA := database.BusinessID("11111111-1111-1111-1111-111111111111")
+	shopB := database.BusinessID("22222222-2222-2222-2222-222222222222")
 
 	const iterations = 50
 	const concurrency = 10
@@ -205,7 +205,7 @@ func TestInTenantTx_CA002_02(t *testing.T) {
 
 // TestInTenantTx_CA002_03 verifica residuo de contexto. Tras cerrar la
 // transacción, adquiere conexiones del pool hasta cubrir el tamaño máximo y
-// comprueba en cada una que current_setting('app.barbershop_id', true) es
+// comprueba en cada una que current_setting('app.business_id', true) es
 // NULL o vacío. El segundo argumento true evita que la función lance error
 // cuando el ajuste no existe.
 func TestInTenantTx_CA002_03(t *testing.T) {
@@ -214,7 +214,7 @@ func TestInTenantTx_CA002_03(t *testing.T) {
 
 	db := database.NewForTest(pool)
 
-	shopA := database.BarbershopID("11111111-1111-1111-1111-111111111111")
+	shopA := database.BusinessID("11111111-1111-1111-1111-111111111111")
 
 	// Ejecutar una transacción con contexto A
 	err := db.InTenantTx(context.Background(), shopA, func(ctx context.Context, q database.Queries) error {
@@ -274,7 +274,7 @@ func TestInTenantTx_CA002_05(t *testing.T) {
 	db := database.NewForTest(pool)
 
 	// Identificador inválido (no es UUID válido)
-	invalidShop := database.BarbershopID("not-a-uuid")
+	invalidShop := database.BusinessID("not-a-uuid")
 
 	callbackExecuted := false
 
@@ -287,7 +287,7 @@ func TestInTenantTx_CA002_05(t *testing.T) {
 		t.Fatal("expected error for invalid business_id, got nil")
 	}
 
-	if !strings.Contains(err.Error(), "database: fallo al fijar contexto de barbería") {
+	if !strings.Contains(err.Error(), "database: fallo al fijar contexto de negocio") {
 		t.Fatalf("expected ErrContextSetupFailed, got: %v", err)
 	}
 
@@ -331,7 +331,7 @@ func TestContextCancellation(t *testing.T) {
 
 	db := database.NewForTest(pool)
 
-	shopA := database.BarbershopID("11111111-1111-1111-1111-111111111111")
+	shopA := database.BusinessID("11111111-1111-1111-1111-111111111111")
 
 	ctx, cancel := context.WithTimeout(context.Background(), 100*time.Millisecond)
 	defer cancel()
@@ -433,7 +433,7 @@ func TestInTenantTx_RollbackOnCallbackError(t *testing.T) {
 	defer pool.Close()
 
 	db := database.NewForTest(pool)
-	shopA := database.BarbershopID("11111111-1111-1111-1111-111111111111")
+	shopA := database.BusinessID("11111111-1111-1111-1111-111111111111")
 	sentinelErr := errors.New("fallo de negocio deliberado")
 
 	err = db.InTenantTx(context.Background(), shopA, func(ctx context.Context, q database.Queries) error {

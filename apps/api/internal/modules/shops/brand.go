@@ -16,18 +16,18 @@ const (
 	GenderFeminine  Gender = "feminine"
 )
 
-// IsValid informa si g es uno de los dos valores que barbershop_*_gender_ck
+// IsValid informa si g es uno de los dos valores que business_*_gender_ck
 // admite en la base.
 func (g Gender) IsValid() bool {
 	return g == GenderMasculine || g == GenderFeminine
 }
 
 // PanelProfile es el tipo de panel que ve un usuario (DEC-115, DEC-134): `shop`
-// es el panel completo de una barbería con equipo, `solo` el de un barbero
-// independiente (sin gestión de equipo ni selector de barbero) y `employee` el
-// individual limitado de un barbero empleado. Es presentación pura: no limita
-// cuántos barberos existen ni cambia ninguna regla de agenda ni permiso. Ya no
-// es un ajuste de la barbería: se deriva de los roles del usuario
+// es el panel completo de un negocio con equipo, `solo` el de un profesional
+// independiente (sin gestión de equipo ni selector de profesional) y `employee` el
+// individual limitado de un profesional empleado. Es presentación pura: no limita
+// cuántos profesionales existen ni cambia ninguna regla de agenda ni permiso. Ya no
+// es un ajuste del negocio: se deriva de los roles del usuario
 // (PanelProfileFor).
 type PanelProfile string
 
@@ -37,9 +37,9 @@ const (
 	PanelProfileEmployee PanelProfile = "employee"
 )
 
-// Brand es la marca y el vocabulario que una barbería elige para su panel
+// Brand es la marca y el vocabulario que un negocio elige para su panel
 // (issue #292, DEC-110). Es un recurso propio de /private/settings/brand,
-// separado de Barbershop a propósito: el contrato de HU-020 declara
+// separado de Business a propósito: el contrato de HU-020 declara
 // exactamente cuatro campos (CA-020-07) y no se amplía.
 //
 // Accent es una clave de AllowedAccents, nunca un color: el cliente la
@@ -63,15 +63,15 @@ type Brand struct {
 	Location               Location
 }
 
-// Largos de un término, iguales a barbershop_business_term_ck,
-// barbershop_professional_term_ck y barbershop_professional_term_plural_ck:
+// Largos de un término, iguales a business_business_term_ck,
+// business_professional_term_ck y business_professional_term_plural_ck:
 // el servicio no inventa un límite más laxo que la base ni al revés.
 const (
 	TermMinLength = 2
 	TermMaxLength = 30
 )
 
-// AllowedAccents es la lista cerrada de barbershop_brand_accent_ck. Añadir
+// AllowedAccents es la lista cerrada de business_brand_accent_ck. Añadir
 // una clave exige una migración y la misma clave en la paleta del cliente
 // (apps/web/src/shared/model/brandPalette.ts), que prueba su contraste.
 var AllowedAccents = [...]string{"brass", "emerald", "sapphire", "ruby", "amethyst", "copper"}
@@ -110,7 +110,7 @@ func IsAllowedAccent(key string) bool {
 var termShapePattern = regexp.MustCompile(`^\p{L}[\p{L} '\-]*$`)
 
 // NormalizeTerm recorta, colapsa los espacios repetidos y pasa a minúsculas,
-// igual que barbershop_*_term_ck exige (lower(btrim(...))). No valida: el
+// igual que business_*_term_ck exige (lower(btrim(...))). No valida: el
 // largo y la forma se comprueban aparte con IsValidTerm.
 func NormalizeTerm(raw string) string {
 	return strings.ToLower(strings.Join(strings.Fields(raw), " "))

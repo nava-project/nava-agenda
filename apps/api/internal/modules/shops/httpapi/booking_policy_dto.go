@@ -18,9 +18,9 @@ type BookingPolicyResponse struct {
 // UpdateBookingPolicyRequest es el cuerpo de
 // PUT /private/settings/booking-policy (CA-093-02). Cerrado: el handler
 // rechaza cualquier campo desconocido, igual que
-// UpdateBarbershopSettingsRequest. Contrato PUT completo: los seis campos
+// UpdateBusinessSettingsRequest. Contrato PUT completo: los seis campos
 // son siempre obligatorios, nunca una actualización parcial. Nunca declara
-// barbershopId: el tenant se deriva exclusivamente de auth.Principal
+// businessId: el tenant se deriva exclusivamente de auth.Principal
 // (CA-093-03). La precondición de versión viaja en la cabecera If-Match,
 // no en el cuerpo (mismo criterio que booking.HU-065).
 type UpdateBookingPolicyRequest struct {
@@ -32,26 +32,26 @@ type UpdateBookingPolicyRequest struct {
 	LateCancellationReasonRequired bool `json:"lateCancellationReasonRequired"`
 }
 
-// BarberBookingPolicyResponse es la ventana de reserva propia de un barbero
-// (DEC-169). Solo existe para los barberos con configuración propia; los
-// demás heredan la de la barbería y no aparecen en el listado.
-type BarberBookingPolicyResponse struct {
-	BarberID          string `json:"professionalId"`
+// ProfessionalBookingPolicyResponse es la ventana de reserva propia de un profesional
+// (DEC-169). Solo existe para los profesionales con configuración propia; los
+// demás heredan la del negocio y no aparecen en el listado.
+type ProfessionalBookingPolicyResponse struct {
+	ProfessionalID    string `json:"professionalId"`
 	MinAdvanceMinutes int    `json:"minAdvanceMinutes"`
 	MaxAdvanceDays    int    `json:"maxAdvanceDays"`
 	SlotGridMinutes   int    `json:"slotGridMinutes"`
 }
 
-// BarberBookingPolicyListResponse es la respuesta de
+// ProfessionalBookingPolicyListResponse es la respuesta de
 // GET /private/settings/booking-policy/professionals.
-type BarberBookingPolicyListResponse struct {
-	Items []BarberBookingPolicyResponse `json:"items"`
+type ProfessionalBookingPolicyListResponse struct {
+	Items []ProfessionalBookingPolicyResponse `json:"items"`
 }
 
-// PutBarberBookingPolicyRequest es el cuerpo cerrado de
+// PutProfessionalBookingPolicyRequest es el cuerpo cerrado de
 // PUT /private/settings/booking-policy/professionals/{professionalId} (DEC-169):
 // reemplazo completo de los tres valores, sin token de versión.
-type PutBarberBookingPolicyRequest struct {
+type PutProfessionalBookingPolicyRequest struct {
 	MinAdvanceMinutes int `json:"minAdvanceMinutes"`
 	MaxAdvanceDays    int `json:"maxAdvanceDays"`
 	SlotGridMinutes   int `json:"slotGridMinutes"`

@@ -1,16 +1,16 @@
 package schedule
 
-import "system-barbershop/internal/platform/apperr"
+import "nava-agenda/internal/platform/apperr"
 
-// errBarberNotFound cubre tanto un barbero inexistente como uno de otra
-// barbería (RN-TEN-01): el mismo Kind para ambos casos es lo que impide que
+// errProfessionalNotFound cubre tanto un profesional inexistente como uno de otro
+// negocio (RN-TEN-01): el mismo Kind para ambos casos es lo que impide que
 // la capa HTTP los distinga, igual que el resto del backend.
-func errBarberNotFound() error {
+func errProfessionalNotFound() error {
 	return apperr.NotFound("no existe un profesional con ese identificador")
 }
 
-// errWorkingHourNotFound cubre un tramo inexistente, de otro barbero o de
-// otra barbería (CA-040-05, RN-TEN-01): el mismo Kind para las tres causas
+// errWorkingHourNotFound cubre un tramo inexistente, de otro profesional o de
+// otro negocio (CA-040-05, RN-TEN-01): el mismo Kind para las tres causas
 // es lo que impide que la capa HTTP las distinga.
 func errWorkingHourNotFound() error {
 	return apperr.NotFound("no existe un tramo de horario con ese identificador")
@@ -32,7 +32,7 @@ func errDurationInvalid() error {
 }
 
 // errOverlapConflict cubre CA-040-04: el intervalo solicitado se solapa con
-// otro tramo existente del mismo barbero y día, o repite exactamente su
+// otro tramo existente del mismo profesional y día, o repite exactamente su
 // hora de inicio. Conflicto de negocio ajeno a idempotencia
 // (apperr.KindConflict, mismo criterio que catalog.errNameConflict):
 // no depende de la forma del cuerpo, depende del estado ya persistido de

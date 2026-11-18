@@ -7,7 +7,7 @@
  * contorno se dibuja solo, aparecen las facetas, un destello cruza la
  * piedra al girar y vuelve a empezar. Debajo, la regla NAVA hace de barra de
  * progreso: un rombo la recorre dejando estela de latón. Una frase de
- * barbería va cambiando cada pocos segundos para que la espera tenga voz.
+ * negocio va cambiando cada pocos segundos para que la espera tenga voz.
  *
  * Accesibilidad: solo el `label` (texto exacto que decide el consumidor) es
  * accesible; el gráfico y las frases son decorativos (aria-hidden) para que
@@ -127,7 +127,7 @@ onBeforeUnmount(() => {
   color: var(--color-on-strong);
 }
 
-/* Destello claro teñido con el acento de la barbería: antes era un crema
+/* Destello claro teñido con el acento del negocio: antes era un crema
    dorado fijo que se veía latón con cualquier marca (issue #575). */
 .diamond-loader__glint-stop {
   stop-color: color-mix(in srgb, var(--gem-brass) 35%, #fbf7ef);

@@ -7,7 +7,7 @@ import (
 	"strconv"
 	"time"
 
-	"system-barbershop/internal/platform/apperr"
+	"nava-agenda/internal/platform/apperr"
 )
 
 // MinISOWeekday y MaxISOWeekday acotan iso_weekday: 1 = lunes … 7 = domingo
@@ -29,16 +29,16 @@ const (
 
 // DefaultListLimit, MinListLimit y MaxListLimit acotan `limit` en la lista
 // paginada (CA-040-01): límites técnicos, no un máximo de negocio de tramos
-// por barbero (docs/06-api/estandar-openapi.md §6.10).
+// por profesional (docs/06-api/estandar-openapi.md §6.10).
 const (
 	DefaultListLimit = 20
 	MinListLimit     = 1
 	MaxListLimit     = 50
 )
 
-// WorkingHour es un tramo recurrente de la jornada laboral de un barbero,
+// WorkingHour es un tramo recurrente de la jornada laboral de un profesional,
 // para un único día ISO de la semana (HU-040, CA-040-01/02/03). Varios
-// tramos del mismo barbero y día representan una jornada partida; un tramo
+// tramos del mismo profesional y día representan una jornada partida; un tramo
 // cuyo StartsTime + DurationMinutes supera las 24:00 representa una
 // jornada nocturna (DEC-020): se almacena inicio + duración, nunca un fin
 // calculado, para no ser ambiguo cuando el fin cae al día siguiente.
@@ -51,25 +51,25 @@ type WorkingHour struct {
 	UpdatedAt       time.Time
 }
 
-// barberIDPattern y workingHourIDPattern son la misma forma canónica
-// 8-4-4-4-12 que database.ValidBarbershopID/staff.LooksLikeBarberID exigen.
+// professionalIDPattern y workingHourIDPattern son la misma forma canónica
+// 8-4-4-4-12 que database.ValidBusinessID/staff.LooksLikeProfessionalID exigen.
 // El núcleo de schedule no importa ninguno de esos dos paquetes
 // (CA-002-06 y el mismo criterio de "colaboración solo por puerto
 // explícito" de HU-023 frente a staff): duplicar esta única expresión
-// regular es la misma duplicación pequeña y clara que catalog.barberIDPattern
-// ya documenta frente a staff.barberIDPattern.
+// regular es la misma duplicación pequeña y clara que catalog.professionalIDPattern
+// ya documenta frente a staff.professionalIDPattern.
 var (
-	barberIDPattern      = regexp.MustCompile(`^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$`)
-	workingHourIDPattern = barberIDPattern
+	professionalIDPattern = regexp.MustCompile(`^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$`)
+	workingHourIDPattern  = professionalIDPattern
 )
 
-// LooksLikeBarberID informa si id tiene la forma de un UUID válido. Un
+// LooksLikeProfessionalID informa si id tiene la forma de un UUID válido. Un
 // identificador que no cumple esta forma no puede corresponder a ninguna
 // fila real: se trata igual que "no existe" (mismo apperr.NotFound) en vez
-// de dejar que la consulta a BarberPort o a PostgreSQL falle con un error
+// de dejar que la consulta a ProfessionalPort o a PostgreSQL falle con un error
 // de tipo.
-func LooksLikeBarberID(id string) bool {
-	return barberIDPattern.MatchString(id)
+func LooksLikeProfessionalID(id string) bool {
+	return professionalIDPattern.MatchString(id)
 }
 
 // LooksLikeWorkingHourID informa si id tiene la forma de un UUID válido.
@@ -124,7 +124,7 @@ func IntervalsOverlap(aStart, aDuration, bStart, bDuration int) bool {
 // Cursor es la posición decodificada de una página de la lista (CA-040-01):
 // orden estable por día ISO de la semana, luego hora de inicio y luego
 // identificador, exactamente los tres campos que
-// idx_working_hour_shop_barber_weekday_start indexa.
+// idx_working_hour_shop_professional_weekday_start indexa.
 type Cursor struct {
 	ISOWeekday int
 	StartsTime string

@@ -1,8 +1,8 @@
 /**
  * Pruebas de groupSlotsByCivilDate (HU-095): agrupación por día civil en la
- * zona de la barbería, orden cronológico de días conservado sin un `sort`
+ * zona del negocio, orden cronológico de días conservado sin un `sort`
  * adicional, y un instante que cruza medianoche en UTC pero no en la zona
- * de la barbería queda en el día civil correcto (RN-DIS-07).
+ * del negocio queda en el día civil correcto (RN-DIS-07).
  */
 import { describe, it, expect } from 'vitest'
 import { civilDateChip, groupSlotsByCivilDate } from '../availabilityCalendar'
@@ -34,7 +34,7 @@ describe('groupSlotsByCivilDate', () => {
     expect(days.map((d) => d.civilDate)).toEqual(['2026-09-15', '2026-09-16', '2026-09-17'])
   })
 
-  it('resolves the civil date using the barbershop timezone, not UTC (RN-DIS-07)', () => {
+  it('resolves the civil date using the business timezone, not UTC (RN-DIS-07)', () => {
     // 21:30 UTC del 15 de septiembre es 09:30 del 16 en Asia/Tokyo (UTC+9):
     // en esa zona el turno cae en el día siguiente al de UTC.
     const days = groupSlotsByCivilDate([{ startsAt: '2026-09-15T21:30:00Z' }], 'Asia/Tokyo')

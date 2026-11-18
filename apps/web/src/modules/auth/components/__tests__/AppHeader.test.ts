@@ -1,5 +1,5 @@
 /**
- * Pruebas de AppHeader (HU-012): la barbería activa siempre visible
+ * Pruebas de AppHeader (HU-012): el negocio activo siempre visible
  * (CA-012-04) y el cierre de sesión (CA-012-07): deshabilitado durante el
  * envío, evita doble envío, limpia el estado local y navega a acceso
  * incluso si el servidor responde con un fallo ambiguo.
@@ -32,12 +32,12 @@ function buildRouter() {
   })
 }
 
-async function mountHeader(barbershopName = 'Barbería de prueba') {
+async function mountHeader(businessName = 'Barbería de prueba') {
   const router = buildRouter()
   await router.push({ name: 'panel' })
   await router.isReady()
   const wrapper = mount(AppHeader, {
-    props: { barbershopName },
+    props: { businessName },
     global: { plugins: [router] },
   })
   return { wrapper, router }
@@ -49,9 +49,9 @@ describe('AppHeader', () => {
     resetForFreshLogin()
   })
 
-  it('always shows the active barbershop name (CA-012-04)', async () => {
+  it('always shows the active business name (CA-012-04)', async () => {
     const { wrapper } = await mountHeader('Barbería El Corte')
-    expect(wrapper.get('[data-testid="barbershop-name"]').text()).toBe('Barbería El Corte')
+    expect(wrapper.get('[data-testid="business-name"]').text()).toBe('Barbería El Corte')
   })
 
   it('shows the NAVA wordmark; the global "Nuevo turno" shortcut moved out of the header (issue #189)', async () => {

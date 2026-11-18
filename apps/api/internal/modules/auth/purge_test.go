@@ -5,7 +5,7 @@ import (
 	"errors"
 	"testing"
 
-	"system-barbershop/internal/modules/auth"
+	"nava-agenda/internal/modules/auth"
 )
 
 type purgeCall struct{ limit int }

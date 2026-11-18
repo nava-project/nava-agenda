@@ -4,8 +4,8 @@
 // el 401 lo atiende el cliente global.
 import { httpClient } from '@/shared/api/httpClient'
 import type {
-  BarberReview,
-  ListBarberReviewsOutcome,
+  ProfessionalReview,
+  ListProfessionalReviewsOutcome,
   SetReviewHiddenOutcome,
 } from '../model/review'
 
@@ -17,7 +17,7 @@ interface ReviewWire {
   createdAt: string
 }
 
-function toReview(data: ReviewWire): BarberReview {
+function toReview(data: ReviewWire): ProfessionalReview {
   return {
     id: data.id,
     rating: data.rating,
@@ -27,12 +27,14 @@ function toReview(data: ReviewWire): BarberReview {
   }
 }
 
-export async function listBarberReviews(barberId: string): Promise<ListBarberReviewsOutcome> {
+export async function listProfessionalReviews(
+  professionalId: string,
+): Promise<ListProfessionalReviewsOutcome> {
   try {
     const { data, response } = await httpClient.GET(
       '/private/professionals/{professionalId}/reviews',
       {
-        params: { path: { professionalId: barberId } },
+        params: { path: { professionalId: professionalId } },
       },
     )
     if (response.ok && data) {
@@ -54,14 +56,14 @@ export async function listBarberReviews(barberId: string): Promise<ListBarberRev
 
 /** Oculta (`hidden: true`) o vuelve a mostrar (`false`) una reseña. Reversible. */
 export async function setReviewHidden(
-  barberId: string,
+  professionalId: string,
   reviewId: string,
   hidden: boolean,
 ): Promise<SetReviewHiddenOutcome> {
   try {
     const { data, response } = await httpClient.PATCH(
       '/private/professionals/{professionalId}/reviews/{reviewId}',
-      { params: { path: { professionalId: barberId, reviewId } }, body: { hidden } },
+      { params: { path: { professionalId: professionalId, reviewId } }, body: { hidden } },
     )
     if (response.ok && data) return { kind: 'success', review: toReview(data) }
     if (response.status === 404) return { kind: 'not-found' }

@@ -18,7 +18,7 @@ import (
 	"golang.org/x/oauth2"
 	googleoauth "golang.org/x/oauth2/google"
 
-	"system-barbershop/internal/modules/googlecalendar"
+	"nava-agenda/internal/modules/googlecalendar"
 )
 
 // Alcances mínimos (DEC-102): eventos del calendario más la identidad básica
@@ -32,7 +32,7 @@ const (
 // DefaultRevokeURL es el endpoint de revocación de tokens de Google.
 const DefaultRevokeURL = "https://oauth2.googleapis.com/revoke"
 
-// ErrScopeMissing indica que el barbero no concedió el permiso de calendario
+// ErrScopeMissing indica que el profesional no concedió el permiso de calendario
 // (Google permite desmarcarlo en el consentimiento): sin él no hay nada que
 // publicar, así que la conexión no se considera hecha.
 var ErrScopeMissing = errors.New("google: el permiso de calendario no fue concedido")

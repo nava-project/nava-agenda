@@ -17,7 +17,7 @@
 #
 # Requiere, ya aplicados sobre esa base: las cuatro migraciones de
 # database/migrations, database/modelo-fisico-referencia.sql,
-# testdata/dos_professionalias.sql y testdata/notification_lease_fixture.sql.
+# testdata/dos_negocios.sql y testdata/notification_lease_fixture.sql.
 #
 # Coordinación sin sleeps de negocio (estrategia-pruebas.md §7 · "no usar
 # sleep para coordinar concurrencia; usar barreras, canales o condiciones
@@ -33,7 +33,7 @@ set -euo pipefail
 
 : "${DATABASE_TEST_URL:?Defina DATABASE_TEST_URL antes de ejecutar esta prueba.}"
 
-BARBERSHOP_ID='11111111-1111-1111-1111-111111111111'
+BUSINESS_ID='11111111-1111-1111-1111-111111111111'
 APPOINTMENT_ID='a99a99a9-a99a-a99a-a99a-a99a99a99a99'
 SCHEDULE_ID='00000000-0000-0000-0000-0000000000aa'
 
@@ -51,7 +51,7 @@ psql "$DATABASE_TEST_URL" -v ON_ERROR_STOP=1 -q <<SQL
 SET ROLE agenda_migrator;
 DELETE FROM notification_schedule WHERE id = '$SCHEDULE_ID';
 INSERT INTO notification_schedule (id, business_id, appointment_id, event_type, channel, scheduled_for)
-VALUES ('$SCHEDULE_ID', '$BARBERSHOP_ID', '$APPOINTMENT_ID', 'reminder', 'email', '2026-01-05 09:30:00-05');
+VALUES ('$SCHEDULE_ID', '$BUSINESS_ID', '$APPOINTMENT_ID', 'reminder', 'email', '2026-01-05 09:30:00-05');
 SQL
 
 # Sesión A: toma el advisory lock 424201 ANTES de reclamar (marca que ya

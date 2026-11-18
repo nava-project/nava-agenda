@@ -126,7 +126,7 @@ DECLARE
   v_professional uuid := 'cccc0001-0001-0001-0001-000100010001';
   v_count integer;
 BEGIN
-  -- Jornada partida: mañana y tarde, mismo barbero y día, sin solape.
+  -- Jornada partida: mañana y tarde, mismo profesional y día, sin solape.
   INSERT INTO working_hour (business_id, professional_id, iso_weekday, starts_time, duration_minutes)
   VALUES ('cccccccc-cccc-cccc-cccc-cccccccccccc', v_professional, 1, '08:00', 240);
   INSERT INTO working_hour (business_id, professional_id, iso_weekday, starts_time, duration_minutes)
@@ -150,7 +150,7 @@ ROLLBACK;
 \echo 'CA-040-02/03 OK · jornada partida y tramo nocturno cruzando medianoche persisten sin rama especial'
 
 -- ---------------------------------------------------------------------------
--- CA-040-04 · Un mismo barbero no repite exactamente el mismo día e inicio
+-- CA-040-04 · Un mismo profesional no repite exactamente el mismo día e inicio
 -- (working_hour_shop_professional_weekday_start_uk). El solape PARCIAL entre dos
 -- tramos que no comparten starts_time se valida en el servicio Go, no aquí
 -- (ver comentario de la migración): una restricción de exclusión sobre una
@@ -179,7 +179,7 @@ $$;
 
 RESET ROLE;
 ROLLBACK;
-\echo 'CA-040-04 OK · working_hour_shop_professional_weekday_start_uk rechaza el mismo barbero+día+inicio exacto'
+\echo 'CA-040-04 OK · working_hour_shop_professional_weekday_start_uk rechaza el mismo profesional+día+inicio exacto'
 
 -- ---------------------------------------------------------------------------
 -- CA-040-06 (nivel base de datos) · RLS forzada, sin BYPASSRLS
@@ -284,7 +284,7 @@ DELETE FROM working_hour WHERE id = 'ffff0001-0001-0001-0001-000100010001';
 
 -- ---------------------------------------------------------------------------
 -- DEC-070/CT-008 · La FK hacia professional usa ON DELETE RESTRICT, no CASCADE:
--- un barbero con al menos un tramo no se puede borrar físicamente. Se
+-- un profesional con al menos un tramo no se puede borrar físicamente. Se
 -- ejecuta con el rol administrativo (agenda_app no tiene GRANT DELETE
 -- sobre professional, DEC-047): esto prueba la FK en sí, no un permiso.
 -- ---------------------------------------------------------------------------

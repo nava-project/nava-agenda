@@ -3,7 +3,7 @@ import path from 'node:path'
 import { fileURLToPath } from 'node:url'
 
 import {
-  chooseBarber,
+  chooseProfessional,
   fillCompleteForm,
   fillCustomerAndSchedule,
   installNewAppointmentMock,
@@ -39,24 +39,24 @@ async function driveScenario(page: Page, scenario: Scenario) {
     case 'context-error':
       await expect(page.getByText('No pudimos cargar esta sección')).toBeVisible()
       return
-    case 'no-barbers':
+    case 'no-professionals':
       await expect(page.getByText('Aún no tienes profesionales registrados')).toBeVisible()
       return
     case 'empty-form':
       await expect(page.getByRole('button', { name: 'Profesional', exact: true })).toBeVisible()
       return
     case 'services-loading':
-      await chooseBarber(page)
+      await chooseProfessional(page)
       await expect(page.getByRole('status').filter({ hasText: 'Cargando servicios' })).toBeVisible()
       return
     case 'services-empty':
-      await chooseBarber(page)
+      await chooseProfessional(page)
       await expect(
         page.getByText('Este profesional no tiene servicios activos asignados.'),
       ).toBeVisible()
       return
     case 'services-error':
-      await chooseBarber(page)
+      await chooseProfessional(page)
       await expect(
         page.getByText('No pudimos cargar los servicios de este profesional.'),
       ).toBeVisible()
@@ -94,7 +94,7 @@ async function driveScenario(page: Page, scenario: Scenario) {
 const scenarios: { readonly file: string; readonly state: Scenario }[] = [
   { file: '01-carga-contexto', state: 'context-loading' },
   { file: '02-error-contexto', state: 'context-error' },
-  { file: '03-sin-barberos', state: 'no-barbers' },
+  { file: '03-sin-barberos', state: 'no-professionals' },
   { file: '04-formulario-vacio', state: 'empty-form' },
   { file: '05-cargando-servicios', state: 'services-loading' },
   { file: '06-sin-servicios-asignados', state: 'services-empty' },

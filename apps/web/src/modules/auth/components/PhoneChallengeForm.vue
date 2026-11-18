@@ -1,6 +1,6 @@
 <script setup lang="ts">
 // Reto telefónico de HU-007 (DEC-062): se muestra cuando el acceso responde
-// 429 (umbral superado). Pide el código de 6 dígitos que la barbería entrega por
+// 429 (umbral superado). Pide el código de 6 dígitos que el negocio entrega por
 // el canal que configuró (correo, WhatsApp o ambos, DEC-139) y,
 // al verificarlo, avisa a `LoginPage` para que reintente el acceso — el
 // servidor ya limpió el escalamiento de esa IP en la misma verificación, así
@@ -9,7 +9,7 @@
 // El mensaje de "código enviado" es deliberadamente genérico (DEC-062, no
 // enumeración): nunca afirma que un mensaje real llegó, porque el servidor
 // tampoco lo confirma, y tampoco nombra el canal: antes de entrar no se sabe a
-// qué barbería pertenece la cuenta y decir «correo» o «teléfono» revelaría su
+// qué negocio pertenece la cuenta y decir «correo» o «teléfono» revelaría su
 // configuración o su existencia (DEC-065, DEC-139).
 import { computed, onUnmounted, ref } from 'vue'
 import { BaseButton, OtpInput } from '@/shared/ui'
@@ -81,7 +81,7 @@ async function onRequestCode() {
 
   // Siempre se trata como "solicitud recibida", incluso ante un error de
   // red o inesperado: reintentar el envío (con el mismo cooldown del
-  // servidor) es más seguro que bloquear al barbero en un estado sin
+  // servidor) es más seguro que bloquear al profesional en un estado sin
   // salida por un fallo transitorio de nuestro propio resumen de UI.
   requestPhase.value = outcome.kind === 'accepted' ? 'sent' : 'error'
 

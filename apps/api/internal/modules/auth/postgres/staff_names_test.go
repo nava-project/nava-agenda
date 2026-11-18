@@ -1,5 +1,5 @@
 // Pruebas de integración de StaffUserNames (HU-064). Requiere PostgreSQL
-// REAL con database/testdata/dos_barberias.sql cargado, mismo criterio que
+// REAL con database/testdata/dos_negocios.sql cargado, mismo criterio que
 // repository_test.go.
 package postgres_test
 
@@ -7,7 +7,7 @@ import (
 	"context"
 	"testing"
 
-	authpostgres "system-barbershop/internal/modules/auth/postgres"
+	authpostgres "nava-agenda/internal/modules/auth/postgres"
 )
 
 func TestStaffUserNames_ReturnsFullNameForRequestedIDs(t *testing.T) {

@@ -5,25 +5,25 @@ import (
 	"net/http"
 	"strconv"
 
-	"system-barbershop/internal/modules/catalog"
-	"system-barbershop/internal/platform/apperr"
-	"system-barbershop/internal/platform/httpserver"
+	"nava-agenda/internal/modules/catalog"
+	"nava-agenda/internal/platform/apperr"
+	"nava-agenda/internal/platform/httpserver"
 )
 
-// barberIDParam es el nombre del parámetro de ruta que cmd/api.buildRouter
+// professionalIDParam es el nombre del parámetro de ruta que cmd/api.buildRouter
 // registra para /private/professionals/{professionalId}/services[/{serviceId}].
 // Deliberadamente igual al de staff/httpapi (mismo segmento de ruta), pero
 // este paquete no lo importa: es una constante propia (mismo criterio de
-// duplicación pequeña que catalog.barberIDPattern en assignment.go).
+// duplicación pequeña que catalog.professionalIDPattern en assignment.go).
 // serviceIDParam ya existe en handler.go (mismo paquete): se reutiliza tal
 // cual, sin declararlo dos veces.
-const barberIDParam = "professionalId"
+const professionalIDParam = "professionalId"
 
 // assignmentBasePath es la base usada para construir el header Location de
 // una asignación creada, relativa a /api/v1 (igual que el resto del
 // contrato).
-func assignmentBasePath(barberID string) string {
-	return "/private/professionals/" + barberID + "/services/"
+func assignmentBasePath(professionalID string) string {
+	return "/private/professionals/" + professionalID + "/services/"
 }
 
 // ListAssignmentsHandler expone GET /private/professionals/{professionalId}/services
@@ -45,7 +45,7 @@ func (h *ListAssignmentsHandler) ServeHTTP(w http.ResponseWriter, r *http.Reques
 		return
 	}
 
-	barberID := httpserver.URLParam(r, barberIDParam)
+	professionalID := httpserver.URLParam(r, professionalIDParam)
 
 	query := r.URL.Query()
 	cursor := query.Get("cursor")
@@ -61,7 +61,7 @@ func (h *ListAssignmentsHandler) ServeHTTP(w http.ResponseWriter, r *http.Reques
 		limit = parsed
 	}
 
-	result, err := h.service.List(r.Context(), principal.BarbershopID, barberID, cursor, limit)
+	result, err := h.service.List(r.Context(), principal.BusinessID, professionalID, cursor, limit)
 	if err != nil {
 		httpserver.WriteProblem(w, httpserver.Translate(err, requestID))
 		return
@@ -77,7 +77,7 @@ func (h *ListAssignmentsHandler) ServeHTTP(w http.ResponseWriter, r *http.Reques
 // CA-023-03). Semántica HTTP naturalmente repetible: no usa el protocolo de
 // Idempotency-Key de RN-IDE-01 (esa cabecera protege un POST no idempotente
 // por sí mismo; PUT sobre un recurso identificado por su propia clave
-// -barberId+serviceId- ya lo es). Sin cuerpo: el contrato no declara
+// -professionalId+serviceId- ya lo es). Sin cuerpo: el contrato no declara
 // ningún campo escribible más allá de los dos identificadores de la ruta.
 type AssignServiceHandler struct {
 	service *catalog.AssignmentService
@@ -96,10 +96,10 @@ func (h *AssignServiceHandler) ServeHTTP(w http.ResponseWriter, r *http.Request)
 		return
 	}
 
-	barberID := httpserver.URLParam(r, barberIDParam)
+	professionalID := httpserver.URLParam(r, professionalIDParam)
 	serviceID := httpserver.URLParam(r, serviceIDParam)
 
-	result, err := h.service.Assign(r.Context(), principal.BarbershopID, barberID, serviceID)
+	result, err := h.service.Assign(r.Context(), principal.BusinessID, professionalID, serviceID)
 	if err != nil {
 		httpserver.WriteProblem(w, httpserver.Translate(err, requestID))
 		return
@@ -111,7 +111,7 @@ func (h *AssignServiceHandler) ServeHTTP(w http.ResponseWriter, r *http.Request)
 	}
 
 	w.Header().Set("Content-Type", "application/json")
-	w.Header().Set("Location", assignmentBasePath(barberID)+serviceID)
+	w.Header().Set("Location", assignmentBasePath(professionalID)+serviceID)
 	w.WriteHeader(status)
 	_ = json.NewEncoder(w).Encode(newAssignmentResponse(result.Assignment))
 }
@@ -136,10 +136,10 @@ func (h *UnassignServiceHandler) ServeHTTP(w http.ResponseWriter, r *http.Reques
 		return
 	}
 
-	barberID := httpserver.URLParam(r, barberIDParam)
+	professionalID := httpserver.URLParam(r, professionalIDParam)
 	serviceID := httpserver.URLParam(r, serviceIDParam)
 
-	if _, err := h.service.Unassign(r.Context(), principal.BarbershopID, barberID, serviceID); err != nil {
+	if _, err := h.service.Unassign(r.Context(), principal.BusinessID, professionalID, serviceID); err != nil {
 		httpserver.WriteProblem(w, httpserver.Translate(err, requestID))
 		return
 	}
@@ -149,9 +149,9 @@ func (h *UnassignServiceHandler) ServeHTTP(w http.ResponseWriter, r *http.Reques
 
 func newAssignmentResponse(a catalog.Assignment) AssignmentResponse {
 	return AssignmentResponse{
-		BarberID:  a.BarberID,
-		ServiceID: a.ServiceID,
-		CreatedAt: a.CreatedAt,
+		ProfessionalID: a.ProfessionalID,
+		ServiceID:      a.ServiceID,
+		CreatedAt:      a.CreatedAt,
 	}
 }
 

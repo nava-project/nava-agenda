@@ -9,13 +9,13 @@ import (
 
 	"github.com/jackc/pgx/v5"
 
-	"system-barbershop/internal/modules/schedule"
-	"system-barbershop/internal/platform/database"
-	"system-barbershop/internal/platform/idempotency"
+	"nava-agenda/internal/modules/schedule"
+	"nava-agenda/internal/platform/database"
+	"nava-agenda/internal/platform/idempotency"
 )
 
 // createTimeBlockOperation/createTimeBlockSeriesOperation identifican,
-// dentro de una barbería, las operaciones de idempotencia de HU-042
+// dentro de un negocio, las operaciones de idempotencia de HU-042
 // (RN-IDE-01): una clave ya usada para OTRA operación (incluidas las de
 // HU-040/HU-041) nunca se confunde con estas.
 const (
@@ -126,10 +126,10 @@ const timeBlockColumns = `id, block_type, source, starts_at, ends_at, reason, de
 // ListBlocks implementa schedule.BlockRepository.ListBlocks: orden estable
 // (starts_at, id), paginación "pedir uno de más" (mismo patrón que
 // Repository.List de working_hour).
-func (r *Repository) ListBlocks(ctx context.Context, barbershopID, barberID string, cursor *schedule.BlockCursor, limit int, includeDeleted bool) (schedule.BlockListResult, error) {
+func (r *Repository) ListBlocks(ctx context.Context, businessID, professionalID string, cursor *schedule.BlockCursor, limit int, includeDeleted bool) (schedule.BlockListResult, error) {
 	var result schedule.BlockListResult
 
-	err := r.db.InTenantTx(ctx, database.BarbershopID(barbershopID), func(ctx context.Context, q database.Queries) error {
+	err := r.db.InTenantTx(ctx, database.BusinessID(businessID), func(ctx context.Context, q database.Queries) error {
 		fetchLimit := limit + 1
 		deletedClause := "AND deleted_at IS NULL"
 		if includeDeleted {
@@ -147,7 +147,7 @@ func (r *Repository) ListBlocks(ctx context.Context, barbershopID, barberID stri
 				  WHERE business_id = $1 AND professional_id = $2 `+deletedClause+`
 				  ORDER BY starts_at, id
 				  LIMIT $3`,
-				barbershopID, barberID, fetchLimit,
+				businessID, professionalID, fetchLimit,
 			)
 		} else {
 			rows, err = q.Query(ctx,
@@ -157,7 +157,7 @@ func (r *Repository) ListBlocks(ctx context.Context, barbershopID, barberID stri
 				    AND (starts_at, id) > ($3::timestamptz, $4)
 				  ORDER BY starts_at, id
 				  LIMIT $5`,
-				barbershopID, barberID, cursor.StartsAt, cursor.ID, fetchLimit,
+				businessID, professionalID, cursor.StartsAt, cursor.ID, fetchLimit,
 			)
 		}
 		if err != nil {
@@ -195,16 +195,16 @@ func (r *Repository) ListBlocks(ctx context.Context, barbershopID, barberID stri
 }
 
 // GetBlock implementa schedule.BlockRepository.GetBlock.
-func (r *Repository) GetBlock(ctx context.Context, barbershopID, barberID, blockID string) (schedule.TimeBlock, bool, error) {
+func (r *Repository) GetBlock(ctx context.Context, businessID, professionalID, blockID string) (schedule.TimeBlock, bool, error) {
 	var b schedule.TimeBlock
 	found := false
 
-	err := r.db.InTenantTx(ctx, database.BarbershopID(barbershopID), func(ctx context.Context, q database.Queries) error {
+	err := r.db.InTenantTx(ctx, database.BusinessID(businessID), func(ctx context.Context, q database.Queries) error {
 		row := q.QueryRow(ctx,
 			`SELECT `+timeBlockColumns+`
 			   FROM time_block
 			  WHERE id = $1 AND business_id = $2 AND professional_id = $3`,
-			blockID, barbershopID, barberID,
+			blockID, businessID, professionalID,
 		)
 		scanned, err := scanTimeBlock(row)
 		switch {
@@ -228,15 +228,15 @@ func (r *Repository) GetBlock(ctx context.Context, barbershopID, barberID, block
 // (RN-BLQ-03/DEC-008): un bloqueo puntual siempre se crea.
 func (r *Repository) CreateBlock(
 	ctx context.Context,
-	barbershopID, barberID string,
+	businessID, professionalID string,
 	input schedule.CreateBlockInput,
 	key idempotency.Key,
 	fingerprint idempotency.Fingerprint,
 ) (schedule.CreateBlockResult, error) {
 	var result schedule.CreateBlockResult
 
-	err := r.db.InTenantTx(ctx, database.BarbershopID(barbershopID), func(ctx context.Context, q database.Queries) error {
-		decision, err := r.coord.Begin(ctx, q, database.BarbershopID(barbershopID), key, createTimeBlockOperation, fingerprint, timeBlockIdempotencyTTL)
+	err := r.db.InTenantTx(ctx, database.BusinessID(businessID), func(ctx context.Context, q database.Queries) error {
+		decision, err := r.coord.Begin(ctx, q, database.BusinessID(businessID), key, createTimeBlockOperation, fingerprint, timeBlockIdempotencyTTL)
 		if err != nil {
 			return fmt.Errorf("idempotency begin: %w", err)
 		}
@@ -252,13 +252,13 @@ func (r *Repository) CreateBlock(
 			`INSERT INTO time_block (business_id, professional_id, block_type, source, starts_at, ends_at, reason)
 			      VALUES ($1, $2, $3, 'manual', $4, $5, $6)
 			   RETURNING `+timeBlockColumns,
-			barbershopID, barberID, input.BlockType, input.StartsAt, input.EndsAt, input.Reason,
+			businessID, professionalID, input.BlockType, input.StartsAt, input.EndsAt, input.Reason,
 		)
 		b, err := scanTimeBlock(row)
 		if err != nil {
 			return fmt.Errorf("insert time block: %w", err)
 		}
-		if err := r.timeBlockChanged(ctx, q, barbershopID, b.ID); err != nil {
+		if err := r.timeBlockChanged(ctx, q, businessID, b.ID); err != nil {
 			return err
 		}
 
@@ -268,7 +268,7 @@ func (r *Repository) CreateBlock(
 		}
 		stored := idempotency.StoredResponse{Status: 201, ContentType: "application/json", Body: string(body)}
 
-		ok, err := r.coord.Complete(ctx, q, database.BarbershopID(barbershopID), key, stored)
+		ok, err := r.coord.Complete(ctx, q, database.BusinessID(businessID), key, stored)
 		if err != nil {
 			return fmt.Errorf("idempotency complete: %w", err)
 		}
@@ -288,16 +288,16 @@ func (r *Repository) CreateBlock(
 
 // DeleteBlock implementa schedule.BlockRepository.DeleteBlock: retiro
 // lógico (RN-BLQ-04), nunca DELETE físico. found=false cubre "no
-// existe"/"de otro barbero"/"de otra barbería"/"ya estaba retirado".
-func (r *Repository) DeleteBlock(ctx context.Context, barbershopID, barberID, blockID, actorID string) (bool, error) {
+// existe"/"de otro profesional"/"de otro negocio"/"ya estaba retirado".
+func (r *Repository) DeleteBlock(ctx context.Context, businessID, professionalID, blockID, actorID string) (bool, error) {
 	found := false
 
-	err := r.db.InTenantTx(ctx, database.BarbershopID(barbershopID), func(ctx context.Context, q database.Queries) error {
+	err := r.db.InTenantTx(ctx, database.BusinessID(businessID), func(ctx context.Context, q database.Queries) error {
 		tag, err := q.Exec(ctx,
 			`UPDATE time_block
 			    SET deleted_at = now(), deleted_by = $4
 			  WHERE id = $1 AND business_id = $2 AND professional_id = $3 AND deleted_at IS NULL`,
-			blockID, barbershopID, barberID, actorID,
+			blockID, businessID, professionalID, actorID,
 		)
 		if err != nil {
 			return fmt.Errorf("soft delete time block: %w", err)
@@ -306,7 +306,7 @@ func (r *Repository) DeleteBlock(ctx context.Context, barbershopID, barberID, bl
 		if !found {
 			return nil
 		}
-		return r.timeBlockChanged(ctx, q, barbershopID, blockID)
+		return r.timeBlockChanged(ctx, q, businessID, blockID)
 	})
 	if err != nil {
 		return false, fmt.Errorf("schedule/postgres: delete time block: %w", err)
@@ -316,17 +316,17 @@ func (r *Repository) DeleteBlock(ctx context.Context, barbershopID, barberID, bl
 
 // ListEffectiveManualBlocks implementa
 // schedule.BlockRepository.ListEffectiveManualBlocks.
-func (r *Repository) ListEffectiveManualBlocks(ctx context.Context, barbershopID, barberID string, from, until time.Time) ([]schedule.TimeBlock, error) {
+func (r *Repository) ListEffectiveManualBlocks(ctx context.Context, businessID, professionalID string, from, until time.Time) ([]schedule.TimeBlock, error) {
 	var items []schedule.TimeBlock
 
-	err := r.db.InTenantTx(ctx, database.BarbershopID(barbershopID), func(ctx context.Context, q database.Queries) error {
+	err := r.db.InTenantTx(ctx, database.BusinessID(businessID), func(ctx context.Context, q database.Queries) error {
 		rows, err := q.Query(ctx,
 			`SELECT `+timeBlockColumns+`
 			   FROM time_block
 			  WHERE business_id = $1 AND professional_id = $2 AND deleted_at IS NULL
 			    AND starts_at < $4 AND ends_at > $3
 			  ORDER BY starts_at`,
-			barbershopID, barberID, from, until,
+			businessID, professionalID, from, until,
 		)
 		if err != nil {
 			return fmt.Errorf("list effective manual blocks: query: %w", err)
@@ -378,10 +378,10 @@ func scanTimeBlockSeriesText(row interface {
 }
 
 // loadSeriesChildren rellena Dates/Exceptions de cada serie en items
-// (mismo tenant/barbero ya filtrado por el llamador). Dos consultas por
+// (mismo tenant/profesional ya filtrado por el llamador). Dos consultas por
 // lote, no una por serie: el número de series de una página está acotado
 // por MaxListLimit.
-func loadSeriesChildren(ctx context.Context, q database.Queries, barbershopID string, items []schedule.TimeBlockSeries) error {
+func loadSeriesChildren(ctx context.Context, q database.Queries, businessID string, items []schedule.TimeBlockSeries) error {
 	if len(items) == 0 {
 		return nil
 	}
@@ -397,7 +397,7 @@ func loadSeriesChildren(ctx context.Context, q database.Queries, barbershopID st
 		   FROM time_block_series_date
 		  WHERE business_id = $1 AND series_id = ANY($2)
 		  ORDER BY series_id, block_date`,
-		barbershopID, ids,
+		businessID, ids,
 	)
 	if err != nil {
 		return fmt.Errorf("load series dates: %w", err)
@@ -421,7 +421,7 @@ func loadSeriesChildren(ctx context.Context, q database.Queries, barbershopID st
 		   FROM time_block_series_exception
 		  WHERE business_id = $1 AND series_id = ANY($2)
 		  ORDER BY series_id, excluded_date`,
-		barbershopID, ids,
+		businessID, ids,
 	)
 	if err != nil {
 		return fmt.Errorf("load series exceptions: %w", err)
@@ -441,10 +441,10 @@ func loadSeriesChildren(ctx context.Context, q database.Queries, barbershopID st
 }
 
 // ListSeries implementa schedule.BlockRepository.ListSeries.
-func (r *Repository) ListSeries(ctx context.Context, barbershopID, barberID string, cursor *schedule.SeriesCursor, limit int, includeDeleted bool) (schedule.SeriesListResult, error) {
+func (r *Repository) ListSeries(ctx context.Context, businessID, professionalID string, cursor *schedule.SeriesCursor, limit int, includeDeleted bool) (schedule.SeriesListResult, error) {
 	var result schedule.SeriesListResult
 
-	err := r.db.InTenantTx(ctx, database.BarbershopID(barbershopID), func(ctx context.Context, q database.Queries) error {
+	err := r.db.InTenantTx(ctx, database.BusinessID(businessID), func(ctx context.Context, q database.Queries) error {
 		fetchLimit := limit + 1
 		deletedClause := "AND deleted_at IS NULL"
 		if includeDeleted {
@@ -461,7 +461,7 @@ func (r *Repository) ListSeries(ctx context.Context, barbershopID, barberID stri
 				  WHERE business_id = $1 AND professional_id = $2 `+deletedClause+`
 				  ORDER BY effective_from, id
 				  LIMIT $3`,
-				barbershopID, barberID, fetchLimit,
+				businessID, professionalID, fetchLimit,
 			)
 		} else {
 			rows, err = q.Query(ctx,
@@ -470,7 +470,7 @@ func (r *Repository) ListSeries(ctx context.Context, barbershopID, barberID stri
 				    AND (effective_from, id) > ($3::date, $4)
 				  ORDER BY effective_from, id
 				  LIMIT $5`,
-				barbershopID, barberID, cursor.EffectiveFrom, cursor.ID, fetchLimit,
+				businessID, professionalID, cursor.EffectiveFrom, cursor.ID, fetchLimit,
 			)
 		}
 		if err != nil {
@@ -494,7 +494,7 @@ func (r *Repository) ListSeries(ctx context.Context, barbershopID, barberID stri
 		if hasMore {
 			items = items[:limit]
 		}
-		if err := loadSeriesChildren(ctx, q, barbershopID, items); err != nil {
+		if err := loadSeriesChildren(ctx, q, businessID, items); err != nil {
 			return err
 		}
 
@@ -512,14 +512,14 @@ func (r *Repository) ListSeries(ctx context.Context, barbershopID, barberID stri
 }
 
 // GetSeries implementa schedule.BlockRepository.GetSeries.
-func (r *Repository) GetSeries(ctx context.Context, barbershopID, barberID, seriesID string) (schedule.TimeBlockSeries, bool, error) {
+func (r *Repository) GetSeries(ctx context.Context, businessID, professionalID, seriesID string) (schedule.TimeBlockSeries, bool, error) {
 	var sr schedule.TimeBlockSeries
 	found := false
 
-	err := r.db.InTenantTx(ctx, database.BarbershopID(barbershopID), func(ctx context.Context, q database.Queries) error {
+	err := r.db.InTenantTx(ctx, database.BusinessID(businessID), func(ctx context.Context, q database.Queries) error {
 		row := q.QueryRow(ctx,
 			timeBlockSeriesSelectSQL+` WHERE id = $1 AND business_id = $2 AND professional_id = $3`,
-			seriesID, barbershopID, barberID,
+			seriesID, businessID, professionalID,
 		)
 		scanned, err := scanTimeBlockSeriesText(row)
 		switch {
@@ -534,7 +534,7 @@ func (r *Repository) GetSeries(ctx context.Context, barbershopID, barberID, seri
 			return nil
 		}
 		items := []schedule.TimeBlockSeries{sr}
-		if err := loadSeriesChildren(ctx, q, barbershopID, items); err != nil {
+		if err := loadSeriesChildren(ctx, q, businessID, items); err != nil {
 			return err
 		}
 		sr = items[0]
@@ -551,15 +551,15 @@ func (r *Repository) GetSeries(ctx context.Context, barbershopID, barberID, seri
 // dentro de UNA sola InTenantTx.
 func (r *Repository) CreateSeries(
 	ctx context.Context,
-	barbershopID, barberID string,
+	businessID, professionalID string,
 	input schedule.CreateSeriesInput,
 	key idempotency.Key,
 	fingerprint idempotency.Fingerprint,
 ) (schedule.CreateSeriesResult, error) {
 	var result schedule.CreateSeriesResult
 
-	err := r.db.InTenantTx(ctx, database.BarbershopID(barbershopID), func(ctx context.Context, q database.Queries) error {
-		decision, err := r.coord.Begin(ctx, q, database.BarbershopID(barbershopID), key, createTimeBlockSeriesOperation, fingerprint, timeBlockIdempotencyTTL)
+	err := r.db.InTenantTx(ctx, database.BusinessID(businessID), func(ctx context.Context, q database.Queries) error {
+		decision, err := r.coord.Begin(ctx, q, database.BusinessID(businessID), key, createTimeBlockSeriesOperation, fingerprint, timeBlockIdempotencyTTL)
 		if err != nil {
 			return fmt.Errorf("idempotency begin: %w", err)
 		}
@@ -577,7 +577,7 @@ func (r *Repository) CreateSeries(
 			 VALUES ($1, $2, $3, $4, $5, $6::time, $7, $8::date, $9::date, $10)
 			 RETURNING id, block_type, recurrence_kind, iso_weekday, to_char(starts_time, 'HH24:MI'), duration_minutes,
 			           to_char(effective_from, 'YYYY-MM-DD'), to_char(effective_until, 'YYYY-MM-DD'), reason, deleted_at, created_at, updated_at`,
-			barbershopID, barberID, input.BlockType, input.RecurrenceKind, input.ISOWeekday, input.StartsTime,
+			businessID, professionalID, input.BlockType, input.RecurrenceKind, input.ISOWeekday, input.StartsTime,
 			input.DurationMinutes, input.EffectiveFrom, input.EffectiveUntil, input.Reason,
 		)
 		sr, err := scanTimeBlockSeriesText(row)
@@ -588,7 +588,7 @@ func (r *Repository) CreateSeries(
 		for _, d := range input.ExplicitDates {
 			if _, err := q.Exec(ctx,
 				`INSERT INTO time_block_series_date (business_id, series_id, block_date) VALUES ($1, $2, $3::date)`,
-				barbershopID, sr.ID, d,
+				businessID, sr.ID, d,
 			); err != nil {
 				return fmt.Errorf("insert series explicit date: %w", err)
 			}
@@ -601,7 +601,7 @@ func (r *Repository) CreateSeries(
 		}
 		stored := idempotency.StoredResponse{Status: 201, ContentType: "application/json", Body: string(body)}
 
-		ok, err := r.coord.Complete(ctx, q, database.BarbershopID(barbershopID), key, stored)
+		ok, err := r.coord.Complete(ctx, q, database.BusinessID(businessID), key, stored)
 		if err != nil {
 			return fmt.Errorf("idempotency complete: %w", err)
 		}
@@ -620,10 +620,10 @@ func (r *Repository) CreateSeries(
 }
 
 // UpdateSeriesWhole implementa schedule.BlockRepository.UpdateSeriesWhole.
-func (r *Repository) UpdateSeriesWhole(ctx context.Context, barbershopID, barberID, seriesID string, input schedule.UpdateSeriesInput) (schedule.UpdateSeriesResult, error) {
+func (r *Repository) UpdateSeriesWhole(ctx context.Context, businessID, professionalID, seriesID string, input schedule.UpdateSeriesInput) (schedule.UpdateSeriesResult, error) {
 	var result schedule.UpdateSeriesResult
 
-	err := r.db.InTenantTx(ctx, database.BarbershopID(barbershopID), func(ctx context.Context, q database.Queries) error {
+	err := r.db.InTenantTx(ctx, database.BusinessID(businessID), func(ctx context.Context, q database.Queries) error {
 		row := q.QueryRow(ctx,
 			`UPDATE time_block_series
 			    SET block_type = $4, starts_time = $5::time, duration_minutes = $6,
@@ -631,7 +631,7 @@ func (r *Repository) UpdateSeriesWhole(ctx context.Context, barbershopID, barber
 			  WHERE id = $1 AND business_id = $2 AND professional_id = $3 AND deleted_at IS NULL
 			RETURNING id, block_type, recurrence_kind, iso_weekday, to_char(starts_time, 'HH24:MI'), duration_minutes,
 			          to_char(effective_from, 'YYYY-MM-DD'), to_char(effective_until, 'YYYY-MM-DD'), reason, deleted_at, created_at, updated_at`,
-			seriesID, barbershopID, barberID, input.BlockType, input.StartsTime, input.DurationMinutes,
+			seriesID, businessID, professionalID, input.BlockType, input.StartsTime, input.DurationMinutes,
 			input.EffectiveFrom, input.EffectiveUntil, input.Reason,
 		)
 		sr, err := scanTimeBlockSeriesText(row)
@@ -644,7 +644,7 @@ func (r *Repository) UpdateSeriesWhole(ctx context.Context, barbershopID, barber
 			return fmt.Errorf("update time block series: %w", err)
 		}
 		items := []schedule.TimeBlockSeries{sr}
-		if err := loadSeriesChildren(ctx, q, barbershopID, items); err != nil {
+		if err := loadSeriesChildren(ctx, q, businessID, items); err != nil {
 			return err
 		}
 		result.Series = items[0]
@@ -661,12 +661,12 @@ func (r *Repository) UpdateSeriesWhole(ctx context.Context, barbershopID, barber
 // captura su iso_weekday y su effective_until ORIGINAL antes de truncarla,
 // la trunca en effectiveDate-1, e inserta la serie nueva desde
 // effectiveDate hasta ese effective_until original. Devuelve la serie
-// NUEVA. found=false cubre "no existe"/"de otro barbero"/"de otra
-// barbería"/"ya retirada".
-func (r *Repository) SplitSeriesFrom(ctx context.Context, barbershopID, barberID, seriesID, effectiveDate string, input schedule.UpdateSeriesInput) (schedule.UpdateSeriesResult, error) {
+// NUEVA. found=false cubre "no existe"/"de otro profesional"/"de otro
+// negocio"/"ya retirada".
+func (r *Repository) SplitSeriesFrom(ctx context.Context, businessID, professionalID, seriesID, effectiveDate string, input schedule.UpdateSeriesInput) (schedule.UpdateSeriesResult, error) {
 	var result schedule.UpdateSeriesResult
 
-	err := r.db.InTenantTx(ctx, database.BarbershopID(barbershopID), func(ctx context.Context, q database.Queries) error {
+	err := r.db.InTenantTx(ctx, database.BusinessID(businessID), func(ctx context.Context, q database.Queries) error {
 		var isoWeekday *int
 		var originalUntil *string
 		row := q.QueryRow(ctx,
@@ -674,7 +674,7 @@ func (r *Repository) SplitSeriesFrom(ctx context.Context, barbershopID, barberID
 			   FROM time_block_series
 			  WHERE id = $1 AND business_id = $2 AND professional_id = $3 AND deleted_at IS NULL
 			    FOR UPDATE`,
-			seriesID, barbershopID, barberID,
+			seriesID, businessID, professionalID,
 		)
 		if err := row.Scan(&isoWeekday, &originalUntil); err != nil {
 			if errors.Is(err, pgx.ErrNoRows) {
@@ -686,7 +686,7 @@ func (r *Repository) SplitSeriesFrom(ctx context.Context, barbershopID, barberID
 		if _, err := q.Exec(ctx,
 			`UPDATE time_block_series SET effective_until = ($4::date - INTERVAL '1 day')::date
 			  WHERE id = $1 AND business_id = $2 AND professional_id = $3`,
-			seriesID, barbershopID, barberID, effectiveDate,
+			seriesID, businessID, professionalID, effectiveDate,
 		); err != nil {
 			return fmt.Errorf("truncate original series: %w", err)
 		}
@@ -697,7 +697,7 @@ func (r *Repository) SplitSeriesFrom(ctx context.Context, barbershopID, barberID
 			 VALUES ($1, $2, $3, 'weekly', $4, $5::time, $6, $7::date, $8::date, $9)
 			 RETURNING id, block_type, recurrence_kind, iso_weekday, to_char(starts_time, 'HH24:MI'), duration_minutes,
 			           to_char(effective_from, 'YYYY-MM-DD'), to_char(effective_until, 'YYYY-MM-DD'), reason, deleted_at, created_at, updated_at`,
-			barbershopID, barberID, input.BlockType, isoWeekday, input.StartsTime, input.DurationMinutes,
+			businessID, professionalID, input.BlockType, isoWeekday, input.StartsTime, input.DurationMinutes,
 			effectiveDate, originalUntil, input.Reason,
 		)
 		sr, err := scanTimeBlockSeriesText(newRow)
@@ -716,14 +716,14 @@ func (r *Repository) SplitSeriesFrom(ctx context.Context, barbershopID, barberID
 
 // DeleteSeries implementa schedule.BlockRepository.DeleteSeries: retiro
 // lógico de la cabecera (RN-BLQ-04). No toca dates/exceptions (RESTRICT).
-func (r *Repository) DeleteSeries(ctx context.Context, barbershopID, barberID, seriesID string) (bool, error) {
+func (r *Repository) DeleteSeries(ctx context.Context, businessID, professionalID, seriesID string) (bool, error) {
 	found := false
 
-	err := r.db.InTenantTx(ctx, database.BarbershopID(barbershopID), func(ctx context.Context, q database.Queries) error {
+	err := r.db.InTenantTx(ctx, database.BusinessID(businessID), func(ctx context.Context, q database.Queries) error {
 		tag, err := q.Exec(ctx,
 			`UPDATE time_block_series SET deleted_at = now()
 			  WHERE id = $1 AND business_id = $2 AND professional_id = $3 AND deleted_at IS NULL`,
-			seriesID, barbershopID, barberID,
+			seriesID, businessID, professionalID,
 		)
 		if err != nil {
 			return fmt.Errorf("soft delete time block series: %w", err)
@@ -738,14 +738,14 @@ func (r *Repository) DeleteSeries(ctx context.Context, barbershopID, barberID, s
 }
 
 // AddSeriesDate implementa schedule.BlockRepository.AddSeriesDate.
-func (r *Repository) AddSeriesDate(ctx context.Context, barbershopID, barberID, seriesID, blockDate string) (bool, bool, error) {
+func (r *Repository) AddSeriesDate(ctx context.Context, businessID, professionalID, seriesID, blockDate string) (bool, bool, error) {
 	found, conflict := false, false
 
-	err := r.db.InTenantTx(ctx, database.BarbershopID(barbershopID), func(ctx context.Context, q database.Queries) error {
+	err := r.db.InTenantTx(ctx, database.BusinessID(businessID), func(ctx context.Context, q database.Queries) error {
 		var exists bool
 		if err := q.QueryRow(ctx,
 			`SELECT EXISTS (SELECT 1 FROM time_block_series WHERE id = $1 AND business_id = $2 AND professional_id = $3 AND deleted_at IS NULL)`,
-			seriesID, barbershopID, barberID,
+			seriesID, businessID, professionalID,
 		).Scan(&exists); err != nil {
 			return fmt.Errorf("check series exists: %w", err)
 		}
@@ -756,7 +756,7 @@ func (r *Repository) AddSeriesDate(ctx context.Context, barbershopID, barberID, 
 
 		if _, err := q.Exec(ctx,
 			`INSERT INTO time_block_series_date (business_id, series_id, block_date) VALUES ($1, $2, $3::date)`,
-			barbershopID, seriesID, blockDate,
+			businessID, seriesID, blockDate,
 		); err != nil {
 			if isConstraintViolation(err, "23505", timeBlockSeriesDatePKConstraint) {
 				conflict = true
@@ -777,17 +777,17 @@ func (r *Repository) AddSeriesDate(ctx context.Context, barbershopID, barberID, 
 
 // RemoveSeriesDate implementa schedule.BlockRepository.RemoveSeriesDate:
 // retiro físico (fila hija sin ciclo de vida propio).
-func (r *Repository) RemoveSeriesDate(ctx context.Context, barbershopID, barberID, seriesID, blockDate string) (bool, error) {
+func (r *Repository) RemoveSeriesDate(ctx context.Context, businessID, professionalID, seriesID, blockDate string) (bool, error) {
 	found := false
 
-	err := r.db.InTenantTx(ctx, database.BarbershopID(barbershopID), func(ctx context.Context, q database.Queries) error {
+	err := r.db.InTenantTx(ctx, database.BusinessID(businessID), func(ctx context.Context, q database.Queries) error {
 		tag, err := q.Exec(ctx,
 			`DELETE FROM time_block_series_date d
 			  USING time_block_series s
 			 WHERE d.series_id = s.id AND d.business_id = s.business_id
 			   AND d.business_id = $1 AND d.series_id = $2 AND d.block_date = $3::date
 			   AND s.professional_id = $4`,
-			barbershopID, seriesID, blockDate, barberID,
+			businessID, seriesID, blockDate, professionalID,
 		)
 		if err != nil {
 			return fmt.Errorf("delete series date: %w", err)
@@ -802,14 +802,14 @@ func (r *Repository) RemoveSeriesDate(ctx context.Context, barbershopID, barberI
 }
 
 // AddSeriesException implementa schedule.BlockRepository.AddSeriesException.
-func (r *Repository) AddSeriesException(ctx context.Context, barbershopID, barberID, seriesID, excludedDate string, reason *string) (bool, bool, error) {
+func (r *Repository) AddSeriesException(ctx context.Context, businessID, professionalID, seriesID, excludedDate string, reason *string) (bool, bool, error) {
 	found, conflict := false, false
 
-	err := r.db.InTenantTx(ctx, database.BarbershopID(barbershopID), func(ctx context.Context, q database.Queries) error {
+	err := r.db.InTenantTx(ctx, database.BusinessID(businessID), func(ctx context.Context, q database.Queries) error {
 		var exists bool
 		if err := q.QueryRow(ctx,
 			`SELECT EXISTS (SELECT 1 FROM time_block_series WHERE id = $1 AND business_id = $2 AND professional_id = $3 AND deleted_at IS NULL)`,
-			seriesID, barbershopID, barberID,
+			seriesID, businessID, professionalID,
 		).Scan(&exists); err != nil {
 			return fmt.Errorf("check series exists: %w", err)
 		}
@@ -820,7 +820,7 @@ func (r *Repository) AddSeriesException(ctx context.Context, barbershopID, barbe
 
 		if _, err := q.Exec(ctx,
 			`INSERT INTO time_block_series_exception (business_id, series_id, excluded_date, reason) VALUES ($1, $2, $3::date, $4)`,
-			barbershopID, seriesID, excludedDate, reason,
+			businessID, seriesID, excludedDate, reason,
 		); err != nil {
 			if isConstraintViolation(err, "23505", timeBlockSeriesExceptionPKConstraint) {
 				conflict = true
@@ -841,17 +841,17 @@ func (r *Repository) AddSeriesException(ctx context.Context, barbershopID, barbe
 
 // RemoveSeriesException implementa
 // schedule.BlockRepository.RemoveSeriesException: retiro físico.
-func (r *Repository) RemoveSeriesException(ctx context.Context, barbershopID, barberID, seriesID, excludedDate string) (bool, error) {
+func (r *Repository) RemoveSeriesException(ctx context.Context, businessID, professionalID, seriesID, excludedDate string) (bool, error) {
 	found := false
 
-	err := r.db.InTenantTx(ctx, database.BarbershopID(barbershopID), func(ctx context.Context, q database.Queries) error {
+	err := r.db.InTenantTx(ctx, database.BusinessID(businessID), func(ctx context.Context, q database.Queries) error {
 		tag, err := q.Exec(ctx,
 			`DELETE FROM time_block_series_exception e
 			  USING time_block_series s
 			 WHERE e.series_id = s.id AND e.business_id = s.business_id
 			   AND e.business_id = $1 AND e.series_id = $2 AND e.excluded_date = $3::date
 			   AND s.professional_id = $4`,
-			barbershopID, seriesID, excludedDate, barberID,
+			businessID, seriesID, excludedDate, professionalID,
 		)
 		if err != nil {
 			return fmt.Errorf("delete series exception: %w", err)
@@ -867,17 +867,17 @@ func (r *Repository) RemoveSeriesException(ctx context.Context, barbershopID, ba
 
 // ListActiveSeriesForProjection implementa
 // schedule.BlockRepository.ListActiveSeriesForProjection.
-func (r *Repository) ListActiveSeriesForProjection(ctx context.Context, barbershopID, barberID, from, until string) ([]schedule.TimeBlockSeries, error) {
+func (r *Repository) ListActiveSeriesForProjection(ctx context.Context, businessID, professionalID, from, until string) ([]schedule.TimeBlockSeries, error) {
 	var items []schedule.TimeBlockSeries
 
-	err := r.db.InTenantTx(ctx, database.BarbershopID(barbershopID), func(ctx context.Context, q database.Queries) error {
+	err := r.db.InTenantTx(ctx, database.BusinessID(businessID), func(ctx context.Context, q database.Queries) error {
 		rows, err := q.Query(ctx,
 			timeBlockSeriesSelectSQL+`
 			  WHERE business_id = $1 AND professional_id = $2 AND deleted_at IS NULL
 			    AND effective_from <= $4::date
 			    AND (effective_until IS NULL OR effective_until >= $3::date)
 			  ORDER BY effective_from`,
-			barbershopID, barberID, from, until,
+			businessID, professionalID, from, until,
 		)
 		if err != nil {
 			return fmt.Errorf("list active series: query: %w", err)
@@ -894,7 +894,7 @@ func (r *Repository) ListActiveSeriesForProjection(ctx context.Context, barbersh
 		if err := rows.Err(); err != nil {
 			return err
 		}
-		return loadSeriesChildren(ctx, q, barbershopID, items)
+		return loadSeriesChildren(ctx, q, businessID, items)
 	})
 	if err != nil {
 		return nil, fmt.Errorf("schedule/postgres: list active series for projection: %w", err)

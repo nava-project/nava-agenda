@@ -8,7 +8,7 @@ import { INITIAL_VOCABULARY } from './fixtures/vocabularioInicial'
  * a la cancelación en la misma página (cancelar, #647) o a «Cambiar la hora» (reprogramar).
  *
  * Recorridos con el API simulado: cancelar, reprogramar, código incorrecto con bloqueo a los
- * cinco intentos y enlace sin barbería. Evidencia responsiva y accesible (estandar-diseno-
+ * cinco intentos y enlace sin negocio. Evidencia responsiva y accesible (estandar-diseno-
  * visual.md §16) en 320/360/768/1280 px y zoom 200 % aproximado. Sin mockup asignado
  * (DEC-078). Las capturas van a `e2e/evidence/cliente-acceso-enlace/`.
  */
@@ -191,7 +191,7 @@ test.describe('HU-106 · el enlace de Odin', () => {
     expect(calls).toBe(5)
   })
 
-  test('enlace sin barbería: estado propio', async ({ page }) => {
+  test('enlace sin negocio: estado propio', async ({ page }) => {
     await page.route(VERIFY_REF_URL, (route) =>
       json(route, 404, problem(404, 'not-found'), 'application/problem+json'),
     )
@@ -278,7 +278,7 @@ for (const viewport of viewports) {
       await capture(page, viewport.name, '6-cancelado')
     })
 
-    test(`enlace sin barbería (${viewport.name}px)`, async ({ page }) => {
+    test(`enlace sin negocio (${viewport.name}px)`, async ({ page }) => {
       await page.route(VERIFY_REF_URL, (route) =>
         json(route, 404, problem(404, 'not-found'), 'application/problem+json'),
       )

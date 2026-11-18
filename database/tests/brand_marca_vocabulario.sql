@@ -1,12 +1,12 @@
--- Pruebas SQL del issue #292 (DEC-110): marca y vocabulario de la barbería.
+-- Pruebas SQL del issue #292 (DEC-110): marca y vocabulario del negocio.
 -- Cubren a nivel de base de datos los valores por defecto, las restricciones
 -- CHECK de la lista cerrada de acentos y de la forma de un término, y el
--- aislamiento RLS entre dos barberías. La validación fina de la forma
+-- aislamiento RLS entre dos negocios. La validación fina de la forma
 -- (solo letras) y la orquestación del PATCH viven en el servicio Go
 -- (internal/modules/shops), no aquí.
 --
 -- Uso:
---   psql "$DATABASE_TEST_URL" -v ON_ERROR_STOP=1 -f testdata/dos_professionalias.sql
+--   psql "$DATABASE_TEST_URL" -v ON_ERROR_STOP=1 -f testdata/dos_negocios.sql
 --   psql "$DATABASE_TEST_URL" -v ON_ERROR_STOP=1 -f tests/brand_marca_vocabulario.sql
 --
 -- Requisito del arnés: la conexión debe poder ejecutar `SET ROLE agenda_app`
@@ -16,7 +16,7 @@
 
 \set ON_ERROR_STOP on
 
-\echo '=== Issue #292 · pruebas de marca y vocabulario de la barbería ==='
+\echo '=== Issue #292 · pruebas de marca y vocabulario del negocio ==='
 
 -- ---------------------------------------------------------------------------
 -- Columnas NOT NULL con el vocabulario genérico por defecto (DEC-183)
@@ -56,7 +56,7 @@ $$;
 \echo 'columnas OK · seis columnas NOT NULL con el vocabulario genérico de Nava Agenda (DEC-183)'
 
 -- ---------------------------------------------------------------------------
--- Una barbería que nunca tocó la marca lee los defaults
+-- Un negocio que nunca tocó la marca lee los defaults
 -- ---------------------------------------------------------------------------
 BEGIN;
 SET ROLE agenda_app;
@@ -70,7 +70,7 @@ BEGIN
   IF b.brand_accent <> 'brass' OR b.business_term <> 'negocio'
      OR b.professional_term <> 'profesional' OR b.professional_term_plural <> 'profesionales'
      OR b.business_term_gender <> 'masculine' OR b.professional_term_gender <> 'masculine' THEN
-    RAISE EXCEPTION 'la barbería existente debe leer los defaults de marca (leyó % / % / %).',
+    RAISE EXCEPTION 'el negocio existente debe leer los defaults de marca (leyó % / % / %).',
       b.brand_accent, b.business_term, b.professional_term;
   END IF;
 END
@@ -189,7 +189,7 @@ $$;
 RESET ROLE;
 ROLLBACK;
 
--- La barbería B conserva su marca inicial tras el intento anterior.
+-- El negocio B conserva su marca inicial tras el intento anterior.
 DO $$
 DECLARE
   v_accent text;

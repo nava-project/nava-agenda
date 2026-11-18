@@ -12,11 +12,11 @@ import (
 	"testing"
 	"time"
 
-	"system-barbershop/internal/platform/apperr"
-	"system-barbershop/internal/platform/config"
-	"system-barbershop/internal/platform/database"
-	"system-barbershop/internal/platform/httpserver"
-	"system-barbershop/internal/platform/idempotency"
+	"nava-agenda/internal/platform/apperr"
+	"nava-agenda/internal/platform/config"
+	"nava-agenda/internal/platform/database"
+	"nava-agenda/internal/platform/httpserver"
+	"nava-agenda/internal/platform/idempotency"
 )
 
 func TestIdempotencyKeyFromRequest_RejectsMissingHeader(t *testing.T) {
@@ -87,7 +87,7 @@ func TestWriteStoredResponse_ReproducesStatusContentTypeAndBodyExactly(t *testin
 
 const idempotencyTestDatabaseURL = "postgres://agenda_app@localhost:5432/barberia_test?sslmode=disable"
 
-var idempotencyTestShop = database.BarbershopID("11111111-1111-1111-1111-111111111111")
+var idempotencyTestShop = database.BusinessID("11111111-1111-1111-1111-111111111111")
 
 func setupIdempotencyTestDB(t *testing.T) *database.DB {
 	t.Helper()
@@ -119,7 +119,7 @@ func setupIdempotencyTestDB(t *testing.T) *database.DB {
 // IdempotencyFingerprint, y dentro de SU PROPIA InTenantTx, Begin seguido
 // de su efecto y Complete. Aquí el "efecto" es ficticio a propósito (HU-004
 // no crea citas ni ningún recurso real): solo confirma una respuesta fija.
-func testIdempotentHandler(db *database.DB, shop database.BarbershopID) http.HandlerFunc {
+func testIdempotentHandler(db *database.DB, shop database.BusinessID) http.HandlerFunc {
 	coord := idempotency.NewSQLCoordinator()
 
 	return func(w http.ResponseWriter, r *http.Request) {
@@ -173,7 +173,7 @@ func testIdempotentHandler(db *database.DB, shop database.BarbershopID) http.Han
 	}
 }
 
-func newIdempotencyTestServer(db *database.DB, shop database.BarbershopID) http.Handler {
+func newIdempotencyTestServer(db *database.DB, shop database.BusinessID) http.Handler {
 	return httpserver.RequestID(testIdempotentHandler(db, shop))
 }
 

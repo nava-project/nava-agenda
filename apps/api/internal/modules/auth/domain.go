@@ -17,11 +17,11 @@ const SessionDuration = 30 * 24 * time.Hour
 // escriba una sola vez en la cookie Set-Cookie. Nunca se registra, nunca se
 // serializa a JSON, nunca se persiste tal cual (ver [HashToken]).
 type Session struct {
-	Token        string
-	BarbershopID string
-	StaffUserID  string
-	IssuedAt     time.Time
-	ExpiresAt    time.Time
+	Token       string
+	BusinessID  string
+	StaffUserID string
+	IssuedAt    time.Time
+	ExpiresAt   time.Time
 }
 
 // NormalizeEmail aplica la misma normalización que

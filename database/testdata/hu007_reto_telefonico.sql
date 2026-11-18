@@ -1,9 +1,9 @@
 -- Escenario controlado de HU-007: teléfono verificado para el reto que
--- desbloquea el login (DEC-062). Requiere testdata/dos_professionalias.sql y
+-- desbloquea el login (DEC-062). Requiere testdata/dos_negocios.sql y
 -- testdata/hu005_credenciales_sesiones.sql cargados primero.
 --
 -- Uso:
---   psql "$DATABASE_TEST_URL" -v ON_ERROR_STOP=1 -f testdata/dos_professionalias.sql
+--   psql "$DATABASE_TEST_URL" -v ON_ERROR_STOP=1 -f testdata/dos_negocios.sql
 --   psql "$DATABASE_TEST_URL" -v ON_ERROR_STOP=1 -f testdata/hu005_credenciales_sesiones.sql
 --   psql "$DATABASE_TEST_URL" -v ON_ERROR_STOP=1 -f testdata/hu007_reto_telefonico.sql
 --
@@ -15,8 +15,8 @@
 
 BEGIN;
 
--- Estas pruebas cubren el reto por WhatsApp (DEC-062): las dos barberías lo
--- piden explícitamente porque una barbería nueva nace con correo (DEC-139). Los
+-- Estas pruebas cubren el reto por WhatsApp (DEC-062): los dos negocios lo
+-- piden explícitamente porque un negocio nuevo nace con correo (DEC-139). Los
 -- canales de correo y ambos se cubren en tests/login_otp_channel.sql.
 UPDATE business SET login_otp_channel = 'whatsapp'
 WHERE id IN ('11111111-1111-1111-1111-111111111111', '22222222-2222-2222-2222-222222222222');
@@ -37,7 +37,7 @@ WHERE id = 'bbbbbbb1-bbbb-bbbb-bbbb-bbbbbbbbbbb1';
 UPDATE staff_user SET phone_verified_at = now()
 WHERE id = 'bbbbbbb1-bbbb-bbbb-bbbb-bbbbbbbbbbb1';
 
--- aaaaaaa2 (Barbero A) y bbbbbbb2 (Barbero B, inactivo) quedan SIN teléfono
+-- aaaaaaa2 (Profesional A) y bbbbbbb2 (Profesional B, inactivo) quedan SIN teléfono
 -- verificado a propósito: las pruebas de auth_phone_challenge_request deben
 -- demostrar que una cuenta sin teléfono verificado no recibe código, con la
 -- misma respuesta 202 genérica que una cuenta inexistente.

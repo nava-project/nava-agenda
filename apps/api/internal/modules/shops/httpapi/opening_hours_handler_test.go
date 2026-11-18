@@ -7,8 +7,8 @@ import (
 	"net/http/httptest"
 	"testing"
 
-	"system-barbershop/internal/modules/shops"
-	"system-barbershop/internal/modules/shops/httpapi"
+	"nava-agenda/internal/modules/shops"
+	"nava-agenda/internal/modules/shops/httpapi"
 )
 
 type fakeOpeningHoursRepository struct {

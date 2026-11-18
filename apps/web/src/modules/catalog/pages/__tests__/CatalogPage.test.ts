@@ -606,7 +606,7 @@ describe('CatalogPage', () => {
     expect(nameInput.value).toBe('Conflicto')
   })
 
-  it('never shows placeholders for barber assignment, availability, or appointments (HU-024 activation status is real, not a placeholder)', async () => {
+  it('never shows placeholders for professional assignment, availability, or appointments (HU-024 activation status is real, not a placeholder)', async () => {
     const wrapper = await mountReady(fourServices)
     const text = wrapper.text().toLowerCase()
     for (const forbidden of ['barbero', 'asignar', 'disponib', 'agenda', 'cita', 'horario']) {

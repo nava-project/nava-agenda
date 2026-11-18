@@ -1,6 +1,6 @@
 /**
  * Pruebas de NewAppointmentPage (HU-061): carga (vacío, error), selección
- * de barbero → carga de servicios asignados (DEC-072), validación de
+ * de profesional → carga de servicios asignados (DEC-072), validación de
  * forma, éxito con resumen honesto, conflicto (agenda/bloqueo, DEC-073),
  * conflicto de idempotencia, error de red, doble envío bloqueado y
  * accesibilidad. appointmentsApi se sustituye por un doble de prueba; el
@@ -13,21 +13,21 @@ import { mount, flushPromises } from '@vue/test-utils'
 import { createMemoryHistory, createRouter } from 'vue-router'
 import { axe } from 'vitest-axe'
 
-const fetchBarberSummariesMock = vi.hoisted(() => vi.fn())
+const fetchProfessionalSummariesMock = vi.hoisted(() => vi.fn())
 const fetchAssignedServicesMock = vi.hoisted(() => vi.fn())
-const fetchBarbershopTimezoneMock = vi.hoisted(() => vi.fn())
+const fetchBusinessTimezoneMock = vi.hoisted(() => vi.fn())
 const createManualAppointmentMock = vi.hoisted(() => vi.fn())
 
 vi.mock('../../api/appointmentsApi', () => ({
-  fetchBarberSummaries: fetchBarberSummariesMock,
+  fetchProfessionalSummaries: fetchProfessionalSummariesMock,
   fetchAssignedServices: fetchAssignedServicesMock,
-  fetchBarbershopTimezone: fetchBarbershopTimezoneMock,
+  fetchBusinessTimezone: fetchBusinessTimezoneMock,
   createManualAppointment: createManualAppointmentMock,
 }))
 
 const { default: NewAppointmentPage } = await import('../NewAppointmentPage.vue')
 
-const oneBarber = [{ id: 'b-1', fullName: 'Carlos Ramírez' }]
+const oneProfessional = [{ id: 'b-1', fullName: 'Carlos Ramírez' }]
 const twoServices = [
   { id: 's-1', name: 'Corte clásico' },
   { id: 's-2', name: 'Barba' },
@@ -37,9 +37,9 @@ function mountPage() {
   return mount(NewAppointmentPage)
 }
 
-async function mountReady(barbers = oneBarber) {
-  fetchBarberSummariesMock.mockResolvedValueOnce({ kind: 'success', items: barbers })
-  fetchBarbershopTimezoneMock.mockResolvedValueOnce({
+async function mountReady(professionals = oneProfessional) {
+  fetchProfessionalSummariesMock.mockResolvedValueOnce({ kind: 'success', items: professionals })
+  fetchBusinessTimezoneMock.mockResolvedValueOnce({
     kind: 'success',
     timezone: 'America/Bogota',
   })
@@ -49,16 +49,16 @@ async function mountReady(barbers = oneBarber) {
 }
 
 /**
- * El campo "Barbero" es el listbox con monograma (BarberSelect), no un
+ * El campo "Profesional" es el listbox con monograma (ProfessionalSelect), no un
  * `<select>` nativo: el atlas nuevo-turno-eventos (issue #190) muestra el
- * retrato del barbero dentro del control cerrado, y una `<option>` nativa no
+ * retrato del profesional dentro del control cerrado, y una `<option>` nativa no
  * puede llevarlo. Elegir = abrir el disparador y activar su opción.
  */
-async function chooseBarber(
+async function chooseProfessional(
   wrapper: Awaited<ReturnType<typeof mountReady>>,
   index = 0,
 ): Promise<void> {
-  await wrapper.get('#new-appointment-barber').trigger('click')
+  await wrapper.get('#new-appointment-professional').trigger('click')
   await flushPromises()
   await wrapper.findAll('[role="option"]')[index]!.trigger('click')
   await flushPromises()
@@ -66,7 +66,7 @@ async function chooseBarber(
 
 async function fillValidForm(wrapper: Awaited<ReturnType<typeof mountReady>>) {
   fetchAssignedServicesMock.mockResolvedValueOnce({ kind: 'success', items: twoServices })
-  await chooseBarber(wrapper)
+  await chooseProfessional(wrapper)
 
   const serviceSelect = wrapper.get<HTMLSelectElement>('#new-appointment-service')
   await serviceSelect.setValue('s-1')
@@ -86,48 +86,48 @@ describe('NewAppointmentPage', () => {
   beforeEach(() => {
     resetToasts()
     resetBrand()
-    fetchBarberSummariesMock.mockReset()
+    fetchProfessionalSummariesMock.mockReset()
     fetchAssignedServicesMock.mockReset()
-    fetchBarbershopTimezoneMock.mockReset()
+    fetchBusinessTimezoneMock.mockReset()
     createManualAppointmentMock.mockReset()
   })
 
-  it('shows a non-blank loading state, then the barber picker', async () => {
-    let resolveBarbers: (value: unknown) => void = () => {}
-    fetchBarberSummariesMock.mockReturnValueOnce(
+  it('shows a non-blank loading state, then the professional picker', async () => {
+    let resolveProfessionals: (value: unknown) => void = () => {}
+    fetchProfessionalSummariesMock.mockReturnValueOnce(
       new Promise((resolve) => {
-        resolveBarbers = resolve
+        resolveProfessionals = resolve
       }),
     )
-    fetchBarbershopTimezoneMock.mockResolvedValueOnce({ kind: 'unavailable' })
+    fetchBusinessTimezoneMock.mockResolvedValueOnce({ kind: 'unavailable' })
     const wrapper = mountPage()
     expect(wrapper.text()).toContain('Cargando profesionales')
 
-    resolveBarbers({ kind: 'success', items: oneBarber })
+    resolveProfessionals({ kind: 'success', items: oneProfessional })
     await flushPromises()
-    expect(wrapper.find('#new-appointment-barber').exists()).toBe(true)
+    expect(wrapper.find('#new-appointment-professional').exists()).toBe(true)
   })
 
-  it('shows an explicit empty state when there are no barbers', async () => {
-    fetchBarberSummariesMock.mockResolvedValueOnce({ kind: 'success', items: [] })
-    fetchBarbershopTimezoneMock.mockResolvedValueOnce({ kind: 'unavailable' })
+  it('shows an explicit empty state when there are no professionals', async () => {
+    fetchProfessionalSummariesMock.mockResolvedValueOnce({ kind: 'success', items: [] })
+    fetchBusinessTimezoneMock.mockResolvedValueOnce({ kind: 'unavailable' })
     const wrapper = mountPage()
     await flushPromises()
     expect(wrapper.text()).toContain('Aún no tienes profesionales registrados')
   })
 
-  it('shows a recoverable error when barbers fail to load', async () => {
-    fetchBarberSummariesMock.mockResolvedValueOnce({ kind: 'network-error' })
-    fetchBarbershopTimezoneMock.mockResolvedValueOnce({ kind: 'unavailable' })
+  it('shows a recoverable error when professionals fail to load', async () => {
+    fetchProfessionalSummariesMock.mockResolvedValueOnce({ kind: 'network-error' })
+    fetchBusinessTimezoneMock.mockResolvedValueOnce({ kind: 'unavailable' })
     const wrapper = mountPage()
     await flushPromises()
     expect(wrapper.text()).toContain('No pudimos cargar esta sección')
   })
 
-  it('loads only the services assigned to the selected barber (DEC-072)', async () => {
+  it('loads only the services assigned to the selected professional (DEC-072)', async () => {
     const wrapper = await mountReady()
     fetchAssignedServicesMock.mockResolvedValueOnce({ kind: 'success', items: twoServices })
-    await chooseBarber(wrapper)
+    await chooseProfessional(wrapper)
     expect(fetchAssignedServicesMock).toHaveBeenCalledWith('b-1')
     const options = wrapper.findAll('#new-appointment-service option')
     expect(options.map((o) => o.text())).toContain('Corte clásico')
@@ -155,7 +155,7 @@ describe('NewAppointmentPage', () => {
   it('fills the summary ticket live, keeping what is still pending as such', async () => {
     const wrapper = await mountReady()
     fetchAssignedServicesMock.mockResolvedValueOnce({ kind: 'success', items: twoServices })
-    await chooseBarber(wrapper)
+    await chooseProfessional(wrapper)
 
     const resumen = wrapper.get('.new-appointment-page__resumen')
     expect(resumen.text()).toContain('Carlos Ramírez')
@@ -197,7 +197,7 @@ describe('NewAppointmentPage', () => {
       kind: 'success',
       appointment: {
         id: 'appt-1',
-        barberId: 'b-1',
+        professionalId: 'b-1',
         serviceId: 's-1',
         attendeeName: 'Juan Pérez',
         startsAt: '2026-09-03T14:30:00-05:00',
@@ -262,7 +262,7 @@ describe('NewAppointmentPage', () => {
       kind: 'success',
       appointment: {
         id: 'appt-1',
-        barberId: 'b-1',
+        professionalId: 'b-1',
         serviceId: 's-1',
         attendeeName: 'Juan Pérez',
         startsAt: '2026-09-03T14:30:00-05:00',
@@ -311,8 +311,8 @@ describe('NewAppointmentPage', () => {
   })
 
   it('waits with the skeleton of the form, not with an empty screen', async () => {
-    fetchBarberSummariesMock.mockReturnValueOnce(new Promise(() => {}))
-    fetchBarbershopTimezoneMock.mockResolvedValueOnce({ kind: 'unavailable' })
+    fetchProfessionalSummariesMock.mockReturnValueOnce(new Promise(() => {}))
+    fetchBusinessTimezoneMock.mockResolvedValueOnce({ kind: 'unavailable' })
     const wrapper = mountPage()
     await flushPromises()
 
@@ -339,10 +339,13 @@ describe('NewAppointmentPage', () => {
     })
     await router.push({
       name: 'agenda-nuevo-turno',
-      query: { barberId: 'b-1', date: '2026-09-03', extra: 'x' },
+      query: { professionalId: 'b-1', date: '2026-09-03', extra: 'x' },
     })
-    fetchBarberSummariesMock.mockResolvedValueOnce({ kind: 'success', items: oneBarber })
-    fetchBarbershopTimezoneMock.mockResolvedValueOnce({
+    fetchProfessionalSummariesMock.mockResolvedValueOnce({
+      kind: 'success',
+      items: oneProfessional,
+    })
+    fetchBusinessTimezoneMock.mockResolvedValueOnce({
       kind: 'success',
       timezone: 'America/Bogota',
     })
@@ -354,7 +357,7 @@ describe('NewAppointmentPage', () => {
     await flushPromises()
 
     expect(router.currentRoute.value.name).toBe('panel')
-    expect(router.currentRoute.value.query).toEqual({ barberId: 'b-1', date: '2026-09-03' })
+    expect(router.currentRoute.value.query).toEqual({ professionalId: 'b-1', date: '2026-09-03' })
     expect(createManualAppointmentMock).not.toHaveBeenCalled()
   })
 
@@ -367,8 +370,11 @@ describe('NewAppointmentPage', () => {
       ],
     })
     await router.push({ name: 'agenda-nuevo-turno', query: { date: 'no-es-fecha' } })
-    fetchBarberSummariesMock.mockResolvedValueOnce({ kind: 'success', items: oneBarber })
-    fetchBarbershopTimezoneMock.mockResolvedValueOnce({
+    fetchProfessionalSummariesMock.mockResolvedValueOnce({
+      kind: 'success',
+      items: oneProfessional,
+    })
+    fetchBusinessTimezoneMock.mockResolvedValueOnce({
       kind: 'success',
       timezone: 'America/Bogota',
     })
@@ -408,7 +414,7 @@ describe('NewAppointmentPage', () => {
       kind: 'success',
       appointment: {
         id: 'appt-1',
-        barberId: 'b-1',
+        professionalId: 'b-1',
         serviceId: 's-1',
         attendeeName: 'Juan Pérez',
         startsAt: '2026-09-03T14:30:00-05:00',
@@ -425,21 +431,21 @@ describe('NewAppointmentPage', () => {
     const results = await axe(wrapper.element, axeOptions)
     expect(results.violations).toEqual([])
   })
-  describe('perfil de barbero individual (DEC-115)', () => {
-    it('preselects the only barber, hides the field and loads that barber services', async () => {
+  describe('perfil de profesional individual (DEC-115)', () => {
+    it('preselects the only professional, hides the field and loads that professional services', async () => {
       setBrand({ ...DEFAULT_BRAND, panelProfile: 'solo' })
       fetchAssignedServicesMock.mockResolvedValueOnce({ kind: 'success', items: twoServices })
       const wrapper = await mountReady()
       await flushPromises()
 
-      expect(wrapper.find('#new-appointment-barber').exists()).toBe(false)
+      expect(wrapper.find('#new-appointment-professional').exists()).toBe(false)
       expect(fetchAssignedServicesMock).toHaveBeenCalledWith('b-1')
       expect(wrapper.text()).toContain('Elige el servicio.')
       expect(wrapper.text()).not.toContain('Elige al profesional')
       expect(wrapper.get('#new-appointment-service').findAll('option').length).toBeGreaterThan(2)
     })
 
-    it('books for the only barber without asking who it is', async () => {
+    it('books for the only professional without asking who it is', async () => {
       setBrand({ ...DEFAULT_BRAND, panelProfile: 'solo' })
       fetchAssignedServicesMock.mockResolvedValueOnce({ kind: 'success', items: twoServices })
       const wrapper = await mountReady()
@@ -459,25 +465,25 @@ describe('NewAppointmentPage', () => {
       await flushPromises()
 
       expect(createManualAppointmentMock).toHaveBeenCalledWith(
-        expect.objectContaining({ barberId: 'b-1', serviceId: 's-1' }),
+        expect.objectContaining({ professionalId: 'b-1', serviceId: 's-1' }),
         expect.anything(),
       )
     })
 
-    it('keeps the field in the solo profile when there are several barbers, and in the full panel', async () => {
+    it('keeps the field in the solo profile when there are several professionals, and in the full panel', async () => {
       setBrand({ ...DEFAULT_BRAND, panelProfile: 'solo' })
       const several = await mountReady([
         { id: 'b-1', fullName: 'Carlos Ramírez' },
         { id: 'b-2', fullName: 'Ana Gómez' },
       ])
-      expect(several.find('#new-appointment-barber').exists()).toBe(true)
+      expect(several.find('#new-appointment-professional').exists()).toBe(true)
 
       resetBrand()
       const full = await mountReady()
-      expect(full.find('#new-appointment-barber').exists()).toBe(true)
+      expect(full.find('#new-appointment-professional').exists()).toBe(true)
     })
 
-    it('has no axe violations without the barber field', async () => {
+    it('has no axe violations without the professional field', async () => {
       setBrand({ ...DEFAULT_BRAND, panelProfile: 'solo' })
       fetchAssignedServicesMock.mockResolvedValueOnce({ kind: 'success', items: twoServices })
       const wrapper = await mountReady()

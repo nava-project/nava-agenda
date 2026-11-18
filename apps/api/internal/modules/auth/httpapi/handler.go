@@ -14,10 +14,10 @@ import (
 	"net/http"
 	"strconv"
 
-	"system-barbershop/internal/modules/auth"
-	"system-barbershop/internal/platform/apperr"
-	"system-barbershop/internal/platform/clientip"
-	"system-barbershop/internal/platform/httpserver"
+	"nava-agenda/internal/modules/auth"
+	"nava-agenda/internal/platform/apperr"
+	"nava-agenda/internal/platform/clientip"
+	"nava-agenda/internal/platform/httpserver"
 )
 
 // Límites de forma, comprobados ANTES de invocar el caso de uso: coinciden
@@ -36,18 +36,27 @@ const (
 // vacío y documenta por qué se eligió Lax/host-only/estos valores como
 // elección PROVISIONAL, pendiente de confirmación explícita del
 // propietario.
+//
+// LegacyCookieName es el nombre anterior a DEC-183 (#662). Se sigue LEYENDO
+// cuando falta la cookie nueva, para no cerrar las sesiones abiertas al
+// desplegar; al iniciar o renovar una sesión se escribe la nueva y se borra la
+// vieja, y al cerrar sesión se borran ambas. Se retira cuando ya no quede
+// ninguna sesión emitida con el nombre viejo (vencen a los 30 días, DEC-050).
 const (
-	CookieName = "barberia_session"
-	CookiePath = "/api/v1"
+	CookieName       = "nava_agenda_session"
+	LegacyCookieName = "barberia_session"
+	CookiePath       = "/api/v1"
 )
 
 // CookieConfig agrupa los atributos configurables de la cookie de sesión,
 // para que las pruebas HTTP puedan variar Secure sin depender de TLS real.
+// LegacyName vacío desactiva la lectura y el borrado del nombre anterior.
 type CookieConfig struct {
-	Name     string
-	Path     string
-	SameSite http.SameSite
-	Secure   bool
+	Name       string
+	LegacyName string
+	Path       string
+	SameSite   http.SameSite
+	Secure     bool
 }
 
 // DefaultCookieConfig devuelve la configuración provisional de DP-SEG-07:
@@ -58,10 +67,11 @@ type CookieConfig struct {
 // no la envía a subdominios no revisados).
 func DefaultCookieConfig() CookieConfig {
 	return CookieConfig{
-		Name:     CookieName,
-		Path:     CookiePath,
-		SameSite: http.SameSiteLaxMode,
-		Secure:   true,
+		Name:       CookieName,
+		LegacyName: LegacyCookieName,
+		Path:       CookiePath,
+		SameSite:   http.SameSiteLaxMode,
+		Secure:     true,
 	}
 }
 
@@ -125,15 +135,7 @@ func (h *LoginHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	http.SetCookie(w, &http.Cookie{
-		Name:     h.cookie.Name,
-		Value:    session.Token,
-		Path:     h.cookie.Path,
-		Expires:  session.ExpiresAt,
-		HttpOnly: true,
-		Secure:   h.cookie.Secure,
-		SameSite: h.cookie.SameSite,
-	})
+	h.cookie.write(w, r, session.Token, session.ExpiresAt)
 
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)

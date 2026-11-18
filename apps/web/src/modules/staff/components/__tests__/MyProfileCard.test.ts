@@ -1,6 +1,6 @@
 /**
  * MyProfileCard (DEC-115, DEC-127): la tarjeta del perfil `solo` muestra la
- * descripción pública del barbero cuando existe y nada cuando no.
+ * descripción pública del profesional cuando existe y nada cuando no.
  */
 import { describe, it, expect } from 'vitest'
 import { mount } from '@vue/test-utils'

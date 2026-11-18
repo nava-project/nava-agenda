@@ -31,7 +31,7 @@ const axeScriptPath = path.join(
 const ACCESS_TOKEN = '3n9F1sQe2z8mM5wYtR7pL0oXhC4bV6dK1aE9jU2gN8i'
 const ROUTE = `/mi-turno/${ACCESS_TOKEN}`
 const SERVICE_ID = '8f3ac2b1-e4d5-46f6-a7c8-d9e0f1a2b3c4'
-const BARBER_ID = 'a1111111-1111-1111-1111-111111111111'
+const PROFESSIONAL_ID = 'a1111111-1111-1111-1111-111111111111'
 const STARTS_AT = '2027-03-15T15:00:00Z'
 // 14:40, el límite de un plazo de 20 minutos; el reloj del dispositivo solo da la pista local.
 const BEFORE_DEADLINE = new Date('2027-03-15T13:00:00Z')
@@ -110,7 +110,7 @@ test.describe('Cancelación pública del turno (HU-099)', () => {
     })
     const availability = (slots: string[]) =>
       page.route(
-        `**/api/v1/public/businesses/barberia-ejemplo/services/${SERVICE_ID}/professionals/${BARBER_ID}/availability**`,
+        `**/api/v1/public/businesses/barberia-ejemplo/services/${SERVICE_ID}/professionals/${PROFESSIONAL_ID}/availability**`,
         (route) =>
           json(route, 200, {
             slots: slots.map((startsAt) => ({ startsAt })),
@@ -144,7 +144,7 @@ test.describe('Cancelación pública del turno (HU-099)', () => {
     // CA-099-04: al reconsultar la disponibilidad pública la franja liberada vuelve.
     await availability([STARTS_AT])
     await page.goto(
-      `/reservar/barberia-ejemplo/servicios/${SERVICE_ID}/barbero/${BARBER_ID}/horario`,
+      `/reservar/barberia-ejemplo/servicios/${SERVICE_ID}/profesional/${PROFESSIONAL_ID}/horario`,
     )
     await expect(page.getByRole('radio')).toHaveCount(1)
   })

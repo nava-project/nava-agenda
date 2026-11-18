@@ -6,26 +6,26 @@ import (
 	"testing"
 	"time"
 
-	"system-barbershop/internal/modules/booking"
-	"system-barbershop/internal/platform/apperr"
+	"nava-agenda/internal/modules/booking"
+	"nava-agenda/internal/platform/apperr"
 )
 
 const validAppointmentID = "8f3ac2b1-e4d5-46f6-a7c8-d9e0f1a2b3c4"
 
-// fakeBarberNamePort es un doble de booking.BarberNamePort para probar
+// fakeProfessionalNamePort es un doble de booking.ProfessionalNamePort para probar
 // DetailService en aislamiento, sin PostgreSQL ni el módulo staff real.
-type fakeBarberNamePort struct {
+type fakeProfessionalNamePort struct {
 	name  string
 	found bool
 	err   error
 
-	lastBarbershopID string
-	lastBarberID     string
+	lastBusinessID     string
+	lastProfessionalID string
 }
 
-func (f *fakeBarberNamePort) Name(_ context.Context, barbershopID, barberID string) (string, bool, error) {
-	f.lastBarbershopID = barbershopID
-	f.lastBarberID = barberID
+func (f *fakeProfessionalNamePort) Name(_ context.Context, businessID, professionalID string) (string, bool, error) {
+	f.lastBusinessID = businessID
+	f.lastProfessionalID = professionalID
 	if f.err != nil {
 		return "", false, f.err
 	}
@@ -37,12 +37,12 @@ type fakeStaffActorNamePort struct {
 	names map[string]string
 	err   error
 
-	lastBarbershopID string
-	lastIDs          []string
+	lastBusinessID string
+	lastIDs        []string
 }
 
-func (f *fakeStaffActorNamePort) Names(_ context.Context, barbershopID string, ids []string) (map[string]string, error) {
-	f.lastBarbershopID = barbershopID
+func (f *fakeStaffActorNamePort) Names(_ context.Context, businessID string, ids []string) (map[string]string, error) {
+	f.lastBusinessID = businessID
 	f.lastIDs = ids
 	if f.err != nil {
 		return nil, f.err
@@ -118,7 +118,7 @@ func (f *fakeDetailRepository) CustomerNames(_ context.Context, _ string, ids []
 
 func TestGetDetail_MalformedAppointmentID_RejectsWithoutTouchingRepository(t *testing.T) {
 	repo := &fakeDetailRepository{}
-	svc := booking.NewDetailService(repo, &fakeBarberNamePort{}, &fakeStaffActorNamePort{})
+	svc := booking.NewDetailService(repo, &fakeProfessionalNamePort{}, &fakeStaffActorNamePort{})
 
 	_, err := svc.GetDetail(context.Background(), "shop-1", "not-a-uuid")
 	assertKind(t, err, apperr.KindNotFound)
@@ -129,7 +129,7 @@ func TestGetDetail_MalformedAppointmentID_RejectsWithoutTouchingRepository(t *te
 
 func TestGetDetail_NotFound_ReturnsNotFound(t *testing.T) {
 	repo := &fakeDetailRepository{detailFound: false}
-	svc := booking.NewDetailService(repo, &fakeBarberNamePort{}, &fakeStaffActorNamePort{})
+	svc := booking.NewDetailService(repo, &fakeProfessionalNamePort{}, &fakeStaffActorNamePort{})
 
 	_, err := svc.GetDetail(context.Background(), "shop-1", validAppointmentID)
 	assertKind(t, err, apperr.KindNotFound)
@@ -137,59 +137,59 @@ func TestGetDetail_NotFound_ReturnsNotFound(t *testing.T) {
 
 func TestGetDetail_RepositoryError_ReturnsInternal(t *testing.T) {
 	repo := &fakeDetailRepository{detailErr: errors.New("boom")}
-	svc := booking.NewDetailService(repo, &fakeBarberNamePort{}, &fakeStaffActorNamePort{})
+	svc := booking.NewDetailService(repo, &fakeProfessionalNamePort{}, &fakeStaffActorNamePort{})
 
 	_, err := svc.GetDetail(context.Background(), "shop-1", validAppointmentID)
 	assertKind(t, err, apperr.KindInternal)
 }
 
-func TestGetDetail_Found_ResolvesBarberFullName(t *testing.T) {
+func TestGetDetail_Found_ResolvesProfessionalFullName(t *testing.T) {
 	repo := &fakeDetailRepository{
 		detailFound: true,
-		detail:      booking.AppointmentDetail{ID: validAppointmentID, BarberID: "barber-1", AttendeeName: "Carlos"},
+		detail:      booking.AppointmentDetail{ID: validAppointmentID, ProfessionalID: "professional-1", AttendeeName: "Carlos"},
 	}
-	barbers := &fakeBarberNamePort{name: "Ana Gómez", found: true}
-	svc := booking.NewDetailService(repo, barbers, &fakeStaffActorNamePort{})
+	professionals := &fakeProfessionalNamePort{name: "Ana Gómez", found: true}
+	svc := booking.NewDetailService(repo, professionals, &fakeStaffActorNamePort{})
 
 	got, err := svc.GetDetail(context.Background(), "shop-1", validAppointmentID)
 	if err != nil {
 		t.Fatalf("err inesperado: %v", err)
 	}
-	if got.BarberFullName != "Ana Gómez" {
-		t.Fatalf("BarberFullName = %q, want %q", got.BarberFullName, "Ana Gómez")
+	if got.ProfessionalFullName != "Ana Gómez" {
+		t.Fatalf("ProfessionalFullName = %q, want %q", got.ProfessionalFullName, "Ana Gómez")
 	}
-	if barbers.lastBarbershopID != "shop-1" || barbers.lastBarberID != "barber-1" {
-		t.Fatalf("BarberNamePort llamado con tenant/barbero inesperados: %q/%q", barbers.lastBarbershopID, barbers.lastBarberID)
+	if professionals.lastBusinessID != "shop-1" || professionals.lastProfessionalID != "professional-1" {
+		t.Fatalf("ProfessionalNamePort llamado con tenant/profesional inesperados: %q/%q", professionals.lastBusinessID, professionals.lastProfessionalID)
 	}
 }
 
-// TestGetDetail_BarberNameNotFound_LeavesFullNameEmpty cubre la etiqueta de
+// TestGetDetail_ProfessionalNameNotFound_LeavesFullNameEmpty cubre la etiqueta de
 // reserva de la sección 2.3 del prompt: en la práctica no debería ocurrir
-// (appointment_barbershop_id_barber_id_fk es ON DELETE RESTRICT), pero el
+// (appointment_business_id_professional_id_fk es ON DELETE RESTRICT), pero el
 // caso de uso no debe fallar de forma insegura si el puerto no encuentra el
-// barbero.
-func TestGetDetail_BarberNameNotFound_LeavesFullNameEmpty(t *testing.T) {
+// profesional.
+func TestGetDetail_ProfessionalNameNotFound_LeavesFullNameEmpty(t *testing.T) {
 	repo := &fakeDetailRepository{
 		detailFound: true,
-		detail:      booking.AppointmentDetail{ID: validAppointmentID, BarberID: "barber-1"},
+		detail:      booking.AppointmentDetail{ID: validAppointmentID, ProfessionalID: "professional-1"},
 	}
-	svc := booking.NewDetailService(repo, &fakeBarberNamePort{found: false}, &fakeStaffActorNamePort{})
+	svc := booking.NewDetailService(repo, &fakeProfessionalNamePort{found: false}, &fakeStaffActorNamePort{})
 
 	got, err := svc.GetDetail(context.Background(), "shop-1", validAppointmentID)
 	if err != nil {
 		t.Fatalf("err inesperado: %v", err)
 	}
-	if got.BarberFullName != "" {
-		t.Fatalf("BarberFullName = %q, want vacío", got.BarberFullName)
+	if got.ProfessionalFullName != "" {
+		t.Fatalf("ProfessionalFullName = %q, want vacío", got.ProfessionalFullName)
 	}
 }
 
-func TestGetDetail_BarberNamePortError_ReturnsInternal(t *testing.T) {
+func TestGetDetail_ProfessionalNamePortError_ReturnsInternal(t *testing.T) {
 	repo := &fakeDetailRepository{
 		detailFound: true,
-		detail:      booking.AppointmentDetail{ID: validAppointmentID, BarberID: "barber-1"},
+		detail:      booking.AppointmentDetail{ID: validAppointmentID, ProfessionalID: "professional-1"},
 	}
-	svc := booking.NewDetailService(repo, &fakeBarberNamePort{err: errors.New("boom")}, &fakeStaffActorNamePort{})
+	svc := booking.NewDetailService(repo, &fakeProfessionalNamePort{err: errors.New("boom")}, &fakeStaffActorNamePort{})
 
 	_, err := svc.GetDetail(context.Background(), "shop-1", validAppointmentID)
 	assertKind(t, err, apperr.KindInternal)
@@ -201,7 +201,7 @@ func TestGetDetail_BarberNamePortError_ReturnsInternal(t *testing.T) {
 
 func TestListHistory_MalformedAppointmentID_RejectsWithoutTouchingRepository(t *testing.T) {
 	repo := &fakeDetailRepository{}
-	svc := booking.NewDetailService(repo, &fakeBarberNamePort{}, &fakeStaffActorNamePort{})
+	svc := booking.NewDetailService(repo, &fakeProfessionalNamePort{}, &fakeStaffActorNamePort{})
 
 	_, err := svc.ListHistory(context.Background(), "shop-1", "not-a-uuid", "", 0)
 	assertKind(t, err, apperr.KindNotFound)
@@ -212,7 +212,7 @@ func TestListHistory_MalformedAppointmentID_RejectsWithoutTouchingRepository(t *
 
 func TestListHistory_InvalidCursor_ReturnsInvalidWithoutTouchingRepository(t *testing.T) {
 	repo := &fakeDetailRepository{}
-	svc := booking.NewDetailService(repo, &fakeBarberNamePort{}, &fakeStaffActorNamePort{})
+	svc := booking.NewDetailService(repo, &fakeProfessionalNamePort{}, &fakeStaffActorNamePort{})
 
 	_, err := svc.ListHistory(context.Background(), "shop-1", validAppointmentID, "no-es-base64url-válido-!!", 0)
 	assertKind(t, err, apperr.KindInvalid)
@@ -223,7 +223,7 @@ func TestListHistory_InvalidCursor_ReturnsInvalidWithoutTouchingRepository(t *te
 
 func TestListHistory_AppointmentNotFound_ReturnsNotFound(t *testing.T) {
 	repo := &fakeDetailRepository{historyFound: false}
-	svc := booking.NewDetailService(repo, &fakeBarberNamePort{}, &fakeStaffActorNamePort{})
+	svc := booking.NewDetailService(repo, &fakeProfessionalNamePort{}, &fakeStaffActorNamePort{})
 
 	_, err := svc.ListHistory(context.Background(), "shop-1", validAppointmentID, "", 0)
 	assertKind(t, err, apperr.KindNotFound)
@@ -231,7 +231,7 @@ func TestListHistory_AppointmentNotFound_ReturnsNotFound(t *testing.T) {
 
 func TestListHistory_RepositoryError_ReturnsInternal(t *testing.T) {
 	repo := &fakeDetailRepository{historyErr: errors.New("boom")}
-	svc := booking.NewDetailService(repo, &fakeBarberNamePort{}, &fakeStaffActorNamePort{})
+	svc := booking.NewDetailService(repo, &fakeProfessionalNamePort{}, &fakeStaffActorNamePort{})
 
 	_, err := svc.ListHistory(context.Background(), "shop-1", validAppointmentID, "", 0)
 	assertKind(t, err, apperr.KindInternal)
@@ -239,7 +239,7 @@ func TestListHistory_RepositoryError_ReturnsInternal(t *testing.T) {
 
 func TestListHistory_LimitNotPositive_UsesDefaultLimit(t *testing.T) {
 	repo := &fakeDetailRepository{historyFound: true}
-	svc := booking.NewDetailService(repo, &fakeBarberNamePort{}, &fakeStaffActorNamePort{})
+	svc := booking.NewDetailService(repo, &fakeProfessionalNamePort{}, &fakeStaffActorNamePort{})
 
 	if _, err := svc.ListHistory(context.Background(), "shop-1", validAppointmentID, "", 0); err != nil {
 		t.Fatalf("err inesperado: %v", err)
@@ -251,7 +251,7 @@ func TestListHistory_LimitNotPositive_UsesDefaultLimit(t *testing.T) {
 
 func TestListHistory_LimitAboveMax_ClampsToMax(t *testing.T) {
 	repo := &fakeDetailRepository{historyFound: true}
-	svc := booking.NewDetailService(repo, &fakeBarberNamePort{}, &fakeStaffActorNamePort{})
+	svc := booking.NewDetailService(repo, &fakeProfessionalNamePort{}, &fakeStaffActorNamePort{})
 
 	if _, err := svc.ListHistory(context.Background(), "shop-1", validAppointmentID, "", 10_000); err != nil {
 		t.Fatalf("err inesperado: %v", err)
@@ -267,7 +267,7 @@ func TestListHistory_ValidCursorToken_DecodesAndForwardsToRepository(t *testing.
 	token := booking.EncodeHistoryCursor(cursor)
 
 	repo := &fakeDetailRepository{historyFound: true}
-	svc := booking.NewDetailService(repo, &fakeBarberNamePort{}, &fakeStaffActorNamePort{})
+	svc := booking.NewDetailService(repo, &fakeProfessionalNamePort{}, &fakeStaffActorNamePort{})
 
 	if _, err := svc.ListHistory(context.Background(), "shop-1", validAppointmentID, token, 5); err != nil {
 		t.Fatalf("err inesperado: %v", err)
@@ -283,7 +283,7 @@ func TestListHistory_ValidCursorToken_DecodesAndForwardsToRepository(t *testing.
 func TestListHistory_NextCursorFromRepository_IsEncodedInThePage(t *testing.T) {
 	next := &booking.HistoryCursor{OccurredAt: time.Date(2026, 8, 30, 12, 0, 0, 0, time.UTC), ID: "history-2"}
 	repo := &fakeDetailRepository{historyFound: true, historyNext: next}
-	svc := booking.NewDetailService(repo, &fakeBarberNamePort{}, &fakeStaffActorNamePort{})
+	svc := booking.NewDetailService(repo, &fakeProfessionalNamePort{}, &fakeStaffActorNamePort{})
 
 	page, err := svc.ListHistory(context.Background(), "shop-1", validAppointmentID, "", 0)
 	if err != nil {
@@ -303,7 +303,7 @@ func TestListHistory_NextCursorFromRepository_IsEncodedInThePage(t *testing.T) {
 
 func TestListHistory_NoNextCursorFromRepository_PageIsLast(t *testing.T) {
 	repo := &fakeDetailRepository{historyFound: true, historyNext: nil}
-	svc := booking.NewDetailService(repo, &fakeBarberNamePort{}, &fakeStaffActorNamePort{})
+	svc := booking.NewDetailService(repo, &fakeProfessionalNamePort{}, &fakeStaffActorNamePort{})
 
 	page, err := svc.ListHistory(context.Background(), "shop-1", validAppointmentID, "", 0)
 	if err != nil {
@@ -348,7 +348,7 @@ func TestListHistory_ResolvesActorLabels_InOneBatchPerKind(t *testing.T) {
 	}
 	staffActors := &fakeStaffActorNamePort{names: map[string]string{staffID: "Ana Gómez"}}
 	repo.customerNames = map[string]string{customerID: "Carlos Restrepo"}
-	svc := booking.NewDetailService(repo, &fakeBarberNamePort{}, staffActors)
+	svc := booking.NewDetailService(repo, &fakeProfessionalNamePort{}, staffActors)
 
 	page, err := svc.ListHistory(context.Background(), "shop-1", validAppointmentID, "", 0)
 	if err != nil {
@@ -390,7 +390,7 @@ func TestListHistory_MissingAuthorizedName_UsesSafeLabel(t *testing.T) {
 			},
 		},
 	}
-	svc := booking.NewDetailService(repo, &fakeBarberNamePort{}, &fakeStaffActorNamePort{})
+	svc := booking.NewDetailService(repo, &fakeProfessionalNamePort{}, &fakeStaffActorNamePort{})
 
 	page, err := svc.ListHistory(context.Background(), "shop-1", validAppointmentID, "", 0)
 	if err != nil {
@@ -414,7 +414,7 @@ func TestListHistory_ChangesArePreservedPerEntry(t *testing.T) {
 			},
 		},
 	}
-	svc := booking.NewDetailService(repo, &fakeBarberNamePort{}, &fakeStaffActorNamePort{})
+	svc := booking.NewDetailService(repo, &fakeProfessionalNamePort{}, &fakeStaffActorNamePort{})
 
 	page, err := svc.ListHistory(context.Background(), "shop-1", validAppointmentID, "", 0)
 	if err != nil {
@@ -433,7 +433,7 @@ func TestListHistory_StaffActorNamePortError_ReturnsInternal(t *testing.T) {
 			{ID: "history-1", ActorType: booking.ActorTypeStaff, ActorStaffUserID: &staffID, OccurredAt: time.Now()},
 		},
 	}
-	svc := booking.NewDetailService(repo, &fakeBarberNamePort{}, &fakeStaffActorNamePort{err: errors.New("boom")})
+	svc := booking.NewDetailService(repo, &fakeProfessionalNamePort{}, &fakeStaffActorNamePort{err: errors.New("boom")})
 
 	_, err := svc.ListHistory(context.Background(), "shop-1", validAppointmentID, "", 0)
 	assertKind(t, err, apperr.KindInternal)
@@ -448,7 +448,7 @@ func TestListHistory_CustomerNamesError_ReturnsInternal(t *testing.T) {
 		},
 		customerNamesErr: errors.New("boom"),
 	}
-	svc := booking.NewDetailService(repo, &fakeBarberNamePort{}, &fakeStaffActorNamePort{})
+	svc := booking.NewDetailService(repo, &fakeProfessionalNamePort{}, &fakeStaffActorNamePort{})
 
 	_, err := svc.ListHistory(context.Background(), "shop-1", validAppointmentID, "", 0)
 	assertKind(t, err, apperr.KindInternal)

@@ -21,7 +21,7 @@ import (
 	"time"
 	"unicode/utf8"
 
-	"system-barbershop/internal/modules/publicbooking"
+	"nava-agenda/internal/modules/publicbooking"
 )
 
 // DefaultBaseURL es la API de Google Places (New).
@@ -159,7 +159,7 @@ func (c *Client) Fetch(ctx context.Context, placeID string) (publicbooking.Googl
 }
 
 // store guarda una entrada acotando el tamaño: los identificadores salen de la
-// base (uno por barbería), pero la memoria nunca debe crecer sin límite.
+// base (uno por negocio), pero la memoria nunca debe crecer sin límite.
 func (c *Client) store(key string, e cacheEntry) {
 	if len(c.cache) >= maxCacheEntries {
 		now := c.now()

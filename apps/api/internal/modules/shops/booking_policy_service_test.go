@@ -13,13 +13,13 @@ import (
 	"fmt"
 	"testing"
 
-	"system-barbershop/internal/modules/shops"
-	"system-barbershop/internal/platform/apperr"
+	"nava-agenda/internal/modules/shops"
+	"nava-agenda/internal/platform/apperr"
 )
 
 type bookingPolicyUpdateCall struct {
-	barbershopID string
-	input        shops.BookingPolicyUpdateInput
+	businessID string
+	input      shops.BookingPolicyUpdateInput
 }
 
 type fakeBookingPolicyRepository struct {
@@ -33,13 +33,13 @@ type fakeBookingPolicyRepository struct {
 	updateCalls  []bookingPolicyUpdateCall
 }
 
-func (f *fakeBookingPolicyRepository) Get(_ context.Context, barbershopID string) (shops.BookingPolicy, bool, error) {
-	f.getCalls = append(f.getCalls, barbershopID)
+func (f *fakeBookingPolicyRepository) Get(_ context.Context, businessID string) (shops.BookingPolicy, bool, error) {
+	f.getCalls = append(f.getCalls, businessID)
 	return f.getPolicy, f.getFound, f.getErr
 }
 
-func (f *fakeBookingPolicyRepository) Update(_ context.Context, barbershopID string, input shops.BookingPolicyUpdateInput) (shops.BookingPolicyUpdateResult, error) {
-	f.updateCalls = append(f.updateCalls, bookingPolicyUpdateCall{barbershopID, input})
+func (f *fakeBookingPolicyRepository) Update(_ context.Context, businessID string, input shops.BookingPolicyUpdateInput) (shops.BookingPolicyUpdateResult, error) {
+	f.updateCalls = append(f.updateCalls, bookingPolicyUpdateCall{businessID, input})
 	return f.updateResult, f.updateErr
 }
 
@@ -82,7 +82,7 @@ func TestBookingPolicyGet_Found_ReturnsPolicy(t *testing.T) {
 		t.Fatalf("expected %+v, got %+v", want, got)
 	}
 	if len(repo.getCalls) != 1 || repo.getCalls[0] != bookingPolicyShopID {
-		t.Fatalf("expected exactly one Get call with barbershopID, got %v", repo.getCalls)
+		t.Fatalf("expected exactly one Get call with businessID, got %v", repo.getCalls)
 	}
 }
 

@@ -6,7 +6,7 @@ import "context"
 // RN-DIS-07): shops nunca importa booking, ni siquiera aquí; este
 // adaptador satisface esa interfaz de forma puramente estructural (la
 // firma solo usa tipos universales), mismo criterio que
-// staff.NewBarberLookup frente a catalog.BarberPort/schedule.BarberPort.
+// staff.NewProfessionalLookup frente a catalog.ProfessionalPort/schedule.ProfessionalPort.
 // cmd/api construye este valor y lo pasa donde booking.TimezonePort lo
 // espera.
 type TimezoneLookup struct {
@@ -20,10 +20,10 @@ func NewTimezoneLookup(service *Service) TimezoneLookup {
 }
 
 // Timezone implementa el método que booking.TimezonePort exige.
-func (a TimezoneLookup) Timezone(ctx context.Context, barbershopID string) (string, error) {
-	barbershop, err := a.service.Get(ctx, barbershopID)
+func (a TimezoneLookup) Timezone(ctx context.Context, businessID string) (string, error) {
+	business, err := a.service.Get(ctx, businessID)
 	if err != nil {
 		return "", err
 	}
-	return barbershop.Timezone, nil
+	return business.Timezone, nil
 }

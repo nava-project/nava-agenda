@@ -1,4 +1,4 @@
-// Perfil público de la barbería del enlace, compartido por el cascarón y la
+// Perfil público del negocio del enlace, compartido por el cascarón y la
 // pantalla de entrada (HU-090, DEC-119). Las dos lo necesitan al abrir un enlace:
 // la entrada para mostrar nombre y contacto, el cascarón para el vocabulario.
 // Pedirlo dos veces sería un gasto y, si la red falla justo ahora, el cascarón
@@ -11,18 +11,18 @@
 // por enlace, que el cascarón vuelve a pedir cada vez que se abre.
 import { reactive } from 'vue'
 import type { BrandAccentKey, VocabularyTerms } from '@/shared/model'
-import { resolveBarbershop } from '../api/resolveBarbershopApi'
-import type { ResolveBarbershopOutcome } from './barbershopProfileOutcome'
+import { resolveBusiness } from '../api/resolveBusinessApi'
+import type { ResolveBusinessOutcome } from './businessProfileOutcome'
 
 const termsBySlug = reactive<Record<string, VocabularyTerms>>({})
 const accentBySlug = reactive<Record<string, BrandAccentKey>>({})
-const inFlight = new Map<string, Promise<ResolveBarbershopOutcome>>()
+const inFlight = new Map<string, Promise<ResolveBusinessOutcome>>()
 
 /** Resuelve el enlace; llamadas simultáneas para el mismo enlace comparten una sola petición. */
-export function loadPublicProfile(slug: string): Promise<ResolveBarbershopOutcome> {
+export function loadPublicProfile(slug: string): Promise<ResolveBusinessOutcome> {
   const pending = inFlight.get(slug)
   if (pending) return pending
-  const request = resolveBarbershop(slug)
+  const request = resolveBusiness(slug)
     .then((outcome) => {
       if (outcome.kind === 'success') {
         termsBySlug[slug] = outcome.profile.vocabulary
@@ -35,12 +35,12 @@ export function loadPublicProfile(slug: string): Promise<ResolveBarbershopOutcom
   return request
 }
 
-/** Palabras de la barbería del enlace, o `null` si aún no se leyeron. */
+/** Palabras del negocio del enlace, o `null` si aún no se leyeron. */
 export function publicTermsFor(slug: string): VocabularyTerms | null {
   return termsBySlug[slug] ?? null
 }
 
-/** Color de marca de la barbería del enlace (DEC-171), o `null` si aún no se leyó. */
+/** Color de marca del negocio del enlace (DEC-171), o `null` si aún no se leyó. */
 export function publicAccentFor(slug: string): BrandAccentKey | null {
   return accentBySlug[slug] ?? null
 }

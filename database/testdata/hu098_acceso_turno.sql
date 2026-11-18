@@ -1,20 +1,20 @@
--- Fixture propio de HU-098: dos barberías DEDICADAS a las pruebas de
+-- Fixture propio de HU-098: dos negocios DEDICADAS a las pruebas de
 -- customeraccess/postgres (lectura del turno por token de acceso),
--- separadas de dos_professionalias.sql y de las demás suites por el mismo motivo
+-- separadas de dos_negocios.sql y de las demás suites por el mismo motivo
 -- que hu060_citas.sql/hu090_reserva_publica.sql: una prueba de aislamiento
 -- de tenant no debe depender del estado que dejen otras suites, y estas
 -- filas necesitan una política de reserva/cancelación DISTINTA por
--- barbería para que una fuga cruzada de CancellationDeadlineMinutes/
+-- negocio para que una fuga cruzada de CancellationDeadlineMinutes/
 -- LateCancellation* sea detectable (CA-098-05).
 --
 -- IDs '0098...' (mnemónico: HU-098; solo dígitos hexadecimales válidos
--- 0/9/8), distintos de '1.../2...' (dos_professionalias.sql), '3.../4...'
+-- 0/9/8), distintos de '1.../2...' (dos_negocios.sql), '3.../4...'
 -- (HU-021), '5.../6...' (HU-022), '7.../8...' (HU-023), 'b10c...'
 -- (HU-042), 'c17a...' (HU-060), 'c.../d...'/'e.../f...' (HU-040/HU-041),
 -- '0090...'/'0091...'/'0092...' (HU-090/091/092) y de
 -- 'b1a0.../5e10...' (customer_anonymization_fixture.sql).
 --
--- El cliente y la cita de cada barbería NO se insertan aquí: cada prueba
+-- El cliente y la cita de cada negocio NO se insertan aquí: cada prueba
 -- de customeraccess/postgres los crea con
 -- booking/postgres.Repository.CreateInternal (la misma primitiva probada
 -- en booking/postgres/repository_test.go), y agrega su propia fila
@@ -27,7 +27,7 @@
 --   psql "$DATABASE_TEST_URL" -v ON_ERROR_STOP=1 -f testdata/hu098_acceso_turno.sql
 --
 -- Se ejecuta con el rol migrador (o superusuario en local/CI efímero,
--- mismo criterio que dos_professionalias.sql), el único con política
+-- mismo criterio que dos_negocios.sql), el único con política
 -- administrativa sobre business/professional/service.
 --
 -- Ningún dato de este archivo corresponde a una persona real (AGENTS.md).

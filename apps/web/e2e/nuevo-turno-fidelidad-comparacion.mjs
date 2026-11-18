@@ -34,7 +34,7 @@ const OUT = resolve(HERE, 'evidence/nuevo-turno/fidelidad-190/comparacion')
 const EVENTS = [
   '01-carga-contexto',
   '02-error-contexto',
-  '03-sin-barberos',
+  '03-sin-profesionales',
   '04-formulario-vacio',
   '05-cargando-servicios',
   '06-sin-servicios-asignados',

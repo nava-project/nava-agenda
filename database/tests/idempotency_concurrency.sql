@@ -3,7 +3,7 @@
 -- CA-004-01, CA-004-02, CA-004-04, CA-004-05, CA-004-06 y RN-IDE-01.
 --
 -- Uso:
---   psql "$DATABASE_TEST_URL" -v ON_ERROR_STOP=1 -f testdata/dos_professionalias.sql
+--   psql "$DATABASE_TEST_URL" -v ON_ERROR_STOP=1 -f testdata/dos_negocios.sql
 --   psql "$DATABASE_TEST_URL" -v ON_ERROR_STOP=1 -f tests/idempotency_concurrency.sql
 --
 -- Requisito del arnés: igual que hu001_aislamiento_rls.sql, la conexión
@@ -200,7 +200,7 @@ ROLLBACK;
 
 -- ---------------------------------------------------------------------------
 -- CA-004-04 · Aislamiento tenant-aware: la misma clave literal en dos
--- barberías son registros independientes.
+-- negocios son registros independientes.
 -- ---------------------------------------------------------------------------
 BEGIN;
 SET ROLE agenda_app;
@@ -233,7 +233,7 @@ END
 $$;
 
 ROLLBACK;
-\echo 'CA-004-04 OK · la misma clave literal en dos barberías son registros independientes'
+\echo 'CA-004-04 OK · la misma clave literal en dos negocios son registros independientes'
 
 -- ---------------------------------------------------------------------------
 -- CA-004-05 · Una fila vencida no revive una respuesta antigua: se reclama

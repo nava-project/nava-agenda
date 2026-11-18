@@ -6,8 +6,8 @@ import (
 	"testing"
 	"time"
 
-	"system-barbershop/internal/modules/auth"
-	"system-barbershop/internal/platform/apperr"
+	"nava-agenda/internal/modules/auth"
+	"nava-agenda/internal/platform/apperr"
 )
 
 // --- doble de prueba ----------------------------------------------------
@@ -42,9 +42,9 @@ type fakeSessionRepository struct {
 	revokeErr   error
 	revokeCalls []revokeCall
 
-	barbershopName      string
-	barbershopNameErr   error
-	barbershopNameCalls []string
+	businessName      string
+	businessNameErr   error
+	businessNameCalls []string
 }
 
 func (f *fakeSessionRepository) ResolveSessionTenant(_ context.Context, tokenHash string) (string, bool, error) {
@@ -52,19 +52,19 @@ func (f *fakeSessionRepository) ResolveSessionTenant(_ context.Context, tokenHas
 	return f.resolveShop, f.resolveFound, f.resolveErr
 }
 
-func (f *fakeSessionRepository) ValidateAndRenewSession(_ context.Context, barbershopID, tokenHash string, now, newExpiresAt time.Time) (auth.Principal, bool, error) {
-	f.renewCalls = append(f.renewCalls, renewCall{barbershopID, tokenHash, now, newExpiresAt})
+func (f *fakeSessionRepository) ValidateAndRenewSession(_ context.Context, businessID, tokenHash string, now, newExpiresAt time.Time) (auth.Principal, bool, error) {
+	f.renewCalls = append(f.renewCalls, renewCall{businessID, tokenHash, now, newExpiresAt})
 	return f.renewPrincipal, f.renewValid, f.renewErr
 }
 
-func (f *fakeSessionRepository) RevokeSession(_ context.Context, barbershopID, sessionID string, now time.Time) error {
-	f.revokeCalls = append(f.revokeCalls, revokeCall{barbershopID, sessionID, now})
+func (f *fakeSessionRepository) RevokeSession(_ context.Context, businessID, sessionID string, now time.Time) error {
+	f.revokeCalls = append(f.revokeCalls, revokeCall{businessID, sessionID, now})
 	return f.revokeErr
 }
 
-func (f *fakeSessionRepository) BarbershopName(_ context.Context, barbershopID string) (string, error) {
-	f.barbershopNameCalls = append(f.barbershopNameCalls, barbershopID)
-	return f.barbershopName, f.barbershopNameErr
+func (f *fakeSessionRepository) BusinessName(_ context.Context, businessID string) (string, error) {
+	f.businessNameCalls = append(f.businessNameCalls, businessID)
+	return f.businessName, f.businessNameErr
 }
 
 var _ auth.SessionRepository = (*fakeSessionRepository)(nil)
@@ -107,7 +107,7 @@ func TestSessionService_Validate_UnknownToken_ReturnsUniformUnauthorized(t *test
 // now() real.
 func TestSessionService_Validate_ValidSession_RenewsAndReturnsPrincipal(t *testing.T) {
 	shop := "11111111-1111-1111-1111-111111111111"
-	principal := auth.Principal{SessionID: "s-1", StaffUserID: "u-1", BarbershopID: shop}
+	principal := auth.Principal{SessionID: "s-1", StaffUserID: "u-1", BusinessID: shop}
 	repo := &fakeSessionRepository{
 		resolveShop: shop, resolveFound: true,
 		renewPrincipal: principal, renewValid: true,
@@ -213,14 +213,14 @@ func TestSessionService_Validate_CancelledContext_ReturnsInternalWithoutQuerying
 
 // TestSessionService_Logout_RevokesExactlyThePrincipalsOwnSession confirma
 // que Logout nunca acepta un identificador ajeno: solo usa
-// principal.BarbershopID/SessionID, que el middleware ya validó para ESTA
+// principal.BusinessID/SessionID, que el middleware ya validó para ESTA
 // solicitud (CA-006-06, CA-006-07).
 func TestSessionService_Logout_RevokesExactlyThePrincipalsOwnSession(t *testing.T) {
 	repo := &fakeSessionRepository{}
 	now := time.Date(2026, 8, 13, 12, 0, 0, 0, time.UTC)
 	svc := auth.NewSessionService(repo, fixedClock{now: now})
 
-	principal := auth.Principal{SessionID: "s-1", StaffUserID: "u-1", BarbershopID: "shop-a"}
+	principal := auth.Principal{SessionID: "s-1", StaffUserID: "u-1", BusinessID: "shop-a"}
 	if err := svc.Logout(context.Background(), principal); err != nil {
 		t.Fatalf("Logout: %v", err)
 	}
@@ -229,9 +229,9 @@ func TestSessionService_Logout_RevokesExactlyThePrincipalsOwnSession(t *testing.
 		t.Fatalf("expected exactly one RevokeSession call, got %d", len(repo.revokeCalls))
 	}
 	call := repo.revokeCalls[0]
-	if call.shop != principal.BarbershopID || call.sessionID != principal.SessionID {
+	if call.shop != principal.BusinessID || call.sessionID != principal.SessionID {
 		t.Fatalf("expected shop=%q session=%q, got shop=%q session=%q",
-			principal.BarbershopID, principal.SessionID, call.shop, call.sessionID)
+			principal.BusinessID, principal.SessionID, call.shop, call.sessionID)
 	}
 	if !call.now.Equal(now) {
 		t.Fatalf("expected the injected clock's now, got %v", call.now)
@@ -244,7 +244,7 @@ func TestSessionService_Logout_RepositoryFailure_ReturnsInternal(t *testing.T) {
 	repo := &fakeSessionRepository{revokeErr: errors.New("boom")}
 	svc := auth.NewSessionService(repo, fixedClock{now: time.Now()})
 
-	err := svc.Logout(context.Background(), auth.Principal{SessionID: "s-1", BarbershopID: "shop-a"})
+	err := svc.Logout(context.Background(), auth.Principal{SessionID: "s-1", BusinessID: "shop-a"})
 	appErr, ok := apperr.As(err)
 	if !ok || appErr.Kind != apperr.KindInternal {
 		t.Fatalf("expected apperr.KindInternal, got %v", err)
@@ -253,42 +253,42 @@ func TestSessionService_Logout_RepositoryFailure_ReturnsInternal(t *testing.T) {
 
 // --- Context (HU-012, DEC-060) ------------------------------------------
 
-// TestSessionService_Context_ReturnsBarbershopNameAndPrincipalsExpiresAt
+// TestSessionService_Context_ReturnsBusinessNameAndPrincipalsExpiresAt
 // cubre el caso de éxito: el nombre viene del repositorio (nunca inventado)
 // y expiresAt es exactamente el que el middleware ya renovó para esta
 // solicitud (nunca una segunda consulta ni un nuevo cálculo).
-func TestSessionService_Context_ReturnsBarbershopNameAndPrincipalsExpiresAt(t *testing.T) {
-	repo := &fakeSessionRepository{barbershopName: "Barbería de prueba A"}
+func TestSessionService_Context_ReturnsBusinessNameAndPrincipalsExpiresAt(t *testing.T) {
+	repo := &fakeSessionRepository{businessName: "Barbería de prueba A"}
 	svc := auth.NewSessionService(repo, fixedClock{now: time.Now()})
 
 	expiresAt := time.Date(2026, 9, 12, 12, 0, 0, 0, time.UTC)
-	principal := auth.Principal{SessionID: "s-1", StaffUserID: "u-1", BarbershopID: "shop-a", ExpiresAt: expiresAt}
+	principal := auth.Principal{SessionID: "s-1", StaffUserID: "u-1", BusinessID: "shop-a", ExpiresAt: expiresAt}
 
 	got, err := svc.Context(context.Background(), principal)
 	if err != nil {
 		t.Fatalf("Context: %v", err)
 	}
-	if got.BarbershopID != "shop-a" {
-		t.Fatalf("expected BarbershopID=%q, got %q", "shop-a", got.BarbershopID)
+	if got.BusinessID != "shop-a" {
+		t.Fatalf("expected BusinessID=%q, got %q", "shop-a", got.BusinessID)
 	}
-	if got.BarbershopName != "Barbería de prueba A" {
-		t.Fatalf("expected BarbershopName=%q, got %q", "Barbería de prueba A", got.BarbershopName)
+	if got.BusinessName != "Barbería de prueba A" {
+		t.Fatalf("expected BusinessName=%q, got %q", "Barbería de prueba A", got.BusinessName)
 	}
 	if !got.ExpiresAt.Equal(expiresAt) {
 		t.Fatalf("expected ExpiresAt=%v (from the principal, not recomputed), got %v", expiresAt, got.ExpiresAt)
 	}
-	if len(repo.barbershopNameCalls) != 1 || repo.barbershopNameCalls[0] != "shop-a" {
-		t.Fatalf("expected exactly one BarbershopName(shop-a) call, got %v", repo.barbershopNameCalls)
+	if len(repo.businessNameCalls) != 1 || repo.businessNameCalls[0] != "shop-a" {
+		t.Fatalf("expected exactly one BusinessName(shop-a) call, got %v", repo.businessNameCalls)
 	}
 }
 
 // TestSessionService_Context_RepositoryFailure_ReturnsInternal cubre un
-// fallo de infraestructura al leer el nombre de la barbería.
+// fallo de infraestructura al leer el nombre del negocio.
 func TestSessionService_Context_RepositoryFailure_ReturnsInternal(t *testing.T) {
-	repo := &fakeSessionRepository{barbershopNameErr: errors.New("boom")}
+	repo := &fakeSessionRepository{businessNameErr: errors.New("boom")}
 	svc := auth.NewSessionService(repo, fixedClock{now: time.Now()})
 
-	_, err := svc.Context(context.Background(), auth.Principal{BarbershopID: "shop-a"})
+	_, err := svc.Context(context.Background(), auth.Principal{BusinessID: "shop-a"})
 	appErr, ok := apperr.As(err)
 	if !ok || appErr.Kind != apperr.KindInternal {
 		t.Fatalf("expected apperr.KindInternal, got %v", err)
@@ -305,12 +305,12 @@ func TestSessionService_Context_CancelledContext_ReturnsInternalWithoutQuerying(
 	ctx, cancel := context.WithCancel(context.Background())
 	cancel()
 
-	_, err := svc.Context(ctx, auth.Principal{BarbershopID: "shop-a"})
+	_, err := svc.Context(ctx, auth.Principal{BusinessID: "shop-a"})
 	appErr, ok := apperr.As(err)
 	if !ok || appErr.Kind != apperr.KindInternal {
 		t.Fatalf("expected apperr.KindInternal, got %v", err)
 	}
-	if len(repo.barbershopNameCalls) != 0 {
+	if len(repo.businessNameCalls) != 0 {
 		t.Fatal("expected no repository call with an already-cancelled context")
 	}
 }
@@ -318,7 +318,7 @@ func TestSessionService_Context_CancelledContext_ReturnsInternalWithoutQuerying(
 // --- Principal en contexto ----------------------------------------------
 
 func TestPrincipalFromContext_RoundTrips(t *testing.T) {
-	p := auth.Principal{SessionID: "s-1", StaffUserID: "u-1", BarbershopID: "shop-a"}
+	p := auth.Principal{SessionID: "s-1", StaffUserID: "u-1", BusinessID: "shop-a"}
 	ctx := auth.ContextWithPrincipal(context.Background(), p)
 
 	got, ok := auth.PrincipalFromContext(ctx)

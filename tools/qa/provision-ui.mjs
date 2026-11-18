@@ -36,7 +36,7 @@ export function newManifest() {
       password: randomBytes(24).toString('base64url') + '!aA1',
       phone: '+999' + phoneCampaign + String(index + 1).padStart(2, '0'),
       slug: 'qa-' + scope + '-' + suffix,
-      barberIds: [randomUUID(), randomUUID()], serviceIds: [randomUUID(), randomUUID(), randomUUID()],
+      professionalIds: [randomUUID(), randomUUID()], serviceIds: [randomUUID(), randomUUID(), randomUUID()],
     })),
     inactive: { userId: randomUUID(), email: 'qa.inactive.' + suffix + '@example.test',
       password: randomBytes(24).toString('base64url') + '!aA1' },
@@ -53,8 +53,8 @@ export function validateManifest(manifest) {
     if (!a || !a.email.endsWith('@example.test') || !a.email.startsWith('qa.' + scope + '.') ||
         !a.slug.startsWith('qa-' + scope + '-') || !/^\+999\d{9}$/.test(a.phone) ||
         typeof a.password !== 'string' || a.password.length < 10 ||
-        a.barberIds?.length !== 2 || a.serviceIds?.length !== 3) throw new Error('Cuenta QA inválida')
-    ids.push(a.shopId, a.userId, ...a.barberIds, ...a.serviceIds)
+        a.professionalIds?.length !== 2 || a.serviceIds?.length !== 3) throw new Error('Cuenta QA inválida')
+    ids.push(a.shopId, a.userId, ...a.professionalIds, ...a.serviceIds)
     emails.push(a.email)
   }
   if (!manifest.inactive?.email?.startsWith('qa.inactive.') ||
@@ -83,7 +83,7 @@ export function fixtureSQL(manifest, hashes) {
       ',now()) ON CONFLICT(id) DO NOTHING;')
     sql.push('INSERT INTO staff_credential(staff_user_id,business_id,password_hash,password_algorithm) VALUES(' +
       [a.userId, a.shopId, hashes[i], 'argon2id'].map(q).join(',') + ') ON CONFLICT DO NOTHING;')
-    for (const [j, id] of a.barberIds.entries()) {
+    for (const [j, id] of a.professionalIds.entries()) {
       sql.push('INSERT INTO professional(id,business_id,full_name) VALUES(' +
         [id, a.shopId, 'QA ' + a.scope + ' profesional ' + (j + 1)].map(q).join(',') + ') ON CONFLICT(id) DO NOTHING;')
       sql.push('INSERT INTO working_hour(business_id,professional_id,iso_weekday,starts_time,duration_minutes) SELECT ' +
@@ -94,8 +94,8 @@ export function fixtureSQL(manifest, hashes) {
       sql.push('INSERT INTO service(id,business_id,name,duration_minutes,price_amount) VALUES(' +
         [id, a.shopId, 'QA ' + a.scope + ' servicio ' + (j + 1)].map(q).join(',') +
         ',' + [30, 45, 60][j] + ',' + [20000, 30000, 10000][j] + ') ON CONFLICT(id) DO NOTHING;')
-      if (j < 2) for (const barberId of a.barberIds) sql.push('INSERT INTO professional_service(business_id,professional_id,service_id) VALUES(' +
-        [a.shopId, barberId, id].map(q).join(',') + ') ON CONFLICT DO NOTHING;')
+      if (j < 2) for (const professionalId of a.professionalIds) sql.push('INSERT INTO professional_service(business_id,professional_id,service_id) VALUES(' +
+        [a.shopId, professionalId, id].map(q).join(',') + ') ON CONFLICT DO NOTHING;')
     }
   }
   const a = manifest.accounts.find(a => a.scope === 'access')

@@ -5,8 +5,8 @@ import (
 	"errors"
 	"testing"
 
-	"system-barbershop/internal/modules/shops"
-	"system-barbershop/internal/platform/apperr"
+	"nava-agenda/internal/modules/shops"
+	"nava-agenda/internal/platform/apperr"
 )
 
 type fakeOpeningHoursRepo struct {

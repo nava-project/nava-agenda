@@ -65,11 +65,11 @@ test.describe('Creación→consulta del turno del cliente (HU-097/HU-098)', () =
     page,
   }) => {
     const SERVICE_ID = '8f3ac2b1-e4d5-46f6-a7c8-d9e0f1a2b3c4'
-    const BARBER_ID = 'a1111111-1111-1111-1111-111111111111'
+    const PROFESSIONAL_ID = 'a1111111-1111-1111-1111-111111111111'
     const STARTS_AT = encodeURIComponent('2027-03-15T15:00:00Z')
 
     await page.route(
-      `**/api/v1/public/businesses/barberia-ejemplo/services/${SERVICE_ID}/professionals/${BARBER_ID}/appointments`,
+      `**/api/v1/public/businesses/barberia-ejemplo/services/${SERVICE_ID}/professionals/${PROFESSIONAL_ID}/appointments`,
       async (route) => {
         await route.fulfill({
           status: 201,
@@ -92,7 +92,7 @@ test.describe('Creación→consulta del turno del cliente (HU-097/HU-098)', () =
     )
 
     await page.goto(
-      `/reservar/barberia-ejemplo/servicios/${SERVICE_ID}/barbero/${BARBER_ID}/horario/${STARTS_AT}/cliente`,
+      `/reservar/barberia-ejemplo/servicios/${SERVICE_ID}/profesional/${PROFESSIONAL_ID}/horario/${STARTS_AT}/cliente`,
     )
     await page.getByLabel('Tu nombre').fill(APPOINTMENT_VIEW.attendeeName)
     await page.getByLabel('Teléfono').fill('+573001234567')
@@ -116,7 +116,7 @@ test.describe('Creación→consulta del turno del cliente (HU-097/HU-098)', () =
 })
 
 test.describe('Consulta del turno del cliente (HU-098)', () => {
-  test('un token válido muestra el turno, la hora en la zona de la barbería y la política de cancelación (CA-098-01, CA-098-04)', async ({
+  test('un token válido muestra el turno, la hora en la zona del negocio y la política de cancelación (CA-098-01, CA-098-04)', async ({
     page,
   }) => {
     await page.route(`**/api/v1/customer/appointments/${ACCESS_TOKEN}`, fulfillAppointment)
@@ -144,7 +144,7 @@ test.describe('Consulta del turno del cliente (HU-098)', () => {
     // Ni el token ni ningún identificador interno aparecen en el DOM.
     const bodyText = await page.locator('body').innerText()
     expect(bodyText).not.toContain('token-que-ya-no-sirve')
-    expect(bodyText.toLowerCase()).not.toContain('barbershopid')
+    expect(bodyText.toLowerCase()).not.toContain('businessid')
   })
 
   test('nunca expone un identificador interno en el cuerpo de la respuesta ni en el DOM (CA-098-03)', async ({
@@ -161,7 +161,7 @@ test.describe('Consulta del turno del cliente (HU-098)', () => {
 
     expect(capturedUrl).toContain(ACCESS_TOKEN)
     const html = await page.content()
-    for (const forbidden of ['barbershopId', 'appointmentId', 'customerId']) {
+    for (const forbidden of ['businessId', 'appointmentId', 'customerId']) {
       expect(html.toLowerCase()).not.toContain(forbidden.toLowerCase())
     }
   })

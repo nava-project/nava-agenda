@@ -5,9 +5,9 @@ import (
 	"testing"
 	"time"
 
-	"system-barbershop/internal/modules/booking"
-	"system-barbershop/internal/platform/apperr"
-	"system-barbershop/internal/platform/idempotency"
+	"nava-agenda/internal/modules/booking"
+	"nava-agenda/internal/platform/apperr"
+	"nava-agenda/internal/platform/idempotency"
 )
 
 // fakeManualRepository es un doble de booking.Repository para probar solo
@@ -17,8 +17,8 @@ import (
 // SQL/RLS/atomicidad real (eso vive en postgres/manual_repository_test.go
 // contra PostgreSQL real).
 type fakeManualRepository struct {
-	findFn   func(ctx context.Context, barbershopID string, phone, email *string) (booking.Customer, bool, error)
-	createFn func(ctx context.Context, barbershopID string, input booking.CreateInternalInput, key idempotency.Key, fingerprint idempotency.Fingerprint) (booking.CreateManualResult, error)
+	findFn   func(ctx context.Context, businessID string, phone, email *string) (booking.Customer, bool, error)
+	createFn func(ctx context.Context, businessID string, input booking.CreateInternalInput, key idempotency.Key, fingerprint idempotency.Fingerprint) (booking.CreateManualResult, error)
 
 	lastInput booking.CreateInternalInput
 }
@@ -27,14 +27,14 @@ func (f *fakeManualRepository) CreateInternal(context.Context, string, booking.C
 	panic("no usado por ManualBookingService")
 }
 
-func (f *fakeManualRepository) FindCustomerForReconciliation(ctx context.Context, barbershopID string, phone, email *string) (booking.Customer, bool, error) {
+func (f *fakeManualRepository) FindCustomerForReconciliation(ctx context.Context, businessID string, phone, email *string) (booking.Customer, bool, error) {
 	if f.findFn == nil {
 		return booking.Customer{}, false, nil
 	}
-	return f.findFn(ctx, barbershopID, phone, email)
+	return f.findFn(ctx, businessID, phone, email)
 }
 
-func (f *fakeManualRepository) CreateManual(ctx context.Context, barbershopID string, input booking.CreateInternalInput, key idempotency.Key, fingerprint idempotency.Fingerprint) (booking.CreateManualResult, error) {
+func (f *fakeManualRepository) CreateManual(ctx context.Context, businessID string, input booking.CreateInternalInput, key idempotency.Key, fingerprint idempotency.Fingerprint) (booking.CreateManualResult, error) {
 	f.lastInput = input
 	if f.createFn == nil {
 		return booking.CreateManualResult{
@@ -42,7 +42,7 @@ func (f *fakeManualRepository) CreateManual(ctx context.Context, barbershopID st
 			Appointment: booking.Appointment{ID: "appt-1"},
 		}, nil
 	}
-	return f.createFn(ctx, barbershopID, input, key, fingerprint)
+	return f.createFn(ctx, businessID, input, key, fingerprint)
 }
 
 func (f *fakeManualRepository) CreatePublic(context.Context, string, booking.CreatePublicInput, idempotency.Key, idempotency.Fingerprint) (booking.CreatePublicResult, error) {
@@ -75,9 +75,9 @@ func (f *fakeManualRepository) Reschedule(
 	panic("no usado por ManualBookingService")
 }
 
-func (f *fakeManualRepository) CancelByBarber(
-	context.Context, string, booking.CancelAppointmentByBarberInput, idempotency.Key, idempotency.Fingerprint,
-) (booking.CancelAppointmentByBarberResult, error) {
+func (f *fakeManualRepository) CancelByProfessional(
+	context.Context, string, booking.CancelAppointmentByProfessionalInput, idempotency.Key, idempotency.Fingerprint,
+) (booking.CancelAppointmentByProfessionalResult, error) {
 	panic("no usado por ManualBookingService")
 }
 
@@ -101,7 +101,7 @@ func (f *fakeManualRepository) CorrectAppointmentStatus(
 
 var _ booking.Repository = (*fakeManualRepository)(nil)
 
-type fakeBarberServicePort struct {
+type fakeProfessionalServicePort struct {
 	found           bool
 	name            string
 	durationMinutes int
@@ -110,7 +110,7 @@ type fakeBarberServicePort struct {
 	err             error
 }
 
-func (f fakeBarberServicePort) ActiveAssignedService(context.Context, string, string, string) (string, int, int64, string, bool, error) {
+func (f fakeProfessionalServicePort) ActiveAssignedService(context.Context, string, string, string) (string, int, int64, string, bool, error) {
 	if f.err != nil {
 		return "", 0, 0, "", false, f.err
 	}
@@ -141,13 +141,13 @@ func (f fakeTimezonePort) Timezone(context.Context, string) (string, error) {
 	return f.timezone, f.err
 }
 
-func validManualService() fakeBarberServicePort {
-	return fakeBarberServicePort{found: true, name: "Corte clásico", durationMinutes: 30, priceCents: 2000000, currency: "COP"}
+func validManualService() fakeProfessionalServicePort {
+	return fakeProfessionalServicePort{found: true, name: "Corte clásico", durationMinutes: 30, priceCents: 2000000, currency: "COP"}
 }
 
 func validManualRequest() booking.CreateManualAppointmentRequest {
 	return booking.CreateManualAppointmentRequest{
-		BarberID:         "8f3ac2b1-e4d5-46f6-a7c8-d9e0f1a2b3c4",
+		ProfessionalID:   "8f3ac2b1-e4d5-46f6-a7c8-d9e0f1a2b3c4",
 		ServiceID:        "6f1a2b3c-4d5e-4f60-8172-8394a5b6c7d8",
 		AttendeeName:     "Carlos Restrepo",
 		CustomerFullName: "Carlos Restrepo",
@@ -186,12 +186,12 @@ func TestCreateManualAppointment_ValidRequest_BuildsManualOriginAndCallsReposito
 	}
 }
 
-func TestCreateManualAppointment_MissingBarberID_RejectsWithoutTouchingPorts(t *testing.T) {
+func TestCreateManualAppointment_MissingProfessionalID_RejectsWithoutTouchingPorts(t *testing.T) {
 	repo := &fakeManualRepository{}
-	svc := booking.NewManualBookingService(repo, fakeBarberServicePort{err: errUnexpectedCall(t)}, fakeBlockCheckPort{}, fakeTimezonePort{timezone: "America/Bogota"})
+	svc := booking.NewManualBookingService(repo, fakeProfessionalServicePort{err: errUnexpectedCall(t)}, fakeBlockCheckPort{}, fakeTimezonePort{timezone: "America/Bogota"})
 
 	req := validManualRequest()
-	req.BarberID = "  "
+	req.ProfessionalID = "  "
 	_, err := svc.CreateManualAppointment(context.Background(), "shop-1", req, "key-1", "fp-1")
 	assertKind(t, err, apperr.KindValidation)
 }
@@ -208,7 +208,7 @@ func TestCreateManualAppointment_StartsAtWithTimezoneSuffix_RejectsAsInvalid(t *
 
 func TestCreateManualAppointment_ServiceNotAssigned_ReturnsNotFound(t *testing.T) {
 	repo := &fakeManualRepository{}
-	svc := booking.NewManualBookingService(repo, fakeBarberServicePort{found: false}, fakeBlockCheckPort{}, fakeTimezonePort{timezone: "America/Bogota"})
+	svc := booking.NewManualBookingService(repo, fakeProfessionalServicePort{found: false}, fakeBlockCheckPort{}, fakeTimezonePort{timezone: "America/Bogota"})
 
 	_, err := svc.CreateManualAppointment(context.Background(), "shop-1", validManualRequest(), "key-1", "fp-1")
 	assertKind(t, err, apperr.KindNotFound)
@@ -220,7 +220,7 @@ func TestCreateManualAppointment_ActiveBlock_ReturnsConflictWithoutCallingReposi
 
 	_, err := svc.CreateManualAppointment(context.Background(), "shop-1", validManualRequest(), "key-1", "fp-1")
 	assertKind(t, err, apperr.KindConflict)
-	if repo.lastInput.BarberID != "" {
+	if repo.lastInput.ProfessionalID != "" {
 		t.Fatalf("no debía llamar a CreateManual con un bloqueo vigente")
 	}
 }
@@ -232,7 +232,7 @@ func TestCreateManualAppointment_OutsideWorkingHours_ReturnsValidationWithoutCal
 
 	_, err := svc.CreateManualAppointment(context.Background(), "shop-1", validManualRequest(), "key-1", "fp-1")
 	assertKind(t, err, apperr.KindValidation)
-	if repo.lastInput.BarberID != "" {
+	if repo.lastInput.ProfessionalID != "" {
 		t.Fatalf("no debía llamar a CreateManual fuera de la jornada")
 	}
 }

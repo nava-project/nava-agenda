@@ -5,7 +5,7 @@
 // si ocurre en fechas explícitas (`date_list`, RN-BLQ-01 «bloqueo de varios
 // días»). El API recibe un día por serie, así que marcar varios días crea una
 // serie por día con la misma hora, vigencia y motivo. El dueño de la lista es
-// BarberBlocksPanel: aquí solo se pide el cambio y se devuelven las series que
+// ProfessionalBlocksPanel: aquí solo se pide el cambio y se devuelven las series que
 // respondió la API.
 import { computed, ref, useId, watch } from 'vue'
 import { shiftCivilDate } from '@/shared/time/civilDate'
@@ -58,8 +58,8 @@ type Repeat = 'weekly' | 'dates'
 const props = defineProps<{
   modelValue: boolean
   mode: 'create' | 'edit'
-  barberId: string
-  barberName: string
+  professionalId: string
+  professionalName: string
   series?: TimeBlockSeries | null
   // Edición de una ficha que agrupa varios días (#499): todas las series del grupo,
   // incluida `series`. El cambio se aplica a cada una con los mismos valores y los
@@ -138,9 +138,9 @@ const title = computed(() =>
 const description = computed(() =>
   isEdit.value
     ? isWeekly.value
-      ? `Cambia el tipo, los días, la hora o la vigencia de este bloqueo de ${props.barberName}.`
-      : `Cambia el tipo, la hora o la vigencia de esta serie de ${props.barberName}.`
-    : `Elige si se repite cada semana o solo ocurre en fechas concretas, para ${props.barberName}.`,
+      ? `Cambia el tipo, los días, la hora o la vigencia de este bloqueo de ${props.professionalName}.`
+      : `Cambia el tipo, la hora o la vigencia de esta serie de ${props.professionalName}.`
+    : `Elige si se repite cada semana o solo ocurre en fechas concretas, para ${props.professionalName}.`,
 )
 const isWeeklyCreate = computed(() => !isEdit.value && repeat.value === 'weekly')
 const isDatesCreate = computed(() => !isEdit.value && repeat.value === 'dates')
@@ -311,7 +311,7 @@ async function onSubmit() {
     // La vigencia abarca desde la primera fecha elegida, sin fin: así las fechas
     // que se añadan después desde «Fechas y excepciones» siguen dentro de ella.
     const outcome = await createDateListSeries(
-      props.barberId,
+      props.professionalId,
       {
         ...common,
         effectiveFrom: dates.value[0]!,
@@ -370,7 +370,7 @@ async function applyEdit(common: {
 
   for (const target of toUpdate) {
     const outcome = await updateTimeBlockSeries(
-      props.barberId,
+      props.professionalId,
       target.id,
       { ...common, effectiveFrom: cut ?? effectiveFrom.value },
       cut ? { effectiveDate: cut } : null,
@@ -390,7 +390,7 @@ async function applyEdit(common: {
       weekdayKeys.set(day, key)
     }
     const outcome = await createTimeBlockSeries(
-      props.barberId,
+      props.professionalId,
       common.blockType,
       day,
       common.startsTime,
@@ -409,7 +409,7 @@ async function applyEdit(common: {
     emit('created', outcome.series)
   }
   for (const target of failure === null ? toRemove : []) {
-    const outcome = await deleteTimeBlockSeries(props.barberId, target.id)
+    const outcome = await deleteTimeBlockSeries(props.professionalId, target.id)
     if (outcome.kind !== 'success' && outcome.kind !== 'not-found') {
       failure = outcome.kind
       break
@@ -452,7 +452,7 @@ async function createWeekly(common: {
       weekdayKeys.set(day, key)
     }
     const outcome = await createTimeBlockSeries(
-      props.barberId,
+      props.professionalId,
       common.blockType,
       day,
       common.startsTime,

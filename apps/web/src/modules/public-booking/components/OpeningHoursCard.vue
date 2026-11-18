@@ -5,7 +5,7 @@
 // él la entrada no muestra nada, ni un «cerrado» que no sabemos.
 //
 // El estado de ahora sale de `today` (que ya trae el festivo aplicado) y de la
-// hora civil de la barbería, nunca de la del dispositivo (RN-DIS-07).
+// hora civil del negocio, nunca de la del dispositivo (RN-DIS-07).
 import { computed } from 'vue'
 import {
   DAY_LABELS,

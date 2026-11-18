@@ -11,7 +11,7 @@ import (
 )
 
 // Kind agrupa los errores de aplicación en el pequeño catálogo estable que
-// HU-003 necesita. Un recurso inexistente y un recurso de otra barbería usan
+// HU-003 necesita. Un recurso inexistente y un recurso de otro negocio usan
 // deliberadamente el mismo Kind: no existe una forma de invocar este paquete
 // que distinga ambos casos, así que la traducción HTTP no puede filtrar esa
 // diferencia por accidente (CA-003-03, RN-TEN-01).
@@ -19,7 +19,7 @@ type Kind string
 
 const (
 	// KindNotFound cubre tanto un recurso inexistente como uno que
-	// pertenece a otra barbería.
+	// pertenece a otro negocio.
 	KindNotFound Kind = "not_found"
 	// KindInternal cubre cualquier fallo inesperado. Message se ignora
 	// deliberadamente en la traducción HTTP: solo Err viaja para
@@ -54,9 +54,9 @@ const (
 	// (CA-005-02).
 	KindUnauthorized Kind = "unauthorized"
 	// KindForbidden cubre una identidad conocida (sesión válida) sin permiso
-	// para la operación (DEC-173: el empleado fuera de lo de su barbero).
+	// para la operación (DEC-173: el empleado fuera de lo de su profesional).
 	// docs/06-api/estandar-openapi.md: 403 solo cuando no revela un recurso
-	// sensible; un recurso de otra barbería sigue siendo KindNotFound.
+	// sensible; un recurso de otro negocio sigue siendo KindNotFound.
 	KindForbidden Kind = "forbidden"
 	// KindChallengeRequired cubre una IP que superó el umbral de intentos
 	// de acceso y debe completar el reto telefónico antes de que la
@@ -69,7 +69,7 @@ const (
 	// KindConflict cubre un conflicto de estado de negocio ajeno a
 	// idempotencia: otra fila ya persistida vuelve inválida la operación
 	// solicitada (por ejemplo, HU-022 CA-022-04: un nombre de servicio ya
-	// usado por otro servicio activo de la misma barbería). No se
+	// usado por otro servicio activo del mismo negocio). No se
 	// reutiliza KindIdempotencyConflict, reservado a RN-IDE-01, porque este
 	// conflicto no depende de ninguna cabecera Idempotency-Key ni de un
 	// reintento: existiría igual en la primera y única solicitud.
@@ -99,10 +99,10 @@ const (
 	KindScheduleConflict Kind = "schedule_conflict"
 	// KindCancellationWindowClosed cubre HU-099 (RN-CAN-01, RN-CAN-02): el
 	// reloj del servidor ya pasó el plazo de cancelación propia del cliente y
-	// la política de la barbería no permite cancelar fuera de plazo (o el
+	// la política del negocio no permite cancelar fuera de plazo (o el
 	// turno ya empezó). Distinto de KindInvalidState: el turno sigue
 	// confirmado, es la política la que rechaza, y la interfaz debe indicar
-	// al cliente que contacte a la barbería. Código: "cancellation-window-closed".
+	// al cliente que contacte al negocio. Código: "cancellation-window-closed".
 	KindCancellationWindowClosed Kind = "cancellation_window_closed"
 	// KindCancellationReasonRequired cubre HU-099 (RN-CAN-02, CA-099-03): la
 	// cancelación es válida pero la política exige un motivo y no llegó o
@@ -111,7 +111,7 @@ const (
 	// KindRescheduleWindowClosed cubre HU-104 (DEC-178): el cliente quiere
 	// reprogramar su turno después del plazo (el mismo de la cancelación,
 	// RN-CAN-01). A diferencia de la cancelación, no existe una
-	// reprogramación tardía: la interfaz remite a la barbería. Código:
+	// reprogramación tardía: la interfaz remite al negocio. Código:
 	// "reschedule-window-closed".
 	KindRescheduleWindowClosed Kind = "reschedule_window_closed"
 	// KindRescheduleLimitReached cubre HU-104 (DEC-178): el cliente ya usó
@@ -162,7 +162,7 @@ func (e *Error) Error() string {
 
 func (e *Error) Unwrap() error { return e.Err }
 
-// NotFound construye un error de recurso ausente o de otra barbería. message
+// NotFound construye un error de recurso ausente o de otro negocio. message
 // es el detalle seguro que puede llegar al cliente.
 func NotFound(message string) *Error {
 	return &Error{Kind: KindNotFound, Message: message}

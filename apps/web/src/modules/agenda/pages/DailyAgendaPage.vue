@@ -1,11 +1,11 @@
 <script setup lang="ts">
 // Pantalla "Agenda de hoy" (HU-062) + navegación por fecha (HU-063): abre
 // el panel privado mostrando cronológicamente los turnos de un día civil
-// de un único barbero, calculado en la zona IANA de la barbería. Anterior/
+// de un único profesional, calculado en la zona IANA del negocio. Anterior/
 // selector de fecha/siguiente (F-CITA-02) conservan posición estable
 // (estandar-diseno-visual.md §11.2) y viven en `route.query` (`date`,
-// `barberId`): sin estado global, recargable y con atrás/adelante reales.
-// Selector obligatorio de un barbero (DEC-074): nunca una vista
+// `professionalId`): sin estado global, recargable y con atrás/adelante reales.
+// Selector obligatorio de un profesional (DEC-074): nunca una vista
 // consolidada. Fuera de alcance a propósito: detalle de cita y cualquier
 // acción sobre una cita existente (editar/cancelar/reprogramar/completar).
 //
@@ -18,9 +18,9 @@
 import { computed, nextTick, onMounted, onUnmounted, ref, watch } from 'vue'
 import { useRoute, useRouter, type LocationQueryRaw } from 'vue-router'
 import { useMinHoldLoading, useVocabulary } from '@/shared/composables'
-import { capitalize, isSoloProfile, worksOwnBarber } from '@/shared/model'
+import { capitalize, isSoloProfile, worksOwnProfessional } from '@/shared/model'
 import {
-  BarberSelect,
+  ProfessionalSelect,
   BaseAlert,
   BaseBadge,
   BaseButton,
@@ -37,11 +37,11 @@ import {
   shiftCivilDate,
 } from '@/shared/time/civilDate'
 import {
-  fetchBarberSummaries,
-  fetchBarbershopTimezone,
+  fetchProfessionalSummaries,
+  fetchBusinessTimezone,
   fetchDailyAgenda,
 } from '../api/appointmentsApi'
-import type { BarberSummary } from '../model/appointment'
+import type { ProfessionalSummary } from '../model/appointment'
 import { summarizeDay } from '../model/daySummary'
 import {
   APPOINTMENT_STATUS_BADGE_VARIANT,
@@ -53,7 +53,7 @@ import BaseDatePicker from '@/shared/ui/BaseDatePicker.vue'
 
 type PageStatus = 'loading' | 'ready' | 'load-error'
 // 'updating' (CA-063): ya hubo una agenda confirmada antes (para otra
-// fecha/barbero) y esta pantalla la conserva visible mientras llega la
+// fecha/profesional) y esta pantalla la conserva visible mientras llega la
 // siguiente; 'loading' es solo la primera carga, sin nada que conservar.
 type AgendaStatus = 'idle' | 'loading' | 'updating' | 'ready' | 'error' | 'not-found'
 
@@ -61,19 +61,19 @@ const route = useRoute()
 const router = useRouter()
 
 const pageStatus = ref<PageStatus>('loading')
-const barbers = ref<BarberSummary[]>([])
-// CA-063: zona IANA de la barbería, nunca la del dispositivo. null solo
+const professionals = ref<ProfessionalSummary[]>([])
+// CA-063: zona IANA del negocio, nunca la del dispositivo. null solo
 // mientras carga o si la consulta falla; sin ella la pantalla no puede
 // resolver "hoy" ni ofrecer navegación por fecha (mismo criterio degradado
 // que HU-062: la agenda del día del servidor sigue siendo legible, solo se
 // oculta la fecha/zona en pantalla y los controles de navegación).
-const barbershopTimezone = ref<string | null>(null)
+const businessTimezone = ref<string | null>(null)
 
-// selectedBarberId/selectedDate reflejan la última selección ya sincronizada
+// selectedProfessionalId/selectedDate reflejan la última selección ya sincronizada
 // con route.query (fuente de verdad): se fijan justo antes de disparar la
 // carga, nunca antes, para que la plantilla no muestre una selección que la
 // URL todavía no confirma.
-const selectedBarberId = ref<string | null>(null)
+const selectedProfessionalId = ref<string | null>(null)
 const selectedDate = ref<string | null>(null)
 
 // agendaDate es la fecha a la que pertenecen `entries`: se fija en el mismo
@@ -89,8 +89,8 @@ const hasLoadedEntriesOnce = ref(false)
 
 let agendaRequestSeq = 0
 
-const selectedBarber = computed(
-  () => barbers.value.find((b) => b.id === selectedBarberId.value) ?? null,
+const selectedProfessional = computed(
+  () => professionals.value.find((b) => b.id === selectedProfessionalId.value) ?? null,
 )
 
 const selectedDateLabel = computed(() =>
@@ -101,27 +101,27 @@ const agendaDateLabel = computed(() =>
   agendaDate.value ? formatCivilDateFull(agendaDate.value) : null,
 )
 
-const canNavigateDates = computed(() => barbershopTimezone.value !== null)
+const canNavigateDates = computed(() => businessTimezone.value !== null)
 
-// Día civil vigente en la barbería: el calendario lo marca y ofrece «Hoy».
+// Día civil vigente en el negocio: el calendario lo marca y ofrece «Hoy».
 const todayCivilDate = computed(() =>
-  barbershopTimezone.value ? getCivilDateInTimezone(barbershopTimezone.value) : null,
+  businessTimezone.value ? getCivilDateInTimezone(businessTimezone.value) : null,
 )
 
 // isViewingToday decide el texto del estado vacío ("hoy" vs. una fecha
 // explícita): sin zona conocida se asume "hoy" (mismo criterio degradado
 // que HU-062, que nunca navegaba y siempre mostraba "hoy").
 const isViewingToday = computed(() => {
-  if (!agendaDate.value || !barbershopTimezone.value) return true
-  return agendaDate.value === getCivilDateInTimezone(barbershopTimezone.value)
+  if (!agendaDate.value || !businessTimezone.value) return true
+  return agendaDate.value === getCivilDateInTimezone(businessTimezone.value)
 })
 
 const emptyStateDateText = computed(() =>
   isViewingToday.value ? 'hoy' : `el ${agendaDateLabel.value}`,
 )
 
-function requestedBarberIdFromRoute(): string | null {
-  const value = route.query.barberId
+function requestedProfessionalIdFromRoute(): string | null {
+  const value = route.query.professionalId
   return typeof value === 'string' && value.length > 0 ? value : null
 }
 
@@ -148,7 +148,7 @@ function withQuery(overrides: Record<string, string | undefined>): LocationQuery
 // no cede el paso a "ready"/"load-error" hasta que pase un mínimo, para que
 // una respuesta rápida no lo retire a medio parpadeo dejando ver la
 // construcción cruda de los controles/el eje por debajo.
-// Palabras de la barbería (DEC-110): con los valores iniciales, el texto de siempre.
+// Palabras del negocio (DEC-110): con los valores iniciales, el texto de siempre.
 const v = useVocabulary()
 
 const { start: startPageHold, hold: holdPageReveal } = useMinHoldLoading()
@@ -156,21 +156,21 @@ const { start: startPageHold, hold: holdPageReveal } = useMinHoldLoading()
 async function loadPage() {
   pageStatus.value = 'loading'
   startPageHold()
-  const [barbersOutcome, timezoneOutcome] = await Promise.all([
-    fetchBarberSummaries(),
-    fetchBarbershopTimezone(),
+  const [professionalsOutcome, timezoneOutcome] = await Promise.all([
+    fetchProfessionalSummaries(),
+    fetchBusinessTimezone(),
   ])
 
-  barbershopTimezone.value = timezoneOutcome.kind === 'success' ? timezoneOutcome.timezone : null
+  businessTimezone.value = timezoneOutcome.kind === 'success' ? timezoneOutcome.timezone : null
 
-  if (barbersOutcome.kind !== 'success') {
+  if (professionalsOutcome.kind !== 'success') {
     holdPageReveal(() => {
       pageStatus.value = 'load-error'
     })
     return
   }
 
-  barbers.value = barbersOutcome.items
+  professionals.value = professionalsOutcome.items
   holdPageReveal(() => {
     pageStatus.value = 'ready'
     // El esqueleto empieza a verse justo ahora: su retención mínima cuenta
@@ -178,7 +178,7 @@ async function loadPage() {
     if (agendaStatus.value === 'loading') startAgendaHold()
   })
 
-  if (barbers.value.length > 0) await syncFromRoute()
+  if (professionals.value.length > 0) await syncFromRoute()
 }
 
 onMounted(loadPage)
@@ -189,7 +189,7 @@ function onRetryLoad() {
 
 // syncFromRoute (CA-063) es el único punto que traduce route.query a una
 // carga de agenda: se llama una vez al abrir la pantalla (tras resolver
-// barberos/zona) y en cada cambio posterior de `route.query` (recarga,
+// profesionales/zona) y en cada cambio posterior de `route.query` (recarga,
 // atrás/adelante del navegador, o un router.push propio de esta pantalla).
 // Si la URL no trae una selección válida la normaliza con un único
 // router.replace (nunca crea una entrada de historial por abrir /panel);
@@ -202,16 +202,16 @@ async function syncFromRoute() {
   // fuera de un <router-view>), así que sin esta guarda el watcher de
   // route.query seguiría reaccionando a una ruta que ya no es esta
   // pantalla.
-  if (route.name !== 'panel' || barbers.value.length === 0) return
+  if (route.name !== 'panel' || professionals.value.length === 0) return
 
-  const requestedBarberId = requestedBarberIdFromRoute()
-  const resolvedBarberId =
-    requestedBarberId && barbers.value.some((b) => b.id === requestedBarberId)
-      ? requestedBarberId
-      : barbers.value[0]!.id
+  const requestedProfessionalId = requestedProfessionalIdFromRoute()
+  const resolvedProfessionalId =
+    requestedProfessionalId && professionals.value.some((b) => b.id === requestedProfessionalId)
+      ? requestedProfessionalId
+      : professionals.value[0]!.id
 
-  const resolvedDate = barbershopTimezone.value
-    ? (requestedDateFromRoute() ?? getCivilDateInTimezone(barbershopTimezone.value))
+  const resolvedDate = businessTimezone.value
+    ? (requestedDateFromRoute() ?? getCivilDateInTimezone(businessTimezone.value))
     : null
 
   // La comparación usa el valor CRUDO de route.query.date (no el ya
@@ -219,33 +219,34 @@ async function syncFromRoute() {
   // ("2026-13-40", "hoy") nunca es igual a `resolvedDate` y por eso también
   // se normaliza, no solo una fecha ausente.
   const rawDateInUrl = typeof route.query.date === 'string' ? route.query.date : null
-  const needsNormalization = requestedBarberId !== resolvedBarberId || rawDateInUrl !== resolvedDate
+  const needsNormalization =
+    requestedProfessionalId !== resolvedProfessionalId || rawDateInUrl !== resolvedDate
 
   if (needsNormalization) {
     await router.replace({
-      query: withQuery({ barberId: resolvedBarberId, date: resolvedDate ?? undefined }),
+      query: withQuery({ professionalId: resolvedProfessionalId, date: resolvedDate ?? undefined }),
     })
     return
   }
 
-  selectedBarberId.value = resolvedBarberId
+  selectedProfessionalId.value = resolvedProfessionalId
   selectedDate.value = resolvedDate
-  await loadAgenda(resolvedBarberId, resolvedDate)
+  await loadAgenda(resolvedProfessionalId, resolvedDate)
 }
 
 watch(
-  () => [route.query.date, route.query.barberId],
+  () => [route.query.date, route.query.professionalId],
   () => void syncFromRoute(),
 )
 
 // Mismo criterio que startPageHold/holdPageReveal (issue 2026-09-28), pero
 // solo para la PRIMERA carga ('loading', AgendaSkeleton): 'updating' ya
 // tiene su propio transition-delay (.daily-agenda-page--updating, más
-// abajo) para el caso "cambio de fecha/barbero con contenido previo", que
+// abajo) para el caso "cambio de fecha/profesional con contenido previo", que
 // no es el problema reportado y no se toca.
 const { start: startAgendaHold, hold: holdAgendaReveal } = useMinHoldLoading()
 
-async function loadAgenda(barberId: string, date: string | null) {
+async function loadAgenda(professionalId: string, date: string | null) {
   const requestId = ++agendaRequestSeq
   const isFirstLoad = !hasLoadedEntriesOnce.value
   agendaStatus.value = isFirstLoad ? 'loading' : 'updating'
@@ -257,9 +258,9 @@ async function loadAgenda(barberId: string, date: string | null) {
   // un espasmo").
   if (isFirstLoad && pageStatus.value === 'ready') startAgendaHold()
 
-  const outcome = await fetchDailyAgenda(barberId, date ?? undefined)
+  const outcome = await fetchDailyAgenda(professionalId, date ?? undefined)
 
-  // Una selección posterior (fecha, barbero o ambas) ya reemplazó el
+  // Una selección posterior (fecha, profesional o ambas) ya reemplazó el
   // destino vigente: esta respuesta llegó fuera de orden y se descarta sin
   // tocar el contenido ya mostrado (nunca sustituye la selección vigente
   // con una respuesta obsoleta).
@@ -285,12 +286,13 @@ async function loadAgenda(barberId: string, date: string | null) {
   else apply()
 }
 
-function onBarberSelect(barberId: string) {
-  void router.push({ query: withQuery({ barberId }) })
+function onProfessionalSelect(professionalId: string) {
+  void router.push({ query: withQuery({ professionalId }) })
 }
 
 function onRetryAgenda() {
-  if (selectedBarberId.value) void loadAgenda(selectedBarberId.value, selectedDate.value)
+  if (selectedProfessionalId.value)
+    void loadAgenda(selectedProfessionalId.value, selectedDate.value)
 }
 
 function goToDate(newDate: string) {
@@ -305,11 +307,11 @@ function goToNextDay() {
   if (selectedDate.value) goToDate(shiftCivilDate(selectedDate.value, 1))
 }
 
-// «Nuevo turno» recibe el barbero y la fecha que se estaban mirando para que
+// «Nuevo turno» recibe el profesional y la fecha que se estaban mirando para que
 // su botón Cancelar devuelva a este mismo día (issue #576).
 function goToNewAppointment() {
   const query: Record<string, string> = {}
-  if (selectedBarberId.value) query.barberId = selectedBarberId.value
+  if (selectedProfessionalId.value) query.professionalId = selectedProfessionalId.value
   if (selectedDate.value) query.date = selectedDate.value
   void router.push({ name: 'agenda-nuevo-turno', query })
 }
@@ -341,17 +343,19 @@ function statusBadgeVariant(entry: DailyAgendaEntry) {
   return APPOINTMENT_STATUS_BADGE_VARIANT[entry.status]
 }
 
-// Perfil de barbero individual (DEC-115): con un solo barbero no hay nada que
+// Perfil de profesional individual (DEC-115): con un solo profesional no hay nada que
 // elegir, así que el selector se oculta. La selección sigue viviendo en
-// `route.query.barberId` (DEC-074): solo desaparece el control.
-const hideBarberPicker = computed(() => worksOwnBarber.value && barbers.value.length === 1)
+// `route.query.professionalId` (DEC-074): solo desaparece el control.
+const hideProfessionalPicker = computed(
+  () => worksOwnProfessional.value && professionals.value.length === 1,
+)
 
 // «Mi día» (DEC-115): una frase con lo que queda de hoy, derivada de los turnos ya
 // cargados. Solo para el día en curso: en otra fecha «siguiente» no significaría nada.
 // Un día sin turnos ya tiene su propio estado vacío, así que no repite el mensaje.
 const soloDaySummary = computed<string | null>(() => {
   if (!isSoloProfile.value || !isViewingToday.value) return null
-  if (agendaStatus.value !== 'ready' || !barbershopTimezone.value) return null
+  if (agendaStatus.value !== 'ready' || !businessTimezone.value) return null
   const summary = summarizeDay(entries.value, Date.now())
   if (summary.total === 0) return null
   if (summary.remaining === 0) return 'No te quedan turnos por atender hoy.'
@@ -366,9 +370,9 @@ const soloDaySummary = computed<string | null>(() => {
 })
 
 function formatAgendaTime(instant: string): string {
-  if (!barbershopTimezone.value) return ''
+  if (!businessTimezone.value) return ''
   return new Intl.DateTimeFormat('es-CO', {
-    timeZone: barbershopTimezone.value,
+    timeZone: businessTimezone.value,
     hour: '2-digit',
     minute: '2-digit',
     hourCycle: 'h23',
@@ -493,8 +497,8 @@ const timelineZoomLabel = computed(() => {
 })
 
 const timelineBounds = computed(() => {
-  if (!barbershopTimezone.value || !agendaDate.value) return null
-  const tz = barbershopTimezone.value
+  if (!businessTimezone.value || !agendaDate.value) return null
+  const tz = businessTimezone.value
   const date = agendaDate.value
 
   // Pedido explícito del propietario (2026-09-04): el carril siempre
@@ -576,11 +580,11 @@ function timelinePercent(minute: number): string {
 
 function timelineSlipWidthPercent(entry: DailyAgendaEntry): number {
   const bounds = timelineBounds.value
-  if (!bounds || !agendaDate.value || !barbershopTimezone.value) return 0
-  const start = minutesIntoCivilDate(entry.startsAt, agendaDate.value, barbershopTimezone.value)
+  if (!bounds || !agendaDate.value || !businessTimezone.value) return 0
+  const start = minutesIntoCivilDate(entry.startsAt, agendaDate.value, businessTimezone.value)
   // Fin sin recortar, igual que en timelineBounds: la ficha ocupa su
   // duración real aunque cruce medianoche.
-  const end = minutesSinceCivilMidnight(entry.endsAt, agendaDate.value, barbershopTimezone.value)
+  const end = minutesSinceCivilMidnight(entry.endsAt, agendaDate.value, businessTimezone.value)
   const span = bounds.end - bounds.start
   // Ancho mínimo visual en px reales: una ficha muy corta sigue siendo
   // legible en la línea de tiempo sin que eso cambie su duración real.
@@ -603,8 +607,8 @@ function timelineSlipStyle(entry: DailyAgendaEntry): {
   width: string
 } {
   const bounds = timelineBounds.value
-  if (!bounds || !agendaDate.value || !barbershopTimezone.value) return { left: '0%', width: '0%' }
-  const start = minutesIntoCivilDate(entry.startsAt, agendaDate.value, barbershopTimezone.value)
+  if (!bounds || !agendaDate.value || !businessTimezone.value) return { left: '0%', width: '0%' }
+  const start = minutesIntoCivilDate(entry.startsAt, agendaDate.value, businessTimezone.value)
   const width = timelineSlipWidthPercent(entry)
   const leftPercent = ((start - bounds.start) / (bounds.end - bounds.start)) * 100
   const lane = timelineLaneWidthPx.value
@@ -680,27 +684,27 @@ function isEntryInProgress(entry: (typeof entries.value)[number]): boolean {
 // una fuente de disponibilidad que necesite exactitud al segundo.
 const nowMarkerPercent = computed(() => {
   const bounds = timelineBounds.value
-  if (!bounds || !agendaDate.value || !barbershopTimezone.value || !isViewingToday.value) {
+  if (!bounds || !agendaDate.value || !businessTimezone.value || !isViewingToday.value) {
     return null
   }
   const nowMinute = minutesIntoCivilDate(
     new Date().toISOString(),
     agendaDate.value,
-    barbershopTimezone.value,
+    businessTimezone.value,
   )
   if (nowMinute < bounds.start || nowMinute > bounds.end) return null
   return timelinePercent(nowMinute)
 })
 
 // Encuadre inicial del carril (issue #587): con el día completo más ancho
-// que la pantalla, al abrir un día (o cambiar de barbero) el carril se
+// que la pantalla, al abrir un día (o cambiar de profesional) el carril se
 // desplaza solo hasta el primer turno, o hasta «Ahora» si es hoy y no hay
 // turnos, con media hora de aire a la izquierda. Solo una vez por día y
-// barbero: una recarga tras atender o cancelar un turno no le mueve la vista
+// profesional: una recarga tras atender o cancelar un turno no le mueve la vista
 // a quien ya está mirando otra hora.
 const timelineFocusMinute = computed(() => {
   const date = agendaDate.value
-  const tz = barbershopTimezone.value
+  const tz = businessTimezone.value
   if (!timelineBounds.value || !date || !tz) return null
   if (entries.value.length > 0) {
     return Math.min(...entries.value.map((e) => minutesIntoCivilDate(e.startsAt, date, tz)))
@@ -716,7 +720,7 @@ watch(
   ([el, focusMinute, status]) => {
     const bounds = timelineBounds.value
     if (!el || focusMinute === null || !bounds || status !== 'ready') return
-    const key = `${agendaDate.value}|${selectedBarberId.value}`
+    const key = `${agendaDate.value}|${selectedProfessionalId.value}`
     if (key === timelineFramedKey) return
     timelineFramedKey = key
     const ratio =
@@ -749,12 +753,12 @@ const dayChangeMarkerPercent = computed(() => {
         <h1 id="daily-agenda-page-title" class="daily-agenda-page__title">Agenda</h1>
         <p v-if="selectedDateLabel" class="daily-agenda-page__date">
           {{ selectedDateLabel
-          }}<template v-if="barbershopTimezone"> · Zona {{ barbershopTimezone }}</template>
+          }}<template v-if="businessTimezone"> · Zona {{ businessTimezone }}</template>
         </p>
         <p v-if="soloDaySummary" class="daily-agenda-page__summary">{{ soloDaySummary }}</p>
       </div>
       <BaseButton
-        v-if="pageStatus === 'ready' && barbers.length > 0"
+        v-if="pageStatus === 'ready' && professionals.length > 0"
         type="button"
         variant="secondary"
         class="daily-agenda-page__cta"
@@ -764,7 +768,7 @@ const dayChangeMarkerPercent = computed(() => {
       </BaseButton>
     </header>
 
-    <!-- Evento 02 del atlas: sin barbero/zona resueltos, nada que anticipar
+    <!-- Evento 02 del atlas: sin profesional/zona resueltos, nada que anticipar
          todavía — estado de página centrado con spinner, sin divisor. -->
     <div v-if="pageStatus === 'loading'" class="daily-agenda-page__loading" role="status">
       <DiamondLoader :label="`Cargando ${v.professionals}…`" />
@@ -785,18 +789,18 @@ const dayChangeMarkerPercent = computed(() => {
     </PageState>
 
     <template v-else>
-      <!-- Evento 04: sin barberos activos, sin selección inventada ni CTA. -->
-      <EmptyScene v-if="barbers.length === 0" scene="team" role="status">
+      <!-- Evento 04: sin profesionales activos, sin selección inventada ni CTA. -->
+      <EmptyScene v-if="professionals.length === 0" scene="team" role="status">
         <template #title>Aún no tienes {{ v.professionalsRegistered }}.</template>
         <template #hint>
           <template v-if="isSoloProfile">
             Crea tu perfil en
-            <RouterLink :to="{ name: 'staff-barberos' }">«Mi perfil»</RouterLink>
+            <RouterLink :to="{ name: 'staff-profesionales' }">«Mi perfil»</RouterLink>
             para ver tu agenda.
           </template>
           <template v-else>
             Agrega {{ v.oneProfessional }} en la sección
-            <RouterLink :to="{ name: 'staff-barberos' }">«{{ v.Professionals }}»</RouterLink>
+            <RouterLink :to="{ name: 'staff-profesionales' }">«{{ v.Professionals }}»</RouterLink>
             para ver su agenda.
           </template>
         </template>
@@ -804,15 +808,15 @@ const dayChangeMarkerPercent = computed(() => {
 
       <template v-else>
         <div class="daily-agenda-page__controls nv-rise" style="--i: 1">
-          <div v-if="!hideBarberPicker" class="daily-agenda-page__picker">
-            <label for="daily-agenda-barber-select" class="daily-agenda-page__label">{{
+          <div v-if="!hideProfessionalPicker" class="daily-agenda-page__picker">
+            <label for="daily-agenda-professional-select" class="daily-agenda-page__label">{{
               v.Professional
             }}</label>
-            <BarberSelect
+            <ProfessionalSelect
               compact
-              :model-value="selectedBarberId"
-              :barbers="barbers"
-              @update:model-value="onBarberSelect"
+              :model-value="selectedProfessionalId"
+              :professionals="professionals"
+              @update:model-value="onProfessionalSelect"
             />
           </div>
 
@@ -859,7 +863,7 @@ const dayChangeMarkerPercent = computed(() => {
              acompaña contenido que sigue visible, no un PageState de página
              completa. -->
         <BaseAlert
-          v-if="pageStatus === 'ready' && !barbershopTimezone"
+          v-if="pageStatus === 'ready' && !businessTimezone"
           variant="warning"
           title="No pudimos confirmar la zona horaria"
           role="alert"
@@ -873,11 +877,11 @@ const dayChangeMarkerPercent = computed(() => {
           </template>
         </BaseAlert>
 
-        <!-- Evento 05: barbero y fecha ya resueltos, la espera conserva la
+        <!-- Evento 05: profesional y fecha ya resueltos, la espera conserva la
              geometría del contenido por llegar (esqueleto, no spinner). -->
         <AgendaSkeleton
           v-if="agendaStatus === 'loading'"
-          :label="`Cargando la agenda de ${selectedBarber?.fullName}…`"
+          :label="`Cargando la agenda de ${selectedProfessional?.fullName}…`"
         />
 
         <template v-else>
@@ -891,7 +895,7 @@ const dayChangeMarkerPercent = computed(() => {
             Actualizando…
           </p>
 
-          <!-- Evento 08: el barbero solicitado ya no está disponible. -->
+          <!-- Evento 08: el profesional solicitado ya no está disponible. -->
           <PageState
             v-if="agendaStatus === 'not-found'"
             variant="warning"
@@ -902,7 +906,7 @@ const dayChangeMarkerPercent = computed(() => {
             Elige {{ v.anotherProfessional }} {{ v.professional }} en la lista.
           </PageState>
 
-          <!-- Evento 07: error recuperable de la agenda, barbero/fecha
+          <!-- Evento 07: error recuperable de la agenda, profesional/fecha
                conservados para reintentar. -->
           <PageState
             v-else-if="agendaStatus === 'error'"
@@ -1094,7 +1098,7 @@ const dayChangeMarkerPercent = computed(() => {
               class="daily-agenda-page__empty-state"
             >
               <template #title>
-                No hay turnos para {{ selectedBarber?.fullName }} {{ emptyStateDateText }}.
+                No hay turnos para {{ selectedProfessional?.fullName }} {{ emptyStateDateText }}.
               </template>
               <template #hint>
                 Cuando alguien reserve, o registres un turno a mano, aparecerá aquí en su hora.
@@ -1108,9 +1112,9 @@ const dayChangeMarkerPercent = computed(() => {
 
             <ul
               v-else
-              :key="`${selectedBarberId}-${selectedDate}`"
+              :key="`${selectedProfessionalId}-${selectedDate}`"
               class="daily-agenda-page__list"
-              :aria-label="`Turnos de ${selectedBarber?.fullName}`"
+              :aria-label="`Turnos de ${selectedProfessional?.fullName}`"
             >
               <li
                 v-for="(entry, index) in entries"
@@ -1219,7 +1223,7 @@ const dayChangeMarkerPercent = computed(() => {
   color: var(--color-on-strong-muted);
 }
 
-/* «Mi día» del barbero individual: la única línea de latón del encabezado, para
+/* «Mi día» del profesional individual: la única línea de latón del encabezado, para
    que lo que sigue en la jornada se lea antes que la fecha. */
 .daily-agenda-page__summary {
   margin: var(--space-2) 0 0;
@@ -1249,7 +1253,7 @@ const dayChangeMarkerPercent = computed(() => {
 
 /* Aviso solo para lector de pantalla: fuera del flujo para que empezar una
    carga no empuje la agenda hacia abajo y la devuelva al llegar la
-   respuesta (el "espasmo" al cambiar de fecha o barbero). El aviso visual es
+   respuesta (el "espasmo" al cambiar de fecha o profesional). El aviso visual es
    el atenuado de la agenda anterior, de abajo. */
 .daily-agenda-page__updating {
   position: absolute;
@@ -1563,7 +1567,7 @@ const dayChangeMarkerPercent = computed(() => {
   color: var(--color-no-show-on-strong);
 }
 
-/* Turno cancelado (por el cliente o por el barbero): rosa apagado de la
+/* Turno cancelado (por el cliente o por el profesional): rosa apagado de la
    familia de peligro, con un velo tenue, para separarlo a simple vista de los
    completados sin gritar como una alerta. Va después de --terminal para
    ganarle el color de contorno. */
@@ -1699,7 +1703,7 @@ const dayChangeMarkerPercent = computed(() => {
   }
 
   /* El rótulo «Fecha» encabeza la fila completa (Anterior · fecha ·
-     Siguiente) alineado a la izquierda, igual que «Barbero» sobre su
+     Siguiente) alineado a la izquierda, igual que «Profesional» sobre su
      selector: el contenedor del selector se disuelve y cada pieza ocupa su
      área de la cuadrícula. */
   .daily-agenda-page__date-nav {
@@ -2194,7 +2198,7 @@ const dayChangeMarkerPercent = computed(() => {
    es fiel al mockup, pero al lado de Anterior/Siguiente/Nuevo turno (todas
    cajas con borde) se lee como un control más, no como un dato de la
    fila. Se abandona la caja por un rótulo — punto de color + versalitas
-   espaciadas, el mismo vocabulario que "BARBERO"/"FECHA"/"AHORA" en esta
+   espaciadas, el mismo vocabulario que "PROFESIONAL"/"FECHA"/"AHORA" en esta
    misma pantalla — nunca inventando un color nuevo: sigue siendo el color
    de la variante (`--badge-text`), solo cambia cómo se presenta. */
 :deep(.base-badge) {

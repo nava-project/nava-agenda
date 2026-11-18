@@ -261,7 +261,7 @@ describe('LoginPage', () => {
 
   // CA-007-02 de punta a punta en la capa de página: tras un 429, verificar
   // el reto (mockeado) reintenta el login automáticamente con las mismas
-  // credenciales, sin que el barbero tenga que volver a escribirlas.
+  // credenciales, sin que el profesional tenga que volver a escribirlas.
   it('retries login automatically once the phone challenge verifies', async () => {
     loginMock
       .mockResolvedValueOnce({

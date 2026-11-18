@@ -137,7 +137,7 @@ async function openSettings(page: Page, width: number, height: number) {
       await route.fulfill(json({ title: 'Mock endpoint not found' }, 404))
     }
   })
-  await page.goto('/panel/barberia#configuracion-horario')
+  await page.goto('/panel/negocio#configuracion-horario')
   const section = page.locator('#configuracion-horario')
   await expect(section.getByText('Lunes', { exact: true })).toBeVisible()
   await page.waitForTimeout(600)

@@ -1,14 +1,14 @@
 // Geometría del tablero semanal de Horarios: convierte tramos "HH:MM + minutos"
 // en posiciones sobre una regla horaria común a los siete días. Es puramente
 // visual: no decide disponibilidad ni reinterpreta nada que el servidor ya
-// confirmó (la hora civil de un tramo sigue siendo la que escribió el barbero,
+// confirmó (la hora civil de un tramo sigue siendo la que escribió el profesional,
 // CA-040-06). Un tramo que cruza la medianoche se recorta al fin del día en la
 // regla y se rotula "+1" en su etiqueta.
 import { getCivilDateInTimezone, isCivilDateString } from '@/shared/time/civilDate'
 
 export const MINUTES_PER_DAY = 1440
 
-// La regla nunca es más estrecha que la jornada típica de una barbería; solo
+// La regla nunca es más estrecha que la jornada típica de un negocio; solo
 // crece si algún tramo (o el que se está editando) se sale de ella.
 const DEFAULT_SCALE_START = 7 * 60
 const DEFAULT_SCALE_END = 21 * 60
@@ -143,7 +143,7 @@ export interface BoardNow {
 }
 
 // nowInTimezone: día ISO (1 = lunes … 7 = domingo) y minuto del día vigentes
-// AHORA en la zona de la barbería (nunca la del dispositivo, CA-040-06).
+// AHORA en la zona del negocio (nunca la del dispositivo, CA-040-06).
 export function nowInTimezone(timeZone: string, at: Date = new Date()): BoardNow {
   const civilDate = getCivilDateInTimezone(timeZone, at)
   const [year, month, day] = civilDate.split('-').map(Number)

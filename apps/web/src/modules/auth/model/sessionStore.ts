@@ -32,7 +32,7 @@ const state = reactive<{ bootstrap: BootstrapState }>({ bootstrap: { status: 'ch
 export const sessionState: DeepReadonly<{ bootstrap: BootstrapState }> = readonly(state)
 
 /** Estado de la sesión sin su contexto: lo único que `app` necesita para
- * coordinar proveedores globales (por ejemplo la marca de la barbería) con el
+ * coordinar proveedores globales (por ejemplo la marca del negocio) con el
  * inicio y el fin de la sesión, sin importar el nombre ni los datos del
  * principal. */
 export const sessionStatus = computed(() => state.bootstrap.status)
@@ -87,7 +87,7 @@ export async function ensureBootstrapped(): Promise<void> {
 }
 
 /**
- * Actualiza únicamente el nombre de la barbería del contexto ya
+ * Actualiza únicamente el nombre del negocio del contexto ya
  * autenticado (HU-020, CA-020-02): la cabecera refleja el nuevo nombre sin
  * recargar la aplicación. Se llama SOLO después de que el servidor
  * confirma el guardado (respuesta 200 de
@@ -99,9 +99,9 @@ export async function ensureBootstrapped(): Promise<void> {
  * `GET /private/auth/session` como autoridad; esta función solo evita una
  * espera visible mientras esa autoridad no se ha vuelto a consultar.
  */
-export function updateBarbershopName(name: string): void {
+export function updateBusinessName(name: string): void {
   if (state.bootstrap.status !== 'authenticated') return
-  state.bootstrap = { ...state.bootstrap, barbershopName: name }
+  state.bootstrap = { ...state.bootstrap, businessName: name }
 }
 
 /** Usada por LoginPage tras un acceso exitoso (DEC-060 no amplía

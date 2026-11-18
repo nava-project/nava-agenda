@@ -1,5 +1,5 @@
 /**
- * Marca confirmada de la barbería (DEC-110): copia local para el primer
+ * Marca confirmada del negocio (DEC-110): copia local para el primer
  * fotograma, vista previa del acento sin guardar y limpieza al cerrar sesión.
  */
 import { beforeEach, describe, expect, it, vi } from 'vitest'
@@ -98,7 +98,7 @@ describe('brandStore', () => {
     expect(store.effectiveAccent.value).toBe('emerald')
   })
 
-  it('forgets everything on logout so the next barbershop never inherits it', async () => {
+  it('forgets everything on logout so the next business never inherits it', async () => {
     const store = await load()
     store.setBrand(salon)
     store.setAccentPreview('ruby')

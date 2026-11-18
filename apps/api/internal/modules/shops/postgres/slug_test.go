@@ -13,19 +13,19 @@ import (
 	"regexp"
 	"testing"
 
-	"system-barbershop/internal/modules/shops"
-	shopspostgres "system-barbershop/internal/modules/shops/postgres"
-	"system-barbershop/internal/platform/database"
+	"nava-agenda/internal/modules/shops"
+	shopspostgres "nava-agenda/internal/modules/shops/postgres"
+	"nava-agenda/internal/platform/database"
 )
 
 // readPublicSlug lee public_slug directamente por SQL: el contrato de
-// shops.Repository/shops.Barbershop deliberadamente NUNCA expone esta
+// shops.Repository/shops.Business deliberadamente NUNCA expone esta
 // columna (CA-020-07, HU-090 fuera de alcance para editarla desde HU-020),
 // así que solo una prueba puede necesitar verla.
 func readPublicSlug(t *testing.T, db *database.DB, id string) *string {
 	t.Helper()
 	var slug *string
-	err := db.InTenantTx(context.Background(), database.BarbershopID(id), func(ctx context.Context, q database.Queries) error {
+	err := db.InTenantTx(context.Background(), database.BusinessID(id), func(ctx context.Context, q database.Queries) error {
 		return q.QueryRow(ctx, `SELECT public_slug FROM business WHERE id = $1`, id).Scan(&slug)
 	})
 	if err != nil {
@@ -41,7 +41,7 @@ func readPublicSlug(t *testing.T, db *database.DB, id string) *string {
 func resetSlugFixture(t *testing.T, db *database.DB, id, originalName string) {
 	t.Helper()
 	reset := func() {
-		err := db.InTenantTx(context.Background(), database.BarbershopID(id), func(ctx context.Context, q database.Queries) error {
+		err := db.InTenantTx(context.Background(), database.BusinessID(id), func(ctx context.Context, q database.Queries) error {
 			_, err := q.Exec(ctx,
 				`UPDATE business SET name = $2, timezone = 'America/Bogota', public_slug = NULL WHERE id = $1`,
 				id, originalName,
@@ -77,7 +77,7 @@ func TestUpdate_GeneratesSlugFromName_WhenSlugIsNull(t *testing.T) {
 
 	got := readPublicSlug(t, db, shopA)
 	if got == nil || !regexp.MustCompile(`^barberiaslugautomatico[a-z2-9]{8}$`).MatchString(*got) {
-		t.Fatalf("expected public_slug=barberiaslugautomatico<código de 8>, got %v", got)
+		t.Fatalf("expected public_slug=negocioslugautomatico<código de 8>, got %v", got)
 	}
 }
 
@@ -96,7 +96,7 @@ func TestUpdate_DoesNotRegenerateSlug_WhenAlreadySet(t *testing.T) {
 		t.Fatal("expected a slug to already exist after the seed Update")
 	}
 
-	// DEC-082: el slug se genera UNA sola vez; renombrar la barbería
+	// DEC-082: el slug se genera UNA sola vez; renombrar el negocio
 	// después nunca lo toca (editarlo es una capacidad fuera del alcance
 	// de HU-090, aunque la columna ya la soporta).
 	if _, err := repo.Update(context.Background(), shopA, shops.UpdateInput{
@@ -112,7 +112,7 @@ func TestUpdate_DoesNotRegenerateSlug_WhenAlreadySet(t *testing.T) {
 }
 
 // fixedCodes devuelve un generador que entrega los códigos en orden: permite
-// forzar una colisión real contra idx_barbershop_public_slug sin depender del
+// forzar una colisión real contra idx_business_public_slug sin depender del
 // azar.
 func fixedCodes(codes ...string) func() (string, error) {
 	i := 0
@@ -127,8 +127,8 @@ func fixedCodes(codes ...string) func() (string, error) {
 }
 
 // TestUpdate_SlugCollision_RetriesWithAnotherCode cubre DEC-082/DEC-117
-// (unicidad GLOBAL): dos barberías DISTINTAS con el mismo nombre y el mismo
-// código sorteado chocan en idx_barbershop_public_slug; la segunda reintenta
+// (unicidad GLOBAL): dos negocios DISTINTAS con el mismo nombre y el mismo
+// código sorteado chocan en idx_business_public_slug; la segunda reintenta
 // con otro código dentro de la misma transacción y termina con un slug
 // distinto, sin error para quien guarda.
 func TestUpdate_SlugCollision_RetriesWithAnotherCode(t *testing.T) {

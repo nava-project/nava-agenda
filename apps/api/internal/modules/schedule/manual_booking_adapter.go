@@ -9,7 +9,7 @@ import (
 // (HU-061, DEC-073): schedule nunca importa booking, ni siquiera aquí; este
 // adaptador satisface esa interfaz de forma puramente estructural (todos
 // los tipos de la firma son universales), mismo criterio que
-// catalog.ManualBookingCatalog frente a booking.BarberServicePort. cmd/api
+// catalog.ManualBookingCatalog frente a booking.ProfessionalServicePort. cmd/api
 // construye este valor y lo pasa donde booking.BlockCheckPort lo espera.
 type ManualBookingBlocks struct {
 	service *Service
@@ -27,7 +27,7 @@ func NewManualBookingBlocks(service *Service) ManualBookingBlocks {
 // pertenece a su fecha civil de inicio y, si es nocturno (DEC-020), termina
 // al día siguiente; por eso se revisan la fecha de inicio del intervalo y la
 // anterior (un turno de madrugada cae en el segmento nocturno de ayer).
-func (a ManualBookingBlocks) WithinWorkingHours(ctx context.Context, barbershopID, barberID string, startsAt, endsAt time.Time, timezone string) (bool, error) {
+func (a ManualBookingBlocks) WithinWorkingHours(ctx context.Context, businessID, professionalID string, startsAt, endsAt time.Time, timezone string) (bool, error) {
 	loc, err := time.LoadLocation(timezone)
 	if err != nil {
 		return false, err
@@ -40,7 +40,7 @@ func (a ManualBookingBlocks) WithinWorkingHours(ctx context.Context, barbershopI
 		if err != nil {
 			return false, err
 		}
-		day, err := a.service.ResolveEffectiveDay(ctx, barbershopID, barberID, civil)
+		day, err := a.service.ResolveEffectiveDay(ctx, businessID, professionalID, civil)
 		if err != nil {
 			return false, err
 		}
@@ -76,7 +76,7 @@ func parseSegmentStart(date, startsTime string, loc *time.Location) (time.Time, 
 // medianoche local) que corresponde a [startsAt, endsAt) en timezone,
 // reutilizando Service.EffectiveBlocks (CA-042), y compara cada uno contra
 // el intervalo semiabierto pedido (RN-DIS-05).
-func (a ManualBookingBlocks) HasActiveBlock(ctx context.Context, barbershopID, barberID string, startsAt, endsAt time.Time, timezone string) (bool, error) {
+func (a ManualBookingBlocks) HasActiveBlock(ctx context.Context, businessID, professionalID string, startsAt, endsAt time.Time, timezone string) (bool, error) {
 	loc, err := time.LoadLocation(timezone)
 	if err != nil {
 		return false, err
@@ -88,7 +88,7 @@ func (a ManualBookingBlocks) HasActiveBlock(ctx context.Context, barbershopID, b
 		toDate = fromDate
 	}
 
-	result, err := a.service.EffectiveBlocks(ctx, barbershopID, barberID, fromDate, toDate)
+	result, err := a.service.EffectiveBlocks(ctx, businessID, professionalID, fromDate, toDate)
 	if err != nil {
 		return false, err
 	}

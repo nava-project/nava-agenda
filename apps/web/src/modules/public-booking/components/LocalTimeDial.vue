@@ -1,5 +1,5 @@
 <script setup lang="ts">
-// Reloj de línea con la hora local de la barbería (entrada pública, HU-090).
+// Reloj de línea con la hora local del negocio (entrada pública, HU-090).
 // Es decorativo: la hora ya se dice en texto junto a él, así que va `aria-hidden`
 // y no añade nada que un lector de pantalla deba repetir. Dibuja la misma
 // construcción regla-rombo del divisor NAVA: aro de latón que se traza al entrar,

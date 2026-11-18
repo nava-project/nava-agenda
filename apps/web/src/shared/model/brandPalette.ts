@@ -1,4 +1,4 @@
-// Paleta cerrada de acentos de marca (DEC-110). La barbería elige una CLAVE; el
+// Paleta cerrada de acentos de marca (DEC-110). El negocio elige una CLAVE; el
 // color real vive solo aquí, con un valor por modo, para que ninguna
 // combinación llegue a pantalla sin contraste comprobado
 // (`__tests__/brandPalette.test.ts` mide cada par con la fórmula de WCAG 2.2).
@@ -9,7 +9,7 @@
 // pasa AA como relleno. `ink` (modo Tinta) está aclarado para leerse sobre
 // #101b2b; `ivory` (modo Marfil) está oscurecido para leerse sobre #f4f0e7.
 //
-// Las claves son las de `barbershop_brand_accent_ck` y del enum `BrandAccent`
+// Las claves son las de `business_brand_accent_ck` y del enum `BrandAccent`
 // del contrato OpenAPI; añadir una exige migración y contrato en el mismo
 // cambio.
 

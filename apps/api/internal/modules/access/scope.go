@@ -1,8 +1,8 @@
 // Package access decide qué puede hacer la sesión según los roles de su usuario
 // (DEC-173, amplía DEC-134). Hoy solo restringe al empleado: quien tiene el rol
 // `empleado` y ningún rol de mayor prioridad (`empresa`, `independiente`) solo
-// puede tocar lo de su propio barbero (el vinculado a su usuario,
-// barber.staff_user_id) y no la configuración de la barbería. Cualquier otra
+// puede tocar lo de su propio profesional (el vinculado a su usuario,
+// professional.staff_user_id) y no la configuración del negocio. Cualquier otra
 // combinación de roles, también ninguna, conserva el acceso completo de siempre.
 package access
 
@@ -22,9 +22,9 @@ const (
 type Scope struct {
 	// Restricted es true para el empleado (DEC-173).
 	Restricted bool
-	// BarberID es el barbero vinculado al usuario; vacío si no tiene vínculo.
+	// ProfessionalID es el profesional vinculado al usuario; vacío si no tiene vínculo.
 	// Solo tiene sentido con Restricted.
-	BarberID string
+	ProfessionalID string
 }
 
 // IsRestricted aplica la prioridad de DEC-134 (empresa > independiente >
@@ -42,12 +42,12 @@ func IsRestricted(roles []string) bool {
 	return employee
 }
 
-// Owns indica si la sesión puede tocar lo del barbero barberID.
-func (s Scope) Owns(barberID string) bool {
+// Owns indica si la sesión puede tocar lo del profesional professionalID.
+func (s Scope) Owns(professionalID string) bool {
 	if !s.Restricted {
 		return true
 	}
-	return s.BarberID != "" && s.BarberID == barberID
+	return s.ProfessionalID != "" && s.ProfessionalID == professionalID
 }
 
 type scopeKey struct{}

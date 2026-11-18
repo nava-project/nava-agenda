@@ -80,7 +80,7 @@ describe('AgendaDatePicker', () => {
     wrapper.unmount()
   })
 
-  it('«Hoy» elige el día vigente de la barbería y solo aparece si se conoce', async () => {
+  it('«Hoy» elige el día vigente del negocio y solo aparece si se conoce', async () => {
     const wrapper = mountPicker({ modelValue: '2026-03-01', today: '2026-09-26' })
     await openPicker(wrapper)
 

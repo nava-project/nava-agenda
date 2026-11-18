@@ -1,11 +1,11 @@
 // Package postgres_test (pruebas de integración, HU-020) requiere
 // PostgreSQL REAL con las nueve migraciones aplicadas (incluida
 // 20260823120000_add_barbershop_contact_info.sql) y
-// database/testdata/dos_barberias.sql cargado. Conéctate como barberia_app
+// database/testdata/dos_negocios.sql cargado. Conéctate como agenda_app
 // (docs/03-desarrollo/estrategia-pruebas.md §2 prohíbe mocks para RLS/zona
 // IANA/atomicidad).
 //
-//	export TEST_DATABASE_URL="postgres://barberia_app:app_test@localhost:5432/barberia_test?sslmode=disable"
+//	export TEST_DATABASE_URL="postgres://agenda_app:app_test@localhost:5432/postgres?sslmode=disable"
 //	go test -race ./internal/modules/shops/postgres/...
 package postgres_test
 
@@ -15,23 +15,23 @@ import (
 	"testing"
 	"time"
 
-	"system-barbershop/internal/modules/shops"
-	shopspostgres "system-barbershop/internal/modules/shops/postgres"
-	"system-barbershop/internal/platform/config"
-	"system-barbershop/internal/platform/database"
+	"nava-agenda/internal/modules/shops"
+	shopspostgres "nava-agenda/internal/modules/shops/postgres"
+	"nava-agenda/internal/platform/config"
+	"nava-agenda/internal/platform/database"
 )
 
 const (
 	testDatabaseURL = "postgres://agenda_app@localhost:5432/barberia_test?sslmode=disable"
 
 	// NO shopA/shopB reales (11111111.../22222222...) ni el par "shopC/shopD"
-	// de hu021_barberos.sql (33333333.../44444444..., ajeno a este archivo):
+	// de hu021_profesionales.sql (33333333.../44444444..., ajeno a este archivo):
 	// este paquete corre como un binario de test SEPARADO del de cmd/api, y
 	// `go test ./...` ejecuta binarios de paquete en paralelo por defecto.
 	// cmd/api/settings_integration_test.go ya hace UPDATE confirmado sobre
 	// las mismas columnas del par real A/B; compartir esa fila aquí produjo
 	// una fuga de estado real entre paquetes (issue #158). Este es el par
-	// dedicado de dos_barberias.sql reservado para ese caso.
+	// dedicado de dos_negocios.sql reservado para ese caso.
 	shopA = "12121212-1212-1212-1212-121212121212"
 	shopB = "34343434-3434-3434-3434-343434343434"
 )
@@ -64,12 +64,12 @@ func setupTestDB(t *testing.T) *database.DB {
 	return db
 }
 
-// sameBarbershop compara por VALOR, no por identidad de puntero:
+// sameBusiness compara por VALOR, no por identidad de puntero:
 // ContactEmail/ContactPhone son *string, y dos lecturas independientes
 // (por ejemplo el RETURNING de un UPDATE y un SELECT posterior) nunca
 // comparten la misma dirección de memoria aunque el contenido sea idéntico
 // (comparar los struct con == compararía esas direcciones, no el texto).
-func sameBarbershop(a, b shops.Barbershop) bool {
+func sameBusiness(a, b shops.Business) bool {
 	if a.Name != b.Name || a.Timezone != b.Timezone {
 		return false
 	}
@@ -83,14 +83,14 @@ func samePointerValue(a, b *string) bool {
 	return *a == *b
 }
 
-// restoreShopA deja shopA en el mismo estado que dos_barberias.sql
+// restoreShopA deja shopA en el mismo estado que dos_negocios.sql
 // (name/timezone originales, sin contacto) al terminar cada prueba: las
-// pruebas de este archivo comparten la fila de dos_barberias.sql en vez de
-// crear una barbería propia, porque HU-020 no expone alta de barberías.
+// pruebas de este archivo comparten la fila de dos_negocios.sql en vez de
+// crear un negocio propio, porque HU-020 no expone alta de negocios.
 func restoreShopA(t *testing.T, db *database.DB) {
 	t.Helper()
 	t.Cleanup(func() {
-		err := db.InTenantTx(context.Background(), database.BarbershopID(shopA), func(ctx context.Context, q database.Queries) error {
+		err := db.InTenantTx(context.Background(), database.BusinessID(shopA), func(ctx context.Context, q database.Queries) error {
 			_, err := q.Exec(ctx,
 				`UPDATE business SET name = $2, timezone = $3, contact_email = NULL, contact_phone = NULL WHERE id = $1`,
 				shopA, "Barbería de prueba (aislamiento de paquete) 1", "America/Bogota",
@@ -116,7 +116,7 @@ func TestGet_ReturnsTheFourAuthorizedFields(t *testing.T) {
 		t.Fatal("expected shopA to be found")
 	}
 	if b.Name != "Barbería de prueba (aislamiento de paquete) 1" || b.Timezone != "America/Bogota" {
-		t.Fatalf("unexpected barbershop: %+v", b)
+		t.Fatalf("unexpected business: %+v", b)
 	}
 	if b.ContactEmail != nil || b.ContactPhone != nil {
 		t.Fatalf("expected no contact configured yet, got %+v", b)
@@ -143,14 +143,14 @@ func TestUpdate_ValidContact_PersistsAndRoundTrips(t *testing.T) {
 	if !result.TimezoneValid || !result.Found {
 		t.Fatalf("expected a successful update, got %+v", result)
 	}
-	if result.Barbershop.Name != "Barbería de prueba (aislamiento de paquete) 1 renombrada" {
-		t.Fatalf("unexpected name: %+v", result.Barbershop)
+	if result.Business.Name != "Barbería de prueba (aislamiento de paquete) 1 renombrada" {
+		t.Fatalf("unexpected name: %+v", result.Business)
 	}
-	if result.Barbershop.ContactEmail == nil || *result.Barbershop.ContactEmail != email {
-		t.Fatalf("expected contactEmail=%q, got %v", email, result.Barbershop.ContactEmail)
+	if result.Business.ContactEmail == nil || *result.Business.ContactEmail != email {
+		t.Fatalf("expected contactEmail=%q, got %v", email, result.Business.ContactEmail)
 	}
-	if result.Barbershop.ContactPhone == nil || *result.Barbershop.ContactPhone != phone {
-		t.Fatalf("expected contactPhone=%q, got %v", phone, result.Barbershop.ContactPhone)
+	if result.Business.ContactPhone == nil || *result.Business.ContactPhone != phone {
+		t.Fatalf("expected contactPhone=%q, got %v", phone, result.Business.ContactPhone)
 	}
 
 	// Confirmación independiente con una lectura nueva (no la misma
@@ -159,7 +159,7 @@ func TestUpdate_ValidContact_PersistsAndRoundTrips(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Get after Update: %v", err)
 	}
-	if !found || !sameBarbershop(got, result.Barbershop) {
+	if !found || !sameBusiness(got, result.Business) {
 		t.Fatalf("expected the persisted row to match the RETURNING result, got %+v (found=%v)", got, found)
 	}
 }
@@ -230,9 +230,9 @@ func TestUpdate_InvalidTimezone_WritesNothing(t *testing.T) {
 
 // TestGetAndUpdate_TenantAIsolatedFromTenantB repite, acotado a las
 // columnas de HU-020, la garantía ya probada a nivel SQL en
-// database/tests/hu020_configuracion_barberia.sql: el repositorio nunca
+// database/tests/hu020_configuracion_negocio.sql: el repositorio nunca
 // mezcla el tenant de contexto con un identificador distinto, porque
-// barbershopID SIEMPRE se usa a la vez como contexto de InTenantTx y como
+// businessID SIEMPRE se usa a la vez como contexto de InTenantTx y como
 // filtro (no existe un canal para pedir "la fila de B con el contexto de
 // A" a través de este puerto).
 func TestGetAndUpdate_TenantAIsolatedFromTenantB(t *testing.T) {

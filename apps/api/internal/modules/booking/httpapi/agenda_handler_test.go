@@ -8,25 +8,25 @@ import (
 	"testing"
 	"time"
 
-	"system-barbershop/internal/modules/booking"
-	"system-barbershop/internal/modules/booking/httpapi"
-	"system-barbershop/internal/platform/apperr"
-	"system-barbershop/internal/platform/httpserver"
+	"nava-agenda/internal/modules/booking"
+	"nava-agenda/internal/modules/booking/httpapi"
+	"nava-agenda/internal/platform/apperr"
+	"nava-agenda/internal/platform/httpserver"
 )
 
-// fakeAgendaBarberPort/fakeAgendaClock/fakeAgendaRepository son dobles
+// fakeAgendaProfessionalPort/fakeAgendaClock/fakeAgendaRepository son dobles
 // mínimos para probar ListDailyAgendaHandler en aislamiento (decodificación
 // de query params, extracción del principal, forma de la respuesta,
 // traducción de errores), no PostgreSQL real (esa cobertura vive en
 // internal/modules/booking/postgres/agenda_repository_test.go) ni la
 // orquestación de AgendaService (esa vive en
 // internal/modules/booking/agenda_test.go).
-type fakeAgendaBarberPort struct {
+type fakeAgendaProfessionalPort struct {
 	exists bool
 	err    error
 }
 
-func (f fakeAgendaBarberPort) Exists(context.Context, string, string) (bool, error) {
+func (f fakeAgendaProfessionalPort) Exists(context.Context, string, string) (bool, error) {
 	return f.exists, f.err
 }
 
@@ -48,10 +48,10 @@ func (f *fakeAgendaRepository) ListDailyAgenda(context.Context, string, string, 
 	return f.entries, nil
 }
 
-const validAgendaBarberID = "8f3ac2b1-e4d5-46f6-a7c8-d9e0f1a2b3c4"
+const validAgendaProfessionalID = "8f3ac2b1-e4d5-46f6-a7c8-d9e0f1a2b3c4"
 
-func newAgendaHandler(repo *fakeAgendaRepository, barbers fakeAgendaBarberPort, timezones fakeTimezones) *httpapi.ListDailyAgendaHandler {
-	service := booking.NewAgendaService(repo, barbers, timezones, fakeAgendaClock{now: time.Now()})
+func newAgendaHandler(repo *fakeAgendaRepository, professionals fakeAgendaProfessionalPort, timezones fakeTimezones) *httpapi.ListDailyAgendaHandler {
+	service := booking.NewAgendaService(repo, professionals, timezones, fakeAgendaClock{now: time.Now()})
 	return httpapi.NewListDailyAgendaHandler(service)
 }
 
@@ -71,10 +71,10 @@ func TestListDailyAgendaHandler_ValidRequest_Returns200WithItems(t *testing.T) {
 		},
 	}
 	repo := &fakeAgendaRepository{entries: entries}
-	h := newAgendaHandler(repo, fakeAgendaBarberPort{exists: true}, fakeTimezones{})
+	h := newAgendaHandler(repo, fakeAgendaProfessionalPort{exists: true}, fakeTimezones{})
 
-	req := requestWithPrincipal(http.MethodGet, "/api/v1/private/professionals/"+validAgendaBarberID+"/appointments/daily-agenda?date=2026-08-28", nil)
-	req = httpserver.RequestWithURLParam(req, "professionalId", validAgendaBarberID)
+	req := requestWithPrincipal(http.MethodGet, "/api/v1/private/professionals/"+validAgendaProfessionalID+"/appointments/daily-agenda?date=2026-08-28", nil)
+	req = httpserver.RequestWithURLParam(req, "professionalId", validAgendaProfessionalID)
 	rec := httptest.NewRecorder()
 	h.ServeHTTP(rec, req)
 
@@ -100,7 +100,7 @@ func TestListDailyAgendaHandler_ValidRequest_Returns200WithItems(t *testing.T) {
 		t.Fatalf("status/origin inesperados: %+v", item)
 	}
 
-	// CA-062-05: nunca teléfono, correo, nota, customerId ni barberId por
+	// CA-062-05: nunca teléfono, correo, nota, customerId ni professionalId por
 	// fila (ya fijado por la ruta). Verificado leyendo el JSON crudo, no
 	// solo el struct tipado, para detectar un campo agregado por error que
 	// el struct de la prueba no declare.
@@ -122,10 +122,10 @@ func TestListDailyAgendaHandler_ValidRequest_Returns200WithItems(t *testing.T) {
 
 func TestListDailyAgendaHandler_EmptyAgenda_Returns200WithEmptyItems(t *testing.T) {
 	repo := &fakeAgendaRepository{entries: nil}
-	h := newAgendaHandler(repo, fakeAgendaBarberPort{exists: true}, fakeTimezones{})
+	h := newAgendaHandler(repo, fakeAgendaProfessionalPort{exists: true}, fakeTimezones{})
 
-	req := requestWithPrincipal(http.MethodGet, "/api/v1/private/professionals/"+validAgendaBarberID+"/appointments/daily-agenda", nil)
-	req = httpserver.RequestWithURLParam(req, "professionalId", validAgendaBarberID)
+	req := requestWithPrincipal(http.MethodGet, "/api/v1/private/professionals/"+validAgendaProfessionalID+"/appointments/daily-agenda", nil)
+	req = httpserver.RequestWithURLParam(req, "professionalId", validAgendaProfessionalID)
 	rec := httptest.NewRecorder()
 	h.ServeHTTP(rec, req)
 
@@ -141,12 +141,12 @@ func TestListDailyAgendaHandler_EmptyAgenda_Returns200WithEmptyItems(t *testing.
 	}
 }
 
-func TestListDailyAgendaHandler_BarberNotFound_Returns404(t *testing.T) {
+func TestListDailyAgendaHandler_ProfessionalNotFound_Returns404(t *testing.T) {
 	repo := &fakeAgendaRepository{}
-	h := newAgendaHandler(repo, fakeAgendaBarberPort{exists: false}, fakeTimezones{})
+	h := newAgendaHandler(repo, fakeAgendaProfessionalPort{exists: false}, fakeTimezones{})
 
-	req := requestWithPrincipal(http.MethodGet, "/api/v1/private/professionals/"+validAgendaBarberID+"/appointments/daily-agenda", nil)
-	req = httpserver.RequestWithURLParam(req, "professionalId", validAgendaBarberID)
+	req := requestWithPrincipal(http.MethodGet, "/api/v1/private/professionals/"+validAgendaProfessionalID+"/appointments/daily-agenda", nil)
+	req = httpserver.RequestWithURLParam(req, "professionalId", validAgendaProfessionalID)
 	rec := httptest.NewRecorder()
 	h.ServeHTTP(rec, req)
 
@@ -157,10 +157,10 @@ func TestListDailyAgendaHandler_BarberNotFound_Returns404(t *testing.T) {
 
 func TestListDailyAgendaHandler_InvalidDate_Returns400(t *testing.T) {
 	repo := &fakeAgendaRepository{}
-	h := newAgendaHandler(repo, fakeAgendaBarberPort{exists: true}, fakeTimezones{})
+	h := newAgendaHandler(repo, fakeAgendaProfessionalPort{exists: true}, fakeTimezones{})
 
-	req := requestWithPrincipal(http.MethodGet, "/api/v1/private/professionals/"+validAgendaBarberID+"/appointments/daily-agenda?date=not-a-date", nil)
-	req = httpserver.RequestWithURLParam(req, "professionalId", validAgendaBarberID)
+	req := requestWithPrincipal(http.MethodGet, "/api/v1/private/professionals/"+validAgendaProfessionalID+"/appointments/daily-agenda?date=not-a-date", nil)
+	req = httpserver.RequestWithURLParam(req, "professionalId", validAgendaProfessionalID)
 	rec := httptest.NewRecorder()
 	h.ServeHTTP(rec, req)
 
@@ -171,10 +171,10 @@ func TestListDailyAgendaHandler_InvalidDate_Returns400(t *testing.T) {
 
 func TestListDailyAgendaHandler_NoPrincipal_Returns500(t *testing.T) {
 	repo := &fakeAgendaRepository{}
-	h := newAgendaHandler(repo, fakeAgendaBarberPort{exists: true}, fakeTimezones{})
+	h := newAgendaHandler(repo, fakeAgendaProfessionalPort{exists: true}, fakeTimezones{})
 
-	req := httptest.NewRequest(http.MethodGet, "/api/v1/private/professionals/"+validAgendaBarberID+"/appointments/daily-agenda", nil)
-	req = httpserver.RequestWithURLParam(req, "professionalId", validAgendaBarberID)
+	req := httptest.NewRequest(http.MethodGet, "/api/v1/private/professionals/"+validAgendaProfessionalID+"/appointments/daily-agenda", nil)
+	req = httpserver.RequestWithURLParam(req, "professionalId", validAgendaProfessionalID)
 	rec := httptest.NewRecorder()
 	h.ServeHTTP(rec, req)
 
@@ -185,10 +185,10 @@ func TestListDailyAgendaHandler_NoPrincipal_Returns500(t *testing.T) {
 
 func TestListDailyAgendaHandler_RepositoryError_Returns500(t *testing.T) {
 	repo := &fakeAgendaRepository{err: apperr.Internal(nil)}
-	h := newAgendaHandler(repo, fakeAgendaBarberPort{exists: true}, fakeTimezones{})
+	h := newAgendaHandler(repo, fakeAgendaProfessionalPort{exists: true}, fakeTimezones{})
 
-	req := requestWithPrincipal(http.MethodGet, "/api/v1/private/professionals/"+validAgendaBarberID+"/appointments/daily-agenda", nil)
-	req = httpserver.RequestWithURLParam(req, "professionalId", validAgendaBarberID)
+	req := requestWithPrincipal(http.MethodGet, "/api/v1/private/professionals/"+validAgendaProfessionalID+"/appointments/daily-agenda", nil)
+	req = httpserver.RequestWithURLParam(req, "professionalId", validAgendaProfessionalID)
 	rec := httptest.NewRecorder()
 	h.ServeHTTP(rec, req)
 

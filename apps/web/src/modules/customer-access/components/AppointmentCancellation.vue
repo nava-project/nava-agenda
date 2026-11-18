@@ -67,7 +67,7 @@ const unavailableText = computed(() => {
 })
 
 const hasContact = computed(
-  () => !!props.appointment.barbershopContactPhone || !!props.appointment.barbershopContactEmail,
+  () => !!props.appointment.businessContactPhone || !!props.appointment.businessContactEmail,
 )
 
 async function open() {
@@ -136,17 +136,17 @@ function onSubmit() {
       <p v-if="hasContact" class="appointment-cancel__contact">
         Contacto:
         <a
-          v-if="appointment.barbershopContactPhone"
-          :href="`tel:${appointment.barbershopContactPhone}`"
-          >{{ appointment.barbershopContactPhone }}</a
+          v-if="appointment.businessContactPhone"
+          :href="`tel:${appointment.businessContactPhone}`"
+          >{{ appointment.businessContactPhone }}</a
         >
-        <template v-if="appointment.barbershopContactPhone && appointment.barbershopContactEmail">
+        <template v-if="appointment.businessContactPhone && appointment.businessContactEmail">
           ·
         </template>
         <a
-          v-if="appointment.barbershopContactEmail"
-          :href="`mailto:${appointment.barbershopContactEmail}`"
-          >{{ appointment.barbershopContactEmail }}</a
+          v-if="appointment.businessContactEmail"
+          :href="`mailto:${appointment.businessContactEmail}`"
+          >{{ appointment.businessContactEmail }}</a
         >
       </p>
       <p v-else class="appointment-cancel__contact">

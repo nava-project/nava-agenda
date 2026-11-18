@@ -1,5 +1,5 @@
 /* Formularios de los diálogos de series de bloqueo (HU-042, #100): misma
-   gramática que los diálogos de BarberBlocksPanel (DEC-105). El tema oscuro
+   gramática que los diálogos de ProfessionalBlocksPanel (DEC-105). El tema oscuro
    del contenedor lo aporta `.block-dialog`, definido por el panel. */
 .block-form {
   display: grid;

@@ -7,41 +7,41 @@ import (
 	"strings"
 	"time"
 
-	"system-barbershop/internal/platform/apperr"
+	"nava-agenda/internal/platform/apperr"
 )
 
-// FullNameMaxLength coincide con barber_full_name_ck
+// FullNameMaxLength coincide con professional_full_name_ck
 // (20260823130000_create_barber.sql): el servicio no inventa un límite más
 // estricto que la base ya aplica (CA-021-03).
 const FullNameMaxLength = 120
 
-// DescriptionMaxLength coincide con barber_description_ck
+// DescriptionMaxLength coincide con professional_description_ck
 // (20261026120000_add_barber_description.sql): un texto de presentación, no
 // una biografía (DEC-127).
 const DescriptionMaxLength = 280
 
 // DefaultListLimit, MinListLimit y MaxListLimit acotan `limit` en la lista
 // paginada (CA-021-02): límites técnicos, no un máximo de negocio de
-// barberos por barbería (docs/06-api/estandar-openapi.md §6.10).
+// profesionales por negocio (docs/06-api/estandar-openapi.md §6.10).
 const (
 	DefaultListLimit = 20
 	MinListLimit     = 1
 	MaxListLimit     = 50
 )
 
-// Barber es un barbero de la barbería activa: exactamente los campos que
-// HU-021 autoriza (DEC-047). Una barbería unipersonal y una de varios
-// barberos usan este mismo tipo, sin una forma especial para "barbero
+// Professional es un profesional del negocio activo: exactamente los campos que
+// HU-021 autoriza (DEC-047). Un negocio unipersonal y una de varios
+// profesionales usan este mismo tipo, sin una forma especial para "profesional
 // único" (CA-021-01).
-type Barber struct {
+type Professional struct {
 	ID        string
 	FullName  string
 	CreatedAt time.Time
 	UpdatedAt time.Time
-	// PhotoUpdatedAt es nil mientras el barbero no tiene fotografía (DEC-104):
+	// PhotoUpdatedAt es nil mientras el profesional no tiene fotografía (DEC-104):
 	// el cliente usa el monograma. Cuando existe, es la versión de la imagen.
 	PhotoUpdatedAt *time.Time
-	// Description es nil mientras el barbero no tiene descripción (DEC-127): la
+	// Description es nil mientras el profesional no tiene descripción (DEC-127): la
 	// reserva pública solo muestra su nombre y fotografía. Nunca es una cadena
 	// vacía.
 	Description *string
@@ -61,23 +61,23 @@ type DescriptionPatch struct {
 	Value *string
 }
 
-// barberIDPattern es la misma forma canónica 8-4-4-4-12 que
-// database.ValidBarbershopID exige (el núcleo no puede importar ese
+// professionalIDPattern es la misma forma canónica 8-4-4-4-12 que
+// database.ValidBusinessID exige (el núcleo no puede importar ese
 // paquete, CA-002-06, así que se repite la validación aquí). Un
 // identificador que no cumple esta forma no puede corresponder a ninguna
 // fila real: se trata igual que "no existe" (mismo apperr.NotFound,
 // CA-021-05) en vez de dejar que la consulta SQL falle con un error de
 // tipo (que sería un 500, no un 404).
-var barberIDPattern = regexp.MustCompile(
+var professionalIDPattern = regexp.MustCompile(
 	`^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$`,
 )
 
-// LooksLikeBarberID informa si id tiene la forma de un UUID válido.
-func LooksLikeBarberID(id string) bool {
-	return barberIDPattern.MatchString(id)
+// LooksLikeProfessionalID informa si id tiene la forma de un UUID válido.
+func LooksLikeProfessionalID(id string) bool {
+	return professionalIDPattern.MatchString(id)
 }
 
-// NormalizeFullName recorta espacios, igual que barber_full_name_ck espera
+// NormalizeFullName recorta espacios, igual que professional_full_name_ck espera
 // (btrim). No trunca ni rechaza: el largo y la vacuidad se validan aparte
 // (Service.Create/Rename), y preserva cualquier carácter Unicode válido
 // restante (CA-021-03: "preserva caracteres Unicode válidos").
@@ -87,7 +87,7 @@ func NormalizeFullName(raw string) string {
 
 // NormalizeDescription recorta espacios y convierte "sin texto" en nil: una
 // descripción vacía o de solo espacios es lo mismo que no tener descripción
-// (barber_description_ck rechaza la cadena vacía). No trunca; el largo se
+// (professional_description_ck rechaza la cadena vacía). No trunca; el largo se
 // valida aparte.
 func NormalizeDescription(raw *string) *string {
 	if raw == nil {
@@ -102,7 +102,7 @@ func NormalizeDescription(raw *string) *string {
 
 // Cursor es la posición decodificada de una página de la lista (CA-021-02):
 // orden estable por fecha de alta y luego por identificador, exactamente
-// los dos campos que idx_barber_shop_created_id indexa.
+// los dos campos que idx_professional_shop_created_id indexa.
 type Cursor struct {
 	CreatedAt time.Time
 	ID        string

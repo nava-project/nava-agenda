@@ -14,16 +14,16 @@ const (
 	// Open: el empleado puede usarla tal cual (lecturas que el panel necesita,
 	// su sesión, su integración personal).
 	Open Rule = iota + 1
-	// Filtered: la ruta lista recursos de varios barberos; su handler filtra
+	// Filtered: la ruta lista recursos de varios profesionales; su handler filtra
 	// con ScopeFromContext para devolver solo el del empleado.
 	Filtered
-	// DenyRestricted: configuración de la barbería; 403 para el empleado.
+	// DenyRestricted: configuración del negocio; 403 para el empleado.
 	DenyRestricted
-	// OwnBarber: ruta con {professionalId}; solo su propio barbero (403 si no).
-	OwnBarber
-	// OwnBarberInBody: el barberId viaja en el cuerpo JSON (crear turno).
-	OwnBarberInBody
-	// OwnAppointment: ruta con {appointmentId}; un turno de otro barbero
+	// OwnProfessional: ruta con {professionalId}; solo su propio profesional (403 si no).
+	OwnProfessional
+	// OwnProfessionalInBody: el professionalId viaja en el cuerpo JSON (crear turno).
+	OwnProfessionalInBody
+	// OwnAppointment: ruta con {appointmentId}; un turno de otro profesional
 	// responde 404, igual que uno inexistente (no revela datos de clientes).
 	OwnAppointment
 )
@@ -36,10 +36,10 @@ func (r Rule) String() string {
 		return "filtered"
 	case DenyRestricted:
 		return "deny"
-	case OwnBarber:
-		return "own-barber"
-	case OwnBarberInBody:
-		return "own-barber-body"
+	case OwnProfessional:
+		return "own-professional"
+	case OwnProfessionalInBody:
+		return "own-professional-body"
 	case OwnAppointment:
 		return "own-appointment"
 	}

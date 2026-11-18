@@ -8,12 +8,12 @@ import (
 
 	"github.com/jackc/pgx/v5"
 
-	"system-barbershop/internal/modules/appointmentnotice"
-	"system-barbershop/internal/platform/database"
+	"nava-agenda/internal/modules/appointmentnotice"
+	"nava-agenda/internal/platform/database"
 )
 
 // WorkerRepository implementa appointmentnotice.Store contra las funciones
-// SECURITY DEFINER concedidas exclusivamente a barberia_worker (DEC-040): el
+// SECURITY DEFINER concedidas exclusivamente a agenda_worker (DEC-040): el
 // worker no tiene acceso directo a ninguna tabla ni fija contexto de tenant. db
 // debe ser el pool del proceso worker (cfg.WorkerDatabaseURL).
 type WorkerRepository struct {
@@ -59,8 +59,8 @@ func (r *WorkerRepository) NoticeContext(ctx context.Context, noticeID, claimTok
 		[]any{noticeID, claimToken},
 		func(row pgx.Row) error {
 			err := row.Scan(&c.Kind, &c.AppointmentStatus, &c.StartsAt, &c.StateAt, &c.CustomerEmail,
-				&c.AttendeeName, &c.ServiceName, &c.BarbershopName, &c.Timezone, &c.AlreadyCovered, &c.NoticeStateAt,
-				&c.CustomerPhone, &c.BarberName)
+				&c.AttendeeName, &c.ServiceName, &c.BusinessName, &c.Timezone, &c.AlreadyCovered, &c.NoticeStateAt,
+				&c.CustomerPhone, &c.ProfessionalName)
 			if errors.Is(err, pgx.ErrNoRows) {
 				return nil // la reclamación ya no es vigente
 			}

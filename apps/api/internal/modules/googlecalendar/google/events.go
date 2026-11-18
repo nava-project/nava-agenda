@@ -12,7 +12,7 @@ import (
 	"strconv"
 	"time"
 
-	"system-barbershop/internal/modules/googlecalendar"
+	"nava-agenda/internal/modules/googlecalendar"
 )
 
 // DefaultEventsBaseURL es la raíz de la API de Google Calendar v3.

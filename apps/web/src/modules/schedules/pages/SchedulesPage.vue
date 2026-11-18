@@ -1,11 +1,11 @@
 <script setup lang="ts">
-// Pantalla "Horarios" (HU-040): elegir un barbero y mantener sus tramos de
+// Pantalla "Horarios" (HU-040): elegir un profesional y mantener sus tramos de
 // horario laboral recurrente, agrupados por día ISO de la semana (los
-// siete días siempre aparecen, con o sin tramos, CA-040-01). Un barbero con
+// siete días siempre aparecen, con o sin tramos, CA-040-01). Un profesional con
 // un solo tramo y uno con jornada partida en varios días usan exactamente
 // el mismo componente (CA-040-02): nunca hay una rama especial. Estados
-// discriminados: carga inicial, listo, vacío (sin barberos), error
-// recuperable, cargando tramos del barbero elegido, guardando. Un error
+// discriminados: carga inicial, listo, vacío (sin profesionales), error
+// recuperable, cargando tramos del profesional elegido, guardando. Un error
 // recuperable nunca borra lo que ya se escribió en el diálogo abierto; solo
 // una respuesta exitosa del servidor cierra el diálogo o cambia una fila
 // (trabajo requerido §4.3/§4.4 de HU-021, mismo criterio aquí). Cada cambio
@@ -14,10 +14,10 @@
 // regla horaria común, con la lista real de tramos debajo de cada día.
 import { computed, onMounted, onUnmounted, ref, watch } from 'vue'
 import { useToast, useVocabulary } from '@/shared/composables'
-import { isSoloProfile, worksOwnBarber } from '@/shared/model'
+import { isSoloProfile, worksOwnProfessional } from '@/shared/model'
 import { getCivilDateInTimezone } from '@/shared/time/civilDate'
 import {
-  BarberAvatar,
+  ProfessionalAvatar,
   BaseAlert,
   BaseButton,
   BaseDatePicker,
@@ -35,8 +35,8 @@ import WeeklyBoard from '../components/WeeklyBoard.vue'
 import {
   createWorkingHour,
   deleteWorkingHour,
-  fetchBarberSummaries,
-  fetchBarbershopTimezone,
+  fetchProfessionalSummaries,
+  fetchBusinessTimezone,
   fetchWorkingHours,
   updateWorkingHour,
 } from '../api/schedulesApi'
@@ -66,7 +66,7 @@ import type { ColombianHoliday, ScheduleException } from '../model/scheduleExcep
 import {
   ISO_WEEKDAYS,
   weekdayLabel,
-  type BarberSummary,
+  type ProfessionalSummary,
   type WorkingHour,
 } from '../model/workingHour'
 import {
@@ -93,12 +93,12 @@ type SaveStatus =
   | 'unexpected-error'
 
 const pageStatus = ref<PageStatus>('loading')
-const barbers = ref<BarberSummary[]>([])
-const selectedBarberId = ref<string | null>(null)
-// CA-040-06: zona IANA de la barbería, nunca la del dispositivo. null
+const professionals = ref<ProfessionalSummary[]>([])
+const selectedProfessionalId = ref<string | null>(null)
+// CA-040-06: zona IANA del negocio, nunca la del dispositivo. null
 // mientras carga o si la consulta falla; no bloquea la pantalla (la hora
 // civil ya es correcta sin conversión alguna).
-const barbershopTimezone = ref<string | null>(null)
+const businessTimezone = ref<string | null>(null)
 
 const workingHoursStatus = ref<WorkingHoursStatus>('idle')
 const workingHours = ref<WorkingHour[]>([])
@@ -106,11 +106,13 @@ const pendingDeleteIds = ref<Set<string>>(new Set())
 
 const v = useVocabulary()
 
-// Perfil de barbero individual (DEC-115): con un solo barbero no hay selector.
-const hideBarberPicker = computed(() => worksOwnBarber.value && barbers.value.length === 1)
+// Perfil de profesional individual (DEC-115): con un solo profesional no hay selector.
+const hideProfessionalPicker = computed(
+  () => worksOwnProfessional.value && professionals.value.length === 1,
+)
 
-const selectedBarber = computed(
-  () => barbers.value.find((b) => b.id === selectedBarberId.value) ?? null,
+const selectedProfessional = computed(
+  () => professionals.value.find((b) => b.id === selectedProfessionalId.value) ?? null,
 )
 
 // groupedByWeekday siempre incluye los siete días, en orden, con o sin
@@ -129,23 +131,23 @@ const toast = useToast()
 
 async function loadPage() {
   pageStatus.value = 'loading'
-  const [barbersOutcome, timezoneOutcome] = await Promise.all([
-    fetchBarberSummaries(),
-    fetchBarbershopTimezone(),
+  const [professionalsOutcome, timezoneOutcome] = await Promise.all([
+    fetchProfessionalSummaries(),
+    fetchBusinessTimezone(),
   ])
 
-  barbershopTimezone.value = timezoneOutcome.kind === 'success' ? timezoneOutcome.timezone : null
+  businessTimezone.value = timezoneOutcome.kind === 'success' ? timezoneOutcome.timezone : null
 
-  if (barbersOutcome.kind !== 'success') {
+  if (professionalsOutcome.kind !== 'success') {
     pageStatus.value = 'load-error'
     return
   }
 
-  barbers.value = barbersOutcome.items
+  professionals.value = professionalsOutcome.items
   pageStatus.value = 'ready'
 
-  if (barbers.value.length > 0) {
-    await selectBarber(barbers.value[0]!.id)
+  if (professionals.value.length > 0) {
+    await selectProfessional(professionals.value[0]!.id)
   }
 }
 
@@ -155,7 +157,7 @@ function onRetryLoad() {
   void loadPage()
 }
 
-// Al cambiar de barbero la semana anterior queda en pantalla, atenuada e inerte,
+// Al cambiar de profesional la semana anterior queda en pantalla, atenuada e inerte,
 // bajo un velo de carga: cambiar el tablero por un esqueleto de otro alto hacía
 // saltar toda la pantalla (issue #575). El esqueleto queda solo para la
 // primera carga, cuando aún no hay semana que mostrar.
@@ -164,14 +166,14 @@ const boardBusy = computed(
   () => workingHoursStatus.value === 'loading' && hasShownWorkingHours.value,
 )
 
-async function selectBarber(barberId: string) {
-  selectedBarberId.value = barberId
+async function selectProfessional(professionalId: string) {
+  selectedProfessionalId.value = professionalId
   workingHoursStatus.value = 'loading'
 
-  const outcome = await fetchWorkingHours(barberId)
-  // El barbero seleccionado pudo cambiar mientras la solicitud estaba en
+  const outcome = await fetchWorkingHours(professionalId)
+  // El profesional seleccionado pudo cambiar mientras la solicitud estaba en
   // vuelo (cambio rápido en el selector): descarta una respuesta obsoleta.
-  if (selectedBarberId.value !== barberId) return
+  if (selectedProfessionalId.value !== professionalId) return
 
   if (outcome.kind === 'success') {
     workingHours.value = outcome.page.items
@@ -181,17 +183,17 @@ async function selectBarber(barberId: string) {
     workingHoursStatus.value = 'error'
   }
 
-  void loadHolidayCalendar(barberId)
-  void loadExceptions(barberId)
+  void loadHolidayCalendar(professionalId)
+  void loadExceptions(professionalId)
 }
 
-function onBarberChange(barberId: string) {
-  if (barberId === selectedBarberId.value) return
-  void selectBarber(barberId)
+function onProfessionalChange(professionalId: string) {
+  if (professionalId === selectedProfessionalId.value) return
+  void selectProfessional(professionalId)
 }
 
 function onRetryWorkingHours() {
-  if (selectedBarberId.value) void selectBarber(selectedBarberId.value)
+  if (selectedProfessionalId.value) void selectProfessional(selectedProfessionalId.value)
 }
 
 // --- Alta -------------------------------------------------------------
@@ -266,7 +268,7 @@ function onCreateEndsTimeInput(value: string | number) {
 }
 
 async function onSubmitCreate() {
-  if (createStatus.value === 'saving' || !selectedBarberId.value) return
+  if (createStatus.value === 'saving' || !selectedProfessionalId.value) return
 
   createAttempted.value = true
   const weekdayError = validateISOWeekday(createISOWeekday.value)
@@ -279,7 +281,7 @@ async function onSubmitCreate() {
 
   createStatus.value = 'saving'
   const outcome = await createWorkingHour(
-    selectedBarberId.value,
+    selectedProfessionalId.value,
     createISOWeekday.value,
     createStartsTime.value,
     createDurationMinutes.value,
@@ -370,7 +372,7 @@ function onEditEndsTimeInput(value: string | number) {
 }
 
 async function onSubmitEdit() {
-  if (editStatus.value === 'saving' || !editTarget.value || !selectedBarberId.value) return
+  if (editStatus.value === 'saving' || !editTarget.value || !selectedProfessionalId.value) return
 
   editAttempted.value = true
   const weekdayError = validateISOWeekday(editISOWeekday.value)
@@ -383,7 +385,7 @@ async function onSubmitEdit() {
 
   editStatus.value = 'saving'
   const outcome = await updateWorkingHour(
-    selectedBarberId.value,
+    selectedProfessionalId.value,
     editTarget.value.id,
     editISOWeekday.value,
     editStartsTime.value,
@@ -425,15 +427,15 @@ function isDeletePending(id: string): boolean {
 }
 
 async function onDelete(wh: WorkingHour) {
-  const barberId = selectedBarberId.value
-  if (!barberId || isDeletePending(wh.id)) return
+  const professionalId = selectedProfessionalId.value
+  if (!professionalId || isDeletePending(wh.id)) return
 
   const next = new Set(pendingDeleteIds.value)
   next.add(wh.id)
   pendingDeleteIds.value = next
   deleteError.value = null
 
-  const outcome = await deleteWorkingHour(barberId, wh.id)
+  const outcome = await deleteWorkingHour(professionalId, wh.id)
 
   const after = new Set(pendingDeleteIds.value)
   after.delete(wh.id)
@@ -467,10 +469,10 @@ const holidayCalendarEnabled = ref(false)
 const holidayCalendarSaving = ref(false)
 const holidayCalendarError = ref<string | null>(null)
 
-async function loadHolidayCalendar(barberId: string) {
+async function loadHolidayCalendar(professionalId: string) {
   holidayCalendarStatus.value = 'loading'
-  const outcome = await fetchHolidayCalendar(barberId)
-  if (selectedBarberId.value !== barberId) return
+  const outcome = await fetchHolidayCalendar(professionalId)
+  if (selectedProfessionalId.value !== professionalId) return
 
   if (outcome.kind === 'success') {
     holidayCalendarEnabled.value = outcome.enabled
@@ -481,13 +483,13 @@ async function loadHolidayCalendar(barberId: string) {
 }
 
 async function onToggleHolidayCalendar(event: Event) {
-  const barberId = selectedBarberId.value
+  const professionalId = selectedProfessionalId.value
   const checked = (event.target as HTMLInputElement).checked
-  if (!barberId || holidayCalendarSaving.value) return
+  if (!professionalId || holidayCalendarSaving.value) return
 
   holidayCalendarSaving.value = true
   holidayCalendarError.value = null
-  const outcome = await updateHolidayCalendar(barberId, checked)
+  const outcome = await updateHolidayCalendar(professionalId, checked)
   holidayCalendarSaving.value = false
 
   if (outcome.kind === 'success') {
@@ -510,7 +512,7 @@ async function onToggleHolidayCalendar(event: Event) {
 // --- HU-041: festivos colombianos de referencia (RN-BLQ-02) ---------------
 
 // upcomingColombianHolidays es un dato de referencia único para toda la
-// pantalla (no depende del barbero elegido): se carga una sola vez.
+// pantalla (no depende del profesional elegido): se carga una sola vez.
 const colombianHolidays = ref<ColombianHoliday[]>([])
 
 async function loadColombianHolidays() {
@@ -534,10 +536,10 @@ const sortedExceptions = computed(() =>
   [...exceptions.value].sort((a, b) => a.effectiveDate.localeCompare(b.effectiveDate)),
 )
 
-async function loadExceptions(barberId: string) {
+async function loadExceptions(professionalId: string) {
   exceptionsStatus.value = 'loading'
-  const outcome = await fetchScheduleExceptions(barberId)
-  if (selectedBarberId.value !== barberId) return
+  const outcome = await fetchScheduleExceptions(professionalId)
+  if (selectedProfessionalId.value !== professionalId) return
 
   if (outcome.kind === 'success') {
     exceptions.value = outcome.page.items
@@ -548,7 +550,7 @@ async function loadExceptions(barberId: string) {
 }
 
 function onRetryExceptions() {
-  if (selectedBarberId.value) void loadExceptions(selectedBarberId.value)
+  if (selectedProfessionalId.value) void loadExceptions(selectedProfessionalId.value)
 }
 
 type ExceptionSaveStatus =
@@ -652,7 +654,7 @@ function revalidateExceptionCreate() {
 }
 
 async function onSubmitExceptionCreate() {
-  if (createExceptionStatus.value === 'saving' || !selectedBarberId.value) return
+  if (createExceptionStatus.value === 'saving' || !selectedProfessionalId.value) return
 
   createExceptionAttempted.value = true
   const effectiveDateError = validateEffectiveDate(createEffectiveDate.value)
@@ -671,7 +673,7 @@ async function onSubmitExceptionCreate() {
         durationMinutes: s.durationMinutes,
       }))
   const outcome = await createScheduleException(
-    selectedBarberId.value,
+    selectedProfessionalId.value,
     createEffectiveDate.value,
     createIsClosed.value,
     createReason.value.trim() === '' ? null : createReason.value.trim(),
@@ -775,7 +777,7 @@ async function onSubmitExceptionEdit() {
   if (
     editExceptionStatus.value === 'saving' ||
     !editExceptionTarget.value ||
-    !selectedBarberId.value
+    !selectedProfessionalId.value
   )
     return
 
@@ -796,7 +798,7 @@ async function onSubmitExceptionEdit() {
         durationMinutes: s.durationMinutes,
       }))
   const outcome = await updateScheduleException(
-    selectedBarberId.value,
+    selectedProfessionalId.value,
     editExceptionTarget.value.id,
     editEffectiveDate.value,
     editIsClosed.value,
@@ -837,15 +839,15 @@ function isExceptionDeletePending(id: string): boolean {
 }
 
 async function onDeleteException(exception: ScheduleException) {
-  const barberId = selectedBarberId.value
-  if (!barberId || isExceptionDeletePending(exception.id)) return
+  const professionalId = selectedProfessionalId.value
+  if (!professionalId || isExceptionDeletePending(exception.id)) return
 
   const next = new Set(pendingDeleteExceptionIds.value)
   next.add(exception.id)
   pendingDeleteExceptionIds.value = next
   exceptionDeleteError.value = null
 
-  const outcome = await deleteScheduleException(barberId, exception.id)
+  const outcome = await deleteScheduleException(professionalId, exception.id)
 
   const after = new Set(pendingDeleteExceptionIds.value)
   after.delete(exception.id)
@@ -872,7 +874,7 @@ async function onDeleteException(exception: ScheduleException) {
 
 onMounted(loadColombianHolidays)
 
-// --- Tablero semanal, cifras y reloj de la barbería -------------------------
+// --- Tablero semanal, cifras y reloj del negocio -------------------------
 
 const LOADING_PHRASES = [
   'Revisando la semana',
@@ -881,7 +883,7 @@ const LOADING_PHRASES = [
   'Todo a su hora',
 ] as const
 
-// Duraciones que un barbero escribe una y otra vez: atajos, no una regla.
+// Duraciones que un profesional escribe una y otra vez: atajos, no una regla.
 // Panel lateral en acordeón: un solo apartado abierto a la vez para que la
 // pantalla quepa sin desplazarse. Las excepciones abren primero: son lo que
 // más se edita; el estado de los festivos se lee en la insignia del apartado.
@@ -892,8 +894,11 @@ function togglePanel(panel: AsidePanel) {
   openPanel.value = openPanel.value === panel ? null : panel
 }
 
-const barberOptions = computed(() =>
-  barbers.value.map((barber) => ({ value: barber.id, label: barber.fullName })),
+const professionalOptions = computed(() =>
+  professionals.value.map((professional) => ({
+    value: professional.id,
+    label: professional.fullName,
+  })),
 )
 
 const boardScale = computed(() => computeScale(workingHours.value))
@@ -902,23 +907,23 @@ const weekMinutes = computed(() =>
 )
 const activeDays = computed(() => new Set(workingHours.value.map((wh) => wh.isoWeekday)).size)
 
-// "Hoy" y "ahora" se leen en la zona de la barbería, nunca en la del
+// "Hoy" y "ahora" se leen en la zona del negocio, nunca en la del
 // dispositivo (CA-040-06). Sin zona conocida no se marca ninguno.
 const clock = ref<BoardNow | null>(null)
 
 function refreshClock() {
-  if (!barbershopTimezone.value) {
+  if (!businessTimezone.value) {
     clock.value = null
     return
   }
   try {
-    clock.value = nowInTimezone(barbershopTimezone.value)
+    clock.value = nowInTimezone(businessTimezone.value)
   } catch {
     clock.value = null
   }
 }
 
-watch(barbershopTimezone, refreshClock, { immediate: true })
+watch(businessTimezone, refreshClock, { immediate: true })
 
 let clockTimer: ReturnType<typeof setInterval> | undefined
 onMounted(() => {
@@ -931,7 +936,7 @@ onUnmounted(() => {
 const todayIsoWeekday = computed(() => clock.value?.isoWeekday ?? null)
 const nowMinute = computed(() => clock.value?.minute ?? null)
 const todayCivilDate = computed(() =>
-  barbershopTimezone.value && clock.value ? getCivilDateInTimezone(barbershopTimezone.value) : null,
+  businessTimezone.value && clock.value ? getCivilDateInTimezone(businessTimezone.value) : null,
 )
 
 const exceptionDates = computed(() => new Set(exceptions.value.map((e) => e.effectiveDate)))
@@ -992,27 +997,30 @@ const editPreview = computed(() =>
         <h1 id="schedules-page-title" class="schedules-page__title">Horarios</h1>
         <p class="schedules-page__subtitle">Jornada semanal, festivos y excepciones.</p>
       </div>
-      <!-- Controles de la jornada junto al título: sin barberos no hay jornada
+      <!-- Controles de la jornada junto al título: sin profesionales no hay jornada
            que armar, así que la acción principal tampoco aparece. -->
-      <div v-if="pageStatus === 'ready' && barbers.length > 0" class="schedules-page__controls">
+      <div
+        v-if="pageStatus === 'ready' && professionals.length > 0"
+        class="schedules-page__controls"
+      >
         <div class="schedules-page__who">
-          <BarberAvatar
+          <ProfessionalAvatar
             class="schedules-page__portrait"
             size="row"
-            :full-name="selectedBarber?.fullName ?? ''"
-            :photo-url="selectedBarber?.photoUrl ?? null"
+            :full-name="selectedProfessional?.fullName ?? ''"
+            :photo-url="selectedProfessional?.photoUrl ?? null"
           />
           <BaseSelect
-            v-if="!hideBarberPicker"
-            id="schedules-barber-select"
+            v-if="!hideProfessionalPicker"
+            id="schedules-professional-select"
             class="schedules-page__select"
             :label="v.Professional"
-            :model-value="selectedBarberId ?? ''"
-            :options="barberOptions"
-            @update:model-value="onBarberChange"
+            :model-value="selectedProfessionalId ?? ''"
+            :options="professionalOptions"
+            @update:model-value="onProfessionalChange"
           />
-          <!-- Perfil de barbero individual (DEC-115): con un solo barbero no hay nada que elegir. -->
-          <span v-else class="schedules-page__who-name">{{ selectedBarber?.fullName }}</span>
+          <!-- Perfil de profesional individual (DEC-115): con un solo profesional no hay nada que elegir. -->
+          <span v-else class="schedules-page__who-name">{{ selectedProfessional?.fullName }}</span>
         </div>
 
         <dl
@@ -1042,7 +1050,7 @@ const editPreview = computed(() =>
       </div>
     </header>
 
-    <!-- Un solo fundido entre carga/error/listo (mismo criterio que Barberos). -->
+    <!-- Un solo fundido entre carga/error/listo (mismo criterio que Profesionales). -->
     <Transition name="schedules-content" mode="out-in">
       <div
         v-if="pageStatus === 'loading'"
@@ -1076,7 +1084,7 @@ const editPreview = computed(() =>
       </BaseAlert>
 
       <div v-else class="schedules-page__ready">
-        <EmptyScene v-if="barbers.length === 0" scene="agenda" class="schedules-page__empty">
+        <EmptyScene v-if="professionals.length === 0" scene="agenda" class="schedules-page__empty">
           <template #title>{{
             isSoloProfile
               ? 'Aún no tienes tu perfil.'
@@ -1085,12 +1093,12 @@ const editPreview = computed(() =>
           <template #hint>
             <template v-if="isSoloProfile">
               Créalo en la sección
-              <RouterLink :to="{ name: 'staff-barberos' }">“Mi perfil”</RouterLink>
+              <RouterLink :to="{ name: 'staff-profesionales' }">“Mi perfil”</RouterLink>
               antes de configurar tu horario.
             </template>
             <template v-else>
               Agrega uno en la sección
-              <RouterLink :to="{ name: 'staff-barberos' }">“{{ v.Professionals }}”</RouterLink>
+              <RouterLink :to="{ name: 'staff-profesionales' }">“{{ v.Professionals }}”</RouterLink>
               antes de configurar su horario.
             </template>
           </template>
@@ -1105,7 +1113,7 @@ const editPreview = computed(() =>
               aria-live="polite"
             >
               <DiamondLoader
-                :label="`Cargando el horario de ${selectedBarber?.fullName}…`"
+                :label="`Cargando el horario de ${selectedProfessional?.fullName}…`"
                 layout="inline"
                 :phrases="LOADING_PHRASES"
               />
@@ -1168,7 +1176,7 @@ const editPreview = computed(() =>
                     aria-live="polite"
                   >
                     <DiamondLoader
-                      :label="`Cargando el horario de ${selectedBarber?.fullName}…`"
+                      :label="`Cargando el horario de ${selectedProfessional?.fullName}…`"
                       :phrases="LOADING_PHRASES"
                     />
                   </div>
@@ -1176,19 +1184,19 @@ const editPreview = computed(() =>
               </div>
             </template>
 
-            <p v-if="barbershopTimezone" class="schedules-page__timezone">
+            <p v-if="businessTimezone" class="schedules-page__timezone">
               <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.2">
                 <circle cx="8" cy="8" r="6" />
                 <path d="M8 4.5V8l2.4 1.6" />
               </svg>
               <span
                 >Horas en la zona horaria {{ v.ofTheBusiness }}:
-                <strong>{{ barbershopTimezone }}</strong></span
+                <strong>{{ businessTimezone }}</strong></span
               >
             </p>
           </div>
 
-          <!-- Ajustes del barbero en acordeón: festivos (HU-041), excepciones de
+          <!-- Ajustes del profesional en acordeón: festivos (HU-041), excepciones de
                jornada (HU-041) y festivos de referencia. -->
           <aside
             class="schedules-page__aside"
@@ -1399,7 +1407,7 @@ const editPreview = computed(() =>
     <BaseDialog
       v-model="isCreateOpen"
       title="Agregar tramo"
-      :description="`Define cuándo trabaja ${selectedBarber?.fullName ?? v.theProfessional} ese día.`"
+      :description="`Define cuándo trabaja ${selectedProfessional?.fullName ?? v.theProfessional} ese día.`"
       size="lg"
       content-class="schedules-page__dialog"
       @close="onCreateDialogClosed"
@@ -2025,7 +2033,7 @@ const editPreview = computed(() =>
 
 <style scoped>
 /* Superficie tinta de punta a punta (estandar-diseno-visual.md §3), el mismo
-   canvas que Agenda, Servicios y Barberos; columna de lectura de 980px. */
+   canvas que Agenda, Servicios y Profesionales; columna de lectura de 980px. */
 .schedules-page {
   --schedules-width: 980px;
 
@@ -2063,9 +2071,9 @@ const editPreview = computed(() =>
 }
 
 /* Cabecera: título a la izquierda y, en escritorio, los controles de la
-   jornada (barbero, cifras y acción principal) en la misma franja. */
+   jornada (profesional, cifras y acción principal) en la misma franja. */
 .schedules-page__header {
-  /* Por encima del tablero: la lista del selector de barbero se abre sobre él. */
+  /* Por encima del tablero: la lista del selector de profesional se abre sobre él. */
   position: relative;
   z-index: 3;
   display: flex;
@@ -2139,7 +2147,7 @@ const editPreview = computed(() =>
 }
 
 /* Esqueleto de la semana: una fila por día con su pista, con el pulso de
-   Barberos/Servicios/Agenda. */
+   Profesionales/Servicios/Agenda. */
 .schedules-page__skeleton {
   overflow: hidden;
   background-color: var(--color-field-strong);
@@ -2200,7 +2208,7 @@ const editPreview = computed(() =>
   animation: schedules-rise 360ms var(--motion-easing-standard) both;
 }
 
-/* Perfil de barbero individual (DEC-115): sin selector, el nombre acompaña al retrato. */
+/* Perfil de profesional individual (DEC-115): sin selector, el nombre acompaña al retrato. */
 .schedules-page__who-name {
   align-self: center;
   min-width: 0;
@@ -2490,7 +2498,7 @@ const editPreview = computed(() =>
   list-style: none;
 }
 
-/* Acciones del panel y de fila: botón fantasma de latón, igual que en Barberos. */
+/* Acciones del panel y de fila: botón fantasma de latón, igual que en Profesionales. */
 .schedules-page__aside-action.base-button,
 .schedules-row :deep(.base-button) {
   --btn-focus-ring: 0 0 0 2px var(--color-field-strong), 0 0 0 4px var(--color-focus);
@@ -2783,7 +2791,7 @@ const editPreview = computed(() =>
   left: 0;
 }
 
-/* Diálogos: mismo tinte, filete de latón y campos reglados que los de Barberos.
+/* Diálogos: mismo tinte, filete de latón y campos reglados que los de Profesionales.
    Solo aplica dentro de .schedules-page__ink (el contenido que esta plantilla
    pone en el diálogo); el fondo y el encabezado, que BaseDialog renderiza en
    <Teleport to="body">, se sobrescriben en el bloque sin "scoped" del final. */
@@ -2882,7 +2890,7 @@ const editPreview = computed(() =>
 }
 
 /* El filete dorado inferior marca el campo YA RESUELTO (mismo criterio que
-   Agenda, Servicios y Barberos). */
+   Agenda, Servicios y Profesionales). */
 .schedules-page__ink :deep(.schedules-page__input--filled .base-input) {
   background-color: color-mix(in srgb, var(--color-on-strong) 6%, transparent);
   border-bottom-color: var(--color-brand-accent-surface);
@@ -3097,8 +3105,8 @@ const editPreview = computed(() =>
   color: var(--color-on-strong-muted);
 }
 
-/* Velo del cambio de barbero (issue #575): misma pauta que Servicios por
-   barbero. Entra con retraso para que una respuesta rápida no destelle. */
+/* Velo del cambio de profesional (issue #575): misma pauta que Servicios por
+   profesional. Entra con retraso para que una respuesta rápida no destelle. */
 .schedules-page__board-wrap {
   position: relative;
 }
@@ -3317,7 +3325,7 @@ const editPreview = computed(() =>
 </style>
 
 <style>
-/* SIN "scoped" a propósito, por el mismo motivo que en Barberos: BaseDialog.vue
+/* SIN "scoped" a propósito, por el mismo motivo que en Profesionales: BaseDialog.vue
    renderiza su tarjeta, encabezado, título, descripción y botón de cerrar en
    <Teleport to="body">, así que dejan de ser descendientes de .schedules-page
    en el DOM real y un :deep() con alcance de componente nunca los alcanza.
@@ -3337,7 +3345,7 @@ const editPreview = computed(() =>
   width: min(100%, 580px) !important;
 }
 
-/* Mismo rebote de apertura que los diálogos de Servicios y Barberos. */
+/* Mismo rebote de apertura que los diálogos de Servicios y Profesionales. */
 .schedules-page__dialog.base-dialog--open {
   transition-timing-function: cubic-bezier(0.34, 1.56, 0.64, 1) !important;
 }

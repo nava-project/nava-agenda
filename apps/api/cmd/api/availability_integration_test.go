@@ -4,7 +4,7 @@
 // todas las migraciones aplicadas y
 // database/testdata/hu094_disponibilidad.sql cargado.
 //
-//	export TEST_DATABASE_URL="postgres://barberia_app:app_test@localhost:5432/barberia_test?sslmode=disable"
+//	export TEST_DATABASE_URL="postgres://agenda_app:app_test@localhost:5432/postgres?sslmode=disable"
 //	go test -race ./cmd/api/...
 package main
 
@@ -17,11 +17,11 @@ import (
 )
 
 const (
-	availShopSlugUno  = "barberia-hu094-uno"
-	availShopSlugDos  = "barberia-hu094-dos"
-	availServiceIDUno = "00940101-0094-0094-0094-009401010101"
-	availBarberIDUno  = "00940011-0094-0094-0094-009400110011"
-	availBarberIDDos  = "00940012-0094-0094-0094-009400120012"
+	availShopSlugUno       = "barberia-hu094-uno"
+	availShopSlugDos       = "barberia-hu094-dos"
+	availServiceIDUno      = "00940101-0094-0094-0094-009401010101"
+	availProfessionalIDUno = "00940011-0094-0094-0094-009400110011"
+	availProfessionalIDDos = "00940012-0094-0094-0094-009400120012"
 )
 
 type availabilitySlotBody struct {
@@ -35,8 +35,8 @@ type availabilityResponseBody struct {
 	SlotGridMinutes int                    `json:"slotGridMinutes"`
 }
 
-func doPublicAvailabilityRequest(router http.Handler, slug, serviceID, barberID string) *httptest.ResponseRecorder {
-	url := "/api/v1/public/businesses/" + slug + "/services/" + serviceID + "/professionals/" + barberID + "/availability"
+func doPublicAvailabilityRequest(router http.Handler, slug, serviceID, professionalID string) *httptest.ResponseRecorder {
+	url := "/api/v1/public/businesses/" + slug + "/services/" + serviceID + "/professionals/" + professionalID + "/availability"
 	req := httptest.NewRequest(http.MethodGet, url, nil)
 	rec := httptest.NewRecorder()
 	router.ServeHTTP(rec, req)
@@ -57,7 +57,7 @@ func TestAvailability_HTTP_ValidSelection_ReturnsOrderedSlots(t *testing.T) {
 	}
 
 	before := time.Now().UTC()
-	rec := doPublicAvailabilityRequest(router, availShopSlugUno, availServiceIDUno, availBarberIDUno)
+	rec := doPublicAvailabilityRequest(router, availShopSlugUno, availServiceIDUno, availProfessionalIDUno)
 	if rec.Code != http.StatusOK {
 		t.Fatalf("expected 200, got %d: %s", rec.Code, rec.Body.String())
 	}
@@ -98,7 +98,7 @@ func TestAvailability_HTTP_UnknownSlug_ReturnsUniform404Problem(t *testing.T) {
 		t.Fatalf("buildRouter: %v", err)
 	}
 
-	rec := doPublicAvailabilityRequest(router, "barberia-que-no-existe", availServiceIDUno, availBarberIDUno)
+	rec := doPublicAvailabilityRequest(router, "barberia-que-no-existe", availServiceIDUno, availProfessionalIDUno)
 	if rec.Code != http.StatusNotFound {
 		t.Fatalf("expected 404, got %d: %s", rec.Code, rec.Body.String())
 	}
@@ -108,7 +108,7 @@ func TestAvailability_HTTP_UnknownSlug_ReturnsUniform404Problem(t *testing.T) {
 }
 
 // TestAvailability_HTTP_ForeignOrMalformedIDs_ReturnsEmptySlotsNotError
-// cubre el mismo criterio que CA-092-03: un serviceId/barberId con forma
+// cubre el mismo criterio que CA-092-03: un serviceId/professionalId con forma
 // inválida, ajeno o sin asignación vigente nunca produce un error
 // distinto, siempre una disponibilidad vacía.
 func TestAvailability_HTTP_ForeignOrMalformedIDs_ReturnsEmptySlotsNotError(t *testing.T) {
@@ -120,18 +120,18 @@ func TestAvailability_HTTP_ForeignOrMalformedIDs_ReturnsEmptySlotsNotError(t *te
 	}
 
 	tests := []struct {
-		name      string
-		slug      string
-		serviceID string
-		barberID  string
+		name           string
+		slug           string
+		serviceID      string
+		professionalID string
 	}{
-		{"serviceId sin forma de UUID", availShopSlugUno, "no-es-uuid", availBarberIDUno},
+		{"serviceId sin forma de UUID", availShopSlugUno, "no-es-uuid", availProfessionalIDUno},
 		{"professionalId sin forma de UUID", availShopSlugUno, availServiceIDUno, "no-es-uuid"},
-		{"professionalId de otra barbería (CA-094-05, aislamiento de tenant)", availShopSlugUno, availServiceIDUno, availBarberIDDos},
+		{"professionalId de otro negocio (CA-094-05, aislamiento de tenant)", availShopSlugUno, availServiceIDUno, availProfessionalIDDos},
 	}
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
-			rec := doPublicAvailabilityRequest(router, tc.slug, tc.serviceID, tc.barberID)
+			rec := doPublicAvailabilityRequest(router, tc.slug, tc.serviceID, tc.professionalID)
 			if rec.Code != http.StatusOK {
 				t.Fatalf("expected 200, got %d: %s", rec.Code, rec.Body.String())
 			}
@@ -146,11 +146,11 @@ func TestAvailability_HTTP_ForeignOrMalformedIDs_ReturnsEmptySlotsNotError(t *te
 	}
 }
 
-// TestAvailability_HTTP_TwoTenants_NeverCrossesBarbershops confirma
-// RN-TEN-01/CA-094-05: la disponibilidad de un barbero real de la barbería
-// Dos nunca aparece al consultarla bajo el slug de la barbería Uno, y
+// TestAvailability_HTTP_TwoTenants_NeverCrossesBusinesses confirma
+// RN-TEN-01/CA-094-05: la disponibilidad de un profesional real del negocio
+// Dos nunca aparece al consultarla bajo el slug del negocio Uno, y
 // viceversa (ambas resuelven con éxito bajo su propio slug).
-func TestAvailability_HTTP_TwoTenants_NeverCrossesBarbershops(t *testing.T) {
+func TestAvailability_HTTP_TwoTenants_NeverCrossesBusinesses(t *testing.T) {
 	db := setupTestDB(t)
 	t.Cleanup(func() { db.Close() })
 	router, err := buildRouter(db, discardLogger(), testRouterConfig())
@@ -158,8 +158,8 @@ func TestAvailability_HTTP_TwoTenants_NeverCrossesBarbershops(t *testing.T) {
 		t.Fatalf("buildRouter: %v", err)
 	}
 
-	uno := doPublicAvailabilityRequest(router, availShopSlugUno, availServiceIDUno, availBarberIDUno)
-	crossed := doPublicAvailabilityRequest(router, availShopSlugDos, availServiceIDUno, availBarberIDUno)
+	uno := doPublicAvailabilityRequest(router, availShopSlugUno, availServiceIDUno, availProfessionalIDUno)
+	crossed := doPublicAvailabilityRequest(router, availShopSlugDos, availServiceIDUno, availProfessionalIDUno)
 	if uno.Code != http.StatusOK || crossed.Code != http.StatusOK {
 		t.Fatalf("expected both requests to resolve 200, got %d and %d", uno.Code, crossed.Code)
 	}
@@ -172,10 +172,10 @@ func TestAvailability_HTTP_TwoTenants_NeverCrossesBarbershops(t *testing.T) {
 		t.Fatalf("decode crossed body: %v", err)
 	}
 	if len(unoBody.Slots) == 0 {
-		t.Fatal("esperaba disponibilidad real bajo el slug propio de la barbería Uno")
+		t.Fatal("esperaba disponibilidad real bajo el slug propio del negocio Uno")
 	}
 	if len(crossedBody.Slots) != 0 {
-		t.Fatalf("RN-TEN-01: el barbero/servicio de la barbería Uno produjo disponibilidad bajo el slug de la barbería Dos: %+v", crossedBody.Slots)
+		t.Fatalf("RN-TEN-01: el profesional/servicio del negocio Uno produjo disponibilidad bajo el slug del negocio Dos: %+v", crossedBody.Slots)
 	}
 }
 
@@ -190,7 +190,7 @@ func TestAvailability_HTTP_NoSessionCookieRequired(t *testing.T) {
 		t.Fatalf("buildRouter: %v", err)
 	}
 
-	req := httptest.NewRequest(http.MethodGet, "/api/v1/public/businesses/"+availShopSlugUno+"/services/"+availServiceIDUno+"/professionals/"+availBarberIDUno+"/availability", nil)
+	req := httptest.NewRequest(http.MethodGet, "/api/v1/public/businesses/"+availShopSlugUno+"/services/"+availServiceIDUno+"/professionals/"+availProfessionalIDUno+"/availability", nil)
 	rec := httptest.NewRecorder()
 	router.ServeHTTP(rec, req)
 

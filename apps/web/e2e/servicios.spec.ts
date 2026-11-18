@@ -4,13 +4,13 @@ import { test, expect, type Page } from '@playwright/test'
  * Recorrido E2E de HU-022 (catálogo básico de servicios). Corre contra el
  * API real en local (`go run ./cmd/api` sobre PostgreSQL real con las once
  * migraciones aplicadas y un usuario con un hash argon2id REAL), mismo
- * criterio que `e2e/barberos.spec.ts`.
+ * criterio que `e2e/profesionales.spec.ts`.
  *
  * Variables de entorno:
  *   E2E_EMAIL / E2E_PASSWORD: credenciales válidas contra el API real
- *     (barbería A, "shopA").
+ *     (negocio A, "shopA").
  *   E2E_EMAIL_B / E2E_PASSWORD_B: credenciales válidas de una SEGUNDA
- *     barbería real ("shopB"), usadas solo para la prueba de aislamiento
+ *     negocio real ("shopB"), usadas solo para la prueba de aislamiento
  *     entre tenants.
  *   APP_BASE_URL: base del frontend (por defecto http://localhost:5173).
  */
@@ -48,8 +48,8 @@ async function createServiceViaUI(
 }
 
 test.describe('Catálogo básico de servicios (HU-022)', () => {
-  // Serial a propósito: varias pruebas comparten la MISMA barbería real
-  // (shopA/shopB, sin aprovisionamiento de barberías nuevas en esta
+  // Serial a propósito: varias pruebas comparten el mismo negocio real
+  // (shopA/shopB, sin aprovisionamiento de negocios nuevos en esta
   // historia); ejecutarlas en paralelo produciría una carrera entre sus
   // propias escrituras, no un defecto del producto.
   test.describe.configure({ mode: 'serial' })
@@ -65,9 +65,9 @@ test.describe('Catálogo básico de servicios (HU-022)', () => {
     await createServiceViaUI(page, originalName, { duration: '30', price: '45000.00' })
     await expect(page.getByText(originalName)).toBeVisible()
 
-    // Esta barbería real acumula servicios de corridas anteriores (sin
+    // Este negocio real acumula servicios de corridas anteriores (sin
     // DELETE disponible para limpiar entre corridas, mismo criterio que
-    // e2e/barberos.spec.ts): cada comprobación de texto se ancla a la FILA
+    // e2e/profesionales.spec.ts): cada comprobación de texto se ancla a la FILA
     // del servicio recién creado (identificada por su nombre único con
     // timestamp), nunca a un `getByText` global que podría resolver varias
     // filas con la misma duración o precio.
@@ -86,7 +86,7 @@ test.describe('Catálogo básico de servicios (HU-022)', () => {
     await expect(row.getByText(/50000\.00 COP/)).toBeVisible()
 
     // Persistencia real, verificada contra el servidor tras recargar (mismo
-    // criterio que e2e/barberos.spec.ts: esta barbería real acumula datos
+    // criterio que e2e/profesionales.spec.ts: este negocio real acumula datos
     // de corridas anteriores, sin DELETE disponible para limpiar; se
     // confirma con una lectura directa al recurso por id).
     await page.reload()
@@ -171,7 +171,7 @@ test.describe('Catálogo básico de servicios (HU-022)', () => {
     expect(matches).toBe(1)
   })
 
-  test('un identificador real de otra barbería responde 404 al consultarlo o editarlo, y nunca aparece en el listado propio (CA-022-06)', async ({
+  test('un identificador real de otro negocio responde 404 al consultarlo o editarlo, y nunca aparece en el listado propio (CA-022-06)', async ({
     page,
   }) => {
     await login(page, EMAIL_B, PASSWORD_B)

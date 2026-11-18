@@ -4,7 +4,7 @@ import (
 	"context"
 	"time"
 
-	"system-barbershop/internal/platform/idempotency"
+	"nava-agenda/internal/platform/idempotency"
 )
 
 // Repository resuelve un token de acceso ya hasheado a la proyección
@@ -14,8 +14,8 @@ import (
 type Repository interface {
 	ResolveAppointmentByTokenHash(ctx context.Context, tokenHash string) (view AppointmentView, found bool, err error)
 
-	// ResolveCancellationTarget resuelve el mismo token vigente a la
-	// barbería y la cita sobre las que HU-099 cancela y HU-104 reprograma. found
+	// ResolveCancellationTarget resuelve el mismo token vigente al
+	// negocio y la cita sobre las que HU-099 cancela y HU-104 reprograma. found
 	// sigue la misma regla uniforme que ResolveAppointmentByTokenHash.
 	ResolveCancellationTarget(ctx context.Context, tokenHash string) (target CancellationTarget, found bool, err error)
 }
@@ -28,7 +28,7 @@ type Repository interface {
 type AppointmentCanceller interface {
 	CancelAppointment(
 		ctx context.Context,
-		barbershopID, appointmentID, expectedVersionToken, reason string,
+		businessID, appointmentID, expectedVersionToken, reason string,
 		key idempotency.Key,
 		fingerprint idempotency.Fingerprint,
 	) (idempotency.Decision, idempotency.StoredResponse, error)
@@ -42,10 +42,10 @@ type AppointmentCanceller interface {
 // de idempotencia y devuelve como error los rechazos de versión, estado,
 // plazo, límite y franja.
 type AppointmentRescheduler interface {
-	ListRescheduleStarts(ctx context.Context, barbershopID, appointmentID string) ([]time.Time, error)
+	ListRescheduleStarts(ctx context.Context, businessID, appointmentID string) ([]time.Time, error)
 	RescheduleAppointment(
 		ctx context.Context,
-		barbershopID, appointmentID, startsAt, expectedVersionToken string,
+		businessID, appointmentID, startsAt, expectedVersionToken string,
 		key idempotency.Key,
 		fingerprint idempotency.Fingerprint,
 	) (idempotency.Decision, idempotency.StoredResponse, error)

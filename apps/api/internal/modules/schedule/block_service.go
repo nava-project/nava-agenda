@@ -5,13 +5,13 @@ import (
 	"fmt"
 	"time"
 
-	"system-barbershop/internal/platform/apperr"
-	"system-barbershop/internal/platform/idempotency"
+	"nava-agenda/internal/platform/apperr"
+	"nava-agenda/internal/platform/idempotency"
 )
 
 // clampBlockLimit aplica el mismo recorte que List (working_hour) a las
 // listas de bloqueos/series: límite técnico de página, no un máximo de
-// negocio de bloqueos por barbero.
+// negocio de bloqueos por profesional.
 func clampBlockLimit(limit int) int {
 	switch {
 	case limit <= 0:
@@ -29,22 +29,22 @@ func clampBlockLimit(limit int) int {
 // Bloqueos puntuales (HU-042)
 // ---------------------------------------------------------------------
 
-// ListBlocks lee una página de bloqueos puntuales del barbero de barberID
-// dentro de barbershopID. Un barberID inexistente o de otra barbería
+// ListBlocks lee una página de bloqueos puntuales del profesional de professionalID
+// dentro de businessID. Un professionalID inexistente o de otro negocio
 // produce apperr.NotFound.
-func (s *Service) ListBlocks(ctx context.Context, barbershopID, barberID, cursorToken string, limit int, includeDeleted bool) (BlockListResult, error) {
+func (s *Service) ListBlocks(ctx context.Context, businessID, professionalID, cursorToken string, limit int, includeDeleted bool) (BlockListResult, error) {
 	if err := ctx.Err(); err != nil {
 		return BlockListResult{}, apperr.Internal(fmt.Errorf("schedule: contexto cancelado antes de listar bloqueos: %w", err))
 	}
-	if !LooksLikeBarberID(barberID) {
-		return BlockListResult{}, errBarberNotFound()
+	if !LooksLikeProfessionalID(professionalID) {
+		return BlockListResult{}, errProfessionalNotFound()
 	}
-	exists, err := s.barbers.Exists(ctx, barbershopID, barberID)
+	exists, err := s.professionals.Exists(ctx, businessID, professionalID)
 	if err != nil {
-		return BlockListResult{}, apperr.Internal(fmt.Errorf("schedule: verificar barbero para listar bloqueos: %w", err))
+		return BlockListResult{}, apperr.Internal(fmt.Errorf("schedule: verificar profesional para listar bloqueos: %w", err))
 	}
 	if !exists {
-		return BlockListResult{}, errBarberNotFound()
+		return BlockListResult{}, errProfessionalNotFound()
 	}
 
 	limit = clampBlockLimit(limit)
@@ -58,23 +58,23 @@ func (s *Service) ListBlocks(ctx context.Context, barbershopID, barberID, cursor
 		cursor = &decoded
 	}
 
-	result, err := s.repo.ListBlocks(ctx, barbershopID, barberID, cursor, limit, includeDeleted)
+	result, err := s.repo.ListBlocks(ctx, businessID, professionalID, cursor, limit, includeDeleted)
 	if err != nil {
 		return BlockListResult{}, apperr.Internal(fmt.Errorf("schedule: listar bloqueos: %w", err))
 	}
 	return result, nil
 }
 
-// GetBlock lee un bloqueo por id dentro del barbero y barbería activos,
+// GetBlock lee un bloqueo por id dentro del profesional y negocio activos,
 // incluidos los retirados lógicamente (RN-BLQ-04: el registro se conserva).
-func (s *Service) GetBlock(ctx context.Context, barbershopID, barberID, blockID string) (TimeBlock, error) {
+func (s *Service) GetBlock(ctx context.Context, businessID, professionalID, blockID string) (TimeBlock, error) {
 	if err := ctx.Err(); err != nil {
 		return TimeBlock{}, apperr.Internal(fmt.Errorf("schedule: contexto cancelado antes de leer bloqueo: %w", err))
 	}
-	if !LooksLikeBarberID(barberID) || !LooksLikeTimeBlockID(blockID) {
+	if !LooksLikeProfessionalID(professionalID) || !LooksLikeTimeBlockID(blockID) {
 		return TimeBlock{}, errTimeBlockNotFound()
 	}
-	block, found, err := s.repo.GetBlock(ctx, barbershopID, barberID, blockID)
+	block, found, err := s.repo.GetBlock(ctx, businessID, professionalID, blockID)
 	if err != nil {
 		return TimeBlock{}, apperr.Internal(fmt.Errorf("schedule: leer bloqueo: %w", err))
 	}
@@ -91,7 +91,7 @@ func (s *Service) GetBlock(ctx context.Context, barbershopID, barberID, blockID 
 // existente.
 func (s *Service) CreateBlock(
 	ctx context.Context,
-	barbershopID, barberID string,
+	businessID, professionalID string,
 	blockType, startsAtRaw, endsAtRaw string,
 	reason *string,
 	key idempotency.Key,
@@ -100,8 +100,8 @@ func (s *Service) CreateBlock(
 	if err := ctx.Err(); err != nil {
 		return CreateBlockResult{}, apperr.Internal(fmt.Errorf("schedule: contexto cancelado antes de crear bloqueo: %w", err))
 	}
-	if !LooksLikeBarberID(barberID) {
-		return CreateBlockResult{}, errBarberNotFound()
+	if !LooksLikeProfessionalID(professionalID) {
+		return CreateBlockResult{}, errProfessionalNotFound()
 	}
 
 	input, err := validateBlockInput(blockType, startsAtRaw, endsAtRaw, reason)
@@ -109,15 +109,15 @@ func (s *Service) CreateBlock(
 		return CreateBlockResult{}, err
 	}
 
-	exists, err := s.barbers.Exists(ctx, barbershopID, barberID)
+	exists, err := s.professionals.Exists(ctx, businessID, professionalID)
 	if err != nil {
-		return CreateBlockResult{}, apperr.Internal(fmt.Errorf("schedule: verificar barbero para crear bloqueo: %w", err))
+		return CreateBlockResult{}, apperr.Internal(fmt.Errorf("schedule: verificar profesional para crear bloqueo: %w", err))
 	}
 	if !exists {
-		return CreateBlockResult{}, errBarberNotFound()
+		return CreateBlockResult{}, errProfessionalNotFound()
 	}
 
-	result, err := s.repo.CreateBlock(ctx, barbershopID, barberID, input, key, fingerprint)
+	result, err := s.repo.CreateBlock(ctx, businessID, professionalID, input, key, fingerprint)
 	if err != nil {
 		return CreateBlockResult{}, apperr.Internal(fmt.Errorf("schedule: crear bloqueo: %w", err))
 	}
@@ -127,17 +127,17 @@ func (s *Service) CreateBlock(
 // DeleteBlock retira lógicamente un bloqueo existente (RN-BLQ-04): fija
 // deleted_at/deleted_by y deja de restar disponibilidad, pero el registro
 // se conserva. actorID es el staff_user que ejecuta el retiro. Un
-// barberID/blockID inexistente, de otro barbero, de otra barbería, o ya
+// professionalID/blockID inexistente, de otro profesional, de otro negocio, o ya
 // retirado antes, producen el mismo apperr.NotFound; reintentar tras ese
 // error es seguro y no reescribe deleted_at/deleted_by.
-func (s *Service) DeleteBlock(ctx context.Context, barbershopID, barberID, blockID, actorID string) error {
+func (s *Service) DeleteBlock(ctx context.Context, businessID, professionalID, blockID, actorID string) error {
 	if err := ctx.Err(); err != nil {
 		return apperr.Internal(fmt.Errorf("schedule: contexto cancelado antes de retirar bloqueo: %w", err))
 	}
-	if !LooksLikeBarberID(barberID) || !LooksLikeTimeBlockID(blockID) {
+	if !LooksLikeProfessionalID(professionalID) || !LooksLikeTimeBlockID(blockID) {
 		return errTimeBlockNotFound()
 	}
-	found, err := s.repo.DeleteBlock(ctx, barbershopID, barberID, blockID, actorID)
+	found, err := s.repo.DeleteBlock(ctx, businessID, professionalID, blockID, actorID)
 	if err != nil {
 		return apperr.Internal(fmt.Errorf("schedule: retirar bloqueo: %w", err))
 	}
@@ -174,21 +174,21 @@ func validateBlockInput(blockType, startsAtRaw, endsAtRaw string, reason *string
 // Series recurrentes (HU-042)
 // ---------------------------------------------------------------------
 
-// ListSeries lee una página de series del barbero de barberID dentro de
-// barbershopID, cada una con sus fechas/excepciones embebidas.
-func (s *Service) ListSeries(ctx context.Context, barbershopID, barberID, cursorToken string, limit int, includeDeleted bool) (SeriesListResult, error) {
+// ListSeries lee una página de series del profesional de professionalID dentro de
+// businessID, cada una con sus fechas/excepciones embebidas.
+func (s *Service) ListSeries(ctx context.Context, businessID, professionalID, cursorToken string, limit int, includeDeleted bool) (SeriesListResult, error) {
 	if err := ctx.Err(); err != nil {
 		return SeriesListResult{}, apperr.Internal(fmt.Errorf("schedule: contexto cancelado antes de listar series: %w", err))
 	}
-	if !LooksLikeBarberID(barberID) {
-		return SeriesListResult{}, errBarberNotFound()
+	if !LooksLikeProfessionalID(professionalID) {
+		return SeriesListResult{}, errProfessionalNotFound()
 	}
-	exists, err := s.barbers.Exists(ctx, barbershopID, barberID)
+	exists, err := s.professionals.Exists(ctx, businessID, professionalID)
 	if err != nil {
-		return SeriesListResult{}, apperr.Internal(fmt.Errorf("schedule: verificar barbero para listar series: %w", err))
+		return SeriesListResult{}, apperr.Internal(fmt.Errorf("schedule: verificar profesional para listar series: %w", err))
 	}
 	if !exists {
-		return SeriesListResult{}, errBarberNotFound()
+		return SeriesListResult{}, errProfessionalNotFound()
 	}
 
 	limit = clampBlockLimit(limit)
@@ -202,23 +202,23 @@ func (s *Service) ListSeries(ctx context.Context, barbershopID, barberID, cursor
 		cursor = &decoded
 	}
 
-	result, err := s.repo.ListSeries(ctx, barbershopID, barberID, cursor, limit, includeDeleted)
+	result, err := s.repo.ListSeries(ctx, businessID, professionalID, cursor, limit, includeDeleted)
 	if err != nil {
 		return SeriesListResult{}, apperr.Internal(fmt.Errorf("schedule: listar series: %w", err))
 	}
 	return result, nil
 }
 
-// GetSeries lee una serie por id dentro del barbero y barbería activos,
+// GetSeries lee una serie por id dentro del profesional y negocio activos,
 // incluidas las retiradas lógicamente.
-func (s *Service) GetSeries(ctx context.Context, barbershopID, barberID, seriesID string) (TimeBlockSeries, error) {
+func (s *Service) GetSeries(ctx context.Context, businessID, professionalID, seriesID string) (TimeBlockSeries, error) {
 	if err := ctx.Err(); err != nil {
 		return TimeBlockSeries{}, apperr.Internal(fmt.Errorf("schedule: contexto cancelado antes de leer serie: %w", err))
 	}
-	if !LooksLikeBarberID(barberID) || !LooksLikeSeriesID(seriesID) {
+	if !LooksLikeProfessionalID(professionalID) || !LooksLikeSeriesID(seriesID) {
 		return TimeBlockSeries{}, errTimeBlockSeriesNotFound()
 	}
-	series, found, err := s.repo.GetSeries(ctx, barbershopID, barberID, seriesID)
+	series, found, err := s.repo.GetSeries(ctx, businessID, professionalID, seriesID)
 	if err != nil {
 		return TimeBlockSeries{}, apperr.Internal(fmt.Errorf("schedule: leer serie: %w", err))
 	}
@@ -235,7 +235,7 @@ func (s *Service) GetSeries(ctx context.Context, barbershopID, barberID, seriesI
 // poder crearse en una sola operación").
 func (s *Service) CreateSeries(
 	ctx context.Context,
-	barbershopID, barberID string,
+	businessID, professionalID string,
 	blockType, recurrenceKind string,
 	isoWeekday *int,
 	startsTimeRaw string,
@@ -250,8 +250,8 @@ func (s *Service) CreateSeries(
 	if err := ctx.Err(); err != nil {
 		return CreateSeriesResult{}, apperr.Internal(fmt.Errorf("schedule: contexto cancelado antes de crear serie: %w", err))
 	}
-	if !LooksLikeBarberID(barberID) {
-		return CreateSeriesResult{}, errBarberNotFound()
+	if !LooksLikeProfessionalID(professionalID) {
+		return CreateSeriesResult{}, errProfessionalNotFound()
 	}
 
 	input, err := validateSeriesInput(blockType, recurrenceKind, isoWeekday, startsTimeRaw, durationMinutes, effectiveFrom, effectiveUntil, reason, explicitDates)
@@ -259,15 +259,15 @@ func (s *Service) CreateSeries(
 		return CreateSeriesResult{}, err
 	}
 
-	exists, err := s.barbers.Exists(ctx, barbershopID, barberID)
+	exists, err := s.professionals.Exists(ctx, businessID, professionalID)
 	if err != nil {
-		return CreateSeriesResult{}, apperr.Internal(fmt.Errorf("schedule: verificar barbero para crear serie: %w", err))
+		return CreateSeriesResult{}, apperr.Internal(fmt.Errorf("schedule: verificar profesional para crear serie: %w", err))
 	}
 	if !exists {
-		return CreateSeriesResult{}, errBarberNotFound()
+		return CreateSeriesResult{}, errProfessionalNotFound()
 	}
 
-	result, err := s.repo.CreateSeries(ctx, barbershopID, barberID, input, key, fingerprint)
+	result, err := s.repo.CreateSeries(ctx, businessID, professionalID, input, key, fingerprint)
 	if err != nil {
 		return CreateSeriesResult{}, apperr.Internal(fmt.Errorf("schedule: crear serie: %w", err))
 	}
@@ -361,7 +361,7 @@ func validateSeriesInput(
 // whole.
 func (s *Service) UpdateSeries(
 	ctx context.Context,
-	barbershopID, barberID, seriesID string,
+	businessID, professionalID, seriesID string,
 	scope string,
 	blockType, startsTimeRaw string,
 	durationMinutes int,
@@ -373,7 +373,7 @@ func (s *Service) UpdateSeries(
 	if err := ctx.Err(); err != nil {
 		return TimeBlockSeries{}, apperr.Internal(fmt.Errorf("schedule: contexto cancelado antes de editar serie: %w", err))
 	}
-	if !LooksLikeBarberID(barberID) || !LooksLikeSeriesID(seriesID) {
+	if !LooksLikeProfessionalID(professionalID) || !LooksLikeSeriesID(seriesID) {
 		return TimeBlockSeries{}, errTimeBlockSeriesNotFound()
 	}
 	if scope != UpdateScopeWhole && scope != UpdateScopeThisAndFollowing {
@@ -417,7 +417,7 @@ func (s *Service) UpdateSeries(
 	}
 
 	if scope == UpdateScopeWhole {
-		result, err := s.repo.UpdateSeriesWhole(ctx, barbershopID, barberID, seriesID, input)
+		result, err := s.repo.UpdateSeriesWhole(ctx, businessID, professionalID, seriesID, input)
 		if err != nil {
 			return TimeBlockSeries{}, apperr.Internal(fmt.Errorf("schedule: editar serie: %w", err))
 		}
@@ -432,7 +432,7 @@ func (s *Service) UpdateSeries(
 	// repositorio vuelve a bloquear la fila dentro de la transacción de
 	// SplitSeriesFrom, así que esta lectura es solo de validación, no la
 	// fuente de verdad transaccional.
-	existing, found, err := s.repo.GetSeries(ctx, barbershopID, barberID, seriesID)
+	existing, found, err := s.repo.GetSeries(ctx, businessID, professionalID, seriesID)
 	if err != nil {
 		return TimeBlockSeries{}, apperr.Internal(fmt.Errorf("schedule: leer serie antes de dividir: %w", err))
 	}
@@ -451,7 +451,7 @@ func (s *Service) UpdateSeries(
 		return TimeBlockSeries{}, errSplitDateOutOfRange()
 	}
 
-	result, err := s.repo.SplitSeriesFrom(ctx, barbershopID, barberID, seriesID, splitDate, input)
+	result, err := s.repo.SplitSeriesFrom(ctx, businessID, professionalID, seriesID, splitDate, input)
 	if err != nil {
 		return TimeBlockSeries{}, apperr.Internal(fmt.Errorf("schedule: dividir serie: %w", err))
 	}
@@ -464,14 +464,14 @@ func (s *Service) UpdateSeries(
 // DeleteSeries retira lógicamente la serie completa (RN-BLQ-04). No borra
 // sus fechas/excepciones (RESTRICT/DEC-070): quedan huérfanas de una serie
 // retirada, mismo criterio de auditoría que un bloqueo puntual retirado.
-func (s *Service) DeleteSeries(ctx context.Context, barbershopID, barberID, seriesID string) error {
+func (s *Service) DeleteSeries(ctx context.Context, businessID, professionalID, seriesID string) error {
 	if err := ctx.Err(); err != nil {
 		return apperr.Internal(fmt.Errorf("schedule: contexto cancelado antes de retirar serie: %w", err))
 	}
-	if !LooksLikeBarberID(barberID) || !LooksLikeSeriesID(seriesID) {
+	if !LooksLikeProfessionalID(professionalID) || !LooksLikeSeriesID(seriesID) {
 		return errTimeBlockSeriesNotFound()
 	}
-	found, err := s.repo.DeleteSeries(ctx, barbershopID, barberID, seriesID)
+	found, err := s.repo.DeleteSeries(ctx, businessID, professionalID, seriesID)
 	if err != nil {
 		return apperr.Internal(fmt.Errorf("schedule: retirar serie: %w", err))
 	}
@@ -482,11 +482,11 @@ func (s *Service) DeleteSeries(ctx context.Context, barbershopID, barberID, seri
 }
 
 // AddSeriesDate agrega una fecha explícita a una serie date_list (CA-042).
-func (s *Service) AddSeriesDate(ctx context.Context, barbershopID, barberID, seriesID, blockDateRaw string) error {
+func (s *Service) AddSeriesDate(ctx context.Context, businessID, professionalID, seriesID, blockDateRaw string) error {
 	if err := ctx.Err(); err != nil {
 		return apperr.Internal(fmt.Errorf("schedule: contexto cancelado antes de agregar fecha: %w", err))
 	}
-	if !LooksLikeBarberID(barberID) || !LooksLikeSeriesID(seriesID) {
+	if !LooksLikeProfessionalID(professionalID) || !LooksLikeSeriesID(seriesID) {
 		return errTimeBlockSeriesNotFound()
 	}
 	blockDate, err := ValidateCivilDate(blockDateRaw)
@@ -494,7 +494,7 @@ func (s *Service) AddSeriesDate(ctx context.Context, barbershopID, barberID, ser
 		return err
 	}
 
-	series, found, err := s.repo.GetSeries(ctx, barbershopID, barberID, seriesID)
+	series, found, err := s.repo.GetSeries(ctx, businessID, professionalID, seriesID)
 	if err != nil {
 		return apperr.Internal(fmt.Errorf("schedule: leer serie para agregar fecha: %w", err))
 	}
@@ -508,7 +508,7 @@ func (s *Service) AddSeriesDate(ctx context.Context, barbershopID, barberID, ser
 		return errDateOutOfSeriesRange()
 	}
 
-	_, conflict, err := s.repo.AddSeriesDate(ctx, barbershopID, barberID, seriesID, blockDate)
+	_, conflict, err := s.repo.AddSeriesDate(ctx, businessID, professionalID, seriesID, blockDate)
 	if err != nil {
 		return apperr.Internal(fmt.Errorf("schedule: agregar fecha: %w", err))
 	}
@@ -521,18 +521,18 @@ func (s *Service) AddSeriesDate(ctx context.Context, barbershopID, barberID, ser
 // RemoveSeriesDate retira físicamente una fecha explícita de una serie
 // date_list. found=false cubre "no existía"/"ya se había retirado":
 // reintentar tras un 404 es seguro.
-func (s *Service) RemoveSeriesDate(ctx context.Context, barbershopID, barberID, seriesID, blockDateRaw string) error {
+func (s *Service) RemoveSeriesDate(ctx context.Context, businessID, professionalID, seriesID, blockDateRaw string) error {
 	if err := ctx.Err(); err != nil {
 		return apperr.Internal(fmt.Errorf("schedule: contexto cancelado antes de retirar fecha: %w", err))
 	}
-	if !LooksLikeBarberID(barberID) || !LooksLikeSeriesID(seriesID) {
+	if !LooksLikeProfessionalID(professionalID) || !LooksLikeSeriesID(seriesID) {
 		return errTimeBlockSeriesNotFound()
 	}
 	blockDate, err := ValidateCivilDate(blockDateRaw)
 	if err != nil {
 		return err
 	}
-	found, err := s.repo.RemoveSeriesDate(ctx, barbershopID, barberID, seriesID, blockDate)
+	found, err := s.repo.RemoveSeriesDate(ctx, businessID, professionalID, seriesID, blockDate)
 	if err != nil {
 		return apperr.Internal(fmt.Errorf("schedule: retirar fecha: %w", err))
 	}
@@ -544,11 +544,11 @@ func (s *Service) RemoveSeriesDate(ctx context.Context, barbershopID, barberID, 
 
 // AddSeriesException suprime una instancia puntual de cualquier serie
 // (weekly o date_list): "esta instancia no" (RN-BLQ-01).
-func (s *Service) AddSeriesException(ctx context.Context, barbershopID, barberID, seriesID, excludedDateRaw string, reason *string) error {
+func (s *Service) AddSeriesException(ctx context.Context, businessID, professionalID, seriesID, excludedDateRaw string, reason *string) error {
 	if err := ctx.Err(); err != nil {
 		return apperr.Internal(fmt.Errorf("schedule: contexto cancelado antes de agregar excepción: %w", err))
 	}
-	if !LooksLikeBarberID(barberID) || !LooksLikeSeriesID(seriesID) {
+	if !LooksLikeProfessionalID(professionalID) || !LooksLikeSeriesID(seriesID) {
 		return errTimeBlockSeriesNotFound()
 	}
 	excludedDate, err := ValidateCivilDate(excludedDateRaw)
@@ -560,7 +560,7 @@ func (s *Service) AddSeriesException(ctx context.Context, barbershopID, barberID
 		return err
 	}
 
-	found, conflict, err := s.repo.AddSeriesException(ctx, barbershopID, barberID, seriesID, excludedDate, r)
+	found, conflict, err := s.repo.AddSeriesException(ctx, businessID, professionalID, seriesID, excludedDate, r)
 	if err != nil {
 		return apperr.Internal(fmt.Errorf("schedule: agregar excepción: %w", err))
 	}
@@ -576,18 +576,18 @@ func (s *Service) AddSeriesException(ctx context.Context, barbershopID, barberID
 // RemoveSeriesException retira físicamente una excepción ("restaura" la
 // instancia suprimida). found=false cubre "no existía"/"ya se había
 // retirado": reintentar tras un 404 es seguro.
-func (s *Service) RemoveSeriesException(ctx context.Context, barbershopID, barberID, seriesID, excludedDateRaw string) error {
+func (s *Service) RemoveSeriesException(ctx context.Context, businessID, professionalID, seriesID, excludedDateRaw string) error {
 	if err := ctx.Err(); err != nil {
 		return apperr.Internal(fmt.Errorf("schedule: contexto cancelado antes de retirar excepción: %w", err))
 	}
-	if !LooksLikeBarberID(barberID) || !LooksLikeSeriesID(seriesID) {
+	if !LooksLikeProfessionalID(professionalID) || !LooksLikeSeriesID(seriesID) {
 		return errTimeBlockSeriesNotFound()
 	}
 	excludedDate, err := ValidateCivilDate(excludedDateRaw)
 	if err != nil {
 		return err
 	}
-	found, err := s.repo.RemoveSeriesException(ctx, barbershopID, barberID, seriesID, excludedDate)
+	found, err := s.repo.RemoveSeriesException(ctx, businessID, professionalID, seriesID, excludedDate)
 	if err != nil {
 		return apperr.Internal(fmt.Errorf("schedule: retirar excepción: %w", err))
 	}
@@ -602,10 +602,10 @@ func (s *Service) RemoveSeriesException(ctx context.Context, barbershopID, barbe
 // ---------------------------------------------------------------------
 
 // SeriesOccurrence es una ocurrencia expandida de una serie dentro del
-// rango consultado, en forma civil (fecha + hora local de la barbería):
+// rango consultado, en forma civil (fecha + hora local del negocio):
 // mismo criterio que working_hour/schedule-exceptions, que tampoco emiten
-// instantes absolutos porque el cliente ya conoce la zona IANA de la
-// barbería (GET .../barbershop).
+// instantes absolutos porque el cliente ya conoce la zona IANA del
+// negocio (GET .../business).
 type SeriesOccurrence struct {
 	SeriesID        string
 	BlockType       string
@@ -617,7 +617,7 @@ type SeriesOccurrence struct {
 
 // EffectiveBlocksResult separa deliberadamente los bloqueos puntuales (ya
 // timestamptz) de las ocurrencias de serie expandidas (civiles): unirlas en
-// una sola línea de tiempo exige la zona IANA de la barbería para convertir
+// una sola línea de tiempo exige la zona IANA del negocio para convertir
 // las segundas a instantes absolutos, y ningún consumidor la necesita
 // todavía (B3/B4 no existen aún). Documentado en el prompt HU-042, sección
 // "Qué NO hace esta HU": la proyección efectiva final es responsabilidad
@@ -627,17 +627,17 @@ type EffectiveBlocksResult struct {
 	SeriesOccurrences []SeriesOccurrence
 }
 
-// EffectiveBlocks calcula, para el barbero de barberID, los bloqueos
+// EffectiveBlocks calcula, para el profesional de professionalID, los bloqueos
 // puntuales vigentes y las ocurrencias de serie dentro de [from, to]
 // (fechas civiles, ambos límites inclusive). Es la "operación interna de
 // proyección/consulta para disponibilidad futura sin materializar
 // instancias de una serie en time_block" que el prompt de HU-042 exige.
-func (s *Service) EffectiveBlocks(ctx context.Context, barbershopID, barberID, fromRaw, toRaw string) (EffectiveBlocksResult, error) {
+func (s *Service) EffectiveBlocks(ctx context.Context, businessID, professionalID, fromRaw, toRaw string) (EffectiveBlocksResult, error) {
 	if err := ctx.Err(); err != nil {
 		return EffectiveBlocksResult{}, apperr.Internal(fmt.Errorf("schedule: contexto cancelado antes de proyectar bloqueos: %w", err))
 	}
-	if !LooksLikeBarberID(barberID) {
-		return EffectiveBlocksResult{}, errBarberNotFound()
+	if !LooksLikeProfessionalID(professionalID) {
+		return EffectiveBlocksResult{}, errProfessionalNotFound()
 	}
 
 	fromDate, err := ValidateCivilDate(fromRaw)
@@ -652,12 +652,12 @@ func (s *Service) EffectiveBlocks(ctx context.Context, barbershopID, barberID, f
 		return EffectiveBlocksResult{}, errQueryRangeInvalid()
 	}
 
-	exists, err := s.barbers.Exists(ctx, barbershopID, barberID)
+	exists, err := s.professionals.Exists(ctx, businessID, professionalID)
 	if err != nil {
-		return EffectiveBlocksResult{}, apperr.Internal(fmt.Errorf("schedule: verificar barbero para proyectar bloqueos: %w", err))
+		return EffectiveBlocksResult{}, apperr.Internal(fmt.Errorf("schedule: verificar profesional para proyectar bloqueos: %w", err))
 	}
 	if !exists {
-		return EffectiveBlocksResult{}, errBarberNotFound()
+		return EffectiveBlocksResult{}, errProfessionalNotFound()
 	}
 
 	fromInstant, err := time.Parse(dateLayout, fromDate)
@@ -670,12 +670,12 @@ func (s *Service) EffectiveBlocks(ctx context.Context, barbershopID, barberID, f
 	}
 	untilExclusive := toInstant.AddDate(0, 0, 1)
 
-	manual, err := s.repo.ListEffectiveManualBlocks(ctx, barbershopID, barberID, fromInstant, untilExclusive)
+	manual, err := s.repo.ListEffectiveManualBlocks(ctx, businessID, professionalID, fromInstant, untilExclusive)
 	if err != nil {
 		return EffectiveBlocksResult{}, apperr.Internal(fmt.Errorf("schedule: listar bloqueos puntuales vigentes: %w", err))
 	}
 
-	series, err := s.repo.ListActiveSeriesForProjection(ctx, barbershopID, barberID, fromDate, toDate)
+	series, err := s.repo.ListActiveSeriesForProjection(ctx, businessID, professionalID, fromDate, toDate)
 	if err != nil {
 		return EffectiveBlocksResult{}, apperr.Internal(fmt.Errorf("schedule: listar series activas: %w", err))
 	}

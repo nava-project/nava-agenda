@@ -10,9 +10,9 @@ import (
 	"sync"
 	"testing"
 
-	"system-barbershop/internal/modules/booking"
-	"system-barbershop/internal/platform/database"
-	"system-barbershop/internal/platform/idempotency"
+	"nava-agenda/internal/modules/booking"
+	"nava-agenda/internal/platform/database"
+	"nava-agenda/internal/platform/idempotency"
 )
 
 // Pruebas del puerto SyncHook (issue #324, DEC-102): booking avisa, dentro de la
@@ -59,10 +59,10 @@ type recordingHook struct {
 	err   error
 }
 
-func (h *recordingHook) AppointmentChanged(_ context.Context, q database.Queries, barbershopID, appointmentID string) error {
+func (h *recordingHook) AppointmentChanged(_ context.Context, q database.Queries, businessID, appointmentID string) error {
 	h.mu.Lock()
 	defer h.mu.Unlock()
-	h.calls = append(h.calls, barbershopID+"|"+appointmentID)
+	h.calls = append(h.calls, businessID+"|"+appointmentID)
 	return h.err
 }
 
@@ -72,7 +72,7 @@ func TestSyncHook_CreateAndStatusChanges_NotifyTheHookInTheSameTransaction(t *te
 	repo := newRepository(db).WithSyncHook(hook)
 	suffix := uniqueSuffix(t)
 
-	input := manualInput(t, barberQ1, serviceQ, suffix, booking.CustomerInput{
+	input := manualInput(t, professionalQ1, serviceQ, suffix, booking.CustomerInput{
 		New: &booking.NewCustomerInput{FullName: "Cliente gancho " + suffix},
 	})
 	result, err := repo.CreateManual(context.Background(), string(shopQ), input,
@@ -82,7 +82,7 @@ func TestSyncHook_CreateAndStatusChanges_NotifyTheHookInTheSameTransaction(t *te
 	}
 	want := string(shopQ) + "|" + result.Appointment.ID
 	if len(hook.calls) != 1 || hook.calls[0] != want {
-		t.Fatalf("crear una cita avisa al gancho una vez con su barbería e id: %v", hook.calls)
+		t.Fatalf("crear una cita avisa al gancho una vez con su negocio e id: %v", hook.calls)
 	}
 }
 
@@ -92,7 +92,7 @@ func TestSyncHook_HookFailureRollsBackTheBusinessChange(t *testing.T) {
 	repo := newRepository(db).WithSyncHook(hook)
 	suffix := uniqueSuffix(t)
 
-	input := manualInput(t, barberQ1, serviceQ, suffix, booking.CustomerInput{
+	input := manualInput(t, professionalQ1, serviceQ, suffix, booking.CustomerInput{
 		New: &booking.NewCustomerInput{FullName: "Cliente revertido " + suffix},
 	})
 	if _, err := repo.CreateManual(context.Background(), string(shopQ), input,
@@ -116,7 +116,7 @@ func TestSyncHook_WithoutAHookTheRepositoryWorksAsBefore(t *testing.T) {
 	db := setupTestDB(t)
 	repo := newRepository(db)
 	suffix := uniqueSuffix(t)
-	input := manualInput(t, barberQ1, serviceQ, suffix, booking.CustomerInput{
+	input := manualInput(t, professionalQ1, serviceQ, suffix, booking.CustomerInput{
 		New: &booking.NewCustomerInput{FullName: "Cliente sin gancho " + suffix},
 	})
 	if _, err := repo.CreateManual(context.Background(), string(shopQ), input,

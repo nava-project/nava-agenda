@@ -5,8 +5,8 @@ import { INITIAL_VOCABULARY } from './fixtures/vocabularioInicial'
 
 /**
  * Servicio a domicilio en la reserva pública (HU-103, DEC-131, DEC-138, DEC-155). Respuestas simuladas del
- * API: la regla de «el interruptor de la barbería manda» (422), el CHECK de todo-o-nada y el
- * aislamiento entre barberías los cubren las pruebas Go y SQL con PostgreSQL real. Aquí se
+ * API: la regla de «el interruptor del negocio manda» (422), el CHECK de todo-o-nada y el
+ * aislamiento entre negocios los cubren las pruebas Go y SQL con PostgreSQL real. Aquí se
  * recorre lo visible:
  *  1. sin el interruptor encendido no aparece la modalidad;
  *  2. con él, el cliente elige «A domicilio» y marca su ubicación (obligatorio) moviendo el mapa o
@@ -28,14 +28,14 @@ test.use({ contextOptions: { reducedMotion: 'reduce' } })
 
 const SLUG = 'barberia-ejemplo'
 const SERVICE_ID = '8f3ac2b1-e4d5-46f6-a7c8-d9e0f1a2b3c4'
-const BARBER_ID = 'a1111111-1111-1111-1111-111111111111'
+const PROFESSIONAL_ID = 'a1111111-1111-1111-1111-111111111111'
 // Una franja siempre futura: la pantalla descarta un `startsAt` que ya pasó (F-RQ-02, #436), así que
 // una fecha fija dejaría de funcionar el día que se cumple.
 const start = new Date(Date.now() + 3 * 24 * 60 * 60 * 1000)
 start.setUTCHours(14, 30, 0, 0)
 const STARTS_AT = start.toISOString().replace('.000Z', 'Z')
 const ENDS_AT = new Date(start.getTime() + 30 * 60 * 1000).toISOString().replace('.000Z', 'Z')
-const ROUTE = `/reservar/${SLUG}/servicios/${SERVICE_ID}/barbero/${BARBER_ID}/horario/${encodeURIComponent(STARTS_AT)}/cliente`
+const ROUTE = `/reservar/${SLUG}/servicios/${SERVICE_ID}/profesional/${PROFESSIONAL_ID}/horario/${encodeURIComponent(STARTS_AT)}/cliente`
 
 const viewports = [
   { name: '320', width: 320, height: 720 },
@@ -76,7 +76,7 @@ async function installApi(page: Page, offersHomeService: boolean): Promise<Confi
         json({
           items: [
             {
-              id: BARBER_ID,
+              id: PROFESSIONAL_ID,
               fullName: 'Mateo Cruz',
               description: null,
               photoUpdatedAt: null,
@@ -88,7 +88,7 @@ async function installApi(page: Page, offersHomeService: boolean): Promise<Confi
       ),
   )
   await page.route(
-    `**/api/v1/public/businesses/${SLUG}/services/${SERVICE_ID}/professionals/${BARBER_ID}/appointments`,
+    `**/api/v1/public/businesses/${SLUG}/services/${SERVICE_ID}/professionals/${PROFESSIONAL_ID}/appointments`,
     async (route) => {
       confirmations.push(route.request().postDataJSON() as ConfirmBody)
       await route.fulfill(

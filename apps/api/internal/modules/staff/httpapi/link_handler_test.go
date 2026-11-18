@@ -8,22 +8,22 @@ import (
 	"testing"
 	"time"
 
-	"system-barbershop/internal/modules/staff"
-	"system-barbershop/internal/modules/staff/httpapi"
+	"nava-agenda/internal/modules/staff"
+	"nava-agenda/internal/modules/staff/httpapi"
 )
 
-const myBarberID = "8f3ac2b1-e4d5-46f6-a7c8-d9e0f1a2b3c4"
+const myProfessionalID = "8f3ac2b1-e4d5-46f6-a7c8-d9e0f1a2b3c4"
 
-func TestGetMyBarberHandler_UsesThePrincipalAndReturnsTheBarber(t *testing.T) {
+func TestGetMyProfessionalHandler_UsesThePrincipalAndReturnsTheProfessional(t *testing.T) {
 	now := time.Now().UTC()
-	repo := &fakeRepository{getLinkedFn: func(shop, user string) (staff.Barber, bool, error) {
+	repo := &fakeRepository{getLinkedFn: func(shop, user string) (staff.Professional, bool, error) {
 		if shop != testShopID || user != "u-1" {
 			t.Fatalf("debe consultar con el principal de la sesión, recibió %q/%q", shop, user)
 		}
-		return staff.Barber{ID: myBarberID, FullName: "Carlos", CreatedAt: now, UpdatedAt: now}, true, nil
+		return staff.Professional{ID: myProfessionalID, FullName: "Carlos", CreatedAt: now, UpdatedAt: now}, true, nil
 	}}
 	rec := httptest.NewRecorder()
-	httpapi.NewGetMyBarberHandler(staff.NewService(repo)).ServeHTTP(rec,
+	httpapi.NewGetMyProfessionalHandler(staff.NewService(repo)).ServeHTTP(rec,
 		requestWithPrincipal(http.MethodGet, "/api/v1/private/me/professional", nil))
 
 	if rec.Code != http.StatusOK {
@@ -33,7 +33,7 @@ func TestGetMyBarberHandler_UsesThePrincipalAndReturnsTheBarber(t *testing.T) {
 	if err := json.Unmarshal(rec.Body.Bytes(), &body); err != nil {
 		t.Fatal(err)
 	}
-	if body["id"] != myBarberID {
+	if body["id"] != myProfessionalID {
 		t.Fatalf("unexpected body: %v", body)
 	}
 	if _, leaked := body["staffUserId"]; leaked {
@@ -41,45 +41,45 @@ func TestGetMyBarberHandler_UsesThePrincipalAndReturnsTheBarber(t *testing.T) {
 	}
 }
 
-func TestGetMyBarberHandler_WithoutLink_Is404(t *testing.T) {
-	repo := &fakeRepository{getLinkedFn: func(string, string) (staff.Barber, bool, error) { return staff.Barber{}, false, nil }}
+func TestGetMyProfessionalHandler_WithoutLink_Is404(t *testing.T) {
+	repo := &fakeRepository{getLinkedFn: func(string, string) (staff.Professional, bool, error) { return staff.Professional{}, false, nil }}
 	rec := httptest.NewRecorder()
-	httpapi.NewGetMyBarberHandler(staff.NewService(repo)).ServeHTTP(rec,
+	httpapi.NewGetMyProfessionalHandler(staff.NewService(repo)).ServeHTTP(rec,
 		requestWithPrincipal(http.MethodGet, "/api/v1/private/me/professional", nil))
 	if rec.Code != http.StatusNotFound {
 		t.Fatalf("expected 404, got %d", rec.Code)
 	}
 }
 
-func TestLinkMyBarberHandler_Success(t *testing.T) {
-	repo := &fakeRepository{linkFn: func(shop, user, barber string) (staff.LinkResult, error) {
-		if shop != testShopID || user != "u-1" || barber != myBarberID {
-			t.Fatalf("argumentos inesperados %q/%q/%q", shop, user, barber)
+func TestLinkMyProfessionalHandler_Success(t *testing.T) {
+	repo := &fakeRepository{linkFn: func(shop, user, professional string) (staff.LinkResult, error) {
+		if shop != testShopID || user != "u-1" || professional != myProfessionalID {
+			t.Fatalf("argumentos inesperados %q/%q/%q", shop, user, professional)
 		}
-		return staff.LinkResult{Found: true, Barber: staff.Barber{ID: myBarberID, FullName: "Carlos"}}, nil
+		return staff.LinkResult{Found: true, Professional: staff.Professional{ID: myProfessionalID, FullName: "Carlos"}}, nil
 	}}
 	rec := httptest.NewRecorder()
-	httpapi.NewLinkMyBarberHandler(staff.NewService(repo)).ServeHTTP(rec,
-		requestWithPrincipal(http.MethodPut, "/api/v1/private/me/professional", []byte(`{"professionalId":"`+myBarberID+`"}`)))
+	httpapi.NewLinkMyProfessionalHandler(staff.NewService(repo)).ServeHTTP(rec,
+		requestWithPrincipal(http.MethodPut, "/api/v1/private/me/professional", []byte(`{"professionalId":"`+myProfessionalID+`"}`)))
 	if rec.Code != http.StatusOK {
 		t.Fatalf("expected 200, got %d: %s", rec.Code, rec.Body.String())
 	}
 }
 
-func TestLinkMyBarberHandler_RejectsAnyoneElsesUserID(t *testing.T) {
+func TestLinkMyProfessionalHandler_RejectsAnyoneElsesUserID(t *testing.T) {
 	repo := &fakeRepository{linkFn: func(string, string, string) (staff.LinkResult, error) {
 		t.Fatal("un cuerpo con staffUserId nunca debe llegar al repositorio")
 		return staff.LinkResult{}, nil
 	}}
 	for name, body := range map[string]string{
-		"staffUserId":    `{"professionalId":"` + myBarberID + `","staffUserId":"otro-usuario"}`,
-		"campo extra":    `{"professionalId":"` + myBarberID + `","x":1}`,
+		"staffUserId":    `{"professionalId":"` + myProfessionalID + `","staffUserId":"otro-usuario"}`,
+		"campo extra":    `{"professionalId":"` + myProfessionalID + `","x":1}`,
 		"JSON inválido":  `{`,
-		"dos documentos": `{"professionalId":"` + myBarberID + `"}{}`,
+		"dos documentos": `{"professionalId":"` + myProfessionalID + `"}{}`,
 	} {
 		t.Run(name, func(t *testing.T) {
 			rec := httptest.NewRecorder()
-			httpapi.NewLinkMyBarberHandler(staff.NewService(repo)).ServeHTTP(rec,
+			httpapi.NewLinkMyProfessionalHandler(staff.NewService(repo)).ServeHTTP(rec,
 				requestWithPrincipal(http.MethodPut, "/api/v1/private/me/professional", []byte(body)))
 			if rec.Code != http.StatusBadRequest {
 				t.Fatalf("expected 400, got %d: %s", rec.Code, rec.Body.String())
@@ -88,13 +88,13 @@ func TestLinkMyBarberHandler_RejectsAnyoneElsesUserID(t *testing.T) {
 	}
 }
 
-func TestLinkMyBarberHandler_TakenBarber_Is409WithoutRevealingTheOwner(t *testing.T) {
+func TestLinkMyProfessionalHandler_TakenProfessional_Is409WithoutRevealingTheOwner(t *testing.T) {
 	repo := &fakeRepository{linkFn: func(string, string, string) (staff.LinkResult, error) {
 		return staff.LinkResult{Found: true, Taken: true}, nil
 	}}
 	rec := httptest.NewRecorder()
-	httpapi.NewLinkMyBarberHandler(staff.NewService(repo)).ServeHTTP(rec,
-		requestWithPrincipal(http.MethodPut, "/api/v1/private/me/professional", []byte(`{"professionalId":"`+myBarberID+`"}`)))
+	httpapi.NewLinkMyProfessionalHandler(staff.NewService(repo)).ServeHTTP(rec,
+		requestWithPrincipal(http.MethodPut, "/api/v1/private/me/professional", []byte(`{"professionalId":"`+myProfessionalID+`"}`)))
 	if rec.Code != http.StatusConflict {
 		t.Fatalf("expected 409, got %d: %s", rec.Code, rec.Body.String())
 	}
@@ -103,18 +103,18 @@ func TestLinkMyBarberHandler_TakenBarber_Is409WithoutRevealingTheOwner(t *testin
 	}
 }
 
-func TestLinkMyBarberHandler_UnknownBarber_Is404(t *testing.T) {
+func TestLinkMyProfessionalHandler_UnknownProfessional_Is404(t *testing.T) {
 	repo := &fakeRepository{linkFn: func(string, string, string) (staff.LinkResult, error) { return staff.LinkResult{}, nil }}
 	rec := httptest.NewRecorder()
-	httpapi.NewLinkMyBarberHandler(staff.NewService(repo)).ServeHTTP(rec,
-		requestWithPrincipal(http.MethodPut, "/api/v1/private/me/professional", []byte(`{"professionalId":"`+myBarberID+`"}`)))
+	httpapi.NewLinkMyProfessionalHandler(staff.NewService(repo)).ServeHTTP(rec,
+		requestWithPrincipal(http.MethodPut, "/api/v1/private/me/professional", []byte(`{"professionalId":"`+myProfessionalID+`"}`)))
 	if rec.Code != http.StatusNotFound {
 		t.Fatalf("expected 404, got %d", rec.Code)
 	}
 }
 
-func TestUnlinkMyBarberHandler_Is204AndIdempotent(t *testing.T) {
-	for _, released := range []string{myBarberID, ""} {
+func TestUnlinkMyProfessionalHandler_Is204AndIdempotent(t *testing.T) {
+	for _, released := range []string{myProfessionalID, ""} {
 		repo := &fakeRepository{unlinkFn: func(shop, user string) (string, error) {
 			if shop != testShopID || user != "u-1" {
 				t.Fatalf("debe usar el principal, recibió %q/%q", shop, user)
@@ -122,7 +122,7 @@ func TestUnlinkMyBarberHandler_Is204AndIdempotent(t *testing.T) {
 			return released, nil
 		}}
 		rec := httptest.NewRecorder()
-		httpapi.NewUnlinkMyBarberHandler(staff.NewService(repo)).ServeHTTP(rec,
+		httpapi.NewUnlinkMyProfessionalHandler(staff.NewService(repo)).ServeHTTP(rec,
 			requestWithPrincipal(http.MethodDelete, "/api/v1/private/me/professional", nil))
 		if rec.Code != http.StatusNoContent || strings.TrimSpace(rec.Body.String()) != "" {
 			t.Fatalf("expected an empty 204, got %d %q", rec.Code, rec.Body.String())

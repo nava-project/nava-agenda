@@ -4,7 +4,7 @@ import (
 	"context"
 	"fmt"
 
-	"system-barbershop/internal/platform/database"
+	"nava-agenda/internal/platform/database"
 )
 
 // Enqueuer implementa, con UNA sola sentencia SQL cada una, los puertos de
@@ -13,10 +13,10 @@ import (
 // cambio de negocio (DEC-102). Ni booking ni schedule importan este paquete: la
 // raíz de composición inyecta el Enqueuer.
 //
-// Solo encola si el barbero tiene una conexión que sigue publicando (`connected`
+// Solo encola si el profesional tiene una conexión que sigue publicando (`connected`
 // o `error`); sin ella, o con la integración desactivada, no hace nada (DEC-122,
-// punto 5). Además de la conexión del barbero actual, encola cualquier conexión
-// que YA tenga un vínculo con el recurso: si una cita cambiara de barbero, la
+// punto 5). Además de la conexión del profesional actual, encola cualquier conexión
+// que YA tenga un vínculo con el recurso: si una cita cambiara de profesional, la
 // conexión anterior retira su evento. Varios cambios seguidos se funden en un
 // trabajo pendiente (índice único parcial).
 type Enqueuer struct{}
@@ -58,16 +58,16 @@ SELECT l.business_id, l.connection_id, 'time_block', l.resource_id
 ON CONFLICT (connection_id, resource_type, resource_id) WHERE status = 'pending' DO NOTHING`
 
 // AppointmentChanged implementa booking/postgres.SyncHook.
-func (Enqueuer) AppointmentChanged(ctx context.Context, q database.Queries, barbershopID, appointmentID string) error {
-	if _, err := q.Exec(ctx, enqueueAppointmentSQL, barbershopID, appointmentID); err != nil {
+func (Enqueuer) AppointmentChanged(ctx context.Context, q database.Queries, businessID, appointmentID string) error {
+	if _, err := q.Exec(ctx, enqueueAppointmentSQL, businessID, appointmentID); err != nil {
 		return fmt.Errorf("googlecalendar/postgres: enqueue appointment: %w", err)
 	}
 	return nil
 }
 
 // TimeBlockChanged implementa schedule/postgres.SyncHook.
-func (Enqueuer) TimeBlockChanged(ctx context.Context, q database.Queries, barbershopID, blockID string) error {
-	if _, err := q.Exec(ctx, enqueueTimeBlockSQL, barbershopID, blockID); err != nil {
+func (Enqueuer) TimeBlockChanged(ctx context.Context, q database.Queries, businessID, blockID string) error {
+	if _, err := q.Exec(ctx, enqueueTimeBlockSQL, businessID, blockID); err != nil {
 		return fmt.Errorf("googlecalendar/postgres: enqueue time block: %w", err)
 	}
 	return nil

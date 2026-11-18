@@ -9,8 +9,8 @@ import (
 	"regexp"
 	"testing"
 
-	shopspostgres "system-barbershop/internal/modules/shops/postgres"
-	"system-barbershop/internal/platform/database"
+	shopspostgres "nava-agenda/internal/modules/shops/postgres"
+	"nava-agenda/internal/platform/database"
 )
 
 // standardShopName es el nombre original de cada fixture: las pruebas de este
@@ -26,7 +26,7 @@ var standardShopName = map[string]string{
 func prepareShop(t *testing.T, db *database.DB, id, name string) {
 	t.Helper()
 	resetSlugFixture(t, db, id, standardShopName[id])
-	err := db.InTenantTx(context.Background(), database.BarbershopID(id), func(ctx context.Context, q database.Queries) error {
+	err := db.InTenantTx(context.Background(), database.BusinessID(id), func(ctx context.Context, q database.Queries) error {
 		_, err := q.Exec(ctx, `UPDATE business SET name = $2 WHERE id = $1`, id, name)
 		return err
 	})
@@ -36,12 +36,12 @@ func prepareShop(t *testing.T, db *database.DB, id, name string) {
 }
 
 // resolveSlug usa la misma función SECURITY DEFINER que la ruta pública
-// (public_resolve_barbershop_by_slug) para saber a qué barbería apunta un
+// (public_resolve_business_by_slug) para saber a qué negocio apunta un
 // slug: es lo que decide si un enlace "entra" a otra plataforma.
 func resolveSlug(t *testing.T, db *database.DB, slug string) *string {
 	t.Helper()
 	var id *string
-	err := db.InTenantTx(context.Background(), database.BarbershopID(shopA), func(ctx context.Context, q database.Queries) error {
+	err := db.InTenantTx(context.Background(), database.BusinessID(shopA), func(ctx context.Context, q database.Queries) error {
 		return q.QueryRow(ctx, `SELECT public_resolve_business_by_slug($1)::text`, slug).Scan(&id)
 	})
 	if err != nil {
@@ -112,8 +112,8 @@ func TestEnsure_ConcurrentFirstReads_ProduceASingleSlug(t *testing.T) {
 }
 
 // TestEnsure_TwoTenantsSameName_GetDistinctUnrelatedLinksThatResolveOnlyToTheirOwner
-// cubre el pedido del propietario: dos barberías con el MISMO nombre reciben
-// enlaces únicos, y cada enlace lleva únicamente a su propia barbería.
+// cubre el pedido del propietario: dos negocios con el MISMO nombre reciben
+// enlaces únicos, y cada enlace lleva únicamente a su propio negocio.
 func TestEnsure_TwoTenantsSameName_GetDistinctUnrelatedLinksThatResolveOnlyToTheirOwner(t *testing.T) {
 	db := setupTestDB(t)
 	prepareShop(t, db, shopA, "Barbería Gemela")
@@ -139,7 +139,7 @@ func TestEnsure_TwoTenantsSameName_GetDistinctUnrelatedLinksThatResolveOnlyToThe
 		t.Fatalf("slug B must resolve to shopB, got %v", got)
 	}
 	// Un slug vecino inventado (el patrón de los viejos «-2», «-3») no
-	// resuelve a ninguna barbería: el código aleatorio no se puede deducir.
+	// resuelve a ningún negocio: el código aleatorio no se puede deducir.
 	for _, guess := range []string{"barberiagemela", "barberiagemela2", "barberia-gemela", "barberia-gemela-2"} {
 		if got := resolveSlug(t, db, guess); got != nil {
 			t.Fatalf("guessed slug %q must not resolve, got %v", guess, *got)
@@ -147,7 +147,7 @@ func TestEnsure_TwoTenantsSameName_GetDistinctUnrelatedLinksThatResolveOnlyToThe
 	}
 }
 
-// TestEnsure_OtherTenantRow_IsNeverTouched: generar el enlace de una barbería
+// TestEnsure_OtherTenantRow_IsNeverTouched: generar el enlace de un negocio
 // no escribe ni lee la fila de otra.
 func TestEnsure_OtherTenantRow_IsNeverTouched(t *testing.T) {
 	db := setupTestDB(t)
@@ -163,7 +163,7 @@ func TestEnsure_OtherTenantRow_IsNeverTouched(t *testing.T) {
 	}
 }
 
-func TestEnsure_InexistentBarbershop_ReturnsNotFound(t *testing.T) {
+func TestEnsure_InexistentBusiness_ReturnsNotFound(t *testing.T) {
 	db := setupTestDB(t)
 	repo := shopspostgres.NewPublicLinkRepository(db)
 
@@ -172,6 +172,6 @@ func TestEnsure_InexistentBarbershop_ReturnsNotFound(t *testing.T) {
 		t.Fatalf("Ensure: %v", err)
 	}
 	if found {
-		t.Fatal("an inexistent barbershop must not be found")
+		t.Fatal("an inexistent business must not be found")
 	}
 }

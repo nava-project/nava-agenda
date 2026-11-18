@@ -14,11 +14,11 @@ import (
 
 	"github.com/jackc/pgx/v5"
 
-	"system-barbershop/internal/modules/auth"
-	"system-barbershop/internal/platform/database"
+	"nava-agenda/internal/modules/auth"
+	"nava-agenda/internal/platform/database"
 )
 
-// decoyStaffUserID acompaña a decoyBarbershopID (service.go) cuando
+// decoyStaffUserID acompaña a decoyBusinessID (service.go) cuando
 // ResolveLoginTenant no resolvió tenant: nunca coincide con un
 // staff_user_id real (gen_random_uuid() jamás produce el UUID nulo), pero
 // permite ejecutar exactamente la misma segunda consulta
@@ -32,7 +32,7 @@ type Repository struct {
 }
 
 // New construye el repositorio. db es el pool tenant-aware ya abierto por
-// cmd/api (database.NewDB), conectado como barberia_app.
+// cmd/api (database.NewDB), conectado como agenda_app.
 func New(db *database.DB) *Repository {
 	return &Repository{db: db}
 }
@@ -62,10 +62,10 @@ func (r *Repository) ResolveLoginTenant(ctx context.Context, email string) (stri
 // misma forma de segunda consulta (CA-005-02): auth_get_credential con un
 // id que nunca existe devuelve cero filas, igual de rápido que con uno que
 // sí existe.
-func (r *Repository) LookupCredential(ctx context.Context, barbershopID string, resolved bool, email string) (auth.Credential, error) {
+func (r *Repository) LookupCredential(ctx context.Context, businessID string, resolved bool, email string) (auth.Credential, error) {
 	var cred auth.Credential
 
-	err := r.db.InTenantTx(ctx, database.BarbershopID(barbershopID), func(ctx context.Context, q database.Queries) error {
+	err := r.db.InTenantTx(ctx, database.BusinessID(businessID), func(ctx context.Context, q database.Queries) error {
 		staffUserID := decoyStaffUserID
 		userFound := false
 
@@ -114,13 +114,13 @@ func (r *Repository) LookupCredential(ctx context.Context, barbershopID string, 
 // staff_session en su propia transacción tenant-aware. issuedAt y expiresAt
 // llegan ya calculados por el servicio (reloj inyectado, no now() de
 // PostgreSQL), para que las pruebas puedan congelar el tiempo.
-func (r *Repository) CreateSession(ctx context.Context, barbershopID, staffUserID, tokenHash string, issuedAt, expiresAt time.Time) error {
-	err := r.db.InTenantTx(ctx, database.BarbershopID(barbershopID), func(ctx context.Context, q database.Queries) error {
+func (r *Repository) CreateSession(ctx context.Context, businessID, staffUserID, tokenHash string, issuedAt, expiresAt time.Time) error {
+	err := r.db.InTenantTx(ctx, database.BusinessID(businessID), func(ctx context.Context, q database.Queries) error {
 		_, err := q.Exec(ctx,
 			`INSERT INTO staff_session
 			   (business_id, staff_user_id, token_hash, issued_at, expires_at, last_used_at)
 			 VALUES ($1, $2, $3, $4, $5, $4)`,
-			barbershopID, staffUserID, tokenHash, issuedAt, expiresAt,
+			businessID, staffUserID, tokenHash, issuedAt, expiresAt,
 		)
 		return err
 	})
@@ -131,16 +131,16 @@ func (r *Repository) CreateSession(ctx context.Context, barbershopID, staffUserI
 }
 
 // StaffUserNames implementa auth.Repository.StaffUserNames (HU-064): una
-// sola consulta por lote con `= ANY($2)`, tenant-aware por barbershop_id
+// sola consulta por lote con `= ANY($2)`, tenant-aware por business_id
 // además de RLS, que nunca selecciona email ni ninguna otra columna. Un id
 // sin coincidencia simplemente está ausente del mapa devuelto.
-func (r *Repository) StaffUserNames(ctx context.Context, barbershopID string, staffUserIDs []string) (map[string]string, error) {
+func (r *Repository) StaffUserNames(ctx context.Context, businessID string, staffUserIDs []string) (map[string]string, error) {
 	names := make(map[string]string, len(staffUserIDs))
 	if len(staffUserIDs) == 0 {
 		return names, nil
 	}
 
-	shop, err := database.ValidBarbershopID(barbershopID)
+	shop, err := database.ValidBusinessID(businessID)
 	if err != nil {
 		return nil, fmt.Errorf("auth/postgres: %w", err)
 	}
@@ -148,7 +148,7 @@ func (r *Repository) StaffUserNames(ctx context.Context, barbershopID string, st
 	err = r.db.InTenantTx(ctx, shop, func(ctx context.Context, q database.Queries) error {
 		rows, err := q.Query(ctx,
 			`SELECT id, full_name FROM staff_user WHERE business_id = $1 AND id = ANY($2)`,
-			barbershopID, staffUserIDs)
+			businessID, staffUserIDs)
 		if err != nil {
 			return err
 		}

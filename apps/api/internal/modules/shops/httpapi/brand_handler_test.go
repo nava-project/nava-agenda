@@ -9,14 +9,14 @@ import (
 	"strings"
 	"testing"
 
-	"system-barbershop/internal/modules/shops"
-	"system-barbershop/internal/modules/shops/httpapi"
+	"nava-agenda/internal/modules/shops"
+	"nava-agenda/internal/modules/shops/httpapi"
 )
 
 type brandUpdateCall struct {
-	barbershopID string
-	brand        shops.Brand
-	location     shops.LocationWrite
+	businessID string
+	brand      shops.Brand
+	location   shops.LocationWrite
 }
 
 // fakeBrandRepository es un doble en memoria de shops.BrandRepository: estas
@@ -35,8 +35,8 @@ func (f *fakeBrandRepository) Get(_ context.Context, _ string) (shops.Brand, boo
 	return f.getBrand, f.getFound, nil
 }
 
-func (f *fakeBrandRepository) Update(_ context.Context, barbershopID string, brand shops.Brand, location shops.LocationWrite) (shops.BrandUpdateResult, error) {
-	f.updateCalls = append(f.updateCalls, brandUpdateCall{barbershopID, brand, location})
+func (f *fakeBrandRepository) Update(_ context.Context, businessID string, brand shops.Brand, location shops.LocationWrite) (shops.BrandUpdateResult, error) {
+	f.updateCalls = append(f.updateCalls, brandUpdateCall{businessID, brand, location})
 	return f.updateResult, nil
 }
 
@@ -49,8 +49,8 @@ type fakePanelProfileRepository struct {
 	calls [][2]string
 }
 
-func (f *fakePanelProfileRepository) RolesOf(_ context.Context, barbershopID, staffUserID string) ([]shops.Role, error) {
-	f.calls = append(f.calls, [2]string{barbershopID, staffUserID})
+func (f *fakePanelProfileRepository) RolesOf(_ context.Context, businessID, staffUserID string) ([]shops.Role, error) {
+	f.calls = append(f.calls, [2]string{businessID, staffUserID})
 	return f.roles, nil
 }
 
@@ -141,8 +141,8 @@ func TestUpdateBrandHandler_Success_ReturnsSavedRepresentationAndUsesPrincipalTe
 	if rec.Code != http.StatusOK {
 		t.Fatalf("expected 200, got %d: %s", rec.Code, rec.Body.String())
 	}
-	if len(repo.updateCalls) != 1 || repo.updateCalls[0].barbershopID != testShopID {
-		t.Fatalf("expected one write for the principal's barbershop, got %+v", repo.updateCalls)
+	if len(repo.updateCalls) != 1 || repo.updateCalls[0].businessID != testShopID {
+		t.Fatalf("expected one write for the principal's business, got %+v", repo.updateCalls)
 	}
 	// El servicio normaliza ("Salón" → "salón") antes de llegar al repositorio.
 	if repo.updateCalls[0].brand.BusinessTerm != "salón" || repo.updateCalls[0].brand.ProfessionalTerm != "estilista" {
@@ -267,7 +267,7 @@ func TestBrandHandlers_PanelProfileComesFromTheRolesOfTheAuthenticatedUser(t *te
 			if body.PanelProfile != tc.want {
 				t.Fatalf("expected panelProfile %q, got %q", tc.want, body.PanelProfile)
 			}
-			// El panel se pregunta por la persona de la sesión, en su barbería.
+			// El panel se pregunta por la persona de la sesión, en su negocio.
 			if len(rolesRepo.calls) != 1 || rolesRepo.calls[0] != [2]string{testShopID, "u-1"} {
 				t.Fatalf("roles must be read for the principal, got %v", rolesRepo.calls)
 			}

@@ -5,9 +5,9 @@ import (
 	"testing"
 	"time"
 
-	"system-barbershop/internal/modules/booking"
-	"system-barbershop/internal/platform/apperr"
-	"system-barbershop/internal/platform/idempotency"
+	"nava-agenda/internal/modules/booking"
+	"nava-agenda/internal/platform/apperr"
+	"nava-agenda/internal/platform/idempotency"
 )
 
 func strPtr(s string) *string { return &s }
@@ -24,13 +24,13 @@ func validSnapshot() booking.ServiceSnapshot {
 func validInput() booking.CreateInternalInput {
 	start := time.Date(2027, 6, 1, 10, 0, 0, 0, time.UTC)
 	return booking.CreateInternalInput{
-		BarberID:     "b1",
-		ServiceID:    "s1",
-		AttendeeName: "Cliente de prueba",
-		StartsAt:     start,
-		EndsAt:       start.Add(30 * time.Minute),
-		Origin:       booking.OriginManual,
-		Service:      validSnapshot(),
+		ProfessionalID: "b1",
+		ServiceID:      "s1",
+		AttendeeName:   "Cliente de prueba",
+		StartsAt:       start,
+		EndsAt:         start.Add(30 * time.Minute),
+		Origin:         booking.OriginManual,
+		Service:        validSnapshot(),
 		Customer: booking.CustomerInput{
 			New: &booking.NewCustomerInput{FullName: "Cliente de prueba"},
 		},
@@ -56,11 +56,11 @@ func expectValidationErr(t *testing.T, err error) {
 // confirmed/completed/no_show ocupan agenda; las dos cancelaciones no.
 func TestStatus_OccupiesSchedule(t *testing.T) {
 	cases := map[booking.Status]bool{
-		booking.StatusConfirmed:           true,
-		booking.StatusCompleted:           true,
-		booking.StatusNoShow:              true,
-		booking.StatusCancelledByCustomer: false,
-		booking.StatusCancelledByBarber:   false,
+		booking.StatusConfirmed:               true,
+		booking.StatusCompleted:               true,
+		booking.StatusNoShow:                  true,
+		booking.StatusCancelledByCustomer:     false,
+		booking.StatusCancelledByProfessional: false,
 	}
 	for status, want := range cases {
 		if got := status.OccupiesSchedule(); got != want {
@@ -83,8 +83,8 @@ func TestBookingService_CreateInternal_ValidInputPassesValidation(t *testing.T) 
 
 func TestBookingService_CreateInternal_RejectsInvalidInputWithoutCallingRepository(t *testing.T) {
 	cases := map[string]func(booking.CreateInternalInput) booking.CreateInternalInput{
-		"empty barber id": func(in booking.CreateInternalInput) booking.CreateInternalInput {
-			in.BarberID = ""
+		"empty professional id": func(in booking.CreateInternalInput) booking.CreateInternalInput {
+			in.ProfessionalID = ""
 			return in
 		},
 		"empty service id": func(in booking.CreateInternalInput) booking.CreateInternalInput {
@@ -257,9 +257,9 @@ func (s *stubRepository) Reschedule(
 	panic("no usado")
 }
 
-func (s *stubRepository) CancelByBarber(
-	_ context.Context, _ string, _ booking.CancelAppointmentByBarberInput, _ idempotency.Key, _ idempotency.Fingerprint,
-) (booking.CancelAppointmentByBarberResult, error) {
+func (s *stubRepository) CancelByProfessional(
+	_ context.Context, _ string, _ booking.CancelAppointmentByProfessionalInput, _ idempotency.Key, _ idempotency.Fingerprint,
+) (booking.CancelAppointmentByProfessionalResult, error) {
 	panic("no usado")
 }
 

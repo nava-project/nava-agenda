@@ -5,22 +5,22 @@ import (
 	"errors"
 	"testing"
 
-	"system-barbershop/internal/modules/staff"
-	"system-barbershop/internal/platform/apperr"
+	"nava-agenda/internal/modules/staff"
+	"nava-agenda/internal/platform/apperr"
 )
 
-// TestBarberNameLookup_Name_KnownBarber_ReturnsFullName confirma que
-// staff.BarberNameLookup (el puerto que HU-064/booking consulta) delega en
+// TestProfessionalNameLookup_Name_KnownProfessional_ReturnsFullName confirma que
+// staff.ProfessionalNameLookup (el puerto que HU-064/booking consulta) delega en
 // Service.Get sin necesitar más que ese único método público, mismo
-// criterio que BarberLookup.Exists.
-func TestBarberNameLookup_Name_KnownBarber_ReturnsFullName(t *testing.T) {
+// criterio que ProfessionalLookup.Exists.
+func TestProfessionalNameLookup_Name_KnownProfessional_ReturnsFullName(t *testing.T) {
 	repo := &fakeRepository{
-		getFn: func(ctx context.Context, barbershopID, barberID string) (staff.Barber, bool, error) {
-			return staff.Barber{ID: barberID, FullName: "Ana Gómez"}, true, nil
+		getFn: func(ctx context.Context, businessID, professionalID string) (staff.Professional, bool, error) {
+			return staff.Professional{ID: professionalID, FullName: "Ana Gómez"}, true, nil
 		},
 	}
 	svc := staff.NewService(repo)
-	lookup := staff.NewBarberNameLookup(svc)
+	lookup := staff.NewProfessionalNameLookup(svc)
 
 	name, found, err := lookup.Name(context.Background(), "11111111-1111-1111-1111-111111111111", "22222222-2222-2222-2222-222222222222")
 	if err != nil {
@@ -31,14 +31,14 @@ func TestBarberNameLookup_Name_KnownBarber_ReturnsFullName(t *testing.T) {
 	}
 }
 
-func TestBarberNameLookup_Name_UnknownOrCrossTenantBarber_ReturnsFoundFalseWithoutError(t *testing.T) {
+func TestProfessionalNameLookup_Name_UnknownOrCrossTenantProfessional_ReturnsFoundFalseWithoutError(t *testing.T) {
 	repo := &fakeRepository{
-		getFn: func(context.Context, string, string) (staff.Barber, bool, error) {
-			return staff.Barber{}, false, nil
+		getFn: func(context.Context, string, string) (staff.Professional, bool, error) {
+			return staff.Professional{}, false, nil
 		},
 	}
 	svc := staff.NewService(repo)
-	lookup := staff.NewBarberNameLookup(svc)
+	lookup := staff.NewProfessionalNameLookup(svc)
 
 	name, found, err := lookup.Name(context.Background(), "11111111-1111-1111-1111-111111111111", "22222222-2222-2222-2222-222222222222")
 	if err != nil {
@@ -49,14 +49,14 @@ func TestBarberNameLookup_Name_UnknownOrCrossTenantBarber_ReturnsFoundFalseWitho
 	}
 }
 
-func TestBarberNameLookup_Name_InfrastructureError_Propagates(t *testing.T) {
+func TestProfessionalNameLookup_Name_InfrastructureError_Propagates(t *testing.T) {
 	repo := &fakeRepository{
-		getFn: func(context.Context, string, string) (staff.Barber, bool, error) {
-			return staff.Barber{}, false, errors.New("boom")
+		getFn: func(context.Context, string, string) (staff.Professional, bool, error) {
+			return staff.Professional{}, false, errors.New("boom")
 		},
 	}
 	svc := staff.NewService(repo)
-	lookup := staff.NewBarberNameLookup(svc)
+	lookup := staff.NewProfessionalNameLookup(svc)
 
 	_, _, err := lookup.Name(context.Background(), "11111111-1111-1111-1111-111111111111", "22222222-2222-2222-2222-222222222222")
 	appErr, ok := apperr.As(err)

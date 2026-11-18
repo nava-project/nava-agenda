@@ -3,11 +3,11 @@ package httpapi
 import (
 	"time"
 
-	"system-barbershop/internal/modules/schedule"
+	"nava-agenda/internal/modules/schedule"
 )
 
 // HolidayCalendarResponse es la representación canónica del interruptor de
-// calendario colombiano de festivos de un barbero (HU-041, CA-041-01/02):
+// calendario colombiano de festivos de un profesional (HU-041, CA-041-01/02):
 // exactamente enabled.
 type HolidayCalendarResponse struct {
 	Enabled bool `json:"enabled"`
@@ -36,8 +36,8 @@ type ScheduleExceptionSegmentResponse struct {
 
 // ScheduleExceptionResponse es la representación canónica de una excepción
 // de jornada (HU-041, CA-041-04/05): exactamente id, effectiveDate,
-// isClosed, reason, segments, createdAt, updatedAt. Nunca barbershopId ni
-// barberId: el tenant se deriva de SessionCookie y el barbero de la ruta.
+// isClosed, reason, segments, createdAt, updatedAt. Nunca businessId ni
+// professionalId: el tenant se deriva de SessionCookie y el profesional de la ruta.
 //
 // ADVERTENCIA: postgres.exceptionResponseWire (schedule/postgres/
 // exception_repository.go) declara EXACTAMENTE la misma forma (mismos
@@ -64,7 +64,7 @@ type ScheduleExceptionListResponse struct {
 // CreateScheduleExceptionRequest es el cuerpo de
 // POST /private/professionals/{professionalId}/schedule-exceptions (CA-041-04/05).
 // Cerrado: el handler rechaza cualquier campo desconocido. Nunca declara
-// barbershopId ni barberId.
+// businessId ni professionalId.
 type CreateScheduleExceptionRequest struct {
 	EffectiveDate string                          `json:"effectiveDate"`
 	IsClosed      bool                            `json:"isClosed"`

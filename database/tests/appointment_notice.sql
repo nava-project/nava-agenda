@@ -1,14 +1,14 @@
 -- Pruebas SQL del issue #463 (HU-130, DEC-142) y #467 (HU-131, DEC-144): cola del
--- aviso al cliente por cancelación o reprogramación del barbero, del recordatorio
+-- aviso al cliente por cancelación o reprogramación del profesional, del recordatorio
 -- previo al turno, y evidencia de cada intento. Cubren los
 -- privilegios (el worker solo ejecuta funciones; la aplicación solo encola), el RLS
--- entre dos barberías, un solo aviso pendiente por turno, el reclamo con lease y el
+-- entre dos negocios, un solo aviso pendiente por turno, el reclamo con lease y el
 -- cierre por CAS (DDL-CON-01), el contexto con estado vigente y la evidencia sin
 -- datos de contacto. La orquestación del envío vive en Go
 -- (internal/modules/appointmentnotice), no aquí.
 --
 -- Uso:
---   psql "$DATABASE_TEST_URL" -v ON_ERROR_STOP=1 -f testdata/dos_professionalias.sql
+--   psql "$DATABASE_TEST_URL" -v ON_ERROR_STOP=1 -f testdata/dos_negocios.sql
 --   psql "$DATABASE_TEST_URL" -v ON_ERROR_STOP=1 -f tests/appointment_notice.sql
 --
 -- Requisito del arnés: la conexión debe poder ejecutar `SET ROLE agenda_app` y
@@ -79,7 +79,7 @@ $$;
 \echo 'privilegios OK · worker solo funciones, aplicación solo encola y lee'
 
 -- ---------------------------------------------------------------------------
--- Escenario base: una cita en cada barbería
+-- Escenario base: una cita en cada negocio
 -- ---------------------------------------------------------------------------
 BEGIN;
 RESET ROLE; -- el arnés conecta como superusuario: crea fixtures sin pasar por RLS
@@ -148,12 +148,12 @@ BEGIN
   EXCEPTION WHEN insufficient_privilege THEN NULL;
   END;
 
-  -- Aislamiento: encolar sobre la barbería B desde el tenant A falla por RLS.
+  -- Aislamiento: encolar sobre el negocio B desde el tenant A falla por RLS.
   BEGIN
     INSERT INTO appointment_notice (business_id, appointment_id, kind, state_at)
     VALUES ('22222222-2222-2222-2222-222222222222', 'b4630004-0000-4000-8000-00000000000b',
             'rescheduled', now());
-    RAISE EXCEPTION 'encolar en otra barbería debe rechazarse.';
+    RAISE EXCEPTION 'encolar en otro negocio debe rechazarse.';
   EXCEPTION WHEN insufficient_privilege THEN NULL;
   END;
 END
@@ -176,7 +176,7 @@ BEGIN
   END IF;
 END
 $$;
-\echo 'RLS OK · cada barbería ve solo sus avisos'
+\echo 'RLS OK · cada negocio ve solo sus avisos'
 
 -- ---------------------------------------------------------------------------
 -- Reclamo con lease, contexto y cierre por CAS
@@ -446,7 +446,7 @@ BEGIN
   EXCEPTION WHEN unique_violation THEN NULL;
   END;
 
-  -- Un aviso no puede apuntar a una cita de otra barbería.
+  -- Un aviso no puede apuntar a una cita de otro negocio.
   BEGIN
     INSERT INTO appointment_notice (business_id, appointment_id, kind, state_at)
     VALUES ('11111111-1111-1111-1111-111111111111', 'b4630004-0000-4000-8000-00000000000b', 'rescheduled', now());

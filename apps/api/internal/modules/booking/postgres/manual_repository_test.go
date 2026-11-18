@@ -1,11 +1,11 @@
 // Package postgres_test (pruebas de integración, HU-061) requiere
 // PostgreSQL REAL con las dieciséis migraciones aplicadas y
-// database/testdata/dos_barberias.sql + database/testdata/hu060_citas.sql
+// database/testdata/dos_negocios.sql + database/testdata/hu060_citas.sql
 // cargados: mismos fixtures que repository_test.go (HU-060), reutilizados
 // aquí porque CreateManual/FindCustomerForReconciliation no dependen de
 // ninguna tabla nueva.
 //
-//	export TEST_DATABASE_URL="postgres://barberia_app:app_test@localhost:5432/barberia_test?sslmode=disable"
+//	export TEST_DATABASE_URL="postgres://agenda_app:app_test@localhost:5432/postgres?sslmode=disable"
 //	go test -race ./internal/modules/booking/postgres/...
 package postgres_test
 
@@ -16,9 +16,9 @@ import (
 	"testing"
 	"time"
 
-	"system-barbershop/internal/modules/booking"
-	"system-barbershop/internal/platform/database"
-	"system-barbershop/internal/platform/idempotency"
+	"nava-agenda/internal/modules/booking"
+	"nava-agenda/internal/platform/database"
+	"nava-agenda/internal/platform/idempotency"
 )
 
 // uniqueDigits genera dígitos aleatorios (nunca letras hexadecimales, a
@@ -37,15 +37,15 @@ func uniqueDigits(t *testing.T, n int) string {
 	return string(digits)
 }
 
-func manualInput(t *testing.T, barberID, serviceID string, suffix string, customer booking.CustomerInput) booking.CreateInternalInput {
+func manualInput(t *testing.T, professionalID, serviceID string, suffix string, customer booking.CustomerInput) booking.CreateInternalInput {
 	start := baseStart(t)
 	return booking.CreateInternalInput{
-		BarberID:     barberID,
-		ServiceID:    serviceID,
-		AttendeeName: "Persona atendida " + suffix,
-		StartsAt:     start,
-		EndsAt:       start.Add(30 * time.Minute),
-		Origin:       booking.OriginManual,
+		ProfessionalID: professionalID,
+		ServiceID:      serviceID,
+		AttendeeName:   "Persona atendida " + suffix,
+		StartsAt:       start,
+		EndsAt:         start.Add(30 * time.Minute),
+		Origin:         booking.OriginManual,
 		Service: booking.ServiceSnapshot{
 			Name:             "Corte manual " + suffix,
 			DurationMinutes:  30,
@@ -62,7 +62,7 @@ func TestCreateManual_NewCustomerNoContact_Proceeds_PersistsAppointment(t *testi
 	repo := newRepository(db)
 	suffix := uniqueSuffix(t)
 
-	input := manualInput(t, barberQ1, serviceQ, suffix, booking.CustomerInput{
+	input := manualInput(t, professionalQ1, serviceQ, suffix, booking.CustomerInput{
 		New: &booking.NewCustomerInput{FullName: "Cliente manual " + suffix},
 	})
 	key := idempotency.Key("manual-" + suffix)
@@ -100,7 +100,7 @@ func TestCreateManual_RepeatedKeySameBody_Replays_NeverCreatesSecondAppointment(
 	repo := newRepository(db)
 	suffix := uniqueSuffix(t)
 
-	input := manualInput(t, barberQ1, serviceQ, suffix, booking.CustomerInput{
+	input := manualInput(t, professionalQ1, serviceQ, suffix, booking.CustomerInput{
 		New: &booking.NewCustomerInput{FullName: "Cliente repetido " + suffix},
 	})
 	key := idempotency.Key("manual-replay-" + suffix)
@@ -146,7 +146,7 @@ func TestFindCustomerForReconciliation_ByPhone_FindsExistingCustomer(t *testing.
 	suffix := uniqueSuffix(t)
 	phone := "+573" + uniqueDigits(t, 7)
 
-	seed := manualInput(t, barberQ1, serviceQ, suffix, booking.CustomerInput{
+	seed := manualInput(t, professionalQ1, serviceQ, suffix, booking.CustomerInput{
 		New: &booking.NewCustomerInput{FullName: "Cliente con teléfono " + suffix, Phone: &phone},
 	})
 	created, err := repo.CreateInternal(context.Background(), string(shopQ), seed)
@@ -172,7 +172,7 @@ func TestFindCustomerForReconciliation_ByEmail_FindsExistingCustomer(t *testing.
 	suffix := uniqueSuffix(t)
 	email := "cliente." + suffix + "@example.com"
 
-	seed := manualInput(t, barberQ1, serviceQ, suffix, booking.CustomerInput{
+	seed := manualInput(t, professionalQ1, serviceQ, suffix, booking.CustomerInput{
 		New: &booking.NewCustomerInput{FullName: "Cliente con correo " + suffix, Email: &email},
 	})
 	created, err := repo.CreateInternal(context.Background(), string(shopQ), seed)
@@ -224,8 +224,8 @@ func TestCreateManual_ExistingCustomerFromOtherTenant_ReturnsNotFound(t *testing
 	repo := newRepository(db)
 	suffix := uniqueSuffix(t)
 
-	other := manualInput(t, barberR1, serviceR, "other"+suffix, booking.CustomerInput{
-		New: &booking.NewCustomerInput{FullName: "Cliente de otra barbería " + suffix},
+	other := manualInput(t, professionalR1, serviceR, "other"+suffix, booking.CustomerInput{
+		New: &booking.NewCustomerInput{FullName: "Cliente de otro negocio " + suffix},
 	})
 	other.Actor = booking.Actor{Type: booking.ActorTypeStaff, StaffUserID: strPtr(staffR)}
 	otherCreated, err := repo.CreateInternal(context.Background(), string(shopR), other)
@@ -233,7 +233,7 @@ func TestCreateManual_ExistingCustomerFromOtherTenant_ReturnsNotFound(t *testing
 		t.Fatalf("seed en shopR: %v", err)
 	}
 
-	input := manualInput(t, barberQ1, serviceQ, suffix, booking.CustomerInput{
+	input := manualInput(t, professionalQ1, serviceQ, suffix, booking.CustomerInput{
 		ExistingID: &otherCreated.Customer.ID,
 	})
 	_, err = repo.CreateManual(context.Background(), string(shopQ), input, idempotency.Key("manual-cross-"+suffix), idempotency.Fingerprint("2123456789abcdef0123456789abcdef"))

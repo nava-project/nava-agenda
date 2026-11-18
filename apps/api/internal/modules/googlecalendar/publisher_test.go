@@ -8,7 +8,7 @@ import (
 	"testing"
 	"time"
 
-	"system-barbershop/internal/modules/googlecalendar"
+	"nava-agenda/internal/modules/googlecalendar"
 )
 
 // --- dobles -----------------------------------------------------------------
@@ -186,15 +186,15 @@ func newPubHarness(t *testing.T) *pubHarness {
 // apptContext es una cita confirmada en el futuro con conexión sana, sin vínculo.
 func (h *pubHarness) apptContext(t *testing.T) googlecalendar.JobContext {
 	t.Helper()
-	token, keyID, err := h.cipher.Encrypt([]byte("1//refresh-de-prueba"), []byte("gcal-refresh|"+shopA+"|"+barberA))
+	token, keyID, err := h.cipher.Encrypt([]byte("1//refresh-de-prueba"), []byte("gcal-refresh|"+shopA+"|"+professionalA))
 	if err != nil {
 		t.Fatal(err)
 	}
 	reminder := 30
 	return googlecalendar.JobContext{
-		BarberID: barberA, ConnectionStatus: "connected", CalendarID: "primary", ReminderMinutes: &reminder,
+		ProfessionalID: professionalA, ConnectionStatus: "connected", CalendarID: "primary", ReminderMinutes: &reminder,
 		TokenCiphertext: token, TokenKeyID: keyID, Timezone: "America/Bogota",
-		ResourceType: googlecalendar.ResourceAppointment, ResourceID: apptID, ResourceFound: true, BarberMatches: true,
+		ResourceType: googlecalendar.ResourceAppointment, ResourceID: apptID, ResourceFound: true, ProfessionalMatches: true,
 		ApptStatus: "confirmed",
 		StartsAt:   h.clock.now.Add(24 * time.Hour), EndsAt: h.clock.now.Add(24*time.Hour + 40*time.Minute),
 		AttendeeName: "Ana Pérez", ServiceName: "Corte clásico", CustomerEmail: "ana@ejemplo.test",
@@ -204,7 +204,7 @@ func (h *pubHarness) apptContext(t *testing.T) googlecalendar.JobContext {
 func (h *pubHarness) run(t *testing.T, jc googlecalendar.JobContext, attempts int) googlecalendar.FinishInput {
 	t.Helper()
 	job := googlecalendar.Job{
-		ID: jobID, ClaimToken: claimToken, BarbershopID: shopA, ConnectionID: connID,
+		ID: jobID, ClaimToken: claimToken, BusinessID: shopA, ConnectionID: connID,
 		ResourceType: jc.ResourceType, ResourceID: jc.ResourceID, Attempts: attempts,
 	}
 	h.store.contexts[jobID] = jc
@@ -242,7 +242,7 @@ func TestPublish_NewAppointment_CreatesOneEventWithTheAgreedContent(t *testing.T
 		t.Fatalf("descripción = %q", ev.Description)
 	}
 	if !ev.StartsAt.Equal(jc.StartsAt) || !ev.EndsAt.Equal(jc.EndsAt) || ev.TimeZone != "America/Bogota" {
-		t.Fatalf("el evento representa el mismo instante en la zona de la barbería: %+v", ev)
+		t.Fatalf("el evento representa el mismo instante en la zona del negocio: %+v", ev)
 	}
 	if ev.ReminderMinutes == nil || *ev.ReminderMinutes != 30 {
 		t.Fatalf("recordatorio = %v, se esperaba el override de 30 minutos", ev.ReminderMinutes)
@@ -329,7 +329,7 @@ func TestPublish_Reschedule_PatchesTheSameEventAndOnlyNotifiesWhatTheGuestSees(t
 		t.Fatal("cambió el horario que el invitado ve: Google debe avisarle")
 	}
 
-	// Cambiar solo el recordatorio del barbero NO notifica al invitado.
+	// Cambiar solo el recordatorio del profesional NO notifica al invitado.
 	jc.LinkVisibleHash = moved.VisibleHash
 	reminder := 10
 	jc.ReminderMinutes = &reminder
@@ -466,8 +466,8 @@ func TestTerminalStates_KeepTheExistingEventUntouched(t *testing.T) {
 
 func TestMissingOrForeignResource_RemovesTheLinkedEvent(t *testing.T) {
 	for name, mutate := range map[string]func(jc *googlecalendar.JobContext){
-		"recurso inexistente":  func(jc *googlecalendar.JobContext) { jc.ResourceFound = false },
-		"cita de otro barbero": func(jc *googlecalendar.JobContext) { jc.BarberMatches = false },
+		"recurso inexistente":      func(jc *googlecalendar.JobContext) { jc.ResourceFound = false },
+		"cita de otro profesional": func(jc *googlecalendar.JobContext) { jc.ProfessionalMatches = false },
 	} {
 		t.Run(name, func(t *testing.T) {
 			h := newPubHarness(t)
@@ -659,7 +659,7 @@ func TestToken_IsCachedAcrossJobsOfTheSameConnection(t *testing.T) {
 
 func TestClaim_LostLease_WritesNothing(t *testing.T) {
 	h := newPubHarness(t)
-	job := googlecalendar.Job{ID: jobID, ClaimToken: claimToken, BarbershopID: shopA, ConnectionID: connID,
+	job := googlecalendar.Job{ID: jobID, ClaimToken: claimToken, BusinessID: shopA, ConnectionID: connID,
 		ResourceType: "appointment", ResourceID: apptID, Attempts: 1}
 	h.store.contexts[jobID] = h.apptContext(t)
 	h.store.contextOK = false // otro worker lo retomó
@@ -673,7 +673,7 @@ func TestClaim_LostLease_WritesNothing(t *testing.T) {
 
 func TestRunOnce_ProcessesTheClaimedBatch(t *testing.T) {
 	h := newPubHarness(t)
-	h.store.jobs = []googlecalendar.Job{{ID: jobID, ClaimToken: claimToken, BarbershopID: shopA, ConnectionID: connID,
+	h.store.jobs = []googlecalendar.Job{{ID: jobID, ClaimToken: claimToken, BusinessID: shopA, ConnectionID: connID,
 		ResourceType: "appointment", ResourceID: apptID, Attempts: 1}}
 	h.store.contexts[jobID] = h.apptContext(t)
 
@@ -689,7 +689,7 @@ func TestRunOnce_ProcessesTheClaimedBatch(t *testing.T) {
 
 func (h *pubHarness) restoreTarget(t *testing.T) *googlecalendar.RestoreTarget {
 	jc := h.apptContext(t)
-	return &googlecalendar.RestoreTarget{ConnectionID: connID, BarbershopID: shopA, BarberID: barberA, CalendarID: "primary",
+	return &googlecalendar.RestoreTarget{ConnectionID: connID, BusinessID: shopA, ProfessionalID: professionalA, CalendarID: "primary",
 		TokenCiphertext: jc.TokenCiphertext, TokenKeyID: jc.TokenKeyID}
 }
 

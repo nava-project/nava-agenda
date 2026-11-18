@@ -1,6 +1,6 @@
 package schedule
 
-import "system-barbershop/internal/platform/idempotency"
+import "nava-agenda/internal/platform/idempotency"
 
 // CreateExceptionSegmentInput es un tramo de una excepción ya validado por
 // Service (día/hora/duración), antes de tocar el repositorio.
@@ -25,7 +25,7 @@ type CreateExceptionInput struct {
 type UpdateExceptionInput = CreateExceptionInput
 
 // HolidayCalendarResult es el desenlace de leer o actualizar el
-// interruptor de calendario colombiano de festivos de un barbero.
+// interruptor de calendario colombiano de festivos de un profesional.
 type HolidayCalendarResult struct {
 	Enabled bool
 	Found   bool
@@ -45,7 +45,7 @@ type ExceptionListResult struct {
 //   - Decision.Outcome == OutcomeProceed && !Conflict: Exception y
 //     Response reflejan la excepción recién creada.
 //   - Decision.Outcome == OutcomeProceed && Conflict: la fecha ya tenía
-//     otra excepción de este barbero, o dos tramos se solapaban; no se
+//     otra excepción de este profesional, o dos tramos se solapaban; no se
 //     insertó nada y la reclamación de idempotencia se liberó (mismo
 //     criterio que schedule.CreateResult.Conflict de HU-040).
 //   - Decision.Outcome == OutcomeReplay: Decision.Response ya trae la
@@ -59,9 +59,9 @@ type CreateExceptionResult struct {
 }
 
 // UpdateExceptionResult es el desenlace de un intento de edición. Found en
-// false cubre una excepción inexistente, de otro barbero o de otra
-// barbería (CA-041-06). Conflict en true cubre CA-041-05: la fecha nueva
-// ya tiene otra excepción de este barbero (excluyendo la propia excepción
+// false cubre una excepción inexistente, de otro profesional o de otro
+// negocio (CA-041-06). Conflict en true cubre CA-041-05: la fecha nueva
+// ya tiene otra excepción de este profesional (excluyendo la propia excepción
 // editada), o dos tramos nuevos se solapan.
 type UpdateExceptionResult struct {
 	Exception ScheduleException

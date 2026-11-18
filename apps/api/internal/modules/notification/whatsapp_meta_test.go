@@ -14,7 +14,7 @@ import (
 	"testing"
 	"time"
 
-	"system-barbershop/internal/modules/notification"
+	"nava-agenda/internal/modules/notification"
 )
 
 const (

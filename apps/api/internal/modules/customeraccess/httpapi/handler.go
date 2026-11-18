@@ -14,10 +14,10 @@ import (
 	"net/http"
 	"time"
 
-	"system-barbershop/internal/modules/customeraccess"
-	"system-barbershop/internal/platform/apperr"
-	"system-barbershop/internal/platform/httpserver"
-	"system-barbershop/internal/platform/idempotency"
+	"nava-agenda/internal/modules/customeraccess"
+	"nava-agenda/internal/platform/apperr"
+	"nava-agenda/internal/platform/httpserver"
+	"nava-agenda/internal/platform/idempotency"
 )
 
 // ifMatchHeader lleva el versionToken que el cliente leyó (HU-099).
@@ -42,7 +42,7 @@ func NewGetAppointmentHandler(service *customeraccess.Service) *GetAppointmentHa
 // ServeHTTP implementa http.Handler. Deliberadamente NO lee ningún
 // principal de sesión: el único dato de entrada es el token de la ruta, y
 // el servicio lo hashea y resuelve el tenant por sí mismo antes de leer
-// nada (mismo criterio que publicbooking.ResolveBarbershopHandler frente a
+// nada (mismo criterio que publicbooking.ResolveBusinessHandler frente a
 // slug). Cache-Control: no-store evita que un caché compartido o del
 // navegador retenga el turno de otra persona que use el mismo equipo
 // (RN-DAT-02, "políticas de caché" del alcance de HU-098); el resto de
@@ -74,18 +74,18 @@ func newCustomerAppointmentResponse(v customeraccess.AppointmentView) CustomerAp
 		CanReview:                      v.CanReview,
 		Review:                         review,
 		RescheduleRemaining:            v.RescheduleRemaining,
-		BarbershopName:                 v.BarbershopName,
+		BusinessName:                   v.BusinessName,
 		Timezone:                       v.Timezone,
 		AttendeeName:                   v.AttendeeName,
 		ServiceName:                    v.ServiceName,
 		DurationMinutes:                v.DurationMinutes,
-		BarberName:                     v.BarberName,
+		ProfessionalName:               v.ProfessionalName,
 		StartsAt:                       v.StartsAt,
 		EndsAt:                         v.EndsAt,
 		Status:                         v.Status,
 		VersionToken:                   v.VersionToken,
-		BarbershopContactEmail:         v.BarbershopContactEmail,
-		BarbershopContactPhone:         v.BarbershopContactPhone,
+		BusinessContactEmail:           v.BusinessContactEmail,
+		BusinessContactPhone:           v.BusinessContactPhone,
 		CancellationDeadlineMinutes:    v.CancellationDeadlineMinutes,
 		LateCancellationClientAllowed:  v.LateCancellationClientAllowed,
 		LateCancellationReasonRequired: v.LateCancellationReasonRequired,

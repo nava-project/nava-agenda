@@ -111,7 +111,7 @@ describe('attachWorkspaceTheme', () => {
   })
 
   // Issue #575: rótulos y filetes que leen --color-accent-brass quedaban en
-  // latón aunque la barbería eligiera otro acento.
+  // latón aunque el negocio eligiera otro acento.
   it('repaints the typographic brass with the accent and keeps its light-surface copy legible', async () => {
     const { theme, appearance, brand } = await load()
     const detach = theme.attachWorkspaceTheme()

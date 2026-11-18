@@ -8,14 +8,14 @@ import (
 	"testing"
 	"time"
 
-	"system-barbershop/internal/modules/booking"
-	bookingpostgres "system-barbershop/internal/modules/booking/postgres"
-	"system-barbershop/internal/platform/database"
-	"system-barbershop/internal/platform/idempotency"
+	"nava-agenda/internal/modules/booking"
+	bookingpostgres "nava-agenda/internal/modules/booking/postgres"
+	"nava-agenda/internal/platform/database"
+	"nava-agenda/internal/platform/idempotency"
 )
 
 // Pruebas del puerto NoticeHook (HU-130, DEC-142): booking avisa, dentro de la
-// MISMA transacción, solo cuando el barbero cambia el turno de verdad.
+// MISMA transacción, solo cuando el profesional cambia el turno de verdad.
 
 type recordingNoticeHook struct {
 	mu        sync.Mutex
@@ -24,10 +24,10 @@ type recordingNoticeHook struct {
 	err       error
 }
 
-func (h *recordingNoticeHook) AppointmentReminderRequired(_ context.Context, _ database.Queries, barbershopID, appointmentID string) error {
+func (h *recordingNoticeHook) AppointmentReminderRequired(_ context.Context, _ database.Queries, businessID, appointmentID string) error {
 	h.mu.Lock()
 	defer h.mu.Unlock()
-	h.reminders = append(h.reminders, barbershopID+"|"+appointmentID)
+	h.reminders = append(h.reminders, businessID+"|"+appointmentID)
 	return h.err
 }
 
@@ -37,10 +37,10 @@ func (h *recordingNoticeHook) reminderSnapshot() []string {
 	return append([]string(nil), h.reminders...)
 }
 
-func (h *recordingNoticeHook) AppointmentNoticeRequired(_ context.Context, _ database.Queries, barbershopID, appointmentID, kind string) error {
+func (h *recordingNoticeHook) AppointmentNoticeRequired(_ context.Context, _ database.Queries, businessID, appointmentID, kind string) error {
 	h.mu.Lock()
 	defer h.mu.Unlock()
-	h.calls = append(h.calls, barbershopID+"|"+appointmentID+"|"+kind)
+	h.calls = append(h.calls, businessID+"|"+appointmentID+"|"+kind)
 	return h.err
 }
 
@@ -53,7 +53,7 @@ func (h *recordingNoticeHook) snapshot() []string {
 func seedForNotice(t *testing.T, repo *bookingpostgres.Repository, suffix string) (booking.CreateInternalResult, string, time.Time) {
 	t.Helper()
 	start := baseStart(t)
-	created, err := repo.CreateInternal(context.Background(), string(shopQ), validInput(t, barberQ1, serviceQ, start, 30, suffix))
+	created, err := repo.CreateInternal(context.Background(), string(shopQ), validInput(t, professionalQ1, serviceQ, start, 30, suffix))
 	if err != nil {
 		t.Fatalf("CreateInternal: %v", err)
 	}
@@ -64,7 +64,7 @@ func seedForNotice(t *testing.T, repo *bookingpostgres.Repository, suffix string
 	return created, detail.VersionToken, start
 }
 
-func TestNoticeHook_CancelByBarber_QueuesOnceAndNotOnRepeatOrReplay(t *testing.T) {
+func TestNoticeHook_CancelByProfessional_QueuesOnceAndNotOnRepeatOrReplay(t *testing.T) {
 	db := setupTestDB(t)
 	hook := &recordingNoticeHook{}
 	repo := newRepository(db).WithNoticeHook(hook)
@@ -75,22 +75,22 @@ func TestNoticeHook_CancelByBarber_QueuesOnceAndNotOnRepeatOrReplay(t *testing.T
 	input := newCancelInput(created.Appointment.ID, token)
 	key := idempotency.Key("notice-cancel-" + suffix)
 	fp := cancelFingerprint("notice-cancel-" + suffix)
-	if _, err := repo.CancelByBarber(ctx, string(shopQ), input, key, fp); err != nil {
-		t.Fatalf("CancelByBarber: %v", err)
+	if _, err := repo.CancelByProfessional(ctx, string(shopQ), input, key, fp); err != nil {
+		t.Fatalf("CancelByProfessional: %v", err)
 	}
-	want := string(shopQ) + "|" + created.Appointment.ID + "|" + bookingpostgres.NoticeCancelledByBarber
+	want := string(shopQ) + "|" + created.Appointment.ID + "|" + bookingpostgres.NoticeCancelledByProfessional
 	if got := hook.snapshot(); len(got) != 1 || got[0] != want {
 		t.Fatalf("la cancelación aplicada avisa una vez: %v, quiero [%s]", got, want)
 	}
 
 	// Repetición exacta (misma clave): reproduce, no avisa (CA-130-02).
-	if _, err := repo.CancelByBarber(ctx, string(shopQ), input, key, fp); err != nil {
-		t.Fatalf("CancelByBarber (replay): %v", err)
+	if _, err := repo.CancelByProfessional(ctx, string(shopQ), input, key, fp); err != nil {
+		t.Fatalf("CancelByProfessional (replay): %v", err)
 	}
-	// Otra clave sobre un turno ya cancelado por el barbero: éxito sin cambio, no avisa.
-	if _, err := repo.CancelByBarber(ctx, string(shopQ), input,
+	// Otra clave sobre un turno ya cancelado por el profesional: éxito sin cambio, no avisa.
+	if _, err := repo.CancelByProfessional(ctx, string(shopQ), input,
 		idempotency.Key("notice-cancel-again-"+suffix), cancelFingerprint("notice-cancel-again-"+suffix)); err != nil {
-		t.Fatalf("CancelByBarber (repetida): %v", err)
+		t.Fatalf("CancelByProfessional (repetida): %v", err)
 	}
 	if got := hook.snapshot(); len(got) != 1 {
 		t.Fatalf("ni la reproducción ni la cancelación repetida avisan: %v", got)
@@ -135,7 +135,7 @@ func TestNoticeHook_FailureRollsBackTheChange(t *testing.T) {
 	repo := newRepository(db).WithNoticeHook(&recordingNoticeHook{err: errors.New("cola caída")})
 	ctx := context.Background()
 
-	_, err := repo.CancelByBarber(ctx, string(shopQ), newCancelInput(created.Appointment.ID, token),
+	_, err := repo.CancelByProfessional(ctx, string(shopQ), newCancelInput(created.Appointment.ID, token),
 		idempotency.Key("notice-fail-"+suffix), cancelFingerprint("notice-fail-"+suffix))
 	if err == nil {
 		t.Fatal("si el aviso no puede encolarse, la cancelación debe fallar entera")
@@ -189,9 +189,9 @@ func TestReminderHook_CancelDoesNotSchedule(t *testing.T) {
 	suffix := uniqueSuffix(t)
 	created, token, _ := seedForNotice(t, repo, suffix)
 
-	if _, err := repo.CancelByBarber(context.Background(), string(shopQ), newCancelInput(created.Appointment.ID, token),
+	if _, err := repo.CancelByProfessional(context.Background(), string(shopQ), newCancelInput(created.Appointment.ID, token),
 		idempotency.Key("rem-cancel-"+suffix), cancelFingerprint("rem-cancel-"+suffix)); err != nil {
-		t.Fatalf("CancelByBarber: %v", err)
+		t.Fatalf("CancelByProfessional: %v", err)
 	}
 	if got := hook.reminderSnapshot(); len(got) != 1 {
 		t.Fatalf("cancelar no programa otro recordatorio (se descarta al enviar): %v", got)
@@ -204,7 +204,7 @@ func TestReminderHook_FailureRollsBackTheCreation(t *testing.T) {
 	repo := newRepository(db).WithNoticeHook(hook)
 
 	if _, err := repo.CreateInternal(context.Background(), string(shopQ),
-		validInput(t, barberQ1, serviceQ, baseStart(t), 30, uniqueSuffix(t))); err == nil {
+		validInput(t, professionalQ1, serviceQ, baseStart(t), 30, uniqueSuffix(t))); err == nil {
 		t.Fatal("si el recordatorio no puede programarse, el turno no debe crearse")
 	}
 }
@@ -217,7 +217,7 @@ func TestReminderHook_CreatePublic_SchedulesOnceAndNotOnReplay(t *testing.T) {
 	repo := newRepository(db).WithNoticeHook(hook)
 	suffix := uniqueSuffix(t)
 
-	input := publicInput(t, barberQ1, serviceQ, baseStart(t), suffix, booking.CustomerInput{
+	input := publicInput(t, professionalQ1, serviceQ, baseStart(t), suffix, booking.CustomerInput{
 		New: &booking.NewCustomerInput{FullName: "Cliente recordatorio " + suffix, Email: strPtr(suffix + "@example.com")},
 	})
 	key := idempotency.Key("public-rem-" + suffix)
@@ -227,7 +227,7 @@ func TestReminderHook_CreatePublic_SchedulesOnceAndNotOnReplay(t *testing.T) {
 		t.Fatalf("CreatePublic: %v", err)
 	}
 	if got := hook.reminderSnapshot(); len(got) != 1 || !strings.HasPrefix(got[0], string(shopQ)+"|") {
-		t.Fatalf("la reserva pública programa el recordatorio una vez en su barbería: %v", got)
+		t.Fatalf("la reserva pública programa el recordatorio una vez en su negocio: %v", got)
 	}
 	if _, err := repo.CreatePublic(context.Background(), string(shopQ), input, key, fp); err != nil {
 		t.Fatalf("CreatePublic (replay): %v", err)

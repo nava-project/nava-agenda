@@ -1,6 +1,6 @@
 /**
  * OpeningHoursCard (HU-107, DEC-182): el horario del local en la entrada de la
- * reserva, con el estado de ahora en la zona de la barbería.
+ * reserva, con el estado de ahora en la zona del negocio.
  */
 import { describe, expect, it } from 'vitest'
 import { mount } from '@vue/test-utils'

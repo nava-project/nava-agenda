@@ -1,6 +1,6 @@
 // Package postgres_test (pruebas de integración, HU-064) requiere
 // PostgreSQL REAL con las dieciséis migraciones aplicadas y
-// database/testdata/dos_barberias.sql + database/testdata/hu060_citas.sql
+// database/testdata/dos_negocios.sql + database/testdata/hu060_citas.sql
 // cargados: mismos fixtures que repository_test.go/agenda_repository_test.go
 // (HU-060/HU-062), reutilizados aquí porque HU-064 solo LEE appointment,
 // customer, appointment_history y appointment_history_change, sin tabla
@@ -11,7 +11,7 @@
 // expone todavía ninguna mutación que las genere) se insertan con SQL
 // directo dentro de InTenantTx, nunca contra la validación de dominio.
 //
-//	export TEST_DATABASE_URL="postgres://barberia_app:app_test@localhost:5432/barberia_test?sslmode=disable"
+//	export TEST_DATABASE_URL="postgres://agenda_app:app_test@localhost:5432/postgres?sslmode=disable"
 //	go test -race ./internal/modules/booking/postgres/...
 package postgres_test
 
@@ -20,16 +20,16 @@ import (
 	"testing"
 	"time"
 
-	"system-barbershop/internal/modules/booking"
-	"system-barbershop/internal/platform/database"
+	"nava-agenda/internal/modules/booking"
+	"nava-agenda/internal/platform/database"
 )
 
-// insertSyntheticHistoryRow agrega, dentro de la misma barbería que
+// insertSyntheticHistoryRow agrega, dentro del mismo negocio que
 // appointmentID, una fila de appointment_history con actor 'system' (sin FK
 // que resolver) para poder probar paginación/orden sin depender de una
 // mutación que HU-064 no expone todavía. occurred_at se fija explícitamente
 // para controlar el orden esperado.
-func insertSyntheticHistoryRow(t *testing.T, db *database.DB, shop database.BarbershopID, appointmentID string, occurredAt time.Time, id string) {
+func insertSyntheticHistoryRow(t *testing.T, db *database.DB, shop database.BusinessID, appointmentID string, occurredAt time.Time, id string) {
 	t.Helper()
 	err := db.InTenantTx(context.Background(), shop, func(ctx context.Context, q database.Queries) error {
 		// appointment_history_reason_ck exige reason NOT NULL cuando
@@ -53,7 +53,7 @@ func TestGetAppointmentDetail_Found_ReturnsCustomerAndServiceSnapshot(t *testing
 	suffix := uniqueSuffix(t)
 	start := baseStart(t)
 
-	created, err := repo.CreateInternal(context.Background(), string(shopQ), validInput(t, barberQ1, serviceQ, start, 30, suffix))
+	created, err := repo.CreateInternal(context.Background(), string(shopQ), validInput(t, professionalQ1, serviceQ, start, 30, suffix))
 	if err != nil {
 		t.Fatalf("CreateInternal: %v", err)
 	}
@@ -65,7 +65,7 @@ func TestGetAppointmentDetail_Found_ReturnsCustomerAndServiceSnapshot(t *testing
 	if !found {
 		t.Fatalf("found = false, want true")
 	}
-	if detail.ID != created.Appointment.ID || detail.BarberID != barberQ1 {
+	if detail.ID != created.Appointment.ID || detail.ProfessionalID != professionalQ1 {
 		t.Fatalf("detalle inesperado: %+v", detail)
 	}
 	if detail.CustomerFullName != "Cliente de prueba "+suffix {
@@ -80,10 +80,10 @@ func TestGetAppointmentDetail_Found_ReturnsCustomerAndServiceSnapshot(t *testing
 	if detail.VersionToken == "" {
 		t.Fatalf("VersionToken vacío")
 	}
-	// BarberFullName SIEMPRE llega vacío del repositorio: se resuelve aparte
-	// vía BarberNamePort (booking.DetailService), no aquí (CA-002-06).
-	if detail.BarberFullName != "" {
-		t.Fatalf("BarberFullName = %q, want vacío (se resuelve en el caso de uso)", detail.BarberFullName)
+	// ProfessionalFullName SIEMPRE llega vacío del repositorio: se resuelve aparte
+	// vía ProfessionalNamePort (booking.DetailService), no aquí (CA-002-06).
+	if detail.ProfessionalFullName != "" {
+		t.Fatalf("ProfessionalFullName = %q, want vacío (se resuelve en el caso de uso)", detail.ProfessionalFullName)
 	}
 }
 
@@ -93,7 +93,7 @@ func TestGetAppointmentDetail_VersionToken_StableAcrossReadsWithoutWrite(t *test
 	suffix := uniqueSuffix(t)
 	start := baseStart(t)
 
-	created, err := repo.CreateInternal(context.Background(), string(shopQ), validInput(t, barberQ1, serviceQ, start, 30, suffix))
+	created, err := repo.CreateInternal(context.Background(), string(shopQ), validInput(t, professionalQ1, serviceQ, start, 30, suffix))
 	if err != nil {
 		t.Fatalf("CreateInternal: %v", err)
 	}
@@ -126,14 +126,14 @@ func TestGetAppointmentDetail_NonexistentID_ReturnsFoundFalse(t *testing.T) {
 
 // TestGetAppointmentDetail_TenantMismatch_ReturnsFoundFalse verifica
 // RN-TEN-01: una cita real de shopQ nunca aparece al consultarla con
-// barbershopID de shopR, aunque el identificador coincida literalmente.
+// businessID de shopR, aunque el identificador coincida literalmente.
 func TestGetAppointmentDetail_TenantMismatch_ReturnsFoundFalse(t *testing.T) {
 	db := setupTestDB(t)
 	repo := newRepository(db)
 	suffix := uniqueSuffix(t)
 	start := baseStart(t)
 
-	created, err := repo.CreateInternal(context.Background(), string(shopQ), validInput(t, barberQ1, serviceQ, start, 30, suffix))
+	created, err := repo.CreateInternal(context.Background(), string(shopQ), validInput(t, professionalQ1, serviceQ, start, 30, suffix))
 	if err != nil {
 		t.Fatalf("CreateInternal: %v", err)
 	}
@@ -153,7 +153,7 @@ func TestListAppointmentHistory_AfterCreate_ReturnsTheCreatedEvent(t *testing.T)
 	suffix := uniqueSuffix(t)
 	start := baseStart(t)
 
-	created, err := repo.CreateInternal(context.Background(), string(shopQ), validInput(t, barberQ1, serviceQ, start, 30, suffix))
+	created, err := repo.CreateInternal(context.Background(), string(shopQ), validInput(t, professionalQ1, serviceQ, start, 30, suffix))
 	if err != nil {
 		t.Fatalf("CreateInternal: %v", err)
 	}
@@ -204,7 +204,7 @@ func TestListAppointmentHistory_TenantMismatch_ReturnsFoundFalse(t *testing.T) {
 	suffix := uniqueSuffix(t)
 	start := baseStart(t)
 
-	created, err := repo.CreateInternal(context.Background(), string(shopQ), validInput(t, barberQ1, serviceQ, start, 30, suffix))
+	created, err := repo.CreateInternal(context.Background(), string(shopQ), validInput(t, professionalQ1, serviceQ, start, 30, suffix))
 	if err != nil {
 		t.Fatalf("CreateInternal: %v", err)
 	}
@@ -227,7 +227,7 @@ func TestListAppointmentHistory_Pagination_TwoPagesWithoutOverlapOrDuplicate(t *
 	suffix := uniqueSuffix(t)
 	start := baseStart(t)
 
-	created, err := repo.CreateInternal(context.Background(), string(shopQ), validInput(t, barberQ1, serviceQ, start, 30, suffix))
+	created, err := repo.CreateInternal(context.Background(), string(shopQ), validInput(t, professionalQ1, serviceQ, start, 30, suffix))
 	if err != nil {
 		t.Fatalf("CreateInternal: %v", err)
 	}
@@ -291,7 +291,7 @@ func TestListAppointmentHistory_ChangesAttachedToTheirOwnEntry(t *testing.T) {
 	suffix := uniqueSuffix(t)
 	start := baseStart(t)
 
-	created, err := repo.CreateInternal(context.Background(), string(shopQ), validInput(t, barberQ1, serviceQ, start, 30, suffix))
+	created, err := repo.CreateInternal(context.Background(), string(shopQ), validInput(t, professionalQ1, serviceQ, start, 30, suffix))
 	if err != nil {
 		t.Fatalf("CreateInternal: %v", err)
 	}
@@ -345,7 +345,7 @@ func TestCustomerNames_ReturnsMapForRequestedIDs(t *testing.T) {
 	suffix := uniqueSuffix(t)
 	start := baseStart(t)
 
-	created, err := repo.CreateInternal(context.Background(), string(shopQ), validInput(t, barberQ1, serviceQ, start, 30, suffix))
+	created, err := repo.CreateInternal(context.Background(), string(shopQ), validInput(t, professionalQ1, serviceQ, start, 30, suffix))
 	if err != nil {
 		t.Fatalf("CreateInternal: %v", err)
 	}

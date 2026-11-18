@@ -5,57 +5,57 @@ import (
 	"errors"
 	"net/http"
 
-	"system-barbershop/internal/modules/staff"
-	"system-barbershop/internal/platform/httpserver"
+	"nava-agenda/internal/modules/staff"
+	"nava-agenda/internal/platform/httpserver"
 )
 
-// GetMyBarberHandler expone GET /private/me/professional (DEC-100): el barbero que
+// GetMyProfessionalHandler expone GET /private/me/professional (DEC-100): el profesional que
 // el usuario autenticado declaró ser, o 404 si no tiene ninguno.
-type GetMyBarberHandler struct {
+type GetMyProfessionalHandler struct {
 	service *staff.Service
 }
 
-// NewGetMyBarberHandler construye el handler de lectura del barbero propio.
-func NewGetMyBarberHandler(service *staff.Service) *GetMyBarberHandler {
-	return &GetMyBarberHandler{service: service}
+// NewGetMyProfessionalHandler construye el handler de lectura del profesional propio.
+func NewGetMyProfessionalHandler(service *staff.Service) *GetMyProfessionalHandler {
+	return &GetMyProfessionalHandler{service: service}
 }
 
 // ServeHTTP implementa http.Handler.
-func (h *GetMyBarberHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+func (h *GetMyProfessionalHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	requestID := httpserver.RequestIDFromContext(r.Context())
 	principal, ok := principalOrInternalError(w, r, requestID)
 	if !ok {
 		return
 	}
 
-	barber, err := h.service.LinkedBarber(r.Context(), principal.BarbershopID, principal.StaffUserID)
+	professional, err := h.service.LinkedProfessional(r.Context(), principal.BusinessID, principal.StaffUserID)
 	if err != nil {
 		httpserver.WriteProblem(w, httpserver.Translate(err, requestID))
 		return
 	}
-	writeBarber(w, barber)
+	writeProfessional(w, professional)
 }
 
-// LinkMyBarberHandler expone PUT /private/me/professional (DEC-100). Actúa siempre
-// sobre el principal de la sesión; el cuerpo solo nombra al barbero.
-type LinkMyBarberHandler struct {
+// LinkMyProfessionalHandler expone PUT /private/me/professional (DEC-100). Actúa siempre
+// sobre el principal de la sesión; el cuerpo solo nombra al profesional.
+type LinkMyProfessionalHandler struct {
 	service *staff.Service
 }
 
-// NewLinkMyBarberHandler construye el handler de vínculo propio.
-func NewLinkMyBarberHandler(service *staff.Service) *LinkMyBarberHandler {
-	return &LinkMyBarberHandler{service: service}
+// NewLinkMyProfessionalHandler construye el handler de vínculo propio.
+func NewLinkMyProfessionalHandler(service *staff.Service) *LinkMyProfessionalHandler {
+	return &LinkMyProfessionalHandler{service: service}
 }
 
 // ServeHTTP implementa http.Handler.
-func (h *LinkMyBarberHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+func (h *LinkMyProfessionalHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	requestID := httpserver.RequestIDFromContext(r.Context())
 	principal, ok := principalOrInternalError(w, r, requestID)
 	if !ok {
 		return
 	}
 
-	var req LinkMyBarberRequest
+	var req LinkMyProfessionalRequest
 	dec := json.NewDecoder(r.Body)
 	dec.DisallowUnknownFields()
 	if err := dec.Decode(&req); err != nil {
@@ -72,41 +72,41 @@ func (h *LinkMyBarberHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) 
 		return
 	}
 
-	barber, err := h.service.LinkMyBarber(r.Context(), principal.BarbershopID, principal.StaffUserID, req.BarberID)
+	professional, err := h.service.LinkMyProfessional(r.Context(), principal.BusinessID, principal.StaffUserID, req.ProfessionalID)
 	if err != nil {
 		httpserver.WriteProblem(w, httpserver.Translate(err, requestID))
 		return
 	}
-	writeBarber(w, barber)
+	writeProfessional(w, professional)
 }
 
-// UnlinkMyBarberHandler expone DELETE /private/me/professional (DEC-100).
-type UnlinkMyBarberHandler struct {
+// UnlinkMyProfessionalHandler expone DELETE /private/me/professional (DEC-100).
+type UnlinkMyProfessionalHandler struct {
 	service *staff.Service
 }
 
-// NewUnlinkMyBarberHandler construye el handler que quita el vínculo propio.
-func NewUnlinkMyBarberHandler(service *staff.Service) *UnlinkMyBarberHandler {
-	return &UnlinkMyBarberHandler{service: service}
+// NewUnlinkMyProfessionalHandler construye el handler que quita el vínculo propio.
+func NewUnlinkMyProfessionalHandler(service *staff.Service) *UnlinkMyProfessionalHandler {
+	return &UnlinkMyProfessionalHandler{service: service}
 }
 
 // ServeHTTP implementa http.Handler.
-func (h *UnlinkMyBarberHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+func (h *UnlinkMyProfessionalHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	requestID := httpserver.RequestIDFromContext(r.Context())
 	principal, ok := principalOrInternalError(w, r, requestID)
 	if !ok {
 		return
 	}
 
-	if err := h.service.UnlinkMyBarber(r.Context(), principal.BarbershopID, principal.StaffUserID); err != nil {
+	if err := h.service.UnlinkMyProfessional(r.Context(), principal.BusinessID, principal.StaffUserID); err != nil {
 		httpserver.WriteProblem(w, httpserver.Translate(err, requestID))
 		return
 	}
 	w.WriteHeader(http.StatusNoContent)
 }
 
-func writeBarber(w http.ResponseWriter, barber staff.Barber) {
+func writeProfessional(w http.ResponseWriter, professional staff.Professional) {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
-	_ = json.NewEncoder(w).Encode(newBarberResponse(barber))
+	_ = json.NewEncoder(w).Encode(newProfessionalResponse(professional))
 }

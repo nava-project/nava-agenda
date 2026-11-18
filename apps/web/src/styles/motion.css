@@ -3,7 +3,7 @@
  * repertorio que ya usan Horarios, Configuración y la reserva pública —
  * entradas escalonadas que suben, trazos de latón que se dibujan, marcas que
  * se rellenan y un destello único al confirmar — expuesto como utilidades
- * para que Agenda, Servicios, Barberos y las demás pantallas no reescriban
+ * para que Agenda, Servicios, Profesionales y las demás pantallas no reescriban
  * cada keyframe. Todo es `transform`/`opacity`/`clip-path`: nada que dispare
  * layout. Una pantalla escalona una lista poniendo `--i` en cada elemento
  * (`:style="{ '--i': index }"`); el tope evita que una lista larga tarde en

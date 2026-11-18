@@ -3,31 +3,33 @@
 // conoce los componentes privados de su hermano (DEC-105, issue #286).
 import { ref } from 'vue'
 import { StaffPage } from '@/modules/staff'
-import { BarberBlocksPanel } from '@/modules/schedules'
-import { barberPhotoUrl } from '@/shared/api'
+import { ProfessionalBlocksPanel } from '@/modules/schedules'
+import { professionalPhotoUrl } from '@/shared/api'
 import { useVocabulary } from '@/shared/composables'
 import { BaseButton, BaseDialog } from '@/shared/ui'
 
-// Palabras de la barbería (DEC-110).
+// Palabras del negocio (DEC-110).
 const v = useVocabulary()
 const isBlocksOpen = ref(false)
-const selectedBarber = ref<{ id: string; name: string; photoUrl: string | null }>()
+const selectedProfessional = ref<{ id: string; name: string; photoUrl: string | null }>()
 
 function openBlocks(id: string, name: string, photoUrl: string | null) {
-  selectedBarber.value = { id, name, photoUrl }
+  selectedProfessional.value = { id, name, photoUrl }
   isBlocksOpen.value = true
 }
 </script>
 
 <template>
   <StaffPage>
-    <template #barber-actions="{ barber }">
+    <template #professional-actions="{ professional }">
       <BaseButton
         variant="secondary"
         class="block-action"
-        :aria-label="`Bloquear a ${barber.fullName}`"
+        :aria-label="`Bloquear a ${professional.fullName}`"
         aria-haspopup="dialog"
-        @click="openBlocks(barber.id, barber.fullName, barberPhotoUrl(barber))"
+        @click="
+          openBlocks(professional.id, professional.fullName, professionalPhotoUrl(professional))
+        "
       >
         <svg
           class="block-action-icon"
@@ -46,17 +48,17 @@ function openBlocks(id: string, name: string, photoUrl: string | null) {
   </StaffPage>
   <BaseDialog
     v-model="isBlocksOpen"
-    :title="`Bloqueos de ${selectedBarber?.name ?? v.professional}`"
+    :title="`Bloqueos de ${selectedProfessional?.name ?? v.professional}`"
     size="xl"
     content-class="blocks-workspace-dialog"
     :close-on-backdrop="false"
   >
-    <BarberBlocksPanel
-      v-if="isBlocksOpen && selectedBarber"
-      :key="selectedBarber.id"
-      :barber-id="selectedBarber.id"
-      :barber-name="selectedBarber.name"
-      :photo-url="selectedBarber.photoUrl"
+    <ProfessionalBlocksPanel
+      v-if="isBlocksOpen && selectedProfessional"
+      :key="selectedProfessional.id"
+      :professional-id="selectedProfessional.id"
+      :professional-name="selectedProfessional.name"
+      :photo-url="selectedProfessional.photoUrl"
     />
   </BaseDialog>
 </template>
@@ -117,7 +119,7 @@ function openBlocks(id: string, name: string, photoUrl: string | null) {
 }
 /* Escritorio con alto suficiente: el diálogo mide lo que pide su contenido, con
    un tope; al llegar al tope cada lista del panel desplaza la suya
-   (BarberBlocksPanel) y la cabecera y la nota quedan fijas. Antes el alto era
+   (ProfessionalBlocksPanel) y la cabecera y la nota quedan fijas. Antes el alto era
    fijo y, con pocos bloqueos, dejaba media ventana en blanco (issue #577). En
    móvil o con poca altura el contenido se desplaza con el diálogo. */
 @media (min-width: 768px) and (min-height: 800px) {

@@ -13,8 +13,8 @@ import (
 
 	"golang.org/x/oauth2"
 
-	"system-barbershop/internal/modules/googlecalendar"
-	"system-barbershop/internal/modules/googlecalendar/google"
+	"nava-agenda/internal/modules/googlecalendar"
+	"nava-agenda/internal/modules/googlecalendar/google"
 )
 
 // googleStub es un Google falso: registra lo que recibe y responde lo que el
@@ -60,7 +60,7 @@ func (s *googleStub) client() *google.Client {
 	return google.New(google.Config{
 		ClientID:     "cliente-de-prueba.apps.googleusercontent.com",
 		ClientSecret: "secreto-de-prueba",
-		RedirectURL:  "http://localhost:5173/panel/barberia/google-calendar/callback",
+		RedirectURL:  "http://localhost:5173/panel/negocio/google-calendar/callback",
 		Endpoint: &oauth2.Endpoint{
 			AuthURL:  "https://accounts.example.test/o/oauth2/v2/auth",
 			TokenURL: s.server.URL + "/token",
@@ -86,7 +86,7 @@ func TestAuthorizationURL_UsesPKCEOfflineAccessMinimalScopesAndNoSecret(t *testi
 	want := map[string]string{
 		"response_type":         "code",
 		"client_id":             "cliente-de-prueba.apps.googleusercontent.com",
-		"redirect_uri":          "http://localhost:5173/panel/barberia/google-calendar/callback",
+		"redirect_uri":          "http://localhost:5173/panel/negocio/google-calendar/callback",
 		"state":                 "estado-uno",
 		"access_type":           "offline",
 		"prompt":                "consent",

@@ -5,8 +5,8 @@ import (
 	"fmt"
 	"time"
 
-	"system-barbershop/internal/platform/apperr"
-	"system-barbershop/internal/platform/clock"
+	"nava-agenda/internal/platform/apperr"
+	"nava-agenda/internal/platform/clock"
 )
 
 // invalidSessionMessage es el ÚNICO texto que este archivo devuelve para
@@ -32,9 +32,9 @@ func ErrInvalidSession() error {
 // [PrincipalFromContext]; nunca lo reciben de una URL, un cuerpo o una
 // cabecera controlada por el cliente.
 type Principal struct {
-	SessionID    string
-	StaffUserID  string
-	BarbershopID string
+	SessionID   string
+	StaffUserID string
+	BusinessID  string
 	// ExpiresAt es la expiración YA renovada por esta misma solicitud
 	// (DEC-050, renovación deslizante); no es dato personal, es el mismo
 	// valor no sensible que LoginResponse ya expone (CA-005-04). HU-012
@@ -71,7 +71,7 @@ type SessionRepository interface {
 	// (igual que ResolveLoginTenant para el login). found=false cubre un
 	// token desconocido, revocado o vencido; esta interfaz no tiene forma
 	// de distinguirlos entre sí (CA-006-02).
-	ResolveSessionTenant(ctx context.Context, tokenHash string) (barbershopID string, found bool, err error)
+	ResolveSessionTenant(ctx context.Context, tokenHash string) (businessID string, found bool, err error)
 
 	// ValidateAndRenewSession reconfirma la sesión DENTRO de la
 	// transacción tenant-aware -la resolución previa no sustituye esta
@@ -84,23 +84,23 @@ type SessionRepository interface {
 	// usuario que dejó de estar activo entre la resolución previa y esta
 	// comprobación; una sesión vencida nunca se renueva ni se reabre
 	// (CA-006-03).
-	ValidateAndRenewSession(ctx context.Context, barbershopID, tokenHash string, now, newExpiresAt time.Time) (Principal, bool, error)
+	ValidateAndRenewSession(ctx context.Context, businessID, tokenHash string, now, newExpiresAt time.Time) (Principal, bool, error)
 
 	// RevokeSession fija revoked_at = now en la sesión sessionID, solo
-	// dentro de barbershopID y solo si no estaba revocada ya. El efecto
+	// dentro de businessID y solo si no estaba revocada ya. El efecto
 	// observable es idempotente (CA-006-02): revocar una sesión ya
 	// revocada, o una que ya no existe dentro de ese tenant, no es un
-	// error. barbershopID y sessionID llegan siempre de un [Principal] ya
+	// error. businessID y sessionID llegan siempre de un [Principal] ya
 	// validado por el middleware, nunca de un parámetro que el cliente
 	// pueda controlar (CA-006-07).
-	RevokeSession(ctx context.Context, barbershopID, sessionID string, now time.Time) error
+	RevokeSession(ctx context.Context, businessID, sessionID string, now time.Time) error
 
-	// BarbershopName devuelve barbershop.name de la barbería activa del
+	// BusinessName devuelve business.name del negocio activo del
 	// principal ya autenticado, aislado por tenant vía RLS
-	// (barbershop_select_tenant_policy, DEC-024). Usada exclusivamente por
+	// (business_select_tenant_policy, DEC-024). Usada exclusivamente por
 	// [SessionService.Context] (HU-012, DEC-060); ninguna otra operación
 	// necesita este dato hoy.
-	BarbershopName(ctx context.Context, barbershopID string) (string, error)
+	BusinessName(ctx context.Context, businessID string) (string, error)
 }
 
 // SessionService implementa el caso de uso de HU-006: validar una sesión
@@ -131,7 +131,7 @@ func (s *SessionService) Validate(ctx context.Context, rawToken string) (Princip
 
 	tokenHash := HashToken(rawToken)
 
-	barbershopID, found, err := s.repo.ResolveSessionTenant(ctx, tokenHash)
+	businessID, found, err := s.repo.ResolveSessionTenant(ctx, tokenHash)
 	if err != nil {
 		return Principal{}, apperr.Internal(fmt.Errorf("auth: resolver tenant de sesión: %w", err))
 	}
@@ -142,7 +142,7 @@ func (s *SessionService) Validate(ctx context.Context, rawToken string) (Princip
 	now := s.clock.Now()
 	newExpiresAt := now.Add(SessionDuration)
 
-	principal, valid, err := s.repo.ValidateAndRenewSession(ctx, barbershopID, tokenHash, now, newExpiresAt)
+	principal, valid, err := s.repo.ValidateAndRenewSession(ctx, businessID, tokenHash, now, newExpiresAt)
 	if err != nil {
 		return Principal{}, apperr.Internal(fmt.Errorf("auth: renovar sesión: %w", err))
 	}
@@ -155,16 +155,16 @@ func (s *SessionService) Validate(ctx context.Context, rawToken string) (Princip
 
 // SessionContext es el resultado de la operación de contexto de sesión de
 // HU-012 (DEC-060): el payload mínimo que GET /private/auth/session
-// devuelve. Nunca incluye StaffUserID, correo ni nombre del barbero
+// devuelve. Nunca incluye StaffUserID, correo ni nombre del profesional
 // (RN-DAT-02, mismo patrón que [Principal]).
 type SessionContext struct {
-	BarbershopID   string
-	BarbershopName string
-	ExpiresAt      time.Time
+	BusinessID   string
+	BusinessName string
+	ExpiresAt    time.Time
 }
 
 // Context arma el contexto de sesión mínimo que HU-012 rehidrata al abrir o
-// recargar la aplicación (DEC-060): el nombre de la barbería activa y la
+// recargar la aplicación (DEC-060): el nombre del negocio activo y la
 // expiración ya renovada por [SessionMiddleware.RequireSession] para esta
 // misma solicitud. principal llega siempre ya validado por el middleware;
 // este método no vuelve a validar la sesión ni acepta un identificador que
@@ -174,15 +174,15 @@ func (s *SessionService) Context(ctx context.Context, principal Principal) (Sess
 		return SessionContext{}, apperr.Internal(fmt.Errorf("auth: contexto cancelado antes de leer contexto de sesión: %w", err))
 	}
 
-	name, err := s.repo.BarbershopName(ctx, principal.BarbershopID)
+	name, err := s.repo.BusinessName(ctx, principal.BusinessID)
 	if err != nil {
-		return SessionContext{}, apperr.Internal(fmt.Errorf("auth: leer nombre de barbería: %w", err))
+		return SessionContext{}, apperr.Internal(fmt.Errorf("auth: leer nombre de negocio: %w", err))
 	}
 
 	return SessionContext{
-		BarbershopID:   principal.BarbershopID,
-		BarbershopName: name,
-		ExpiresAt:      principal.ExpiresAt,
+		BusinessID:   principal.BusinessID,
+		BusinessName: name,
+		ExpiresAt:    principal.ExpiresAt,
 	}, nil
 }
 
@@ -199,7 +199,7 @@ func (s *SessionService) Logout(ctx context.Context, principal Principal) error 
 	}
 
 	now := s.clock.Now()
-	if err := s.repo.RevokeSession(ctx, principal.BarbershopID, principal.SessionID, now); err != nil {
+	if err := s.repo.RevokeSession(ctx, principal.BusinessID, principal.SessionID, now); err != nil {
 		return apperr.Internal(fmt.Errorf("auth: revocar sesión: %w", err))
 	}
 	return nil

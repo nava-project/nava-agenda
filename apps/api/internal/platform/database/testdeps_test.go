@@ -22,7 +22,7 @@ import (
 // CA-002-06 (estandar-backend-go.md §3). El dominio y los servicios no
 // importan el paquete de base de datos ni tipos de pgx.
 func TestNoDatabaseImportsInDomain(t *testing.T) {
-	pkg, err := build.Import("system-barbershop/internal/platform/database", "", build.FindOnly)
+	pkg, err := build.Import("nava-agenda/internal/platform/database", "", build.FindOnly)
 	if err != nil {
 		t.Fatalf("cannot find database package: %v", err)
 	}
@@ -51,7 +51,7 @@ func TestNoDatabaseImportsInDomain(t *testing.T) {
 
 		// Verificar imports
 		for _, imp := range bpkg.Imports {
-			if imp == "system-barbershop/internal/platform/database" ||
+			if imp == "nava-agenda/internal/platform/database" ||
 				strings.HasPrefix(imp, "github.com/jackc/pgx") {
 				violations = append(violations,
 					fmt.Sprintf("%s importa %s (PROHIBIDO: dominio no puede importar base de datos ni driver pgx)",
@@ -61,7 +61,7 @@ func TestNoDatabaseImportsInDomain(t *testing.T) {
 
 		// Verificar test imports también
 		for _, imp := range bpkg.TestImports {
-			if imp == "system-barbershop/internal/platform/database" ||
+			if imp == "nava-agenda/internal/platform/database" ||
 				strings.HasPrefix(imp, "github.com/jackc/pgx") {
 				violations = append(violations,
 					fmt.Sprintf("%s (test) importa %s (PROHIBIDO)",

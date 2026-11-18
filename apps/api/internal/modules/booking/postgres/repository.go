@@ -14,10 +14,10 @@ import (
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgconn"
 
-	"system-barbershop/internal/modules/booking"
-	"system-barbershop/internal/platform/apperr"
-	"system-barbershop/internal/platform/database"
-	"system-barbershop/internal/platform/idempotency"
+	"nava-agenda/internal/modules/booking"
+	"nava-agenda/internal/platform/apperr"
+	"nava-agenda/internal/platform/database"
+	"nava-agenda/internal/platform/idempotency"
 )
 
 // Nombres de las restricciones de 20260827110000_create_appointment_core.sql
@@ -26,12 +26,12 @@ import (
 // otra violación se propaga sin traducir (defecto de forma que el dominio
 // ya debió rechazar antes de llegar aquí).
 const (
-	appointmentBarberIntervalExclConstraint = "appointment_professional_interval_excl"
-	appointmentCustomerFKConstraint         = "appointment_business_id_customer_id_fk"
-	appointmentBarberFKConstraint           = "appointment_business_id_professional_id_fk"
-	appointmentServiceFKConstraint          = "appointment_business_id_service_id_fk"
-	customerShopPhoneUniqueIndex            = "idx_customer_shop_phone"
-	customerShopEmailUniqueIndex            = "idx_customer_shop_email"
+	appointmentProfessionalIntervalExclConstraint = "appointment_professional_interval_excl"
+	appointmentCustomerFKConstraint               = "appointment_business_id_customer_id_fk"
+	appointmentProfessionalFKConstraint           = "appointment_business_id_professional_id_fk"
+	appointmentServiceFKConstraint                = "appointment_business_id_service_id_fk"
+	customerShopPhoneUniqueIndex                  = "idx_customer_shop_phone"
+	customerShopEmailUniqueIndex                  = "idx_customer_shop_email"
 )
 
 // createManualAppointmentOperation identifica, para el protocolo de
@@ -74,7 +74,7 @@ func isConstraintViolation(err error, code, constraint string) bool {
 // isDeadlockDetected reconoce el SQLSTATE 40P01 (deadlock_detected) que
 // PostgreSQL real puede reportar para la transacción perdedora de dos
 // INSERT concurrentes que se disputan el mismo índice GiST de
-// appointment_barber_interval_excl (ver el comentario en insertAppointment).
+// appointment_professional_interval_excl (ver el comentario en insertAppointment).
 func isDeadlockDetected(err error) bool {
 	var pgErr *pgconn.PgError
 	if !errors.As(err, &pgErr) {
@@ -90,10 +90,10 @@ func isDeadlockDetected(err error) bool {
 // revierte los tres.
 func (r *Repository) CreateInternal(
 	ctx context.Context,
-	barbershopID string,
+	businessID string,
 	input booking.CreateInternalInput,
 ) (booking.CreateInternalResult, error) {
-	shop, err := database.ValidBarbershopID(barbershopID)
+	shop, err := database.ValidBusinessID(businessID)
 	if err != nil {
 		return booking.CreateInternalResult{}, fmt.Errorf("booking/postgres: %w", err)
 	}
@@ -101,23 +101,23 @@ func (r *Repository) CreateInternal(
 	var result booking.CreateInternalResult
 
 	err = r.db.InTenantTx(ctx, shop, func(ctx context.Context, q database.Queries) error {
-		customer, err := resolveCustomer(ctx, q, barbershopID, input.Customer)
+		customer, err := resolveCustomer(ctx, q, businessID, input.Customer)
 		if err != nil {
 			return err
 		}
 
-		appointment, err := insertAppointment(ctx, q, barbershopID, customer.ID, input)
+		appointment, err := insertAppointment(ctx, q, businessID, customer.ID, input)
 		if err != nil {
 			return err
 		}
-		if err := r.appointmentChanged(ctx, q, barbershopID, appointment.ID); err != nil {
+		if err := r.appointmentChanged(ctx, q, businessID, appointment.ID); err != nil {
 			return err
 		}
-		if err := r.reminderRequired(ctx, q, barbershopID, appointment.ID); err != nil {
+		if err := r.reminderRequired(ctx, q, businessID, appointment.ID); err != nil {
 			return err
 		}
 
-		if err := insertAppointmentCreatedHistory(ctx, q, barbershopID, appointment.ID, input.Actor); err != nil {
+		if err := insertAppointmentCreatedHistory(ctx, q, businessID, appointment.ID, input.Actor); err != nil {
 			return err
 		}
 
@@ -137,10 +137,10 @@ func (r *Repository) CreateInternal(
 // nil.
 func (r *Repository) FindCustomerForReconciliation(
 	ctx context.Context,
-	barbershopID string,
+	businessID string,
 	phone, email *string,
 ) (booking.Customer, bool, error) {
-	shop, err := database.ValidBarbershopID(barbershopID)
+	shop, err := database.ValidBusinessID(businessID)
 	if err != nil {
 		return booking.Customer{}, false, fmt.Errorf("booking/postgres: %w", err)
 	}
@@ -150,7 +150,7 @@ func (r *Repository) FindCustomerForReconciliation(
 		found    bool
 	)
 	err = r.db.InTenantTx(ctx, shop, func(ctx context.Context, q database.Queries) error {
-		c, ok, err := findCustomerForReconciliation(ctx, q, barbershopID, phone, email)
+		c, ok, err := findCustomerForReconciliation(ctx, q, businessID, phone, email)
 		if err != nil {
 			return err
 		}
@@ -170,7 +170,7 @@ func (r *Repository) FindCustomerForReconciliation(
 func findCustomerForReconciliation(
 	ctx context.Context,
 	q database.Queries,
-	barbershopID string,
+	businessID string,
 	phone, email *string,
 ) (booking.Customer, bool, error) {
 	var (
@@ -183,19 +183,19 @@ func findCustomerForReconciliation(
 			`SELECT id, business_id, full_name, phone, email, created_at, updated_at
 			   FROM customer
 			  WHERE business_id = $1 AND phone = $2`,
-			barbershopID, *phone)
+			businessID, *phone)
 	case email != nil:
 		row = q.QueryRow(ctx,
 			`SELECT id, business_id, full_name, phone, email, created_at, updated_at
 			   FROM customer
 			  WHERE business_id = $1 AND email = $2`,
-			barbershopID, *email)
+			businessID, *email)
 	default:
 		return none, false, nil
 	}
 
 	var c booking.Customer
-	err := row.Scan(&c.ID, &c.BarbershopID, &c.FullName, &c.Phone, &c.Email, &c.CreatedAt, &c.UpdatedAt)
+	err := row.Scan(&c.ID, &c.BusinessID, &c.FullName, &c.Phone, &c.Email, &c.CreatedAt, &c.UpdatedAt)
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
 			return none, false, nil
@@ -214,12 +214,12 @@ func findCustomerForReconciliation(
 // schedulepostgres.Repository.Create).
 func (r *Repository) CreateManual(
 	ctx context.Context,
-	barbershopID string,
+	businessID string,
 	input booking.CreateInternalInput,
 	key idempotency.Key,
 	fingerprint idempotency.Fingerprint,
 ) (booking.CreateManualResult, error) {
-	shop, err := database.ValidBarbershopID(barbershopID)
+	shop, err := database.ValidBusinessID(businessID)
 	if err != nil {
 		return booking.CreateManualResult{}, fmt.Errorf("booking/postgres: %w", err)
 	}
@@ -242,7 +242,7 @@ func (r *Repository) CreateManual(
 
 		customerInput := input.Customer
 		if customerInput.ExistingID == nil && customerInput.New != nil {
-			if reconciled, found, err := findCustomerForReconciliation(ctx, q, barbershopID, customerInput.New.Phone, customerInput.New.Email); err != nil {
+			if reconciled, found, err := findCustomerForReconciliation(ctx, q, businessID, customerInput.New.Phone, customerInput.New.Email); err != nil {
 				return err
 			} else if found {
 				id := reconciled.ID
@@ -250,7 +250,7 @@ func (r *Repository) CreateManual(
 			}
 		}
 
-		customer, err := resolveCustomer(ctx, q, barbershopID, customerInput)
+		customer, err := resolveCustomer(ctx, q, businessID, customerInput)
 		if err != nil {
 			return err
 		}
@@ -258,18 +258,18 @@ func (r *Repository) CreateManual(
 		effectiveInput := input
 		effectiveInput.Customer = customerInput
 
-		appointment, err := insertAppointment(ctx, q, barbershopID, customer.ID, effectiveInput)
+		appointment, err := insertAppointment(ctx, q, businessID, customer.ID, effectiveInput)
 		if err != nil {
 			return err
 		}
-		if err := r.appointmentChanged(ctx, q, barbershopID, appointment.ID); err != nil {
+		if err := r.appointmentChanged(ctx, q, businessID, appointment.ID); err != nil {
 			return err
 		}
-		if err := r.reminderRequired(ctx, q, barbershopID, appointment.ID); err != nil {
+		if err := r.reminderRequired(ctx, q, businessID, appointment.ID); err != nil {
 			return err
 		}
 
-		if err := insertAppointmentCreatedHistory(ctx, q, barbershopID, appointment.ID, input.Actor); err != nil {
+		if err := insertAppointmentCreatedHistory(ctx, q, businessID, appointment.ID, input.Actor); err != nil {
 			return err
 		}
 
@@ -310,7 +310,7 @@ func (r *Repository) CreateManual(
 // schedulepostgres.workingHourResponseWire).
 type manualAppointmentResponseWire struct {
 	ID              string  `json:"id"`
-	BarberID        string  `json:"professionalId"`
+	ProfessionalID  string  `json:"professionalId"`
 	ServiceID       string  `json:"serviceId"`
 	CustomerID      string  `json:"customerId"`
 	AttendeeName    string  `json:"attendeeName"`
@@ -330,7 +330,7 @@ type manualAppointmentResponseWire struct {
 func newManualAppointmentResponseWire(a booking.Appointment) manualAppointmentResponseWire {
 	return manualAppointmentResponseWire{
 		ID:              a.ID,
-		BarberID:        a.BarberID,
+		ProfessionalID:  a.ProfessionalID,
 		ServiceID:       a.ServiceID,
 		CustomerID:      a.CustomerID,
 		AttendeeName:    a.AttendeeName,
@@ -353,31 +353,31 @@ func newManualAppointmentResponseWire(a booking.Appointment) manualAppointmentRe
 func resolveCustomer(
 	ctx context.Context,
 	q database.Queries,
-	barbershopID string,
+	businessID string,
 	in booking.CustomerInput,
 ) (booking.Customer, error) {
 	if in.ExistingID != nil {
-		return loadExistingCustomer(ctx, q, barbershopID, *in.ExistingID)
+		return loadExistingCustomer(ctx, q, businessID, *in.ExistingID)
 	}
-	return insertNewCustomer(ctx, q, barbershopID, *in.New)
+	return insertNewCustomer(ctx, q, businessID, *in.New)
 }
 
 func loadExistingCustomer(
 	ctx context.Context,
 	q database.Queries,
-	barbershopID, customerID string,
+	businessID, customerID string,
 ) (booking.Customer, error) {
 	var c booking.Customer
 	err := q.QueryRow(ctx,
 		`SELECT id, business_id, full_name, phone, email, created_at, updated_at
 		   FROM customer
 		  WHERE business_id = $1 AND id = $2`,
-		barbershopID, customerID,
-	).Scan(&c.ID, &c.BarbershopID, &c.FullName, &c.Phone, &c.Email, &c.CreatedAt, &c.UpdatedAt)
+		businessID, customerID,
+	).Scan(&c.ID, &c.BusinessID, &c.FullName, &c.Phone, &c.Email, &c.CreatedAt, &c.UpdatedAt)
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
-			// Cubre tanto un cliente inexistente como uno de otra barbería
-			// (RN-TEN-01): la consulta filtra por barbershopID además de RLS,
+			// Cubre tanto un cliente inexistente como uno de otro negocio
+			// (RN-TEN-01): la consulta filtra por businessID además de RLS,
 			// sin distinguir la causa en el error.
 			return booking.Customer{}, errCustomerNotFound()
 		}
@@ -389,7 +389,7 @@ func loadExistingCustomer(
 func insertNewCustomer(
 	ctx context.Context,
 	q database.Queries,
-	barbershopID string,
+	businessID string,
 	in booking.NewCustomerInput,
 ) (booking.Customer, error) {
 	var c booking.Customer
@@ -397,8 +397,8 @@ func insertNewCustomer(
 		`INSERT INTO customer (business_id, full_name, phone, email)
 		 VALUES ($1, $2, $3, $4)
 		 RETURNING id, business_id, full_name, phone, email, created_at, updated_at`,
-		barbershopID, in.FullName, in.Phone, in.Email,
-	).Scan(&c.ID, &c.BarbershopID, &c.FullName, &c.Phone, &c.Email, &c.CreatedAt, &c.UpdatedAt)
+		businessID, in.FullName, in.Phone, in.Email,
+	).Scan(&c.ID, &c.BusinessID, &c.FullName, &c.Phone, &c.Email, &c.CreatedAt, &c.UpdatedAt)
 	if err != nil {
 		if isConstraintViolation(err, "23505", customerShopPhoneUniqueIndex) {
 			return booking.Customer{}, errCustomerPhoneTaken()
@@ -428,7 +428,7 @@ func scanAppointment(row pgx.Row) (booking.Appointment, error) {
 		origin      string
 	)
 	err := row.Scan(
-		&a.ID, &a.BarbershopID, &a.BarberID, &a.ServiceID, &a.CustomerID, &a.AttendeeName,
+		&a.ID, &a.BusinessID, &a.ProfessionalID, &a.ServiceID, &a.CustomerID, &a.AttendeeName,
 		&a.StartsAt, &a.EndsAt, &status, &a.OccupiesSchedule, &origin,
 		&a.ServiceNameSnapshot, &a.DurationMinutesSnapshot, &priceAmount, &a.CurrencySnapshot,
 		&a.CustomerNote, &a.CreatedAt, &a.UpdatedAt,
@@ -449,7 +449,7 @@ func scanAppointment(row pgx.Row) (booking.Appointment, error) {
 func insertAppointment(
 	ctx context.Context,
 	q database.Queries,
-	barbershopID, customerID string,
+	businessID, customerID string,
 	input booking.CreateInternalInput,
 ) (booking.Appointment, error) {
 	row := q.QueryRow(ctx, `
@@ -467,7 +467,7 @@ func insertAppointment(
 			$14, $15, $16, $17
 		)
 		RETURNING`+appointmentResponseFields,
-		barbershopID, input.BarberID, input.ServiceID, customerID, input.AttendeeName,
+		businessID, input.ProfessionalID, input.ServiceID, customerID, input.AttendeeName,
 		input.StartsAt, input.EndsAt, string(input.Origin),
 		input.Service.Name, input.Service.DurationMinutes, formatPriceAmount(input.Service.PriceAmountCents), input.Service.Currency,
 		input.CustomerNote,
@@ -476,12 +476,12 @@ func insertAppointment(
 
 	appointment, err := scanAppointment(row)
 	if err != nil {
-		if isConstraintViolation(err, "23P01", appointmentBarberIntervalExclConstraint) {
+		if isConstraintViolation(err, "23P01", appointmentProfessionalIntervalExclConstraint) {
 			return booking.Appointment{}, scheduleConflictError(input.Origin)
 		}
 		if isDeadlockDetected(err) {
 			// PostgreSQL resuelve algunas carreras de inserción concurrente
-			// sobre el mismo índice GiST de appointment_barber_interval_excl
+			// sobre el mismo índice GiST de appointment_professional_interval_excl
 			// como "deadlock detected" (40P01) en vez de exclusion_violation
 			// (23P01) para la transacción perdedora: la comprobación
 			// especulativa del índice puede crear un ciclo de espera entre
@@ -497,8 +497,8 @@ func insertAppointment(
 		if isConstraintViolation(err, "23503", appointmentCustomerFKConstraint) {
 			return booking.Appointment{}, errCustomerNotFound()
 		}
-		if isConstraintViolation(err, "23503", appointmentBarberFKConstraint) {
-			return booking.Appointment{}, errBarberNotFound()
+		if isConstraintViolation(err, "23503", appointmentProfessionalFKConstraint) {
+			return booking.Appointment{}, errProfessionalNotFound()
 		}
 		if isConstraintViolation(err, "23503", appointmentServiceFKConstraint) {
 			return booking.Appointment{}, errServiceNotFound()
@@ -535,14 +535,14 @@ func homeLongitude(h *booking.HomeService) *float64 {
 func insertAppointmentCreatedHistory(
 	ctx context.Context,
 	q database.Queries,
-	barbershopID, appointmentID string,
+	businessID, appointmentID string,
 	actor booking.Actor,
 ) error {
 	_, err := q.Exec(ctx, `
 		INSERT INTO appointment_history (
 			business_id, appointment_id, event_type, actor_type, actor_staff_user_id, actor_customer_id
 		) VALUES ($1, $2, 'appointment_created', $3, $4, $5)`,
-		barbershopID, appointmentID, string(actor.Type), actor.StaffUserID, actor.CustomerID,
+		businessID, appointmentID, string(actor.Type), actor.StaffUserID, actor.CustomerID,
 	)
 	return err
 }
@@ -590,7 +590,7 @@ func errCustomerNotFound() error {
 	return apperr.NotFound("no existe un cliente con ese identificador")
 }
 
-func errBarberNotFound() error {
+func errProfessionalNotFound() error {
 	return apperr.NotFound("no existe un profesional con ese identificador")
 }
 
@@ -604,24 +604,24 @@ func errServiceNotFound() error {
 // deja una cita durar más de un día, así que ninguna cita que interseque
 // [rangeStart, rangeEnd) puede empezar antes de ese límite. Sin esta cota,
 // "starts_at < rangeEnd" por sí solo obligaría a recorrer TODO el historial
-// de citas anteriores del barbero antes de aplicar el filtro ends_at >
-// rangeStart; con ella, PostgreSQL usa idx_appointment_shop_barber_starts_at
-// (barbershop_id, barber_id, starts_at) como un rango acotado en ambos
+// de citas anteriores del profesional antes de aplicar el filtro ends_at >
+// rangeStart; con ella, PostgreSQL usa idx_appointment_shop_professional_starts_at
+// (business_id, professional_id, starts_at) como un rango acotado en ambos
 // extremos (verificado con EXPLAIN (ANALYZE, BUFFERS), ver postgres/README
 // o el reporte de HU-062).
 const maxAppointmentDurationLookback = 24 * time.Hour
 
 // ListDailyAgenda implementa booking.Repository.ListDailyAgenda (HU-062):
 // lee, sin transacción explícita (una sola SELECT de solo lectura no
-// necesita InTenantTx), las citas de barberID cuyo intervalo interseca
-// [rangeStart, rangeEnd) (DEC-075), tenant-aware por barbershopID además de
+// necesita InTenantTx), las citas de professionalID cuyo intervalo interseca
+// [rangeStart, rangeEnd) (DEC-075), tenant-aware por businessID además de
 // RLS.
 func (r *Repository) ListDailyAgenda(
 	ctx context.Context,
-	barbershopID, barberID string,
+	businessID, professionalID string,
 	rangeStart, rangeEnd time.Time,
 ) ([]booking.DailyAgendaEntry, error) {
-	shop, err := database.ValidBarbershopID(barbershopID)
+	shop, err := database.ValidBusinessID(businessID)
 	if err != nil {
 		return nil, fmt.Errorf("booking/postgres: %w", err)
 	}
@@ -642,7 +642,7 @@ func (r *Repository) ListDailyAgenda(
 			   AND ends_at > $5
 			 ORDER BY starts_at, id
 			 LIMIT $6`,
-			barbershopID, barberID,
+			businessID, professionalID,
 			rangeStart.Add(-maxAppointmentDurationLookback), rangeEnd, rangeStart,
 			booking.DailyAgendaLimit,
 		)
@@ -724,13 +724,13 @@ func errCustomerEmailTaken() error {
 
 // GetAppointmentDetail implementa booking.Repository.GetAppointmentDetail
 // (CA-064-01 a CA-064-04): une `appointment` con `customer` (ambas tablas
-// propias de booking, HU-060) dentro de barbershopID, tenant-aware además de
-// RLS. found=false cubre appointmentID inexistente o de otra barbería.
+// propias de booking, HU-060) dentro de businessID, tenant-aware además de
+// RLS. found=false cubre appointmentID inexistente o de otro negocio.
 func (r *Repository) GetAppointmentDetail(
 	ctx context.Context,
-	barbershopID, appointmentID string,
+	businessID, appointmentID string,
 ) (booking.AppointmentDetail, bool, error) {
-	shop, err := database.ValidBarbershopID(barbershopID)
+	shop, err := database.ValidBusinessID(businessID)
 	if err != nil {
 		return booking.AppointmentDetail{}, false, fmt.Errorf("booking/postgres: %w", err)
 	}
@@ -751,7 +751,7 @@ func (r *Repository) GetAppointmentDetail(
 			  FROM appointment a
 			  JOIN customer c ON c.business_id = a.business_id AND c.id = a.customer_id
 			 WHERE a.business_id = $1 AND a.id = $2`,
-			barbershopID, appointmentID)
+			businessID, appointmentID)
 
 		d, ok, err := scanAppointmentDetail(row)
 		if err != nil {
@@ -776,7 +776,7 @@ func scanAppointmentDetail(row pgx.Row) (booking.AppointmentDetail, bool, error)
 		home        homeServiceColumns
 	)
 	err := row.Scan(
-		&d.ID, &d.BarberID, &d.AttendeeName,
+		&d.ID, &d.ProfessionalID, &d.AttendeeName,
 		&d.CustomerFullName, &d.CustomerPhone, &d.CustomerEmail,
 		&d.CustomerNote, &d.StartsAt, &d.EndsAt, &status, &origin,
 		&d.ServiceNameSnapshot, &d.DurationMinutesSnapshot,
@@ -803,14 +803,14 @@ func scanAppointmentDetail(row pgx.Row) (booking.AppointmentDetail, bool, error)
 }
 
 // appointmentExists confirma, dentro de la misma InTenantTx que la consulta
-// de historial, que appointmentID pertenece a barbershopID: sin este
+// de historial, que appointmentID pertenece a businessID: sin este
 // chequeo explícito, un appointmentID inexistente y uno sin ningún evento
 // todavía serían indistinguibles (cero filas en ambos casos).
-func appointmentExists(ctx context.Context, q database.Queries, barbershopID, appointmentID string) (bool, error) {
+func appointmentExists(ctx context.Context, q database.Queries, businessID, appointmentID string) (bool, error) {
 	var exists bool
 	err := q.QueryRow(ctx,
 		`SELECT EXISTS (SELECT 1 FROM appointment WHERE business_id = $1 AND id = $2)`,
-		barbershopID, appointmentID,
+		businessID, appointmentID,
 	).Scan(&exists)
 	if err != nil {
 		return false, err
@@ -822,18 +822,18 @@ func appointmentExists(ctx context.Context, q database.Queries, barbershopID, ap
 // (CA-064-05): pide LIMIT+1 filas para saber si hay página siguiente sin una
 // segunda consulta COUNT, ordenadas por (occurred_at, id) — los dos últimos
 // campos de idx_appointment_history_shop_appointment_occurred
-// (barbershop_id, appointment_id, occurred_at), verificado con
+// (business_id, appointment_id, occurred_at), verificado con
 // EXPLAIN (ANALYZE, BUFFERS) como Index Scan (ver apps/api/README.md). Las
 // filas de appointment_history_change de toda la página se leen en UNA
 // segunda consulta con `history_id = ANY(...)`, nunca una por fila (trabajo
 // requerido §2.3, "sin generar N+1").
 func (r *Repository) ListAppointmentHistory(
 	ctx context.Context,
-	barbershopID, appointmentID string,
+	businessID, appointmentID string,
 	cursor *booking.HistoryCursor,
 	limit int,
 ) ([]booking.HistoryRow, *booking.HistoryCursor, bool, error) {
-	shop, err := database.ValidBarbershopID(barbershopID)
+	shop, err := database.ValidBusinessID(businessID)
 	if err != nil {
 		return nil, nil, false, fmt.Errorf("booking/postgres: %w", err)
 	}
@@ -844,7 +844,7 @@ func (r *Repository) ListAppointmentHistory(
 		found bool
 	)
 	err = r.db.InTenantTx(ctx, shop, func(ctx context.Context, q database.Queries) error {
-		exists, err := appointmentExists(ctx, q, barbershopID, appointmentID)
+		exists, err := appointmentExists(ctx, q, businessID, appointmentID)
 		if err != nil {
 			return err
 		}
@@ -868,7 +868,7 @@ func (r *Repository) ListAppointmentHistory(
 			   AND ($3::timestamptz IS NULL OR (occurred_at, id) > ($3::timestamptz, $4::uuid))
 			 ORDER BY occurred_at, id
 			 LIMIT $5`,
-			barbershopID, appointmentID, afterOccurredAt, afterID, limit+1,
+			businessID, appointmentID, afterOccurredAt, afterID, limit+1,
 		)
 		if err != nil {
 			return err
@@ -887,7 +887,7 @@ func (r *Repository) ListAppointmentHistory(
 			next = &booking.HistoryCursor{OccurredAt: last.OccurredAt, ID: last.ID}
 		}
 
-		changesByHistoryID, err := loadHistoryChanges(ctx, q, barbershopID, historyIDs(fetched))
+		changesByHistoryID, err := loadHistoryChanges(ctx, q, businessID, historyIDs(fetched))
 		if err != nil {
 			return err
 		}
@@ -944,7 +944,7 @@ func historyIDs(rows []booking.HistoryRow) []string {
 func loadHistoryChanges(
 	ctx context.Context,
 	q database.Queries,
-	barbershopID string,
+	businessID string,
 	ids []string,
 ) (map[string][]booking.HistoryChange, error) {
 	byHistory := make(map[string][]booking.HistoryChange)
@@ -957,7 +957,7 @@ func loadHistoryChanges(
 		  FROM appointment_history_change
 		 WHERE business_id = $1 AND history_id = ANY($2)
 		 ORDER BY history_id, field_name`,
-		barbershopID, ids,
+		businessID, ids,
 	)
 	if err != nil {
 		return nil, err
@@ -981,16 +981,16 @@ func loadHistoryChanges(
 }
 
 // CustomerNames implementa booking.Repository.CustomerNames (HU-064): una
-// sola consulta por lote con `= ANY($2)`, tenant-aware por barbershop_id
+// sola consulta por lote con `= ANY($2)`, tenant-aware por business_id
 // además de RLS. Un id sin coincidencia simplemente está ausente del mapa
 // devuelto.
-func (r *Repository) CustomerNames(ctx context.Context, barbershopID string, customerIDs []string) (map[string]string, error) {
+func (r *Repository) CustomerNames(ctx context.Context, businessID string, customerIDs []string) (map[string]string, error) {
 	names := make(map[string]string, len(customerIDs))
 	if len(customerIDs) == 0 {
 		return names, nil
 	}
 
-	shop, err := database.ValidBarbershopID(barbershopID)
+	shop, err := database.ValidBusinessID(businessID)
 	if err != nil {
 		return nil, fmt.Errorf("booking/postgres: %w", err)
 	}
@@ -998,7 +998,7 @@ func (r *Repository) CustomerNames(ctx context.Context, barbershopID string, cus
 	err = r.db.InTenantTx(ctx, shop, func(ctx context.Context, q database.Queries) error {
 		rows, err := q.Query(ctx,
 			`SELECT id, full_name FROM customer WHERE business_id = $1 AND id = ANY($2)`,
-			barbershopID, customerIDs)
+			businessID, customerIDs)
 		if err != nil {
 			return err
 		}
@@ -1038,10 +1038,10 @@ const rescheduleAppointmentIdempotencyTTL = 10 * time.Minute
 // currentAppointmentForReschedule es la fila que lockAppointmentForReschedule
 // lee con `FOR UPDATE`: exactamente los campos que Reschedule necesita para
 // verificar la precondición y reconstruir la representación final, sin
-// columnas de control innecesarias (occupies_schedule, barbershop_id).
+// columnas de control innecesarias (occupies_schedule, business_id).
 type currentAppointmentForReschedule struct {
 	id                      string
-	barberID                string
+	professionalID          string
 	serviceID               string
 	customerID              string
 	attendeeName            string
@@ -1063,11 +1063,11 @@ type currentAppointmentForReschedule struct {
 // misma fila hasta que esta transacción termine (COMMIT o ROLLBACK), lo que
 // hace segura la verificación de versión/estado que Reschedule ejecuta a
 // continuación frente a una segunda solicitud concurrente sobre la misma
-// cita. found=false cubre appointmentID inexistente o de otra barbería.
+// cita. found=false cubre appointmentID inexistente o de otro negocio.
 func lockAppointmentForReschedule(
 	ctx context.Context,
 	q database.Queries,
-	barbershopID, appointmentID string,
+	businessID, appointmentID string,
 ) (currentAppointmentForReschedule, bool, error) {
 	var row currentAppointmentForReschedule
 	err := q.QueryRow(ctx, `
@@ -1078,9 +1078,9 @@ func lockAppointmentForReschedule(
 		  FROM appointment
 		 WHERE business_id = $1 AND id = $2
 		 FOR UPDATE`,
-		barbershopID, appointmentID,
+		businessID, appointmentID,
 	).Scan(
-		&row.id, &row.barberID, &row.serviceID, &row.customerID, &row.attendeeName,
+		&row.id, &row.professionalID, &row.serviceID, &row.customerID, &row.attendeeName,
 		&row.startsAt, &row.endsAt, &row.status, &row.origin,
 		&row.serviceNameSnapshot, &row.durationMinutesSnapshot, &row.priceAmountSnapshot, &row.currencySnapshot,
 		&row.customerNote, &row.createdAt, &row.updatedAt,
@@ -1098,12 +1098,12 @@ func lockAppointmentForReschedule(
 // bloqueada por lockAppointmentForReschedule, dentro de la misma
 // transacción: el disparador appointment_set_updated_at recalcula
 // updated_at, y la misma restricción de exclusión GiST que protege un
-// INSERT (appointment_barber_interval_excl) se evalúa igual sobre este
+// INSERT (appointment_professional_interval_excl) se evalúa igual sobre este
 // UPDATE, excluyendo automáticamente la propia fila del chequeo.
 func updateAppointmentInterval(
 	ctx context.Context,
 	q database.Queries,
-	barbershopID, appointmentID string,
+	businessID, appointmentID string,
 	newStartsAt, newEndsAt time.Time,
 ) (time.Time, error) {
 	var updatedAt time.Time
@@ -1112,10 +1112,10 @@ func updateAppointmentInterval(
 		   SET starts_at = $3, ends_at = $4
 		 WHERE business_id = $1 AND id = $2
 		RETURNING updated_at`,
-		barbershopID, appointmentID, newStartsAt, newEndsAt,
+		businessID, appointmentID, newStartsAt, newEndsAt,
 	).Scan(&updatedAt)
 	if err != nil {
-		if isConstraintViolation(err, "23P01", appointmentBarberIntervalExclConstraint) {
+		if isConstraintViolation(err, "23P01", appointmentProfessionalIntervalExclConstraint) {
 			return time.Time{}, errScheduleConflict()
 		}
 		if isDeadlockDetected(err) {
@@ -1139,7 +1139,7 @@ func updateAppointmentInterval(
 func insertAppointmentRescheduledHistory(
 	ctx context.Context,
 	q database.Queries,
-	barbershopID, appointmentID string,
+	businessID, appointmentID string,
 	actor booking.Actor,
 	prevStartsAt, prevEndsAt, newStartsAt, newEndsAt time.Time,
 ) error {
@@ -1149,7 +1149,7 @@ func insertAppointmentRescheduledHistory(
 			business_id, appointment_id, event_type, actor_type, actor_staff_user_id, actor_customer_id
 		) VALUES ($1, $2, 'appointment_rescheduled', $3, $4, $5)
 		RETURNING id`,
-		barbershopID, appointmentID, string(actor.Type), actor.StaffUserID, actor.CustomerID,
+		businessID, appointmentID, string(actor.Type), actor.StaffUserID, actor.CustomerID,
 	).Scan(&historyID)
 	if err != nil {
 		return err
@@ -1160,7 +1160,7 @@ func insertAppointmentRescheduledHistory(
 		VALUES
 			($1, $2, 'starts_at', $3, $4),
 			($1, $2, 'ends_at', $5, $6)`,
-		barbershopID, historyID,
+		businessID, historyID,
 		prevStartsAt.UTC().Format(time.RFC3339), newStartsAt.UTC().Format(time.RFC3339),
 		prevEndsAt.UTC().Format(time.RFC3339), newEndsAt.UTC().Format(time.RFC3339),
 	)
@@ -1174,7 +1174,7 @@ func newRescheduleAppointment(row currentAppointmentForReschedule) (booking.Resc
 	}
 	return booking.RescheduleAppointment{
 		ID:                       row.id,
-		BarberID:                 row.barberID,
+		ProfessionalID:           row.professionalID,
 		ServiceID:                row.serviceID,
 		CustomerID:               row.customerID,
 		AttendeeName:             row.attendeeName,
@@ -1199,7 +1199,7 @@ func newRescheduleAppointment(row currentAppointmentForReschedule) (booking.Resc
 // criterio que manualAppointmentResponseWire).
 type rescheduleAppointmentResponseWire struct {
 	ID              string  `json:"id"`
-	BarberID        string  `json:"professionalId"`
+	ProfessionalID  string  `json:"professionalId"`
 	ServiceID       string  `json:"serviceId"`
 	CustomerID      string  `json:"customerId"`
 	AttendeeName    string  `json:"attendeeName"`
@@ -1219,7 +1219,7 @@ type rescheduleAppointmentResponseWire struct {
 func newRescheduleAppointmentResponseWire(a booking.RescheduleAppointment) rescheduleAppointmentResponseWire {
 	return rescheduleAppointmentResponseWire{
 		ID:              a.ID,
-		BarberID:        a.BarberID,
+		ProfessionalID:  a.ProfessionalID,
 		ServiceID:       a.ServiceID,
 		CustomerID:      a.CustomerID,
 		AttendeeName:    a.AttendeeName,
@@ -1292,12 +1292,12 @@ func errAppointmentNotTerminal() error {
 // sola InTenantTx.
 func (r *Repository) Reschedule(
 	ctx context.Context,
-	barbershopID string,
+	businessID string,
 	input booking.RescheduleInput,
 	key idempotency.Key,
 	fingerprint idempotency.Fingerprint,
 ) (booking.RescheduleResult, error) {
-	shop, err := database.ValidBarbershopID(barbershopID)
+	shop, err := database.ValidBusinessID(businessID)
 	if err != nil {
 		return booking.RescheduleResult{}, fmt.Errorf("booking/postgres: %w", err)
 	}
@@ -1318,7 +1318,7 @@ func (r *Repository) Reschedule(
 			return nil
 		}
 
-		current, found, err := lockAppointmentForReschedule(ctx, q, barbershopID, input.AppointmentID)
+		current, found, err := lockAppointmentForReschedule(ctx, q, businessID, input.AppointmentID)
 		if err != nil {
 			return err
 		}
@@ -1334,21 +1334,21 @@ func (r *Repository) Reschedule(
 		}
 
 		if !current.startsAt.Equal(input.NewStartsAt) || !current.endsAt.Equal(input.NewEndsAt) {
-			updatedAt, err := updateAppointmentInterval(ctx, q, barbershopID, current.id, input.NewStartsAt, input.NewEndsAt)
+			updatedAt, err := updateAppointmentInterval(ctx, q, businessID, current.id, input.NewStartsAt, input.NewEndsAt)
 			if err != nil {
 				return err
 			}
-			if err := r.appointmentChanged(ctx, q, barbershopID, current.id); err != nil {
+			if err := r.appointmentChanged(ctx, q, businessID, current.id); err != nil {
 				return err
 			}
-			if err := r.noticeRequired(ctx, q, barbershopID, current.id, NoticeRescheduled); err != nil {
+			if err := r.noticeRequired(ctx, q, businessID, current.id, NoticeRescheduled); err != nil {
 				return err
 			}
-			if err := r.reminderRequired(ctx, q, barbershopID, current.id); err != nil {
+			if err := r.reminderRequired(ctx, q, businessID, current.id); err != nil {
 				return err
 			}
 			if err := insertAppointmentRescheduledHistory(
-				ctx, q, barbershopID, current.id, input.Actor,
+				ctx, q, businessID, current.id, input.Actor,
 				current.startsAt, current.endsAt, input.NewStartsAt, input.NewEndsAt,
 			); err != nil {
 				return err
@@ -1395,34 +1395,34 @@ func (r *Repository) Reschedule(
 }
 
 // ---------------------------------------------------------------------------
-// HU-066: cancelación auditada por el barbero (T6)
+// HU-066: cancelación auditada por el profesional (T6)
 // ---------------------------------------------------------------------------
 
-// cancelAppointmentByBarberOperation identifica, para el protocolo de
+// cancelAppointmentByProfessionalOperation identifica, para el protocolo de
 // idempotencia (RN-IDE-01, DEC-043), la operación de HU-066: una clave ya
 // usada para crear o reprogramar un turno no puede reutilizarse aquí
 // (idempotency_begin responde OutcomeConflictOperation).
-const cancelAppointmentByBarberOperation idempotency.Operation = "cancel_appointment_by_barber"
+const cancelAppointmentByProfessionalOperation idempotency.Operation = "cancel_appointment_by_professional"
 
-// cancelAppointmentByBarberIdempotencyTTL es la vigencia de una reclamación
+// cancelAppointmentByProfessionalIdempotencyTTL es la vigencia de una reclamación
 // OutcomeProceed sin completar todavía, mismo valor que
 // rescheduleAppointmentIdempotencyTTL: sin ninguna razón de negocio para
 // diferir de ese precedente.
-const cancelAppointmentByBarberIdempotencyTTL = 10 * time.Minute
+const cancelAppointmentByProfessionalIdempotencyTTL = 10 * time.Minute
 
-// updateAppointmentStatusCancelledByBarber aplica el estado terminal sobre
+// updateAppointmentStatusCancelledByProfessional aplica el estado terminal sobre
 // la fila YA bloqueada por lockAppointmentForReschedule, dentro de la misma
 // transacción. appointment_resolved_at_ck exige resolved_at NOT NULL (y
 // >= created_at) para cualquier estado distinto de `confirmed`: por eso
 // status y resolved_at se fijan en la MISMA sentencia, nunca en dos pasos
 // que dejarían una fila transitoriamente inconsistente con el CHECK.
-// Cancelar nunca puede violar appointment_barber_interval_excl (mover un
+// Cancelar nunca puede violar appointment_professional_interval_excl (mover un
 // turno FUERA de occupies_schedule solo puede liberar la exclusión, nunca
 // competir por ella), así que este UPDATE no necesita traducir 23P01.
-func updateAppointmentStatusCancelledByBarber(
+func updateAppointmentStatusCancelledByProfessional(
 	ctx context.Context,
 	q database.Queries,
-	barbershopID, appointmentID string,
+	businessID, appointmentID string,
 ) (time.Time, error) {
 	var updatedAt time.Time
 	err := q.QueryRow(ctx, `
@@ -1430,7 +1430,7 @@ func updateAppointmentStatusCancelledByBarber(
 		   SET status = 'cancelled_by_professional', resolved_at = now()
 		 WHERE business_id = $1 AND id = $2
 		RETURNING updated_at`,
-		barbershopID, appointmentID,
+		businessID, appointmentID,
 	).Scan(&updatedAt)
 	if err != nil {
 		return time.Time{}, err
@@ -1438,14 +1438,14 @@ func updateAppointmentStatusCancelledByBarber(
 	return updatedAt, nil
 }
 
-// insertAppointmentCancelledByBarberHistory inserta, dentro de la misma
+// insertAppointmentCancelledByProfessionalHistory inserta, dentro de la misma
 // transacción, el evento appointment_cancelled_by_professional y su único cambio
 // (status: confirmed -> cancelled_by_professional), mismo criterio de dos INSERT
 // que insertAppointmentRescheduledHistory.
-func insertAppointmentCancelledByBarberHistory(
+func insertAppointmentCancelledByProfessionalHistory(
 	ctx context.Context,
 	q database.Queries,
-	barbershopID, appointmentID string,
+	businessID, appointmentID string,
 	actor booking.Actor,
 ) error {
 	var historyID string
@@ -1454,7 +1454,7 @@ func insertAppointmentCancelledByBarberHistory(
 			business_id, appointment_id, event_type, actor_type, actor_staff_user_id, actor_customer_id
 		) VALUES ($1, $2, 'appointment_cancelled_by_professional', $3, $4, $5)
 		RETURNING id`,
-		barbershopID, appointmentID, string(actor.Type), actor.StaffUserID, actor.CustomerID,
+		businessID, appointmentID, string(actor.Type), actor.StaffUserID, actor.CustomerID,
 	).Scan(&historyID)
 	if err != nil {
 		return err
@@ -1463,7 +1463,7 @@ func insertAppointmentCancelledByBarberHistory(
 	_, err = q.Exec(ctx, `
 		INSERT INTO appointment_history_change (business_id, history_id, field_name, previous_value, new_value)
 		VALUES ($1, $2, 'status', 'confirmed', 'cancelled_by_professional')`,
-		barbershopID, historyID,
+		businessID, historyID,
 	)
 	return err
 }
@@ -1475,7 +1475,7 @@ func newCancelledAppointment(row currentAppointmentForReschedule) (booking.Cance
 	}
 	return booking.CancelledAppointment{
 		ID:                       row.id,
-		BarberID:                 row.barberID,
+		ProfessionalID:           row.professionalID,
 		ServiceID:                row.serviceID,
 		CustomerID:               row.customerID,
 		AttendeeName:             row.attendeeName,
@@ -1493,14 +1493,14 @@ func newCancelledAppointment(row currentAppointmentForReschedule) (booking.Cance
 	}, nil
 }
 
-// cancelAppointmentByBarberResponseWire es la forma exacta que CancelByBarber
+// cancelAppointmentByProfessionalResponseWire es la forma exacta que CancelByProfessional
 // serializa como cuerpo almacenado de idempotencia: debe coincidir campo a
-// campo con httpapi.CancelAppointmentByBarberResponse para que una
+// campo con httpapi.CancelAppointmentByProfessionalResponse para que una
 // repetición exacta reproduzca bytes idénticos a los de la respuesta
 // original (mismo criterio que rescheduleAppointmentResponseWire).
-type cancelAppointmentByBarberResponseWire struct {
+type cancelAppointmentByProfessionalResponseWire struct {
 	ID              string  `json:"id"`
-	BarberID        string  `json:"professionalId"`
+	ProfessionalID  string  `json:"professionalId"`
 	ServiceID       string  `json:"serviceId"`
 	CustomerID      string  `json:"customerId"`
 	AttendeeName    string  `json:"attendeeName"`
@@ -1517,10 +1517,10 @@ type cancelAppointmentByBarberResponseWire struct {
 	CreatedAt       string  `json:"createdAt"`
 }
 
-func newCancelAppointmentByBarberResponseWire(a booking.CancelledAppointment) cancelAppointmentByBarberResponseWire {
-	return cancelAppointmentByBarberResponseWire{
+func newCancelAppointmentByProfessionalResponseWire(a booking.CancelledAppointment) cancelAppointmentByProfessionalResponseWire {
+	return cancelAppointmentByProfessionalResponseWire{
 		ID:              a.ID,
-		BarberID:        a.BarberID,
+		ProfessionalID:  a.ProfessionalID,
 		ServiceID:       a.ServiceID,
 		CustomerID:      a.CustomerID,
 		AttendeeName:    a.AttendeeName,
@@ -1538,7 +1538,7 @@ func newCancelAppointmentByBarberResponseWire(a booking.CancelledAppointment) ca
 	}
 }
 
-// CancelByBarber implementa booking.Repository.CancelByBarber (HU-066, T6):
+// CancelByProfessional implementa booking.Repository.CancelByProfessional (HU-066, T6):
 // Begin, bloquear la fila, verificar de nuevo con la fila ya bloqueada
 // (no-op si ya está cancelled_by_professional, InvalidState si es cualquier otro
 // estado terminal, VersionConflict si el token no coincide mientras sigue
@@ -1547,22 +1547,22 @@ func newCancelAppointmentByBarberResponseWire(a booking.CancelledAppointment) ca
 // InTenantTx. Reutiliza lockAppointmentForReschedule/
 // currentAppointmentForReschedule (HU-065): misma fila, mismas columnas,
 // ningún motivo para duplicar el SELECT ... FOR UPDATE.
-func (r *Repository) CancelByBarber(
+func (r *Repository) CancelByProfessional(
 	ctx context.Context,
-	barbershopID string,
-	input booking.CancelAppointmentByBarberInput,
+	businessID string,
+	input booking.CancelAppointmentByProfessionalInput,
 	key idempotency.Key,
 	fingerprint idempotency.Fingerprint,
-) (booking.CancelAppointmentByBarberResult, error) {
-	shop, err := database.ValidBarbershopID(barbershopID)
+) (booking.CancelAppointmentByProfessionalResult, error) {
+	shop, err := database.ValidBusinessID(businessID)
 	if err != nil {
-		return booking.CancelAppointmentByBarberResult{}, fmt.Errorf("booking/postgres: %w", err)
+		return booking.CancelAppointmentByProfessionalResult{}, fmt.Errorf("booking/postgres: %w", err)
 	}
 
-	var result booking.CancelAppointmentByBarberResult
+	var result booking.CancelAppointmentByProfessionalResult
 
 	err = r.db.InTenantTx(ctx, shop, func(ctx context.Context, q database.Queries) error {
-		decision, err := r.coord.Begin(ctx, q, shop, key, cancelAppointmentByBarberOperation, fingerprint, cancelAppointmentByBarberIdempotencyTTL)
+		decision, err := r.coord.Begin(ctx, q, shop, key, cancelAppointmentByProfessionalOperation, fingerprint, cancelAppointmentByProfessionalIdempotencyTTL)
 		if err != nil {
 			return fmt.Errorf("idempotency begin: %w", err)
 		}
@@ -1575,7 +1575,7 @@ func (r *Repository) CancelByBarber(
 			return nil
 		}
 
-		current, found, err := lockAppointmentForReschedule(ctx, q, barbershopID, input.AppointmentID)
+		current, found, err := lockAppointmentForReschedule(ctx, q, businessID, input.AppointmentID)
 		if err != nil {
 			return err
 		}
@@ -1584,9 +1584,9 @@ func (r *Repository) CancelByBarber(
 		}
 
 		switch {
-		case current.status == string(booking.StatusCancelledByBarber):
-			// CA-066-04: una cancelación repetida por CUALQUIER barbero de
-			// la barbería siempre tiene éxito, sin comparar versionToken
+		case current.status == string(booking.StatusCancelledByProfessional):
+			// CA-066-04: una cancelación repetida por CUALQUIER profesional de
+			// el negocio siempre tiene éxito, sin comparar versionToken
 			// (el que el cliente conserva ya quedó obsoleto tras la
 			// primera cancelación) y sin duplicar el evento de historial.
 		case current.status != string(booking.StatusConfirmed):
@@ -1595,20 +1595,20 @@ func (r *Repository) CancelByBarber(
 			if booking.EncodeVersionToken(current.id, current.updatedAt) != input.ExpectedVersionToken {
 				return errVersionConflict()
 			}
-			updatedAt, err := updateAppointmentStatusCancelledByBarber(ctx, q, barbershopID, current.id)
+			updatedAt, err := updateAppointmentStatusCancelledByProfessional(ctx, q, businessID, current.id)
 			if err != nil {
 				return err
 			}
-			if err := r.appointmentChanged(ctx, q, barbershopID, current.id); err != nil {
+			if err := r.appointmentChanged(ctx, q, businessID, current.id); err != nil {
 				return err
 			}
-			if err := r.noticeRequired(ctx, q, barbershopID, current.id, NoticeCancelledByBarber); err != nil {
+			if err := r.noticeRequired(ctx, q, businessID, current.id, NoticeCancelledByProfessional); err != nil {
 				return err
 			}
-			if err := insertAppointmentCancelledByBarberHistory(ctx, q, barbershopID, current.id, input.Actor); err != nil {
+			if err := insertAppointmentCancelledByProfessionalHistory(ctx, q, businessID, current.id, input.Actor); err != nil {
 				return err
 			}
-			current.status = string(booking.StatusCancelledByBarber)
+			current.status = string(booking.StatusCancelledByProfessional)
 			current.updatedAt = updatedAt
 		}
 
@@ -1617,7 +1617,7 @@ func (r *Repository) CancelByBarber(
 			return err
 		}
 
-		body, err := json.Marshal(newCancelAppointmentByBarberResponseWire(final))
+		body, err := json.Marshal(newCancelAppointmentByProfessionalResponseWire(final))
 		if err != nil {
 			return fmt.Errorf("marshal cancelled appointment: %w", err)
 		}
@@ -1640,7 +1640,7 @@ func (r *Repository) CancelByBarber(
 		return nil
 	})
 	if err != nil {
-		return booking.CancelAppointmentByBarberResult{}, err
+		return booking.CancelAppointmentByProfessionalResult{}, err
 	}
 	return result, nil
 }
@@ -1651,7 +1651,7 @@ func (r *Repository) CancelByBarber(
 
 // cancelAppointmentByCustomerOperation identifica la operación de HU-099 para
 // el protocolo de idempotencia (RN-IDE-01, DEC-043), igual que
-// cancelAppointmentByBarberOperation: una clave usada para otra operación no
+// cancelAppointmentByProfessionalOperation: una clave usada para otra operación no
 // puede reutilizarse aquí.
 const cancelAppointmentByCustomerOperation idempotency.Operation = "cancel_appointment_by_customer"
 
@@ -1672,13 +1672,13 @@ var _ booking.CustomerCancellationRepository = (*Repository)(nil)
 // ya tiene la fila de la cita bloqueada, para que un cambio de configuración
 // concurrente no pueda quedar a medio camino (RN-CAN-02: aplica desde que se
 // confirma el cambio).
-func readCancellationPolicy(ctx context.Context, q database.Queries, barbershopID string) (booking.CustomerCancellationPolicy, error) {
+func readCancellationPolicy(ctx context.Context, q database.Queries, businessID string) (booking.CustomerCancellationPolicy, error) {
 	var p booking.CustomerCancellationPolicy
 	err := q.QueryRow(ctx, `
 		SELECT cancellation_deadline_minutes, late_cancellation_client_allowed, late_cancellation_reason_required
 		  FROM business
 		 WHERE id = $1`,
-		barbershopID,
+		businessID,
 	).Scan(&p.DeadlineMinutes, &p.LateClientAllowed, &p.LateReasonRequired)
 	return p, err
 }
@@ -1690,13 +1690,13 @@ func readCancellationPolicy(ctx context.Context, q database.Queries, barbershopI
 func updateAppointmentStatusCancelledByCustomer(
 	ctx context.Context,
 	q database.Queries,
-	barbershopID, appointmentID, reason string,
+	businessID, appointmentID, reason string,
 ) error {
 	_, err := q.Exec(ctx, `
 		UPDATE appointment
 		   SET status = 'cancelled_by_customer', resolved_at = now(), cancellation_reason = NULLIF($3, '')
 		 WHERE business_id = $1 AND id = $2`,
-		barbershopID, appointmentID, reason,
+		businessID, appointmentID, reason,
 	)
 	return err
 }
@@ -1707,7 +1707,7 @@ func updateAppointmentStatusCancelledByCustomer(
 func insertAppointmentCancelledByCustomerHistory(
 	ctx context.Context,
 	q database.Queries,
-	barbershopID, appointmentID, customerID, reason string,
+	businessID, appointmentID, customerID, reason string,
 ) error {
 	var historyID string
 	err := q.QueryRow(ctx, `
@@ -1715,7 +1715,7 @@ func insertAppointmentCancelledByCustomerHistory(
 			business_id, appointment_id, event_type, actor_type, actor_customer_id, reason
 		) VALUES ($1, $2, 'appointment_cancelled_by_customer', 'customer', $3, NULLIF($4, ''))
 		RETURNING id`,
-		barbershopID, appointmentID, customerID, reason,
+		businessID, appointmentID, customerID, reason,
 	).Scan(&historyID)
 	if err != nil {
 		return err
@@ -1723,13 +1723,13 @@ func insertAppointmentCancelledByCustomerHistory(
 	_, err = q.Exec(ctx, `
 		INSERT INTO appointment_history_change (business_id, history_id, field_name, previous_value, new_value)
 		VALUES ($1, $2, 'status', 'confirmed', 'cancelled_by_customer')`,
-		barbershopID, historyID,
+		businessID, historyID,
 	)
 	return err
 }
 
 // CancelByCustomer implementa booking.CustomerCancellationRepository (HU-099,
-// T5), con la misma estructura transaccional que CancelByBarber: Begin,
+// T5), con la misma estructura transaccional que CancelByProfessional: Begin,
 // bloquear la fila, verificar con la fila bloqueada, aplicar estado + motivo +
 // historial, Complete. El enlace NO se revoca (DEC-136): sigue mostrando el
 // turno como cancelado. Un rechazo (versión, estado o
@@ -1737,12 +1737,12 @@ func insertAppointmentCancelledByCustomerHistory(
 // reclamación de idempotencia: no deja ninguna escritura ni consume la clave.
 func (r *Repository) CancelByCustomer(
 	ctx context.Context,
-	barbershopID string,
+	businessID string,
 	input booking.CancelAppointmentByCustomerInput,
 	key idempotency.Key,
 	fingerprint idempotency.Fingerprint,
 ) (booking.CancelAppointmentByCustomerResult, error) {
-	shop, err := database.ValidBarbershopID(barbershopID)
+	shop, err := database.ValidBusinessID(businessID)
 	if err != nil {
 		return booking.CancelAppointmentByCustomerResult{}, fmt.Errorf("booking/postgres: %w", err)
 	}
@@ -1763,7 +1763,7 @@ func (r *Repository) CancelByCustomer(
 			return nil
 		}
 
-		current, found, err := lockAppointmentForReschedule(ctx, q, barbershopID, input.AppointmentID)
+		current, found, err := lockAppointmentForReschedule(ctx, q, businessID, input.AppointmentID)
 		if err != nil {
 			return err
 		}
@@ -1782,20 +1782,20 @@ func (r *Repository) CancelByCustomer(
 			if booking.EncodeVersionToken(current.id, current.updatedAt) != input.ExpectedVersionToken {
 				return errVersionConflict()
 			}
-			policy, err := readCancellationPolicy(ctx, q, barbershopID)
+			policy, err := readCancellationPolicy(ctx, q, businessID)
 			if err != nil {
 				return fmt.Errorf("read cancellation policy: %w", err)
 			}
 			if err := policy.Evaluate(current.startsAt, input.Now, input.Reason); err != nil {
 				return err
 			}
-			if err := updateAppointmentStatusCancelledByCustomer(ctx, q, barbershopID, current.id, input.Reason); err != nil {
+			if err := updateAppointmentStatusCancelledByCustomer(ctx, q, businessID, current.id, input.Reason); err != nil {
 				return err
 			}
-			if err := r.appointmentChanged(ctx, q, barbershopID, current.id); err != nil {
+			if err := r.appointmentChanged(ctx, q, businessID, current.id); err != nil {
 				return err
 			}
-			if err := insertAppointmentCancelledByCustomerHistory(ctx, q, barbershopID, current.id, current.customerID, input.Reason); err != nil {
+			if err := insertAppointmentCancelledByCustomerHistory(ctx, q, businessID, current.id, current.customerID, input.Reason); err != nil {
 				return err
 			}
 		}
@@ -1825,7 +1825,7 @@ func (r *Repository) CancelByCustomer(
 // completeAppointmentOperation identifica, para el protocolo de
 // idempotencia (RN-IDE-01, DEC-043), el comando T4 manual de HU-067 frente
 // a cualquier otra operación de booking, mismo criterio que
-// cancelAppointmentByBarberOperation.
+// cancelAppointmentByProfessionalOperation.
 const completeAppointmentOperation idempotency.Operation = "complete_appointment"
 
 // completeAppointmentIdempotencyTTL es la vigencia de una reclamación de
@@ -1842,15 +1842,15 @@ const markAppointmentNoShowIdempotencyTTL = 10 * time.Minute
 
 // updateAppointmentStatusCompleted aplica `completed` sobre la fila YA
 // bloqueada por lockAppointmentForReschedule, dentro de la misma
-// transacción: mismo criterio que updateAppointmentStatusCancelledByBarber.
+// transacción: mismo criterio que updateAppointmentStatusCancelledByProfessional.
 // `completed` sigue ocupando agenda (occupies_schedule ya lo incluye desde
 // HU-060), así que este UPDATE tampoco puede violar
-// appointment_barber_interval_excl (mismo intervalo, mismo barbero, nunca
+// appointment_professional_interval_excl (mismo intervalo, mismo profesional, nunca
 // compite por la exclusión).
 func updateAppointmentStatusCompleted(
 	ctx context.Context,
 	q database.Queries,
-	barbershopID, appointmentID string,
+	businessID, appointmentID string,
 ) (time.Time, error) {
 	var updatedAt time.Time
 	err := q.QueryRow(ctx, `
@@ -1858,7 +1858,7 @@ func updateAppointmentStatusCompleted(
 		   SET status = 'completed', resolved_at = now()
 		 WHERE business_id = $1 AND id = $2
 		RETURNING updated_at`,
-		barbershopID, appointmentID,
+		businessID, appointmentID,
 	).Scan(&updatedAt)
 	if err != nil {
 		return time.Time{}, err
@@ -1871,7 +1871,7 @@ func updateAppointmentStatusCompleted(
 func updateAppointmentStatusNoShow(
 	ctx context.Context,
 	q database.Queries,
-	barbershopID, appointmentID string,
+	businessID, appointmentID string,
 ) (time.Time, error) {
 	var updatedAt time.Time
 	err := q.QueryRow(ctx, `
@@ -1879,7 +1879,7 @@ func updateAppointmentStatusNoShow(
 		   SET status = 'no_show', resolved_at = now()
 		 WHERE business_id = $1 AND id = $2
 		RETURNING updated_at`,
-		barbershopID, appointmentID,
+		businessID, appointmentID,
 	).Scan(&updatedAt)
 	if err != nil {
 		return time.Time{}, err
@@ -1890,11 +1890,11 @@ func updateAppointmentStatusNoShow(
 // insertAppointmentCompletedHistory inserta, dentro de la misma
 // transacción, el evento appointment_completed y su único cambio (status:
 // confirmed -> completed), mismo criterio de dos INSERT que
-// insertAppointmentCancelledByBarberHistory.
+// insertAppointmentCancelledByProfessionalHistory.
 func insertAppointmentCompletedHistory(
 	ctx context.Context,
 	q database.Queries,
-	barbershopID, appointmentID string,
+	businessID, appointmentID string,
 	actor booking.Actor,
 ) error {
 	var historyID string
@@ -1903,7 +1903,7 @@ func insertAppointmentCompletedHistory(
 			business_id, appointment_id, event_type, actor_type, actor_staff_user_id, actor_customer_id
 		) VALUES ($1, $2, 'appointment_completed', $3, $4, $5)
 		RETURNING id`,
-		barbershopID, appointmentID, string(actor.Type), actor.StaffUserID, actor.CustomerID,
+		businessID, appointmentID, string(actor.Type), actor.StaffUserID, actor.CustomerID,
 	).Scan(&historyID)
 	if err != nil {
 		return err
@@ -1912,7 +1912,7 @@ func insertAppointmentCompletedHistory(
 	_, err = q.Exec(ctx, `
 		INSERT INTO appointment_history_change (business_id, history_id, field_name, previous_value, new_value)
 		VALUES ($1, $2, 'status', 'confirmed', 'completed')`,
-		barbershopID, historyID,
+		businessID, historyID,
 	)
 	return err
 }
@@ -1922,7 +1922,7 @@ func insertAppointmentCompletedHistory(
 func insertAppointmentNoShowHistory(
 	ctx context.Context,
 	q database.Queries,
-	barbershopID, appointmentID string,
+	businessID, appointmentID string,
 	actor booking.Actor,
 ) error {
 	var historyID string
@@ -1931,7 +1931,7 @@ func insertAppointmentNoShowHistory(
 			business_id, appointment_id, event_type, actor_type, actor_staff_user_id, actor_customer_id
 		) VALUES ($1, $2, 'appointment_no_show', $3, $4, $5)
 		RETURNING id`,
-		barbershopID, appointmentID, string(actor.Type), actor.StaffUserID, actor.CustomerID,
+		businessID, appointmentID, string(actor.Type), actor.StaffUserID, actor.CustomerID,
 	).Scan(&historyID)
 	if err != nil {
 		return err
@@ -1940,7 +1940,7 @@ func insertAppointmentNoShowHistory(
 	_, err = q.Exec(ctx, `
 		INSERT INTO appointment_history_change (business_id, history_id, field_name, previous_value, new_value)
 		VALUES ($1, $2, 'status', 'confirmed', 'no_show')`,
-		barbershopID, historyID,
+		businessID, historyID,
 	)
 	return err
 }
@@ -1952,7 +1952,7 @@ func newClosedAppointment(row currentAppointmentForReschedule) (booking.ClosedAp
 	}
 	return booking.ClosedAppointment{
 		ID:                       row.id,
-		BarberID:                 row.barberID,
+		ProfessionalID:           row.professionalID,
 		ServiceID:                row.serviceID,
 		CustomerID:               row.customerID,
 		AttendeeName:             row.attendeeName,
@@ -1975,10 +1975,10 @@ func newClosedAppointment(row currentAppointmentForReschedule) (booking.ClosedAp
 // coincidir campo a campo con httpapi.AppointmentClosedResponse (ambas
 // rutas comparten la misma forma de respuesta, solo status difiere) para
 // que una repetición exacta reproduzca bytes idénticos a los de la
-// respuesta original, mismo criterio que cancelAppointmentByBarberResponseWire.
+// respuesta original, mismo criterio que cancelAppointmentByProfessionalResponseWire.
 type closedAppointmentResponseWire struct {
 	ID              string  `json:"id"`
-	BarberID        string  `json:"professionalId"`
+	ProfessionalID  string  `json:"professionalId"`
 	ServiceID       string  `json:"serviceId"`
 	CustomerID      string  `json:"customerId"`
 	AttendeeName    string  `json:"attendeeName"`
@@ -1998,7 +1998,7 @@ type closedAppointmentResponseWire struct {
 func newClosedAppointmentResponseWire(a booking.ClosedAppointment) closedAppointmentResponseWire {
 	return closedAppointmentResponseWire{
 		ID:              a.ID,
-		BarberID:        a.BarberID,
+		ProfessionalID:  a.ProfessionalID,
 		ServiceID:       a.ServiceID,
 		CustomerID:      a.CustomerID,
 		AttendeeName:    a.AttendeeName,
@@ -2028,12 +2028,12 @@ func newClosedAppointmentResponseWire(a booking.ClosedAppointment) closedAppoint
 // el SELECT ... FOR UPDATE.
 func (r *Repository) CompleteAppointment(
 	ctx context.Context,
-	barbershopID string,
+	businessID string,
 	input booking.CloseAppointmentInput,
 	key idempotency.Key,
 	fingerprint idempotency.Fingerprint,
 ) (booking.CompleteAppointmentResult, error) {
-	shop, err := database.ValidBarbershopID(barbershopID)
+	shop, err := database.ValidBusinessID(businessID)
 	if err != nil {
 		return booking.CompleteAppointmentResult{}, fmt.Errorf("booking/postgres: %w", err)
 	}
@@ -2054,7 +2054,7 @@ func (r *Repository) CompleteAppointment(
 			return nil
 		}
 
-		current, found, err := lockAppointmentForReschedule(ctx, q, barbershopID, input.AppointmentID)
+		current, found, err := lockAppointmentForReschedule(ctx, q, businessID, input.AppointmentID)
 		if err != nil {
 			return err
 		}
@@ -2076,14 +2076,14 @@ func (r *Repository) CompleteAppointment(
 			if booking.EncodeVersionToken(current.id, current.updatedAt) != input.ExpectedVersionToken {
 				return errVersionConflict()
 			}
-			updatedAt, err := updateAppointmentStatusCompleted(ctx, q, barbershopID, current.id)
+			updatedAt, err := updateAppointmentStatusCompleted(ctx, q, businessID, current.id)
 			if err != nil {
 				return err
 			}
-			if err := r.appointmentChanged(ctx, q, barbershopID, current.id); err != nil {
+			if err := r.appointmentChanged(ctx, q, businessID, current.id); err != nil {
 				return err
 			}
-			if err := insertAppointmentCompletedHistory(ctx, q, barbershopID, current.id, input.Actor); err != nil {
+			if err := insertAppointmentCompletedHistory(ctx, q, businessID, current.id, input.Actor); err != nil {
 				return err
 			}
 			current.status = string(booking.StatusCompleted)
@@ -2128,12 +2128,12 @@ func (r *Repository) CompleteAppointment(
 // `appointment_no_show` en vez de `completed` + `appointment_completed`.
 func (r *Repository) MarkNoShow(
 	ctx context.Context,
-	barbershopID string,
+	businessID string,
 	input booking.CloseAppointmentInput,
 	key idempotency.Key,
 	fingerprint idempotency.Fingerprint,
 ) (booking.MarkNoShowResult, error) {
-	shop, err := database.ValidBarbershopID(barbershopID)
+	shop, err := database.ValidBusinessID(businessID)
 	if err != nil {
 		return booking.MarkNoShowResult{}, fmt.Errorf("booking/postgres: %w", err)
 	}
@@ -2154,7 +2154,7 @@ func (r *Repository) MarkNoShow(
 			return nil
 		}
 
-		current, found, err := lockAppointmentForReschedule(ctx, q, barbershopID, input.AppointmentID)
+		current, found, err := lockAppointmentForReschedule(ctx, q, businessID, input.AppointmentID)
 		if err != nil {
 			return err
 		}
@@ -2176,14 +2176,14 @@ func (r *Repository) MarkNoShow(
 			if booking.EncodeVersionToken(current.id, current.updatedAt) != input.ExpectedVersionToken {
 				return errVersionConflict()
 			}
-			updatedAt, err := updateAppointmentStatusNoShow(ctx, q, barbershopID, current.id)
+			updatedAt, err := updateAppointmentStatusNoShow(ctx, q, businessID, current.id)
 			if err != nil {
 				return err
 			}
-			if err := r.appointmentChanged(ctx, q, barbershopID, current.id); err != nil {
+			if err := r.appointmentChanged(ctx, q, businessID, current.id); err != nil {
 				return err
 			}
-			if err := insertAppointmentNoShowHistory(ctx, q, barbershopID, current.id, input.Actor); err != nil {
+			if err := insertAppointmentNoShowHistory(ctx, q, businessID, current.id, input.Actor); err != nil {
 				return err
 			}
 			current.status = string(booking.StatusNoShow)
@@ -2236,16 +2236,16 @@ const correctAppointmentStatusIdempotencyTTL = 10 * time.Minute
 // updateAppointmentStatusCorrected aplica el nuevo estado terminal sobre la
 // fila YA bloqueada por lockAppointmentForReschedule, dentro de la misma
 // transacción (T8, HU-068): a diferencia de updateAppointmentStatusCompleted/
-// NoShow/CancelledByBarber, aquí el estado destino SÍ puede pasar de "no
+// NoShow/CancelledByProfessional, aquí el estado destino SÍ puede pasar de "no
 // ocupa" a "ocupa" agenda (de un terminal cancelado hacia completed/
 // no_show), así que la misma restricción de exclusión GiST que protege
-// reprogramar (appointment_barber_interval_excl) puede violarse igual que
+// reprogramar (appointment_professional_interval_excl) puede violarse igual que
 // en updateAppointmentInterval, con la misma traducción 23P01/40P01 ->
 // errScheduleConflict (CA-068-04).
 func updateAppointmentStatusCorrected(
 	ctx context.Context,
 	q database.Queries,
-	barbershopID, appointmentID, newStatus string,
+	businessID, appointmentID, newStatus string,
 ) (time.Time, error) {
 	var updatedAt time.Time
 	err := q.QueryRow(ctx, `
@@ -2253,10 +2253,10 @@ func updateAppointmentStatusCorrected(
 		   SET status = $3, resolved_at = now()
 		 WHERE business_id = $1 AND id = $2
 		RETURNING updated_at`,
-		barbershopID, appointmentID, newStatus,
+		businessID, appointmentID, newStatus,
 	).Scan(&updatedAt)
 	if err != nil {
-		if isConstraintViolation(err, "23P01", appointmentBarberIntervalExclConstraint) {
+		if isConstraintViolation(err, "23P01", appointmentProfessionalIntervalExclConstraint) {
 			return time.Time{}, errScheduleConflict()
 		}
 		if isDeadlockDetected(err) {
@@ -2280,7 +2280,7 @@ func updateAppointmentStatusCorrected(
 func insertAppointmentStatusCorrectedHistory(
 	ctx context.Context,
 	q database.Queries,
-	barbershopID, appointmentID string,
+	businessID, appointmentID string,
 	actor booking.Actor,
 	reason, previousStatus, newStatus string,
 ) error {
@@ -2290,7 +2290,7 @@ func insertAppointmentStatusCorrectedHistory(
 			business_id, appointment_id, event_type, actor_type, actor_staff_user_id, actor_customer_id, reason
 		) VALUES ($1, $2, 'appointment_status_corrected', $3, $4, $5, $6)
 		RETURNING id`,
-		barbershopID, appointmentID, string(actor.Type), actor.StaffUserID, actor.CustomerID, reason,
+		businessID, appointmentID, string(actor.Type), actor.StaffUserID, actor.CustomerID, reason,
 	).Scan(&historyID)
 	if err != nil {
 		return err
@@ -2299,7 +2299,7 @@ func insertAppointmentStatusCorrectedHistory(
 	_, err = q.Exec(ctx, `
 		INSERT INTO appointment_history_change (business_id, history_id, field_name, previous_value, new_value)
 		VALUES ($1, $2, 'status', $3, $4)`,
-		barbershopID, historyID, previousStatus, newStatus,
+		businessID, historyID, previousStatus, newStatus,
 	)
 	return err
 }
@@ -2313,7 +2313,7 @@ func newCorrectedAppointment(row currentAppointmentForReschedule) (booking.Corre
 	}
 	return booking.CorrectedAppointment{
 		ID:                       row.id,
-		BarberID:                 row.barberID,
+		ProfessionalID:           row.professionalID,
 		ServiceID:                row.serviceID,
 		CustomerID:               row.customerID,
 		AttendeeName:             row.attendeeName,
@@ -2340,7 +2340,7 @@ func newCorrectedAppointment(row currentAppointmentForReschedule) (booking.Corre
 // representación vigente de la cita.
 type correctedAppointmentResponseWire struct {
 	ID              string  `json:"id"`
-	BarberID        string  `json:"professionalId"`
+	ProfessionalID  string  `json:"professionalId"`
 	ServiceID       string  `json:"serviceId"`
 	CustomerID      string  `json:"customerId"`
 	AttendeeName    string  `json:"attendeeName"`
@@ -2360,7 +2360,7 @@ type correctedAppointmentResponseWire struct {
 func newCorrectedAppointmentResponseWire(a booking.CorrectedAppointment) correctedAppointmentResponseWire {
 	return correctedAppointmentResponseWire{
 		ID:              a.ID,
-		BarberID:        a.BarberID,
+		ProfessionalID:  a.ProfessionalID,
 		ServiceID:       a.ServiceID,
 		CustomerID:      a.CustomerID,
 		AttendeeName:    a.AttendeeName,
@@ -2390,12 +2390,12 @@ func newCorrectedAppointmentResponseWire(a booking.CorrectedAppointment) correct
 // duplicar el SELECT ... FOR UPDATE.
 func (r *Repository) CorrectAppointmentStatus(
 	ctx context.Context,
-	barbershopID string,
+	businessID string,
 	input booking.CorrectAppointmentStatusInput,
 	key idempotency.Key,
 	fingerprint idempotency.Fingerprint,
 ) (booking.CorrectAppointmentStatusResult, error) {
-	shop, err := database.ValidBarbershopID(barbershopID)
+	shop, err := database.ValidBusinessID(businessID)
 	if err != nil {
 		return booking.CorrectAppointmentStatusResult{}, fmt.Errorf("booking/postgres: %w", err)
 	}
@@ -2416,7 +2416,7 @@ func (r *Repository) CorrectAppointmentStatus(
 			return nil
 		}
 
-		current, found, err := lockAppointmentForReschedule(ctx, q, barbershopID, input.AppointmentID)
+		current, found, err := lockAppointmentForReschedule(ctx, q, businessID, input.AppointmentID)
 		if err != nil {
 			return err
 		}
@@ -2446,15 +2446,15 @@ func (r *Repository) CorrectAppointmentStatus(
 			if booking.EncodeVersionToken(current.id, current.updatedAt) != input.ExpectedVersionToken {
 				return errVersionConflict()
 			}
-			updatedAt, err := updateAppointmentStatusCorrected(ctx, q, barbershopID, current.id, destination)
+			updatedAt, err := updateAppointmentStatusCorrected(ctx, q, businessID, current.id, destination)
 			if err != nil {
 				return err
 			}
-			if err := r.appointmentChanged(ctx, q, barbershopID, current.id); err != nil {
+			if err := r.appointmentChanged(ctx, q, businessID, current.id); err != nil {
 				return err
 			}
 			if err := insertAppointmentStatusCorrectedHistory(
-				ctx, q, barbershopID, current.id, input.Actor, input.Reason, previousStatus, destination,
+				ctx, q, businessID, current.id, input.Actor, input.Reason, previousStatus, destination,
 			); err != nil {
 				return err
 			}

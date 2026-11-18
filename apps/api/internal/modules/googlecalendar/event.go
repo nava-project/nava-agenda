@@ -47,7 +47,7 @@ const (
 )
 
 // blockTitles son los títulos de los bloqueos por tipo (el motivo es una nota
-// del propio barbero y no se publica).
+// del propio profesional y no se publica).
 var blockTitles = map[string]string{
 	"break":       "Descanso",
 	"lunch":       "Almuerzo",
@@ -104,7 +104,7 @@ func BuildEvent(jc JobContext, connectionID string) (Event, string) {
 }
 
 // visibleHash es la huella de lo que el invitado percibe: si no cambia, refrescar
-// el evento (por ejemplo, al cambiar el recordatorio del barbero) no le envía un
+// el evento (por ejemplo, al cambiar el recordatorio del profesional) no le envía un
 // correo (DEC-122).
 func visibleHash(ev Event) string {
 	sum := sha256.Sum256([]byte(strings.Join([]string{

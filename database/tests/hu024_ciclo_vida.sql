@@ -3,7 +3,7 @@
 -- ya preparó pero no ejercía todavía con el rol de aplicación real:
 -- service_deactivated_at_ck en ambas direcciones, la transición real
 -- is_active/deactivated_at con agenda_app, aislamiento RLS entre
--- barberías sobre esa misma transición, y la reutilización de nombre que
+-- negocios sobre esa misma transición, y la reutilización de nombre que
 -- CA-024-05/idx_service_active_name habilitan. La orquestación completa
 -- (idempotencia, transición inválida, la carrera real de dos conexiones)
 -- vive en el repositorio Go (internal/modules/catalog/postgres), probada
@@ -12,7 +12,7 @@
 -- tests/hu022_catalogo.sql: este archivo no los repite.
 --
 -- Uso:
---   psql "$DATABASE_TEST_URL" -v ON_ERROR_STOP=1 -f testdata/dos_professionalias.sql
+--   psql "$DATABASE_TEST_URL" -v ON_ERROR_STOP=1 -f testdata/dos_negocios.sql
 --   psql "$DATABASE_TEST_URL" -v ON_ERROR_STOP=1 -f tests/hu024_ciclo_vida.sql
 --
 -- Requisito del arnés: la conexión debe poder ejecutar `SET ROLE agenda_app`
@@ -164,7 +164,7 @@ ROLLBACK;
 \echo 'CA-024-05 OK · agenda_app reactiva sin crear otra fila ni alterar duración/precio'
 
 -- ---------------------------------------------------------------------------
--- CA-024-07/RN-TEN-01 · la transición nunca cruza de barbería, aun con el
+-- CA-024-07/RN-TEN-01 · la transición nunca cruza de negocio, aun con el
 -- id real de la fila ajena (defensa en profundidad + RLS forzada)
 -- ---------------------------------------------------------------------------
 BEGIN;
@@ -186,7 +186,7 @@ BEGIN
   UPDATE service SET is_active = false, deactivated_at = now()
    WHERE id = '77777777-2222-2222-2222-777777777772' AND business_id = '22222222-2222-2222-2222-222222222222';
   IF FOUND THEN
-    RAISE EXCEPTION 'CA-024-07/RN-TEN-01: barbería B pudo transicionar un servicio de la barbería A.';
+    RAISE EXCEPTION 'CA-024-07/RN-TEN-01: negocio B pudo transicionar un servicio del negocio A.';
   END IF;
 
   SET LOCAL app.business_id = '11111111-1111-1111-1111-111111111111';
@@ -199,7 +199,7 @@ $$;
 
 RESET ROLE;
 ROLLBACK;
-\echo 'CA-024-07 OK · ninguna transición cruza de barbería (RLS forzada + filtro explícito)'
+\echo 'CA-024-07 OK · ninguna transición cruza de negocio (RLS forzada + filtro explícito)'
 
 -- ---------------------------------------------------------------------------
 -- CA-024-05 · desactivar libera el nombre para un servicio ACTIVO nuevo

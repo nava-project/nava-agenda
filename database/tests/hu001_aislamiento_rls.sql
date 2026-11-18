@@ -1,7 +1,7 @@
 -- Pruebas SQL de aislamiento de HU-001. Cubren CA-001-01 a CA-001-06.
 --
 -- Uso:
---   psql "$DATABASE_TEST_URL" -v ON_ERROR_STOP=1 -f testdata/dos_professionalias.sql
+--   psql "$DATABASE_TEST_URL" -v ON_ERROR_STOP=1 -f testdata/dos_negocios.sql
 --   psql "$DATABASE_TEST_URL" -v ON_ERROR_STOP=1 -f tests/hu001_aislamiento_rls.sql
 --
 -- Requisito del arnés: la conexión debe poder ejecutar `SET ROLE agenda_app`,
@@ -83,8 +83,8 @@ BEGIN
     AND c.relkind = 'r'
     -- `atlas_schema_revisions` pertenece a Atlas y no lleva business_id.
     -- `login_throttle` es la única excepción de diseño: cuenta intentos por IP
-    -- ANTES de saber quién solicita, y asociarla a una barbería permitiría
-    -- repartir los intentos entre barberías para diluir el límite.
+    -- ANTES de saber quién solicita, y asociarla a un negocio permitiría
+    -- repartir los intentos entre negocios para diluir el límite.
     -- Ver modelo-fisico-referencia.sql, sección A.4.
     AND c.relname NOT IN ('atlas_schema_revisions', 'login_throttle')
     AND NOT (c.relrowsecurity AND c.relforcerowsecurity);
@@ -154,7 +154,7 @@ BEGIN
   END IF;
 
   IF v_shops <> 1 THEN
-    RAISE EXCEPTION 'CA-001-01: se vieron % barberías; debía verse solo la propia.', v_shops;
+    RAISE EXCEPTION 'CA-001-01: se vieron % negocios; debía verse solo la propia.', v_shops;
   END IF;
 END
 $$;
@@ -198,10 +198,10 @@ $$;
 
 RESET ROLE;
 ROLLBACK;
-\echo 'CA-001-02 OK · WITH CHECK impide escribir hacia otra barbería'
+\echo 'CA-001-02 OK · WITH CHECK impide escribir hacia otro negocio'
 
 -- ---------------------------------------------------------------------------
--- Un recurso de otra barbería es indistinguible de uno inexistente
+-- Un recurso de otro negocio es indistinguible de uno inexistente
 -- (base de RN-TEN-01 y de la respuesta 404 de CA-003-03)
 -- ---------------------------------------------------------------------------
 BEGIN;

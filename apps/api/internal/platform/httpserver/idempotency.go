@@ -3,7 +3,7 @@ package httpserver
 import (
 	"net/http"
 
-	"system-barbershop/internal/platform/idempotency"
+	"nava-agenda/internal/platform/idempotency"
 )
 
 // IdempotencyKeyHeader es la cabecera HTTP que transporta la clave de

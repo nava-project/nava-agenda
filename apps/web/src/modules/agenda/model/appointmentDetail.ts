@@ -11,8 +11,8 @@ import type { AppointmentOrigin, AppointmentStatus, HomeService } from './dailyA
 // futura.
 export type AppointmentDetail = {
   id: string
-  barberId: string
-  barberFullName: string
+  professionalId: string
+  professionalFullName: string
   attendeeName: string
   customerFullName: string
   customerPhone: string | null
@@ -78,7 +78,7 @@ const FIXED_EVENT_LABELS: Record<
 }
 
 // El evento técnico `appointment_cancelled_by_professional` no se renombra (DEC-041); su
-// etiqueta usa la palabra de la barbería (DEC-110, DEC-119).
+// etiqueta usa la palabra del negocio (DEC-110, DEC-119).
 export function historyEventLabel(eventType: HistoryEventType, v: Vocabulary): string | undefined {
   return eventType === 'appointment_cancelled_by_professional'
     ? `Cancelado ${v.byTheProfessional}`
@@ -99,7 +99,11 @@ const FIXED_FIELD_LABELS: Record<string, string> = {
   cancellation_reason: 'Motivo de cancelación',
 }
 
+// `barber_id` es el nombre que un cambio de profesional habría guardado antes de
+// DEC-183 (#662); el historial es inmutable, así que se reconocen los dos.
+const PROFESSIONAL_FIELD_NAMES = new Set(['professional_id', 'barber_id'])
+
 export function historyFieldLabel(fieldName: string, v: Vocabulary): string {
-  if (fieldName === 'barber_id') return v.Professional
+  if (PROFESSIONAL_FIELD_NAMES.has(fieldName)) return v.Professional
   return FIXED_FIELD_LABELS[fieldName] ?? fieldName
 }

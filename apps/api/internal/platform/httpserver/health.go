@@ -5,7 +5,7 @@ import (
 	"net/http"
 	"time"
 
-	"system-barbershop/internal/platform/database"
+	"nava-agenda/internal/platform/database"
 )
 
 // HealthHandler responde la comprobación operativa de /health descrita en
@@ -24,7 +24,7 @@ func HealthHandler() http.HandlerFunc {
 // versión de PostgreSQL, sin nombre de base, sin host, sin usuario, sin texto
 // del error del driver. Un endpoint de salud es público de hecho aunque no se
 // documente; su mensaje de error es superficie de reconocimiento gratuita para
-// un atacante. La salud NO abre una transacción de tenant: no tiene barbería.
+// un atacante. La salud NO abre una transacción de tenant: no tiene negocio.
 // Es la única lectura autorizada fuera del patrón.
 func DatabaseHealthHandler(db *database.DB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {

@@ -1,6 +1,6 @@
 // Pruebas de integración de la PUBLICACIÓN en Google Calendar (issue #324,
 // DEC-099, DEC-101, DEC-102, DEC-122) de punta a punta: router real,
-// PostgreSQL real con dos barberías, el worker real (barberia_worker + el
+// PostgreSQL real con dos negocios, el worker real (agenda_worker + el
 // publicador) y un Google FALSO con almacén de eventos en memoria. Ninguna
 // prueba toca la red real.
 package main
@@ -20,12 +20,12 @@ import (
 
 	"golang.org/x/oauth2"
 
-	"system-barbershop/internal/modules/googlecalendar"
-	googlecalendargoogle "system-barbershop/internal/modules/googlecalendar/google"
-	googlecalendarpostgres "system-barbershop/internal/modules/googlecalendar/postgres"
-	"system-barbershop/internal/platform/clock"
-	"system-barbershop/internal/platform/config"
-	"system-barbershop/internal/platform/database"
+	"nava-agenda/internal/modules/googlecalendar"
+	googlecalendargoogle "nava-agenda/internal/modules/googlecalendar/google"
+	googlecalendarpostgres "nava-agenda/internal/modules/googlecalendar/postgres"
+	"nava-agenda/internal/platform/clock"
+	"nava-agenda/internal/platform/config"
+	"nava-agenda/internal/platform/database"
 )
 
 // fakeCalendar es el almacén de eventos del Google falso.
@@ -180,16 +180,16 @@ func setupWorkerTestDB(t *testing.T) *database.DB {
 }
 
 type publication struct {
-	router    http.Handler
-	raw       string
-	google    *googleStub
-	calendar  *fakeCalendar
-	publisher *googlecalendar.Publisher
-	barber    barberBody
-	service   serviceBody
+	router       http.Handler
+	raw          string
+	google       *googleStub
+	calendar     *fakeCalendar
+	publisher    *googlecalendar.Publisher
+	professional professionalBody
+	service      serviceBody
 }
 
-// newPublication conecta a un barbero de la barbería A con el Google falso y
+// newPublication conecta a un profesional del negocio A con el Google falso y
 // arma el publicador real contra la base del worker.
 func newPublication(t *testing.T, db *database.DB, label string) *publication {
 	t.Helper()
@@ -201,16 +201,16 @@ func newPublication(t *testing.T, db *database.DB, label string) *publication {
 	raw := createSessionCookie(t, db, shopA, staffUserActiveA, label)
 	t.Cleanup(func() {
 		doGCal(router, raw, http.MethodDelete, "", "")
-		doMyBarberRequest(router, raw, http.MethodDelete, "")
+		doMyProfessionalRequest(router, raw, http.MethodDelete, "")
 	})
 
-	barber := createBarberViaRouter(t, router, raw, "Pub "+uniqueToken(t, "n"))
+	professional := createProfessionalViaRouter(t, router, raw, "Pub "+uniqueToken(t, "n"))
 	service := createServiceViaRouter(t, router, raw, "Corte "+uniqueToken(t, "s"))
-	if rec := doAssignServiceRequest(router, raw, barber.ID, service.ID); rec.Code != http.StatusCreated {
+	if rec := doAssignServiceRequest(router, raw, professional.ID, service.ID); rec.Code != http.StatusCreated {
 		t.Fatalf("asignar servicio: %d %s", rec.Code, rec.Body.String())
 	}
-	openEveryDay(t, db, barber.ID)
-	linkMe(t, router, raw, barber.ID)
+	openEveryDay(t, db, professional.ID)
+	linkMe(t, router, raw, professional.ID)
 	state := startConnection(t, router, raw)
 	if rec := doGCal(router, raw, http.MethodPost, "/callback", `{"state":"`+state+`","code":"codigo"}`); rec.Code != http.StatusOK {
 		t.Fatalf("conectar: %d %s", rec.Code, rec.Body.String())
@@ -225,7 +225,7 @@ func newPublication(t *testing.T, db *database.DB, label string) *publication {
 		API:   googlecalendargoogle.NewEventsClient(stub.server.URL+"/calendar/v3", nil),
 		Provider: googlecalendargoogle.New(googlecalendargoogle.Config{
 			ClientID: "cliente-de-prueba", ClientSecret: "secreto-de-prueba",
-			RedirectURL: "http://localhost:5173/panel/barberia/google-calendar/callback",
+			RedirectURL: "http://localhost:5173/panel/negocio/google-calendar/callback",
 			Endpoint:    &oauth2.Endpoint{TokenURL: stub.server.URL + "/token"},
 			RevokeURL:   stub.server.URL + "/revoke",
 		}),
@@ -233,7 +233,7 @@ func newPublication(t *testing.T, db *database.DB, label string) *publication {
 		Clock:  clock.System{},
 		Config: googlecalendar.DefaultPublisherConfig(),
 	})
-	return &publication{router: router, raw: raw, google: stub, calendar: calendar, publisher: publisher, barber: barber, service: service}
+	return &publication{router: router, raw: raw, google: stub, calendar: calendar, publisher: publisher, professional: professional, service: service}
 }
 
 func bytesRepeat(b byte, n int) []byte {
@@ -259,10 +259,10 @@ func (p *publication) drain(t *testing.T) {
 func (p *publication) ageRestoreCheck(t *testing.T) {
 	t.Helper()
 	db := setupTestDB(t)
-	err := db.InTenantTx(context.Background(), database.BarbershopID(shopA), func(ctx context.Context, q database.Queries) error {
+	err := db.InTenantTx(context.Background(), database.BusinessID(shopA), func(ctx context.Context, q database.Queries) error {
 		_, err := q.Exec(ctx,
 			`UPDATE google_calendar_connection SET last_restore_check_at = now() - interval '1 hour'
-			  WHERE business_id = $1 AND professional_id = $2`, shopA, p.barber.ID)
+			  WHERE business_id = $1 AND professional_id = $2`, shopA, p.professional.ID)
 		return err
 	})
 	if err != nil {
@@ -280,15 +280,15 @@ func (p *publication) restoreAll() {
 	}
 }
 
-// openEveryDay le da al barbero una jornada de 08:00 a 22:00 todos los días: el
+// openEveryDay le da al profesional una jornada de 08:00 a 22:00 todos los días: el
 // alta y la reprogramación manuales solo aceptan intervalos dentro de la jornada
 // efectiva (CA-061-02, CA-065-04).
-func openEveryDay(t *testing.T, db *database.DB, barberID string) {
+func openEveryDay(t *testing.T, db *database.DB, professionalID string) {
 	t.Helper()
-	err := db.InTenantTx(context.Background(), database.BarbershopID(shopA), func(ctx context.Context, q database.Queries) error {
+	err := db.InTenantTx(context.Background(), database.BusinessID(shopA), func(ctx context.Context, q database.Queries) error {
 		_, err := q.Exec(ctx,
 			`INSERT INTO working_hour (business_id, professional_id, iso_weekday, starts_time, duration_minutes)
-			 SELECT $1, $2, d, '08:00', 840 FROM generate_series(1, 7) AS d`, shopA, barberID)
+			 SELECT $1, $2, d, '08:00', 840 FROM generate_series(1, 7) AS d`, shopA, professionalID)
 		return err
 	})
 	if err != nil {
@@ -299,7 +299,7 @@ func openEveryDay(t *testing.T, db *database.DB, barberID string) {
 // createAppointment registra un turno manual (HU-061) con un cliente con correo.
 func (p *publication) createAppointment(t *testing.T, startsAt string) (id string, version string) {
 	t.Helper()
-	body := `{"professionalId":"` + p.barber.ID + `","serviceId":"` + p.service.ID + `","attendeeName":"Ana Pérez",` +
+	body := `{"professionalId":"` + p.professional.ID + `","serviceId":"` + p.service.ID + `","attendeeName":"Ana Pérez",` +
 		`"customerFullName":"Ana Pérez","customerEmail":"ana.` + strings.ToLower(uniqueToken(t, "e")) + `@ejemplo.test","startsAt":"` + startsAt + `"}`
 	rec := doJSONRequest(p.router, http.MethodPost, p.raw, "/appointments", uniqueToken(t, "appt"), body)
 	if rec.Code != http.StatusCreated {
@@ -345,7 +345,7 @@ func TestPublication_Appointment_CreateRescheduleCancel_FullJourney(t *testing.T
 	db := setupTestDB(t)
 	p := newPublication(t, db, "pub-journey")
 
-	// 1) Reserva → un evento en el calendario del barbero, con el cliente invitado.
+	// 1) Reserva → un evento en el calendario del profesional, con el cliente invitado.
 	apptID, version := p.createAppointment(t, futureCivil(9, 10))
 	p.drain(t)
 	eventID, event, ok := p.calendar.eventFor(apptID)
@@ -424,7 +424,7 @@ func TestPublication_EventDeletedInGoogle_IsRestoredWithoutTouchingNAVA(t *testi
 		t.Fatal("setup: el evento debe existir")
 	}
 
-	// El barbero lo borra por error en Google: NAVA no cambia su cita…
+	// El profesional lo borra por error en Google: NAVA no cambia su cita…
 	p.calendar.dropEvent(oldID)
 	detail := doJSONRequest(p.router, http.MethodGet, p.raw, "/appointments/"+apptID, "", "")
 	if detail.Code != http.StatusOK || !strings.Contains(detail.Body.String(), `"status":"confirmed"`) {
@@ -455,8 +455,8 @@ func TestPublication_TimeBlock_PublishesAndDeletes(t *testing.T) {
 	p := newPublication(t, db, "pub-block")
 
 	key := uniqueToken(t, "pub-block")
-	body := `{"blockType":"lunch","startsAt":"` + futureCivil(12, 12) + `-05:00","endsAt":"` + futureCivil(12, 13) + `-05:00","reason":"Nota privada del barbero"}`
-	rec := doJSONRequest(p.router, http.MethodPost, p.raw, "/professionals/"+p.barber.ID+"/time-blocks", key, body)
+	body := `{"blockType":"lunch","startsAt":"` + futureCivil(12, 12) + `-05:00","endsAt":"` + futureCivil(12, 13) + `-05:00","reason":"Nota privada del profesional"}`
+	rec := doJSONRequest(p.router, http.MethodPost, p.raw, "/professionals/"+p.professional.ID+"/time-blocks", key, body)
 	if rec.Code != http.StatusCreated {
 		t.Fatalf("crear bloqueo: %d %s", rec.Code, rec.Body.String())
 	}
@@ -469,13 +469,13 @@ func TestPublication_TimeBlock_PublishesAndDeletes(t *testing.T) {
 		t.Fatalf("un bloqueo manual se publica con el título de su tipo: %v", event)
 	}
 	if strings.Contains(asString(event["description"]), "Nota privada") {
-		t.Fatal("el motivo del bloqueo es una nota del barbero y no se publica")
+		t.Fatal("el motivo del bloqueo es una nota del profesional y no se publica")
 	}
 	if attendees, _ := event["attendees"].([]any); len(attendees) != 0 {
 		t.Fatal("un bloqueo nunca invita a nadie")
 	}
 
-	if rec := doJSONRequest(p.router, http.MethodDelete, p.raw, "/professionals/"+p.barber.ID+"/time-blocks/"+block.ID, "", ""); rec.Code != http.StatusNoContent {
+	if rec := doJSONRequest(p.router, http.MethodDelete, p.raw, "/professionals/"+p.professional.ID+"/time-blocks/"+block.ID, "", ""); rec.Code != http.StatusNoContent {
 		t.Fatalf("retirar bloqueo: %d", rec.Code)
 	}
 	p.drain(t)
@@ -557,11 +557,11 @@ func TestPublication_RevokedPermission_MarksReauthRequiredAndDropsTheQueue(t *te
 	}
 }
 
-func TestPublication_TwoTenants_APublicationNeverTouchesAnotherBarbershop(t *testing.T) {
+func TestPublication_TwoTenants_APublicationNeverTouchesAnotherBusiness(t *testing.T) {
 	db := setupTestDB(t)
 	p := newPublication(t, db, "pub-tenant-a")
 	rawB := createSessionCookie(t, db, shopB, staffUserActiveB, "pub-tenant-b")
-	t.Cleanup(func() { doMyBarberRequest(p.router, rawB, http.MethodDelete, "") })
+	t.Cleanup(func() { doMyProfessionalRequest(p.router, rawB, http.MethodDelete, "") })
 
 	apptID, _ := p.createAppointment(t, futureCivil(15, 10))
 	p.drain(t)

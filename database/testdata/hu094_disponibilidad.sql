@@ -1,13 +1,13 @@
--- Fixture propio de HU-094: dos barberías DEDICADAS a las pruebas de
--- publicbooking/postgres (ResolveBarbershopID, ListOccupiedIntervals) y a
+-- Fixture propio de HU-094: dos negocios DEDICADAS a las pruebas de
+-- publicbooking/postgres (ResolveBusinessID, ListOccupiedIntervals) y a
 -- las pruebas HTTP de disponibilidad pública en cmd/api, separadas de las
 -- demás suites por el mismo motivo que hu091_catalogo_publico.sql/
 -- hu092_seleccion_professionalo.sql: un cálculo de franjas no debe depender de
--- horarios, bloqueos o citas que deje otra suite sobre un barbero
+-- horarios, bloqueos o citas que deje otra suite sobre un profesional
 -- compartido.
 --
 -- IDs '0094...' (mnemónico: HU-094), distintos de '1.../2...'
--- (dos_professionalias.sql), '3.../4...' (HU-021), '5.../6...' (HU-022),
+-- (dos_negocios.sql), '3.../4...' (HU-021), '5.../6...' (HU-022),
 -- '7.../8...' (HU-023), 'b10c...' (HU-042), 'c17a...' (HU-060),
 -- 'c.../d...'/'e.../f...' (HU-040/HU-041), '0090...'/'0091...'/'0092...'/
 -- '0093...' (hu090-hu093).
@@ -21,7 +21,7 @@
 --   psql "$DATABASE_TEST_URL" -v ON_ERROR_STOP=1 -f testdata/hu094_disponibilidad.sql
 --
 -- Se ejecuta con el rol migrador (o superusuario en local/CI efímero,
--- mismo criterio que dos_professionalias.sql).
+-- mismo criterio que dos_negocios.sql).
 --
 -- Ningún dato de este archivo corresponde a una persona real (AGENTS.md).
 
@@ -39,8 +39,8 @@ INSERT INTO business (
 ON CONFLICT (id) DO NOTHING;
 
 -- Barbería Dos: publicable, usada exclusivamente para el aislamiento de
--- tenant (CA-094-05): su barbero y su servicio nunca deben producir
--- disponibilidad al consultarse a través del slug de la barbería Uno.
+-- tenant (CA-094-05): su profesional y su servicio nunca deben producir
+-- disponibilidad al consultarse a través del slug del negocio Uno.
 INSERT INTO business (
   id, name, timezone, public_slug,
   min_advance_minutes, max_advance_days, slot_grid_minutes
@@ -75,7 +75,7 @@ INSERT INTO professional_service (business_id, professional_id, service_id) VALU
    '00940201-0094-0094-0094-009402010201')
 ON CONFLICT DO NOTHING;
 
--- Jornada 9:00-18:00 los siete días ISO, para ambos barberos.
+-- Jornada 9:00-18:00 los siete días ISO, para ambos profesionales.
 INSERT INTO working_hour (business_id, professional_id, iso_weekday, starts_time, duration_minutes)
 SELECT '00940001-0094-0094-0094-009400010001', '00940011-0094-0094-0094-009400110011', d, '09:00', 540
   FROM generate_series(1, 7) AS d

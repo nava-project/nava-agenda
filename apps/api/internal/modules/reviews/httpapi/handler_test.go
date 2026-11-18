@@ -13,15 +13,15 @@ import (
 	"testing"
 	"time"
 
-	"system-barbershop/internal/modules/auth"
-	"system-barbershop/internal/modules/reviews"
-	"system-barbershop/internal/modules/reviews/httpapi"
-	"system-barbershop/internal/platform/httpserver"
+	"nava-agenda/internal/modules/auth"
+	"nava-agenda/internal/modules/reviews"
+	"nava-agenda/internal/modules/reviews/httpapi"
+	"nava-agenda/internal/platform/httpserver"
 )
 
 const (
-	barberID = "8f3ac2b1-e4d5-46f6-a7c8-d9e0f1a2b3c4"
-	reviewID = "1b2c3d4e-5f60-4718-8293-a4b5c6d7e8f9"
+	professionalID = "8f3ac2b1-e4d5-46f6-a7c8-d9e0f1a2b3c4"
+	reviewID       = "1b2c3d4e-5f60-4718-8293-a4b5c6d7e8f9"
 )
 
 type fakeRepo struct {
@@ -45,7 +45,7 @@ func (f *fakeRepo) CreateByTokenHash(_ context.Context, _ string, rating int, co
 func (f *fakeRepo) ListPublic(context.Context, string, string, int) (reviews.PublicList, bool, error) {
 	return f.public, f.found, nil
 }
-func (f *fakeRepo) ListForBarber(context.Context, string, string, int) (reviews.PanelList, bool, error) {
+func (f *fakeRepo) ListForProfessional(context.Context, string, string, int) (reviews.PanelList, bool, error) {
 	return f.panel, f.found, nil
 }
 func (f *fakeRepo) SetHidden(_ context.Context, _, _, _ string, hidden bool) (reviews.Review, bool, error) {
@@ -68,11 +68,11 @@ func jsonRequest(method, target, body string, params map[string]string) *http.Re
 }
 
 func withPrincipal(req *http.Request) *http.Request {
-	return req.WithContext(auth.ContextWithPrincipal(req.Context(), auth.Principal{BarbershopID: "shop-1"}))
+	return req.WithContext(auth.ContextWithPrincipal(req.Context(), auth.Principal{BusinessID: "shop-1"}))
 }
 
 func TestCreateHandler_Created_ReturnsOnlyTheCustomerSafeShapeWithNoStore(t *testing.T) {
-	repo := &fakeRepo{outcome: reviews.Created, created: reviews.Review{ID: "interno", BarberID: barberID, CreatedAt: time.Date(2027, 3, 15, 16, 10, 0, 0, time.UTC)}}
+	repo := &fakeRepo{outcome: reviews.Created, created: reviews.Review{ID: "interno", ProfessionalID: professionalID, CreatedAt: time.Date(2027, 3, 15, 16, 10, 0, 0, time.UTC)}}
 	h := httpapi.NewCreateReviewHandler(reviews.NewService(repo))
 
 	rec := httptest.NewRecorder()
@@ -91,7 +91,7 @@ func TestCreateHandler_Created_ReturnsOnlyTheCustomerSafeShapeWithNoStore(t *tes
 	if len(body) != 3 || body["rating"] != float64(5) || body["comment"] != "Muy bien" || body["createdAt"] == nil {
 		t.Fatalf("cuerpo = %v, se esperaban exactamente rating, comment (recortado) y createdAt", body)
 	}
-	if strings.Contains(rec.Body.String(), "interno") || strings.Contains(rec.Body.String(), barberID) {
+	if strings.Contains(rec.Body.String(), "interno") || strings.Contains(rec.Body.String(), professionalID) {
 		t.Fatalf("la respuesta del cliente no debe exponer identificadores: %s", rec.Body.String())
 	}
 }
@@ -138,7 +138,7 @@ func TestListPublicHandler_ShapeAndNotFound(t *testing.T) {
 	h := httpapi.NewListPublicReviewsHandler(reviews.NewService(repo))
 
 	rec := httptest.NewRecorder()
-	h.ServeHTTP(rec, jsonRequest(http.MethodGet, "/x", "", map[string]string{"slug": "s", "professionalId": barberID}))
+	h.ServeHTTP(rec, jsonRequest(http.MethodGet, "/x", "", map[string]string{"slug": "s", "professionalId": professionalID}))
 	if rec.Code != http.StatusOK {
 		t.Fatalf("status = %d: %s", rec.Code, rec.Body.String())
 	}
@@ -162,29 +162,29 @@ func TestListPublicHandler_ShapeAndNotFound(t *testing.T) {
 	// Sin reseñas: items es [] y rating null (nunca null/ausente en items).
 	repo.public = reviews.PublicList{}
 	rec = httptest.NewRecorder()
-	h.ServeHTTP(rec, jsonRequest(http.MethodGet, "/x", "", map[string]string{"slug": "s", "professionalId": barberID}))
+	h.ServeHTTP(rec, jsonRequest(http.MethodGet, "/x", "", map[string]string{"slug": "s", "professionalId": professionalID}))
 	if !strings.Contains(rec.Body.String(), `"items":[]`) || !strings.Contains(rec.Body.String(), `"rating":null`) {
 		t.Fatalf("sin reseñas: %s", rec.Body.String())
 	}
 
 	repo.found = false
 	rec = httptest.NewRecorder()
-	h.ServeHTTP(rec, jsonRequest(http.MethodGet, "/x", "", map[string]string{"slug": "s", "professionalId": barberID}))
+	h.ServeHTTP(rec, jsonRequest(http.MethodGet, "/x", "", map[string]string{"slug": "s", "professionalId": professionalID}))
 	if rec.Code != http.StatusNotFound {
-		t.Fatalf("barbero desconocido: status = %d", rec.Code)
+		t.Fatalf("profesional desconocido: status = %d", rec.Code)
 	}
 }
 
 func TestPanelHandlers_RequireSessionAndModerate(t *testing.T) {
 	hidden := time.Date(2027, 3, 16, 9, 0, 0, 0, time.UTC)
 	repo := &fakeRepo{found: true, setFound: true,
-		created: reviews.Review{ID: reviewID, BarberID: barberID, CreatedAt: time.Unix(0, 0).UTC()},
+		created: reviews.Review{ID: reviewID, ProfessionalID: professionalID, CreatedAt: time.Unix(0, 0).UTC()},
 		panel: reviews.PanelList{Items: []reviews.Review{
 			{ID: reviewID, Rating: 1, HiddenAt: &hidden, CreatedAt: time.Unix(0, 0).UTC()},
 		}},
 	}
 	svc := reviews.NewService(repo)
-	params := map[string]string{"professionalId": barberID, "reviewId": reviewID}
+	params := map[string]string{"professionalId": professionalID, "reviewId": reviewID}
 
 	// Sin principal de sesión: defecto de wiring → 500, nunca datos.
 	rec := httptest.NewRecorder()

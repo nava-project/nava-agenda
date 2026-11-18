@@ -3,7 +3,7 @@
  * EmptyState - Estado "sin datos todavía" del sistema visual NAVA / Tailored
  * Grid (estandar-diseno-visual.md §6.6, atlas: círculo decorativo + mensaje
  * + siguiente acción útil). Solo para una colección genuinamente vacía (por
- * ejemplo, "aún no tienes barberos"), no para "sin resultados para este
+ * ejemplo, "aún no tienes profesionales"), no para "sin resultados para este
  * filtro" (esos siguen siendo texto simple junto al control que filtra).
  */
 withDefaults(

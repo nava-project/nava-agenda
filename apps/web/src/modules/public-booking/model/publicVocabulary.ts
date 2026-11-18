@@ -1,4 +1,4 @@
-// Vocabulario de la barbería para la reserva pública (DEC-119). El cascarón
+// Vocabulario del negocio para la reserva pública (DEC-119). El cascarón
 // (`layouts/PublicBookingLayout.vue`) lo lee una vez del perfil público del
 // enlace y lo ofrece a todas las pantallas del recorrido: cada una puede abrirse
 // directamente desde un enlace, así que ninguna puede depender de haber pasado

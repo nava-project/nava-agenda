@@ -8,7 +8,7 @@ import (
 	"net/http/httptest"
 	"testing"
 
-	"system-barbershop/internal/platform/httpserver"
+	"nava-agenda/internal/platform/httpserver"
 )
 
 func discardLogger() *slog.Logger {

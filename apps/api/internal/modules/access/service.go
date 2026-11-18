@@ -4,18 +4,18 @@ import (
 	"context"
 	"fmt"
 
-	"system-barbershop/internal/platform/apperr"
+	"nava-agenda/internal/platform/apperr"
 )
 
 // Repository lee lo que el control de acceso necesita, siempre dentro del
 // tenant de la sesión (RLS, RN-TEN-01).
 type Repository interface {
-	// RolesAndBarber devuelve los roles del usuario y el barbero vinculado a
+	// RolesAndProfessional devuelve los roles del usuario y el profesional vinculado a
 	// él (cadena vacía si no tiene).
-	RolesAndBarber(ctx context.Context, barbershopID, staffUserID string) (roles []string, barberID string, err error)
-	// AppointmentBarber devuelve el barbero del turno; found=false si el turno
-	// no existe en esta barbería.
-	AppointmentBarber(ctx context.Context, barbershopID, appointmentID string) (barberID string, found bool, err error)
+	RolesAndProfessional(ctx context.Context, businessID, staffUserID string) (roles []string, professionalID string, err error)
+	// AppointmentProfessional devuelve el profesional del turno; found=false si el turno
+	// no existe en este negocio.
+	AppointmentProfessional(ctx context.Context, businessID, appointmentID string) (professionalID string, found bool, err error)
 }
 
 // Service resuelve el alcance de una sesión.
@@ -28,23 +28,23 @@ func NewService(repo Repository) *Service {
 	return &Service{repo: repo}
 }
 
-// ScopeOf resuelve el alcance del usuario autenticado en su barbería.
-func (s *Service) ScopeOf(ctx context.Context, barbershopID, staffUserID string) (Scope, error) {
-	roles, barberID, err := s.repo.RolesAndBarber(ctx, barbershopID, staffUserID)
+// ScopeOf resuelve el alcance del usuario autenticado en su negocio.
+func (s *Service) ScopeOf(ctx context.Context, businessID, staffUserID string) (Scope, error) {
+	roles, professionalID, err := s.repo.RolesAndProfessional(ctx, businessID, staffUserID)
 	if err != nil {
-		return Scope{}, apperr.Internal(fmt.Errorf("access: resolver roles y barbero: %w", err))
+		return Scope{}, apperr.Internal(fmt.Errorf("access: resolver roles y profesional: %w", err))
 	}
 	if !IsRestricted(roles) {
 		return Scope{}, nil
 	}
-	return Scope{Restricted: true, BarberID: barberID}, nil
+	return Scope{Restricted: true, ProfessionalID: professionalID}, nil
 }
 
-// AppointmentBarber expone el barbero de un turno para la regla OwnAppointment.
-func (s *Service) AppointmentBarber(ctx context.Context, barbershopID, appointmentID string) (string, bool, error) {
-	barberID, found, err := s.repo.AppointmentBarber(ctx, barbershopID, appointmentID)
+// AppointmentProfessional expone el profesional de un turno para la regla OwnAppointment.
+func (s *Service) AppointmentProfessional(ctx context.Context, businessID, appointmentID string) (string, bool, error) {
+	professionalID, found, err := s.repo.AppointmentProfessional(ctx, businessID, appointmentID)
 	if err != nil {
-		return "", false, apperr.Internal(fmt.Errorf("access: leer barbero del turno: %w", err))
+		return "", false, apperr.Internal(fmt.Errorf("access: leer profesional del turno: %w", err))
 	}
-	return barberID, found, nil
+	return professionalID, found, nil
 }

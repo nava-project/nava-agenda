@@ -17,9 +17,9 @@ import (
 	"testing"
 	"time"
 
-	"system-barbershop/internal/modules/notification"
-	notificationhttpapi "system-barbershop/internal/modules/notification/httpapi"
-	"system-barbershop/internal/platform/httpserver"
+	"nava-agenda/internal/modules/notification"
+	notificationhttpapi "nava-agenda/internal/modules/notification/httpapi"
+	"nava-agenda/internal/platform/httpserver"
 )
 
 const (

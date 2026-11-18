@@ -9,10 +9,10 @@ import (
 	"testing"
 	"time"
 
-	"system-barbershop/internal/modules/customeraccess"
-	"system-barbershop/internal/modules/customeraccess/httpapi"
-	"system-barbershop/internal/platform/clientip"
-	"system-barbershop/internal/platform/httpserver"
+	"nava-agenda/internal/modules/customeraccess"
+	"nava-agenda/internal/modules/customeraccess/httpapi"
+	"nava-agenda/internal/platform/clientip"
+	"nava-agenda/internal/platform/httpserver"
 )
 
 // fakeAccessRepo decide el resultado sin base de datos: aquí solo se prueba la
@@ -56,10 +56,10 @@ func TestRequestAccessCode_KnownAndUnknownContactsGetTheSameResponse(t *testing.
 	known := &discardSender{}
 	stranger := &discardSender{}
 	knownRec := postJSON(httpapi.NewRequestAccessCodeHandler(
-		accessService(fakeAccessRepo{challenge: customeraccess.ChallengeOutcome{BarbershopFound: true, Matched: true}}, known),
+		accessService(fakeAccessRepo{challenge: customeraccess.ChallengeOutcome{BusinessFound: true, Matched: true}}, known),
 		clientip.TrustedProxies{}), `{"contact":"ana@example.test"}`)
 	strangerRec := postJSON(httpapi.NewRequestAccessCodeHandler(
-		accessService(fakeAccessRepo{challenge: customeraccess.ChallengeOutcome{BarbershopFound: true}}, stranger),
+		accessService(fakeAccessRepo{challenge: customeraccess.ChallengeOutcome{BusinessFound: true}}, stranger),
 		clientip.TrustedProxies{}), `{"contact":"nadie@example.test"}`)
 
 	if knownRec.Code != http.StatusAccepted || strangerRec.Code != http.StatusAccepted {
@@ -82,7 +82,7 @@ func TestRequestAccessCode_KnownAndUnknownContactsGetTheSameResponse(t *testing.
 
 func TestRequestAccessCode_RateLimited_Is429WithRetryAfter(t *testing.T) {
 	h := httpapi.NewRequestAccessCodeHandler(accessService(fakeAccessRepo{
-		challenge: customeraccess.ChallengeOutcome{BarbershopFound: true, RateLimited: true, RetryAfter: 90*time.Second + 300*time.Millisecond},
+		challenge: customeraccess.ChallengeOutcome{BusinessFound: true, RateLimited: true, RetryAfter: 90*time.Second + 300*time.Millisecond},
 	}, &discardSender{}), clientip.TrustedProxies{})
 	rec := postJSON(h, `{"contact":"ana@example.test"}`)
 	if rec.Code != http.StatusTooManyRequests {
@@ -115,7 +115,7 @@ func TestRequestAccessCode_RejectsBadBodiesBeforeTouchingTheRepository(t *testin
 	}
 }
 
-func TestRequestAccessCode_UnknownBarbershop_Is404(t *testing.T) {
+func TestRequestAccessCode_UnknownBusiness_Is404(t *testing.T) {
 	h := httpapi.NewRequestAccessCodeHandler(accessService(fakeAccessRepo{}, &discardSender{}), clientip.TrustedProxies{})
 	if rec := postJSON(h, `{"contact":"ana@example.test"}`); rec.Code != http.StatusNotFound {
 		t.Fatalf("expected 404, got %d", rec.Code)
@@ -125,8 +125,8 @@ func TestRequestAccessCode_UnknownBarbershop_Is404(t *testing.T) {
 func TestVerifyAccessCode_Valid_ReturnsTheAccessesOnceAndNoStore(t *testing.T) {
 	starts := time.Date(2027, 3, 15, 15, 0, 0, 0, time.UTC)
 	h := httpapi.NewVerifyAccessCodeHandler(accessService(fakeAccessRepo{verify: customeraccess.VerifyOutcome{
-		BarbershopFound: true, Valid: true, Timezone: "America/Bogota",
-		Appointments: []customeraccess.AccessAppointment{{AccessToken: "tok-1", StartsAt: starts, ServiceName: "Corte", BarberName: "Juan"}},
+		BusinessFound: true, Valid: true, Timezone: "America/Bogota",
+		Appointments: []customeraccess.AccessAppointment{{AccessToken: "tok-1", StartsAt: starts, ServiceName: "Corte", ProfessionalName: "Juan"}},
 	}}, &discardSender{}))
 	rec := postJSON(h, `{"contact":"ana@example.test","code":"123456"}`)
 	if rec.Code != http.StatusOK || rec.Header().Get("Cache-Control") != "no-store" {
@@ -142,7 +142,7 @@ func TestVerifyAccessCode_Valid_ReturnsTheAccessesOnceAndNoStore(t *testing.T) {
 }
 
 func TestVerifyAccessCode_AnyCodeFailure_IsTheSame401(t *testing.T) {
-	h := httpapi.NewVerifyAccessCodeHandler(accessService(fakeAccessRepo{verify: customeraccess.VerifyOutcome{BarbershopFound: true}}, &discardSender{}))
+	h := httpapi.NewVerifyAccessCodeHandler(accessService(fakeAccessRepo{verify: customeraccess.VerifyOutcome{BusinessFound: true}}, &discardSender{}))
 	rec := postJSON(h, `{"contact":"ana@example.test","code":"123456"}`)
 	if rec.Code != http.StatusUnauthorized {
 		t.Fatalf("expected 401, got %d", rec.Code)
@@ -153,7 +153,7 @@ func TestVerifyAccessCode_AnyCodeFailure_IsTheSame401(t *testing.T) {
 }
 
 func TestVerifyAccessCode_MalformedCodeIsAValidationErrorBeforeAnyLookup(t *testing.T) {
-	h := httpapi.NewVerifyAccessCodeHandler(accessService(fakeAccessRepo{verify: customeraccess.VerifyOutcome{BarbershopFound: true, Valid: true}}, &discardSender{}))
+	h := httpapi.NewVerifyAccessCodeHandler(accessService(fakeAccessRepo{verify: customeraccess.VerifyOutcome{BusinessFound: true, Valid: true}}, &discardSender{}))
 	for _, code := range []string{"", "12345", "abcdef", "1234567"} {
 		rec := postJSON(h, `{"contact":"ana@example.test","code":"`+code+`"}`)
 		if rec.Code != http.StatusUnprocessableEntity && rec.Code != http.StatusBadRequest {

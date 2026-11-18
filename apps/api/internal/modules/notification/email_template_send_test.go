@@ -8,7 +8,7 @@ import (
 	"strings"
 	"testing"
 
-	"system-barbershop/internal/modules/notification"
+	"nava-agenda/internal/modules/notification"
 )
 
 // Los cuatro correos transaccionales salen con la plantilla de marca: la misma

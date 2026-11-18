@@ -5,8 +5,8 @@
  */
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
-const resolveBarbershopMock = vi.hoisted(() => vi.fn())
-vi.mock('../../api/resolveBarbershopApi', () => ({ resolveBarbershop: resolveBarbershopMock }))
+const resolveBusinessMock = vi.hoisted(() => vi.fn())
+vi.mock('../../api/resolveBusinessApi', () => ({ resolveBusiness: resolveBusinessMock }))
 
 import { loadPublicProfile, publicTermsFor, resetPublicProfileCache } from '../publicProfile'
 
@@ -30,22 +30,22 @@ const success = {
 }
 
 beforeEach(() => {
-  resolveBarbershopMock.mockReset()
+  resolveBusinessMock.mockReset()
   resetPublicProfileCache()
 })
 
 describe('loadPublicProfile', () => {
   it('shares one request between simultaneous callers for the same slug', async () => {
-    resolveBarbershopMock.mockResolvedValueOnce(success)
+    resolveBusinessMock.mockResolvedValueOnce(success)
 
     const [a, b] = await Promise.all([loadPublicProfile('lila'), loadPublicProfile('lila')])
 
-    expect(resolveBarbershopMock).toHaveBeenCalledTimes(1)
+    expect(resolveBusinessMock).toHaveBeenCalledTimes(1)
     expect(a).toBe(b)
   })
 
   it('keeps the vocabulary of each slug apart', async () => {
-    resolveBarbershopMock.mockResolvedValueOnce(success)
+    resolveBusinessMock.mockResolvedValueOnce(success)
     await loadPublicProfile('lila')
 
     expect(publicTermsFor('lila')).toEqual(vocabulary)
@@ -53,14 +53,14 @@ describe('loadPublicProfile', () => {
   })
 
   it('does not remember a failure: a retry asks again and then exposes the vocabulary', async () => {
-    resolveBarbershopMock.mockResolvedValueOnce({ kind: 'network-error' })
+    resolveBusinessMock.mockResolvedValueOnce({ kind: 'network-error' })
     await loadPublicProfile('lila')
     expect(publicTermsFor('lila')).toBeNull()
 
-    resolveBarbershopMock.mockResolvedValueOnce(success)
+    resolveBusinessMock.mockResolvedValueOnce(success)
     await loadPublicProfile('lila')
 
-    expect(resolveBarbershopMock).toHaveBeenCalledTimes(2)
+    expect(resolveBusinessMock).toHaveBeenCalledTimes(2)
     expect(publicTermsFor('lila')).toEqual(vocabulary)
   })
 })

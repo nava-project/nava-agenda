@@ -1,6 +1,6 @@
 // Pruebas del caso de uso EN AISLAMIENTO, sin PostgreSQL real: cubren el
 // rechazo por forma (largo) y la traducción found=false a apperr.NotFound.
-// La resolución real vía public_resolve_barbershop_by_slug, el aislamiento
+// La resolución real vía public_resolve_business_by_slug, el aislamiento
 // de tenant y la lectura del perfil público se prueban contra PostgreSQL
 // real con dos tenants en
 // internal/modules/publicbooking/postgres/repository_test.go
@@ -14,12 +14,12 @@ import (
 	"strings"
 	"testing"
 
-	"system-barbershop/internal/modules/publicbooking"
-	"system-barbershop/internal/platform/apperr"
+	"nava-agenda/internal/modules/publicbooking"
+	"nava-agenda/internal/platform/apperr"
 )
 
 type fakeRepository struct {
-	profile publicbooking.BarbershopProfile
+	profile publicbooking.BusinessProfile
 	found   bool
 	err     error
 	calls   []string
@@ -29,25 +29,25 @@ type fakeRepository struct {
 	listErr    error
 	listCalls  []listCall
 
-	barbersResult publicbooking.PublicBarberListResult
-	barbersFound  bool
-	barbersErr    error
-	barbersCalls  []barbersCall
+	professionalsResult publicbooking.PublicProfessionalListResult
+	professionalsFound  bool
+	professionalsErr    error
+	professionalsCalls  []professionalsCall
 
-	photoResult publicbooking.PublicBarberPhoto
+	photoResult publicbooking.PublicProfessionalPhoto
 	photoFound  bool
 	photoErr    error
 	photoCalls  []photoCall
 
-	withServicesResult publicbooking.PublicBarberServicesListResult
+	withServicesResult publicbooking.PublicProfessionalServicesListResult
 	withServicesFound  bool
 	withServicesErr    error
 	withServicesCalls  []string
 }
 
 type photoCall struct {
-	slug     string
-	barberID string
+	slug           string
+	professionalID string
 }
 
 type listCall struct {
@@ -56,12 +56,12 @@ type listCall struct {
 	limit  int
 }
 
-type barbersCall struct {
+type professionalsCall struct {
 	slug      string
 	serviceID string
 }
 
-func (f *fakeRepository) ResolveBySlug(_ context.Context, slug string) (publicbooking.BarbershopProfile, bool, error) {
+func (f *fakeRepository) ResolveBySlug(_ context.Context, slug string) (publicbooking.BusinessProfile, bool, error) {
 	f.calls = append(f.calls, slug)
 	return f.profile, f.found, f.err
 }
@@ -71,17 +71,17 @@ func (f *fakeRepository) ListPublicServices(_ context.Context, slug string, curs
 	return f.listResult, f.listFound, f.listErr
 }
 
-func (f *fakeRepository) ListPublicBarbers(_ context.Context, slug string, serviceID string) (publicbooking.PublicBarberListResult, bool, error) {
-	f.barbersCalls = append(f.barbersCalls, barbersCall{slug: slug, serviceID: serviceID})
-	return f.barbersResult, f.barbersFound, f.barbersErr
+func (f *fakeRepository) ListPublicProfessionals(_ context.Context, slug string, serviceID string) (publicbooking.PublicProfessionalListResult, bool, error) {
+	f.professionalsCalls = append(f.professionalsCalls, professionalsCall{slug: slug, serviceID: serviceID})
+	return f.professionalsResult, f.professionalsFound, f.professionalsErr
 }
 
-func (f *fakeRepository) GetPublicBarberPhoto(_ context.Context, slug string, barberID string) (publicbooking.PublicBarberPhoto, bool, error) {
-	f.photoCalls = append(f.photoCalls, photoCall{slug: slug, barberID: barberID})
+func (f *fakeRepository) GetPublicProfessionalPhoto(_ context.Context, slug string, professionalID string) (publicbooking.PublicProfessionalPhoto, bool, error) {
+	f.photoCalls = append(f.photoCalls, photoCall{slug: slug, professionalID: professionalID})
 	return f.photoResult, f.photoFound, f.photoErr
 }
 
-func (f *fakeRepository) ListPublicBarbersWithServices(_ context.Context, slug string) (publicbooking.PublicBarberServicesListResult, bool, error) {
+func (f *fakeRepository) ListPublicProfessionalsWithServices(_ context.Context, slug string) (publicbooking.PublicProfessionalServicesListResult, bool, error) {
 	f.withServicesCalls = append(f.withServicesCalls, slug)
 	return f.withServicesResult, f.withServicesFound, f.withServicesErr
 }
@@ -98,9 +98,9 @@ func assertNotFound(t *testing.T, err error) {
 	}
 }
 
-func TestResolveBarbershop_Found_ReturnsProfile(t *testing.T) {
+func TestResolveBusiness_Found_ReturnsProfile(t *testing.T) {
 	contactEmail := "contacto@ejemplo.test"
-	want := publicbooking.BarbershopProfile{
+	want := publicbooking.BusinessProfile{
 		Name:         "Barbería Ejemplo",
 		Timezone:     "America/Bogota",
 		ContactEmail: &contactEmail,
@@ -108,9 +108,9 @@ func TestResolveBarbershop_Found_ReturnsProfile(t *testing.T) {
 	repo := &fakeRepository{profile: want, found: true}
 	svc := publicbooking.NewService(repo)
 
-	got, err := svc.ResolveBarbershop(context.Background(), "barberia-ejemplo")
+	got, err := svc.ResolveBusiness(context.Background(), "barberia-ejemplo")
 	if err != nil {
-		t.Fatalf("ResolveBarbershop: %v", err)
+		t.Fatalf("ResolveBusiness: %v", err)
 	}
 	if !reflect.DeepEqual(got, want) {
 		t.Fatalf("expected %+v, got %+v", want, got)
@@ -120,68 +120,68 @@ func TestResolveBarbershop_Found_ReturnsProfile(t *testing.T) {
 	}
 }
 
-func TestResolveBarbershop_TrimsSurroundingWhitespaceBeforeCallingRepository(t *testing.T) {
+func TestResolveBusiness_TrimsSurroundingWhitespaceBeforeCallingRepository(t *testing.T) {
 	repo := &fakeRepository{found: true}
 	svc := publicbooking.NewService(repo)
 
-	if _, err := svc.ResolveBarbershop(context.Background(), "  barberia-ejemplo  "); err != nil {
-		t.Fatalf("ResolveBarbershop: %v", err)
+	if _, err := svc.ResolveBusiness(context.Background(), "  barberia-ejemplo  "); err != nil {
+		t.Fatalf("ResolveBusiness: %v", err)
 	}
 	if len(repo.calls) != 1 || repo.calls[0] != "barberia-ejemplo" {
 		t.Fatalf("expected the repository to receive the trimmed slug, got %v", repo.calls)
 	}
 }
 
-func TestResolveBarbershop_NotFound_ReturnsNotFoundWithoutLeakingCause(t *testing.T) {
+func TestResolveBusiness_NotFound_ReturnsNotFoundWithoutLeakingCause(t *testing.T) {
 	repo := &fakeRepository{found: false}
 	svc := publicbooking.NewService(repo)
 
-	_, err := svc.ResolveBarbershop(context.Background(), "no-existe")
+	_, err := svc.ResolveBusiness(context.Background(), "no-existe")
 	assertNotFound(t, err)
 }
 
-func TestResolveBarbershop_EmptySlug_ReturnsNotFoundWithoutCallingRepository(t *testing.T) {
+func TestResolveBusiness_EmptySlug_ReturnsNotFoundWithoutCallingRepository(t *testing.T) {
 	repo := &fakeRepository{}
 	svc := publicbooking.NewService(repo)
 
-	_, err := svc.ResolveBarbershop(context.Background(), "   ")
+	_, err := svc.ResolveBusiness(context.Background(), "   ")
 	assertNotFound(t, err)
 	if len(repo.calls) != 0 {
 		t.Fatalf("expected zero repository calls for an empty slug, got %v", repo.calls)
 	}
 }
 
-func TestResolveBarbershop_SlugTooLong_ReturnsNotFoundWithoutCallingRepository(t *testing.T) {
+func TestResolveBusiness_SlugTooLong_ReturnsNotFoundWithoutCallingRepository(t *testing.T) {
 	repo := &fakeRepository{}
 	svc := publicbooking.NewService(repo)
 
 	tooLong := strings.Repeat("a", publicbooking.MaxSlugLength+1)
-	_, err := svc.ResolveBarbershop(context.Background(), tooLong)
+	_, err := svc.ResolveBusiness(context.Background(), tooLong)
 	assertNotFound(t, err)
 	if len(repo.calls) != 0 {
 		t.Fatalf("expected zero repository calls for an overlong slug, got %v", repo.calls)
 	}
 }
 
-func TestResolveBarbershop_RepositoryError_ReturnsInternal(t *testing.T) {
+func TestResolveBusiness_RepositoryError_ReturnsInternal(t *testing.T) {
 	repo := &fakeRepository{err: errors.New("boom")}
 	svc := publicbooking.NewService(repo)
 
-	_, err := svc.ResolveBarbershop(context.Background(), "barberia-ejemplo")
+	_, err := svc.ResolveBusiness(context.Background(), "barberia-ejemplo")
 	appErr, ok := apperr.As(err)
 	if !ok || appErr.Kind != apperr.KindInternal {
 		t.Fatalf("expected apperr.KindInternal, got %v", err)
 	}
 }
 
-func TestResolveBarbershop_ContextCancelled_ReturnsInternalWithoutCallingRepository(t *testing.T) {
+func TestResolveBusiness_ContextCancelled_ReturnsInternalWithoutCallingRepository(t *testing.T) {
 	repo := &fakeRepository{}
 	svc := publicbooking.NewService(repo)
 
 	ctx, cancel := context.WithCancel(context.Background())
 	cancel()
 
-	_, err := svc.ResolveBarbershop(ctx, "barberia-ejemplo")
+	_, err := svc.ResolveBusiness(ctx, "barberia-ejemplo")
 	appErr, ok := apperr.As(err)
 	if !ok || appErr.Kind != apperr.KindInternal {
 		t.Fatalf("expected apperr.KindInternal, got %v", err)
@@ -309,169 +309,169 @@ func TestListPublicServices_ContextCancelled_ReturnsInternalWithoutCallingReposi
 	}
 }
 
-func TestListPublicBarbers_Found_ReturnsResult(t *testing.T) {
-	want := publicbooking.PublicBarberListResult{
-		Items: []publicbooking.PublicBarber{{ID: "1", FullName: "Juan Pérez"}},
+func TestListPublicProfessionals_Found_ReturnsResult(t *testing.T) {
+	want := publicbooking.PublicProfessionalListResult{
+		Items: []publicbooking.PublicProfessional{{ID: "1", FullName: "Juan Pérez"}},
 	}
-	repo := &fakeRepository{barbersResult: want, barbersFound: true}
+	repo := &fakeRepository{professionalsResult: want, professionalsFound: true}
 	svc := publicbooking.NewService(repo)
 
-	got, err := svc.ListPublicBarbers(context.Background(), "barberia-ejemplo", validServiceID)
+	got, err := svc.ListPublicProfessionals(context.Background(), "barberia-ejemplo", validServiceID)
 	if err != nil {
-		t.Fatalf("ListPublicBarbers: %v", err)
+		t.Fatalf("ListPublicProfessionals: %v", err)
 	}
 	if len(got.Items) != 1 || got.Items[0] != want.Items[0] {
 		t.Fatalf("expected %+v, got %+v", want, got)
 	}
-	if len(repo.barbersCalls) != 1 || repo.barbersCalls[0].slug != "barberia-ejemplo" || repo.barbersCalls[0].serviceID != validServiceID {
-		t.Fatalf("expected one call with the trimmed slug and serviceID, got %+v", repo.barbersCalls)
+	if len(repo.professionalsCalls) != 1 || repo.professionalsCalls[0].slug != "barberia-ejemplo" || repo.professionalsCalls[0].serviceID != validServiceID {
+		t.Fatalf("expected one call with the trimmed slug and serviceID, got %+v", repo.professionalsCalls)
 	}
 }
 
-func TestListPublicBarbers_TrimsSurroundingWhitespaceBeforeCallingRepository(t *testing.T) {
-	repo := &fakeRepository{barbersFound: true}
+func TestListPublicProfessionals_TrimsSurroundingWhitespaceBeforeCallingRepository(t *testing.T) {
+	repo := &fakeRepository{professionalsFound: true}
 	svc := publicbooking.NewService(repo)
 
-	if _, err := svc.ListPublicBarbers(context.Background(), "  barberia-ejemplo  ", validServiceID); err != nil {
-		t.Fatalf("ListPublicBarbers: %v", err)
+	if _, err := svc.ListPublicProfessionals(context.Background(), "  barberia-ejemplo  ", validServiceID); err != nil {
+		t.Fatalf("ListPublicProfessionals: %v", err)
 	}
-	if len(repo.barbersCalls) != 1 || repo.barbersCalls[0].slug != "barberia-ejemplo" {
-		t.Fatalf("expected the repository to receive the trimmed slug, got %v", repo.barbersCalls)
+	if len(repo.professionalsCalls) != 1 || repo.professionalsCalls[0].slug != "barberia-ejemplo" {
+		t.Fatalf("expected the repository to receive the trimmed slug, got %v", repo.professionalsCalls)
 	}
 }
 
-// Cero barberos elegibles (CA-092-03, extremo "0" de la matriz 0/1/N) no es
-// un error: el repositorio ya resolvió la barbería, así que el resultado es
+// Cero profesionales elegibles (CA-092-03, extremo "0" de la matriz 0/1/N) no es
+// un error: el repositorio ya resolvió el negocio, así que el resultado es
 // una lista vacía exitosa, indistinguible de un serviceID ajeno o inválido.
-func TestListPublicBarbers_ZeroBarbers_ReturnsEmptySuccessResult(t *testing.T) {
-	repo := &fakeRepository{barbersResult: publicbooking.PublicBarberListResult{Items: []publicbooking.PublicBarber{}}, barbersFound: true}
+func TestListPublicProfessionals_ZeroProfessionals_ReturnsEmptySuccessResult(t *testing.T) {
+	repo := &fakeRepository{professionalsResult: publicbooking.PublicProfessionalListResult{Items: []publicbooking.PublicProfessional{}}, professionalsFound: true}
 	svc := publicbooking.NewService(repo)
 
-	got, err := svc.ListPublicBarbers(context.Background(), "barberia-ejemplo", validServiceID)
+	got, err := svc.ListPublicProfessionals(context.Background(), "barberia-ejemplo", validServiceID)
 	if err != nil {
-		t.Fatalf("ListPublicBarbers: %v", err)
+		t.Fatalf("ListPublicProfessionals: %v", err)
 	}
 	if len(got.Items) != 0 {
 		t.Fatalf("expected zero items, got %+v", got.Items)
 	}
 }
 
-func TestListPublicBarbers_BarbershopNotFound_ReturnsNotFoundWithoutLeakingCause(t *testing.T) {
-	repo := &fakeRepository{barbersFound: false}
+func TestListPublicProfessionals_BusinessNotFound_ReturnsNotFoundWithoutLeakingCause(t *testing.T) {
+	repo := &fakeRepository{professionalsFound: false}
 	svc := publicbooking.NewService(repo)
 
-	_, err := svc.ListPublicBarbers(context.Background(), "no-existe", validServiceID)
+	_, err := svc.ListPublicProfessionals(context.Background(), "no-existe", validServiceID)
 	assertNotFound(t, err)
 }
 
-func TestListPublicBarbers_EmptySlug_ReturnsNotFoundWithoutCallingRepository(t *testing.T) {
+func TestListPublicProfessionals_EmptySlug_ReturnsNotFoundWithoutCallingRepository(t *testing.T) {
 	repo := &fakeRepository{}
 	svc := publicbooking.NewService(repo)
 
-	_, err := svc.ListPublicBarbers(context.Background(), "   ", validServiceID)
+	_, err := svc.ListPublicProfessionals(context.Background(), "   ", validServiceID)
 	assertNotFound(t, err)
-	if len(repo.barbersCalls) != 0 {
-		t.Fatalf("expected zero repository calls for an empty slug, got %v", repo.barbersCalls)
+	if len(repo.professionalsCalls) != 0 {
+		t.Fatalf("expected zero repository calls for an empty slug, got %v", repo.professionalsCalls)
 	}
 }
 
-func TestListPublicBarbers_SlugTooLong_ReturnsNotFoundWithoutCallingRepository(t *testing.T) {
+func TestListPublicProfessionals_SlugTooLong_ReturnsNotFoundWithoutCallingRepository(t *testing.T) {
 	repo := &fakeRepository{}
 	svc := publicbooking.NewService(repo)
 
 	tooLong := strings.Repeat("a", publicbooking.MaxSlugLength+1)
-	_, err := svc.ListPublicBarbers(context.Background(), tooLong, validServiceID)
+	_, err := svc.ListPublicProfessionals(context.Background(), tooLong, validServiceID)
 	assertNotFound(t, err)
-	if len(repo.barbersCalls) != 0 {
-		t.Fatalf("expected zero repository calls for an overlong slug, got %v", repo.barbersCalls)
+	if len(repo.professionalsCalls) != 0 {
+		t.Fatalf("expected zero repository calls for an overlong slug, got %v", repo.professionalsCalls)
 	}
 }
 
-// Un serviceID malformado SÍ llega al repositorio (que resuelve la barbería
+// Un serviceID malformado SÍ llega al repositorio (que resuelve el negocio
 // primero y descarta el formato después, sin tocar la base con un valor no
 // UUID): CA-092-03 exige que esta causa sea indistinguible de "ajeno" o "ya
 // no asignado" en el nivel de Service, nunca del universo distinto de
-// "barbería desconocida".
-func TestListPublicBarbers_MalformedServiceID_StillResolvesBarbershop(t *testing.T) {
-	repo := &fakeRepository{barbersFound: true}
+// "negocio desconocido".
+func TestListPublicProfessionals_MalformedServiceID_StillResolvesBusiness(t *testing.T) {
+	repo := &fakeRepository{professionalsFound: true}
 	svc := publicbooking.NewService(repo)
 
-	if _, err := svc.ListPublicBarbers(context.Background(), "barberia-ejemplo", "no-es-un-uuid"); err != nil {
-		t.Fatalf("ListPublicBarbers: %v", err)
+	if _, err := svc.ListPublicProfessionals(context.Background(), "barberia-ejemplo", "no-es-un-uuid"); err != nil {
+		t.Fatalf("ListPublicProfessionals: %v", err)
 	}
-	if len(repo.barbersCalls) != 1 || repo.barbersCalls[0].serviceID != "no-es-un-uuid" {
-		t.Fatalf("expected the repository to receive the raw serviceID, got %v", repo.barbersCalls)
+	if len(repo.professionalsCalls) != 1 || repo.professionalsCalls[0].serviceID != "no-es-un-uuid" {
+		t.Fatalf("expected the repository to receive the raw serviceID, got %v", repo.professionalsCalls)
 	}
 }
 
-func TestListPublicBarbers_RepositoryError_ReturnsInternal(t *testing.T) {
-	repo := &fakeRepository{barbersErr: errors.New("boom")}
+func TestListPublicProfessionals_RepositoryError_ReturnsInternal(t *testing.T) {
+	repo := &fakeRepository{professionalsErr: errors.New("boom")}
 	svc := publicbooking.NewService(repo)
 
-	_, err := svc.ListPublicBarbers(context.Background(), "barberia-ejemplo", validServiceID)
+	_, err := svc.ListPublicProfessionals(context.Background(), "barberia-ejemplo", validServiceID)
 	appErr, ok := apperr.As(err)
 	if !ok || appErr.Kind != apperr.KindInternal {
 		t.Fatalf("expected apperr.KindInternal, got %v", err)
 	}
 }
 
-func TestListPublicBarbers_ContextCancelled_ReturnsInternalWithoutCallingRepository(t *testing.T) {
+func TestListPublicProfessionals_ContextCancelled_ReturnsInternalWithoutCallingRepository(t *testing.T) {
 	repo := &fakeRepository{}
 	svc := publicbooking.NewService(repo)
 
 	ctx, cancel := context.WithCancel(context.Background())
 	cancel()
 
-	_, err := svc.ListPublicBarbers(ctx, "barberia-ejemplo", validServiceID)
+	_, err := svc.ListPublicProfessionals(ctx, "barberia-ejemplo", validServiceID)
 	appErr, ok := apperr.As(err)
 	if !ok || appErr.Kind != apperr.KindInternal {
 		t.Fatalf("expected apperr.KindInternal, got %v", err)
 	}
-	if len(repo.barbersCalls) != 0 {
-		t.Fatalf("expected zero repository calls with a cancelled context, got %v", repo.barbersCalls)
+	if len(repo.professionalsCalls) != 0 {
+		t.Fatalf("expected zero repository calls with a cancelled context, got %v", repo.professionalsCalls)
 	}
 }
 
-// --- Fotografía pública del barbero (DEC-127) ----------------------------
+// --- Fotografía pública del profesional (DEC-127) ----------------------------
 
-func TestPublicBarberPhoto_Found_ReturnsPhotoWithTrimmedSlug(t *testing.T) {
-	want := publicbooking.PublicBarberPhoto{ContentType: "image/png", Data: []byte{1, 2, 3}}
+func TestPublicProfessionalPhoto_Found_ReturnsPhotoWithTrimmedSlug(t *testing.T) {
+	want := publicbooking.PublicProfessionalPhoto{ContentType: "image/png", Data: []byte{1, 2, 3}}
 	repo := &fakeRepository{photoResult: want, photoFound: true}
 	svc := publicbooking.NewService(repo)
 
-	got, err := svc.PublicBarberPhoto(context.Background(), "  barberia-ejemplo  ", validServiceID)
+	got, err := svc.PublicProfessionalPhoto(context.Background(), "  barberia-ejemplo  ", validServiceID)
 	if err != nil {
-		t.Fatalf("PublicBarberPhoto: %v", err)
+		t.Fatalf("PublicProfessionalPhoto: %v", err)
 	}
 	if got.ContentType != want.ContentType || string(got.Data) != string(want.Data) {
 		t.Fatalf("expected %+v, got %+v", want, got)
 	}
-	if len(repo.photoCalls) != 1 || repo.photoCalls[0].slug != "barberia-ejemplo" || repo.photoCalls[0].barberID != validServiceID {
+	if len(repo.photoCalls) != 1 || repo.photoCalls[0].slug != "barberia-ejemplo" || repo.photoCalls[0].professionalID != validServiceID {
 		t.Fatalf("expected one call with the trimmed slug, got %+v", repo.photoCalls)
 	}
 }
 
-func TestPublicBarberPhoto_NotFound_ReturnsNotFound(t *testing.T) {
+func TestPublicProfessionalPhoto_NotFound_ReturnsNotFound(t *testing.T) {
 	repo := &fakeRepository{photoFound: false}
 	svc := publicbooking.NewService(repo)
 
-	_, err := svc.PublicBarberPhoto(context.Background(), "barberia-ejemplo", validServiceID)
+	_, err := svc.PublicProfessionalPhoto(context.Background(), "barberia-ejemplo", validServiceID)
 	assertNotFound(t, err)
 }
 
 // Todas las entradas inválidas producen el mismo NotFound que una foto
 // inexistente y nunca llegan al repositorio: la causa no se distingue.
-func TestPublicBarberPhoto_InvalidInput_ReturnsNotFoundWithoutCallingRepository(t *testing.T) {
-	for name, tc := range map[string]struct{ slug, barberID string }{
-		"slug vacío":                {"   ", validServiceID},
-		"slug demasiado largo":      {strings.Repeat("a", publicbooking.MaxSlugLength+1), validServiceID},
-		"barbero sin forma de UUID": {"barberia-ejemplo", "no-es-un-uuid"},
+func TestPublicProfessionalPhoto_InvalidInput_ReturnsNotFoundWithoutCallingRepository(t *testing.T) {
+	for name, tc := range map[string]struct{ slug, professionalID string }{
+		"slug vacío":                    {"   ", validServiceID},
+		"slug demasiado largo":          {strings.Repeat("a", publicbooking.MaxSlugLength+1), validServiceID},
+		"profesional sin forma de UUID": {"barberia-ejemplo", "no-es-un-uuid"},
 	} {
 		t.Run(name, func(t *testing.T) {
 			repo := &fakeRepository{photoFound: true}
 			svc := publicbooking.NewService(repo)
 
-			_, err := svc.PublicBarberPhoto(context.Background(), tc.slug, tc.barberID)
+			_, err := svc.PublicProfessionalPhoto(context.Background(), tc.slug, tc.professionalID)
 			assertNotFound(t, err)
 			if len(repo.photoCalls) != 0 {
 				t.Fatalf("expected zero repository calls, got %+v", repo.photoCalls)
@@ -480,27 +480,27 @@ func TestPublicBarberPhoto_InvalidInput_ReturnsNotFoundWithoutCallingRepository(
 	}
 }
 
-func TestPublicBarberPhoto_RepositoryError_ReturnsInternal(t *testing.T) {
+func TestPublicProfessionalPhoto_RepositoryError_ReturnsInternal(t *testing.T) {
 	repo := &fakeRepository{photoErr: errors.New("boom")}
 	svc := publicbooking.NewService(repo)
 
-	_, err := svc.PublicBarberPhoto(context.Background(), "barberia-ejemplo", validServiceID)
+	_, err := svc.PublicProfessionalPhoto(context.Background(), "barberia-ejemplo", validServiceID)
 	appErr, ok := apperr.As(err)
 	if !ok || appErr.Kind != apperr.KindInternal {
 		t.Fatalf("expected apperr.KindInternal, got %v", err)
 	}
 }
 
-func TestListPublicBarbersWithServices_Found_ReturnsResult(t *testing.T) {
-	want := publicbooking.PublicBarberServicesListResult{Items: []publicbooking.PublicBarberServices{
+func TestListPublicProfessionalsWithServices_Found_ReturnsResult(t *testing.T) {
+	want := publicbooking.PublicProfessionalServicesListResult{Items: []publicbooking.PublicProfessionalServices{
 		{ID: "b1", FullName: "Barbero Uno", ServiceIDs: []string{validServiceID}},
 	}}
 	repo := &fakeRepository{withServicesFound: true, withServicesResult: want}
 	svc := publicbooking.NewService(repo)
 
-	got, err := svc.ListPublicBarbersWithServices(context.Background(), "  barberia-ejemplo  ")
+	got, err := svc.ListPublicProfessionalsWithServices(context.Background(), "  barberia-ejemplo  ")
 	if err != nil {
-		t.Fatalf("ListPublicBarbersWithServices: %v", err)
+		t.Fatalf("ListPublicProfessionalsWithServices: %v", err)
 	}
 	if len(got.Items) != 1 || got.Items[0].ID != "b1" || len(got.Items[0].ServiceIDs) != 1 {
 		t.Fatalf("resultado inesperado: %+v", got)
@@ -512,7 +512,7 @@ func TestListPublicBarbersWithServices_Found_ReturnsResult(t *testing.T) {
 	}
 }
 
-func TestListPublicBarbersWithServices_InvalidSlug_ReturnsUniformNotFoundWithoutCallingRepository(t *testing.T) {
+func TestListPublicProfessionalsWithServices_InvalidSlug_ReturnsUniformNotFoundWithoutCallingRepository(t *testing.T) {
 	for name, slug := range map[string]string{
 		"vacío":           "",
 		"solo espacio":    "   ",
@@ -520,7 +520,7 @@ func TestListPublicBarbersWithServices_InvalidSlug_ReturnsUniformNotFoundWithout
 	} {
 		t.Run(name, func(t *testing.T) {
 			repo := &fakeRepository{withServicesFound: true}
-			_, err := publicbooking.NewService(repo).ListPublicBarbersWithServices(context.Background(), slug)
+			_, err := publicbooking.NewService(repo).ListPublicProfessionalsWithServices(context.Background(), slug)
 			appErr, ok := apperr.As(err)
 			if !ok || appErr.Kind != apperr.KindNotFound {
 				t.Fatalf("esperaba apperr.KindNotFound, got %v", err)
@@ -532,34 +532,34 @@ func TestListPublicBarbersWithServices_InvalidSlug_ReturnsUniformNotFoundWithout
 	}
 }
 
-func TestListPublicBarbersWithServices_UnknownBarbershop_ReturnsSameNotFoundAsOtherOperations(t *testing.T) {
+func TestListPublicProfessionalsWithServices_UnknownBusiness_ReturnsSameNotFoundAsOtherOperations(t *testing.T) {
 	svc := publicbooking.NewService(&fakeRepository{withServicesFound: false})
-	_, err := svc.ListPublicBarbersWithServices(context.Background(), "no-existe")
+	_, err := svc.ListPublicProfessionalsWithServices(context.Background(), "no-existe")
 	appErr, ok := apperr.As(err)
 	if !ok || appErr.Kind != apperr.KindNotFound {
 		t.Fatalf("esperaba apperr.KindNotFound, got %v", err)
 	}
-	_, resolveErr := svc.ResolveBarbershop(context.Background(), "")
+	_, resolveErr := svc.ResolveBusiness(context.Background(), "")
 	resolveAppErr, _ := apperr.As(resolveErr)
 	if appErr.Message != resolveAppErr.Message {
 		t.Fatalf("el 404 debe ser el uniforme de HU-090: %q vs %q", appErr.Message, resolveAppErr.Message)
 	}
 }
 
-func TestListPublicBarbersWithServices_RepositoryError_IsInternal(t *testing.T) {
+func TestListPublicProfessionalsWithServices_RepositoryError_IsInternal(t *testing.T) {
 	svc := publicbooking.NewService(&fakeRepository{withServicesErr: errors.New("boom")})
-	_, err := svc.ListPublicBarbersWithServices(context.Background(), "barberia-ejemplo")
+	_, err := svc.ListPublicProfessionalsWithServices(context.Background(), "barberia-ejemplo")
 	appErr, ok := apperr.As(err)
 	if !ok || appErr.Kind != apperr.KindInternal {
 		t.Fatalf("esperaba apperr.KindInternal, got %v", err)
 	}
 }
 
-func TestListPublicBarbersWithServices_CancelledContext_IsInternal(t *testing.T) {
+func TestListPublicProfessionalsWithServices_CancelledContext_IsInternal(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	cancel()
 	repo := &fakeRepository{withServicesFound: true}
-	_, err := publicbooking.NewService(repo).ListPublicBarbersWithServices(ctx, "barberia-ejemplo")
+	_, err := publicbooking.NewService(repo).ListPublicProfessionalsWithServices(ctx, "barberia-ejemplo")
 	appErr, ok := apperr.As(err)
 	if !ok || appErr.Kind != apperr.KindInternal {
 		t.Fatalf("esperaba apperr.KindInternal, got %v", err)

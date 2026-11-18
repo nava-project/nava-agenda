@@ -9,8 +9,8 @@ import (
 	"strings"
 	"time"
 
-	"system-barbershop/internal/platform/apperr"
-	"system-barbershop/internal/platform/database"
+	"nava-agenda/internal/platform/apperr"
+	"nava-agenda/internal/platform/database"
 )
 
 // Key es una clave de idempotencia ya validada, tal como la envía el
@@ -51,7 +51,7 @@ func (k Key) Redacted() string {
 	return hex.EncodeToString(sum[:6])
 }
 
-// Operation identifica, dentro de una barbería, QUÉ operación reclamó una
+// Operation identifica, dentro de un negocio, QUÉ operación reclamó una
 // clave. No es una entrada de cliente: cada módulo llamador pasa una
 // constante propia (por ejemplo "create_appointment"). RN-IDE-01 exige que
 // una clave ya usada para una operación no se reutilice para otra
@@ -228,7 +228,7 @@ type Coordinator interface {
 	Begin(
 		ctx context.Context,
 		q database.Queries,
-		shop database.BarbershopID,
+		shop database.BusinessID,
 		key Key,
 		operation Operation,
 		fingerprint Fingerprint,
@@ -243,7 +243,7 @@ type Coordinator interface {
 	Complete(
 		ctx context.Context,
 		q database.Queries,
-		shop database.BarbershopID,
+		shop database.BusinessID,
 		key Key,
 		response StoredResponse,
 	) (ok bool, err error)
@@ -256,7 +256,7 @@ type Coordinator interface {
 	Abort(
 		ctx context.Context,
 		q database.Queries,
-		shop database.BarbershopID,
+		shop database.BusinessID,
 		key Key,
 	) (ok bool, err error)
 }

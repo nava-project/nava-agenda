@@ -4,7 +4,7 @@ import (
 	"context"
 	"fmt"
 
-	"system-barbershop/internal/platform/apperr"
+	"nava-agenda/internal/platform/apperr"
 )
 
 // Role es un rol de un usuario del área privada (DEC-134), igual que la lista
@@ -18,7 +18,7 @@ const (
 )
 
 // PanelProfileFor deriva el panel de un usuario de sus roles (DEC-134). La
-// prioridad es empresa, independiente y empleado: quien administra la barbería
+// prioridad es empresa, independiente y empleado: quien administra el negocio
 // conserva el panel completo, y quien es empleado e independiente a la vez ve
 // el individual completo. Sin ningún rol (usuario creado sin asignar), el panel
 // completo, que es el comportamiento anterior a los roles.
@@ -57,12 +57,12 @@ func NewPanelProfileService(repo PanelProfileRepository) *PanelProfileService {
 	return &PanelProfileService{repo: repo}
 }
 
-// For devuelve el panel de staffUserID en barbershopID.
-func (s *PanelProfileService) For(ctx context.Context, barbershopID, staffUserID string) (PanelProfile, error) {
+// For devuelve el panel de staffUserID en businessID.
+func (s *PanelProfileService) For(ctx context.Context, businessID, staffUserID string) (PanelProfile, error) {
 	if err := ctx.Err(); err != nil {
 		return "", apperr.Internal(fmt.Errorf("shops: contexto cancelado antes de leer los roles: %w", err))
 	}
-	roles, err := s.repo.RolesOf(ctx, barbershopID, staffUserID)
+	roles, err := s.repo.RolesOf(ctx, businessID, staffUserID)
 	if err != nil {
 		return "", apperr.Internal(fmt.Errorf("shops: leer roles: %w", err))
 	}

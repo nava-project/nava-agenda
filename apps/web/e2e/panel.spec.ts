@@ -23,7 +23,7 @@ async function login(page: Page) {
 }
 
 function sessionCookie(context: BrowserContext) {
-  return context.cookies().then((cookies) => cookies.find((c) => c.name === 'barberia_session'))
+  return context.cookies().then((cookies) => cookies.find((c) => c.name === 'nava_agenda_session'))
 }
 
 test.describe('Cascarón del panel privado (HU-012)', () => {
@@ -68,10 +68,10 @@ test.describe('Cascarón del panel privado (HU-012)', () => {
     await expect(page.getByRole('heading', { name: 'Agenda', exact: true })).toBeVisible()
   })
 
-  test('la cabecera muestra siempre la barbería activa real (CA-012-04)', async ({ page }) => {
+  test('la cabecera muestra siempre el negocio activo real (CA-012-04)', async ({ page }) => {
     await login(page)
-    await expect(page.getByTestId('barbershop-name')).not.toHaveText('')
-    const name = await page.getByTestId('barbershop-name').textContent()
+    await expect(page.getByTestId('business-name')).not.toHaveText('')
+    const name = await page.getByTestId('business-name').textContent()
     expect(name?.trim().length ?? 0).toBeGreaterThan(0)
   })
 

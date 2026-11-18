@@ -1,5 +1,5 @@
-// CA-020-04: un instante conocido, formateado con la zona CONFIGURADA de la
-// barbería, produce la misma hora sin importar la zona del dispositivo que
+// CA-020-04: un instante conocido, formateado con la zona CONFIGURADA del
+// negocio, produce la misma hora sin importar la zona del dispositivo que
 // ejecuta el código. formatInstantInTimezone nunca lee la zona del entorno
 // (Intl.DateTimeFormat().resolvedOptions().timeZone); solo usa la que
 // recibe explícitamente.
@@ -15,7 +15,7 @@ const knownInstant = '2026-09-12T17:00:00Z'
 describe('formatInstantInTimezone', () => {
   it('produces the same formatted hour for the same explicit timezone, called repeatedly', () => {
     // Modela "dos dispositivos": dos llamadas independientes, la misma zona
-    // configurada de la barbería en ambas. Ninguna depende de dónde corre
+    // configurada del negocio en ambas. Ninguna depende de dónde corre
     // el proceso.
     const deviceOne = formatInstantInTimezone(knownInstant, 'America/Bogota')
     const deviceTwo = formatInstantInTimezone(knownInstant, 'America/Bogota')

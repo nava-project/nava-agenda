@@ -13,7 +13,7 @@ const evidenceDir = path.join(
 
 const detail = {
   id: 'turno-mateo',
-  professionalId: 'barbero-julian',
+  professionalId: 'profesional-julian',
   professionalFullName: 'Julián Rodríguez',
   attendeeName: 'Mateo Rojas',
   customerFullName: 'Mateo Rojas',
@@ -161,7 +161,7 @@ async function installDetailMock(
   }
 
   // scheduleConflictProblem cubre HU-068 (CA-068-04): el destino elegido
-  // volvería a ocupar una franja que otra cita del mismo barbero ya ocupa.
+  // volvería a ocupar una franja que otra cita del mismo profesional ya ocupa.
   function scheduleConflictProblem() {
     return json(
       {
@@ -300,7 +300,7 @@ async function openDetail(
 ) {
   await page.setViewportSize({ width, height })
   const mockState = await installDetailMock(page, mockOptions)
-  await page.goto('/panel/turnos/turno-mateo?date=2026-05-24&barberId=barbero-julian')
+  await page.goto('/panel/turnos/turno-mateo?date=2026-05-24&professionalId=profesional-julian')
   await expect(page.getByRole('heading', { name: 'Mateo Rojas' })).toBeVisible()
   await expect(page.getByText('Turno reprogramado')).toBeVisible()
   expect(await page.evaluate(() => window.innerWidth)).toBe(width)
@@ -337,8 +337,8 @@ for (const viewport of [
   })
 }
 
-// --- HU-066 (T6): cancelación por el barbero, issue #225 -----------------
-// El estado terminal (badge "Cancelado por el barbero") reutiliza el mismo
+// --- HU-066 (T6): cancelación por el profesional, issue #225 -----------------
+// El estado terminal (badge "Cancelado por el profesional") reutiliza el mismo
 // componente/variant que el atlas ya fija para cancelled_by_professional
 // (dailyAgenda.ts APPOINTMENT_STATUS_BADGE_VARIANT = 'danger', mismo
 // tratamiento que detalle-turno-eventos/10-turno-cancelado.png); el diálogo
@@ -472,7 +472,7 @@ test('HU-066: reflow y foco del botón Cancelar en los viewports obligatorios', 
 
   for (const viewport of viewports) {
     await page.setViewportSize({ width: viewport.width, height: viewport.height })
-    await page.goto('/panel/turnos/turno-mateo?date=2026-05-24&barberId=barbero-julian')
+    await page.goto('/panel/turnos/turno-mateo?date=2026-05-24&professionalId=profesional-julian')
     await expect(page.getByRole('heading', { name: 'Mateo Rojas' })).toBeVisible()
     expect(await page.evaluate(() => window.innerWidth)).toBe(viewport.width)
     expect(await page.evaluate(() => window.innerHeight)).toBe(viewport.height)
@@ -713,7 +713,7 @@ test('HU-067: reflow y foco de las acciones de cierre en los viewports obligator
 
   for (const viewport of viewports) {
     await page.setViewportSize({ width: viewport.width, height: viewport.height })
-    await page.goto('/panel/turnos/turno-mateo?date=2026-05-24&barberId=barbero-julian')
+    await page.goto('/panel/turnos/turno-mateo?date=2026-05-24&professionalId=profesional-julian')
     await expect(page.getByRole('heading', { name: 'Mateo Rojas' })).toBeVisible()
     expect(await page.evaluate(() => window.innerWidth)).toBe(viewport.width)
     expect(await page.evaluate(() => window.innerHeight)).toBe(viewport.height)
@@ -825,7 +825,7 @@ for (const viewport of [
   })
 
   // CA-068-04: el destino elegido volvería a ocupar una franja que otra
-  // cita del mismo barbero ya ocupa.
+  // cita del mismo profesional ya ocupa.
   test(`HU-068: cruce de agenda al corregir en ${viewport.name}`, async ({ page }) => {
     await openDetail(page, viewport.width, viewport.height, {
       initialStatus: 'cancelled_by_professional',
@@ -923,7 +923,7 @@ test('HU-068: reflow y foco de la acción de corrección en los viewports obliga
 
   for (const viewport of viewports) {
     await page.setViewportSize({ width: viewport.width, height: viewport.height })
-    await page.goto('/panel/turnos/turno-mateo?date=2026-05-24&barberId=barbero-julian')
+    await page.goto('/panel/turnos/turno-mateo?date=2026-05-24&professionalId=profesional-julian')
     await expect(page.getByRole('heading', { name: 'Mateo Rojas' })).toBeVisible()
     expect(await page.evaluate(() => window.innerWidth)).toBe(viewport.width)
     expect(await page.evaluate(() => window.innerHeight)).toBe(viewport.height)
@@ -979,7 +979,7 @@ test('fidelidad #191: reflow, teclado y foco en los viewports obligatorios', asy
 
   for (const viewport of viewports) {
     await page.setViewportSize({ width: viewport.width, height: viewport.height })
-    await page.goto('/panel/turnos/turno-mateo?date=2026-05-24&barberId=barbero-julian')
+    await page.goto('/panel/turnos/turno-mateo?date=2026-05-24&professionalId=profesional-julian')
     await expect(page.getByRole('heading', { name: 'Mateo Rojas' })).toBeVisible()
     expect(await page.evaluate(() => window.innerWidth)).toBe(viewport.width)
     expect(await page.evaluate(() => window.innerHeight)).toBe(viewport.height)

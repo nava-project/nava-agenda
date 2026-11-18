@@ -6,14 +6,14 @@ import (
 
 	"github.com/jackc/pgx/v5"
 
-	"system-barbershop/internal/modules/auth"
-	"system-barbershop/internal/platform/database"
+	"nava-agenda/internal/modules/auth"
+	"nava-agenda/internal/platform/database"
 )
 
 // PurgeRepository implementa auth.PurgeRepository contra
 // login_throttle_purge_expired/auth_phone_challenge_purge_expired (HU-007,
 // CA-007-06). Ambas funciones están concedidas exclusivamente a
-// barberia_worker; db debe ser el pool del proceso worker
+// agenda_worker; db debe ser el pool del proceso worker
 // (cfg.WorkerDatabaseURL, DEC-040), nunca el de api.
 type PurgeRepository struct {
 	db *database.DB

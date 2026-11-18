@@ -4,17 +4,17 @@ import (
 	"context"
 	"fmt"
 
-	"system-barbershop/internal/platform/apperr"
+	"nava-agenda/internal/platform/apperr"
 )
 
-// LoginOTPChannel es el canal por el que la barbería recibe el código del reto
+// LoginOTPChannel es el canal por el que el negocio recibe el código del reto
 // adicional de acceso (HU-007, DEC-139). Los valores son los del CHECK
-// `barbershop_login_otp_channel_ck`.
+// `business_login_otp_channel_ck`.
 type LoginOTPChannel string
 
 const (
-	// LoginOTPChannelEmail entrega el código por correo; es el valor de las
-	// barberías nuevas (DEC-081).
+	// LoginOTPChannelEmail entrega el código por correo; es el valor de los
+	// negocios nuevos (DEC-081).
 	LoginOTPChannelEmail LoginOTPChannel = "email"
 	// LoginOTPChannelWhatsApp lo entrega por WhatsApp oficial al teléfono
 	// verificado de la cuenta.
@@ -36,17 +36,17 @@ func (c LoginOTPChannel) Valid() bool {
 // LoginOTPRepository es el puerto de persistencia del canal del código de
 // acceso. El núcleo no importa internal/platform/database ni pgx (CA-002-06).
 type LoginOTPRepository interface {
-	// Get lee el canal de barbershopID dentro de una transacción tenant-aware.
+	// Get lee el canal de businessID dentro de una transacción tenant-aware.
 	// found=false cubre una fila no visible en el tenant vigente (defensivo).
-	Get(ctx context.Context, barbershopID string) (channel LoginOTPChannel, found bool, err error)
+	Get(ctx context.Context, businessID string) (channel LoginOTPChannel, found bool, err error)
 	// Update escribe el canal y devuelve el valor guardado; found=false cubre una
-	// fila no visible. Sin versión de concurrencia: es una preferencia de la
-	// barbería y la última escritura gana (mismo criterio que la marca).
-	Update(ctx context.Context, barbershopID string, channel LoginOTPChannel) (stored LoginOTPChannel, found bool, err error)
+	// fila no visible. Sin versión de concurrencia: es una preferencia del
+	// negocio y la última escritura gana (mismo criterio que la marca).
+	Update(ctx context.Context, businessID string, channel LoginOTPChannel) (stored LoginOTPChannel, found bool, err error)
 }
 
-// LoginOTPService implementa leer y cambiar el canal del código de acceso de la
-// barbería de la sesión (DEC-139). La barbería llega siempre de un
+// LoginOTPService implementa leer y cambiar el canal del código de acceso del
+// negocio de la sesión (DEC-139). El negocio llega siempre de un
 // auth.Principal: no existe forma de leer o cambiar la de otra (RN-TEN-01).
 type LoginOTPService struct {
 	repo LoginOTPRepository
@@ -58,11 +58,11 @@ func NewLoginOTPService(repo LoginOTPRepository) *LoginOTPService {
 }
 
 // Get lee el canal vigente.
-func (s *LoginOTPService) Get(ctx context.Context, barbershopID string) (LoginOTPChannel, error) {
+func (s *LoginOTPService) Get(ctx context.Context, businessID string) (LoginOTPChannel, error) {
 	if err := ctx.Err(); err != nil {
 		return "", apperr.Internal(fmt.Errorf("shops: contexto cancelado antes de leer el canal del código de acceso: %w", err))
 	}
-	channel, found, err := s.repo.Get(ctx, barbershopID)
+	channel, found, err := s.repo.Get(ctx, businessID)
 	if err != nil {
 		return "", apperr.Internal(fmt.Errorf("shops: leer canal del código de acceso: %w", err))
 	}
@@ -74,14 +74,14 @@ func (s *LoginOTPService) Get(ctx context.Context, barbershopID string) (LoginOT
 
 // Update valida el canal y lo guarda. Un valor fuera de la lista cerrada se
 // rechaza con 422 sin tocar la base de datos.
-func (s *LoginOTPService) Update(ctx context.Context, barbershopID string, channel LoginOTPChannel) (LoginOTPChannel, error) {
+func (s *LoginOTPService) Update(ctx context.Context, businessID string, channel LoginOTPChannel) (LoginOTPChannel, error) {
 	if err := ctx.Err(); err != nil {
 		return "", apperr.Internal(fmt.Errorf("shops: contexto cancelado antes de actualizar el canal del código de acceso: %w", err))
 	}
 	if !channel.Valid() {
 		return "", apperr.Validation("channel debe ser email, whatsapp o both")
 	}
-	stored, found, err := s.repo.Update(ctx, barbershopID, channel)
+	stored, found, err := s.repo.Update(ctx, businessID, channel)
 	if err != nil {
 		return "", apperr.Internal(fmt.Errorf("shops: actualizar canal del código de acceso: %w", err))
 	}

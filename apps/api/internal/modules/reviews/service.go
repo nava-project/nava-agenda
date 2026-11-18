@@ -8,7 +8,7 @@ import (
 	"regexp"
 	"strings"
 
-	"system-barbershop/internal/platform/apperr"
+	"nava-agenda/internal/platform/apperr"
 )
 
 var uuidPattern = regexp.MustCompile(`^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$`)
@@ -58,45 +58,45 @@ func (s *Service) Create(ctx context.Context, tokenRaw string, rating int, comme
 	}
 }
 
-// ListPublic devuelve las reseñas visibles de un barbero para el visitante de la
+// ListPublic devuelve las reseñas visibles de un profesional para el visitante de la
 // reserva pública (CA-100-04).
-func (s *Service) ListPublic(ctx context.Context, slug, barberID string) (PublicList, error) {
-	if !looksLikeUUID(barberID) {
-		return PublicList{}, errBarberNotFound()
+func (s *Service) ListPublic(ctx context.Context, slug, professionalID string) (PublicList, error) {
+	if !looksLikeUUID(professionalID) {
+		return PublicList{}, errProfessionalNotFound()
 	}
-	list, found, err := s.repo.ListPublic(ctx, slug, barberID, PublicListLimit)
+	list, found, err := s.repo.ListPublic(ctx, slug, professionalID, PublicListLimit)
 	if err != nil {
 		return PublicList{}, apperr.Internal(fmt.Errorf("reviews: listar reseñas públicas: %w", err))
 	}
 	if !found {
-		return PublicList{}, errBarberNotFound()
+		return PublicList{}, errProfessionalNotFound()
 	}
 	return list, nil
 }
 
-// ListForBarber devuelve a quien modera todas las reseñas del barbero, ocultas
+// ListForProfessional devuelve a quien modera todas las reseñas del profesional, ocultas
 // incluidas (CA-100-05).
-func (s *Service) ListForBarber(ctx context.Context, barbershopID, barberID string) (PanelList, error) {
-	if !looksLikeUUID(barberID) {
-		return PanelList{}, errBarberNotFound()
+func (s *Service) ListForProfessional(ctx context.Context, businessID, professionalID string) (PanelList, error) {
+	if !looksLikeUUID(professionalID) {
+		return PanelList{}, errProfessionalNotFound()
 	}
-	list, found, err := s.repo.ListForBarber(ctx, barbershopID, barberID, PanelListLimit)
+	list, found, err := s.repo.ListForProfessional(ctx, businessID, professionalID, PanelListLimit)
 	if err != nil {
 		return PanelList{}, apperr.Internal(fmt.Errorf("reviews: listar reseñas del panel: %w", err))
 	}
 	if !found {
-		return PanelList{}, errBarberNotFound()
+		return PanelList{}, errProfessionalNotFound()
 	}
 	return list, nil
 }
 
 // SetHidden oculta o vuelve a mostrar una reseña (CA-100-05). Es idempotente por
 // naturaleza: repetir la misma orden deja el mismo estado.
-func (s *Service) SetHidden(ctx context.Context, barbershopID, barberID, reviewID string, hidden bool) (Review, error) {
-	if !looksLikeUUID(barberID) || !looksLikeUUID(reviewID) {
+func (s *Service) SetHidden(ctx context.Context, businessID, professionalID, reviewID string, hidden bool) (Review, error) {
+	if !looksLikeUUID(professionalID) || !looksLikeUUID(reviewID) {
 		return Review{}, errReviewNotFound()
 	}
-	review, found, err := s.repo.SetHidden(ctx, barbershopID, barberID, reviewID, hidden)
+	review, found, err := s.repo.SetHidden(ctx, businessID, professionalID, reviewID, hidden)
 	if err != nil {
 		return Review{}, apperr.Internal(fmt.Errorf("reviews: ocultar reseña: %w", err))
 	}
@@ -110,6 +110,6 @@ func errTokenNotFound() error {
 	return apperr.NotFound("no existe un turno accesible con ese enlace")
 }
 
-func errBarberNotFound() error { return apperr.NotFound("no existe ese profesional") }
+func errProfessionalNotFound() error { return apperr.NotFound("no existe ese profesional") }
 
 func errReviewNotFound() error { return apperr.NotFound("no existe esa reseña") }

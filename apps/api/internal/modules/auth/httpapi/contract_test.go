@@ -12,7 +12,7 @@ import (
 
 	"gopkg.in/yaml.v3"
 
-	"system-barbershop/internal/modules/auth/httpapi"
+	"nava-agenda/internal/modules/auth/httpapi"
 )
 
 type schemaDoc struct {

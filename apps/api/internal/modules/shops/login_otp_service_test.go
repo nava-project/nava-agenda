@@ -5,8 +5,8 @@ import (
 	"errors"
 	"testing"
 
-	"system-barbershop/internal/modules/shops"
-	"system-barbershop/internal/platform/apperr"
+	"nava-agenda/internal/modules/shops"
+	"nava-agenda/internal/platform/apperr"
 )
 
 type fakeLoginOTPRepository struct {
@@ -62,12 +62,12 @@ func TestLoginOTPService_Update_Stores(t *testing.T) {
 func TestLoginOTPService_NotFoundAndRepositoryErrors(t *testing.T) {
 	svc := shops.NewLoginOTPService(&fakeLoginOTPRepository{found: false})
 	if _, err := svc.Get(context.Background(), "shop"); err == nil {
-		t.Fatal("una barbería no visible debe responder not found")
+		t.Fatal("un negocio no visible debe responder not found")
 	} else if e, _ := apperr.As(err); e == nil || e.Kind != apperr.KindNotFound {
 		t.Fatalf("esperaba not found, obtuvo %v", err)
 	}
 	if _, err := svc.Update(context.Background(), "shop", shops.LoginOTPChannelEmail); err == nil {
-		t.Fatal("actualizar una barbería no visible debe responder not found")
+		t.Fatal("actualizar un negocio no visible debe responder not found")
 	}
 
 	boom := shops.NewLoginOTPService(&fakeLoginOTPRepository{err: errors.New("db caída")})

@@ -2,11 +2,11 @@
 -- que devuelve auth_phone_challenge_request. Cubren el valor por defecto, la
 -- restricción CHECK, qué destinos salen con cada canal (correo, WhatsApp, ambos),
 -- que nunca se sustituye un canal por otro, que una cuenta sin destino utilizable
--- o inactiva responde igual que una inexistente y que el canal de una barbería no
+-- o inactiva responde igual que una inexistente y que el canal de un negocio no
 -- afecta a la otra. El envío en sí vive en el servicio Go (internal/modules/auth).
 --
 -- Uso:
---   psql "$DATABASE_TEST_URL" -v ON_ERROR_STOP=1 -f testdata/dos_professionalias.sql
+--   psql "$DATABASE_TEST_URL" -v ON_ERROR_STOP=1 -f testdata/dos_negocios.sql
 --   psql "$DATABASE_TEST_URL" -v ON_ERROR_STOP=1 -f testdata/hu005_credenciales_sesiones.sql
 --   psql "$DATABASE_TEST_URL" -v ON_ERROR_STOP=1 -f testdata/hu007_reto_telefonico.sql
 --   psql "$DATABASE_TEST_URL" -v ON_ERROR_STOP=1 -f tests/login_otp_channel.sql
@@ -15,7 +15,7 @@
 -- (estandar-base-datos.md §9.8). Todo se revierte con ROLLBACK.
 --
 -- Cuentas (testdata/hu007_reto_telefonico.sql): duena.a y dueno.b tienen
--- teléfono verificado; barbero.a no lo tiene; barbero.b está inactivo.
+-- teléfono verificado; profesional.a no lo tiene; profesional.b está inactivo.
 --
 -- Cada comprobación falla lanzando una excepción. Si el archivo termina, pasó.
 
@@ -37,7 +37,7 @@ BEGIN
   VALUES ('99999999-9999-4999-8999-999999999999', 'Barbería nueva', 'America/Bogota');
   SELECT login_otp_channel INTO v_channel FROM business WHERE id = '99999999-9999-4999-8999-999999999999';
   IF v_channel IS DISTINCT FROM 'email' THEN
-    RAISE EXCEPTION 'una barbería nueva debe nacer con correo (DEC-081), leyó %.', v_channel;
+    RAISE EXCEPTION 'un negocio nuevo debe nacer con correo (DEC-081), leyó %.', v_channel;
   END IF;
 
   FOREACH v_id IN ARRAY ARRAY['email', 'whatsapp', 'both'] LOOP
@@ -85,7 +85,7 @@ DECLARE
   v_email     text;
   v_n         integer := 0;
 BEGIN
-  -- Canal correo (barbería A).
+  -- Canal correo (negocio A).
   v_n := v_n + 1; v_ip := encode(sha256(('ip-' || v_n)::bytea), 'hex');
   FOR i IN 1..6 LOOP PERFORM login_throttle_register_attempt(v_ip, 900, 86400, 5, 172800); END LOOP;
   SELECT accepted, phone, email INTO v_ok, v_phone, v_email
@@ -103,7 +103,7 @@ BEGIN
     RAISE EXCEPTION 'canal email sin teléfono: debía devolver solo el correo, obtuvo (%, %, %).', v_ok, v_phone, v_email;
   END IF;
 
-  -- Canal WhatsApp (barbería B): solo teléfono verificado, sin correo.
+  -- Canal WhatsApp (negocio B): solo teléfono verificado, sin correo.
   v_n := v_n + 1; v_ip := encode(sha256(('ip-' || v_n)::bytea), 'hex');
   FOR i IN 1..6 LOOP PERFORM login_throttle_register_attempt(v_ip, 900, 86400, 5, 172800); END LOOP;
   SELECT accepted, phone, email INTO v_ok, v_phone, v_email
@@ -112,7 +112,7 @@ BEGIN
     RAISE EXCEPTION 'canal whatsapp: debía devolver solo el teléfono, obtuvo (%, %, %).', v_ok, v_phone, v_email;
   END IF;
 
-  -- Canal WhatsApp: cuenta inactiva (barbero.b) no recibe nada.
+  -- Canal WhatsApp: cuenta inactiva (profesional.b) no recibe nada.
   v_n := v_n + 1; v_ip := encode(sha256(('ip-' || v_n)::bytea), 'hex');
   FOR i IN 1..6 LOOP PERFORM login_throttle_register_attempt(v_ip, 900, 86400, 5, 172800); END LOOP;
   SELECT accepted, phone, email INTO v_ok, v_phone, v_email
@@ -125,7 +125,7 @@ $$;
 
 RESET ROLE;
 ROLLBACK;
-\echo 'canales email y whatsapp OK · destinos del canal, cuenta inactiva sin destino, aislamiento entre barberías'
+\echo 'canales email y whatsapp OK · destinos del canal, cuenta inactiva sin destino, aislamiento entre negocios'
 
 -- ---------------------------------------------------------------------------
 -- Ambos canales y WhatsApp sin teléfono verificado

@@ -4,7 +4,7 @@ import (
 	"reflect"
 	"testing"
 
-	"system-barbershop/internal/modules/customeraccess/httpapi"
+	"nava-agenda/internal/modules/customeraccess/httpapi"
 )
 
 // HU-105: los DTO del acceso con código son exactamente los del contrato y las

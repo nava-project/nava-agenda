@@ -3,7 +3,7 @@ package shops
 import (
 	"fmt"
 
-	"system-barbershop/internal/platform/apperr"
+	"nava-agenda/internal/platform/apperr"
 )
 
 // Mensajes de campo de CA-020-03/CA-020-06: cada uno describe un único
@@ -54,7 +54,7 @@ func errBookingPolicyVersionTokenRequired() error {
 
 // errBookingPolicyVersionConflict cubre HU-093 (CA-093-02): el token de
 // versión que el cliente envió (cabecera If-Match) ya no coincide con la
-// representación vigente porque otra escritura tocó la barbería primero.
+// representación vigente porque otra escritura tocó el negocio primero.
 func errBookingPolicyVersionConflict() error {
 	return apperr.VersionConflict("la política de reserva cambió desde que se leyó; recarga antes de reintentar")
 }
@@ -76,7 +76,7 @@ func errBookingPolicyIncoherentCancellationPolicy() error {
 }
 
 // errBookingPolicyAdvanceExceedsWindow cubre HU-093 (CA-093-02,
-// barbershop_min_advance_vs_window_ck): la anticipación mínima no puede
+// business_min_advance_vs_window_ck): la anticipación mínima no puede
 // alcanzar ni superar toda la ventana pública de reserva, o ninguna franja
 // quedaría reservable.
 func errBookingPolicyAdvanceExceedsWindow() error {
@@ -135,10 +135,10 @@ func errGeocoderUnavailable() error {
 		"no pudimos verificar la dirección en este momento; inténtalo de nuevo en unos minutos")
 }
 
-// errBarberForPolicyNotFound cubre DEC-169: el barbero de la ventana propia no
-// existe en la barbería activa (o su identificador no tiene forma de uuid).
-// Mismo 404 uniforme que staff, sin revelar si existe en otra barbería
+// errProfessionalForPolicyNotFound cubre DEC-169: el profesional de la ventana propia no
+// existe en el negocio activo (o su identificador no tiene forma de uuid).
+// Mismo 404 uniforme que staff, sin revelar si existe en otro negocio
 // (RN-TEN-01).
-func errBarberForPolicyNotFound() error {
+func errProfessionalForPolicyNotFound() error {
 	return apperr.NotFound("profesional no encontrado")
 }

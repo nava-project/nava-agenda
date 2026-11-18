@@ -1,12 +1,12 @@
 // Package postgres_test (pruebas de integración) requiere PostgreSQL REAL
 // con las seis migraciones aplicadas (incluida
 // 20260813120000_create_auth_credentials_and_sessions.sql) y
-// database/testdata/dos_barberias.sql +
+// database/testdata/dos_negocios.sql +
 // database/testdata/hu005_credenciales_sesiones.sql cargados. Conéctate como
-// barberia_app, igual que internal/platform/idempotency
+// agenda_app, igual que internal/platform/idempotency
 // (estrategia-pruebas.md §2 prohíbe mocks para RLS/privilegios).
 //
-//	export TEST_DATABASE_URL="postgres://barberia_app:app_test@localhost:5432/postgres?sslmode=disable"
+//	export TEST_DATABASE_URL="postgres://agenda_app:app_test@localhost:5432/postgres?sslmode=disable"
 //	go test -race ./internal/modules/auth/postgres/...
 package postgres_test
 
@@ -19,10 +19,10 @@ import (
 	"testing"
 	"time"
 
-	"system-barbershop/internal/modules/auth"
-	authpostgres "system-barbershop/internal/modules/auth/postgres"
-	"system-barbershop/internal/platform/config"
-	"system-barbershop/internal/platform/database"
+	"nava-agenda/internal/modules/auth"
+	authpostgres "nava-agenda/internal/modules/auth/postgres"
+	"nava-agenda/internal/platform/config"
+	"nava-agenda/internal/platform/database"
 )
 
 // uniqueToken evita que reejecuciones de la suite contra la misma base de
@@ -46,7 +46,7 @@ const (
 
 	emailActiveA   = "duena.a@ejemplo.test"
 	emailActiveB   = "dueno.b@ejemplo.test"
-	emailInactiveB = "barbero.b@ejemplo.test" // is_active=false en dos_barberias.sql
+	emailInactiveB = "barbero.b@ejemplo.test" // is_active=false en dos_negocios.sql
 	emailUnknown   = "no-existe-en-ningun-lado@ejemplo.test"
 
 	staffUserActiveA = "aaaaaaa1-aaaa-aaaa-aaaa-aaaaaaaaaaa1"
@@ -146,7 +146,7 @@ func TestLookupCredential_ResolvedTenant_ReturnsMatchingCredential(t *testing.T)
 
 // TestLookupCredential_UnresolvedTenant_UsesDecoyWithoutError es la
 // evidencia de PostgreSQL real de CA-005-02: el camino "no resuelto" ejecuta
-// la MISMA forma de consulta que el resuelto (decoyBarbershopID +
+// la MISMA forma de consulta que el resuelto (decoyBusinessID +
 // decoyStaffUserID), sin error, y sin encontrar nada.
 func TestLookupCredential_UnresolvedTenant_UsesDecoyWithoutError(t *testing.T) {
 	db := setupTestDB(t)
@@ -197,7 +197,7 @@ func TestCreateSession_PersistsRetrievableSessionScopedToTenant(t *testing.T) {
 	// proyecto, que la fila existe dentro del tenant correcto y NO es
 	// visible desde el tenant ajeno (RLS).
 	var countInA int
-	err := db.InTenantTx(context.Background(), database.BarbershopID(shopA), func(ctx context.Context, q database.Queries) error {
+	err := db.InTenantTx(context.Background(), database.BusinessID(shopA), func(ctx context.Context, q database.Queries) error {
 		return q.QueryRow(ctx, `SELECT count(*) FROM staff_session WHERE token_hash = $1`, tokenHash).Scan(&countInA)
 	})
 	if err != nil {
@@ -208,7 +208,7 @@ func TestCreateSession_PersistsRetrievableSessionScopedToTenant(t *testing.T) {
 	}
 
 	var countInB int
-	err = db.InTenantTx(context.Background(), database.BarbershopID(shopB), func(ctx context.Context, q database.Queries) error {
+	err = db.InTenantTx(context.Background(), database.BusinessID(shopB), func(ctx context.Context, q database.Queries) error {
 		return q.QueryRow(ctx, `SELECT count(*) FROM staff_session WHERE token_hash = $1`, tokenHash).Scan(&countInB)
 	})
 	if err != nil {

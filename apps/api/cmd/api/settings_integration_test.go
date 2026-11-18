@@ -3,10 +3,10 @@
 // session_context_integration_test.go (HU-012). Requieren las nueve
 // migraciones aplicadas (incluida
 // 20260823120000_add_barbershop_contact_info.sql) y
-// database/testdata/dos_barberias.sql + testdata/hu005_credenciales_sesiones.sql
+// database/testdata/dos_negocios.sql + testdata/hu005_credenciales_sesiones.sql
 // cargados.
 //
-//	export TEST_DATABASE_URL="postgres://barberia_app:app_test@localhost:5432/barberia_test?sslmode=disable"
+//	export TEST_DATABASE_URL="postgres://agenda_app:app_test@localhost:5432/postgres?sslmode=disable"
 //	go test -race ./cmd/api/...
 package main
 
@@ -20,10 +20,10 @@ import (
 	"strings"
 	"testing"
 
-	"system-barbershop/internal/platform/database"
+	"nava-agenda/internal/platform/database"
 )
 
-type barbershopSettingsBody struct {
+type businessSettingsBody struct {
 	Name         string  `json:"name"`
 	Timezone     string  `json:"timezone"`
 	ContactEmail *string `json:"contactEmail"`
@@ -40,7 +40,7 @@ func doGetSettingsRequest(router http.Handler, rawToken string) *httptest.Respon
 	return rec
 }
 
-func doPatchSettingsRequest(router http.Handler, rawToken string, body barbershopSettingsBody) *httptest.ResponseRecorder {
+func doPatchSettingsRequest(router http.Handler, rawToken string, body businessSettingsBody) *httptest.ResponseRecorder {
 	raw, err := json.Marshal(body)
 	if err != nil {
 		panic(err)
@@ -55,14 +55,14 @@ func doPatchSettingsRequest(router http.Handler, rawToken string, body barbersho
 	return rec
 }
 
-// restoreBarbershopRow deja shop en el mismo estado que dos_barberias.sql
+// restoreBusinessRow deja shop en el mismo estado que dos_negocios.sql
 // al terminar la prueba: estas pruebas de integración comparten esas dos
-// filas reales en vez de crear una barbería propia (HU-020 no expone alta
-// de barberías).
-func restoreBarbershopRow(t *testing.T, db *database.DB, shop, name string) {
+// filas reales en vez de crear un negocio propio (HU-020 no expone alta
+// de negocios).
+func restoreBusinessRow(t *testing.T, db *database.DB, shop, name string) {
 	t.Helper()
 	t.Cleanup(func() {
-		err := db.InTenantTx(context.Background(), database.BarbershopID(shop), func(ctx context.Context, q database.Queries) error {
+		err := db.InTenantTx(context.Background(), database.BusinessID(shop), func(ctx context.Context, q database.Queries) error {
 			_, err := q.Exec(ctx,
 				`UPDATE business SET name = $2, timezone = 'America/Bogota', contact_email = NULL, contact_phone = NULL WHERE id = $1`,
 				shop, name,
@@ -70,22 +70,22 @@ func restoreBarbershopRow(t *testing.T, db *database.DB, shop, name string) {
 			return err
 		})
 		if err != nil {
-			t.Fatalf("restoreBarbershopRow cleanup: %v", err)
+			t.Fatalf("restoreBusinessRow cleanup: %v", err)
 		}
 	})
 }
 
-// TestSettings_HTTP_ValidSession_ReturnsOwnBarbershop cubre CA-020-01 a
+// TestSettings_HTTP_ValidSession_ReturnsOwnBusiness cubre CA-020-01 a
 // nivel HTTP/PostgreSQL real: la lectura devuelve exactamente los cuatro
-// campos autorizados de la barbería propietaria de la sesión.
-func TestSettings_HTTP_ValidSession_ReturnsOwnBarbershop(t *testing.T) {
+// campos autorizados del negocio propietario de la sesión.
+func TestSettings_HTTP_ValidSession_ReturnsOwnBusiness(t *testing.T) {
 	db := setupTestDB(t)
 	t.Cleanup(func() { db.Close() })
 	router, err := buildRouter(db, discardLogger(), testRouterConfig())
 	if err != nil {
 		t.Fatalf("buildRouter: %v", err)
 	}
-	restoreBarbershopRow(t, db, shopA, "Barbería de prueba A")
+	restoreBusinessRow(t, db, shopA, "Barbería de prueba A")
 
 	raw := createSessionCookie(t, db, shopA, staffUserActiveA, "settings-get-a")
 	rec := doGetSettingsRequest(router, raw)
@@ -93,7 +93,7 @@ func TestSettings_HTTP_ValidSession_ReturnsOwnBarbershop(t *testing.T) {
 	if rec.Code != http.StatusOK {
 		t.Fatalf("expected 200, got %d: %s", rec.Code, rec.Body.String())
 	}
-	var body barbershopSettingsBody
+	var body businessSettingsBody
 	if err := json.Unmarshal(rec.Body.Bytes(), &body); err != nil {
 		t.Fatalf("decode response: %v: %s", err, rec.Body.String())
 	}
@@ -115,13 +115,13 @@ func TestSettings_HTTP_UpdateThenGet_PersistsAndRoundTrips(t *testing.T) {
 	if err != nil {
 		t.Fatalf("buildRouter: %v", err)
 	}
-	restoreBarbershopRow(t, db, shopA, "Barbería de prueba A")
+	restoreBusinessRow(t, db, shopA, "Barbería de prueba A")
 
 	raw := createSessionCookie(t, db, shopA, staffUserActiveA, "settings-update-a")
 	email := "contacto@ejemplo.test"
 	phone := "+573001234567"
 
-	patchRec := doPatchSettingsRequest(router, raw, barbershopSettingsBody{
+	patchRec := doPatchSettingsRequest(router, raw, businessSettingsBody{
 		Name: "Barbería renombrada", Timezone: "America/Bogota",
 		ContactEmail: &email, ContactPhone: &phone,
 	})
@@ -130,7 +130,7 @@ func TestSettings_HTTP_UpdateThenGet_PersistsAndRoundTrips(t *testing.T) {
 	}
 
 	getRec := doGetSettingsRequest(router, raw)
-	var body barbershopSettingsBody
+	var body businessSettingsBody
 	if err := json.Unmarshal(getRec.Body.Bytes(), &body); err != nil {
 		t.Fatalf("decode GET response: %v", err)
 	}
@@ -142,30 +142,30 @@ func TestSettings_HTTP_UpdateThenGet_PersistsAndRoundTrips(t *testing.T) {
 	}
 }
 
-// TestSettings_HTTP_TwoTenants_UpdateNeverCrossesBarbershops es la prueba
+// TestSettings_HTTP_TwoTenants_UpdateNeverCrossesBusinesses es la prueba
 // de aislamiento por tenant exigida por el prompt (CA-020-05): actualizar
-// la barbería de A, contra el endpoint real con dos tenants reales, nunca
+// el negocio de A, contra el endpoint real con dos tenants reales, nunca
 // afecta la de B.
-func TestSettings_HTTP_TwoTenants_UpdateNeverCrossesBarbershops(t *testing.T) {
+func TestSettings_HTTP_TwoTenants_UpdateNeverCrossesBusinesses(t *testing.T) {
 	db := setupTestDB(t)
 	t.Cleanup(func() { db.Close() })
 	router, err := buildRouter(db, discardLogger(), testRouterConfig())
 	if err != nil {
 		t.Fatalf("buildRouter: %v", err)
 	}
-	restoreBarbershopRow(t, db, shopA, "Barbería de prueba A")
-	restoreBarbershopRow(t, db, shopB, "Barbería de prueba B")
+	restoreBusinessRow(t, db, shopA, "Barbería de prueba A")
+	restoreBusinessRow(t, db, shopB, "Barbería de prueba B")
 
 	rawA := createSessionCookie(t, db, shopA, staffUserActiveA, "settings-tenant-a")
 	rawB := createSessionCookie(t, db, shopB, staffUserActiveB, "settings-tenant-b")
 
 	beforeB := doGetSettingsRequest(router, rawB)
-	var bodyBeforeB barbershopSettingsBody
+	var bodyBeforeB businessSettingsBody
 	if err := json.Unmarshal(beforeB.Body.Bytes(), &bodyBeforeB); err != nil {
 		t.Fatalf("decode shopB response before: %v", err)
 	}
 
-	patchRec := doPatchSettingsRequest(router, rawA, barbershopSettingsBody{
+	patchRec := doPatchSettingsRequest(router, rawA, businessSettingsBody{
 		Name: "Solo A debe cambiar", Timezone: "America/Bogota",
 	})
 	if patchRec.Code != http.StatusOK {
@@ -173,7 +173,7 @@ func TestSettings_HTTP_TwoTenants_UpdateNeverCrossesBarbershops(t *testing.T) {
 	}
 
 	afterB := doGetSettingsRequest(router, rawB)
-	var bodyAfterB barbershopSettingsBody
+	var bodyAfterB businessSettingsBody
 	if err := json.Unmarshal(afterB.Body.Bytes(), &bodyAfterB); err != nil {
 		t.Fatalf("decode shopB response after: %v", err)
 	}
@@ -182,7 +182,7 @@ func TestSettings_HTTP_TwoTenants_UpdateNeverCrossesBarbershops(t *testing.T) {
 	}
 
 	afterA := doGetSettingsRequest(router, rawA)
-	var bodyAfterA barbershopSettingsBody
+	var bodyAfterA businessSettingsBody
 	if err := json.Unmarshal(afterA.Body.Bytes(), &bodyAfterA); err != nil {
 		t.Fatalf("decode shopA response after: %v", err)
 	}
@@ -205,7 +205,7 @@ func TestSettings_HTTP_NoCookie_Returns401Uniform(t *testing.T) {
 	if rec := doGetSettingsRequest(router, ""); rec.Code != http.StatusUnauthorized {
 		t.Fatalf("expected 401 for GET without cookie, got %d", rec.Code)
 	}
-	if rec := doPatchSettingsRequest(router, "", barbershopSettingsBody{Name: "x", Timezone: "America/Bogota"}); rec.Code != http.StatusUnauthorized {
+	if rec := doPatchSettingsRequest(router, "", businessSettingsBody{Name: "x", Timezone: "America/Bogota"}); rec.Code != http.StatusUnauthorized {
 		t.Fatalf("expected 401 for PATCH without cookie, got %d", rec.Code)
 	}
 }
@@ -219,11 +219,11 @@ func TestSettings_HTTP_InvalidTimezone_Returns422WithoutPartialWrite(t *testing.
 	if err != nil {
 		t.Fatalf("buildRouter: %v", err)
 	}
-	restoreBarbershopRow(t, db, shopA, "Barbería de prueba A")
+	restoreBusinessRow(t, db, shopA, "Barbería de prueba A")
 
 	raw := createSessionCookie(t, db, shopA, staffUserActiveA, "settings-invalid-tz")
 
-	rec := doPatchSettingsRequest(router, raw, barbershopSettingsBody{
+	rec := doPatchSettingsRequest(router, raw, businessSettingsBody{
 		Name: "Nombre que no debe guardarse", Timezone: "COT",
 	})
 	if rec.Code != http.StatusUnprocessableEntity {
@@ -231,7 +231,7 @@ func TestSettings_HTTP_InvalidTimezone_Returns422WithoutPartialWrite(t *testing.
 	}
 
 	getRec := doGetSettingsRequest(router, raw)
-	var body barbershopSettingsBody
+	var body businessSettingsBody
 	if err := json.Unmarshal(getRec.Body.Bytes(), &body); err != nil {
 		t.Fatalf("decode GET response: %v", err)
 	}
@@ -241,7 +241,7 @@ func TestSettings_HTTP_InvalidTimezone_Returns422WithoutPartialWrite(t *testing.
 }
 
 // TestSettings_HTTP_UnknownField_Returns400 cubre CA-020-05: un intento de
-// enviar barbershopId en el cuerpo se rechaza como forma inválida, nunca
+// enviar businessId en el cuerpo se rechaza como forma inválida, nunca
 // se interpreta como el tenant.
 func TestSettings_HTTP_UnknownField_Returns400(t *testing.T) {
 	db := setupTestDB(t)
@@ -279,12 +279,12 @@ func TestSettings_HTTP_ThroughFullRouter_NeverLogsContactInfo(t *testing.T) {
 	if err != nil {
 		t.Fatalf("buildRouter: %v", err)
 	}
-	restoreBarbershopRow(t, db, shopA, "Barbería de prueba A")
+	restoreBusinessRow(t, db, shopA, "Barbería de prueba A")
 
 	raw := createSessionCookie(t, db, shopA, staffUserActiveA, "settings-log-safe")
 	email := "no-debe-aparecer-en-logs@ejemplo.test"
 	phone := "+573009998877"
-	rec := doPatchSettingsRequest(router, raw, barbershopSettingsBody{
+	rec := doPatchSettingsRequest(router, raw, businessSettingsBody{
 		Name: "Nombre no sensible", Timezone: "America/Bogota", ContactEmail: &email, ContactPhone: &phone,
 	})
 	if rec.Code != http.StatusOK {

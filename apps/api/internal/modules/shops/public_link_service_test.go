@@ -5,8 +5,8 @@ import (
 	"errors"
 	"testing"
 
-	"system-barbershop/internal/modules/shops"
-	"system-barbershop/internal/platform/apperr"
+	"nava-agenda/internal/modules/shops"
+	"nava-agenda/internal/platform/apperr"
 )
 
 type fakePublicLinkRepository struct {
@@ -16,14 +16,14 @@ type fakePublicLinkRepository struct {
 	gotShopID string
 }
 
-func (f *fakePublicLinkRepository) Ensure(_ context.Context, barbershopID string) (string, bool, error) {
-	f.gotShopID = barbershopID
+func (f *fakePublicLinkRepository) Ensure(_ context.Context, businessID string) (string, bool, error) {
+	f.gotShopID = businessID
 	return f.slug, f.found, f.err
 }
 
 var _ shops.PublicLinkRepository = (*fakePublicLinkRepository)(nil)
 
-func TestPublicLinkService_Get_ReturnsTheSlugOfTheSessionBarbershop(t *testing.T) {
+func TestPublicLinkService_Get_ReturnsTheSlugOfTheSessionBusiness(t *testing.T) {
 	repo := &fakePublicLinkRepository{slug: "cortefinok7x2m9q4", found: true}
 	got, err := shops.NewPublicLinkService(repo).Get(context.Background(), "shop-1")
 	if err != nil {

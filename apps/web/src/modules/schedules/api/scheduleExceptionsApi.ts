@@ -23,7 +23,7 @@ import type {
 } from '../model/exceptionOutcome'
 
 // EXCEPTIONS_LIMIT cubre en una sola página cualquier configuración real de
-// un barbero (unas pocas excepciones por año), evitando paginar
+// un profesional (unas pocas excepciones por año), evitando paginar
 // internamente (mismo criterio que WORKING_HOURS_LIMIT).
 const EXCEPTIONS_LIMIT = 50
 
@@ -32,12 +32,14 @@ export interface ScheduleExceptionSegmentInput {
   durationMinutes: number
 }
 
-export async function fetchHolidayCalendar(barberId: string): Promise<FetchHolidayCalendarOutcome> {
+export async function fetchHolidayCalendar(
+  professionalId: string,
+): Promise<FetchHolidayCalendarOutcome> {
   try {
     const { data, response } = await httpClient.GET(
       '/private/professionals/{professionalId}/holiday-calendar',
       {
-        params: { path: { professionalId: barberId } },
+        params: { path: { professionalId: professionalId } },
       },
     )
 
@@ -57,14 +59,14 @@ export async function fetchHolidayCalendar(barberId: string): Promise<FetchHolid
 }
 
 export async function updateHolidayCalendar(
-  barberId: string,
+  professionalId: string,
   enabled: boolean,
 ): Promise<UpdateHolidayCalendarOutcome> {
   try {
     const { data, response } = await httpClient.PATCH(
       '/private/professionals/{professionalId}/holiday-calendar',
       {
-        params: { path: { professionalId: barberId } },
+        params: { path: { professionalId: professionalId } },
         body: { enabled },
       },
     )
@@ -85,12 +87,12 @@ export async function updateHolidayCalendar(
 }
 
 export async function fetchScheduleExceptions(
-  barberId: string,
+  professionalId: string,
 ): Promise<FetchScheduleExceptionsOutcome> {
   try {
     const { data, response } = await httpClient.GET(
       '/private/professionals/{professionalId}/schedule-exceptions',
-      { params: { path: { professionalId: barberId }, query: { limit: EXCEPTIONS_LIMIT } } },
+      { params: { path: { professionalId: professionalId }, query: { limit: EXCEPTIONS_LIMIT } } },
     )
 
     if (response.ok && data) {
@@ -109,7 +111,7 @@ export async function fetchScheduleExceptions(
 }
 
 export async function createScheduleException(
-  barberId: string,
+  professionalId: string,
   effectiveDate: string,
   isClosed: boolean,
   reason: string | null,
@@ -121,7 +123,7 @@ export async function createScheduleException(
       '/private/professionals/{professionalId}/schedule-exceptions',
       {
         params: {
-          path: { professionalId: barberId },
+          path: { professionalId: professionalId },
           header: { 'Idempotency-Key': idempotencyKey },
         },
         body: { effectiveDate, isClosed, reason, segments },
@@ -154,7 +156,7 @@ export async function createScheduleException(
 }
 
 export async function updateScheduleException(
-  barberId: string,
+  professionalId: string,
   exceptionId: string,
   effectiveDate: string,
   isClosed: boolean,
@@ -165,7 +167,7 @@ export async function updateScheduleException(
     const { data, response } = await httpClient.PATCH(
       '/private/professionals/{professionalId}/schedule-exceptions/{exceptionId}',
       {
-        params: { path: { professionalId: barberId, exceptionId } },
+        params: { path: { professionalId: professionalId, exceptionId } },
         body: { effectiveDate, isClosed, reason, segments },
       },
     )
@@ -190,13 +192,13 @@ export async function updateScheduleException(
 }
 
 export async function deleteScheduleException(
-  barberId: string,
+  professionalId: string,
   exceptionId: string,
 ): Promise<DeleteScheduleExceptionOutcome> {
   try {
     const { response } = await httpClient.DELETE(
       '/private/professionals/{professionalId}/schedule-exceptions/{exceptionId}',
-      { params: { path: { professionalId: barberId, exceptionId } } },
+      { params: { path: { professionalId: professionalId, exceptionId } } },
     )
 
     if (response.ok) {
@@ -214,8 +216,8 @@ export async function deleteScheduleException(
   }
 }
 
-// fetchColombianHolidays no depende de ningún barbero ni excepción: es un
-// dato de referencia igual para toda la barbería (RN-BLQ-02).
+// fetchColombianHolidays no depende de ningún profesional ni excepción: es un
+// dato de referencia igual para todo el negocio (RN-BLQ-02).
 export async function fetchColombianHolidays(year: number): Promise<FetchColombianHolidaysOutcome> {
   try {
     const { data, response } = await httpClient.GET('/private/schedule/colombian-holidays', {

@@ -10,11 +10,11 @@ import { createServer } from 'node:http'
 // el cálculo de la línea temporal (bounds/posición) porque esos turnos ya
 // no son adyacentes al día mostrado. Con fecha relativa la demo sigue
 // siendo válida sin importar cuándo se ejecute.
-const barbers = [
-  { id: 'barber-julian', fullName: 'Julián Rodríguez' },
-  { id: 'barber-andres', fullName: 'Andrés Beltrán' },
-  { id: 'barber-camilo', fullName: 'Camilo Restrepo' },
-  { id: 'barber-tomas', fullName: 'Tomás Iriarte' },
+const professionals = [
+  { id: 'professional-julian', fullName: 'Julián Rodríguez' },
+  { id: 'professional-andres', fullName: 'Andrés Beltrán' },
+  { id: 'professional-camilo', fullName: 'Camilo Restrepo' },
+  { id: 'professional-tomas', fullName: 'Tomás Iriarte' },
 ]
 
 const BOGOTA_OFFSET = '-05:00'
@@ -172,11 +172,11 @@ createServer(async (request, response) => {
     })
     return
   }
-  if (pathname === '/api/v1/private/barbers') {
-    respond(response, 200, { items: barbers })
+  if (pathname === '/api/v1/private/professionals') {
+    respond(response, 200, { items: professionals })
     return
   }
-  if (pathname === '/api/v1/private/settings/barbershop') {
+  if (pathname === '/api/v1/private/settings/business') {
     respond(response, 200, { timezone: 'America/Bogota' })
     return
   }

@@ -32,7 +32,7 @@ export function listTimezones(extra: readonly string[] = []): string[] {
     zones = []
   }
   if (zones.length === 0) zones = [...FALLBACK_TIMEZONES]
-  // La zona vigente de la barbería siempre aparece, aunque el navegador no la liste.
+  // La zona vigente del negocio siempre aparece, aunque el navegador no la liste.
   const all = new Set([...zones, ...extra.filter(Boolean)])
   return [...all].sort((a, b) => a.localeCompare(b, 'en'))
 }

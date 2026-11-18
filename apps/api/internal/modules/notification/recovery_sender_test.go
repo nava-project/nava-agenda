@@ -5,7 +5,7 @@ import (
 	"errors"
 	"testing"
 
-	"system-barbershop/internal/modules/notification"
+	"nava-agenda/internal/modules/notification"
 )
 
 type spyChannel struct {

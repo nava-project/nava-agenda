@@ -4,7 +4,7 @@ import (
 	"reflect"
 	"testing"
 
-	"system-barbershop/internal/modules/customeraccess/httpapi"
+	"nava-agenda/internal/modules/customeraccess/httpapi"
 )
 
 // HU-106: los DTO de las rutas de Odin y de la verificación por referencia son

@@ -18,9 +18,9 @@ vi.mock('@/shared/api/httpClient', () => ({
 const { default: PublicServiceCatalogPage } = await import('../PublicServiceCatalogPage.vue')
 
 // RouterLink stubbed en vez de un router real (mismo patrón que
-// PublicBarbershopEntryPage.test.ts): esta suite verifica el componente en
+// PublicBusinessEntryPage.test.ts): esta suite verifica el componente en
 // aislamiento, no el enrutamiento, y el CTA "Continuar" (HU-092) navega a
-// la ruta de selección de barbero del servicio elegido.
+// la ruta de selección de profesional del servicio elegido.
 const RouterLinkStub = { name: 'RouterLink', props: ['to'], template: '<a><slot /></a>' }
 
 function mountCatalogPage(props: { slug: string }) {
@@ -121,7 +121,7 @@ describe('PublicServiceCatalogPage', () => {
     expect(wrapper.text()).toContain('20000.00 COP')
   })
 
-  it('shows an empty state when the barbershop has no public services yet (CA-091-04)', async () => {
+  it('shows an empty state when the business has no public services yet (CA-091-04)', async () => {
     getMock.mockResolvedValueOnce({
       data: { items: [], nextCursor: null },
       error: undefined,
@@ -284,7 +284,7 @@ describe('PublicServiceCatalogPage', () => {
     expect(wrapper.text()).not.toContain('Continuar')
   })
 
-  it('shows "Continuar" navigating to the barber selection route of the selected service (HU-092)', async () => {
+  it('shows "Continuar" navigating to the professional selection route of the selected service (HU-092)', async () => {
     getMock.mockResolvedValueOnce({
       data: { items: [serviceFixture({ id: 'a' })], nextCursor: null },
       error: undefined,
@@ -298,7 +298,7 @@ describe('PublicServiceCatalogPage', () => {
     const cta = wrapper.findComponent(RouterLinkStub)
     expect(cta.text()).toContain('Continuar')
     expect(cta.props('to')).toEqual({
-      name: 'reserva-publica-barbero',
+      name: 'reserva-publica-profesional',
       params: { slug: 'barberia-ejemplo', serviceId: 'a' },
     })
   })

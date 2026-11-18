@@ -1,12 +1,12 @@
 -- Fixture mínimo para database/tests/notification_lease_concurrency.sql.
 --
 -- Uso:
---   psql "$DATABASE_TEST_URL" -v ON_ERROR_STOP=1 -f testdata/dos_professionalias.sql
+--   psql "$DATABASE_TEST_URL" -v ON_ERROR_STOP=1 -f testdata/dos_negocios.sql
 --   psql "$DATABASE_TEST_URL" -v ON_ERROR_STOP=1 -f testdata/notification_lease_fixture.sql
 --
 -- Se ejecuta con el rol migrador (política administrativa sobre tablas con
 -- RLS forzada). Identificadores fijos e idempotente (ON CONFLICT DO NOTHING),
--- igual que dos_professionalias.sql: una sola cita conocida sobre la que las
+-- igual que dos_negocios.sql: una sola cita conocida sobre la que las
 -- pruebas de lease crean y destruyen sus propias filas de
 -- notification_schedule dentro de transacciones que revierten.
 --
@@ -14,7 +14,7 @@
 
 BEGIN;
 
--- Reutiliza la barbería A de dos_professionalias.sql si ya está cargada; si no,
+-- Reutiliza el negocio A de dos_negocios.sql si ya está cargada; si no,
 -- la crea aquí para que este fixture también funcione de forma aislada.
 INSERT INTO business (id, name, timezone) VALUES
   ('11111111-1111-1111-1111-111111111111', 'Barbería de prueba A', 'America/Bogota')

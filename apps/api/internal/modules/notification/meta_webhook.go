@@ -14,7 +14,7 @@ import (
 	"strings"
 	"time"
 
-	"system-barbershop/internal/modules/auth"
+	"nava-agenda/internal/modules/auth"
 )
 
 // metaSignaturePrefix es el esquema con el que Meta firma el cuerpo exacto de

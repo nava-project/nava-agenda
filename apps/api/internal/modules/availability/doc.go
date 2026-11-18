@@ -1,5 +1,5 @@
 // Package availability implementa el dominio puro de HU-094: proyectar los
-// inicios públicos válidos de un servicio, dado el barbero, dentro de una
+// inicios públicos válidos de un servicio, dado el profesional, dentro de una
 // ventana de fechas.
 //
 // Este paquete NO importa schedule, booking, catalog, shops, Chi ni pgx

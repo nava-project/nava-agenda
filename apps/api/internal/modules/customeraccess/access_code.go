@@ -12,7 +12,7 @@ import (
 	"strings"
 	"time"
 
-	"system-barbershop/internal/platform/apperr"
+	"nava-agenda/internal/platform/apperr"
 )
 
 // Política del acceso con código (DEC-178, HU-105). Son constantes del dominio

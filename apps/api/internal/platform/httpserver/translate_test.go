@@ -6,8 +6,8 @@ import (
 	"strings"
 	"testing"
 
-	"system-barbershop/internal/platform/apperr"
-	"system-barbershop/internal/platform/httpserver"
+	"nava-agenda/internal/platform/apperr"
+	"nava-agenda/internal/platform/httpserver"
 )
 
 func TestTranslate_NotFound_ExposesSafeMessage(t *testing.T) {
@@ -25,7 +25,7 @@ func TestTranslate_NotFound_ExposesSafeMessage(t *testing.T) {
 }
 
 // TestTranslate_NotFound_IdenticalForMissingAndCrossTenant es CA-003-03: un
-// recurso inexistente y uno de otra barbería deben producir exactamente el
+// recurso inexistente y uno de otro negocio deben producir exactamente el
 // mismo Problem. apperr solo ofrece un Kind para ambos casos, así que esta
 // prueba confirma que no hay forma de invocar Translate que los distinga.
 func TestTranslate_NotFound_IdenticalForMissingAndCrossTenant(t *testing.T) {

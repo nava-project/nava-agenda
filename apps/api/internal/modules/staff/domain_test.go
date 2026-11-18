@@ -4,8 +4,8 @@ import (
 	"testing"
 	"time"
 
-	"system-barbershop/internal/modules/staff"
-	"system-barbershop/internal/platform/apperr"
+	"nava-agenda/internal/modules/staff"
+	"nava-agenda/internal/platform/apperr"
 )
 
 func TestNormalizeFullName_TrimsSurroundingSpaces(t *testing.T) {
@@ -22,16 +22,16 @@ func TestNormalizeFullName_PreservesInternalUnicode(t *testing.T) {
 	}
 }
 
-func TestLooksLikeBarberID_AcceptsCanonicalUUID(t *testing.T) {
-	if !staff.LooksLikeBarberID("8f3ac2b1-e4d5-46f6-a7c8-d9e0f1a2b3c4") {
+func TestLooksLikeProfessionalID_AcceptsCanonicalUUID(t *testing.T) {
+	if !staff.LooksLikeProfessionalID("8f3ac2b1-e4d5-46f6-a7c8-d9e0f1a2b3c4") {
 		t.Fatal("expected a canonical UUID to be accepted")
 	}
 }
 
-func TestLooksLikeBarberID_RejectsMalformedValues(t *testing.T) {
-	cases := []string{"", "not-a-uuid", "8f3ac2b1e4d546f6a7c8d9e0f1a2b3c4", "'; DROP TABLE barber; --"}
+func TestLooksLikeProfessionalID_RejectsMalformedValues(t *testing.T) {
+	cases := []string{"", "not-a-uuid", "8f3ac2b1e4d546f6a7c8d9e0f1a2b3c4", "'; DROP TABLE professional; --"}
 	for _, c := range cases {
-		if staff.LooksLikeBarberID(c) {
+		if staff.LooksLikeProfessionalID(c) {
 			t.Fatalf("expected %q to be rejected", c)
 		}
 	}

@@ -8,8 +8,8 @@ import (
 	"unicode/utf8"
 )
 
-// NameMaxLength y TimezoneMaxLength coinciden con barbershop_name_ck y
-// barbershop_timezone_ck (20260807170000_create_tenant_foundation.sql): el
+// NameMaxLength y TimezoneMaxLength coinciden con business_name_ck y
+// business_timezone_ck (20260807170000_create_tenant_foundation.sql): el
 // servicio no inventa un límite más estricto que la base ya aplica
 // (CA-020-07).
 const (
@@ -17,19 +17,19 @@ const (
 	TimezoneMaxLength = 64
 )
 
-// Barbershop es la configuración básica de la barbería activa que HU-020
+// Business es la configuración básica del negocio activo que HU-020
 // expone: exactamente los cuatro campos autorizados (CA-020-07), nunca
 // public_slug, logotipo ni ningún otro dato de F-PUB-01. ContactEmail y
-// ContactPhone son nil cuando la barbería no tiene ese contacto configurado
+// ContactPhone son nil cuando el negocio no tiene ese contacto configurado
 // (ausencia real, no cadena vacía).
-type Barbershop struct {
+type Business struct {
 	Name         string
 	Timezone     string
 	ContactEmail *string
 	ContactPhone *string
 }
 
-// NormalizeName recorta espacios, igual que barbershop_name_ck espera
+// NormalizeName recorta espacios, igual que business_name_ck espera
 // (btrim). No trunca ni rechaza: el largo se valida aparte.
 func NormalizeName(raw string) string {
 	return strings.TrimSpace(raw)
@@ -81,24 +81,24 @@ var (
 )
 
 const (
-	// SlugMaxLength/SlugMinLength coinciden con barbershop_public_slug_ck
+	// SlugMaxLength/SlugMinLength coinciden con business_public_slug_ck
 	// (^[a-z0-9]([a-z0-9-]{1,38}[a-z0-9])$): 3 a 40 caracteres.
 	SlugMaxLength = 40
 	SlugMinLength = 3
 	// slugFallback es el respaldo determinista cuando el nombre no aporta
 	// ningún carácter latino alfanumérico (caso patológico: nombre vacío
 	// tras normalizar, solo símbolos, solo un alfabeto no latino, etc.).
-	slugFallback = "barberia"
+	slugFallback = "negocio"
 )
 
 // SlugBase deriva la base del slug público (DEC-082, resuelve DP-PUB-01; el
 // código aleatorio final lo añade DEC-117 con SlugWithCode, y DEC-118 la deja
 // sin guiones) a partir de un nombre YA normalizado (NormalizeName):
 // minúsculas, plegado ASCII de acentos y todo carácter fuera de [a-z0-9]
-// eliminado, de modo que «Mateo · Barbero» da «mateobarbero». Truncada a
+// eliminado, de modo que «Mateo · Profesional» da «mateoprofesional». Truncada a
 // SlugMaxLength. Pura: no toca la base de datos ni decide la unicidad global
 // -eso lo resuelve el repositorio reintentando con otro código (SlugWithCode)
-// ante un unique_violation real sobre idx_barbershop_public_slug-.
+// ante un unique_violation real sobre idx_business_public_slug-.
 func SlugBase(name string) string {
 	folded := slugFoldReplacer.Replace(strings.ToLower(name))
 	base := slugNonAlnumPattern.ReplaceAllString(folded, "")
@@ -117,14 +117,14 @@ const slugCodeAlphabet = "abcdefghjkmnpqrstuvwxyz23456789"
 
 // SlugCodeLength es el largo del código aleatorio del slug público (DEC-118,
 // que lo sube de 6 a 8): 31^8 ≈ 852 mil millones de combinaciones por nombre,
-// suficiente para que el enlace de otra barbería no se pueda adivinar ni
+// suficiente para que el enlace de otro negocio no se pueda adivinar ni
 // enumerar, y todavía corto para que el enlace se lea y se dicte.
 const SlugCodeLength = 8
 
 // NewSlugCode devuelve un código aleatorio de SlugCodeLength símbolos de
 // slugCodeAlphabet, sacado de crypto/rand (DEC-117). No es un secreto de
 // autenticación: el enlace público es compartible por diseño; el código solo
-// vuelve inviable adivinar el de otra barbería. Un fallo de crypto/rand es
+// vuelve inviable adivinar el de otro negocio. Un fallo de crypto/rand es
 // irrecuperable para quien genera el slug, así que se propaga como error en
 // lugar de caer en un valor predecible.
 func NewSlugCode() (string, error) {
@@ -136,7 +136,7 @@ func NewSlugCode() (string, error) {
 	for i, b := range raw {
 		// 256 no es múltiplo de 31: el módulo sesga ~3 % hacia los primeros
 		// símbolos, irrelevante para un identificador sin valor de secreto
-		// y con unicidad garantizada por idx_barbershop_public_slug.
+		// y con unicidad garantizada por idx_business_public_slug.
 		code[i] = slugCodeAlphabet[int(b)%len(slugCodeAlphabet)]
 	}
 	return string(code), nil

@@ -4,7 +4,7 @@ import (
 	"context"
 	"time"
 
-	"system-barbershop/internal/platform/idempotency"
+	"nava-agenda/internal/platform/idempotency"
 )
 
 // CustomerAppointmentCancellerAdapter satisface, de forma puramente
@@ -25,11 +25,11 @@ func NewCustomerAppointmentCancellerAdapter(service *CancelAppointmentByCustomer
 // CancelAppointment implementa customeraccess.AppointmentCanceller.
 func (a CustomerAppointmentCancellerAdapter) CancelAppointment(
 	ctx context.Context,
-	barbershopID, appointmentID, expectedVersionToken, reason string,
+	businessID, appointmentID, expectedVersionToken, reason string,
 	key idempotency.Key,
 	fingerprint idempotency.Fingerprint,
 ) (idempotency.Decision, idempotency.StoredResponse, error) {
-	result, err := a.service.CancelAppointmentByCustomer(ctx, barbershopID, CancelAppointmentByCustomerRequest{
+	result, err := a.service.CancelAppointmentByCustomer(ctx, businessID, CancelAppointmentByCustomerRequest{
 		AppointmentID:        appointmentID,
 		ExpectedVersionToken: expectedVersionToken,
 		Reason:               reason,
@@ -53,18 +53,18 @@ func NewCustomerAppointmentReschedulerAdapter(service *RescheduleAppointmentByCu
 }
 
 // ListRescheduleStarts implementa customeraccess.AppointmentRescheduler.
-func (a CustomerAppointmentReschedulerAdapter) ListRescheduleStarts(ctx context.Context, barbershopID, appointmentID string) ([]time.Time, error) {
-	return a.service.ListRescheduleStarts(ctx, barbershopID, appointmentID)
+func (a CustomerAppointmentReschedulerAdapter) ListRescheduleStarts(ctx context.Context, businessID, appointmentID string) ([]time.Time, error) {
+	return a.service.ListRescheduleStarts(ctx, businessID, appointmentID)
 }
 
 // RescheduleAppointment implementa customeraccess.AppointmentRescheduler.
 func (a CustomerAppointmentReschedulerAdapter) RescheduleAppointment(
 	ctx context.Context,
-	barbershopID, appointmentID, startsAt, expectedVersionToken string,
+	businessID, appointmentID, startsAt, expectedVersionToken string,
 	key idempotency.Key,
 	fingerprint idempotency.Fingerprint,
 ) (idempotency.Decision, idempotency.StoredResponse, error) {
-	result, err := a.service.RescheduleAppointmentByCustomer(ctx, barbershopID, appointmentID, startsAt, expectedVersionToken, key, fingerprint)
+	result, err := a.service.RescheduleAppointmentByCustomer(ctx, businessID, appointmentID, startsAt, expectedVersionToken, key, fingerprint)
 	if err != nil {
 		return idempotency.Decision{}, idempotency.StoredResponse{}, err
 	}

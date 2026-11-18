@@ -11,9 +11,9 @@ import (
 	"testing"
 	"time"
 
-	"system-barbershop/internal/modules/auth"
-	"system-barbershop/internal/modules/auth/httpapi"
-	"system-barbershop/internal/platform/httpserver"
+	"nava-agenda/internal/modules/auth"
+	"nava-agenda/internal/modules/auth/httpapi"
+	"nava-agenda/internal/platform/httpserver"
 )
 
 // --- doble mínimo del núcleo, para probar SOLO la capa HTTP ---------------
@@ -32,9 +32,9 @@ type spySessionRepo struct {
 	revokeErr   error
 	revokeCalls int
 
-	barbershopName      string
-	barbershopNameErr   error
-	barbershopNameCalls int
+	businessName      string
+	businessNameErr   error
+	businessNameCalls int
 }
 
 func (s *spySessionRepo) ResolveSessionTenant(context.Context, string) (string, bool, error) {
@@ -52,9 +52,9 @@ func (s *spySessionRepo) RevokeSession(context.Context, string, string, time.Tim
 	return s.revokeErr
 }
 
-func (s *spySessionRepo) BarbershopName(context.Context, string) (string, error) {
-	s.barbershopNameCalls++
-	return s.barbershopName, s.barbershopNameErr
+func (s *spySessionRepo) BusinessName(context.Context, string) (string, error) {
+	s.businessNameCalls++
+	return s.businessName, s.businessNameErr
 }
 
 func newSessionMiddleware(t *testing.T, repo *spySessionRepo) *httpapi.SessionMiddleware {
@@ -160,7 +160,7 @@ func TestSessionMiddleware_UnknownRevokedOrExpiredToken_Returns401Uniform(t *tes
 }
 
 func TestSessionMiddleware_ValidSession_CallsNextWithPrincipalInContext(t *testing.T) {
-	principal := auth.Principal{SessionID: "s-1", StaffUserID: "u-1", BarbershopID: "shop-1"}
+	principal := auth.Principal{SessionID: "s-1", StaffUserID: "u-1", BusinessID: "shop-1"}
 	repo := &spySessionRepo{resolveShop: "shop-1", resolveFound: true, renewValid: true, renewPrincipal: principal}
 	mw := newSessionMiddleware(t, repo)
 	var called bool
@@ -179,7 +179,7 @@ func TestSessionMiddleware_ValidSession_CallsNextWithPrincipalInContext(t *testi
 // reemite con el mismo token y el Expires renovado, no solo se extiende en BD.
 func TestSessionMiddleware_ValidSession_ReissuesTheCookieWithTheRenewedExpiry(t *testing.T) {
 	renewed := time.Date(2026, 9, 12, 0, 0, 0, 0, time.UTC)
-	principal := auth.Principal{SessionID: "s-1", StaffUserID: "u-1", BarbershopID: "shop-1", ExpiresAt: renewed}
+	principal := auth.Principal{SessionID: "s-1", StaffUserID: "u-1", BusinessID: "shop-1", ExpiresAt: renewed}
 	repo := &spySessionRepo{resolveShop: "shop-1", resolveFound: true, renewValid: true, renewPrincipal: principal}
 	mw := newSessionMiddleware(t, repo)
 	var called bool
@@ -244,7 +244,7 @@ func TestSessionMiddleware_ThroughFullRouter_NeverLogsSessionMaterial(t *testing
 	var logBuf bytes.Buffer
 	logger := slog.New(slog.NewJSONHandler(&logBuf, nil))
 
-	principal := auth.Principal{SessionID: "s-1", StaffUserID: "u-1", BarbershopID: "shop-1"}
+	principal := auth.Principal{SessionID: "s-1", StaffUserID: "u-1", BusinessID: "shop-1"}
 	repo := &spySessionRepo{resolveShop: "shop-1", resolveFound: true, renewValid: true, renewPrincipal: principal}
 	mw := newSessionMiddleware(t, repo)
 

@@ -4,19 +4,23 @@
 // los outcomes discriminados que la página consume; ningún componente ve
 // `Problem`, `status` HTTP crudo ni cabeceras.
 import { httpClient } from '@/shared/api/httpClient'
-import type { Barber, BarberPage, NumberedBarberPage } from '../model/barber'
 import type {
-  CreateBarberOutcome,
-  FetchBarbersOutcome,
-  FetchMyBarberOutcome,
-  LinkMyBarberOutcome,
-  RemoveBarberPhotoOutcome,
-  RenameBarberOutcome,
-  UnlinkMyBarberOutcome,
-  UploadBarberPhotoOutcome,
+  Professional,
+  ProfessionalPage,
+  NumberedProfessionalPage,
+} from '../model/professional'
+import type {
+  CreateProfessionalOutcome,
+  FetchProfessionalsOutcome,
+  FetchMyProfessionalOutcome,
+  LinkMyProfessionalOutcome,
+  RemoveProfessionalPhotoOutcome,
+  RenameProfessionalOutcome,
+  UnlinkMyProfessionalOutcome,
+  UploadProfessionalPhotoOutcome,
 } from '../model/staffOutcome'
 
-export async function fetchBarbers(cursor?: string): Promise<FetchBarbersOutcome> {
+export async function fetchProfessionals(cursor?: string): Promise<FetchProfessionalsOutcome> {
   try {
     const { data, response } = await httpClient.GET('/private/professionals', {
       params: { query: cursor ? { cursor } : {} },
@@ -37,11 +41,12 @@ export async function fetchBarbers(cursor?: string): Promise<FetchBarbersOutcome
   }
 }
 
-export async function fetchBarberPage(
+export async function fetchProfessionalPage(
   page: number,
   pageSize: number,
 ): Promise<
-  { kind: 'success'; page: NumberedBarberPage } | { kind: 'network-error' | 'unexpected-error' }
+  | { kind: 'success'; page: NumberedProfessionalPage }
+  | { kind: 'network-error' | 'unexpected-error' }
 > {
   try {
     const { data, response } = await httpClient.GET('/private/professionals', {
@@ -58,7 +63,7 @@ export async function fetchBarberPage(
       return {
         kind: 'success',
         page: {
-          items: data.items.map(toBarber),
+          items: data.items.map(toProfessional),
           page: data.page,
           pageSize: data.pageSize,
           total: data.total,
@@ -74,11 +79,11 @@ export async function fetchBarberPage(
 
 // `description` es opcional (DEC-127): vacía o ausente equivale a «sin
 // descripción» y se omite del cuerpo.
-export async function createBarber(
+export async function createProfessional(
   fullName: string,
   idempotencyKey: string,
   description?: string,
-): Promise<CreateBarberOutcome> {
+): Promise<CreateProfessionalOutcome> {
   try {
     const { data, response } = await httpClient.POST('/private/professionals', {
       params: { header: { 'Idempotency-Key': idempotencyKey } },
@@ -86,7 +91,7 @@ export async function createBarber(
     })
 
     if (response.ok && data) {
-      return { kind: 'success', barber: toBarber(data) }
+      return { kind: 'success', professional: toProfessional(data) }
     }
 
     switch (response.status) {
@@ -105,14 +110,14 @@ export async function createBarber(
 // PATCH del nombre y, si se pasa `description`, de la descripción (DEC-127):
 // `undefined` la deja como está (no viaja en el cuerpo) y una cadena vacía la
 // quita (viaja como `null`).
-export async function renameBarber(
-  barberId: string,
+export async function renameProfessional(
+  professionalId: string,
   fullName: string,
   description?: string,
-): Promise<RenameBarberOutcome> {
+): Promise<RenameProfessionalOutcome> {
   try {
     const { data, response } = await httpClient.PATCH('/private/professionals/{professionalId}', {
-      params: { path: { professionalId: barberId } },
+      params: { path: { professionalId: professionalId } },
       body:
         description === undefined
           ? { fullName }
@@ -120,7 +125,7 @@ export async function renameBarber(
     })
 
     if (response.ok && data) {
-      return { kind: 'success', barber: toBarber(data) }
+      return { kind: 'success', professional: toProfessional(data) }
     }
 
     switch (response.status) {
@@ -136,17 +141,17 @@ export async function renameBarber(
   }
 }
 
-export { barberPhotoUrl } from '@/shared/api/barberPhotoUrl'
+export { professionalPhotoUrl } from '@/shared/api/professionalPhotoUrl'
 
-export async function uploadBarberPhoto(
-  barberId: string,
+export async function uploadProfessionalPhoto(
+  professionalId: string,
   photo: Blob,
-): Promise<UploadBarberPhotoOutcome> {
+): Promise<UploadProfessionalPhotoOutcome> {
   try {
     const { data, response } = await httpClient.PUT(
       '/private/professionals/{professionalId}/photo',
       {
-        params: { path: { professionalId: barberId } },
+        params: { path: { professionalId: professionalId } },
         // openapi-typescript tipa un cuerpo `format: binary` como `string`, pero
         // fetch envía un Blob tal cual: bodySerializer lo deja pasar sin
         // convertirlo a JSON y la cabecera declara el tipo real de la imagen.
@@ -157,7 +162,7 @@ export async function uploadBarberPhoto(
     )
 
     if (response.ok && data) {
-      return { kind: 'success', barber: toBarber(data) }
+      return { kind: 'success', professional: toProfessional(data) }
     }
 
     switch (response.status) {
@@ -173,10 +178,12 @@ export async function uploadBarberPhoto(
   }
 }
 
-export async function removeBarberPhoto(barberId: string): Promise<RemoveBarberPhotoOutcome> {
+export async function removeProfessionalPhoto(
+  professionalId: string,
+): Promise<RemoveProfessionalPhotoOutcome> {
   try {
     const { response } = await httpClient.DELETE('/private/professionals/{professionalId}/photo', {
-      params: { path: { professionalId: barberId } },
+      params: { path: { professionalId: professionalId } },
     })
 
     if (response.ok) return { kind: 'success' }
@@ -187,12 +194,12 @@ export async function removeBarberPhoto(barberId: string): Promise<RemoveBarberP
   }
 }
 
-// Vínculo del usuario autenticado con su barbero (DEC-100). Las tres
+// Vínculo del usuario autenticado con su profesional (DEC-100). Las tres
 // operaciones actúan sobre la sesión: ninguna envía un identificador de usuario.
-export async function fetchMyBarber(): Promise<FetchMyBarberOutcome> {
+export async function fetchMyProfessional(): Promise<FetchMyProfessionalOutcome> {
   try {
     const { data, response } = await httpClient.GET('/private/me/professional')
-    if (response.ok && data) return { kind: 'linked', barber: toBarber(data) }
+    if (response.ok && data) return { kind: 'linked', professional: toProfessional(data) }
     if (response.status === 404) return { kind: 'none' }
     return { kind: 'unexpected-error' }
   } catch {
@@ -200,12 +207,14 @@ export async function fetchMyBarber(): Promise<FetchMyBarberOutcome> {
   }
 }
 
-export async function linkMyBarber(barberId: string): Promise<LinkMyBarberOutcome> {
+export async function linkMyProfessional(
+  professionalId: string,
+): Promise<LinkMyProfessionalOutcome> {
   try {
     const { data, response } = await httpClient.PUT('/private/me/professional', {
-      body: { professionalId: barberId },
+      body: { professionalId: professionalId },
     })
-    if (response.ok && data) return { kind: 'success', barber: toBarber(data) }
+    if (response.ok && data) return { kind: 'success', professional: toProfessional(data) }
     switch (response.status) {
       case 404:
         return { kind: 'not-found' }
@@ -219,7 +228,7 @@ export async function linkMyBarber(barberId: string): Promise<LinkMyBarberOutcom
   }
 }
 
-export async function unlinkMyBarber(): Promise<UnlinkMyBarberOutcome> {
+export async function unlinkMyProfessional(): Promise<UnlinkMyProfessionalOutcome> {
   try {
     const { response } = await httpClient.DELETE('/private/me/professional')
     if (response.ok) return { kind: 'success' }
@@ -229,7 +238,7 @@ export async function unlinkMyBarber(): Promise<UnlinkMyBarberOutcome> {
   }
 }
 
-interface BarberWire {
+interface ProfessionalWire {
   id: string
   fullName: string
   createdAt: string
@@ -244,7 +253,7 @@ interface BarberWire {
   ratingCount?: number
 }
 
-function toBarber(data: BarberWire): Barber {
+function toProfessional(data: ProfessionalWire): Professional {
   return {
     id: data.id,
     fullName: data.fullName,
@@ -257,6 +266,6 @@ function toBarber(data: BarberWire): Barber {
   }
 }
 
-function toPage(data: { items: BarberWire[]; nextCursor: string | null }): BarberPage {
-  return { items: data.items.map(toBarber), nextCursor: data.nextCursor }
+function toPage(data: { items: ProfessionalWire[]; nextCursor: string | null }): ProfessionalPage {
+  return { items: data.items.map(toProfessional), nextCursor: data.nextCursor }
 }

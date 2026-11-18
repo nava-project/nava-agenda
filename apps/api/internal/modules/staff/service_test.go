@@ -7,9 +7,9 @@ import (
 	"testing"
 	"time"
 
-	"system-barbershop/internal/modules/staff"
-	"system-barbershop/internal/platform/apperr"
-	"system-barbershop/internal/platform/idempotency"
+	"nava-agenda/internal/modules/staff"
+	"nava-agenda/internal/platform/apperr"
+	"nava-agenda/internal/platform/idempotency"
 )
 
 // fakeRepository es un doble de staff.Repository para probar staff.Service
@@ -18,59 +18,59 @@ import (
 // RLS (eso vive en postgres/repository_test.go contra PostgreSQL real).
 type fakeRepository struct {
 	listPageFn    func(context.Context, string, int, int) (staff.PageResult, error)
-	listFn        func(ctx context.Context, barbershopID string, cursor *staff.Cursor, limit int) (staff.ListResult, error)
-	getFn         func(ctx context.Context, barbershopID, barberID string) (staff.Barber, bool, error)
-	createFn      func(ctx context.Context, barbershopID, fullName string, description *string, key idempotency.Key, fingerprint idempotency.Fingerprint) (staff.CreateResult, error)
-	updateFn      func(ctx context.Context, barbershopID, barberID, fullName string, description staff.DescriptionPatch) (staff.UpdateResult, error)
-	putPhotoFn    func(ctx context.Context, barbershopID, barberID string, photo staff.Photo) (staff.PhotoResult, error)
-	getPhotoFn    func(ctx context.Context, barbershopID, barberID string) (staff.StoredPhoto, bool, error)
-	deletePhotoFn func(ctx context.Context, barbershopID, barberID string) (bool, error)
-	getLinkedFn   func(ctx context.Context, barbershopID, staffUserID string) (staff.Barber, bool, error)
-	linkFn        func(ctx context.Context, barbershopID, staffUserID, barberID string) (staff.LinkResult, error)
-	unlinkFn      func(ctx context.Context, barbershopID, staffUserID string) (string, error)
+	listFn        func(ctx context.Context, businessID string, cursor *staff.Cursor, limit int) (staff.ListResult, error)
+	getFn         func(ctx context.Context, businessID, professionalID string) (staff.Professional, bool, error)
+	createFn      func(ctx context.Context, businessID, fullName string, description *string, key idempotency.Key, fingerprint idempotency.Fingerprint) (staff.CreateResult, error)
+	updateFn      func(ctx context.Context, businessID, professionalID, fullName string, description staff.DescriptionPatch) (staff.UpdateResult, error)
+	putPhotoFn    func(ctx context.Context, businessID, professionalID string, photo staff.Photo) (staff.PhotoResult, error)
+	getPhotoFn    func(ctx context.Context, businessID, professionalID string) (staff.StoredPhoto, bool, error)
+	deletePhotoFn func(ctx context.Context, businessID, professionalID string) (bool, error)
+	getLinkedFn   func(ctx context.Context, businessID, staffUserID string) (staff.Professional, bool, error)
+	linkFn        func(ctx context.Context, businessID, staffUserID, professionalID string) (staff.LinkResult, error)
+	unlinkFn      func(ctx context.Context, businessID, staffUserID string) (string, error)
 
 	createCalls int
 }
 
-func (f *fakeRepository) List(ctx context.Context, barbershopID string, cursor *staff.Cursor, limit int) (staff.ListResult, error) {
-	return f.listFn(ctx, barbershopID, cursor, limit)
+func (f *fakeRepository) List(ctx context.Context, businessID string, cursor *staff.Cursor, limit int) (staff.ListResult, error) {
+	return f.listFn(ctx, businessID, cursor, limit)
 }
 
-func (f *fakeRepository) Get(ctx context.Context, barbershopID, barberID string) (staff.Barber, bool, error) {
-	return f.getFn(ctx, barbershopID, barberID)
+func (f *fakeRepository) Get(ctx context.Context, businessID, professionalID string) (staff.Professional, bool, error) {
+	return f.getFn(ctx, businessID, professionalID)
 }
 
-func (f *fakeRepository) Create(ctx context.Context, barbershopID, fullName string, description *string, key idempotency.Key, fingerprint idempotency.Fingerprint) (staff.CreateResult, error) {
+func (f *fakeRepository) Create(ctx context.Context, businessID, fullName string, description *string, key idempotency.Key, fingerprint idempotency.Fingerprint) (staff.CreateResult, error) {
 	f.createCalls++
-	return f.createFn(ctx, barbershopID, fullName, description, key, fingerprint)
+	return f.createFn(ctx, businessID, fullName, description, key, fingerprint)
 }
 
-func (f *fakeRepository) Update(ctx context.Context, barbershopID, barberID, fullName string, description staff.DescriptionPatch) (staff.UpdateResult, error) {
-	return f.updateFn(ctx, barbershopID, barberID, fullName, description)
+func (f *fakeRepository) Update(ctx context.Context, businessID, professionalID, fullName string, description staff.DescriptionPatch) (staff.UpdateResult, error) {
+	return f.updateFn(ctx, businessID, professionalID, fullName, description)
 }
 
-func (f *fakeRepository) PutPhoto(ctx context.Context, barbershopID, barberID string, photo staff.Photo) (staff.PhotoResult, error) {
-	return f.putPhotoFn(ctx, barbershopID, barberID, photo)
+func (f *fakeRepository) PutPhoto(ctx context.Context, businessID, professionalID string, photo staff.Photo) (staff.PhotoResult, error) {
+	return f.putPhotoFn(ctx, businessID, professionalID, photo)
 }
 
-func (f *fakeRepository) GetPhoto(ctx context.Context, barbershopID, barberID string) (staff.StoredPhoto, bool, error) {
-	return f.getPhotoFn(ctx, barbershopID, barberID)
+func (f *fakeRepository) GetPhoto(ctx context.Context, businessID, professionalID string) (staff.StoredPhoto, bool, error) {
+	return f.getPhotoFn(ctx, businessID, professionalID)
 }
 
-func (f *fakeRepository) DeletePhoto(ctx context.Context, barbershopID, barberID string) (bool, error) {
-	return f.deletePhotoFn(ctx, barbershopID, barberID)
+func (f *fakeRepository) DeletePhoto(ctx context.Context, businessID, professionalID string) (bool, error) {
+	return f.deletePhotoFn(ctx, businessID, professionalID)
 }
 
-func (f *fakeRepository) GetLinked(ctx context.Context, barbershopID, staffUserID string) (staff.Barber, bool, error) {
-	return f.getLinkedFn(ctx, barbershopID, staffUserID)
+func (f *fakeRepository) GetLinked(ctx context.Context, businessID, staffUserID string) (staff.Professional, bool, error) {
+	return f.getLinkedFn(ctx, businessID, staffUserID)
 }
 
-func (f *fakeRepository) Link(ctx context.Context, barbershopID, staffUserID, barberID string) (staff.LinkResult, error) {
-	return f.linkFn(ctx, barbershopID, staffUserID, barberID)
+func (f *fakeRepository) Link(ctx context.Context, businessID, staffUserID, professionalID string) (staff.LinkResult, error) {
+	return f.linkFn(ctx, businessID, staffUserID, professionalID)
 }
 
-func (f *fakeRepository) Unlink(ctx context.Context, barbershopID, staffUserID string) (string, error) {
-	return f.unlinkFn(ctx, barbershopID, staffUserID)
+func (f *fakeRepository) Unlink(ctx context.Context, businessID, staffUserID string) (string, error) {
+	return f.unlinkFn(ctx, businessID, staffUserID)
 }
 
 var _ staff.Repository = (*fakeRepository)(nil)
@@ -228,17 +228,17 @@ func TestRename_NotFound_TranslatesToNotFound(t *testing.T) {
 	mustBeNotFound(t, err)
 }
 
-func TestRename_Found_ReturnsUpdatedBarberByID_NoDuplication(t *testing.T) {
+func TestRename_Found_ReturnsUpdatedProfessionalByID_NoDuplication(t *testing.T) {
 	id := "8f3ac2b1-e4d5-46f6-a7c8-d9e0f1a2b3c4"
-	updated := staff.Barber{ID: id, FullName: "Nuevo Nombre", CreatedAt: time.Now(), UpdatedAt: time.Now()}
-	repo := &fakeRepository{updateFn: func(_ context.Context, _, barberID, fullName string, _ staff.DescriptionPatch) (staff.UpdateResult, error) {
-		if barberID != id {
-			t.Fatalf("expected repository to receive id %q, got %q", id, barberID)
+	updated := staff.Professional{ID: id, FullName: "Nuevo Nombre", CreatedAt: time.Now(), UpdatedAt: time.Now()}
+	repo := &fakeRepository{updateFn: func(_ context.Context, _, professionalID, fullName string, _ staff.DescriptionPatch) (staff.UpdateResult, error) {
+		if professionalID != id {
+			t.Fatalf("expected repository to receive id %q, got %q", id, professionalID)
 		}
 		if fullName != "Nuevo Nombre" {
 			t.Fatalf("expected trimmed name, got %q", fullName)
 		}
-		return staff.UpdateResult{Found: true, Barber: updated}, nil
+		return staff.UpdateResult{Found: true, Professional: updated}, nil
 	}}
 	svc := staff.NewService(repo)
 
@@ -254,9 +254,9 @@ func TestRename_Found_ReturnsUpdatedBarberByID_NoDuplication(t *testing.T) {
 // --- Get: not-found unifica inexistente y ajeno (CA-021-05) --------------
 
 func TestGet_MalformedID_ReturnsNotFoundWithoutTouchingRepository(t *testing.T) {
-	repo := &fakeRepository{getFn: func(context.Context, string, string) (staff.Barber, bool, error) {
+	repo := &fakeRepository{getFn: func(context.Context, string, string) (staff.Professional, bool, error) {
 		t.Fatal("repository must not be called for a malformed id")
-		return staff.Barber{}, false, nil
+		return staff.Professional{}, false, nil
 	}}
 	svc := staff.NewService(repo)
 
@@ -265,8 +265,8 @@ func TestGet_MalformedID_ReturnsNotFoundWithoutTouchingRepository(t *testing.T) 
 }
 
 func TestGet_NotFound_TranslatesToNotFound(t *testing.T) {
-	repo := &fakeRepository{getFn: func(context.Context, string, string) (staff.Barber, bool, error) {
-		return staff.Barber{}, false, nil
+	repo := &fakeRepository{getFn: func(context.Context, string, string) (staff.Professional, bool, error) {
+		return staff.Professional{}, false, nil
 	}}
 	svc := staff.NewService(repo)
 
@@ -274,9 +274,9 @@ func TestGet_NotFound_TranslatesToNotFound(t *testing.T) {
 	mustBeNotFound(t, err)
 }
 
-func TestGet_Found_ReturnsBarber(t *testing.T) {
-	want := staff.Barber{ID: "8f3ac2b1-e4d5-46f6-a7c8-d9e0f1a2b3c4", FullName: "Carlos"}
-	repo := &fakeRepository{getFn: func(context.Context, string, string) (staff.Barber, bool, error) {
+func TestGet_Found_ReturnsProfessional(t *testing.T) {
+	want := staff.Professional{ID: "8f3ac2b1-e4d5-46f6-a7c8-d9e0f1a2b3c4", FullName: "Carlos"}
+	repo := &fakeRepository{getFn: func(context.Context, string, string) (staff.Professional, bool, error) {
 		return want, true, nil
 	}}
 	svc := staff.NewService(repo)
@@ -384,7 +384,7 @@ func TestList_InvalidCursor_RejectedWithoutTouchingRepository(t *testing.T) {
 
 // --- Fotografía (DEC-104) -------------------------------------------------
 
-const validBarberID = "8f3ac2b1-e4d5-46f6-a7c8-d9e0f1a2b3c4"
+const validProfessionalID = "8f3ac2b1-e4d5-46f6-a7c8-d9e0f1a2b3c4"
 
 func TestSetPhoto_InvalidImage_RejectedWithoutTouchingRepository(t *testing.T) {
 	repo := &fakeRepository{putPhotoFn: func(context.Context, string, string, staff.Photo) (staff.PhotoResult, error) {
@@ -393,11 +393,11 @@ func TestSetPhoto_InvalidImage_RejectedWithoutTouchingRepository(t *testing.T) {
 	}}
 	svc := staff.NewService(repo)
 
-	_, err := svc.SetPhoto(context.Background(), "shop-1", validBarberID, staff.PhotoContentTypeJPEG, []byte("no es una imagen"))
+	_, err := svc.SetPhoto(context.Background(), "shop-1", validProfessionalID, staff.PhotoContentTypeJPEG, []byte("no es una imagen"))
 	mustBeValidation(t, err)
 }
 
-func TestSetPhoto_MalformedBarberID_NotFoundWithoutTouchingRepository(t *testing.T) {
+func TestSetPhoto_MalformedProfessionalID_NotFoundWithoutTouchingRepository(t *testing.T) {
 	repo := &fakeRepository{putPhotoFn: func(context.Context, string, string, staff.Photo) (staff.PhotoResult, error) {
 		t.Fatal("repository must not be called for a malformed id")
 		return staff.PhotoResult{}, nil
@@ -408,63 +408,63 @@ func TestSetPhoto_MalformedBarberID_NotFoundWithoutTouchingRepository(t *testing
 	mustBeNotFound(t, err)
 }
 
-func TestSetPhoto_BarberMissing_NotFound(t *testing.T) {
+func TestSetPhoto_ProfessionalMissing_NotFound(t *testing.T) {
 	repo := &fakeRepository{putPhotoFn: func(context.Context, string, string, staff.Photo) (staff.PhotoResult, error) {
 		return staff.PhotoResult{Found: false}, nil
 	}}
 	svc := staff.NewService(repo)
 
-	_, err := svc.SetPhoto(context.Background(), "shop-1", validBarberID, staff.PhotoContentTypePNG, solidImage(t, "png", 128, 128))
+	_, err := svc.SetPhoto(context.Background(), "shop-1", validProfessionalID, staff.PhotoContentTypePNG, solidImage(t, "png", 128, 128))
 	mustBeNotFound(t, err)
 }
 
-func TestSetPhoto_Success_ForwardsValidatedPhotoAndReturnsBarber(t *testing.T) {
+func TestSetPhoto_Success_ForwardsValidatedPhotoAndReturnsProfessional(t *testing.T) {
 	data := solidImage(t, "jpeg", 256, 256)
 	now := time.Now().UTC()
 	var got staff.Photo
 	repo := &fakeRepository{putPhotoFn: func(_ context.Context, shop, id string, photo staff.Photo) (staff.PhotoResult, error) {
 		got = photo
-		if shop != "shop-1" || id != validBarberID {
+		if shop != "shop-1" || id != validProfessionalID {
 			t.Fatalf("unexpected scope: %s %s", shop, id)
 		}
-		return staff.PhotoResult{Found: true, Barber: staff.Barber{ID: id, FullName: "Carlos", PhotoUpdatedAt: &now}}, nil
+		return staff.PhotoResult{Found: true, Professional: staff.Professional{ID: id, FullName: "Carlos", PhotoUpdatedAt: &now}}, nil
 	}}
 	svc := staff.NewService(repo)
 
-	barber, err := svc.SetPhoto(context.Background(), "shop-1", validBarberID, staff.PhotoContentTypeJPEG, data)
+	professional, err := svc.SetPhoto(context.Background(), "shop-1", validProfessionalID, staff.PhotoContentTypeJPEG, data)
 	if err != nil {
 		t.Fatalf("SetPhoto: %v", err)
 	}
 	if got.ContentType != staff.PhotoContentTypeJPEG || !bytes.Equal(got.Data, data) {
 		t.Fatalf("the validated photo was not forwarded: %s", got.ContentType)
 	}
-	if barber.PhotoUpdatedAt == nil {
-		t.Fatal("expected photoUpdatedAt on the returned barber")
+	if professional.PhotoUpdatedAt == nil {
+		t.Fatal("expected photoUpdatedAt on the returned professional")
 	}
 }
 
-func TestPhoto_NotFound_CoversMissingBarberAndMissingPhotoAlike(t *testing.T) {
+func TestPhoto_NotFound_CoversMissingProfessionalAndMissingPhotoAlike(t *testing.T) {
 	repo := &fakeRepository{getPhotoFn: func(context.Context, string, string) (staff.StoredPhoto, bool, error) {
 		return staff.StoredPhoto{}, false, nil
 	}}
 	svc := staff.NewService(repo)
 
-	_, err := svc.Photo(context.Background(), "shop-1", validBarberID)
+	_, err := svc.Photo(context.Background(), "shop-1", validProfessionalID)
 	mustBeNotFound(t, err)
 	_, err = svc.Photo(context.Background(), "shop-1", "no-uuid")
 	mustBeNotFound(t, err)
 }
 
-func TestRemovePhoto_MissingBarber_NotFound_ButMissingPhotoIsSuccess(t *testing.T) {
+func TestRemovePhoto_MissingProfessional_NotFound_ButMissingPhotoIsSuccess(t *testing.T) {
 	found := false
 	repo := &fakeRepository{deletePhotoFn: func(context.Context, string, string) (bool, error) { return found, nil }}
 	svc := staff.NewService(repo)
 
-	mustBeNotFound(t, svc.RemovePhoto(context.Background(), "shop-1", validBarberID))
+	mustBeNotFound(t, svc.RemovePhoto(context.Background(), "shop-1", validProfessionalID))
 
 	found = true
-	if err := svc.RemovePhoto(context.Background(), "shop-1", validBarberID); err != nil {
-		t.Fatalf("removing when the barber exists must succeed, got %v", err)
+	if err := svc.RemovePhoto(context.Background(), "shop-1", validProfessionalID); err != nil {
+		t.Fatalf("removing when the professional exists must succeed, got %v", err)
 	}
 }
 
@@ -501,7 +501,7 @@ func TestListPage_DefaultsBoundsAndCanceledContext(t *testing.T) {
 	}
 }
 
-// --- Descripción del barbero (DEC-127) -------------------------------------
+// --- Descripción del profesional (DEC-127) -------------------------------------
 
 func descPtr(s string) *string { return &s }
 
@@ -578,7 +578,7 @@ func TestUpdate_Description_NotSetKeepsAndSetNormalizes(t *testing.T) {
 	var got staff.DescriptionPatch
 	repo := &fakeRepository{updateFn: func(_ context.Context, _, _, _ string, description staff.DescriptionPatch) (staff.UpdateResult, error) {
 		got = description
-		return staff.UpdateResult{Found: true, Barber: staff.Barber{ID: id}}, nil
+		return staff.UpdateResult{Found: true, Professional: staff.Professional{ID: id}}, nil
 	}}
 	svc := staff.NewService(repo)
 

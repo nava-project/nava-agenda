@@ -7,12 +7,12 @@ import (
 
 	"github.com/jackc/pgx/v5"
 
-	"system-barbershop/internal/modules/shops"
-	"system-barbershop/internal/platform/database"
+	"nava-agenda/internal/modules/shops"
+	"nava-agenda/internal/platform/database"
 )
 
 // BrandRepository implementa shops.BrandRepository sobre database.DB. Lee y
-// escribe las columnas de marca de `barbershop` (migración
+// escribe las columnas de marca de `business` (migración
 // 20261003120000_add_barbershop_brand.sql) sin tocar las de HU-020 ni las de
 // HU-093, y sin versión de concurrencia: son preferencias de presentación,
 // la última escritura gana. Comparte el mismo *database.DB.
@@ -28,23 +28,23 @@ func NewBrandRepository(db *database.DB) *BrandRepository {
 var _ shops.BrandRepository = (*BrandRepository)(nil)
 
 // Get implementa shops.BrandRepository.Get dentro de una transacción
-// tenant-aware. RLS (barbershop_select_tenant_policy) ya restringe la fila
-// visible a id = current_setting('app.barbershop_id'); el filtro explícito
+// tenant-aware. RLS (business_select_tenant_policy) ya restringe la fila
+// visible a id = current_setting('app.business_id'); el filtro explícito
 // WHERE id = $1 es defensa en profundidad, mismo patrón que Repository.Get.
-func (r *BrandRepository) Get(ctx context.Context, barbershopID string) (shops.Brand, bool, error) {
+func (r *BrandRepository) Get(ctx context.Context, businessID string) (shops.Brand, bool, error) {
 	var (
 		b     shops.Brand
 		found bool
 	)
 
-	err := r.db.InTenantTx(ctx, database.BarbershopID(barbershopID), func(ctx context.Context, q database.Queries) error {
+	err := r.db.InTenantTx(ctx, database.BusinessID(businessID), func(ctx context.Context, q database.Queries) error {
 		err := q.QueryRow(ctx,
 			`SELECT brand_accent, business_term, business_term_gender,
 			        professional_term, professional_term_plural, professional_term_gender,
 			        has_physical_location, address, latitude, longitude, offers_home_service
 			   FROM business
 			  WHERE id = $1`,
-			barbershopID,
+			businessID,
 		).Scan(&b.Accent, &b.BusinessTerm, &b.BusinessTermGender,
 			&b.ProfessionalTerm, &b.ProfessionalTermPlural, &b.ProfessionalTermGender,
 			&b.Location.HasPhysicalLocation, &b.Location.Address, &b.Location.Latitude, &b.Location.Longitude,
@@ -66,17 +66,17 @@ func (r *BrandRepository) Get(ctx context.Context, barbershopID string) (shops.B
 }
 
 // Update implementa shops.BrandRepository.Update con un único UPDATE ...
-// RETURNING filtrado por barbershopID (defensa en profundidad sobre
-// barbershop_update_tenant_policy). Una sola sentencia es atómica: o se
+// RETURNING filtrado por businessID (defensa en profundidad sobre
+// business_update_tenant_policy). Una sola sentencia es atómica: o se
 // escriben los seis campos y la ubicación pedida, o ninguno. La ubicación se
 // conserva salvo que location la cambie (DEC-130): $8 = interruptor ($8 NULL lo
 // conserva), $9 = reemplazar dirección y coordenadas a la vez y $13 = interruptor
 // de domicilio (DEC-131, NULL lo conserva), $14 = reemplazar la ficha de Google con $15
 // (DEC-129; $15 NULL la quita).
-func (r *BrandRepository) Update(ctx context.Context, barbershopID string, brand shops.Brand, location shops.LocationWrite) (shops.BrandUpdateResult, error) {
+func (r *BrandRepository) Update(ctx context.Context, businessID string, brand shops.Brand, location shops.LocationWrite) (shops.BrandUpdateResult, error) {
 	var result shops.BrandUpdateResult
 
-	err := r.db.InTenantTx(ctx, database.BarbershopID(barbershopID), func(ctx context.Context, q database.Queries) error {
+	err := r.db.InTenantTx(ctx, database.BusinessID(businessID), func(ctx context.Context, q database.Queries) error {
 		var b shops.Brand
 		err := q.QueryRow(ctx,
 			`UPDATE business
@@ -95,7 +95,7 @@ func (r *BrandRepository) Update(ctx context.Context, barbershopID string, brand
 			RETURNING brand_accent, business_term, business_term_gender,
 			          professional_term, professional_term_plural, professional_term_gender,
 			          has_physical_location, address, latitude, longitude, offers_home_service`,
-			barbershopID,
+			businessID,
 			brand.Accent, brand.BusinessTerm, string(brand.BusinessTermGender),
 			brand.ProfessionalTerm, brand.ProfessionalTermPlural, string(brand.ProfessionalTermGender),
 			location.HasPhysicalLocation, location.ReplaceAddress,

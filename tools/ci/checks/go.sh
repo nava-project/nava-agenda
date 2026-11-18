@@ -87,13 +87,13 @@ done
 psql -c "ALTER ROLE agenda_app PASSWORD 'app_test';"
 psql -c "ALTER ROLE agenda_worker PASSWORD 'worker_test';"
 
-echo "== testdata de dos barberías"
-for f in database/testdata/dos_barberias.sql \
+echo "== testdata de dos negocios"
+for f in database/testdata/dos_negocios.sql \
          database/testdata/staff_user_role_365.sql \
          database/testdata/empleado_restringido_605.sql \
          database/testdata/hu005_credenciales_sesiones.sql \
          database/testdata/hu007_reto_telefonico.sql \
-         database/testdata/hu021_barberos.sql \
+         database/testdata/hu021_profesionales.sql \
          database/testdata/hu022_catalogo.sql \
          database/testdata/hu023_asignaciones.sql \
          database/testdata/hu040_horario.sql \
@@ -102,7 +102,7 @@ for f in database/testdata/dos_barberias.sql \
          database/testdata/hu060_citas.sql \
          database/testdata/hu090_reserva_publica.sql \
          database/testdata/hu091_catalogo_publico.sql \
-         database/testdata/hu092_seleccion_barbero.sql \
+         database/testdata/hu092_seleccion_profesional.sql \
          database/testdata/hu093_politica_reserva.sql \
          database/testdata/hu094_disponibilidad.sql \
          database/testdata/hu098_acceso_turno.sql \

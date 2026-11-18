@@ -5,15 +5,15 @@
 // componentes internos del módulo.
 //
 // `/reservar/:slug` es la entrada pública (HU-090), `/reservar/:slug/servicios`
-// el catálogo público de servicios (HU-091), `/reservar/:slug/servicios/:serviceId/barbero`
-// la selección pública de barbero (HU-092),
-// `/reservar/:slug/servicios/:serviceId/barbero/:barberId/horario` la
+// el catálogo público de servicios (HU-091), `/reservar/:slug/servicios/:serviceId/profesional`
+// la selección pública de profesional (HU-092),
+// `/reservar/:slug/servicios/:serviceId/profesional/:professionalId/horario` la
 // exploración pública de fechas y horarios (HU-095) y
-// `/reservar/:slug/servicios/:serviceId/barbero/:barberId/horario/:startsAt/cliente`
+// `/reservar/:slug/servicios/:serviceId/profesional/:professionalId/horario/:startsAt/cliente`
 // la captura de datos del cliente (HU-096): cinco pantallas propias,
 // separadas del panel autenticado (`auth.privateShellRoute`) y sin el guard
 // `requireSession` -ninguna ruta pública de reserva exige sesión
-// (CA-090-03). `props: true` entrega `slug`/`serviceId`/`barberId`/
+// (CA-090-03). `props: true` entrega `slug`/`serviceId`/`professionalId`/
 // `startsAt` como props del componente, no vía `useRoute()`: la página no
 // depende del router para sus propios parámetros, lo que la hace
 // verificable en aislamiento (component tests). `startsAt` viaja en la URL
@@ -38,7 +38,7 @@ export const publicBookingRoutes: RouteRecordRaw[] = [
       {
         path: '',
         name: 'reserva-publica-entrada',
-        component: () => import('./pages/PublicBarbershopEntryPage.vue'),
+        component: () => import('./pages/PublicBusinessEntryPage.vue'),
         props: true,
       },
       {
@@ -49,21 +49,21 @@ export const publicBookingRoutes: RouteRecordRaw[] = [
         meta: { bookingStep: 1 },
       },
       {
-        path: '/reservar/:slug/servicios/:serviceId/barbero',
-        name: 'reserva-publica-barbero',
-        component: () => import('./pages/PublicBarberSelectionPage.vue'),
+        path: '/reservar/:slug/servicios/:serviceId/profesional',
+        name: 'reserva-publica-profesional',
+        component: () => import('./pages/PublicProfessionalSelectionPage.vue'),
         props: true,
         meta: { bookingStep: 2 },
       },
       {
-        path: '/reservar/:slug/servicios/:serviceId/barbero/:barberId/horario',
+        path: '/reservar/:slug/servicios/:serviceId/profesional/:professionalId/horario',
         name: 'reserva-publica-horario',
         component: () => import('./pages/PublicAvailabilityPage.vue'),
         props: true,
         meta: { bookingStep: 3 },
       },
       {
-        path: '/reservar/:slug/servicios/:serviceId/barbero/:barberId/horario/:startsAt/cliente',
+        path: '/reservar/:slug/servicios/:serviceId/profesional/:professionalId/horario/:startsAt/cliente',
         name: 'reserva-publica-cliente',
         component: () => import('./pages/PublicCustomerDetailsPage.vue'),
         props: true,
@@ -78,11 +78,49 @@ export const publicBookingRoutes: RouteRecordRaw[] = [
                 params: {
                   slug: to.params.slug,
                   serviceId: to.params.serviceId,
-                  barberId: to.params.barberId,
+                  professionalId: to.params.professionalId,
                 },
                 replace: true,
               },
       },
     ],
+  },
+  // Pasos con la forma anterior a DEC-183 (#662): `…/barbero/:barberId/…`. Un enlace
+  // guardado o compartido sigue llegando al mismo paso, con su query y su ancla.
+  {
+    path: '/reservar/:slug/servicios/:serviceId/barbero',
+    redirect: (to) => ({
+      name: 'reserva-publica-profesional',
+      params: { slug: to.params.slug, serviceId: to.params.serviceId },
+      query: to.query,
+      hash: to.hash,
+    }),
+  },
+  {
+    path: '/reservar/:slug/servicios/:serviceId/barbero/:barberId/horario',
+    redirect: (to) => ({
+      name: 'reserva-publica-horario',
+      params: {
+        slug: to.params.slug,
+        serviceId: to.params.serviceId,
+        professionalId: to.params.barberId,
+      },
+      query: to.query,
+      hash: to.hash,
+    }),
+  },
+  {
+    path: '/reservar/:slug/servicios/:serviceId/barbero/:barberId/horario/:startsAt/cliente',
+    redirect: (to) => ({
+      name: 'reserva-publica-cliente',
+      params: {
+        slug: to.params.slug,
+        serviceId: to.params.serviceId,
+        professionalId: to.params.barberId,
+        startsAt: to.params.startsAt,
+      },
+      query: to.query,
+      hash: to.hash,
+    }),
   },
 ]

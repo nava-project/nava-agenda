@@ -17,12 +17,12 @@ import (
 	"github.com/jackc/pgx/v5/pgconn"
 	"github.com/jackc/pgx/v5/pgtype"
 
-	"system-barbershop/internal/modules/catalog"
-	"system-barbershop/internal/platform/database"
-	"system-barbershop/internal/platform/idempotency"
+	"nava-agenda/internal/modules/catalog"
+	"nava-agenda/internal/platform/database"
+	"nava-agenda/internal/platform/idempotency"
 )
 
-// createServiceOperation identifica, dentro de una barbería, la operación
+// createServiceOperation identifica, dentro de un negocio, la operación
 // de idempotencia del alta de servicios (RN-IDE-01): una clave ya usada
 // para OTRA operación nunca se confunde con esta.
 const createServiceOperation idempotency.Operation = "create_service"
@@ -203,23 +203,23 @@ func scanServiceWithID(row rowScanner) (catalog.Service, error) {
 // en otro caso filtra por coincidencia parcial insensible a mayúsculas en
 // `name` vía ILIKE, con los comodines propios de LIKE escapados por
 // likePattern.
-func (r *Repository) List(ctx context.Context, barbershopID string, page, pageSize int, search string) (catalog.ListResult, error) {
+func (r *Repository) List(ctx context.Context, businessID string, page, pageSize int, search string) (catalog.ListResult, error) {
 	result := catalog.ListResult{Page: page, PageSize: pageSize}
 	offset := (page - 1) * pageSize
 
-	err := r.db.InTenantTx(ctx, database.BarbershopID(barbershopID), func(ctx context.Context, q database.Queries) error {
+	err := r.db.InTenantTx(ctx, database.BusinessID(businessID), func(ctx context.Context, q database.Queries) error {
 		var total int
 		if search == "" {
 			if err := q.QueryRow(ctx,
 				`SELECT count(*) FROM service WHERE business_id = $1`,
-				barbershopID,
+				businessID,
 			).Scan(&total); err != nil {
 				return fmt.Errorf("list services: count: %w", err)
 			}
 		} else {
 			if err := q.QueryRow(ctx,
 				`SELECT count(*) FROM service WHERE business_id = $1 AND name ILIKE $2 ESCAPE '\'`,
-				barbershopID, likePattern(search),
+				businessID, likePattern(search),
 			).Scan(&total); err != nil {
 				return fmt.Errorf("list services: count: %w", err)
 			}
@@ -238,7 +238,7 @@ func (r *Repository) List(ctx context.Context, barbershopID string, page, pageSi
 				  WHERE business_id = $1
 				  ORDER BY created_at, id
 				  LIMIT $2 OFFSET $3`,
-				barbershopID, pageSize, offset,
+				businessID, pageSize, offset,
 			)
 		} else {
 			rows, err = q.Query(ctx,
@@ -249,7 +249,7 @@ func (r *Repository) List(ctx context.Context, barbershopID string, page, pageSi
 				    AND name ILIKE $2 ESCAPE '\'
 				  ORDER BY created_at, id
 				  LIMIT $3 OFFSET $4`,
-				barbershopID, likePattern(search), pageSize, offset,
+				businessID, likePattern(search), pageSize, offset,
 			)
 		}
 		if err != nil {
@@ -313,10 +313,10 @@ const futureAppointmentsSQL = `SELECT count(*) FROM appointment
 	   AND status = 'confirmed' AND starts_at > now()`
 
 // CountFutureAppointments implementa catalog.Repository.CountFutureAppointments.
-func (r *Repository) CountFutureAppointments(ctx context.Context, barbershopID, serviceID string) (int, error) {
+func (r *Repository) CountFutureAppointments(ctx context.Context, businessID, serviceID string) (int, error) {
 	var count int
-	err := r.db.InTenantTx(ctx, database.BarbershopID(barbershopID), func(ctx context.Context, q database.Queries) error {
-		return q.QueryRow(ctx, futureAppointmentsSQL, barbershopID, serviceID).Scan(&count)
+	err := r.db.InTenantTx(ctx, database.BusinessID(businessID), func(ctx context.Context, q database.Queries) error {
+		return q.QueryRow(ctx, futureAppointmentsSQL, businessID, serviceID).Scan(&count)
 	})
 	if err != nil {
 		return 0, fmt.Errorf("catalog/postgres: count future appointments: %w", err)
@@ -325,14 +325,14 @@ func (r *Repository) CountFutureAppointments(ctx context.Context, barbershopID, 
 }
 
 // Get implementa catalog.Repository.Get. RLS (service_select_tenant_policy)
-// ya restringe la fila visible a barbershop_id = current_setting(...); el
-// filtro explícito WHERE barbershop_id = $2 es defensa en profundidad,
+// ya restringe la fila visible a business_id = current_setting(...); el
+// filtro explícito WHERE business_id = $2 es defensa en profundidad,
 // mismo patrón que staff/postgres.Repository.Get.
-func (r *Repository) Get(ctx context.Context, barbershopID, serviceID string) (catalog.Service, bool, error) {
+func (r *Repository) Get(ctx context.Context, businessID, serviceID string) (catalog.Service, bool, error) {
 	var svc catalog.Service
 	found := false
 
-	err := r.db.InTenantTx(ctx, database.BarbershopID(barbershopID), func(ctx context.Context, q database.Queries) error {
+	err := r.db.InTenantTx(ctx, database.BusinessID(businessID), func(ctx context.Context, q database.Queries) error {
 		svc.ID = serviceID
 		var priceNumeric pgtype.Numeric
 		err := q.QueryRow(ctx,
@@ -340,7 +340,7 @@ func (r *Repository) Get(ctx context.Context, barbershopID, serviceID string) (c
 			        is_active, deactivated_at, created_at, updated_at
 			   FROM service
 			  WHERE id = $1 AND business_id = $2`,
-			serviceID, barbershopID,
+			serviceID, businessID,
 		).Scan(&svc.Name, &svc.Description, &svc.DurationMinutes, &priceNumeric, &svc.Currency,
 			&svc.IsActive, &svc.DeactivatedAt,
 			&svc.CreatedAt, &svc.UpdatedAt)
@@ -353,8 +353,8 @@ func (r *Repository) Get(ctx context.Context, barbershopID, serviceID string) (c
 			svc.PriceCents = cents
 			found = true
 		case errors.Is(err, pgx.ErrNoRows):
-			// found queda false: cubre tanto "no existe" como "es de otra
-			// barbería" (CA-022-06), sin distinguir la causa.
+			// found queda false: cubre tanto "no existe" como "es de otro
+			// negocio" (CA-022-06), sin distinguir la causa.
 		default:
 			return fmt.Errorf("select service: %w", err)
 		}
@@ -379,15 +379,15 @@ func (r *Repository) Get(ctx context.Context, barbershopID, serviceID string) (c
 // CA-004-06).
 func (r *Repository) Create(
 	ctx context.Context,
-	barbershopID string,
+	businessID string,
 	input catalog.CreateInput,
 	key idempotency.Key,
 	fingerprint idempotency.Fingerprint,
 ) (catalog.CreateResult, error) {
 	var result catalog.CreateResult
 
-	err := r.db.InTenantTx(ctx, database.BarbershopID(barbershopID), func(ctx context.Context, q database.Queries) error {
-		decision, err := r.coord.Begin(ctx, q, database.BarbershopID(barbershopID), key, createServiceOperation, fingerprint, createServiceIdempotencyTTL)
+	err := r.db.InTenantTx(ctx, database.BusinessID(businessID), func(ctx context.Context, q database.Queries) error {
+		decision, err := r.coord.Begin(ctx, q, database.BusinessID(businessID), key, createServiceOperation, fingerprint, createServiceIdempotencyTTL)
 		if err != nil {
 			return fmt.Errorf("idempotency begin: %w", err)
 		}
@@ -405,7 +405,7 @@ func (r *Repository) Create(
 			      VALUES ($1, $2, $3, $4, $5, 'COP')
 			   RETURNING id, name, description, duration_minutes, price_amount, price_currency,
 			             is_active, deactivated_at, created_at, updated_at`,
-			barbershopID, input.Name, input.Description, input.DurationMinutes, numericFromCents(input.PriceCents),
+			businessID, input.Name, input.Description, input.DurationMinutes, numericFromCents(input.PriceCents),
 		)
 		svc, err := scanServiceWithID(row)
 		if err != nil {
@@ -426,7 +426,7 @@ func (r *Repository) Create(
 			Body:        string(body),
 		}
 
-		ok, err := r.coord.Complete(ctx, q, database.BarbershopID(barbershopID), key, stored)
+		ok, err := r.coord.Complete(ctx, q, database.BusinessID(businessID), key, stored)
 		if err != nil {
 			return fmt.Errorf("idempotency complete: %w", err)
 		}
@@ -448,18 +448,18 @@ func (r *Repository) Create(
 }
 
 // Update implementa catalog.Repository.Update: un único
-// `UPDATE ... RETURNING`, filtrando por id Y barbershop_id (defensa en
+// `UPDATE ... RETURNING`, filtrando por id Y business_id (defensa en
 // profundidad sobre service_update_tenant_policy). Cada campo ausente en
 // fields se resuelve con COALESCE hacia el valor actual, salvo
 // description, que usa una bandera explícita (para poder "borrar" con
 // NULL, distinto de "no tocar"). Un unique_violation de
 // nameUniqueConstraint se traduce a UpdateResult.NameTaken; cero filas
-// afectadas cubre tanto "no existe" como "es de otra barbería"
+// afectadas cubre tanto "no existe" como "es de otro negocio"
 // (CA-022-06).
-func (r *Repository) Update(ctx context.Context, barbershopID, serviceID string, fields catalog.UpdateFields) (catalog.UpdateResult, error) {
+func (r *Repository) Update(ctx context.Context, businessID, serviceID string, fields catalog.UpdateFields) (catalog.UpdateResult, error) {
 	var result catalog.UpdateResult
 
-	err := r.db.InTenantTx(ctx, database.BarbershopID(barbershopID), func(ctx context.Context, q database.Queries) error {
+	err := r.db.InTenantTx(ctx, database.BusinessID(businessID), func(ctx context.Context, q database.Queries) error {
 		var svc catalog.Service
 		svc.ID = serviceID
 		var priceNumeric pgtype.Numeric
@@ -473,7 +473,7 @@ func (r *Repository) Update(ctx context.Context, barbershopID, serviceID string,
 			  WHERE id = $1 AND business_id = $2
 			RETURNING name, description, duration_minutes, price_amount, price_currency,
 			          is_active, deactivated_at, created_at, updated_at`,
-			serviceID, barbershopID,
+			serviceID, businessID,
 			fields.Name,
 			fields.Description.Set, fields.Description.Value,
 			fields.DurationMinutes,
@@ -491,7 +491,7 @@ func (r *Repository) Update(ctx context.Context, barbershopID, serviceID string,
 			result.Found = true
 			result.Service = svc
 			if fields.ApplyPriceToUpcoming && fields.PriceCents != nil {
-				updated, propErr := applyPriceToUpcomingAppointments(ctx, q, barbershopID, serviceID, fields.ActorStaffUserID, *fields.PriceCents)
+				updated, propErr := applyPriceToUpcomingAppointments(ctx, q, businessID, serviceID, fields.ActorStaffUserID, *fields.PriceCents)
 				if propErr != nil {
 					return propErr
 				}
@@ -553,19 +553,19 @@ SELECT count(*) FROM upd`
 func applyPriceToUpcomingAppointments(
 	ctx context.Context,
 	q database.Queries,
-	barbershopID, serviceID, actorStaffUserID string,
+	businessID, serviceID, actorStaffUserID string,
 	priceCents int64,
 ) (int, error) {
 	var updated int
 	price := numericFromCentsPtr(&priceCents)
-	if err := q.QueryRow(ctx, applyPriceToUpcomingSQL, barbershopID, serviceID, price, actorStaffUserID).Scan(&updated); err != nil {
+	if err := q.QueryRow(ctx, applyPriceToUpcomingSQL, businessID, serviceID, price, actorStaffUserID).Scan(&updated); err != nil {
 		return 0, fmt.Errorf("apply price to upcoming appointments: %w", err)
 	}
 	return updated, nil
 }
 
 // deactivateServiceOperation y reactivateServiceOperation identifican,
-// dentro de una barbería, las dos operaciones de idempotencia de HU-024
+// dentro de un negocio, las dos operaciones de idempotencia de HU-024
 // (RN-IDE-01): una clave ya usada para OTRA operación (incluida la otra
 // transición) nunca se confunde con esta.
 const (
@@ -592,11 +592,11 @@ var errLifecycleAbortInternal = errors.New("catalog/postgres: transición de cic
 // confirmaciones concurrentes sobre el mismo servicio: la segunda conexión que
 // intente la misma transición espera a que la primera confirme o revierta,
 // y al continuar ve el estado YA actualizado. found=false cubre "no existe"
-// o "es de otra barbería" (CA-024-07).
-func lockServiceForTransition(ctx context.Context, q database.Queries, barbershopID, serviceID string) (isActive bool, found bool, err error) {
+// o "es de otro negocio" (CA-024-07).
+func lockServiceForTransition(ctx context.Context, q database.Queries, businessID, serviceID string) (isActive bool, found bool, err error) {
 	err = q.QueryRow(ctx,
 		`SELECT is_active FROM service WHERE id = $1 AND business_id = $2 FOR UPDATE`,
-		serviceID, barbershopID,
+		serviceID, businessID,
 	).Scan(&isActive)
 	switch {
 	case errors.Is(err, pgx.ErrNoRows):
@@ -617,14 +617,14 @@ func lockServiceForTransition(ctx context.Context, q database.Queries, barbersho
 // cliente.
 func (r *Repository) Deactivate(
 	ctx context.Context,
-	barbershopID, serviceID string,
+	businessID, serviceID string,
 	key idempotency.Key,
 	fingerprint idempotency.Fingerprint,
 ) (catalog.LifecycleResult, error) {
 	var result catalog.LifecycleResult
 
-	err := r.db.InTenantTx(ctx, database.BarbershopID(barbershopID), func(ctx context.Context, q database.Queries) error {
-		decision, err := r.coord.Begin(ctx, q, database.BarbershopID(barbershopID), key, deactivateServiceOperation, fingerprint, lifecycleIdempotencyTTL)
+	err := r.db.InTenantTx(ctx, database.BusinessID(businessID), func(ctx context.Context, q database.Queries) error {
+		decision, err := r.coord.Begin(ctx, q, database.BusinessID(businessID), key, deactivateServiceOperation, fingerprint, lifecycleIdempotencyTTL)
 		if err != nil {
 			return fmt.Errorf("idempotency begin: %w", err)
 		}
@@ -637,7 +637,7 @@ func (r *Repository) Deactivate(
 			return nil
 		}
 
-		isActive, found, err := lockServiceForTransition(ctx, q, barbershopID, serviceID)
+		isActive, found, err := lockServiceForTransition(ctx, q, businessID, serviceID)
 		if err != nil {
 			return err
 		}
@@ -658,7 +658,7 @@ func (r *Repository) Deactivate(
 			  WHERE id = $1 AND business_id = $2
 			RETURNING id, name, description, duration_minutes, price_amount, price_currency,
 			          is_active, deactivated_at, created_at, updated_at`,
-			serviceID, barbershopID,
+			serviceID, businessID,
 		)
 		svc, err := scanServiceWithID(row)
 		if err != nil {
@@ -668,7 +668,7 @@ func (r *Repository) Deactivate(
 		// CA-024-04: la confirmación vuelve a consultar el impacto en la misma
 		// transacción, sin depender de un valor de la previsualización.
 		var affected int
-		if err := q.QueryRow(ctx, futureAppointmentsSQL, barbershopID, serviceID).Scan(&affected); err != nil {
+		if err := q.QueryRow(ctx, futureAppointmentsSQL, businessID, serviceID).Scan(&affected); err != nil {
 			return fmt.Errorf("deactivate service: count future appointments: %w", err)
 		}
 		impact := catalog.DeactivationImpact{AffectedAppointments: affected}
@@ -686,7 +686,7 @@ func (r *Repository) Deactivate(
 		}
 		stored := idempotency.StoredResponse{Status: 200, ContentType: "application/json", Body: string(body)}
 
-		ok, err := r.coord.Complete(ctx, q, database.BarbershopID(barbershopID), key, stored)
+		ok, err := r.coord.Complete(ctx, q, database.BusinessID(businessID), key, stored)
 		if err != nil {
 			return fmt.Errorf("idempotency complete: %w", err)
 		}
@@ -713,14 +713,14 @@ func (r *Repository) Deactivate(
 // ningún impacto de citas (CA-024-05).
 func (r *Repository) Reactivate(
 	ctx context.Context,
-	barbershopID, serviceID string,
+	businessID, serviceID string,
 	key idempotency.Key,
 	fingerprint idempotency.Fingerprint,
 ) (catalog.LifecycleResult, error) {
 	var result catalog.LifecycleResult
 
-	err := r.db.InTenantTx(ctx, database.BarbershopID(barbershopID), func(ctx context.Context, q database.Queries) error {
-		decision, err := r.coord.Begin(ctx, q, database.BarbershopID(barbershopID), key, reactivateServiceOperation, fingerprint, lifecycleIdempotencyTTL)
+	err := r.db.InTenantTx(ctx, database.BusinessID(businessID), func(ctx context.Context, q database.Queries) error {
+		decision, err := r.coord.Begin(ctx, q, database.BusinessID(businessID), key, reactivateServiceOperation, fingerprint, lifecycleIdempotencyTTL)
 		if err != nil {
 			return fmt.Errorf("idempotency begin: %w", err)
 		}
@@ -733,7 +733,7 @@ func (r *Repository) Reactivate(
 			return nil
 		}
 
-		isActive, found, err := lockServiceForTransition(ctx, q, barbershopID, serviceID)
+		isActive, found, err := lockServiceForTransition(ctx, q, businessID, serviceID)
 		if err != nil {
 			return err
 		}
@@ -754,7 +754,7 @@ func (r *Repository) Reactivate(
 			  WHERE id = $1 AND business_id = $2
 			RETURNING id, name, description, duration_minutes, price_amount, price_currency,
 			          is_active, deactivated_at, created_at, updated_at`,
-			serviceID, barbershopID,
+			serviceID, businessID,
 		)
 		svc, err := scanServiceWithID(row)
 		if err != nil {
@@ -774,7 +774,7 @@ func (r *Repository) Reactivate(
 		}
 		stored := idempotency.StoredResponse{Status: 200, ContentType: "application/json", Body: string(body)}
 
-		ok, err := r.coord.Complete(ctx, q, database.BarbershopID(barbershopID), key, stored)
+		ok, err := r.coord.Complete(ctx, q, database.BusinessID(businessID), key, stored)
 		if err != nil {
 			return fmt.Errorf("idempotency complete: %w", err)
 		}

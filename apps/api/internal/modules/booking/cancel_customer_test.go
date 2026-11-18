@@ -6,9 +6,9 @@ import (
 	"testing"
 	"time"
 
-	"system-barbershop/internal/modules/booking"
-	"system-barbershop/internal/platform/apperr"
-	"system-barbershop/internal/platform/idempotency"
+	"nava-agenda/internal/modules/booking"
+	"nava-agenda/internal/platform/apperr"
+	"nava-agenda/internal/platform/idempotency"
 )
 
 // TestCustomerCancellationPolicy_Evaluate recorre la tabla de HU-099
@@ -74,11 +74,11 @@ type fakeCustomerCancelRepository struct {
 }
 
 func (f *fakeCustomerCancelRepository) CancelByCustomer(
-	_ context.Context, barbershopID string, input booking.CancelAppointmentByCustomerInput, _ idempotency.Key, _ idempotency.Fingerprint,
+	_ context.Context, businessID string, input booking.CancelAppointmentByCustomerInput, _ idempotency.Key, _ idempotency.Fingerprint,
 ) (booking.CancelAppointmentByCustomerResult, error) {
 	f.calls++
 	f.last = input
-	f.lastShop = barbershopID
+	f.lastShop = businessID
 	return booking.CancelAppointmentByCustomerResult{Decision: idempotency.Decision{Outcome: idempotency.OutcomeProceed}}, nil
 }
 

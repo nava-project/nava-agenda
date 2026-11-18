@@ -3,7 +3,7 @@ package google
 import (
 	"context"
 
-	"system-barbershop/internal/modules/publicbooking"
+	"nava-agenda/internal/modules/publicbooking"
 )
 
 // Simulated es el proveedor de desarrollo (local y test, sin clave): devuelve la

@@ -32,12 +32,12 @@ echo "== contraseñas de agenda_app y agenda_worker"
 psql -c "ALTER ROLE agenda_app PASSWORD 'app_test';"
 psql -c "ALTER ROLE agenda_worker PASSWORD 'worker_test';"
 
-echo "== testdata de dos barberías"
-for f in database/testdata/dos_barberias.sql \
+echo "== testdata de dos negocios"
+for f in database/testdata/dos_negocios.sql \
          database/testdata/staff_user_role_365.sql \
          database/testdata/hu005_credenciales_sesiones.sql \
          database/testdata/hu007_reto_telefonico.sql \
-         database/testdata/hu021_barberos.sql \
+         database/testdata/hu021_profesionales.sql \
          database/testdata/hu022_catalogo.sql \
          database/testdata/hu023_asignaciones.sql \
          database/testdata/hu040_horario.sql \
@@ -51,26 +51,26 @@ suite "Suite de aislamiento HU-001" psql_file database/tests/hu001_aislamiento_r
 suite "Suite de credenciales y sesiones HU-005" psql_file database/tests/hu005_aislamiento_credenciales_sesiones.sql
 suite "Suite de defensa contra abuso HU-007" psql_file database/tests/hu007_defensa_abuso.sql
 suite "Suite de recuperación de acceso HU-008" psql_file database/tests/hu008_recuperacion_acceso.sql
-suite "Suite de configuración de la barbería HU-020" psql_file database/tests/hu020_configuracion_barberia.sql
-suite "Suite de marca y vocabulario de la barbería (DEC-110)" psql_file database/tests/brand_marca_vocabulario.sql
-suite "Suite del perfil del panel de barbero individual (DEC-115)" psql_file database/tests/panel_perfil_barbero_individual.sql
+suite "Suite de configuración del negocio HU-020" psql_file database/tests/hu020_configuracion_negocio.sql
+suite "Suite de marca y vocabulario del negocio (DEC-110)" psql_file database/tests/brand_marca_vocabulario.sql
+suite "Suite del perfil del panel de profesional individual (DEC-115)" psql_file database/tests/panel_perfil_profesional_individual.sql
 suite "Suite de los roles del usuario (DEC-134)" psql_file database/tests/staff_user_role.sql
-suite "Suite de las reseñas por barbero (DEC-128)" psql_file database/tests/barber_review.sql
+suite "Suite de las reseñas por profesional (DEC-128)" psql_file database/tests/professional_review.sql
 suite "Suite del servicio a domicilio (DEC-131)" psql_file database/tests/appointment_domicilio.sql
 suite "Suite del canal del código de acceso (DEC-139)" psql_file database/tests/login_otp_channel.sql
-suite "Suite de la ficha de Google de la barbería (DEC-129)" psql_file database/tests/barbershop_google_place_id.sql
-suite "Suite de la ubicación de la barbería (DEC-130)" psql_file database/tests/barbershop_ubicacion.sql
-suite "Suite del horario de atención del local (DEC-182)" psql_file database/tests/barbershop_horario.sql
-suite "Suite del vínculo barbero–usuario (DEC-100)" psql_file database/tests/barbero_vinculo_usuario.sql
-suite "Suite de la descripción del barbero (DEC-127)" psql_file database/tests/barber_description.sql
-suite "Suite de ventana de reserva por barbero DEC-169" psql_file database/tests/barber_booking_policy.sql
+suite "Suite de la ficha de Google del negocio (DEC-129)" psql_file database/tests/business_google_place_id.sql
+suite "Suite de la ubicación del negocio (DEC-130)" psql_file database/tests/business_ubicacion.sql
+suite "Suite del horario de atención del local (DEC-182)" psql_file database/tests/business_horario.sql
+suite "Suite del vínculo profesional–usuario (DEC-100)" psql_file database/tests/profesional_vinculo_usuario.sql
+suite "Suite de la descripción del profesional (DEC-127)" psql_file database/tests/professional_description.sql
+suite "Suite de ventana de reserva por profesional DEC-169" psql_file database/tests/professional_booking_policy.sql
 suite "Suite de la conexión con Google Calendar (DEC-099, DEC-102)" psql_file database/tests/google_calendar_conexion.sql
 suite "Suite de la cola de publicación en Google Calendar (DEC-101, DEC-102)" psql_file database/tests/google_calendar_sync.sql
 suite "Suite de la cola de avisos al cliente (DEC-142)" psql_file database/tests/appointment_notice.sql
 suite "Suite del webhook de Meta WhatsApp (DEC-126)" psql_file database/tests/whatsapp_webhook.sql
-suite "Suite de registro y listado de barberos HU-021" psql_file database/tests/hu021_barberos.sql
+suite "Suite de registro y listado de profesionales HU-021" psql_file database/tests/hu021_profesionales.sql
 suite "Suite de catálogo básico de servicios HU-022" psql_file database/tests/hu022_catalogo.sql
-suite "Suite de asignación de servicios a barberos HU-023" psql_file database/tests/hu023_asignaciones.sql
+suite "Suite de asignación de servicios a profesionales HU-023" psql_file database/tests/hu023_asignaciones.sql
 suite "Suite de ciclo de vida de servicios HU-024" psql_file database/tests/hu024_ciclo_vida.sql
 suite "Suite de horario laboral HU-040" psql_file database/tests/hu040_horario.sql
 suite "Suite de excepciones de jornada y festivos HU-041" psql_file database/tests/hu041_excepciones.sql

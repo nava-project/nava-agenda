@@ -5,7 +5,7 @@ import (
 	"encoding/json"
 	"os"
 
-	"system-barbershop/internal/modules/auth"
+	"nava-agenda/internal/modules/auth"
 )
 
 func main() {

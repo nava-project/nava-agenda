@@ -3,9 +3,9 @@
 // mocks para RLS/idempotencia/atomicidad (docs/03-desarrollo/
 // estrategia-pruebas.md §2)- pero con su propio fixture aislado
 // (testdata/hu041_excepciones.sql) para que un conteo exacto de
-// excepciones por barbero no dependa del estado que dejen otras suites.
+// excepciones por profesional no dependa del estado que dejen otras suites.
 //
-//	export TEST_DATABASE_URL="postgres://barberia_app@localhost:5432/barberia_test?sslmode=disable"
+//	export TEST_DATABASE_URL="postgres://agenda_app@localhost:5432/postgres?sslmode=disable"
 //	go test -race ./internal/modules/schedule/postgres/...
 package postgres_test
 
@@ -14,31 +14,31 @@ import (
 	"encoding/json"
 	"testing"
 
-	"system-barbershop/internal/modules/schedule"
-	schedulepostgres "system-barbershop/internal/modules/schedule/postgres"
-	"system-barbershop/internal/platform/database"
-	"system-barbershop/internal/platform/idempotency"
+	"nava-agenda/internal/modules/schedule"
+	schedulepostgres "nava-agenda/internal/modules/schedule/postgres"
+	"nava-agenda/internal/platform/database"
+	"nava-agenda/internal/platform/idempotency"
 )
 
 const (
-	// shopM/shopN y sus barberos son los de testdata/hu041_excepciones.sql:
-	// aislados de dos_barberias.sql/hu040_horario.sql/etc. por el mismo
+	// shopM/shopN y sus profesionales son los de testdata/hu041_excepciones.sql:
+	// aislados de dos_negocios.sql/hu040_horario.sql/etc. por el mismo
 	// motivo que esos fixtures ya documentan.
-	shopM    = database.BarbershopID("eeeeeeee-eeee-eeee-eeee-eeeeeeeeeeee")
-	shopN    = database.BarbershopID("ffffffff-ffff-ffff-ffff-ffffffffffff")
-	barberM1 = "eeee0001-0001-0001-0001-000100010001"
-	barberM2 = "eeee0002-0002-0002-0002-000200020002"
-	barberN1 = "ffff0001-0001-0001-0001-000100010001"
+	shopM          = database.BusinessID("eeeeeeee-eeee-eeee-eeee-eeeeeeeeeeee")
+	shopN          = database.BusinessID("ffffffff-ffff-ffff-ffff-ffffffffffff")
+	professionalM1 = "eeee0001-0001-0001-0001-000100010001"
+	professionalM2 = "eeee0002-0002-0002-0002-000200020002"
+	professionalN1 = "ffff0001-0001-0001-0001-000100010001"
 )
 
 // createException crea una excepción con una clave de idempotencia única y
 // programa su retiro al terminar la prueba.
-func createException(t *testing.T, repo *schedulepostgres.Repository, shop database.BarbershopID, barberID string, input schedule.CreateExceptionInput) schedule.ScheduleException {
+func createException(t *testing.T, repo *schedulepostgres.Repository, shop database.BusinessID, professionalID string, input schedule.CreateExceptionInput) schedule.ScheduleException {
 	t.Helper()
 	key := idempotency.Key("exc-fixture-" + uniqueSuffix(t))
-	fp := idempotency.ComputeFingerprint("POST", "/api/v1/private/professionals/"+barberID+"/schedule-exceptions", []byte(uniqueSuffix(t)))
+	fp := idempotency.ComputeFingerprint("POST", "/api/v1/private/professionals/"+professionalID+"/schedule-exceptions", []byte(uniqueSuffix(t)))
 
-	result, err := repo.CreateException(context.Background(), string(shop), barberID, input, key, fp)
+	result, err := repo.CreateException(context.Background(), string(shop), professionalID, input, key, fp)
 	if err != nil {
 		t.Fatalf("createException: %v", err)
 	}
@@ -47,7 +47,7 @@ func createException(t *testing.T, repo *schedulepostgres.Repository, shop datab
 	}
 	e := result.Exception
 	t.Cleanup(func() {
-		_, _ = repo.DeleteException(context.Background(), string(shop), barberID, e.ID)
+		_, _ = repo.DeleteException(context.Background(), string(shop), professionalID, e.ID)
 	})
 	return e
 }
@@ -64,7 +64,7 @@ func TestCreateException_StoredResponseBody_MatchesHTTPAPIWireShape(t *testing.T
 		EffectiveDate: "2027-03-15",
 		IsClosed:      true,
 	}
-	result, err := repo.CreateException(context.Background(), string(shopM), barberM1, input, key, fp)
+	result, err := repo.CreateException(context.Background(), string(shopM), professionalM1, input, key, fp)
 	if err != nil {
 		t.Fatalf("CreateException: %v", err)
 	}
@@ -72,7 +72,7 @@ func TestCreateException_StoredResponseBody_MatchesHTTPAPIWireShape(t *testing.T
 		t.Fatalf("unexpected conflict creating the wire-shape fixture")
 	}
 	t.Cleanup(func() {
-		_, _ = repo.DeleteException(context.Background(), string(shopM), barberM1, result.Exception.ID)
+		_, _ = repo.DeleteException(context.Background(), string(shopM), professionalM1, result.Exception.ID)
 	})
 
 	var decoded map[string]any
@@ -94,16 +94,18 @@ func TestCreateException_RepeatedKeySameBody_ReplaysWithoutSecondRow(t *testing.
 	input := schedule.CreateExceptionInput{EffectiveDate: "2027-03-16", IsClosed: true}
 	fp := idempotency.ComputeFingerprint("POST", "/x", []byte("exc-replay-body"))
 
-	first, err := repo.CreateException(context.Background(), string(shopM), barberM1, input, key, fp)
+	first, err := repo.CreateException(context.Background(), string(shopM), professionalM1, input, key, fp)
 	if err != nil {
 		t.Fatalf("first CreateException: %v", err)
 	}
-	t.Cleanup(func() { _, _ = repo.DeleteException(context.Background(), string(shopM), barberM1, first.Exception.ID) })
+	t.Cleanup(func() {
+		_, _ = repo.DeleteException(context.Background(), string(shopM), professionalM1, first.Exception.ID)
+	})
 	if first.Decision.Outcome != idempotency.OutcomeProceed {
 		t.Fatalf("expected first call to proceed, got %s", first.Decision.Outcome)
 	}
 
-	second, err := repo.CreateException(context.Background(), string(shopM), barberM1, input, key, fp)
+	second, err := repo.CreateException(context.Background(), string(shopM), professionalM1, input, key, fp)
 	if err != nil {
 		t.Fatalf("second CreateException: %v", err)
 	}
@@ -117,7 +119,7 @@ func TestCreateException_RepeatedKeySameBody_ReplaysWithoutSecondRow(t *testing.
 
 // --- Calendario de festivos (CA-041-01/02) ---------------------------------
 
-func TestHolidayCalendarEnabled_UnknownBarber_ReturnsNotFound(t *testing.T) {
+func TestHolidayCalendarEnabled_UnknownProfessional_ReturnsNotFound(t *testing.T) {
 	db := setupTestDB(t)
 	repo := newRepository(db)
 
@@ -126,7 +128,7 @@ func TestHolidayCalendarEnabled_UnknownBarber_ReturnsNotFound(t *testing.T) {
 		t.Fatalf("GetHolidayCalendarEnabled: %v", err)
 	}
 	if found {
-		t.Fatal("expected found=false for an unknown barber")
+		t.Fatal("expected found=false for an unknown professional")
 	}
 }
 
@@ -134,16 +136,18 @@ func TestSetHolidayCalendarEnabled_ThenGet_PersistsToggle(t *testing.T) {
 	db := setupTestDB(t)
 	repo := newRepository(db)
 
-	setResult, err := repo.SetHolidayCalendarEnabled(context.Background(), string(shopM), barberM2, false)
+	setResult, err := repo.SetHolidayCalendarEnabled(context.Background(), string(shopM), professionalM2, false)
 	if err != nil {
 		t.Fatalf("SetHolidayCalendarEnabled(false): %v", err)
 	}
 	if !setResult.Found || setResult.Enabled {
 		t.Fatalf("expected found=true enabled=false, got %+v", setResult)
 	}
-	t.Cleanup(func() { _, _ = repo.SetHolidayCalendarEnabled(context.Background(), string(shopM), barberM2, true) })
+	t.Cleanup(func() {
+		_, _ = repo.SetHolidayCalendarEnabled(context.Background(), string(shopM), professionalM2, true)
+	})
 
-	enabled, found, err := repo.GetHolidayCalendarEnabled(context.Background(), string(shopM), barberM2)
+	enabled, found, err := repo.GetHolidayCalendarEnabled(context.Background(), string(shopM), professionalM2)
 	if err != nil {
 		t.Fatalf("GetHolidayCalendarEnabled: %v", err)
 	}
@@ -151,7 +155,7 @@ func TestSetHolidayCalendarEnabled_ThenGet_PersistsToggle(t *testing.T) {
 		t.Fatalf("expected found=true enabled=false after set, got found=%v enabled=%v", found, enabled)
 	}
 
-	setResult, err = repo.SetHolidayCalendarEnabled(context.Background(), string(shopM), barberM2, true)
+	setResult, err = repo.SetHolidayCalendarEnabled(context.Background(), string(shopM), professionalM2, true)
 	if err != nil {
 		t.Fatalf("SetHolidayCalendarEnabled(true): %v", err)
 	}
@@ -160,7 +164,7 @@ func TestSetHolidayCalendarEnabled_ThenGet_PersistsToggle(t *testing.T) {
 	}
 }
 
-func TestSetHolidayCalendarEnabled_UnknownBarber_ReturnsNotFound(t *testing.T) {
+func TestSetHolidayCalendarEnabled_UnknownProfessional_ReturnsNotFound(t *testing.T) {
 	db := setupTestDB(t)
 	repo := newRepository(db)
 
@@ -169,7 +173,7 @@ func TestSetHolidayCalendarEnabled_UnknownBarber_ReturnsNotFound(t *testing.T) {
 		t.Fatalf("SetHolidayCalendarEnabled: %v", err)
 	}
 	if result.Found {
-		t.Fatal("expected found=false for an unknown barber")
+		t.Fatal("expected found=false for an unknown professional")
 	}
 }
 
@@ -179,16 +183,16 @@ func TestCreateException_DuplicateDate_ReturnsConflict(t *testing.T) {
 	db := setupTestDB(t)
 	repo := newRepository(db)
 
-	createException(t, repo, shopM, barberM1, schedule.CreateExceptionInput{EffectiveDate: "2027-04-01", IsClosed: true})
+	createException(t, repo, shopM, professionalM1, schedule.CreateExceptionInput{EffectiveDate: "2027-04-01", IsClosed: true})
 
 	key := idempotency.Key("exc-dup-date-" + uniqueSuffix(t))
 	fp := idempotency.ComputeFingerprint("POST", "/x", []byte("dup-date"))
-	result, err := repo.CreateException(context.Background(), string(shopM), barberM1, schedule.CreateExceptionInput{EffectiveDate: "2027-04-01", IsClosed: true}, key, fp)
+	result, err := repo.CreateException(context.Background(), string(shopM), professionalM1, schedule.CreateExceptionInput{EffectiveDate: "2027-04-01", IsClosed: true}, key, fp)
 	if err != nil {
 		t.Fatalf("CreateException: %v", err)
 	}
 	if !result.Conflict {
-		t.Fatal("expected Conflict=true for a duplicate effective_date for the same barber")
+		t.Fatal("expected Conflict=true for a duplicate effective_date for the same professional")
 	}
 }
 
@@ -206,7 +210,7 @@ func TestCreateException_OverlappingSegments_ReturnsConflictAndNothingPersists(t
 			{StartsTime: "09:00", DurationMinutes: 60},
 		},
 	}
-	result, err := repo.CreateException(context.Background(), string(shopM), barberM1, input, key, fp)
+	result, err := repo.CreateException(context.Background(), string(shopM), professionalM1, input, key, fp)
 	if err != nil {
 		t.Fatalf("CreateException: %v", err)
 	}
@@ -214,7 +218,7 @@ func TestCreateException_OverlappingSegments_ReturnsConflictAndNothingPersists(t
 		t.Fatal("expected Conflict=true for overlapping segments")
 	}
 
-	_, found, err := repo.GetExceptionByDate(context.Background(), string(shopM), barberM1, "2027-04-02")
+	_, found, err := repo.GetExceptionByDate(context.Background(), string(shopM), professionalM1, "2027-04-02")
 	if err != nil {
 		t.Fatalf("GetExceptionByDate: %v", err)
 	}
@@ -227,7 +231,7 @@ func TestCreateException_SplitOpenDay_TwoNonOverlappingSegments(t *testing.T) {
 	db := setupTestDB(t)
 	repo := newRepository(db)
 
-	e := createException(t, repo, shopM, barberM1, schedule.CreateExceptionInput{
+	e := createException(t, repo, shopM, professionalM1, schedule.CreateExceptionInput{
 		EffectiveDate: "2027-04-03",
 		IsClosed:      false,
 		Segments: []schedule.CreateExceptionSegmentInput{
@@ -240,20 +244,20 @@ func TestCreateException_SplitOpenDay_TwoNonOverlappingSegments(t *testing.T) {
 	}
 }
 
-// --- CA-041-05: aislamiento de tenant y de barbero --------------------------
+// --- CA-041-05: aislamiento de tenant y de profesional --------------------------
 
-func TestGetException_CrossBarber_NeverLeaksAnotherBarbersException(t *testing.T) {
+func TestGetException_CrossProfessional_NeverLeaksAnotherProfessionalsException(t *testing.T) {
 	db := setupTestDB(t)
 	repo := newRepository(db)
 
-	e := createException(t, repo, shopM, barberM1, schedule.CreateExceptionInput{EffectiveDate: "2027-05-01", IsClosed: true})
+	e := createException(t, repo, shopM, professionalM1, schedule.CreateExceptionInput{EffectiveDate: "2027-05-01", IsClosed: true})
 
-	_, found, err := repo.GetException(context.Background(), string(shopM), barberM2, e.ID)
+	_, found, err := repo.GetException(context.Background(), string(shopM), professionalM2, e.ID)
 	if err != nil {
 		t.Fatalf("GetException: %v", err)
 	}
 	if found {
-		t.Fatal("CA-041-05: barberM2's context could read barberM1's exception")
+		t.Fatal("CA-041-05: professionalM2's context could read professionalM1's exception")
 	}
 }
 
@@ -261,9 +265,9 @@ func TestGetException_CrossTenant_NeverLeaksAnotherShopsException(t *testing.T) 
 	db := setupTestDB(t)
 	repo := newRepository(db)
 
-	e := createException(t, repo, shopN, barberN1, schedule.CreateExceptionInput{EffectiveDate: "2027-05-02", IsClosed: true})
+	e := createException(t, repo, shopN, professionalN1, schedule.CreateExceptionInput{EffectiveDate: "2027-05-02", IsClosed: true})
 
-	_, found, err := repo.GetException(context.Background(), string(shopM), barberM1, e.ID)
+	_, found, err := repo.GetException(context.Background(), string(shopM), professionalM1, e.ID)
 	if err != nil {
 		t.Fatalf("GetException: %v", err)
 	}
@@ -276,9 +280,9 @@ func TestUpdateException_CrossTenant_NeverEditsAnotherShopsException(t *testing.
 	db := setupTestDB(t)
 	repo := newRepository(db)
 
-	e := createException(t, repo, shopN, barberN1, schedule.CreateExceptionInput{EffectiveDate: "2027-05-03", IsClosed: true})
+	e := createException(t, repo, shopN, professionalN1, schedule.CreateExceptionInput{EffectiveDate: "2027-05-03", IsClosed: true})
 
-	result, err := repo.UpdateException(context.Background(), string(shopM), barberM1, e.ID, schedule.UpdateExceptionInput{EffectiveDate: "2027-05-04", IsClosed: true})
+	result, err := repo.UpdateException(context.Background(), string(shopM), professionalM1, e.ID, schedule.UpdateExceptionInput{EffectiveDate: "2027-05-04", IsClosed: true})
 	if err != nil {
 		t.Fatalf("UpdateException: %v", err)
 	}
@@ -291,9 +295,9 @@ func TestDeleteException_CrossTenant_NeverDeletesAnotherShopsException(t *testin
 	db := setupTestDB(t)
 	repo := newRepository(db)
 
-	e := createException(t, repo, shopN, barberN1, schedule.CreateExceptionInput{EffectiveDate: "2027-05-05", IsClosed: true})
+	e := createException(t, repo, shopN, professionalN1, schedule.CreateExceptionInput{EffectiveDate: "2027-05-05", IsClosed: true})
 
-	found, err := repo.DeleteException(context.Background(), string(shopM), barberM1, e.ID)
+	found, err := repo.DeleteException(context.Background(), string(shopM), professionalM1, e.ID)
 	if err != nil {
 		t.Fatalf("DeleteException: %v", err)
 	}
@@ -301,7 +305,7 @@ func TestDeleteException_CrossTenant_NeverDeletesAnotherShopsException(t *testin
 		t.Fatal("CA-041-05: shopM's context could delete shopN's exception")
 	}
 
-	_, found, err = repo.GetException(context.Background(), string(shopN), barberN1, e.ID)
+	_, found, err = repo.GetException(context.Background(), string(shopN), professionalN1, e.ID)
 	if err != nil {
 		t.Fatalf("GetException (own tenant): %v", err)
 	}
@@ -316,13 +320,13 @@ func TestUpdateException_NoConflict_ReplacesDateAndSegments(t *testing.T) {
 	db := setupTestDB(t)
 	repo := newRepository(db)
 
-	e := createException(t, repo, shopM, barberM1, schedule.CreateExceptionInput{
+	e := createException(t, repo, shopM, professionalM1, schedule.CreateExceptionInput{
 		EffectiveDate: "2027-06-01",
 		IsClosed:      false,
 		Segments:      []schedule.CreateExceptionSegmentInput{{StartsTime: "08:00", DurationMinutes: 60}},
 	})
 
-	result, err := repo.UpdateException(context.Background(), string(shopM), barberM1, e.ID, schedule.UpdateExceptionInput{
+	result, err := repo.UpdateException(context.Background(), string(shopM), professionalM1, e.ID, schedule.UpdateExceptionInput{
 		EffectiveDate: "2027-06-02",
 		IsClosed:      true,
 	})
@@ -341,25 +345,25 @@ func TestUpdateException_ConflictWithAnotherDate_LeavesOriginalUntouched(t *test
 	db := setupTestDB(t)
 	repo := newRepository(db)
 
-	createException(t, repo, shopM, barberM2, schedule.CreateExceptionInput{EffectiveDate: "2027-06-10", IsClosed: true})
-	moving := createException(t, repo, shopM, barberM2, schedule.CreateExceptionInput{
+	createException(t, repo, shopM, professionalM2, schedule.CreateExceptionInput{EffectiveDate: "2027-06-10", IsClosed: true})
+	moving := createException(t, repo, shopM, professionalM2, schedule.CreateExceptionInput{
 		EffectiveDate: "2027-06-11",
 		IsClosed:      false,
 		Segments:      []schedule.CreateExceptionSegmentInput{{StartsTime: "09:00", DurationMinutes: 60}},
 	})
 
-	result, err := repo.UpdateException(context.Background(), string(shopM), barberM2, moving.ID, schedule.UpdateExceptionInput{EffectiveDate: "2027-06-10", IsClosed: true})
+	result, err := repo.UpdateException(context.Background(), string(shopM), professionalM2, moving.ID, schedule.UpdateExceptionInput{EffectiveDate: "2027-06-10", IsClosed: true})
 	if err != nil {
 		t.Fatalf("UpdateException: %v", err)
 	}
 	if !result.Conflict {
-		t.Fatal("expected Conflict=true when the new date collides with another exception of the same barber")
+		t.Fatal("expected Conflict=true when the new date collides with another exception of the same professional")
 	}
 	if !result.Found {
 		t.Fatal("the exception exists: a date conflict must not look like a missing exception (F-SCH-01)")
 	}
 
-	unchanged, found, err := repo.GetException(context.Background(), string(shopM), barberM2, moving.ID)
+	unchanged, found, err := repo.GetException(context.Background(), string(shopM), professionalM2, moving.ID)
 	if err != nil {
 		t.Fatalf("GetException: %v", err)
 	}
@@ -372,7 +376,7 @@ func TestUpdateException_NonexistentID_ReturnsNotFound(t *testing.T) {
 	db := setupTestDB(t)
 	repo := newRepository(db)
 
-	result, err := repo.UpdateException(context.Background(), string(shopM), barberM1, "00000000-0000-0000-0000-000000000001", schedule.UpdateExceptionInput{EffectiveDate: "2027-06-20", IsClosed: true})
+	result, err := repo.UpdateException(context.Background(), string(shopM), professionalM1, "00000000-0000-0000-0000-000000000001", schedule.UpdateExceptionInput{EffectiveDate: "2027-06-20", IsClosed: true})
 	if err != nil {
 		t.Fatalf("UpdateException: %v", err)
 	}
@@ -387,9 +391,9 @@ func TestDeleteException_ThenGet_NotFound(t *testing.T) {
 	db := setupTestDB(t)
 	repo := newRepository(db)
 
-	e := createException(t, repo, shopM, barberM1, schedule.CreateExceptionInput{EffectiveDate: "2027-07-01", IsClosed: true})
+	e := createException(t, repo, shopM, professionalM1, schedule.CreateExceptionInput{EffectiveDate: "2027-07-01", IsClosed: true})
 
-	found, err := repo.DeleteException(context.Background(), string(shopM), barberM1, e.ID)
+	found, err := repo.DeleteException(context.Background(), string(shopM), professionalM1, e.ID)
 	if err != nil {
 		t.Fatalf("DeleteException: %v", err)
 	}
@@ -397,7 +401,7 @@ func TestDeleteException_ThenGet_NotFound(t *testing.T) {
 		t.Fatal("expected the first DeleteException to find and remove the exception")
 	}
 
-	_, found, err = repo.GetException(context.Background(), string(shopM), barberM1, e.ID)
+	_, found, err = repo.GetException(context.Background(), string(shopM), professionalM1, e.ID)
 	if err != nil {
 		t.Fatalf("GetException after delete: %v", err)
 	}
@@ -410,13 +414,13 @@ func TestDeleteException_Retried_SecondCallIsSafeNoOp(t *testing.T) {
 	db := setupTestDB(t)
 	repo := newRepository(db)
 
-	e := createException(t, repo, shopM, barberM1, schedule.CreateExceptionInput{EffectiveDate: "2027-07-02", IsClosed: true})
+	e := createException(t, repo, shopM, professionalM1, schedule.CreateExceptionInput{EffectiveDate: "2027-07-02", IsClosed: true})
 
-	first, err := repo.DeleteException(context.Background(), string(shopM), barberM1, e.ID)
+	first, err := repo.DeleteException(context.Background(), string(shopM), professionalM1, e.ID)
 	if err != nil || !first {
 		t.Fatalf("first DeleteException: found=%v err=%v", first, err)
 	}
-	second, err := repo.DeleteException(context.Background(), string(shopM), barberM1, e.ID)
+	second, err := repo.DeleteException(context.Background(), string(shopM), professionalM1, e.ID)
 	if err != nil {
 		t.Fatalf("second DeleteException: %v", err)
 	}
@@ -431,10 +435,10 @@ func TestListExceptions_OrderedByEffectiveDateThenID(t *testing.T) {
 	db := setupTestDB(t)
 	repo := newRepository(db)
 
-	late := createException(t, repo, shopN, barberN1, schedule.CreateExceptionInput{EffectiveDate: "2027-08-20", IsClosed: true})
-	early := createException(t, repo, shopN, barberN1, schedule.CreateExceptionInput{EffectiveDate: "2027-08-10", IsClosed: true})
+	late := createException(t, repo, shopN, professionalN1, schedule.CreateExceptionInput{EffectiveDate: "2027-08-20", IsClosed: true})
+	early := createException(t, repo, shopN, professionalN1, schedule.CreateExceptionInput{EffectiveDate: "2027-08-10", IsClosed: true})
 
-	page, err := repo.ListExceptions(context.Background(), string(shopN), barberN1, nil, 50)
+	page, err := repo.ListExceptions(context.Background(), string(shopN), professionalN1, nil, 50)
 	if err != nil {
 		t.Fatalf("ListExceptions: %v", err)
 	}
@@ -460,11 +464,11 @@ func TestListExceptions_FirstPage_NeverReturnsMoreThanLimit(t *testing.T) {
 	db := setupTestDB(t)
 	repo := newRepository(db)
 
-	createException(t, repo, shopN, barberN1, schedule.CreateExceptionInput{EffectiveDate: "2027-09-01", IsClosed: true})
-	createException(t, repo, shopN, barberN1, schedule.CreateExceptionInput{EffectiveDate: "2027-09-02", IsClosed: true})
-	createException(t, repo, shopN, barberN1, schedule.CreateExceptionInput{EffectiveDate: "2027-09-03", IsClosed: true})
+	createException(t, repo, shopN, professionalN1, schedule.CreateExceptionInput{EffectiveDate: "2027-09-01", IsClosed: true})
+	createException(t, repo, shopN, professionalN1, schedule.CreateExceptionInput{EffectiveDate: "2027-09-02", IsClosed: true})
+	createException(t, repo, shopN, professionalN1, schedule.CreateExceptionInput{EffectiveDate: "2027-09-03", IsClosed: true})
 
-	page, err := repo.ListExceptions(context.Background(), string(shopN), barberN1, nil, 2)
+	page, err := repo.ListExceptions(context.Background(), string(shopN), professionalN1, nil, 2)
 	if err != nil {
 		t.Fatalf("ListExceptions: %v", err)
 	}
@@ -479,7 +483,7 @@ func TestListExceptions_FirstPage_NeverReturnsMoreThanLimit(t *testing.T) {
 		t.Fatalf("DecodeExceptionCursor: %v", err)
 	}
 
-	next, err := repo.ListExceptions(context.Background(), string(shopN), barberN1, &decoded, 50)
+	next, err := repo.ListExceptions(context.Background(), string(shopN), professionalN1, &decoded, 50)
 	if err != nil {
 		t.Fatalf("ListExceptions (second page): %v", err)
 	}
@@ -500,9 +504,9 @@ func TestGetExceptionByDate_FoundAndNotFound(t *testing.T) {
 	db := setupTestDB(t)
 	repo := newRepository(db)
 
-	e := createException(t, repo, shopM, barberM1, schedule.CreateExceptionInput{EffectiveDate: "2027-10-05", IsClosed: true})
+	e := createException(t, repo, shopM, professionalM1, schedule.CreateExceptionInput{EffectiveDate: "2027-10-05", IsClosed: true})
 
-	found, ok, err := repo.GetExceptionByDate(context.Background(), string(shopM), barberM1, "2027-10-05")
+	found, ok, err := repo.GetExceptionByDate(context.Background(), string(shopM), professionalM1, "2027-10-05")
 	if err != nil {
 		t.Fatalf("GetExceptionByDate: %v", err)
 	}
@@ -510,7 +514,7 @@ func TestGetExceptionByDate_FoundAndNotFound(t *testing.T) {
 		t.Fatalf("expected to find the exception created for 2027-10-05, got ok=%v found=%+v", ok, found)
 	}
 
-	_, ok, err = repo.GetExceptionByDate(context.Background(), string(shopM), barberM1, "2027-10-06")
+	_, ok, err = repo.GetExceptionByDate(context.Background(), string(shopM), professionalM1, "2027-10-06")
 	if err != nil {
 		t.Fatalf("GetExceptionByDate: %v", err)
 	}
@@ -521,19 +525,19 @@ func TestGetExceptionByDate_FoundAndNotFound(t *testing.T) {
 
 // --- ListWorkingHoursForWeekday: la usa ResolveEffectiveDay internamente ---
 
-func TestListWorkingHoursForWeekday_OnlyThatBarberAndWeekday(t *testing.T) {
+func TestListWorkingHoursForWeekday_OnlyThatProfessionalAndWeekday(t *testing.T) {
 	db := setupTestDB(t)
 	repo := newRepository(db)
 
-	monday := createWorkingHour(t, repo, shopM, barberM1, schedule.CreateInput{ISOWeekday: 1, StartsTime: "08:00", DurationMinutes: 240})
-	createWorkingHour(t, repo, shopM, barberM1, schedule.CreateInput{ISOWeekday: 2, StartsTime: "08:00", DurationMinutes: 240})
-	createWorkingHour(t, repo, shopM, barberM2, schedule.CreateInput{ISOWeekday: 1, StartsTime: "10:00", DurationMinutes: 60})
+	monday := createWorkingHour(t, repo, shopM, professionalM1, schedule.CreateInput{ISOWeekday: 1, StartsTime: "08:00", DurationMinutes: 240})
+	createWorkingHour(t, repo, shopM, professionalM1, schedule.CreateInput{ISOWeekday: 2, StartsTime: "08:00", DurationMinutes: 240})
+	createWorkingHour(t, repo, shopM, professionalM2, schedule.CreateInput{ISOWeekday: 1, StartsTime: "10:00", DurationMinutes: 60})
 
-	items, err := repo.ListWorkingHoursForWeekday(context.Background(), string(shopM), barberM1, 1)
+	items, err := repo.ListWorkingHoursForWeekday(context.Background(), string(shopM), professionalM1, 1)
 	if err != nil {
 		t.Fatalf("ListWorkingHoursForWeekday: %v", err)
 	}
 	if len(items) != 1 || items[0].ID != monday.ID {
-		t.Fatalf("expected exactly the Monday segment of barberM1, got %+v", items)
+		t.Fatalf("expected exactly the Monday segment of professionalM1, got %+v", items)
 	}
 }

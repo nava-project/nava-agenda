@@ -4,10 +4,10 @@ import { fileURLToPath } from 'node:url'
 
 /**
  * Vocabulario multirrubro en Horarios (#308, DEC-119): un negocio que llama a su
- * profesional «manicurista» y a sí mismo «estudio» no ve «barbero» ni «barbería» en
+ * profesional «manicurista» y a sí mismo «estudio» no ve «profesional» ni «negocio» en
  * ninguna parte de la pantalla de Horarios, en 320/360/768/1280 px, sin scroll
  * horizontal y con axe-core. Corre con respuestas simuladas del API (no depende de
- * PostgreSQL); la persistencia del vocabulario la cubre configuracion-barberia.spec.ts.
+ * PostgreSQL); la persistencia del vocabulario la cubre configuracion-negocio.spec.ts.
  * Capturas en e2e/evidence/vocabulario-multirrubro/.
  */
 const here = path.dirname(fileURLToPath(import.meta.url))
@@ -38,7 +38,7 @@ function json(body: unknown, status = 200) {
   return { status, contentType: 'application/json', body: JSON.stringify(body) }
 }
 
-async function mockApi(page: Page, barbers: Array<{ id: string; fullName: string }>) {
+async function mockApi(page: Page, professionals: Array<{ id: string; fullName: string }>) {
   await page.route('**/api/v1/private/**', async (route) => {
     const { pathname } = new URL(route.request().url())
     if (pathname.endsWith('/auth/session')) {
@@ -53,7 +53,7 @@ async function mockApi(page: Page, barbers: Array<{ id: string; fullName: string
     } else if (pathname.endsWith('/settings/business')) {
       await route.fulfill(json({ timezone: 'America/Bogota' }))
     } else if (pathname.endsWith('/professionals')) {
-      await route.fulfill(json({ items: barbers }))
+      await route.fulfill(json({ items: professionals }))
     } else if (pathname.endsWith('/working-hours')) {
       await route.fulfill(json({ items: [], nextCursor: null }))
     } else if (pathname.endsWith('/holiday-calendar')) {
@@ -68,7 +68,7 @@ async function mockApi(page: Page, barbers: Array<{ id: string; fullName: string
 
 // El nombre propio de una persona puede contener la palabra; lo que se vigila es el
 // texto de la interfaz, por eso los nombres de prueba no la llevan.
-const FIXED_WORDS = /barber(o|a|os|as|ía|ías)\b/i
+const FIXED_WORDS = /professional(o|a|os|as|ía|ías)\b/i
 
 for (const viewport of viewports) {
   test(`Horarios con el vocabulario del negocio a ${viewport.name} px`, async ({ page }) => {

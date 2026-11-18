@@ -8,16 +8,16 @@ import (
 	"errors"
 	"testing"
 
-	"system-barbershop/internal/modules/publicbooking"
-	"system-barbershop/internal/platform/apperr"
+	"nava-agenda/internal/modules/publicbooking"
+	"nava-agenda/internal/platform/apperr"
 )
 
 type fakeResolver struct {
-	profile publicbooking.BarbershopProfile
+	profile publicbooking.BusinessProfile
 	err     error
 }
 
-func (f fakeResolver) ResolveBarbershop(context.Context, string) (publicbooking.BarbershopProfile, error) {
+func (f fakeResolver) ResolveBusiness(context.Context, string) (publicbooking.BusinessProfile, error) {
 	return f.profile, f.err
 }
 
@@ -41,7 +41,7 @@ func sampleReviews() publicbooking.GoogleReviews {
 
 func TestGoogleReviews_WithoutPlaceID_IsEmptyAndNeverCallsGoogle(t *testing.T) {
 	provider := &fakeReviewsProvider{reviews: sampleReviews()}
-	svc := publicbooking.NewGoogleReviewsService(fakeResolver{profile: publicbooking.BarbershopProfile{}}, provider, nil)
+	svc := publicbooking.NewGoogleReviewsService(fakeResolver{profile: publicbooking.BusinessProfile{}}, provider, nil)
 
 	got, err := svc.Get(context.Background(), "barberia-ejemplo")
 	if err != nil || !got.Empty() {
@@ -53,7 +53,7 @@ func TestGoogleReviews_WithoutPlaceID_IsEmptyAndNeverCallsGoogle(t *testing.T) {
 }
 
 func TestGoogleReviews_WithoutProvider_IsEmpty(t *testing.T) {
-	svc := publicbooking.NewGoogleReviewsService(fakeResolver{profile: publicbooking.BarbershopProfile{GooglePlaceID: placeID("ChIJabc")}}, nil, nil)
+	svc := publicbooking.NewGoogleReviewsService(fakeResolver{profile: publicbooking.BusinessProfile{GooglePlaceID: placeID("ChIJabc")}}, nil, nil)
 
 	got, err := svc.Get(context.Background(), "barberia-ejemplo")
 	if err != nil || !got.Empty() {
@@ -63,7 +63,7 @@ func TestGoogleReviews_WithoutProvider_IsEmpty(t *testing.T) {
 
 func TestGoogleReviews_WithPlaceID_ReturnsWhatTheProviderReturned(t *testing.T) {
 	provider := &fakeReviewsProvider{reviews: sampleReviews()}
-	svc := publicbooking.NewGoogleReviewsService(fakeResolver{profile: publicbooking.BarbershopProfile{GooglePlaceID: placeID("ChIJabc")}}, provider, nil)
+	svc := publicbooking.NewGoogleReviewsService(fakeResolver{profile: publicbooking.BusinessProfile{GooglePlaceID: placeID("ChIJabc")}}, provider, nil)
 
 	got, err := svc.Get(context.Background(), "barberia-ejemplo")
 	if err != nil || got.Rating == nil || *got.Rating != 4.7 || len(got.Reviews) != 1 {
@@ -81,7 +81,7 @@ func TestGoogleReviews_ProviderFailure_IsEmptyAndNeverAnError(t *testing.T) {
 	} {
 		t.Run(name, func(t *testing.T) {
 			provider := &fakeReviewsProvider{err: cause}
-			svc := publicbooking.NewGoogleReviewsService(fakeResolver{profile: publicbooking.BarbershopProfile{GooglePlaceID: placeID("ChIJabc")}}, provider, nil)
+			svc := publicbooking.NewGoogleReviewsService(fakeResolver{profile: publicbooking.BusinessProfile{GooglePlaceID: placeID("ChIJabc")}}, provider, nil)
 
 			got, err := svc.Get(context.Background(), "barberia-ejemplo")
 			if err != nil || !got.Empty() {
@@ -93,7 +93,7 @@ func TestGoogleReviews_ProviderFailure_IsEmptyAndNeverAnError(t *testing.T) {
 
 func TestGoogleReviews_UnknownOrUnpublishedSlug_KeepsTheUniform404(t *testing.T) {
 	provider := &fakeReviewsProvider{reviews: sampleReviews()}
-	svc := publicbooking.NewGoogleReviewsService(fakeResolver{err: apperr.NotFound("barbería no disponible")}, provider, nil)
+	svc := publicbooking.NewGoogleReviewsService(fakeResolver{err: apperr.NotFound("negocio no disponible")}, provider, nil)
 
 	_, err := svc.Get(context.Background(), "no-existe")
 	var appErr *apperr.Error
@@ -101,6 +101,6 @@ func TestGoogleReviews_UnknownOrUnpublishedSlug_KeepsTheUniform404(t *testing.T)
 		t.Fatalf("un slug no publicable debe ser el 404 uniforme: %v", err)
 	}
 	if len(provider.calls) != 0 {
-		t.Fatal("sin barbería no se consulta a Google")
+		t.Fatal("sin negocio no se consulta a Google")
 	}
 }

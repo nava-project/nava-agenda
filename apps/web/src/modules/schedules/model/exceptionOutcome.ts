@@ -29,7 +29,7 @@ export type FetchScheduleExceptionsOutcome =
 export type CreateScheduleExceptionOutcome =
   | { kind: 'success'; exception: ScheduleException }
   | { kind: 'validation-error' }
-  // CA-041-05: ya existe otra excepción del mismo barbero para esa fecha.
+  // CA-041-05: ya existe otra excepción del mismo profesional para esa fecha.
   | { kind: 'date-conflict' }
   | { kind: 'not-found' }
   // RN-IDE-01: la misma clave de idempotencia ya se usó con un contenido

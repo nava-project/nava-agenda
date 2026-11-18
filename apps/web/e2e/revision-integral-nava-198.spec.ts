@@ -9,7 +9,7 @@ import path from 'node:path'
 // incluido), desbordamiento horizontal, errores de consola y de página, y la
 // consistencia del cascarón (un solo <main>, un solo <h1>, marca y navegación,
 // tipografía de títulos). Datos sintéticos de database/testdata/
-// ui_bloqueos_barberos_286.sql. Las capturas de cada ruta (1280 y 320) y
+// ui_bloqueos_profesionales_286.sql. Las capturas de cada ruta (1280 y 320) y
 // report.json son la evidencia versionada.
 const evidence = path.resolve('e2e/evidence/revision-integral-198')
 const VIEWPORTS = [
@@ -21,11 +21,11 @@ const VIEWPORTS = [
 const PRIVATE_ROUTES = [
   { name: 'agenda', url: '/panel' },
   { name: 'nuevo-turno', url: '/panel/turnos/nuevo' },
-  { name: 'barberos', url: '/panel/barberos' },
+  { name: 'barberos', url: '/panel/profesionales' },
   { name: 'servicios', url: '/panel/servicios' },
-  { name: 'servicios-por-barbero', url: '/panel/servicios-por-barbero' },
+  { name: 'servicios-por-profesional', url: '/panel/servicios-por-profesional' },
   { name: 'horarios', url: '/panel/horarios' },
-  { name: 'barberia', url: '/panel/barberia' },
+  { name: 'barberia', url: '/panel/negocio' },
   { name: 'reserva-publica', url: '/panel/reserva-publica' },
 ]
 const PUBLIC_ROUTES = [
@@ -167,10 +167,10 @@ test('rutas privadas del panel en los cuatro anchos', async ({ page }, testInfo)
       )
     }
   }
-  // /panel/bloqueos ya no es un destino propio (DEC-105): redirige a Barberos.
+  // /panel/bloqueos ya no es un destino propio (DEC-105): redirige a Profesionales.
   await page.setViewportSize(VIEWPORTS[0]!)
   await page.goto('/panel/bloqueos')
-  await expect(page).toHaveURL(/\/panel\/barberos$/)
+  await expect(page).toHaveURL(/\/panel\/profesionales$/)
 })
 
 test('acceso y recuperación en los cuatro anchos', async ({ browser }, testInfo) => {

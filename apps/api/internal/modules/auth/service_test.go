@@ -7,8 +7,8 @@ import (
 	"testing"
 	"time"
 
-	"system-barbershop/internal/modules/auth"
-	"system-barbershop/internal/platform/apperr"
+	"nava-agenda/internal/modules/auth"
+	"nava-agenda/internal/platform/apperr"
 )
 
 // --- dobles de prueba -------------------------------------------------
@@ -174,8 +174,8 @@ func TestLogin_Success_CreatesSessionWithHashedToken(t *testing.T) {
 	if session.Token != "token-en-claro-de-prueba" {
 		t.Fatalf("expected the raw token to flow through to the caller, got %q", session.Token)
 	}
-	if session.BarbershopID != repo.resolveShop {
-		t.Fatalf("expected barbershop %q, got %q", repo.resolveShop, session.BarbershopID)
+	if session.BusinessID != repo.resolveShop {
+		t.Fatalf("expected business %q, got %q", repo.resolveShop, session.BusinessID)
 	}
 	if session.StaffUserID != repo.lookupCred.StaffUserID {
 		t.Fatalf("expected staff user %q, got %q", repo.lookupCred.StaffUserID, session.StaffUserID)

@@ -10,9 +10,9 @@ import (
 	"testing"
 	"time"
 
-	"system-barbershop/internal/modules/publicbooking"
-	"system-barbershop/internal/modules/publicbooking/httpapi"
-	"system-barbershop/internal/platform/httpserver"
+	"nava-agenda/internal/modules/publicbooking"
+	"nava-agenda/internal/modules/publicbooking/httpapi"
+	"nava-agenda/internal/platform/httpserver"
 )
 
 // fakeRepository es un doble en memoria de publicbooking.Repository: estas
@@ -21,7 +21,7 @@ import (
 // PostgreSQL real (esa cobertura vive en
 // internal/modules/publicbooking/postgres/repository_test.go).
 type fakeRepository struct {
-	profile publicbooking.BarbershopProfile
+	profile publicbooking.BusinessProfile
 	found   bool
 	err     error
 	calls   []string
@@ -30,20 +30,20 @@ type fakeRepository struct {
 	listFound  bool
 	listErr    error
 
-	barbersResult publicbooking.PublicBarberListResult
-	barbersFound  bool
-	barbersErr    error
+	professionalsResult publicbooking.PublicProfessionalListResult
+	professionalsFound  bool
+	professionalsErr    error
 
-	photoResult publicbooking.PublicBarberPhoto
+	photoResult publicbooking.PublicProfessionalPhoto
 	photoFound  bool
 	photoErr    error
 
-	withServicesResult publicbooking.PublicBarberServicesListResult
+	withServicesResult publicbooking.PublicProfessionalServicesListResult
 	withServicesFound  bool
 	withServicesErr    error
 }
 
-func (f *fakeRepository) ResolveBySlug(_ context.Context, slug string) (publicbooking.BarbershopProfile, bool, error) {
+func (f *fakeRepository) ResolveBySlug(_ context.Context, slug string) (publicbooking.BusinessProfile, bool, error) {
 	f.calls = append(f.calls, slug)
 	return f.profile, f.found, f.err
 }
@@ -53,17 +53,17 @@ func (f *fakeRepository) ListPublicServices(_ context.Context, slug string, _ *p
 	return f.listResult, f.listFound, f.listErr
 }
 
-func (f *fakeRepository) ListPublicBarbers(_ context.Context, slug string, _ string) (publicbooking.PublicBarberListResult, bool, error) {
+func (f *fakeRepository) ListPublicProfessionals(_ context.Context, slug string, _ string) (publicbooking.PublicProfessionalListResult, bool, error) {
 	f.calls = append(f.calls, slug)
-	return f.barbersResult, f.barbersFound, f.barbersErr
+	return f.professionalsResult, f.professionalsFound, f.professionalsErr
 }
 
-func (f *fakeRepository) GetPublicBarberPhoto(_ context.Context, slug string, _ string) (publicbooking.PublicBarberPhoto, bool, error) {
+func (f *fakeRepository) GetPublicProfessionalPhoto(_ context.Context, slug string, _ string) (publicbooking.PublicProfessionalPhoto, bool, error) {
 	f.calls = append(f.calls, slug)
 	return f.photoResult, f.photoFound, f.photoErr
 }
 
-func (f *fakeRepository) ListPublicBarbersWithServices(_ context.Context, slug string) (publicbooking.PublicBarberServicesListResult, bool, error) {
+func (f *fakeRepository) ListPublicProfessionalsWithServices(_ context.Context, slug string) (publicbooking.PublicProfessionalServicesListResult, bool, error) {
 	f.calls = append(f.calls, slug)
 	return f.withServicesResult, f.withServicesFound, f.withServicesErr
 }
@@ -77,12 +77,12 @@ func requestWithSlug(slug string) *http.Request {
 	return httpserver.RequestWithURLParam(req, "slug", slug)
 }
 
-func TestResolveBarbershopHandler_Success_ReturnsPublicProfile(t *testing.T) {
+func TestResolveBusinessHandler_Success_ReturnsPublicProfile(t *testing.T) {
 	email := "contacto@ejemplo.test"
 	phone := "+573001234567"
 	repo := &fakeRepository{
 		found: true,
-		profile: publicbooking.BarbershopProfile{
+		profile: publicbooking.BusinessProfile{
 			Name: "Barbería Ejemplo", Timezone: "America/Bogota",
 			ContactEmail: &email, ContactPhone: &phone,
 			Vocabulary: publicbooking.Vocabulary{
@@ -93,7 +93,7 @@ func TestResolveBarbershopHandler_Success_ReturnsPublicProfile(t *testing.T) {
 			BrandAccent: "emerald",
 		},
 	}
-	h := httpapi.NewResolveBarbershopHandler(publicbooking.NewService(repo))
+	h := httpapi.NewResolveBusinessHandler(publicbooking.NewService(repo))
 
 	req := requestWithSlug("barberia-ejemplo")
 	rec := httptest.NewRecorder()
@@ -102,14 +102,14 @@ func TestResolveBarbershopHandler_Success_ReturnsPublicProfile(t *testing.T) {
 	if rec.Code != http.StatusOK {
 		t.Fatalf("expected 200, got %d: %s", rec.Code, rec.Body.String())
 	}
-	var body httpapi.PublicBarbershopProfileResponse
+	var body httpapi.PublicBusinessProfileResponse
 	if err := json.NewDecoder(rec.Body).Decode(&body); err != nil {
 		t.Fatalf("decode response body: %v", err)
 	}
 	if body.Name != "Barbería Ejemplo" || body.Timezone != "America/Bogota" {
 		t.Fatalf("unexpected response: %+v", body)
 	}
-	// DEC-119: el vocabulario del negocio viaja tal como la barbería lo configuró.
+	// DEC-119: el vocabulario del negocio viaja tal como el negocio lo configuró.
 	wantVocabulary := httpapi.PublicVocabularyResponse{
 		BusinessTerm: "estudio de uñas", BusinessTermGender: "masculine",
 		ProfessionalTerm: "manicurista", ProfessionalTermPlural: "manicuristas",
@@ -139,12 +139,12 @@ func TestResolveBarbershopHandler_Success_ReturnsPublicProfile(t *testing.T) {
 	}
 }
 
-func TestResolveBarbershopHandler_NoContact_ReturnsNullNotOmitted(t *testing.T) {
+func TestResolveBusinessHandler_NoContact_ReturnsNullNotOmitted(t *testing.T) {
 	repo := &fakeRepository{
 		found:   true,
-		profile: publicbooking.BarbershopProfile{Name: "Barbería Ejemplo", Timezone: "America/Bogota"},
+		profile: publicbooking.BusinessProfile{Name: "Barbería Ejemplo", Timezone: "America/Bogota"},
 	}
-	h := httpapi.NewResolveBarbershopHandler(publicbooking.NewService(repo))
+	h := httpapi.NewResolveBusinessHandler(publicbooking.NewService(repo))
 
 	req := requestWithSlug("barberia-ejemplo")
 	rec := httptest.NewRecorder()
@@ -165,10 +165,10 @@ func TestResolveBarbershopHandler_NoContact_ReturnsNullNotOmitted(t *testing.T) 
 	}
 }
 
-func TestResolveBarbershopHandler_Location_NullWhenHiddenAndObjectWhenShown(t *testing.T) {
-	hidden := &fakeRepository{found: true, profile: publicbooking.BarbershopProfile{Name: "A", Timezone: "America/Bogota"}}
+func TestResolveBusinessHandler_Location_NullWhenHiddenAndObjectWhenShown(t *testing.T) {
+	hidden := &fakeRepository{found: true, profile: publicbooking.BusinessProfile{Name: "A", Timezone: "America/Bogota"}}
 	rec := httptest.NewRecorder()
-	httpapi.NewResolveBarbershopHandler(publicbooking.NewService(hidden)).ServeHTTP(rec, requestWithSlug("a"))
+	httpapi.NewResolveBusinessHandler(publicbooking.NewService(hidden)).ServeHTTP(rec, requestWithSlug("a"))
 	var raw map[string]any
 	if err := json.NewDecoder(rec.Body).Decode(&raw); err != nil {
 		t.Fatalf("decode: %v", err)
@@ -177,13 +177,13 @@ func TestResolveBarbershopHandler_Location_NullWhenHiddenAndObjectWhenShown(t *t
 		t.Fatalf("sin ubicación visible, location debe viajar como null explícito, fue present=%v v=%v", present, v)
 	}
 
-	shown := &fakeRepository{found: true, profile: publicbooking.BarbershopProfile{
+	shown := &fakeRepository{found: true, profile: publicbooking.BusinessProfile{
 		Name: "A", Timezone: "America/Bogota",
 		Location: &publicbooking.Location{Address: "Calle 10 # 5-20, Bogotá", Latitude: 4.598056, Longitude: -74.076111},
 	}}
 	rec = httptest.NewRecorder()
-	httpapi.NewResolveBarbershopHandler(publicbooking.NewService(shown)).ServeHTTP(rec, requestWithSlug("a"))
-	var body httpapi.PublicBarbershopProfileResponse
+	httpapi.NewResolveBusinessHandler(publicbooking.NewService(shown)).ServeHTTP(rec, requestWithSlug("a"))
+	var body httpapi.PublicBusinessProfileResponse
 	if err := json.NewDecoder(rec.Body).Decode(&body); err != nil {
 		t.Fatalf("decode: %v", err)
 	}
@@ -193,9 +193,9 @@ func TestResolveBarbershopHandler_Location_NullWhenHiddenAndObjectWhenShown(t *t
 	}
 }
 
-func TestResolveBarbershopHandler_NotFound_ReturnsUniform404(t *testing.T) {
+func TestResolveBusinessHandler_NotFound_ReturnsUniform404(t *testing.T) {
 	repo := &fakeRepository{found: false}
-	h := httpapi.NewResolveBarbershopHandler(publicbooking.NewService(repo))
+	h := httpapi.NewResolveBusinessHandler(publicbooking.NewService(repo))
 
 	req := requestWithSlug("no-existe")
 	rec := httptest.NewRecorder()
@@ -209,12 +209,12 @@ func TestResolveBarbershopHandler_NotFound_ReturnsUniform404(t *testing.T) {
 	}
 }
 
-// TestResolveBarbershopHandler_MalformedSlug_ReturnsSameUniform404AsUnknown
+// TestResolveBusinessHandler_MalformedSlug_ReturnsSameUniform404AsUnknown
 // cubre CA-090-02: la respuesta HTTP para un slug con forma imposible es
 // indistinguible de la de un slug desconocido.
-func TestResolveBarbershopHandler_MalformedSlug_ReturnsSameUniform404AsUnknown(t *testing.T) {
+func TestResolveBusinessHandler_MalformedSlug_ReturnsSameUniform404AsUnknown(t *testing.T) {
 	repo := &fakeRepository{found: false}
-	h := httpapi.NewResolveBarbershopHandler(publicbooking.NewService(repo))
+	h := httpapi.NewResolveBusinessHandler(publicbooking.NewService(repo))
 
 	req := requestWithSlug("Bad%20Slug!")
 	rec := httptest.NewRecorder()
@@ -225,9 +225,9 @@ func TestResolveBarbershopHandler_MalformedSlug_ReturnsSameUniform404AsUnknown(t
 	}
 }
 
-func TestResolveBarbershopHandler_RepositoryError_ReturnsSafe500(t *testing.T) {
+func TestResolveBusinessHandler_RepositoryError_ReturnsSafe500(t *testing.T) {
 	repo := &fakeRepository{err: errors.New("boom")}
-	h := httpapi.NewResolveBarbershopHandler(publicbooking.NewService(repo))
+	h := httpapi.NewResolveBusinessHandler(publicbooking.NewService(repo))
 
 	req := requestWithSlug("barberia-ejemplo")
 	rec := httptest.NewRecorder()
@@ -371,14 +371,14 @@ func requestWithSlugAndServiceID(slug, serviceID string) *http.Request {
 	return httpserver.RequestWithURLParam(req, "serviceId", serviceID)
 }
 
-func TestListPublicBarbersHandler_OneBarber_ReturnsSingleItem(t *testing.T) {
+func TestListPublicProfessionalsHandler_OneProfessional_ReturnsSingleItem(t *testing.T) {
 	repo := &fakeRepository{
-		barbersFound: true,
-		barbersResult: publicbooking.PublicBarberListResult{
-			Items: []publicbooking.PublicBarber{{ID: "8f3ac2b1-e4d5-46f6-a7c8-d9e0f1a2b3c4", FullName: "Juan Pérez"}},
+		professionalsFound: true,
+		professionalsResult: publicbooking.PublicProfessionalListResult{
+			Items: []publicbooking.PublicProfessional{{ID: "8f3ac2b1-e4d5-46f6-a7c8-d9e0f1a2b3c4", FullName: "Juan Pérez"}},
 		},
 	}
-	h := httpapi.NewListPublicBarbersHandler(publicbooking.NewService(repo))
+	h := httpapi.NewListPublicProfessionalsHandler(publicbooking.NewService(repo))
 
 	req := requestWithSlugAndServiceID("barberia-ejemplo", validServiceID)
 	rec := httptest.NewRecorder()
@@ -387,7 +387,7 @@ func TestListPublicBarbersHandler_OneBarber_ReturnsSingleItem(t *testing.T) {
 	if rec.Code != http.StatusOK {
 		t.Fatalf("expected 200, got %d: %s", rec.Code, rec.Body.String())
 	}
-	var body httpapi.PublicBarberListResponse
+	var body httpapi.PublicProfessionalListResponse
 	if err := json.NewDecoder(rec.Body).Decode(&body); err != nil {
 		t.Fatalf("decode response body: %v", err)
 	}
@@ -396,9 +396,9 @@ func TestListPublicBarbersHandler_OneBarber_ReturnsSingleItem(t *testing.T) {
 	}
 }
 
-func TestListPublicBarbersHandler_ZeroBarbers_ReturnsEmptyArrayNotNull(t *testing.T) {
-	repo := &fakeRepository{barbersFound: true}
-	h := httpapi.NewListPublicBarbersHandler(publicbooking.NewService(repo))
+func TestListPublicProfessionalsHandler_ZeroProfessionals_ReturnsEmptyArrayNotNull(t *testing.T) {
+	repo := &fakeRepository{professionalsFound: true}
+	h := httpapi.NewListPublicProfessionalsHandler(publicbooking.NewService(repo))
 
 	req := requestWithSlugAndServiceID("barberia-ejemplo", validServiceID)
 	rec := httptest.NewRecorder()
@@ -420,23 +420,23 @@ func TestListPublicBarbersHandler_ZeroBarbers_ReturnsEmptyArrayNotNull(t *testin
 	}
 }
 
-func TestListPublicBarbersHandler_ManyBarbers_ReturnsAllItemsInOrder(t *testing.T) {
+func TestListPublicProfessionalsHandler_ManyProfessionals_ReturnsAllItemsInOrder(t *testing.T) {
 	repo := &fakeRepository{
-		barbersFound: true,
-		barbersResult: publicbooking.PublicBarberListResult{
-			Items: []publicbooking.PublicBarber{
+		professionalsFound: true,
+		professionalsResult: publicbooking.PublicProfessionalListResult{
+			Items: []publicbooking.PublicProfessional{
 				{ID: "8f3ac2b1-e4d5-46f6-a7c8-d9e0f1a2b3c4", FullName: "Ana Gómez"},
 				{ID: "1c9a7f2d-3b4e-4a5f-9c6d-7e8f9a0b1c2d", FullName: "Luis Rojas"},
 			},
 		},
 	}
-	h := httpapi.NewListPublicBarbersHandler(publicbooking.NewService(repo))
+	h := httpapi.NewListPublicProfessionalsHandler(publicbooking.NewService(repo))
 
 	req := requestWithSlugAndServiceID("barberia-ejemplo", validServiceID)
 	rec := httptest.NewRecorder()
 	h.ServeHTTP(rec, req)
 
-	var body httpapi.PublicBarberListResponse
+	var body httpapi.PublicProfessionalListResponse
 	if err := json.NewDecoder(rec.Body).Decode(&body); err != nil {
 		t.Fatalf("decode response body: %v", err)
 	}
@@ -445,9 +445,9 @@ func TestListPublicBarbersHandler_ManyBarbers_ReturnsAllItemsInOrder(t *testing.
 	}
 }
 
-func TestListPublicBarbersHandler_BarbershopNotFound_ReturnsUniform404(t *testing.T) {
-	repo := &fakeRepository{barbersFound: false}
-	h := httpapi.NewListPublicBarbersHandler(publicbooking.NewService(repo))
+func TestListPublicProfessionalsHandler_BusinessNotFound_ReturnsUniform404(t *testing.T) {
+	repo := &fakeRepository{professionalsFound: false}
+	h := httpapi.NewListPublicProfessionalsHandler(publicbooking.NewService(repo))
 
 	req := requestWithSlugAndServiceID("no-existe", validServiceID)
 	rec := httptest.NewRecorder()
@@ -458,15 +458,15 @@ func TestListPublicBarbersHandler_BarbershopNotFound_ReturnsUniform404(t *testin
 	}
 }
 
-// TestListPublicBarbersHandler_ForeignOrMalformedServiceID_ReturnsSameSuccessAsZeroBarbers
+// TestListPublicProfessionalsHandler_ForeignOrMalformedServiceID_ReturnsSameSuccessAsZeroProfessionals
 // cubre CA-092-03: un serviceID ajeno, inexistente o malformado nunca
-// produce un error distinto de "cero barberos elegibles" -misma respuesta
+// produce un error distinto de "cero profesionales elegibles" -misma respuesta
 // 200 con items=[], sin importar la causa concreta.
-func TestListPublicBarbersHandler_ForeignOrMalformedServiceID_ReturnsSameSuccessAsZeroBarbers(t *testing.T) {
+func TestListPublicProfessionalsHandler_ForeignOrMalformedServiceID_ReturnsSameSuccessAsZeroProfessionals(t *testing.T) {
 	for _, serviceID := range []string{validServiceID, "no-es-un-uuid", "00000000-0000-0000-0000-000000000000"} {
 		t.Run(serviceID, func(t *testing.T) {
-			repo := &fakeRepository{barbersFound: true}
-			h := httpapi.NewListPublicBarbersHandler(publicbooking.NewService(repo))
+			repo := &fakeRepository{professionalsFound: true}
+			h := httpapi.NewListPublicProfessionalsHandler(publicbooking.NewService(repo))
 
 			req := requestWithSlugAndServiceID("barberia-ejemplo", serviceID)
 			rec := httptest.NewRecorder()
@@ -479,9 +479,9 @@ func TestListPublicBarbersHandler_ForeignOrMalformedServiceID_ReturnsSameSuccess
 	}
 }
 
-func TestListPublicBarbersHandler_RepositoryError_ReturnsSafe500(t *testing.T) {
-	repo := &fakeRepository{barbersErr: errors.New("boom")}
-	h := httpapi.NewListPublicBarbersHandler(publicbooking.NewService(repo))
+func TestListPublicProfessionalsHandler_RepositoryError_ReturnsSafe500(t *testing.T) {
+	repo := &fakeRepository{professionalsErr: errors.New("boom")}
+	h := httpapi.NewListPublicProfessionalsHandler(publicbooking.NewService(repo))
 
 	req := requestWithSlugAndServiceID("barberia-ejemplo", validServiceID)
 	rec := httptest.NewRecorder()
@@ -497,17 +497,17 @@ func TestListPublicBarbersHandler_RepositoryError_ReturnsSafe500(t *testing.T) {
 
 // --- DEC-127: descripción y fotografía en la lista y fotografía pública ----
 
-func TestListPublicBarbersHandler_DescriptionAndPhotoVersion_AreExposed(t *testing.T) {
+func TestListPublicProfessionalsHandler_DescriptionAndPhotoVersion_AreExposed(t *testing.T) {
 	description := "Fade, barba y navaja."
 	version := time.Date(2026, 9, 30, 12, 0, 0, 0, time.UTC)
 	repo := &fakeRepository{
-		barbersFound: true,
-		barbersResult: publicbooking.PublicBarberListResult{Items: []publicbooking.PublicBarber{
+		professionalsFound: true,
+		professionalsResult: publicbooking.PublicProfessionalListResult{Items: []publicbooking.PublicProfessional{
 			{ID: "8f3ac2b1-e4d5-46f6-a7c8-d9e0f1a2b3c4", FullName: "Juan Pérez", Description: &description, PhotoUpdatedAt: &version},
 			{ID: "1c9a7f2d-3b4e-4a5f-9c6d-7e8f9a0b1c2d", FullName: "Luis Rojas"},
 		}},
 	}
-	h := httpapi.NewListPublicBarbersHandler(publicbooking.NewService(repo))
+	h := httpapi.NewListPublicProfessionalsHandler(publicbooking.NewService(repo))
 
 	rec := httptest.NewRecorder()
 	h.ServeHTTP(rec, requestWithSlugAndServiceID("barberia-ejemplo", validServiceID))
@@ -525,7 +525,7 @@ func TestListPublicBarbersHandler_DescriptionAndPhotoVersion_AreExposed(t *testi
 		t.Fatalf("expected 2 items, got %+v", raw.Items)
 	}
 	if raw.Items[0]["description"] != description || raw.Items[0]["photoUpdatedAt"] != "2026-09-30T12:00:00Z" {
-		t.Fatalf("expected description and photo version on the first barber, got %+v", raw.Items[0])
+		t.Fatalf("expected description and photo version on the first professional, got %+v", raw.Items[0])
 	}
 	// Sin descripción ni fotografía los campos viajan presentes con null
 	// explícito (el contrato los declara obligatorios y nullable).
@@ -537,22 +537,22 @@ func TestListPublicBarbersHandler_DescriptionAndPhotoVersion_AreExposed(t *testi
 	}
 }
 
-func requestWithSlugAndBarberID(slug, barberID string) *http.Request {
-	req := httptest.NewRequest(http.MethodGet, "/api/v1/public/businesses/"+slug+"/professionals/"+barberID+"/photo", nil)
+func requestWithSlugAndProfessionalID(slug, professionalID string) *http.Request {
+	req := httptest.NewRequest(http.MethodGet, "/api/v1/public/businesses/"+slug+"/professionals/"+professionalID+"/photo", nil)
 	req = httpserver.RequestWithURLParam(req, "slug", slug)
-	return httpserver.RequestWithURLParam(req, "professionalId", barberID)
+	return httpserver.RequestWithURLParam(req, "professionalId", professionalID)
 }
 
-func TestGetPublicBarberPhotoHandler_Success_ServesBytesWithETag(t *testing.T) {
+func TestGetPublicProfessionalPhotoHandler_Success_ServesBytesWithETag(t *testing.T) {
 	updated := time.Date(2026, 9, 30, 12, 0, 0, 0, time.UTC)
 	repo := &fakeRepository{
 		photoFound:  true,
-		photoResult: publicbooking.PublicBarberPhoto{ContentType: "image/png", Data: []byte{0x89, 'P', 'N', 'G'}, UpdatedAt: updated},
+		photoResult: publicbooking.PublicProfessionalPhoto{ContentType: "image/png", Data: []byte{0x89, 'P', 'N', 'G'}, UpdatedAt: updated},
 	}
-	h := httpapi.NewGetPublicBarberPhotoHandler(publicbooking.NewService(repo))
+	h := httpapi.NewGetPublicProfessionalPhotoHandler(publicbooking.NewService(repo))
 
 	rec := httptest.NewRecorder()
-	h.ServeHTTP(rec, requestWithSlugAndBarberID("barberia-ejemplo", validServiceID))
+	h.ServeHTTP(rec, requestWithSlugAndProfessionalID("barberia-ejemplo", validServiceID))
 
 	if rec.Code != http.StatusOK {
 		t.Fatalf("expected 200, got %d: %s", rec.Code, rec.Body.String())
@@ -571,18 +571,18 @@ func TestGetPublicBarberPhotoHandler_Success_ServesBytesWithETag(t *testing.T) {
 	}
 }
 
-func TestGetPublicBarberPhotoHandler_IfNoneMatch_Returns304WithoutBody(t *testing.T) {
+func TestGetPublicProfessionalPhotoHandler_IfNoneMatch_Returns304WithoutBody(t *testing.T) {
 	repo := &fakeRepository{
 		photoFound:  true,
-		photoResult: publicbooking.PublicBarberPhoto{ContentType: "image/png", Data: []byte{1}, UpdatedAt: time.Unix(1790769600, 0).UTC()},
+		photoResult: publicbooking.PublicProfessionalPhoto{ContentType: "image/png", Data: []byte{1}, UpdatedAt: time.Unix(1790769600, 0).UTC()},
 	}
-	h := httpapi.NewGetPublicBarberPhotoHandler(publicbooking.NewService(repo))
+	h := httpapi.NewGetPublicProfessionalPhotoHandler(publicbooking.NewService(repo))
 
 	first := httptest.NewRecorder()
-	h.ServeHTTP(first, requestWithSlugAndBarberID("barberia-ejemplo", validServiceID))
+	h.ServeHTTP(first, requestWithSlugAndProfessionalID("barberia-ejemplo", validServiceID))
 	etag := first.Header().Get("ETag")
 
-	req := requestWithSlugAndBarberID("barberia-ejemplo", validServiceID)
+	req := requestWithSlugAndProfessionalID("barberia-ejemplo", validServiceID)
 	req.Header.Set("If-None-Match", etag)
 	rec := httptest.NewRecorder()
 	h.ServeHTTP(rec, req)
@@ -595,14 +595,14 @@ func TestGetPublicBarberPhotoHandler_IfNoneMatch_Returns304WithoutBody(t *testin
 	}
 }
 
-func TestGetPublicBarberPhotoHandler_NotFound_ReturnsUniform404(t *testing.T) {
-	h := httpapi.NewGetPublicBarberPhotoHandler(publicbooking.NewService(&fakeRepository{photoFound: false}))
+func TestGetPublicProfessionalPhotoHandler_NotFound_ReturnsUniform404(t *testing.T) {
+	h := httpapi.NewGetPublicProfessionalPhotoHandler(publicbooking.NewService(&fakeRepository{photoFound: false}))
 
-	for _, barberID := range []string{validServiceID, "no-es-un-uuid"} {
+	for _, professionalID := range []string{validServiceID, "no-es-un-uuid"} {
 		rec := httptest.NewRecorder()
-		h.ServeHTTP(rec, requestWithSlugAndBarberID("barberia-ejemplo", barberID))
+		h.ServeHTTP(rec, requestWithSlugAndProfessionalID("barberia-ejemplo", professionalID))
 		if rec.Code != http.StatusNotFound {
-			t.Fatalf("professionalId %q: expected 404, got %d", barberID, rec.Code)
+			t.Fatalf("professionalId %q: expected 404, got %d", professionalID, rec.Code)
 		}
 	}
 }
@@ -636,7 +636,7 @@ func TestGetPublicGoogleReviewsHandler_Success_ReturnsRatingAndAttributedReviews
 		Reviews: []publicbooking.GoogleReview{{AuthorName: "Camila R.", AuthorURL: &url, Rating: 5, Text: &text}},
 	}}
 	place := "ChIJabc"
-	repo := &fakeRepository{found: true, profile: publicbooking.BarbershopProfile{GooglePlaceID: &place}}
+	repo := &fakeRepository{found: true, profile: publicbooking.BusinessProfile{GooglePlaceID: &place}}
 
 	rec := serveGoogleReviews(t, repo, provider)
 
@@ -669,12 +669,12 @@ func TestGetPublicGoogleReviewsHandler_Success_ReturnsRatingAndAttributedReviews
 func TestGetPublicGoogleReviewsHandler_NothingToShow_IsTheExplicitEmptyStructure(t *testing.T) {
 	place := "ChIJabc"
 	cases := map[string]struct {
-		profile  publicbooking.BarbershopProfile
+		profile  publicbooking.BusinessProfile
 		provider publicbooking.GoogleReviewsProvider
 	}{
-		"sin ficha":        {profile: publicbooking.BarbershopProfile{}, provider: &fakeReviewsProvider{}},
-		"sin credencial":   {profile: publicbooking.BarbershopProfile{GooglePlaceID: &place}, provider: nil},
-		"consulta fallida": {profile: publicbooking.BarbershopProfile{GooglePlaceID: &place}, provider: &fakeReviewsProvider{err: publicbooking.ErrGoogleReviewsUnavailable}},
+		"sin ficha":        {profile: publicbooking.BusinessProfile{}, provider: &fakeReviewsProvider{}},
+		"sin credencial":   {profile: publicbooking.BusinessProfile{GooglePlaceID: &place}, provider: nil},
+		"consulta fallida": {profile: publicbooking.BusinessProfile{GooglePlaceID: &place}, provider: &fakeReviewsProvider{err: publicbooking.ErrGoogleReviewsUnavailable}},
 	}
 	for name, tc := range cases {
 		t.Run(name, func(t *testing.T) {
@@ -699,7 +699,7 @@ func TestGetPublicGoogleReviewsHandler_UnknownSlug_Is404AndNeverCallsGoogle(t *t
 		t.Fatalf("expected 404, got %d: %s", rec.Code, rec.Body.String())
 	}
 	if provider.calls != 0 {
-		t.Fatal("sin barbería no se consulta a Google")
+		t.Fatal("sin negocio no se consulta a Google")
 	}
 }
 
@@ -707,7 +707,7 @@ func TestGetPublicGoogleReviewsHandler_NeverExposesThePlaceIDOrAnyKey(t *testing
 	place := "ChIJsecretoDeLaFicha"
 	rating := 4.0
 	provider := &fakeReviewsProvider{reviews: publicbooking.GoogleReviews{Rating: &rating, Reviews: []publicbooking.GoogleReview{}}}
-	rec := serveGoogleReviews(t, &fakeRepository{found: true, profile: publicbooking.BarbershopProfile{GooglePlaceID: &place}}, provider)
+	rec := serveGoogleReviews(t, &fakeRepository{found: true, profile: publicbooking.BusinessProfile{GooglePlaceID: &place}}, provider)
 
 	if strings.Contains(rec.Body.String(), place) || strings.Contains(strings.ToLower(rec.Body.String()), "key") {
 		t.Fatalf("la respuesta no debe contener el Place ID ni claves: %s", rec.Body.String())
@@ -717,10 +717,10 @@ func TestGetPublicGoogleReviewsHandler_NeverExposesThePlaceIDOrAnyKey(t *testing
 // CA-107-04: sin horario, openingHours viaja como lista vacía y today como null
 // explícito; con horario, los tramos salen en `HH:MM` (24:00 incluido) y today
 // trae la fecha civil del local.
-func TestResolveBarbershopHandler_OpeningHours_EmptyListAndNullTodayOrTheWeek(t *testing.T) {
-	none := &fakeRepository{found: true, profile: publicbooking.BarbershopProfile{Name: "A", Timezone: "America/Bogota"}}
+func TestResolveBusinessHandler_OpeningHours_EmptyListAndNullTodayOrTheWeek(t *testing.T) {
+	none := &fakeRepository{found: true, profile: publicbooking.BusinessProfile{Name: "A", Timezone: "America/Bogota"}}
 	rec := httptest.NewRecorder()
-	httpapi.NewResolveBarbershopHandler(publicbooking.NewService(none)).ServeHTTP(rec, requestWithSlug("a"))
+	httpapi.NewResolveBusinessHandler(publicbooking.NewService(none)).ServeHTTP(rec, requestWithSlug("a"))
 	var raw map[string]any
 	if err := json.NewDecoder(rec.Body).Decode(&raw); err != nil {
 		t.Fatalf("decode: %v", err)
@@ -732,7 +732,7 @@ func TestResolveBarbershopHandler_OpeningHours_EmptyListAndNullTodayOrTheWeek(t 
 		t.Fatalf("sin horario, today debe viajar como null explícito: present=%v v=%v", present, v)
 	}
 
-	shop := &fakeRepository{found: true, profile: publicbooking.BarbershopProfile{
+	shop := &fakeRepository{found: true, profile: publicbooking.BusinessProfile{
 		Name: "A", Timezone: "America/Bogota", ClosedOnHolidays: true,
 		OpeningHours: []publicbooking.OpeningSegment{
 			{Weekday: 2, Opens: 9*60 + 30, Closes: 19 * 60},
@@ -741,9 +741,9 @@ func TestResolveBarbershopHandler_OpeningHours_EmptyListAndNullTodayOrTheWeek(t 
 	}}
 	tuesday := func() time.Time { return time.Date(2026, 11, 17, 15, 0, 0, 0, time.UTC) }
 	rec = httptest.NewRecorder()
-	httpapi.NewResolveBarbershopHandler(publicbooking.NewService(shop).WithOpeningCalendar(tuesday, nil)).
+	httpapi.NewResolveBusinessHandler(publicbooking.NewService(shop).WithOpeningCalendar(tuesday, nil)).
 		ServeHTTP(rec, requestWithSlug("a"))
-	var body httpapi.PublicBarbershopProfileResponse
+	var body httpapi.PublicBusinessProfileResponse
 	if err := json.NewDecoder(rec.Body).Decode(&body); err != nil {
 		t.Fatalf("decode: %v", err)
 	}

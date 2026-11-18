@@ -1,23 +1,23 @@
-// Vocabulario de la barbería (DEC-110): la palabra con la que llama a su
-// negocio y a su profesional ("barbería" / "salón", "barbero" / "estilista"),
+// Vocabulario del negocio (DEC-110): la palabra con la que llama a su
+// negocio y a su profesional ("negocio" / "salón", "profesional" / "estilista"),
 // con su plural y su género gramatical para que los artículos concuerden
 // ("este estilista", "esta estilista"). Es presentación pura: no renombra la
-// tabla `barber`, los contratos de la API ni los términos del dominio
+// tabla `professional`, los contratos de la API ni los términos del dominio
 // (`turno`, estados), que siguen siendo los autorizados.
 //
 // Los valores iniciales son el vocabulario genérico de Nava Agenda (DEC-183):
 // "negocio" y "profesional". Un negocio que ya guardó su propio vocabulario
-// (p. ej. "barbería" / "barbero") lo sigue viendo igual.
+// (p. ej. "negocio" / "profesional") lo sigue viendo igual.
 
 import type { BrandAccentKey } from './brandPalette'
 
 export type Gender = 'masculine' | 'feminine'
 
 /** Panel del usuario (DEC-115, DEC-134): `shop` es el panel completo con gestión de
- * equipo (rol `empresa`), `solo` el de un barbero independiente (sin gestión de equipo
- * ni selector de barbero) y `employee` el individual limitado de un barbero empleado.
+ * equipo (rol `empresa`), `solo` el de un profesional independiente (sin gestión de equipo
+ * ni selector de profesional) y `employee` el individual limitado de un profesional empleado.
  * Lo deriva el servidor de los roles del usuario; no es un ajuste editable. Es
- * presentación pura: no limita cuántos barberos existen ni concede permisos. */
+ * presentación pura: no limita cuántos profesionales existen ni concede permisos. */
 export type PanelProfile = 'shop' | 'solo' | 'employee'
 
 export const PANEL_PROFILES: readonly PanelProfile[] = ['shop', 'solo', 'employee']
@@ -37,7 +37,7 @@ export interface BrandSettings {
 }
 
 /** Las cinco palabras del vocabulario, sin acento ni perfil: lo único que las
- * pantallas públicas conocen de la marca de la barbería (DEC-119). */
+ * pantallas públicas conocen de la marca del negocio (DEC-119). */
 export type VocabularyTerms = Pick<
   BrandSettings,
   | 'businessTerm'
@@ -99,46 +99,46 @@ const ARTICLES: Record<Gender, Articles> = {
 export interface Vocabulary {
   business: string
   Business: string
-  /** "la barbería" / "el salón". */
+  /** "el negocio" / "el salón". */
   theBusiness: string
-  /** "de la barbería" / "del salón". */
+  /** "del negocio" / "del salón". */
   ofTheBusiness: string
-  /** "a la barbería" / "al salón". */
+  /** "al negocio" / "al salón". */
   toTheBusiness: string
-  /** "esta barbería" / "este salón". */
+  /** "este negocio" / "este salón". */
   thisBusiness: string
-  /** "Esta barbería" / "Este salón": para una frase que empieza con ella. */
+  /** "Este negocio" / "Este salón": para una frase que empieza con ella. */
   ThisBusiness: string
-  /** "toda la barbería" / "todo el salón". */
+  /** "todo el negocio" / "todo el salón". */
   allTheBusiness: string
-  /** "otra barbería" / "otro salón". */
+  /** "otro negocio" / "otro salón". */
   anotherBusiness: string
 
   professional: string
   Professional: string
   professionals: string
   Professionals: string
-  /** "un barbero" / "una estilista". */
+  /** "un profesional" / "una estilista". */
   aProfessional: string
-  /** "el barbero" / "la estilista". */
+  /** "el profesional" / "la estilista". */
   theProfessional: string
-  /** "los barberos" / "las estilistas". */
+  /** "los profesionales" / "las estilistas". */
   theProfessionals: string
-  /** "este barbero" / "esta estilista". */
+  /** "este profesional" / "esta estilista". */
   thisProfessional: string
-  /** "Este barbero" / "Esta estilista": para un título que abre la frase. */
+  /** "Este profesional" / "Esta estilista": para un título que abre la frase. */
   ThisProfessional: string
-  /** "El barbero" / "La estilista": para un título que abre la frase. */
+  /** "El profesional" / "La estilista": para un título que abre la frase. */
   TheProfessional: string
-  /** "por el barbero" / "por la estilista". */
+  /** "por el profesional" / "por la estilista". */
   byTheProfessional: string
-  /** "de este barbero" / "de esta estilista". */
+  /** "de este profesional" / "de esta estilista". */
   ofThisProfessional: string
-  /** "al barbero" / "a la estilista". */
+  /** "al profesional" / "a la estilista". */
   toTheProfessional: string
-  /** "del barbero" / "de la estilista". */
+  /** "del profesional" / "de la estilista". */
   ofTheProfessional: string
-  /** "barberos registrados" / "estilistas registradas": el participio concuerda con el plural. */
+  /** "profesionales registrados" / "estilistas registradas": el participio concuerda con el plural. */
   professionalsRegistered: string
   /** Terminación para concordar participios y adjetivos con el profesional: "o" o "a"
    * ("agregad" + "o" / "a"). */
@@ -147,9 +147,9 @@ export interface Vocabulary {
   businessEnding: 'o' | 'a'
   /** "uno" / "una": el pronombre que sustituye a un profesional ("Agrega uno"). */
   oneProfessional: 'uno' | 'una'
-  /** "otro" / "otra": "Elige otro barbero". */
+  /** "otro" / "otra": "Elige otro profesional". */
   anotherProfessional: 'otro' | 'otra'
-  /** "el único barbero" / "la única estilista". */
+  /** "el único profesional" / "la única estilista". */
   theOnlyProfessional: string
 }
 

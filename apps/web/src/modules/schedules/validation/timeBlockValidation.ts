@@ -21,7 +21,7 @@ export function validateReason(reason: string): string | undefined {
 
 // validateInstant confirma que raw es una marca de tiempo ISO 8601 válida
 // (el input datetime-local del navegador ya produce esta forma sin offset;
-// la pantalla la reinterpreta en la zona IANA de la barbería antes de
+// la pantalla la reinterpreta en la zona IANA del negocio antes de
 // enviarla, CA-042).
 export function validateInstant(raw: string): string | undefined {
   if (!raw || Number.isNaN(Date.parse(raw))) {

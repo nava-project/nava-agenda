@@ -1,20 +1,20 @@
 // Package postgres_test (pruebas de integración, HU-023) requiere
 // PostgreSQL REAL con las doce migraciones aplicadas (incluida
 // 20260824150000_create_barber_service.sql) y database/testdata/
-// dos_barberias.sql + database/testdata/hu023_asignaciones.sql cargados,
-// además de un barber y un service reales por prueba. Conéctate como
-// barberia_app (docs/03-desarrollo/estrategia-pruebas.md §2 prohíbe mocks
+// dos_negocios.sql + database/testdata/hu023_asignaciones.sql cargados,
+// además de un professional y un service reales por prueba. Conéctate como
+// agenda_app (docs/03-desarrollo/estrategia-pruebas.md §2 prohíbe mocks
 // para RLS/FK/carreras reales).
 //
-// Los barberos de fixture se insertan con SQL directo (no vía
+// Los profesionales de fixture se insertan con SQL directo (no vía
 // staffpostgres.Repository): este paquete no importa el módulo staff bajo
 // ninguna circunstancia, ni siquiera en pruebas (internal/platform/archtest/
 // module_boundary_test.go lo verifica) -mismo espíritu que HU-023 exige
-// para el propio núcleo (colaboración solo por BarberPort). Los servicios sí
+// para el propio núcleo (colaboración solo por ProfessionalPort). Los servicios sí
 // se crean vía catalogpostgres.Repository.Create: ES el mismo módulo bajo
 // prueba, no una dependencia cruzada.
 //
-//	export TEST_DATABASE_URL="postgres://barberia_app:app_test@localhost:5432/barberia_test?sslmode=disable"
+//	export TEST_DATABASE_URL="postgres://agenda_app:app_test@localhost:5432/postgres?sslmode=disable"
 //	go test -race ./internal/modules/catalog/postgres/...
 package postgres_test
 
@@ -26,34 +26,34 @@ import (
 
 	"github.com/jackc/pgx/v5/pgconn"
 
-	"system-barbershop/internal/modules/catalog"
-	catalogpostgres "system-barbershop/internal/modules/catalog/postgres"
-	"system-barbershop/internal/platform/database"
-	"system-barbershop/internal/platform/idempotency"
+	"nava-agenda/internal/modules/catalog"
+	catalogpostgres "nava-agenda/internal/modules/catalog/postgres"
+	"nava-agenda/internal/platform/database"
+	"nava-agenda/internal/platform/idempotency"
 )
 
 const (
-	// shopG/shopH son las dos barberías dedicadas de
-	// testdata/hu023_asignaciones.sql: aisladas de dos_barberias.sql/
-	// hu021_barberos.sql/hu022_catalogo.sql para que un conteo exacto de
+	// shopG/shopH son los dos negocios dedicados de
+	// testdata/hu023_asignaciones.sql: aisladas de dos_negocios.sql/
+	// hu021_profesionales.sql/hu022_catalogo.sql para que un conteo exacto de
 	// asignaciones no dependa de lo que otras suites hagan sobre
 	// shopA-shopF.
-	shopG = database.BarbershopID("77777777-7777-7777-7777-777777777777")
-	shopH = database.BarbershopID("88888888-8888-8888-8888-888888888888")
+	shopG = database.BusinessID("77777777-7777-7777-7777-777777777777")
+	shopH = database.BusinessID("88888888-8888-8888-8888-888888888888")
 )
 
 func newAssignmentRepository(db *database.DB) *catalogpostgres.AssignmentRepository {
 	return catalogpostgres.NewAssignmentRepository(db)
 }
 
-// fixtureBarber es el subconjunto mínimo de un barbero real que este
+// fixtureProfessional es el subconjunto mínimo de un profesional real que este
 // paquete necesita para sus fixtures: solo el id, nunca importando
-// staff.Barber (ver nota de paquete más arriba).
-type fixtureBarber struct {
+// staff.Professional (ver nota de paquete más arriba).
+type fixtureProfessional struct {
 	ID string
 }
 
-func createBarberFixture(t *testing.T, db *database.DB, shop database.BarbershopID, name string) fixtureBarber {
+func createProfessionalFixture(t *testing.T, db *database.DB, shop database.BusinessID, name string) fixtureProfessional {
 	t.Helper()
 	var id string
 	err := db.InTenantTx(context.Background(), shop, func(ctx context.Context, q database.Queries) error {
@@ -63,12 +63,12 @@ func createBarberFixture(t *testing.T, db *database.DB, shop database.Barbershop
 		).Scan(&id)
 	})
 	if err != nil {
-		t.Fatalf("createBarberFixture: %v", err)
+		t.Fatalf("createProfessionalFixture: %v", err)
 	}
-	return fixtureBarber{ID: id}
+	return fixtureProfessional{ID: id}
 }
 
-func createServiceFixture(t *testing.T, db *database.DB, shop database.BarbershopID, name string) catalog.Service {
+func createServiceFixture(t *testing.T, db *database.DB, shop database.BusinessID, name string) catalog.Service {
 	t.Helper()
 	repo := catalogpostgres.New(db, idempotency.NewSQLCoordinator())
 	key := idempotency.Key("assignment-fixture-service-" + uniqueSuffix(t))
@@ -93,21 +93,21 @@ func TestAssign_New_CreatesRowAndIsVisibleInList(t *testing.T) {
 	repo := newAssignmentRepository(db)
 	suffix := uniqueSuffix(t)
 
-	barber := createBarberFixture(t, db, shopG, "Barbero Asignación "+suffix)
+	professional := createProfessionalFixture(t, db, shopG, "Barbero Asignación "+suffix)
 	service := createServiceFixture(t, db, shopG, "Servicio Asignación "+suffix)
 
-	result, err := repo.Assign(context.Background(), string(shopG), barber.ID, service.ID)
+	result, err := repo.Assign(context.Background(), string(shopG), professional.ID, service.ID)
 	if err != nil {
 		t.Fatalf("Assign: %v", err)
 	}
 	if result.Outcome != catalog.AssignOutcomeCreated {
 		t.Fatalf("expected AssignOutcomeCreated, got %v", result.Outcome)
 	}
-	if result.Assignment.BarberID != barber.ID || result.Assignment.ServiceID != service.ID {
+	if result.Assignment.ProfessionalID != professional.ID || result.Assignment.ServiceID != service.ID {
 		t.Fatalf("unexpected assignment: %+v", result.Assignment)
 	}
 
-	page, err := repo.List(context.Background(), string(shopG), barber.ID, nil, 50)
+	page, err := repo.List(context.Background(), string(shopG), professional.ID, nil, 50)
 	if err != nil {
 		t.Fatalf("List: %v", err)
 	}
@@ -127,10 +127,10 @@ func TestAssign_Repeated_DoesNotCreateASecondRow(t *testing.T) {
 	repo := newAssignmentRepository(db)
 	suffix := uniqueSuffix(t)
 
-	barber := createBarberFixture(t, db, shopG, "Barbero Repetido "+suffix)
+	professional := createProfessionalFixture(t, db, shopG, "Barbero Repetido "+suffix)
 	service := createServiceFixture(t, db, shopG, "Servicio Repetido "+suffix)
 
-	first, err := repo.Assign(context.Background(), string(shopG), barber.ID, service.ID)
+	first, err := repo.Assign(context.Background(), string(shopG), professional.ID, service.ID)
 	if err != nil {
 		t.Fatalf("Assign (first): %v", err)
 	}
@@ -138,7 +138,7 @@ func TestAssign_Repeated_DoesNotCreateASecondRow(t *testing.T) {
 		t.Fatalf("expected first call to create, got %v", first.Outcome)
 	}
 
-	second, err := repo.Assign(context.Background(), string(shopG), barber.ID, service.ID)
+	second, err := repo.Assign(context.Background(), string(shopG), professional.ID, service.ID)
 	if err != nil {
 		t.Fatalf("Assign (second): %v", err)
 	}
@@ -150,7 +150,7 @@ func TestAssign_Repeated_DoesNotCreateASecondRow(t *testing.T) {
 			first.Assignment.CreatedAt, second.Assignment.CreatedAt)
 	}
 
-	page, err := repo.List(context.Background(), string(shopG), barber.ID, nil, 50)
+	page, err := repo.List(context.Background(), string(shopG), professional.ID, nil, 50)
 	if err != nil {
 		t.Fatalf("List: %v", err)
 	}
@@ -165,27 +165,27 @@ func TestAssign_Repeated_DoesNotCreateASecondRow(t *testing.T) {
 	}
 }
 
-func TestAssign_SameServiceToMultipleBarbers_EachIsAnIndependentResource(t *testing.T) {
-	// CA-023-03: un mismo servicio puede asignarse a varios barberos de la
-	// misma barbería, cada asociación es un recurso independiente.
+func TestAssign_SameServiceToMultipleProfessionals_EachIsAnIndependentResource(t *testing.T) {
+	// CA-023-03: un mismo servicio puede asignarse a varios profesionales de la
+	// mismo negocio, cada asociación es un recurso independiente.
 	db := setupTestDB(t)
 	repo := newAssignmentRepository(db)
 	suffix := uniqueSuffix(t)
 
 	service := createServiceFixture(t, db, shopG, "Servicio Compartido "+suffix)
 
-	var barbers []fixtureBarber
+	var professionals []fixtureProfessional
 	for i := 0; i < 4; i++ {
-		barbers = append(barbers, createBarberFixture(t, db, shopG, "Equipo Compartido "+suffix+string(rune('A'+i))))
+		professionals = append(professionals, createProfessionalFixture(t, db, shopG, "Equipo Compartido "+suffix+string(rune('A'+i))))
 	}
 
-	for _, b := range barbers {
+	for _, b := range professionals {
 		result, err := repo.Assign(context.Background(), string(shopG), b.ID, service.ID)
 		if err != nil {
 			t.Fatalf("Assign: %v", err)
 		}
 		if result.Outcome != catalog.AssignOutcomeCreated {
-			t.Fatalf("expected AssignOutcomeCreated for barber %s, got %v", b.ID, result.Outcome)
+			t.Fatalf("expected AssignOutcomeCreated for professional %s, got %v", b.ID, result.Outcome)
 		}
 	}
 
@@ -193,14 +193,14 @@ func TestAssign_SameServiceToMultipleBarbers_EachIsAnIndependentResource(t *test
 	// independiente): el servicio sigue activo con 3 asignaciones
 	// restantes, muy por encima de la última.
 	unassignRepo := repo
-	unassignResult, err := unassignRepo.Unassign(context.Background(), string(shopG), barbers[0].ID, service.ID)
+	unassignResult, err := unassignRepo.Unassign(context.Background(), string(shopG), professionals[0].ID, service.ID)
 	if err != nil {
 		t.Fatalf("Unassign: %v", err)
 	}
 	if unassignResult.Outcome != catalog.UnassignOutcomeDeleted {
 		t.Fatalf("expected UnassignOutcomeDeleted, got %v", unassignResult.Outcome)
 	}
-	for _, b := range barbers[1:] {
+	for _, b := range professionals[1:] {
 		page, err := repo.List(context.Background(), string(shopG), b.ID, nil, 50)
 		if err != nil {
 			t.Fatalf("List: %v", err)
@@ -212,7 +212,7 @@ func TestAssign_SameServiceToMultipleBarbers_EachIsAnIndependentResource(t *test
 			}
 		}
 		if !found {
-			t.Fatalf("expected barber %s to keep its own assignment untouched", b.ID)
+			t.Fatalf("expected professional %s to keep its own assignment untouched", b.ID)
 		}
 	}
 }
@@ -222,9 +222,9 @@ func TestAssign_UnknownServiceInSameTenant_ServiceNotFound(t *testing.T) {
 	repo := newAssignmentRepository(db)
 	suffix := uniqueSuffix(t)
 
-	barber := createBarberFixture(t, db, shopG, "Barbero Sin Servicio "+suffix)
+	professional := createProfessionalFixture(t, db, shopG, "Barbero Sin Servicio "+suffix)
 
-	result, err := repo.Assign(context.Background(), string(shopG), barber.ID, "99999999-9999-4999-8999-999999999999")
+	result, err := repo.Assign(context.Background(), string(shopG), professional.ID, "99999999-9999-4999-8999-999999999999")
 	if err != nil {
 		t.Fatalf("Assign: %v", err)
 	}
@@ -234,18 +234,18 @@ func TestAssign_UnknownServiceInSameTenant_ServiceNotFound(t *testing.T) {
 }
 
 func TestAssign_ServiceFromAnotherTenant_ServiceNotFound(t *testing.T) {
-	// CA-023-04: un servicio real, pero de OTRA barbería, es indistinguible
-	// de uno inexistente: el filtro WHERE barbershop_id = $2 (defensa en
+	// CA-023-04: un servicio real, pero de Otro negocio, es indistinguible
+	// de uno inexistente: el filtro WHERE business_id = $2 (defensa en
 	// profundidad, además de RLS) lo descubre como "no existe" antes de
 	// tocar la FK.
 	db := setupTestDB(t)
 	repo := newAssignmentRepository(db)
 	suffix := uniqueSuffix(t)
 
-	barberG := createBarberFixture(t, db, shopG, "Barbero G "+suffix)
+	professionalG := createProfessionalFixture(t, db, shopG, "Barbero G "+suffix)
 	serviceH := createServiceFixture(t, db, shopH, "Servicio H "+suffix)
 
-	result, err := repo.Assign(context.Background(), string(shopG), barberG.ID, serviceH.ID)
+	result, err := repo.Assign(context.Background(), string(shopG), professionalG.ID, serviceH.ID)
 	if err != nil {
 		t.Fatalf("Assign: %v", err)
 	}
@@ -256,22 +256,22 @@ func TestAssign_ServiceFromAnotherTenant_ServiceNotFound(t *testing.T) {
 
 // TestRawSQL_CompositeFK_RejectsCrossTenantAssociation confirma, con SQL
 // directo (sin pasar por AssignmentRepository, que ya lo evita con su
-// propio filtro), que barber_service_barber_fk/barber_service_service_fk
-// (FK compuestas por barbershop_id) rechazan una asociación entre un
-// barbero y un servicio de barberías distintas AUN bajo el rol de
+// propio filtro), que professional_service_professional_fk/professional_service_service_fk
+// (FK compuestas por business_id) rechazan una asociación entre un
+// profesional y un servicio de negocios distintos AUN bajo el rol de
 // aplicación real (CA-023-04): "la FK tenant-aware ... rechaza la relación
 // incluso con el rol real de aplicación".
 func TestRawSQL_CompositeFK_RejectsCrossTenantAssociation(t *testing.T) {
 	db := setupTestDB(t)
 	suffix := uniqueSuffix(t)
 
-	barberG := createBarberFixture(t, db, shopG, "FK Barbero G "+suffix)
+	professionalG := createProfessionalFixture(t, db, shopG, "FK Profesional G "+suffix)
 	serviceH := createServiceFixture(t, db, shopH, "FK Servicio H "+suffix)
 
 	err := db.InTenantTx(context.Background(), shopG, func(ctx context.Context, q database.Queries) error {
 		_, execErr := q.Exec(ctx,
 			`INSERT INTO professional_service (business_id, professional_id, service_id) VALUES ($1, $2, $3)`,
-			string(shopG), barberG.ID, serviceH.ID,
+			string(shopG), professionalG.ID, serviceH.ID,
 		)
 		return execErr
 	})
@@ -292,13 +292,13 @@ func TestUnassign_NotLastAssignment_Deletes(t *testing.T) {
 	suffix := uniqueSuffix(t)
 
 	service := createServiceFixture(t, db, shopG, "Servicio No Última "+suffix)
-	barberA := createBarberFixture(t, db, shopG, "No Última A "+suffix)
-	barberB := createBarberFixture(t, db, shopG, "No Última B "+suffix)
+	professionalA := createProfessionalFixture(t, db, shopG, "No Última A "+suffix)
+	professionalB := createProfessionalFixture(t, db, shopG, "No Última B "+suffix)
 
-	mustAssign(t, repo, shopG, barberA.ID, service.ID)
-	mustAssign(t, repo, shopG, barberB.ID, service.ID)
+	mustAssign(t, repo, shopG, professionalA.ID, service.ID)
+	mustAssign(t, repo, shopG, professionalB.ID, service.ID)
 
-	result, err := repo.Unassign(context.Background(), string(shopG), barberA.ID, service.ID)
+	result, err := repo.Unassign(context.Background(), string(shopG), professionalA.ID, service.ID)
 	if err != nil {
 		t.Fatalf("Unassign: %v", err)
 	}
@@ -306,7 +306,7 @@ func TestUnassign_NotLastAssignment_Deletes(t *testing.T) {
 		t.Fatalf("expected UnassignOutcomeDeleted, got %v", result.Outcome)
 	}
 
-	page, err := repo.List(context.Background(), string(shopG), barberA.ID, nil, 50)
+	page, err := repo.List(context.Background(), string(shopG), professionalA.ID, nil, 50)
 	if err != nil {
 		t.Fatalf("List: %v", err)
 	}
@@ -318,17 +318,17 @@ func TestUnassign_NotLastAssignment_Deletes(t *testing.T) {
 }
 
 func TestUnassign_LastAssignmentOfActiveService_Deletes(t *testing.T) {
-	// DEC-114 (sustituye a DEC-068): retirar al único barbero de un servicio
+	// DEC-114 (sustituye a DEC-068): retirar al único profesional de un servicio
 	// activo es válido; el servicio queda sin asignaciones.
 	db := setupTestDB(t)
 	repo := newAssignmentRepository(db)
 	suffix := uniqueSuffix(t)
 
 	service := createServiceFixture(t, db, shopG, "Servicio Última "+suffix)
-	barber := createBarberFixture(t, db, shopG, "Última Único "+suffix)
-	mustAssign(t, repo, shopG, barber.ID, service.ID)
+	professional := createProfessionalFixture(t, db, shopG, "Última Único "+suffix)
+	mustAssign(t, repo, shopG, professional.ID, service.ID)
 
-	result, err := repo.Unassign(context.Background(), string(shopG), barber.ID, service.ID)
+	result, err := repo.Unassign(context.Background(), string(shopG), professional.ID, service.ID)
 	if err != nil {
 		t.Fatalf("Unassign: %v", err)
 	}
@@ -336,7 +336,7 @@ func TestUnassign_LastAssignmentOfActiveService_Deletes(t *testing.T) {
 		t.Fatalf("expected UnassignOutcomeDeleted, got %v", result.Outcome)
 	}
 
-	page, err := repo.List(context.Background(), string(shopG), barber.ID, nil, 50)
+	page, err := repo.List(context.Background(), string(shopG), professional.ID, nil, 50)
 	if err != nil {
 		t.Fatalf("List: %v", err)
 	}
@@ -347,7 +347,7 @@ func TestUnassign_LastAssignmentOfActiveService_Deletes(t *testing.T) {
 	}
 
 	// Repetir la operación es seguro: la asociación ya no existe.
-	again, err := repo.Unassign(context.Background(), string(shopG), barber.ID, service.ID)
+	again, err := repo.Unassign(context.Background(), string(shopG), professional.ID, service.ID)
 	if err != nil {
 		t.Fatalf("Unassign (retry): %v", err)
 	}
@@ -362,9 +362,9 @@ func TestUnassign_NoSuchAssignment_NotFound(t *testing.T) {
 	suffix := uniqueSuffix(t)
 
 	service := createServiceFixture(t, db, shopG, "Servicio Sin Asignar "+suffix)
-	barber := createBarberFixture(t, db, shopG, "Sin Asignar "+suffix)
+	professional := createProfessionalFixture(t, db, shopG, "Sin Asignar "+suffix)
 
-	result, err := repo.Unassign(context.Background(), string(shopG), barber.ID, service.ID)
+	result, err := repo.Unassign(context.Background(), string(shopG), professional.ID, service.ID)
 	if err != nil {
 		t.Fatalf("Unassign: %v", err)
 	}
@@ -378,9 +378,9 @@ func TestUnassign_UnknownService_NotFound(t *testing.T) {
 	repo := newAssignmentRepository(db)
 	suffix := uniqueSuffix(t)
 
-	barber := createBarberFixture(t, db, shopG, "Servicio Fantasma "+suffix)
+	professional := createProfessionalFixture(t, db, shopG, "Servicio Fantasma "+suffix)
 
-	result, err := repo.Unassign(context.Background(), string(shopG), barber.ID, "99999999-9999-4999-8999-999999999999")
+	result, err := repo.Unassign(context.Background(), string(shopG), professional.ID, "99999999-9999-4999-8999-999999999999")
 	if err != nil {
 		t.Fatalf("Unassign: %v", err)
 	}
@@ -400,11 +400,11 @@ func TestUnassign_ConcurrentOnLastTwoAssignments_BothSucceed(t *testing.T) {
 	suffix := uniqueSuffix(t)
 
 	service := createServiceFixture(t, db, shopG, "Servicio Carrera "+suffix)
-	barberA := createBarberFixture(t, db, shopG, "Carrera A "+suffix)
-	barberB := createBarberFixture(t, db, shopG, "Carrera B "+suffix)
+	professionalA := createProfessionalFixture(t, db, shopG, "Carrera A "+suffix)
+	professionalB := createProfessionalFixture(t, db, shopG, "Carrera B "+suffix)
 
-	mustAssign(t, repo, shopG, barberA.ID, service.ID)
-	mustAssign(t, repo, shopG, barberB.ID, service.ID)
+	mustAssign(t, repo, shopG, professionalA.ID, service.ID)
+	mustAssign(t, repo, shopG, professionalB.ID, service.ID)
 
 	var (
 		wg               sync.WaitGroup
@@ -417,12 +417,12 @@ func TestUnassign_ConcurrentOnLastTwoAssignments_BothSucceed(t *testing.T) {
 	go func() {
 		defer wg.Done()
 		close(startA)
-		resultA, errA = repo.Unassign(context.Background(), string(shopG), barberA.ID, service.ID)
+		resultA, errA = repo.Unassign(context.Background(), string(shopG), professionalA.ID, service.ID)
 	}()
 	go func() {
 		defer wg.Done()
 		<-startA
-		resultB, errB = repo.Unassign(context.Background(), string(shopG), barberB.ID, service.ID)
+		resultB, errB = repo.Unassign(context.Background(), string(shopG), professionalB.ID, service.ID)
 	}()
 	wg.Wait()
 
@@ -436,22 +436,22 @@ func TestUnassign_ConcurrentOnLastTwoAssignments_BothSucceed(t *testing.T) {
 		t.Fatalf("expected both unassigns to delete, got A=%v B=%v", resultA.Outcome, resultB.Outcome)
 	}
 
-	for _, barberID := range []string{barberA.ID, barberB.ID} {
-		page, err := repo.List(context.Background(), string(shopG), barberID, nil, 50)
+	for _, professionalID := range []string{professionalA.ID, professionalB.ID} {
+		page, err := repo.List(context.Background(), string(shopG), professionalID, nil, 50)
 		if err != nil {
 			t.Fatalf("List: %v", err)
 		}
 		for _, item := range page.Items {
 			if item.ServiceID == service.ID {
-				t.Fatalf("expected no assignment left for barber %s", barberID)
+				t.Fatalf("expected no assignment left for professional %s", professionalID)
 			}
 		}
 	}
 }
 
-func mustAssign(t *testing.T, repo *catalogpostgres.AssignmentRepository, shop database.BarbershopID, barberID, serviceID string) {
+func mustAssign(t *testing.T, repo *catalogpostgres.AssignmentRepository, shop database.BusinessID, professionalID, serviceID string) {
 	t.Helper()
-	result, err := repo.Assign(context.Background(), string(shop), barberID, serviceID)
+	result, err := repo.Assign(context.Background(), string(shop), professionalID, serviceID)
 	if err != nil {
 		t.Fatalf("mustAssign: %v", err)
 	}

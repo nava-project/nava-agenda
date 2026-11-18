@@ -1,10 +1,10 @@
 // Package idempotency_test (pruebas de integración) requiere PostgreSQL
-// REAL con las cinco migraciones aplicadas y database/testdata/dos_barberias.sql
+// REAL con las cinco migraciones aplicadas y database/testdata/dos_negocios.sql
 // cargado — igual que internal/platform/database (estrategia-pruebas.md §2
 // prohíbe mocks para reglas concurrentes; ddl_hardening_patterns.md, memoria
-// del proyecto). Conéctate como barberia_app.
+// del proyecto). Conéctate como agenda_app.
 //
-//	export TEST_DATABASE_URL="postgres://barberia_app:app_test@localhost:5432/postgres?sslmode=disable"
+//	export TEST_DATABASE_URL="postgres://agenda_app:app_test@localhost:5432/postgres?sslmode=disable"
 //	go test -race ./internal/platform/idempotency/...
 package idempotency_test
 
@@ -19,16 +19,16 @@ import (
 	"testing"
 	"time"
 
-	"system-barbershop/internal/platform/apperr"
-	"system-barbershop/internal/platform/config"
-	"system-barbershop/internal/platform/database"
-	"system-barbershop/internal/platform/idempotency"
+	"nava-agenda/internal/platform/apperr"
+	"nava-agenda/internal/platform/config"
+	"nava-agenda/internal/platform/database"
+	"nava-agenda/internal/platform/idempotency"
 )
 
 const (
 	testDatabaseURL = "postgres://agenda_app@localhost:5432/barberia_test?sslmode=disable"
-	shopA           = database.BarbershopID("11111111-1111-1111-1111-111111111111")
-	shopB           = database.BarbershopID("22222222-2222-2222-2222-222222222222")
+	shopA           = database.BusinessID("11111111-1111-1111-1111-111111111111")
+	shopB           = database.BusinessID("22222222-2222-2222-2222-222222222222")
 )
 
 // setupTestDB abre un *database.DB real por la vía pública (database.NewDB),
@@ -397,7 +397,7 @@ func TestAbort_ReleasesInProgressClaim_ButNeverCompleted(t *testing.T) {
 }
 
 // TestBegin_CrossTenantIsolation cubre CA-004-04: la misma clave literal en
-// dos barberías no interfiere.
+// dos negocios no interfiere.
 func TestBegin_CrossTenantIsolation(t *testing.T) {
 	db := setupTestDB(t)
 	defer db.Close()
@@ -423,7 +423,7 @@ func TestBegin_CrossTenantIsolation(t *testing.T) {
 		t.Fatalf("shop A InTenantTx: %v", err)
 	}
 
-	// La misma clave literal, en la OTRA barbería, con contenido distinto:
+	// La misma clave literal, en el otro negocio, con contenido distinto:
 	// si el aislamiento fallara, esto vería la fila de A y devolvería
 	// conflict_fingerprint o replay en vez de proceed.
 	var decisionB idempotency.Decision

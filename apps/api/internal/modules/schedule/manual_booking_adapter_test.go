@@ -5,11 +5,11 @@ import (
 	"testing"
 	"time"
 
-	"system-barbershop/internal/modules/schedule"
+	"nava-agenda/internal/modules/schedule"
 )
 
 // WithinWorkingHours (CA-061-02, CA-065-04): el intervalo debe caber completo en
-// un segmento de la jornada efectiva, en la zona de la barbería.
+// un segmento de la jornada efectiva, en la zona del negocio.
 func TestManualBookingBlocks_WithinWorkingHours(t *testing.T) {
 	bogota, err := time.LoadLocation("America/Bogota")
 	if err != nil {
@@ -56,9 +56,9 @@ func TestManualBookingBlocks_WithinWorkingHours(t *testing.T) {
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
 			repo := newResolveRepo(t, tc.exception, false, tc.weekly)
-			adapter := schedule.NewManualBookingBlocks(schedule.NewService(repo, fakeBarberPort{}))
+			adapter := schedule.NewManualBookingBlocks(schedule.NewService(repo, fakeProfessionalPort{}))
 
-			got, err := adapter.WithinWorkingHours(context.Background(), "shop-1", validBarberID, tc.start, tc.end, "America/Bogota")
+			got, err := adapter.WithinWorkingHours(context.Background(), "shop-1", validProfessionalID, tc.start, tc.end, "America/Bogota")
 			if err != nil {
 				t.Fatalf("unexpected error: %v", err)
 			}
@@ -69,19 +69,19 @@ func TestManualBookingBlocks_WithinWorkingHours(t *testing.T) {
 	}
 }
 
-// El instante se interpreta en la zona de la barbería, no en la del servidor:
+// El instante se interpreta en la zona del negocio, no en la del servidor:
 // 15:00 UTC es 10:00 en Bogotá (dentro de la jornada), no 15:00 de ninguna parte.
 func TestManualBookingBlocks_WithinWorkingHours_UsesTheShopTimezone(t *testing.T) {
 	weekly := []schedule.WorkingHour{{StartsTime: "09:00", DurationMinutes: 480}}
 	repo := newResolveRepo(t, nil, false, weekly)
-	adapter := schedule.NewManualBookingBlocks(schedule.NewService(repo, fakeBarberPort{}))
+	adapter := schedule.NewManualBookingBlocks(schedule.NewService(repo, fakeProfessionalPort{}))
 
 	start := time.Date(2026, time.September, 15, 15, 0, 0, 0, time.UTC)
-	got, err := adapter.WithinWorkingHours(context.Background(), "shop-1", validBarberID, start, start.Add(30*time.Minute), "America/Bogota")
+	got, err := adapter.WithinWorkingHours(context.Background(), "shop-1", validProfessionalID, start, start.Add(30*time.Minute), "America/Bogota")
 	if err != nil || !got {
 		t.Fatalf("expected 10:00 Bogotá to be inside the day, got %v (err %v)", got, err)
 	}
-	got, err = adapter.WithinWorkingHours(context.Background(), "shop-1", validBarberID, start, start.Add(30*time.Minute), "Asia/Tokyo")
+	got, err = adapter.WithinWorkingHours(context.Background(), "shop-1", validProfessionalID, start, start.Add(30*time.Minute), "Asia/Tokyo")
 	if err != nil || got {
 		t.Fatalf("expected 00:00 Tokyo next day to be outside, got %v (err %v)", got, err)
 	}

@@ -7,10 +7,10 @@ import (
 )
 
 // LooksLikeTimeBlockID y LooksLikeSeriesID reutilizan la misma forma
-// canónica que barberIDPattern/workingHourIDPattern (domain.go): un
+// canónica que professionalIDPattern/workingHourIDPattern (domain.go): un
 // identificador que no la cumple no puede corresponder a ninguna fila real.
-func LooksLikeTimeBlockID(id string) bool { return barberIDPattern.MatchString(id) }
-func LooksLikeSeriesID(id string) bool    { return barberIDPattern.MatchString(id) }
+func LooksLikeTimeBlockID(id string) bool { return professionalIDPattern.MatchString(id) }
+func LooksLikeSeriesID(id string) bool    { return professionalIDPattern.MatchString(id) }
 
 // BlockType enumera los siete tipos que el criterio de salida de B2 exige
 // (RN-BLQ-01): descanso, almuerzo, hora no disponible, día libre, festivo,
@@ -75,8 +75,8 @@ func ValidateRecurrenceKind(raw string) (string, error) {
 
 // dateLayout es la forma civil "YYYY-MM-DD" que también usa
 // schedule-exceptions (effectiveDate) para no depender de zona horaria en el
-// borde del contrato: el cliente ya resolvió a qué fecha civil de la
-// barbería corresponde antes de enviarla.
+// borde del contrato: el cliente ya resolvió a qué fecha civil del
+// negocio corresponde antes de enviarla.
 const dateLayout = "2006-01-02"
 
 // ValidateCivilDate confirma que raw tiene la forma YYYY-MM-DD y corresponde
@@ -92,7 +92,7 @@ func ValidateCivilDate(raw string) (string, error) {
 // ValidateInstant confirma que raw es una marca de tiempo RFC 3339 con
 // offset explícito: un bloqueo puntual es un instante absoluto, no una hora
 // civil recurrente (a diferencia de working_hour/schedule-exceptions). El
-// cliente ya conoce la zona IANA de la barbería (GET .../barbershop) y
+// cliente ya conoce la zona IANA del negocio (GET .../business) y
 // calcula el offset correcto antes de enviarlo (RN-DIS-05/RN-DIS-07).
 func ValidateInstant(raw string) (time.Time, error) {
 	parsed, err := time.Parse(time.RFC3339, raw)
@@ -196,7 +196,7 @@ type TimeBlockSeries struct {
 
 // BlockCursor es la posición decodificada de una página de bloqueos
 // puntuales: orden estable (starts_at, id), el mismo prefijo que
-// idx_time_block_shop_barber_starts_at indexa.
+// idx_time_block_shop_professional_starts_at indexa.
 type BlockCursor struct {
 	StartsAt string // RFC 3339, ya canónico.
 	ID       string
@@ -235,7 +235,7 @@ func DecodeBlockCursor(raw string) (BlockCursor, error) {
 
 // SeriesCursor es la posición decodificada de una página de series: orden
 // estable (effective_from, id), el mismo prefijo que
-// idx_time_block_series_shop_barber indexa.
+// idx_time_block_series_shop_professional indexa.
 type SeriesCursor struct {
 	EffectiveFrom string
 	ID            string

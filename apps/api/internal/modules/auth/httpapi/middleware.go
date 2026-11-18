@@ -4,8 +4,8 @@ import (
 	"net/http"
 	"regexp"
 
-	"system-barbershop/internal/modules/auth"
-	"system-barbershop/internal/platform/httpserver"
+	"nava-agenda/internal/modules/auth"
+	"nava-agenda/internal/platform/httpserver"
 )
 
 // maxSessionCookieLen acota el valor de la cookie de sesión ANTES de
@@ -52,7 +52,7 @@ func (m *SessionMiddleware) RequireSession(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		requestID := httpserver.RequestIDFromContext(r.Context())
 
-		c, err := r.Cookie(m.cookie.Name)
+		c, err := m.cookie.read(r)
 		if err != nil || !validSessionCookieShape(c.Value) {
 			httpserver.WriteProblem(w, httpserver.Translate(auth.ErrInvalidSession(), requestID))
 			return
@@ -69,15 +69,7 @@ func (m *SessionMiddleware) RequireSession(next http.Handler) http.Handler {
 		// navegador descartaría la cookie 30 días después aunque la sesión siga
 		// vigente en el servidor. Se emite ANTES de next: el cierre de sesión
 		// escribe después su cookie vencida y esa es la que prevalece.
-		http.SetCookie(w, &http.Cookie{
-			Name:     m.cookie.Name,
-			Value:    c.Value,
-			Path:     m.cookie.Path,
-			Expires:  principal.ExpiresAt,
-			HttpOnly: true,
-			Secure:   m.cookie.Secure,
-			SameSite: m.cookie.SameSite,
-		})
+		m.cookie.write(w, r, c.Value, principal.ExpiresAt)
 
 		ctx := auth.ContextWithPrincipal(r.Context(), principal)
 		next.ServeHTTP(w, r.WithContext(ctx))

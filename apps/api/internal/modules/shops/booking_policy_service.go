@@ -4,13 +4,13 @@ import (
 	"context"
 	"fmt"
 
-	"system-barbershop/internal/platform/apperr"
+	"nava-agenda/internal/platform/apperr"
 )
 
 // BookingPolicyService implementa el caso de uso de HU-093: leer y
-// actualizar la configuración pública de reserva y cancelación de la
-// barbería activa. Vive en el paquete shops porque shops es el módulo
-// dueño de la configuración de la barbería (HU-020); no comparte Service
+// actualizar la configuración pública de reserva y cancelación del
+// negocio activo. Vive en el paquete shops porque shops es el módulo
+// dueño de la configuración del negocio (HU-020); no comparte Service
 // (HU-020) para no acoplar la precondición de versión de HU-093 a un
 // endpoint que nunca la tuvo.
 type BookingPolicyService struct {
@@ -22,16 +22,16 @@ func NewBookingPolicyService(repo BookingPolicyRepository) *BookingPolicyService
 	return &BookingPolicyService{repo: repo}
 }
 
-// Get lee la política de reserva de la barbería barbershopID. barbershopID
+// Get lee la política de reserva del negocio businessID. businessID
 // llega siempre de un auth.Principal ya autenticado (CA-093-03); este
 // método no acepta ni valida ningún identificador que el cliente pueda
 // controlar.
-func (s *BookingPolicyService) Get(ctx context.Context, barbershopID string) (BookingPolicy, error) {
+func (s *BookingPolicyService) Get(ctx context.Context, businessID string) (BookingPolicy, error) {
 	if err := ctx.Err(); err != nil {
 		return BookingPolicy{}, apperr.Internal(fmt.Errorf("shops: contexto cancelado antes de leer la política de reserva: %w", err))
 	}
 
-	policy, found, err := s.repo.Get(ctx, barbershopID)
+	policy, found, err := s.repo.Get(ctx, businessID)
 	if err != nil {
 		return BookingPolicy{}, apperr.Internal(fmt.Errorf("shops: leer política de reserva: %w", err))
 	}
@@ -61,7 +61,7 @@ type BookingPolicyInput struct {
 // nunca una actualización parcial). Los campos se evalúan en un orden
 // fijo; el primer error encontrado es el que se devuelve, sin ejecutar
 // ninguna escritura (mismo criterio que shops.Service.Update).
-func (s *BookingPolicyService) Update(ctx context.Context, barbershopID string, input BookingPolicyInput) (BookingPolicy, error) {
+func (s *BookingPolicyService) Update(ctx context.Context, businessID string, input BookingPolicyInput) (BookingPolicy, error) {
 	if err := ctx.Err(); err != nil {
 		return BookingPolicy{}, apperr.Internal(fmt.Errorf("shops: contexto cancelado antes de actualizar la política de reserva: %w", err))
 	}
@@ -73,7 +73,7 @@ func (s *BookingPolicyService) Update(ctx context.Context, barbershopID string, 
 	// Mismo orden de evaluación que antes de DEC-169: rangos de la ventana,
 	// rango del plazo, coherencia de cancelación y, al final, anticipación
 	// frente a la ventana. La parte de la ventana la comparte con la
-	// política de cada barbero (validateBookingWindow).
+	// política de cada profesional (validateBookingWindow).
 	windowErr := validateBookingWindow(input.MinAdvanceMinutes, input.MaxAdvanceDays, input.SlotGridMinutes)
 	if windowErr != nil && !isAdvanceExceedsWindow(input) {
 		return BookingPolicy{}, windowErr
@@ -91,7 +91,7 @@ func (s *BookingPolicyService) Update(ctx context.Context, barbershopID string, 
 		return BookingPolicy{}, windowErr
 	}
 
-	result, err := s.repo.Update(ctx, barbershopID, BookingPolicyUpdateInput{
+	result, err := s.repo.Update(ctx, businessID, BookingPolicyUpdateInput{
 		MinAdvanceMinutes:              input.MinAdvanceMinutes,
 		MaxAdvanceDays:                 input.MaxAdvanceDays,
 		SlotGridMinutes:                input.SlotGridMinutes,

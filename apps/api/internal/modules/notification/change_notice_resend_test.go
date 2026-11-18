@@ -9,7 +9,7 @@ import (
 	"strings"
 	"testing"
 
-	"system-barbershop/internal/modules/notification"
+	"nava-agenda/internal/modules/notification"
 )
 
 func newChangeNoticeSender(t *testing.T, srv *httptest.Server) notification.ResendChangeNoticeSender {

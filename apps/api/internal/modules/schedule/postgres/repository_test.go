@@ -2,10 +2,10 @@
 // PostgreSQL REAL con las trece migraciones aplicadas (incluida
 // 20260825160000_create_working_hour.sql) y
 // database/testdata/hu040_horario.sql cargado. Conéctate como
-// barberia_app (docs/03-desarrollo/estrategia-pruebas.md §2 prohíbe mocks
+// agenda_app (docs/03-desarrollo/estrategia-pruebas.md §2 prohíbe mocks
 // para RLS/idempotencia/atomicidad).
 //
-//	export TEST_DATABASE_URL="postgres://barberia_app@localhost:5432/barberia_test?sslmode=disable"
+//	export TEST_DATABASE_URL="postgres://agenda_app@localhost:5432/postgres?sslmode=disable"
 //	go test -race ./internal/modules/schedule/postgres/...
 package postgres_test
 
@@ -17,24 +17,24 @@ import (
 	"testing"
 	"time"
 
-	"system-barbershop/internal/modules/schedule"
-	schedulepostgres "system-barbershop/internal/modules/schedule/postgres"
-	"system-barbershop/internal/platform/config"
-	"system-barbershop/internal/platform/database"
-	"system-barbershop/internal/platform/idempotency"
+	"nava-agenda/internal/modules/schedule"
+	schedulepostgres "nava-agenda/internal/modules/schedule/postgres"
+	"nava-agenda/internal/platform/config"
+	"nava-agenda/internal/platform/database"
+	"nava-agenda/internal/platform/idempotency"
 )
 
 const (
 	testDatabaseURL = "postgres://agenda_app@localhost:5432/barberia_test?sslmode=disable"
 
-	// shopK/shopL y sus barberos son los de testdata/hu040_horario.sql:
-	// aislados de dos_barberias.sql/hu021_barberos.sql/etc. por el mismo
+	// shopK/shopL y sus profesionales son los de testdata/hu040_horario.sql:
+	// aislados de dos_negocios.sql/hu021_profesionales.sql/etc. por el mismo
 	// motivo que esos fixtures ya documentan.
-	shopK    = database.BarbershopID("cccccccc-cccc-cccc-cccc-cccccccccccc")
-	shopL    = database.BarbershopID("dddddddd-dddd-dddd-dddd-dddddddddddd")
-	barberK1 = "cccc0001-0001-0001-0001-000100010001"
-	barberK2 = "cccc0002-0002-0002-0002-000200020002"
-	barberL1 = "dddd0001-0001-0001-0001-000100010001"
+	shopK          = database.BusinessID("cccccccc-cccc-cccc-cccc-cccccccccccc")
+	shopL          = database.BusinessID("dddddddd-dddd-dddd-dddd-dddddddddddd")
+	professionalK1 = "cccc0001-0001-0001-0001-000100010001"
+	professionalK2 = "cccc0002-0002-0002-0002-000200020002"
+	professionalL1 = "dddd0001-0001-0001-0001-000100010001"
 )
 
 func setupTestDB(t *testing.T) *database.DB {
@@ -66,15 +66,15 @@ func newRepository(db *database.DB) *schedulepostgres.Repository {
 
 // createWorkingHour crea un tramo con una clave de idempotencia única y
 // programa su retiro al terminar la prueba (working_hour SÍ admite DELETE,
-// a diferencia de barber/service): cada prueba deja la base tal como la
+// a diferencia de professional/service): cada prueba deja la base tal como la
 // encontró.
-func createWorkingHour(t *testing.T, repo *schedulepostgres.Repository, shop database.BarbershopID, barberID string, input schedule.CreateInput) schedule.WorkingHour {
+func createWorkingHour(t *testing.T, repo *schedulepostgres.Repository, shop database.BusinessID, professionalID string, input schedule.CreateInput) schedule.WorkingHour {
 	t.Helper()
 	key := idempotency.Key("fixture-" + uniqueSuffix(t))
 	body := `{"isoWeekday":` + itoa(input.ISOWeekday) + `,"startsTime":"` + input.StartsTime + `","durationMinutes":` + itoa(input.DurationMinutes) + `}`
-	fp := idempotency.ComputeFingerprint("POST", "/api/v1/private/professionals/"+barberID+"/working-hours", []byte(body))
+	fp := idempotency.ComputeFingerprint("POST", "/api/v1/private/professionals/"+professionalID+"/working-hours", []byte(body))
 
-	result, err := repo.Create(context.Background(), string(shop), barberID, input, key, fp)
+	result, err := repo.Create(context.Background(), string(shop), professionalID, input, key, fp)
 	if err != nil {
 		t.Fatalf("createWorkingHour: %v", err)
 	}
@@ -83,7 +83,7 @@ func createWorkingHour(t *testing.T, repo *schedulepostgres.Repository, shop dat
 	}
 	wh := result.WorkingHour
 	t.Cleanup(func() {
-		_, _ = repo.Delete(context.Background(), string(shop), barberID, wh.ID)
+		_, _ = repo.Delete(context.Background(), string(shop), professionalID, wh.ID)
 	})
 	return wh
 }
@@ -133,14 +133,14 @@ func TestCreate_StoredResponseBody_MatchesHTTPAPIWireShape(t *testing.T) {
 	key := idempotency.Key("wire-shape-" + uniqueSuffix(t))
 	body := `{"isoWeekday":1,"startsTime":"08:00","durationMinutes":60}`
 	fp := idempotency.ComputeFingerprint("POST", "/x", []byte(body))
-	result, err := repo.Create(context.Background(), string(shopK), barberK1, schedule.CreateInput{ISOWeekday: 1, StartsTime: "08:00", DurationMinutes: 60}, key, fp)
+	result, err := repo.Create(context.Background(), string(shopK), professionalK1, schedule.CreateInput{ISOWeekday: 1, StartsTime: "08:00", DurationMinutes: 60}, key, fp)
 	if err != nil {
 		t.Fatalf("Create: %v", err)
 	}
 	if result.Conflict {
 		t.Fatalf("unexpected conflict creating the wire-shape fixture")
 	}
-	t.Cleanup(func() { _, _ = repo.Delete(context.Background(), string(shopK), barberK1, result.WorkingHour.ID) })
+	t.Cleanup(func() { _, _ = repo.Delete(context.Background(), string(shopK), professionalK1, result.WorkingHour.ID) })
 
 	var decoded map[string]any
 	if err := json.Unmarshal([]byte(result.Response.Body), &decoded); err != nil {
@@ -162,16 +162,16 @@ func TestCreate_RepeatedKeySameBody_ReplaysWithoutSecondRow(t *testing.T) {
 	body := `{"isoWeekday":2,"startsTime":"09:00","durationMinutes":60}`
 	fp := idempotency.ComputeFingerprint("POST", "/x", []byte(body))
 
-	first, err := repo.Create(context.Background(), string(shopK), barberK1, input, key, fp)
+	first, err := repo.Create(context.Background(), string(shopK), professionalK1, input, key, fp)
 	if err != nil {
 		t.Fatalf("first Create: %v", err)
 	}
-	t.Cleanup(func() { _, _ = repo.Delete(context.Background(), string(shopK), barberK1, first.WorkingHour.ID) })
+	t.Cleanup(func() { _, _ = repo.Delete(context.Background(), string(shopK), professionalK1, first.WorkingHour.ID) })
 	if first.Decision.Outcome != idempotency.OutcomeProceed {
 		t.Fatalf("expected first call to proceed, got %s", first.Decision.Outcome)
 	}
 
-	second, err := repo.Create(context.Background(), string(shopK), barberK1, input, key, fp)
+	second, err := repo.Create(context.Background(), string(shopK), professionalK1, input, key, fp)
 	if err != nil {
 		t.Fatalf("second Create: %v", err)
 	}
@@ -189,8 +189,8 @@ func TestCreate_SplitShift_TwoNonOverlappingSegmentsSameDay(t *testing.T) {
 	db := setupTestDB(t)
 	repo := newRepository(db)
 
-	morning := createWorkingHour(t, repo, shopK, barberK1, schedule.CreateInput{ISOWeekday: 3, StartsTime: "08:00", DurationMinutes: 240})
-	afternoon := createWorkingHour(t, repo, shopK, barberK1, schedule.CreateInput{ISOWeekday: 3, StartsTime: "14:00", DurationMinutes: 240})
+	morning := createWorkingHour(t, repo, shopK, professionalK1, schedule.CreateInput{ISOWeekday: 3, StartsTime: "08:00", DurationMinutes: 240})
+	afternoon := createWorkingHour(t, repo, shopK, professionalK1, schedule.CreateInput{ISOWeekday: 3, StartsTime: "14:00", DurationMinutes: 240})
 
 	if morning.ID == afternoon.ID {
 		t.Fatal("expected two distinct segments for a split shift")
@@ -201,7 +201,7 @@ func TestCreate_NightShift_CrossesMidnightWithoutError(t *testing.T) {
 	db := setupTestDB(t)
 	repo := newRepository(db)
 
-	wh := createWorkingHour(t, repo, shopK, barberK1, schedule.CreateInput{ISOWeekday: 5, StartsTime: "22:00", DurationMinutes: 300})
+	wh := createWorkingHour(t, repo, shopK, professionalK1, schedule.CreateInput{ISOWeekday: 5, StartsTime: "22:00", DurationMinutes: 300})
 	if wh.DurationMinutes != 300 {
 		t.Fatalf("expected duration 300, got %d", wh.DurationMinutes)
 	}
@@ -213,11 +213,11 @@ func TestCreate_ExactSameStart_ReturnsConflict(t *testing.T) {
 	db := setupTestDB(t)
 	repo := newRepository(db)
 
-	createWorkingHour(t, repo, shopK, barberK2, schedule.CreateInput{ISOWeekday: 4, StartsTime: "08:00", DurationMinutes: 60})
+	createWorkingHour(t, repo, shopK, professionalK2, schedule.CreateInput{ISOWeekday: 4, StartsTime: "08:00", DurationMinutes: 60})
 
 	key := idempotency.Key("dup-start-" + uniqueSuffix(t))
 	fp := idempotency.ComputeFingerprint("POST", "/x", []byte("dup-start"))
-	result, err := repo.Create(context.Background(), string(shopK), barberK2, schedule.CreateInput{ISOWeekday: 4, StartsTime: "08:00", DurationMinutes: 30}, key, fp)
+	result, err := repo.Create(context.Background(), string(shopK), professionalK2, schedule.CreateInput{ISOWeekday: 4, StartsTime: "08:00", DurationMinutes: 30}, key, fp)
 	if err != nil {
 		t.Fatalf("Create: %v", err)
 	}
@@ -230,12 +230,12 @@ func TestCreate_PartialOverlap_ReturnsConflict(t *testing.T) {
 	db := setupTestDB(t)
 	repo := newRepository(db)
 
-	createWorkingHour(t, repo, shopK, barberK2, schedule.CreateInput{ISOWeekday: 6, StartsTime: "08:00", DurationMinutes: 120})
+	createWorkingHour(t, repo, shopK, professionalK2, schedule.CreateInput{ISOWeekday: 6, StartsTime: "08:00", DurationMinutes: 120})
 
 	key := idempotency.Key("overlap-" + uniqueSuffix(t))
 	fp := idempotency.ComputeFingerprint("POST", "/x", []byte("overlap"))
 	// [08:00,10:00) ya existe; [09:00,11:00) se solapa en [09:00,10:00).
-	result, err := repo.Create(context.Background(), string(shopK), barberK2, schedule.CreateInput{ISOWeekday: 6, StartsTime: "09:00", DurationMinutes: 120}, key, fp)
+	result, err := repo.Create(context.Background(), string(shopK), professionalK2, schedule.CreateInput{ISOWeekday: 6, StartsTime: "09:00", DurationMinutes: 120}, key, fp)
 	if err != nil {
 		t.Fatalf("Create: %v", err)
 	}
@@ -248,23 +248,23 @@ func TestCreate_ContiguousSegments_NoConflict(t *testing.T) {
 	db := setupTestDB(t)
 	repo := newRepository(db)
 
-	createWorkingHour(t, repo, shopK, barberK2, schedule.CreateInput{ISOWeekday: 7, StartsTime: "08:00", DurationMinutes: 120})
+	createWorkingHour(t, repo, shopK, professionalK2, schedule.CreateInput{ISOWeekday: 7, StartsTime: "08:00", DurationMinutes: 120})
 	// [10:00,10:30) empieza justo donde termina el anterior: contiguo, no
 	// solapado (semántica semiabierta [inicio, fin), CA-040-03).
-	second := createWorkingHour(t, repo, shopK, barberK2, schedule.CreateInput{ISOWeekday: 7, StartsTime: "10:00", DurationMinutes: 30})
+	second := createWorkingHour(t, repo, shopK, professionalK2, schedule.CreateInput{ISOWeekday: 7, StartsTime: "10:00", DurationMinutes: 30})
 	if second.StartsTime != "10:00" {
 		t.Fatalf("expected the contiguous segment to be created, got %+v", second)
 	}
 }
 
 // TestCreate_ConcurrentOverlappingCreates_ExactlyOneSucceeds es la prueba
-// de la carrera que el bloqueo de la fila de barber (SELECT ... FOR UPDATE
+// de la carrera que el bloqueo de la fila de professional (SELECT ... FOR UPDATE
 // dentro de Repository.Create) existe para resolver: dos altas
-// concurrentes REALES para el MISMO barbero y día, partiendo de CERO tramos
+// concurrentes REALES para el MISMO profesional y día, partiendo de CERO tramos
 // existentes (el caso "phantom read" que un SELECT ... FOR UPDATE sobre
 // working_hour por sí solo no bloquearía, porque no habría fila que
 // bloquear). Exactamente una debe tener éxito; la otra debe volver con
-// Conflict=true. El barbero jamás termina con dos tramos solapados.
+// Conflict=true. El profesional jamás termina con dos tramos solapados.
 func TestCreate_ConcurrentOverlappingCreates_ExactlyOneSucceeds(t *testing.T) {
 	db := setupTestDB(t)
 	repo := newRepository(db)
@@ -283,14 +283,14 @@ func TestCreate_ConcurrentOverlappingCreates_ExactlyOneSucceeds(t *testing.T) {
 		<-start
 		keyA := idempotency.Key("race-a-" + uniqueSuffix(t))
 		fpA := idempotency.ComputeFingerprint("POST", "/x", []byte("race-a"))
-		resultA, errA = repo.Create(context.Background(), string(shopL), barberL1, schedule.CreateInput{ISOWeekday: 2, StartsTime: "08:00", DurationMinutes: 120}, keyA, fpA)
+		resultA, errA = repo.Create(context.Background(), string(shopL), professionalL1, schedule.CreateInput{ISOWeekday: 2, StartsTime: "08:00", DurationMinutes: 120}, keyA, fpA)
 	}()
 	go func() {
 		defer wg.Done()
 		<-start
 		keyB := idempotency.Key("race-b-" + uniqueSuffix(t))
 		fpB := idempotency.ComputeFingerprint("POST", "/x", []byte("race-b"))
-		resultB, errB = repo.Create(context.Background(), string(shopL), barberL1, schedule.CreateInput{ISOWeekday: 2, StartsTime: "09:00", DurationMinutes: 120}, keyB, fpB)
+		resultB, errB = repo.Create(context.Background(), string(shopL), professionalL1, schedule.CreateInput{ISOWeekday: 2, StartsTime: "09:00", DurationMinutes: 120}, keyB, fpB)
 	}()
 	close(start)
 	wg.Wait()
@@ -319,24 +319,24 @@ func TestCreate_ConcurrentOverlappingCreates_ExactlyOneSucceeds(t *testing.T) {
 		t.Fatalf("expected exactly one success and one conflict, got succeeded=%d conflicted=%d", succeeded, conflicted)
 	}
 	if survivorID != "" {
-		t.Cleanup(func() { _, _ = repo.Delete(context.Background(), string(shopL), barberL1, survivorID) })
+		t.Cleanup(func() { _, _ = repo.Delete(context.Background(), string(shopL), professionalL1, survivorID) })
 	}
 }
 
-// --- CA-040-05: aislamiento de tenant y de barbero ------------------------
+// --- CA-040-05: aislamiento de tenant y de profesional ------------------------
 
-func TestGet_CrossBarber_NeverLeaksAnotherBarbersWorkingHour(t *testing.T) {
+func TestGet_CrossProfessional_NeverLeaksAnotherProfessionalsWorkingHour(t *testing.T) {
 	db := setupTestDB(t)
 	repo := newRepository(db)
 
-	wh := createWorkingHour(t, repo, shopK, barberK1, schedule.CreateInput{ISOWeekday: 1, StartsTime: "07:00", DurationMinutes: 30})
+	wh := createWorkingHour(t, repo, shopK, professionalK1, schedule.CreateInput{ISOWeekday: 1, StartsTime: "07:00", DurationMinutes: 30})
 
-	_, found, err := repo.Get(context.Background(), string(shopK), barberK2, wh.ID)
+	_, found, err := repo.Get(context.Background(), string(shopK), professionalK2, wh.ID)
 	if err != nil {
 		t.Fatalf("Get: %v", err)
 	}
 	if found {
-		t.Fatal("CA-040-05: barberK2's context could read barberK1's working hour")
+		t.Fatal("CA-040-05: professionalK2's context could read professionalK1's working hour")
 	}
 }
 
@@ -344,9 +344,9 @@ func TestGet_CrossTenant_NeverLeaksAnotherShopsWorkingHour(t *testing.T) {
 	db := setupTestDB(t)
 	repo := newRepository(db)
 
-	wh := createWorkingHour(t, repo, shopL, barberL1, schedule.CreateInput{ISOWeekday: 1, StartsTime: "06:00", DurationMinutes: 30})
+	wh := createWorkingHour(t, repo, shopL, professionalL1, schedule.CreateInput{ISOWeekday: 1, StartsTime: "06:00", DurationMinutes: 30})
 
-	_, found, err := repo.Get(context.Background(), string(shopK), barberK1, wh.ID)
+	_, found, err := repo.Get(context.Background(), string(shopK), professionalK1, wh.ID)
 	if err != nil {
 		t.Fatalf("Get: %v", err)
 	}
@@ -359,9 +359,9 @@ func TestUpdate_CrossTenant_NeverEditsAnotherShopsWorkingHour(t *testing.T) {
 	db := setupTestDB(t)
 	repo := newRepository(db)
 
-	wh := createWorkingHour(t, repo, shopL, barberL1, schedule.CreateInput{ISOWeekday: 3, StartsTime: "06:00", DurationMinutes: 30})
+	wh := createWorkingHour(t, repo, shopL, professionalL1, schedule.CreateInput{ISOWeekday: 3, StartsTime: "06:00", DurationMinutes: 30})
 
-	result, err := repo.Update(context.Background(), string(shopK), barberK1, wh.ID, schedule.UpdateInput{ISOWeekday: 3, StartsTime: "07:00", DurationMinutes: 30})
+	result, err := repo.Update(context.Background(), string(shopK), professionalK1, wh.ID, schedule.UpdateInput{ISOWeekday: 3, StartsTime: "07:00", DurationMinutes: 30})
 	if err != nil {
 		t.Fatalf("Update: %v", err)
 	}
@@ -374,9 +374,9 @@ func TestDelete_CrossTenant_NeverDeletesAnotherShopsWorkingHour(t *testing.T) {
 	db := setupTestDB(t)
 	repo := newRepository(db)
 
-	wh := createWorkingHour(t, repo, shopL, barberL1, schedule.CreateInput{ISOWeekday: 4, StartsTime: "06:00", DurationMinutes: 30})
+	wh := createWorkingHour(t, repo, shopL, professionalL1, schedule.CreateInput{ISOWeekday: 4, StartsTime: "06:00", DurationMinutes: 30})
 
-	found, err := repo.Delete(context.Background(), string(shopK), barberK1, wh.ID)
+	found, err := repo.Delete(context.Background(), string(shopK), professionalK1, wh.ID)
 	if err != nil {
 		t.Fatalf("Delete: %v", err)
 	}
@@ -385,7 +385,7 @@ func TestDelete_CrossTenant_NeverDeletesAnotherShopsWorkingHour(t *testing.T) {
 	}
 
 	// Sigue existiendo bajo su propio tenant.
-	_, found, err = repo.Get(context.Background(), string(shopL), barberL1, wh.ID)
+	_, found, err = repo.Get(context.Background(), string(shopL), professionalL1, wh.ID)
 	if err != nil {
 		t.Fatalf("Get (own tenant): %v", err)
 	}
@@ -400,9 +400,9 @@ func TestUpdate_NoConflict_ChangesInterval(t *testing.T) {
 	db := setupTestDB(t)
 	repo := newRepository(db)
 
-	wh := createWorkingHour(t, repo, shopK, barberK1, schedule.CreateInput{ISOWeekday: 2, StartsTime: "11:00", DurationMinutes: 60})
+	wh := createWorkingHour(t, repo, shopK, professionalK1, schedule.CreateInput{ISOWeekday: 2, StartsTime: "11:00", DurationMinutes: 60})
 
-	result, err := repo.Update(context.Background(), string(shopK), barberK1, wh.ID, schedule.UpdateInput{ISOWeekday: 2, StartsTime: "12:00", DurationMinutes: 90})
+	result, err := repo.Update(context.Background(), string(shopK), professionalK1, wh.ID, schedule.UpdateInput{ISOWeekday: 2, StartsTime: "12:00", DurationMinutes: 90})
 	if err != nil {
 		t.Fatalf("Update: %v", err)
 	}
@@ -421,9 +421,9 @@ func TestUpdate_SameSegmentNoRealChange_DoesNotConflictWithItself(t *testing.T) 
 	db := setupTestDB(t)
 	repo := newRepository(db)
 
-	wh := createWorkingHour(t, repo, shopK, barberK1, schedule.CreateInput{ISOWeekday: 5, StartsTime: "13:00", DurationMinutes: 45})
+	wh := createWorkingHour(t, repo, shopK, professionalK1, schedule.CreateInput{ISOWeekday: 5, StartsTime: "13:00", DurationMinutes: 45})
 
-	result, err := repo.Update(context.Background(), string(shopK), barberK1, wh.ID, schedule.UpdateInput{ISOWeekday: 5, StartsTime: "13:00", DurationMinutes: 45})
+	result, err := repo.Update(context.Background(), string(shopK), professionalK1, wh.ID, schedule.UpdateInput{ISOWeekday: 5, StartsTime: "13:00", DurationMinutes: 45})
 	if err != nil {
 		t.Fatalf("Update: %v", err)
 	}
@@ -436,10 +436,10 @@ func TestUpdate_OverlapsAnotherSegment_ReturnsConflictWithoutChangingAnything(t 
 	db := setupTestDB(t)
 	repo := newRepository(db)
 
-	kept := createWorkingHour(t, repo, shopK, barberK2, schedule.CreateInput{ISOWeekday: 1, StartsTime: "15:00", DurationMinutes: 60})
-	moving := createWorkingHour(t, repo, shopK, barberK2, schedule.CreateInput{ISOWeekday: 1, StartsTime: "17:00", DurationMinutes: 60})
+	kept := createWorkingHour(t, repo, shopK, professionalK2, schedule.CreateInput{ISOWeekday: 1, StartsTime: "15:00", DurationMinutes: 60})
+	moving := createWorkingHour(t, repo, shopK, professionalK2, schedule.CreateInput{ISOWeekday: 1, StartsTime: "17:00", DurationMinutes: 60})
 
-	result, err := repo.Update(context.Background(), string(shopK), barberK2, moving.ID, schedule.UpdateInput{ISOWeekday: 1, StartsTime: "15:30", DurationMinutes: 60})
+	result, err := repo.Update(context.Background(), string(shopK), professionalK2, moving.ID, schedule.UpdateInput{ISOWeekday: 1, StartsTime: "15:30", DurationMinutes: 60})
 	if err != nil {
 		t.Fatalf("Update: %v", err)
 	}
@@ -448,7 +448,7 @@ func TestUpdate_OverlapsAnotherSegment_ReturnsConflictWithoutChangingAnything(t 
 	}
 
 	// El tramo movido conserva su intervalo original: nada se persistió.
-	unchanged, found, err := repo.Get(context.Background(), string(shopK), barberK2, moving.ID)
+	unchanged, found, err := repo.Get(context.Background(), string(shopK), professionalK2, moving.ID)
 	if err != nil {
 		t.Fatalf("Get: %v", err)
 	}
@@ -462,7 +462,7 @@ func TestUpdate_NonexistentID_ReturnsNotFound(t *testing.T) {
 	db := setupTestDB(t)
 	repo := newRepository(db)
 
-	result, err := repo.Update(context.Background(), string(shopK), barberK1, "00000000-0000-0000-0000-000000000001", schedule.UpdateInput{ISOWeekday: 1, StartsTime: "08:00", DurationMinutes: 30})
+	result, err := repo.Update(context.Background(), string(shopK), professionalK1, "00000000-0000-0000-0000-000000000001", schedule.UpdateInput{ISOWeekday: 1, StartsTime: "08:00", DurationMinutes: 30})
 	if err != nil {
 		t.Fatalf("Update: %v", err)
 	}
@@ -477,9 +477,9 @@ func TestDelete_ThenGet_NotFound(t *testing.T) {
 	db := setupTestDB(t)
 	repo := newRepository(db)
 
-	wh := createWorkingHour(t, repo, shopK, barberK1, schedule.CreateInput{ISOWeekday: 6, StartsTime: "16:00", DurationMinutes: 30})
+	wh := createWorkingHour(t, repo, shopK, professionalK1, schedule.CreateInput{ISOWeekday: 6, StartsTime: "16:00", DurationMinutes: 30})
 
-	found, err := repo.Delete(context.Background(), string(shopK), barberK1, wh.ID)
+	found, err := repo.Delete(context.Background(), string(shopK), professionalK1, wh.ID)
 	if err != nil {
 		t.Fatalf("Delete: %v", err)
 	}
@@ -487,7 +487,7 @@ func TestDelete_ThenGet_NotFound(t *testing.T) {
 		t.Fatal("expected the first Delete to find and remove the segment")
 	}
 
-	_, found, err = repo.Get(context.Background(), string(shopK), barberK1, wh.ID)
+	_, found, err = repo.Get(context.Background(), string(shopK), professionalK1, wh.ID)
 	if err != nil {
 		t.Fatalf("Get after delete: %v", err)
 	}
@@ -500,13 +500,13 @@ func TestDelete_Retried_SecondCallIsSafeNoOp(t *testing.T) {
 	db := setupTestDB(t)
 	repo := newRepository(db)
 
-	wh := createWorkingHour(t, repo, shopK, barberK1, schedule.CreateInput{ISOWeekday: 7, StartsTime: "16:00", DurationMinutes: 30})
+	wh := createWorkingHour(t, repo, shopK, professionalK1, schedule.CreateInput{ISOWeekday: 7, StartsTime: "16:00", DurationMinutes: 30})
 
-	first, err := repo.Delete(context.Background(), string(shopK), barberK1, wh.ID)
+	first, err := repo.Delete(context.Background(), string(shopK), professionalK1, wh.ID)
 	if err != nil || !first {
 		t.Fatalf("first Delete: found=%v err=%v", first, err)
 	}
-	second, err := repo.Delete(context.Background(), string(shopK), barberK1, wh.ID)
+	second, err := repo.Delete(context.Background(), string(shopK), professionalK1, wh.ID)
 	if err != nil {
 		t.Fatalf("second Delete: %v", err)
 	}
@@ -521,10 +521,10 @@ func TestList_OrderedByWeekdayThenStartsTime(t *testing.T) {
 	db := setupTestDB(t)
 	repo := newRepository(db)
 
-	a := createWorkingHour(t, repo, shopL, barberL1, schedule.CreateInput{ISOWeekday: 7, StartsTime: "07:00", DurationMinutes: 30})
-	b := createWorkingHour(t, repo, shopL, barberL1, schedule.CreateInput{ISOWeekday: 7, StartsTime: "18:00", DurationMinutes: 30})
+	a := createWorkingHour(t, repo, shopL, professionalL1, schedule.CreateInput{ISOWeekday: 7, StartsTime: "07:00", DurationMinutes: 30})
+	b := createWorkingHour(t, repo, shopL, professionalL1, schedule.CreateInput{ISOWeekday: 7, StartsTime: "18:00", DurationMinutes: 30})
 
-	page, err := repo.List(context.Background(), string(shopL), barberL1, nil, 50)
+	page, err := repo.List(context.Background(), string(shopL), professionalL1, nil, 50)
 	if err != nil {
 		t.Fatalf("List: %v", err)
 	}
@@ -550,11 +550,11 @@ func TestList_FirstPage_NeverReturnsMoreThanLimit(t *testing.T) {
 	db := setupTestDB(t)
 	repo := newRepository(db)
 
-	createWorkingHour(t, repo, shopL, barberL1, schedule.CreateInput{ISOWeekday: 6, StartsTime: "05:00", DurationMinutes: 10})
-	createWorkingHour(t, repo, shopL, barberL1, schedule.CreateInput{ISOWeekday: 6, StartsTime: "06:00", DurationMinutes: 10})
-	createWorkingHour(t, repo, shopL, barberL1, schedule.CreateInput{ISOWeekday: 6, StartsTime: "07:00", DurationMinutes: 10})
+	createWorkingHour(t, repo, shopL, professionalL1, schedule.CreateInput{ISOWeekday: 6, StartsTime: "05:00", DurationMinutes: 10})
+	createWorkingHour(t, repo, shopL, professionalL1, schedule.CreateInput{ISOWeekday: 6, StartsTime: "06:00", DurationMinutes: 10})
+	createWorkingHour(t, repo, shopL, professionalL1, schedule.CreateInput{ISOWeekday: 6, StartsTime: "07:00", DurationMinutes: 10})
 
-	page, err := repo.List(context.Background(), string(shopL), barberL1, nil, 2)
+	page, err := repo.List(context.Background(), string(shopL), professionalL1, nil, 2)
 	if err != nil {
 		t.Fatalf("List: %v", err)
 	}
@@ -569,7 +569,7 @@ func TestList_FirstPage_NeverReturnsMoreThanLimit(t *testing.T) {
 		t.Fatalf("DecodeCursor: %v", err)
 	}
 
-	next, err := repo.List(context.Background(), string(shopL), barberL1, &decoded, 50)
+	next, err := repo.List(context.Background(), string(shopL), professionalL1, &decoded, 50)
 	if err != nil {
 		t.Fatalf("List (second page): %v", err)
 	}

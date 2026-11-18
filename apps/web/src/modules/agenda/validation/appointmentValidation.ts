@@ -48,7 +48,7 @@ export function validateStartsAt(civilDateTime: string): string | undefined {
 // buildStartsAt compone el valor "AAAA-MM-DDTHH:MM:SS" que el contrato
 // exige a partir de los campos separados de fecha y hora del formulario
 // (inputs type="date"/type="time" nativos): sin conversión de zona, el
-// servidor interpreta este valor civil contra la zona IANA de la barbería
+// servidor interpreta este valor civil contra la zona IANA del negocio
 // (RN-DIS-07).
 export function buildStartsAt(date: string, time: string): string {
   const withSeconds = time.length === 5 ? `${time}:00` : time

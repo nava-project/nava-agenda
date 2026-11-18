@@ -1,6 +1,6 @@
-// Conversión entre hora civil (lo que el barbero escribe/lee) e instante
+// Conversión entre hora civil (lo que el profesional escribe/lee) e instante
 // absoluto (lo que time_block.startsAt/endsAt almacena), SIEMPRE en la zona
-// IANA de la barbería, nunca la del dispositivo (RN-DIS-05, RN-DIS-07,
+// IANA del negocio, nunca la del dispositivo (RN-DIS-05, RN-DIS-07,
 // CA-042). Los bloqueos puntuales son la única parte de `schedules` que
 // necesita esta conversión: working_hour/schedule-exceptions trabajan con
 // hora civil "HH:MM" pura, sin fecha, porque son recurrentes; un bloqueo

@@ -8,7 +8,7 @@ import (
 	"sync"
 	"time"
 
-	"system-barbershop/internal/platform/clock"
+	"nava-agenda/internal/platform/clock"
 )
 
 // PublisherConfig son los parámetros del worker de publicación. Valores por
@@ -177,8 +177,8 @@ const (
 // publica un estado viejo.
 func decide(jc JobContext, now time.Time) jobAction {
 	hasLink := jc.LinkEventID != ""
-	// Un recurso borrado o que ya es de otro barbero deja de ser de esta conexión.
-	if !jc.ResourceFound || !jc.BarberMatches {
+	// Un recurso borrado o que ya es de otro profesional deja de ser de esta conexión.
+	if !jc.ResourceFound || !jc.ProfessionalMatches {
 		return actionRemove
 	}
 	switch jc.ResourceType {
@@ -316,7 +316,7 @@ func (p *Publisher) upsert(ctx context.Context, token string, job Job, jc JobCon
 		if !IsGone(err) {
 			return Published{}, 0, err
 		}
-		// El barbero lo borró en Google: se recrea con una generación nueva.
+		// El profesional lo borró en Google: se recrea con una generación nueva.
 		return p.create(ctx, token, job, jc, ev, jc.LinkGeneration+1)
 	}
 	return p.create(ctx, token, job, jc, ev, 1)
@@ -424,12 +424,12 @@ func (p *Publisher) withToken(ctx context.Context, job Job, jc JobContext, fn fu
 }
 
 func (p *Publisher) accessToken(ctx context.Context, job Job, jc JobContext, force bool) (string, error) {
-	return p.tokenFor(ctx, job.ConnectionID, job.BarbershopID, jc.BarberID, jc.TokenCiphertext, jc.TokenKeyID, force)
+	return p.tokenFor(ctx, job.ConnectionID, job.BusinessID, jc.ProfessionalID, jc.TokenCiphertext, jc.TokenKeyID, force)
 }
 
 // tokenFor devuelve un access token de la conexión, con caché en memoria hasta
 // poco antes de su vencimiento: nunca se persiste (DEC-102).
-func (p *Publisher) tokenFor(ctx context.Context, connectionID, barbershopID, barberID string, ciphertext []byte, keyID string, force bool) (string, error) {
+func (p *Publisher) tokenFor(ctx context.Context, connectionID, businessID, professionalID string, ciphertext []byte, keyID string, force bool) (string, error) {
 	now := p.clock.Now()
 	p.mu.Lock()
 	cached, ok := p.tokens[connectionID]
@@ -440,7 +440,7 @@ func (p *Publisher) tokenFor(ctx context.Context, connectionID, barbershopID, ba
 	if len(ciphertext) == 0 {
 		return "", errReauth
 	}
-	refresh, err := p.cipher.Decrypt(ciphertext, keyID, tokenAAD(barbershopID, barberID))
+	refresh, err := p.cipher.Decrypt(ciphertext, keyID, tokenAAD(businessID, professionalID))
 	if err != nil {
 		return "", fmt.Errorf("googlecalendar: descifrar refresh token: %w", err)
 	}
@@ -454,7 +454,7 @@ func (p *Publisher) tokenFor(ctx context.Context, connectionID, barbershopID, ba
 	return access, nil
 }
 
-// RestoreOnce reserva una conexión vencida y recrea los eventos que el barbero
+// RestoreOnce reserva una conexión vencida y recrea los eventos que el profesional
 // borró por error en Google (DEC-101.4): lista SOLO los eventos publicados por
 // NAVA (propiedad privada navaConnectionId, sin syncToken ni webhook) y reencola
 // los vínculos vigentes cuyo evento falta. Nunca modifica el dominio de NAVA ni
@@ -473,7 +473,7 @@ func (p *Publisher) RestoreOnce(ctx context.Context) bool {
 	restoreCtx, cancel := context.WithTimeout(ctx, p.cfg.JobTimeout)
 	defer cancel()
 
-	token, err := p.tokenFor(restoreCtx, target.ConnectionID, target.BarbershopID, target.BarberID,
+	token, err := p.tokenFor(restoreCtx, target.ConnectionID, target.BusinessID, target.ProfessionalID,
 		target.TokenCiphertext, target.TokenKeyID, false)
 	if err != nil {
 		// Un permiso revocado lo descubre y gestiona el siguiente trabajo de publicación.

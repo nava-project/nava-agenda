@@ -9,19 +9,19 @@ import (
 	"testing"
 	"time"
 
-	"system-barbershop/internal/modules/googlecalendar"
-	"system-barbershop/internal/platform/apperr"
+	"nava-agenda/internal/modules/googlecalendar"
+	"nava-agenda/internal/platform/apperr"
 )
 
 const (
-	shopA    = "11111111-1111-1111-1111-111111111111"
-	shopB    = "22222222-2222-2222-2222-222222222222"
-	userA    = "aaaaaaa2-aaaa-aaaa-aaaa-aaaaaaaaaaa2"
-	userA2   = "aaaaaaa3-aaaa-aaaa-aaaa-aaaaaaaaaaa3"
-	barberA  = "c0000001-0000-4000-8000-000000000001"
-	barberA2 = "c0000001-0000-4000-8000-000000000002"
-	session1 = "5e550001-0000-4000-8000-000000000001"
-	session2 = "5e550001-0000-4000-8000-000000000002"
+	shopA          = "11111111-1111-1111-1111-111111111111"
+	shopB          = "22222222-2222-2222-2222-222222222222"
+	userA          = "aaaaaaa2-aaaa-aaaa-aaaa-aaaaaaaaaaa2"
+	userA2         = "aaaaaaa3-aaaa-aaaa-aaaa-aaaaaaaaaaa3"
+	professionalA  = "c0000001-0000-4000-8000-000000000001"
+	professionalA2 = "c0000001-0000-4000-8000-000000000002"
+	session1       = "5e550001-0000-4000-8000-000000000001"
+	session2       = "5e550001-0000-4000-8000-000000000002"
 )
 
 type fakeClock struct{ now time.Time }
@@ -45,12 +45,12 @@ func (r *fixedRandom) Token(int) (string, error) {
 // fakeRepo es un doble en memoria de googlecalendar.Repository: prueba la
 // orquestación del servicio, nunca SQL ni RLS (eso vive en postgres/).
 type fakeRepo struct {
-	mu          sync.Mutex
-	barbers     map[string]string // shop|user -> barber
-	connections map[string]googlecalendar.Connection
-	states      map[string]*storedState
-	counts      googlecalendar.JobCounts
-	requeued    int
+	mu            sync.Mutex
+	professionals map[string]string // shop|user -> professional
+	connections   map[string]googlecalendar.Connection
+	states        map[string]*storedState
+	counts        googlecalendar.JobCounts
+	requeued      int
 }
 
 type storedState struct {
@@ -60,42 +60,42 @@ type storedState struct {
 
 func newFakeRepo() *fakeRepo {
 	return &fakeRepo{
-		barbers: map[string]string{
-			shopA + "|" + userA:  barberA,
-			shopA + "|" + userA2: barberA2,
+		professionals: map[string]string{
+			shopA + "|" + userA:  professionalA,
+			shopA + "|" + userA2: professionalA2,
 		},
 		connections: map[string]googlecalendar.Connection{},
 		states:      map[string]*storedState{},
 	}
 }
 
-func (r *fakeRepo) GetConnection(_ context.Context, shop, barber string) (googlecalendar.Connection, bool, error) {
+func (r *fakeRepo) GetConnection(_ context.Context, shop, professional string) (googlecalendar.Connection, bool, error) {
 	r.mu.Lock()
 	defer r.mu.Unlock()
-	c, ok := r.connections[shop+"|"+barber]
+	c, ok := r.connections[shop+"|"+professional]
 	return c, ok, nil
 }
 
-func (r *fakeRepo) SaveConnected(_ context.Context, shop, barber string, d googlecalendar.ConnectedData) (googlecalendar.Connection, error) {
+func (r *fakeRepo) SaveConnected(_ context.Context, shop, professional string, d googlecalendar.ConnectedData) (googlecalendar.Connection, error) {
 	r.mu.Lock()
 	defer r.mu.Unlock()
 	at := d.At
 	c := googlecalendar.Connection{
-		BarbershopID: shop, BarberID: barber, Status: googlecalendar.StatusConnected,
+		BusinessID: shop, ProfessionalID: professional, Status: googlecalendar.StatusConnected,
 		AccountEmail: d.AccountEmail, CalendarID: googlecalendar.CalendarPrimary,
 		Credentials: d.Credentials, KeyID: d.KeyID, ConnectedAt: &at,
 	}
-	if prev, ok := r.connections[shop+"|"+barber]; ok {
+	if prev, ok := r.connections[shop+"|"+professional]; ok {
 		c.ReminderMinutes = prev.ReminderMinutes
 	}
-	r.connections[shop+"|"+barber] = c
+	r.connections[shop+"|"+professional] = c
 	return c, nil
 }
 
-func (r *fakeRepo) MarkStatus(_ context.Context, shop, barber string, status googlecalendar.Status, code string, _ time.Time) (bool, error) {
+func (r *fakeRepo) MarkStatus(_ context.Context, shop, professional string, status googlecalendar.Status, code string, _ time.Time) (bool, error) {
 	r.mu.Lock()
 	defer r.mu.Unlock()
-	c, ok := r.connections[shop+"|"+barber]
+	c, ok := r.connections[shop+"|"+professional]
 	if !ok {
 		return false, nil
 	}
@@ -106,19 +106,19 @@ func (r *fakeRepo) MarkStatus(_ context.Context, shop, barber string, status goo
 	if status == googlecalendar.StatusDisconnected {
 		c.AccountEmail = ""
 	}
-	r.connections[shop+"|"+barber] = c
+	r.connections[shop+"|"+professional] = c
 	return true, nil
 }
 
-func (r *fakeRepo) SetReminder(_ context.Context, shop, barber string, minutes *int) (googlecalendar.Connection, bool, error) {
+func (r *fakeRepo) SetReminder(_ context.Context, shop, professional string, minutes *int) (googlecalendar.Connection, bool, error) {
 	r.mu.Lock()
 	defer r.mu.Unlock()
-	c, ok := r.connections[shop+"|"+barber]
+	c, ok := r.connections[shop+"|"+professional]
 	if !ok || c.Status == googlecalendar.StatusDisconnected {
 		return googlecalendar.Connection{}, false, nil
 	}
 	c.ReminderMinutes = minutes
-	r.connections[shop+"|"+barber] = c
+	r.connections[shop+"|"+professional] = c
 	return c, true, nil
 }
 
@@ -133,7 +133,7 @@ func (r *fakeRepo) ConsumeState(_ context.Context, shop, hash string, now time.T
 	r.mu.Lock()
 	defer r.mu.Unlock()
 	s, ok := r.states[hash]
-	if !ok || s.BarbershopID != shop || s.consumed || !s.ExpiresAt.After(now) {
+	if !ok || s.BusinessID != shop || s.consumed || !s.ExpiresAt.After(now) {
 		return googlecalendar.OAuthState{}, false, nil
 	}
 	s.consumed = true
@@ -146,10 +146,10 @@ func (r *fakeRepo) JobCounts(context.Context, string, string) (googlecalendar.Jo
 	return r.counts, nil
 }
 
-func (r *fakeRepo) RequeueConnection(_ context.Context, shop, barber string, _ time.Time) (googlecalendar.JobCounts, bool, error) {
+func (r *fakeRepo) RequeueConnection(_ context.Context, shop, professional string, _ time.Time) (googlecalendar.JobCounts, bool, error) {
 	r.mu.Lock()
 	defer r.mu.Unlock()
-	c, ok := r.connections[shop+"|"+barber]
+	c, ok := r.connections[shop+"|"+professional]
 	if !ok || (c.Status != googlecalendar.StatusConnected && c.Status != googlecalendar.StatusError) {
 		return googlecalendar.JobCounts{}, false, nil
 	}
@@ -157,10 +157,10 @@ func (r *fakeRepo) RequeueConnection(_ context.Context, shop, barber string, _ t
 	return googlecalendar.JobCounts{Pending: r.counts.Pending + r.counts.Failed}, true, nil
 }
 
-func (r *fakeRepo) BarberOfUser(_ context.Context, shop, user string) (string, bool, error) {
+func (r *fakeRepo) ProfessionalOfUser(_ context.Context, shop, user string) (string, bool, error) {
 	r.mu.Lock()
 	defer r.mu.Unlock()
-	b, ok := r.barbers[shop+"|"+user]
+	b, ok := r.professionals[shop+"|"+user]
 	return b, ok, nil
 }
 
@@ -272,9 +272,9 @@ func TestStartConnect_Disabled_IsInvalidState(t *testing.T) {
 	requireKind(t, err, apperr.KindInvalidState)
 }
 
-func TestStartConnect_WithoutLinkedBarber_IsInvalidState(t *testing.T) {
+func TestStartConnect_WithoutLinkedProfessional_IsInvalidState(t *testing.T) {
 	h := newHarness(t)
-	_, err := h.svc.StartConnect(context.Background(), shopA, "usuario-sin-barbero", session1)
+	_, err := h.svc.StartConnect(context.Background(), shopA, "usuario-sin-profesional", session1)
 	requireKind(t, err, apperr.KindInvalidState)
 }
 
@@ -298,8 +298,8 @@ func TestStartConnect_PersistsOnlyHashedStateAndEncryptedVerifier(t *testing.T) 
 		if bytes.Contains(st.VerifierEncrypted, []byte("verificador-pkce-0001")) {
 			t.Fatal("el verificador PKCE no debe persistirse en claro")
 		}
-		if st.BarbershopID != shopA || st.BarberID != barberA || st.StaffUserID != userA || st.SessionID != session1 {
-			t.Fatalf("el estado debe ligarse a barbería, barbero, usuario y sesión: %+v", st.OAuthState)
+		if st.BusinessID != shopA || st.ProfessionalID != professionalA || st.StaffUserID != userA || st.SessionID != session1 {
+			t.Fatalf("el estado debe ligarse a negocio, profesional, usuario y sesión: %+v", st.OAuthState)
 		}
 		if got := st.ExpiresAt.Sub(h.clock.now); got != googlecalendar.StateTTL {
 			t.Fatalf("vigencia = %v, se esperaba %v", got, googlecalendar.StateTTL)
@@ -321,20 +321,20 @@ func TestCompleteCallback_Success_StoresEncryptedTokenAndUsesPKCEVerifier(t *tes
 		t.Fatalf("el canje debe usar el código y el verificador guardado: %+v", call)
 	}
 
-	conn, found, _ := h.repo.GetConnection(context.Background(), shopA, barberA)
+	conn, found, _ := h.repo.GetConnection(context.Background(), shopA, professionalA)
 	if !found || conn.Status != googlecalendar.StatusConnected || conn.AccountEmail != "barbero@ejemplo.test" {
 		t.Fatalf("conexión inesperada: %+v", conn)
 	}
 	if bytes.Contains(conn.Credentials, []byte("1//refresh-de-prueba")) {
 		t.Fatal("el refresh token no debe persistirse en claro")
 	}
-	plain, err := h.cipher.Decrypt(conn.Credentials, conn.KeyID, []byte("gcal-refresh|"+shopA+"|"+barberA))
+	plain, err := h.cipher.Decrypt(conn.Credentials, conn.KeyID, []byte("gcal-refresh|"+shopA+"|"+professionalA))
 	if err != nil || string(plain) != "1//refresh-de-prueba" {
-		t.Fatalf("el token cifrado debe descifrarse con el contexto del barbero: %q %v", plain, err)
+		t.Fatalf("el token cifrado debe descifrarse con el contexto del profesional: %q %v", plain, err)
 	}
-	// Trasplantado a otro barbero, ya no se puede leer.
-	if _, err := h.cipher.Decrypt(conn.Credentials, conn.KeyID, []byte("gcal-refresh|"+shopA+"|"+barberA2)); err == nil {
-		t.Fatal("el token no debe descifrarse en el contexto de otro barbero")
+	// Trasplantado a otro profesional, ya no se puede leer.
+	if _, err := h.cipher.Decrypt(conn.Credentials, conn.KeyID, []byte("gcal-refresh|"+shopA+"|"+professionalA2)); err == nil {
+		t.Fatal("el token no debe descifrarse en el contexto de otro profesional")
 	}
 }
 
@@ -371,7 +371,7 @@ func TestCompleteCallback_RejectsInvalidStatesWithTheSameError(t *testing.T) {
 			_, err := h.svc.CompleteCallback(context.Background(), shopA, userA2, session1, state, "c", "")
 			return err
 		},
-		"otra barbería": func(h *harness, state string) error {
+		"otro negocio": func(h *harness, state string) error {
 			_, err := h.svc.CompleteCallback(context.Background(), shopB, userA, session1, state, "c", "")
 			return err
 		},
@@ -381,7 +381,7 @@ func TestCompleteCallback_RejectsInvalidStatesWithTheSameError(t *testing.T) {
 			return err
 		},
 		"el vínculo del usuario cambió": func(h *harness, state string) error {
-			h.repo.barbers[shopA+"|"+userA] = barberA2
+			h.repo.professionals[shopA+"|"+userA] = professionalA2
 			_, err := h.svc.CompleteCallback(context.Background(), shopA, userA, session1, state, "c", "")
 			return err
 		},
@@ -398,7 +398,7 @@ func TestCompleteCallback_RejectsInvalidStatesWithTheSameError(t *testing.T) {
 			if len(h.provider.exchangeCalls) != 0 {
 				t.Fatal("un state inválido nunca debe llegar a Google")
 			}
-			if _, found, _ := h.repo.GetConnection(context.Background(), shopA, barberA); found {
+			if _, found, _ := h.repo.GetConnection(context.Background(), shopA, professionalA); found {
 				t.Fatal("un state inválido no debe crear conexión")
 			}
 		})
@@ -420,7 +420,7 @@ func TestCompleteCallback_UserDenied_ConnectsNothingAndConsumesState(t *testing.
 	if len(h.provider.exchangeCalls) != 0 {
 		t.Fatal("un rechazo no debe canjear")
 	}
-	if _, found, _ := h.repo.GetConnection(context.Background(), shopA, barberA); found {
+	if _, found, _ := h.repo.GetConnection(context.Background(), shopA, professionalA); found {
 		t.Fatal("un rechazo no debe crear conexión")
 	}
 	_, err = h.svc.CompleteCallback(context.Background(), shopA, userA, session1, state, "x", "")
@@ -441,7 +441,7 @@ func TestCompleteCallback_ExchangeFailure_ReportsFailedWithoutSavingOrLeaking(t 
 			if err != nil || result != googlecalendar.CallbackFailed {
 				t.Fatalf("result=%v err=%v", result, err)
 			}
-			if _, found, _ := h.repo.GetConnection(context.Background(), shopA, barberA); found {
+			if _, found, _ := h.repo.GetConnection(context.Background(), shopA, professionalA); found {
 				t.Fatal("un canje fallido no debe crear conexión")
 			}
 		})
@@ -461,7 +461,7 @@ func TestCompleteCallback_Reconnect_RevokesThePreviousToken(t *testing.T) {
 	if len(h.provider.revoked) != 1 || h.provider.revoked[0] != "1//refresh-de-prueba" {
 		t.Fatalf("debe revocarse el token anterior, no el nuevo: %v", h.provider.revoked)
 	}
-	conn, _, _ := h.repo.GetConnection(context.Background(), shopA, barberA)
+	conn, _, _ := h.repo.GetConnection(context.Background(), shopA, professionalA)
 	if conn.AccountEmail != "otra@ejemplo.test" {
 		t.Fatalf("la conexión debe reflejar la cuenta nueva: %+v", conn)
 	}
@@ -473,12 +473,12 @@ func TestStatus_ReportsEnabledLinkedAndConnection(t *testing.T) {
 	h := newHarness(t)
 	ctx := context.Background()
 
-	view, err := h.svc.Status(ctx, shopA, "sin-barbero")
-	if err != nil || !view.Enabled || view.BarberLinked || view.Connection != nil {
-		t.Fatalf("sin barbero: %+v %v", view, err)
+	view, err := h.svc.Status(ctx, shopA, "sin-profesional")
+	if err != nil || !view.Enabled || view.ProfessionalLinked || view.Connection != nil {
+		t.Fatalf("sin profesional: %+v %v", view, err)
 	}
 	view, _ = h.svc.Status(ctx, shopA, userA)
-	if !view.BarberLinked || view.Connection != nil {
+	if !view.ProfessionalLinked || view.Connection != nil {
 		t.Fatalf("vinculado sin conexión: %+v", view)
 	}
 	h.connect(t)
@@ -486,10 +486,10 @@ func TestStatus_ReportsEnabledLinkedAndConnection(t *testing.T) {
 	if view.Connection == nil || view.Connection.Status != googlecalendar.StatusConnected {
 		t.Fatalf("conectado: %+v", view)
 	}
-	// El otro usuario de la barbería no ve la conexión de este.
+	// El otro usuario del negocio no ve la conexión de este.
 	view, _ = h.svc.Status(ctx, shopA, userA2)
 	if view.Connection != nil {
-		t.Fatal("cada barbero ve solo su conexión")
+		t.Fatal("cada profesional ve solo su conexión")
 	}
 }
 
@@ -529,7 +529,7 @@ func TestDisconnect_RevokesClearsCredentialsAndIsIdempotent(t *testing.T) {
 	if len(h.provider.revoked) != 1 || h.provider.revoked[0] != "1//refresh-de-prueba" {
 		t.Fatalf("debe revocar el token guardado: %v", h.provider.revoked)
 	}
-	conn, _, _ := h.repo.GetConnection(ctx, shopA, barberA)
+	conn, _, _ := h.repo.GetConnection(ctx, shopA, professionalA)
 	if conn.Status != googlecalendar.StatusDisconnected || conn.HasCredentials() || conn.AccountEmail != "" {
 		t.Fatalf("debe quedar desconectada y sin credenciales: %+v", conn)
 	}
@@ -539,8 +539,8 @@ func TestDisconnect_RevokesClearsCredentialsAndIsIdempotent(t *testing.T) {
 	if len(h.provider.revoked) != 1 {
 		t.Fatal("desconectar dos veces no debe revocar dos veces")
 	}
-	if err := h.svc.Disconnect(ctx, shopA, "sin-barbero"); err != nil {
-		t.Fatalf("sin barbero también es un éxito: %v", err)
+	if err := h.svc.Disconnect(ctx, shopA, "sin-profesional"); err != nil {
+		t.Fatalf("sin profesional también es un éxito: %v", err)
 	}
 }
 
@@ -552,7 +552,7 @@ func TestDisconnect_GoogleDownOrTokenUnreadable_StillClearsLocally(t *testing.T)
 		if err := h.svc.Disconnect(context.Background(), shopA, userA); err != nil {
 			t.Fatal(err)
 		}
-		conn, _, _ := h.repo.GetConnection(context.Background(), shopA, barberA)
+		conn, _, _ := h.repo.GetConnection(context.Background(), shopA, professionalA)
 		if conn.Status != googlecalendar.StatusDisconnected || conn.HasCredentials() {
 			t.Fatalf("desconectar nunca depende de Google: %+v", conn)
 		}
@@ -560,34 +560,34 @@ func TestDisconnect_GoogleDownOrTokenUnreadable_StillClearsLocally(t *testing.T)
 	t.Run("clave retirada del anillo", func(t *testing.T) {
 		h := newHarness(t)
 		h.connect(t)
-		conn := h.repo.connections[shopA+"|"+barberA]
+		conn := h.repo.connections[shopA+"|"+professionalA]
 		conn.KeyID = "clave-perdida"
-		h.repo.connections[shopA+"|"+barberA] = conn
+		h.repo.connections[shopA+"|"+professionalA] = conn
 		if err := h.svc.Disconnect(context.Background(), shopA, userA); err != nil {
 			t.Fatal(err)
 		}
-		got, _, _ := h.repo.GetConnection(context.Background(), shopA, barberA)
+		got, _, _ := h.repo.GetConnection(context.Background(), shopA, professionalA)
 		if got.HasCredentials() {
 			t.Fatal("aunque no se pueda descifrar, las credenciales deben borrarse")
 		}
 	})
 }
 
-func TestBarberLinkReleased_DisconnectsThePreviousBarber(t *testing.T) {
+func TestProfessionalLinkReleased_DisconnectsThePreviousProfessional(t *testing.T) {
 	h := newHarness(t)
 	h.connect(t)
 
-	h.svc.BarberLinkReleased(context.Background(), shopA, barberA)
+	h.svc.ProfessionalLinkReleased(context.Background(), shopA, professionalA)
 
-	conn, _, _ := h.repo.GetConnection(context.Background(), shopA, barberA)
+	conn, _, _ := h.repo.GetConnection(context.Background(), shopA, professionalA)
 	if conn.Status != googlecalendar.StatusDisconnected || conn.HasCredentials() {
 		t.Fatalf("liberar el vínculo debe desconectar y borrar credenciales: %+v", conn)
 	}
 	if len(h.provider.revoked) != 1 {
-		t.Fatalf("debe revocar el token del barbero anterior: %v", h.provider.revoked)
+		t.Fatalf("debe revocar el token del profesional anterior: %v", h.provider.revoked)
 	}
-	// Un barbero sin conexión no es un problema.
-	h.svc.BarberLinkReleased(context.Background(), shopA, barberA2)
+	// Un profesional sin conexión no es un problema.
+	h.svc.ProfessionalLinkReleased(context.Background(), shopA, professionalA2)
 }
 
 // --- AccessToken (token expirado y revocado) ---------------------------------
@@ -596,11 +596,11 @@ func TestAccessToken_RefreshesOnDemandWithoutPersistingIt(t *testing.T) {
 	h := newHarness(t)
 	h.connect(t)
 
-	token, expiresAt, err := h.svc.AccessToken(context.Background(), shopA, barberA)
+	token, expiresAt, err := h.svc.AccessToken(context.Background(), shopA, professionalA)
 	if err != nil || token != "access-token-de-prueba" || expiresAt.IsZero() {
 		t.Fatalf("AccessToken: %q %v %v", token, expiresAt, err)
 	}
-	conn, _, _ := h.repo.GetConnection(context.Background(), shopA, barberA)
+	conn, _, _ := h.repo.GetConnection(context.Background(), shopA, professionalA)
 	if bytes.Contains(conn.Credentials, []byte(token)) {
 		t.Fatal("el access token nunca se persiste")
 	}
@@ -614,17 +614,17 @@ func TestAccessToken_RevokedRefreshToken_MarksReauthRequiredAndDropsCredentials(
 	h.connect(t)
 	h.provider.refreshErr = googlecalendar.ErrTokenRevoked
 
-	_, _, err := h.svc.AccessToken(context.Background(), shopA, barberA)
+	_, _, err := h.svc.AccessToken(context.Background(), shopA, professionalA)
 	if !errors.Is(err, googlecalendar.ErrReauthRequired) {
 		t.Fatalf("se esperaba ErrReauthRequired, fue %v", err)
 	}
-	conn, _, _ := h.repo.GetConnection(context.Background(), shopA, barberA)
+	conn, _, _ := h.repo.GetConnection(context.Background(), shopA, professionalA)
 	if conn.Status != googlecalendar.StatusReauthRequired || conn.HasCredentials() || conn.LastErrorCode != "token_revoked" {
 		t.Fatalf("debe quedar en reauth_required sin credenciales: %+v", conn)
 	}
 	// Con las credenciales borradas, volver a pedir token ya no llama a Google.
 	before := h.provider.refreshed
-	if _, _, err := h.svc.AccessToken(context.Background(), shopA, barberA); !errors.Is(err, googlecalendar.ErrReauthRequired) {
+	if _, _, err := h.svc.AccessToken(context.Background(), shopA, professionalA); !errors.Is(err, googlecalendar.ErrReauthRequired) {
 		t.Fatalf("segunda llamada: %v", err)
 	}
 	if h.provider.refreshed != before {
@@ -637,11 +637,11 @@ func TestAccessToken_TransientGoogleFailure_KeepsTheConnection(t *testing.T) {
 	h.connect(t)
 	h.provider.refreshErr = errors.New("503 de Google")
 
-	_, _, err := h.svc.AccessToken(context.Background(), shopA, barberA)
+	_, _, err := h.svc.AccessToken(context.Background(), shopA, professionalA)
 	if err == nil || errors.Is(err, googlecalendar.ErrReauthRequired) {
 		t.Fatalf("un fallo transitorio se devuelve tal cual: %v", err)
 	}
-	conn, _, _ := h.repo.GetConnection(context.Background(), shopA, barberA)
+	conn, _, _ := h.repo.GetConnection(context.Background(), shopA, professionalA)
 	if conn.Status != googlecalendar.StatusConnected || !conn.HasCredentials() {
 		t.Fatalf("un fallo transitorio no debe tocar la conexión: %+v", conn)
 	}
@@ -649,7 +649,7 @@ func TestAccessToken_TransientGoogleFailure_KeepsTheConnection(t *testing.T) {
 
 func TestAccessToken_NoConnection_RequiresReauth(t *testing.T) {
 	h := newHarness(t)
-	if _, _, err := h.svc.AccessToken(context.Background(), shopA, barberA); !errors.Is(err, googlecalendar.ErrReauthRequired) {
+	if _, _, err := h.svc.AccessToken(context.Background(), shopA, professionalA); !errors.Is(err, googlecalendar.ErrReauthRequired) {
 		t.Fatalf("sin conexión: %v", err)
 	}
 }

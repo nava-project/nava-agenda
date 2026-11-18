@@ -7,9 +7,9 @@ import (
 	"context"
 	"testing"
 
-	"system-barbershop/internal/modules/shops"
-	shopspostgres "system-barbershop/internal/modules/shops/postgres"
-	"system-barbershop/internal/platform/database"
+	"nava-agenda/internal/modules/shops"
+	shopspostgres "nava-agenda/internal/modules/shops/postgres"
+	"nava-agenda/internal/platform/database"
 )
 
 func restoreReminderLead(t *testing.T, shopID string) {
@@ -68,7 +68,7 @@ func TestReminderSettingsRepository_IsolatedBetweenTenants(t *testing.T) {
 	}
 
 	var affected int64
-	err := db.InTenantTx(context.Background(), database.BarbershopID(shopA), func(ctx context.Context, q database.Queries) error {
+	err := db.InTenantTx(context.Background(), database.BusinessID(shopA), func(ctx context.Context, q database.Queries) error {
 		tag, err := q.Exec(ctx, `UPDATE business SET reminder_lead_minutes = 60 WHERE id = $1`, shopB)
 		affected = tag.RowsAffected()
 		return err

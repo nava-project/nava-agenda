@@ -1,9 +1,9 @@
 -- Escenario controlado de HU-008 con elección de canal (DEC-092, DEC-093):
 -- cuentas con teléfono verificado propio para el recorrido por WhatsApp y un
--- número compartido entre dos barberías para probar la ambigüedad
+-- número compartido entre dos negocios para probar la ambigüedad
 -- (DP-SEG-14). Usa cuentas que ninguna otra suite de recuperación toca
 -- (duena.a y dueno.b siguen reservadas para el recorrido por correo, con su
--- cooldown propio). Requiere testdata/dos_professionalias.sql y
+-- cooldown propio). Requiere testdata/dos_negocios.sql y
 -- testdata/hu042_bloqueos.sql y testdata/hu060_citas.sql cargados primero.
 --
 -- Uso:
@@ -18,7 +18,7 @@ BEGIN;
 -- anula phone_verified_at cada vez que phone participa en el UPDATE
 -- (DDL-INT-05), así que se fija el teléfono y luego se verifica.
 
--- dueno.o (barbería O): número único → identificable por WhatsApp.
+-- dueno.o (negocio O): número único → identificable por WhatsApp.
 UPDATE staff_user SET phone = '+573000000011'
 WHERE email = 'dueno.o@ejemplo.test';
 UPDATE staff_user SET phone_verified_at = now()
@@ -33,7 +33,7 @@ VALUES ('b10c9001-9001-9001-9001-900190019001',
         'fixture-no-es-un-hash-real-de-prueba-dueno-o-0011', 'argon2id')
 ON CONFLICT (staff_user_id) DO NOTHING;
 
--- dueno.p (barbería P) y dueno.q (barbería Q): MISMO número verificado →
+-- dueno.p (negocio P) y dueno.q (negocio Q): MISMO número verificado →
 -- ambiguo, no debe identificar ninguna cuenta.
 UPDATE staff_user SET phone = '+573000000012'
 WHERE email IN ('dueno.p@ejemplo.test', 'dueno.q@ejemplo.test');

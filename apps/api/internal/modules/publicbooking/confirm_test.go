@@ -17,9 +17,9 @@ import (
 	"testing"
 	"time"
 
-	"system-barbershop/internal/modules/publicbooking"
-	"system-barbershop/internal/platform/apperr"
-	"system-barbershop/internal/platform/idempotency"
+	"nava-agenda/internal/modules/publicbooking"
+	"nava-agenda/internal/platform/apperr"
+	"nava-agenda/internal/platform/idempotency"
 )
 
 type fakeCustomerRepository struct {
@@ -32,8 +32,8 @@ func (f *fakeCustomerRepository) FindCustomerMatches(_ context.Context, _, _, _ 
 }
 
 type capturedAppointmentCall struct {
-	barbershopID, barbershopName, timezone         string
-	barberID, serviceID                            string
+	businessID, businessName, timezone             string
+	professionalID, serviceID                      string
 	startsAt, endsAt                               time.Time
 	attendeeName, serviceName                      string
 	durationMinutes                                int
@@ -70,8 +70,8 @@ func (f *fakePublicAppointmentPort) ReplayPublicAppointment(
 
 func (f *fakePublicAppointmentPort) CreatePublicAppointment(
 	_ context.Context,
-	barbershopID, barbershopName, timezone string,
-	barberID, serviceID string,
+	businessID, businessName, timezone string,
+	professionalID, serviceID string,
 	startsAt, endsAt time.Time,
 	attendeeName string,
 	serviceName string,
@@ -91,8 +91,8 @@ func (f *fakePublicAppointmentPort) CreatePublicAppointment(
 ) (idempotency.Decision, idempotency.StoredResponse, error) {
 	if f.captured != nil {
 		*f.captured = capturedAppointmentCall{
-			barbershopID: barbershopID, barbershopName: barbershopName, timezone: timezone,
-			barberID: barberID, serviceID: serviceID,
+			businessID: businessID, businessName: businessName, timezone: timezone,
+			professionalID: professionalID, serviceID: serviceID,
 			startsAt: startsAt, endsAt: endsAt,
 			attendeeName: attendeeName, serviceName: serviceName,
 			durationMinutes: durationMinutes, priceAmountCents: priceAmountCents, currency: currency,
@@ -112,7 +112,7 @@ func (f *fakePublicAppointmentPort) CreatePublicAppointment(
 }
 
 type confirmationEmailCall struct {
-	email, barbershopName, serviceName, attendeeName, startsAtFormatted, accessLink string
+	email, businessName, serviceName, attendeeName, startsAtFormatted, accessLink string
 }
 
 type fakeConfirmationEmailPort struct {
@@ -120,19 +120,19 @@ type fakeConfirmationEmailPort struct {
 	calls []confirmationEmailCall
 }
 
-func (f *fakeConfirmationEmailPort) SendConfirmation(_ context.Context, email, barbershopName, serviceName, attendeeName, startsAtFormatted, accessLink string) error {
-	f.calls = append(f.calls, confirmationEmailCall{email, barbershopName, serviceName, attendeeName, startsAtFormatted, accessLink})
+func (f *fakeConfirmationEmailPort) SendConfirmation(_ context.Context, email, businessName, serviceName, attendeeName, startsAtFormatted, accessLink string) error {
+	f.calls = append(f.calls, confirmationEmailCall{email, businessName, serviceName, attendeeName, startsAtFormatted, accessLink})
 	return f.err
 }
 
 const (
-	confirmSlug      = "barberia-confirmacion"
-	confirmServiceID = "33333333-3333-3333-3333-333333333333"
-	confirmBarberID  = "44444444-4444-4444-4444-444444444444"
+	confirmSlug           = "barberia-confirmacion"
+	confirmServiceID      = "33333333-3333-3333-3333-333333333333"
+	confirmProfessionalID = "44444444-4444-4444-4444-444444444444"
 )
 
 // newConfirmationFixture arma un ConfirmationService con todos los dobles
-// razonables por defecto: barbería resuelta, servicio de 30 min asignado,
+// razonables por defecto: negocio resuelto, servicio de 30 min asignado,
 // jornada 9:00-18:00 hoy en America/Bogota, sin ocupaciones, sin
 // coincidencia de cliente, puerto de persistencia que siempre Proceed.
 func newConfirmationFixture(now time.Time) (
@@ -142,7 +142,7 @@ func newConfirmationFixture(now time.Time) (
 	*fakePublicAppointmentPort,
 	*fakeConfirmationEmailPort,
 ) {
-	profiles := &fakeRepository{found: true, profile: publicbooking.BarbershopProfile{Name: "Barbería Confirmación", Timezone: "America/Bogota"}}
+	profiles := &fakeRepository{found: true, profile: publicbooking.BusinessProfile{Name: "Barbería Confirmación", Timezone: "America/Bogota"}}
 	availRepo, effectiveDay, blocks, policy, assignments, timezones := newAvailabilityFixture(now)
 	availability := publicbooking.NewAvailabilityService(availRepo, effectiveDay, blocks, policy, assignments, timezones, fixedAvailabilityClock{now: now})
 	customers := &fakeCustomerRepository{}
@@ -158,10 +158,10 @@ func newConfirmationFixture(now time.Time) (
 
 func validConfirmInput(startsAt time.Time) publicbooking.ConfirmPublicAppointmentInput {
 	return publicbooking.ConfirmPublicAppointmentInput{
-		Slug:        confirmSlug,
-		ServiceID:   confirmServiceID,
-		BarberID:    confirmBarberID,
-		StartsAtRaw: startsAt.Format(time.RFC3339),
+		Slug:           confirmSlug,
+		ServiceID:      confirmServiceID,
+		ProfessionalID: confirmProfessionalID,
+		StartsAtRaw:    startsAt.Format(time.RFC3339),
 		Identity: publicbooking.CustomerIdentityInput{
 			FullName: "Carlos Restrepo",
 			Phone:    "+573001234567",
@@ -363,7 +363,7 @@ func TestConfirmAppointment_NoWebBaseURL_SendsEmailWithoutLink(t *testing.T) {
 	now := time.Date(2026, time.September, 14, 8, 0, 0, 0, loc)
 	startsAt := time.Date(2026, time.September, 14, 9, 0, 0, 0, loc)
 
-	profiles := &fakeRepository{found: true, profile: publicbooking.BarbershopProfile{Name: "Barbería Confirmación", Timezone: "America/Bogota"}}
+	profiles := &fakeRepository{found: true, profile: publicbooking.BusinessProfile{Name: "Barbería Confirmación", Timezone: "America/Bogota"}}
 	availRepo, effectiveDay, blocks, policy, assignments, timezones := newAvailabilityFixture(now)
 	availability := publicbooking.NewAvailabilityService(availRepo, effectiveDay, blocks, policy, assignments, timezones, fixedAvailabilityClock{now: now})
 	appointments := &fakePublicAppointmentPort{decision: idempotency.Decision{Outcome: idempotency.OutcomeProceed}, stored: idempotency.StoredResponse{Status: 201, ContentType: "application/json", Body: "{}"}}
@@ -446,7 +446,7 @@ func TestConfirmAppointment_HomeServiceNotOffered_RejectsWithoutPersisting(t *te
 	if !ok || appErr.Kind != apperr.KindValidation {
 		t.Fatalf("expected apperr.KindValidation, got %v", err)
 	}
-	if appointments.captured.barberID != "" {
+	if appointments.captured.professionalID != "" {
 		t.Fatal("the appointment port must not be called when home service is not offered")
 	}
 	if len(email.calls) != 0 {
@@ -480,7 +480,7 @@ func TestConfirmAppointment_InvalidHomeService_Rejected(t *testing.T) {
 			if !ok || appErr.Kind != apperr.KindValidation {
 				t.Fatalf("expected apperr.KindValidation, got %v", err)
 			}
-			if appointments.captured.barberID != "" {
+			if appointments.captured.professionalID != "" {
 				t.Fatal("nothing may be persisted for an invalid address")
 			}
 		})

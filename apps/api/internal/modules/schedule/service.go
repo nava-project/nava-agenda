@@ -4,44 +4,44 @@ import (
 	"context"
 	"fmt"
 
-	"system-barbershop/internal/platform/apperr"
-	"system-barbershop/internal/platform/idempotency"
+	"nava-agenda/internal/platform/apperr"
+	"nava-agenda/internal/platform/idempotency"
 )
 
 // Service implementa los cinco casos de uso de HU-040: listar, consultar,
 // crear, editar y retirar tramos de horario laboral recurrente de un
-// barbero de la barbería activa.
+// profesional del negocio activo.
 type Service struct {
-	repo    Repository
-	barbers BarberPort
+	repo          Repository
+	professionals ProfessionalPort
 }
 
-// NewService construye el servicio de casos de uso. barbers colabora con
+// NewService construye el servicio de casos de uso. professionals colabora con
 // staff exclusivamente a través de este puerto (cmd/api lo conecta con
-// staff.NewBarberLookup): schedule nunca importa el núcleo ni el
+// staff.NewProfessionalLookup): schedule nunca importa el núcleo ni el
 // repositorio de staff.
-func NewService(repo Repository, barbers BarberPort) *Service {
-	return &Service{repo: repo, barbers: barbers}
+func NewService(repo Repository, professionals ProfessionalPort) *Service {
+	return &Service{repo: repo, professionals: professionals}
 }
 
-// List lee una página de tramos del barbero de barberID dentro de
-// barbershopID (CA-040-01). Un barberID inexistente o de otra barbería
-// produce apperr.NotFound, verificado mediante BarberPort antes de tocar
+// List lee una página de tramos del profesional de professionalID dentro de
+// businessID (CA-040-01). Un professionalID inexistente o de otro negocio
+// produce apperr.NotFound, verificado mediante ProfessionalPort antes de tocar
 // el repositorio (mismo criterio que catalog.AssignmentService.List).
-func (s *Service) List(ctx context.Context, barbershopID, barberID, cursorToken string, limit int) (ListResult, error) {
+func (s *Service) List(ctx context.Context, businessID, professionalID, cursorToken string, limit int) (ListResult, error) {
 	if err := ctx.Err(); err != nil {
 		return ListResult{}, apperr.Internal(fmt.Errorf("schedule: contexto cancelado antes de listar tramos: %w", err))
 	}
-	if !LooksLikeBarberID(barberID) {
-		return ListResult{}, errBarberNotFound()
+	if !LooksLikeProfessionalID(professionalID) {
+		return ListResult{}, errProfessionalNotFound()
 	}
 
-	exists, err := s.barbers.Exists(ctx, barbershopID, barberID)
+	exists, err := s.professionals.Exists(ctx, businessID, professionalID)
 	if err != nil {
-		return ListResult{}, apperr.Internal(fmt.Errorf("schedule: verificar barbero para listar tramos: %w", err))
+		return ListResult{}, apperr.Internal(fmt.Errorf("schedule: verificar profesional para listar tramos: %w", err))
 	}
 	if !exists {
-		return ListResult{}, errBarberNotFound()
+		return ListResult{}, errProfessionalNotFound()
 	}
 
 	switch {
@@ -62,25 +62,25 @@ func (s *Service) List(ctx context.Context, barbershopID, barberID, cursorToken 
 		cursor = &decoded
 	}
 
-	result, err := s.repo.List(ctx, barbershopID, barberID, cursor, limit)
+	result, err := s.repo.List(ctx, businessID, professionalID, cursor, limit)
 	if err != nil {
 		return ListResult{}, apperr.Internal(fmt.Errorf("schedule: listar tramos: %w", err))
 	}
 	return result, nil
 }
 
-// Get lee un tramo por id dentro del barbero y barbería activos
-// (CA-040-05). Un barberID/workingHourID inexistente, de otro barbero o de
-// otra barbería produce el mismo apperr.NotFound.
-func (s *Service) Get(ctx context.Context, barbershopID, barberID, workingHourID string) (WorkingHour, error) {
+// Get lee un tramo por id dentro del profesional y negocio activos
+// (CA-040-05). Un professionalID/workingHourID inexistente, de otro profesional o de
+// otro negocio produce el mismo apperr.NotFound.
+func (s *Service) Get(ctx context.Context, businessID, professionalID, workingHourID string) (WorkingHour, error) {
 	if err := ctx.Err(); err != nil {
 		return WorkingHour{}, apperr.Internal(fmt.Errorf("schedule: contexto cancelado antes de leer tramo: %w", err))
 	}
-	if !LooksLikeBarberID(barberID) || !LooksLikeWorkingHourID(workingHourID) {
+	if !LooksLikeProfessionalID(professionalID) || !LooksLikeWorkingHourID(workingHourID) {
 		return WorkingHour{}, errWorkingHourNotFound()
 	}
 
-	wh, found, err := s.repo.Get(ctx, barbershopID, barberID, workingHourID)
+	wh, found, err := s.repo.Get(ctx, businessID, professionalID, workingHourID)
 	if err != nil {
 		return WorkingHour{}, apperr.Internal(fmt.Errorf("schedule: leer tramo: %w", err))
 	}
@@ -94,13 +94,13 @@ func (s *Service) Get(ctx context.Context, barbershopID, barberID, workingHourID
 // idempotencia reutilizable de HU-004 (RN-IDE-01, DEC-043). isoWeekday,
 // startsTimeRaw y durationMinutes son los valores crudos del cuerpo; key y
 // fingerprint ya fueron interpretados por la capa HTTP. La validación de
-// los tres campos ocurre ANTES de tocar BarberPort o el repositorio: un
+// los tres campos ocurre ANTES de tocar ProfessionalPort o el repositorio: un
 // tramo inválido nunca reclama ni consume la clave de idempotencia, porque
 // no es el efecto que RN-IDE-01 protege (mismo criterio que
 // staff.Service.Create).
 func (s *Service) Create(
 	ctx context.Context,
-	barbershopID, barberID string,
+	businessID, professionalID string,
 	isoWeekday int,
 	startsTimeRaw string,
 	durationMinutes int,
@@ -110,8 +110,8 @@ func (s *Service) Create(
 	if err := ctx.Err(); err != nil {
 		return CreateResult{}, apperr.Internal(fmt.Errorf("schedule: contexto cancelado antes de crear tramo: %w", err))
 	}
-	if !LooksLikeBarberID(barberID) {
-		return CreateResult{}, errBarberNotFound()
+	if !LooksLikeProfessionalID(professionalID) {
+		return CreateResult{}, errProfessionalNotFound()
 	}
 
 	input, err := validateInterval(isoWeekday, startsTimeRaw, durationMinutes)
@@ -119,15 +119,15 @@ func (s *Service) Create(
 		return CreateResult{}, err
 	}
 
-	exists, err := s.barbers.Exists(ctx, barbershopID, barberID)
+	exists, err := s.professionals.Exists(ctx, businessID, professionalID)
 	if err != nil {
-		return CreateResult{}, apperr.Internal(fmt.Errorf("schedule: verificar barbero para crear tramo: %w", err))
+		return CreateResult{}, apperr.Internal(fmt.Errorf("schedule: verificar profesional para crear tramo: %w", err))
 	}
 	if !exists {
-		return CreateResult{}, errBarberNotFound()
+		return CreateResult{}, errProfessionalNotFound()
 	}
 
-	result, err := s.repo.Create(ctx, barbershopID, barberID, input, key, fingerprint)
+	result, err := s.repo.Create(ctx, businessID, professionalID, input, key, fingerprint)
 	if err != nil {
 		return CreateResult{}, apperr.Internal(fmt.Errorf("schedule: crear tramo: %w", err))
 	}
@@ -138,13 +138,13 @@ func (s *Service) Create(
 }
 
 // Update reemplaza el intervalo completo de un tramo existente
-// (CA-040-04). Un barberID/workingHourID inexistente, de otro barbero o de
-// otra barbería produce el mismo apperr.NotFound que Get (CA-040-05); un
-// intervalo nuevo que se solapa con otro tramo existente del mismo barbero
+// (CA-040-04). Un professionalID/workingHourID inexistente, de otro profesional o de
+// otro negocio produce el mismo apperr.NotFound que Get (CA-040-05); un
+// intervalo nuevo que se solapa con otro tramo existente del mismo profesional
 // y día produce apperr.Conflict.
 func (s *Service) Update(
 	ctx context.Context,
-	barbershopID, barberID, workingHourID string,
+	businessID, professionalID, workingHourID string,
 	isoWeekday int,
 	startsTimeRaw string,
 	durationMinutes int,
@@ -152,7 +152,7 @@ func (s *Service) Update(
 	if err := ctx.Err(); err != nil {
 		return WorkingHour{}, apperr.Internal(fmt.Errorf("schedule: contexto cancelado antes de editar tramo: %w", err))
 	}
-	if !LooksLikeBarberID(barberID) || !LooksLikeWorkingHourID(workingHourID) {
+	if !LooksLikeProfessionalID(professionalID) || !LooksLikeWorkingHourID(workingHourID) {
 		return WorkingHour{}, errWorkingHourNotFound()
 	}
 
@@ -161,7 +161,7 @@ func (s *Service) Update(
 		return WorkingHour{}, err
 	}
 
-	result, err := s.repo.Update(ctx, barbershopID, barberID, workingHourID, input)
+	result, err := s.repo.Update(ctx, businessID, professionalID, workingHourID, input)
 	if err != nil {
 		return WorkingHour{}, apperr.Internal(fmt.Errorf("schedule: editar tramo: %w", err))
 	}
@@ -175,18 +175,18 @@ func (s *Service) Update(
 }
 
 // Delete retira físicamente un tramo existente (CA-040-05). Un
-// barberID/workingHourID inexistente, de otro barbero, de otra barbería, o
+// professionalID/workingHourID inexistente, de otro profesional, de otro negocio, o
 // ya retirado antes, producen el mismo apperr.NotFound; reintentar la
 // misma operación tras ese error es seguro.
-func (s *Service) Delete(ctx context.Context, barbershopID, barberID, workingHourID string) error {
+func (s *Service) Delete(ctx context.Context, businessID, professionalID, workingHourID string) error {
 	if err := ctx.Err(); err != nil {
 		return apperr.Internal(fmt.Errorf("schedule: contexto cancelado antes de retirar tramo: %w", err))
 	}
-	if !LooksLikeBarberID(barberID) || !LooksLikeWorkingHourID(workingHourID) {
+	if !LooksLikeProfessionalID(professionalID) || !LooksLikeWorkingHourID(workingHourID) {
 		return errWorkingHourNotFound()
 	}
 
-	found, err := s.repo.Delete(ctx, barbershopID, barberID, workingHourID)
+	found, err := s.repo.Delete(ctx, businessID, professionalID, workingHourID)
 	if err != nil {
 		return apperr.Internal(fmt.Errorf("schedule: retirar tramo: %w", err))
 	}
@@ -198,7 +198,7 @@ func (s *Service) Delete(ctx context.Context, barbershopID, barberID, workingHou
 
 // validateInterval valida los tres campos de un intervalo (CA-040-04):
 // día fuera de 1-7, hora con formato inválido o duración fuera de
-// [1, 1440] se rechazan sin tocar BarberPort ni el repositorio.
+// [1, 1440] se rechazan sin tocar ProfessionalPort ni el repositorio.
 func validateInterval(isoWeekday int, startsTimeRaw string, durationMinutes int) (CreateInput, error) {
 	if isoWeekday < MinISOWeekday || isoWeekday > MaxISOWeekday {
 		return CreateInput{}, errISOWeekdayInvalid()

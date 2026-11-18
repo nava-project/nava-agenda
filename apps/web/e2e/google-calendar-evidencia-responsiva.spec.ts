@@ -38,7 +38,7 @@ const settings = {
 
 interface Connection {
   enabled: boolean
-  barberLinked: boolean
+  professionalLinked: boolean
   status: string
   accountEmail: string | null
   reminderMinutes: number | null
@@ -112,11 +112,11 @@ async function mockApi(page: Page, initial: Connection): Promise<Mock> {
       await route.fulfill(json(settings))
     } else if (pathname.endsWith('/integrations/google-calendar/connect')) {
       mock.calls.push('connect')
-      // Google devolvería al barbero a la pantalla de retorno con state y code.
+      // Google devolvería al profesional a la pantalla de retorno con state y code.
       await route.fulfill(
         json({
           authorizationUrl:
-            'http://localhost:5173/panel/barberia/google-calendar/callback?state=estado-1&code=codigo-1',
+            'http://localhost:5173/panel/negocio/google-calendar/callback?state=estado-1&code=codigo-1',
         }),
       )
     } else if (pathname.endsWith('/integrations/google-calendar/callback')) {
@@ -165,7 +165,7 @@ async function openPage(
   width: number,
   height: number,
   theme: 'ink' | 'ivory',
-  url = '/panel/barberia/google-calendar',
+  url = '/panel/negocio/google-calendar',
   heading = 'Google Calendar',
 ): Promise<Mock> {
   await page.setViewportSize({ width, height })
@@ -252,7 +252,7 @@ test('recorrido: conectar, sincronizar, guardar el recordatorio y desconectar', 
 
   // Conectar: el navegador va a «Google» (simulado) y vuelve con state y code.
   await page.getByRole('button', { name: 'Conectar Google Calendar' }).click()
-  await expect(page).toHaveURL(/\/panel\/barberia\/google-calendar$/)
+  await expect(page).toHaveURL(/\/panel\/negocio\/google-calendar$/)
   await expect(page.getByText('barbero@ejemplo.test')).toBeVisible()
   await expect(page.getByRole('heading', { name: 'Publicando tus cambios' })).toBeVisible()
   // La URL de retorno no conserva el código OAuth ni el state.
@@ -305,7 +305,7 @@ test('la pantalla de retorno limpia la URL y avisa si la autorización venció',
   await page.route('**/api/v1/private/integrations/google-calendar/callback', (route) =>
     route.fulfill(json({ title: 'Solicitud inválida', status: 400, code: 'invalid-request' }, 400)),
   )
-  await page.goto('/panel/barberia/google-calendar/callback?state=viejo&code=secreto')
+  await page.goto('/panel/negocio/google-calendar/callback?state=viejo&code=secreto')
   await expect(page.getByText('La autorización venció.')).toBeVisible()
   expect(page.url()).not.toContain('secreto')
   expect(await axeViolations(page)).toEqual([])
@@ -315,15 +315,15 @@ test('la pantalla de retorno limpia la URL y avisa si la autorización venció',
 })
 
 test('Configuración enlaza con la pantalla de Google Calendar', async ({ page }) => {
-  await openPage(page, disconnected, 1280, 900, 'ink', '/panel/barberia', 'Configuración')
+  await openPage(page, disconnected, 1280, 900, 'ink', '/panel/negocio', 'Configuración')
   await page
     .getByRole('link', { name: /Google Calendar/ })
     .first()
     .click()
-  await expect(page).toHaveURL(/\/panel\/barberia\/google-calendar$/)
+  await expect(page).toHaveURL(/\/panel\/negocio\/google-calendar$/)
 })
 
-// DEC-155: el independiente (perfil `solo`, una sola ficha) no elige barbero; la pantalla
+// DEC-155: el independiente (perfil `solo`, una sola ficha) no elige profesional; la pantalla
 // vincula su ficha por el autovínculo de DEC-100 y llega directo a «Conectar».
 for (const viewport of [viewports[1], viewports[3]]) {
   test(`independiente a ${viewport.name}: se vincula solo y llega a conectar sin elegir`, async ({
@@ -365,12 +365,12 @@ for (const viewport of [viewports[1], viewports[3]]) {
       )
     })
     await page.setViewportSize({ width: viewport.width, height: viewport.height })
-    await page.goto('/panel/barberia/google-calendar')
+    await page.goto('/panel/negocio/google-calendar')
     await expect(page.getByRole('button', { name: 'Conectar Google Calendar' })).toBeVisible()
     await page.waitForTimeout(500)
 
     expect(linked).toBe(true)
-    expect(calls).toEqual(['PUT:{"barberId":"b-unico"}'])
+    expect(calls).toEqual(['PUT:{"professionalId":"b-unico"}'])
     await expect(page.getByText('Este soy yo')).toHaveCount(0)
     await expect(page.getByText('Primero, dinos qué barbero eres')).toHaveCount(0)
     await expect(page.getByText('Vincula tu ficha')).toHaveCount(0)

@@ -51,35 +51,35 @@ type GoogleReviewsProvider interface {
 // reconoce la ficha (red, cuota agotada, credencial, identificador inexistente).
 var ErrGoogleReviewsUnavailable = errors.New("publicbooking: reseñas de Google no disponibles")
 
-// BarbershopResolver resuelve el slug público a su perfil: lo satisface *Service.
-type BarbershopResolver interface {
-	ResolveBarbershop(ctx context.Context, rawSlug string) (BarbershopProfile, error)
+// BusinessResolver resuelve el slug público a su perfil: lo satisface *Service.
+type BusinessResolver interface {
+	ResolveBusiness(ctx context.Context, rawSlug string) (BusinessProfile, error)
 }
 
-// GoogleReviewsService entrega las reseñas de Google de la barbería de un
+// GoogleReviewsService entrega las reseñas de Google del negocio de un
 // enlace público (HU-101). La resolución del slug es la misma de HU-090, con su
 // 404 uniforme; todo lo demás se degrada en silencio a la estructura vacía.
 type GoogleReviewsService struct {
-	resolver BarbershopResolver
+	resolver BusinessResolver
 	provider GoogleReviewsProvider
 	logger   *slog.Logger
 }
 
 // NewGoogleReviewsService construye el servicio. provider nil desactiva la
 // integración por completo (sin credencial de Google): siempre responde vacío.
-func NewGoogleReviewsService(resolver BarbershopResolver, provider GoogleReviewsProvider, logger *slog.Logger) *GoogleReviewsService {
+func NewGoogleReviewsService(resolver BusinessResolver, provider GoogleReviewsProvider, logger *slog.Logger) *GoogleReviewsService {
 	if logger == nil {
 		logger = slog.New(slog.DiscardHandler)
 	}
 	return &GoogleReviewsService{resolver: resolver, provider: provider, logger: logger}
 }
 
-// Get resuelve el slug y devuelve las reseñas de Google de su barbería. Solo un
+// Get resuelve el slug y devuelve las reseñas de Google de su negocio. Solo un
 // slug inválido o no publicable es un error (el 404 uniforme de HU-090): sin
 // ficha, sin credencial o ante una consulta fallida devuelve la estructura vacía
 // y registra la causa solo en el servidor (CA-101-01, CA-101-03).
 func (s *GoogleReviewsService) Get(ctx context.Context, rawSlug string) (GoogleReviews, error) {
-	profile, err := s.resolver.ResolveBarbershop(ctx, rawSlug)
+	profile, err := s.resolver.ResolveBusiness(ctx, rawSlug)
 	if err != nil {
 		return GoogleReviews{}, err
 	}

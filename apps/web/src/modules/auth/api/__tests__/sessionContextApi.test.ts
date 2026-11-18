@@ -49,8 +49,8 @@ describe('sessionContextApi.fetchSessionContext (cliente tipado)', () => {
 
     expect(outcome).toEqual({
       kind: 'authenticated',
-      barbershopId: 'shop-1',
-      barbershopName: 'Barbería de prueba',
+      businessId: 'shop-1',
+      businessName: 'Barbería de prueba',
       expiresAt: '2026-09-12T12:00:00Z',
     })
   })
@@ -85,7 +85,7 @@ describe('sessionContextApi.fetchSessionContext (cliente tipado)', () => {
 
   it('calls exactly the session-context operation', async () => {
     getMock.mockResolvedValueOnce(
-      ok({ barbershop: { id: 'shop-1', name: 'Barbería' }, expiresAt: '2026-09-12T12:00:00Z' }),
+      ok({ business: { id: 'shop-1', name: 'Barbería' }, expiresAt: '2026-09-12T12:00:00Z' }),
     )
 
     await fetchSessionContext()

@@ -14,6 +14,6 @@ export const schedulesPrivateShellChildRoutes: RouteRecordRaw[] = [
   {
     path: 'bloqueos',
     name: 'schedules-bloqueos',
-    redirect: { name: 'staff-barberos' },
+    redirect: { name: 'staff-profesionales' },
   },
 ]

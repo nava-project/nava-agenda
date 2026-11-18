@@ -63,7 +63,7 @@ type ServiceListResponse struct {
 
 // CreateServiceRequest es el cuerpo de POST /private/services (CA-022-02,
 // CA-022-03, CA-022-04). Cerrado: el handler rechaza cualquier campo
-// desconocido. Nunca declara barbershopId (el tenant se deriva de
+// desconocido. Nunca declara businessId (el tenant se deriva de
 // SessionCookie), currency (fija en COP, DEC-067) ni isActive.
 type CreateServiceRequest struct {
 	Name            string  `json:"name"`

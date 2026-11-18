@@ -5,15 +5,15 @@
 // `installSessionHandling` (redirige a acceso); ambos tipos igual declaran
 // `unexpected-error` como frontera defensiva por si esa solicitud concreta
 // llegara a resolverse antes de que la redirección navegue.
-import type { BarbershopSettings } from './barbershopSettings'
+import type { BusinessSettings } from './businessSettings'
 
-export type FetchBarbershopSettingsOutcome =
-  | { kind: 'success'; settings: BarbershopSettings }
+export type FetchBusinessSettingsOutcome =
+  | { kind: 'success'; settings: BusinessSettings }
   | { kind: 'network-error' }
   | { kind: 'unexpected-error' }
 
-export type SaveBarbershopSettingsOutcome =
-  | { kind: 'success'; settings: BarbershopSettings }
+export type SaveBusinessSettingsOutcome =
+  | { kind: 'success'; settings: BusinessSettings }
   | { kind: 'validation-error' }
   | { kind: 'network-error' }
   | { kind: 'unexpected-error' }

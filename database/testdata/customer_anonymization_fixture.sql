@@ -1,14 +1,14 @@
 -- Fixture mínimo para database/tests/customer_anonymization.sql (issue #6).
 --
 -- Uso:
---   psql "$DATABASE_TEST_URL" -v ON_ERROR_STOP=1 -f testdata/dos_professionalias.sql
+--   psql "$DATABASE_TEST_URL" -v ON_ERROR_STOP=1 -f testdata/dos_negocios.sql
 --   psql "$DATABASE_TEST_URL" -v ON_ERROR_STOP=1 -f testdata/customer_anonymization_fixture.sql
 --
--- Solo un barbero y un servicio por barbería (A y B de dos_professionalias.sql):
+-- Solo un profesional y un servicio por negocio (A y B de dos_negocios.sql):
 -- cada escenario de la prueba crea y destruye sus propios `customer` y
 -- `appointment` dentro de una transacción que revierte, así que no hace
 -- falta fijar clientes ni citas aquí. Identificadores fijos e idempotente
--- (ON CONFLICT DO NOTHING), igual que dos_professionalias.sql.
+-- (ON CONFLICT DO NOTHING), igual que dos_negocios.sql.
 --
 -- Ningún dato de este archivo corresponde a una persona real (AGENTS.md).
 

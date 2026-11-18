@@ -5,8 +5,8 @@ import (
 	"fmt"
 	"time"
 
-	"system-barbershop/internal/platform/apperr"
-	"system-barbershop/internal/platform/database"
+	"nava-agenda/internal/platform/apperr"
+	"nava-agenda/internal/platform/database"
 )
 
 // SQLCoordinator es el adaptador PostgreSQL concreto de Coordinator: llama
@@ -26,7 +26,7 @@ var _ Coordinator = SQLCoordinator{}
 func (SQLCoordinator) Begin(
 	ctx context.Context,
 	q database.Queries,
-	shop database.BarbershopID,
+	shop database.BusinessID,
 	key Key,
 	operation Operation,
 	fingerprint Fingerprint,
@@ -81,7 +81,7 @@ func (SQLCoordinator) Begin(
 func (SQLCoordinator) Complete(
 	ctx context.Context,
 	q database.Queries,
-	shop database.BarbershopID,
+	shop database.BusinessID,
 	key Key,
 	response StoredResponse,
 ) (bool, error) {
@@ -99,7 +99,7 @@ func (SQLCoordinator) Complete(
 func (SQLCoordinator) Abort(
 	ctx context.Context,
 	q database.Queries,
-	shop database.BarbershopID,
+	shop database.BusinessID,
 	key Key,
 ) (bool, error) {
 	var ok bool

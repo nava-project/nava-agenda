@@ -364,9 +364,9 @@ en el diálogo de alta, foco atrapado dentro del diálogo verificado con
 
 Preparación de PostgreSQL para el E2E real (sin exponer DSN ni secretos):
 un contenedor Postgres 14 efímero con las diez migraciones aplicadas vía
-Atlas, `testdata/dos_barberias.sql` + `testdata/hu005_credenciales_sesiones.sql`
+Atlas, `testdata/dos_negocios.sql` + `testdata/hu005_credenciales_sesiones.sql`
 
-- `testdata/hu021_barberos.sql` cargados, y un hash argon2id REAL calculado
+- `testdata/hu021_profesionales.sql` cargados, y un hash argon2id REAL calculado
   en el momento con el mismo `Argon2Hasher` de producción (nunca embebido en
   el repositorio) sustituyendo el hash ficticio de
   `hu005_credenciales_sesiones.sql` para las dos cuentas usadas en el
@@ -469,8 +469,8 @@ violaciones axe-core en los cinco breakpoints y en el diálogo de alta).
 
 Preparación de PostgreSQL para el E2E real: mismo procedimiento que
 "Registro y listado de barberos (HU-021)" arriba (contenedor Postgres 14
-efímero, migraciones vía Atlas, `testdata/dos_barberias.sql` +
-`testdata/hu005_credenciales_sesiones.sql` + `testdata/hu021_barberos.sql`
+efímero, migraciones vía Atlas, `testdata/dos_negocios.sql` +
+`testdata/hu005_credenciales_sesiones.sql` + `testdata/hu021_profesionales.sql`
 
 - `testdata/hu022_catalogo.sql`, hash argon2id real calculado en el
   momento, nunca embebido en el repositorio).

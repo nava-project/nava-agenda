@@ -1,7 +1,7 @@
 <script setup lang="ts">
 // Pantalla de retorno de Google (issue #325, DEC-102): es el `redirect_uri`
 // registrado en Google Cloud. Google redirige aquí con `state` y `code` (o
-// `error` si el barbero rechazó); la pantalla los reenvía una sola vez al API,
+// `error` si el profesional rechazó); la pantalla los reenvía una sola vez al API,
 // que valida el `state` (de un solo uso, ligado a esta sesión), canjea el código
 // con PKCE y guarda el token cifrado. El código nunca se guarda ni se registra
 // y la URL se limpia en cuanto se lee.

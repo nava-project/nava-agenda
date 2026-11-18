@@ -28,7 +28,7 @@ const (
 	// token vigente ya no coincide con ExpectedVersionToken; CERO escritura
 	// (CA-093-02).
 	BookingPolicyUpdateOutcomeVersionConflict
-	// BookingPolicyUpdateOutcomeNotFound: la barbería no es visible en el
+	// BookingPolicyUpdateOutcomeNotFound: el negocio no es visible en el
 	// tenant vigente (defensivo, mismo criterio que UpdateResult.Found).
 	BookingPolicyUpdateOutcomeNotFound
 )
@@ -45,10 +45,10 @@ type BookingPolicyUpdateResult struct {
 // internal/platform/database ni pgx (CA-002-06), mismo patrón que
 // Repository (ports.go).
 type BookingPolicyRepository interface {
-	// Get lee la política vigente de barbershopID dentro de una transacción
+	// Get lee la política vigente de businessID dentro de una transacción
 	// tenant-aware. found=false cubre una fila no visible en el tenant
 	// vigente (defensivo, mismo criterio que Repository.Get).
-	Get(ctx context.Context, barbershopID string) (policy BookingPolicy, found bool, err error)
+	Get(ctx context.Context, businessID string) (policy BookingPolicy, found bool, err error)
 
 	// Update bloquea la fila (SELECT ... FOR UPDATE) dentro de UNA sola
 	// transacción tenant-aware, compara el token de versión vigente contra
@@ -58,5 +58,5 @@ type BookingPolicyRepository interface {
 	// escritura parcial). BookingPolicyService ya validó los rangos y la
 	// coherencia entre campos antes de llamar aquí; las restricciones CHECK
 	// de la migración son la última línea de defensa, no la primera.
-	Update(ctx context.Context, barbershopID string, input BookingPolicyUpdateInput) (BookingPolicyUpdateResult, error)
+	Update(ctx context.Context, businessID string, input BookingPolicyUpdateInput) (BookingPolicyUpdateResult, error)
 }

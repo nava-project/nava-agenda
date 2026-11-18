@@ -4,7 +4,7 @@
 // aplicadas (incluida 20260911045044_add_barbershop_public_slug.sql) y
 // database/testdata/hu090_reserva_publica.sql cargado.
 //
-//	export TEST_DATABASE_URL="postgres://barberia_app:app_test@localhost:5432/barberia_test?sslmode=disable"
+//	export TEST_DATABASE_URL="postgres://agenda_app:app_test@localhost:5432/postgres?sslmode=disable"
 //	go test -race ./cmd/api/...
 package main
 
@@ -22,14 +22,14 @@ const (
 	publicShopNameUno = "Barbería de prueba HU-090 Uno"
 )
 
-type publicBarbershopProfileBody struct {
+type publicBusinessProfileBody struct {
 	Name         string  `json:"name"`
 	Timezone     string  `json:"timezone"`
 	ContactEmail *string `json:"contactEmail"`
 	ContactPhone *string `json:"contactPhone"`
 }
 
-func doResolvePublicBarbershopRequest(router http.Handler, slug string) *httptest.ResponseRecorder {
+func doResolvePublicBusinessRequest(router http.Handler, slug string) *httptest.ResponseRecorder {
 	req := httptest.NewRequest(http.MethodGet, "/api/v1/public/businesses/"+slug, nil)
 	rec := httptest.NewRecorder()
 	router.ServeHTTP(rec, req)
@@ -38,7 +38,7 @@ func doResolvePublicBarbershopRequest(router http.Handler, slug string) *httptes
 
 // TestPublicBooking_HTTP_ValidSlug_ReturnsPublicProfile cubre CA-090-01 a
 // nivel HTTP/PostgreSQL real, SIN ninguna cookie de sesión: la resolución
-// pública abre el contexto exacto de la barbería.
+// pública abre el contexto exacto del negocio.
 func TestPublicBooking_HTTP_ValidSlug_ReturnsPublicProfile(t *testing.T) {
 	db := setupTestDB(t)
 	t.Cleanup(func() { db.Close() })
@@ -47,11 +47,11 @@ func TestPublicBooking_HTTP_ValidSlug_ReturnsPublicProfile(t *testing.T) {
 		t.Fatalf("buildRouter: %v", err)
 	}
 
-	rec := doResolvePublicBarbershopRequest(router, publicShopSlugUno)
+	rec := doResolvePublicBusinessRequest(router, publicShopSlugUno)
 	if rec.Code != http.StatusOK {
 		t.Fatalf("expected 200, got %d: %s", rec.Code, rec.Body.String())
 	}
-	var body publicBarbershopProfileBody
+	var body publicBusinessProfileBody
 	if err := json.NewDecoder(rec.Body).Decode(&body); err != nil {
 		t.Fatalf("decode response body: %v", err)
 	}
@@ -74,7 +74,7 @@ func TestPublicBooking_HTTP_UnknownSlug_ReturnsUniform404Problem(t *testing.T) {
 		t.Fatalf("buildRouter: %v", err)
 	}
 
-	rec := doResolvePublicBarbershopRequest(router, "barberia-que-no-existe")
+	rec := doResolvePublicBusinessRequest(router, "barberia-que-no-existe")
 	if rec.Code != http.StatusNotFound {
 		t.Fatalf("expected 404, got %d: %s", rec.Code, rec.Body.String())
 	}
@@ -97,8 +97,8 @@ func TestPublicBooking_HTTP_MalformedSlug_ReturnsSameUniform404AsUnknown(t *test
 		t.Fatalf("buildRouter: %v", err)
 	}
 
-	known := doResolvePublicBarbershopRequest(router, "barberia-que-no-existe")
-	malformed := doResolvePublicBarbershopRequest(router, "Mal%20Formado!!!")
+	known := doResolvePublicBusinessRequest(router, "barberia-que-no-existe")
+	malformed := doResolvePublicBusinessRequest(router, "Mal%20Formado!!!")
 
 	if known.Code != malformed.Code {
 		t.Fatalf("expected the same status for unknown and malformed slugs, got %d vs %d", known.Code, malformed.Code)
@@ -128,10 +128,10 @@ func TestPublicBooking_HTTP_MalformedSlug_ReturnsSameUniform404AsUnknown(t *test
 	}
 }
 
-// TestPublicBooking_HTTP_TwoTenants_NeverCrossesBarbershops confirma
-// RN-TEN-01 a nivel HTTP: resolver el slug de una barbería nunca trae ni
+// TestPublicBooking_HTTP_TwoTenants_NeverCrossesBusinesses confirma
+// RN-TEN-01 a nivel HTTP: resolver el slug de un negocio nunca trae ni
 // insinúa datos de la otra.
-func TestPublicBooking_HTTP_TwoTenants_NeverCrossesBarbershops(t *testing.T) {
+func TestPublicBooking_HTTP_TwoTenants_NeverCrossesBusinesses(t *testing.T) {
 	db := setupTestDB(t)
 	t.Cleanup(func() { db.Close() })
 	router, err := buildRouter(db, discardLogger(), testRouterConfig())
@@ -139,8 +139,8 @@ func TestPublicBooking_HTTP_TwoTenants_NeverCrossesBarbershops(t *testing.T) {
 		t.Fatalf("buildRouter: %v", err)
 	}
 
-	uno := doResolvePublicBarbershopRequest(router, publicShopSlugUno)
-	dos := doResolvePublicBarbershopRequest(router, publicShopSlugDos)
+	uno := doResolvePublicBusinessRequest(router, publicShopSlugUno)
+	dos := doResolvePublicBusinessRequest(router, publicShopSlugDos)
 	if uno.Code != http.StatusOK || dos.Code != http.StatusOK {
 		t.Fatalf("expected both slugs to resolve, got %d and %d", uno.Code, dos.Code)
 	}

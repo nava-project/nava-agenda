@@ -7,48 +7,48 @@ import (
 
 // Repository es el puerto de persistencia del módulo. El núcleo no importa
 // pgx ni database: postgres/ traduce entre este contrato y la base. Toda
-// operación recibe barbershopID y filtra por él además de RLS.
+// operación recibe businessID y filtra por él además de RLS.
 type Repository interface {
-	// GetConnection devuelve la conexión del barbero. found=false si nunca
+	// GetConnection devuelve la conexión del profesional. found=false si nunca
 	// conectó. Incluye las credenciales cifradas: solo el servicio las lee.
-	GetConnection(ctx context.Context, barbershopID, barberID string) (conn Connection, found bool, err error)
+	GetConnection(ctx context.Context, businessID, professionalID string) (conn Connection, found bool, err error)
 
-	// SaveConnected crea o reutiliza la fila del barbero y la deja `connected`
+	// SaveConnected crea o reutiliza la fila del profesional y la deja `connected`
 	// con las credenciales nuevas, limpiando el error y la fecha de desconexión.
 	// En la MISMA transacción encola la publicación inicial: las citas y bloqueos
 	// futuros de los próximos 6 meses y la reconciliación de los vínculos que ya
 	// existían (DEC-101.8).
-	SaveConnected(ctx context.Context, barbershopID, barberID string, saved ConnectedData) (Connection, error)
+	SaveConnected(ctx context.Context, businessID, professionalID string, saved ConnectedData) (Connection, error)
 
 	// MarkStatus cambia el estado de la conexión. Para ReauthRequired y
 	// Disconnected borra las credenciales (y, al desconectar, el correo de la
 	// cuenta); para Error las conserva. found=false si no hay conexión.
-	MarkStatus(ctx context.Context, barbershopID, barberID string, status Status, errorCode string, at time.Time) (found bool, err error)
+	MarkStatus(ctx context.Context, businessID, professionalID string, status Status, errorCode string, at time.Time) (found bool, err error)
 
 	// SetReminder guarda reminder_minutes (nil = predeterminados) y, en la misma
 	// transacción, encola la actualización de los eventos futuros ya publicados
 	// (DEC-101.5). found=false si no hay conexión o está desconectada.
-	SetReminder(ctx context.Context, barbershopID, barberID string, minutes *int) (Connection, bool, error)
+	SetReminder(ctx context.Context, businessID, professionalID string, minutes *int) (Connection, bool, error)
 
 	// CreateState guarda un estado OAuth de un solo uso y purga los vencidos
-	// del mismo barbero.
+	// del mismo profesional.
 	CreateState(ctx context.Context, state OAuthState, now time.Time) error
 
 	// ConsumeState marca como usado, en una sola operación atómica, el estado
 	// vigente con ese hash. found=false si no existe, venció o ya se usó.
-	ConsumeState(ctx context.Context, barbershopID, stateHash string, now time.Time) (OAuthState, bool, error)
+	ConsumeState(ctx context.Context, businessID, stateHash string, now time.Time) (OAuthState, bool, error)
 
-	// BarberOfUser devuelve el barbero vinculado al usuario (DEC-100).
-	BarberOfUser(ctx context.Context, barbershopID, staffUserID string) (barberID string, found bool, err error)
+	// ProfessionalOfUser devuelve el profesional vinculado al usuario (DEC-100).
+	ProfessionalOfUser(ctx context.Context, businessID, staffUserID string) (professionalID string, found bool, err error)
 
-	// JobCounts cuenta los trabajos de la conexión del barbero: los que esperan o
+	// JobCounts cuenta los trabajos de la conexión del profesional: los que esperan o
 	// se ejecutan y los que agotaron sus intentos.
-	JobCounts(ctx context.Context, barbershopID, barberID string) (JobCounts, error)
+	JobCounts(ctx context.Context, businessID, professionalID string) (JobCounts, error)
 
 	// RequeueConnection hace vencer ya los trabajos pendientes de la conexión y
 	// reencola los fallidos («Sincronizar ahora»). Solo reordena la cola de ESA
 	// conexión y es segura ante varios clics. found=false sin conexión que publique.
-	RequeueConnection(ctx context.Context, barbershopID, barberID string, now time.Time) (JobCounts, bool, error)
+	RequeueConnection(ctx context.Context, businessID, professionalID string, now time.Time) (JobCounts, bool, error)
 }
 
 // JobCounts resume la cola de una conexión.

@@ -9,9 +9,9 @@ import (
 
 	"github.com/jackc/pgx/v5"
 
-	"system-barbershop/internal/modules/booking"
-	"system-barbershop/internal/platform/database"
-	"system-barbershop/internal/platform/idempotency"
+	"nava-agenda/internal/modules/booking"
+	"nava-agenda/internal/platform/database"
+	"nava-agenda/internal/platform/idempotency"
 )
 
 // createPublicAppointmentOperation identifica, para el protocolo de
@@ -36,12 +36,12 @@ const createPublicAppointmentIdempotencyTTL = 10 * time.Minute
 // sola InTenantTx (mismo patrón que CreateManual).
 func (r *Repository) CreatePublic(
 	ctx context.Context,
-	barbershopID string,
+	businessID string,
 	input booking.CreatePublicInput,
 	key idempotency.Key,
 	fingerprint idempotency.Fingerprint,
 ) (booking.CreatePublicResult, error) {
-	shop, err := database.ValidBarbershopID(barbershopID)
+	shop, err := database.ValidBusinessID(businessID)
 	if err != nil {
 		return booking.CreatePublicResult{}, fmt.Errorf("booking/postgres: %w", err)
 	}
@@ -62,41 +62,41 @@ func (r *Repository) CreatePublic(
 			return nil
 		}
 
-		customer, err := resolvePublicCustomer(ctx, q, barbershopID, input.Customer, input.CustomerUpdatePhone, input.CustomerUpdateEmail)
+		customer, err := resolvePublicCustomer(ctx, q, businessID, input.Customer, input.CustomerUpdatePhone, input.CustomerUpdateEmail)
 		if err != nil {
 			return err
 		}
 
 		internalInput := booking.CreateInternalInput{
-			BarberID:     input.BarberID,
-			ServiceID:    input.ServiceID,
-			AttendeeName: input.AttendeeName,
-			StartsAt:     input.StartsAt,
-			EndsAt:       input.EndsAt,
-			Origin:       booking.OriginPublic,
-			Service:      input.Service,
-			CustomerNote: input.CustomerNote,
-			HomeService:  input.HomeService,
+			ProfessionalID: input.ProfessionalID,
+			ServiceID:      input.ServiceID,
+			AttendeeName:   input.AttendeeName,
+			StartsAt:       input.StartsAt,
+			EndsAt:         input.EndsAt,
+			Origin:         booking.OriginPublic,
+			Service:        input.Service,
+			CustomerNote:   input.CustomerNote,
+			HomeService:    input.HomeService,
 		}
 
-		appointment, err := insertAppointment(ctx, q, barbershopID, customer.ID, internalInput)
+		appointment, err := insertAppointment(ctx, q, businessID, customer.ID, internalInput)
 		if err != nil {
 			return err
 		}
-		if err := r.appointmentChanged(ctx, q, barbershopID, appointment.ID); err != nil {
+		if err := r.appointmentChanged(ctx, q, businessID, appointment.ID); err != nil {
 			return err
 		}
-		if err := r.reminderRequired(ctx, q, barbershopID, appointment.ID); err != nil {
+		if err := r.reminderRequired(ctx, q, businessID, appointment.ID); err != nil {
 			return err
 		}
 
 		customerID := customer.ID
 		actor := booking.Actor{Type: booking.ActorTypeCustomer, CustomerID: &customerID}
-		if err := insertAppointmentCreatedHistory(ctx, q, barbershopID, appointment.ID, actor); err != nil {
+		if err := insertAppointmentCreatedHistory(ctx, q, businessID, appointment.ID, actor); err != nil {
 			return err
 		}
 
-		if err := insertAppointmentAccessToken(ctx, q, barbershopID, appointment.ID, input.TokenHash, input.TokenIssuedAt, input.TokenExpiresAt); err != nil {
+		if err := insertAppointmentAccessToken(ctx, q, businessID, appointment.ID, input.TokenHash, input.TokenIssuedAt, input.TokenExpiresAt); err != nil {
 			return err
 		}
 
@@ -135,11 +135,11 @@ var errReplayProbeRollback = errors.New("booking/postgres: sondeo de repetición
 // ReplayPublic implementa booking.Repository.ReplayPublic.
 func (r *Repository) ReplayPublic(
 	ctx context.Context,
-	barbershopID string,
+	businessID string,
 	key idempotency.Key,
 	fingerprint idempotency.Fingerprint,
 ) (booking.CreatePublicResult, error) {
-	shop, err := database.ValidBarbershopID(barbershopID)
+	shop, err := database.ValidBusinessID(businessID)
 	if err != nil {
 		return booking.CreatePublicResult{}, fmt.Errorf("booking/postgres: %w", err)
 	}
@@ -178,7 +178,7 @@ func (r *Repository) ReplayPublic(
 // resto de operaciones críticas del proyecto.
 type publicAppointmentResponseWire struct {
 	AttendeeName    string  `json:"attendeeName"`
-	BarbershopName  string  `json:"businessName"`
+	BusinessName    string  `json:"businessName"`
 	ServiceName     string  `json:"serviceName"`
 	DurationMinutes int     `json:"durationMinutes"`
 	PriceAmount     string  `json:"priceAmount"`
@@ -193,7 +193,7 @@ type publicAppointmentResponseWire struct {
 func newPublicAppointmentResponseWire(a booking.Appointment, input booking.CreatePublicInput) publicAppointmentResponseWire {
 	return publicAppointmentResponseWire{
 		AttendeeName:    a.AttendeeName,
-		BarbershopName:  input.BarbershopName,
+		BusinessName:    input.BusinessName,
 		ServiceName:     a.ServiceNameSnapshot,
 		DurationMinutes: a.DurationMinutesSnapshot,
 		PriceAmount:     formatPriceAmount(a.PriceAmountCentsSnapshot),
@@ -214,17 +214,17 @@ func newPublicAppointmentResponseWire(a booking.Appointment, input booking.Creat
 func resolvePublicCustomer(
 	ctx context.Context,
 	q database.Queries,
-	barbershopID string,
+	businessID string,
 	in booking.CustomerInput,
 	updatePhone, updateEmail *string,
 ) (booking.Customer, error) {
 	if in.ExistingID != nil {
 		if updatePhone != nil || updateEmail != nil {
-			return updateExistingCustomerContact(ctx, q, barbershopID, *in.ExistingID, updatePhone, updateEmail)
+			return updateExistingCustomerContact(ctx, q, businessID, *in.ExistingID, updatePhone, updateEmail)
 		}
-		return loadExistingCustomer(ctx, q, barbershopID, *in.ExistingID)
+		return loadExistingCustomer(ctx, q, businessID, *in.ExistingID)
 	}
-	return insertNewCustomer(ctx, q, barbershopID, *in.New)
+	return insertNewCustomer(ctx, q, businessID, *in.New)
 }
 
 // updateExistingCustomerContact aplica DEC-085 ("sobrescribir con el valor
@@ -233,7 +233,7 @@ func resolvePublicCustomer(
 func updateExistingCustomerContact(
 	ctx context.Context,
 	q database.Queries,
-	barbershopID, customerID string,
+	businessID, customerID string,
 	updatePhone, updateEmail *string,
 ) (booking.Customer, error) {
 	var c booking.Customer
@@ -243,8 +243,8 @@ func updateExistingCustomerContact(
 		       email = COALESCE($4, email)
 		 WHERE business_id = $1 AND id = $2
 		RETURNING id, business_id, full_name, phone, email, created_at, updated_at`,
-		barbershopID, customerID, updatePhone, updateEmail,
-	).Scan(&c.ID, &c.BarbershopID, &c.FullName, &c.Phone, &c.Email, &c.CreatedAt, &c.UpdatedAt)
+		businessID, customerID, updatePhone, updateEmail,
+	).Scan(&c.ID, &c.BusinessID, &c.FullName, &c.Phone, &c.Email, &c.CreatedAt, &c.UpdatedAt)
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
 			return booking.Customer{}, errCustomerNotFound()
@@ -266,13 +266,13 @@ func updateExistingCustomerContact(
 func insertAppointmentAccessToken(
 	ctx context.Context,
 	q database.Queries,
-	barbershopID, appointmentID, tokenHash string,
+	businessID, appointmentID, tokenHash string,
 	issuedAt, expiresAt time.Time,
 ) error {
 	_, err := q.Exec(ctx, `
 		INSERT INTO appointment_access_token (business_id, appointment_id, token_hash, issued_at, expires_at)
 		VALUES ($1, $2, $3, $4, $5)`,
-		barbershopID, appointmentID, tokenHash, issuedAt, expiresAt,
+		businessID, appointmentID, tokenHash, issuedAt, expiresAt,
 	)
 	return err
 }

@@ -5,18 +5,18 @@ import (
 	"strings"
 	"time"
 
-	"system-barbershop/internal/platform/idempotency"
+	"nava-agenda/internal/platform/idempotency"
 )
 
 // CreateManualAppointmentRequest es la entrada cruda (ya decodificada del
-// JSON, todavía sin normalizar) del caso de uso de HU-061: el barbero
+// JSON, todavía sin normalizar) del caso de uso de HU-061: el profesional
 // autenticado registra un turno manual recibido por teléfono, WhatsApp o en
 // persona. StartsAtLocal es el instante civil "AAAA-MM-DDTHH:MM:SS" (sin
-// desplazamiento de zona) que el barbero eligió en su propio reloj: se
-// interpreta contra la zona IANA vigente de la barbería (RN-DIS-07), nunca
+// desplazamiento de zona) que el profesional eligió en su propio reloj: se
+// interpreta contra la zona IANA vigente del negocio (RN-DIS-07), nunca
 // contra la zona del servidor o del dispositivo.
 type CreateManualAppointmentRequest struct {
-	BarberID         string
+	ProfessionalID   string
 	ServiceID        string
 	AttendeeName     string
 	CustomerFullName string
@@ -30,12 +30,12 @@ type CreateManualAppointmentRequest struct {
 // civilLocalLayout es el único formato que StartsAtLocal admite: fecha y
 // hora civiles completas, sin zona (RFC 3339 sin el sufijo de
 // desplazamiento). Un cliente que envíe un sufijo de zona ("Z", "+05:00")
-// se rechaza: esta operación exige el reloj de pared que el barbero vio,
+// se rechaza: esta operación exige el reloj de pared que el profesional vio,
 // no un instante que el cliente ya convirtió.
 const civilLocalLayout = "2006-01-02T15:04:05"
 
 // ManualBookingService implementa el caso de uso completo de HU-061:
-// resuelve la zona de la barbería, interpreta el instante civil, verifica
+// resuelve la zona del negocio, interpreta el instante civil, verifica
 // DEC-072 (servicio activo y asignado) y DEC-073 (sin bloqueo vigente),
 // decide la reconciliación de cliente de DEC-071 y delega en la primitiva
 // idempotente de persistencia. Colabora con catalog/schedule/shops
@@ -44,31 +44,31 @@ const civilLocalLayout = "2006-01-02T15:04:05"
 // staff, HU-023).
 type ManualBookingService struct {
 	repo      Repository
-	catalog   BarberServicePort
+	catalog   ProfessionalServicePort
 	blocks    BlockCheckPort
 	timezones TimezonePort
 }
 
 // NewManualBookingService construye el caso de uso a partir de sus cuatro
 // colaboradores.
-func NewManualBookingService(repo Repository, catalog BarberServicePort, blocks BlockCheckPort, timezones TimezonePort) *ManualBookingService {
+func NewManualBookingService(repo Repository, catalog ProfessionalServicePort, blocks BlockCheckPort, timezones TimezonePort) *ManualBookingService {
 	return &ManualBookingService{repo: repo, catalog: catalog, blocks: blocks, timezones: timezones}
 }
 
 // CreateManualAppointment ejecuta el caso de uso completo (§"Trabajo
-// requerido, punto 2" del prompt de HU-061). barbershopID ya llegó
+// requerido, punto 2" del prompt de HU-061). businessID ya llegó
 // resuelto por el llamador (sesión autenticada); key/fingerprint ya fueron
 // interpretados por la capa HTTP.
 func (s *ManualBookingService) CreateManualAppointment(
 	ctx context.Context,
-	barbershopID string,
+	businessID string,
 	req CreateManualAppointmentRequest,
 	key idempotency.Key,
 	fingerprint idempotency.Fingerprint,
 ) (CreateManualResult, error) {
-	barberID := strings.TrimSpace(req.BarberID)
-	if barberID == "" {
-		return CreateManualResult{}, errBarberIDRequired()
+	professionalID := strings.TrimSpace(req.ProfessionalID)
+	if professionalID == "" {
+		return CreateManualResult{}, errProfessionalIDRequired()
 	}
 	serviceID := strings.TrimSpace(req.ServiceID)
 	if serviceID == "" {
@@ -96,7 +96,7 @@ func (s *ManualBookingService) CreateManualAppointment(
 		return CreateManualResult{}, errCustomerNoteTooLong()
 	}
 
-	timezone, err := s.timezones.Timezone(ctx, barbershopID)
+	timezone, err := s.timezones.Timezone(ctx, businessID)
 	if err != nil {
 		return CreateManualResult{}, err
 	}
@@ -110,7 +110,7 @@ func (s *ManualBookingService) CreateManualAppointment(
 		return CreateManualResult{}, err
 	}
 
-	name, durationMinutes, priceCents, currency, found, err := s.catalog.ActiveAssignedService(ctx, barbershopID, barberID, serviceID)
+	name, durationMinutes, priceCents, currency, found, err := s.catalog.ActiveAssignedService(ctx, businessID, professionalID, serviceID)
 	if err != nil {
 		return CreateManualResult{}, err
 	}
@@ -120,7 +120,7 @@ func (s *ManualBookingService) CreateManualAppointment(
 
 	endsAt := startsAt.Add(time.Duration(durationMinutes) * time.Minute)
 
-	within, err := s.blocks.WithinWorkingHours(ctx, barbershopID, barberID, startsAt, endsAt, timezone)
+	within, err := s.blocks.WithinWorkingHours(ctx, businessID, professionalID, startsAt, endsAt, timezone)
 	if err != nil {
 		return CreateManualResult{}, err
 	}
@@ -128,7 +128,7 @@ func (s *ManualBookingService) CreateManualAppointment(
 		return CreateManualResult{}, errOutsideWorkingHours()
 	}
 
-	blocked, err := s.blocks.HasActiveBlock(ctx, barbershopID, barberID, startsAt, endsAt, timezone)
+	blocked, err := s.blocks.HasActiveBlock(ctx, businessID, professionalID, startsAt, endsAt, timezone)
 	if err != nil {
 		return CreateManualResult{}, err
 	}
@@ -136,7 +136,7 @@ func (s *ManualBookingService) CreateManualAppointment(
 		return CreateManualResult{}, errBlockedInterval()
 	}
 
-	customerInput, err := s.resolveCustomer(ctx, barbershopID, customer)
+	customerInput, err := s.resolveCustomer(ctx, businessID, customer)
 	if err != nil {
 		return CreateManualResult{}, err
 	}
@@ -147,12 +147,12 @@ func (s *ManualBookingService) CreateManualAppointment(
 	actorID := req.ActorStaffUserID
 
 	input := CreateInternalInput{
-		BarberID:     barberID,
-		ServiceID:    serviceID,
-		AttendeeName: attendeeName,
-		StartsAt:     startsAt,
-		EndsAt:       endsAt,
-		Origin:       OriginManual,
+		ProfessionalID: professionalID,
+		ServiceID:      serviceID,
+		AttendeeName:   attendeeName,
+		StartsAt:       startsAt,
+		EndsAt:         endsAt,
+		Origin:         OriginManual,
 		Service: ServiceSnapshot{
 			Name:             name,
 			DurationMinutes:  durationMinutes,
@@ -167,16 +167,16 @@ func (s *ManualBookingService) CreateManualAppointment(
 		return CreateManualResult{}, err
 	}
 
-	return s.repo.CreateManual(ctx, barbershopID, input, key, fingerprint)
+	return s.repo.CreateManual(ctx, businessID, input, key, fingerprint)
 }
 
 // resolveCustomer aplica DEC-071: si el cliente dio teléfono, busca/reutiliza
 // por teléfono (DEC-045); si no, pero dio correo, busca/reutiliza por
 // correo (DEC-046); si faltan ambos, siempre construye un cliente nuevo, sin
 // reconciliar por nombre.
-func (s *ManualBookingService) resolveCustomer(ctx context.Context, barbershopID string, c NewCustomerInput) (CustomerInput, error) {
+func (s *ManualBookingService) resolveCustomer(ctx context.Context, businessID string, c NewCustomerInput) (CustomerInput, error) {
 	if c.Phone != nil || c.Email != nil {
-		existing, found, err := s.repo.FindCustomerForReconciliation(ctx, barbershopID, c.Phone, c.Email)
+		existing, found, err := s.repo.FindCustomerForReconciliation(ctx, businessID, c.Phone, c.Email)
 		if err != nil {
 			return CustomerInput{}, err
 		}

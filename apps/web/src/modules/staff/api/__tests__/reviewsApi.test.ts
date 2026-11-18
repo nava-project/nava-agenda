@@ -7,7 +7,7 @@ const getMock = vi.hoisted(() => vi.fn())
 const patchMock = vi.hoisted(() => vi.fn())
 vi.mock('@/shared/api/httpClient', () => ({ httpClient: { GET: getMock, PATCH: patchMock } }))
 
-const { listBarberReviews, setReviewHidden } = await import('../reviewsApi')
+const { listProfessionalReviews, setReviewHidden } = await import('../reviewsApi')
 
 const ok = (body: unknown) => ({
   data: body,
@@ -28,7 +28,7 @@ const review = {
   createdAt: '2027-03-15T16:10:00Z',
 }
 
-describe('reviewsApi.listBarberReviews', () => {
+describe('reviewsApi.listProfessionalReviews', () => {
   beforeEach(() => getMock.mockReset())
 
   it('maps a 200 body, keeping hidden reviews', async () => {
@@ -39,7 +39,7 @@ describe('reviewsApi.listBarberReviews', () => {
     }
     getMock.mockResolvedValueOnce(ok({ rating: 4, ratingCount: 1, items: [review, hidden] }))
 
-    expect(await listBarberReviews('barber-1')).toEqual({
+    expect(await listProfessionalReviews('professional-1')).toEqual({
       kind: 'success',
       reviews: { rating: 4, ratingCount: 1, items: [review, hidden] },
     })
@@ -51,13 +51,13 @@ describe('reviewsApi.listBarberReviews', () => {
   ])('maps a %s to %s', async (status, kind) => {
     getMock.mockResolvedValueOnce(problem(status))
 
-    expect(await listBarberReviews('barber-1')).toEqual({ kind })
+    expect(await listProfessionalReviews('professional-1')).toEqual({ kind })
   })
 
   it('maps a thrown fetch to network-error', async () => {
     getMock.mockRejectedValueOnce(new TypeError('Failed to fetch'))
 
-    expect(await listBarberReviews('barber-1')).toEqual({ kind: 'network-error' })
+    expect(await listProfessionalReviews('professional-1')).toEqual({ kind: 'network-error' })
   })
 })
 
@@ -67,12 +67,12 @@ describe('reviewsApi.setReviewHidden', () => {
   it('sends only { hidden } and returns the updated review', async () => {
     patchMock.mockResolvedValueOnce(ok({ ...review, hiddenAt: '2027-03-16T10:00:00Z' }))
 
-    const outcome = await setReviewHidden('barber-1', review.id, true)
+    const outcome = await setReviewHidden('professional-1', review.id, true)
 
     expect(patchMock).toHaveBeenCalledWith(
       '/private/professionals/{professionalId}/reviews/{reviewId}',
       {
-        params: { path: { professionalId: 'barber-1', reviewId: review.id } },
+        params: { path: { professionalId: 'professional-1', reviewId: review.id } },
         body: { hidden: true },
       },
     )
@@ -89,6 +89,6 @@ describe('reviewsApi.setReviewHidden', () => {
   ])('maps a %s to %s', async (status, kind) => {
     patchMock.mockResolvedValueOnce(problem(status))
 
-    expect(await setReviewHidden('barber-1', review.id, false)).toEqual({ kind })
+    expect(await setReviewHidden('professional-1', review.id, false)).toEqual({ kind })
   })
 })

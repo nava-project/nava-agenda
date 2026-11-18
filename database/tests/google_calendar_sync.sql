@@ -2,12 +2,12 @@
 -- Google Calendar. Cubren a nivel de base de datos los privilegios del worker
 -- (solo funciones, nada de tablas), el reclamo con lease y la finalización por CAS
 -- (DDL-CON-01), el único trabajo pendiente por recurso, el CHECK de la
--- reclamación, el aislamiento RLS entre dos barberías y las funciones del chequeo
+-- reclamación, el aislamiento RLS entre dos negocios y las funciones del chequeo
 -- de eventos borrados. La orquestación de Google vive en Go
 -- (internal/modules/googlecalendar), no aquí.
 --
 -- Uso:
---   psql "$DATABASE_TEST_URL" -v ON_ERROR_STOP=1 -f testdata/dos_professionalias.sql
+--   psql "$DATABASE_TEST_URL" -v ON_ERROR_STOP=1 -f testdata/dos_negocios.sql
 --   psql "$DATABASE_TEST_URL" -v ON_ERROR_STOP=1 -f tests/google_calendar_sync.sql
 --
 -- Requisito del arnés: la conexión debe poder ejecutar `SET ROLE agenda_app` y
@@ -69,7 +69,7 @@ $$;
 \echo 'privilegios OK · worker solo funciones, aplicación sin funciones y vínculos de solo lectura'
 
 -- ---------------------------------------------------------------------------
--- Escenario base: un barbero conectado, una cita y su trabajo (como el hook)
+-- Escenario base: un profesional conectado, una cita y su trabajo (como el hook)
 -- ---------------------------------------------------------------------------
 BEGIN;
 RESET ROLE; -- el arnés conecta como superusuario: crea fixtures sin pasar por RLS
@@ -146,7 +146,7 @@ BEGIN
     RAISE EXCEPTION 'un trabajo no vencido no debe reclamarse.';
   END IF;
 
-  -- Reclamo: de ambas barberías, cada una con su token (el worker no tiene tenant).
+  -- Reclamo: de ambos negocios, cada una con su token (el worker no tiene tenant).
   SELECT count(*) INTO v_count FROM gcal_claim_jobs(1, 60, '2026-01-05 09:00:00-05'::timestamptz);
   IF v_count <> 1 THEN
     RAISE EXCEPTION 'con p_limit=1 se reclama exactamente uno, no %.', v_count;
@@ -310,7 +310,7 @@ BEGIN
   END IF;
 END
 $$;
-\echo 'reauth OK · credenciales borradas y cola de esa conexión vacía, sin tocar la conexión de otra barbería'
+\echo 'reauth OK · credenciales borradas y cola de esa conexión vacía, sin tocar la conexión de otro negocio'
 
 -- Una conexión sin permiso deja de reclamar trabajos aunque queden filas.
 INSERT INTO google_calendar_sync_job (id, business_id, connection_id, resource_type, resource_id, run_at) VALUES
@@ -357,7 +357,7 @@ DECLARE
   v_rows integer;
 BEGIN
   IF EXISTS (SELECT 1 FROM google_calendar_sync_job WHERE connection_id = 'c3240012-0000-4000-8000-000000000001') THEN
-    RAISE EXCEPTION 'la barbería B no debe ver la cola de la A.';
+    RAISE EXCEPTION 'el negocio B no debe ver la cola de la A.';
   END IF;
   UPDATE google_calendar_sync_job SET run_at = now() WHERE connection_id = 'c3240012-0000-4000-8000-000000000001';
   GET DIAGNOSTICS v_rows = ROW_COUNT;
@@ -399,7 +399,7 @@ BEGIN
     RAISE EXCEPTION 'debe reservarse la conexión pendiente de comprobar.';
   END IF;
   IF v_target.professional_id IS NULL OR v_target.token_ciphertext IS NULL THEN
-    RAISE EXCEPTION 'la reserva debe devolver barbero y credenciales cifradas.';
+    RAISE EXCEPTION 'la reserva debe devolver profesional y credenciales cifradas.';
   END IF;
 
   SELECT count(*) INTO v_again FROM gcal_restore_claim_connection(300, '2026-04-01 09:01:00-05'::timestamptz)

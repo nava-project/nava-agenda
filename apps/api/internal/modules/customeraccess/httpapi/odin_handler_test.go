@@ -9,8 +9,8 @@ import (
 	"testing"
 	"time"
 
-	"system-barbershop/internal/modules/customeraccess"
-	"system-barbershop/internal/modules/customeraccess/httpapi"
+	"nava-agenda/internal/modules/customeraccess"
+	"nava-agenda/internal/modules/customeraccess/httpapi"
 )
 
 // fakeOdinRepo decide el resultado sin base de datos: aquí solo se prueba la
@@ -114,9 +114,9 @@ func post(h http.Handler, body string) *httptest.ResponseRecorder {
 }
 
 func TestOdinLookup_ListsAppointmentsWithoutInternalIDs(t *testing.T) {
-	repo := &fakeOdinRepo{lookup: customeraccess.LookupOutcome{BarbershopFound: true, Candidates: []customeraccess.AppointmentCandidate{{
+	repo := &fakeOdinRepo{lookup: customeraccess.LookupOutcome{BusinessFound: true, Candidates: []customeraccess.AppointmentCandidate{{
 		ID: "0b7e3c52-9a4d-4f10-8c6e-1d2a3b4c5d6e", StartsAt: time.Date(2027, 3, 2, 15, 0, 0, 0, time.UTC),
-		ServiceName: "Corte Vbras", BarberName: "Jhonner Bustamante",
+		ServiceName: "Corte Vbras", ProfessionalName: "Jhonner Bustamante",
 	}}}}
 	rec := post(httpapi.NewOdinLookupHandler(refService(repo, &discardSender{}, true)), `{"phone":"`+goodPhone+`"}`)
 	if rec.Code != http.StatusOK || rec.Header().Get("Cache-Control") != "no-store" {
@@ -136,7 +136,7 @@ func TestOdinLookup_ListsAppointmentsWithoutInternalIDs(t *testing.T) {
 }
 
 func TestOdinLookup_EmptyListAndErrors(t *testing.T) {
-	empty := post(httpapi.NewOdinLookupHandler(refService(&fakeOdinRepo{lookup: customeraccess.LookupOutcome{BarbershopFound: true}}, &discardSender{}, true)), `{"phone":"`+goodPhone+`"}`)
+	empty := post(httpapi.NewOdinLookupHandler(refService(&fakeOdinRepo{lookup: customeraccess.LookupOutcome{BusinessFound: true}}, &discardSender{}, true)), `{"phone":"`+goodPhone+`"}`)
 	if empty.Code != http.StatusOK || !strings.Contains(empty.Body.String(), `"appointments":[]`) {
 		t.Fatalf("an empty result must be an empty list, got %d %s", empty.Code, empty.Body.String())
 	}
@@ -162,7 +162,7 @@ func TestOdinLookup_EmptyListAndErrors(t *testing.T) {
 
 func validRef(t *testing.T) string {
 	t.Helper()
-	repo := &fakeOdinRepo{lookup: customeraccess.LookupOutcome{BarbershopFound: true, Candidates: []customeraccess.AppointmentCandidate{{
+	repo := &fakeOdinRepo{lookup: customeraccess.LookupOutcome{BusinessFound: true, Candidates: []customeraccess.AppointmentCandidate{{
 		ID: "0b7e3c52-9a4d-4f10-8c6e-1d2a3b4c5d6e", StartsAt: time.Date(2027, 3, 2, 15, 0, 0, 0, time.UTC),
 	}}}}
 	rec := post(httpapi.NewOdinLookupHandler(refService(repo, &discardSender{}, true)), `{"phone":"`+goodPhone+`"}`)
@@ -175,7 +175,7 @@ func validRef(t *testing.T) string {
 
 func TestOdinChallenge_CreatedSendsOnlyByWhatsApp(t *testing.T) {
 	ref := validRef(t)
-	repo := &fakeOdinRepo{challenge: customeraccess.RefChallengeOutcome{BarbershopFound: true, Available: true}}
+	repo := &fakeOdinRepo{challenge: customeraccess.RefChallengeOutcome{BusinessFound: true, Available: true}}
 	sender := &discardSender{}
 	rec := post(httpapi.NewOdinChallengeHandler(refService(repo, sender, true), ""),
 		`{"phone":"`+goodPhone+`","appointmentRef":"`+ref+`","purpose":"reschedule"}`)
@@ -201,7 +201,7 @@ func TestOdinChallenge_CreatedSendsOnlyByWhatsApp(t *testing.T) {
 // completo para pegarlo en el chat, con la referencia escapada y sin datos personales.
 func TestOdinChallenge_WithoutPurposeIsManageAndCarriesTheLink(t *testing.T) {
 	ref := validRef(t)
-	repo := &fakeOdinRepo{challenge: customeraccess.RefChallengeOutcome{BarbershopFound: true, Available: true}}
+	repo := &fakeOdinRepo{challenge: customeraccess.RefChallengeOutcome{BusinessFound: true, Available: true}}
 	sender := &discardSender{}
 	rec := post(httpapi.NewOdinChallengeHandler(refService(repo, sender, true), "https://nava.example/"),
 		`{"phone":"`+goodPhone+`","appointmentRef":"`+ref+`"}`)
@@ -235,7 +235,7 @@ func TestOdinChallenge_ErrorsHaveTheirOwnStatuses(t *testing.T) {
 	body := `{"phone":"` + goodPhone + `","appointmentRef":"` + ref + `","purpose":"cancel"}`
 	sender := &discardSender{}
 
-	notAvailable := post(httpapi.NewOdinChallengeHandler(refService(&fakeOdinRepo{challenge: customeraccess.RefChallengeOutcome{BarbershopFound: true}}, sender, true), ""), body)
+	notAvailable := post(httpapi.NewOdinChallengeHandler(refService(&fakeOdinRepo{challenge: customeraccess.RefChallengeOutcome{BusinessFound: true}}, sender, true), ""), body)
 	if notAvailable.Code != http.StatusConflict || !strings.Contains(notAvailable.Body.String(), `"code":"appointment-not-available"`) {
 		t.Fatalf("expected the uniform 409, got %d %s", notAvailable.Code, notAvailable.Body.String())
 	}
@@ -246,7 +246,7 @@ func TestOdinChallenge_ErrorsHaveTheirOwnStatuses(t *testing.T) {
 	}
 
 	limited := post(httpapi.NewOdinChallengeHandler(refService(&fakeOdinRepo{challenge: customeraccess.RefChallengeOutcome{
-		BarbershopFound: true, RateLimited: true, RetryAfter: 90*time.Second + 300*time.Millisecond,
+		BusinessFound: true, RateLimited: true, RetryAfter: 90*time.Second + 300*time.Millisecond,
 	}}, sender, true), ""), body)
 	if limited.Code != http.StatusTooManyRequests || limited.Header().Get("Retry-After") != "91" {
 		t.Fatalf("expected 429 with Retry-After 91, got %d %q", limited.Code, limited.Header().Get("Retry-After"))
@@ -272,7 +272,7 @@ func TestOdinChallenge_ErrorsHaveTheirOwnStatuses(t *testing.T) {
 
 func TestVerifyRef_ValidAndUniformFailures(t *testing.T) {
 	ok := post(httpapi.NewVerifyRefHandler(refService(&fakeOdinRepo{verify: customeraccess.VerifyRefOutcome{
-		BarbershopFound: true, Valid: true, AccessToken: "tok-en-de-prueba", Purpose: customeraccess.PurposeCancel,
+		BusinessFound: true, Valid: true, AccessToken: "tok-en-de-prueba", Purpose: customeraccess.PurposeCancel,
 	}}, &discardSender{}, true)), `{"accessRef":"abc","code":"123456"}`)
 	if ok.Code != http.StatusOK || ok.Header().Get("Cache-Control") != "no-store" {
 		t.Fatalf("expected 200 no-store, got %d", ok.Code)
@@ -282,7 +282,7 @@ func TestVerifyRef_ValidAndUniformFailures(t *testing.T) {
 		t.Fatalf("unexpected body %s (%v)", ok.Body.String(), err)
 	}
 
-	bad := post(httpapi.NewVerifyRefHandler(refService(&fakeOdinRepo{verify: customeraccess.VerifyRefOutcome{BarbershopFound: true}}, &discardSender{}, true)), `{"accessRef":"abc","code":"123456"}`)
+	bad := post(httpapi.NewVerifyRefHandler(refService(&fakeOdinRepo{verify: customeraccess.VerifyRefOutcome{BusinessFound: true}}, &discardSender{}, true)), `{"accessRef":"abc","code":"123456"}`)
 	oversize := post(httpapi.NewVerifyRefHandler(refService(&fakeOdinRepo{}, &discardSender{}, true)), `{"accessRef":"`+strings.Repeat("x", 200)+`","code":"123456"}`)
 	for name, rec := range map[string]*httptest.ResponseRecorder{"código inválido": bad, "referencia demasiado larga": oversize} {
 		if rec.Code != http.StatusUnauthorized || !strings.Contains(rec.Body.String(), "código de verificación inválido o expirado") {

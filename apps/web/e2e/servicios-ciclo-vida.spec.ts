@@ -8,9 +8,9 @@ import { test, expect, type Page } from '@playwright/test'
  *
  * Variables de entorno:
  *   E2E_EMAIL / E2E_PASSWORD: credenciales válidas contra el API real
- *     (barbería A, "shopA").
+ *     (negocio A, "shopA").
  *   E2E_EMAIL_B / E2E_PASSWORD_B: credenciales válidas de una SEGUNDA
- *     barbería real ("shopB"), usadas solo para la prueba de aislamiento
+ *     negocio real ("shopB"), usadas solo para la prueba de aislamiento
  *     entre tenants.
  *   APP_BASE_URL: base del frontend (por defecto http://localhost:5173).
  */
@@ -44,7 +44,7 @@ async function createServiceViaUI(page: Page, name: string) {
 }
 
 test.describe('Ciclo de vida de servicios (HU-024)', () => {
-  // Serial a propósito: varias pruebas comparten la MISMA barbería real
+  // Serial a propósito: varias pruebas comparten el mismo negocio real
   // (shopA/shopB), mismo criterio que servicios.spec.ts.
   test.describe.configure({ mode: 'serial' })
 
@@ -127,7 +127,7 @@ test.describe('Ciclo de vida de servicios (HU-024)', () => {
     expect(reactivated?.durationMinutes).toBe(30)
   })
 
-  test('un identificador real de otra barbería responde 404 al previsualizar, desactivar o reactivar (CA-024-07)', async ({
+  test('un identificador real de otro negocio responde 404 al previsualizar, desactivar o reactivar (CA-024-07)', async ({
     page,
   }) => {
     await login(page, EMAIL_B, PASSWORD_B)

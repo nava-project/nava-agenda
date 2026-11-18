@@ -11,12 +11,12 @@ const limitMs = startsMs - 20 * 60_000
 
 function appointment(over: Partial<CustomerAppointment> = {}): CustomerAppointment {
   return {
-    barbershopName: 'Barbería Ejemplo',
+    businessName: 'Barbería Ejemplo',
     timezone: 'America/Bogota',
     attendeeName: 'Cliente Ejemplo',
     serviceName: 'Corte clásico',
     durationMinutes: 30,
-    barberName: 'Barbero Ejemplo',
+    professionalName: 'Barbero Ejemplo',
     startsAt: STARTS_AT,
     endsAt: '2027-03-15T15:30:00Z',
     status: 'confirmed',
@@ -24,8 +24,8 @@ function appointment(over: Partial<CustomerAppointment> = {}): CustomerAppointme
     lateCancellationClientAllowed: true,
     lateCancellationReasonRequired: true,
     versionToken: 'v-1',
-    barbershopContactEmail: 'contacto@barberia-ejemplo.test',
-    barbershopContactPhone: '+573001234567',
+    businessContactEmail: 'contacto@barberia-ejemplo.test',
+    businessContactPhone: '+573001234567',
     vocabulary: {
       businessTerm: 'barbería',
       businessTermGender: 'feminine',
@@ -147,7 +147,7 @@ describe('AppointmentCancellation', () => {
 
   it('con el turno ya iniciado dice que no puede cancelarlo y sin contacto remite al canal de reserva', () => {
     const wrapper = mountCancel(
-      { barbershopContactEmail: null, barbershopContactPhone: null },
+      { businessContactEmail: null, businessContactPhone: null },
       {},
       startsMs + 1,
     )

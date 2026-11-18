@@ -1,8 +1,8 @@
 -- Pruebas SQL de DEC-131 / HU-103: servicio a domicilio.
--- Cubren a nivel de base de datos los valores por defecto (barbería sin domicilio,
+-- Cubren a nivel de base de datos los valores por defecto (negocio sin domicilio,
 -- turno en el local), `appointment_home_service_ck` (dirección completa o ausente,
 -- nunca parcial, con rangos y longitud) y el aislamiento RLS de la dirección entre
--- dos barberías. Qué se acepta desde la reserva pública vive en el servicio Go.
+-- dos negocios. Qué se acepta desde la reserva pública vive en el servicio Go.
 --
 -- Uso:
 --   psql "$DATABASE_TEST_URL" -v ON_ERROR_STOP=1 -f tests/appointment_domicilio.sql
@@ -40,7 +40,7 @@ INSERT INTO customer (id, business_id, full_name) VALUES
 DO $$
 BEGIN
   IF (SELECT offers_home_service FROM business WHERE id = '01030001-0100-4100-8100-010300000001') THEN
-    RAISE EXCEPTION 'una barbería nueva no debe ofrecer domicilio por defecto.';
+    RAISE EXCEPTION 'un negocio nuevo no debe ofrecer domicilio por defecto.';
   END IF;
 END
 $$;
@@ -168,10 +168,10 @@ SET LOCAL app.business_id = '01030002-0100-4100-8100-010300000002';
 DO $$
 BEGIN
   IF EXISTS (SELECT 1 FROM appointment WHERE service_address = 'Calle 10 # 5-20, Bogotá') THEN
-    RAISE EXCEPTION 'la barbería B no debe ver la dirección a domicilio de A.';
+    RAISE EXCEPTION 'el negocio B no debe ver la dirección a domicilio de A.';
   END IF;
   IF (SELECT count(*) FROM appointment WHERE is_home_service) <> 1 THEN
-    RAISE EXCEPTION 'la barbería B debe ver solo su propio turno a domicilio.';
+    RAISE EXCEPTION 'el negocio B debe ver solo su propio turno a domicilio.';
   END IF;
 END
 $$;

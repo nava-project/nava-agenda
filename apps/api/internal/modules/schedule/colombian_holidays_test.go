@@ -4,7 +4,7 @@ import (
 	"testing"
 	"time"
 
-	"system-barbershop/internal/modules/schedule"
+	"nava-agenda/internal/modules/schedule"
 )
 
 func TestColombianHolidaysForYear_HasEighteenHolidays(t *testing.T) {

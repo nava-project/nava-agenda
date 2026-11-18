@@ -4,8 +4,8 @@ import (
 	"errors"
 	"testing"
 
-	"system-barbershop/internal/platform/apperr"
-	"system-barbershop/internal/platform/idempotency"
+	"nava-agenda/internal/platform/apperr"
+	"nava-agenda/internal/platform/idempotency"
 )
 
 func TestParseKey_RejectsEmpty(t *testing.T) {

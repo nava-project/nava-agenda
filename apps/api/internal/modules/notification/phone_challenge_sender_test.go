@@ -6,8 +6,8 @@ import (
 	"strings"
 	"testing"
 
-	"system-barbershop/internal/modules/auth"
-	"system-barbershop/internal/modules/notification"
+	"nava-agenda/internal/modules/auth"
+	"nava-agenda/internal/modules/notification"
 )
 
 var _ auth.PhoneCodeSender = notification.PhoneChallengeSender{}

@@ -9,14 +9,14 @@ import (
 
 	"github.com/jackc/pgx/v5"
 
-	"system-barbershop/internal/modules/customeraccess"
-	"system-barbershop/internal/platform/database"
+	"nava-agenda/internal/modules/customeraccess"
+	"nava-agenda/internal/platform/database"
 )
 
 // AccessRepository implementa customeraccess.AccessRepository (HU-105, DEC-178)
 // sobre database.DB. Resuelve el slug con la misma función SECURITY DEFINER
-// estrecha que la reserva pública (public_resolve_barbershop_by_slug) y trabaja
-// después en una transacción de esa barbería, bajo RLS.
+// estrecha que la reserva pública (public_resolve_business_by_slug) y trabaja
+// después en una transacción de ese negocio, bajo RLS.
 type AccessRepository struct {
 	db *database.DB
 }
@@ -28,7 +28,7 @@ func NewAccessRepository(db *database.DB) *AccessRepository {
 
 var _ customeraccess.AccessRepository = (*AccessRepository)(nil)
 
-func (r *AccessRepository) resolveShop(ctx context.Context, slug string) (database.BarbershopID, bool, error) {
+func (r *AccessRepository) resolveShop(ctx context.Context, slug string) (database.BusinessID, bool, error) {
 	shop, found, err := r.db.ResolveTenant(ctx, `SELECT public_resolve_business_by_slug($1)`, slug)
 	if err != nil {
 		return "", false, fmt.Errorf("customeraccess/postgres: resolve tenant by slug: %w", err)
@@ -54,7 +54,7 @@ func (r *AccessRepository) RequestChallenge(ctx context.Context, req customeracc
 		return customeraccess.ChallengeOutcome{}, nil
 	}
 
-	outcome := customeraccess.ChallengeOutcome{BarbershopFound: true}
+	outcome := customeraccess.ChallengeOutcome{BusinessFound: true}
 	err = r.db.InTenantTx(ctx, shop, func(ctx context.Context, q database.Queries) error {
 		// Siempre en el mismo orden (contacto, luego IP) para no cruzar bloqueos.
 		for _, key := range []string{"customer-access:contact:" + req.ContactHash, "customer-access:ip:" + req.IPHash} {
@@ -137,7 +137,7 @@ func recentRequestsExceeded(
 	return oldest.Add(customeraccess.AccessRequestWindow).Sub(now), true, nil
 }
 
-// findCustomerWithUpcomingAppointment busca al cliente de la barbería con ese
+// findCustomerWithUpcomingAppointment busca al cliente del negocio con ese
 // contacto que tenga algún turno futuro confirmado. nil, sin error, si no hay.
 func findCustomerWithUpcomingAppointment(ctx context.Context, q database.Queries, shop string, contact customeraccess.Contact, now time.Time) (*string, error) {
 	var query string
@@ -188,7 +188,7 @@ func (r *AccessRepository) VerifyChallenge(
 		return customeraccess.VerifyOutcome{}, nil
 	}
 
-	outcome := customeraccess.VerifyOutcome{BarbershopFound: true}
+	outcome := customeraccess.VerifyOutcome{BusinessFound: true}
 	err = r.db.InTenantTx(ctx, shop, func(ctx context.Context, q database.Queries) error {
 		var (
 			id         string
@@ -255,7 +255,7 @@ func (r *AccessRepository) VerifyChallenge(
 				return fmt.Errorf("insert access token: %w", err)
 			}
 			outcome.Appointments = append(outcome.Appointments, customeraccess.AccessAppointment{
-				AccessToken: plain, StartsAt: appt.startsAt, ServiceName: appt.serviceName, BarberName: appt.barberName,
+				AccessToken: plain, StartsAt: appt.startsAt, ServiceName: appt.serviceName, ProfessionalName: appt.professionalName,
 			})
 		}
 		// Un cliente cuyos turnos se cancelaron entre pedir y verificar el código no
@@ -268,7 +268,7 @@ func (r *AccessRepository) VerifyChallenge(
 		return nil
 	})
 	if errors.Is(err, errNothingToAccess) {
-		return customeraccess.VerifyOutcome{BarbershopFound: true}, nil
+		return customeraccess.VerifyOutcome{BusinessFound: true}, nil
 	}
 	if err != nil {
 		return customeraccess.VerifyOutcome{}, fmt.Errorf("customeraccess/postgres: verify challenge: %w", err)
@@ -280,10 +280,10 @@ func (r *AccessRepository) VerifyChallenge(
 var errNothingToAccess = errors.New("customeraccess/postgres: sin turnos a los que dar acceso")
 
 type upcomingAppointment struct {
-	id          string
-	startsAt    time.Time
-	serviceName string
-	barberName  string
+	id               string
+	startsAt         time.Time
+	serviceName      string
+	professionalName string
 }
 
 // upcomingConfirmedAppointments lista los turnos futuros confirmados del cliente,
@@ -306,7 +306,7 @@ func upcomingConfirmedAppointments(ctx context.Context, q database.Queries, shop
 	var out []upcomingAppointment
 	for rows.Next() {
 		var a upcomingAppointment
-		if err := rows.Scan(&a.id, &a.startsAt, &a.serviceName, &a.barberName); err != nil {
+		if err := rows.Scan(&a.id, &a.startsAt, &a.serviceName, &a.professionalName); err != nil {
 			return nil, fmt.Errorf("scan upcoming appointment: %w", err)
 		}
 		out = append(out, a)

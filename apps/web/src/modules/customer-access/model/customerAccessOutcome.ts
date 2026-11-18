@@ -9,11 +9,11 @@ export interface AccessibleAppointment {
   accessToken: string
   startsAt: string
   serviceName: string
-  barberName: string
+  professionalName: string
 }
 
 export interface AccessGrant {
-  /** Zona IANA de la barbería: las horas se muestran en ella (RN-DIS-07). */
+  /** Zona IANA del negocio: las horas se muestran en ella (RN-DIS-07). */
   timezone: string
   appointments: AccessibleAppointment[]
 }
@@ -25,8 +25,8 @@ export type RequestAccessCodeOutcome =
   | { kind: 'rate-limited'; retryAfterSeconds: number }
   /** 400/422: el contacto no tiene forma de correo ni de celular. */
   | { kind: 'invalid-contact' }
-  /** 404: el enlace no corresponde a ninguna barbería publicada. */
-  | { kind: 'barbershop-not-found' }
+  /** 404: el enlace no corresponde a ningún negocio publicado. */
+  | { kind: 'business-not-found' }
   | { kind: 'network-error' }
   | { kind: 'unexpected-error'; requestId?: string }
 
@@ -35,7 +35,7 @@ export type VerifyAccessCodeOutcome =
   /** 401 uniforme: incorrecto, vencido, usado, agotado o de un contacto inexistente. */
   | { kind: 'invalid-code' }
   | { kind: 'invalid-contact' }
-  | { kind: 'barbershop-not-found' }
+  | { kind: 'business-not-found' }
   | { kind: 'network-error' }
   | { kind: 'unexpected-error'; requestId?: string }
 
@@ -53,6 +53,6 @@ export type VerifyAccessRefOutcome =
   | { kind: 'invalid-code' }
   /** 400/422: el código no tiene forma de 6 dígitos. */
   | { kind: 'invalid-input' }
-  | { kind: 'barbershop-not-found' }
+  | { kind: 'business-not-found' }
   | { kind: 'network-error' }
   | { kind: 'unexpected-error'; requestId?: string }

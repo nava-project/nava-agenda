@@ -1,6 +1,6 @@
 /**
- * Pruebas de CustomerAppointmentPage (HU-098): carga, éxito (barbería,
- * persona atendida, servicio, barbero, intervalo/zona, estado y política de
+ * Pruebas de CustomerAppointmentPage (HU-098): carga, éxito (negocio,
+ * persona atendida, servicio, profesional, intervalo/zona, estado y política de
  * cancelación), enlace inválido/inexistente/vencido/revocado (CA-098-02,
  * todos indistinguibles), error de red con reintento, error inesperado con
  * requestId, ausencia de identificadores internos (CA-098-03) y ausencia de
@@ -146,7 +146,7 @@ describe('CustomerAppointmentPage', () => {
     expect(wrapper.findAll('button')).toHaveLength(0)
   })
 
-  it('renders barbershop, attendee, service, barber and time range on success', async () => {
+  it('renders business, attendee, service, professional and time range on success', async () => {
     getMock.mockResolvedValueOnce({ data: successData(), error: undefined, response: okResponse() })
     const wrapper = mountPage({ token: 'token-en-claro' })
     await flushPromises()
@@ -186,13 +186,13 @@ describe('CustomerAppointmentPage', () => {
     expect(completed.find('button').exists()).toBe(false)
   })
 
-  it('never renders an internal id, barbershopId, appointmentId or customerId (CA-098-03)', async () => {
+  it('never renders an internal id, businessId, appointmentId or customerId (CA-098-03)', async () => {
     getMock.mockResolvedValueOnce({ data: successData(), error: undefined, response: okResponse() })
     const wrapper = mountPage({ token: 'token-en-claro' })
     await flushPromises()
 
     const raw = wrapper.html().toLowerCase()
-    for (const forbidden of ['barbershopid', 'appointmentid', 'customerid', '"id"']) {
+    for (const forbidden of ['businessid', 'appointmentid', 'customerid', '"id"']) {
       expect(raw).not.toContain(forbidden)
     }
   })
@@ -240,7 +240,7 @@ describe('CustomerAppointmentPage', () => {
     expect(wrapper.text()).toContain('Ocurrió un error inesperado')
   })
 
-  it('names the business and the professional with the words the barbershop configured (DEC-119)', async () => {
+  it('names the business and the professional with the words the business configured (DEC-119)', async () => {
     getMock.mockResolvedValueOnce({
       data: {
         ...successData(),
@@ -266,10 +266,10 @@ describe('CustomerAppointmentPage', () => {
     expect(text).toContain('Tatuadora')
     expect(text).toContain('Cancelado por la tatuadora')
     expect(text).toContain('Este turno está cancelado')
-    expect(text).not.toMatch(/barber(o|a|os|as|ía|ías)\b/i)
+    expect(text).not.toMatch(/professional(o|a|os|as|ía|ías)\b/i)
   })
 
-  it('names the business and the professional with the words the barbershop configured en la política de un turno vigente (DEC-119)', async () => {
+  it('names the business and the professional with the words the business configured en la política de un turno vigente (DEC-119)', async () => {
     getMock.mockResolvedValueOnce({
       data: {
         ...successData(),
@@ -294,7 +294,7 @@ describe('CustomerAppointmentPage', () => {
     const text = wrapper.text()
     expect(text).toContain('Tatuadora')
     expect(text).toContain('contacta directamente al estudio')
-    expect(text).not.toMatch(/barber(o|a|os|as|ía|ías)\b/i)
+    expect(text).not.toMatch(/professional(o|a|os|as|ía|ías)\b/i)
   })
 
   it('has no accessibility violations in the loading state', async () => {

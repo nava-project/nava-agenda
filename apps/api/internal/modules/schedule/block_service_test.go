@@ -5,91 +5,91 @@ import (
 	"testing"
 	"time"
 
-	"system-barbershop/internal/modules/schedule"
-	"system-barbershop/internal/platform/apperr"
-	"system-barbershop/internal/platform/idempotency"
+	"nava-agenda/internal/modules/schedule"
+	"nava-agenda/internal/platform/apperr"
+	"nava-agenda/internal/platform/idempotency"
 )
 
 // --- Métodos de fakeRepository para schedule.BlockRepository (HU-042) -----
 
-func (f *fakeRepository) ListBlocks(ctx context.Context, barbershopID, barberID string, cursor *schedule.BlockCursor, limit int, includeDeleted bool) (schedule.BlockListResult, error) {
-	return f.listBlocksFn(ctx, barbershopID, barberID, cursor, limit, includeDeleted)
+func (f *fakeRepository) ListBlocks(ctx context.Context, businessID, professionalID string, cursor *schedule.BlockCursor, limit int, includeDeleted bool) (schedule.BlockListResult, error) {
+	return f.listBlocksFn(ctx, businessID, professionalID, cursor, limit, includeDeleted)
 }
 
-func (f *fakeRepository) GetBlock(ctx context.Context, barbershopID, barberID, blockID string) (schedule.TimeBlock, bool, error) {
-	return f.getBlockFn(ctx, barbershopID, barberID, blockID)
+func (f *fakeRepository) GetBlock(ctx context.Context, businessID, professionalID, blockID string) (schedule.TimeBlock, bool, error) {
+	return f.getBlockFn(ctx, businessID, professionalID, blockID)
 }
 
-func (f *fakeRepository) CreateBlock(ctx context.Context, barbershopID, barberID string, input schedule.CreateBlockInput, key idempotency.Key, fingerprint idempotency.Fingerprint) (schedule.CreateBlockResult, error) {
-	return f.createBlockFn(ctx, barbershopID, barberID, input, key, fingerprint)
+func (f *fakeRepository) CreateBlock(ctx context.Context, businessID, professionalID string, input schedule.CreateBlockInput, key idempotency.Key, fingerprint idempotency.Fingerprint) (schedule.CreateBlockResult, error) {
+	return f.createBlockFn(ctx, businessID, professionalID, input, key, fingerprint)
 }
 
-func (f *fakeRepository) DeleteBlock(ctx context.Context, barbershopID, barberID, blockID, actorID string) (bool, error) {
-	return f.deleteBlockFn(ctx, barbershopID, barberID, blockID, actorID)
+func (f *fakeRepository) DeleteBlock(ctx context.Context, businessID, professionalID, blockID, actorID string) (bool, error) {
+	return f.deleteBlockFn(ctx, businessID, professionalID, blockID, actorID)
 }
 
-func (f *fakeRepository) ListSeries(ctx context.Context, barbershopID, barberID string, cursor *schedule.SeriesCursor, limit int, includeDeleted bool) (schedule.SeriesListResult, error) {
-	return f.listSeriesFn(ctx, barbershopID, barberID, cursor, limit, includeDeleted)
+func (f *fakeRepository) ListSeries(ctx context.Context, businessID, professionalID string, cursor *schedule.SeriesCursor, limit int, includeDeleted bool) (schedule.SeriesListResult, error) {
+	return f.listSeriesFn(ctx, businessID, professionalID, cursor, limit, includeDeleted)
 }
 
-func (f *fakeRepository) GetSeries(ctx context.Context, barbershopID, barberID, seriesID string) (schedule.TimeBlockSeries, bool, error) {
-	return f.getSeriesFn(ctx, barbershopID, barberID, seriesID)
+func (f *fakeRepository) GetSeries(ctx context.Context, businessID, professionalID, seriesID string) (schedule.TimeBlockSeries, bool, error) {
+	return f.getSeriesFn(ctx, businessID, professionalID, seriesID)
 }
 
-func (f *fakeRepository) CreateSeries(ctx context.Context, barbershopID, barberID string, input schedule.CreateSeriesInput, key idempotency.Key, fingerprint idempotency.Fingerprint) (schedule.CreateSeriesResult, error) {
-	return f.createSeriesFn(ctx, barbershopID, barberID, input, key, fingerprint)
+func (f *fakeRepository) CreateSeries(ctx context.Context, businessID, professionalID string, input schedule.CreateSeriesInput, key idempotency.Key, fingerprint idempotency.Fingerprint) (schedule.CreateSeriesResult, error) {
+	return f.createSeriesFn(ctx, businessID, professionalID, input, key, fingerprint)
 }
 
-func (f *fakeRepository) UpdateSeriesWhole(ctx context.Context, barbershopID, barberID, seriesID string, input schedule.UpdateSeriesInput) (schedule.UpdateSeriesResult, error) {
-	return f.updateSeriesWholeFn(ctx, barbershopID, barberID, seriesID, input)
+func (f *fakeRepository) UpdateSeriesWhole(ctx context.Context, businessID, professionalID, seriesID string, input schedule.UpdateSeriesInput) (schedule.UpdateSeriesResult, error) {
+	return f.updateSeriesWholeFn(ctx, businessID, professionalID, seriesID, input)
 }
 
-func (f *fakeRepository) SplitSeriesFrom(ctx context.Context, barbershopID, barberID, seriesID, effectiveDate string, input schedule.UpdateSeriesInput) (schedule.UpdateSeriesResult, error) {
-	return f.splitSeriesFromFn(ctx, barbershopID, barberID, seriesID, effectiveDate, input)
+func (f *fakeRepository) SplitSeriesFrom(ctx context.Context, businessID, professionalID, seriesID, effectiveDate string, input schedule.UpdateSeriesInput) (schedule.UpdateSeriesResult, error) {
+	return f.splitSeriesFromFn(ctx, businessID, professionalID, seriesID, effectiveDate, input)
 }
 
-func (f *fakeRepository) DeleteSeries(ctx context.Context, barbershopID, barberID, seriesID string) (bool, error) {
-	return f.deleteSeriesFn(ctx, barbershopID, barberID, seriesID)
+func (f *fakeRepository) DeleteSeries(ctx context.Context, businessID, professionalID, seriesID string) (bool, error) {
+	return f.deleteSeriesFn(ctx, businessID, professionalID, seriesID)
 }
 
-func (f *fakeRepository) AddSeriesDate(ctx context.Context, barbershopID, barberID, seriesID, blockDate string) (bool, bool, error) {
-	return f.addSeriesDateFn(ctx, barbershopID, barberID, seriesID, blockDate)
+func (f *fakeRepository) AddSeriesDate(ctx context.Context, businessID, professionalID, seriesID, blockDate string) (bool, bool, error) {
+	return f.addSeriesDateFn(ctx, businessID, professionalID, seriesID, blockDate)
 }
 
-func (f *fakeRepository) RemoveSeriesDate(ctx context.Context, barbershopID, barberID, seriesID, blockDate string) (bool, error) {
-	return f.removeSeriesDateFn(ctx, barbershopID, barberID, seriesID, blockDate)
+func (f *fakeRepository) RemoveSeriesDate(ctx context.Context, businessID, professionalID, seriesID, blockDate string) (bool, error) {
+	return f.removeSeriesDateFn(ctx, businessID, professionalID, seriesID, blockDate)
 }
 
-func (f *fakeRepository) AddSeriesException(ctx context.Context, barbershopID, barberID, seriesID, excludedDate string, reason *string) (bool, bool, error) {
-	return f.addSeriesExceptionFn(ctx, barbershopID, barberID, seriesID, excludedDate, reason)
+func (f *fakeRepository) AddSeriesException(ctx context.Context, businessID, professionalID, seriesID, excludedDate string, reason *string) (bool, bool, error) {
+	return f.addSeriesExceptionFn(ctx, businessID, professionalID, seriesID, excludedDate, reason)
 }
 
-func (f *fakeRepository) RemoveSeriesException(ctx context.Context, barbershopID, barberID, seriesID, excludedDate string) (bool, error) {
-	return f.removeSeriesExceptionFn(ctx, barbershopID, barberID, seriesID, excludedDate)
+func (f *fakeRepository) RemoveSeriesException(ctx context.Context, businessID, professionalID, seriesID, excludedDate string) (bool, error) {
+	return f.removeSeriesExceptionFn(ctx, businessID, professionalID, seriesID, excludedDate)
 }
 
-func (f *fakeRepository) ListEffectiveManualBlocks(ctx context.Context, barbershopID, barberID string, from, until time.Time) ([]schedule.TimeBlock, error) {
-	return f.listEffectiveManualBlocksFn(ctx, barbershopID, barberID, from, until)
+func (f *fakeRepository) ListEffectiveManualBlocks(ctx context.Context, businessID, professionalID string, from, until time.Time) ([]schedule.TimeBlock, error) {
+	return f.listEffectiveManualBlocksFn(ctx, businessID, professionalID, from, until)
 }
 
-func (f *fakeRepository) ListActiveSeriesForProjection(ctx context.Context, barbershopID, barberID, from, until string) ([]schedule.TimeBlockSeries, error) {
-	return f.listActiveSeriesForProjectionFn(ctx, barbershopID, barberID, from, until)
+func (f *fakeRepository) ListActiveSeriesForProjection(ctx context.Context, businessID, professionalID, from, until string) ([]schedule.TimeBlockSeries, error) {
+	return f.listActiveSeriesForProjectionFn(ctx, businessID, professionalID, from, until)
 }
 
 var _ schedule.BlockRepository = (*fakeRepository)(nil)
 
 const validSeriesID = "7a1b2c3d-4e5f-4061-8273-8495a6b7c8d9"
 
-// --- CreateBlock: validación de campos (CA-042), antes de BarberPort/repo -
+// --- CreateBlock: validación de campos (CA-042), antes de ProfessionalPort/repo -
 
 func TestCreateBlock_InvalidBlockType_RejectedWithoutTouchingRepository(t *testing.T) {
 	repo := &fakeRepository{createBlockFn: func(context.Context, string, string, schedule.CreateBlockInput, idempotency.Key, idempotency.Fingerprint) (schedule.CreateBlockResult, error) {
 		t.Fatal("repository no debe llamarse con un tipo inválido")
 		return schedule.CreateBlockResult{}, nil
 	}}
-	svc := schedule.NewService(repo, fakeBarberPort{})
+	svc := schedule.NewService(repo, fakeProfessionalPort{})
 
-	_, err := svc.CreateBlock(context.Background(), "shop-1", validBarberID, "not-a-type", "2026-07-20T15:00:00-05:00", "2026-07-20T16:00:00-05:00", nil, "key-1", "a")
+	_, err := svc.CreateBlock(context.Background(), "shop-1", validProfessionalID, "not-a-type", "2026-07-20T15:00:00-05:00", "2026-07-20T16:00:00-05:00", nil, "key-1", "a")
 	mustBeValidation(t, err)
 }
 
@@ -98,20 +98,20 @@ func TestCreateBlock_EndsBeforeStarts_RejectedWithoutTouchingRepository(t *testi
 		t.Fatal("repository no debe llamarse con un intervalo inválido")
 		return schedule.CreateBlockResult{}, nil
 	}}
-	svc := schedule.NewService(repo, fakeBarberPort{})
+	svc := schedule.NewService(repo, fakeProfessionalPort{})
 
-	_, err := svc.CreateBlock(context.Background(), "shop-1", validBarberID, schedule.BlockTypeEmergency, "2026-07-20T16:00:00-05:00", "2026-07-20T15:00:00-05:00", nil, "key-1", "a")
+	_, err := svc.CreateBlock(context.Background(), "shop-1", validProfessionalID, schedule.BlockTypeEmergency, "2026-07-20T16:00:00-05:00", "2026-07-20T15:00:00-05:00", nil, "key-1", "a")
 	mustBeValidation(t, err)
 }
 
-func TestCreateBlock_BarberNotFound_ReturnsNotFound(t *testing.T) {
+func TestCreateBlock_ProfessionalNotFound_ReturnsNotFound(t *testing.T) {
 	repo := &fakeRepository{createBlockFn: func(context.Context, string, string, schedule.CreateBlockInput, idempotency.Key, idempotency.Fingerprint) (schedule.CreateBlockResult, error) {
-		t.Fatal("repository no debe llamarse si el barbero no existe")
+		t.Fatal("repository no debe llamarse si el profesional no existe")
 		return schedule.CreateBlockResult{}, nil
 	}}
-	svc := schedule.NewService(repo, fakeBarberPort{exists: false})
+	svc := schedule.NewService(repo, fakeProfessionalPort{exists: false})
 
-	_, err := svc.CreateBlock(context.Background(), "shop-1", validBarberID, schedule.BlockTypeEmergency, "2026-07-20T15:00:00-05:00", "2026-07-20T16:00:00-05:00", nil, "key-1", "a")
+	_, err := svc.CreateBlock(context.Background(), "shop-1", validProfessionalID, schedule.BlockTypeEmergency, "2026-07-20T15:00:00-05:00", "2026-07-20T16:00:00-05:00", nil, "key-1", "a")
 	mustBeNotFound(t, err)
 }
 
@@ -126,9 +126,9 @@ func TestCreateBlock_NeverConflicts_EvenOverlappingIntervalsSucceed(t *testing.T
 			Block:    schedule.TimeBlock{ID: "block-1", BlockType: input.BlockType, StartsAt: input.StartsAt, EndsAt: input.EndsAt},
 		}, nil
 	}}
-	svc := schedule.NewService(repo, fakeBarberPort{exists: true})
+	svc := schedule.NewService(repo, fakeProfessionalPort{exists: true})
 
-	result, err := svc.CreateBlock(context.Background(), "shop-1", validBarberID, schedule.BlockTypeEmergency, "2026-07-20T15:00:00-05:00", "2026-07-20T19:00:00-05:00", nil, "key-1", "a")
+	result, err := svc.CreateBlock(context.Background(), "shop-1", validProfessionalID, schedule.BlockTypeEmergency, "2026-07-20T15:00:00-05:00", "2026-07-20T19:00:00-05:00", nil, "key-1", "a")
 	if err != nil {
 		t.Fatalf("esperaba éxito, obtuve %v", err)
 	}
@@ -143,9 +143,9 @@ func TestDeleteBlock_NotFound_ReturnsNotFound(t *testing.T) {
 	repo := &fakeRepository{deleteBlockFn: func(context.Context, string, string, string, string) (bool, error) {
 		return false, nil
 	}}
-	svc := schedule.NewService(repo, fakeBarberPort{})
+	svc := schedule.NewService(repo, fakeProfessionalPort{})
 
-	err := svc.DeleteBlock(context.Background(), "shop-1", validBarberID, validWorkingHourID, "actor-1")
+	err := svc.DeleteBlock(context.Background(), "shop-1", validProfessionalID, validWorkingHourID, "actor-1")
 	mustBeNotFound(t, err)
 }
 
@@ -154,9 +154,9 @@ func TestDeleteBlock_MalformedID_RejectedWithoutTouchingRepository(t *testing.T)
 		t.Fatal("repository no debe llamarse con un id malformado")
 		return false, nil
 	}}
-	svc := schedule.NewService(repo, fakeBarberPort{})
+	svc := schedule.NewService(repo, fakeProfessionalPort{})
 
-	err := svc.DeleteBlock(context.Background(), "shop-1", validBarberID, "not-a-uuid", "actor-1")
+	err := svc.DeleteBlock(context.Background(), "shop-1", validProfessionalID, "not-a-uuid", "actor-1")
 	mustBeNotFound(t, err)
 }
 
@@ -167,9 +167,9 @@ func TestCreateSeries_WeeklyMissingWeekday_Rejected(t *testing.T) {
 		t.Fatal("repository no debe llamarse con una forma inválida")
 		return schedule.CreateSeriesResult{}, nil
 	}}
-	svc := schedule.NewService(repo, fakeBarberPort{})
+	svc := schedule.NewService(repo, fakeProfessionalPort{})
 
-	_, err := svc.CreateSeries(context.Background(), "shop-1", validBarberID, schedule.BlockTypeLunch, schedule.RecurrenceKindWeekly, nil, "13:00", 60, "2026-01-01", nil, nil, nil, "key-1", "a")
+	_, err := svc.CreateSeries(context.Background(), "shop-1", validProfessionalID, schedule.BlockTypeLunch, schedule.RecurrenceKindWeekly, nil, "13:00", 60, "2026-01-01", nil, nil, nil, "key-1", "a")
 	mustBeValidation(t, err)
 }
 
@@ -178,10 +178,10 @@ func TestCreateSeries_DateListWithWeekday_Rejected(t *testing.T) {
 		t.Fatal("repository no debe llamarse con una forma inválida")
 		return schedule.CreateSeriesResult{}, nil
 	}}
-	svc := schedule.NewService(repo, fakeBarberPort{})
+	svc := schedule.NewService(repo, fakeProfessionalPort{})
 
 	monday := 1
-	_, err := svc.CreateSeries(context.Background(), "shop-1", validBarberID, schedule.BlockTypeVacation, schedule.RecurrenceKindDateList, &monday, "00:00", 1440, "2026-01-01", nil, nil, nil, "key-1", "a")
+	_, err := svc.CreateSeries(context.Background(), "shop-1", validProfessionalID, schedule.BlockTypeVacation, schedule.RecurrenceKindDateList, &monday, "00:00", 1440, "2026-01-01", nil, nil, nil, "key-1", "a")
 	mustBeValidation(t, err)
 }
 
@@ -190,10 +190,10 @@ func TestCreateSeries_ExplicitDateOutOfRange_Rejected(t *testing.T) {
 		t.Fatal("repository no debe llamarse con una fecha fuera de rango")
 		return schedule.CreateSeriesResult{}, nil
 	}}
-	svc := schedule.NewService(repo, fakeBarberPort{exists: true})
+	svc := schedule.NewService(repo, fakeProfessionalPort{exists: true})
 
 	until := "2026-12-31"
-	_, err := svc.CreateSeries(context.Background(), "shop-1", validBarberID, schedule.BlockTypeVacation, schedule.RecurrenceKindDateList, nil, "00:00", 1440, "2026-12-15", &until, nil, []string{"2027-01-05"}, "key-1", "a")
+	_, err := svc.CreateSeries(context.Background(), "shop-1", validProfessionalID, schedule.BlockTypeVacation, schedule.RecurrenceKindDateList, nil, "00:00", 1440, "2026-12-15", &until, nil, []string{"2027-01-05"}, "key-1", "a")
 	mustBeValidation(t, err)
 }
 
@@ -202,10 +202,10 @@ func TestCreateSeries_ExplicitDatesOnWeekly_Rejected(t *testing.T) {
 		t.Fatal("repository no debe llamarse: explicitDates no aplica a weekly")
 		return schedule.CreateSeriesResult{}, nil
 	}}
-	svc := schedule.NewService(repo, fakeBarberPort{exists: true})
+	svc := schedule.NewService(repo, fakeProfessionalPort{exists: true})
 
 	monday := 1
-	_, err := svc.CreateSeries(context.Background(), "shop-1", validBarberID, schedule.BlockTypeLunch, schedule.RecurrenceKindWeekly, &monday, "13:00", 60, "2026-01-01", nil, nil, []string{"2026-01-05"}, "key-1", "a")
+	_, err := svc.CreateSeries(context.Background(), "shop-1", validProfessionalID, schedule.BlockTypeLunch, schedule.RecurrenceKindWeekly, &monday, "13:00", 60, "2026-01-01", nil, nil, []string{"2026-01-05"}, "key-1", "a")
 	mustBeValidation(t, err)
 }
 
@@ -216,10 +216,10 @@ func TestCreateSeries_Valid_PassesThroughToRepository(t *testing.T) {
 			Series:   schedule.TimeBlockSeries{ID: "series-1", RecurrenceKind: input.RecurrenceKind},
 		}, nil
 	}}
-	svc := schedule.NewService(repo, fakeBarberPort{exists: true})
+	svc := schedule.NewService(repo, fakeProfessionalPort{exists: true})
 
 	monday := 1
-	result, err := svc.CreateSeries(context.Background(), "shop-1", validBarberID, schedule.BlockTypeLunch, schedule.RecurrenceKindWeekly, &monday, "13:00", 60, "2026-01-01", nil, nil, nil, "key-1", "a")
+	result, err := svc.CreateSeries(context.Background(), "shop-1", validProfessionalID, schedule.BlockTypeLunch, schedule.RecurrenceKindWeekly, &monday, "13:00", 60, "2026-01-01", nil, nil, nil, "key-1", "a")
 	if err != nil {
 		t.Fatalf("esperaba éxito, obtuve %v", err)
 	}
@@ -232,9 +232,9 @@ func TestCreateSeries_Valid_PassesThroughToRepository(t *testing.T) {
 
 func TestUpdateSeries_InvalidScope_Rejected(t *testing.T) {
 	repo := &fakeRepository{}
-	svc := schedule.NewService(repo, fakeBarberPort{})
+	svc := schedule.NewService(repo, fakeProfessionalPort{})
 
-	_, err := svc.UpdateSeries(context.Background(), "shop-1", validBarberID, validSeriesID, "not-a-scope", schedule.BlockTypeLunch, "13:00", 60, "2026-01-01", nil, nil, "")
+	_, err := svc.UpdateSeries(context.Background(), "shop-1", validProfessionalID, validSeriesID, "not-a-scope", schedule.BlockTypeLunch, "13:00", 60, "2026-01-01", nil, nil, "")
 	mustBeValidation(t, err)
 }
 
@@ -242,9 +242,9 @@ func TestUpdateSeries_Whole_NotFound_ReturnsNotFound(t *testing.T) {
 	repo := &fakeRepository{updateSeriesWholeFn: func(context.Context, string, string, string, schedule.UpdateSeriesInput) (schedule.UpdateSeriesResult, error) {
 		return schedule.UpdateSeriesResult{Found: false}, nil
 	}}
-	svc := schedule.NewService(repo, fakeBarberPort{})
+	svc := schedule.NewService(repo, fakeProfessionalPort{})
 
-	_, err := svc.UpdateSeries(context.Background(), "shop-1", validBarberID, validSeriesID, schedule.UpdateScopeWhole, schedule.BlockTypeLunch, "13:00", 60, "2026-01-01", nil, nil, "")
+	_, err := svc.UpdateSeries(context.Background(), "shop-1", validProfessionalID, validSeriesID, schedule.UpdateScopeWhole, schedule.BlockTypeLunch, "13:00", 60, "2026-01-01", nil, nil, "")
 	mustBeNotFound(t, err)
 }
 
@@ -252,9 +252,9 @@ func TestUpdateSeries_ThisAndFollowing_OnDateListSeries_Rejected(t *testing.T) {
 	repo := &fakeRepository{getSeriesFn: func(context.Context, string, string, string) (schedule.TimeBlockSeries, bool, error) {
 		return schedule.TimeBlockSeries{ID: validSeriesID, RecurrenceKind: schedule.RecurrenceKindDateList, EffectiveFrom: "2026-01-01"}, true, nil
 	}}
-	svc := schedule.NewService(repo, fakeBarberPort{})
+	svc := schedule.NewService(repo, fakeProfessionalPort{})
 
-	_, err := svc.UpdateSeries(context.Background(), "shop-1", validBarberID, validSeriesID, schedule.UpdateScopeThisAndFollowing, schedule.BlockTypeVacation, "00:00", 1440, "2026-01-01", nil, nil, "2026-06-01")
+	_, err := svc.UpdateSeries(context.Background(), "shop-1", validProfessionalID, validSeriesID, schedule.UpdateScopeThisAndFollowing, schedule.BlockTypeVacation, "00:00", 1440, "2026-01-01", nil, nil, "2026-06-01")
 	mustBeValidation(t, err)
 }
 
@@ -262,9 +262,9 @@ func TestUpdateSeries_ThisAndFollowing_SplitDateNotAfterEffectiveFrom_Rejected(t
 	repo := &fakeRepository{getSeriesFn: func(context.Context, string, string, string) (schedule.TimeBlockSeries, bool, error) {
 		return schedule.TimeBlockSeries{ID: validSeriesID, RecurrenceKind: schedule.RecurrenceKindWeekly, EffectiveFrom: "2026-01-01"}, true, nil
 	}}
-	svc := schedule.NewService(repo, fakeBarberPort{})
+	svc := schedule.NewService(repo, fakeProfessionalPort{})
 
-	_, err := svc.UpdateSeries(context.Background(), "shop-1", validBarberID, validSeriesID, schedule.UpdateScopeThisAndFollowing, schedule.BlockTypeLunch, "13:00", 60, "2026-01-01", nil, nil, "2026-01-01")
+	_, err := svc.UpdateSeries(context.Background(), "shop-1", validProfessionalID, validSeriesID, schedule.UpdateScopeThisAndFollowing, schedule.BlockTypeLunch, "13:00", 60, "2026-01-01", nil, nil, "2026-01-01")
 	mustBeValidation(t, err)
 }
 
@@ -280,9 +280,9 @@ func TestUpdateSeries_ThisAndFollowing_Valid_DelegatesToSplitSeriesFrom(t *testi
 			return schedule.UpdateSeriesResult{Found: true, Series: schedule.TimeBlockSeries{ID: "series-2"}}, nil
 		},
 	}
-	svc := schedule.NewService(repo, fakeBarberPort{})
+	svc := schedule.NewService(repo, fakeProfessionalPort{})
 
-	result, err := svc.UpdateSeries(context.Background(), "shop-1", validBarberID, validSeriesID, schedule.UpdateScopeThisAndFollowing, schedule.BlockTypeLunch, "13:00", 60, "2026-01-01", nil, nil, "2026-06-01")
+	result, err := svc.UpdateSeries(context.Background(), "shop-1", validProfessionalID, validSeriesID, schedule.UpdateScopeThisAndFollowing, schedule.BlockTypeLunch, "13:00", 60, "2026-01-01", nil, nil, "2026-06-01")
 	if err != nil {
 		t.Fatalf("esperaba éxito, obtuve %v", err)
 	}
@@ -300,9 +300,9 @@ func TestAddSeriesDate_OnWeeklySeries_Rejected(t *testing.T) {
 	repo := &fakeRepository{getSeriesFn: func(context.Context, string, string, string) (schedule.TimeBlockSeries, bool, error) {
 		return schedule.TimeBlockSeries{ID: validSeriesID, RecurrenceKind: schedule.RecurrenceKindWeekly, EffectiveFrom: "2026-01-01"}, true, nil
 	}}
-	svc := schedule.NewService(repo, fakeBarberPort{})
+	svc := schedule.NewService(repo, fakeProfessionalPort{})
 
-	err := svc.AddSeriesDate(context.Background(), "shop-1", validBarberID, validSeriesID, "2026-01-05")
+	err := svc.AddSeriesDate(context.Background(), "shop-1", validProfessionalID, validSeriesID, "2026-01-05")
 	mustBeValidation(t, err)
 }
 
@@ -311,9 +311,9 @@ func TestAddSeriesDate_OutOfEffectiveRange_Rejected(t *testing.T) {
 		until := "2026-01-31"
 		return schedule.TimeBlockSeries{ID: validSeriesID, RecurrenceKind: schedule.RecurrenceKindDateList, EffectiveFrom: "2026-01-01", EffectiveUntil: &until}, true, nil
 	}}
-	svc := schedule.NewService(repo, fakeBarberPort{})
+	svc := schedule.NewService(repo, fakeProfessionalPort{})
 
-	err := svc.AddSeriesDate(context.Background(), "shop-1", validBarberID, validSeriesID, "2026-02-15")
+	err := svc.AddSeriesDate(context.Background(), "shop-1", validProfessionalID, validSeriesID, "2026-02-15")
 	mustBeValidation(t, err)
 }
 
@@ -326,22 +326,22 @@ func TestAddSeriesDate_Duplicate_ReturnsConflict(t *testing.T) {
 			return true, true, nil
 		},
 	}
-	svc := schedule.NewService(repo, fakeBarberPort{})
+	svc := schedule.NewService(repo, fakeProfessionalPort{})
 
-	err := svc.AddSeriesDate(context.Background(), "shop-1", validBarberID, validSeriesID, "2026-01-05")
+	err := svc.AddSeriesDate(context.Background(), "shop-1", validProfessionalID, validSeriesID, "2026-01-05")
 	mustBeConflict(t, err)
 }
 
 // --- EffectiveBlocks: proyección --------------------------------------
 
 func TestEffectiveBlocks_ToBeforeFrom_Rejected(t *testing.T) {
-	svc := schedule.NewService(&fakeRepository{}, fakeBarberPort{})
+	svc := schedule.NewService(&fakeRepository{}, fakeProfessionalPort{})
 
 	// to anterior a from es un parámetro de consulta malformado
 	// (apperr.KindInvalid), mismo Kind que un cursor corrupto o un limit
 	// no numérico: no depende del estado persistido, así que no es
 	// apperr.KindValidation.
-	_, err := svc.EffectiveBlocks(context.Background(), "shop-1", validBarberID, "2026-07-20", "2026-07-01")
+	_, err := svc.EffectiveBlocks(context.Background(), "shop-1", validProfessionalID, "2026-07-20", "2026-07-01")
 	appErr, ok := apperr.As(err)
 	if !ok || appErr.Kind != apperr.KindInvalid {
 		t.Fatalf("expected apperr.KindInvalid, got %v", err)
@@ -364,10 +364,10 @@ func TestEffectiveBlocks_ExpandsWeeklySeriesAndExcludesExceptions(t *testing.T) 
 			}, nil
 		},
 	}
-	svc := schedule.NewService(repo, fakeBarberPort{exists: true})
+	svc := schedule.NewService(repo, fakeProfessionalPort{exists: true})
 
 	// 2026-01-05 y 2026-01-12 y 2026-01-19 son lunes; 2026-01-12 está excluido.
-	result, err := svc.EffectiveBlocks(context.Background(), "shop-1", validBarberID, "2026-01-01", "2026-01-19")
+	result, err := svc.EffectiveBlocks(context.Background(), "shop-1", validProfessionalID, "2026-01-01", "2026-01-19")
 	if err != nil {
 		t.Fatalf("esperaba éxito, obtuve %v", err)
 	}
@@ -403,9 +403,9 @@ func TestEffectiveBlocks_DateListSeries_OnlyDatesWithinQueryRange(t *testing.T) 
 			}, nil
 		},
 	}
-	svc := schedule.NewService(repo, fakeBarberPort{exists: true})
+	svc := schedule.NewService(repo, fakeProfessionalPort{exists: true})
 
-	result, err := svc.EffectiveBlocks(context.Background(), "shop-1", validBarberID, "2026-01-01", "2026-01-31")
+	result, err := svc.EffectiveBlocks(context.Background(), "shop-1", validProfessionalID, "2026-01-01", "2026-01-31")
 	if err != nil {
 		t.Fatalf("esperaba éxito, obtuve %v", err)
 	}

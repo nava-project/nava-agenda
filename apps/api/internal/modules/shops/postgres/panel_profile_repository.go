@@ -4,8 +4,8 @@ import (
 	"context"
 	"fmt"
 
-	"system-barbershop/internal/modules/shops"
-	"system-barbershop/internal/platform/database"
+	"nava-agenda/internal/modules/shops"
+	"nava-agenda/internal/platform/database"
 )
 
 // PanelProfileRepository implementa shops.PanelProfileRepository sobre la
@@ -23,17 +23,17 @@ func NewPanelProfileRepository(db *database.DB) *PanelProfileRepository {
 var _ shops.PanelProfileRepository = (*PanelProfileRepository)(nil)
 
 // RolesOf implementa shops.PanelProfileRepository.RolesOf. RLS ya restringe las
-// filas al tenant vigente; el filtro por barbershop_id es defensa en
+// filas al tenant vigente; el filtro por business_id es defensa en
 // profundidad, mismo patrón que BrandRepository.Get.
-func (r *PanelProfileRepository) RolesOf(ctx context.Context, barbershopID, staffUserID string) ([]shops.Role, error) {
+func (r *PanelProfileRepository) RolesOf(ctx context.Context, businessID, staffUserID string) ([]shops.Role, error) {
 	var roles []shops.Role
 
-	err := r.db.InTenantTx(ctx, database.BarbershopID(barbershopID), func(ctx context.Context, q database.Queries) error {
+	err := r.db.InTenantTx(ctx, database.BusinessID(businessID), func(ctx context.Context, q database.Queries) error {
 		rows, err := q.Query(ctx,
 			`SELECT role
 			   FROM staff_user_role
 			  WHERE business_id = $1 AND staff_user_id = $2`,
-			barbershopID, staffUserID)
+			businessID, staffUserID)
 		if err != nil {
 			return fmt.Errorf("select roles: %w", err)
 		}

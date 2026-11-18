@@ -5,7 +5,7 @@
  *   un código incorrecto se limpia y a los cinco se bloquea; reenvío con cuenta atrás;
  * - paso 3: un turno abre sus acciones en la misma página (#647); varios se eligen antes en
  *   una lista, también sin salir;
- * - barbería inexistente y accesibilidad (axe-core) en cada paso.
+ * - negocio inexistente y accesibilidad (axe-core) en cada paso.
  */
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { flushPromises, mount, type VueWrapper } from '@vue/test-utils'
@@ -52,11 +52,11 @@ function script(queues: { challenge?: Reply[]; verify?: Reply[] }) {
 
 const ACCEPTED: Reply = { status: 202, data: { expiresInSeconds: 600, resendAfterSeconds: 60 } }
 const WRONG: Reply = { status: 401, error: problem(401, 'unauthorized') }
-const appointment = (token: string, startsAt: string, service: string, barber: string) => ({
+const appointment = (token: string, startsAt: string, service: string, professional: string) => ({
   accessToken: token,
   startsAt,
   serviceName: service,
-  professionalName: barber,
+  professionalName: professional,
 })
 const ONE: Reply = {
   status: 200,
@@ -225,7 +225,7 @@ describe('CustomerAccessPage · paso 1, contacto', () => {
     expect(w.find('h1').text()).toBe('Encuentra tu turno')
   })
 
-  it('un enlace sin barbería muestra su propio estado', async () => {
+  it('un enlace sin negocio muestra su propio estado', async () => {
     script({ challenge: [{ status: 404, error: problem(404, 'not-found') }] })
     const w = await mountPage()
     await sendContact(w)

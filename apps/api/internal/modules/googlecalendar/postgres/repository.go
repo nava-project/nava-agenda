@@ -1,7 +1,7 @@
 // Package postgres es el adaptador de persistencia de googlecalendar.Repository
 // sobre database.DB: el núcleo no importa este paquete ni pgx. Toda operación
 // corre en una transacción con el tenant fijado y filtra además por
-// barbershop_id (defensa en profundidad sobre RLS).
+// business_id (defensa en profundidad sobre RLS).
 package postgres
 
 import (
@@ -12,8 +12,8 @@ import (
 
 	"github.com/jackc/pgx/v5"
 
-	"system-barbershop/internal/modules/googlecalendar"
-	"system-barbershop/internal/platform/database"
+	"nava-agenda/internal/modules/googlecalendar"
+	"nava-agenda/internal/platform/database"
 )
 
 // Repository implementa googlecalendar.Repository.
@@ -34,7 +34,7 @@ const connectionColumns = `id::text, business_id::text, professional_id::text, s
 func scanConnection(row pgx.Row) (googlecalendar.Connection, error) {
 	var c googlecalendar.Connection
 	var status string
-	err := row.Scan(&c.ID, &c.BarbershopID, &c.BarberID, &status, &c.AccountEmail, &c.CalendarID,
+	err := row.Scan(&c.ID, &c.BusinessID, &c.ProfessionalID, &status, &c.AccountEmail, &c.CalendarID,
 		&c.ReminderMinutes, &c.ConnectedAt, &c.DisconnectedAt, &c.LastSyncedAt, &c.LastErrorCode,
 		&c.Credentials, &c.KeyID)
 	c.Status = googlecalendar.Status(status)
@@ -42,13 +42,13 @@ func scanConnection(row pgx.Row) (googlecalendar.Connection, error) {
 }
 
 // GetConnection implementa googlecalendar.Repository.GetConnection.
-func (r *Repository) GetConnection(ctx context.Context, barbershopID, barberID string) (googlecalendar.Connection, bool, error) {
+func (r *Repository) GetConnection(ctx context.Context, businessID, professionalID string) (googlecalendar.Connection, bool, error) {
 	var conn googlecalendar.Connection
 	found := false
-	err := r.db.InTenantTx(ctx, database.BarbershopID(barbershopID), func(ctx context.Context, q database.Queries) error {
+	err := r.db.InTenantTx(ctx, database.BusinessID(businessID), func(ctx context.Context, q database.Queries) error {
 		c, err := scanConnection(q.QueryRow(ctx,
 			`SELECT `+connectionColumns+` FROM google_calendar_connection
-			  WHERE business_id = $1 AND professional_id = $2`, barbershopID, barberID))
+			  WHERE business_id = $1 AND professional_id = $2`, businessID, professionalID))
 		switch {
 		case err == nil:
 			conn, found = c, true
@@ -65,11 +65,11 @@ func (r *Repository) GetConnection(ctx context.Context, barbershopID, barberID s
 }
 
 // SaveConnected implementa googlecalendar.Repository.SaveConnected. La
-// restricción UNIQUE (barbershop_id, barber_id) convierte el INSERT en el
-// «crear o reutilizar» de un barbero: reconectar no deja filas duplicadas.
-func (r *Repository) SaveConnected(ctx context.Context, barbershopID, barberID string, data googlecalendar.ConnectedData) (googlecalendar.Connection, error) {
+// restricción UNIQUE (business_id, professional_id) convierte el INSERT en el
+// «crear o reutilizar» de un profesional: reconectar no deja filas duplicadas.
+func (r *Repository) SaveConnected(ctx context.Context, businessID, professionalID string, data googlecalendar.ConnectedData) (googlecalendar.Connection, error) {
 	var conn googlecalendar.Connection
-	err := r.db.InTenantTx(ctx, database.BarbershopID(barbershopID), func(ctx context.Context, q database.Queries) error {
+	err := r.db.InTenantTx(ctx, database.BusinessID(businessID), func(ctx context.Context, q database.Queries) error {
 		c, err := scanConnection(q.QueryRow(ctx,
 			`INSERT INTO google_calendar_connection AS g
 			    (business_id, professional_id, status, google_account_email, refresh_token_ciphertext,
@@ -84,12 +84,12 @@ func (r *Repository) SaveConnected(ctx context.Context, barbershopID, barberID s
 			    disconnected_at = NULL,
 			    last_error_code = NULL
 			 RETURNING `+connectionColumns,
-			barbershopID, barberID, data.AccountEmail, data.Credentials, data.KeyID, data.At))
+			businessID, professionalID, data.AccountEmail, data.Credentials, data.KeyID, data.At))
 		if err != nil {
 			return fmt.Errorf("upsert connection: %w", err)
 		}
 		conn = c
-		if _, err := q.Exec(ctx, enqueueInitialSQL, barbershopID, barberID, data.At); err != nil {
+		if _, err := q.Exec(ctx, enqueueInitialSQL, businessID, professionalID, data.At); err != nil {
 			return fmt.Errorf("enqueue initial publication: %w", err)
 		}
 		return nil
@@ -101,13 +101,13 @@ func (r *Repository) SaveConnected(ctx context.Context, barbershopID, barberID s
 }
 
 // MarkStatus implementa googlecalendar.Repository.MarkStatus.
-func (r *Repository) MarkStatus(ctx context.Context, barbershopID, barberID string, status googlecalendar.Status, errorCode string, at time.Time) (bool, error) {
+func (r *Repository) MarkStatus(ctx context.Context, businessID, professionalID string, status googlecalendar.Status, errorCode string, at time.Time) (bool, error) {
 	var query string
-	args := []any{barbershopID, barberID, errorCode}
+	args := []any{businessID, professionalID, errorCode}
 	switch status {
 	case googlecalendar.StatusDisconnected:
 		// Desconectar borra credenciales y correo de la cuenta; conserva el
-		// barbero, la preferencia de recordatorio y las fechas.
+		// profesional, la preferencia de recordatorio y las fechas.
 		query = `UPDATE google_calendar_connection
 		            SET status = 'disconnected', refresh_token_ciphertext = NULL, token_key_id = NULL,
 		                google_account_email = NULL, disconnected_at = $4, last_error_code = NULLIF($3, '')
@@ -127,7 +127,7 @@ func (r *Repository) MarkStatus(ctx context.Context, barbershopID, barberID stri
 	}
 
 	found := false
-	err := r.db.InTenantTx(ctx, database.BarbershopID(barbershopID), func(ctx context.Context, q database.Queries) error {
+	err := r.db.InTenantTx(ctx, database.BusinessID(businessID), func(ctx context.Context, q database.Queries) error {
 		tag, err := q.Exec(ctx, query, args...)
 		if err != nil {
 			return fmt.Errorf("update status: %w", err)
@@ -136,7 +136,7 @@ func (r *Repository) MarkStatus(ctx context.Context, barbershopID, barberID stri
 		// Una conexión que ya no publica detiene su cola (DEC-101.11); al volver a
 		// conectar, la publicación inicial reencola lo vigente.
 		if found && (status == googlecalendar.StatusDisconnected || status == googlecalendar.StatusReauthRequired) {
-			if _, err := q.Exec(ctx, deleteConnectionJobsSQL, barbershopID, barberID); err != nil {
+			if _, err := q.Exec(ctx, deleteConnectionJobsSQL, businessID, professionalID); err != nil {
 				return fmt.Errorf("drop connection jobs: %w", err)
 			}
 		}
@@ -149,14 +149,14 @@ func (r *Repository) MarkStatus(ctx context.Context, barbershopID, barberID stri
 }
 
 // SetReminder implementa googlecalendar.Repository.SetReminder.
-func (r *Repository) SetReminder(ctx context.Context, barbershopID, barberID string, minutes *int) (googlecalendar.Connection, bool, error) {
+func (r *Repository) SetReminder(ctx context.Context, businessID, professionalID string, minutes *int) (googlecalendar.Connection, bool, error) {
 	var conn googlecalendar.Connection
 	found := false
-	err := r.db.InTenantTx(ctx, database.BarbershopID(barbershopID), func(ctx context.Context, q database.Queries) error {
+	err := r.db.InTenantTx(ctx, database.BusinessID(businessID), func(ctx context.Context, q database.Queries) error {
 		c, err := scanConnection(q.QueryRow(ctx,
 			`UPDATE google_calendar_connection SET reminder_minutes = $3
 			  WHERE business_id = $1 AND professional_id = $2 AND status <> 'disconnected'
-			  RETURNING `+connectionColumns, barbershopID, barberID, minutes))
+			  RETURNING `+connectionColumns, businessID, professionalID, minutes))
 		switch {
 		case err == nil:
 			conn, found = c, true
@@ -165,7 +165,7 @@ func (r *Repository) SetReminder(ctx context.Context, barbershopID, barberID str
 		default:
 			return fmt.Errorf("update reminder: %w", err)
 		}
-		if _, err := q.Exec(ctx, enqueueReminderRefreshSQL, barbershopID, barberID, time.Now().UTC()); err != nil {
+		if _, err := q.Exec(ctx, enqueueReminderRefreshSQL, businessID, professionalID, time.Now().UTC()); err != nil {
 			return fmt.Errorf("enqueue reminder refresh: %w", err)
 		}
 		return nil
@@ -178,14 +178,14 @@ func (r *Repository) SetReminder(ctx context.Context, barbershopID, barberID str
 
 // CreateState implementa googlecalendar.Repository.CreateState.
 func (r *Repository) CreateState(ctx context.Context, state googlecalendar.OAuthState, now time.Time) error {
-	err := r.db.InTenantTx(ctx, database.BarbershopID(state.BarbershopID), func(ctx context.Context, q database.Queries) error {
-		// Purga oportunista: los estados vencidos o ya usados de este barbero
+	err := r.db.InTenantTx(ctx, database.BusinessID(state.BusinessID), func(ctx context.Context, q database.Queries) error {
+		// Purga oportunista: los estados vencidos o ya usados de este profesional
 		// no se acumulan aunque nadie ejecute un trabajo de limpieza.
 		if _, err := q.Exec(ctx,
 			`DELETE FROM google_calendar_oauth_state
 			  WHERE business_id = $1 AND professional_id = $2
 			    AND (expires_at <= $3 OR consumed_at IS NOT NULL)`,
-			state.BarbershopID, state.BarberID, now); err != nil {
+			state.BusinessID, state.ProfessionalID, now); err != nil {
 			return fmt.Errorf("purge states: %w", err)
 		}
 		if _, err := q.Exec(ctx,
@@ -193,7 +193,7 @@ func (r *Repository) CreateState(ctx context.Context, state googlecalendar.OAuth
 			    (business_id, professional_id, staff_user_id, session_id, state_hash,
 			     code_verifier_ciphertext, verifier_key_id, expires_at, created_at)
 			 VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)`,
-			state.BarbershopID, state.BarberID, state.StaffUserID, state.SessionID, state.StateHash,
+			state.BusinessID, state.ProfessionalID, state.StaffUserID, state.SessionID, state.StateHash,
 			state.VerifierEncrypted, state.VerifierKeyID, state.ExpiresAt, now); err != nil {
 			return fmt.Errorf("insert state: %w", err)
 		}
@@ -208,18 +208,18 @@ func (r *Repository) CreateState(ctx context.Context, state googlecalendar.OAuth
 // ConsumeState implementa googlecalendar.Repository.ConsumeState. El UPDATE
 // condicional es atómico: de dos callbacks con el mismo state solo uno recibe
 // la fila.
-func (r *Repository) ConsumeState(ctx context.Context, barbershopID, stateHash string, now time.Time) (googlecalendar.OAuthState, bool, error) {
+func (r *Repository) ConsumeState(ctx context.Context, businessID, stateHash string, now time.Time) (googlecalendar.OAuthState, bool, error) {
 	var state googlecalendar.OAuthState
 	found := false
-	err := r.db.InTenantTx(ctx, database.BarbershopID(barbershopID), func(ctx context.Context, q database.Queries) error {
+	err := r.db.InTenantTx(ctx, database.BusinessID(businessID), func(ctx context.Context, q database.Queries) error {
 		err := q.QueryRow(ctx,
 			`UPDATE google_calendar_oauth_state SET consumed_at = $3
 			  WHERE business_id = $1 AND state_hash = $2
 			    AND consumed_at IS NULL AND expires_at > $3
 			  RETURNING business_id::text, professional_id::text, staff_user_id::text, session_id::text,
 			            state_hash, code_verifier_ciphertext, verifier_key_id, expires_at`,
-			barbershopID, stateHash, now,
-		).Scan(&state.BarbershopID, &state.BarberID, &state.StaffUserID, &state.SessionID,
+			businessID, stateHash, now,
+		).Scan(&state.BusinessID, &state.ProfessionalID, &state.StaffUserID, &state.SessionID,
 			&state.StateHash, &state.VerifierEncrypted, &state.VerifierKeyID, &state.ExpiresAt)
 		switch {
 		case err == nil:
@@ -236,29 +236,29 @@ func (r *Repository) ConsumeState(ctx context.Context, barbershopID, stateHash s
 	return state, found, nil
 }
 
-// BarberOfUser implementa googlecalendar.Repository.BarberOfUser. Lee el
-// vínculo de DEC-100 directamente: el módulo dueño de `barber` (staff) no se
+// ProfessionalOfUser implementa googlecalendar.Repository.ProfessionalOfUser. Lee el
+// vínculo de DEC-100 directamente: el módulo dueño de `professional` (staff) no se
 // importa, igual que el resto de módulos que consultan datos ajenos.
-func (r *Repository) BarberOfUser(ctx context.Context, barbershopID, staffUserID string) (string, bool, error) {
-	barberID := ""
+func (r *Repository) ProfessionalOfUser(ctx context.Context, businessID, staffUserID string) (string, bool, error) {
+	professionalID := ""
 	found := false
-	err := r.db.InTenantTx(ctx, database.BarbershopID(barbershopID), func(ctx context.Context, q database.Queries) error {
+	err := r.db.InTenantTx(ctx, database.BusinessID(businessID), func(ctx context.Context, q database.Queries) error {
 		err := q.QueryRow(ctx,
 			`SELECT id::text FROM professional WHERE business_id = $1 AND staff_user_id = $2`,
-			barbershopID, staffUserID).Scan(&barberID)
+			businessID, staffUserID).Scan(&professionalID)
 		switch {
 		case err == nil:
 			found = true
 		case errors.Is(err, pgx.ErrNoRows):
 		default:
-			return fmt.Errorf("select linked barber: %w", err)
+			return fmt.Errorf("select linked professional: %w", err)
 		}
 		return nil
 	})
 	if err != nil {
-		return "", false, fmt.Errorf("googlecalendar/postgres: barber of user: %w", err)
+		return "", false, fmt.Errorf("googlecalendar/postgres: professional of user: %w", err)
 	}
-	return barberID, found, nil
+	return professionalID, found, nil
 }
 
 const enqueueInitialSQL = `
@@ -301,16 +301,16 @@ DELETE FROM google_calendar_sync_job
    AND connection_id = (SELECT id FROM google_calendar_connection WHERE business_id = $1 AND professional_id = $2)`
 
 // JobCounts implementa googlecalendar.Repository.JobCounts.
-func (r *Repository) JobCounts(ctx context.Context, barbershopID, barberID string) (googlecalendar.JobCounts, error) {
+func (r *Repository) JobCounts(ctx context.Context, businessID, professionalID string) (googlecalendar.JobCounts, error) {
 	var counts googlecalendar.JobCounts
-	err := r.db.InTenantTx(ctx, database.BarbershopID(barbershopID), func(ctx context.Context, q database.Queries) error {
+	err := r.db.InTenantTx(ctx, database.BusinessID(businessID), func(ctx context.Context, q database.Queries) error {
 		return q.QueryRow(ctx,
 			`SELECT count(*) FILTER (WHERE j.status IN ('pending', 'processing')),
 			        count(*) FILTER (WHERE j.status = 'failed')
 			   FROM google_calendar_sync_job j
 			   JOIN google_calendar_connection c ON c.business_id = j.business_id AND c.id = j.connection_id
 			  WHERE c.business_id = $1 AND c.professional_id = $2`,
-			barbershopID, barberID).Scan(&counts.Pending, &counts.Failed)
+			businessID, professionalID).Scan(&counts.Pending, &counts.Failed)
 	})
 	if err != nil {
 		return googlecalendar.JobCounts{}, fmt.Errorf("googlecalendar/postgres: job counts: %w", err)
@@ -319,15 +319,15 @@ func (r *Repository) JobCounts(ctx context.Context, barbershopID, barberID strin
 }
 
 // RequeueConnection implementa googlecalendar.Repository.RequeueConnection.
-func (r *Repository) RequeueConnection(ctx context.Context, barbershopID, barberID string, now time.Time) (googlecalendar.JobCounts, bool, error) {
+func (r *Repository) RequeueConnection(ctx context.Context, businessID, professionalID string, now time.Time) (googlecalendar.JobCounts, bool, error) {
 	var counts googlecalendar.JobCounts
 	found := false
-	err := r.db.InTenantTx(ctx, database.BarbershopID(barbershopID), func(ctx context.Context, q database.Queries) error {
+	err := r.db.InTenantTx(ctx, database.BusinessID(businessID), func(ctx context.Context, q database.Queries) error {
 		var connectionID string
 		err := q.QueryRow(ctx,
 			`SELECT id::text FROM google_calendar_connection
 			  WHERE business_id = $1 AND professional_id = $2 AND status IN ('connected', 'error')`,
-			barbershopID, barberID).Scan(&connectionID)
+			businessID, professionalID).Scan(&connectionID)
 		if errors.Is(err, pgx.ErrNoRows) {
 			return nil
 		}
@@ -347,34 +347,34 @@ func (r *Repository) RequeueConnection(ctx context.Context, barbershopID, barber
 			         AND o.resource_id = f.resource_id AND o.id <> f.id
 			         AND (o.status = 'pending'
 			              OR (o.status = 'failed' AND (o.created_at, o.id) > (f.created_at, f.id))))`,
-			barbershopID, connectionID); err != nil {
+			businessID, connectionID); err != nil {
 			return fmt.Errorf("drop superseded failed jobs: %w", err)
 		}
 		if _, err := q.Exec(ctx,
 			`UPDATE google_calendar_sync_job
 			    SET status = 'pending', attempts = 0, run_at = $3, last_error_code = NULL
 			  WHERE business_id = $1 AND connection_id = $2 AND status = 'failed'`,
-			barbershopID, connectionID, now); err != nil {
+			businessID, connectionID, now); err != nil {
 			return fmt.Errorf("retry failed jobs: %w", err)
 		}
 		if _, err := q.Exec(ctx,
 			`UPDATE google_calendar_sync_job SET run_at = LEAST(run_at, $3)
 			  WHERE business_id = $1 AND connection_id = $2 AND status = 'pending'`,
-			barbershopID, connectionID, now); err != nil {
+			businessID, connectionID, now); err != nil {
 			return fmt.Errorf("make pending jobs due: %w", err)
 		}
 		// Reintentar tras un error permanente: si vuelve a fallar, el worker lo marca de nuevo.
 		if _, err := q.Exec(ctx,
 			`UPDATE google_calendar_connection SET status = 'connected', last_error_code = NULL
 			  WHERE business_id = $1 AND id = $2 AND status = 'error'`,
-			barbershopID, connectionID); err != nil {
+			businessID, connectionID); err != nil {
 			return fmt.Errorf("reset connection error: %w", err)
 		}
 		return q.QueryRow(ctx,
 			`SELECT count(*) FILTER (WHERE status IN ('pending', 'processing')),
 			        count(*) FILTER (WHERE status = 'failed')
 			   FROM google_calendar_sync_job WHERE business_id = $1 AND connection_id = $2`,
-			barbershopID, connectionID).Scan(&counts.Pending, &counts.Failed)
+			businessID, connectionID).Scan(&counts.Pending, &counts.Failed)
 	})
 	if err != nil {
 		return googlecalendar.JobCounts{}, false, fmt.Errorf("googlecalendar/postgres: requeue connection: %w", err)

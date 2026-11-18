@@ -7,8 +7,8 @@ import (
 	"testing"
 	"time"
 
-	"system-barbershop/internal/modules/reviews"
-	"system-barbershop/internal/platform/apperr"
+	"nava-agenda/internal/modules/reviews"
+	"nava-agenda/internal/platform/apperr"
 )
 
 type fakeRepo struct {
@@ -31,7 +31,7 @@ func (f *fakeRepo) CreateByTokenHash(_ context.Context, h string, rating int, c 
 func (f *fakeRepo) ListPublic(context.Context, string, string, int) (reviews.PublicList, bool, error) {
 	return reviews.PublicList{}, true, f.err
 }
-func (f *fakeRepo) ListForBarber(context.Context, string, string, int) (reviews.PanelList, bool, error) {
+func (f *fakeRepo) ListForProfessional(context.Context, string, string, int) (reviews.PanelList, bool, error) {
 	return reviews.PanelList{}, true, f.err
 }
 func (f *fakeRepo) SetHidden(context.Context, string, string, string, bool) (reviews.Review, bool, error) {
@@ -139,8 +139,8 @@ func TestListsAndSetHidden_MalformedIDs_AreNotFoundWithoutTouchingTheRepository(
 	if _, err := svc.ListPublic(context.Background(), "slug", "no-es-uuid"); kindOf(err) != apperr.KindNotFound {
 		t.Fatalf("ListPublic: %v", err)
 	}
-	if _, err := svc.ListForBarber(context.Background(), "shop", "no-es-uuid"); kindOf(err) != apperr.KindNotFound {
-		t.Fatalf("ListForBarber: %v", err)
+	if _, err := svc.ListForProfessional(context.Background(), "shop", "no-es-uuid"); kindOf(err) != apperr.KindNotFound {
+		t.Fatalf("ListForProfessional: %v", err)
 	}
 	if _, err := svc.SetHidden(context.Background(), "shop", "8f3ac2b1-e4d5-46f6-a7c8-d9e0f1a2b3c4", "nope", true); kindOf(err) != apperr.KindNotFound {
 		t.Fatalf("SetHidden: %v", err)

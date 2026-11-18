@@ -1,11 +1,11 @@
 <script setup lang="ts">
 // Pantalla "Servicios" (HU-022, HU-024): consultar y listar el catálogo de
-// la barbería activa, crear un servicio, editarlo y cambiar su ciclo de
+// el negocio activo, crear un servicio, editarlo y cambiar su ciclo de
 // vida (desactivar/reactivar). Estados discriminados: carga inicial, listo,
 // vacío, error recuperable, guardando (mismo patrón que StaffPage.vue). Un
-// error recuperable NUNCA borra lo que el barbero ya escribió; solo un
+// error recuperable NUNCA borra lo que el profesional ya escribió; solo un
 // guardado exitoso confirmado por el servidor cierra el diálogo. Nunca
-// muestra asignaciones a barberos (HU-023), disponibilidad ni citas: fuera
+// muestra asignaciones a profesionales (HU-023), disponibilidad ni citas: fuera
 // de alcance de esta historia. Cada cambio confirmado por el servidor añade un
 // aviso emergente de confirmación (DEC-095); el resultado persistente sigue
 // siendo la propia lista, y los errores siguen dentro del diálogo, junto al
@@ -44,18 +44,18 @@ import {
 const toast = useToast()
 
 // Columna opcional «Lo ofrezco» (DEC-115): `app` la aporta con el slot
-// `service-offer` solo en el perfil de barbero individual. Sin el slot la tabla
+// `service-offer` solo en el perfil de profesional individual. Sin el slot la tabla
 // conserva exactamente su geometría de siempre. Este módulo no sabe qué hay
-// dentro ni importa `barberServices`: solo le reserva el hueco.
+// dentro ni importa `professionalServices`: solo le reserva el hueco.
 // Se lee en cada render y NO en un `computed`: los slots no son reactivos, y el
 // interruptor puede llegar después de montar (cuando termina de cargar qué ofrece).
 const slots = useSlots()
 const hasOfferColumn = () => !!slots['service-offer']
 
 // Un servicio recién creado se anuncia hacia afuera para que `app` pueda,
-// por ejemplo, ofrecérselo al único barbero sin que este módulo lo sepa.
+// por ejemplo, ofrecérselo al único profesional sin que este módulo lo sepa.
 const emit = defineEmits<{ 'service-created': [service: Service] }>()
-// Palabras de la barbería (DEC-110): con los valores iniciales, el texto de siempre.
+// Palabras del negocio (DEC-110): con los valores iniciales, el texto de siempre.
 const v = useVocabulary()
 
 type LoadStatus = 'loading' | 'ready' | 'load-error'
@@ -235,7 +235,7 @@ function computeFittingPageSize(): number | null {
 const currentPage = ref(1)
 const totalItems = ref(0)
 const totalPages = ref(1)
-// searchTerm es lo que el barbero está escribiendo AHORA MISMO (v-model del
+// searchTerm es lo que el profesional está escribiendo AHORA MISMO (v-model del
 // campo); activeSearch es el término ya aplicado a la última carga, tras el
 // debounce. Ambos difieren mientras la persona sigue escribiendo — solo
 // activeSearch decide qué copy de "vacío" mostrar y qué parámetro viaja al
@@ -654,7 +654,7 @@ const editFieldErrors = ref<FormFieldErrors>({})
 const editStatus = ref<SaveStatus>('idle')
 const editAttempted = ref(false)
 
-// HU-029 (DEC-004): si el precio cambia y el servicio tiene turnos futuros, el barbero
+// HU-029 (DEC-004): si el precio cambia y el servicio tiene turnos futuros, el profesional
 // elige si el precio nuevo también se aplica a esos turnos. Desmarcada por defecto: los
 // turnos conservan el precio con el que se agendaron (RN-SER-04). `null` = aún no se sabe
 // cuántos son (cargando o falló la consulta): la casilla se ofrece igual, sin el número.
@@ -1420,7 +1420,7 @@ async function reloadAfterConflict(serviceId: string) {
          comparten ya el mismo tinte, ficha con entrada animada y campos
          reglados). Ver estilos al final del bloque <style> para el porqué
          de cada valor (ninguno inventado: reutiliza --border-width-emphasis
-         y el mismo cubic-bezier con rebote que ya usa BarberSelect.vue). -->
+         y el mismo cubic-bezier con rebote que ya usa ProfessionalSelect.vue). -->
     <BaseDialog
       v-model="isCreateOpen"
       title="Agregar servicio"
@@ -1684,7 +1684,7 @@ async function reloadAfterConflict(serviceId: string) {
          base que alta/edición, pero la ficha y el filete del encabezado
          cambian a --color-danger-on-strong cuando la intención es
          "deactivate" (mismo rojo ya usado por el botón "Desactivar" de la
-         fila) — el diálogo advierte visualmente antes de que el barbero
+         fila) — el diálogo advierte visualmente antes de que el profesional
          lea una sola palabra. "reactivate" conserva el dorado neutro. -->
     <BaseDialog
       v-model="isLifecycleOpen"
@@ -2174,7 +2174,7 @@ async function reloadAfterConflict(serviceId: string) {
 
 /* Panel hundido sobre tinta (--color-field-strong, tokens.css: "así leen
    como un hueco en la página y no como un velo claro sobre el azul"), mismo
-   vocabulario que los campos de BarberSelect/AgendaDatePicker. */
+   vocabulario que los campos de ProfessionalSelect/AgendaDatePicker. */
 .catalog-page__list {
   display: flex;
   flex-direction: column;
@@ -3792,7 +3792,7 @@ async function reloadAfterConflict(serviceId: string) {
   width: min(100%, 720px) !important;
 }
 
-/* Mismo cubic-bezier con rebote que ya usa BarberSelect.vue para su marca
+/* Mismo cubic-bezier con rebote que ya usa ProfessionalSelect.vue para su marca
    de opción elegida (0.34, 1.56, 0.64, 1): no es un valor nuevo, es el que
    este código base ya usa para "un elemento pequeño que llega y se
    asienta". */

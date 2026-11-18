@@ -8,7 +8,7 @@ import (
 	"strings"
 	"testing"
 
-	"system-barbershop/internal/modules/notification"
+	"nava-agenda/internal/modules/notification"
 )
 
 func newResendSenderAgainstTestServer(t *testing.T, srv *httptest.Server, cfg notification.ResendEmailConfig) notification.ResendEmailSender {

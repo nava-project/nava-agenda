@@ -5,7 +5,7 @@
  * una ilustración de línea de latón que se dibuja sola (la agenda sin
  * turnos es una regla de horas con huecos, el catálogo una pila de fichas,
  * el equipo tres marcos de retrato), un titular serif, una ayuda y la acción
- * real, que el consumidor entrega por slot. Ningún motivo de barbería
+ * real, que el consumidor entrega por slot. Ningún motivo de negocio
  * (tijeras, navajas, postes): las ilustraciones son del mismo lenguaje de
  * regla, rombo y marco que el resto del panel.
  *
@@ -126,7 +126,7 @@ withDefaults(
           <path class="es-plus" d="M120 62v22M109 73h22" />
         </g>
 
-        <!-- Servicios por barbero: dos marcos y un vínculo que late -->
+        <!-- Servicios por profesional: dos marcos y un vínculo que late -->
         <g v-else-if="scene === 'assignments'">
           <g class="es-rise" style="--d: 150">
             <rect x="24" y="44" width="58" height="68" rx="2" />

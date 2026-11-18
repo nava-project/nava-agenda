@@ -7,11 +7,11 @@ import { isProblem } from '@/shared/api/problem'
 import type { ListPublicAvailabilityOutcome } from '../model/publicAvailabilityOutcome'
 
 /**
- * Lista los inicios públicos válidos para `barberId` en el servicio
- * `serviceId` de la barbería `slug`, contra el API real (HU-094). Mapea
+ * Lista los inicios públicos válidos para `professionalId` en el servicio
+ * `serviceId` del negocio `slug`, contra el API real (HU-094). Mapea
  * por `status` (nunca por `detail`): 404 cubre forma de slug inválida,
  * desconocido y no publicable, indistinguibles a propósito (CA-090-02,
- * reutilizada aquí); un `serviceId`/`barberId` ajeno, inexistente,
+ * reutilizada aquí); un `serviceId`/`professionalId` ajeno, inexistente,
  * inactivo o sin asignación vigente nunca llega como 404 -el contrato lo
  * resuelve como 200 con `slots: []` (mismo criterio que CA-092-03), así
  * que esta función jamás necesita distinguir esa causa. Cualquier otro
@@ -21,12 +21,12 @@ import type { ListPublicAvailabilityOutcome } from '../model/publicAvailabilityO
 export async function listPublicAvailability(
   slug: string,
   serviceId: string,
-  barberId: string,
+  professionalId: string,
 ): Promise<ListPublicAvailabilityOutcome> {
   try {
     const { data, error, response } = await httpClient.GET(
       '/public/businesses/{slug}/services/{serviceId}/professionals/{professionalId}/availability',
-      { params: { path: { slug, serviceId, professionalId: barberId } } },
+      { params: { path: { slug, serviceId, professionalId: professionalId } } },
     )
 
     if (response.ok && data) {

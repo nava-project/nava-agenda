@@ -6,13 +6,13 @@ import (
 	"strings"
 	"time"
 
-	"system-barbershop/internal/platform/apperr"
-	"system-barbershop/internal/platform/clock"
-	"system-barbershop/internal/platform/idempotency"
+	"nava-agenda/internal/platform/apperr"
+	"nava-agenda/internal/platform/clock"
+	"nava-agenda/internal/platform/idempotency"
 )
 
 // RescheduleAppointmentRequest es la entrada cruda (ya decodificada del
-// JSON, todavía sin normalizar) de T2 (HU-065): el barbero autenticado
+// JSON, todavía sin normalizar) de T2 (HU-065): el profesional autenticado
 // mueve una cita `confirmed` a otro inicio. NewStartsAtLocal usa el mismo
 // formato civil sin zona que CreateManualAppointmentRequest.StartsAtLocal
 // (RN-DIS-07). ExpectedVersionToken es el token opaco que
@@ -41,12 +41,12 @@ type RescheduleInput struct {
 
 // RescheduleAppointment es la representación de la cita ya reprogramada
 // (o, en un no-op, la representación vigente sin cambios): deliberadamente
-// SIN BarberFullName resuelto (igual que AppointmentDetail desde el
+// SIN ProfessionalFullName resuelto (igual que AppointmentDetail desde el
 // repositorio, CA-002-06) y con VersionToken en vez de updatedAt crudo,
 // mismo criterio que HU-064.
 type RescheduleAppointment struct {
 	ID                       string
-	BarberID                 string
+	ProfessionalID           string
 	ServiceID                string
 	CustomerID               string
 	AttendeeName             string
@@ -91,10 +91,10 @@ func NewRescheduleService(repo Repository, blocks BlockCheckPort, timezones Time
 	return &RescheduleService{repo: repo, blocks: blocks, timezones: timezones, clock: clk}
 }
 
-// RescheduleAppointment ejecuta el caso de uso completo. barbershopID ya
+// RescheduleAppointment ejecuta el caso de uso completo. businessID ya
 // llegó resuelto por el llamador (sesión autenticada); key/fingerprint ya
 // fueron interpretados por la capa HTTP. La lectura previa del turno
-// (GetAppointmentDetail) solo sirve para resolver BarberID/duración y
+// (GetAppointmentDetail) solo sirve para resolver ProfessionalID/duración y
 // ejecutar el chequeo de bloqueo ANTES de abrir la transacción, igual que
 // ManualBookingService consulta catalog/blocks antes de escribir: la
 // verificación AUTORITATIVA de estado y versión ocurre dentro de la
@@ -102,7 +102,7 @@ func NewRescheduleService(repo Repository, blocks BlockCheckPort, timezones Time
 // aquí.
 func (s *RescheduleService) RescheduleAppointment(
 	ctx context.Context,
-	barbershopID string,
+	businessID string,
 	req RescheduleAppointmentRequest,
 	key idempotency.Key,
 	fingerprint idempotency.Fingerprint,
@@ -125,7 +125,7 @@ func (s *RescheduleService) RescheduleAppointment(
 		return RescheduleResult{}, errActorInvalid()
 	}
 
-	timezone, err := s.timezones.Timezone(ctx, barbershopID)
+	timezone, err := s.timezones.Timezone(ctx, businessID)
 	if err != nil {
 		return RescheduleResult{}, err
 	}
@@ -142,7 +142,7 @@ func (s *RescheduleService) RescheduleAppointment(
 		return RescheduleResult{}, errStartsAtNotFuture()
 	}
 
-	detail, found, err := s.repo.GetAppointmentDetail(ctx, barbershopID, appointmentID)
+	detail, found, err := s.repo.GetAppointmentDetail(ctx, businessID, appointmentID)
 	if err != nil {
 		return RescheduleResult{}, apperr.Internal(fmt.Errorf("booking: leer la cita antes de reprogramar: %w", err))
 	}
@@ -152,7 +152,7 @@ func (s *RescheduleService) RescheduleAppointment(
 
 	newEndsAt := newStartsAt.Add(time.Duration(detail.DurationMinutesSnapshot) * time.Minute)
 
-	within, err := s.blocks.WithinWorkingHours(ctx, barbershopID, detail.BarberID, newStartsAt, newEndsAt, timezone)
+	within, err := s.blocks.WithinWorkingHours(ctx, businessID, detail.ProfessionalID, newStartsAt, newEndsAt, timezone)
 	if err != nil {
 		return RescheduleResult{}, err
 	}
@@ -161,7 +161,7 @@ func (s *RescheduleService) RescheduleAppointment(
 		return RescheduleResult{}, errOutsideWorkingHours()
 	}
 
-	blocked, err := s.blocks.HasActiveBlock(ctx, barbershopID, detail.BarberID, newStartsAt, newEndsAt, timezone)
+	blocked, err := s.blocks.HasActiveBlock(ctx, businessID, detail.ProfessionalID, newStartsAt, newEndsAt, timezone)
 	if err != nil {
 		return RescheduleResult{}, err
 	}
@@ -181,5 +181,5 @@ func (s *RescheduleService) RescheduleAppointment(
 		Actor:                Actor{Type: ActorTypeStaff, StaffUserID: &actorID},
 	}
 
-	return s.repo.Reschedule(ctx, barbershopID, input, key, fingerprint)
+	return s.repo.Reschedule(ctx, businessID, input, key, fingerprint)
 }

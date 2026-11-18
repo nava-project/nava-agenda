@@ -2,7 +2,7 @@
 // Contenido de la sección «Horario de atención» de Configuración (HU-107,
 // DEC-182): el horario semanal del local, el que ven los clientes en la reserva
 // y el que Odin consulta. Es informativo: no cambia la disponibilidad de los
-// barberos, que sale de su propio horario.
+// profesionales, que sale de su propio horario.
 //
 // A diferencia de «Recordatorios», no se guarda al instante: el dueño arma la
 // semana día por día y la guarda con un botón propio (no entra en la barra de

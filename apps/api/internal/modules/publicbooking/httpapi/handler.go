@@ -16,10 +16,10 @@ import (
 	"strconv"
 	"time"
 
-	"system-barbershop/internal/modules/publicbooking"
-	"system-barbershop/internal/platform/apperr"
-	"system-barbershop/internal/platform/httpserver"
-	"system-barbershop/internal/platform/idempotency"
+	"nava-agenda/internal/modules/publicbooking"
+	"nava-agenda/internal/platform/apperr"
+	"nava-agenda/internal/platform/httpserver"
+	"nava-agenda/internal/platform/idempotency"
 )
 
 // slugParam es el nombre del parámetro de ruta que cmd/api.buildRouter
@@ -31,33 +31,33 @@ const slugParam = "slug"
 // (HU-092).
 const serviceIDParam = "serviceId"
 
-// barberIDParam es el nombre del parámetro de ruta que cmd/api.buildRouter
+// professionalIDParam es el nombre del parámetro de ruta que cmd/api.buildRouter
 // registra para
 // /public/businesses/{slug}/services/{serviceId}/professionals/{professionalId}/availability
 // (HU-094).
-const barberIDParam = "professionalId"
+const professionalIDParam = "professionalId"
 
-// ResolveBarbershopHandler expone GET /public/businesses/{slug}
+// ResolveBusinessHandler expone GET /public/businesses/{slug}
 // (CA-090-01 a CA-090-04): resolución pública sin sesión, sin que el
-// cliente pueda fijar barbershopId.
-type ResolveBarbershopHandler struct {
+// cliente pueda fijar businessId.
+type ResolveBusinessHandler struct {
 	service *publicbooking.Service
 }
 
-// NewResolveBarbershopHandler construye el handler de resolución pública.
-func NewResolveBarbershopHandler(service *publicbooking.Service) *ResolveBarbershopHandler {
-	return &ResolveBarbershopHandler{service: service}
+// NewResolveBusinessHandler construye el handler de resolución pública.
+func NewResolveBusinessHandler(service *publicbooking.Service) *ResolveBusinessHandler {
+	return &ResolveBusinessHandler{service: service}
 }
 
 // ServeHTTP implementa http.Handler. Deliberadamente NO lee ningún
 // principal de sesión (CA-090-03): el único dato de entrada es el slug de
 // la ruta, y el servicio resuelve el tenant por sí mismo antes de leer
 // nada.
-func (h *ResolveBarbershopHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+func (h *ResolveBusinessHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	requestID := httpserver.RequestIDFromContext(r.Context())
 
 	slug := httpserver.URLParam(r, slugParam)
-	profile, err := h.service.ResolveBarbershop(r.Context(), slug)
+	profile, err := h.service.ResolveBusiness(r.Context(), slug)
 	if err != nil {
 		httpserver.WriteProblem(w, httpserver.Translate(err, requestID))
 		return
@@ -65,10 +65,10 @@ func (h *ResolveBarbershopHandler) ServeHTTP(w http.ResponseWriter, r *http.Requ
 
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
-	_ = json.NewEncoder(w).Encode(newPublicBarbershopProfileResponse(profile))
+	_ = json.NewEncoder(w).Encode(newPublicBusinessProfileResponse(profile))
 }
 
-func newPublicBarbershopProfileResponse(p publicbooking.BarbershopProfile) PublicBarbershopProfileResponse {
+func newPublicBusinessProfileResponse(p publicbooking.BusinessProfile) PublicBusinessProfileResponse {
 	var location *PublicLocationResponse
 	if p.Location != nil {
 		location = &PublicLocationResponse{
@@ -94,7 +94,7 @@ func newPublicBarbershopProfileResponse(p publicbooking.BarbershopProfile) Publi
 			Hours:     hours,
 		}
 	}
-	return PublicBarbershopProfileResponse{
+	return PublicBusinessProfileResponse{
 		OpeningHours:      openingHours,
 		ClosedOnHolidays:  p.ClosedOnHolidays,
 		Today:             today,
@@ -117,7 +117,7 @@ func newPublicBarbershopProfileResponse(p publicbooking.BarbershopProfile) Publi
 
 // ListPublicServicesHandler expone GET /public/businesses/{slug}/services
 // (HU-091, CA-091-01 a CA-091-03): catálogo público de servicios activos y
-// asignados de la barbería resuelta por slug, sin sesión.
+// asignados del negocio resuelto por slug, sin sesión.
 type ListPublicServicesHandler struct {
 	service *publicbooking.Service
 }
@@ -127,7 +127,7 @@ func NewListPublicServicesHandler(service *publicbooking.Service) *ListPublicSer
 	return &ListPublicServicesHandler{service: service}
 }
 
-// ServeHTTP implementa http.Handler. Igual que ResolveBarbershopHandler, no
+// ServeHTTP implementa http.Handler. Igual que ResolveBusinessHandler, no
 // lee ningún principal de sesión: slug (de la ruta) y cursor/limit (de la
 // query) son toda la entrada.
 func (h *ListPublicServicesHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
@@ -182,30 +182,30 @@ func newPublicServiceListResponse(result publicbooking.PublicServiceListResult) 
 	return PublicServiceListResponse{Items: items, NextCursor: nextCursor}
 }
 
-// ListPublicBarbersHandler expone
+// ListPublicProfessionalsHandler expone
 // GET /public/businesses/{slug}/services/{serviceId}/professionals (HU-092,
-// CA-092-01 a CA-092-03): barberos con asignación vigente al servicio activo
+// CA-092-01 a CA-092-03): profesionales con asignación vigente al servicio activo
 // resuelto, sin sesión.
-type ListPublicBarbersHandler struct {
+type ListPublicProfessionalsHandler struct {
 	service *publicbooking.Service
 }
 
-// NewListPublicBarbersHandler construye el handler de selección pública de
-// barbero.
-func NewListPublicBarbersHandler(service *publicbooking.Service) *ListPublicBarbersHandler {
-	return &ListPublicBarbersHandler{service: service}
+// NewListPublicProfessionalsHandler construye el handler de selección pública de
+// profesional.
+func NewListPublicProfessionalsHandler(service *publicbooking.Service) *ListPublicProfessionalsHandler {
+	return &ListPublicProfessionalsHandler{service: service}
 }
 
 // ServeHTTP implementa http.Handler. Igual que los otros handlers públicos,
 // no lee ningún principal de sesión: slug y serviceId (ambos de la ruta) son
 // toda la entrada.
-func (h *ListPublicBarbersHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+func (h *ListPublicProfessionalsHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	requestID := httpserver.RequestIDFromContext(r.Context())
 
 	slug := httpserver.URLParam(r, slugParam)
 	serviceID := httpserver.URLParam(r, serviceIDParam)
 
-	result, err := h.service.ListPublicBarbers(r.Context(), slug, serviceID)
+	result, err := h.service.ListPublicProfessionals(r.Context(), slug, serviceID)
 	if err != nil {
 		httpserver.WriteProblem(w, httpserver.Translate(err, requestID))
 		return
@@ -213,11 +213,11 @@ func (h *ListPublicBarbersHandler) ServeHTTP(w http.ResponseWriter, r *http.Requ
 
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
-	_ = json.NewEncoder(w).Encode(newPublicBarberListResponse(result))
+	_ = json.NewEncoder(w).Encode(newPublicProfessionalListResponse(result))
 }
 
-func newPublicBarberResponse(b publicbooking.PublicBarber) PublicBarberResponse {
-	return PublicBarberResponse{
+func newPublicProfessionalResponse(b publicbooking.PublicProfessional) PublicProfessionalResponse {
+	return PublicProfessionalResponse{
 		ID:             b.ID,
 		FullName:       b.FullName,
 		Description:    b.Description,
@@ -227,35 +227,35 @@ func newPublicBarberResponse(b publicbooking.PublicBarber) PublicBarberResponse 
 	}
 }
 
-func newPublicBarberListResponse(result publicbooking.PublicBarberListResult) PublicBarberListResponse {
-	items := make([]PublicBarberResponse, 0, len(result.Items))
-	for _, barber := range result.Items {
-		items = append(items, newPublicBarberResponse(barber))
+func newPublicProfessionalListResponse(result publicbooking.PublicProfessionalListResult) PublicProfessionalListResponse {
+	items := make([]PublicProfessionalResponse, 0, len(result.Items))
+	for _, professional := range result.Items {
+		items = append(items, newPublicProfessionalResponse(professional))
 	}
-	return PublicBarberListResponse{Items: items}
+	return PublicProfessionalListResponse{Items: items}
 }
 
-// ListPublicBarbersWithServicesHandler expone
-// GET /public/businesses/{slug}/professionals (DEC-162): todos los barberos con al
+// ListPublicProfessionalsWithServicesHandler expone
+// GET /public/businesses/{slug}/professionals (DEC-162): todos los profesionales con al
 // menos una asignación vigente a un servicio activo, cada uno con los ids de
 // esos servicios, sin sesión. Existe para que un cliente de solo lectura no
 // tenga que llamar GET .../services/{serviceId}/professionals una vez por servicio.
-type ListPublicBarbersWithServicesHandler struct {
+type ListPublicProfessionalsWithServicesHandler struct {
 	service *publicbooking.Service
 }
 
-// NewListPublicBarbersWithServicesHandler construye el handler del agregado
-// barberos-servicios.
-func NewListPublicBarbersWithServicesHandler(service *publicbooking.Service) *ListPublicBarbersWithServicesHandler {
-	return &ListPublicBarbersWithServicesHandler{service: service}
+// NewListPublicProfessionalsWithServicesHandler construye el handler del agregado
+// profesionales-servicios.
+func NewListPublicProfessionalsWithServicesHandler(service *publicbooking.Service) *ListPublicProfessionalsWithServicesHandler {
+	return &ListPublicProfessionalsWithServicesHandler{service: service}
 }
 
 // ServeHTTP implementa http.Handler. Como los demás handlers públicos no lee
 // ningún principal de sesión: el slug de la ruta es toda la entrada.
-func (h *ListPublicBarbersWithServicesHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+func (h *ListPublicProfessionalsWithServicesHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	requestID := httpserver.RequestIDFromContext(r.Context())
 
-	result, err := h.service.ListPublicBarbersWithServices(r.Context(), httpserver.URLParam(r, slugParam))
+	result, err := h.service.ListPublicProfessionalsWithServices(r.Context(), httpserver.URLParam(r, slugParam))
 	if err != nil {
 		httpserver.WriteProblem(w, httpserver.Translate(err, requestID))
 		return
@@ -263,42 +263,42 @@ func (h *ListPublicBarbersWithServicesHandler) ServeHTTP(w http.ResponseWriter, 
 
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
-	_ = json.NewEncoder(w).Encode(newPublicBarberServicesListResponse(result))
+	_ = json.NewEncoder(w).Encode(newPublicProfessionalServicesListResponse(result))
 }
 
-func newPublicBarberServicesListResponse(result publicbooking.PublicBarberServicesListResult) PublicBarberServicesListResponse {
-	items := make([]PublicBarberServicesResponse, 0, len(result.Items))
-	for _, barber := range result.Items {
+func newPublicProfessionalServicesListResponse(result publicbooking.PublicProfessionalServicesListResult) PublicProfessionalServicesListResponse {
+	items := make([]PublicProfessionalServicesResponse, 0, len(result.Items))
+	for _, professional := range result.Items {
 		// Copia defensiva y nunca null: serviceIds siempre es un arreglo.
-		serviceIDs := make([]string, 0, len(barber.ServiceIDs))
-		serviceIDs = append(serviceIDs, barber.ServiceIDs...)
-		items = append(items, PublicBarberServicesResponse{
-			ID: barber.ID, FullName: barber.FullName, ServiceIDs: serviceIDs,
+		serviceIDs := make([]string, 0, len(professional.ServiceIDs))
+		serviceIDs = append(serviceIDs, professional.ServiceIDs...)
+		items = append(items, PublicProfessionalServicesResponse{
+			ID: professional.ID, FullName: professional.FullName, ServiceIDs: serviceIDs,
 		})
 	}
-	return PublicBarberServicesListResponse{Items: items}
+	return PublicProfessionalServicesListResponse{Items: items}
 }
 
-// GetPublicBarberPhotoHandler expone
+// GetPublicProfessionalPhotoHandler expone
 // GET /public/businesses/{slug}/professionals/{professionalId}/photo (DEC-127): los bytes
-// de la fotografía de un barbero visible en la reserva pública, sin sesión.
-type GetPublicBarberPhotoHandler struct {
+// de la fotografía de un profesional visible en la reserva pública, sin sesión.
+type GetPublicProfessionalPhotoHandler struct {
 	service *publicbooking.Service
 }
 
-// NewGetPublicBarberPhotoHandler construye el handler de la fotografía pública.
-func NewGetPublicBarberPhotoHandler(service *publicbooking.Service) *GetPublicBarberPhotoHandler {
-	return &GetPublicBarberPhotoHandler{service: service}
+// NewGetPublicProfessionalPhotoHandler construye el handler de la fotografía pública.
+func NewGetPublicProfessionalPhotoHandler(service *publicbooking.Service) *GetPublicProfessionalPhotoHandler {
+	return &GetPublicProfessionalPhotoHandler{service: service}
 }
 
 // ServeHTTP implementa http.Handler. Sirve la imagen con validador ETag; el
 // cliente versiona la URL con `photoUpdatedAt`, así que una fotografía nueva
 // nunca se sirve desde una caché vieja.
-func (h *GetPublicBarberPhotoHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+func (h *GetPublicProfessionalPhotoHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	requestID := httpserver.RequestIDFromContext(r.Context())
 
-	photo, err := h.service.PublicBarberPhoto(r.Context(),
-		httpserver.URLParam(r, slugParam), httpserver.URLParam(r, barberIDParam))
+	photo, err := h.service.PublicProfessionalPhoto(r.Context(),
+		httpserver.URLParam(r, slugParam), httpserver.URLParam(r, professionalIDParam))
 	if err != nil {
 		httpserver.WriteProblem(w, httpserver.Translate(err, requestID))
 		return
@@ -325,7 +325,7 @@ func (h *GetPublicBarberPhotoHandler) ServeHTTP(w http.ResponseWriter, r *http.R
 // ListPublicAvailabilityHandler expone
 // GET /public/businesses/{slug}/services/{serviceId}/professionals/{professionalId}/availability
 // (HU-094, CA-094-01 a CA-094-06): inicios públicos válidos del servicio
-// activo con el barbero elegido, sin sesión.
+// activo con el profesional elegido, sin sesión.
 type ListPublicAvailabilityHandler struct {
 	service *publicbooking.AvailabilityService
 }
@@ -337,16 +337,16 @@ func NewListPublicAvailabilityHandler(service *publicbooking.AvailabilityService
 }
 
 // ServeHTTP implementa http.Handler. Igual que los otros handlers públicos,
-// no lee ningún principal de sesión: slug, serviceId y barberId (los tres
+// no lee ningún principal de sesión: slug, serviceId y professionalId (los tres
 // de la ruta) son toda la entrada.
 func (h *ListPublicAvailabilityHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	requestID := httpserver.RequestIDFromContext(r.Context())
 
 	slug := httpserver.URLParam(r, slugParam)
 	serviceID := httpserver.URLParam(r, serviceIDParam)
-	barberID := httpserver.URLParam(r, barberIDParam)
+	professionalID := httpserver.URLParam(r, professionalIDParam)
 
-	result, err := h.service.ListPublicAvailability(r.Context(), slug, serviceID, barberID)
+	result, err := h.service.ListPublicAvailability(r.Context(), slug, serviceID, professionalID)
 	if err != nil {
 		httpserver.WriteProblem(w, httpserver.Translate(err, requestID))
 		return
@@ -372,9 +372,9 @@ func newAvailabilityResponse(result publicbooking.AvailabilityResult) Availabili
 
 // ListPublicServiceAvailabilityHandler expone
 // GET /public/businesses/{slug}/services/{serviceId}/availability (DEC-162):
-// los inicios públicos válidos del servicio para todos sus barberos
+// los inicios públicos válidos del servicio para todos sus profesionales
 // elegibles en una sola respuesta, sin sesión. Existe para que un cliente de
-// solo lectura no tenga que llamar la disponibilidad una vez por barbero.
+// solo lectura no tenga que llamar la disponibilidad una vez por profesional.
 type ListPublicServiceAvailabilityHandler struct {
 	service *publicbooking.AvailabilityService
 }
@@ -404,10 +404,10 @@ func (h *ListPublicServiceAvailabilityHandler) ServeHTTP(w http.ResponseWriter, 
 }
 
 func newServiceAvailabilityResponse(result publicbooking.ServiceAvailabilityResult) ServiceAvailabilityResponse {
-	slots := make([]BarberAvailabilitySlotResponse, 0, len(result.Slots))
+	slots := make([]ProfessionalAvailabilitySlotResponse, 0, len(result.Slots))
 	for _, slot := range result.Slots {
-		slots = append(slots, BarberAvailabilitySlotResponse{
-			BarberID: slot.BarberID, LegacyBarberID: slot.BarberID, StartsAt: slot.StartsAt,
+		slots = append(slots, ProfessionalAvailabilitySlotResponse{
+			ProfessionalID: slot.ProfessionalID, LegacyBarberID: slot.ProfessionalID, StartsAt: slot.StartsAt,
 		})
 	}
 	return ServiceAvailabilityResponse{
@@ -431,7 +431,7 @@ func writeUnknownFieldOrInvalidJSONProblem(w http.ResponseWriter, requestID stri
 // services/{serviceId}/professionals/{professionalId}/appointments (HU-097, T1
 // pública), protegido por el protocolo de idempotencia reutilizable de
 // HU-004 (RN-IDE-01, DEC-043). Igual que los otros handlers públicos, no
-// lee ningún principal de sesión: slug/serviceId/barberId (de la ruta) y el
+// lee ningún principal de sesión: slug/serviceId/professionalId (de la ruta) y el
 // cuerpo son toda la entrada.
 type ConfirmPublicAppointmentHandler struct {
 	service *publicbooking.ConfirmationService
@@ -452,7 +452,7 @@ func (h *ConfirmPublicAppointmentHandler) ServeHTTP(w http.ResponseWriter, r *ht
 
 	slug := httpserver.URLParam(r, slugParam)
 	serviceID := httpserver.URLParam(r, serviceIDParam)
-	barberID := httpserver.URLParam(r, barberIDParam)
+	professionalID := httpserver.URLParam(r, professionalIDParam)
 
 	// 1. Cabecera: obligatoria, validada antes de tocar PostgreSQL o leer el
 	//    cuerpo (mismo orden que bookinghttpapi.CreateManualAppointmentHandler).
@@ -490,10 +490,10 @@ func (h *ConfirmPublicAppointmentHandler) ServeHTTP(w http.ResponseWriter, r *ht
 	fingerprint := httpserver.IdempotencyFingerprint(r, body)
 
 	result, emailErr, err := h.service.ConfirmAppointment(r.Context(), publicbooking.ConfirmPublicAppointmentInput{
-		Slug:        slug,
-		ServiceID:   serviceID,
-		BarberID:    barberID,
-		StartsAtRaw: req.StartsAt,
+		Slug:           slug,
+		ServiceID:      serviceID,
+		ProfessionalID: professionalID,
+		StartsAtRaw:    req.StartsAt,
 		Identity: publicbooking.CustomerIdentityInput{
 			FullName:       req.FullName,
 			Phone:          req.Phone,
@@ -551,7 +551,7 @@ func homeServiceInput(r *HomeServiceRequest) *publicbooking.HomeServiceInput {
 }
 
 // GetPublicGoogleReviewsHandler expone GET /public/businesses/{slug}/reviews
-// (HU-101, DEC-129): la calificación y las reseñas de Google de la barbería,
+// (HU-101, DEC-129): la calificación y las reseñas de Google del negocio,
 // sin sesión. Solo un slug inválido o no publicable es un error (el 404 uniforme
 // de HU-090); sin ficha, sin credencial o ante una consulta fallida responde 200
 // con la estructura vacía (CA-101-01, CA-101-03).

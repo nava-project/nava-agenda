@@ -3,7 +3,7 @@
 // cabecera Idempotency-Key, calcular la huella canónica del contenido, y
 // coordinar con las funciones PostgreSQL ya aprobadas (DEC-043) que
 // garantizan que un efecto se ejecuta como máximo una vez por
-// (barbería, clave), incluso con concurrencia real.
+// (negocio, clave), incluso con concurrencia real.
 //
 // Este paquete es deliberadamente ajeno a HTTP: no importa net/http ni Chi.
 // Un módulo de dominio futuro (por ejemplo booking) lo invoca desde su

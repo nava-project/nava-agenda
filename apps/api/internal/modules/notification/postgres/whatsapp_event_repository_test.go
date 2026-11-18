@@ -10,13 +10,13 @@ import (
 
 	"github.com/jackc/pgx/v5"
 
-	notificationpostgres "system-barbershop/internal/modules/notification/postgres"
-	"system-barbershop/internal/platform/config"
-	"system-barbershop/internal/platform/database"
+	notificationpostgres "nava-agenda/internal/modules/notification/postgres"
+	"nava-agenda/internal/platform/config"
+	"nava-agenda/internal/platform/database"
 )
 
 // Pruebas de integración del webhook de WhatsApp (issue #355, DEC-126) contra
-// PostgreSQL real. Las tablas no tienen barbershop_id: el aislamiento que se
+// PostgreSQL real. Las tablas no tienen business_id: el aislamiento que se
 // comprueba es que ni la API ni el worker las tocan directamente.
 
 func openDB(t *testing.T, envVar, fallback string) *database.DB {

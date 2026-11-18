@@ -50,8 +50,8 @@ func TestPublicAlias_HTTP_OldRoutesAnswerLikeTheNewOnes(t *testing.T) {
 			"businesses/" + slug + "/services/" + aggServiceS2 + "/availability",
 			"barbershops/" + slug + "/services/" + aggServiceS2 + "/availability"},
 		{"disponibilidad por profesional",
-			"businesses/" + slug + "/services/" + aggServiceS2 + "/professionals/" + aggBarberUno1 + "/availability",
-			"barbershops/" + slug + "/services/" + aggServiceS2 + "/barbers/" + aggBarberUno1 + "/availability"},
+			"businesses/" + slug + "/services/" + aggServiceS2 + "/professionals/" + aggProfessionalUno1 + "/availability",
+			"barbershops/" + slug + "/services/" + aggServiceS2 + "/barbers/" + aggProfessionalUno1 + "/availability"},
 		{"slug inexistente", "businesses/no-existe-661", "barbershops/no-existe-661"},
 	}
 	for _, tc := range cases {

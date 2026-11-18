@@ -8,7 +8,7 @@ import type { VerifyAccessCodeOutcome } from '../model/customerAccessOutcome'
  * - 200: acceso concedido (un `accessToken` por turno);
  * - 401: código no válido, sin decir por qué (CA-105-02);
  * - 400/422: contacto o código con forma inválida;
- * - 404: la barbería del enlace no existe o no está publicada.
+ * - 404: el negocio del enlace no existe o no está publicada.
  */
 export async function verifyAccessCode(
   slug: string,
@@ -29,7 +29,7 @@ export async function verifyAccessCode(
             accessToken: a.accessToken,
             startsAt: a.startsAt,
             serviceName: a.serviceName,
-            barberName: a.professionalName,
+            professionalName: a.professionalName,
           })),
         },
       }
@@ -41,7 +41,7 @@ export async function verifyAccessCode(
       case 422:
         return { kind: 'invalid-contact' }
       case 404:
-        return { kind: 'barbershop-not-found' }
+        return { kind: 'business-not-found' }
       default:
         return {
           kind: 'unexpected-error',

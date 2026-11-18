@@ -98,7 +98,7 @@ const hasError = computed(() => !!props.error)
 // Mostrar/ocultar contraseña (mockup 02-acceso-recuperacion.png): todo
 // BaseInput type="password" lo gana automáticamente, sin que cada
 // formulario (login, nueva contraseña, confirmar) tenga que repetir el
-// botón. El tipo real solo cambia mientras el barbero mantiene la
+// botón. El tipo real solo cambia mientras el profesional mantiene la
 // revelación activa; el valor y el resto de atributos (autocomplete,
 // required, etc.) no se tocan.
 const isPasswordField = computed(() => props.type === 'password')

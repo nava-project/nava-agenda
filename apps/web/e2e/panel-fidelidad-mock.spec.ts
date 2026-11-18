@@ -9,15 +9,15 @@ type Scenario =
   | 'agenda'
   | 'context-loading'
   | 'context-error'
-  | 'no-barbers'
+  | 'no-professionals'
   | 'agenda-loading'
   | 'updating'
   | 'agenda-error'
-  | 'barber-not-found'
+  | 'professional-not-found'
   | 'empty-day'
   | 'timezone-unavailable'
   | 'night-shift'
-  | 'barber-selection'
+  | 'professional-selection'
 
 type Deferred = { release: () => void }
 
@@ -29,11 +29,11 @@ const evidenceRoot = path.join(
   'mock',
 )
 
-const barbers = [
-  { id: 'barber-julian', fullName: 'Julián Rodríguez' },
-  { id: 'barber-andres', fullName: 'Andrés Beltrán' },
-  { id: 'barber-camilo', fullName: 'Camilo Restrepo' },
-  { id: 'barber-tomas', fullName: 'Tomás Iriarte' },
+const professionals = [
+  { id: 'professional-julian', fullName: 'Julián Rodríguez' },
+  { id: 'professional-andres', fullName: 'Andrés Beltrán' },
+  { id: 'professional-camilo', fullName: 'Camilo Restrepo' },
+  { id: 'professional-tomas', fullName: 'Tomás Iriarte' },
 ]
 
 const agendaEntries = [
@@ -132,7 +132,7 @@ async function installPanelMock(page: Page, scenario: Scenario): Promise<Deferre
         await respondJson(route, { title: 'No disponible' }, 500)
         return
       }
-      await respondJson(route, { items: scenario === 'no-barbers' ? [] : barbers })
+      await respondJson(route, { items: scenario === 'no-professionals' ? [] : professionals })
       return
     }
 
@@ -160,7 +160,7 @@ async function installPanelMock(page: Page, scenario: Scenario): Promise<Deferre
         await respondJson(route, { title: 'No disponible' }, 500)
         return
       }
-      if (scenario === 'barber-not-found') {
+      if (scenario === 'professional-not-found') {
         await respondJson(route, { title: 'No encontrado' }, 404)
         return
       }
@@ -190,7 +190,7 @@ async function waitForScenario(page: Page, scenario: Scenario) {
     case 'context-error':
       await expect(page.getByText('No pudimos cargar esta sección')).toBeVisible()
       return
-    case 'no-barbers':
+    case 'no-professionals':
       await expect(page.getByText('Aún no tienes profesionales registrados')).toBeVisible()
       return
     case 'agenda-loading':
@@ -199,7 +199,7 @@ async function waitForScenario(page: Page, scenario: Scenario) {
     case 'agenda-error':
       await expect(page.getByText('No pudimos cargar la agenda de este profesional')).toBeVisible()
       return
-    case 'barber-not-found':
+    case 'professional-not-found':
       await expect(page.getByText('Este profesional ya no está disponible')).toBeVisible()
       return
     case 'empty-day':
@@ -211,7 +211,7 @@ async function waitForScenario(page: Page, scenario: Scenario) {
     case 'night-shift':
       await expect(page.locator('.daily-agenda-page__timeline-mark--day-change')).toBeAttached()
       return
-    case 'barber-selection':
+    case 'professional-selection':
       await page.getByRole('button', { name: 'Profesional', exact: true }).click()
       await expect(page.getByRole('listbox', { name: 'Profesional' })).toBeVisible()
       return
@@ -225,15 +225,15 @@ const scenarios: { readonly file: string; readonly state: Scenario }[] = [
   { file: '01-agenda-lista', state: 'agenda' },
   { file: '02-carga-contexto', state: 'context-loading' },
   { file: '03-error-contexto', state: 'context-error' },
-  { file: '04-sin-barberos', state: 'no-barbers' },
+  { file: '04-sin-barberos', state: 'no-professionals' },
   { file: '05-carga-agenda', state: 'agenda-loading' },
   { file: '06-actualizando-fecha', state: 'updating' },
   { file: '07-error-agenda', state: 'agenda-error' },
-  { file: '08-barbero-no-disponible', state: 'barber-not-found' },
+  { file: '08-barbero-no-disponible', state: 'professional-not-found' },
   { file: '09-dia-sin-turnos', state: 'empty-day' },
   { file: '10-zona-horaria-no-disponible', state: 'timezone-unavailable' },
   { file: '11-turno-nocturno', state: 'night-shift' },
-  { file: '12-seleccion-barbero', state: 'barber-selection' },
+  { file: '12-seleccion-barbero', state: 'professional-selection' },
 ]
 
 for (const viewport of [

@@ -7,9 +7,9 @@ import (
 	"testing"
 	"time"
 
-	"system-barbershop/internal/modules/booking"
-	"system-barbershop/internal/platform/apperr"
-	"system-barbershop/internal/platform/idempotency"
+	"nava-agenda/internal/modules/booking"
+	"nava-agenda/internal/platform/apperr"
+	"nava-agenda/internal/platform/idempotency"
 )
 
 // fakeCorrectRepository es un doble de booking.Repository que solo
@@ -20,13 +20,13 @@ import (
 type fakeCorrectRepository struct {
 	fakeManualRepository
 
-	correctFn func(ctx context.Context, barbershopID string, input booking.CorrectAppointmentStatusInput, key idempotency.Key, fingerprint idempotency.Fingerprint) (booking.CorrectAppointmentStatusResult, error)
+	correctFn func(ctx context.Context, businessID string, input booking.CorrectAppointmentStatusInput, key idempotency.Key, fingerprint idempotency.Fingerprint) (booking.CorrectAppointmentStatusResult, error)
 
 	lastCorrectInput booking.CorrectAppointmentStatusInput
 }
 
 func (f *fakeCorrectRepository) CorrectAppointmentStatus(
-	ctx context.Context, barbershopID string, input booking.CorrectAppointmentStatusInput, key idempotency.Key, fingerprint idempotency.Fingerprint,
+	ctx context.Context, businessID string, input booking.CorrectAppointmentStatusInput, key idempotency.Key, fingerprint idempotency.Fingerprint,
 ) (booking.CorrectAppointmentStatusResult, error) {
 	f.lastCorrectInput = input
 	if f.correctFn == nil {
@@ -35,7 +35,7 @@ func (f *fakeCorrectRepository) CorrectAppointmentStatus(
 			Appointment: booking.CorrectedAppointment{ID: "appt-1", Status: booking.StatusNoShow},
 		}, nil
 	}
-	return f.correctFn(ctx, barbershopID, input, key, fingerprint)
+	return f.correctFn(ctx, businessID, input, key, fingerprint)
 }
 
 const validCorrectAppointmentID = "8f3ac2b1-e4d5-46f6-a7c8-d9e0f1a2b3c4"
@@ -44,7 +44,7 @@ func validCorrectRequest() booking.CorrectAppointmentStatusRequest {
 	return booking.CorrectAppointmentStatusRequest{
 		AppointmentID:        validCorrectAppointmentID,
 		DestinationStatus:    string(booking.StatusNoShow),
-		Reason:               "El barbero marcó completed por error, el cliente nunca llegó.",
+		Reason:               "El profesional marcó completed por error, el cliente nunca llegó.",
 		ExpectedVersionToken: "opaque-token",
 		ActorStaffUserID:     "staff-1",
 	}
@@ -172,7 +172,7 @@ func TestCorrectAppointmentStatus_ValidRequest_CallsRepositoryWithStaffActorTrim
 func TestCorrectAppointmentStatus_RepositoryResult_PassesThrough(t *testing.T) {
 	want := booking.CorrectAppointmentStatusResult{
 		Decision:    idempotency.Decision{Outcome: idempotency.OutcomeProceed},
-		Appointment: booking.CorrectedAppointment{ID: "appt-9", VersionToken: "new-token", Status: booking.StatusCancelledByBarber},
+		Appointment: booking.CorrectedAppointment{ID: "appt-9", VersionToken: "new-token", Status: booking.StatusCancelledByProfessional},
 	}
 	repo := &fakeCorrectRepository{
 		correctFn: func(context.Context, string, booking.CorrectAppointmentStatusInput, idempotency.Key, idempotency.Fingerprint) (booking.CorrectAppointmentStatusResult, error) {

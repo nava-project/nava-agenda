@@ -1,6 +1,6 @@
 package auth
 
-import "system-barbershop/internal/platform/apperr"
+import "nava-agenda/internal/platform/apperr"
 
 // invalidCredentialsMessage es el ÚNICO texto que LoginService devuelve para
 // cualquier fallo de autenticación: correo inexistente, contraseña

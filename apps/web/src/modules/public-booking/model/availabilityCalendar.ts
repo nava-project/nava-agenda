@@ -19,7 +19,7 @@ export interface AvailabilityDay {
 }
 
 /** Agrupa `slots` (ya ordenados cronológicamente por el servidor, HU-094)
- * por día civil en `timezone` (RN-DIS-07: siempre la de la barbería, nunca
+ * por día civil en `timezone` (RN-DIS-07: siempre la del negocio, nunca
  * la del dispositivo). El orden de inserción de `Map` conserva el orden
  * cronológico de los días sin un `sort` adicional, porque `slots` ya
  * llega ordenado. */

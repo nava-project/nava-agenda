@@ -31,7 +31,7 @@ import { pickAgendaDate } from './agenda-fecha'
  *
  * Variables de entorno:
  *   E2E_EMAIL / E2E_PASSWORD: credenciales válidas contra el API real
- *     (barbería A, "shopA").
+ *     (negocio A, "shopA").
  *   APP_BASE_URL: base del frontend (por defecto http://localhost:5173).
  */
 const EMAIL = process.env.E2E_EMAIL ?? 'duena.a@ejemplo.test'
@@ -45,9 +45,9 @@ async function login(page: Page) {
   await expect(page).toHaveURL(/\/panel$/)
 }
 
-async function addBarber(page: Page, fullName: string) {
+async function addProfessional(page: Page, fullName: string) {
   await page.getByRole('link', { name: 'Barberos' }).click()
-  await expect(page).toHaveURL(/\/panel\/barberos$/)
+  await expect(page).toHaveURL(/\/panel\/profesionales$/)
   await page.getByRole('button', { name: 'Agregar barbero' }).click()
   const dialog = page.getByRole('dialog', { name: 'Agregar barbero' })
   await dialog.getByLabel('Nombre').fill(fullName)
@@ -67,10 +67,14 @@ async function addService(page: Page, name: string) {
   await expect(dialog).toBeHidden()
 }
 
-async function assignServiceToBarber(page: Page, barberName: string, serviceName: string) {
+async function assignServiceToProfessional(
+  page: Page,
+  professionalName: string,
+  serviceName: string,
+) {
   await page.getByRole('link', { name: 'Servicios por barbero' }).click()
-  await expect(page).toHaveURL(/\/panel\/servicios-por-barbero$/)
-  await page.getByLabel('Barbero', { exact: true }).selectOption({ label: barberName })
+  await expect(page).toHaveURL(/\/panel\/servicios-por-profesional$/)
+  await page.getByLabel('Barbero', { exact: true }).selectOption({ label: professionalName })
   await page.getByRole('checkbox', { name: serviceName }).check()
   await expect(page.getByRole('checkbox', { name: serviceName })).toBeChecked()
 }
@@ -92,7 +96,7 @@ function nearFutureCivilDateTime(minutesFromNow: number): { date: string; time: 
 
 async function registerManualAppointment(
   page: Page,
-  barberName: string,
+  professionalName: string,
   serviceName: string,
   attendeeName: string,
   minutesFromNow: number,
@@ -100,7 +104,7 @@ async function registerManualAppointment(
   const { date, time } = nearFutureCivilDateTime(minutesFromNow)
   await page.getByRole('link', { name: 'Nuevo turno' }).click()
   await expect(page).toHaveURL(/\/panel\/turnos\/nuevo$/)
-  await page.getByLabel('Barbero', { exact: true }).selectOption({ label: barberName })
+  await page.getByLabel('Barbero', { exact: true }).selectOption({ label: professionalName })
   await page
     .getByRole('combobox', { name: 'Servicio', exact: true })
     .selectOption({ label: serviceName })
@@ -120,24 +124,24 @@ test.describe('Corrección auditada de un resultado terminal (HU-068, T8)', () =
     page,
   }) => {
     const stamp = Date.now()
-    const barberName = `E2E Correct Barbero ${stamp}`
+    const professionalName = `E2E Correct Barbero ${stamp}`
     const serviceName = `E2E Correct Servicio ${stamp}`
     const attendeeName = `Cliente correct E2E ${stamp}`
 
     await login(page)
-    await addBarber(page, barberName)
+    await addProfessional(page, professionalName)
     await addService(page, serviceName)
-    await assignServiceToBarber(page, barberName, serviceName)
+    await assignServiceToProfessional(page, professionalName, serviceName)
     const { date } = await registerManualAppointment(
       page,
-      barberName,
+      professionalName,
       serviceName,
       attendeeName,
       2 * 24 * 60 + 30,
     )
 
     await goToAgenda(page)
-    await page.getByLabel('Barbero').selectOption({ label: barberName })
+    await page.getByLabel('Barbero').selectOption({ label: professionalName })
     await pickAgendaDate(page, date)
     await page.getByText(attendeeName).click()
     await expect(page).toHaveURL(/\/panel\/turnos\/[^/]+\?/)
@@ -184,20 +188,26 @@ test.describe('Corrección auditada de un resultado terminal (HU-068, T8)', () =
     page,
   }) => {
     const stamp = Date.now()
-    const barberName = `E2E Correct Idem Barbero ${stamp}`
+    const professionalName = `E2E Correct Idem Barbero ${stamp}`
     const serviceName = `E2E Correct Idem Servicio ${stamp}`
     const attendeeName = `Cliente correct idem E2E ${stamp}`
 
     await login(page)
-    await addBarber(page, barberName)
+    await addProfessional(page, professionalName)
     await addService(page, serviceName)
-    await assignServiceToBarber(page, barberName, serviceName)
-    await registerManualAppointment(page, barberName, serviceName, attendeeName, 2 * 24 * 60 + 30)
+    await assignServiceToProfessional(page, professionalName, serviceName)
+    await registerManualAppointment(
+      page,
+      professionalName,
+      serviceName,
+      attendeeName,
+      2 * 24 * 60 + 30,
+    )
 
     await goToAgenda(page)
     await page.getByRole('link', { name: 'Nuevo turno' }).click()
     await page.goBack()
-    await page.getByLabel('Barbero').selectOption({ label: barberName })
+    await page.getByLabel('Barbero').selectOption({ label: professionalName })
     await page.getByText(attendeeName).click()
 
     await page.getByRole('button', { name: 'Cancelar turno' }).click()

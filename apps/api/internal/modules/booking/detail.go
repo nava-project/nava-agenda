@@ -11,7 +11,7 @@ import (
 )
 
 // appointmentIDPattern refleja la forma de un UUID, mismo criterio que
-// barberIDPattern (CA-002-06: cada módulo repite su propia validación de
+// professionalIDPattern (CA-002-06: cada módulo repite su propia validación de
 // forma). Un identificador que no cumple esta forma no puede corresponder a
 // ninguna fila real: se trata igual que "no existe" (mismo apperr.NotFound)
 // en vez de dejar que la consulta SQL falle con un error de tipo.
@@ -35,16 +35,16 @@ const (
 
 // AppointmentDetail es la lectura privada de una cita (HU-064, CA-064-01 a
 // CA-064-04): persona atendida, cliente que reservó (con su contacto
-// opcional y nota), barbero, origen, intervalo, estado y snapshots de
+// opcional y nota), profesional, origen, intervalo, estado y snapshots de
 // servicio (DEC-004, nunca el catálogo vigente). Deliberadamente NUNCA
-// incluye CustomerID ni BarbershopID (fuera de alcance del prompt de
-// HU-064): BarberFullName se resuelve aparte, vía BarberNamePort, porque el
-// repositorio de booking no puede unir contra la tabla `barber` (dueña de
+// incluye CustomerID ni BusinessID (fuera de alcance del prompt de
+// HU-064): ProfessionalFullName se resuelve aparte, vía ProfessionalNamePort, porque el
+// repositorio de booking no puede unir contra la tabla `professional` (dueña de
 // staff, CA-002-06).
 type AppointmentDetail struct {
 	ID                       string
-	BarberID                 string
-	BarberFullName           string
+	ProfessionalID           string
+	ProfessionalFullName     string
 	AttendeeName             string
 	CustomerFullName         string
 	CustomerPhone            *string
@@ -59,7 +59,7 @@ type AppointmentDetail struct {
 	PriceAmountCentsSnapshot int64
 	CurrencySnapshot         string
 	// HomeService es la dirección del cliente cuando el turno es a domicilio
-	// (DEC-131, CA-103-06); nil en el local. Solo la ve el panel de la barbería.
+	// (DEC-131, CA-103-06); nil en el local. Solo la ve el panel del negocio.
 	HomeService *HomeService
 	// VersionToken es el token opaco de concurrencia (trabajo requerido
 	// §2.4 del prompt de HU-064): determinista a partir de ID y del instante
@@ -130,8 +130,8 @@ type HistoryPage struct {
 // HistoryCursor es la posición decodificada de una página de historial:
 // orden estable por instante y luego por identificador, exactamente los dos
 // campos finales que idx_appointment_history_shop_appointment_occurred
-// indexa junto con barbershop_id/appointment_id (mismo criterio que
-// staff.Cursor frente a idx_barber_shop_created_id).
+// indexa junto con business_id/appointment_id (mismo criterio que
+// staff.Cursor frente a idx_professional_shop_created_id).
 type HistoryCursor struct {
 	OccurredAt time.Time
 	ID         string

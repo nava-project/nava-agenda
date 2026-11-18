@@ -11,9 +11,9 @@ import (
 	"net/http"
 	"regexp"
 
-	"system-barbershop/internal/modules/notification"
-	"system-barbershop/internal/platform/apperr"
-	"system-barbershop/internal/platform/httpserver"
+	"nava-agenda/internal/modules/notification"
+	"nava-agenda/internal/platform/apperr"
+	"nava-agenda/internal/platform/httpserver"
 )
 
 // signatureHeader es la cabecera con la que Meta firma el cuerpo exacto.

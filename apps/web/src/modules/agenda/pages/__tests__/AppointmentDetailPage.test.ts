@@ -2,7 +2,7 @@
  * Pruebas de AppointmentDetailPage (HU-064, más reprogramación T2 de
  * HU-065): carga del detalle (listo, no encontrado, error/reintento),
  * historial paginado (listo, error/reintento, "Cargar más"), regreso a la
- * agenda conservando fecha/barbero, reprogramación (visibilidad por
+ * agenda conservando fecha/profesional, reprogramación (visibilidad por
  * estado, resumen/confirmación, doble toque bloqueado, conflictos de
  * agenda/versión/estado con conservación de datos, éxito que refresca
  * detalle+historial y el destino de "Volver"), y accesibilidad.
@@ -17,9 +17,9 @@ import { axe } from 'vitest-axe'
 
 const fetchAppointmentDetailMock = vi.hoisted(() => vi.fn())
 const fetchAppointmentHistoryMock = vi.hoisted(() => vi.fn())
-const fetchBarbershopTimezoneMock = vi.hoisted(() => vi.fn())
+const fetchBusinessTimezoneMock = vi.hoisted(() => vi.fn())
 const rescheduleAppointmentMock = vi.hoisted(() => vi.fn())
-const cancelAppointmentByBarberMock = vi.hoisted(() => vi.fn())
+const cancelAppointmentByProfessionalMock = vi.hoisted(() => vi.fn())
 const completeAppointmentMock = vi.hoisted(() => vi.fn())
 const markAppointmentNoShowMock = vi.hoisted(() => vi.fn())
 const correctAppointmentStatusMock = vi.hoisted(() => vi.fn())
@@ -27,9 +27,9 @@ const correctAppointmentStatusMock = vi.hoisted(() => vi.fn())
 vi.mock('../../api/appointmentsApi', () => ({
   fetchAppointmentDetail: fetchAppointmentDetailMock,
   fetchAppointmentHistory: fetchAppointmentHistoryMock,
-  fetchBarbershopTimezone: fetchBarbershopTimezoneMock,
+  fetchBusinessTimezone: fetchBusinessTimezoneMock,
   rescheduleAppointment: rescheduleAppointmentMock,
-  cancelAppointmentByBarber: cancelAppointmentByBarberMock,
+  cancelAppointmentByProfessional: cancelAppointmentByProfessionalMock,
   completeAppointment: completeAppointmentMock,
   markAppointmentNoShow: markAppointmentNoShowMock,
   correctAppointmentStatus: correctAppointmentStatusMock,
@@ -39,8 +39,8 @@ const { default: AppointmentDetailPage } = await import('../AppointmentDetailPag
 
 const readyDetail = {
   id: 'a-1',
-  barberId: 'b-1',
-  barberFullName: 'Ana Gómez',
+  professionalId: 'b-1',
+  professionalFullName: 'Ana Gómez',
   attendeeName: 'Juan Pérez',
   customerFullName: 'Juan Pérez',
   customerPhone: '+573001234567',
@@ -83,7 +83,9 @@ function buildRouter() {
   })
 }
 
-async function mountPage(query: Record<string, string> = { date: '2026-08-28', barberId: 'b-1' }) {
+async function mountPage(
+  query: Record<string, string> = { date: '2026-08-28', professionalId: 'b-1' },
+) {
   const router = buildRouter()
   await router.push({ name: 'agenda-detalle-turno', params: { appointmentId: 'a-1' }, query })
   await router.isReady()
@@ -102,13 +104,13 @@ beforeEach(() => {
   resetToasts()
   fetchAppointmentDetailMock.mockReset()
   fetchAppointmentHistoryMock.mockReset()
-  fetchBarbershopTimezoneMock.mockReset()
+  fetchBusinessTimezoneMock.mockReset()
   rescheduleAppointmentMock.mockReset()
-  cancelAppointmentByBarberMock.mockReset()
+  cancelAppointmentByProfessionalMock.mockReset()
   completeAppointmentMock.mockReset()
   markAppointmentNoShowMock.mockReset()
   correctAppointmentStatusMock.mockReset()
-  fetchBarbershopTimezoneMock.mockResolvedValue({ kind: 'success', timezone: 'America/Bogota' })
+  fetchBusinessTimezoneMock.mockResolvedValue({ kind: 'success', timezone: 'America/Bogota' })
   fetchAppointmentHistoryMock.mockResolvedValue({
     kind: 'success',
     items: [createdEvent],
@@ -382,13 +384,13 @@ describe('AppointmentDetailPage', () => {
     expect(wrapper.text()).toContain('Turno creado')
   })
 
-  it('the back link preserves the originating date and barberId (HU-063)', async () => {
+  it('the back link preserves the originating date and professionalId (HU-063)', async () => {
     fetchAppointmentDetailMock.mockResolvedValue({ kind: 'success', detail: readyDetail })
-    const { wrapper } = await mountPage({ date: '2026-08-30', barberId: 'b-2' })
+    const { wrapper } = await mountPage({ date: '2026-08-30', professionalId: 'b-2' })
 
     const back = wrapper.findAll('a').find((a) => a.text().includes('Volver'))
     expect(back).toBeTruthy()
-    expect(back!.attributes('href')).toBe('/panel?date=2026-08-30&barberId=b-2')
+    expect(back!.attributes('href')).toBe('/panel?date=2026-08-30&professionalId=b-2')
   })
 
   it('has no obvious accessibility violations once ready', async () => {
@@ -435,7 +437,7 @@ describe('AppointmentDetailPage', () => {
 
   it('on success, refetches the detail and history, closes the dialog, and updates the back link to the new date', async () => {
     fetchAppointmentDetailMock.mockResolvedValue({ kind: 'success', detail: readyDetail })
-    const { wrapper } = await mountPage({ date: '2026-08-28', barberId: 'b-1' })
+    const { wrapper } = await mountPage({ date: '2026-08-28', professionalId: 'b-1' })
     await openRescheduleDialog(wrapper)
 
     setInputValue(rescheduleDateInput(wrapper), '2026-08-30')
@@ -463,7 +465,7 @@ describe('AppointmentDetailPage', () => {
     expect(fetchAppointmentDetailMock).toHaveBeenCalledTimes(2)
     // 2026-08-30T15:00:00Z en America/Bogota (UTC-5) es todavía 2026-08-30.
     const back = wrapper.findAll('a').find((a) => a.text().includes('Volver'))
-    expect(back!.attributes('href')).toBe('/panel?date=2026-08-30&barberId=b-1')
+    expect(back!.attributes('href')).toBe('/panel?date=2026-08-30&professionalId=b-1')
     expect(toastState.items.map((item) => item.title)).toEqual(['Turno reprogramado'])
   })
 
@@ -638,14 +640,14 @@ describe('AppointmentDetailPage', () => {
     const { wrapper } = await mountPage()
     await openCancelDialog(wrapper)
 
-    cancelAppointmentByBarberMock.mockResolvedValueOnce({ kind: 'success' })
+    cancelAppointmentByProfessionalMock.mockResolvedValueOnce({ kind: 'success' })
     fetchAppointmentDetailMock.mockResolvedValueOnce({
       kind: 'success',
       detail: { ...readyDetail, status: 'cancelled_by_professional' },
     })
     await confirmCancel(wrapper)
 
-    expect(cancelAppointmentByBarberMock).toHaveBeenCalledWith(
+    expect(cancelAppointmentByProfessionalMock).toHaveBeenCalledWith(
       'a-1',
       'opaque-token',
       expect.any(String),
@@ -661,13 +663,13 @@ describe('AppointmentDetailPage', () => {
     await openCancelDialog(wrapper)
 
     let resolveCancel: (value: unknown) => void = () => {}
-    cancelAppointmentByBarberMock.mockReturnValueOnce(
+    cancelAppointmentByProfessionalMock.mockReturnValueOnce(
       new Promise((resolve) => (resolveCancel = resolve)),
     )
     await confirmCancel(wrapper)
     await confirmCancel(wrapper)
 
-    expect(cancelAppointmentByBarberMock).toHaveBeenCalledTimes(1)
+    expect(cancelAppointmentByProfessionalMock).toHaveBeenCalledTimes(1)
     resolveCancel({ kind: 'success' })
     await flushPromises()
   })
@@ -677,19 +679,19 @@ describe('AppointmentDetailPage', () => {
     const { wrapper } = await mountPage()
 
     await openCancelDialog(wrapper)
-    cancelAppointmentByBarberMock.mockResolvedValueOnce({ kind: 'network-error' })
+    cancelAppointmentByProfessionalMock.mockResolvedValueOnce({ kind: 'network-error' })
     await confirmCancel(wrapper)
 
     await findButtonByText(wrapper, 'Volver').trigger('click')
     await flushPromises()
 
     await openCancelDialog(wrapper)
-    cancelAppointmentByBarberMock.mockResolvedValueOnce({ kind: 'success' })
+    cancelAppointmentByProfessionalMock.mockResolvedValueOnce({ kind: 'success' })
     fetchAppointmentDetailMock.mockResolvedValueOnce({ kind: 'success', detail: readyDetail })
     await confirmCancel(wrapper)
 
-    const firstKey = cancelAppointmentByBarberMock.mock.calls[0]![2]
-    const secondKey = cancelAppointmentByBarberMock.mock.calls[1]![2]
+    const firstKey = cancelAppointmentByProfessionalMock.mock.calls[0]![2]
+    const secondKey = cancelAppointmentByProfessionalMock.mock.calls[1]![2]
     expect(secondKey).not.toBe(firstKey)
   })
 
@@ -698,7 +700,7 @@ describe('AppointmentDetailPage', () => {
     const { wrapper } = await mountPage()
     await openCancelDialog(wrapper)
 
-    cancelAppointmentByBarberMock.mockResolvedValueOnce({ kind: 'version-conflict' })
+    cancelAppointmentByProfessionalMock.mockResolvedValueOnce({ kind: 'version-conflict' })
     await confirmCancel(wrapper)
 
     expect(wrapper.text()).toContain('cambió mientras lo revisabas')
@@ -721,7 +723,7 @@ describe('AppointmentDetailPage', () => {
     const { wrapper } = await mountPage()
     await openCancelDialog(wrapper)
 
-    cancelAppointmentByBarberMock.mockResolvedValueOnce({ kind: 'invalid-state' })
+    cancelAppointmentByProfessionalMock.mockResolvedValueOnce({ kind: 'invalid-state' })
     await confirmCancel(wrapper)
 
     expect(wrapper.text()).toContain('ya no se puede cancelar')
@@ -733,7 +735,7 @@ describe('AppointmentDetailPage', () => {
     const { wrapper } = await mountPage()
     await openCancelDialog(wrapper)
 
-    cancelAppointmentByBarberMock.mockResolvedValueOnce({ kind: 'idempotency-conflict' })
+    cancelAppointmentByProfessionalMock.mockResolvedValueOnce({ kind: 'idempotency-conflict' })
     await confirmCancel(wrapper)
 
     expect(wrapper.text()).toContain('No pudimos completar el intento anterior')
@@ -745,7 +747,7 @@ describe('AppointmentDetailPage', () => {
     const { wrapper } = await mountPage()
     await openCancelDialog(wrapper)
 
-    cancelAppointmentByBarberMock.mockResolvedValueOnce({ kind: 'network-error' })
+    cancelAppointmentByProfessionalMock.mockResolvedValueOnce({ kind: 'network-error' })
     await confirmCancel(wrapper)
 
     expect(wrapper.text()).toContain('No pudimos conectar')

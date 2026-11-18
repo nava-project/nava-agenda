@@ -4,7 +4,7 @@ import (
 	"errors"
 	"net/http"
 
-	"system-barbershop/internal/platform/apperr"
+	"nava-agenda/internal/platform/apperr"
 )
 
 // problemSpec fija, para un apperr.Kind, la representación de red estable:
@@ -31,8 +31,8 @@ var notFoundProblem = problemSpec{
 }
 
 // forbiddenProblem cubre una sesión válida sin permiso para la operación
-// (DEC-173): el empleado que intenta tocar algo fuera de su propio barbero o
-// la configuración de la barbería.
+// (DEC-173): el empleado que intenta tocar algo fuera de su propio profesional o
+// la configuración del negocio.
 var forbiddenProblem = problemSpec{
 	typeURI: "/api/v1/problems/forbidden",
 	title:   "Sin permiso",
@@ -116,7 +116,7 @@ var challengeRequiredProblem = problemSpec{
 
 // conflictProblem cubre apperr.KindConflict: un conflicto de negocio ajeno a
 // idempotencia (HU-022, CA-022-04: nombre de servicio ya usado por otro
-// servicio activo de la misma barbería). type, title y code fijos; detail
+// servicio activo del mismo negocio). type, title y code fijos; detail
 // distingue el caso concreto, igual que notFoundProblem.
 var conflictProblem = problemSpec{
 	typeURI: "/api/v1/problems/conflict",
@@ -164,7 +164,7 @@ var scheduleConflictProblem = problemSpec{
 // (HU-099, RN-CAN-01/RN-CAN-02): la política vigente no permite al cliente
 // cancelar a esta hora. 422 y no 409: el estado del turno es válido, es la
 // regla de negocio la que lo rechaza. El cliente debe mostrar el contacto de
-// la barbería, no ofrecer reintentar.
+// el negocio, no ofrecer reintentar.
 var cancellationWindowClosedProblem = problemSpec{
 	typeURI: "/api/v1/problems/cancellation-window-closed",
 	title:   "Plazo de cancelación vencido",
@@ -183,7 +183,7 @@ var cancellationReasonRequiredProblem = problemSpec{
 
 // rescheduleWindowClosedProblem cubre apperr.KindRescheduleWindowClosed
 // (HU-104, DEC-178): el cliente ya no puede mover su turno por su cuenta.
-// Mismo criterio que la cancelación: 422, y la interfaz remite a la barbería.
+// Mismo criterio que la cancelación: 422, y la interfaz remite al negocio.
 var rescheduleWindowClosedProblem = problemSpec{
 	typeURI: "/api/v1/problems/reschedule-window-closed",
 	title:   "Plazo de reprogramación vencido",
@@ -241,7 +241,7 @@ var unavailableProblem = problemSpec{
 //     reenviar jamás err.Error() al cliente (CA-003-02): un mensaje de
 //     driver, una ruta de archivo o una traza no tienen forma de llegar al
 //     cuerpo de la respuesta desde aquí.
-//   - Un recurso inexistente y uno de otra barbería usan el mismo
+//   - Un recurso inexistente y uno de otro negocio usan el mismo
 //     apperr.KindNotFound, así que ambos producen exactamente el mismo
 //     Problem (CA-003-03, RN-TEN-01): no hay una rama de código que pueda
 //     distinguirlos.

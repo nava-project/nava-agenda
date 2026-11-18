@@ -4,21 +4,21 @@ import (
 	"context"
 	"fmt"
 
-	"system-barbershop/internal/platform/apperr"
-	"system-barbershop/internal/platform/clock"
+	"nava-agenda/internal/platform/apperr"
+	"nava-agenda/internal/platform/clock"
 )
 
-// decoyBarbershopID es un identificador de barbería que NUNCA existe en
+// decoyBusinessID es un identificador de negocio que NUNCA existe en
 // datos reales (gen_random_uuid() jamás produce el UUID nulo). Se usa como
-// tenant señuelo cuando ResolveLoginTenant no resolvió ninguna barbería, así
+// tenant señuelo cuando ResolveLoginTenant no resolvió ningún negocio, así
 // LookupCredential ejecuta la MISMA forma de transacción y de consultas que
 // cuando sí hay un tenant real: un correo inexistente implica el mismo
-// trabajo de base de datos que una barbería resuelta con contraseña
+// trabajo de base de datos que un negocio resuelto con contraseña
 // incorrecta (CA-005-02). Es una elección de implementación, no una
 // decisión de producto que requiera registro en docs/00-control
 // (estandar-backend-go.md §1: "una excepción es válida cuando simplifica un
 // caso real y queda explicada en la revisión").
-const decoyBarbershopID = "00000000-0000-0000-0000-000000000000"
+const decoyBusinessID = "00000000-0000-0000-0000-000000000000"
 
 // dummyPassword es una contraseña ficticia fija, usada SOLO para calcular el
 // hash señuelo al construir el servicio. No corresponde a ninguna cuenta
@@ -83,14 +83,14 @@ func (s *LoginService) Login(ctx context.Context, rawEmail, password, rawIP stri
 
 	email := NormalizeEmail(rawEmail)
 
-	barbershopID, resolved, err := s.repo.ResolveLoginTenant(ctx, email)
+	businessID, resolved, err := s.repo.ResolveLoginTenant(ctx, email)
 	if err != nil {
 		return Session{}, apperr.Internal(fmt.Errorf("auth: resolver tenant de acceso: %w", err))
 	}
 
-	lookupShop := barbershopID
+	lookupShop := businessID
 	if !resolved {
-		lookupShop = decoyBarbershopID
+		lookupShop = decoyBusinessID
 	}
 
 	cred, err := s.repo.LookupCredential(ctx, lookupShop, resolved, email)
@@ -116,15 +116,15 @@ func (s *LoginService) Login(ctx context.Context, rawEmail, password, rawIP stri
 	now := s.clock.Now()
 	expiresAt := now.Add(SessionDuration)
 
-	if err := s.repo.CreateSession(ctx, barbershopID, cred.StaffUserID, HashToken(rawToken), now, expiresAt); err != nil {
+	if err := s.repo.CreateSession(ctx, businessID, cred.StaffUserID, HashToken(rawToken), now, expiresAt); err != nil {
 		return Session{}, apperr.Internal(fmt.Errorf("auth: persistir sesión: %w", err))
 	}
 
 	return Session{
-		Token:        rawToken,
-		BarbershopID: barbershopID,
-		StaffUserID:  cred.StaffUserID,
-		IssuedAt:     now,
-		ExpiresAt:    expiresAt,
+		Token:       rawToken,
+		BusinessID:  businessID,
+		StaffUserID: cred.StaffUserID,
+		IssuedAt:    now,
+		ExpiresAt:   expiresAt,
 	}, nil
 }

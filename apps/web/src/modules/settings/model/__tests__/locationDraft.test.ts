@@ -30,7 +30,7 @@ describe('locationDraft', () => {
     expect(validateAddress('')).toBeUndefined()
   })
 
-  it('el borrador de una barbería sin dirección empieza con el campo vacío', () => {
+  it('el borrador de un negocio sin dirección empieza con el campo vacío', () => {
     expect(draftFromSaved(DEFAULT_LOCATION)).toEqual({
       hasPhysicalLocation: true,
       address: '',

@@ -7,13 +7,13 @@ import (
 
 	"github.com/jackc/pgx/v5"
 
-	"system-barbershop/internal/modules/catalog"
-	"system-barbershop/internal/platform/database"
+	"nava-agenda/internal/modules/catalog"
+	"nava-agenda/internal/platform/database"
 )
 
 // AssignmentRepository implementa catalog.AssignmentRepository sobre
 // database.DB. Separado de Repository (repository.go, dueño de `service`)
-// porque opera sobre una tabla distinta (`barber_service`) con su propia
+// porque opera sobre una tabla distinta (`professional_service`) con su propia
 // disciplina transaccional; comparte el mismo *database.DB, sin
 // necesitar el coordinador de idempotencia (asignar/desasignar usan
 // semántica HTTP naturalmente repetible -PUT/DELETE-, no el protocolo de
@@ -30,15 +30,15 @@ func NewAssignmentRepository(db *database.DB) *AssignmentRepository {
 var _ catalog.AssignmentRepository = (*AssignmentRepository)(nil)
 
 // Exists implementa catalog.AssignmentRepository.Exists (HU-061, DEC-072).
-func (r *AssignmentRepository) Exists(ctx context.Context, barbershopID, barberID, serviceID string) (bool, error) {
+func (r *AssignmentRepository) Exists(ctx context.Context, businessID, professionalID, serviceID string) (bool, error) {
 	var found bool
-	err := r.db.InTenantTx(ctx, database.BarbershopID(barbershopID), func(ctx context.Context, q database.Queries) error {
+	err := r.db.InTenantTx(ctx, database.BusinessID(businessID), func(ctx context.Context, q database.Queries) error {
 		row := q.QueryRow(ctx,
 			`SELECT EXISTS (
 			   SELECT 1 FROM professional_service
 			    WHERE business_id = $1 AND professional_id = $2 AND service_id = $3
 			 )`,
-			barbershopID, barberID, serviceID,
+			businessID, professionalID, serviceID,
 		)
 		return row.Scan(&found)
 	})
@@ -49,14 +49,14 @@ func (r *AssignmentRepository) Exists(ctx context.Context, barbershopID, barberI
 }
 
 // List implementa catalog.AssignmentRepository.List: orden estable
-// (created_at, service_id) dentro del tenant vigente y del barbero
+// (created_at, service_id) dentro del tenant vigente y del profesional
 // solicitado, cursor opaco decodificado por el núcleo (catalog.Cursor,
 // reutilizado con ID=serviceID), paginación "pedir uno de más" igual que
 // Repository.List.
-func (r *AssignmentRepository) List(ctx context.Context, barbershopID, barberID string, cursor *catalog.Cursor, limit int) (catalog.AssignmentListResult, error) {
+func (r *AssignmentRepository) List(ctx context.Context, businessID, professionalID string, cursor *catalog.Cursor, limit int) (catalog.AssignmentListResult, error) {
 	var result catalog.AssignmentListResult
 
-	err := r.db.InTenantTx(ctx, database.BarbershopID(barbershopID), func(ctx context.Context, q database.Queries) error {
+	err := r.db.InTenantTx(ctx, database.BusinessID(businessID), func(ctx context.Context, q database.Queries) error {
 		var (
 			rows pgx.Rows
 			err  error
@@ -70,7 +70,7 @@ func (r *AssignmentRepository) List(ctx context.Context, barbershopID, barberID 
 				  WHERE business_id = $1 AND professional_id = $2
 				  ORDER BY created_at, service_id
 				  LIMIT $3`,
-				barbershopID, barberID, fetchLimit,
+				businessID, professionalID, fetchLimit,
 			)
 		} else {
 			rows, err = q.Query(ctx,
@@ -80,7 +80,7 @@ func (r *AssignmentRepository) List(ctx context.Context, barbershopID, barberID 
 				    AND (created_at, service_id) > ($3, $4)
 				  ORDER BY created_at, service_id
 				  LIMIT $5`,
-				barbershopID, barberID, cursor.CreatedAt, cursor.ID, fetchLimit,
+				businessID, professionalID, cursor.CreatedAt, cursor.ID, fetchLimit,
 			)
 		}
 		if err != nil {
@@ -90,7 +90,7 @@ func (r *AssignmentRepository) List(ctx context.Context, barbershopID, barberID 
 
 		items := make([]catalog.Assignment, 0, fetchLimit)
 		for rows.Next() {
-			a := catalog.Assignment{BarberID: barberID}
+			a := catalog.Assignment{ProfessionalID: professionalID}
 			if err := rows.Scan(&a.ServiceID, &a.CreatedAt); err != nil {
 				return fmt.Errorf("list professional_service: scan: %w", err)
 			}
@@ -119,21 +119,21 @@ func (r *AssignmentRepository) List(ctx context.Context, barbershopID, barberID 
 }
 
 // Assign implementa catalog.AssignmentRepository.Assign dentro de UNA sola
-// InTenantTx: primero confirma que serviceID exista en barbershopID (dueño
+// InTenantTx: primero confirma que serviceID exista en businessID (dueño
 // de esa verificación: catalog es dueño de `service`), luego
 // INSERT ... ON CONFLICT DO NOTHING (CA-023-02: repetir exactamente la
 // misma operación no crea una segunda fila). La FK compuesta
-// barber_service_barber_fk es defensa en profundidad sobre barberID
-// (CA-023-04): AssignmentService ya lo verificó mediante BarberPort antes
+// professional_service_professional_fk es defensa en profundidad sobre professionalID
+// (CA-023-04): AssignmentService ya lo verificó mediante ProfessionalPort antes
 // de esta llamada.
-func (r *AssignmentRepository) Assign(ctx context.Context, barbershopID, barberID, serviceID string) (catalog.AssignResult, error) {
+func (r *AssignmentRepository) Assign(ctx context.Context, businessID, professionalID, serviceID string) (catalog.AssignResult, error) {
 	var result catalog.AssignResult
 
-	err := r.db.InTenantTx(ctx, database.BarbershopID(barbershopID), func(ctx context.Context, q database.Queries) error {
+	err := r.db.InTenantTx(ctx, database.BusinessID(businessID), func(ctx context.Context, q database.Queries) error {
 		var serviceExists bool
 		if err := q.QueryRow(ctx,
 			`SELECT EXISTS(SELECT 1 FROM service WHERE id = $1 AND business_id = $2)`,
-			serviceID, barbershopID,
+			serviceID, businessID,
 		).Scan(&serviceExists); err != nil {
 			return fmt.Errorf("check service exists: %w", err)
 		}
@@ -142,13 +142,13 @@ func (r *AssignmentRepository) Assign(ctx context.Context, barbershopID, barberI
 			return nil
 		}
 
-		a := catalog.Assignment{BarberID: barberID, ServiceID: serviceID}
+		a := catalog.Assignment{ProfessionalID: professionalID, ServiceID: serviceID}
 		err := q.QueryRow(ctx,
 			`INSERT INTO professional_service (business_id, professional_id, service_id)
 			      VALUES ($1, $2, $3)
 			 ON CONFLICT (business_id, professional_id, service_id) DO NOTHING
 			  RETURNING created_at`,
-			barbershopID, barberID, serviceID,
+			businessID, professionalID, serviceID,
 		).Scan(&a.CreatedAt)
 		switch {
 		case err == nil:
@@ -162,7 +162,7 @@ func (r *AssignmentRepository) Assign(ctx context.Context, barbershopID, barberI
 			if err := q.QueryRow(ctx,
 				`SELECT created_at FROM professional_service
 				  WHERE business_id = $1 AND professional_id = $2 AND service_id = $3`,
-				barbershopID, barberID, serviceID,
+				businessID, professionalID, serviceID,
 			).Scan(&a.CreatedAt); err != nil {
 				return fmt.Errorf("select existing professional_service: %w", err)
 			}
@@ -180,20 +180,20 @@ func (r *AssignmentRepository) Assign(ctx context.Context, barbershopID, barberI
 }
 
 // Unassign implementa catalog.AssignmentRepository.Unassign con un único
-// DELETE acotado por tenant. Retirar a un barbero de un servicio es siempre
-// válido, incluso si era el último: un servicio activo sin barberos deja de
+// DELETE acotado por tenant. Retirar a un profesional de un servicio es siempre
+// válido, incluso si era el último: un servicio activo sin profesionales deja de
 // ofrecerse al público (la consulta del catálogo público exige al menos una
 // asignación) pero conserva su registro y puede volver a asignarse
 // (DEC-114, que sustituye a DEC-068). Sin fila afectada, la asociación nunca
-// existió (o el barbero/servicio es ajeno o inexistente) ->
+// existió (o el profesional/servicio es ajeno o inexistente) ->
 // UnassignOutcomeNotFound, el mismo 404 uniforme de CA-023-04.
-func (r *AssignmentRepository) Unassign(ctx context.Context, barbershopID, barberID, serviceID string) (catalog.UnassignResult, error) {
+func (r *AssignmentRepository) Unassign(ctx context.Context, businessID, professionalID, serviceID string) (catalog.UnassignResult, error) {
 	var result catalog.UnassignResult
 
-	err := r.db.InTenantTx(ctx, database.BarbershopID(barbershopID), func(ctx context.Context, q database.Queries) error {
+	err := r.db.InTenantTx(ctx, database.BusinessID(businessID), func(ctx context.Context, q database.Queries) error {
 		tag, err := q.Exec(ctx,
 			`DELETE FROM professional_service WHERE business_id = $1 AND professional_id = $2 AND service_id = $3`,
-			barbershopID, barberID, serviceID,
+			businessID, professionalID, serviceID,
 		)
 		if err != nil {
 			return fmt.Errorf("delete professional_service: %w", err)

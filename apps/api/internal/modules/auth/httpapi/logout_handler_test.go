@@ -7,8 +7,8 @@ import (
 	"testing"
 	"time"
 
-	"system-barbershop/internal/modules/auth"
-	"system-barbershop/internal/modules/auth/httpapi"
+	"nava-agenda/internal/modules/auth"
+	"nava-agenda/internal/modules/auth/httpapi"
 )
 
 func newLogoutHandler(t *testing.T, repo *spySessionRepo) *httpapi.LogoutHandler {
@@ -24,7 +24,7 @@ func TestLogoutHandler_Success_RevokesAndClearsCookie(t *testing.T) {
 	repo := &spySessionRepo{}
 	h := newLogoutHandler(t, repo)
 
-	principal := auth.Principal{SessionID: "s-1", StaffUserID: "u-1", BarbershopID: "shop-a"}
+	principal := auth.Principal{SessionID: "s-1", StaffUserID: "u-1", BusinessID: "shop-a"}
 	req := httptest.NewRequest(http.MethodPost, "/api/v1/private/auth/logout", nil)
 	req = req.WithContext(auth.ContextWithPrincipal(req.Context(), principal))
 	rec := httptest.NewRecorder()
@@ -41,13 +41,16 @@ func TestLogoutHandler_Success_RevokesAndClearsCookie(t *testing.T) {
 		t.Fatalf("expected exactly one RevokeSession call, got %d", repo.revokeCalls)
 	}
 
-	cookies := rec.Result().Cookies()
-	if len(cookies) != 1 {
-		t.Fatalf("expected exactly one Set-Cookie, got %d", len(cookies))
+	// Se borran el nombre actual y el anterior a DEC-183 (#662); aquí se mira el
+	// actual, cookie_migration_test.go cubre los dos.
+	var c *http.Cookie
+	for _, ck := range rec.Result().Cookies() {
+		if ck.Name == httpapi.CookieName {
+			c = ck
+		}
 	}
-	c := cookies[0]
-	if c.Name != httpapi.CookieName {
-		t.Fatalf("expected cookie name %q, got %q", httpapi.CookieName, c.Name)
+	if c == nil {
+		t.Fatalf("expected a Set-Cookie clearing %q", httpapi.CookieName)
 	}
 	if c.Value != "" {
 		t.Fatalf("expected an empty cookie value when clearing, got %q", c.Value)
@@ -88,7 +91,7 @@ func TestLogoutHandler_ServiceFailure_ReturnsSafe500(t *testing.T) {
 	repo := &spySessionRepo{revokeErr: context.DeadlineExceeded}
 	h := newLogoutHandler(t, repo)
 
-	principal := auth.Principal{SessionID: "s-1", StaffUserID: "u-1", BarbershopID: "shop-a"}
+	principal := auth.Principal{SessionID: "s-1", StaffUserID: "u-1", BusinessID: "shop-a"}
 	req := httptest.NewRequest(http.MethodPost, "/api/v1/private/auth/logout", nil)
 	req = req.WithContext(auth.ContextWithPrincipal(req.Context(), principal))
 	rec := httptest.NewRecorder()

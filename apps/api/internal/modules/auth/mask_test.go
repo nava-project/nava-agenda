@@ -3,7 +3,7 @@ package auth_test
 import (
 	"testing"
 
-	"system-barbershop/internal/modules/auth"
+	"nava-agenda/internal/modules/auth"
 )
 
 func TestMaskPhone(t *testing.T) {

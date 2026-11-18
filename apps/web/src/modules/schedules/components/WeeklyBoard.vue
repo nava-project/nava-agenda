@@ -22,9 +22,9 @@ interface BoardDay {
 interface Props {
   days: readonly BoardDay[]
   scale: BoardScale
-  /** Día ISO vigente en la barbería, o null si su zona no se conoce. */
+  /** Día ISO vigente en el negocio, o null si su zona no se conoce. */
   todayIsoWeekday: number | null
-  /** Minuto del día vigente en la barbería, para el marcador "ahora". */
+  /** Minuto del día vigente en el negocio, para el marcador "ahora". */
   nowMinute: number | null
   pendingDeleteIds: ReadonlySet<string>
 }
@@ -158,7 +158,7 @@ function countLabel(day: BoardDay): string {
 </template>
 
 <style scoped>
-/* Panel hundido sobre tinta: el mismo hueco que la tabla de Barberos. */
+/* Panel hundido sobre tinta: el mismo hueco que la tabla de Profesionales. */
 .week-board {
   --track-height: 14px;
 
@@ -403,7 +403,7 @@ function countLabel(day: BoardDay): string {
   margin-left: 4px;
 }
 
-/* Acciones de fila: mismo par fantasma de latón que Barberos y Servicios. */
+/* Acciones de fila: mismo par fantasma de latón que Profesionales y Servicios. */
 .week-board__chip-actions :deep(.base-button) {
   --btn-focus-ring: 0 0 0 2px var(--color-field-strong), 0 0 0 4px var(--color-focus);
 

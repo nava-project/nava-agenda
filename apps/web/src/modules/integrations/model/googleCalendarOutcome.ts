@@ -9,7 +9,7 @@ type Failure = { kind: 'network-error' } | { kind: 'unexpected-error' }
 export type FetchConnectionOutcome =
   { kind: 'success'; connection: GoogleCalendarConnection } | Failure
 
-// 409: integración sin configurar o sin barbero vinculado.
+// 409: integración sin configurar o sin profesional vinculado.
 export type StartConnectOutcome =
   { kind: 'success'; authorizationUrl: string } | { kind: 'unavailable' } | Failure
 
@@ -37,4 +37,4 @@ export type UpdateReminderOutcome =
 // Vínculo automático del independiente (DEC-155): `success` si quedó vinculada su
 // única ficha; `not-applicable` si no hay una sola ficha elegible (varias, ninguna,
 // ya tomada por otro usuario), caso en que la pantalla conserva el flujo manual.
-export type LinkSoleBarberOutcome = { kind: 'success' } | { kind: 'not-applicable' } | Failure
+export type LinkSoleProfessionalOutcome = { kind: 'success' } | { kind: 'not-applicable' } | Failure

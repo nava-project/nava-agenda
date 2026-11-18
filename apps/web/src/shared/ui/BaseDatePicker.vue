@@ -10,7 +10,7 @@
  *
  * Solo trabaja con fechas civiles "AAAA-MM-DD" (RN-DIS-07): nunca crea un
  * `Date` local ni lee la zona del dispositivo; qué día es "hoy" lo decide
- * quien lo monta, con la zona de la barbería.
+ * quien lo monta, con la zona del negocio.
  *
  * Patrón ARIA "Date Picker Dialog" (WAI-ARIA APG): disparador con
  * aria-haspopup="dialog", diálogo no modal con foco atrapado y una cuadrícula
@@ -31,7 +31,7 @@ import { formatCivilDateFull, isCivilDateString, shiftCivilDate } from '@/shared
 
 interface Props {
   modelValue: string | null
-  /** Día civil vigente en la barbería, para marcarlo y ofrecer «Hoy». Sin él
+  /** Día civil vigente en el negocio, para marcarlo y ofrecer «Hoy». Sin él
    * (zona desconocida) no se marca ningún día ni se muestra el atajo. */
   today?: string | null
   disabled?: boolean
@@ -490,7 +490,7 @@ const triggerLabelledBy = computed(() =>
 
 /* Campo hundido: más oscuro que la tinta de la página (--color-field-strong)
    con filete de latón, nunca un velo claro sobre el azul. Mismo lenguaje y
-   misma altura que BarberSelect: 44 px (CA-063-08, objetivo táctil). */
+   misma altura que ProfessionalSelect: 44 px (CA-063-08, objetivo táctil). */
 .agenda-date-picker__trigger {
   display: flex;
   align-items: center;

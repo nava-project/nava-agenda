@@ -1,17 +1,17 @@
 import { expect, type Locator, type Page } from '@playwright/test'
 
 /**
- * Controles propios de Horarios (selector de barbero, hora y fecha). Sustituyen
+ * Controles propios de Horarios (selector de profesional, hora y fecha). Sustituyen
  * a `selectOption(...)` y `getByLabel(...).fill(...)` de los controles
  * nativos que la pantalla tenía antes del rediseño: ahora son disparadores que
  * abren un listbox, un panel de hora o un calendario.
  */
 
-// Elige un barbero en el listbox de la pantalla (BaseSelect).
-export async function selectBarber(page: Page, fullName: string): Promise<void> {
-  await page.locator('#schedules-barber-select').click()
+// Elige un profesional en el listbox de la pantalla (BaseSelect).
+export async function selectProfessional(page: Page, fullName: string): Promise<void> {
+  await page.locator('#schedules-professional-select').click()
   await page.getByRole('option', { name: fullName }).click()
-  await expect(page.locator('#schedules-barber-select')).toContainText(fullName)
+  await expect(page.locator('#schedules-professional-select')).toContainText(fullName)
 }
 
 // Fija una hora HH:MM en un BaseTimePicker cuyo rótulo es `label`.

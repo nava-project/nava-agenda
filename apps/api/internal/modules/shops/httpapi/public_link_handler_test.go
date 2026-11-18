@@ -7,11 +7,11 @@ import (
 	"net/http/httptest"
 	"testing"
 
-	"system-barbershop/internal/modules/shops"
-	"system-barbershop/internal/modules/shops/httpapi"
+	"nava-agenda/internal/modules/shops"
+	"nava-agenda/internal/modules/shops/httpapi"
 )
 
-// fakePublicLinkRepository registra a qué barbería se le pidió el enlace:
+// fakePublicLinkRepository registra a qué negocio se le pidió el enlace:
 // estas pruebas verifican el adaptador HTTP en aislamiento; la generación y
 // el aislamiento reales viven en postgres/public_link_repository_test.go y
 // cmd/api/public_link_integration_test.go.
@@ -21,8 +21,8 @@ type fakePublicLinkRepository struct {
 	gotShopID string
 }
 
-func (f *fakePublicLinkRepository) Ensure(_ context.Context, barbershopID string) (string, bool, error) {
-	f.gotShopID = barbershopID
+func (f *fakePublicLinkRepository) Ensure(_ context.Context, businessID string) (string, bool, error) {
+	f.gotShopID = businessID
 	return f.slug, f.found, nil
 }
 
@@ -48,7 +48,7 @@ func TestGetPublicLinkHandler_Success_ReturnsOnlyTheSlugAndForbidsCaching(t *tes
 	}
 	// El tenant sale del principal de sesión, nunca de la solicitud.
 	if repo.gotShopID != testShopID {
-		t.Fatalf("expected the session barbershop %q, got %q", testShopID, repo.gotShopID)
+		t.Fatalf("expected the session business %q, got %q", testShopID, repo.gotShopID)
 	}
 }
 
@@ -63,7 +63,7 @@ func TestGetPublicLinkHandler_NoPrincipal_Is500(t *testing.T) {
 	}
 }
 
-func TestGetPublicLinkHandler_BarbershopNotVisible_Is404(t *testing.T) {
+func TestGetPublicLinkHandler_BusinessNotVisible_Is404(t *testing.T) {
 	h := httpapi.NewGetPublicLinkHandler(shops.NewPublicLinkService(&fakePublicLinkRepository{found: false}))
 
 	rec := httptest.NewRecorder()

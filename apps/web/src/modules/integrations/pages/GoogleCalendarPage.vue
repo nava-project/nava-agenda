@@ -1,5 +1,5 @@
 <script setup lang="ts">
-// Pantalla «Google Calendar» (issue #325, DEC-099, DEC-101, DEC-122): el barbero
+// Pantalla «Google Calendar» (issue #325, DEC-099, DEC-101, DEC-122): el profesional
 // conecta, ve el estado, sincroniza ahora y desconecta SU Google Calendar, y
 // elige la anticipación del recordatorio. La publicación es de NAVA hacia
 // Google: lo que se cambie allí no altera la agenda de NAVA. La pantalla nunca
@@ -7,7 +7,7 @@
 // vuelta la completa GoogleCalendarCallbackPage.
 //
 // Estados (derivados del recurso, no campos de la API): no disponible, falta
-// vincular el barbero, no conectado, conectado, sincronizando (cambios en cola),
+// vincular el profesional, no conectado, conectado, sincronizando (cambios en cola),
 // requiere reconexión y error de sincronización. Las acciones se bloquean mientras
 // una está en curso, así un doble clic nunca la repite.
 import { computed, onMounted, onUnmounted, ref } from 'vue'
@@ -20,7 +20,7 @@ import GoogleCalendarSteps from '../components/GoogleCalendarSteps.vue'
 import {
   disconnect,
   fetchConnection,
-  linkSoleBarber,
+  linkSoleProfessional,
   startConnect,
   syncNow,
   updateReminder,
@@ -102,10 +102,10 @@ async function load() {
   if (
     outcome.kind === 'success' &&
     outcome.connection.enabled &&
-    !outcome.connection.barberLinked &&
+    !outcome.connection.professionalLinked &&
     isSoloProfile.value
   ) {
-    const linked = await linkSoleBarber()
+    const linked = await linkSoleProfessional()
     if (disposed) return
     if (linked.kind === 'success') {
       outcome = await fetchConnection()
@@ -288,7 +288,7 @@ const headline = computed(() => {
   switch (view.value) {
     case 'unavailable':
       return 'Todavía no está disponible'
-    case 'needs-barber':
+    case 'needs-professional':
       return `Primero, dinos qué ${v.value.professional} eres`
     case 'reauth':
       return 'Hay que volver a conectar Google'
@@ -307,7 +307,7 @@ const lead = computed(() => {
   switch (view.value) {
     case 'unavailable':
       return 'La conexión con Google Calendar no está disponible en este entorno. El resto de Nava Agenda funciona igual.'
-    case 'needs-barber':
+    case 'needs-professional':
       return `Para publicar tu agenda, Nava Agenda necesita saber cuál ${v.value.professional} eres. Abre tu ficha en ${v.value.Professionals} y pulsa «Este soy yo»: toma un clic.`
     case 'reauth':
       return 'Retiraste el permiso de Nava Agenda o caducó. Tus turnos no se pierden: vuelve a conectar y seguirán publicándose.'
@@ -332,9 +332,14 @@ const steps = computed(() => [
   { title: 'Listo', detail: 'Tus turnos se publican solos.' },
 ])
 const showSteps = computed(
-  () => view.value === 'needs-barber' || view.value === 'not-connected' || view.value === 'reauth',
+  () =>
+    view.value === 'needs-professional' ||
+    view.value === 'not-connected' ||
+    view.value === 'reauth',
 )
-const currentStep = computed(() => (view.value === 'needs-barber' || isSoloProfile.value ? 1 : 2))
+const currentStep = computed(() =>
+  view.value === 'needs-professional' || isSoloProfile.value ? 1 : 2,
+)
 
 // Recordatorio: dos modos y atajos de minutos habituales.
 const reminderMode = computed({
@@ -434,8 +439,8 @@ const HOW_IT_WORKS = [
           </div>
 
           <RouterLink
-            v-if="view === 'needs-barber'"
-            :to="{ name: 'staff-barberos' }"
+            v-if="view === 'needs-professional'"
+            :to="{ name: 'staff-profesionales' }"
             class="gcal-link nv-lift"
           >
             <span class="gcal-link__copy">
@@ -465,7 +470,10 @@ const HOW_IT_WORKS = [
           </dl>
         </div>
 
-        <footer v-if="view !== 'unavailable' && view !== 'needs-barber'" class="gcal-hero__actions">
+        <footer
+          v-if="view !== 'unavailable' && view !== 'needs-professional'"
+          class="gcal-hero__actions"
+        >
           <BaseButton
             v-if="canConnect"
             type="button"
@@ -673,7 +681,7 @@ const HOW_IT_WORKS = [
 
 <style scoped>
 /* Superficie tinta de punta a punta, el mismo canvas que Configuración,
-   Agenda y Barberos (estandar-diseno-visual.md §3). */
+   Agenda y Profesionales (estandar-diseno-visual.md §3). */
 .gcal-page {
   --gcal-width: 760px;
 
@@ -840,10 +848,10 @@ const HOW_IT_WORKS = [
     background-color 400ms var(--motion-ease-out, ease-out);
 }
 
-/* Sin conexión: rojo; conectado: verde. Son los dos extremos que el barbero debe distinguir
+/* Sin conexión: rojo; conectado: verde. Son los dos extremos que el profesional debe distinguir
    de un vistazo (el error de sincronización comparte el rojo, pero lleva su propio texto y «!»). */
 .gcal-hero--not-connected,
-.gcal-hero--needs-barber {
+.gcal-hero--needs-professional {
   --gcal-tone: var(--color-danger-on-strong);
 }
 
@@ -909,7 +917,7 @@ const HOW_IT_WORKS = [
 }
 
 .gcal-hero--not-connected .gcal-status__dot,
-.gcal-hero--needs-barber .gcal-status__dot,
+.gcal-hero--needs-professional .gcal-status__dot,
 .gcal-hero--unavailable .gcal-status__dot {
   background: transparent;
   box-shadow: inset 0 0 0 1.5px var(--gcal-tone);
@@ -1394,7 +1402,7 @@ const HOW_IT_WORKS = [
   }
 }
 
-/* --- Campos y botones sobre tinta: mismo tratamiento que Servicios, Barberos y
+/* --- Campos y botones sobre tinta: mismo tratamiento que Servicios, Profesionales y
    Configuración (el relleno claro por defecto de BaseInput/BaseButton está pensado
    para superficie clara). --- */
 
@@ -1557,7 +1565,7 @@ const HOW_IT_WORKS = [
 </style>
 
 <style>
-/* SIN "scoped" a propósito (igual que Barberos y Servicios): BaseDialog dibuja su tarjeta,
+/* SIN "scoped" a propósito (igual que Profesionales y Servicios): BaseDialog dibuja su tarjeta,
    encabezado y botón de cerrar en <Teleport to="body">, fuera del alcance del componente.
    Se selecciona por la clase propia de esta pantalla. El !important es necesario porque la
    regla de BaseDialog tiene la misma especificidad y el orden de los <style> no está garantizado. */

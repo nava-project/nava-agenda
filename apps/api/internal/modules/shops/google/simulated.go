@@ -5,7 +5,7 @@ import (
 	"hash/fnv"
 	"strings"
 
-	"system-barbershop/internal/modules/shops"
+	"nava-agenda/internal/modules/shops"
 )
 
 // Simulated es un geocodificador determinista SOLO para desarrollo local y

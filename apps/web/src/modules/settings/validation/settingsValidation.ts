@@ -11,13 +11,13 @@ export const NAME_MAX_LENGTH = 120
 export const TIMEZONE_MAX_LENGTH = 64
 export const CONTACT_EMAIL_MAX_LENGTH = 254
 
-// Misma forma mínima que barbershop_contact_email_ck en la base: sin
+// Misma forma mínima que business_contact_email_ck en la base: sin
 // espacios, con '@' y un '.' posterior (no una validación RFC 5322
 // completa, docs/06-api/estandar-openapi.md "no crear reglas más
 // restrictivas que las fuentes").
 const CONTACT_EMAIL_SHAPE_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
 
-// Exactamente la misma expresión que barbershop_contact_phone_ck.
+// Exactamente la misma expresión que business_contact_phone_ck.
 const CONTACT_PHONE_E164_PATTERN = /^\+[1-9][0-9]{7,14}$/
 
 export function validateName(name: string, v: Vocabulary): string | undefined {

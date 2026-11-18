@@ -1,7 +1,7 @@
 /**
  * Pruebas de SettingsPage (HU-020, DEC-110): preferencias de ESTE dispositivo (modo, tamaño de texto, animaciones), enlace público
  * (DEC-117) y verificación accesible con axe.
- * settingsApi, brandApi y auth.updateBarbershopName se sustituyen por dobles de prueba
+ * settingsApi, brandApi y auth.updateBusinessName se sustituyen por dobles de prueba
  * (settingsPageHarness.ts); el recorrido real contra el API vive en el E2E. La suite de la
  * página se reparte en varios archivos SettingsPage*.test.ts para que vitest los ejecute en
  * paralelo (#625).

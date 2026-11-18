@@ -8,10 +8,10 @@ import (
 	"net/http"
 	"strconv"
 
-	"system-barbershop/internal/modules/schedule"
-	"system-barbershop/internal/platform/apperr"
-	"system-barbershop/internal/platform/httpserver"
-	"system-barbershop/internal/platform/idempotency"
+	"nava-agenda/internal/modules/schedule"
+	"nava-agenda/internal/platform/apperr"
+	"nava-agenda/internal/platform/httpserver"
+	"nava-agenda/internal/platform/idempotency"
 )
 
 // exceptionIDParam es el nombre del parámetro de ruta que cmd/api.buildRouter
@@ -20,8 +20,8 @@ const exceptionIDParam = "exceptionId"
 
 // exceptionBasePath es la base usada para construir el header Location de
 // un alta exitosa, relativa a /api/v1.
-func exceptionBasePath(barberID string) string {
-	return "/private/professionals/" + barberID + "/schedule-exceptions/"
+func exceptionBasePath(professionalID string) string {
+	return "/private/professionals/" + professionalID + "/schedule-exceptions/"
 }
 
 // GetHolidayCalendarHandler expone
@@ -43,9 +43,9 @@ func (h *GetHolidayCalendarHandler) ServeHTTP(w http.ResponseWriter, r *http.Req
 		return
 	}
 
-	barberID := httpserver.URLParam(r, barberIDParam)
+	professionalID := httpserver.URLParam(r, professionalIDParam)
 
-	enabled, err := h.service.GetHolidayCalendar(r.Context(), principal.BarbershopID, barberID)
+	enabled, err := h.service.GetHolidayCalendar(r.Context(), principal.BusinessID, professionalID)
 	if err != nil {
 		httpserver.WriteProblem(w, httpserver.Translate(err, requestID))
 		return
@@ -75,7 +75,7 @@ func (h *UpdateHolidayCalendarHandler) ServeHTTP(w http.ResponseWriter, r *http.
 		return
 	}
 
-	barberID := httpserver.URLParam(r, barberIDParam)
+	professionalID := httpserver.URLParam(r, professionalIDParam)
 
 	var req UpdateHolidayCalendarRequest
 	dec := json.NewDecoder(r.Body)
@@ -94,7 +94,7 @@ func (h *UpdateHolidayCalendarHandler) ServeHTTP(w http.ResponseWriter, r *http.
 		return
 	}
 
-	enabled, err := h.service.SetHolidayCalendar(r.Context(), principal.BarbershopID, barberID, req.Enabled)
+	enabled, err := h.service.SetHolidayCalendar(r.Context(), principal.BusinessID, professionalID, req.Enabled)
 	if err != nil {
 		httpserver.WriteProblem(w, httpserver.Translate(err, requestID))
 		return
@@ -124,7 +124,7 @@ func (h *ListScheduleExceptionsHandler) ServeHTTP(w http.ResponseWriter, r *http
 		return
 	}
 
-	barberID := httpserver.URLParam(r, barberIDParam)
+	professionalID := httpserver.URLParam(r, professionalIDParam)
 
 	query := r.URL.Query()
 	cursor := query.Get("cursor")
@@ -140,7 +140,7 @@ func (h *ListScheduleExceptionsHandler) ServeHTTP(w http.ResponseWriter, r *http
 		limit = parsed
 	}
 
-	result, err := h.service.ListExceptions(r.Context(), principal.BarbershopID, barberID, cursor, limit)
+	result, err := h.service.ListExceptions(r.Context(), principal.BusinessID, professionalID, cursor, limit)
 	if err != nil {
 		httpserver.WriteProblem(w, httpserver.Translate(err, requestID))
 		return
@@ -171,10 +171,10 @@ func (h *GetScheduleExceptionHandler) ServeHTTP(w http.ResponseWriter, r *http.R
 		return
 	}
 
-	barberID := httpserver.URLParam(r, barberIDParam)
+	professionalID := httpserver.URLParam(r, professionalIDParam)
 	exceptionID := httpserver.URLParam(r, exceptionIDParam)
 
-	e, err := h.service.GetException(r.Context(), principal.BarbershopID, barberID, exceptionID)
+	e, err := h.service.GetException(r.Context(), principal.BusinessID, professionalID, exceptionID)
 	if err != nil {
 		httpserver.WriteProblem(w, httpserver.Translate(err, requestID))
 		return
@@ -206,7 +206,7 @@ func (h *CreateScheduleExceptionHandler) ServeHTTP(w http.ResponseWriter, r *htt
 		return
 	}
 
-	barberID := httpserver.URLParam(r, barberIDParam)
+	professionalID := httpserver.URLParam(r, professionalIDParam)
 
 	key, err := httpserver.IdempotencyKeyFromRequest(r)
 	if err != nil {
@@ -239,7 +239,7 @@ func (h *CreateScheduleExceptionHandler) ServeHTTP(w http.ResponseWriter, r *htt
 
 	fingerprint := httpserver.IdempotencyFingerprint(r, body)
 
-	result, err := h.service.CreateException(r.Context(), principal.BarbershopID, barberID,
+	result, err := h.service.CreateException(r.Context(), principal.BusinessID, professionalID,
 		req.EffectiveDate, req.IsClosed, req.Reason, toExceptionSegmentInputs(req.Segments), key, fingerprint)
 	if err != nil {
 		httpserver.WriteProblem(w, httpserver.Translate(err, requestID))
@@ -252,7 +252,7 @@ func (h *CreateScheduleExceptionHandler) ServeHTTP(w http.ResponseWriter, r *htt
 			ID string `json:"id"`
 		}
 		_ = json.Unmarshal([]byte(result.Response.Body), &parsed)
-		w.Header().Set("Location", exceptionBasePath(barberID)+parsed.ID)
+		w.Header().Set("Location", exceptionBasePath(professionalID)+parsed.ID)
 		httpserver.WriteStoredResponse(w, result.Response)
 	default:
 		httpserver.WriteProblem(w, httpserver.Translate(result.Decision.AsError(), requestID))
@@ -279,7 +279,7 @@ func (h *UpdateScheduleExceptionHandler) ServeHTTP(w http.ResponseWriter, r *htt
 		return
 	}
 
-	barberID := httpserver.URLParam(r, barberIDParam)
+	professionalID := httpserver.URLParam(r, professionalIDParam)
 	exceptionID := httpserver.URLParam(r, exceptionIDParam)
 
 	var req UpdateScheduleExceptionRequest
@@ -299,7 +299,7 @@ func (h *UpdateScheduleExceptionHandler) ServeHTTP(w http.ResponseWriter, r *htt
 		return
 	}
 
-	e, err := h.service.UpdateException(r.Context(), principal.BarbershopID, barberID, exceptionID,
+	e, err := h.service.UpdateException(r.Context(), principal.BusinessID, professionalID, exceptionID,
 		req.EffectiveDate, req.IsClosed, req.Reason, toExceptionSegmentInputs(req.Segments))
 	if err != nil {
 		httpserver.WriteProblem(w, httpserver.Translate(err, requestID))
@@ -331,10 +331,10 @@ func (h *DeleteScheduleExceptionHandler) ServeHTTP(w http.ResponseWriter, r *htt
 		return
 	}
 
-	barberID := httpserver.URLParam(r, barberIDParam)
+	professionalID := httpserver.URLParam(r, professionalIDParam)
 	exceptionID := httpserver.URLParam(r, exceptionIDParam)
 
-	if err := h.service.DeleteException(r.Context(), principal.BarbershopID, barberID, exceptionID); err != nil {
+	if err := h.service.DeleteException(r.Context(), principal.BusinessID, professionalID, exceptionID); err != nil {
 		httpserver.WriteProblem(w, httpserver.Translate(err, requestID))
 		return
 	}
@@ -344,8 +344,8 @@ func (h *DeleteScheduleExceptionHandler) ServeHTTP(w http.ResponseWriter, r *htt
 
 // ListColombianHolidaysHandler expone
 // GET /private/schedule/colombian-holidays (RN-BLQ-02): dato de referencia
-// calendárica, calculado de forma determinista, igual para toda barbería y
-// todo barbero.
+// calendárica, calculado de forma determinista, igual para todo negocio y
+// todo profesional.
 type ListColombianHolidaysHandler struct{}
 
 // NewListColombianHolidaysHandler construye el handler de festivos.

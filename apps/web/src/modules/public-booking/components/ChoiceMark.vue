@@ -1,5 +1,5 @@
 <script setup lang="ts">
-// Rombo de selección de una opción de la reserva (servicio, barbero). Es
+// Rombo de selección de una opción de la reserva (servicio, profesional). Es
 // decorativo: el estado lo comunica el `aria-checked` de la fila que lo
 // contiene, y el aspecto (contorno, relleno, check dibujado) lo gobierna
 // `.pb-choice--selected` en `styles/publicBooking.css`.

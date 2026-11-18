@@ -11,8 +11,8 @@
 //
 // Fase 2 del rediseño Tailored Grid (issue #187, estandar-diseno-
 // visual.md §6.5): el dock ya no listaba los seis destinos en línea plana
-// (Agenda/Servicios/Barberos/Horarios/Configuración/Servicios por
-// barbero), lo que trunca las etiquetas en anchos angostos y nunca incluyó
+// (Agenda/Servicios/Profesionales/Horarios/Configuración/Servicios por
+// profesional), lo que trunca las etiquetas en anchos angostos y nunca incluyó
 // "Bloqueos" (ruta real sin entrada de navegación). Ahora solo los
 // destinos marcados `primary` viven en el dock; el resto se expone dentro
 // de "Más" (BaseDialog, reutiliza su foco atrapado/Escape/restauración),
@@ -28,7 +28,7 @@ import { useLogout } from '../model/logout'
 const props = defineProps<{ extraItems?: NavItem[] }>()
 const vocabulary = useVocabulary()
 
-/** Rótulo visible de una entrada: el de su perfil, o el del vocabulario de la barbería (DEC-110). */
+/** Rótulo visible de una entrada: el de su perfil, o el del vocabulario del negocio (DEC-110). */
 function labelOf(item: NavItem): string {
   const own = item.profiles?.[panelProfile.value]?.label
   if (own) return own
@@ -37,7 +37,7 @@ function labelOf(item: NavItem): string {
 
 const baseItems: NavItem[] = [{ to: { name: 'panel' }, label: 'Agenda', primary: true }]
 
-// Perfil del panel (DEC-115): el barbero individual no ve la gestión de equipo. Se
+// Perfil del panel (DEC-115): el profesional individual no ve la gestión de equipo. Se
 // resuelve aquí, una sola vez, para que dock, "Más" y escritorio coincidan siempre.
 const items = computed<NavItem[]>(() =>
   [...baseItems, ...(props.extraItems ?? [])]
@@ -57,12 +57,12 @@ const secondaryItems = computed(() => items.value.filter((item) => !item.primary
 const ICONS: Record<string, string> = {
   panel: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="17" rx="2"></rect><line x1="3" y1="9" x2="21" y2="9"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="16" y1="2" x2="16" y2="6"></line></svg>`,
   'catalog-servicios': `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4h10l6 6v10a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V5a1 1 0 0 1 1-1z"></path><path d="M14 4v6h6"></path><line x1="8" y1="13" x2="15" y2="13"></line><line x1="8" y1="17" x2="12" y2="17"></line></svg>`,
-  'staff-barberos': `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"></circle><path d="M4 21c0-4 3.6-7 8-7s8 3 8 7"></path></svg>`,
+  'staff-profesionales': `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"></circle><path d="M4 21c0-4 3.6-7 8-7s8 3 8 7"></path></svg>`,
   'schedules-horarios': `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"></circle><path d="M12 7v5l3.5 2"></path></svg>`,
   'schedules-bloqueos': `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="10" width="16" height="10" rx="1.5"></rect><path d="M8 10V7a4 4 0 0 1 8 0v3"></path></svg>`,
-  'configuracion-barberia': `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M4 6h11M19 6h1M4 12h1M9 12h11M4 18h6M14 18h6"></path><circle cx="17" cy="6" r="2"></circle><circle cx="7" cy="12" r="2"></circle><circle cx="12" cy="18" r="2"></circle></svg>`,
+  'configuracion-negocio': `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M4 6h11M19 6h1M4 12h1M9 12h11M4 18h6M14 18h6"></path><circle cx="17" cy="6" r="2"></circle><circle cx="7" cy="12" r="2"></circle><circle cx="12" cy="18" r="2"></circle></svg>`,
   'configuracion-reserva-publica': `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="16" rx="2"></rect><line x1="3" y1="10" x2="21" y2="10"></line><line x1="8" y1="3" x2="8" y2="7"></line><line x1="16" y1="3" x2="16" y2="7"></line><path d="M12 13v3l2 1.5"></path></svg>`,
-  'barber-services': `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="7" r="3"></circle><path d="M2 21c0-3.5 3-6 7-6s7 2.5 7 6"></path><path d="M16 4a3 3 0 0 1 0 6"></path><path d="M22 21c0-2.7-1.7-4.8-4-5.6"></path></svg>`,
+  'professional-services': `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="7" r="3"></circle><path d="M2 21c0-3.5 3-6 7-6s7 2.5 7 6"></path><path d="M16 4a3 3 0 0 1 0 6"></path><path d="M22 21c0-2.7-1.7-4.8-4-5.6"></path></svg>`,
 }
 const MORE_ICON = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><circle cx="5" cy="12" r="1.5"></circle><circle cx="12" cy="12" r="1.5"></circle><circle cx="19" cy="12" r="1.5"></circle></svg>`
 
@@ -90,7 +90,7 @@ async function onLogoutFromMore() {
          resuelve al MISMO path que el cascarón padre. El matching NO exacto
          de vue-router (`useLink`, activeRecordIndex) trata eso como "sigo
          dentro de /panel" y marca "Agenda" activa en cualquier hija
-         (Servicios, Barberos...), dejando el filete/color de latón pegado
+         (Servicios, Profesionales...), dejando el filete/color de latón pegado
          ahí sin importar el destino elegido. Exacto evita ese falso
          positivo; ningún destino del dock necesita quedar "activo" mientras
          se navega a un descendiente propio (todos son hijas planas de
@@ -298,7 +298,7 @@ async function onLogoutFromMore() {
   }
 
   /* Cada destino mide lo que su rótulo necesita y reparte el sobrante: con
-     partes iguales, «Servicios por barbero» se truncaba a 1280 px. */
+     partes iguales, «Servicios por profesional» se truncaba a 1280 px. */
   .app-nav__item {
     flex: 1 1 auto;
   }

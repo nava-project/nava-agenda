@@ -1,7 +1,7 @@
-// Perfil de barbero individual (DEC-115): «Servicios por barbero» deja de ser un
-// destino porque con un solo barbero cada servicio se ofrece desde «Servicios».
+// Perfil de profesional individual (DEC-115): «Servicios por profesional» deja de ser un
+// destino porque con un solo profesional cada servicio se ofrece desde «Servicios».
 // El panel de un empleado (DEC-134) no administra el catálogo ni la configuración
-// de la barbería; sí sus servicios ofrecidos y su ventana de reserva (DEC-173). Las
+// del negocio; sí sus servicios ofrecidos y su ventana de reserva (DEC-173). Las
 // rutas siguen existiendo para el panel completo; aquí solo se desvía a quien entra
 // por un enlace guardado a una que su panel oculta, para que nunca vea una
 // pantalla que no es suya ni una en blanco. La autorización real vive en el API
@@ -12,10 +12,10 @@ import { panelProfile, type PanelProfile } from '@/shared/model'
 
 const RETIRED_ROUTES: Record<PanelProfile, Record<string, string>> = {
   shop: {},
-  solo: { 'barber-services': 'catalog-servicios' },
+  solo: { 'professional-services': 'catalog-servicios' },
   employee: {
     'catalog-servicios': 'panel',
-    'configuracion-barberia': 'panel',
+    'configuracion-negocio': 'panel',
   },
 }
 

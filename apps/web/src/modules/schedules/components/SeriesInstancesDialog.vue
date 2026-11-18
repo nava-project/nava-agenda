@@ -2,7 +2,7 @@
 // HU-042 / #100: fechas explícitas de una serie `date_list` y excepciones
 // («esta instancia no») de cualquier serie. La API responde 204 sin cuerpo,
 // así que el diálogo aplica el cambio sobre una copia de la serie y se la
-// devuelve a BarberBlocksPanel, dueño de la lista.
+// devuelve a ProfessionalBlocksPanel, dueño de la lista.
 import { computed, ref, useId, watch } from 'vue'
 import { useToast } from '@/shared/composables'
 import { BaseAlert, BaseButton, BaseDatePicker, BaseDialog, BaseInput } from '@/shared/ui'
@@ -20,7 +20,7 @@ import { validateEffectiveFrom, validateReason } from '../validation/timeBlockVa
 
 const props = defineProps<{
   modelValue: boolean
-  barberId: string
+  professionalId: string
   series: TimeBlockSeries | null
   today: string | null
 }>()
@@ -104,7 +104,7 @@ async function onAddDate() {
   }
   const date = newDate.value
   track('add-date', true)
-  const outcome = await addSeriesDate(props.barberId, current.id, date)
+  const outcome = await addSeriesDate(props.professionalId, current.id, date)
   track('add-date', false)
   const problem = describe(outcome, 'fecha')
   if (problem) {
@@ -122,7 +122,7 @@ async function onRemoveDate(date: string) {
   if (!current || pending.value.has(key)) return
   error.value = undefined
   track(key, true)
-  const outcome = await removeSeriesDate(props.barberId, current.id, date)
+  const outcome = await removeSeriesDate(props.professionalId, current.id, date)
   track(key, false)
   // not-found: ya no existía; la pantalla coincide con el servidor al quitarla.
   if (outcome.kind !== 'success' && outcome.kind !== 'not-found') {
@@ -152,7 +152,7 @@ async function onAddException() {
   const date = exceptionDate.value
   const reason = exceptionReason.value.trim() === '' ? null : exceptionReason.value.trim()
   track('add-exception', true)
-  const outcome = await addSeriesException(props.barberId, current.id, date, reason)
+  const outcome = await addSeriesException(props.professionalId, current.id, date, reason)
   track('add-exception', false)
   const problem = describe(outcome, 'excepción')
   if (problem) {
@@ -177,7 +177,7 @@ async function onRemoveException(date: string) {
   if (!current || pending.value.has(key)) return
   error.value = undefined
   track(key, true)
-  const outcome = await removeSeriesException(props.barberId, current.id, date)
+  const outcome = await removeSeriesException(props.professionalId, current.id, date)
   track(key, false)
   if (outcome.kind !== 'success' && outcome.kind !== 'not-found') {
     error.value = describe(outcome, 'excepción')

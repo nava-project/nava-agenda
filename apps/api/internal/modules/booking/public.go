@@ -6,8 +6,8 @@ import (
 	"strings"
 	"time"
 
-	"system-barbershop/internal/platform/apperr"
-	"system-barbershop/internal/platform/idempotency"
+	"nava-agenda/internal/platform/apperr"
+	"nava-agenda/internal/platform/idempotency"
 )
 
 // tokenHashPattern refleja appointment_access_token_token_hash_ck:
@@ -26,27 +26,27 @@ var tokenHashPattern = regexp.MustCompile(`^[0-9a-f]{64}$`)
 // dentro de la misma transacción (Repository.CreatePublic lo construye
 // internamente), nunca antes.
 type CreatePublicInput struct {
-	BarberID     string
-	ServiceID    string
-	AttendeeName string
-	StartsAt     time.Time
-	EndsAt       time.Time
-	Service      ServiceSnapshot
-	CustomerNote *string
+	ProfessionalID string
+	ServiceID      string
+	AttendeeName   string
+	StartsAt       time.Time
+	EndsAt         time.Time
+	Service        ServiceSnapshot
+	CustomerNote   *string
 
 	// HomeService es nil para un turno en el local; con valor, la dirección del
 	// cliente que se persiste junto al turno en la misma transacción (DEC-131).
 	HomeService *HomeService
 
-	// BarbershopName y Timezone viajan aquí, ya resueltos por
+	// BusinessName y Timezone viajan aquí, ya resueltos por
 	// publicbooking, ÚNICAMENTE para que la respuesta almacenada de
 	// idempotencia (publicAppointmentResponseWire) pueda construirse
-	// dentro de la misma transacción: booking no lee `barbershop` (no es su
+	// dentro de la misma transacción: booking no lee `business` (no es su
 	// tabla) ni conoce la zona IANA por sí mismo (RN-DIS-07 es un concepto
 	// de shops). Nunca se persisten ni se comparan: son datos de
 	// presentación de paso.
-	BarbershopName string
-	Timezone       string
+	BusinessName string
+	Timezone     string
 
 	// TokenPlain es el valor del token EN CLARO (DEC-089): viaja hasta aquí
 	// solo para incluirse, una única vez, en la respuesta almacenada de
@@ -78,8 +78,8 @@ type CreatePublicInput struct {
 }
 
 func (in CreatePublicInput) validate() error {
-	if strings.TrimSpace(in.BarberID) == "" {
-		return errBarberIDRequired()
+	if strings.TrimSpace(in.ProfessionalID) == "" {
+		return errProfessionalIDRequired()
 	}
 	if strings.TrimSpace(in.ServiceID) == "" {
 		return errServiceIDRequired()
@@ -117,7 +117,7 @@ func (in CreatePublicInput) validate() error {
 	if !in.TokenExpiresAt.After(in.TokenIssuedAt) {
 		return errPublicTokenExpiryInvalid()
 	}
-	if strings.TrimSpace(in.TokenPlain) == "" || strings.TrimSpace(in.BarbershopName) == "" || strings.TrimSpace(in.Timezone) == "" {
+	if strings.TrimSpace(in.TokenPlain) == "" || strings.TrimSpace(in.BusinessName) == "" || strings.TrimSpace(in.Timezone) == "" {
 		return apperr.Internal(errors.New("booking: CreatePublicInput llegó con un dato de presentación vacío"))
 	}
 	return nil

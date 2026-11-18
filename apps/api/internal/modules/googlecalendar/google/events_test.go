@@ -12,8 +12,8 @@ import (
 	"testing"
 	"time"
 
-	"system-barbershop/internal/modules/googlecalendar"
-	"system-barbershop/internal/modules/googlecalendar/google"
+	"nava-agenda/internal/modules/googlecalendar"
+	"nava-agenda/internal/modules/googlecalendar/google"
 )
 
 type recordedRequest struct {
@@ -99,7 +99,7 @@ func TestInsert_SendsTheAgreedEventShapeWithBearerTokenAndInvitation(t *testing.
 	}
 	start := body["start"].(map[string]any)
 	if start["dateTime"] != "2026-10-11T10:00:00-05:00" || start["timeZone"] != "America/Bogota" {
-		t.Fatalf("el evento representa el mismo instante en la zona de la barbería: %v", start)
+		t.Fatalf("el evento representa el mismo instante en la zona del negocio: %v", start)
 	}
 	props := body["extendedProperties"].(map[string]any)["private"].(map[string]any)
 	if props[googlecalendar.PropConnectionID] != "c-1" || props[googlecalendar.PropResourceID] != "a-1" {

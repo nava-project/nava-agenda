@@ -8,15 +8,15 @@ import "time"
 
 // ConnectionResponse es GoogleCalendarConnectionResponse (OpenAPI).
 type ConnectionResponse struct {
-	Enabled         bool       `json:"enabled"`
-	BarberLinked    bool       `json:"professionalLinked"`
-	Status          string     `json:"status"`
-	AccountEmail    *string    `json:"accountEmail"`
-	ReminderMinutes *int       `json:"reminderMinutes"`
-	ConnectedAt     *time.Time `json:"connectedAt"`
-	LastSyncedAt    *time.Time `json:"lastSyncedAt"`
+	Enabled            bool       `json:"enabled"`
+	ProfessionalLinked bool       `json:"professionalLinked"`
+	Status             string     `json:"status"`
+	AccountEmail       *string    `json:"accountEmail"`
+	ReminderMinutes    *int       `json:"reminderMinutes"`
+	ConnectedAt        *time.Time `json:"connectedAt"`
+	LastSyncedAt       *time.Time `json:"lastSyncedAt"`
 	// PendingSyncJobs son los cambios que esperan publicarse en Google y
-	// FailedSyncJobs los que agotaron sus intentos (el barbero puede
+	// FailedSyncJobs los que agotaron sus intentos (el profesional puede
 	// reintentarlos con «Sincronizar ahora»).
 	PendingSyncJobs int `json:"pendingSyncJobs"`
 	FailedSyncJobs  int `json:"failedSyncJobs"`
@@ -34,7 +34,7 @@ type AuthorizationResponse struct {
 }
 
 // CallbackRequest es CompleteGoogleCalendarConnectionRequest (OpenAPI).
-// Cerrado: nunca acepta identificadores de barbero, usuario ni barbería.
+// Cerrado: nunca acepta identificadores de profesional, usuario ni negocio.
 type CallbackRequest struct {
 	State string `json:"state"`
 	Code  string `json:"code"`

@@ -1,11 +1,11 @@
 // Pruebas de integración de HU-040 contra el router REAL de producción
 // (buildRouter) y PostgreSQL real, mismo patrón que
-// barber_services_integration_test.go (HU-023). Requieren las trece
+// professional_services_integration_test.go (HU-023). Requieren las trece
 // migraciones aplicadas (incluida 20260825160000_create_working_hour.sql)
-// y database/testdata/dos_barberias.sql +
+// y database/testdata/dos_negocios.sql +
 // testdata/hu005_credenciales_sesiones.sql cargados.
 //
-//	export TEST_DATABASE_URL="postgres://barberia_app:app_test@localhost:5432/barberia_test?sslmode=disable"
+//	export TEST_DATABASE_URL="postgres://agenda_app:app_test@localhost:5432/postgres?sslmode=disable"
 //	go test -race ./cmd/api/...
 package main
 
@@ -31,8 +31,8 @@ type workingHourListBody struct {
 	NextCursor *string           `json:"nextCursor"`
 }
 
-func doListWorkingHoursRequest(router http.Handler, rawToken, barberID, query string) *httptest.ResponseRecorder {
-	target := "/api/v1/private/professionals/" + barberID + "/working-hours"
+func doListWorkingHoursRequest(router http.Handler, rawToken, professionalID, query string) *httptest.ResponseRecorder {
+	target := "/api/v1/private/professionals/" + professionalID + "/working-hours"
 	if query != "" {
 		target += "?" + query
 	}
@@ -45,8 +45,8 @@ func doListWorkingHoursRequest(router http.Handler, rawToken, barberID, query st
 	return rec
 }
 
-func doGetWorkingHourRequest(router http.Handler, rawToken, barberID, workingHourID string) *httptest.ResponseRecorder {
-	req := httptest.NewRequest(http.MethodGet, "/api/v1/private/professionals/"+barberID+"/working-hours/"+workingHourID, nil)
+func doGetWorkingHourRequest(router http.Handler, rawToken, professionalID, workingHourID string) *httptest.ResponseRecorder {
+	req := httptest.NewRequest(http.MethodGet, "/api/v1/private/professionals/"+professionalID+"/working-hours/"+workingHourID, nil)
 	if rawToken != "" {
 		req.AddCookie(&http.Cookie{Name: cookieName, Value: rawToken})
 	}
@@ -55,8 +55,8 @@ func doGetWorkingHourRequest(router http.Handler, rawToken, barberID, workingHou
 	return rec
 }
 
-func doCreateWorkingHourRequest(router http.Handler, rawToken, barberID, idempotencyKey, rawBody string) *httptest.ResponseRecorder {
-	req := httptest.NewRequest(http.MethodPost, "/api/v1/private/professionals/"+barberID+"/working-hours", bytes.NewReader([]byte(rawBody)))
+func doCreateWorkingHourRequest(router http.Handler, rawToken, professionalID, idempotencyKey, rawBody string) *httptest.ResponseRecorder {
+	req := httptest.NewRequest(http.MethodPost, "/api/v1/private/professionals/"+professionalID+"/working-hours", bytes.NewReader([]byte(rawBody)))
 	req.Header.Set("Content-Type", "application/json")
 	if idempotencyKey != "" {
 		req.Header.Set("Idempotency-Key", idempotencyKey)
@@ -69,8 +69,8 @@ func doCreateWorkingHourRequest(router http.Handler, rawToken, barberID, idempot
 	return rec
 }
 
-func doUpdateWorkingHourRequest(router http.Handler, rawToken, barberID, workingHourID, rawBody string) *httptest.ResponseRecorder {
-	req := httptest.NewRequest(http.MethodPatch, "/api/v1/private/professionals/"+barberID+"/working-hours/"+workingHourID, bytes.NewReader([]byte(rawBody)))
+func doUpdateWorkingHourRequest(router http.Handler, rawToken, professionalID, workingHourID, rawBody string) *httptest.ResponseRecorder {
+	req := httptest.NewRequest(http.MethodPatch, "/api/v1/private/professionals/"+professionalID+"/working-hours/"+workingHourID, bytes.NewReader([]byte(rawBody)))
 	req.Header.Set("Content-Type", "application/json")
 	if rawToken != "" {
 		req.AddCookie(&http.Cookie{Name: cookieName, Value: rawToken})
@@ -80,8 +80,8 @@ func doUpdateWorkingHourRequest(router http.Handler, rawToken, barberID, working
 	return rec
 }
 
-func doDeleteWorkingHourRequest(router http.Handler, rawToken, barberID, workingHourID string) *httptest.ResponseRecorder {
-	req := httptest.NewRequest(http.MethodDelete, "/api/v1/private/professionals/"+barberID+"/working-hours/"+workingHourID, nil)
+func doDeleteWorkingHourRequest(router http.Handler, rawToken, professionalID, workingHourID string) *httptest.ResponseRecorder {
+	req := httptest.NewRequest(http.MethodDelete, "/api/v1/private/professionals/"+professionalID+"/working-hours/"+workingHourID, nil)
 	if rawToken != "" {
 		req.AddCookie(&http.Cookie{Name: cookieName, Value: rawToken})
 	}
@@ -101,11 +101,11 @@ func TestWorkingHours_HTTP_CreateListGetUpdateDelete_FullJourney(t *testing.T) {
 		t.Fatalf("buildRouter: %v", err)
 	}
 	raw := createSessionCookie(t, db, shopA, staffUserActiveA, "schedule-journey-a")
-	barber := createBarberViaRouter(t, router, raw, "Barbero Horario HTTP "+uniqueToken(t, "journey"))
+	professional := createProfessionalViaRouter(t, router, raw, "Barbero Horario HTTP "+uniqueToken(t, "journey"))
 
 	key := uniqueToken(t, "schedule-create")
 	body := `{"isoWeekday":1,"startsTime":"08:00","durationMinutes":240}`
-	first := doCreateWorkingHourRequest(router, raw, barber.ID, key, body)
+	first := doCreateWorkingHourRequest(router, raw, professional.ID, key, body)
 	if first.Code != http.StatusCreated {
 		t.Fatalf("expected 201 on create, got %d: %s", first.Code, first.Body.String())
 	}
@@ -116,7 +116,7 @@ func TestWorkingHours_HTTP_CreateListGetUpdateDelete_FullJourney(t *testing.T) {
 	if created.ISOWeekday != 1 || created.StartsTime != "08:00" || created.DurationMinutes != 240 {
 		t.Fatalf("unexpected created working hour: %+v", created)
 	}
-	wantLoc := "/private/professionals/" + barber.ID + "/working-hours/" + created.ID
+	wantLoc := "/private/professionals/" + professional.ID + "/working-hours/" + created.ID
 	if loc := first.Header().Get("Location"); loc != wantLoc {
 		t.Fatalf("expected Location %q, got %q", wantLoc, loc)
 	}
@@ -124,7 +124,7 @@ func TestWorkingHours_HTTP_CreateListGetUpdateDelete_FullJourney(t *testing.T) {
 	// RN-IDE-01: repetir exactamente la misma clave y cuerpo reproduce la
 	// misma respuesta (mismo status, mismo cuerpo), sin crear un segundo
 	// tramo.
-	replay := doCreateWorkingHourRequest(router, raw, barber.ID, key, body)
+	replay := doCreateWorkingHourRequest(router, raw, professional.ID, key, body)
 	if replay.Code != http.StatusCreated {
 		t.Fatalf("expected 201 on replay, got %d: %s", replay.Code, replay.Body.String())
 	}
@@ -132,8 +132,8 @@ func TestWorkingHours_HTTP_CreateListGetUpdateDelete_FullJourney(t *testing.T) {
 		t.Fatalf("expected byte-identical replay body, got different bodies")
 	}
 
-	// CA-040-01: aparece en el listado del barbero.
-	listRec := doListWorkingHoursRequest(router, raw, barber.ID, "limit=50")
+	// CA-040-01: aparece en el listado del profesional.
+	listRec := doListWorkingHoursRequest(router, raw, professional.ID, "limit=50")
 	if listRec.Code != http.StatusOK {
 		t.Fatalf("expected 200 on list, got %d: %s", listRec.Code, listRec.Body.String())
 	}
@@ -152,13 +152,13 @@ func TestWorkingHours_HTTP_CreateListGetUpdateDelete_FullJourney(t *testing.T) {
 	}
 
 	// Lectura individual.
-	getRec := doGetWorkingHourRequest(router, raw, barber.ID, created.ID)
+	getRec := doGetWorkingHourRequest(router, raw, professional.ID, created.ID)
 	if getRec.Code != http.StatusOK {
 		t.Fatalf("expected 200 on get, got %d: %s", getRec.Code, getRec.Body.String())
 	}
 
 	// Edición: reemplaza el intervalo completo.
-	updateRec := doUpdateWorkingHourRequest(router, raw, barber.ID, created.ID, `{"isoWeekday":1,"startsTime":"09:00","durationMinutes":180}`)
+	updateRec := doUpdateWorkingHourRequest(router, raw, professional.ID, created.ID, `{"isoWeekday":1,"startsTime":"09:00","durationMinutes":180}`)
 	if updateRec.Code != http.StatusOK {
 		t.Fatalf("expected 200 on update, got %d: %s", updateRec.Code, updateRec.Body.String())
 	}
@@ -171,11 +171,11 @@ func TestWorkingHours_HTTP_CreateListGetUpdateDelete_FullJourney(t *testing.T) {
 	}
 
 	// Retiro y reintento: 204 y luego 404 (CA-040-05).
-	deleteRec := doDeleteWorkingHourRequest(router, raw, barber.ID, created.ID)
+	deleteRec := doDeleteWorkingHourRequest(router, raw, professional.ID, created.ID)
 	if deleteRec.Code != http.StatusNoContent {
 		t.Fatalf("expected 204 on delete, got %d: %s", deleteRec.Code, deleteRec.Body.String())
 	}
-	repeatDelete := doDeleteWorkingHourRequest(router, raw, barber.ID, created.ID)
+	repeatDelete := doDeleteWorkingHourRequest(router, raw, professional.ID, created.ID)
 	if repeatDelete.Code != http.StatusNotFound {
 		t.Fatalf("expected 404 deleting an already-removed working hour, got %d: %s", repeatDelete.Code, repeatDelete.Body.String())
 	}
@@ -183,7 +183,7 @@ func TestWorkingHours_HTTP_CreateListGetUpdateDelete_FullJourney(t *testing.T) {
 
 // TestWorkingHours_HTTP_OverlappingCreate_Returns409 cubre CA-040-04 a
 // través del router real: un segundo tramo que se solapa con uno existente
-// del mismo barbero y día se rechaza con 409, sin persistir nada.
+// del mismo profesional y día se rechaza con 409, sin persistir nada.
 func TestWorkingHours_HTTP_OverlappingCreate_Returns409(t *testing.T) {
 	db := setupTestDB(t)
 	router, err := buildRouter(db, discardLogger(), testRouterConfig())
@@ -191,14 +191,14 @@ func TestWorkingHours_HTTP_OverlappingCreate_Returns409(t *testing.T) {
 		t.Fatalf("buildRouter: %v", err)
 	}
 	raw := createSessionCookie(t, db, shopA, staffUserActiveA, "schedule-overlap-a")
-	barber := createBarberViaRouter(t, router, raw, "Barbero Solape HTTP "+uniqueToken(t, "overlap"))
+	professional := createProfessionalViaRouter(t, router, raw, "Barbero Solape HTTP "+uniqueToken(t, "overlap"))
 
-	first := doCreateWorkingHourRequest(router, raw, barber.ID, uniqueToken(t, "overlap-1"), `{"isoWeekday":2,"startsTime":"08:00","durationMinutes":120}`)
+	first := doCreateWorkingHourRequest(router, raw, professional.ID, uniqueToken(t, "overlap-1"), `{"isoWeekday":2,"startsTime":"08:00","durationMinutes":120}`)
 	if first.Code != http.StatusCreated {
 		t.Fatalf("expected 201 creating the first segment, got %d: %s", first.Code, first.Body.String())
 	}
 
-	rec := doCreateWorkingHourRequest(router, raw, barber.ID, uniqueToken(t, "overlap-2"), `{"isoWeekday":2,"startsTime":"09:00","durationMinutes":120}`)
+	rec := doCreateWorkingHourRequest(router, raw, professional.ID, uniqueToken(t, "overlap-2"), `{"isoWeekday":2,"startsTime":"09:00","durationMinutes":120}`)
 	if rec.Code != http.StatusConflict {
 		t.Fatalf("CA-040-04: expected 409 on an overlapping segment, got %d: %s", rec.Code, rec.Body.String())
 	}
@@ -220,7 +220,7 @@ func TestWorkingHours_HTTP_InvalidField_Returns422(t *testing.T) {
 		t.Fatalf("buildRouter: %v", err)
 	}
 	raw := createSessionCookie(t, db, shopA, staffUserActiveA, "schedule-invalid-a")
-	barber := createBarberViaRouter(t, router, raw, "Barbero Inválido HTTP "+uniqueToken(t, "invalid"))
+	professional := createProfessionalViaRouter(t, router, raw, "Barbero Inválido HTTP "+uniqueToken(t, "invalid"))
 
 	cases := []string{
 		`{"isoWeekday":0,"startsTime":"08:00","durationMinutes":60}`,
@@ -228,17 +228,17 @@ func TestWorkingHours_HTTP_InvalidField_Returns422(t *testing.T) {
 		`{"isoWeekday":1,"startsTime":"08:00","durationMinutes":0}`,
 	}
 	for _, body := range cases {
-		rec := doCreateWorkingHourRequest(router, raw, barber.ID, uniqueToken(t, "invalid"), body)
+		rec := doCreateWorkingHourRequest(router, raw, professional.ID, uniqueToken(t, "invalid"), body)
 		if rec.Code != http.StatusUnprocessableEntity {
 			t.Fatalf("expected 422 for body %s, got %d: %s", body, rec.Code, rec.Body.String())
 		}
 	}
 }
 
-// TestWorkingHours_HTTP_CrossTenantBarber_Returns404 cubre RN-TEN-01: un
-// barberId real de la barbería B responde 404 bajo el contexto de A, tanto
+// TestWorkingHours_HTTP_CrossTenantProfessional_Returns404 cubre RN-TEN-01: un
+// professionalId real del negocio B responde 404 bajo el contexto de A, tanto
 // para crear como para listar.
-func TestWorkingHours_HTTP_CrossTenantBarber_Returns404(t *testing.T) {
+func TestWorkingHours_HTTP_CrossTenantProfessional_Returns404(t *testing.T) {
 	db := setupTestDB(t)
 	router, err := buildRouter(db, discardLogger(), testRouterConfig())
 	if err != nil {
@@ -246,16 +246,16 @@ func TestWorkingHours_HTTP_CrossTenantBarber_Returns404(t *testing.T) {
 	}
 	rawA := createSessionCookie(t, db, shopA, staffUserActiveA, "schedule-cross-a")
 	rawB := createSessionCookie(t, db, shopB, staffUserActiveB, "schedule-cross-b")
-	barberOfB := createBarberViaRouter(t, router, rawB, "Barbero de B HTTP "+uniqueToken(t, "cross"))
+	professionalOfB := createProfessionalViaRouter(t, router, rawB, "Barbero de B HTTP "+uniqueToken(t, "cross"))
 
-	rec := doListWorkingHoursRequest(router, rawA, barberOfB.ID, "")
+	rec := doListWorkingHoursRequest(router, rawA, professionalOfB.ID, "")
 	if rec.Code != http.StatusNotFound {
-		t.Fatalf("expected 404 listing another shop's barber, got %d: %s", rec.Code, rec.Body.String())
+		t.Fatalf("expected 404 listing another shop's professional, got %d: %s", rec.Code, rec.Body.String())
 	}
 
-	createRec := doCreateWorkingHourRequest(router, rawA, barberOfB.ID, uniqueToken(t, "cross-create"), `{"isoWeekday":1,"startsTime":"08:00","durationMinutes":60}`)
+	createRec := doCreateWorkingHourRequest(router, rawA, professionalOfB.ID, uniqueToken(t, "cross-create"), `{"isoWeekday":1,"startsTime":"08:00","durationMinutes":60}`)
 	if createRec.Code != http.StatusNotFound {
-		t.Fatalf("expected 404 creating under another shop's barber, got %d: %s", createRec.Code, createRec.Body.String())
+		t.Fatalf("expected 404 creating under another shop's professional, got %d: %s", createRec.Code, createRec.Body.String())
 	}
 }
 

@@ -5,7 +5,7 @@ import { INITIAL_VOCABULARY } from './fixtures/vocabularioInicial'
 
 /**
  * Evidencia del rediseño de la reserva pública (DEC-111): el recorrido
- * completo (entrada → servicio → barbero → horario → datos → confirmación)
+ * completo (entrada → servicio → profesional → horario → datos → confirmación)
  * sobre el lienzo de tinta de NAVA, en 320/360/768/1280/1440 px y a 200 % de
  * zoom de texto. Modo de conformidad: identidad guiada (sin mockup exacto
  * asignado, DEC-078). Cada captura espera a que terminen las entradas
@@ -22,15 +22,15 @@ const axeScriptPath = path.join(here, '..', 'node_modules', 'axe-core', 'axe.min
 const SLUG = 'barberia-ejemplo'
 const SERVICE_ID = '8f3ac2b1-e4d5-46f6-a7c8-d9e0f1a2b3c4'
 const SERVICE_2_ID = '1a2b3c4d-5e6f-4708-9a0b-1c2d3e4f5061'
-const BARBER_ID = 'a1111111-1111-1111-1111-111111111111'
-const BARBER_2_ID = 'a2222222-2222-2222-2222-222222222222'
+const PROFESSIONAL_ID = 'a1111111-1111-1111-1111-111111111111'
+const PROFESSIONAL_2_ID = 'a2222222-2222-2222-2222-222222222222'
 const STARTS_AT = '2026-09-15T19:00:00Z'
 
 const json = (route: Route, body: unknown, status = 200) =>
   route.fulfill({ status, contentType: 'application/json', body: JSON.stringify(body) })
 
 interface MockOptions {
-  barbers?: Array<{ id: string; fullName: string }>
+  professionals?: Array<{ id: string; fullName: string }>
   services?: unknown[]
   confirm?: 'ok' | 'conflict'
 }
@@ -82,9 +82,9 @@ async function mockApi(page: Page, options: MockOptions = {}) {
   )
   await page.route(`${base}/services/*/professionals**`, (route) =>
     json(route, {
-      items: options.barbers ?? [
-        { id: BARBER_ID, fullName: 'Julián Rodríguez' },
-        { id: BARBER_2_ID, fullName: 'Luis Martínez' },
+      items: options.professionals ?? [
+        { id: PROFESSIONAL_ID, fullName: 'Julián Rodríguez' },
+        { id: PROFESSIONAL_2_ID, fullName: 'Luis Martínez' },
         { id: 'a3333333-3333-3333-3333-333333333333', fullName: 'Santiago Gómez' },
       ],
     }),
@@ -193,14 +193,14 @@ const viewports = [
   { name: '1280-zoom200', width: 640, height: 450 },
 ]
 
-const horarioRoute = `/reservar/${SLUG}/servicios/${SERVICE_ID}/barbero/${BARBER_ID}/horario`
+const horarioRoute = `/reservar/${SLUG}/servicios/${SERVICE_ID}/profesional/${PROFESSIONAL_ID}/horario`
 const clienteRoute = `${horarioRoute}/${encodeURIComponent(STARTS_AT)}/cliente`
 
 for (const viewport of viewports) {
   test.describe(`Rediseño reserva pública ${viewport.name}px`, () => {
     test.use({ viewport: { width: viewport.width, height: viewport.height } })
 
-    test('recorrido: entrada, servicio, barbero y horario', async ({ page }) => {
+    test('recorrido: entrada, servicio, profesional y horario', async ({ page }) => {
       await mockApi(page)
 
       await page.goto(`/reservar/${SLUG}`)
@@ -389,7 +389,7 @@ test.describe('Rediseño reserva pública: accesibilidad con contraste (movimien
     await assertAccessible(page)
   })
 
-  test('conflicto de horario con alternativas y barbero único', async ({ page }) => {
+  test('conflicto de horario con alternativas y profesional único', async ({ page }) => {
     await mockApi(page, { confirm: 'conflict' })
     await page.goto(clienteRoute)
     await page.getByLabel('Tu nombre').fill('Ana Ríos')
@@ -400,8 +400,8 @@ test.describe('Rediseño reserva pública: accesibilidad con contraste (movimien
     await expect(page.getByText('Ese horario se acaba de ocupar.')).toBeVisible()
     await assertAccessible(page)
 
-    await mockApi(page, { barbers: [{ id: BARBER_ID, fullName: 'Julián Rodríguez' }] })
-    await page.goto(`/reservar/${SLUG}/servicios/${SERVICE_ID}/barbero`)
+    await mockApi(page, { professionals: [{ id: PROFESSIONAL_ID, fullName: 'Julián Rodríguez' }] })
+    await page.goto(`/reservar/${SLUG}/servicios/${SERVICE_ID}/profesional`)
     await expect(page.getByText('Te atenderá')).toBeVisible()
     await assertAccessible(page)
   })
@@ -443,7 +443,7 @@ test.describe('Rediseño reserva pública: teclado y movimiento', () => {
 
   test('volver atrás conserva el recorrido y el progreso retrocede', async ({ page }) => {
     await mockApi(page)
-    await page.goto(`/reservar/${SLUG}/servicios/${SERVICE_ID}/barbero`)
+    await page.goto(`/reservar/${SLUG}/servicios/${SERVICE_ID}/profesional`)
     await expect(page.getByRole('heading', { name: 'Elige tu barbero' })).toBeVisible()
     await expect(page.getByText('Paso 2 de 4')).toBeVisible()
     await page.getByRole('link', { name: /Servicios/ }).click()

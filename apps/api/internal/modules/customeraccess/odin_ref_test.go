@@ -52,13 +52,13 @@ func TestAppointmentRef_RejectsEveryWayItCanBeWrong(t *testing.T) {
 		now       time.Time
 		secret    []byte
 	}{
-		"otra barbería": {ref, "otra", now, refSecret},
-		"vencida":       {ref, "vibras", now.Add(2 * time.Minute), refSecret},
-		"otro secreto":  {ref, "vibras", now, []byte("otro-secreto-de-prueba")},
-		"alterada":      {tampered, "vibras", now, refSecret},
-		"vacía":         {"", "vibras", now, refSecret},
-		"no es base64":  {"%%%", "vibras", now, refSecret},
-		"muy larga":     {strings.Repeat("a", 300), "vibras", now, refSecret},
+		"otro negocio": {ref, "otra", now, refSecret},
+		"vencida":      {ref, "vibras", now.Add(2 * time.Minute), refSecret},
+		"otro secreto": {ref, "vibras", now, []byte("otro-secreto-de-prueba")},
+		"alterada":     {tampered, "vibras", now, refSecret},
+		"vacía":        {"", "vibras", now, refSecret},
+		"no es base64": {"%%%", "vibras", now, refSecret},
+		"muy larga":    {strings.Repeat("a", 300), "vibras", now, refSecret},
 	}
 	for name, c := range cases {
 		if id, ok := openAppointmentRef(c.ref, c.slug, c.now, c.secret); ok {

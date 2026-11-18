@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"testing"
 
-	"system-barbershop/internal/platform/apperr"
+	"nava-agenda/internal/platform/apperr"
 )
 
 func TestNotFound_CarriesSafeMessage(t *testing.T) {

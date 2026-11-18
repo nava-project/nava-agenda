@@ -1,6 +1,6 @@
 package catalog
 
-import "system-barbershop/internal/platform/apperr"
+import "nava-agenda/internal/platform/apperr"
 
 // Mensajes de campo de CA-022-04: describen un único campo, seguros para el
 // cliente (nunca SQL ni el valor crudo enviado). Compartidos por Create y
@@ -36,15 +36,15 @@ func errSearchTooLong() error {
 	return apperr.Invalid("el parámetro search excede el largo máximo")
 }
 
-// errServiceNotFound cubre tanto un servicio inexistente como uno de otra
-// barbería: el mismo Kind para ambos casos es lo que impide que la capa
+// errServiceNotFound cubre tanto un servicio inexistente como uno de otro
+// negocio: el mismo Kind para ambos casos es lo que impide que la capa
 // HTTP los distinga (CA-022-06, RN-TEN-01), igual que el resto del backend.
 func errServiceNotFound() error {
 	return apperr.NotFound("no existe un servicio con ese identificador")
 }
 
-// errNameConflict cubre DEC-067: dos servicios activos de la misma
-// barbería no pueden compartir nombre. apperr.KindConflict, no
+// errNameConflict cubre DEC-067: dos servicios activos del mismo
+// negocio no pueden compartir nombre. apperr.KindConflict, no
 // apperr.KindValidation: no es un defecto de forma del campo, es un
 // conflicto con otra fila ya persistida.
 func errNameConflict() error {

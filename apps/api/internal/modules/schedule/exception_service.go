@@ -5,69 +5,69 @@ import (
 	"fmt"
 	"time"
 
-	"system-barbershop/internal/platform/apperr"
-	"system-barbershop/internal/platform/idempotency"
+	"nava-agenda/internal/platform/apperr"
+	"nava-agenda/internal/platform/idempotency"
 )
 
 // GetHolidayCalendar lee el interruptor de calendario colombiano de
-// festivos del barbero de barberID dentro de barbershopID (CA-041-01/02).
-// Un barberID inexistente o de otra barbería produce apperr.NotFound.
-func (s *Service) GetHolidayCalendar(ctx context.Context, barbershopID, barberID string) (bool, error) {
+// festivos del profesional de professionalID dentro de businessID (CA-041-01/02).
+// Un professionalID inexistente o de otro negocio produce apperr.NotFound.
+func (s *Service) GetHolidayCalendar(ctx context.Context, businessID, professionalID string) (bool, error) {
 	if err := ctx.Err(); err != nil {
 		return false, apperr.Internal(fmt.Errorf("schedule: contexto cancelado antes de leer el calendario de festivos: %w", err))
 	}
-	if !LooksLikeBarberID(barberID) {
-		return false, errBarberNotFound()
+	if !LooksLikeProfessionalID(professionalID) {
+		return false, errProfessionalNotFound()
 	}
 
-	enabled, found, err := s.repo.GetHolidayCalendarEnabled(ctx, barbershopID, barberID)
+	enabled, found, err := s.repo.GetHolidayCalendarEnabled(ctx, businessID, professionalID)
 	if err != nil {
 		return false, apperr.Internal(fmt.Errorf("schedule: leer calendario de festivos: %w", err))
 	}
 	if !found {
-		return false, errBarberNotFound()
+		return false, errProfessionalNotFound()
 	}
 	return enabled, nil
 }
 
 // SetHolidayCalendar activa o desactiva el interruptor (CA-041-01/02). Un
-// barberID inexistente o de otra barbería produce apperr.NotFound.
-func (s *Service) SetHolidayCalendar(ctx context.Context, barbershopID, barberID string, enabled bool) (bool, error) {
+// professionalID inexistente o de otro negocio produce apperr.NotFound.
+func (s *Service) SetHolidayCalendar(ctx context.Context, businessID, professionalID string, enabled bool) (bool, error) {
 	if err := ctx.Err(); err != nil {
 		return false, apperr.Internal(fmt.Errorf("schedule: contexto cancelado antes de actualizar el calendario de festivos: %w", err))
 	}
-	if !LooksLikeBarberID(barberID) {
-		return false, errBarberNotFound()
+	if !LooksLikeProfessionalID(professionalID) {
+		return false, errProfessionalNotFound()
 	}
 
-	result, err := s.repo.SetHolidayCalendarEnabled(ctx, barbershopID, barberID, enabled)
+	result, err := s.repo.SetHolidayCalendarEnabled(ctx, businessID, professionalID, enabled)
 	if err != nil {
 		return false, apperr.Internal(fmt.Errorf("schedule: actualizar calendario de festivos: %w", err))
 	}
 	if !result.Found {
-		return false, errBarberNotFound()
+		return false, errProfessionalNotFound()
 	}
 	return result.Enabled, nil
 }
 
-// ListExceptions lee una página de excepciones del barbero de barberID
-// dentro de barbershopID (CA-041-04/05). Un barberID inexistente o de otra
-// barbería produce apperr.NotFound, verificado mediante BarberPort antes
+// ListExceptions lee una página de excepciones del profesional de professionalID
+// dentro de businessID (CA-041-04/05). Un professionalID inexistente o de otro
+// negocio produce apperr.NotFound, verificado mediante ProfessionalPort antes
 // de tocar el repositorio (mismo criterio que List de HU-040).
-func (s *Service) ListExceptions(ctx context.Context, barbershopID, barberID, cursorToken string, limit int) (ExceptionListResult, error) {
+func (s *Service) ListExceptions(ctx context.Context, businessID, professionalID, cursorToken string, limit int) (ExceptionListResult, error) {
 	if err := ctx.Err(); err != nil {
 		return ExceptionListResult{}, apperr.Internal(fmt.Errorf("schedule: contexto cancelado antes de listar excepciones: %w", err))
 	}
-	if !LooksLikeBarberID(barberID) {
-		return ExceptionListResult{}, errBarberNotFound()
+	if !LooksLikeProfessionalID(professionalID) {
+		return ExceptionListResult{}, errProfessionalNotFound()
 	}
 
-	exists, err := s.barbers.Exists(ctx, barbershopID, barberID)
+	exists, err := s.professionals.Exists(ctx, businessID, professionalID)
 	if err != nil {
-		return ExceptionListResult{}, apperr.Internal(fmt.Errorf("schedule: verificar barbero para listar excepciones: %w", err))
+		return ExceptionListResult{}, apperr.Internal(fmt.Errorf("schedule: verificar profesional para listar excepciones: %w", err))
 	}
 	if !exists {
-		return ExceptionListResult{}, errBarberNotFound()
+		return ExceptionListResult{}, errProfessionalNotFound()
 	}
 
 	switch {
@@ -88,24 +88,24 @@ func (s *Service) ListExceptions(ctx context.Context, barbershopID, barberID, cu
 		cursor = &decoded
 	}
 
-	result, err := s.repo.ListExceptions(ctx, barbershopID, barberID, cursor, limit)
+	result, err := s.repo.ListExceptions(ctx, businessID, professionalID, cursor, limit)
 	if err != nil {
 		return ExceptionListResult{}, apperr.Internal(fmt.Errorf("schedule: listar excepciones: %w", err))
 	}
 	return result, nil
 }
 
-// GetException lee una excepción por id dentro del barbero y barbería
+// GetException lee una excepción por id dentro del profesional y negocio
 // activos (CA-041-06).
-func (s *Service) GetException(ctx context.Context, barbershopID, barberID, exceptionID string) (ScheduleException, error) {
+func (s *Service) GetException(ctx context.Context, businessID, professionalID, exceptionID string) (ScheduleException, error) {
 	if err := ctx.Err(); err != nil {
 		return ScheduleException{}, apperr.Internal(fmt.Errorf("schedule: contexto cancelado antes de leer la excepción: %w", err))
 	}
-	if !LooksLikeBarberID(barberID) || !LooksLikeExceptionID(exceptionID) {
+	if !LooksLikeProfessionalID(professionalID) || !LooksLikeExceptionID(exceptionID) {
 		return ScheduleException{}, errExceptionNotFound()
 	}
 
-	exception, found, err := s.repo.GetException(ctx, barbershopID, barberID, exceptionID)
+	exception, found, err := s.repo.GetException(ctx, businessID, professionalID, exceptionID)
 	if err != nil {
 		return ScheduleException{}, apperr.Internal(fmt.Errorf("schedule: leer excepción: %w", err))
 	}
@@ -120,12 +120,12 @@ func (s *Service) GetException(ctx context.Context, barbershopID, barberID, exce
 // (RN-IDE-01, DEC-043). effectiveDateRaw, isClosed, reasonRaw y
 // segmentsRaw son los valores crudos del cuerpo; key y fingerprint ya
 // fueron interpretados por la capa HTTP. La validación de forma ocurre
-// ANTES de tocar BarberPort o el repositorio (mismo criterio que Create de
+// ANTES de tocar ProfessionalPort o el repositorio (mismo criterio que Create de
 // HU-040): una excepción inválida nunca reclama ni consume la clave de
 // idempotencia.
 func (s *Service) CreateException(
 	ctx context.Context,
-	barbershopID, barberID string,
+	businessID, professionalID string,
 	effectiveDateRaw string,
 	isClosed bool,
 	reasonRaw *string,
@@ -136,8 +136,8 @@ func (s *Service) CreateException(
 	if err := ctx.Err(); err != nil {
 		return CreateExceptionResult{}, apperr.Internal(fmt.Errorf("schedule: contexto cancelado antes de crear excepción: %w", err))
 	}
-	if !LooksLikeBarberID(barberID) {
-		return CreateExceptionResult{}, errBarberNotFound()
+	if !LooksLikeProfessionalID(professionalID) {
+		return CreateExceptionResult{}, errProfessionalNotFound()
 	}
 
 	input, err := validateExceptionInput(effectiveDateRaw, isClosed, reasonRaw, segmentsRaw)
@@ -145,15 +145,15 @@ func (s *Service) CreateException(
 		return CreateExceptionResult{}, err
 	}
 
-	exists, err := s.barbers.Exists(ctx, barbershopID, barberID)
+	exists, err := s.professionals.Exists(ctx, businessID, professionalID)
 	if err != nil {
-		return CreateExceptionResult{}, apperr.Internal(fmt.Errorf("schedule: verificar barbero para crear excepción: %w", err))
+		return CreateExceptionResult{}, apperr.Internal(fmt.Errorf("schedule: verificar profesional para crear excepción: %w", err))
 	}
 	if !exists {
-		return CreateExceptionResult{}, errBarberNotFound()
+		return CreateExceptionResult{}, errProfessionalNotFound()
 	}
 
-	result, err := s.repo.CreateException(ctx, barbershopID, barberID, input, key, fingerprint)
+	result, err := s.repo.CreateException(ctx, businessID, professionalID, input, key, fingerprint)
 	if err != nil {
 		return CreateExceptionResult{}, apperr.Internal(fmt.Errorf("schedule: crear excepción: %w", err))
 	}
@@ -164,13 +164,13 @@ func (s *Service) CreateException(
 }
 
 // UpdateException reemplaza la excepción completa (CA-041-04, CA-041-05).
-// Un barberID/exceptionID inexistente, de otro barbero o de otra barbería
+// Un professionalID/exceptionID inexistente, de otro profesional o de otro negocio
 // produce el mismo apperr.NotFound que GetException (CA-041-06); una fecha
-// que ya tiene otra excepción del mismo barbero, o tramos que se solapan,
+// que ya tiene otra excepción del mismo profesional, o tramos que se solapan,
 // producen apperr.Conflict.
 func (s *Service) UpdateException(
 	ctx context.Context,
-	barbershopID, barberID, exceptionID string,
+	businessID, professionalID, exceptionID string,
 	effectiveDateRaw string,
 	isClosed bool,
 	reasonRaw *string,
@@ -179,7 +179,7 @@ func (s *Service) UpdateException(
 	if err := ctx.Err(); err != nil {
 		return ScheduleException{}, apperr.Internal(fmt.Errorf("schedule: contexto cancelado antes de editar excepción: %w", err))
 	}
-	if !LooksLikeBarberID(barberID) || !LooksLikeExceptionID(exceptionID) {
+	if !LooksLikeProfessionalID(professionalID) || !LooksLikeExceptionID(exceptionID) {
 		return ScheduleException{}, errExceptionNotFound()
 	}
 
@@ -188,7 +188,7 @@ func (s *Service) UpdateException(
 		return ScheduleException{}, err
 	}
 
-	result, err := s.repo.UpdateException(ctx, barbershopID, barberID, exceptionID, input)
+	result, err := s.repo.UpdateException(ctx, businessID, professionalID, exceptionID, input)
 	if err != nil {
 		return ScheduleException{}, apperr.Internal(fmt.Errorf("schedule: editar excepción: %w", err))
 	}
@@ -204,15 +204,15 @@ func (s *Service) UpdateException(
 }
 
 // DeleteException retira físicamente una excepción existente (CA-041-06).
-func (s *Service) DeleteException(ctx context.Context, barbershopID, barberID, exceptionID string) error {
+func (s *Service) DeleteException(ctx context.Context, businessID, professionalID, exceptionID string) error {
 	if err := ctx.Err(); err != nil {
 		return apperr.Internal(fmt.Errorf("schedule: contexto cancelado antes de retirar excepción: %w", err))
 	}
-	if !LooksLikeBarberID(barberID) || !LooksLikeExceptionID(exceptionID) {
+	if !LooksLikeProfessionalID(professionalID) || !LooksLikeExceptionID(exceptionID) {
 		return errExceptionNotFound()
 	}
 
-	found, err := s.repo.DeleteException(ctx, barbershopID, barberID, exceptionID)
+	found, err := s.repo.DeleteException(ctx, businessID, professionalID, exceptionID)
 	if err != nil {
 		return apperr.Internal(fmt.Errorf("schedule: retirar excepción: %w", err))
 	}
@@ -260,7 +260,7 @@ type EffectiveDaySegment struct {
 	DurationMinutes int
 }
 
-// EffectiveDay es el resultado de resolver la jornada de un barbero para
+// EffectiveDay es el resultado de resolver la jornada de un profesional para
 // una fecha civil concreta (CA-041-07): puerto interno para que la
 // disponibilidad (B4) lo consuma después. No crea citas ni disponibilidad
 // pública; no se expone por HTTP.
@@ -273,24 +273,24 @@ type EffectiveDay struct {
 
 // ResolveEffectiveDay aplica la precedencia de CA-041-07: una excepción
 // manual para esa fecha (abierta o cerrada) prevalece siempre; en su
-// ausencia, un festivo colombiano bloquea el día SOLO si el barbero
+// ausencia, un festivo colombiano bloquea el día SOLO si el profesional
 // activó su calendario (CA-041-01/02); en cualquier otro caso, se usa el
 // horario semanal de working_hour para el día ISO correspondiente
 // (HU-040). date se interpreta siempre como fecha civil, nunca como un
 // instante que dependa de la zona del dispositivo (CA-041-07): el
-// llamador es responsable de construirla ya en la zona IANA de la
-// barbería (HU-020).
-func (s *Service) ResolveEffectiveDay(ctx context.Context, barbershopID, barberID string, date time.Time) (EffectiveDay, error) {
+// llamador es responsable de construirla ya en la zona IANA del
+// negocio (HU-020).
+func (s *Service) ResolveEffectiveDay(ctx context.Context, businessID, professionalID string, date time.Time) (EffectiveDay, error) {
 	if err := ctx.Err(); err != nil {
 		return EffectiveDay{}, apperr.Internal(fmt.Errorf("schedule: contexto cancelado antes de resolver la jornada efectiva: %w", err))
 	}
-	if !LooksLikeBarberID(barberID) {
-		return EffectiveDay{}, errBarberNotFound()
+	if !LooksLikeProfessionalID(professionalID) {
+		return EffectiveDay{}, errProfessionalNotFound()
 	}
 
 	dateStr := date.Format("2006-01-02")
 
-	exception, found, err := s.repo.GetExceptionByDate(ctx, barbershopID, barberID, dateStr)
+	exception, found, err := s.repo.GetExceptionByDate(ctx, businessID, professionalID, dateStr)
 	if err != nil {
 		return EffectiveDay{}, apperr.Internal(fmt.Errorf("schedule: resolver jornada efectiva: leer excepción: %w", err))
 	}
@@ -305,12 +305,12 @@ func (s *Service) ResolveEffectiveDay(ctx context.Context, barbershopID, barberI
 		return EffectiveDay{Date: dateStr, IsWorking: true, Segments: segments, Source: EffectiveDaySourceManualOpen}, nil
 	}
 
-	holidayEnabled, foundBarber, err := s.repo.GetHolidayCalendarEnabled(ctx, barbershopID, barberID)
+	holidayEnabled, foundProfessional, err := s.repo.GetHolidayCalendarEnabled(ctx, businessID, professionalID)
 	if err != nil {
 		return EffectiveDay{}, apperr.Internal(fmt.Errorf("schedule: resolver jornada efectiva: leer calendario de festivos: %w", err))
 	}
-	if !foundBarber {
-		return EffectiveDay{}, errBarberNotFound()
+	if !foundProfessional {
+		return EffectiveDay{}, errProfessionalNotFound()
 	}
 	if holidayEnabled {
 		if _, isHoliday := IsColombianHoliday(date); isHoliday {
@@ -322,7 +322,7 @@ func (s *Service) ResolveEffectiveDay(ctx context.Context, barbershopID, barberI
 	if isoWeekday == 0 {
 		isoWeekday = 7 // time.Sunday == 0; DEC-020 usa 1=lunes...7=domingo.
 	}
-	weekly, err := s.repo.ListWorkingHoursForWeekday(ctx, barbershopID, barberID, isoWeekday)
+	weekly, err := s.repo.ListWorkingHoursForWeekday(ctx, businessID, professionalID, isoWeekday)
 	if err != nil {
 		return EffectiveDay{}, apperr.Internal(fmt.Errorf("schedule: resolver jornada efectiva: leer horario semanal: %w", err))
 	}

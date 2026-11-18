@@ -4,18 +4,18 @@ import (
 	"context"
 	"testing"
 
-	"system-barbershop/internal/modules/shops"
-	shopspostgres "system-barbershop/internal/modules/shops/postgres"
-	"system-barbershop/internal/platform/database"
+	"nava-agenda/internal/modules/shops"
+	shopspostgres "nava-agenda/internal/modules/shops/postgres"
+	"nava-agenda/internal/platform/database"
 )
 
 // restoreBrand devuelve la marca de shop a los valores iniciales al terminar
-// la prueba: comparten la fila de dos_barberias.sql en vez de crear una
-// barbería propia (no existe alta de barberías).
+// la prueba: comparten la fila de dos_negocios.sql en vez de crear un
+// negocio propio (no existe alta de negocios).
 func restoreBrand(t *testing.T, db *database.DB, shop string) {
 	t.Helper()
 	t.Cleanup(func() {
-		err := db.InTenantTx(context.Background(), database.BarbershopID(shop), func(ctx context.Context, q database.Queries) error {
+		err := db.InTenantTx(context.Background(), database.BusinessID(shop), func(ctx context.Context, q database.Queries) error {
 			_, err := q.Exec(ctx,
 				`UPDATE business
 				    SET brand_accent = 'brass', business_term = 'negocio', business_term_gender = 'masculine',
@@ -36,14 +36,14 @@ func salonBrand() shops.Brand {
 	return shops.Brand{
 		Accent: "ruby", BusinessTerm: "salón de belleza", BusinessTermGender: shops.GenderMasculine,
 		ProfessionalTerm: "estilista", ProfessionalTermPlural: "estilistas", ProfessionalTermGender: shops.GenderFeminine,
-		// La ubicación que lee una barbería intacta: interruptor activo, sin dirección.
+		// La ubicación que lee un negocio intacta: interruptor activo, sin dirección.
 		Location: shops.Location{HasPhysicalLocation: true},
 	}
 }
 
-// TestBrandGet_ReturnsTheInitialValuesForAnUntouchedBarbershop: una barbería
+// TestBrandGet_ReturnsTheInitialValuesForAnUntouchedBusiness: un negocio
 // que nunca cambió su marca lee exactamente la interfaz anterior.
-func TestBrandGet_ReturnsTheInitialValuesForAnUntouchedBarbershop(t *testing.T) {
+func TestBrandGet_ReturnsTheInitialValuesForAnUntouchedBusiness(t *testing.T) {
 	db := setupTestDB(t)
 	repo := shopspostgres.NewBrandRepository(db)
 	restoreBrand(t, db, shopA)
@@ -104,7 +104,7 @@ func TestBrandUpdate_DoesNotTouchOtherSettingsOfTheSameRow(t *testing.T) {
 	if err != nil {
 		t.Fatalf("settings.Get after: %v", err)
 	}
-	if !sameBarbershop(nameBefore, nameAfter) {
+	if !sameBusiness(nameBefore, nameAfter) {
 		t.Fatalf("HU-020 columns changed: before %+v after %+v", nameBefore, nameAfter)
 	}
 	policyAfter, _, err := policies.Get(context.Background(), shopA)
@@ -119,9 +119,9 @@ func TestBrandUpdate_DoesNotTouchOtherSettingsOfTheSameRow(t *testing.T) {
 	}
 }
 
-// TestBrandUpdate_TwoTenants_NeverCrossesBarbershops es la prueba de
-// aislamiento por tenant sobre PostgreSQL real con dos barberías.
-func TestBrandUpdate_TwoTenants_NeverCrossesBarbershops(t *testing.T) {
+// TestBrandUpdate_TwoTenants_NeverCrossesBusinesses es la prueba de
+// aislamiento por tenant sobre PostgreSQL real con dos negocios.
+func TestBrandUpdate_TwoTenants_NeverCrossesBusinesses(t *testing.T) {
 	db := setupTestDB(t)
 	repo := shopspostgres.NewBrandRepository(db)
 	restoreBrand(t, db, shopA)
@@ -149,7 +149,7 @@ func TestBrandUpdate_RLSBlocksWritingAnotherTenantsRow(t *testing.T) {
 	restoreBrand(t, db, shopB)
 
 	var rows int64
-	err := db.InTenantTx(context.Background(), database.BarbershopID(shopA), func(ctx context.Context, q database.Queries) error {
+	err := db.InTenantTx(context.Background(), database.BusinessID(shopA), func(ctx context.Context, q database.Queries) error {
 		tag, err := q.Exec(ctx, `UPDATE business SET brand_accent = 'ruby' WHERE id = $1`, shopB)
 		rows = tag.RowsAffected()
 		return err
@@ -305,9 +305,9 @@ func TestBrandUpdate_Location_CheckRejectsInconsistentState(t *testing.T) {
 	}
 }
 
-// TestBrandUpdate_Location_TwoTenants_NeverCrossesBarbershops: la ubicación de
-// una barbería no se lee ni se escribe desde la otra.
-func TestBrandUpdate_Location_TwoTenants_NeverCrossesBarbershops(t *testing.T) {
+// TestBrandUpdate_Location_TwoTenants_NeverCrossesBusinesses: la ubicación de
+// un negocio no se lee ni se escribe desde la otra.
+func TestBrandUpdate_Location_TwoTenants_NeverCrossesBusinesses(t *testing.T) {
 	db := setupTestDB(t)
 	repo := shopspostgres.NewBrandRepository(db)
 	restoreBrand(t, db, shopA)
@@ -330,7 +330,7 @@ func TestBrandUpdate_Location_TwoTenants_NeverCrossesBarbershops(t *testing.T) {
 
 // TestBrandUpdate_OffersHomeService_TogglesAndNeverCrossesTenants cubre DEC-131:
 // el interruptor nace apagado, se enciende y se apaga sin tocar el resto, ausente
-// lo conserva y no afecta a otra barbería.
+// lo conserva y no afecta a otro negocio.
 func TestBrandUpdate_OffersHomeService_TogglesAndNeverCrossesTenants(t *testing.T) {
 	db := setupTestDB(t)
 	repo := shopspostgres.NewBrandRepository(db)
@@ -340,7 +340,7 @@ func TestBrandUpdate_OffersHomeService_TogglesAndNeverCrossesTenants(t *testing.
 
 	initial, _, err := repo.Get(ctx, shopA)
 	if err != nil || initial.Location.OffersHomeService {
-		t.Fatalf("una barbería nueva no ofrece domicilio: %+v err=%v", initial.Location, err)
+		t.Fatalf("un negocio nuevo no ofrece domicilio: %+v err=%v", initial.Location, err)
 	}
 
 	on := true
@@ -380,7 +380,7 @@ func TestBrandUpdate_NeverTouchesGooglePlaceID(t *testing.T) {
 
 	placeID := func(shop string) (id *string) {
 		t.Helper()
-		err := db.InTenantTx(ctx, database.BarbershopID(shop), func(ctx context.Context, q database.Queries) error {
+		err := db.InTenantTx(ctx, database.BusinessID(shop), func(ctx context.Context, q database.Queries) error {
 			return q.QueryRow(ctx, `SELECT google_place_id FROM business WHERE id = $1`, shop).Scan(&id)
 		})
 		if err != nil {
@@ -388,7 +388,7 @@ func TestBrandUpdate_NeverTouchesGooglePlaceID(t *testing.T) {
 		}
 		return id
 	}
-	err := db.InTenantTx(ctx, database.BarbershopID(shopA), func(ctx context.Context, q database.Queries) error {
+	err := db.InTenantTx(ctx, database.BusinessID(shopA), func(ctx context.Context, q database.Queries) error {
 		_, err := q.Exec(ctx, `UPDATE business SET google_place_id = 'ChIJN1t_tDeuEmsRUsoyG83frY4' WHERE id = $1`, shopA)
 		return err
 	})

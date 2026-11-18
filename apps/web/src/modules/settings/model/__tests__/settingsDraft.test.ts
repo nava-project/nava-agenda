@@ -8,7 +8,7 @@ import {
   brandForSave,
   BUSINESS_PRESETS,
   PROFESSIONAL_PRESETS,
-  sameBarbershop,
+  sameBusiness,
   sameBrand,
   suggestPlural,
 } from '../settingsDraft'
@@ -20,15 +20,15 @@ const shop = {
   contactPhone: '+573001234567',
 }
 
-describe('sameBarbershop', () => {
+describe('sameBusiness', () => {
   it('ignores surrounding spaces, so typing and deleting a space is not a change', () => {
-    expect(sameBarbershop({ ...shop, name: '  Barbería Ejemplo ' }, shop)).toBe(true)
+    expect(sameBusiness({ ...shop, name: '  Barbería Ejemplo ' }, shop)).toBe(true)
   })
 
   it.each(['name', 'timezone', 'contactEmail', 'contactPhone'] as const)(
     'detects a change in %s',
     (field) => {
-      expect(sameBarbershop({ ...shop, [field]: 'otro' }, shop)).toBe(false)
+      expect(sameBusiness({ ...shop, [field]: 'otro' }, shop)).toBe(false)
     },
   )
 })
@@ -109,7 +109,7 @@ describe('presets', () => {
     expect(BUSINESS_PRESETS[0]).toEqual({ term: 'negocio', gender: 'masculine' })
   })
 
-  it('keep the words a barbershop already uses', () => {
+  it('keep the words a business already uses', () => {
     expect(BUSINESS_PRESETS).toContainEqual({ term: 'barbería', gender: 'feminine' })
     expect(PROFESSIONAL_PRESETS).toContainEqual({
       singular: 'barbero',
@@ -126,7 +126,7 @@ describe('presets', () => {
 })
 
 describe('presets multirrubro (DEC-119)', () => {
-  it('ofrecen palabras para otros rubros además de la barbería', () => {
+  it('ofrecen palabras para otros rubros además del negocio', () => {
     expect(BUSINESS_PRESETS.map((p) => p.term)).toEqual(
       expect.arrayContaining(['estudio de uñas', 'centro de estética', 'estudio de tatuajes']),
     )

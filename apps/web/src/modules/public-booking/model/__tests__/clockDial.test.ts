@@ -2,7 +2,7 @@ import { describe, it, expect } from 'vitest'
 import { dialAngles, formatCoordinates } from '../clockDial'
 
 describe('dialAngles', () => {
-  it('dibuja la hora de la zona de la barbería, no la del dispositivo', () => {
+  it('dibuja la hora de la zona del negocio, no la del dispositivo', () => {
     // 19:00 UTC son las 14:00 en Bogotá (UTC−5): aguja de horas en las 2.
     expect(dialAngles(new Date('2026-09-15T19:00:00Z'), 'America/Bogota')).toEqual({
       hour: 60,

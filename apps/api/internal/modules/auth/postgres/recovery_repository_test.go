@@ -1,15 +1,15 @@
 // Pruebas de integración de HU-008 contra
 // auth_recovery_request/verify/current_credential/change_password con
 // PostgreSQL REAL. Requieren las ocho migraciones y
-// database/testdata/dos_barberias.sql + hu005_credenciales_sesiones.sql +
+// database/testdata/dos_negocios.sql + hu005_credenciales_sesiones.sql +
 // hu007_reto_telefonico.sql cargados.
 //
-//	export TEST_DATABASE_URL="postgres://barberia_app:app_test@localhost:5432/barberia_test?sslmode=disable"
+//	export TEST_DATABASE_URL="postgres://agenda_app:app_test@localhost:5432/postgres?sslmode=disable"
 //	go test -race ./internal/modules/auth/postgres/...
 //
 // A propósito NO se agregan filas nuevas a staff_user: internal/platform/
 // database/database_test.go verifica el aislamiento RLS contando
-// exactamente 2 usuarios por barbería sobre dos_barberias.sql, y una fila
+// exactamente 2 usuarios por negocio sobre dos_negocios.sql, y una fila
 // nueva rompería esa prueba, ajena a HU-008. El cooldown/límite de reenvío
 // de DEC-064 es por cuenta, así que cada una de las dos únicas cuentas con
 // teléfono verificado (duena.a, dueno.b, de hu007_reto_telefonico.sql) se
@@ -23,8 +23,8 @@ import (
 	"testing"
 	"time"
 
-	"system-barbershop/internal/modules/auth"
-	authpostgres "system-barbershop/internal/modules/auth/postgres"
+	"nava-agenda/internal/modules/auth"
+	authpostgres "nava-agenda/internal/modules/auth/postgres"
 )
 
 // verifiedEmailB es dueno.b, con teléfono verificado por
@@ -89,7 +89,7 @@ func requestRecoveryEventually(t *testing.T, repo *authpostgres.RecoveryReposito
 // cubre CA-008-11 (DEC-094): una cuenta activa con el teléfono sin verificar
 // se acepta para el canal correo, y el teléfono sin verificar nunca vuelve
 // como destino (DEC-093). A diferencia de los escenarios de arriba, esta
-// solicitud SÍ crea un código real de barbero.a, así que usa un cooldown de
+// solicitud SÍ crea un código real de profesional.a, así que usa un cooldown de
 // 1 s y un límite por ventana holgado para poder repetirse entre ejecuciones
 // sin depender del reloj de pared de los 60 s de DEC-064.
 func TestRecoveryRepository_RequestRecovery_UnverifiedPhone_AcceptedWithoutPhone(t *testing.T) {
@@ -101,7 +101,7 @@ func TestRecoveryRepository_RequestRecovery_UnverifiedPhone_AcceptedWithoutPhone
 	cfg.ResendCooldownSeconds = 1
 	cfg.ResendMaxPerWindow = 1000
 
-	// barbero.a (unverifiedEmailA) no tiene teléfono verificado
+	// profesional.a (unverifiedEmailA) no tiene teléfono verificado
 	// (hu007_reto_telefonico.sql lo deja así a propósito).
 	// requestRecoveryEventually solo devuelve cuando la solicitud fue aceptada
 	// (tolera el cooldown de 1 s de una ejecución inmediatamente anterior).
@@ -324,8 +324,8 @@ func TestRecoveryRepository_ResolveAccountEmailByPhone(t *testing.T) {
 		wantFound bool
 	}{
 		{"teléfono único de una cuenta activa", "+573000000011", "dueno.o@ejemplo.test", true},
-		{"otra barbería resuelve a su propia cuenta", "+573000000001", "duena.a@ejemplo.test", true},
-		{"número compartido entre dos barberías es ambiguo", "+573000000012", "", false},
+		{"otro negocio resuelve a su propia cuenta", "+573000000001", "duena.a@ejemplo.test", true},
+		{"número compartido entre dos negocios es ambiguo", "+573000000012", "", false},
 		{"número sin cuenta", "+573009999999", "", false},
 	} {
 		t.Run(tc.name, func(t *testing.T) {

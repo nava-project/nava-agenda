@@ -13,7 +13,7 @@ vi.mock('@/shared/api/httpClient', () => ({
   httpClient: { GET: getMock, PATCH: patchMock },
 }))
 
-const { fetchBarbershopSettings, saveBarbershopSettings } = await import('../settingsApi')
+const { fetchBusinessSettings, saveBusinessSettings } = await import('../settingsApi')
 
 function ok(body: unknown) {
   return { data: body, error: undefined, response: new Response(null, { status: 200 }) }
@@ -30,13 +30,13 @@ const settingsBody = {
   contactPhone: '+573001234567',
 }
 
-describe('settingsApi.fetchBarbershopSettings', () => {
+describe('settingsApi.fetchBusinessSettings', () => {
   beforeEach(() => getMock.mockReset())
 
   it('maps a 200 success body to a success outcome', async () => {
     getMock.mockResolvedValueOnce(ok(settingsBody))
 
-    const outcome = await fetchBarbershopSettings()
+    const outcome = await fetchBusinessSettings()
 
     expect(outcome).toEqual({ kind: 'success', settings: settingsBody })
   })
@@ -44,7 +44,7 @@ describe('settingsApi.fetchBarbershopSettings', () => {
   it('maps null contact fields through unchanged (no contact configured)', async () => {
     getMock.mockResolvedValueOnce(ok({ ...settingsBody, contactEmail: null, contactPhone: null }))
 
-    const outcome = await fetchBarbershopSettings()
+    const outcome = await fetchBusinessSettings()
 
     expect(outcome).toEqual({
       kind: 'success',
@@ -55,7 +55,7 @@ describe('settingsApi.fetchBarbershopSettings', () => {
   it('maps any non-2xx status to unexpected-error (401 is handled globally by installSessionHandling)', async () => {
     getMock.mockResolvedValueOnce(problem(401))
 
-    const outcome = await fetchBarbershopSettings()
+    const outcome = await fetchBusinessSettings()
 
     expect(outcome).toEqual({ kind: 'unexpected-error' })
   })
@@ -63,13 +63,13 @@ describe('settingsApi.fetchBarbershopSettings', () => {
   it('maps a rejected request (no HTTP response) to network-error', async () => {
     getMock.mockRejectedValueOnce(new TypeError('Failed to fetch'))
 
-    const outcome = await fetchBarbershopSettings()
+    const outcome = await fetchBusinessSettings()
 
     expect(outcome).toEqual({ kind: 'network-error' })
   })
 })
 
-describe('settingsApi.saveBarbershopSettings', () => {
+describe('settingsApi.saveBusinessSettings', () => {
   beforeEach(() => patchMock.mockReset())
 
   const formValues = {
@@ -82,7 +82,7 @@ describe('settingsApi.saveBarbershopSettings', () => {
   it('sends exactly the four contract fields as the body', async () => {
     patchMock.mockResolvedValueOnce(ok(settingsBody))
 
-    await saveBarbershopSettings(formValues)
+    await saveBusinessSettings(formValues)
 
     expect(patchMock).toHaveBeenCalledTimes(1)
     const [path, options] = patchMock.mock.calls[0] as [string, { body: unknown }]
@@ -93,7 +93,7 @@ describe('settingsApi.saveBarbershopSettings', () => {
   it('maps a 200 success body to a success outcome', async () => {
     patchMock.mockResolvedValueOnce(ok(settingsBody))
 
-    const outcome = await saveBarbershopSettings(formValues)
+    const outcome = await saveBusinessSettings(formValues)
 
     expect(outcome).toEqual({ kind: 'success', settings: settingsBody })
   })
@@ -101,7 +101,7 @@ describe('settingsApi.saveBarbershopSettings', () => {
   it('maps 422 (field validation, e.g. unrecognized timezone) to validation-error', async () => {
     patchMock.mockResolvedValueOnce(problem(422, { code: 'validation-error' }))
 
-    const outcome = await saveBarbershopSettings({ ...formValues, timezone: 'COT' })
+    const outcome = await saveBusinessSettings({ ...formValues, timezone: 'COT' })
 
     expect(outcome).toEqual({ kind: 'validation-error' })
   })
@@ -109,7 +109,7 @@ describe('settingsApi.saveBarbershopSettings', () => {
   it('maps 400 (unknown field / malformed JSON) to validation-error', async () => {
     patchMock.mockResolvedValueOnce(problem(400, { code: 'invalid-request' }))
 
-    const outcome = await saveBarbershopSettings(formValues)
+    const outcome = await saveBusinessSettings(formValues)
 
     expect(outcome).toEqual({ kind: 'validation-error' })
   })
@@ -117,7 +117,7 @@ describe('settingsApi.saveBarbershopSettings', () => {
   it('maps a 500 to unexpected-error', async () => {
     patchMock.mockResolvedValueOnce(problem(500, { code: 'internal-error' }))
 
-    const outcome = await saveBarbershopSettings(formValues)
+    const outcome = await saveBusinessSettings(formValues)
 
     expect(outcome).toEqual({ kind: 'unexpected-error' })
   })
@@ -125,7 +125,7 @@ describe('settingsApi.saveBarbershopSettings', () => {
   it('maps a rejected request (no HTTP response) to network-error', async () => {
     patchMock.mockRejectedValueOnce(new TypeError('Failed to fetch'))
 
-    const outcome = await saveBarbershopSettings(formValues)
+    const outcome = await saveBusinessSettings(formValues)
 
     expect(outcome).toEqual({ kind: 'network-error' })
   })

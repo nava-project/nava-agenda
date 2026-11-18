@@ -16,21 +16,21 @@ import (
 	"net/http"
 	"strconv"
 
-	"system-barbershop/internal/modules/access"
-	"system-barbershop/internal/modules/auth"
-	"system-barbershop/internal/modules/staff"
-	"system-barbershop/internal/platform/apperr"
-	"system-barbershop/internal/platform/httpserver"
-	"system-barbershop/internal/platform/idempotency"
+	"nava-agenda/internal/modules/access"
+	"nava-agenda/internal/modules/auth"
+	"nava-agenda/internal/modules/staff"
+	"nava-agenda/internal/platform/apperr"
+	"nava-agenda/internal/platform/httpserver"
+	"nava-agenda/internal/platform/idempotency"
 )
 
-// barberIDParam es el nombre del parámetro de ruta que cmd/api.buildRouter
+// professionalIDParam es el nombre del parámetro de ruta que cmd/api.buildRouter
 // registra para /private/professionals/{professionalId}.
-const barberIDParam = "professionalId"
+const professionalIDParam = "professionalId"
 
-// barberBasePath es la base usada para construir el header Location de un
+// professionalBasePath es la base usada para construir el header Location de un
 // alta exitosa, relativa a /api/v1 (igual que el resto del contrato).
-const barberBasePath = "/private/professionals/"
+const professionalBasePath = "/private/professionals/"
 
 func principalOrInternalError(w http.ResponseWriter, r *http.Request, requestID string) (auth.Principal, bool) {
 	principal, ok := auth.PrincipalFromContext(r.Context())
@@ -50,26 +50,26 @@ func writeUnknownFieldOrInvalidJSONProblem(w http.ResponseWriter, requestID stri
 		apperr.Invalid("cuerpo JSON inválido o con un campo desconocido"), requestID))
 }
 
-// ListBarbersHandler expone GET /private/professionals (CA-021-01, CA-021-02).
-type ListBarbersHandler struct {
+// ListProfessionalsHandler expone GET /private/professionals (CA-021-01, CA-021-02).
+type ListProfessionalsHandler struct {
 	service *staff.Service
 }
 
-// NewListBarbersHandler construye el handler de listado.
-func NewListBarbersHandler(service *staff.Service) *ListBarbersHandler {
-	return &ListBarbersHandler{service: service}
+// NewListProfessionalsHandler construye el handler de listado.
+func NewListProfessionalsHandler(service *staff.Service) *ListProfessionalsHandler {
+	return &ListProfessionalsHandler{service: service}
 }
 
 // ServeHTTP implementa http.Handler.
-func (h *ListBarbersHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+func (h *ListProfessionalsHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	requestID := httpserver.RequestIDFromContext(r.Context())
 	principal, ok := principalOrInternalError(w, r, requestID)
 	if !ok {
 		return
 	}
-	// DEC-173: el empleado solo ve su propio barbero (o ninguno sin vínculo).
+	// DEC-173: el empleado solo ve su propio profesional (o ninguno sin vínculo).
 	if scope := access.ScopeFromContext(r.Context()); scope.Restricted {
-		h.serveOwnOnly(w, r, principal.BarbershopID, scope.BarberID, requestID)
+		h.serveOwnOnly(w, r, principal.BusinessID, scope.ProfessionalID, requestID)
 		return
 	}
 
@@ -93,15 +93,15 @@ func (h *ListBarbersHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 				*parameter.target = value
 			}
 		}
-		result, err := h.service.ListPage(r.Context(), principal.BarbershopID, page, size)
+		result, err := h.service.ListPage(r.Context(), principal.BusinessID, page, size)
 		if err != nil {
 			httpserver.WriteProblem(w, httpserver.Translate(err, requestID))
 			return
 		}
-		response := newBarberListResponse(staff.ListResult{Items: result.Items})
+		response := newProfessionalListResponse(staff.ListResult{Items: result.Items})
 		w.Header().Set("Content-Type", "application/json")
 		_ = json.NewEncoder(w).Encode(struct {
-			BarberListResponse
+			ProfessionalListResponse
 			Page       int `json:"page"`
 			PageSize   int `json:"pageSize"`
 			Total      int `json:"total"`
@@ -122,7 +122,7 @@ func (h *ListBarbersHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		limit = parsed
 	}
 
-	result, err := h.service.List(r.Context(), principal.BarbershopID, cursor, limit)
+	result, err := h.service.List(r.Context(), principal.BusinessID, cursor, limit)
 	if err != nil {
 		httpserver.WriteProblem(w, httpserver.Translate(err, requestID))
 		return
@@ -130,22 +130,22 @@ func (h *ListBarbersHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
-	_ = json.NewEncoder(w).Encode(newBarberListResponse(result))
+	_ = json.NewEncoder(w).Encode(newProfessionalListResponse(result))
 }
 
-// serveOwnOnly responde la lista del empleado restringido: su barbero
+// serveOwnOnly responde la lista del empleado restringido: su profesional
 // vinculado o ninguno, en el mismo modo de paginación que se pidió.
-func (h *ListBarbersHandler) serveOwnOnly(w http.ResponseWriter, r *http.Request, barbershopID, barberID, requestID string) {
-	items := []staff.Barber{}
-	if barberID != "" {
-		barber, err := h.service.Get(r.Context(), barbershopID, barberID)
+func (h *ListProfessionalsHandler) serveOwnOnly(w http.ResponseWriter, r *http.Request, businessID, professionalID, requestID string) {
+	items := []staff.Professional{}
+	if professionalID != "" {
+		professional, err := h.service.Get(r.Context(), businessID, professionalID)
 		if err != nil {
 			httpserver.WriteProblem(w, httpserver.Translate(err, requestID))
 			return
 		}
-		items = append(items, barber)
+		items = append(items, professional)
 	}
-	response := newBarberListResponse(staff.ListResult{Items: items})
+	response := newProfessionalListResponse(staff.ListResult{Items: items})
 	w.Header().Set("Content-Type", "application/json")
 	query := r.URL.Query()
 	if query.Has("page") || query.Has("pageSize") {
@@ -156,7 +156,7 @@ func (h *ListBarbersHandler) serveOwnOnly(w http.ResponseWriter, r *http.Request
 		// Siempre una página, como GREATEST(1, …) del repositorio.
 		totalPages := 1
 		_ = json.NewEncoder(w).Encode(struct {
-			BarberListResponse
+			ProfessionalListResponse
 			Page       int `json:"page"`
 			PageSize   int `json:"pageSize"`
 			Total      int `json:"total"`
@@ -167,28 +167,28 @@ func (h *ListBarbersHandler) serveOwnOnly(w http.ResponseWriter, r *http.Request
 	_ = json.NewEncoder(w).Encode(response)
 }
 
-// GetBarberHandler expone GET /private/professionals/{professionalId} (CA-021-05: la
+// GetProfessionalHandler expone GET /private/professionals/{professionalId} (CA-021-05: la
 // lectura individual permite demostrar de forma directa el 404 de un
-// barbero de otra barbería).
-type GetBarberHandler struct {
+// profesional de otro negocio).
+type GetProfessionalHandler struct {
 	service *staff.Service
 }
 
-// NewGetBarberHandler construye el handler de lectura individual.
-func NewGetBarberHandler(service *staff.Service) *GetBarberHandler {
-	return &GetBarberHandler{service: service}
+// NewGetProfessionalHandler construye el handler de lectura individual.
+func NewGetProfessionalHandler(service *staff.Service) *GetProfessionalHandler {
+	return &GetProfessionalHandler{service: service}
 }
 
 // ServeHTTP implementa http.Handler.
-func (h *GetBarberHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+func (h *GetProfessionalHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	requestID := httpserver.RequestIDFromContext(r.Context())
 	principal, ok := principalOrInternalError(w, r, requestID)
 	if !ok {
 		return
 	}
 
-	barberID := httpserver.URLParam(r, barberIDParam)
-	barber, err := h.service.Get(r.Context(), principal.BarbershopID, barberID)
+	professionalID := httpserver.URLParam(r, professionalIDParam)
+	professional, err := h.service.Get(r.Context(), principal.BusinessID, professionalID)
 	if err != nil {
 		httpserver.WriteProblem(w, httpserver.Translate(err, requestID))
 		return
@@ -196,23 +196,23 @@ func (h *GetBarberHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
-	_ = json.NewEncoder(w).Encode(newBarberResponse(barber))
+	_ = json.NewEncoder(w).Encode(newProfessionalResponse(professional))
 }
 
-// CreateBarberHandler expone POST /private/professionals (CA-021-02), protegido
+// CreateProfessionalHandler expone POST /private/professionals (CA-021-02), protegido
 // por el protocolo de idempotencia reutilizable de HU-004 (RN-IDE-01,
 // DEC-043).
-type CreateBarberHandler struct {
+type CreateProfessionalHandler struct {
 	service *staff.Service
 }
 
-// NewCreateBarberHandler construye el handler de alta.
-func NewCreateBarberHandler(service *staff.Service) *CreateBarberHandler {
-	return &CreateBarberHandler{service: service}
+// NewCreateProfessionalHandler construye el handler de alta.
+func NewCreateProfessionalHandler(service *staff.Service) *CreateProfessionalHandler {
+	return &CreateProfessionalHandler{service: service}
 }
 
 // ServeHTTP implementa http.Handler.
-func (h *CreateBarberHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+func (h *CreateProfessionalHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	requestID := httpserver.RequestIDFromContext(r.Context())
 	principal, ok := principalOrInternalError(w, r, requestID)
 	if !ok {
@@ -242,7 +242,7 @@ func (h *CreateBarberHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) 
 		return
 	}
 
-	var req CreateBarberRequest
+	var req CreateProfessionalRequest
 	dec := json.NewDecoder(bytes.NewReader(body))
 	dec.DisallowUnknownFields()
 	if err := dec.Decode(&req); err != nil {
@@ -256,7 +256,7 @@ func (h *CreateBarberHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) 
 
 	fingerprint := httpserver.IdempotencyFingerprint(r, body)
 
-	result, err := h.service.Create(r.Context(), principal.BarbershopID, req.FullName, req.Description, key, fingerprint)
+	result, err := h.service.Create(r.Context(), principal.BusinessID, req.FullName, req.Description, key, fingerprint)
 	if err != nil {
 		httpserver.WriteProblem(w, httpserver.Translate(err, requestID))
 		return
@@ -272,7 +272,7 @@ func (h *CreateBarberHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) 
 			ID string `json:"id"`
 		}
 		_ = json.Unmarshal([]byte(result.Response.Body), &parsed)
-		w.Header().Set("Location", barberBasePath+parsed.ID)
+		w.Header().Set("Location", professionalBasePath+parsed.ID)
 		httpserver.WriteStoredResponse(w, result.Response)
 	default:
 		// Conflicto de contenido/operación (RN-IDE-01) o ejecución en curso
@@ -281,27 +281,27 @@ func (h *CreateBarberHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) 
 	}
 }
 
-// UpdateBarberHandler expone PATCH /private/professionals/{professionalId} (CA-021-04).
-type UpdateBarberHandler struct {
+// UpdateProfessionalHandler expone PATCH /private/professionals/{professionalId} (CA-021-04).
+type UpdateProfessionalHandler struct {
 	service *staff.Service
 }
 
-// NewUpdateBarberHandler construye el handler de actualización.
-func NewUpdateBarberHandler(service *staff.Service) *UpdateBarberHandler {
-	return &UpdateBarberHandler{service: service}
+// NewUpdateProfessionalHandler construye el handler de actualización.
+func NewUpdateProfessionalHandler(service *staff.Service) *UpdateProfessionalHandler {
+	return &UpdateProfessionalHandler{service: service}
 }
 
 // ServeHTTP implementa http.Handler.
-func (h *UpdateBarberHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+func (h *UpdateProfessionalHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	requestID := httpserver.RequestIDFromContext(r.Context())
 	principal, ok := principalOrInternalError(w, r, requestID)
 	if !ok {
 		return
 	}
 
-	barberID := httpserver.URLParam(r, barberIDParam)
+	professionalID := httpserver.URLParam(r, professionalIDParam)
 
-	var req UpdateBarberRequest
+	var req UpdateProfessionalRequest
 	dec := json.NewDecoder(r.Body)
 	dec.DisallowUnknownFields()
 	if err := dec.Decode(&req); err != nil {
@@ -318,8 +318,8 @@ func (h *UpdateBarberHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) 
 		return
 	}
 
-	barber, err := h.service.Update(
-		r.Context(), principal.BarbershopID, barberID, req.FullName,
+	professional, err := h.service.Update(
+		r.Context(), principal.BusinessID, professionalID, req.FullName,
 		staff.DescriptionPatch{Set: req.Description.Set, Value: req.Description.Value},
 	)
 	if err != nil {
@@ -329,11 +329,11 @@ func (h *UpdateBarberHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) 
 
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
-	_ = json.NewEncoder(w).Encode(newBarberResponse(barber))
+	_ = json.NewEncoder(w).Encode(newProfessionalResponse(professional))
 }
 
-func newBarberResponse(b staff.Barber) BarberResponse {
-	return BarberResponse{
+func newProfessionalResponse(b staff.Professional) ProfessionalResponse {
+	return ProfessionalResponse{
 		ID:             b.ID,
 		FullName:       b.FullName,
 		CreatedAt:      b.CreatedAt,
@@ -345,34 +345,34 @@ func newBarberResponse(b staff.Barber) BarberResponse {
 	}
 }
 
-func newBarberListResponse(result staff.ListResult) BarberListResponse {
-	items := make([]BarberResponse, 0, len(result.Items))
+func newProfessionalListResponse(result staff.ListResult) ProfessionalListResponse {
+	items := make([]ProfessionalResponse, 0, len(result.Items))
 	for _, b := range result.Items {
-		items = append(items, newBarberResponse(b))
+		items = append(items, newProfessionalResponse(b))
 	}
 	var next *string
 	if result.NextCursor != "" {
 		v := result.NextCursor
 		next = &v
 	}
-	return BarberListResponse{Items: items, NextCursor: next}
+	return ProfessionalListResponse{Items: items, NextCursor: next}
 }
 
-// PutBarberPhotoHandler expone PUT /private/professionals/{professionalId}/photo (DEC-104):
-// reemplaza la fotografía del barbero con el cuerpo binario de la solicitud.
+// PutProfessionalPhotoHandler expone PUT /private/professionals/{professionalId}/photo (DEC-104):
+// reemplaza la fotografía del profesional con el cuerpo binario de la solicitud.
 // PUT es idempotente por naturaleza (repetir el mismo cuerpo deja el mismo
 // estado), así que no lleva Idempotency-Key.
-type PutBarberPhotoHandler struct {
+type PutProfessionalPhotoHandler struct {
 	service *staff.Service
 }
 
-// NewPutBarberPhotoHandler construye el handler de subida de fotografía.
-func NewPutBarberPhotoHandler(service *staff.Service) *PutBarberPhotoHandler {
-	return &PutBarberPhotoHandler{service: service}
+// NewPutProfessionalPhotoHandler construye el handler de subida de fotografía.
+func NewPutProfessionalPhotoHandler(service *staff.Service) *PutProfessionalPhotoHandler {
+	return &PutProfessionalPhotoHandler{service: service}
 }
 
 // ServeHTTP implementa http.Handler.
-func (h *PutBarberPhotoHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+func (h *PutProfessionalPhotoHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	requestID := httpserver.RequestIDFromContext(r.Context())
 	principal, ok := principalOrInternalError(w, r, requestID)
 	if !ok {
@@ -402,8 +402,8 @@ func (h *PutBarberPhotoHandler) ServeHTTP(w http.ResponseWriter, r *http.Request
 		return
 	}
 
-	barber, err := h.service.SetPhoto(r.Context(), principal.BarbershopID,
-		httpserver.URLParam(r, barberIDParam), mediaType, data)
+	professional, err := h.service.SetPhoto(r.Context(), principal.BusinessID,
+		httpserver.URLParam(r, professionalIDParam), mediaType, data)
 	if err != nil {
 		httpserver.WriteProblem(w, httpserver.Translate(err, requestID))
 		return
@@ -411,31 +411,31 @@ func (h *PutBarberPhotoHandler) ServeHTTP(w http.ResponseWriter, r *http.Request
 
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
-	_ = json.NewEncoder(w).Encode(newBarberResponse(barber))
+	_ = json.NewEncoder(w).Encode(newProfessionalResponse(professional))
 }
 
-// GetBarberPhotoHandler expone GET /private/professionals/{professionalId}/photo (DEC-104):
+// GetProfessionalPhotoHandler expone GET /private/professionals/{professionalId}/photo (DEC-104):
 // sirve los bytes de la fotografía con validador ETag para que el navegador
 // revalide barato. El cliente versiona la URL con `photoUpdatedAt`, así que una
 // fotografía nueva nunca se sirve desde una caché vieja.
-type GetBarberPhotoHandler struct {
+type GetProfessionalPhotoHandler struct {
 	service *staff.Service
 }
 
-// NewGetBarberPhotoHandler construye el handler de lectura de fotografía.
-func NewGetBarberPhotoHandler(service *staff.Service) *GetBarberPhotoHandler {
-	return &GetBarberPhotoHandler{service: service}
+// NewGetProfessionalPhotoHandler construye el handler de lectura de fotografía.
+func NewGetProfessionalPhotoHandler(service *staff.Service) *GetProfessionalPhotoHandler {
+	return &GetProfessionalPhotoHandler{service: service}
 }
 
 // ServeHTTP implementa http.Handler.
-func (h *GetBarberPhotoHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+func (h *GetProfessionalPhotoHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	requestID := httpserver.RequestIDFromContext(r.Context())
 	principal, ok := principalOrInternalError(w, r, requestID)
 	if !ok {
 		return
 	}
 
-	photo, err := h.service.Photo(r.Context(), principal.BarbershopID, httpserver.URLParam(r, barberIDParam))
+	photo, err := h.service.Photo(r.Context(), principal.BusinessID, httpserver.URLParam(r, professionalIDParam))
 	if err != nil {
 		httpserver.WriteProblem(w, httpserver.Translate(err, requestID))
 		return
@@ -459,27 +459,27 @@ func (h *GetBarberPhotoHandler) ServeHTTP(w http.ResponseWriter, r *http.Request
 	_, _ = w.Write(photo.Data)
 }
 
-// DeleteBarberPhotoHandler expone DELETE /private/professionals/{professionalId}/photo
-// (DEC-104): quita la fotografía; el barbero vuelve al monograma. Idempotente:
+// DeleteProfessionalPhotoHandler expone DELETE /private/professionals/{professionalId}/photo
+// (DEC-104): quita la fotografía; el profesional vuelve al monograma. Idempotente:
 // quitar una fotografía inexistente también responde 204.
-type DeleteBarberPhotoHandler struct {
+type DeleteProfessionalPhotoHandler struct {
 	service *staff.Service
 }
 
-// NewDeleteBarberPhotoHandler construye el handler de borrado de fotografía.
-func NewDeleteBarberPhotoHandler(service *staff.Service) *DeleteBarberPhotoHandler {
-	return &DeleteBarberPhotoHandler{service: service}
+// NewDeleteProfessionalPhotoHandler construye el handler de borrado de fotografía.
+func NewDeleteProfessionalPhotoHandler(service *staff.Service) *DeleteProfessionalPhotoHandler {
+	return &DeleteProfessionalPhotoHandler{service: service}
 }
 
 // ServeHTTP implementa http.Handler.
-func (h *DeleteBarberPhotoHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+func (h *DeleteProfessionalPhotoHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	requestID := httpserver.RequestIDFromContext(r.Context())
 	principal, ok := principalOrInternalError(w, r, requestID)
 	if !ok {
 		return
 	}
 
-	if err := h.service.RemovePhoto(r.Context(), principal.BarbershopID, httpserver.URLParam(r, barberIDParam)); err != nil {
+	if err := h.service.RemovePhoto(r.Context(), principal.BusinessID, httpserver.URLParam(r, professionalIDParam)); err != nil {
 		httpserver.WriteProblem(w, httpserver.Translate(err, requestID))
 		return
 	}

@@ -5,7 +5,7 @@
 // (docs/03-desarrollo/estandar-frontend-vue.md §6, "la vista no conoce la
 // forma interna de errores de cada proveedor").
 
-/** Credenciales tal como las escribe el barbero. Nunca se serializan a
+/** Credenciales tal como las escribe el profesional. Nunca se serializan a
  * `sessionStorage`, `localStorage` ni a la URL (CA-010-07). */
 export interface LoginCredentials {
   email: string

@@ -14,8 +14,8 @@ import (
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgtype"
 
-	"system-barbershop/internal/modules/publicbooking"
-	"system-barbershop/internal/platform/database"
+	"nava-agenda/internal/modules/publicbooking"
+	"nava-agenda/internal/platform/database"
 )
 
 // Repository implementa publicbooking.Repository sobre database.DB.
@@ -36,33 +36,33 @@ var _ publicbooking.CustomerRepository = (*Repository)(nil)
 // pasos, exactamente el patrón ya establecido por
 // authn_resolve_login_tenant/authn_resolve_session_tenant (HU-005,
 // database.DB.ResolveTenant): primero resuelve slug a un identificador de
-// barbería SIN contexto de tenant, mediante la función SECURITY DEFINER
-// estrecha public_resolve_barbershop_by_slug (que responde igual -NULL- a
-// forma inválida, slug desconocido o barbería no publicable); si resuelve,
+// negocio SIN contexto de tenant, mediante la función SECURITY DEFINER
+// estrecha public_resolve_business_by_slug (que responde igual -NULL- a
+// forma inválida, slug desconocido o negocio no publicable); si resuelve,
 // abre una transacción tenant-aware normal (InTenantTx) sobre ESE
 // identificador para leer los campos públicos mínimos ya protegidos por
-// barbershop_select_tenant_policy, sin necesitar ningún privilegio
+// business_select_tenant_policy, sin necesitar ningún privilegio
 // adicional sobre la tabla.
-func (r *Repository) ResolveBySlug(ctx context.Context, slug string) (publicbooking.BarbershopProfile, bool, error) {
-	barbershopID, found, err := r.db.ResolveTenant(ctx,
+func (r *Repository) ResolveBySlug(ctx context.Context, slug string) (publicbooking.BusinessProfile, bool, error) {
+	businessID, found, err := r.db.ResolveTenant(ctx,
 		`SELECT public_resolve_business_by_slug($1)`,
 		slug,
 	)
 	if err != nil {
-		return publicbooking.BarbershopProfile{}, false, fmt.Errorf("publicbooking/postgres: resolve tenant by slug: %w", err)
+		return publicbooking.BusinessProfile{}, false, fmt.Errorf("publicbooking/postgres: resolve tenant by slug: %w", err)
 	}
 	if !found {
-		return publicbooking.BarbershopProfile{}, false, nil
+		return publicbooking.BusinessProfile{}, false, nil
 	}
 
 	var (
-		profile             publicbooking.BarbershopProfile
+		profile             publicbooking.BusinessProfile
 		hasPhysicalLocation bool
 		address             *string
 		latitude, longitude *float64
 	)
 	profileFound := false
-	err = r.db.InTenantTx(ctx, barbershopID, func(ctx context.Context, q database.Queries) error {
+	err = r.db.InTenantTx(ctx, businessID, func(ctx context.Context, q database.Queries) error {
 		err := q.QueryRow(ctx,
 			`SELECT name, timezone, contact_email, contact_phone,
 			        business_term, business_term_gender,
@@ -71,7 +71,7 @@ func (r *Repository) ResolveBySlug(ctx context.Context, slug string) (publicbook
 			        google_place_id, brand_accent, closed_on_holidays
 			   FROM business
 			  WHERE id = $1`,
-			string(barbershopID),
+			string(businessID),
 		).Scan(
 			&profile.Name, &profile.Timezone, &profile.ContactEmail, &profile.ContactPhone,
 			&profile.Vocabulary.BusinessTerm, &profile.Vocabulary.BusinessTermGender,
@@ -84,7 +84,7 @@ func (r *Repository) ResolveBySlug(ctx context.Context, slug string) (publicbook
 		case err == nil:
 			profileFound = true
 			// El mapa solo se publica con el interruptor activo y coordenadas
-			// reales (CA-102-02, CA-102-03); barbershop_coordinates_ck garantiza
+			// reales (CA-102-02, CA-102-03); business_coordinates_ck garantiza
 			// que latitud y longitud llegan juntas y con dirección.
 			if hasPhysicalLocation && address != nil && latitude != nil && longitude != nil {
 				profile.Location = &publicbooking.Location{Address: *address, Latitude: *latitude, Longitude: *longitude}
@@ -94,14 +94,14 @@ func (r *Repository) ResolveBySlug(ctx context.Context, slug string) (publicbook
 			// DEFINER ya confirmó la fila en la misma sentencia SQL que
 			// esta transacción re-lee; una desaparición entre ambas solo
 			// podría venir de un borrado físico que este esquema no
-			// permite para barbershop).
+			// permite para business).
 		default:
-			return fmt.Errorf("select public barbershop profile: %w", err)
+			return fmt.Errorf("select public business profile: %w", err)
 		}
 		if !profileFound {
 			return nil
 		}
-		hours, err := readOpeningHours(ctx, q, string(barbershopID))
+		hours, err := readOpeningHours(ctx, q, string(businessID))
 		if err != nil {
 			return err
 		}
@@ -109,18 +109,18 @@ func (r *Repository) ResolveBySlug(ctx context.Context, slug string) (publicbook
 		return nil
 	})
 	if err != nil {
-		return publicbooking.BarbershopProfile{}, false, fmt.Errorf("publicbooking/postgres: read public profile: %w", err)
+		return publicbooking.BusinessProfile{}, false, fmt.Errorf("publicbooking/postgres: read public profile: %w", err)
 	}
 	return profile, profileFound, nil
 }
 
-// ResolveBarbershopID implementa publicbooking.AvailabilityRepository.
-// ResolveBarbershopID reutilizando el mismo primer paso de dos que
-// ResolveBySlug (public_resolve_barbershop_by_slug vía db.ResolveTenant),
+// ResolveBusinessID implementa publicbooking.AvailabilityRepository.
+// ResolveBusinessID reutilizando el mismo primer paso de dos que
+// ResolveBySlug (public_resolve_business_by_slug vía db.ResolveTenant),
 // pero se detiene ahí: HU-094 necesita el identificador para orquestar
 // schedule/shops/catalog, no un perfil público.
-func (r *Repository) ResolveBarbershopID(ctx context.Context, slug string) (string, bool, error) {
-	barbershopID, found, err := r.db.ResolveTenant(ctx,
+func (r *Repository) ResolveBusinessID(ctx context.Context, slug string) (string, bool, error) {
+	businessID, found, err := r.db.ResolveTenant(ctx,
 		`SELECT public_resolve_business_by_slug($1)`,
 		slug,
 	)
@@ -130,21 +130,21 @@ func (r *Repository) ResolveBarbershopID(ctx context.Context, slug string) (stri
 	if !found {
 		return "", false, nil
 	}
-	return string(barbershopID), true, nil
+	return string(businessID), true, nil
 }
 
 // ListOccupiedIntervals implementa
 // publicbooking.AvailabilityRepository.ListOccupiedIntervals: lee, dentro
 // de una transacción tenant-aware normal (InTenantTx, RLS ya acota a
-// barbershopID), los intervalos de las citas que ocupan agenda
+// businessID), los intervalos de las citas que ocupan agenda
 // (`occupies_schedule`, estados-citas.md §11 -mismo criterio derivado que
-// la restricción de exclusión `appointment_barber_interval_excl`, para que
+// la restricción de exclusión `appointment_professional_interval_excl`, para que
 // esta lectura nunca pueda divergir de ella) cuyo intervalo interseca
-// [from, to). barberID se filtra explícitamente además de RLS (mismo
+// [from, to). professionalID se filtra explícitamente además de RLS (mismo
 // criterio que las demás consultas de este paquete).
-func (r *Repository) ListOccupiedIntervals(ctx context.Context, barbershopID, barberID string, from, to time.Time) ([]time.Time, []time.Time, error) {
+func (r *Repository) ListOccupiedIntervals(ctx context.Context, businessID, professionalID string, from, to time.Time) ([]time.Time, []time.Time, error) {
 	var starts, ends []time.Time
-	err := r.db.InTenantTx(ctx, database.BarbershopID(barbershopID), func(ctx context.Context, q database.Queries) error {
+	err := r.db.InTenantTx(ctx, database.BusinessID(businessID), func(ctx context.Context, q database.Queries) error {
 		rows, err := q.Query(ctx, `
 			SELECT starts_at, ends_at
 			  FROM appointment
@@ -154,7 +154,7 @@ func (r *Repository) ListOccupiedIntervals(ctx context.Context, barbershopID, ba
 			   AND starts_at < $4
 			   AND ends_at > $3
 			 ORDER BY starts_at`,
-			barbershopID, barberID, from, to,
+			businessID, professionalID, from, to,
 		)
 		if err != nil {
 			return err
@@ -207,17 +207,17 @@ func centsFromNumeric(n pgtype.Numeric) (int64, error) {
 
 // ListPublicServices implementa publicbooking.Repository.ListPublicServices
 // con el mismo patrón de dos pasos que ResolveBySlug: resuelve slug SIN
-// contexto de tenant mediante public_resolve_barbershop_by_slug y, si
+// contexto de tenant mediante public_resolve_business_by_slug y, si
 // resuelve, abre una transacción tenant-aware (InTenantTx) para leer la
 // página de servicios activos con al menos una asignación vigente
-// (HU-091, CA-091-01). El filtro EXISTS sobre barber_service ya queda
-// acotado al mismo tenant por barbershop_service_select_tenant_policy
-// (RLS), pero se repite explícitamente por bs.barbershop_id = s.barbershop_id
+// (HU-091, CA-091-01). El filtro EXISTS sobre professional_service ya queda
+// acotado al mismo tenant por business_service_select_tenant_policy
+// (RLS), pero se repite explícitamente por bs.business_id = s.business_id
 // siguiendo el mismo criterio que catalog/postgres.Repository.List
-// ("cada consulta filtra explícitamente por barbershopID además de RLS").
+// ("cada consulta filtra explícitamente por businessID además de RLS").
 // Paginación "pedir uno de más" (mismo patrón que catalog.Repository.List).
 func (r *Repository) ListPublicServices(ctx context.Context, slug string, cursor *publicbooking.ServiceCursor, limit int) (publicbooking.PublicServiceListResult, bool, error) {
-	barbershopID, found, err := r.db.ResolveTenant(ctx,
+	businessID, found, err := r.db.ResolveTenant(ctx,
 		`SELECT public_resolve_business_by_slug($1)`,
 		slug,
 	)
@@ -240,7 +240,7 @@ func (r *Repository) ListPublicServices(ctx context.Context, slug string, cursor
 		   )`
 
 	var result publicbooking.PublicServiceListResult
-	err = r.db.InTenantTx(ctx, barbershopID, func(ctx context.Context, q database.Queries) error {
+	err = r.db.InTenantTx(ctx, businessID, func(ctx context.Context, q database.Queries) error {
 		var (
 			rows pgx.Rows
 			err  error
@@ -252,7 +252,7 @@ func (r *Repository) ListPublicServices(ctx context.Context, slug string, cursor
 				baseQuery+`
 			 ORDER BY s.created_at, s.id
 			 LIMIT $2`,
-				string(barbershopID), fetchLimit,
+				string(businessID), fetchLimit,
 			)
 		} else {
 			rows, err = q.Query(ctx,
@@ -260,7 +260,7 @@ func (r *Repository) ListPublicServices(ctx context.Context, slug string, cursor
 			   AND (s.created_at, s.id) > ($2, $3)
 			 ORDER BY s.created_at, s.id
 			 LIMIT $4`,
-				string(barbershopID), cursor.CreatedAt, cursor.ID, fetchLimit,
+				string(businessID), cursor.CreatedAt, cursor.ID, fetchLimit,
 			)
 		}
 		if err != nil {
@@ -313,35 +313,35 @@ func (r *Repository) ListPublicServices(ctx context.Context, slug string, cursor
 	return result, true, nil
 }
 
-// ListPublicBarbers implementa publicbooking.Repository.ListPublicBarbers
+// ListPublicProfessionals implementa publicbooking.Repository.ListPublicProfessionals
 // con el mismo patrón de dos pasos que ListPublicServices: resuelve slug SIN
-// contexto de tenant mediante public_resolve_barbershop_by_slug y, si
+// contexto de tenant mediante public_resolve_business_by_slug y, si
 // resuelve, abre una transacción tenant-aware (InTenantTx) para leer los
-// barberos con asignación vigente al servicio activo serviceID (HU-092,
+// profesionales con asignación vigente al servicio activo serviceID (HU-092,
 // CA-092-02). serviceID sin forma de UUID se descarta ANTES de construir la
 // consulta (evita un error de tipo de PostgreSQL sobre una columna `uuid`),
-// pero SOLO después de resolver la barbería: found sigue reflejando
-// exclusivamente si la barbería existe, nunca si serviceID es válido
+// pero SOLO después de resolver el negocio: found sigue reflejando
+// exclusivamente si el negocio existe, nunca si serviceID es válido
 // (CA-092-03: un serviceID inválido, ajeno, inexistente o de un servicio
-// inactivo produce la MISMA lista vacía que uno sin barberos asignados).
-func (r *Repository) ListPublicBarbers(ctx context.Context, slug string, serviceID string) (publicbooking.PublicBarberListResult, bool, error) {
-	barbershopID, found, err := r.db.ResolveTenant(ctx,
+// inactivo produce la MISMA lista vacía que uno sin profesionales asignados).
+func (r *Repository) ListPublicProfessionals(ctx context.Context, slug string, serviceID string) (publicbooking.PublicProfessionalListResult, bool, error) {
+	businessID, found, err := r.db.ResolveTenant(ctx,
 		`SELECT public_resolve_business_by_slug($1)`,
 		slug,
 	)
 	if err != nil {
-		return publicbooking.PublicBarberListResult{}, false, fmt.Errorf("publicbooking/postgres: resolve tenant by slug: %w", err)
+		return publicbooking.PublicProfessionalListResult{}, false, fmt.Errorf("publicbooking/postgres: resolve tenant by slug: %w", err)
 	}
 	if !found {
-		return publicbooking.PublicBarberListResult{}, false, nil
+		return publicbooking.PublicProfessionalListResult{}, false, nil
 	}
 
-	var result publicbooking.PublicBarberListResult
+	var result publicbooking.PublicProfessionalListResult
 	if !publicbooking.LooksLikePublicServiceID(serviceID) {
 		return result, true, nil
 	}
 
-	err = r.db.InTenantTx(ctx, barbershopID, func(ctx context.Context, q database.Queries) error {
+	err = r.db.InTenantTx(ctx, businessID, func(ctx context.Context, q database.Queries) error {
 		rows, err := q.Query(ctx,
 			`SELECT b.id, b.full_name, b.description, p.updated_at, rv.rating, rv.rating_count
 			   FROM professional b
@@ -360,59 +360,59 @@ func (r *Repository) ListPublicBarbers(ctx context.Context, slug string, service
 			    AND bs.service_id = $2
 			    AND s.is_active = true
 			  ORDER BY bs.created_at, b.id`,
-			string(barbershopID), serviceID,
+			string(businessID), serviceID,
 		)
 		if err != nil {
-			return fmt.Errorf("list public barbers: query: %w", err)
+			return fmt.Errorf("list public professionals: query: %w", err)
 		}
 		defer rows.Close()
 
-		items := make([]publicbooking.PublicBarber, 0)
+		items := make([]publicbooking.PublicProfessional, 0)
 		for rows.Next() {
-			var barber publicbooking.PublicBarber
-			if err := rows.Scan(&barber.ID, &barber.FullName, &barber.Description, &barber.PhotoUpdatedAt, &barber.Rating, &barber.RatingCount); err != nil {
-				return fmt.Errorf("list public barbers: scan: %w", err)
+			var professional publicbooking.PublicProfessional
+			if err := rows.Scan(&professional.ID, &professional.FullName, &professional.Description, &professional.PhotoUpdatedAt, &professional.Rating, &professional.RatingCount); err != nil {
+				return fmt.Errorf("list public professionals: scan: %w", err)
 			}
-			items = append(items, barber)
+			items = append(items, professional)
 		}
 		if err := rows.Err(); err != nil {
-			return fmt.Errorf("list public barbers: rows: %w", err)
+			return fmt.Errorf("list public professionals: rows: %w", err)
 		}
 
 		result.Items = items
 		return nil
 	})
 	if err != nil {
-		return publicbooking.PublicBarberListResult{}, false, fmt.Errorf("publicbooking/postgres: read public barbers: %w", err)
+		return publicbooking.PublicProfessionalListResult{}, false, fmt.Errorf("publicbooking/postgres: read public professionals: %w", err)
 	}
 	return result, true, nil
 }
 
-// ListPublicBarbersWithServices implementa
-// publicbooking.Repository.ListPublicBarbersWithServices (DEC-162) con el
-// mismo patrón de dos pasos que ListPublicBarbers: resuelve slug SIN
-// contexto de tenant mediante public_resolve_barbershop_by_slug y lee, en
+// ListPublicProfessionalsWithServices implementa
+// publicbooking.Repository.ListPublicProfessionalsWithServices (DEC-162) con el
+// mismo patrón de dos pasos que ListPublicProfessionals: resuelve slug SIN
+// contexto de tenant mediante public_resolve_business_by_slug y lee, en
 // UNA sola consulta parametrizada dentro de una transacción tenant-aware, los
-// barberos con asignación vigente a servicios activos junto con sus ids. El
+// profesionales con asignación vigente a servicios activos junto con sus ids. El
 // único identificador de tenant es el que la función SECURITY DEFINER
 // devolvió para el slug; nada del cliente llega a la consulta. Los JOIN y el
-// WHERE repiten barbershop_id además de RLS (mismo criterio que las demás
+// WHERE repiten business_id además de RLS (mismo criterio que las demás
 // consultas de este paquete). array_agg se emite como text[] para escanear
 // a []string sin depender del códec de uuid[].
-func (r *Repository) ListPublicBarbersWithServices(ctx context.Context, slug string) (publicbooking.PublicBarberServicesListResult, bool, error) {
-	barbershopID, found, err := r.db.ResolveTenant(ctx,
+func (r *Repository) ListPublicProfessionalsWithServices(ctx context.Context, slug string) (publicbooking.PublicProfessionalServicesListResult, bool, error) {
+	businessID, found, err := r.db.ResolveTenant(ctx,
 		`SELECT public_resolve_business_by_slug($1)`,
 		slug,
 	)
 	if err != nil {
-		return publicbooking.PublicBarberServicesListResult{}, false, fmt.Errorf("publicbooking/postgres: resolve tenant by slug: %w", err)
+		return publicbooking.PublicProfessionalServicesListResult{}, false, fmt.Errorf("publicbooking/postgres: resolve tenant by slug: %w", err)
 	}
 	if !found {
-		return publicbooking.PublicBarberServicesListResult{}, false, nil
+		return publicbooking.PublicProfessionalServicesListResult{}, false, nil
 	}
 
-	items := make([]publicbooking.PublicBarberServices, 0)
-	err = r.db.InTenantTx(ctx, barbershopID, func(ctx context.Context, q database.Queries) error {
+	items := make([]publicbooking.PublicProfessionalServices, 0)
+	err = r.db.InTenantTx(ctx, businessID, func(ctx context.Context, q database.Queries) error {
 		rows, err := q.Query(ctx,
 			`SELECT b.id, b.full_name,
 			        array_agg(s.id::text ORDER BY s.created_at, s.id) AS service_ids
@@ -425,40 +425,40 @@ func (r *Repository) ListPublicBarbersWithServices(ctx context.Context, slug str
 			    AND s.is_active = true
 			  GROUP BY b.id, b.full_name, b.created_at
 			  ORDER BY b.created_at, b.id`,
-			string(barbershopID),
+			string(businessID),
 		)
 		if err != nil {
-			return fmt.Errorf("list public barbers with services: query: %w", err)
+			return fmt.Errorf("list public professionals with services: query: %w", err)
 		}
 		defer rows.Close()
 
 		for rows.Next() {
-			var barber publicbooking.PublicBarberServices
-			if err := rows.Scan(&barber.ID, &barber.FullName, &barber.ServiceIDs); err != nil {
-				return fmt.Errorf("list public barbers with services: scan: %w", err)
+			var professional publicbooking.PublicProfessionalServices
+			if err := rows.Scan(&professional.ID, &professional.FullName, &professional.ServiceIDs); err != nil {
+				return fmt.Errorf("list public professionals with services: scan: %w", err)
 			}
-			items = append(items, barber)
+			items = append(items, professional)
 		}
 		if err := rows.Err(); err != nil {
-			return fmt.Errorf("list public barbers with services: rows: %w", err)
+			return fmt.Errorf("list public professionals with services: rows: %w", err)
 		}
 		return nil
 	})
 	if err != nil {
-		return publicbooking.PublicBarberServicesListResult{}, false, fmt.Errorf("publicbooking/postgres: read public barbers with services: %w", err)
+		return publicbooking.PublicProfessionalServicesListResult{}, false, fmt.Errorf("publicbooking/postgres: read public professionals with services: %w", err)
 	}
-	return publicbooking.PublicBarberServicesListResult{Items: items}, true, nil
+	return publicbooking.PublicProfessionalServicesListResult{Items: items}, true, nil
 }
 
-// ListServiceBarberIDs implementa
-// publicbooking.AvailabilityRepository.ListServiceBarberIDs (DEC-162): los
-// barberos con asignación a serviceID cuando el servicio está activo, dentro
-// de barbershopID (ya resuelto por el llamador a partir del slug). RLS acota
-// el tenant; barbershop_id se repite explícitamente. Un serviceID ajeno,
+// ListServiceProfessionalIDs implementa
+// publicbooking.AvailabilityRepository.ListServiceProfessionalIDs (DEC-162): los
+// profesionales con asignación a serviceID cuando el servicio está activo, dentro
+// de businessID (ya resuelto por el llamador a partir del slug). RLS acota
+// el tenant; business_id se repite explícitamente. Un serviceID ajeno,
 // inexistente o inactivo no produce filas, nunca un error.
-func (r *Repository) ListServiceBarberIDs(ctx context.Context, barbershopID, serviceID string) ([]string, error) {
+func (r *Repository) ListServiceProfessionalIDs(ctx context.Context, businessID, serviceID string) ([]string, error) {
 	ids := make([]string, 0)
-	err := r.db.InTenantTx(ctx, database.BarbershopID(barbershopID), func(ctx context.Context, q database.Queries) error {
+	err := r.db.InTenantTx(ctx, database.BusinessID(businessID), func(ctx context.Context, q database.Queries) error {
 		rows, err := q.Query(ctx,
 			`SELECT bs.professional_id::text
 			   FROM professional_service bs
@@ -468,7 +468,7 @@ func (r *Repository) ListServiceBarberIDs(ctx context.Context, barbershopID, ser
 			    AND bs.service_id = $2
 			    AND s.is_active = true
 			  ORDER BY bs.created_at, bs.professional_id`,
-			barbershopID, serviceID,
+			businessID, serviceID,
 		)
 		if err != nil {
 			return err
@@ -485,32 +485,32 @@ func (r *Repository) ListServiceBarberIDs(ctx context.Context, barbershopID, ser
 		return rows.Err()
 	})
 	if err != nil {
-		return nil, fmt.Errorf("publicbooking/postgres: listar barberos del servicio: %w", err)
+		return nil, fmt.Errorf("publicbooking/postgres: listar profesionales del servicio: %w", err)
 	}
 	return ids, nil
 }
 
-// GetPublicBarberPhoto implementa publicbooking.Repository.GetPublicBarberPhoto
+// GetPublicProfessionalPhoto implementa publicbooking.Repository.GetPublicProfessionalPhoto
 // (DEC-127) con el mismo patrón de dos pasos: resuelve el slug sin tenant y lee
 // la imagen dentro de una transacción tenant-aware. El EXISTS limita la
 // lectura a quien la reserva pública ya muestra (asignación vigente a un
-// servicio activo): una fotografía de un barbero que no se ofrece no se
+// servicio activo): una fotografía de un profesional que no se ofrece no se
 // publica por adivinar su identificador.
-func (r *Repository) GetPublicBarberPhoto(ctx context.Context, slug string, barberID string) (publicbooking.PublicBarberPhoto, bool, error) {
-	barbershopID, found, err := r.db.ResolveTenant(ctx,
+func (r *Repository) GetPublicProfessionalPhoto(ctx context.Context, slug string, professionalID string) (publicbooking.PublicProfessionalPhoto, bool, error) {
+	businessID, found, err := r.db.ResolveTenant(ctx,
 		`SELECT public_resolve_business_by_slug($1)`,
 		slug,
 	)
 	if err != nil {
-		return publicbooking.PublicBarberPhoto{}, false, fmt.Errorf("publicbooking/postgres: resolve tenant by slug: %w", err)
+		return publicbooking.PublicProfessionalPhoto{}, false, fmt.Errorf("publicbooking/postgres: resolve tenant by slug: %w", err)
 	}
 	if !found {
-		return publicbooking.PublicBarberPhoto{}, false, nil
+		return publicbooking.PublicProfessionalPhoto{}, false, nil
 	}
 
-	var photo publicbooking.PublicBarberPhoto
+	var photo publicbooking.PublicProfessionalPhoto
 	photoFound := false
-	err = r.db.InTenantTx(ctx, barbershopID, func(ctx context.Context, q database.Queries) error {
+	err = r.db.InTenantTx(ctx, businessID, func(ctx context.Context, q database.Queries) error {
 		err := q.QueryRow(ctx,
 			`SELECT p.content_type, p.image, p.updated_at
 			   FROM professional_photo p
@@ -524,7 +524,7 @@ func (r *Repository) GetPublicBarberPhoto(ctx context.Context, slug string, barb
 			           WHERE bs.business_id = p.business_id
 			             AND bs.professional_id = p.professional_id
 			             AND s.is_active = true)`,
-			string(barbershopID), barberID,
+			string(businessID), professionalID,
 		).Scan(&photo.ContentType, &photo.Data, &photo.UpdatedAt)
 		switch {
 		case err == nil:
@@ -532,12 +532,12 @@ func (r *Repository) GetPublicBarberPhoto(ctx context.Context, slug string, barb
 		case errors.Is(err, pgx.ErrNoRows):
 			// photoFound queda false: sin fotografía, ajeno o no elegible.
 		default:
-			return fmt.Errorf("select public barber photo: %w", err)
+			return fmt.Errorf("select public professional photo: %w", err)
 		}
 		return nil
 	})
 	if err != nil {
-		return publicbooking.PublicBarberPhoto{}, false, fmt.Errorf("publicbooking/postgres: read public barber photo: %w", err)
+		return publicbooking.PublicProfessionalPhoto{}, false, fmt.Errorf("publicbooking/postgres: read public professional photo: %w", err)
 	}
 	return photo, photoFound, nil
 }
@@ -547,12 +547,12 @@ func (r *Repository) GetPublicBarberPhoto(ctx context.Context, slug string, barb
 // de la misma transacción tenant-aware, una por phone y otra por email,
 // ambas excluyendo un customer ya anonimizado (RN-DAT-03: una fila
 // anonimizada perdió su identidad de contacto real, así que nunca puede ser
-// la reconciliación correcta de un dato nuevo). barbershopID ya llegó
+// la reconciliación correcta de un dato nuevo). businessID ya llegó
 // resuelto por el llamador (mismo criterio que ListOccupiedIntervals): este
 // puerto no resuelve slug.
-func (r *Repository) FindCustomerMatches(ctx context.Context, barbershopID, phone, email string) (*string, *string, error) {
+func (r *Repository) FindCustomerMatches(ctx context.Context, businessID, phone, email string) (*string, *string, error) {
 	var phoneMatchID, emailMatchID *string
-	err := r.db.InTenantTx(ctx, database.BarbershopID(barbershopID), func(ctx context.Context, q database.Queries) error {
+	err := r.db.InTenantTx(ctx, database.BusinessID(businessID), func(ctx context.Context, q database.Queries) error {
 		// Variables separadas para cada lectura: tomar &phoneID/&emailID
 		// evita que ambas coincidencias terminen apuntando a la misma
 		// dirección de memoria si se reutilizara una sola variable.
@@ -561,7 +561,7 @@ func (r *Repository) FindCustomerMatches(ctx context.Context, barbershopID, phon
 			`SELECT id FROM customer
 			  WHERE business_id = $1 AND anonymized_at IS NULL AND phone = $2
 			  LIMIT 1`,
-			barbershopID, phone,
+			businessID, phone,
 		).Scan(&phoneID)
 		switch {
 		case err == nil:
@@ -577,7 +577,7 @@ func (r *Repository) FindCustomerMatches(ctx context.Context, barbershopID, phon
 			`SELECT id FROM customer
 			  WHERE business_id = $1 AND anonymized_at IS NULL AND email = $2
 			  LIMIT 1`,
-			barbershopID, email,
+			businessID, email,
 		).Scan(&emailID)
 		switch {
 		case err == nil:
@@ -597,14 +597,14 @@ func (r *Repository) FindCustomerMatches(ctx context.Context, barbershopID, phon
 
 // readOpeningHours lee el horario del local (HU-107, DEC-182) en minutos
 // desde medianoche; EXTRACT(EPOCH) de un `time` 24:00 da 86400, es decir 1440.
-func readOpeningHours(ctx context.Context, q database.Queries, barbershopID string) ([]publicbooking.OpeningSegment, error) {
+func readOpeningHours(ctx context.Context, q database.Queries, businessID string) ([]publicbooking.OpeningSegment, error) {
 	rows, err := q.Query(ctx,
 		`SELECT iso_weekday,
 		        (EXTRACT(EPOCH FROM opens_time)  / 60)::int,
 		        (EXTRACT(EPOCH FROM closes_time) / 60)::int
 		   FROM business_opening_hour
 		  WHERE business_id = $1
-		  ORDER BY iso_weekday, opens_time`, barbershopID)
+		  ORDER BY iso_weekday, opens_time`, businessID)
 	if err != nil {
 		return nil, fmt.Errorf("select opening hours: %w", err)
 	}

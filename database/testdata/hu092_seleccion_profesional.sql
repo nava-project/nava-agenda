@@ -1,0 +1,129 @@
+-- Fixture propio de HU-092: dos negocios DEDICADAS a las pruebas de
+-- publicbooking/postgres.ListPublicProfessionals (selección pública de profesional,
+-- matriz 0/1/N y aislamiento por tenant), separadas de
+-- hu090_reserva_publica.sql/hu091_catalogo_publico.sql por el mismo motivo:
+-- un conteo exacto de profesionales elegibles no debe depender del estado que
+-- dejen otras suites (catalog, staff) sobre servicios/asignaciones.
+--
+-- IDs '0092...' (mnemónico: HU-092), distintos de '1.../2...'
+-- (dos_negocios.sql), '3.../4...' (HU-021), '5.../6...' (HU-022),
+-- '7.../8...' (HU-023), 'b10c...' (HU-042), 'c17a...' (HU-060),
+-- 'c.../d...'/'e.../f...' (HU-040/HU-041), '0090...'
+-- (hu090_reserva_publica.sql) y '0091...' (hu091_catalogo_publico.sql).
+--
+-- Uso:
+--   psql "$DATABASE_TEST_URL" -v ON_ERROR_STOP=1 -f testdata/hu092_seleccion_professionalo.sql
+--
+-- Se ejecuta con el rol migrador (o superusuario en local/CI efímero,
+-- mismo criterio que dos_negocios.sql), el único con política
+-- administrativa sobre business/professional/service/professional_service.
+--
+-- Ningún dato de este archivo corresponde a una persona real (AGENTS.md).
+
+BEGIN;
+
+-- Barbería Uno: publicable, con los cuatro servicios que cubren la matriz
+-- 0/1/N (CA-092-01) y el filtro de servicio inactivo (CA-092-02).
+INSERT INTO business (id, name, timezone, public_slug) VALUES
+  ('00920001-0092-0092-0092-009200010001',
+   'Barbería de prueba HU-092 Uno', 'America/Bogota', 'barberia-hu092-uno')
+ON CONFLICT (id) DO NOTHING;
+
+-- Barbería Dos: publicable, usada exclusivamente para el aislamiento de
+-- tenant (CA-092-02/CA-092-03): su profesional y su servicio nunca deben
+-- aparecer al resolver un serviceId del negocio Uno, y viceversa.
+INSERT INTO business (id, name, timezone, public_slug) VALUES
+  ('00920002-0092-0092-0092-009200020002',
+   'Barbería de prueba HU-092 Dos', 'America/Bogota', 'barberia-hu092-dos')
+ON CONFLICT (id) DO NOTHING;
+
+-- DEC-127: Uno-1 tiene descripción y fotografía (ambas visibles en la reserva
+-- pública); Uno-2 no tiene ninguna (los campos viajan como null); Uno-3 tiene
+-- fotografía pero ninguna asignación vigente, así que NO es elegible y su
+-- imagen no se sirve; Dos-1 tiene fotografía de Otro negocio (aislamiento).
+INSERT INTO professional (id, business_id, full_name, description) VALUES
+  ('00920011-0092-0092-0092-009200110011',
+   '00920001-0092-0092-0092-009200010001', 'Barbero HU-092 Uno-1',
+   'Descripción pública HU-092 Uno-1'),
+  ('00920012-0092-0092-0092-009200120012',
+   '00920001-0092-0092-0092-009200010001', 'Barbero HU-092 Uno-2', NULL),
+  ('00920014-0092-0092-0092-009200140014',
+   '00920001-0092-0092-0092-009200010001', 'Barbero HU-092 Uno-3 sin asignación', NULL),
+  ('00920013-0092-0092-0092-009200130013',
+   '00920002-0092-0092-0092-009200020002', 'Barbero HU-092 Dos-1', NULL)
+ON CONFLICT (id) DO NOTHING;
+
+-- PNG de 1x1 píxel: la prueba de la API no decodifica la imagen (la validación
+-- vive en staff.ValidatePhoto al subirla), solo comprueba qué bytes se sirven.
+INSERT INTO professional_photo (business_id, professional_id, content_type, image) VALUES
+  ('00920001-0092-0092-0092-009200010001',
+   '00920011-0092-0092-0092-009200110011', 'image/png',
+   decode('89504e470d0a1a0a0000000d49484452000000010000000108060000001f15c4890000000d49444154789c6360000002000001e221bc330000000049454e44ae426082', 'hex')),
+  ('00920001-0092-0092-0092-009200010001',
+   '00920014-0092-0092-0092-009200140014', 'image/png',
+   decode('89504e470d0a1a0a0000000d49484452000000010000000108060000001f15c4890000000d49444154789c6360000002000001e221bc330000000049454e44ae426082', 'hex')),
+  ('00920002-0092-0092-0092-009200020002',
+   '00920013-0092-0092-0092-009200130013', 'image/png',
+   decode('89504e470d0a1a0a0000000d49484452000000010000000108060000001f15c4890000000d49444154789c6360000002000001e221bc330000000049454e44ae426082', 'hex'))
+ON CONFLICT DO NOTHING;
+
+-- Uno: activo, con exactamente UN profesional asignado (CA-092-01, caso "1":
+-- preselección automática).
+INSERT INTO service (id, business_id, name, description, duration_minutes, price_amount, price_currency, is_active) VALUES
+  ('00920101-0092-0092-0092-009201010101',
+   '00920001-0092-0092-0092-009200010001',
+   'Servicio un barbero HU-092', NULL, 30, 35000.00, 'COP', true)
+ON CONFLICT (id) DO NOTHING;
+
+-- Uno: activo, con DOS profesionales asignados (CA-092-01, caso "N": elección
+-- explícita).
+INSERT INTO service (id, business_id, name, description, duration_minutes, price_amount, price_currency, is_active) VALUES
+  ('00920102-0092-0092-0092-009201020102',
+   '00920001-0092-0092-0092-009200010001',
+   'Servicio varios barberos HU-092', NULL, 45, 50000.00, 'COP', true)
+ON CONFLICT (id) DO NOTHING;
+
+-- Uno: activo, SIN ningún profesional asignado (CA-092-01, caso "0": estado
+-- vacío distinto de carga/error).
+INSERT INTO service (id, business_id, name, description, duration_minutes, price_amount, price_currency, is_active) VALUES
+  ('00920103-0092-0092-0092-009201030103',
+   '00920001-0092-0092-0092-009200010001',
+   'Servicio sin barberos HU-092', NULL, 20, 15000.00, 'COP', true)
+ON CONFLICT (id) DO NOTHING;
+
+-- Uno: INACTIVO pero con un profesional asignado (CA-092-02: un servicio
+-- inactivo nunca expone profesionales, aunque conserve la asignación).
+INSERT INTO service (id, business_id, name, description, duration_minutes, price_amount, price_currency, is_active, deactivated_at) VALUES
+  ('00920104-0092-0092-0092-009201040104',
+   '00920001-0092-0092-0092-009200010001',
+   'Servicio inactivo asignado HU-092', NULL, 40, 40000.00, 'COP', false, '2026-09-01T00:00:00Z')
+ON CONFLICT (id) DO NOTHING;
+
+-- Dos: activo, con su propio profesional asignado. Su serviceId NUNCA debe
+-- devolver profesionales al consultarse a través del slug del negocio Uno
+-- (CA-092-02/CA-092-03, aislamiento de tenant).
+INSERT INTO service (id, business_id, name, description, duration_minutes, price_amount, price_currency, is_active) VALUES
+  ('00920201-0092-0092-0092-009202010201',
+   '00920002-0092-0092-0092-009200020002',
+   'Servicio HU-092 Dos', NULL, 25, 22000.00, 'COP', true)
+ON CONFLICT (id) DO NOTHING;
+
+INSERT INTO professional_service (business_id, professional_id, service_id) VALUES
+  ('00920001-0092-0092-0092-009200010001',
+   '00920011-0092-0092-0092-009200110011',
+   '00920101-0092-0092-0092-009201010101'),
+  ('00920001-0092-0092-0092-009200010001',
+   '00920011-0092-0092-0092-009200110011',
+   '00920102-0092-0092-0092-009201020102'),
+  ('00920001-0092-0092-0092-009200010001',
+   '00920012-0092-0092-0092-009200120012',
+   '00920102-0092-0092-0092-009201020102'),
+  ('00920001-0092-0092-0092-009200010001',
+   '00920011-0092-0092-0092-009200110011',
+   '00920104-0092-0092-0092-009201040104'),
+  ('00920002-0092-0092-0092-009200020002',
+   '00920013-0092-0092-0092-009200130013',
+   '00920201-0092-0092-0092-009202010201')
+ON CONFLICT DO NOTHING;
+
+COMMIT;

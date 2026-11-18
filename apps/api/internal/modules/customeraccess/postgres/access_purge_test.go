@@ -7,9 +7,9 @@ import (
 	"testing"
 	"time"
 
-	customeraccesspostgres "system-barbershop/internal/modules/customeraccess/postgres"
-	"system-barbershop/internal/platform/config"
-	"system-barbershop/internal/platform/database"
+	customeraccesspostgres "nava-agenda/internal/modules/customeraccess/postgres"
+	"nava-agenda/internal/platform/config"
+	"nava-agenda/internal/platform/database"
 )
 
 func setupWorkerDB(t *testing.T) *database.DB {
@@ -37,7 +37,7 @@ func TestPurgeExpiredChallenges_KeepsRecentRowsAndRemovesOldOnes(t *testing.T) {
 	hash := func(seed string) string { return strings.Repeat(seed+uniqueDigits(t, 8), 8)[:64] }
 	old, recent := hash("a"), hash("b")
 
-	err := appDB.InTenantTx(ctx, database.BarbershopID(accessShopUno), func(ctx context.Context, q database.Queries) error {
+	err := appDB.InTenantTx(ctx, database.BusinessID(accessShopUno), func(ctx context.Context, q database.Queries) error {
 		now := time.Now().UTC()
 		// Vencido hace tres horas: se purga. Vencido hace 30 minutos: todavía cuenta
 		// para la ventana del límite y se conserva.
@@ -69,7 +69,7 @@ func TestPurgeExpiredChallenges_KeepsRecentRowsAndRemovesOldOnes(t *testing.T) {
 
 	count := func(contact string) int {
 		var n int
-		if err := appDB.InTenantTx(ctx, database.BarbershopID(accessShopUno), func(ctx context.Context, q database.Queries) error {
+		if err := appDB.InTenantTx(ctx, database.BusinessID(accessShopUno), func(ctx context.Context, q database.Queries) error {
 			return q.QueryRow(ctx, `SELECT count(*) FROM customer_access_challenge WHERE contact_hash = $1`, contact).Scan(&n)
 		}); err != nil {
 			t.Fatalf("count: %v", err)
@@ -87,14 +87,14 @@ func TestPurgeExpiredChallenges_KeepsRecentRowsAndRemovesOldOnes(t *testing.T) {
 func TestPurge_AppRoleCannotDeleteNorCallThePurgeFunction(t *testing.T) {
 	appDB := setupTestDB(t)
 	ctx := context.Background()
-	err := appDB.InTenantTx(ctx, database.BarbershopID(accessShopUno), func(ctx context.Context, q database.Queries) error {
+	err := appDB.InTenantTx(ctx, database.BusinessID(accessShopUno), func(ctx context.Context, q database.Queries) error {
 		_, err := q.Exec(ctx, `DELETE FROM customer_access_challenge`)
 		return err
 	})
 	if err == nil {
 		t.Fatal("agenda_app must not be able to DELETE retos")
 	}
-	err = appDB.InTenantTx(ctx, database.BarbershopID(accessShopUno), func(ctx context.Context, q database.Queries) error {
+	err = appDB.InTenantTx(ctx, database.BusinessID(accessShopUno), func(ctx context.Context, q database.Queries) error {
 		_, err := q.Exec(ctx, `SELECT customer_access_challenge_purge_expired(10)`)
 		return err
 	})

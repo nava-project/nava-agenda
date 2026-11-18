@@ -5,7 +5,7 @@
 // contacto opcional y nota, servicio snapshot (DEC-004), precio, estado e
 // historial inmutable paginado, siguiendo la plantilla P0 "Detalle de
 // turno" (estandar-diseno-visual.md §10). "Volver" conserva la
-// fecha/barbero de origen (HU-063) mediante `route.query`; tras
+// fecha/profesional de origen (HU-063) mediante `route.query`; tras
 // reprogramar con éxito, la fecha se actualiza a la del nuevo inicio para no
 // dejar la fecha vieja presentada como vigente. Fuera de alcance a
 // propósito: T3 o cualquier cambio de estado distinto de los seis comandos
@@ -22,12 +22,12 @@ import {
 } from '@/shared/time/formatInstant'
 import { getCivilDateInTimezone } from '@/shared/time/civilDate'
 import {
-  cancelAppointmentByBarber,
+  cancelAppointmentByProfessional,
   completeAppointment,
   correctAppointmentStatus,
   fetchAppointmentDetail,
   fetchAppointmentHistory,
-  fetchBarbershopTimezone,
+  fetchBusinessTimezone,
   markAppointmentNoShow,
   rescheduleAppointment,
 } from '../api/appointmentsApi'
@@ -59,25 +59,25 @@ const route = useRoute()
 
 const appointmentId = computed(() => String(route.params.appointmentId ?? ''))
 
-// backDate/backBarberId inician con la fecha/barbero de origen (HU-063) y
+// backDate/backProfessionalId inician con la fecha/profesional de origen (HU-063) y
 // SOLO backDate cambia después, tras reprogramar con éxito (§3.5 del
 // trabajo requerido): "Volver" siempre regresa a donde el turno vigente
 // realmente está, nunca a una fecha que dejó de mostrarlo.
 const toast = useToast()
-// Palabras de la barbería (DEC-110).
+// Palabras del negocio (DEC-110).
 const v = useVocabulary()
 const backDate = ref<string | null>(typeof route.query.date === 'string' ? route.query.date : null)
-const backBarberId = ref<string | null>(
-  typeof route.query.barberId === 'string' ? route.query.barberId : null,
+const backProfessionalId = ref<string | null>(
+  typeof route.query.professionalId === 'string' ? route.query.professionalId : null,
 )
 const backQuery = computed<LocationQueryRaw>(() => ({
   ...(backDate.value ? { date: backDate.value } : {}),
-  ...(backBarberId.value ? { barberId: backBarberId.value } : {}),
+  ...(backProfessionalId.value ? { professionalId: backProfessionalId.value } : {}),
 }))
 
 const pageStatus = ref<PageStatus>('loading')
 const detail = ref<AppointmentDetail | null>(null)
-const barbershopTimezone = ref<string | null>(null)
+const businessTimezone = ref<string | null>(null)
 
 const historyStatus = ref<HistoryStatus>('loading')
 const historyItems = ref<HistoryEntry[]>([])
@@ -124,7 +124,7 @@ const FACT_ICONS: Record<string, string> = {
   time: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"></circle><path d="M12 7v5l3 2"></path></svg>`,
   attendee: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="7" r="3.5"></circle><path d="M4.5 21c.6-4.2 3.5-6.5 7.5-6.5s6.9 2.3 7.5 6.5"></path></svg>`,
   service: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M6 3c3 3 4 6 4 9s-1 6-4 9"></path><path d="M18 3c-3 3-4 6-4 9s1 6 4 9"></path><path d="M8.5 8.5 15.5 15.5"></path><path d="M15.5 8.5 8.5 15.5"></path></svg>`,
-  barber: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="7" r="3.5"></circle><path d="M4.5 21c.6-4.2 3.5-6.5 7.5-6.5s6.9 2.3 7.5 6.5"></path><path d="M3.5 12.5h3M17.5 12.5h3"></path></svg>`,
+  professional: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="7" r="3.5"></circle><path d="M4.5 21c.6-4.2 3.5-6.5 7.5-6.5s6.9 2.3 7.5 6.5"></path><path d="M3.5 12.5h3M17.5 12.5h3"></path></svg>`,
   contact: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="14" rx="2"></rect><path d="m4 7 8 6 8-6"></path></svg>`,
   place: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 21s-6.5-5.6-6.5-11a6.5 6.5 0 0 1 13 0c0 5.4-6.5 11-6.5 11Z"></path><circle cx="12" cy="10" r="2.3"></circle></svg>`,
   note: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M5 4h14v12H9l-4 4V4Z"></path></svg>`,
@@ -151,11 +151,11 @@ const homeServiceMapsUrl = computed(() =>
     : null,
 )
 
-// Franja decorativa de la ficha: hora de inicio y de fin en la zona de la barbería y la
+// Franja decorativa de la ficha: hora de inicio y de fin en la zona del negocio y la
 // fecha civil de esa zona. La hora completa sigue dicha en la fila «Hora».
 const timeSpan = computed(() => {
-  if (!detail.value || !barbershopTimezone.value) return null
-  const zone = barbershopTimezone.value
+  if (!detail.value || !businessTimezone.value) return null
+  const zone = businessTimezone.value
   return {
     start: formatTimeInTimezone(detail.value.startsAt, zone),
     end: formatTimeInTimezone(detail.value.endsAt, zone),
@@ -164,10 +164,10 @@ const timeSpan = computed(() => {
 })
 
 const timeRangeLabel = computed(() => {
-  if (!detail.value || !barbershopTimezone.value) return ''
-  const start = formatInstantInTimezone(detail.value.startsAt, barbershopTimezone.value)
+  if (!detail.value || !businessTimezone.value) return ''
+  const start = formatInstantInTimezone(detail.value.startsAt, businessTimezone.value)
   const end = new Intl.DateTimeFormat('es-CO', {
-    timeZone: barbershopTimezone.value,
+    timeZone: businessTimezone.value,
     timeStyle: 'short',
   }).format(new Date(detail.value.endsAt))
   return `${start} – ${end}`
@@ -207,7 +207,7 @@ const CORRECTABLE_TERMINALS: AppointmentStatus[] = [
 ]
 
 // correctDestinationOptions excluye siempre el estado vigente: elegirlo de
-// nuevo sería un no-op sin motivo real para el barbero (CA-068-02 lo
+// nuevo sería un no-op sin motivo real para el profesional (CA-068-02 lo
 // permite del lado del servidor, pero la interfaz no lo ofrece).
 const correctDestinationOptions = computed(() =>
   CORRECTABLE_TERMINALS.filter((status) => status !== detail.value?.status).map((status) => ({
@@ -239,10 +239,10 @@ function civilTimeInTimezone(iso: string, timezone: string): string {
 }
 
 // addMinutesToTimeString: aritmética pura de minutos sobre "HH:MM", sin
-// Date/Intl/zona horaria. Es una vista previa barata para el barbero
+// Date/Intl/zona horaria. Es una vista previa barata para el profesional
 // mientras escribe; el cómputo autoritativo del nuevo fin ocurre en el
-// servidor contra duration_minutes_snapshot en la zona real de la
-// barbería, así que esta función nunca necesita ser exacta ante DST.
+// servidor contra duration_minutes_snapshot en la zona real del
+// negocio, así que esta función nunca necesita ser exacta ante DST.
 function addMinutesToTimeString(time: string, minutes: number): string {
   const [hours, mins] = time.split(':').map(Number)
   if (hours === undefined || mins === undefined || Number.isNaN(hours) || Number.isNaN(mins)) {
@@ -262,12 +262,12 @@ const rescheduleNewEndLabel = computed(() => {
 })
 
 function onOpenReschedule() {
-  if (!detail.value || !barbershopTimezone.value) return
+  if (!detail.value || !businessTimezone.value) return
   rescheduleDate.value = getCivilDateInTimezone(
-    barbershopTimezone.value,
+    businessTimezone.value,
     new Date(detail.value.startsAt),
   )
-  rescheduleTime.value = civilTimeInTimezone(detail.value.startsAt, barbershopTimezone.value)
+  rescheduleTime.value = civilTimeInTimezone(detail.value.startsAt, businessTimezone.value)
   rescheduleStatus.value = 'idle'
   rescheduleErrorDetail.value = null
   rescheduleIdempotencyKey = newIdempotencyKey()
@@ -297,17 +297,14 @@ async function onSubmitReschedule() {
     case 'success': {
       isRescheduleOpen.value = false
       toast.success('Turno reprogramado', { detail: 'El turno quedó en el nuevo horario.' })
-      if (barbershopTimezone.value) {
-        backDate.value = getCivilDateInTimezone(
-          barbershopTimezone.value,
-          new Date(outcome.startsAt),
-        )
+      if (businessTimezone.value) {
+        backDate.value = getCivilDateInTimezone(businessTimezone.value, new Date(outcome.startsAt))
       }
       await loadPage()
       return
     }
     // 'not-found' aquí solo puede significar que el turno desapareció
-    // mientras el diálogo estaba abierto (eliminado o de otra barbería):
+    // mientras el diálogo estaba abierto (eliminado o de otro negocio):
     // la única salida coherente es la misma que un conflicto de versión,
     // recargar el detalle real.
     case 'not-found':
@@ -340,7 +337,7 @@ async function onSubmitReschedule() {
 
 // onReloadAfterConflict recarga el detalle real (versionToken/estado
 // vigentes) tras un conflicto de versión o de estado: la intención del
-// barbero (fecha/hora elegidas) no puede reenviarse contra datos obsoletos,
+// profesional (fecha/hora elegidas) no puede reenviarse contra datos obsoletos,
 // así que cerrar y recargar es la única salida segura.
 function onReloadAfterConflict() {
   isRescheduleOpen.value = false
@@ -381,7 +378,7 @@ async function onConfirmCancel() {
 
   cancelStatus.value = 'saving'
 
-  const outcome = await cancelAppointmentByBarber(
+  const outcome = await cancelAppointmentByProfessional(
     appointmentId.value,
     detail.value.versionToken,
     cancelIdempotencyKey,
@@ -394,7 +391,7 @@ async function onConfirmCancel() {
       await loadPage()
       return
     // 'not-found' aquí solo puede significar que el turno desapareció
-    // mientras el diálogo estaba abierto (eliminado o de otra barbería):
+    // mientras el diálogo estaba abierto (eliminado o de otro negocio):
     // la única salida coherente es la misma que un conflicto de versión,
     // recargar el detalle real.
     case 'not-found':
@@ -641,9 +638,9 @@ async function loadPage() {
   pageStatus.value = 'loading'
   const [detailOutcome, timezoneOutcome] = await Promise.all([
     fetchAppointmentDetail(appointmentId.value),
-    fetchBarbershopTimezone(),
+    fetchBusinessTimezone(),
   ])
-  barbershopTimezone.value = timezoneOutcome.kind === 'success' ? timezoneOutcome.timezone : null
+  businessTimezone.value = timezoneOutcome.kind === 'success' ? timezoneOutcome.timezone : null
 
   switch (detailOutcome.kind) {
     case 'success':
@@ -699,8 +696,8 @@ function eventLabel(entry: HistoryEntry): string {
 }
 
 function occurredAtLabel(entry: HistoryEntry): string {
-  if (!barbershopTimezone.value) return ''
-  return formatInstantInTimezone(entry.occurredAt, barbershopTimezone.value)
+  if (!businessTimezone.value) return ''
+  return formatInstantInTimezone(entry.occurredAt, businessTimezone.value)
 }
 </script>
 
@@ -838,7 +835,7 @@ function occurredAtLabel(entry: HistoryEntry): string {
           <div v-if="timeSpan" class="appointment-detail-page__span" aria-hidden="true">
             <p class="appointment-detail-page__span-date">
               {{ timeSpan.date
-              }}<template v-if="barbershopTimezone"> · Zona {{ barbershopTimezone }}</template>
+              }}<template v-if="businessTimezone"> · Zona {{ businessTimezone }}</template>
             </p>
             <div class="appointment-detail-page__span-row">
               <span class="appointment-detail-page__span-time">{{ timeSpan.start }}</span>
@@ -862,7 +859,7 @@ function occurredAtLabel(entry: HistoryEntry): string {
               <dt>Hora</dt>
               <dd>
                 {{ timeRangeLabel }}
-                <span v-if="barbershopTimezone">· Zona {{ barbershopTimezone }}</span>
+                <span v-if="businessTimezone">· Zona {{ businessTimezone }}</span>
               </dd>
             </div>
             <div class="appointment-detail-page__fact">
@@ -877,9 +874,9 @@ function occurredAtLabel(entry: HistoryEntry): string {
                 {{ detail.currency }}
               </dd>
             </div>
-            <div class="appointment-detail-page__fact appointment-detail-page__fact--barber">
+            <div class="appointment-detail-page__fact appointment-detail-page__fact--professional">
               <dt>{{ v.Professional }}</dt>
-              <dd>{{ detail.barberFullName }}</dd>
+              <dd>{{ detail.professionalFullName }}</dd>
             </div>
             <div class="appointment-detail-page__fact">
               <dt>Cliente que reservó</dt>
@@ -1089,7 +1086,7 @@ function occurredAtLabel(entry: HistoryEntry): string {
             <p class="appointment-detail-page__dialog-current">
               <strong>Horario actual</strong>
               {{ timeRangeLabel }}
-              <span v-if="barbershopTimezone">Zona {{ barbershopTimezone }}</span>
+              <span v-if="businessTimezone">Zona {{ businessTimezone }}</span>
             </p>
             <span class="appointment-detail-page__dialog-arrow" aria-hidden="true">→</span>
             <p
@@ -1098,7 +1095,7 @@ function occurredAtLabel(entry: HistoryEntry): string {
             >
               <strong>Vista previa</strong>
               {{ rescheduleTime }} – {{ rescheduleNewEndLabel }}
-              <span v-if="barbershopTimezone">Zona {{ barbershopTimezone }}</span>
+              <span v-if="businessTimezone">Zona {{ businessTimezone }}</span>
             </p>
           </div>
 
@@ -1210,7 +1207,7 @@ function occurredAtLabel(entry: HistoryEntry): string {
               <span class="appointment-detail-page__cancel-time">{{ timeRangeLabel }}</span>
             </p>
             <p class="appointment-detail-page__cancel-meta">
-              {{ detail.serviceName }} · {{ detail.barberFullName }} ·
+              {{ detail.serviceName }} · {{ detail.professionalFullName }} ·
               {{ detail.durationMinutes }} min
             </p>
           </div>
@@ -1363,7 +1360,7 @@ function occurredAtLabel(entry: HistoryEntry): string {
               <span class="appointment-detail-page__cancel-time">{{ timeRangeLabel }}</span>
             </p>
             <p class="appointment-detail-page__cancel-meta">
-              {{ detail.serviceName }} · {{ detail.barberFullName }} ·
+              {{ detail.serviceName }} · {{ detail.professionalFullName }} ·
               {{ detail.durationMinutes }} min
             </p>
           </div>
@@ -1958,7 +1955,7 @@ function occurredAtLabel(entry: HistoryEntry): string {
   order: 1;
 }
 
-.appointment-detail-page__fact--barber {
+.appointment-detail-page__fact--professional {
   order: 2;
 }
 

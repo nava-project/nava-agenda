@@ -4,7 +4,7 @@ import (
 	"context"
 	"time"
 
-	"system-barbershop/internal/platform/idempotency"
+	"nava-agenda/internal/platform/idempotency"
 )
 
 // Repository es el puerto de persistencia del módulo booking. El núcleo no
@@ -17,9 +17,9 @@ type Repository interface {
 	// appointment_created (§2.3 del prompt de HU-060): un fallo en
 	// cualquier paso revierte los tres. input ya llegó validado por
 	// BookingService.
-	CreateInternal(ctx context.Context, barbershopID string, input CreateInternalInput) (CreateInternalResult, error)
+	CreateInternal(ctx context.Context, businessID string, input CreateInternalInput) (CreateInternalResult, error)
 
-	// FindCustomerForReconciliation busca, dentro de barbershopID, un
+	// FindCustomerForReconciliation busca, dentro de businessID, un
 	// cliente ya persistido reutilizable según DEC-071: por teléfono si
 	// phone no es nil (DEC-045), si no por correo si email no es nil
 	// (DEC-046). found=false cuando no hay coincidencia o cuando ambos
@@ -28,7 +28,7 @@ type Repository interface {
 	// CustomerInput; CreateManual la usa de nuevo dentro de su propia
 	// transacción para acotar la ventana de una carrera entre dos altas
 	// concurrentes con el mismo contacto.
-	FindCustomerForReconciliation(ctx context.Context, barbershopID string, phone, email *string) (Customer, bool, error)
+	FindCustomerForReconciliation(ctx context.Context, businessID string, phone, email *string) (Customer, bool, error)
 
 	// CreateManual ejecuta, dentro de UNA sola transacción tenant-aware
 	// protegida por el protocolo de idempotencia reutilizable de HU-004
@@ -42,7 +42,7 @@ type Repository interface {
 	// vuelve a decidir con un identificador que el llamador ya resolvió.
 	CreateManual(
 		ctx context.Context,
-		barbershopID string,
+		businessID string,
 		input CreateInternalInput,
 		key idempotency.Key,
 		fingerprint idempotency.Fingerprint,
@@ -69,7 +69,7 @@ type Repository interface {
 	// que este paquete necesite conocer publicbooking.
 	CreatePublic(
 		ctx context.Context,
-		barbershopID string,
+		businessID string,
 		input CreatePublicInput,
 		key idempotency.Key,
 		fingerprint idempotency.Fingerprint,
@@ -85,51 +85,51 @@ type Repository interface {
 	// se perdió la franja ya es del propio cliente.
 	ReplayPublic(
 		ctx context.Context,
-		barbershopID string,
+		businessID string,
 		key idempotency.Key,
 		fingerprint idempotency.Fingerprint,
 	) (CreatePublicResult, error)
 
-	// ListDailyAgenda lee, dentro de barbershopID y del único barberID
+	// ListDailyAgenda lee, dentro de businessID y del único professionalID
 	// pedido (DEC-074), las citas cuyo intervalo [starts_at, ends_at)
 	// interseca [rangeStart, rangeEnd) (DEC-075: rangeStart/rangeEnd ya
 	// llegan como los dos instantes civiles resueltos por AgendaService en
-	// la zona de la barbería, nunca calculados aquí). Ordenadas por
-	// starts_at y luego por id para un orden estable. barberID ya fue
+	// la zona del negocio, nunca calculados aquí). Ordenadas por
+	// starts_at y luego por id para un orden estable. professionalID ya fue
 	// verificado por AgendaService antes de llamar aquí (mismo criterio que
 	// schedule.Repository.List frente a schedule.Service.List).
-	ListDailyAgenda(ctx context.Context, barbershopID, barberID string, rangeStart, rangeEnd time.Time) ([]DailyAgendaEntry, error)
+	ListDailyAgenda(ctx context.Context, businessID, professionalID string, rangeStart, rangeEnd time.Time) ([]DailyAgendaEntry, error)
 
-	// GetAppointmentDetail lee el detalle de una cita dentro de barbershopID
+	// GetAppointmentDetail lee el detalle de una cita dentro de businessID
 	// (HU-064, CA-064-01 a CA-064-04). found=false cubre appointmentID
-	// inexistente o de otra barbería, sin distinguir la causa (RN-TEN-01);
+	// inexistente o de otro negocio, sin distinguir la causa (RN-TEN-01);
 	// en ese caso AppointmentDetail queda en su valor cero.
-	// AppointmentDetail.BarberFullName SIEMPRE llega vacío: se resuelve
-	// aparte, vía BarberNamePort, porque este repositorio no puede unir
-	// contra `barber` (CA-002-06).
-	GetAppointmentDetail(ctx context.Context, barbershopID, appointmentID string) (AppointmentDetail, bool, error)
+	// AppointmentDetail.ProfessionalFullName SIEMPRE llega vacío: se resuelve
+	// aparte, vía ProfessionalNamePort, porque este repositorio no puede unir
+	// contra `professional` (CA-002-06).
+	GetAppointmentDetail(ctx context.Context, businessID, appointmentID string) (AppointmentDetail, bool, error)
 
 	// ListAppointmentHistory lee una página del historial de appointmentID,
 	// orden estable (occurred_at, id) (HU-064, CA-064-05). cursor es nil
 	// para la primera página; limit ya llegó clamped por DetailService.
-	// found=false cubre appointmentID inexistente o de otra barbería (mismo
+	// found=false cubre appointmentID inexistente o de otro negocio (mismo
 	// criterio que GetAppointmentDetail); en ese caso items/nextCursor
 	// quedan en su valor cero. nextCursor es nil cuando esta página es la
 	// última. Cada HistoryRow.Changes ya viene resuelto (una sola consulta
 	// adicional por página, nunca una por fila).
 	ListAppointmentHistory(
 		ctx context.Context,
-		barbershopID, appointmentID string,
+		businessID, appointmentID string,
 		cursor *HistoryCursor,
 		limit int,
 	) (items []HistoryRow, nextCursor *HistoryCursor, found bool, err error)
 
 	// CustomerNames resuelve, en un solo lote, el nombre visible de cada
-	// customerID pedido dentro de barbershopID (trabajo requerido §2.3, "sin
+	// customerID pedido dentro de businessID (trabajo requerido §2.3, "sin
 	// generar N+1"): customer es tabla propia de booking (HU-060), así que
 	// esta lectura no necesita ningún puerto adicional. Un id sin
 	// coincidencia simplemente está ausente del mapa devuelto.
-	CustomerNames(ctx context.Context, barbershopID string, customerIDs []string) (map[string]string, error)
+	CustomerNames(ctx context.Context, businessID string, customerIDs []string) (map[string]string, error)
 
 	// Reschedule ejecuta T2 (HU-065) dentro de UNA sola transacción
 	// tenant-aware protegida por el protocolo de idempotencia reutilizable
@@ -143,13 +143,13 @@ type Repository interface {
 	// duration_minutes_snapshot; este método nunca la recalcula.
 	Reschedule(
 		ctx context.Context,
-		barbershopID string,
+		businessID string,
 		input RescheduleInput,
 		key idempotency.Key,
 		fingerprint idempotency.Fingerprint,
 	) (RescheduleResult, error)
 
-	// CancelByBarber ejecuta T6 (HU-066) dentro de UNA sola transacción
+	// CancelByProfessional ejecuta T6 (HU-066) dentro de UNA sola transacción
 	// tenant-aware protegida por el protocolo de idempotencia reutilizable
 	// de HU-004 (RN-IDE-01, DEC-043): Begin, bloquear la fila (`FOR
 	// UPDATE`), verificar de nuevo con la fila ya bloqueada (nunca confiar
@@ -158,21 +158,21 @@ type Repository interface {
 	// los tres desenlaces posibles con la fila ya bloqueada
 	// (CA-066-01/04/05):
 	//   - ya está `cancelled_by_professional` -> no-op exitoso (sin comparar
-	//     versionToken: una cancelación repetida por CUALQUIER barbero de
-	//     la barbería siempre tiene éxito, aunque el token que el cliente
+	//     versionToken: una cancelación repetida por CUALQUIER profesional de
+	//     el negocio siempre tiene éxito, aunque el token que el cliente
 	//     conserva haya quedado obsoleto tras la primera cancelación), sin
 	//     UPDATE ni historial nuevo.
 	//   - `confirmed` -> compara versionToken (mismatch = VersionConflict),
 	//     luego UPDATE status/resolved_at + INSERT historial.
 	//   - cualquier otro estado (`completed`, `no_show`,
 	//     `cancelled_by_customer`) -> InvalidState (409), sin tocar nada.
-	CancelByBarber(
+	CancelByProfessional(
 		ctx context.Context,
-		barbershopID string,
-		input CancelAppointmentByBarberInput,
+		businessID string,
+		input CancelAppointmentByProfessionalInput,
 		key idempotency.Key,
 		fingerprint idempotency.Fingerprint,
-	) (CancelAppointmentByBarberResult, error)
+	) (CancelAppointmentByProfessionalResult, error)
 
 	// CompleteAppointment ejecuta T4 manual (HU-067) dentro de UNA sola
 	// transacción tenant-aware protegida por el protocolo de idempotencia
@@ -192,7 +192,7 @@ type Repository interface {
 	//     `cancelled_by_customer`) -> InvalidState (409).
 	CompleteAppointment(
 		ctx context.Context,
-		barbershopID string,
+		businessID string,
 		input CloseAppointmentInput,
 		key idempotency.Key,
 		fingerprint idempotency.Fingerprint,
@@ -206,7 +206,7 @@ type Repository interface {
 	// (409), mismo criterio simétrico.
 	MarkNoShow(
 		ctx context.Context,
-		barbershopID string,
+		businessID string,
 		input CloseAppointmentInput,
 		key idempotency.Key,
 		fingerprint idempotency.Fingerprint,
@@ -233,19 +233,19 @@ type Repository interface {
 	//     responde Conflict (409) sin escribir nada (CA-068-04).
 	CorrectAppointmentStatus(
 		ctx context.Context,
-		barbershopID string,
+		businessID string,
 		input CorrectAppointmentStatusInput,
 		key idempotency.Key,
 		fingerprint idempotency.Fingerprint,
 	) (CorrectAppointmentStatusResult, error)
 }
 
-// BarberNamePort resuelve el nombre visible de un barbero por id, dentro de
-// barbershopID (RN-TEN-01). found=false cubre inexistente o de otra
-// barbería, mismo criterio que BarberPort.Exists. El adaptador real vive en
-// el paquete staff (staff.NewBarberNameLookup): booking nunca importa staff.
-type BarberNamePort interface {
-	Name(ctx context.Context, barbershopID, barberID string) (fullName string, found bool, err error)
+// ProfessionalNamePort resuelve el nombre visible de un profesional por id, dentro de
+// businessID (RN-TEN-01). found=false cubre inexistente o de otro
+// negocio, mismo criterio que ProfessionalPort.Exists. El adaptador real vive en
+// el paquete staff (staff.NewProfessionalNameLookup): booking nunca importa staff.
+type ProfessionalNamePort interface {
+	Name(ctx context.Context, businessID, professionalID string) (fullName string, found bool, err error)
 }
 
 // StaffActorNamePort resuelve, en un solo lote, el nombre visible de cada
@@ -254,17 +254,17 @@ type BarberNamePort interface {
 // mapa devuelto; DetailService decide entonces la etiqueta segura de
 // reserva. El adaptador real vive en el paquete auth
 // (auth.NewStaffActorNameLookup), porque staff_user es una tabla propia de
-// auth (identidad de sesión), distinta de barber (BarberNamePort, arriba):
+// auth (identidad de sesión), distinta de professional (ProfessionalNamePort, arriba):
 // booking nunca importa auth.
 type StaffActorNamePort interface {
-	Names(ctx context.Context, barbershopID string, staffUserIDs []string) (map[string]string, error)
+	Names(ctx context.Context, businessID string, staffUserIDs []string) (map[string]string, error)
 }
 
-// BarberPort confirma que barberID existe dentro de barbershopID
-// (RN-TEN-01), mismo puerto mínimo que schedule.BarberPort. cmd/api lo
-// satisface con staff.NewBarberLookup, sin que booking importe staff.
-type BarberPort interface {
-	Exists(ctx context.Context, barbershopID, barberID string) (bool, error)
+// ProfessionalPort confirma que professionalID existe dentro de businessID
+// (RN-TEN-01), mismo puerto mínimo que schedule.ProfessionalPort. cmd/api lo
+// satisface con staff.NewProfessionalLookup, sin que booking importe staff.
+type ProfessionalPort interface {
+	Exists(ctx context.Context, businessID, professionalID string) (bool, error)
 }
 
 // CreateManualResult es el desenlace de un intento de alta manual
@@ -283,33 +283,33 @@ type CreateManualResult struct {
 	Response idempotency.StoredResponse
 }
 
-// BarberServicePort resuelve, para (barberID, serviceID) dentro de
-// barbershopID, si el servicio está activo Y asignado a ese barbero
-// (DEC-072). found=false cubre barbero inexistente, servicio inexistente,
+// ProfessionalServicePort resuelve, para (professionalID, serviceID) dentro de
+// businessID, si el servicio está activo Y asignado a ese profesional
+// (DEC-072). found=false cubre profesional inexistente, servicio inexistente,
 // inactivo o no asignado, sin distinguir la causa (RN-TEN-01). Los cuatro
 // valores devueltos son exactamente los que ServiceSnapshot necesita para
 // congelar el servicio en la cita: la firma usa solo tipos universales
 // (string, int, int64, bool, error) para que el adaptador real (en el
 // paquete catalog) satisfaga esta interfaz de forma puramente estructural,
 // sin importar el paquete booking (mismo criterio que
-// staff.NewBarberLookup frente a catalog.BarberPort).
-type BarberServicePort interface {
-	ActiveAssignedService(ctx context.Context, barbershopID, barberID, serviceID string) (
+// staff.NewProfessionalLookup frente a catalog.ProfessionalPort).
+type ProfessionalServicePort interface {
+	ActiveAssignedService(ctx context.Context, businessID, professionalID, serviceID string) (
 		name string, durationMinutes int, priceAmountCents int64, currency string, found bool, err error,
 	)
 }
 
-// BlockCheckPort informa si barberID tiene, dentro de barbershopID, un
+// BlockCheckPort informa si professionalID tiene, dentro de businessID, un
 // bloqueo vigente (puntual o de serie, sin distinguir el tipo) que se
 // solape con el intervalo semiabierto [startsAt, endsAt) (DEC-073,
-// RN-DIS-05). timezone es la zona IANA ya resuelta de la barbería
+// RN-DIS-05). timezone es la zona IANA ya resuelta del negocio
 // (RN-DIS-07): el adaptador real (en el paquete schedule) la necesita para
 // convertir las ocurrencias de serie -civiles- a instantes absolutos antes
 // de comparar. Firma con tipos universales únicamente, mismo criterio que
-// BarberServicePort.
+// ProfessionalServicePort.
 //
 // WithinWorkingHours responde si [startsAt, endsAt) cabe COMPLETO dentro de un
-// segmento de la jornada efectiva del barbero para esa fecha civil (excepción
+// segmento de la jornada efectiva del profesional para esa fecha civil (excepción
 // manual > festivo activado > horario semanal, CA-041-07), en timezone. Un día
 // sin jornada o un intervalo que atraviesa una pausa entre segmentos no cabe
 // (CA-061-02, CA-065-04); un segmento nocturno (DEC-020) puede terminar al
@@ -317,12 +317,12 @@ type BarberServicePort interface {
 // de anticipación, ventana y rejilla pública (RN-CIT-02): solo debe respetar
 // la jornada.
 type BlockCheckPort interface {
-	HasActiveBlock(ctx context.Context, barbershopID, barberID string, startsAt, endsAt time.Time, timezone string) (bool, error)
-	WithinWorkingHours(ctx context.Context, barbershopID, barberID string, startsAt, endsAt time.Time, timezone string) (bool, error)
+	HasActiveBlock(ctx context.Context, businessID, professionalID string, startsAt, endsAt time.Time, timezone string) (bool, error)
+	WithinWorkingHours(ctx context.Context, businessID, professionalID string, startsAt, endsAt time.Time, timezone string) (bool, error)
 }
 
-// TimezonePort resuelve la zona IANA vigente de barbershopID (RN-DIS-07).
+// TimezonePort resuelve la zona IANA vigente de businessID (RN-DIS-07).
 // El adaptador real vive en el paquete shops.
 type TimezonePort interface {
-	Timezone(ctx context.Context, barbershopID string) (string, error)
+	Timezone(ctx context.Context, businessID string) (string, error)
 }

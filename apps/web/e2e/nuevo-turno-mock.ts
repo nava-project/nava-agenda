@@ -16,7 +16,7 @@ import type { Page, Route } from '@playwright/test'
 export type Scenario =
   | 'context-loading'
   | 'context-error'
-  | 'no-barbers'
+  | 'no-professionals'
   | 'empty-form'
   | 'services-loading'
   | 'services-empty'
@@ -31,7 +31,7 @@ export type Deferred = { release: () => void }
 
 // Datos ficticios (RN-DAT-01/02), los mismos que declara
 // `tools/mockups/nuevo-turno-eventos/content.mjs`.
-export const BARBER = { id: 'barber-camilo', fullName: 'Camilo Torres' }
+export const PROFESSIONAL = { id: 'professional-camilo', fullName: 'Camilo Torres' }
 export const SERVICE = { id: 'service-corte', name: 'Corte clásico' }
 export const ATTENDEE = 'Diego Molina'
 export const CUSTOMER = 'Diego Molina'
@@ -81,7 +81,7 @@ export async function installNewAppointmentMock(
         await respondJson(route, { title: 'No disponible' }, 500)
         return
       }
-      await respondJson(route, { items: scenario === 'no-barbers' ? [] : [BARBER] })
+      await respondJson(route, { items: scenario === 'no-professionals' ? [] : [PROFESSIONAL] })
       return
     }
 
@@ -91,7 +91,7 @@ export async function installNewAppointmentMock(
       return
     }
 
-    // Servicios asignados al barbero (HU-023): solo identificadores, el
+    // Servicios asignados al profesional (HU-023): solo identificadores, el
     // nombre se cruza contra el catálogo real.
     if (pathname.includes('/professionals/') && pathname.endsWith('/services')) {
       if (scenario === 'services-loading' && pending) await pending.promise
@@ -105,7 +105,11 @@ export async function installNewAppointmentMock(
       }
       await respondJson(route, {
         items: [
-          { professionalId: BARBER.id, serviceId: SERVICE.id, createdAt: '2026-09-01T12:00:00Z' },
+          {
+            professionalId: PROFESSIONAL.id,
+            serviceId: SERVICE.id,
+            createdAt: '2026-09-01T12:00:00Z',
+          },
         ],
       })
       return
@@ -141,7 +145,7 @@ export async function installNewAppointmentMock(
         route,
         {
           id: 'appt-mock',
-          professionalId: BARBER.id,
+          professionalId: PROFESSIONAL.id,
           serviceId: SERVICE.id,
           attendeeName: ATTENDEE,
           startsAt: `${CIVIL_DATE}T${TIME}:00-05:00`,
@@ -162,13 +166,13 @@ export async function installNewAppointmentMock(
   return pending?.deferred ?? null
 }
 
-/** Abre el listbox de barbero y elige el único del mock. */
-export async function chooseBarber(page: Page) {
+/** Abre el listbox de profesional y elige el único del mock. */
+export async function chooseProfessional(page: Page) {
   await page.getByRole('button', { name: 'Profesional', exact: true }).click()
-  await page.getByRole('option', { name: BARBER.fullName }).click()
+  await page.getByRole('option', { name: PROFESSIONAL.fullName }).click()
 }
 
-/** Rellena persona atendida, cliente y fecha/hora (sin barbero ni servicio). */
+/** Rellena persona atendida, cliente y fecha/hora (sin profesional ni servicio). */
 export async function fillCustomerAndSchedule(page: Page) {
   await page.getByLabel('Persona atendida').fill(ATTENDEE)
   await page.getByLabel('Nombre del cliente').fill(CUSTOMER)
@@ -177,7 +181,7 @@ export async function fillCustomerAndSchedule(page: Page) {
 }
 
 export async function fillCompleteForm(page: Page) {
-  await chooseBarber(page)
+  await chooseProfessional(page)
   await page
     .getByRole('combobox', { name: 'Servicio', exact: true })
     .selectOption({ label: SERVICE.name })

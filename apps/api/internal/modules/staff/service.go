@@ -5,12 +5,12 @@ import (
 	"fmt"
 	"unicode/utf8"
 
-	"system-barbershop/internal/platform/apperr"
-	"system-barbershop/internal/platform/idempotency"
+	"nava-agenda/internal/platform/apperr"
+	"nava-agenda/internal/platform/idempotency"
 )
 
 // Service implementa los casos de uso de HU-021: listar, consultar,
-// registrar y actualizar (nombre y descripción) barberos de la barbería activa; y, por DEC-104, subir,
+// registrar y actualizar (nombre y descripción) profesionales del negocio activo; y, por DEC-104, subir,
 // leer y quitar su fotografía opcional.
 type Service struct {
 	repo      Repository
@@ -22,16 +22,16 @@ func NewService(repo Repository) *Service {
 	return &Service{repo: repo}
 }
 
-// List lee una página de barberos de barbershopID. cursorToken es el valor
+// List lee una página de profesionales de businessID. cursorToken es el valor
 // opaco que el cliente envió (vacío para la primera página); limit llega
 // crudo del parámetro de consulta y se clamped aquí a
 // [MinListLimit, MaxListLimit], con DefaultListLimit cuando el cliente no
-// lo especifica (limit <= 0). barbershopID llega siempre de un
+// lo especifica (limit <= 0). businessID llega siempre de un
 // auth.Principal ya autenticado (RN-TEN-01); este método no acepta ni
 // valida ningún identificador que el cliente pueda controlar.
-func (s *Service) List(ctx context.Context, barbershopID string, cursorToken string, limit int) (ListResult, error) {
+func (s *Service) List(ctx context.Context, businessID string, cursorToken string, limit int) (ListResult, error) {
 	if err := ctx.Err(); err != nil {
-		return ListResult{}, apperr.Internal(fmt.Errorf("staff: contexto cancelado antes de listar barberos: %w", err))
+		return ListResult{}, apperr.Internal(fmt.Errorf("staff: contexto cancelado antes de listar profesionales: %w", err))
 	}
 
 	switch {
@@ -52,38 +52,38 @@ func (s *Service) List(ctx context.Context, barbershopID string, cursorToken str
 		cursor = &decoded
 	}
 
-	result, err := s.repo.List(ctx, barbershopID, cursor, limit)
+	result, err := s.repo.List(ctx, businessID, cursor, limit)
 	if err != nil {
-		return ListResult{}, apperr.Internal(fmt.Errorf("staff: listar barberos: %w", err))
+		return ListResult{}, apperr.Internal(fmt.Errorf("staff: listar profesionales: %w", err))
 	}
 	return result, nil
 }
 
-// Get lee un barbero por id dentro de la barbería activa. Un identificador
-// inexistente o de otra barbería produce el mismo apperr.NotFound
+// Get lee un profesional por id dentro del negocio activo. Un identificador
+// inexistente o de otro negocio produce el mismo apperr.NotFound
 // (CA-021-05).
-func (s *Service) Get(ctx context.Context, barbershopID, barberID string) (Barber, error) {
+func (s *Service) Get(ctx context.Context, businessID, professionalID string) (Professional, error) {
 	if err := ctx.Err(); err != nil {
-		return Barber{}, apperr.Internal(fmt.Errorf("staff: contexto cancelado antes de leer barbero: %w", err))
+		return Professional{}, apperr.Internal(fmt.Errorf("staff: contexto cancelado antes de leer profesional: %w", err))
 	}
-	if !LooksLikeBarberID(barberID) {
+	if !LooksLikeProfessionalID(professionalID) {
 		// Nunca deja que un identificador con forma inválida llegue a
 		// PostgreSQL como comparación contra una columna uuid (eso sería un
 		// error de tipo, 500, no el 404 uniforme de CA-021-05).
-		return Barber{}, errBarberNotFound()
+		return Professional{}, errProfessionalNotFound()
 	}
 
-	barber, found, err := s.repo.Get(ctx, barbershopID, barberID)
+	professional, found, err := s.repo.Get(ctx, businessID, professionalID)
 	if err != nil {
-		return Barber{}, apperr.Internal(fmt.Errorf("staff: leer barbero: %w", err))
+		return Professional{}, apperr.Internal(fmt.Errorf("staff: leer profesional: %w", err))
 	}
 	if !found {
-		return Barber{}, errBarberNotFound()
+		return Professional{}, errProfessionalNotFound()
 	}
-	return barber, nil
+	return professional, nil
 }
 
-// Create registra un barbero (CA-021-02), protegido por el protocolo de
+// Create registra un profesional (CA-021-02), protegido por el protocolo de
 // idempotencia reutilizable de HU-004 (RN-IDE-01, DEC-043). fullNameRaw es
 // el valor crudo del cuerpo, sin normalizar; key y fingerprint ya fueron
 // interpretados por la capa HTTP (httpserver.IdempotencyKeyFromRequest/
@@ -92,14 +92,14 @@ func (s *Service) Get(ctx context.Context, barbershopID, barberID string) (Barbe
 // idempotencia, porque no es el efecto que RN-IDE-01 protege.
 func (s *Service) Create(
 	ctx context.Context,
-	barbershopID string,
+	businessID string,
 	fullNameRaw string,
 	descriptionRaw *string,
 	key idempotency.Key,
 	fingerprint idempotency.Fingerprint,
 ) (CreateResult, error) {
 	if err := ctx.Err(); err != nil {
-		return CreateResult{}, apperr.Internal(fmt.Errorf("staff: contexto cancelado antes de registrar barbero: %w", err))
+		return CreateResult{}, apperr.Internal(fmt.Errorf("staff: contexto cancelado antes de registrar profesional: %w", err))
 	}
 
 	fullName, err := validateFullName(fullNameRaw)
@@ -112,114 +112,114 @@ func (s *Service) Create(
 		return CreateResult{}, err
 	}
 
-	result, err := s.repo.Create(ctx, barbershopID, fullName, description, key, fingerprint)
+	result, err := s.repo.Create(ctx, businessID, fullName, description, key, fingerprint)
 	if err != nil {
-		return CreateResult{}, apperr.Internal(fmt.Errorf("staff: registrar barbero: %w", err))
+		return CreateResult{}, apperr.Internal(fmt.Errorf("staff: registrar profesional: %w", err))
 	}
 	return result, nil
 }
 
 // Update cambia el nombre y, si viene en el cuerpo, la descripción de un
-// barbero existente de la barbería activa (CA-021-04, DEC-127). fullNameRaw y
+// profesional existente del negocio activo (CA-021-04, DEC-127). fullNameRaw y
 // description son los valores crudos del cuerpo, sin normalizar. Un
-// identificador inexistente o de otra barbería produce el mismo
+// identificador inexistente o de otro negocio produce el mismo
 // apperr.NotFound que Get (CA-021-05); nombres duplicados dentro de la
-// misma barbería son válidos (esta historia no impone unicidad).
-func (s *Service) Update(ctx context.Context, barbershopID, barberID, fullNameRaw string, description DescriptionPatch) (Barber, error) {
+// mismo negocio son válidos (esta historia no impone unicidad).
+func (s *Service) Update(ctx context.Context, businessID, professionalID, fullNameRaw string, description DescriptionPatch) (Professional, error) {
 	if err := ctx.Err(); err != nil {
-		return Barber{}, apperr.Internal(fmt.Errorf("staff: contexto cancelado antes de actualizar barbero: %w", err))
+		return Professional{}, apperr.Internal(fmt.Errorf("staff: contexto cancelado antes de actualizar profesional: %w", err))
 	}
-	if !LooksLikeBarberID(barberID) {
-		return Barber{}, errBarberNotFound()
+	if !LooksLikeProfessionalID(professionalID) {
+		return Professional{}, errProfessionalNotFound()
 	}
 
 	fullName, err := validateFullName(fullNameRaw)
 	if err != nil {
-		return Barber{}, err
+		return Professional{}, err
 	}
 
 	if description.Set {
 		value, err := validateDescription(description.Value)
 		if err != nil {
-			return Barber{}, err
+			return Professional{}, err
 		}
 		description.Value = value
 	}
 
-	result, err := s.repo.Update(ctx, barbershopID, barberID, fullName, description)
+	result, err := s.repo.Update(ctx, businessID, professionalID, fullName, description)
 	if err != nil {
-		return Barber{}, apperr.Internal(fmt.Errorf("staff: actualizar barbero: %w", err))
+		return Professional{}, apperr.Internal(fmt.Errorf("staff: actualizar profesional: %w", err))
 	}
 	if !result.Found {
-		return Barber{}, errBarberNotFound()
+		return Professional{}, errProfessionalNotFound()
 	}
-	return result.Barber, nil
+	return result.Professional, nil
 }
 
-// SetPhoto sube o reemplaza la fotografía de un barbero (DEC-104). declaredType
+// SetPhoto sube o reemplaza la fotografía de un profesional (DEC-104). declaredType
 // es el Content-Type ya normalizado del cliente y data el cuerpo crudo: la
 // validación (formato real, tamaño, dimensiones) ocurre ANTES de tocar el
-// repositorio, así que una imagen inválida nunca llega a la base. Un barbero
-// inexistente o de otra barbería produce el mismo apperr.NotFound que Get.
-func (s *Service) SetPhoto(ctx context.Context, barbershopID, barberID, declaredType string, data []byte) (Barber, error) {
+// repositorio, así que una imagen inválida nunca llega a la base. Un profesional
+// inexistente o de otro negocio produce el mismo apperr.NotFound que Get.
+func (s *Service) SetPhoto(ctx context.Context, businessID, professionalID, declaredType string, data []byte) (Professional, error) {
 	if err := ctx.Err(); err != nil {
-		return Barber{}, apperr.Internal(fmt.Errorf("staff: contexto cancelado antes de guardar la fotografía: %w", err))
+		return Professional{}, apperr.Internal(fmt.Errorf("staff: contexto cancelado antes de guardar la fotografía: %w", err))
 	}
-	if !LooksLikeBarberID(barberID) {
-		return Barber{}, errBarberNotFound()
+	if !LooksLikeProfessionalID(professionalID) {
+		return Professional{}, errProfessionalNotFound()
 	}
 
 	photo, err := ValidatePhoto(declaredType, data)
 	if err != nil {
-		return Barber{}, err
+		return Professional{}, err
 	}
 
-	result, err := s.repo.PutPhoto(ctx, barbershopID, barberID, photo)
+	result, err := s.repo.PutPhoto(ctx, businessID, professionalID, photo)
 	if err != nil {
-		return Barber{}, apperr.Internal(fmt.Errorf("staff: guardar fotografía: %w", err))
+		return Professional{}, apperr.Internal(fmt.Errorf("staff: guardar fotografía: %w", err))
 	}
 	if !result.Found {
-		return Barber{}, errBarberNotFound()
+		return Professional{}, errProfessionalNotFound()
 	}
-	return result.Barber, nil
+	return result.Professional, nil
 }
 
-// Photo lee la fotografía de un barbero. Un barbero inexistente, de otra
-// barbería o sin fotografía produce el mismo apperr.NotFound (CA-021-05).
-func (s *Service) Photo(ctx context.Context, barbershopID, barberID string) (StoredPhoto, error) {
+// Photo lee la fotografía de un profesional. Un profesional inexistente, de otro
+// negocio o sin fotografía produce el mismo apperr.NotFound (CA-021-05).
+func (s *Service) Photo(ctx context.Context, businessID, professionalID string) (StoredPhoto, error) {
 	if err := ctx.Err(); err != nil {
 		return StoredPhoto{}, apperr.Internal(fmt.Errorf("staff: contexto cancelado antes de leer la fotografía: %w", err))
 	}
-	if !LooksLikeBarberID(barberID) {
-		return StoredPhoto{}, errBarberNotFound()
+	if !LooksLikeProfessionalID(professionalID) {
+		return StoredPhoto{}, errProfessionalNotFound()
 	}
 
-	photo, found, err := s.repo.GetPhoto(ctx, barbershopID, barberID)
+	photo, found, err := s.repo.GetPhoto(ctx, businessID, professionalID)
 	if err != nil {
 		return StoredPhoto{}, apperr.Internal(fmt.Errorf("staff: leer fotografía: %w", err))
 	}
 	if !found {
-		return StoredPhoto{}, errBarberNotFound()
+		return StoredPhoto{}, errProfessionalNotFound()
 	}
 	return photo, nil
 }
 
-// RemovePhoto quita la fotografía de un barbero. Es idempotente: quitar una
-// fotografía inexistente no es un error mientras el barbero exista.
-func (s *Service) RemovePhoto(ctx context.Context, barbershopID, barberID string) error {
+// RemovePhoto quita la fotografía de un profesional. Es idempotente: quitar una
+// fotografía inexistente no es un error mientras el profesional exista.
+func (s *Service) RemovePhoto(ctx context.Context, businessID, professionalID string) error {
 	if err := ctx.Err(); err != nil {
 		return apperr.Internal(fmt.Errorf("staff: contexto cancelado antes de quitar la fotografía: %w", err))
 	}
-	if !LooksLikeBarberID(barberID) {
-		return errBarberNotFound()
+	if !LooksLikeProfessionalID(professionalID) {
+		return errProfessionalNotFound()
 	}
 
-	found, err := s.repo.DeletePhoto(ctx, barbershopID, barberID)
+	found, err := s.repo.DeletePhoto(ctx, businessID, professionalID)
 	if err != nil {
 		return apperr.Internal(fmt.Errorf("staff: quitar fotografía: %w", err))
 	}
 	if !found {
-		return errBarberNotFound()
+		return errProfessionalNotFound()
 	}
 	return nil
 }

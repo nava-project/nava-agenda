@@ -7,7 +7,7 @@ import (
 	"strings"
 	"testing"
 
-	"system-barbershop/internal/platform/config"
+	"nava-agenda/internal/platform/config"
 )
 
 // withEnv fija variables de entorno para la duración de la prueba y las
@@ -497,7 +497,7 @@ func googleEnv() map[string]string {
 	env := baseLocalEnv()
 	env["GOOGLE_CALENDAR_CLIENT_ID"] = "cliente.apps.googleusercontent.com"
 	env["GOOGLE_CALENDAR_CLIENT_SECRET"] = "secreto-de-prueba"
-	env["GOOGLE_CALENDAR_REDIRECT_URI"] = "http://localhost:5173/panel/barberia/google-calendar/callback"
+	env["GOOGLE_CALENDAR_REDIRECT_URI"] = "http://localhost:5173/panel/negocio/google-calendar/callback"
 	env["GOOGLE_CALENDAR_TOKEN_ENCRYPTION_KEY"] = googleKey(1)
 	return env
 }
@@ -512,7 +512,7 @@ func productionGoogleEnv() map[string]string {
 	env["APP_META_WHATSAPP_TEMPLATE_NAME"] = "recuperacion_acceso"
 	env["APP_RESEND_API_KEY"] = "resend-api-key-de-prueba"
 	env["APP_RESEND_FROM_ADDRESS"] = "no-responder@barberia.test"
-	env["GOOGLE_CALENDAR_REDIRECT_URI"] = "https://app.ejemplo.test/panel/barberia/google-calendar/callback"
+	env["GOOGLE_CALENDAR_REDIRECT_URI"] = "https://app.ejemplo.test/panel/negocio/google-calendar/callback"
 	return env
 }
 

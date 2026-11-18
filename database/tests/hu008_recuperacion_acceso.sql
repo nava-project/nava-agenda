@@ -6,7 +6,7 @@
 -- de TODAS las sesiones en la misma operación atómica).
 --
 -- Uso:
---   psql "$DATABASE_TEST_URL" -v ON_ERROR_STOP=1 -f testdata/dos_professionalias.sql
+--   psql "$DATABASE_TEST_URL" -v ON_ERROR_STOP=1 -f testdata/dos_negocios.sql
 --   psql "$DATABASE_TEST_URL" -v ON_ERROR_STOP=1 -f testdata/hu005_credenciales_sesiones.sql
 --   psql "$DATABASE_TEST_URL" -v ON_ERROR_STOP=1 -f testdata/hu007_reto_telefonico.sql
 --   psql "$DATABASE_TEST_URL" -v ON_ERROR_STOP=1 -f tests/hu008_recuperacion_acceso.sql
@@ -112,7 +112,7 @@ BEGIN
     RAISE EXCEPTION 'CA-008-01: se aceptó una solicitud para una cuenta inexistente.';
   END IF;
 
-  -- Teléfono no verificado (barbero.a, testdata/hu007_reto_telefonico.sql):
+  -- Teléfono no verificado (profesional.a, testdata/hu007_reto_telefonico.sql):
   -- CA-008-11 (DEC-094) acepta la solicitud porque el correo basta, pero el
   -- teléfono sin verificar NUNCA se devuelve como destino (DEC-093).
   SELECT accepted, phone, email INTO v_accepted, v_phone, v_email
@@ -471,13 +471,13 @@ DO $$
 DECLARE
   v_email text;
 BEGIN
-  -- Coincidencia única: resuelve al correo de esa cuenta (barbería A).
+  -- Coincidencia única: resuelve al correo de esa cuenta (negocio A).
   SELECT auth_recovery_resolve_phone('+573000000001') INTO v_email;
   IF v_email IS DISTINCT FROM 'duena.a@ejemplo.test' THEN
     RAISE EXCEPTION 'DP-SEG-14: se esperaba duena.a@ejemplo.test para un teléfono único, salió %.', v_email;
   END IF;
 
-  -- La barbería B resuelve a su propia cuenta, nunca a la de A (RN-TEN-01).
+  -- El negocio B resuelve a su propia cuenta, nunca a la de A (RN-TEN-01).
   SELECT auth_recovery_resolve_phone('+573000000003') INTO v_email;
   IF v_email IS DISTINCT FROM 'dueno.b@ejemplo.test' THEN
     RAISE EXCEPTION 'DP-SEG-14: se esperaba dueno.b@ejemplo.test para su teléfono, salió %.', v_email;
@@ -495,7 +495,7 @@ $$;
 
 RESET ROLE;
 
--- Ambigüedad entre barberías: la barbería B registra el mismo número
+-- Ambigüedad entre negocios: el negocio B registra el mismo número
 -- verificado que la A. Con dos cuentas activas no debe resolver ninguna.
 -- Dos UPDATE a propósito: el trigger de DDL-INT-05 anula phone_verified_at
 -- cuando phone cambia, así que la verificación se marca después.
@@ -506,7 +506,7 @@ SET ROLE agenda_app;
 DO $$
 BEGIN
   IF auth_recovery_resolve_phone('+573000000001') IS NOT NULL THEN
-    RAISE EXCEPTION 'DP-SEG-14: un teléfono repetido entre barberías debía devolver NULL, no elegir una cuenta.';
+    RAISE EXCEPTION 'DP-SEG-14: un teléfono repetido entre negocios debía devolver NULL, no elegir una cuenta.';
   END IF;
 END
 $$;

@@ -8,7 +8,7 @@ import (
 	"path/filepath"
 	"testing"
 
-	"system-barbershop/internal/modules/auth"
+	"nava-agenda/internal/modules/auth"
 )
 
 func TestCapturingPhoneCodeSender_WritesPhoneAndCodeToFile(t *testing.T) {

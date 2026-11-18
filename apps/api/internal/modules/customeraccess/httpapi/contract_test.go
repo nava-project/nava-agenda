@@ -12,7 +12,7 @@ import (
 
 	"gopkg.in/yaml.v3"
 
-	"system-barbershop/internal/modules/customeraccess/httpapi"
+	"nava-agenda/internal/modules/customeraccess/httpapi"
 )
 
 type contractSchema struct {

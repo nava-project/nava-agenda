@@ -1,9 +1,9 @@
-// Marca y vocabulario de la barbería activa (DEC-110), compartidos por todas
+// Marca y vocabulario del negocio activo (DEC-110), compartidos por todas
 // las pantallas privadas: el color de acento, y las palabras con las que se
 // nombra al negocio y a su profesional. La fuente de verdad es el servidor
 // (`GET /private/settings/brand`); aquí vive el último valor confirmado, más una
 // copia en `localStorage` para pintar la marca en el primer fotograma de la
-// siguiente visita sin esperar la red. Si la copia pertenece a otra barbería, el
+// siguiente visita sin esperar la red. Si la copia pertenece a otro negocio, el
 // servidor la corrige en cuanto responde.
 //
 // Estado global real, mismo criterio que `toastStore`/`sessionStore`: un
@@ -88,18 +88,18 @@ export const effectiveAccent = computed<BrandAccentKey>(
 /** Panel del usuario confirmado por el servidor, derivado de sus roles (DEC-134). */
 export const panelProfile = computed<PanelProfile>(() => state.brand.panelProfile)
 
-/** `true` en el panel de barbero individual (perfil `solo`). */
+/** `true` en el panel de profesional individual (perfil `solo`). */
 export const isSoloProfile = computed(() => state.brand.panelProfile === 'solo')
 
-/** `true` en el panel del empleado (DEC-134): el API solo le deja lo de su barbero (DEC-173). */
+/** `true` en el panel del empleado (DEC-134): el API solo le deja lo de su profesional (DEC-173). */
 export const isEmployeeProfile = computed(() => state.brand.panelProfile === 'employee')
 
 /**
- * `true` cuando el panel trabaja sobre un único barbero propio: el barbero
- * individual (DEC-115) y el empleado, cuyo API solo devuelve su barbero (DEC-173).
+ * `true` cuando el panel trabaja sobre un único profesional propio: el profesional
+ * individual (DEC-115) y el empleado, cuyo API solo devuelve su profesional (DEC-173).
  * Las pantallas lo usan para quitar selectores que no tienen nada que elegir.
  */
-export const worksOwnBarber = computed(() => isSoloProfile.value || isEmployeeProfile.value)
+export const worksOwnProfessional = computed(() => isSoloProfile.value || isEmployeeProfile.value)
 
 /** Vocabulario ya concordado de la marca confirmada por el servidor. */
 export const vocabulary = computed(() => buildVocabulary(state.brand))
@@ -115,7 +115,7 @@ export function setAccentPreview(accent: BrandAccentKey | null): void {
   state.accentPreview = accent
 }
 
-/** Al cerrar sesión: la siguiente barbería no hereda la marca de la anterior. */
+/** Al cerrar sesión: la siguiente negocio no hereda la marca de la anterior. */
 export function resetBrand(): void {
   state.brand = { ...DEFAULT_BRAND }
   state.accentPreview = null

@@ -23,7 +23,7 @@ func NewLoggingConfirmationEmailSender(logger *slog.Logger) LoggingConfirmationE
 }
 
 // SendConfirmation implementa publicbooking.ConfirmationEmailPort. Nunca
-// registra email, barbershopName, serviceName, attendeeName ni accessLink.
+// registra email, businessName, serviceName, attendeeName ni accessLink.
 func (s LoggingConfirmationEmailSender) SendConfirmation(
 	ctx context.Context,
 	_, _, _, _ string,

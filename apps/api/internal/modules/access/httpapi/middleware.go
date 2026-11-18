@@ -10,10 +10,10 @@ import (
 	"regexp"
 	"strings"
 
-	"system-barbershop/internal/modules/access"
-	"system-barbershop/internal/modules/auth"
-	"system-barbershop/internal/platform/apperr"
-	"system-barbershop/internal/platform/httpserver"
+	"nava-agenda/internal/modules/access"
+	"nava-agenda/internal/modules/auth"
+	"nava-agenda/internal/platform/apperr"
+	"nava-agenda/internal/platform/httpserver"
 )
 
 const forbiddenMessage = "Tu cuenta de empleado solo puede cambiar lo de tu propio perfil de profesional."
@@ -44,7 +44,7 @@ func (m *Middleware) Enforce(next http.Handler) http.Handler {
 				apperr.Internal(errors.New("access: falta el principal de sesión en el contexto")), requestID))
 			return
 		}
-		scope, err := m.service.ScopeOf(r.Context(), principal.BarbershopID, principal.StaffUserID)
+		scope, err := m.service.ScopeOf(r.Context(), principal.BusinessID, principal.StaffUserID)
 		if err != nil {
 			httpserver.WriteProblem(w, httpserver.Translate(err, requestID))
 			return
@@ -70,22 +70,22 @@ func (m *Middleware) Enforce(next http.Handler) http.Handler {
 			next.ServeHTTP(w, r)
 		case access.DenyRestricted:
 			forbid(w, requestID)
-		case access.OwnBarber:
+		case access.OwnProfessional:
 			if !scope.Owns(params["professionalId"]) {
 				forbid(w, requestID)
 				return
 			}
 			next.ServeHTTP(w, r)
-		case access.OwnBarberInBody:
-			barberID, body, err := peekBarberID(r)
+		case access.OwnProfessionalInBody:
+			professionalID, body, err := peekProfessionalID(r)
 			if err != nil {
 				httpserver.WriteProblem(w, httpserver.Translate(err, requestID))
 				return
 			}
 			r.Body = body
-			// Un cuerpo ilegible o sin barberId lo rechaza el propio handler
-			// con su 400/422; aquí solo se niega un barbero ajeno.
-			if barberID != "" && !scope.Owns(barberID) {
+			// Un cuerpo ilegible o sin professionalId lo rechaza el propio handler
+			// con su 400/422; aquí solo se niega un profesional ajeno.
+			if professionalID != "" && !scope.Owns(professionalID) {
 				forbid(w, requestID)
 				return
 			}
@@ -96,12 +96,12 @@ func (m *Middleware) Enforce(next http.Handler) http.Handler {
 				next.ServeHTTP(w, r) // el handler responde su 404 uniforme
 				return
 			}
-			barberID, exists, err := m.service.AppointmentBarber(r.Context(), principal.BarbershopID, id)
+			professionalID, exists, err := m.service.AppointmentProfessional(r.Context(), principal.BusinessID, id)
 			if err != nil {
 				httpserver.WriteProblem(w, httpserver.Translate(err, requestID))
 				return
 			}
-			if exists && !scope.Owns(barberID) {
+			if exists && !scope.Owns(professionalID) {
 				// Igual que un turno inexistente: no revela que exista ni de quién es.
 				httpserver.WriteProblem(w, httpserver.Translate(apperr.NotFound("recurso no encontrado"), requestID))
 				return
@@ -117,17 +117,17 @@ func forbid(w http.ResponseWriter, requestID string) {
 	httpserver.WriteProblem(w, httpserver.Translate(apperr.Forbidden(forbiddenMessage), requestID))
 }
 
-// peekBarberID lee el cuerpo (ya acotado por BodyLimit), extrae barberId si lo
+// peekProfessionalID lee el cuerpo (ya acotado por BodyLimit), extrae professionalId si lo
 // hay y devuelve un cuerpo nuevo con los mismos bytes para el handler.
-func peekBarberID(r *http.Request) (string, io.ReadCloser, error) {
+func peekProfessionalID(r *http.Request) (string, io.ReadCloser, error) {
 	raw, err := io.ReadAll(r.Body)
 	_ = r.Body.Close()
 	if err != nil {
 		return "", nil, err // MaxBytesError → 400 payload-too-large en Translate
 	}
 	var probe struct {
-		BarberID string `json:"professionalId"`
+		ProfessionalID string `json:"professionalId"`
 	}
 	_ = json.Unmarshal(raw, &probe)
-	return probe.BarberID, io.NopCloser(bytes.NewReader(raw)), nil
+	return probe.ProfessionalID, io.NopCloser(bytes.NewReader(raw)), nil
 }

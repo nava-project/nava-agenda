@@ -1,7 +1,7 @@
 /**
  * Color de marca en la reserva pública (DEC-171): el cascarón pinta el acento que
- * la barbería del enlace eligió en Configuración, solo mientras la reserva está
- * abierta y solo el de esa barbería. Con latón (valor inicial) no escribe nada.
+ * el negocio del enlace eligió en Configuración, solo mientras la reserva está
+ * abierta y solo el de ese negocio. Con latón (valor inicial) no escribe nada.
  */
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { flushPromises, mount } from '@vue/test-utils'
@@ -11,8 +11,8 @@ import PublicBookingLayout from '../PublicBookingLayout.vue'
 import { resetPublicProfileCache } from '../../model/publicProfile'
 import { accentByKey } from '@/shared/model'
 
-const resolveBarbershopMock = vi.hoisted(() => vi.fn())
-vi.mock('../../api/resolveBarbershopApi', () => ({ resolveBarbershop: resolveBarbershopMock }))
+const resolveBusinessMock = vi.hoisted(() => vi.fn())
+vi.mock('../../api/resolveBusinessApi', () => ({ resolveBusiness: resolveBusinessMock }))
 
 const profile = (brandAccent: string) => ({
   kind: 'success' as const,
@@ -63,14 +63,14 @@ const root = () => document.documentElement.style
 const accentOnPage = () => root().getPropertyValue('--color-brand-accent-surface')
 
 beforeEach(() => {
-  resolveBarbershopMock.mockReset()
+  resolveBusinessMock.mockReset()
   resetPublicProfileCache()
   document.documentElement.removeAttribute('style')
 })
 
 describe('color de marca de la reserva pública (DEC-171)', () => {
-  it('pinta el acento Tinta de la barbería del enlace en acentos, foco y rótulos', async () => {
-    resolveBarbershopMock.mockResolvedValueOnce(profile('emerald'))
+  it('pinta el acento Tinta del negocio del enlace en acentos, foco y rótulos', async () => {
+    resolveBusinessMock.mockResolvedValueOnce(profile('emerald'))
     const { wrapper } = await mountAt('barberia-verde')
 
     const emerald = accentByKey('emerald')
@@ -82,7 +82,7 @@ describe('color de marca de la reserva pública (DEC-171)', () => {
   })
 
   it('con latón no escribe nada: la reserva queda como siempre', async () => {
-    resolveBarbershopMock.mockResolvedValueOnce(profile('brass'))
+    resolveBusinessMock.mockResolvedValueOnce(profile('brass'))
     const { wrapper } = await mountAt('barberia')
 
     expect(accentOnPage()).toBe('')
@@ -90,8 +90,8 @@ describe('color de marca de la reserva pública (DEC-171)', () => {
     wrapper.unmount()
   })
 
-  it('cambia con el enlace: cada barbería ve su propio color', async () => {
-    resolveBarbershopMock
+  it('cambia con el enlace: cada negocio ve su propio color', async () => {
+    resolveBusinessMock
       .mockResolvedValueOnce(profile('ruby'))
       .mockResolvedValueOnce(profile('sapphire'))
     const { wrapper, router } = await mountAt('barberia-roja')
@@ -104,7 +104,7 @@ describe('color de marca de la reserva pública (DEC-171)', () => {
   })
 
   it('lo retira al salir de la reserva', async () => {
-    resolveBarbershopMock.mockResolvedValueOnce(profile('copper'))
+    resolveBusinessMock.mockResolvedValueOnce(profile('copper'))
     const { wrapper, router } = await mountAt('barberia-cobre')
     expect(accentOnPage()).toBe(accentByKey('copper').ink)
 
@@ -116,7 +116,7 @@ describe('color de marca de la reserva pública (DEC-171)', () => {
   })
 
   it('sin perfil (enlace desconocido) se queda en latón', async () => {
-    resolveBarbershopMock.mockResolvedValueOnce({ kind: 'not-found' })
+    resolveBusinessMock.mockResolvedValueOnce({ kind: 'not-found' })
     const { wrapper } = await mountAt('no-existe')
     expect(accentOnPage()).toBe('')
     wrapper.unmount()

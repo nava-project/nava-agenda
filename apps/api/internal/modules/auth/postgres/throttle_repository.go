@@ -7,13 +7,13 @@ import (
 
 	"github.com/jackc/pgx/v5"
 
-	"system-barbershop/internal/modules/auth"
-	"system-barbershop/internal/platform/database"
+	"nava-agenda/internal/modules/auth"
+	"nava-agenda/internal/platform/database"
 )
 
 // ThrottleRepository implementa auth.ThrottleRepository contra
 // login_throttle_register_attempt (HU-007, DDL-AUT-01): sin
-// barbershop_id/RLS por diseño, así que corre fuera de InTenantTx mediante
+// business_id/RLS por diseño, así que corre fuera de InTenantTx mediante
 // la excepción angosta database.DB.CallSecurityDefinerRow, igual que
 // ResolveLoginTenant.
 type ThrottleRepository struct {

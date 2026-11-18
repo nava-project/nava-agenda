@@ -11,33 +11,33 @@ import (
 	"context"
 	"testing"
 
-	"system-barbershop/internal/modules/shops"
-	"system-barbershop/internal/platform/apperr"
+	"nava-agenda/internal/modules/shops"
+	"nava-agenda/internal/platform/apperr"
 )
 
 type updateCall struct {
-	barbershopID string
-	input        shops.UpdateInput
+	businessID string
+	input      shops.UpdateInput
 }
 
 type fakeRepository struct {
-	getBarbershop shops.Barbershop
-	getFound      bool
-	getErr        error
-	getCalls      []string
+	getBusiness shops.Business
+	getFound    bool
+	getErr      error
+	getCalls    []string
 
 	updateResult shops.UpdateResult
 	updateErr    error
 	updateCalls  []updateCall
 }
 
-func (f *fakeRepository) Get(_ context.Context, barbershopID string) (shops.Barbershop, bool, error) {
-	f.getCalls = append(f.getCalls, barbershopID)
-	return f.getBarbershop, f.getFound, f.getErr
+func (f *fakeRepository) Get(_ context.Context, businessID string) (shops.Business, bool, error) {
+	f.getCalls = append(f.getCalls, businessID)
+	return f.getBusiness, f.getFound, f.getErr
 }
 
-func (f *fakeRepository) Update(_ context.Context, barbershopID string, input shops.UpdateInput) (shops.UpdateResult, error) {
-	f.updateCalls = append(f.updateCalls, updateCall{barbershopID, input})
+func (f *fakeRepository) Update(_ context.Context, businessID string, input shops.UpdateInput) (shops.UpdateResult, error) {
+	f.updateCalls = append(f.updateCalls, updateCall{businessID, input})
 	return f.updateResult, f.updateErr
 }
 
@@ -64,9 +64,9 @@ func validInput() shops.Input {
 
 // --- Get --------------------------------------------------------------
 
-func TestService_Get_Found_ReturnsBarbershop(t *testing.T) {
-	want := shops.Barbershop{Name: "Barbería A", Timezone: "America/Bogota"}
-	repo := &fakeRepository{getBarbershop: want, getFound: true}
+func TestService_Get_Found_ReturnsBusiness(t *testing.T) {
+	want := shops.Business{Name: "Barbería A", Timezone: "America/Bogota"}
+	repo := &fakeRepository{getBusiness: want, getFound: true}
 	svc := shops.NewService(repo)
 
 	got, err := svc.Get(context.Background(), shopID)
@@ -231,8 +231,8 @@ func TestService_Update_RepositoryReportsNotFound_ReturnsNotFound(t *testing.T) 
 }
 
 func TestService_Update_Success_ReturnsSavedRepresentation(t *testing.T) {
-	saved := shops.Barbershop{Name: "Barbería Ejemplo", Timezone: "America/Bogota"}
-	repo := &fakeRepository{updateResult: shops.UpdateResult{Barbershop: saved, TimezoneValid: true, Found: true}}
+	saved := shops.Business{Name: "Barbería Ejemplo", Timezone: "America/Bogota"}
+	repo := &fakeRepository{updateResult: shops.UpdateResult{Business: saved, TimezoneValid: true, Found: true}}
 	svc := shops.NewService(repo)
 
 	got, err := svc.Update(context.Background(), shopID, validInput())
@@ -244,8 +244,8 @@ func TestService_Update_Success_ReturnsSavedRepresentation(t *testing.T) {
 	}
 }
 
-func TestService_Update_NeverPassesBarbershopIDFromInput(t *testing.T) {
-	// El propio tipo shops.Input no declara un campo BarbershopID: esta
+func TestService_Update_NeverPassesBusinessIDFromInput(t *testing.T) {
+	// El propio tipo shops.Input no declara un campo BusinessID: esta
 	// prueba documenta en código que no hay canal para que un valor del
 	// cuerpo llegue a sustituir el identificador ya autenticado (CA-020-05).
 	repo := &fakeRepository{updateResult: shops.UpdateResult{TimezoneValid: true, Found: true}}
@@ -254,7 +254,7 @@ func TestService_Update_NeverPassesBarbershopIDFromInput(t *testing.T) {
 	if _, err := svc.Update(context.Background(), shopID, validInput()); err != nil {
 		t.Fatalf("Update: %v", err)
 	}
-	if repo.updateCalls[0].barbershopID != shopID {
-		t.Fatalf("expected the repository to receive the authenticated shopID %q, got %q", shopID, repo.updateCalls[0].barbershopID)
+	if repo.updateCalls[0].businessID != shopID {
+		t.Fatalf("expected the repository to receive the authenticated shopID %q, got %q", shopID, repo.updateCalls[0].businessID)
 	}
 }

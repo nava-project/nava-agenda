@@ -9,7 +9,7 @@ import (
 	"regexp"
 	"testing"
 
-	"system-barbershop/internal/platform/httpserver"
+	"nava-agenda/internal/platform/httpserver"
 )
 
 // allowedLogFields es la lista cerrada de RN-DAT-02: cualquier otra clave en

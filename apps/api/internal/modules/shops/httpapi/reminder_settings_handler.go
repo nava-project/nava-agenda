@@ -5,10 +5,10 @@ import (
 	"errors"
 	"net/http"
 
-	"system-barbershop/internal/modules/auth"
-	"system-barbershop/internal/modules/shops"
-	"system-barbershop/internal/platform/apperr"
-	"system-barbershop/internal/platform/httpserver"
+	"nava-agenda/internal/modules/auth"
+	"nava-agenda/internal/modules/shops"
+	"nava-agenda/internal/platform/apperr"
+	"nava-agenda/internal/platform/httpserver"
 )
 
 // ReminderSettingsResponse es la representación de GET y PATCH
@@ -44,7 +44,7 @@ func (h *GetReminderSettingsHandler) ServeHTTP(w http.ResponseWriter, r *http.Re
 			apperr.Internal(errors.New("shops: falta el principal de sesión en el contexto")), requestID))
 		return
 	}
-	lead, err := h.service.Get(r.Context(), principal.BarbershopID)
+	lead, err := h.service.Get(r.Context(), principal.BusinessID)
 	if err != nil {
 		httpserver.WriteProblem(w, httpserver.Translate(err, requestID))
 		return
@@ -96,7 +96,7 @@ func (h *UpdateReminderSettingsHandler) ServeHTTP(w http.ResponseWriter, r *http
 		return
 	}
 
-	lead, err := h.service.Update(r.Context(), principal.BarbershopID, shops.ReminderLeadMinutes(*req.LeadMinutes))
+	lead, err := h.service.Update(r.Context(), principal.BusinessID, shops.ReminderLeadMinutes(*req.LeadMinutes))
 	if err != nil {
 		httpserver.WriteProblem(w, httpserver.Translate(err, requestID))
 		return

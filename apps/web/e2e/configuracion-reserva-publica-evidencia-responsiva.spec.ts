@@ -7,7 +7,7 @@ import { fileURLToPath } from 'node:url'
  * estandar-diseno-visual.md §16 y estrategia-pruebas.md §5.4): pantalla
  * "Reserva pública" en 320/360/768/1280 px, más zoom 200% aproximado
  * (mismo criterio que
- * `e2e/configuracion-barberia-evidencia-responsiva.spec.ts`, HU-020). Se
+ * `e2e/configuracion-negocio-evidencia-responsiva.spec.ts`, HU-020). Se
  * inicia sesión UNA sola vez y se redimensiona la MISMA página entre
  * capturas. Las capturas se guardan en
  * `e2e/evidence/configuracion-reserva-publica/`.

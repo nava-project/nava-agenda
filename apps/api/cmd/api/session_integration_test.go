@@ -1,10 +1,10 @@
 // Pruebas de integración de HU-006 contra el router REAL de producción
 // (buildRouter) y PostgreSQL real. Requieren las seis migraciones
-// aplicadas y database/testdata/dos_barberias.sql +
+// aplicadas y database/testdata/dos_negocios.sql +
 // testdata/hu005_credenciales_sesiones.sql cargados, igual que
 // internal/modules/auth/postgres/*_test.go.
 //
-//	export TEST_DATABASE_URL="postgres://barberia_app:app_test@localhost:5432/barberia_test?sslmode=disable"
+//	export TEST_DATABASE_URL="postgres://agenda_app:app_test@localhost:5432/postgres?sslmode=disable"
 //	go test -race ./cmd/api/...
 package main
 
@@ -23,10 +23,10 @@ import (
 
 	"github.com/go-chi/chi/v5"
 
-	"system-barbershop/internal/modules/auth"
-	authpostgres "system-barbershop/internal/modules/auth/postgres"
-	"system-barbershop/internal/platform/config"
-	"system-barbershop/internal/platform/database"
+	"nava-agenda/internal/modules/auth"
+	authpostgres "nava-agenda/internal/modules/auth/postgres"
+	"nava-agenda/internal/platform/config"
+	"nava-agenda/internal/platform/database"
 )
 
 const (
@@ -37,7 +37,7 @@ const (
 
 	// aaaaaaa3/bbbbbbb3 (NO aaaaaaa1/bbbbbbb1 = duena.a/dueno.b): estas
 	// constantes las usan ~11 archivos de este paquete para abrir UNA sesión
-	// válida y ejercitar features ajenas a recuperación (catálogo, barberos,
+	// válida y ejercitar features ajenas a recuperación (catálogo, profesionales,
 	// turnos, servicios, settings...). duena.a/dueno.b son las únicas
 	// cuentas con teléfono verificado y las que cmd/api/recovery_integration_
 	// test.go (y otros paquetes) usan para completar un flujo de
@@ -134,7 +134,7 @@ func createSessionCookie(t *testing.T, db *database.DB, shop, staffUserID, label
 	return raw
 }
 
-const cookieName = "barberia_session"
+const cookieName = "nava_agenda_session"
 
 func doLogoutRequest(router *chi.Mux, rawToken string) *httptest.ResponseRecorder {
 	req := httptest.NewRequest(http.MethodPost, "/api/v1/private/auth/logout", nil)
@@ -266,8 +266,8 @@ func TestLogout_HTTP_ClosingOneDeviceDoesNotAffectAnother(t *testing.T) {
 }
 
 // TestLogout_HTTP_SessionOfShopA_NeverExecutesShopBsLogout es la prueba
-// end-to-end de CA-006-07 (DEC-058): la sesión de la barbería A nunca
-// ejecuta el logout (ni ninguna otra operación privada) de la barbería B,
+// end-to-end de CA-006-07 (DEC-058): la sesión del negocio A nunca
+// ejecuta el logout (ni ninguna otra operación privada) del negocio B,
 // verificado contra el endpoint real con dos tenants reales. Completa
 // CA-005-05/CA-005-01 de HU-005, que solo se probaron a nivel
 // PostgreSQL/RLS por no existir todavía ningún endpoint privado real.

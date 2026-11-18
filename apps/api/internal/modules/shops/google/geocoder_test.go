@@ -11,8 +11,8 @@ import (
 	"sync/atomic"
 	"testing"
 
-	"system-barbershop/internal/modules/shops"
-	"system-barbershop/internal/modules/shops/google"
+	"nava-agenda/internal/modules/shops"
+	"nava-agenda/internal/modules/shops/google"
 )
 
 func serve(t *testing.T, status int, body string) (*httptest.Server, *atomic.Int32) {

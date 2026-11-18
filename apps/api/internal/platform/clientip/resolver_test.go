@@ -5,7 +5,7 @@ import (
 	"net/http/httptest"
 	"testing"
 
-	"system-barbershop/internal/platform/clientip"
+	"nava-agenda/internal/platform/clientip"
 )
 
 func mustTrusted(t *testing.T, cidrs ...string) clientip.TrustedProxies {

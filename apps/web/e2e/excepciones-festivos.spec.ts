@@ -1,5 +1,5 @@
 import { test, expect, type Page } from '@playwright/test'
-import { openAsidePanel, pickDate, pickTime, selectBarber } from './horarios-controles'
+import { openAsidePanel, pickDate, pickTime, selectProfessional } from './horarios-controles'
 
 /**
  * Recorrido E2E de HU-041 (excepciones de jornada y festivos colombianos).
@@ -22,9 +22,9 @@ async function login(page: Page, email: string, password: string) {
   await expect(page).toHaveURL(/\/panel$/)
 }
 
-async function addBarber(page: Page, fullName: string) {
+async function addProfessional(page: Page, fullName: string) {
   await page.getByRole('link', { name: 'Barberos' }).click()
-  await expect(page).toHaveURL(/\/panel\/barberos$/)
+  await expect(page).toHaveURL(/\/panel\/profesionales$/)
   await page.getByRole('button', { name: 'Agregar barbero' }).click()
   const dialog = page.getByRole('dialog', { name: 'Agregar barbero' })
   await dialog.getByLabel('Nombre').fill(fullName)
@@ -56,7 +56,7 @@ async function addException(
 }
 
 test.describe('Excepciones de jornada y festivos (HU-041)', () => {
-  // Serial a propósito: varias pruebas comparten la MISMA barbería real
+  // Serial a propósito: varias pruebas comparten el mismo negocio real
   // (shopA/shopB), mismo criterio que horarios.spec.ts.
   test.describe.configure({ mode: 'serial' })
 
@@ -64,13 +64,13 @@ test.describe('Excepciones de jornada y festivos (HU-041)', () => {
     page,
   }) => {
     const stamp = Date.now()
-    const barberName = `E2E Festivos ${stamp}`
+    const professionalName = `E2E Festivos ${stamp}`
 
     await login(page, EMAIL, PASSWORD)
-    await addBarber(page, barberName)
+    await addProfessional(page, professionalName)
 
     await openSchedules(page)
-    await selectBarber(page, barberName)
+    await selectProfessional(page, professionalName)
 
     // Los festivos viven en un apartado del acordeón lateral: hay que abrirlo.
     await openAsidePanel(page, 'Calendario de festivos colombianos')
@@ -82,20 +82,20 @@ test.describe('Excepciones de jornada y festivos (HU-041)', () => {
     await expect(toggle).toBeChecked()
 
     await page.reload()
-    await selectBarber(page, barberName)
+    await selectProfessional(page, professionalName)
     await openAsidePanel(page, 'Calendario de festivos colombianos')
     await expect(toggle).toBeChecked()
   })
 
   test('agregar una excepción cerrada persiste tras recargar (CA-041-04)', async ({ page }) => {
     const stamp = Date.now()
-    const barberName = `E2E Excepcion Cerrada ${stamp}`
+    const professionalName = `E2E Excepcion Cerrada ${stamp}`
 
     await login(page, EMAIL, PASSWORD)
-    await addBarber(page, barberName)
+    await addProfessional(page, professionalName)
 
     await openSchedules(page)
-    await selectBarber(page, barberName)
+    await selectProfessional(page, professionalName)
 
     const dialog = await addException(page, { effectiveDate: '2027-12-08', closed: true })
     await dialog.getByRole('button', { name: 'Guardar' }).click()
@@ -104,7 +104,7 @@ test.describe('Excepciones de jornada y festivos (HU-041)', () => {
     await expect(exceptionList(page).getByText('Cerrado')).toBeVisible()
 
     await page.reload()
-    await selectBarber(page, barberName)
+    await selectProfessional(page, professionalName)
     await expect(exceptionList(page).getByText('2027-12-08')).toBeVisible()
   })
 
@@ -112,13 +112,13 @@ test.describe('Excepciones de jornada y festivos (HU-041)', () => {
     page,
   }) => {
     const stamp = Date.now()
-    const barberName = `E2E Excepcion Abierta ${stamp}`
+    const professionalName = `E2E Excepcion Abierta ${stamp}`
 
     await login(page, EMAIL, PASSWORD)
-    await addBarber(page, barberName)
+    await addProfessional(page, professionalName)
 
     await openSchedules(page)
-    await selectBarber(page, barberName)
+    await selectProfessional(page, professionalName)
 
     const dialog = await addException(page, { effectiveDate: '2027-07-20', closed: false })
     await pickTime(dialog, page, 'Hora de inicio', '09:00')
@@ -130,13 +130,13 @@ test.describe('Excepciones de jornada y festivos (HU-041)', () => {
 
   test('una fecha duplicada se rechaza sin cerrar el diálogo (CA-041-05)', async ({ page }) => {
     const stamp = Date.now()
-    const barberName = `E2E Fecha Duplicada ${stamp}`
+    const professionalName = `E2E Fecha Duplicada ${stamp}`
 
     await login(page, EMAIL, PASSWORD)
-    await addBarber(page, barberName)
+    await addProfessional(page, professionalName)
 
     await openSchedules(page)
-    await selectBarber(page, barberName)
+    await selectProfessional(page, professionalName)
 
     const first = await addException(page, { effectiveDate: '2027-12-25', closed: true })
     await first.getByRole('button', { name: 'Guardar' }).click()
@@ -154,13 +154,13 @@ test.describe('Excepciones de jornada y festivos (HU-041)', () => {
     page,
   }) => {
     const stamp = Date.now()
-    const barberName = `E2E Editar Retirar Excepcion ${stamp}`
+    const professionalName = `E2E Editar Retirar Excepcion ${stamp}`
 
     await login(page, EMAIL, PASSWORD)
-    await addBarber(page, barberName)
+    await addProfessional(page, professionalName)
 
     await openSchedules(page)
-    await selectBarber(page, barberName)
+    await selectProfessional(page, professionalName)
 
     const dialog = await addException(page, { effectiveDate: '2027-05-01', closed: true })
     await dialog.getByRole('button', { name: 'Guardar' }).click()
@@ -179,24 +179,24 @@ test.describe('Excepciones de jornada y festivos (HU-041)', () => {
     await expect(exceptionList(page).getByText('2027-05-02')).not.toBeVisible()
 
     await page.reload()
-    await selectBarber(page, barberName)
+    await selectProfessional(page, professionalName)
     await expect(exceptionList(page).getByText('2027-05-02')).not.toBeVisible()
   })
 
-  test('un identificador real de otra barbería responde 404 al consultar el calendario de festivos (RN-TEN-01)', async ({
+  test('un identificador real de otro negocio responde 404 al consultar el calendario de festivos (RN-TEN-01)', async ({
     page,
   }) => {
     await login(page, EMAIL_B, PASSWORD_B)
     const stamp = Date.now()
     const nameB = `E2E Festivos Solo De B ${stamp}`
-    await addBarber(page, nameB)
+    await addProfessional(page, nameB)
 
-    const barberBId = await page.evaluate(async (name) => {
+    const professionalBId = await page.evaluate(async (name) => {
       const res = await fetch('/api/v1/private/professionals?limit=50', { credentials: 'include' })
       const body = (await res.json()) as { items: { id: string; fullName: string }[] }
       return body.items.find((b) => b.fullName === name)?.id ?? null
     }, nameB)
-    expect(barberBId).toBeTruthy()
+    expect(professionalBId).toBeTruthy()
 
     await page.goto('/acceso')
     await login(page, EMAIL, PASSWORD)
@@ -206,7 +206,7 @@ test.describe('Excepciones de jornada y festivos (HU-041)', () => {
         credentials: 'include',
       })
       return res.status
-    }, barberBId)
+    }, professionalBId)
     expect(crossTenantStatus).toBe(404)
   })
 })

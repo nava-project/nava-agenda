@@ -5,9 +5,9 @@ import (
 	"errors"
 	"net/http"
 
-	"system-barbershop/internal/modules/auth"
-	"system-barbershop/internal/platform/apperr"
-	"system-barbershop/internal/platform/httpserver"
+	"nava-agenda/internal/modules/auth"
+	"nava-agenda/internal/platform/apperr"
+	"nava-agenda/internal/platform/httpserver"
 )
 
 // SessionContextHandler expone GET /api/v1/private/auth/session (HU-012,
@@ -49,9 +49,9 @@ func (h *SessionContextHandler) ServeHTTP(w http.ResponseWriter, r *http.Request
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
 	_ = json.NewEncoder(w).Encode(SessionContextResponse{
-		Barbershop: BarbershopSummary{
-			ID:   sessionContext.BarbershopID,
-			Name: sessionContext.BarbershopName,
+		Business: BusinessSummary{
+			ID:   sessionContext.BusinessID,
+			Name: sessionContext.BusinessName,
 		},
 		ExpiresAt: sessionContext.ExpiresAt,
 	})

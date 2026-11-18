@@ -6,9 +6,9 @@ import (
 	"testing"
 	"time"
 
-	"system-barbershop/internal/modules/booking"
-	"system-barbershop/internal/platform/apperr"
-	"system-barbershop/internal/platform/idempotency"
+	"nava-agenda/internal/modules/booking"
+	"nava-agenda/internal/platform/apperr"
+	"nava-agenda/internal/platform/idempotency"
 )
 
 // fakeRescheduleRepository es un doble de booking.Repository que solo
@@ -22,7 +22,7 @@ type fakeRescheduleRepository struct {
 	detailFound bool
 	detailErr   error
 
-	rescheduleFn func(ctx context.Context, barbershopID string, input booking.RescheduleInput, key idempotency.Key, fingerprint idempotency.Fingerprint) (booking.RescheduleResult, error)
+	rescheduleFn func(ctx context.Context, businessID string, input booking.RescheduleInput, key idempotency.Key, fingerprint idempotency.Fingerprint) (booking.RescheduleResult, error)
 
 	lastRescheduleInput booking.RescheduleInput
 }
@@ -37,7 +37,7 @@ func (f *fakeRescheduleRepository) GetAppointmentDetail(
 }
 
 func (f *fakeRescheduleRepository) Reschedule(
-	ctx context.Context, barbershopID string, input booking.RescheduleInput, key idempotency.Key, fingerprint idempotency.Fingerprint,
+	ctx context.Context, businessID string, input booking.RescheduleInput, key idempotency.Key, fingerprint idempotency.Fingerprint,
 ) (booking.RescheduleResult, error) {
 	f.lastRescheduleInput = input
 	if f.rescheduleFn == nil {
@@ -46,7 +46,7 @@ func (f *fakeRescheduleRepository) Reschedule(
 			Appointment: booking.RescheduleAppointment{ID: "appt-1"},
 		}, nil
 	}
-	return f.rescheduleFn(ctx, barbershopID, input, key, fingerprint)
+	return f.rescheduleFn(ctx, businessID, input, key, fingerprint)
 }
 
 const validRescheduleAppointmentID = "8f3ac2b1-e4d5-46f6-a7c8-d9e0f1a2b3c4"
@@ -141,7 +141,7 @@ func TestRescheduleAppointment_GetAppointmentDetailError_ReturnsInternal(t *test
 }
 
 func TestRescheduleAppointment_TimezonePortError_Propagates(t *testing.T) {
-	repo := &fakeRescheduleRepository{detailFound: true, detail: booking.AppointmentDetail{BarberID: "barber-1", DurationMinutesSnapshot: 30}}
+	repo := &fakeRescheduleRepository{detailFound: true, detail: booking.AppointmentDetail{ProfessionalID: "professional-1", DurationMinutesSnapshot: 30}}
 	wantErr := apperr.Internal(errors.New("shops: fallo simulado"))
 	svc := booking.NewRescheduleService(repo, fakeBlockCheckPort{}, fakeTimezonePort{err: wantErr}, fakeClock{now: time.Now()})
 
@@ -153,7 +153,7 @@ func TestRescheduleAppointment_TimezonePortError_Propagates(t *testing.T) {
 }
 
 func TestRescheduleAppointment_BlockedInterval_ReturnsConflictWithoutCallingRepository(t *testing.T) {
-	repo := &fakeRescheduleRepository{detailFound: true, detail: booking.AppointmentDetail{BarberID: "barber-1", DurationMinutesSnapshot: 30}}
+	repo := &fakeRescheduleRepository{detailFound: true, detail: booking.AppointmentDetail{ProfessionalID: "professional-1", DurationMinutesSnapshot: 30}}
 	svc := booking.NewRescheduleService(repo, fakeBlockCheckPort{blocked: true}, fakeTimezonePort{timezone: "America/Bogota"}, fakeClock{now: time.Now()})
 
 	req := validRescheduleRequest(t, time.Now().Add(48*time.Hour))
@@ -166,7 +166,7 @@ func TestRescheduleAppointment_BlockedInterval_ReturnsConflictWithoutCallingRepo
 
 // CA-065-04: reprogramar a un intervalo fuera de la jornada efectiva se rechaza sin escritura.
 func TestRescheduleAppointment_OutsideWorkingHours_ReturnsValidationWithoutCallingRepository(t *testing.T) {
-	repo := &fakeRescheduleRepository{detailFound: true, detail: booking.AppointmentDetail{BarberID: "barber-1", DurationMinutesSnapshot: 30}}
+	repo := &fakeRescheduleRepository{detailFound: true, detail: booking.AppointmentDetail{ProfessionalID: "professional-1", DurationMinutesSnapshot: 30}}
 	svc := booking.NewRescheduleService(repo, fakeBlockCheckPort{outsideHours: true}, fakeTimezonePort{timezone: "America/Bogota"}, fakeClock{now: time.Now()})
 
 	req := validRescheduleRequest(t, time.Now().Add(48*time.Hour))
@@ -178,7 +178,7 @@ func TestRescheduleAppointment_OutsideWorkingHours_ReturnsValidationWithoutCalli
 }
 
 func TestRescheduleAppointment_BlockCheckPortError_Propagates(t *testing.T) {
-	repo := &fakeRescheduleRepository{detailFound: true, detail: booking.AppointmentDetail{BarberID: "barber-1", DurationMinutesSnapshot: 30}}
+	repo := &fakeRescheduleRepository{detailFound: true, detail: booking.AppointmentDetail{ProfessionalID: "professional-1", DurationMinutesSnapshot: 30}}
 	wantErr := apperr.Internal(errors.New("schedule: fallo simulado"))
 	svc := booking.NewRescheduleService(repo, fakeBlockCheckPort{err: wantErr}, fakeTimezonePort{timezone: "America/Bogota"}, fakeClock{now: time.Now()})
 
@@ -192,7 +192,7 @@ func TestRescheduleAppointment_BlockCheckPortError_Propagates(t *testing.T) {
 func TestRescheduleAppointment_ValidRequest_ComputesEndsAtFromDurationSnapshotAndCallsRepository(t *testing.T) {
 	repo := &fakeRescheduleRepository{
 		detailFound: true,
-		detail:      booking.AppointmentDetail{BarberID: "barber-1", DurationMinutesSnapshot: 45},
+		detail:      booking.AppointmentDetail{ProfessionalID: "professional-1", DurationMinutesSnapshot: 45},
 	}
 	svc := booking.NewRescheduleService(repo, fakeBlockCheckPort{}, fakeTimezonePort{timezone: "America/Bogota"}, fakeClock{now: time.Now()})
 
@@ -227,7 +227,7 @@ func TestRescheduleAppointment_RepositoryResult_PassesThrough(t *testing.T) {
 	}
 	repo := &fakeRescheduleRepository{
 		detailFound: true,
-		detail:      booking.AppointmentDetail{BarberID: "barber-1", DurationMinutesSnapshot: 30},
+		detail:      booking.AppointmentDetail{ProfessionalID: "professional-1", DurationMinutesSnapshot: 30},
 		rescheduleFn: func(context.Context, string, booking.RescheduleInput, idempotency.Key, idempotency.Fingerprint) (booking.RescheduleResult, error) {
 			return want, nil
 		},

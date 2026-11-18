@@ -6,7 +6,7 @@ import (
 	"strings"
 	"time"
 
-	"system-barbershop/internal/platform/apperr"
+	"nava-agenda/internal/platform/apperr"
 )
 
 // MaxReasonLength coincide con working_hour_override_reason_ck
@@ -24,7 +24,7 @@ type ExceptionSegment struct {
 	DurationMinutes int
 }
 
-// ScheduleException es la excepción de jornada de un barbero para una
+// ScheduleException es la excepción de jornada de un profesional para una
 // fecha civil concreta (HU-041, RN-BLQ-02, CA-041-04/05). IsClosed decide
 // la forma: true significa día completamente cerrado (Segments siempre
 // vacío); false significa día abierto con uno o varios tramos propios
@@ -40,9 +40,9 @@ type ScheduleException struct {
 	UpdatedAt     time.Time
 }
 
-// exceptionIDPattern es la misma forma canónica que barberIDPattern/
+// exceptionIDPattern es la misma forma canónica que professionalIDPattern/
 // workingHourIDPattern.
-var exceptionIDPattern = barberIDPattern
+var exceptionIDPattern = professionalIDPattern
 
 // LooksLikeExceptionID informa si id tiene la forma de un UUID válido.
 func LooksLikeExceptionID(id string) bool {
@@ -130,7 +130,7 @@ func ValidateExceptionShape(isClosed bool, segments []CreateExceptionSegmentInpu
 
 // ExceptionCursor es la posición decodificada de una página de la lista de
 // excepciones (CA-041-04/05): orden estable por fecha efectiva y luego
-// identificador, exactamente lo que idx_working_hour_override_shop_barber_date
+// identificador, exactamente lo que idx_working_hour_override_shop_professional_date
 // indexa.
 type ExceptionCursor struct {
 	EffectiveDate string

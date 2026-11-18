@@ -63,7 +63,7 @@ describe('rescheduleAvailability', () => {
 })
 
 describe('groupStartsByCivilDate', () => {
-  it('agrupa por el día civil de la barbería, no del dispositivo', () => {
+  it('agrupa por el día civil del negocio, no del dispositivo', () => {
     // 04:30Z del 16 sigue siendo el 15 en Bogotá (UTC-5).
     const days = groupStartsByCivilDate(
       ['2027-03-15T22:00:00Z', '2027-03-16T04:30:00Z', '2027-03-16T14:00:00Z'],

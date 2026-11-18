@@ -16,13 +16,13 @@ import (
 
 	"github.com/go-chi/chi/v5"
 
-	"system-barbershop/internal/platform/database"
+	"nava-agenda/internal/platform/database"
 )
 
 // Recorrido HTTP completo de HU-100 contra el router REAL y PostgreSQL con dos
-// barberías (database/testdata/hu100_resenas.sql): el cliente califica con el
-// token de su enlace → aparece en la selección pública → la barbería la oculta
-// desde el panel → desaparece del promedio público → la otra barbería no puede
+// negocios (database/testdata/hu100_resenas.sql): el cliente califica con el
+// token de su enlace → aparece en la selección pública → el negocio la oculta
+// desde el panel → desaparece del promedio público → el otro negocio no puede
 // tocarla.
 const (
 	reviewShopUno    = "01010001-0101-0101-0101-010100010001"
@@ -34,9 +34,9 @@ const (
 	reviewUserDos = "01019002-0101-0101-0101-010190029002"
 )
 
-// seedCompletedAppointmentWithToken crea un barbero propio, una cita completada
-// y un token vigente; devuelve (barberID, token en claro).
-func seedCompletedAppointmentWithToken(t *testing.T, db *database.DB, status string) (barberID, token string) {
+// seedCompletedAppointmentWithToken crea un profesional propio, una cita completada
+// y un token vigente; devuelve (professionalID, token en claro).
+func seedCompletedAppointmentWithToken(t *testing.T, db *database.DB, status string) (professionalID, token string) {
 	t.Helper()
 	buf := make([]byte, 32)
 	if _, err := rand.Read(buf); err != nil {
@@ -46,9 +46,9 @@ func seedCompletedAppointmentWithToken(t *testing.T, db *database.DB, status str
 	sum := sha256.Sum256([]byte(token))
 	hash := hex.EncodeToString(sum[:])
 
-	err := db.InTenantTx(context.Background(), database.BarbershopID(reviewShopUno), func(ctx context.Context, q database.Queries) error {
+	err := db.InTenantTx(context.Background(), database.BusinessID(reviewShopUno), func(ctx context.Context, q database.Queries) error {
 		if err := q.QueryRow(ctx, `INSERT INTO professional (business_id, full_name) VALUES ($1, $2) RETURNING id`,
-			reviewShopUno, "Barbero reseñas "+strconv.FormatInt(time.Now().UnixNano(), 10)).Scan(&barberID); err != nil {
+			reviewShopUno, "Barbero reseñas "+strconv.FormatInt(time.Now().UnixNano(), 10)).Scan(&professionalID); err != nil {
 			return err
 		}
 		var customerID, appointmentID string
@@ -66,7 +66,7 @@ func seedCompletedAppointmentWithToken(t *testing.T, db *database.DB, status str
 			                          status, origin, resolved_at, service_name_snapshot, duration_minutes_snapshot,
 			                          price_amount_snapshot, price_currency_snapshot)
 			 VALUES ($1, $2, $3, $4, 'Cliente de prueba', $5, $6, $7, 'manual', `+resolved+`, 'Servicio', 30, 20000, 'COP')
-			 RETURNING id`, reviewShopUno, barberID, reviewServiceUno, customerID, starts, starts.Add(30*time.Minute), status).Scan(&appointmentID); err != nil {
+			 RETURNING id`, reviewShopUno, professionalID, reviewServiceUno, customerID, starts, starts.Add(30*time.Minute), status).Scan(&appointmentID); err != nil {
 			return err
 		}
 		issued := time.Now().UTC().Add(-time.Hour)
@@ -78,7 +78,7 @@ func seedCompletedAppointmentWithToken(t *testing.T, db *database.DB, status str
 	if err != nil {
 		t.Fatalf("sembrar cita completada: %v", err)
 	}
-	return barberID, token
+	return professionalID, token
 }
 
 func reviewRequest(router *chi.Mux, method, path, cookie, body string) *httptest.ResponseRecorder {
@@ -117,10 +117,10 @@ func TestReviews_HTTP_Journey_RateThenPublicThenHideThenGone(t *testing.T) {
 	if err != nil {
 		t.Fatalf("buildRouter: %v", err)
 	}
-	barberID, token := seedCompletedAppointmentWithToken(t, db, "completed")
+	professionalID, token := seedCompletedAppointmentWithToken(t, db, "completed")
 	reviewPath := "/api/v1/customer/appointments/" + token + "/review"
-	publicPath := "/api/v1/public/businesses/" + reviewSlugUno + "/professionals/" + barberID + "/reviews"
-	panelPath := "/api/v1/private/professionals/" + barberID + "/reviews"
+	publicPath := "/api/v1/public/businesses/" + reviewSlugUno + "/professionals/" + professionalID + "/reviews"
+	panelPath := "/api/v1/private/professionals/" + professionalID + "/reviews"
 	cookieUno := createSessionCookie(t, db, reviewShopUno, reviewUserUno, "reviews-uno")
 	cookieDos := createSessionCookie(t, db, reviewShopDos, reviewUserDos, "reviews-dos")
 
@@ -157,9 +157,9 @@ func TestReviews_HTTP_Journey_RateThenPublicThenHideThenGone(t *testing.T) {
 		t.Fatalf("lista pública: %+v", pub)
 	}
 
-	// La otra barbería no ve ni modifica nada (RN-TEN-01).
+	// El otro negocio no ve ni modifica nada (RN-TEN-01).
 	if rec := reviewRequest(router, http.MethodGet, panelPath, cookieDos, ""); rec.Code != http.StatusNotFound {
-		t.Fatalf("panel de Dos sobre un barbero de Uno: esperaba 404, fue %d", rec.Code)
+		t.Fatalf("panel de Dos sobre un profesional de Uno: esperaba 404, fue %d", rec.Code)
 	}
 	panel := decodeJSON[struct {
 		Items []struct {
@@ -220,11 +220,11 @@ func TestReviews_HTTP_NotReviewableAppointmentsAndBadTokens_AreUniform(t *testin
 			t.Fatalf("token %.12s: esperaba 404, fue %d", token, rec.Code)
 		}
 	}
-	// Panel y lista pública sin sesión / con barbero inexistente.
+	// Panel y lista pública sin sesión / con profesional inexistente.
 	if rec := reviewRequest(router, http.MethodGet, "/api/v1/private/professionals/8f3ac2b1-e4d5-46f6-a7c8-d9e0f1a2b3c4/reviews", "", ""); rec.Code != http.StatusUnauthorized {
 		t.Fatalf("panel sin sesión: esperaba 401, fue %d", rec.Code)
 	}
 	if rec := reviewRequest(router, http.MethodGet, "/api/v1/public/businesses/"+reviewSlugUno+"/professionals/8f3ac2b1-e4d5-46f6-a7c8-d9e0f1a2b3c4/reviews", "", ""); rec.Code != http.StatusNotFound {
-		t.Fatalf("barbero inexistente: esperaba 404, fue %d", rec.Code)
+		t.Fatalf("profesional inexistente: esperaba 404, fue %d", rec.Code)
 	}
 }

@@ -8,20 +8,20 @@ import (
 	"unicode/utf8"
 )
 
-// barberIDPattern refleja la forma de un UUID, mismo criterio que
-// staff.LooksLikeBarberID/schedule.LooksLikeBarberID (CA-002-06: cada
+// professionalIDPattern refleja la forma de un UUID, mismo criterio que
+// staff.LooksLikeProfessionalID/schedule.LooksLikeProfessionalID (CA-002-06: cada
 // módulo repite su propia validación de forma sin importar el paquete
 // dueño). Un identificador que no cumple esta forma no puede corresponder
 // a ninguna fila real: se trata igual que "no existe" (mismo
 // apperr.NotFound) en vez de dejar que la consulta SQL falle con un error
 // de tipo.
-var barberIDPattern = regexp.MustCompile(
+var professionalIDPattern = regexp.MustCompile(
 	`^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$`,
 )
 
-// LooksLikeBarberID informa si id tiene la forma de un UUID válido.
-func LooksLikeBarberID(id string) bool {
-	return barberIDPattern.MatchString(id)
+// LooksLikeProfessionalID informa si id tiene la forma de un UUID válido.
+func LooksLikeProfessionalID(id string) bool {
+	return professionalIDPattern.MatchString(id)
 }
 
 // Status es uno de los cinco estados cerrados de estados-citas.md §2.
@@ -30,11 +30,11 @@ func LooksLikeBarberID(id string) bool {
 type Status string
 
 const (
-	StatusConfirmed           Status = "confirmed"
-	StatusCompleted           Status = "completed"
-	StatusCancelledByCustomer Status = "cancelled_by_customer"
-	StatusCancelledByBarber   Status = "cancelled_by_professional"
-	StatusNoShow              Status = "no_show"
+	StatusConfirmed               Status = "confirmed"
+	StatusCompleted               Status = "completed"
+	StatusCancelledByCustomer     Status = "cancelled_by_customer"
+	StatusCancelledByProfessional Status = "cancelled_by_professional"
+	StatusNoShow                  Status = "no_show"
 )
 
 // OccupiesSchedule refleja EXACTAMENTE el mismo criterio que la columna
@@ -53,7 +53,7 @@ func (s Status) OccupiesSchedule() bool {
 
 func (s Status) isValid() bool {
 	switch s {
-	case StatusConfirmed, StatusCompleted, StatusCancelledByCustomer, StatusCancelledByBarber, StatusNoShow:
+	case StatusConfirmed, StatusCompleted, StatusCancelledByCustomer, StatusCancelledByProfessional, StatusNoShow:
 		return true
 	default:
 		return false
@@ -61,7 +61,7 @@ func (s Status) isValid() bool {
 }
 
 // Origin distingue una cita nacida del flujo público (B4, todavía sin
-// construir) de una creada manualmente por el barbero (HU-061). HU-060 no
+// construir) de una creada manualmente por el profesional (HU-061). HU-060 no
 // expone ninguno de los dos flujos: solo persiste el origen que el
 // llamador ya decidió.
 type Origin string
@@ -82,14 +82,14 @@ func (o Origin) isValid() bool {
 type EventType string
 
 const (
-	EventTypeAppointmentCreated             EventType = "appointment_created"
-	EventTypeAppointmentRescheduled         EventType = "appointment_rescheduled"
-	EventTypeAppointmentServiceChanged      EventType = "appointment_service_changed"
-	EventTypeAppointmentCompleted           EventType = "appointment_completed"
-	EventTypeAppointmentCancelledByCustomer EventType = "appointment_cancelled_by_customer"
-	EventTypeAppointmentCancelledByBarber   EventType = "appointment_cancelled_by_professional"
-	EventTypeAppointmentNoShow              EventType = "appointment_no_show"
-	EventTypeAppointmentStatusCorrected     EventType = "appointment_status_corrected"
+	EventTypeAppointmentCreated                 EventType = "appointment_created"
+	EventTypeAppointmentRescheduled             EventType = "appointment_rescheduled"
+	EventTypeAppointmentServiceChanged          EventType = "appointment_service_changed"
+	EventTypeAppointmentCompleted               EventType = "appointment_completed"
+	EventTypeAppointmentCancelledByCustomer     EventType = "appointment_cancelled_by_customer"
+	EventTypeAppointmentCancelledByProfessional EventType = "appointment_cancelled_by_professional"
+	EventTypeAppointmentNoShow                  EventType = "appointment_no_show"
+	EventTypeAppointmentStatusCorrected         EventType = "appointment_status_corrected"
 )
 
 // ActorType es quién generó una entrada de historial (RN-HIS-01):
@@ -239,13 +239,13 @@ func (c CustomerInput) validate() error {
 
 // Customer es un cliente ya persistido.
 type Customer struct {
-	ID           string
-	BarbershopID string
-	FullName     string
-	Phone        *string
-	Email        *string
-	CreatedAt    time.Time
-	UpdatedAt    time.Time
+	ID         string
+	BusinessID string
+	FullName   string
+	Phone      *string
+	Email      *string
+	CreatedAt  time.Time
+	UpdatedAt  time.Time
 }
 
 // Appointment es una cita ya persistida. OccupiesSchedule refleja la
@@ -253,8 +253,8 @@ type Customer struct {
 // en Go de forma independiente (estados-citas.md §11).
 type Appointment struct {
 	ID                       string
-	BarbershopID             string
-	BarberID                 string
+	BusinessID               string
+	ProfessionalID           string
 	ServiceID                string
 	CustomerID               string
 	AttendeeName             string
@@ -300,19 +300,19 @@ func (h HomeService) validate() error {
 // CreateInternalInput es la entrada ya autorizada de la primitiva
 // transaccional interna (§2.2 del prompt de HU-060): quien la construye
 // (HU-061 en adelante) ya validó jornada, bloqueos y asignación
-// servicio-barbero; CreateInternal solo aplica las garantías de forma e
+// servicio-profesional; CreateInternal solo aplica las garantías de forma e
 // integridad que le corresponden a este núcleo.
 type CreateInternalInput struct {
-	BarberID     string
-	ServiceID    string
-	AttendeeName string
-	StartsAt     time.Time
-	EndsAt       time.Time
-	Origin       Origin
-	Service      ServiceSnapshot
-	CustomerNote *string
-	Customer     CustomerInput
-	Actor        Actor
+	ProfessionalID string
+	ServiceID      string
+	AttendeeName   string
+	StartsAt       time.Time
+	EndsAt         time.Time
+	Origin         Origin
+	Service        ServiceSnapshot
+	CustomerNote   *string
+	Customer       CustomerInput
+	Actor          Actor
 	// HomeService es nil para un turno en el local (DEC-131).
 	HomeService *HomeService
 }
@@ -323,8 +323,8 @@ func (in CreateInternalInput) validate() error {
 			return err
 		}
 	}
-	if strings.TrimSpace(in.BarberID) == "" {
-		return errBarberIDRequired()
+	if strings.TrimSpace(in.ProfessionalID) == "" {
+		return errProfessionalIDRequired()
 	}
 	if strings.TrimSpace(in.ServiceID) == "" {
 		return errServiceIDRequired()
