@@ -21,7 +21,7 @@ pipeline {
   // en nava-project/nava-jenkins (DEC-184) y no guarda nada específico de Nava Agenda.
   environment {
     GITHUB_REPO = 'nava-project/nava-agenda'
-    PUBLIC_URL = 'https://nava.wtf'
+    PUBLIC_URL = 'https://agenda.nava.wtf'
   }
 
   stages {

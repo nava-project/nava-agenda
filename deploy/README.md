@@ -180,7 +180,7 @@ para desplegar ni hay registro de imágenes.
 | Pipeline | Cuándo corre | Qué hace |
 | --- | --- | --- |
 | `agenda/ci` | cada PR contra `main` y cada commit de `main` | los checks de [`Jenkinsfile`](../Jenkinsfile) y el estado en el commit de GitHub; en `main`, si pasa, construye las imágenes y dispara `deploy` |
-| `agenda/deploy` | lo dispara el CI de `main`; a mano con un SHA | verifica que el SHA sea de `main` y que su CI de Jenkins esté en verde (los commits anteriores a la migración no se aceptan, #634); con `AUTO=true` se omite si `main` ya avanzó. Worktree en el SHA → imágenes que falten → tar a `/srv/nava-agenda/releases/<sha>` → `deploy.sh --no-pull` → `GET $PUBLIC_URL/health`. `GITHUB_REPO` y `PUBLIC_URL` están en el `environment` del pipeline |
+| `agenda/deploy` | lo dispara el CI de `main`; a mano con un SHA | verifica que el SHA sea de `main` y que su CI de Jenkins esté en verde (los commits anteriores a la migración no se aceptan, #634); con `AUTO=true` se omite si `main` ya avanzó. Worktree en el SHA → imágenes que falten → tar a `/srv/nava-agenda/releases/<sha>` → `deploy.sh --no-pull` → `GET $PUBLIC_URL/health`. `GITHUB_REPO` y `PUBLIC_URL` (`https://agenda.nava.wtf`, #691) están en el `environment` del pipeline |
 
 Estado en el commit: `continuous-integration/jenkins/branch` (main) o `…/pr-merge` (PR). Los checks
 (los mismos del antiguo `ci.yml`) son `tools/ci/checks/go.sh`, `openapi.sh`, el frontend partido en
@@ -305,7 +305,7 @@ y luego `restore.sh`.
 - **Cambiar de versión mayor de PostgreSQL** exige un volcado y restauración; no se hace
   cambiando solo la etiqueta.
 - **Monitoreo y alertas**: no incluidos. El contenedor `backup` y los `healthcheck` de Docker
-  son la única señal; falta un monitor externo sobre `https://nava.wtf/health`.
+  son la única señal; falta un monitor externo sobre `https://agenda.nava.wtf/health` (`nava.wtf/health` es la landing y responde 200 con su HTML, #691).
 - **CSP**: Caddy aplica HSTS, `nosniff`, `X-Frame-Options` y `Permissions-Policy`, pero no una
   Content-Security-Policy estricta (la app carga scripts de Google Maps); requiere su propio
   trabajo y pruebas.
