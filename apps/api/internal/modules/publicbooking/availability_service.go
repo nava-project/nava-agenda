@@ -14,7 +14,7 @@ import (
 
 // AvailabilityService implementa el caso de uso de HU-094: proyectar los
 // inicios públicos válidos de un servicio ya elegido, para un profesional ya
-// elegido, dentro del negocio resuelta por slug. Deliberadamente
+// elegido, dentro del negocio resuelto por slug. Deliberadamente
 // SEPARADO de Service (que resuelve HU-090/HU-091/HU-092): necesita
 // colaborar con schedule/shops/catalog a través de puertos pequeños
 // (EffectiveDayPort/BusyBlocksPort/BookingPolicyPort/ServiceAssignmentPort/

@@ -30,7 +30,7 @@ type AppointmentView struct {
 	LateCancellationReasonRequired bool
 	Vocabulary                     Vocabulary
 
-	// BusinessContactEmail/Phone son el contacto público opcional de la
+	// BusinessContactEmail/Phone son el contacto público opcional del
 	// negocio (HU-020, el mismo que ya muestra la reserva pública): es el
 	// «contacto seguro» al que el cliente acude cuando la política rechaza su
 	// cancelación (CA-099-06, RN-CAN-01).
@@ -69,7 +69,7 @@ type ReviewView struct {
 // gramatical de ambas (`masculine` o `feminine`) para que la interfaz pública
 // concuerde. Es un subconjunto de shops.Brand sin acento ni perfil del panel;
 // este paquete no importa shops (CA-002-06), así que repite su propia forma
-// mínima. La base garantiza forma y largo (business_*_term_ck); una
+// mínima. La base garantiza forma y largo (business_*_term_ck); un
 // negocio que nunca lo configuró tiene los valores iniciales.
 type Vocabulary struct {
 	BusinessTerm           string

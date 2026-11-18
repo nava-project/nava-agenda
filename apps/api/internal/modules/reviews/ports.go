@@ -22,7 +22,7 @@ type Repository interface {
 	// CreateByTokenHash guarda la reseña del turno al que apunta el token, en una
 	// sola sentencia que exige turno `completed` y ninguna reseña previa.
 	CreateByTokenHash(ctx context.Context, tokenHash string, rating int, comment *string) (Review, CreateOutcome, error)
-	// ListPublic devuelve el resumen y las reseñas visibles del profesional de la
+	// ListPublic devuelve el resumen y las reseñas visibles del profesional del
 	// negocio con ese slug. found=false cubre slug inválido o no publicable y
 	// profesional inexistente o de otro negocio, sin distinguirlos.
 	ListPublic(ctx context.Context, slug, professionalID string, limit int) (PublicList, bool, error)

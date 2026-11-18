@@ -59,7 +59,7 @@ type CreateExceptionResult struct {
 }
 
 // UpdateExceptionResult es el desenlace de un intento de edición. Found en
-// false cubre una excepción inexistente, de otro profesional o de otra
+// false cubre una excepción inexistente, de otro profesional o de otro
 // negocio (CA-041-06). Conflict en true cubre CA-041-05: la fecha nueva
 // ya tiene otra excepción de este profesional (excluyendo la propia excepción
 // editada), o dos tramos nuevos se solapan.

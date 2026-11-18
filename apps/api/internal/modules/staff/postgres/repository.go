@@ -191,7 +191,7 @@ func (r *Repository) Get(ctx context.Context, businessID, professionalID string)
 		case err == nil:
 			found = true
 		case errors.Is(err, pgx.ErrNoRows):
-			// found queda false: cubre tanto "no existe" como "es de otra
+			// found queda false: cubre tanto "no existe" como "es de otro
 			// negocio" (CA-021-05), sin distinguir la causa.
 		default:
 			return fmt.Errorf("select professional: %w", err)

@@ -117,7 +117,7 @@ func newPublicBusinessProfileResponse(p publicbooking.BusinessProfile) PublicBus
 
 // ListPublicServicesHandler expone GET /public/businesses/{slug}/services
 // (HU-091, CA-091-01 a CA-091-03): catálogo público de servicios activos y
-// asignados del negocio resuelta por slug, sin sesión.
+// asignados del negocio resuelto por slug, sin sesión.
 type ListPublicServicesHandler struct {
 	service *publicbooking.Service
 }

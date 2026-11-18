@@ -8,7 +8,7 @@ import (
 )
 
 // BookingPolicyService implementa el caso de uso de HU-093: leer y
-// actualizar la configuración pública de reserva y cancelación de la
+// actualizar la configuración pública de reserva y cancelación del
 // negocio activo. Vive en el paquete shops porque shops es el módulo
 // dueño de la configuración del negocio (HU-020); no comparte Service
 // (HU-020) para no acoplar la precondición de versión de HU-093 a un

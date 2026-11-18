@@ -13,7 +13,7 @@ import (
 // tenant señuelo cuando ResolveLoginTenant no resolvió ningún negocio, así
 // LookupCredential ejecuta la MISMA forma de transacción y de consultas que
 // cuando sí hay un tenant real: un correo inexistente implica el mismo
-// trabajo de base de datos que un negocio resuelta con contraseña
+// trabajo de base de datos que un negocio resuelto con contraseña
 // incorrecta (CA-005-02). Es una elección de implementación, no una
 // decisión de producto que requiera registro en docs/00-control
 // (estandar-backend-go.md §1: "una excepción es válida cuando simplifica un

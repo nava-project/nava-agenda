@@ -251,7 +251,7 @@ ROLLBACK;
 DELETE FROM service WHERE id = '77777777-7777-7777-7777-777777777777';
 
 -- ---------------------------------------------------------------------------
--- CA-022-04/DEC-067 · nombre único entre servicios ACTIVOS de la misma
+-- CA-022-04/DEC-067 · nombre único entre servicios ACTIVOS del mismo
 -- negocio; un servicio de Otro negocio puede compartir el mismo nombre
 -- exacto sin conflicto
 -- ---------------------------------------------------------------------------

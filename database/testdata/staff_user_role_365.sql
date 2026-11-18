@@ -1,6 +1,6 @@
 -- Solo datos sintéticos del issue #365 (DEC-134): usuarios con cada combinación
 -- de roles sobre el par de negocios dedicado a las pruebas del paquete
--- internal/modules/shops/postgres (dos_negocios.sql), más un usuario de la otra
+-- internal/modules/shops/postgres (dos_negocios.sql), más un usuario del otro
 -- negocio para comprobar que los roles nunca cruzan el tenant. Los roles solo
 -- se pueden asignar con el rol administrativo, que es con el que se carga este
 -- archivo (la aplicación solo los lee).

@@ -114,7 +114,7 @@ type Location struct {
 // gramatical de ambas (`masculine` o `feminine`) para que la interfaz pública
 // concuerde. Es un subconjunto de shops.Brand sin acento ni perfil del panel;
 // este paquete no importa shops (CA-002-06), así que repite su propia forma
-// mínima. La base garantiza forma y largo (business_*_term_ck); una
+// mínima. La base garantiza forma y largo (business_*_term_ck); un
 // negocio que nunca lo configuró tiene los valores iniciales.
 type Vocabulary struct {
 	BusinessTerm           string
@@ -133,7 +133,7 @@ type Vocabulary struct {
 const MaxSlugLength = 40
 
 // PublicService es la proyección pública mínima de un servicio ofrecido por
-// el negocio resuelta (HU-091, CA-091-01): nombre, descripción, duración,
+// el negocio resuelto (HU-091, CA-091-01): nombre, descripción, duración,
 // precio y moneda. Nunca isActive, deactivatedAt, createdAt, updatedAt ni
 // ningún otro dato de auditoría o ciclo de vida -esos campos son alcance
 // exclusivo de catalog (HU-022/HU-024); el núcleo de publicbooking no

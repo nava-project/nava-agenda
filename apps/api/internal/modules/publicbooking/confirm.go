@@ -128,7 +128,7 @@ type ConfirmationService struct {
 // NewConfirmationService construye el caso de uso. profiles resuelve el
 // perfil público por slug (mismo Repository que Service, HU-090: necesario
 // aquí solo para BusinessProfile.Name, el resumen/correo de confirmación
-// lo necesita); availabilityRepo resuelve el identificador interno de la
+// lo necesita); availabilityRepo resuelve el identificador interno del
 // negocio (mismo AvailabilityRepository que AvailabilityService, HU-094).
 // webBaseURL es el origen del frontend público (config.Config.
 // PublicWebBaseURL, DEC-089/DEC-091); una cadena vacía es válida (el

@@ -135,7 +135,7 @@ type BlockRepository interface {
 
 	// GetSeries lee una serie por id dentro del profesional y tenant vigentes,
 	// con sus Dates/Exceptions, incluidas las retiradas lógicamente.
-	// found=false cubre solo "no existe"/"de otro profesional"/"de otra
+	// found=false cubre solo "no existe"/"de otro profesional"/"de otro
 	// negocio".
 	GetSeries(ctx context.Context, businessID, professionalID, seriesID string) (TimeBlockSeries, bool, error)
 

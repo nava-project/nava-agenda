@@ -43,7 +43,7 @@ type DailyAgendaEntry struct {
 }
 
 // AgendaService implementa el caso de uso de lectura de HU-062: agenda
-// diaria de un único profesional (DEC-074), calculada en la zona IANA de la
+// diaria de un único profesional (DEC-074), calculada en la zona IANA del
 // negocio, con un turno nocturno visible en cada agenda diaria cuyo rango
 // interseca su intervalo (DEC-075). Colabora con staff/shops exclusivamente
 // mediante ProfessionalPort/TimezonePort, mismo criterio que ManualBookingService
@@ -63,7 +63,7 @@ func NewAgendaService(repo Repository, professionals ProfessionalPort, timezones
 
 // ListDailyAgenda devuelve, ordenadas por StartsAt y luego por ID, las citas
 // del profesional professionalID cuyo intervalo interseca el rango civil de
-// dateLocal (DEC-075). dateLocal vacío significa "hoy" en la zona de la
+// dateLocal (DEC-075). dateLocal vacío significa "hoy" en la zona del
 // negocio, resuelto a partir de s.clock.Now() (nunca time.Now
 // directamente, docs/03-desarrollo/estandar-backend-go.md). Un professionalID con
 // forma inválida, inexistente o de otro negocio responde el mismo

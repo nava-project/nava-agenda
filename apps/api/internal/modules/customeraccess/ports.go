@@ -14,7 +14,7 @@ import (
 type Repository interface {
 	ResolveAppointmentByTokenHash(ctx context.Context, tokenHash string) (view AppointmentView, found bool, err error)
 
-	// ResolveCancellationTarget resuelve el mismo token vigente a la
+	// ResolveCancellationTarget resuelve el mismo token vigente al
 	// negocio y la cita sobre las que HU-099 cancela y HU-104 reprograma. found
 	// sigue la misma regla uniforme que ResolveAppointmentByTokenHash.
 	ResolveCancellationTarget(ctx context.Context, tokenHash string) (target CancellationTarget, found bool, err error)

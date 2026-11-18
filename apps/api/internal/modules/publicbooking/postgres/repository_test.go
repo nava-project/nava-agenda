@@ -226,7 +226,7 @@ func TestResolveBySlug_TenantAIsolatedFromTenantB(t *testing.T) {
 }
 
 // setVocabulary fija el vocabulario del negocio de slug y lo devuelve a los
-// valores iniciales al terminar la prueba, para no contaminar a las demás (la
+// valores iniciales al terminar la prueba, para no contaminar a las demás (el
 // negocio del fixture es compartida). Escribe como agenda_app dentro de su
 // propio tenant, igual que el panel.
 func setVocabulary(t *testing.T, db *database.DB, repo *publicbookingpostgres.Repository, slug string, v publicbooking.Vocabulary) {

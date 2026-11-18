@@ -7,7 +7,7 @@ import (
 	"time"
 )
 
-// BookingPolicy es la configuración pública de reserva y cancelación de la
+// BookingPolicy es la configuración pública de reserva y cancelación del
 // negocio activo (HU-093, RN-DIS-04, RN-DIS-06, RN-CAN-01, RN-CAN-02).
 // VersionToken es el token opaco de concurrencia (mismo patrón que
 // booking.EncodeVersionToken): determinista a partir del identificador de

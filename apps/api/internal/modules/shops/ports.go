@@ -16,7 +16,7 @@ type UpdateInput struct {
 
 // UpdateResult es el desenlace de un intento de actualización. TimezoneValid
 // en false significa cero escritura (CA-020-03): ni Name ni Contact* se
-// tocaron, y Business queda en su valor cero. Found en false cubre una
+// tocaron, y Business queda en su valor cero. Found en false cubre un
 // negocio no visible en el tenant vigente (defensivo: un principal
 // autenticado siempre tiene su propia fila, pero el contrato documenta 404
 // para este caso igual que GET, sin asumir que nunca puede ocurrir).

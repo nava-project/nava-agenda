@@ -11,7 +11,7 @@ type AvailabilityBookingPolicy struct {
 }
 
 // NewAvailabilityBookingPolicy construye el adaptador sobre el servicio de
-// ventanas por profesional (DEC-169), que a su vez hereda de la política de la
+// ventanas por profesional (DEC-169), que a su vez hereda de la política del
 // negocio (HU-093).
 func NewAvailabilityBookingPolicy(service *ProfessionalBookingPolicyService) AvailabilityBookingPolicy {
 	return AvailabilityBookingPolicy{service: service}

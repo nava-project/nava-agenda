@@ -77,7 +77,7 @@ func restoreBusinessRow(t *testing.T, db *database.DB, shop, name string) {
 
 // TestSettings_HTTP_ValidSession_ReturnsOwnBusiness cubre CA-020-01 a
 // nivel HTTP/PostgreSQL real: la lectura devuelve exactamente los cuatro
-// campos autorizados del negocio propietaria de la sesión.
+// campos autorizados del negocio propietario de la sesión.
 func TestSettings_HTTP_ValidSession_ReturnsOwnBusiness(t *testing.T) {
 	db := setupTestDB(t)
 	t.Cleanup(func() { db.Close() })

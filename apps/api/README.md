@@ -210,7 +210,7 @@ El dominio y los servicios **nunca** importan `net/http` ni Chi. Devuelven
 un `*apperr.Error`:
 
 ```go
-import "system-barbershop/internal/platform/apperr"
+import "nava-agenda/internal/platform/apperr"
 
 func (s *MiServicio) Buscar(ctx context.Context, id string) (*Turno, error) {
     turno, err := s.repo.Buscar(ctx, id)
@@ -261,7 +261,7 @@ contexto: la API no lo permite.
 ```go
 import (
     "context"
-    "system-barbershop/internal/platform/database"
+    "nava-agenda/internal/platform/database"
 )
 
 func (s *MiServicio) MiOperacion(ctx context.Context, shop database.BarbershopID) error {
@@ -350,9 +350,9 @@ la protección de concurrencia que `DEC-043` exige.
 
 ```go
 import (
-    "system-barbershop/internal/platform/database"
-    "system-barbershop/internal/platform/httpserver"
-    "system-barbershop/internal/platform/idempotency"
+    "nava-agenda/internal/platform/database"
+    "nava-agenda/internal/platform/httpserver"
+    "nava-agenda/internal/platform/idempotency"
 )
 
 func (s *MiServicio) handler(w http.ResponseWriter, r *http.Request) {

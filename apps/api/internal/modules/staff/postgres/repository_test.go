@@ -98,7 +98,7 @@ func createProfessional(t *testing.T, repo *staffpostgres.Repository, shop datab
 // TestList_TraversingUntilExhausted_TerminatesWithoutNextCursor recorre
 // TODA la colección actual de shopD (que puede tener filas de corridas
 // anteriores de esta suite: agenda_app no puede DELETE, CA-021-07/
-// DEC-047, así que esta prueba nunca asume un tamaño exacto ni una
+// DEC-047, así que esta prueba nunca asume un tamaño exacto ni un
 // negocio vacía) con limit=1, y confirma que el recorrido SIEMPRE termina
 // con NextCursor="" en algún momento, sin duplicados ni omisiones respecto
 // de una lectura de control con un límite grande.
@@ -331,7 +331,7 @@ func TestRename_OwnTenant_UpdatesByIDWithoutDuplicating(t *testing.T) {
 }
 
 func TestRename_DuplicateNameAcrossProfessionals_Allowed(t *testing.T) {
-	// HU-021 no impone unicidad de fullName: dos profesionales de la misma
+	// HU-021 no impone unicidad de fullName: dos profesionales del mismo
 	// negocio pueden compartir nombre.
 	db := setupTestDB(t)
 	repo := newRepository(db)

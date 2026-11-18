@@ -9,7 +9,7 @@ import (
 // PublicBusinessProfileResponse es la representación pública mínima de
 // un negocio habilitado (HU-090, CA-090-01, CA-090-04), forma exacta del
 // componente OpenAPI PublicBusinessProfile.yaml. contactEmail/
-// contactPhone viajan siempre presentes, con valor null explícito cuando la
+// contactPhone viajan siempre presentes, con valor null explícito cuando el
 // negocio no tiene ese contacto configurado, igual que
 // shops/httpapi.BusinessSettingsResponse.
 type PublicBusinessProfileResponse struct {

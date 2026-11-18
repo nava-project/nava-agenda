@@ -75,7 +75,7 @@ func ValidateRecurrenceKind(raw string) (string, error) {
 
 // dateLayout es la forma civil "YYYY-MM-DD" que también usa
 // schedule-exceptions (effectiveDate) para no depender de zona horaria en el
-// borde del contrato: el cliente ya resolvió a qué fecha civil de la
+// borde del contrato: el cliente ya resolvió a qué fecha civil del
 // negocio corresponde antes de enviarla.
 const dateLayout = "2006-01-02"
 

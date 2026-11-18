@@ -51,7 +51,7 @@ func (s *Service) SetHolidayCalendar(ctx context.Context, businessID, profession
 }
 
 // ListExceptions lee una página de excepciones del profesional de professionalID
-// dentro de businessID (CA-041-04/05). Un professionalID inexistente o de otra
+// dentro de businessID (CA-041-04/05). Un professionalID inexistente o de otro
 // negocio produce apperr.NotFound, verificado mediante ProfessionalPort antes
 // de tocar el repositorio (mismo criterio que List de HU-040).
 func (s *Service) ListExceptions(ctx context.Context, businessID, professionalID, cursorToken string, limit int) (ExceptionListResult, error) {
@@ -278,7 +278,7 @@ type EffectiveDay struct {
 // horario semanal de working_hour para el día ISO correspondiente
 // (HU-040). date se interpreta siempre como fecha civil, nunca como un
 // instante que dependa de la zona del dispositivo (CA-041-07): el
-// llamador es responsable de construirla ya en la zona IANA de la
+// llamador es responsable de construirla ya en la zona IANA del
 // negocio (HU-020).
 func (s *Service) ResolveEffectiveDay(ctx context.Context, businessID, professionalID string, date time.Time) (EffectiveDay, error) {
 	if err := ctx.Err(); err != nil {

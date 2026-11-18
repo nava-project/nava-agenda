@@ -18,7 +18,7 @@ func NewStaffActorNameLookup(repo Repository) StaffActorNameLookup {
 	return StaffActorNameLookup{repo: repo}
 }
 
-// Names resuelve el nombre visible de cada id de staffUserIDs, dentro de esa
+// Names resuelve el nombre visible de cada id de staffUserIDs, dentro de ese
 // negocio, en una sola consulta por lote (RN-HIS-01, HU-064, "sin generar
 // N+1"). Un id sin coincidencia (no debería ocurrir: la FK de
 // appointment_history es ON DELETE RESTRICT) simplemente está ausente del

@@ -408,7 +408,7 @@ func TestBrand_HTTP_Location_TwoTenants_NeverCrossesBusinesses(t *testing.T) {
 
 // TestBrand_HTTP_OffersHomeService_TogglesFromSettingsAndStaysPerTenant cubre
 // DEC-131 contra el router real: la marca expone el interruptor (apagado por
-// defecto), PATCH lo enciende/apaga, un PATCH sin él lo conserva y el de la
+// defecto), PATCH lo enciende/apaga, un PATCH sin él lo conserva y el del
 // negocio A nunca cambia el de B.
 func TestBrand_HTTP_OffersHomeService_TogglesFromSettingsAndStaysPerTenant(t *testing.T) {
 	db := setupTestDB(t)

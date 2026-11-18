@@ -135,7 +135,7 @@ func (s *AssignmentService) Unassign(ctx context.Context, businessID, profession
 		// Una forma inválida no puede corresponder a ninguna fila real: se
 		// trata igual que "no existe esa asignación" (CA-023-04), sin
 		// necesitar ProfessionalPort para este caso (a diferencia de List/Assign,
-		// donde el profesional puede tener forma válida pero pertenecer a otra
+		// donde el profesional puede tener forma válida pero pertenecer a otro
 		// negocio): Repository.Unassign ya distingue esa situación por la
 		// ausencia de la fila de asociación.
 		return UnassignResult{}, errAssignmentNotFound()

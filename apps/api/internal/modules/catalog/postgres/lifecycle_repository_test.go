@@ -389,7 +389,7 @@ func createCustomerFixture(t *testing.T, db *database.DB, shop database.Business
 	return id
 }
 
-// El recuento solo incluye citas `confirmed` futuras de ESE servicio y de la
+// El recuento solo incluye citas `confirmed` futuras de ESE servicio y del
 // negocio de la sesión; desactivar no toca ninguna cita (CA-024-03).
 func TestCountFutureAppointments_CountsOnlyConfirmedFutureOfThatServiceAndTenant(t *testing.T) {
 	db := setupTestDB(t)

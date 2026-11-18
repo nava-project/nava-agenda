@@ -184,7 +184,7 @@ func (s *Service) SetPhoto(ctx context.Context, businessID, professionalID, decl
 	return result.Professional, nil
 }
 
-// Photo lee la fotografía de un profesional. Un profesional inexistente, de otra
+// Photo lee la fotografía de un profesional. Un profesional inexistente, de otro
 // negocio o sin fotografía produce el mismo apperr.NotFound (CA-021-05).
 func (s *Service) Photo(ctx context.Context, businessID, professionalID string) (StoredPhoto, error) {
 	if err := ctx.Err(); err != nil {

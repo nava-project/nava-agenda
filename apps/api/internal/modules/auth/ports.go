@@ -55,7 +55,7 @@ type Repository interface {
 	// LookupCredential ejecuta dentro de una transacción tenant-aware (el
 	// tenant real cuando resolved=true, o un tenant señuelo estable cuando
 	// resolved=false) exactamente la misma forma de consulta en ambos
-	// casos, para que un correo inexistente y un negocio resuelta con
+	// casos, para que un correo inexistente y un negocio resuelto con
 	// contraseña incorrecta impliquen el mismo trabajo de base de datos
 	// (CA-005-02). resolved debe ser el mismo valor que devolvió
 	// ResolveLoginTenant para esta solicitud.

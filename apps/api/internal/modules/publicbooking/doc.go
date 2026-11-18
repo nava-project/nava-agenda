@@ -1,4 +1,4 @@
-// Package publicbooking resuelve el enlace público de reservas de una
+// Package publicbooking resuelve el enlace público de reservas de un
 // negocio (HU-090, F-PUB-01), según docs/03-desarrollo/estandar-backend-go.md.
 //
 // [Service] no conoce Chi, net/http, JSON, pgx ni internal/platform/database

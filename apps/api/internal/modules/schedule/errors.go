@@ -2,7 +2,7 @@ package schedule
 
 import "nava-agenda/internal/platform/apperr"
 
-// errProfessionalNotFound cubre tanto un profesional inexistente como uno de otra
+// errProfessionalNotFound cubre tanto un profesional inexistente como uno de otro
 // negocio (RN-TEN-01): el mismo Kind para ambos casos es lo que impide que
 // la capa HTTP los distinga, igual que el resto del backend.
 func errProfessionalNotFound() error {

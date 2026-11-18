@@ -661,7 +661,7 @@ func (r *Repository) UpdateSeriesWhole(ctx context.Context, businessID, professi
 // captura su iso_weekday y su effective_until ORIGINAL antes de truncarla,
 // la trunca en effectiveDate-1, e inserta la serie nueva desde
 // effectiveDate hasta ese effective_until original. Devuelve la serie
-// NUEVA. found=false cubre "no existe"/"de otro profesional"/"de otra
+// NUEVA. found=false cubre "no existe"/"de otro profesional"/"de otro
 // negocio"/"ya retirada".
 func (r *Repository) SplitSeriesFrom(ctx context.Context, businessID, professionalID, seriesID, effectiveDate string, input schedule.UpdateSeriesInput) (schedule.UpdateSeriesResult, error) {
 	var result schedule.UpdateSeriesResult

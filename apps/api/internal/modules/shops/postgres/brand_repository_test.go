@@ -10,7 +10,7 @@ import (
 )
 
 // restoreBrand devuelve la marca de shop a los valores iniciales al terminar
-// la prueba: comparten la fila de dos_negocios.sql en vez de crear una
+// la prueba: comparten la fila de dos_negocios.sql en vez de crear un
 // negocio propio (no existe alta de negocios).
 func restoreBrand(t *testing.T, db *database.DB, shop string) {
 	t.Helper()

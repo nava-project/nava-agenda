@@ -3,7 +3,7 @@
 // 20260916120000_add_public_resolve_appointment_token_tenant.sql) y
 // database/testdata/{hu098_acceso_turno.sql} cargado. Cada prueba crea su
 // propia cita con booking/postgres.Repository.CreateInternal (la misma
-// primitiva ya probada en booking/postgres/repository_test.go) sobre las
+// primitiva ya probada en booking/postgres/repository_test.go) sobre los
 // negocios dedicados del fixture, y agrega su propia fila
 // appointment_access_token con SQL directo: esa tabla es responsabilidad
 // de customeraccess/publicbooking, no de booking (docs/03-desarrollo/

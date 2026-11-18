@@ -13,7 +13,7 @@ import (
 type LoginOTPChannel string
 
 const (
-	// LoginOTPChannelEmail entrega el código por correo; es el valor de las
+	// LoginOTPChannelEmail entrega el código por correo; es el valor de los
 	// negocios nuevos (DEC-081).
 	LoginOTPChannelEmail LoginOTPChannel = "email"
 	// LoginOTPChannelWhatsApp lo entrega por WhatsApp oficial al teléfono
@@ -40,12 +40,12 @@ type LoginOTPRepository interface {
 	// found=false cubre una fila no visible en el tenant vigente (defensivo).
 	Get(ctx context.Context, businessID string) (channel LoginOTPChannel, found bool, err error)
 	// Update escribe el canal y devuelve el valor guardado; found=false cubre una
-	// fila no visible. Sin versión de concurrencia: es una preferencia de la
+	// fila no visible. Sin versión de concurrencia: es una preferencia del
 	// negocio y la última escritura gana (mismo criterio que la marca).
 	Update(ctx context.Context, businessID string, channel LoginOTPChannel) (stored LoginOTPChannel, found bool, err error)
 }
 
-// LoginOTPService implementa leer y cambiar el canal del código de acceso de la
+// LoginOTPService implementa leer y cambiar el canal del código de acceso del
 // negocio de la sesión (DEC-139). El negocio llega siempre de un
 // auth.Principal: no existe forma de leer o cambiar la de otra (RN-TEN-01).
 type LoginOTPService struct {

@@ -604,7 +604,7 @@ func (s *Service) RemoveSeriesException(ctx context.Context, businessID, profess
 // SeriesOccurrence es una ocurrencia expandida de una serie dentro del
 // rango consultado, en forma civil (fecha + hora local del negocio):
 // mismo criterio que working_hour/schedule-exceptions, que tampoco emiten
-// instantes absolutos porque el cliente ya conoce la zona IANA de la
+// instantes absolutos porque el cliente ya conoce la zona IANA del
 // negocio (GET .../business).
 type SeriesOccurrence struct {
 	SeriesID        string

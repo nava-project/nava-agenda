@@ -33,7 +33,7 @@ func doSessionContextRequest(router http.Handler, rawToken string) *httptest.Res
 
 // TestSessionContext_HTTP_ValidSession_ReturnsRealBusinessName cubre
 // CA-012-01/CA-012-04 a nivel HTTP/PostgreSQL real: el nombre devuelto es la
-// columna real del negocio propietaria de la sesión, nunca un valor
+// columna real del negocio propietario de la sesión, nunca un valor
 // fijo, y la respuesta no reemite la cookie con el Expires renovado (DEC-050:
 // la renovación deslizante llega al navegador en cada uso, también en esta lectura).
 func TestSessionContext_HTTP_ValidSession_ReturnsRealBusinessName(t *testing.T) {
@@ -140,7 +140,7 @@ func TestSessionContext_HTTP_NoCookie_Returns401Uniform(t *testing.T) {
 }
 
 // TestSessionContext_HTTP_RevokedSession_Returns401AndNeverExposesName
-// confirma que cerrar sesión invalida también esta lectura: el nombre de la
+// confirma que cerrar sesión invalida también esta lectura: el nombre del
 // negocio nunca se filtra a través de una cookie ya revocada.
 func TestSessionContext_HTTP_RevokedSession_Returns401AndNeverExposesName(t *testing.T) {
 	db := setupTestDB(t)

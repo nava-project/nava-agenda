@@ -245,7 +245,7 @@ func buildRouter(db *database.DB, logger *slog.Logger, cfg config.Config) (*chi.
 
 	// HU-092: selección pública de profesional. Mismo criterio de resolución
 	// sin sesión que HU-090/HU-091; serviceId nunca se confía sin
-	// revalidar pertenencia y vigencia contra el negocio resuelta por slug.
+	// revalidar pertenencia y vigencia contra el negocio resuelto por slug.
 	listPublicProfessionalsHandler := publicbookinghttpapi.NewListPublicProfessionalsHandler(publicBookingService)
 	router.Get("/api/v1/public/businesses/{slug}/services/{serviceId}/professionals", listPublicProfessionalsHandler.ServeHTTP)
 

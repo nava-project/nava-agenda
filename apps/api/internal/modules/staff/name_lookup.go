@@ -21,7 +21,7 @@ func NewProfessionalNameLookup(service *Service) ProfessionalNameLookup {
 	return ProfessionalNameLookup{service: service}
 }
 
-// Name informa el nombre visible de un profesional por id, dentro de esa
+// Name informa el nombre visible de un profesional por id, dentro de ese
 // negocio. found es false tanto si el profesional no existe como si pertenece
 // a otro negocio (RN-TEN-01), mismo criterio que ProfessionalLookup.Exists.
 func (l ProfessionalNameLookup) Name(ctx context.Context, businessID, professionalID string) (string, bool, error) {

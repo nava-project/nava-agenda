@@ -241,7 +241,7 @@ type Repository interface {
 }
 
 // ProfessionalNamePort resuelve el nombre visible de un profesional por id, dentro de
-// businessID (RN-TEN-01). found=false cubre inexistente o de otra
+// businessID (RN-TEN-01). found=false cubre inexistente o de otro
 // negocio, mismo criterio que ProfessionalPort.Exists. El adaptador real vive en
 // el paquete staff (staff.NewProfessionalNameLookup): booking nunca importa staff.
 type ProfessionalNamePort interface {

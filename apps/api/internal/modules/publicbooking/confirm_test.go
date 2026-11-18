@@ -132,7 +132,7 @@ const (
 )
 
 // newConfirmationFixture arma un ConfirmationService con todos los dobles
-// razonables por defecto: negocio resuelta, servicio de 30 min asignado,
+// razonables por defecto: negocio resuelto, servicio de 30 min asignado,
 // jornada 9:00-18:00 hoy en America/Bogota, sin ocupaciones, sin
 // coincidencia de cliente, puerto de persistencia que siempre Proceed.
 func newConfirmationFixture(now time.Time) (

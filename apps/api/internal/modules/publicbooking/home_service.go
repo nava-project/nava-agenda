@@ -53,7 +53,7 @@ func finiteWithin(v, lo, hi float64) bool {
 	return !math.IsNaN(v) && !math.IsInf(v, 0) && v >= lo && v <= hi
 }
 
-// errHomeServiceNotOffered cubre CA-103-05: el cliente pidió domicilio y la
+// errHomeServiceNotOffered cubre CA-103-05: el cliente pidió domicilio y el
 // negocio lo tiene apagado en el momento de confirmar, ya sea porque nunca lo
 // ofreció o porque lo apagó entre la elección y el envío. No crea el turno.
 func errHomeServiceNotOffered() error {

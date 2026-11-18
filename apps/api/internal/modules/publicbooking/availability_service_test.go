@@ -119,7 +119,7 @@ type fixedAvailabilityClock struct{ now time.Time }
 func (c fixedAvailabilityClock) Now() time.Time { return c.now }
 
 // availabilityFixture agrupa los cinco dobles con valores por defecto
-// razonables (negocio resuelta, servicio de 30 min asignado, zona
+// razonables (negocio resuelto, servicio de 30 min asignado, zona
 // America/Bogota, política sin restricción real, jornada 9:00-18:00 hoy sin
 // ocupaciones) para que cada prueba solo sobreescriba lo que le interesa.
 func newAvailabilityFixture(now time.Time) (

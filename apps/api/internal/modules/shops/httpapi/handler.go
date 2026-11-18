@@ -17,7 +17,7 @@ import (
 )
 
 // GetBusinessSettingsHandler expone GET /private/settings/business
-// (CA-020-01): lectura autenticada de la configuración básica de la
+// (CA-020-01): lectura autenticada de la configuración básica del
 // negocio activo.
 type GetBusinessSettingsHandler struct {
 	service *shops.Service

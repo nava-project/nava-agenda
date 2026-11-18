@@ -17,7 +17,7 @@ func errDescriptionTooLong() error {
 	return apperr.Validation("la descripción del profesional excede el largo máximo")
 }
 
-// errProfessionalNotFound cubre tanto un profesional inexistente como uno de otra
+// errProfessionalNotFound cubre tanto un profesional inexistente como uno de otro
 // negocio: el mismo Kind para ambos casos es lo que impide que la capa
 // HTTP los distinga (CA-021-05, RN-TEN-01), igual que el resto del
 // backend.

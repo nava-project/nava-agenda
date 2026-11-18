@@ -353,7 +353,7 @@ func (r *Repository) Get(ctx context.Context, businessID, serviceID string) (cat
 			svc.PriceCents = cents
 			found = true
 		case errors.Is(err, pgx.ErrNoRows):
-			// found queda false: cubre tanto "no existe" como "es de otra
+			// found queda false: cubre tanto "no existe" como "es de otro
 			// negocio" (CA-022-06), sin distinguir la causa.
 		default:
 			return fmt.Errorf("select service: %w", err)
