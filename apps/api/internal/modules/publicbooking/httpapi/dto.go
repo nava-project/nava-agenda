@@ -232,10 +232,13 @@ type AvailabilityResponse struct {
 
 // BarberAvailabilitySlotResponse es un inicio válido atribuido a un barbero
 // (DEC-162), forma exacta del componente OpenAPI
-// BarberAvailabilitySlotResponse.yaml.
+// ProfessionalAvailabilitySlotResponse.yaml.
 type BarberAvailabilitySlotResponse struct {
-	BarberID string    `json:"professionalId"`
-	StartsAt time.Time `json:"startsAt"`
+	BarberID string `json:"professionalId"`
+	// LegacyBarberID repite BarberID con el nombre anterior a DEC-183 (#661): Odin
+	// lo lee en cada hueco. Se retira cuando Odin migre al contrato nuevo.
+	LegacyBarberID string    `json:"barberId"`
+	StartsAt       time.Time `json:"startsAt"`
 }
 
 // ServiceAvailabilityResponse es la respuesta del agregado de disponibilidad

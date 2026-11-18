@@ -104,6 +104,20 @@ paths:
     $ref: './paths/integrations-odin.yaml#/~1integrations~1odin~1businesses~1{slug}~1customer-appointments~1lookup'
   /integrations/odin/businesses/{slug}/customer-access/challenge:
     $ref: './paths/integrations-odin.yaml#/~1integrations~1odin~1businesses~1{slug}~1customer-access~1challenge'
+  /public/barbershops/{slug}:
+    $ref: './paths/public-booking.yaml#/~1public~1barbershops~1{slug}'
+  /public/barbershops/{slug}/services:
+    $ref: './paths/public-booking.yaml#/~1public~1barbershops~1{slug}~1services'
+  /public/barbershops/{slug}/reviews:
+    $ref: './paths/public-booking.yaml#/~1public~1barbershops~1{slug}~1reviews'
+  /public/barbershops/{slug}/barbers:
+    $ref: './paths/public-booking.yaml#/~1public~1barbershops~1{slug}~1barbers'
+  /public/barbershops/{slug}/services/{serviceId}/barbers:
+    $ref: './paths/public-booking.yaml#/~1public~1barbershops~1{slug}~1services~1{serviceId}~1barbers'
+  /public/barbershops/{slug}/services/{serviceId}/availability:
+    $ref: './paths/public-booking.yaml#/~1public~1barbershops~1{slug}~1services~1{serviceId}~1availability'
+  /public/barbershops/{slug}/services/{serviceId}/barbers/{barberId}/availability:
+    $ref: './paths/public-booking.yaml#/~1public~1barbershops~1{slug}~1services~1{serviceId}~1barbers~1{barberId}~1availability'
   /integrations/odin/barbershops/{slug}/customer-appointments/lookup:
     $ref: './paths/integrations-odin.yaml#/~1integrations~1odin~1barbershops~1{slug}~1customer-appointments~1lookup'
   /integrations/odin/barbershops/{slug}/customer-access/challenge:

@@ -49,6 +49,17 @@ sección 18 para qué cuenta como cambio compatible o incompatible.
   `requestCustomerAccessCodeForOdinDeprecated`), hasta que Odin confirme el cambio.
 - `OdinAppointment.barberName` (`deprecated`) se sigue enviando con el mismo valor
   que el campo nuevo `professionalName`, también hasta que Odin lo confirme.
+- Odin también lee rutas públicas con la forma vieja. Quedan como alias temporales,
+  `deprecated: true` y con los mismos handlers, hasta que Odin migre:
+  `GET /public/barbershops/{slug}`, `…/services`, `…/reviews`, `…/barbers`,
+  `…/services/{serviceId}/barbers`, `…/services/{serviceId}/availability` y
+  `…/services/{serviceId}/barbers/{barberId}/availability` (cada `operationId` es el
+  de la ruta nueva con el sufijo `Deprecated`). La foto y las reseñas por profesional,
+  el reto de acceso y la confirmación no tienen alias: Odin no las usa.
+- `ProfessionalAvailabilitySlotResponse.barberId` (`deprecated`): cada hueco del
+  agregado `GET …/services/{serviceId}/availability` repite `professionalId` con el
+  nombre viejo, que Odin lee, por la ruta nueva y por el alias. Ningún otro campo que
+  Odin lee cambió de nombre.
 
 ## 0.59.0 · 2026-11-17
 

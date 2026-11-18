@@ -364,6 +364,153 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/public/barbershops/{slug}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Abrir el contexto público de un negocio por su enlace de reservas (ruta anterior)
+         * @deprecated
+         * @description Alias deprecado de `GET /public/businesses/{slug}` (DEC-183, issue #661): misma respuesta y mismos errores. Se conserva mientras Odin no use la ruta nueva; después se retira.
+         */
+        get: operations["resolvePublicBusinessDeprecated"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/public/barbershops/{slug}/services": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Listar el catálogo público de servicios de un negocio (ruta anterior)
+         * @deprecated
+         * @description Alias deprecado de `GET /public/businesses/{slug}/services` (DEC-183, issue #661): misma respuesta y mismos errores. Se conserva mientras Odin no use la ruta nueva; después se retira.
+         */
+        get: operations["listPublicServicesDeprecated"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/public/barbershops/{slug}/reviews": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Leer la calificación y las reseñas de Google del negocio (ruta anterior)
+         * @deprecated
+         * @description Alias deprecado de `GET /public/businesses/{slug}/reviews` (DEC-183, issue #661): misma respuesta y mismos errores. Se conserva mientras Odin no use la ruta nueva; después se retira.
+         */
+        get: operations["getPublicGoogleReviewsDeprecated"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/public/barbershops/{slug}/barbers": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Listar los profesionales elegibles del negocio con los servicios que hacen (ruta anterior)
+         * @deprecated
+         * @description Alias deprecado de `GET /public/businesses/{slug}/professionals` (DEC-183, issue #661): misma respuesta y mismos errores. Se conserva mientras Odin no use la ruta nueva; después se retira.
+         */
+        get: operations["listPublicProfessionalsWithServicesDeprecated"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/public/barbershops/{slug}/services/{serviceId}/barbers": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Listar los profesionales elegibles para un servicio público (ruta anterior)
+         * @deprecated
+         * @description Alias deprecado de `GET /public/businesses/{slug}/services/{serviceId}/professionals` (DEC-183, issue #661): misma respuesta y mismos errores. Se conserva mientras Odin no use la ruta nueva; después se retira.
+         */
+        get: operations["listPublicProfessionalsDeprecated"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/public/barbershops/{slug}/services/{serviceId}/availability": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Listar los inicios públicos válidos de un servicio con todos sus profesionales (ruta anterior)
+         * @deprecated
+         * @description Alias deprecado de `GET /public/businesses/{slug}/services/{serviceId}/availability` (DEC-183, issue #661): misma respuesta y mismos errores. Se conserva mientras Odin no use la ruta nueva; después se retira.
+         */
+        get: operations["listPublicServiceAvailabilityDeprecated"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/public/barbershops/{slug}/services/{serviceId}/barbers/{barberId}/availability": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Listar los inicios públicos válidos de un servicio con un profesional (ruta anterior)
+         * @deprecated
+         * @description Alias deprecado de `GET /public/businesses/{slug}/services/{serviceId}/professionals/{professionalId}/availability` (DEC-183, issue #661): misma respuesta y mismos errores. Se conserva mientras Odin no use la ruta nueva; después se retira.
+         */
+        get: operations["listPublicAvailabilityDeprecated"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/integrations/odin/barbershops/{slug}/customer-appointments/lookup": {
         parameters: {
             query?: never;
@@ -2451,6 +2598,13 @@ export interface components {
              */
             professionalId: string;
             /**
+             * Format: uuid
+             * @deprecated
+             * @description Mismo valor que `professionalId`. Se conserva mientras Odin no lea `professionalId` (DEC-183, issue #661); después se retira.
+             * @example 8f3ac2b1-e4d5-46f6-a7c8-d9e0f1a2b3c4
+             */
+            barberId: string;
+            /**
              * Format: date-time
              * @description Instante absoluto de inicio (ISO 8601 con offset explícito). El cliente lo presenta en la zona horaria del negocio (`timezone`), nunca en la del dispositivo (RN-DIS-07).
              * @example 2026-09-15T09:00:00-05:00
@@ -2956,35 +3110,6 @@ export interface components {
              */
             expiresAt: string;
         };
-        /** @description Reseña no oculta de un profesional. Sin identificador del turno ni del cliente: la reseña es anónima para el visitante. */
-        PublicReview: {
-            /** @example 5 */
-            rating: number;
-            /**
-             * @example Muy buen corte y puntual.
-             * @example null
-             */
-            comment: string | null;
-            /**
-             * Format: date-time
-             * @example 2027-03-15T16:10:00Z
-             */
-            createdAt: string;
-        };
-        /** @description Resumen y las reseñas no ocultas más recientes de un profesional (hasta 20), de la más reciente a la más antigua. */
-        PublicReviewList: {
-            /**
-             * @description Promedio de 1 decimal de las reseñas no ocultas, o `null` sin ninguna.
-             * @example 4.8
-             */
-            rating: number | null;
-            /**
-             * @description Total de reseñas no ocultas (puede superar los elementos devueltos).
-             * @example 12
-             */
-            ratingCount: number;
-            items: components["schemas"]["PublicReview"][];
-        };
         /** @description Reseña pública de la ficha de Google del negocio, tal como la entrega Google Places. La atribución al autor y a Google es obligatoria al mostrarla. No se persiste: vive solo en la caché de servidor de 6 horas. */
         PublicGoogleReview: {
             /**
@@ -3030,6 +3155,35 @@ export interface components {
              */
             mapsUrl: string | null;
             reviews: components["schemas"]["PublicGoogleReview"][];
+        };
+        /** @description Reseña no oculta de un profesional. Sin identificador del turno ni del cliente: la reseña es anónima para el visitante. */
+        PublicReview: {
+            /** @example 5 */
+            rating: number;
+            /**
+             * @example Muy buen corte y puntual.
+             * @example null
+             */
+            comment: string | null;
+            /**
+             * Format: date-time
+             * @example 2027-03-15T16:10:00Z
+             */
+            createdAt: string;
+        };
+        /** @description Resumen y las reseñas no ocultas más recientes de un profesional (hasta 20), de la más reciente a la más antigua. */
+        PublicReviewList: {
+            /**
+             * @description Promedio de 1 decimal de las reseñas no ocultas, o `null` sin ninguna.
+             * @example 4.8
+             */
+            rating: number | null;
+            /**
+             * @description Total de reseñas no ocultas (puede superar los elementos devueltos).
+             * @example 12
+             */
+            ratingCount: number;
+            items: components["schemas"]["PublicReview"][];
         };
         MetaWhatsAppWebhookRequest: {
             /**
@@ -5044,16 +5198,6 @@ export interface components {
                 "application/problem+json": components["schemas"]["Problem"];
             };
         };
-        /** @description Resumen y reseñas visibles más recientes del profesional. */
-        PublicReviewListSuccess: {
-            headers: {
-                "X-Request-Id": components["headers"]["XRequestId"];
-                [name: string]: unknown;
-            };
-            content: {
-                "application/json": components["schemas"]["PublicReviewList"];
-            };
-        };
         /** @description Calificación y reseñas de Google del negocio, o la estructura vacía explícita. */
         PublicGoogleReviewsSuccess: {
             headers: {
@@ -5062,6 +5206,16 @@ export interface components {
             };
             content: {
                 "application/json": components["schemas"]["PublicGoogleReviews"];
+            };
+        };
+        /** @description Resumen y reseñas visibles más recientes del profesional. */
+        PublicReviewListSuccess: {
+            headers: {
+                "X-Request-Id": components["headers"]["XRequestId"];
+                [name: string]: unknown;
+            };
+            content: {
+                "application/json": components["schemas"]["PublicReviewList"];
             };
         };
         /** @description La solicitud fue recibida. Si la cuenta existe y tiene el teléfono verificado, se envía un código por WhatsApp oficial y correo; en cualquier otro caso no ocurre ningún envío, sin que la respuesta lo revele. */
@@ -6346,6 +6500,193 @@ export interface operations {
             429: components["responses"]["RateLimitedProblem"];
             500: components["responses"]["InternalErrorProblem"];
             503: components["responses"]["ServiceUnavailableProblem"];
+        };
+    };
+    resolvePublicBusinessDeprecated: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Identificador del enlace público de reservas, tal como aparece en la URL. No es un identificador interno: su forma, generación y ciclo de vida los fija DEC-082 (resuelve DP-PUB-01). */
+                slug: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: components["responses"]["PublicBusinessProfileSuccess"];
+            /** @description `slug` con forma inválida, inexistente o de un negocio no publicable, sin distinguir la causa (CA-090-02, RN-TEN-01). */
+            404: {
+                headers: {
+                    "X-Request-Id": components["headers"]["XRequestId"];
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            500: components["responses"]["InternalErrorProblem"];
+        };
+    };
+    listPublicServicesDeprecated: {
+        parameters: {
+            query?: {
+                /** @description Cursor opaco devuelto por una página anterior (`nextCursor`). Sin este parámetro, la respuesta empieza en la primera página. */
+                cursor?: string;
+                /** @description Máximo de servicios por página. */
+                limit?: number;
+            };
+            header?: never;
+            path: {
+                /** @description Identificador del enlace público de reservas, tal como aparece en la URL. No es un identificador interno: su forma, generación y ciclo de vida los fija DEC-082 (resuelve DP-PUB-01). */
+                slug: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: components["responses"]["PublicServiceListSuccess"];
+            400: components["responses"]["InvalidRequestProblem"];
+            /** @description `slug` con forma inválida, inexistente o de un negocio no publicable, sin distinguir la causa (CA-090-02, RN-TEN-01). */
+            404: {
+                headers: {
+                    "X-Request-Id": components["headers"]["XRequestId"];
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            500: components["responses"]["InternalErrorProblem"];
+        };
+    };
+    getPublicGoogleReviewsDeprecated: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Identificador del enlace público de reservas (DEC-082). */
+                slug: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: components["responses"]["PublicGoogleReviewsSuccess"];
+            404: components["responses"]["NotFoundProblem"];
+            500: components["responses"]["InternalErrorProblem"];
+        };
+    };
+    listPublicProfessionalsWithServicesDeprecated: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Identificador del enlace público de reservas, tal como aparece en la URL. No es un identificador interno: su forma, generación y ciclo de vida los fija DEC-082 (resuelve DP-PUB-01). */
+                slug: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: components["responses"]["PublicProfessionalServicesListSuccess"];
+            /** @description `slug` con forma inválida, inexistente o de un negocio no publicable, sin distinguir la causa (CA-090-02, RN-TEN-01). */
+            404: {
+                headers: {
+                    "X-Request-Id": components["headers"]["XRequestId"];
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            500: components["responses"]["InternalErrorProblem"];
+        };
+    };
+    listPublicProfessionalsDeprecated: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Identificador del enlace público de reservas, tal como aparece en la URL. No es un identificador interno: su forma, generación y ciclo de vida los fija DEC-082 (resuelve DP-PUB-01). */
+                slug: string;
+                /** @description Identificador del servicio activo ya elegido (HU-091). No confiado: se revalida pertenencia, vigencia y asignación contra el negocio resuelto por `slug` en cada lectura (CA-092-03). */
+                serviceId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: components["responses"]["PublicProfessionalListSuccess"];
+            /** @description `slug` con forma inválida, inexistente o de un negocio no publicable, sin distinguir la causa (CA-090-02, RN-TEN-01). */
+            404: {
+                headers: {
+                    "X-Request-Id": components["headers"]["XRequestId"];
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            500: components["responses"]["InternalErrorProblem"];
+        };
+    };
+    listPublicServiceAvailabilityDeprecated: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Identificador del enlace público de reservas, tal como aparece en la URL. No es un identificador interno: su forma, generación y ciclo de vida los fija DEC-082 (resuelve DP-PUB-01). */
+                slug: string;
+                /** @description Identificador del servicio activo ya elegido (HU-091). No confiado: se revalida pertenencia y vigencia contra el negocio resuelto por `slug` en cada lectura (mismo criterio que CA-092-03). */
+                serviceId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: components["responses"]["ServiceAvailabilitySuccess"];
+            /** @description `slug` con forma inválida, inexistente o de un negocio no publicable, sin distinguir la causa (CA-090-02, RN-TEN-01). */
+            404: {
+                headers: {
+                    "X-Request-Id": components["headers"]["XRequestId"];
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            500: components["responses"]["InternalErrorProblem"];
+        };
+    };
+    listPublicAvailabilityDeprecated: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Identificador del enlace público de reservas, tal como aparece en la URL. No es un identificador interno: su forma, generación y ciclo de vida los fija DEC-082 (resuelve DP-PUB-01). */
+                slug: string;
+                /** @description Identificador del servicio activo ya elegido (HU-091). No confiado: se revalida pertenencia, vigencia y asignación contra el negocio resuelto por `slug` en cada lectura (mismo criterio que CA-092-03). */
+                serviceId: string;
+                /** @description Identificador del profesional (nombre anterior del parámetro). */
+                barberId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: components["responses"]["AvailabilitySuccess"];
+            /** @description `slug` con forma inválida, inexistente o de un negocio no publicable, sin distinguir la causa (CA-090-02, RN-TEN-01). */
+            404: {
+                headers: {
+                    "X-Request-Id": components["headers"]["XRequestId"];
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            500: components["responses"]["InternalErrorProblem"];
         };
     };
     lookupCustomerAppointmentsForOdinDeprecated: {

@@ -14,10 +14,13 @@ content:
         value:
           slots:
             - professionalId: 1c9a7f2d-3b4e-4a5f-9c6d-7e8f9a0b1c2d
+              barberId: 1c9a7f2d-3b4e-4a5f-9c6d-7e8f9a0b1c2d
               startsAt: "2026-09-15T09:00:00-05:00"
             - professionalId: 8f3ac2b1-e4d5-46f6-a7c8-d9e0f1a2b3c4
+              barberId: 8f3ac2b1-e4d5-46f6-a7c8-d9e0f1a2b3c4
               startsAt: "2026-09-15T09:00:00-05:00"
             - professionalId: 8f3ac2b1-e4d5-46f6-a7c8-d9e0f1a2b3c4
+              barberId: 8f3ac2b1-e4d5-46f6-a7c8-d9e0f1a2b3c4
               startsAt: "2026-09-15T09:30:00-05:00"
           durationMinutes: 45
           timezone: America/Bogota

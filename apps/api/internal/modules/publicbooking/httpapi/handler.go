@@ -406,7 +406,9 @@ func (h *ListPublicServiceAvailabilityHandler) ServeHTTP(w http.ResponseWriter, 
 func newServiceAvailabilityResponse(result publicbooking.ServiceAvailabilityResult) ServiceAvailabilityResponse {
 	slots := make([]BarberAvailabilitySlotResponse, 0, len(result.Slots))
 	for _, slot := range result.Slots {
-		slots = append(slots, BarberAvailabilitySlotResponse{BarberID: slot.BarberID, StartsAt: slot.StartsAt})
+		slots = append(slots, BarberAvailabilitySlotResponse{
+			BarberID: slot.BarberID, LegacyBarberID: slot.BarberID, StartsAt: slot.StartsAt,
+		})
 	}
 	return ServiceAvailabilityResponse{
 		Slots:           slots,

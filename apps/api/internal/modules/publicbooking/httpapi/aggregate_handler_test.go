@@ -198,15 +198,16 @@ func TestListPublicServiceAvailabilityHandler_Success_ReturnsBarberSlotsOrdered(
 			t.Fatalf("startsAt no crece en el par %d", i/2)
 		}
 	}
-	// Forma exacta de cada franja: barberId y startsAt.
+	// Forma exacta de cada franja: professionalId, startsAt y, deprecado mientras
+	// Odin no migre (DEC-183, #661), barberId con el mismo valor.
 	var raw struct {
 		Slots []map[string]any `json:"slots"`
 	}
 	if err := json.Unmarshal(rec.Body.Bytes(), &raw); err != nil {
 		t.Fatalf("decode: %v", err)
 	}
-	if len(raw.Slots[0]) != 2 {
-		t.Fatalf("cada franja debe tener exactamente professionalId y startsAt: %v", raw.Slots[0])
+	if len(raw.Slots[0]) != 3 || raw.Slots[0]["barberId"] != raw.Slots[0]["professionalId"] {
+		t.Fatalf("cada franja debe tener professionalId, barberId (mismo valor) y startsAt: %v", raw.Slots[0])
 	}
 }
 
