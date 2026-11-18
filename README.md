@@ -1,6 +1,6 @@
 # Nava Agenda
 
-Nava Agenda es una plataforma web de agenda para cualquier negocio que muestra servicios y agenda citas (salones, consultorios, estudios, barberías), según `DEC-183`. La app y su API viven en `agenda.nava.wtf`; `nava.wtf` sirve la landing de la familia NAVA desde el repositorio aparte `bcaceres19/nava`. Este repositorio reúne su definición de producto, requisitos, arquitectura e implementación. El objetivo del MVP es que un profesional pueda operar su jornada, permitir reservas públicas, evitar cruces de horario y conservar trazabilidad de los cambios. La identidad y la experiencia elegidas se especifican en [`docs/03-desarrollo/especificacion-frontend-nava.md`](docs/03-desarrollo/especificacion-frontend-nava.md).
+Nava Agenda es una plataforma web de agenda para cualquier negocio que muestra servicios y agenda citas (salones, consultorios, estudios, barberías), según `DEC-183`. La app y su API viven en `agenda.nava.wtf`; `nava.wtf` sirve la landing de la familia NAVA desde el repositorio aparte `nava-project/nava`. Este repositorio reúne su definición de producto, requisitos, arquitectura e implementación. El objetivo del MVP es que un profesional pueda operar su jornada, permitir reservas públicas, evitar cruces de horario y conservar trazabilidad de los cambios. La identidad y la experiencia elegidas se especifican en [`docs/03-desarrollo/especificacion-frontend-nava.md`](docs/03-desarrollo/especificacion-frontend-nava.md).
 
 ## Estado actual
 

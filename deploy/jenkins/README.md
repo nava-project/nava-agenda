@@ -41,11 +41,11 @@ En el servidor:
 | --- | --- | --- |
 | `agenda/ci` (multibranch) | webhook de GitHub (push y PR); escaneo cada 5 min de respaldo | solo `main` y los PR. `tools/ci/plan.sh` decide los checks (ver abajo); todos corren a la vez, cada uno en un contenedor de `tools/ci/ci.Dockerfile` con prioridad baja de CPU; Go y SQL con un PostgreSQL 14 efímero. Después, las imágenes (en `main` siempre). Estado en el commit: `continuous-integration/jenkins/branch` (main) o `…/pr-merge` (PR). En `main`, si pasa, dispara `agenda/deploy` |
 | `agenda/deploy` | el CI de `main` (`AUTO=true`); a mano con `SHA` | verifica que el SHA sea de `main` y que su CI esté en verde (a mano consulta en GitHub el estado de Jenkins; los commits anteriores a la migración ya no se aceptan, #634). Con `AUTO=true` se omite si `main` ya avanzó. Worktree en el SHA → imágenes que falten → tar a `/srv/nava-agenda/releases/<sha>` → `deploy.sh --no-pull` → `GET https://nava.wtf/health` |
-| `pedidos/ci` (multibranch) | webhook de `bcaceres19/nava-pedidos`; escaneo cada 5 min | mismo patrón que `agenda/ci` con el `Jenkinsfile` de ese repo: `npm test` con PostgreSQL 16 efímero, shellcheck y `deploy/compose.yaml` en paralelo; imagen `ghcr.io/bcaceres19/odin-pedidos:<sha>` (en `main` siempre). Árboles verificados en `$JENKINS_HOME/pedidos-ci-green/`. En `main`, si pasa, dispara `pedidos/deploy` |
+| `pedidos/ci` (multibranch) | webhook de `nava-project/nava-pedidos`; escaneo cada 5 min | mismo patrón que `agenda/ci` con el `Jenkinsfile` de ese repo: `npm test` con PostgreSQL 16 efímero, shellcheck y `deploy/compose.yaml` en paralelo; imagen `ghcr.io/bcaceres19/odin-pedidos:<sha>` (en `main` siempre). Árboles verificados en `$JENKINS_HOME/pedidos-ci-green/`. En `main`, si pasa, dispara `pedidos/deploy` |
 | `pedidos/deploy` | el CI de `main` (`AUTO=true`); a mano con `SHA` | `deploy/jenkins/deploy.Jenkinsfile` de ese repo: verifica el SHA (solo con el CI de Jenkins en verde), imagen si falta, `compose.yaml` y `deploy.sh` a `/srv/pedidos/releases/<sha>` → `current` → `deploy.sh <sha>` (respaldo, salud por `edge`, vuelta atrás) → `GET https://pedidos.nava.wtf/healthz` |
-| `nava/ci` (multibranch) | webhook de `bcaceres19/nava`; escaneo cada 5 min | landing de la familia NAVA (`DEC-183`): typecheck, lint, formato, vitest, build, shellcheck e imagen `ghcr.io/bcaceres19/nava-landing:<sha>`. En `main`, si pasa, dispara `nava/deploy` |
+| `nava/ci` (multibranch) | webhook de `nava-project/nava`; escaneo cada 5 min | landing de la familia NAVA (`DEC-183`): typecheck, lint, formato, vitest, build, shellcheck e imagen `ghcr.io/bcaceres19/nava-landing:<sha>`. En `main`, si pasa, dispara `nava/deploy` |
 | `nava/deploy` | el CI de `main` (`AUTO=true`); a mano con `SHA` | `deploy/jenkins/deploy.Jenkinsfile` de ese repo: imagen, `/srv/nava/releases/<sha>` → `deploy.sh` (proyecto compose `nava-landing`, salud por `edge` con el alias `nava-landing`) → `GET https://nava.wtf/healthz` (solo avisa) |
-| `odin/ci` (multibranch) | webhook de `bcaceres19/nava-nexos`; escaneo cada 5 min | `Jenkinsfile` de ese repo: Ruff y mypy, pytest unitario y pytest de integración con PostgreSQL 17 + pgvector efímero y rol runtime `odin_app`, en paralelo tras un único `uv sync`; shellcheck y `deploy/compose.yaml`; imagen `ghcr.io/bcaceres19/odin:<sha>` (en `main` siempre). Árboles verificados en `$JENKINS_HOME/odin-ci-green/`. En `main`, si pasa, dispara `odin/deploy` |
+| `odin/ci` (multibranch) | webhook de `nava-project/nava-nexos`; escaneo cada 5 min | `Jenkinsfile` de ese repo: Ruff y mypy, pytest unitario y pytest de integración con PostgreSQL 17 + pgvector efímero y rol runtime `odin_app`, en paralelo tras un único `uv sync`; shellcheck y `deploy/compose.yaml`; imagen `ghcr.io/bcaceres19/odin:<sha>` (en `main` siempre). Árboles verificados en `$JENKINS_HOME/odin-ci-green/`. En `main`, si pasa, dispara `odin/deploy` |
 | `odin/deploy` | el CI de `main` (`AUTO=true`); a mano con `SHA` | `deploy/jenkins/deploy.Jenkinsfile` de ese repo: verifica el SHA (solo con el CI de Jenkins en verde), imagen si falta, `compose.yaml` y `deploy.sh` a `/srv/odin/releases/<sha>` → `current` → `deploy.sh <sha>` (base, migraciones, `--wait`, vuelta atrás, conserva dos imágenes) → comprueba por SSH que `app` está `healthy` con la imagen del SHA (sin URL pública) |
 | `vps/mantenimiento` | diario, ~04:00 | borra contenedores de CI de más de 3 h, caché de construcción de más de 7 días e imágenes colgantes; muestra el uso de disco |
 
@@ -84,13 +84,13 @@ repetir el CI completo.
 | Archivo en `/srv/jenkins/secrets` | Credencial / uso | Origen |
 | --- | --- | --- |
 | `ADMIN_PASSWORD` | usuario `admin` de Jenkins | aleatorio (`jenkins-init.sh`) |
-| `GITHUB_TOKEN` | `github-token` y `github-token-text`: clonado, PR y estados | token de `gh` de `bcaceres19` (sustituible por uno fino: *Contents* lectura, *Commit statuses* escritura, *Pull requests* lectura) |
+| `GITHUB_TOKEN` | `github-token` y `github-token-text`: clonado, PR y estados | token de `gh` de `bcaceres19`, admin de la org `nava-project` (sustituible por uno fino: *Contents* lectura, *Commit statuses* escritura, *Pull requests* lectura) |
 | `GITHUB_WEBHOOK_SECRET` | `github-webhook-secret`: firma HMAC del webhook | aleatorio |
 | `DEPLOY_SSH_KEY` | `vps-deploy-ssh`: entrar como `deploy` | generada; autorizada en `~deploy/.ssh/authorized_keys` con `restrict,from="10.89.10.0/24"` |
 | `DEPLOY_KNOWN_HOSTS` | huella del host para esa conexión | `/etc/ssh/ssh_host_ed25519_key.pub` |
 | `MAPS_BROWSER_KEY` | `maps-browser-key` → `VITE_GOOGLE_MAPS_BROWSER_KEY` de la imagen web | la variable del antiguo entorno `production` de GitHub |
 
-Variables globales (JCasC): `PUBLIC_URL=https://nava.wtf` y `GITHUB_REPO=bcaceres19/nava-agenda`.
+Variables globales (JCasC): `PUBLIC_URL=https://nava.wtf` y `GITHUB_REPO=nava-project/nava-agenda`.
 Las claves de la aplicación (Resend, Meta, Google) **no** pasan por Jenkins: siguen en
 `/srv/nava-agenda/secrets` (`DEC-159`).
 
@@ -122,7 +122,7 @@ ssh nava-vps 'sudo bash /srv/jenkins/stack/scripts/jenkins-up.sh --restart'
    ```bash
    ssh nava-vps 'sudo cat /srv/jenkins/secrets/GITHUB_WEBHOOK_SECRET' \
      | jq -R '{name:"web",active:true,events:["push","pull_request"],config:{url:"https://jenkins.nava.wtf/github-webhook/",content_type:"json",insecure_ssl:"0",secret:.}}' \
-     | gh api repos/bcaceres19/nava-agenda/hooks --input -
+     | gh api repos/nava-project/nava-agenda/hooks --input -
    ```
 
 **Actualizar Jenkins** (plugins, JCasC, jobs o versión): cambiar esta carpeta por PR y, ya en `main`,

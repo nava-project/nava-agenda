@@ -81,7 +81,7 @@ agenda.{$DOMAIN} {
 	import nava_agenda
 }
 
-# Landing de la familia NAVA (repo bcaceres19/nava, pila `nava-landing` en /srv/nava; DEC-183,
+# Landing de la familia NAVA (repo nava-project/nava, pila `nava-landing` en /srv/nava; DEC-183,
 # #658). Llega por la red `edge` con el alias `nava-landing`. Las rutas de la app que aún
 # lleguen aquí (enlaces viejos de correos y WhatsApp) van a agenda.{$DOMAIN} con la misma
 # ruta. El API ya no responde aquí: Odin usa agenda.{$DOMAIN} desde #685.
@@ -134,7 +134,7 @@ pedidos.{$DOMAIN} {
 	}
 }
 
-# Nava Nexos (repo bcaceres19/nava-nexos, ADR 027; #679): solo su webhook de WhatsApp. Llega
+# Nava Nexos (repo nava-project/nava-nexos, ADR 027; #679): solo su webhook de WhatsApp. Llega
 # por la red `nexos-edge` (aparte de `edge`) con el alias `nexos`. Ninguna otra ruta pasa:
 # ni /health, ni /webhooks/pedidos, ni el simulador. La firma HMAC de Meta la valida Nexos.
 nexos.{$DOMAIN} {

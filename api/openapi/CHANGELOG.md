@@ -8,7 +8,7 @@ sección 18 para qué cuenta como cambio compatible o incompatible.
 ## 2.0.0 · 2026-11-18
 
 Cierre de la transición de `DEC-183` (issue #685): el contrato deja solo los nombres
-actuales. Nava Nexos (Odin) migró a las rutas y campos nuevos (bcaceres19/nava-nexos#19,
+actuales. Nava Nexos (Odin) migró a las rutas y campos nuevos (nava-project/nava-nexos#19,
 desplegado y comprobado en producción), y en los registros del API no hay llamadas a
 las rutas viejas desde entonces.
 
