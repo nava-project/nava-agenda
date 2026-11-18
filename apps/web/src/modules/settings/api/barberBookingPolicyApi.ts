@@ -19,8 +19,8 @@ const PICKER_LIMIT = 50
 export async function fetchBarberWindows(): Promise<FetchBarberWindowsOutcome> {
   try {
     const [barbers, windows] = await Promise.all([
-      httpClient.GET('/private/barbers', { params: { query: { limit: PICKER_LIMIT } } }),
-      httpClient.GET('/private/settings/booking-policy/barbers'),
+      httpClient.GET('/private/professionals', { params: { query: { limit: PICKER_LIMIT } } }),
+      httpClient.GET('/private/settings/booking-policy/professionals'),
     ])
     if (barbers.response.ok && barbers.data && windows.response.ok && windows.data) {
       return {
@@ -46,9 +46,9 @@ export async function saveBarberWindow(
 ): Promise<SaveBarberWindowOutcome> {
   try {
     const { data, response } = await httpClient.PUT(
-      '/private/settings/booking-policy/barbers/{barberId}',
+      '/private/settings/booking-policy/professionals/{professionalId}',
       {
-        params: { path: { barberId } },
+        params: { path: { professionalId: barberId } },
         body: {
           minAdvanceMinutes: values.minAdvanceMinutes,
           maxAdvanceDays: values.maxAdvanceDays,
@@ -75,8 +75,8 @@ export async function saveBarberWindow(
 export async function removeBarberWindow(barberId: string): Promise<RemoveBarberWindowOutcome> {
   try {
     const { response } = await httpClient.DELETE(
-      '/private/settings/booking-policy/barbers/{barberId}',
-      { params: { path: { barberId } } },
+      '/private/settings/booking-policy/professionals/{professionalId}',
+      { params: { path: { professionalId: barberId } } },
     )
     if (response.ok) return { kind: 'success' }
     return response.status === 404 ? { kind: 'not-found' } : { kind: 'unexpected-error' }
@@ -86,13 +86,13 @@ export async function removeBarberWindow(barberId: string): Promise<RemoveBarber
 }
 
 function toWindow(data: {
-  barberId: string
+  professionalId: string
   minAdvanceMinutes: number
   maxAdvanceDays: number
   slotGridMinutes: number
 }): BarberBookingWindow {
   return {
-    barberId: data.barberId,
+    barberId: data.professionalId,
     minAdvanceMinutes: data.minAdvanceMinutes,
     maxAdvanceDays: data.maxAdvanceDays,
     slotGridMinutes: data.slotGridMinutes,

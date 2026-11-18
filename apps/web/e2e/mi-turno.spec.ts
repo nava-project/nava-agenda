@@ -17,12 +17,12 @@ import { INITIAL_VOCABULARY } from './fixtures/vocabularioInicial'
 const ACCESS_TOKEN = '3n9F1sQe2z8mM5wYtR7pL0oXhC4bV6dK1aE9jU2gN8i'
 
 const APPOINTMENT_VIEW = {
-  barbershopName: 'Barbería Ejemplo',
+  businessName: 'Barbería Ejemplo',
   timezone: 'America/Bogota',
   attendeeName: 'Ana Ríos',
   serviceName: 'Corte clásico',
   durationMinutes: 30,
-  barberName: 'Barbero Ejemplo',
+  professionalName: 'Barbero Ejemplo',
   startsAt: '2027-03-15T15:00:00Z',
   endsAt: '2027-03-15T15:30:00Z',
   status: 'confirmed',
@@ -30,8 +30,8 @@ const APPOINTMENT_VIEW = {
   lateCancellationClientAllowed: true,
   lateCancellationReasonRequired: true,
   versionToken: 'version-token-1',
-  barbershopContactEmail: null,
-  barbershopContactPhone: null,
+  businessContactEmail: null,
+  businessContactPhone: null,
   rescheduleRemaining: 2,
   vocabulary: INITIAL_VOCABULARY,
 }
@@ -69,14 +69,14 @@ test.describe('Creación→consulta del turno del cliente (HU-097/HU-098)', () =
     const STARTS_AT = encodeURIComponent('2027-03-15T15:00:00Z')
 
     await page.route(
-      `**/api/v1/public/barbershops/barberia-ejemplo/services/${SERVICE_ID}/barbers/${BARBER_ID}/appointments`,
+      `**/api/v1/public/businesses/barberia-ejemplo/services/${SERVICE_ID}/professionals/${BARBER_ID}/appointments`,
       async (route) => {
         await route.fulfill({
           status: 201,
           contentType: 'application/json',
           body: JSON.stringify({
             attendeeName: APPOINTMENT_VIEW.attendeeName,
-            barbershopName: APPOINTMENT_VIEW.barbershopName,
+            businessName: APPOINTMENT_VIEW.businessName,
             serviceName: APPOINTMENT_VIEW.serviceName,
             durationMinutes: APPOINTMENT_VIEW.durationMinutes,
             priceAmount: '20000.00',
@@ -108,10 +108,10 @@ test.describe('Creación→consulta del turno del cliente (HU-097/HU-098)', () =
     await page.route(`**/api/v1/customer/appointments/${ACCESS_TOKEN}`, fulfillAppointment)
     await page.goto(`/mi-turno/${ACCESS_TOKEN}`)
 
-    await expect(page.getByRole('heading', { name: APPOINTMENT_VIEW.barbershopName })).toBeVisible()
+    await expect(page.getByRole('heading', { name: APPOINTMENT_VIEW.businessName })).toBeVisible()
     await expect(page.getByText(APPOINTMENT_VIEW.attendeeName)).toBeVisible()
     await expect(page.getByText(APPOINTMENT_VIEW.serviceName)).toBeVisible()
-    await expect(page.getByText(APPOINTMENT_VIEW.barberName)).toBeVisible()
+    await expect(page.getByText(APPOINTMENT_VIEW.professionalName)).toBeVisible()
   })
 })
 

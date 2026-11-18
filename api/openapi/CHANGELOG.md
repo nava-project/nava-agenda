@@ -4,6 +4,63 @@ Formato basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/).
 Ver [`docs/06-api/estandar-openapi.md`](../../docs/06-api/estandar-openapi.md)
 sección 18 para qué cuenta como cambio compatible o incompatible.
 
+## 1.0.0 · 2026-11-18
+
+### Cambiado (incompatible)
+
+- Nava Agenda deja de ser solo para barberías (`DEC-183`, issue #661): el contrato
+  habla de negocios (`businesses`) y profesionales (`professionals`). `info.title`
+  pasa a «API de Nava Agenda». Rutas, parámetros, campos, esquemas, respuestas y
+  `operationId` se renombran según la tabla; el comportamiento no cambia. El
+  frontend y el API cambian en el mismo despliegue, así que no hay periodo de
+  transición salvo para Odin (abajo).
+
+| Antes | Ahora |
+| --- | --- |
+| `/public/barbershops/{slug}/…` | `/public/businesses/{slug}/…` |
+| `…/barbers` y `…/barbers/{barberId}/…` (públicas y privadas) | `…/professionals` y `…/professionals/{professionalId}/…` |
+| `/private/barbers…` | `/private/professionals…` |
+| `/private/me/barber` | `/private/me/professional` |
+| `/private/settings/barbershop` | `/private/settings/business` |
+| `/private/settings/booking-policy/barbers…` | `/private/settings/booking-policy/professionals…` |
+| `/integrations/odin/barbershops/{slug}/…` | `/integrations/odin/businesses/{slug}/…` (la vieja queda como alias deprecado) |
+| parámetro `barberId` | `professionalId` |
+| campos `barberId`, `barberName`, `barberFullName`, `barberLinked` | `professionalId`, `professionalName`, `professionalFullName`, `professionalLinked` |
+| campos `barbershop`, `barbershopId`, `barbershopName`, `barbershopContactEmail`, `barbershopContactPhone` | `business`, `businessId`, `businessName`, `businessContactEmail`, `businessContactPhone` |
+| estado `cancelled_by_barber` | `cancelled_by_professional` |
+| evento de historial `appointment_cancelled_by_barber` | `appointment_cancelled_by_professional` |
+| esquemas y respuestas `Barber*`, `PublicBarber*`, `MyBarber*`, `*Barber*` | `Professional*`, `PublicProfessional*`, `MyProfessional*`, `*Professional*` (archivos incluidos) |
+| esquemas y respuestas `BarbershopSettings*`, `UpdateBarbershopSettingsRequest`, `PublicBarbershopProfile*` | `BusinessSettings*`, `UpdateBusinessSettingsRequest`, `PublicBusinessProfile*` |
+| `operationId` con `Barber`/`Barbershop` (`listBarbers`, `createBarber`, `getBarbershopSettings`, `resolvePublicBarbershop`, `cancelAppointmentByBarber`…) | el mismo con `Professional`/`Business` (`listProfessionals`, `createProfessional`, `getBusinessSettings`, `resolvePublicBusiness`, `cancelAppointmentByProfessional`…) |
+| `paths/barber-services.yaml` | `paths/professional-services.yaml` |
+
+- Los turnos ya cancelados por el profesional y su historial guardado pasan al
+  valor nuevo con la migración `20261122090000_rename_cancelled_by_professional.sql`:
+  ningún cliente del contrato ve el valor viejo.
+- No cambian: la cookie `barberia_session`, el esquema `OdinServiceToken`, los slugs
+  públicos ni los enlaces `/reservar/{slug}/mi-turno/{accessRef}`.
+
+### Obsoleto
+
+- `POST /integrations/odin/barbershops/{slug}/customer-appointments/lookup` y
+  `POST /integrations/odin/barbershops/{slug}/customer-access/challenge` siguen
+  respondiendo igual que sus rutas nuevas, marcadas `deprecated: true`
+  (`lookupCustomerAppointmentsForOdinDeprecated`,
+  `requestCustomerAccessCodeForOdinDeprecated`), hasta que Odin confirme el cambio.
+- `OdinAppointment.barberName` (`deprecated`) se sigue enviando con el mismo valor
+  que el campo nuevo `professionalName`, también hasta que Odin lo confirme.
+- Odin también lee rutas públicas con la forma vieja. Quedan como alias temporales,
+  `deprecated: true` y con los mismos handlers, hasta que Odin migre:
+  `GET /public/barbershops/{slug}`, `…/services`, `…/reviews`, `…/barbers`,
+  `…/services/{serviceId}/barbers`, `…/services/{serviceId}/availability` y
+  `…/services/{serviceId}/barbers/{barberId}/availability` (cada `operationId` es el
+  de la ruta nueva con el sufijo `Deprecated`). La foto y las reseñas por profesional,
+  el reto de acceso y la confirmación no tienen alias: Odin no las usa.
+- `ProfessionalAvailabilitySlotResponse.barberId` (`deprecated`): cada hueco del
+  agregado `GET …/services/{serviceId}/availability` repite `professionalId` con el
+  nombre viejo, que Odin lee, por la ruta nueva y por el alias. Ningún otro campo que
+  Odin lee cambió de nombre.
+
 ## 0.59.0 · 2026-11-17
 
 ### Agregado

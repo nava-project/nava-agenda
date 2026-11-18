@@ -5,7 +5,7 @@
 type: object
 description: >
   Configuración de anticipación, ventana, rejilla y cancelación tardía de
-  la barbería activa. Los rangos están fijados por DEC-083 y el de
+  el negocio activo. Los rangos están fijados por DEC-083 y el de
   slotGridMinutes (entero de 1 a 60) por DEC-133.
 properties:
   minAdvanceMinutes:

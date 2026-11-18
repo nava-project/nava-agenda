@@ -84,7 +84,7 @@ describe('PublicBarberSelectionPage', () => {
     await flushPromises()
 
     expect(getMock).toHaveBeenCalledWith(
-      '/public/barbershops/{slug}/services/{serviceId}/barbers',
+      '/public/businesses/{slug}/services/{serviceId}/professionals',
       expect.objectContaining({
         params: { path: { slug: 'barberia-ejemplo', serviceId: SERVICE_A } },
       }),
@@ -350,7 +350,7 @@ describe('PublicBarberSelectionPage', () => {
 
     expect(wrapper.text()).toContain('Carlos Ruiz')
     expect(getMock).toHaveBeenLastCalledWith(
-      '/public/barbershops/{slug}/services/{serviceId}/barbers',
+      '/public/businesses/{slug}/services/{serviceId}/professionals',
       expect.objectContaining({
         params: { path: { slug: 'barberia-ejemplo', serviceId: SERVICE_B } },
       }),
@@ -549,7 +549,7 @@ describe('PublicBarberSelectionPage', () => {
 
     expect(ana!.find('.barber-avatar--portrait').exists()).toBe(true)
     expect(ana!.find('img').attributes('src')).toBe(
-      '/api/v1/public/barbershops/barberia%20ejemplo/barbers/a/photo?v=2026-09-30T12%3A00%3A00Z',
+      '/api/v1/public/businesses/barberia%20ejemplo/professionals/a/photo?v=2026-09-30T12%3A00%3A00Z',
     )
     expect(ana!.text()).toContain('Ana Gómez')
     expect(ana!.text()).toContain('Fade, barba y navaja con más de diez años en el oficio.')

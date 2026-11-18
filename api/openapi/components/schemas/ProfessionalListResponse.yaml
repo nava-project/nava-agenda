@@ -1,0 +1,38 @@
+type: object
+description: >
+  Página de profesionales del negocio activo, ordenada de forma estable por
+  fecha de alta y luego por identificador. Conserva cursor por defecto y admite
+  modo numerado con page/pageSize (DEC-107); nextCursor es null en modo numerado.
+properties:
+  items:
+    type: array
+    description: Profesionales de esta página, en el orden estable del servidor.
+    items:
+      $ref: './ProfessionalResponse.yaml'
+  nextCursor:
+    type: [string, "null"]
+    description: >
+      Cursor opaco para pedir la siguiente página con el parámetro `cursor`.
+      `null` cuando esta página es la última.
+    examples:
+      - eyJjcmVhdGVkQXQiOiIyMDI2LTA4LTIzVDE1OjA0OjA1WiIsImlkIjoiOGYzYWMyYjEtZTRkNS00NmY2LWE3YzgtZDllMGYxYTJiM2M0In0=
+  page:
+    type: integer
+    minimum: 1
+    description: Página efectiva, presente únicamente en modo numerado.
+  pageSize:
+    type: integer
+    minimum: 1
+    maximum: 50
+    description: Tamaño efectivo, presente únicamente en modo numerado.
+  total:
+    type: integer
+    minimum: 0
+    description: Total del tenant, presente únicamente en modo numerado.
+  totalPages:
+    type: integer
+    minimum: 1
+    description: Total de páginas, presente únicamente en modo numerado.
+required:
+  - items
+  - nextCursor

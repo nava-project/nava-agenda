@@ -1,6 +1,6 @@
 # Previsualización del impacto de desactivar un servicio (HU-024,
 # CA-024-01, DEC-069). affectedAppointments es el recuento real de citas
-# `confirmed` futuras del servicio en la barbería de la sesión; era 0 fijo
+# `confirmed` futuras del servicio en el negocio de la sesión; era 0 fijo
 # solo mientras `appointment` no existía (B1).
 type: object
 description: >

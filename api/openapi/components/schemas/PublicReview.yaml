@@ -1,7 +1,7 @@
-# Una reseña visible en la selección pública del barbero (HU-100, DEC-128).
+# Una reseña visible en la selección pública del profesional (HU-100, DEC-128).
 type: object
 description: >
-  Reseña no oculta de un barbero. Sin identificador del turno ni del cliente:
+  Reseña no oculta de un profesional. Sin identificador del turno ni del cliente:
   la reseña es anónima para el visitante.
 properties:
   rating:

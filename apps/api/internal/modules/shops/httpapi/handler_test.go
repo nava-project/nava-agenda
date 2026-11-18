@@ -71,7 +71,7 @@ func TestGetBarbershopSettingsHandler_Success_ReturnsFourAuthorizedFields(t *tes
 	}
 	h := httpapi.NewGetBarbershopSettingsHandler(shops.NewService(repo))
 
-	req := requestWithPrincipal(http.MethodGet, "/api/v1/private/settings/barbershop", nil)
+	req := requestWithPrincipal(http.MethodGet, "/api/v1/private/settings/business", nil)
 	rec := httptest.NewRecorder()
 	h.ServeHTTP(rec, req)
 
@@ -94,7 +94,7 @@ func TestGetBarbershopSettingsHandler_Success_ReturnsFourAuthorizedFields(t *tes
 	// CA-020-07: el cuerpo nunca menciona un campo fuera de los cuatro
 	// autorizados (public_slug, logo, barbershopId, etc.).
 	raw := strings.ToLower(rec.Body.String())
-	for _, forbidden := range []string{"publicslug", "logo", "barbershopid"} {
+	for _, forbidden := range []string{"publicslug", "logo", "businessid"} {
 		if strings.Contains(raw, forbidden) {
 			t.Fatalf("CA-020-07: response body must never mention %q: %s", forbidden, raw)
 		}
@@ -105,7 +105,7 @@ func TestGetBarbershopSettingsHandler_MissingPrincipalInContext_ReturnsSafe500(t
 	repo := &fakeRepository{}
 	h := httpapi.NewGetBarbershopSettingsHandler(shops.NewService(repo))
 
-	req := httptest.NewRequest(http.MethodGet, "/api/v1/private/settings/barbershop", nil)
+	req := httptest.NewRequest(http.MethodGet, "/api/v1/private/settings/business", nil)
 	rec := httptest.NewRecorder()
 	h.ServeHTTP(rec, req)
 
@@ -125,7 +125,7 @@ func TestUpdateBarbershopSettingsHandler_Success_ReturnsSavedRepresentation(t *t
 	h := httpapi.NewUpdateBarbershopSettingsHandler(shops.NewService(repo))
 
 	body := []byte(`{"name":"Barbería Nueva","timezone":"America/Bogota","contactEmail":"","contactPhone":""}`)
-	req := requestWithPrincipal(http.MethodPatch, "/api/v1/private/settings/barbershop", body)
+	req := requestWithPrincipal(http.MethodPatch, "/api/v1/private/settings/business", body)
 	rec := httptest.NewRecorder()
 	h.ServeHTTP(rec, req)
 
@@ -144,8 +144,8 @@ func TestUpdateBarbershopSettingsHandler_UnknownField_ReturnsInvalidRequest(t *t
 	repo := &fakeRepository{}
 	h := httpapi.NewUpdateBarbershopSettingsHandler(shops.NewService(repo))
 
-	body := []byte(`{"name":"x","timezone":"America/Bogota","contactEmail":"","contactPhone":"","barbershopId":"22222222-2222-2222-2222-222222222222"}`)
-	req := requestWithPrincipal(http.MethodPatch, "/api/v1/private/settings/barbershop", body)
+	body := []byte(`{"name":"x","timezone":"America/Bogota","contactEmail":"","contactPhone":"","businessId":"22222222-2222-2222-2222-222222222222"}`)
+	req := requestWithPrincipal(http.MethodPatch, "/api/v1/private/settings/business", body)
 	rec := httptest.NewRecorder()
 	h.ServeHTTP(rec, req)
 
@@ -164,7 +164,7 @@ func TestUpdateBarbershopSettingsHandler_MalformedJSON_ReturnsInvalidRequest(t *
 	repo := &fakeRepository{}
 	h := httpapi.NewUpdateBarbershopSettingsHandler(shops.NewService(repo))
 
-	req := requestWithPrincipal(http.MethodPatch, "/api/v1/private/settings/barbershop", []byte(`{not-json`))
+	req := requestWithPrincipal(http.MethodPatch, "/api/v1/private/settings/business", []byte(`{not-json`))
 	rec := httptest.NewRecorder()
 	h.ServeHTTP(rec, req)
 
@@ -178,7 +178,7 @@ func TestUpdateBarbershopSettingsHandler_ValidationError_ReturnsUnprocessableEnt
 	h := httpapi.NewUpdateBarbershopSettingsHandler(shops.NewService(repo))
 
 	body := []byte(`{"name":"","timezone":"America/Bogota","contactEmail":"","contactPhone":""}`)
-	req := requestWithPrincipal(http.MethodPatch, "/api/v1/private/settings/barbershop", body)
+	req := requestWithPrincipal(http.MethodPatch, "/api/v1/private/settings/business", body)
 	rec := httptest.NewRecorder()
 	h.ServeHTTP(rec, req)
 
@@ -195,7 +195,7 @@ func TestUpdateBarbershopSettingsHandler_InvalidTimezone_ReturnsUnprocessableEnt
 	h := httpapi.NewUpdateBarbershopSettingsHandler(shops.NewService(repo))
 
 	body := []byte(`{"name":"Barbería Ejemplo","timezone":"COT","contactEmail":"","contactPhone":""}`)
-	req := requestWithPrincipal(http.MethodPatch, "/api/v1/private/settings/barbershop", body)
+	req := requestWithPrincipal(http.MethodPatch, "/api/v1/private/settings/business", body)
 	rec := httptest.NewRecorder()
 	h.ServeHTTP(rec, req)
 
@@ -209,7 +209,7 @@ func TestUpdateBarbershopSettingsHandler_MissingPrincipalInContext_ReturnsSafe50
 	h := httpapi.NewUpdateBarbershopSettingsHandler(shops.NewService(repo))
 
 	body := []byte(`{"name":"x","timezone":"America/Bogota","contactEmail":"","contactPhone":""}`)
-	req := httptest.NewRequest(http.MethodPatch, "/api/v1/private/settings/barbershop", bytes.NewReader(body))
+	req := httptest.NewRequest(http.MethodPatch, "/api/v1/private/settings/business", bytes.NewReader(body))
 	rec := httptest.NewRecorder()
 	h.ServeHTTP(rec, req)
 

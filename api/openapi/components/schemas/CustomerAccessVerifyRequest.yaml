@@ -1,4 +1,4 @@
-# Cuerpo de POST /public/barbershops/{slug}/customer-access/verify (HU-105).
+# Cuerpo de POST /public/businesses/{slug}/customer-access/verify (HU-105).
 type: object
 additionalProperties: false
 description: El contacto y el código de 6 dígitos que le llegó.

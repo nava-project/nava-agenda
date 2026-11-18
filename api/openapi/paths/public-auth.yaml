@@ -12,7 +12,7 @@
     tags: [Auth]
     summary: Iniciar sesión con correo y contraseña
     description: >
-      Verifica correo y contraseña y, si son válidos para un barbero activo,
+      Verifica correo y contraseña y, si son válidos para un profesional activo,
       emite una sesión de 30 días como cookie opaca y revocable (DEC-050).
       Un correo inexistente y una contraseña incorrecta para un correo
       existente producen exactamente la misma respuesta 401 (CA-005-02); un
@@ -38,7 +38,7 @@
             credenciales:
               summary: Correo y contraseña
               value:
-                email: barbero.ejemplo@correo.test
+                email: profesional.ejemplo@correo.test
                 password: "***"
     responses:
       "200":
@@ -84,7 +84,7 @@
             solicitud:
               summary: Solicitar el reto
               value:
-                email: barbero.ejemplo@correo.test
+                email: profesional.ejemplo@correo.test
     responses:
       "202":
         $ref: '../components/responses/ChallengeAccepted.yaml'
@@ -104,7 +104,7 @@
       Código incorrecto, vencido, agotado o de una cuenta inexistente
       producen exactamente la misma respuesta 401 (no enumeración). Un
       código correcto limpia el escalamiento de esa IP en el mismo paso
-      atómico: el barbero reintenta POST /auth/login normalmente después,
+      atómico: el profesional reintenta POST /auth/login normalmente después,
       sin ningún token adicional.
     operationId: verifyPhoneChallenge
     security: []
@@ -120,7 +120,7 @@
             verificacion:
               summary: Verificar el código
               value:
-                email: barbero.ejemplo@correo.test
+                email: profesional.ejemplo@correo.test
                 code: "482913"
     responses:
       "204":
@@ -149,7 +149,7 @@
       persona elige (DEC-092): correo, identificando la cuenta por su
       correo, o WhatsApp, identificándola por su número. Responde siempre
       202 con el mismo cuerpo genérico, exista o no la cuenta, esté o no el
-      teléfono verificado y sea o no el número ambiguo entre barberías
+      teléfono verificado y sea o no el número ambiguo entre negocios
       (CA-008-01, CA-008-10, no enumeración, DEC-065, DEC-093): nunca
       incluye el destino, ni siquiera enmascarado. Solo se envía un código
       real, únicamente por el canal elegido (CA-008-09), cuando la cuenta
@@ -178,7 +178,7 @@
               summary: Solicitar el código por correo
               value:
                 channel: email
-                email: barbero.ejemplo@correo.test
+                email: profesional.ejemplo@correo.test
             porWhatsApp:
               summary: Solicitar el código por WhatsApp
               value:
@@ -224,7 +224,7 @@
               summary: Verificar el código recibido por correo
               value:
                 channel: email
-                email: barbero.ejemplo@correo.test
+                email: profesional.ejemplo@correo.test
                 code: "482913"
             porWhatsApp:
               summary: Verificar el código recibido por WhatsApp
@@ -275,7 +275,7 @@
               summary: Establecer contraseña nueva tras recuperar por correo
               value:
                 channel: email
-                email: barbero.ejemplo@correo.test
+                email: profesional.ejemplo@correo.test
                 resetToken: 3n9F7qP2xR8mK1vL0dS5tY6wZ4bH2jN9
                 newPassword: "***-nueva-contrasena-ficticia"
             porWhatsApp:

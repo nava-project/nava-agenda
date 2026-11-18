@@ -29,7 +29,7 @@ func TestPublicBarberPhoto_HTTP_ServesEligibleBarberWithoutSession(t *testing.T)
 	}
 
 	get := func(barberID, ifNoneMatch string) *httptest.ResponseRecorder {
-		req := httptest.NewRequest(http.MethodGet, "/api/v1/public/barbershops/"+barberPhotoSlug+"/barbers/"+barberID+"/photo", nil)
+		req := httptest.NewRequest(http.MethodGet, "/api/v1/public/businesses/"+barberPhotoSlug+"/professionals/"+barberID+"/photo", nil)
 		if ifNoneMatch != "" {
 			req.Header.Set("If-None-Match", ifNoneMatch)
 		}

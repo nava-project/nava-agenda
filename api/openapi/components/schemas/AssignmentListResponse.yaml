@@ -1,10 +1,10 @@
 # Colección paginada por cursor (docs/06-api/estandar-openapi.md §6.10): los
-# servicios asignados a un barbero de un equipo de veinte usan exactamente el
+# servicios asignados a un profesional de un equipo de veinte usan exactamente el
 # mismo contrato que uno de un solo servicio (CA-023-01), sin paginación por
-# offset ni un máximo de negocio de asignaciones por barbero.
+# offset ni un máximo de negocio de asignaciones por profesional.
 type: object
 description: >
-  Página de servicios asignados a un barbero, ordenada de forma estable por
+  Página de servicios asignados a un profesional, ordenada de forma estable por
   fecha de asignación y luego por identificador de servicio.
 properties:
   items:

@@ -1,4 +1,4 @@
-# Respuesta 200 de GET /public/barbershops/{slug}/reviews (HU-101).
+# Respuesta 200 de GET /public/businesses/{slug}/reviews (HU-101).
 description: Calificación y reseñas de Google del negocio, o la estructura vacía explícita.
 headers:
   X-Request-Id:
@@ -9,7 +9,7 @@ content:
       $ref: '../schemas/PublicGoogleReviews.yaml'
     examples:
       conFicha:
-        summary: Barbería con ficha de Google y reseñas
+        summary: Negocio con ficha de Google y reseñas
         value:
           rating: 4.7
           ratingCount: 128

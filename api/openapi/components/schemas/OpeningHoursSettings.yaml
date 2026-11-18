@@ -1,9 +1,9 @@
-# Horario de atención de la barbería activa (HU-107, DEC-182).
+# Horario de atención del negocio activo (HU-107, DEC-182).
 type: object
 additionalProperties: false
 description: >
   El horario semanal del local y si cierra los festivos colombianos. Es
-  informativo: no limita la disponibilidad, que sale del horario de cada barbero.
+  informativo: no limita la disponibilidad, que sale del horario de cada profesional.
 properties:
   openingHours:
     type: array

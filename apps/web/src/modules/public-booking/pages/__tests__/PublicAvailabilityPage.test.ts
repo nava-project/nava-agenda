@@ -91,9 +91,11 @@ describe('PublicAvailabilityPage', () => {
     await flushPromises()
 
     expect(getMock).toHaveBeenCalledWith(
-      '/public/barbershops/{slug}/services/{serviceId}/barbers/{barberId}/availability',
+      '/public/businesses/{slug}/services/{serviceId}/professionals/{professionalId}/availability',
       expect.objectContaining({
-        params: { path: { slug: 'barberia-ejemplo', serviceId: SERVICE_A, barberId: BARBER_A } },
+        params: {
+          path: { slug: 'barberia-ejemplo', serviceId: SERVICE_A, professionalId: BARBER_A },
+        },
       }),
     )
   })
@@ -440,9 +442,11 @@ describe('PublicAvailabilityPage', () => {
     await flushPromises()
 
     expect(getMock).toHaveBeenLastCalledWith(
-      '/public/barbershops/{slug}/services/{serviceId}/barbers/{barberId}/availability',
+      '/public/businesses/{slug}/services/{serviceId}/professionals/{professionalId}/availability',
       expect.objectContaining({
-        params: { path: { slug: 'barberia-ejemplo', serviceId: SERVICE_A, barberId: BARBER_B } },
+        params: {
+          path: { slug: 'barberia-ejemplo', serviceId: SERVICE_A, professionalId: BARBER_B },
+        },
       }),
     )
     expect(wrapper.findAll('[role="radio"]')[0]!.attributes('aria-checked')).toBe('false')

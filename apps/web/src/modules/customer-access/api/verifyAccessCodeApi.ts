@@ -1,5 +1,5 @@
 // Canjear el código por el acceso a los turnos (HU-105): único punto que llama a
-// `POST /public/barbershops/{slug}/customer-access/verify`.
+// `POST /public/businesses/{slug}/customer-access/verify`.
 import { httpClient } from '@/shared/api/httpClient'
 import { isProblem } from '@/shared/api/problem'
 import type { VerifyAccessCodeOutcome } from '../model/customerAccessOutcome'
@@ -17,7 +17,7 @@ export async function verifyAccessCode(
 ): Promise<VerifyAccessCodeOutcome> {
   try {
     const { data, error, response } = await httpClient.POST(
-      '/public/barbershops/{slug}/customer-access/verify',
+      '/public/businesses/{slug}/customer-access/verify',
       { params: { path: { slug } }, body: { contact, code } },
     )
     if (response.ok && data) {
@@ -29,7 +29,7 @@ export async function verifyAccessCode(
             accessToken: a.accessToken,
             startsAt: a.startsAt,
             serviceName: a.serviceName,
-            barberName: a.barberName,
+            barberName: a.professionalName,
           })),
         },
       }

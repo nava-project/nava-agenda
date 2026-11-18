@@ -125,12 +125,12 @@ BEGIN
   -- Un cambio posterior REEMPLAZA al pendiente (la cancelación sustituye a la reprogramación).
   INSERT INTO appointment_notice (business_id, appointment_id, kind, state_at, run_at)
   VALUES ('11111111-1111-1111-1111-111111111111', 'b4630004-0000-4000-8000-00000000000a',
-          'cancelled_by_barber', '2026-01-05 09:00:20-05', '2026-01-05 09:01:20-05')
+          'cancelled_by_professional', '2026-01-05 09:00:20-05', '2026-01-05 09:01:20-05')
   ON CONFLICT (appointment_id, (CASE WHEN kind IN ('reminder', 'reminder_whatsapp') THEN kind ELSE 'change' END)) WHERE status = 'pending'
   DO UPDATE SET kind = EXCLUDED.kind, state_at = EXCLUDED.state_at, run_at = EXCLUDED.run_at;
 
   SELECT count(*), max(kind) INTO v_count, v_kind FROM appointment_notice;
-  IF v_count <> 1 OR v_kind <> 'cancelled_by_barber' THEN
+  IF v_count <> 1 OR v_kind <> 'cancelled_by_professional' THEN
     RAISE EXCEPTION 'debe quedar un solo aviso pendiente, el más reciente (hay %, kind %).', v_count, v_kind;
   END IF;
 
@@ -208,7 +208,7 @@ BEGIN
 
   -- Contexto: estado VIGENTE del turno, con el token reclamado.
   SELECT * INTO v_ctx FROM notice_context(v_first.notice_id, v_first.claim_token);
-  IF v_ctx IS NULL OR v_ctx.kind <> 'cancelled_by_barber' OR v_ctx.customer_email <> 'cliente.a@ejemplo.test'
+  IF v_ctx IS NULL OR v_ctx.kind <> 'cancelled_by_professional' OR v_ctx.customer_email <> 'cliente.a@ejemplo.test'
      OR v_ctx.service_name <> 'Corte aviso A' OR v_ctx.appointment_status <> 'confirmed'
      OR v_ctx.already_covered THEN
     RAISE EXCEPTION 'el contexto debe describir el turno vigente de A y no estar cubierto.';
@@ -382,7 +382,7 @@ $$;
 
 INSERT INTO appointment_notice (id, business_id, appointment_id, kind, state_at, run_at) VALUES
   ('b4630007-0000-4000-8000-00000000000a', '11111111-1111-1111-1111-111111111111',
-   'b4630004-0000-4000-8000-00000000000a', 'cancelled_by_barber', '2100-01-01T00:00:00Z', '2026-01-05 14:00:00-05');
+   'b4630004-0000-4000-8000-00000000000a', 'cancelled_by_professional', '2100-01-01T00:00:00Z', '2026-01-05 14:00:00-05');
 SET ROLE agenda_worker;
 DO $$
 DECLARE

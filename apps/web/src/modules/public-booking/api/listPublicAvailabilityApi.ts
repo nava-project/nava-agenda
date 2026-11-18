@@ -1,5 +1,5 @@
 // Único punto del módulo `public-booking` que llama a
-// `GET /public/barbershops/{slug}/services/{serviceId}/barbers/{barberId}/availability`
+// `GET /public/businesses/{slug}/services/{serviceId}/professionals/{professionalId}/availability`
 // (HU-094). Traduce la respuesta real a `ListPublicAvailabilityOutcome`: la
 // página coordinadora nunca ve `Problem`, `status` HTTP crudo ni cabeceras.
 import { httpClient } from '@/shared/api/httpClient'
@@ -25,8 +25,8 @@ export async function listPublicAvailability(
 ): Promise<ListPublicAvailabilityOutcome> {
   try {
     const { data, error, response } = await httpClient.GET(
-      '/public/barbershops/{slug}/services/{serviceId}/barbers/{barberId}/availability',
-      { params: { path: { slug, serviceId, barberId } } },
+      '/public/businesses/{slug}/services/{serviceId}/professionals/{professionalId}/availability',
+      { params: { path: { slug, serviceId, professionalId: barberId } } },
     )
 
     if (response.ok && data) {

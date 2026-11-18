@@ -78,7 +78,7 @@ for (const viewport of viewports) {
     test.use({ viewport: { width: viewport.width, height: viewport.height } })
 
     test(`carga (${viewport.name}px)`, async ({ page }) => {
-      await page.route('**/api/v1/public/barbershops/**/services**', async (route) => {
+      await page.route('**/api/v1/public/businesses/**/services**', async (route) => {
         // Mismo margen que reserva-publica-evidencia-responsiva.spec.ts:
         // la ruta se carga de forma diferida y debe compilar/servir su
         // propio chunk bajo el servidor de desarrollo de Vite.
@@ -94,7 +94,7 @@ for (const viewport of viewports) {
     })
 
     test(`lista, selección y sin scroll horizontal (${viewport.name}px)`, async ({ page }) => {
-      await page.route('**/api/v1/public/barbershops/**/services**', fulfillServices)
+      await page.route('**/api/v1/public/businesses/**/services**', fulfillServices)
       await page.goto('/reservar/barberia-ejemplo/servicios')
       await expect(page.getByText('Corte clásico')).toBeVisible()
       await page.screenshot({
@@ -117,7 +117,7 @@ for (const viewport of viewports) {
     })
 
     test(`catálogo vacío (${viewport.name}px)`, async ({ page }) => {
-      await page.route('**/api/v1/public/barbershops/**/services**', async (route) => {
+      await page.route('**/api/v1/public/businesses/**/services**', async (route) => {
         await route.fulfill({
           status: 200,
           contentType: 'application/json',
@@ -138,7 +138,7 @@ for (const viewport of viewports) {
     test(`error de enlace no disponible, con foco en reintentar (${viewport.name}px)`, async ({
       page,
     }) => {
-      await page.route('**/api/v1/public/barbershops/**/services**', async (route) => {
+      await page.route('**/api/v1/public/businesses/**/services**', async (route) => {
         await route.fulfill({
           status: 404,
           contentType: 'application/problem+json',

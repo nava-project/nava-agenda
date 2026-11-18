@@ -5,7 +5,7 @@
 # conflicto no depende de ninguna cabecera Idempotency-Key.
 description: >
   La franja elegida ya no está disponible. `alternatives` trae hasta 3
-  franjas cronológicamente cercanas con el mismo barbero y servicio
+  franjas cronológicamente cercanas con el mismo profesional y servicio
   (DEC-090); los datos del formulario nunca se pierden en el cliente.
 headers:
   X-Request-Id:

@@ -14,7 +14,7 @@ type BarbershopSettingsResponse struct {
 }
 
 // UpdateBarbershopSettingsRequest es el cuerpo de
-// PATCH /private/settings/barbershop (CA-020-02, CA-020-06). Cerrado: el
+// PATCH /private/settings/business (CA-020-02, CA-020-06). Cerrado: el
 // handler rechaza cualquier campo desconocido, igual que LoginRequest.
 // ContactEmail/ContactPhone vacíos representan "sin contacto" en el
 // alambre; shops.Service los normaliza a ausencia antes de persistir.

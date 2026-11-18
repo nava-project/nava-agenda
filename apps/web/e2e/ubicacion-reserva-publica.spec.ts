@@ -32,7 +32,7 @@ function json(body: unknown, status = 200) {
 }
 
 async function mockProfile(page: Page, location: unknown) {
-  await page.route(`**/api/v1/public/barbershops/${SLUG}`, (route) =>
+  await page.route(`**/api/v1/public/businesses/${SLUG}`, (route) =>
     route.fulfill(
       json({
         name: 'Barbería Centro',

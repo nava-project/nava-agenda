@@ -7,10 +7,10 @@ antes de agregar una operación.
 ## Estado
 
 `openapi.yaml` declara: autenticación pública y privada (`paths/public-auth.yaml`,
-`paths/private-auth.yaml`, HU-005/006/007/008/012), configuración de la
-barbería (`paths/settings.yaml`, HU-020) y registro/listado de barberos
-(`paths/staff.yaml`, HU-021: `GET`/`POST /private/barbers`,
-`GET`/`PATCH /private/barbers/{barberId}`). El resto de capacidades
+`paths/private-auth.yaml`, HU-005/006/007/008/012), configuración del
+negocio (`paths/settings.yaml`, HU-020) y registro/listado de profesionales
+(`paths/staff.yaml`, HU-021: `GET`/`POST /private/professionals`,
+`GET`/`PATCH /private/professionals/{professionalId}`). El resto de capacidades
 (`paths/public-booking.yaml`, `customer-appointments.yaml`,
 `private-appointments.yaml`, `catalog.yaml`, `schedules.yaml`) sigue sin
 contenido.

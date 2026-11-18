@@ -1,4 +1,4 @@
-# Esquema de seguridad de la sesión del barbero (DEC-050): cookie opaca,
+# Esquema de seguridad de la sesión del profesional (DEC-050): cookie opaca,
 # emitida por POST /auth/login (HU-005) y consumida por toda operación bajo
 # /api/v1/private (HU-006). El login en sí usa security: [] (es la
 # operación que EMITE la cookie, no puede exigirla); este esquema se define

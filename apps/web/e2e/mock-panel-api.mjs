@@ -167,7 +167,7 @@ createServer(async (request, response) => {
 
   if (pathname === '/api/v1/private/auth/session') {
     respond(response, 200, {
-      barbershop: { id: 'shop-mock', name: 'Taller NAVA' },
+      business: { id: 'shop-mock', name: 'Taller NAVA' },
       expiresAt: '2099-01-01T00:00:00Z',
     })
     return

@@ -656,7 +656,7 @@ function timelineSlipDetail(entry: DailyAgendaEntry): 'full' | 'compact' {
 }
 
 function isEntryCancelled(entry: (typeof entries.value)[number]): boolean {
-  return entry.status === 'cancelled_by_customer' || entry.status === 'cancelled_by_barber'
+  return entry.status === 'cancelled_by_customer' || entry.status === 'cancelled_by_professional'
 }
 
 // Pendiente: confirmado que aún no está en curso (por atender, o ya pasado de

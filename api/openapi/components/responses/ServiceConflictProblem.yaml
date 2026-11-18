@@ -1,10 +1,10 @@
 # 409 de POST/PATCH /private/services (CA-022-04, DEC-067): el nombre
-# solicitado ya lo usa otro servicio ACTIVO de la misma barbería. Distinto
+# solicitado ya lo usa otro servicio ACTIVO del mismo negocio. Distinto
 # de IdempotencyConflictProblem/IdempotencyLockedProblem (RN-IDE-01): este
 # conflicto no depende de ninguna cabecera Idempotency-Key ni de un
 # reintento, existiría igual en la primera y única solicitud.
 description: >
-  Ya existe un servicio ACTIVO de esta barbería con ese nombre exacto. No se
+  Ya existe un servicio ACTIVO de este negocio con ese nombre exacto. No se
   persistió ningún cambio; un servicio DESACTIVADO con el mismo nombre no
   produce este conflicto (DEC-067).
 headers:
@@ -16,12 +16,12 @@ content:
       $ref: '../schemas/Problem.yaml'
     examples:
       nombreDuplicado:
-        summary: Nombre ya usado por otro servicio activo de la misma barbería
+        summary: Nombre ya usado por otro servicio activo del mismo negocio
         value:
           type: /api/v1/problems/conflict
           title: Conflicto
           status: 409
-          detail: ya existe un servicio activo con ese nombre en esta barbería
+          detail: ya existe un servicio activo con ese nombre en este negocio
           instance: 8f3ac2b1e4d5f6a7c8d9e0f1a2b3c4d5
           code: conflict
           requestId: 8f3ac2b1e4d5f6a7c8d9e0f1a2b3c4d5

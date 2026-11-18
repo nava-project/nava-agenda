@@ -12,6 +12,6 @@ properties:
     maxLength: 254
     description: Correo de la cuenta cuyo teléfono verificado recibirá el código, si corresponde.
     examples:
-      - barbero.ejemplo@correo.test
+      - profesional.ejemplo@correo.test
 required:
   - email

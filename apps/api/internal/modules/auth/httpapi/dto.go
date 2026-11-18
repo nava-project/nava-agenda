@@ -29,7 +29,7 @@ type BarbershopSummary struct {
 // GET /private/auth/session (HU-012, DEC-060). Payload mínimo: nunca
 // StaffUserID, correo ni nombre del barbero (RN-DAT-02).
 type SessionContextResponse struct {
-	Barbershop BarbershopSummary `json:"barbershop"`
+	Barbershop BarbershopSummary `json:"business"`
 	ExpiresAt  time.Time         `json:"expiresAt"`
 }
 

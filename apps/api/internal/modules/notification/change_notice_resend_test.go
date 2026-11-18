@@ -31,7 +31,7 @@ func TestResendChangeNoticeSender_Cancelled_PostsTheCurrentAppointment(t *testin
 	defer srv.Close()
 
 	err := newChangeNoticeSender(t, srv).SendChangeNotice(context.Background(),
-		"cancelled_by_barber", "cliente.a@ejemplo.test", "Barbería Centro", "Corte clásico", "Ana", "2099-01-07 05:00 (America/Bogota)")
+		"cancelled_by_professional", "cliente.a@ejemplo.test", "Barbería Centro", "Corte clásico", "Ana", "2099-01-07 05:00 (America/Bogota)")
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -104,7 +104,7 @@ func TestResendChangeNoticeSender_ProviderStatus_ClassifiesPermanentAndTransient
 			_, _ = w.Write([]byte(`{"message":"invalid to cliente.a@ejemplo.test"}`))
 		}))
 		err := newChangeNoticeSender(t, srv).SendChangeNotice(context.Background(),
-			"cancelled_by_barber", "cliente.a@ejemplo.test", "B", "S", "A", "t")
+			"cancelled_by_professional", "cliente.a@ejemplo.test", "B", "S", "A", "t")
 		srv.Close()
 
 		if err == nil {

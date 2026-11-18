@@ -1,4 +1,4 @@
-# Operaciones privadas de agenda del barbero: crear, modificar, reprogramar,
+# Operaciones privadas de agenda del profesional: crear, modificar, reprogramar,
 # cancelar y cambiar estado de turnos, con historial. Requiere sesión
 # autenticada. Ver docs/06-api/estandar-openapi.md.
 #
@@ -18,16 +18,16 @@
       No está sujeta a la anticipación mínima ni a la ventana máxima de la
       reserva pública (RN-DIS-04, DEC-005/DEC-018): admite un instante que
       ya empezó o uno más allá de la ventana pública. El servicio elegido
-      debe estar activo y asignado al barbero elegido (DEC-072); un
-      intervalo que no cabe completo en la jornada efectiva del barbero
+      debe estar activo y asignado al profesional elegido (DEC-072); un
+      intervalo que no cabe completo en la jornada efectiva del profesional
       (excepción manual, festivo activado u horario semanal; CA-061-02)
       responde `422` sin escribir nada; uno que se solapa con otra cita del
-      mismo barbero (RN-CON-01) o con un bloqueo vigente (DEC-073) responde
+      mismo profesional (RN-CON-01) o con un bloqueo vigente (DEC-073) responde
       `409`. El cliente se
       reconcilia por teléfono o, si falta, por correo (DEC-045, DEC-046,
       DEC-071); sin ninguno de los dos, siempre se crea un cliente nuevo,
       nunca por nombre. El tenant y el actor se derivan exclusivamente de
-      `SessionCookie`; el cuerpo nunca acepta `barbershopId`, `customerId`,
+      `SessionCookie`; el cuerpo nunca acepta `businessId`, `customerId`,
       `status`, `origin` ni ningún dato de servicio.
     operationId: createManualAppointment
     security:
@@ -50,7 +50,7 @@
             turnoManual:
               summary: Turno manual con teléfono
               value:
-                barberId: 8f3ac2b1-e4d5-46f6-a7c8-d9e0f1a2b3c4
+                professionalId: 8f3ac2b1-e4d5-46f6-a7c8-d9e0f1a2b3c4
                 serviceId: 6f1a2b3c-4d5e-4f60-8172-8394a5b6c7d8
                 attendeeName: Carlos Restrepo
                 customerFullName: Carlos Restrepo
@@ -67,8 +67,8 @@
         $ref: '../components/responses/ForbiddenProblem.yaml'
       "404":
         description: >
-          `barberId` inexistente o de otra barbería, o `serviceId`
-          inexistente, inactivo o no asignado a `barberId` (DEC-072). Un
+          `professionalId` inexistente o de otro negocio, o `serviceId`
+          inexistente, inactivo o no asignado a `professionalId` (DEC-072). Un
           único `code` sin distinguir la causa (RN-TEN-01).
         headers:
           X-Request-Id:
@@ -83,7 +83,7 @@
                   type: /api/v1/problems/not-found
                   title: No encontrado
                   status: 404
-                  detail: no existe un servicio activo asignado a ese barbero
+                  detail: no existe un servicio activo asignado a ese profesional
                   instance: 8f3ac2b1e4d5f6a7c8d9e0f1a2b3c4d5
                   code: not-found
                   requestId: 8f3ac2b1e4d5f6a7c8d9e0f1a2b3c4d5
@@ -92,7 +92,7 @@
           Conflicto de idempotencia (misma clave con otro contenido u otra
           operación, `IdempotencyConflictProblem`), operación en curso con
           la misma clave (`IdempotencyLockedProblem`, DEC-043), cruce con
-          otra cita del mismo barbero (RN-CON-01) o bloqueo vigente en ese
+          otra cita del mismo profesional (RN-CON-01) o bloqueo vigente en ese
           intervalo (DEC-073, mismo tratamiento que un cruce). Los problem
           types comparten status pero tienen `code` distinto: el cliente
           decide por `code`, nunca por `detail`.
@@ -125,22 +125,22 @@
                   code: idempotency-locked
                   requestId: 8f3ac2b1e4d5f6a7c8d9e0f1a2b3c4d5
               cruceDeAgenda:
-                summary: El barbero ya tiene una cita en ese intervalo
+                summary: El profesional ya tiene una cita en ese intervalo
                 value:
                   type: /api/v1/problems/conflict
                   title: Conflicto
                   status: 409
-                  detail: el barbero ya tiene una cita en ese intervalo
+                  detail: el profesional ya tiene una cita en ese intervalo
                   instance: 8f3ac2b1e4d5f6a7c8d9e0f1a2b3c4d5
                   code: conflict
                   requestId: 8f3ac2b1e4d5f6a7c8d9e0f1a2b3c4d5
               bloqueoVigente:
-                summary: El intervalo se solapa con un bloqueo vigente del barbero (DEC-073)
+                summary: El intervalo se solapa con un bloqueo vigente del profesional (DEC-073)
                 value:
                   type: /api/v1/problems/conflict
                   title: Conflicto
                   status: 409
-                  detail: el barbero tiene un bloqueo vigente en ese intervalo
+                  detail: el profesional tiene un bloqueo vigente en ese intervalo
                   instance: 8f3ac2b1e4d5f6a7c8d9e0f1a2b3c4d5
                   code: conflict
                   requestId: 8f3ac2b1e4d5f6a7c8d9e0f1a2b3c4d5
@@ -149,19 +149,19 @@
       "500":
         $ref: '../components/responses/InternalErrorProblem.yaml'
 
-/private/barbers/{barberId}/appointments/daily-agenda:
+/private/professionals/{professionalId}/appointments/daily-agenda:
   get:
     tags: [Booking]
-    summary: Consultar la agenda diaria de un barbero
+    summary: Consultar la agenda diaria de un profesional
     description: >
       Lista cronológica, cerrada y sin cursor (HU-062, CA-062-01 a
-      CA-062-07) de los turnos del barbero de la ruta cuyo intervalo
-      interseca el rango civil de `date` en la zona IANA de la barbería:
+      CA-062-07) de los turnos del profesional de la ruta cuyo intervalo
+      interseca el rango civil de `date` en la zona IANA del negocio:
       un turno que cruza medianoche aparece en cada agenda diaria cuyo
       rango interseca su intervalo (DEC-075), no solo en el día en que
       empieza. Sin `date`, la respuesta usa "hoy" en esa misma zona
-      (CA-062-01). La ruta exige un `barberId` explícito: no existe una
-      vista consolidada de varios barberos (DEC-074, DEC-047). La
+      (CA-062-01). La ruta exige un `professionalId` explícito: no existe una
+      vista consolidada de varios profesionales (DEC-074, DEC-047). La
       respuesta nunca expone teléfono, correo, nota ni `customerId`
       (CA-062-05); el snapshot de servicio ya congelado en la cita es la
       única fuente visible (DEC-004), sin unir contra el catálogo vigente.
@@ -172,21 +172,21 @@
     x-decisions:
       [DEC-007, DEC-016, DEC-019, DEC-020, DEC-024, DEC-047, DEC-074, DEC-075]
     parameters:
-      - name: barberId
+      - name: professionalId
         in: path
         required: true
-        description: Identificador del único barbero cuya agenda se consulta (DEC-074).
+        description: Identificador del único profesional cuya agenda se consulta (DEC-074).
         schema:
           type: string
           format: uuid
         examples:
-          barbero:
+          profesional:
             value: 8f3ac2b1-e4d5-46f6-a7c8-d9e0f1a2b3c4
       - name: date
         in: query
         required: false
         description: >
-          Fecha civil `AAAA-MM-DD` en la zona de la barbería. Sin este
+          Fecha civil `AAAA-MM-DD` en la zona del negocio. Sin este
           parámetro, la respuesta usa "hoy" en esa zona (CA-062-01).
         schema:
           type: string
@@ -197,7 +197,7 @@
     responses:
       "200":
         description: >
-          Turnos del barbero cuyo intervalo interseca el día pedido,
+          Turnos del profesional cuyo intervalo interseca el día pedido,
           ordenados por `startsAt` y luego por `id` (orden estable).
         headers:
           X-Request-Id:
@@ -237,7 +237,7 @@
                         latitude: 4.6486
                         longitude: -74.0628
               sinTurnos:
-                summary: Barbero sin ningún turno ese día
+                summary: Profesional sin ningún turno ese día
                 value:
                   items: []
       "400":
@@ -248,7 +248,7 @@
         $ref: '../components/responses/ForbiddenProblem.yaml'
       "404":
         description: >
-          `barberId` con forma inválida, inexistente o de otra barbería
+          `professionalId` con forma inválida, inexistente o de otro negocio
           (RN-TEN-01), sin distinguir la causa.
         headers:
           X-Request-Id:
@@ -258,12 +258,12 @@
             schema:
               $ref: '../components/schemas/Problem.yaml'
             examples:
-              barberoAjeno:
+              profesionalAjeno:
                 value:
                   type: /api/v1/problems/not-found
                   title: No encontrado
                   status: 404
-                  detail: no existe un barbero con ese identificador
+                  detail: no existe un profesional con ese identificador
                   instance: 8f3ac2b1e4d5f6a7c8d9e0f1a2b3c4d5
                   code: not-found
                   requestId: 8f3ac2b1e4d5f6a7c8d9e0f1a2b3c4d5
@@ -276,11 +276,11 @@
     summary: Consultar el detalle de un turno
     description: >
       Detalle completo de una cita (HU-064, CA-064-01 a CA-064-04): persona
-      atendida, cliente que reservó con su contacto opcional y nota, barbero,
+      atendida, cliente que reservó con su contacto opcional y nota, profesional,
       origen, intervalo, estado y el snapshot de servicio congelado al crear
       la cita (DEC-004), nunca el catálogo vigente. La respuesta nunca
       incluye `customerId`, ningún identificador de actor de historial,
-      `barbershopId` ni `updatedAt` crudo: `versionToken` es el único dato de
+      `businessId` ni `updatedAt` crudo: `versionToken` es el único dato de
       concurrencia expuesto, opaco.
     operationId: getAppointmentDetail
     security:
@@ -305,8 +305,8 @@
         $ref: '../components/responses/UnauthorizedProblem.yaml'
       "404":
         description: >
-          `appointmentId` con forma inválida, inexistente o de otra
-          barbería (RN-TEN-01), sin distinguir la causa.
+          `appointmentId` con forma inválida, inexistente o de otro
+          negocio (RN-TEN-01), sin distinguir la causa.
         headers:
           X-Request-Id:
             $ref: '../components/headers/XRequestId.yaml'
@@ -383,8 +383,8 @@
         $ref: '../components/responses/UnauthorizedProblem.yaml'
       "404":
         description: >
-          `appointmentId` con forma inválida, inexistente o de otra
-          barbería (RN-TEN-01), sin distinguir la causa.
+          `appointmentId` con forma inválida, inexistente o de otro
+          negocio (RN-TEN-01), sin distinguir la causa.
         headers:
           X-Request-Id:
             $ref: '../components/headers/XRequestId.yaml'
@@ -412,7 +412,7 @@
     description: >
       Mueve el intervalo de una cita `confirmed` a un nuevo inicio futuro
       (HU-065, `T2` de `estados-citas.md`), sin cambiar ningún otro dato:
-      barbero, servicio, duración, precio, cliente, persona, origen, nota y
+      profesional, servicio, duración, precio, cliente, persona, origen, nota y
       estado permanecen iguales. El fin se deriva de
       `durationMinutesSnapshot`, nunca del cliente. Protegida con clave de
       idempotencia (RN-IDE-01, DEC-043) y con la precondición `If-Match`
@@ -421,8 +421,8 @@
       `code: version-conflict` en vez de aplicar un último escritor
       silencioso. Un intervalo idéntico al vigente es un no-op exitoso: no
       genera una entrada de historial nueva. Un nuevo intervalo que no cabe
-      completo en la jornada efectiva del barbero (CA-065-04) responde `422`
-      sin escribir nada. Un bloqueo vigente del barbero
+      completo en la jornada efectiva del profesional (CA-065-04) responde `422`
+      sin escribir nada. Un bloqueo vigente del profesional
       en el nuevo intervalo rechaza la operación con el mismo `409` que un
       cruce con otra cita (`DEC-076`). El tenant y el actor se derivan
       exclusivamente de `SessionCookie`.
@@ -468,8 +468,8 @@
         $ref: '../components/responses/UnauthorizedProblem.yaml'
       "404":
         description: >
-          `appointmentId` con forma inválida, inexistente o de otra
-          barbería (RN-TEN-01), sin distinguir la causa.
+          `appointmentId` con forma inválida, inexistente o de otro
+          negocio (RN-TEN-01), sin distinguir la causa.
         headers:
           X-Request-Id:
             $ref: '../components/headers/XRequestId.yaml'
@@ -527,12 +527,12 @@
                   code: idempotency-locked
                   requestId: 8f3ac2b1e4d5f6a7c8d9e0f1a2b3c4d5
               cruceDeAgenda:
-                summary: El barbero ya tiene una cita en el nuevo intervalo, o un bloqueo vigente (DEC-076)
+                summary: El profesional ya tiene una cita en el nuevo intervalo, o un bloqueo vigente (DEC-076)
                 value:
                   type: /api/v1/problems/conflict
                   title: Conflicto
                   status: 409
-                  detail: el barbero tiene un bloqueo vigente en ese intervalo
+                  detail: el profesional tiene un bloqueo vigente en ese intervalo
                   instance: 8f3ac2b1e4d5f6a7c8d9e0f1a2b3c4d5
                   code: conflict
                   requestId: 8f3ac2b1e4d5f6a7c8d9e0f1a2b3c4d5
@@ -563,25 +563,25 @@
 /private/appointments/{appointmentId}/cancel:
   post:
     tags: [Booking]
-    summary: Cancelar un turno por el barbero (T6)
+    summary: Cancelar un turno por el profesional (T6)
     description: >
       Cancela una cita `confirmed` (HU-066, `T6` de `estados-citas.md`) en
       cualquier momento antes, durante o después de su intervalo: ningún
       reloj del cliente ni ventana de tiempo lo restringe (CA-066-02).
-      Cambia el estado a `cancelled_by_barber` e inserta un único evento
-      `appointment_cancelled_by_barber` dentro de la misma transacción que
+      Cambia el estado a `cancelled_by_professional` e inserta un único evento
+      `appointment_cancelled_by_professional` dentro de la misma transacción que
       la actualización de estado. La cita deja de participar en la
       restricción de exclusión de inmediato, liberando su franja si es
       futura (CA-066-03). Protegida con clave de idempotencia (RN-IDE-01,
       DEC-043) y con la precondición `If-Match` (el `versionToken` de una
       lectura anterior del detalle, HU-064). Repetir la cancelación sobre
-      una cita ya `cancelled_by_barber` es un no-op exitoso, sin duplicar
+      una cita ya `cancelled_by_professional` es un no-op exitoso, sin duplicar
       el evento (CA-066-04); una cita ya terminada de otra forma
       (`completed`, `no_show`, `cancelled_by_customer`) responde `409`. No
       cambia intervalo, snapshots, cliente, persona, contacto, nota ni
-      barbero (CA-066-07). El tenant y el actor se derivan exclusivamente
+      profesional (CA-066-07). El tenant y el actor se derivan exclusivamente
       de `SessionCookie`; el cuerpo no acepta ningún campo.
-    operationId: cancelAppointmentByBarber
+    operationId: cancelAppointmentByProfessional
     security:
       - SessionCookie: []
     x-business-rules:
@@ -611,8 +611,8 @@
         $ref: '../components/responses/UnauthorizedProblem.yaml'
       "404":
         description: >
-          `appointmentId` con forma inválida, inexistente o de otra
-          barbería (RN-TEN-01), sin distinguir la causa.
+          `appointmentId` con forma inválida, inexistente o de otro
+          negocio (RN-TEN-01), sin distinguir la causa.
         headers:
           X-Request-Id:
             $ref: '../components/headers/XRequestId.yaml'
@@ -641,7 +641,7 @@
           `confirmed`); o estado inválido (`code: invalid-state`, el turno
           ya terminó de otra forma: `completed`, `no_show` o
           `cancelled_by_customer`). Cancelar una cita ya
-          `cancelled_by_barber` NUNCA produce este `409`: es un `200`
+          `cancelled_by_professional` NUNCA produce este `409`: es un `200`
           no-op (CA-066-04).
         headers:
           X-Request-Id:
@@ -706,13 +706,13 @@
       instante responde `422` sin persistir nada, ni siquiera una
       reclamación de idempotencia que impida reintentar (CA-067-03). No
       cambia intervalo, snapshots, cliente, persona, contacto, nota ni
-      barbero; el turno sigue ocupando agenda (CA-067-04). Protegida con
+      profesional; el turno sigue ocupando agenda (CA-067-04). Protegida con
       clave de idempotencia (RN-IDE-01, DEC-043) y con la precondición
       `If-Match` (el `versionToken` de una lectura anterior del detalle,
       HU-064). Repetir el cierre sobre una cita ya `completed` es un no-op
       exitoso, sin duplicar el evento; intentar `no_show` sobre una cita ya
       `completed`, o cerrar cualquier otro estado terminal
-      (`cancelled_by_barber`, `cancelled_by_customer`), responde `409`
+      (`cancelled_by_professional`, `cancelled_by_customer`), responde `409`
       orientando a la futura corrección `T8` (CA-067-05). El tenant y el
       actor se derivan exclusivamente de `SessionCookie`; el cuerpo no
       acepta ningún campo.
@@ -746,8 +746,8 @@
         $ref: '../components/responses/UnauthorizedProblem.yaml'
       "404":
         description: >
-          `appointmentId` con forma inválida, inexistente o de otra
-          barbería (RN-TEN-01), sin distinguir la causa.
+          `appointmentId` con forma inválida, inexistente o de otro
+          negocio (RN-TEN-01), sin distinguir la causa.
         headers:
           X-Request-Id:
             $ref: '../components/headers/XRequestId.yaml'
@@ -775,7 +775,7 @@
           coincide con la representación vigente mientras el turno sigue
           `confirmed`); o estado inválido (`code: invalid-state`, el turno
           ya tiene un resultado terminal distinto: `no_show`,
-          `cancelled_by_barber` o `cancelled_by_customer`). Cerrar una cita
+          `cancelled_by_professional` o `cancelled_by_customer`). Cerrar una cita
           ya `completed` NUNCA produce este `409`: es un `200` no-op
           (CA-067-05).
         headers:
@@ -843,13 +843,13 @@
       instante responde `422` sin persistir nada, ni siquiera una
       reclamación de idempotencia que impida reintentar (CA-067-03). No
       cambia intervalo, snapshots, cliente, persona, contacto, nota ni
-      barbero; el turno sigue ocupando agenda (CA-067-04). Protegida con
+      profesional; el turno sigue ocupando agenda (CA-067-04). Protegida con
       clave de idempotencia (RN-IDE-01, DEC-043) y con la precondición
       `If-Match` (el `versionToken` de una lectura anterior del detalle,
       HU-064). Repetir el cierre sobre una cita ya `no_show` es un no-op
       exitoso, sin duplicar el evento; intentar `completed` sobre una cita
       ya `no_show`, o cerrar cualquier otro estado terminal
-      (`cancelled_by_barber`, `cancelled_by_customer`), responde `409`
+      (`cancelled_by_professional`, `cancelled_by_customer`), responde `409`
       orientando a la futura corrección `T8` (CA-067-05). El tenant y el
       actor se derivan exclusivamente de `SessionCookie`; el cuerpo no
       acepta ningún campo.
@@ -883,8 +883,8 @@
         $ref: '../components/responses/UnauthorizedProblem.yaml'
       "404":
         description: >
-          `appointmentId` con forma inválida, inexistente o de otra
-          barbería (RN-TEN-01), sin distinguir la causa.
+          `appointmentId` con forma inválida, inexistente o de otro
+          negocio (RN-TEN-01), sin distinguir la causa.
         headers:
           X-Request-Id:
             $ref: '../components/headers/XRequestId.yaml'
@@ -912,7 +912,7 @@
           coincide con la representación vigente mientras el turno sigue
           `confirmed`); o estado inválido (`code: invalid-state`, el turno
           ya tiene un resultado terminal distinto: `completed`,
-          `cancelled_by_barber` o `cancelled_by_customer`). Cerrar una cita
+          `cancelled_by_professional` o `cancelled_by_customer`). Cerrar una cita
           ya `no_show` NUNCA produce este `409`: es un `200` no-op
           (CA-067-05).
         headers:
@@ -975,7 +975,7 @@
     description: >
       Corrige una clasificación terminal errónea hacia otro terminal
       distinto (HU-068, `T8` de `estados-citas.md`): `completed`, `no_show`,
-      `cancelled_by_customer` o `cancelled_by_barber`. `confirmed` nunca es
+      `cancelled_by_customer` o `cancelled_by_professional`. `confirmed` nunca es
       origen ni destino (CA-068-01/02) — corregir una cita que sigue
       `confirmed` responde `409 invalid-state`; enviar `confirmed` como
       destino responde `422 validation-error`. El estado y un único evento
@@ -987,7 +987,7 @@
       corregir desde un cancelado hacia `completed`/`no_show`, se revalida
       la misma frontera temporal que T4/T7 (`422` si `startsAt` todavía no
       pasó) y la misma restricción de exclusión de PostgreSQL que protege
-      reprogramar: un cruce con otra cita del mismo barbero responde
+      reprogramar: un cruce con otra cita del mismo profesional responde
       `409 conflict` sin escribir nada (CA-068-04). Al corregir desde
       `completed`/`no_show` hacia un cancelado, la cita deja de ocupar
       agenda en la misma confirmación (CA-068-05). Protegida con clave de
@@ -1030,7 +1030,7 @@
               summary: Corregir completed a no_show
               value:
                 status: no_show
-                reason: "El barbero marcó completed por error; el cliente nunca llegó."
+                reason: "El profesional marcó completed por error; el cliente nunca llegó."
     responses:
       "200":
         $ref: '../components/responses/AppointmentStatusCorrected.yaml'
@@ -1040,8 +1040,8 @@
         $ref: '../components/responses/UnauthorizedProblem.yaml'
       "404":
         description: >
-          `appointmentId` con forma inválida, inexistente o de otra
-          barbería (RN-TEN-01), sin distinguir la causa.
+          `appointmentId` con forma inválida, inexistente o de otro
+          negocio (RN-TEN-01), sin distinguir la causa.
         headers:
           X-Request-Id:
             $ref: '../components/headers/XRequestId.yaml'
@@ -1071,7 +1071,7 @@
           ningún resultado terminal que corregir, CA-068-01); o cruce de
           agenda (`code: conflict`, corregir desde un cancelado hacia
           `completed`/`no_show` volvería a ocupar una franja que otra cita
-          del mismo barbero ya ocupa, CA-068-04).
+          del mismo profesional ya ocupa, CA-068-04).
         headers:
           X-Request-Id:
             $ref: '../components/headers/XRequestId.yaml'
@@ -1126,7 +1126,7 @@
                   type: /api/v1/problems/conflict
                   title: Conflicto
                   status: 409
-                  detail: el barbero ya tiene una cita en ese intervalo
+                  detail: el profesional ya tiene una cita en ese intervalo
                   instance: 8f3ac2b1e4d5f6a7c8d9e0f1a2b3c4d5
                   code: conflict
                   requestId: 8f3ac2b1e4d5f6a7c8d9e0f1a2b3c4d5

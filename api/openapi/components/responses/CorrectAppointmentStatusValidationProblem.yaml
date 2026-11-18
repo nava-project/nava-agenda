@@ -27,7 +27,7 @@ content:
           type: /api/v1/problems/validation-error
           title: Error de validación
           status: 422
-          detail: el estado destino debe ser completed, no_show, cancelled_by_customer o cancelled_by_barber
+          detail: el estado destino debe ser completed, no_show, cancelled_by_customer o cancelled_by_professional
           instance: 8f3ac2b1e4d5f6a7c8d9e0f1a2b3c4d5
           code: validation-error
           requestId: 8f3ac2b1e4d5f6a7c8d9e0f1a2b3c4d5

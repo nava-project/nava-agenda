@@ -1,7 +1,7 @@
 # 422 de POST/PATCH /private/services (CA-022-03, CA-022-04): campo vacío,
 # excesivo, duración fuera de [1, 1440] o precio con formato inválido o
 # menor o igual a cero (DEC-067). Mismo criterio que
-# BarberValidationProblem: cuerpo bien formado que incumple una validación
+# ProfessionalValidationProblem: cuerpo bien formado que incumple una validación
 # de campo, distinto del 400 de JSON/campo desconocido.
 description: >
   El cuerpo es JSON válido, pero incumple una validación de campo (nombre,

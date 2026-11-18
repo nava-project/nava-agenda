@@ -9,7 +9,7 @@ properties:
     type: string
     maxLength: 64
     description: >
-      Zona horaria IANA de la barbería (RN-DIS-07). `starts` viaja en UTC; el
+      Zona horaria IANA del negocio (RN-DIS-07). `starts` viaja en UTC; el
       cliente agrupa y presenta las franjas en esta zona, nunca en la del
       dispositivo.
     examples:

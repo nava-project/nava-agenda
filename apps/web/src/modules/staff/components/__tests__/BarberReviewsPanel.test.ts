@@ -68,8 +68,8 @@ describe('BarberReviewsPanel', () => {
     const wrapper = mountIt()
     await openList(wrapper)
 
-    expect(getMock).toHaveBeenCalledWith('/private/barbers/{barberId}/reviews', {
-      params: { path: { barberId: BARBER } },
+    expect(getMock).toHaveBeenCalledWith('/private/professionals/{professionalId}/reviews', {
+      params: { path: { professionalId: BARBER } },
     })
     const items = wrapper.findAll('li')
     expect(items).toHaveLength(2)
@@ -110,10 +110,13 @@ describe('BarberReviewsPanel', () => {
     await wrapper.findAll('li')[0]!.get('button').trigger('click')
     await flushPromises()
 
-    expect(patchMock).toHaveBeenCalledWith('/private/barbers/{barberId}/reviews/{reviewId}', {
-      params: { path: { barberId: BARBER, reviewId: R1 } },
-      body: { hidden: true },
-    })
+    expect(patchMock).toHaveBeenCalledWith(
+      '/private/professionals/{professionalId}/reviews/{reviewId}',
+      {
+        params: { path: { professionalId: BARBER, reviewId: R1 } },
+        body: { hidden: true },
+      },
+    )
     expect(wrapper.emitted('changed')).toEqual([[{ rating: null, ratingCount: 0 }]])
     expect(wrapper.get('[role="img"]').attributes('aria-label')).toBe('Sin reseñas todavía')
   })

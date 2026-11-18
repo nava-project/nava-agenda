@@ -62,7 +62,9 @@ describe('schedulesApi.fetchBarberSummaries', () => {
       kind: 'success',
       items: [{ id: 'b-1', fullName: 'Carlos Ramírez', photoUrl: null }],
     })
-    expect(getMock).toHaveBeenCalledWith('/private/barbers', { params: { query: { limit: 50 } } })
+    expect(getMock).toHaveBeenCalledWith('/private/professionals', {
+      params: { query: { limit: 50 } },
+    })
   })
 
   it('exposes the portrait URL only for barbers that have a photo', async () => {
@@ -84,7 +86,7 @@ describe('schedulesApi.fetchBarberSummaries', () => {
         {
           id: 'b-1',
           fullName: 'Carlos Ramírez',
-          photoUrl: '/api/v1/private/barbers/b-1/photo?v=2026-09-30T10%3A00%3A00Z',
+          photoUrl: '/api/v1/private/professionals/b-1/photo?v=2026-09-30T10%3A00%3A00Z',
         },
         { id: 'b-2', fullName: 'Ana Torres', photoUrl: null },
       ],
@@ -106,7 +108,7 @@ describe('schedulesApi.fetchBarbershopTimezone', () => {
     const outcome = await fetchBarbershopTimezone()
 
     expect(outcome).toEqual({ kind: 'success', timezone: 'America/Bogota' })
-    expect(getMock).toHaveBeenCalledWith('/private/settings/barbershop')
+    expect(getMock).toHaveBeenCalledWith('/private/settings/business')
   })
 
   it('maps any failure to unavailable, never blocking the schedule from loading', async () => {
@@ -130,8 +132,8 @@ describe('schedulesApi.fetchWorkingHours', () => {
       kind: 'success',
       page: { items: [workingHourBody], nextCursor: null },
     })
-    expect(getMock).toHaveBeenCalledWith('/private/barbers/{barberId}/working-hours', {
-      params: { path: { barberId: 'b-1' }, query: { limit: 50 } },
+    expect(getMock).toHaveBeenCalledWith('/private/professionals/{professionalId}/working-hours', {
+      params: { path: { professionalId: 'b-1' }, query: { limit: 50 } },
     })
   })
 
@@ -155,8 +157,8 @@ describe('schedulesApi.createWorkingHour', () => {
     const outcome = await createWorkingHour('b-1', 1, '08:00', 480, 'key-1')
 
     expect(outcome).toEqual({ kind: 'success', workingHour: workingHourBody })
-    expect(postMock).toHaveBeenCalledWith('/private/barbers/{barberId}/working-hours', {
-      params: { path: { barberId: 'b-1' }, header: { 'Idempotency-Key': 'key-1' } },
+    expect(postMock).toHaveBeenCalledWith('/private/professionals/{professionalId}/working-hours', {
+      params: { path: { professionalId: 'b-1' }, header: { 'Idempotency-Key': 'key-1' } },
       body: { isoWeekday: 1, startsTime: '08:00', durationMinutes: 480 },
     })
   })
@@ -203,9 +205,9 @@ describe('schedulesApi.updateWorkingHour', () => {
 
     expect(outcome).toEqual({ kind: 'success', workingHour: workingHourBody })
     expect(patchMock).toHaveBeenCalledWith(
-      '/private/barbers/{barberId}/working-hours/{workingHourId}',
+      '/private/professionals/{professionalId}/working-hours/{workingHourId}',
       {
-        params: { path: { barberId: 'b-1', workingHourId: 'wh-1' } },
+        params: { path: { professionalId: 'b-1', workingHourId: 'wh-1' } },
         body: { isoWeekday: 1, startsTime: '09:00', durationMinutes: 60 },
       },
     )

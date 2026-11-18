@@ -81,7 +81,7 @@ func TestContract_CustomerAppointmentResponse_MatchesDTO(t *testing.T) {
 	if got, want := jsonFields(t, httpapi.CustomerAppointmentResponse{}), schemaProps(schema); !reflect.DeepEqual(got, want) {
 		t.Fatalf("DTO %v != OpenAPI %v", got, want)
 	}
-	for _, field := range []string{"versionToken", "barbershopContactEmail", "barbershopContactPhone"} {
+	for _, field := range []string{"versionToken", "businessContactEmail", "businessContactPhone"} {
 		found := false
 		for _, r := range schema.Required {
 			found = found || r == field

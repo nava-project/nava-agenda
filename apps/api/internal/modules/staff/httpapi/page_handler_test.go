@@ -19,7 +19,7 @@ func TestListBarbers_NumberedParametersAndWire(t *testing.T) {
 	}}
 	h := httpapi.NewListBarbersHandler(staff.NewService(repo))
 	rec := httptest.NewRecorder()
-	h.ServeHTTP(rec, requestWithPrincipal(http.MethodGet, "/api/v1/private/barbers?page=2&pageSize=3", nil))
+	h.ServeHTTP(rec, requestWithPrincipal(http.MethodGet, "/api/v1/private/professionals?page=2&pageSize=3", nil))
 	if rec.Code != 200 {
 		t.Fatalf("status %d: %s", rec.Code, rec.Body.String())
 	}
@@ -44,7 +44,7 @@ func TestListBarbers_NumberedRejectsInvalidOrMixedParameters(t *testing.T) {
 	for _, query := range []string{"page=0", "page=-1", "page=no", "page=", "pageSize=0", "pageSize=51", "pageSize=-1", "pageSize=no", "page=1&cursor=", "page=1&limit=2", "pageSize=3&cursor=x"} {
 		t.Run(query, func(t *testing.T) {
 			rec := httptest.NewRecorder()
-			h.ServeHTTP(rec, requestWithPrincipal(http.MethodGet, "/api/v1/private/barbers?"+query, nil))
+			h.ServeHTTP(rec, requestWithPrincipal(http.MethodGet, "/api/v1/private/professionals?"+query, nil))
 			if rec.Code != 400 {
 				t.Fatalf("expected 400, got %d", rec.Code)
 			}

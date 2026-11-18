@@ -13,8 +13,8 @@ const evidenceDir = path.join(
 
 const detail = {
   id: 'turno-mateo',
-  barberId: 'barbero-julian',
-  barberFullName: 'Julián Rodríguez',
+  professionalId: 'barbero-julian',
+  professionalFullName: 'Julián Rodríguez',
   attendeeName: 'Mateo Rojas',
   customerFullName: 'Mateo Rojas',
   customerPhone: '+57 321 456 7890',
@@ -68,7 +68,7 @@ function json(body: unknown, status = 200) {
 
 // cancelOutcome controla la respuesta de POST .../cancel (HU-066, T6):
 // 'success' (por defecto) cancela de verdad -la lectura GET posterior ya
-// refleja cancelled_by_barber, mismo criterio que el turno real tras
+// refleja cancelled_by_professional, mismo criterio que el turno real tras
 // confirmar-, 'version-conflict' reproduce el 409 distinguible sin mutar
 // nada, para la evidencia del diálogo de conflicto. closeOutcome hace lo
 // mismo para POST .../complete y .../no-show (HU-067, T4 manual/T7):
@@ -91,7 +91,7 @@ async function installDetailMock(
     correctOutcome?: 'success' | 'version-conflict' | 'invalid-state' | 'conflict' | 'not-started'
     correctDelayMs?: number
     initialStatus?:
-      'confirmed' | 'completed' | 'no_show' | 'cancelled_by_customer' | 'cancelled_by_barber'
+      'confirmed' | 'completed' | 'no_show' | 'cancelled_by_customer' | 'cancelled_by_professional'
   } = {},
 ) {
   const cancelOutcome = options.cancelOutcome ?? 'success'
@@ -102,7 +102,7 @@ async function installDetailMock(
   const correctDelayMs = options.correctDelayMs ?? 0
   const state = { cancelRequests: 0, completeRequests: 0, noShowRequests: 0, correctRequests: 0 }
   let finalStatus:
-    'confirmed' | 'cancelled_by_barber' | 'cancelled_by_customer' | 'completed' | 'no_show' =
+    'confirmed' | 'cancelled_by_professional' | 'cancelled_by_customer' | 'completed' | 'no_show' =
     options.initialStatus ?? 'confirmed'
 
   function versionConflictProblem() {
@@ -184,13 +184,13 @@ async function installDetailMock(
     if (url.pathname.endsWith('/auth/session')) {
       await route.fulfill(
         json({
-          barbershop: { id: 'shop-nava', name: 'NAVA QA Local' },
+          business: { id: 'shop-nava', name: 'NAVA QA Local' },
           expiresAt: '2099-01-01T00:00:00Z',
         }),
       )
       return
     }
-    if (url.pathname.endsWith('/settings/barbershop')) {
+    if (url.pathname.endsWith('/settings/business')) {
       await route.fulfill(json({ timezone: 'America/Bogota' }))
       return
     }
@@ -211,7 +211,7 @@ async function installDetailMock(
         await route.fulfill(versionConflictProblem())
         return
       }
-      finalStatus = 'cancelled_by_barber'
+      finalStatus = 'cancelled_by_professional'
       await route.fulfill(json(currentDetail()))
       return
     }
@@ -339,7 +339,7 @@ for (const viewport of [
 
 // --- HU-066 (T6): cancelación por el barbero, issue #225 -----------------
 // El estado terminal (badge "Cancelado por el barbero") reutiliza el mismo
-// componente/variant que el atlas ya fija para cancelled_by_barber
+// componente/variant que el atlas ya fija para cancelled_by_professional
 // (dailyAgenda.ts APPOINTMENT_STATUS_BADGE_VARIANT = 'danger', mismo
 // tratamiento que detalle-turno-eventos/10-turno-cancelado.png); el diálogo
 // de confirmación no tiene mockup exacto y se diseñó dentro de NAVA.
@@ -828,7 +828,7 @@ for (const viewport of [
   // cita del mismo barbero ya ocupa.
   test(`HU-068: cruce de agenda al corregir en ${viewport.name}`, async ({ page }) => {
     await openDetail(page, viewport.width, viewport.height, {
-      initialStatus: 'cancelled_by_barber',
+      initialStatus: 'cancelled_by_professional',
       correctOutcome: 'conflict',
     })
     await page.getByRole('button', { name: 'Corregir resultado' }).click()

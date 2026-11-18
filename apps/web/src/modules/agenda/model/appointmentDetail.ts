@@ -37,7 +37,7 @@ export type HistoryEventType =
   | 'appointment_service_changed'
   | 'appointment_completed'
   | 'appointment_cancelled_by_customer'
-  | 'appointment_cancelled_by_barber'
+  | 'appointment_cancelled_by_professional'
   | 'appointment_no_show'
   | 'appointment_status_corrected'
 
@@ -65,7 +65,7 @@ export type HistoryEntry = {
 // Etiquetas en español de los ocho eventos cerrados (DEC-041): la interfaz
 // nunca muestra el texto técnico en inglés de la API.
 const FIXED_EVENT_LABELS: Record<
-  Exclude<HistoryEventType, 'appointment_cancelled_by_barber'>,
+  Exclude<HistoryEventType, 'appointment_cancelled_by_professional'>,
   string
 > = {
   appointment_created: 'Turno creado',
@@ -77,10 +77,10 @@ const FIXED_EVENT_LABELS: Record<
   appointment_status_corrected: 'Estado corregido',
 }
 
-// El evento técnico `appointment_cancelled_by_barber` no se renombra (DEC-041); su
+// El evento técnico `appointment_cancelled_by_professional` no se renombra (DEC-041); su
 // etiqueta usa la palabra de la barbería (DEC-110, DEC-119).
 export function historyEventLabel(eventType: HistoryEventType, v: Vocabulary): string | undefined {
-  return eventType === 'appointment_cancelled_by_barber'
+  return eventType === 'appointment_cancelled_by_professional'
     ? `Cancelado ${v.byTheProfessional}`
     : FIXED_EVENT_LABELS[eventType]
 }

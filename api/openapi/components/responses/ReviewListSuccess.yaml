@@ -1,5 +1,5 @@
-# Respuesta 200 de GET /private/barbers/{barberId}/reviews (HU-100).
-description: Resumen público y todas las reseñas del barbero, ocultas incluidas.
+# Respuesta 200 de GET /private/professionals/{professionalId}/reviews (HU-100).
+description: Resumen público y todas las reseñas del profesional, ocultas incluidas.
 headers:
   X-Request-Id:
     $ref: '../headers/XRequestId.yaml'

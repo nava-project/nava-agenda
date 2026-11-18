@@ -132,7 +132,7 @@ func TestProcess_TheMessageFollowsTheStateAtSendTime(t *testing.T) {
 
 func TestProcess_Skips_WithoutSendingAndWithTheReason(t *testing.T) {
 	cancelled := validContext()
-	cancelled.Kind, cancelled.AppointmentStatus = appointmentnotice.KindCancelledByBarber, "cancelled_by_barber"
+	cancelled.Kind, cancelled.AppointmentStatus = appointmentnotice.KindCancelledByBarber, "cancelled_by_professional"
 
 	cases := []struct {
 		name   string
@@ -165,10 +165,10 @@ func TestProcess_Skips_WithoutSendingAndWithTheReason(t *testing.T) {
 
 func TestProcess_CancellationIsSentWithTheCancelledKind(t *testing.T) {
 	ctx := validContext()
-	ctx.Kind, ctx.AppointmentStatus = appointmentnotice.KindCancelledByBarber, "cancelled_by_barber"
+	ctx.Kind, ctx.AppointmentStatus = appointmentnotice.KindCancelledByBarber, "cancelled_by_professional"
 	store, mailer := &fakeStore{ctx: ctx}, &fakeMailer{}
 	fin, _ := process(t, store, mailer, 1)
-	if len(mailer.calls) != 1 || mailer.calls[0].kind != "cancelled_by_barber" || fin.Outcome != appointmentnotice.OutcomeSent {
+	if len(mailer.calls) != 1 || mailer.calls[0].kind != "cancelled_by_professional" || fin.Outcome != appointmentnotice.OutcomeSent {
 		t.Fatalf("debe enviar la cancelación: %+v / %+v", mailer.calls, fin)
 	}
 }
@@ -319,7 +319,7 @@ func TestProcess_Reminder_Skips(t *testing.T) {
 		code   string
 	}{
 		{"turno cancelado (RN-REC-02)", func(c *appointmentnotice.Context) { c.AppointmentStatus = "cancelled_by_customer" }, appointmentnotice.CodeNotConfirmed},
-		{"turno cancelado por el barbero", func(c *appointmentnotice.Context) { c.AppointmentStatus = "cancelled_by_barber" }, appointmentnotice.CodeNotConfirmed},
+		{"turno cancelado por el barbero", func(c *appointmentnotice.Context) { c.AppointmentStatus = "cancelled_by_professional" }, appointmentnotice.CodeNotConfirmed},
 		{"turno completado", func(c *appointmentnotice.Context) { c.AppointmentStatus = "completed" }, appointmentnotice.CodeNotConfirmed},
 		{"el turno cambió de hora: recordatorio de la hora vieja (RN-REC-03)", func(c *appointmentnotice.Context) { c.NoticeStateAt = c.StartsAt.Add(-3 * time.Hour) }, appointmentnotice.CodeSuperseded},
 		{"ya enviado para esa hora", func(c *appointmentnotice.Context) { c.AlreadyCovered = true }, appointmentnotice.CodeSuperseded},

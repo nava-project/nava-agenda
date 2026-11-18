@@ -47,17 +47,17 @@ async function installStaffMock(page: Page, empty = false) {
     const url = new URL(route.request().url())
     if (url.pathname.endsWith('/auth/session')) {
       await route.fulfill(
-        json({ barbershop: { id: 'shop-nava', name: 'NAVA' }, expiresAt: '2099-01-01T00:00:00Z' }),
+        json({ business: { id: 'shop-nava', name: 'NAVA' }, expiresAt: '2099-01-01T00:00:00Z' }),
       )
       return
     }
-    if (url.pathname.endsWith('/barbers') && route.request().method() === 'GET') {
+    if (url.pathname.endsWith('/professionals') && route.request().method() === 'GET') {
       await route.fulfill(
         json({ items: empty ? [] : barbers, nextCursor: empty ? null : 'page-2' }),
       )
       return
     }
-    if (url.pathname.endsWith('/barbers') && route.request().method() === 'POST') {
+    if (url.pathname.endsWith('/professionals') && route.request().method() === 'POST') {
       await route.abort('failed')
       return
     }

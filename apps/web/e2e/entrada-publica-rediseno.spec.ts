@@ -41,8 +41,8 @@ function json(body: unknown, status = 200) {
 }
 
 async function installApi(page: Page, profile: Record<string, unknown>) {
-  await page.route(`**/api/v1/public/barbershops/${SLUG}`, (route) => route.fulfill(json(profile)))
-  await page.route(`**/api/v1/public/barbershops/${SLUG}/reviews`, (route) =>
+  await page.route(`**/api/v1/public/businesses/${SLUG}`, (route) => route.fulfill(json(profile)))
+  await page.route(`**/api/v1/public/businesses/${SLUG}/reviews`, (route) =>
     route.fulfill(json({ rating: null, ratingCount: 0, mapsUrl: null, reviews: [] })),
   )
 }

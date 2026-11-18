@@ -1,5 +1,5 @@
 # Proyección mínima de un turno en la agenda diaria (HU-062, CA-062-05):
-# nunca teléfono, correo, nota ni customerId. `barberId` no aparece: la
+# nunca teléfono, correo, nota ni customerId. `professionalId` no aparece: la
 # ruta ya lo fija (DEC-074) y repetirlo sería un campo interno innecesario.
 type: object
 properties:
@@ -16,7 +16,7 @@ properties:
     format: date-time
   status:
     type: string
-    enum: [confirmed, completed, cancelled_by_customer, cancelled_by_barber, no_show]
+    enum: [confirmed, completed, cancelled_by_customer, cancelled_by_professional, no_show]
   origin:
     type: string
     enum: [public, manual]
@@ -40,7 +40,7 @@ properties:
       - type: "null"
     description: >
       Dirección del cliente cuando el turno es a domicilio (`DEC-131`); `null`
-      en el local. Solo la ve el panel de esa barbería (`CA-103-06`).
+      en el local. Solo la ve el panel de ese negocio (`CA-103-06`).
 required:
   - id
   - attendeeName

@@ -1,4 +1,4 @@
-# Respuesta 200 de GET /private/barbers/{barberId}/time-blocks/effective.
+# Respuesta 200 de GET /private/professionals/{professionalId}/time-blocks/effective.
 description: Bloqueos puntuales vigentes y ocurrencias de serie dentro del rango solicitado.
 headers:
   X-Request-Id:

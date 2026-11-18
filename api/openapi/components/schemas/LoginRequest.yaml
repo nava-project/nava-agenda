@@ -7,15 +7,15 @@
 # (longitud), nunca "¿parece un correo real?".
 type: object
 additionalProperties: false
-description: Credenciales de acceso del barbero.
+description: Credenciales de acceso del profesional.
 properties:
   email:
     type: string
     format: email
     maxLength: 254
-    description: Correo de acceso, normalizado a minúsculas por el servidor antes de resolver la barbería.
+    description: Correo de acceso, normalizado a minúsculas por el servidor antes de resolver el negocio.
     examples:
-      - barbero.ejemplo@correo.test
+      - profesional.ejemplo@correo.test
   password:
     type: string
     writeOnly: true

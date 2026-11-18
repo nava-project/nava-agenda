@@ -1,4 +1,4 @@
-# Cuerpo de POST /public/barbershops/{slug}/customer-access/verify-ref (HU-106).
+# Cuerpo de POST /public/businesses/{slug}/customer-access/verify-ref (HU-106).
 type: object
 additionalProperties: false
 properties:

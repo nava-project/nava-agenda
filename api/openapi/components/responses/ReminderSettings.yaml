@@ -1,5 +1,5 @@
 # Respuesta 200 de GET y PATCH /private/settings/reminders (DEC-174).
-description: Anticipación vigente del recordatorio de la barbería activa.
+description: Anticipación vigente del recordatorio del negocio activo.
 headers:
   X-Request-Id:
     $ref: '../headers/XRequestId.yaml'

@@ -2,137 +2,19 @@
 # docs/06-api/estandar-openapi.md (DEC-037). No se edita el bundle generado
 # en dist/; este archivo y los que referencia son la fuente.
 #
-# Issue #654 (DEC-182, HU-107) agrega GET/PUT /private/settings/opening-hours
-# (paths/settings.yaml), el horario de atención propio del local, y lo expone en
-# GET /public/barbershops/{slug} (openingHours, closedOnHolidays y today).
-#
-# Issue #651 (DEC-181): Odin puede pedir el código sin propósito (`manage`) y recibe
-# `accessUrl`, el enlace listo para el chat; el paso 03 ofrece cancelar y reprogramar.
-#
-# Issue #605 (DEC-173) agrega permisos reales por rol: una cuenta de empleado
-# solo alcanza lo de su propio barbero y recibe 403 (ForbiddenProblem) en la
-# configuración de la barbería y en lo de otros barberos.
-#
-# Issue #599 (DEC-171) agrega brandAccent a GET /public/barbershops/{slug}:
-# la reserva pública de cada barbería pinta con el color que eligió.
-#
-# Issue #591 (DEC-170) agrega latitude/longitude opcionales a
-# PATCH /private/settings/brand: el punto que el dueño ajusta a mano en el
-# mapa se guarda tal cual, sin geocodificar la dirección.
-#
-# Issue #585 (DEC-169) agrega GET /private/settings/booking-policy/barbers y
-# PUT/DELETE /private/settings/booking-policy/barbers/{barberId}
-# (paths/settings.yaml): ventana de reserva pública propia y opcional por
-# barbero; sin ella, el barbero hereda la de la barbería.
-#
-# Issue #355 (DEC-126) agrega el tag Webhooks y GET/POST
-# /public/webhooks/meta/whatsapp (paths/public-webhooks.yaml): verificación y
-# notificaciones firmadas de Meta WhatsApp Cloud API. Lo llama Meta; el frontend
-# no lo consume.
-#
-# DEC-139 agrega GET/PATCH /private/settings/login-otp (paths/settings.yaml): el
-# canal (correo, WhatsApp o ambos) del código del reto adicional de acceso.
-#
-# DEC-174 agrega GET/PATCH /private/settings/reminders (paths/settings.yaml): con
-# cuánta anticipación (10 a 60 minutos) sale el recordatorio al cliente.
-#
-# Issue #304 (DEC-117) agrega GET /private/settings/public-link
-# (paths/settings.yaml): el enlace público de reservas de la barbería de la
-# sesión, generado `<nombre><código aleatorio>` (sin guiones, `DEC-118`) en la primera lectura.
-#
-# HU-098 agrega el tag CustomerAccess y su primera operación: GET
-# /customer/appointments/{token} (paths/customer-appointments.yaml), lectura
-# mínima del turno del cliente autenticada únicamente por la credencial del
-# enlace que HU-097 emitió (DEC-089), sin sesión (CA-098-01 a CA-098-06).
-# Consume public_resolve_appointment_token_tenant
-# (20260916120000_add_public_resolve_appointment_token_tenant.sql).
-#
-# DEC-162 agrega dos agregados públicos de solo lectura en
-# paths/public-booking.yaml: GET /public/barbershops/{slug}/barbers (barberos
-# elegibles con los ids de sus servicios activos) y GET
-# /public/barbershops/{slug}/services/{serviceId}/availability (franjas de
-# todos los barberos del servicio). Las operaciones por servicio y por
-# barbero siguen sin cambios.
-#
-# HU-094 agrega la cuarta operación pública de reserva: GET
-# /public/barbershops/{slug}/services/{serviceId}/barbers/{barberId}/
-# availability (paths/public-booking.yaml), disponibilidad pública real sin
-# sesión (CA-094-01 a CA-094-06). Resuelve DP-PUB-03 como DEC-084; DEC-135 la sustituye por una rejilla fija.
-#
-# HU-093 agrega la política pública de reserva y cancelación al tag
-# Settings: GET/PUT /private/settings/booking-policy (paths/settings.yaml),
-# anticipación, ventana, rejilla, plazo y cancelación tardía, protegida por
-# la precondición de versión If-Match (CA-093-01 a CA-093-04). Resuelve
-# DP-PUB-02 como DEC-083.
-#
-# HU-092 agrega la tercera operación pública de reserva: GET
-# /public/barbershops/{slug}/services/{serviceId}/barbers
-# (paths/public-booking.yaml), barberos con asignación vigente al servicio
-# activo resuelto, sin sesión (CA-092-01 a CA-092-03).
-#
-# HU-091 agrega la segunda operación pública de reserva: GET
-# /public/barbershops/{slug}/services (paths/public-booking.yaml),
-# catálogo público de servicios activos y con al menos una asignación
-# vigente, resuelto por el mismo slug sin sesión (CA-091-01).
-#
-# HU-090 agrega el tag PublicBooking y la primera operación pública de
-# reserva: GET /public/barbershops/{slug} (paths/public-booking.yaml),
-# resolución sin sesión mediante public_resolve_barbershop_by_slug
-# (20260911045044_add_barbershop_public_slug.sql, DEC-082, resuelve
-# DP-PUB-01).
-#
-# HU-042 agrega paths/time-blocks.yaml al tag Schedule: bloqueo puntual
-# (incluida la emergencia, RN-BLQ-03), definición recurrente weekly/date_list
-# con sus sub-recursos de fechas explícitas y excepciones ("esta instancia
-# no"), y la proyección efectiva de solo lectura (GET .../time-blocks/
-# effective). Los altas de bloqueo/serie llevan Idempotency-Key (RN-IDE-01);
-# los sub-recursos de fechas/excepciones no, porque un duplicado ya responde
-# de forma determinista con 409 sin efecto duplicado. Crear un bloqueo o una
-# serie NUNCA cancela, reprograma ni consulta citas (RN-BLQ-03): la lista de
-# citas afectadas queda para B3/B5.
-#
-# HU-041 agrega paths/schedule-exceptions.yaml al tag Schedule: el
-# interruptor holiday-calendar por barbero, el CRUD de schedule-exceptions
-# (cabecera de fecha + tramos, con Idempotency-Key en el alta, RN-IDE-01),
-# y colombian-holidays (referencia calendárica calculada, Ley 51 de 1983
-# "Ley Emiliani", sin tabla ni dependencia nueva).
-#
-# HU-040 agrega el tag Schedule y las cuatro operaciones de
-# paths/schedules.yaml: listar, crear (con Idempotency-Key, RN-IDE-01, y
-# conflicto de solape/hora repetida del mismo barbero y día), consultar y
-# editar tramos recurrentes de working_hour de un barbero. CT-008 se
-# resolvió como DEC-070 (FK en ON DELETE RESTRICT, no CASCADE).
-#
-# HU-024 agrega paths/service-lifecycle.yaml: previsualizar el impacto
-# (recuento real de citas futuras confirmadas, DEC-069), desactivar y reactivar un servicio del
-# catálogo, protegidas con Idempotency-Key (RN-IDE-01). ServiceResponse
-# gana isActive/deactivatedAt, de solo lectura.
-#
-# HU-005 agregó la primera operación de negocio: POST /public/auth/login.
-# HU-006 agrega la primera operación privada real: POST
-# /private/auth/logout, que registra por primera vez
-# components/securitySchemes/SessionCookie (DEC-058). HU-012 agrega la
-# segunda operación privada, de solo lectura: GET /private/auth/session
-# (DEC-060), que rehidrata la cookie HttpOnly al abrir o recargar la
-# aplicación. HU-021 agrega el tag Staff y las cuatro operaciones de
-# paths/staff.yaml: listar, registrar (con Idempotency-Key, RN-IDE-01),
-# consultar y renombrar barberos; DEC-104 les suma la fotografía opcional
-# (PUT/GET/DELETE /private/barbers/{barberId}/photo, cuerpo binario). HU-022 agrega el tag Catalog y las cuatro
-# operaciones de paths/catalog.yaml: listar, crear (con Idempotency-Key,
-# RN-IDE-01, y conflicto de nombre entre servicios activos, DEC-067),
-# consultar y editar servicios del catálogo básico. Los componentes de
-# error ya eran reales desde HU-003 (recuperación de panic, aislamiento por
-# tenant, límite de cuerpo); paths queda vacío para el resto de capacidades
-# hasta su primer endpoint implementado.
+# La historia de cada operación (qué issue, HU o DEC la agregó o cambió) vive en
+# CHANGELOG.md. Desde 1.0.0 (DEC-183, issue #661) el contrato habla de negocios
+# (`businesses`) y profesionales (`professionals`); la tabla de equivalencias con
+# los nombres anteriores está en esa versión del CHANGELOG.
 openapi: 3.1.2
 info:
-  title: API del sistema de agenda para barberías
-  version: 0.59.0
+  title: API de Nava Agenda
+  version: 1.0.0
   description: >
     Contrato HTTP entre apps/web y apps/api. Tres audiencias comparten este
     documento: /api/v1/public (reserva sin sesión), /api/v1/customer
     (acceso por token del enlace de la cita) y /api/v1/private (sesión del
-    barbero), según docs/04-arquitectura/backend-go.md sección 7.
+    profesional), según docs/04-arquitectura/backend-go.md sección 7.
   license:
     name: Propietaria, uso interno del proyecto
     identifier: UNLICENSED
@@ -140,29 +22,29 @@ servers:
   - url: /api/v1
 tags:
   - name: Auth
-    description: Identidad, sesiones y recuperación de acceso del barbero.
+    description: Identidad, sesiones y recuperación de acceso del profesional.
   - name: Settings
-    description: Configuración general de la barbería.
+    description: Configuración general del negocio.
   - name: Staff
-    description: Registro y listado de los barberos de la barbería.
+    description: Registro y listado de los profesionales del negocio.
   - name: Catalog
     description: >-
-      Catálogo básico de servicios de la barbería (HU-022), su asignación a
-      barberos (HU-023) y su ciclo de desactivación/reactivación (HU-024).
+      Catálogo básico de servicios del negocio (HU-022), su asignación a
+      profesionales (HU-023) y su ciclo de desactivación/reactivación (HU-024).
   - name: Schedule
     description: >-
-      Horario laboral recurrente de cada barbero (HU-040), calendario
+      Horario laboral recurrente de cada profesional (HU-040), calendario
       colombiano de festivos y excepciones de jornada por fecha (HU-041), y
       bloqueos de agenda puntuales y recurrentes (HU-042).
   - name: Booking
     description: >-
-      Registro de turnos: creación manual por el barbero (HU-061), con
+      Registro de turnos: creación manual por el profesional (HU-061), con
       historial e idempotencia reutilizada de HU-004/HU-060.
   - name: PublicBooking
     description: >-
-      Flujo público de reserva sin sesión del barbero: entrada por el
-      enlace de una barbería (HU-090), catálogo público de servicios
-      (HU-091), selección pública de barbero (HU-092), disponibilidad
+      Flujo público de reserva sin sesión del profesional: entrada por el
+      enlace de un negocio (HU-090), catálogo público de servicios
+      (HU-091), selección pública de profesional (HU-092), disponibilidad
       pública real (HU-094) y confirmación pública concurrente e
       idempotente (HU-097). El acceso/cancelación del cliente mediante el
       token emitido por HU-097 vive en el tag CustomerAccess, bajo
@@ -175,7 +57,7 @@ tags:
       agrega después a este mismo tag.
   - name: Integrations
     description: >-
-      Integraciones del barbero con servicios externos. Hoy, la publicación
+      Integraciones del profesional con servicios externos. Hoy, la publicación
       unidireccional de sus citas en SU Google Calendar (DEC-099): conexión
       OAuth con PKCE, estado, recordatorio y desconexión. NAVA manda; Google
       es una vista y nunca modifica citas ni disponibilidad.
@@ -186,22 +68,22 @@ tags:
       DEC-126). Lo llama el proveedor, no el frontend; se autentica con un
       token de verificación y la firma HMAC del cuerpo, nunca con sesión.
 paths:
-  /public/barbershops/{slug}:
-    $ref: './paths/public-booking.yaml#/~1public~1barbershops~1{slug}'
-  /public/barbershops/{slug}/services:
-    $ref: './paths/public-booking.yaml#/~1public~1barbershops~1{slug}~1services'
-  /public/barbershops/{slug}/barbers:
-    $ref: './paths/public-booking.yaml#/~1public~1barbershops~1{slug}~1barbers'
-  /public/barbershops/{slug}/services/{serviceId}/availability:
-    $ref: './paths/public-booking.yaml#/~1public~1barbershops~1{slug}~1services~1{serviceId}~1availability'
-  /public/barbershops/{slug}/barbers/{barberId}/photo:
-    $ref: './paths/public-booking.yaml#/~1public~1barbershops~1{slug}~1barbers~1{barberId}~1photo'
-  /public/barbershops/{slug}/services/{serviceId}/barbers:
-    $ref: './paths/public-booking.yaml#/~1public~1barbershops~1{slug}~1services~1{serviceId}~1barbers'
-  /public/barbershops/{slug}/services/{serviceId}/barbers/{barberId}/availability:
-    $ref: './paths/public-booking.yaml#/~1public~1barbershops~1{slug}~1services~1{serviceId}~1barbers~1{barberId}~1availability'
-  /public/barbershops/{slug}/services/{serviceId}/barbers/{barberId}/appointments:
-    $ref: './paths/public-booking.yaml#/~1public~1barbershops~1{slug}~1services~1{serviceId}~1barbers~1{barberId}~1appointments'
+  /public/businesses/{slug}:
+    $ref: './paths/public-booking.yaml#/~1public~1businesses~1{slug}'
+  /public/businesses/{slug}/services:
+    $ref: './paths/public-booking.yaml#/~1public~1businesses~1{slug}~1services'
+  /public/businesses/{slug}/professionals:
+    $ref: './paths/public-booking.yaml#/~1public~1businesses~1{slug}~1professionals'
+  /public/businesses/{slug}/services/{serviceId}/availability:
+    $ref: './paths/public-booking.yaml#/~1public~1businesses~1{slug}~1services~1{serviceId}~1availability'
+  /public/businesses/{slug}/professionals/{professionalId}/photo:
+    $ref: './paths/public-booking.yaml#/~1public~1businesses~1{slug}~1professionals~1{professionalId}~1photo'
+  /public/businesses/{slug}/services/{serviceId}/professionals:
+    $ref: './paths/public-booking.yaml#/~1public~1businesses~1{slug}~1services~1{serviceId}~1professionals'
+  /public/businesses/{slug}/services/{serviceId}/professionals/{professionalId}/availability:
+    $ref: './paths/public-booking.yaml#/~1public~1businesses~1{slug}~1services~1{serviceId}~1professionals~1{professionalId}~1availability'
+  /public/businesses/{slug}/services/{serviceId}/professionals/{professionalId}/appointments:
+    $ref: './paths/public-booking.yaml#/~1public~1businesses~1{slug}~1services~1{serviceId}~1professionals~1{professionalId}~1appointments'
   /customer/appointments/{token}:
     $ref: './paths/customer-appointments.yaml#/~1customer~1appointments~1{token}'
   /customer/appointments/{token}/cancel:
@@ -212,20 +94,38 @@ paths:
     $ref: './paths/customer-appointments.yaml#/~1customer~1appointments~1{token}~1reschedule-slots'
   /customer/appointments/{token}/reschedule:
     $ref: './paths/customer-appointments.yaml#/~1customer~1appointments~1{token}~1reschedule'
-  /public/barbershops/{slug}/customer-access/challenge:
-    $ref: './paths/customer-appointments.yaml#/~1public~1barbershops~1{slug}~1customer-access~1challenge'
-  /public/barbershops/{slug}/customer-access/verify:
-    $ref: './paths/customer-appointments.yaml#/~1public~1barbershops~1{slug}~1customer-access~1verify'
-  /public/barbershops/{slug}/customer-access/verify-ref:
-    $ref: './paths/customer-appointments.yaml#/~1public~1barbershops~1{slug}~1customer-access~1verify-ref'
+  /public/businesses/{slug}/customer-access/challenge:
+    $ref: './paths/customer-appointments.yaml#/~1public~1businesses~1{slug}~1customer-access~1challenge'
+  /public/businesses/{slug}/customer-access/verify:
+    $ref: './paths/customer-appointments.yaml#/~1public~1businesses~1{slug}~1customer-access~1verify'
+  /public/businesses/{slug}/customer-access/verify-ref:
+    $ref: './paths/customer-appointments.yaml#/~1public~1businesses~1{slug}~1customer-access~1verify-ref'
+  /integrations/odin/businesses/{slug}/customer-appointments/lookup:
+    $ref: './paths/integrations-odin.yaml#/~1integrations~1odin~1businesses~1{slug}~1customer-appointments~1lookup'
+  /integrations/odin/businesses/{slug}/customer-access/challenge:
+    $ref: './paths/integrations-odin.yaml#/~1integrations~1odin~1businesses~1{slug}~1customer-access~1challenge'
+  /public/barbershops/{slug}:
+    $ref: './paths/public-booking.yaml#/~1public~1barbershops~1{slug}'
+  /public/barbershops/{slug}/services:
+    $ref: './paths/public-booking.yaml#/~1public~1barbershops~1{slug}~1services'
+  /public/barbershops/{slug}/reviews:
+    $ref: './paths/public-booking.yaml#/~1public~1barbershops~1{slug}~1reviews'
+  /public/barbershops/{slug}/barbers:
+    $ref: './paths/public-booking.yaml#/~1public~1barbershops~1{slug}~1barbers'
+  /public/barbershops/{slug}/services/{serviceId}/barbers:
+    $ref: './paths/public-booking.yaml#/~1public~1barbershops~1{slug}~1services~1{serviceId}~1barbers'
+  /public/barbershops/{slug}/services/{serviceId}/availability:
+    $ref: './paths/public-booking.yaml#/~1public~1barbershops~1{slug}~1services~1{serviceId}~1availability'
+  /public/barbershops/{slug}/services/{serviceId}/barbers/{barberId}/availability:
+    $ref: './paths/public-booking.yaml#/~1public~1barbershops~1{slug}~1services~1{serviceId}~1barbers~1{barberId}~1availability'
   /integrations/odin/barbershops/{slug}/customer-appointments/lookup:
     $ref: './paths/integrations-odin.yaml#/~1integrations~1odin~1barbershops~1{slug}~1customer-appointments~1lookup'
   /integrations/odin/barbershops/{slug}/customer-access/challenge:
     $ref: './paths/integrations-odin.yaml#/~1integrations~1odin~1barbershops~1{slug}~1customer-access~1challenge'
-  /public/barbershops/{slug}/barbers/{barberId}/reviews:
-    $ref: './paths/public-booking.yaml#/~1public~1barbershops~1{slug}~1barbers~1{barberId}~1reviews'
-  /public/barbershops/{slug}/reviews:
-    $ref: './paths/public-booking.yaml#/~1public~1barbershops~1{slug}~1reviews'
+  /public/businesses/{slug}/professionals/{professionalId}/reviews:
+    $ref: './paths/public-booking.yaml#/~1public~1businesses~1{slug}~1professionals~1{professionalId}~1reviews'
+  /public/businesses/{slug}/reviews:
+    $ref: './paths/public-booking.yaml#/~1public~1businesses~1{slug}~1reviews'
   /public/webhooks/meta/whatsapp:
     $ref: './paths/public-webhooks.yaml#/~1public~1webhooks~1meta~1whatsapp'
   /public/auth/login:
@@ -244,14 +144,14 @@ paths:
     $ref: './paths/private-auth.yaml#/~1private~1auth~1logout'
   /private/auth/session:
     $ref: './paths/private-auth.yaml#/~1private~1auth~1session'
-  /private/settings/barbershop:
-    $ref: './paths/settings.yaml#/~1private~1settings~1barbershop'
+  /private/settings/business:
+    $ref: './paths/settings.yaml#/~1private~1settings~1business'
   /private/settings/booking-policy:
     $ref: './paths/settings.yaml#/~1private~1settings~1booking-policy'
-  /private/settings/booking-policy/barbers:
-    $ref: './paths/settings.yaml#/~1private~1settings~1booking-policy~1barbers'
-  /private/settings/booking-policy/barbers/{barberId}:
-    $ref: './paths/settings.yaml#/~1private~1settings~1booking-policy~1barbers~1{barberId}'
+  /private/settings/booking-policy/professionals:
+    $ref: './paths/settings.yaml#/~1private~1settings~1booking-policy~1professionals'
+  /private/settings/booking-policy/professionals/{professionalId}:
+    $ref: './paths/settings.yaml#/~1private~1settings~1booking-policy~1professionals~1{professionalId}'
   /private/settings/brand:
     $ref: './paths/settings.yaml#/~1private~1settings~1brand'
   /private/settings/public-link:
@@ -270,66 +170,66 @@ paths:
     $ref: './paths/google-calendar.yaml#/~1private~1integrations~1google-calendar~1sync'
   /private/integrations/google-calendar/callback:
     $ref: './paths/google-calendar.yaml#/~1private~1integrations~1google-calendar~1callback'
-  /private/me/barber:
-    $ref: './paths/staff.yaml#/~1private~1me~1barber'
-  /private/barbers:
-    $ref: './paths/staff.yaml#/~1private~1barbers'
-  /private/barbers/{barberId}:
-    $ref: './paths/staff.yaml#/~1private~1barbers~1{barberId}'
-  /private/barbers/{barberId}/photo:
-    $ref: './paths/staff.yaml#/~1private~1barbers~1{barberId}~1photo'
-  /private/barbers/{barberId}/reviews:
-    $ref: './paths/staff.yaml#/~1private~1barbers~1{barberId}~1reviews'
-  /private/barbers/{barberId}/reviews/{reviewId}:
-    $ref: './paths/staff.yaml#/~1private~1barbers~1{barberId}~1reviews~1{reviewId}'
+  /private/me/professional:
+    $ref: './paths/staff.yaml#/~1private~1me~1professional'
+  /private/professionals:
+    $ref: './paths/staff.yaml#/~1private~1professionals'
+  /private/professionals/{professionalId}:
+    $ref: './paths/staff.yaml#/~1private~1professionals~1{professionalId}'
+  /private/professionals/{professionalId}/photo:
+    $ref: './paths/staff.yaml#/~1private~1professionals~1{professionalId}~1photo'
+  /private/professionals/{professionalId}/reviews:
+    $ref: './paths/staff.yaml#/~1private~1professionals~1{professionalId}~1reviews'
+  /private/professionals/{professionalId}/reviews/{reviewId}:
+    $ref: './paths/staff.yaml#/~1private~1professionals~1{professionalId}~1reviews~1{reviewId}'
   /private/services:
     $ref: './paths/catalog.yaml#/~1private~1services'
   /private/services/{serviceId}:
     $ref: './paths/catalog.yaml#/~1private~1services~1{serviceId}'
-  /private/barbers/{barberId}/services:
-    $ref: './paths/barber-services.yaml#/~1private~1barbers~1{barberId}~1services'
-  /private/barbers/{barberId}/services/{serviceId}:
-    $ref: './paths/barber-services.yaml#/~1private~1barbers~1{barberId}~1services~1{serviceId}'
+  /private/professionals/{professionalId}/services:
+    $ref: './paths/professional-services.yaml#/~1private~1professionals~1{professionalId}~1services'
+  /private/professionals/{professionalId}/services/{serviceId}:
+    $ref: './paths/professional-services.yaml#/~1private~1professionals~1{professionalId}~1services~1{serviceId}'
   /private/services/{serviceId}/deactivation-impact:
     $ref: './paths/service-lifecycle.yaml#/~1private~1services~1{serviceId}~1deactivation-impact'
   /private/services/{serviceId}/deactivate:
     $ref: './paths/service-lifecycle.yaml#/~1private~1services~1{serviceId}~1deactivate'
   /private/services/{serviceId}/reactivate:
     $ref: './paths/service-lifecycle.yaml#/~1private~1services~1{serviceId}~1reactivate'
-  /private/barbers/{barberId}/working-hours:
-    $ref: './paths/schedules.yaml#/~1private~1barbers~1{barberId}~1working-hours'
-  /private/barbers/{barberId}/working-hours/{workingHourId}:
-    $ref: './paths/schedules.yaml#/~1private~1barbers~1{barberId}~1working-hours~1{workingHourId}'
-  /private/barbers/{barberId}/holiday-calendar:
-    $ref: './paths/schedule-exceptions.yaml#/~1private~1barbers~1{barberId}~1holiday-calendar'
-  /private/barbers/{barberId}/schedule-exceptions:
-    $ref: './paths/schedule-exceptions.yaml#/~1private~1barbers~1{barberId}~1schedule-exceptions'
-  /private/barbers/{barberId}/schedule-exceptions/{exceptionId}:
-    $ref: './paths/schedule-exceptions.yaml#/~1private~1barbers~1{barberId}~1schedule-exceptions~1{exceptionId}'
+  /private/professionals/{professionalId}/working-hours:
+    $ref: './paths/schedules.yaml#/~1private~1professionals~1{professionalId}~1working-hours'
+  /private/professionals/{professionalId}/working-hours/{workingHourId}:
+    $ref: './paths/schedules.yaml#/~1private~1professionals~1{professionalId}~1working-hours~1{workingHourId}'
+  /private/professionals/{professionalId}/holiday-calendar:
+    $ref: './paths/schedule-exceptions.yaml#/~1private~1professionals~1{professionalId}~1holiday-calendar'
+  /private/professionals/{professionalId}/schedule-exceptions:
+    $ref: './paths/schedule-exceptions.yaml#/~1private~1professionals~1{professionalId}~1schedule-exceptions'
+  /private/professionals/{professionalId}/schedule-exceptions/{exceptionId}:
+    $ref: './paths/schedule-exceptions.yaml#/~1private~1professionals~1{professionalId}~1schedule-exceptions~1{exceptionId}'
   /private/schedule/colombian-holidays:
     $ref: './paths/schedule-exceptions.yaml#/~1private~1schedule~1colombian-holidays'
-  /private/barbers/{barberId}/time-blocks:
-    $ref: './paths/time-blocks.yaml#/~1private~1barbers~1{barberId}~1time-blocks'
-  /private/barbers/{barberId}/time-blocks/effective:
-    $ref: './paths/time-blocks.yaml#/~1private~1barbers~1{barberId}~1time-blocks~1effective'
-  /private/barbers/{barberId}/time-blocks/{blockId}:
-    $ref: './paths/time-blocks.yaml#/~1private~1barbers~1{barberId}~1time-blocks~1{blockId}'
-  /private/barbers/{barberId}/time-block-series:
-    $ref: './paths/time-blocks.yaml#/~1private~1barbers~1{barberId}~1time-block-series'
-  /private/barbers/{barberId}/time-block-series/{seriesId}:
-    $ref: './paths/time-blocks.yaml#/~1private~1barbers~1{barberId}~1time-block-series~1{seriesId}'
-  /private/barbers/{barberId}/time-block-series/{seriesId}/dates:
-    $ref: './paths/time-blocks.yaml#/~1private~1barbers~1{barberId}~1time-block-series~1{seriesId}~1dates'
-  /private/barbers/{barberId}/time-block-series/{seriesId}/dates/{blockDate}:
-    $ref: './paths/time-blocks.yaml#/~1private~1barbers~1{barberId}~1time-block-series~1{seriesId}~1dates~1{blockDate}'
-  /private/barbers/{barberId}/time-block-series/{seriesId}/exceptions:
-    $ref: './paths/time-blocks.yaml#/~1private~1barbers~1{barberId}~1time-block-series~1{seriesId}~1exceptions'
-  /private/barbers/{barberId}/time-block-series/{seriesId}/exceptions/{excludedDate}:
-    $ref: './paths/time-blocks.yaml#/~1private~1barbers~1{barberId}~1time-block-series~1{seriesId}~1exceptions~1{excludedDate}'
+  /private/professionals/{professionalId}/time-blocks:
+    $ref: './paths/time-blocks.yaml#/~1private~1professionals~1{professionalId}~1time-blocks'
+  /private/professionals/{professionalId}/time-blocks/effective:
+    $ref: './paths/time-blocks.yaml#/~1private~1professionals~1{professionalId}~1time-blocks~1effective'
+  /private/professionals/{professionalId}/time-blocks/{blockId}:
+    $ref: './paths/time-blocks.yaml#/~1private~1professionals~1{professionalId}~1time-blocks~1{blockId}'
+  /private/professionals/{professionalId}/time-block-series:
+    $ref: './paths/time-blocks.yaml#/~1private~1professionals~1{professionalId}~1time-block-series'
+  /private/professionals/{professionalId}/time-block-series/{seriesId}:
+    $ref: './paths/time-blocks.yaml#/~1private~1professionals~1{professionalId}~1time-block-series~1{seriesId}'
+  /private/professionals/{professionalId}/time-block-series/{seriesId}/dates:
+    $ref: './paths/time-blocks.yaml#/~1private~1professionals~1{professionalId}~1time-block-series~1{seriesId}~1dates'
+  /private/professionals/{professionalId}/time-block-series/{seriesId}/dates/{blockDate}:
+    $ref: './paths/time-blocks.yaml#/~1private~1professionals~1{professionalId}~1time-block-series~1{seriesId}~1dates~1{blockDate}'
+  /private/professionals/{professionalId}/time-block-series/{seriesId}/exceptions:
+    $ref: './paths/time-blocks.yaml#/~1private~1professionals~1{professionalId}~1time-block-series~1{seriesId}~1exceptions'
+  /private/professionals/{professionalId}/time-block-series/{seriesId}/exceptions/{excludedDate}:
+    $ref: './paths/time-blocks.yaml#/~1private~1professionals~1{professionalId}~1time-block-series~1{seriesId}~1exceptions~1{excludedDate}'
   /private/appointments:
     $ref: './paths/private-appointments.yaml#/~1private~1appointments'
-  /private/barbers/{barberId}/appointments/daily-agenda:
-    $ref: './paths/private-appointments.yaml#/~1private~1barbers~1{barberId}~1appointments~1daily-agenda'
+  /private/professionals/{professionalId}/appointments/daily-agenda:
+    $ref: './paths/private-appointments.yaml#/~1private~1professionals~1{professionalId}~1appointments~1daily-agenda'
   /private/appointments/{appointmentId}:
     $ref: './paths/private-appointments.yaml#/~1private~1appointments~1{appointmentId}'
   /private/appointments/{appointmentId}/history:
@@ -360,10 +260,10 @@ components:
       $ref: './components/schemas/ChallengeVerifyRequest.yaml'
     ChallengeAcceptedResponse:
       $ref: './components/schemas/ChallengeAcceptedResponse.yaml'
-    BarbershopSettingsResponse:
-      $ref: './components/schemas/BarbershopSettingsResponse.yaml'
-    UpdateBarbershopSettingsRequest:
-      $ref: './components/schemas/UpdateBarbershopSettingsRequest.yaml'
+    BusinessSettingsResponse:
+      $ref: './components/schemas/BusinessSettingsResponse.yaml'
+    UpdateBusinessSettingsRequest:
+      $ref: './components/schemas/UpdateBusinessSettingsRequest.yaml'
     BrandResponse:
       $ref: './components/schemas/BrandResponse.yaml'
     UpdateBrandRequest:
@@ -374,14 +274,14 @@ components:
       $ref: './components/schemas/BrandTerm.yaml'
     BrandTermGender:
       $ref: './components/schemas/BrandTermGender.yaml'
-    BarberResponse:
-      $ref: './components/schemas/BarberResponse.yaml'
-    BarberListResponse:
-      $ref: './components/schemas/BarberListResponse.yaml'
-    CreateBarberRequest:
-      $ref: './components/schemas/CreateBarberRequest.yaml'
-    UpdateBarberRequest:
-      $ref: './components/schemas/UpdateBarberRequest.yaml'
+    ProfessionalResponse:
+      $ref: './components/schemas/ProfessionalResponse.yaml'
+    ProfessionalListResponse:
+      $ref: './components/schemas/ProfessionalListResponse.yaml'
+    CreateProfessionalRequest:
+      $ref: './components/schemas/CreateProfessionalRequest.yaml'
+    UpdateProfessionalRequest:
+      $ref: './components/schemas/UpdateProfessionalRequest.yaml'
     ServiceResponse:
       $ref: './components/schemas/ServiceResponse.yaml'
     ServiceUpdateResponse:
@@ -448,38 +348,38 @@ components:
       $ref: './components/responses/ChallengeVerifySuccess.yaml'
     ChallengeRequiredProblem:
       $ref: './components/responses/ChallengeRequiredProblem.yaml'
-    BarbershopSettingsSuccess:
-      $ref: './components/responses/BarbershopSettingsSuccess.yaml'
-    BarbershopSettingsUpdated:
-      $ref: './components/responses/BarbershopSettingsUpdated.yaml'
+    BusinessSettingsSuccess:
+      $ref: './components/responses/BusinessSettingsSuccess.yaml'
+    BusinessSettingsUpdated:
+      $ref: './components/responses/BusinessSettingsUpdated.yaml'
     BrandSuccess:
       $ref: './components/responses/BrandSuccess.yaml'
     BrandUpdated:
       $ref: './components/responses/BrandUpdated.yaml'
     BrandValidationProblem:
       $ref: './components/responses/BrandValidationProblem.yaml'
-    BarbershopSettingsValidationProblem:
-      $ref: './components/responses/BarbershopSettingsValidationProblem.yaml'
-    BarberListSuccess:
-      $ref: './components/responses/BarberListSuccess.yaml'
-    BarberSuccess:
-      $ref: './components/responses/BarberSuccess.yaml'
-    BarberCreated:
-      $ref: './components/responses/BarberCreated.yaml'
-    BarberUpdated:
-      $ref: './components/responses/BarberUpdated.yaml'
-    BarberValidationProblem:
-      $ref: './components/responses/BarberValidationProblem.yaml'
-    BarberPhotoUpdated:
-      $ref: './components/responses/BarberPhotoUpdated.yaml'
-    BarberPhotoSuccess:
-      $ref: './components/responses/BarberPhotoSuccess.yaml'
-    BarberPhotoNotModified:
-      $ref: './components/responses/BarberPhotoNotModified.yaml'
-    BarberPhotoDeleted:
-      $ref: './components/responses/BarberPhotoDeleted.yaml'
-    BarberPhotoValidationProblem:
-      $ref: './components/responses/BarberPhotoValidationProblem.yaml'
+    BusinessSettingsValidationProblem:
+      $ref: './components/responses/BusinessSettingsValidationProblem.yaml'
+    ProfessionalListSuccess:
+      $ref: './components/responses/ProfessionalListSuccess.yaml'
+    ProfessionalSuccess:
+      $ref: './components/responses/ProfessionalSuccess.yaml'
+    ProfessionalCreated:
+      $ref: './components/responses/ProfessionalCreated.yaml'
+    ProfessionalUpdated:
+      $ref: './components/responses/ProfessionalUpdated.yaml'
+    ProfessionalValidationProblem:
+      $ref: './components/responses/ProfessionalValidationProblem.yaml'
+    ProfessionalPhotoUpdated:
+      $ref: './components/responses/ProfessionalPhotoUpdated.yaml'
+    ProfessionalPhotoSuccess:
+      $ref: './components/responses/ProfessionalPhotoSuccess.yaml'
+    ProfessionalPhotoNotModified:
+      $ref: './components/responses/ProfessionalPhotoNotModified.yaml'
+    ProfessionalPhotoDeleted:
+      $ref: './components/responses/ProfessionalPhotoDeleted.yaml'
+    ProfessionalPhotoValidationProblem:
+      $ref: './components/responses/ProfessionalPhotoValidationProblem.yaml'
     ServiceListSuccess:
       $ref: './components/responses/ServiceListSuccess.yaml'
     ServiceSuccess:

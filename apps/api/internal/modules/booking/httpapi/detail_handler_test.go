@@ -134,7 +134,7 @@ func TestGetAppointmentDetailHandler_ValidRequest_Returns200WithDetail(t *testin
 	if err := json.Unmarshal(rec.Body.Bytes(), &raw); err != nil {
 		t.Fatalf("unmarshal raw: %v", err)
 	}
-	for _, forbidden := range []string{"customerId", "barbershopId", "updatedAt", "actorStaffUserId", "actorCustomerId"} {
+	for _, forbidden := range []string{"customerId", "businessId", "updatedAt", "actorStaffUserId", "actorCustomerId"} {
 		if _, ok := raw[forbidden]; ok {
 			t.Fatalf("la respuesta expuso el campo prohibido %q: %+v", forbidden, raw)
 		}

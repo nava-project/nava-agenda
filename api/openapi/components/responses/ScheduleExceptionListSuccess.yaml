@@ -1,6 +1,6 @@
-# Respuesta 200 de GET /private/barbers/{barberId}/schedule-exceptions
+# Respuesta 200 de GET /private/professionals/{professionalId}/schedule-exceptions
 # (HU-041, CA-041-04/05).
-description: Página de excepciones de jornada del barbero de la ruta.
+description: Página de excepciones de jornada del profesional de la ruta.
 headers:
   X-Request-Id:
     $ref: '../headers/XRequestId.yaml'
@@ -32,7 +32,7 @@ content:
               updatedAt: "2026-08-25T15:04:05Z"
           nextCursor: null
       vacia:
-        summary: Barbero sin ninguna excepción configurada todavía
+        summary: Profesional sin ninguna excepción configurada todavía
         value:
           items: []
           nextCursor: null

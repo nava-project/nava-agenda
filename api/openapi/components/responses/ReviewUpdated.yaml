@@ -1,4 +1,4 @@
-# Respuesta 200 de PATCH /private/barbers/{barberId}/reviews/{reviewId} (HU-100).
+# Respuesta 200 de PATCH /private/professionals/{professionalId}/reviews/{reviewId} (HU-100).
 description: Reseña con su estado de visibilidad ya guardado.
 headers:
   X-Request-Id:

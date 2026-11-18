@@ -14,9 +14,9 @@ content:
       $ref: '../schemas/SessionContextResponse.yaml'
     examples:
       contextoVigente:
-        summary: Sesión vigente con barbería activa
+        summary: Sesión vigente con negocio activo
         value:
-          barbershop:
+          business:
             id: 3fa85f64-5717-4562-b3fc-2c963f66afa6
-            name: Barbería Ejemplo
+            name: Negocio Ejemplo
           expiresAt: "2026-09-12T12:00:00Z"

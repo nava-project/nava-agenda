@@ -34,7 +34,7 @@ type operation struct {
 type publicBarbershopPathFile struct {
 	BarbershopBySlug struct {
 		Get operation `yaml:"get"`
-	} `yaml:"/public/barbershops/{slug}"`
+	} `yaml:"/public/businesses/{slug}"`
 }
 
 func findRepoRoot(t *testing.T) string {
@@ -76,7 +76,7 @@ func loadYAML[T any](t *testing.T, relPath string) T {
 // PublicBarbershopProfile.yaml (CA-090-04: nunca un identificador interno
 // ni el slug mismo).
 func TestContract_PublicBarbershopProfileSchema_MatchesDTOFields(t *testing.T) {
-	schema := loadYAML[schemaDoc](t, "api/openapi/components/schemas/PublicBarbershopProfile.yaml")
+	schema := loadYAML[schemaDoc](t, "api/openapi/components/schemas/PublicBusinessProfile.yaml")
 	want := []string{"name", "timezone", "contactEmail", "contactPhone", "vocabulary", "location", "offersHomeService", "brandAccent",
 		"openingHours", "closedOnHolidays", "today"}
 
@@ -88,7 +88,7 @@ func TestContract_PublicBarbershopProfileSchema_MatchesDTOFields(t *testing.T) {
 			t.Errorf("schema no declara la propiedad %q", prop)
 		}
 	}
-	for _, forbidden := range []string{"id", "barbershopId", "slug"} {
+	for _, forbidden := range []string{"id", "businessId", "slug"} {
 		if _, ok := schema.Properties[forbidden]; ok {
 			t.Fatalf("CA-090-04: el contrato público nunca debe declarar %q", forbidden)
 		}
@@ -136,8 +136,8 @@ func TestContract_ResolvePublicBarbershopOperation_MethodPathSecurityAndResponse
 	doc := loadYAML[publicBarbershopPathFile](t, "api/openapi/paths/public-booking.yaml")
 	op := doc.BarbershopBySlug.Get
 
-	if op.OperationID != "resolvePublicBarbershop" {
-		t.Fatalf("expected operationId resolvePublicBarbershop, got %q", op.OperationID)
+	if op.OperationID != "resolvePublicBusiness" {
+		t.Fatalf("expected operationId resolvePublicBusiness, got %q", op.OperationID)
 	}
 	if len(op.Security) != 0 {
 		t.Fatalf("CA-090-01: esta operación nunca exige sesión, security debe ser [], got %v", op.Security)
@@ -168,8 +168,8 @@ func TestContract_OpenAPIYAML_RegistersPublicBarbershopPath(t *testing.T) {
 	}
 	doc := loadYAML[pathsDoc](t, "api/openapi/openapi.yaml")
 
-	if _, ok := doc.Paths["/public/barbershops/{slug}"]; !ok {
-		t.Fatal("openapi.yaml no registra paths./public/barbershops/{slug}")
+	if _, ok := doc.Paths["/public/businesses/{slug}"]; !ok {
+		t.Fatal("openapi.yaml no registra paths./public/businesses/{slug}")
 	}
 }
 
@@ -179,21 +179,21 @@ func TestContract_OpenAPIYAML_RegistersPublicBarbershopPath(t *testing.T) {
 // PublicBarberResponse.yaml y que todos son obligatorios (nullable, pero
 // siempre presentes).
 func TestContract_PublicBarberResponseSchema_MatchesDTOFields(t *testing.T) {
-	schema := loadYAML[schemaDoc](t, "api/openapi/components/schemas/PublicBarberResponse.yaml")
+	schema := loadYAML[schemaDoc](t, "api/openapi/components/schemas/PublicProfessionalResponse.yaml")
 	want := []string{"id", "fullName", "description", "photoUpdatedAt", "rating", "ratingCount"}
 	if len(schema.Properties) != len(want) {
 		t.Fatalf("expected %d properties, schema has %d: %v", len(want), len(schema.Properties), schema.Properties)
 	}
 	for _, name := range want {
 		if _, ok := schema.Properties[name]; !ok {
-			t.Errorf("PublicBarberResponse.yaml no declara %q", name)
+			t.Errorf("PublicProfessionalResponse.yaml no declara %q", name)
 		}
 		required := false
 		for _, r := range schema.Required {
 			required = required || r == name
 		}
 		if !required {
-			t.Errorf("PublicBarberResponse.yaml debe exigir %q (nullable, pero siempre presente)", name)
+			t.Errorf("PublicProfessionalResponse.yaml debe exigir %q (nullable, pero siempre presente)", name)
 		}
 	}
 }
@@ -206,13 +206,13 @@ func TestContract_GetPublicBarberPhotoOperation_MethodPathSecurityAndResponses(t
 	type photoPathFile struct {
 		Photo struct {
 			Get operation `yaml:"get"`
-		} `yaml:"/public/barbershops/{slug}/barbers/{barberId}/photo"`
+		} `yaml:"/public/businesses/{slug}/professionals/{professionalId}/photo"`
 	}
 	doc := loadYAML[photoPathFile](t, "api/openapi/paths/public-booking.yaml")
 	op := doc.Photo.Get
 
-	if op.OperationID != "getPublicBarberPhoto" {
-		t.Fatalf("expected operationId getPublicBarberPhoto, got %q", op.OperationID)
+	if op.OperationID != "getPublicProfessionalPhoto" {
+		t.Fatalf("expected operationId getPublicProfessionalPhoto, got %q", op.OperationID)
 	}
 	if len(op.Security) != 0 {
 		t.Fatalf("DEC-127: la foto pública nunca exige sesión, security debe ser [], got %v", op.Security)
@@ -224,8 +224,8 @@ func TestContract_GetPublicBarberPhotoOperation_MethodPathSecurityAndResponses(t
 			paths[p.Name] = true
 		}
 	}
-	if !paths["slug"] || !paths["barberId"] {
-		t.Fatalf("expected required path parameters slug and barberId, got %+v", op.Parameters)
+	if !paths["slug"] || !paths["professionalId"] {
+		t.Fatalf("expected required path parameters slug and professionalId, got %+v", op.Parameters)
 	}
 
 	wantStatuses := []string{"200", "304", "404", "500"}
@@ -283,7 +283,7 @@ func TestContract_GetPublicGoogleReviewsOperation_MethodPathSecurityAndResponses
 	type reviewsPathFile struct {
 		Reviews struct {
 			Get operation `yaml:"get"`
-		} `yaml:"/public/barbershops/{slug}/reviews"`
+		} `yaml:"/public/businesses/{slug}/reviews"`
 	}
 	doc := loadYAML[reviewsPathFile](t, "api/openapi/paths/public-booking.yaml")
 	op := doc.Reviews.Get

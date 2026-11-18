@@ -115,11 +115,15 @@ test.describe('Registro y listado de barberos (HU-021)', () => {
     await expect(page.getByRole('heading', { name: 'Barberos' })).toBeVisible()
 
     const renamed = await page.evaluate(async (name) => {
-      const listRes = await fetch('/api/v1/private/barbers?limit=50', { credentials: 'include' })
+      const listRes = await fetch('/api/v1/private/professionals?limit=50', {
+        credentials: 'include',
+      })
       const listBody = (await listRes.json()) as { items: { id: string; fullName: string }[] }
       const found = listBody.items.find((b) => b.fullName === name)
       if (!found) return null
-      const getRes = await fetch(`/api/v1/private/barbers/${found.id}`, { credentials: 'include' })
+      const getRes = await fetch(`/api/v1/private/professionals/${found.id}`, {
+        credentials: 'include',
+      })
       return (await getRes.json()) as { id: string; fullName: string }
     }, newName)
 
@@ -165,13 +169,15 @@ test.describe('Registro y listado de barberos (HU-021)', () => {
     // recién creado puede quedar fuera de la primera página, ver renombrar.)
     const served = async (fullName: string) =>
       page.evaluate(async (target) => {
-        const res = await fetch('/api/v1/private/barbers?limit=50', { credentials: 'include' })
+        const res = await fetch('/api/v1/private/professionals?limit=50', {
+          credentials: 'include',
+        })
         const body = (await res.json()) as {
           items: { id: string; fullName: string; photoUpdatedAt: string | null }[]
         }
         const barber = body.items.find((b) => b.fullName === target)
         if (!barber) return null
-        const photoRes = await fetch(`/api/v1/private/barbers/${barber.id}/photo`, {
+        const photoRes = await fetch(`/api/v1/private/professionals/${barber.id}/photo`, {
           credentials: 'include',
         })
         return {
@@ -230,7 +236,7 @@ test.describe('Registro y listado de barberos (HU-021)', () => {
     await expect(dialog).toBeHidden()
 
     const barberBId = await page.evaluate(async (name) => {
-      const res = await fetch('/api/v1/private/barbers?limit=50', { credentials: 'include' })
+      const res = await fetch('/api/v1/private/professionals?limit=50', { credentials: 'include' })
       const body = (await res.json()) as { items: { id: string; fullName: string }[] }
       const found = body.items.find((b) => b.fullName === name)
       return found?.id ?? null
@@ -245,8 +251,8 @@ test.describe('Registro y listado de barberos (HU-021)', () => {
     await openBarberos(page)
 
     const crossTenantResult = await page.evaluate(async (id) => {
-      const getRes = await fetch(`/api/v1/private/barbers/${id}`, { credentials: 'include' })
-      const patchRes = await fetch(`/api/v1/private/barbers/${id}`, {
+      const getRes = await fetch(`/api/v1/private/professionals/${id}`, { credentials: 'include' })
+      const patchRes = await fetch(`/api/v1/private/professionals/${id}`, {
         method: 'PATCH',
         credentials: 'include',
         headers: { 'Content-Type': 'application/json' },

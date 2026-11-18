@@ -14,7 +14,7 @@ allOf:
         type: array
         description: >
           Presente solo cuando `code` vale `slot-conflict`: hasta 3 franjas
-          cronológicamente cercanas a la elegida, mismo barbero y mismo
+          cronológicamente cercanas a la elegida, mismo profesional y mismo
           servicio (DEC-090). Vacío solo cuando la ventana pública vigente
           no tiene ninguna franja restante en absoluto.
         items:

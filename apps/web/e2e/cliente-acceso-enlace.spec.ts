@@ -19,7 +19,7 @@ const axeScriptPath = path.join(here, '..', 'node_modules', 'axe-core', 'axe.min
 const SLUG = 'barberia-ejemplo'
 const ACCESS_REF = '3vNq8Yt1KsM6wZc2HbJ9xRfE4uLaP7dG0iO5TnXyhBk'
 const LINK = `/reservar/${SLUG}/mi-turno/${ACCESS_REF}`
-const VERIFY_REF_URL = `**/api/v1/public/barbershops/${SLUG}/customer-access/verify-ref`
+const VERIFY_REF_URL = `**/api/v1/public/businesses/${SLUG}/customer-access/verify-ref`
 
 const TOKEN = '7kQ2mZ9xR4tW1vB8nC3pL6yH0sD5fG2jA9eU4iO7rT1'
 const APPOINTMENT_URL = `**/api/v1/customer/appointments/${TOKEN}`
@@ -38,12 +38,12 @@ const problem = (status: number, code: string) => ({
 })
 
 const APPOINTMENT_VIEW = {
-  barbershopName: 'Barbería Ejemplo',
+  businessName: 'Barbería Ejemplo',
   timezone: 'America/Bogota',
   attendeeName: 'Cliente Ejemplo',
   serviceName: 'Corte clásico',
   durationMinutes: 30,
-  barberName: 'Barbero Ejemplo',
+  professionalName: 'Barbero Ejemplo',
   startsAt: '2027-03-15T15:00:00Z',
   endsAt: '2027-03-15T15:30:00Z',
   status: 'confirmed',
@@ -51,8 +51,8 @@ const APPOINTMENT_VIEW = {
   lateCancellationClientAllowed: false,
   lateCancellationReasonRequired: false,
   versionToken: 'version-token-1',
-  barbershopContactEmail: 'contacto@barberia-ejemplo.test',
-  barbershopContactPhone: '+573001234567',
+  businessContactEmail: 'contacto@barberia-ejemplo.test',
+  businessContactPhone: '+573001234567',
   vocabulary: INITIAL_VOCABULARY,
   canReview: false,
   review: null,

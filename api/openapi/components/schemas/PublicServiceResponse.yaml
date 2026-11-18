@@ -2,11 +2,11 @@
 # description, durationMinutes, price, currency. Nunca isActive,
 # deactivatedAt, createdAt ni updatedAt -esos campos son alcance exclusivo
 # del catálogo privado (ServiceResponse.yaml, HU-022/HU-024)-, ni
-# barbershopId ni ningún otro identificador de tenant.
+# businessId ni ningún otro identificador de tenant.
 type: object
 description: >
-  Servicio ofrecido públicamente por la barbería resuelta: activo y con al
-  menos una asignación vigente a un barbero (HU-091, CA-091-01). currency es
+  Servicio ofrecido públicamente por el negocio resuelto: activo y con al
+  menos una asignación vigente a un profesional (HU-091, CA-091-01). currency es
   siempre "COP" (DEC-067).
 properties:
   id:

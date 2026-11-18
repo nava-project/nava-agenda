@@ -40,7 +40,7 @@ describe('sessionContextApi.fetchSessionContext (cliente tipado)', () => {
   it('maps a 200 SessionContextResponse to an authenticated outcome', async () => {
     getMock.mockResolvedValueOnce(
       ok({
-        barbershop: { id: 'shop-1', name: 'Barbería de prueba' },
+        business: { id: 'shop-1', name: 'Barbería de prueba' },
         expiresAt: '2026-09-12T12:00:00Z',
       }),
     )

@@ -118,13 +118,13 @@ async function installPanelMock(page: Page, scenario: Scenario): Promise<Deferre
 
     if (pathname === '/api/v1/private/auth/session') {
       await respondJson(route, {
-        barbershop: { id: 'shop-mock', name: 'Taller NAVA' },
+        business: { id: 'shop-mock', name: 'Taller NAVA' },
         expiresAt: '2026-09-04T00:00:00Z',
       })
       return
     }
 
-    if (pathname === '/api/v1/private/barbers') {
+    if (pathname === '/api/v1/private/professionals') {
       if (scenario === 'context-loading' && pending) {
         await pending.promise
       }
@@ -136,7 +136,7 @@ async function installPanelMock(page: Page, scenario: Scenario): Promise<Deferre
       return
     }
 
-    if (pathname === '/api/v1/private/settings/barbershop') {
+    if (pathname === '/api/v1/private/settings/business') {
       if (scenario === 'context-loading' && pending) {
         await pending.promise
       }

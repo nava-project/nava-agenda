@@ -5,7 +5,7 @@ import { INITIAL_VOCABULARY } from './fixtures/vocabularioInicial'
  * Recorrido E2E de HU-090 (docs/03-desarrollo/estrategia-pruebas.md §5.3):
  * entrada pública de reservas. A diferencia de la mayoría de los
  * recorridos P0 de este directorio, esta pantalla depende de un ÚNICO
- * endpoint sin sesión (`GET /public/barbershops/{slug}`); cada prueba
+ * endpoint sin sesión (`GET /public/businesses/{slug}`); cada prueba
  * intercepta esa solicitud con `page.route(...).fulfill(...)` para cubrir
  * cada estado observable de forma determinista, sin depender de datos
  * reales de `database/testdata/hu090_reserva_publica.sql` ni de un
@@ -30,7 +30,7 @@ async function fulfillProfile(
 
 test.describe('Entrada pública de reservas (HU-090)', () => {
   test('un enlace válido abre el contexto público sin sesión (CA-090-01)', async ({ page }) => {
-    await page.route('**/api/v1/public/barbershops/barberia-ejemplo', async (route) => {
+    await page.route('**/api/v1/public/businesses/barberia-ejemplo', async (route) => {
       await fulfillProfile(route, {
         name: 'Barbería Ejemplo',
         timezone: 'America/Bogota',
@@ -51,7 +51,7 @@ test.describe('Entrada pública de reservas (HU-090)', () => {
   test('un enlace inválido, desconocido o no publicable produce la misma pantalla de "no encontrado" (CA-090-02)', async ({
     page,
   }) => {
-    await page.route('**/api/v1/public/barbershops/**', async (route) => {
+    await page.route('**/api/v1/public/businesses/**', async (route) => {
       await route.fulfill({
         status: 404,
         contentType: 'application/problem+json',
@@ -79,7 +79,7 @@ test.describe('Entrada pública de reservas (HU-090)', () => {
     page,
   }) => {
     let capturedUrl = ''
-    await page.route('**/api/v1/public/barbershops/**', async (route) => {
+    await page.route('**/api/v1/public/businesses/**', async (route) => {
       capturedUrl = route.request().url()
       await fulfillProfile(route, {
         name: 'Barbería Ejemplo',
@@ -93,7 +93,7 @@ test.describe('Entrada pública de reservas (HU-090)', () => {
     await page.goto('/reservar/barberia-ejemplo')
     await expect(page.getByRole('heading', { name: 'Barbería Ejemplo' })).toBeVisible()
 
-    expect(capturedUrl).toContain('/public/barbershops/barberia-ejemplo')
+    expect(capturedUrl).toContain('/public/businesses/barberia-ejemplo')
     expect(capturedUrl).not.toContain('barbershopId')
   })
 
@@ -101,7 +101,7 @@ test.describe('Entrada pública de reservas (HU-090)', () => {
     page,
   }) => {
     let attempt = 0
-    await page.route('**/api/v1/public/barbershops/**', async (route) => {
+    await page.route('**/api/v1/public/businesses/**', async (route) => {
       attempt += 1
       if (attempt === 1) {
         await route.abort('connectionfailed')
@@ -127,7 +127,7 @@ test.describe('Entrada pública de reservas (HU-090)', () => {
   test('opera completamente con teclado, con foco visible en el botón de reintento (CA-090-05)', async ({
     page,
   }) => {
-    await page.route('**/api/v1/public/barbershops/**', async (route) => {
+    await page.route('**/api/v1/public/businesses/**', async (route) => {
       await route.fulfill({
         status: 404,
         contentType: 'application/problem+json',

@@ -1,0 +1,24 @@
+# Respuesta 200 de GET /private/settings/business (HU-020, CA-020-01).
+description: Configuración básica del negocio activo.
+headers:
+  X-Request-Id:
+    $ref: '../headers/XRequestId.yaml'
+content:
+  application/json:
+    schema:
+      $ref: '../schemas/BusinessSettingsResponse.yaml'
+    examples:
+      conContacto:
+        summary: Negocio con contacto configurado
+        value:
+          name: Negocio Ejemplo
+          timezone: America/Bogota
+          contactEmail: contacto@ejemplo.test
+          contactPhone: "+573001234567"
+      sinContacto:
+        summary: Negocio sin contacto configurado
+        value:
+          name: Negocio Ejemplo
+          timezone: America/Bogota
+          contactEmail: null
+          contactPhone: null

@@ -86,7 +86,7 @@ describe('settingsApi.saveBarbershopSettings', () => {
 
     expect(patchMock).toHaveBeenCalledTimes(1)
     const [path, options] = patchMock.mock.calls[0] as [string, { body: unknown }]
-    expect(path).toBe('/private/settings/barbershop')
+    expect(path).toBe('/private/settings/business')
     expect(options.body).toEqual(formValues)
   })
 

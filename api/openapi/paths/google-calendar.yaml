@@ -1,17 +1,17 @@
-# Integración del barbero con SU Google Calendar (issue #323, DEC-099,
+# Integración del profesional con SU Google Calendar (issue #323, DEC-099,
 # DEC-102): conexión OAuth con PKCE, estado, recordatorio y desconexión. La
 # sincronización es unidireccional, de NAVA hacia Google: nada de lo que
 # ocurra en Google modifica citas ni disponibilidad. Todas las operaciones
-# actúan sobre el barbero vinculado al usuario autenticado y nunca aceptan un
-# identificador de barbero, de usuario ni de barbería.
+# actúan sobre el profesional vinculado al usuario autenticado y nunca aceptan un
+# identificador de profesional, de usuario ni de negocio.
 /private/integrations/google-calendar:
   get:
     tags: [Integrations]
     summary: Consultar el estado de la integración con Google Calendar
     description: >
-      Estado de la integración del barbero vinculado al usuario autenticado
-      (`DEC-100`). Nunca devuelve tokens ni secretos. Sin barbero vinculado
-      responde `barberLinked: false`; sin credenciales de Google configuradas
+      Estado de la integración del profesional vinculado al usuario autenticado
+      (`DEC-100`). Nunca devuelve tokens ni secretos. Sin profesional vinculado
+      responde `professionalLinked: false`; sin credenciales de Google configuradas
       en el servidor, `enabled: false`.
     operationId: getGoogleCalendarConnection
     security:
@@ -94,10 +94,10 @@
       Devuelve la URL de consentimiento de Google (código de autorización con
       PKCE, acceso offline y consentimiento forzado; alcances mínimos
       `calendar.events`, `openid` y `email`). Guarda un `state` de un solo uso,
-      ligado a barbería, barbero, usuario y sesión, que vence a los 10 minutos.
+      ligado a negocio, profesional, usuario y sesión, que vence a los 10 minutos.
       No es idempotente a propósito: cada solicitud emite un `state` nuevo.
       Responde `409` si la integración no está configurada o el usuario no
-      tiene barbero vinculado.
+      tiene profesional vinculado.
     operationId: startGoogleCalendarConnection
     security:
       - SessionCookie: []
@@ -117,12 +117,12 @@
     tags: [Integrations]
     summary: Sincronizar ahora
     description: >
-      Hace vencer ya los cambios pendientes de la conexión del barbero y
+      Hace vencer ya los cambios pendientes de la conexión del profesional y
       reintenta los que agotaron sus intentos; el worker los publica en segundos.
       Solo reordena la cola de ESA conexión: no llama a Google, no modifica citas
       ni bloqueos y es segura ante varios clics (la misma operación repetida deja
       el mismo estado). Responde `404` sin conexión que publique y `409` si la
-      integración no está configurada o no hay barbero vinculado.
+      integración no está configurada o no hay profesional vinculado.
     operationId: syncGoogleCalendarNow
     security:
       - SessionCookie: []
@@ -147,7 +147,7 @@
       Google redirige al navegador a la pantalla de retorno del frontend (el
       `redirect_uri` registrado en Google Cloud) con `code` y `state`; esa
       pantalla los reenvía aquí. Exige la sesión que inició la conexión y un
-      `state` vigente, de un solo uso y emitido por esa misma sesión y barbero;
+      `state` vigente, de un solo uso y emitido por esa misma sesión y profesional;
       cualquier otro caso responde `400` con el mismo mensaje, sin revelar cuál
       falló, y el `state` queda consumido. Canjea el código con PKCE y guarda el
       refresh token cifrado. Nunca devuelve ni registra el código, el `state` ni
@@ -165,12 +165,12 @@
             $ref: '../components/schemas/CompleteGoogleCalendarConnectionRequest.yaml'
           examples:
             consentimiento:
-              summary: El barbero aceptó
+              summary: El profesional aceptó
               value:
                 state: Zm9vYmFyYmF6cXV4
                 code: 4/0AeaYSHB...
             rechazo:
-              summary: El barbero rechazó el permiso
+              summary: El profesional rechazó el permiso
               value:
                 state: Zm9vYmFyYmF6cXV4
                 error: access_denied

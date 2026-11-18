@@ -38,12 +38,12 @@ const BEFORE_DEADLINE = new Date('2027-03-15T13:00:00Z')
 const AFTER_DEADLINE = new Date('2027-03-15T14:50:00Z')
 
 const APPOINTMENT_VIEW = {
-  barbershopName: 'Barbería Ejemplo',
+  businessName: 'Barbería Ejemplo',
   timezone: 'America/Bogota',
   attendeeName: 'Ana Ríos',
   serviceName: 'Corte clásico',
   durationMinutes: 30,
-  barberName: 'Barbero Ejemplo',
+  professionalName: 'Barbero Ejemplo',
   startsAt: STARTS_AT,
   endsAt: '2027-03-15T15:30:00Z',
   status: 'confirmed',
@@ -51,8 +51,8 @@ const APPOINTMENT_VIEW = {
   lateCancellationClientAllowed: true,
   lateCancellationReasonRequired: true,
   versionToken: 'version-token-1',
-  barbershopContactEmail: 'contacto@barberia-ejemplo.test',
-  barbershopContactPhone: '+573001234567',
+  businessContactEmail: 'contacto@barberia-ejemplo.test',
+  businessContactPhone: '+573001234567',
   rescheduleRemaining: 2,
   vocabulary: INITIAL_VOCABULARY,
 }
@@ -110,7 +110,7 @@ test.describe('Cancelación pública del turno (HU-099)', () => {
     })
     const availability = (slots: string[]) =>
       page.route(
-        `**/api/v1/public/barbershops/barberia-ejemplo/services/${SERVICE_ID}/barbers/${BARBER_ID}/availability**`,
+        `**/api/v1/public/businesses/barberia-ejemplo/services/${SERVICE_ID}/professionals/${BARBER_ID}/availability**`,
         (route) =>
           json(route, 200, {
             slots: slots.map((startsAt) => ({ startsAt })),
@@ -226,7 +226,9 @@ test.describe('Cancelación pública del turno (HU-099)', () => {
       return json(
         route,
         200,
-        reads === 1 ? APPOINTMENT_VIEW : { ...APPOINTMENT_VIEW, status: 'cancelled_by_barber' },
+        reads === 1
+          ? APPOINTMENT_VIEW
+          : { ...APPOINTMENT_VIEW, status: 'cancelled_by_professional' },
       )
     })
     await page.route(`**/api/v1/customer/appointments/${ACCESS_TOKEN}/cancel`, (route) =>

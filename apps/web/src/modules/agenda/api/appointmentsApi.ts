@@ -31,7 +31,7 @@ const PICKER_LIMIT = 50
 
 export async function fetchBarberSummaries(): Promise<FetchBarberSummariesOutcome> {
   try {
-    const { data, response } = await httpClient.GET('/private/barbers', {
+    const { data, response } = await httpClient.GET('/private/professionals', {
       params: { query: { limit: PICKER_LIMIT } },
     })
     if (response.ok && data) {
@@ -57,9 +57,12 @@ export async function fetchAssignedServices(
   barberId: string,
 ): Promise<FetchAssignedServicesOutcome> {
   try {
-    const { data, response } = await httpClient.GET('/private/barbers/{barberId}/services', {
-      params: { path: { barberId }, query: { limit: PICKER_LIMIT } },
-    })
+    const { data, response } = await httpClient.GET(
+      '/private/professionals/{professionalId}/services',
+      {
+        params: { path: { professionalId: barberId }, query: { limit: PICKER_LIMIT } },
+      },
+    )
     if (response.ok && data) {
       const servicesById = await fetchServiceNames(data.items.map((a) => a.serviceId))
       return {
@@ -81,7 +84,7 @@ export async function fetchAssignedServices(
 }
 
 // fetchServiceNames resuelve el catálogo completo una sola vez y filtra en
-// memoria a los activos: GET /private/barbers/{barberId}/services (HU-023)
+// memoria a los activos: GET /private/professionals/{professionalId}/services (HU-023)
 // solo expone barberId/serviceId/createdAt (CA-023-07), nunca el nombre, a
 // propósito, para que un consumidor cruce por identificador contra el
 // catálogo real.
@@ -109,7 +112,7 @@ async function fetchServiceNames(serviceIds: string[]): Promise<Map<string, stri
 
 export async function fetchBarbershopTimezone(): Promise<FetchBarbershopTimezoneOutcome> {
   try {
-    const { data, response } = await httpClient.GET('/private/settings/barbershop')
+    const { data, response } = await httpClient.GET('/private/settings/business')
     if (response.ok && data) {
       return { kind: 'success', timezone: data.timezone }
     }
@@ -128,9 +131,9 @@ export async function fetchDailyAgenda(
 ): Promise<FetchDailyAgendaOutcome> {
   try {
     const { data, response } = await httpClient.GET(
-      '/private/barbers/{barberId}/appointments/daily-agenda',
+      '/private/professionals/{professionalId}/appointments/daily-agenda',
       {
-        params: { path: { barberId }, query: date ? { date } : {} },
+        params: { path: { professionalId: barberId }, query: date ? { date } : {} },
       },
     )
     if (response.ok && data) {
@@ -199,8 +202,8 @@ export async function fetchAppointmentDetail(
 
 function toAppointmentDetail(data: {
   id: string
-  barberId: string
-  barberFullName: string
+  professionalId: string
+  professionalFullName: string
   attendeeName: string
   customerFullName: string
   customerPhone: string | null
@@ -220,8 +223,8 @@ function toAppointmentDetail(data: {
 }): AppointmentDetail {
   return {
     id: data.id,
-    barberId: data.barberId,
-    barberFullName: data.barberFullName,
+    barberId: data.professionalId,
+    barberFullName: data.professionalFullName,
     attendeeName: data.attendeeName,
     customerFullName: data.customerFullName,
     customerPhone: data.customerPhone,
@@ -487,7 +490,7 @@ export async function correctAppointmentStatus(
         },
         body: {
           status: input.status as
-            'completed' | 'no_show' | 'cancelled_by_customer' | 'cancelled_by_barber',
+            'completed' | 'no_show' | 'cancelled_by_customer' | 'cancelled_by_professional',
           reason: input.reason,
         },
       },
@@ -535,7 +538,7 @@ export async function createManualAppointment(
     const { data, response, error } = await httpClient.POST('/private/appointments', {
       params: { header: { 'Idempotency-Key': idempotencyKey } },
       body: {
-        barberId: input.barberId,
+        professionalId: input.barberId,
         serviceId: input.serviceId,
         attendeeName: input.attendeeName,
         customerFullName: input.customerFullName,
@@ -586,7 +589,7 @@ function problemDetail(error: unknown): string {
 
 function toAppointment(data: {
   id: string
-  barberId: string
+  professionalId: string
   serviceId: string
   attendeeName: string
   startsAt: string
@@ -598,7 +601,7 @@ function toAppointment(data: {
 }): CreatedManualAppointment {
   return {
     id: data.id,
-    barberId: data.barberId,
+    barberId: data.professionalId,
     serviceId: data.serviceId,
     attendeeName: data.attendeeName,
     startsAt: data.startsAt,

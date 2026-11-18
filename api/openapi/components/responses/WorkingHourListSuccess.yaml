@@ -1,7 +1,7 @@
-# Respuesta 200 de GET /private/barbers/{barberId}/working-hours
+# Respuesta 200 de GET /private/professionals/{professionalId}/working-hours
 # (HU-040, CA-040-01).
 description: >
-  Página de tramos de horario laboral del barbero de la ruta, ordenada por
+  Página de tramos de horario laboral del profesional de la ruta, ordenada por
   día ISO de la semana y hora de inicio.
 headers:
   X-Request-Id:
@@ -12,7 +12,7 @@ content:
       $ref: '../schemas/WorkingHourListResponse.yaml'
     examples:
       jornadaPartida:
-        summary: Barbero con jornada partida el lunes
+        summary: Profesional con jornada partida el lunes
         value:
           items:
             - id: 6f1a2b3c-4d5e-4f60-8172-8394a5b6c7d8
@@ -29,7 +29,7 @@ content:
               updatedAt: "2026-08-25T15:04:05Z"
           nextCursor: null
       sinTramos:
-        summary: Barbero sin ningún tramo configurado todavía
+        summary: Profesional sin ningún tramo configurado todavía
         value:
           items: []
           nextCursor: null

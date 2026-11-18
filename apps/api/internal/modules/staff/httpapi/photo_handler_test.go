@@ -37,7 +37,7 @@ func jpegFixture(t *testing.T) []byte {
 }
 
 func putPhotoRequest(contentType string, body []byte) *http.Request {
-	req := requestWithBarberID(http.MethodPut, "/api/v1/private/barbers/"+photoBarberID+"/photo", body, photoBarberID)
+	req := requestWithBarberID(http.MethodPut, "/api/v1/private/professionals/"+photoBarberID+"/photo", body, photoBarberID)
 	if contentType != "" {
 		req.Header.Set("Content-Type", contentType)
 	}
@@ -136,7 +136,7 @@ func TestPutBarberPhotoHandler_BarberMissing_Returns404(t *testing.T) {
 }
 
 func getPhotoRequest(ifNoneMatch string) *http.Request {
-	req := requestWithBarberID(http.MethodGet, "/api/v1/private/barbers/"+photoBarberID+"/photo", nil, photoBarberID)
+	req := requestWithBarberID(http.MethodGet, "/api/v1/private/professionals/"+photoBarberID+"/photo", nil, photoBarberID)
 	if ifNoneMatch != "" {
 		req.Header.Set("If-None-Match", ifNoneMatch)
 	}
@@ -211,7 +211,7 @@ func TestGetBarberPhotoHandler_NotFound_Returns404(t *testing.T) {
 }
 
 func deletePhotoRequest() *http.Request {
-	return requestWithBarberID(http.MethodDelete, "/api/v1/private/barbers/"+photoBarberID+"/photo", nil, photoBarberID)
+	return requestWithBarberID(http.MethodDelete, "/api/v1/private/professionals/"+photoBarberID+"/photo", nil, photoBarberID)
 }
 
 func TestDeleteBarberPhotoHandler_Returns204AndNotFoundForMissingBarber(t *testing.T) {

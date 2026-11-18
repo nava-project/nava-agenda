@@ -1,7 +1,7 @@
 # Respuesta 200 de
-# GET /public/barbershops/{slug}/services/{serviceId}/barbers/{barberId}/availability
+# GET /public/businesses/{slug}/services/{serviceId}/professionals/{professionalId}/availability
 # (HU-094, CA-094-01 a CA-094-06).
-description: Inicios públicos válidos del servicio elegido con el barbero elegido.
+description: Inicios públicos válidos del servicio elegido con el profesional elegido.
 headers:
   X-Request-Id:
     $ref: '../headers/XRequestId.yaml'
@@ -21,7 +21,7 @@ content:
           slotGridMinutes: 15
       sinFranjasHoy:
         summary: >
-          serviceId/barberId válidos y asignados, pero la ventana pública
+          serviceId/professionalId válidos y asignados, pero la ventana pública
           vigente no tiene ningún inicio libre (jornada cubierta por
           citas/bloqueos, o sin jornada configurada)
         value:
@@ -29,9 +29,9 @@ content:
           durationMinutes: 30
           timezone: America/Bogota
           slotGridMinutes: 15
-      serviceOBarberAjeno:
+      serviceOProfessionalAjeno:
         summary: >
-          serviceId/barberId con forma inválida, ajeno a esta barbería,
+          serviceId/professionalId con forma inválida, ajeno a este negocio,
           inexistente, inactivo o sin asignación vigente (misma respuesta
           uniforme, la causa nunca se distingue, mismo criterio que
           CA-092-03)

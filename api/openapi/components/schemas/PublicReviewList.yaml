@@ -1,7 +1,7 @@
-# Reseñas visibles de un barbero (HU-100, CA-100-04).
+# Reseñas visibles de un profesional (HU-100, CA-100-04).
 type: object
 description: >
-  Resumen y las reseñas no ocultas más recientes de un barbero (hasta 20), de la
+  Resumen y las reseñas no ocultas más recientes de un profesional (hasta 20), de la
   más reciente a la más antigua.
 properties:
   rating:

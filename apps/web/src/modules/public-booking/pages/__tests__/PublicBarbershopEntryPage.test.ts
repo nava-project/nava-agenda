@@ -100,7 +100,7 @@ describe('PublicBarbershopEntryPage', () => {
     await flushPromises()
 
     expect(getMock).toHaveBeenCalledWith(
-      '/public/barbershops/{slug}',
+      '/public/businesses/{slug}',
       expect.objectContaining({ params: { path: { slug: 'barberia-ejemplo' } } }),
     )
   })
@@ -247,7 +247,7 @@ describe('PublicBarbershopEntryPage', () => {
     expect(wrapper.text()).toContain('Barbería Ejemplo')
     expect(getMock).toHaveBeenCalledTimes(2)
     expect(getMock).toHaveBeenLastCalledWith(
-      '/public/barbershops/{slug}',
+      '/public/businesses/{slug}',
       expect.objectContaining({ params: { path: { slug: 'barberia-ejemplo' } } }),
     )
   })

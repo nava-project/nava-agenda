@@ -64,7 +64,7 @@ func TestSessionContext_HTTP_ValidSession_ReturnsRealBarbershopName(t *testing.T
 		Barbershop struct {
 			ID   string `json:"id"`
 			Name string `json:"name"`
-		} `json:"barbershop"`
+		} `json:"business"`
 		ExpiresAt string `json:"expiresAt"`
 	}
 	if err := json.Unmarshal(rec.Body.Bytes(), &body); err != nil {
@@ -104,7 +104,7 @@ func TestSessionContext_HTTP_TwoTenants_NeverCrossesBarbershopNames(t *testing.T
 		Barbershop struct {
 			ID   string `json:"id"`
 			Name string `json:"name"`
-		} `json:"barbershop"`
+		} `json:"business"`
 	}
 	if err := json.Unmarshal(recA.Body.Bytes(), &bodyA); err != nil {
 		t.Fatalf("decode shopA response: %v", err)

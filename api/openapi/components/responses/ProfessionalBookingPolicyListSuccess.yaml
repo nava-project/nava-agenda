@@ -1,0 +1,22 @@
+# Respuesta 200 de GET /private/settings/booking-policy/professionals (DEC-169).
+description: Ventanas de reserva propias del negocio activo (los profesionales ausentes heredan).
+headers:
+  X-Request-Id:
+    $ref: '../headers/XRequestId.yaml'
+content:
+  application/json:
+    schema:
+      $ref: '../schemas/ProfessionalBookingPolicyListResponse.yaml'
+    examples:
+      unProfesionalPropio:
+        summary: Un profesional con ventana propia; el resto hereda
+        value:
+          items:
+            - professionalId: 3f1c9a52-7d4e-4b8a-9c21-5e6f7a8b9c0d
+              minAdvanceMinutes: 30
+              maxAdvanceDays: 7
+              slotGridMinutes: 40
+      todosHeredan:
+        summary: Ningún profesional tiene ventana propia
+        value:
+          items: []

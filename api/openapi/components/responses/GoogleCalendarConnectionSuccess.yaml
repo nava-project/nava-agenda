@@ -1,6 +1,6 @@
 # Respuesta 200 de las operaciones de lectura y edición de la conexión con
 # Google Calendar (issue #323).
-description: Estado de la integración del barbero con Google Calendar.
+description: Estado de la integración del profesional con Google Calendar.
 headers:
   X-Request-Id:
     $ref: '../headers/XRequestId.yaml'
@@ -13,9 +13,9 @@ content:
         summary: Conectado con recordatorio de 30 minutos
         value:
           enabled: true
-          barberLinked: true
+          professionalLinked: true
           status: connected
-          accountEmail: barbero@ejemplo.test
+          accountEmail: profesional@ejemplo.test
           reminderMinutes: 30
           connectedAt: "2026-10-09T15:04:05Z"
           lastSyncedAt: null
@@ -25,7 +25,7 @@ content:
         summary: Vinculado pero sin conectar
         value:
           enabled: true
-          barberLinked: true
+          professionalLinked: true
           status: not_connected
           accountEmail: null
           reminderMinutes: null
@@ -37,7 +37,7 @@ content:
         summary: Integración sin configurar en el servidor
         value:
           enabled: false
-          barberLinked: true
+          professionalLinked: true
           status: not_connected
           accountEmail: null
           reminderMinutes: null

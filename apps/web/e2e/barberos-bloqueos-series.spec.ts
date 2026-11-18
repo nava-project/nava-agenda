@@ -9,7 +9,7 @@ import path from 'node:path'
 // sus propias series con un rótulo único y las retira al terminar.
 const BARBER_A = '286b0001-0000-4000-8000-000000000001'
 const evidence = path.resolve('e2e/evidence/barberos/bloqueos-100')
-const API = `/api/v1/private/barbers/${BARBER_A}`
+const API = `/api/v1/private/professionals/${BARBER_A}`
 
 test.use({ contextOptions: { reducedMotion: 'reduce' } })
 

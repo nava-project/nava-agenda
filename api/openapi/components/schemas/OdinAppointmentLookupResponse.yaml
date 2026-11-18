@@ -6,7 +6,7 @@ properties:
     type: array
     maxItems: 10
     description: >
-      Turnos futuros confirmados de ese teléfono en esa barbería, del más próximo al
+      Turnos futuros confirmados de ese teléfono en ese negocio, del más próximo al
       más lejano. Vacía si no hay.
     items:
       $ref: './OdinAppointment.yaml'

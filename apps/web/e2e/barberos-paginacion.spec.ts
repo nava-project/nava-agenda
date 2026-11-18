@@ -98,7 +98,7 @@ test('paginador real: reemplazo, reintento, resize, accesibilidad y aislamiento'
   await settled(page)
   expect(await page.locator('.staff-page__item-name').allTextContents()).toEqual(first)
   let fail = true
-  await page.route('**/api/v1/private/barbers?*', async (route) => {
+  await page.route('**/api/v1/private/professionals?*', async (route) => {
     if (fail && new URL(route.request().url()).searchParams.get('page') === '2') {
       fail = false
       await route.fulfill({
@@ -117,7 +117,7 @@ test('paginador real: reemplazo, reintento, resize, accesibilidad y aislamiento'
     'aria-current',
     'page',
   )
-  await page.unroute('**/api/v1/private/barbers?*')
+  await page.unroute('**/api/v1/private/professionals?*')
   mkdirSync(evidence, { recursive: true })
   const counts: number[] = []
   for (const [width, height] of [
@@ -150,7 +150,7 @@ test('paginador real: reemplazo, reintento, resize, accesibilidad y aislamiento'
   await fits(page, 320, 720)
   await settled(page)
   // Página intermedia: también debe caber cuando hay puntos suspensivos a ambos lados.
-  const last = await page.request.get('/api/v1/private/barbers?page=3&pageSize=3')
+  const last = await page.request.get('/api/v1/private/professionals?page=3&pageSize=3')
   expect(last.status()).toBe(200)
   for (let n = 0; n < 2; n++) {
     const next = page.getByRole('button', { name: 'Página siguiente', exact: true })
@@ -177,17 +177,17 @@ test('paginador real: reemplazo, reintento, resize, accesibilidad y aislamiento'
   })
   const other = await context.newPage()
   await login(other, 2)
-  const response = await other.request.get('/api/v1/private/barbers?page=1&pageSize=2')
+  const response = await other.request.get('/api/v1/private/professionals?page=1&pageSize=2')
   expect(response.status()).toBe(200)
   const body = (await response.json()) as { total: number; items: { fullName: string }[] }
   expect(body.total).toBe(3)
   expect(body.items.every((b) => b.fullName.startsWith('Otra barbería'))).toBe(true)
   expect(
     (
-      await other.request.get('/api/v1/private/barbers/288b0001-0000-4000-8000-000000000001')
+      await other.request.get('/api/v1/private/professionals/288b0001-0000-4000-8000-000000000001')
     ).status(),
   ).toBe(404)
-  const cursor = await other.request.get('/api/v1/private/barbers?limit=1')
+  const cursor = await other.request.get('/api/v1/private/professionals?limit=1')
   expect(cursor.status()).toBe(200)
   const legacy = (await cursor.json()) as { nextCursor: string | null; total?: number }
   expect(legacy.nextCursor).not.toBeNull()

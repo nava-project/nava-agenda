@@ -26,8 +26,8 @@ const problem = (status: number, code: string) => ({
 })
 
 type Reply = { status: number; data?: unknown; error?: unknown; headers?: HeadersInit }
-const CHALLENGE = '/public/barbershops/{slug}/customer-access/challenge'
-const VERIFY = '/public/barbershops/{slug}/customer-access/verify'
+const CHALLENGE = '/public/businesses/{slug}/customer-access/challenge'
+const VERIFY = '/public/businesses/{slug}/customer-access/verify'
 
 /** Responde cada operación con su cola de respuestas, en orden. */
 function script(queues: { challenge?: Reply[]; verify?: Reply[] }) {
@@ -56,7 +56,7 @@ const appointment = (token: string, startsAt: string, service: string, barber: s
   accessToken: token,
   startsAt,
   serviceName: service,
-  barberName: barber,
+  professionalName: barber,
 })
 const ONE: Reply = {
   status: 200,

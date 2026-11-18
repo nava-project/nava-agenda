@@ -17,7 +17,7 @@ import (
 const (
 	tokenParam    = "token"
 	slugParam     = "slug"
-	barberIDParam = "barberId"
+	barberIDParam = "professionalId"
 	reviewIDParam = "reviewId"
 )
 
@@ -82,7 +82,7 @@ func (h *CreateReviewHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) 
 	})
 }
 
-// ListPublicReviewsHandler expone GET /public/barbershops/{slug}/barbers/{barberId}/reviews.
+// ListPublicReviewsHandler expone GET /public/businesses/{slug}/professionals/{professionalId}/reviews.
 type ListPublicReviewsHandler struct{ service *reviews.Service }
 
 // NewListPublicReviewsHandler construye el handler.
@@ -121,7 +121,7 @@ func newReviewResponse(r reviews.Review) ReviewResponse {
 	return ReviewResponse{ID: r.ID, Rating: r.Rating, Comment: r.Comment, HiddenAt: r.HiddenAt, CreatedAt: r.CreatedAt}
 }
 
-// ListReviewsHandler expone GET /private/barbers/{barberId}/reviews (panel).
+// ListReviewsHandler expone GET /private/professionals/{professionalId}/reviews (panel).
 type ListReviewsHandler struct{ service *reviews.Service }
 
 // NewListReviewsHandler construye el handler.
@@ -150,7 +150,7 @@ func (h *ListReviewsHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	})
 }
 
-// UpdateReviewHandler expone PATCH /private/barbers/{barberId}/reviews/{reviewId}:
+// UpdateReviewHandler expone PATCH /private/professionals/{professionalId}/reviews/{reviewId}:
 // oculta o vuelve a mostrar una reseña. PATCH con el estado deseado es
 // idempotente por naturaleza, sin Idempotency-Key.
 type UpdateReviewHandler struct{ service *reviews.Service }

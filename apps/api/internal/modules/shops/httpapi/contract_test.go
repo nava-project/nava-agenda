@@ -42,7 +42,7 @@ type barbershopSettingsPathFile struct {
 	BarbershopSettings struct {
 		Get   operation `yaml:"get"`
 		Patch operation `yaml:"patch"`
-	} `yaml:"/private/settings/barbershop"`
+	} `yaml:"/private/settings/business"`
 }
 
 type bookingPolicyPathFile struct {
@@ -113,7 +113,7 @@ func requireProps(t *testing.T, schema schemaDoc, want []string) {
 // BarbershopSettingsResponse.yaml (CA-020-07: exactamente esos cuatro
 // campos, nunca public_slug ni logo).
 func TestContract_BarbershopSettingsResponseSchema_MatchesDTOFields(t *testing.T) {
-	schema := loadYAML[schemaDoc](t, "api/openapi/components/schemas/BarbershopSettingsResponse.yaml")
+	schema := loadYAML[schemaDoc](t, "api/openapi/components/schemas/BusinessSettingsResponse.yaml")
 	requireProps(t, schema, []string{"name", "timezone", "contactEmail", "contactPhone"})
 }
 
@@ -123,10 +123,10 @@ func TestContract_BarbershopSettingsResponseSchema_MatchesDTOFields(t *testing.T
 // (CA-020-05): esta comprobación de "exactamente 4 propiedades" es la
 // defensa de contrato contra que alguien lo agregue sin darse cuenta.
 func TestContract_UpdateBarbershopSettingsRequestSchema_MatchesDTOFields(t *testing.T) {
-	schema := loadYAML[schemaDoc](t, "api/openapi/components/schemas/UpdateBarbershopSettingsRequest.yaml")
+	schema := loadYAML[schemaDoc](t, "api/openapi/components/schemas/UpdateBusinessSettingsRequest.yaml")
 	requireProps(t, schema, []string{"name", "timezone", "contactEmail", "contactPhone"})
-	if _, ok := schema.Properties["barbershopId"]; ok {
-		t.Fatal("CA-020-05: el contrato de PATCH nunca debe declarar barbershopId")
+	if _, ok := schema.Properties["businessId"]; ok {
+		t.Fatal("CA-020-05: el contrato de PATCH nunca debe declarar businessId")
 	}
 }
 
@@ -138,8 +138,8 @@ func TestContract_GetBarbershopSettingsOperation_MethodPathSecurityAndResponses(
 	doc := loadYAML[barbershopSettingsPathFile](t, "api/openapi/paths/settings.yaml")
 	op := doc.BarbershopSettings.Get
 
-	if op.OperationID != "getBarbershopSettings" {
-		t.Fatalf("expected operationId getBarbershopSettings, got %q", op.OperationID)
+	if op.OperationID != "getBusinessSettings" {
+		t.Fatalf("expected operationId getBusinessSettings, got %q", op.OperationID)
 	}
 	if len(op.Security) != 1 {
 		t.Fatalf("expected exactly one security requirement (SessionCookie), got %v", op.Security)
@@ -164,8 +164,8 @@ func TestContract_UpdateBarbershopSettingsOperation_MethodPathSecurityAndRespons
 	doc := loadYAML[barbershopSettingsPathFile](t, "api/openapi/paths/settings.yaml")
 	op := doc.BarbershopSettings.Patch
 
-	if op.OperationID != "updateBarbershopSettings" {
-		t.Fatalf("expected operationId updateBarbershopSettings, got %q", op.OperationID)
+	if op.OperationID != "updateBusinessSettings" {
+		t.Fatalf("expected operationId updateBusinessSettings, got %q", op.OperationID)
 	}
 	if len(op.Security) != 1 {
 		t.Fatalf("expected exactly one security requirement (SessionCookie), got %v", op.Security)
@@ -192,8 +192,8 @@ func TestContract_OpenAPIYAML_RegistersBarbershopSettingsPath(t *testing.T) {
 	}
 	doc := loadYAML[pathsDoc](t, "api/openapi/openapi.yaml")
 
-	if _, ok := doc.Paths["/private/settings/barbershop"]; !ok {
-		t.Fatal("openapi.yaml no registra paths./private/settings/barbershop")
+	if _, ok := doc.Paths["/private/settings/business"]; !ok {
+		t.Fatal("openapi.yaml no registra paths./private/settings/business")
 	}
 }
 
@@ -221,7 +221,7 @@ func TestContract_UpdateBookingPolicyRequestSchema_MatchesDTOFields(t *testing.T
 		"cancellationDeadlineMinutes", "lateCancellationClientAllowed",
 		"lateCancellationReasonRequired",
 	})
-	for _, forbidden := range []string{"barbershopId", "versionToken"} {
+	for _, forbidden := range []string{"businessId", "versionToken"} {
 		if _, ok := schema.Properties[forbidden]; ok {
 			t.Fatalf("CA-093-03: el contrato de PUT nunca debe declarar %q", forbidden)
 		}
@@ -382,8 +382,8 @@ func TestContract_BrandSchemas_MatchDTOFields(t *testing.T) {
 	}
 
 	for name, schema := range map[string]schemaDoc{"BrandResponse": response, "UpdateBrandRequest": request} {
-		if _, ok := schema.Properties["barbershopId"]; ok {
-			t.Fatalf("%s nunca debe declarar barbershopId", name)
+		if _, ok := schema.Properties["businessId"]; ok {
+			t.Fatalf("%s nunca debe declarar businessId", name)
 		}
 	}
 }
@@ -513,8 +513,8 @@ type slugSchemaDoc struct {
 func TestContract_PublicLinkSchema_MatchesDTOAndDatabaseLimits(t *testing.T) {
 	response := loadYAML[schemaDoc](t, "api/openapi/components/schemas/PublicLinkResponse.yaml")
 	requireProps(t, response, []string{"slug"})
-	if _, ok := response.Properties["barbershopId"]; ok {
-		t.Fatal("PublicLinkResponse nunca debe declarar barbershopId")
+	if _, ok := response.Properties["businessId"]; ok {
+		t.Fatal("PublicLinkResponse nunca debe declarar businessId")
 	}
 
 	slug := loadYAML[slugSchemaDoc](t, "api/openapi/components/schemas/PublicLinkResponse.yaml").Properties["slug"]

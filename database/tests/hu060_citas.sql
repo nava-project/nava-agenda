@@ -476,7 +476,7 @@ BEGIN
     resolved_at
   ) VALUES (
     v_shop, v_professional1, v_service, v_customer, 'Cancelada solapada',
-    '2027-05-11T10:00:00Z', '2027-05-11T11:00:00Z', 'cancelled_by_barber', 'manual',
+    '2027-05-11T10:00:00Z', '2027-05-11T11:00:00Z', 'cancelled_by_professional', 'manual',
     'Corte de prueba Q', 60, 20000.00, 'COP', now()
   );
 END
@@ -488,7 +488,7 @@ ROLLBACK;
 
 -- ---------------------------------------------------------------------------
 -- occupies_schedule (CA-060-03): confirmed/completed/no_show = true;
--- cancelled_by_customer/cancelled_by_barber = false. Un estado que ocupa
+-- cancelled_by_customer/cancelled_by_professional = false. Un estado que ocupa
 -- agenda (completed) también entra en la exclusión.
 -- ---------------------------------------------------------------------------
 BEGIN;

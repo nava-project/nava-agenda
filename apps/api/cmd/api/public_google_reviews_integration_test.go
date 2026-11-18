@@ -28,7 +28,7 @@ type googleReviewB struct {
 }
 
 func doGoogleReviewsRequest(router http.Handler, slug string) *httptest.ResponseRecorder {
-	req := httptest.NewRequest(http.MethodGet, "/api/v1/public/barbershops/"+slug+"/reviews", nil)
+	req := httptest.NewRequest(http.MethodGet, "/api/v1/public/businesses/"+slug+"/reviews", nil)
 	rec := httptest.NewRecorder()
 	router.ServeHTTP(rec, req)
 	return rec

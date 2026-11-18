@@ -1,0 +1,19 @@
+# Respuesta 200 de PATCH /private/settings/business (HU-020, CA-020-02).
+# Misma forma que BusinessSettingsSuccess (GET): la representación
+# canónica recién guardada, nunca una vista parcial de lo que cambió.
+description: Configuración básica del negocio ya guardada, en su representación canónica completa.
+headers:
+  X-Request-Id:
+    $ref: '../headers/XRequestId.yaml'
+content:
+  application/json:
+    schema:
+      $ref: '../schemas/BusinessSettingsResponse.yaml'
+    examples:
+      actualizacionConfirmada:
+        summary: Configuración guardada
+        value:
+          name: Negocio Ejemplo
+          timezone: America/Bogota
+          contactEmail: contacto@ejemplo.test
+          contactPhone: "+573001234567"

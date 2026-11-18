@@ -1,9 +1,9 @@
-# Cuerpo de POST /private/barbers/{barberId}/time-blocks (RN-BLQ-01/03).
+# Cuerpo de POST /private/professionals/{professionalId}/time-blocks (RN-BLQ-01/03).
 # Cerrado: el handler rechaza cualquier campo desconocido. Nunca declara
-# barbershopId ni barberId.
+# businessId ni professionalId.
 type: object
 description: >
-  Alta de un bloqueo puntual del barbero de la ruta. Crear un bloqueo NUNCA
+  Alta de un bloqueo puntual del profesional de la ruta. Crear un bloqueo NUNCA
   falla por chocar con citas ya agendadas ni con otro bloqueo existente
   (RN-BLQ-03, DEC-008): la lista de citas afectadas la resuelve B3/B5, no
   esta operación.
@@ -16,7 +16,7 @@ properties:
   startsAt:
     type: string
     format: date-time
-    description: Instante de inicio, con offset explícito (el cliente ya conoce la zona IANA de la barbería).
+    description: Instante de inicio, con offset explícito (el cliente ya conoce la zona IANA del negocio).
     examples:
       - "2026-07-20T15:00:00-05:00"
   endsAt:

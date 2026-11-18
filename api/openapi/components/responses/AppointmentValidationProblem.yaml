@@ -4,7 +4,7 @@
 description: >
   El cuerpo es JSON válido, pero uno de sus campos (nombre, contacto,
   nota o startsAt) incumple una validación, o el intervalo no cabe en la
-  jornada efectiva del barbero (CA-061-02). No se persistió nada.
+  jornada efectiva del profesional (CA-061-02). No se persistió nada.
 headers:
   X-Request-Id:
     $ref: '../headers/XRequestId.yaml'

@@ -1,6 +1,6 @@
 // Moderación de reseñas desde el panel (HU-100, DEC-128): único punto del módulo
-// `staff` que llama a `GET /private/barbers/{barberId}/reviews` y a
-// `PATCH /private/barbers/{barberId}/reviews/{reviewId}`. Mapea por `status`;
+// `staff` que llama a `GET /private/professionals/{professionalId}/reviews` y a
+// `PATCH /private/professionals/{professionalId}/reviews/{reviewId}`. Mapea por `status`;
 // el 401 lo atiende el cliente global.
 import { httpClient } from '@/shared/api/httpClient'
 import type {
@@ -29,9 +29,12 @@ function toReview(data: ReviewWire): BarberReview {
 
 export async function listBarberReviews(barberId: string): Promise<ListBarberReviewsOutcome> {
   try {
-    const { data, response } = await httpClient.GET('/private/barbers/{barberId}/reviews', {
-      params: { path: { barberId } },
-    })
+    const { data, response } = await httpClient.GET(
+      '/private/professionals/{professionalId}/reviews',
+      {
+        params: { path: { professionalId: barberId } },
+      },
+    )
     if (response.ok && data) {
       return {
         kind: 'success',
@@ -57,8 +60,8 @@ export async function setReviewHidden(
 ): Promise<SetReviewHiddenOutcome> {
   try {
     const { data, response } = await httpClient.PATCH(
-      '/private/barbers/{barberId}/reviews/{reviewId}',
-      { params: { path: { barberId, reviewId } }, body: { hidden } },
+      '/private/professionals/{professionalId}/reviews/{reviewId}',
+      { params: { path: { professionalId: barberId, reviewId } }, body: { hidden } },
     )
     if (response.ok && data) return { kind: 'success', review: toReview(data) }
     if (response.status === 404) return { kind: 'not-found' }

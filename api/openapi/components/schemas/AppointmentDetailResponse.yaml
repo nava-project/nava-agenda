@@ -1,5 +1,5 @@
 # Detalle privado de un turno (HU-064, CA-064-01 a CA-064-04). Deliberadamente
-# SIN customerId, ningún identificador de actor, barbershopId ni updatedAt
+# SIN customerId, ningún identificador de actor, businessId ni updatedAt
 # crudo (RN-TEN-01, RN-DAT-02): versionToken es el único dato de concurrencia
 # expuesto, opaco (nunca decodificable en un instante real por el cliente).
 type: object
@@ -12,10 +12,10 @@ properties:
   id:
     type: string
     format: uuid
-  barberId:
+  professionalId:
     type: string
     format: uuid
-  barberFullName:
+  professionalFullName:
     type: string
   attendeeName:
     type: string
@@ -37,7 +37,7 @@ properties:
     format: date-time
   status:
     type: string
-    enum: [confirmed, completed, cancelled_by_customer, cancelled_by_barber, no_show]
+    enum: [confirmed, completed, cancelled_by_customer, cancelled_by_professional, no_show]
   origin:
     type: string
     enum: [public, manual]
@@ -69,11 +69,11 @@ properties:
       - type: "null"
     description: >
       Dirección del cliente cuando el turno es a domicilio (`DEC-131`); `null`
-      en el local. Solo la ve el panel de esa barbería (`CA-103-06`).
+      en el local. Solo la ve el panel de ese negocio (`CA-103-06`).
 required:
   - id
-  - barberId
-  - barberFullName
+  - professionalId
+  - professionalFullName
   - attendeeName
   - customerFullName
   - customerPhone

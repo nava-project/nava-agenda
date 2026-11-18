@@ -26,9 +26,12 @@ type OdinAppointmentResponse struct {
 	AppointmentRef string    `json:"appointmentRef"`
 	StartsAt       time.Time `json:"startsAt"`
 	ServiceName    string    `json:"serviceName"`
-	BarberName     string    `json:"barberName"`
-	CanCancel      bool      `json:"canCancel"`
-	CanReschedule  bool      `json:"canReschedule"`
+	BarberName     string    `json:"professionalName"`
+	// LegacyBarberName repite BarberName con el nombre de campo anterior a DEC-183
+	// (#661). Se retira cuando Odin confirme que lee professionalName.
+	LegacyBarberName string `json:"barberName"`
+	CanCancel        bool   `json:"canCancel"`
+	CanReschedule    bool   `json:"canReschedule"`
 }
 
 // OdinLookupResponse es la respuesta 200 de `lookup`.
@@ -93,7 +96,7 @@ func RequireServiceToken(secret string) func(http.Handler) http.Handler {
 	}
 }
 
-// OdinLookupHandler expone POST /integrations/odin/barbershops/{slug}/customer-appointments/lookup
+// OdinLookupHandler expone POST /integrations/odin/businesses/{slug}/customer-appointments/lookup
 // (HU-106, CA-106-02).
 type OdinLookupHandler struct{ service *customeraccess.RefService }
 
@@ -122,7 +125,8 @@ func (h *OdinLookupHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	for _, a := range appointments {
 		out.Appointments = append(out.Appointments, OdinAppointmentResponse{
 			AppointmentRef: a.Ref, StartsAt: a.StartsAt, ServiceName: a.ServiceName, BarberName: a.BarberName,
-			CanCancel: a.CanCancel, CanReschedule: a.CanReschedule,
+			LegacyBarberName: a.BarberName,
+			CanCancel:        a.CanCancel, CanReschedule: a.CanReschedule,
 		})
 	}
 	w.Header().Set("Content-Type", "application/json")
@@ -130,7 +134,7 @@ func (h *OdinLookupHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	_ = json.NewEncoder(w).Encode(out)
 }
 
-// OdinChallengeHandler expone POST /integrations/odin/barbershops/{slug}/customer-access/challenge
+// OdinChallengeHandler expone POST /integrations/odin/businesses/{slug}/customer-access/challenge
 // (HU-106, CA-106-03 y CA-106-04).
 type OdinChallengeHandler struct {
 	service *customeraccess.RefService
@@ -183,7 +187,7 @@ func (h *OdinChallengeHandler) ServeHTTP(w http.ResponseWriter, r *http.Request)
 	})
 }
 
-// VerifyRefHandler expone POST /public/barbershops/{slug}/customer-access/verify-ref
+// VerifyRefHandler expone POST /public/businesses/{slug}/customer-access/verify-ref
 // (HU-106, CA-106-05): canjea el código de una referencia por un acceso de 60
 // minutos a su turno. Un código incorrecto, vencido o agotado da el mismo 401.
 type VerifyRefHandler struct{ service *customeraccess.RefService }

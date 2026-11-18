@@ -1,0 +1,176 @@
+# Operaciones privadas de asignación de servicios a profesionales (HU-023):
+# consultar los servicios de un profesional, asignar y desasignar. No mezcla con
+# el registro/renombrado de profesionales (staff.yaml) ni con el catálogo básico
+# de servicios (catalog.yaml): esta asociación es tenant-aware PURA, sin
+# nombre, duración ni precio duplicados (CA-023-07). No expone horario,
+# disponibilidad, citas, selección pública ni precio/duración por profesional.
+/private/professionals/{professionalId}/services:
+  get:
+    tags: [Catalog]
+    summary: Listar los servicios asignados a un profesional del negocio activo
+    description: >
+      Lista paginada por cursor (HU-023, CA-023-01) de los servicios que
+      presta un profesional del negocio derivado de la sesión vigente. Un
+      profesional con un solo servicio y uno con todo el catálogo usan
+      exactamente la misma forma de respuesta. Un `professionalId` inexistente o
+      de otro negocio responde `404` (RN-TEN-01), igual que
+      GET /private/professionals/{professionalId}.
+    operationId: listProfessionalServices
+    security:
+      - SessionCookie: []
+    x-business-rules: [RN-TEN-01, RN-DAT-02]
+    x-decisions: [DEC-024, DEC-068]
+    parameters:
+      - name: professionalId
+        in: path
+        required: true
+        description: Identificador del profesional.
+        schema:
+          type: string
+          format: uuid
+        examples:
+          profesional:
+            value: 8f3ac2b1-e4d5-46f6-a7c8-d9e0f1a2b3c4
+      - name: cursor
+        in: query
+        required: false
+        description: >
+          Cursor opaco devuelto por una página anterior (`nextCursor`). Sin
+          este parámetro, la respuesta empieza en la primera página.
+        schema:
+          type: string
+        examples:
+          continuacion:
+            value: eyJjcmVhdGVkQXQiOiIyMDI2LTA4LTI0VDE1OjA0OjA1WiIsImlkIjoiMWEyYjNjNGQtNWU2Zi00NzA4LTlhMGItMWMyZDNlNGY1MDYxIn0=
+      - name: limit
+        in: query
+        required: false
+        description: Máximo de asignaciones por página.
+        schema:
+          type: integer
+          minimum: 1
+          maximum: 50
+          default: 20
+        examples:
+          porDefecto:
+            value: 20
+    responses:
+      "200":
+        $ref: '../components/responses/AssignmentListSuccess.yaml'
+      "400":
+        $ref: '../components/responses/InvalidRequestProblem.yaml'
+      "401":
+        $ref: '../components/responses/UnauthorizedProblem.yaml'
+      "403":
+        $ref: '../components/responses/ForbiddenProblem.yaml'
+      "404":
+        $ref: '../components/responses/NotFoundProblem.yaml'
+      "500":
+        $ref: '../components/responses/InternalErrorProblem.yaml'
+/private/professionals/{professionalId}/services/{serviceId}:
+  put:
+    tags: [Catalog]
+    summary: Asignar un servicio a un profesional del negocio activo
+    description: >
+      Asigna `serviceId` a `professionalId` (HU-023, CA-023-02, CA-023-03).
+      Semántica HTTP naturalmente repetible: no usa `Idempotency-Key`
+      (RN-IDE-01 protege un `POST` que no es idempotente por sí mismo; este
+      `PUT` sobre un recurso identificado por sus propios dos identificadores
+      ya lo es). Repetir exactamente la misma operación no crea una segunda
+      fila (responde `200` en vez de `201`, con el mismo `createdAt`
+      original). Un mismo servicio puede asignarse a varios profesionales del
+      mismo negocio; cada asociación es un recurso independiente. Un
+      `professionalId` o `serviceId` inexistente o de otro negocio responde `404`
+      uniforme (CA-023-04, RN-TEN-01): esta operación nunca revela si el
+      recurso ajeno existe. Sin cuerpo: el contrato no declara ningún campo
+      escribible más allá de los dos identificadores de la ruta -nunca
+      nombre, duración, precio, orden ni disponibilidad-.
+    operationId: assignServiceToProfessional
+    security:
+      - SessionCookie: []
+    x-business-rules: [RN-TEN-01, RN-DAT-02]
+    x-decisions: [DEC-024, DEC-068]
+    parameters:
+      - name: professionalId
+        in: path
+        required: true
+        description: Identificador del profesional.
+        schema:
+          type: string
+          format: uuid
+        examples:
+          profesional:
+            value: 8f3ac2b1-e4d5-46f6-a7c8-d9e0f1a2b3c4
+      - name: serviceId
+        in: path
+        required: true
+        description: Identificador del servicio.
+        schema:
+          type: string
+          format: uuid
+        examples:
+          servicio:
+            value: 1a2b3c4d-5e6f-4708-9a0b-1c2d3e4f5061
+    responses:
+      "200":
+        $ref: '../components/responses/AssignmentAssigned.yaml'
+      "201":
+        $ref: '../components/responses/AssignmentAssigned.yaml'
+      "401":
+        $ref: '../components/responses/UnauthorizedProblem.yaml'
+      "403":
+        $ref: '../components/responses/ForbiddenProblem.yaml'
+      "404":
+        $ref: '../components/responses/NotFoundProblem.yaml'
+      "500":
+        $ref: '../components/responses/InternalErrorProblem.yaml'
+  delete:
+    tags: [Catalog]
+    summary: Retirar la asignación de un servicio a un profesional del negocio activo
+    description: >
+      Retira la asociación entre `professionalId` y `serviceId` (HU-023,
+      CA-023-05). Un `professionalId`/`serviceId` inexistente o de otro negocio,
+      o una asociación que nunca existió (o que ya se había retirado),
+      responden el mismo `404` uniforme (CA-023-04), de modo que repetir la
+      operación es seguro. Se puede retirar a cualquier profesional, también al
+      último de un servicio activo (DEC-114, que sustituye a DEC-068): ese
+      servicio deja de ofrecerse al público hasta que se asigne otro
+      profesional. Esta operación nunca borra al profesional, al servicio ni una
+      cita.
+    operationId: unassignServiceFromProfessional
+    security:
+      - SessionCookie: []
+    x-business-rules: [RN-TEN-01, RN-DAT-02, RN-SER-03]
+    x-decisions: [DEC-024, DEC-114]
+    parameters:
+      - name: professionalId
+        in: path
+        required: true
+        description: Identificador del profesional.
+        schema:
+          type: string
+          format: uuid
+        examples:
+          profesional:
+            value: 8f3ac2b1-e4d5-46f6-a7c8-d9e0f1a2b3c4
+      - name: serviceId
+        in: path
+        required: true
+        description: Identificador del servicio.
+        schema:
+          type: string
+          format: uuid
+        examples:
+          servicio:
+            value: 1a2b3c4d-5e6f-4708-9a0b-1c2d3e4f5061
+    responses:
+      "204":
+        $ref: '../components/responses/AssignmentUnassigned.yaml'
+      "401":
+        $ref: '../components/responses/UnauthorizedProblem.yaml'
+      "403":
+        $ref: '../components/responses/ForbiddenProblem.yaml'
+      "404":
+        $ref: '../components/responses/NotFoundProblem.yaml'
+      "500":
+        $ref: '../components/responses/InternalErrorProblem.yaml'

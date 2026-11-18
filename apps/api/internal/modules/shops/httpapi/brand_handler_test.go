@@ -98,7 +98,7 @@ func TestGetBrandHandler_Success_ReturnsTheThirteenFields(t *testing.T) {
 	}
 	// El recurso nunca arrastra campos de HU-020 ni el identificador del tenant.
 	raw := strings.ToLower(rec.Body.String())
-	for _, forbidden := range []string{"barbershopid", "timezone", "contactemail"} {
+	for _, forbidden := range []string{"businessid", "timezone", "contactemail"} {
 		if strings.Contains(raw, forbidden) {
 			t.Fatalf("response must never mention %q: %s", forbidden, raw)
 		}
@@ -161,7 +161,7 @@ func TestUpdateBrandHandler_UnknownField_Returns400(t *testing.T) {
 	repo := &fakeBrandRepository{}
 	h := httpapi.NewUpdateBrandHandler(shops.NewBrandService(repo, nil), profilesFor())
 
-	body := strings.TrimSuffix(validBrandBody, "}") + `,"barbershopId":"22222222-2222-2222-2222-222222222222"}`
+	body := strings.TrimSuffix(validBrandBody, "}") + `,"businessId":"22222222-2222-2222-2222-222222222222"}`
 	rec := httptest.NewRecorder()
 	h.ServeHTTP(rec, requestWithPrincipal(http.MethodPatch, "/api/v1/private/settings/brand", []byte(body)))
 

@@ -1,4 +1,4 @@
-# Cuerpo de POST /public/barbershops/{slug}/customer-access/challenge (HU-105).
+# Cuerpo de POST /public/businesses/{slug}/customer-access/challenge (HU-105).
 type: object
 additionalProperties: false
 description: El contacto con el que la persona reservó, escrito como lo recuerde.

@@ -23,21 +23,21 @@ import (
 )
 
 // slugParam es el nombre del parámetro de ruta que cmd/api.buildRouter
-// registra para /public/barbershops/{slug} (HU-090).
+// registra para /public/businesses/{slug} (HU-090).
 const slugParam = "slug"
 
 // serviceIDParam es el nombre del parámetro de ruta que cmd/api.buildRouter
-// registra para /public/barbershops/{slug}/services/{serviceId}/barbers
+// registra para /public/businesses/{slug}/services/{serviceId}/professionals
 // (HU-092).
 const serviceIDParam = "serviceId"
 
 // barberIDParam es el nombre del parámetro de ruta que cmd/api.buildRouter
 // registra para
-// /public/barbershops/{slug}/services/{serviceId}/barbers/{barberId}/availability
+// /public/businesses/{slug}/services/{serviceId}/professionals/{professionalId}/availability
 // (HU-094).
-const barberIDParam = "barberId"
+const barberIDParam = "professionalId"
 
-// ResolveBarbershopHandler expone GET /public/barbershops/{slug}
+// ResolveBarbershopHandler expone GET /public/businesses/{slug}
 // (CA-090-01 a CA-090-04): resolución pública sin sesión, sin que el
 // cliente pueda fijar barbershopId.
 type ResolveBarbershopHandler struct {
@@ -115,7 +115,7 @@ func newPublicBarbershopProfileResponse(p publicbooking.BarbershopProfile) Publi
 	}
 }
 
-// ListPublicServicesHandler expone GET /public/barbershops/{slug}/services
+// ListPublicServicesHandler expone GET /public/businesses/{slug}/services
 // (HU-091, CA-091-01 a CA-091-03): catálogo público de servicios activos y
 // asignados de la barbería resuelta por slug, sin sesión.
 type ListPublicServicesHandler struct {
@@ -183,7 +183,7 @@ func newPublicServiceListResponse(result publicbooking.PublicServiceListResult) 
 }
 
 // ListPublicBarbersHandler expone
-// GET /public/barbershops/{slug}/services/{serviceId}/barbers (HU-092,
+// GET /public/businesses/{slug}/services/{serviceId}/professionals (HU-092,
 // CA-092-01 a CA-092-03): barberos con asignación vigente al servicio activo
 // resuelto, sin sesión.
 type ListPublicBarbersHandler struct {
@@ -236,10 +236,10 @@ func newPublicBarberListResponse(result publicbooking.PublicBarberListResult) Pu
 }
 
 // ListPublicBarbersWithServicesHandler expone
-// GET /public/barbershops/{slug}/barbers (DEC-162): todos los barberos con al
+// GET /public/businesses/{slug}/professionals (DEC-162): todos los barberos con al
 // menos una asignación vigente a un servicio activo, cada uno con los ids de
 // esos servicios, sin sesión. Existe para que un cliente de solo lectura no
-// tenga que llamar GET .../services/{serviceId}/barbers una vez por servicio.
+// tenga que llamar GET .../services/{serviceId}/professionals una vez por servicio.
 type ListPublicBarbersWithServicesHandler struct {
 	service *publicbooking.Service
 }
@@ -280,7 +280,7 @@ func newPublicBarberServicesListResponse(result publicbooking.PublicBarberServic
 }
 
 // GetPublicBarberPhotoHandler expone
-// GET /public/barbershops/{slug}/barbers/{barberId}/photo (DEC-127): los bytes
+// GET /public/businesses/{slug}/professionals/{professionalId}/photo (DEC-127): los bytes
 // de la fotografía de un barbero visible en la reserva pública, sin sesión.
 type GetPublicBarberPhotoHandler struct {
 	service *publicbooking.Service
@@ -323,7 +323,7 @@ func (h *GetPublicBarberPhotoHandler) ServeHTTP(w http.ResponseWriter, r *http.R
 }
 
 // ListPublicAvailabilityHandler expone
-// GET /public/barbershops/{slug}/services/{serviceId}/barbers/{barberId}/availability
+// GET /public/businesses/{slug}/services/{serviceId}/professionals/{professionalId}/availability
 // (HU-094, CA-094-01 a CA-094-06): inicios públicos válidos del servicio
 // activo con el barbero elegido, sin sesión.
 type ListPublicAvailabilityHandler struct {
@@ -371,7 +371,7 @@ func newAvailabilityResponse(result publicbooking.AvailabilityResult) Availabili
 }
 
 // ListPublicServiceAvailabilityHandler expone
-// GET /public/barbershops/{slug}/services/{serviceId}/availability (DEC-162):
+// GET /public/businesses/{slug}/services/{serviceId}/availability (DEC-162):
 // los inicios públicos válidos del servicio para todos sus barberos
 // elegibles en una sola respuesta, sin sesión. Existe para que un cliente de
 // solo lectura no tenga que llamar la disponibilidad una vez por barbero.
@@ -406,7 +406,9 @@ func (h *ListPublicServiceAvailabilityHandler) ServeHTTP(w http.ResponseWriter, 
 func newServiceAvailabilityResponse(result publicbooking.ServiceAvailabilityResult) ServiceAvailabilityResponse {
 	slots := make([]BarberAvailabilitySlotResponse, 0, len(result.Slots))
 	for _, slot := range result.Slots {
-		slots = append(slots, BarberAvailabilitySlotResponse{BarberID: slot.BarberID, StartsAt: slot.StartsAt})
+		slots = append(slots, BarberAvailabilitySlotResponse{
+			BarberID: slot.BarberID, LegacyBarberID: slot.BarberID, StartsAt: slot.StartsAt,
+		})
 	}
 	return ServiceAvailabilityResponse{
 		Slots:           slots,
@@ -425,8 +427,8 @@ func writeUnknownFieldOrInvalidJSONProblem(w http.ResponseWriter, requestID stri
 		apperr.Invalid("cuerpo JSON inválido o con un campo desconocido"), requestID))
 }
 
-// ConfirmPublicAppointmentHandler expone POST /public/barbershops/{slug}/
-// services/{serviceId}/barbers/{barberId}/appointments (HU-097, T1
+// ConfirmPublicAppointmentHandler expone POST /public/businesses/{slug}/
+// services/{serviceId}/professionals/{professionalId}/appointments (HU-097, T1
 // pública), protegido por el protocolo de idempotencia reutilizable de
 // HU-004 (RN-IDE-01, DEC-043). Igual que los otros handlers públicos, no
 // lee ningún principal de sesión: slug/serviceId/barberId (de la ruta) y el
@@ -548,7 +550,7 @@ func homeServiceInput(r *HomeServiceRequest) *publicbooking.HomeServiceInput {
 	return &publicbooking.HomeServiceInput{Address: r.Address, Latitude: r.Latitude, Longitude: r.Longitude}
 }
 
-// GetPublicGoogleReviewsHandler expone GET /public/barbershops/{slug}/reviews
+// GetPublicGoogleReviewsHandler expone GET /public/businesses/{slug}/reviews
 // (HU-101, DEC-129): la calificación y las reseñas de Google de la barbería,
 // sin sesión. Solo un slug inválido o no publicable es un error (el 404 uniforme
 // de HU-090); sin ficha, sin credencial o ante una consulta fallida responde 200

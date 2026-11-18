@@ -49,12 +49,12 @@ const ACCESS_TOKEN = '3n9F1sQe2z8mM5wYtR7pL0oXhC4bV6dK1aE9jU2gN8i'
 const ROUTE = `/mi-turno/${ACCESS_TOKEN}`
 
 const APPOINTMENT_VIEW = {
-  barbershopName: 'Barbería Ejemplo',
+  businessName: 'Barbería Ejemplo',
   timezone: 'America/Bogota',
   attendeeName: 'Ana Ríos',
   serviceName: 'Corte clásico',
   durationMinutes: 30,
-  barberName: 'Barbero Ejemplo',
+  professionalName: 'Barbero Ejemplo',
   startsAt: '2027-03-15T15:00:00Z',
   endsAt: '2027-03-15T15:30:00Z',
   status: 'confirmed',
@@ -62,8 +62,8 @@ const APPOINTMENT_VIEW = {
   lateCancellationClientAllowed: true,
   lateCancellationReasonRequired: true,
   versionToken: 'version-token-1',
-  barbershopContactEmail: null,
-  barbershopContactPhone: null,
+  businessContactEmail: null,
+  businessContactPhone: null,
   rescheduleRemaining: 2,
   vocabulary: INITIAL_VOCABULARY,
 }

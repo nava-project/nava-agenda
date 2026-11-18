@@ -2,8 +2,8 @@
 type: object
 additionalProperties: false
 description: >
-  Anticipación del recordatorio de los eventos del barbero. Es el único campo
-  editable de la conexión; nunca acepta tokens, estado ni el barbero.
+  Anticipación del recordatorio de los eventos del profesional. Es el único campo
+  editable de la conexión; nunca acepta tokens, estado ni el profesional.
 properties:
   reminderMinutes:
     type:
@@ -13,7 +13,7 @@ properties:
     maximum: 40320
     description: >
       Minutos entre 0 y 40320 (el límite de Google), o `null` para usar los
-      recordatorios predeterminados del calendario del barbero. Fuera de rango
+      recordatorios predeterminados del calendario del profesional. Fuera de rango
       responde `422` sin guardar nada.
     examples:
       - 30

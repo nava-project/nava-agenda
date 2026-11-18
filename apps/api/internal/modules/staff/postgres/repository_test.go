@@ -82,13 +82,13 @@ func uniqueSuffix(t *testing.T) string {
 func createBarber(t *testing.T, repo *staffpostgres.Repository, shop database.BarbershopID, fullName string) staff.Barber {
 	t.Helper()
 	key := idempotency.Key("fixture-" + uniqueSuffix(t))
-	fp := idempotency.ComputeFingerprint("POST", "/api/v1/private/barbers", []byte(`{"fullName":"`+fullName+`"}`))
+	fp := idempotency.ComputeFingerprint("POST", "/api/v1/private/professionals", []byte(`{"fullName":"`+fullName+`"}`))
 	result, err := repo.Create(context.Background(), string(shop), fullName, nil, key, fp)
 	if err != nil {
-		t.Fatalf("createBarber: %v", err)
+		t.Fatalf("createProfessional: %v", err)
 	}
 	if result.Decision.Outcome != idempotency.OutcomeProceed {
-		t.Fatalf("createBarber: expected OutcomeProceed, got %s", result.Decision.Outcome)
+		t.Fatalf("createProfessional: expected OutcomeProceed, got %s", result.Decision.Outcome)
 	}
 	return result.Barber
 }
@@ -366,7 +366,7 @@ func TestCreate_FirstExecution_PersistsAndReturnsProceed(t *testing.T) {
 	suffix := uniqueSuffix(t)
 
 	key := idempotency.Key("first-exec-" + suffix)
-	fp := idempotency.ComputeFingerprint("POST", "/api/v1/private/barbers", []byte(`{"fullName":"Nuevo"}`))
+	fp := idempotency.ComputeFingerprint("POST", "/api/v1/private/professionals", []byte(`{"fullName":"Nuevo"}`))
 
 	result, err := repo.Create(context.Background(), string(shopC), "Nuevo "+suffix, nil, key, fp)
 	if err != nil {
@@ -398,7 +398,7 @@ func TestCreate_SameKeyAndContent_ReplaysWithoutCreatingASecondRow(t *testing.T)
 
 	key := idempotency.Key("replay-" + suffix)
 	body := []byte(`{"fullName":"Repetido"}`)
-	fp := idempotency.ComputeFingerprint("POST", "/api/v1/private/barbers", body)
+	fp := idempotency.ComputeFingerprint("POST", "/api/v1/private/professionals", body)
 
 	first, err := repo.Create(context.Background(), string(shopC), "Repetido "+suffix, nil, key, fp)
 	if err != nil {
@@ -439,8 +439,8 @@ func TestCreate_SameKeyDifferentContent_ConflictsWithoutEffect(t *testing.T) {
 	suffix := uniqueSuffix(t)
 
 	key := idempotency.Key("conflict-" + suffix)
-	fpA := idempotency.ComputeFingerprint("POST", "/api/v1/private/barbers", []byte(`{"fullName":"A"}`))
-	fpB := idempotency.ComputeFingerprint("POST", "/api/v1/private/barbers", []byte(`{"fullName":"B"}`))
+	fpA := idempotency.ComputeFingerprint("POST", "/api/v1/private/professionals", []byte(`{"fullName":"A"}`))
+	fpB := idempotency.ComputeFingerprint("POST", "/api/v1/private/professionals", []byte(`{"fullName":"B"}`))
 
 	first, err := repo.Create(context.Background(), string(shopC), "Nombre A "+suffix, nil, key, fpA)
 	if err != nil {
@@ -478,7 +478,7 @@ func TestCreate_TwoRealConcurrentConnections_SingleEffect(t *testing.T) {
 	key := idempotency.Key("two-conn-" + suffix)
 	fullName := "Concurrente " + suffix
 	body := []byte(`{"fullName":"` + fullName + `"}`)
-	fp := idempotency.ComputeFingerprint("POST", "/api/v1/private/barbers", body)
+	fp := idempotency.ComputeFingerprint("POST", "/api/v1/private/professionals", body)
 
 	// db.InTenantTx serializa internamente por CONEXIÓN, no por llamada: se
 	// necesita una segunda "sesión" real, que la implementación de
@@ -565,7 +565,7 @@ func TestCreate_SameKeyLiteralInTwoTenants_DoesNotInterfere(t *testing.T) {
 	suffix := uniqueSuffix(t)
 
 	key := idempotency.Key("cross-tenant-" + suffix)
-	fp := idempotency.ComputeFingerprint("POST", "/api/v1/private/barbers", []byte(`{"fullName":"X"}`))
+	fp := idempotency.ComputeFingerprint("POST", "/api/v1/private/professionals", []byte(`{"fullName":"X"}`))
 
 	resultC, err := repo.Create(context.Background(), string(shopC), "En C "+suffix, nil, key, fp)
 	if err != nil {
@@ -596,7 +596,7 @@ func TestCreate_DifferentKeysSameName_CreatesTwoDistinctBarbers(t *testing.T) {
 	suffix := uniqueSuffix(t)
 	name := "Nombre Repetido " + suffix
 
-	fp := idempotency.ComputeFingerprint("POST", "/api/v1/private/barbers", []byte(`{"fullName":"`+name+`"}`))
+	fp := idempotency.ComputeFingerprint("POST", "/api/v1/private/professionals", []byte(`{"fullName":"`+name+`"}`))
 
 	first, err := repo.Create(context.Background(), string(shopC), name, nil, idempotency.Key("key-1-"+suffix), fp)
 	if err != nil {
@@ -625,7 +625,7 @@ func TestCreate_StoredResponseBody_MatchesHTTPAPIWireShape(t *testing.T) {
 	suffix := uniqueSuffix(t)
 
 	key := idempotency.Key("wire-shape-" + suffix)
-	fp := idempotency.ComputeFingerprint("POST", "/api/v1/private/barbers", []byte(`{"fullName":"Forma"}`))
+	fp := idempotency.ComputeFingerprint("POST", "/api/v1/private/professionals", []byte(`{"fullName":"Forma"}`))
 
 	result, err := repo.Create(context.Background(), string(shopC), "Forma "+suffix, nil, key, fp)
 	if err != nil {
@@ -665,7 +665,7 @@ func TestCreate_WithDescription_PersistsAndAppearsInStoredResponse(t *testing.T)
 	suffix := uniqueSuffix(t)
 
 	key := idempotency.Key("desc-create-" + suffix)
-	fp := idempotency.ComputeFingerprint("POST", "/api/v1/private/barbers", []byte(`{"fullName":"Con descripción","description":"Fade y barba"}`))
+	fp := idempotency.ComputeFingerprint("POST", "/api/v1/private/professionals", []byte(`{"fullName":"Con descripción","description":"Fade y barba"}`))
 	result, err := repo.Create(context.Background(), string(shopC), "Con descripción "+suffix, strPtr("Fade y barba"), key, fp)
 	if err != nil {
 		t.Fatalf("Create: %v", err)

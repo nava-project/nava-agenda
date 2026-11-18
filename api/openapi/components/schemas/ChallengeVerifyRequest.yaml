@@ -11,7 +11,7 @@ properties:
     maxLength: 254
     description: Correo de la cuenta que solicitó el reto.
     examples:
-      - barbero.ejemplo@correo.test
+      - profesional.ejemplo@correo.test
   code:
     type: string
     writeOnly: true

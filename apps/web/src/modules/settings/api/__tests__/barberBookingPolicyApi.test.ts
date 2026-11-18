@@ -34,7 +34,7 @@ describe('barberBookingPolicyApi', () => {
   it('loads barbers and their own windows together', async () => {
     getMock.mockImplementation((path: string) =>
       Promise.resolve(
-        path === '/private/barbers'
+        path === '/private/professionals'
           ? ok({
               items: [
                 { id: BARBER, fullName: 'Ana', photoUpdatedAt: '2026-11-01T10:00:00Z' },
@@ -43,7 +43,12 @@ describe('barberBookingPolicyApi', () => {
             })
           : ok({
               items: [
-                { barberId: BARBER, minAdvanceMinutes: 30, maxAdvanceDays: 7, slotGridMinutes: 40 },
+                {
+                  professionalId: BARBER,
+                  minAdvanceMinutes: 30,
+                  maxAdvanceDays: 7,
+                  slotGridMinutes: 40,
+                },
               ],
             }),
       ),
@@ -51,15 +56,17 @@ describe('barberBookingPolicyApi', () => {
 
     const outcome = await fetchBarberWindows()
 
-    expect(getMock).toHaveBeenCalledWith('/private/barbers', { params: { query: { limit: 50 } } })
-    expect(getMock).toHaveBeenCalledWith('/private/settings/booking-policy/barbers')
+    expect(getMock).toHaveBeenCalledWith('/private/professionals', {
+      params: { query: { limit: 50 } },
+    })
+    expect(getMock).toHaveBeenCalledWith('/private/settings/booking-policy/professionals')
     expect(outcome).toEqual({
       kind: 'success',
       barbers: [
         {
           id: BARBER,
           fullName: 'Ana',
-          photoUrl: `/api/v1/private/barbers/${BARBER}/photo?v=2026-11-01T10%3A00%3A00Z`,
+          photoUrl: `/api/v1/private/professionals/${BARBER}/photo?v=2026-11-01T10%3A00%3A00Z`,
         },
         { id: 'b2', fullName: 'Leo', photoUrl: null },
       ],
@@ -71,7 +78,7 @@ describe('barberBookingPolicyApi', () => {
 
   it('treats a failure of either list as an unexpected error, and a thrown fetch as network', async () => {
     getMock.mockImplementation((path: string) =>
-      Promise.resolve(path === '/private/barbers' ? ok({ items: [] }) : problem(500)),
+      Promise.resolve(path === '/private/professionals' ? ok({ items: [] }) : problem(500)),
     )
     expect(await fetchBarberWindows()).toEqual({ kind: 'unexpected-error' })
 
@@ -81,16 +88,19 @@ describe('barberBookingPolicyApi', () => {
 
   it('saves a full window for the barber', async () => {
     const body = { minAdvanceMinutes: 30, maxAdvanceDays: 7, slotGridMinutes: 40 }
-    putMock.mockResolvedValueOnce(ok({ barberId: BARBER, ...body }))
+    putMock.mockResolvedValueOnce(ok({ professionalId: BARBER, ...body }))
 
     expect(await saveBarberWindow(BARBER, body)).toEqual({
       kind: 'success',
       window: { barberId: BARBER, ...body },
     })
-    expect(putMock).toHaveBeenCalledWith('/private/settings/booking-policy/barbers/{barberId}', {
-      params: { path: { barberId: BARBER } },
-      body,
-    })
+    expect(putMock).toHaveBeenCalledWith(
+      '/private/settings/booking-policy/professionals/{professionalId}',
+      {
+        params: { path: { professionalId: BARBER } },
+        body,
+      },
+    )
   })
 
   it.each([
@@ -115,9 +125,12 @@ describe('barberBookingPolicyApi', () => {
       response: new Response(null, { status: 204 }),
     })
     expect(await removeBarberWindow(BARBER)).toEqual({ kind: 'success' })
-    expect(deleteMock).toHaveBeenCalledWith('/private/settings/booking-policy/barbers/{barberId}', {
-      params: { path: { barberId: BARBER } },
-    })
+    expect(deleteMock).toHaveBeenCalledWith(
+      '/private/settings/booking-policy/professionals/{professionalId}',
+      {
+        params: { path: { professionalId: BARBER } },
+      },
+    )
 
     deleteMock.mockResolvedValueOnce(problem(404))
     expect(await removeBarberWindow(BARBER)).toEqual({ kind: 'not-found' })

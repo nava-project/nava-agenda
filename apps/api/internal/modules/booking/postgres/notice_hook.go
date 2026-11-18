@@ -9,7 +9,7 @@ import (
 // Tipos de cambio que originan un aviso al cliente (HU-130, DEC-142). Son los
 // valores de `appointment_notice.kind`.
 const (
-	NoticeCancelledByBarber = "cancelled_by_barber"
+	NoticeCancelledByBarber = "cancelled_by_professional"
 	NoticeRescheduled       = "rescheduled"
 )
 

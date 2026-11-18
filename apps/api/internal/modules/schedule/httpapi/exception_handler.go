@@ -15,17 +15,17 @@ import (
 )
 
 // exceptionIDParam es el nombre del parámetro de ruta que cmd/api.buildRouter
-// registra para /private/barbers/{barberId}/schedule-exceptions/{exceptionId}.
+// registra para /private/professionals/{professionalId}/schedule-exceptions/{exceptionId}.
 const exceptionIDParam = "exceptionId"
 
 // exceptionBasePath es la base usada para construir el header Location de
 // un alta exitosa, relativa a /api/v1.
 func exceptionBasePath(barberID string) string {
-	return "/private/barbers/" + barberID + "/schedule-exceptions/"
+	return "/private/professionals/" + barberID + "/schedule-exceptions/"
 }
 
 // GetHolidayCalendarHandler expone
-// GET /private/barbers/{barberId}/holiday-calendar (CA-041-01/02).
+// GET /private/professionals/{professionalId}/holiday-calendar (CA-041-01/02).
 type GetHolidayCalendarHandler struct {
 	service *schedule.Service
 }
@@ -57,7 +57,7 @@ func (h *GetHolidayCalendarHandler) ServeHTTP(w http.ResponseWriter, r *http.Req
 }
 
 // UpdateHolidayCalendarHandler expone
-// PATCH /private/barbers/{barberId}/holiday-calendar (CA-041-01/02).
+// PATCH /private/professionals/{professionalId}/holiday-calendar (CA-041-01/02).
 type UpdateHolidayCalendarHandler struct {
 	service *schedule.Service
 }
@@ -106,7 +106,7 @@ func (h *UpdateHolidayCalendarHandler) ServeHTTP(w http.ResponseWriter, r *http.
 }
 
 // ListScheduleExceptionsHandler expone
-// GET /private/barbers/{barberId}/schedule-exceptions (CA-041-04/05).
+// GET /private/professionals/{professionalId}/schedule-exceptions (CA-041-04/05).
 type ListScheduleExceptionsHandler struct {
 	service *schedule.Service
 }
@@ -152,7 +152,7 @@ func (h *ListScheduleExceptionsHandler) ServeHTTP(w http.ResponseWriter, r *http
 }
 
 // GetScheduleExceptionHandler expone
-// GET /private/barbers/{barberId}/schedule-exceptions/{exceptionId}
+// GET /private/professionals/{professionalId}/schedule-exceptions/{exceptionId}
 // (CA-041-06).
 type GetScheduleExceptionHandler struct {
 	service *schedule.Service
@@ -186,7 +186,7 @@ func (h *GetScheduleExceptionHandler) ServeHTTP(w http.ResponseWriter, r *http.R
 }
 
 // CreateScheduleExceptionHandler expone
-// POST /private/barbers/{barberId}/schedule-exceptions (CA-041-04/05),
+// POST /private/professionals/{professionalId}/schedule-exceptions (CA-041-04/05),
 // protegido por el protocolo de idempotencia reutilizable de HU-004
 // (RN-IDE-01, DEC-043).
 type CreateScheduleExceptionHandler struct {
@@ -260,7 +260,7 @@ func (h *CreateScheduleExceptionHandler) ServeHTTP(w http.ResponseWriter, r *htt
 }
 
 // UpdateScheduleExceptionHandler expone
-// PATCH /private/barbers/{barberId}/schedule-exceptions/{exceptionId}
+// PATCH /private/professionals/{professionalId}/schedule-exceptions/{exceptionId}
 // (CA-041-04/05).
 type UpdateScheduleExceptionHandler struct {
 	service *schedule.Service
@@ -312,7 +312,7 @@ func (h *UpdateScheduleExceptionHandler) ServeHTTP(w http.ResponseWriter, r *htt
 }
 
 // DeleteScheduleExceptionHandler expone
-// DELETE /private/barbers/{barberId}/schedule-exceptions/{exceptionId}
+// DELETE /private/professionals/{professionalId}/schedule-exceptions/{exceptionId}
 // (CA-041-06).
 type DeleteScheduleExceptionHandler struct {
 	service *schedule.Service

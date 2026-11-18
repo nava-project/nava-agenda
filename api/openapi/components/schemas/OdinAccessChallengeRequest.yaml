@@ -1,4 +1,4 @@
-# Cuerpo de POST /integrations/odin/barbershops/{slug}/customer-access/challenge (HU-106).
+# Cuerpo de POST /integrations/odin/businesses/{slug}/customer-access/challenge (HU-106).
 type: object
 additionalProperties: false
 properties:

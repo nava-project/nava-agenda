@@ -148,9 +148,9 @@ func TestContract_ReviewOperations_SecurityAndStatuses(t *testing.T) {
 	public := load[struct {
 		Reviews struct {
 			Get operation `yaml:"get"`
-		} `yaml:"/public/barbershops/{slug}/barbers/{barberId}/reviews"`
+		} `yaml:"/public/businesses/{slug}/professionals/{professionalId}/reviews"`
 	}](t, "api/openapi/paths/public-booking.yaml")
-	if public.Reviews.Get.OperationID != "listPublicBarberReviews" || len(public.Reviews.Get.Security) != 0 {
+	if public.Reviews.Get.OperationID != "listPublicProfessionalReviews" || len(public.Reviews.Get.Security) != 0 {
 		t.Errorf("GET público de reseñas: operationId=%q security=%v", public.Reviews.Get.OperationID, public.Reviews.Get.Security)
 	}
 	requireStatuses(t, "GET /public/.../reviews", public.Reviews.Get, "200", "404", "500")
@@ -158,16 +158,16 @@ func TestContract_ReviewOperations_SecurityAndStatuses(t *testing.T) {
 	staff := load[struct {
 		List struct {
 			Get operation `yaml:"get"`
-		} `yaml:"/private/barbers/{barberId}/reviews"`
+		} `yaml:"/private/professionals/{professionalId}/reviews"`
 		Item struct {
 			Patch operation `yaml:"patch"`
-		} `yaml:"/private/barbers/{barberId}/reviews/{reviewId}"`
+		} `yaml:"/private/professionals/{professionalId}/reviews/{reviewId}"`
 	}](t, "api/openapi/paths/staff.yaml")
 	if len(staff.List.Get.Security) == 0 || len(staff.Item.Patch.Security) == 0 {
 		t.Error("las operaciones del panel exigen sesión")
 	}
-	requireStatuses(t, "GET /private/barbers/{barberId}/reviews", staff.List.Get, "200", "401", "403", "404", "500")
-	requireStatuses(t, "PATCH /private/barbers/{barberId}/reviews/{reviewId}", staff.Item.Patch, "200", "400", "401", "403", "404", "422", "500")
+	requireStatuses(t, "GET /private/professionals/{professionalId}/reviews", staff.List.Get, "200", "401", "403", "404", "500")
+	requireStatuses(t, "PATCH /private/professionals/{professionalId}/reviews/{reviewId}", staff.Item.Patch, "200", "400", "401", "403", "404", "422", "500")
 }
 
 func TestContract_OpenAPIYAML_RegistersTheReviewPaths(t *testing.T) {
@@ -176,9 +176,9 @@ func TestContract_OpenAPIYAML_RegistersTheReviewPaths(t *testing.T) {
 	}](t, "api/openapi/openapi.yaml")
 	for _, p := range []string{
 		"/customer/appointments/{token}/review",
-		"/public/barbershops/{slug}/barbers/{barberId}/reviews",
-		"/private/barbers/{barberId}/reviews",
-		"/private/barbers/{barberId}/reviews/{reviewId}",
+		"/public/businesses/{slug}/professionals/{professionalId}/reviews",
+		"/private/professionals/{professionalId}/reviews",
+		"/private/professionals/{professionalId}/reviews/{reviewId}",
 	} {
 		if _, ok := doc.Paths[p]; !ok {
 			t.Errorf("openapi.yaml no registra %s", p)

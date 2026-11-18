@@ -2,7 +2,7 @@
 # 10), mismo criterio que WorkingHourListResponse.
 type: object
 description: >
-  Página de excepciones de jornada del barbero de la ruta, ordenada de
+  Página de excepciones de jornada del profesional de la ruta, ordenada de
   forma estable por fecha efectiva y luego por identificador.
 properties:
   items:

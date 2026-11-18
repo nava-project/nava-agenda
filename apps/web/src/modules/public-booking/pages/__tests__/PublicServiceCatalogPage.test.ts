@@ -80,7 +80,7 @@ describe('PublicServiceCatalogPage', () => {
     await flushPromises()
 
     expect(getMock).toHaveBeenCalledWith(
-      '/public/barbershops/{slug}/services',
+      '/public/businesses/{slug}/services',
       expect.objectContaining({
         params: { path: { slug: 'barberia-ejemplo' }, query: { limit: 50 } },
       }),

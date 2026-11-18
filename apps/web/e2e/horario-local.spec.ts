@@ -88,7 +88,7 @@ async function openSettings(page: Page, width: number, height: number) {
     if (pathname.endsWith('/auth/session')) {
       await route.fulfill(
         json({
-          barbershop: { id: 'nava', name: 'Barbería Centro' },
+          business: { id: 'nava', name: 'Barbería Centro' },
           expiresAt: '2099-01-01T00:00:00Z',
         }),
       )
@@ -102,7 +102,7 @@ async function openSettings(page: Page, width: number, height: number) {
           json({ openingHours: WEEK.slice(0, 3), closedOnHolidays: false, maxSegmentsPerDay: 4 }),
         )
       }
-    } else if (pathname.endsWith('/settings/barbershop')) {
+    } else if (pathname.endsWith('/settings/business')) {
       await route.fulfill(
         json({
           name: 'Barbería Centro',
@@ -207,7 +207,7 @@ test('Configuración · un horario que se cruza se señala junto al día y no se
 async function openEntry(page: Page, width: number, height: number, withHours: boolean) {
   await page.clock.setFixedTime(NOW)
   await page.setViewportSize({ width, height })
-  await page.route(`**/api/v1/public/barbershops/${SLUG}`, (route) =>
+  await page.route(`**/api/v1/public/businesses/${SLUG}`, (route) =>
     route.fulfill(
       json({
         name: 'Barbería Centro',
@@ -237,7 +237,7 @@ async function openEntry(page: Page, width: number, height: number, withHours: b
       }),
     ),
   )
-  await page.route(`**/api/v1/public/barbershops/${SLUG}/reviews**`, (route) =>
+  await page.route(`**/api/v1/public/businesses/${SLUG}/reviews**`, (route) =>
     route.fulfill(json({ title: 'Not found' }, 404)),
   )
   await page.goto(`/reservar/${SLUG}`)

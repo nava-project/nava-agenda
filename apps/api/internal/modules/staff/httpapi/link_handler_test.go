@@ -24,7 +24,7 @@ func TestGetMyBarberHandler_UsesThePrincipalAndReturnsTheBarber(t *testing.T) {
 	}}
 	rec := httptest.NewRecorder()
 	httpapi.NewGetMyBarberHandler(staff.NewService(repo)).ServeHTTP(rec,
-		requestWithPrincipal(http.MethodGet, "/api/v1/private/me/barber", nil))
+		requestWithPrincipal(http.MethodGet, "/api/v1/private/me/professional", nil))
 
 	if rec.Code != http.StatusOK {
 		t.Fatalf("expected 200, got %d: %s", rec.Code, rec.Body.String())
@@ -45,7 +45,7 @@ func TestGetMyBarberHandler_WithoutLink_Is404(t *testing.T) {
 	repo := &fakeRepository{getLinkedFn: func(string, string) (staff.Barber, bool, error) { return staff.Barber{}, false, nil }}
 	rec := httptest.NewRecorder()
 	httpapi.NewGetMyBarberHandler(staff.NewService(repo)).ServeHTTP(rec,
-		requestWithPrincipal(http.MethodGet, "/api/v1/private/me/barber", nil))
+		requestWithPrincipal(http.MethodGet, "/api/v1/private/me/professional", nil))
 	if rec.Code != http.StatusNotFound {
 		t.Fatalf("expected 404, got %d", rec.Code)
 	}
@@ -60,7 +60,7 @@ func TestLinkMyBarberHandler_Success(t *testing.T) {
 	}}
 	rec := httptest.NewRecorder()
 	httpapi.NewLinkMyBarberHandler(staff.NewService(repo)).ServeHTTP(rec,
-		requestWithPrincipal(http.MethodPut, "/api/v1/private/me/barber", []byte(`{"barberId":"`+myBarberID+`"}`)))
+		requestWithPrincipal(http.MethodPut, "/api/v1/private/me/professional", []byte(`{"professionalId":"`+myBarberID+`"}`)))
 	if rec.Code != http.StatusOK {
 		t.Fatalf("expected 200, got %d: %s", rec.Code, rec.Body.String())
 	}
@@ -72,15 +72,15 @@ func TestLinkMyBarberHandler_RejectsAnyoneElsesUserID(t *testing.T) {
 		return staff.LinkResult{}, nil
 	}}
 	for name, body := range map[string]string{
-		"staffUserId":    `{"barberId":"` + myBarberID + `","staffUserId":"otro-usuario"}`,
-		"campo extra":    `{"barberId":"` + myBarberID + `","x":1}`,
+		"staffUserId":    `{"professionalId":"` + myBarberID + `","staffUserId":"otro-usuario"}`,
+		"campo extra":    `{"professionalId":"` + myBarberID + `","x":1}`,
 		"JSON inválido":  `{`,
-		"dos documentos": `{"barberId":"` + myBarberID + `"}{}`,
+		"dos documentos": `{"professionalId":"` + myBarberID + `"}{}`,
 	} {
 		t.Run(name, func(t *testing.T) {
 			rec := httptest.NewRecorder()
 			httpapi.NewLinkMyBarberHandler(staff.NewService(repo)).ServeHTTP(rec,
-				requestWithPrincipal(http.MethodPut, "/api/v1/private/me/barber", []byte(body)))
+				requestWithPrincipal(http.MethodPut, "/api/v1/private/me/professional", []byte(body)))
 			if rec.Code != http.StatusBadRequest {
 				t.Fatalf("expected 400, got %d: %s", rec.Code, rec.Body.String())
 			}
@@ -94,7 +94,7 @@ func TestLinkMyBarberHandler_TakenBarber_Is409WithoutRevealingTheOwner(t *testin
 	}}
 	rec := httptest.NewRecorder()
 	httpapi.NewLinkMyBarberHandler(staff.NewService(repo)).ServeHTTP(rec,
-		requestWithPrincipal(http.MethodPut, "/api/v1/private/me/barber", []byte(`{"barberId":"`+myBarberID+`"}`)))
+		requestWithPrincipal(http.MethodPut, "/api/v1/private/me/professional", []byte(`{"professionalId":"`+myBarberID+`"}`)))
 	if rec.Code != http.StatusConflict {
 		t.Fatalf("expected 409, got %d: %s", rec.Code, rec.Body.String())
 	}
@@ -107,7 +107,7 @@ func TestLinkMyBarberHandler_UnknownBarber_Is404(t *testing.T) {
 	repo := &fakeRepository{linkFn: func(string, string, string) (staff.LinkResult, error) { return staff.LinkResult{}, nil }}
 	rec := httptest.NewRecorder()
 	httpapi.NewLinkMyBarberHandler(staff.NewService(repo)).ServeHTTP(rec,
-		requestWithPrincipal(http.MethodPut, "/api/v1/private/me/barber", []byte(`{"barberId":"`+myBarberID+`"}`)))
+		requestWithPrincipal(http.MethodPut, "/api/v1/private/me/professional", []byte(`{"professionalId":"`+myBarberID+`"}`)))
 	if rec.Code != http.StatusNotFound {
 		t.Fatalf("expected 404, got %d", rec.Code)
 	}
@@ -123,7 +123,7 @@ func TestUnlinkMyBarberHandler_Is204AndIdempotent(t *testing.T) {
 		}}
 		rec := httptest.NewRecorder()
 		httpapi.NewUnlinkMyBarberHandler(staff.NewService(repo)).ServeHTTP(rec,
-			requestWithPrincipal(http.MethodDelete, "/api/v1/private/me/barber", nil))
+			requestWithPrincipal(http.MethodDelete, "/api/v1/private/me/professional", nil))
 		if rec.Code != http.StatusNoContent || strings.TrimSpace(rec.Body.String()) != "" {
 			t.Fatalf("expected an empty 204, got %d %q", rec.Code, rec.Body.String())
 		}

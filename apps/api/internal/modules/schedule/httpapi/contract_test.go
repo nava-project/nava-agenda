@@ -28,28 +28,28 @@ type schedulePathsFile struct {
 	Collection struct {
 		Get  operation `yaml:"get"`
 		Post operation `yaml:"post"`
-	} `yaml:"/private/barbers/{barberId}/working-hours"`
+	} `yaml:"/private/professionals/{professionalId}/working-hours"`
 	Item struct {
 		Get    operation `yaml:"get"`
 		Patch  operation `yaml:"patch"`
 		Delete operation `yaml:"delete"`
-	} `yaml:"/private/barbers/{barberId}/working-hours/{workingHourId}"`
+	} `yaml:"/private/professionals/{professionalId}/working-hours/{workingHourId}"`
 }
 
 type scheduleExceptionPathsFile struct {
 	HolidayCalendar struct {
 		Get   operation `yaml:"get"`
 		Patch operation `yaml:"patch"`
-	} `yaml:"/private/barbers/{barberId}/holiday-calendar"`
+	} `yaml:"/private/professionals/{professionalId}/holiday-calendar"`
 	Collection struct {
 		Get  operation `yaml:"get"`
 		Post operation `yaml:"post"`
-	} `yaml:"/private/barbers/{barberId}/schedule-exceptions"`
+	} `yaml:"/private/professionals/{professionalId}/schedule-exceptions"`
 	Item struct {
 		Get    operation `yaml:"get"`
 		Patch  operation `yaml:"patch"`
 		Delete operation `yaml:"delete"`
-	} `yaml:"/private/barbers/{barberId}/schedule-exceptions/{exceptionId}"`
+	} `yaml:"/private/professionals/{professionalId}/schedule-exceptions/{exceptionId}"`
 	ColombianHolidays struct {
 		Get operation `yaml:"get"`
 	} `yaml:"/private/schedule/colombian-holidays"`
@@ -139,11 +139,11 @@ func TestContract_WorkingHourResponseSchema_MatchesDTOFields(t *testing.T) {
 func TestContract_CreateWorkingHourRequestSchema_MatchesDTOFields(t *testing.T) {
 	schema := loadYAML[schemaDoc](t, "api/openapi/components/schemas/CreateWorkingHourRequest.yaml")
 	requireProps(t, schema, []string{"isoWeekday", "startsTime", "durationMinutes"})
-	if _, ok := schema.Properties["barbershopId"]; ok {
-		t.Fatal("el contrato de alta nunca debe declarar barbershopId")
+	if _, ok := schema.Properties["businessId"]; ok {
+		t.Fatal("el contrato de alta nunca debe declarar businessId")
 	}
-	if _, ok := schema.Properties["barberId"]; ok {
-		t.Fatal("el contrato de alta nunca debe declarar barberId en el cuerpo")
+	if _, ok := schema.Properties["professionalId"]; ok {
+		t.Fatal("el contrato de alta nunca debe declarar professionalId en el cuerpo")
 	}
 }
 
@@ -193,11 +193,11 @@ func TestContract_OpenAPIYAML_RegistersSchedulePaths(t *testing.T) {
 	}
 	doc := loadYAML[pathsDoc](t, "api/openapi/openapi.yaml")
 
-	if _, ok := doc.Paths["/private/barbers/{barberId}/working-hours"]; !ok {
-		t.Fatal("openapi.yaml no registra paths./private/barbers/{barberId}/working-hours")
+	if _, ok := doc.Paths["/private/professionals/{professionalId}/working-hours"]; !ok {
+		t.Fatal("openapi.yaml no registra paths./private/professionals/{professionalId}/working-hours")
 	}
-	if _, ok := doc.Paths["/private/barbers/{barberId}/working-hours/{workingHourId}"]; !ok {
-		t.Fatal("openapi.yaml no registra paths./private/barbers/{barberId}/working-hours/{workingHourId}")
+	if _, ok := doc.Paths["/private/professionals/{professionalId}/working-hours/{workingHourId}"]; !ok {
+		t.Fatal("openapi.yaml no registra paths./private/professionals/{professionalId}/working-hours/{workingHourId}")
 	}
 }
 
@@ -254,11 +254,11 @@ func requireExceptionRequestShape(t *testing.T, schema schemaDoc) {
 	if len(schema.Required) != 2 {
 		t.Errorf("expected exactly 2 required properties (effectiveDate, isClosed), got %v", schema.Required)
 	}
-	if _, ok := schema.Properties["barbershopId"]; ok {
-		t.Fatal("el contrato nunca debe declarar barbershopId")
+	if _, ok := schema.Properties["businessId"]; ok {
+		t.Fatal("el contrato nunca debe declarar businessId")
 	}
-	if _, ok := schema.Properties["barberId"]; ok {
-		t.Fatal("el contrato nunca debe declarar barberId en el cuerpo")
+	if _, ok := schema.Properties["professionalId"]; ok {
+		t.Fatal("el contrato nunca debe declarar professionalId en el cuerpo")
 	}
 }
 
@@ -326,9 +326,9 @@ func TestContract_OpenAPIYAML_RegistersScheduleExceptionPaths(t *testing.T) {
 	doc := loadYAML[pathsDoc](t, "api/openapi/openapi.yaml")
 
 	for _, p := range []string{
-		"/private/barbers/{barberId}/holiday-calendar",
-		"/private/barbers/{barberId}/schedule-exceptions",
-		"/private/barbers/{barberId}/schedule-exceptions/{exceptionId}",
+		"/private/professionals/{professionalId}/holiday-calendar",
+		"/private/professionals/{professionalId}/schedule-exceptions",
+		"/private/professionals/{professionalId}/schedule-exceptions/{exceptionId}",
 		"/private/schedule/colombian-holidays",
 	} {
 		if _, ok := doc.Paths[p]; !ok {

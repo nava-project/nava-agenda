@@ -13,11 +13,11 @@ import (
 type barberBookingPolicyPathFile struct {
 	List struct {
 		Get operation `yaml:"get"`
-	} `yaml:"/private/settings/booking-policy/barbers"`
+	} `yaml:"/private/settings/booking-policy/professionals"`
 	Item struct {
 		Put    operation `yaml:"put"`
 		Delete operation `yaml:"delete"`
-	} `yaml:"/private/settings/booking-policy/barbers/{barberId}"`
+	} `yaml:"/private/settings/booking-policy/professionals/{professionalId}"`
 }
 
 func jsonKeys(t *testing.T, v any) []string {
@@ -36,11 +36,11 @@ func jsonKeys(t *testing.T, v any) []string {
 }
 
 func TestContract_BarberBookingPolicySchemas_MatchDTOFields(t *testing.T) {
-	requireProps(t, loadYAML[schemaDoc](t, "api/openapi/components/schemas/BarberBookingPolicyResponse.yaml"),
+	requireProps(t, loadYAML[schemaDoc](t, "api/openapi/components/schemas/ProfessionalBookingPolicyResponse.yaml"),
 		jsonKeys(t, httpapi.BarberBookingPolicyResponse{}))
-	requireProps(t, loadYAML[schemaDoc](t, "api/openapi/components/schemas/PutBarberBookingPolicyRequest.yaml"),
+	requireProps(t, loadYAML[schemaDoc](t, "api/openapi/components/schemas/PutProfessionalBookingPolicyRequest.yaml"),
 		jsonKeys(t, httpapi.PutBarberBookingPolicyRequest{}))
-	requireProps(t, loadYAML[schemaDoc](t, "api/openapi/components/schemas/BarberBookingPolicyListResponse.yaml"),
+	requireProps(t, loadYAML[schemaDoc](t, "api/openapi/components/schemas/ProfessionalBookingPolicyListResponse.yaml"),
 		[]string{"items"})
 }
 
@@ -51,9 +51,9 @@ func TestContract_BarberBookingPolicyOperations_SecurityAndResponses(t *testing.
 		id    string
 		codes []string
 	}{
-		{file.List.Get, "listBarberBookingPolicies", []string{"200", "401", "500"}},
-		{file.Item.Put, "putBarberBookingPolicy", []string{"200", "400", "401", "403", "404", "422", "500"}},
-		{file.Item.Delete, "deleteBarberBookingPolicy", []string{"204", "401", "403", "404", "500"}},
+		{file.List.Get, "listProfessionalBookingPolicies", []string{"200", "401", "500"}},
+		{file.Item.Put, "putProfessionalBookingPolicy", []string{"200", "400", "401", "403", "404", "422", "500"}},
+		{file.Item.Delete, "deleteProfessionalBookingPolicy", []string{"204", "401", "403", "404", "500"}},
 	}
 	for _, tc := range cases {
 		if tc.op.OperationID != tc.id {

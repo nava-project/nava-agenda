@@ -50,7 +50,7 @@ func TestTransactionalEmails_SendBrandedHTMLAndText(t *testing.T) {
 		}, []string{"Barbería Centro", "Corte", "Ver mi turno", "https://nava.test/turno/x"}},
 		{"cancelación", func() error {
 			return newChangeNoticeSender(t, srv).SendChangeNotice(context.Background(),
-				"cancelled_by_barber", "c@ejemplo.test", "Barbería Centro", "Corte", evil, "jueves 7 de enero")
+				"cancelled_by_professional", "c@ejemplo.test", "Barbería Centro", "Corte", evil, "jueves 7 de enero")
 		}, []string{"Barbería Centro", "Turno cancelado", "jueves 7 de enero"}},
 		{"recordatorio", func() error {
 			return newChangeNoticeSender(t, srv).SendChangeNotice(context.Background(),

@@ -44,15 +44,15 @@ async function mockApi(page: Page, barbers: Array<{ id: string; fullName: string
     if (pathname.endsWith('/auth/session')) {
       await route.fulfill(
         json({
-          barbershop: { id: 'unas', name: 'Estudio Lila' },
+          business: { id: 'unas', name: 'Estudio Lila' },
           expiresAt: '2099-01-01T00:00:00Z',
         }),
       )
     } else if (pathname.endsWith('/settings/brand')) {
       await route.fulfill(json(brand))
-    } else if (pathname.endsWith('/settings/barbershop')) {
+    } else if (pathname.endsWith('/settings/business')) {
       await route.fulfill(json({ timezone: 'America/Bogota' }))
-    } else if (pathname.endsWith('/barbers')) {
+    } else if (pathname.endsWith('/professionals')) {
       await route.fulfill(json({ items: barbers }))
     } else if (pathname.endsWith('/working-hours')) {
       await route.fulfill(json({ items: [], nextCursor: null }))

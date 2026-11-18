@@ -2,11 +2,11 @@
 # propietario a docs/06-api/estandar-openapi.md §6.10 ("listas potencialmente
 # crecientes usan paginación por cursor"), solo para este endpoint, porque el
 # panel privado necesita un paginador numerado con total exacto. El resto de
-# listas del contrato (BarberListResponse, AssignmentListResponse, etc.)
+# listas del contrato (ProfessionalListResponse, AssignmentListResponse, etc.)
 # conserva paginación por cursor sin cambios.
 type: object
 description: >
-  Página de servicios del catálogo de la barbería activa, ordenada de forma
+  Página de servicios del catálogo del negocio activo, ordenada de forma
   estable por fecha de alta y luego por identificador, con conteo total y
   filtro opcional de búsqueda por nombre.
 properties:
@@ -33,7 +33,7 @@ properties:
     minimum: 0
     description: >
       Cantidad total de servicios que coinciden con el filtro de búsqueda
-      vigente (o de toda la barbería, sin filtro), sin paginar.
+      vigente (o de todo el negocio, sin filtro), sin paginar.
     examples:
       - 2
   totalPages:

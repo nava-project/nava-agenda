@@ -7,7 +7,7 @@ import (
 
 // Tipos de aviso (valores de `appointment_notice.kind`).
 const (
-	KindCancelledByBarber = "cancelled_by_barber"
+	KindCancelledByBarber = "cancelled_by_professional"
 	KindRescheduled       = "rescheduled"
 	// KindReminder es el recordatorio previo al turno (HU-131, DEC-144). Su
 	// `state_at` es el instante del turno para el que se programó.

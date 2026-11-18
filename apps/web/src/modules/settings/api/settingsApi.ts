@@ -1,6 +1,6 @@
 // Único punto del módulo `settings` que llama al cliente HTTP tipado
 // (docs/03-desarrollo/estandar-frontend-vue.md §6). Traduce las respuestas
-// reales de GET/PATCH /private/settings/barbershop a los outcomes
+// reales de GET/PATCH /private/settings/business a los outcomes
 // discriminados que la página consume; ningún componente ve `Problem`,
 // `status` HTTP crudo ni cabeceras.
 import { httpClient } from '@/shared/api/httpClient'
@@ -12,7 +12,7 @@ import type {
 
 export async function fetchBarbershopSettings(): Promise<FetchBarbershopSettingsOutcome> {
   try {
-    const { data, response } = await httpClient.GET('/private/settings/barbershop')
+    const { data, response } = await httpClient.GET('/private/settings/business')
 
     if (response.ok && data) {
       return { kind: 'success', settings: toSettings(data) }
@@ -34,7 +34,7 @@ export async function saveBarbershopSettings(
   values: BarbershopSettingsFormValues,
 ): Promise<SaveBarbershopSettingsOutcome> {
   try {
-    const { data, response } = await httpClient.PATCH('/private/settings/barbershop', {
+    const { data, response } = await httpClient.PATCH('/private/settings/business', {
       body: {
         name: values.name,
         timezone: values.timezone,

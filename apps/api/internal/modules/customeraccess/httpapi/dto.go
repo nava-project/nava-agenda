@@ -10,12 +10,12 @@ import "time"
 // shops/httpapi.BookingPolicyResponse (HU-093): la política vigente de
 // cancelación, no un snapshot fijado al reservar.
 type CustomerAppointmentResponse struct {
-	BarbershopName                 string    `json:"barbershopName"`
+	BarbershopName                 string    `json:"businessName"`
 	Timezone                       string    `json:"timezone"`
 	AttendeeName                   string    `json:"attendeeName"`
 	ServiceName                    string    `json:"serviceName"`
 	DurationMinutes                int       `json:"durationMinutes"`
-	BarberName                     string    `json:"barberName"`
+	BarberName                     string    `json:"professionalName"`
 	StartsAt                       time.Time `json:"startsAt"`
 	EndsAt                         time.Time `json:"endsAt"`
 	Status                         string    `json:"status"`
@@ -28,8 +28,8 @@ type CustomerAppointmentResponse struct {
 	// VersionToken es el If-Match de la cancelación (HU-099); BarbershopContact*
 	// es el contacto público opcional al que acudir si la política la rechaza.
 	VersionToken           string  `json:"versionToken"`
-	BarbershopContactEmail *string `json:"barbershopContactEmail"`
-	BarbershopContactPhone *string `json:"barbershopContactPhone"`
+	BarbershopContactEmail *string `json:"businessContactEmail"`
+	BarbershopContactPhone *string `json:"businessContactPhone"`
 
 	// CanReview y Review (HU-100): la acción «Calificar» solo se ofrece con el
 	// turno completado y sin reseña; Review es la que el cliente ya dejó.

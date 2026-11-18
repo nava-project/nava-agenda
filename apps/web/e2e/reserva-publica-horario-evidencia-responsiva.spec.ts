@@ -81,7 +81,7 @@ for (const viewport of viewports) {
 
     test(`carga (${viewport.name}px)`, async ({ page }) => {
       await page.route(
-        `**/api/v1/public/barbershops/**/services/${SERVICE_ID}/barbers/${BARBER_ID}/availability**`,
+        `**/api/v1/public/businesses/**/services/${SERVICE_ID}/professionals/${BARBER_ID}/availability**`,
         async (route) => {
           // Mismo margen que reserva-publica-barbero-evidencia-responsiva.spec.ts:
           // la ruta se carga de forma diferida y debe compilar/servir su
@@ -102,7 +102,7 @@ for (const viewport of viewports) {
 
     test(`día con franjas, sin scroll horizontal (${viewport.name}px)`, async ({ page }) => {
       await page.route(
-        `**/api/v1/public/barbershops/**/services/${SERVICE_ID}/barbers/${BARBER_ID}/availability**`,
+        `**/api/v1/public/businesses/**/services/${SERVICE_ID}/professionals/${BARBER_ID}/availability**`,
         (route) => fulfillAvailability(route, availability),
       )
       await page.goto(
@@ -123,7 +123,7 @@ for (const viewport of viewports) {
 
     test(`franja elegida (${viewport.name}px)`, async ({ page }) => {
       await page.route(
-        `**/api/v1/public/barbershops/**/services/${SERVICE_ID}/barbers/${BARBER_ID}/availability**`,
+        `**/api/v1/public/businesses/**/services/${SERVICE_ID}/professionals/${BARBER_ID}/availability**`,
         (route) => fulfillAvailability(route, availability),
       )
       await page.goto(
@@ -139,7 +139,7 @@ for (const viewport of viewports) {
 
     test(`vacío total de la ventana (${viewport.name}px)`, async ({ page }) => {
       await page.route(
-        `**/api/v1/public/barbershops/**/services/${SERVICE_ID}/barbers/${BARBER_ID}/availability**`,
+        `**/api/v1/public/businesses/**/services/${SERVICE_ID}/professionals/${BARBER_ID}/availability**`,
         (route) => fulfillAvailability(route, { ...availability, slots: [] }),
       )
       await page.goto(
@@ -157,7 +157,7 @@ for (const viewport of viewports) {
       page,
     }) => {
       await page.route(
-        `**/api/v1/public/barbershops/**/services/${SERVICE_ID}/barbers/${BARBER_ID}/availability**`,
+        `**/api/v1/public/businesses/**/services/${SERVICE_ID}/professionals/${BARBER_ID}/availability**`,
         async (route) => {
           await route.fulfill({
             status: 404,

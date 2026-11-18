@@ -35,7 +35,7 @@ const (
 func createBlock(t *testing.T, repo *schedulepostgres.Repository, shop database.BarbershopID, barberID string, input schedule.CreateBlockInput) schedule.TimeBlock {
 	t.Helper()
 	key := idempotency.Key("block-fixture-" + uniqueSuffix(t))
-	fp := idempotency.ComputeFingerprint("POST", "/api/v1/private/barbers/"+barberID+"/time-blocks", []byte(uniqueSuffix(t)))
+	fp := idempotency.ComputeFingerprint("POST", "/api/v1/private/professionals/"+barberID+"/time-blocks", []byte(uniqueSuffix(t)))
 
 	result, err := repo.CreateBlock(context.Background(), string(shop), barberID, input, key, fp)
 	if err != nil {
@@ -50,7 +50,7 @@ func createBlock(t *testing.T, repo *schedulepostgres.Repository, shop database.
 func createWeeklySeries(t *testing.T, repo *schedulepostgres.Repository, shop database.BarbershopID, barberID string, input schedule.CreateSeriesInput) schedule.TimeBlockSeries {
 	t.Helper()
 	key := idempotency.Key("series-fixture-" + uniqueSuffix(t))
-	fp := idempotency.ComputeFingerprint("POST", "/api/v1/private/barbers/"+barberID+"/time-block-series", []byte(uniqueSuffix(t)))
+	fp := idempotency.ComputeFingerprint("POST", "/api/v1/private/professionals/"+barberID+"/time-block-series", []byte(uniqueSuffix(t)))
 
 	result, err := repo.CreateSeries(context.Background(), string(shop), barberID, input, key, fp)
 	if err != nil {

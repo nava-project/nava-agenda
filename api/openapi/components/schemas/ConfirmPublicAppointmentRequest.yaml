@@ -1,6 +1,6 @@
-# Cuerpo de POST /public/barbershops/{slug}/services/{serviceId}/barbers/
-# {barberId}/appointments (HU-097, T1 pública). Cerrado: el handler rechaza
-# cualquier campo desconocido. Nunca declara barbershopId, customerId,
+# Cuerpo de POST /public/businesses/{slug}/services/{serviceId}/professionals/
+# {professionalId}/appointments (HU-097, T1 pública). Cerrado: el handler rechaza
+# cualquier campo desconocido. Nunca declara businessId, customerId,
 # status, origin, precio, duración ni ningún otro dato que el servidor
 # derive o revalide (CA-097-02).
 type: object
@@ -51,7 +51,7 @@ properties:
   note:
     type: [string, "null"]
     maxLength: 500
-    description: Nota opcional visible solo para el equipo de la barbería.
+    description: Nota opcional visible solo para el equipo del negocio.
     examples:
       - Prefiere máquina 2 en los laterales.
   forSomeoneElse:
@@ -75,8 +75,8 @@ properties:
       - type: "null"
     description: >
       `null` o ausente: el turno es en el local. Con valor, el turno es a
-      domicilio en esa dirección (`DEC-131`, `HU-103`). Solo se acepta si la
-      barbería ofrece domicilio en el momento de confirmar; si no, `422` sin
+      domicilio en esa dirección (`DEC-131`, `HU-103`). Solo se acepta si el
+      negocio ofrece domicilio en el momento de confirmar; si no, `422` sin
       crear el turno. Dato personal (`RN-DAT-02`).
 required:
   - startsAt

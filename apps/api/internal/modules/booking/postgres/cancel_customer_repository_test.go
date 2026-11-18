@@ -323,7 +323,7 @@ func TestCancelByCustomer_OtherTerminalState_ReturnsInvalidState(t *testing.T) {
 	if appErr, ok := apperr.As(err); !ok || appErr.Kind != apperr.KindInvalidState {
 		t.Fatalf("esperaba InvalidState, obtuvo %v", err)
 	}
-	if s := f.state(t); s.status != "cancelled_by_barber" || s.events != 0 {
+	if s := f.state(t); s.status != "cancelled_by_professional" || s.events != 0 {
 		t.Fatalf("state = %+v", s)
 	}
 }

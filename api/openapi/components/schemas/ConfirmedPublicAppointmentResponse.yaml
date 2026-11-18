@@ -1,7 +1,7 @@
-# Respuesta 201 de POST /public/barbershops/{slug}/services/{serviceId}/
-# barbers/{barberId}/appointments (HU-097). Proyección pública mínima:
+# Respuesta 201 de POST /public/businesses/{slug}/services/{serviceId}/
+# professionals/{professionalId}/appointments (HU-097). Proyección pública mínima:
 # nunca un identificador interno (id de la cita, del cliente, de la
-# barbería, del servicio ni del barbero, CA-090-04/RN-DAT-02) porque el
+# negocio, del servicio ni del profesional, CA-090-04/RN-DAT-02) porque el
 # cliente público no consulta esta cita por id -HU-098 la resolverá por
 # `accessToken`.
 type: object
@@ -11,10 +11,10 @@ properties:
     description: Nombre de la persona atendida (RN-RES-02/RN-RES-03).
     examples:
       - Carlos Restrepo
-  barbershopName:
+  businessName:
     type: string
     examples:
-      - Barbería Ejemplo
+      - Negocio Ejemplo
   serviceName:
     type: string
     description: Nombre del servicio congelado al confirmar (DEC-004).
@@ -41,7 +41,7 @@ properties:
     format: date-time
   timezone:
     type: string
-    description: Zona horaria IANA de la barbería (RN-DIS-07).
+    description: Zona horaria IANA del negocio (RN-DIS-07).
     examples:
       - America/Bogota
   accessToken:
@@ -58,7 +58,7 @@ properties:
     type: [string, "null"]
 required:
   - attendeeName
-  - barbershopName
+  - businessName
   - serviceName
   - durationMinutes
   - priceAmount

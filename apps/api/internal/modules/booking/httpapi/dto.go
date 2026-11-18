@@ -9,7 +9,7 @@ import "time"
 // cliente existente: el servidor los deriva o los decide (DEC-071,
 // DEC-072).
 type CreateManualAppointmentRequest struct {
-	BarberID         string  `json:"barberId"`
+	BarberID         string  `json:"professionalId"`
 	ServiceID        string  `json:"serviceId"`
 	AttendeeName     string  `json:"attendeeName"`
 	CustomerFullName string  `json:"customerFullName"`
@@ -29,7 +29,7 @@ type CreateManualAppointmentRequest struct {
 // de una repetición idempotente (RN-IDE-01).
 type AppointmentResponse struct {
 	ID              string    `json:"id"`
-	BarberID        string    `json:"barberId"`
+	BarberID        string    `json:"professionalId"`
 	ServiceID       string    `json:"serviceId"`
 	CustomerID      string    `json:"customerId"`
 	AttendeeName    string    `json:"attendeeName"`
@@ -66,7 +66,7 @@ type RescheduleAppointmentRequest struct {
 type CorrectAppointmentStatusRequest struct {
 	// Status es uno de los cuatro terminales válidos como destino
 	// (`completed`, `no_show`, `cancelled_by_customer`,
-	// `cancelled_by_barber`); `confirmed` o cualquier otro valor se
+	// `cancelled_by_professional`); `confirmed` o cualquier otro valor se
 	// rechazan (CA-068-02).
 	Status string `json:"status"`
 	// Reason es el motivo obligatorio de la corrección, no vacío/blanco,
@@ -82,7 +82,7 @@ type CorrectAppointmentStatusRequest struct {
 // para una reprogramación posterior sin volver a pedir el detalle.
 type AppointmentRescheduledResponse struct {
 	ID              string    `json:"id"`
-	BarberID        string    `json:"barberId"`
+	BarberID        string    `json:"professionalId"`
 	ServiceID       string    `json:"serviceId"`
 	CustomerID      string    `json:"customerId"`
 	AttendeeName    string    `json:"attendeeName"`
@@ -106,7 +106,7 @@ type AppointmentRescheduledResponse struct {
 // campo, el servidor deriva tenant/actor/estado destino (CA-066-02).
 type CancelAppointmentByBarberResponse struct {
 	ID              string    `json:"id"`
-	BarberID        string    `json:"barberId"`
+	BarberID        string    `json:"professionalId"`
 	ServiceID       string    `json:"serviceId"`
 	CustomerID      string    `json:"customerId"`
 	AttendeeName    string    `json:"attendeeName"`
@@ -131,7 +131,7 @@ type CancelAppointmentByBarberResponse struct {
 // criterio que CancelAppointmentByBarberResponse.
 type AppointmentCompletedResponse struct {
 	ID              string    `json:"id"`
-	BarberID        string    `json:"barberId"`
+	BarberID        string    `json:"professionalId"`
 	ServiceID       string    `json:"serviceId"`
 	CustomerID      string    `json:"customerId"`
 	AttendeeName    string    `json:"attendeeName"`
@@ -155,7 +155,7 @@ type AppointmentCompletedResponse struct {
 // campo, mismo criterio que AppointmentCompletedResponse.
 type AppointmentNoShowResponse struct {
 	ID              string    `json:"id"`
-	BarberID        string    `json:"barberId"`
+	BarberID        string    `json:"professionalId"`
 	ServiceID       string    `json:"serviceId"`
 	CustomerID      string    `json:"customerId"`
 	AttendeeName    string    `json:"attendeeName"`
@@ -181,7 +181,7 @@ type AppointmentNoShowResponse struct {
 // AppointmentCompletedResponse.
 type AppointmentStatusCorrectedResponse struct {
 	ID              string    `json:"id"`
-	BarberID        string    `json:"barberId"`
+	BarberID        string    `json:"professionalId"`
 	ServiceID       string    `json:"serviceId"`
 	CustomerID      string    `json:"customerId"`
 	AttendeeName    string    `json:"attendeeName"`
@@ -199,7 +199,7 @@ type AppointmentStatusCorrectedResponse struct {
 }
 
 // DailyAgendaResponse es el cuerpo de
-// GET /private/barbers/{barberId}/appointments/daily-agenda (HU-062):
+// GET /private/professionals/{professionalId}/appointments/daily-agenda (HU-062):
 // lista cronológica cerrada, sin cursor ni siguiente página (CA-062-07,
 // un solo día de un solo barbero está acotado por diseño).
 type DailyAgendaResponse struct {
@@ -242,8 +242,8 @@ type HomeServiceResponse struct {
 // concurrencia expuesto, opaco (booking.EncodeVersionToken).
 type AppointmentDetailResponse struct {
 	ID               string               `json:"id"`
-	BarberID         string               `json:"barberId"`
-	BarberFullName   string               `json:"barberFullName"`
+	BarberID         string               `json:"professionalId"`
+	BarberFullName   string               `json:"professionalFullName"`
 	AttendeeName     string               `json:"attendeeName"`
 	CustomerFullName string               `json:"customerFullName"`
 	CustomerPhone    *string              `json:"customerPhone"`

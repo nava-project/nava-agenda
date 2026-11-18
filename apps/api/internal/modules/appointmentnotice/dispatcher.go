@@ -117,7 +117,7 @@ func skipReason(c Context, now time.Time) string {
 		return CodeSuperseded
 	case c.Kind == KindRescheduled && c.AppointmentStatus != "confirmed":
 		return CodeNotConfirmed
-	case c.Kind == KindCancelledByBarber && c.AppointmentStatus != "cancelled_by_barber":
+	case c.Kind == KindCancelledByBarber && c.AppointmentStatus != "cancelled_by_professional":
 		return CodeNotCancelled
 	case IsReminder(c.Kind) && c.AppointmentStatus != "confirmed":
 		// RN-REC-02: un turno cancelado, completado o no asistido no se recuerda.

@@ -1,5 +1,5 @@
 # Respuesta 200 de PATCH
-# /private/barbers/{barberId}/working-hours/{workingHourId} (HU-040,
+# /private/professionals/{professionalId}/working-hours/{workingHourId} (HU-040,
 # CA-040-04): intervalo completo ya guardado, mismo `id`, solo cambian los
 # campos del intervalo y `updatedAt`.
 description: Tramo con el intervalo ya actualizado.

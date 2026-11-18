@@ -28,19 +28,22 @@ async function openAssignments(page: Page, width: number, height: number) {
     const { pathname } = new URL(route.request().url())
     if (pathname.endsWith('/auth/session')) {
       await route.fulfill(
-        json({ barbershop: { id: 'nava', name: 'NAVA' }, expiresAt: '2099-01-01T00:00:00Z' }),
+        json({ business: { id: 'nava', name: 'NAVA' }, expiresAt: '2099-01-01T00:00:00Z' }),
       )
       return
     }
-    if (pathname.endsWith('/barbers') && route.request().method() === 'GET') {
+    if (pathname.endsWith('/professionals') && route.request().method() === 'GET') {
       await route.fulfill(json({ items: [barber], nextCursor: null }))
       return
     }
-    if (pathname.endsWith('/barbers/barber-nava/services') && route.request().method() === 'GET') {
+    if (
+      pathname.endsWith('/professionals/barber-nava/services') &&
+      route.request().method() === 'GET'
+    ) {
       await route.fulfill(
         json({
           items: [...initiallyAssigned].map((serviceId) => ({
-            barberId: barber.id,
+            professionalId: barber.id,
             serviceId,
             createdAt: '2026-09-08T12:00:00Z',
           })),
@@ -54,7 +57,7 @@ async function openAssignments(page: Page, width: number, height: number) {
       return
     }
     if (
-      pathname.endsWith('/barbers/barber-nava/services/corte') &&
+      pathname.endsWith('/professionals/barber-nava/services/corte') &&
       route.request().method() === 'DELETE'
     ) {
       await route.fulfill(json({ code: 'conflict' }, 409))

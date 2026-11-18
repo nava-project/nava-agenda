@@ -154,7 +154,7 @@ func startConnection(t *testing.T, router http.Handler, raw string) string {
 
 func linkMe(t *testing.T, router http.Handler, raw, barberID string) {
 	t.Helper()
-	rec := doMyBarberRequest(router, raw, http.MethodPut, `{"barberId":"`+barberID+`"}`)
+	rec := doMyBarberRequest(router, raw, http.MethodPut, `{"professionalId":"`+barberID+`"}`)
 	if rec.Code != http.StatusOK {
 		t.Fatalf("vincular: expected 200, got %d: %s", rec.Code, rec.Body.String())
 	}
@@ -173,7 +173,7 @@ func TestGoogleCalendar_HTTP_ConnectJourney_EncryptedAtRestAndDisconnect(t *test
 
 	// Sin barbero vinculado: el estado lo dice y conectar responde 409.
 	rec := doGCal(router, raw, http.MethodGet, "", "")
-	if body := gcalJSON(t, rec); rec.Code != http.StatusOK || body["barberLinked"] != false || body["enabled"] != true {
+	if body := gcalJSON(t, rec); rec.Code != http.StatusOK || body["professionalLinked"] != false || body["enabled"] != true {
 		t.Fatalf("sin vínculo: %d %v", rec.Code, body)
 	}
 	if rec := doGCal(router, raw, http.MethodPost, "/connect", ""); rec.Code != http.StatusConflict {

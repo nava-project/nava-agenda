@@ -1,8 +1,8 @@
-# 204 de DELETE /private/barbers/{barberId}/services/{serviceId} (HU-023,
+# 204 de DELETE /private/professionals/{professionalId}/services/{serviceId} (HU-023,
 # CA-023-05). Sin cuerpo (docs/06-api/estandar-openapi.md sección 11: "Un
 # 204 no contiene body").
 description: >
-  El barbero ya no tiene asignado el servicio. No borra al barbero, al
+  El profesional ya no tiene asignado el servicio. No borra al profesional, al
   servicio ni ninguna cita: solo retira la asociación.
 headers:
   X-Request-Id:

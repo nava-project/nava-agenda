@@ -1,9 +1,9 @@
-# Un recurso inexistente y uno que pertenece a otra barbería responden
+# Un recurso inexistente y uno que pertenece a otro negocio responden
 # exactamente igual: RN-TEN-01 y CA-003-03 exigen que ninguna de las dos
 # situaciones sea distinguible desde fuera.
 description: >
-  El recurso solicitado no existe, o existe pero pertenece a otra
-  barbería. Ambos casos producen la misma respuesta a propósito: el
+  El recurso solicitado no existe, o existe pero pertenece a otro
+  negocio. Ambos casos producen la misma respuesta a propósito: el
   cuerpo nunca revela que el recurso existe.
 headers:
   X-Request-Id:
@@ -14,7 +14,7 @@ content:
       $ref: '../schemas/Problem.yaml'
     examples:
       recursoNoEncontrado:
-        summary: Recurso inexistente o de otra barbería
+        summary: Recurso inexistente o de otro negocio
         value:
           type: /api/v1/problems/not-found
           title: Recurso no encontrado

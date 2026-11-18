@@ -4,7 +4,7 @@
 description: >
   Tres rechazos distinguibles por `code`, nunca por `detail`:
   `reschedule-window-closed` (pasó el plazo, el mismo de la cancelación: el
-  cliente debe contactar a la barbería), `reschedule-limit-reached` (el cliente
+  cliente debe contactar al negocio), `reschedule-limit-reached` (el cliente
   ya cambió la hora de este turno las veces permitidas) y `validation-error`
   (`startsAt` no es un instante RFC 3339).
 headers:
@@ -20,7 +20,7 @@ content:
           type: /api/v1/problems/reschedule-window-closed
           title: Plazo de reprogramación vencido
           status: 422
-          detail: el plazo para cambiar la hora por tu cuenta ya venció; contacta a la barbería
+          detail: el plazo para cambiar la hora por tu cuenta ya venció; contacta al negocio
           instance: 8f3ac2b1e4d5f6a7c8d9e0f1a2b3c4d5
           code: reschedule-window-closed
           requestId: 8f3ac2b1e4d5f6a7c8d9e0f1a2b3c4d5
@@ -29,7 +29,7 @@ content:
           type: /api/v1/problems/reschedule-limit-reached
           title: Límite de reprogramaciones alcanzado
           status: 422
-          detail: ya cambiaste la hora de este turno las veces permitidas; contacta a la barbería
+          detail: ya cambiaste la hora de este turno las veces permitidas; contacta al negocio
           instance: 8f3ac2b1e4d5f6a7c8d9e0f1a2b3c4d5
           code: reschedule-limit-reached
           requestId: 8f3ac2b1e4d5f6a7c8d9e0f1a2b3c4d5

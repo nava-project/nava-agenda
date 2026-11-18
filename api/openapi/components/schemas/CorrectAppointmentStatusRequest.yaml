@@ -11,7 +11,7 @@ description: >
 properties:
   status:
     type: string
-    enum: [completed, no_show, cancelled_by_customer, cancelled_by_barber]
+    enum: [completed, no_show, cancelled_by_customer, cancelled_by_professional]
     description: Estado terminal destino de la corrección.
     examples:
       - no_show
@@ -23,7 +23,7 @@ properties:
       Motivo obligatorio de la corrección, no vacío ni en blanco (mismo
       límite que `appointment_history_reason_ck`).
     examples:
-      - "El barbero marcó completed por error; el cliente nunca llegó."
+      - "El profesional marcó completed por error; el cliente nunca llegó."
 required:
   - status
   - reason

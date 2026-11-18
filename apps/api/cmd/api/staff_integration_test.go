@@ -36,7 +36,7 @@ type barberListBody struct {
 }
 
 func doListBarbersRequest(router http.Handler, rawToken, query string) *httptest.ResponseRecorder {
-	target := "/api/v1/private/barbers"
+	target := "/api/v1/private/professionals"
 	if query != "" {
 		target += "?" + query
 	}
@@ -50,7 +50,7 @@ func doListBarbersRequest(router http.Handler, rawToken, query string) *httptest
 }
 
 func doGetBarberRequest(router http.Handler, rawToken, barberID string) *httptest.ResponseRecorder {
-	req := httptest.NewRequest(http.MethodGet, "/api/v1/private/barbers/"+barberID, nil)
+	req := httptest.NewRequest(http.MethodGet, "/api/v1/private/professionals/"+barberID, nil)
 	if rawToken != "" {
 		req.AddCookie(&http.Cookie{Name: cookieName, Value: rawToken})
 	}
@@ -60,7 +60,7 @@ func doGetBarberRequest(router http.Handler, rawToken, barberID string) *httptes
 }
 
 func doCreateBarberRequest(router http.Handler, rawToken, idempotencyKey, rawBody string) *httptest.ResponseRecorder {
-	req := httptest.NewRequest(http.MethodPost, "/api/v1/private/barbers", bytes.NewReader([]byte(rawBody)))
+	req := httptest.NewRequest(http.MethodPost, "/api/v1/private/professionals", bytes.NewReader([]byte(rawBody)))
 	req.Header.Set("Content-Type", "application/json")
 	if idempotencyKey != "" {
 		req.Header.Set("Idempotency-Key", idempotencyKey)
@@ -74,7 +74,7 @@ func doCreateBarberRequest(router http.Handler, rawToken, idempotencyKey, rawBod
 }
 
 func doRenameBarberRequest(router http.Handler, rawToken, barberID, rawBody string) *httptest.ResponseRecorder {
-	req := httptest.NewRequest(http.MethodPatch, "/api/v1/private/barbers/"+barberID, bytes.NewReader([]byte(rawBody)))
+	req := httptest.NewRequest(http.MethodPatch, "/api/v1/private/professionals/"+barberID, bytes.NewReader([]byte(rawBody)))
 	req.Header.Set("Content-Type", "application/json")
 	if rawToken != "" {
 		req.AddCookie(&http.Cookie{Name: cookieName, Value: rawToken})
@@ -166,7 +166,7 @@ func TestStaff_HTTP_CreateGetListRenameReload_FullJourney(t *testing.T) {
 		t.Fatalf("expected 201, got %d: %s", createRec.Code, createRec.Body.String())
 	}
 	loc := createRec.Header().Get("Location")
-	if !strings.HasPrefix(loc, "/private/barbers/") {
+	if !strings.HasPrefix(loc, "/private/professionals/") {
 		t.Fatalf("unexpected Location: %q", loc)
 	}
 	var created barberBody
@@ -431,7 +431,7 @@ func jpegForPhotoTest(t *testing.T, side int) []byte {
 }
 
 func doPhotoRequest(router http.Handler, method, rawToken, barberID, contentType, ifNoneMatch string, body []byte) *httptest.ResponseRecorder {
-	req := httptest.NewRequest(method, "/api/v1/private/barbers/"+barberID+"/photo", bytes.NewReader(body))
+	req := httptest.NewRequest(method, "/api/v1/private/professionals/"+barberID+"/photo", bytes.NewReader(body))
 	if contentType != "" {
 		req.Header.Set("Content-Type", contentType)
 	}

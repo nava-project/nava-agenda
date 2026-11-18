@@ -1,5 +1,5 @@
 // URL de la fotografía pública de un barbero
-// (GET /public/barbershops/{slug}/barbers/{barberId}/photo, DEC-127), lista para
+// (GET /public/businesses/{slug}/professionals/{professionalId}/photo, DEC-127), lista para
 // el `src` de una imagen: no lleva sesión. `photoUpdatedAt` va como parámetro de
 // consulta solo para que el navegador no reutilice la copia de una fotografía
 // anterior; el servidor lo ignora. Devuelve null cuando el barbero no tiene
@@ -10,5 +10,5 @@ export function publicBarberPhotoUrl(
   barber: { id: string; photoUpdatedAt: string | null },
 ): string | null {
   if (!barber.photoUpdatedAt) return null
-  return `/api/v1/public/barbershops/${encodeURIComponent(slug)}/barbers/${encodeURIComponent(barber.id)}/photo?v=${encodeURIComponent(barber.photoUpdatedAt)}`
+  return `/api/v1/public/businesses/${encodeURIComponent(slug)}/professionals/${encodeURIComponent(barber.id)}/photo?v=${encodeURIComponent(barber.photoUpdatedAt)}`
 }

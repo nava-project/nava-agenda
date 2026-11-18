@@ -4,7 +4,7 @@ import { test, expect, type Route } from '@playwright/test'
  * Recorrido E2E de HU-095 (docs/03-desarrollo/estrategia-pruebas.md §5.3):
  * exploración pública de fechas y horarios. Mismo criterio que
  * reserva-publica-barbero.spec.ts (HU-092): un único endpoint sin sesión
- * (`GET /public/barbershops/{slug}/services/{serviceId}/barbers/{barberId}/availability`),
+ * (`GET /public/businesses/{slug}/services/{serviceId}/professionals/{professionalId}/availability`),
  * interceptado con `page.route(...).fulfill(...)` para cubrir cada estado
  * observable de forma determinista, sin depender de un servidor Go real
  * detrás. El endpoint no admite fecha como parámetro (HU-094): devuelve
@@ -42,7 +42,7 @@ test.describe('Exploración pública de fechas y horarios (HU-095)', () => {
     page,
   }) => {
     await page.route(
-      `**/api/v1/public/barbershops/barberia-ejemplo/services/${SERVICE_ID}/barbers/${BARBER_ID}/availability**`,
+      `**/api/v1/public/businesses/barberia-ejemplo/services/${SERVICE_ID}/professionals/${BARBER_ID}/availability**`,
       async (route) => {
         await fulfillAvailability(route, availability)
       },
@@ -69,7 +69,7 @@ test.describe('Exploración pública de fechas y horarios (HU-095)', () => {
     page,
   }) => {
     await page.route(
-      `**/api/v1/public/barbershops/barberia-ejemplo/services/${SERVICE_ID}/barbers/${BARBER_ID}/availability**`,
+      `**/api/v1/public/businesses/barberia-ejemplo/services/${SERVICE_ID}/professionals/${BARBER_ID}/availability**`,
       async (route) => {
         await fulfillAvailability(route, availability)
       },
@@ -93,7 +93,7 @@ test.describe('Exploración pública de fechas y horarios (HU-095)', () => {
 
   test('selecciona la franja enfocada con el teclado (Space/Enter)', async ({ page }) => {
     await page.route(
-      `**/api/v1/public/barbershops/barberia-ejemplo/services/${SERVICE_ID}/barbers/${BARBER_ID}/availability**`,
+      `**/api/v1/public/businesses/barberia-ejemplo/services/${SERVICE_ID}/professionals/${BARBER_ID}/availability**`,
       async (route) => {
         await fulfillAvailability(route, availability)
       },
@@ -114,7 +114,7 @@ test.describe('Exploración pública de fechas y horarios (HU-095)', () => {
     page,
   }) => {
     await page.route(
-      `**/api/v1/public/barbershops/barberia-ejemplo/services/${SERVICE_ID}/barbers/${BARBER_ID}/availability**`,
+      `**/api/v1/public/businesses/barberia-ejemplo/services/${SERVICE_ID}/professionals/${BARBER_ID}/availability**`,
       async (route) => {
         await fulfillAvailability(route, { ...availability, slots: [] })
       },
@@ -133,7 +133,7 @@ test.describe('Exploración pública de fechas y horarios (HU-095)', () => {
     page,
   }) => {
     await page.route(
-      `**/api/v1/public/barbershops/**/services/${SERVICE_ID}/barbers/${BARBER_ID}/availability**`,
+      `**/api/v1/public/businesses/**/services/${SERVICE_ID}/professionals/${BARBER_ID}/availability**`,
       async (route) => {
         await route.fulfill({
           status: 404,
@@ -160,7 +160,7 @@ test.describe('Exploración pública de fechas y horarios (HU-095)', () => {
   test('un fallo de red permite reintentar sin recargar la página', async ({ page }) => {
     let attempt = 0
     await page.route(
-      `**/api/v1/public/barbershops/barberia-ejemplo/services/${SERVICE_ID}/barbers/${BARBER_ID}/availability**`,
+      `**/api/v1/public/businesses/barberia-ejemplo/services/${SERVICE_ID}/professionals/${BARBER_ID}/availability**`,
       async (route) => {
         attempt += 1
         if (attempt === 1) {
@@ -186,7 +186,7 @@ test.describe('Exploración pública de fechas y horarios (HU-095)', () => {
   }) => {
     const ana = { id: BARBER_ID, fullName: 'Ana Gómez' }
     await page.route(
-      `**/api/v1/public/barbershops/barberia-ejemplo/services/${SERVICE_ID}/barbers**`,
+      `**/api/v1/public/businesses/barberia-ejemplo/services/${SERVICE_ID}/professionals**`,
       async (route) => {
         await route.fulfill({
           status: 200,
@@ -196,7 +196,7 @@ test.describe('Exploración pública de fechas y horarios (HU-095)', () => {
       },
     )
     await page.route(
-      `**/api/v1/public/barbershops/barberia-ejemplo/services/${SERVICE_ID}/barbers/${BARBER_ID}/availability**`,
+      `**/api/v1/public/businesses/barberia-ejemplo/services/${SERVICE_ID}/professionals/${BARBER_ID}/availability**`,
       async (route) => {
         await fulfillAvailability(route, availability)
       },

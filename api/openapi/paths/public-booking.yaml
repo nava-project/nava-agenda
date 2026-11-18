@@ -1,36 +1,35 @@
-# Operaciones públicas de reserva (sin sesión del barbero): HU-090 agrega
+# Operaciones públicas de reserva (sin sesión del profesional): HU-090 agrega
 # la primera, entrada pública de reservas; HU-091 agrega el catálogo
-# público de servicios; HU-092 agrega la selección pública de barbero;
+# público de servicios; HU-092 agrega la selección pública de profesional;
 # HU-094 agrega la disponibilidad pública real (motor de franjas); HU-097
 # agrega la confirmación pública concurrente e idempotente (T1 pública).
 # DEC-162 agrega dos agregados de solo lectura para clientes que leen mucho
-# (el agente Odin): los barberos con sus servicios y la disponibilidad de un
-# servicio para todos sus barberos, ambos en una sola petición.
+# (el agente Odin): los profesionales con sus servicios y la disponibilidad de un
+# servicio para todos sus profesionales, ambos en una sola petición.
 # security: [] en cada operación, según docs/06-api/estandar-openapi.md.
 # El acceso/cancelación del cliente mediante el token emitido por HU-097
 # vive en api/openapi/paths/customer-appointments.yaml (HU-098 agrega la
 # lectura; HU-099 agregará la cancelación).
-/public/barbershops/{slug}:
+/public/businesses/{slug}:
   get:
     tags: [PublicBooking]
-    summary: Abrir el contexto público de una barbería por su enlace de reservas
+    summary: Abrir el contexto público de un negocio por su enlace de reservas
     description: >
       Resuelve `slug` -el identificador del enlace público de reservas
-      (F-PUB-01, DEC-082)- a la barbería habilitada correspondiente, sin
-      sesión (HU-090, CA-090-01). El cliente nunca fija `barbershopId`: ni
+      (F-PUB-01, DEC-082)- al negocio habilitado correspondiente, sin
+      sesión (HU-090, CA-090-01). El cliente nunca fija `businessId`: ni
       este parámetro de ruta ni ningún otro dato de la solicitud lo
       declaran (CA-090-03); API, aplicación y PostgreSQL resuelven y aíslan
-      el tenant mediante `public_resolve_barbershop_by_slug`, la función
-      `SECURITY DEFINER` estrecha que agrega la migración
-      `20260911045044_add_barbershop_public_slug.sql`. Un `slug` mal
-      formado, desconocido o de una barbería no publicable (`public_slug`
+      el tenant mediante `public_resolve_business_by_slug`, la función
+      `SECURITY DEFINER` estrecha de DEC-082 (renombrada por DEC-183). Un `slug` mal
+      formado, desconocido o de un negocio no publicable (`public_slug`
       `NULL`) produce EXACTAMENTE la misma respuesta `404` uniforme
       (CA-090-02, RN-TEN-01): esta operación nunca distingue la causa. La
       respuesta trae solo los datos públicos ya autorizados por HU-020
       (nombre, zona horaria IANA, contacto opcional); nunca un
       identificador interno, el slug mismo, ni ningún dato de configuración
       privada (CA-090-04).
-    operationId: resolvePublicBarbershop
+    operationId: resolvePublicBusiness
     security: []
     x-business-rules: [RN-TEN-01, RN-DAT-01, RN-DAT-02]
     x-decisions: [DEC-016, DEC-019, DEC-022, DEC-024, DEC-033, DEC-034, DEC-035, DEC-036, DEC-037, DEC-038, DEC-039, DEC-077, DEC-078, DEC-079, DEC-082, DEC-110, DEC-119, DEC-130, DEC-182]
@@ -47,13 +46,13 @@
           maxLength: 100
         examples:
           slug:
-            value: barberia-ejemplo
+            value: negocio-ejemplo
     responses:
       "200":
-        $ref: '../components/responses/PublicBarbershopProfileSuccess.yaml'
+        $ref: '../components/responses/PublicBusinessProfileSuccess.yaml'
       "404":
         description: >
-          `slug` con forma inválida, inexistente o de una barbería no
+          `slug` con forma inválida, inexistente o de un negocio no
           publicable, sin distinguir la causa (CA-090-02, RN-TEN-01).
         headers:
           X-Request-Id:
@@ -68,27 +67,27 @@
                   type: /api/v1/problems/not-found
                   title: No encontrado
                   status: 404
-                  detail: no existe una barbería pública con ese enlace
+                  detail: no existe un negocio público con ese enlace
                   instance: 8f3ac2b1e4d5f6a7c8d9e0f1a2b3c4d5
                   code: not-found
                   requestId: 8f3ac2b1e4d5f6a7c8d9e0f1a2b3c4d5
       "500":
         $ref: '../components/responses/InternalErrorProblem.yaml'
-/public/barbershops/{slug}/services/{serviceId}/barbers:
+/public/businesses/{slug}/services/{serviceId}/professionals:
   get:
     tags: [PublicBooking]
-    summary: Listar los barberos elegibles para un servicio público
+    summary: Listar los profesionales elegibles para un servicio público
     description: >
-      Lista (HU-092, CA-092-02) los barberos de la barbería resuelta por
+      Lista (HU-092, CA-092-02) los profesionales del negocio resuelto por
       `slug` con asignación vigente al servicio activo `serviceId`. Mismo
       `slug` y misma resolución sin contexto de tenant que `GET
-      /public/barbershops/{slug}` (`public_resolve_barbershop_by_slug`); un
-      `slug` mal formado, desconocido o de una barbería no publicable
+      /public/businesses/{slug}` (`public_resolve_business_by_slug`); un
+      `slug` mal formado, desconocido o de un negocio no publicable
       produce EXACTAMENTE la misma respuesta `404` uniforme (CA-090-02,
-      RN-TEN-01). `serviceId` sin forma de UUID, ajeno a esta barbería,
+      RN-TEN-01). `serviceId` sin forma de UUID, ajeno a este negocio,
       inexistente o de un servicio inactivo NUNCA produce un error distinto
       (CA-092-03): en todos esos casos la respuesta es `200` con `items: []`,
-      exactamente igual que un servicio sin ningún barbero asignado hoy -la
+      exactamente igual que un servicio sin ningún profesional asignado hoy -la
       causa no se distingue. La proyección es mínima: id, nombre completo y,
       por DEC-127, descripción opcional y versión de la fotografía opcional
       (`photoUpdatedAt`; los bytes se piden aparte); nunca preferencia ni
@@ -96,7 +95,7 @@
       (exactamente un elemento) o la elección explícita (varios elementos)
       a partir del tamaño de `items`; el contrato no agrega un campo
       adicional para eso (CA-092-01).
-    operationId: listPublicBarbers
+    operationId: listPublicProfessionals
     security: []
     x-business-rules: [RN-TEN-01, RN-CON-01, RN-DAT-02]
     x-decisions: [DEC-019, DEC-024, DEC-047, DEC-068, DEC-077, DEC-078, DEC-079, DEC-127]
@@ -113,14 +112,14 @@
           maxLength: 100
         examples:
           slug:
-            value: barberia-ejemplo
+            value: negocio-ejemplo
       - name: serviceId
         in: path
         required: true
         description: >
           Identificador del servicio activo ya elegido (HU-091). No
-          confiado: se revalida pertenencia, vigencia y asignación contra la
-          barbería resuelta por `slug` en cada lectura (CA-092-03).
+          confiado: se revalida pertenencia, vigencia y asignación contra el
+          negocio resuelto por `slug` en cada lectura (CA-092-03).
         schema:
           type: string
           format: uuid
@@ -129,10 +128,10 @@
             value: 8f3ac2b1-e4d5-46f6-a7c8-d9e0f1a2b3c4
     responses:
       "200":
-        $ref: '../components/responses/PublicBarberListSuccess.yaml'
+        $ref: '../components/responses/PublicProfessionalListSuccess.yaml'
       "404":
         description: >
-          `slug` con forma inválida, inexistente o de una barbería no
+          `slug` con forma inválida, inexistente o de un negocio no
           publicable, sin distinguir la causa (CA-090-02, RN-TEN-01).
         headers:
           X-Request-Id:
@@ -147,38 +146,38 @@
                   type: /api/v1/problems/not-found
                   title: No encontrado
                   status: 404
-                  detail: no existe una barbería pública con ese enlace
+                  detail: no existe un negocio público con ese enlace
                   instance: 8f3ac2b1e4d5f6a7c8d9e0f1a2b3c4d5
                   code: not-found
                   requestId: 8f3ac2b1e4d5f6a7c8d9e0f1a2b3c4d5
       "500":
         $ref: '../components/responses/InternalErrorProblem.yaml'
-/public/barbershops/{slug}/barbers:
+/public/businesses/{slug}/professionals:
   get:
     tags: [PublicBooking]
-    summary: Listar los barberos elegibles de la barbería con los servicios que hacen
+    summary: Listar los profesionales elegibles del negocio con los servicios que hacen
     description: >
       Agregado de solo lectura (DEC-162) para clientes que necesitan el mapa
-      barbero-servicio completo en una sola lectura (por ejemplo el agente
+      profesional-servicio completo en una sola lectura (por ejemplo el agente
       Odin), en lugar de llamar `GET
-      /public/barbershops/{slug}/services/{serviceId}/barbers` una vez por
-      servicio. Lista todos los barberos de la barbería resuelta por `slug`
+      /public/businesses/{slug}/services/{serviceId}/professionals` una vez por
+      servicio. Lista todos los profesionales del negocio resuelto por `slug`
       con al menos una asignación vigente a un servicio ACTIVO; cada uno con
       `id`, `fullName` (mismo saneamiento que el elemento de la operación por
       servicio) y `serviceIds`, los ids de los servicios activos que hace.
-      Un servicio inactivo no aparece en `serviceIds`, y un barbero cuyas
+      Un servicio inactivo no aparece en `serviceIds`, y un profesional cuyas
       únicas asignaciones son a servicios inactivos no aparece en la lista.
-      Orden estable: barberos por fecha de alta y luego `id`; `serviceIds`
+      Orden estable: profesionales por fecha de alta y luego `id`; `serviceIds`
       por fecha de alta del servicio y luego `id`. Sin paginar (mismo
       criterio que la operación por servicio). Mismo `slug` y misma
-      resolución sin contexto de tenant que `GET /public/barbershops/{slug}`;
-      un `slug` mal formado, desconocido o de una barbería no publicable
+      resolución sin contexto de tenant que `GET /public/businesses/{slug}`;
+      un `slug` mal formado, desconocido o de un negocio no publicable
       produce EXACTAMENTE la misma respuesta `404` uniforme (CA-090-02,
-      RN-TEN-01). La barbería sale siempre del `slug` resuelto en servidor;
+      RN-TEN-01). El negocio sale siempre del `slug` resuelto en servidor;
       no existe ningún parámetro de tenant. Es de solo lectura (no crea
       filas ni sesiones). La operación por servicio sigue vigente y sin
       cambios.
-    operationId: listPublicBarbersWithServices
+    operationId: listPublicProfessionalsWithServices
     security: []
     x-business-rules: [RN-TEN-01, RN-CON-01, RN-DAT-02]
     x-decisions: [DEC-019, DEC-047, DEC-068, DEC-077, DEC-162]
@@ -195,13 +194,13 @@
           maxLength: 100
         examples:
           slug:
-            value: barberia-ejemplo
+            value: negocio-ejemplo
     responses:
       "200":
-        $ref: '../components/responses/PublicBarberServicesListSuccess.yaml'
+        $ref: '../components/responses/PublicProfessionalServicesListSuccess.yaml'
       "404":
         description: >
-          `slug` con forma inválida, inexistente o de una barbería no
+          `slug` con forma inválida, inexistente o de un negocio no
           publicable, sin distinguir la causa (CA-090-02, RN-TEN-01).
         headers:
           X-Request-Id:
@@ -216,28 +215,28 @@
                   type: /api/v1/problems/not-found
                   title: No encontrado
                   status: 404
-                  detail: no existe una barbería pública con ese enlace
+                  detail: no existe un negocio público con ese enlace
                   instance: 8f3ac2b1e4d5f6a7c8d9e0f1a2b3c4d5
                   code: not-found
                   requestId: 8f3ac2b1e4d5f6a7c8d9e0f1a2b3c4d5
       "500":
         $ref: '../components/responses/InternalErrorProblem.yaml'
-/public/barbershops/{slug}/barbers/{barberId}/photo:
+/public/businesses/{slug}/professionals/{professionalId}/photo:
   get:
     tags: [PublicBooking]
-    summary: Leer la fotografía pública de un barbero
+    summary: Leer la fotografía pública de un profesional
     description: >
-      Sirve los bytes de la fotografía de un barbero que la reserva pública
+      Sirve los bytes de la fotografía de un profesional que la reserva pública
       ya muestra (DEC-127), sin sesión. Se usa como `src` de una imagen. Lleva
       `ETag` (derivado de `photoUpdatedAt`) y responde `304` a una solicitud
       condicional con `If-None-Match`; el cliente añade `photoUpdatedAt` como
       parámetro de consulta de la URL solo para invalidar su propia caché, el
-      servidor lo ignora. Solo se sirve la imagen de un barbero con asignación
-      vigente a un servicio activo: un `slug` inválido o de una barbería no
-      publicable, un `barberId` inexistente, de otra barbería, sin fotografía
+      servidor lo ignora. Solo se sirve la imagen de un profesional con asignación
+      vigente a un servicio activo: un `slug` inválido o de un negocio no
+      publicable, un `professionalId` inexistente, de otro negocio, sin fotografía
       o sin asignación vigente responden exactamente el mismo `404`, sin
       distinguir la causa (CA-090-02, RN-TEN-01, RN-DAT-02).
-    operationId: getPublicBarberPhoto
+    operationId: getPublicProfessionalPhoto
     security: []
     x-business-rules: [RN-TEN-01, RN-DAT-02]
     x-decisions: [DEC-019, DEC-024, DEC-082, DEC-104, DEC-127]
@@ -253,16 +252,16 @@
           maxLength: 100
         examples:
           slug:
-            value: barberia-ejemplo
-      - name: barberId
+            value: negocio-ejemplo
+      - name: professionalId
         in: path
         required: true
-        description: Identificador del barbero, tal como lo entrega la lista pública.
+        description: Identificador del profesional, tal como lo entrega la lista pública.
         schema:
           type: string
           format: uuid
         examples:
-          barbero:
+          profesional:
             value: 8f3ac2b1-e4d5-46f6-a7c8-d9e0f1a2b3c4
       - name: If-None-Match
         in: header
@@ -272,32 +271,32 @@
           type: string
     responses:
       "200":
-        $ref: '../components/responses/PublicBarberPhotoSuccess.yaml'
+        $ref: '../components/responses/PublicProfessionalPhotoSuccess.yaml'
       "304":
-        $ref: '../components/responses/BarberPhotoNotModified.yaml'
+        $ref: '../components/responses/ProfessionalPhotoNotModified.yaml'
       "404":
         $ref: '../components/responses/NotFoundProblem.yaml'
       "500":
         $ref: '../components/responses/InternalErrorProblem.yaml'
-/public/barbershops/{slug}/services/{serviceId}/barbers/{barberId}/availability:
+/public/businesses/{slug}/services/{serviceId}/professionals/{professionalId}/availability:
   get:
     tags: [PublicBooking]
-    summary: Listar los inicios públicos válidos de un servicio con un barbero
+    summary: Listar los inicios públicos válidos de un servicio con un profesional
     description: >
       Proyecta (HU-094, CA-094-01 a CA-094-06) los instantes donde el
-      servicio activo `serviceId` completo cabe con el barbero `barberId`,
-      dentro de la barbería resuelta por `slug`: intersección de jornada
+      servicio activo `serviceId` completo cabe con el profesional `professionalId`,
+      dentro del negocio resuelto por `slug`: intersección de jornada
       efectiva (recurrente, excepciones, festivos, B2), bloqueos vigentes y
       citas que ocupan agenda (B3), aplicando la duración del servicio, la
-      anticipación mínima, la ventana máxima y la rejilla vigentes de la
-      barbería (HU-093). Las franjas caen siempre en la rejilla fija del
+      anticipación mínima, la ventana máxima y la rejilla vigentes del
+      negocio (HU-093). Las franjas caen siempre en la rejilla fija del
       tramo laboral (inicio del tramo + k × `slotGridMinutes`), aunque una
       interrupción termine fuera de ella: no se reinicia desde ese instante
       (`DEC-135`, que sustituye `DEC-084`). Mismo `slug` y misma resolución sin
-      contexto de tenant que `GET /public/barbershops/{slug}`; un `slug` mal
-      formado, desconocido o de una barbería no publicable produce
+      contexto de tenant que `GET /public/businesses/{slug}`; un `slug` mal
+      formado, desconocido o de un negocio no publicable produce
       EXACTAMENTE la misma respuesta `404` uniforme (CA-090-02, RN-TEN-01).
-      `serviceId`/`barberId` sin forma de UUID, ajeno a esta barbería,
+      `serviceId`/`professionalId` sin forma de UUID, ajeno a este negocio,
       inexistente, inactivo o sin asignación vigente NUNCA producen un error
       distinto (mismo criterio que CA-092-03): la respuesta es `200` con
       `slots: []`, exactamente igual que "sin franjas hoy" -la causa no se
@@ -321,14 +320,14 @@
           maxLength: 100
         examples:
           slug:
-            value: barberia-ejemplo
+            value: negocio-ejemplo
       - name: serviceId
         in: path
         required: true
         description: >
           Identificador del servicio activo ya elegido (HU-091). No
-          confiado: se revalida pertenencia, vigencia y asignación contra la
-          barbería resuelta por `slug` en cada lectura (mismo criterio que
+          confiado: se revalida pertenencia, vigencia y asignación contra el
+          negocio resuelto por `slug` en cada lectura (mismo criterio que
           CA-092-03).
         schema:
           type: string
@@ -336,26 +335,26 @@
         examples:
           serviceId:
             value: 8f3ac2b1-e4d5-46f6-a7c8-d9e0f1a2b3c4
-      - name: barberId
+      - name: professionalId
         in: path
         required: true
         description: >
-          Identificador del barbero ya elegido (HU-092). No confiado: se
+          Identificador del profesional ya elegido (HU-092). No confiado: se
           revalida que tenga asignación vigente al servicio activo
-          `serviceId` dentro de la barbería resuelta por `slug` en cada
+          `serviceId` dentro del negocio resuelto por `slug` en cada
           lectura (mismo criterio que CA-092-03).
         schema:
           type: string
           format: uuid
         examples:
-          barberId:
+          professionalId:
             value: 1c9a7f2d-3b4e-4a5f-9c6d-7e8f9a0b1c2d
     responses:
       "200":
         $ref: '../components/responses/AvailabilitySuccess.yaml'
       "404":
         description: >
-          `slug` con forma inválida, inexistente o de una barbería no
+          `slug` con forma inválida, inexistente o de un negocio no
           publicable, sin distinguir la causa (CA-090-02, RN-TEN-01).
         headers:
           X-Request-Id:
@@ -370,39 +369,39 @@
                   type: /api/v1/problems/not-found
                   title: No encontrado
                   status: 404
-                  detail: no existe una barbería pública con ese enlace
+                  detail: no existe un negocio público con ese enlace
                   instance: 8f3ac2b1e4d5f6a7c8d9e0f1a2b3c4d5
                   code: not-found
                   requestId: 8f3ac2b1e4d5f6a7c8d9e0f1a2b3c4d5
       "500":
         $ref: '../components/responses/InternalErrorProblem.yaml'
-/public/barbershops/{slug}/services/{serviceId}/availability:
+/public/businesses/{slug}/services/{serviceId}/availability:
   get:
     tags: [PublicBooking]
-    summary: Listar los inicios públicos válidos de un servicio con todos sus barberos
+    summary: Listar los inicios públicos válidos de un servicio con todos sus profesionales
     description: >
       Agregado de solo lectura (DEC-162) de la disponibilidad pública: en una
       sola respuesta, los inicios válidos del servicio activo `serviceId`
-      para TODOS los barberos con asignación vigente a él, en lugar de llamar
-      `GET /public/barbershops/{slug}/services/{serviceId}/barbers/{barberId}/availability`
-      una vez por barbero. Reutiliza exactamente el mismo cálculo que esa
+      para TODOS los profesionales con asignación vigente a él, en lugar de llamar
+      `GET /public/businesses/{slug}/services/{serviceId}/professionals/{professionalId}/availability`
+      una vez por profesional. Reutiliza exactamente el mismo cálculo que esa
       operación (jornada efectiva, bloqueos, citas que ocupan agenda, duración
-      del servicio, anticipación mínima, ventana máxima y rejilla de la
-      barbería, DEC-135), así que cada barbero obtiene las mismas franjas que
+      del servicio, anticipación mínima, ventana máxima y rejilla del
+      negocio, DEC-135), así que cada profesional obtiene las mismas franjas que
       por la operación individual y la ventana es idéntica. `slots` va
-      ordenado por (`startsAt`, `barberId`); `durationMinutes`, `timezone` y
-      `slotGridMinutes` se comparten por todos los barberos. El tamaño crece
-      con barberos x días x franjas por día. Mismo `slug` y misma resolución
-      sin contexto de tenant que `GET /public/barbershops/{slug}`; un `slug`
-      mal formado, desconocido o de una barbería no publicable produce
+      ordenado por (`startsAt`, `professionalId`); `durationMinutes`, `timezone` y
+      `slotGridMinutes` se comparten por todos los profesionales. El tamaño crece
+      con profesionales x días x franjas por día. Mismo `slug` y misma resolución
+      sin contexto de tenant que `GET /public/businesses/{slug}`; un `slug`
+      mal formado, desconocido o de un negocio no publicable produce
       EXACTAMENTE la misma respuesta `404` uniforme (CA-090-02, RN-TEN-01).
-      `serviceId` sin forma de UUID, ajeno a esta barbería, inexistente,
-      inactivo o sin ningún barbero con asignación vigente NUNCA produce un
+      `serviceId` sin forma de UUID, ajeno a este negocio, inexistente,
+      inactivo o sin ningún profesional con asignación vigente NUNCA produce un
       error distinto (mismo criterio que CA-092-03): la respuesta es `200` con
       `slots: []`, `durationMinutes: 0`, `timezone: ""` y
       `slotGridMinutes: 0` -la causa no se distingue. Consultar esta
       operación no reserva ni aparta ninguna franja (RN-DIS-03) y no crea
-      filas, bloqueos ni sesiones. La operación por barbero sigue vigente y
+      filas, bloqueos ni sesiones. La operación por profesional sigue vigente y
       sin cambios.
     operationId: listPublicServiceAvailability
     security: []
@@ -421,14 +420,14 @@
           maxLength: 100
         examples:
           slug:
-            value: barberia-ejemplo
+            value: negocio-ejemplo
       - name: serviceId
         in: path
         required: true
         description: >
           Identificador del servicio activo ya elegido (HU-091). No
-          confiado: se revalida pertenencia y vigencia contra la barbería
-          resuelta por `slug` en cada lectura (mismo criterio que CA-092-03).
+          confiado: se revalida pertenencia y vigencia contra el negocio
+          resuelto por `slug` en cada lectura (mismo criterio que CA-092-03).
         schema:
           type: string
           format: uuid
@@ -440,7 +439,7 @@
         $ref: '../components/responses/ServiceAvailabilitySuccess.yaml'
       "404":
         description: >
-          `slug` con forma inválida, inexistente o de una barbería no
+          `slug` con forma inválida, inexistente o de un negocio no
           publicable, sin distinguir la causa (CA-090-02, RN-TEN-01).
         headers:
           X-Request-Id:
@@ -455,23 +454,23 @@
                   type: /api/v1/problems/not-found
                   title: No encontrado
                   status: 404
-                  detail: no existe una barbería pública con ese enlace
+                  detail: no existe un negocio público con ese enlace
                   instance: 8f3ac2b1e4d5f6a7c8d9e0f1a2b3c4d5
                   code: not-found
                   requestId: 8f3ac2b1e4d5f6a7c8d9e0f1a2b3c4d5
       "500":
         $ref: '../components/responses/InternalErrorProblem.yaml'
-/public/barbershops/{slug}/services:
+/public/businesses/{slug}/services:
   get:
     tags: [PublicBooking]
-    summary: Listar el catálogo público de servicios de una barbería
+    summary: Listar el catálogo público de servicios de un negocio
     description: >
       Lista paginada por cursor (HU-091, CA-091-01) de los servicios
-      ACTIVOS con al menos una asignación vigente a un barbero de la
-      barbería resuelta por `slug`, sin sesión. Mismo `slug` y misma
+      ACTIVOS con al menos una asignación vigente a un profesional del
+      negocio resuelto por `slug`, sin sesión. Mismo `slug` y misma
       resolución sin contexto de tenant que `GET
-      /public/barbershops/{slug}` (`public_resolve_barbershop_by_slug`); un
-      `slug` mal formado, desconocido o de una barbería no publicable
+      /public/businesses/{slug}` (`public_resolve_business_by_slug`); un
+      `slug` mal formado, desconocido o de un negocio no publicable
       produce EXACTAMENTE la misma respuesta `404` uniforme (CA-090-02,
       RN-TEN-01). Un servicio inactivo o sin ninguna asignación vigente
       nunca aparece (CA-091-01, CA-091-02); desactivar un servicio lo
@@ -496,7 +495,7 @@
           maxLength: 100
         examples:
           slug:
-            value: barberia-ejemplo
+            value: negocio-ejemplo
       - name: cursor
         in: query
         required: false
@@ -527,7 +526,7 @@
         $ref: '../components/responses/InvalidRequestProblem.yaml'
       "404":
         description: >
-          `slug` con forma inválida, inexistente o de una barbería no
+          `slug` con forma inválida, inexistente o de un negocio no
           publicable, sin distinguir la causa (CA-090-02, RN-TEN-01).
         headers:
           X-Request-Id:
@@ -542,13 +541,13 @@
                   type: /api/v1/problems/not-found
                   title: No encontrado
                   status: 404
-                  detail: no existe una barbería pública con ese enlace
+                  detail: no existe un negocio público con ese enlace
                   instance: 8f3ac2b1e4d5f6a7c8d9e0f1a2b3c4d5
                   code: not-found
                   requestId: 8f3ac2b1e4d5f6a7c8d9e0f1a2b3c4d5
       "500":
         $ref: '../components/responses/InternalErrorProblem.yaml'
-/public/barbershops/{slug}/services/{serviceId}/barbers/{barberId}/appointments:
+/public/businesses/{slug}/services/{serviceId}/professionals/{professionalId}/appointments:
   post:
     tags: [PublicBooking]
     summary: Confirmar públicamente el turno elegido (T1 pública)
@@ -558,14 +557,14 @@
       con clave de idempotencia (RN-IDE-01, DEC-043): repetir el mismo
       `POST` con la misma `Idempotency-Key` y el mismo cuerpo devuelve la
       misma representación creada sin crear una segunda cita ni un segundo
-      correo. El servidor revalida todo contra PostgreSQL real -barbería,
-      asignación de servicio/barbero, jornada efectiva, bloqueos vigentes,
+      correo. El servidor revalida todo contra PostgreSQL real -negocio,
+      asignación de servicio/profesional, jornada efectiva, bloqueos vigentes,
       política de reserva vigente y que `startsAt` siga siendo un inicio
       válido- antes de intentar persistir (CA-097-02); la restricción de
       exclusión de PostgreSQL (RN-CON-03) es la última defensa contra una
       carrera entre dos confirmaciones simultáneas por la misma franja
       (RN-CON-01, RN-CON-02). El cliente se reconcilia por teléfono y
-      correo dentro de la misma barbería (DEC-085): un `customer` existente
+      correo dentro del mismo negocio (DEC-085): un `customer` existente
       se reutiliza (sobrescribiendo el campo que no coincidió con el valor
       nuevo dado), sin coincidencia siempre se crea uno nuevo, nunca por
       nombre. Al confirmar, el servidor emite el token de acceso al turno
@@ -575,12 +574,12 @@
       acceso reutilizando el proveedor ya integrado (Resend, DEC-091): un
       fallo de ese envío nunca revierte la cita ya confirmada. Mismo `slug`
       y misma resolución sin contexto de tenant que
-      `GET /public/barbershops/{slug}`; un `slug` mal formado, desconocido
-      o de una barbería no publicable, o un `serviceId`/`barberId` sin
+      `GET /public/businesses/{slug}`; un `slug` mal formado, desconocido
+      o de un negocio no publicable, o un `serviceId`/`professionalId` sin
       forma de UUID, ajeno, inexistente, inactivo o sin asignación vigente,
       producen el mismo `404` uniforme (CA-090-02, RN-TEN-01) -a diferencia
       de la disponibilidad de solo lectura, esta operación de escritura no
-      tiene un "vacío" que devolver. El cuerpo nunca acepta `barbershopId`,
+      tiene un "vacío" que devolver. El cuerpo nunca acepta `businessId`,
       `customerId`, `status`, `origin`, precio, duración ni ningún otro
       dato que el servidor derive o revalide.
     operationId: confirmPublicAppointment
@@ -607,13 +606,13 @@
           maxLength: 100
         examples:
           slug:
-            value: barberia-ejemplo
+            value: negocio-ejemplo
       - name: serviceId
         in: path
         required: true
         description: >
           Servicio activo ya elegido (HU-091). No confiado: se revalida
-          pertenencia, vigencia y asignación contra la barbería resuelta
+          pertenencia, vigencia y asignación contra el negocio resuelto
           por `slug` en cada intento (mismo criterio que CA-092-03).
         schema:
           type: string
@@ -621,18 +620,18 @@
         examples:
           serviceId:
             value: 8f3ac2b1-e4d5-46f6-a7c8-d9e0f1a2b3c4
-      - name: barberId
+      - name: professionalId
         in: path
         required: true
         description: >
-          Barbero ya elegido (HU-092). No confiado: se revalida que tenga
-          asignación vigente al servicio activo `serviceId` dentro de la
-          barbería resuelta por `slug` en cada intento.
+          Profesional ya elegido (HU-092). No confiado: se revalida que tenga
+          asignación vigente al servicio activo `serviceId` dentro del
+          negocio resuelto por `slug` en cada intento.
         schema:
           type: string
           format: uuid
         examples:
-          barberId:
+          professionalId:
             value: 1c9a7f2d-3b4e-4a5f-9c6d-7e8f9a0b1c2d
     requestBody:
       required: true
@@ -656,8 +655,8 @@
         $ref: '../components/responses/InvalidRequestProblem.yaml'
       "404":
         description: >
-          `slug` con forma inválida, inexistente o de una barbería no
-          publicable, o `serviceId`/`barberId` ajeno, inexistente, inactivo
+          `slug` con forma inválida, inexistente o de un negocio no
+          publicable, o `serviceId`/`professionalId` ajeno, inexistente, inactivo
           o sin asignación vigente, sin distinguir la causa (CA-090-02,
           CA-092-03, RN-TEN-01).
         headers:
@@ -673,7 +672,7 @@
                   type: /api/v1/problems/not-found
                   title: No encontrado
                   status: 404
-                  detail: no existe un servicio activo asignado a ese barbero en esa barbería pública
+                  detail: no existe un servicio activo asignado a ese profesional en ese negocio público
                   instance: 8f3ac2b1e4d5f6a7c8d9e0f1a2b3c4d5
                   code: not-found
                   requestId: 8f3ac2b1e4d5f6a7c8d9e0f1a2b3c4d5
@@ -722,18 +721,18 @@
       "500":
         $ref: '../components/responses/InternalErrorProblem.yaml'
 
-/public/barbershops/{slug}/barbers/{barberId}/reviews:
+/public/businesses/{slug}/professionals/{professionalId}/reviews:
   get:
     tags: [PublicBooking]
-    summary: Leer las reseñas visibles de un barbero
+    summary: Leer las reseñas visibles de un profesional
     description: >
-      Devuelve el promedio, el total y hasta 20 reseñas no ocultas del barbero,
+      Devuelve el promedio, el total y hasta 20 reseñas no ocultas del profesional,
       de la más reciente a la más antigua (HU-100, `CA-100-04`, `DEC-128`), sin
       sesión. Una reseña oculta no aparece ni cuenta (`CA-100-05`). Un `slug`
-      inválido o de una barbería no publicable y un `barberId` inexistente o de
-      otra barbería responden exactamente el mismo `404`, sin distinguir la
+      inválido o de un negocio no publicable y un `professionalId` inexistente o de
+      otro negocio responden exactamente el mismo `404`, sin distinguir la
       causa (`CA-090-02`, `RN-TEN-01`).
-    operationId: listPublicBarberReviews
+    operationId: listPublicProfessionalReviews
     security: []
     x-business-rules: [RN-TEN-01, RN-DAT-02]
     x-decisions: [DEC-024, DEC-082, DEC-128]
@@ -747,16 +746,16 @@
           maxLength: 100
         examples:
           slug:
-            value: barberia-ejemplo
-      - name: barberId
+            value: negocio-ejemplo
+      - name: professionalId
         in: path
         required: true
-        description: Identificador del barbero, tal como lo entrega la lista pública.
+        description: Identificador del profesional, tal como lo entrega la lista pública.
         schema:
           type: string
           format: uuid
         examples:
-          barbero:
+          profesional:
             value: 8f3ac2b1-e4d5-46f6-a7c8-d9e0f1a2b3c4
     responses:
       "200":
@@ -766,20 +765,20 @@
       "500":
         $ref: '../components/responses/InternalErrorProblem.yaml'
 
-/public/barbershops/{slug}/reviews:
+/public/businesses/{slug}/reviews:
   get:
     tags: [PublicBooking]
     summary: Leer la calificación y las reseñas de Google del negocio
     description: >
       Devuelve la calificación, el total y hasta 5 reseñas de la ficha de Google
-      de la barbería (HU-101, `CA-101-02`, `DEC-129`), sin sesión. El servidor
+      del negocio (HU-101, `CA-101-02`, `DEC-129`), sin sesión. El servidor
       consulta a Google Places con su propia clave (`CA-101-04`: nunca llega al
       navegador) y guarda el resultado 6 horas en memoria (`CA-101-05`); el texto
       de una reseña no se persiste. Sin Place ID guardado en la base de datos (`DEC-137`: lo fija quien opera la
       base, no el panel), sin credencial de Google
       o ante una consulta fallida (red, cuota agotada, identificador inválido)
       responde `200` con la estructura vacía explícita, nunca un error visible
-      (`CA-101-01`, `CA-101-03`). Un `slug` inválido o de una barbería no
+      (`CA-101-01`, `CA-101-03`). Un `slug` inválido o de un negocio no
       publicable responde el mismo `404` uniforme (`CA-090-02`, `RN-TEN-01`).
     operationId: getPublicGoogleReviews
     security: []
@@ -795,7 +794,7 @@
           maxLength: 100
         examples:
           slug:
-            value: barberia-ejemplo
+            value: negocio-ejemplo
     responses:
       "200":
         $ref: '../components/responses/PublicGoogleReviewsSuccess.yaml'
@@ -803,3 +802,569 @@
         $ref: '../components/responses/NotFoundProblem.yaml'
       "500":
         $ref: '../components/responses/InternalErrorProblem.yaml'
+
+# DEC-183 (issue #661): alias deprecados con la ruta anterior, que Odin todavía
+# lee. Mismos handlers y mismas respuestas que las rutas /businesses; se retiran
+# cuando Odin migre.
+/public/barbershops/{slug}:
+  get:
+    tags:
+    - PublicBooking
+    summary: Abrir el contexto público de un negocio por su enlace de reservas (ruta anterior)
+    description: 'Alias deprecado de `GET /public/businesses/{slug}` (DEC-183, issue #661): misma respuesta
+      y mismos errores. Se conserva mientras Odin no use la ruta nueva; después se retira.'
+    operationId: resolvePublicBusinessDeprecated
+    deprecated: true
+    security: []
+    x-business-rules:
+    - RN-TEN-01
+    - RN-DAT-01
+    - RN-DAT-02
+    x-decisions:
+    - DEC-016
+    - DEC-019
+    - DEC-022
+    - DEC-024
+    - DEC-033
+    - DEC-034
+    - DEC-035
+    - DEC-036
+    - DEC-037
+    - DEC-038
+    - DEC-039
+    - DEC-077
+    - DEC-078
+    - DEC-079
+    - DEC-082
+    - DEC-110
+    - DEC-119
+    - DEC-130
+    - DEC-182
+    - DEC-183
+    parameters:
+    - name: slug
+      in: path
+      required: true
+      description: 'Identificador del enlace público de reservas, tal como aparece en la URL. No es un
+        identificador interno: su forma, generación y ciclo de vida los fija DEC-082 (resuelve DP-PUB-01).
+
+        '
+      schema:
+        type: string
+        maxLength: 100
+      examples:
+        slug:
+          value: negocio-ejemplo
+    responses:
+      '200':
+        $ref: ../components/responses/PublicBusinessProfileSuccess.yaml
+      '404':
+        description: '`slug` con forma inválida, inexistente o de un negocio no publicable, sin distinguir
+          la causa (CA-090-02, RN-TEN-01).
+
+          '
+        headers:
+          X-Request-Id:
+            $ref: ../components/headers/XRequestId.yaml
+        content:
+          application/problem+json:
+            schema:
+              $ref: ../components/schemas/Problem.yaml
+            examples:
+              enlaceNoDisponible:
+                value:
+                  type: /api/v1/problems/not-found
+                  title: No encontrado
+                  status: 404
+                  detail: no existe un negocio público con ese enlace
+                  instance: 8f3ac2b1e4d5f6a7c8d9e0f1a2b3c4d5
+                  code: not-found
+                  requestId: 8f3ac2b1e4d5f6a7c8d9e0f1a2b3c4d5
+      '500':
+        $ref: ../components/responses/InternalErrorProblem.yaml
+/public/barbershops/{slug}/services:
+  get:
+    tags:
+    - PublicBooking
+    summary: Listar el catálogo público de servicios de un negocio (ruta anterior)
+    description: 'Alias deprecado de `GET /public/businesses/{slug}/services` (DEC-183, issue #661): misma
+      respuesta y mismos errores. Se conserva mientras Odin no use la ruta nueva; después se retira.'
+    operationId: listPublicServicesDeprecated
+    deprecated: true
+    security: []
+    x-business-rules:
+    - RN-SER-01
+    - RN-SER-02
+    - RN-SER-03
+    - RN-SER-04
+    - RN-TEN-01
+    - RN-DAT-02
+    x-decisions:
+    - DEC-002
+    - DEC-003
+    - DEC-004
+    - DEC-016
+    - DEC-019
+    - DEC-024
+    - DEC-067
+    - DEC-068
+    - DEC-069
+    - DEC-077
+    - DEC-078
+    - DEC-079
+    - DEC-183
+    parameters:
+    - name: slug
+      in: path
+      required: true
+      description: 'Identificador del enlace público de reservas, tal como aparece en la URL. No es un
+        identificador interno: su forma, generación y ciclo de vida los fija DEC-082 (resuelve DP-PUB-01).
+
+        '
+      schema:
+        type: string
+        maxLength: 100
+      examples:
+        slug:
+          value: negocio-ejemplo
+    - name: cursor
+      in: query
+      required: false
+      description: 'Cursor opaco devuelto por una página anterior (`nextCursor`). Sin este parámetro,
+        la respuesta empieza en la primera página.
+
+        '
+      schema:
+        type: string
+      examples:
+        continuacion:
+          value: eyJjcmVhdGVkQXQiOiIyMDI2LTA5LTExVDE1OjA1OjEwWiIsImlkIjoiMWEyYjNjNGQtNWU2Zi00NzA4LTlhMGItMWMyZDNlNGY1MDYxIn0=
+    - name: limit
+      in: query
+      required: false
+      description: Máximo de servicios por página.
+      schema:
+        type: integer
+        minimum: 1
+        maximum: 50
+        default: 20
+      examples:
+        porDefecto:
+          value: 20
+    responses:
+      '200':
+        $ref: ../components/responses/PublicServiceListSuccess.yaml
+      '400':
+        $ref: ../components/responses/InvalidRequestProblem.yaml
+      '404':
+        description: '`slug` con forma inválida, inexistente o de un negocio no publicable, sin distinguir
+          la causa (CA-090-02, RN-TEN-01).
+
+          '
+        headers:
+          X-Request-Id:
+            $ref: ../components/headers/XRequestId.yaml
+        content:
+          application/problem+json:
+            schema:
+              $ref: ../components/schemas/Problem.yaml
+            examples:
+              enlaceNoDisponible:
+                value:
+                  type: /api/v1/problems/not-found
+                  title: No encontrado
+                  status: 404
+                  detail: no existe un negocio público con ese enlace
+                  instance: 8f3ac2b1e4d5f6a7c8d9e0f1a2b3c4d5
+                  code: not-found
+                  requestId: 8f3ac2b1e4d5f6a7c8d9e0f1a2b3c4d5
+      '500':
+        $ref: ../components/responses/InternalErrorProblem.yaml
+/public/barbershops/{slug}/reviews:
+  get:
+    tags:
+    - PublicBooking
+    summary: Leer la calificación y las reseñas de Google del negocio (ruta anterior)
+    description: 'Alias deprecado de `GET /public/businesses/{slug}/reviews` (DEC-183, issue #661): misma
+      respuesta y mismos errores. Se conserva mientras Odin no use la ruta nueva; después se retira.'
+    operationId: getPublicGoogleReviewsDeprecated
+    deprecated: true
+    security: []
+    x-business-rules:
+    - RN-TEN-01
+    x-decisions:
+    - DEC-024
+    - DEC-082
+    - DEC-110
+    - DEC-129
+    - DEC-183
+    parameters:
+    - name: slug
+      in: path
+      required: true
+      description: Identificador del enlace público de reservas (DEC-082).
+      schema:
+        type: string
+        maxLength: 100
+      examples:
+        slug:
+          value: negocio-ejemplo
+    responses:
+      '200':
+        $ref: ../components/responses/PublicGoogleReviewsSuccess.yaml
+      '404':
+        $ref: ../components/responses/NotFoundProblem.yaml
+      '500':
+        $ref: ../components/responses/InternalErrorProblem.yaml
+/public/barbershops/{slug}/barbers:
+  get:
+    tags:
+    - PublicBooking
+    summary: Listar los profesionales elegibles del negocio con los servicios que hacen (ruta anterior)
+    description: 'Alias deprecado de `GET /public/businesses/{slug}/professionals` (DEC-183, issue #661):
+      misma respuesta y mismos errores. Se conserva mientras Odin no use la ruta nueva; después se retira.'
+    operationId: listPublicProfessionalsWithServicesDeprecated
+    deprecated: true
+    security: []
+    x-business-rules:
+    - RN-TEN-01
+    - RN-CON-01
+    - RN-DAT-02
+    x-decisions:
+    - DEC-019
+    - DEC-047
+    - DEC-068
+    - DEC-077
+    - DEC-162
+    - DEC-183
+    parameters:
+    - name: slug
+      in: path
+      required: true
+      description: 'Identificador del enlace público de reservas, tal como aparece en la URL. No es un
+        identificador interno: su forma, generación y ciclo de vida los fija DEC-082 (resuelve DP-PUB-01).
+
+        '
+      schema:
+        type: string
+        maxLength: 100
+      examples:
+        slug:
+          value: negocio-ejemplo
+    responses:
+      '200':
+        $ref: ../components/responses/PublicProfessionalServicesListSuccess.yaml
+      '404':
+        description: '`slug` con forma inválida, inexistente o de un negocio no publicable, sin distinguir
+          la causa (CA-090-02, RN-TEN-01).
+
+          '
+        headers:
+          X-Request-Id:
+            $ref: ../components/headers/XRequestId.yaml
+        content:
+          application/problem+json:
+            schema:
+              $ref: ../components/schemas/Problem.yaml
+            examples:
+              enlaceNoDisponible:
+                value:
+                  type: /api/v1/problems/not-found
+                  title: No encontrado
+                  status: 404
+                  detail: no existe un negocio público con ese enlace
+                  instance: 8f3ac2b1e4d5f6a7c8d9e0f1a2b3c4d5
+                  code: not-found
+                  requestId: 8f3ac2b1e4d5f6a7c8d9e0f1a2b3c4d5
+      '500':
+        $ref: ../components/responses/InternalErrorProblem.yaml
+/public/barbershops/{slug}/services/{serviceId}/barbers:
+  get:
+    tags:
+    - PublicBooking
+    summary: Listar los profesionales elegibles para un servicio público (ruta anterior)
+    description: 'Alias deprecado de `GET /public/businesses/{slug}/services/{serviceId}/professionals`
+      (DEC-183, issue #661): misma respuesta y mismos errores. Se conserva mientras Odin no use la ruta
+      nueva; después se retira.'
+    operationId: listPublicProfessionalsDeprecated
+    deprecated: true
+    security: []
+    x-business-rules:
+    - RN-TEN-01
+    - RN-CON-01
+    - RN-DAT-02
+    x-decisions:
+    - DEC-019
+    - DEC-024
+    - DEC-047
+    - DEC-068
+    - DEC-077
+    - DEC-078
+    - DEC-079
+    - DEC-127
+    - DEC-183
+    parameters:
+    - name: slug
+      in: path
+      required: true
+      description: 'Identificador del enlace público de reservas, tal como aparece en la URL. No es un
+        identificador interno: su forma, generación y ciclo de vida los fija DEC-082 (resuelve DP-PUB-01).
+
+        '
+      schema:
+        type: string
+        maxLength: 100
+      examples:
+        slug:
+          value: negocio-ejemplo
+    - name: serviceId
+      in: path
+      required: true
+      description: 'Identificador del servicio activo ya elegido (HU-091). No confiado: se revalida pertenencia,
+        vigencia y asignación contra el negocio resuelto por `slug` en cada lectura (CA-092-03).
+
+        '
+      schema:
+        type: string
+        format: uuid
+      examples:
+        serviceId:
+          value: 8f3ac2b1-e4d5-46f6-a7c8-d9e0f1a2b3c4
+    responses:
+      '200':
+        $ref: ../components/responses/PublicProfessionalListSuccess.yaml
+      '404':
+        description: '`slug` con forma inválida, inexistente o de un negocio no publicable, sin distinguir
+          la causa (CA-090-02, RN-TEN-01).
+
+          '
+        headers:
+          X-Request-Id:
+            $ref: ../components/headers/XRequestId.yaml
+        content:
+          application/problem+json:
+            schema:
+              $ref: ../components/schemas/Problem.yaml
+            examples:
+              enlaceNoDisponible:
+                value:
+                  type: /api/v1/problems/not-found
+                  title: No encontrado
+                  status: 404
+                  detail: no existe un negocio público con ese enlace
+                  instance: 8f3ac2b1e4d5f6a7c8d9e0f1a2b3c4d5
+                  code: not-found
+                  requestId: 8f3ac2b1e4d5f6a7c8d9e0f1a2b3c4d5
+      '500':
+        $ref: ../components/responses/InternalErrorProblem.yaml
+/public/barbershops/{slug}/services/{serviceId}/availability:
+  get:
+    tags:
+    - PublicBooking
+    summary: Listar los inicios públicos válidos de un servicio con todos sus profesionales (ruta anterior)
+    description: 'Alias deprecado de `GET /public/businesses/{slug}/services/{serviceId}/availability`
+      (DEC-183, issue #661): misma respuesta y mismos errores. Se conserva mientras Odin no use la ruta
+      nueva; después se retira.'
+    operationId: listPublicServiceAvailabilityDeprecated
+    deprecated: true
+    security: []
+    x-business-rules:
+    - RN-DIS-01
+    - RN-DIS-02
+    - RN-DIS-03
+    - RN-DIS-04
+    - RN-DIS-05
+    - RN-DIS-06
+    - RN-DIS-07
+    - RN-BLQ-01
+    - RN-BLQ-02
+    - RN-BLQ-03
+    - RN-BLQ-04
+    - RN-CON-01
+    - RN-CON-03
+    - RN-CAN-04
+    - RN-TEN-01
+    x-decisions:
+    - DEC-002
+    - DEC-005
+    - DEC-006
+    - DEC-007
+    - DEC-008
+    - DEC-009
+    - DEC-012
+    - DEC-018
+    - DEC-019
+    - DEC-020
+    - DEC-024
+    - DEC-070
+    - DEC-073
+    - DEC-076
+    - DEC-083
+    - DEC-135
+    - DEC-162
+    - DEC-183
+    parameters:
+    - name: slug
+      in: path
+      required: true
+      description: 'Identificador del enlace público de reservas, tal como aparece en la URL. No es un
+        identificador interno: su forma, generación y ciclo de vida los fija DEC-082 (resuelve DP-PUB-01).
+
+        '
+      schema:
+        type: string
+        maxLength: 100
+      examples:
+        slug:
+          value: negocio-ejemplo
+    - name: serviceId
+      in: path
+      required: true
+      description: 'Identificador del servicio activo ya elegido (HU-091). No confiado: se revalida pertenencia
+        y vigencia contra el negocio resuelto por `slug` en cada lectura (mismo criterio que CA-092-03).
+
+        '
+      schema:
+        type: string
+        format: uuid
+      examples:
+        serviceId:
+          value: 8f3ac2b1-e4d5-46f6-a7c8-d9e0f1a2b3c4
+    responses:
+      '200':
+        $ref: ../components/responses/ServiceAvailabilitySuccess.yaml
+      '404':
+        description: '`slug` con forma inválida, inexistente o de un negocio no publicable, sin distinguir
+          la causa (CA-090-02, RN-TEN-01).
+
+          '
+        headers:
+          X-Request-Id:
+            $ref: ../components/headers/XRequestId.yaml
+        content:
+          application/problem+json:
+            schema:
+              $ref: ../components/schemas/Problem.yaml
+            examples:
+              enlaceNoDisponible:
+                value:
+                  type: /api/v1/problems/not-found
+                  title: No encontrado
+                  status: 404
+                  detail: no existe un negocio público con ese enlace
+                  instance: 8f3ac2b1e4d5f6a7c8d9e0f1a2b3c4d5
+                  code: not-found
+                  requestId: 8f3ac2b1e4d5f6a7c8d9e0f1a2b3c4d5
+      '500':
+        $ref: ../components/responses/InternalErrorProblem.yaml
+/public/barbershops/{slug}/services/{serviceId}/barbers/{barberId}/availability:
+  get:
+    tags:
+    - PublicBooking
+    summary: Listar los inicios públicos válidos de un servicio con un profesional (ruta anterior)
+    description: 'Alias deprecado de `GET /public/businesses/{slug}/services/{serviceId}/professionals/{professionalId}/availability`
+      (DEC-183, issue #661): misma respuesta y mismos errores. Se conserva mientras Odin no use la ruta
+      nueva; después se retira.'
+    operationId: listPublicAvailabilityDeprecated
+    deprecated: true
+    security: []
+    x-business-rules:
+    - RN-DIS-01
+    - RN-DIS-02
+    - RN-DIS-03
+    - RN-DIS-04
+    - RN-DIS-05
+    - RN-DIS-06
+    - RN-DIS-07
+    - RN-BLQ-01
+    - RN-BLQ-02
+    - RN-BLQ-03
+    - RN-BLQ-04
+    - RN-CON-01
+    - RN-CON-03
+    - RN-CAN-04
+    - RN-TEN-01
+    x-decisions:
+    - DEC-002
+    - DEC-005
+    - DEC-006
+    - DEC-007
+    - DEC-008
+    - DEC-009
+    - DEC-012
+    - DEC-018
+    - DEC-019
+    - DEC-020
+    - DEC-024
+    - DEC-070
+    - DEC-073
+    - DEC-076
+    - DEC-083
+    - DEC-084
+    - DEC-135
+    - DEC-183
+    parameters:
+    - name: slug
+      in: path
+      required: true
+      description: 'Identificador del enlace público de reservas, tal como aparece en la URL. No es un
+        identificador interno: su forma, generación y ciclo de vida los fija DEC-082 (resuelve DP-PUB-01).
+
+        '
+      schema:
+        type: string
+        maxLength: 100
+      examples:
+        slug:
+          value: negocio-ejemplo
+    - name: serviceId
+      in: path
+      required: true
+      description: 'Identificador del servicio activo ya elegido (HU-091). No confiado: se revalida pertenencia,
+        vigencia y asignación contra el negocio resuelto por `slug` en cada lectura (mismo criterio que
+        CA-092-03).
+
+        '
+      schema:
+        type: string
+        format: uuid
+      examples:
+        serviceId:
+          value: 8f3ac2b1-e4d5-46f6-a7c8-d9e0f1a2b3c4
+    - name: barberId
+      in: path
+      required: true
+      description: Identificador del profesional (nombre anterior del parámetro).
+      schema:
+        type: string
+        format: uuid
+      examples:
+        professionalId:
+          value: 1c9a7f2d-3b4e-4a5f-9c6d-7e8f9a0b1c2d
+    responses:
+      '200':
+        $ref: ../components/responses/AvailabilitySuccess.yaml
+      '404':
+        description: '`slug` con forma inválida, inexistente o de un negocio no publicable, sin distinguir
+          la causa (CA-090-02, RN-TEN-01).
+
+          '
+        headers:
+          X-Request-Id:
+            $ref: ../components/headers/XRequestId.yaml
+        content:
+          application/problem+json:
+            schema:
+              $ref: ../components/schemas/Problem.yaml
+            examples:
+              enlaceNoDisponible:
+                value:
+                  type: /api/v1/problems/not-found
+                  title: No encontrado
+                  status: 404
+                  detail: no existe un negocio público con ese enlace
+                  instance: 8f3ac2b1e4d5f6a7c8d9e0f1a2b3c4d5
+                  code: not-found
+                  requestId: 8f3ac2b1e4d5f6a7c8d9e0f1a2b3c4d5
+      '500':
+        $ref: ../components/responses/InternalErrorProblem.yaml

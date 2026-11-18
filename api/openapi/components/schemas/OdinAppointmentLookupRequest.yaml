@@ -1,4 +1,4 @@
-# Cuerpo de POST /integrations/odin/barbershops/{slug}/customer-appointments/lookup (HU-106).
+# Cuerpo de POST /integrations/odin/businesses/{slug}/customer-appointments/lookup (HU-106).
 type: object
 additionalProperties: false
 description: El teléfono del remitente de WhatsApp, tal como Meta lo firma.

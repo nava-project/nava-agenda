@@ -23,7 +23,7 @@ type BarberBookingPolicy struct {
 }
 
 // BarberBookingPolicyInput es la entrada cruda de PUT
-// /private/settings/booking-policy/barbers/{barberId}, sin validar todavía.
+// /private/settings/booking-policy/professionals/{professionalId}, sin validar todavía.
 type BarberBookingPolicyInput struct {
 	MinAdvanceMinutes int
 	MaxAdvanceDays    int

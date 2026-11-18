@@ -28,7 +28,7 @@ const {
 
 const wire = {
   enabled: true,
-  barberLinked: true,
+  professionalLinked: true,
   status: 'connected',
   accountEmail: 'barbero@ejemplo.test',
   reminderMinutes: 30,
@@ -37,6 +37,10 @@ const wire = {
   pendingSyncJobs: 2,
   failedSyncJobs: 0,
 }
+
+// El modelo del panel conserva barberLinked; el contrato lo llama professionalLinked.
+const { professionalLinked, ...wireRest } = wire
+const connection = { ...wireRest, barberLinked: professionalLinked }
 
 function ok(body: unknown) {
   return { data: body, error: undefined, response: new Response(null, { status: 200 }) }
@@ -50,7 +54,7 @@ describe('googleCalendarApi.fetchConnection', () => {
 
   it('maps a 200 to the connection', async () => {
     getMock.mockResolvedValueOnce(ok(wire))
-    expect(await fetchConnection()).toEqual({ kind: 'success', connection: wire })
+    expect(await fetchConnection()).toEqual({ kind: 'success', connection })
     expect(getMock).toHaveBeenCalledWith('/private/integrations/google-calendar')
   })
 
@@ -154,7 +158,7 @@ describe('googleCalendarApi.syncNow / disconnect / updateReminder', () => {
     patchMock.mockResolvedValueOnce(ok({ ...wire, reminderMinutes: 15 }))
     expect(await updateReminder(15)).toEqual({
       kind: 'success',
-      connection: { ...wire, reminderMinutes: 15 },
+      connection: { ...connection, reminderMinutes: 15 },
     })
     expect(patchMock).toHaveBeenCalledWith('/private/integrations/google-calendar', {
       body: { reminderMinutes: 15 },
@@ -183,7 +187,9 @@ describe('googleCalendarApi.linkSoleBarber (DEC-155)', () => {
     getMock.mockResolvedValueOnce(ok({ items: [{ id: 'b-1' }], nextCursor: null }))
     putMock.mockResolvedValueOnce(ok({ id: 'b-1' }))
     expect(await linkSoleBarber()).toEqual({ kind: 'success' })
-    expect(putMock).toHaveBeenCalledWith('/private/me/barber', { body: { barberId: 'b-1' } })
+    expect(putMock).toHaveBeenCalledWith('/private/me/professional', {
+      body: { professionalId: 'b-1' },
+    })
   })
 
   it('does not guess when there are several barbers, none, or more pages', async () => {

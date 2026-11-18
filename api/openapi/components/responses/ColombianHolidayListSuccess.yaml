@@ -1,7 +1,7 @@
 # Respuesta 200 de GET /private/schedule/colombian-holidays (HU-041).
 description: >
   Festivos colombianos del año consultado. Dato de referencia calendárica,
-  igual para toda barbería y todo barbero.
+  igual para todo negocio y todo profesional.
 headers:
   X-Request-Id:
     $ref: '../headers/XRequestId.yaml'

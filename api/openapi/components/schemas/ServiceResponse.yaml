@@ -2,12 +2,12 @@
 # CA-022-07; HU-024, CA-024-02, CA-024-05): id, name, description,
 # durationMinutes, price, currency, isActive, deactivatedAt, createdAt,
 # updatedAt. isActive/deactivatedAt reflejan el ciclo de vida de HU-024
-# (RN-SER-03): nunca asignaciones a barberos ni citas (alcance excluido de
-# HU-022/HU-024). barbershopId NUNCA aparece, mismo criterio que
-# BarberResponse: el tenant se deriva exclusivamente de SessionCookie.
+# (RN-SER-03): nunca asignaciones a profesionales ni citas (alcance excluido de
+# HU-022/HU-024). businessId NUNCA aparece, mismo criterio que
+# ProfessionalResponse: el tenant se deriva exclusivamente de SessionCookie.
 type: object
 description: >
-  Servicio del catálogo de la barbería activa. currency es siempre "COP"
+  Servicio del catálogo del negocio activo. currency es siempre "COP"
   (DEC-067): fija para todo el MVP, nunca aceptada como entrada del cliente.
   isActive/deactivatedAt son de solo lectura: ningún endpoint de HU-022
   (create/update) los acepta como entrada; solo cambian mediante

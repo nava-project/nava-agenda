@@ -1,12 +1,12 @@
-# Cuerpo de POST /private/barbers/{barberId}/working-hours (CA-040-02,
+# Cuerpo de POST /private/professionals/{professionalId}/working-hours (CA-040-02,
 # CA-040-04). Cerrado: el handler rechaza cualquier campo desconocido,
-# mismo criterio que CreateBarberRequest. Nunca declara barbershopId ni
-# barberId (el tenant se deriva de SessionCookie, el barbero de la ruta).
+# mismo criterio que CreateProfessionalRequest. Nunca declara businessId ni
+# professionalId (el tenant se deriva de SessionCookie, el profesional de la ruta).
 type: object
 description: >
-  Alta de un tramo recurrente de la jornada laboral del barbero de la ruta.
+  Alta de un tramo recurrente de la jornada laboral del profesional de la ruta.
   Un día ISO fuera de 1-7, una hora con formato inválido, una duración
-  fuera de [1, 1440] o un tramo que se solapa con otro del mismo barbero y
+  fuera de [1, 1440] o un tramo que se solapa con otro del mismo profesional y
   día responden 422/409 sin persistir nada (CA-040-04).
 properties:
   isoWeekday:
@@ -20,7 +20,7 @@ properties:
     type: string
     pattern: '^([01]\d|2[0-3]):[0-5]\d$'
     description: >
-      Hora civil de inicio del tramo, en la zona IANA de la barbería,
+      Hora civil de inicio del tramo, en la zona IANA del negocio,
       formato HH:MM de 24 horas.
     examples:
       - "08:00"

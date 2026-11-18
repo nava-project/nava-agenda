@@ -1,6 +1,6 @@
 // Único punto del módulo `schedules` que llama al cliente HTTP tipado
 // (docs/03-desarrollo/estandar-frontend-vue.md §6). Traduce las respuestas
-// reales de GET/POST /private/barbers/{barberId}/working-hours y
+// reales de GET/POST /private/professionals/{professionalId}/working-hours y
 // GET/PATCH/DELETE .../working-hours/{workingHourId} a los outcomes
 // discriminados que la página consume; ningún componente ve `Problem`,
 // `status` HTTP crudo ni cabeceras.
@@ -33,7 +33,7 @@ const WORKING_HOURS_LIMIT = 50
 
 export async function fetchBarberSummaries(): Promise<FetchBarberSummariesOutcome> {
   try {
-    const { data, response } = await httpClient.GET('/private/barbers', {
+    const { data, response } = await httpClient.GET('/private/professionals', {
       params: { query: { limit: PICKER_LIMIT } },
     })
 
@@ -59,7 +59,7 @@ export async function fetchBarberSummaries(): Promise<FetchBarberSummariesOutcom
 // barbería junto a la hora, nunca la del dispositivo.
 export async function fetchBarbershopTimezone(): Promise<FetchBarbershopTimezoneOutcome> {
   try {
-    const { data, response } = await httpClient.GET('/private/settings/barbershop')
+    const { data, response } = await httpClient.GET('/private/settings/business')
     if (response.ok && data) {
       return { kind: 'success', timezone: data.timezone }
     }
@@ -71,9 +71,12 @@ export async function fetchBarbershopTimezone(): Promise<FetchBarbershopTimezone
 
 export async function fetchWorkingHours(barberId: string): Promise<FetchWorkingHoursOutcome> {
   try {
-    const { data, response } = await httpClient.GET('/private/barbers/{barberId}/working-hours', {
-      params: { path: { barberId }, query: { limit: WORKING_HOURS_LIMIT } },
-    })
+    const { data, response } = await httpClient.GET(
+      '/private/professionals/{professionalId}/working-hours',
+      {
+        params: { path: { professionalId: barberId }, query: { limit: WORKING_HOURS_LIMIT } },
+      },
+    )
 
     if (response.ok && data) {
       return { kind: 'success', page: toPage(data) }
@@ -99,9 +102,12 @@ export async function createWorkingHour(
 ): Promise<CreateWorkingHourOutcome> {
   try {
     const { data, response, error } = await httpClient.POST(
-      '/private/barbers/{barberId}/working-hours',
+      '/private/professionals/{professionalId}/working-hours',
       {
-        params: { path: { barberId }, header: { 'Idempotency-Key': idempotencyKey } },
+        params: {
+          path: { professionalId: barberId },
+          header: { 'Idempotency-Key': idempotencyKey },
+        },
         body: { isoWeekday, startsTime, durationMinutes },
       },
     )
@@ -139,9 +145,9 @@ export async function updateWorkingHour(
 ): Promise<UpdateWorkingHourOutcome> {
   try {
     const { data, response } = await httpClient.PATCH(
-      '/private/barbers/{barberId}/working-hours/{workingHourId}',
+      '/private/professionals/{professionalId}/working-hours/{workingHourId}',
       {
-        params: { path: { barberId, workingHourId } },
+        params: { path: { professionalId: barberId, workingHourId } },
         body: { isoWeekday, startsTime, durationMinutes },
       },
     )
@@ -171,8 +177,8 @@ export async function deleteWorkingHour(
 ): Promise<DeleteWorkingHourOutcome> {
   try {
     const { response } = await httpClient.DELETE(
-      '/private/barbers/{barberId}/working-hours/{workingHourId}',
-      { params: { path: { barberId, workingHourId } } },
+      '/private/professionals/{professionalId}/working-hours/{workingHourId}',
+      { params: { path: { professionalId: barberId, workingHourId } } },
     )
 
     if (response.ok) {

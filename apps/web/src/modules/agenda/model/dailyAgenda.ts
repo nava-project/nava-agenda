@@ -4,7 +4,7 @@ import type { Vocabulary } from '@/shared/model'
 // `booking.Status` en el backend (nunca números, DEC-016/estados-citas.md
 // §11).
 export type AppointmentStatus =
-  'confirmed' | 'completed' | 'cancelled_by_customer' | 'cancelled_by_barber' | 'no_show'
+  'confirmed' | 'completed' | 'cancelled_by_customer' | 'cancelled_by_professional' | 'no_show'
 
 export type AppointmentOrigin = 'public' | 'manual'
 
@@ -34,17 +34,20 @@ export type DailyAgendaEntry = {
 
 // Etiquetas en español de los cinco estados (CA-062-03): la interfaz nunca
 // muestra el texto técnico en inglés de la API.
-const FIXED_STATUS_LABELS: Record<Exclude<AppointmentStatus, 'cancelled_by_barber'>, string> = {
+const FIXED_STATUS_LABELS: Record<
+  Exclude<AppointmentStatus, 'cancelled_by_professional'>,
+  string
+> = {
   confirmed: 'Confirmado',
   completed: 'Completado',
   cancelled_by_customer: 'Cancelado por el cliente',
   no_show: 'No se presentó',
 }
 
-// El estado técnico `cancelled_by_barber` no se renombra (DEC-016, contrato); su
+// El estado técnico `cancelled_by_professional` no se renombra (DEC-016, contrato); su
 // etiqueta nombra a quien atiende con la palabra de la barbería (DEC-110, DEC-119).
 export function appointmentStatusLabel(status: AppointmentStatus, v: Vocabulary): string {
-  return status === 'cancelled_by_barber'
+  return status === 'cancelled_by_professional'
     ? `Cancelado ${v.byTheProfessional}`
     : FIXED_STATUS_LABELS[status]
 }
@@ -66,7 +69,7 @@ export const APPOINTMENT_STATUS_BADGE_VARIANT: Record<
   confirmed: 'info',
   completed: 'success',
   cancelled_by_customer: 'neutral',
-  cancelled_by_barber: 'danger',
+  cancelled_by_professional: 'danger',
   no_show: 'warning',
 }
 

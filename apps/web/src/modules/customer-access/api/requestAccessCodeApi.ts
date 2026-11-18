@@ -1,5 +1,5 @@
 // Pedir el código para entrar al turno (HU-105): único punto que llama a
-// `POST /public/barbershops/{slug}/customer-access/challenge`. La página nunca ve
+// `POST /public/businesses/{slug}/customer-access/challenge`. La página nunca ve
 // `Problem` ni el `status` crudo.
 import { httpClient } from '@/shared/api/httpClient'
 import { isProblem } from '@/shared/api/problem'
@@ -25,7 +25,7 @@ export async function requestAccessCode(
 ): Promise<RequestAccessCodeOutcome> {
   try {
     const { data, error, response } = await httpClient.POST(
-      '/public/barbershops/{slug}/customer-access/challenge',
+      '/public/businesses/{slug}/customer-access/challenge',
       { params: { path: { slug } }, body: { contact } },
     )
     if (response.status === 202 && data) {

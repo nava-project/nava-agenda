@@ -14,7 +14,7 @@ vi.mock('@/shared/api/httpClient', () => ({ httpClient: { POST: postMock } }))
 
 const { default: CustomerAccessRefPage } = await import('../CustomerAccessRefPage.vue')
 
-const VERIFY_REF = '/public/barbershops/{slug}/customer-access/verify-ref'
+const VERIFY_REF = '/public/businesses/{slug}/customer-access/verify-ref'
 const REF = 'ref-opaca-de-un-solo-uso'
 
 const problem = (status: number, code: string) => ({

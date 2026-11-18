@@ -157,7 +157,7 @@ describe('PublicCustomerDetailsPage', () => {
     const who = wrapper.get('.customer-details__who')
     expect(who.text()).toContain('Mateo Cruz')
     expect(who.get('img').attributes('src')).toContain(
-      `/public/barbershops/barberia-ejemplo/barbers/${BASE_PROPS.barberId}/photo`,
+      `/public/businesses/barberia-ejemplo/professionals/${BASE_PROPS.barberId}/photo`,
     )
   })
 

@@ -9,7 +9,7 @@ properties:
     type: string
     format: date-time
     description: >
-      Instante absoluto de un inicio todavía válido, mismo barbero y mismo
+      Instante absoluto de un inicio todavía válido, mismo profesional y mismo
       servicio que la franja perdida.
     examples:
       - "2026-09-20T14:30:00-05:00"

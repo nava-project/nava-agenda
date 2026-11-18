@@ -299,7 +299,7 @@ func openEveryDay(t *testing.T, db *database.DB, barberID string) {
 // createAppointment registra un turno manual (HU-061) con un cliente con correo.
 func (p *publication) createAppointment(t *testing.T, startsAt string) (id string, version string) {
 	t.Helper()
-	body := `{"barberId":"` + p.barber.ID + `","serviceId":"` + p.service.ID + `","attendeeName":"Ana Pérez",` +
+	body := `{"professionalId":"` + p.barber.ID + `","serviceId":"` + p.service.ID + `","attendeeName":"Ana Pérez",` +
 		`"customerFullName":"Ana Pérez","customerEmail":"ana.` + strings.ToLower(uniqueToken(t, "e")) + `@ejemplo.test","startsAt":"` + startsAt + `"}`
 	rec := doJSONRequest(p.router, http.MethodPost, p.raw, "/appointments", uniqueToken(t, "appt"), body)
 	if rec.Code != http.StatusCreated {
@@ -456,7 +456,7 @@ func TestPublication_TimeBlock_PublishesAndDeletes(t *testing.T) {
 
 	key := uniqueToken(t, "pub-block")
 	body := `{"blockType":"lunch","startsAt":"` + futureCivil(12, 12) + `-05:00","endsAt":"` + futureCivil(12, 13) + `-05:00","reason":"Nota privada del barbero"}`
-	rec := doJSONRequest(p.router, http.MethodPost, p.raw, "/barbers/"+p.barber.ID+"/time-blocks", key, body)
+	rec := doJSONRequest(p.router, http.MethodPost, p.raw, "/professionals/"+p.barber.ID+"/time-blocks", key, body)
 	if rec.Code != http.StatusCreated {
 		t.Fatalf("crear bloqueo: %d %s", rec.Code, rec.Body.String())
 	}
@@ -475,7 +475,7 @@ func TestPublication_TimeBlock_PublishesAndDeletes(t *testing.T) {
 		t.Fatal("un bloqueo nunca invita a nadie")
 	}
 
-	if rec := doJSONRequest(p.router, http.MethodDelete, p.raw, "/barbers/"+p.barber.ID+"/time-blocks/"+block.ID, "", ""); rec.Code != http.StatusNoContent {
+	if rec := doJSONRequest(p.router, http.MethodDelete, p.raw, "/professionals/"+p.barber.ID+"/time-blocks/"+block.ID, "", ""); rec.Code != http.StatusNoContent {
 		t.Fatalf("retirar bloqueo: %d", rec.Code)
 	}
 	p.drain(t)

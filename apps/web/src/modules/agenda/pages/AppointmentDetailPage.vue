@@ -87,7 +87,7 @@ const historyLoadingMore = ref(false)
 const statusLabel = computed(() =>
   detail.value ? appointmentStatusLabel(detail.value.status, v.value) : '',
 )
-// Mismo mapa que DailyAgendaPage.vue: cancelled_by_barber ya tiene el
+// Mismo mapa que DailyAgendaPage.vue: cancelled_by_professional ya tiene el
 // tratamiento terminal 'danger' que el atlas asigna a un turno cancelado
 // (docs/10-backlog/evidence/.../detalle-turno-eventos/10-turno-cancelado.png),
 // reutilizado tal cual en vez de inventar un color nuevo para HU-066.
@@ -102,7 +102,7 @@ const STATUS_TONE: Record<AppointmentStatus, string> = {
   completed: 'completed',
   no_show: 'no-show',
   cancelled_by_customer: 'cancelled',
-  cancelled_by_barber: 'cancelled',
+  cancelled_by_professional: 'cancelled',
 }
 const statusTone = computed(() => (detail.value ? STATUS_TONE[detail.value.status] : 'pending'))
 // Un turno terminal cambia de material (contorno sobre tinta), no de peso (§6.7).
@@ -203,7 +203,7 @@ const CORRECTABLE_TERMINALS: AppointmentStatus[] = [
   'completed',
   'no_show',
   'cancelled_by_customer',
-  'cancelled_by_barber',
+  'cancelled_by_professional',
 ]
 
 // correctDestinationOptions excluye siempre el estado vigente: elegirlo de

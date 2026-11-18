@@ -9,28 +9,37 @@ properties:
     type: string
     maxLength: 128
     description: >
-      Referencia opaca del turno, ligada a la barbería y válida 30 minutos desde
+      Referencia opaca del turno, ligada al negocio y válida 30 minutos desde
       que se entrega. No es un identificador y no se puede deducir ni reutilizar en
-      otra barbería.
+      otro negocio.
   startsAt:
     type: string
     format: date-time
-    description: Inicio del turno, con la zona horaria de la barbería.
+    description: Inicio del turno, con la zona horaria del negocio.
     examples:
       - "2026-11-20T14:00:00-05:00"
   serviceName:
     type: string
     examples:
       - Corte Vbras
+  professionalName:
+    type: string
+    description: Nombre del profesional que atiende el turno.
+    examples:
+      - Jhonner Bustamante
   barberName:
     type: string
+    deprecated: true
+    description: >
+      Mismo valor que `professionalName`. Se conserva mientras Odin no confirme que
+      lee `professionalName` (DEC-183, issue #661); después se retira.
     examples:
       - Jhonner Bustamante
   canCancel:
     type: boolean
     description: >
       Hoy el cliente puede cancelar este turno por su cuenta, según el plazo y la
-      cancelación tardía que configuró la barbería (`RN-CAN-01`).
+      cancelación tardía que configuró el negocio (`RN-CAN-01`).
   canReschedule:
     type: boolean
     description: >
@@ -40,6 +49,7 @@ required:
   - appointmentRef
   - startsAt
   - serviceName
+  - professionalName
   - barberName
   - canCancel
   - canReschedule

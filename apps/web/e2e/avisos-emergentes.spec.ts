@@ -49,7 +49,7 @@ async function openCatalog(page: Page, width: number, height: number) {
     const method = route.request().method()
     if (pathname.endsWith('/auth/session')) {
       await route.fulfill(
-        json({ barbershop: { id: 'nava', name: 'NAVA' }, expiresAt: '2099-01-01T00:00:00Z' }),
+        json({ business: { id: 'nava', name: 'NAVA' }, expiresAt: '2099-01-01T00:00:00Z' }),
       )
       return
     }

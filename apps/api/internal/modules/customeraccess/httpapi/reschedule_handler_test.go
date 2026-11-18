@@ -90,7 +90,7 @@ func TestRescheduleHandler_RejectsBadRequestsBeforeTouchingTheService(t *testing
 		{"sin If-Match", `{"startsAt":"2026-11-20T20:00:00Z"}`, map[string]string{"Idempotency-Key": okHeaders["Idempotency-Key"]}},
 		{"cuerpo vacío", ``, okHeaders},
 		{"sin startsAt", `{}`, okHeaders},
-		{"campo desconocido", `{"startsAt":"2026-11-20T20:00:00Z","barberId":"x"}`, okHeaders},
+		{"campo desconocido", `{"startsAt":"2026-11-20T20:00:00Z","professionalId":"x"}`, okHeaders},
 	}
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {

@@ -34,12 +34,12 @@ const problem = (status: number, code: string) => ({
 
 function appointmentData(over: Record<string, unknown> = {}) {
   return {
-    barbershopName: 'Barbería Ejemplo',
+    businessName: 'Barbería Ejemplo',
     timezone: 'America/Bogota',
     attendeeName: 'Cliente Ejemplo',
     serviceName: 'Corte clásico',
     durationMinutes: 30,
-    barberName: 'Barbero Ejemplo',
+    professionalName: 'Barbero Ejemplo',
     startsAt: '2027-03-15T15:00:00Z',
     endsAt: '2027-03-15T15:30:00Z',
     status: 'confirmed',
@@ -47,8 +47,8 @@ function appointmentData(over: Record<string, unknown> = {}) {
     lateCancellationClientAllowed: false,
     lateCancellationReasonRequired: false,
     versionToken: 'v-1',
-    barbershopContactEmail: 'contacto@barberia-ejemplo.test',
-    barbershopContactPhone: '+573001234567',
+    businessContactEmail: 'contacto@barberia-ejemplo.test',
+    businessContactPhone: '+573001234567',
     vocabulary: {
       businessTerm: 'barbería',
       businessTermGender: 'feminine',

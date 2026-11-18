@@ -1,6 +1,6 @@
 -- Fixture propio de DEC-162: dos barberías DEDICADAS a las pruebas de los
--- agregados públicos de solo lectura (GET /public/barbershops/{slug}/barbers
--- y GET /public/barbershops/{slug}/services/{serviceId}/availability) en
+-- agregados públicos de solo lectura (GET /public/businesses/{slug}/professionals
+-- y GET /public/businesses/{slug}/services/{serviceId}/availability) en
 -- publicbooking/postgres y cmd/api. Separadas de hu092/hu094 por el mismo
 -- motivo que ellas: un conteo exacto de barberos/servicios elegibles no
 -- debe depender del estado que dejen otras suites.

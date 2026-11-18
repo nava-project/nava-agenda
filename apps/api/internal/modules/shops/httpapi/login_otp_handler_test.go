@@ -90,11 +90,11 @@ func TestUpdateLoginOTPHandler_Success_StoresForTheSessionBarbershop(t *testing.
 // y no escribe nada.
 func TestUpdateLoginOTPHandler_RejectsAnyDestinationOrUnknownField(t *testing.T) {
 	for name, body := range map[string]string{
-		"correo":       `{"channel":"email","email":"otro@ejemplo.test"}`,
-		"telefono":     `{"channel":"whatsapp","phone":"+573000000000"}`,
-		"barbershopId": `{"channel":"email","barbershopId":"22222222-2222-2222-2222-222222222222"}`,
-		"vacio":        `{"channel":"email"} {"channel":"both"}`,
-		"no-json":      `channel=email`,
+		"correo":     `{"channel":"email","email":"otro@ejemplo.test"}`,
+		"telefono":   `{"channel":"whatsapp","phone":"+573000000000"}`,
+		"businessId": `{"channel":"email","businessId":"22222222-2222-2222-2222-222222222222"}`,
+		"vacio":      `{"channel":"email"} {"channel":"both"}`,
+		"no-json":    `channel=email`,
 	} {
 		t.Run(name, func(t *testing.T) {
 			repo := &fakeLoginOTPRepository{found: true}

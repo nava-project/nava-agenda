@@ -95,7 +95,7 @@ func requestWithPrincipal(method, target string, body []byte) *http.Request {
 
 func requestWithBarberID(method, target string, body []byte, barberID string) *http.Request {
 	r := requestWithPrincipal(method, target, body)
-	return httpserver.RequestWithURLParam(r, "barberId", barberID)
+	return httpserver.RequestWithURLParam(r, "professionalId", barberID)
 }
 
 func decodeProblem(t *testing.T, rec *httptest.ResponseRecorder) map[string]any {
@@ -130,7 +130,7 @@ func TestListBarbersHandler_Success_ReturnsItemsAndCursor(t *testing.T) {
 	}}
 	h := httpapi.NewListBarbersHandler(staff.NewService(repo))
 
-	req := requestWithPrincipal(http.MethodGet, "/api/v1/private/barbers", nil)
+	req := requestWithPrincipal(http.MethodGet, "/api/v1/private/professionals", nil)
 	rec := httptest.NewRecorder()
 	h.ServeHTTP(rec, req)
 
@@ -155,7 +155,7 @@ func TestListBarbersHandler_NoNextPage_ReturnsExplicitNull(t *testing.T) {
 	}}
 	h := httpapi.NewListBarbersHandler(staff.NewService(repo))
 
-	req := requestWithPrincipal(http.MethodGet, "/api/v1/private/barbers", nil)
+	req := requestWithPrincipal(http.MethodGet, "/api/v1/private/professionals", nil)
 	rec := httptest.NewRecorder()
 	h.ServeHTTP(rec, req)
 
@@ -180,7 +180,7 @@ func TestListBarbersHandler_ForwardsCursorAndLimitFromQuery(t *testing.T) {
 	h := httpapi.NewListBarbersHandler(staff.NewService(repo))
 
 	token := staff.EncodeCursor(staff.Cursor{CreatedAt: time.Now(), ID: "8f3ac2b1-e4d5-46f6-a7c8-d9e0f1a2b3c4"})
-	req := requestWithPrincipal(http.MethodGet, "/api/v1/private/barbers?cursor="+token+"&limit=5", nil)
+	req := requestWithPrincipal(http.MethodGet, "/api/v1/private/professionals?cursor="+token+"&limit=5", nil)
 	rec := httptest.NewRecorder()
 	h.ServeHTTP(rec, req)
 
@@ -196,7 +196,7 @@ func TestListBarbersHandler_InvalidLimit_Returns400(t *testing.T) {
 	}}
 	h := httpapi.NewListBarbersHandler(staff.NewService(repo))
 
-	req := requestWithPrincipal(http.MethodGet, "/api/v1/private/barbers?limit=not-a-number", nil)
+	req := requestWithPrincipal(http.MethodGet, "/api/v1/private/professionals?limit=not-a-number", nil)
 	rec := httptest.NewRecorder()
 	h.ServeHTTP(rec, req)
 
@@ -212,7 +212,7 @@ func TestListBarbersHandler_InvalidCursor_Returns400(t *testing.T) {
 	}}
 	h := httpapi.NewListBarbersHandler(staff.NewService(repo))
 
-	req := requestWithPrincipal(http.MethodGet, "/api/v1/private/barbers?cursor=not-a-valid-cursor-token%21%21%21", nil)
+	req := requestWithPrincipal(http.MethodGet, "/api/v1/private/professionals?cursor=not-a-valid-cursor-token%21%21%21", nil)
 	rec := httptest.NewRecorder()
 	h.ServeHTTP(rec, req)
 
@@ -233,7 +233,7 @@ func TestGetBarberHandler_Found_ReturnsBarber(t *testing.T) {
 	}}
 	h := httpapi.NewGetBarberHandler(staff.NewService(repo))
 
-	req := requestWithBarberID(http.MethodGet, "/api/v1/private/barbers/8f3ac2b1-e4d5-46f6-a7c8-d9e0f1a2b3c4", nil, "8f3ac2b1-e4d5-46f6-a7c8-d9e0f1a2b3c4")
+	req := requestWithBarberID(http.MethodGet, "/api/v1/private/professionals/8f3ac2b1-e4d5-46f6-a7c8-d9e0f1a2b3c4", nil, "8f3ac2b1-e4d5-46f6-a7c8-d9e0f1a2b3c4")
 	rec := httptest.NewRecorder()
 	h.ServeHTTP(rec, req)
 
@@ -248,7 +248,7 @@ func TestGetBarberHandler_NotFound_Returns404(t *testing.T) {
 	}}
 	h := httpapi.NewGetBarberHandler(staff.NewService(repo))
 
-	req := requestWithBarberID(http.MethodGet, "/api/v1/private/barbers/99999999-9999-4999-8999-999999999999", nil, "99999999-9999-4999-8999-999999999999")
+	req := requestWithBarberID(http.MethodGet, "/api/v1/private/professionals/99999999-9999-4999-8999-999999999999", nil, "99999999-9999-4999-8999-999999999999")
 	rec := httptest.NewRecorder()
 	h.ServeHTTP(rec, req)
 
@@ -271,7 +271,7 @@ func TestGetBarberHandler_OtherTenantsID_SameNotFoundAsNonexistent(t *testing.T)
 	}}
 	h := httpapi.NewGetBarberHandler(staff.NewService(repo))
 
-	req := requestWithBarberID(http.MethodGet, "/api/v1/private/barbers/8f3ac2b1-e4d5-46f6-a7c8-d9e0f1a2b3c4", nil, "8f3ac2b1-e4d5-46f6-a7c8-d9e0f1a2b3c4")
+	req := requestWithBarberID(http.MethodGet, "/api/v1/private/professionals/8f3ac2b1-e4d5-46f6-a7c8-d9e0f1a2b3c4", nil, "8f3ac2b1-e4d5-46f6-a7c8-d9e0f1a2b3c4")
 	rec := httptest.NewRecorder()
 	h.ServeHTTP(rec, req)
 
@@ -289,7 +289,7 @@ func TestCreateBarberHandler_MissingIdempotencyKey_Returns400(t *testing.T) {
 	}}
 	h := httpapi.NewCreateBarberHandler(staff.NewService(repo))
 
-	req := requestWithPrincipal(http.MethodPost, "/api/v1/private/barbers", []byte(`{"fullName":"Carlos"}`))
+	req := requestWithPrincipal(http.MethodPost, "/api/v1/private/professionals", []byte(`{"fullName":"Carlos"}`))
 	rec := httptest.NewRecorder()
 	h.ServeHTTP(rec, req)
 
@@ -305,7 +305,7 @@ func TestCreateBarberHandler_UnknownField_Returns400(t *testing.T) {
 	}}
 	h := httpapi.NewCreateBarberHandler(staff.NewService(repo))
 
-	req := requestWithPrincipal(http.MethodPost, "/api/v1/private/barbers", []byte(`{"fullName":"Carlos","active":true}`))
+	req := requestWithPrincipal(http.MethodPost, "/api/v1/private/professionals", []byte(`{"fullName":"Carlos","active":true}`))
 	req.Header.Set(httpserver.IdempotencyKeyHeader, "key-1")
 	rec := httptest.NewRecorder()
 	h.ServeHTTP(rec, req)
@@ -322,7 +322,7 @@ func TestCreateBarberHandler_ValidationError_Returns422WithoutCallingRepository(
 	}}
 	h := httpapi.NewCreateBarberHandler(staff.NewService(repo))
 
-	req := requestWithPrincipal(http.MethodPost, "/api/v1/private/barbers", []byte(`{"fullName":""}`))
+	req := requestWithPrincipal(http.MethodPost, "/api/v1/private/professionals", []byte(`{"fullName":""}`))
 	req.Header.Set(httpserver.IdempotencyKeyHeader, "key-1")
 	rec := httptest.NewRecorder()
 	h.ServeHTTP(rec, req)
@@ -357,7 +357,7 @@ func TestCreateBarberHandler_Proceed_Returns201WithLocationAndBody(t *testing.T)
 	}}
 	h := httpapi.NewCreateBarberHandler(staff.NewService(repo))
 
-	req := requestWithPrincipal(http.MethodPost, "/api/v1/private/barbers", []byte(`{"fullName":"Carlos"}`))
+	req := requestWithPrincipal(http.MethodPost, "/api/v1/private/professionals", []byte(`{"fullName":"Carlos"}`))
 	req.Header.Set(httpserver.IdempotencyKeyHeader, "key-1")
 	rec := httptest.NewRecorder()
 	h.ServeHTTP(rec, req)
@@ -365,7 +365,7 @@ func TestCreateBarberHandler_Proceed_Returns201WithLocationAndBody(t *testing.T)
 	if rec.Code != http.StatusCreated {
 		t.Fatalf("expected 201, got %d: %s", rec.Code, rec.Body.String())
 	}
-	if loc := rec.Header().Get("Location"); loc != "/private/barbers/8f3ac2b1-e4d5-46f6-a7c8-d9e0f1a2b3c4" {
+	if loc := rec.Header().Get("Location"); loc != "/private/professionals/8f3ac2b1-e4d5-46f6-a7c8-d9e0f1a2b3c4" {
 		t.Fatalf("unexpected Location header: %q", loc)
 	}
 	if rec.Body.String() != stored.Body {
@@ -387,7 +387,7 @@ func TestCreateBarberHandler_Replay_ReturnsSameStatusAndBodyWithLocation(t *test
 	}}
 	h := httpapi.NewCreateBarberHandler(staff.NewService(repo))
 
-	req := requestWithPrincipal(http.MethodPost, "/api/v1/private/barbers", []byte(`{"fullName":"Carlos"}`))
+	req := requestWithPrincipal(http.MethodPost, "/api/v1/private/professionals", []byte(`{"fullName":"Carlos"}`))
 	req.Header.Set(httpserver.IdempotencyKeyHeader, "key-1")
 	rec := httptest.NewRecorder()
 	h.ServeHTTP(rec, req)
@@ -398,7 +398,7 @@ func TestCreateBarberHandler_Replay_ReturnsSameStatusAndBodyWithLocation(t *test
 	if rec.Body.String() != stored.Body {
 		t.Fatalf("expected the exact original body on replay, got %s", rec.Body.String())
 	}
-	if loc := rec.Header().Get("Location"); loc != "/private/barbers/8f3ac2b1-e4d5-46f6-a7c8-d9e0f1a2b3c4" {
+	if loc := rec.Header().Get("Location"); loc != "/private/professionals/8f3ac2b1-e4d5-46f6-a7c8-d9e0f1a2b3c4" {
 		t.Fatalf("expected Location to be reconstructed on replay too, got %q", loc)
 	}
 }
@@ -409,7 +409,7 @@ func TestCreateBarberHandler_ConflictFingerprint_Returns409(t *testing.T) {
 	}}
 	h := httpapi.NewCreateBarberHandler(staff.NewService(repo))
 
-	req := requestWithPrincipal(http.MethodPost, "/api/v1/private/barbers", []byte(`{"fullName":"Carlos"}`))
+	req := requestWithPrincipal(http.MethodPost, "/api/v1/private/professionals", []byte(`{"fullName":"Carlos"}`))
 	req.Header.Set(httpserver.IdempotencyKeyHeader, "key-1")
 	rec := httptest.NewRecorder()
 	h.ServeHTTP(rec, req)
@@ -429,7 +429,7 @@ func TestCreateBarberHandler_Locked_Returns409(t *testing.T) {
 	}}
 	h := httpapi.NewCreateBarberHandler(staff.NewService(repo))
 
-	req := requestWithPrincipal(http.MethodPost, "/api/v1/private/barbers", []byte(`{"fullName":"Carlos"}`))
+	req := requestWithPrincipal(http.MethodPost, "/api/v1/private/professionals", []byte(`{"fullName":"Carlos"}`))
 	req.Header.Set(httpserver.IdempotencyKeyHeader, "key-1")
 	rec := httptest.NewRecorder()
 	h.ServeHTTP(rec, req)
@@ -453,7 +453,7 @@ func TestCreateBarberHandler_ThroughFullRouter_NeverLogsFullNameOrBody(t *testin
 	}}
 	h := httpapi.NewCreateBarberHandler(staff.NewService(repo))
 
-	req := requestWithPrincipal(http.MethodPost, "/api/v1/private/barbers", []byte(`{"fullName":"Nombre Sensible No Debe Aparecer"}`))
+	req := requestWithPrincipal(http.MethodPost, "/api/v1/private/professionals", []byte(`{"fullName":"Nombre Sensible No Debe Aparecer"}`))
 	req.Header.Set(httpserver.IdempotencyKeyHeader, "key-1")
 	rec := httptest.NewRecorder()
 	h.ServeHTTP(rec, req)
@@ -479,7 +479,7 @@ func TestUpdateBarberHandler_Success_Returns200(t *testing.T) {
 	}}
 	h := httpapi.NewUpdateBarberHandler(staff.NewService(repo))
 
-	req := requestWithBarberID(http.MethodPatch, "/api/v1/private/barbers/8f3ac2b1-e4d5-46f6-a7c8-d9e0f1a2b3c4",
+	req := requestWithBarberID(http.MethodPatch, "/api/v1/private/professionals/8f3ac2b1-e4d5-46f6-a7c8-d9e0f1a2b3c4",
 		[]byte(`{"fullName":"Nuevo Nombre"}`), "8f3ac2b1-e4d5-46f6-a7c8-d9e0f1a2b3c4")
 	rec := httptest.NewRecorder()
 	h.ServeHTTP(rec, req)
@@ -496,7 +496,7 @@ func TestUpdateBarberHandler_UnknownField_Returns400(t *testing.T) {
 	}}
 	h := httpapi.NewUpdateBarberHandler(staff.NewService(repo))
 
-	req := requestWithBarberID(http.MethodPatch, "/api/v1/private/barbers/8f3ac2b1-e4d5-46f6-a7c8-d9e0f1a2b3c4",
+	req := requestWithBarberID(http.MethodPatch, "/api/v1/private/professionals/8f3ac2b1-e4d5-46f6-a7c8-d9e0f1a2b3c4",
 		[]byte(`{"fullName":"X","active":false}`), "8f3ac2b1-e4d5-46f6-a7c8-d9e0f1a2b3c4")
 	rec := httptest.NewRecorder()
 	h.ServeHTTP(rec, req)
@@ -513,7 +513,7 @@ func TestUpdateBarberHandler_EmptyObject_Returns422(t *testing.T) {
 	}}
 	h := httpapi.NewUpdateBarberHandler(staff.NewService(repo))
 
-	req := requestWithBarberID(http.MethodPatch, "/api/v1/private/barbers/8f3ac2b1-e4d5-46f6-a7c8-d9e0f1a2b3c4",
+	req := requestWithBarberID(http.MethodPatch, "/api/v1/private/professionals/8f3ac2b1-e4d5-46f6-a7c8-d9e0f1a2b3c4",
 		[]byte(`{}`), "8f3ac2b1-e4d5-46f6-a7c8-d9e0f1a2b3c4")
 	rec := httptest.NewRecorder()
 	h.ServeHTTP(rec, req)
@@ -529,7 +529,7 @@ func TestUpdateBarberHandler_NotFound_Returns404(t *testing.T) {
 	}}
 	h := httpapi.NewUpdateBarberHandler(staff.NewService(repo))
 
-	req := requestWithBarberID(http.MethodPatch, "/api/v1/private/barbers/99999999-9999-4999-8999-999999999999",
+	req := requestWithBarberID(http.MethodPatch, "/api/v1/private/professionals/99999999-9999-4999-8999-999999999999",
 		[]byte(`{"fullName":"X"}`), "99999999-9999-4999-8999-999999999999")
 	rec := httptest.NewRecorder()
 	h.ServeHTTP(rec, req)
@@ -546,7 +546,7 @@ func TestUpdateBarberHandler_ValidationError_Returns422(t *testing.T) {
 	}}
 	h := httpapi.NewUpdateBarberHandler(staff.NewService(repo))
 
-	req := requestWithBarberID(http.MethodPatch, "/api/v1/private/barbers/8f3ac2b1-e4d5-46f6-a7c8-d9e0f1a2b3c4",
+	req := requestWithBarberID(http.MethodPatch, "/api/v1/private/professionals/8f3ac2b1-e4d5-46f6-a7c8-d9e0f1a2b3c4",
 		[]byte(`{"fullName":"   "}`), "8f3ac2b1-e4d5-46f6-a7c8-d9e0f1a2b3c4")
 	rec := httptest.NewRecorder()
 	h.ServeHTTP(rec, req)
@@ -566,7 +566,7 @@ func TestHandlers_MissingPrincipal_Returns500Safely(t *testing.T) {
 	repo := &fakeRepository{}
 	h := httpapi.NewListBarbersHandler(staff.NewService(repo))
 
-	req := httptest.NewRequest(http.MethodGet, "/api/v1/private/barbers", nil)
+	req := httptest.NewRequest(http.MethodGet, "/api/v1/private/professionals", nil)
 	rec := httptest.NewRecorder()
 	h.ServeHTTP(rec, req)
 
@@ -598,7 +598,7 @@ func TestCreateBarberHandler_Description_ReachesRepository(t *testing.T) {
 	}}
 	h := httpapi.NewCreateBarberHandler(staff.NewService(repo))
 
-	req := requestWithPrincipal(http.MethodPost, "/api/v1/private/barbers", []byte(`{"fullName":"Carlos","description":"  Fade y barba  "}`))
+	req := requestWithPrincipal(http.MethodPost, "/api/v1/private/professionals", []byte(`{"fullName":"Carlos","description":"  Fade y barba  "}`))
 	req.Header.Set(httpserver.IdempotencyKeyHeader, "key-1")
 	rec := httptest.NewRecorder()
 	h.ServeHTTP(rec, req)
@@ -619,7 +619,7 @@ func TestCreateBarberHandler_DescriptionTooLong_Returns422(t *testing.T) {
 	h := httpapi.NewCreateBarberHandler(staff.NewService(repo))
 
 	body := `{"fullName":"Carlos","description":"` + strings.Repeat("a", staff.DescriptionMaxLength+1) + `"}`
-	req := requestWithPrincipal(http.MethodPost, "/api/v1/private/barbers", []byte(body))
+	req := requestWithPrincipal(http.MethodPost, "/api/v1/private/professionals", []byte(body))
 	req.Header.Set(httpserver.IdempotencyKeyHeader, "key-1")
 	rec := httptest.NewRecorder()
 	h.ServeHTTP(rec, req)
@@ -653,7 +653,7 @@ func TestUpdateBarberHandler_Description_AbsentNullEmptyAndText(t *testing.T) {
 			h := httpapi.NewUpdateBarberHandler(staff.NewService(repo))
 
 			rec := httptest.NewRecorder()
-			h.ServeHTTP(rec, requestWithBarberID(http.MethodPatch, "/api/v1/private/barbers/"+id, []byte(tc.body), id))
+			h.ServeHTTP(rec, requestWithBarberID(http.MethodPatch, "/api/v1/private/professionals/"+id, []byte(tc.body), id))
 
 			if rec.Code != http.StatusOK {
 				t.Fatalf("expected 200, got %d: %s", rec.Code, rec.Body.String())
@@ -680,7 +680,7 @@ func TestUpdateBarberHandler_DescriptionOfWrongType_Returns400(t *testing.T) {
 
 	const id = "8f3ac2b1-e4d5-46f6-a7c8-d9e0f1a2b3c4"
 	rec := httptest.NewRecorder()
-	h.ServeHTTP(rec, requestWithBarberID(http.MethodPatch, "/api/v1/private/barbers/"+id, []byte(`{"fullName":"Carlos","description":42}`), id))
+	h.ServeHTTP(rec, requestWithBarberID(http.MethodPatch, "/api/v1/private/professionals/"+id, []byte(`{"fullName":"Carlos","description":42}`), id))
 
 	if rec.Code != http.StatusBadRequest {
 		t.Fatalf("expected 400, got %d: %s", rec.Code, rec.Body.String())
@@ -697,7 +697,7 @@ func TestUpdateBarberHandler_Response_CarriesDescription(t *testing.T) {
 	h := httpapi.NewUpdateBarberHandler(staff.NewService(repo))
 
 	rec := httptest.NewRecorder()
-	h.ServeHTTP(rec, requestWithBarberID(http.MethodPatch, "/api/v1/private/barbers/"+id, []byte(`{"fullName":"Carlos","description":"Navaja clásica"}`), id))
+	h.ServeHTTP(rec, requestWithBarberID(http.MethodPatch, "/api/v1/private/professionals/"+id, []byte(`{"fullName":"Carlos","description":"Navaja clásica"}`), id))
 
 	var body map[string]any
 	if err := json.NewDecoder(rec.Body).Decode(&body); err != nil {

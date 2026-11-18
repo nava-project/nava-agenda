@@ -30,7 +30,7 @@ type publicBarbershopProfileBody struct {
 }
 
 func doResolvePublicBarbershopRequest(router http.Handler, slug string) *httptest.ResponseRecorder {
-	req := httptest.NewRequest(http.MethodGet, "/api/v1/public/barbershops/"+slug, nil)
+	req := httptest.NewRequest(http.MethodGet, "/api/v1/public/businesses/"+slug, nil)
 	rec := httptest.NewRecorder()
 	router.ServeHTTP(rec, req)
 	return rec
@@ -161,7 +161,7 @@ func TestPublicBooking_HTTP_NoSessionCookieRequired(t *testing.T) {
 		t.Fatalf("buildRouter: %v", err)
 	}
 
-	req := httptest.NewRequest(http.MethodGet, "/api/v1/public/barbershops/"+publicShopSlugUno, nil)
+	req := httptest.NewRequest(http.MethodGet, "/api/v1/public/businesses/"+publicShopSlugUno, nil)
 	// Deliberadamente sin ninguna cookie.
 	rec := httptest.NewRecorder()
 	router.ServeHTTP(rec, req)

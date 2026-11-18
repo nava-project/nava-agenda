@@ -1,5 +1,5 @@
 // Único punto del módulo `public-booking` que llama a
-// `GET /public/barbershops/{slug}/services/{serviceId}/barbers` (HU-092).
+// `GET /public/businesses/{slug}/services/{serviceId}/professionals` (HU-092).
 // Traduce la respuesta real a `ListPublicBarbersOutcome`: la página
 // coordinadora nunca ve `Problem`, `status` HTTP crudo ni cabeceras.
 import { httpClient } from '@/shared/api/httpClient'
@@ -23,7 +23,7 @@ export async function listPublicBarbers(
 ): Promise<ListPublicBarbersOutcome> {
   try {
     const { data, error, response } = await httpClient.GET(
-      '/public/barbershops/{slug}/services/{serviceId}/barbers',
+      '/public/businesses/{slug}/services/{serviceId}/professionals',
       { params: { path: { slug, serviceId } } },
     )
 

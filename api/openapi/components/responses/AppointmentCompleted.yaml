@@ -1,5 +1,5 @@
 # Respuesta 200 de POST /private/appointments/{appointmentId}/complete
-# (HU-067, T4 manual). 200, no 204: el barbero puede repetir el mismo
+# (HU-067, T4 manual). 200, no 204: el profesional puede repetir el mismo
 # resultado (CA-067-05) y espera la misma representación completa que otras
 # operaciones de escritura sobre el turno.
 description: >
@@ -18,7 +18,7 @@ content:
         summary: Turno cerrado como atendido
         value:
           id: 3f4a5b6c-7d8e-49f0-a1b2-c3d4e5f60718
-          barberId: 8f3ac2b1-e4d5-46f6-a7c8-d9e0f1a2b3c4
+          professionalId: 8f3ac2b1-e4d5-46f6-a7c8-d9e0f1a2b3c4
           serviceId: 6f1a2b3c-4d5e-4f60-8172-8394a5b6c7d8
           customerId: 9a0b1c2d-3e4f-4506-8172-8394a5b6c7d9
           attendeeName: Carlos Restrepo

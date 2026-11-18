@@ -15,14 +15,14 @@
       sesión `HttpOnly` al abrir o recargar la aplicación: confirma que la
       sesión sigue vigente -`SessionMiddleware` ya la validó y renovó para
       esta misma solicitud, igual que cualquier otra ruta bajo
-      `/api/v1/private`- y devuelve el nombre de la barbería activa
-      (`barbershop.name`, columna real aislada por tenant vía RLS) y la
+      `/api/v1/private`- y devuelve el nombre del negocio activo
+      (`business.name`, columna real aislada por tenant vía RLS) y la
       expiración ya renovada. Como en cualquier otra ruta bajo
       `/api/v1/private`, la renovación deslizante de `DEC-050` también se
       refleja en el navegador: la respuesta reemite la misma cookie con el
       `Expires` renovado (mismos atributos que el login); no cambia el token
       ni abre otra sesión. El payload nunca incluye `staffUserID`, correo ni nombre
-      del barbero (`RN-DAT-02`, mismo patrón que `auth.Principal`).
+      del profesional (`RN-DAT-02`, mismo patrón que `auth.Principal`).
     operationId: getSessionContext
     security:
       - SessionCookie: []
@@ -42,10 +42,10 @@
     description: >
       Revoca en el servidor la sesión asociada a la cookie de sesión vigente
       (fija revoked_at, DEC-050) y limpia esa cookie en el navegador. No
-      afecta ninguna otra sesión del mismo barbero (CA-006-06): cerrar
+      afecta ninguna otra sesión del mismo profesional (CA-006-06): cerrar
       sesión en un dispositivo no invalida los demás. El tenant se deriva
       exclusivamente de la identidad ya autenticada por la cookie, nunca de
-      un parámetro del cliente, así que una sesión de una barbería nunca
+      un parámetro del cliente, así que una sesión de un negocio nunca
       puede revocar la sesión de otra (CA-006-07, DEC-058). Repetir la
       llamada con el mismo material ya revocado responde 401 uniforme, igual
       que cualquier otra sesión inválida (CA-006-02): no ejecuta la

@@ -1,6 +1,6 @@
 # Representación canónica de una definición recurrente (HU-042, DEC-020):
 # weekly (un único día ISO) o date_list (fechas explícitas), con sus
-# fechas/excepciones embebidas. Nunca barbershopId ni barberId.
+# fechas/excepciones embebidas. Nunca businessId ni professionalId.
 type: object
 description: >
   Definición recurrente o por lista de fechas de un bloqueo. Nunca se

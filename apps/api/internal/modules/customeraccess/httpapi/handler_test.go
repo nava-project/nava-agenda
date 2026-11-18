@@ -118,7 +118,7 @@ func TestGetAppointmentHandler_Success_ReturnsAppointmentView(t *testing.T) {
 
 	// CA-098-03: el cuerpo nunca menciona un identificador interno.
 	raw := strings.ToLower(rec.Body.String())
-	for _, forbidden := range []string{"\"id\"", "barbershopid", "appointmentid", "customerid"} {
+	for _, forbidden := range []string{"\"id\"", "businessid", "appointmentid", "customerid"} {
 		if strings.Contains(raw, forbidden) {
 			t.Fatalf("CA-098-03: response body must never mention %q: %s", forbidden, raw)
 		}

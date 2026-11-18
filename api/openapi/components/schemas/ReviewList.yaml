@@ -1,7 +1,7 @@
-# Reseñas de un barbero para moderar (HU-100, CA-100-05).
+# Reseñas de un profesional para moderar (HU-100, CA-100-05).
 type: object
 description: >
-  Resumen público y todas las reseñas del barbero, ocultas incluidas (hasta 100),
+  Resumen público y todas las reseñas del profesional, ocultas incluidas (hasta 100),
   de la más reciente a la más antigua.
 properties:
   rating:

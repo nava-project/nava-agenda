@@ -5,7 +5,7 @@ description: >
   Tres rechazos distinguibles por `code`, nunca por `detail`:
   `cancellation-window-closed` (el plazo venció y la política no permite
   cancelar fuera de plazo, o el turno ya empezó: el cliente debe contactar a
-  la barbería, `barbershopContactEmail`/`barbershopContactPhone`),
+  el negocio, `businessContactEmail`/`businessContactPhone`),
   `cancellation-reason-required` (la cancelación fuera de plazo exige un
   motivo y no llegó o llegó en blanco) y `validation-error` (el motivo excede
   500 caracteres).
@@ -18,12 +18,12 @@ content:
       $ref: '../schemas/Problem.yaml'
     examples:
       plazoVencido:
-        summary: Fuera de plazo y la barbería no permite cancelar tarde
+        summary: Fuera de plazo y el negocio no permite cancelar tarde
         value:
           type: /api/v1/problems/cancellation-window-closed
           title: Plazo de cancelación vencido
           status: 422
-          detail: el plazo para cancelar por tu cuenta ya venció; contacta a la barbería
+          detail: el plazo para cancelar por tu cuenta ya venció; contacta al negocio
           instance: 8f3ac2b1e4d5f6a7c8d9e0f1a2b3c4d5
           code: cancellation-window-closed
           requestId: 8f3ac2b1e4d5f6a7c8d9e0f1a2b3c4d5

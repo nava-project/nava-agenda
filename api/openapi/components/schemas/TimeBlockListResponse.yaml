@@ -1,6 +1,6 @@
-# Página paginada por cursor de GET /private/barbers/{barberId}/time-blocks.
+# Página paginada por cursor de GET /private/professionals/{professionalId}/time-blocks.
 type: object
-description: Página de bloqueos puntuales del barbero de la ruta.
+description: Página de bloqueos puntuales del profesional de la ruta.
 properties:
   items:
     type: array

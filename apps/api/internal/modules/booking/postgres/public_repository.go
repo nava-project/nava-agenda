@@ -178,7 +178,7 @@ func (r *Repository) ReplayPublic(
 // resto de operaciones críticas del proyecto.
 type publicAppointmentResponseWire struct {
 	AttendeeName    string  `json:"attendeeName"`
-	BarbershopName  string  `json:"barbershopName"`
+	BarbershopName  string  `json:"businessName"`
 	ServiceName     string  `json:"serviceName"`
 	DurationMinutes int     `json:"durationMinutes"`
 	PriceAmount     string  `json:"priceAmount"`

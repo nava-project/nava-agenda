@@ -137,7 +137,7 @@ func TestContract_ServiceResponseSchema_MatchesDTOFields(t *testing.T) {
 	schema := loadYAML[schemaDoc](t, "api/openapi/components/schemas/ServiceResponse.yaml")
 	want := []string{"id", "name", "description", "durationMinutes", "price", "currency", "isActive", "deactivatedAt", "createdAt", "updatedAt"}
 	requireExactProps(t, schema, want, want)
-	for _, forbidden := range []string{"barbershopId", "barberIds", "appointments"} {
+	for _, forbidden := range []string{"businessId", "professionalIds", "appointments"} {
 		if _, ok := schema.Properties[forbidden]; ok {
 			t.Fatalf("CA-022-07: el contrato de respuesta nunca debe declarar %q", forbidden)
 		}
@@ -149,7 +149,7 @@ func TestContract_CreateServiceRequestSchema_MatchesDTOFields(t *testing.T) {
 	requireExactProps(t, schema,
 		[]string{"name", "description", "durationMinutes", "price"},
 		[]string{"name", "durationMinutes", "price"})
-	for _, forbidden := range []string{"barbershopId", "currency", "isActive"} {
+	for _, forbidden := range []string{"businessId", "currency", "isActive"} {
 		if _, ok := schema.Properties[forbidden]; ok {
 			t.Fatalf("DEC-067: el contrato de alta nunca debe declarar %q", forbidden)
 		}
@@ -163,7 +163,7 @@ func TestContract_UpdateServiceRequestSchema_MatchesDTOFields(t *testing.T) {
 	requireExactProps(t, schema,
 		[]string{"name", "description", "durationMinutes", "price", "applyPriceToUpcoming"},
 		[]string{})
-	for _, forbidden := range []string{"isActive", "currency", "barbershopId", "barberIds", "appointments"} {
+	for _, forbidden := range []string{"isActive", "currency", "businessId", "professionalIds", "appointments"} {
 		if _, ok := schema.Properties[forbidden]; ok {
 			t.Fatalf("RN-SER-04/DEC-067: el contrato de edición nunca debe declarar %q", forbidden)
 		}
