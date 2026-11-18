@@ -7,9 +7,9 @@ import (
 	"context"
 	"testing"
 
-	"system-barbershop/internal/modules/shops"
-	shopspostgres "system-barbershop/internal/modules/shops/postgres"
-	"system-barbershop/internal/platform/database"
+	"nava-agenda/internal/modules/shops"
+	shopspostgres "nava-agenda/internal/modules/shops/postgres"
+	"nava-agenda/internal/platform/database"
 )
 
 func clearOpeningHours(t *testing.T, shopIDs ...string) {
@@ -110,7 +110,7 @@ func TestOpeningHoursRepository_IsolatedBetweenTenants(t *testing.T) {
 	}
 
 	var deleted int64
-	err = db.InTenantTx(ctx, database.BarbershopID(shopA), func(ctx context.Context, q database.Queries) error {
+	err = db.InTenantTx(ctx, database.BusinessID(shopA), func(ctx context.Context, q database.Queries) error {
 		tag, err := q.Exec(ctx, `DELETE FROM business_opening_hour WHERE business_id = $1`, shopB)
 		deleted = tag.RowsAffected()
 		return err
@@ -119,7 +119,7 @@ func TestOpeningHoursRepository_IsolatedBetweenTenants(t *testing.T) {
 		t.Fatalf("una sesión de A borró %d tramo(s) de B (err=%v)", deleted, err)
 	}
 
-	err = db.InTenantTx(ctx, database.BarbershopID(shopA), func(ctx context.Context, q database.Queries) error {
+	err = db.InTenantTx(ctx, database.BusinessID(shopA), func(ctx context.Context, q database.Queries) error {
 		_, err := q.Exec(ctx,
 			`INSERT INTO business_opening_hour (business_id, iso_weekday, opens_time, closes_time)
 			 VALUES ($1, 3, '09:00', '10:00')`, shopB)

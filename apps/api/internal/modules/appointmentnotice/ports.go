@@ -7,8 +7,8 @@ import (
 
 // Tipos de aviso (valores de `appointment_notice.kind`).
 const (
-	KindCancelledByBarber = "cancelled_by_professional"
-	KindRescheduled       = "rescheduled"
+	KindCancelledByProfessional = "cancelled_by_professional"
+	KindRescheduled             = "rescheduled"
 	// KindReminder es el recordatorio previo al turno (HU-131, DEC-144). Su
 	// `state_at` es el instante del turno para el que se programó.
 	KindReminder = "reminder"
@@ -64,12 +64,12 @@ type Context struct {
 	StartsAt          time.Time
 	// StateAt es el updated_at que tenía el turno al leerlo: el estado que este
 	// envío cubre.
-	StateAt        time.Time
-	CustomerEmail  string
-	AttendeeName   string
-	ServiceName    string
-	BarbershopName string
-	Timezone       string
+	StateAt       time.Time
+	CustomerEmail string
+	AttendeeName  string
+	ServiceName   string
+	BusinessName  string
+	Timezone      string
 	// AlreadyCovered indica que otro aviso de la misma clase ya envió un estado
 	// igual o más reciente (para un recordatorio, el mismo instante del turno).
 	AlreadyCovered bool
@@ -79,8 +79,8 @@ type Context struct {
 	NoticeStateAt time.Time
 	// CustomerPhone es el teléfono E.164 del cliente, o vacío.
 	CustomerPhone string
-	// BarberName es quien atiende el turno (para la plantilla de WhatsApp).
-	BarberName string
+	// ProfessionalName es quien atiende el turno (para la plantilla de WhatsApp).
+	ProfessionalName string
 }
 
 // FinishInput cierra un aviso con CAS sobre su claim_token.
@@ -108,13 +108,13 @@ type Store interface {
 
 // Mailer envía el correo del aviso. El adaptador de Resend en el paquete
 // notification lo satisface de forma estructural. startsAtLocal llega ya
-// formateado en la zona de la barbería. Un error nunca debe incluir el
+// formateado en la zona del negocio. Un error nunca debe incluir el
 // destinatario (RN-DAT-02); si implementa `Permanent() bool` y devuelve true, el
 // rechazo no se reintenta.
 type Mailer interface {
 	SendChangeNotice(
 		ctx context.Context,
-		kind, email, barbershopName, serviceName, attendeeName, startsAtLocal string,
+		kind, email, businessName, serviceName, attendeeName, startsAtLocal string,
 	) error
 }
 
@@ -127,6 +127,6 @@ type Mailer interface {
 type WhatsAppReminderSender interface {
 	SendReminder(
 		ctx context.Context,
-		phoneE164, attendeeName, barbershopName, when, serviceName, barberName string,
+		phoneE164, attendeeName, businessName, when, serviceName, professionalName string,
 	) error
 }

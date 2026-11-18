@@ -5,9 +5,9 @@ import (
 	"slices"
 	"testing"
 
-	"system-barbershop/internal/modules/shops"
-	shopspostgres "system-barbershop/internal/modules/shops/postgres"
-	"system-barbershop/internal/platform/database"
+	"nava-agenda/internal/modules/shops"
+	shopspostgres "nava-agenda/internal/modules/shops/postgres"
+	"nava-agenda/internal/platform/database"
 )
 
 // Usuarios de database/testdata/staff_user_role_365.sql sobre el par dedicado
@@ -70,9 +70,9 @@ func TestPanelProfileService_AgainstPostgres(t *testing.T) {
 	}
 }
 
-// RN-TEN-01: dos barberías. Un usuario de shopB no tiene roles visibles desde
+// RN-TEN-01: dos negocios. Un usuario de shopB no tiene roles visibles desde
 // shopA, ni siquiera consultando su identificador, y viceversa.
-func TestPanelProfileRepository_RolesOf_TwoTenants_NeverCrossBarbershops(t *testing.T) {
+func TestPanelProfileRepository_RolesOf_TwoTenants_NeverCrossBusinesses(t *testing.T) {
 	db := setupTestDB(t)
 	repo := shopspostgres.NewPanelProfileRepository(db)
 
@@ -100,7 +100,7 @@ func TestPanelProfile_TheApplicationRoleCannotWriteRoles(t *testing.T) {
 		"delete": `DELETE FROM staff_user_role WHERE business_id = $1 AND staff_user_id = $2`,
 	} {
 		t.Run(name, func(t *testing.T) {
-			err := db.InTenantTx(context.Background(), database.BarbershopID(shopA), func(ctx context.Context, q database.Queries) error {
+			err := db.InTenantTx(context.Background(), database.BusinessID(shopA), func(ctx context.Context, q database.Queries) error {
 				_, err := q.Exec(ctx, sql, shopA, userSinRol)
 				return err
 			})

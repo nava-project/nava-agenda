@@ -14,53 +14,53 @@ import (
 	"syscall"
 	"time"
 
-	"system-barbershop/internal/modules/access"
-	accesshttpapi "system-barbershop/internal/modules/access/httpapi"
-	accesspostgres "system-barbershop/internal/modules/access/postgres"
-	appointmentnoticepostgres "system-barbershop/internal/modules/appointmentnotice/postgres"
-	"system-barbershop/internal/modules/auth"
-	authhttpapi "system-barbershop/internal/modules/auth/httpapi"
-	authpostgres "system-barbershop/internal/modules/auth/postgres"
-	"system-barbershop/internal/modules/booking"
-	bookinghttpapi "system-barbershop/internal/modules/booking/httpapi"
-	bookingpostgres "system-barbershop/internal/modules/booking/postgres"
-	"system-barbershop/internal/modules/catalog"
-	cataloghttpapi "system-barbershop/internal/modules/catalog/httpapi"
-	catalogpostgres "system-barbershop/internal/modules/catalog/postgres"
-	"system-barbershop/internal/modules/customeraccess"
-	customeraccesshttpapi "system-barbershop/internal/modules/customeraccess/httpapi"
-	customeraccesspostgres "system-barbershop/internal/modules/customeraccess/postgres"
-	"system-barbershop/internal/modules/googlecalendar"
-	googlecalendargoogle "system-barbershop/internal/modules/googlecalendar/google"
-	googlecalendarhttpapi "system-barbershop/internal/modules/googlecalendar/httpapi"
-	googlecalendarpostgres "system-barbershop/internal/modules/googlecalendar/postgres"
-	"system-barbershop/internal/modules/notification"
-	notificationhttpapi "system-barbershop/internal/modules/notification/httpapi"
-	notificationpostgres "system-barbershop/internal/modules/notification/postgres"
-	"system-barbershop/internal/modules/publicbooking"
-	publicbookinggoogle "system-barbershop/internal/modules/publicbooking/google"
-	publicbookinghttpapi "system-barbershop/internal/modules/publicbooking/httpapi"
-	publicbookingpostgres "system-barbershop/internal/modules/publicbooking/postgres"
-	"system-barbershop/internal/modules/reviews"
-	reviewshttpapi "system-barbershop/internal/modules/reviews/httpapi"
-	reviewspostgres "system-barbershop/internal/modules/reviews/postgres"
-	"system-barbershop/internal/modules/schedule"
-	schedulehttpapi "system-barbershop/internal/modules/schedule/httpapi"
-	schedulepostgres "system-barbershop/internal/modules/schedule/postgres"
-	"system-barbershop/internal/modules/shops"
-	shopsgoogle "system-barbershop/internal/modules/shops/google"
-	shopshttpapi "system-barbershop/internal/modules/shops/httpapi"
-	shopspostgres "system-barbershop/internal/modules/shops/postgres"
-	"system-barbershop/internal/modules/staff"
-	staffhttpapi "system-barbershop/internal/modules/staff/httpapi"
-	staffpostgres "system-barbershop/internal/modules/staff/postgres"
-	"system-barbershop/internal/platform/clientip"
-	"system-barbershop/internal/platform/clock"
-	"system-barbershop/internal/platform/config"
-	"system-barbershop/internal/platform/database"
-	"system-barbershop/internal/platform/httpserver"
-	"system-barbershop/internal/platform/idempotency"
-	"system-barbershop/internal/platform/observability"
+	"nava-agenda/internal/modules/access"
+	accesshttpapi "nava-agenda/internal/modules/access/httpapi"
+	accesspostgres "nava-agenda/internal/modules/access/postgres"
+	appointmentnoticepostgres "nava-agenda/internal/modules/appointmentnotice/postgres"
+	"nava-agenda/internal/modules/auth"
+	authhttpapi "nava-agenda/internal/modules/auth/httpapi"
+	authpostgres "nava-agenda/internal/modules/auth/postgres"
+	"nava-agenda/internal/modules/booking"
+	bookinghttpapi "nava-agenda/internal/modules/booking/httpapi"
+	bookingpostgres "nava-agenda/internal/modules/booking/postgres"
+	"nava-agenda/internal/modules/catalog"
+	cataloghttpapi "nava-agenda/internal/modules/catalog/httpapi"
+	catalogpostgres "nava-agenda/internal/modules/catalog/postgres"
+	"nava-agenda/internal/modules/customeraccess"
+	customeraccesshttpapi "nava-agenda/internal/modules/customeraccess/httpapi"
+	customeraccesspostgres "nava-agenda/internal/modules/customeraccess/postgres"
+	"nava-agenda/internal/modules/googlecalendar"
+	googlecalendargoogle "nava-agenda/internal/modules/googlecalendar/google"
+	googlecalendarhttpapi "nava-agenda/internal/modules/googlecalendar/httpapi"
+	googlecalendarpostgres "nava-agenda/internal/modules/googlecalendar/postgres"
+	"nava-agenda/internal/modules/notification"
+	notificationhttpapi "nava-agenda/internal/modules/notification/httpapi"
+	notificationpostgres "nava-agenda/internal/modules/notification/postgres"
+	"nava-agenda/internal/modules/publicbooking"
+	publicbookinggoogle "nava-agenda/internal/modules/publicbooking/google"
+	publicbookinghttpapi "nava-agenda/internal/modules/publicbooking/httpapi"
+	publicbookingpostgres "nava-agenda/internal/modules/publicbooking/postgres"
+	"nava-agenda/internal/modules/reviews"
+	reviewshttpapi "nava-agenda/internal/modules/reviews/httpapi"
+	reviewspostgres "nava-agenda/internal/modules/reviews/postgres"
+	"nava-agenda/internal/modules/schedule"
+	schedulehttpapi "nava-agenda/internal/modules/schedule/httpapi"
+	schedulepostgres "nava-agenda/internal/modules/schedule/postgres"
+	"nava-agenda/internal/modules/shops"
+	shopsgoogle "nava-agenda/internal/modules/shops/google"
+	shopshttpapi "nava-agenda/internal/modules/shops/httpapi"
+	shopspostgres "nava-agenda/internal/modules/shops/postgres"
+	"nava-agenda/internal/modules/staff"
+	staffhttpapi "nava-agenda/internal/modules/staff/httpapi"
+	staffpostgres "nava-agenda/internal/modules/staff/postgres"
+	"nava-agenda/internal/platform/clientip"
+	"nava-agenda/internal/platform/clock"
+	"nava-agenda/internal/platform/config"
+	"nava-agenda/internal/platform/database"
+	"nava-agenda/internal/platform/httpserver"
+	"nava-agenda/internal/platform/idempotency"
+	"nava-agenda/internal/platform/observability"
 
 	"github.com/go-chi/chi/v5"
 )
@@ -81,8 +81,8 @@ func run() error {
 
 	logger := observability.NewLogger(cfg.LogLevel)
 
-	// La aplicación se conecta como barberia_app (cfg.DatabaseURL), nunca
-	// como barberia_migrator ni superusuario. Un fallo aquí impide arrancar:
+	// La aplicación se conecta como agenda_app (cfg.DatabaseURL), nunca
+	// como agenda_migrator ni superusuario. Un fallo aquí impide arrancar:
 	// el mensaje no incluye el error crudo del driver para no arriesgar un
 	// fragmento del DSN en el log de arranque (mismo criterio que
 	// DB.HealthCheck).
@@ -221,8 +221,8 @@ func buildRouter(db *database.DB, logger *slog.Logger, cfg config.Config) (*chi.
 	router.Post("/api/v1/public/auth/challenge/verify", challengeVerifyHandler.ServeHTTP)
 
 	// HU-090: entrada pública de reservas. Resuelve el slug de la ruta a
-	// una barbería habilitada sin sesión y sin que el cliente pueda fijar
-	// barbershopId (CA-090-03); registrada sobre el router público
+	// un negocio habilitado sin sesión y sin que el cliente pueda fijar
+	// businessId (CA-090-03); registrada sobre el router público
 	// completo, igual que login/challenge, nunca sobre `private`.
 	// El horario de hoy del perfil público (DEC-182) aplica el calendario de
 	// festivos colombianos de schedule; publicbooking no importa schedule.
@@ -231,8 +231,8 @@ func buildRouter(db *database.DB, logger *slog.Logger, cfg config.Config) (*chi.
 			holiday, ok := schedule.IsColombianHoliday(date)
 			return holiday.Name, ok
 		})
-	resolveBarbershopHandler := publicbookinghttpapi.NewResolveBarbershopHandler(publicBookingService)
-	router.Get("/api/v1/public/businesses/{slug}", resolveBarbershopHandler.ServeHTTP)
+	resolveBusinessHandler := publicbookinghttpapi.NewResolveBusinessHandler(publicBookingService)
+	router.Get("/api/v1/public/businesses/{slug}", resolveBusinessHandler.ServeHTTP)
 	listPublicServicesHandler := publicbookinghttpapi.NewListPublicServicesHandler(publicBookingService)
 	router.Get("/api/v1/public/businesses/{slug}/services", listPublicServicesHandler.ServeHTTP)
 
@@ -243,23 +243,23 @@ func buildRouter(db *database.DB, logger *slog.Logger, cfg config.Config) (*chi.
 		publicbooking.NewGoogleReviewsService(publicBookingService, buildGoogleReviewsProvider(logger, cfg), logger))
 	router.Get("/api/v1/public/businesses/{slug}/reviews", googleReviewsHandler.ServeHTTP)
 
-	// HU-092: selección pública de barbero. Mismo criterio de resolución
+	// HU-092: selección pública de profesional. Mismo criterio de resolución
 	// sin sesión que HU-090/HU-091; serviceId nunca se confía sin
-	// revalidar pertenencia y vigencia contra la barbería resuelta por slug.
-	listPublicBarbersHandler := publicbookinghttpapi.NewListPublicBarbersHandler(publicBookingService)
-	router.Get("/api/v1/public/businesses/{slug}/services/{serviceId}/professionals", listPublicBarbersHandler.ServeHTTP)
+	// revalidar pertenencia y vigencia contra el negocio resuelta por slug.
+	listPublicProfessionalsHandler := publicbookinghttpapi.NewListPublicProfessionalsHandler(publicBookingService)
+	router.Get("/api/v1/public/businesses/{slug}/services/{serviceId}/professionals", listPublicProfessionalsHandler.ServeHTTP)
 
-	// DEC-162: agregado barberos-servicios para clientes de solo lectura (el
-	// agente Odin): todos los barberos elegibles con los ids de sus servicios
+	// DEC-162: agregado profesionales-servicios para clientes de solo lectura (el
+	// agente Odin): todos los profesionales elegibles con los ids de sus servicios
 	// activos en UNA lectura, en vez de GET .../services/{serviceId}/professionals
 	// por servicio. Mismo criterio sin sesión; el tenant sale solo del slug.
-	listPublicBarbersWithServicesHandler := publicbookinghttpapi.NewListPublicBarbersWithServicesHandler(publicBookingService)
-	router.Get("/api/v1/public/businesses/{slug}/professionals", listPublicBarbersWithServicesHandler.ServeHTTP)
+	listPublicProfessionalsWithServicesHandler := publicbookinghttpapi.NewListPublicProfessionalsWithServicesHandler(publicBookingService)
+	router.Get("/api/v1/public/businesses/{slug}/professionals", listPublicProfessionalsWithServicesHandler.ServeHTTP)
 
-	// DEC-127: fotografía del barbero visible en la reserva pública. Mismo
+	// DEC-127: fotografía del profesional visible en la reserva pública. Mismo
 	// criterio sin sesión; solo sirve la imagen de quien la lista ya muestra.
-	getPublicBarberPhotoHandler := publicbookinghttpapi.NewGetPublicBarberPhotoHandler(publicBookingService)
-	router.Get("/api/v1/public/businesses/{slug}/professionals/{professionalId}/photo", getPublicBarberPhotoHandler.ServeHTTP)
+	getPublicProfessionalPhotoHandler := publicbookinghttpapi.NewGetPublicProfessionalPhotoHandler(publicBookingService)
+	router.Get("/api/v1/public/businesses/{slug}/professionals/{professionalId}/photo", getPublicProfessionalPhotoHandler.ServeHTTP)
 
 	// HU-006: middleware de sesión (paso 8) montado UNA sola vez sobre el
 	// subrouter privado, ANTES de registrar ninguna ruta sobre él (chi
@@ -272,14 +272,14 @@ func buildRouter(db *database.DB, logger *slog.Logger, cfg config.Config) (*chi.
 	sessionMiddleware := authhttpapi.NewSessionMiddleware(sessionService, authhttpapi.DefaultCookieConfig())
 	logoutHandler := authhttpapi.NewLogoutHandler(sessionService, authhttpapi.DefaultCookieConfig())
 	// HU-012 (DEC-060): lectura no destructiva de contexto de sesión, para
-	// que el frontend rehidrate barbería activa/expiración al abrir o
+	// que el frontend rehidrate negocio activo/expiración al abrir o
 	// recargar la aplicación. Se registra sobre el mismo subrouter privado,
 	// después del middleware de sesión, igual que logout (CA-006-04).
 	sessionContextHandler := authhttpapi.NewSessionContextHandler(sessionService)
 
 	private.Use(sessionMiddleware.RequireSession)
 	// DEC-173: alcance por rol justo después de la sesión. El empleado solo
-	// toca lo de su propio barbero; la tabla vive en access_policy.go.
+	// toca lo de su propio profesional; la tabla vive en access_policy.go.
 	accessPolicy, err := access.NewPolicy(privateAccessPolicy)
 	if err != nil {
 		return nil, err
@@ -290,15 +290,15 @@ func buildRouter(db *database.DB, logger *slog.Logger, cfg config.Config) (*chi.
 	private.Post("/auth/logout", logoutHandler.ServeHTTP)
 	private.Get("/auth/session", sessionContextHandler.ServeHTTP)
 
-	// HU-020: configuración básica de la barbería activa (nombre, zona
+	// HU-020: configuración básica del negocio activo (nombre, zona
 	// IANA, contacto opcional). Registrado sobre el mismo subrouter
 	// privado, después del middleware de sesión, igual que las rutas de
 	// auth (CA-006-04).
 	shopService := shops.NewService(shopspostgres.New(db))
-	getBarbershopSettingsHandler := shopshttpapi.NewGetBarbershopSettingsHandler(shopService)
-	updateBarbershopSettingsHandler := shopshttpapi.NewUpdateBarbershopSettingsHandler(shopService)
-	private.Get("/settings/business", getBarbershopSettingsHandler.ServeHTTP)
-	private.Patch("/settings/business", updateBarbershopSettingsHandler.ServeHTTP)
+	getBusinessSettingsHandler := shopshttpapi.NewGetBusinessSettingsHandler(shopService)
+	updateBusinessSettingsHandler := shopshttpapi.NewUpdateBusinessSettingsHandler(shopService)
+	private.Get("/settings/business", getBusinessSettingsHandler.ServeHTTP)
+	private.Patch("/settings/business", updateBusinessSettingsHandler.ServeHTTP)
 
 	// HU-093: política pública de reserva y cancelación (anticipación,
 	// ventana, rejilla, plazo y política de cancelación tardía). Servicio
@@ -309,16 +309,16 @@ func buildRouter(db *database.DB, logger *slog.Logger, cfg config.Config) (*chi.
 	updateBookingPolicyHandler := shopshttpapi.NewUpdateBookingPolicyHandler(bookingPolicyService)
 	private.Get("/settings/booking-policy", getBookingPolicyHandler.ServeHTTP)
 	private.Put("/settings/booking-policy", updateBookingPolicyHandler.ServeHTTP)
-	// DEC-169: ventana de reserva propia y opcional por barbero; sin ella, el
-	// barbero hereda la de la barbería.
-	barberBookingPolicyService := shops.NewBarberBookingPolicyService(
-		shopspostgres.NewBarberBookingPolicyRepository(db), bookingPolicyService)
-	barberBookingPolicyHandler := shopshttpapi.NewBarberBookingPolicyHandler(barberBookingPolicyService)
-	private.Get("/settings/booking-policy/professionals", barberBookingPolicyHandler.List)
-	private.Put("/settings/booking-policy/professionals/{professionalId}", barberBookingPolicyHandler.Put)
-	private.Delete("/settings/booking-policy/professionals/{professionalId}", barberBookingPolicyHandler.Delete)
+	// DEC-169: ventana de reserva propia y opcional por profesional; sin ella, el
+	// profesional hereda la del negocio.
+	professionalBookingPolicyService := shops.NewProfessionalBookingPolicyService(
+		shopspostgres.NewProfessionalBookingPolicyRepository(db), bookingPolicyService)
+	professionalBookingPolicyHandler := shopshttpapi.NewProfessionalBookingPolicyHandler(professionalBookingPolicyService)
+	private.Get("/settings/booking-policy/professionals", professionalBookingPolicyHandler.List)
+	private.Put("/settings/booking-policy/professionals/{professionalId}", professionalBookingPolicyHandler.Put)
+	private.Delete("/settings/booking-policy/professionals/{professionalId}", professionalBookingPolicyHandler.Delete)
 
-	// Issue #292 (DEC-110): marca y vocabulario de la barbería (color de
+	// Issue #292 (DEC-110): marca y vocabulario del negocio (color de
 	// acento de una lista cerrada, palabra del negocio y del profesional).
 	// Servicio propio: el contrato de HU-020 declara exactamente cuatro
 	// campos (CA-020-07) y no se amplía; sin versionado, la última
@@ -331,7 +331,7 @@ func buildRouter(db *database.DB, logger *slog.Logger, cfg config.Config) (*chi.
 	private.Patch("/settings/brand", updateBrandHandler.ServeHTTP)
 
 	// DEC-139: canal del código del reto adicional de acceso (correo, WhatsApp o
-	// ambos) de la barbería de la sesión. Sin versionado: la última escritura gana.
+	// ambos) del negocio de la sesión. Sin versionado: la última escritura gana.
 	loginOTPService := shops.NewLoginOTPService(shopspostgres.NewLoginOTPRepository(db))
 	getLoginOTPHandler := shopshttpapi.NewGetLoginOTPHandler(loginOTPService)
 	updateLoginOTPHandler := shopshttpapi.NewUpdateLoginOTPHandler(loginOTPService)
@@ -346,36 +346,36 @@ func buildRouter(db *database.DB, logger *slog.Logger, cfg config.Config) (*chi.
 	private.Get("/settings/opening-hours", shopshttpapi.NewGetOpeningHoursHandler(openingHoursService).ServeHTTP)
 	private.Put("/settings/opening-hours", shopshttpapi.NewReplaceOpeningHoursHandler(openingHoursService).ServeHTTP)
 
-	// Issue #304 (DEC-117): enlace público de reservas de la barbería de la
+	// Issue #304 (DEC-117): enlace público de reservas del negocio de la
 	// sesión, generado `<nombre><código>` en la primera lectura si aún no
 	// existe. Solo lectura: no hay editar ni regenerar.
 	publicLinkService := shops.NewPublicLinkService(shopspostgres.NewPublicLinkRepository(db))
 	getPublicLinkHandler := shopshttpapi.NewGetPublicLinkHandler(publicLinkService)
 	private.Get("/settings/public-link", getPublicLinkHandler.ServeHTTP)
 
-	// HU-021: registro y listado de barberos de la barbería activa.
+	// HU-021: registro y listado de profesionales del negocio activo.
 	// staffpostgres.New recibe el mismo idempotency.SQLCoordinator real que
 	// protege el alta (RN-IDE-01, DEC-043), coordinado dentro de la misma
 	// InTenantTx que el INSERT (staff/postgres/repository.go).
 	staffService := staff.NewService(staffpostgres.New(db, idempotency.NewSQLCoordinator()))
-	listBarbersHandler := staffhttpapi.NewListBarbersHandler(staffService)
-	getBarberHandler := staffhttpapi.NewGetBarberHandler(staffService)
-	createBarberHandler := staffhttpapi.NewCreateBarberHandler(staffService)
-	renameBarberHandler := staffhttpapi.NewUpdateBarberHandler(staffService)
-	putBarberPhotoHandler := staffhttpapi.NewPutBarberPhotoHandler(staffService)
-	getBarberPhotoHandler := staffhttpapi.NewGetBarberPhotoHandler(staffService)
-	deleteBarberPhotoHandler := staffhttpapi.NewDeleteBarberPhotoHandler(staffService)
-	// DEC-100: el usuario autenticado declara cuál barbero es (opcional). Actúa
+	listProfessionalsHandler := staffhttpapi.NewListProfessionalsHandler(staffService)
+	getProfessionalHandler := staffhttpapi.NewGetProfessionalHandler(staffService)
+	createProfessionalHandler := staffhttpapi.NewCreateProfessionalHandler(staffService)
+	renameProfessionalHandler := staffhttpapi.NewUpdateProfessionalHandler(staffService)
+	putProfessionalPhotoHandler := staffhttpapi.NewPutProfessionalPhotoHandler(staffService)
+	getProfessionalPhotoHandler := staffhttpapi.NewGetProfessionalPhotoHandler(staffService)
+	deleteProfessionalPhotoHandler := staffhttpapi.NewDeleteProfessionalPhotoHandler(staffService)
+	// DEC-100: el usuario autenticado declara cuál profesional es (opcional). Actúa
 	// siempre sobre el principal de la sesión, nunca sobre otro usuario.
-	getMyBarberHandler := staffhttpapi.NewGetMyBarberHandler(staffService)
-	linkMyBarberHandler := staffhttpapi.NewLinkMyBarberHandler(staffService)
-	unlinkMyBarberHandler := staffhttpapi.NewUnlinkMyBarberHandler(staffService)
+	getMyProfessionalHandler := staffhttpapi.NewGetMyProfessionalHandler(staffService)
+	linkMyProfessionalHandler := staffhttpapi.NewLinkMyProfessionalHandler(staffService)
+	unlinkMyProfessionalHandler := staffhttpapi.NewUnlinkMyProfessionalHandler(staffService)
 	googleCalendarService, err := buildGoogleCalendarService(db, logger, cfg)
 	if err != nil {
 		return nil, err
 	}
 	// DEC-100: cambiar o quitar el vínculo desconecta el Google Calendar del
-	// barbero anterior, para que quien lo tome después no herede una cuenta ajena.
+	// profesional anterior, para que quien lo tome después no herede una cuenta ajena.
 	staffService.ObserveLinkReleased(googleCalendarService)
 	googleCalendarHandlers := googlecalendarhttpapi.New(googleCalendarService)
 	private.Get("/integrations/google-calendar", googleCalendarHandlers.Get)
@@ -385,18 +385,18 @@ func buildRouter(db *database.DB, logger *slog.Logger, cfg config.Config) (*chi.
 	private.Post("/integrations/google-calendar/sync", googleCalendarHandlers.SyncNow)
 	private.Post("/integrations/google-calendar/callback", googleCalendarHandlers.Callback)
 
-	private.Get("/me/professional", getMyBarberHandler.ServeHTTP)
-	private.Put("/me/professional", linkMyBarberHandler.ServeHTTP)
-	private.Delete("/me/professional", unlinkMyBarberHandler.ServeHTTP)
-	private.Get("/professionals", listBarbersHandler.ServeHTTP)
-	private.Post("/professionals", createBarberHandler.ServeHTTP)
-	private.Get("/professionals/{professionalId}", getBarberHandler.ServeHTTP)
-	private.Patch("/professionals/{professionalId}", renameBarberHandler.ServeHTTP)
-	private.Put("/professionals/{professionalId}/photo", putBarberPhotoHandler.ServeHTTP)
-	private.Get("/professionals/{professionalId}/photo", getBarberPhotoHandler.ServeHTTP)
-	private.Delete("/professionals/{professionalId}/photo", deleteBarberPhotoHandler.ServeHTTP)
+	private.Get("/me/professional", getMyProfessionalHandler.ServeHTTP)
+	private.Put("/me/professional", linkMyProfessionalHandler.ServeHTTP)
+	private.Delete("/me/professional", unlinkMyProfessionalHandler.ServeHTTP)
+	private.Get("/professionals", listProfessionalsHandler.ServeHTTP)
+	private.Post("/professionals", createProfessionalHandler.ServeHTTP)
+	private.Get("/professionals/{professionalId}", getProfessionalHandler.ServeHTTP)
+	private.Patch("/professionals/{professionalId}", renameProfessionalHandler.ServeHTTP)
+	private.Put("/professionals/{professionalId}/photo", putProfessionalPhotoHandler.ServeHTTP)
+	private.Get("/professionals/{professionalId}/photo", getProfessionalPhotoHandler.ServeHTTP)
+	private.Delete("/professionals/{professionalId}/photo", deleteProfessionalPhotoHandler.ServeHTTP)
 
-	// HU-022: catálogo básico de servicios de la barbería activa.
+	// HU-022: catálogo básico de servicios del negocio activo.
 	// catalogpostgres.New recibe el mismo idempotency.SQLCoordinator real
 	// que protege el alta (RN-IDE-01, DEC-043), coordinado dentro de la
 	// misma InTenantTx que el INSERT (catalog/postgres/repository.go).
@@ -419,15 +419,15 @@ func buildRouter(db *database.DB, logger *slog.Logger, cfg config.Config) (*chi.
 	private.Post("/services/{serviceId}/deactivate", deactivateServiceHandler.ServeHTTP)
 	private.Post("/services/{serviceId}/reactivate", reactivateServiceHandler.ServeHTTP)
 
-	// HU-023: asignación de servicios a barberos. AssignmentService (catalog,
+	// HU-023: asignación de servicios a profesionales. AssignmentService (catalog,
 	// dueño de la intención "qué servicios se prestan") colabora con staff
-	// SOLO a través de staff.BarberLookup(staffService), un puerto pequeño
-	// que satisface catalog.BarberPort de forma puramente estructural: ni
+	// SOLO a través de staff.ProfessionalLookup(staffService), un puerto pequeño
+	// que satisface catalog.ProfessionalPort de forma puramente estructural: ni
 	// catalog importa staff, ni staff importa catalog. cmd/api es la única
 	// raíz de composición que conoce ambos módulos a la vez.
 	assignmentService := catalog.NewAssignmentService(
 		catalogpostgres.NewAssignmentRepository(db),
-		staff.NewBarberLookup(staffService),
+		staff.NewProfessionalLookup(staffService),
 	)
 	listAssignmentsHandler := cataloghttpapi.NewListAssignmentsHandler(assignmentService)
 	assignServiceHandler := cataloghttpapi.NewAssignServiceHandler(assignmentService)
@@ -436,14 +436,14 @@ func buildRouter(db *database.DB, logger *slog.Logger, cfg config.Config) (*chi.
 	private.Put("/professionals/{professionalId}/services/{serviceId}", assignServiceHandler.ServeHTTP)
 	private.Delete("/professionals/{professionalId}/services/{serviceId}", unassignServiceHandler.ServeHTTP)
 
-	// HU-040: horario laboral recurrente de cada barbero. scheduleService
-	// (schedule, dueño de la intención "cuándo trabaja cada barbero")
-	// colabora con staff SOLO a través de staff.BarberLookup(staffService),
+	// HU-040: horario laboral recurrente de cada profesional. scheduleService
+	// (schedule, dueño de la intención "cuándo trabaja cada profesional")
+	// colabora con staff SOLO a través de staff.ProfessionalLookup(staffService),
 	// mismo puerto y mismo criterio que catalog.AssignmentService frente a
 	// HU-023: ni schedule importa staff, ni staff importa schedule.
 	scheduleService := schedule.NewService(
 		schedulepostgres.New(db, idempotency.NewSQLCoordinator()).WithSyncHook(googlecalendarpostgres.NewEnqueuer()),
-		staff.NewBarberLookup(staffService),
+		staff.NewProfessionalLookup(staffService),
 	)
 	listWorkingHoursHandler := schedulehttpapi.NewListWorkingHoursHandler(scheduleService)
 	getWorkingHourHandler := schedulehttpapi.NewGetWorkingHourHandler(scheduleService)
@@ -457,7 +457,7 @@ func buildRouter(db *database.DB, logger *slog.Logger, cfg config.Config) (*chi.
 	private.Delete("/professionals/{professionalId}/working-hours/{workingHourId}", deleteWorkingHourHandler.ServeHTTP)
 
 	// HU-041: excepciones de jornada y festivos. Mismo scheduleService de
-	// HU-040 (mismo módulo, misma tabla de tenant/barbero): solo se agregan
+	// HU-040 (mismo módulo, misma tabla de tenant/profesional): solo se agregan
 	// handlers y rutas nuevas.
 	getHolidayCalendarHandler := schedulehttpapi.NewGetHolidayCalendarHandler(scheduleService)
 	updateHolidayCalendarHandler := schedulehttpapi.NewUpdateHolidayCalendarHandler(scheduleService)
@@ -477,7 +477,7 @@ func buildRouter(db *database.DB, logger *slog.Logger, cfg config.Config) (*chi.
 	private.Get("/schedule/colombian-holidays", listColombianHolidaysHandler.ServeHTTP)
 
 	// HU-042: bloqueos de agenda. Mismo scheduleService de HU-040/HU-041
-	// (mismo módulo, misma tabla de tenant/barbero): solo se agregan
+	// (mismo módulo, misma tabla de tenant/profesional): solo se agregan
 	// handlers y rutas nuevas.
 	listTimeBlocksHandler := schedulehttpapi.NewListTimeBlocksHandler(scheduleService)
 	getTimeBlockHandler := schedulehttpapi.NewGetTimeBlockHandler(scheduleService)
@@ -533,7 +533,7 @@ func buildRouter(db *database.DB, logger *slog.Logger, cfg config.Config) (*chi.
 		publicBookingRepo,
 		scheduleAvailability,
 		scheduleAvailability,
-		shops.NewAvailabilityBookingPolicy(barberBookingPolicyService),
+		shops.NewAvailabilityBookingPolicy(professionalBookingPolicyService),
 		catalog.NewManualBookingCatalog(catalogService, assignmentService),
 		shops.NewTimezoneLookup(shopService),
 		clock.System{},
@@ -541,10 +541,10 @@ func buildRouter(db *database.DB, logger *slog.Logger, cfg config.Config) (*chi.
 	listPublicAvailabilityHandler := publicbookinghttpapi.NewListPublicAvailabilityHandler(publicAvailabilityService)
 	router.Get("/api/v1/public/businesses/{slug}/services/{serviceId}/professionals/{professionalId}/availability", listPublicAvailabilityHandler.ServeHTTP)
 
-	// DEC-162: agregado de disponibilidad por servicio (todos los barberos
+	// DEC-162: agregado de disponibilidad por servicio (todos los profesionales
 	// elegibles en una respuesta). Reutiliza el MISMO AvailabilityService de
 	// HU-094, así que ventana, rejilla, bloqueos y citas no pueden divergir de
-	// la ruta por barbero, que sigue intacta.
+	// la ruta por profesional, que sigue intacta.
 	listPublicServiceAvailabilityHandler := publicbookinghttpapi.NewListPublicServiceAvailabilityHandler(publicAvailabilityService)
 	router.Get("/api/v1/public/businesses/{slug}/services/{serviceId}/availability", listPublicServiceAvailabilityHandler.ServeHTTP)
 
@@ -553,25 +553,25 @@ func buildRouter(db *database.DB, logger *slog.Logger, cfg config.Config) (*chi.
 	// sesión. El nombre del parámetro de chi es el del handler (professionalId);
 	// la URL es la de siempre. Se retiran cuando Odin migre a /businesses.
 	legacyPublic := "/api/v1/public/barbershops/{slug}"
-	router.Get(legacyPublic, resolveBarbershopHandler.ServeHTTP)
+	router.Get(legacyPublic, resolveBusinessHandler.ServeHTTP)
 	router.Get(legacyPublic+"/services", listPublicServicesHandler.ServeHTTP)
 	router.Get(legacyPublic+"/reviews", googleReviewsHandler.ServeHTTP)
-	router.Get(legacyPublic+"/barbers", listPublicBarbersWithServicesHandler.ServeHTTP)
-	router.Get(legacyPublic+"/services/{serviceId}/barbers", listPublicBarbersHandler.ServeHTTP)
+	router.Get(legacyPublic+"/barbers", listPublicProfessionalsWithServicesHandler.ServeHTTP)
+	router.Get(legacyPublic+"/services/{serviceId}/barbers", listPublicProfessionalsHandler.ServeHTTP)
 	router.Get(legacyPublic+"/services/{serviceId}/availability", listPublicServiceAvailabilityHandler.ServeHTTP)
 	router.Get(legacyPublic+"/services/{serviceId}/barbers/{professionalId}/availability", listPublicAvailabilityHandler.ServeHTTP)
 
 	// HU-061: creación manual de turnos. ManualBookingService (booking, dueño
 	// de la primitiva de HU-060) colabora con catalog/schedule/shops SOLO a
 	// través de los puertos pequeños que booking declara
-	// (BarberServicePort/BlockCheckPort/TimezonePort), satisfechos aquí por
+	// (ProfessionalServicePort/BlockCheckPort/TimezonePort), satisfechos aquí por
 	// adaptadores que viven en cada módulo dueño de sus propios datos
 	// (catalog.NewManualBookingCatalog, schedule.NewManualBookingBlocks,
 	// shops.NewTimezoneLookup): booking nunca importa esos tres módulos, ni
 	// viceversa (mismo criterio que catalog/schedule frente a staff, HU-023).
 	// DEC-102: cada escritura sobre `appointment` encola, en la misma transacción,
-	// la publicación en Google Calendar del barbero (si tiene una conexión viva).
-	// El aviso al cliente por cancelación o reprogramación del barbero se encola en
+	// la publicación en Google Calendar del profesional (si tiene una conexión viva).
+	// El aviso al cliente por cancelación o reprogramación del profesional se encola en
 	// la misma transacción del cambio (HU-130, DEC-142); lo envía el worker.
 	bookingRepo := bookingpostgres.New(db, idempotency.NewSQLCoordinator()).
 		WithSyncHook(googlecalendarpostgres.NewEnqueuer()).
@@ -602,7 +602,7 @@ func buildRouter(db *database.DB, logger *slog.Logger, cfg config.Config) (*chi.
 	// HU-098: lectura del turno del cliente por el token de acceso que
 	// HU-097 ya emite. customeraccess tiene su propio adaptador postgres
 	// (no reutiliza bookingRepo ni publicBookingRepo): consulta
-	// appointment_access_token/appointment/barber/barbershop directamente,
+	// appointment_access_token/appointment/professional/business directamente,
 	// sin importar booking ni publicbooking (mismo criterio de
 	// independencia entre módulos que el resto de cmd/api).
 	//
@@ -693,9 +693,9 @@ func buildRouter(db *database.DB, logger *slog.Logger, cfg config.Config) (*chi.
 		logger.Info("integración de Odin desactivada: APP_ODIN_SERVICE_TOKEN no está definido")
 	}
 
-	// HU-100 (DEC-128): reseñas internas por barbero. Crear (cliente, por el token
+	// HU-100 (DEC-128): reseñas internas por profesional. Crear (cliente, por el token
 	// del enlace), listar las visibles (público) y moderar (panel) comparten un
-	// único servicio; el promedio y el total del barbero lo calculan staff y
+	// único servicio; el promedio y el total del profesional lo calculan staff y
 	// publicbooking en su propia consulta.
 	reviewService := reviews.NewService(reviewspostgres.New(db))
 	router.Post("/api/v1/customer/appointments/{token}/review", reviewshttpapi.NewCreateReviewHandler(reviewService).ServeHTTP)
@@ -712,13 +712,13 @@ func buildRouter(db *database.DB, logger *slog.Logger, cfg config.Config) (*chi.
 	createManualAppointmentHandler := bookinghttpapi.NewCreateManualAppointmentHandler(manualBookingService)
 	private.Post("/appointments", createManualAppointmentHandler.ServeHTTP)
 
-	// HU-062: agenda diaria de un único barbero (DEC-074/DEC-075). Mismo
+	// HU-062: agenda diaria de un único profesional (DEC-074/DEC-075). Mismo
 	// criterio de colaboración por puerto pequeño que ManualBookingService:
-	// AgendaService solo conoce staff.NewBarberLookup(staffService) y
+	// AgendaService solo conoce staff.NewProfessionalLookup(staffService) y
 	// shops.NewTimezoneLookup(shopService), nunca los paquetes staff/shops.
 	agendaService := booking.NewAgendaService(
 		bookingRepo,
-		staff.NewBarberLookup(staffService),
+		staff.NewProfessionalLookup(staffService),
 		shops.NewTimezoneLookup(shopService),
 		clock.System{},
 	)
@@ -727,14 +727,14 @@ func buildRouter(db *database.DB, logger *slog.Logger, cfg config.Config) (*chi.
 
 	// HU-064: detalle e historial de un turno. Mismo criterio de
 	// colaboración por puerto pequeño que ManualBookingService/AgendaService:
-	// DetailService solo conoce staff.NewBarberNameLookup(staffService) y
+	// DetailService solo conoce staff.NewProfessionalNameLookup(staffService) y
 	// auth.NewStaffActorNameLookup(authpostgres.New(db)), nunca los paquetes
 	// staff/auth. authpostgres.New(db) es una instancia propia, igual que
 	// loginService/sessionService construyen la suya (auth/postgres.New es
 	// un envoltorio liviano sobre el mismo *database.DB compartido).
 	detailService := booking.NewDetailService(
 		bookingRepo,
-		staff.NewBarberNameLookup(staffService),
+		staff.NewProfessionalNameLookup(staffService),
 		auth.NewStaffActorNameLookup(authpostgres.New(db)),
 	)
 	getAppointmentDetailHandler := bookinghttpapi.NewGetAppointmentDetailHandler(detailService)
@@ -756,15 +756,15 @@ func buildRouter(db *database.DB, logger *slog.Logger, cfg config.Config) (*chi.
 	rescheduleAppointmentHandler := bookinghttpapi.NewRescheduleAppointmentHandler(rescheduleService)
 	private.Post("/appointments/{appointmentId}/reschedule", rescheduleAppointmentHandler.ServeHTTP)
 
-	// HU-066: cancelación auditada por el barbero (T6). Sin colaboradores
+	// HU-066: cancelación auditada por el profesional (T6). Sin colaboradores
 	// externos: T6 no tiene ventana temporal ni interseca con
 	// blocks/timezone (a diferencia de T2).
-	cancelAppointmentByBarberService := booking.NewCancelAppointmentByBarberService(bookingRepo)
-	cancelAppointmentByBarberHandler := bookinghttpapi.NewCancelAppointmentByBarberHandler(cancelAppointmentByBarberService)
-	private.Post("/appointments/{appointmentId}/cancel", cancelAppointmentByBarberHandler.ServeHTTP)
+	cancelAppointmentByProfessionalService := booking.NewCancelAppointmentByProfessionalService(bookingRepo)
+	cancelAppointmentByProfessionalHandler := bookinghttpapi.NewCancelAppointmentByProfessionalHandler(cancelAppointmentByProfessionalService)
+	private.Post("/appointments/{appointmentId}/cancel", cancelAppointmentByProfessionalHandler.ServeHTTP)
 
 	// HU-067: cierre manual como atendido (T4 manual) o no asistió (T7).
-	// Mismo criterio que CancelAppointmentByBarberService: sin
+	// Mismo criterio que CancelAppointmentByProfessionalService: sin
 	// colaboradores externos, solo el reloj del sistema inyectado
 	// (clock.System{}, mismo criterio que AgendaService/RescheduleService)
 	// para resolver la frontera de starts_at (CA-067-03).

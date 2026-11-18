@@ -7,7 +7,7 @@ import (
 	"strconv"
 	"strings"
 
-	"system-barbershop/internal/platform/apperr"
+	"nava-agenda/internal/platform/apperr"
 )
 
 // MaxOpeningSegmentsPerDay es cuántos tramos admite un día del horario del
@@ -19,7 +19,7 @@ const MaxOpeningSegmentsPerDay = 4
 const minutesPerDay = 24 * 60
 
 // Weekday es el día ISO 8601 de la semana: 1 = lunes … 7 = domingo, igual que
-// `working_hour.iso_weekday` y `barbershop_opening_hour.iso_weekday`.
+// `working_hour.iso_weekday` y `business_opening_hour.iso_weekday`.
 type Weekday int
 
 // weekdayNames son los nombres del contrato (`MONDAY` … `SUNDAY`), en orden ISO.
@@ -44,7 +44,7 @@ func (d Weekday) String() string {
 }
 
 // ClockMinutes es una hora civil del día en minutos desde medianoche, de 0
-// (00:00) a 1440 (24:00). Se interpreta con la zona horaria de la barbería.
+// (00:00) a 1440 (24:00). Se interpreta con la zona horaria del negocio.
 type ClockMinutes int
 
 // ParseClock lee `HH:MM` estricto: dos dígitos, dos puntos, dos dígitos, de
@@ -80,7 +80,7 @@ type OpeningSegment struct {
 
 // OpeningHours es el horario de atención del local (HU-107, DEC-182). Un día
 // sin tramos está cerrado; Segments va ordenado por día y apertura. Es
-// informativo: no limita la disponibilidad de los barberos.
+// informativo: no limita la disponibilidad de los profesionales.
 type OpeningHours struct {
 	Segments         []OpeningSegment
 	ClosedOnHolidays bool
@@ -88,14 +88,14 @@ type OpeningHours struct {
 
 // OpeningHoursRepository es el puerto de persistencia del horario del local.
 type OpeningHoursRepository interface {
-	// Get lee el horario de barbershopID en una transacción tenant-aware.
-	// found=false cubre una barbería no visible en el tenant vigente.
-	Get(ctx context.Context, barbershopID string) (hours OpeningHours, found bool, err error)
+	// Get lee el horario de businessID en una transacción tenant-aware.
+	// found=false cubre un negocio no visible en el tenant vigente.
+	Get(ctx context.Context, businessID string) (hours OpeningHours, found bool, err error)
 	// Replace sustituye la semana completa y closed_on_holidays en UNA
 	// transacción: o queda el horario nuevo entero o el anterior. Sin versión de
 	// concurrencia: es una preferencia del negocio y la última escritura gana,
 	// como la anticipación del recordatorio (DEC-174).
-	Replace(ctx context.Context, barbershopID string, hours OpeningHours) (stored OpeningHours, found bool, err error)
+	Replace(ctx context.Context, businessID string, hours OpeningHours) (stored OpeningHours, found bool, err error)
 }
 
 // OpeningHoursService lee y cambia el horario del local de la sesión. El
@@ -111,11 +111,11 @@ func NewOpeningHoursService(repo OpeningHoursRepository) *OpeningHoursService {
 }
 
 // Get lee el horario vigente.
-func (s *OpeningHoursService) Get(ctx context.Context, barbershopID string) (OpeningHours, error) {
+func (s *OpeningHoursService) Get(ctx context.Context, businessID string) (OpeningHours, error) {
 	if err := ctx.Err(); err != nil {
 		return OpeningHours{}, apperr.Internal(fmt.Errorf("shops: contexto cancelado antes de leer el horario del local: %w", err))
 	}
-	hours, found, err := s.repo.Get(ctx, barbershopID)
+	hours, found, err := s.repo.Get(ctx, businessID)
 	if err != nil {
 		return OpeningHours{}, apperr.Internal(fmt.Errorf("shops: leer horario del local: %w", err))
 	}
@@ -127,7 +127,7 @@ func (s *OpeningHoursService) Get(ctx context.Context, barbershopID string) (Ope
 
 // Replace valida el horario completo y lo guarda. Cualquier tramo inválido
 // rechaza todo con 422 sin tocar la base (CA-107-02).
-func (s *OpeningHoursService) Replace(ctx context.Context, barbershopID string, hours OpeningHours) (OpeningHours, error) {
+func (s *OpeningHoursService) Replace(ctx context.Context, businessID string, hours OpeningHours) (OpeningHours, error) {
 	if err := ctx.Err(); err != nil {
 		return OpeningHours{}, apperr.Internal(fmt.Errorf("shops: contexto cancelado antes de guardar el horario del local: %w", err))
 	}
@@ -135,7 +135,7 @@ func (s *OpeningHoursService) Replace(ctx context.Context, barbershopID string, 
 	if err != nil {
 		return OpeningHours{}, err
 	}
-	stored, found, err := s.repo.Replace(ctx, barbershopID, normalized)
+	stored, found, err := s.repo.Replace(ctx, businessID, normalized)
 	if err != nil {
 		return OpeningHours{}, apperr.Internal(fmt.Errorf("shops: guardar horario del local: %w", err))
 	}

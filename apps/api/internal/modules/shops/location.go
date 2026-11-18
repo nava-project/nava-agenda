@@ -8,14 +8,14 @@ import (
 )
 
 // MaxAddressLength es el largo máximo de la dirección, igual que
-// barbershop_address_ck: el servicio no inventa un límite más laxo que la base.
+// business_address_ck: el servicio no inventa un límite más laxo que la base.
 const MaxAddressLength = 200
 
-// Location es la ubicación física opcional de la barbería (DEC-130, HU-102).
+// Location es la ubicación física opcional del negocio (DEC-130, HU-102).
 // HasPhysicalLocation es un ajuste explícito: nunca se deriva de si Address
 // está vacía, y apagarlo conserva Address y las coordenadas. Latitude y
 // Longitude son nil o ambas no nil, y solo existen junto a una Address
-// (barbershop_coordinates_ck): salen de geocodificar una vez en el servidor
+// (business_coordinates_ck): salen de geocodificar una vez en el servidor
 // al guardar o, desde DEC-170, del punto que el dueño ajustó a mano en el mapa.
 type Location struct {
 	HasPhysicalLocation bool

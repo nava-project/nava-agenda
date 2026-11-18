@@ -6,12 +6,12 @@ import (
 	"strings"
 	"unicode/utf8"
 
-	"system-barbershop/internal/platform/apperr"
-	"system-barbershop/internal/platform/idempotency"
+	"nava-agenda/internal/platform/apperr"
+	"nava-agenda/internal/platform/idempotency"
 )
 
 // CatalogService implementa los cuatro casos de uso de HU-022: listar,
-// consultar, crear y editar servicios del catálogo de la barbería activa.
+// consultar, crear y editar servicios del catálogo del negocio activo.
 // Se nombra CatalogService (no solo Service, a diferencia de
 // staff.Service/shops.Service) porque el propio recurso de este módulo ya
 // se llama Service: un tipo del paquete no puede llamarse igual que otro.
@@ -24,7 +24,7 @@ func NewService(repo Repository) *CatalogService {
 	return &CatalogService{repo: repo}
 }
 
-// List lee una página de servicios de barbershopID (CA-022-01, DEC-103).
+// List lee una página de servicios de businessID (CA-022-01, DEC-103).
 // page llega crudo del parámetro de consulta; page < 1 (el cliente no lo
 // especificó, o especificó algo inválido que la capa HTTP no rechazó ya)
 // se normaliza a la primera página. pageSize llega crudo y se clamped a
@@ -33,9 +33,9 @@ func NewService(repo Repository) *CatalogService {
 // llegó, sin recortar: se recorta aquí y se rechaza si excede
 // MaxSearchLength, porque ningún name real podría igualarlo (CA-022-04) y
 // aceptarlo en silencio devolvería una lista vacía indistinguible de un
-// error del propio buscador. barbershopID llega siempre de un
+// error del propio buscador. businessID llega siempre de un
 // auth.Principal ya autenticado (RN-TEN-01).
-func (s *CatalogService) List(ctx context.Context, barbershopID string, page, pageSize int, searchRaw string) (ListResult, error) {
+func (s *CatalogService) List(ctx context.Context, businessID string, page, pageSize int, searchRaw string) (ListResult, error) {
 	if err := ctx.Err(); err != nil {
 		return ListResult{}, apperr.Internal(fmt.Errorf("catalog: contexto cancelado antes de listar servicios: %w", err))
 	}
@@ -57,17 +57,17 @@ func (s *CatalogService) List(ctx context.Context, barbershopID string, page, pa
 		return ListResult{}, errSearchTooLong()
 	}
 
-	result, err := s.repo.List(ctx, barbershopID, page, pageSize, search)
+	result, err := s.repo.List(ctx, businessID, page, pageSize, search)
 	if err != nil {
 		return ListResult{}, apperr.Internal(fmt.Errorf("catalog: listar servicios: %w", err))
 	}
 	return result, nil
 }
 
-// Get lee un servicio por id dentro de la barbería activa. Un identificador
-// inexistente o de otra barbería produce el mismo apperr.NotFound
+// Get lee un servicio por id dentro del negocio activo. Un identificador
+// inexistente o de otro negocio produce el mismo apperr.NotFound
 // (CA-022-06).
-func (s *CatalogService) Get(ctx context.Context, barbershopID, serviceID string) (Service, error) {
+func (s *CatalogService) Get(ctx context.Context, businessID, serviceID string) (Service, error) {
 	if err := ctx.Err(); err != nil {
 		return Service{}, apperr.Internal(fmt.Errorf("catalog: contexto cancelado antes de leer servicio: %w", err))
 	}
@@ -75,7 +75,7 @@ func (s *CatalogService) Get(ctx context.Context, barbershopID, serviceID string
 		return Service{}, errServiceNotFound()
 	}
 
-	service, found, err := s.repo.Get(ctx, barbershopID, serviceID)
+	service, found, err := s.repo.Get(ctx, businessID, serviceID)
 	if err != nil {
 		return Service{}, apperr.Internal(fmt.Errorf("catalog: leer servicio: %w", err))
 	}
@@ -104,7 +104,7 @@ type CreateInputRaw struct {
 // depende de otra fila ya persistida, no de la forma del campo.
 func (s *CatalogService) Create(
 	ctx context.Context,
-	barbershopID string,
+	businessID string,
 	raw CreateInputRaw,
 	key idempotency.Key,
 	fingerprint idempotency.Fingerprint,
@@ -118,7 +118,7 @@ func (s *CatalogService) Create(
 		return CreateResult{}, err
 	}
 
-	result, err := s.repo.Create(ctx, barbershopID, input, key, fingerprint)
+	result, err := s.repo.Create(ctx, businessID, input, key, fingerprint)
 	if err != nil {
 		return CreateResult{}, apperr.Internal(fmt.Errorf("catalog: crear servicio: %w", err))
 	}
@@ -152,20 +152,20 @@ type UpdateOutcome struct {
 }
 
 // Update cambia los campos de catálogo autorizados de un servicio existente
-// de la barbería activa (CA-022-04, CA-022-05). Un identificador inexistente
-// o de otra barbería produce el mismo apperr.NotFound que Get (CA-022-06);
+// del negocio activo (CA-022-04, CA-022-05). Un identificador inexistente
+// o de otro negocio produce el mismo apperr.NotFound que Get (CA-022-06);
 // un objeto sin ningún campo se rechaza sin tocar el repositorio
 // (errUpdateEmptyBody); un nombre que choque con otro servicio activo de la
-// misma barbería produce apperr.Conflict (DEC-067). Ningún campo de esta
+// mismo negocio produce apperr.Conflict (DEC-067). Ningún campo de esta
 // operación toca citas ni simula propagación a recursos futuros (RN-SER-04).
-func (s *CatalogService) Update(ctx context.Context, barbershopID, serviceID string, raw UpdateInputRaw) (Service, error) {
-	outcome, err := s.UpdateService(ctx, barbershopID, serviceID, raw)
+func (s *CatalogService) Update(ctx context.Context, businessID, serviceID string, raw UpdateInputRaw) (Service, error) {
+	outcome, err := s.UpdateService(ctx, businessID, serviceID, raw)
 	return outcome.Service, err
 }
 
 // UpdateService es Update con el recuento de turnos futuros actualizados
-// (HU-029): el handler HTTP lo usa para informarlo al barbero.
-func (s *CatalogService) UpdateService(ctx context.Context, barbershopID, serviceID string, raw UpdateInputRaw) (UpdateOutcome, error) {
+// (HU-029): el handler HTTP lo usa para informarlo al profesional.
+func (s *CatalogService) UpdateService(ctx context.Context, businessID, serviceID string, raw UpdateInputRaw) (UpdateOutcome, error) {
 	if err := ctx.Err(); err != nil {
 		return UpdateOutcome{}, apperr.Internal(fmt.Errorf("catalog: contexto cancelado antes de editar servicio: %w", err))
 	}
@@ -188,7 +188,7 @@ func (s *CatalogService) UpdateService(ctx context.Context, barbershopID, servic
 		fields.ActorStaffUserID = raw.ActorStaffUserID
 	}
 
-	result, err := s.repo.Update(ctx, barbershopID, serviceID, fields)
+	result, err := s.repo.Update(ctx, businessID, serviceID, fields)
 	if err != nil {
 		return UpdateOutcome{}, apperr.Internal(fmt.Errorf("catalog: editar servicio: %w", err))
 	}
@@ -203,9 +203,9 @@ func (s *CatalogService) UpdateService(ctx context.Context, barbershopID, servic
 
 // PreviewDeactivation calcula el impacto real de desactivar serviceID ahora
 // mismo (CA-024-01), sin cambiar ningún dato: solo confirma que el servicio
-// existe en barbershopID (mismo apperr.NotFound uniforme que Get) y
+// existe en businessID (mismo apperr.NotFound uniforme que Get) y
 // devuelve el recuento real de citas futuras del servicio (DEC-069, B3).
-func (s *CatalogService) PreviewDeactivation(ctx context.Context, barbershopID, serviceID string) (DeactivationImpact, error) {
+func (s *CatalogService) PreviewDeactivation(ctx context.Context, businessID, serviceID string) (DeactivationImpact, error) {
 	if err := ctx.Err(); err != nil {
 		return DeactivationImpact{}, apperr.Internal(fmt.Errorf("catalog: contexto cancelado antes de previsualizar desactivación: %w", err))
 	}
@@ -213,14 +213,14 @@ func (s *CatalogService) PreviewDeactivation(ctx context.Context, barbershopID, 
 		return DeactivationImpact{}, errServiceNotFound()
 	}
 
-	_, found, err := s.repo.Get(ctx, barbershopID, serviceID)
+	_, found, err := s.repo.Get(ctx, businessID, serviceID)
 	if err != nil {
 		return DeactivationImpact{}, apperr.Internal(fmt.Errorf("catalog: leer servicio para previsualizar desactivación: %w", err))
 	}
 	if !found {
 		return DeactivationImpact{}, errServiceNotFound()
 	}
-	affected, err := s.repo.CountFutureAppointments(ctx, barbershopID, serviceID)
+	affected, err := s.repo.CountFutureAppointments(ctx, businessID, serviceID)
 	if err != nil {
 		return DeactivationImpact{}, apperr.Internal(fmt.Errorf("catalog: contar citas futuras para previsualizar desactivación: %w", err))
 	}
@@ -230,12 +230,12 @@ func (s *CatalogService) PreviewDeactivation(ctx context.Context, barbershopID, 
 // Deactivate transiciona serviceID de activo a inactivo (CA-024-02,
 // CA-024-03), protegido por el protocolo de idempotencia reutilizable de
 // HU-004 (RN-IDE-01, DEC-043). key y fingerprint ya fueron interpretados
-// por la capa HTTP. Un identificador inexistente o de otra barbería produce
+// por la capa HTTP. Un identificador inexistente o de otro negocio produce
 // apperr.NotFound (CA-024-07); un servicio ya inactivo bajo una clave nueva
 // produce apperr.Conflict (CA-024-06).
 func (s *CatalogService) Deactivate(
 	ctx context.Context,
-	barbershopID, serviceID string,
+	businessID, serviceID string,
 	key idempotency.Key,
 	fingerprint idempotency.Fingerprint,
 ) (LifecycleResult, error) {
@@ -246,7 +246,7 @@ func (s *CatalogService) Deactivate(
 		return LifecycleResult{}, errServiceNotFound()
 	}
 
-	result, err := s.repo.Deactivate(ctx, barbershopID, serviceID, key, fingerprint)
+	result, err := s.repo.Deactivate(ctx, businessID, serviceID, key, fingerprint)
 	if err != nil {
 		return LifecycleResult{}, apperr.Internal(fmt.Errorf("catalog: desactivar servicio: %w", err))
 	}
@@ -265,7 +265,7 @@ func (s *CatalogService) Deactivate(
 // protocolo de idempotencia que Deactivate, en sentido inverso.
 func (s *CatalogService) Reactivate(
 	ctx context.Context,
-	barbershopID, serviceID string,
+	businessID, serviceID string,
 	key idempotency.Key,
 	fingerprint idempotency.Fingerprint,
 ) (LifecycleResult, error) {
@@ -276,7 +276,7 @@ func (s *CatalogService) Reactivate(
 		return LifecycleResult{}, errServiceNotFound()
 	}
 
-	result, err := s.repo.Reactivate(ctx, barbershopID, serviceID, key, fingerprint)
+	result, err := s.repo.Reactivate(ctx, businessID, serviceID, key, fingerprint)
 	if err != nil {
 		return LifecycleResult{}, apperr.Internal(fmt.Errorf("catalog: reactivar servicio: %w", err))
 	}

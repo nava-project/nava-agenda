@@ -11,8 +11,8 @@ import (
 
 	"github.com/jackc/pgx/v5"
 
-	"system-barbershop/internal/modules/reviews"
-	"system-barbershop/internal/platform/database"
+	"nava-agenda/internal/modules/reviews"
+	"nava-agenda/internal/platform/database"
 )
 
 // Repository implementa reviews.Repository.
@@ -31,7 +31,7 @@ var _ reviews.Repository = (*Repository)(nil)
 // ON CONFLICT, ninguna reseña previa. Sin fila devuelta no se distingue la causa
 // (CA-100-01). El disparador de la tabla repite la regla contra SQL directo.
 func (r *Repository) CreateByTokenHash(ctx context.Context, tokenHash string, rating int, comment *string) (reviews.Review, reviews.CreateOutcome, error) {
-	barbershopID, found, err := r.db.ResolveTenant(ctx, `SELECT public_resolve_appointment_token_tenant($1)`, tokenHash)
+	businessID, found, err := r.db.ResolveTenant(ctx, `SELECT public_resolve_appointment_token_tenant($1)`, tokenHash)
 	if err != nil {
 		return reviews.Review{}, reviews.TokenNotFound, fmt.Errorf("reviews/postgres: resolve tenant by token: %w", err)
 	}
@@ -41,7 +41,7 @@ func (r *Repository) CreateByTokenHash(ctx context.Context, tokenHash string, ra
 
 	var review reviews.Review
 	created := false
-	err = r.db.InTenantTx(ctx, barbershopID, func(ctx context.Context, q database.Queries) error {
+	err = r.db.InTenantTx(ctx, businessID, func(ctx context.Context, q database.Queries) error {
 		err := q.QueryRow(ctx,
 			`INSERT INTO professional_review (business_id, professional_id, appointment_id, rating, comment)
 			 SELECT t.business_id, ap.professional_id, ap.id, $2, $3
@@ -54,7 +54,7 @@ func (r *Repository) CreateByTokenHash(ctx context.Context, tokenHash string, ra
 			 ON CONFLICT (appointment_id) DO NOTHING
 			 RETURNING id, professional_id, rating, comment, hidden_at, created_at`,
 			tokenHash, rating, comment,
-		).Scan(&review.ID, &review.BarberID, &review.Rating, &review.Comment, &review.HiddenAt, &review.CreatedAt)
+		).Scan(&review.ID, &review.ProfessionalID, &review.Rating, &review.Comment, &review.HiddenAt, &review.CreatedAt)
 		switch {
 		case err == nil:
 			created = true
@@ -78,30 +78,30 @@ const summarySQL = `SELECT round(avg(rating)::numeric, 1)::float8, count(*)
 	   FROM professional_review
 	  WHERE business_id = $1 AND professional_id = $2 AND hidden_at IS NULL`
 
-func scanSummary(ctx context.Context, q database.Queries, barbershopID, barberID string) (reviews.Summary, error) {
+func scanSummary(ctx context.Context, q database.Queries, businessID, professionalID string) (reviews.Summary, error) {
 	var s reviews.Summary
-	if err := q.QueryRow(ctx, summarySQL, barbershopID, barberID).Scan(&s.Rating, &s.RatingCount); err != nil {
+	if err := q.QueryRow(ctx, summarySQL, businessID, professionalID).Scan(&s.Rating, &s.RatingCount); err != nil {
 		return reviews.Summary{}, fmt.Errorf("summary: %w", err)
 	}
 	return s, nil
 }
 
-func barberExists(ctx context.Context, q database.Queries, barbershopID, barberID string) (bool, error) {
+func professionalExists(ctx context.Context, q database.Queries, businessID, professionalID string) (bool, error) {
 	var one int
-	err := q.QueryRow(ctx, `SELECT 1 FROM professional WHERE business_id = $1 AND id = $2`, barbershopID, barberID).Scan(&one)
+	err := q.QueryRow(ctx, `SELECT 1 FROM professional WHERE business_id = $1 AND id = $2`, businessID, professionalID).Scan(&one)
 	switch {
 	case err == nil:
 		return true, nil
 	case errors.Is(err, pgx.ErrNoRows):
 		return false, nil
 	default:
-		return false, fmt.Errorf("barber exists: %w", err)
+		return false, fmt.Errorf("professional exists: %w", err)
 	}
 }
 
 // ListPublic implementa reviews.Repository.
-func (r *Repository) ListPublic(ctx context.Context, slug, barberID string, limit int) (reviews.PublicList, bool, error) {
-	barbershopID, found, err := r.db.ResolveTenant(ctx, `SELECT public_resolve_business_by_slug($1)`, slug)
+func (r *Repository) ListPublic(ctx context.Context, slug, professionalID string, limit int) (reviews.PublicList, bool, error) {
+	businessID, found, err := r.db.ResolveTenant(ctx, `SELECT public_resolve_business_by_slug($1)`, slug)
 	if err != nil {
 		return reviews.PublicList{}, false, fmt.Errorf("reviews/postgres: resolve tenant by slug: %w", err)
 	}
@@ -111,13 +111,13 @@ func (r *Repository) ListPublic(ctx context.Context, slug, barberID string, limi
 
 	var list reviews.PublicList
 	exists := false
-	err = r.db.InTenantTx(ctx, barbershopID, func(ctx context.Context, q database.Queries) error {
-		ok, err := barberExists(ctx, q, string(barbershopID), barberID)
+	err = r.db.InTenantTx(ctx, businessID, func(ctx context.Context, q database.Queries) error {
+		ok, err := professionalExists(ctx, q, string(businessID), professionalID)
 		if err != nil || !ok {
 			return err
 		}
 		exists = true
-		if list.Summary, err = scanSummary(ctx, q, string(barbershopID), barberID); err != nil {
+		if list.Summary, err = scanSummary(ctx, q, string(businessID), professionalID); err != nil {
 			return err
 		}
 		rows, err := q.Query(ctx,
@@ -126,7 +126,7 @@ func (r *Repository) ListPublic(ctx context.Context, slug, barberID string, limi
 			  WHERE business_id = $1 AND professional_id = $2 AND hidden_at IS NULL
 			  ORDER BY created_at DESC, id
 			  LIMIT $3`,
-			string(barbershopID), barberID, limit)
+			string(businessID), professionalID, limit)
 		if err != nil {
 			return fmt.Errorf("list public reviews: %w", err)
 		}
@@ -147,17 +147,17 @@ func (r *Repository) ListPublic(ctx context.Context, slug, barberID string, limi
 	return list, exists, nil
 }
 
-// ListForBarber implementa reviews.Repository.
-func (r *Repository) ListForBarber(ctx context.Context, barbershopID, barberID string, limit int) (reviews.PanelList, bool, error) {
+// ListForProfessional implementa reviews.Repository.
+func (r *Repository) ListForProfessional(ctx context.Context, businessID, professionalID string, limit int) (reviews.PanelList, bool, error) {
 	var list reviews.PanelList
 	exists := false
-	err := r.db.InTenantTx(ctx, database.BarbershopID(barbershopID), func(ctx context.Context, q database.Queries) error {
-		ok, err := barberExists(ctx, q, barbershopID, barberID)
+	err := r.db.InTenantTx(ctx, database.BusinessID(businessID), func(ctx context.Context, q database.Queries) error {
+		ok, err := professionalExists(ctx, q, businessID, professionalID)
 		if err != nil || !ok {
 			return err
 		}
 		exists = true
-		if list.Summary, err = scanSummary(ctx, q, barbershopID, barberID); err != nil {
+		if list.Summary, err = scanSummary(ctx, q, businessID, professionalID); err != nil {
 			return err
 		}
 		rows, err := q.Query(ctx,
@@ -166,7 +166,7 @@ func (r *Repository) ListForBarber(ctx context.Context, barbershopID, barberID s
 			  WHERE business_id = $1 AND professional_id = $2
 			  ORDER BY created_at DESC, id
 			  LIMIT $3`,
-			barbershopID, barberID, limit)
+			businessID, professionalID, limit)
 		if err != nil {
 			return fmt.Errorf("list panel reviews: %w", err)
 		}
@@ -174,7 +174,7 @@ func (r *Repository) ListForBarber(ctx context.Context, barbershopID, barberID s
 		list.Items = make([]reviews.Review, 0)
 		for rows.Next() {
 			var item reviews.Review
-			if err := rows.Scan(&item.ID, &item.BarberID, &item.Rating, &item.Comment, &item.HiddenAt, &item.CreatedAt); err != nil {
+			if err := rows.Scan(&item.ID, &item.ProfessionalID, &item.Rating, &item.Comment, &item.HiddenAt, &item.CreatedAt); err != nil {
 				return fmt.Errorf("list panel reviews: scan: %w", err)
 			}
 			list.Items = append(list.Items, item)
@@ -182,23 +182,23 @@ func (r *Repository) ListForBarber(ctx context.Context, barbershopID, barberID s
 		return rows.Err()
 	})
 	if err != nil {
-		return reviews.PanelList{}, false, fmt.Errorf("reviews/postgres: list for barber: %w", err)
+		return reviews.PanelList{}, false, fmt.Errorf("reviews/postgres: list for professional: %w", err)
 	}
 	return list, exists, nil
 }
 
 // SetHidden implementa reviews.Repository.
-func (r *Repository) SetHidden(ctx context.Context, barbershopID, barberID, reviewID string, hidden bool) (reviews.Review, bool, error) {
+func (r *Repository) SetHidden(ctx context.Context, businessID, professionalID, reviewID string, hidden bool) (reviews.Review, bool, error) {
 	var review reviews.Review
 	found := false
-	err := r.db.InTenantTx(ctx, database.BarbershopID(barbershopID), func(ctx context.Context, q database.Queries) error {
+	err := r.db.InTenantTx(ctx, database.BusinessID(businessID), func(ctx context.Context, q database.Queries) error {
 		err := q.QueryRow(ctx,
 			`UPDATE professional_review
 			    SET hidden_at = CASE WHEN $4::boolean THEN COALESCE(hidden_at, now()) ELSE NULL END
 			  WHERE business_id = $1 AND professional_id = $2 AND id = $3
 			  RETURNING id, professional_id, rating, comment, hidden_at, created_at`,
-			barbershopID, barberID, reviewID, hidden,
-		).Scan(&review.ID, &review.BarberID, &review.Rating, &review.Comment, &review.HiddenAt, &review.CreatedAt)
+			businessID, professionalID, reviewID, hidden,
+		).Scan(&review.ID, &review.ProfessionalID, &review.Rating, &review.Comment, &review.HiddenAt, &review.CreatedAt)
 		switch {
 		case err == nil:
 			found = true

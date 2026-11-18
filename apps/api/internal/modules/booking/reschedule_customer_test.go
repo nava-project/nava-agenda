@@ -5,9 +5,9 @@ import (
 	"testing"
 	"time"
 
-	"system-barbershop/internal/modules/booking"
-	"system-barbershop/internal/platform/apperr"
-	"system-barbershop/internal/platform/idempotency"
+	"nava-agenda/internal/modules/booking"
+	"nava-agenda/internal/platform/apperr"
+	"nava-agenda/internal/platform/idempotency"
 )
 
 // DEC-178, punto 2: el mismo plazo que la cancelación, inclusive, sin
@@ -77,13 +77,13 @@ type fakeRescheduleSlots struct {
 	starts           []time.Time
 	calls            int
 	ownStart, ownEnd time.Time
-	barberID         string
+	professionalID   string
 	durationMinutes  int
 }
 
-func (f *fakeRescheduleSlots) OfferedRescheduleStarts(_ context.Context, _, barberID string, duration int, ownStart, ownEnd time.Time) ([]time.Time, error) {
+func (f *fakeRescheduleSlots) OfferedRescheduleStarts(_ context.Context, _, professionalID string, duration int, ownStart, ownEnd time.Time) ([]time.Time, error) {
 	f.calls++
-	f.barberID, f.durationMinutes, f.ownStart, f.ownEnd = barberID, duration, ownStart, ownEnd
+	f.professionalID, f.durationMinutes, f.ownStart, f.ownEnd = professionalID, duration, ownStart, ownEnd
 	return f.starts, nil
 }
 
@@ -94,7 +94,7 @@ func newCustomerRescheduleService(t *testing.T) (*booking.RescheduleAppointmentB
 	startsAt := time.Date(2026, 11, 20, 15, 0, 0, 0, time.UTC)
 	now := startsAt.Add(-24 * time.Hour)
 	repo := &fakeCustomerRescheduleRepo{found: true, state: booking.CustomerRescheduleState{
-		BarberID: "barber-1", DurationMinutes: 45, StartsAt: startsAt, EndsAt: startsAt.Add(45 * time.Minute),
+		ProfessionalID: "professional-1", DurationMinutes: 45, StartsAt: startsAt, EndsAt: startsAt.Add(45 * time.Minute),
 		Status: booking.StatusConfirmed, DeadlineMinutes: 20,
 	}}
 	slots := &fakeRescheduleSlots{starts: []time.Time{startsAt.Add(2 * time.Hour)}}
@@ -115,7 +115,7 @@ func TestRescheduleAppointmentByCustomer_OfferedSlot_DelegatesWithDerivedEnd(t *
 		repo.last.ExpectedVersionToken != "v1" || !repo.last.Now.Equal(startsAt.Add(-24*time.Hour)) {
 		t.Fatalf("entrada al repositorio = %+v", repo.last)
 	}
-	if slots.barberID != "barber-1" || slots.durationMinutes != 45 || !slots.ownStart.Equal(startsAt) {
+	if slots.professionalID != "professional-1" || slots.durationMinutes != 45 || !slots.ownStart.Equal(startsAt) {
 		t.Fatalf("las franjas se piden para el mismo profesional, duración y turno propio: %+v", slots)
 	}
 }

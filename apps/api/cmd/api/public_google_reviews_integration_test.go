@@ -1,5 +1,5 @@
 // Pruebas de integración de HU-101 (DEC-129) contra el router REAL y PostgreSQL
-// real: el endpoint público de reseñas de Google resuelve la barbería por slug,
+// real: el endpoint público de reseñas de Google resuelve el negocio por slug,
 // usa SU ficha y degrada a la estructura vacía. En APP_ENVIRONMENT=test, sin
 // clave, el proveedor es el simulado: ninguna prueba toca la red.
 package main
@@ -12,7 +12,7 @@ import (
 	"strings"
 	"testing"
 
-	"system-barbershop/internal/platform/database"
+	"nava-agenda/internal/platform/database"
 )
 
 type googleReviewsBody struct {
@@ -53,7 +53,7 @@ func setGooglePlaceID(t *testing.T, db *database.DB, slug string, placeID *strin
 // TestPublicGoogleReviews_HTTP_FollowsTheShopListingAndStaysEmptyOtherwise cubre
 // CA-101-01/02 y RN-TEN-01: sin ficha responde la estructura vacía; con ella, la
 // calificación y las reseñas (aquí del proveedor simulado); la ficha de una
-// barbería nunca aparece en la otra; y el Place ID nunca viaja en la respuesta.
+// negocio nunca aparece en la otra; y el Place ID nunca viaja en la respuesta.
 func TestPublicGoogleReviews_HTTP_FollowsTheShopListingAndStaysEmptyOtherwise(t *testing.T) {
 	db := setupTestDB(t)
 	t.Cleanup(func() { db.Close() })

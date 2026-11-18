@@ -10,11 +10,11 @@ import (
 	"testing"
 	"time"
 
-	"system-barbershop/internal/modules/auth"
-	"system-barbershop/internal/modules/catalog"
-	"system-barbershop/internal/modules/catalog/httpapi"
-	"system-barbershop/internal/platform/httpserver"
-	"system-barbershop/internal/platform/idempotency"
+	"nava-agenda/internal/modules/auth"
+	"nava-agenda/internal/modules/catalog"
+	"nava-agenda/internal/modules/catalog/httpapi"
+	"nava-agenda/internal/platform/httpserver"
+	"nava-agenda/internal/platform/idempotency"
 )
 
 // fakeRepository es un doble en memoria de catalog.Repository: estas
@@ -23,42 +23,42 @@ import (
 // PostgreSQL real (esa cobertura vive en
 // internal/modules/catalog/postgres/repository_test.go).
 type fakeRepository struct {
-	listFn       func(barbershopID string, page, pageSize int, search string) (catalog.ListResult, error)
-	getFn        func(barbershopID, serviceID string) (catalog.Service, bool, error)
-	createFn     func(barbershopID string, input catalog.CreateInput, key idempotency.Key, fp idempotency.Fingerprint) (catalog.CreateResult, error)
-	updateFn     func(barbershopID, serviceID string, fields catalog.UpdateFields) (catalog.UpdateResult, error)
-	deactivateFn func(barbershopID, serviceID string, key idempotency.Key, fp idempotency.Fingerprint) (catalog.LifecycleResult, error)
-	reactivateFn func(barbershopID, serviceID string, key idempotency.Key, fp idempotency.Fingerprint) (catalog.LifecycleResult, error)
+	listFn       func(businessID string, page, pageSize int, search string) (catalog.ListResult, error)
+	getFn        func(businessID, serviceID string) (catalog.Service, bool, error)
+	createFn     func(businessID string, input catalog.CreateInput, key idempotency.Key, fp idempotency.Fingerprint) (catalog.CreateResult, error)
+	updateFn     func(businessID, serviceID string, fields catalog.UpdateFields) (catalog.UpdateResult, error)
+	deactivateFn func(businessID, serviceID string, key idempotency.Key, fp idempotency.Fingerprint) (catalog.LifecycleResult, error)
+	reactivateFn func(businessID, serviceID string, key idempotency.Key, fp idempotency.Fingerprint) (catalog.LifecycleResult, error)
 
 	futureAppointments int
 }
 
-func (f *fakeRepository) List(_ context.Context, barbershopID string, page, pageSize int, search string) (catalog.ListResult, error) {
-	return f.listFn(barbershopID, page, pageSize, search)
+func (f *fakeRepository) List(_ context.Context, businessID string, page, pageSize int, search string) (catalog.ListResult, error) {
+	return f.listFn(businessID, page, pageSize, search)
 }
 
-func (f *fakeRepository) Get(_ context.Context, barbershopID, serviceID string) (catalog.Service, bool, error) {
-	return f.getFn(barbershopID, serviceID)
+func (f *fakeRepository) Get(_ context.Context, businessID, serviceID string) (catalog.Service, bool, error) {
+	return f.getFn(businessID, serviceID)
 }
 
-func (f *fakeRepository) Create(_ context.Context, barbershopID string, input catalog.CreateInput, key idempotency.Key, fp idempotency.Fingerprint) (catalog.CreateResult, error) {
-	return f.createFn(barbershopID, input, key, fp)
+func (f *fakeRepository) Create(_ context.Context, businessID string, input catalog.CreateInput, key idempotency.Key, fp idempotency.Fingerprint) (catalog.CreateResult, error) {
+	return f.createFn(businessID, input, key, fp)
 }
 
-func (f *fakeRepository) Update(_ context.Context, barbershopID, serviceID string, fields catalog.UpdateFields) (catalog.UpdateResult, error) {
-	return f.updateFn(barbershopID, serviceID, fields)
+func (f *fakeRepository) Update(_ context.Context, businessID, serviceID string, fields catalog.UpdateFields) (catalog.UpdateResult, error) {
+	return f.updateFn(businessID, serviceID, fields)
 }
 
-func (f *fakeRepository) Deactivate(_ context.Context, barbershopID, serviceID string, key idempotency.Key, fp idempotency.Fingerprint) (catalog.LifecycleResult, error) {
-	return f.deactivateFn(barbershopID, serviceID, key, fp)
+func (f *fakeRepository) Deactivate(_ context.Context, businessID, serviceID string, key idempotency.Key, fp idempotency.Fingerprint) (catalog.LifecycleResult, error) {
+	return f.deactivateFn(businessID, serviceID, key, fp)
 }
 
 func (f *fakeRepository) CountFutureAppointments(context.Context, string, string) (int, error) {
 	return f.futureAppointments, nil
 }
 
-func (f *fakeRepository) Reactivate(_ context.Context, barbershopID, serviceID string, key idempotency.Key, fp idempotency.Fingerprint) (catalog.LifecycleResult, error) {
-	return f.reactivateFn(barbershopID, serviceID, key, fp)
+func (f *fakeRepository) Reactivate(_ context.Context, businessID, serviceID string, key idempotency.Key, fp idempotency.Fingerprint) (catalog.LifecycleResult, error) {
+	return f.reactivateFn(businessID, serviceID, key, fp)
 }
 
 var _ catalog.Repository = (*fakeRepository)(nil)
@@ -72,7 +72,7 @@ func requestWithPrincipal(method, target string, body []byte) *http.Request {
 	} else {
 		req = httptest.NewRequest(method, target, bytes.NewReader(body))
 	}
-	principal := auth.Principal{SessionID: "s-1", StaffUserID: "u-1", BarbershopID: testShopID}
+	principal := auth.Principal{SessionID: "s-1", StaffUserID: "u-1", BusinessID: testShopID}
 	return req.WithContext(auth.ContextWithPrincipal(req.Context(), principal))
 }
 
@@ -94,9 +94,9 @@ func decodeProblem(t *testing.T, rec *httptest.ResponseRecorder) map[string]any 
 
 func TestListServicesHandler_Success_ReturnsItemsAndPageMetadata(t *testing.T) {
 	now := time.Now().UTC()
-	repo := &fakeRepository{listFn: func(barbershopID string, page, pageSize int, search string) (catalog.ListResult, error) {
-		if barbershopID != testShopID {
-			t.Fatalf("expected shop %q, got %q", testShopID, barbershopID)
+	repo := &fakeRepository{listFn: func(businessID string, page, pageSize int, search string) (catalog.ListResult, error) {
+		if businessID != testShopID {
+			t.Fatalf("expected shop %q, got %q", testShopID, businessID)
 		}
 		if page != 1 {
 			t.Fatalf("expected default first page, got %d", page)
@@ -215,9 +215,9 @@ func TestListServicesHandler_SearchQueryParam_PassedThrough(t *testing.T) {
 
 func TestGetServiceHandler_Found_ReturnsService(t *testing.T) {
 	now := time.Now().UTC()
-	repo := &fakeRepository{getFn: func(barbershopID, serviceID string) (catalog.Service, bool, error) {
-		if barbershopID != testShopID || serviceID != "8f3ac2b1-e4d5-46f6-a7c8-d9e0f1a2b3c4" {
-			t.Fatalf("unexpected args: %s %s", barbershopID, serviceID)
+	repo := &fakeRepository{getFn: func(businessID, serviceID string) (catalog.Service, bool, error) {
+		if businessID != testShopID || serviceID != "8f3ac2b1-e4d5-46f6-a7c8-d9e0f1a2b3c4" {
+			t.Fatalf("unexpected args: %s %s", businessID, serviceID)
 		}
 		return catalog.Service{ID: serviceID, Name: "Corte", DurationMinutes: 30, PriceCents: 4500000, Currency: "COP", CreatedAt: now, UpdatedAt: now}, true, nil
 	}}
@@ -253,7 +253,7 @@ func TestGetServiceHandler_NotFound_Returns404(t *testing.T) {
 
 func TestGetServiceHandler_OtherTenantsID_SameNotFoundAsNonexistent(t *testing.T) {
 	// CA-022-06: el handler nunca puede distinguir "no existe" de "es de
-	// otra barbería" porque el servicio ya colapsó ambos en el mismo
+	// otro negocio" porque el servicio ya colapsó ambos en el mismo
 	// resultado found=false.
 	repo := &fakeRepository{getFn: func(string, string) (catalog.Service, bool, error) {
 		return catalog.Service{}, false, nil
@@ -351,9 +351,9 @@ func TestCreateServiceHandler_Proceed_Returns201WithLocationAndBody(t *testing.T
 		Body: `{"id":"8f3ac2b1-e4d5-46f6-a7c8-d9e0f1a2b3c4","name":"Corte","description":null,"durationMinutes":30,` +
 			`"price":"45000.00","currency":"COP","createdAt":"` + now.Format(time.RFC3339Nano) + `","updatedAt":"` + now.Format(time.RFC3339Nano) + `"}`,
 	}
-	repo := &fakeRepository{createFn: func(barbershopID string, input catalog.CreateInput, key idempotency.Key, fp idempotency.Fingerprint) (catalog.CreateResult, error) {
-		if barbershopID != testShopID {
-			t.Fatalf("unexpected shop: %s", barbershopID)
+	repo := &fakeRepository{createFn: func(businessID string, input catalog.CreateInput, key idempotency.Key, fp idempotency.Fingerprint) (catalog.CreateResult, error) {
+		if businessID != testShopID {
+			t.Fatalf("unexpected shop: %s", businessID)
 		}
 		if input.Name != "Corte" || input.DurationMinutes != 30 || input.PriceCents != 4500000 {
 			t.Fatalf("unexpected input: %+v", input)
@@ -502,7 +502,7 @@ func TestCreateServiceHandler_ThroughFullRouter_NeverLogsNameOrBody(t *testing.T
 
 func TestUpdateServiceHandler_Success_Returns200(t *testing.T) {
 	now := time.Now().UTC()
-	repo := &fakeRepository{updateFn: func(barbershopID, serviceID string, fields catalog.UpdateFields) (catalog.UpdateResult, error) {
+	repo := &fakeRepository{updateFn: func(businessID, serviceID string, fields catalog.UpdateFields) (catalog.UpdateResult, error) {
 		if fields.Name == nil || *fields.Name != "Nuevo nombre" {
 			t.Fatalf("unexpected fields: %+v", fields)
 		}
@@ -522,7 +522,7 @@ func TestUpdateServiceHandler_Success_Returns200(t *testing.T) {
 
 func TestUpdateServiceHandler_ApplyPriceToUpcoming_ReportsHowManyChanged(t *testing.T) {
 	now := time.Now().UTC()
-	repo := &fakeRepository{updateFn: func(barbershopID, serviceID string, fields catalog.UpdateFields) (catalog.UpdateResult, error) {
+	repo := &fakeRepository{updateFn: func(businessID, serviceID string, fields catalog.UpdateFields) (catalog.UpdateResult, error) {
 		if !fields.ApplyPriceToUpcoming || fields.ActorStaffUserID != "u-1" {
 			t.Fatalf("the flag and the session actor must reach the repository: %+v", fields)
 		}
@@ -681,9 +681,9 @@ func TestUpdateServiceHandler_ValidationError_Returns422(t *testing.T) {
 const lifecycleServiceID = "8f3ac2b1-e4d5-46f6-a7c8-d9e0f1a2b3c4"
 
 func TestGetServiceDeactivationImpactHandler_Found_ReturnsTheRealCount(t *testing.T) {
-	repo := &fakeRepository{futureAppointments: 3, getFn: func(barbershopID, serviceID string) (catalog.Service, bool, error) {
-		if barbershopID != testShopID || serviceID != lifecycleServiceID {
-			t.Fatalf("unexpected lookup: shop=%s service=%s", barbershopID, serviceID)
+	repo := &fakeRepository{futureAppointments: 3, getFn: func(businessID, serviceID string) (catalog.Service, bool, error) {
+		if businessID != testShopID || serviceID != lifecycleServiceID {
+			t.Fatalf("unexpected lookup: shop=%s service=%s", businessID, serviceID)
 		}
 		return catalog.Service{ID: serviceID, IsActive: true}, true, nil
 	}}
@@ -759,9 +759,9 @@ func TestDeactivateServiceHandler_Proceed_Returns200WithStoredBody(t *testing.T)
 		ContentType: "application/json",
 		Body:        `{"service":{"id":"` + lifecycleServiceID + `","isActive":false},"affectedAppointments":0}`,
 	}
-	repo := &fakeRepository{deactivateFn: func(barbershopID, serviceID string, key idempotency.Key, fp idempotency.Fingerprint) (catalog.LifecycleResult, error) {
-		if barbershopID != testShopID || serviceID != lifecycleServiceID || key != "key-1" {
-			t.Fatalf("unexpected call: shop=%s service=%s key=%s", barbershopID, serviceID, key)
+	repo := &fakeRepository{deactivateFn: func(businessID, serviceID string, key idempotency.Key, fp idempotency.Fingerprint) (catalog.LifecycleResult, error) {
+		if businessID != testShopID || serviceID != lifecycleServiceID || key != "key-1" {
+			t.Fatalf("unexpected call: shop=%s service=%s key=%s", businessID, serviceID, key)
 		}
 		return catalog.LifecycleResult{
 			Decision: idempotency.Decision{Outcome: idempotency.OutcomeProceed},
@@ -850,7 +850,7 @@ func TestReactivateServiceHandler_Proceed_Returns200WithStoredBody(t *testing.T)
 		ContentType: "application/json",
 		Body:        `{"id":"` + lifecycleServiceID + `","isActive":true,"deactivatedAt":null}`,
 	}
-	repo := &fakeRepository{reactivateFn: func(barbershopID, serviceID string, key idempotency.Key, fp idempotency.Fingerprint) (catalog.LifecycleResult, error) {
+	repo := &fakeRepository{reactivateFn: func(businessID, serviceID string, key idempotency.Key, fp idempotency.Fingerprint) (catalog.LifecycleResult, error) {
 		if key != "key-1" {
 			t.Fatalf("unexpected key: %s", key)
 		}

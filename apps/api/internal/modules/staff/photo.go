@@ -11,8 +11,8 @@ import (
 	"time"
 )
 
-// Límites de la fotografía de un barbero (DEC-104). MaxPhotoBytes coincide
-// con barber_photo_image_size_ck (20260930120000_create_barber_photo.sql): el
+// Límites de la fotografía de un profesional (DEC-104). MaxPhotoBytes coincide
+// con professional_photo_image_size_ck (20260930120000_create_barber_photo.sql): el
 // servicio no inventa un límite más laxo que la base ya aplica. Los tamaños
 // son técnicos: el cliente reduce cada imagen a 512 px antes de enviarla, así
 // que estos topes solo frenan un cliente que no lo haga.
@@ -26,7 +26,7 @@ const (
 	MaxPhotoSide = 1024
 )
 
-// Tipos de contenido admitidos, en la misma forma que barber_photo_content_type_ck.
+// Tipos de contenido admitidos, en la misma forma que professional_photo_content_type_ck.
 const (
 	PhotoContentTypeJPEG = "image/jpeg"
 	PhotoContentTypePNG  = "image/png"
@@ -39,7 +39,7 @@ type Photo struct {
 	Data        []byte
 }
 
-// StoredPhoto es la fotografía persistida de un barbero. UpdatedAt sirve de
+// StoredPhoto es la fotografía persistida de un profesional. UpdatedAt sirve de
 // versión: la API lo expone como `photoUpdatedAt` y como ETag.
 type StoredPhoto struct {
 	ContentType string

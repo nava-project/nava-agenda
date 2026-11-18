@@ -5,7 +5,7 @@ import (
 	"strings"
 	"unicode/utf8"
 
-	"system-barbershop/internal/platform/apperr"
+	"nava-agenda/internal/platform/apperr"
 )
 
 // HomeServiceMaxAddressLength es el largo máximo de la dirección a domicilio,
@@ -54,7 +54,7 @@ func finiteWithin(v, lo, hi float64) bool {
 }
 
 // errHomeServiceNotOffered cubre CA-103-05: el cliente pidió domicilio y la
-// barbería lo tiene apagado en el momento de confirmar, ya sea porque nunca lo
+// negocio lo tiene apagado en el momento de confirmar, ya sea porque nunca lo
 // ofreció o porque lo apagó entre la elección y el envío. No crea el turno.
 func errHomeServiceNotOffered() error {
 	return apperr.Validation("este negocio no ofrece servicio a domicilio")

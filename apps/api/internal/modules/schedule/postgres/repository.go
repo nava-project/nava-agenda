@@ -13,12 +13,12 @@ import (
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgconn"
 
-	"system-barbershop/internal/modules/schedule"
-	"system-barbershop/internal/platform/database"
-	"system-barbershop/internal/platform/idempotency"
+	"nava-agenda/internal/modules/schedule"
+	"nava-agenda/internal/platform/database"
+	"nava-agenda/internal/platform/idempotency"
 )
 
-// createWorkingHourOperation identifica, dentro de una barbería, la
+// createWorkingHourOperation identifica, dentro de un negocio, la
 // operación de idempotencia del alta de un tramo (RN-IDE-01): una clave ya
 // usada para OTRA operación nunca se confunde con esta.
 const createWorkingHourOperation idempotency.Operation = "create_working_hour"
@@ -30,7 +30,7 @@ const createWorkingHourIdempotencyTTL = 24 * time.Hour
 
 // workingHourWeekdayStartUniqueConstraint es el nombre del UNIQUE de
 // 20260825160000_create_working_hour.sql que rechaza repetir exactamente
-// el mismo día e inicio para un mismo barbero. Solo un unique_violation
+// el mismo día e inicio para un mismo profesional. Solo un unique_violation
 // sobre ESTE constraint se traduce a un conflicto de negocio: cualquier
 // otro unique_violation (que hoy no debería existir en working_hour) se
 // propaga como error interno, mismo criterio que
@@ -67,7 +67,7 @@ var errOverlapConflictInternal = errors.New("schedule/postgres: el tramo se sola
 // httpapi.WorkingHourResponse: la respuesta que Complete persiste para una
 // repetición exacta (CA-004-01) debe ser BYTE A BYTE idéntica a la que el
 // handler ya construyó para la primera ejecución, mismo criterio que
-// staff/postgres.barberResponseWire (ver
+// staff/postgres.professionalResponseWire (ver
 // TestCreate_StoredResponseBody_MatchesHTTPAPIWireShape en
 // repository_test.go).
 type workingHourResponseWire struct {
@@ -100,23 +100,23 @@ func isWeekdayStartConflict(err error) bool {
 	return pgErr.Code == "23505" && pgErr.ConstraintName == workingHourWeekdayStartUniqueConstraint
 }
 
-// lockBarberForScheduleWrite bloquea la fila de barber (SELECT ... FOR
+// lockProfessionalForScheduleWrite bloquea la fila de professional (SELECT ... FOR
 // UPDATE) antes de verificar solape e insertar/editar un tramo: sin este
 // bloqueo, dos transacciones concurrentes que parten de un conjunto de
-// tramos existentes VACÍO para el mismo barbero y día podrían leer "cero
+// tramos existentes VACÍO para el mismo profesional y día podrían leer "cero
 // tramos" ambas, no ver nada que bloquear con un SELECT ... FOR UPDATE
 // sobre working_hour, e insertar dos tramos que se solapan entre sí (el
 // clásico "phantom read" de una transacción a nivel READ COMMITTED). Mismo
 // criterio que lockServiceForTransition bloqueando la fila de service para
-// resistir dos transiciones concurrentes. No falla si el barbero no
-// existe (cero filas): el llamador ya lo verificó mediante BarberPort antes
+// resistir dos transiciones concurrentes. No falla si el profesional no
+// existe (cero filas): el llamador ya lo verificó mediante ProfessionalPort antes
 // de esta transacción; si de todas formas no existe, la verificación de
 // solape no encuentra nada y el INSERT/UPDATE final falla por su cuenta
 // (FK o cero filas afectadas).
-func lockBarberForScheduleWrite(ctx context.Context, q database.Queries, barbershopID, barberID string) error {
-	rows, err := q.Query(ctx, `SELECT 1 FROM professional WHERE business_id = $1 AND id = $2 FOR UPDATE`, barbershopID, barberID)
+func lockProfessionalForScheduleWrite(ctx context.Context, q database.Queries, businessID, professionalID string) error {
+	rows, err := q.Query(ctx, `SELECT 1 FROM professional WHERE business_id = $1 AND id = $2 FOR UPDATE`, businessID, professionalID)
 	if err != nil {
-		return fmt.Errorf("lock barber: %w", err)
+		return fmt.Errorf("lock professional: %w", err)
 	}
 	defer rows.Close()
 	for rows.Next() {
@@ -125,13 +125,13 @@ func lockBarberForScheduleWrite(ctx context.Context, q database.Queries, barbers
 }
 
 // overlapsExisting bloquea (SELECT ... FOR UPDATE) y lee los tramos
-// existentes del mismo (barbershopID, barberID, isoWeekday), excluyendo
+// existentes del mismo (businessID, professionalID, isoWeekday), excluyendo
 // excludeID (vacío en Create, el propio tramo en Update), y verifica si
 // alguno se solapa con [startsTime, startsTime+durationMinutes) mediante
 // schedule.IntervalsOverlap.
 func overlapsExisting(
 	ctx context.Context, q database.Queries,
-	barbershopID, barberID string, isoWeekday int, excludeID string,
+	businessID, professionalID string, isoWeekday int, excludeID string,
 	startsTime string, durationMinutes int,
 ) (bool, error) {
 	rows, err := q.Query(ctx,
@@ -139,7 +139,7 @@ func overlapsExisting(
 		   FROM working_hour
 		  WHERE business_id = $1 AND professional_id = $2 AND iso_weekday = $3 AND id <> $4
 		    FOR UPDATE`,
-		barbershopID, barberID, isoWeekday, excludeID,
+		businessID, professionalID, isoWeekday, excludeID,
 	)
 	if err != nil {
 		return false, fmt.Errorf("lock existing working hours: %w", err)
@@ -164,14 +164,14 @@ func overlapsExisting(
 }
 
 // List implementa schedule.Repository.List: orden estable (iso_weekday,
-// starts_time, id) dentro del tenant y barbero vigentes, cursor opaco
+// starts_time, id) dentro del tenant y profesional vigentes, cursor opaco
 // decodificado por el núcleo (schedule.Cursor), paginación "pedir uno de
 // más" para saber si hay página siguiente sin una segunda consulta COUNT
 // (mismo patrón que staff/postgres.Repository.List).
-func (r *Repository) List(ctx context.Context, barbershopID, barberID string, cursor *schedule.Cursor, limit int) (schedule.ListResult, error) {
+func (r *Repository) List(ctx context.Context, businessID, professionalID string, cursor *schedule.Cursor, limit int) (schedule.ListResult, error) {
 	var result schedule.ListResult
 
-	err := r.db.InTenantTx(ctx, database.BarbershopID(barbershopID), func(ctx context.Context, q database.Queries) error {
+	err := r.db.InTenantTx(ctx, database.BusinessID(businessID), func(ctx context.Context, q database.Queries) error {
 		var (
 			rows pgx.Rows
 			err  error
@@ -185,7 +185,7 @@ func (r *Repository) List(ctx context.Context, barbershopID, barberID string, cu
 				  WHERE business_id = $1 AND professional_id = $2
 				  ORDER BY iso_weekday, starts_time, id
 				  LIMIT $3`,
-				barbershopID, barberID, fetchLimit,
+				businessID, professionalID, fetchLimit,
 			)
 		} else {
 			rows, err = q.Query(ctx,
@@ -195,7 +195,7 @@ func (r *Repository) List(ctx context.Context, barbershopID, barberID string, cu
 				    AND (iso_weekday, starts_time, id) > ($3, $4::time, $5)
 				  ORDER BY iso_weekday, starts_time, id
 				  LIMIT $6`,
-				barbershopID, barberID, cursor.ISOWeekday, cursor.StartsTime, cursor.ID, fetchLimit,
+				businessID, professionalID, cursor.ISOWeekday, cursor.StartsTime, cursor.ID, fetchLimit,
 			)
 		}
 		if err != nil {
@@ -234,27 +234,27 @@ func (r *Repository) List(ctx context.Context, barbershopID, barberID string, cu
 }
 
 // Get implementa schedule.Repository.Get. RLS (working_hour_select_tenant_policy)
-// ya restringe la fila visible a barbershop_id = current_setting(...); el
-// filtro explícito WHERE barbershop_id = $2 AND barber_id = $3 es defensa
+// ya restringe la fila visible a business_id = current_setting(...); el
+// filtro explícito WHERE business_id = $2 AND professional_id = $3 es defensa
 // en profundidad, mismo patrón que staff/postgres.Repository.Get.
-func (r *Repository) Get(ctx context.Context, barbershopID, barberID, workingHourID string) (schedule.WorkingHour, bool, error) {
+func (r *Repository) Get(ctx context.Context, businessID, professionalID, workingHourID string) (schedule.WorkingHour, bool, error) {
 	var wh schedule.WorkingHour
 	found := false
 
-	err := r.db.InTenantTx(ctx, database.BarbershopID(barbershopID), func(ctx context.Context, q database.Queries) error {
+	err := r.db.InTenantTx(ctx, database.BusinessID(businessID), func(ctx context.Context, q database.Queries) error {
 		wh.ID = workingHourID
 		err := q.QueryRow(ctx,
 			`SELECT iso_weekday, to_char(starts_time, 'HH24:MI'), duration_minutes, created_at, updated_at
 			   FROM working_hour
 			  WHERE id = $1 AND business_id = $2 AND professional_id = $3`,
-			workingHourID, barbershopID, barberID,
+			workingHourID, businessID, professionalID,
 		).Scan(&wh.ISOWeekday, &wh.StartsTime, &wh.DurationMinutes, &wh.CreatedAt, &wh.UpdatedAt)
 		switch {
 		case err == nil:
 			found = true
 		case errors.Is(err, pgx.ErrNoRows):
-			// found queda false: cubre "no existe", "es de otro barbero" y "es
-			// de otra barbería" (CA-040-05), sin distinguir la causa.
+			// found queda false: cubre "no existe", "es de otro profesional" y "es
+			// de otro negocio" (CA-040-05), sin distinguir la causa.
 		default:
 			return fmt.Errorf("select working hour: %w", err)
 		}
@@ -270,7 +270,7 @@ func (r *Repository) Get(ctx context.Context, barbershopID, barberID, workingHou
 }
 
 // Create implementa schedule.Repository.Create: Begin, el bloqueo del
-// barbero, la verificación de solape, el INSERT y Complete ocurren dentro
+// profesional, la verificación de solape, el INSERT y Complete ocurren dentro
 // de la MISMA InTenantTx (apps/api/README.md, "Patrón obligatorio:
 // idempotencia reutilizable"). Un solape (o un unique_violation defensivo
 // de workingHourWeekdayStartUniqueConstraint) hace ROLLBACK de toda la
@@ -280,15 +280,15 @@ func (r *Repository) Get(ctx context.Context, barbershopID, barberID, workingHou
 // CA-004-06/catalog.CreateResult.NameTaken).
 func (r *Repository) Create(
 	ctx context.Context,
-	barbershopID, barberID string,
+	businessID, professionalID string,
 	input schedule.CreateInput,
 	key idempotency.Key,
 	fingerprint idempotency.Fingerprint,
 ) (schedule.CreateResult, error) {
 	var result schedule.CreateResult
 
-	err := r.db.InTenantTx(ctx, database.BarbershopID(barbershopID), func(ctx context.Context, q database.Queries) error {
-		decision, err := r.coord.Begin(ctx, q, database.BarbershopID(barbershopID), key, createWorkingHourOperation, fingerprint, createWorkingHourIdempotencyTTL)
+	err := r.db.InTenantTx(ctx, database.BusinessID(businessID), func(ctx context.Context, q database.Queries) error {
+		decision, err := r.coord.Begin(ctx, q, database.BusinessID(businessID), key, createWorkingHourOperation, fingerprint, createWorkingHourIdempotencyTTL)
 		if err != nil {
 			return fmt.Errorf("idempotency begin: %w", err)
 		}
@@ -301,11 +301,11 @@ func (r *Repository) Create(
 			return nil
 		}
 
-		if err := lockBarberForScheduleWrite(ctx, q, barbershopID, barberID); err != nil {
+		if err := lockProfessionalForScheduleWrite(ctx, q, businessID, professionalID); err != nil {
 			return err
 		}
 
-		overlaps, err := overlapsExisting(ctx, q, barbershopID, barberID, input.ISOWeekday, "00000000-0000-0000-0000-000000000000", input.StartsTime, input.DurationMinutes)
+		overlaps, err := overlapsExisting(ctx, q, businessID, professionalID, input.ISOWeekday, "00000000-0000-0000-0000-000000000000", input.StartsTime, input.DurationMinutes)
 		if err != nil {
 			return err
 		}
@@ -319,7 +319,7 @@ func (r *Repository) Create(
 			`INSERT INTO working_hour (business_id, professional_id, iso_weekday, starts_time, duration_minutes)
 			      VALUES ($1, $2, $3, $4::time, $5)
 			   RETURNING id, iso_weekday, to_char(starts_time, 'HH24:MI'), duration_minutes, created_at, updated_at`,
-			barbershopID, barberID, input.ISOWeekday, input.StartsTime, input.DurationMinutes,
+			businessID, professionalID, input.ISOWeekday, input.StartsTime, input.DurationMinutes,
 		)
 		if err := row.Scan(&wh.ID, &wh.ISOWeekday, &wh.StartsTime, &wh.DurationMinutes, &wh.CreatedAt, &wh.UpdatedAt); err != nil {
 			if isWeekdayStartConflict(err) {
@@ -339,7 +339,7 @@ func (r *Repository) Create(
 			Body:        string(body),
 		}
 
-		ok, err := r.coord.Complete(ctx, q, database.BarbershopID(barbershopID), key, stored)
+		ok, err := r.coord.Complete(ctx, q, database.BusinessID(businessID), key, stored)
 		if err != nil {
 			return fmt.Errorf("idempotency complete: %w", err)
 		}
@@ -360,21 +360,21 @@ func (r *Repository) Create(
 	return result, nil
 }
 
-// Update implementa schedule.Repository.Update: bloquea el barbero,
-// verifica solape contra los demás tramos del mismo (barbershopID,
-// barberID, input.ISOWeekday) EXCLUYENDO workingHourID, y
-// `UPDATE ... RETURNING` filtrando por id, barbershopID y barberID. Cero
-// filas afectadas cubre "no existe"/"de otro barbero"/"de otra barbería"
+// Update implementa schedule.Repository.Update: bloquea el profesional,
+// verifica solape contra los demás tramos del mismo (businessID,
+// professionalID, input.ISOWeekday) EXCLUYENDO workingHourID, y
+// `UPDATE ... RETURNING` filtrando por id, businessID y professionalID. Cero
+// filas afectadas cubre "no existe"/"de otro profesional"/"de otro negocio"
 // (CA-040-05).
-func (r *Repository) Update(ctx context.Context, barbershopID, barberID, workingHourID string, input schedule.UpdateInput) (schedule.UpdateResult, error) {
+func (r *Repository) Update(ctx context.Context, businessID, professionalID, workingHourID string, input schedule.UpdateInput) (schedule.UpdateResult, error) {
 	var result schedule.UpdateResult
 
-	err := r.db.InTenantTx(ctx, database.BarbershopID(barbershopID), func(ctx context.Context, q database.Queries) error {
-		if err := lockBarberForScheduleWrite(ctx, q, barbershopID, barberID); err != nil {
+	err := r.db.InTenantTx(ctx, database.BusinessID(businessID), func(ctx context.Context, q database.Queries) error {
+		if err := lockProfessionalForScheduleWrite(ctx, q, businessID, professionalID); err != nil {
 			return err
 		}
 
-		overlaps, err := overlapsExisting(ctx, q, barbershopID, barberID, input.ISOWeekday, workingHourID, input.StartsTime, input.DurationMinutes)
+		overlaps, err := overlapsExisting(ctx, q, businessID, professionalID, input.ISOWeekday, workingHourID, input.StartsTime, input.DurationMinutes)
 		if err != nil {
 			return err
 		}
@@ -390,7 +390,7 @@ func (r *Repository) Update(ctx context.Context, barbershopID, barberID, working
 			    SET iso_weekday = $4, starts_time = $5::time, duration_minutes = $6
 			  WHERE id = $1 AND business_id = $2 AND professional_id = $3
 			RETURNING iso_weekday, to_char(starts_time, 'HH24:MI'), duration_minutes, created_at, updated_at`,
-			workingHourID, barbershopID, barberID, input.ISOWeekday, input.StartsTime, input.DurationMinutes,
+			workingHourID, businessID, professionalID, input.ISOWeekday, input.StartsTime, input.DurationMinutes,
 		)
 		err = row.Scan(&wh.ISOWeekday, &wh.StartsTime, &wh.DurationMinutes, &wh.CreatedAt, &wh.UpdatedAt)
 		switch {
@@ -417,14 +417,14 @@ func (r *Repository) Update(ctx context.Context, barbershopID, barberID, working
 }
 
 // Delete implementa schedule.Repository.Delete: retiro físico (working_hour
-// no tiene eliminación lógica), filtrando por id, barbershopID y barberID.
-func (r *Repository) Delete(ctx context.Context, barbershopID, barberID, workingHourID string) (bool, error) {
+// no tiene eliminación lógica), filtrando por id, businessID y professionalID.
+func (r *Repository) Delete(ctx context.Context, businessID, professionalID, workingHourID string) (bool, error) {
 	found := false
 
-	err := r.db.InTenantTx(ctx, database.BarbershopID(barbershopID), func(ctx context.Context, q database.Queries) error {
+	err := r.db.InTenantTx(ctx, database.BusinessID(businessID), func(ctx context.Context, q database.Queries) error {
 		tag, err := q.Exec(ctx,
 			`DELETE FROM working_hour WHERE id = $1 AND business_id = $2 AND professional_id = $3`,
-			workingHourID, barbershopID, barberID,
+			workingHourID, businessID, professionalID,
 		)
 		if err != nil {
 			return fmt.Errorf("delete working hour: %w", err)

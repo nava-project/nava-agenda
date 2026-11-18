@@ -14,7 +14,7 @@ import (
 	"net/url"
 	"time"
 
-	"system-barbershop/internal/modules/shops"
+	"nava-agenda/internal/modules/shops"
 )
 
 // DefaultGeocodeURL es el endpoint de Google Geocoding.
@@ -83,7 +83,7 @@ type geocodeResponse struct {
 // Un resultado se acepta solo si Google lo marca como coincidencia completa y
 // lo ubica con precisión de calle o mejor: un `partial_match` o un punto
 // `APPROXIMATE` (el centro de una ciudad o un barrio) pondría el marcador en un
-// lugar que no es la barbería, y mostrar un punto erróneo es peor que no
+// lugar que no es el negocio, y mostrar un punto erróneo es peor que no
 // mostrar el mapa (riesgo de HU-102). Esos casos son ErrAddressUnresolvable; un
 // fallo de red, de cuota o de credencial es ErrGeocoderUnavailable.
 func (g *Geocoder) Geocode(ctx context.Context, address string) (shops.Coordinates, error) {

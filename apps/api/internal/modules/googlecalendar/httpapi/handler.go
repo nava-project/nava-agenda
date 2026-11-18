@@ -5,10 +5,10 @@ import (
 	"errors"
 	"net/http"
 
-	"system-barbershop/internal/modules/auth"
-	"system-barbershop/internal/modules/googlecalendar"
-	"system-barbershop/internal/platform/apperr"
-	"system-barbershop/internal/platform/httpserver"
+	"nava-agenda/internal/modules/auth"
+	"nava-agenda/internal/modules/googlecalendar"
+	"nava-agenda/internal/platform/apperr"
+	"nava-agenda/internal/platform/httpserver"
 )
 
 func principalOrInternalError(w http.ResponseWriter, r *http.Request, requestID string) (auth.Principal, bool) {
@@ -58,9 +58,9 @@ func writeJSON(w http.ResponseWriter, status int, body any) {
 
 func newConnectionResponse(view googlecalendar.StatusView) ConnectionResponse {
 	response := ConnectionResponse{
-		Enabled:      view.Enabled,
-		BarberLinked: view.BarberLinked,
-		Status:       string(googlecalendar.StatusNotConnected),
+		Enabled:            view.Enabled,
+		ProfessionalLinked: view.ProfessionalLinked,
+		Status:             string(googlecalendar.StatusNotConnected),
 	}
 	if view.Connection != nil {
 		fillFromConnection(&response, *view.Connection)
@@ -88,7 +88,7 @@ func (h *Handlers) SyncNow(w http.ResponseWriter, r *http.Request) {
 	if !ok {
 		return
 	}
-	counts, err := h.service.SyncNow(r.Context(), principal.BarbershopID, principal.StaffUserID)
+	counts, err := h.service.SyncNow(r.Context(), principal.BusinessID, principal.StaffUserID)
 	if err != nil {
 		httpserver.WriteProblem(w, httpserver.Translate(err, requestID))
 		return
@@ -113,7 +113,7 @@ func (h *Handlers) Get(w http.ResponseWriter, r *http.Request) {
 	if !ok {
 		return
 	}
-	view, err := h.service.Status(r.Context(), principal.BarbershopID, principal.StaffUserID)
+	view, err := h.service.Status(r.Context(), principal.BusinessID, principal.StaffUserID)
 	if err != nil {
 		httpserver.WriteProblem(w, httpserver.Translate(err, requestID))
 		return
@@ -128,7 +128,7 @@ func (h *Handlers) Connect(w http.ResponseWriter, r *http.Request) {
 	if !ok {
 		return
 	}
-	url, err := h.service.StartConnect(r.Context(), principal.BarbershopID, principal.StaffUserID, principal.SessionID)
+	url, err := h.service.StartConnect(r.Context(), principal.BusinessID, principal.StaffUserID, principal.SessionID)
 	if err != nil {
 		httpserver.WriteProblem(w, httpserver.Translate(err, requestID))
 		return
@@ -148,7 +148,7 @@ func (h *Handlers) Callback(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	result, err := h.service.CompleteCallback(r.Context(),
-		principal.BarbershopID, principal.StaffUserID, principal.SessionID, req.State, req.Code, req.Error)
+		principal.BusinessID, principal.StaffUserID, principal.SessionID, req.State, req.Code, req.Error)
 	if err != nil {
 		httpserver.WriteProblem(w, httpserver.Translate(err, requestID))
 		return
@@ -187,12 +187,12 @@ func (h *Handlers) UpdateReminder(w http.ResponseWriter, r *http.Request) {
 		minutes = &value
 	}
 
-	conn, err := h.service.UpdateReminder(r.Context(), principal.BarbershopID, principal.StaffUserID, minutes)
+	conn, err := h.service.UpdateReminder(r.Context(), principal.BusinessID, principal.StaffUserID, minutes)
 	if err != nil {
 		httpserver.WriteProblem(w, httpserver.Translate(err, requestID))
 		return
 	}
-	response := ConnectionResponse{Enabled: h.service.Enabled(), BarberLinked: true}
+	response := ConnectionResponse{Enabled: h.service.Enabled(), ProfessionalLinked: true}
 	fillFromConnection(&response, conn)
 	writeJSON(w, http.StatusOK, response)
 }
@@ -204,7 +204,7 @@ func (h *Handlers) Disconnect(w http.ResponseWriter, r *http.Request) {
 	if !ok {
 		return
 	}
-	if err := h.service.Disconnect(r.Context(), principal.BarbershopID, principal.StaffUserID); err != nil {
+	if err := h.service.Disconnect(r.Context(), principal.BusinessID, principal.StaffUserID); err != nil {
 		httpserver.WriteProblem(w, httpserver.Translate(err, requestID))
 		return
 	}

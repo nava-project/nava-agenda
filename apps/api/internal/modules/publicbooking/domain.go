@@ -7,46 +7,46 @@ import (
 	"regexp"
 	"time"
 
-	"system-barbershop/internal/platform/apperr"
+	"nava-agenda/internal/platform/apperr"
 )
 
-// BarbershopProfile es la representación pública mínima de una barbería
+// BusinessProfile es la representación pública mínima de un negocio
 // habilitada (HU-090, CA-090-01, CA-090-04): nombre, zona horaria IANA y
 // contacto público opcional y vocabulario del negocio (DEC-119). Nunca incluye un identificador interno, el
 // slug mismo, ni ningún otro dato de configuración privada.
-type BarbershopProfile struct {
+type BusinessProfile struct {
 	Name         string
 	Timezone     string
 	ContactEmail *string
 	ContactPhone *string
 	Vocabulary   Vocabulary
-	// Location es nil salvo que la barbería muestre un local (DEC-130): el
+	// Location es nil salvo que el negocio muestre un local (DEC-130): el
 	// interruptor activo Y coordenadas guardadas. Con cualquier otra
 	// combinación es nil y la reserva pública no pinta ninguna sección.
 	Location *Location
-	// OffersHomeService indica que la barbería ofrece atender a domicilio
+	// OffersHomeService indica que el negocio ofrece atender a domicilio
 	// (DEC-131, HU-103): la reserva pública solo pide la modalidad cuando es true.
 	OffersHomeService bool
-	// BrandAccent es la clave del color de acento que la barbería eligió en
+	// BrandAccent es la clave del color de acento que el negocio eligió en
 	// Configuración (DEC-110); la reserva pública la usa para pintar su enlace
-	// (DEC-171). Siempre es una clave de barbershop_brand_accent_ck.
+	// (DEC-171). Siempre es una clave de business_brand_accent_ck.
 	BrandAccent string
-	// GooglePlaceID es la ficha de Google de la barbería (DEC-129, HU-101), nil
+	// GooglePlaceID es la ficha de Google del negocio (DEC-129, HU-101), nil
 	// sin ficha. Es solo para el servidor: el perfil público nunca lo expone, el
 	// navegador recibe únicamente lo que Google devuelve ya recortado.
 	GooglePlaceID *string
 	// OpeningHours es el horario de atención del local (HU-107, DEC-182),
-	// ordenado por día y apertura; vacío si la barbería no lo configuró.
+	// ordenado por día y apertura; vacío si el negocio no lo configuró.
 	OpeningHours []OpeningSegment
 	// ClosedOnHolidays indica que el local cierra los festivos colombianos.
 	ClosedOnHolidays bool
 	// Today es lo que rige hoy con el festivo aplicado; nil sin horario. Lo
-	// calcula Service.ResolveBarbershop, no el repositorio.
+	// calcula Service.ResolveBusiness, no el repositorio.
 	Today *OpeningToday
 }
 
 // OpeningSegment es un tramo `[Opens, Closes)` del horario del local, en
-// minutos desde medianoche de la hora civil de la barbería; Closes puede ser
+// minutos desde medianoche de la hora civil del negocio; Closes puede ser
 // 1440 (24:00). Weekday es ISO: 1 = lunes … 7 = domingo. Este paquete no
 // importa shops (CA-002-06), así que repite su propia forma mínima.
 type OpeningSegment struct {
@@ -55,11 +55,11 @@ type OpeningSegment struct {
 	Closes  int
 }
 
-// OpeningToday es el horario de hoy en la fecha civil de la barbería: los
+// OpeningToday es el horario de hoy en la fecha civil del negocio: los
 // tramos de su día de la semana, o ninguno si es festivo y el local cierra
 // los festivos (DEC-182).
 type OpeningToday struct {
-	// Date es la fecha civil de hoy en la zona de la barbería (hora 00:00 UTC).
+	// Date es la fecha civil de hoy en la zona del negocio (hora 00:00 UTC).
 	Date    time.Time
 	Weekday int
 	// Holiday es el nombre del festivo colombiano de hoy; nil si no lo es.
@@ -109,13 +109,13 @@ type Location struct {
 	Longitude float64
 }
 
-// Vocabulary es la palabra con la que la barbería llama a su negocio y a su
+// Vocabulary es la palabra con la que el negocio llama a su negocio y a su
 // profesional (DEC-110, DEC-119), con el plural del profesional y el género
 // gramatical de ambas (`masculine` o `feminine`) para que la interfaz pública
 // concuerde. Es un subconjunto de shops.Brand sin acento ni perfil del panel;
 // este paquete no importa shops (CA-002-06), así que repite su propia forma
-// mínima. La base garantiza forma y largo (barbershop_*_term_ck); una
-// barbería que nunca lo configuró tiene los valores iniciales.
+// mínima. La base garantiza forma y largo (business_*_term_ck); una
+// negocio que nunca lo configuró tiene los valores iniciales.
 type Vocabulary struct {
 	BusinessTerm           string
 	BusinessTermGender     string
@@ -128,12 +128,12 @@ type Vocabulary struct {
 // consultar la base de datos: cualquier valor más largo se rechaza de
 // inmediato con la misma respuesta uniforme que un slug desconocido
 // (CA-090-02), sin gastar una consulta. Igual a shops.SlugMaxLength
-// (barbershop_public_slug_ck): ningún slug generado supera ese largo, así
+// (business_public_slug_ck): ningún slug generado supera ese largo, así
 // que uno más largo nunca puede coincidir.
 const MaxSlugLength = 40
 
 // PublicService es la proyección pública mínima de un servicio ofrecido por
-// la barbería resuelta (HU-091, CA-091-01): nombre, descripción, duración,
+// el negocio resuelta (HU-091, CA-091-01): nombre, descripción, duración,
 // precio y moneda. Nunca isActive, deactivatedAt, createdAt, updatedAt ni
 // ningún otro dato de auditoría o ciclo de vida -esos campos son alcance
 // exclusivo de catalog (HU-022/HU-024); el núcleo de publicbooking no
@@ -161,7 +161,7 @@ func FormatServicePriceCOP(cents int64) string {
 
 // Límites de paginación del catálogo público (HU-091), mismo criterio
 // técnico que catalog.DefaultListLimit/MinListLimit/MaxListLimit: la
-// colección no tiene un máximo de negocio de servicios por barbería.
+// colección no tiene un máximo de negocio de servicios por negocio.
 const (
 	DefaultServiceListLimit = 20
 	MinServiceListLimit     = 1
@@ -219,15 +219,15 @@ func DecodeServiceCursor(raw string) (ServiceCursor, error) {
 	return ServiceCursor{CreatedAt: w.CreatedAt, ID: w.ID}, nil
 }
 
-// PublicBarber es la proyección pública de un barbero con asignación vigente
+// PublicProfessional es la proyección pública de un profesional con asignación vigente
 // al servicio activo resuelto (HU-092, CA-092-02): ID, nombre completo y, por
 // DEC-127, su descripción opcional y la versión de su fotografía opcional
 // (nil mientras no tiene; el cliente pide los bytes por separado). Nunca
-// preferencia ni ningún otro campo de staff.Barber. El núcleo de publicbooking
+// preferencia ni ningún otro campo de staff.Professional. El núcleo de publicbooking
 // no importa staff (CA-002-06, mismo criterio que PublicService frente a
 // catalog.Service): repite su propia proyección en vez de una dependencia
 // cruzada entre módulos.
-type PublicBarber struct {
+type PublicProfessional struct {
 	ID             string
 	FullName       string
 	Description    *string
@@ -238,51 +238,51 @@ type PublicBarber struct {
 	RatingCount int
 }
 
-// PublicBarberServices es la proyección pública agregada de un barbero
+// PublicProfessionalServices es la proyección pública agregada de un profesional
 // elegible para la reserva: id, nombre y los servicios ACTIVOS que tiene
 // asignados (agregado de solo lectura para clientes que, como el agente
-// Odin, necesitan el mapa barbero-servicio completo en una sola lectura en
+// Odin, necesitan el mapa profesional-servicio completo en una sola lectura en
 // vez de una por servicio, DEC-162). Mismos campos y saneamiento que
-// PublicBarber para id y nombre; nunca descripción, fotografía, reseñas ni
-// ningún otro campo de staff.Barber.
-type PublicBarberServices struct {
+// PublicProfessional para id y nombre; nunca descripción, fotografía, reseñas ni
+// ningún otro campo de staff.Professional.
+type PublicProfessionalServices struct {
 	ID         string
 	FullName   string
 	ServiceIDs []string
 }
 
-// PublicBarberServicesListResult es la lista completa (sin paginar, mismo
-// criterio que PublicBarberListResult) de barberos con al menos una
+// PublicProfessionalServicesListResult es la lista completa (sin paginar, mismo
+// criterio que PublicProfessionalListResult) de profesionales con al menos una
 // asignación vigente a un servicio activo, ordenada de forma estable
-// (created_at del barbero, id) para que dos lecturas sin cambios devuelvan
+// (created_at del profesional, id) para que dos lecturas sin cambios devuelvan
 // exactamente el mismo cuerpo.
-type PublicBarberServicesListResult struct {
-	Items []PublicBarberServices
+type PublicProfessionalServicesListResult struct {
+	Items []PublicProfessionalServices
 }
 
-// PublicBarberPhoto es la fotografía pública de un barbero (DEC-127): el
-// mismo contenido que `barber_photo`, entregado solo si el barbero es
+// PublicProfessionalPhoto es la fotografía pública de un profesional (DEC-127): el
+// mismo contenido que `professional_photo`, entregado solo si el profesional es
 // elegible en la reserva pública.
-type PublicBarberPhoto struct {
+type PublicProfessionalPhoto struct {
 	ContentType string
 	Data        []byte
 	UpdatedAt   time.Time
 }
 
-// PublicBarberListResult es la lista completa (sin paginar: HU-092 no
-// documenta un tope de negocio de barberos por servicio, y el volumen
-// esperado -barberos de una sola barbería- nunca justifica cursor) de
-// barberos elegibles, ya ordenada de forma estable (created_at de la
-// asignación, id del barbero) para que la matriz 0/1/N (CA-092-01) sea
+// PublicProfessionalListResult es la lista completa (sin paginar: HU-092 no
+// documenta un tope de negocio de profesionales por servicio, y el volumen
+// esperado -profesionales de un solo negocio- nunca justifica cursor) de
+// profesionales elegibles, ya ordenada de forma estable (created_at de la
+// asignación, id del profesional) para que la matriz 0/1/N (CA-092-01) sea
 // determinista entre llamadas.
-type PublicBarberListResult struct {
-	Items []PublicBarber
+type PublicProfessionalListResult struct {
+	Items []PublicProfessional
 }
 
 // serviceIDPattern es la misma forma canónica 8-4-4-4-12 que
 // catalog.LooksLikeServiceID exige (el núcleo de publicbooking no puede
 // importar catalog, CA-002-06, así que se repite la validación aquí, mismo
-// criterio que catalog.barberIDPattern frente a staff.LooksLikeBarberID).
+// criterio que catalog.professionalIDPattern frente a staff.LooksLikeProfessionalID).
 var serviceIDPattern = regexp.MustCompile(
 	`^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$`,
 )
@@ -297,19 +297,19 @@ func LooksLikePublicServiceID(id string) bool {
 	return serviceIDPattern.MatchString(id)
 }
 
-// barberIDPattern es la misma forma canónica 8-4-4-4-12 que
-// staff.LooksLikeBarberID exige (el núcleo de publicbooking no puede
+// professionalIDPattern es la misma forma canónica 8-4-4-4-12 que
+// staff.LooksLikeProfessionalID exige (el núcleo de publicbooking no puede
 // importar staff, CA-002-06: se repite la validación aquí, mismo criterio
 // que serviceIDPattern frente a catalog.LooksLikeServiceID).
-var barberIDPattern = serviceIDPattern
+var professionalIDPattern = serviceIDPattern
 
-// LooksLikePublicBarberID informa si id tiene la forma de un UUID válido
+// LooksLikePublicProfessionalID informa si id tiene la forma de un UUID válido
 // (HU-094). Un identificador que no la tiene no puede corresponder a ningún
-// barbero real: se trata igual que un barbero ajeno, inexistente o sin
+// profesional real: se trata igual que un profesional ajeno, inexistente o sin
 // asignación vigente -disponibilidad vacía, nunca un error que distinga la
 // causa (mismo criterio que CA-092-03).
-func LooksLikePublicBarberID(id string) bool {
-	return barberIDPattern.MatchString(id)
+func LooksLikePublicProfessionalID(id string) bool {
+	return professionalIDPattern.MatchString(id)
 }
 
 // AvailabilitySlot es un inicio público válido ya resuelto (HU-094,
@@ -322,7 +322,7 @@ type AvailabilitySlot struct {
 // AvailabilityResult es la respuesta completa de HU-094: los inicios
 // válidos, ya ordenados de forma estable (cronológica), junto con el
 // contexto mínimo que el cliente necesita para interpretarlos sin
-// ambigüedad (RN-DIS-07: zona de la barbería, nunca la del dispositivo).
+// ambigüedad (RN-DIS-07: zona del negocio, nunca la del dispositivo).
 type AvailabilityResult struct {
 	Slots           []AvailabilitySlot
 	DurationMinutes int
@@ -330,23 +330,23 @@ type AvailabilityResult struct {
 	SlotGridMinutes int
 }
 
-// BarberAvailabilitySlot es un inicio público válido atribuido a un barbero
+// ProfessionalAvailabilitySlot es un inicio público válido atribuido a un profesional
 // concreto: la unidad del agregado de disponibilidad por servicio (DEC-162).
-// Equivale a AvailabilitySlot de HU-094 más el barbero al que pertenece.
-type BarberAvailabilitySlot struct {
-	BarberID string
-	StartsAt time.Time
+// Equivale a AvailabilitySlot de HU-094 más el profesional al que pertenece.
+type ProfessionalAvailabilitySlot struct {
+	ProfessionalID string
+	StartsAt       time.Time
 }
 
 // ServiceAvailabilityResult es la respuesta del agregado de disponibilidad
-// por servicio (DEC-162): los inicios válidos de TODOS los barberos
-// elegibles del servicio, ordenados por (StartsAt, BarberID), con el mismo
+// por servicio (DEC-162): los inicios válidos de TODOS los profesionales
+// elegibles del servicio, ordenados por (StartsAt, ProfessionalID), con el mismo
 // contexto de interpretación que AvailabilityResult. Es vacío (Slots sin
 // elementos y el resto en cero) cuando el servicio no existe, es ajeno,
-// está inactivo o no tiene ningún barbero con asignación vigente: la causa
+// está inactivo o no tiene ningún profesional con asignación vigente: la causa
 // no se distingue (mismo criterio que CA-092-03).
 type ServiceAvailabilityResult struct {
-	Slots           []BarberAvailabilitySlot
+	Slots           []ProfessionalAvailabilitySlot
 	DurationMinutes int
 	Timezone        string
 	SlotGridMinutes int

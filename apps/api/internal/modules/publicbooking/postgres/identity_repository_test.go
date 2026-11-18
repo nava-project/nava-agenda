@@ -1,11 +1,11 @@
 // Package postgres_test (pruebas de integración, HU-096) requiere
 // PostgreSQL REAL con todas las migraciones aplicadas y
-// database/testdata/dos_barberias.sql cargado (shop A/B: FindCustomerMatches
-// solo lee `customer` por barbershopID+phone/barbershopID+email, ninguna
-// columna mutable de `barbershop`, así que reutilizar A/B es seguro incluso
+// database/testdata/dos_negocios.sql cargado (shop A/B: FindCustomerMatches
+// solo lee `customer` por businessID+phone/businessID+email, ninguna
+// columna mutable de `business`, así que reutilizar A/B es seguro incluso
 // con paquetes concurrentes -docs/03-desarrollo/estrategia-pruebas.md §2).
 //
-//	export TEST_DATABASE_URL="postgres://barberia_app:app_test@localhost:5432/barberia_test?sslmode=disable"
+//	export TEST_DATABASE_URL="postgres://agenda_app:app_test@localhost:5432/postgres?sslmode=disable"
 //	go test -race ./internal/modules/publicbooking/postgres/...
 package postgres_test
 
@@ -15,8 +15,8 @@ import (
 	"fmt"
 	"testing"
 
-	publicbookingpostgres "system-barbershop/internal/modules/publicbooking/postgres"
-	"system-barbershop/internal/platform/database"
+	publicbookingpostgres "nava-agenda/internal/modules/publicbooking/postgres"
+	"nava-agenda/internal/platform/database"
 )
 
 const (
@@ -41,18 +41,18 @@ func identityUniqueDigits(t *testing.T, n int) string {
 }
 
 // insertTestCustomer inserta directamente una fila `customer` dentro de
-// barbershopID, para tener una identidad ya existente contra la que
+// businessID, para tener una identidad ya existente contra la que
 // reconciliar (HU-096 no expone ninguna operación de escritura propia: la
 // persistencia real de customer vive en booking, HU-097 la reutilizará).
-func insertTestCustomer(t *testing.T, db *database.DB, barbershopID, fullName, phone, email string) string {
+func insertTestCustomer(t *testing.T, db *database.DB, businessID, fullName, phone, email string) string {
 	t.Helper()
 	var id string
-	err := db.InTenantTx(context.Background(), database.BarbershopID(barbershopID), func(ctx context.Context, q database.Queries) error {
+	err := db.InTenantTx(context.Background(), database.BusinessID(businessID), func(ctx context.Context, q database.Queries) error {
 		return q.QueryRow(ctx,
 			`INSERT INTO customer (business_id, full_name, phone, email)
 			 VALUES ($1, $2, $3, $4)
 			 RETURNING id`,
-			barbershopID, fullName, phone, email,
+			businessID, fullName, phone, email,
 		).Scan(&id)
 	})
 	if err != nil {
@@ -151,7 +151,7 @@ func TestFindCustomerMatches_NeverCrossesTenant(t *testing.T) {
 	suffix := identityUniqueDigits(t, 6)
 	phone := "+57306" + suffix
 	email := fmt.Sprintf("cliente.%s@ejemplo.test", suffix)
-	insertTestCustomer(t, db, shopIdentityB, "Cliente de otra barbería "+suffix, phone, email)
+	insertTestCustomer(t, db, shopIdentityB, "Cliente de otro negocio "+suffix, phone, email)
 
 	phoneMatch, emailMatch, err := repo.FindCustomerMatches(context.Background(), shopIdentityA, phone, email)
 	if err != nil {

@@ -11,7 +11,7 @@ import (
 	"strings"
 	"testing"
 
-	"system-barbershop/internal/modules/auth"
+	"nava-agenda/internal/modules/auth"
 )
 
 func TestLoggingChallengeEmailSender_NeverLogsDestinationOrCode(t *testing.T) {

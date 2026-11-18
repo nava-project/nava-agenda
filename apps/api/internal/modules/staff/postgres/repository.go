@@ -13,22 +13,22 @@ import (
 
 	"github.com/jackc/pgx/v5"
 
-	"system-barbershop/internal/modules/staff"
-	"system-barbershop/internal/platform/database"
-	"system-barbershop/internal/platform/idempotency"
+	"nava-agenda/internal/modules/staff"
+	"nava-agenda/internal/platform/database"
+	"nava-agenda/internal/platform/idempotency"
 )
 
-// createBarberOperation identifica, dentro de una barbería, la operación
-// de idempotencia del alta de barberos (RN-IDE-01): una clave ya usada
+// createProfessionalOperation identifica, dentro de un negocio, la operación
+// de idempotencia del alta de profesionales (RN-IDE-01): una clave ya usada
 // para OTRA operación (por ejemplo una futura "crear cita") nunca se
 // confunde con esta.
-const createBarberOperation idempotency.Operation = "create_barber"
+const createProfessionalOperation idempotency.Operation = "create_professional"
 
-// createBarberIdempotencyTTL es la vigencia de una reclamación de
-// idempotencia sobre el alta de un barbero antes de tratarse como si nunca
+// createProfessionalIdempotencyTTL es la vigencia de una reclamación de
+// idempotencia sobre el alta de un profesional antes de tratarse como si nunca
 // hubiera existido (CA-004-05). 24 horas cubre con margen cualquier
 // reintento de red razonable sin dejar el mecanismo vigente indefinidamente.
-const createBarberIdempotencyTTL = 24 * time.Hour
+const createProfessionalIdempotencyTTL = 24 * time.Hour
 
 // Repository implementa staff.Repository sobre database.DB.
 type Repository struct {
@@ -48,16 +48,16 @@ func New(db *database.DB, coord idempotency.Coordinator) *Repository {
 
 var _ staff.Repository = (*Repository)(nil)
 
-// barberResponseWire es la forma JSON EXACTA que también usa
-// httpapi.BarberResponse (mismos nombres de campo, mismo orden, mismos
+// professionalResponseWire es la forma JSON EXACTA que también usa
+// httpapi.ProfessionalResponse (mismos nombres de campo, mismo orden, mismos
 // tipos): la respuesta que Complete persiste para una repetición exacta
 // (CA-004-01) debe ser BYTE A BYTE idéntica a la que el handler ya
 // construyó para la primera ejecución, y ambas deben tener EXACTAMENTE la
-// misma forma que un GET/PATCH de este mismo barbero. Si cambia
-// httpapi.BarberResponse, este struct debe cambiar igual en el mismo
+// misma forma que un GET/PATCH de este mismo profesional. Si cambia
+// httpapi.ProfessionalResponse, este struct debe cambiar igual en el mismo
 // commit (ver TestCreate_StoredResponseBody_MatchesHTTPAPIWireShape en
 // repository_test.go).
-type barberResponseWire struct {
+type professionalResponseWire struct {
 	ID             string     `json:"id"`
 	FullName       string     `json:"fullName"`
 	CreatedAt      time.Time  `json:"createdAt"`
@@ -68,8 +68,8 @@ type barberResponseWire struct {
 	RatingCount    int        `json:"ratingCount"`
 }
 
-func marshalBarberResponse(b staff.Barber) ([]byte, error) {
-	return json.Marshal(barberResponseWire{
+func marshalProfessionalResponse(b staff.Professional) ([]byte, error) {
+	return json.Marshal(professionalResponseWire{
 		ID:             b.ID,
 		FullName:       b.FullName,
 		CreatedAt:      b.CreatedAt,
@@ -81,23 +81,23 @@ func marshalBarberResponse(b staff.Barber) ([]byte, error) {
 	})
 }
 
-// barberColumns/barberPhotoJoin componen la lectura de un barbero con la
-// versión de su fotografía (DEC-104). LEFT JOIN a barber_photo por la PK
-// compuesta (barbershop_id, barber_id): nunca lee los bytes de `image`, solo
+// professionalColumns/professionalPhotoJoin componen la lectura de un profesional con la
+// versión de su fotografía (DEC-104). LEFT JOIN a professional_photo por la PK
+// compuesta (business_id, professional_id): nunca lee los bytes de `image`, solo
 // `updated_at`, así que el listado del equipo no arrastra imágenes.
-// scanBarber enumera los destinos de barberColumns en el mismo orden: un solo
-// lugar que cambia cuando la lectura de un barbero gana una columna.
-func scanBarber(b *staff.Barber) []any {
+// scanProfessional enumera los destinos de professionalColumns en el mismo orden: un solo
+// lugar que cambia cuando la lectura de un profesional gana una columna.
+func scanProfessional(b *staff.Professional) []any {
 	return []any{&b.ID, &b.FullName, &b.CreatedAt, &b.UpdatedAt, &b.PhotoUpdatedAt, &b.Description, &b.Rating, &b.RatingCount}
 }
 
 const (
-	barberColumns = `b.id, b.full_name, b.created_at, b.updated_at, p.updated_at, b.description,
+	professionalColumns = `b.id, b.full_name, b.created_at, b.updated_at, p.updated_at, b.description,
 	                 rv.rating, rv.rating_count`
-	// barberPhotoJoin trae también el resumen de reseñas (DEC-128 §5): promedio de
+	// professionalPhotoJoin trae también el resumen de reseñas (DEC-128 §5): promedio de
 	// 1 decimal y total sobre las no ocultas, calculados en la consulta, sin
 	// columna derivada. Sin reseñas visibles el promedio es NULL y el total 0.
-	barberPhotoJoin = `LEFT JOIN professional_photo p
+	professionalPhotoJoin = `LEFT JOIN professional_photo p
 	                     ON p.business_id = b.business_id AND p.professional_id = b.id
 	                   LEFT JOIN LATERAL (
 	                     SELECT round(avg(r.rating)::numeric, 1)::float8 AS rating, count(*) AS rating_count
@@ -110,10 +110,10 @@ const (
 // dentro del tenant vigente, cursor opaco decodificado por el núcleo
 // (staff.Cursor), paginación "pedir uno de más" para saber si hay página
 // siguiente sin una segunda consulta COUNT.
-func (r *Repository) List(ctx context.Context, barbershopID string, cursor *staff.Cursor, limit int) (staff.ListResult, error) {
+func (r *Repository) List(ctx context.Context, businessID string, cursor *staff.Cursor, limit int) (staff.ListResult, error) {
 	var result staff.ListResult
 
-	err := r.db.InTenantTx(ctx, database.BarbershopID(barbershopID), func(ctx context.Context, q database.Queries) error {
+	err := r.db.InTenantTx(ctx, database.BusinessID(businessID), func(ctx context.Context, q database.Queries) error {
 		var (
 			rows pgx.Rows
 			err  error
@@ -123,39 +123,39 @@ func (r *Repository) List(ctx context.Context, barbershopID string, cursor *staf
 
 		if cursor == nil {
 			rows, err = q.Query(ctx,
-				`SELECT `+barberColumns+`
-				   FROM professional b `+barberPhotoJoin+`
+				`SELECT `+professionalColumns+`
+				   FROM professional b `+professionalPhotoJoin+`
 				  WHERE b.business_id = $1
 				  ORDER BY b.created_at, b.id
 				  LIMIT $2`,
-				barbershopID, fetchLimit,
+				businessID, fetchLimit,
 			)
 		} else {
 			rows, err = q.Query(ctx,
-				`SELECT `+barberColumns+`
-				   FROM professional b `+barberPhotoJoin+`
+				`SELECT `+professionalColumns+`
+				   FROM professional b `+professionalPhotoJoin+`
 				  WHERE b.business_id = $1
 				    AND (b.created_at, b.id) > ($2, $3)
 				  ORDER BY b.created_at, b.id
 				  LIMIT $4`,
-				barbershopID, cursor.CreatedAt, cursor.ID, fetchLimit,
+				businessID, cursor.CreatedAt, cursor.ID, fetchLimit,
 			)
 		}
 		if err != nil {
-			return fmt.Errorf("list barbers: query: %w", err)
+			return fmt.Errorf("list professionals: query: %w", err)
 		}
 		defer rows.Close()
 
-		items := make([]staff.Barber, 0, fetchLimit)
+		items := make([]staff.Professional, 0, fetchLimit)
 		for rows.Next() {
-			var b staff.Barber
-			if err := rows.Scan(scanBarber(&b)...); err != nil {
-				return fmt.Errorf("list barbers: scan: %w", err)
+			var b staff.Professional
+			if err := rows.Scan(scanProfessional(&b)...); err != nil {
+				return fmt.Errorf("list professionals: scan: %w", err)
 			}
 			items = append(items, b)
 		}
 		if err := rows.Err(); err != nil {
-			return fmt.Errorf("list barbers: rows: %w", err)
+			return fmt.Errorf("list professionals: rows: %w", err)
 		}
 
 		hasMore := len(items) > limit
@@ -171,38 +171,38 @@ func (r *Repository) List(ctx context.Context, barbershopID string, cursor *staf
 		return nil
 	})
 	if err != nil {
-		return staff.ListResult{}, fmt.Errorf("staff/postgres: list barbers: %w", err)
+		return staff.ListResult{}, fmt.Errorf("staff/postgres: list professionals: %w", err)
 	}
 	return result, nil
 }
 
-// Get implementa staff.Repository.Get. RLS (barber_select_tenant_policy) ya
-// restringe la fila visible a barbershop_id = current_setting(...); el
-// filtro explícito WHERE barbershop_id = $2 es defensa en profundidad,
+// Get implementa staff.Repository.Get. RLS (professional_select_tenant_policy) ya
+// restringe la fila visible a business_id = current_setting(...); el
+// filtro explícito WHERE business_id = $2 es defensa en profundidad,
 // mismo patrón que shops/postgres.Repository.Get.
-func (r *Repository) Get(ctx context.Context, barbershopID, barberID string) (staff.Barber, bool, error) {
-	var b staff.Barber
+func (r *Repository) Get(ctx context.Context, businessID, professionalID string) (staff.Professional, bool, error) {
+	var b staff.Professional
 	found := false
 
-	err := r.db.InTenantTx(ctx, database.BarbershopID(barbershopID), func(ctx context.Context, q database.Queries) error {
-		err := selectBarber(ctx, q, barbershopID, barberID).
-			Scan(scanBarber(&b)...)
+	err := r.db.InTenantTx(ctx, database.BusinessID(businessID), func(ctx context.Context, q database.Queries) error {
+		err := selectProfessional(ctx, q, businessID, professionalID).
+			Scan(scanProfessional(&b)...)
 		switch {
 		case err == nil:
 			found = true
 		case errors.Is(err, pgx.ErrNoRows):
 			// found queda false: cubre tanto "no existe" como "es de otra
-			// barbería" (CA-021-05), sin distinguir la causa.
+			// negocio" (CA-021-05), sin distinguir la causa.
 		default:
-			return fmt.Errorf("select barber: %w", err)
+			return fmt.Errorf("select professional: %w", err)
 		}
 		return nil
 	})
 	if err != nil {
-		return staff.Barber{}, false, fmt.Errorf("staff/postgres: get barber: %w", err)
+		return staff.Professional{}, false, fmt.Errorf("staff/postgres: get professional: %w", err)
 	}
 	if !found {
-		return staff.Barber{}, false, nil
+		return staff.Professional{}, false, nil
 	}
 	return b, true, nil
 }
@@ -217,7 +217,7 @@ func (r *Repository) Get(ctx context.Context, barbershopID, barberID string) (st
 // para un reintento legítimo (CA-004-06).
 func (r *Repository) Create(
 	ctx context.Context,
-	barbershopID string,
+	businessID string,
 	fullName string,
 	description *string,
 	key idempotency.Key,
@@ -225,8 +225,8 @@ func (r *Repository) Create(
 ) (staff.CreateResult, error) {
 	var result staff.CreateResult
 
-	err := r.db.InTenantTx(ctx, database.BarbershopID(barbershopID), func(ctx context.Context, q database.Queries) error {
-		decision, err := r.coord.Begin(ctx, q, database.BarbershopID(barbershopID), key, createBarberOperation, fingerprint, createBarberIdempotencyTTL)
+	err := r.db.InTenantTx(ctx, database.BusinessID(businessID), func(ctx context.Context, q database.Queries) error {
+		decision, err := r.coord.Begin(ctx, q, database.BusinessID(businessID), key, createProfessionalOperation, fingerprint, createProfessionalIdempotencyTTL)
 		if err != nil {
 			return fmt.Errorf("idempotency begin: %w", err)
 		}
@@ -239,19 +239,19 @@ func (r *Repository) Create(
 			return nil
 		}
 
-		var b staff.Barber
+		var b staff.Professional
 		if err := q.QueryRow(ctx,
 			`INSERT INTO professional (business_id, full_name, description)
 			      VALUES ($1, $2, $3)
 			   RETURNING id, full_name, created_at, updated_at, description`,
-			barbershopID, fullName, description,
+			businessID, fullName, description,
 		).Scan(&b.ID, &b.FullName, &b.CreatedAt, &b.UpdatedAt, &b.Description); err != nil {
-			return fmt.Errorf("insert barber: %w", err)
+			return fmt.Errorf("insert professional: %w", err)
 		}
 
-		body, err := marshalBarberResponse(b)
+		body, err := marshalProfessionalResponse(b)
 		if err != nil {
-			return fmt.Errorf("marshal created barber: %w", err)
+			return fmt.Errorf("marshal created professional: %w", err)
 		}
 		stored := idempotency.StoredResponse{
 			Status:      201,
@@ -259,7 +259,7 @@ func (r *Repository) Create(
 			Body:        string(body),
 		}
 
-		ok, err := r.coord.Complete(ctx, q, database.BarbershopID(barbershopID), key, stored)
+		ok, err := r.coord.Complete(ctx, q, database.BusinessID(businessID), key, stored)
 		if err != nil {
 			return fmt.Errorf("idempotency complete: %w", err)
 		}
@@ -272,27 +272,27 @@ func (r *Repository) Create(
 			return fmt.Errorf("idempotency complete: la reclamación ya no estaba in_progress")
 		}
 
-		result.Barber = b
+		result.Professional = b
 		result.Response = stored
 		return nil
 	})
 	if err != nil {
-		return staff.CreateResult{}, fmt.Errorf("staff/postgres: create barber: %w", err)
+		return staff.CreateResult{}, fmt.Errorf("staff/postgres: create professional: %w", err)
 	}
 	return result, nil
 }
 
 // Update implementa staff.Repository.Update: UPDATE ... RETURNING dentro de
-// una única sentencia, filtrando por id Y barbershop_id (defensa en
-// profundidad sobre barber_update_tenant_policy). Nunca crea ni duplica una
+// una única sentencia, filtrando por id Y business_id (defensa en
+// profundidad sobre professional_update_tenant_policy). Nunca crea ni duplica una
 // fila (CA-021-04); cero filas afectadas cubre tanto "no existe" como "es
-// de otra barbería" (CA-021-05). La descripción se escribe solo cuando el
+// de otro negocio" (CA-021-05). La descripción se escribe solo cuando el
 // cambio la trae ($4 en true); si no, `CASE` conserva la actual.
-func (r *Repository) Update(ctx context.Context, barbershopID, barberID, fullName string, description staff.DescriptionPatch) (staff.UpdateResult, error) {
+func (r *Repository) Update(ctx context.Context, businessID, professionalID, fullName string, description staff.DescriptionPatch) (staff.UpdateResult, error) {
 	var result staff.UpdateResult
 
-	err := r.db.InTenantTx(ctx, database.BarbershopID(barbershopID), func(ctx context.Context, q database.Queries) error {
-		var b staff.Barber
+	err := r.db.InTenantTx(ctx, database.BusinessID(businessID), func(ctx context.Context, q database.Queries) error {
+		var b staff.Professional
 		err := q.QueryRow(ctx,
 			`WITH updated AS (
 			    UPDATE professional
@@ -301,49 +301,49 @@ func (r *Repository) Update(ctx context.Context, barbershopID, barberID, fullNam
 			     WHERE id = $1 AND business_id = $2
 			 RETURNING id, business_id, full_name, created_at, updated_at, description
 			 )
-			 SELECT `+barberColumns+`
-			   FROM updated b `+barberPhotoJoin,
-			barberID, barbershopID, fullName, description.Set, description.Value,
-		).Scan(scanBarber(&b)...)
+			 SELECT `+professionalColumns+`
+			   FROM updated b `+professionalPhotoJoin,
+			professionalID, businessID, fullName, description.Set, description.Value,
+		).Scan(scanProfessional(&b)...)
 		switch {
 		case err == nil:
 			result.Found = true
-			result.Barber = b
+			result.Professional = b
 		case errors.Is(err, pgx.ErrNoRows):
 			// result.Found queda false: defensivo, ver UpdateResult.Found.
 		default:
-			return fmt.Errorf("update barber: %w", err)
+			return fmt.Errorf("update professional: %w", err)
 		}
 		return nil
 	})
 	if err != nil {
-		return staff.UpdateResult{}, fmt.Errorf("staff/postgres: update barber: %w", err)
+		return staff.UpdateResult{}, fmt.Errorf("staff/postgres: update professional: %w", err)
 	}
 	return result, nil
 }
 
-// selectBarber lee un barbero con la versión de su fotografía dentro de la
-// transacción del llamador. Filtra por id Y barbershop_id (defensa en
-// profundidad sobre barber_select_tenant_policy).
-func selectBarber(ctx context.Context, q database.Queries, barbershopID, barberID string) pgx.Row {
+// selectProfessional lee un profesional con la versión de su fotografía dentro de la
+// transacción del llamador. Filtra por id Y business_id (defensa en
+// profundidad sobre professional_select_tenant_policy).
+func selectProfessional(ctx context.Context, q database.Queries, businessID, professionalID string) pgx.Row {
 	return q.QueryRow(ctx,
-		`SELECT `+barberColumns+`
-		   FROM professional b `+barberPhotoJoin+`
+		`SELECT `+professionalColumns+`
+		   FROM professional b `+professionalPhotoJoin+`
 		  WHERE b.id = $1 AND b.business_id = $2`,
-		barberID, barbershopID,
+		professionalID, businessID,
 	)
 }
 
 // PutPhoto implementa staff.Repository.PutPhoto: upsert de la fila de
-// barber_photo SOLO si el barbero existe en el tenant vigente (el INSERT ...
-// SELECT no produce fila para uno inexistente o de otra barbería, CA-021-05) y
-// lectura del barbero ya con la nueva versión, todo en la misma transacción.
+// professional_photo SOLO si el profesional existe en el tenant vigente (el INSERT ...
+// SELECT no produce fila para uno inexistente o de otro negocio, CA-021-05) y
+// lectura del profesional ya con la nueva versión, todo en la misma transacción.
 // ON CONFLICT reemplaza la imagen sin duplicar la fila; el trigger
-// barber_photo_set_updated_at renueva updated_at, que es la versión pública.
-func (r *Repository) PutPhoto(ctx context.Context, barbershopID, barberID string, photo staff.Photo) (staff.PhotoResult, error) {
+// professional_photo_set_updated_at renueva updated_at, que es la versión pública.
+func (r *Repository) PutPhoto(ctx context.Context, businessID, professionalID string, photo staff.Photo) (staff.PhotoResult, error) {
 	var result staff.PhotoResult
 
-	err := r.db.InTenantTx(ctx, database.BarbershopID(barbershopID), func(ctx context.Context, q database.Queries) error {
+	err := r.db.InTenantTx(ctx, database.BusinessID(businessID), func(ctx context.Context, q database.Queries) error {
 		tag, err := q.Exec(ctx,
 			`INSERT INTO professional_photo (business_id, professional_id, content_type, image)
 			 SELECT b.business_id, b.id, $3, $4
@@ -351,54 +351,54 @@ func (r *Repository) PutPhoto(ctx context.Context, barbershopID, barberID string
 			  WHERE b.id = $1 AND b.business_id = $2
 			 ON CONFLICT (business_id, professional_id)
 			 DO UPDATE SET content_type = EXCLUDED.content_type, image = EXCLUDED.image`,
-			barberID, barbershopID, photo.ContentType, photo.Data,
+			professionalID, businessID, photo.ContentType, photo.Data,
 		)
 		if err != nil {
-			return fmt.Errorf("upsert barber photo: %w", err)
+			return fmt.Errorf("upsert professional photo: %w", err)
 		}
 		if tag.RowsAffected() == 0 {
-			return nil // result.Found queda false: barbero inexistente o de otra barbería.
+			return nil // result.Found queda false: profesional inexistente o de otro negocio.
 		}
 
-		var b staff.Barber
-		if err := selectBarber(ctx, q, barbershopID, barberID).
-			Scan(scanBarber(&b)...); err != nil {
-			return fmt.Errorf("select barber after photo upsert: %w", err)
+		var b staff.Professional
+		if err := selectProfessional(ctx, q, businessID, professionalID).
+			Scan(scanProfessional(&b)...); err != nil {
+			return fmt.Errorf("select professional after photo upsert: %w", err)
 		}
 		result.Found = true
-		result.Barber = b
+		result.Professional = b
 		return nil
 	})
 	if err != nil {
-		return staff.PhotoResult{}, fmt.Errorf("staff/postgres: put barber photo: %w", err)
+		return staff.PhotoResult{}, fmt.Errorf("staff/postgres: put professional photo: %w", err)
 	}
 	return result, nil
 }
 
 // GetPhoto implementa staff.Repository.GetPhoto.
-func (r *Repository) GetPhoto(ctx context.Context, barbershopID, barberID string) (staff.StoredPhoto, bool, error) {
+func (r *Repository) GetPhoto(ctx context.Context, businessID, professionalID string) (staff.StoredPhoto, bool, error) {
 	var photo staff.StoredPhoto
 	found := false
 
-	err := r.db.InTenantTx(ctx, database.BarbershopID(barbershopID), func(ctx context.Context, q database.Queries) error {
+	err := r.db.InTenantTx(ctx, database.BusinessID(businessID), func(ctx context.Context, q database.Queries) error {
 		err := q.QueryRow(ctx,
 			`SELECT content_type, image, updated_at
 			   FROM professional_photo
 			  WHERE business_id = $1 AND professional_id = $2`,
-			barbershopID, barberID,
+			businessID, professionalID,
 		).Scan(&photo.ContentType, &photo.Data, &photo.UpdatedAt)
 		switch {
 		case err == nil:
 			found = true
 		case errors.Is(err, pgx.ErrNoRows):
-			// found queda false: sin fotografía o barbero de otra barbería.
+			// found queda false: sin fotografía o profesional de otro negocio.
 		default:
-			return fmt.Errorf("select barber photo: %w", err)
+			return fmt.Errorf("select professional photo: %w", err)
 		}
 		return nil
 	})
 	if err != nil {
-		return staff.StoredPhoto{}, false, fmt.Errorf("staff/postgres: get barber photo: %w", err)
+		return staff.StoredPhoto{}, false, fmt.Errorf("staff/postgres: get professional photo: %w", err)
 	}
 	if !found {
 		return staff.StoredPhoto{}, false, nil
@@ -407,19 +407,19 @@ func (r *Repository) GetPhoto(ctx context.Context, barbershopID, barberID string
 }
 
 // DeletePhoto implementa staff.Repository.DeletePhoto. Primero comprueba que
-// el barbero exista en el tenant: así "sin fotografía" (éxito idempotente) y
-// "barbero inexistente" (404) se distinguen sin depender de cuántas filas
+// el profesional exista en el tenant: así "sin fotografía" (éxito idempotente) y
+// "profesional inexistente" (404) se distinguen sin depender de cuántas filas
 // borró el DELETE.
-func (r *Repository) DeletePhoto(ctx context.Context, barbershopID, barberID string) (bool, error) {
+func (r *Repository) DeletePhoto(ctx context.Context, businessID, professionalID string) (bool, error) {
 	found := false
 
-	err := r.db.InTenantTx(ctx, database.BarbershopID(barbershopID), func(ctx context.Context, q database.Queries) error {
+	err := r.db.InTenantTx(ctx, database.BusinessID(businessID), func(ctx context.Context, q database.Queries) error {
 		var exists bool
 		if err := q.QueryRow(ctx,
 			`SELECT EXISTS (SELECT 1 FROM professional WHERE id = $1 AND business_id = $2)`,
-			barberID, barbershopID,
+			professionalID, businessID,
 		).Scan(&exists); err != nil {
-			return fmt.Errorf("check barber exists: %w", err)
+			return fmt.Errorf("check professional exists: %w", err)
 		}
 		if !exists {
 			return nil
@@ -428,30 +428,30 @@ func (r *Repository) DeletePhoto(ctx context.Context, barbershopID, barberID str
 
 		if _, err := q.Exec(ctx,
 			`DELETE FROM professional_photo WHERE business_id = $1 AND professional_id = $2`,
-			barbershopID, barberID,
+			businessID, professionalID,
 		); err != nil {
-			return fmt.Errorf("delete barber photo: %w", err)
+			return fmt.Errorf("delete professional photo: %w", err)
 		}
 		return nil
 	})
 	if err != nil {
-		return false, fmt.Errorf("staff/postgres: delete barber photo: %w", err)
+		return false, fmt.Errorf("staff/postgres: delete professional photo: %w", err)
 	}
 	return found, nil
 }
 
 // ListPage obtiene total, límite y filas en un mismo snapshot, incluso para un
-// tenant vacío. El total nunca cuenta otras barberías (DEC-107, RN-TEN-01).
+// tenant vacío. El total nunca cuenta otros negocios (DEC-107, RN-TEN-01).
 func (r *Repository) ListPage(ctx context.Context, shop string, page, size int) (staff.PageResult, error) {
-	result := staff.PageResult{Items: []staff.Barber{}, PageSize: size}
-	err := r.db.InTenantTx(ctx, database.BarbershopID(shop), func(ctx context.Context, q database.Queries) error {
+	result := staff.PageResult{Items: []staff.Professional{}, PageSize: size}
+	err := r.db.InTenantTx(ctx, database.BusinessID(shop), func(ctx context.Context, q database.Queries) error {
 		rows, err := q.Query(ctx, `WITH counted AS (
    SELECT count(*) AS total FROM professional WHERE business_id = $1
   ), bounds AS (
    SELECT total, GREATEST(1, (total + $2 - 1) / $2) AS pages FROM counted
   ), selected AS (
    SELECT b.id, b.full_name, b.created_at, b.updated_at, p.updated_at AS photo_updated_at, b.description,
-          rv.rating AS rating, rv.rating_count AS rating_count FROM professional b `+barberPhotoJoin+`
+          rv.rating AS rating, rv.rating_count AS rating_count FROM professional b `+professionalPhotoJoin+`
    WHERE b.business_id = $1 ORDER BY b.created_at, b.id
    LIMIT $2 OFFSET (SELECT (LEAST($3, pages) - 1) * $2 FROM bounds)
   )
@@ -459,7 +459,7 @@ func (r *Repository) ListPage(ctx context.Context, shop string, page, size int) 
          s.created_at, s.updated_at, s.photo_updated_at, s.description, s.rating, s.rating_count
   FROM bounds LEFT JOIN selected s ON true`, shop, size, page)
 		if err != nil {
-			return fmt.Errorf("list barber page: %w", err)
+			return fmt.Errorf("list professional page: %w", err)
 		}
 		defer rows.Close()
 		for rows.Next() {
@@ -472,7 +472,7 @@ func (r *Repository) ListPage(ctx context.Context, shop string, page, size int) 
 				return err
 			}
 			if id != nil {
-				result.Items = append(result.Items, staff.Barber{ID: *id, FullName: *name, CreatedAt: *created, UpdatedAt: *updated, PhotoUpdatedAt: photo, Description: description, Rating: rating, RatingCount: *ratingCount})
+				result.Items = append(result.Items, staff.Professional{ID: *id, FullName: *name, CreatedAt: *created, UpdatedAt: *updated, PhotoUpdatedAt: photo, Description: description, Rating: rating, RatingCount: *ratingCount})
 			}
 		}
 		return rows.Err()
@@ -481,28 +481,28 @@ func (r *Repository) ListPage(ctx context.Context, shop string, page, size int) 
 }
 
 // GetLinked implementa staff.Repository.GetLinked.
-func (r *Repository) GetLinked(ctx context.Context, barbershopID, staffUserID string) (staff.Barber, bool, error) {
-	var b staff.Barber
+func (r *Repository) GetLinked(ctx context.Context, businessID, staffUserID string) (staff.Professional, bool, error) {
+	var b staff.Professional
 	found := false
-	err := r.db.InTenantTx(ctx, database.BarbershopID(barbershopID), func(ctx context.Context, q database.Queries) error {
+	err := r.db.InTenantTx(ctx, database.BusinessID(businessID), func(ctx context.Context, q database.Queries) error {
 		err := q.QueryRow(ctx,
-			`SELECT `+barberColumns+`
-			   FROM professional b `+barberPhotoJoin+`
+			`SELECT `+professionalColumns+`
+			   FROM professional b `+professionalPhotoJoin+`
 			  WHERE b.business_id = $1 AND b.staff_user_id = $2`,
-			barbershopID, staffUserID,
-		).Scan(scanBarber(&b)...)
+			businessID, staffUserID,
+		).Scan(scanProfessional(&b)...)
 		switch {
 		case err == nil:
 			found = true
 		case errors.Is(err, pgx.ErrNoRows):
-			// found queda false: el usuario no tiene barbero.
+			// found queda false: el usuario no tiene profesional.
 		default:
-			return fmt.Errorf("select linked barber: %w", err)
+			return fmt.Errorf("select linked professional: %w", err)
 		}
 		return nil
 	})
 	if err != nil {
-		return staff.Barber{}, false, fmt.Errorf("staff/postgres: get linked barber: %w", err)
+		return staff.Professional{}, false, fmt.Errorf("staff/postgres: get linked professional: %w", err)
 	}
 	return b, found, nil
 }
@@ -511,10 +511,10 @@ func (r *Repository) GetLinked(ctx context.Context, barbershopID, staffUserID st
 // serializa dos solicitudes simultáneas del MISMO usuario (así la unicidad
 // parcial nunca llega a violarse por una carrera). Entre usuarios distintos
 // decide el UPDATE condicional `staff_user_id IS NULL`: es atómico, así que de
-// dos usuarios que piden el mismo barbero libre solo uno lo obtiene.
-func (r *Repository) Link(ctx context.Context, barbershopID, staffUserID, barberID string) (staff.LinkResult, error) {
+// dos usuarios que piden el mismo profesional libre solo uno lo obtiene.
+func (r *Repository) Link(ctx context.Context, businessID, staffUserID, professionalID string) (staff.LinkResult, error) {
 	var result staff.LinkResult
-	err := r.db.InTenantTx(ctx, database.BarbershopID(barbershopID), func(ctx context.Context, q database.Queries) error {
+	err := r.db.InTenantTx(ctx, database.BusinessID(businessID), func(ctx context.Context, q database.Queries) error {
 		if _, err := q.Exec(ctx,
 			`SELECT pg_advisory_xact_lock(hashtextextended('professional_link:' || $1::text, 0))`,
 			staffUserID,
@@ -525,13 +525,13 @@ func (r *Repository) Link(ctx context.Context, barbershopID, staffUserID, barber
 		var currentOwner *string
 		err := q.QueryRow(ctx,
 			`SELECT staff_user_id::text FROM professional WHERE id = $1 AND business_id = $2`,
-			barberID, barbershopID,
+			professionalID, businessID,
 		).Scan(&currentOwner)
 		if errors.Is(err, pgx.ErrNoRows) {
-			return nil // Found queda false: inexistente o de otra barbería.
+			return nil // Found queda false: inexistente o de otro negocio.
 		}
 		if err != nil {
-			return fmt.Errorf("select barber owner: %w", err)
+			return fmt.Errorf("select professional owner: %w", err)
 		}
 		result.Found = true
 
@@ -547,64 +547,64 @@ func (r *Repository) Link(ctx context.Context, barbershopID, staffUserID, barber
 				`UPDATE professional SET staff_user_id = NULL
 				  WHERE business_id = $1 AND staff_user_id = $2
 				  RETURNING id::text`,
-				barbershopID, staffUserID,
+				businessID, staffUserID,
 			).Scan(&released)
 			if err != nil && !errors.Is(err, pgx.ErrNoRows) {
-				return fmt.Errorf("release previous barber: %w", err)
+				return fmt.Errorf("release previous professional: %w", err)
 			}
 			if released != nil {
-				result.ReleasedBarberID = *released
+				result.ReleasedProfessionalID = *released
 			}
 
 			tag, err := q.Exec(ctx,
 				`UPDATE professional SET staff_user_id = $3
 				  WHERE id = $1 AND business_id = $2 AND staff_user_id IS NULL`,
-				barberID, barbershopID, staffUserID,
+				professionalID, businessID, staffUserID,
 			)
 			if err != nil {
-				return fmt.Errorf("take barber: %w", err)
+				return fmt.Errorf("take professional: %w", err)
 			}
 			if tag.RowsAffected() == 0 {
 				// Otro usuario lo tomó entre la lectura y el UPDATE: se deshace
 				// la liberación para conservar el vínculo anterior del solicitante.
 				result.Taken = true
-				result.ReleasedBarberID = ""
+				result.ReleasedProfessionalID = ""
 				return errLinkTaken
 			}
 		}
 
-		return selectBarber(ctx, q, barbershopID, barberID).
-			Scan(scanBarber(&result.Barber)...)
+		return selectProfessional(ctx, q, businessID, professionalID).
+			Scan(scanProfessional(&result.Professional)...)
 	})
 	if errors.Is(err, errLinkTaken) {
 		return staff.LinkResult{Found: true, Taken: true}, nil
 	}
 	if err != nil {
-		return staff.LinkResult{}, fmt.Errorf("staff/postgres: link barber: %w", err)
+		return staff.LinkResult{}, fmt.Errorf("staff/postgres: link professional: %w", err)
 	}
 	return result, nil
 }
 
 // errLinkTaken aborta (y por tanto revierte) la transacción de Link cuando
-// otro usuario ganó la carrera por el barbero.
-var errLinkTaken = errors.New("staff/postgres: barbero tomado por otro usuario")
+// otro usuario ganó la carrera por el profesional.
+var errLinkTaken = errors.New("staff/postgres: profesional tomado por otro usuario")
 
 // Unlink implementa staff.Repository.Unlink.
-func (r *Repository) Unlink(ctx context.Context, barbershopID, staffUserID string) (string, error) {
+func (r *Repository) Unlink(ctx context.Context, businessID, staffUserID string) (string, error) {
 	released := ""
-	err := r.db.InTenantTx(ctx, database.BarbershopID(barbershopID), func(ctx context.Context, q database.Queries) error {
+	err := r.db.InTenantTx(ctx, database.BusinessID(businessID), func(ctx context.Context, q database.Queries) error {
 		var id *string
 		err := q.QueryRow(ctx,
 			`UPDATE professional SET staff_user_id = NULL
 			  WHERE business_id = $1 AND staff_user_id = $2
 			  RETURNING id::text`,
-			barbershopID, staffUserID,
+			businessID, staffUserID,
 		).Scan(&id)
 		if errors.Is(err, pgx.ErrNoRows) {
 			return nil
 		}
 		if err != nil {
-			return fmt.Errorf("unlink barber: %w", err)
+			return fmt.Errorf("unlink professional: %w", err)
 		}
 		if id != nil {
 			released = *id
@@ -612,7 +612,7 @@ func (r *Repository) Unlink(ctx context.Context, barbershopID, staffUserID strin
 		return nil
 	})
 	if err != nil {
-		return "", fmt.Errorf("staff/postgres: unlink barber: %w", err)
+		return "", fmt.Errorf("staff/postgres: unlink professional: %w", err)
 	}
 	return released, nil
 }

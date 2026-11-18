@@ -14,9 +14,9 @@ import (
 	"testing"
 	"time"
 
-	"system-barbershop/internal/modules/customeraccess"
-	"system-barbershop/internal/modules/customeraccess/httpapi"
-	"system-barbershop/internal/platform/httpserver"
+	"nava-agenda/internal/modules/customeraccess"
+	"nava-agenda/internal/modules/customeraccess/httpapi"
+	"nava-agenda/internal/platform/httpserver"
 )
 
 // fakeRepository es un doble en memoria de customeraccess.Repository: solo
@@ -55,12 +55,12 @@ func TestGetAppointmentHandler_Success_ReturnsAppointmentView(t *testing.T) {
 	repo := &fakeRepository{
 		found: true,
 		view: customeraccess.AppointmentView{
-			BarbershopName:                 "Barbería Ejemplo",
+			BusinessName:                   "Barbería Ejemplo",
 			Timezone:                       "America/Bogota",
 			AttendeeName:                   "Cliente Ejemplo",
 			ServiceName:                    "Corte clásico",
 			DurationMinutes:                30,
-			BarberName:                     "Barbero Ejemplo",
+			ProfessionalName:               "Barbero Ejemplo",
 			StartsAt:                       starts,
 			EndsAt:                         starts.Add(30 * time.Minute),
 			Status:                         "confirmed",
@@ -90,13 +90,13 @@ func TestGetAppointmentHandler_Success_ReturnsAppointmentView(t *testing.T) {
 	if err := json.NewDecoder(rec.Body).Decode(&body); err != nil {
 		t.Fatalf("decode response body: %v", err)
 	}
-	if body.BarbershopName != "Barbería Ejemplo" || body.BarberName != "Barbero Ejemplo" {
+	if body.BusinessName != "Barbería Ejemplo" || body.ProfessionalName != "Barbero Ejemplo" {
 		t.Fatalf("unexpected response: %+v", body)
 	}
 	if body.Status != "confirmed" {
 		t.Fatalf("Status = %q", body.Status)
 	}
-	// DEC-119: el vocabulario de la barbería viaja con el turno.
+	// DEC-119: el vocabulario del negocio viaja con el turno.
 	if body.Vocabulary.ProfessionalTerm != "tatuadora" ||
 		body.Vocabulary.ProfessionalTermPlural != "tatuadoras" ||
 		body.Vocabulary.ProfessionalTermGender != "feminine" ||

@@ -4,7 +4,7 @@ import (
 	"context"
 	"time"
 
-	"system-barbershop/internal/platform/idempotency"
+	"nava-agenda/internal/platform/idempotency"
 )
 
 // PublicAppointmentAdapter satisface, de forma puramente estructural,
@@ -28,8 +28,8 @@ func NewPublicAppointmentAdapter(repo Repository) PublicAppointmentAdapter {
 // CreatePublicAppointment implementa publicbooking.PublicAppointmentPort.
 func (a PublicAppointmentAdapter) CreatePublicAppointment(
 	ctx context.Context,
-	barbershopID, barbershopName, timezone string,
-	barberID, serviceID string,
+	businessID, businessName, timezone string,
+	professionalID, serviceID string,
 	startsAt, endsAt time.Time,
 	attendeeName string,
 	serviceName string,
@@ -65,11 +65,11 @@ func (a PublicAppointmentAdapter) CreatePublicAppointment(
 	}
 
 	input := CreatePublicInput{
-		BarberID:     barberID,
-		ServiceID:    serviceID,
-		AttendeeName: attendeeName,
-		StartsAt:     startsAt,
-		EndsAt:       endsAt,
+		ProfessionalID: professionalID,
+		ServiceID:      serviceID,
+		AttendeeName:   attendeeName,
+		StartsAt:       startsAt,
+		EndsAt:         endsAt,
 		Service: ServiceSnapshot{
 			Name:             serviceName,
 			DurationMinutes:  durationMinutes,
@@ -78,7 +78,7 @@ func (a PublicAppointmentAdapter) CreatePublicAppointment(
 		},
 		CustomerNote:        customerNote,
 		HomeService:         home,
-		BarbershopName:      barbershopName,
+		BusinessName:        businessName,
 		Timezone:            timezone,
 		TokenPlain:          tokenPlain,
 		Customer:            customer,
@@ -92,7 +92,7 @@ func (a PublicAppointmentAdapter) CreatePublicAppointment(
 		return idempotency.Decision{}, idempotency.StoredResponse{}, err
 	}
 
-	result, err := a.repo.CreatePublic(ctx, barbershopID, input, key, fingerprint)
+	result, err := a.repo.CreatePublic(ctx, businessID, input, key, fingerprint)
 	if err != nil {
 		return idempotency.Decision{}, idempotency.StoredResponse{}, err
 	}
@@ -102,11 +102,11 @@ func (a PublicAppointmentAdapter) CreatePublicAppointment(
 // ReplayPublicAppointment implementa publicbooking.PublicAppointmentPort.
 func (a PublicAppointmentAdapter) ReplayPublicAppointment(
 	ctx context.Context,
-	barbershopID string,
+	businessID string,
 	key idempotency.Key,
 	fingerprint idempotency.Fingerprint,
 ) (idempotency.Decision, idempotency.StoredResponse, error) {
-	result, err := a.repo.ReplayPublic(ctx, barbershopID, key, fingerprint)
+	result, err := a.repo.ReplayPublic(ctx, businessID, key, fingerprint)
 	if err != nil {
 		return idempotency.Decision{}, idempotency.StoredResponse{}, err
 	}

@@ -3,7 +3,7 @@
 // cookie de sesión. Requieren todas las migraciones aplicadas y
 // database/testdata/dec162_agregados_publicos.sql cargado.
 //
-//	export TEST_DATABASE_URL="postgres://barberia_app:app_test@localhost:5432/barberia_test?sslmode=disable"
+//	export TEST_DATABASE_URL="postgres://agenda_app:app_test@localhost:5432/postgres?sslmode=disable"
 //	go test -race ./cmd/api/...
 package main
 
@@ -20,8 +20,8 @@ const (
 	aggSlugUno = "barberia-dec162-uno"
 	aggSlugDos = "barberia-dec162-dos"
 
-	aggBarberUno1 = "01620011-0162-0162-0162-016200110011"
-	aggBarberUno2 = "01620012-0162-0162-0162-016200120012"
+	aggProfessionalUno1 = "01620011-0162-0162-0162-016200110011"
+	aggProfessionalUno2 = "01620012-0162-0162-0162-016200120012"
 
 	aggServiceS1       = "01620101-0162-0162-0162-016201010101"
 	aggServiceS2       = "01620102-0162-0162-0162-016201020102"
@@ -29,7 +29,7 @@ const (
 	aggServiceDos      = "01620201-0162-0162-0162-016202010201"
 )
 
-type aggBarbersBody struct {
+type aggProfessionalsBody struct {
 	Items []struct {
 		ID         string   `json:"id"`
 		FullName   string   `json:"fullName"`
@@ -39,8 +39,8 @@ type aggBarbersBody struct {
 
 type aggAvailabilityBody struct {
 	Slots []struct {
-		BarberID string    `json:"professionalId"`
-		StartsAt time.Time `json:"startsAt"`
+		ProfessionalID string    `json:"professionalId"`
+		StartsAt       time.Time `json:"startsAt"`
 	} `json:"slots"`
 	DurationMinutes int    `json:"durationMinutes"`
 	Timezone        string `json:"timezone"`
@@ -65,23 +65,23 @@ func aggGet(router http.Handler, path string) *httptest.ResponseRecorder {
 	return rec
 }
 
-func TestPublicAggregates_HTTP_Barbers_ReturnsEligibleBarbersWithServiceIds(t *testing.T) {
+func TestPublicAggregates_HTTP_Professionals_ReturnsEligibleProfessionalsWithServiceIds(t *testing.T) {
 	rec := aggGet(newAggRouter(t), aggSlugUno+"/professionals")
 	if rec.Code != http.StatusOK {
 		t.Fatalf("expected 200, got %d: %s", rec.Code, rec.Body.String())
 	}
-	var body aggBarbersBody
+	var body aggProfessionalsBody
 	if err := json.Unmarshal(rec.Body.Bytes(), &body); err != nil {
 		t.Fatalf("decode: %v", err)
 	}
 	if len(body.Items) != 2 {
-		t.Fatalf("esperaba 2 barberos elegibles, got %s", rec.Body.String())
+		t.Fatalf("esperaba 2 profesionales elegibles, got %s", rec.Body.String())
 	}
-	if body.Items[0].ID != aggBarberUno1 || len(body.Items[0].ServiceIDs) != 2 ||
+	if body.Items[0].ID != aggProfessionalUno1 || len(body.Items[0].ServiceIDs) != 2 ||
 		body.Items[0].ServiceIDs[0] != aggServiceS1 || body.Items[0].ServiceIDs[1] != aggServiceS2 {
 		t.Fatalf("Uno-1 inesperado: %+v", body.Items[0])
 	}
-	if body.Items[1].ID != aggBarberUno2 || len(body.Items[1].ServiceIDs) != 1 || body.Items[1].ServiceIDs[0] != aggServiceS2 {
+	if body.Items[1].ID != aggProfessionalUno2 || len(body.Items[1].ServiceIDs) != 1 || body.Items[1].ServiceIDs[0] != aggServiceS2 {
 		t.Fatalf("Uno-2 inesperado: %+v", body.Items[1])
 	}
 	// El servicio inactivo nunca aparece entre los serviceIds.
@@ -90,13 +90,13 @@ func TestPublicAggregates_HTTP_Barbers_ReturnsEligibleBarbersWithServiceIds(t *t
 	}
 }
 
-func TestPublicAggregates_HTTP_Barbers_IsConsistentWithPerServiceEndpoint(t *testing.T) {
+func TestPublicAggregates_HTTP_Professionals_IsConsistentWithPerServiceEndpoint(t *testing.T) {
 	router := newAggRouter(t)
-	var agg aggBarbersBody
+	var agg aggProfessionalsBody
 	if err := json.Unmarshal(aggGet(router, aggSlugUno+"/professionals").Body.Bytes(), &agg); err != nil {
 		t.Fatalf("decode: %v", err)
 	}
-	// Para cada servicio activo, los barberos del endpoint por servicio son
+	// Para cada servicio activo, los profesionales del endpoint por servicio son
 	// exactamente los que el agregado lista con ese serviceId.
 	for _, serviceID := range []string{aggServiceS1, aggServiceS2} {
 		rec := aggGet(router, aggSlugUno+"/services/"+serviceID+"/professionals")
@@ -125,27 +125,27 @@ func TestPublicAggregates_HTTP_Barbers_IsConsistentWithPerServiceEndpoint(t *tes
 		}
 		for id := range want {
 			if !got[id] {
-				t.Fatalf("servicio %s: falta el barbero %s en el agregado", serviceID, id)
+				t.Fatalf("servicio %s: falta el profesional %s en el agregado", serviceID, id)
 			}
 		}
 	}
 }
 
-func TestPublicAggregates_HTTP_Barbers_TenantIsolation(t *testing.T) {
+func TestPublicAggregates_HTTP_Professionals_TenantIsolation(t *testing.T) {
 	rec := aggGet(newAggRouter(t), aggSlugDos+"/professionals")
 	if rec.Code != http.StatusOK {
 		t.Fatalf("expected 200, got %d: %s", rec.Code, rec.Body.String())
 	}
-	var body aggBarbersBody
+	var body aggProfessionalsBody
 	if err := json.Unmarshal(rec.Body.Bytes(), &body); err != nil {
 		t.Fatalf("decode: %v", err)
 	}
 	if len(body.Items) != 1 || len(body.Items[0].ServiceIDs) != 1 || body.Items[0].ServiceIDs[0] != aggServiceDos {
 		t.Fatalf("Dos solo debe ver lo suyo: %s", rec.Body.String())
 	}
-	for _, leaked := range []string{aggBarberUno1, aggBarberUno2, aggServiceS1, aggServiceS2} {
+	for _, leaked := range []string{aggProfessionalUno1, aggProfessionalUno2, aggServiceS1, aggServiceS2} {
 		if strings.Contains(rec.Body.String(), leaked) {
-			t.Fatalf("se filtró %s de otra barbería: %s", leaked, rec.Body.String())
+			t.Fatalf("se filtró %s de otro negocio: %s", leaked, rec.Body.String())
 		}
 	}
 }
@@ -166,7 +166,7 @@ func TestPublicAggregates_HTTP_UnknownSlug_Returns404Problem(t *testing.T) {
 	}
 }
 
-func TestPublicAggregates_HTTP_ServiceAvailability_AggregatesAllEligibleBarbers(t *testing.T) {
+func TestPublicAggregates_HTTP_ServiceAvailability_AggregatesAllEligibleProfessionals(t *testing.T) {
 	router := newAggRouter(t)
 	before := time.Now().UTC()
 
@@ -182,35 +182,35 @@ func TestPublicAggregates_HTTP_ServiceAvailability_AggregatesAllEligibleBarbers(
 		t.Fatalf("contexto inesperado: %+v", agg)
 	}
 	if len(agg.Slots) == 0 {
-		t.Fatal("esperaba franjas (dos barberos con jornada los siete días)")
+		t.Fatal("esperaba franjas (dos profesionales con jornada los siete días)")
 	}
 
-	perBarber := map[string][]time.Time{}
+	perProfessional := map[string][]time.Time{}
 	for i, s := range agg.Slots {
 		if s.StartsAt.Before(before) {
 			t.Fatalf("franja %d anterior a la solicitud: %v", i, s.StartsAt)
 		}
 		if i > 0 {
 			prev := agg.Slots[i-1]
-			if s.StartsAt.Before(prev.StartsAt) || (s.StartsAt.Equal(prev.StartsAt) && s.BarberID <= prev.BarberID) {
+			if s.StartsAt.Before(prev.StartsAt) || (s.StartsAt.Equal(prev.StartsAt) && s.ProfessionalID <= prev.ProfessionalID) {
 				t.Fatalf("orden (startsAt, professionalId) roto en índice %d: %+v / %+v", i, prev, s)
 			}
 		}
-		perBarber[s.BarberID] = append(perBarber[s.BarberID], s.StartsAt)
+		perProfessional[s.ProfessionalID] = append(perProfessional[s.ProfessionalID], s.StartsAt)
 	}
-	if len(perBarber) != 2 || len(perBarber[aggBarberUno1]) == 0 || len(perBarber[aggBarberUno2]) == 0 {
-		t.Fatalf("esperaba franjas de Uno-1 y Uno-2, got barberos %v", perBarber)
+	if len(perProfessional) != 2 || len(perProfessional[aggProfessionalUno1]) == 0 || len(perProfessional[aggProfessionalUno2]) == 0 {
+		t.Fatalf("esperaba franjas de Uno-1 y Uno-2, got profesionales %v", perProfessional)
 	}
 
-	// No divergencia: las franjas de cada barbero son EXACTAMENTE las del
-	// endpoint por barbero (que sigue intacto). Ambas lecturas se hacen con
+	// No divergencia: las franjas de cada profesional son EXACTAMENTE las del
+	// endpoint por profesional (que sigue intacto). Ambas lecturas se hacen con
 	// instantes de reloj distintos; comparar sólo desde el inicio común evita
 	// una falsa discrepancia si la ventana avanzó entre las dos llamadas.
 	after := time.Now().UTC()
-	for barberID, got := range perBarber {
-		single := aggGet(router, aggSlugUno+"/services/"+aggServiceS2+"/professionals/"+barberID+"/availability")
+	for professionalID, got := range perProfessional {
+		single := aggGet(router, aggSlugUno+"/services/"+aggServiceS2+"/professionals/"+professionalID+"/availability")
 		if single.Code != http.StatusOK {
-			t.Fatalf("legacy %s: %d: %s", barberID, single.Code, single.Body.String())
+			t.Fatalf("legacy %s: %d: %s", professionalID, single.Code, single.Body.String())
 		}
 		var legacy availabilityResponseBody
 		if err := json.Unmarshal(single.Body.Bytes(), &legacy); err != nil {
@@ -229,17 +229,17 @@ func TestPublicAggregates_HTTP_ServiceAvailability_AggregatesAllEligibleBarbers(
 			}
 		}
 		if len(want) != len(have) {
-			t.Fatalf("barbero %s: agregado %d franjas, endpoint por barbero %d", barberID, len(have), len(want))
+			t.Fatalf("profesional %s: agregado %d franjas, endpoint por profesional %d", professionalID, len(have), len(want))
 		}
 		for i := range want {
 			if !want[i].Equal(have[i]) {
-				t.Fatalf("barbero %s franja %d: %v != %v", barberID, i, have[i], want[i])
+				t.Fatalf("profesional %s franja %d: %v != %v", professionalID, i, have[i], want[i])
 			}
 		}
 	}
 }
 
-func TestPublicAggregates_HTTP_ServiceAvailability_OneEligibleBarber(t *testing.T) {
+func TestPublicAggregates_HTTP_ServiceAvailability_OneEligibleProfessional(t *testing.T) {
 	rec := aggGet(newAggRouter(t), aggSlugUno+"/services/"+aggServiceS1+"/availability")
 	var agg aggAvailabilityBody
 	if err := json.Unmarshal(rec.Body.Bytes(), &agg); err != nil {
@@ -249,8 +249,8 @@ func TestPublicAggregates_HTTP_ServiceAvailability_OneEligibleBarber(t *testing.
 		t.Fatalf("respuesta inesperada: %d %s", rec.Code, rec.Body.String())
 	}
 	for _, s := range agg.Slots {
-		if s.BarberID != aggBarberUno1 {
-			t.Fatalf("S1 solo lo hace Uno-1, got %s", s.BarberID)
+		if s.ProfessionalID != aggProfessionalUno1 {
+			t.Fatalf("S1 solo lo hace Uno-1, got %s", s.ProfessionalID)
 		}
 	}
 }
@@ -262,12 +262,12 @@ func TestPublicAggregates_HTTP_ServiceAvailability_ForeignInactiveOrMalformedIsU
 	router := newAggRouter(t)
 	const empty = `{"slots":[],"durationMinutes":0,"timezone":"","slotGridMinutes":0}`
 	for name, path := range map[string]string{
-		"servicio de otra barbería": aggSlugUno + "/services/" + aggServiceDos + "/availability",
-		"servicio inactivo":         aggSlugUno + "/services/" + aggServiceInactive + "/availability",
-		"servicio sin barberos":     aggSlugUno + "/services/01620104-0162-0162-0162-016201040104/availability",
-		"servicio inexistente":      aggSlugUno + "/services/00000000-0000-0000-0000-000000000000/availability",
-		"sin forma de UUID":         aggSlugUno + "/services/no-es-uuid/availability",
-		"servicio de Uno via Dos":   aggSlugDos + "/services/" + aggServiceS2 + "/availability",
+		"servicio de otro negocio":   aggSlugUno + "/services/" + aggServiceDos + "/availability",
+		"servicio inactivo":          aggSlugUno + "/services/" + aggServiceInactive + "/availability",
+		"servicio sin profesionales": aggSlugUno + "/services/01620104-0162-0162-0162-016201040104/availability",
+		"servicio inexistente":       aggSlugUno + "/services/00000000-0000-0000-0000-000000000000/availability",
+		"sin forma de UUID":          aggSlugUno + "/services/no-es-uuid/availability",
+		"servicio de Uno via Dos":    aggSlugDos + "/services/" + aggServiceS2 + "/availability",
 	} {
 		t.Run(name, func(t *testing.T) {
 			rec := aggGet(router, path)
@@ -289,8 +289,8 @@ func TestPublicAggregates_HTTP_ExistingEndpointsKeepWorking(t *testing.T) {
 		aggSlugUno,
 		aggSlugUno + "/services",
 		aggSlugUno + "/services/" + aggServiceS2 + "/professionals",
-		aggSlugUno + "/services/" + aggServiceS2 + "/professionals/" + aggBarberUno1 + "/availability",
-		aggSlugUno + "/professionals/" + aggBarberUno1 + "/photo", // 404 uniforme: sin fotografía
+		aggSlugUno + "/services/" + aggServiceS2 + "/professionals/" + aggProfessionalUno1 + "/availability",
+		aggSlugUno + "/professionals/" + aggProfessionalUno1 + "/photo", // 404 uniforme: sin fotografía
 	} {
 		rec := aggGet(router, path)
 		want := http.StatusOK

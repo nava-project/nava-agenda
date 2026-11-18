@@ -1,7 +1,7 @@
 package postgres_test
 
 // Pruebas de integración de HU-106 (acceso que pide Odin por WhatsApp) contra
-// PostgreSQL REAL con dos barberías. Solo el envío y el reloj son dobles; la
+// PostgreSQL REAL con dos negocios. Solo el envío y el reloj son dobles; la
 // política de cancelar y reprogramar es la real de booking, como en el arranque.
 
 import (
@@ -10,11 +10,11 @@ import (
 	"testing"
 	"time"
 
-	"system-barbershop/internal/modules/booking"
-	"system-barbershop/internal/modules/customeraccess"
-	customeraccesspostgres "system-barbershop/internal/modules/customeraccess/postgres"
-	"system-barbershop/internal/platform/apperr"
-	"system-barbershop/internal/platform/database"
+	"nava-agenda/internal/modules/booking"
+	"nava-agenda/internal/modules/customeraccess"
+	customeraccesspostgres "nava-agenda/internal/modules/customeraccess/postgres"
+	"nava-agenda/internal/platform/apperr"
+	"nava-agenda/internal/platform/database"
 )
 
 func realPolicy() customeraccess.ChangePolicy {
@@ -66,7 +66,7 @@ func TestRef_Lookup_ListsOnlyThePhonesUpcomingConfirmedAppointments(t *testing.T
 	appt := bookFor(t, f.db, email, phone, 5)
 
 	got := f.onlyAppointment(t, phone)
-	if !got.StartsAt.Equal(appt.StartsAt) || got.ServiceName == "" || got.BarberName == "" {
+	if !got.StartsAt.Equal(appt.StartsAt) || got.ServiceName == "" || got.ProfessionalName == "" {
 		t.Fatalf("unexpected appointment %+v", got)
 	}
 	if !got.CanCancel || !got.CanReschedule {
@@ -76,7 +76,7 @@ func TestRef_Lookup_ListsOnlyThePhonesUpcomingConfirmedAppointments(t *testing.T
 		t.Fatalf("the reference must be opaque, got %q", got.Ref)
 	}
 
-	// Un teléfono sin turnos recibe una lista vacía; la barbería dos no ve nada de la uno.
+	// Un teléfono sin turnos recibe una lista vacía; el negocio dos no ve nada de la uno.
 	for slug, number := range map[string]string{accessSlugUno: "+573" + uniqueDigits(t, 9), accessSlugDos: phone} {
 		list, err := f.refs.Lookup(context.Background(), slug, number)
 		if err != nil || len(list) != 0 {
@@ -283,7 +283,7 @@ func TestRef_ReferenceOfShopOneIsUselessInShopTwo(t *testing.T) {
 	if _, err := f.refs.RequestCode(ctx, accessSlugDos, phone, target.Ref, customeraccess.PurposeReschedule); !isKind(err, apperr.KindAppointmentNotAvailable) {
 		t.Fatalf("the reference is bound to its shop, got %v", err)
 	}
-	// Aun con el identificador del turno en la mano, RLS no deja ver el turno de otra barbería.
+	// Aun con el identificador del turno en la mano, RLS no deja ver el turno de otro negocio.
 	repo := customeraccesspostgres.NewAccessRepository(f.db)
 	outcome, err := repo.RequestRefChallenge(ctx, customeraccess.RefChallengeRequest{
 		Slug: accessSlugDos, Contact: customeraccess.Contact{Channel: customeraccess.ChannelWhatsApp, Value: phone},
@@ -292,7 +292,7 @@ func TestRef_ReferenceOfShopOneIsUselessInShopTwo(t *testing.T) {
 		Now: f.clock.Now(), ExpiresAt: f.clock.Now().Add(time.Minute),
 		Eligible: func(customeraccess.AppointmentCandidate) bool { return true },
 	})
-	if err != nil || !outcome.BarbershopFound || outcome.Available {
+	if err != nil || !outcome.BusinessFound || outcome.Available {
 		t.Fatalf("shop two must not see shop one's appointment: %+v / %v", outcome, err)
 	}
 
@@ -394,7 +394,7 @@ func TestRef_RateLimit_IsSharedWithTheGeneralScreen(t *testing.T) {
 	}
 }
 
-func TestRef_ServiceCapPerBarbershopApplies(t *testing.T) {
+func TestRef_ServiceCapPerBusinessApplies(t *testing.T) {
 	f := newRefFixture(t)
 	ctx := context.Background()
 	email, phone := freshContact(t)
@@ -402,8 +402,8 @@ func TestRef_ServiceCapPerBarbershopApplies(t *testing.T) {
 	serviceHash := strings.Repeat("e", 63) + uniqueDigits(t, 1)
 
 	// Se llena el tope del servicio con solicitudes de otros contactos.
-	err := f.db.InTenantTx(ctx, database.BarbershopID(accessShopUno), func(ctx context.Context, q database.Queries) error {
-		for i := 0; i < customeraccess.ServiceRequestsPerBarbershop; i++ {
+	err := f.db.InTenantTx(ctx, database.BusinessID(accessShopUno), func(ctx context.Context, q database.Queries) error {
+		for i := 0; i < customeraccess.ServiceRequestsPerBusiness; i++ {
 			if _, err := q.Exec(ctx,
 				`INSERT INTO customer_access_challenge (business_id, channel, contact_hash, ip_hash, created_at, expires_at)
 				 VALUES ($1, 'whatsapp', $2, $3, $4, $5)`,
@@ -429,7 +429,7 @@ func TestRef_ServiceCapPerBarbershopApplies(t *testing.T) {
 		t.Fatalf("RequestRefChallenge: %v", err)
 	}
 	if !outcome.RateLimited || outcome.RetryAfter <= 0 {
-		t.Fatalf("the per-barbershop service cap must apply, got %+v", outcome)
+		t.Fatalf("the per-business service cap must apply, got %+v", outcome)
 	}
 }
 
@@ -458,7 +458,7 @@ func TestRef_Table_StoresNoPlainReference(t *testing.T) {
 		t.Fatal(err)
 	}
 	var leaked int
-	err = f.db.InTenantTx(ctx, database.BarbershopID(accessShopUno), func(ctx context.Context, q database.Queries) error {
+	err = f.db.InTenantTx(ctx, database.BusinessID(accessShopUno), func(ctx context.Context, q database.Queries) error {
 		return q.QueryRow(ctx, `SELECT count(*) FROM customer_access_challenge WHERE access_ref_hash = $1`, accepted.AccessRef).Scan(&leaked)
 	})
 	if err != nil || leaked != 0 {

@@ -5,7 +5,7 @@ import (
 	"errors"
 	"testing"
 
-	"system-barbershop/internal/modules/shops"
+	"nava-agenda/internal/modules/shops"
 )
 
 type fakePanelProfileRepository struct {
@@ -14,8 +14,8 @@ type fakePanelProfileRepository struct {
 	calls [][2]string
 }
 
-func (f *fakePanelProfileRepository) RolesOf(_ context.Context, barbershopID, staffUserID string) ([]shops.Role, error) {
-	f.calls = append(f.calls, [2]string{barbershopID, staffUserID})
+func (f *fakePanelProfileRepository) RolesOf(_ context.Context, businessID, staffUserID string) ([]shops.Role, error) {
+	f.calls = append(f.calls, [2]string{businessID, staffUserID})
 	return f.roles, f.err
 }
 

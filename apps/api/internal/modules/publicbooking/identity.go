@@ -4,7 +4,7 @@ import (
 	"regexp"
 	"strings"
 
-	"system-barbershop/internal/platform/apperr"
+	"nava-agenda/internal/platform/apperr"
 )
 
 // Límites y formas iguales a booking.CustomerFullNameMaxLength/
@@ -180,7 +180,7 @@ type CustomerReconciliation struct {
 
 // ReconcilePublicCustomer decide la reconciliación pública de `customer`
 // según DEC-085 a partir de los identificadores ya encontrados (o nil) por
-// teléfono y por correo dentro de la misma barbería (RN-TEN-01,
+// teléfono y por correo dentro del mismo negocio (RN-TEN-01,
 // CustomerRepository.FindCustomerMatches). phone/email son los valores ya
 // normalizados que el cliente dio ahora.
 func ReconcilePublicCustomer(phoneMatchID, emailMatchID *string, phone, email string) CustomerReconciliation {

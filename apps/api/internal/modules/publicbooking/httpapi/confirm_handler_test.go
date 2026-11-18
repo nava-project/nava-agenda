@@ -19,27 +19,27 @@ import (
 	"testing"
 	"time"
 
-	"system-barbershop/internal/modules/publicbooking"
-	"system-barbershop/internal/modules/publicbooking/httpapi"
-	"system-barbershop/internal/platform/apperr"
-	"system-barbershop/internal/platform/httpserver"
-	"system-barbershop/internal/platform/idempotency"
+	"nava-agenda/internal/modules/publicbooking"
+	"nava-agenda/internal/modules/publicbooking/httpapi"
+	"nava-agenda/internal/platform/apperr"
+	"nava-agenda/internal/platform/httpserver"
+	"nava-agenda/internal/platform/idempotency"
 )
 
 type confirmFakeAvailabilityRepository struct {
-	barbershopID string
-	found        bool
+	businessID string
+	found      bool
 }
 
-func (f *confirmFakeAvailabilityRepository) ResolveBarbershopID(_ context.Context, _ string) (string, bool, error) {
-	return f.barbershopID, f.found, nil
+func (f *confirmFakeAvailabilityRepository) ResolveBusinessID(_ context.Context, _ string) (string, bool, error) {
+	return f.businessID, f.found, nil
 }
 
 func (f *confirmFakeAvailabilityRepository) ListOccupiedIntervals(context.Context, string, string, time.Time, time.Time) ([]time.Time, []time.Time, error) {
 	return nil, nil, nil
 }
 
-func (f *confirmFakeAvailabilityRepository) ListServiceBarberIDs(context.Context, string, string) ([]string, error) {
+func (f *confirmFakeAvailabilityRepository) ListServiceProfessionalIDs(context.Context, string, string) ([]string, error) {
 	return nil, nil
 }
 
@@ -130,14 +130,14 @@ func (f *confirmFakeEmailPort) SendConfirmation(context.Context, string, string,
 }
 
 const (
-	confirmHandlerSlug      = "barberia-confirmacion"
-	confirmHandlerServiceID = "55555555-5555-5555-5555-555555555555"
-	confirmHandlerBarberID  = "66666666-6666-6666-6666-666666666666"
+	confirmHandlerSlug           = "barberia-confirmacion"
+	confirmHandlerServiceID      = "55555555-5555-5555-5555-555555555555"
+	confirmHandlerProfessionalID = "66666666-6666-6666-6666-666666666666"
 )
 
 func newConfirmHandler(appointments *confirmFakePublicAppointmentPort, email *confirmFakeEmailPort, now time.Time) *httpapi.ConfirmPublicAppointmentHandler {
-	profiles := &fakeRepository{found: true, profile: publicbooking.BarbershopProfile{Name: "Barbería Confirmación", Timezone: "America/Bogota"}}
-	availRepo := &confirmFakeAvailabilityRepository{barbershopID: "shop-1", found: true}
+	profiles := &fakeRepository{found: true, profile: publicbooking.BusinessProfile{Name: "Barbería Confirmación", Timezone: "America/Bogota"}}
+	availRepo := &confirmFakeAvailabilityRepository{businessID: "shop-1", found: true}
 	availability := publicbooking.NewAvailabilityService(
 		availRepo, confirmFakeEffectiveDay{}, confirmFakeBusyBlocks{}, confirmFakeBookingPolicy{}, confirmFakeServiceAssignment{}, confirmFakeAvailabilityTimezone{}, confirmFakeClock{now: now},
 	)
@@ -151,14 +151,14 @@ func newConfirmHandler(appointments *confirmFakePublicAppointmentPort, email *co
 func confirmRequest(t *testing.T, body string, idempotencyKey string) *http.Request {
 	t.Helper()
 	req := httptest.NewRequest(http.MethodPost,
-		"/api/v1/public/businesses/"+confirmHandlerSlug+"/services/"+confirmHandlerServiceID+"/professionals/"+confirmHandlerBarberID+"/appointments",
+		"/api/v1/public/businesses/"+confirmHandlerSlug+"/services/"+confirmHandlerServiceID+"/professionals/"+confirmHandlerProfessionalID+"/appointments",
 		bytes.NewBufferString(body))
 	if idempotencyKey != "" {
 		req.Header.Set(httpserver.IdempotencyKeyHeader, idempotencyKey)
 	}
 	req = httpserver.RequestWithURLParam(req, "slug", confirmHandlerSlug)
 	req = httpserver.RequestWithURLParam(req, "serviceId", confirmHandlerServiceID)
-	req = httpserver.RequestWithURLParam(req, "professionalId", confirmHandlerBarberID)
+	req = httpserver.RequestWithURLParam(req, "professionalId", confirmHandlerProfessionalID)
 	return req
 }
 

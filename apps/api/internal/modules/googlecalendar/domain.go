@@ -3,12 +3,12 @@ package googlecalendar
 import (
 	"time"
 
-	"system-barbershop/internal/platform/apperr"
+	"nava-agenda/internal/platform/apperr"
 )
 
-// Status es el estado de la conexión de un barbero con Google Calendar
+// Status es el estado de la conexión de un profesional con Google Calendar
 // (DEC-101). NotConnected no se persiste: es lo que se informa cuando el
-// barbero nunca conectó.
+// profesional nunca conectó.
 type Status string
 
 const (
@@ -28,13 +28,13 @@ const (
 // CalendarPrimary es el calendario principal de la cuenta conectada.
 const CalendarPrimary = "primary"
 
-// Connection es la conexión de un barbero. Las credenciales cifradas nunca
+// Connection es la conexión de un profesional. Las credenciales cifradas nunca
 // salen del módulo: Credentials es el texto cifrado y KeyID la clave que lo
 // produjo; ninguna capa HTTP los expone.
 type Connection struct {
 	ID              string
-	BarbershopID    string
-	BarberID        string
+	BusinessID      string
+	ProfessionalID  string
 	Status          Status
 	AccountEmail    string
 	CalendarID      string
@@ -53,11 +53,11 @@ func (c Connection) HasCredentials() bool {
 }
 
 // OAuthState es el estado de un solo uso de una autorización en curso: liga
-// la vuelta de Google a la barbería, el barbero, el usuario y la sesión que
+// la vuelta de Google al negocio, el profesional, el usuario y la sesión que
 // la iniciaron. El valor en claro del `state` nunca se persiste (solo su hash).
 type OAuthState struct {
-	BarbershopID      string
-	BarberID          string
+	BusinessID        string
+	ProfessionalID    string
 	StaffUserID       string
 	SessionID         string
 	StateHash         string
@@ -88,7 +88,7 @@ func errIntegrationDisabled() error {
 	return apperr.InvalidState("la integración con Google Calendar no está disponible en este entorno")
 }
 
-func errNoLinkedBarber() error {
+func errNoLinkedProfessional() error {
 	return apperr.InvalidState("vincula tu usuario con un profesional antes de conectar Google Calendar")
 }
 

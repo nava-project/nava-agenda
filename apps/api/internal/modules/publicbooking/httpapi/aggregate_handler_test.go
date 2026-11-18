@@ -16,33 +16,33 @@ import (
 	"testing"
 	"time"
 
-	"system-barbershop/internal/modules/publicbooking"
-	"system-barbershop/internal/modules/publicbooking/httpapi"
-	"system-barbershop/internal/platform/httpserver"
+	"nava-agenda/internal/modules/publicbooking"
+	"nava-agenda/internal/modules/publicbooking/httpapi"
+	"nava-agenda/internal/platform/httpserver"
 )
 
 const (
-	aggBarberAID = "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa"
-	aggBarberBID = "bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb"
+	aggProfessionalAID = "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa"
+	aggProfessionalBID = "bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb"
 )
 
-func requestBarbersAggregate(slug string) *http.Request {
+func requestProfessionalsAggregate(slug string) *http.Request {
 	req := httptest.NewRequest(http.MethodGet, "/api/v1/public/businesses/"+slug+"/professionals", nil)
 	return httpserver.RequestWithURLParam(req, "slug", slug)
 }
 
-func TestListPublicBarbersWithServicesHandler_Success_ReturnsIdFullNameAndServiceIds(t *testing.T) {
+func TestListPublicProfessionalsWithServicesHandler_Success_ReturnsIdFullNameAndServiceIds(t *testing.T) {
 	repo := &fakeRepository{
 		withServicesFound: true,
-		withServicesResult: publicbooking.PublicBarberServicesListResult{Items: []publicbooking.PublicBarberServices{
-			{ID: aggBarberAID, FullName: "Ana Gómez", ServiceIDs: []string{validServiceID, "22222222-2222-2222-2222-222222222222"}},
-			{ID: aggBarberBID, FullName: "Luis Rojas", ServiceIDs: []string{validServiceID}},
+		withServicesResult: publicbooking.PublicProfessionalServicesListResult{Items: []publicbooking.PublicProfessionalServices{
+			{ID: aggProfessionalAID, FullName: "Ana Gómez", ServiceIDs: []string{validServiceID, "22222222-2222-2222-2222-222222222222"}},
+			{ID: aggProfessionalBID, FullName: "Luis Rojas", ServiceIDs: []string{validServiceID}},
 		}},
 	}
-	h := httpapi.NewListPublicBarbersWithServicesHandler(publicbooking.NewService(repo))
+	h := httpapi.NewListPublicProfessionalsWithServicesHandler(publicbooking.NewService(repo))
 
 	rec := httptest.NewRecorder()
-	h.ServeHTTP(rec, requestBarbersAggregate("barberia-ejemplo"))
+	h.ServeHTTP(rec, requestProfessionalsAggregate("barberia-ejemplo"))
 
 	if rec.Code != http.StatusOK {
 		t.Fatalf("expected 200, got %d: %s", rec.Code, rec.Body.String())
@@ -66,11 +66,11 @@ func TestListPublicBarbersWithServicesHandler_Success_ReturnsIdFullNameAndServic
 			t.Fatalf("cada elemento debe tener exactamente id, fullName y serviceIds: %v", item)
 		}
 	}
-	var body httpapi.PublicBarberServicesListResponse
+	var body httpapi.PublicProfessionalServicesListResponse
 	if err := json.Unmarshal(rec.Body.Bytes(), &body); err != nil {
 		t.Fatalf("decode: %v", err)
 	}
-	if body.Items[0].ID != aggBarberAID || body.Items[0].FullName != "Ana Gómez" || len(body.Items[0].ServiceIDs) != 2 {
+	if body.Items[0].ID != aggProfessionalAID || body.Items[0].FullName != "Ana Gómez" || len(body.Items[0].ServiceIDs) != 2 {
 		t.Fatalf("unexpected first item: %+v", body.Items[0])
 	}
 	if len(repo.calls) != 1 || repo.calls[0] != "barberia-ejemplo" {
@@ -81,11 +81,11 @@ func TestListPublicBarbersWithServicesHandler_Success_ReturnsIdFullNameAndServic
 	}
 }
 
-func TestListPublicBarbersWithServicesHandler_Empty_ReturnsEmptyArrayNotNull(t *testing.T) {
-	h := httpapi.NewListPublicBarbersWithServicesHandler(publicbooking.NewService(&fakeRepository{withServicesFound: true}))
+func TestListPublicProfessionalsWithServicesHandler_Empty_ReturnsEmptyArrayNotNull(t *testing.T) {
+	h := httpapi.NewListPublicProfessionalsWithServicesHandler(publicbooking.NewService(&fakeRepository{withServicesFound: true}))
 
 	rec := httptest.NewRecorder()
-	h.ServeHTTP(rec, requestBarbersAggregate("barberia-ejemplo"))
+	h.ServeHTTP(rec, requestProfessionalsAggregate("barberia-ejemplo"))
 
 	if rec.Code != http.StatusOK {
 		t.Fatalf("expected 200, got %d: %s", rec.Code, rec.Body.String())
@@ -95,25 +95,25 @@ func TestListPublicBarbersWithServicesHandler_Empty_ReturnsEmptyArrayNotNull(t *
 	}
 }
 
-func TestListPublicBarbersWithServicesHandler_NilServiceIDs_NeverSerializesNull(t *testing.T) {
+func TestListPublicProfessionalsWithServicesHandler_NilServiceIDs_NeverSerializesNull(t *testing.T) {
 	repo := &fakeRepository{
 		withServicesFound: true,
-		withServicesResult: publicbooking.PublicBarberServicesListResult{Items: []publicbooking.PublicBarberServices{
-			{ID: aggBarberAID, FullName: "Ana Gómez"},
+		withServicesResult: publicbooking.PublicProfessionalServicesListResult{Items: []publicbooking.PublicProfessionalServices{
+			{ID: aggProfessionalAID, FullName: "Ana Gómez"},
 		}},
 	}
 	rec := httptest.NewRecorder()
-	httpapi.NewListPublicBarbersWithServicesHandler(publicbooking.NewService(repo)).ServeHTTP(rec, requestBarbersAggregate("barberia-ejemplo"))
+	httpapi.NewListPublicProfessionalsWithServicesHandler(publicbooking.NewService(repo)).ServeHTTP(rec, requestProfessionalsAggregate("barberia-ejemplo"))
 	if !strings.Contains(rec.Body.String(), `"serviceIds":[]`) {
 		t.Fatalf("serviceIds debe ser un arreglo, nunca null: %s", rec.Body.String())
 	}
 }
 
-func TestListPublicBarbersWithServicesHandler_UnknownOrMalformedSlug_ReturnsUniform404(t *testing.T) {
+func TestListPublicProfessionalsWithServicesHandler_UnknownOrMalformedSlug_ReturnsUniform404(t *testing.T) {
 	for _, slug := range []string{"no-existe", strings.Repeat("a", publicbooking.MaxSlugLength+1)} {
 		repo := &fakeRepository{withServicesFound: false}
 		rec := httptest.NewRecorder()
-		httpapi.NewListPublicBarbersWithServicesHandler(publicbooking.NewService(repo)).ServeHTTP(rec, requestBarbersAggregate(slug))
+		httpapi.NewListPublicProfessionalsWithServicesHandler(publicbooking.NewService(repo)).ServeHTTP(rec, requestProfessionalsAggregate(slug))
 
 		if rec.Code != http.StatusNotFound {
 			t.Fatalf("slug %q: expected 404, got %d: %s", slug, rec.Code, rec.Body.String())
@@ -127,10 +127,10 @@ func TestListPublicBarbersWithServicesHandler_UnknownOrMalformedSlug_ReturnsUnif
 	}
 }
 
-func TestListPublicBarbersWithServicesHandler_RepositoryError_ReturnsSafe500(t *testing.T) {
+func TestListPublicProfessionalsWithServicesHandler_RepositoryError_ReturnsSafe500(t *testing.T) {
 	repo := &fakeRepository{withServicesErr: errors.New("boom")}
 	rec := httptest.NewRecorder()
-	httpapi.NewListPublicBarbersWithServicesHandler(publicbooking.NewService(repo)).ServeHTTP(rec, requestBarbersAggregate("barberia-ejemplo"))
+	httpapi.NewListPublicProfessionalsWithServicesHandler(publicbooking.NewService(repo)).ServeHTTP(rec, requestProfessionalsAggregate("barberia-ejemplo"))
 
 	if rec.Code != http.StatusInternalServerError {
 		t.Fatalf("expected 500, got %d: %s", rec.Code, rec.Body.String())
@@ -140,16 +140,16 @@ func TestListPublicBarbersWithServicesHandler_RepositoryError_ReturnsSafe500(t *
 	}
 }
 
-// aggAvailabilityRepo entrega barberos elegibles fijos al agregado de
+// aggAvailabilityRepo entrega profesionales elegibles fijos al agregado de
 // disponibilidad.
 type aggAvailabilityRepo struct {
 	*confirmFakeAvailabilityRepository
-	barberIDs []string
-	err       error
+	professionalIDs []string
+	err             error
 }
 
-func (f *aggAvailabilityRepo) ListServiceBarberIDs(context.Context, string, string) ([]string, error) {
-	return f.barberIDs, f.err
+func (f *aggAvailabilityRepo) ListServiceProfessionalIDs(context.Context, string, string) ([]string, error) {
+	return f.professionalIDs, f.err
 }
 
 func newServiceAvailabilityHandler(repo *aggAvailabilityRepo) *httpapi.ListPublicServiceAvailabilityHandler {
@@ -168,10 +168,10 @@ func requestServiceAvailability(slug, serviceID string) *http.Request {
 	return httpserver.RequestWithURLParam(req, "serviceId", serviceID)
 }
 
-func TestListPublicServiceAvailabilityHandler_Success_ReturnsBarberSlotsOrdered(t *testing.T) {
+func TestListPublicServiceAvailabilityHandler_Success_ReturnsProfessionalSlotsOrdered(t *testing.T) {
 	repo := &aggAvailabilityRepo{
-		confirmFakeAvailabilityRepository: &confirmFakeAvailabilityRepository{barbershopID: "shop-1", found: true},
-		barberIDs:                         []string{aggBarberBID, aggBarberAID},
+		confirmFakeAvailabilityRepository: &confirmFakeAvailabilityRepository{businessID: "shop-1", found: true},
+		professionalIDs:                   []string{aggProfessionalBID, aggProfessionalAID},
 	}
 	rec := httptest.NewRecorder()
 	newServiceAvailabilityHandler(repo).ServeHTTP(rec, requestServiceAvailability("barberia-ejemplo", validServiceID))
@@ -187,11 +187,11 @@ func TestListPublicServiceAvailabilityHandler_Success_ReturnsBarberSlotsOrdered(
 		t.Fatalf("contexto inesperado: %+v", body)
 	}
 	if len(body.Slots) == 0 || len(body.Slots)%2 != 0 {
-		t.Fatalf("esperaba franjas de los dos barberos, got %d", len(body.Slots))
+		t.Fatalf("esperaba franjas de los dos profesionales, got %d", len(body.Slots))
 	}
 	for i := 0; i < len(body.Slots); i += 2 {
 		a, b := body.Slots[i], body.Slots[i+1]
-		if !a.StartsAt.Equal(b.StartsAt) || a.BarberID != aggBarberAID || b.BarberID != aggBarberBID {
+		if !a.StartsAt.Equal(b.StartsAt) || a.ProfessionalID != aggProfessionalAID || b.ProfessionalID != aggProfessionalBID {
 			t.Fatalf("par %d fuera de orden (startsAt, professionalId): %+v %+v", i/2, a, b)
 		}
 		if i > 0 && !a.StartsAt.After(body.Slots[i-1].StartsAt) {
@@ -211,8 +211,8 @@ func TestListPublicServiceAvailabilityHandler_Success_ReturnsBarberSlotsOrdered(
 	}
 }
 
-func TestListPublicServiceAvailabilityHandler_NoEligibleBarbers_ReturnsUniformEmpty(t *testing.T) {
-	repo := &aggAvailabilityRepo{confirmFakeAvailabilityRepository: &confirmFakeAvailabilityRepository{barbershopID: "shop-1", found: true}}
+func TestListPublicServiceAvailabilityHandler_NoEligibleProfessionals_ReturnsUniformEmpty(t *testing.T) {
+	repo := &aggAvailabilityRepo{confirmFakeAvailabilityRepository: &confirmFakeAvailabilityRepository{businessID: "shop-1", found: true}}
 	for _, serviceID := range []string{validServiceID, "no-es-un-uuid"} {
 		rec := httptest.NewRecorder()
 		newServiceAvailabilityHandler(repo).ServeHTTP(rec, requestServiceAvailability("barberia-ejemplo", serviceID))
@@ -242,7 +242,7 @@ func TestListPublicServiceAvailabilityHandler_UnknownSlug_ReturnsUniform404(t *t
 
 func TestListPublicServiceAvailabilityHandler_RepositoryError_ReturnsSafe500(t *testing.T) {
 	repo := &aggAvailabilityRepo{
-		confirmFakeAvailabilityRepository: &confirmFakeAvailabilityRepository{barbershopID: "shop-1", found: true},
+		confirmFakeAvailabilityRepository: &confirmFakeAvailabilityRepository{businessID: "shop-1", found: true},
 		err:                               errors.New("boom"),
 	}
 	rec := httptest.NewRecorder()

@@ -6,9 +6,9 @@ import (
 	"strings"
 	"time"
 
-	"system-barbershop/internal/platform/apperr"
-	"system-barbershop/internal/platform/clock"
-	"system-barbershop/internal/platform/idempotency"
+	"nava-agenda/internal/platform/apperr"
+	"nava-agenda/internal/platform/clock"
+	"nava-agenda/internal/platform/idempotency"
 )
 
 // correctionReasonMaxLength refleja EXACTAMENTE el límite de
@@ -17,7 +17,7 @@ import (
 const correctionReasonMaxLength = 500
 
 // CorrectAppointmentStatusRequest es la entrada cruda de T8 (HU-068): el
-// barbero autenticado corrige una clasificación terminal errónea hacia otra
+// profesional autenticado corrige una clasificación terminal errónea hacia otra
 // terminal distinta, con motivo obligatorio. A diferencia de T6/T7, el
 // cuerpo SÍ lleva campos (DestinationStatus, Reason): sin ellos no hay forma
 // de expresar hacia qué terminal corregir ni por qué.
@@ -50,7 +50,7 @@ type CorrectAppointmentStatusInput struct {
 // CancelledAppointment.
 type CorrectedAppointment struct {
 	ID                       string
-	BarberID                 string
+	ProfessionalID           string
 	ServiceID                string
 	CustomerID               string
 	AttendeeName             string
@@ -81,7 +81,7 @@ type CorrectAppointmentStatusResult struct {
 // valor desconocido se rechazan aquí, antes de tocar el repositorio.
 func parseCorrectionDestination(raw string) (Status, bool) {
 	switch Status(raw) {
-	case StatusCompleted, StatusNoShow, StatusCancelledByCustomer, StatusCancelledByBarber:
+	case StatusCompleted, StatusNoShow, StatusCancelledByCustomer, StatusCancelledByProfessional:
 		return Status(raw), true
 	default:
 		return "", false
@@ -111,7 +111,7 @@ func NewCorrectAppointmentStatusService(repo Repository, clk clock.Clock) *Corre
 // (`FOR UPDATE`), nunca aquí — mismo criterio que CompleteAppointment.
 func (s *CorrectAppointmentStatusService) CorrectAppointmentStatus(
 	ctx context.Context,
-	barbershopID string,
+	businessID string,
 	req CorrectAppointmentStatusRequest,
 	key idempotency.Key,
 	fingerprint idempotency.Fingerprint,
@@ -157,5 +157,5 @@ func (s *CorrectAppointmentStatusService) CorrectAppointmentStatus(
 		Now:                  s.clock.Now(),
 	}
 
-	return s.repo.CorrectAppointmentStatus(ctx, barbershopID, input, key, fingerprint)
+	return s.repo.CorrectAppointmentStatus(ctx, businessID, input, key, fingerprint)
 }

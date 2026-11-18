@@ -5,7 +5,7 @@ import (
 	"errors"
 	"testing"
 
-	"system-barbershop/internal/modules/notification"
+	"nava-agenda/internal/modules/notification"
 )
 
 func TestEmailOnlyRecoverySender_SendsExactlyOneEmailIgnoringPhone(t *testing.T) {

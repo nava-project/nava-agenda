@@ -8,11 +8,11 @@ import (
 	"testing"
 	"time"
 
-	"system-barbershop/internal/modules/booking"
-	"system-barbershop/internal/modules/booking/httpapi"
-	"system-barbershop/internal/platform/apperr"
-	"system-barbershop/internal/platform/httpserver"
-	"system-barbershop/internal/platform/idempotency"
+	"nava-agenda/internal/modules/booking"
+	"nava-agenda/internal/modules/booking/httpapi"
+	"nava-agenda/internal/platform/apperr"
+	"nava-agenda/internal/platform/httpserver"
+	"nava-agenda/internal/platform/idempotency"
 )
 
 // fakeRescheduleRepository es un doble mínimo para probar
@@ -75,7 +75,7 @@ func validRescheduleBody() []byte {
 func readyRescheduleDetail() booking.AppointmentDetail {
 	return booking.AppointmentDetail{
 		ID:                      validRescheduleAppointmentID,
-		BarberID:                "barber-1",
+		ProfessionalID:          "professional-1",
 		Status:                  booking.StatusConfirmed,
 		DurationMinutesSnapshot: 30,
 	}

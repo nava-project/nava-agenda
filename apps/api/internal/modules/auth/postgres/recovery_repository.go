@@ -6,8 +6,8 @@ import (
 
 	"github.com/jackc/pgx/v5"
 
-	"system-barbershop/internal/modules/auth"
-	"system-barbershop/internal/platform/database"
+	"nava-agenda/internal/modules/auth"
+	"nava-agenda/internal/platform/database"
 )
 
 // RecoveryRepository implementa auth.RecoveryRepository contra

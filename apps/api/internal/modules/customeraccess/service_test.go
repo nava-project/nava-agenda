@@ -18,9 +18,9 @@ import (
 	"testing"
 	"time"
 
-	"system-barbershop/internal/modules/customeraccess"
-	"system-barbershop/internal/platform/apperr"
-	"system-barbershop/internal/platform/idempotency"
+	"nava-agenda/internal/modules/customeraccess"
+	"nava-agenda/internal/platform/apperr"
+	"nava-agenda/internal/platform/idempotency"
 )
 
 type fakeRepository struct {
@@ -50,7 +50,7 @@ func hashOf(token string) string {
 }
 
 func TestServiceGetAppointmentByTokenHashesBeforeCallingRepository(t *testing.T) {
-	view := customeraccess.AppointmentView{BarbershopName: "Barbería Ejemplo"}
+	view := customeraccess.AppointmentView{BusinessName: "Barbería Ejemplo"}
 	repo := &fakeRepository{view: view, found: true}
 	svc := customeraccess.NewService(repo)
 
@@ -134,10 +134,10 @@ type cancelCall struct {
 }
 
 func (f *fakeCanceller) CancelAppointment(
-	_ context.Context, barbershopID, appointmentID, expectedVersionToken, reason string,
+	_ context.Context, businessID, appointmentID, expectedVersionToken, reason string,
 	key idempotency.Key, _ idempotency.Fingerprint,
 ) (idempotency.Decision, idempotency.StoredResponse, error) {
-	f.calls = append(f.calls, cancelCall{barbershopID, appointmentID, expectedVersionToken, reason, key})
+	f.calls = append(f.calls, cancelCall{businessID, appointmentID, expectedVersionToken, reason, key})
 	if f.err != nil {
 		return idempotency.Decision{}, idempotency.StoredResponse{}, f.err
 	}
@@ -161,7 +161,7 @@ func TestServiceGetAppointmentByTokenEmitsVersionTokenFromInjectedEncoder(t *tes
 }
 
 func TestServiceCancelAppointmentResolvesTargetByHashAndDelegates(t *testing.T) {
-	repo := &fakeRepository{target: customeraccess.CancellationTarget{BarbershopID: "shop-1", AppointmentID: "appt-1"}, targetFound: true}
+	repo := &fakeRepository{target: customeraccess.CancellationTarget{BusinessID: "shop-1", AppointmentID: "appt-1"}, targetFound: true}
 	canceller := &fakeCanceller{}
 	svc := customeraccess.NewService(repo, customeraccess.WithCanceller(canceller))
 
@@ -206,7 +206,7 @@ func TestServiceCancelAppointmentHidesWhyTheTokenIsNotUsable(t *testing.T) {
 }
 
 func TestServiceCancelAppointmentPropagatesPolicyRejection(t *testing.T) {
-	repo := &fakeRepository{target: customeraccess.CancellationTarget{BarbershopID: "shop-1", AppointmentID: "appt-1"}, targetFound: true}
+	repo := &fakeRepository{target: customeraccess.CancellationTarget{BusinessID: "shop-1", AppointmentID: "appt-1"}, targetFound: true}
 	canceller := &fakeCanceller{err: apperr.CancellationWindowClosed("fuera de plazo")}
 	svc := customeraccess.NewService(repo, customeraccess.WithCanceller(canceller))
 

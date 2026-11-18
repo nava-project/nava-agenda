@@ -14,10 +14,10 @@ import (
 	"net/http"
 	"strconv"
 
-	"system-barbershop/internal/modules/auth"
-	"system-barbershop/internal/platform/apperr"
-	"system-barbershop/internal/platform/clientip"
-	"system-barbershop/internal/platform/httpserver"
+	"nava-agenda/internal/modules/auth"
+	"nava-agenda/internal/platform/apperr"
+	"nava-agenda/internal/platform/clientip"
+	"nava-agenda/internal/platform/httpserver"
 )
 
 // Límites de forma, comprobados ANTES de invocar el caso de uso: coinciden

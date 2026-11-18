@@ -11,7 +11,7 @@ import (
 type Job struct {
 	ID           string
 	ClaimToken   string
-	BarbershopID string
+	BusinessID   string
 	ConnectionID string
 	ResourceType string
 	ResourceID   string
@@ -21,7 +21,7 @@ type Job struct {
 // JobContext es lo mínimo que el worker necesita saber para reconciliar UN
 // trabajo reclamado: el estado actual del recurso, el vínculo y la conexión.
 type JobContext struct {
-	BarberID         string
+	ProfessionalID   string
 	ConnectionStatus string
 	CalendarID       string
 	ReminderMinutes  *int
@@ -33,19 +33,19 @@ type JobContext struct {
 	LinkGeneration  int
 	LinkVisibleHash string
 
-	ResourceType  string
-	ResourceID    string
-	ResourceFound bool
-	BarberMatches bool
-	ApptStatus    string
-	StartsAt      time.Time
-	EndsAt        time.Time
-	AttendeeName  string
-	ServiceName   string
-	CustomerEmail string
-	BlockType     string
-	BlockSource   string
-	BlockDeleted  bool
+	ResourceType        string
+	ResourceID          string
+	ResourceFound       bool
+	ProfessionalMatches bool
+	ApptStatus          string
+	StartsAt            time.Time
+	EndsAt              time.Time
+	AttendeeName        string
+	ServiceName         string
+	CustomerEmail       string
+	BlockType           string
+	BlockSource         string
+	BlockDeleted        bool
 }
 
 // Resultados con los que se finaliza un trabajo.
@@ -76,8 +76,8 @@ type FinishInput struct {
 // RestoreTarget es la conexión que el chequeo periódico reservó.
 type RestoreTarget struct {
 	ConnectionID    string
-	BarbershopID    string
-	BarberID        string
+	BusinessID      string
+	ProfessionalID  string
 	CalendarID      string
 	TokenCiphertext []byte
 	TokenKeyID      string
@@ -92,7 +92,7 @@ type RestoreLink struct {
 
 // JobStore es el puerto de persistencia del WORKER: sin contexto de tenant, solo
 // funciones de reclamo y finalización (DEC-040, DEC-102). Es distinto de
-// Repository, que opera con la sesión de un barbero.
+// Repository, que opera con la sesión de un profesional.
 type JobStore interface {
 	ClaimJobs(ctx context.Context, limit, leaseSeconds int, now time.Time) ([]Job, error)
 	JobContext(ctx context.Context, jobID, claimToken string) (JobContext, bool, error)

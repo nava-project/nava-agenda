@@ -5,7 +5,7 @@ import (
 	"testing"
 	"time"
 
-	"system-barbershop/internal/modules/publicbooking"
+	"nava-agenda/internal/modules/publicbooking"
 )
 
 var bogota = func() *time.Location {
@@ -70,15 +70,15 @@ func TestTodayOpening_HolidayClosesOnlyWhenTheShopSaysSo(t *testing.T) {
 	}
 }
 
-func TestResolveBarbershop_FillsTodayWithTheInjectedCalendar(t *testing.T) {
-	repo := &fakeRepository{found: true, profile: publicbooking.BarbershopProfile{
+func TestResolveBusiness_FillsTodayWithTheInjectedCalendar(t *testing.T) {
+	repo := &fakeRepository{found: true, profile: publicbooking.BusinessProfile{
 		Name: "Barbería Ejemplo", Timezone: "America/Bogota", OpeningHours: week, ClosedOnHolidays: true,
 	}}
 	now := func() time.Time { return time.Date(2026, 11, 16, 10, 0, 0, 0, bogota) }
 	got, err := publicbooking.NewService(repo).WithOpeningCalendar(now, cartagena).
-		ResolveBarbershop(context.Background(), "barberia-ejemplo")
+		ResolveBusiness(context.Background(), "barberia-ejemplo")
 	if err != nil {
-		t.Fatalf("ResolveBarbershop: %v", err)
+		t.Fatalf("ResolveBusiness: %v", err)
 	}
 	if got.Today == nil || got.Today.Holiday == nil || len(got.Today.Hours) != 0 {
 		t.Fatalf("hoy es festivo y el local cierra: %+v", got.Today)

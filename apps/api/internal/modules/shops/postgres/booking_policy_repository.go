@@ -8,15 +8,15 @@ import (
 
 	"github.com/jackc/pgx/v5"
 
-	"system-barbershop/internal/modules/shops"
-	"system-barbershop/internal/platform/database"
+	"nava-agenda/internal/modules/shops"
+	"nava-agenda/internal/platform/database"
 )
 
 // BookingPolicyRepository implementa shops.BookingPolicyRepository sobre
 // database.DB. Separado de Repository (repository.go) porque opera con su
 // propia disciplina transaccional de concurrencia optimista (HU-093,
 // CA-093-02: `SELECT ... FOR UPDATE` + comparación de token antes de
-// escribir), aunque ambos lean/escriban la misma tabla `barbershop` -mismo
+// escribir), aunque ambos lean/escriban la misma tabla `business` -mismo
 // criterio de separación por responsabilidad que
 // catalog/postgres.AssignmentRepository frente a Repository. Comparte el
 // mismo *database.DB.
@@ -34,25 +34,25 @@ var _ shops.BookingPolicyRepository = (*BookingPolicyRepository)(nil)
 
 // Get implementa shops.BookingPolicyRepository.Get leyendo los seis campos
 // de la política más `updated_at` (para derivar VersionToken) dentro de una
-// transacción tenant-aware. RLS (barbershop_select_tenant_policy) ya
-// restringe la fila visible a id = current_setting('app.barbershop_id'); el
+// transacción tenant-aware. RLS (business_select_tenant_policy) ya
+// restringe la fila visible a id = current_setting('app.business_id'); el
 // filtro explícito WHERE id = $1 es defensa en profundidad, mismo patrón
 // que Repository.Get.
-func (r *BookingPolicyRepository) Get(ctx context.Context, barbershopID string) (shops.BookingPolicy, bool, error) {
+func (r *BookingPolicyRepository) Get(ctx context.Context, businessID string) (shops.BookingPolicy, bool, error) {
 	var (
 		p         shops.BookingPolicy
 		updatedAt time.Time
 		found     bool
 	)
 
-	err := r.db.InTenantTx(ctx, database.BarbershopID(barbershopID), func(ctx context.Context, q database.Queries) error {
+	err := r.db.InTenantTx(ctx, database.BusinessID(businessID), func(ctx context.Context, q database.Queries) error {
 		err := q.QueryRow(ctx,
 			`SELECT min_advance_minutes, max_advance_days, slot_grid_minutes,
 			        cancellation_deadline_minutes, late_cancellation_client_allowed,
 			        late_cancellation_reason_required, updated_at
 			   FROM business
 			  WHERE id = $1`,
-			barbershopID,
+			businessID,
 		).Scan(
 			&p.MinAdvanceMinutes, &p.MaxAdvanceDays, &p.SlotGridMinutes,
 			&p.CancellationDeadlineMinutes, &p.LateCancellationClientAllowed,
@@ -72,7 +72,7 @@ func (r *BookingPolicyRepository) Get(ctx context.Context, barbershopID string) 
 		return shops.BookingPolicy{}, false, fmt.Errorf("shops/postgres: get booking policy: %w", err)
 	}
 	if found {
-		p.VersionToken = shops.EncodeBookingPolicyVersionToken(barbershopID, updatedAt)
+		p.VersionToken = shops.EncodeBookingPolicyVersionToken(businessID, updatedAt)
 	}
 	return p, found, nil
 }
@@ -85,23 +85,23 @@ func (r *BookingPolicyRepository) Get(ctx context.Context, barbershopID string) 
 // ejecuta el UPDATE completo de los seis campos y devuelve el token nuevo a
 // partir del updated_at que RETURNING trae de la misma sentencia (sin una
 // segunda consulta).
-func (r *BookingPolicyRepository) Update(ctx context.Context, barbershopID string, input shops.BookingPolicyUpdateInput) (shops.BookingPolicyUpdateResult, error) {
+func (r *BookingPolicyRepository) Update(ctx context.Context, businessID string, input shops.BookingPolicyUpdateInput) (shops.BookingPolicyUpdateResult, error) {
 	var result shops.BookingPolicyUpdateResult
 
-	err := r.db.InTenantTx(ctx, database.BarbershopID(barbershopID), func(ctx context.Context, q database.Queries) error {
+	err := r.db.InTenantTx(ctx, database.BusinessID(businessID), func(ctx context.Context, q database.Queries) error {
 		var currentUpdatedAt time.Time
 		if err := q.QueryRow(ctx,
 			`SELECT updated_at FROM business WHERE id = $1 FOR UPDATE`,
-			barbershopID,
+			businessID,
 		).Scan(&currentUpdatedAt); err != nil {
 			if errors.Is(err, pgx.ErrNoRows) {
 				result.Outcome = shops.BookingPolicyUpdateOutcomeNotFound
 				return nil
 			}
-			return fmt.Errorf("lock barbershop before booking policy update: %w", err)
+			return fmt.Errorf("lock business before booking policy update: %w", err)
 		}
 
-		if shops.EncodeBookingPolicyVersionToken(barbershopID, currentUpdatedAt) != input.ExpectedVersionToken {
+		if shops.EncodeBookingPolicyVersionToken(businessID, currentUpdatedAt) != input.ExpectedVersionToken {
 			result.Outcome = shops.BookingPolicyUpdateOutcomeVersionConflict
 			return nil
 		}
@@ -122,7 +122,7 @@ func (r *BookingPolicyRepository) Update(ctx context.Context, barbershopID strin
 			RETURNING min_advance_minutes, max_advance_days, slot_grid_minutes,
 			          cancellation_deadline_minutes, late_cancellation_client_allowed,
 			          late_cancellation_reason_required, updated_at`,
-			barbershopID,
+			businessID,
 			input.MinAdvanceMinutes, input.MaxAdvanceDays, input.SlotGridMinutes,
 			input.CancellationDeadlineMinutes, input.LateCancellationClientAllowed,
 			input.LateCancellationReasonRequired,
@@ -139,7 +139,7 @@ func (r *BookingPolicyRepository) Update(ctx context.Context, barbershopID strin
 			return fmt.Errorf("update booking policy: %w", err)
 		}
 
-		p.VersionToken = shops.EncodeBookingPolicyVersionToken(barbershopID, newUpdatedAt)
+		p.VersionToken = shops.EncodeBookingPolicyVersionToken(businessID, newUpdatedAt)
 		result.Outcome = shops.BookingPolicyUpdateOutcomeUpdated
 		result.Policy = p
 		return nil

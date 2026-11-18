@@ -9,7 +9,7 @@ import (
 	"strings"
 	"time"
 
-	"system-barbershop/internal/platform/apperr"
+	"nava-agenda/internal/platform/apperr"
 )
 
 // NameMaxLength coincide con service_name_ck
@@ -35,7 +35,7 @@ const (
 const CurrencyCOP = "COP"
 
 // DefaultListLimit, MinListLimit y MaxListLimit acotan `limit` en la lista
-// por cursor de asignaciones barbero-servicio (HU-023, AssignmentService.List
+// por cursor de asignaciones profesional-servicio (HU-023, AssignmentService.List
 // / AssignmentRepository.List), mismo criterio técnico que
 // staff.DefaultListLimit (docs/06-api/estandar-openapi.md §6.10). El
 // catálogo de servicios en sí (CatalogService.List, más abajo) dejó de
@@ -71,7 +71,7 @@ const (
 // devolver una lista vacía que parecería un error del buscador.
 const MaxSearchLength = NameMaxLength
 
-// Service es un servicio del catálogo de la barbería activa. PriceCents
+// Service es un servicio del catálogo del negocio activo. PriceCents
 // representa el precio en centavos (entero exacto, nunca coma flotante,
 // docs/03-desarrollo/estandar-backend-go.md, docs/05-backend/
 // estandar-base-datos.md §5); Currency es siempre CurrencyCOP (DEC-067).
@@ -101,9 +101,9 @@ type DeactivationImpact struct {
 }
 
 // serviceIDPattern es la misma forma canónica 8-4-4-4-12 que
-// database.ValidBarbershopID exige (el núcleo no puede importar ese
+// database.ValidBusinessID exige (el núcleo no puede importar ese
 // paquete, CA-002-06, así que se repite aquí, mismo criterio que
-// staff.LooksLikeBarberID). Un identificador que no cumple esta forma no
+// staff.LooksLikeProfessionalID). Un identificador que no cumple esta forma no
 // puede corresponder a ninguna fila real: se trata igual que "no existe"
 // (mismo apperr.NotFound) en vez de dejar que la consulta SQL falle con un
 // error de tipo (500, no 404).

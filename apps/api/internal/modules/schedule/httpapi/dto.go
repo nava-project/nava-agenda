@@ -4,8 +4,8 @@ import "time"
 
 // WorkingHourResponse es la representación canónica de un tramo de
 // horario laboral (HU-040, CA-040-01/02/03): exactamente id, isoWeekday,
-// startsTime, durationMinutes, createdAt, updatedAt. Nunca barbershopId ni
-// barberId: el tenant se deriva de SessionCookie y el barbero de la ruta.
+// startsTime, durationMinutes, createdAt, updatedAt. Nunca businessId ni
+// professionalId: el tenant se deriva de SessionCookie y el profesional de la ruta.
 //
 // ADVERTENCIA: postgres.workingHourResponseWire (schedule/postgres/
 // repository.go) declara EXACTAMENTE la misma forma (mismos nombres de
@@ -32,8 +32,8 @@ type WorkingHourListResponse struct {
 
 // CreateWorkingHourRequest es el cuerpo de
 // POST /private/professionals/{professionalId}/working-hours (CA-040-02). Cerrado: el
-// handler rechaza cualquier campo desconocido. Nunca declara barbershopId
-// ni barberId: el tenant se deriva de SessionCookie, el barbero de la ruta.
+// handler rechaza cualquier campo desconocido. Nunca declara businessId
+// ni professionalId: el tenant se deriva de SessionCookie, el profesional de la ruta.
 type CreateWorkingHourRequest struct {
 	ISOWeekday      int    `json:"isoWeekday"`
 	StartsTime      string `json:"startsTime"`

@@ -12,25 +12,25 @@ import (
 	"net/http"
 	"strconv"
 
-	"system-barbershop/internal/modules/auth"
-	"system-barbershop/internal/modules/schedule"
-	"system-barbershop/internal/platform/apperr"
-	"system-barbershop/internal/platform/httpserver"
-	"system-barbershop/internal/platform/idempotency"
+	"nava-agenda/internal/modules/auth"
+	"nava-agenda/internal/modules/schedule"
+	"nava-agenda/internal/platform/apperr"
+	"nava-agenda/internal/platform/httpserver"
+	"nava-agenda/internal/platform/idempotency"
 )
 
-// barberIDParam y workingHourIDParam son los nombres de los parámetros de
+// professionalIDParam y workingHourIDParam son los nombres de los parámetros de
 // ruta que cmd/api.buildRouter registra para
 // /private/professionals/{professionalId}/working-hours[/{workingHourId}].
 const (
-	barberIDParam      = "professionalId"
-	workingHourIDParam = "workingHourId"
+	professionalIDParam = "professionalId"
+	workingHourIDParam  = "workingHourId"
 )
 
 // workingHourBasePath es la base usada para construir el header Location
 // de un alta exitosa, relativa a /api/v1.
-func workingHourBasePath(barberID string) string {
-	return "/private/professionals/" + barberID + "/working-hours/"
+func workingHourBasePath(professionalID string) string {
+	return "/private/professionals/" + professionalID + "/working-hours/"
 }
 
 func principalOrInternalError(w http.ResponseWriter, r *http.Request, requestID string) (auth.Principal, bool) {
@@ -70,7 +70,7 @@ func (h *ListWorkingHoursHandler) ServeHTTP(w http.ResponseWriter, r *http.Reque
 		return
 	}
 
-	barberID := httpserver.URLParam(r, barberIDParam)
+	professionalID := httpserver.URLParam(r, professionalIDParam)
 
 	query := r.URL.Query()
 	cursor := query.Get("cursor")
@@ -86,7 +86,7 @@ func (h *ListWorkingHoursHandler) ServeHTTP(w http.ResponseWriter, r *http.Reque
 		limit = parsed
 	}
 
-	result, err := h.service.List(r.Context(), principal.BarbershopID, barberID, cursor, limit)
+	result, err := h.service.List(r.Context(), principal.BusinessID, professionalID, cursor, limit)
 	if err != nil {
 		httpserver.WriteProblem(w, httpserver.Translate(err, requestID))
 		return
@@ -100,7 +100,7 @@ func (h *ListWorkingHoursHandler) ServeHTTP(w http.ResponseWriter, r *http.Reque
 // GetWorkingHourHandler expone
 // GET /private/professionals/{professionalId}/working-hours/{workingHourId} (HU-040):
 // la lectura individual permite demostrar de forma directa el 404 de un
-// tramo de otro barbero o de otra barbería (CA-040-05).
+// tramo de otro profesional o de otro negocio (CA-040-05).
 type GetWorkingHourHandler struct {
 	service *schedule.Service
 }
@@ -118,10 +118,10 @@ func (h *GetWorkingHourHandler) ServeHTTP(w http.ResponseWriter, r *http.Request
 		return
 	}
 
-	barberID := httpserver.URLParam(r, barberIDParam)
+	professionalID := httpserver.URLParam(r, professionalIDParam)
 	workingHourID := httpserver.URLParam(r, workingHourIDParam)
 
-	wh, err := h.service.Get(r.Context(), principal.BarbershopID, barberID, workingHourID)
+	wh, err := h.service.Get(r.Context(), principal.BusinessID, professionalID, workingHourID)
 	if err != nil {
 		httpserver.WriteProblem(w, httpserver.Translate(err, requestID))
 		return
@@ -153,7 +153,7 @@ func (h *CreateWorkingHourHandler) ServeHTTP(w http.ResponseWriter, r *http.Requ
 		return
 	}
 
-	barberID := httpserver.URLParam(r, barberIDParam)
+	professionalID := httpserver.URLParam(r, professionalIDParam)
 
 	// 1. Cabecera: obligatoria, validada antes de tocar PostgreSQL o leer
 	//    el cuerpo (apps/api/README.md, "Patrón obligatorio: idempotencia
@@ -191,7 +191,7 @@ func (h *CreateWorkingHourHandler) ServeHTTP(w http.ResponseWriter, r *http.Requ
 
 	fingerprint := httpserver.IdempotencyFingerprint(r, body)
 
-	result, err := h.service.Create(r.Context(), principal.BarbershopID, barberID, req.ISOWeekday, req.StartsTime, req.DurationMinutes, key, fingerprint)
+	result, err := h.service.Create(r.Context(), principal.BusinessID, professionalID, req.ISOWeekday, req.StartsTime, req.DurationMinutes, key, fingerprint)
 	if err != nil {
 		httpserver.WriteProblem(w, httpserver.Translate(err, requestID))
 		return
@@ -203,7 +203,7 @@ func (h *CreateWorkingHourHandler) ServeHTTP(w http.ResponseWriter, r *http.Requ
 			ID string `json:"id"`
 		}
 		_ = json.Unmarshal([]byte(result.Response.Body), &parsed)
-		w.Header().Set("Location", workingHourBasePath(barberID)+parsed.ID)
+		w.Header().Set("Location", workingHourBasePath(professionalID)+parsed.ID)
 		httpserver.WriteStoredResponse(w, result.Response)
 	default:
 		// Conflicto de contenido/operación (RN-IDE-01) o ejecución en curso
@@ -232,7 +232,7 @@ func (h *UpdateWorkingHourHandler) ServeHTTP(w http.ResponseWriter, r *http.Requ
 		return
 	}
 
-	barberID := httpserver.URLParam(r, barberIDParam)
+	professionalID := httpserver.URLParam(r, professionalIDParam)
 	workingHourID := httpserver.URLParam(r, workingHourIDParam)
 
 	var req UpdateWorkingHourRequest
@@ -252,7 +252,7 @@ func (h *UpdateWorkingHourHandler) ServeHTTP(w http.ResponseWriter, r *http.Requ
 		return
 	}
 
-	wh, err := h.service.Update(r.Context(), principal.BarbershopID, barberID, workingHourID, req.ISOWeekday, req.StartsTime, req.DurationMinutes)
+	wh, err := h.service.Update(r.Context(), principal.BusinessID, professionalID, workingHourID, req.ISOWeekday, req.StartsTime, req.DurationMinutes)
 	if err != nil {
 		httpserver.WriteProblem(w, httpserver.Translate(err, requestID))
 		return
@@ -283,10 +283,10 @@ func (h *DeleteWorkingHourHandler) ServeHTTP(w http.ResponseWriter, r *http.Requ
 		return
 	}
 
-	barberID := httpserver.URLParam(r, barberIDParam)
+	professionalID := httpserver.URLParam(r, professionalIDParam)
 	workingHourID := httpserver.URLParam(r, workingHourIDParam)
 
-	if err := h.service.Delete(r.Context(), principal.BarbershopID, barberID, workingHourID); err != nil {
+	if err := h.service.Delete(r.Context(), principal.BusinessID, professionalID, workingHourID); err != nil {
 		httpserver.WriteProblem(w, httpserver.Translate(err, requestID))
 		return
 	}

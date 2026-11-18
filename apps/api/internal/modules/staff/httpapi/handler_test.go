@@ -10,11 +10,11 @@ import (
 	"testing"
 	"time"
 
-	"system-barbershop/internal/modules/auth"
-	"system-barbershop/internal/modules/staff"
-	"system-barbershop/internal/modules/staff/httpapi"
-	"system-barbershop/internal/platform/httpserver"
-	"system-barbershop/internal/platform/idempotency"
+	"nava-agenda/internal/modules/auth"
+	"nava-agenda/internal/modules/staff"
+	"nava-agenda/internal/modules/staff/httpapi"
+	"nava-agenda/internal/platform/httpserver"
+	"nava-agenda/internal/platform/idempotency"
 )
 
 // fakeRepository es un doble en memoria de staff.Repository: estas pruebas
@@ -24,58 +24,58 @@ import (
 // internal/modules/staff/postgres/repository_test.go).
 type fakeRepository struct {
 	listPageFn func(context.Context, string, int, int) (staff.PageResult, error)
-	listFn     func(barbershopID string, cursor *staff.Cursor, limit int) (staff.ListResult, error)
-	getFn      func(barbershopID, barberID string) (staff.Barber, bool, error)
-	createFn   func(barbershopID, fullName string, description *string, key idempotency.Key, fp idempotency.Fingerprint) (staff.CreateResult, error)
-	updateFn   func(barbershopID, barberID, fullName string, description staff.DescriptionPatch) (staff.UpdateResult, error)
+	listFn     func(businessID string, cursor *staff.Cursor, limit int) (staff.ListResult, error)
+	getFn      func(businessID, professionalID string) (staff.Professional, bool, error)
+	createFn   func(businessID, fullName string, description *string, key idempotency.Key, fp idempotency.Fingerprint) (staff.CreateResult, error)
+	updateFn   func(businessID, professionalID, fullName string, description staff.DescriptionPatch) (staff.UpdateResult, error)
 
-	putPhotoFn    func(barbershopID, barberID string, photo staff.Photo) (staff.PhotoResult, error)
-	getPhotoFn    func(barbershopID, barberID string) (staff.StoredPhoto, bool, error)
-	deletePhotoFn func(barbershopID, barberID string) (bool, error)
+	putPhotoFn    func(businessID, professionalID string, photo staff.Photo) (staff.PhotoResult, error)
+	getPhotoFn    func(businessID, professionalID string) (staff.StoredPhoto, bool, error)
+	deletePhotoFn func(businessID, professionalID string) (bool, error)
 
-	getLinkedFn func(barbershopID, staffUserID string) (staff.Barber, bool, error)
-	linkFn      func(barbershopID, staffUserID, barberID string) (staff.LinkResult, error)
-	unlinkFn    func(barbershopID, staffUserID string) (string, error)
+	getLinkedFn func(businessID, staffUserID string) (staff.Professional, bool, error)
+	linkFn      func(businessID, staffUserID, professionalID string) (staff.LinkResult, error)
+	unlinkFn    func(businessID, staffUserID string) (string, error)
 }
 
-func (f *fakeRepository) List(_ context.Context, barbershopID string, cursor *staff.Cursor, limit int) (staff.ListResult, error) {
-	return f.listFn(barbershopID, cursor, limit)
+func (f *fakeRepository) List(_ context.Context, businessID string, cursor *staff.Cursor, limit int) (staff.ListResult, error) {
+	return f.listFn(businessID, cursor, limit)
 }
 
-func (f *fakeRepository) Get(_ context.Context, barbershopID, barberID string) (staff.Barber, bool, error) {
-	return f.getFn(barbershopID, barberID)
+func (f *fakeRepository) Get(_ context.Context, businessID, professionalID string) (staff.Professional, bool, error) {
+	return f.getFn(businessID, professionalID)
 }
 
-func (f *fakeRepository) Create(_ context.Context, barbershopID, fullName string, description *string, key idempotency.Key, fp idempotency.Fingerprint) (staff.CreateResult, error) {
-	return f.createFn(barbershopID, fullName, description, key, fp)
+func (f *fakeRepository) Create(_ context.Context, businessID, fullName string, description *string, key idempotency.Key, fp idempotency.Fingerprint) (staff.CreateResult, error) {
+	return f.createFn(businessID, fullName, description, key, fp)
 }
 
-func (f *fakeRepository) Update(_ context.Context, barbershopID, barberID, fullName string, description staff.DescriptionPatch) (staff.UpdateResult, error) {
-	return f.updateFn(barbershopID, barberID, fullName, description)
+func (f *fakeRepository) Update(_ context.Context, businessID, professionalID, fullName string, description staff.DescriptionPatch) (staff.UpdateResult, error) {
+	return f.updateFn(businessID, professionalID, fullName, description)
 }
 
-func (f *fakeRepository) PutPhoto(_ context.Context, barbershopID, barberID string, photo staff.Photo) (staff.PhotoResult, error) {
-	return f.putPhotoFn(barbershopID, barberID, photo)
+func (f *fakeRepository) PutPhoto(_ context.Context, businessID, professionalID string, photo staff.Photo) (staff.PhotoResult, error) {
+	return f.putPhotoFn(businessID, professionalID, photo)
 }
 
-func (f *fakeRepository) GetPhoto(_ context.Context, barbershopID, barberID string) (staff.StoredPhoto, bool, error) {
-	return f.getPhotoFn(barbershopID, barberID)
+func (f *fakeRepository) GetPhoto(_ context.Context, businessID, professionalID string) (staff.StoredPhoto, bool, error) {
+	return f.getPhotoFn(businessID, professionalID)
 }
 
-func (f *fakeRepository) DeletePhoto(_ context.Context, barbershopID, barberID string) (bool, error) {
-	return f.deletePhotoFn(barbershopID, barberID)
+func (f *fakeRepository) DeletePhoto(_ context.Context, businessID, professionalID string) (bool, error) {
+	return f.deletePhotoFn(businessID, professionalID)
 }
 
-func (f *fakeRepository) GetLinked(_ context.Context, barbershopID, staffUserID string) (staff.Barber, bool, error) {
-	return f.getLinkedFn(barbershopID, staffUserID)
+func (f *fakeRepository) GetLinked(_ context.Context, businessID, staffUserID string) (staff.Professional, bool, error) {
+	return f.getLinkedFn(businessID, staffUserID)
 }
 
-func (f *fakeRepository) Link(_ context.Context, barbershopID, staffUserID, barberID string) (staff.LinkResult, error) {
-	return f.linkFn(barbershopID, staffUserID, barberID)
+func (f *fakeRepository) Link(_ context.Context, businessID, staffUserID, professionalID string) (staff.LinkResult, error) {
+	return f.linkFn(businessID, staffUserID, professionalID)
 }
 
-func (f *fakeRepository) Unlink(_ context.Context, barbershopID, staffUserID string) (string, error) {
-	return f.unlinkFn(barbershopID, staffUserID)
+func (f *fakeRepository) Unlink(_ context.Context, businessID, staffUserID string) (string, error) {
+	return f.unlinkFn(businessID, staffUserID)
 }
 
 var _ staff.Repository = (*fakeRepository)(nil)
@@ -89,13 +89,13 @@ func requestWithPrincipal(method, target string, body []byte) *http.Request {
 	} else {
 		req = httptest.NewRequest(method, target, bytes.NewReader(body))
 	}
-	principal := auth.Principal{SessionID: "s-1", StaffUserID: "u-1", BarbershopID: testShopID}
+	principal := auth.Principal{SessionID: "s-1", StaffUserID: "u-1", BusinessID: testShopID}
 	return req.WithContext(auth.ContextWithPrincipal(req.Context(), principal))
 }
 
-func requestWithBarberID(method, target string, body []byte, barberID string) *http.Request {
+func requestWithProfessionalID(method, target string, body []byte, professionalID string) *http.Request {
 	r := requestWithPrincipal(method, target, body)
-	return httpserver.RequestWithURLParam(r, "professionalId", barberID)
+	return httpserver.RequestWithURLParam(r, "professionalId", professionalID)
 }
 
 func decodeProblem(t *testing.T, rec *httptest.ResponseRecorder) map[string]any {
@@ -109,11 +109,11 @@ func decodeProblem(t *testing.T, rec *httptest.ResponseRecorder) map[string]any 
 
 // --- List -------------------------------------------------------------
 
-func TestListBarbersHandler_Success_ReturnsItemsAndCursor(t *testing.T) {
+func TestListProfessionalsHandler_Success_ReturnsItemsAndCursor(t *testing.T) {
 	now := time.Now().UTC()
-	repo := &fakeRepository{listFn: func(barbershopID string, cursor *staff.Cursor, limit int) (staff.ListResult, error) {
-		if barbershopID != testShopID {
-			t.Fatalf("expected shop %q, got %q", testShopID, barbershopID)
+	repo := &fakeRepository{listFn: func(businessID string, cursor *staff.Cursor, limit int) (staff.ListResult, error) {
+		if businessID != testShopID {
+			t.Fatalf("expected shop %q, got %q", testShopID, businessID)
 		}
 		if limit != staff.DefaultListLimit {
 			t.Fatalf("expected default limit, got %d", limit)
@@ -122,13 +122,13 @@ func TestListBarbersHandler_Success_ReturnsItemsAndCursor(t *testing.T) {
 			t.Fatalf("expected nil cursor, got %+v", cursor)
 		}
 		return staff.ListResult{
-			Items: []staff.Barber{
+			Items: []staff.Professional{
 				{ID: "b-1", FullName: "Carlos", CreatedAt: now, UpdatedAt: now},
 			},
 			NextCursor: "opaque-cursor",
 		}, nil
 	}}
-	h := httpapi.NewListBarbersHandler(staff.NewService(repo))
+	h := httpapi.NewListProfessionalsHandler(staff.NewService(repo))
 
 	req := requestWithPrincipal(http.MethodGet, "/api/v1/private/professionals", nil)
 	rec := httptest.NewRecorder()
@@ -137,7 +137,7 @@ func TestListBarbersHandler_Success_ReturnsItemsAndCursor(t *testing.T) {
 	if rec.Code != http.StatusOK {
 		t.Fatalf("expected 200, got %d: %s", rec.Code, rec.Body.String())
 	}
-	var body httpapi.BarberListResponse
+	var body httpapi.ProfessionalListResponse
 	if err := json.Unmarshal(rec.Body.Bytes(), &body); err != nil {
 		t.Fatalf("decode: %v", err)
 	}
@@ -149,11 +149,11 @@ func TestListBarbersHandler_Success_ReturnsItemsAndCursor(t *testing.T) {
 	}
 }
 
-func TestListBarbersHandler_NoNextPage_ReturnsExplicitNull(t *testing.T) {
+func TestListProfessionalsHandler_NoNextPage_ReturnsExplicitNull(t *testing.T) {
 	repo := &fakeRepository{listFn: func(string, *staff.Cursor, int) (staff.ListResult, error) {
-		return staff.ListResult{Items: []staff.Barber{}, NextCursor: ""}, nil
+		return staff.ListResult{Items: []staff.Professional{}, NextCursor: ""}, nil
 	}}
-	h := httpapi.NewListBarbersHandler(staff.NewService(repo))
+	h := httpapi.NewListProfessionalsHandler(staff.NewService(repo))
 
 	req := requestWithPrincipal(http.MethodGet, "/api/v1/private/professionals", nil)
 	rec := httptest.NewRecorder()
@@ -167,7 +167,7 @@ func TestListBarbersHandler_NoNextPage_ReturnsExplicitNull(t *testing.T) {
 	}
 }
 
-func TestListBarbersHandler_ForwardsCursorAndLimitFromQuery(t *testing.T) {
+func TestListProfessionalsHandler_ForwardsCursorAndLimitFromQuery(t *testing.T) {
 	repo := &fakeRepository{listFn: func(_ string, cursor *staff.Cursor, limit int) (staff.ListResult, error) {
 		if limit != 5 {
 			t.Fatalf("expected limit=5, got %d", limit)
@@ -177,7 +177,7 @@ func TestListBarbersHandler_ForwardsCursorAndLimitFromQuery(t *testing.T) {
 		}
 		return staff.ListResult{}, nil
 	}}
-	h := httpapi.NewListBarbersHandler(staff.NewService(repo))
+	h := httpapi.NewListProfessionalsHandler(staff.NewService(repo))
 
 	token := staff.EncodeCursor(staff.Cursor{CreatedAt: time.Now(), ID: "8f3ac2b1-e4d5-46f6-a7c8-d9e0f1a2b3c4"})
 	req := requestWithPrincipal(http.MethodGet, "/api/v1/private/professionals?cursor="+token+"&limit=5", nil)
@@ -189,12 +189,12 @@ func TestListBarbersHandler_ForwardsCursorAndLimitFromQuery(t *testing.T) {
 	}
 }
 
-func TestListBarbersHandler_InvalidLimit_Returns400(t *testing.T) {
+func TestListProfessionalsHandler_InvalidLimit_Returns400(t *testing.T) {
 	repo := &fakeRepository{listFn: func(string, *staff.Cursor, int) (staff.ListResult, error) {
 		t.Fatal("repository must not be called for an invalid limit")
 		return staff.ListResult{}, nil
 	}}
-	h := httpapi.NewListBarbersHandler(staff.NewService(repo))
+	h := httpapi.NewListProfessionalsHandler(staff.NewService(repo))
 
 	req := requestWithPrincipal(http.MethodGet, "/api/v1/private/professionals?limit=not-a-number", nil)
 	rec := httptest.NewRecorder()
@@ -205,12 +205,12 @@ func TestListBarbersHandler_InvalidLimit_Returns400(t *testing.T) {
 	}
 }
 
-func TestListBarbersHandler_InvalidCursor_Returns400(t *testing.T) {
+func TestListProfessionalsHandler_InvalidCursor_Returns400(t *testing.T) {
 	repo := &fakeRepository{listFn: func(string, *staff.Cursor, int) (staff.ListResult, error) {
 		t.Fatal("repository must not be called for an invalid cursor")
 		return staff.ListResult{}, nil
 	}}
-	h := httpapi.NewListBarbersHandler(staff.NewService(repo))
+	h := httpapi.NewListProfessionalsHandler(staff.NewService(repo))
 
 	req := requestWithPrincipal(http.MethodGet, "/api/v1/private/professionals?cursor=not-a-valid-cursor-token%21%21%21", nil)
 	rec := httptest.NewRecorder()
@@ -223,17 +223,17 @@ func TestListBarbersHandler_InvalidCursor_Returns400(t *testing.T) {
 
 // --- Get ----------------------------------------------------------------
 
-func TestGetBarberHandler_Found_ReturnsBarber(t *testing.T) {
+func TestGetProfessionalHandler_Found_ReturnsProfessional(t *testing.T) {
 	now := time.Now().UTC()
-	repo := &fakeRepository{getFn: func(barbershopID, barberID string) (staff.Barber, bool, error) {
-		if barbershopID != testShopID || barberID != "8f3ac2b1-e4d5-46f6-a7c8-d9e0f1a2b3c4" {
-			t.Fatalf("unexpected args: %s %s", barbershopID, barberID)
+	repo := &fakeRepository{getFn: func(businessID, professionalID string) (staff.Professional, bool, error) {
+		if businessID != testShopID || professionalID != "8f3ac2b1-e4d5-46f6-a7c8-d9e0f1a2b3c4" {
+			t.Fatalf("unexpected args: %s %s", businessID, professionalID)
 		}
-		return staff.Barber{ID: barberID, FullName: "Carlos", CreatedAt: now, UpdatedAt: now}, true, nil
+		return staff.Professional{ID: professionalID, FullName: "Carlos", CreatedAt: now, UpdatedAt: now}, true, nil
 	}}
-	h := httpapi.NewGetBarberHandler(staff.NewService(repo))
+	h := httpapi.NewGetProfessionalHandler(staff.NewService(repo))
 
-	req := requestWithBarberID(http.MethodGet, "/api/v1/private/professionals/8f3ac2b1-e4d5-46f6-a7c8-d9e0f1a2b3c4", nil, "8f3ac2b1-e4d5-46f6-a7c8-d9e0f1a2b3c4")
+	req := requestWithProfessionalID(http.MethodGet, "/api/v1/private/professionals/8f3ac2b1-e4d5-46f6-a7c8-d9e0f1a2b3c4", nil, "8f3ac2b1-e4d5-46f6-a7c8-d9e0f1a2b3c4")
 	rec := httptest.NewRecorder()
 	h.ServeHTTP(rec, req)
 
@@ -242,13 +242,13 @@ func TestGetBarberHandler_Found_ReturnsBarber(t *testing.T) {
 	}
 }
 
-func TestGetBarberHandler_NotFound_Returns404(t *testing.T) {
-	repo := &fakeRepository{getFn: func(string, string) (staff.Barber, bool, error) {
-		return staff.Barber{}, false, nil
+func TestGetProfessionalHandler_NotFound_Returns404(t *testing.T) {
+	repo := &fakeRepository{getFn: func(string, string) (staff.Professional, bool, error) {
+		return staff.Professional{}, false, nil
 	}}
-	h := httpapi.NewGetBarberHandler(staff.NewService(repo))
+	h := httpapi.NewGetProfessionalHandler(staff.NewService(repo))
 
-	req := requestWithBarberID(http.MethodGet, "/api/v1/private/professionals/99999999-9999-4999-8999-999999999999", nil, "99999999-9999-4999-8999-999999999999")
+	req := requestWithProfessionalID(http.MethodGet, "/api/v1/private/professionals/99999999-9999-4999-8999-999999999999", nil, "99999999-9999-4999-8999-999999999999")
 	rec := httptest.NewRecorder()
 	h.ServeHTTP(rec, req)
 
@@ -261,17 +261,17 @@ func TestGetBarberHandler_NotFound_Returns404(t *testing.T) {
 	}
 }
 
-func TestGetBarberHandler_OtherTenantsID_SameNotFoundAsNonexistent(t *testing.T) {
+func TestGetProfessionalHandler_OtherTenantsID_SameNotFoundAsNonexistent(t *testing.T) {
 	// CA-021-05: el handler nunca puede distinguir "no existe" de "es de
-	// otra barbería" porque el servicio ya colapsó ambos en el mismo
+	// otro negocio" porque el servicio ya colapsó ambos en el mismo
 	// resultado found=false; esta prueba confirma que el handler no
 	// introduce una distinción nueva encima de eso.
-	repo := &fakeRepository{getFn: func(string, string) (staff.Barber, bool, error) {
-		return staff.Barber{}, false, nil
+	repo := &fakeRepository{getFn: func(string, string) (staff.Professional, bool, error) {
+		return staff.Professional{}, false, nil
 	}}
-	h := httpapi.NewGetBarberHandler(staff.NewService(repo))
+	h := httpapi.NewGetProfessionalHandler(staff.NewService(repo))
 
-	req := requestWithBarberID(http.MethodGet, "/api/v1/private/professionals/8f3ac2b1-e4d5-46f6-a7c8-d9e0f1a2b3c4", nil, "8f3ac2b1-e4d5-46f6-a7c8-d9e0f1a2b3c4")
+	req := requestWithProfessionalID(http.MethodGet, "/api/v1/private/professionals/8f3ac2b1-e4d5-46f6-a7c8-d9e0f1a2b3c4", nil, "8f3ac2b1-e4d5-46f6-a7c8-d9e0f1a2b3c4")
 	rec := httptest.NewRecorder()
 	h.ServeHTTP(rec, req)
 
@@ -282,12 +282,12 @@ func TestGetBarberHandler_OtherTenantsID_SameNotFoundAsNonexistent(t *testing.T)
 
 // --- Create ---------------------------------------------------------------
 
-func TestCreateBarberHandler_MissingIdempotencyKey_Returns400(t *testing.T) {
+func TestCreateProfessionalHandler_MissingIdempotencyKey_Returns400(t *testing.T) {
 	repo := &fakeRepository{createFn: func(string, string, *string, idempotency.Key, idempotency.Fingerprint) (staff.CreateResult, error) {
 		t.Fatal("repository must not be called without an idempotency key")
 		return staff.CreateResult{}, nil
 	}}
-	h := httpapi.NewCreateBarberHandler(staff.NewService(repo))
+	h := httpapi.NewCreateProfessionalHandler(staff.NewService(repo))
 
 	req := requestWithPrincipal(http.MethodPost, "/api/v1/private/professionals", []byte(`{"fullName":"Carlos"}`))
 	rec := httptest.NewRecorder()
@@ -298,12 +298,12 @@ func TestCreateBarberHandler_MissingIdempotencyKey_Returns400(t *testing.T) {
 	}
 }
 
-func TestCreateBarberHandler_UnknownField_Returns400(t *testing.T) {
+func TestCreateProfessionalHandler_UnknownField_Returns400(t *testing.T) {
 	repo := &fakeRepository{createFn: func(string, string, *string, idempotency.Key, idempotency.Fingerprint) (staff.CreateResult, error) {
 		t.Fatal("repository must not be called for an unknown field")
 		return staff.CreateResult{}, nil
 	}}
-	h := httpapi.NewCreateBarberHandler(staff.NewService(repo))
+	h := httpapi.NewCreateProfessionalHandler(staff.NewService(repo))
 
 	req := requestWithPrincipal(http.MethodPost, "/api/v1/private/professionals", []byte(`{"fullName":"Carlos","active":true}`))
 	req.Header.Set(httpserver.IdempotencyKeyHeader, "key-1")
@@ -315,12 +315,12 @@ func TestCreateBarberHandler_UnknownField_Returns400(t *testing.T) {
 	}
 }
 
-func TestCreateBarberHandler_ValidationError_Returns422WithoutCallingRepository(t *testing.T) {
+func TestCreateProfessionalHandler_ValidationError_Returns422WithoutCallingRepository(t *testing.T) {
 	repo := &fakeRepository{createFn: func(string, string, *string, idempotency.Key, idempotency.Fingerprint) (staff.CreateResult, error) {
 		t.Fatal("repository must not be called for an invalid name")
 		return staff.CreateResult{}, nil
 	}}
-	h := httpapi.NewCreateBarberHandler(staff.NewService(repo))
+	h := httpapi.NewCreateProfessionalHandler(staff.NewService(repo))
 
 	req := requestWithPrincipal(http.MethodPost, "/api/v1/private/professionals", []byte(`{"fullName":""}`))
 	req.Header.Set(httpserver.IdempotencyKeyHeader, "key-1")
@@ -332,16 +332,16 @@ func TestCreateBarberHandler_ValidationError_Returns422WithoutCallingRepository(
 	}
 }
 
-func TestCreateBarberHandler_Proceed_Returns201WithLocationAndBody(t *testing.T) {
+func TestCreateProfessionalHandler_Proceed_Returns201WithLocationAndBody(t *testing.T) {
 	now := time.Now().UTC()
 	stored := idempotency.StoredResponse{
 		Status:      201,
 		ContentType: "application/json",
 		Body:        `{"id":"8f3ac2b1-e4d5-46f6-a7c8-d9e0f1a2b3c4","fullName":"Carlos","createdAt":"` + now.Format(time.RFC3339Nano) + `","updatedAt":"` + now.Format(time.RFC3339Nano) + `"}`,
 	}
-	repo := &fakeRepository{createFn: func(barbershopID, fullName string, _ *string, key idempotency.Key, fp idempotency.Fingerprint) (staff.CreateResult, error) {
-		if barbershopID != testShopID {
-			t.Fatalf("unexpected shop: %s", barbershopID)
+	repo := &fakeRepository{createFn: func(businessID, fullName string, _ *string, key idempotency.Key, fp idempotency.Fingerprint) (staff.CreateResult, error) {
+		if businessID != testShopID {
+			t.Fatalf("unexpected shop: %s", businessID)
 		}
 		if fullName != "Carlos" {
 			t.Fatalf("unexpected fullName: %s", fullName)
@@ -350,12 +350,12 @@ func TestCreateBarberHandler_Proceed_Returns201WithLocationAndBody(t *testing.T)
 			t.Fatalf("unexpected key: %s", key)
 		}
 		return staff.CreateResult{
-			Decision: idempotency.Decision{Outcome: idempotency.OutcomeProceed},
-			Barber:   staff.Barber{ID: "8f3ac2b1-e4d5-46f6-a7c8-d9e0f1a2b3c4", FullName: "Carlos", CreatedAt: now, UpdatedAt: now},
-			Response: stored,
+			Decision:     idempotency.Decision{Outcome: idempotency.OutcomeProceed},
+			Professional: staff.Professional{ID: "8f3ac2b1-e4d5-46f6-a7c8-d9e0f1a2b3c4", FullName: "Carlos", CreatedAt: now, UpdatedAt: now},
+			Response:     stored,
 		}, nil
 	}}
-	h := httpapi.NewCreateBarberHandler(staff.NewService(repo))
+	h := httpapi.NewCreateProfessionalHandler(staff.NewService(repo))
 
 	req := requestWithPrincipal(http.MethodPost, "/api/v1/private/professionals", []byte(`{"fullName":"Carlos"}`))
 	req.Header.Set(httpserver.IdempotencyKeyHeader, "key-1")
@@ -373,7 +373,7 @@ func TestCreateBarberHandler_Proceed_Returns201WithLocationAndBody(t *testing.T)
 	}
 }
 
-func TestCreateBarberHandler_Replay_ReturnsSameStatusAndBodyWithLocation(t *testing.T) {
+func TestCreateProfessionalHandler_Replay_ReturnsSameStatusAndBodyWithLocation(t *testing.T) {
 	stored := idempotency.StoredResponse{
 		Status:      201,
 		ContentType: "application/json",
@@ -385,7 +385,7 @@ func TestCreateBarberHandler_Replay_ReturnsSameStatusAndBodyWithLocation(t *test
 			Response: stored,
 		}, nil
 	}}
-	h := httpapi.NewCreateBarberHandler(staff.NewService(repo))
+	h := httpapi.NewCreateProfessionalHandler(staff.NewService(repo))
 
 	req := requestWithPrincipal(http.MethodPost, "/api/v1/private/professionals", []byte(`{"fullName":"Carlos"}`))
 	req.Header.Set(httpserver.IdempotencyKeyHeader, "key-1")
@@ -403,11 +403,11 @@ func TestCreateBarberHandler_Replay_ReturnsSameStatusAndBodyWithLocation(t *test
 	}
 }
 
-func TestCreateBarberHandler_ConflictFingerprint_Returns409(t *testing.T) {
+func TestCreateProfessionalHandler_ConflictFingerprint_Returns409(t *testing.T) {
 	repo := &fakeRepository{createFn: func(string, string, *string, idempotency.Key, idempotency.Fingerprint) (staff.CreateResult, error) {
 		return staff.CreateResult{Decision: idempotency.Decision{Outcome: idempotency.OutcomeConflictFingerprint}}, nil
 	}}
-	h := httpapi.NewCreateBarberHandler(staff.NewService(repo))
+	h := httpapi.NewCreateProfessionalHandler(staff.NewService(repo))
 
 	req := requestWithPrincipal(http.MethodPost, "/api/v1/private/professionals", []byte(`{"fullName":"Carlos"}`))
 	req.Header.Set(httpserver.IdempotencyKeyHeader, "key-1")
@@ -423,11 +423,11 @@ func TestCreateBarberHandler_ConflictFingerprint_Returns409(t *testing.T) {
 	}
 }
 
-func TestCreateBarberHandler_Locked_Returns409(t *testing.T) {
+func TestCreateProfessionalHandler_Locked_Returns409(t *testing.T) {
 	repo := &fakeRepository{createFn: func(string, string, *string, idempotency.Key, idempotency.Fingerprint) (staff.CreateResult, error) {
 		return staff.CreateResult{Decision: idempotency.Decision{Outcome: idempotency.OutcomeLocked}}, nil
 	}}
-	h := httpapi.NewCreateBarberHandler(staff.NewService(repo))
+	h := httpapi.NewCreateProfessionalHandler(staff.NewService(repo))
 
 	req := requestWithPrincipal(http.MethodPost, "/api/v1/private/professionals", []byte(`{"fullName":"Carlos"}`))
 	req.Header.Set(httpserver.IdempotencyKeyHeader, "key-1")
@@ -443,15 +443,15 @@ func TestCreateBarberHandler_Locked_Returns409(t *testing.T) {
 	}
 }
 
-func TestCreateBarberHandler_ThroughFullRouter_NeverLogsFullNameOrBody(t *testing.T) {
+func TestCreateProfessionalHandler_ThroughFullRouter_NeverLogsFullNameOrBody(t *testing.T) {
 	repo := &fakeRepository{createFn: func(string, string, *string, idempotency.Key, idempotency.Fingerprint) (staff.CreateResult, error) {
 		return staff.CreateResult{
-			Decision: idempotency.Decision{Outcome: idempotency.OutcomeProceed},
-			Barber:   staff.Barber{ID: "b-1", FullName: "Nombre Sensible No Debe Aparecer"},
-			Response: idempotency.StoredResponse{Status: 201, ContentType: "application/json", Body: `{"id":"b-1"}`},
+			Decision:     idempotency.Decision{Outcome: idempotency.OutcomeProceed},
+			Professional: staff.Professional{ID: "b-1", FullName: "Nombre Sensible No Debe Aparecer"},
+			Response:     idempotency.StoredResponse{Status: 201, ContentType: "application/json", Body: `{"id":"b-1"}`},
 		}, nil
 	}}
-	h := httpapi.NewCreateBarberHandler(staff.NewService(repo))
+	h := httpapi.NewCreateProfessionalHandler(staff.NewService(repo))
 
 	req := requestWithPrincipal(http.MethodPost, "/api/v1/private/professionals", []byte(`{"fullName":"Nombre Sensible No Debe Aparecer"}`))
 	req.Header.Set(httpserver.IdempotencyKeyHeader, "key-1")
@@ -463,23 +463,23 @@ func TestCreateBarberHandler_ThroughFullRouter_NeverLogsFullNameOrBody(t *testin
 	// única superficie donde el nombre podría filtrarse por accidente (el
 	// propio Location) nunca lo incluye.
 	if strings.Contains(rec.Header().Get("Location"), "Sensible") {
-		t.Fatal("Location header must never contain the barber's name")
+		t.Fatal("Location header must never contain the professional's name")
 	}
 }
 
 // --- Rename ---------------------------------------------------------------
 
-func TestUpdateBarberHandler_Success_Returns200(t *testing.T) {
+func TestUpdateProfessionalHandler_Success_Returns200(t *testing.T) {
 	now := time.Now().UTC()
-	repo := &fakeRepository{updateFn: func(barbershopID, barberID, fullName string, _ staff.DescriptionPatch) (staff.UpdateResult, error) {
+	repo := &fakeRepository{updateFn: func(businessID, professionalID, fullName string, _ staff.DescriptionPatch) (staff.UpdateResult, error) {
 		if fullName != "Nuevo Nombre" {
 			t.Fatalf("unexpected fullName: %s", fullName)
 		}
-		return staff.UpdateResult{Found: true, Barber: staff.Barber{ID: barberID, FullName: fullName, CreatedAt: now, UpdatedAt: now}}, nil
+		return staff.UpdateResult{Found: true, Professional: staff.Professional{ID: professionalID, FullName: fullName, CreatedAt: now, UpdatedAt: now}}, nil
 	}}
-	h := httpapi.NewUpdateBarberHandler(staff.NewService(repo))
+	h := httpapi.NewUpdateProfessionalHandler(staff.NewService(repo))
 
-	req := requestWithBarberID(http.MethodPatch, "/api/v1/private/professionals/8f3ac2b1-e4d5-46f6-a7c8-d9e0f1a2b3c4",
+	req := requestWithProfessionalID(http.MethodPatch, "/api/v1/private/professionals/8f3ac2b1-e4d5-46f6-a7c8-d9e0f1a2b3c4",
 		[]byte(`{"fullName":"Nuevo Nombre"}`), "8f3ac2b1-e4d5-46f6-a7c8-d9e0f1a2b3c4")
 	rec := httptest.NewRecorder()
 	h.ServeHTTP(rec, req)
@@ -489,14 +489,14 @@ func TestUpdateBarberHandler_Success_Returns200(t *testing.T) {
 	}
 }
 
-func TestUpdateBarberHandler_UnknownField_Returns400(t *testing.T) {
+func TestUpdateProfessionalHandler_UnknownField_Returns400(t *testing.T) {
 	repo := &fakeRepository{updateFn: func(string, string, string, staff.DescriptionPatch) (staff.UpdateResult, error) {
 		t.Fatal("repository must not be called for an unknown field")
 		return staff.UpdateResult{}, nil
 	}}
-	h := httpapi.NewUpdateBarberHandler(staff.NewService(repo))
+	h := httpapi.NewUpdateProfessionalHandler(staff.NewService(repo))
 
-	req := requestWithBarberID(http.MethodPatch, "/api/v1/private/professionals/8f3ac2b1-e4d5-46f6-a7c8-d9e0f1a2b3c4",
+	req := requestWithProfessionalID(http.MethodPatch, "/api/v1/private/professionals/8f3ac2b1-e4d5-46f6-a7c8-d9e0f1a2b3c4",
 		[]byte(`{"fullName":"X","active":false}`), "8f3ac2b1-e4d5-46f6-a7c8-d9e0f1a2b3c4")
 	rec := httptest.NewRecorder()
 	h.ServeHTTP(rec, req)
@@ -506,14 +506,14 @@ func TestUpdateBarberHandler_UnknownField_Returns400(t *testing.T) {
 	}
 }
 
-func TestUpdateBarberHandler_EmptyObject_Returns422(t *testing.T) {
+func TestUpdateProfessionalHandler_EmptyObject_Returns422(t *testing.T) {
 	repo := &fakeRepository{updateFn: func(string, string, string, staff.DescriptionPatch) (staff.UpdateResult, error) {
 		t.Fatal("repository must not be called for an empty object")
 		return staff.UpdateResult{}, nil
 	}}
-	h := httpapi.NewUpdateBarberHandler(staff.NewService(repo))
+	h := httpapi.NewUpdateProfessionalHandler(staff.NewService(repo))
 
-	req := requestWithBarberID(http.MethodPatch, "/api/v1/private/professionals/8f3ac2b1-e4d5-46f6-a7c8-d9e0f1a2b3c4",
+	req := requestWithProfessionalID(http.MethodPatch, "/api/v1/private/professionals/8f3ac2b1-e4d5-46f6-a7c8-d9e0f1a2b3c4",
 		[]byte(`{}`), "8f3ac2b1-e4d5-46f6-a7c8-d9e0f1a2b3c4")
 	rec := httptest.NewRecorder()
 	h.ServeHTTP(rec, req)
@@ -523,13 +523,13 @@ func TestUpdateBarberHandler_EmptyObject_Returns422(t *testing.T) {
 	}
 }
 
-func TestUpdateBarberHandler_NotFound_Returns404(t *testing.T) {
+func TestUpdateProfessionalHandler_NotFound_Returns404(t *testing.T) {
 	repo := &fakeRepository{updateFn: func(string, string, string, staff.DescriptionPatch) (staff.UpdateResult, error) {
 		return staff.UpdateResult{Found: false}, nil
 	}}
-	h := httpapi.NewUpdateBarberHandler(staff.NewService(repo))
+	h := httpapi.NewUpdateProfessionalHandler(staff.NewService(repo))
 
-	req := requestWithBarberID(http.MethodPatch, "/api/v1/private/professionals/99999999-9999-4999-8999-999999999999",
+	req := requestWithProfessionalID(http.MethodPatch, "/api/v1/private/professionals/99999999-9999-4999-8999-999999999999",
 		[]byte(`{"fullName":"X"}`), "99999999-9999-4999-8999-999999999999")
 	rec := httptest.NewRecorder()
 	h.ServeHTTP(rec, req)
@@ -539,14 +539,14 @@ func TestUpdateBarberHandler_NotFound_Returns404(t *testing.T) {
 	}
 }
 
-func TestUpdateBarberHandler_ValidationError_Returns422(t *testing.T) {
+func TestUpdateProfessionalHandler_ValidationError_Returns422(t *testing.T) {
 	repo := &fakeRepository{updateFn: func(string, string, string, staff.DescriptionPatch) (staff.UpdateResult, error) {
 		t.Fatal("repository must not be called for an invalid name")
 		return staff.UpdateResult{}, nil
 	}}
-	h := httpapi.NewUpdateBarberHandler(staff.NewService(repo))
+	h := httpapi.NewUpdateProfessionalHandler(staff.NewService(repo))
 
-	req := requestWithBarberID(http.MethodPatch, "/api/v1/private/professionals/8f3ac2b1-e4d5-46f6-a7c8-d9e0f1a2b3c4",
+	req := requestWithProfessionalID(http.MethodPatch, "/api/v1/private/professionals/8f3ac2b1-e4d5-46f6-a7c8-d9e0f1a2b3c4",
 		[]byte(`{"fullName":"   "}`), "8f3ac2b1-e4d5-46f6-a7c8-d9e0f1a2b3c4")
 	rec := httptest.NewRecorder()
 	h.ServeHTTP(rec, req)
@@ -564,7 +564,7 @@ func TestHandlers_MissingPrincipal_Returns500Safely(t *testing.T) {
 	// prueba confirma que, si ocurriera, la respuesta sigue siendo un
 	// Problem uniforme y no un panic ni una fuga.
 	repo := &fakeRepository{}
-	h := httpapi.NewListBarbersHandler(staff.NewService(repo))
+	h := httpapi.NewListProfessionalsHandler(staff.NewService(repo))
 
 	req := httptest.NewRequest(http.MethodGet, "/api/v1/private/professionals", nil)
 	rec := httptest.NewRecorder()
@@ -582,21 +582,21 @@ func (f *fakeRepository) ListPage(ctx context.Context, shop string, page, size i
 	return staff.PageResult{}, nil
 }
 
-// --- Descripción del barbero (DEC-127) -------------------------------------
+// --- Descripción del profesional (DEC-127) -------------------------------------
 
-func TestCreateBarberHandler_Description_ReachesRepository(t *testing.T) {
+func TestCreateProfessionalHandler_Description_ReachesRepository(t *testing.T) {
 	now := time.Now().UTC()
 	var got *string
 	repo := &fakeRepository{createFn: func(_, _ string, description *string, _ idempotency.Key, _ idempotency.Fingerprint) (staff.CreateResult, error) {
 		got = description
 		stored := idempotency.StoredResponse{Status: 201, ContentType: "application/json", Body: `{"id":"8f3ac2b1-e4d5-46f6-a7c8-d9e0f1a2b3c4"}`}
 		return staff.CreateResult{
-			Decision: idempotency.Decision{Outcome: idempotency.OutcomeProceed},
-			Barber:   staff.Barber{ID: "8f3ac2b1-e4d5-46f6-a7c8-d9e0f1a2b3c4", FullName: "Carlos", CreatedAt: now, UpdatedAt: now},
-			Response: stored,
+			Decision:     idempotency.Decision{Outcome: idempotency.OutcomeProceed},
+			Professional: staff.Professional{ID: "8f3ac2b1-e4d5-46f6-a7c8-d9e0f1a2b3c4", FullName: "Carlos", CreatedAt: now, UpdatedAt: now},
+			Response:     stored,
 		}, nil
 	}}
-	h := httpapi.NewCreateBarberHandler(staff.NewService(repo))
+	h := httpapi.NewCreateProfessionalHandler(staff.NewService(repo))
 
 	req := requestWithPrincipal(http.MethodPost, "/api/v1/private/professionals", []byte(`{"fullName":"Carlos","description":"  Fade y barba  "}`))
 	req.Header.Set(httpserver.IdempotencyKeyHeader, "key-1")
@@ -611,12 +611,12 @@ func TestCreateBarberHandler_Description_ReachesRepository(t *testing.T) {
 	}
 }
 
-func TestCreateBarberHandler_DescriptionTooLong_Returns422(t *testing.T) {
+func TestCreateProfessionalHandler_DescriptionTooLong_Returns422(t *testing.T) {
 	repo := &fakeRepository{createFn: func(string, string, *string, idempotency.Key, idempotency.Fingerprint) (staff.CreateResult, error) {
 		t.Fatal("repository must not be called for an invalid description")
 		return staff.CreateResult{}, nil
 	}}
-	h := httpapi.NewCreateBarberHandler(staff.NewService(repo))
+	h := httpapi.NewCreateProfessionalHandler(staff.NewService(repo))
 
 	body := `{"fullName":"Carlos","description":"` + strings.Repeat("a", staff.DescriptionMaxLength+1) + `"}`
 	req := requestWithPrincipal(http.MethodPost, "/api/v1/private/professionals", []byte(body))
@@ -630,7 +630,7 @@ func TestCreateBarberHandler_DescriptionTooLong_Returns422(t *testing.T) {
 }
 
 // El PATCH distingue ausente (conserva), null/vacío (quita) y texto (escribe).
-func TestUpdateBarberHandler_Description_AbsentNullEmptyAndText(t *testing.T) {
+func TestUpdateProfessionalHandler_Description_AbsentNullEmptyAndText(t *testing.T) {
 	const id = "8f3ac2b1-e4d5-46f6-a7c8-d9e0f1a2b3c4"
 	cases := map[string]struct {
 		body      string
@@ -645,15 +645,15 @@ func TestUpdateBarberHandler_Description_AbsentNullEmptyAndText(t *testing.T) {
 	for name, tc := range cases {
 		t.Run(name, func(t *testing.T) {
 			var got staff.DescriptionPatch
-			repo := &fakeRepository{updateFn: func(_, barberID, fullName string, description staff.DescriptionPatch) (staff.UpdateResult, error) {
+			repo := &fakeRepository{updateFn: func(_, professionalID, fullName string, description staff.DescriptionPatch) (staff.UpdateResult, error) {
 				got = description
 				now := time.Now().UTC()
-				return staff.UpdateResult{Found: true, Barber: staff.Barber{ID: barberID, FullName: fullName, CreatedAt: now, UpdatedAt: now}}, nil
+				return staff.UpdateResult{Found: true, Professional: staff.Professional{ID: professionalID, FullName: fullName, CreatedAt: now, UpdatedAt: now}}, nil
 			}}
-			h := httpapi.NewUpdateBarberHandler(staff.NewService(repo))
+			h := httpapi.NewUpdateProfessionalHandler(staff.NewService(repo))
 
 			rec := httptest.NewRecorder()
-			h.ServeHTTP(rec, requestWithBarberID(http.MethodPatch, "/api/v1/private/professionals/"+id, []byte(tc.body), id))
+			h.ServeHTTP(rec, requestWithProfessionalID(http.MethodPatch, "/api/v1/private/professionals/"+id, []byte(tc.body), id))
 
 			if rec.Code != http.StatusOK {
 				t.Fatalf("expected 200, got %d: %s", rec.Code, rec.Body.String())
@@ -671,33 +671,33 @@ func TestUpdateBarberHandler_Description_AbsentNullEmptyAndText(t *testing.T) {
 	}
 }
 
-func TestUpdateBarberHandler_DescriptionOfWrongType_Returns400(t *testing.T) {
+func TestUpdateProfessionalHandler_DescriptionOfWrongType_Returns400(t *testing.T) {
 	repo := &fakeRepository{updateFn: func(string, string, string, staff.DescriptionPatch) (staff.UpdateResult, error) {
 		t.Fatal("repository must not be called for a malformed body")
 		return staff.UpdateResult{}, nil
 	}}
-	h := httpapi.NewUpdateBarberHandler(staff.NewService(repo))
+	h := httpapi.NewUpdateProfessionalHandler(staff.NewService(repo))
 
 	const id = "8f3ac2b1-e4d5-46f6-a7c8-d9e0f1a2b3c4"
 	rec := httptest.NewRecorder()
-	h.ServeHTTP(rec, requestWithBarberID(http.MethodPatch, "/api/v1/private/professionals/"+id, []byte(`{"fullName":"Carlos","description":42}`), id))
+	h.ServeHTTP(rec, requestWithProfessionalID(http.MethodPatch, "/api/v1/private/professionals/"+id, []byte(`{"fullName":"Carlos","description":42}`), id))
 
 	if rec.Code != http.StatusBadRequest {
 		t.Fatalf("expected 400, got %d: %s", rec.Code, rec.Body.String())
 	}
 }
 
-func TestUpdateBarberHandler_Response_CarriesDescription(t *testing.T) {
+func TestUpdateProfessionalHandler_Response_CarriesDescription(t *testing.T) {
 	const id = "8f3ac2b1-e4d5-46f6-a7c8-d9e0f1a2b3c4"
 	description := "Navaja clásica"
 	now := time.Now().UTC()
-	repo := &fakeRepository{updateFn: func(_, barberID, fullName string, _ staff.DescriptionPatch) (staff.UpdateResult, error) {
-		return staff.UpdateResult{Found: true, Barber: staff.Barber{ID: barberID, FullName: fullName, CreatedAt: now, UpdatedAt: now, Description: &description}}, nil
+	repo := &fakeRepository{updateFn: func(_, professionalID, fullName string, _ staff.DescriptionPatch) (staff.UpdateResult, error) {
+		return staff.UpdateResult{Found: true, Professional: staff.Professional{ID: professionalID, FullName: fullName, CreatedAt: now, UpdatedAt: now, Description: &description}}, nil
 	}}
-	h := httpapi.NewUpdateBarberHandler(staff.NewService(repo))
+	h := httpapi.NewUpdateProfessionalHandler(staff.NewService(repo))
 
 	rec := httptest.NewRecorder()
-	h.ServeHTTP(rec, requestWithBarberID(http.MethodPatch, "/api/v1/private/professionals/"+id, []byte(`{"fullName":"Carlos","description":"Navaja clásica"}`), id))
+	h.ServeHTTP(rec, requestWithProfessionalID(http.MethodPatch, "/api/v1/private/professionals/"+id, []byte(`{"fullName":"Carlos","description":"Navaja clásica"}`), id))
 
 	var body map[string]any
 	if err := json.NewDecoder(rec.Body).Decode(&body); err != nil {

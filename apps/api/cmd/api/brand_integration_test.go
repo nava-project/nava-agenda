@@ -3,7 +3,7 @@
 // que settings_integration_test.go. Requieren la migración
 // 20261003120000_add_barbershop_brand.sql y
 // 20261029130000_create_staff_user_role.sql aplicadas y
-// database/testdata/dos_barberias.sql + testdata/hu005_credenciales_sesiones.sql
+// database/testdata/dos_negocios.sql + testdata/hu005_credenciales_sesiones.sql
 // + testdata/staff_user_role_365.sql cargados.
 package main
 
@@ -16,7 +16,7 @@ import (
 	"strings"
 	"testing"
 
-	"system-barbershop/internal/platform/database"
+	"nava-agenda/internal/platform/database"
 )
 
 type brandBody struct {
@@ -59,11 +59,11 @@ func doBrandRequest(handler http.Handler, method, rawToken string, body any) *ht
 }
 
 // restoreBrandRow devuelve la marca de shop a los valores iniciales al
-// terminar la prueba: estas pruebas comparten las filas de dos_barberias.sql.
+// terminar la prueba: estas pruebas comparten las filas de dos_negocios.sql.
 func restoreBrandRow(t *testing.T, db *database.DB, shop string) {
 	t.Helper()
 	t.Cleanup(func() {
-		err := db.InTenantTx(context.Background(), database.BarbershopID(shop), func(ctx context.Context, q database.Queries) error {
+		err := db.InTenantTx(context.Background(), database.BusinessID(shop), func(ctx context.Context, q database.Queries) error {
 			_, err := q.Exec(ctx,
 				`UPDATE business
 				    SET brand_accent = 'brass', business_term = 'negocio', business_term_gender = 'masculine',
@@ -89,9 +89,9 @@ func decodeBrand(t *testing.T, rec *httptest.ResponseRecorder) brandBody {
 	return body
 }
 
-// TestBrand_HTTP_UntouchedBarbershop_ReturnsTheInitialValues: la barbería que
+// TestBrand_HTTP_UntouchedBusiness_ReturnsTheInitialValues: el negocio que
 // nunca cambió su marca recibe exactamente la interfaz anterior.
-func TestBrand_HTTP_UntouchedBarbershop_ReturnsTheInitialValues(t *testing.T) {
+func TestBrand_HTTP_UntouchedBusiness_ReturnsTheInitialValues(t *testing.T) {
 	db := setupTestDB(t)
 	t.Cleanup(func() { db.Close() })
 	router, err := buildRouter(db, discardLogger(), testRouterConfig())
@@ -143,9 +143,9 @@ func TestBrand_HTTP_PatchThenGet_NormalizesPersistsAndRoundTrips(t *testing.T) {
 	}
 }
 
-// TestBrand_HTTP_TwoTenants_PatchNeverCrossesBarbershops: guardar la marca de
+// TestBrand_HTTP_TwoTenants_PatchNeverCrossesBusinesses: guardar la marca de
 // A, contra el endpoint real con dos tenants reales, nunca afecta a B.
-func TestBrand_HTTP_TwoTenants_PatchNeverCrossesBarbershops(t *testing.T) {
+func TestBrand_HTTP_TwoTenants_PatchNeverCrossesBusinesses(t *testing.T) {
 	db := setupTestDB(t)
 	t.Cleanup(func() { db.Close() })
 	router, err := buildRouter(db, discardLogger(), testRouterConfig())
@@ -209,21 +209,21 @@ func TestBrand_HTTP_NoCookie_Returns401Uniform(t *testing.T) {
 }
 
 // Pares de usuarios de database/testdata/staff_user_role_365.sql sobre el par de
-// barberías dedicado a las pruebas de roles.
+// negocios dedicado a las pruebas de roles.
 const (
-	rolesShopA          = "12121212-1212-1212-1212-121212121212"
-	rolesShopB          = "34343434-3434-3434-3434-343434343434"
-	rolesUserEmpleado   = "365a0001-0000-4000-8000-000000000001"
-	rolesUserMixto      = "365a0001-0000-4000-8000-000000000002"
-	rolesUserIndep      = "365a0001-0000-4000-8000-000000000003"
-	rolesUserEmpresa    = "365a0001-0000-4000-8000-000000000004"
-	rolesUserSinRol     = "365a0001-0000-4000-8000-000000000005"
-	rolesUserOtraBarber = "365a0001-0000-4000-8000-000000000006"
+	rolesShopA                = "12121212-1212-1212-1212-121212121212"
+	rolesShopB                = "34343434-3434-3434-3434-343434343434"
+	rolesUserEmpleado         = "365a0001-0000-4000-8000-000000000001"
+	rolesUserMixto            = "365a0001-0000-4000-8000-000000000002"
+	rolesUserIndep            = "365a0001-0000-4000-8000-000000000003"
+	rolesUserEmpresa          = "365a0001-0000-4000-8000-000000000004"
+	rolesUserSinRol           = "365a0001-0000-4000-8000-000000000005"
+	rolesUserOtraProfessional = "365a0001-0000-4000-8000-000000000006"
 )
 
 // TestBrand_HTTP_PanelProfile_ComesFromTheRolesOfTheSessionUser: el panel (DEC-134)
-// lo deciden los roles de quien consulta, no la barbería: en la misma barbería
-// cada usuario recibe el suyo, y el de otra barbería nunca se mezcla.
+// lo deciden los roles de quien consulta, no el negocio: en el mismo negocio
+// cada usuario recibe el suyo, y el de otro negocio nunca se mezcla.
 func TestBrand_HTTP_PanelProfile_ComesFromTheRolesOfTheSessionUser(t *testing.T) {
 	db := setupTestDB(t)
 	t.Cleanup(func() { db.Close() })
@@ -243,7 +243,7 @@ func TestBrand_HTTP_PanelProfile_ComesFromTheRolesOfTheSessionUser(t *testing.T)
 		{"independiente", rolesShopA, rolesUserIndep, "solo"},
 		{"empresa", rolesShopA, rolesUserEmpresa, "shop"},
 		{"sin rol conserva el panel completo", rolesShopA, rolesUserSinRol, "shop"},
-		{"independiente de otra barbería", rolesShopB, rolesUserOtraBarber, "solo"},
+		{"independiente de otro negocio", rolesShopB, rolesUserOtraProfessional, "solo"},
 	}
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
@@ -384,9 +384,9 @@ func TestBrand_HTTP_Location_UnresolvableAddress_Returns422AndKeepsThePrevious(t
 	}
 }
 
-// TestBrand_HTTP_Location_TwoTenants_NeverCrossesBarbershops: la ubicación de A
+// TestBrand_HTTP_Location_TwoTenants_NeverCrossesBusinesses: la ubicación de A
 // no aparece en B.
-func TestBrand_HTTP_Location_TwoTenants_NeverCrossesBarbershops(t *testing.T) {
+func TestBrand_HTTP_Location_TwoTenants_NeverCrossesBusinesses(t *testing.T) {
 	db := setupTestDB(t)
 	t.Cleanup(func() { db.Close() })
 	router, err := buildRouter(db, discardLogger(), testRouterConfig())
@@ -398,7 +398,7 @@ func TestBrand_HTTP_Location_TwoTenants_NeverCrossesBarbershops(t *testing.T) {
 	rawA := createSessionCookie(t, db, shopA, staffUserActiveA, "brand-location-twoa")
 	rawB := createSessionCookie(t, db, shopB, staffUserActiveB, "brand-location-twob")
 
-	if rec := doBrandRequest(router, http.MethodPatch, rawA, patchBody(map[string]any{"address": "Solo de la barbería A"})); rec.Code != http.StatusOK {
+	if rec := doBrandRequest(router, http.MethodPatch, rawA, patchBody(map[string]any{"address": "Solo del negocio A"})); rec.Code != http.StatusOK {
 		t.Fatalf("seed A: %d %s", rec.Code, rec.Body.String())
 	}
 	if loc := decodeLocation(t, doBrandRequest(router, http.MethodGet, rawB, nil)); loc.Address != nil || loc.Latitude != nil {
@@ -409,7 +409,7 @@ func TestBrand_HTTP_Location_TwoTenants_NeverCrossesBarbershops(t *testing.T) {
 // TestBrand_HTTP_OffersHomeService_TogglesFromSettingsAndStaysPerTenant cubre
 // DEC-131 contra el router real: la marca expone el interruptor (apagado por
 // defecto), PATCH lo enciende/apaga, un PATCH sin él lo conserva y el de la
-// barbería A nunca cambia el de B.
+// negocio A nunca cambia el de B.
 func TestBrand_HTTP_OffersHomeService_TogglesFromSettingsAndStaysPerTenant(t *testing.T) {
 	db := setupTestDB(t)
 	t.Cleanup(func() { db.Close() })
@@ -437,7 +437,7 @@ func TestBrand_HTTP_OffersHomeService_TogglesFromSettingsAndStaysPerTenant(t *te
 	}
 
 	if offers(doBrandRequest(router, http.MethodGet, rawA, nil)) {
-		t.Fatal("una barbería nueva no ofrece domicilio")
+		t.Fatal("un negocio nuevo no ofrece domicilio")
 	}
 	if !offers(doBrandRequest(router, http.MethodPatch, rawA, patchBody(map[string]any{"offersHomeService": true}))) {
 		t.Fatal("PATCH debe encender el interruptor")
@@ -471,7 +471,7 @@ func TestBrand_HTTP_GooglePlaceID_IsDatabaseOnly(t *testing.T) {
 
 	storedPlaceID := func(shop string) (id *string) {
 		t.Helper()
-		err := db.InTenantTx(context.Background(), database.BarbershopID(shop), func(ctx context.Context, q database.Queries) error {
+		err := db.InTenantTx(context.Background(), database.BusinessID(shop), func(ctx context.Context, q database.Queries) error {
 			return q.QueryRow(ctx, `SELECT google_place_id FROM business WHERE id = $1`, shop).Scan(&id)
 		})
 		if err != nil {
@@ -479,7 +479,7 @@ func TestBrand_HTTP_GooglePlaceID_IsDatabaseOnly(t *testing.T) {
 		}
 		return id
 	}
-	err = db.InTenantTx(context.Background(), database.BarbershopID(shopA), func(ctx context.Context, q database.Queries) error {
+	err = db.InTenantTx(context.Background(), database.BusinessID(shopA), func(ctx context.Context, q database.Queries) error {
 		_, err := q.Exec(ctx, `UPDATE business SET google_place_id = 'ChIJabc_123-X' WHERE id = $1`, shopA)
 		return err
 	})

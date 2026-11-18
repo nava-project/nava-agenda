@@ -6,9 +6,9 @@ import (
 	"testing"
 	"time"
 
-	"system-barbershop/internal/modules/booking"
-	"system-barbershop/internal/platform/apperr"
-	"system-barbershop/internal/platform/idempotency"
+	"nava-agenda/internal/modules/booking"
+	"nava-agenda/internal/platform/apperr"
+	"nava-agenda/internal/platform/idempotency"
 )
 
 // fakeCloseRepository es un doble de booking.Repository que solo implementa
@@ -19,15 +19,15 @@ import (
 type fakeCloseRepository struct {
 	fakeManualRepository
 
-	completeFn func(ctx context.Context, barbershopID string, input booking.CloseAppointmentInput, key idempotency.Key, fingerprint idempotency.Fingerprint) (booking.CompleteAppointmentResult, error)
-	noShowFn   func(ctx context.Context, barbershopID string, input booking.CloseAppointmentInput, key idempotency.Key, fingerprint idempotency.Fingerprint) (booking.MarkNoShowResult, error)
+	completeFn func(ctx context.Context, businessID string, input booking.CloseAppointmentInput, key idempotency.Key, fingerprint idempotency.Fingerprint) (booking.CompleteAppointmentResult, error)
+	noShowFn   func(ctx context.Context, businessID string, input booking.CloseAppointmentInput, key idempotency.Key, fingerprint idempotency.Fingerprint) (booking.MarkNoShowResult, error)
 
 	lastCompleteInput booking.CloseAppointmentInput
 	lastNoShowInput   booking.CloseAppointmentInput
 }
 
 func (f *fakeCloseRepository) CompleteAppointment(
-	ctx context.Context, barbershopID string, input booking.CloseAppointmentInput, key idempotency.Key, fingerprint idempotency.Fingerprint,
+	ctx context.Context, businessID string, input booking.CloseAppointmentInput, key idempotency.Key, fingerprint idempotency.Fingerprint,
 ) (booking.CompleteAppointmentResult, error) {
 	f.lastCompleteInput = input
 	if f.completeFn == nil {
@@ -36,11 +36,11 @@ func (f *fakeCloseRepository) CompleteAppointment(
 			Appointment: booking.ClosedAppointment{ID: "appt-1", Status: booking.StatusCompleted},
 		}, nil
 	}
-	return f.completeFn(ctx, barbershopID, input, key, fingerprint)
+	return f.completeFn(ctx, businessID, input, key, fingerprint)
 }
 
 func (f *fakeCloseRepository) MarkNoShow(
-	ctx context.Context, barbershopID string, input booking.CloseAppointmentInput, key idempotency.Key, fingerprint idempotency.Fingerprint,
+	ctx context.Context, businessID string, input booking.CloseAppointmentInput, key idempotency.Key, fingerprint idempotency.Fingerprint,
 ) (booking.MarkNoShowResult, error) {
 	f.lastNoShowInput = input
 	if f.noShowFn == nil {
@@ -49,7 +49,7 @@ func (f *fakeCloseRepository) MarkNoShow(
 			Appointment: booking.ClosedAppointment{ID: "appt-1", Status: booking.StatusNoShow},
 		}, nil
 	}
-	return f.noShowFn(ctx, barbershopID, input, key, fingerprint)
+	return f.noShowFn(ctx, businessID, input, key, fingerprint)
 }
 
 const validCloseAppointmentID = "8f3ac2b1-e4d5-46f6-a7c8-d9e0f1a2b3c4"

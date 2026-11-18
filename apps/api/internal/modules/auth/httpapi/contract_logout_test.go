@@ -8,7 +8,7 @@ package httpapi_test
 import (
 	"testing"
 
-	"system-barbershop/internal/modules/auth/httpapi"
+	"nava-agenda/internal/modules/auth/httpapi"
 )
 
 type logoutOperation struct {

@@ -1,9 +1,9 @@
 // Pruebas de integración de HU-007 (CA-007-06) contra
 // login_throttle_purge_expired/auth_phone_challenge_purge_expired con
-// PostgreSQL REAL, conectado como barberia_worker (DEC-040): estas
-// funciones NO están concedidas a barberia_app.
+// PostgreSQL REAL, conectado como agenda_worker (DEC-040): estas
+// funciones NO están concedidas a agenda_app.
 //
-//	export TEST_WORKER_DATABASE_URL="postgres://barberia_worker:worker_test@localhost:5432/barberia_test?sslmode=disable"
+//	export TEST_WORKER_DATABASE_URL="postgres://agenda_worker:worker_test@localhost:5432/postgres?sslmode=disable"
 //	go test -race ./internal/modules/auth/postgres/...
 package postgres_test
 
@@ -13,9 +13,9 @@ import (
 	"testing"
 	"time"
 
-	authpostgres "system-barbershop/internal/modules/auth/postgres"
-	"system-barbershop/internal/platform/config"
-	"system-barbershop/internal/platform/database"
+	authpostgres "nava-agenda/internal/modules/auth/postgres"
+	"nava-agenda/internal/platform/config"
+	"nava-agenda/internal/platform/database"
 )
 
 const testWorkerDatabaseURL = "postgres://agenda_worker@localhost:5432/barberia_test?sslmode=disable"
@@ -85,7 +85,7 @@ func TestPurgeRepository_PurgePhoneChallenges_RunsWithoutError(t *testing.T) {
 }
 
 // TestPurgeRepository_PurgeRecoveryCodes_RunsWithoutError cubre HU-008:
-// auth_recovery_purge_expired concedida exclusivamente a barberia_worker.
+// auth_recovery_purge_expired concedida exclusivamente a agenda_worker.
 func TestPurgeRepository_PurgeRecoveryCodes_RunsWithoutError(t *testing.T) {
 	workerDB := setupWorkerTestDB(t)
 	defer workerDB.Close()

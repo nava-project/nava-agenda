@@ -2,10 +2,10 @@
 // (buildRouter) y PostgreSQL real, mismo patrón que
 // catalog_integration_test.go (HU-022). Requieren las doce migraciones
 // aplicadas (incluida 20260824150000_create_barber_service.sql) y
-// database/testdata/dos_barberias.sql + testdata/hu005_credenciales_sesiones.sql
+// database/testdata/dos_negocios.sql + testdata/hu005_credenciales_sesiones.sql
 // cargados.
 //
-//	export TEST_DATABASE_URL="postgres://barberia_app:app_test@localhost:5432/barberia_test?sslmode=disable"
+//	export TEST_DATABASE_URL="postgres://agenda_app:app_test@localhost:5432/postgres?sslmode=disable"
 //	go test -race ./cmd/api/...
 package main
 
@@ -179,7 +179,7 @@ func TestServiceLifecycle_HTTP_PreviewDeactivateReactivate_FullJourney(t *testin
 }
 
 // TestServiceLifecycle_HTTP_TwoTenants_CrossAccessReturns404WithoutLeaking
-// cubre CA-024-07: conocer el UUID real de un servicio de otra barbería
+// cubre CA-024-07: conocer el UUID real de un servicio de otro negocio
 // nunca permite previsualizar, desactivar ni reactivar, y nunca cambia su
 // estado real.
 func TestServiceLifecycle_HTTP_TwoTenants_CrossAccessReturns404WithoutLeaking(t *testing.T) {
@@ -191,7 +191,7 @@ func TestServiceLifecycle_HTTP_TwoTenants_CrossAccessReturns404WithoutLeaking(t 
 	rawA := createSessionCookie(t, db, shopA, staffUserActiveA, "lifecycle-cross-a")
 	rawB := createSessionCookie(t, db, shopB, staffUserActiveB, "lifecycle-cross-b")
 
-	serviceA := createServiceViaRouter(t, router, rawA, "De la barbería A "+uniqueToken(t, "lifecycle-cross"))
+	serviceA := createServiceViaRouter(t, router, rawA, "Del negocio A "+uniqueToken(t, "lifecycle-cross"))
 
 	if rec := doGetDeactivationImpactRequest(router, rawB, serviceA.ID); rec.Code != http.StatusNotFound {
 		t.Fatalf("CA-024-07: expected 404 previewing shopA's service from shopB, got %d: %s", rec.Code, rec.Body.String())

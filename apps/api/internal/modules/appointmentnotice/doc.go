@@ -1,4 +1,4 @@
-// Package appointmentnotice avisa por correo al cliente cuando el barbero
+// Package appointmentnotice avisa por correo al cliente cuando el profesional
 // cancela o reprograma su turno (HU-130, DEC-142, primer tramo de F-NOT-02).
 //
 // El aviso nace en la misma transacción que el cambio (booking lo encola mediante

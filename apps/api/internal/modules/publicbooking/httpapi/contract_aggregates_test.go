@@ -9,7 +9,7 @@ import (
 	"strings"
 	"testing"
 
-	"system-barbershop/internal/modules/publicbooking/httpapi"
+	"nava-agenda/internal/modules/publicbooking/httpapi"
 )
 
 // jsonFieldNames devuelve los nombres JSON de los campos exportados de v.
@@ -48,9 +48,9 @@ func assertSchemaMatchesDTO(t *testing.T, schemaPath string, dto any) {
 
 func TestContract_AggregateSchemas_MatchDTOFields(t *testing.T) {
 	tests := map[string]any{
-		"api/openapi/components/schemas/PublicProfessionalServicesResponse.yaml":     httpapi.PublicBarberServicesResponse{},
-		"api/openapi/components/schemas/PublicProfessionalServicesListResponse.yaml": httpapi.PublicBarberServicesListResponse{},
-		"api/openapi/components/schemas/ProfessionalAvailabilitySlotResponse.yaml":   httpapi.BarberAvailabilitySlotResponse{},
+		"api/openapi/components/schemas/PublicProfessionalServicesResponse.yaml":     httpapi.PublicProfessionalServicesResponse{},
+		"api/openapi/components/schemas/PublicProfessionalServicesListResponse.yaml": httpapi.PublicProfessionalServicesListResponse{},
+		"api/openapi/components/schemas/ProfessionalAvailabilitySlotResponse.yaml":   httpapi.ProfessionalAvailabilitySlotResponse{},
 		"api/openapi/components/schemas/ServiceAvailabilityResponse.yaml":            httpapi.ServiceAvailabilityResponse{},
 	}
 	for path, dto := range tests {
@@ -59,7 +59,7 @@ func TestContract_AggregateSchemas_MatchDTOFields(t *testing.T) {
 }
 
 type aggregatePathsFile struct {
-	Barbers struct {
+	Professionals struct {
 		Get operation `yaml:"get"`
 	} `yaml:"/public/businesses/{slug}/professionals"`
 	Availability struct {
@@ -102,7 +102,7 @@ func assertPublicReadOperation(t *testing.T, op operation, wantID string, wantPa
 func TestContract_AggregateOperations_MethodPathSecurityAndResponses(t *testing.T) {
 	doc := loadYAML[aggregatePathsFile](t, "api/openapi/paths/public-booking.yaml")
 
-	assertPublicReadOperation(t, doc.Barbers.Get, "listPublicProfessionalsWithServices", []string{"slug"})
+	assertPublicReadOperation(t, doc.Professionals.Get, "listPublicProfessionalsWithServices", []string{"slug"})
 	assertPublicReadOperation(t, doc.Availability.Get, "listPublicServiceAvailability", []string{"slug", "serviceId"})
 }
 

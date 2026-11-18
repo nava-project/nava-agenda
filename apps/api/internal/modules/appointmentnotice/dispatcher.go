@@ -6,7 +6,7 @@ import (
 	"log/slog"
 	"time"
 
-	"system-barbershop/internal/platform/clock"
+	"nava-agenda/internal/platform/clock"
 )
 
 // Config agrupa los parámetros del despachador.
@@ -117,7 +117,7 @@ func skipReason(c Context, now time.Time) string {
 		return CodeSuperseded
 	case c.Kind == KindRescheduled && c.AppointmentStatus != "confirmed":
 		return CodeNotConfirmed
-	case c.Kind == KindCancelledByBarber && c.AppointmentStatus != "cancelled_by_professional":
+	case c.Kind == KindCancelledByProfessional && c.AppointmentStatus != "cancelled_by_professional":
 		return CodeNotCancelled
 	case IsReminder(c.Kind) && c.AppointmentStatus != "confirmed":
 		// RN-REC-02: un turno cancelado, completado o no asistido no se recuerda.
@@ -173,10 +173,10 @@ func (d *Dispatcher) Process(ctx context.Context, n Notice) {
 
 	sendCtx, cancel := context.WithTimeout(ctx, d.cfg.SendTimeout)
 	if c.Kind == KindReminderWhatsApp {
-		err = d.whatsapp.SendReminder(sendCtx, c.CustomerPhone, firstName(c.AttendeeName), c.BarbershopName,
-			WhenText(c.StartsAt, now, loc), c.ServiceName, c.BarberName)
+		err = d.whatsapp.SendReminder(sendCtx, c.CustomerPhone, firstName(c.AttendeeName), c.BusinessName,
+			WhenText(c.StartsAt, now, loc), c.ServiceName, c.ProfessionalName)
 	} else {
-		err = d.mailer.SendChangeNotice(sendCtx, c.Kind, c.CustomerEmail, c.BarbershopName, c.ServiceName, c.AttendeeName,
+		err = d.mailer.SendChangeNotice(sendCtx, c.Kind, c.CustomerEmail, c.BusinessName, c.ServiceName, c.AttendeeName,
 			c.StartsAt.In(loc).Format("2006-01-02 15:04")+" ("+loc.String()+")")
 	}
 	cancel()

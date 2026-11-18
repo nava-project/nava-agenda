@@ -10,13 +10,13 @@ import (
 	"strings"
 	"testing"
 
-	"system-barbershop/internal/modules/shops"
+	"nava-agenda/internal/modules/shops"
 )
 
 type brandUpdateCall struct {
-	barbershopID string
-	brand        shops.Brand
-	location     shops.LocationWrite
+	businessID string
+	brand      shops.Brand
+	location   shops.LocationWrite
 }
 
 type fakeBrandRepository struct {
@@ -33,8 +33,8 @@ func (f *fakeBrandRepository) Get(_ context.Context, _ string) (shops.Brand, boo
 	return f.getBrand, f.getFound, f.getErr
 }
 
-func (f *fakeBrandRepository) Update(_ context.Context, barbershopID string, brand shops.Brand, location shops.LocationWrite) (shops.BrandUpdateResult, error) {
-	f.updateCalls = append(f.updateCalls, brandUpdateCall{barbershopID, brand, location})
+func (f *fakeBrandRepository) Update(_ context.Context, businessID string, brand shops.Brand, location shops.LocationWrite) (shops.BrandUpdateResult, error) {
+	f.updateCalls = append(f.updateCalls, brandUpdateCall{businessID, brand, location})
 	return f.updateResult, f.updateErr
 }
 
@@ -84,11 +84,11 @@ func TestBrandService_Update_NormalizesTermsBeforeWriting(t *testing.T) {
 		t.Fatalf("expected exactly one repository write, got %d", len(repo.updateCalls))
 	}
 	got := repo.updateCalls[0]
-	if got.barbershopID != shopID {
-		t.Fatalf("expected the write to use the principal's barbershop, got %q", got.barbershopID)
+	if got.businessID != shopID {
+		t.Fatalf("expected the write to use the principal's business, got %q", got.businessID)
 	}
 	// Recortado, en minúsculas y con los espacios repetidos colapsados:
-	// exactamente lo que barbershop_*_term_ck exige en la base.
+	// exactamente lo que business_*_term_ck exige en la base.
 	if got.brand.BusinessTerm != "salón de belleza" || got.brand.ProfessionalTerm != "estilista" {
 		t.Fatalf("terms were not normalized: %+v", got.brand)
 	}
@@ -167,7 +167,7 @@ func TestBrandService_Update_NotFound_ReturnsNotFound(t *testing.T) {
 
 	_, err := shops.NewBrandService(repo, nil).Update(context.Background(), shopID, validBrand(), shops.LocationPatch{})
 	if err == nil {
-		t.Fatal("expected not found when the barbershop is not visible")
+		t.Fatal("expected not found when the business is not visible")
 	}
 }
 

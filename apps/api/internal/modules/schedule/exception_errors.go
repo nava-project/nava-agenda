@@ -1,9 +1,9 @@
 package schedule
 
-import "system-barbershop/internal/platform/apperr"
+import "nava-agenda/internal/platform/apperr"
 
-// errExceptionNotFound cubre una excepción inexistente, de otro barbero o
-// de otra barbería (CA-041-06, RN-TEN-01): el mismo Kind para las tres
+// errExceptionNotFound cubre una excepción inexistente, de otro profesional o
+// de otro negocio (CA-041-06, RN-TEN-01): el mismo Kind para las tres
 // causas es lo que impide que la capa HTTP las distinga.
 func errExceptionNotFound() error {
 	return apperr.NotFound("no existe una excepción de horario con ese identificador")
@@ -31,7 +31,7 @@ func errSegmentsOverlap() error {
 }
 
 // errExceptionDateConflict cubre CA-041-05: ya existe otra excepción del
-// mismo barbero para esa fecha, o (defensivamente) un solape de tramos que
+// mismo profesional para esa fecha, o (defensivamente) un solape de tramos que
 // la validación previa no capturó. Conflicto de negocio ajeno a
 // idempotencia (apperr.KindConflict, mismo criterio que
 // errOverlapConflict de HU-040).

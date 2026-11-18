@@ -5,12 +5,12 @@ import (
 	"errors"
 	"fmt"
 
-	"system-barbershop/internal/platform/apperr"
+	"nava-agenda/internal/platform/apperr"
 )
 
 // BrandService implementa el caso de uso del issue #292: leer y actualizar la
-// marca y el vocabulario de la barbería activa. Vive en shops porque shops es
-// el dueño de la configuración de la barbería, pero no comparte Service
+// marca y el vocabulario del negocio activo. Vive en shops porque shops es
+// el dueño de la configuración del negocio, pero no comparte Service
 // (HU-020) para no ampliar su contrato cerrado de cuatro campos.
 type BrandService struct {
 	repo     BrandRepository
@@ -24,15 +24,15 @@ func NewBrandService(repo BrandRepository, geocoder Geocoder) *BrandService {
 	return &BrandService{repo: repo, geocoder: geocoder}
 }
 
-// Get lee la marca de la barbería barbershopID. barbershopID llega siempre de
+// Get lee la marca del negocio businessID. businessID llega siempre de
 // un auth.Principal ya autenticado; este método no acepta ningún
 // identificador que el cliente pueda controlar.
-func (s *BrandService) Get(ctx context.Context, barbershopID string) (Brand, error) {
+func (s *BrandService) Get(ctx context.Context, businessID string) (Brand, error) {
 	if err := ctx.Err(); err != nil {
 		return Brand{}, apperr.Internal(fmt.Errorf("shops: contexto cancelado antes de leer la marca: %w", err))
 	}
 
-	brand, found, err := s.repo.Get(ctx, barbershopID)
+	brand, found, err := s.repo.Get(ctx, businessID)
 	if err != nil {
 		return Brand{}, apperr.Internal(fmt.Errorf("shops: leer marca: %w", err))
 	}
@@ -52,7 +52,7 @@ func (s *BrandService) Get(ctx context.Context, barbershopID string) (Brand, err
 // si no se resuelve se rechaza con 422 y el valor anterior queda intacto
 // (CA-102-01). Reenviar la dirección ya guardada no vuelve a consultar al
 // proveedor ni cambia las coordenadas.
-func (s *BrandService) Update(ctx context.Context, barbershopID string, input Brand, location LocationPatch) (Brand, error) {
+func (s *BrandService) Update(ctx context.Context, businessID string, input Brand, location LocationPatch) (Brand, error) {
 	if err := ctx.Err(); err != nil {
 		return Brand{}, apperr.Internal(fmt.Errorf("shops: contexto cancelado antes de actualizar la marca: %w", err))
 	}
@@ -83,12 +83,12 @@ func (s *BrandService) Update(ctx context.Context, barbershopID string, input Br
 		return Brand{}, errBrandGenderInvalid("professionalTermGender")
 	}
 
-	write, err := s.resolveLocation(ctx, barbershopID, location)
+	write, err := s.resolveLocation(ctx, businessID, location)
 	if err != nil {
 		return Brand{}, err
 	}
 
-	result, err := s.repo.Update(ctx, barbershopID, brand, write)
+	result, err := s.repo.Update(ctx, businessID, brand, write)
 	if err != nil {
 		return Brand{}, apperr.Internal(fmt.Errorf("shops: actualizar marca: %w", err))
 	}
@@ -101,7 +101,7 @@ func (s *BrandService) Update(ctx context.Context, barbershopID string, input Br
 // resolveLocation convierte el parche pedido en los cambios que se escriben:
 // normaliza la dirección, decide si hace falta geocodificar y lo hace. No
 // escribe nada.
-func (s *BrandService) resolveLocation(ctx context.Context, barbershopID string, patch LocationPatch) (LocationWrite, error) {
+func (s *BrandService) resolveLocation(ctx context.Context, businessID string, patch LocationPatch) (LocationWrite, error) {
 	write := LocationWrite{HasPhysicalLocation: patch.HasPhysicalLocation, OffersHomeService: patch.OffersHomeService}
 	pin, err := manualPin(patch)
 	if err != nil {
@@ -138,7 +138,7 @@ func (s *BrandService) resolveLocation(ctx context.Context, barbershopID string,
 		return write, nil
 	}
 
-	current, found, err := s.repo.Get(ctx, barbershopID)
+	current, found, err := s.repo.Get(ctx, businessID)
 	if err != nil {
 		return LocationWrite{}, apperr.Internal(fmt.Errorf("shops: leer ubicación vigente: %w", err))
 	}

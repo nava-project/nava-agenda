@@ -2,11 +2,11 @@
 // PostgreSQL REAL con todas las migraciones aplicadas (incluida
 // 20260911045044_add_barbershop_public_slug.sql) y
 // database/testdata/{hu090_reserva_publica.sql,hu091_catalogo_publico.sql}
-// cargados. Conéctate como barberia_app (docs/03-desarrollo/
+// cargados. Conéctate como agenda_app (docs/03-desarrollo/
 // estrategia-pruebas.md §2 prohíbe mocks para RLS/resolución de tenant sin
 // contexto).
 //
-//	export TEST_DATABASE_URL="postgres://barberia_app:app_test@localhost:5432/barberia_test?sslmode=disable"
+//	export TEST_DATABASE_URL="postgres://agenda_app:app_test@localhost:5432/postgres?sslmode=disable"
 //	go test -race ./internal/modules/publicbooking/postgres/...
 package postgres_test
 
@@ -17,10 +17,10 @@ import (
 	"testing"
 	"time"
 
-	"system-barbershop/internal/modules/publicbooking"
-	publicbookingpostgres "system-barbershop/internal/modules/publicbooking/postgres"
-	"system-barbershop/internal/platform/config"
-	"system-barbershop/internal/platform/database"
+	"nava-agenda/internal/modules/publicbooking"
+	publicbookingpostgres "nava-agenda/internal/modules/publicbooking/postgres"
+	"nava-agenda/internal/platform/config"
+	"nava-agenda/internal/platform/database"
 )
 
 const (
@@ -48,28 +48,28 @@ const (
 	servicioDosActivoID      = "00910201-0091-0091-0091-009102010201"
 	servicioDosActivo        = "Corte activo asignado HU-091 Dos"
 
-	// Par dedicado de hu092_seleccion_barbero.sql (HU-092): slugBarberoUno
-	// tiene un servicio con exactamente un barbero (matriz "1"), uno con dos
+	// Par dedicado de hu092_seleccion_profesional.sql (HU-092): slugProfesionalUno
+	// tiene un servicio con exactamente un profesional (matriz "1"), uno con dos
 	// (matriz "N"), uno sin ninguno (matriz "0") y uno inactivo con un
-	// barbero asignado (CA-092-02); slugBarberoDos existe exclusivamente
+	// profesional asignado (CA-092-02); slugProfesionalDos existe exclusivamente
 	// para el aislamiento de tenant (CA-092-02/CA-092-03).
-	slugBarberoUno         = "barberia-hu092-uno"
-	slugBarberoDos         = "barberia-hu092-dos"
-	servicioUnBarberoID    = "00920101-0092-0092-0092-009201010101"
-	servicioVariosID       = "00920102-0092-0092-0092-009201020102"
-	servicioSinBarberosID  = "00920103-0092-0092-0092-009201030103"
-	servicioInactivoID     = "00920104-0092-0092-0092-009201040104"
-	servicioDosBarberoID   = "00920201-0092-0092-0092-009202010201"
-	barberoUnBarberoID     = "00920011-0092-0092-0092-009200110011"
-	barberoUnBarberoNombre = "Barbero HU-092 Uno-1"
-	barberoVariosSegundoID = "00920012-0092-0092-0092-009200120012"
+	slugProfesionalUno             = "barberia-hu092-uno"
+	slugProfesionalDos             = "barberia-hu092-dos"
+	servicioUnProfesionalID        = "00920101-0092-0092-0092-009201010101"
+	servicioVariosID               = "00920102-0092-0092-0092-009201020102"
+	servicioSinProfesionalesID     = "00920103-0092-0092-0092-009201030103"
+	servicioInactivoID             = "00920104-0092-0092-0092-009201040104"
+	servicioDosProfesionalID       = "00920201-0092-0092-0092-009202010201"
+	profesionalUnProfesionalID     = "00920011-0092-0092-0092-009200110011"
+	profesionalUnProfesionalNombre = "Barbero HU-092 Uno-1"
+	profesionalVariosSegundoID     = "00920012-0092-0092-0092-009200120012"
 
 	// DEC-127: Uno-1 tiene descripción y fotografía; Uno-2 no tiene ninguna;
 	// Uno-3 tiene fotografía pero ninguna asignación vigente; Dos-1 tiene
-	// fotografía de otra barbería.
-	barberoUnBarberoDescripcion = "Descripción pública HU-092 Uno-1"
-	barberoSinAsignacionID      = "00920014-0092-0092-0092-009200140014"
-	barberoOtraBarberiaID       = "00920013-0092-0092-0092-009200130013"
+	// fotografía de otro negocio.
+	profesionalUnProfesionalDescripcion = "Descripción pública HU-092 Uno-1"
+	profesionalSinAsignacionID          = "00920014-0092-0092-0092-009200140014"
+	profesionalOtraNegocioID            = "00920013-0092-0092-0092-009200130013"
 )
 
 func setupTestDB(t *testing.T) *database.DB {
@@ -118,7 +118,7 @@ func TestResolveBySlug_ValidSlug_ReturnsPublicProfile(t *testing.T) {
 }
 
 // TestResolveBySlug_IsCaseInsensitive cubre DEC-082: el slug se compara sin
-// distinguir mayúsculas (idx_barbershop_public_slug es sobre lower()).
+// distinguir mayúsculas (idx_business_public_slug es sobre lower()).
 func TestResolveBySlug_IsCaseInsensitive(t *testing.T) {
 	db := setupTestDB(t)
 	repo := publicbookingpostgres.New(db)
@@ -183,14 +183,14 @@ func TestResolveBySlug_MalformedSlug_ReturnsNotFound(t *testing.T) {
 	}
 }
 
-// TestResolveBySlug_NotPublicableBarbershop_ReturnsNotFound cubre
-// CA-090-02/DEC-082: una barbería que EXISTE pero no tiene public_slug
+// TestResolveBySlug_NotPublicableBusiness_ReturnsNotFound cubre
+// CA-090-02/DEC-082: un negocio que EXISTE pero no tiene public_slug
 // (no publicable) responde exactamente igual que un slug inexistente.
-func TestResolveBySlug_NotPublicableBarbershop_ReturnsNotFound(t *testing.T) {
+func TestResolveBySlug_NotPublicableBusiness_ReturnsNotFound(t *testing.T) {
 	db := setupTestDB(t)
 	repo := publicbookingpostgres.New(db)
 
-	// La barbería "No Publicable" del fixture no tiene ningún slug propio
+	// El negocio "No Publicable" del fixture no tiene ningún slug propio
 	// que probar (public_slug es NULL): confirmamos que ningún slug la
 	// alcanza, en particular no por casualidad con el nombre.
 	_, found, err := repo.ResolveBySlug(context.Background(), "barberia-de-prueba-hu-090-no-publicable")
@@ -198,13 +198,13 @@ func TestResolveBySlug_NotPublicableBarbershop_ReturnsNotFound(t *testing.T) {
 		t.Fatalf("ResolveBySlug: %v", err)
 	}
 	if found {
-		t.Fatal("expected a barbershop without public_slug never to resolve")
+		t.Fatal("expected a business without public_slug never to resolve")
 	}
 }
 
 // TestResolveBySlug_TenantAIsolatedFromTenantB confirma que resolver un
-// slug nunca filtra ni mezcla datos de la otra barbería del par (RN-TEN-01):
-// cada resolución trae exactamente el perfil de SU propia barbería.
+// slug nunca filtra ni mezcla datos del otro negocio del par (RN-TEN-01):
+// cada resolución trae exactamente el perfil de SU propio negocio.
 func TestResolveBySlug_TenantAIsolatedFromTenantB(t *testing.T) {
 	db := setupTestDB(t)
 	repo := publicbookingpostgres.New(db)
@@ -225,18 +225,18 @@ func TestResolveBySlug_TenantAIsolatedFromTenantB(t *testing.T) {
 	}
 }
 
-// setVocabulary fija el vocabulario de la barbería de slug y lo devuelve a los
+// setVocabulary fija el vocabulario del negocio de slug y lo devuelve a los
 // valores iniciales al terminar la prueba, para no contaminar a las demás (la
-// barbería del fixture es compartida). Escribe como barberia_app dentro de su
+// negocio del fixture es compartida). Escribe como agenda_app dentro de su
 // propio tenant, igual que el panel.
 func setVocabulary(t *testing.T, db *database.DB, repo *publicbookingpostgres.Repository, slug string, v publicbooking.Vocabulary) {
 	t.Helper()
-	id, found, err := repo.ResolveBarbershopID(context.Background(), slug)
+	id, found, err := repo.ResolveBusinessID(context.Background(), slug)
 	if err != nil || !found {
-		t.Fatalf("ResolveBarbershopID(%s): found=%v err=%v", slug, found, err)
+		t.Fatalf("ResolveBusinessID(%s): found=%v err=%v", slug, found, err)
 	}
 	write := func(v publicbooking.Vocabulary) error {
-		return db.InTenantTx(context.Background(), database.BarbershopID(id), func(ctx context.Context, q database.Queries) error {
+		return db.InTenantTx(context.Background(), database.BusinessID(id), func(ctx context.Context, q database.Queries) error {
 			_, err := q.Exec(ctx,
 				`UPDATE business
 				    SET business_term = $2, business_term_gender = $3,
@@ -260,7 +260,7 @@ func setVocabulary(t *testing.T, db *database.DB, repo *publicbookingpostgres.Re
 	})
 }
 
-// TestResolveBySlug_Vocabulary_DefaultsAndPerTenant cubre DEC-119: una barbería
+// TestResolveBySlug_Vocabulary_DefaultsAndPerTenant cubre DEC-119: un negocio
 // que nunca configuró su vocabulario recibe los valores iniciales, y una que sí
 // lo configuró recibe el suyo sin filtrarlo a la otra (RN-TEN-01).
 func TestResolveBySlug_Vocabulary_DefaultsAndPerTenant(t *testing.T) {
@@ -304,16 +304,16 @@ func TestResolveBySlug_Vocabulary_DefaultsAndPerTenant(t *testing.T) {
 	}
 }
 
-// setLocation fija la ubicación de la barbería de slug y la restaura al terminar
-// (DEC-130). Escribe como barberia_app dentro de su propio tenant.
+// setLocation fija la ubicación del negocio de slug y la restaura al terminar
+// (DEC-130). Escribe como agenda_app dentro de su propio tenant.
 func setLocation(t *testing.T, db *database.DB, repo *publicbookingpostgres.Repository, slug string, enabled bool, address *string, lat, lng *float64) {
 	t.Helper()
-	id, found, err := repo.ResolveBarbershopID(context.Background(), slug)
+	id, found, err := repo.ResolveBusinessID(context.Background(), slug)
 	if err != nil || !found {
-		t.Fatalf("ResolveBarbershopID(%s): found=%v err=%v", slug, found, err)
+		t.Fatalf("ResolveBusinessID(%s): found=%v err=%v", slug, found, err)
 	}
 	write := func(enabled bool, address *string, lat, lng *float64) error {
-		return db.InTenantTx(context.Background(), database.BarbershopID(id), func(ctx context.Context, q database.Queries) error {
+		return db.InTenantTx(context.Background(), database.BusinessID(id), func(ctx context.Context, q database.Queries) error {
 			_, err := q.Exec(ctx,
 				`UPDATE business
 				    SET has_physical_location = $2, address = $3, latitude = $4, longitude = $5
@@ -329,7 +329,7 @@ func setLocation(t *testing.T, db *database.DB, repo *publicbookingpostgres.Repo
 
 // TestResolveBySlug_Location_OnlyWhenEnabledAndGeocoded cubre CA-102-02,
 // CA-102-03 y CA-102-04 en la capa de datos: la ubicación solo se publica con
-// el interruptor activo Y coordenadas, y nunca cruza de una barbería a otra.
+// el interruptor activo Y coordenadas, y nunca cruza de un negocio a otra.
 func TestResolveBySlug_Location_OnlyWhenEnabledAndGeocoded(t *testing.T) {
 	db := setupTestDB(t)
 	repo := publicbookingpostgres.New(db)
@@ -352,7 +352,7 @@ func TestResolveBySlug_Location_OnlyWhenEnabledAndGeocoded(t *testing.T) {
 		t.Fatalf("CA-102-04: debe publicar la ubicación guardada: %+v", p.Location)
 	}
 
-	// La otra barbería no hereda nada (RN-TEN-01).
+	// El otro negocio no hereda nada (RN-TEN-01).
 	other, _, _ := repo.ResolveBySlug(ctx, slugDos)
 	if other.Location != nil {
 		t.Fatalf("RN-TEN-01: la ubicación de slugUno se filtró a slugDos: %+v", other.Location)
@@ -367,7 +367,7 @@ func TestResolveBySlug_Location_OnlyWhenEnabledAndGeocoded(t *testing.T) {
 }
 
 // TestListPublicServices_ActiveAndAssigned_ExcludesInactiveAndUnassigned
-// cubre CA-091-01: de los cuatro servicios de la barbería HU-091 Uno (dos
+// cubre CA-091-01: de los cuatro servicios del negocio HU-091 Uno (dos
 // activos+asignados, uno activo sin asignar, uno inactivo+asignado), solo
 // los dos activos+asignados aparecen.
 func TestListPublicServices_ActiveAndAssigned_ExcludesInactiveAndUnassigned(t *testing.T) {
@@ -412,7 +412,7 @@ func TestListPublicServices_UnknownOrNotPublicSlug_ReturnsNotFound(t *testing.T)
 }
 
 // TestListPublicServices_TenantAIsolatedFromTenantB cubre CA-091-03: el
-// catálogo de una barbería nunca incluye el servicio de la otra, verificado
+// catálogo de un negocio nunca incluye el servicio de la otra, verificado
 // con dos tenants reales.
 func TestListPublicServices_TenantAIsolatedFromTenantB(t *testing.T) {
 	db := setupTestDB(t)
@@ -438,7 +438,7 @@ func TestListPublicServices_TenantAIsolatedFromTenantB(t *testing.T) {
 }
 
 // TestListPublicServices_LimitOne_PaginatesAcrossTwoPages cubre la
-// paginación por cursor del catálogo público: con límite 1, la barbería
+// paginación por cursor del catálogo público: con límite 1, el negocio
 // HU-091 Uno (exactamente dos servicios públicos) entrega su primera
 // página con nextCursor, y la segunda página (pedida con ese cursor) trae
 // el segundo servicio sin repetir el primero y sin nextCursor (ya no queda
@@ -474,210 +474,210 @@ func TestListPublicServices_LimitOne_PaginatesAcrossTwoPages(t *testing.T) {
 	}
 }
 
-// TestListPublicBarbers_OneBarber_ReturnsSingleItem cubre CA-092-01 (caso
-// "1" de la matriz 0/1/N): exactamente un barbero elegible.
-func TestListPublicBarbers_OneBarber_ReturnsSingleItem(t *testing.T) {
+// TestListPublicProfessionals_OneProfessional_ReturnsSingleItem cubre CA-092-01 (caso
+// "1" de la matriz 0/1/N): exactamente un profesional elegible.
+func TestListPublicProfessionals_OneProfessional_ReturnsSingleItem(t *testing.T) {
 	db := setupTestDB(t)
 	repo := publicbookingpostgres.New(db)
 
-	result, found, err := repo.ListPublicBarbers(context.Background(), slugBarberoUno, servicioUnBarberoID)
+	result, found, err := repo.ListPublicProfessionals(context.Background(), slugProfesionalUno, servicioUnProfesionalID)
 	if err != nil {
-		t.Fatalf("ListPublicBarbers: %v", err)
+		t.Fatalf("ListPublicProfessionals: %v", err)
 	}
 	if !found {
-		t.Fatal("expected slugBarberoUno to resolve")
+		t.Fatal("expected slugProfesionalUno to resolve")
 	}
-	if len(result.Items) != 1 || result.Items[0].ID != barberoUnBarberoID || result.Items[0].FullName != barberoUnBarberoNombre {
-		t.Fatalf("expected exactly one barber (%s), got %+v", barberoUnBarberoID, result.Items)
+	if len(result.Items) != 1 || result.Items[0].ID != profesionalUnProfesionalID || result.Items[0].FullName != profesionalUnProfesionalNombre {
+		t.Fatalf("expected exactly one professional (%s), got %+v", profesionalUnProfesionalID, result.Items)
 	}
 }
 
-// TestListPublicBarbers_ManyBarbers_ReturnsAllInStableOrder cubre CA-092-01
-// (caso "N"): varios barberos elegibles, en orden estable
-// (created_at de la asignación, id del barbero).
-func TestListPublicBarbers_ManyBarbers_ReturnsAllInStableOrder(t *testing.T) {
+// TestListPublicProfessionals_ManyProfessionals_ReturnsAllInStableOrder cubre CA-092-01
+// (caso "N"): varios profesionales elegibles, en orden estable
+// (created_at de la asignación, id del profesional).
+func TestListPublicProfessionals_ManyProfessionals_ReturnsAllInStableOrder(t *testing.T) {
 	db := setupTestDB(t)
 	repo := publicbookingpostgres.New(db)
 
-	result, found, err := repo.ListPublicBarbers(context.Background(), slugBarberoUno, servicioVariosID)
+	result, found, err := repo.ListPublicProfessionals(context.Background(), slugProfesionalUno, servicioVariosID)
 	if err != nil {
-		t.Fatalf("ListPublicBarbers: %v", err)
+		t.Fatalf("ListPublicProfessionals: %v", err)
 	}
 	if !found {
-		t.Fatal("expected slugBarberoUno to resolve")
+		t.Fatal("expected slugProfesionalUno to resolve")
 	}
 	if len(result.Items) != 2 {
-		t.Fatalf("expected exactly 2 barbers, got %+v", result.Items)
+		t.Fatalf("expected exactly 2 professionals, got %+v", result.Items)
 	}
-	if result.Items[0].ID != barberoUnBarberoID || result.Items[1].ID != barberoVariosSegundoID {
-		t.Fatalf("expected a stable order (%s, %s), got %+v", barberoUnBarberoID, barberoVariosSegundoID, result.Items)
+	if result.Items[0].ID != profesionalUnProfesionalID || result.Items[1].ID != profesionalVariosSegundoID {
+		t.Fatalf("expected a stable order (%s, %s), got %+v", profesionalUnProfesionalID, profesionalVariosSegundoID, result.Items)
 	}
 }
 
-// TestListPublicBarbers_ZeroBarbers_ReturnsEmptySuccess cubre CA-092-01
+// TestListPublicProfessionals_ZeroProfessionals_ReturnsEmptySuccess cubre CA-092-01
 // (caso "0"): un servicio activo sin ninguna asignación es un resultado
 // exitoso vacío, nunca un error.
-func TestListPublicBarbers_ZeroBarbers_ReturnsEmptySuccess(t *testing.T) {
+func TestListPublicProfessionals_ZeroProfessionals_ReturnsEmptySuccess(t *testing.T) {
 	db := setupTestDB(t)
 	repo := publicbookingpostgres.New(db)
 
-	result, found, err := repo.ListPublicBarbers(context.Background(), slugBarberoUno, servicioSinBarberosID)
+	result, found, err := repo.ListPublicProfessionals(context.Background(), slugProfesionalUno, servicioSinProfesionalesID)
 	if err != nil {
-		t.Fatalf("ListPublicBarbers: %v", err)
+		t.Fatalf("ListPublicProfessionals: %v", err)
 	}
 	if !found {
-		t.Fatal("expected slugBarberoUno to resolve")
+		t.Fatal("expected slugProfesionalUno to resolve")
 	}
 	if len(result.Items) != 0 {
-		t.Fatalf("expected zero barbers, got %+v", result.Items)
+		t.Fatalf("expected zero professionals, got %+v", result.Items)
 	}
 }
 
-// TestListPublicBarbers_InactiveService_ReturnsEmpty cubre CA-092-02: un
-// servicio inactivo nunca expone sus barberos asignados, aunque la
+// TestListPublicProfessionals_InactiveService_ReturnsEmpty cubre CA-092-02: un
+// servicio inactivo nunca expone sus profesionales asignados, aunque la
 // asignación exista.
-func TestListPublicBarbers_InactiveService_ReturnsEmpty(t *testing.T) {
+func TestListPublicProfessionals_InactiveService_ReturnsEmpty(t *testing.T) {
 	db := setupTestDB(t)
 	repo := publicbookingpostgres.New(db)
 
-	result, found, err := repo.ListPublicBarbers(context.Background(), slugBarberoUno, servicioInactivoID)
+	result, found, err := repo.ListPublicProfessionals(context.Background(), slugProfesionalUno, servicioInactivoID)
 	if err != nil {
-		t.Fatalf("ListPublicBarbers: %v", err)
+		t.Fatalf("ListPublicProfessionals: %v", err)
 	}
 	if !found {
-		t.Fatal("expected slugBarberoUno to resolve")
+		t.Fatal("expected slugProfesionalUno to resolve")
 	}
 	if len(result.Items) != 0 {
-		t.Fatalf("expected zero barbers for an inactive service, got %+v", result.Items)
+		t.Fatalf("expected zero professionals for an inactive service, got %+v", result.Items)
 	}
 }
 
-// TestListPublicBarbers_MalformedServiceID_ReturnsEmptySuccess cubre
+// TestListPublicProfessionals_MalformedServiceID_ReturnsEmptySuccess cubre
 // CA-092-03: un serviceID sin forma de UUID nunca produce un error de tipo
-// de PostgreSQL, y la barbería sigue resolviendo.
-func TestListPublicBarbers_MalformedServiceID_ReturnsEmptySuccess(t *testing.T) {
+// de PostgreSQL, y el negocio sigue resolviendo.
+func TestListPublicProfessionals_MalformedServiceID_ReturnsEmptySuccess(t *testing.T) {
 	db := setupTestDB(t)
 	repo := publicbookingpostgres.New(db)
 
-	result, found, err := repo.ListPublicBarbers(context.Background(), slugBarberoUno, "no-es-un-uuid")
+	result, found, err := repo.ListPublicProfessionals(context.Background(), slugProfesionalUno, "no-es-un-uuid")
 	if err != nil {
-		t.Fatalf("ListPublicBarbers: %v", err)
+		t.Fatalf("ListPublicProfessionals: %v", err)
 	}
 	if !found {
-		t.Fatal("expected slugBarberoUno to resolve regardless of a malformed serviceID")
+		t.Fatal("expected slugProfesionalUno to resolve regardless of a malformed serviceID")
 	}
 	if len(result.Items) != 0 {
-		t.Fatalf("expected zero barbers for a malformed serviceID, got %+v", result.Items)
+		t.Fatalf("expected zero professionals for a malformed serviceID, got %+v", result.Items)
 	}
 }
 
-// TestListPublicBarbers_UnknownSlug_ReturnsNotFound cubre la misma
+// TestListPublicProfessionals_UnknownSlug_ReturnsNotFound cubre la misma
 // respuesta uniforme que ResolveBySlug (CA-090-02, reutilizada aquí).
-func TestListPublicBarbers_UnknownSlug_ReturnsNotFound(t *testing.T) {
+func TestListPublicProfessionals_UnknownSlug_ReturnsNotFound(t *testing.T) {
 	db := setupTestDB(t)
 	repo := publicbookingpostgres.New(db)
 
-	_, found, err := repo.ListPublicBarbers(context.Background(), "barberia-que-no-existe", servicioUnBarberoID)
+	_, found, err := repo.ListPublicProfessionals(context.Background(), "barberia-que-no-existe", servicioUnProfesionalID)
 	if err != nil {
-		t.Fatalf("ListPublicBarbers: %v", err)
+		t.Fatalf("ListPublicProfessionals: %v", err)
 	}
 	if found {
 		t.Fatal("expected an unknown slug not to resolve")
 	}
 }
 
-// TestListPublicBarbers_TenantAIsolatedFromTenantB cubre CA-092-02/
-// CA-092-03: un serviceId de la barbería Dos nunca devuelve barberos al
-// resolverse a través del slug de la barbería Uno, y viceversa, verificado
+// TestListPublicProfessionals_TenantAIsolatedFromTenantB cubre CA-092-02/
+// CA-092-03: un serviceId del negocio Dos nunca devuelve profesionales al
+// resolverse a través del slug del negocio Uno, y viceversa, verificado
 // con dos tenants reales y asignaciones cruzadas.
-func TestListPublicBarbers_TenantAIsolatedFromTenantB(t *testing.T) {
+func TestListPublicProfessionals_TenantAIsolatedFromTenantB(t *testing.T) {
 	db := setupTestDB(t)
 	repo := publicbookingpostgres.New(db)
 
-	crossUno, foundUno, err := repo.ListPublicBarbers(context.Background(), slugBarberoUno, servicioDosBarberoID)
+	crossUno, foundUno, err := repo.ListPublicProfessionals(context.Background(), slugProfesionalUno, servicioDosProfesionalID)
 	if err != nil || !foundUno {
-		t.Fatalf("ListPublicBarbers(slugBarberoUno, servicioDosBarberoID): found=%v err=%v", foundUno, err)
+		t.Fatalf("ListPublicProfessionals(slugProfesionalUno, servicioDosProfesionalID): found=%v err=%v", foundUno, err)
 	}
 	if len(crossUno.Items) != 0 {
-		t.Fatalf("RN-TEN-01: slugBarberoUno exposed barbershop Dos's service barbers: %+v", crossUno.Items)
+		t.Fatalf("RN-TEN-01: slugProfesionalUno exposed business Dos's service professionals: %+v", crossUno.Items)
 	}
 
-	crossDos, foundDos, err := repo.ListPublicBarbers(context.Background(), slugBarberoDos, servicioUnBarberoID)
+	crossDos, foundDos, err := repo.ListPublicProfessionals(context.Background(), slugProfesionalDos, servicioUnProfesionalID)
 	if err != nil || !foundDos {
-		t.Fatalf("ListPublicBarbers(slugBarberoDos, servicioUnBarberoID): found=%v err=%v", foundDos, err)
+		t.Fatalf("ListPublicProfessionals(slugProfesionalDos, servicioUnProfesionalID): found=%v err=%v", foundDos, err)
 	}
 	if len(crossDos.Items) != 0 {
-		t.Fatalf("RN-TEN-01: slugBarberoDos exposed barbershop Uno's service barbers: %+v", crossDos.Items)
+		t.Fatalf("RN-TEN-01: slugProfesionalDos exposed business Uno's service professionals: %+v", crossDos.Items)
 	}
 
-	// Confirma además que cada barbería SÍ resuelve su propio servicio
+	// Confirma además que cada negocio SÍ resuelve su propio servicio
 	// (el aislamiento no es un falso negativo generalizado).
-	own, foundOwn, err := repo.ListPublicBarbers(context.Background(), slugBarberoDos, servicioDosBarberoID)
+	own, foundOwn, err := repo.ListPublicProfessionals(context.Background(), slugProfesionalDos, servicioDosProfesionalID)
 	if err != nil || !foundOwn || len(own.Items) != 1 {
-		t.Fatalf("ListPublicBarbers(slugBarberoDos, servicioDosBarberoID): found=%v items=%d err=%v", foundOwn, len(own.Items), err)
+		t.Fatalf("ListPublicProfessionals(slugProfesionalDos, servicioDosProfesionalID): found=%v items=%d err=%v", foundOwn, len(own.Items), err)
 	}
 }
 
 // --- DEC-127: descripción y fotografía públicas ----------------------------
 
-// TestListPublicBarbers_DescriptionAndPhotoVersion_AreProjected comprueba que
+// TestListPublicProfessionals_DescriptionAndPhotoVersion_AreProjected comprueba que
 // la lista pública incluye la descripción y la versión de la fotografía de
 // quien las tiene y null (nil) para quien no.
-func TestListPublicBarbers_DescriptionAndPhotoVersion_AreProjected(t *testing.T) {
+func TestListPublicProfessionals_DescriptionAndPhotoVersion_AreProjected(t *testing.T) {
 	db := setupTestDB(t)
 	repo := publicbookingpostgres.New(db)
 
-	result, found, err := repo.ListPublicBarbers(context.Background(), slugBarberoUno, servicioVariosID)
+	result, found, err := repo.ListPublicProfessionals(context.Background(), slugProfesionalUno, servicioVariosID)
 	if err != nil || !found {
-		t.Fatalf("ListPublicBarbers: found=%v err=%v", found, err)
+		t.Fatalf("ListPublicProfessionals: found=%v err=%v", found, err)
 	}
 	if len(result.Items) != 2 {
-		t.Fatalf("expected 2 barbers, got %+v", result.Items)
+		t.Fatalf("expected 2 professionals, got %+v", result.Items)
 	}
 
 	withBoth, without := result.Items[0], result.Items[1]
-	if withBoth.ID != barberoUnBarberoID || withBoth.Description == nil || *withBoth.Description != barberoUnBarberoDescripcion {
+	if withBoth.ID != profesionalUnProfesionalID || withBoth.Description == nil || *withBoth.Description != profesionalUnProfesionalDescripcion {
 		t.Fatalf("expected Uno-1 with its description, got %+v", withBoth)
 	}
 	if withBoth.PhotoUpdatedAt == nil {
 		t.Fatalf("expected Uno-1 with a photo version, got %+v", withBoth)
 	}
-	if without.ID != barberoVariosSegundoID || without.Description != nil || without.PhotoUpdatedAt != nil {
+	if without.ID != profesionalVariosSegundoID || without.Description != nil || without.PhotoUpdatedAt != nil {
 		t.Fatalf("expected Uno-2 with neither description nor photo, got %+v", without)
 	}
 }
 
-func TestGetPublicBarberPhoto_EligibleBarber_ReturnsBytesAndContentType(t *testing.T) {
+func TestGetPublicProfessionalPhoto_EligibleProfessional_ReturnsBytesAndContentType(t *testing.T) {
 	db := setupTestDB(t)
 	repo := publicbookingpostgres.New(db)
 
-	photo, found, err := repo.GetPublicBarberPhoto(context.Background(), slugBarberoUno, barberoUnBarberoID)
+	photo, found, err := repo.GetPublicProfessionalPhoto(context.Background(), slugProfesionalUno, profesionalUnProfesionalID)
 	if err != nil || !found {
-		t.Fatalf("GetPublicBarberPhoto: found=%v err=%v", found, err)
+		t.Fatalf("GetPublicProfessionalPhoto: found=%v err=%v", found, err)
 	}
 	if photo.ContentType != "image/png" || len(photo.Data) == 0 || photo.UpdatedAt.IsZero() {
 		t.Fatalf("expected a PNG with bytes and a version, got %+v", photo)
 	}
 }
 
-// Sin fotografía, sin asignación vigente, de otra barbería, con slug
+// Sin fotografía, sin asignación vigente, de otro negocio, con slug
 // desconocido o con un identificador inexistente: siempre found=false, sin
 // distinguir la causa.
-func TestGetPublicBarberPhoto_NotVisible_ReturnsNotFound(t *testing.T) {
+func TestGetPublicProfessionalPhoto_NotVisible_ReturnsNotFound(t *testing.T) {
 	db := setupTestDB(t)
 	repo := publicbookingpostgres.New(db)
 
-	for name, tc := range map[string]struct{ slug, barberID string }{
-		"sin fotografía":                     {slugBarberoUno, barberoVariosSegundoID},
-		"con fotografía pero sin asignación": {slugBarberoUno, barberoSinAsignacionID},
-		"barbero de otra barbería":           {slugBarberoUno, barberoOtraBarberiaID},
-		"slug desconocido":                   {"no-existe-hu127", barberoUnBarberoID},
-		"barbero inexistente":                {slugBarberoUno, "99999999-9999-4999-8999-999999999999"},
+	for name, tc := range map[string]struct{ slug, professionalID string }{
+		"sin fotografía":                     {slugProfesionalUno, profesionalVariosSegundoID},
+		"con fotografía pero sin asignación": {slugProfesionalUno, profesionalSinAsignacionID},
+		"profesional de otro negocio":        {slugProfesionalUno, profesionalOtraNegocioID},
+		"slug desconocido":                   {"no-existe-hu127", profesionalUnProfesionalID},
+		"profesional inexistente":            {slugProfesionalUno, "99999999-9999-4999-8999-999999999999"},
 	} {
 		t.Run(name, func(t *testing.T) {
-			photo, found, err := repo.GetPublicBarberPhoto(context.Background(), tc.slug, tc.barberID)
+			photo, found, err := repo.GetPublicProfessionalPhoto(context.Background(), tc.slug, tc.professionalID)
 			if err != nil {
-				t.Fatalf("GetPublicBarberPhoto: %v", err)
+				t.Fatalf("GetPublicProfessionalPhoto: %v", err)
 			}
 			if found || len(photo.Data) != 0 {
 				t.Fatalf("expected found=false with no bytes, got found=%v %+v", found, photo)
@@ -686,23 +686,23 @@ func TestGetPublicBarberPhoto_NotVisible_ReturnsNotFound(t *testing.T) {
 	}
 }
 
-// El barbero de la barbería Dos sí es elegible a través de SU slug: el
+// El profesional del negocio Dos sí es elegible a través de SU slug: el
 // aislamiento depende del slug, no de que la imagen no exista.
-func TestGetPublicBarberPhoto_OwnTenant_ServesItsOwnBarber(t *testing.T) {
+func TestGetPublicProfessionalPhoto_OwnTenant_ServesItsOwnProfessional(t *testing.T) {
 	db := setupTestDB(t)
 	repo := publicbookingpostgres.New(db)
 
-	_, found, err := repo.GetPublicBarberPhoto(context.Background(), slugBarberoDos, barberoOtraBarberiaID)
+	_, found, err := repo.GetPublicProfessionalPhoto(context.Background(), slugProfesionalDos, profesionalOtraNegocioID)
 	if err != nil || !found {
-		t.Fatalf("expected shop Dos to serve its own barber's photo, found=%v err=%v", found, err)
+		t.Fatalf("expected shop Dos to serve its own professional's photo, found=%v err=%v", found, err)
 	}
 }
 
 // DEC-128 §5 / CA-100-04: la lista pública trae el promedio y el total de las
-// reseñas no ocultas de cada barbero. Las reseñas se insertan directo en SQL (su
+// reseñas no ocultas de cada profesional. Las reseñas se insertan directo en SQL (su
 // alta vive en el módulo reviews). La base persistente puede traer reseñas de
 // corridas anteriores: se comprueban diferencias, no valores absolutos.
-func TestListPublicBarbers_RatingCountsOnlyVisibleReviews(t *testing.T) {
+func TestListPublicProfessionals_RatingCountsOnlyVisibleReviews(t *testing.T) {
 	db := setupTestDB(t)
 	repo := publicbookingpostgres.New(db)
 	ctx := context.Background()
@@ -710,21 +710,21 @@ func TestListPublicBarbers_RatingCountsOnlyVisibleReviews(t *testing.T) {
 
 	read := func() (count int, avg *float64) {
 		t.Helper()
-		result, found, err := repo.ListPublicBarbers(ctx, slugBarberoUno, servicioVariosID)
+		result, found, err := repo.ListPublicProfessionals(ctx, slugProfesionalUno, servicioVariosID)
 		if err != nil || !found {
-			t.Fatalf("ListPublicBarbers: found=%v err=%v", found, err)
+			t.Fatalf("ListPublicProfessionals: found=%v err=%v", found, err)
 		}
 		for _, b := range result.Items {
-			if b.ID == barberoVariosSegundoID {
+			if b.ID == profesionalVariosSegundoID {
 				return b.RatingCount, b.Rating
 			}
 		}
-		t.Fatal("el barbero Uno-2 debe estar en la lista")
+		t.Fatal("el profesional Uno-2 debe estar en la lista")
 		return 0, nil
 	}
 	before, _ := read()
 
-	err := db.InTenantTx(ctx, database.BarbershopID(shopUno), func(ctx context.Context, q database.Queries) error {
+	err := db.InTenantTx(ctx, database.BusinessID(shopUno), func(ctx context.Context, q database.Queries) error {
 		for i, c := range []struct {
 			rating int
 			hidden bool
@@ -745,13 +745,13 @@ func TestListPublicBarbers_RatingCountsOnlyVisibleReviews(t *testing.T) {
 				                          status, origin, resolved_at, service_name_snapshot, duration_minutes_snapshot,
 				                          price_amount_snapshot, price_currency_snapshot)
 				 VALUES ($1, $2, $3, $4, 'Cliente de prueba', $5, $6, 'completed', 'manual', now(), 'Servicio', 30, 20000, 'COP')
-				 RETURNING id`, shopUno, barberoVariosSegundoID, serviceID, customerID, starts, starts.Add(30*time.Minute)).Scan(&appointmentID); err != nil {
+				 RETURNING id`, shopUno, profesionalVariosSegundoID, serviceID, customerID, starts, starts.Add(30*time.Minute)).Scan(&appointmentID); err != nil {
 				return err
 			}
 			if _, err := q.Exec(ctx,
 				`INSERT INTO professional_review (business_id, professional_id, appointment_id, rating, hidden_at)
 				 VALUES ($1, $2, $3, $4, CASE WHEN $5 THEN now() ELSE NULL END)`,
-				shopUno, barberoVariosSegundoID, appointmentID, c.rating, c.hidden); err != nil {
+				shopUno, profesionalVariosSegundoID, appointmentID, c.rating, c.hidden); err != nil {
 				return err
 			}
 		}
@@ -769,17 +769,17 @@ func TestListPublicBarbers_RatingCountsOnlyVisibleReviews(t *testing.T) {
 		t.Fatalf("rating = %v, se esperaba un promedio entre 1 y 5", avg)
 	}
 
-	// El barbero sin reseñas visibles de la otra barbería no hereda nada.
-	other, _, _ := repo.ListPublicBarbers(ctx, slugBarberoDos, servicioDosBarberoID)
+	// El profesional sin reseñas visibles del otro negocio no hereda nada.
+	other, _, _ := repo.ListPublicProfessionals(ctx, slugProfesionalDos, servicioDosProfesionalID)
 	for _, b := range other.Items {
-		if b.ID == barberoVariosSegundoID {
-			t.Fatal("la lista de otra barbería no debe incluir al barbero de Uno")
+		if b.ID == profesionalVariosSegundoID {
+			t.Fatal("la lista de otro negocio no debe incluir al profesional de Uno")
 		}
 	}
 }
 
 // TestResolveBySlug_OffersHomeService_FollowsTheShopSwitchOnly cubre DEC-131 en la
-// capa de datos: el perfil público refleja el interruptor de SU barbería y nunca el
+// capa de datos: el perfil público refleja el interruptor de SU negocio y nunca el
 // de otra (RN-TEN-01).
 func TestResolveBySlug_OffersHomeService_FollowsTheShopSwitchOnly(t *testing.T) {
 	db := setupTestDB(t)
@@ -788,15 +788,15 @@ func TestResolveBySlug_OffersHomeService_FollowsTheShopSwitchOnly(t *testing.T) 
 
 	before, _, err := repo.ResolveBySlug(ctx, slugUno)
 	if err != nil || before.OffersHomeService {
-		t.Fatalf("una barbería nueva no ofrece domicilio: %+v err=%v", before, err)
+		t.Fatalf("un negocio nuevo no ofrece domicilio: %+v err=%v", before, err)
 	}
 
-	id, found, err := repo.ResolveBarbershopID(ctx, slugUno)
+	id, found, err := repo.ResolveBusinessID(ctx, slugUno)
 	if err != nil || !found {
-		t.Fatalf("ResolveBarbershopID: found=%v err=%v", found, err)
+		t.Fatalf("ResolveBusinessID: found=%v err=%v", found, err)
 	}
 	setOffers := func(on bool) error {
-		return db.InTenantTx(ctx, database.BarbershopID(id), func(ctx context.Context, q database.Queries) error {
+		return db.InTenantTx(ctx, database.BusinessID(id), func(ctx context.Context, q database.Queries) error {
 			_, err := q.Exec(ctx, `UPDATE business SET offers_home_service = $2 WHERE id = $1`, id, on)
 			return err
 		})
@@ -817,8 +817,8 @@ func TestResolveBySlug_OffersHomeService_FollowsTheShopSwitchOnly(t *testing.T) 
 }
 
 // TestResolveBySlug_BrandAccent_FollowsTheShopOnly cubre DEC-171 en la capa de
-// datos: el perfil público trae el color de SU barbería y nunca el de otra
-// (RN-TEN-01). Una barbería nueva conserva el latón inicial.
+// datos: el perfil público trae el color de SU negocio y nunca el de otra
+// (RN-TEN-01). Un negocio nuevo conserva el latón inicial.
 func TestResolveBySlug_BrandAccent_FollowsTheShopOnly(t *testing.T) {
 	db := setupTestDB(t)
 	repo := publicbookingpostgres.New(db)
@@ -826,15 +826,15 @@ func TestResolveBySlug_BrandAccent_FollowsTheShopOnly(t *testing.T) {
 
 	before, _, err := repo.ResolveBySlug(ctx, slugUno)
 	if err != nil || before.BrandAccent != "brass" {
-		t.Fatalf("una barbería nueva usa latón: %+v err=%v", before, err)
+		t.Fatalf("un negocio nuevo usa latón: %+v err=%v", before, err)
 	}
 
-	id, found, err := repo.ResolveBarbershopID(ctx, slugUno)
+	id, found, err := repo.ResolveBusinessID(ctx, slugUno)
 	if err != nil || !found {
-		t.Fatalf("ResolveBarbershopID: found=%v err=%v", found, err)
+		t.Fatalf("ResolveBusinessID: found=%v err=%v", found, err)
 	}
 	setAccent := func(accent string) error {
-		return db.InTenantTx(ctx, database.BarbershopID(id), func(ctx context.Context, q database.Queries) error {
+		return db.InTenantTx(ctx, database.BusinessID(id), func(ctx context.Context, q database.Queries) error {
 			_, err := q.Exec(ctx, `UPDATE business SET brand_accent = $2 WHERE id = $1`, id, accent)
 			return err
 		})
@@ -855,7 +855,7 @@ func TestResolveBySlug_BrandAccent_FollowsTheShopOnly(t *testing.T) {
 }
 
 // TestResolveBySlug_GooglePlaceID_FollowsTheShopOnly cubre DEC-129 en la capa de
-// datos: el perfil que usa el servidor trae la ficha de SU barbería y nunca la de
+// datos: el perfil que usa el servidor trae la ficha de SU negocio y nunca la de
 // otra (RN-TEN-01); el DTO público no la expone (contract_test.go).
 func TestResolveBySlug_GooglePlaceID_FollowsTheShopOnly(t *testing.T) {
 	db := setupTestDB(t)
@@ -864,15 +864,15 @@ func TestResolveBySlug_GooglePlaceID_FollowsTheShopOnly(t *testing.T) {
 
 	before, _, err := repo.ResolveBySlug(ctx, slugUno)
 	if err != nil || before.GooglePlaceID != nil {
-		t.Fatalf("una barbería nueva no tiene ficha: %+v err=%v", before, err)
+		t.Fatalf("un negocio nuevo no tiene ficha: %+v err=%v", before, err)
 	}
 
-	id, found, err := repo.ResolveBarbershopID(ctx, slugUno)
+	id, found, err := repo.ResolveBusinessID(ctx, slugUno)
 	if err != nil || !found {
-		t.Fatalf("ResolveBarbershopID: found=%v err=%v", found, err)
+		t.Fatalf("ResolveBusinessID: found=%v err=%v", found, err)
 	}
 	set := func(placeID *string) error {
-		return db.InTenantTx(ctx, database.BarbershopID(id), func(ctx context.Context, q database.Queries) error {
+		return db.InTenantTx(ctx, database.BusinessID(id), func(ctx context.Context, q database.Queries) error {
 			_, err := q.Exec(ctx, `UPDATE business SET google_place_id = $2 WHERE id = $1`, id, placeID)
 			return err
 		})
@@ -894,7 +894,7 @@ func TestResolveBySlug_GooglePlaceID_FollowsTheShopOnly(t *testing.T) {
 }
 
 // TestResolveBySlug_OpeningHours_FollowsTheShopOnly cubre HU-107 en la capa de
-// datos: el perfil trae el horario de SU barbería, ordenado y con 24:00 como
+// datos: el perfil trae el horario de SU negocio, ordenado y con 24:00 como
 // 1440, y nunca el de otra (RN-TEN-01). Sin horario, la lista es vacía.
 func TestResolveBySlug_OpeningHours_FollowsTheShopOnly(t *testing.T) {
 	db := setupTestDB(t)
@@ -903,15 +903,15 @@ func TestResolveBySlug_OpeningHours_FollowsTheShopOnly(t *testing.T) {
 
 	before, _, err := repo.ResolveBySlug(ctx, slugUno)
 	if err != nil || len(before.OpeningHours) != 0 || before.OpeningHours == nil || before.ClosedOnHolidays {
-		t.Fatalf("una barbería nueva no tiene horario (lista vacía, no nil): %+v err=%v", before.OpeningHours, err)
+		t.Fatalf("un negocio nuevo no tiene horario (lista vacía, no nil): %+v err=%v", before.OpeningHours, err)
 	}
 
-	id, found, err := repo.ResolveBarbershopID(ctx, slugUno)
+	id, found, err := repo.ResolveBusinessID(ctx, slugUno)
 	if err != nil || !found {
-		t.Fatalf("ResolveBarbershopID: found=%v err=%v", found, err)
+		t.Fatalf("ResolveBusinessID: found=%v err=%v", found, err)
 	}
 	exec := func(sql string) error {
-		return db.InTenantTx(ctx, database.BarbershopID(id), func(ctx context.Context, q database.Queries) error {
+		return db.InTenantTx(ctx, database.BusinessID(id), func(ctx context.Context, q database.Queries) error {
 			_, err := q.Exec(ctx, sql, id)
 			return err
 		})

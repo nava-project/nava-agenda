@@ -8,8 +8,8 @@ import (
 	"strings"
 	"time"
 
-	"system-barbershop/internal/platform/apperr"
-	"system-barbershop/internal/platform/idempotency"
+	"nava-agenda/internal/platform/apperr"
+	"nava-agenda/internal/platform/idempotency"
 )
 
 // Service orquesta HU-098: valida la forma del token recibido, lo hashea y
@@ -79,7 +79,7 @@ func hashToken(tokenRaw string) (hash string, ok bool) {
 // de la URL (CA-098-01). Un token vacío, demasiado largo, inexistente,
 // vencido o revocado produce EXACTAMENTE el mismo error NotFound uniforme
 // (CA-098-02, RN-TEN-01): la causa nunca se distingue, mismo criterio que
-// publicbooking.errBarbershopNotPublic frente a un slug inválido.
+// publicbooking.errBusinessNotPublic frente a un slug inválido.
 func (s *Service) GetAppointmentByToken(ctx context.Context, tokenRaw string) (AppointmentView, error) {
 	if err := ctx.Err(); err != nil {
 		return AppointmentView{}, apperr.Internal(fmt.Errorf("customeraccess: contexto cancelado antes de resolver token: %w", err))
@@ -135,11 +135,11 @@ func (s *Service) CancelAppointment(
 	if !found {
 		return idempotency.Decision{}, idempotency.StoredResponse{}, errAppointmentAccessDenied()
 	}
-	return s.appointmentCan.CancelAppointment(ctx, target.BarbershopID, target.AppointmentID, expectedVersionToken, reason, key, fingerprint)
+	return s.appointmentCan.CancelAppointment(ctx, target.BusinessID, target.AppointmentID, expectedVersionToken, reason, key, fingerprint)
 }
 
 // RescheduleSlots son los inicios a los que el cliente puede mover su turno
-// (HU-104), con la zona de la barbería para agruparlos por fecha civil.
+// (HU-104), con la zona del negocio para agruparlos por fecha civil.
 type RescheduleSlots struct {
 	Timezone string
 	Starts   []time.Time
@@ -152,7 +152,7 @@ func (s *Service) ListRescheduleSlots(ctx context.Context, tokenRaw string) (Res
 	if err != nil {
 		return RescheduleSlots{}, err
 	}
-	starts, err := s.rescheduler.ListRescheduleStarts(ctx, target.BarbershopID, target.AppointmentID)
+	starts, err := s.rescheduler.ListRescheduleStarts(ctx, target.BusinessID, target.AppointmentID)
 	if err != nil {
 		return RescheduleSlots{}, err
 	}
@@ -172,7 +172,7 @@ func (s *Service) RescheduleAppointment(
 	if err != nil {
 		return idempotency.Decision{}, idempotency.StoredResponse{}, err
 	}
-	return s.rescheduler.RescheduleAppointment(ctx, target.BarbershopID, target.AppointmentID, startsAt, expectedVersionToken, key, fingerprint)
+	return s.rescheduler.RescheduleAppointment(ctx, target.BusinessID, target.AppointmentID, startsAt, expectedVersionToken, key, fingerprint)
 }
 
 func (s *Service) resolveRescheduleTarget(ctx context.Context, tokenRaw string) (CancellationTarget, error) {
@@ -198,7 +198,7 @@ func (s *Service) resolveRescheduleTarget(ctx context.Context, tokenRaw string) 
 
 // errAppointmentAccessDenied cubre las tres causas de CA-098-02 (token
 // inexistente, vencido o revocado) con un único 404 uniforme, mismo
-// criterio que publicbooking.errBarbershopNotPublic.
+// criterio que publicbooking.errBusinessNotPublic.
 func errAppointmentAccessDenied() error {
 	return apperr.NotFound("no existe un turno accesible con ese enlace")
 }

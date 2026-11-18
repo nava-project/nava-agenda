@@ -10,9 +10,9 @@ import (
 	"testing"
 	"time"
 
-	"system-barbershop/internal/modules/auth"
-	"system-barbershop/internal/modules/auth/httpapi"
-	"system-barbershop/internal/platform/clientip"
+	"nava-agenda/internal/modules/auth"
+	"nava-agenda/internal/modules/auth/httpapi"
+	"nava-agenda/internal/platform/clientip"
 )
 
 type escalatedThrottleRepository struct {

@@ -8,13 +8,13 @@ import (
 	"testing"
 	"time"
 
-	"system-barbershop/internal/modules/booking"
-	"system-barbershop/internal/modules/booking/httpapi"
-	"system-barbershop/internal/platform/apperr"
-	"system-barbershop/internal/platform/httpserver"
+	"nava-agenda/internal/modules/booking"
+	"nava-agenda/internal/modules/booking/httpapi"
+	"nava-agenda/internal/platform/apperr"
+	"nava-agenda/internal/platform/httpserver"
 )
 
-// fakeDetailBarberNamePort/fakeDetailStaffActorNamePort/fakeDetailRepository
+// fakeDetailProfessionalNamePort/fakeDetailStaffActorNamePort/fakeDetailRepository
 // son dobles mínimos para probar GetAppointmentDetailHandler/
 // ListAppointmentHistoryHandler en aislamiento (extracción del principal,
 // forma de la respuesta, ausencia de campos prohibidos, traducción de
@@ -22,12 +22,12 @@ import (
 // internal/modules/booking/postgres/detail_repository_test.go) ni la
 // orquestación de DetailService (esa vive en
 // internal/modules/booking/detail_service_test.go).
-type fakeDetailBarberNamePort struct {
+type fakeDetailProfessionalNamePort struct {
 	name  string
 	found bool
 }
 
-func (f fakeDetailBarberNamePort) Name(context.Context, string, string) (string, bool, error) {
+func (f fakeDetailProfessionalNamePort) Name(context.Context, string, string) (string, bool, error) {
 	return f.name, f.found, nil
 }
 
@@ -72,8 +72,8 @@ func (f *fakeDetailRepository) CustomerNames(context.Context, string, []string) 
 
 const validDetailAppointmentID = "8f3ac2b1-e4d5-46f6-a7c8-d9e0f1a2b3c4"
 
-func newDetailService(repo *fakeDetailRepository, barbers fakeDetailBarberNamePort) *booking.DetailService {
-	return booking.NewDetailService(repo, barbers, fakeDetailStaffActorNamePort{})
+func newDetailService(repo *fakeDetailRepository, professionals fakeDetailProfessionalNamePort) *booking.DetailService {
+	return booking.NewDetailService(repo, professionals, fakeDetailStaffActorNamePort{})
 }
 
 // ---------------------------------------------------------------------------
@@ -86,7 +86,7 @@ func TestGetAppointmentDetailHandler_ValidRequest_Returns200WithDetail(t *testin
 		detailFound: true,
 		detail: booking.AppointmentDetail{
 			ID:                       validDetailAppointmentID,
-			BarberID:                 "barber-1",
+			ProfessionalID:           "professional-1",
 			AttendeeName:             "Carlos Restrepo",
 			CustomerFullName:         "Carlos Restrepo",
 			CustomerPhone:            &phone,
@@ -102,7 +102,7 @@ func TestGetAppointmentDetailHandler_ValidRequest_Returns200WithDetail(t *testin
 			CreatedAt:                time.Date(2026, 8, 20, 10, 0, 0, 0, time.UTC),
 		},
 	}
-	h := httpapi.NewGetAppointmentDetailHandler(newDetailService(repo, fakeDetailBarberNamePort{name: "Ana Gómez", found: true}))
+	h := httpapi.NewGetAppointmentDetailHandler(newDetailService(repo, fakeDetailProfessionalNamePort{name: "Ana Gómez", found: true}))
 
 	req := requestWithPrincipal(http.MethodGet, "/api/v1/private/appointments/"+validDetailAppointmentID, nil)
 	req = httpserver.RequestWithURLParam(req, "appointmentId", validDetailAppointmentID)
@@ -117,7 +117,7 @@ func TestGetAppointmentDetailHandler_ValidRequest_Returns200WithDetail(t *testin
 	if err := json.Unmarshal(rec.Body.Bytes(), &got); err != nil {
 		t.Fatalf("unmarshal response: %v", err)
 	}
-	if got.ID != validDetailAppointmentID || got.BarberFullName != "Ana Gómez" {
+	if got.ID != validDetailAppointmentID || got.ProfessionalFullName != "Ana Gómez" {
 		t.Fatalf("detalle inesperado: %+v", got)
 	}
 	if got.PriceAmount != "20000.00" || got.Currency != "COP" {
@@ -127,7 +127,7 @@ func TestGetAppointmentDetailHandler_ValidRequest_Returns200WithDetail(t *testin
 		t.Fatalf("VersionToken = %q, want %q", got.VersionToken, "opaque-token")
 	}
 
-	// Fuera de alcance de HU-064: customerId, IDs de actor, barbershopId ni
+	// Fuera de alcance de HU-064: customerId, IDs de actor, businessId ni
 	// updatedAt crudo. Verificado leyendo el JSON crudo, no solo el struct
 	// tipado.
 	var raw map[string]any
@@ -143,7 +143,7 @@ func TestGetAppointmentDetailHandler_ValidRequest_Returns200WithDetail(t *testin
 
 func TestGetAppointmentDetailHandler_NotFound_Returns404(t *testing.T) {
 	repo := &fakeDetailRepository{detailFound: false}
-	h := httpapi.NewGetAppointmentDetailHandler(newDetailService(repo, fakeDetailBarberNamePort{}))
+	h := httpapi.NewGetAppointmentDetailHandler(newDetailService(repo, fakeDetailProfessionalNamePort{}))
 
 	req := requestWithPrincipal(http.MethodGet, "/api/v1/private/appointments/"+validDetailAppointmentID, nil)
 	req = httpserver.RequestWithURLParam(req, "appointmentId", validDetailAppointmentID)
@@ -157,7 +157,7 @@ func TestGetAppointmentDetailHandler_NotFound_Returns404(t *testing.T) {
 
 func TestGetAppointmentDetailHandler_NoPrincipal_Returns500(t *testing.T) {
 	repo := &fakeDetailRepository{}
-	h := httpapi.NewGetAppointmentDetailHandler(newDetailService(repo, fakeDetailBarberNamePort{}))
+	h := httpapi.NewGetAppointmentDetailHandler(newDetailService(repo, fakeDetailProfessionalNamePort{}))
 
 	req := httptest.NewRequest(http.MethodGet, "/api/v1/private/appointments/"+validDetailAppointmentID, nil)
 	req = httpserver.RequestWithURLParam(req, "appointmentId", validDetailAppointmentID)
@@ -171,7 +171,7 @@ func TestGetAppointmentDetailHandler_NoPrincipal_Returns500(t *testing.T) {
 
 func TestGetAppointmentDetailHandler_RepositoryError_Returns500(t *testing.T) {
 	repo := &fakeDetailRepository{detailErr: apperr.Internal(nil)}
-	h := httpapi.NewGetAppointmentDetailHandler(newDetailService(repo, fakeDetailBarberNamePort{}))
+	h := httpapi.NewGetAppointmentDetailHandler(newDetailService(repo, fakeDetailProfessionalNamePort{}))
 
 	req := requestWithPrincipal(http.MethodGet, "/api/v1/private/appointments/"+validDetailAppointmentID, nil)
 	req = httpserver.RequestWithURLParam(req, "appointmentId", validDetailAppointmentID)
@@ -201,7 +201,7 @@ func TestListAppointmentHistoryHandler_ValidRequest_Returns200WithItems(t *testi
 			},
 		},
 	}
-	h := httpapi.NewListAppointmentHistoryHandler(newDetailService(repo, fakeDetailBarberNamePort{}))
+	h := httpapi.NewListAppointmentHistoryHandler(newDetailService(repo, fakeDetailProfessionalNamePort{}))
 
 	req := requestWithPrincipal(http.MethodGet, "/api/v1/private/appointments/"+validDetailAppointmentID+"/history", nil)
 	req = httpserver.RequestWithURLParam(req, "appointmentId", validDetailAppointmentID)
@@ -240,7 +240,7 @@ func TestListAppointmentHistoryHandler_NextCursor_IsExposedWhenRepositoryHasMore
 		historyFound: true,
 		historyNext:  &booking.HistoryCursor{OccurredAt: time.Now(), ID: "history-2"},
 	}
-	h := httpapi.NewListAppointmentHistoryHandler(newDetailService(repo, fakeDetailBarberNamePort{}))
+	h := httpapi.NewListAppointmentHistoryHandler(newDetailService(repo, fakeDetailProfessionalNamePort{}))
 
 	req := requestWithPrincipal(http.MethodGet, "/api/v1/private/appointments/"+validDetailAppointmentID+"/history", nil)
 	req = httpserver.RequestWithURLParam(req, "appointmentId", validDetailAppointmentID)
@@ -258,7 +258,7 @@ func TestListAppointmentHistoryHandler_NextCursor_IsExposedWhenRepositoryHasMore
 
 func TestListAppointmentHistoryHandler_AppointmentNotFound_Returns404(t *testing.T) {
 	repo := &fakeDetailRepository{historyFound: false}
-	h := httpapi.NewListAppointmentHistoryHandler(newDetailService(repo, fakeDetailBarberNamePort{}))
+	h := httpapi.NewListAppointmentHistoryHandler(newDetailService(repo, fakeDetailProfessionalNamePort{}))
 
 	req := requestWithPrincipal(http.MethodGet, "/api/v1/private/appointments/"+validDetailAppointmentID+"/history", nil)
 	req = httpserver.RequestWithURLParam(req, "appointmentId", validDetailAppointmentID)
@@ -272,7 +272,7 @@ func TestListAppointmentHistoryHandler_AppointmentNotFound_Returns404(t *testing
 
 func TestListAppointmentHistoryHandler_InvalidLimit_Returns400(t *testing.T) {
 	repo := &fakeDetailRepository{historyFound: true}
-	h := httpapi.NewListAppointmentHistoryHandler(newDetailService(repo, fakeDetailBarberNamePort{}))
+	h := httpapi.NewListAppointmentHistoryHandler(newDetailService(repo, fakeDetailProfessionalNamePort{}))
 
 	req := requestWithPrincipal(http.MethodGet, "/api/v1/private/appointments/"+validDetailAppointmentID+"/history?limit=-1", nil)
 	req = httpserver.RequestWithURLParam(req, "appointmentId", validDetailAppointmentID)
@@ -286,7 +286,7 @@ func TestListAppointmentHistoryHandler_InvalidLimit_Returns400(t *testing.T) {
 
 func TestListAppointmentHistoryHandler_InvalidCursor_Returns400(t *testing.T) {
 	repo := &fakeDetailRepository{historyFound: true}
-	h := httpapi.NewListAppointmentHistoryHandler(newDetailService(repo, fakeDetailBarberNamePort{}))
+	h := httpapi.NewListAppointmentHistoryHandler(newDetailService(repo, fakeDetailProfessionalNamePort{}))
 
 	req := requestWithPrincipal(http.MethodGet, "/api/v1/private/appointments/"+validDetailAppointmentID+"/history?cursor=not-valid", nil)
 	req = httpserver.RequestWithURLParam(req, "appointmentId", validDetailAppointmentID)
@@ -300,7 +300,7 @@ func TestListAppointmentHistoryHandler_InvalidCursor_Returns400(t *testing.T) {
 
 func TestListAppointmentHistoryHandler_NoPrincipal_Returns500(t *testing.T) {
 	repo := &fakeDetailRepository{historyFound: true}
-	h := httpapi.NewListAppointmentHistoryHandler(newDetailService(repo, fakeDetailBarberNamePort{}))
+	h := httpapi.NewListAppointmentHistoryHandler(newDetailService(repo, fakeDetailProfessionalNamePort{}))
 
 	req := httptest.NewRequest(http.MethodGet, "/api/v1/private/appointments/"+validDetailAppointmentID+"/history", nil)
 	req = httpserver.RequestWithURLParam(req, "appointmentId", validDetailAppointmentID)

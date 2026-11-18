@@ -1,9 +1,9 @@
 // Pruebas de integración de HU-007 contra login_throttle_register_attempt
 // con PostgreSQL REAL. Requieren las siete migraciones aplicadas (incluida
 // 20260817180000_create_login_throttle_and_phone_challenge.sql). Conéctate
-// como barberia_app, igual que repository_test.go/session_repository_test.go.
+// como agenda_app, igual que repository_test.go/session_repository_test.go.
 //
-//	export TEST_DATABASE_URL="postgres://barberia_app:app_test@localhost:5432/barberia_test?sslmode=disable"
+//	export TEST_DATABASE_URL="postgres://agenda_app:app_test@localhost:5432/postgres?sslmode=disable"
 //	go test -race ./internal/modules/auth/postgres/...
 package postgres_test
 
@@ -12,8 +12,8 @@ import (
 	"sync"
 	"testing"
 
-	"system-barbershop/internal/modules/auth"
-	authpostgres "system-barbershop/internal/modules/auth/postgres"
+	"nava-agenda/internal/modules/auth"
+	authpostgres "nava-agenda/internal/modules/auth/postgres"
 )
 
 func testThrottleIPHash(t *testing.T, label string) string {

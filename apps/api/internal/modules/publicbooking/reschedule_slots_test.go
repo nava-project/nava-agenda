@@ -5,7 +5,7 @@ import (
 	"testing"
 	"time"
 
-	"system-barbershop/internal/modules/publicbooking"
+	"nava-agenda/internal/modules/publicbooking"
 )
 
 // HU-104 (DEC-178, punto 4): el turno propio no cuenta como ocupado, pero las
@@ -25,7 +25,7 @@ func TestOfferedRescheduleStarts_IgnoresOnlyTheOwnAppointment(t *testing.T) {
 	assignments.found = false
 
 	svc := publicbooking.NewAvailabilityService(repo, effectiveDay, blocks, policy, assignments, timezones, fixedAvailabilityClock{now: now})
-	starts, err := svc.OfferedRescheduleStarts(context.Background(), "shop-1", availBarberID, 30, at(10, 0), at(10, 30))
+	starts, err := svc.OfferedRescheduleStarts(context.Background(), "shop-1", availProfessionalID, 30, at(10, 0), at(10, 30))
 	if err != nil {
 		t.Fatalf("OfferedRescheduleStarts: %v", err)
 	}
@@ -59,7 +59,7 @@ func TestOfferedRescheduleStarts_BlockWithSameIntervalStillCounts(t *testing.T) 
 	blocks.ends = []time.Time{at(10, 30)}
 
 	svc := publicbooking.NewAvailabilityService(repo, effectiveDay, blocks, policy, assignments, timezones, fixedAvailabilityClock{now: now})
-	starts, err := svc.OfferedRescheduleStarts(context.Background(), "shop-1", availBarberID, 30, at(10, 0), at(10, 30))
+	starts, err := svc.OfferedRescheduleStarts(context.Background(), "shop-1", availProfessionalID, 30, at(10, 0), at(10, 30))
 	if err != nil {
 		t.Fatalf("OfferedRescheduleStarts: %v", err)
 	}

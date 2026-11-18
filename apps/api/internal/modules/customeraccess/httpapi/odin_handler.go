@@ -10,9 +10,9 @@ import (
 	"strings"
 	"time"
 
-	"system-barbershop/internal/modules/customeraccess"
-	"system-barbershop/internal/platform/apperr"
-	"system-barbershop/internal/platform/httpserver"
+	"nava-agenda/internal/modules/customeraccess"
+	"nava-agenda/internal/platform/apperr"
+	"nava-agenda/internal/platform/httpserver"
 )
 
 // OdinLookupRequest es el cuerpo de POST .../customer-appointments/lookup.
@@ -23,11 +23,11 @@ type OdinLookupRequest struct {
 // OdinAppointmentResponse es un turno tal como se le muestra a Odin: sin
 // identificadores internos, nombre ni contacto del cliente.
 type OdinAppointmentResponse struct {
-	AppointmentRef string    `json:"appointmentRef"`
-	StartsAt       time.Time `json:"startsAt"`
-	ServiceName    string    `json:"serviceName"`
-	BarberName     string    `json:"professionalName"`
-	// LegacyBarberName repite BarberName con el nombre de campo anterior a DEC-183
+	AppointmentRef   string    `json:"appointmentRef"`
+	StartsAt         time.Time `json:"startsAt"`
+	ServiceName      string    `json:"serviceName"`
+	ProfessionalName string    `json:"professionalName"`
+	// LegacyBarberName repite ProfessionalName con el nombre de campo anterior a DEC-183
 	// (#661). Se retira cuando Odin confirme que lee professionalName.
 	LegacyBarberName string `json:"barberName"`
 	CanCancel        bool   `json:"canCancel"`
@@ -124,8 +124,8 @@ func (h *OdinLookupHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	out := OdinLookupResponse{Appointments: make([]OdinAppointmentResponse, 0, len(appointments))}
 	for _, a := range appointments {
 		out.Appointments = append(out.Appointments, OdinAppointmentResponse{
-			AppointmentRef: a.Ref, StartsAt: a.StartsAt, ServiceName: a.ServiceName, BarberName: a.BarberName,
-			LegacyBarberName: a.BarberName,
+			AppointmentRef: a.Ref, StartsAt: a.StartsAt, ServiceName: a.ServiceName, ProfessionalName: a.ProfessionalName,
+			LegacyBarberName: a.ProfessionalName,
 			CanCancel:        a.CanCancel, CanReschedule: a.CanReschedule,
 		})
 	}

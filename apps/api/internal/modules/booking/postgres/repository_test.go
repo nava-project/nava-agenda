@@ -1,11 +1,11 @@
 // Package postgres_test (pruebas de integración, HU-060) requiere
 // PostgreSQL REAL con las dieciséis migraciones aplicadas (incluida
-// 20260827110000_create_appointment_core.sql) y database/testdata/dos_barberias.sql +
-// database/testdata/hu060_citas.sql cargados. Conéctate como barberia_app
+// 20260827110000_create_appointment_core.sql) y database/testdata/dos_negocios.sql +
+// database/testdata/hu060_citas.sql cargados. Conéctate como agenda_app
 // (docs/03-desarrollo/estrategia-pruebas.md §2 prohíbe mocks para
 // RLS/exclusión/atomicidad/concurrencia).
 //
-//	export TEST_DATABASE_URL="postgres://barberia_app:app_test@localhost:5432/barberia_test?sslmode=disable"
+//	export TEST_DATABASE_URL="postgres://agenda_app:app_test@localhost:5432/postgres?sslmode=disable"
 //	go test -race ./internal/modules/booking/postgres/...
 package postgres_test
 
@@ -20,27 +20,27 @@ import (
 	"testing"
 	"time"
 
-	"system-barbershop/internal/modules/booking"
-	bookingpostgres "system-barbershop/internal/modules/booking/postgres"
-	"system-barbershop/internal/platform/apperr"
-	"system-barbershop/internal/platform/config"
-	"system-barbershop/internal/platform/database"
-	"system-barbershop/internal/platform/idempotency"
+	"nava-agenda/internal/modules/booking"
+	bookingpostgres "nava-agenda/internal/modules/booking/postgres"
+	"nava-agenda/internal/platform/apperr"
+	"nava-agenda/internal/platform/config"
+	"nava-agenda/internal/platform/database"
+	"nava-agenda/internal/platform/idempotency"
 )
 
 const (
 	testDatabaseURL = "postgres://agenda_app@localhost:5432/barberia_test?sslmode=disable"
 
-	// shopQ/shopR son las dos barberías dedicadas de
-	// testdata/hu060_citas.sql: aisladas de dos_barberias.sql y de las
+	// shopQ/shopR son los dos negocios dedicados de
+	// testdata/hu060_citas.sql: aisladas de dos_negocios.sql y de las
 	// demás suites para que un conteo o una carrera de exclusión no
 	// dependa de lo que otras suites hagan.
-	shopQ = database.BarbershopID("c17a0001-c17a-c17a-c17a-c17a00010001")
-	shopR = database.BarbershopID("c17a0002-c17a-c17a-c17a-c17a00020002")
+	shopQ = database.BusinessID("c17a0001-c17a-c17a-c17a-c17a00010001")
+	shopR = database.BusinessID("c17a0002-c17a-c17a-c17a-c17a00020002")
 
-	barberQ1 = "c17a1001-1001-1001-1001-100110011001"
-	barberQ2 = "c17a1002-1002-1002-1002-100210021002"
-	barberR1 = "c17a2001-2001-2001-2001-200120012001"
+	professionalQ1 = "c17a1001-1001-1001-1001-100110011001"
+	professionalQ2 = "c17a1002-1002-1002-1002-100210021002"
+	professionalR1 = "c17a2001-2001-2001-2001-200120012001"
 
 	serviceQ = "c17a5001-5001-5001-5001-500150015001"
 	serviceR = "c17a5002-5002-5002-5002-500250025002"
@@ -77,7 +77,7 @@ func newRepository(db *database.DB) *bookingpostgres.Repository {
 }
 
 // uniqueSuffix evita colisiones entre ejecuciones repetidas de la suite
-// contra el mismo PostgreSQL persistente (barberia_app no puede DELETE
+// contra el mismo PostgreSQL persistente (agenda_app no puede DELETE
 // customer/appointment, RN-DAT-03/RN-HIS-02, así que las filas de una
 // corrida anterior siguen ahí): cada prueba usa nombres y una fecha propia.
 func uniqueSuffix(t *testing.T) string {
@@ -109,7 +109,7 @@ func uniqueHistoryID(t *testing.T) string {
 // ~500 años (~2.6*10^8 minutos): cada ejecución de la suite reserva su
 // propia franja con probabilidad de colisión despreciable incluso después
 // de miles de corridas contra el mismo PostgreSQL persistente (customer y
-// appointment son append-only para barberia_app, RN-DAT-03/RN-HIS-02: nada
+// appointment son append-only para agenda_app, RN-DAT-03/RN-HIS-02: nada
 // limpia las filas de una corrida anterior). Un día de amplitud, como se
 // usó en una primera versión de esta prueba, resultó insuficiente y
 // produjo un falso conflicto real tras acumular corridas locales.
@@ -142,14 +142,14 @@ func baseStart(t *testing.T) time.Time {
 
 func strPtr(s string) *string { return &s }
 
-func validInput(t *testing.T, barberID, serviceID string, start time.Time, durationMinutes int, suffix string) booking.CreateInternalInput {
+func validInput(t *testing.T, professionalID, serviceID string, start time.Time, durationMinutes int, suffix string) booking.CreateInternalInput {
 	return booking.CreateInternalInput{
-		BarberID:     barberID,
-		ServiceID:    serviceID,
-		AttendeeName: "Cliente de prueba " + suffix,
-		StartsAt:     start,
-		EndsAt:       start.Add(time.Duration(durationMinutes) * time.Minute),
-		Origin:       booking.OriginManual,
+		ProfessionalID: professionalID,
+		ServiceID:      serviceID,
+		AttendeeName:   "Cliente de prueba " + suffix,
+		StartsAt:       start,
+		EndsAt:         start.Add(time.Duration(durationMinutes) * time.Minute),
+		Origin:         booking.OriginManual,
 		Service: booking.ServiceSnapshot{
 			Name:             "Corte de prueba " + suffix,
 			DurationMinutes:  durationMinutes,
@@ -168,7 +168,7 @@ func TestCreateInternal_NewCustomer_PersistsAppointmentAndHistory(t *testing.T) 
 	repo := newRepository(db)
 	suffix := uniqueSuffix(t)
 
-	input := validInput(t, barberQ1, serviceQ, baseStart(t), 30, suffix)
+	input := validInput(t, professionalQ1, serviceQ, baseStart(t), 30, suffix)
 	result, err := repo.CreateInternal(context.Background(), string(shopQ), input)
 	if err != nil {
 		t.Fatalf("CreateInternal: %v", err)
@@ -228,13 +228,13 @@ func TestCreateInternal_ExistingCustomer_Links(t *testing.T) {
 
 	// Crea un cliente primero, con una cita, y reutiliza ese cliente en una
 	// segunda cita (misma persona, otro horario).
-	first := validInput(t, barberQ1, serviceQ, baseStart(t), 30, suffix)
+	first := validInput(t, professionalQ1, serviceQ, baseStart(t), 30, suffix)
 	firstResult, err := repo.CreateInternal(context.Background(), string(shopQ), first)
 	if err != nil {
 		t.Fatalf("CreateInternal (first): %v", err)
 	}
 
-	second := validInput(t, barberQ1, serviceQ, baseStart(t).Add(2*time.Hour), 30, suffix)
+	second := validInput(t, professionalQ1, serviceQ, baseStart(t).Add(2*time.Hour), 30, suffix)
 	second.Customer = booking.CustomerInput{ExistingID: &firstResult.Customer.ID}
 	secondResult, err := repo.CreateInternal(context.Background(), string(shopQ), second)
 	if err != nil {
@@ -254,14 +254,14 @@ func TestCreateInternal_ExistingCustomerFromOtherTenant_ReturnsNotFound(t *testi
 
 	// Cliente real, pero de shopR: RN-TEN-01 exige que shopQ no pueda
 	// vincularlo, ni siquiera conociendo su id real.
-	rInput := validInput(t, barberR1, serviceR, baseStart(t), 45, suffix)
+	rInput := validInput(t, professionalR1, serviceR, baseStart(t), 45, suffix)
 	rInput.Actor.StaffUserID = strPtr(staffR)
 	rResult, err := repo.CreateInternal(context.Background(), string(shopR), rInput)
 	if err != nil {
 		t.Fatalf("CreateInternal (shopR fixture): %v", err)
 	}
 
-	qInput := validInput(t, barberQ1, serviceQ, baseStart(t), 30, suffix)
+	qInput := validInput(t, professionalQ1, serviceQ, baseStart(t), 30, suffix)
 	qInput.Customer = booking.CustomerInput{ExistingID: &rResult.Customer.ID}
 	_, err = repo.CreateInternal(context.Background(), string(shopQ), qInput)
 	if err == nil {
@@ -279,15 +279,15 @@ func TestCreateInternal_ScheduleConflict_RollsBackNewCustomer(t *testing.T) {
 	suffix := uniqueSuffix(t)
 	start := baseStart(t)
 
-	base := validInput(t, barberQ1, serviceQ, start, 30, suffix+"-base")
+	base := validInput(t, professionalQ1, serviceQ, start, 30, suffix+"-base")
 	if _, err := repo.CreateInternal(context.Background(), string(shopQ), base); err != nil {
 		t.Fatalf("CreateInternal (base): %v", err)
 	}
 
-	// Se cruza totalmente con la cita base, mismo barbero. El cliente NUEVO
+	// Se cruza totalmente con la cita base, mismo profesional. El cliente NUEVO
 	// de este intento nunca debe quedar persistido: la transacción entera
 	// revierte (CA-060-05, "error tras cliente").
-	overlap := validInput(t, barberQ1, serviceQ, start, 30, suffix+"-overlap")
+	overlap := validInput(t, professionalQ1, serviceQ, start, 30, suffix+"-overlap")
 	_, err := repo.CreateInternal(context.Background(), string(shopQ), overlap)
 	if err == nil {
 		t.Fatalf("expected a schedule conflict for an overlapping interval")
@@ -327,9 +327,9 @@ func TestCreateInternal_HistoryInsertFails_RollsBackAppointmentAndCustomer(t *te
 	repo := newRepository(db)
 	suffix := uniqueSuffix(t)
 
-	input := validInput(t, barberQ1, serviceQ, baseStart(t), 30, suffix)
+	input := validInput(t, professionalQ1, serviceQ, baseStart(t), 30, suffix)
 	// staffR pertenece a shopR, no a shopQ: la FK compuesta
-	// appointment_history_barbershop_id_actor_staff_user_id_fk debe
+	// appointment_history_business_id_actor_staff_user_id_fk debe
 	// rechazarla.
 	input.Actor.StaffUserID = strPtr(staffR)
 
@@ -371,13 +371,13 @@ func TestCreateInternal_ContiguousInterval_Succeeds(t *testing.T) {
 	suffix := uniqueSuffix(t)
 	start := baseStart(t)
 
-	base := validInput(t, barberQ1, serviceQ, start, 30, suffix+"-a")
+	base := validInput(t, professionalQ1, serviceQ, start, 30, suffix+"-a")
 	if _, err := repo.CreateInternal(context.Background(), string(shopQ), base); err != nil {
 		t.Fatalf("CreateInternal (base): %v", err)
 	}
 
 	// Contigua: empieza exactamente cuando la base termina. RN-DIS-05.
-	contiguous := validInput(t, barberQ1, serviceQ, start.Add(30*time.Minute), 30, suffix+"-b")
+	contiguous := validInput(t, professionalQ1, serviceQ, start.Add(30*time.Minute), 30, suffix+"-b")
 	if _, err := repo.CreateInternal(context.Background(), string(shopQ), contiguous); err != nil {
 		t.Fatalf("expected a contiguous appointment to succeed, got: %v", err)
 	}
@@ -391,7 +391,7 @@ func TestCreateInternal_ContextCancelled_NoPartialWrite(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	cancel()
 
-	_, err := repo.CreateInternal(ctx, string(shopQ), validInput(t, barberQ1, serviceQ, baseStart(t), 30, suffix))
+	_, err := repo.CreateInternal(ctx, string(shopQ), validInput(t, professionalQ1, serviceQ, baseStart(t), 30, suffix))
 	if err == nil {
 		t.Fatalf("expected an error for a cancelled context")
 	}
@@ -422,8 +422,8 @@ func TestCreateInternal_ContextCancelled_NoPartialWrite(t *testing.T) {
 // dos conexiones reales exigida por el prompt de HU-060 (sin sleeps, sin
 // dobles): dos goroutines, cada una con su propia conexión adquirida del
 // pool real, intentan crear al mismo tiempo dos citas que se cruzan para el
-// mismo barbero. PostgreSQL debe aceptar exactamente una
-// (appointment_barber_interval_excl); la otra debe recibir el conflicto
+// mismo profesional. PostgreSQL debe aceptar exactamente una
+// (appointment_professional_interval_excl); la otra debe recibir el conflicto
 // tipado. Ejecutar con -race, mismo patrón que
 // TestUnassign_ConcurrentRaceOnLastTwoAssignments_ExactlyOneSucceeds
 // (catalog/postgres/assignment_repository_test.go, HU-023).
@@ -433,8 +433,8 @@ func TestCreateInternal_ConcurrentOverlap_ExactlyOneSucceeds(t *testing.T) {
 	suffix := uniqueSuffix(t)
 	start := baseStart(t)
 
-	inputA := validInput(t, barberQ1, serviceQ, start, 30, suffix+"-A")
-	inputB := validInput(t, barberQ1, serviceQ, start.Add(10*time.Minute), 30, suffix+"-B")
+	inputA := validInput(t, professionalQ1, serviceQ, start, 30, suffix+"-A")
+	inputB := validInput(t, professionalQ1, serviceQ, start.Add(10*time.Minute), 30, suffix+"-B")
 
 	var (
 		wg               sync.WaitGroup
@@ -482,7 +482,7 @@ func TestCreateInternal_ConcurrentOverlap_ExactlyOneSucceeds(t *testing.T) {
 	}
 
 	// Verificación final: exactamente una cita cruzada persiste para ese
-	// barbero en esa ventana, consultado con el rol real.
+	// profesional en esa ventana, consultado con el rol real.
 	err := db.InTenantTx(context.Background(), shopQ, func(ctx context.Context, q database.Queries) error {
 		var count int
 		scanErr := q.QueryRow(ctx,
@@ -490,7 +490,7 @@ func TestCreateInternal_ConcurrentOverlap_ExactlyOneSucceeds(t *testing.T) {
 			  WHERE business_id = $1 AND professional_id = $2
 			    AND tstzrange(starts_at, ends_at, '[)') && tstzrange($3, $4, '[)')
 			    AND occupies_schedule`,
-			string(shopQ), barberQ1, start.Add(-time.Hour), start.Add(time.Hour),
+			string(shopQ), professionalQ1, start.Add(-time.Hour), start.Add(time.Hour),
 		).Scan(&count)
 		if scanErr != nil {
 			return scanErr
@@ -505,19 +505,19 @@ func TestCreateInternal_ConcurrentOverlap_ExactlyOneSucceeds(t *testing.T) {
 	}
 }
 
-func TestCreateInternal_DifferentBarber_SameWindow_Succeeds(t *testing.T) {
+func TestCreateInternal_DifferentProfessional_SameWindow_Succeeds(t *testing.T) {
 	db := setupTestDB(t)
 	repo := newRepository(db)
 	suffix := uniqueSuffix(t)
 	start := baseStart(t)
 
-	first := validInput(t, barberQ1, serviceQ, start, 30, suffix+"-1")
+	first := validInput(t, professionalQ1, serviceQ, start, 30, suffix+"-1")
 	if _, err := repo.CreateInternal(context.Background(), string(shopQ), first); err != nil {
-		t.Fatalf("CreateInternal (barberQ1): %v", err)
+		t.Fatalf("CreateInternal (professionalQ1): %v", err)
 	}
 
-	second := validInput(t, barberQ2, serviceQ, start, 30, suffix+"-2")
+	second := validInput(t, professionalQ2, serviceQ, start, 30, suffix+"-2")
 	if _, err := repo.CreateInternal(context.Background(), string(shopQ), second); err != nil {
-		t.Fatalf("expected a different barber in the same window to succeed, got: %v", err)
+		t.Fatalf("expected a different professional in the same window to succeed, got: %v", err)
 	}
 }

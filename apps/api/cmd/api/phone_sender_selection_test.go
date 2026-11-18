@@ -6,7 +6,7 @@ import (
 	"os"
 	"testing"
 
-	"system-barbershop/internal/platform/config"
+	"nava-agenda/internal/platform/config"
 )
 
 func TestSelectWhatsAppOTPProvider_SelectsConfiguredProvider(t *testing.T) {

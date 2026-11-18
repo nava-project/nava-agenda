@@ -1,11 +1,11 @@
 // Package postgres_test (pruebas de integración, HU-021) requiere
 // PostgreSQL REAL con las diez migraciones aplicadas (incluida
-// 20260823130000_create_barber.sql) y database/testdata/dos_barberias.sql +
-// database/testdata/hu021_barberos.sql cargados. Conéctate como
-// barberia_app (docs/03-desarrollo/estrategia-pruebas.md §2 prohíbe mocks
+// 20260823130000_create_barber.sql) y database/testdata/dos_negocios.sql +
+// database/testdata/hu021_profesionales.sql cargados. Conéctate como
+// agenda_app (docs/03-desarrollo/estrategia-pruebas.md §2 prohíbe mocks
 // para RLS/idempotencia/atomicidad).
 //
-//	export TEST_DATABASE_URL="postgres://barberia_app:app_test@localhost:5432/barberia_test?sslmode=disable"
+//	export TEST_DATABASE_URL="postgres://agenda_app:app_test@localhost:5432/postgres?sslmode=disable"
 //	go test -race ./internal/modules/staff/postgres/...
 package postgres_test
 
@@ -20,23 +20,23 @@ import (
 	"testing"
 	"time"
 
-	"system-barbershop/internal/modules/staff"
-	staffpostgres "system-barbershop/internal/modules/staff/postgres"
-	"system-barbershop/internal/platform/apperr"
-	"system-barbershop/internal/platform/config"
-	"system-barbershop/internal/platform/database"
-	"system-barbershop/internal/platform/idempotency"
+	"nava-agenda/internal/modules/staff"
+	staffpostgres "nava-agenda/internal/modules/staff/postgres"
+	"nava-agenda/internal/platform/apperr"
+	"nava-agenda/internal/platform/config"
+	"nava-agenda/internal/platform/database"
+	"nava-agenda/internal/platform/idempotency"
 )
 
 const (
 	testDatabaseURL = "postgres://agenda_app@localhost:5432/barberia_test?sslmode=disable"
 
-	// shopC/shopD son las dos barberías dedicadas de
-	// testdata/hu021_barberos.sql: aisladas de dos_barberias.sql para que un
-	// conteo exacto de barberos en una página no dependa de lo que otras
+	// shopC/shopD son los dos negocios dedicados de
+	// testdata/hu021_profesionales.sql: aisladas de dos_negocios.sql para que un
+	// conteo exacto de profesionales en una página no dependa de lo que otras
 	// suites (settings, auth) hagan sobre shopA/shopB.
-	shopC = database.BarbershopID("33333333-3333-3333-3333-333333333333")
-	shopD = database.BarbershopID("44444444-4444-4444-4444-444444444444")
+	shopC = database.BusinessID("33333333-3333-3333-3333-333333333333")
+	shopD = database.BusinessID("44444444-4444-4444-4444-444444444444")
 )
 
 func setupTestDB(t *testing.T) *database.DB {
@@ -67,7 +67,7 @@ func newRepository(db *database.DB) *staffpostgres.Repository {
 }
 
 // uniqueSuffix evita colisiones entre ejecuciones repetidas de la suite
-// contra el mismo PostgreSQL persistente (barberia_app no puede DELETE,
+// contra el mismo PostgreSQL persistente (agenda_app no puede DELETE,
 // CA-021-07/DEC-047, así que las filas de una corrida anterior siguen ahí):
 // cada prueba usa nombres/claves con un sufijo aleatorio propio.
 func uniqueSuffix(t *testing.T) string {
@@ -79,7 +79,7 @@ func uniqueSuffix(t *testing.T) string {
 	return hex.EncodeToString(buf)
 }
 
-func createBarber(t *testing.T, repo *staffpostgres.Repository, shop database.BarbershopID, fullName string) staff.Barber {
+func createProfessional(t *testing.T, repo *staffpostgres.Repository, shop database.BusinessID, fullName string) staff.Professional {
 	t.Helper()
 	key := idempotency.Key("fixture-" + uniqueSuffix(t))
 	fp := idempotency.ComputeFingerprint("POST", "/api/v1/private/professionals", []byte(`{"fullName":"`+fullName+`"}`))
@@ -90,16 +90,16 @@ func createBarber(t *testing.T, repo *staffpostgres.Repository, shop database.Ba
 	if result.Decision.Outcome != idempotency.OutcomeProceed {
 		t.Fatalf("createProfessional: expected OutcomeProceed, got %s", result.Decision.Outcome)
 	}
-	return result.Barber
+	return result.Professional
 }
 
 // --- List: orden estable, paginación contigua sin duplicados/omisiones --
 
 // TestList_TraversingUntilExhausted_TerminatesWithoutNextCursor recorre
 // TODA la colección actual de shopD (que puede tener filas de corridas
-// anteriores de esta suite: barberia_app no puede DELETE, CA-021-07/
+// anteriores de esta suite: agenda_app no puede DELETE, CA-021-07/
 // DEC-047, así que esta prueba nunca asume un tamaño exacto ni una
-// barbería vacía) con limit=1, y confirma que el recorrido SIEMPRE termina
+// negocio vacía) con limit=1, y confirma que el recorrido SIEMPRE termina
 // con NextCursor="" en algún momento, sin duplicados ni omisiones respecto
 // de una lectura de control con un límite grande.
 func TestList_TraversingUntilExhausted_TerminatesWithoutNextCursor(t *testing.T) {
@@ -107,7 +107,7 @@ func TestList_TraversingUntilExhausted_TerminatesWithoutNextCursor(t *testing.T)
 	repo := newRepository(db)
 	suffix := uniqueSuffix(t)
 
-	marker := createBarber(t, repo, shopD, "Marcador de recorrido "+suffix)
+	marker := createProfessional(t, repo, shopD, "Marcador de recorrido "+suffix)
 
 	seen := map[string]bool{}
 	var cursor *staff.Cursor
@@ -138,29 +138,29 @@ func TestList_TraversingUntilExhausted_TerminatesWithoutNextCursor(t *testing.T)
 	}
 
 	if !seen[marker.ID] {
-		t.Fatalf("expected the just-created marker barber %s to appear while exhausting the collection", marker.ID)
+		t.Fatalf("expected the just-created marker professional %s to appear while exhausting the collection", marker.ID)
 	}
 }
 
-func TestList_FourBarbersInATeamShop_ReturnedAsFourDistinctResources(t *testing.T) {
-	// CA-021-02: una barbería con un barbero y luego tres más registrados
-	// produce cuatro recursos distintos de la misma barbería, con el mismo
-	// código de camino que una barbería unipersonal (CA-021-01): no hay una
-	// forma de datos especial para "barbero único".
+func TestList_FourProfessionalsInATeamShop_ReturnedAsFourDistinctResources(t *testing.T) {
+	// CA-021-02: un negocio con un profesional y luego tres más registrados
+	// produce cuatro recursos distintos del mismo negocio, con el mismo
+	// código de camino que un negocio unipersonal (CA-021-01): no hay una
+	// forma de datos especial para "profesional único".
 	db := setupTestDB(t)
 	repo := newRepository(db)
 	suffix := uniqueSuffix(t)
 
 	created := make(map[string]bool, 4)
 	for i := 0; i < 4; i++ {
-		b := createBarber(t, repo, shopC, "Equipo "+suffix+" "+string(rune('A'+i)))
+		b := createProfessional(t, repo, shopC, "Equipo "+suffix+" "+string(rune('A'+i)))
 		if created[b.ID] {
 			t.Fatalf("duplicate id returned by Create: %s", b.ID)
 		}
 		created[b.ID] = true
 	}
 	if len(created) != 4 {
-		t.Fatalf("expected 4 distinct barbers, got %d", len(created))
+		t.Fatalf("expected 4 distinct professionals, got %d", len(created))
 	}
 
 	// Recorre TODAS las páginas con limit=1 y confirma que los 4 ids
@@ -200,7 +200,7 @@ func TestList_FourBarbersInATeamShop_ReturnedAsFourDistinctResources(t *testing.
 
 	for id := range created {
 		if !seen[id] {
-			t.Fatalf("CA-021-02: barber %s was never returned while paging through all pages", id)
+			t.Fatalf("CA-021-02: professional %s was never returned while paging through all pages", id)
 		}
 	}
 }
@@ -212,9 +212,9 @@ func TestList_FirstPage_NeverReturnsMoreThanLimit(t *testing.T) {
 
 	// Deja al menos 3 filas conocidas en shopC para esta prueba, sin
 	// importar cuántas más haya de corridas anteriores.
-	createBarber(t, repo, shopC, "Límite Uno "+suffix)
-	createBarber(t, repo, shopC, "Límite Dos "+suffix)
-	createBarber(t, repo, shopC, "Límite Tres "+suffix)
+	createProfessional(t, repo, shopC, "Límite Uno "+suffix)
+	createProfessional(t, repo, shopC, "Límite Dos "+suffix)
+	createProfessional(t, repo, shopC, "Límite Tres "+suffix)
 
 	page, err := repo.List(context.Background(), string(shopC), nil, 2)
 	if err != nil {
@@ -228,32 +228,32 @@ func TestList_FirstPage_NeverReturnsMoreThanLimit(t *testing.T) {
 	}
 }
 
-// --- CA-021-05: A no ve, no lee ni renombra un barbero de B --------------
+// --- CA-021-05: A no ve, no lee ni renombra un profesional de B --------------
 
-func TestGet_CrossTenant_NeverLeaksAnotherShopsBarber(t *testing.T) {
+func TestGet_CrossTenant_NeverLeaksAnotherShopsProfessional(t *testing.T) {
 	db := setupTestDB(t)
 	repo := newRepository(db)
 	suffix := uniqueSuffix(t)
 
-	barberD := createBarber(t, repo, shopD, "De la barbería D "+suffix)
+	professionalD := createProfessional(t, repo, shopD, "Del negocio D "+suffix)
 
 	// El mismo identificador real, consultado bajo el contexto de C, debe
 	// comportarse EXACTAMENTE como "no existe" (CA-021-05).
-	_, found, err := repo.Get(context.Background(), string(shopC), barberD.ID)
+	_, found, err := repo.Get(context.Background(), string(shopC), professionalD.ID)
 	if err != nil {
 		t.Fatalf("Get: %v", err)
 	}
 	if found {
-		t.Fatal("CA-021-05: shopC's context could read shopD's barber")
+		t.Fatal("CA-021-05: shopC's context could read shopD's professional")
 	}
 
 	// Defensivo: bajo su propio tenant, sigue visible.
-	got, found, err := repo.Get(context.Background(), string(shopD), barberD.ID)
+	got, found, err := repo.Get(context.Background(), string(shopD), professionalD.ID)
 	if err != nil {
 		t.Fatalf("Get (own tenant): %v", err)
 	}
-	if !found || got.ID != barberD.ID {
-		t.Fatal("expected shopD to still see its own barber")
+	if !found || got.ID != professionalD.ID {
+		t.Fatal("expected shopD to still see its own professional")
 	}
 }
 
@@ -270,28 +270,28 @@ func TestGet_NonexistentID_ReturnsNotFoundSameAsOtherTenant(t *testing.T) {
 	}
 }
 
-func TestRename_CrossTenant_NeverRenamesAnotherShopsBarber(t *testing.T) {
+func TestRename_CrossTenant_NeverRenamesAnotherShopsProfessional(t *testing.T) {
 	db := setupTestDB(t)
 	repo := newRepository(db)
 	suffix := uniqueSuffix(t)
 
-	barberD := createBarber(t, repo, shopD, "Nombre Original D "+suffix)
+	professionalD := createProfessional(t, repo, shopD, "Nombre Original D "+suffix)
 
-	result, err := repo.Update(context.Background(), string(shopC), barberD.ID, "Renombrado por C "+suffix, staff.DescriptionPatch{})
+	result, err := repo.Update(context.Background(), string(shopC), professionalD.ID, "Renombrado por C "+suffix, staff.DescriptionPatch{})
 	if err != nil {
 		t.Fatalf("Rename: %v", err)
 	}
 	if result.Found {
-		t.Fatal("CA-021-05: shopC's context renamed shopD's barber")
+		t.Fatal("CA-021-05: shopC's context renamed shopD's professional")
 	}
 
 	// El nombre de D no cambió.
-	stillD, found, err := repo.Get(context.Background(), string(shopD), barberD.ID)
+	stillD, found, err := repo.Get(context.Background(), string(shopD), professionalD.ID)
 	if err != nil {
 		t.Fatalf("Get: %v", err)
 	}
 	if !found || stillD.FullName != "Nombre Original D "+suffix {
-		t.Fatalf("expected shopD's barber name untouched, got %+v", stillD)
+		t.Fatalf("expected shopD's professional name untouched, got %+v", stillD)
 	}
 }
 
@@ -301,24 +301,24 @@ func TestRename_OwnTenant_UpdatesByIDWithoutDuplicating(t *testing.T) {
 	repo := newRepository(db)
 	suffix := uniqueSuffix(t)
 
-	original := createBarber(t, repo, shopC, "Antes de renombrar "+suffix)
+	original := createProfessional(t, repo, shopC, "Antes de renombrar "+suffix)
 
 	result, err := repo.Update(context.Background(), string(shopC), original.ID, "Después de renombrar "+suffix, staff.DescriptionPatch{})
 	if err != nil {
 		t.Fatalf("Rename: %v", err)
 	}
 	if !result.Found {
-		t.Fatal("expected Found=true for the barber's own tenant")
+		t.Fatal("expected Found=true for the professional's own tenant")
 	}
-	if result.Barber.ID != original.ID {
-		t.Fatalf("expected the same id after rename, got %s vs %s", result.Barber.ID, original.ID)
+	if result.Professional.ID != original.ID {
+		t.Fatalf("expected the same id after rename, got %s vs %s", result.Professional.ID, original.ID)
 	}
-	if result.Barber.FullName != "Después de renombrar "+suffix {
-		t.Fatalf("unexpected renamed name: %+v", result.Barber)
+	if result.Professional.FullName != "Después de renombrar "+suffix {
+		t.Fatalf("unexpected renamed name: %+v", result.Professional)
 	}
-	if !result.Barber.UpdatedAt.After(original.UpdatedAt) && !result.Barber.UpdatedAt.Equal(original.UpdatedAt) {
+	if !result.Professional.UpdatedAt.After(original.UpdatedAt) && !result.Professional.UpdatedAt.Equal(original.UpdatedAt) {
 		t.Fatalf("expected updated_at to advance or stay equal (never go backwards), before=%v after=%v",
-			original.UpdatedAt, result.Barber.UpdatedAt)
+			original.UpdatedAt, result.Professional.UpdatedAt)
 	}
 
 	got, found, err := repo.Get(context.Background(), string(shopC), original.ID)
@@ -330,16 +330,16 @@ func TestRename_OwnTenant_UpdatesByIDWithoutDuplicating(t *testing.T) {
 	}
 }
 
-func TestRename_DuplicateNameAcrossBarbers_Allowed(t *testing.T) {
-	// HU-021 no impone unicidad de fullName: dos barberos de la misma
-	// barbería pueden compartir nombre.
+func TestRename_DuplicateNameAcrossProfessionals_Allowed(t *testing.T) {
+	// HU-021 no impone unicidad de fullName: dos profesionales de la misma
+	// negocio pueden compartir nombre.
 	db := setupTestDB(t)
 	repo := newRepository(db)
 	suffix := uniqueSuffix(t)
 	sharedName := "Nombre Compartido " + suffix
 
-	a := createBarber(t, repo, shopC, "Barbero Uno "+suffix)
-	b := createBarber(t, repo, shopC, "Barbero Dos "+suffix)
+	a := createProfessional(t, repo, shopC, "Barbero Uno "+suffix)
+	b := createProfessional(t, repo, shopC, "Barbero Dos "+suffix)
 
 	if _, err := repo.Update(context.Background(), string(shopC), a.ID, sharedName, staff.DescriptionPatch{}); err != nil {
 		t.Fatalf("Rename a: %v", err)
@@ -351,10 +351,10 @@ func TestRename_DuplicateNameAcrossBarbers_Allowed(t *testing.T) {
 	gotA, _, _ := repo.Get(context.Background(), string(shopC), a.ID)
 	gotB, _, _ := repo.Get(context.Background(), string(shopC), b.ID)
 	if gotA.FullName != sharedName || gotB.FullName != sharedName {
-		t.Fatalf("expected both barbers to accept the same name, got %q and %q", gotA.FullName, gotB.FullName)
+		t.Fatalf("expected both professionals to accept the same name, got %q and %q", gotA.FullName, gotB.FullName)
 	}
 	if gotA.ID == gotB.ID {
-		t.Fatal("expected two distinct barbers, not one merged into the other")
+		t.Fatal("expected two distinct professionals, not one merged into the other")
 	}
 }
 
@@ -375,19 +375,19 @@ func TestCreate_FirstExecution_PersistsAndReturnsProceed(t *testing.T) {
 	if result.Decision.Outcome != idempotency.OutcomeProceed {
 		t.Fatalf("expected OutcomeProceed, got %s", result.Decision.Outcome)
 	}
-	if result.Barber.ID == "" || result.Barber.FullName != "Nuevo "+suffix {
-		t.Fatalf("unexpected created barber: %+v", result.Barber)
+	if result.Professional.ID == "" || result.Professional.FullName != "Nuevo "+suffix {
+		t.Fatalf("unexpected created professional: %+v", result.Professional)
 	}
 	if result.Response.Status != 201 {
 		t.Fatalf("expected stored status 201, got %d", result.Response.Status)
 	}
 
-	got, found, err := repo.Get(context.Background(), string(shopC), result.Barber.ID)
+	got, found, err := repo.Get(context.Background(), string(shopC), result.Professional.ID)
 	if err != nil {
 		t.Fatalf("Get: %v", err)
 	}
 	if !found || got.FullName != "Nuevo "+suffix {
-		t.Fatalf("expected the created barber to be persisted, got found=%v %+v", found, got)
+		t.Fatalf("expected the created professional to be persisted, got found=%v %+v", found, got)
 	}
 }
 
@@ -428,8 +428,8 @@ func TestCreate_SameKeyAndContent_ReplaysWithoutCreatingASecondRow(t *testing.T)
 	if err := json.Unmarshal([]byte(second.Response.Body), &parsed); err != nil {
 		t.Fatalf("unmarshal stored response body: %v", err)
 	}
-	if parsed.ID != first.Barber.ID {
-		t.Fatalf("expected the replayed body to reference the original barber id %s, got %s", first.Barber.ID, parsed.ID)
+	if parsed.ID != first.Professional.ID {
+		t.Fatalf("expected the replayed body to reference the original professional id %s, got %s", first.Professional.ID, parsed.ID)
 	}
 }
 
@@ -457,8 +457,8 @@ func TestCreate_SameKeyDifferentContent_ConflictsWithoutEffect(t *testing.T) {
 	if second.Decision.Outcome != idempotency.OutcomeConflictFingerprint {
 		t.Fatalf("expected OutcomeConflictFingerprint, got %s", second.Decision.Outcome)
 	}
-	if second.Barber.ID != "" {
-		t.Fatal("expected no barber created on conflict")
+	if second.Professional.ID != "" {
+		t.Fatal("expected no professional created on conflict")
 	}
 	if err := second.Decision.AsError(); err == nil {
 		t.Fatal("expected Decision.AsError() to be non-nil for a conflict")
@@ -539,7 +539,7 @@ func TestCreate_TwoRealConcurrentConnections_SingleEffect(t *testing.T) {
 		t.Fatalf("unexpected outcome pair: a=%s b=%s", aResult.Decision.Outcome, bResult.Decision.Outcome)
 	}
 
-	// Exactamente un barbero fue creado para esta clave: confirmarlo
+	// Exactamente un profesional fue creado para esta clave: confirmarlo
 	// leyendo el ganador por id.
 	winner := aResult
 	if winner.Decision.Outcome != idempotency.OutcomeProceed {
@@ -548,17 +548,17 @@ func TestCreate_TwoRealConcurrentConnections_SingleEffect(t *testing.T) {
 	if winner.Decision.Outcome != idempotency.OutcomeProceed {
 		t.Fatal("expected at least one of the two connections to proceed")
 	}
-	got, found, err := repo.Get(context.Background(), string(shopC), winner.Barber.ID)
+	got, found, err := repo.Get(context.Background(), string(shopC), winner.Professional.ID)
 	if err != nil {
 		t.Fatalf("Get: %v", err)
 	}
 	if !found || got.FullName != fullName {
-		t.Fatalf("expected the single created barber to be persisted, got found=%v %+v", found, got)
+		t.Fatalf("expected the single created professional to be persisted, got found=%v %+v", found, got)
 	}
 }
 
 func TestCreate_SameKeyLiteralInTwoTenants_DoesNotInterfere(t *testing.T) {
-	// CA-004-04/RN-TEN-01: la misma clave literal en dos barberías distintas
+	// CA-004-04/RN-TEN-01: la misma clave literal en dos negocios distintos
 	// no interfiere: cada una procede de forma independiente.
 	db := setupTestDB(t)
 	repo := newRepository(db)
@@ -582,14 +582,14 @@ func TestCreate_SameKeyLiteralInTwoTenants_DoesNotInterfere(t *testing.T) {
 	if resultD.Decision.Outcome != idempotency.OutcomeProceed {
 		t.Fatalf("expected shopD to ALSO proceed with the same literal key (RN-TEN-01), got %s", resultD.Decision.Outcome)
 	}
-	if resultC.Barber.ID == resultD.Barber.ID {
-		t.Fatal("expected two distinct barbers, one per tenant")
+	if resultC.Professional.ID == resultD.Professional.ID {
+		t.Fatal("expected two distinct professionals, one per tenant")
 	}
 }
 
-func TestCreate_DifferentKeysSameName_CreatesTwoDistinctBarbers(t *testing.T) {
+func TestCreate_DifferentKeysSameName_CreatesTwoDistinctProfessionals(t *testing.T) {
 	// La clave de idempotencia no convierte el nombre en único (trabajo
-	// requerido §1.3): dos claves distintas SÍ crean dos barberos con el
+	// requerido §1.3): dos claves distintas SÍ crean dos profesionales con el
 	// mismo fullName.
 	db := setupTestDB(t)
 	repo := newRepository(db)
@@ -606,17 +606,17 @@ func TestCreate_DifferentKeysSameName_CreatesTwoDistinctBarbers(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Create (2): %v", err)
 	}
-	if first.Barber.ID == second.Barber.ID {
-		t.Fatal("expected two distinct barbers with the same name from two different idempotency keys")
+	if first.Professional.ID == second.Professional.ID {
+		t.Fatal("expected two distinct professionals with the same name from two different idempotency keys")
 	}
-	if first.Barber.FullName != name || second.Barber.FullName != name {
-		t.Fatalf("expected both to keep the requested name, got %q and %q", first.Barber.FullName, second.Barber.FullName)
+	if first.Professional.FullName != name || second.Professional.FullName != name {
+		t.Fatalf("expected both to keep the requested name, got %q and %q", first.Professional.FullName, second.Professional.FullName)
 	}
 }
 
 // TestCreate_StoredResponseBody_MatchesHTTPAPIWireShape confirma que el
 // JSON que Repository.Create persiste para una repetición exacta usa
-// EXACTAMENTE las mismas claves que httpapi.BarberResponse (id, fullName,
+// EXACTAMENTE las mismas claves que httpapi.ProfessionalResponse (id, fullName,
 // createdAt, updatedAt, photoUpdatedAt): la advertencia de mantenimiento manual que ambos
 // archivos declaran en su comentario.
 func TestCreate_StoredResponseBody_MatchesHTTPAPIWireShape(t *testing.T) {
@@ -645,17 +645,17 @@ func TestCreate_StoredResponseBody_MatchesHTTPAPIWireShape(t *testing.T) {
 			t.Fatalf("expected key %q in the stored response body, got %v", k, generic)
 		}
 	}
-	// Un barbero recién creado no tiene fotografía ni descripción: null
+	// Un profesional recién creado no tiene fotografía ni descripción: null
 	// explícito, no ausente.
 	if generic["photoUpdatedAt"] != nil {
-		t.Fatalf("a new barber has no photo, got photoUpdatedAt=%v", generic["photoUpdatedAt"])
+		t.Fatalf("a new professional has no photo, got photoUpdatedAt=%v", generic["photoUpdatedAt"])
 	}
 	if generic["description"] != nil {
-		t.Fatalf("a new barber has no description, got description=%v", generic["description"])
+		t.Fatalf("a new professional has no description, got description=%v", generic["description"])
 	}
 }
 
-// --- Descripción del barbero (DEC-127) -------------------------------------
+// --- Descripción del profesional (DEC-127) -------------------------------------
 
 func strPtr(s string) *string { return &s }
 
@@ -670,8 +670,8 @@ func TestCreate_WithDescription_PersistsAndAppearsInStoredResponse(t *testing.T)
 	if err != nil {
 		t.Fatalf("Create: %v", err)
 	}
-	if result.Barber.Description == nil || *result.Barber.Description != "Fade y barba" {
-		t.Fatalf("expected the description on the created barber, got %+v", result.Barber)
+	if result.Professional.Description == nil || *result.Professional.Description != "Fade y barba" {
+		t.Fatalf("expected the description on the created professional, got %+v", result.Professional)
 	}
 
 	var stored map[string]any
@@ -682,7 +682,7 @@ func TestCreate_WithDescription_PersistsAndAppearsInStoredResponse(t *testing.T)
 		t.Fatalf("expected the replayable response to carry the description, got %v", stored["description"])
 	}
 
-	got, found, err := repo.Get(context.Background(), string(shopC), result.Barber.ID)
+	got, found, err := repo.Get(context.Background(), string(shopC), result.Professional.ID)
 	if err != nil || !found || got.Description == nil || *got.Description != "Fade y barba" {
 		t.Fatalf("expected Get to read the description back, got %+v found=%v err=%v", got, found, err)
 	}
@@ -694,92 +694,92 @@ func TestUpdate_Description_SetKeepAndClear(t *testing.T) {
 	suffix := uniqueSuffix(t)
 	ctx := context.Background()
 
-	barber := createBarber(t, repo, shopC, "Descripción "+suffix)
-	if barber.Description != nil {
-		t.Fatalf("a barber created without description must have none, got %q", *barber.Description)
+	professional := createProfessional(t, repo, shopC, "Descripción "+suffix)
+	if professional.Description != nil {
+		t.Fatalf("a professional created without description must have none, got %q", *professional.Description)
 	}
 
-	set, err := repo.Update(ctx, string(shopC), barber.ID, barber.FullName, staff.DescriptionPatch{Set: true, Value: strPtr("Navaja clásica")})
-	if err != nil || !set.Found || set.Barber.Description == nil || *set.Barber.Description != "Navaja clásica" {
+	set, err := repo.Update(ctx, string(shopC), professional.ID, professional.FullName, staff.DescriptionPatch{Set: true, Value: strPtr("Navaja clásica")})
+	if err != nil || !set.Found || set.Professional.Description == nil || *set.Professional.Description != "Navaja clásica" {
 		t.Fatalf("expected the description to be set, got %+v err=%v", set, err)
 	}
 
 	// Sin `Set` el nombre cambia y la descripción se conserva.
-	kept, err := repo.Update(ctx, string(shopC), barber.ID, "Otro nombre "+suffix, staff.DescriptionPatch{})
+	kept, err := repo.Update(ctx, string(shopC), professional.ID, "Otro nombre "+suffix, staff.DescriptionPatch{})
 	if err != nil || !kept.Found {
 		t.Fatalf("Update: %+v err=%v", kept, err)
 	}
-	if kept.Barber.Description == nil || *kept.Barber.Description != "Navaja clásica" {
-		t.Fatalf("an update without a description change must keep it, got %+v", kept.Barber.Description)
+	if kept.Professional.Description == nil || *kept.Professional.Description != "Navaja clásica" {
+		t.Fatalf("an update without a description change must keep it, got %+v", kept.Professional.Description)
 	}
 
-	cleared, err := repo.Update(ctx, string(shopC), barber.ID, "Otro nombre "+suffix, staff.DescriptionPatch{Set: true, Value: nil})
+	cleared, err := repo.Update(ctx, string(shopC), professional.ID, "Otro nombre "+suffix, staff.DescriptionPatch{Set: true, Value: nil})
 	if err != nil || !cleared.Found {
 		t.Fatalf("Update: %+v err=%v", cleared, err)
 	}
-	if cleared.Barber.Description != nil {
-		t.Fatalf("Set with a nil value must clear the description, got %q", *cleared.Barber.Description)
+	if cleared.Professional.Description != nil {
+		t.Fatalf("Set with a nil value must clear the description, got %q", *cleared.Professional.Description)
 	}
 }
 
-func TestUpdate_Description_CrossTenant_NeverTouchesAnotherShopsBarber(t *testing.T) {
+func TestUpdate_Description_CrossTenant_NeverTouchesAnotherShopsProfessional(t *testing.T) {
 	db := setupTestDB(t)
 	repo := newRepository(db)
 	suffix := uniqueSuffix(t)
 	ctx := context.Background()
 
-	barberD := createBarber(t, repo, shopD, "Barbero D "+suffix)
-	if _, err := repo.Update(ctx, string(shopD), barberD.ID, barberD.FullName, staff.DescriptionPatch{Set: true, Value: strPtr("De D")}); err != nil {
+	professionalD := createProfessional(t, repo, shopD, "Barbero D "+suffix)
+	if _, err := repo.Update(ctx, string(shopD), professionalD.ID, professionalD.FullName, staff.DescriptionPatch{Set: true, Value: strPtr("De D")}); err != nil {
 		t.Fatalf("Update: %v", err)
 	}
 
-	result, err := repo.Update(ctx, string(shopC), barberD.ID, "Intruso "+suffix, staff.DescriptionPatch{Set: true, Value: strPtr("Pisada por C")})
+	result, err := repo.Update(ctx, string(shopC), professionalD.ID, "Intruso "+suffix, staff.DescriptionPatch{Set: true, Value: strPtr("Pisada por C")})
 	if err != nil {
 		t.Fatalf("Update: %v", err)
 	}
 	if result.Found {
-		t.Fatal("CA-021-05: shopC's context updated shopD's barber")
+		t.Fatal("CA-021-05: shopC's context updated shopD's professional")
 	}
 
-	stillD, found, err := repo.Get(ctx, string(shopD), barberD.ID)
+	stillD, found, err := repo.Get(ctx, string(shopD), professionalD.ID)
 	if err != nil || !found {
 		t.Fatalf("Get: found=%v err=%v", found, err)
 	}
-	if stillD.FullName != barberD.FullName || stillD.Description == nil || *stillD.Description != "De D" {
-		t.Fatalf("expected shopD's barber untouched, got %+v", stillD)
+	if stillD.FullName != professionalD.FullName || stillD.Description == nil || *stillD.Description != "De D" {
+		t.Fatalf("expected shopD's professional untouched, got %+v", stillD)
 	}
 }
 
 // La base rechaza una descripción vacía o de más de 280 caracteres aunque la
-// aplicación ya la normalice: barber_description_ck es la última defensa.
+// aplicación ya la normalice: professional_description_ck es la última defensa.
 func TestUpdate_Description_DatabaseRejectsEmptyAndOversized(t *testing.T) {
 	db := setupTestDB(t)
 	repo := newRepository(db)
 	suffix := uniqueSuffix(t)
 	ctx := context.Background()
 
-	barber := createBarber(t, repo, shopC, "Restricción "+suffix)
+	professional := createProfessional(t, repo, shopC, "Restricción "+suffix)
 
 	for name, value := range map[string]string{
 		"vacía":          "",
 		"solo espacios":  "   ",
 		"281 caracteres": strings.Repeat("a", 281),
 	} {
-		if _, err := repo.Update(ctx, string(shopC), barber.ID, barber.FullName, staff.DescriptionPatch{Set: true, Value: strPtr(value)}); err == nil {
+		if _, err := repo.Update(ctx, string(shopC), professional.ID, professional.FullName, staff.DescriptionPatch{Set: true, Value: strPtr(value)}); err == nil {
 			t.Errorf("%s: expected professional_description_ck to reject the value", name)
 		}
 	}
 
-	exact, err := repo.Update(ctx, string(shopC), barber.ID, barber.FullName, staff.DescriptionPatch{Set: true, Value: strPtr(strings.Repeat("ñ", 280))})
+	exact, err := repo.Update(ctx, string(shopC), professional.ID, professional.FullName, staff.DescriptionPatch{Set: true, Value: strPtr(strings.Repeat("ñ", 280))})
 	if err != nil || !exact.Found {
 		t.Fatalf("a 280-character description must be accepted, got %+v err=%v", exact, err)
 	}
 }
 
-// seedReview inserta, bajo el tenant de la barbería, un servicio, un cliente, una
+// seedReview inserta, bajo el tenant del negocio, un servicio, un cliente, una
 // cita completada y su reseña directamente en SQL (la aplicación del cliente
 // vive en el módulo reviews, que staff no importa). hidden=true la deja oculta.
-func seedReview(t *testing.T, db *database.DB, shop database.BarbershopID, barberID string, rating int, hidden bool, slot int) {
+func seedReview(t *testing.T, db *database.DB, shop database.BusinessID, professionalID string, rating int, hidden bool, slot int) {
 	t.Helper()
 	suffix := uniqueSuffix(t)
 	err := db.InTenantTx(context.Background(), shop, func(ctx context.Context, q database.Queries) error {
@@ -799,13 +799,13 @@ func seedReview(t *testing.T, db *database.DB, shop database.BarbershopID, barbe
 			                          status, origin, resolved_at, service_name_snapshot, duration_minutes_snapshot,
 			                          price_amount_snapshot, price_currency_snapshot)
 			 VALUES ($1, $2, $3, $4, 'Cliente de prueba', $5, $6, 'completed', 'manual', now(), 'Servicio', 30, 20000, 'COP')
-			 RETURNING id`, string(shop), barberID, serviceID, customerID, starts, starts.Add(30*time.Minute)).Scan(&appointmentID); err != nil {
+			 RETURNING id`, string(shop), professionalID, serviceID, customerID, starts, starts.Add(30*time.Minute)).Scan(&appointmentID); err != nil {
 			return err
 		}
 		_, err := q.Exec(ctx,
 			`INSERT INTO professional_review (business_id, professional_id, appointment_id, rating, hidden_at)
 			 VALUES ($1, $2, $3, $4, CASE WHEN $5 THEN now() ELSE NULL END)`,
-			string(shop), barberID, appointmentID, rating, hidden)
+			string(shop), professionalID, appointmentID, rating, hidden)
 		return err
 	})
 	if err != nil {
@@ -813,16 +813,16 @@ func seedReview(t *testing.T, db *database.DB, shop database.BarbershopID, barbe
 	}
 }
 
-// DEC-128 §5: el promedio (1 decimal) y el total de la ficha del barbero cuentan
-// solo las reseñas no ocultas, sin columna derivada, y no cruzan barberías.
+// DEC-128 §5: el promedio (1 decimal) y el total de la ficha del profesional cuentan
+// solo las reseñas no ocultas, sin columna derivada, y no cruzan negocios.
 func TestGetAndListPage_RatingCountsOnlyVisibleReviews_PerTenant(t *testing.T) {
 	db := setupTestDB(t)
 	repo := newRepository(db)
 	suffix := uniqueSuffix(t)
 
-	rated := createBarber(t, repo, shopC, "Con reseñas "+suffix)
-	unrated := createBarber(t, repo, shopC, "Sin reseñas "+suffix)
-	other := createBarber(t, repo, shopD, "De otra barbería "+suffix)
+	rated := createProfessional(t, repo, shopC, "Con reseñas "+suffix)
+	unrated := createProfessional(t, repo, shopC, "Sin reseñas "+suffix)
+	other := createProfessional(t, repo, shopD, "De otro negocio "+suffix)
 
 	// Sin reseñas: promedio nulo y total 0 (no 0.0).
 	got, found, err := repo.Get(context.Background(), string(shopC), rated.ID)
@@ -847,7 +847,7 @@ func TestGetAndListPage_RatingCountsOnlyVisibleReviews_PerTenant(t *testing.T) {
 	}
 
 	// Recorre todas las páginas: la base persistente puede tener más de una.
-	var items []staff.Barber
+	var items []staff.Professional
 	for pageNumber, totalPages := 1, 1; pageNumber <= totalPages; pageNumber++ {
 		page, err := repo.ListPage(context.Background(), string(shopC), pageNumber, 100)
 		if err != nil {
@@ -872,12 +872,12 @@ func TestGetAndListPage_RatingCountsOnlyVisibleReviews_PerTenant(t *testing.T) {
 		}
 	}
 	if !seenRated || !seenUnrated {
-		t.Fatalf("ListPage no devolvió los barberos esperados: rated=%v unrated=%v (items=%d)", seenRated, seenUnrated, len(items))
+		t.Fatalf("ListPage no devolvió los profesionales esperados: rated=%v unrated=%v (items=%d)", seenRated, seenUnrated, len(items))
 	}
 
-	// La reseña de otra barbería no se mezcla.
+	// La reseña de otro negocio no se mezcla.
 	otherGot, _, _ := repo.Get(context.Background(), string(shopD), other.ID)
 	if otherGot.Rating == nil || *otherGot.Rating != 1 || otherGot.RatingCount != 1 {
-		t.Fatalf("otra barbería: rating=%v count=%d", otherGot.Rating, otherGot.RatingCount)
+		t.Fatalf("otro negocio: rating=%v count=%d", otherGot.Rating, otherGot.RatingCount)
 	}
 }

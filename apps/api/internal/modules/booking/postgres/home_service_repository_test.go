@@ -5,32 +5,32 @@ import (
 	"testing"
 	"time"
 
-	"system-barbershop/internal/modules/booking"
-	"system-barbershop/internal/platform/database"
-	"system-barbershop/internal/platform/idempotency"
+	"nava-agenda/internal/modules/booking"
+	"nava-agenda/internal/platform/database"
+	"nava-agenda/internal/platform/idempotency"
 )
 
 // Servicio a domicilio (DEC-131, HU-103) contra PostgreSQL real y dos tenants:
-// la dirección se persiste junto al turno, el panel de esa barbería la lee en la
-// agenda y en el detalle, y nunca es visible desde otra barbería.
+// la dirección se persiste junto al turno, el panel de ese negocio la lee en la
+// agenda y en el detalle, y nunca es visible desde otro negocio.
 
 func publicWithHome(t *testing.T, home *booking.HomeService) (booking.CreatePublicInput, string) {
 	t.Helper()
 	suffix := uniqueSuffix(t)
-	input := publicInput(t, barberQ1, serviceQ, baseStart(t), suffix, booking.CustomerInput{
+	input := publicInput(t, professionalQ1, serviceQ, baseStart(t), suffix, booking.CustomerInput{
 		New: &booking.NewCustomerInput{FullName: "Cliente domicilio " + suffix},
 	})
 	input.HomeService = home
 	return input, suffix
 }
 
-func appointmentIDAt(t *testing.T, db *database.DB, shop database.BarbershopID, barberID string, start time.Time) string {
+func appointmentIDAt(t *testing.T, db *database.DB, shop database.BusinessID, professionalID string, start time.Time) string {
 	t.Helper()
 	var id string
 	err := db.InTenantTx(context.Background(), shop, func(ctx context.Context, q database.Queries) error {
 		return q.QueryRow(ctx,
 			`SELECT id FROM appointment WHERE business_id = $1 AND professional_id = $2 AND starts_at = $3`,
-			string(shop), barberID, start).Scan(&id)
+			string(shop), professionalID, start).Scan(&id)
 	})
 	if err != nil {
 		t.Fatalf("find appointment: %v", err)
@@ -48,9 +48,9 @@ func TestCreatePublic_HomeService_PersistsAddressAndIsReadableByItsShopOnly(t *t
 		idempotency.Key("home-"+suffix), idempotency.Fingerprint("8123456789abcdef0123456789abcdef")); err != nil {
 		t.Fatalf("CreatePublic: %v", err)
 	}
-	id := appointmentIDAt(t, db, shopQ, barberQ1, input.StartsAt)
+	id := appointmentIDAt(t, db, shopQ, professionalQ1, input.StartsAt)
 
-	// Detalle del panel de la barbería dueña.
+	// Detalle del panel del negocio dueño.
 	detail, found, err := repo.GetAppointmentDetail(context.Background(), string(shopQ), id)
 	if err != nil || !found {
 		t.Fatalf("GetAppointmentDetail: found=%v err=%v", found, err)
@@ -59,8 +59,8 @@ func TestCreatePublic_HomeService_PersistsAddressAndIsReadableByItsShopOnly(t *t
 		t.Fatalf("detail.HomeService = %+v, want %+v", detail.HomeService, home)
 	}
 
-	// Agenda del barbero ese día.
-	entries, err := repo.ListDailyAgenda(context.Background(), string(shopQ), barberQ1,
+	// Agenda del profesional ese día.
+	entries, err := repo.ListDailyAgenda(context.Background(), string(shopQ), professionalQ1,
 		input.StartsAt.Add(-time.Hour), input.StartsAt.Add(time.Hour))
 	if err != nil {
 		t.Fatalf("ListDailyAgenda: %v", err)
@@ -78,7 +78,7 @@ func TestCreatePublic_HomeService_PersistsAddressAndIsReadableByItsShopOnly(t *t
 		t.Fatal("the home appointment is missing from the agenda")
 	}
 
-	// RN-TEN-01: la otra barbería ni encuentra el turno ni su dirección.
+	// RN-TEN-01: el otro negocio ni encuentra el turno ni su dirección.
 	_, foundOther, err := repo.GetAppointmentDetail(context.Background(), string(shopR), id)
 	if err != nil {
 		t.Fatalf("GetAppointmentDetail from the other shop: %v", err)
@@ -110,7 +110,7 @@ func TestCreatePublic_WithoutHomeService_StoresNoAddress(t *testing.T) {
 		idempotency.Key("local-"+suffix), idempotency.Fingerprint("9123456789abcdef0123456789abcdef")); err != nil {
 		t.Fatalf("CreatePublic: %v", err)
 	}
-	id := appointmentIDAt(t, db, shopQ, barberQ1, input.StartsAt)
+	id := appointmentIDAt(t, db, shopQ, professionalQ1, input.StartsAt)
 
 	detail, _, err := repo.GetAppointmentDetail(context.Background(), string(shopQ), id)
 	if err != nil {
@@ -153,7 +153,7 @@ func TestAppointmentHomeServiceCheck_RejectsPartialAddressAtTheDatabase(t *testi
 				is_home_service, service_address)
 			SELECT $1, $2, $3, c.id, $4, $5, $6, 'confirmed', 'public', 'Corte', 30, 18000.00, 'COP', true, 'Solo texto'
 			  FROM customer c WHERE c.business_id = $1 LIMIT 1`,
-			string(shopQ), barberQ1, serviceQ, "Parcial "+suffix, start, start.Add(30*time.Minute))
+			string(shopQ), professionalQ1, serviceQ, "Parcial "+suffix, start, start.Add(30*time.Minute))
 		return execErr
 	})
 	if err == nil {

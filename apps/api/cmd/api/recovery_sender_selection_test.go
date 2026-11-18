@@ -11,7 +11,7 @@ import (
 	"os"
 	"testing"
 
-	"system-barbershop/internal/platform/config"
+	"nava-agenda/internal/platform/config"
 )
 
 const (

@@ -11,24 +11,24 @@ import (
 	"testing"
 	"time"
 
-	"system-barbershop/internal/modules/appointmentnotice"
-	noticepostgres "system-barbershop/internal/modules/appointmentnotice/postgres"
-	"system-barbershop/internal/modules/shops"
-	shopspostgres "system-barbershop/internal/modules/shops/postgres"
-	"system-barbershop/internal/platform/config"
-	"system-barbershop/internal/platform/database"
+	"nava-agenda/internal/modules/appointmentnotice"
+	noticepostgres "nava-agenda/internal/modules/appointmentnotice/postgres"
+	"nava-agenda/internal/modules/shops"
+	shopspostgres "nava-agenda/internal/modules/shops/postgres"
+	"nava-agenda/internal/platform/config"
+	"nava-agenda/internal/platform/database"
 )
 
 // Pruebas de integración de la cola de avisos al cliente (HU-130, DEC-142)
-// contra PostgreSQL real y DOS barberías: encolado en la transacción del cambio,
+// contra PostgreSQL real y DOS negocios: encolado en la transacción del cambio,
 // un único aviso pendiente por turno, aislamiento por tenant, y el ciclo del
 // worker (reclamo, contexto con el estado vigente, cierre por CAS y evidencia).
-// El worker se conecta como barberia_worker y solo puede ejecutar las funciones
+// El worker se conecta como agenda_worker y solo puede ejecutar las funciones
 // SECURITY DEFINER.
 
 const (
-	shopA = database.BarbershopID("11111111-1111-1111-1111-111111111111")
-	shopB = database.BarbershopID("22222222-2222-2222-2222-222222222222")
+	shopA = database.BusinessID("11111111-1111-1111-1111-111111111111")
+	shopB = database.BusinessID("22222222-2222-2222-2222-222222222222")
 )
 
 func openDB(t *testing.T, envVar, fallback string) *database.DB {
@@ -67,17 +67,17 @@ func hex8(t *testing.T) string {
 	return hex.EncodeToString(b)
 }
 
-// shopFixture es el barbero y el servicio que las pruebas de este paquete comparten
-// por barbería. Crear uno nuevo por prueba inflaba el catálogo de la barbería de
+// shopFixture es el profesional y el servicio que las pruebas de este paquete comparten
+// por negocio. Crear uno nuevo por prueba inflaba el catálogo del negocio de
 // fixtures (otras suites listan solo 50 servicios), así que se crean una vez.
-type shopFixture struct{ barberID, serviceID string }
+type shopFixture struct{ professionalID, serviceID string }
 
 var (
 	fixturesMu sync.Mutex
-	fixtures   = map[database.BarbershopID]shopFixture{}
+	fixtures   = map[database.BusinessID]shopFixture{}
 )
 
-func sharedFixture(t *testing.T, db *database.DB, shop database.BarbershopID) shopFixture {
+func sharedFixture(t *testing.T, db *database.DB, shop database.BusinessID) shopFixture {
 	t.Helper()
 	fixturesMu.Lock()
 	defer fixturesMu.Unlock()
@@ -87,7 +87,7 @@ func sharedFixture(t *testing.T, db *database.DB, shop database.BarbershopID) sh
 	var f shopFixture
 	err := db.InTenantTx(context.Background(), shop, func(ctx context.Context, q database.Queries) error {
 		if err := q.QueryRow(ctx, `INSERT INTO professional (business_id, full_name) VALUES ($1, $2) RETURNING id::text`,
-			string(shop), "Barbero aviso "+hex8(t)).Scan(&f.barberID); err != nil {
+			string(shop), "Barbero aviso "+hex8(t)).Scan(&f.professionalID); err != nil {
 			return err
 		}
 		return q.QueryRow(ctx,
@@ -102,14 +102,14 @@ func sharedFixture(t *testing.T, db *database.DB, shop database.BarbershopID) sh
 }
 
 // seedAppointment crea un cliente (con o sin correo) y una cita confirmada con el
-// barbero y el servicio compartidos de la barbería, y devuelve su id y el correo.
+// profesional y el servicio compartidos del negocio, y devuelve su id y el correo.
 // El inicio es aleatorio dentro de un año para que ninguna cita se solape con otra
-// del mismo barbero.
-func seedAppointment(t *testing.T, db *database.DB, shop database.BarbershopID, withEmail bool) (id, email string) {
+// del mismo profesional.
+func seedAppointment(t *testing.T, db *database.DB, shop database.BusinessID, withEmail bool) (id, email string) {
 	t.Helper()
 	f := sharedFixture(t, db, shop)
-	// Todas las citas son del mismo barbero y ninguna prueba las borra: un minuto al azar
-	// puede caer encima de otra cita (exclusión del barbero, 23P01). Eso no es lo que
+	// Todas las citas son del mismo profesional y ninguna prueba las borra: un minuto al azar
+	// puede caer encima de otra cita (exclusión del profesional, 23P01). Eso no es lo que
 	// prueba ningún caso, así que se reintenta con otro minuto; cualquier otro error falla.
 	const attempts = 8
 	for attempt := 1; ; attempt++ {
@@ -123,7 +123,7 @@ func seedAppointment(t *testing.T, db *database.DB, shop database.BarbershopID, 
 	}
 }
 
-func insertSeedAppointment(t *testing.T, db *database.DB, shop database.BarbershopID, f shopFixture, withEmail bool) (id, email string, err error) {
+func insertSeedAppointment(t *testing.T, db *database.DB, shop database.BusinessID, f shopFixture, withEmail bool) (id, email string, err error) {
 	t.Helper()
 	b := make([]byte, 3)
 	if _, err := rand.Read(b); err != nil {
@@ -151,12 +151,12 @@ func insertSeedAppointment(t *testing.T, db *database.DB, shop database.Barbersh
 			 VALUES ($1, $2, $3, $4, 'Ana Pérez', $5::timestamptz, $5::timestamptz + interval '40 minutes',
 			         'confirmed', 'manual', 'Corte clásico', 40, 30000, 'COP')
 			 RETURNING id::text`,
-			string(shop), f.barberID, f.serviceID, customerID, start).Scan(&id)
+			string(shop), f.professionalID, f.serviceID, customerID, start).Scan(&id)
 	})
 	return id, email, err
 }
 
-func enqueue(t *testing.T, db *database.DB, shop database.BarbershopID, appointmentID, kind string) {
+func enqueue(t *testing.T, db *database.DB, shop database.BusinessID, appointmentID, kind string) {
 	t.Helper()
 	err := db.InTenantTx(context.Background(), shop, func(ctx context.Context, q database.Queries) error {
 		return noticepostgres.NewEnqueuer().AppointmentNoticeRequired(ctx, q, string(shop), appointmentID, kind)
@@ -171,7 +171,7 @@ type noticeRow struct {
 	Attempts               int
 }
 
-func notices(t *testing.T, db *database.DB, shop database.BarbershopID, appointmentID string) []noticeRow {
+func notices(t *testing.T, db *database.DB, shop database.BusinessID, appointmentID string) []noticeRow {
 	t.Helper()
 	var out []noticeRow
 	err := db.InTenantTx(context.Background(), shop, func(ctx context.Context, q database.Queries) error {
@@ -332,7 +332,7 @@ func TestWorker_FullCycle_ReadsTheCurrentStateAndLeavesEvidenceWithoutContact(t 
 		t.Fatalf("el aviso debe quedar sent: %+v", got)
 	}
 
-	// Evidencia visible para la barbería y sin datos de contacto (CA-130-05).
+	// Evidencia visible para el negocio y sin datos de contacto (CA-130-05).
 	var evidence string
 	err = app.InTenantTx(ctx, shopA, func(ctx context.Context, q database.Queries) error {
 		return q.QueryRow(ctx, `SELECT row_to_json(t)::text FROM appointment_notice_attempt t WHERE notice_id = $1`, n.ID).Scan(&evidence)
@@ -524,7 +524,7 @@ func (permanent) Permanent() bool { return true }
 
 // ---- HU-131 / DEC-144: recordatorio 30 minutos antes ----
 
-func enqueueReminder(t *testing.T, db *database.DB, shop database.BarbershopID, appointmentID string) {
+func enqueueReminder(t *testing.T, db *database.DB, shop database.BusinessID, appointmentID string) {
 	t.Helper()
 	err := db.InTenantTx(context.Background(), shop, func(ctx context.Context, q database.Queries) error {
 		return noticepostgres.NewEnqueuer().AppointmentReminderRequired(ctx, q, string(shop), appointmentID)
@@ -535,7 +535,7 @@ func enqueueReminder(t *testing.T, db *database.DB, shop database.BarbershopID, 
 }
 
 // startsAt lee el inicio vigente del turno y, del recordatorio pendiente, cuándo vence.
-func startsAt(t *testing.T, db *database.DB, shop database.BarbershopID, appointmentID string) time.Time {
+func startsAt(t *testing.T, db *database.DB, shop database.BusinessID, appointmentID string) time.Time {
 	t.Helper()
 	var at time.Time
 	err := db.InTenantTx(context.Background(), shop, func(ctx context.Context, q database.Queries) error {
@@ -548,7 +548,7 @@ func startsAt(t *testing.T, db *database.DB, shop database.BarbershopID, appoint
 	return at
 }
 
-func reminderRunAt(t *testing.T, db *database.DB, shop database.BarbershopID, appointmentID string) (time.Time, int) {
+func reminderRunAt(t *testing.T, db *database.DB, shop database.BusinessID, appointmentID string) (time.Time, int) {
 	t.Helper()
 	var runAt time.Time
 	var n int
@@ -564,7 +564,7 @@ func reminderRunAt(t *testing.T, db *database.DB, shop database.BarbershopID, ap
 	return runAt, n
 }
 
-func setStart(t *testing.T, db *database.DB, shop database.BarbershopID, appointmentID string, start time.Time, status string) {
+func setStart(t *testing.T, db *database.DB, shop database.BusinessID, appointmentID string, start time.Time, status string) {
 	t.Helper()
 	err := db.InTenantTx(context.Background(), shop, func(ctx context.Context, q database.Queries) error {
 		if status == "confirmed" {
@@ -701,7 +701,7 @@ func TestReminder_OtherTenantCannotScheduleForMyAppointment(t *testing.T) {
 	id, _ := seedAppointment(t, app, shopA, true)
 	enqueueReminder(t, app, shopB, id) // sesión de B sobre el turno de A: el INSERT…SELECT no ve nada
 	if _, n := reminderRunAt(t, app, shopA, id); n != 0 {
-		t.Fatal("otra barbería no puede programar recordatorios de un turno ajeno (RN-TEN-01)")
+		t.Fatal("otro negocio no puede programar recordatorios de un turno ajeno (RN-TEN-01)")
 	}
 }
 
@@ -709,7 +709,7 @@ func TestReminder_OtherTenantCannotScheduleForMyAppointment(t *testing.T) {
 
 // setLead cambia la anticipación del negocio con el repositorio real de shops y
 // el encolador como gancho, igual que la API; al terminar la prueba vuelve a 30.
-func setLead(t *testing.T, db *database.DB, shop database.BarbershopID, lead int) {
+func setLead(t *testing.T, db *database.DB, shop database.BusinessID, lead int) {
 	t.Helper()
 	repo := shopspostgres.NewReminderSettingsRepository(db, noticepostgres.NewEnqueuer())
 	stored, found, err := repo.Update(context.Background(), string(shop), shops.ReminderLeadMinutes(lead))
@@ -718,7 +718,7 @@ func setLead(t *testing.T, db *database.DB, shop database.BarbershopID, lead int
 	}
 }
 
-func restoreLead(t *testing.T, db *database.DB, shop database.BarbershopID) {
+func restoreLead(t *testing.T, db *database.DB, shop database.BusinessID) {
 	t.Helper()
 	t.Cleanup(func() { setLead(t, db, shop, 30) })
 }
@@ -736,7 +736,7 @@ func TestReminder_UsesTheLeadChosenByTheBusiness(t *testing.T) {
 	}
 
 	// Un turno a 55 minutos ya no alcanza una anticipación de 60: no se programa.
-	// (55 y no menos: el turno a 10 minutos de otra prueba ocupa al mismo barbero.)
+	// (55 y no menos: el turno a 10 minutos de otra prueba ocupa al mismo profesional.)
 	soon := nearAppointment(t, app, shopA, 55*time.Minute)
 	enqueueReminder(t, app, shopA, soon)
 	if _, n := reminderRunAt(t, app, shopA, soon); n != 0 {
@@ -745,8 +745,8 @@ func TestReminder_UsesTheLeadChosenByTheBusiness(t *testing.T) {
 }
 
 // nearAppointment crea un turno confirmado que empieza dentro de `in` y lo
-// cancela al terminar la prueba, para no ocupar al barbero compartido.
-func nearAppointment(t *testing.T, db *database.DB, shop database.BarbershopID, in time.Duration) string {
+// cancela al terminar la prueba, para no ocupar al profesional compartido.
+func nearAppointment(t *testing.T, db *database.DB, shop database.BusinessID, in time.Duration) string {
 	t.Helper()
 	id, _ := seedAppointment(t, db, shop, true)
 	setStart(t, db, shop, id, time.Now().UTC().Add(in), "confirmed")
@@ -790,7 +790,7 @@ func TestReminder_ChangingTheLeadMovesPendingRemindersOfThatBusinessOnly(t *test
 // ---- DEC-175: recordatorio por WhatsApp ----
 
 // givePhone pone un teléfono E.164 único al cliente del turno y lo devuelve.
-func givePhone(t *testing.T, db *database.DB, shop database.BarbershopID, appointmentID string) string {
+func givePhone(t *testing.T, db *database.DB, shop database.BusinessID, appointmentID string) string {
 	t.Helper()
 	b := make([]byte, 4)
 	if _, err := rand.Read(b); err != nil {
@@ -816,7 +816,7 @@ func leftPad(n int) string {
 	return s[len(s)-7:]
 }
 
-func pendingKinds(t *testing.T, db *database.DB, shop database.BarbershopID, appointmentID string) map[string]time.Time {
+func pendingKinds(t *testing.T, db *database.DB, shop database.BusinessID, appointmentID string) map[string]time.Time {
 	t.Helper()
 	out := map[string]time.Time{}
 	err := db.InTenantTx(context.Background(), shop, func(ctx context.Context, q database.Queries) error {
@@ -846,7 +846,7 @@ func pendingKinds(t *testing.T, db *database.DB, shop database.BarbershopID, app
 	return out
 }
 
-func noticeID(t *testing.T, db *database.DB, shop database.BarbershopID, appointmentID, kind string) string {
+func noticeID(t *testing.T, db *database.DB, shop database.BusinessID, appointmentID, kind string) string {
 	t.Helper()
 	for _, n := range notices(t, db, shop, appointmentID) {
 		if n.Kind == kind && n.Status == "pending" {
@@ -907,7 +907,7 @@ func TestWhatsAppReminder_ChangingTheLeadMovesItToo(t *testing.T) {
 	}
 }
 
-func TestWhatsAppReminder_WorkerReadsPhoneAndBarberAndRecordsTheWhatsAppChannel(t *testing.T) {
+func TestWhatsAppReminder_WorkerReadsPhoneAndProfessionalAndRecordsTheWhatsAppChannel(t *testing.T) {
 	app, worker := appDB(t), noticepostgres.NewWorkerRepository(workerDB(t))
 
 	id, _ := seedAppointment(t, app, shopA, true)
@@ -924,8 +924,8 @@ func TestWhatsAppReminder_WorkerReadsPhoneAndBarberAndRecordsTheWhatsAppChannel(
 	if err != nil || !found {
 		t.Fatalf("NoticeContext: found=%v err=%v", found, err)
 	}
-	if c.Kind != "reminder_whatsapp" || c.CustomerPhone != phone || !strings.HasPrefix(c.BarberName, "Barbero aviso ") {
-		t.Fatalf("contexto: kind=%s teléfono=%v barbero=%q", c.Kind, c.CustomerPhone == phone, c.BarberName)
+	if c.Kind != "reminder_whatsapp" || c.CustomerPhone != phone || !strings.HasPrefix(c.ProfessionalName, "Barbero aviso ") {
+		t.Fatalf("contexto: kind=%s teléfono=%v profesional=%q", c.Kind, c.CustomerPhone == phone, c.ProfessionalName)
 	}
 	ok, err = worker.FinishNotice(context.Background(), appointmentnotice.FinishInput{
 		NoticeID: mine.ID, ClaimToken: mine.ClaimToken, Outcome: appointmentnotice.OutcomeSent,
@@ -966,6 +966,6 @@ func TestWhatsAppReminder_OtherTenantCannotScheduleForMyAppointment(t *testing.T
 	// Sesión de B con el id del turno de A: RLS no deja ver el turno ni encolar.
 	enqueueReminder(t, app, shopB, id)
 	if kinds := pendingKinds(t, app, shopA, id); len(kinds) != 0 {
-		t.Fatalf("otra barbería no programa recordatorios en mi turno: %v", kinds)
+		t.Fatalf("otro negocio no programa recordatorios en mi turno: %v", kinds)
 	}
 }

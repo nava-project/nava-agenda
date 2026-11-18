@@ -8,8 +8,8 @@ package publicbooking_test
 import (
 	"testing"
 
-	"system-barbershop/internal/modules/publicbooking"
-	"system-barbershop/internal/platform/apperr"
+	"nava-agenda/internal/modules/publicbooking"
+	"nava-agenda/internal/platform/apperr"
 )
 
 func strPtr(s string) *string { return &s }

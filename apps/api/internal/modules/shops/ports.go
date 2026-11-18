@@ -16,12 +16,12 @@ type UpdateInput struct {
 
 // UpdateResult es el desenlace de un intento de actualización. TimezoneValid
 // en false significa cero escritura (CA-020-03): ni Name ni Contact* se
-// tocaron, y Barbershop queda en su valor cero. Found en false cubre una
-// barbería no visible en el tenant vigente (defensivo: un principal
+// tocaron, y Business queda en su valor cero. Found en false cubre una
+// negocio no visible en el tenant vigente (defensivo: un principal
 // autenticado siempre tiene su propia fila, pero el contrato documenta 404
 // para este caso igual que GET, sin asumir que nunca puede ocurrir).
 type UpdateResult struct {
-	Barbershop    Barbershop
+	Business      Business
 	TimezoneValid bool
 	Found         bool
 }
@@ -30,15 +30,15 @@ type UpdateResult struct {
 // importa internal/platform/database ni pgx (CA-002-06): postgres/ traduce
 // entre este contrato y database.DB, exactamente igual que auth.Repository.
 type Repository interface {
-	// Get lee los cuatro campos autorizados de la barbería barbershopID
+	// Get lee los cuatro campos autorizados del negocio businessID
 	// dentro de una transacción tenant-aware. found=false cubre una fila no
 	// visible en el tenant vigente (defensivo, ver [UpdateResult.Found]).
-	Get(ctx context.Context, barbershopID string) (barbershop Barbershop, found bool, err error)
+	Get(ctx context.Context, businessID string) (business Business, found bool, err error)
 
 	// Update comprueba timezone contra pg_timezone_names y, si es válida,
-	// ejecuta el UPDATE (filtrando también por barbershopID, defensa en
+	// ejecuta el UPDATE (filtrando también por businessID, defensa en
 	// profundidad sobre RLS) dentro de UNA sola transacción tenant-aware:
 	// zona inválida implica cero escritura (CA-020-03), nunca una escritura
 	// parcial de Name o Contact*.
-	Update(ctx context.Context, barbershopID string, input UpdateInput) (UpdateResult, error)
+	Update(ctx context.Context, businessID string, input UpdateInput) (UpdateResult, error)
 }

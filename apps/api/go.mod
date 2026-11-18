@@ -1,4 +1,4 @@
-module system-barbershop
+module nava-agenda
 
 go 1.26.0
 

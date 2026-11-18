@@ -8,8 +8,8 @@ import (
 	"strings"
 	"testing"
 
-	"system-barbershop/internal/modules/shops"
-	"system-barbershop/internal/modules/shops/httpapi"
+	"nava-agenda/internal/modules/shops"
+	"nava-agenda/internal/modules/shops/httpapi"
 )
 
 type fakeLoginOTPRepository struct {
@@ -53,7 +53,7 @@ func TestGetLoginOTPHandler_ReturnsOnlyTheChannelAndForbidsCaching(t *testing.T)
 		t.Fatalf("esperaba no-store, obtuvo %q", rec.Header().Get("Cache-Control"))
 	}
 	if repo.gotShopID != testShopID {
-		t.Fatalf("la barbería sale de la sesión: esperaba %q, obtuvo %q", testShopID, repo.gotShopID)
+		t.Fatalf("el negocio sale de la sesión: esperaba %q, obtuvo %q", testShopID, repo.gotShopID)
 	}
 }
 
@@ -71,7 +71,7 @@ func TestLoginOTPHandlers_NoPrincipal_Is500(t *testing.T) {
 	}
 }
 
-func TestUpdateLoginOTPHandler_Success_StoresForTheSessionBarbershop(t *testing.T) {
+func TestUpdateLoginOTPHandler_Success_StoresForTheSessionBusiness(t *testing.T) {
 	repo := &fakeLoginOTPRepository{found: true}
 	h := httpapi.NewUpdateLoginOTPHandler(shops.NewLoginOTPService(repo))
 
@@ -126,7 +126,7 @@ func TestUpdateLoginOTPHandler_ChannelOutsideTheList_Is422(t *testing.T) {
 	}
 }
 
-func TestUpdateLoginOTPHandler_BarbershopNotVisible_Is404(t *testing.T) {
+func TestUpdateLoginOTPHandler_BusinessNotVisible_Is404(t *testing.T) {
 	rec := httptest.NewRecorder()
 	httpapi.NewUpdateLoginOTPHandler(shops.NewLoginOTPService(&fakeLoginOTPRepository{found: false})).
 		ServeHTTP(rec, requestWithPrincipal(http.MethodPatch, loginOTPTarget, []byte(`{"channel":"email"}`)))
@@ -149,7 +149,7 @@ func TestContract_LoginOtpChannelEnum_MatchesShopsChannels(t *testing.T) {
 	}
 }
 
-// El cuerpo solo declara `channel` (sin destinos ni barbershopId).
+// El cuerpo solo declara `channel` (sin destinos ni businessId).
 func TestContract_LoginOtpSchemas_OnlyDeclareChannel(t *testing.T) {
 	for _, file := range []string{"LoginOtpSettings", "UpdateLoginOtpRequest"} {
 		schema := loadYAML[schemaDoc](t, "api/openapi/components/schemas/"+file+".yaml")

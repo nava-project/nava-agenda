@@ -81,11 +81,11 @@ type Config struct {
 	LogLevel string
 
 	// DatabaseURL es la URL de conexión a PostgreSQL que usa el proceso api,
-	// conectado como barberia_app.
+	// conectado como agenda_app.
 	DatabaseURL DatabaseDSN
 
 	// WorkerDatabaseURL es la URL de conexión a PostgreSQL que usa el
-	// proceso worker, conectado como barberia_worker (DEC-040: roles
+	// proceso worker, conectado como agenda_worker (DEC-040: roles
 	// separados). Deliberadamente distinta de DatabaseURL: nada en este
 	// paquete permite que ambos procesos compartan la misma variable.
 	// Obligatoria fuera de local/test.
@@ -257,7 +257,7 @@ type Config struct {
 	// ausencia.
 	PublicWebBaseURL string
 
-	// GoogleCalendar* configuran la conexión de cada barbero con SU Google
+	// GoogleCalendar* configuran la conexión de cada profesional con SU Google
 	// Calendar (DEC-099, DEC-102). Las cuatro primeras son obligatorias para
 	// activar la integración: si falta alguna, la integración queda
 	// desactivada y el resto del producto funciona (GoogleCalendarEnabled).
@@ -280,7 +280,7 @@ type Config struct {
 
 	// GoogleMapsAPIKey es la clave de SERVIDOR de Google Maps Platform
 	// (GOOGLE_MAPS_API_KEY) que usa el backend para geocodificar la dirección de
-	// la barbería al guardarla (DEC-130) y, en HU-101, para consultar Places. Es
+	// el negocio al guardarla (DEC-130) y, en HU-101, para consultar Places. Es
 	// opcional: vacía deja la verificación de direcciones sin servicio (en local
 	// y test se sustituye por un geocodificador simulado). Nunca se envía al
 	// navegador; el mapa del frontend usa otra clave, restringida por dominio.

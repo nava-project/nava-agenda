@@ -5,9 +5,9 @@ import (
 	"net/http"
 	"time"
 
-	"system-barbershop/internal/modules/auth"
-	"system-barbershop/internal/platform/apperr"
-	"system-barbershop/internal/platform/httpserver"
+	"nava-agenda/internal/modules/auth"
+	"nava-agenda/internal/platform/apperr"
+	"nava-agenda/internal/platform/httpserver"
 )
 
 // LogoutHandler decodifica nada (sin cuerpo), invoca

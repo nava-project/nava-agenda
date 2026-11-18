@@ -5,8 +5,8 @@ import (
 	"fmt"
 	"time"
 
-	"system-barbershop/internal/platform/apperr"
-	"system-barbershop/internal/platform/clock"
+	"nava-agenda/internal/platform/apperr"
+	"nava-agenda/internal/platform/clock"
 )
 
 // challengeRequiredMessage es el ÚNICO texto que ThrottleService devuelve

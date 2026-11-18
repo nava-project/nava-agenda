@@ -2,10 +2,10 @@
 // (buildRouter) y PostgreSQL real, mismo patrón que
 // catalog_integration_test.go/staff_integration_test.go. Requieren las doce
 // migraciones aplicadas (incluida 20260824150000_create_barber_service.sql)
-// y database/testdata/dos_barberias.sql + testdata/hu005_credenciales_sesiones.sql
+// y database/testdata/dos_negocios.sql + testdata/hu005_credenciales_sesiones.sql
 // cargados.
 //
-//	export TEST_DATABASE_URL="postgres://barberia_app:app_test@localhost:5432/barberia_test?sslmode=disable"
+//	export TEST_DATABASE_URL="postgres://agenda_app:app_test@localhost:5432/postgres?sslmode=disable"
 //	go test -race ./cmd/api/...
 package main
 
@@ -17,9 +17,9 @@ import (
 )
 
 type assignmentBody struct {
-	BarberID  string `json:"professionalId"`
-	ServiceID string `json:"serviceId"`
-	CreatedAt string `json:"createdAt"`
+	ProfessionalID string `json:"professionalId"`
+	ServiceID      string `json:"serviceId"`
+	CreatedAt      string `json:"createdAt"`
 }
 
 type assignmentListBody struct {
@@ -27,8 +27,8 @@ type assignmentListBody struct {
 	NextCursor *string          `json:"nextCursor"`
 }
 
-func doListAssignmentsRequest(router http.Handler, rawToken, barberID, query string) *httptest.ResponseRecorder {
-	target := "/api/v1/private/professionals/" + barberID + "/services"
+func doListAssignmentsRequest(router http.Handler, rawToken, professionalID, query string) *httptest.ResponseRecorder {
+	target := "/api/v1/private/professionals/" + professionalID + "/services"
 	if query != "" {
 		target += "?" + query
 	}
@@ -41,8 +41,8 @@ func doListAssignmentsRequest(router http.Handler, rawToken, barberID, query str
 	return rec
 }
 
-func doAssignServiceRequest(router http.Handler, rawToken, barberID, serviceID string) *httptest.ResponseRecorder {
-	req := httptest.NewRequest(http.MethodPut, "/api/v1/private/professionals/"+barberID+"/services/"+serviceID, nil)
+func doAssignServiceRequest(router http.Handler, rawToken, professionalID, serviceID string) *httptest.ResponseRecorder {
+	req := httptest.NewRequest(http.MethodPut, "/api/v1/private/professionals/"+professionalID+"/services/"+serviceID, nil)
 	if rawToken != "" {
 		req.AddCookie(&http.Cookie{Name: cookieName, Value: rawToken})
 	}
@@ -51,8 +51,8 @@ func doAssignServiceRequest(router http.Handler, rawToken, barberID, serviceID s
 	return rec
 }
 
-func doUnassignServiceRequest(router http.Handler, rawToken, barberID, serviceID string) *httptest.ResponseRecorder {
-	req := httptest.NewRequest(http.MethodDelete, "/api/v1/private/professionals/"+barberID+"/services/"+serviceID, nil)
+func doUnassignServiceRequest(router http.Handler, rawToken, professionalID, serviceID string) *httptest.ResponseRecorder {
+	req := httptest.NewRequest(http.MethodDelete, "/api/v1/private/professionals/"+professionalID+"/services/"+serviceID, nil)
 	if rawToken != "" {
 		req.AddCookie(&http.Cookie{Name: cookieName, Value: rawToken})
 	}
@@ -61,15 +61,15 @@ func doUnassignServiceRequest(router http.Handler, rawToken, barberID, serviceID
 	return rec
 }
 
-func createBarberViaRouter(t *testing.T, router http.Handler, rawToken, fullName string) barberBody {
+func createProfessionalViaRouter(t *testing.T, router http.Handler, rawToken, fullName string) professionalBody {
 	t.Helper()
-	rec := doCreateBarberRequest(router, rawToken, uniqueToken(t, "assign-fixture-barber"), `{"fullName":"`+fullName+`"}`)
+	rec := doCreateProfessionalRequest(router, rawToken, uniqueToken(t, "assign-fixture-professional"), `{"fullName":"`+fullName+`"}`)
 	if rec.Code != http.StatusCreated {
-		t.Fatalf("createBarberViaRouter: expected 201, got %d: %s", rec.Code, rec.Body.String())
+		t.Fatalf("createProfessionalViaRouter: expected 201, got %d: %s", rec.Code, rec.Body.String())
 	}
-	var b barberBody
+	var b professionalBody
 	if err := json.Unmarshal(rec.Body.Bytes(), &b); err != nil {
-		t.Fatalf("createBarberViaRouter: decode: %v", err)
+		t.Fatalf("createProfessionalViaRouter: decode: %v", err)
 	}
 	return b
 }
@@ -88,11 +88,11 @@ func createServiceViaRouter(t *testing.T, router http.Handler, rawToken, name st
 	return s
 }
 
-// TestBarberServices_HTTP_AssignRepeatListUnassign_FullJourney recorre
+// TestProfessionalServices_HTTP_AssignRepeatListUnassign_FullJourney recorre
 // asignar (201), repetir (200, mismo createdAt, CA-023-02), listar
 // (CA-023-01) y desasignar cuando ya no es la última (204), a través del
 // router real.
-func TestBarberServices_HTTP_AssignRepeatListUnassign_FullJourney(t *testing.T) {
+func TestProfessionalServices_HTTP_AssignRepeatListUnassign_FullJourney(t *testing.T) {
 	db := setupTestDB(t)
 	router, err := buildRouter(db, discardLogger(), testRouterConfig())
 	if err != nil {
@@ -100,11 +100,11 @@ func TestBarberServices_HTTP_AssignRepeatListUnassign_FullJourney(t *testing.T) 
 	}
 	raw := createSessionCookie(t, db, shopA, staffUserActiveA, "assign-journey-a")
 
-	barber := createBarberViaRouter(t, router, raw, "Barbero Asignación HTTP "+uniqueToken(t, "journey"))
-	barberTwo := createBarberViaRouter(t, router, raw, "Barbero Asignación HTTP Dos "+uniqueToken(t, "journey"))
+	professional := createProfessionalViaRouter(t, router, raw, "Barbero Asignación HTTP "+uniqueToken(t, "journey"))
+	professionalTwo := createProfessionalViaRouter(t, router, raw, "Barbero Asignación HTTP Dos "+uniqueToken(t, "journey"))
 	service := createServiceViaRouter(t, router, raw, "Servicio Asignación HTTP "+uniqueToken(t, "journey"))
 
-	first := doAssignServiceRequest(router, raw, barber.ID, service.ID)
+	first := doAssignServiceRequest(router, raw, professional.ID, service.ID)
 	if first.Code != http.StatusCreated {
 		t.Fatalf("expected 201 on first assign, got %d: %s", first.Code, first.Body.String())
 	}
@@ -112,18 +112,18 @@ func TestBarberServices_HTTP_AssignRepeatListUnassign_FullJourney(t *testing.T) 
 	if err := json.Unmarshal(first.Body.Bytes(), &firstBody); err != nil {
 		t.Fatalf("decode: %v", err)
 	}
-	if firstBody.BarberID != barber.ID || firstBody.ServiceID != service.ID {
+	if firstBody.ProfessionalID != professional.ID || firstBody.ServiceID != service.ID {
 		t.Fatalf("unexpected assignment body: %+v", firstBody)
 	}
 	loc := first.Header().Get("Location")
-	wantLoc := "/private/professionals/" + barber.ID + "/services/" + service.ID
+	wantLoc := "/private/professionals/" + professional.ID + "/services/" + service.ID
 	if loc != wantLoc {
 		t.Fatalf("expected Location %q, got %q", wantLoc, loc)
 	}
 
 	// CA-023-02: repetir exactamente la misma operación responde 200 (no
 	// 201) con el MISMO createdAt, sin crear una segunda fila.
-	second := doAssignServiceRequest(router, raw, barber.ID, service.ID)
+	second := doAssignServiceRequest(router, raw, professional.ID, service.ID)
 	if second.Code != http.StatusOK {
 		t.Fatalf("expected 200 on repeated assign, got %d: %s", second.Code, second.Body.String())
 	}
@@ -135,8 +135,8 @@ func TestBarberServices_HTTP_AssignRepeatListUnassign_FullJourney(t *testing.T) 
 		t.Fatalf("expected the same createdAt on replay, got %q vs %q", secondBody.CreatedAt, firstBody.CreatedAt)
 	}
 
-	// CA-023-01: aparece en el listado del barbero.
-	listRec := doListAssignmentsRequest(router, raw, barber.ID, "limit=50")
+	// CA-023-01: aparece en el listado del profesional.
+	listRec := doListAssignmentsRequest(router, raw, professional.ID, "limit=50")
 	if listRec.Code != http.StatusOK {
 		t.Fatalf("expected 200 on list, got %d: %s", listRec.Code, listRec.Body.String())
 	}
@@ -154,28 +154,28 @@ func TestBarberServices_HTTP_AssignRepeatListUnassign_FullJourney(t *testing.T) 
 		t.Fatal("CA-023-01: expected the assignment to appear in the list")
 	}
 
-	// Asigna un segundo barbero (CA-023-03), para que el primero YA NO sea
+	// Asigna un segundo profesional (CA-023-03), para que el primero YA NO sea
 	// la última asignación activa y su desasignación pueda tener éxito.
-	if rec := doAssignServiceRequest(router, raw, barberTwo.ID, service.ID); rec.Code != http.StatusCreated {
-		t.Fatalf("expected 201 assigning the second barber, got %d: %s", rec.Code, rec.Body.String())
+	if rec := doAssignServiceRequest(router, raw, professionalTwo.ID, service.ID); rec.Code != http.StatusCreated {
+		t.Fatalf("expected 201 assigning the second professional, got %d: %s", rec.Code, rec.Body.String())
 	}
 
-	unassignRec := doUnassignServiceRequest(router, raw, barber.ID, service.ID)
+	unassignRec := doUnassignServiceRequest(router, raw, professional.ID, service.ID)
 	if unassignRec.Code != http.StatusNoContent {
 		t.Fatalf("expected 204 unassigning a non-last assignment, got %d: %s", unassignRec.Code, unassignRec.Body.String())
 	}
 
 	// Repetir la desasignación ahora responde 404 (ya no existe).
-	repeatUnassign := doUnassignServiceRequest(router, raw, barber.ID, service.ID)
+	repeatUnassign := doUnassignServiceRequest(router, raw, professional.ID, service.ID)
 	if repeatUnassign.Code != http.StatusNotFound {
 		t.Fatalf("expected 404 unassigning an already-removed assignment, got %d: %s", repeatUnassign.Code, repeatUnassign.Body.String())
 	}
 }
 
-// TestBarberServices_HTTP_LastAssignment_CanBeRemoved cubre DEC-114 (que
-// sustituye a DEC-068) a través del router real: retirar al único barbero de
+// TestProfessionalServices_HTTP_LastAssignment_CanBeRemoved cubre DEC-114 (que
+// sustituye a DEC-068) a través del router real: retirar al único profesional de
 // un servicio activo responde 204 y la asignación desaparece del listado.
-func TestBarberServices_HTTP_LastAssignment_CanBeRemoved(t *testing.T) {
+func TestProfessionalServices_HTTP_LastAssignment_CanBeRemoved(t *testing.T) {
 	db := setupTestDB(t)
 	router, err := buildRouter(db, discardLogger(), testRouterConfig())
 	if err != nil {
@@ -183,19 +183,19 @@ func TestBarberServices_HTTP_LastAssignment_CanBeRemoved(t *testing.T) {
 	}
 	raw := createSessionCookie(t, db, shopA, staffUserActiveA, "assign-last-a")
 
-	barber := createBarberViaRouter(t, router, raw, "Barbero Última HTTP "+uniqueToken(t, "last"))
+	professional := createProfessionalViaRouter(t, router, raw, "Barbero Última HTTP "+uniqueToken(t, "last"))
 	service := createServiceViaRouter(t, router, raw, "Servicio Última HTTP "+uniqueToken(t, "last"))
 
-	if rec := doAssignServiceRequest(router, raw, barber.ID, service.ID); rec.Code != http.StatusCreated {
+	if rec := doAssignServiceRequest(router, raw, professional.ID, service.ID); rec.Code != http.StatusCreated {
 		t.Fatalf("expected 201 assigning, got %d: %s", rec.Code, rec.Body.String())
 	}
 
-	rec := doUnassignServiceRequest(router, raw, barber.ID, service.ID)
+	rec := doUnassignServiceRequest(router, raw, professional.ID, service.ID)
 	if rec.Code != http.StatusNoContent {
 		t.Fatalf("DEC-114: expected 204 unassigning the last assignment, got %d: %s", rec.Code, rec.Body.String())
 	}
 
-	listRec := doListAssignmentsRequest(router, raw, barber.ID, "")
+	listRec := doListAssignmentsRequest(router, raw, professional.ID, "")
 	var page assignmentListBody
 	if err := json.Unmarshal(listRec.Body.Bytes(), &page); err != nil {
 		t.Fatalf("decode list: %v", err)
@@ -207,10 +207,10 @@ func TestBarberServices_HTTP_LastAssignment_CanBeRemoved(t *testing.T) {
 	}
 }
 
-// TestBarberServices_HTTP_TwoTenants_CrossAccessReturns404WithoutLeaking
-// cubre CA-023-04: un barbero o servicio real de otra barbería responde 404
+// TestProfessionalServices_HTTP_TwoTenants_CrossAccessReturns404WithoutLeaking
+// cubre CA-023-04: un profesional o servicio real de otro negocio responde 404
 // uniforme, y nunca puede asociarse.
-func TestBarberServices_HTTP_TwoTenants_CrossAccessReturns404WithoutLeaking(t *testing.T) {
+func TestProfessionalServices_HTTP_TwoTenants_CrossAccessReturns404WithoutLeaking(t *testing.T) {
 	db := setupTestDB(t)
 	router, err := buildRouter(db, discardLogger(), testRouterConfig())
 	if err != nil {
@@ -219,28 +219,28 @@ func TestBarberServices_HTTP_TwoTenants_CrossAccessReturns404WithoutLeaking(t *t
 	rawA := createSessionCookie(t, db, shopA, staffUserActiveA, "assign-tenant-a")
 	rawB := createSessionCookie(t, db, shopB, staffUserActiveB, "assign-tenant-b")
 
-	barberB := createBarberViaRouter(t, router, rawB, "Barbero Cruzado HTTP B "+uniqueToken(t, "cross"))
+	professionalB := createProfessionalViaRouter(t, router, rawB, "Barbero Cruzado HTTP B "+uniqueToken(t, "cross"))
 	serviceB := createServiceViaRouter(t, router, rawB, "Servicio Cruzado HTTP B "+uniqueToken(t, "cross"))
-	barberA := createBarberViaRouter(t, router, rawA, "Barbero Cruzado HTTP A "+uniqueToken(t, "cross"))
+	professionalA := createProfessionalViaRouter(t, router, rawA, "Barbero Cruzado HTTP A "+uniqueToken(t, "cross"))
 	serviceA := createServiceViaRouter(t, router, rawA, "Servicio Cruzado HTTP A "+uniqueToken(t, "cross"))
 
-	if rec := doListAssignmentsRequest(router, rawA, barberB.ID, ""); rec.Code != http.StatusNotFound {
-		t.Fatalf("CA-023-04: expected 404 listing shopB's barber from shopA, got %d: %s", rec.Code, rec.Body.String())
+	if rec := doListAssignmentsRequest(router, rawA, professionalB.ID, ""); rec.Code != http.StatusNotFound {
+		t.Fatalf("CA-023-04: expected 404 listing shopB's professional from shopA, got %d: %s", rec.Code, rec.Body.String())
 	}
-	if rec := doAssignServiceRequest(router, rawA, barberB.ID, serviceA.ID); rec.Code != http.StatusNotFound {
-		t.Fatalf("CA-023-04: expected 404 assigning shopA's service to shopB's barber from shopA, got %d: %s", rec.Code, rec.Body.String())
+	if rec := doAssignServiceRequest(router, rawA, professionalB.ID, serviceA.ID); rec.Code != http.StatusNotFound {
+		t.Fatalf("CA-023-04: expected 404 assigning shopA's service to shopB's professional from shopA, got %d: %s", rec.Code, rec.Body.String())
 	}
-	if rec := doAssignServiceRequest(router, rawA, barberA.ID, serviceB.ID); rec.Code != http.StatusNotFound {
-		t.Fatalf("CA-023-04: expected 404 assigning shopB's service to shopA's barber from shopA, got %d: %s", rec.Code, rec.Body.String())
+	if rec := doAssignServiceRequest(router, rawA, professionalA.ID, serviceB.ID); rec.Code != http.StatusNotFound {
+		t.Fatalf("CA-023-04: expected 404 assigning shopB's service to shopA's professional from shopA, got %d: %s", rec.Code, rec.Body.String())
 	}
-	if rec := doUnassignServiceRequest(router, rawA, barberB.ID, serviceB.ID); rec.Code != http.StatusNotFound {
+	if rec := doUnassignServiceRequest(router, rawA, professionalB.ID, serviceB.ID); rec.Code != http.StatusNotFound {
 		t.Fatalf("CA-023-04: expected 404 unassigning across tenants, got %d: %s", rec.Code, rec.Body.String())
 	}
 }
 
-// TestBarberServices_HTTP_NoCookie_Returns401Uniform confirma que estas tres
+// TestProfessionalServices_HTTP_NoCookie_Returns401Uniform confirma que estas tres
 // rutas comparten el mismo 401 uniforme que el resto de /api/v1/private.
-func TestBarberServices_HTTP_NoCookie_Returns401Uniform(t *testing.T) {
+func TestProfessionalServices_HTTP_NoCookie_Returns401Uniform(t *testing.T) {
 	db := setupTestDB(t)
 	router, err := buildRouter(db, discardLogger(), testRouterConfig())
 	if err != nil {
@@ -259,11 +259,11 @@ func TestBarberServices_HTTP_NoCookie_Returns401Uniform(t *testing.T) {
 	}
 }
 
-// TestBarberServices_HTTP_ResponseNeverIncludesNameDurationPrice cubre
+// TestProfessionalServices_HTTP_ResponseNeverIncludesNameDurationPrice cubre
 // CA-023-07 a través del router real: la respuesta de asignar y de listar
-// nunca incluye nombre, duración, precio ni estado del barbero o del
+// nunca incluye nombre, duración, precio ni estado del profesional o del
 // servicio.
-func TestBarberServices_HTTP_ResponseNeverIncludesNameDurationPrice(t *testing.T) {
+func TestProfessionalServices_HTTP_ResponseNeverIncludesNameDurationPrice(t *testing.T) {
 	db := setupTestDB(t)
 	router, err := buildRouter(db, discardLogger(), testRouterConfig())
 	if err != nil {
@@ -271,10 +271,10 @@ func TestBarberServices_HTTP_ResponseNeverIncludesNameDurationPrice(t *testing.T
 	}
 	raw := createSessionCookie(t, db, shopA, staffUserActiveA, "assign-shape-a")
 
-	barber := createBarberViaRouter(t, router, raw, "Barbero Forma HTTP "+uniqueToken(t, "shape"))
+	professional := createProfessionalViaRouter(t, router, raw, "Barbero Forma HTTP "+uniqueToken(t, "shape"))
 	service := createServiceViaRouter(t, router, raw, "Servicio Forma HTTP "+uniqueToken(t, "shape"))
 
-	rec := doAssignServiceRequest(router, raw, barber.ID, service.ID)
+	rec := doAssignServiceRequest(router, raw, professional.ID, service.ID)
 	if rec.Code != http.StatusCreated {
 		t.Fatalf("expected 201, got %d: %s", rec.Code, rec.Body.String())
 	}

@@ -1,5 +1,5 @@
 // Package postgres implementa los almacenes de notification contra PostgreSQL.
-// Las tablas del webhook de WhatsApp no tienen barbershop_id ni se conceden a
+// Las tablas del webhook de WhatsApp no tienen business_id ni se conceden a
 // ningún rol: todo pasa por funciones SECURITY DEFINER estrechas (DEC-126).
 package postgres
 
@@ -10,12 +10,12 @@ import (
 
 	"github.com/jackc/pgx/v5"
 
-	"system-barbershop/internal/modules/notification"
-	"system-barbershop/internal/platform/database"
+	"nava-agenda/internal/modules/notification"
+	"nava-agenda/internal/platform/database"
 )
 
 // WhatsAppEventRepository implementa notification.WhatsAppEventStore con el
-// pool de la API (barberia_app).
+// pool de la API (agenda_app).
 type WhatsAppEventRepository struct {
 	db *database.DB
 }

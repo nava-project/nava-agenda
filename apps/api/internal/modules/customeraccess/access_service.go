@@ -6,8 +6,8 @@ import (
 	"log/slog"
 	"time"
 
-	"system-barbershop/internal/platform/apperr"
-	"system-barbershop/internal/platform/clock"
+	"nava-agenda/internal/platform/apperr"
+	"nava-agenda/internal/platform/clock"
 )
 
 // Mensajes uniformes (DEC-062, CA-105-01): ninguno dice si el contacto existe ni
@@ -15,7 +15,7 @@ import (
 const (
 	invalidAccessCodeMessage = "código de verificación inválido o expirado"
 	rateLimitedMessage       = "pediste demasiados códigos; espera un momento antes de intentarlo otra vez"
-	barbershopNotFoundMsg    = "negocio no encontrado"
+	businessNotFoundMsg      = "negocio no encontrado"
 )
 
 // TokenMinter genera un acceso al turno: el valor en claro y su hash. Lo invoca
@@ -37,8 +37,8 @@ type ChallengeRequest struct {
 
 // ChallengeOutcome es el resultado de registrar una solicitud.
 type ChallengeOutcome struct {
-	// BarbershopFound es false con un slug inexistente, mal formado o no publicable.
-	BarbershopFound bool
+	// BusinessFound es false con un slug inexistente, mal formado o no publicable.
+	BusinessFound bool
 	// RateLimited indica que se superó el límite por contacto o por IP; RetryAfter
 	// es lo que falta para que deje de aplicar.
 	RateLimited bool
@@ -61,25 +61,25 @@ type VerifyRequest struct {
 // AccessAppointment es un turno al que la verificación dio acceso: el valor en
 // claro del acceso, que viaja una sola vez, y lo mínimo para elegir entre varios.
 type AccessAppointment struct {
-	AccessToken string
-	StartsAt    time.Time
-	ServiceName string
-	BarberName  string
+	AccessToken      string
+	StartsAt         time.Time
+	ServiceName      string
+	ProfessionalName string
 }
 
 // VerifyOutcome es el resultado de verificar un código. Un código incorrecto,
 // vencido, agotado o inexistente producen el mismo Valid=false.
 type VerifyOutcome struct {
-	BarbershopFound bool
-	Valid           bool
-	Appointments    []AccessAppointment
-	// Timezone es la de la barbería, para que la lista de turnos muestre la hora
+	BusinessFound bool
+	Valid         bool
+	Appointments  []AccessAppointment
+	// Timezone es la del negocio, para que la lista de turnos muestre la hora
 	// de allí y no la del dispositivo (RN-DIS-07).
 	Timezone string
 }
 
 // AccessRepository es el puerto de persistencia del acceso con código. Cada
-// operación es una sola transacción de la barbería.
+// operación es una sola transacción del negocio.
 type AccessRepository interface {
 	RequestChallenge(ctx context.Context, req ChallengeRequest) (ChallengeOutcome, error)
 	VerifyChallenge(ctx context.Context, req VerifyRequest, mint TokenMinter) (VerifyOutcome, error)
@@ -167,8 +167,8 @@ func (s *AccessService) RequestCode(ctx context.Context, slug, rawContact, rawIP
 		return AccessChallengeAccepted{}, apperr.Internal(fmt.Errorf("customeraccess: registrar la solicitud de código: %w", err))
 	}
 	switch {
-	case !outcome.BarbershopFound:
-		return AccessChallengeAccepted{}, apperr.NotFound(barbershopNotFoundMsg)
+	case !outcome.BusinessFound:
+		return AccessChallengeAccepted{}, apperr.NotFound(businessNotFoundMsg)
 	case outcome.RateLimited:
 		return AccessChallengeAccepted{}, apperr.RateLimited(rateLimitedMessage, retryAfterSeconds(outcome.RetryAfter))
 	}
@@ -223,8 +223,8 @@ func (s *AccessService) VerifyCode(ctx context.Context, slug, rawContact, rawCod
 		return AccessVerified{}, apperr.Internal(fmt.Errorf("customeraccess: verificar el código: %w", err))
 	}
 	switch {
-	case !outcome.BarbershopFound:
-		return AccessVerified{}, apperr.NotFound(barbershopNotFoundMsg)
+	case !outcome.BusinessFound:
+		return AccessVerified{}, apperr.NotFound(businessNotFoundMsg)
 	case !outcome.Valid:
 		return AccessVerified{}, apperr.Unauthorized(invalidAccessCodeMessage)
 	}

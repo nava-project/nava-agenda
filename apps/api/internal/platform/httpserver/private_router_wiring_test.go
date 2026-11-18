@@ -7,7 +7,7 @@ import (
 
 	"github.com/go-chi/chi/v5"
 
-	"system-barbershop/internal/platform/httpserver"
+	"nava-agenda/internal/platform/httpserver"
 )
 
 // alwaysUnauthorized simula el middleware de sesión real de HU-006 sin

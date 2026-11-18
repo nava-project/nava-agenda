@@ -11,8 +11,8 @@ import (
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgconn"
 
-	"system-barbershop/internal/modules/shops"
-	"system-barbershop/internal/platform/database"
+	"nava-agenda/internal/modules/shops"
+	"nava-agenda/internal/platform/database"
 )
 
 // publicSlugUniqueIndex es el nombre del índice único parcial que
@@ -41,15 +41,15 @@ func isPublicSlugConflict(err error) bool {
 // producción; una secuencia fija en las pruebas de colisión).
 type slugCodeFunc func() (string, error)
 
-// claimSlug asigna a barbershopID un public_slug `<base del nombre><código>`
+// claimSlug asigna a businessID un public_slug `<base del nombre><código>`
 // dentro de la transacción tenant-aware de q (DEC-082, DEC-117). El llamador
 // debe haber bloqueado la fila con FOR UPDATE y comprobado que el slug es
 // NULL: esta función nunca sobrescribe uno existente. Una colisión real de
 // unicidad global se resuelve reintentando con otro código, capturando el
-// unique_violation exacto de idx_barbershop_public_slug -mismo patrón que
+// unique_violation exacto de idx_business_public_slug -mismo patrón que
 // catalog/postgres.isNameConflict-, nunca consultando la existencia antes
 // (evita la carrera contra otro tenant escribiendo su slug a la vez).
-func claimSlug(ctx context.Context, q database.Queries, newCode slugCodeFunc, barbershopID, name string) (string, error) {
+func claimSlug(ctx context.Context, q database.Queries, newCode slugCodeFunc, businessID, name string) (string, error) {
 	base := shops.SlugBase(name)
 	for attempt := 1; attempt <= maxSlugGenerationAttempts; attempt++ {
 		code, err := newCode()
@@ -68,7 +68,7 @@ func claimSlug(ctx context.Context, q database.Queries, newCode slugCodeFunc, ba
 		}
 		_, err = q.Exec(ctx,
 			`UPDATE business SET public_slug = $2 WHERE id = $1 AND public_slug IS NULL`,
-			barbershopID, candidate,
+			businessID, candidate,
 		)
 		switch {
 		case err == nil:
@@ -102,20 +102,20 @@ var _ shops.Repository = (*Repository)(nil)
 
 // Get implementa shops.Repository.Get leyendo los cuatro campos autorizados
 // dentro de una transacción tenant-aware. RLS
-// (barbershop_select_tenant_policy) ya restringe la fila visible a
-// id = current_setting('app.barbershop_id'); el filtro explícito
+// (business_select_tenant_policy) ya restringe la fila visible a
+// id = current_setting('app.business_id'); el filtro explícito
 // WHERE id = $1 es defensa en profundidad, mismo patrón que
-// auth/postgres.Repository.BarbershopName.
-func (r *Repository) Get(ctx context.Context, barbershopID string) (shops.Barbershop, bool, error) {
-	var b shops.Barbershop
+// auth/postgres.Repository.BusinessName.
+func (r *Repository) Get(ctx context.Context, businessID string) (shops.Business, bool, error) {
+	var b shops.Business
 	found := false
 
-	err := r.db.InTenantTx(ctx, database.BarbershopID(barbershopID), func(ctx context.Context, q database.Queries) error {
+	err := r.db.InTenantTx(ctx, database.BusinessID(businessID), func(ctx context.Context, q database.Queries) error {
 		err := q.QueryRow(ctx,
 			`SELECT name, timezone, contact_email, contact_phone
 			   FROM business
 			  WHERE id = $1`,
-			barbershopID,
+			businessID,
 		).Scan(&b.Name, &b.Timezone, &b.ContactEmail, &b.ContactPhone)
 		switch {
 		case err == nil:
@@ -123,12 +123,12 @@ func (r *Repository) Get(ctx context.Context, barbershopID string) (shops.Barber
 		case errors.Is(err, pgx.ErrNoRows):
 			// found queda false: defensivo, ver shops.UpdateResult.Found.
 		default:
-			return fmt.Errorf("select barbershop: %w", err)
+			return fmt.Errorf("select business: %w", err)
 		}
 		return nil
 	})
 	if err != nil {
-		return shops.Barbershop{}, false, fmt.Errorf("shops/postgres: get barbershop: %w", err)
+		return shops.Business{}, false, fmt.Errorf("shops/postgres: get business: %w", err)
 	}
 	return b, found, nil
 }
@@ -139,18 +139,18 @@ func (r *Repository) Get(ctx context.Context, barbershopID string) (shops.Barber
 // concatenada); si no existe, devuelve inmediatamente sin ejecutar ningún
 // UPDATE (CA-020-03: cero escritura, Name y Contact* anteriores quedan
 // intactos). Si la zona es válida, ejecuta el UPDATE filtrando también por
-// barbershopID (defensa en profundidad sobre
-// barbershop_update_tenant_policy) y devuelve la representación recién
+// businessID (defensa en profundidad sobre
+// business_update_tenant_policy) y devuelve la representación recién
 // guardada en la misma sentencia (RETURNING), sin una segunda consulta.
 //
 // HU-090/DEC-082/DEC-117: si public_slug todavía es NULL, esta misma
 // transacción lo genera a partir de input.Name (claimSlug) antes del UPDATE
-// -el barbero nunca lo escribe, y esta operación nunca lo TOCA si ya existe:
-// renombrar la barbería no cambia el enlace ya compartido.
-func (r *Repository) Update(ctx context.Context, barbershopID string, input shops.UpdateInput) (shops.UpdateResult, error) {
+// -el profesional nunca lo escribe, y esta operación nunca lo TOCA si ya existe:
+// renombrar el negocio no cambia el enlace ya compartido.
+func (r *Repository) Update(ctx context.Context, businessID string, input shops.UpdateInput) (shops.UpdateResult, error) {
 	var result shops.UpdateResult
 
-	err := r.db.InTenantTx(ctx, database.BarbershopID(barbershopID), func(ctx context.Context, q database.Queries) error {
+	err := r.db.InTenantTx(ctx, database.BusinessID(businessID), func(ctx context.Context, q database.Queries) error {
 		var validTimezone bool
 		if err := q.QueryRow(ctx,
 			`SELECT EXISTS(SELECT 1 FROM pg_timezone_names WHERE name = $1)`,
@@ -169,46 +169,46 @@ func (r *Repository) Update(ctx context.Context, barbershopID string, input shop
 		// FOR UPDATE: la fila propia queda bloqueada por el resto de la
 		// transacción, coherente con "UNA sola transacción tenant-aware"
 		// (mismo criterio que el resto del módulo); RLS ya acota la fila a
-		// la barbería vigente, así que este bloqueo nunca alcanza otro
+		// el negocio vigente, así que este bloqueo nunca alcanza otro
 		// tenant.
 		var currentSlug *string
 		if err := q.QueryRow(ctx,
 			`SELECT public_slug FROM business WHERE id = $1 FOR UPDATE`,
-			barbershopID,
+			businessID,
 		).Scan(&currentSlug); err != nil {
 			if errors.Is(err, pgx.ErrNoRows) {
 				return nil // result.Found queda false: defensivo, ver shops.UpdateResult.Found.
 			}
-			return fmt.Errorf("lock barbershop before slug generation: %w", err)
+			return fmt.Errorf("lock business before slug generation: %w", err)
 		}
 
 		if currentSlug == nil {
-			if _, err := claimSlug(ctx, q, r.newCode, barbershopID, input.Name); err != nil {
+			if _, err := claimSlug(ctx, q, r.newCode, businessID, input.Name); err != nil {
 				return err
 			}
 		}
 
-		var b shops.Barbershop
+		var b shops.Business
 		err := q.QueryRow(ctx,
 			`UPDATE business
 			    SET name = $2, timezone = $3, contact_email = $4, contact_phone = $5
 			  WHERE id = $1
 			RETURNING name, timezone, contact_email, contact_phone`,
-			barbershopID, input.Name, input.Timezone, input.ContactEmail, input.ContactPhone,
+			businessID, input.Name, input.Timezone, input.ContactEmail, input.ContactPhone,
 		).Scan(&b.Name, &b.Timezone, &b.ContactEmail, &b.ContactPhone)
 		switch {
 		case err == nil:
 			result.Found = true
-			result.Barbershop = b
+			result.Business = b
 		case errors.Is(err, pgx.ErrNoRows):
 			// result.Found queda false: defensivo, ver shops.UpdateResult.Found.
 		default:
-			return fmt.Errorf("update barbershop: %w", err)
+			return fmt.Errorf("update business: %w", err)
 		}
 		return nil
 	})
 	if err != nil {
-		return shops.UpdateResult{}, fmt.Errorf("shops/postgres: update barbershop: %w", err)
+		return shops.UpdateResult{}, fmt.Errorf("shops/postgres: update business: %w", err)
 	}
 	return result, nil
 }

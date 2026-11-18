@@ -8,8 +8,8 @@ import (
 // PurgeRepository es el puerto de mantenimiento de HU-007/HU-008
 // (CA-007-06, DEC-064): purga en lote las filas vencidas de
 // login_throttle, auth_phone_challenge y staff_recovery_code. Exclusivo
-// del proceso worker, conectado como barberia_worker (DEC-040);
-// barberia_app no tiene GRANT sobre estas funciones.
+// del proceso worker, conectado como agenda_worker (DEC-040);
+// agenda_app no tiene GRANT sobre estas funciones.
 type PurgeRepository interface {
 	PurgeLoginThrottle(ctx context.Context, limit int) (deleted int, err error)
 	PurgePhoneChallenges(ctx context.Context, limit int) (deleted int, err error)

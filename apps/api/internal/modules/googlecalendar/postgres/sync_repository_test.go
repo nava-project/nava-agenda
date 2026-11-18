@@ -9,17 +9,17 @@ import (
 
 	"github.com/jackc/pgx/v5"
 
-	"system-barbershop/internal/modules/googlecalendar"
-	gcalpostgres "system-barbershop/internal/modules/googlecalendar/postgres"
-	"system-barbershop/internal/platform/config"
-	"system-barbershop/internal/platform/database"
+	"nava-agenda/internal/modules/googlecalendar"
+	gcalpostgres "nava-agenda/internal/modules/googlecalendar/postgres"
+	"nava-agenda/internal/platform/config"
+	"nava-agenda/internal/platform/database"
 )
 
 // Pruebas de integración de la cola de publicación (issue #324, DEC-102,
-// DDL-CON-01) contra PostgreSQL real y DOS barberías: encolado en la misma
+// DDL-CON-01) contra PostgreSQL real y DOS negocios: encolado en la misma
 // transacción, un único trabajo pendiente por recurso, reclamo con lease (SKIP
 // LOCKED) entre varios workers, finalización por CAS sobre claim_token y el
-// aislamiento por tenant. El worker se conecta como barberia_worker y solo puede
+// aislamiento por tenant. El worker se conecta como agenda_worker y solo puede
 // ejecutar las funciones SECURITY DEFINER.
 
 func setupWorkerDB(t *testing.T) *database.DB {
@@ -42,26 +42,26 @@ func setupWorkerDB(t *testing.T) *database.DB {
 }
 
 type syncFixture struct {
-	shop         database.BarbershopID
-	app          *database.DB
-	repo         *gcalpostgres.Repository
-	worker       *gcalpostgres.WorkerRepository
-	barberID     string
-	connectionID string
-	staffUserID  string
+	shop           database.BusinessID
+	app            *database.DB
+	repo           *gcalpostgres.Repository
+	worker         *gcalpostgres.WorkerRepository
+	professionalID string
+	connectionID   string
+	staffUserID    string
 }
 
-// newSyncFixture crea un barbero con la conexión ya `connected`.
-func newSyncFixture(t *testing.T, app *database.DB, worker *database.DB, shop database.BarbershopID, staffUserID string) syncFixture {
+// newSyncFixture crea un profesional con la conexión ya `connected`.
+func newSyncFixture(t *testing.T, app *database.DB, worker *database.DB, shop database.BusinessID, staffUserID string) syncFixture {
 	t.Helper()
 	f := newFixtures(t, app, shop, staffUserID)
 	repo := gcalpostgres.New(app)
-	conn, err := repo.SaveConnected(context.Background(), string(shop), f.barberID, connectedData(time.Now().UTC()))
+	conn, err := repo.SaveConnected(context.Background(), string(shop), f.professionalID, connectedData(time.Now().UTC()))
 	if err != nil {
 		t.Fatalf("SaveConnected: %v", err)
 	}
 	return syncFixture{shop: shop, app: app, repo: repo, worker: gcalpostgres.NewWorkerRepository(worker),
-		barberID: f.barberID, connectionID: conn.ID, staffUserID: staffUserID}
+		professionalID: f.professionalID, connectionID: conn.ID, staffUserID: staffUserID}
 }
 
 // seedAppointment crea una cita confirmada y la ENCOLA con el hook, igual que lo
@@ -92,7 +92,7 @@ func (f syncFixture) seedAppointment(t *testing.T, status string, startsIn time.
 			                          price_amount_snapshot, price_currency_snapshot)
 			 VALUES ($1, $2, $3, $4, 'Ana Pérez', $5::timestamptz, $5::timestamptz + interval '40 minutes', $6, `+resolved+`, 'manual', 'Corte clásico', 40, 30000, 'COP')
 			 RETURNING id::text`,
-			string(f.shop), f.barberID, serviceID, customerID, start, status).Scan(&id); err != nil {
+			string(f.shop), f.professionalID, serviceID, customerID, start, status).Scan(&id); err != nil {
 			return err
 		}
 		return gcalpostgres.NewEnqueuer().AppointmentChanged(ctx, q, string(f.shop), id)
@@ -161,7 +161,7 @@ func TestEnqueue_AppointmentWriteQueuesOneJobAndFoldsRepeatedChanges(t *testing.
 	id := f.seedAppointment(t, "confirmed", 48*time.Hour)
 
 	if got := f.jobs(t); len(got) != 1 || got[0] != "pending" {
-		t.Fatalf("una cita confirmada de un barbero conectado encola un trabajo pendiente: %v", got)
+		t.Fatalf("una cita confirmada de un profesional conectado encola un trabajo pendiente: %v", got)
 	}
 
 	// Cinco cambios seguidos del mismo recurso se funden en UN trabajo.
@@ -183,7 +183,7 @@ func TestEnqueue_NothingWithoutALiveConnection(t *testing.T) {
 	ctx := context.Background()
 
 	// Sin conexión viva (desconectada o con permiso revocado) no se encola.
-	if _, err := f.repo.MarkStatus(ctx, string(f.shop), f.barberID, googlecalendar.StatusDisconnected, "", time.Now()); err != nil {
+	if _, err := f.repo.MarkStatus(ctx, string(f.shop), f.professionalID, googlecalendar.StatusDisconnected, "", time.Now()); err != nil {
 		t.Fatal(err)
 	}
 	f.seedAppointment(t, "confirmed", 48*time.Hour)
@@ -191,7 +191,7 @@ func TestEnqueue_NothingWithoutALiveConnection(t *testing.T) {
 		t.Fatalf("una conexión desconectada no encola nada: %v", got)
 	}
 
-	// Un barbero que nunca conectó tampoco.
+	// Un profesional que nunca conectó tampoco.
 	other := newFixtures(t, app, shopC, userC1)
 	_ = other
 	var count int
@@ -215,7 +215,7 @@ func TestEnqueue_TimeBlockRules(t *testing.T) {
 			if err := q.QueryRow(ctx,
 				`INSERT INTO time_block (business_id, professional_id, block_type, source, starts_at, ends_at)
 				 VALUES ($1, $2, $3, $4, now() + interval '2 days', now() + interval '2 days 1 hour') RETURNING id::text`,
-				string(f.shop), f.barberID, blockType, source).Scan(&id); err != nil {
+				string(f.shop), f.professionalID, blockType, source).Scan(&id); err != nil {
 				return err
 			}
 			return gcalpostgres.NewEnqueuer().TimeBlockChanged(ctx, q, string(f.shop), id)
@@ -320,10 +320,10 @@ func TestContext_ReturnsTheMinimumNeededAndOnlyForAClaimedJob(t *testing.T) {
 	if err != nil || !found {
 		t.Fatalf("JobContext: found=%v err=%v", found, err)
 	}
-	if jc.ResourceType != "appointment" || jc.ResourceID != apptID || !jc.ResourceFound || !jc.BarberMatches ||
+	if jc.ResourceType != "appointment" || jc.ResourceID != apptID || !jc.ResourceFound || !jc.ProfessionalMatches ||
 		jc.ApptStatus != "confirmed" || jc.AttendeeName != "Ana Pérez" || jc.ServiceName != "Corte clásico" ||
 		jc.CustomerEmail == "" || jc.Timezone == "" || jc.CalendarID != "primary" || jc.ConnectionStatus != "connected" ||
-		jc.BarberID != f.barberID || len(jc.TokenCiphertext) == 0 || jc.TokenKeyID != "v1" || jc.LinkEventID != "" {
+		jc.ProfessionalID != f.professionalID || len(jc.TokenCiphertext) == 0 || jc.TokenKeyID != "v1" || jc.LinkEventID != "" {
 		t.Fatalf("contexto inesperado: %+v", jc)
 	}
 	if jc.EndsAt.Sub(jc.StartsAt) != 40*time.Minute {
@@ -360,7 +360,7 @@ func TestFinish_Outcomes(t *testing.T) {
 		if jc.LinkEventID != "navaevento0001" || jc.LinkGeneration != 1 || jc.LinkVisibleHash != "hash-1" {
 			t.Fatalf("el vínculo persistido decide entre crear y actualizar: %+v", jc)
 		}
-		conn, _, _ := f.repo.GetConnection(ctx, string(f.shop), f.barberID)
+		conn, _, _ := f.repo.GetConnection(ctx, string(f.shop), f.professionalID)
 		if conn.LastSyncedAt == nil {
 			t.Fatal("published debe fijar last_synced_at")
 		}
@@ -425,7 +425,7 @@ func TestFinish_Outcomes(t *testing.T) {
 			Outcome: googlecalendar.OutcomeReauth, ErrorCode: "token_revoked", Now: now}); err != nil || !ok {
 			t.Fatalf("reauth: ok=%v err=%v", ok, err)
 		}
-		conn, _, _ := f.repo.GetConnection(ctx, string(f.shop), f.barberID)
+		conn, _, _ := f.repo.GetConnection(ctx, string(f.shop), f.professionalID)
 		if conn.Status != googlecalendar.StatusReauthRequired || conn.HasCredentials() || conn.LastErrorCode != "token_revoked" {
 			t.Fatalf("conexión = %+v", conn)
 		}
@@ -442,7 +442,7 @@ func TestFinish_Outcomes(t *testing.T) {
 			Outcome: googlecalendar.OutcomePermanent, ErrorCode: "calendar_not_found", Now: now}); err != nil || !ok {
 			t.Fatalf("permanent: ok=%v err=%v", ok, err)
 		}
-		conn, _, _ := f.repo.GetConnection(ctx, string(f.shop), f.barberID)
+		conn, _, _ := f.repo.GetConnection(ctx, string(f.shop), f.professionalID)
 		if conn.Status != googlecalendar.StatusError || !conn.HasCredentials() || conn.LastErrorCode != "calendar_not_found" {
 			t.Fatalf("conexión = %+v", conn)
 		}
@@ -480,16 +480,16 @@ func TestTwoTenants_JobsAndContextNeverCross(t *testing.T) {
 	if visible != 0 {
 		t.Fatal("D no debe ver los trabajos de C")
 	}
-	if _, found, _ := d.repo.RequeueConnection(context.Background(), string(shopD), c.barberID, time.Now()); found {
-		t.Fatal("D no debe poder reordenar la cola del barbero de C")
+	if _, found, _ := d.repo.RequeueConnection(context.Background(), string(shopD), c.professionalID, time.Now()); found {
+		t.Fatal("D no debe poder reordenar la cola del profesional de C")
 	}
-	// Cada trabajo reclamado trae SU barbería y su conexión.
-	// Reclamar los de una barbería libera los ajenos con una espera corta: cada barbería
+	// Cada trabajo reclamado trae SU negocio y su conexión.
+	// Reclamar los de un negocio libera los ajenos con una espera corta: cada negocio
 	// reclama en un instante posterior para no depender de esa espera.
 	for i, f := range []syncFixture{c, d} {
 		jobs := f.claimMine(t, 50, time.Now().UTC().Add(5*time.Second+time.Duration(i)*time.Hour))
-		if len(jobs) != 1 || jobs[0].BarbershopID != string(f.shop) {
-			t.Fatalf("el trabajo debe pertenecer a su barbería: %+v", jobs)
+		if len(jobs) != 1 || jobs[0].BusinessID != string(f.shop) {
+			t.Fatalf("el trabajo debe pertenecer a su negocio: %+v", jobs)
 		}
 	}
 }
@@ -595,7 +595,7 @@ func TestRestore_ClaimsEachDueConnectionOnceAndSkipsLiveOnes(t *testing.T) {
 			break
 		}
 	}
-	if mine == nil || mine.BarbershopID != string(f.shop) || mine.BarberID != f.barberID || len(mine.TokenCiphertext) == 0 {
+	if mine == nil || mine.BusinessID != string(f.shop) || mine.ProfessionalID != f.professionalID || len(mine.TokenCiphertext) == 0 {
 		t.Fatalf("debe reservarse la conexión pendiente de comprobar: %+v", mine)
 	}
 	// Recién reservada, no vuelve a salir hasta que pase el intervalo.
@@ -625,17 +625,17 @@ func TestSyncNow_RequeuesFailedAndMakesPendingDueAndIsSafeToRepeat(t *testing.T)
 	_, _ = f.worker.FinishJob(ctx, googlecalendar.FinishInput{JobID: jobs[1].ID, ClaimToken: jobs[1].ClaimToken,
 		Outcome: googlecalendar.OutcomeRetry, ErrorCode: "google_unavailable", RetrySeconds: 3600, MaxAttempts: 8, Now: now})
 
-	counts, err := f.repo.JobCounts(ctx, string(f.shop), f.barberID)
+	counts, err := f.repo.JobCounts(ctx, string(f.shop), f.professionalID)
 	if err != nil || counts.Pending != 1 || counts.Failed != 1 {
 		t.Fatalf("antes: %+v %v", counts, err)
 	}
 	for range 3 { // varios clics
-		counts, found, err := f.repo.RequeueConnection(ctx, string(f.shop), f.barberID, now)
+		counts, found, err := f.repo.RequeueConnection(ctx, string(f.shop), f.professionalID, now)
 		if err != nil || !found || counts.Pending != 2 || counts.Failed != 0 {
 			t.Fatalf("Sincronizar ahora: %+v found=%v err=%v", counts, found, err)
 		}
 	}
-	conn, _, _ := f.repo.GetConnection(ctx, string(f.shop), f.barberID)
+	conn, _, _ := f.repo.GetConnection(ctx, string(f.shop), f.professionalID)
 	if conn.Status != googlecalendar.StatusConnected {
 		t.Fatalf("reintentar saca la conexión del estado de error: %v", conn.Status)
 	}
@@ -654,7 +654,7 @@ func TestDisconnectAndInitialPublication_DropAndRebuildTheQueue(t *testing.T) {
 	if got := f.jobs(t); len(got) != 1 {
 		t.Fatalf("jobs = %v", got)
 	}
-	if _, err := f.repo.MarkStatus(ctx, string(f.shop), f.barberID, googlecalendar.StatusDisconnected, "", now); err != nil {
+	if _, err := f.repo.MarkStatus(ctx, string(f.shop), f.professionalID, googlecalendar.StatusDisconnected, "", now); err != nil {
 		t.Fatal(err)
 	}
 	if got := f.jobs(t); len(got) != 0 {
@@ -665,7 +665,7 @@ func TestDisconnectAndInitialPublication_DropAndRebuildTheQueue(t *testing.T) {
 	f.seedAppointment(t, "confirmed", 24*time.Hour)                 // dentro de la ventana
 	f.seedAppointment(t, "confirmed", 24*30*8*time.Hour)            // a 8 meses: fuera
 	f.seedAppointment(t, "cancelled_by_professional", 30*time.Hour) // cancelada: no se publica
-	if _, err := f.repo.SaveConnected(ctx, string(f.shop), f.barberID, connectedData(now)); err != nil {
+	if _, err := f.repo.SaveConnected(ctx, string(f.shop), f.professionalID, connectedData(now)); err != nil {
 		t.Fatal(err)
 	}
 	pending := f.jobs(t)
@@ -690,7 +690,7 @@ func TestReminderChange_RequeuesTheFutureLinkedEvents(t *testing.T) {
 	}
 
 	minutes := 15
-	if _, found, err := f.repo.SetReminder(ctx, string(f.shop), f.barberID, &minutes); err != nil || !found {
+	if _, found, err := f.repo.SetReminder(ctx, string(f.shop), f.professionalID, &minutes); err != nil || !found {
 		t.Fatalf("SetReminder: found=%v err=%v", found, err)
 	}
 	if got := f.jobs(t); len(got) != 1 {

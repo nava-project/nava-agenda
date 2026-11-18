@@ -1,4 +1,4 @@
-// Package googlecalendar es el módulo dueño de la integración de un barbero
+// Package googlecalendar es el módulo dueño de la integración de un profesional
 // con SU Google Calendar (DEC-099): conexión OAuth con PKCE, tokens cifrados,
 // estado de la conexión, preferencia de recordatorio y desconexión.
 //

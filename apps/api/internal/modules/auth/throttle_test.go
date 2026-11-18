@@ -6,8 +6,8 @@ import (
 	"testing"
 	"time"
 
-	"system-barbershop/internal/modules/auth"
-	"system-barbershop/internal/platform/apperr"
+	"nava-agenda/internal/modules/auth"
+	"nava-agenda/internal/platform/apperr"
 )
 
 type registerAttemptCall struct {

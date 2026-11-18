@@ -8,7 +8,7 @@ import (
 	"context"
 	"fmt"
 
-	"system-barbershop/internal/platform/database"
+	"nava-agenda/internal/platform/database"
 )
 
 // Enqueuer implementa booking/postgres.NoticeHook con UNA sentencia: persiste el
@@ -34,7 +34,7 @@ SELECT a.business_id, a.id, $3, a.updated_at, now() + interval '60 seconds'
 ON CONFLICT (appointment_id, (CASE WHEN kind IN ('reminder', 'reminder_whatsapp') THEN kind ELSE 'change' END)) WHERE status = 'pending'
 DO UPDATE SET kind = EXCLUDED.kind, state_at = EXCLUDED.state_at, run_at = EXCLUDED.run_at`
 
-// La anticipación es la que eligió el negocio (`barbershop.reminder_lead_minutes`,
+// La anticipación es la que eligió el negocio (`business.reminder_lead_minutes`,
 // DEC-174; 30 minutos por defecto, DEC-018), leída en esta misma transacción.
 //
 // El recordatorio guarda como state_at el instante del turno: si el turno cambia
@@ -78,24 +78,24 @@ UPDATE appointment_notice n
    AND a.starts_at - make_interval(mins => b.reminder_lead_minutes) > now()`
 
 // ReminderLeadChanged implementa shops/postgres.ReminderLeadHook.
-func (Enqueuer) ReminderLeadChanged(ctx context.Context, q database.Queries, barbershopID string) error {
-	if _, err := q.Exec(ctx, reminderLeadChangedSQL, barbershopID); err != nil {
+func (Enqueuer) ReminderLeadChanged(ctx context.Context, q database.Queries, businessID string) error {
+	if _, err := q.Exec(ctx, reminderLeadChangedSQL, businessID); err != nil {
 		return fmt.Errorf("appointmentnotice/postgres: reschedule reminders: %w", err)
 	}
 	return nil
 }
 
 // AppointmentReminderRequired implementa booking/postgres.NoticeHook.
-func (Enqueuer) AppointmentReminderRequired(ctx context.Context, q database.Queries, barbershopID, appointmentID string) error {
-	if _, err := q.Exec(ctx, reminderSQL, barbershopID, appointmentID); err != nil {
+func (Enqueuer) AppointmentReminderRequired(ctx context.Context, q database.Queries, businessID, appointmentID string) error {
+	if _, err := q.Exec(ctx, reminderSQL, businessID, appointmentID); err != nil {
 		return fmt.Errorf("appointmentnotice/postgres: enqueue reminder: %w", err)
 	}
 	return nil
 }
 
 // AppointmentNoticeRequired implementa booking/postgres.NoticeHook.
-func (Enqueuer) AppointmentNoticeRequired(ctx context.Context, q database.Queries, barbershopID, appointmentID, kind string) error {
-	if _, err := q.Exec(ctx, enqueueSQL, barbershopID, appointmentID, kind); err != nil {
+func (Enqueuer) AppointmentNoticeRequired(ctx context.Context, q database.Queries, businessID, appointmentID, kind string) error {
+	if _, err := q.Exec(ctx, enqueueSQL, businessID, appointmentID, kind); err != nil {
 		return fmt.Errorf("appointmentnotice/postgres: enqueue: %w", err)
 	}
 	return nil

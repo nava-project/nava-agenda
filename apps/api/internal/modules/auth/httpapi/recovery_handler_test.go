@@ -10,8 +10,8 @@ import (
 	"strings"
 	"testing"
 
-	"system-barbershop/internal/modules/auth"
-	"system-barbershop/internal/modules/auth/httpapi"
+	"nava-agenda/internal/modules/auth"
+	"nava-agenda/internal/modules/auth/httpapi"
 )
 
 func discardRecoveryLogger() *slog.Logger {
@@ -265,7 +265,7 @@ func TestRecoveryRequestHandler_WhatsAppChannel_SendsOnlyToPhone(t *testing.T) {
 
 // TestRecoveryRequestHandler_WhatsApp_UnknownAmbiguousAndKnown_IdenticalResponse
 // cubre CA-008-10 y DEC-065: un número con cuenta, sin cuenta o ambiguo entre
-// barberías produce exactamente la misma respuesta.
+// negocios produce exactamente la misma respuesta.
 func TestRecoveryRequestHandler_WhatsApp_UnknownAmbiguousAndKnown_IdenticalResponse(t *testing.T) {
 	body := `{"channel":"whatsapp","phone":"+573001234567"}`
 	serve := func(repo stubRecoveryRepository) *httptest.ResponseRecorder {

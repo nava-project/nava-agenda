@@ -4,12 +4,12 @@ import (
 	"context"
 	"fmt"
 
-	"system-barbershop/internal/platform/apperr"
+	"nava-agenda/internal/platform/apperr"
 )
 
 // ReminderLeadMinutes es con cuántos minutos de anticipación sale el
 // recordatorio al cliente (HU-131, DEC-174). Los valores son los del CHECK
-// `barbershop_reminder_lead_minutes_ck`: de 10 en 10, sin pasar de 60.
+// `business_reminder_lead_minutes_ck`: de 10 en 10, sin pasar de 60.
 type ReminderLeadMinutes int
 
 // DefaultReminderLeadMinutes es la anticipación inicial (DEC-018).
@@ -31,13 +31,13 @@ func (m ReminderLeadMinutes) Valid() bool {
 // ReminderSettingsRepository es el puerto de persistencia de la anticipación
 // del recordatorio. El núcleo no importa internal/platform/database ni pgx.
 type ReminderSettingsRepository interface {
-	// Get lee la anticipación de barbershopID en una transacción tenant-aware.
+	// Get lee la anticipación de businessID en una transacción tenant-aware.
 	// found=false cubre una fila no visible en el tenant vigente (defensivo).
-	Get(ctx context.Context, barbershopID string) (lead ReminderLeadMinutes, found bool, err error)
+	Get(ctx context.Context, businessID string) (lead ReminderLeadMinutes, found bool, err error)
 	// Update guarda la anticipación y, en la MISMA transacción, mueve los
 	// recordatorios pendientes de turnos futuros a la nueva hora. Sin versión de
 	// concurrencia: es una preferencia del negocio y la última escritura gana.
-	Update(ctx context.Context, barbershopID string, lead ReminderLeadMinutes) (stored ReminderLeadMinutes, found bool, err error)
+	Update(ctx context.Context, businessID string, lead ReminderLeadMinutes) (stored ReminderLeadMinutes, found bool, err error)
 }
 
 // ReminderSettingsService lee y cambia la anticipación del recordatorio del
@@ -53,11 +53,11 @@ func NewReminderSettingsService(repo ReminderSettingsRepository) *ReminderSettin
 }
 
 // Get lee la anticipación vigente.
-func (s *ReminderSettingsService) Get(ctx context.Context, barbershopID string) (ReminderLeadMinutes, error) {
+func (s *ReminderSettingsService) Get(ctx context.Context, businessID string) (ReminderLeadMinutes, error) {
 	if err := ctx.Err(); err != nil {
 		return 0, apperr.Internal(fmt.Errorf("shops: contexto cancelado antes de leer la anticipación del recordatorio: %w", err))
 	}
-	lead, found, err := s.repo.Get(ctx, barbershopID)
+	lead, found, err := s.repo.Get(ctx, businessID)
 	if err != nil {
 		return 0, apperr.Internal(fmt.Errorf("shops: leer anticipación del recordatorio: %w", err))
 	}
@@ -69,14 +69,14 @@ func (s *ReminderSettingsService) Get(ctx context.Context, barbershopID string) 
 
 // Update valida la anticipación y la guarda. Un valor fuera de la lista se
 // rechaza con 422 sin tocar la base de datos.
-func (s *ReminderSettingsService) Update(ctx context.Context, barbershopID string, lead ReminderLeadMinutes) (ReminderLeadMinutes, error) {
+func (s *ReminderSettingsService) Update(ctx context.Context, businessID string, lead ReminderLeadMinutes) (ReminderLeadMinutes, error) {
 	if err := ctx.Err(); err != nil {
 		return 0, apperr.Internal(fmt.Errorf("shops: contexto cancelado antes de actualizar la anticipación del recordatorio: %w", err))
 	}
 	if !lead.Valid() {
 		return 0, apperr.Validation("leadMinutes debe ser 10, 20, 30, 40, 50 o 60")
 	}
-	stored, found, err := s.repo.Update(ctx, barbershopID, lead)
+	stored, found, err := s.repo.Update(ctx, businessID, lead)
 	if err != nil {
 		return 0, apperr.Internal(fmt.Errorf("shops: actualizar anticipación del recordatorio: %w", err))
 	}

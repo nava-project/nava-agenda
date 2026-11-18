@@ -17,20 +17,20 @@ type LoginResponse struct {
 	ExpiresAt time.Time `json:"expiresAt"`
 }
 
-// BarbershopSummary es el payload mínimo de barbería activa de HU-012
+// BusinessSummary es el payload mínimo de negocio activo de HU-012
 // (DEC-060). Nunca incluye zona horaria, contacto ni ningún otro campo de
 // HU-020: esos llegan con esa historia, no se adelantan aquí.
-type BarbershopSummary struct {
+type BusinessSummary struct {
 	ID   string `json:"id"`
 	Name string `json:"name"`
 }
 
 // SessionContextResponse es el cuerpo de la respuesta 200 de
 // GET /private/auth/session (HU-012, DEC-060). Payload mínimo: nunca
-// StaffUserID, correo ni nombre del barbero (RN-DAT-02).
+// StaffUserID, correo ni nombre del profesional (RN-DAT-02).
 type SessionContextResponse struct {
-	Barbershop BarbershopSummary `json:"business"`
-	ExpiresAt  time.Time         `json:"expiresAt"`
+	Business  BusinessSummary `json:"business"`
+	ExpiresAt time.Time       `json:"expiresAt"`
 }
 
 // ChallengeRequest es el cuerpo de POST /api/v1/public/auth/challenge

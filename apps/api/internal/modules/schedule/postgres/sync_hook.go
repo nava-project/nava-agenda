@@ -3,7 +3,7 @@ package postgres
 import (
 	"context"
 
-	"system-barbershop/internal/platform/database"
+	"nava-agenda/internal/platform/database"
 )
 
 // SyncHook es el puerto con el que schedule permite a una integración (hoy, la
@@ -16,7 +16,7 @@ import (
 // completa. Una escritura nueva sobre `time_block` DEBE llamarlo;
 // sync_hook_test.go lo comprueba.
 type SyncHook interface {
-	TimeBlockChanged(ctx context.Context, q database.Queries, barbershopID, blockID string) error
+	TimeBlockChanged(ctx context.Context, q database.Queries, businessID, blockID string) error
 }
 
 // WithSyncHook registra la integración que reacciona a los cambios de bloqueos.
@@ -26,9 +26,9 @@ func (r *Repository) WithSyncHook(hook SyncHook) *Repository {
 	return r
 }
 
-func (r *Repository) timeBlockChanged(ctx context.Context, q database.Queries, barbershopID, blockID string) error {
+func (r *Repository) timeBlockChanged(ctx context.Context, q database.Queries, businessID, blockID string) error {
 	if r.hook == nil {
 		return nil
 	}
-	return r.hook.TimeBlockChanged(ctx, q, barbershopID, blockID)
+	return r.hook.TimeBlockChanged(ctx, q, businessID, blockID)
 }

@@ -12,8 +12,8 @@ import (
 	"testing"
 	"time"
 
-	"system-barbershop/internal/modules/publicbooking"
-	"system-barbershop/internal/modules/publicbooking/google"
+	"nava-agenda/internal/modules/publicbooking"
+	"nava-agenda/internal/modules/publicbooking/google"
 )
 
 const testKey = "clave-de-servidor-ficticia"

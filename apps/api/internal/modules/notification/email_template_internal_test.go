@@ -46,7 +46,7 @@ func TestEmailTemplate_ColorPairsMeetAA(t *testing.T) {
 		{"etiqueta de dato sobre crema", emailBrassText, emailCream},
 		{"valor de dato sobre crema", emailInk, emailCream},
 		{"wordmark sobre tinta", emailCream, emailInk},
-		{"nombre de barbería sobre tinta", "#cbd0d8", emailInk},
+		{"nombre de negocio sobre tinta", "#cbd0d8", emailInk},
 		{"código sobre tinta", emailCream, emailInk},
 		{"botón", emailCream, emailInk},
 		// Modo oscuro.

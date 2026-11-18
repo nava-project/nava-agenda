@@ -1,6 +1,6 @@
 package staff
 
-import "system-barbershop/internal/platform/apperr"
+import "nava-agenda/internal/platform/apperr"
 
 // Mensajes de campo de CA-021-03: describen un único campo, seguros para el
 // cliente (nunca SQL ni el valor crudo enviado, CA-003-02). Compartidos por
@@ -17,11 +17,11 @@ func errDescriptionTooLong() error {
 	return apperr.Validation("la descripción del profesional excede el largo máximo")
 }
 
-// errBarberNotFound cubre tanto un barbero inexistente como uno de otra
-// barbería: el mismo Kind para ambos casos es lo que impide que la capa
+// errProfessionalNotFound cubre tanto un profesional inexistente como uno de otra
+// negocio: el mismo Kind para ambos casos es lo que impide que la capa
 // HTTP los distinga (CA-021-05, RN-TEN-01), igual que el resto del
 // backend.
-func errBarberNotFound() error {
+func errProfessionalNotFound() error {
 	return apperr.NotFound("no existe un profesional con ese identificador")
 }
 

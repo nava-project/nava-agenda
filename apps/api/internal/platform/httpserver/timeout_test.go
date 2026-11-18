@@ -6,7 +6,7 @@ import (
 	"testing"
 	"time"
 
-	"system-barbershop/internal/platform/httpserver"
+	"nava-agenda/internal/platform/httpserver"
 )
 
 func TestTimeout_CancelsContextWithinConfiguredDuration(t *testing.T) {

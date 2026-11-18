@@ -1,9 +1,9 @@
 // Package postgres_test (pruebas de integración, HU-006) requiere
 // PostgreSQL REAL con las seis migraciones aplicadas y
-// database/testdata/dos_barberias.sql + testdata/hu005_credenciales_sesiones.sql
-// cargados, igual que repository_test.go. Conéctate como barberia_app.
+// database/testdata/dos_negocios.sql + testdata/hu005_credenciales_sesiones.sql
+// cargados, igual que repository_test.go. Conéctate como agenda_app.
 //
-//	export TEST_DATABASE_URL="postgres://barberia_app:app_test@localhost:5432/barberia_test?sslmode=disable"
+//	export TEST_DATABASE_URL="postgres://agenda_app:app_test@localhost:5432/postgres?sslmode=disable"
 //	go test -race ./internal/modules/auth/postgres/...
 package postgres_test
 
@@ -13,14 +13,14 @@ import (
 	"testing"
 	"time"
 
-	"system-barbershop/internal/modules/auth"
-	authpostgres "system-barbershop/internal/modules/auth/postgres"
-	"system-barbershop/internal/platform/database"
+	"nava-agenda/internal/modules/auth"
+	authpostgres "nava-agenda/internal/modules/auth/postgres"
+	"nava-agenda/internal/platform/database"
 )
 
 const (
 	staffUserActiveB   = "bbbbbbb1-bbbb-bbbb-bbbb-bbbbbbbbbbb1"
-	staffUserInactiveB = "bbbbbbb2-bbbb-bbbb-bbbb-bbbbbbbbbbb2" // is_active=false en dos_barberias.sql
+	staffUserInactiveB = "bbbbbbb2-bbbb-bbbb-bbbb-bbbbbbbbbbb2" // is_active=false en dos_negocios.sql
 )
 
 // createTestSession inserta una sesión propia (token único por prueba) y
@@ -33,7 +33,7 @@ func createTestSession(t *testing.T, db *database.DB, repo *authpostgres.Reposit
 		t.Fatalf("CreateSession: %v", err)
 	}
 
-	err := db.InTenantTx(context.Background(), database.BarbershopID(shop), func(ctx context.Context, q database.Queries) error {
+	err := db.InTenantTx(context.Background(), database.BusinessID(shop), func(ctx context.Context, q database.Queries) error {
 		return q.QueryRow(ctx, `SELECT id FROM staff_session WHERE token_hash = $1`, tokenHash).Scan(&sessionID)
 	})
 	if err != nil {
@@ -44,7 +44,7 @@ func createTestSession(t *testing.T, db *database.DB, repo *authpostgres.Reposit
 
 func readSessionRow(t *testing.T, db *database.DB, shop, sessionID string) (revokedAt *time.Time, expiresAt, lastUsedAt time.Time) {
 	t.Helper()
-	err := db.InTenantTx(context.Background(), database.BarbershopID(shop), func(ctx context.Context, q database.Queries) error {
+	err := db.InTenantTx(context.Background(), database.BusinessID(shop), func(ctx context.Context, q database.Queries) error {
 		return q.QueryRow(ctx,
 			`SELECT revoked_at, expires_at, last_used_at FROM staff_session WHERE id = $1`, sessionID,
 		).Scan(&revokedAt, &expiresAt, &lastUsedAt)
@@ -74,7 +74,7 @@ func TestValidateAndRenewSession_ValidSession_RenewsLastUsedAndExpiresAt(t *test
 	if !found {
 		t.Fatal("expected the fresh session to be found and renewed")
 	}
-	if principal.SessionID != sessionID || principal.StaffUserID != staffUserActiveA || principal.BarbershopID != shopA {
+	if principal.SessionID != sessionID || principal.StaffUserID != staffUserActiveA || principal.BusinessID != shopA {
 		t.Fatalf("unexpected principal: %+v (want session=%s user=%s shop=%s)", principal, sessionID, staffUserActiveA, shopA)
 	}
 
@@ -243,9 +243,9 @@ func TestRevokeSession_RevokesOwnSession_AndIsIdempotent(t *testing.T) {
 
 // TestRevokeSession_WrongTenant_NeverRevokesAnotherShopsSession es la
 // prueba de repositorio que respalda CA-006-07/DEC-058: aunque
-// RevokeSession recibiera el id real de una sesión de otra barbería (nunca
+// RevokeSession recibiera el id real de una sesión de otro negocio (nunca
 // ocurre en producción: sessionID sale siempre de un auth.Principal ya
-// validado para ESE tenant), RLS y el filtro explícito de barbershop_id
+// validado para ESE tenant), RLS y el filtro explícito de business_id
 // hacen que la operación no afecte ninguna fila.
 func TestRevokeSession_WrongTenant_NeverRevokesAnotherShopsSession(t *testing.T) {
 	db := setupTestDB(t)
@@ -337,44 +337,44 @@ func TestValidateAndRenewSession_ConcurrentWithRevoke_FinalStateAlwaysRevoked(t 
 	}
 }
 
-// --- BarbershopName (HU-012, DEC-060) ------------------------------------
+// --- BusinessName (HU-012, DEC-060) ------------------------------------
 
-// TestBarbershopName_ReturnsRealNamePerTenant confirma que el nombre
-// devuelto es la columna real barbershop.name de database/testdata/dos_barberias.sql
-// para cada tenant, no un valor inventado ni compartido entre barberías.
-func TestBarbershopName_ReturnsRealNamePerTenant(t *testing.T) {
+// TestBusinessName_ReturnsRealNamePerTenant confirma que el nombre
+// devuelto es la columna real business.name de database/testdata/dos_negocios.sql
+// para cada tenant, no un valor inventado ni compartido entre negocios.
+func TestBusinessName_ReturnsRealNamePerTenant(t *testing.T) {
 	db := setupTestDB(t)
 	defer db.Close()
 	repo := authpostgres.New(db)
 
-	nameA, err := repo.BarbershopName(context.Background(), shopA)
+	nameA, err := repo.BusinessName(context.Background(), shopA)
 	if err != nil {
-		t.Fatalf("BarbershopName(shopA): %v", err)
+		t.Fatalf("BusinessName(shopA): %v", err)
 	}
 	if nameA != "Barbería de prueba A" {
 		t.Fatalf("expected %q, got %q", "Barbería de prueba A", nameA)
 	}
 
-	nameB, err := repo.BarbershopName(context.Background(), shopB)
+	nameB, err := repo.BusinessName(context.Background(), shopB)
 	if err != nil {
-		t.Fatalf("BarbershopName(shopB): %v", err)
+		t.Fatalf("BusinessName(shopB): %v", err)
 	}
 	if nameB != "Barbería de prueba B" {
 		t.Fatalf("expected %q, got %q", "Barbería de prueba B", nameB)
 	}
 }
 
-// TestBarbershopName_UnknownID_ReturnsError confirma que un identificador
-// de barbería inexistente no produce un nombre vacío silencioso: falla de
+// TestBusinessName_UnknownID_ReturnsError confirma que un identificador
+// de negocio inexistente no produce un nombre vacío silencioso: falla de
 // forma explícita, igual que el resto de operaciones tenant-aware
 // (CA-001-03).
-func TestBarbershopName_UnknownID_ReturnsError(t *testing.T) {
+func TestBusinessName_UnknownID_ReturnsError(t *testing.T) {
 	db := setupTestDB(t)
 	defer db.Close()
 	repo := authpostgres.New(db)
 
 	const unknownShop = "99999999-9999-9999-9999-999999999999"
-	if _, err := repo.BarbershopName(context.Background(), unknownShop); err == nil {
-		t.Fatal("expected an error for an unknown barbershop id, got nil")
+	if _, err := repo.BusinessName(context.Background(), unknownShop); err == nil {
+		t.Fatal("expected an error for an unknown business id, got nil")
 	}
 }

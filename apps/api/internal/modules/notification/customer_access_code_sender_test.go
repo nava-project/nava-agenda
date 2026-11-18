@@ -9,7 +9,7 @@ import (
 	"strings"
 	"testing"
 
-	"system-barbershop/internal/modules/notification"
+	"nava-agenda/internal/modules/notification"
 )
 
 func newAccessSender(t *testing.T, resend *httptest.Server, meta *httptest.Server) notification.CustomerAccessCodeSender {

@@ -7,9 +7,9 @@ import (
 	"testing"
 	"time"
 
-	"system-barbershop/internal/modules/catalog"
-	"system-barbershop/internal/platform/apperr"
-	"system-barbershop/internal/platform/idempotency"
+	"nava-agenda/internal/modules/catalog"
+	"nava-agenda/internal/platform/apperr"
+	"nava-agenda/internal/platform/idempotency"
 )
 
 // fakeRepository es un doble de catalog.Repository para probar
@@ -18,12 +18,12 @@ import (
 // apperr), nunca SQL, RLS ni el unique_violation real (eso vive en
 // postgres/repository_test.go contra PostgreSQL real).
 type fakeRepository struct {
-	listFn       func(ctx context.Context, barbershopID string, page, pageSize int, search string) (catalog.ListResult, error)
-	getFn        func(ctx context.Context, barbershopID, serviceID string) (catalog.Service, bool, error)
-	createFn     func(ctx context.Context, barbershopID string, input catalog.CreateInput, key idempotency.Key, fingerprint idempotency.Fingerprint) (catalog.CreateResult, error)
-	updateFn     func(ctx context.Context, barbershopID, serviceID string, fields catalog.UpdateFields) (catalog.UpdateResult, error)
-	deactivateFn func(ctx context.Context, barbershopID, serviceID string, key idempotency.Key, fingerprint idempotency.Fingerprint) (catalog.LifecycleResult, error)
-	reactivateFn func(ctx context.Context, barbershopID, serviceID string, key idempotency.Key, fingerprint idempotency.Fingerprint) (catalog.LifecycleResult, error)
+	listFn       func(ctx context.Context, businessID string, page, pageSize int, search string) (catalog.ListResult, error)
+	getFn        func(ctx context.Context, businessID, serviceID string) (catalog.Service, bool, error)
+	createFn     func(ctx context.Context, businessID string, input catalog.CreateInput, key idempotency.Key, fingerprint idempotency.Fingerprint) (catalog.CreateResult, error)
+	updateFn     func(ctx context.Context, businessID, serviceID string, fields catalog.UpdateFields) (catalog.UpdateResult, error)
+	deactivateFn func(ctx context.Context, businessID, serviceID string, key idempotency.Key, fingerprint idempotency.Fingerprint) (catalog.LifecycleResult, error)
+	reactivateFn func(ctx context.Context, businessID, serviceID string, key idempotency.Key, fingerprint idempotency.Fingerprint) (catalog.LifecycleResult, error)
 
 	futureAppointments    int
 	futureAppointmentsErr error
@@ -34,36 +34,36 @@ type fakeRepository struct {
 	reactivateCalls int
 }
 
-func (f *fakeRepository) List(ctx context.Context, barbershopID string, page, pageSize int, search string) (catalog.ListResult, error) {
-	return f.listFn(ctx, barbershopID, page, pageSize, search)
+func (f *fakeRepository) List(ctx context.Context, businessID string, page, pageSize int, search string) (catalog.ListResult, error) {
+	return f.listFn(ctx, businessID, page, pageSize, search)
 }
 
-func (f *fakeRepository) Get(ctx context.Context, barbershopID, serviceID string) (catalog.Service, bool, error) {
-	return f.getFn(ctx, barbershopID, serviceID)
+func (f *fakeRepository) Get(ctx context.Context, businessID, serviceID string) (catalog.Service, bool, error) {
+	return f.getFn(ctx, businessID, serviceID)
 }
 
-func (f *fakeRepository) Create(ctx context.Context, barbershopID string, input catalog.CreateInput, key idempotency.Key, fingerprint idempotency.Fingerprint) (catalog.CreateResult, error) {
+func (f *fakeRepository) Create(ctx context.Context, businessID string, input catalog.CreateInput, key idempotency.Key, fingerprint idempotency.Fingerprint) (catalog.CreateResult, error) {
 	f.createCalls++
-	return f.createFn(ctx, barbershopID, input, key, fingerprint)
+	return f.createFn(ctx, businessID, input, key, fingerprint)
 }
 
-func (f *fakeRepository) Update(ctx context.Context, barbershopID, serviceID string, fields catalog.UpdateFields) (catalog.UpdateResult, error) {
+func (f *fakeRepository) Update(ctx context.Context, businessID, serviceID string, fields catalog.UpdateFields) (catalog.UpdateResult, error) {
 	f.updateCalls++
-	return f.updateFn(ctx, barbershopID, serviceID, fields)
+	return f.updateFn(ctx, businessID, serviceID, fields)
 }
 
-func (f *fakeRepository) Deactivate(ctx context.Context, barbershopID, serviceID string, key idempotency.Key, fingerprint idempotency.Fingerprint) (catalog.LifecycleResult, error) {
+func (f *fakeRepository) Deactivate(ctx context.Context, businessID, serviceID string, key idempotency.Key, fingerprint idempotency.Fingerprint) (catalog.LifecycleResult, error) {
 	f.deactivateCalls++
-	return f.deactivateFn(ctx, barbershopID, serviceID, key, fingerprint)
+	return f.deactivateFn(ctx, businessID, serviceID, key, fingerprint)
 }
 
 func (f *fakeRepository) CountFutureAppointments(context.Context, string, string) (int, error) {
 	return f.futureAppointments, f.futureAppointmentsErr
 }
 
-func (f *fakeRepository) Reactivate(ctx context.Context, barbershopID, serviceID string, key idempotency.Key, fingerprint idempotency.Fingerprint) (catalog.LifecycleResult, error) {
+func (f *fakeRepository) Reactivate(ctx context.Context, businessID, serviceID string, key idempotency.Key, fingerprint idempotency.Fingerprint) (catalog.LifecycleResult, error) {
 	f.reactivateCalls++
-	return f.reactivateFn(ctx, barbershopID, serviceID, key, fingerprint)
+	return f.reactivateFn(ctx, businessID, serviceID, key, fingerprint)
 }
 
 var _ catalog.Repository = (*fakeRepository)(nil)

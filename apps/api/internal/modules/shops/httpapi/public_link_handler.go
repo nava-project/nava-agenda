@@ -5,10 +5,10 @@ import (
 	"errors"
 	"net/http"
 
-	"system-barbershop/internal/modules/auth"
-	"system-barbershop/internal/modules/shops"
-	"system-barbershop/internal/platform/apperr"
-	"system-barbershop/internal/platform/httpserver"
+	"nava-agenda/internal/modules/auth"
+	"nava-agenda/internal/modules/shops"
+	"nava-agenda/internal/platform/apperr"
+	"nava-agenda/internal/platform/httpserver"
 )
 
 // PublicLinkResponse es la representación de GET /private/settings/public-link
@@ -18,7 +18,7 @@ type PublicLinkResponse struct {
 }
 
 // GetPublicLinkHandler expone GET /private/settings/public-link: lectura
-// autenticada del enlace público de la barbería de la sesión, generado en la
+// autenticada del enlace público del negocio de la sesión, generado en la
 // primera lectura si aún no existe.
 type GetPublicLinkHandler struct {
 	service *shops.PublicLinkService
@@ -29,7 +29,7 @@ func NewGetPublicLinkHandler(service *shops.PublicLinkService) *GetPublicLinkHan
 	return &GetPublicLinkHandler{service: service}
 }
 
-// ServeHTTP implementa http.Handler. La barbería sale exclusivamente de
+// ServeHTTP implementa http.Handler. El negocio sale exclusivamente de
 // auth.Principal: la ruta no recibe parámetros ni cuerpo.
 func (h *GetPublicLinkHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	requestID := httpserver.RequestIDFromContext(r.Context())
@@ -41,7 +41,7 @@ func (h *GetPublicLinkHandler) ServeHTTP(w http.ResponseWriter, r *http.Request)
 		return
 	}
 
-	link, err := h.service.Get(r.Context(), principal.BarbershopID)
+	link, err := h.service.Get(r.Context(), principal.BusinessID)
 	if err != nil {
 		httpserver.WriteProblem(w, httpserver.Translate(err, requestID))
 		return

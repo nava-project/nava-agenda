@@ -27,18 +27,18 @@ func NewAvailabilityLookup(service *Service) AvailabilityLookup {
 // (CA-041-07) sin duplicar la precedencia excepción-manual > festivo
 // automático > horario semanal, y aplana EffectiveDay a pares paralelos de
 // hora civil de inicio y duración en minutos (mismo criterio de "tipos
-// universales" que booking.BarberServicePort). dateCivil llega en formato
+// universales" que booking.ProfessionalServicePort). dateCivil llega en formato
 // "AAAA-MM-DD"; se parsea en UTC porque ResolveEffectiveDay solo necesita
 // Format/Weekday de la fecha, ambos independientes de zona para una fecha
 // sin componente de hora.
-func (a AvailabilityLookup) ResolveEffectiveDay(ctx context.Context, barbershopID, barberID, dateCivil string) (
+func (a AvailabilityLookup) ResolveEffectiveDay(ctx context.Context, businessID, professionalID, dateCivil string) (
 	isWorking bool, segmentStarts []string, segmentDurations []int, err error,
 ) {
 	date, err := time.Parse(dateLayout, dateCivil)
 	if err != nil {
 		return false, nil, nil, err
 	}
-	day, err := a.service.ResolveEffectiveDay(ctx, barbershopID, barberID, date)
+	day, err := a.service.ResolveEffectiveDay(ctx, businessID, professionalID, date)
 	if err != nil {
 		return false, nil, nil, err
 	}
@@ -56,7 +56,7 @@ func (a AvailabilityLookup) ResolveEffectiveDay(ctx context.Context, barbershopI
 // ocurrencias de serie llegan en forma civil (fecha + hora local): se
 // convierten a instantes absolutos con timezone, mismo criterio de
 // conversión que ManualBookingBlocks.HasActiveBlock.
-func (a AvailabilityLookup) BusyIntervals(ctx context.Context, barbershopID, barberID, fromDate, toDate, timezone string) (
+func (a AvailabilityLookup) BusyIntervals(ctx context.Context, businessID, professionalID, fromDate, toDate, timezone string) (
 	starts []time.Time, ends []time.Time, err error,
 ) {
 	loc, err := time.LoadLocation(timezone)
@@ -64,7 +64,7 @@ func (a AvailabilityLookup) BusyIntervals(ctx context.Context, barbershopID, bar
 		return nil, nil, err
 	}
 
-	result, err := a.service.EffectiveBlocks(ctx, barbershopID, barberID, fromDate, toDate)
+	result, err := a.service.EffectiveBlocks(ctx, businessID, professionalID, fromDate, toDate)
 	if err != nil {
 		return nil, nil, err
 	}

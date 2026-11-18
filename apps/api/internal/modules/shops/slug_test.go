@@ -11,7 +11,7 @@ import (
 	"strings"
 	"testing"
 
-	"system-barbershop/internal/modules/shops"
+	"nava-agenda/internal/modules/shops"
 )
 
 func TestSlugBase_SimpleName_LowercasesAndJoins(t *testing.T) {
@@ -47,17 +47,17 @@ func TestSlugBase_TooLong_TruncatesToMaxLength(t *testing.T) {
 	}
 }
 
-func TestSlugBase_NoAlphanumericCharacters_FallsBackToBarberia(t *testing.T) {
+func TestSlugBase_NoAlphanumericCharacters_FallsBackToNegocio(t *testing.T) {
 	got := shops.SlugBase(shops.NormalizeName("!!! ??? ..."))
-	if got != "barberia" {
-		t.Fatalf("expected fallback %q, got %q", "barberia", got)
+	if got != "negocio" {
+		t.Fatalf("expected fallback %q, got %q", "negocio", got)
 	}
 }
 
-func TestSlugBase_ShorterThanMinLength_FallsBackToBarberia(t *testing.T) {
+func TestSlugBase_ShorterThanMinLength_FallsBackToNegocio(t *testing.T) {
 	got := shops.SlugBase("A")
-	if got != "barberia" {
-		t.Fatalf("expected fallback %q, got %q", "barberia", got)
+	if got != "negocio" {
+		t.Fatalf("expected fallback %q, got %q", "negocio", got)
 	}
 }
 

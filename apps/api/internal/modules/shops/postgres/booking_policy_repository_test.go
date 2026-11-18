@@ -2,10 +2,10 @@
 // PostgreSQL REAL con las migraciones aplicadas (incluida
 // 20260911060000_add_barbershop_booking_policy.sql) y
 // database/testdata/hu093_politica_reserva.sql cargado. Conéctate como
-// barberia_app (docs/03-desarrollo/estrategia-pruebas.md §2 prohíbe mocks
+// agenda_app (docs/03-desarrollo/estrategia-pruebas.md §2 prohíbe mocks
 // para RLS/concurrencia optimista real).
 //
-//	export TEST_DATABASE_URL="postgres://barberia_app:app_test@localhost:5432/barberia_test?sslmode=disable"
+//	export TEST_DATABASE_URL="postgres://agenda_app:app_test@localhost:5432/postgres?sslmode=disable"
 //	go test -race ./internal/modules/shops/postgres/...
 package postgres_test
 
@@ -13,11 +13,11 @@ import (
 	"context"
 	"testing"
 
-	"system-barbershop/internal/modules/shops"
-	shopspostgres "system-barbershop/internal/modules/shops/postgres"
+	"nava-agenda/internal/modules/shops"
+	shopspostgres "nava-agenda/internal/modules/shops/postgres"
 )
 
-// Par dedicado de hu093_politica_reserva.sql (HU-093): ambas barberías
+// Par dedicado de hu093_politica_reserva.sql (HU-093): ambos negocios
 // quedan en los defaults de DEC-083 (CA-093-01), sin overrides.
 const (
 	bookingPolicyShopUno = "00930001-0093-0093-0093-009300010001"
@@ -50,7 +50,7 @@ func TestBookingPolicyGet_Defaults_MatchesDEC083(t *testing.T) {
 	}
 }
 
-func TestBookingPolicyGet_UnknownBarbershop_ReturnsNotFound(t *testing.T) {
+func TestBookingPolicyGet_UnknownBusiness_ReturnsNotFound(t *testing.T) {
 	db := setupTestDB(t)
 	repo := shopspostgres.NewBookingPolicyRepository(db)
 
@@ -59,7 +59,7 @@ func TestBookingPolicyGet_UnknownBarbershop_ReturnsNotFound(t *testing.T) {
 		t.Fatalf("Get: %v", err)
 	}
 	if found {
-		t.Fatal("expected an unknown barbershop not to be found")
+		t.Fatal("expected an unknown business not to be found")
 	}
 }
 
@@ -172,9 +172,9 @@ func TestBookingPolicyUpdate_StaleVersionToken_ReturnsVersionConflictWithoutWrit
 	}
 }
 
-// TestBookingPolicyUpdate_UnknownBarbershop_ReturnsNotFound cubre el
+// TestBookingPolicyUpdate_UnknownBusiness_ReturnsNotFound cubre el
 // desenlace defensivo BookingPolicyUpdateOutcomeNotFound.
-func TestBookingPolicyUpdate_UnknownBarbershop_ReturnsNotFound(t *testing.T) {
+func TestBookingPolicyUpdate_UnknownBusiness_ReturnsNotFound(t *testing.T) {
 	db := setupTestDB(t)
 	repo := shopspostgres.NewBookingPolicyRepository(db)
 
@@ -238,7 +238,7 @@ func TestBookingPolicyGetAndUpdate_TenantAIsolatedFromTenantB(t *testing.T) {
 // es una prueba de defensa en profundidad: aunque BookingPolicyService ya
 // valida rangos y coherencia antes de llegar aquí, esta prueba confirma
 // que la base de datos también los exige de forma independiente
-// (barbershop_slot_grid_minutes_ck) si esa validación previa alguna vez
+// (business_slot_grid_minutes_ck) si esa validación previa alguna vez
 // tuviera un defecto.
 func TestBookingPolicyUpdate_InvalidValueBypassingService_HitsCheckConstraint(t *testing.T) {
 	db := setupTestDB(t)

@@ -4,8 +4,8 @@ import "time"
 
 // TimeBlockResponse es la representación canónica de un bloqueo puntual
 // (HU-042): exactamente id, blockType, source, startsAt, endsAt, reason,
-// deletedAt, deletedBy, createdAt, updatedAt. Nunca barbershopId ni
-// barberId: el tenant se deriva de SessionCookie y el barbero de la ruta.
+// deletedAt, deletedBy, createdAt, updatedAt. Nunca businessId ni
+// professionalId: el tenant se deriva de SessionCookie y el profesional de la ruta.
 //
 // ADVERTENCIA: postgres.timeBlockResponseWire (schedule/postgres/
 // block_repository.go) declara EXACTAMENTE la misma forma para construir el
@@ -57,7 +57,7 @@ type SeriesExceptionResponse struct {
 
 // TimeBlockSeriesResponse es la representación canónica de una definición
 // recurrente (HU-042): weekly o date_list, con sus fechas/excepciones
-// embebidas. Nunca barbershopId ni barberId.
+// embebidas. Nunca businessId ni professionalId.
 //
 // ADVERTENCIA: postgres.timeBlockSeriesResponseWire declara EXACTAMENTE la
 // misma forma para el cuerpo que la idempotencia persiste en el alta.
@@ -131,7 +131,7 @@ type AddSeriesExceptionRequest struct {
 }
 
 // SeriesOccurrenceResponse es una ocurrencia expandida de una serie dentro
-// del rango consultado (civil: fecha + hora local de la barbería).
+// del rango consultado (civil: fecha + hora local del negocio).
 type SeriesOccurrenceResponse struct {
 	SeriesID        string  `json:"seriesId"`
 	BlockType       string  `json:"blockType"`
@@ -144,7 +144,7 @@ type SeriesOccurrenceResponse struct {
 // EffectiveBlocksResponse es la respuesta de
 // GET /private/professionals/{professionalId}/time-blocks/effective. manualBlocks y
 // seriesOccurrences vienen deliberadamente separados: unirlos en una sola
-// línea de tiempo exige la zona IANA de la barbería, que ningún consumidor
+// línea de tiempo exige la zona IANA del negocio, que ningún consumidor
 // necesita todavía (ver schedule.EffectiveBlocksResult).
 type EffectiveBlocksResponse struct {
 	ManualBlocks      []TimeBlockResponse        `json:"manualBlocks"`

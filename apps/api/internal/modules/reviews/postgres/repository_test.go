@@ -2,11 +2,11 @@
 // con todas las migraciones aplicadas (incluida
 // 20261031120000_create_barber_review.sql) y database/testdata/hu100_resenas.sql
 // cargado. Cada prueba crea sus propias citas con booking/postgres.CreateInternal
-// sobre las barberías dedicadas y su propia fila appointment_access_token; las
+// sobre los negocios dedicados y su propia fila appointment_access_token; las
 // reseñas y las citas no se pueden borrar (RN-HIS-02), así que cada prueba usa
-// un barbero propio y verifica diferencias, no totales absolutos.
+// un profesional propio y verifica diferencias, no totales absolutos.
 //
-//	export TEST_DATABASE_URL="postgres://barberia_app:app_test@localhost:5432/barberia_test?sslmode=disable"
+//	export TEST_DATABASE_URL="postgres://agenda_app:app_test@localhost:5432/postgres?sslmode=disable"
 //	go test -race ./internal/modules/reviews/postgres/...
 package postgres_test
 
@@ -22,13 +22,13 @@ import (
 	"testing"
 	"time"
 
-	"system-barbershop/internal/modules/booking"
-	bookingpostgres "system-barbershop/internal/modules/booking/postgres"
-	"system-barbershop/internal/modules/reviews"
-	reviewspostgres "system-barbershop/internal/modules/reviews/postgres"
-	"system-barbershop/internal/platform/config"
-	"system-barbershop/internal/platform/database"
-	"system-barbershop/internal/platform/idempotency"
+	"nava-agenda/internal/modules/booking"
+	bookingpostgres "nava-agenda/internal/modules/booking/postgres"
+	"nava-agenda/internal/modules/reviews"
+	reviewspostgres "nava-agenda/internal/modules/reviews/postgres"
+	"nava-agenda/internal/platform/config"
+	"nava-agenda/internal/platform/database"
+	"nava-agenda/internal/platform/idempotency"
 )
 
 const (
@@ -66,18 +66,18 @@ func setupTestDB(t *testing.T) *database.DB {
 	return db
 }
 
-// newBarber crea un barbero propio de la prueba: las reseñas no se pueden borrar,
+// newProfessional crea un profesional propio de la prueba: las reseñas no se pueden borrar,
 // así que reutilizar uno entre corridas arrastraría su promedio.
-func newBarber(t *testing.T, db *database.DB, shopID string) string {
+func newProfessional(t *testing.T, db *database.DB, shopID string) string {
 	t.Helper()
 	var id string
-	err := db.InTenantTx(context.Background(), database.BarbershopID(shopID), func(ctx context.Context, q database.Queries) error {
+	err := db.InTenantTx(context.Background(), database.BusinessID(shopID), func(ctx context.Context, q database.Queries) error {
 		return q.QueryRow(ctx,
 			`INSERT INTO professional (business_id, full_name) VALUES ($1, $2) RETURNING id`,
 			shopID, "Barbero de prueba HU-100 "+strconv.FormatInt(time.Now().UnixNano(), 10)).Scan(&id)
 	})
 	if err != nil {
-		t.Fatalf("crear barbero: %v", err)
+		t.Fatalf("crear profesional: %v", err)
 	}
 	return id
 }
@@ -92,19 +92,19 @@ func randInt(t *testing.T, n int64) int64 {
 }
 
 // newAppointment crea una cita real y la deja en el estado pedido.
-func newAppointment(t *testing.T, db *database.DB, shopID, barberID, serviceID string, status booking.Status) string {
+func newAppointment(t *testing.T, db *database.DB, shopID, professionalID, serviceID string, status booking.Status) string {
 	t.Helper()
 	repo := bookingpostgres.New(db, idempotency.NewSQLCoordinator())
 	starts := time.Date(2027, 3, 15, 8, 0, 0, 0, time.UTC).
 		AddDate(0, 0, int(randInt(t, 3650))).
 		Add(time.Duration(randInt(t, 20)) * time.Hour)
 	created, err := repo.CreateInternal(context.Background(), shopID, booking.CreateInternalInput{
-		BarberID:     barberID,
-		ServiceID:    serviceID,
-		AttendeeName: "Cliente de prueba HU-100",
-		StartsAt:     starts,
-		EndsAt:       starts.Add(30 * time.Minute),
-		Origin:       booking.OriginPublic,
+		ProfessionalID: professionalID,
+		ServiceID:      serviceID,
+		AttendeeName:   "Cliente de prueba HU-100",
+		StartsAt:       starts,
+		EndsAt:         starts.Add(30 * time.Minute),
+		Origin:         booking.OriginPublic,
 		Service: booking.ServiceSnapshot{
 			Name: "Corte de prueba HU-100", DurationMinutes: 30, PriceAmountCents: 2000000, Currency: "COP",
 		},
@@ -116,7 +116,7 @@ func newAppointment(t *testing.T, db *database.DB, shopID, barberID, serviceID s
 	}
 	id := created.Appointment.ID
 	if status != booking.StatusConfirmed {
-		err := db.InTenantTx(context.Background(), database.BarbershopID(shopID), func(ctx context.Context, q database.Queries) error {
+		err := db.InTenantTx(context.Background(), database.BusinessID(shopID), func(ctx context.Context, q database.Queries) error {
 			_, err := q.Exec(ctx, `UPDATE appointment SET status = $1, resolved_at = now() WHERE id = $2`, string(status), id)
 			return err
 		})
@@ -138,7 +138,7 @@ func newToken(t *testing.T, db *database.DB, shopID, appointmentID string) (plai
 	sum := sha256.Sum256([]byte(plain))
 	hash = hex.EncodeToString(sum[:])
 	issued := time.Now().UTC().Add(-time.Hour)
-	err := db.InTenantTx(context.Background(), database.BarbershopID(shopID), func(ctx context.Context, q database.Queries) error {
+	err := db.InTenantTx(context.Background(), database.BusinessID(shopID), func(ctx context.Context, q database.Queries) error {
 		_, err := q.Exec(ctx,
 			`INSERT INTO appointment_access_token (business_id, appointment_id, token_hash, issued_at, expires_at)
 			 VALUES ($1, $2, $3, $4, $5)`,
@@ -152,9 +152,9 @@ func newToken(t *testing.T, db *database.DB, shopID, appointmentID string) (plai
 }
 
 // review crea una cita completada, su token y la reseña; devuelve la reseña.
-func review(t *testing.T, db *database.DB, repo *reviewspostgres.Repository, shopID, barberID, serviceID string, rating int, comment *string) reviews.Review {
+func review(t *testing.T, db *database.DB, repo *reviewspostgres.Repository, shopID, professionalID, serviceID string, rating int, comment *string) reviews.Review {
 	t.Helper()
-	appt := newAppointment(t, db, shopID, barberID, serviceID, booking.StatusCompleted)
+	appt := newAppointment(t, db, shopID, professionalID, serviceID, booking.StatusCompleted)
 	_, hash := newToken(t, db, shopID, appt)
 	got, outcome, err := repo.CreateByTokenHash(context.Background(), hash, rating, comment)
 	if err != nil || outcome != reviews.Created {
@@ -165,18 +165,18 @@ func review(t *testing.T, db *database.DB, repo *reviewspostgres.Repository, sho
 
 func ptr(s string) *string { return &s }
 
-func TestCreate_CompletedAppointment_StoresOneReviewForTheAppointmentsBarber(t *testing.T) {
+func TestCreate_CompletedAppointment_StoresOneReviewForTheAppointmentsProfessional(t *testing.T) {
 	db := setupTestDB(t)
 	repo := reviewspostgres.New(db)
-	barberCreate := newBarber(t, db, shopUno)
-	appt := newAppointment(t, db, shopUno, barberCreate, serviceUno, booking.StatusCompleted)
+	professionalCreate := newProfessional(t, db, shopUno)
+	appt := newAppointment(t, db, shopUno, professionalCreate, serviceUno, booking.StatusCompleted)
 	_, hash := newToken(t, db, shopUno, appt)
 
 	got, outcome, err := repo.CreateByTokenHash(context.Background(), hash, 5, ptr("Excelente"))
 	if err != nil || outcome != reviews.Created {
 		t.Fatalf("outcome=%v err=%v", outcome, err)
 	}
-	if got.BarberID != barberCreate || got.Rating != 5 || got.Comment == nil || *got.Comment != "Excelente" || got.HiddenAt != nil {
+	if got.ProfessionalID != professionalCreate || got.Rating != 5 || got.Comment == nil || *got.Comment != "Excelente" || got.HiddenAt != nil {
 		t.Fatalf("reseña inesperada: %+v", got)
 	}
 
@@ -186,7 +186,7 @@ func TestCreate_CompletedAppointment_StoresOneReviewForTheAppointmentsBarber(t *
 		t.Fatalf("segundo intento: outcome=%v err=%v, se esperaba NotAvailable", outcome, err)
 	}
 	var count, rating int
-	err = db.InTenantTx(context.Background(), database.BarbershopID(shopUno), func(ctx context.Context, q database.Queries) error {
+	err = db.InTenantTx(context.Background(), database.BusinessID(shopUno), func(ctx context.Context, q database.Queries) error {
 		return q.QueryRow(ctx, `SELECT count(*), max(rating) FROM professional_review WHERE appointment_id = $1`, appt).Scan(&count, &rating)
 	})
 	if err != nil || count != 1 || rating != 5 {
@@ -197,10 +197,10 @@ func TestCreate_CompletedAppointment_StoresOneReviewForTheAppointmentsBarber(t *
 func TestCreate_NotCompletedOrUnknownToken_NeverCreatesAReview(t *testing.T) {
 	db := setupTestDB(t)
 	repo := reviewspostgres.New(db)
-	barberCreate := newBarber(t, db, shopUno)
+	professionalCreate := newProfessional(t, db, shopUno)
 
 	for _, status := range []booking.Status{booking.StatusConfirmed, booking.StatusCancelledByCustomer, booking.StatusNoShow} {
-		appt := newAppointment(t, db, shopUno, barberCreate, serviceUno, status)
+		appt := newAppointment(t, db, shopUno, professionalCreate, serviceUno, status)
 		_, hash := newToken(t, db, shopUno, appt)
 		_, outcome, err := repo.CreateByTokenHash(context.Background(), hash, 5, nil)
 		if err != nil || outcome != reviews.NotAvailable {
@@ -218,10 +218,10 @@ func TestCreate_NotCompletedOrUnknownToken_NeverCreatesAReview(t *testing.T) {
 func TestCreate_RevokedOrExpiredToken_IsTokenNotFound(t *testing.T) {
 	db := setupTestDB(t)
 	repo := reviewspostgres.New(db)
-	barberCreate := newBarber(t, db, shopUno)
-	appt := newAppointment(t, db, shopUno, barberCreate, serviceUno, booking.StatusCompleted)
+	professionalCreate := newProfessional(t, db, shopUno)
+	appt := newAppointment(t, db, shopUno, professionalCreate, serviceUno, booking.StatusCompleted)
 	_, hash := newToken(t, db, shopUno, appt)
-	err := db.InTenantTx(context.Background(), database.BarbershopID(shopUno), func(ctx context.Context, q database.Queries) error {
+	err := db.InTenantTx(context.Background(), database.BusinessID(shopUno), func(ctx context.Context, q database.Queries) error {
 		_, err := q.Exec(ctx, `UPDATE appointment_access_token SET revoked_at = now() WHERE token_hash = $1`, hash)
 		return err
 	})
@@ -237,10 +237,10 @@ func TestSummary_AveragesVisibleReviewsOnly_AndHidingIsReversible(t *testing.T) 
 	db := setupTestDB(t)
 	repo := reviewspostgres.New(db)
 	ctx := context.Background()
-	barberSummary := newBarber(t, db, shopUno)
+	professionalSummary := newProfessional(t, db, shopUno)
 
 	// Sin reseñas: promedio nulo y total cero (CA-100-04).
-	empty, found, err := repo.ListPublic(ctx, slugUno, barberSummary, reviews.PublicListLimit)
+	empty, found, err := repo.ListPublic(ctx, slugUno, professionalSummary, reviews.PublicListLimit)
 	if err != nil || !found {
 		t.Fatalf("ListPublic: found=%v err=%v", found, err)
 	}
@@ -248,11 +248,11 @@ func TestSummary_AveragesVisibleReviewsOnly_AndHidingIsReversible(t *testing.T) 
 		t.Fatalf("sin reseñas: %+v", empty)
 	}
 
-	_ = review(t, db, repo, shopUno, barberSummary, serviceUno, 5, ptr("Genial"))
-	_ = review(t, db, repo, shopUno, barberSummary, serviceUno, 4, nil)
-	r1 := review(t, db, repo, shopUno, barberSummary, serviceUno, 1, ptr("Comentario ofensivo"))
+	_ = review(t, db, repo, shopUno, professionalSummary, serviceUno, 5, ptr("Genial"))
+	_ = review(t, db, repo, shopUno, professionalSummary, serviceUno, 4, nil)
+	r1 := review(t, db, repo, shopUno, professionalSummary, serviceUno, 1, ptr("Comentario ofensivo"))
 
-	list, _, err := repo.ListPublic(ctx, slugUno, barberSummary, reviews.PublicListLimit)
+	list, _, err := repo.ListPublic(ctx, slugUno, professionalSummary, reviews.PublicListLimit)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -262,11 +262,11 @@ func TestSummary_AveragesVisibleReviewsOnly_AndHidingIsReversible(t *testing.T) 
 	}
 
 	// CA-100-05: ocultar retira del promedio y de la lista pública…
-	hidden, ok, err := repo.SetHidden(ctx, shopUno, barberSummary, r1.ID, true)
+	hidden, ok, err := repo.SetHidden(ctx, shopUno, professionalSummary, r1.ID, true)
 	if err != nil || !ok || hidden.HiddenAt == nil {
 		t.Fatalf("SetHidden(true): ok=%v err=%v %+v", ok, err, hidden)
 	}
-	list, _, _ = repo.ListPublic(ctx, slugUno, barberSummary, reviews.PublicListLimit)
+	list, _, _ = repo.ListPublic(ctx, slugUno, professionalSummary, reviews.PublicListLimit)
 	if list.Summary.Rating == nil || *list.Summary.Rating != 4.5 || list.Summary.RatingCount != 2 || len(list.Items) != 2 {
 		t.Fatalf("con una oculta: %+v", list)
 	}
@@ -276,7 +276,7 @@ func TestSummary_AveragesVisibleReviewsOnly_AndHidingIsReversible(t *testing.T) 
 		}
 	}
 	// …pero el panel la conserva con su fecha.
-	panel, found, err := repo.ListForBarber(ctx, shopUno, barberSummary, reviews.PanelListLimit)
+	panel, found, err := repo.ListForProfessional(ctx, shopUno, professionalSummary, reviews.PanelListLimit)
 	if err != nil || !found || len(panel.Items) != 3 {
 		t.Fatalf("panel: found=%v err=%v items=%d", found, err, len(panel.Items))
 	}
@@ -291,17 +291,17 @@ func TestSummary_AveragesVisibleReviewsOnly_AndHidingIsReversible(t *testing.T) 
 	}
 
 	// Ocultar de nuevo conserva la fecha original.
-	again, _, _ := repo.SetHidden(ctx, shopUno, barberSummary, r1.ID, true)
+	again, _, _ := repo.SetHidden(ctx, shopUno, professionalSummary, r1.ID, true)
 	if again.HiddenAt == nil || !again.HiddenAt.Equal(*hidden.HiddenAt) {
 		t.Fatalf("ocultar una oculta debe conservar su fecha: %v vs %v", again.HiddenAt, hidden.HiddenAt)
 	}
 
 	// Volver a mostrar la reincorpora sin perder el contenido.
-	shown, ok, err := repo.SetHidden(ctx, shopUno, barberSummary, r1.ID, false)
+	shown, ok, err := repo.SetHidden(ctx, shopUno, professionalSummary, r1.ID, false)
 	if err != nil || !ok || shown.HiddenAt != nil || shown.Comment == nil || *shown.Comment != "Comentario ofensivo" {
 		t.Fatalf("SetHidden(false): ok=%v err=%v %+v", ok, err, shown)
 	}
-	list, _, _ = repo.ListPublic(ctx, slugUno, barberSummary, reviews.PublicListLimit)
+	list, _, _ = repo.ListPublic(ctx, slugUno, professionalSummary, reviews.PublicListLimit)
 	if list.Summary.RatingCount != 3 {
 		t.Fatalf("al mostrarla de nuevo debe contar otra vez: %+v", list.Summary)
 	}
@@ -311,34 +311,34 @@ func TestTwoTenants_NeverSeeOrModifyEachOthersReviews(t *testing.T) {
 	db := setupTestDB(t)
 	repo := reviewspostgres.New(db)
 	ctx := context.Background()
-	barberIsolate := newBarber(t, db, shopUno)
-	barberOther := newBarber(t, db, shopUno)
-	barberDos := newBarber(t, db, shopDos)
+	professionalIsolate := newProfessional(t, db, shopUno)
+	professionalOther := newProfessional(t, db, shopUno)
+	professionalDos := newProfessional(t, db, shopDos)
 
-	mine := review(t, db, repo, shopUno, barberIsolate, serviceUno, 5, ptr("Reseña de Uno"))
-	_ = review(t, db, repo, shopDos, barberDos, serviceDos, 2, ptr("Reseña de Dos"))
+	mine := review(t, db, repo, shopUno, professionalIsolate, serviceUno, 5, ptr("Reseña de Uno"))
+	_ = review(t, db, repo, shopDos, professionalDos, serviceDos, 2, ptr("Reseña de Dos"))
 
-	// La barbería Dos no puede ocultar la reseña de Uno ni verla por su barbero.
-	if _, ok, err := repo.SetHidden(ctx, shopDos, barberIsolate, mine.ID, true); err != nil || ok {
+	// El negocio Dos no puede ocultar la reseña de Uno ni verla por su profesional.
+	if _, ok, err := repo.SetHidden(ctx, shopDos, professionalIsolate, mine.ID, true); err != nil || ok {
 		t.Fatalf("Dos ocultó una reseña de Uno: ok=%v err=%v", ok, err)
 	}
-	if _, found, err := repo.ListForBarber(ctx, shopDos, barberIsolate, reviews.PanelListLimit); err != nil || found {
-		t.Fatalf("Dos listó un barbero de Uno: found=%v err=%v", found, err)
+	if _, found, err := repo.ListForProfessional(ctx, shopDos, professionalIsolate, reviews.PanelListLimit); err != nil || found {
+		t.Fatalf("Dos listó un profesional de Uno: found=%v err=%v", found, err)
 	}
-	// Por el slug de Dos tampoco existe el barbero de Uno (mismo resultado que un barbero inexistente).
-	if _, found, err := repo.ListPublic(ctx, slugDos, barberIsolate, reviews.PublicListLimit); err != nil || found {
-		t.Fatalf("slug de Dos mostró un barbero de Uno: found=%v err=%v", found, err)
+	// Por el slug de Dos tampoco existe el profesional de Uno (mismo resultado que un profesional inexistente).
+	if _, found, err := repo.ListPublic(ctx, slugDos, professionalIsolate, reviews.PublicListLimit); err != nil || found {
+		t.Fatalf("slug de Dos mostró un profesional de Uno: found=%v err=%v", found, err)
 	}
-	// Reseña de Uno con el barbero equivocado dentro del mismo tenant: no existe.
-	if _, ok, _ := repo.SetHidden(ctx, shopUno, barberOther, mine.ID, true); ok {
-		t.Fatal("una reseña no debe poder moderarse bajo el barbero de otra persona")
+	// Reseña de Uno con el profesional equivocado dentro del mismo tenant: no existe.
+	if _, ok, _ := repo.SetHidden(ctx, shopUno, professionalOther, mine.ID, true); ok {
+		t.Fatal("una reseña no debe poder moderarse bajo el profesional de otra persona")
 	}
 	// Slug inexistente o mal formado.
-	if _, found, err := repo.ListPublic(ctx, "slug-que-no-existe", barberIsolate, 5); err != nil || found {
+	if _, found, err := repo.ListPublic(ctx, "slug-que-no-existe", professionalIsolate, 5); err != nil || found {
 		t.Fatalf("slug inexistente: found=%v err=%v", found, err)
 	}
 	// Y la reseña de Uno sigue visible.
-	list, _, _ := repo.ListPublic(ctx, slugUno, barberIsolate, reviews.PublicListLimit)
+	list, _, _ := repo.ListPublic(ctx, slugUno, professionalIsolate, reviews.PublicListLimit)
 	if list.Summary.RatingCount != 1 || len(list.Items) != 1 || list.Items[0].Comment == nil || !strings.Contains(*list.Items[0].Comment, "Uno") {
 		t.Fatalf("la reseña de Uno debe seguir intacta: %+v", list)
 	}
@@ -347,8 +347,8 @@ func TestTwoTenants_NeverSeeOrModifyEachOthersReviews(t *testing.T) {
 func TestSetHidden_UnknownReview_IsNotFound(t *testing.T) {
 	db := setupTestDB(t)
 	repo := reviewspostgres.New(db)
-	barberHide := newBarber(t, db, shopUno)
-	if _, ok, err := repo.SetHidden(context.Background(), shopUno, barberHide, "ffffffff-ffff-4fff-8fff-ffffffffffff", true); err != nil || ok {
+	professionalHide := newProfessional(t, db, shopUno)
+	if _, ok, err := repo.SetHidden(context.Background(), shopUno, professionalHide, "ffffffff-ffff-4fff-8fff-ffffffffffff", true); err != nil || ok {
 		t.Fatalf("ok=%v err=%v", ok, err)
 	}
 }

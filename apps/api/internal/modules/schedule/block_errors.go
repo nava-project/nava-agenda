@@ -1,16 +1,16 @@
 package schedule
 
-import "system-barbershop/internal/platform/apperr"
+import "nava-agenda/internal/platform/apperr"
 
 // errTimeBlockNotFound cubre un bloqueo puntual inexistente, de otro
-// barbero o de otra barbería (RN-TEN-01): el mismo Kind para las tres
+// profesional o de otro negocio (RN-TEN-01): el mismo Kind para las tres
 // causas impide que la capa HTTP las distinga.
 func errTimeBlockNotFound() error {
 	return apperr.NotFound("no existe un bloqueo con ese identificador")
 }
 
-// errTimeBlockSeriesNotFound cubre una serie inexistente, de otro barbero o
-// de otra barbería.
+// errTimeBlockSeriesNotFound cubre una serie inexistente, de otro profesional o
+// de otro negocio.
 func errTimeBlockSeriesNotFound() error {
 	return apperr.NotFound("no existe una definición de bloqueo recurrente con ese identificador")
 }

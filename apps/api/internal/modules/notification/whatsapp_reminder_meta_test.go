@@ -9,7 +9,7 @@ import (
 	"strings"
 	"testing"
 
-	"system-barbershop/internal/modules/notification"
+	"nava-agenda/internal/modules/notification"
 )
 
 func reminderSender(t *testing.T, srv *httptest.Server, recipients ...string) notification.MetaReminderSender {

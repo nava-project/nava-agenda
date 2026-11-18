@@ -4,8 +4,8 @@ import (
 	"testing"
 	"time"
 
-	"system-barbershop/internal/modules/catalog"
-	"system-barbershop/internal/platform/apperr"
+	"nava-agenda/internal/modules/catalog"
+	"nava-agenda/internal/platform/apperr"
 )
 
 func TestNormalizeName_TrimsSurroundingSpaces(t *testing.T) {

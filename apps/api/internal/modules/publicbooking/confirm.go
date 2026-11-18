@@ -11,9 +11,9 @@ import (
 	"strings"
 	"time"
 
-	"system-barbershop/internal/platform/apperr"
-	"system-barbershop/internal/platform/clock"
-	"system-barbershop/internal/platform/idempotency"
+	"nava-agenda/internal/platform/apperr"
+	"nava-agenda/internal/platform/clock"
+	"nava-agenda/internal/platform/idempotency"
 )
 
 // MaxAlternatives acota las franjas alternativas que RN-CON-05/DEC-090
@@ -32,21 +32,21 @@ const accessTokenValidity = 90 * 24 * time.Hour
 
 // ConfirmPublicAppointmentInput es la entrada cruda (ya decodificada del
 // JSON, todavía sin normalizar) del caso de uso de HU-097: slug/serviceId/
-// barberId llegan de la ruta -no confiados, revalidados de nuevo aquí
+// professionalId llegan de la ruta -no confiados, revalidados de nuevo aquí
 // exactamente como HU-094/HU-096 ya exigían-, startsAtRaw es el instante
 // absoluto ISO 8601 que el cliente eligió de entre los `slots` de HU-094
 // (nunca una hora civil: a diferencia de la creación manual, el público
 // siempre parte de un inicio ya resuelto), e Identity son los datos de
 // HU-096 sin normalizar todavía (CustomerIdentityInput, identity.go).
 type ConfirmPublicAppointmentInput struct {
-	Slug        string
-	ServiceID   string
-	BarberID    string
-	StartsAtRaw string
-	Identity    CustomerIdentityInput
+	Slug           string
+	ServiceID      string
+	ProfessionalID string
+	StartsAtRaw    string
+	Identity       CustomerIdentityInput
 	// HomeService es nil para un turno en el local (DEC-131, HU-103); con valor,
 	// la dirección elegida con el autocompletado. Se revalida contra el
-	// interruptor de la barbería en el momento de confirmar (CA-103-05).
+	// interruptor del negocio en el momento de confirmar (CA-103-05).
 	HomeService *HomeServiceInput
 }
 
@@ -73,7 +73,7 @@ type AlternativeSlot struct {
 // elegida ya no está disponible (perdió la carrera de exclusión de
 // PostgreSQL, o la revalidación de servidor la descartó antes de intentar
 // persistir, CA-097-02) y el servidor ya calculó hasta MaxAlternatives
-// franjas cronológicamente cercanas con el mismo barbero y servicio. Cause
+// franjas cronológicamente cercanas con el mismo profesional y servicio. Cause
 // es el *apperr.Error (Kind apperr.KindScheduleConflict) que
 // httpserver.Translate ya sabe traducir a la parte segura y común del
 // Problem 409; httpapi extiende esa respuesta con Alternatives (RFC 9457,
@@ -90,8 +90,8 @@ func errScheduleConflict() error {
 	return apperr.ScheduleConflict("la franja elegida ya no está disponible")
 }
 
-// errAppointmentResourceNotAvailable cubre CA-097-02: barbería no publicable
-// (mismo criterio que errBarbershopNotPublic), o serviceId/barberId sin
+// errAppointmentResourceNotAvailable cubre CA-097-02: negocio no publicable
+// (mismo criterio que errBusinessNotPublic), o serviceId/professionalId sin
 // forma de UUID, ajeno, inexistente, inactivo o sin asignación vigente. Se
 // unifica en un único 404 uniforme, sin distinguir la causa, exactamente
 // como CA-090-02/CA-092-03: a diferencia de la disponibilidad de solo
@@ -107,7 +107,7 @@ func errStartsAtInvalid() error {
 }
 
 // ConfirmationService implementa T1 pública (HU-097, prompt
-// PROMPT-HU-097-v1): revalida todo contra PostgreSQL real -barbería,
+// PROMPT-HU-097-v1): revalida todo contra PostgreSQL real -negocio,
 // servicio/asignación, jornada, bloqueo, política de reserva y franja-,
 // decide la reconciliación de cliente de DEC-085, emite el token de acceso
 // de DEC-089 y persiste todo en una sola transacción atómica a través de
@@ -127,9 +127,9 @@ type ConfirmationService struct {
 
 // NewConfirmationService construye el caso de uso. profiles resuelve el
 // perfil público por slug (mismo Repository que Service, HU-090: necesario
-// aquí solo para BarbershopProfile.Name, el resumen/correo de confirmación
+// aquí solo para BusinessProfile.Name, el resumen/correo de confirmación
 // lo necesita); availabilityRepo resuelve el identificador interno de la
-// barbería (mismo AvailabilityRepository que AvailabilityService, HU-094).
+// negocio (mismo AvailabilityRepository que AvailabilityService, HU-094).
 // webBaseURL es el origen del frontend público (config.Config.
 // PublicWebBaseURL, DEC-089/DEC-091); una cadena vacía es válida (el
 // correo se envía sin enlace clicable, nunca bloquea la confirmación).
@@ -174,29 +174,29 @@ func (s *ConfirmationService) ConfirmAppointment(
 
 	slug := strings.TrimSpace(in.Slug)
 	if slug == "" || len(slug) > MaxSlugLength {
-		return ConfirmResult{}, nil, errBarbershopNotPublic()
+		return ConfirmResult{}, nil, errBusinessNotPublic()
 	}
-	if !LooksLikePublicServiceID(in.ServiceID) || !LooksLikePublicBarberID(in.BarberID) {
+	if !LooksLikePublicServiceID(in.ServiceID) || !LooksLikePublicProfessionalID(in.ProfessionalID) {
 		return ConfirmResult{}, nil, errAppointmentResourceNotAvailable()
 	}
 
 	profile, found, err := s.profiles.ResolveBySlug(ctx, slug)
 	if err != nil {
-		return ConfirmResult{}, nil, apperr.Internal(fmt.Errorf("publicbooking: resolver perfil de barbería para confirmar: %w", err))
+		return ConfirmResult{}, nil, apperr.Internal(fmt.Errorf("publicbooking: resolver perfil de negocio para confirmar: %w", err))
 	}
 	if !found {
-		return ConfirmResult{}, nil, errBarbershopNotPublic()
+		return ConfirmResult{}, nil, errBusinessNotPublic()
 	}
 
-	barbershopID, found, err := s.availabilityRepo.ResolveBarbershopID(ctx, slug)
+	businessID, found, err := s.availabilityRepo.ResolveBusinessID(ctx, slug)
 	if err != nil {
-		return ConfirmResult{}, nil, apperr.Internal(fmt.Errorf("publicbooking: resolver barbería para confirmar: %w", err))
+		return ConfirmResult{}, nil, apperr.Internal(fmt.Errorf("publicbooking: resolver negocio para confirmar: %w", err))
 	}
 	if !found {
-		return ConfirmResult{}, nil, errBarbershopNotPublic()
+		return ConfirmResult{}, nil, errBusinessNotPublic()
 	}
 
-	serviceName, durationMinutes, priceCents, currency, assigned, err := s.assignments.ActiveAssignedService(ctx, barbershopID, in.BarberID, in.ServiceID)
+	serviceName, durationMinutes, priceCents, currency, assigned, err := s.assignments.ActiveAssignedService(ctx, businessID, in.ProfessionalID, in.ServiceID)
 	if err != nil {
 		return ConfirmResult{}, nil, apperr.Internal(fmt.Errorf("publicbooking: verificar asignación para confirmar: %w", err))
 	}
@@ -216,7 +216,7 @@ func (s *ConfirmationService) ConfirmAppointment(
 		return ConfirmResult{}, nil, err
 	}
 
-	// CA-103-05: se revalida contra el estado actual de la barbería, no contra lo
+	// CA-103-05: se revalida contra el estado actual del negocio, no contra lo
 	// que el cliente vio al elegir; si lo apagaron entre ambos momentos, 422 sin
 	// crear el turno.
 	var home *HomeService
@@ -231,7 +231,7 @@ func (s *ConfirmationService) ConfirmAppointment(
 		home = &normalized
 	}
 
-	starts, timezone, _, err := s.availability.computeAvailableStarts(ctx, barbershopID, in.BarberID, durationMinutes)
+	starts, timezone, _, err := s.availability.computeAvailableStarts(ctx, businessID, in.ProfessionalID, durationMinutes)
 	if err != nil {
 		return ConfirmResult{}, nil, err
 	}
@@ -246,7 +246,7 @@ func (s *ConfirmationService) ConfirmAppointment(
 		// se consulta la idempotencia para reproducir el resultado original
 		// (RN-IDE-01, CA-097-04). Solo ocurre en el camino del conflicto, así que
 		// la reserva normal no paga la consulta.
-		replay, stored, replayErr := s.appointments.ReplayPublicAppointment(ctx, barbershopID, key, fingerprint)
+		replay, stored, replayErr := s.appointments.ReplayPublicAppointment(ctx, businessID, key, fingerprint)
 		if replayErr != nil {
 			return ConfirmResult{}, nil, replayErr
 		}
@@ -264,7 +264,7 @@ func (s *ConfirmationService) ConfirmAppointment(
 		}
 	}
 
-	phoneMatchID, emailMatchID, err := s.customers.FindCustomerMatches(ctx, barbershopID, identity.Phone, identity.Email)
+	phoneMatchID, emailMatchID, err := s.customers.FindCustomerMatches(ctx, businessID, identity.Phone, identity.Email)
 	if err != nil {
 		return ConfirmResult{}, nil, apperr.Internal(fmt.Errorf("publicbooking: buscar coincidencias de cliente para confirmar: %w", err))
 	}
@@ -285,8 +285,8 @@ func (s *ConfirmationService) ConfirmAppointment(
 
 	decision, stored, err := s.appointments.CreatePublicAppointment(
 		ctx,
-		barbershopID, profile.Name, timezone,
-		in.BarberID, in.ServiceID,
+		businessID, profile.Name, timezone,
+		in.ProfessionalID, in.ServiceID,
 		startsAt, endsAt,
 		identity.AttendeeName,
 		serviceName, durationMinutes, priceCents, currency,
@@ -308,7 +308,7 @@ func (s *ConfirmationService) ConfirmAppointment(
 			// lectura y este INSERT. Recalcula alternativas con una lectura
 			// fresca -la anterior ya está obsoleta- antes de responder
 			// (RN-CON-05, DEC-090).
-			freshStarts, freshTimezone, _, freshErr := s.availability.computeAvailableStarts(ctx, barbershopID, in.BarberID, durationMinutes)
+			freshStarts, freshTimezone, _, freshErr := s.availability.computeAvailableStarts(ctx, businessID, in.ProfessionalID, durationMinutes)
 			if freshErr != nil {
 				return ConfirmResult{}, nil, freshErr
 			}
@@ -426,7 +426,7 @@ func generateAccessToken() (plain, hash string, err error) {
 func (s *ConfirmationService) sendConfirmationEmail(
 	ctx context.Context,
 	identity CustomerIdentity,
-	profile BarbershopProfile,
+	profile BusinessProfile,
 	serviceName string,
 	startsAt time.Time,
 	loc *time.Location,

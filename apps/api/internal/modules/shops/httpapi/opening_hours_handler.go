@@ -6,10 +6,10 @@ import (
 	"fmt"
 	"net/http"
 
-	"system-barbershop/internal/modules/auth"
-	"system-barbershop/internal/modules/shops"
-	"system-barbershop/internal/platform/apperr"
-	"system-barbershop/internal/platform/httpserver"
+	"nava-agenda/internal/modules/auth"
+	"nava-agenda/internal/modules/shops"
+	"nava-agenda/internal/platform/apperr"
+	"nava-agenda/internal/platform/httpserver"
 )
 
 // OpeningSegmentDTO es la forma exacta del componente OpenAPI
@@ -58,7 +58,7 @@ func (h *GetOpeningHoursHandler) ServeHTTP(w http.ResponseWriter, r *http.Reques
 			apperr.Internal(errors.New("shops: falta el principal de sesión en el contexto")), requestID))
 		return
 	}
-	hours, err := h.service.Get(r.Context(), principal.BarbershopID)
+	hours, err := h.service.Get(r.Context(), principal.BusinessID)
 	if err != nil {
 		httpserver.WriteProblem(w, httpserver.Translate(err, requestID))
 		return
@@ -121,7 +121,7 @@ func (h *ReplaceOpeningHoursHandler) ServeHTTP(w http.ResponseWriter, r *http.Re
 		input.Segments = append(input.Segments, seg)
 	}
 
-	stored, err := h.service.Replace(r.Context(), principal.BarbershopID, input)
+	stored, err := h.service.Replace(r.Context(), principal.BusinessID, input)
 	if err != nil {
 		httpserver.WriteProblem(w, httpserver.Translate(err, requestID))
 		return

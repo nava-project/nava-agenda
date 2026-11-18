@@ -10,12 +10,12 @@ import (
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgconn"
 
-	"system-barbershop/internal/modules/schedule"
-	"system-barbershop/internal/platform/database"
-	"system-barbershop/internal/platform/idempotency"
+	"nava-agenda/internal/modules/schedule"
+	"nava-agenda/internal/platform/database"
+	"nava-agenda/internal/platform/idempotency"
 )
 
-// createExceptionOperation identifica, dentro de una barbería, la
+// createExceptionOperation identifica, dentro de un negocio, la
 // operación de idempotencia del alta de una excepción de jornada
 // (RN-IDE-01), mismo criterio que createWorkingHourOperation de HU-040.
 const createExceptionOperation idempotency.Operation = "create_schedule_exception"
@@ -93,13 +93,13 @@ func isExceptionSegmentOverlap(err error) bool {
 
 // loadExceptionSegments lee, ordenados por hora de inicio, los tramos de
 // UNA excepción.
-func loadExceptionSegments(ctx context.Context, q database.Queries, barbershopID, overrideID string) ([]schedule.ExceptionSegment, error) {
+func loadExceptionSegments(ctx context.Context, q database.Queries, businessID, overrideID string) ([]schedule.ExceptionSegment, error) {
 	rows, err := q.Query(ctx,
 		`SELECT id, to_char(starts_time, 'HH24:MI'), duration_minutes
 		   FROM working_hour_override_segment
 		  WHERE business_id = $1 AND override_id = $2
 		  ORDER BY starts_time`,
-		barbershopID, overrideID,
+		businessID, overrideID,
 	)
 	if err != nil {
 		return nil, fmt.Errorf("select exception segments: %w", err)
@@ -122,7 +122,7 @@ func loadExceptionSegments(ctx context.Context, q database.Queries, barbershopID
 
 // loadExceptionSegmentsBatch lee los tramos de VARIAS excepciones a la vez
 // (ListExceptions): evita N+1 consultas, una por fila de la página.
-func loadExceptionSegmentsBatch(ctx context.Context, q database.Queries, barbershopID string, overrideIDs []string) (map[string][]schedule.ExceptionSegment, error) {
+func loadExceptionSegmentsBatch(ctx context.Context, q database.Queries, businessID string, overrideIDs []string) (map[string][]schedule.ExceptionSegment, error) {
 	byOverride := make(map[string][]schedule.ExceptionSegment, len(overrideIDs))
 	if len(overrideIDs) == 0 {
 		return byOverride, nil
@@ -133,7 +133,7 @@ func loadExceptionSegmentsBatch(ctx context.Context, q database.Queries, barbers
 		   FROM working_hour_override_segment
 		  WHERE business_id = $1 AND override_id = ANY($2)
 		  ORDER BY override_id, starts_time`,
-		barbershopID, overrideIDs,
+		businessID, overrideIDs,
 	)
 	if err != nil {
 		return nil, fmt.Errorf("select exception segments batch: %w", err)
@@ -154,7 +154,7 @@ func loadExceptionSegmentsBatch(ctx context.Context, q database.Queries, barbers
 	return byOverride, nil
 }
 
-func insertExceptionSegments(ctx context.Context, q database.Queries, barbershopID, overrideID string, segments []schedule.CreateExceptionSegmentInput) ([]schedule.ExceptionSegment, error) {
+func insertExceptionSegments(ctx context.Context, q database.Queries, businessID, overrideID string, segments []schedule.CreateExceptionSegmentInput) ([]schedule.ExceptionSegment, error) {
 	inserted := make([]schedule.ExceptionSegment, 0, len(segments))
 	for _, seg := range segments {
 		var id string
@@ -162,7 +162,7 @@ func insertExceptionSegments(ctx context.Context, q database.Queries, barbershop
 			`INSERT INTO working_hour_override_segment (business_id, override_id, starts_time, duration_minutes)
 			      VALUES ($1, $2, $3::time, $4)
 			   RETURNING id`,
-			barbershopID, overrideID, seg.StartsTime, seg.DurationMinutes,
+			businessID, overrideID, seg.StartsTime, seg.DurationMinutes,
 		).Scan(&id); err != nil {
 			return nil, err
 		}
@@ -172,14 +172,14 @@ func insertExceptionSegments(ctx context.Context, q database.Queries, barbershop
 }
 
 // GetHolidayCalendarEnabled implementa schedule.Repository.GetHolidayCalendarEnabled.
-func (r *Repository) GetHolidayCalendarEnabled(ctx context.Context, barbershopID, barberID string) (bool, bool, error) {
+func (r *Repository) GetHolidayCalendarEnabled(ctx context.Context, businessID, professionalID string) (bool, bool, error) {
 	var enabled bool
 	found := false
 
-	err := r.db.InTenantTx(ctx, database.BarbershopID(barbershopID), func(ctx context.Context, q database.Queries) error {
+	err := r.db.InTenantTx(ctx, database.BusinessID(businessID), func(ctx context.Context, q database.Queries) error {
 		err := q.QueryRow(ctx,
 			`SELECT holiday_calendar_enabled FROM professional WHERE id = $1 AND business_id = $2`,
-			barberID, barbershopID,
+			professionalID, businessID,
 		).Scan(&enabled)
 		switch {
 		case err == nil:
@@ -198,15 +198,15 @@ func (r *Repository) GetHolidayCalendarEnabled(ctx context.Context, barbershopID
 }
 
 // SetHolidayCalendarEnabled implementa schedule.Repository.SetHolidayCalendarEnabled.
-func (r *Repository) SetHolidayCalendarEnabled(ctx context.Context, barbershopID, barberID string, enabled bool) (schedule.HolidayCalendarResult, error) {
+func (r *Repository) SetHolidayCalendarEnabled(ctx context.Context, businessID, professionalID string, enabled bool) (schedule.HolidayCalendarResult, error) {
 	var result schedule.HolidayCalendarResult
 
-	err := r.db.InTenantTx(ctx, database.BarbershopID(barbershopID), func(ctx context.Context, q database.Queries) error {
+	err := r.db.InTenantTx(ctx, database.BusinessID(businessID), func(ctx context.Context, q database.Queries) error {
 		err := q.QueryRow(ctx,
 			`UPDATE professional SET holiday_calendar_enabled = $3
 			  WHERE id = $1 AND business_id = $2
 			RETURNING holiday_calendar_enabled`,
-			barberID, barbershopID, enabled,
+			professionalID, businessID, enabled,
 		).Scan(&result.Enabled)
 		switch {
 		case err == nil:
@@ -227,10 +227,10 @@ func (r *Repository) SetHolidayCalendarEnabled(ctx context.Context, barbershopID
 // ListExceptions implementa schedule.Repository.ListExceptions: orden
 // estable (effective_date, id), paginación "pedir uno de más" (mismo
 // patrón que List de HU-040), tramos cargados en un segundo lote sin N+1.
-func (r *Repository) ListExceptions(ctx context.Context, barbershopID, barberID string, cursor *schedule.ExceptionCursor, limit int) (schedule.ExceptionListResult, error) {
+func (r *Repository) ListExceptions(ctx context.Context, businessID, professionalID string, cursor *schedule.ExceptionCursor, limit int) (schedule.ExceptionListResult, error) {
 	var result schedule.ExceptionListResult
 
-	err := r.db.InTenantTx(ctx, database.BarbershopID(barbershopID), func(ctx context.Context, q database.Queries) error {
+	err := r.db.InTenantTx(ctx, database.BusinessID(businessID), func(ctx context.Context, q database.Queries) error {
 		var (
 			rows pgx.Rows
 			err  error
@@ -244,7 +244,7 @@ func (r *Repository) ListExceptions(ctx context.Context, barbershopID, barberID 
 				  WHERE business_id = $1 AND professional_id = $2
 				  ORDER BY effective_date, id
 				  LIMIT $3`,
-				barbershopID, barberID, fetchLimit,
+				businessID, professionalID, fetchLimit,
 			)
 		} else {
 			rows, err = q.Query(ctx,
@@ -254,7 +254,7 @@ func (r *Repository) ListExceptions(ctx context.Context, barbershopID, barberID 
 				    AND (effective_date, id) > ($3::date, $4)
 				  ORDER BY effective_date, id
 				  LIMIT $5`,
-				barbershopID, barberID, cursor.EffectiveDate, cursor.ID, fetchLimit,
+				businessID, professionalID, cursor.EffectiveDate, cursor.ID, fetchLimit,
 			)
 		}
 		if err != nil {
@@ -284,7 +284,7 @@ func (r *Repository) ListExceptions(ctx context.Context, barbershopID, barberID 
 			ids = ids[:limit]
 		}
 
-		segmentsByOverride, err := loadExceptionSegmentsBatch(ctx, q, barbershopID, ids)
+		segmentsByOverride, err := loadExceptionSegmentsBatch(ctx, q, businessID, ids)
 		if err != nil {
 			return fmt.Errorf("list exceptions: %w", err)
 		}
@@ -306,31 +306,31 @@ func (r *Repository) ListExceptions(ctx context.Context, barbershopID, barberID 
 }
 
 // GetException implementa schedule.Repository.GetException.
-func (r *Repository) GetException(ctx context.Context, barbershopID, barberID, exceptionID string) (schedule.ScheduleException, bool, error) {
-	return r.getExceptionBy(ctx, barbershopID,
+func (r *Repository) GetException(ctx context.Context, businessID, professionalID, exceptionID string) (schedule.ScheduleException, bool, error) {
+	return r.getExceptionBy(ctx, businessID,
 		`SELECT id, to_char(effective_date, 'YYYY-MM-DD'), is_closed, reason, created_at, updated_at
 		   FROM working_hour_override
 		  WHERE id = $1 AND business_id = $2 AND professional_id = $3`,
-		exceptionID, barberID,
+		exceptionID, professionalID,
 	)
 }
 
 // GetExceptionByDate implementa schedule.Repository.GetExceptionByDate.
-func (r *Repository) GetExceptionByDate(ctx context.Context, barbershopID, barberID, effectiveDate string) (schedule.ScheduleException, bool, error) {
-	return r.getExceptionBy(ctx, barbershopID,
+func (r *Repository) GetExceptionByDate(ctx context.Context, businessID, professionalID, effectiveDate string) (schedule.ScheduleException, bool, error) {
+	return r.getExceptionBy(ctx, businessID,
 		`SELECT id, to_char(effective_date, 'YYYY-MM-DD'), is_closed, reason, created_at, updated_at
 		   FROM working_hour_override
 		  WHERE effective_date = $1::date AND business_id = $2 AND professional_id = $3`,
-		effectiveDate, barberID,
+		effectiveDate, professionalID,
 	)
 }
 
-func (r *Repository) getExceptionBy(ctx context.Context, barbershopID, query, arg1, barberID string) (schedule.ScheduleException, bool, error) {
+func (r *Repository) getExceptionBy(ctx context.Context, businessID, query, arg1, professionalID string) (schedule.ScheduleException, bool, error) {
 	var e schedule.ScheduleException
 	found := false
 
-	err := r.db.InTenantTx(ctx, database.BarbershopID(barbershopID), func(ctx context.Context, q database.Queries) error {
-		err := q.QueryRow(ctx, query, arg1, barbershopID, barberID).
+	err := r.db.InTenantTx(ctx, database.BusinessID(businessID), func(ctx context.Context, q database.Queries) error {
+		err := q.QueryRow(ctx, query, arg1, businessID, professionalID).
 			Scan(&e.ID, &e.EffectiveDate, &e.IsClosed, &e.Reason, &e.CreatedAt, &e.UpdatedAt)
 		switch {
 		case err == nil:
@@ -341,7 +341,7 @@ func (r *Repository) getExceptionBy(ctx context.Context, barbershopID, query, ar
 			return fmt.Errorf("select exception: %w", err)
 		}
 
-		segments, err := loadExceptionSegments(ctx, q, barbershopID, e.ID)
+		segments, err := loadExceptionSegments(ctx, q, businessID, e.ID)
 		if err != nil {
 			return err
 		}
@@ -365,15 +365,15 @@ func (r *Repository) getExceptionBy(ctx context.Context, barbershopID, query, ar
 // CreateExceptionResult.Conflict (mismo criterio que Create de HU-040).
 func (r *Repository) CreateException(
 	ctx context.Context,
-	barbershopID, barberID string,
+	businessID, professionalID string,
 	input schedule.CreateExceptionInput,
 	key idempotency.Key,
 	fingerprint idempotency.Fingerprint,
 ) (schedule.CreateExceptionResult, error) {
 	var result schedule.CreateExceptionResult
 
-	err := r.db.InTenantTx(ctx, database.BarbershopID(barbershopID), func(ctx context.Context, q database.Queries) error {
-		decision, err := r.coord.Begin(ctx, q, database.BarbershopID(barbershopID), key, createExceptionOperation, fingerprint, createExceptionIdempotencyTTL)
+	err := r.db.InTenantTx(ctx, database.BusinessID(businessID), func(ctx context.Context, q database.Queries) error {
+		decision, err := r.coord.Begin(ctx, q, database.BusinessID(businessID), key, createExceptionOperation, fingerprint, createExceptionIdempotencyTTL)
 		if err != nil {
 			return fmt.Errorf("idempotency begin: %w", err)
 		}
@@ -391,7 +391,7 @@ func (r *Repository) CreateException(
 			`INSERT INTO working_hour_override (business_id, professional_id, effective_date, is_closed, reason)
 			      VALUES ($1, $2, $3::date, $4, $5)
 			   RETURNING id, to_char(effective_date, 'YYYY-MM-DD'), is_closed, reason, created_at, updated_at`,
-			barbershopID, barberID, input.EffectiveDate, input.IsClosed, input.Reason,
+			businessID, professionalID, input.EffectiveDate, input.IsClosed, input.Reason,
 		)
 		if err := row.Scan(&e.ID, &e.EffectiveDate, &e.IsClosed, &e.Reason, &e.CreatedAt, &e.UpdatedAt); err != nil {
 			if isExceptionDateConflict(err) {
@@ -401,7 +401,7 @@ func (r *Repository) CreateException(
 			return fmt.Errorf("insert exception: %w", err)
 		}
 
-		segments, err := insertExceptionSegments(ctx, q, barbershopID, e.ID, input.Segments)
+		segments, err := insertExceptionSegments(ctx, q, businessID, e.ID, input.Segments)
 		if err != nil {
 			if isExceptionSegmentOverlap(err) {
 				result.Conflict = true
@@ -421,7 +421,7 @@ func (r *Repository) CreateException(
 			Body:        string(body),
 		}
 
-		ok, err := r.coord.Complete(ctx, q, database.BarbershopID(barbershopID), key, stored)
+		ok, err := r.coord.Complete(ctx, q, database.BusinessID(businessID), key, stored)
 		if err != nil {
 			return fmt.Errorf("idempotency complete: %w", err)
 		}
@@ -444,18 +444,18 @@ func (r *Repository) CreateException(
 
 // UpdateException implementa schedule.Repository.UpdateException:
 // reemplaza la cabecera con `UPDATE ... RETURNING`, filtrando por id,
-// barbershopID y barberID, borra los tramos existentes y crea los nuevos,
+// businessID y professionalID, borra los tramos existentes y crea los nuevos,
 // todo dentro de UNA sola transacción. Cero filas afectadas en el UPDATE
-// de la cabecera cubre "no existe"/"de otro barbero"/"de otra barbería"
+// de la cabecera cubre "no existe"/"de otro profesional"/"de otro negocio"
 // (CA-041-06). Un conflicto detectado DESPUÉS de que el UPDATE de la
 // cabecera o el DELETE de los tramos previos ya se ejecutaron fuerza
 // ROLLBACK de la transacción COMPLETA mediante el mismo sentinela que
 // CreateException (errExceptionConflictInternal): nunca deja una
 // cabecera ya modificada con sus tramos a medio reemplazar.
-func (r *Repository) UpdateException(ctx context.Context, barbershopID, barberID, exceptionID string, input schedule.UpdateExceptionInput) (schedule.UpdateExceptionResult, error) {
+func (r *Repository) UpdateException(ctx context.Context, businessID, professionalID, exceptionID string, input schedule.UpdateExceptionInput) (schedule.UpdateExceptionResult, error) {
 	var result schedule.UpdateExceptionResult
 
-	err := r.db.InTenantTx(ctx, database.BarbershopID(barbershopID), func(ctx context.Context, q database.Queries) error {
+	err := r.db.InTenantTx(ctx, database.BusinessID(businessID), func(ctx context.Context, q database.Queries) error {
 		var e schedule.ScheduleException
 		e.ID = exceptionID
 		row := q.QueryRow(ctx,
@@ -463,7 +463,7 @@ func (r *Repository) UpdateException(ctx context.Context, barbershopID, barberID
 			    SET effective_date = $4::date, is_closed = $5, reason = $6
 			  WHERE id = $1 AND business_id = $2 AND professional_id = $3
 			RETURNING to_char(effective_date, 'YYYY-MM-DD'), is_closed, reason, created_at, updated_at`,
-			exceptionID, barbershopID, barberID, input.EffectiveDate, input.IsClosed, input.Reason,
+			exceptionID, businessID, professionalID, input.EffectiveDate, input.IsClosed, input.Reason,
 		)
 		err := row.Scan(&e.EffectiveDate, &e.IsClosed, &e.Reason, &e.CreatedAt, &e.UpdatedAt)
 		switch {
@@ -480,12 +480,12 @@ func (r *Repository) UpdateException(ctx context.Context, barbershopID, barberID
 
 		if _, err := q.Exec(ctx,
 			`DELETE FROM working_hour_override_segment WHERE business_id = $1 AND override_id = $2`,
-			barbershopID, exceptionID,
+			businessID, exceptionID,
 		); err != nil {
 			return fmt.Errorf("delete existing exception segments: %w", err)
 		}
 
-		segments, err := insertExceptionSegments(ctx, q, barbershopID, exceptionID, input.Segments)
+		segments, err := insertExceptionSegments(ctx, q, businessID, exceptionID, input.Segments)
 		if err != nil {
 			if isExceptionSegmentOverlap(err) {
 				result.Conflict = true
@@ -512,12 +512,12 @@ func (r *Repository) UpdateException(ctx context.Context, barbershopID, barberID
 }
 
 // DeleteException implementa schedule.Repository.DeleteException: borra
-// primero los tramos de la cabecera (si existe y pertenece a este barbero
-// y barbería) y luego la cabecera misma, dentro de UNA sola transacción.
-func (r *Repository) DeleteException(ctx context.Context, barbershopID, barberID, exceptionID string) (bool, error) {
+// primero los tramos de la cabecera (si existe y pertenece a este profesional
+// y negocio) y luego la cabecera misma, dentro de UNA sola transacción.
+func (r *Repository) DeleteException(ctx context.Context, businessID, professionalID, exceptionID string) (bool, error) {
 	found := false
 
-	err := r.db.InTenantTx(ctx, database.BarbershopID(barbershopID), func(ctx context.Context, q database.Queries) error {
+	err := r.db.InTenantTx(ctx, database.BusinessID(businessID), func(ctx context.Context, q database.Queries) error {
 		if _, err := q.Exec(ctx,
 			`DELETE FROM working_hour_override_segment
 			  WHERE business_id = $1
@@ -525,14 +525,14 @@ func (r *Repository) DeleteException(ctx context.Context, barbershopID, barberID
 			      SELECT id FROM working_hour_override
 			       WHERE business_id = $1 AND professional_id = $2 AND id = $3
 			    )`,
-			barbershopID, barberID, exceptionID,
+			businessID, professionalID, exceptionID,
 		); err != nil {
 			return fmt.Errorf("delete exception segments: %w", err)
 		}
 
 		tag, err := q.Exec(ctx,
 			`DELETE FROM working_hour_override WHERE id = $1 AND business_id = $2 AND professional_id = $3`,
-			exceptionID, barbershopID, barberID,
+			exceptionID, businessID, professionalID,
 		)
 		if err != nil {
 			return fmt.Errorf("delete exception: %w", err)
@@ -549,16 +549,16 @@ func (r *Repository) DeleteException(ctx context.Context, barbershopID, barberID
 // ListWorkingHoursForWeekday implementa
 // schedule.Repository.ListWorkingHoursForWeekday: sin paginar (lo usa
 // exclusivamente ResolveEffectiveDay, nunca un handler HTTP).
-func (r *Repository) ListWorkingHoursForWeekday(ctx context.Context, barbershopID, barberID string, isoWeekday int) ([]schedule.WorkingHour, error) {
+func (r *Repository) ListWorkingHoursForWeekday(ctx context.Context, businessID, professionalID string, isoWeekday int) ([]schedule.WorkingHour, error) {
 	var items []schedule.WorkingHour
 
-	err := r.db.InTenantTx(ctx, database.BarbershopID(barbershopID), func(ctx context.Context, q database.Queries) error {
+	err := r.db.InTenantTx(ctx, database.BusinessID(businessID), func(ctx context.Context, q database.Queries) error {
 		rows, err := q.Query(ctx,
 			`SELECT id, iso_weekday, to_char(starts_time, 'HH24:MI'), duration_minutes, created_at, updated_at
 			   FROM working_hour
 			  WHERE business_id = $1 AND professional_id = $2 AND iso_weekday = $3
 			  ORDER BY starts_time`,
-			barbershopID, barberID, isoWeekday,
+			businessID, professionalID, isoWeekday,
 		)
 		if err != nil {
 			return fmt.Errorf("list working hours for weekday: query: %w", err)

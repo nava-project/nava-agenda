@@ -1,12 +1,12 @@
 // Package postgres_test (pruebas de integración, HU-097) requiere
 // PostgreSQL REAL con las diecisiete migraciones aplicadas (incluida
 // 20260916100000_create_appointment_access_token.sql) y
-// database/testdata/dos_barberias.sql + database/testdata/hu060_citas.sql
+// database/testdata/dos_negocios.sql + database/testdata/hu060_citas.sql
 // cargados: mismos fixtures que repository_test.go/manual_repository_test.go
 // (HU-060/HU-061), reutilizados aquí porque CreatePublic no depende de
 // ninguna tabla adicional aparte de appointment_access_token.
 //
-//	export TEST_DATABASE_URL="postgres://barberia_app:app_test@localhost:5432/barberia_test?sslmode=disable"
+//	export TEST_DATABASE_URL="postgres://agenda_app:app_test@localhost:5432/postgres?sslmode=disable"
 //	go test -race ./internal/modules/booking/postgres/...
 package postgres_test
 
@@ -19,10 +19,10 @@ import (
 	"testing"
 	"time"
 
-	"system-barbershop/internal/modules/booking"
-	"system-barbershop/internal/platform/apperr"
-	"system-barbershop/internal/platform/database"
-	"system-barbershop/internal/platform/idempotency"
+	"nava-agenda/internal/modules/booking"
+	"nava-agenda/internal/platform/apperr"
+	"nava-agenda/internal/platform/database"
+	"nava-agenda/internal/platform/idempotency"
 )
 
 // uniqueToken produce un par (plain, hash) con la MISMA forma que
@@ -38,22 +38,22 @@ func uniqueToken(t *testing.T) (plain, hash string) {
 	return plain, hex.EncodeToString(sum[:])
 }
 
-func publicInput(t *testing.T, barberID, serviceID string, start time.Time, suffix string, customer booking.CustomerInput) booking.CreatePublicInput {
+func publicInput(t *testing.T, professionalID, serviceID string, start time.Time, suffix string, customer booking.CustomerInput) booking.CreatePublicInput {
 	tokenPlain, tokenHash := uniqueToken(t)
 	issuedAt := time.Now().UTC()
 	return booking.CreatePublicInput{
-		BarberID:     barberID,
-		ServiceID:    serviceID,
-		AttendeeName: "Persona atendida " + suffix,
-		StartsAt:     start,
-		EndsAt:       start.Add(30 * time.Minute),
+		ProfessionalID: professionalID,
+		ServiceID:      serviceID,
+		AttendeeName:   "Persona atendida " + suffix,
+		StartsAt:       start,
+		EndsAt:         start.Add(30 * time.Minute),
 		Service: booking.ServiceSnapshot{
 			Name:             "Corte público " + suffix,
 			DurationMinutes:  30,
 			PriceAmountCents: 1800000,
 			Currency:         "COP",
 		},
-		BarbershopName: "Barbería de prueba " + suffix,
+		BusinessName:   "Barbería de prueba " + suffix,
 		Timezone:       "America/Bogota",
 		TokenPlain:     tokenPlain,
 		Customer:       customer,
@@ -69,7 +69,7 @@ func TestCreatePublic_NewCustomer_PersistsAppointmentHistoryAndToken(t *testing.
 	suffix := uniqueSuffix(t)
 	start := baseStart(t)
 
-	input := publicInput(t, barberQ1, serviceQ, start, suffix, booking.CustomerInput{
+	input := publicInput(t, professionalQ1, serviceQ, start, suffix, booking.CustomerInput{
 		New: &booking.NewCustomerInput{FullName: "Cliente público " + suffix, Phone: strPtr("+57300" + uniqueDigits(t, 7)), Email: strPtr(suffix + "@example.com")},
 	})
 	key := idempotency.Key("public-" + suffix)
@@ -85,7 +85,7 @@ func TestCreatePublic_NewCustomer_PersistsAppointmentHistoryAndToken(t *testing.
 
 	var parsed struct {
 		AttendeeName    string `json:"attendeeName"`
-		BarbershopName  string `json:"businessName"`
+		BusinessName    string `json:"businessName"`
 		ServiceName     string `json:"serviceName"`
 		DurationMinutes int    `json:"durationMinutes"`
 		Currency        string `json:"currency"`
@@ -107,7 +107,7 @@ func TestCreatePublic_NewCustomer_PersistsAppointmentHistoryAndToken(t *testing.
 		scanErr := q.QueryRow(ctx,
 			`SELECT origin, status, customer_id FROM appointment
 			  WHERE business_id = $1 AND professional_id = $2 AND starts_at = $3`,
-			string(shopQ), barberQ1, start,
+			string(shopQ), professionalQ1, start,
 		).Scan(&origin, &status, &customerID)
 		if scanErr != nil {
 			return scanErr
@@ -162,7 +162,7 @@ func TestCreatePublic_SameKeyAndFingerprint_Replays(t *testing.T) {
 	suffix := uniqueSuffix(t)
 	start := baseStart(t)
 
-	input := publicInput(t, barberQ1, serviceQ, start, suffix, booking.CustomerInput{
+	input := publicInput(t, professionalQ1, serviceQ, start, suffix, booking.CustomerInput{
 		New: &booking.NewCustomerInput{FullName: "Cliente réplica " + suffix},
 	})
 	key := idempotency.Key("public-replay-" + suffix)
@@ -187,7 +187,7 @@ func TestCreatePublic_SameKeyAndFingerprint_Replays(t *testing.T) {
 		var count int
 		scanErr := q.QueryRow(ctx,
 			`SELECT count(*) FROM appointment WHERE business_id = $1 AND professional_id = $2 AND starts_at = $3`,
-			string(shopQ), barberQ1, start,
+			string(shopQ), professionalQ1, start,
 		).Scan(&count)
 		if scanErr != nil {
 			return scanErr
@@ -212,7 +212,7 @@ func TestReplayPublic(t *testing.T) {
 	suffix := uniqueSuffix(t)
 	start := baseStart(t)
 
-	input := publicInput(t, barberQ1, serviceQ, start, suffix, booking.CustomerInput{
+	input := publicInput(t, professionalQ1, serviceQ, start, suffix, booking.CustomerInput{
 		New: &booking.NewCustomerInput{FullName: "Cliente sondeo " + suffix},
 	})
 	key := idempotency.Key("public-probe-" + suffix)
@@ -250,7 +250,7 @@ func TestReplayPublic(t *testing.T) {
 		t.Fatalf("other content Outcome = %v, want OutcomeConflictFingerprint", other.Decision.Outcome)
 	}
 
-	// Otra barbería no ve la clave: el sondeo respeta el aislamiento (RN-TEN-01).
+	// Otro negocio no ve la clave: el sondeo respeta el aislamiento (RN-TEN-01).
 	foreign, err := repo.ReplayPublic(context.Background(), string(shopR), key, fingerprint)
 	if err != nil {
 		t.Fatalf("ReplayPublic from another tenant: %v", err)
@@ -263,14 +263,14 @@ func TestReplayPublic(t *testing.T) {
 // TestCreatePublic_AccessToken_TenantIsolated cubre RN-TEN-01 para la tabla
 // nueva `appointment_access_token`: un token emitido dentro de shopQ nunca
 // es visible leyendo con el contexto de tenant de shopR, verificado con el
-// rol real `barberia_app` (RLS forzada), nunca con un rol administrativo.
+// rol real `agenda_app` (RLS forzada), nunca con un rol administrativo.
 func TestCreatePublic_AccessToken_TenantIsolated(t *testing.T) {
 	db := setupTestDB(t)
 	repo := newRepository(db)
 	suffix := uniqueSuffix(t)
 	start := baseStart(t)
 
-	input := publicInput(t, barberQ1, serviceQ, start, suffix, booking.CustomerInput{
+	input := publicInput(t, professionalQ1, serviceQ, start, suffix, booking.CustomerInput{
 		New: &booking.NewCustomerInput{FullName: "Cliente aislado " + suffix},
 	})
 	key := idempotency.Key("public-isolation-" + suffix)
@@ -301,7 +301,7 @@ func TestCreatePublic_AccessToken_TenantIsolated(t *testing.T) {
 
 // TestCreatePublic_ConcurrentOverlap_ExactlyOneSucceeds es la prueba
 // central de RN-CON-01/RN-CON-02/RN-CON-03 aplicada a T1 pública: dos
-// confirmaciones simultáneas del mismo barbero, con intervalos que se
+// confirmaciones simultáneas del mismo profesional, con intervalos que se
 // cruzan, deben dejar exactamente una cita persistida y traducir la
 // perdedora a apperr.KindScheduleConflict (RN-CON-05/DEC-090) -NUNCA
 // apperr.KindConflict genérico, que publicbooking no sabría distinguir de
@@ -312,10 +312,10 @@ func TestCreatePublic_ConcurrentOverlap_ExactlyOneSucceeds(t *testing.T) {
 	suffix := uniqueSuffix(t)
 	start := baseStart(t)
 
-	inputA := publicInput(t, barberQ2, serviceQ, start, suffix+"-A", booking.CustomerInput{
+	inputA := publicInput(t, professionalQ2, serviceQ, start, suffix+"-A", booking.CustomerInput{
 		New: &booking.NewCustomerInput{FullName: "Cliente A " + suffix},
 	})
-	inputB := publicInput(t, barberQ2, serviceQ, start.Add(10*time.Minute), suffix+"-B", booking.CustomerInput{
+	inputB := publicInput(t, professionalQ2, serviceQ, start.Add(10*time.Minute), suffix+"-B", booking.CustomerInput{
 		New: &booking.NewCustomerInput{FullName: "Cliente B " + suffix},
 	})
 	keyA := idempotency.Key("public-race-a-" + suffix)
@@ -375,7 +375,7 @@ func TestCreatePublic_ConcurrentOverlap_ExactlyOneSucceeds(t *testing.T) {
 			  WHERE business_id = $1 AND professional_id = $2
 			    AND tstzrange(starts_at, ends_at, '[)') && tstzrange($3, $4, '[)')
 			    AND occupies_schedule`,
-			string(shopQ), barberQ2, start.Add(-time.Hour), start.Add(time.Hour),
+			string(shopQ), professionalQ2, start.Add(-time.Hour), start.Add(time.Hour),
 		).Scan(&count)
 		if scanErr != nil {
 			return scanErr

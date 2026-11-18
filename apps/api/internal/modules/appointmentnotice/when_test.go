@@ -4,7 +4,7 @@ import (
 	"testing"
 	"time"
 
-	"system-barbershop/internal/modules/appointmentnotice"
+	"nava-agenda/internal/modules/appointmentnotice"
 )
 
 func TestWhenText_ReadsLikeAPersonInTheShopTimezone(t *testing.T) {

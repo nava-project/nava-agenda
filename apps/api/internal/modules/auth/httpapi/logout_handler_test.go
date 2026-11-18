@@ -7,8 +7,8 @@ import (
 	"testing"
 	"time"
 
-	"system-barbershop/internal/modules/auth"
-	"system-barbershop/internal/modules/auth/httpapi"
+	"nava-agenda/internal/modules/auth"
+	"nava-agenda/internal/modules/auth/httpapi"
 )
 
 func newLogoutHandler(t *testing.T, repo *spySessionRepo) *httpapi.LogoutHandler {
@@ -24,7 +24,7 @@ func TestLogoutHandler_Success_RevokesAndClearsCookie(t *testing.T) {
 	repo := &spySessionRepo{}
 	h := newLogoutHandler(t, repo)
 
-	principal := auth.Principal{SessionID: "s-1", StaffUserID: "u-1", BarbershopID: "shop-a"}
+	principal := auth.Principal{SessionID: "s-1", StaffUserID: "u-1", BusinessID: "shop-a"}
 	req := httptest.NewRequest(http.MethodPost, "/api/v1/private/auth/logout", nil)
 	req = req.WithContext(auth.ContextWithPrincipal(req.Context(), principal))
 	rec := httptest.NewRecorder()
@@ -88,7 +88,7 @@ func TestLogoutHandler_ServiceFailure_ReturnsSafe500(t *testing.T) {
 	repo := &spySessionRepo{revokeErr: context.DeadlineExceeded}
 	h := newLogoutHandler(t, repo)
 
-	principal := auth.Principal{SessionID: "s-1", StaffUserID: "u-1", BarbershopID: "shop-a"}
+	principal := auth.Principal{SessionID: "s-1", StaffUserID: "u-1", BusinessID: "shop-a"}
 	req := httptest.NewRequest(http.MethodPost, "/api/v1/private/auth/logout", nil)
 	req = req.WithContext(auth.ContextWithPrincipal(req.Context(), principal))
 	rec := httptest.NewRecorder()

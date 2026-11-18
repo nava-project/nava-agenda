@@ -7,8 +7,8 @@ import (
 
 	"github.com/jackc/pgx/v5"
 
-	"system-barbershop/internal/modules/shops"
-	"system-barbershop/internal/platform/database"
+	"nava-agenda/internal/modules/shops"
+	"nava-agenda/internal/platform/database"
 )
 
 // ReminderLeadHook mueve los recordatorios pendientes cuando cambia la
@@ -16,11 +16,11 @@ import (
 // conoce la cola de avisos: la raíz de composición inyecta el encolador de
 // appointmentnotice. Si devuelve un error, el cambio completo se revierte.
 type ReminderLeadHook interface {
-	ReminderLeadChanged(ctx context.Context, q database.Queries, barbershopID string) error
+	ReminderLeadChanged(ctx context.Context, q database.Queries, businessID string) error
 }
 
 // ReminderSettingsRepository implementa shops.ReminderSettingsRepository sobre
-// `barbershop.reminder_lead_minutes` (migración
+// `business.reminder_lead_minutes` (migración
 // 20261117120000_add_reminder_lead_minutes.sql), en una transacción
 // tenant-aware: RLS ya restringe la fila y `WHERE id = $1` es defensa en
 // profundidad.
@@ -38,24 +38,24 @@ func NewReminderSettingsRepository(db *database.DB, hook ReminderLeadHook) *Remi
 var _ shops.ReminderSettingsRepository = (*ReminderSettingsRepository)(nil)
 
 // Get implementa shops.ReminderSettingsRepository.
-func (r *ReminderSettingsRepository) Get(ctx context.Context, barbershopID string) (shops.ReminderLeadMinutes, bool, error) {
-	return r.run(ctx, barbershopID, false,
-		`SELECT reminder_lead_minutes FROM business WHERE id = $1`, barbershopID)
+func (r *ReminderSettingsRepository) Get(ctx context.Context, businessID string) (shops.ReminderLeadMinutes, bool, error) {
+	return r.run(ctx, businessID, false,
+		`SELECT reminder_lead_minutes FROM business WHERE id = $1`, businessID)
 }
 
 // Update implementa shops.ReminderSettingsRepository.
-func (r *ReminderSettingsRepository) Update(ctx context.Context, barbershopID string, lead shops.ReminderLeadMinutes) (shops.ReminderLeadMinutes, bool, error) {
-	return r.run(ctx, barbershopID, true,
+func (r *ReminderSettingsRepository) Update(ctx context.Context, businessID string, lead shops.ReminderLeadMinutes) (shops.ReminderLeadMinutes, bool, error) {
+	return r.run(ctx, businessID, true,
 		`UPDATE business SET reminder_lead_minutes = $2 WHERE id = $1 RETURNING reminder_lead_minutes`,
-		barbershopID, int(lead))
+		businessID, int(lead))
 }
 
-func (r *ReminderSettingsRepository) run(ctx context.Context, barbershopID string, write bool, sql string, args ...any) (shops.ReminderLeadMinutes, bool, error) {
+func (r *ReminderSettingsRepository) run(ctx context.Context, businessID string, write bool, sql string, args ...any) (shops.ReminderLeadMinutes, bool, error) {
 	var (
 		value int
 		found bool
 	)
-	err := r.db.InTenantTx(ctx, database.BarbershopID(barbershopID), func(ctx context.Context, q database.Queries) error {
+	err := r.db.InTenantTx(ctx, database.BusinessID(businessID), func(ctx context.Context, q database.Queries) error {
 		err := q.QueryRow(ctx, sql, args...).Scan(&value)
 		switch {
 		case err == nil:
@@ -66,7 +66,7 @@ func (r *ReminderSettingsRepository) run(ctx context.Context, barbershopID strin
 			return fmt.Errorf("reminder lead: %w", err)
 		}
 		if write && r.hook != nil {
-			if err := r.hook.ReminderLeadChanged(ctx, q, barbershopID); err != nil {
+			if err := r.hook.ReminderLeadChanged(ctx, q, businessID); err != nil {
 				return fmt.Errorf("reminder lead: reprogramar pendientes: %w", err)
 			}
 		}

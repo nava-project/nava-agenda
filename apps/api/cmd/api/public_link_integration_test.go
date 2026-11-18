@@ -1,7 +1,7 @@
 // Pruebas de integración del enlace público de reservas (issue #304, DEC-117)
 // contra el router REAL de producción (buildRouter) y PostgreSQL real, mismo
 // patrón que brand_integration_test.go. Requieren
-// database/testdata/dos_barberias.sql + testdata/hu005_credenciales_sesiones.sql
+// database/testdata/dos_negocios.sql + testdata/hu005_credenciales_sesiones.sql
 // cargados.
 package main
 
@@ -13,7 +13,7 @@ import (
 	"regexp"
 	"testing"
 
-	"system-barbershop/internal/platform/database"
+	"nava-agenda/internal/platform/database"
 )
 
 func doPublicLinkRequest(handler http.Handler, rawToken string) *httptest.ResponseRecorder {
@@ -41,14 +41,14 @@ func decodePublicLinkSlug(t *testing.T, rec *httptest.ResponseRecorder) string {
 	return body["slug"]
 }
 
-// clearPublicSlugs deja sin slug a las dos barberías de la fixture antes y
+// clearPublicSlugs deja sin slug a los dos negocios de la fixture antes y
 // después de la prueba: otras pruebas del paquete (HU-020) generan el suyo al
 // guardar y no deben condicionar a esta.
 func clearPublicSlugs(t *testing.T, db *database.DB) {
 	t.Helper()
 	clear := func() {
 		for _, shop := range []string{shopA, shopB} {
-			err := db.InTenantTx(context.Background(), database.BarbershopID(shop), func(ctx context.Context, q database.Queries) error {
+			err := db.InTenantTx(context.Background(), database.BusinessID(shop), func(ctx context.Context, q database.Queries) error {
 				_, err := q.Exec(ctx, `UPDATE business SET public_slug = NULL WHERE id = $1`, shop)
 				return err
 			})
@@ -74,7 +74,7 @@ func TestPublicLink_HTTP_WithoutSession_Is401(t *testing.T) {
 	}
 }
 
-// TestPublicLink_HTTP_FirstReadGeneratesAndLaterReadsKeepIt: una barbería sin
+// TestPublicLink_HTTP_FirstReadGeneratesAndLaterReadsKeepIt: un negocio sin
 // enlace lo recibe al abrirlo y no cambia en lecturas posteriores.
 func TestPublicLink_HTTP_FirstReadGeneratesAndLaterReadsKeepIt(t *testing.T) {
 	db := setupTestDB(t)
@@ -100,7 +100,7 @@ func TestPublicLink_HTTP_FirstReadGeneratesAndLaterReadsKeepIt(t *testing.T) {
 }
 
 // TestPublicLink_HTTP_TwoTenants_EachSeesOnlyItsOwnLinkAndItOpensOnlyItsOwnShop
-// cubre el pedido del propietario de extremo a extremo: cada barbería recibe
+// cubre el pedido del propietario de extremo a extremo: cada negocio recibe
 // un enlace distinto, su sesión nunca devuelve el de la otra y, abierto sin
 // sesión, cada enlace muestra únicamente la plataforma de su dueño.
 func TestPublicLink_HTTP_TwoTenants_EachSeesOnlyItsOwnLinkAndItOpensOnlyItsOwnShop(t *testing.T) {
@@ -126,11 +126,11 @@ func TestPublicLink_HTTP_TwoTenants_EachSeesOnlyItsOwnLinkAndItOpensOnlyItsOwnSh
 	}
 
 	nameOf := func(slug string) string {
-		rec := doResolvePublicBarbershopRequest(router, slug)
+		rec := doResolvePublicBusinessRequest(router, slug)
 		if rec.Code != http.StatusOK {
 			t.Fatalf("public link %q must open without a session, got %d: %s", slug, rec.Code, rec.Body.String())
 		}
-		var body publicBarbershopProfileBody
+		var body publicBusinessProfileBody
 		if err := json.NewDecoder(rec.Body).Decode(&body); err != nil {
 			t.Fatalf("decode public profile: %v", err)
 		}
@@ -138,6 +138,6 @@ func TestPublicLink_HTTP_TwoTenants_EachSeesOnlyItsOwnLinkAndItOpensOnlyItsOwnSh
 	}
 	nameA, nameB := nameOf(slugA), nameOf(slugB)
 	if nameA == nameB {
-		t.Fatalf("each link must open its own barbershop, both opened %q", nameA)
+		t.Fatalf("each link must open its own business, both opened %q", nameA)
 	}
 }

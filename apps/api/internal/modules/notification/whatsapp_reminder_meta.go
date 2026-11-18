@@ -58,7 +58,7 @@ func (e permanentError) Permanent() bool { return true }
 // reintentan con la espera del despachador.
 func (s MetaReminderSender) SendReminder(
 	ctx context.Context,
-	phoneE164, attendeeName, barbershopName, when, serviceName, barberName string,
+	phoneE164, attendeeName, businessName, when, serviceName, professionalName string,
 ) error {
 	if !e164Pattern.MatchString(phoneE164) {
 		return permanentError{ErrInvalidRecipient}
@@ -66,7 +66,7 @@ func (s MetaReminderSender) SendReminder(
 	if len(s.meta.cfg.TestRecipients) > 0 && !slices.Contains(s.meta.cfg.TestRecipients, phoneE164) {
 		return permanentError{ErrRecipientNotAuthorized}
 	}
-	params := []string{attendeeName, barbershopName, when, serviceName, barberName}
+	params := []string{attendeeName, businessName, when, serviceName, professionalName}
 	_, err := s.meta.post(ctx, s.buildMessage(strings.TrimPrefix(phoneE164, "+"), params))
 	if err != nil && (errors.Is(err, ErrRecipientUnreachable) || errors.Is(err, ErrRecipientNotAllowed)) {
 		return permanentError{err}

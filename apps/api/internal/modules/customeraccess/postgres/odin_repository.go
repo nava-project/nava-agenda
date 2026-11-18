@@ -9,8 +9,8 @@ import (
 
 	"github.com/jackc/pgx/v5"
 
-	"system-barbershop/internal/modules/customeraccess"
-	"system-barbershop/internal/platform/database"
+	"nava-agenda/internal/modules/customeraccess"
+	"nava-agenda/internal/platform/database"
 )
 
 var _ customeraccess.OdinRepository = (*AccessRepository)(nil)
@@ -43,7 +43,7 @@ func scanCandidates(ctx context.Context, q database.Queries, query string, args 
 	var out []customeraccess.AppointmentCandidate
 	for rows.Next() {
 		var c customeraccess.AppointmentCandidate
-		if err := rows.Scan(&c.ID, &c.StartsAt, &c.ServiceName, &c.BarberName,
+		if err := rows.Scan(&c.ID, &c.StartsAt, &c.ServiceName, &c.ProfessionalName,
 			&c.DeadlineMinutes, &c.LateCancelAllowed, &c.CustomerReschedules); err != nil {
 			return nil, fmt.Errorf("scan candidate: %w", err)
 		}
@@ -55,7 +55,7 @@ func scanCandidates(ctx context.Context, q database.Queries, query string, args 
 	return out, nil
 }
 
-// LookupUpcoming lista los turnos futuros confirmados de un teléfono en la barbería,
+// LookupUpcoming lista los turnos futuros confirmados de un teléfono en el negocio,
 // del más próximo al más lejano y con tope. Lista vacía, sin error, si no hay.
 func (r *AccessRepository) LookupUpcoming(ctx context.Context, slug, phone string, now time.Time) (customeraccess.LookupOutcome, error) {
 	shop, found, err := r.resolveShop(ctx, slug)
@@ -65,7 +65,7 @@ func (r *AccessRepository) LookupUpcoming(ctx context.Context, slug, phone strin
 	if !found {
 		return customeraccess.LookupOutcome{}, nil
 	}
-	outcome := customeraccess.LookupOutcome{BarbershopFound: true}
+	outcome := customeraccess.LookupOutcome{BusinessFound: true}
 	err = r.db.InTenantTx(ctx, shop, func(ctx context.Context, q database.Queries) error {
 		outcome.Candidates, err = scanCandidates(ctx, q,
 			candidateSelect+` ORDER BY a.starts_at LIMIT $4`,
@@ -84,7 +84,7 @@ func (r *AccessRepository) LookupUpcoming(ctx context.Context, slug, phone strin
 //  2. comprueba que el turno es de ese teléfono, sigue confirmado y es elegible
 //     para el propósito;
 //  3. aplica el límite por contacto (compartido con la pantalla general) y el tope
-//     por barbería del servicio;
+//     por negocio del servicio;
 //  4. deja inútiles los retos pendientes anteriores del contacto atados a turno y
 //     inserta el nuevo.
 //
@@ -98,7 +98,7 @@ func (r *AccessRepository) RequestRefChallenge(ctx context.Context, req customer
 		return customeraccess.RefChallengeOutcome{}, nil
 	}
 
-	outcome := customeraccess.RefChallengeOutcome{BarbershopFound: true}
+	outcome := customeraccess.RefChallengeOutcome{BusinessFound: true}
 	err = r.db.InTenantTx(ctx, shop, func(ctx context.Context, q database.Queries) error {
 		// Mismo orden que la pantalla general (contacto, luego «IP») para no cruzar bloqueos.
 		for _, key := range []string{"customer-access:contact:" + req.ContactHash, "customer-access:ip:" + req.ServiceHash} {
@@ -121,7 +121,7 @@ func (r *AccessRepository) RequestRefChallenge(ctx context.Context, req customer
 		if err != nil {
 			return err
 		}
-		serviceRetry, serviceLimited, err := recentRequestsExceeded(ctx, q, string(shop), "ip_hash", req.ServiceHash, windowStart, req.Now, customeraccess.ServiceRequestsPerBarbershop)
+		serviceRetry, serviceLimited, err := recentRequestsExceeded(ctx, q, string(shop), "ip_hash", req.ServiceHash, windowStart, req.Now, customeraccess.ServiceRequestsPerBusiness)
 		if err != nil {
 			return err
 		}
@@ -179,7 +179,7 @@ func (r *AccessRepository) VerifyRef(
 		return customeraccess.VerifyRefOutcome{}, nil
 	}
 
-	outcome := customeraccess.VerifyRefOutcome{BarbershopFound: true}
+	outcome := customeraccess.VerifyRefOutcome{BusinessFound: true}
 	err = r.db.InTenantTx(ctx, shop, func(ctx context.Context, q database.Queries) error {
 		var (
 			id            string
@@ -254,7 +254,7 @@ func (r *AccessRepository) VerifyRef(
 		return nil
 	})
 	if errors.Is(err, errNothingToAccess) {
-		return customeraccess.VerifyRefOutcome{BarbershopFound: true}, nil
+		return customeraccess.VerifyRefOutcome{BusinessFound: true}, nil
 	}
 	if err != nil {
 		return customeraccess.VerifyRefOutcome{}, fmt.Errorf("customeraccess/postgres: verify ref: %w", err)

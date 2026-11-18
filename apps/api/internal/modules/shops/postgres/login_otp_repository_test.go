@@ -1,5 +1,5 @@
 // Pruebas de integración de shops.LoginOTPRepository (DEC-139) contra PostgreSQL
-// REAL con el par shopA/shopB: el canal es por barbería, el CHECK vive en la base
+// REAL con el par shopA/shopB: el canal es por negocio, el CHECK vive en la base
 // y RLS impide que una sesión toque la fila de la otra.
 package postgres_test
 
@@ -7,13 +7,13 @@ import (
 	"context"
 	"testing"
 
-	"system-barbershop/internal/modules/shops"
-	shopspostgres "system-barbershop/internal/modules/shops/postgres"
-	"system-barbershop/internal/platform/database"
+	"nava-agenda/internal/modules/shops"
+	shopspostgres "nava-agenda/internal/modules/shops/postgres"
+	"nava-agenda/internal/platform/database"
 )
 
 // restoreLoginChannel devuelve el canal a WhatsApp, que es como
-// testdata/hu007_reto_telefonico.sql deja las barberías de las pruebas.
+// testdata/hu007_reto_telefonico.sql deja los negocios de las pruebas.
 func restoreLoginChannel(t *testing.T, shopID string) {
 	t.Helper()
 	t.Cleanup(func() {
@@ -66,7 +66,7 @@ func TestLoginOTPRepository_IsolatedBetweenTenants(t *testing.T) {
 
 	// Contexto de A escribiendo el id de B: RLS no deja ver ni actualizar la fila.
 	var affected int64
-	err = db.InTenantTx(context.Background(), database.BarbershopID(shopA), func(ctx context.Context, q database.Queries) error {
+	err = db.InTenantTx(context.Background(), database.BusinessID(shopA), func(ctx context.Context, q database.Queries) error {
 		tag, err := q.Exec(ctx, `UPDATE business SET login_otp_channel = 'both' WHERE id = $1`, shopB)
 		affected = tag.RowsAffected()
 		return err
@@ -94,7 +94,7 @@ func TestLoginOTPRepository_DatabaseRejectsAnUnknownChannel(t *testing.T) {
 	}
 }
 
-func TestLoginOTPRepository_NotVisibleBarbershop_IsNotFound(t *testing.T) {
+func TestLoginOTPRepository_NotVisibleBusiness_IsNotFound(t *testing.T) {
 	db := setupTestDB(t)
 	defer db.Close()
 	repo := shopspostgres.NewLoginOTPRepository(db)

@@ -6,12 +6,12 @@ import (
 
 	"github.com/jackc/pgx/v5"
 
-	"system-barbershop/internal/modules/notification"
-	"system-barbershop/internal/platform/database"
+	"nava-agenda/internal/modules/notification"
+	"nava-agenda/internal/platform/database"
 )
 
 // WhatsAppPurgeRepository implementa notification.WhatsAppPurgeStore. La
-// función está concedida exclusivamente a barberia_worker (DEC-040): db debe
+// función está concedida exclusivamente a agenda_worker (DEC-040): db debe
 // ser el pool del proceso worker, nunca el de la API.
 type WhatsAppPurgeRepository struct {
 	db *database.DB

@@ -4,7 +4,7 @@ import (
 	"strings"
 	"testing"
 
-	"system-barbershop/internal/modules/schedule"
+	"nava-agenda/internal/modules/schedule"
 )
 
 func TestValidateEffectiveDate_Valid(t *testing.T) {

@@ -7,10 +7,10 @@ import (
 	"sort"
 	"testing"
 
-	"system-barbershop/internal/modules/shops/httpapi"
+	"nava-agenda/internal/modules/shops/httpapi"
 )
 
-type barberBookingPolicyPathFile struct {
+type professionalBookingPolicyPathFile struct {
 	List struct {
 		Get operation `yaml:"get"`
 	} `yaml:"/private/settings/booking-policy/professionals"`
@@ -35,17 +35,17 @@ func jsonKeys(t *testing.T, v any) []string {
 	return keys
 }
 
-func TestContract_BarberBookingPolicySchemas_MatchDTOFields(t *testing.T) {
+func TestContract_ProfessionalBookingPolicySchemas_MatchDTOFields(t *testing.T) {
 	requireProps(t, loadYAML[schemaDoc](t, "api/openapi/components/schemas/ProfessionalBookingPolicyResponse.yaml"),
-		jsonKeys(t, httpapi.BarberBookingPolicyResponse{}))
+		jsonKeys(t, httpapi.ProfessionalBookingPolicyResponse{}))
 	requireProps(t, loadYAML[schemaDoc](t, "api/openapi/components/schemas/PutProfessionalBookingPolicyRequest.yaml"),
-		jsonKeys(t, httpapi.PutBarberBookingPolicyRequest{}))
+		jsonKeys(t, httpapi.PutProfessionalBookingPolicyRequest{}))
 	requireProps(t, loadYAML[schemaDoc](t, "api/openapi/components/schemas/ProfessionalBookingPolicyListResponse.yaml"),
 		[]string{"items"})
 }
 
-func TestContract_BarberBookingPolicyOperations_SecurityAndResponses(t *testing.T) {
-	file := loadYAML[barberBookingPolicyPathFile](t, "api/openapi/paths/settings.yaml")
+func TestContract_ProfessionalBookingPolicyOperations_SecurityAndResponses(t *testing.T) {
+	file := loadYAML[professionalBookingPolicyPathFile](t, "api/openapi/paths/settings.yaml")
 	cases := []struct {
 		op    operation
 		id    string

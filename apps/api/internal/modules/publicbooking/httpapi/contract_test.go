@@ -31,8 +31,8 @@ type operation struct {
 	Responses   map[string]any `yaml:"responses"`
 }
 
-type publicBarbershopPathFile struct {
-	BarbershopBySlug struct {
+type publicBusinessPathFile struct {
+	BusinessBySlug struct {
 		Get operation `yaml:"get"`
 	} `yaml:"/public/businesses/{slug}"`
 }
@@ -69,13 +69,13 @@ func loadYAML[T any](t *testing.T, relPath string) T {
 	return v
 }
 
-// TestContract_PublicBarbershopProfileSchema_MatchesDTOFields verifica que
-// httpapi.PublicBarbershopProfileResponse (name, timezone, contactEmail,
+// TestContract_PublicBusinessProfileSchema_MatchesDTOFields verifica que
+// httpapi.PublicBusinessProfileResponse (name, timezone, contactEmail,
 // contactPhone, vocabulary, location, offersHomeService, brandAccent,
 // openingHours, closedOnHolidays, today) coincide exactamente con las propiedades y los required de
-// PublicBarbershopProfile.yaml (CA-090-04: nunca un identificador interno
+// PublicBusinessProfile.yaml (CA-090-04: nunca un identificador interno
 // ni el slug mismo).
-func TestContract_PublicBarbershopProfileSchema_MatchesDTOFields(t *testing.T) {
+func TestContract_PublicBusinessProfileSchema_MatchesDTOFields(t *testing.T) {
 	schema := loadYAML[schemaDoc](t, "api/openapi/components/schemas/PublicBusinessProfile.yaml")
 	want := []string{"name", "timezone", "contactEmail", "contactPhone", "vocabulary", "location", "offersHomeService", "brandAccent",
 		"openingHours", "closedOnHolidays", "today"}
@@ -126,15 +126,15 @@ func TestContract_PublicLocationSchema_MatchesDTOFields(t *testing.T) {
 	}
 }
 
-// TestContract_ResolvePublicBarbershopOperation_MethodPathSecurityAndResponses
+// TestContract_ResolvePublicBusinessOperation_MethodPathSecurityAndResponses
 // verifica que el path fuente declara exactamente la operación pública sin
 // sesión (security: []), el parámetro slug obligatorio en la ruta y los
 // códigos que el handler realmente produce (200, 404 uniforme, 500), sin
 // inventar códigos no ejercitados (en particular, SIN 401: esta operación
 // nunca exige sesión).
-func TestContract_ResolvePublicBarbershopOperation_MethodPathSecurityAndResponses(t *testing.T) {
-	doc := loadYAML[publicBarbershopPathFile](t, "api/openapi/paths/public-booking.yaml")
-	op := doc.BarbershopBySlug.Get
+func TestContract_ResolvePublicBusinessOperation_MethodPathSecurityAndResponses(t *testing.T) {
+	doc := loadYAML[publicBusinessPathFile](t, "api/openapi/paths/public-booking.yaml")
+	op := doc.BusinessBySlug.Get
 
 	if op.OperationID != "resolvePublicBusiness" {
 		t.Fatalf("expected operationId resolvePublicBusiness, got %q", op.OperationID)
@@ -159,10 +159,10 @@ func TestContract_ResolvePublicBarbershopOperation_MethodPathSecurityAndResponse
 	}
 }
 
-// TestContract_OpenAPIYAML_RegistersPublicBarbershopPath confirma que
+// TestContract_OpenAPIYAML_RegistersPublicBusinessPath confirma que
 // openapi.yaml registra el path bajo el mismo documento raíz que las demás
 // operaciones públicas, con la misma técnica de referencia JSON pointer.
-func TestContract_OpenAPIYAML_RegistersPublicBarbershopPath(t *testing.T) {
+func TestContract_OpenAPIYAML_RegistersPublicBusinessPath(t *testing.T) {
 	type pathsDoc struct {
 		Paths map[string]any `yaml:"paths"`
 	}
@@ -173,12 +173,12 @@ func TestContract_OpenAPIYAML_RegistersPublicBarbershopPath(t *testing.T) {
 	}
 }
 
-// TestContract_PublicBarberResponseSchema_MatchesDTOFields verifica que
-// httpapi.PublicBarberResponse (id, fullName, description, photoUpdatedAt y,
+// TestContract_PublicProfessionalResponseSchema_MatchesDTOFields verifica que
+// httpapi.PublicProfessionalResponse (id, fullName, description, photoUpdatedAt y,
 // por DEC-128, rating/ratingCount) coincide exactamente con
-// PublicBarberResponse.yaml y que todos son obligatorios (nullable, pero
+// PublicProfessionalResponse.yaml y que todos son obligatorios (nullable, pero
 // siempre presentes).
-func TestContract_PublicBarberResponseSchema_MatchesDTOFields(t *testing.T) {
+func TestContract_PublicProfessionalResponseSchema_MatchesDTOFields(t *testing.T) {
 	schema := loadYAML[schemaDoc](t, "api/openapi/components/schemas/PublicProfessionalResponse.yaml")
 	want := []string{"id", "fullName", "description", "photoUpdatedAt", "rating", "ratingCount"}
 	if len(schema.Properties) != len(want) {
@@ -198,11 +198,11 @@ func TestContract_PublicBarberResponseSchema_MatchesDTOFields(t *testing.T) {
 	}
 }
 
-// TestContract_GetPublicBarberPhotoOperation_MethodPathSecurityAndResponses
+// TestContract_GetPublicProfessionalPhotoOperation_MethodPathSecurityAndResponses
 // verifica que la foto pública es una operación sin sesión (security: []) con
-// slug y barberId en la ruta y exactamente los códigos que el handler produce
+// slug y professionalId en la ruta y exactamente los códigos que el handler produce
 // (200, 304, 404 uniforme, 500; sin 401: nunca exige sesión).
-func TestContract_GetPublicBarberPhotoOperation_MethodPathSecurityAndResponses(t *testing.T) {
+func TestContract_GetPublicProfessionalPhotoOperation_MethodPathSecurityAndResponses(t *testing.T) {
 	type photoPathFile struct {
 		Photo struct {
 			Get operation `yaml:"get"`

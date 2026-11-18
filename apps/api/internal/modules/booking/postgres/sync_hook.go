@@ -3,7 +3,7 @@ package postgres
 import (
 	"context"
 
-	"system-barbershop/internal/platform/database"
+	"nava-agenda/internal/platform/database"
 )
 
 // SyncHook es el puerto con el que booking permite a una integración (hoy, la
@@ -19,7 +19,7 @@ import (
 // Una escritura nueva sobre `appointment` (por ejemplo la cancelación por el
 // cliente, HU-099) DEBE llamarlo; sync_hook_test.go lo comprueba.
 type SyncHook interface {
-	AppointmentChanged(ctx context.Context, q database.Queries, barbershopID, appointmentID string) error
+	AppointmentChanged(ctx context.Context, q database.Queries, businessID, appointmentID string) error
 }
 
 // WithSyncHook registra la integración que reacciona a los cambios de citas.
@@ -30,9 +30,9 @@ func (r *Repository) WithSyncHook(hook SyncHook) *Repository {
 	return r
 }
 
-func (r *Repository) appointmentChanged(ctx context.Context, q database.Queries, barbershopID, appointmentID string) error {
+func (r *Repository) appointmentChanged(ctx context.Context, q database.Queries, businessID, appointmentID string) error {
 	if r.hook == nil {
 		return nil
 	}
-	return r.hook.AppointmentChanged(ctx, q, barbershopID, appointmentID)
+	return r.hook.AppointmentChanged(ctx, q, businessID, appointmentID)
 }

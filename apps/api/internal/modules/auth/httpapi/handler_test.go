@@ -13,10 +13,10 @@ import (
 	"testing"
 	"time"
 
-	"system-barbershop/internal/modules/auth"
-	"system-barbershop/internal/modules/auth/httpapi"
-	"system-barbershop/internal/platform/clientip"
-	"system-barbershop/internal/platform/httpserver"
+	"nava-agenda/internal/modules/auth"
+	"nava-agenda/internal/modules/auth/httpapi"
+	"nava-agenda/internal/platform/clientip"
+	"nava-agenda/internal/platform/httpserver"
 )
 
 // --- dobles mínimos del núcleo, para probar SOLO la capa HTTP -------------

@@ -1,5 +1,5 @@
 // Package auth administra identidad, sesiones y recuperación de acceso del
-// barbero, según docs/03-desarrollo/estandar-backend-go.md.
+// profesional, según docs/03-desarrollo/estandar-backend-go.md.
 //
 // HU-005 entrega el inicio de sesión: [LoginService] verifica correo y
 // contraseña (hash argon2id, ver [Argon2Hasher]) sin distinguir un correo

@@ -4,7 +4,7 @@
 // (docs/03-desarrollo/estrategia-pruebas.md §2)- con su propio fixture
 // aislado (testdata/hu042_bloqueos.sql).
 //
-//	export TEST_DATABASE_URL="postgres://barberia_app@localhost:5432/barberia_test?sslmode=disable"
+//	export TEST_DATABASE_URL="postgres://agenda_app@localhost:5432/postgres?sslmode=disable"
 //	go test -race ./internal/modules/schedule/postgres/...
 package postgres_test
 
@@ -14,30 +14,30 @@ import (
 	"testing"
 	"time"
 
-	"system-barbershop/internal/modules/schedule"
-	schedulepostgres "system-barbershop/internal/modules/schedule/postgres"
-	"system-barbershop/internal/platform/database"
-	"system-barbershop/internal/platform/idempotency"
+	"nava-agenda/internal/modules/schedule"
+	schedulepostgres "nava-agenda/internal/modules/schedule/postgres"
+	"nava-agenda/internal/platform/database"
+	"nava-agenda/internal/platform/idempotency"
 )
 
 const (
-	// shopO/shopP y sus barberos son los de testdata/hu042_bloqueos.sql:
-	// aislados de dos_barberias.sql/hu040_horario.sql/hu041_excepciones.sql
+	// shopO/shopP y sus profesionales son los de testdata/hu042_bloqueos.sql:
+	// aislados de dos_negocios.sql/hu040_horario.sql/hu041_excepciones.sql
 	// por el mismo motivo que esos fixtures ya documentan.
-	shopO    = database.BarbershopID("b10c0001-b10c-b10c-b10c-b10c00010001")
-	shopP    = database.BarbershopID("b10c0002-b10c-b10c-b10c-b10c00020002")
-	barberO1 = "b10c1001-1001-1001-1001-100110011001"
-	barberO2 = "b10c1002-1002-1002-1002-100210021002"
-	barberP1 = "b10c2001-2001-2001-2001-200120012001"
-	ownerO   = "b10c9001-9001-9001-9001-900190019001"
+	shopO          = database.BusinessID("b10c0001-b10c-b10c-b10c-b10c00010001")
+	shopP          = database.BusinessID("b10c0002-b10c-b10c-b10c-b10c00020002")
+	professionalO1 = "b10c1001-1001-1001-1001-100110011001"
+	professionalO2 = "b10c1002-1002-1002-1002-100210021002"
+	professionalP1 = "b10c2001-2001-2001-2001-200120012001"
+	ownerO         = "b10c9001-9001-9001-9001-900190019001"
 )
 
-func createBlock(t *testing.T, repo *schedulepostgres.Repository, shop database.BarbershopID, barberID string, input schedule.CreateBlockInput) schedule.TimeBlock {
+func createBlock(t *testing.T, repo *schedulepostgres.Repository, shop database.BusinessID, professionalID string, input schedule.CreateBlockInput) schedule.TimeBlock {
 	t.Helper()
 	key := idempotency.Key("block-fixture-" + uniqueSuffix(t))
-	fp := idempotency.ComputeFingerprint("POST", "/api/v1/private/professionals/"+barberID+"/time-blocks", []byte(uniqueSuffix(t)))
+	fp := idempotency.ComputeFingerprint("POST", "/api/v1/private/professionals/"+professionalID+"/time-blocks", []byte(uniqueSuffix(t)))
 
-	result, err := repo.CreateBlock(context.Background(), string(shop), barberID, input, key, fp)
+	result, err := repo.CreateBlock(context.Background(), string(shop), professionalID, input, key, fp)
 	if err != nil {
 		t.Fatalf("createBlock: %v", err)
 	}
@@ -47,12 +47,12 @@ func createBlock(t *testing.T, repo *schedulepostgres.Repository, shop database.
 	return result.Block
 }
 
-func createWeeklySeries(t *testing.T, repo *schedulepostgres.Repository, shop database.BarbershopID, barberID string, input schedule.CreateSeriesInput) schedule.TimeBlockSeries {
+func createWeeklySeries(t *testing.T, repo *schedulepostgres.Repository, shop database.BusinessID, professionalID string, input schedule.CreateSeriesInput) schedule.TimeBlockSeries {
 	t.Helper()
 	key := idempotency.Key("series-fixture-" + uniqueSuffix(t))
-	fp := idempotency.ComputeFingerprint("POST", "/api/v1/private/professionals/"+barberID+"/time-block-series", []byte(uniqueSuffix(t)))
+	fp := idempotency.ComputeFingerprint("POST", "/api/v1/private/professionals/"+professionalID+"/time-block-series", []byte(uniqueSuffix(t)))
 
-	result, err := repo.CreateSeries(context.Background(), string(shop), barberID, input, key, fp)
+	result, err := repo.CreateSeries(context.Background(), string(shop), professionalID, input, key, fp)
 	if err != nil {
 		t.Fatalf("createWeeklySeries: %v", err)
 	}
@@ -73,7 +73,7 @@ func TestCreateBlock_StoredResponseBody_MatchesHTTPAPIWireShape(t *testing.T) {
 	starts := time.Date(2027, 4, 10, 15, 0, 0, 0, time.UTC)
 	input := schedule.CreateBlockInput{BlockType: schedule.BlockTypeEmergency, StartsAt: starts, EndsAt: starts.Add(2 * time.Hour)}
 
-	result, err := repo.CreateBlock(context.Background(), string(shopO), barberO1, input, key, fp)
+	result, err := repo.CreateBlock(context.Background(), string(shopO), professionalO1, input, key, fp)
 	if err != nil {
 		t.Fatalf("CreateBlock: %v", err)
 	}
@@ -101,7 +101,7 @@ func TestCreateBlock_RepeatedKeySameBody_ReplaysWithoutSecondRow(t *testing.T) {
 	input := schedule.CreateBlockInput{BlockType: schedule.BlockTypeBreak, StartsAt: starts, EndsAt: starts.Add(15 * time.Minute)}
 	fp := idempotency.ComputeFingerprint("POST", "/x", []byte("block-replay-body"))
 
-	first, err := repo.CreateBlock(context.Background(), string(shopO), barberO1, input, key, fp)
+	first, err := repo.CreateBlock(context.Background(), string(shopO), professionalO1, input, key, fp)
 	if err != nil {
 		t.Fatalf("first CreateBlock: %v", err)
 	}
@@ -109,7 +109,7 @@ func TestCreateBlock_RepeatedKeySameBody_ReplaysWithoutSecondRow(t *testing.T) {
 		t.Fatalf("expected first call to proceed, got %s", first.Decision.Outcome)
 	}
 
-	second, err := repo.CreateBlock(context.Background(), string(shopO), barberO1, input, key, fp)
+	second, err := repo.CreateBlock(context.Background(), string(shopO), professionalO1, input, key, fp)
 	if err != nil {
 		t.Fatalf("second CreateBlock: %v", err)
 	}
@@ -128,8 +128,8 @@ func TestCreateBlock_OverlappingIntervals_BothSucceed(t *testing.T) {
 	repo := newRepository(db)
 
 	starts := time.Date(2027, 4, 12, 15, 0, 0, 0, time.UTC)
-	a := createBlock(t, repo, shopO, barberO1, schedule.CreateBlockInput{BlockType: schedule.BlockTypeUnavailable, StartsAt: starts, EndsAt: starts.Add(4 * time.Hour)})
-	b := createBlock(t, repo, shopO, barberO1, schedule.CreateBlockInput{BlockType: schedule.BlockTypeEmergency, StartsAt: starts.Add(time.Hour), EndsAt: starts.Add(2 * time.Hour)})
+	a := createBlock(t, repo, shopO, professionalO1, schedule.CreateBlockInput{BlockType: schedule.BlockTypeUnavailable, StartsAt: starts, EndsAt: starts.Add(4 * time.Hour)})
+	b := createBlock(t, repo, shopO, professionalO1, schedule.CreateBlockInput{BlockType: schedule.BlockTypeEmergency, StartsAt: starts.Add(time.Hour), EndsAt: starts.Add(2 * time.Hour)})
 
 	if a.ID == b.ID {
 		t.Fatal("expected two distinct blocks, both persisted")
@@ -143,9 +143,9 @@ func TestDeleteBlock_SoftDeletes_RecordSurvivesAndStopsBeingActive(t *testing.T)
 	repo := newRepository(db)
 
 	starts := time.Date(2027, 4, 13, 15, 0, 0, 0, time.UTC)
-	b := createBlock(t, repo, shopO, barberO1, schedule.CreateBlockInput{BlockType: schedule.BlockTypeVacation, StartsAt: starts, EndsAt: starts.Add(24 * time.Hour)})
+	b := createBlock(t, repo, shopO, professionalO1, schedule.CreateBlockInput{BlockType: schedule.BlockTypeVacation, StartsAt: starts, EndsAt: starts.Add(24 * time.Hour)})
 
-	found, err := repo.DeleteBlock(context.Background(), string(shopO), barberO1, b.ID, ownerO)
+	found, err := repo.DeleteBlock(context.Background(), string(shopO), professionalO1, b.ID, ownerO)
 	if err != nil {
 		t.Fatalf("DeleteBlock: %v", err)
 	}
@@ -153,7 +153,7 @@ func TestDeleteBlock_SoftDeletes_RecordSurvivesAndStopsBeingActive(t *testing.T)
 		t.Fatal("expected found=true on first delete")
 	}
 
-	after, found, err := repo.GetBlock(context.Background(), string(shopO), barberO1, b.ID)
+	after, found, err := repo.GetBlock(context.Background(), string(shopO), professionalO1, b.ID)
 	if err != nil {
 		t.Fatalf("GetBlock after delete: %v", err)
 	}
@@ -165,7 +165,7 @@ func TestDeleteBlock_SoftDeletes_RecordSurvivesAndStopsBeingActive(t *testing.T)
 	}
 
 	// Reintentar tras el retiro es seguro: found=false, no reescribe nada.
-	foundAgain, err := repo.DeleteBlock(context.Background(), string(shopO), barberO1, b.ID, ownerO)
+	foundAgain, err := repo.DeleteBlock(context.Background(), string(shopO), professionalO1, b.ID, ownerO)
 	if err != nil {
 		t.Fatalf("DeleteBlock (retry): %v", err)
 	}
@@ -174,7 +174,7 @@ func TestDeleteBlock_SoftDeletes_RecordSurvivesAndStopsBeingActive(t *testing.T)
 	}
 
 	// La lista normal (includeDeleted=false) ya no lo incluye.
-	list, err := repo.ListBlocks(context.Background(), string(shopO), barberO1, nil, 50, false)
+	list, err := repo.ListBlocks(context.Background(), string(shopO), professionalO1, nil, 50, false)
 	if err != nil {
 		t.Fatalf("ListBlocks: %v", err)
 	}
@@ -185,7 +185,7 @@ func TestDeleteBlock_SoftDeletes_RecordSurvivesAndStopsBeingActive(t *testing.T)
 	}
 
 	// includeDeleted=true sí lo trae, para auditoría.
-	listWithDeleted, err := repo.ListBlocks(context.Background(), string(shopO), barberO1, nil, 50, true)
+	listWithDeleted, err := repo.ListBlocks(context.Background(), string(shopO), professionalO1, nil, 50, true)
 	if err != nil {
 		t.Fatalf("ListBlocks(includeDeleted): %v", err)
 	}
@@ -200,37 +200,37 @@ func TestDeleteBlock_SoftDeletes_RecordSurvivesAndStopsBeingActive(t *testing.T)
 	}
 }
 
-// --- Aislamiento de tenant/barbero -----------------------------------------
+// --- Aislamiento de tenant/profesional -----------------------------------------
 
 func TestGetBlock_CrossTenant_NeverLeaksAnotherShopsBlock(t *testing.T) {
 	db := setupTestDB(t)
 	repo := newRepository(db)
 
 	starts := time.Date(2027, 4, 14, 15, 0, 0, 0, time.UTC)
-	b := createBlock(t, repo, shopO, barberO1, schedule.CreateBlockInput{BlockType: schedule.BlockTypeDayOff, StartsAt: starts, EndsAt: starts.Add(24 * time.Hour)})
+	b := createBlock(t, repo, shopO, professionalO1, schedule.CreateBlockInput{BlockType: schedule.BlockTypeDayOff, StartsAt: starts, EndsAt: starts.Add(24 * time.Hour)})
 
-	_, found, err := repo.GetBlock(context.Background(), string(shopP), barberP1, b.ID)
+	_, found, err := repo.GetBlock(context.Background(), string(shopP), professionalP1, b.ID)
 	if err != nil {
 		t.Fatalf("GetBlock cross-tenant: %v", err)
 	}
 	if found {
-		t.Fatal("un bloqueo de otra barbería nunca debe ser visible (RN-TEN-01)")
+		t.Fatal("un bloqueo de otro negocio nunca debe ser visible (RN-TEN-01)")
 	}
 }
 
-func TestGetBlock_CrossBarber_NeverLeaksAnotherBarbersBlock(t *testing.T) {
+func TestGetBlock_CrossProfessional_NeverLeaksAnotherProfessionalsBlock(t *testing.T) {
 	db := setupTestDB(t)
 	repo := newRepository(db)
 
 	starts := time.Date(2027, 4, 15, 15, 0, 0, 0, time.UTC)
-	b := createBlock(t, repo, shopO, barberO1, schedule.CreateBlockInput{BlockType: schedule.BlockTypeHoliday, StartsAt: starts, EndsAt: starts.Add(24 * time.Hour)})
+	b := createBlock(t, repo, shopO, professionalO1, schedule.CreateBlockInput{BlockType: schedule.BlockTypeHoliday, StartsAt: starts, EndsAt: starts.Add(24 * time.Hour)})
 
-	_, found, err := repo.GetBlock(context.Background(), string(shopO), barberO2, b.ID)
+	_, found, err := repo.GetBlock(context.Background(), string(shopO), professionalO2, b.ID)
 	if err != nil {
-		t.Fatalf("GetBlock cross-barber: %v", err)
+		t.Fatalf("GetBlock cross-professional: %v", err)
 	}
 	if found {
-		t.Fatal("un bloqueo de otro barbero nunca debe ser visible")
+		t.Fatal("un bloqueo de otro profesional nunca debe ser visible")
 	}
 }
 
@@ -241,7 +241,7 @@ func TestCreateSeries_Weekly_PersistsAndEmbedsEmptyChildren(t *testing.T) {
 	repo := newRepository(db)
 
 	monday := 1
-	sr := createWeeklySeries(t, repo, shopO, barberO1, schedule.CreateSeriesInput{
+	sr := createWeeklySeries(t, repo, shopO, professionalO1, schedule.CreateSeriesInput{
 		BlockType: schedule.BlockTypeLunch, RecurrenceKind: schedule.RecurrenceKindWeekly, ISOWeekday: &monday,
 		StartsTime: "13:00", DurationMinutes: 60, EffectiveFrom: "2027-01-04",
 	})
@@ -252,7 +252,7 @@ func TestCreateSeries_Weekly_PersistsAndEmbedsEmptyChildren(t *testing.T) {
 		t.Fatalf("expected no children on a fresh series, got %+v", sr)
 	}
 
-	fetched, found, err := repo.GetSeries(context.Background(), string(shopO), barberO1, sr.ID)
+	fetched, found, err := repo.GetSeries(context.Background(), string(shopO), professionalO1, sr.ID)
 	if err != nil {
 		t.Fatalf("GetSeries: %v", err)
 	}
@@ -266,7 +266,7 @@ func TestCreateSeries_DateList_WithExplicitDates_CreatesAllInOneOperation(t *tes
 	repo := newRepository(db)
 
 	until := "2027-01-05"
-	sr := createWeeklySeries(t, repo, shopO, barberO1, schedule.CreateSeriesInput{
+	sr := createWeeklySeries(t, repo, shopO, professionalO1, schedule.CreateSeriesInput{
 		BlockType: schedule.BlockTypeVacation, RecurrenceKind: schedule.RecurrenceKindDateList,
 		StartsTime: "00:00", DurationMinutes: 1440, EffectiveFrom: "2027-01-01", EffectiveUntil: &until,
 		ExplicitDates: []string{"2027-01-01", "2027-01-02", "2027-01-05"},
@@ -280,12 +280,12 @@ func TestAddSeriesDate_DuplicateDate_ReturnsConflictWithoutDuplicating(t *testin
 	db := setupTestDB(t)
 	repo := newRepository(db)
 
-	sr := createWeeklySeries(t, repo, shopO, barberO1, schedule.CreateSeriesInput{
+	sr := createWeeklySeries(t, repo, shopO, professionalO1, schedule.CreateSeriesInput{
 		BlockType: schedule.BlockTypeVacation, RecurrenceKind: schedule.RecurrenceKindDateList,
 		StartsTime: "00:00", DurationMinutes: 1440, EffectiveFrom: "2027-02-01",
 	})
 
-	found, conflict, err := repo.AddSeriesDate(context.Background(), string(shopO), barberO1, sr.ID, "2027-02-10")
+	found, conflict, err := repo.AddSeriesDate(context.Background(), string(shopO), professionalO1, sr.ID, "2027-02-10")
 	if err != nil {
 		t.Fatalf("AddSeriesDate: %v", err)
 	}
@@ -293,7 +293,7 @@ func TestAddSeriesDate_DuplicateDate_ReturnsConflictWithoutDuplicating(t *testin
 		t.Fatalf("expected found=true conflict=false on first add, got found=%v conflict=%v", found, conflict)
 	}
 
-	_, conflict, err = repo.AddSeriesDate(context.Background(), string(shopO), barberO1, sr.ID, "2027-02-10")
+	_, conflict, err = repo.AddSeriesDate(context.Background(), string(shopO), professionalO1, sr.ID, "2027-02-10")
 	if err != nil {
 		t.Fatalf("AddSeriesDate (duplicate): %v", err)
 	}
@@ -301,7 +301,7 @@ func TestAddSeriesDate_DuplicateDate_ReturnsConflictWithoutDuplicating(t *testin
 		t.Fatal("expected conflict=true on duplicate date")
 	}
 
-	fetched, _, err := repo.GetSeries(context.Background(), string(shopO), barberO1, sr.ID)
+	fetched, _, err := repo.GetSeries(context.Background(), string(shopO), professionalO1, sr.ID)
 	if err != nil {
 		t.Fatalf("GetSeries: %v", err)
 	}
@@ -315,27 +315,27 @@ func TestAddSeriesException_ThenRemove_RestoresInstance(t *testing.T) {
 	repo := newRepository(db)
 
 	friday := 5
-	sr := createWeeklySeries(t, repo, shopO, barberO1, schedule.CreateSeriesInput{
+	sr := createWeeklySeries(t, repo, shopO, professionalO1, schedule.CreateSeriesInput{
 		BlockType: schedule.BlockTypeUnavailable, RecurrenceKind: schedule.RecurrenceKindWeekly, ISOWeekday: &friday,
 		StartsTime: "17:00", DurationMinutes: 120, EffectiveFrom: "2027-01-01",
 	})
 
-	found, conflict, err := repo.AddSeriesException(context.Background(), string(shopO), barberO1, sr.ID, "2027-01-08", nil)
+	found, conflict, err := repo.AddSeriesException(context.Background(), string(shopO), professionalO1, sr.ID, "2027-01-08", nil)
 	if err != nil || !found || conflict {
 		t.Fatalf("AddSeriesException: found=%v conflict=%v err=%v", found, conflict, err)
 	}
 
-	fetched, _, _ := repo.GetSeries(context.Background(), string(shopO), barberO1, sr.ID)
+	fetched, _, _ := repo.GetSeries(context.Background(), string(shopO), professionalO1, sr.ID)
 	if len(fetched.Exceptions) != 1 || fetched.Exceptions[0].ExcludedDate != "2027-01-08" {
 		t.Fatalf("expected one exception on 2027-01-08, got %+v", fetched.Exceptions)
 	}
 
-	removed, err := repo.RemoveSeriesException(context.Background(), string(shopO), barberO1, sr.ID, "2027-01-08")
+	removed, err := repo.RemoveSeriesException(context.Background(), string(shopO), professionalO1, sr.ID, "2027-01-08")
 	if err != nil || !removed {
 		t.Fatalf("RemoveSeriesException: removed=%v err=%v", removed, err)
 	}
 
-	fetchedAfter, _, _ := repo.GetSeries(context.Background(), string(shopO), barberO1, sr.ID)
+	fetchedAfter, _, _ := repo.GetSeries(context.Background(), string(shopO), professionalO1, sr.ID)
 	if len(fetchedAfter.Exceptions) != 0 {
 		t.Fatalf("expected the instance restored (no exceptions left), got %+v", fetchedAfter.Exceptions)
 	}
@@ -348,12 +348,12 @@ func TestUpdateSeriesWhole_ReplacesEditableFields(t *testing.T) {
 	repo := newRepository(db)
 
 	tuesday := 2
-	sr := createWeeklySeries(t, repo, shopO, barberO1, schedule.CreateSeriesInput{
+	sr := createWeeklySeries(t, repo, shopO, professionalO1, schedule.CreateSeriesInput{
 		BlockType: schedule.BlockTypeBreak, RecurrenceKind: schedule.RecurrenceKindWeekly, ISOWeekday: &tuesday,
 		StartsTime: "10:00", DurationMinutes: 15, EffectiveFrom: "2027-01-01",
 	})
 
-	result, err := repo.UpdateSeriesWhole(context.Background(), string(shopO), barberO1, sr.ID, schedule.UpdateSeriesInput{
+	result, err := repo.UpdateSeriesWhole(context.Background(), string(shopO), professionalO1, sr.ID, schedule.UpdateSeriesInput{
 		BlockType: schedule.BlockTypeBreak, StartsTime: "10:30", DurationMinutes: 20, EffectiveFrom: "2027-01-01",
 	})
 	if err != nil {
@@ -369,12 +369,12 @@ func TestSplitSeriesFrom_TruncatesOriginalAndCreatesNewFromDate(t *testing.T) {
 	repo := newRepository(db)
 
 	wednesday := 3
-	original := createWeeklySeries(t, repo, shopO, barberO1, schedule.CreateSeriesInput{
+	original := createWeeklySeries(t, repo, shopO, professionalO1, schedule.CreateSeriesInput{
 		BlockType: schedule.BlockTypeLunch, RecurrenceKind: schedule.RecurrenceKindWeekly, ISOWeekday: &wednesday,
 		StartsTime: "13:00", DurationMinutes: 60, EffectiveFrom: "2027-01-01",
 	})
 
-	result, err := repo.SplitSeriesFrom(context.Background(), string(shopO), barberO1, original.ID, "2027-06-01", schedule.UpdateSeriesInput{
+	result, err := repo.SplitSeriesFrom(context.Background(), string(shopO), professionalO1, original.ID, "2027-06-01", schedule.UpdateSeriesInput{
 		BlockType: schedule.BlockTypeLunch, StartsTime: "14:00", DurationMinutes: 45, EffectiveFrom: "2027-06-01",
 	})
 	if err != nil {
@@ -394,7 +394,7 @@ func TestSplitSeriesFrom_TruncatesOriginalAndCreatesNewFromDate(t *testing.T) {
 		t.Fatalf("la serie nueva debe heredar iso_weekday de la original, got %+v", newSeries.ISOWeekday)
 	}
 
-	originalAfter, found, err := repo.GetSeries(context.Background(), string(shopO), barberO1, original.ID)
+	originalAfter, found, err := repo.GetSeries(context.Background(), string(shopO), professionalO1, original.ID)
 	if err != nil || !found {
 		t.Fatalf("GetSeries(original) after split: found=%v err=%v", found, err)
 	}
@@ -412,26 +412,26 @@ func TestListEffectiveManualBlocks_OnlyOverlappingRangeAndNotDeleted(t *testing.
 	db := setupTestDB(t)
 	repo := newRepository(db)
 
-	inRange := createBlock(t, repo, shopO, barberO1, schedule.CreateBlockInput{
+	inRange := createBlock(t, repo, shopO, professionalO1, schedule.CreateBlockInput{
 		BlockType: schedule.BlockTypeEmergency,
 		StartsAt:  time.Date(2027, 3, 10, 10, 0, 0, 0, time.UTC),
 		EndsAt:    time.Date(2027, 3, 10, 11, 0, 0, 0, time.UTC),
 	})
-	outOfRange := createBlock(t, repo, shopO, barberO1, schedule.CreateBlockInput{
+	outOfRange := createBlock(t, repo, shopO, professionalO1, schedule.CreateBlockInput{
 		BlockType: schedule.BlockTypeEmergency,
 		StartsAt:  time.Date(2027, 5, 10, 10, 0, 0, 0, time.UTC),
 		EndsAt:    time.Date(2027, 5, 10, 11, 0, 0, 0, time.UTC),
 	})
-	deleted := createBlock(t, repo, shopO, barberO1, schedule.CreateBlockInput{
+	deleted := createBlock(t, repo, shopO, professionalO1, schedule.CreateBlockInput{
 		BlockType: schedule.BlockTypeEmergency,
 		StartsAt:  time.Date(2027, 3, 15, 10, 0, 0, 0, time.UTC),
 		EndsAt:    time.Date(2027, 3, 15, 11, 0, 0, 0, time.UTC),
 	})
-	if _, err := repo.DeleteBlock(context.Background(), string(shopO), barberO1, deleted.ID, ownerO); err != nil {
+	if _, err := repo.DeleteBlock(context.Background(), string(shopO), professionalO1, deleted.ID, ownerO); err != nil {
 		t.Fatalf("DeleteBlock: %v", err)
 	}
 
-	items, err := repo.ListEffectiveManualBlocks(context.Background(), string(shopO), barberO1,
+	items, err := repo.ListEffectiveManualBlocks(context.Background(), string(shopO), professionalO1,
 		time.Date(2027, 3, 1, 0, 0, 0, 0, time.UTC), time.Date(2027, 4, 1, 0, 0, 0, 0, time.UTC))
 	if err != nil {
 		t.Fatalf("ListEffectiveManualBlocks: %v", err)

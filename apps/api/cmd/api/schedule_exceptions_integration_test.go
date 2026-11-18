@@ -2,10 +2,10 @@
 // (buildRouter) y PostgreSQL real, mismo patrón que
 // schedule_integration_test.go (HU-040). Requieren las catorce migraciones
 // aplicadas (incluida 20260826090000_create_working_hour_override.sql) y
-// database/testdata/dos_barberias.sql +
+// database/testdata/dos_negocios.sql +
 // testdata/hu005_credenciales_sesiones.sql cargados.
 //
-//	export TEST_DATABASE_URL="postgres://barberia_app:app_test@localhost:5432/barberia_test?sslmode=disable"
+//	export TEST_DATABASE_URL="postgres://agenda_app:app_test@localhost:5432/postgres?sslmode=disable"
 //	go test -race ./cmd/api/...
 package main
 
@@ -51,8 +51,8 @@ type colombianHolidayListBody struct {
 	Items []colombianHolidayBody `json:"items"`
 }
 
-func doGetHolidayCalendarRequest(router http.Handler, rawToken, barberID string) *httptest.ResponseRecorder {
-	req := httptest.NewRequest(http.MethodGet, "/api/v1/private/professionals/"+barberID+"/holiday-calendar", nil)
+func doGetHolidayCalendarRequest(router http.Handler, rawToken, professionalID string) *httptest.ResponseRecorder {
+	req := httptest.NewRequest(http.MethodGet, "/api/v1/private/professionals/"+professionalID+"/holiday-calendar", nil)
 	if rawToken != "" {
 		req.AddCookie(&http.Cookie{Name: cookieName, Value: rawToken})
 	}
@@ -61,8 +61,8 @@ func doGetHolidayCalendarRequest(router http.Handler, rawToken, barberID string)
 	return rec
 }
 
-func doUpdateHolidayCalendarRequest(router http.Handler, rawToken, barberID, rawBody string) *httptest.ResponseRecorder {
-	req := httptest.NewRequest(http.MethodPatch, "/api/v1/private/professionals/"+barberID+"/holiday-calendar", bytes.NewReader([]byte(rawBody)))
+func doUpdateHolidayCalendarRequest(router http.Handler, rawToken, professionalID, rawBody string) *httptest.ResponseRecorder {
+	req := httptest.NewRequest(http.MethodPatch, "/api/v1/private/professionals/"+professionalID+"/holiday-calendar", bytes.NewReader([]byte(rawBody)))
 	req.Header.Set("Content-Type", "application/json")
 	if rawToken != "" {
 		req.AddCookie(&http.Cookie{Name: cookieName, Value: rawToken})
@@ -72,8 +72,8 @@ func doUpdateHolidayCalendarRequest(router http.Handler, rawToken, barberID, raw
 	return rec
 }
 
-func doListScheduleExceptionsRequest(router http.Handler, rawToken, barberID, query string) *httptest.ResponseRecorder {
-	target := "/api/v1/private/professionals/" + barberID + "/schedule-exceptions"
+func doListScheduleExceptionsRequest(router http.Handler, rawToken, professionalID, query string) *httptest.ResponseRecorder {
+	target := "/api/v1/private/professionals/" + professionalID + "/schedule-exceptions"
 	if query != "" {
 		target += "?" + query
 	}
@@ -86,8 +86,8 @@ func doListScheduleExceptionsRequest(router http.Handler, rawToken, barberID, qu
 	return rec
 }
 
-func doGetScheduleExceptionRequest(router http.Handler, rawToken, barberID, exceptionID string) *httptest.ResponseRecorder {
-	req := httptest.NewRequest(http.MethodGet, "/api/v1/private/professionals/"+barberID+"/schedule-exceptions/"+exceptionID, nil)
+func doGetScheduleExceptionRequest(router http.Handler, rawToken, professionalID, exceptionID string) *httptest.ResponseRecorder {
+	req := httptest.NewRequest(http.MethodGet, "/api/v1/private/professionals/"+professionalID+"/schedule-exceptions/"+exceptionID, nil)
 	if rawToken != "" {
 		req.AddCookie(&http.Cookie{Name: cookieName, Value: rawToken})
 	}
@@ -96,8 +96,8 @@ func doGetScheduleExceptionRequest(router http.Handler, rawToken, barberID, exce
 	return rec
 }
 
-func doCreateScheduleExceptionRequest(router http.Handler, rawToken, barberID, idempotencyKey, rawBody string) *httptest.ResponseRecorder {
-	req := httptest.NewRequest(http.MethodPost, "/api/v1/private/professionals/"+barberID+"/schedule-exceptions", bytes.NewReader([]byte(rawBody)))
+func doCreateScheduleExceptionRequest(router http.Handler, rawToken, professionalID, idempotencyKey, rawBody string) *httptest.ResponseRecorder {
+	req := httptest.NewRequest(http.MethodPost, "/api/v1/private/professionals/"+professionalID+"/schedule-exceptions", bytes.NewReader([]byte(rawBody)))
 	req.Header.Set("Content-Type", "application/json")
 	if idempotencyKey != "" {
 		req.Header.Set("Idempotency-Key", idempotencyKey)
@@ -110,8 +110,8 @@ func doCreateScheduleExceptionRequest(router http.Handler, rawToken, barberID, i
 	return rec
 }
 
-func doUpdateScheduleExceptionRequest(router http.Handler, rawToken, barberID, exceptionID, rawBody string) *httptest.ResponseRecorder {
-	req := httptest.NewRequest(http.MethodPatch, "/api/v1/private/professionals/"+barberID+"/schedule-exceptions/"+exceptionID, bytes.NewReader([]byte(rawBody)))
+func doUpdateScheduleExceptionRequest(router http.Handler, rawToken, professionalID, exceptionID, rawBody string) *httptest.ResponseRecorder {
+	req := httptest.NewRequest(http.MethodPatch, "/api/v1/private/professionals/"+professionalID+"/schedule-exceptions/"+exceptionID, bytes.NewReader([]byte(rawBody)))
 	req.Header.Set("Content-Type", "application/json")
 	if rawToken != "" {
 		req.AddCookie(&http.Cookie{Name: cookieName, Value: rawToken})
@@ -121,8 +121,8 @@ func doUpdateScheduleExceptionRequest(router http.Handler, rawToken, barberID, e
 	return rec
 }
 
-func doDeleteScheduleExceptionRequest(router http.Handler, rawToken, barberID, exceptionID string) *httptest.ResponseRecorder {
-	req := httptest.NewRequest(http.MethodDelete, "/api/v1/private/professionals/"+barberID+"/schedule-exceptions/"+exceptionID, nil)
+func doDeleteScheduleExceptionRequest(router http.Handler, rawToken, professionalID, exceptionID string) *httptest.ResponseRecorder {
+	req := httptest.NewRequest(http.MethodDelete, "/api/v1/private/professionals/"+professionalID+"/schedule-exceptions/"+exceptionID, nil)
 	if rawToken != "" {
 		req.AddCookie(&http.Cookie{Name: cookieName, Value: rawToken})
 	}
@@ -156,11 +156,11 @@ func TestScheduleExceptions_HTTP_CreateListGetUpdateDelete_FullJourney(t *testin
 		t.Fatalf("buildRouter: %v", err)
 	}
 	raw := createSessionCookie(t, db, shopA, staffUserActiveA, "exception-journey-a")
-	barber := createBarberViaRouter(t, router, raw, "Barbero Excepción HTTP "+uniqueToken(t, "journey"))
+	professional := createProfessionalViaRouter(t, router, raw, "Barbero Excepción HTTP "+uniqueToken(t, "journey"))
 
 	key := uniqueToken(t, "exception-create")
 	body := `{"effectiveDate":"2027-11-15","isClosed":false,"reason":"Turno especial","segments":[{"startsTime":"09:00","durationMinutes":180}]}`
-	first := doCreateScheduleExceptionRequest(router, raw, barber.ID, key, body)
+	first := doCreateScheduleExceptionRequest(router, raw, professional.ID, key, body)
 	if first.Code != http.StatusCreated {
 		t.Fatalf("expected 201 on create, got %d: %s", first.Code, first.Body.String())
 	}
@@ -174,14 +174,14 @@ func TestScheduleExceptions_HTTP_CreateListGetUpdateDelete_FullJourney(t *testin
 	if created.Reason == nil || *created.Reason != "Turno especial" {
 		t.Fatalf("expected reason to persist, got %+v", created.Reason)
 	}
-	wantLoc := "/private/professionals/" + barber.ID + "/schedule-exceptions/" + created.ID
+	wantLoc := "/private/professionals/" + professional.ID + "/schedule-exceptions/" + created.ID
 	if loc := first.Header().Get("Location"); loc != wantLoc {
 		t.Fatalf("expected Location %q, got %q", wantLoc, loc)
 	}
 
 	// RN-IDE-01: repetir exactamente la misma clave y cuerpo reproduce la
 	// misma respuesta, sin crear una segunda excepción.
-	replay := doCreateScheduleExceptionRequest(router, raw, barber.ID, key, body)
+	replay := doCreateScheduleExceptionRequest(router, raw, professional.ID, key, body)
 	if replay.Code != http.StatusCreated {
 		t.Fatalf("expected 201 on replay, got %d: %s", replay.Code, replay.Body.String())
 	}
@@ -189,8 +189,8 @@ func TestScheduleExceptions_HTTP_CreateListGetUpdateDelete_FullJourney(t *testin
 		t.Fatalf("expected byte-identical replay body, got different bodies")
 	}
 
-	// CA-041-04: aparece en el listado del barbero.
-	listRec := doListScheduleExceptionsRequest(router, raw, barber.ID, "limit=50")
+	// CA-041-04: aparece en el listado del profesional.
+	listRec := doListScheduleExceptionsRequest(router, raw, professional.ID, "limit=50")
 	if listRec.Code != http.StatusOK {
 		t.Fatalf("expected 200 on list, got %d: %s", listRec.Code, listRec.Body.String())
 	}
@@ -209,13 +209,13 @@ func TestScheduleExceptions_HTTP_CreateListGetUpdateDelete_FullJourney(t *testin
 	}
 
 	// Lectura individual.
-	getRec := doGetScheduleExceptionRequest(router, raw, barber.ID, created.ID)
+	getRec := doGetScheduleExceptionRequest(router, raw, professional.ID, created.ID)
 	if getRec.Code != http.StatusOK {
 		t.Fatalf("expected 200 on get, got %d: %s", getRec.Code, getRec.Body.String())
 	}
 
 	// Edición: reemplaza la excepción completa, ahora cerrada.
-	updateRec := doUpdateScheduleExceptionRequest(router, raw, barber.ID, created.ID, `{"effectiveDate":"2027-11-16","isClosed":true}`)
+	updateRec := doUpdateScheduleExceptionRequest(router, raw, professional.ID, created.ID, `{"effectiveDate":"2027-11-16","isClosed":true}`)
 	if updateRec.Code != http.StatusOK {
 		t.Fatalf("expected 200 on update, got %d: %s", updateRec.Code, updateRec.Body.String())
 	}
@@ -228,18 +228,18 @@ func TestScheduleExceptions_HTTP_CreateListGetUpdateDelete_FullJourney(t *testin
 	}
 
 	// Retiro y reintento: 204 y luego 404 (CA-041-06).
-	deleteRec := doDeleteScheduleExceptionRequest(router, raw, barber.ID, created.ID)
+	deleteRec := doDeleteScheduleExceptionRequest(router, raw, professional.ID, created.ID)
 	if deleteRec.Code != http.StatusNoContent {
 		t.Fatalf("expected 204 on delete, got %d: %s", deleteRec.Code, deleteRec.Body.String())
 	}
-	repeatDelete := doDeleteScheduleExceptionRequest(router, raw, barber.ID, created.ID)
+	repeatDelete := doDeleteScheduleExceptionRequest(router, raw, professional.ID, created.ID)
 	if repeatDelete.Code != http.StatusNotFound {
 		t.Fatalf("expected 404 deleting an already-removed exception, got %d: %s", repeatDelete.Code, repeatDelete.Body.String())
 	}
 }
 
 // TestScheduleExceptions_HTTP_DuplicateDate_Returns409 cubre CA-041-05: una
-// segunda excepción del mismo barbero para la misma fecha se rechaza con
+// segunda excepción del mismo profesional para la misma fecha se rechaza con
 // 409, sin persistir nada.
 func TestScheduleExceptions_HTTP_DuplicateDate_Returns409(t *testing.T) {
 	db := setupTestDB(t)
@@ -248,14 +248,14 @@ func TestScheduleExceptions_HTTP_DuplicateDate_Returns409(t *testing.T) {
 		t.Fatalf("buildRouter: %v", err)
 	}
 	raw := createSessionCookie(t, db, shopA, staffUserActiveA, "exception-dupdate-a")
-	barber := createBarberViaRouter(t, router, raw, "Barbero Fecha Duplicada HTTP "+uniqueToken(t, "dupdate"))
+	professional := createProfessionalViaRouter(t, router, raw, "Barbero Fecha Duplicada HTTP "+uniqueToken(t, "dupdate"))
 
-	first := doCreateScheduleExceptionRequest(router, raw, barber.ID, uniqueToken(t, "dupdate-1"), `{"effectiveDate":"2027-12-24","isClosed":true}`)
+	first := doCreateScheduleExceptionRequest(router, raw, professional.ID, uniqueToken(t, "dupdate-1"), `{"effectiveDate":"2027-12-24","isClosed":true}`)
 	if first.Code != http.StatusCreated {
 		t.Fatalf("expected 201 creating the first exception, got %d: %s", first.Code, first.Body.String())
 	}
 
-	rec := doCreateScheduleExceptionRequest(router, raw, barber.ID, uniqueToken(t, "dupdate-2"), `{"effectiveDate":"2027-12-24","isClosed":true}`)
+	rec := doCreateScheduleExceptionRequest(router, raw, professional.ID, uniqueToken(t, "dupdate-2"), `{"effectiveDate":"2027-12-24","isClosed":true}`)
 	if rec.Code != http.StatusConflict {
 		t.Fatalf("CA-041-05: expected 409 for a duplicate effective date, got %d: %s", rec.Code, rec.Body.String())
 	}
@@ -278,7 +278,7 @@ func TestScheduleExceptions_HTTP_InvalidShape_Returns422(t *testing.T) {
 		t.Fatalf("buildRouter: %v", err)
 	}
 	raw := createSessionCookie(t, db, shopA, staffUserActiveA, "exception-invalid-a")
-	barber := createBarberViaRouter(t, router, raw, "Barbero Inválido HTTP "+uniqueToken(t, "invalid"))
+	professional := createProfessionalViaRouter(t, router, raw, "Barbero Inválido HTTP "+uniqueToken(t, "invalid"))
 
 	cases := []string{
 		`{"effectiveDate":"2027-13-01","isClosed":true}`,
@@ -287,16 +287,16 @@ func TestScheduleExceptions_HTTP_InvalidShape_Returns422(t *testing.T) {
 		`{"effectiveDate":"2027-11-22","isClosed":false,"segments":[{"startsTime":"08:00","durationMinutes":120},{"startsTime":"09:00","durationMinutes":60}]}`,
 	}
 	for _, body := range cases {
-		rec := doCreateScheduleExceptionRequest(router, raw, barber.ID, uniqueToken(t, "invalid"), body)
+		rec := doCreateScheduleExceptionRequest(router, raw, professional.ID, uniqueToken(t, "invalid"), body)
 		if rec.Code != http.StatusUnprocessableEntity {
 			t.Fatalf("expected 422 for body %s, got %d: %s", body, rec.Code, rec.Body.String())
 		}
 	}
 }
 
-// TestScheduleExceptions_HTTP_CrossTenantBarber_Returns404 cubre RN-TEN-01:
-// un barberId real de la barbería B responde 404 bajo el contexto de A.
-func TestScheduleExceptions_HTTP_CrossTenantBarber_Returns404(t *testing.T) {
+// TestScheduleExceptions_HTTP_CrossTenantProfessional_Returns404 cubre RN-TEN-01:
+// un professionalId real del negocio B responde 404 bajo el contexto de A.
+func TestScheduleExceptions_HTTP_CrossTenantProfessional_Returns404(t *testing.T) {
 	db := setupTestDB(t)
 	router, err := buildRouter(db, discardLogger(), testRouterConfig())
 	if err != nil {
@@ -304,16 +304,16 @@ func TestScheduleExceptions_HTTP_CrossTenantBarber_Returns404(t *testing.T) {
 	}
 	rawA := createSessionCookie(t, db, shopA, staffUserActiveA, "exception-cross-a")
 	rawB := createSessionCookie(t, db, shopB, staffUserActiveB, "exception-cross-b")
-	barberOfB := createBarberViaRouter(t, router, rawB, "Barbero de B HTTP "+uniqueToken(t, "cross"))
+	professionalOfB := createProfessionalViaRouter(t, router, rawB, "Barbero de B HTTP "+uniqueToken(t, "cross"))
 
-	if rec := doListScheduleExceptionsRequest(router, rawA, barberOfB.ID, ""); rec.Code != http.StatusNotFound {
-		t.Fatalf("expected 404 listing another shop's barber, got %d: %s", rec.Code, rec.Body.String())
+	if rec := doListScheduleExceptionsRequest(router, rawA, professionalOfB.ID, ""); rec.Code != http.StatusNotFound {
+		t.Fatalf("expected 404 listing another shop's professional, got %d: %s", rec.Code, rec.Body.String())
 	}
-	if rec := doCreateScheduleExceptionRequest(router, rawA, barberOfB.ID, uniqueToken(t, "cross-create"), `{"effectiveDate":"2027-11-23","isClosed":true}`); rec.Code != http.StatusNotFound {
-		t.Fatalf("expected 404 creating under another shop's barber, got %d: %s", rec.Code, rec.Body.String())
+	if rec := doCreateScheduleExceptionRequest(router, rawA, professionalOfB.ID, uniqueToken(t, "cross-create"), `{"effectiveDate":"2027-11-23","isClosed":true}`); rec.Code != http.StatusNotFound {
+		t.Fatalf("expected 404 creating under another shop's professional, got %d: %s", rec.Code, rec.Body.String())
 	}
-	if rec := doGetHolidayCalendarRequest(router, rawA, barberOfB.ID); rec.Code != http.StatusNotFound {
-		t.Fatalf("expected 404 reading another shop's barber holiday calendar, got %d: %s", rec.Code, rec.Body.String())
+	if rec := doGetHolidayCalendarRequest(router, rawA, professionalOfB.ID); rec.Code != http.StatusNotFound {
+		t.Fatalf("expected 404 reading another shop's professional holiday calendar, got %d: %s", rec.Code, rec.Body.String())
 	}
 }
 
@@ -326,9 +326,9 @@ func TestHolidayCalendar_HTTP_GetThenUpdate_PersistsToggle(t *testing.T) {
 		t.Fatalf("buildRouter: %v", err)
 	}
 	raw := createSessionCookie(t, db, shopA, staffUserActiveA, "holiday-toggle-a")
-	barber := createBarberViaRouter(t, router, raw, "Barbero Festivos HTTP "+uniqueToken(t, "toggle"))
+	professional := createProfessionalViaRouter(t, router, raw, "Barbero Festivos HTTP "+uniqueToken(t, "toggle"))
 
-	getRec := doGetHolidayCalendarRequest(router, raw, barber.ID)
+	getRec := doGetHolidayCalendarRequest(router, raw, professional.ID)
 	if getRec.Code != http.StatusOK {
 		t.Fatalf("expected 200 on get, got %d: %s", getRec.Code, getRec.Body.String())
 	}
@@ -337,10 +337,10 @@ func TestHolidayCalendar_HTTP_GetThenUpdate_PersistsToggle(t *testing.T) {
 		t.Fatalf("decode: %v", err)
 	}
 	if initial.Enabled {
-		t.Fatal("expected the holiday calendar to be disabled by default for a new barber")
+		t.Fatal("expected the holiday calendar to be disabled by default for a new professional")
 	}
 
-	updateRec := doUpdateHolidayCalendarRequest(router, raw, barber.ID, `{"enabled":true}`)
+	updateRec := doUpdateHolidayCalendarRequest(router, raw, professional.ID, `{"enabled":true}`)
 	if updateRec.Code != http.StatusOK {
 		t.Fatalf("expected 200 on update, got %d: %s", updateRec.Code, updateRec.Body.String())
 	}
@@ -352,7 +352,7 @@ func TestHolidayCalendar_HTTP_GetThenUpdate_PersistsToggle(t *testing.T) {
 		t.Fatal("expected the holiday calendar to become enabled")
 	}
 
-	confirmRec := doGetHolidayCalendarRequest(router, raw, barber.ID)
+	confirmRec := doGetHolidayCalendarRequest(router, raw, professional.ID)
 	var confirmed holidayCalendarBody
 	if err := json.Unmarshal(confirmRec.Body.Bytes(), &confirmed); err != nil {
 		t.Fatalf("decode confirm: %v", err)
@@ -363,7 +363,7 @@ func TestHolidayCalendar_HTTP_GetThenUpdate_PersistsToggle(t *testing.T) {
 }
 
 // TestColombianHolidays_HTTP_KnownYear_ContainsIndependenceDay confirma que
-// la consulta de referencia (sin barbero ni excepción de por medio) trae el
+// la consulta de referencia (sin profesional ni excepción de por medio) trae el
 // 20 de julio como "Día de la Independencia" para 2026.
 func TestColombianHolidays_HTTP_KnownYear_ContainsIndependenceDay(t *testing.T) {
 	db := setupTestDB(t)

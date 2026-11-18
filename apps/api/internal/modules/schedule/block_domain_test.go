@@ -4,7 +4,7 @@ import (
 	"testing"
 	"time"
 
-	"system-barbershop/internal/modules/schedule"
+	"nava-agenda/internal/modules/schedule"
 )
 
 func TestValidateBlockType(t *testing.T) {

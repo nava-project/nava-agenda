@@ -7,8 +7,8 @@ import (
 	"time"
 	"unicode/utf8"
 
-	"system-barbershop/internal/platform/apperr"
-	"system-barbershop/internal/platform/idempotency"
+	"nava-agenda/internal/platform/apperr"
+	"nava-agenda/internal/platform/idempotency"
 )
 
 // MaxCancellationReasonLength es el tope de appointment.cancellation_reason y
@@ -16,7 +16,7 @@ import (
 const MaxCancellationReasonLength = 500
 
 // CustomerCancellationPolicy es la política vigente de cancelación propia del
-// cliente (RN-CAN-01, RN-CAN-02, DEC-083), tal como la barbería la configuró
+// cliente (RN-CAN-01, RN-CAN-02, DEC-083), tal como el negocio la configuró
 // en HU-093. Se lee DENTRO de la transacción de cancelación, nunca de una
 // lectura previa: un cambio de configuración aplica desde que se confirma.
 type CustomerCancellationPolicy struct {
@@ -35,12 +35,12 @@ type CustomerCancellationPolicy struct {
 //
 //   - Con el turno ya iniciado (now >= startsAt) la cancelación propia nunca
 //     procede, ni aun con la política tardía permitida: lo que sigue es del
-//     barbero (RN-CAN-03, T6/T7).
+//     profesional (RN-CAN-03, T6/T7).
 //   - Hasta startsAt-DeadlineMinutes INCLUSIVE es dentro de plazo: no exige
 //     motivo (RN-CAN-02 solo lo regula fuera de plazo) y uno opcional se
 //     conserva.
 //   - Después del límite y antes del inicio es tardía: si LateClientAllowed
-//     es falso se rechaza (el cliente debe contactar a la barbería); si es
+//     es falso se rechaza (el cliente debe contactar al negocio); si es
 //     verdadero y LateReasonRequired también, un motivo vacío o en blanco se
 //     rechaza (CA-099-03).
 //
@@ -76,7 +76,7 @@ func errCancellationReasonTooLong() error {
 }
 
 // CancelAppointmentByCustomerRequest es la entrada cruda de T5 (HU-099). El
-// llamador (customeraccess) ya resolvió el token a la barbería y la cita; el
+// llamador (customeraccess) ya resolvió el token al negocio y la cita; el
 // cliente solo aporta la versión que leyó y, si la política lo pide, el motivo.
 // Nunca llevan estado, actor ni tiempo: el servidor los deriva.
 type CancelAppointmentByCustomerRequest struct {
@@ -96,7 +96,7 @@ type CancelAppointmentByCustomerInput struct {
 }
 
 // CancelAppointmentByCustomerResult sigue el criterio de
-// CancelAppointmentByBarberResult: Decision distingue la aplicación (o su
+// CancelAppointmentByProfessionalResult: Decision distingue la aplicación (o su
 // repetición ya cancelada) de un Replay exacto o de un conflicto de
 // idempotencia, y Response trae el cuerpo almacenado para reproducirlo.
 type CancelAppointmentByCustomerResult struct {
@@ -116,7 +116,7 @@ type CancelAppointmentByCustomerResult struct {
 type CustomerCancellationRepository interface {
 	CancelByCustomer(
 		ctx context.Context,
-		barbershopID string,
+		businessID string,
 		input CancelAppointmentByCustomerInput,
 		key idempotency.Key,
 		fingerprint idempotency.Fingerprint,
@@ -139,11 +139,11 @@ func NewCancelAppointmentByCustomerService(repo CustomerCancellationRepository, 
 }
 
 // CancelAppointmentByCustomer valida la forma de la entrada y delega en el
-// repositorio. barbershopID y AppointmentID llegan resueltos desde el token
+// repositorio. businessID y AppointmentID llegan resueltos desde el token
 // por customeraccess; aquí nunca se aceptan del cliente.
 func (s *CancelAppointmentByCustomerService) CancelAppointmentByCustomer(
 	ctx context.Context,
-	barbershopID string,
+	businessID string,
 	req CancelAppointmentByCustomerRequest,
 	key idempotency.Key,
 	fingerprint idempotency.Fingerprint,
@@ -165,7 +165,7 @@ func (s *CancelAppointmentByCustomerService) CancelAppointmentByCustomer(
 		return CancelAppointmentByCustomerResult{}, errCancellationReasonTooLong()
 	}
 
-	return s.repo.CancelByCustomer(ctx, barbershopID, CancelAppointmentByCustomerInput{
+	return s.repo.CancelByCustomer(ctx, businessID, CancelAppointmentByCustomerInput{
 		AppointmentID:        appointmentID,
 		ExpectedVersionToken: expectedVersionToken,
 		Reason:               reason,

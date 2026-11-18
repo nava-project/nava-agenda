@@ -10,7 +10,7 @@ import (
 	"strings"
 	"testing"
 
-	"system-barbershop/internal/platform/httpserver"
+	"nava-agenda/internal/platform/httpserver"
 )
 
 // echoBodyHandler es un handler solo de prueba —nunca se monta en el router

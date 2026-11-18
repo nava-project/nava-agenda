@@ -8,17 +8,17 @@ import (
 	"errors"
 	"net/http"
 
-	"system-barbershop/internal/modules/auth"
-	"system-barbershop/internal/modules/reviews"
-	"system-barbershop/internal/platform/apperr"
-	"system-barbershop/internal/platform/httpserver"
+	"nava-agenda/internal/modules/auth"
+	"nava-agenda/internal/modules/reviews"
+	"nava-agenda/internal/platform/apperr"
+	"nava-agenda/internal/platform/httpserver"
 )
 
 const (
-	tokenParam    = "token"
-	slugParam     = "slug"
-	barberIDParam = "professionalId"
-	reviewIDParam = "reviewId"
+	tokenParam          = "token"
+	slugParam           = "slug"
+	professionalIDParam = "professionalId"
+	reviewIDParam       = "reviewId"
 )
 
 func decodeStrict(w http.ResponseWriter, r *http.Request, requestID string, into any) bool {
@@ -93,7 +93,7 @@ func NewListPublicReviewsHandler(service *reviews.Service) *ListPublicReviewsHan
 // ServeHTTP implementa http.Handler.
 func (h *ListPublicReviewsHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	requestID := httpserver.RequestIDFromContext(r.Context())
-	list, err := h.service.ListPublic(r.Context(), httpserver.URLParam(r, slugParam), httpserver.URLParam(r, barberIDParam))
+	list, err := h.service.ListPublic(r.Context(), httpserver.URLParam(r, slugParam), httpserver.URLParam(r, professionalIDParam))
 	if err != nil {
 		httpserver.WriteProblem(w, httpserver.Translate(err, requestID))
 		return
@@ -136,7 +136,7 @@ func (h *ListReviewsHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	if !ok {
 		return
 	}
-	list, err := h.service.ListForBarber(r.Context(), principal.BarbershopID, httpserver.URLParam(r, barberIDParam))
+	list, err := h.service.ListForProfessional(r.Context(), principal.BusinessID, httpserver.URLParam(r, professionalIDParam))
 	if err != nil {
 		httpserver.WriteProblem(w, httpserver.Translate(err, requestID))
 		return
@@ -175,8 +175,8 @@ func (h *UpdateReviewHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) 
 		httpserver.WriteProblem(w, httpserver.Translate(apperr.Validation("hidden es obligatorio"), requestID))
 		return
 	}
-	review, err := h.service.SetHidden(r.Context(), principal.BarbershopID,
-		httpserver.URLParam(r, barberIDParam), httpserver.URLParam(r, reviewIDParam), *req.Hidden)
+	review, err := h.service.SetHidden(r.Context(), principal.BusinessID,
+		httpserver.URLParam(r, professionalIDParam), httpserver.URLParam(r, reviewIDParam), *req.Hidden)
 	if err != nil {
 		httpserver.WriteProblem(w, httpserver.Translate(err, requestID))
 		return

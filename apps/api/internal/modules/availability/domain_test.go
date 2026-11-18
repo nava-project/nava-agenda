@@ -4,7 +4,7 @@ import (
 	"testing"
 	"time"
 
-	"system-barbershop/internal/modules/availability"
+	"nava-agenda/internal/modules/availability"
 )
 
 // bogota es una zona horaria fija de referencia para construir instantes

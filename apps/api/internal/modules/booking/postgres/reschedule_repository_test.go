@@ -1,11 +1,11 @@
 // Package postgres_test (pruebas de integración, HU-065) requiere
 // PostgreSQL REAL con las diecisiete migraciones aplicadas y
-// database/testdata/dos_barberias.sql + database/testdata/hu060_citas.sql
+// database/testdata/dos_negocios.sql + database/testdata/hu060_citas.sql
 // cargados: mismos fixtures que repository_test.go/detail_repository_test.go
 // (HU-060/HU-064). El turno base de cada prueba se inserta con
 // repo.CreateInternal, la misma primitiva probada en repository_test.go.
 //
-//	export TEST_DATABASE_URL="postgres://barberia_app:app_test@localhost:5432/barberia_test?sslmode=disable"
+//	export TEST_DATABASE_URL="postgres://agenda_app:app_test@localhost:5432/postgres?sslmode=disable"
 //	go test -race ./internal/modules/booking/postgres/...
 package postgres_test
 
@@ -17,10 +17,10 @@ import (
 	"testing"
 	"time"
 
-	"system-barbershop/internal/modules/booking"
-	"system-barbershop/internal/platform/apperr"
-	"system-barbershop/internal/platform/database"
-	"system-barbershop/internal/platform/idempotency"
+	"nava-agenda/internal/modules/booking"
+	"nava-agenda/internal/platform/apperr"
+	"nava-agenda/internal/platform/database"
+	"nava-agenda/internal/platform/idempotency"
 )
 
 // rescheduleFingerprint deriva un Fingerprint hexadecimal válido (32-128
@@ -43,12 +43,12 @@ func newRescheduleInput(appointmentID, versionToken string, newStartsAt, newEnds
 	}
 }
 
-// markAppointmentTerminal marca directamente (barberia_app tiene UPDATE
+// markAppointmentTerminal marca directamente (agenda_app tiene UPDATE
 // sobre appointment) una cita como resuelta, sin pasar por ninguna
 // transición todavía no construida (T3/cancelación/cierre no existen en
 // esta HU): solo sirve para fabricar el estado previo que
 // TestReschedule_NotConfirmed_ReturnsInvalidState necesita.
-func markAppointmentTerminal(t *testing.T, db *database.DB, shop database.BarbershopID, appointmentID string) {
+func markAppointmentTerminal(t *testing.T, db *database.DB, shop database.BusinessID, appointmentID string) {
 	t.Helper()
 	err := db.InTenantTx(context.Background(), shop, func(ctx context.Context, q database.Queries) error {
 		_, err := q.Exec(ctx,
@@ -67,7 +67,7 @@ func TestReschedule_ValidRequest_UpdatesIntervalAndInsertsHistory(t *testing.T) 
 	suffix := uniqueSuffix(t)
 	start := baseStart(t)
 
-	created, err := repo.CreateInternal(context.Background(), string(shopQ), validInput(t, barberQ1, serviceQ, start, 30, suffix))
+	created, err := repo.CreateInternal(context.Background(), string(shopQ), validInput(t, professionalQ1, serviceQ, start, 30, suffix))
 	if err != nil {
 		t.Fatalf("CreateInternal: %v", err)
 	}
@@ -95,9 +95,9 @@ func TestReschedule_ValidRequest_UpdatesIntervalAndInsertsHistory(t *testing.T) 
 	if result.Appointment.VersionToken == detail.VersionToken {
 		t.Fatalf("VersionToken no cambió tras la escritura")
 	}
-	// Barbero, servicio, cliente, persona, nota, origen y estado NUNCA
+	// Profesional, servicio, cliente, persona, nota, origen y estado NUNCA
 	// cambian en T2 (trabajo requerido §1.2).
-	if result.Appointment.BarberID != detail.BarberID || result.Appointment.Status != detail.Status {
+	if result.Appointment.ProfessionalID != detail.ProfessionalID || result.Appointment.Status != detail.Status {
 		t.Fatalf("T2 modificó datos fuera del intervalo: %+v", result.Appointment)
 	}
 
@@ -125,7 +125,7 @@ func TestReschedule_SameInterval_IsNoOpWithoutHistoryOrVersionChange(t *testing.
 	suffix := uniqueSuffix(t)
 	start := baseStart(t)
 
-	created, err := repo.CreateInternal(context.Background(), string(shopQ), validInput(t, barberQ1, serviceQ, start, 30, suffix))
+	created, err := repo.CreateInternal(context.Background(), string(shopQ), validInput(t, professionalQ1, serviceQ, start, 30, suffix))
 	if err != nil {
 		t.Fatalf("CreateInternal: %v", err)
 	}
@@ -161,7 +161,7 @@ func TestReschedule_StaleVersionToken_ReturnsVersionConflict(t *testing.T) {
 	suffix := uniqueSuffix(t)
 	start := baseStart(t)
 
-	created, err := repo.CreateInternal(context.Background(), string(shopQ), validInput(t, barberQ1, serviceQ, start, 30, suffix))
+	created, err := repo.CreateInternal(context.Background(), string(shopQ), validInput(t, professionalQ1, serviceQ, start, 30, suffix))
 	if err != nil {
 		t.Fatalf("CreateInternal: %v", err)
 	}
@@ -183,7 +183,7 @@ func TestReschedule_NotConfirmed_ReturnsInvalidState(t *testing.T) {
 	suffix := uniqueSuffix(t)
 	start := baseStart(t)
 
-	created, err := repo.CreateInternal(context.Background(), string(shopQ), validInput(t, barberQ1, serviceQ, start, 30, suffix))
+	created, err := repo.CreateInternal(context.Background(), string(shopQ), validInput(t, professionalQ1, serviceQ, start, 30, suffix))
 	if err != nil {
 		t.Fatalf("CreateInternal: %v", err)
 	}
@@ -220,12 +220,12 @@ func TestReschedule_CrossesAnotherAppointment_ReturnsConflict(t *testing.T) {
 	suffix := uniqueSuffix(t)
 	start := baseStart(t)
 
-	moving, err := repo.CreateInternal(context.Background(), string(shopQ), validInput(t, barberQ1, serviceQ, start, 30, suffix+"-moving"))
+	moving, err := repo.CreateInternal(context.Background(), string(shopQ), validInput(t, professionalQ1, serviceQ, start, 30, suffix+"-moving"))
 	if err != nil {
 		t.Fatalf("CreateInternal(moving): %v", err)
 	}
 	occupying := start.Add(3 * time.Hour)
-	if _, err := repo.CreateInternal(context.Background(), string(shopQ), validInput(t, barberQ1, serviceQ, occupying, 30, suffix+"-occupying")); err != nil {
+	if _, err := repo.CreateInternal(context.Background(), string(shopQ), validInput(t, professionalQ1, serviceQ, occupying, 30, suffix+"-occupying")); err != nil {
 		t.Fatalf("CreateInternal(occupying): %v", err)
 	}
 
@@ -261,14 +261,14 @@ func TestReschedule_CrossesAnotherAppointment_ReturnsConflict(t *testing.T) {
 
 // TestReschedule_TenantMismatch_ReturnsNotFound verifica RN-TEN-01: una
 // cita real de shopQ nunca se reprograma consultándola con el
-// barbershopID de shopR, aunque el identificador coincida literalmente.
+// businessID de shopR, aunque el identificador coincida literalmente.
 func TestReschedule_TenantMismatch_ReturnsNotFound(t *testing.T) {
 	db := setupTestDB(t)
 	repo := newRepository(db)
 	suffix := uniqueSuffix(t)
 	start := baseStart(t)
 
-	created, err := repo.CreateInternal(context.Background(), string(shopQ), validInput(t, barberQ1, serviceQ, start, 30, suffix))
+	created, err := repo.CreateInternal(context.Background(), string(shopQ), validInput(t, professionalQ1, serviceQ, start, 30, suffix))
 	if err != nil {
 		t.Fatalf("CreateInternal: %v", err)
 	}
@@ -292,7 +292,7 @@ func TestReschedule_RepeatedKeySameIntent_Replays(t *testing.T) {
 	suffix := uniqueSuffix(t)
 	start := baseStart(t)
 
-	created, err := repo.CreateInternal(context.Background(), string(shopQ), validInput(t, barberQ1, serviceQ, start, 30, suffix))
+	created, err := repo.CreateInternal(context.Background(), string(shopQ), validInput(t, professionalQ1, serviceQ, start, 30, suffix))
 	if err != nil {
 		t.Fatalf("CreateInternal: %v", err)
 	}
@@ -335,7 +335,7 @@ func TestReschedule_RepeatedKeySameIntent_Replays(t *testing.T) {
 
 // TestReschedule_ConcurrentReschedulesToOverlappingIntervals_ExactlyOneSucceeds
 // cubre RN-CON-01/RN-CON-03 para T2: dos citas confirmadas distintas del
-// mismo barbero se reprograman EN PARALELO hacia intervalos que se
+// mismo profesional se reprograman EN PARALELO hacia intervalos que se
 // cruzarían entre sí. La restricción de exclusión GiST, evaluada también en
 // UPDATE, garantiza que como máximo una de las dos escrituras persista.
 func TestReschedule_ConcurrentReschedulesToOverlappingIntervals_ExactlyOneSucceeds(t *testing.T) {
@@ -344,11 +344,11 @@ func TestReschedule_ConcurrentReschedulesToOverlappingIntervals_ExactlyOneSuccee
 	suffix := uniqueSuffix(t)
 	start := baseStart(t)
 
-	createdA, err := repo.CreateInternal(context.Background(), string(shopQ), validInput(t, barberQ1, serviceQ, start, 30, suffix+"-A"))
+	createdA, err := repo.CreateInternal(context.Background(), string(shopQ), validInput(t, professionalQ1, serviceQ, start, 30, suffix+"-A"))
 	if err != nil {
 		t.Fatalf("CreateInternal(A): %v", err)
 	}
-	createdB, err := repo.CreateInternal(context.Background(), string(shopQ), validInput(t, barberQ1, serviceQ, start.Add(1*time.Hour), 30, suffix+"-B"))
+	createdB, err := repo.CreateInternal(context.Background(), string(shopQ), validInput(t, professionalQ1, serviceQ, start.Add(1*time.Hour), 30, suffix+"-B"))
 	if err != nil {
 		t.Fatalf("CreateInternal(B): %v", err)
 	}

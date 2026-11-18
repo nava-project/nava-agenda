@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"strings"
 
-	"system-barbershop/internal/platform/apperr"
+	"nava-agenda/internal/platform/apperr"
 )
 
 // invalidRecoveryCodeMessage es el ÚNICO texto que RecoveryService.Verify

@@ -6,7 +6,7 @@
 // telefónico): nunca se llama a Meta/Resend reales. El E2E visual de tres
 // pasos pertenece a HU-011; esta prueba cubre el backend de punta a punta.
 //
-//	export TEST_DATABASE_URL="postgres://barberia_app:app_test@localhost:5432/barberia_test?sslmode=disable"
+//	export TEST_DATABASE_URL="postgres://agenda_app:app_test@localhost:5432/postgres?sslmode=disable"
 //	go test -race ./cmd/api/...
 package main
 
@@ -23,7 +23,7 @@ import (
 
 	"github.com/go-chi/chi/v5"
 
-	"system-barbershop/internal/platform/database"
+	"nava-agenda/internal/platform/database"
 )
 
 // recoveryEmailA/B son los correos de duena.a/dueno.b (mismas cuentas que
@@ -36,7 +36,7 @@ const (
 	// recoveryEmailO/recoveryPhoneO: cuenta con teléfono único verificado por
 	// testdata/hu008_recuperacion_canal.sql, reservada para el recorrido por
 	// WhatsApp (DEC-092). recoveryPhoneShared lo comparten dueno.p y dueno.q
-	// en barberías distintas: ambiguo, no identifica ninguna cuenta
+	// en negocios distintos: ambiguo, no identifica ninguna cuenta
 	// (DEC-093, DP-SEG-14).
 	recoveryEmailO      = "dueno.o@ejemplo.test"
 	recoveryPhoneO      = "+573000000011"
@@ -314,7 +314,7 @@ func TestRecovery_System_WhatsAppJourney_IdentifiesByPhoneAndSendsOnlyToPhone(t 
 
 // TestRecovery_System_WhatsApp_AmbiguousOrUnknownPhone_SameResponseNoSend
 // cubre CA-008-10, DEC-065 y DP-SEG-14: un número compartido por dos
-// barberías, un número sin cuenta y un número con cuenta responden
+// negocios, un número sin cuenta y un número con cuenta responden
 // exactamente igual, y los dos primeros no envían nada.
 func TestRecovery_System_WhatsApp_AmbiguousOrUnknownPhone_SameResponseNoSend(t *testing.T) {
 	db := setupTestDB(t)

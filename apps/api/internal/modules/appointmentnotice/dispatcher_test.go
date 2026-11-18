@@ -10,7 +10,7 @@ import (
 	"testing"
 	"time"
 
-	"system-barbershop/internal/modules/appointmentnotice"
+	"nava-agenda/internal/modules/appointmentnotice"
 )
 
 var now = time.Date(2026, 1, 5, 12, 0, 0, 0, time.UTC)
@@ -74,7 +74,7 @@ func validContext() appointmentnotice.Context {
 		CustomerEmail:     "cliente.a@ejemplo.test",
 		AttendeeName:      "Ana Prueba",
 		ServiceName:       "Corte clásico",
-		BarbershopName:    "Barbería Centro",
+		BusinessName:      "Barbería Centro",
 		Timezone:          "America/Bogota",
 	}
 }
@@ -132,7 +132,7 @@ func TestProcess_TheMessageFollowsTheStateAtSendTime(t *testing.T) {
 
 func TestProcess_Skips_WithoutSendingAndWithTheReason(t *testing.T) {
 	cancelled := validContext()
-	cancelled.Kind, cancelled.AppointmentStatus = appointmentnotice.KindCancelledByBarber, "cancelled_by_professional"
+	cancelled.Kind, cancelled.AppointmentStatus = appointmentnotice.KindCancelledByProfessional, "cancelled_by_professional"
 
 	cases := []struct {
 		name   string
@@ -142,7 +142,7 @@ func TestProcess_Skips_WithoutSendingAndWithTheReason(t *testing.T) {
 	}{
 		{"otro aviso ya envió este estado", func(c *appointmentnotice.Context) { c.AlreadyCovered = true }, validContext(), appointmentnotice.CodeSuperseded},
 		{"reprogramación de un turno ya cancelado (RN-REC-02)", func(c *appointmentnotice.Context) { c.AppointmentStatus = "cancelled_by_customer" }, validContext(), appointmentnotice.CodeNotConfirmed},
-		{"cancelación de un turno que ya no está cancelado por el barbero", func(c *appointmentnotice.Context) { c.AppointmentStatus = "confirmed" }, cancelled, appointmentnotice.CodeNotCancelled},
+		{"cancelación de un turno que ya no está cancelado por el profesional", func(c *appointmentnotice.Context) { c.AppointmentStatus = "confirmed" }, cancelled, appointmentnotice.CodeNotCancelled},
 		{"el turno ya empezó", func(c *appointmentnotice.Context) { c.StartsAt = now.Add(-time.Minute) }, validContext(), appointmentnotice.CodePast},
 		{"el turno empieza justo ahora", func(c *appointmentnotice.Context) { c.StartsAt = now }, validContext(), appointmentnotice.CodePast},
 		{"cliente sin correo (RN-REC-06)", func(c *appointmentnotice.Context) { c.CustomerEmail = "" }, validContext(), appointmentnotice.CodeNoEmail},
@@ -165,7 +165,7 @@ func TestProcess_Skips_WithoutSendingAndWithTheReason(t *testing.T) {
 
 func TestProcess_CancellationIsSentWithTheCancelledKind(t *testing.T) {
 	ctx := validContext()
-	ctx.Kind, ctx.AppointmentStatus = appointmentnotice.KindCancelledByBarber, "cancelled_by_professional"
+	ctx.Kind, ctx.AppointmentStatus = appointmentnotice.KindCancelledByProfessional, "cancelled_by_professional"
 	store, mailer := &fakeStore{ctx: ctx}, &fakeMailer{}
 	fin, _ := process(t, store, mailer, 1)
 	if len(mailer.calls) != 1 || mailer.calls[0].kind != "cancelled_by_professional" || fin.Outcome != appointmentnotice.OutcomeSent {
@@ -319,7 +319,7 @@ func TestProcess_Reminder_Skips(t *testing.T) {
 		code   string
 	}{
 		{"turno cancelado (RN-REC-02)", func(c *appointmentnotice.Context) { c.AppointmentStatus = "cancelled_by_customer" }, appointmentnotice.CodeNotConfirmed},
-		{"turno cancelado por el barbero", func(c *appointmentnotice.Context) { c.AppointmentStatus = "cancelled_by_professional" }, appointmentnotice.CodeNotConfirmed},
+		{"turno cancelado por el profesional", func(c *appointmentnotice.Context) { c.AppointmentStatus = "cancelled_by_professional" }, appointmentnotice.CodeNotConfirmed},
 		{"turno completado", func(c *appointmentnotice.Context) { c.AppointmentStatus = "completed" }, appointmentnotice.CodeNotConfirmed},
 		{"el turno cambió de hora: recordatorio de la hora vieja (RN-REC-03)", func(c *appointmentnotice.Context) { c.NoticeStateAt = c.StartsAt.Add(-3 * time.Hour) }, appointmentnotice.CodeSuperseded},
 		{"ya enviado para esa hora", func(c *appointmentnotice.Context) { c.AlreadyCovered = true }, appointmentnotice.CodeSuperseded},
@@ -347,15 +347,15 @@ func TestProcess_Reminder_Skips(t *testing.T) {
 
 // ---- DEC-175: recordatorio por WhatsApp ----
 
-type sentWhatsApp struct{ phone, name, shop, when, service, barber string }
+type sentWhatsApp struct{ phone, name, shop, when, service, professional string }
 
 type fakeWhatsApp struct {
 	err   error
 	calls []sentWhatsApp
 }
 
-func (w *fakeWhatsApp) SendReminder(_ context.Context, phone, name, shop, when, service, barber string) error {
-	w.calls = append(w.calls, sentWhatsApp{phone, name, shop, when, service, barber})
+func (w *fakeWhatsApp) SendReminder(_ context.Context, phone, name, shop, when, service, professional string) error {
+	w.calls = append(w.calls, sentWhatsApp{phone, name, shop, when, service, professional})
 	return w.err
 }
 
@@ -364,7 +364,7 @@ func whatsappContext() appointmentnotice.Context {
 	c.Kind = appointmentnotice.KindReminderWhatsApp
 	c.CustomerEmail = "" // el canal no depende del correo
 	c.CustomerPhone = "+573001112233"
-	c.BarberName = "Camilo Ortega"
+	c.ProfessionalName = "Camilo Ortega"
 	// 12:00 UTC = 7:00 a. m. en Bogotá; el turno es hoy a las 7:40 a. m.
 	c.StartsAt = now.Add(40 * time.Minute)
 	c.NoticeStateAt = c.StartsAt

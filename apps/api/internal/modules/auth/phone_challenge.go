@@ -7,7 +7,7 @@ import (
 	"fmt"
 	"math/big"
 
-	"system-barbershop/internal/platform/apperr"
+	"nava-agenda/internal/platform/apperr"
 )
 
 // invalidChallengeMessage es el ÚNICO texto que PhoneChallengeService
@@ -72,7 +72,7 @@ type ChallengeEmailSender interface {
 }
 
 // ChallengeDestinations son los destinos que el repositorio derivó de la
-// cuenta según el canal configurado de su barbería (DEC-139). Un destino vacío
+// cuenta según el canal configurado de su negocio (DEC-139). Un destino vacío
 // significa «canal no configurado o sin contacto utilizable» y NUNCA se
 // sustituye por el otro. Nunca provienen del llamador (DEC-081).
 type ChallengeDestinations struct {
@@ -90,11 +90,11 @@ func (d ChallengeDestinations) None() bool { return d.Phone == "" && d.Email == 
 type PhoneChallengeRepository interface {
 	// RequestChallenge intenta registrar un reto para email desde ipHash
 	// con codeHash. accepted=false cubre, indistinguiblemente, cuenta
-	// inexistente o inactiva, canal de la barbería sin contacto utilizable,
+	// inexistente o inactiva, canal del negocio sin contacto utilizable,
 	// IP no escalada y límite propio de reenvío/solicitudes activas
 	// excedido; en ese caso los destinos quedan vacíos y NINGÚN envío debe
 	// intentarse. Con accepted=true, los destinos son exactamente los del
-	// canal configurado de la barbería de la cuenta (DEC-139).
+	// canal configurado del negocio de la cuenta (DEC-139).
 	RequestChallenge(ctx context.Context, email, ipHash, codeHash string, cfg PhoneChallengeConfig) (accepted bool, dest ChallengeDestinations, err error)
 
 	// VerifyChallenge valida codeHash contra el reto vigente de email
@@ -145,7 +145,7 @@ func (s *PhoneChallengeService) WithEmailSender(sender ChallengeEmailSender) *Ph
 }
 
 // Request genera un código nuevo y, si el repositorio acepta la solicitud
-// (cuenta activa con un destino utilizable en el canal de su barbería, IP
+// (cuenta activa con un destino utilizable en el canal de su negocio, IP
 // realmente escalada, límite propio no excedido), lo envía por cada canal
 // configurado con el MISMO código y una sola operación lógica (DEC-139). El resultado de esta
 // llamada NUNCA debe cambiar la respuesta HTTP: el handler responde 202

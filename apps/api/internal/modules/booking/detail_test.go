@@ -5,7 +5,7 @@ import (
 	"testing"
 	"time"
 
-	"system-barbershop/internal/modules/booking"
+	"nava-agenda/internal/modules/booking"
 )
 
 func TestLooksLikeAppointmentID(t *testing.T) {

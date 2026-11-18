@@ -3,15 +3,15 @@ package schedule_test
 import (
 	"testing"
 
-	"system-barbershop/internal/modules/schedule"
+	"nava-agenda/internal/modules/schedule"
 )
 
-func TestLooksLikeBarberID(t *testing.T) {
-	if !schedule.LooksLikeBarberID("8f3ac2b1-e4d5-46f6-a7c8-d9e0f1a2b3c4") {
-		t.Fatal("expected a canonical UUID to look like a barber id")
+func TestLooksLikeProfessionalID(t *testing.T) {
+	if !schedule.LooksLikeProfessionalID("8f3ac2b1-e4d5-46f6-a7c8-d9e0f1a2b3c4") {
+		t.Fatal("expected a canonical UUID to look like a professional id")
 	}
-	if schedule.LooksLikeBarberID("not-a-uuid") {
-		t.Fatal("expected a malformed value to not look like a barber id")
+	if schedule.LooksLikeProfessionalID("not-a-uuid") {
+		t.Fatal("expected a malformed value to not look like a professional id")
 	}
 }
 

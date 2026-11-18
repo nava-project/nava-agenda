@@ -4,7 +4,7 @@ import (
 	"strings"
 	"testing"
 
-	"system-barbershop/internal/modules/auth"
+	"nava-agenda/internal/modules/auth"
 )
 
 func TestArgon2Hasher_HashThenVerify_Succeeds(t *testing.T) {

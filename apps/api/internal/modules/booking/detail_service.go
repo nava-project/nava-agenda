@@ -5,32 +5,32 @@ import (
 	"fmt"
 	"strings"
 
-	"system-barbershop/internal/platform/apperr"
+	"nava-agenda/internal/platform/apperr"
 )
 
 // DetailService implementa el caso de uso de lectura de HU-064: detalle de
 // una cita y su historial inmutable paginado. Colabora con staff/auth
-// EXCLUSIVAMENTE mediante BarberNamePort/StaffActorNamePort (mismo criterio
-// que AgendaService frente a BarberPort/TimezonePort): ni importa staff, ni
+// EXCLUSIVAMENTE mediante ProfessionalNamePort/StaffActorNamePort (mismo criterio
+// que AgendaService frente a ProfessionalPort/TimezonePort): ni importa staff, ni
 // auth.
 type DetailService struct {
-	repo        Repository
-	barbers     BarberNamePort
-	staffActors StaffActorNamePort
+	repo          Repository
+	professionals ProfessionalNamePort
+	staffActors   StaffActorNamePort
 }
 
 // NewDetailService construye el caso de uso a partir de sus tres
 // colaboradores.
-func NewDetailService(repo Repository, barbers BarberNamePort, staffActors StaffActorNamePort) *DetailService {
-	return &DetailService{repo: repo, barbers: barbers, staffActors: staffActors}
+func NewDetailService(repo Repository, professionals ProfessionalNamePort, staffActors StaffActorNamePort) *DetailService {
+	return &DetailService{repo: repo, professionals: professionals, staffActors: staffActors}
 }
 
-// GetDetail devuelve el detalle de appointmentID dentro de barbershopID. Un
-// appointmentID con forma inválida, inexistente o de otra barbería responde
+// GetDetail devuelve el detalle de appointmentID dentro de businessID. Un
+// appointmentID con forma inválida, inexistente o de otro negocio responde
 // el mismo apperr.NotFound (RN-TEN-01, CA-064-01, CA-064-07), verificado
 // ANTES de tocar el repositorio (mismo criterio que
-// AgendaService.ListDailyAgenda frente a barberID).
-func (s *DetailService) GetDetail(ctx context.Context, barbershopID, appointmentID string) (AppointmentDetail, error) {
+// AgendaService.ListDailyAgenda frente a professionalID).
+func (s *DetailService) GetDetail(ctx context.Context, businessID, appointmentID string) (AppointmentDetail, error) {
 	if err := ctx.Err(); err != nil {
 		return AppointmentDetail{}, apperr.Internal(fmt.Errorf("booking: contexto cancelado antes de leer el detalle de la cita: %w", err))
 	}
@@ -40,7 +40,7 @@ func (s *DetailService) GetDetail(ctx context.Context, barbershopID, appointment
 		return AppointmentDetail{}, errAppointmentNotFound()
 	}
 
-	detail, found, err := s.repo.GetAppointmentDetail(ctx, barbershopID, appointmentID)
+	detail, found, err := s.repo.GetAppointmentDetail(ctx, businessID, appointmentID)
 	if err != nil {
 		return AppointmentDetail{}, apperr.Internal(fmt.Errorf("booking: leer el detalle de la cita: %w", err))
 	}
@@ -48,25 +48,25 @@ func (s *DetailService) GetDetail(ctx context.Context, barbershopID, appointment
 		return AppointmentDetail{}, errAppointmentNotFound()
 	}
 
-	name, foundBarber, err := s.barbers.Name(ctx, barbershopID, detail.BarberID)
+	name, foundProfessional, err := s.professionals.Name(ctx, businessID, detail.ProfessionalID)
 	if err != nil {
-		return AppointmentDetail{}, apperr.Internal(fmt.Errorf("booking: resolver el nombre del barbero: %w", err))
+		return AppointmentDetail{}, apperr.Internal(fmt.Errorf("booking: resolver el nombre del profesional: %w", err))
 	}
-	if foundBarber {
-		detail.BarberFullName = name
+	if foundProfessional {
+		detail.ProfessionalFullName = name
 	}
 	return detail, nil
 }
 
 // ListHistory devuelve una página del historial de appointmentID, ordenada
 // por instante y luego por identificador (CA-064-05). Un appointmentID con
-// forma inválida, inexistente o de otra barbería responde el mismo
+// forma inválida, inexistente o de otro negocio responde el mismo
 // apperr.NotFound que GetDetail. cursorToken vacío pide la primera página;
 // limit no positivo usa HistoryDefaultLimit (mismo criterio que
 // staff.Service.List).
 func (s *DetailService) ListHistory(
 	ctx context.Context,
-	barbershopID, appointmentID, cursorToken string,
+	businessID, appointmentID, cursorToken string,
 	limit int,
 ) (HistoryPage, error) {
 	if err := ctx.Err(); err != nil {
@@ -87,7 +87,7 @@ func (s *DetailService) ListHistory(
 		cursor = &c
 	}
 
-	rows, next, found, err := s.repo.ListAppointmentHistory(ctx, barbershopID, appointmentID, cursor, clampHistoryLimit(limit))
+	rows, next, found, err := s.repo.ListAppointmentHistory(ctx, businessID, appointmentID, cursor, clampHistoryLimit(limit))
 	if err != nil {
 		return HistoryPage{}, apperr.Internal(fmt.Errorf("booking: listar el historial de la cita: %w", err))
 	}
@@ -95,11 +95,11 @@ func (s *DetailService) ListHistory(
 		return HistoryPage{}, errAppointmentNotFound()
 	}
 
-	staffNames, err := s.staffActors.Names(ctx, barbershopID, uniqueStaffActorIDs(rows))
+	staffNames, err := s.staffActors.Names(ctx, businessID, uniqueStaffActorIDs(rows))
 	if err != nil {
 		return HistoryPage{}, apperr.Internal(fmt.Errorf("booking: resolver nombres de actores staff: %w", err))
 	}
-	customerNames, err := s.repo.CustomerNames(ctx, barbershopID, uniqueCustomerActorIDs(rows))
+	customerNames, err := s.repo.CustomerNames(ctx, businessID, uniqueCustomerActorIDs(rows))
 	if err != nil {
 		return HistoryPage{}, apperr.Internal(fmt.Errorf("booking: resolver nombres de actores cliente: %w", err))
 	}

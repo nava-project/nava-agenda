@@ -9,10 +9,10 @@ import (
 	"testing"
 	"time"
 
-	"system-barbershop/internal/modules/auth"
-	"system-barbershop/internal/modules/booking"
-	"system-barbershop/internal/modules/booking/httpapi"
-	"system-barbershop/internal/platform/idempotency"
+	"nava-agenda/internal/modules/auth"
+	"nava-agenda/internal/modules/booking"
+	"nava-agenda/internal/modules/booking/httpapi"
+	"nava-agenda/internal/platform/idempotency"
 )
 
 // fakeRepository/fakeCatalog/fakeBlocks/fakeTimezones son dobles en memoria
@@ -22,7 +22,7 @@ import (
 // traducción de errores), no PostgreSQL real (esa cobertura vive en
 // internal/modules/booking/postgres/manual_repository_test.go).
 type fakeRepository struct {
-	createFn func(ctx context.Context, barbershopID string, input booking.CreateInternalInput, key idempotency.Key, fingerprint idempotency.Fingerprint) (booking.CreateManualResult, error)
+	createFn func(ctx context.Context, businessID string, input booking.CreateInternalInput, key idempotency.Key, fingerprint idempotency.Fingerprint) (booking.CreateManualResult, error)
 }
 
 func (f *fakeRepository) CreateInternal(context.Context, string, booking.CreateInternalInput) (booking.CreateInternalResult, error) {
@@ -33,8 +33,8 @@ func (f *fakeRepository) FindCustomerForReconciliation(context.Context, string, 
 	return booking.Customer{}, false, nil
 }
 
-func (f *fakeRepository) CreateManual(ctx context.Context, barbershopID string, input booking.CreateInternalInput, key idempotency.Key, fingerprint idempotency.Fingerprint) (booking.CreateManualResult, error) {
-	return f.createFn(ctx, barbershopID, input, key, fingerprint)
+func (f *fakeRepository) CreateManual(ctx context.Context, businessID string, input booking.CreateInternalInput, key idempotency.Key, fingerprint idempotency.Fingerprint) (booking.CreateManualResult, error) {
+	return f.createFn(ctx, businessID, input, key, fingerprint)
 }
 
 func (f *fakeRepository) CreatePublic(context.Context, string, booking.CreatePublicInput, idempotency.Key, idempotency.Fingerprint) (booking.CreatePublicResult, error) {
@@ -67,9 +67,9 @@ func (f *fakeRepository) Reschedule(
 	panic("no usado")
 }
 
-func (f *fakeRepository) CancelByBarber(
-	context.Context, string, booking.CancelAppointmentByBarberInput, idempotency.Key, idempotency.Fingerprint,
-) (booking.CancelAppointmentByBarberResult, error) {
+func (f *fakeRepository) CancelByProfessional(
+	context.Context, string, booking.CancelAppointmentByProfessionalInput, idempotency.Key, idempotency.Fingerprint,
+) (booking.CancelAppointmentByProfessionalResult, error) {
 	panic("no usado")
 }
 
@@ -122,7 +122,7 @@ func requestWithPrincipal(method, target string, body []byte) *http.Request {
 	} else {
 		req = httptest.NewRequest(method, target, bytes.NewReader(body))
 	}
-	principal := auth.Principal{SessionID: "s-1", StaffUserID: "u-1", BarbershopID: testShopID}
+	principal := auth.Principal{SessionID: "s-1", StaffUserID: "u-1", BusinessID: testShopID}
 	return req.WithContext(auth.ContextWithPrincipal(req.Context(), principal))
 }
 
@@ -142,7 +142,7 @@ func fixedCreateFn(t *testing.T) func(context.Context, string, booking.CreateInt
 	return func(_ context.Context, _ string, input booking.CreateInternalInput, _ idempotency.Key, _ idempotency.Fingerprint) (booking.CreateManualResult, error) {
 		body, err := json.Marshal(map[string]any{
 			"id":              "appt-1",
-			"professionalId":  input.BarberID,
+			"professionalId":  input.ProfessionalID,
 			"serviceId":       input.ServiceID,
 			"customerId":      "cust-1",
 			"attendeeName":    input.AttendeeName,
@@ -267,9 +267,9 @@ func (blockedBlocks) HasActiveBlock(context.Context, string, string, time.Time, 
 
 func TestCreateManualAppointmentHandler_RepeatedKeySameBody_ReplaysSameStatus(t *testing.T) {
 	calls := 0
-	repo := &fakeRepository{createFn: func(ctx context.Context, barbershopID string, input booking.CreateInternalInput, key idempotency.Key, fp idempotency.Fingerprint) (booking.CreateManualResult, error) {
+	repo := &fakeRepository{createFn: func(ctx context.Context, businessID string, input booking.CreateInternalInput, key idempotency.Key, fp idempotency.Fingerprint) (booking.CreateManualResult, error) {
 		calls++
-		result, err := fixedCreateFn(t)(ctx, barbershopID, input, key, fp)
+		result, err := fixedCreateFn(t)(ctx, businessID, input, key, fp)
 		if calls > 1 {
 			result.Decision = idempotency.Decision{Outcome: idempotency.OutcomeReplay, Response: result.Response}
 		}

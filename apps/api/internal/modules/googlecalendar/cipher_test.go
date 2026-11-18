@@ -5,7 +5,7 @@ import (
 	"encoding/base64"
 	"testing"
 
-	"system-barbershop/internal/modules/googlecalendar"
+	"nava-agenda/internal/modules/googlecalendar"
 )
 
 func key(fill byte) []byte { return bytes.Repeat([]byte{fill}, 32) }
@@ -42,20 +42,20 @@ func TestCipher_RoundTripNeverStoresPlaintextAndUsesFreshNonces(t *testing.T) {
 
 func TestCipher_RejectsWrongKeyTamperingAndWrongContext(t *testing.T) {
 	c := mustCipher(t, "v1", map[string][]byte{"v1": key(1), "v9": key(9)})
-	sealed, _, _ := c.Encrypt([]byte("secreto"), []byte("barbero-A"))
+	sealed, _, _ := c.Encrypt([]byte("secreto"), []byte("profesional-A"))
 
-	if _, err := c.Decrypt(sealed, "v9", []byte("barbero-A")); err == nil {
+	if _, err := c.Decrypt(sealed, "v9", []byte("profesional-A")); err == nil {
 		t.Fatal("una clave distinta no debe descifrar")
 	}
-	if _, err := c.Decrypt(sealed, "desconocida", []byte("barbero-A")); err == nil {
+	if _, err := c.Decrypt(sealed, "desconocida", []byte("profesional-A")); err == nil {
 		t.Fatal("un key_id desconocido no debe descifrar")
 	}
-	if _, err := c.Decrypt(sealed, "v1", []byte("barbero-B")); err == nil {
-		t.Fatal("un contexto distinto (otro barbero) no debe descifrar")
+	if _, err := c.Decrypt(sealed, "v1", []byte("profesional-B")); err == nil {
+		t.Fatal("un contexto distinto (otro profesional) no debe descifrar")
 	}
 	tampered := append([]byte(nil), sealed...)
 	tampered[len(tampered)-1] ^= 0xFF
-	if _, err := c.Decrypt(tampered, "v1", []byte("barbero-A")); err == nil {
+	if _, err := c.Decrypt(tampered, "v1", []byte("profesional-A")); err == nil {
 		t.Fatal("un texto alterado no debe descifrar")
 	}
 	if _, err := c.Decrypt([]byte("corto"), "v1", nil); err == nil {

@@ -5,7 +5,7 @@ import (
 	"net/http/httptest"
 	"testing"
 
-	"system-barbershop/internal/platform/httpserver"
+	"nava-agenda/internal/platform/httpserver"
 )
 
 // TestRequestWithURLParam_Chained_AccumulatesBothParams cubre HU-092: una

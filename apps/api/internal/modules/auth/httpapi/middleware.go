@@ -4,8 +4,8 @@ import (
 	"net/http"
 	"regexp"
 
-	"system-barbershop/internal/modules/auth"
-	"system-barbershop/internal/platform/httpserver"
+	"nava-agenda/internal/modules/auth"
+	"nava-agenda/internal/platform/httpserver"
 )
 
 // maxSessionCookieLen acota el valor de la cookie de sesión ANTES de

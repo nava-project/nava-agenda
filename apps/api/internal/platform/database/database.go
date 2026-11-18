@@ -1,18 +1,18 @@
 // Package database aloja la apertura del pool de PostgreSQL y el
-// establecimiento del contexto de barbería (app.barbershop_id) requerido por
+// establecimiento del contexto de negocio (app.business_id) requerido por
 // RLS en cada transacción, según docs/05-backend/base-datos.md.
 //
 // El pool NO expone Query, QueryRow, Exec ni Begin como métodos exportados. La
 // única forma de ejecutar trabajo de negocio es InTenantTx, que recibe el
-// identificador de barbería y entrega el ejecutor SOLO dentro del alcance de
+// identificador de negocio y entrega el ejecutor SOLO dentro del alcance de
 // una transacción ya configurada. Esto hace IMPOSIBLE omitir el contexto.
 // Tres excepciones angostas y documentadas por método existen fuera de ese
-// patrón: HealthCheck (sin barbería, solo conectividad), ResolveTenant
+// patrón: HealthCheck (sin negocio, solo conectividad), ResolveTenant
 // (HU-005: resolver a qué tenant pertenece una solicitud ANTES de que exista
 // contexto, invocando exclusivamente una función SECURITY DEFINER estrecha
-// ya revisada que devuelve como mucho un uuid de barbería) y
+// ya revisada que devuelve como mucho un uuid de negocio) y
 // CallSecurityDefinerRow (HU-007: login_throttle es la única tabla sin
-// barbershop_id/RLS por diseño, así que su función SECURITY DEFINER no
+// business_id/RLS por diseño, así que su función SECURITY DEFINER no
 // encaja en la forma "solo un uuid" de ResolveTenant; la extensión generaliza
 // el mismo mecanismo -sin transacción, sin contexto de tenant- a cualquier
 // función estrecha ya revisada, dejando que ESA función siga siendo
@@ -21,7 +21,7 @@
 // Justificación de la dependencia (estandar-backend-go.md §5.21):
 //   - Necesidad: driver nativo de PostgreSQL para pool con hooks de adquisición
 //     y liberación, tipos uuid/timestamptz/numeric/rangos sin conversión, y
-//     set_config parametrizable para fijar app.barbershop_id sin inyección SQL.
+//     set_config parametrizable para fijar app.business_id sin inyección SQL.
 //   - Mantenimiento: jackc/pgx v5 es el driver estándar de facto, desarrollo
 //     activo, versión semver estable.
 //   - Licencia: MIT.
@@ -44,17 +44,17 @@ import (
 	"github.com/jackc/pgx/v5/pgconn"
 	"github.com/jackc/pgx/v5/pgxpool"
 
-	"system-barbershop/internal/platform/config"
+	"nava-agenda/internal/platform/config"
 )
 
 // ErrContextSetupFailed se devuelve cuando falla la fijación de
-// app.barbershop_id. El callback NUNCA se ejecuta en este caso.
-var ErrContextSetupFailed = errors.New("database: fallo al fijar contexto de barbería")
+// app.business_id. El callback NUNCA se ejecuta en este caso.
+var ErrContextSetupFailed = errors.New("database: fallo al fijar contexto de negocio")
 
-// BarbershopID es un tipo propio para el identificador de barbería. No es un
+// BusinessID es un tipo propio para el identificador de negocio. No es un
 // uuid.UUID desnudo ni un string: un tipo distinto impide pasar por error el id
 // de un usuario, una cita u otra entidad (estandar-backend-go.md §5.10).
-type BarbershopID string
+type BusinessID string
 
 // uuidPattern valida la forma canónica 8-4-4-4-12 en hexadecimal. set_config
 // acepta cualquier texto sin validar formato; esta es la única comprobación
@@ -63,13 +63,13 @@ var uuidPattern = regexp.MustCompile(
 	`^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$`,
 )
 
-// ValidBarbershopID valida que el string tenga formato UUID. Se usa en pruebas
+// ValidBusinessID valida que el string tenga formato UUID. Se usa en pruebas
 // para inyectar el contexto; en producción llega desde la autenticación (HU-005).
-func ValidBarbershopID(s string) (BarbershopID, error) {
+func ValidBusinessID(s string) (BusinessID, error) {
 	if !uuidPattern.MatchString(s) {
 		return "", fmt.Errorf("business_id: formato UUID inválido")
 	}
-	return BarbershopID(s), nil
+	return BusinessID(s), nil
 }
 
 // Queries es la interfaz mínima que el callback recibe para ejecutar
@@ -91,8 +91,8 @@ type DB struct {
 // NewDB crea el pool con el DSN y los parámetros de ajuste provistos. dsn se
 // recibe aparte de cfg (no cfg.DatabaseURL implícito) porque api y worker
 // usan credenciales distintas (DEC-040): cmd/api pasa cfg.DatabaseURL
-// (barberia_app), cmd/worker pasa cfg.WorkerDatabaseURL (barberia_worker).
-// NUNCA barberia_migrator ni superusuario: si las pruebas pasan con un rol
+// (agenda_app), cmd/worker pasa cfg.WorkerDatabaseURL (agenda_worker).
+// NUNCA agenda_migrator ni superusuario: si las pruebas pasan con un rol
 // privilegiado, no prueban nada sobre RLS.
 func NewDB(dsn config.DatabaseDSN, cfg config.Config) (*DB, error) {
 	poolConfig, err := pgxpool.ParseConfig(string(dsn))
@@ -110,7 +110,7 @@ func NewDB(dsn config.DatabaseDSN, cfg config.Config) (*DB, error) {
 	// statement_timeout se fija por conexión en afterConnect
 
 	// Hook de adquisición: verificamos que la conexión devuelta no conserve
-	// app.barbershop_id. Convierte CA-002-03 en garantía de tiempo de
+	// app.business_id. Convierte CA-002-03 en garantía de tiempo de
 	// ejecución, no solo en una prueba.
 	//
 	// current_setting(..., true) devuelve NULL (no cadena vacía) cuando el
@@ -170,13 +170,13 @@ func (d *DB) Close() {
 }
 
 // InTenantTx es la ÚNICA forma de ejecutar trabajo de negocio. Recibe el
-// contexto de la petición, el identificador de barbería y un callback que
+// contexto de la petición, el identificador de negocio y un callback que
 // recibe el ejecutor de consultas YA dentro de una transacción con
-// app.barbershop_id fijado con alcance local.
+// app.business_id fijado con alcance local.
 //
 // Reglas de diseño, todas verificables:
 // a) El pool NO expone Query, QueryRow, Exec ni Begin como métodos exportados.
-// b) BarbershopID es un tipo propio, no un uuid.UUID desnudo ni un string.
+// b) BusinessID es un tipo propio, no un uuid.UUID desnudo ni un string.
 // c) Secuencia interna: adquirir conexión -> BEGIN -> set_config local ->
 //
 //	ejecutar callback -> COMMIT, o ROLLBACK ante error/pánico.
@@ -194,7 +194,7 @@ func (d *DB) Close() {
 // h) Nada de llamadas de red dentro de la transacción (base-datos.md §4.19).
 func (d *DB) InTenantTx(
 	ctx context.Context,
-	shop BarbershopID,
+	shop BusinessID,
 	fn func(ctx context.Context, q Queries) error,
 ) error {
 	// set_config no valida formato: acepta cualquier texto. Validar aquí,
@@ -231,7 +231,7 @@ func (d *DB) InTenantTx(
 		}
 	}()
 
-	// Fijar app.barbershop_id con alcance LOCAL a la transacción.
+	// Fijar app.business_id con alcance LOCAL a la transacción.
 	// set_config SÍ es parametrizable; el tercer argumento true significa
 	// "local a la transacción": revierte solo al terminar la transacción,
 	// sin necesidad de RESET. Ese comportamiento verifica CA-002-03.
@@ -280,18 +280,18 @@ func (d *DB) InTenantTx(
 // ResolveTenant es la SEGUNDA excepción autorizada a InTenantTx (junto con
 // HealthCheck): ejecuta query (una única llamada a una función SECURITY
 // DEFINER estrecha y revisada, como authn_resolve_login_tenant o
-// authn_resolve_session_tenant) SIN fijar app.barbershop_id, porque su
+// authn_resolve_session_tenant) SIN fijar app.business_id, porque su
 // propósito exacto es resolver QUÉ tenant corresponde antes de que exista
 // contexto (HU-005, modelo-fisico-referencia.sql sección A.0). No es una vía
 // alternativa para ejecutar trabajo de negocio: query debe ser una función
 // STABLE, SECURITY DEFINER, revisada, que devuelva como mucho un uuid de
-// barbería y nada más (nunca una fila de datos de negocio), exactamente el
+// negocio y nada más (nunca una fila de datos de negocio), exactamente el
 // contrato que esas funciones ya garantizan en PostgreSQL. Devuelve
 // found=false cuando la función respondió NULL (tenant no resuelto: correo
 // inexistente, usuario inactivo, o token desconocido/vencido/revocado,
 // según la función invocada) — nunca un error, porque "no resuelto" es un
 // resultado válido y esperado, no un fallo.
-func (d *DB) ResolveTenant(ctx context.Context, query string, args ...any) (BarbershopID, bool, error) {
+func (d *DB) ResolveTenant(ctx context.Context, query string, args ...any) (BusinessID, bool, error) {
 	conn, err := d.pool.Acquire(ctx)
 	if err != nil {
 		return "", false, fmt.Errorf("database: acquire connection: %w", err)
@@ -305,20 +305,20 @@ func (d *DB) ResolveTenant(ctx context.Context, query string, args ...any) (Barb
 	if shop == nil {
 		return "", false, nil
 	}
-	return BarbershopID(*shop), true, nil
+	return BusinessID(*shop), true, nil
 }
 
 // CallSecurityDefinerRow es la TERCERA excepción autorizada a InTenantTx
-// (HU-007). Ejecuta query SIN transacción y SIN fijar app.barbershop_id,
+// (HU-007). Ejecuta query SIN transacción y SIN fijar app.business_id,
 // exactamente como ResolveTenant, pero sin exigir que el resultado sea un
-// único uuid de barbería: entrega la fila cruda a scan para que el llamador
+// único uuid de negocio: entrega la fila cruda a scan para que el llamador
 // la decodifique con el tipo exacto que su función SECURITY DEFINER
 // devuelve. query debe ser SIEMPRE una función SECURITY DEFINER estrecha y
 // revisada (nunca una tabla ni una consulta ad hoc): esta excepción no es
 // una vía alternativa para ejecutar trabajo de negocio general, es el mismo
 // patrón de ResolveTenant generalizado a formas de retorno distintas de "un
 // uuid o nada" (p. ej. login_throttle_register_attempt, sin
-// barbershop_id/RLS por diseño, modelo-fisico-referencia.sql sección A.4).
+// business_id/RLS por diseño, modelo-fisico-referencia.sql sección A.4).
 func (d *DB) CallSecurityDefinerRow(ctx context.Context, query string, args []any, scan func(pgx.Row) error) error {
 	conn, err := d.pool.Acquire(ctx)
 	if err != nil {
@@ -336,8 +336,8 @@ func (d *DB) CallSecurityDefinerRow(ctx context.Context, query string, args []an
 // funciones SECURITY DEFINER que devuelven VARIAS filas (por ejemplo el reclamo
 // de trabajos del worker, issue #324, DDL-CON-01). Mismas reglas: query debe ser
 // SIEMPRE una función SECURITY DEFINER estrecha y revisada, concedida
-// exclusivamente a barberia_worker, nunca una tabla ni una consulta ad hoc; no se
-// fija app.barbershop_id y no hay transacción. scan recorre las filas y el
+// exclusivamente a agenda_worker, nunca una tabla ni una consulta ad hoc; no se
+// fija app.business_id y no hay transacción. scan recorre las filas y el
 // cursor se cierra aquí.
 func (d *DB) CallSecurityDefinerRows(ctx context.Context, query string, args []any, scan func(pgx.Rows) error) error {
 	conn, err := d.pool.Acquire(ctx)
@@ -366,7 +366,7 @@ func (d *DB) CallSecurityDefinerRows(ctx context.Context, query string, args []a
 // sin nombre de base, sin host, sin usuario, sin texto del error del driver.
 // Un endpoint de salud es público de hecho; su mensaje de error es superficie
 // de reconocimiento gratuita para un atacante.
-// La salud NO abre una transacción de tenant: no tiene barbería. Es la única
+// La salud NO abre una transacción de tenant: no tiene negocio. Es la única
 // lectura autorizada fuera del patrón.
 func (d *DB) HealthCheck(ctx context.Context) error {
 	checkCtx, cancel := context.WithTimeout(ctx, 2*time.Second)

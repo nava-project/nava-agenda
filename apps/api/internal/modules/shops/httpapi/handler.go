@@ -10,26 +10,26 @@ import (
 	"errors"
 	"net/http"
 
-	"system-barbershop/internal/modules/auth"
-	"system-barbershop/internal/modules/shops"
-	"system-barbershop/internal/platform/apperr"
-	"system-barbershop/internal/platform/httpserver"
+	"nava-agenda/internal/modules/auth"
+	"nava-agenda/internal/modules/shops"
+	"nava-agenda/internal/platform/apperr"
+	"nava-agenda/internal/platform/httpserver"
 )
 
-// GetBarbershopSettingsHandler expone GET /private/settings/business
+// GetBusinessSettingsHandler expone GET /private/settings/business
 // (CA-020-01): lectura autenticada de la configuración básica de la
-// barbería activa.
-type GetBarbershopSettingsHandler struct {
+// negocio activo.
+type GetBusinessSettingsHandler struct {
 	service *shops.Service
 }
 
-// NewGetBarbershopSettingsHandler construye el handler de lectura.
-func NewGetBarbershopSettingsHandler(service *shops.Service) *GetBarbershopSettingsHandler {
-	return &GetBarbershopSettingsHandler{service: service}
+// NewGetBusinessSettingsHandler construye el handler de lectura.
+func NewGetBusinessSettingsHandler(service *shops.Service) *GetBusinessSettingsHandler {
+	return &GetBusinessSettingsHandler{service: service}
 }
 
 // ServeHTTP implementa http.Handler.
-func (h *GetBarbershopSettingsHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+func (h *GetBusinessSettingsHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	requestID := httpserver.RequestIDFromContext(r.Context())
 
 	principal, ok := auth.PrincipalFromContext(r.Context())
@@ -42,7 +42,7 @@ func (h *GetBarbershopSettingsHandler) ServeHTTP(w http.ResponseWriter, r *http.
 		return
 	}
 
-	barbershop, err := h.service.Get(r.Context(), principal.BarbershopID)
+	business, err := h.service.Get(r.Context(), principal.BusinessID)
 	if err != nil {
 		httpserver.WriteProblem(w, httpserver.Translate(err, requestID))
 		return
@@ -50,23 +50,23 @@ func (h *GetBarbershopSettingsHandler) ServeHTTP(w http.ResponseWriter, r *http.
 
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
-	_ = json.NewEncoder(w).Encode(newBarbershopSettingsResponse(barbershop))
+	_ = json.NewEncoder(w).Encode(newBusinessSettingsResponse(business))
 }
 
-// UpdateBarbershopSettingsHandler expone PATCH /private/settings/business
+// UpdateBusinessSettingsHandler expone PATCH /private/settings/business
 // (CA-020-02, CA-020-03, CA-020-06): actualización autenticada de la
-// configuración básica de la barbería activa.
-type UpdateBarbershopSettingsHandler struct {
+// configuración básica del negocio activo.
+type UpdateBusinessSettingsHandler struct {
 	service *shops.Service
 }
 
-// NewUpdateBarbershopSettingsHandler construye el handler de actualización.
-func NewUpdateBarbershopSettingsHandler(service *shops.Service) *UpdateBarbershopSettingsHandler {
-	return &UpdateBarbershopSettingsHandler{service: service}
+// NewUpdateBusinessSettingsHandler construye el handler de actualización.
+func NewUpdateBusinessSettingsHandler(service *shops.Service) *UpdateBusinessSettingsHandler {
+	return &UpdateBusinessSettingsHandler{service: service}
 }
 
 // ServeHTTP implementa http.Handler.
-func (h *UpdateBarbershopSettingsHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+func (h *UpdateBusinessSettingsHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	requestID := httpserver.RequestIDFromContext(r.Context())
 
 	principal, ok := auth.PrincipalFromContext(r.Context())
@@ -76,7 +76,7 @@ func (h *UpdateBarbershopSettingsHandler) ServeHTTP(w http.ResponseWriter, r *ht
 		return
 	}
 
-	var req UpdateBarbershopSettingsRequest
+	var req UpdateBusinessSettingsRequest
 	dec := json.NewDecoder(r.Body)
 	dec.DisallowUnknownFields()
 	if err := dec.Decode(&req); err != nil {
@@ -100,7 +100,7 @@ func (h *UpdateBarbershopSettingsHandler) ServeHTTP(w http.ResponseWriter, r *ht
 	// Normalización, validación de campo y persistencia atómica viven en
 	// shops.Service: este handler no repite ninguna regla de negocio
 	// (docs/03-desarrollo/estandar-backend-go.md §4).
-	barbershop, err := h.service.Update(r.Context(), principal.BarbershopID, shops.Input{
+	business, err := h.service.Update(r.Context(), principal.BusinessID, shops.Input{
 		Name:         req.Name,
 		Timezone:     req.Timezone,
 		ContactEmail: req.ContactEmail,
@@ -113,14 +113,14 @@ func (h *UpdateBarbershopSettingsHandler) ServeHTTP(w http.ResponseWriter, r *ht
 
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
-	_ = json.NewEncoder(w).Encode(newBarbershopSettingsResponse(barbershop))
+	_ = json.NewEncoder(w).Encode(newBusinessSettingsResponse(business))
 }
 
-// newBarbershopSettingsResponse construye la representación canónica
+// newBusinessSettingsResponse construye la representación canónica
 // (CA-020-07): siempre los mismos cuatro campos, en la misma forma tanto
 // para GET como para la respuesta 200 de PATCH.
-func newBarbershopSettingsResponse(b shops.Barbershop) BarbershopSettingsResponse {
-	return BarbershopSettingsResponse{
+func newBusinessSettingsResponse(b shops.Business) BusinessSettingsResponse {
+	return BusinessSettingsResponse{
 		Name:         b.Name,
 		Timezone:     b.Timezone,
 		ContactEmail: b.ContactEmail,

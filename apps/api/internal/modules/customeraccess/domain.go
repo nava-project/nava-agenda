@@ -12,16 +12,16 @@ const MaxTokenLength = 256
 
 // AppointmentView es la proyección mínima que HU-098 expone (CA-098-03):
 // nunca un identificador interno, contacto del cliente, nota, historial ni
-// ningún otro turno. barberName/serviceName/attendeeName ya son los
+// ningún otro turno. professionalName/serviceName/attendeeName ya son los
 // snapshots o nombres vigentes que el resto del sistema usa para mostrar al
 // cliente (mismo criterio que ConfirmedPublicAppointmentResponse, HU-097).
 type AppointmentView struct {
-	BarbershopName                 string
+	BusinessName                   string
 	Timezone                       string
 	AttendeeName                   string
 	ServiceName                    string
 	DurationMinutes                int
-	BarberName                     string
+	ProfessionalName               string
 	StartsAt                       time.Time
 	EndsAt                         time.Time
 	Status                         string
@@ -30,12 +30,12 @@ type AppointmentView struct {
 	LateCancellationReasonRequired bool
 	Vocabulary                     Vocabulary
 
-	// BarbershopContactEmail/Phone son el contacto público opcional de la
-	// barbería (HU-020, el mismo que ya muestra la reserva pública): es el
+	// BusinessContactEmail/Phone son el contacto público opcional de la
+	// negocio (HU-020, el mismo que ya muestra la reserva pública): es el
 	// «contacto seguro» al que el cliente acude cuando la política rechaza su
 	// cancelación (CA-099-06, RN-CAN-01).
-	BarbershopContactEmail *string
-	BarbershopContactPhone *string
+	BusinessContactEmail *string
+	BusinessContactPhone *string
 
 	// AppointmentID y UpdatedAt son internos: solo sirven para calcular
 	// VersionToken (If-Match de la cancelación, HU-099) y nunca se serializan.
@@ -64,13 +64,13 @@ type ReviewView struct {
 	CreatedAt time.Time
 }
 
-// Vocabulary es la palabra con la que la barbería llama a su negocio y a su
+// Vocabulary es la palabra con la que el negocio llama a su negocio y a su
 // profesional (DEC-110, DEC-119), con el plural del profesional y el género
 // gramatical de ambas (`masculine` o `feminine`) para que la interfaz pública
 // concuerde. Es un subconjunto de shops.Brand sin acento ni perfil del panel;
 // este paquete no importa shops (CA-002-06), así que repite su propia forma
-// mínima. La base garantiza forma y largo (barbershop_*_term_ck); una
-// barbería que nunca lo configuró tiene los valores iniciales.
+// mínima. La base garantiza forma y largo (business_*_term_ck); una
+// negocio que nunca lo configuró tiene los valores iniciales.
 type Vocabulary struct {
 	BusinessTerm           string
 	BusinessTermGender     string
@@ -82,10 +82,10 @@ type Vocabulary struct {
 // CancellationTarget es el turno al que un token vigente da acceso, resuelto
 // para ejecutar una orden del cliente sobre él: cancelar (HU-099) o
 // reprogramar (HU-104). Son identificadores internos: nunca salen del
-// servidor. Timezone es la zona de la barbería, que la lista de franjas
+// servidor. Timezone es la zona del negocio, que la lista de franjas
 // devuelve para que la interfaz agrupe por fecha civil (RN-DIS-07).
 type CancellationTarget struct {
-	BarbershopID  string
+	BusinessID    string
 	AppointmentID string
 	Timezone      string
 }

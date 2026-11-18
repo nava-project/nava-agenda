@@ -1,6 +1,6 @@
 // Pruebas de integración de HU-099 (T5, cancelación por el cliente) contra
-// PostgreSQL REAL con dos barberías (shopQ y shopR): mismos fixtures que
-// cancel_repository_test.go. La política se cambia por barbería con el
+// PostgreSQL REAL con dos negocios (shopQ y shopR): mismos fixtures que
+// cancel_repository_test.go. La política se cambia por negocio con el
 // rol de aplicación dentro de su propio tenant, como lo hace HU-093. El reloj
 // llega por CancelAppointmentByCustomerInput.Now para fijar «antes, exacto y
 // después» del límite sin dormir.
@@ -14,10 +14,10 @@ import (
 	"testing"
 	"time"
 
-	"system-barbershop/internal/modules/booking"
-	"system-barbershop/internal/platform/apperr"
-	"system-barbershop/internal/platform/database"
-	"system-barbershop/internal/platform/idempotency"
+	"nava-agenda/internal/modules/booking"
+	"nava-agenda/internal/platform/apperr"
+	"nava-agenda/internal/platform/database"
+	"nava-agenda/internal/platform/idempotency"
 )
 
 func sha256Hex(s string) string {
@@ -29,7 +29,7 @@ type customerCancelFixture struct {
 	db   *database.DB
 	repo booking.CustomerCancellationRepository
 	full interface {
-		CancelByBarber(context.Context, string, booking.CancelAppointmentByBarberInput, idempotency.Key, idempotency.Fingerprint) (booking.CancelAppointmentByBarberResult, error)
+		CancelByProfessional(context.Context, string, booking.CancelAppointmentByProfessionalInput, idempotency.Key, idempotency.Fingerprint) (booking.CancelAppointmentByProfessionalResult, error)
 	}
 	suffix      string
 	start       time.Time
@@ -47,7 +47,7 @@ func newCustomerCancelFixture(t *testing.T) customerCancelFixture {
 	suffix := uniqueSuffix(t)
 	start := baseStart(t)
 
-	created, err := repo.CreateInternal(context.Background(), string(shopQ), validInput(t, barberQ1, serviceQ, start, 30, suffix))
+	created, err := repo.CreateInternal(context.Background(), string(shopQ), validInput(t, professionalQ1, serviceQ, start, 30, suffix))
 	if err != nil {
 		t.Fatalf("CreateInternal: %v", err)
 	}
@@ -74,7 +74,7 @@ func newCustomerCancelFixture(t *testing.T) customerCancelFixture {
 	return f
 }
 
-func (f customerCancelFixture) setPolicy(t *testing.T, shop database.BarbershopID, minutes int, allowed, reasonRequired bool) {
+func (f customerCancelFixture) setPolicy(t *testing.T, shop database.BusinessID, minutes int, allowed, reasonRequired bool) {
 	t.Helper()
 	err := f.db.InTenantTx(context.Background(), shop, func(ctx context.Context, q database.Queries) error {
 		_, err := q.Exec(ctx,
@@ -92,7 +92,7 @@ func (f customerCancelFixture) input(now time.Time, reason string) booking.Cance
 	return booking.CancelAppointmentByCustomerInput{AppointmentID: f.appointment, ExpectedVersionToken: f.version, Reason: reason, Now: now}
 }
 
-func (f customerCancelFixture) cancel(t *testing.T, shop database.BarbershopID, in booking.CancelAppointmentByCustomerInput, key string) (booking.CancelAppointmentByCustomerResult, error) {
+func (f customerCancelFixture) cancel(t *testing.T, shop database.BusinessID, in booking.CancelAppointmentByCustomerInput, key string) (booking.CancelAppointmentByCustomerResult, error) {
 	t.Helper()
 	return f.repo.CancelByCustomer(context.Background(), string(shop), in, idempotency.Key(key+"-"+f.suffix), cancelFingerprint(key+"-"+f.suffix))
 }
@@ -186,7 +186,7 @@ func TestCancelByCustomer_WithinDeadlineWithoutReason_StoresNoReason(t *testing.
 }
 
 // CA-099-02 y CA-099-03 contra la base: antes, exacto y después del límite ×
-// política tardía × motivo, con la política leída de la barbería.
+// política tardía × motivo, con la política leída del negocio.
 func TestCancelByCustomer_PolicyBoundaryTable(t *testing.T) {
 	cases := []struct {
 		name           string
@@ -306,17 +306,17 @@ func TestCancelByCustomer_StaleVersion_ReturnsVersionConflictAndChangesNothing(t
 	f.assertUntouched(t)
 }
 
-// CA-099-05: otro estado terminal (aquí, cancelada por el barbero) responde
+// CA-099-05: otro estado terminal (aquí, cancelada por el profesional) responde
 // InvalidState y no agrega un evento del cliente.
 func TestCancelByCustomer_OtherTerminalState_ReturnsInvalidState(t *testing.T) {
 	f := newCustomerCancelFixture(t)
-	barberInput := booking.CancelAppointmentByBarberInput{
+	professionalInput := booking.CancelAppointmentByProfessionalInput{
 		AppointmentID: f.appointment, ExpectedVersionToken: f.version,
 		Actor: booking.Actor{Type: booking.ActorTypeStaff, StaffUserID: strPtr(staffQ)},
 	}
-	if _, err := f.full.CancelByBarber(context.Background(), string(shopQ), barberInput,
-		idempotency.Key("barber-"+f.suffix), cancelFingerprint("barber-"+f.suffix)); err != nil {
-		t.Fatalf("CancelByBarber: %v", err)
+	if _, err := f.full.CancelByProfessional(context.Background(), string(shopQ), professionalInput,
+		idempotency.Key("professional-"+f.suffix), cancelFingerprint("professional-"+f.suffix)); err != nil {
+		t.Fatalf("CancelByProfessional: %v", err)
 	}
 
 	_, err := f.cancel(t, shopQ, f.input(f.start.Add(-time.Hour), ""), "terminal")
@@ -328,21 +328,21 @@ func TestCancelByCustomer_OtherTerminalState_ReturnsInvalidState(t *testing.T) {
 	}
 }
 
-// RN-TEN-01: el identificador de la cita de una barbería no existe en otra, y
-// la política de la otra barbería nunca se aplica.
+// RN-TEN-01: el identificador de la cita de un negocio no existe en otra, y
+// la política del otro negocio nunca se aplica.
 func TestCancelByCustomer_TwoTenants_OtherShopSeesNotFoundAndKeepsItsOwnPolicy(t *testing.T) {
 	f := newCustomerCancelFixture(t)
 	f.setPolicy(t, shopR, 0, false, false)
 
 	_, err := f.cancel(t, shopR, f.input(f.start.Add(-time.Hour), ""), "tenant")
 	if appErr, ok := apperr.As(err); !ok || appErr.Kind != apperr.KindNotFound {
-		t.Fatalf("esperaba NotFound desde otra barbería, obtuvo %v", err)
+		t.Fatalf("esperaba NotFound desde otro negocio, obtuvo %v", err)
 	}
 	f.assertUntouched(t)
 
 	// La política restrictiva de shopR no afecta a shopQ.
 	if _, err := f.cancel(t, shopQ, f.input(f.start.Add(-time.Hour), ""), "own"); err != nil {
-		t.Fatalf("la política de otra barbería no debe aplicar: %v", err)
+		t.Fatalf("la política de otro negocio no debe aplicar: %v", err)
 	}
 }
 
@@ -354,7 +354,7 @@ func TestCancelByCustomer_ReleasesSlot(t *testing.T) {
 	if _, err := f.cancel(t, shopQ, f.input(f.start.Add(-time.Hour), ""), "free"); err != nil {
 		t.Fatalf("CancelByCustomer: %v", err)
 	}
-	if _, err := repo.CreateInternal(context.Background(), string(shopQ), validInput(t, barberQ1, serviceQ, f.start, 30, f.suffix+"-new")); err != nil {
+	if _, err := repo.CreateInternal(context.Background(), string(shopQ), validInput(t, professionalQ1, serviceQ, f.start, 30, f.suffix+"-new")); err != nil {
 		t.Fatalf("la franja liberada debió aceptar una cita nueva: %v", err)
 	}
 }

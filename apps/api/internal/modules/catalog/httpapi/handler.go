@@ -15,11 +15,11 @@ import (
 	"net/http"
 	"strconv"
 
-	"system-barbershop/internal/modules/auth"
-	"system-barbershop/internal/modules/catalog"
-	"system-barbershop/internal/platform/apperr"
-	"system-barbershop/internal/platform/httpserver"
-	"system-barbershop/internal/platform/idempotency"
+	"nava-agenda/internal/modules/auth"
+	"nava-agenda/internal/modules/catalog"
+	"nava-agenda/internal/platform/apperr"
+	"nava-agenda/internal/platform/httpserver"
+	"nava-agenda/internal/platform/idempotency"
 )
 
 // serviceIDParam es el nombre del parámetro de ruta que cmd/api.buildRouter
@@ -92,7 +92,7 @@ func (h *ListServicesHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) 
 		pageSize = parsed
 	}
 
-	result, err := h.service.List(r.Context(), principal.BarbershopID, page, pageSize, search)
+	result, err := h.service.List(r.Context(), principal.BusinessID, page, pageSize, search)
 	if err != nil {
 		httpserver.WriteProblem(w, httpserver.Translate(err, requestID))
 		return
@@ -105,7 +105,7 @@ func (h *ListServicesHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) 
 
 // GetServiceHandler expone GET /private/services/{serviceId} (CA-022-06: la
 // lectura individual permite demostrar de forma directa el 404 de un
-// servicio de otra barbería).
+// servicio de otro negocio).
 type GetServiceHandler struct {
 	service *catalog.CatalogService
 }
@@ -124,7 +124,7 @@ func (h *GetServiceHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	}
 
 	serviceID := httpserver.URLParam(r, serviceIDParam)
-	svc, err := h.service.Get(r.Context(), principal.BarbershopID, serviceID)
+	svc, err := h.service.Get(r.Context(), principal.BusinessID, serviceID)
 	if err != nil {
 		httpserver.WriteProblem(w, httpserver.Translate(err, requestID))
 		return
@@ -200,7 +200,7 @@ func (h *CreateServiceHandler) ServeHTTP(w http.ResponseWriter, r *http.Request)
 		raw.Description = *req.Description
 	}
 
-	result, err := h.service.Create(r.Context(), principal.BarbershopID, raw, key, fingerprint)
+	result, err := h.service.Create(r.Context(), principal.BusinessID, raw, key, fingerprint)
 	if err != nil {
 		httpserver.WriteProblem(w, httpserver.Translate(err, requestID))
 		return
@@ -280,7 +280,7 @@ func (h *UpdateServiceHandler) ServeHTTP(w http.ResponseWriter, r *http.Request)
 		ActorStaffUserID:     principal.StaffUserID,
 	}
 
-	outcome, err := h.service.UpdateService(r.Context(), principal.BarbershopID, serviceID, raw)
+	outcome, err := h.service.UpdateService(r.Context(), principal.BusinessID, serviceID, raw)
 	if err != nil {
 		httpserver.WriteProblem(w, httpserver.Translate(err, requestID))
 		return
@@ -315,7 +315,7 @@ func (h *GetServiceDeactivationImpactHandler) ServeHTTP(w http.ResponseWriter, r
 	}
 
 	serviceID := httpserver.URLParam(r, serviceIDParam)
-	impact, err := h.service.PreviewDeactivation(r.Context(), principal.BarbershopID, serviceID)
+	impact, err := h.service.PreviewDeactivation(r.Context(), principal.BusinessID, serviceID)
 	if err != nil {
 		httpserver.WriteProblem(w, httpserver.Translate(err, requestID))
 		return
@@ -387,7 +387,7 @@ func (h *DeactivateServiceHandler) ServeHTTP(w http.ResponseWriter, r *http.Requ
 	fingerprint := httpserver.IdempotencyFingerprint(r, body)
 
 	serviceID := httpserver.URLParam(r, serviceIDParam)
-	result, err := h.service.Deactivate(r.Context(), principal.BarbershopID, serviceID, key, fingerprint)
+	result, err := h.service.Deactivate(r.Context(), principal.BusinessID, serviceID, key, fingerprint)
 	if err != nil {
 		httpserver.WriteProblem(w, httpserver.Translate(err, requestID))
 		return
@@ -434,7 +434,7 @@ func (h *ReactivateServiceHandler) ServeHTTP(w http.ResponseWriter, r *http.Requ
 	fingerprint := httpserver.IdempotencyFingerprint(r, body)
 
 	serviceID := httpserver.URLParam(r, serviceIDParam)
-	result, err := h.service.Reactivate(r.Context(), principal.BarbershopID, serviceID, key, fingerprint)
+	result, err := h.service.Reactivate(r.Context(), principal.BusinessID, serviceID, key, fingerprint)
 	if err != nil {
 		httpserver.WriteProblem(w, httpserver.Translate(err, requestID))
 		return

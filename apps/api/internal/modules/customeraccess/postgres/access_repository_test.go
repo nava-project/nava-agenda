@@ -1,7 +1,7 @@
 package postgres_test
 
 // Pruebas de integración de HU-105 (acceso al turno con código) contra
-// PostgreSQL REAL con dos barberías: database/testdata/hu105_acceso_codigo.sql
+// PostgreSQL REAL con dos negocios: database/testdata/hu105_acceso_codigo.sql
 // cargado además de las migraciones. El servicio es el real y solo el envío y el
 // reloj son dobles; ningún RLS ni resolución de slug se simula (estrategia de
 // pruebas §2).
@@ -15,22 +15,22 @@ import (
 	"testing"
 	"time"
 
-	"system-barbershop/internal/modules/booking"
-	bookingpostgres "system-barbershop/internal/modules/booking/postgres"
-	"system-barbershop/internal/modules/customeraccess"
-	customeraccesspostgres "system-barbershop/internal/modules/customeraccess/postgres"
-	"system-barbershop/internal/platform/apperr"
-	"system-barbershop/internal/platform/database"
-	"system-barbershop/internal/platform/idempotency"
+	"nava-agenda/internal/modules/booking"
+	bookingpostgres "nava-agenda/internal/modules/booking/postgres"
+	"nava-agenda/internal/modules/customeraccess"
+	customeraccesspostgres "nava-agenda/internal/modules/customeraccess/postgres"
+	"nava-agenda/internal/platform/apperr"
+	"nava-agenda/internal/platform/database"
+	"nava-agenda/internal/platform/idempotency"
 )
 
 const (
-	accessShopUno    = "01050001-0105-0105-0105-010500010001"
-	accessBarberUno  = "01050011-0105-0105-0105-010500110011"
-	accessServiceUno = "01050012-0105-0105-0105-010500120012"
-	accessShopDos    = "01050002-0105-0105-0105-010500020002"
-	accessSlugUno    = "hu105-uno"
-	accessSlugDos    = "hu105-dos"
+	accessShopUno         = "01050001-0105-0105-0105-010500010001"
+	accessProfessionalUno = "01050011-0105-0105-0105-010500110011"
+	accessServiceUno      = "01050012-0105-0105-0105-010500120012"
+	accessShopDos         = "01050002-0105-0105-0105-010500020002"
+	accessSlugUno         = "hu105-uno"
+	accessSlugDos         = "hu105-dos"
 )
 
 var accessSecret = []byte("secreto-de-prueba-hu105-no-real")
@@ -109,7 +109,7 @@ func newAccessFixture(t *testing.T) *accessFixture {
 }
 
 // bookFor crea un cliente con ese correo y teléfono y un turno futuro confirmado
-// en la barbería uno, y devuelve la cita.
+// en el negocio uno, y devuelve la cita.
 func bookFor(t *testing.T, db *database.DB, email, phone string, daysAhead int) booking.Appointment {
 	t.Helper()
 	return bookWith(t, db, booking.CustomerInput{New: &booking.NewCustomerInput{
@@ -121,9 +121,9 @@ func bookFor(t *testing.T, db *database.DB, email, phone string, daysAhead int) 
 func bookWith(t *testing.T, db *database.DB, customer booking.CustomerInput, _ int) booking.Appointment {
 	t.Helper()
 	repo := bookingpostgres.New(db, idempotency.NewSQLCoordinator())
-	// Año 2029 en adelante con días y horas al azar: barberia_app no puede borrar
+	// Año 2029 en adelante con días y horas al azar: agenda_app no puede borrar
 	// turnos, así que corridas repetidas contra el mismo PostgreSQL no deben chocar
-	// con la exclusión de solapamiento del barbero.
+	// con la exclusión de solapamiento del profesional.
 	days, err := rand.Int(rand.Reader, big.NewInt(3650))
 	if err != nil {
 		t.Fatalf("rand.Int: %v", err)
@@ -136,7 +136,7 @@ func bookWith(t *testing.T, db *database.DB, customer booking.CustomerInput, _ i
 		AddDate(0, 0, int(days.Int64())).
 		Add(time.Duration(hours.Int64()) * time.Hour)
 	created, err := repo.CreateInternal(context.Background(), accessShopUno, booking.CreateInternalInput{
-		BarberID: accessBarberUno, ServiceID: accessServiceUno,
+		ProfessionalID: accessProfessionalUno, ServiceID: accessServiceUno,
 		AttendeeName: "Cliente de prueba HU-105", StartsAt: starts, EndsAt: starts.Add(30 * time.Minute),
 		Origin: booking.OriginPublic,
 		Service: booking.ServiceSnapshot{
@@ -366,7 +366,7 @@ func TestAccess_TenantIsolation_AContactOfShopOneIsNobodyInShopTwo(t *testing.T)
 		t.Fatal("a customer of shop one must not receive a code through shop two")
 	}
 
-	// Un código de la barbería uno no abre nada por el slug de la dos.
+	// Un código del negocio uno no abre nada por el slug de la dos.
 	if _, err := f.service.RequestCode(ctx, accessSlugUno, email, freshIP(t)); err != nil {
 		t.Fatalf("RequestCode in shop one: %v", err)
 	}
@@ -393,7 +393,7 @@ func TestAccess_CancelledAppointmentsDoNotGetACode(t *testing.T) {
 	ctx := context.Background()
 	email, phone := freshContact(t)
 	appt := bookFor(t, f.db, email, phone, 13)
-	err := f.db.InTenantTx(ctx, database.BarbershopID(accessShopUno), func(ctx context.Context, q database.Queries) error {
+	err := f.db.InTenantTx(ctx, database.BusinessID(accessShopUno), func(ctx context.Context, q database.Queries) error {
 		_, err := q.Exec(ctx, `UPDATE appointment SET status = 'cancelled_by_customer', resolved_at = now() WHERE id = $1`, appt.ID)
 		return err
 	})
@@ -445,7 +445,7 @@ func TestAccess_ChallengeTable_StoresNoPlaintextAndHidesRowsFromOtherTenants(t *
 	code := f.sender.last(t).code
 
 	var leaked int
-	err := f.db.InTenantTx(ctx, database.BarbershopID(accessShopUno), func(ctx context.Context, q database.Queries) error {
+	err := f.db.InTenantTx(ctx, database.BusinessID(accessShopUno), func(ctx context.Context, q database.Queries) error {
 		return q.QueryRow(ctx,
 			`SELECT count(*) FROM customer_access_challenge
 			  WHERE contact_hash = $1 OR ip_hash = $1 OR code_hash = $1 OR contact_hash LIKE '%' || $2 || '%'`,
@@ -459,7 +459,7 @@ func TestAccess_ChallengeTable_StoresNoPlaintextAndHidesRowsFromOtherTenants(t *
 	}
 
 	var visibleToOtherTenant int
-	err = f.db.InTenantTx(ctx, database.BarbershopID(accessShopDos), func(ctx context.Context, q database.Queries) error {
+	err = f.db.InTenantTx(ctx, database.BusinessID(accessShopDos), func(ctx context.Context, q database.Queries) error {
 		return q.QueryRow(ctx, `SELECT count(*) FROM customer_access_challenge WHERE business_id = $1`, accessShopUno).Scan(&visibleToOtherTenant)
 	})
 	if err != nil {

@@ -5,7 +5,7 @@
 // elige libremente relativo al starts_at fijo de baseStart, nunca el reloj
 // del sistema.
 //
-//	export TEST_DATABASE_URL="postgres://barberia_app:app_test@localhost:5432/barberia_test?sslmode=disable"
+//	export TEST_DATABASE_URL="postgres://agenda_app:app_test@localhost:5432/postgres?sslmode=disable"
 //	go test -race ./internal/modules/booking/postgres/...
 package postgres_test
 
@@ -15,9 +15,9 @@ import (
 	"testing"
 	"time"
 
-	"system-barbershop/internal/modules/booking"
-	"system-barbershop/internal/platform/apperr"
-	"system-barbershop/internal/platform/idempotency"
+	"nava-agenda/internal/modules/booking"
+	"nava-agenda/internal/platform/apperr"
+	"nava-agenda/internal/platform/idempotency"
 )
 
 func newCorrectInput(appointmentID, destination, reason, versionToken string, now time.Time) booking.CorrectAppointmentStatusInput {
@@ -49,7 +49,7 @@ func TestCorrectAppointmentStatus_TwelveTerminalTransitions_UpdateStatusAndAppen
 				suffix := uniqueSuffix(t)
 				start := baseStart(t)
 
-				created, err := repo.CreateInternal(context.Background(), string(shopQ), validInput(t, barberQ1, serviceQ, start, 30, suffix))
+				created, err := repo.CreateInternal(context.Background(), string(shopQ), validInput(t, professionalQ1, serviceQ, start, 30, suffix))
 				if err != nil {
 					t.Fatalf("CreateInternal: %v", err)
 				}
@@ -118,7 +118,7 @@ func TestCorrectAppointmentStatus_StillConfirmed_ReturnsInvalidState(t *testing.
 	suffix := uniqueSuffix(t)
 	start := baseStart(t)
 
-	created, err := repo.CreateInternal(context.Background(), string(shopQ), validInput(t, barberQ1, serviceQ, start, 30, suffix))
+	created, err := repo.CreateInternal(context.Background(), string(shopQ), validInput(t, professionalQ1, serviceQ, start, 30, suffix))
 	if err != nil {
 		t.Fatalf("CreateInternal: %v", err)
 	}
@@ -146,7 +146,7 @@ func TestCorrectAppointmentStatus_SameDestination_IsNoOpSuccessNoDuplicateEvent(
 	suffix := uniqueSuffix(t)
 	start := baseStart(t)
 
-	created, err := repo.CreateInternal(context.Background(), string(shopQ), validInput(t, barberQ1, serviceQ, start, 30, suffix))
+	created, err := repo.CreateInternal(context.Background(), string(shopQ), validInput(t, professionalQ1, serviceQ, start, 30, suffix))
 	if err != nil {
 		t.Fatalf("CreateInternal: %v", err)
 	}
@@ -200,7 +200,7 @@ func TestCorrectAppointmentStatus_CancelledToOccupying_BeforeStartsAt_ReturnsVal
 	suffix := uniqueSuffix(t)
 	start := baseStart(t)
 
-	created, err := repo.CreateInternal(context.Background(), string(shopQ), validInput(t, barberQ1, serviceQ, start, 30, suffix))
+	created, err := repo.CreateInternal(context.Background(), string(shopQ), validInput(t, professionalQ1, serviceQ, start, 30, suffix))
 	if err != nil {
 		t.Fatalf("CreateInternal: %v", err)
 	}
@@ -223,14 +223,14 @@ func TestCorrectAppointmentStatus_CancelledToOccupying_BeforeStartsAt_ReturnsVal
 	if err != nil {
 		t.Fatalf("GetAppointmentDetail: %v", err)
 	}
-	if stillCancelled.Status != booking.StatusCancelledByBarber || stillCancelled.VersionToken != before.VersionToken {
+	if stillCancelled.Status != booking.StatusCancelledByProfessional || stillCancelled.VersionToken != before.VersionToken {
 		t.Fatalf("el intento prematuro modificó la cita: %+v", stillCancelled)
 	}
 }
 
 // TestCorrectAppointmentStatus_CancelledToOccupying_CrossesAnotherAppointment_ReturnsConflictAndRollsBack
 // cubre CA-068-04: corregir desde un cancelado hacia completed/no_show que
-// volvería a ocupar una franja ya ocupada por OTRA cita del mismo barbero
+// volvería a ocupar una franja ya ocupada por OTRA cita del mismo profesional
 // responde 409 y la transacción completa hace rollback (sin escribir nada).
 func TestCorrectAppointmentStatus_CancelledToOccupying_CrossesAnotherAppointment_ReturnsConflictAndRollsBack(t *testing.T) {
 	db := setupTestDB(t)
@@ -239,7 +239,7 @@ func TestCorrectAppointmentStatus_CancelledToOccupying_CrossesAnotherAppointment
 	start := baseStart(t)
 
 	// A: cancelada, ya no ocupa agenda.
-	a, err := repo.CreateInternal(context.Background(), string(shopQ), validInput(t, barberQ1, serviceQ, start, 30, suffix+"-a"))
+	a, err := repo.CreateInternal(context.Background(), string(shopQ), validInput(t, professionalQ1, serviceQ, start, 30, suffix+"-a"))
 	if err != nil {
 		t.Fatalf("CreateInternal(A): %v", err)
 	}
@@ -249,9 +249,9 @@ func TestCorrectAppointmentStatus_CancelledToOccupying_CrossesAnotherAppointment
 		t.Fatalf("GetAppointmentDetail(A): %v", err)
 	}
 
-	// B: mismo barbero, MISMO intervalo exacto que A -- puede crearse porque
+	// B: mismo profesional, MISMO intervalo exacto que A -- puede crearse porque
 	// A ya no ocupa agenda.
-	b, err := repo.CreateInternal(context.Background(), string(shopQ), validInput(t, barberQ1, serviceQ, start, 30, suffix+"-b"))
+	b, err := repo.CreateInternal(context.Background(), string(shopQ), validInput(t, professionalQ1, serviceQ, start, 30, suffix+"-b"))
 	if err != nil {
 		t.Fatalf("CreateInternal(B): %v", err)
 	}
@@ -271,7 +271,7 @@ func TestCorrectAppointmentStatus_CancelledToOccupying_CrossesAnotherAppointment
 	if err != nil {
 		t.Fatalf("GetAppointmentDetail(A after): %v", err)
 	}
-	if afterA.Status != booking.StatusCancelledByBarber || afterA.VersionToken != beforeA.VersionToken {
+	if afterA.Status != booking.StatusCancelledByProfessional || afterA.VersionToken != beforeA.VersionToken {
 		t.Fatalf("el cruce rechazado modificó A: %+v", afterA)
 	}
 
@@ -295,7 +295,7 @@ func TestCorrectAppointmentStatus_OccupyingToCancelled_ReleasesExclusion_NewAppo
 	suffix := uniqueSuffix(t)
 	start := baseStart(t)
 
-	created, err := repo.CreateInternal(context.Background(), string(shopQ), validInput(t, barberQ1, serviceQ, start, 30, suffix))
+	created, err := repo.CreateInternal(context.Background(), string(shopQ), validInput(t, professionalQ1, serviceQ, start, 30, suffix))
 	if err != nil {
 		t.Fatalf("CreateInternal: %v", err)
 	}
@@ -311,7 +311,7 @@ func TestCorrectAppointmentStatus_OccupyingToCancelled_ReleasesExclusion_NewAppo
 		t.Fatalf("CorrectAppointmentStatus: %v", err)
 	}
 
-	if _, err := repo.CreateInternal(context.Background(), string(shopQ), validInput(t, barberQ1, serviceQ, start, 30, suffix+"-new")); err != nil {
+	if _, err := repo.CreateInternal(context.Background(), string(shopQ), validInput(t, professionalQ1, serviceQ, start, 30, suffix+"-new")); err != nil {
 		t.Fatalf("CreateInternal tras liberar la franja debió tener éxito (CA-068-05): %v", err)
 	}
 }
@@ -322,7 +322,7 @@ func TestCorrectAppointmentStatus_StaleVersionToken_ReturnsVersionConflict(t *te
 	suffix := uniqueSuffix(t)
 	start := baseStart(t)
 
-	created, err := repo.CreateInternal(context.Background(), string(shopQ), validInput(t, barberQ1, serviceQ, start, 30, suffix))
+	created, err := repo.CreateInternal(context.Background(), string(shopQ), validInput(t, professionalQ1, serviceQ, start, 30, suffix))
 	if err != nil {
 		t.Fatalf("CreateInternal: %v", err)
 	}
@@ -355,7 +355,7 @@ func TestCorrectAppointmentStatus_TenantMismatch_ReturnsNotFound(t *testing.T) {
 	suffix := uniqueSuffix(t)
 	start := baseStart(t)
 
-	created, err := repo.CreateInternal(context.Background(), string(shopQ), validInput(t, barberQ1, serviceQ, start, 30, suffix))
+	created, err := repo.CreateInternal(context.Background(), string(shopQ), validInput(t, professionalQ1, serviceQ, start, 30, suffix))
 	if err != nil {
 		t.Fatalf("CreateInternal: %v", err)
 	}
@@ -380,7 +380,7 @@ func TestCorrectAppointmentStatus_RepeatedKeySameIntent_Replays(t *testing.T) {
 	suffix := uniqueSuffix(t)
 	start := baseStart(t)
 
-	created, err := repo.CreateInternal(context.Background(), string(shopQ), validInput(t, barberQ1, serviceQ, start, 30, suffix))
+	created, err := repo.CreateInternal(context.Background(), string(shopQ), validInput(t, professionalQ1, serviceQ, start, 30, suffix))
 	if err != nil {
 		t.Fatalf("CreateInternal: %v", err)
 	}
@@ -431,7 +431,7 @@ func TestCorrectAppointmentStatus_AppendOnly_PreviousEventsUntouched(t *testing.
 	suffix := uniqueSuffix(t)
 	start := baseStart(t)
 
-	created, err := repo.CreateInternal(context.Background(), string(shopQ), validInput(t, barberQ1, serviceQ, start, 30, suffix))
+	created, err := repo.CreateInternal(context.Background(), string(shopQ), validInput(t, professionalQ1, serviceQ, start, 30, suffix))
 	if err != nil {
 		t.Fatalf("CreateInternal: %v", err)
 	}
@@ -492,7 +492,7 @@ func TestCorrectAppointmentStatus_ConcurrentCorrections_ExactlyOneWinsWithVersio
 	suffix := uniqueSuffix(t)
 	start := baseStart(t)
 
-	created, err := repo.CreateInternal(context.Background(), string(shopQ), validInput(t, barberQ1, serviceQ, start, 30, suffix))
+	created, err := repo.CreateInternal(context.Background(), string(shopQ), validInput(t, professionalQ1, serviceQ, start, 30, suffix))
 	if err != nil {
 		t.Fatalf("CreateInternal: %v", err)
 	}

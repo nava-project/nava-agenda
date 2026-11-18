@@ -2,10 +2,10 @@
 // (buildRouter) y PostgreSQL real, mismo patrón que
 // staff_integration_test.go (HU-021). Requieren las once migraciones
 // aplicadas (incluida 20260824140000_create_service.sql) y
-// database/testdata/dos_barberias.sql + testdata/hu005_credenciales_sesiones.sql
+// database/testdata/dos_negocios.sql + testdata/hu005_credenciales_sesiones.sql
 // cargados.
 //
-//	export TEST_DATABASE_URL="postgres://barberia_app:app_test@localhost:5432/barberia_test?sslmode=disable"
+//	export TEST_DATABASE_URL="postgres://agenda_app:app_test@localhost:5432/postgres?sslmode=disable"
 //	go test -race ./cmd/api/...
 package main
 
@@ -178,7 +178,7 @@ func TestCatalog_HTTP_CreateGetListUpdateReload_FullJourney(t *testing.T) {
 }
 
 // TestCatalog_HTTP_TwoTenants_CrossAccessAlwaysReturns404WithoutLeaking cubre
-// CA-022-06: conocer el UUID real de un servicio de otra barbería nunca
+// CA-022-06: conocer el UUID real de un servicio de otro negocio nunca
 // permite consultarlo ni editarlo, y nunca aparece en el listado propio.
 func TestCatalog_HTTP_TwoTenants_CrossAccessAlwaysReturns404WithoutLeaking(t *testing.T) {
 	db := setupTestDB(t)

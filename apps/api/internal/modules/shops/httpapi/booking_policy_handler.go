@@ -5,10 +5,10 @@ import (
 	"errors"
 	"net/http"
 
-	"system-barbershop/internal/modules/auth"
-	"system-barbershop/internal/modules/shops"
-	"system-barbershop/internal/platform/apperr"
-	"system-barbershop/internal/platform/httpserver"
+	"nava-agenda/internal/modules/auth"
+	"nava-agenda/internal/modules/shops"
+	"nava-agenda/internal/platform/apperr"
+	"nava-agenda/internal/platform/httpserver"
 )
 
 // bookingPolicyIfMatchHeader transporta el token opaco de versión (HU-093)
@@ -19,7 +19,7 @@ const bookingPolicyIfMatchHeader = "If-Match"
 
 // GetBookingPolicyHandler expone GET /private/settings/booking-policy
 // (HU-093, CA-093-01): lectura autenticada de la política pública de
-// reserva y cancelación de la barbería activa.
+// reserva y cancelación del negocio activo.
 type GetBookingPolicyHandler struct {
 	service *shops.BookingPolicyService
 }
@@ -40,7 +40,7 @@ func (h *GetBookingPolicyHandler) ServeHTTP(w http.ResponseWriter, r *http.Reque
 		return
 	}
 
-	policy, err := h.service.Get(r.Context(), principal.BarbershopID)
+	policy, err := h.service.Get(r.Context(), principal.BusinessID)
 	if err != nil {
 		httpserver.WriteProblem(w, httpserver.Translate(err, requestID))
 		return
@@ -106,7 +106,7 @@ func (h *UpdateBookingPolicyHandler) ServeHTTP(w http.ResponseWriter, r *http.Re
 	// Normalización, validación de rango/coherencia y persistencia atómica
 	// viven en shops.BookingPolicyService: este handler no repite ninguna
 	// regla de negocio (docs/03-desarrollo/estandar-backend-go.md §4).
-	policy, err := h.service.Update(r.Context(), principal.BarbershopID, shops.BookingPolicyInput{
+	policy, err := h.service.Update(r.Context(), principal.BusinessID, shops.BookingPolicyInput{
 		MinAdvanceMinutes:              req.MinAdvanceMinutes,
 		MaxAdvanceDays:                 req.MaxAdvanceDays,
 		SlotGridMinutes:                req.SlotGridMinutes,

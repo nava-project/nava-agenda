@@ -6,8 +6,8 @@ import (
 
 	"github.com/jackc/pgx/v5"
 
-	"system-barbershop/internal/modules/auth"
-	"system-barbershop/internal/platform/database"
+	"nava-agenda/internal/modules/auth"
+	"nava-agenda/internal/platform/database"
 )
 
 // PhoneChallengeRepository implementa auth.PhoneChallengeRepository contra
@@ -27,7 +27,7 @@ func NewPhoneChallengeRepository(db *database.DB) *PhoneChallengeRepository {
 var _ auth.PhoneChallengeRepository = (*PhoneChallengeRepository)(nil)
 
 // RequestChallenge implementa auth.PhoneChallengeRepository. Los destinos
-// salen de auth_phone_challenge_request según el canal de la barbería de la
+// salen de auth_phone_challenge_request según el canal del negocio de la
 // cuenta (DEC-139); este método no los calcula ni los filtra.
 func (r *PhoneChallengeRepository) RequestChallenge(ctx context.Context, email, ipHash, codeHash string, cfg auth.PhoneChallengeConfig) (bool, auth.ChallengeDestinations, error) {
 	var accepted bool

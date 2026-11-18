@@ -4,7 +4,7 @@ import (
 	"context"
 	"fmt"
 
-	"system-barbershop/internal/modules/auth"
+	"nava-agenda/internal/modules/auth"
 )
 
 // MetaWhatsAppOTPProvider generates the OTP locally, transports it through

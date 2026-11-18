@@ -6,8 +6,8 @@ import (
 	"log/slog"
 	"time"
 
-	"system-barbershop/internal/platform/apperr"
-	"system-barbershop/internal/platform/clock"
+	"nava-agenda/internal/platform/apperr"
+	"nava-agenda/internal/platform/clock"
 )
 
 // Política del acceso que pide Odin (DEC-179, HU-106).
@@ -25,17 +25,17 @@ const (
 	// recibe en `lookup`: el tiempo que el cliente tarda en responder que sí.
 	AppointmentRefTTL = 30 * time.Minute
 
-	// ServiceRequestsPerBarbershop es el tope de códigos que el servicio de Odin
-	// puede pedir por barbería en la ventana. Reemplaza al límite por IP, que no
+	// ServiceRequestsPerBusiness es el tope de códigos que el servicio de Odin
+	// puede pedir por negocio en la ventana. Reemplaza al límite por IP, que no
 	// sirve: todo Odin sale de una sola dirección.
-	ServiceRequestsPerBarbershop = 30
+	ServiceRequestsPerBusiness = 30
 
 	// maxAccessRefLength acota el valor recibido antes de hashear o consultar.
 	maxAccessRefLength = 128
 )
 
 // serviceHashValue es la «IP» de las solicitudes de Odin: una constante de
-// servicio, para que su límite por barbería no se mezcle con el de las personas.
+// servicio, para que su límite por negocio no se mezcle con el de las personas.
 const serviceHashValue = "service:odin"
 
 // ChangePolicy son las reglas con las que el cliente puede cambiar su turno.
@@ -43,7 +43,7 @@ const serviceHashValue = "service:odin"
 // (CA-002-06), así que el arranque las inyecta.
 type ChangePolicy struct {
 	// CanCancel dice si hoy el cliente puede cancelar un turno que empieza en
-	// startsAt (dentro de plazo, o tardía si la barbería la admite).
+	// startsAt (dentro de plazo, o tardía si el negocio la admite).
 	CanCancel func(startsAt, now time.Time, deadlineMinutes int, lateAllowed bool) bool
 	// CanReschedule dice si hoy puede cambiar la hora: dentro de plazo y con
 	// reprogramaciones propias disponibles.
@@ -56,7 +56,7 @@ type AppointmentCandidate struct {
 	ID                  string
 	StartsAt            time.Time
 	ServiceName         string
-	BarberName          string
+	ProfessionalName    string
 	DeadlineMinutes     int
 	LateCancelAllowed   bool
 	CustomerReschedules int
@@ -64,8 +64,8 @@ type AppointmentCandidate struct {
 
 // LookupOutcome es el resultado de buscar los turnos de un teléfono.
 type LookupOutcome struct {
-	BarbershopFound bool
-	Candidates      []AppointmentCandidate
+	BusinessFound bool
+	Candidates    []AppointmentCandidate
 }
 
 // RefChallengeRequest es lo que el repositorio necesita para registrar un reto
@@ -87,8 +87,8 @@ type RefChallengeRequest struct {
 
 // RefChallengeOutcome es el resultado de registrar el reto.
 type RefChallengeOutcome struct {
-	BarbershopFound bool
-	// Available es falso si el turno no es de ese teléfono en esa barbería o ya no
+	BusinessFound bool
+	// Available es falso si el turno no es de ese teléfono en ese negocio o ya no
 	// es elegible para el propósito.
 	Available   bool
 	RateLimited bool
@@ -109,10 +109,10 @@ type VerifyRefRequest struct {
 
 // VerifyRefOutcome es el resultado de verificar. Cualquier fallo es Valid=false.
 type VerifyRefOutcome struct {
-	BarbershopFound bool
-	Valid           bool
-	AccessToken     string
-	Purpose         string
+	BusinessFound bool
+	Valid         bool
+	AccessToken   string
+	Purpose       string
 }
 
 // OdinRepository es el puerto de persistencia del acceso que pide Odin.
@@ -125,12 +125,12 @@ type OdinRepository interface {
 // OdinAppointment es un turno tal como se le muestra a Odin: sin identificadores
 // internos, sin nombre ni contacto del cliente.
 type OdinAppointment struct {
-	Ref           string
-	StartsAt      time.Time
-	ServiceName   string
-	BarberName    string
-	CanCancel     bool
-	CanReschedule bool
+	Ref              string
+	StartsAt         time.Time
+	ServiceName      string
+	ProfessionalName string
+	CanCancel        bool
+	CanReschedule    bool
 }
 
 // RefChallengeAccepted es la respuesta de pedir un código atado a un turno.
@@ -194,7 +194,7 @@ func (s *RefService) phone(raw string) (Contact, error) {
 	return contact, nil
 }
 
-// Lookup lista los turnos futuros confirmados de un teléfono en esa barbería, con
+// Lookup lista los turnos futuros confirmados de un teléfono en ese negocio, con
 // una referencia opaca por turno y lo que el cliente puede hacer hoy con él.
 func (s *RefService) Lookup(ctx context.Context, slug, rawPhone string) ([]OdinAppointment, error) {
 	if err := ctx.Err(); err != nil {
@@ -209,8 +209,8 @@ func (s *RefService) Lookup(ctx context.Context, slug, rawPhone string) ([]OdinA
 	if err != nil {
 		return nil, apperr.Internal(fmt.Errorf("customeraccess: buscar los turnos: %w", err))
 	}
-	if !outcome.BarbershopFound {
-		return nil, apperr.NotFound(barbershopNotFoundMsg)
+	if !outcome.BusinessFound {
+		return nil, apperr.NotFound(businessNotFoundMsg)
 	}
 
 	out := make([]OdinAppointment, 0, len(outcome.Candidates))
@@ -220,7 +220,7 @@ func (s *RefService) Lookup(ctx context.Context, slug, rawPhone string) ([]OdinA
 			return nil, apperr.Internal(fmt.Errorf("customeraccess: referencia del turno: %w", err))
 		}
 		out = append(out, OdinAppointment{
-			Ref: ref, StartsAt: c.StartsAt, ServiceName: c.ServiceName, BarberName: c.BarberName,
+			Ref: ref, StartsAt: c.StartsAt, ServiceName: c.ServiceName, ProfessionalName: c.ProfessionalName,
 			CanCancel:     s.eligible(c, PurposeCancel, now),
 			CanReschedule: s.eligible(c, PurposeReschedule, now),
 		})
@@ -243,7 +243,7 @@ func (s *RefService) eligible(c AppointmentCandidate, purpose string, now time.T
 
 // RequestCode crea un reto atado a un turno y a un propósito y manda el código al
 // teléfono por WhatsApp. Un propósito vacío es `manage` (DEC-181). Una referencia
-// ajena, vencida o de otra barbería, o un turno que ya no es elegible, producen el
+// ajena, vencida o de otro negocio, o un turno que ya no es elegible, producen el
 // mismo rechazo (CA-106-03).
 func (s *RefService) RequestCode(ctx context.Context, slug, rawPhone, ref, purpose string) (RefChallengeAccepted, error) {
 	if err := ctx.Err(); err != nil {
@@ -291,8 +291,8 @@ func (s *RefService) RequestCode(ctx context.Context, slug, rawPhone, ref, purpo
 		return RefChallengeAccepted{}, apperr.Internal(fmt.Errorf("customeraccess: registrar el reto: %w", err))
 	}
 	switch {
-	case !outcome.BarbershopFound:
-		return RefChallengeAccepted{}, apperr.NotFound(barbershopNotFoundMsg)
+	case !outcome.BusinessFound:
+		return RefChallengeAccepted{}, apperr.NotFound(businessNotFoundMsg)
 	case outcome.RateLimited:
 		return RefChallengeAccepted{}, apperr.RateLimited(rateLimitedMessage, retryAfterSeconds(outcome.RetryAfter))
 	case !outcome.Available:
@@ -339,8 +339,8 @@ func (s *RefService) VerifyRef(ctx context.Context, slug, accessRef, rawCode str
 		return RefVerified{}, apperr.Internal(fmt.Errorf("customeraccess: verificar la referencia: %w", err))
 	}
 	switch {
-	case !outcome.BarbershopFound:
-		return RefVerified{}, apperr.NotFound(barbershopNotFoundMsg)
+	case !outcome.BusinessFound:
+		return RefVerified{}, apperr.NotFound(businessNotFoundMsg)
 	case !outcome.Valid:
 		return RefVerified{}, apperr.Unauthorized(invalidAccessCodeMessage)
 	}

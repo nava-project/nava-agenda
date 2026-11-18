@@ -5,7 +5,7 @@ import (
 	"testing"
 	"time"
 
-	"system-barbershop/internal/platform/apperr"
+	"nava-agenda/internal/platform/apperr"
 )
 
 func TestNormalizeContact(t *testing.T) {

@@ -9,22 +9,22 @@ import (
 	"testing"
 	"time"
 
-	"system-barbershop/internal/modules/googlecalendar"
-	gcalpostgres "system-barbershop/internal/modules/googlecalendar/postgres"
-	"system-barbershop/internal/platform/config"
-	"system-barbershop/internal/platform/database"
+	"nava-agenda/internal/modules/googlecalendar"
+	gcalpostgres "nava-agenda/internal/modules/googlecalendar/postgres"
+	"nava-agenda/internal/platform/config"
+	"nava-agenda/internal/platform/database"
 )
 
-// Pruebas de integración contra PostgreSQL real y DOS barberías (shopC/shopD de
-// testdata/hu021_barberos.sql): RLS, claves foráneas compuestas, unicidad y el
+// Pruebas de integración contra PostgreSQL real y DOS negocios (shopC/shopD de
+// testdata/hu021_profesionales.sql): RLS, claves foráneas compuestas, unicidad y el
 // CHECK que liga las credenciales al estado son lo que aísla y protege esta
 // integración, así que nada de esto se prueba con dobles.
 
 const (
 	testDatabaseURL = "postgres://agenda_app@localhost:5432/barberia_test?sslmode=disable"
 
-	shopC = database.BarbershopID("33333333-3333-3333-3333-333333333333")
-	shopD = database.BarbershopID("44444444-4444-4444-4444-444444444444")
+	shopC = database.BusinessID("33333333-3333-3333-3333-333333333333")
+	shopD = database.BusinessID("44444444-4444-4444-4444-444444444444")
 
 	userC1 = "cccccc01-cccc-4ccc-8ccc-cccccccccc01"
 	userD1 = "dddddd01-dddd-4ddd-8ddd-dddddddddd01"
@@ -62,20 +62,20 @@ func randomHex(t *testing.T, n int) string {
 	return hex.EncodeToString(buf)
 }
 
-// fixtures crea un barbero y una sesión de la barbería indicada (barberia_app no
-// puede DELETE sobre barber, así que cada prueba usa los suyos con nombre único).
+// fixtures crea un profesional y una sesión del negocio indicado (agenda_app no
+// puede DELETE sobre professional, así que cada prueba usa los suyos con nombre único).
 type fixtures struct {
-	barberID  string
-	sessionID string
+	professionalID string
+	sessionID      string
 }
 
-func newFixtures(t *testing.T, db *database.DB, shop database.BarbershopID, staffUserID string) fixtures {
+func newFixtures(t *testing.T, db *database.DB, shop database.BusinessID, staffUserID string) fixtures {
 	t.Helper()
 	var f fixtures
 	err := db.InTenantTx(context.Background(), shop, func(ctx context.Context, q database.Queries) error {
 		if err := q.QueryRow(ctx,
 			`INSERT INTO professional (business_id, full_name) VALUES ($1, $2) RETURNING id::text`,
-			string(shop), "Gcal "+randomHex(t, 6)).Scan(&f.barberID); err != nil {
+			string(shop), "Gcal "+randomHex(t, 6)).Scan(&f.professionalID); err != nil {
 			return err
 		}
 		return q.QueryRow(ctx,
@@ -89,20 +89,20 @@ func newFixtures(t *testing.T, db *database.DB, shop database.BarbershopID, staf
 	return f
 }
 
-func linkBarber(t *testing.T, db *database.DB, shop database.BarbershopID, barberID, staffUserID string) {
+func linkProfessional(t *testing.T, db *database.DB, shop database.BusinessID, professionalID, staffUserID string) {
 	t.Helper()
 	err := db.InTenantTx(context.Background(), shop, func(ctx context.Context, q database.Queries) error {
-		// El usuario es como máximo un barbero: se libera cualquier vínculo previo.
+		// El usuario es como máximo un profesional: se libera cualquier vínculo previo.
 		if _, err := q.Exec(ctx, `UPDATE professional SET staff_user_id = NULL WHERE business_id = $1 AND staff_user_id = $2`,
 			string(shop), staffUserID); err != nil {
 			return err
 		}
 		_, err := q.Exec(ctx, `UPDATE professional SET staff_user_id = $3 WHERE business_id = $1 AND id = $2`,
-			string(shop), barberID, staffUserID)
+			string(shop), professionalID, staffUserID)
 		return err
 	})
 	if err != nil {
-		t.Fatalf("linkBarber: %v", err)
+		t.Fatalf("linkProfessional: %v", err)
 	}
 }
 
@@ -112,9 +112,9 @@ func connectedData(at time.Time) googlecalendar.ConnectedData {
 	}
 }
 
-func stateFor(shop database.BarbershopID, f fixtures, staffUserID string, now time.Time) googlecalendar.OAuthState {
+func stateFor(shop database.BusinessID, f fixtures, staffUserID string, now time.Time) googlecalendar.OAuthState {
 	return googlecalendar.OAuthState{
-		BarbershopID: string(shop), BarberID: f.barberID, StaffUserID: staffUserID, SessionID: f.sessionID,
+		BusinessID: string(shop), ProfessionalID: f.professionalID, StaffUserID: staffUserID, SessionID: f.sessionID,
 		StateHash: randomHexString(), VerifierEncrypted: []byte("verificador-cifrado"), VerifierKeyID: "v1",
 		ExpiresAt: now.Add(10 * time.Minute),
 	}
@@ -133,11 +133,11 @@ func TestSaveConnected_CreatesThenReusesTheRowWithoutDuplicating(t *testing.T) {
 	ctx := context.Background()
 	now := time.Now().UTC().Truncate(time.Microsecond)
 
-	if _, found, err := repo.GetConnection(ctx, string(shopC), f.barberID); err != nil || found {
+	if _, found, err := repo.GetConnection(ctx, string(shopC), f.professionalID); err != nil || found {
 		t.Fatalf("antes de conectar no hay fila: found=%v err=%v", found, err)
 	}
 
-	first, err := repo.SaveConnected(ctx, string(shopC), f.barberID, connectedData(now))
+	first, err := repo.SaveConnected(ctx, string(shopC), f.professionalID, connectedData(now))
 	if err != nil || first.Status != googlecalendar.StatusConnected || first.AccountEmail != "barbero@ejemplo.test" {
 		t.Fatalf("SaveConnected: %+v err=%v", first, err)
 	}
@@ -147,7 +147,7 @@ func TestSaveConnected_CreatesThenReusesTheRowWithoutDuplicating(t *testing.T) {
 
 	again := connectedData(now.Add(time.Hour))
 	again.AccountEmail = "otra@ejemplo.test"
-	second, err := repo.SaveConnected(ctx, string(shopC), f.barberID, again)
+	second, err := repo.SaveConnected(ctx, string(shopC), f.professionalID, again)
 	if err != nil || second.ID != first.ID {
 		t.Fatalf("reconectar reutiliza la misma fila: %+v err=%v", second, err)
 	}
@@ -162,26 +162,26 @@ func TestSetReminder_PersistsClearsAndRejectsOutOfRangeAtTheDatabase(t *testing.
 	f := newFixtures(t, db, shopC, userC1)
 	ctx := context.Background()
 
-	if _, found, err := repo.SetReminder(ctx, string(shopC), f.barberID, ptr(30)); err != nil || found {
+	if _, found, err := repo.SetReminder(ctx, string(shopC), f.professionalID, ptr(30)); err != nil || found {
 		t.Fatalf("sin conexión no hay recordatorio que guardar: found=%v err=%v", found, err)
 	}
-	if _, err := repo.SaveConnected(ctx, string(shopC), f.barberID, connectedData(time.Now().UTC())); err != nil {
+	if _, err := repo.SaveConnected(ctx, string(shopC), f.professionalID, connectedData(time.Now().UTC())); err != nil {
 		t.Fatal(err)
 	}
 
-	conn, found, err := repo.SetReminder(ctx, string(shopC), f.barberID, ptr(40320))
+	conn, found, err := repo.SetReminder(ctx, string(shopC), f.professionalID, ptr(40320))
 	if err != nil || !found || conn.ReminderMinutes == nil || *conn.ReminderMinutes != 40320 {
 		t.Fatalf("SetReminder(40320): %+v found=%v err=%v", conn, found, err)
 	}
-	conn, _, _ = repo.SetReminder(ctx, string(shopC), f.barberID, nil)
+	conn, _, _ = repo.SetReminder(ctx, string(shopC), f.professionalID, nil)
 	if conn.ReminderMinutes != nil {
 		t.Fatalf("nil debe volver a los recordatorios predeterminados: %v", *conn.ReminderMinutes)
 	}
 	// El CHECK de la base es la última defensa aunque el servicio ya valida.
-	if _, _, err := repo.SetReminder(ctx, string(shopC), f.barberID, ptr(40321)); err == nil {
+	if _, _, err := repo.SetReminder(ctx, string(shopC), f.professionalID, ptr(40321)); err == nil {
 		t.Fatal("la base debe rechazar un recordatorio mayor de 40320")
 	}
-	if _, _, err := repo.SetReminder(ctx, string(shopC), f.barberID, ptr(-1)); err == nil {
+	if _, _, err := repo.SetReminder(ctx, string(shopC), f.professionalID, ptr(-1)); err == nil {
 		t.Fatal("la base debe rechazar un recordatorio negativo")
 	}
 }
@@ -195,50 +195,50 @@ func TestMarkStatus_DropsCredentialsWhenTheTokenIsNoLongerValid(t *testing.T) {
 	ctx := context.Background()
 	now := time.Now().UTC()
 
-	if found, err := repo.MarkStatus(ctx, string(shopC), f.barberID, googlecalendar.StatusDisconnected, "", now); err != nil || found {
+	if found, err := repo.MarkStatus(ctx, string(shopC), f.professionalID, googlecalendar.StatusDisconnected, "", now); err != nil || found {
 		t.Fatalf("sin conexión no hay nada que marcar: found=%v err=%v", found, err)
 	}
 
-	if _, err := repo.SaveConnected(ctx, string(shopC), f.barberID, connectedData(now)); err != nil {
+	if _, err := repo.SaveConnected(ctx, string(shopC), f.professionalID, connectedData(now)); err != nil {
 		t.Fatal(err)
 	}
-	if found, err := repo.MarkStatus(ctx, string(shopC), f.barberID, googlecalendar.StatusError, "google_503", now); err != nil || !found {
+	if found, err := repo.MarkStatus(ctx, string(shopC), f.professionalID, googlecalendar.StatusError, "google_503", now); err != nil || !found {
 		t.Fatalf("error transitorio: found=%v err=%v", found, err)
 	}
-	conn, _, _ := repo.GetConnection(ctx, string(shopC), f.barberID)
+	conn, _, _ := repo.GetConnection(ctx, string(shopC), f.professionalID)
 	if conn.Status != googlecalendar.StatusError || !conn.HasCredentials() || conn.LastErrorCode != "google_503" {
 		t.Fatalf("un error transitorio conserva las credenciales: %+v", conn)
 	}
 
-	if _, err := repo.MarkStatus(ctx, string(shopC), f.barberID, googlecalendar.StatusReauthRequired, "token_revoked", now); err != nil {
+	if _, err := repo.MarkStatus(ctx, string(shopC), f.professionalID, googlecalendar.StatusReauthRequired, "token_revoked", now); err != nil {
 		t.Fatal(err)
 	}
-	conn, _, _ = repo.GetConnection(ctx, string(shopC), f.barberID)
+	conn, _, _ = repo.GetConnection(ctx, string(shopC), f.professionalID)
 	if conn.Status != googlecalendar.StatusReauthRequired || conn.HasCredentials() || conn.KeyID != "" {
 		t.Fatalf("reauth_required borra las credenciales: %+v", conn)
 	}
 	// Un error transitorio no puede «resucitar» una conexión sin credenciales.
-	if found, _ := repo.MarkStatus(ctx, string(shopC), f.barberID, googlecalendar.StatusError, "x", now); found {
+	if found, _ := repo.MarkStatus(ctx, string(shopC), f.professionalID, googlecalendar.StatusError, "x", now); found {
 		t.Fatal("no se pasa a error desde reauth_required")
 	}
 
-	if _, err := repo.SaveConnected(ctx, string(shopC), f.barberID, connectedData(now)); err != nil {
+	if _, err := repo.SaveConnected(ctx, string(shopC), f.professionalID, connectedData(now)); err != nil {
 		t.Fatal(err)
 	}
-	if _, found, _ := repo.SetReminder(ctx, string(shopC), f.barberID, ptr(15)); !found {
+	if _, found, _ := repo.SetReminder(ctx, string(shopC), f.professionalID, ptr(15)); !found {
 		t.Fatal("reconectar reactiva la edición del recordatorio")
 	}
-	if _, err := repo.MarkStatus(ctx, string(shopC), f.barberID, googlecalendar.StatusDisconnected, "", now); err != nil {
+	if _, err := repo.MarkStatus(ctx, string(shopC), f.professionalID, googlecalendar.StatusDisconnected, "", now); err != nil {
 		t.Fatal(err)
 	}
-	conn, _, _ = repo.GetConnection(ctx, string(shopC), f.barberID)
+	conn, _, _ = repo.GetConnection(ctx, string(shopC), f.professionalID)
 	if conn.Status != googlecalendar.StatusDisconnected || conn.HasCredentials() || conn.AccountEmail != "" || conn.DisconnectedAt == nil {
 		t.Fatalf("desconectar borra credenciales y correo y conserva la fila: %+v", conn)
 	}
 	if conn.ReminderMinutes == nil || *conn.ReminderMinutes != 15 {
 		t.Fatalf("desconectar conserva la preferencia de recordatorio: %+v", conn.ReminderMinutes)
 	}
-	if _, found, _ := repo.SetReminder(ctx, string(shopC), f.barberID, ptr(5)); found {
+	if _, found, _ := repo.SetReminder(ctx, string(shopC), f.professionalID, ptr(5)); found {
 		t.Fatal("una conexión desconectada no admite cambiar el recordatorio")
 	}
 }
@@ -251,32 +251,32 @@ func TestTwoTenants_CannotSeeNorTouchEachOthersConnection(t *testing.T) {
 	ctx := context.Background()
 	now := time.Now().UTC()
 
-	if _, err := repo.SaveConnected(ctx, string(shopC), fc.barberID, connectedData(now)); err != nil {
+	if _, err := repo.SaveConnected(ctx, string(shopC), fc.professionalID, connectedData(now)); err != nil {
 		t.Fatal(err)
 	}
 
-	// D no ve el barbero de C ni su conexión, ni siquiera con el id correcto.
-	if _, found, err := repo.GetConnection(ctx, string(shopD), fc.barberID); err != nil || found {
+	// D no ve el profesional de C ni su conexión, ni siquiera con el id correcto.
+	if _, found, err := repo.GetConnection(ctx, string(shopD), fc.professionalID); err != nil || found {
 		t.Fatalf("D no debe ver la conexión de C: found=%v err=%v", found, err)
 	}
-	if found, _ := repo.MarkStatus(ctx, string(shopD), fc.barberID, googlecalendar.StatusDisconnected, "", now); found {
+	if found, _ := repo.MarkStatus(ctx, string(shopD), fc.professionalID, googlecalendar.StatusDisconnected, "", now); found {
 		t.Fatal("D no debe desconectar a C")
 	}
-	if _, found, _ := repo.SetReminder(ctx, string(shopD), fc.barberID, ptr(5)); found {
+	if _, found, _ := repo.SetReminder(ctx, string(shopD), fc.professionalID, ptr(5)); found {
 		t.Fatal("D no debe cambiar el recordatorio de C")
 	}
-	conn, found, _ := repo.GetConnection(ctx, string(shopC), fc.barberID)
+	conn, found, _ := repo.GetConnection(ctx, string(shopC), fc.professionalID)
 	if !found || conn.Status != googlecalendar.StatusConnected {
 		t.Fatalf("la conexión de C debe seguir intacta: %+v", conn)
 	}
 
-	// Crear una conexión de D sobre el barbero de C lo impide la FK compuesta.
-	if _, err := repo.SaveConnected(ctx, string(shopD), fc.barberID, connectedData(now)); err == nil {
-		t.Fatal("la FK compuesta debe impedir conectar el barbero de otra barbería")
+	// Crear una conexión de D sobre el profesional de C lo impide la FK compuesta.
+	if _, err := repo.SaveConnected(ctx, string(shopD), fc.professionalID, connectedData(now)); err == nil {
+		t.Fatal("la FK compuesta debe impedir conectar el profesional de otro negocio")
 	}
-	// Y cada barbería conecta a SUS barberos sin interferir.
-	if _, err := repo.SaveConnected(ctx, string(shopD), fd.barberID, connectedData(now)); err != nil {
-		t.Fatalf("D conecta a su propio barbero: %v", err)
+	// Y cada negocio conecta a SUS profesionales sin interferir.
+	if _, err := repo.SaveConnected(ctx, string(shopD), fd.professionalID, connectedData(now)); err != nil {
+		t.Fatalf("D conecta a su propio profesional: %v", err)
 	}
 }
 
@@ -292,7 +292,7 @@ func TestOAuthState_IsSingleUseExpiringAndTenantScoped(t *testing.T) {
 		t.Fatalf("CreateState: %v", err)
 	}
 
-	// Otra barbería no puede consumirlo, y fallar no lo gasta.
+	// Otro negocio no puede consumirlo, y fallar no lo gasta.
 	if _, found, err := repo.ConsumeState(ctx, string(shopD), state.StateHash, now); err != nil || found {
 		t.Fatalf("D no debe consumir el state de C: found=%v err=%v", found, err)
 	}
@@ -300,7 +300,7 @@ func TestOAuthState_IsSingleUseExpiringAndTenantScoped(t *testing.T) {
 	if err != nil || !found {
 		t.Fatalf("ConsumeState: found=%v err=%v", found, err)
 	}
-	if got.BarberID != f.barberID || got.StaffUserID != userC1 || got.SessionID != f.sessionID ||
+	if got.ProfessionalID != f.professionalID || got.StaffUserID != userC1 || got.SessionID != f.sessionID ||
 		string(got.VerifierEncrypted) != "verificador-cifrado" || got.VerifierKeyID != "v1" {
 		t.Fatalf("el estado debe volver íntegro: %+v", got)
 	}
@@ -316,13 +316,13 @@ func TestOAuthState_IsSingleUseExpiringAndTenantScoped(t *testing.T) {
 		t.Fatal("un state vencido no debe consumirse")
 	}
 
-	// Crear un state nuevo purga los vencidos y consumidos de ese barbero.
+	// Crear un state nuevo purga los vencidos y consumidos de ese profesional.
 	if err := repo.CreateState(ctx, stateFor(shopC, f, userC1, now.Add(time.Hour)), now.Add(time.Hour)); err != nil {
 		t.Fatal(err)
 	}
 	var left int
 	_ = db.InTenantTx(ctx, shopC, func(ctx context.Context, q database.Queries) error {
-		return q.QueryRow(ctx, `SELECT count(*) FROM google_calendar_oauth_state WHERE professional_id = $1`, f.barberID).Scan(&left)
+		return q.QueryRow(ctx, `SELECT count(*) FROM google_calendar_oauth_state WHERE professional_id = $1`, f.professionalID).Scan(&left)
 	})
 	if left != 1 {
 		t.Fatalf("solo debe quedar el state vigente, hay %d", left)
@@ -364,12 +364,12 @@ func TestOAuthState_ConcurrentConsumeHasExactlyOneWinner(t *testing.T) {
 	}
 }
 
-func TestBarberOfUser_ReadsTheLinkAndIsTenantScoped(t *testing.T) {
+func TestProfessionalOfUser_ReadsTheLinkAndIsTenantScoped(t *testing.T) {
 	db := setupTestDB(t)
 	repo := gcalpostgres.New(db)
 	f := newFixtures(t, db, shopC, userC1)
 	ctx := context.Background()
-	linkBarber(t, db, shopC, f.barberID, userC1)
+	linkProfessional(t, db, shopC, f.professionalID, userC1)
 	t.Cleanup(func() {
 		_ = db.InTenantTx(ctx, shopC, func(ctx context.Context, q database.Queries) error {
 			_, err := q.Exec(ctx, `UPDATE professional SET staff_user_id = NULL WHERE business_id = $1 AND staff_user_id = $2`, string(shopC), userC1)
@@ -377,14 +377,14 @@ func TestBarberOfUser_ReadsTheLinkAndIsTenantScoped(t *testing.T) {
 		})
 	})
 
-	id, found, err := repo.BarberOfUser(ctx, string(shopC), userC1)
-	if err != nil || !found || id != f.barberID {
-		t.Fatalf("BarberOfUser: %q found=%v err=%v", id, found, err)
+	id, found, err := repo.ProfessionalOfUser(ctx, string(shopC), userC1)
+	if err != nil || !found || id != f.professionalID {
+		t.Fatalf("ProfessionalOfUser: %q found=%v err=%v", id, found, err)
 	}
-	if _, found, _ := repo.BarberOfUser(ctx, string(shopD), userC1); found {
-		t.Fatal("otra barbería no resuelve al barbero del usuario")
+	if _, found, _ := repo.ProfessionalOfUser(ctx, string(shopD), userC1); found {
+		t.Fatal("otro negocio no resuelve al profesional del usuario")
 	}
-	if _, found, _ := repo.BarberOfUser(ctx, string(shopC), userD1); found {
-		t.Fatal("un usuario ajeno no tiene barbero en esta barbería")
+	if _, found, _ := repo.ProfessionalOfUser(ctx, string(shopC), userD1); found {
+		t.Fatal("un usuario ajeno no tiene profesional en este negocio")
 	}
 }

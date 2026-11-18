@@ -5,10 +5,10 @@ import (
 	"errors"
 	"net/http"
 
-	"system-barbershop/internal/modules/auth"
-	"system-barbershop/internal/modules/shops"
-	"system-barbershop/internal/platform/apperr"
-	"system-barbershop/internal/platform/httpserver"
+	"nava-agenda/internal/modules/auth"
+	"nava-agenda/internal/modules/shops"
+	"nava-agenda/internal/platform/apperr"
+	"nava-agenda/internal/platform/httpserver"
 )
 
 // LoginOTPResponse es la representación de GET y PATCH
@@ -34,7 +34,7 @@ func NewGetLoginOTPHandler(service *shops.LoginOTPService) *GetLoginOTPHandler {
 	return &GetLoginOTPHandler{service: service}
 }
 
-// ServeHTTP implementa http.Handler. La barbería sale exclusivamente de
+// ServeHTTP implementa http.Handler. El negocio sale exclusivamente de
 // auth.Principal.
 func (h *GetLoginOTPHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	requestID := httpserver.RequestIDFromContext(r.Context())
@@ -44,7 +44,7 @@ func (h *GetLoginOTPHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 			apperr.Internal(errors.New("shops: falta el principal de sesión en el contexto")), requestID))
 		return
 	}
-	channel, err := h.service.Get(r.Context(), principal.BarbershopID)
+	channel, err := h.service.Get(r.Context(), principal.BusinessID)
 	if err != nil {
 		httpserver.WriteProblem(w, httpserver.Translate(err, requestID))
 		return
@@ -91,7 +91,7 @@ func (h *UpdateLoginOTPHandler) ServeHTTP(w http.ResponseWriter, r *http.Request
 		return
 	}
 
-	channel, err := h.service.Update(r.Context(), principal.BarbershopID, shops.LoginOTPChannel(req.Channel))
+	channel, err := h.service.Update(r.Context(), principal.BusinessID, shops.LoginOTPChannel(req.Channel))
 	if err != nil {
 		httpserver.WriteProblem(w, httpserver.Translate(err, requestID))
 		return

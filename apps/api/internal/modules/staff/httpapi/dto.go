@@ -5,20 +5,20 @@ import (
 	"time"
 )
 
-// BarberResponse es la representación canónica de un barbero (CA-021-01,
+// ProfessionalResponse es la representación canónica de un profesional (CA-021-01,
 // CA-021-07): exactamente id, fullName, createdAt, updatedAt y, por DEC-104,
 // photoUpdatedAt (null mientras no hay fotografía; cuando existe, es la
 // versión de la imagen) y, por DEC-127, description (null mientras no hay
 // descripción). Nunca active, deletedAt, sortOrder, staffUserId,
 // servicios ni horarios (DEC-047).
 //
-// ADVERTENCIA: postgres.barberResponseWire (staff/postgres/repository.go)
+// ADVERTENCIA: postgres.professionalResponseWire (staff/postgres/repository.go)
 // declara EXACTAMENTE la misma forma (mismos nombres de campo JSON, mismo
 // orden, mismos tipos) para construir el cuerpo que la idempotencia
 // persiste en el alta. Un cambio aquí debe reflejarse ahí en el mismo
 // commit; ver TestCreate_StoredResponseBody_MatchesHTTPAPIWireShape en
 // postgres/repository_test.go.
-type BarberResponse struct {
+type ProfessionalResponse struct {
 	ID             string     `json:"id"`
 	FullName       string     `json:"fullName"`
 	CreatedAt      time.Time  `json:"createdAt"`
@@ -29,29 +29,29 @@ type BarberResponse struct {
 	RatingCount    int        `json:"ratingCount"`
 }
 
-// BarberListResponse es la página paginada por cursor de GET /private/professionals
+// ProfessionalListResponse es la página paginada por cursor de GET /private/professionals
 // (CA-021-02). NextCursor es un puntero para que "sin página siguiente"
 // serialice como `null` explícito, nunca como una cadena vacía.
-type BarberListResponse struct {
-	Items      []BarberResponse `json:"items"`
-	NextCursor *string          `json:"nextCursor"`
+type ProfessionalListResponse struct {
+	Items      []ProfessionalResponse `json:"items"`
+	NextCursor *string                `json:"nextCursor"`
 }
 
-// CreateBarberRequest es el cuerpo de POST /private/professionals (CA-021-02).
+// CreateProfessionalRequest es el cuerpo de POST /private/professionals (CA-021-02).
 // Cerrado: el handler rechaza cualquier campo desconocido. Nunca declara
-// barbershopId: el tenant se deriva exclusivamente de auth.Principal.
-type CreateBarberRequest struct {
+// businessId: el tenant se deriva exclusivamente de auth.Principal.
+type CreateProfessionalRequest struct {
 	FullName string `json:"fullName"`
 	// Description es opcional y admite null (DEC-127): ausente, null o vacía
 	// equivalen a "sin descripción".
 	Description *string `json:"description"`
 }
 
-// UpdateBarberRequest es el cuerpo de PATCH /private/professionals/{professionalId}
+// UpdateProfessionalRequest es el cuerpo de PATCH /private/professionals/{professionalId}
 // (CA-021-04). Cerrado y limitado a los campos editables (el nombre de HU-021
 // y, por DEC-127, la descripción): nunca active, deletedAt, sortOrder,
 // staffUserId, servicios ni horarios (DEC-047, CA-021-07).
-type UpdateBarberRequest struct {
+type UpdateProfessionalRequest struct {
 	FullName    string       `json:"fullName"`
 	Description OptionalText `json:"description"`
 }
@@ -81,10 +81,10 @@ func (o *OptionalText) UnmarshalJSON(data []byte) error {
 	return nil
 }
 
-// LinkMyBarberRequest es el cuerpo de PUT /private/me/professional (DEC-100).
-// Cerrado y limitado a barberId: nunca lleva un staffUserId, porque el
+// LinkMyProfessionalRequest es el cuerpo de PUT /private/me/professional (DEC-100).
+// Cerrado y limitado a professionalId: nunca lleva un staffUserId, porque el
 // usuario es siempre el principal de la sesión y nadie asigna el vínculo de
 // otra persona.
-type LinkMyBarberRequest struct {
-	BarberID string `json:"professionalId"`
+type LinkMyProfessionalRequest struct {
+	ProfessionalID string `json:"professionalId"`
 }

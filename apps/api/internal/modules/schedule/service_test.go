@@ -5,9 +5,9 @@ import (
 	"testing"
 	"time"
 
-	"system-barbershop/internal/modules/schedule"
-	"system-barbershop/internal/platform/apperr"
-	"system-barbershop/internal/platform/idempotency"
+	"nava-agenda/internal/modules/schedule"
+	"nava-agenda/internal/platform/apperr"
+	"nava-agenda/internal/platform/idempotency"
 )
 
 // fakeRepository es un doble de schedule.Repository para probar
@@ -16,121 +16,121 @@ import (
 // apperr), nunca SQL, RLS ni la carrera de dos altas concurrentes (eso vive
 // en postgres/repository_test.go contra PostgreSQL real).
 type fakeRepository struct {
-	listFn   func(ctx context.Context, barbershopID, barberID string, cursor *schedule.Cursor, limit int) (schedule.ListResult, error)
-	getFn    func(ctx context.Context, barbershopID, barberID, workingHourID string) (schedule.WorkingHour, bool, error)
-	createFn func(ctx context.Context, barbershopID, barberID string, input schedule.CreateInput, key idempotency.Key, fingerprint idempotency.Fingerprint) (schedule.CreateResult, error)
-	updateFn func(ctx context.Context, barbershopID, barberID, workingHourID string, input schedule.UpdateInput) (schedule.UpdateResult, error)
-	deleteFn func(ctx context.Context, barbershopID, barberID, workingHourID string) (bool, error)
+	listFn   func(ctx context.Context, businessID, professionalID string, cursor *schedule.Cursor, limit int) (schedule.ListResult, error)
+	getFn    func(ctx context.Context, businessID, professionalID, workingHourID string) (schedule.WorkingHour, bool, error)
+	createFn func(ctx context.Context, businessID, professionalID string, input schedule.CreateInput, key idempotency.Key, fingerprint idempotency.Fingerprint) (schedule.CreateResult, error)
+	updateFn func(ctx context.Context, businessID, professionalID, workingHourID string, input schedule.UpdateInput) (schedule.UpdateResult, error)
+	deleteFn func(ctx context.Context, businessID, professionalID, workingHourID string) (bool, error)
 
 	createCalls int
 	updateCalls int
 	deleteCalls int
 
 	// HU-041: excepciones de jornada y calendario de festivos.
-	getHolidayCalendarEnabledFn  func(ctx context.Context, barbershopID, barberID string) (bool, bool, error)
-	setHolidayCalendarEnabledFn  func(ctx context.Context, barbershopID, barberID string, enabled bool) (schedule.HolidayCalendarResult, error)
-	listExceptionsFn             func(ctx context.Context, barbershopID, barberID string, cursor *schedule.ExceptionCursor, limit int) (schedule.ExceptionListResult, error)
-	getExceptionFn               func(ctx context.Context, barbershopID, barberID, exceptionID string) (schedule.ScheduleException, bool, error)
-	getExceptionByDateFn         func(ctx context.Context, barbershopID, barberID, effectiveDate string) (schedule.ScheduleException, bool, error)
-	createExceptionFn            func(ctx context.Context, barbershopID, barberID string, input schedule.CreateExceptionInput, key idempotency.Key, fingerprint idempotency.Fingerprint) (schedule.CreateExceptionResult, error)
-	updateExceptionFn            func(ctx context.Context, barbershopID, barberID, exceptionID string, input schedule.UpdateExceptionInput) (schedule.UpdateExceptionResult, error)
-	deleteExceptionFn            func(ctx context.Context, barbershopID, barberID, exceptionID string) (bool, error)
-	listWorkingHoursForWeekdayFn func(ctx context.Context, barbershopID, barberID string, isoWeekday int) ([]schedule.WorkingHour, error)
+	getHolidayCalendarEnabledFn  func(ctx context.Context, businessID, professionalID string) (bool, bool, error)
+	setHolidayCalendarEnabledFn  func(ctx context.Context, businessID, professionalID string, enabled bool) (schedule.HolidayCalendarResult, error)
+	listExceptionsFn             func(ctx context.Context, businessID, professionalID string, cursor *schedule.ExceptionCursor, limit int) (schedule.ExceptionListResult, error)
+	getExceptionFn               func(ctx context.Context, businessID, professionalID, exceptionID string) (schedule.ScheduleException, bool, error)
+	getExceptionByDateFn         func(ctx context.Context, businessID, professionalID, effectiveDate string) (schedule.ScheduleException, bool, error)
+	createExceptionFn            func(ctx context.Context, businessID, professionalID string, input schedule.CreateExceptionInput, key idempotency.Key, fingerprint idempotency.Fingerprint) (schedule.CreateExceptionResult, error)
+	updateExceptionFn            func(ctx context.Context, businessID, professionalID, exceptionID string, input schedule.UpdateExceptionInput) (schedule.UpdateExceptionResult, error)
+	deleteExceptionFn            func(ctx context.Context, businessID, professionalID, exceptionID string) (bool, error)
+	listWorkingHoursForWeekdayFn func(ctx context.Context, businessID, professionalID string, isoWeekday int) ([]schedule.WorkingHour, error)
 
 	// HU-042: bloqueos de agenda. Implementadas en block_service_test.go
 	// para mantener este archivo enfocado en HU-040/HU-041.
-	listBlocksFn                    func(ctx context.Context, barbershopID, barberID string, cursor *schedule.BlockCursor, limit int, includeDeleted bool) (schedule.BlockListResult, error)
-	getBlockFn                      func(ctx context.Context, barbershopID, barberID, blockID string) (schedule.TimeBlock, bool, error)
-	createBlockFn                   func(ctx context.Context, barbershopID, barberID string, input schedule.CreateBlockInput, key idempotency.Key, fingerprint idempotency.Fingerprint) (schedule.CreateBlockResult, error)
-	deleteBlockFn                   func(ctx context.Context, barbershopID, barberID, blockID, actorID string) (bool, error)
-	listSeriesFn                    func(ctx context.Context, barbershopID, barberID string, cursor *schedule.SeriesCursor, limit int, includeDeleted bool) (schedule.SeriesListResult, error)
-	getSeriesFn                     func(ctx context.Context, barbershopID, barberID, seriesID string) (schedule.TimeBlockSeries, bool, error)
-	createSeriesFn                  func(ctx context.Context, barbershopID, barberID string, input schedule.CreateSeriesInput, key idempotency.Key, fingerprint idempotency.Fingerprint) (schedule.CreateSeriesResult, error)
-	updateSeriesWholeFn             func(ctx context.Context, barbershopID, barberID, seriesID string, input schedule.UpdateSeriesInput) (schedule.UpdateSeriesResult, error)
-	splitSeriesFromFn               func(ctx context.Context, barbershopID, barberID, seriesID, effectiveDate string, input schedule.UpdateSeriesInput) (schedule.UpdateSeriesResult, error)
-	deleteSeriesFn                  func(ctx context.Context, barbershopID, barberID, seriesID string) (bool, error)
-	addSeriesDateFn                 func(ctx context.Context, barbershopID, barberID, seriesID, blockDate string) (bool, bool, error)
-	removeSeriesDateFn              func(ctx context.Context, barbershopID, barberID, seriesID, blockDate string) (bool, error)
-	addSeriesExceptionFn            func(ctx context.Context, barbershopID, barberID, seriesID, excludedDate string, reason *string) (bool, bool, error)
-	removeSeriesExceptionFn         func(ctx context.Context, barbershopID, barberID, seriesID, excludedDate string) (bool, error)
-	listEffectiveManualBlocksFn     func(ctx context.Context, barbershopID, barberID string, from, until time.Time) ([]schedule.TimeBlock, error)
-	listActiveSeriesForProjectionFn func(ctx context.Context, barbershopID, barberID, from, until string) ([]schedule.TimeBlockSeries, error)
+	listBlocksFn                    func(ctx context.Context, businessID, professionalID string, cursor *schedule.BlockCursor, limit int, includeDeleted bool) (schedule.BlockListResult, error)
+	getBlockFn                      func(ctx context.Context, businessID, professionalID, blockID string) (schedule.TimeBlock, bool, error)
+	createBlockFn                   func(ctx context.Context, businessID, professionalID string, input schedule.CreateBlockInput, key idempotency.Key, fingerprint idempotency.Fingerprint) (schedule.CreateBlockResult, error)
+	deleteBlockFn                   func(ctx context.Context, businessID, professionalID, blockID, actorID string) (bool, error)
+	listSeriesFn                    func(ctx context.Context, businessID, professionalID string, cursor *schedule.SeriesCursor, limit int, includeDeleted bool) (schedule.SeriesListResult, error)
+	getSeriesFn                     func(ctx context.Context, businessID, professionalID, seriesID string) (schedule.TimeBlockSeries, bool, error)
+	createSeriesFn                  func(ctx context.Context, businessID, professionalID string, input schedule.CreateSeriesInput, key idempotency.Key, fingerprint idempotency.Fingerprint) (schedule.CreateSeriesResult, error)
+	updateSeriesWholeFn             func(ctx context.Context, businessID, professionalID, seriesID string, input schedule.UpdateSeriesInput) (schedule.UpdateSeriesResult, error)
+	splitSeriesFromFn               func(ctx context.Context, businessID, professionalID, seriesID, effectiveDate string, input schedule.UpdateSeriesInput) (schedule.UpdateSeriesResult, error)
+	deleteSeriesFn                  func(ctx context.Context, businessID, professionalID, seriesID string) (bool, error)
+	addSeriesDateFn                 func(ctx context.Context, businessID, professionalID, seriesID, blockDate string) (bool, bool, error)
+	removeSeriesDateFn              func(ctx context.Context, businessID, professionalID, seriesID, blockDate string) (bool, error)
+	addSeriesExceptionFn            func(ctx context.Context, businessID, professionalID, seriesID, excludedDate string, reason *string) (bool, bool, error)
+	removeSeriesExceptionFn         func(ctx context.Context, businessID, professionalID, seriesID, excludedDate string) (bool, error)
+	listEffectiveManualBlocksFn     func(ctx context.Context, businessID, professionalID string, from, until time.Time) ([]schedule.TimeBlock, error)
+	listActiveSeriesForProjectionFn func(ctx context.Context, businessID, professionalID, from, until string) ([]schedule.TimeBlockSeries, error)
 }
 
-func (f *fakeRepository) List(ctx context.Context, barbershopID, barberID string, cursor *schedule.Cursor, limit int) (schedule.ListResult, error) {
-	return f.listFn(ctx, barbershopID, barberID, cursor, limit)
+func (f *fakeRepository) List(ctx context.Context, businessID, professionalID string, cursor *schedule.Cursor, limit int) (schedule.ListResult, error) {
+	return f.listFn(ctx, businessID, professionalID, cursor, limit)
 }
 
-func (f *fakeRepository) Get(ctx context.Context, barbershopID, barberID, workingHourID string) (schedule.WorkingHour, bool, error) {
-	return f.getFn(ctx, barbershopID, barberID, workingHourID)
+func (f *fakeRepository) Get(ctx context.Context, businessID, professionalID, workingHourID string) (schedule.WorkingHour, bool, error) {
+	return f.getFn(ctx, businessID, professionalID, workingHourID)
 }
 
-func (f *fakeRepository) Create(ctx context.Context, barbershopID, barberID string, input schedule.CreateInput, key idempotency.Key, fingerprint idempotency.Fingerprint) (schedule.CreateResult, error) {
+func (f *fakeRepository) Create(ctx context.Context, businessID, professionalID string, input schedule.CreateInput, key idempotency.Key, fingerprint idempotency.Fingerprint) (schedule.CreateResult, error) {
 	f.createCalls++
-	return f.createFn(ctx, barbershopID, barberID, input, key, fingerprint)
+	return f.createFn(ctx, businessID, professionalID, input, key, fingerprint)
 }
 
-func (f *fakeRepository) Update(ctx context.Context, barbershopID, barberID, workingHourID string, input schedule.UpdateInput) (schedule.UpdateResult, error) {
+func (f *fakeRepository) Update(ctx context.Context, businessID, professionalID, workingHourID string, input schedule.UpdateInput) (schedule.UpdateResult, error) {
 	f.updateCalls++
-	return f.updateFn(ctx, barbershopID, barberID, workingHourID, input)
+	return f.updateFn(ctx, businessID, professionalID, workingHourID, input)
 }
 
-func (f *fakeRepository) Delete(ctx context.Context, barbershopID, barberID, workingHourID string) (bool, error) {
+func (f *fakeRepository) Delete(ctx context.Context, businessID, professionalID, workingHourID string) (bool, error) {
 	f.deleteCalls++
-	return f.deleteFn(ctx, barbershopID, barberID, workingHourID)
+	return f.deleteFn(ctx, businessID, professionalID, workingHourID)
 }
 
-func (f *fakeRepository) GetHolidayCalendarEnabled(ctx context.Context, barbershopID, barberID string) (bool, bool, error) {
-	return f.getHolidayCalendarEnabledFn(ctx, barbershopID, barberID)
+func (f *fakeRepository) GetHolidayCalendarEnabled(ctx context.Context, businessID, professionalID string) (bool, bool, error) {
+	return f.getHolidayCalendarEnabledFn(ctx, businessID, professionalID)
 }
 
-func (f *fakeRepository) SetHolidayCalendarEnabled(ctx context.Context, barbershopID, barberID string, enabled bool) (schedule.HolidayCalendarResult, error) {
-	return f.setHolidayCalendarEnabledFn(ctx, barbershopID, barberID, enabled)
+func (f *fakeRepository) SetHolidayCalendarEnabled(ctx context.Context, businessID, professionalID string, enabled bool) (schedule.HolidayCalendarResult, error) {
+	return f.setHolidayCalendarEnabledFn(ctx, businessID, professionalID, enabled)
 }
 
-func (f *fakeRepository) ListExceptions(ctx context.Context, barbershopID, barberID string, cursor *schedule.ExceptionCursor, limit int) (schedule.ExceptionListResult, error) {
-	return f.listExceptionsFn(ctx, barbershopID, barberID, cursor, limit)
+func (f *fakeRepository) ListExceptions(ctx context.Context, businessID, professionalID string, cursor *schedule.ExceptionCursor, limit int) (schedule.ExceptionListResult, error) {
+	return f.listExceptionsFn(ctx, businessID, professionalID, cursor, limit)
 }
 
-func (f *fakeRepository) GetException(ctx context.Context, barbershopID, barberID, exceptionID string) (schedule.ScheduleException, bool, error) {
-	return f.getExceptionFn(ctx, barbershopID, barberID, exceptionID)
+func (f *fakeRepository) GetException(ctx context.Context, businessID, professionalID, exceptionID string) (schedule.ScheduleException, bool, error) {
+	return f.getExceptionFn(ctx, businessID, professionalID, exceptionID)
 }
 
-func (f *fakeRepository) GetExceptionByDate(ctx context.Context, barbershopID, barberID, effectiveDate string) (schedule.ScheduleException, bool, error) {
-	return f.getExceptionByDateFn(ctx, barbershopID, barberID, effectiveDate)
+func (f *fakeRepository) GetExceptionByDate(ctx context.Context, businessID, professionalID, effectiveDate string) (schedule.ScheduleException, bool, error) {
+	return f.getExceptionByDateFn(ctx, businessID, professionalID, effectiveDate)
 }
 
-func (f *fakeRepository) CreateException(ctx context.Context, barbershopID, barberID string, input schedule.CreateExceptionInput, key idempotency.Key, fingerprint idempotency.Fingerprint) (schedule.CreateExceptionResult, error) {
-	return f.createExceptionFn(ctx, barbershopID, barberID, input, key, fingerprint)
+func (f *fakeRepository) CreateException(ctx context.Context, businessID, professionalID string, input schedule.CreateExceptionInput, key idempotency.Key, fingerprint idempotency.Fingerprint) (schedule.CreateExceptionResult, error) {
+	return f.createExceptionFn(ctx, businessID, professionalID, input, key, fingerprint)
 }
 
-func (f *fakeRepository) UpdateException(ctx context.Context, barbershopID, barberID, exceptionID string, input schedule.UpdateExceptionInput) (schedule.UpdateExceptionResult, error) {
-	return f.updateExceptionFn(ctx, barbershopID, barberID, exceptionID, input)
+func (f *fakeRepository) UpdateException(ctx context.Context, businessID, professionalID, exceptionID string, input schedule.UpdateExceptionInput) (schedule.UpdateExceptionResult, error) {
+	return f.updateExceptionFn(ctx, businessID, professionalID, exceptionID, input)
 }
 
-func (f *fakeRepository) DeleteException(ctx context.Context, barbershopID, barberID, exceptionID string) (bool, error) {
-	return f.deleteExceptionFn(ctx, barbershopID, barberID, exceptionID)
+func (f *fakeRepository) DeleteException(ctx context.Context, businessID, professionalID, exceptionID string) (bool, error) {
+	return f.deleteExceptionFn(ctx, businessID, professionalID, exceptionID)
 }
 
-func (f *fakeRepository) ListWorkingHoursForWeekday(ctx context.Context, barbershopID, barberID string, isoWeekday int) ([]schedule.WorkingHour, error) {
-	return f.listWorkingHoursForWeekdayFn(ctx, barbershopID, barberID, isoWeekday)
+func (f *fakeRepository) ListWorkingHoursForWeekday(ctx context.Context, businessID, professionalID string, isoWeekday int) ([]schedule.WorkingHour, error) {
+	return f.listWorkingHoursForWeekdayFn(ctx, businessID, professionalID, isoWeekday)
 }
 
 var _ schedule.Repository = (*fakeRepository)(nil)
 
-// fakeBarberPort es un doble de schedule.BarberPort.
-type fakeBarberPort struct {
+// fakeProfessionalPort es un doble de schedule.ProfessionalPort.
+type fakeProfessionalPort struct {
 	exists bool
 	err    error
 }
 
-func (f fakeBarberPort) Exists(context.Context, string, string) (bool, error) {
+func (f fakeProfessionalPort) Exists(context.Context, string, string) (bool, error) {
 	return f.exists, f.err
 }
 
-var _ schedule.BarberPort = fakeBarberPort{}
+var _ schedule.ProfessionalPort = fakeProfessionalPort{}
 
-const validBarberID = "8f3ac2b1-e4d5-46f6-a7c8-d9e0f1a2b3c4"
+const validProfessionalID = "8f3ac2b1-e4d5-46f6-a7c8-d9e0f1a2b3c4"
 const validWorkingHourID = "6f1a2b3c-4d5e-4f60-8172-8394a5b6c7d8"
 
 func mustBeValidation(t *testing.T, err error) {
@@ -157,14 +157,14 @@ func mustBeConflict(t *testing.T, err error) {
 	}
 }
 
-// --- Create: validación de campos (CA-040-04), antes de BarberPort/repo --
+// --- Create: validación de campos (CA-040-04), antes de ProfessionalPort/repo --
 
-func TestCreate_InvalidWeekday_RejectedWithoutTouchingBarberPortOrRepository(t *testing.T) {
+func TestCreate_InvalidWeekday_RejectedWithoutTouchingProfessionalPortOrRepository(t *testing.T) {
 	repo := &fakeRepository{createFn: failCreateIfCalled(t)}
-	svc := schedule.NewService(repo, fakeBarberPort{})
+	svc := schedule.NewService(repo, fakeProfessionalPort{})
 
 	for _, day := range []int{0, 8, -1} {
-		_, err := svc.Create(context.Background(), "shop-1", validBarberID, day, "08:00", 60, "key-1", "a")
+		_, err := svc.Create(context.Background(), "shop-1", validProfessionalID, day, "08:00", 60, "key-1", "a")
 		mustBeValidation(t, err)
 	}
 	if repo.createCalls != 0 {
@@ -174,35 +174,35 @@ func TestCreate_InvalidWeekday_RejectedWithoutTouchingBarberPortOrRepository(t *
 
 func TestCreate_InvalidStartsTime_Rejected(t *testing.T) {
 	repo := &fakeRepository{createFn: failCreateIfCalled(t)}
-	svc := schedule.NewService(repo, fakeBarberPort{})
+	svc := schedule.NewService(repo, fakeProfessionalPort{})
 
-	_, err := svc.Create(context.Background(), "shop-1", validBarberID, 1, "8am", 60, "key-1", "a")
+	_, err := svc.Create(context.Background(), "shop-1", validProfessionalID, 1, "8am", 60, "key-1", "a")
 	mustBeValidation(t, err)
 }
 
 func TestCreate_InvalidDuration_Rejected(t *testing.T) {
 	repo := &fakeRepository{createFn: failCreateIfCalled(t)}
-	svc := schedule.NewService(repo, fakeBarberPort{})
+	svc := schedule.NewService(repo, fakeProfessionalPort{})
 
 	for _, duration := range []int{0, -1, 1441} {
-		_, err := svc.Create(context.Background(), "shop-1", validBarberID, 1, "08:00", duration, "key-1", "a")
+		_, err := svc.Create(context.Background(), "shop-1", validProfessionalID, 1, "08:00", duration, "key-1", "a")
 		mustBeValidation(t, err)
 	}
 }
 
-func TestCreate_MalformedBarberID_ReturnsNotFoundWithoutTouchingRepository(t *testing.T) {
+func TestCreate_MalformedProfessionalID_ReturnsNotFoundWithoutTouchingRepository(t *testing.T) {
 	repo := &fakeRepository{createFn: failCreateIfCalled(t)}
-	svc := schedule.NewService(repo, fakeBarberPort{exists: true})
+	svc := schedule.NewService(repo, fakeProfessionalPort{exists: true})
 
 	_, err := svc.Create(context.Background(), "shop-1", "not-a-uuid", 1, "08:00", 60, "key-1", "a")
 	mustBeNotFound(t, err)
 }
 
-func TestCreate_BarberNotFound_ReturnsNotFoundWithoutTouchingRepository(t *testing.T) {
+func TestCreate_ProfessionalNotFound_ReturnsNotFoundWithoutTouchingRepository(t *testing.T) {
 	repo := &fakeRepository{createFn: failCreateIfCalled(t)}
-	svc := schedule.NewService(repo, fakeBarberPort{exists: false})
+	svc := schedule.NewService(repo, fakeProfessionalPort{exists: false})
 
-	_, err := svc.Create(context.Background(), "shop-1", validBarberID, 1, "08:00", 60, "key-1", "a")
+	_, err := svc.Create(context.Background(), "shop-1", validProfessionalID, 1, "08:00", 60, "key-1", "a")
 	mustBeNotFound(t, err)
 }
 
@@ -213,43 +213,43 @@ func TestCreate_RepositoryConflict_TranslatesToConflict(t *testing.T) {
 			Conflict: true,
 		}, nil
 	}}
-	svc := schedule.NewService(repo, fakeBarberPort{exists: true})
+	svc := schedule.NewService(repo, fakeProfessionalPort{exists: true})
 
-	_, err := svc.Create(context.Background(), "shop-1", validBarberID, 1, "08:00", 60, "key-1", "a")
+	_, err := svc.Create(context.Background(), "shop-1", validProfessionalID, 1, "08:00", 60, "key-1", "a")
 	mustBeConflict(t, err)
 }
 
 func TestCreate_Success_PassesValidatedInputToRepository(t *testing.T) {
-	repo := &fakeRepository{createFn: func(_ context.Context, _, barberID string, input schedule.CreateInput, _ idempotency.Key, _ idempotency.Fingerprint) (schedule.CreateResult, error) {
-		if barberID != validBarberID {
-			t.Fatalf("expected barberID %q, got %q", validBarberID, barberID)
+	repo := &fakeRepository{createFn: func(_ context.Context, _, professionalID string, input schedule.CreateInput, _ idempotency.Key, _ idempotency.Fingerprint) (schedule.CreateResult, error) {
+		if professionalID != validProfessionalID {
+			t.Fatalf("expected professionalID %q, got %q", validProfessionalID, professionalID)
 		}
 		if input.ISOWeekday != 1 || input.StartsTime != "08:00" || input.DurationMinutes != 60 {
 			t.Fatalf("unexpected input: %+v", input)
 		}
 		return schedule.CreateResult{Decision: idempotency.Decision{Outcome: idempotency.OutcomeProceed}}, nil
 	}}
-	svc := schedule.NewService(repo, fakeBarberPort{exists: true})
+	svc := schedule.NewService(repo, fakeProfessionalPort{exists: true})
 
-	_, err := svc.Create(context.Background(), "shop-1", validBarberID, 1, "08:00", 60, "key-1", "a")
+	_, err := svc.Create(context.Background(), "shop-1", validProfessionalID, 1, "08:00", 60, "key-1", "a")
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
 }
 
-// --- Get: not-found unifica inexistente, ajeno y de otro barbero ---------
+// --- Get: not-found unifica inexistente, ajeno y de otro profesional ---------
 
 func TestGet_MalformedIDs_ReturnsNotFoundWithoutTouchingRepository(t *testing.T) {
 	repo := &fakeRepository{getFn: func(context.Context, string, string, string) (schedule.WorkingHour, bool, error) {
 		t.Fatal("repository must not be called for a malformed id")
 		return schedule.WorkingHour{}, false, nil
 	}}
-	svc := schedule.NewService(repo, fakeBarberPort{})
+	svc := schedule.NewService(repo, fakeProfessionalPort{})
 
 	_, err := svc.Get(context.Background(), "shop-1", "not-a-uuid", validWorkingHourID)
 	mustBeNotFound(t, err)
 
-	_, err = svc.Get(context.Background(), "shop-1", validBarberID, "not-a-uuid")
+	_, err = svc.Get(context.Background(), "shop-1", validProfessionalID, "not-a-uuid")
 	mustBeNotFound(t, err)
 }
 
@@ -257,9 +257,9 @@ func TestGet_NotFound_TranslatesToNotFound(t *testing.T) {
 	repo := &fakeRepository{getFn: func(context.Context, string, string, string) (schedule.WorkingHour, bool, error) {
 		return schedule.WorkingHour{}, false, nil
 	}}
-	svc := schedule.NewService(repo, fakeBarberPort{})
+	svc := schedule.NewService(repo, fakeProfessionalPort{})
 
-	_, err := svc.Get(context.Background(), "shop-1", validBarberID, validWorkingHourID)
+	_, err := svc.Get(context.Background(), "shop-1", validProfessionalID, validWorkingHourID)
 	mustBeNotFound(t, err)
 }
 
@@ -268,9 +268,9 @@ func TestGet_Found_ReturnsWorkingHour(t *testing.T) {
 	repo := &fakeRepository{getFn: func(context.Context, string, string, string) (schedule.WorkingHour, bool, error) {
 		return want, true, nil
 	}}
-	svc := schedule.NewService(repo, fakeBarberPort{})
+	svc := schedule.NewService(repo, fakeProfessionalPort{})
 
-	got, err := svc.Get(context.Background(), "shop-1", validBarberID, validWorkingHourID)
+	got, err := svc.Get(context.Background(), "shop-1", validProfessionalID, validWorkingHourID)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -286,9 +286,9 @@ func TestUpdate_InvalidInterval_RejectedWithoutTouchingRepository(t *testing.T) 
 		t.Fatal("repository must not be called for an invalid interval")
 		return schedule.UpdateResult{}, nil
 	}}
-	svc := schedule.NewService(repo, fakeBarberPort{})
+	svc := schedule.NewService(repo, fakeProfessionalPort{})
 
-	_, err := svc.Update(context.Background(), "shop-1", validBarberID, validWorkingHourID, 8, "08:00", 60)
+	_, err := svc.Update(context.Background(), "shop-1", validProfessionalID, validWorkingHourID, 8, "08:00", 60)
 	mustBeValidation(t, err)
 }
 
@@ -296,9 +296,9 @@ func TestUpdate_NotFound_TranslatesToNotFound(t *testing.T) {
 	repo := &fakeRepository{updateFn: func(context.Context, string, string, string, schedule.UpdateInput) (schedule.UpdateResult, error) {
 		return schedule.UpdateResult{Found: false}, nil
 	}}
-	svc := schedule.NewService(repo, fakeBarberPort{})
+	svc := schedule.NewService(repo, fakeProfessionalPort{})
 
-	_, err := svc.Update(context.Background(), "shop-1", validBarberID, validWorkingHourID, 1, "08:00", 60)
+	_, err := svc.Update(context.Background(), "shop-1", validProfessionalID, validWorkingHourID, 1, "08:00", 60)
 	mustBeNotFound(t, err)
 }
 
@@ -306,9 +306,9 @@ func TestUpdate_Conflict_TranslatesToConflict(t *testing.T) {
 	repo := &fakeRepository{updateFn: func(context.Context, string, string, string, schedule.UpdateInput) (schedule.UpdateResult, error) {
 		return schedule.UpdateResult{Found: true, Conflict: true}, nil
 	}}
-	svc := schedule.NewService(repo, fakeBarberPort{})
+	svc := schedule.NewService(repo, fakeProfessionalPort{})
 
-	_, err := svc.Update(context.Background(), "shop-1", validBarberID, validWorkingHourID, 1, "08:00", 60)
+	_, err := svc.Update(context.Background(), "shop-1", validProfessionalID, validWorkingHourID, 1, "08:00", 60)
 	mustBeConflict(t, err)
 }
 
@@ -317,9 +317,9 @@ func TestUpdate_Success_ReturnsUpdatedWorkingHour(t *testing.T) {
 	repo := &fakeRepository{updateFn: func(context.Context, string, string, string, schedule.UpdateInput) (schedule.UpdateResult, error) {
 		return schedule.UpdateResult{Found: true, WorkingHour: updated}, nil
 	}}
-	svc := schedule.NewService(repo, fakeBarberPort{})
+	svc := schedule.NewService(repo, fakeProfessionalPort{})
 
-	got, err := svc.Update(context.Background(), "shop-1", validBarberID, validWorkingHourID, 3, "10:00", 90)
+	got, err := svc.Update(context.Background(), "shop-1", validProfessionalID, validWorkingHourID, 3, "10:00", 90)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -335,7 +335,7 @@ func TestDelete_MalformedIDs_ReturnsNotFoundWithoutTouchingRepository(t *testing
 		t.Fatal("repository must not be called for a malformed id")
 		return false, nil
 	}}
-	svc := schedule.NewService(repo, fakeBarberPort{})
+	svc := schedule.NewService(repo, fakeProfessionalPort{})
 
 	err := svc.Delete(context.Background(), "shop-1", "not-a-uuid", validWorkingHourID)
 	mustBeNotFound(t, err)
@@ -345,9 +345,9 @@ func TestDelete_NotFound_TranslatesToNotFound(t *testing.T) {
 	repo := &fakeRepository{deleteFn: func(context.Context, string, string, string) (bool, error) {
 		return false, nil
 	}}
-	svc := schedule.NewService(repo, fakeBarberPort{})
+	svc := schedule.NewService(repo, fakeProfessionalPort{})
 
-	err := svc.Delete(context.Background(), "shop-1", validBarberID, validWorkingHourID)
+	err := svc.Delete(context.Background(), "shop-1", validProfessionalID, validWorkingHourID)
 	mustBeNotFound(t, err)
 }
 
@@ -355,23 +355,23 @@ func TestDelete_Found_Succeeds(t *testing.T) {
 	repo := &fakeRepository{deleteFn: func(context.Context, string, string, string) (bool, error) {
 		return true, nil
 	}}
-	svc := schedule.NewService(repo, fakeBarberPort{})
+	svc := schedule.NewService(repo, fakeProfessionalPort{})
 
-	if err := svc.Delete(context.Background(), "shop-1", validBarberID, validWorkingHourID); err != nil {
+	if err := svc.Delete(context.Background(), "shop-1", validProfessionalID, validWorkingHourID); err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
 }
 
-// --- List: clamping de limit, cursor y BarberPort -------------------------
+// --- List: clamping de limit, cursor y ProfessionalPort -------------------------
 
-func TestList_BarberNotFound_ReturnsNotFoundWithoutTouchingRepository(t *testing.T) {
+func TestList_ProfessionalNotFound_ReturnsNotFoundWithoutTouchingRepository(t *testing.T) {
 	repo := &fakeRepository{listFn: func(context.Context, string, string, *schedule.Cursor, int) (schedule.ListResult, error) {
-		t.Fatal("repository must not be called when the barber does not exist")
+		t.Fatal("repository must not be called when the professional does not exist")
 		return schedule.ListResult{}, nil
 	}}
-	svc := schedule.NewService(repo, fakeBarberPort{exists: false})
+	svc := schedule.NewService(repo, fakeProfessionalPort{exists: false})
 
-	_, err := svc.List(context.Background(), "shop-1", validBarberID, "", 10)
+	_, err := svc.List(context.Background(), "shop-1", validProfessionalID, "", 10)
 	mustBeNotFound(t, err)
 }
 
@@ -382,9 +382,9 @@ func TestList_ZeroLimit_UsesDefault(t *testing.T) {
 		}
 		return schedule.ListResult{}, nil
 	}}
-	svc := schedule.NewService(repo, fakeBarberPort{exists: true})
+	svc := schedule.NewService(repo, fakeProfessionalPort{exists: true})
 
-	if _, err := svc.List(context.Background(), "shop-1", validBarberID, "", 0); err != nil {
+	if _, err := svc.List(context.Background(), "shop-1", validProfessionalID, "", 0); err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
 }
@@ -396,9 +396,9 @@ func TestList_LimitAboveMax_Clamped(t *testing.T) {
 		}
 		return schedule.ListResult{}, nil
 	}}
-	svc := schedule.NewService(repo, fakeBarberPort{exists: true})
+	svc := schedule.NewService(repo, fakeProfessionalPort{exists: true})
 
-	if _, err := svc.List(context.Background(), "shop-1", validBarberID, "", 999999); err != nil {
+	if _, err := svc.List(context.Background(), "shop-1", validProfessionalID, "", 999999); err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
 }
@@ -413,9 +413,9 @@ func TestList_ValidCursor_DecodedAndPassedThrough(t *testing.T) {
 		}
 		return schedule.ListResult{}, nil
 	}}
-	svc := schedule.NewService(repo, fakeBarberPort{exists: true})
+	svc := schedule.NewService(repo, fakeProfessionalPort{exists: true})
 
-	if _, err := svc.List(context.Background(), "shop-1", validBarberID, token, 10); err != nil {
+	if _, err := svc.List(context.Background(), "shop-1", validProfessionalID, token, 10); err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
 }

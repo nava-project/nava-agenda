@@ -6,8 +6,8 @@ import (
 	"strings"
 	"time"
 
-	"system-barbershop/internal/platform/apperr"
-	"system-barbershop/internal/platform/clock"
+	"nava-agenda/internal/platform/apperr"
+	"nava-agenda/internal/platform/clock"
 )
 
 // dailyAgendaDateLayout es el único formato que ListDailyAgenda admite para
@@ -17,7 +17,7 @@ import (
 const dailyAgendaDateLayout = "2006-01-02"
 
 // DailyAgendaLimit acota la respuesta de ListDailyAgenda: un solo día de
-// un solo barbero nunca se acerca a este volumen en la práctica (HU-062,
+// un solo profesional nunca se acerca a este volumen en la práctica (HU-062,
 // "límite verificable"), pero el límite existe para que la consulta nunca
 // dependa de que el llamador se comporte bien.
 const DailyAgendaLimit = 300
@@ -38,56 +38,56 @@ type DailyAgendaEntry struct {
 	PriceAmountCentsSnapshot int64
 	CurrencySnapshot         string
 	// HomeService es la dirección del cliente cuando el turno es a domicilio
-	// (DEC-131): el barbero la necesita para saber a dónde ir. nil en el local.
+	// (DEC-131): el profesional la necesita para saber a dónde ir. nil en el local.
 	HomeService *HomeService
 }
 
 // AgendaService implementa el caso de uso de lectura de HU-062: agenda
-// diaria de un único barbero (DEC-074), calculada en la zona IANA de la
-// barbería, con un turno nocturno visible en cada agenda diaria cuyo rango
+// diaria de un único profesional (DEC-074), calculada en la zona IANA de la
+// negocio, con un turno nocturno visible en cada agenda diaria cuyo rango
 // interseca su intervalo (DEC-075). Colabora con staff/shops exclusivamente
-// mediante BarberPort/TimezonePort, mismo criterio que ManualBookingService
+// mediante ProfessionalPort/TimezonePort, mismo criterio que ManualBookingService
 // frente a catalog/schedule/shops.
 type AgendaService struct {
-	repo      Repository
-	barbers   BarberPort
-	timezones TimezonePort
-	clock     clock.Clock
+	repo          Repository
+	professionals ProfessionalPort
+	timezones     TimezonePort
+	clock         clock.Clock
 }
 
 // NewAgendaService construye el caso de uso a partir de sus cuatro
 // colaboradores.
-func NewAgendaService(repo Repository, barbers BarberPort, timezones TimezonePort, clk clock.Clock) *AgendaService {
-	return &AgendaService{repo: repo, barbers: barbers, timezones: timezones, clock: clk}
+func NewAgendaService(repo Repository, professionals ProfessionalPort, timezones TimezonePort, clk clock.Clock) *AgendaService {
+	return &AgendaService{repo: repo, professionals: professionals, timezones: timezones, clock: clk}
 }
 
 // ListDailyAgenda devuelve, ordenadas por StartsAt y luego por ID, las citas
-// del barbero barberID cuyo intervalo interseca el rango civil de
+// del profesional professionalID cuyo intervalo interseca el rango civil de
 // dateLocal (DEC-075). dateLocal vacío significa "hoy" en la zona de la
-// barbería, resuelto a partir de s.clock.Now() (nunca time.Now
-// directamente, docs/03-desarrollo/estandar-backend-go.md). Un barberID con
-// forma inválida, inexistente o de otra barbería responde el mismo
+// negocio, resuelto a partir de s.clock.Now() (nunca time.Now
+// directamente, docs/03-desarrollo/estandar-backend-go.md). Un professionalID con
+// forma inválida, inexistente o de otro negocio responde el mismo
 // apperr.NotFound (DEC-074, RN-TEN-01), verificado ANTES de tocar el
 // repositorio (mismo criterio que schedule.Service.List).
-func (s *AgendaService) ListDailyAgenda(ctx context.Context, barbershopID, barberID, dateLocal string) ([]DailyAgendaEntry, error) {
+func (s *AgendaService) ListDailyAgenda(ctx context.Context, businessID, professionalID, dateLocal string) ([]DailyAgendaEntry, error) {
 	if err := ctx.Err(); err != nil {
 		return nil, apperr.Internal(fmt.Errorf("booking: contexto cancelado antes de listar la agenda diaria: %w", err))
 	}
 
-	barberID = strings.TrimSpace(barberID)
-	if !LooksLikeBarberID(barberID) {
-		return nil, errBarberNotFound()
+	professionalID = strings.TrimSpace(professionalID)
+	if !LooksLikeProfessionalID(professionalID) {
+		return nil, errProfessionalNotFound()
 	}
 
-	exists, err := s.barbers.Exists(ctx, barbershopID, barberID)
+	exists, err := s.professionals.Exists(ctx, businessID, professionalID)
 	if err != nil {
-		return nil, apperr.Internal(fmt.Errorf("booking: verificar barbero para la agenda diaria: %w", err))
+		return nil, apperr.Internal(fmt.Errorf("booking: verificar profesional para la agenda diaria: %w", err))
 	}
 	if !exists {
-		return nil, errBarberNotFound()
+		return nil, errProfessionalNotFound()
 	}
 
-	timezone, err := s.timezones.Timezone(ctx, barbershopID)
+	timezone, err := s.timezones.Timezone(ctx, businessID)
 	if err != nil {
 		return nil, err
 	}
@@ -109,7 +109,7 @@ func (s *AgendaService) ListDailyAgenda(ctx context.Context, barbershopID, barbe
 	rangeStart := time.Date(day.Year(), day.Month(), day.Day(), 0, 0, 0, 0, loc)
 	rangeEnd := time.Date(day.Year(), day.Month(), day.Day()+1, 0, 0, 0, 0, loc)
 
-	entries, err := s.repo.ListDailyAgenda(ctx, barbershopID, barberID, rangeStart, rangeEnd)
+	entries, err := s.repo.ListDailyAgenda(ctx, businessID, professionalID, rangeStart, rangeEnd)
 	if err != nil {
 		return nil, apperr.Internal(fmt.Errorf("booking: listar agenda diaria: %w", err))
 	}
@@ -118,7 +118,7 @@ func (s *AgendaService) ListDailyAgenda(ctx context.Context, barbershopID, barbe
 
 // resolveCivilDate interpreta raw como fecha civil en loc. raw vacío
 // devuelve "hoy": now (ya resuelto por el reloj inyectado) convertido a la
-// zona de la barbería. Un raw no vacío que no cumple
+// zona del negocio. Un raw no vacío que no cumple
 // dailyAgendaDateLayout, o que trae hora/zona, se rechaza.
 func resolveCivilDate(raw string, loc *time.Location, now time.Time) (time.Time, error) {
 	trimmed := strings.TrimSpace(raw)

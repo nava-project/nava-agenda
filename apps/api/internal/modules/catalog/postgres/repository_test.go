@@ -1,11 +1,11 @@
 // Package postgres_test (pruebas de integración, HU-022) requiere
 // PostgreSQL REAL con las once migraciones aplicadas (incluida
-// 20260824140000_create_service.sql) y database/testdata/dos_barberias.sql +
+// 20260824140000_create_service.sql) y database/testdata/dos_negocios.sql +
 // database/testdata/hu022_catalogo.sql cargados. Conéctate como
-// barberia_app (docs/03-desarrollo/estrategia-pruebas.md §2 prohíbe mocks
+// agenda_app (docs/03-desarrollo/estrategia-pruebas.md §2 prohíbe mocks
 // para RLS/idempotencia/atomicidad).
 //
-//	export TEST_DATABASE_URL="postgres://barberia_app:app_test@localhost:5432/barberia_test?sslmode=disable"
+//	export TEST_DATABASE_URL="postgres://agenda_app:app_test@localhost:5432/postgres?sslmode=disable"
 //	go test -race ./internal/modules/catalog/postgres/...
 package postgres_test
 
@@ -19,23 +19,23 @@ import (
 	"testing"
 	"time"
 
-	"system-barbershop/internal/modules/catalog"
-	catalogpostgres "system-barbershop/internal/modules/catalog/postgres"
-	"system-barbershop/internal/platform/apperr"
-	"system-barbershop/internal/platform/config"
-	"system-barbershop/internal/platform/database"
-	"system-barbershop/internal/platform/idempotency"
+	"nava-agenda/internal/modules/catalog"
+	catalogpostgres "nava-agenda/internal/modules/catalog/postgres"
+	"nava-agenda/internal/platform/apperr"
+	"nava-agenda/internal/platform/config"
+	"nava-agenda/internal/platform/database"
+	"nava-agenda/internal/platform/idempotency"
 )
 
 const (
 	testDatabaseURL = "postgres://agenda_app@localhost:5432/barberia_test?sslmode=disable"
 
-	// shopE/shopF son las dos barberías dedicadas de
-	// testdata/hu022_catalogo.sql: aisladas de dos_barberias.sql y
-	// hu021_barberos.sql para que un conteo exacto de servicios en una
+	// shopE/shopF son los dos negocios dedicados de
+	// testdata/hu022_catalogo.sql: aisladas de dos_negocios.sql y
+	// hu021_profesionales.sql para que un conteo exacto de servicios en una
 	// página no dependa de lo que otras suites hagan sobre shopA-shopD.
-	shopE = database.BarbershopID("55555555-5555-5555-5555-555555555555")
-	shopF = database.BarbershopID("66666666-6666-6666-6666-666666666666")
+	shopE = database.BusinessID("55555555-5555-5555-5555-555555555555")
+	shopF = database.BusinessID("66666666-6666-6666-6666-666666666666")
 )
 
 func setupTestDB(t *testing.T) *database.DB {
@@ -66,7 +66,7 @@ func newRepository(db *database.DB) *catalogpostgres.Repository {
 }
 
 // uniqueSuffix evita colisiones entre ejecuciones repetidas de la suite
-// contra el mismo PostgreSQL persistente (barberia_app no puede DELETE,
+// contra el mismo PostgreSQL persistente (agenda_app no puede DELETE,
 // RN-SER-03, así que las filas de una corrida anterior siguen ahí): cada
 // prueba usa nombres/claves con un sufijo aleatorio propio.
 func uniqueSuffix(t *testing.T) string {
@@ -82,7 +82,7 @@ func validInput(name string) catalog.CreateInput {
 	return catalog.CreateInput{Name: name, DurationMinutes: 30, PriceCents: 4500000}
 }
 
-func createService(t *testing.T, repo *catalogpostgres.Repository, shop database.BarbershopID, name string) catalog.Service {
+func createService(t *testing.T, repo *catalogpostgres.Repository, shop database.BusinessID, name string) catalog.Service {
 	t.Helper()
 	key := idempotency.Key("fixture-" + uniqueSuffix(t))
 	fp := idempotency.ComputeFingerprint("POST", "/api/v1/private/services", []byte(`{"name":"`+name+`"}`))
@@ -277,7 +277,7 @@ func TestGet_CrossTenant_NeverLeaksAnotherShopsService(t *testing.T) {
 	repo := newRepository(db)
 	suffix := uniqueSuffix(t)
 
-	serviceF := createService(t, repo, shopF, "De la barbería F "+suffix)
+	serviceF := createService(t, repo, shopF, "Del negocio F "+suffix)
 
 	_, found, err := repo.Get(context.Background(), string(shopE), serviceF.ID)
 	if err != nil {
@@ -440,7 +440,7 @@ func TestUpdate_NotFound_ReturnsFoundFalse(t *testing.T) {
 	}
 }
 
-// --- DEC-067: nombre único entre servicios ACTIVOS de la misma barbería --
+// --- DEC-067: nombre único entre servicios ACTIVOS del mismo negocio --
 
 func TestCreate_DuplicateActiveName_ReturnsNameTakenWithoutPersisting(t *testing.T) {
 	db := setupTestDB(t)
@@ -486,7 +486,7 @@ func TestCreate_DuplicateActiveName_ReturnsNameTakenWithoutPersisting(t *testing
 }
 
 func TestCreate_SameNameDifferentTenants_BothSucceed(t *testing.T) {
-	// DEC-067 restringe la unicidad a la MISMA barbería: dos barberías
+	// DEC-067 restringe la unicidad al mismo negocio: dos negocios
 	// distintas pueden usar el mismo nombre exacto sin conflicto.
 	db := setupTestDB(t)
 	repo := newRepository(db)
@@ -714,7 +714,7 @@ func TestCreate_TwoRealConcurrentConnections_SingleEffect(t *testing.T) {
 }
 
 func TestCreate_SameKeyLiteralInTwoTenants_DoesNotInterfere(t *testing.T) {
-	// CA-004-04/RN-TEN-01: la misma clave literal en dos barberías distintas
+	// CA-004-04/RN-TEN-01: la misma clave literal en dos negocios distintos
 	// no interfiere: cada una procede de forma independiente.
 	db := setupTestDB(t)
 	repo := newRepository(db)

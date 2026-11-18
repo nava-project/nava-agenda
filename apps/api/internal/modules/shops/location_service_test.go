@@ -10,7 +10,7 @@ import (
 	"strings"
 	"testing"
 
-	"system-barbershop/internal/modules/shops"
+	"nava-agenda/internal/modules/shops"
 )
 
 type fakeGeocoder struct {

@@ -7,7 +7,7 @@ import (
 
 // ColombianHoliday es un festivo colombiano de un año calendario
 // (HU-041, RN-BLQ-02): fecha civil y nombre. Dato de referencia
-// calendárica, igual para toda barbería y todo barbero.
+// calendárica, igual para todo negocio y todo profesional.
 type ColombianHoliday struct {
 	Date time.Time // Medianoche UTC del día civil; solo la fecha importa.
 	Name string

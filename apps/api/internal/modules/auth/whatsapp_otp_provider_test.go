@@ -4,8 +4,8 @@ import (
 	"context"
 	"testing"
 
-	"system-barbershop/internal/modules/auth"
-	"system-barbershop/internal/platform/apperr"
+	"nava-agenda/internal/modules/auth"
+	"nava-agenda/internal/platform/apperr"
 )
 
 // fakeOTPProvider reemplaza al transporte de WhatsApp sin tráfico real. El

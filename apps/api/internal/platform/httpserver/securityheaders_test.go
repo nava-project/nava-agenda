@@ -5,7 +5,7 @@ import (
 	"net/http/httptest"
 	"testing"
 
-	"system-barbershop/internal/platform/httpserver"
+	"nava-agenda/internal/platform/httpserver"
 )
 
 func TestSecurityHeaders_SetsExpectedHeaders(t *testing.T) {

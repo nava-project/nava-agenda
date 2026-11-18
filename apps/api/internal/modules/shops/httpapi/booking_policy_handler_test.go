@@ -7,8 +7,8 @@ import (
 	"net/http/httptest"
 	"testing"
 
-	"system-barbershop/internal/modules/shops"
-	"system-barbershop/internal/modules/shops/httpapi"
+	"nava-agenda/internal/modules/shops"
+	"nava-agenda/internal/modules/shops/httpapi"
 )
 
 // fakeBookingPolicyRepository es un doble en memoria de
@@ -25,8 +25,8 @@ type fakeBookingPolicyRepository struct {
 	updateResult shops.BookingPolicyUpdateResult
 	updateErr    error
 	updateCalls  []struct {
-		barbershopID string
-		input        shops.BookingPolicyUpdateInput
+		businessID string
+		input      shops.BookingPolicyUpdateInput
 	}
 }
 
@@ -34,11 +34,11 @@ func (f *fakeBookingPolicyRepository) Get(_ context.Context, _ string) (shops.Bo
 	return f.getPolicy, f.getFound, f.getErr
 }
 
-func (f *fakeBookingPolicyRepository) Update(_ context.Context, barbershopID string, input shops.BookingPolicyUpdateInput) (shops.BookingPolicyUpdateResult, error) {
+func (f *fakeBookingPolicyRepository) Update(_ context.Context, businessID string, input shops.BookingPolicyUpdateInput) (shops.BookingPolicyUpdateResult, error) {
 	f.updateCalls = append(f.updateCalls, struct {
-		barbershopID string
-		input        shops.BookingPolicyUpdateInput
-	}{barbershopID, input})
+		businessID string
+		input      shops.BookingPolicyUpdateInput
+	}{businessID, input})
 	return f.updateResult, f.updateErr
 }
 
@@ -139,8 +139,8 @@ func TestUpdateBookingPolicyHandler_Success_ReturnsSavedRepresentation(t *testin
 	if len(repo.updateCalls) != 1 {
 		t.Fatalf("expected exactly one Update call, got %d", len(repo.updateCalls))
 	}
-	if repo.updateCalls[0].barbershopID != testShopID {
-		t.Fatalf("expected barbershopID=%q from the principal, got %q", testShopID, repo.updateCalls[0].barbershopID)
+	if repo.updateCalls[0].businessID != testShopID {
+		t.Fatalf("expected businessID=%q from the principal, got %q", testShopID, repo.updateCalls[0].businessID)
 	}
 	if repo.updateCalls[0].input.ExpectedVersionToken != "tok-1" {
 		t.Fatalf("expected the If-Match header to reach the service as ExpectedVersionToken, got %+v", repo.updateCalls[0].input)
@@ -172,7 +172,7 @@ func TestUpdateBookingPolicyHandler_UnknownField_ReturnsInvalidRequest(t *testin
 	rec := httptest.NewRecorder()
 	h.ServeHTTP(rec, req)
 
-	// CA-093-03: barbershopId nunca se acepta como campo del cuerpo.
+	// CA-093-03: businessId nunca se acepta como campo del cuerpo.
 	if rec.Code != http.StatusBadRequest {
 		t.Fatalf("expected 400, got %d: %s", rec.Code, rec.Body.String())
 	}

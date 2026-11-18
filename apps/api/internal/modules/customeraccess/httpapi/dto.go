@@ -10,12 +10,12 @@ import "time"
 // shops/httpapi.BookingPolicyResponse (HU-093): la política vigente de
 // cancelación, no un snapshot fijado al reservar.
 type CustomerAppointmentResponse struct {
-	BarbershopName                 string    `json:"businessName"`
+	BusinessName                   string    `json:"businessName"`
 	Timezone                       string    `json:"timezone"`
 	AttendeeName                   string    `json:"attendeeName"`
 	ServiceName                    string    `json:"serviceName"`
 	DurationMinutes                int       `json:"durationMinutes"`
-	BarberName                     string    `json:"professionalName"`
+	ProfessionalName               string    `json:"professionalName"`
 	StartsAt                       time.Time `json:"startsAt"`
 	EndsAt                         time.Time `json:"endsAt"`
 	Status                         string    `json:"status"`
@@ -25,11 +25,11 @@ type CustomerAppointmentResponse struct {
 
 	Vocabulary PublicVocabularyResponse `json:"vocabulary"`
 
-	// VersionToken es el If-Match de la cancelación (HU-099); BarbershopContact*
+	// VersionToken es el If-Match de la cancelación (HU-099); BusinessContact*
 	// es el contacto público opcional al que acudir si la política la rechaza.
-	VersionToken           string  `json:"versionToken"`
-	BarbershopContactEmail *string `json:"businessContactEmail"`
-	BarbershopContactPhone *string `json:"businessContactPhone"`
+	VersionToken         string  `json:"versionToken"`
+	BusinessContactEmail *string `json:"businessContactEmail"`
+	BusinessContactPhone *string `json:"businessContactPhone"`
 
 	// CanReview y Review (HU-100): la acción «Calificar» solo se ofrece con el
 	// turno completado y sin reseña; Review es la que el cliente ya dejó.
@@ -51,9 +51,9 @@ type CustomerReviewResponse struct {
 }
 
 // PublicVocabularyResponse es la forma exacta del componente OpenAPI
-// PublicVocabulary.yaml (DEC-119): las palabras con las que la barbería nombra a
+// PublicVocabulary.yaml (DEC-119): las palabras con las que el negocio nombra a
 // su negocio y a su profesional, para que el cliente lea «tu manicurista» y no
-// «tu barbero». Nunca el acento ni el perfil del panel.
+// «tu profesional». Nunca el acento ni el perfil del panel.
 type PublicVocabularyResponse struct {
 	BusinessTerm           string `json:"businessTerm"`
 	BusinessTermGender     string `json:"businessTermGender"`
@@ -71,7 +71,7 @@ type CancelAppointmentRequest struct {
 
 // RescheduleSlotsResponse es la forma de CustomerRescheduleSlots.yaml
 // (HU-104): los inicios a los que el cliente puede mover su turno, en orden
-// cronológico, con la zona de la barbería para agruparlos por fecha civil.
+// cronológico, con la zona del negocio para agruparlos por fecha civil.
 type RescheduleSlotsResponse struct {
 	Timezone string      `json:"timezone"`
 	Starts   []time.Time `json:"starts"`

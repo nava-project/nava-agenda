@@ -12,11 +12,11 @@ import (
 	"strings"
 	"testing"
 
-	"system-barbershop/internal/modules/customeraccess"
-	"system-barbershop/internal/modules/customeraccess/httpapi"
-	"system-barbershop/internal/platform/apperr"
-	"system-barbershop/internal/platform/httpserver"
-	"system-barbershop/internal/platform/idempotency"
+	"nava-agenda/internal/modules/customeraccess"
+	"nava-agenda/internal/modules/customeraccess/httpapi"
+	"nava-agenda/internal/platform/apperr"
+	"nava-agenda/internal/platform/httpserver"
+	"nava-agenda/internal/platform/idempotency"
 )
 
 type fakeCanceller struct {
@@ -41,7 +41,7 @@ func (f *fakeCanceller) CancelAppointment(
 func cancelHandler(canceller *fakeCanceller, found bool) *httpapi.CancelAppointmentHandler {
 	repo := &fakeRepository{
 		targetFound: found,
-		target:      customeraccess.CancellationTarget{BarbershopID: "shop-1", AppointmentID: "appt-1"},
+		target:      customeraccess.CancellationTarget{BusinessID: "shop-1", AppointmentID: "appt-1"},
 	}
 	return httpapi.NewCancelAppointmentHandler(customeraccess.NewService(repo, customeraccess.WithCanceller(canceller)))
 }

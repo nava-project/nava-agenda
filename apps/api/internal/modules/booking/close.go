@@ -6,15 +6,15 @@ import (
 	"strings"
 	"time"
 
-	"system-barbershop/internal/platform/apperr"
-	"system-barbershop/internal/platform/clock"
-	"system-barbershop/internal/platform/idempotency"
+	"nava-agenda/internal/platform/apperr"
+	"nava-agenda/internal/platform/clock"
+	"nava-agenda/internal/platform/idempotency"
 )
 
 // CloseAppointmentRequest es la entrada cruda, compartida por T4 manual
-// (completar) y T7 (marcar inasistencia) de HU-067: el barbero autenticado
+// (completar) y T7 (marcar inasistencia) de HU-067: el profesional autenticado
 // cierra una cita `confirmed` cuyo starts_at ya pasó. Mismo criterio que
-// CancelAppointmentByBarberRequest: sin ningún campo de estado/actor/tiempo
+// CancelAppointmentByProfessionalRequest: sin ningún campo de estado/actor/tiempo
 // aceptado desde el cliente (CA-067-*, "el servidor no acepta un estado o
 // actor enviado por el body").
 type CloseAppointmentRequest struct {
@@ -44,7 +44,7 @@ type CloseAppointmentInput struct {
 // Status final distinto.
 type ClosedAppointment struct {
 	ID                       string
-	BarberID                 string
+	ProfessionalID           string
 	ServiceID                string
 	CustomerID               string
 	AttendeeName             string
@@ -63,7 +63,7 @@ type ClosedAppointment struct {
 
 // CompleteAppointmentResult es el desenlace de un intento de cierre como
 // `completed` idempotente (RN-IDE-01, DEC-043), mismo criterio que
-// CancelAppointmentByBarberResult.
+// CancelAppointmentByProfessionalResult.
 type CompleteAppointmentResult struct {
 	Decision    idempotency.Decision
 	Appointment ClosedAppointment
@@ -81,7 +81,7 @@ type MarkNoShowResult struct {
 
 // validateCloseRequest aplica, para ambos comandos, la validación de forma
 // compartida antes de tocar el repositorio (mismo orden que
-// CancelAppointmentByBarberService): un fallo aquí nunca reclama una clave
+// CancelAppointmentByProfessionalService): un fallo aquí nunca reclama una clave
 // de idempotencia.
 func validateCloseRequest(req CloseAppointmentRequest) (appointmentID, expectedVersionToken string, actor Actor, err error) {
 	appointmentID = strings.TrimSpace(req.AppointmentID)
@@ -123,7 +123,7 @@ func NewCompleteAppointmentService(repo Repository, clk clock.Clock) *CompleteAp
 // toca ninguna fila ni reclama una clave de idempotencia.
 func (s *CompleteAppointmentService) CompleteAppointment(
 	ctx context.Context,
-	barbershopID string,
+	businessID string,
 	req CloseAppointmentRequest,
 	key idempotency.Key,
 	fingerprint idempotency.Fingerprint,
@@ -144,7 +144,7 @@ func (s *CompleteAppointmentService) CompleteAppointment(
 		Now:                  s.clock.Now(),
 	}
 
-	return s.repo.CompleteAppointment(ctx, barbershopID, input, key, fingerprint)
+	return s.repo.CompleteAppointment(ctx, businessID, input, key, fingerprint)
 }
 
 // MarkNoShowService implementa T7 (HU-067): cierra una cita `confirmed`
@@ -164,7 +164,7 @@ func NewMarkNoShowService(repo Repository, clk clock.Clock) *MarkNoShowService {
 // verificación autoritativa dentro del repositorio que CompleteAppointment.
 func (s *MarkNoShowService) MarkNoShow(
 	ctx context.Context,
-	barbershopID string,
+	businessID string,
 	req CloseAppointmentRequest,
 	key idempotency.Key,
 	fingerprint idempotency.Fingerprint,
@@ -185,5 +185,5 @@ func (s *MarkNoShowService) MarkNoShow(
 		Now:                  s.clock.Now(),
 	}
 
-	return s.repo.MarkNoShow(ctx, barbershopID, input, key, fingerprint)
+	return s.repo.MarkNoShow(ctx, businessID, input, key, fingerprint)
 }

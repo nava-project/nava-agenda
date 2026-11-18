@@ -8,7 +8,7 @@ import (
 	"strings"
 	"testing"
 
-	"system-barbershop/internal/modules/notification"
+	"nava-agenda/internal/modules/notification"
 )
 
 func newLoginChallengeSenderAgainstTestServer(t *testing.T, srv *httptest.Server) notification.ResendLoginChallengeEmailSender {

@@ -6,113 +6,113 @@ import (
 	"testing"
 	"time"
 
-	"system-barbershop/internal/modules/catalog"
-	"system-barbershop/internal/platform/apperr"
+	"nava-agenda/internal/modules/catalog"
+	"nava-agenda/internal/platform/apperr"
 )
 
 // fakeAssignmentRepository es un doble de catalog.AssignmentRepository:
 // prueba solo la orquestación de catalog.AssignmentService (validación de
-// forma, consulta al puerto de barbero ANTES de tocar el repositorio,
+// forma, consulta al puerto de profesional ANTES de tocar el repositorio,
 // traducción de Outcome a apperr), nunca SQL ni RLS (eso vive en
 // postgres/assignment_repository_test.go contra PostgreSQL real).
 type fakeAssignmentRepository struct {
-	listFn     func(ctx context.Context, barbershopID, barberID string, cursor *catalog.Cursor, limit int) (catalog.AssignmentListResult, error)
-	assignFn   func(ctx context.Context, barbershopID, barberID, serviceID string) (catalog.AssignResult, error)
-	unassignFn func(ctx context.Context, barbershopID, barberID, serviceID string) (catalog.UnassignResult, error)
-	existsFn   func(ctx context.Context, barbershopID, barberID, serviceID string) (bool, error)
+	listFn     func(ctx context.Context, businessID, professionalID string, cursor *catalog.Cursor, limit int) (catalog.AssignmentListResult, error)
+	assignFn   func(ctx context.Context, businessID, professionalID, serviceID string) (catalog.AssignResult, error)
+	unassignFn func(ctx context.Context, businessID, professionalID, serviceID string) (catalog.UnassignResult, error)
+	existsFn   func(ctx context.Context, businessID, professionalID, serviceID string) (bool, error)
 
 	assignCalls   int
 	unassignCalls int
 }
 
-func (f *fakeAssignmentRepository) Exists(ctx context.Context, barbershopID, barberID, serviceID string) (bool, error) {
+func (f *fakeAssignmentRepository) Exists(ctx context.Context, businessID, professionalID, serviceID string) (bool, error) {
 	if f.existsFn == nil {
 		return false, nil
 	}
-	return f.existsFn(ctx, barbershopID, barberID, serviceID)
+	return f.existsFn(ctx, businessID, professionalID, serviceID)
 }
 
-func (f *fakeAssignmentRepository) List(ctx context.Context, barbershopID, barberID string, cursor *catalog.Cursor, limit int) (catalog.AssignmentListResult, error) {
-	return f.listFn(ctx, barbershopID, barberID, cursor, limit)
+func (f *fakeAssignmentRepository) List(ctx context.Context, businessID, professionalID string, cursor *catalog.Cursor, limit int) (catalog.AssignmentListResult, error) {
+	return f.listFn(ctx, businessID, professionalID, cursor, limit)
 }
 
-func (f *fakeAssignmentRepository) Assign(ctx context.Context, barbershopID, barberID, serviceID string) (catalog.AssignResult, error) {
+func (f *fakeAssignmentRepository) Assign(ctx context.Context, businessID, professionalID, serviceID string) (catalog.AssignResult, error) {
 	f.assignCalls++
-	return f.assignFn(ctx, barbershopID, barberID, serviceID)
+	return f.assignFn(ctx, businessID, professionalID, serviceID)
 }
 
-func (f *fakeAssignmentRepository) Unassign(ctx context.Context, barbershopID, barberID, serviceID string) (catalog.UnassignResult, error) {
+func (f *fakeAssignmentRepository) Unassign(ctx context.Context, businessID, professionalID, serviceID string) (catalog.UnassignResult, error) {
 	f.unassignCalls++
-	return f.unassignFn(ctx, barbershopID, barberID, serviceID)
+	return f.unassignFn(ctx, businessID, professionalID, serviceID)
 }
 
 var _ catalog.AssignmentRepository = (*fakeAssignmentRepository)(nil)
 
-// fakeBarberPort es un doble de catalog.BarberPort: nunca toca staff ni
+// fakeProfessionalPort es un doble de catalog.ProfessionalPort: nunca toca staff ni
 // PostgreSQL.
-type fakeBarberPort struct {
-	existsFn func(ctx context.Context, barbershopID, barberID string) (bool, error)
+type fakeProfessionalPort struct {
+	existsFn func(ctx context.Context, businessID, professionalID string) (bool, error)
 	calls    int
 }
 
-func (f *fakeBarberPort) Exists(ctx context.Context, barbershopID, barberID string) (bool, error) {
+func (f *fakeProfessionalPort) Exists(ctx context.Context, businessID, professionalID string) (bool, error) {
 	f.calls++
-	return f.existsFn(ctx, barbershopID, barberID)
+	return f.existsFn(ctx, businessID, professionalID)
 }
 
-var _ catalog.BarberPort = (*fakeBarberPort)(nil)
+var _ catalog.ProfessionalPort = (*fakeProfessionalPort)(nil)
 
 const (
-	fakeShop    = "11111111-1111-1111-1111-111111111111"
-	fakeBarber  = "22222222-2222-2222-2222-222222222222"
-	fakeService = "33333333-3333-3333-3333-333333333333"
+	fakeShop         = "11111111-1111-1111-1111-111111111111"
+	fakeProfessional = "22222222-2222-2222-2222-222222222222"
+	fakeService      = "33333333-3333-3333-3333-333333333333"
 )
 
-func alwaysExists() *fakeBarberPort {
-	return &fakeBarberPort{existsFn: func(context.Context, string, string) (bool, error) { return true, nil }}
+func alwaysExists() *fakeProfessionalPort {
+	return &fakeProfessionalPort{existsFn: func(context.Context, string, string) (bool, error) { return true, nil }}
 }
 
 // --- List -------------------------------------------------------------
 
-func TestAssignmentService_List_UnknownBarberID_NotFoundWithoutTouchingRepository(t *testing.T) {
+func TestAssignmentService_List_UnknownProfessionalID_NotFoundWithoutTouchingRepository(t *testing.T) {
 	repo := &fakeAssignmentRepository{}
-	barbers := &fakeBarberPort{existsFn: func(context.Context, string, string) (bool, error) { return false, nil }}
-	svc := catalog.NewAssignmentService(repo, barbers)
+	professionals := &fakeProfessionalPort{existsFn: func(context.Context, string, string) (bool, error) { return false, nil }}
+	svc := catalog.NewAssignmentService(repo, professionals)
 
-	_, err := svc.List(context.Background(), fakeShop, fakeBarber, "", 0)
+	_, err := svc.List(context.Background(), fakeShop, fakeProfessional, "", 0)
 	mustBeNotFound(t, err)
-	if barbers.calls != 1 {
-		t.Fatalf("expected exactly one BarberPort.Exists call, got %d", barbers.calls)
+	if professionals.calls != 1 {
+		t.Fatalf("expected exactly one ProfessionalPort.Exists call, got %d", professionals.calls)
 	}
 }
 
-func TestAssignmentService_List_MalformedBarberID_NotFoundWithoutCallingPort(t *testing.T) {
+func TestAssignmentService_List_MalformedProfessionalID_NotFoundWithoutCallingPort(t *testing.T) {
 	repo := &fakeAssignmentRepository{}
-	barbers := &fakeBarberPort{existsFn: func(context.Context, string, string) (bool, error) {
-		t.Fatal("BarberPort.Exists should not be called for a malformed id")
+	professionals := &fakeProfessionalPort{existsFn: func(context.Context, string, string) (bool, error) {
+		t.Fatal("ProfessionalPort.Exists should not be called for a malformed id")
 		return false, nil
 	}}
-	svc := catalog.NewAssignmentService(repo, barbers)
+	svc := catalog.NewAssignmentService(repo, professionals)
 
 	_, err := svc.List(context.Background(), fakeShop, "not-a-uuid", "", 0)
 	mustBeNotFound(t, err)
 }
 
-func TestAssignmentService_List_KnownBarber_ReturnsRepositoryResult(t *testing.T) {
+func TestAssignmentService_List_KnownProfessional_ReturnsRepositoryResult(t *testing.T) {
 	want := catalog.AssignmentListResult{
-		Items: []catalog.Assignment{{BarberID: fakeBarber, ServiceID: fakeService, CreatedAt: time.Now()}},
+		Items: []catalog.Assignment{{ProfessionalID: fakeProfessional, ServiceID: fakeService, CreatedAt: time.Now()}},
 	}
 	repo := &fakeAssignmentRepository{
-		listFn: func(ctx context.Context, barbershopID, barberID string, cursor *catalog.Cursor, limit int) (catalog.AssignmentListResult, error) {
-			if barbershopID != fakeShop || barberID != fakeBarber {
-				t.Fatalf("unexpected args: %s %s", barbershopID, barberID)
+		listFn: func(ctx context.Context, businessID, professionalID string, cursor *catalog.Cursor, limit int) (catalog.AssignmentListResult, error) {
+			if businessID != fakeShop || professionalID != fakeProfessional {
+				t.Fatalf("unexpected args: %s %s", businessID, professionalID)
 			}
 			return want, nil
 		},
 	}
 	svc := catalog.NewAssignmentService(repo, alwaysExists())
 
-	got, err := svc.List(context.Background(), fakeShop, fakeBarber, "", 0)
+	got, err := svc.List(context.Background(), fakeShop, fakeProfessional, "", 0)
 	if err != nil {
 		t.Fatalf("List: %v", err)
 	}
@@ -123,13 +123,13 @@ func TestAssignmentService_List_KnownBarber_ReturnsRepositoryResult(t *testing.T
 
 // --- Assign -------------------------------------------------------------
 
-func TestAssignmentService_Assign_MalformedBarberID_NotFoundWithoutCallingPortOrRepo(t *testing.T) {
+func TestAssignmentService_Assign_MalformedProfessionalID_NotFoundWithoutCallingPortOrRepo(t *testing.T) {
 	repo := &fakeAssignmentRepository{}
-	barbers := &fakeBarberPort{existsFn: func(context.Context, string, string) (bool, error) {
-		t.Fatal("BarberPort.Exists should not be called for a malformed id")
+	professionals := &fakeProfessionalPort{existsFn: func(context.Context, string, string) (bool, error) {
+		t.Fatal("ProfessionalPort.Exists should not be called for a malformed id")
 		return false, nil
 	}}
-	svc := catalog.NewAssignmentService(repo, barbers)
+	svc := catalog.NewAssignmentService(repo, professionals)
 
 	_, err := svc.Assign(context.Background(), fakeShop, "not-a-uuid", fakeService)
 	mustBeNotFound(t, err)
@@ -140,28 +140,28 @@ func TestAssignmentService_Assign_MalformedBarberID_NotFoundWithoutCallingPortOr
 
 func TestAssignmentService_Assign_MalformedServiceID_NotFoundWithoutCallingPortOrRepo(t *testing.T) {
 	repo := &fakeAssignmentRepository{}
-	barbers := &fakeBarberPort{existsFn: func(context.Context, string, string) (bool, error) {
-		t.Fatal("BarberPort.Exists should not be called when serviceID is already malformed")
+	professionals := &fakeProfessionalPort{existsFn: func(context.Context, string, string) (bool, error) {
+		t.Fatal("ProfessionalPort.Exists should not be called when serviceID is already malformed")
 		return false, nil
 	}}
-	svc := catalog.NewAssignmentService(repo, barbers)
+	svc := catalog.NewAssignmentService(repo, professionals)
 
-	_, err := svc.Assign(context.Background(), fakeShop, fakeBarber, "not-a-uuid")
+	_, err := svc.Assign(context.Background(), fakeShop, fakeProfessional, "not-a-uuid")
 	mustBeNotFound(t, err)
 	if repo.assignCalls != 0 {
 		t.Fatalf("expected Repository.Assign never called, got %d calls", repo.assignCalls)
 	}
 }
 
-func TestAssignmentService_Assign_UnknownBarber_NotFoundWithoutTouchingRepository(t *testing.T) {
+func TestAssignmentService_Assign_UnknownProfessional_NotFoundWithoutTouchingRepository(t *testing.T) {
 	repo := &fakeAssignmentRepository{}
-	barbers := &fakeBarberPort{existsFn: func(context.Context, string, string) (bool, error) { return false, nil }}
-	svc := catalog.NewAssignmentService(repo, barbers)
+	professionals := &fakeProfessionalPort{existsFn: func(context.Context, string, string) (bool, error) { return false, nil }}
+	svc := catalog.NewAssignmentService(repo, professionals)
 
-	_, err := svc.Assign(context.Background(), fakeShop, fakeBarber, fakeService)
+	_, err := svc.Assign(context.Background(), fakeShop, fakeProfessional, fakeService)
 	mustBeNotFound(t, err)
 	if repo.assignCalls != 0 {
-		t.Fatalf("expected Repository.Assign never called when the barber does not exist, got %d calls", repo.assignCalls)
+		t.Fatalf("expected Repository.Assign never called when the professional does not exist, got %d calls", repo.assignCalls)
 	}
 }
 
@@ -173,12 +173,12 @@ func TestAssignmentService_Assign_UnknownService_NotFound(t *testing.T) {
 	}
 	svc := catalog.NewAssignmentService(repo, alwaysExists())
 
-	_, err := svc.Assign(context.Background(), fakeShop, fakeBarber, fakeService)
+	_, err := svc.Assign(context.Background(), fakeShop, fakeProfessional, fakeService)
 	mustBeNotFound(t, err)
 }
 
 func TestAssignmentService_Assign_New_ReturnsCreated(t *testing.T) {
-	want := catalog.Assignment{BarberID: fakeBarber, ServiceID: fakeService, CreatedAt: time.Now()}
+	want := catalog.Assignment{ProfessionalID: fakeProfessional, ServiceID: fakeService, CreatedAt: time.Now()}
 	repo := &fakeAssignmentRepository{
 		assignFn: func(context.Context, string, string, string) (catalog.AssignResult, error) {
 			return catalog.AssignResult{Outcome: catalog.AssignOutcomeCreated, Assignment: want}, nil
@@ -186,7 +186,7 @@ func TestAssignmentService_Assign_New_ReturnsCreated(t *testing.T) {
 	}
 	svc := catalog.NewAssignmentService(repo, alwaysExists())
 
-	got, err := svc.Assign(context.Background(), fakeShop, fakeBarber, fakeService)
+	got, err := svc.Assign(context.Background(), fakeShop, fakeProfessional, fakeService)
 	if err != nil {
 		t.Fatalf("Assign: %v", err)
 	}
@@ -205,7 +205,7 @@ func TestAssignmentService_Assign_Repeated_ReturnsAlreadyExistsWithoutError(t *t
 	}
 	svc := catalog.NewAssignmentService(repo, alwaysExists())
 
-	got, err := svc.Assign(context.Background(), fakeShop, fakeBarber, fakeService)
+	got, err := svc.Assign(context.Background(), fakeShop, fakeProfessional, fakeService)
 	if err != nil {
 		t.Fatalf("Assign: %v", err)
 	}
@@ -222,7 +222,7 @@ func TestAssignmentService_Assign_RepositoryError_WrapsAsInternal(t *testing.T) 
 	}
 	svc := catalog.NewAssignmentService(repo, alwaysExists())
 
-	_, err := svc.Assign(context.Background(), fakeShop, fakeBarber, fakeService)
+	_, err := svc.Assign(context.Background(), fakeShop, fakeProfessional, fakeService)
 	appErr, ok := apperr.As(err)
 	if !ok || appErr.Kind != apperr.KindInternal {
 		t.Fatalf("expected apperr.KindInternal, got %v", err)
@@ -250,7 +250,7 @@ func TestAssignmentService_Unassign_NoSuchAssignment_NotFound(t *testing.T) {
 	}
 	svc := catalog.NewAssignmentService(repo, alwaysExists())
 
-	_, err := svc.Unassign(context.Background(), fakeShop, fakeBarber, fakeService)
+	_, err := svc.Unassign(context.Background(), fakeShop, fakeProfessional, fakeService)
 	mustBeNotFound(t, err)
 }
 
@@ -262,7 +262,7 @@ func TestAssignmentService_Unassign_Deleted_Succeeds(t *testing.T) {
 	}
 	svc := catalog.NewAssignmentService(repo, alwaysExists())
 
-	got, err := svc.Unassign(context.Background(), fakeShop, fakeBarber, fakeService)
+	got, err := svc.Unassign(context.Background(), fakeShop, fakeProfessional, fakeService)
 	if err != nil {
 		t.Fatalf("Unassign: %v", err)
 	}
@@ -271,22 +271,22 @@ func TestAssignmentService_Unassign_Deleted_Succeeds(t *testing.T) {
 	}
 }
 
-func TestAssignmentService_Unassign_DoesNotConsultBarberPort(t *testing.T) {
-	// A diferencia de List/Assign, Unassign descubre un barbero ajeno o
+func TestAssignmentService_Unassign_DoesNotConsultProfessionalPort(t *testing.T) {
+	// A diferencia de List/Assign, Unassign descubre un profesional ajeno o
 	// inexistente por la ausencia de la fila de asociación (Repository ya
-	// lo traduce a UnassignOutcomeNotFound): no necesita BarberPort.
+	// lo traduce a UnassignOutcomeNotFound): no necesita ProfessionalPort.
 	repo := &fakeAssignmentRepository{
 		unassignFn: func(context.Context, string, string, string) (catalog.UnassignResult, error) {
 			return catalog.UnassignResult{Outcome: catalog.UnassignOutcomeDeleted}, nil
 		},
 	}
-	barbers := &fakeBarberPort{existsFn: func(context.Context, string, string) (bool, error) {
-		t.Fatal("BarberPort.Exists should not be called by Unassign")
+	professionals := &fakeProfessionalPort{existsFn: func(context.Context, string, string) (bool, error) {
+		t.Fatal("ProfessionalPort.Exists should not be called by Unassign")
 		return false, nil
 	}}
-	svc := catalog.NewAssignmentService(repo, barbers)
+	svc := catalog.NewAssignmentService(repo, professionals)
 
-	if _, err := svc.Unassign(context.Background(), fakeShop, fakeBarber, fakeService); err != nil {
+	if _, err := svc.Unassign(context.Background(), fakeShop, fakeProfessional, fakeService); err != nil {
 		t.Fatalf("Unassign: %v", err)
 	}
 }

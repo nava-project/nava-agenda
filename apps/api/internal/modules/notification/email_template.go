@@ -31,7 +31,7 @@ import (
 //   - Texto alternativo en la misma petición (Text): mejora entrega y lo leen
 //     los clientes sin HTML y los lectores de pantalla que lo prefieren.
 //   - Todo dato dinámico pasa por html/template, que escapa por contexto (texto
-//     y atributos) y filtra las URL peligrosas; nombres de clientes y barberías
+//     y atributos) y filtra las URL peligrosas; nombres de clientes y negocios
 //     son entrada de usuarios.
 
 // emailTone elige la paleta de la insignia de estado. Los pares fondo/texto son
@@ -69,7 +69,7 @@ type emailContent struct {
 	// Preheader es el texto de vista previa de la bandeja; no se muestra en el
 	// cuerpo.
 	Preheader string
-	// Brand es el nombre de la barbería bajo el wordmark, cuando el correo
+	// Brand es el nombre del negocio bajo el wordmark, cuando el correo
 	// pertenece a una (confirmación y avisos). Vacío en los correos de cuenta.
 	Brand      string
 	Badge      *emailBadge

@@ -13,11 +13,11 @@ import (
 	"testing"
 	"time"
 
-	"system-barbershop/internal/modules/staff"
-	"system-barbershop/internal/modules/staff/httpapi"
+	"nava-agenda/internal/modules/staff"
+	"nava-agenda/internal/modules/staff/httpapi"
 )
 
-const photoBarberID = "8f3ac2b1-e4d5-46f6-a7c8-d9e0f1a2b3c4"
+const photoProfessionalID = "8f3ac2b1-e4d5-46f6-a7c8-d9e0f1a2b3c4"
 
 // jpegFixture devuelve un JPEG real de 128×128: el servicio decide el formato
 // por los bytes, así que el doble no puede ser un texto cualquiera.
@@ -37,28 +37,28 @@ func jpegFixture(t *testing.T) []byte {
 }
 
 func putPhotoRequest(contentType string, body []byte) *http.Request {
-	req := requestWithBarberID(http.MethodPut, "/api/v1/private/professionals/"+photoBarberID+"/photo", body, photoBarberID)
+	req := requestWithProfessionalID(http.MethodPut, "/api/v1/private/professionals/"+photoProfessionalID+"/photo", body, photoProfessionalID)
 	if contentType != "" {
 		req.Header.Set("Content-Type", contentType)
 	}
 	return req
 }
 
-func TestPutBarberPhotoHandler_Success_Returns200WithPhotoUpdatedAt(t *testing.T) {
+func TestPutProfessionalPhotoHandler_Success_Returns200WithPhotoUpdatedAt(t *testing.T) {
 	now := time.Now().UTC().Truncate(time.Second)
 	data := jpegFixture(t)
 	repo := &fakeRepository{putPhotoFn: func(shop, id string, photo staff.Photo) (staff.PhotoResult, error) {
-		if shop != testShopID || id != photoBarberID {
+		if shop != testShopID || id != photoProfessionalID {
 			t.Fatalf("unexpected scope %s/%s", shop, id)
 		}
 		if photo.ContentType != "image/jpeg" || !bytes.Equal(photo.Data, data) {
 			t.Fatalf("unexpected photo forwarded")
 		}
-		return staff.PhotoResult{Found: true, Barber: staff.Barber{
+		return staff.PhotoResult{Found: true, Professional: staff.Professional{
 			ID: id, FullName: "Carlos", CreatedAt: now, UpdatedAt: now, PhotoUpdatedAt: &now,
 		}}, nil
 	}}
-	h := httpapi.NewPutBarberPhotoHandler(staff.NewService(repo))
+	h := httpapi.NewPutProfessionalPhotoHandler(staff.NewService(repo))
 
 	rec := httptest.NewRecorder()
 	h.ServeHTTP(rec, putPhotoRequest("image/jpeg", data))
@@ -66,7 +66,7 @@ func TestPutBarberPhotoHandler_Success_Returns200WithPhotoUpdatedAt(t *testing.T
 	if rec.Code != http.StatusOK {
 		t.Fatalf("expected 200, got %d: %s", rec.Code, rec.Body.String())
 	}
-	var body httpapi.BarberResponse
+	var body httpapi.ProfessionalResponse
 	if err := json.Unmarshal(rec.Body.Bytes(), &body); err != nil {
 		t.Fatalf("decode: %v", err)
 	}
@@ -75,12 +75,12 @@ func TestPutBarberPhotoHandler_Success_Returns200WithPhotoUpdatedAt(t *testing.T
 	}
 }
 
-func TestPutBarberPhotoHandler_UnsupportedOrMissingContentType_Returns422WithoutCallingRepository(t *testing.T) {
+func TestPutProfessionalPhotoHandler_UnsupportedOrMissingContentType_Returns422WithoutCallingRepository(t *testing.T) {
 	repo := &fakeRepository{putPhotoFn: func(string, string, staff.Photo) (staff.PhotoResult, error) {
 		t.Fatal("repository must not be called")
 		return staff.PhotoResult{}, nil
 	}}
-	h := httpapi.NewPutBarberPhotoHandler(staff.NewService(repo))
+	h := httpapi.NewPutProfessionalPhotoHandler(staff.NewService(repo))
 
 	for _, contentType := range []string{"", "application/json", "image/gif", "text/plain"} {
 		rec := httptest.NewRecorder()
@@ -91,12 +91,12 @@ func TestPutBarberPhotoHandler_UnsupportedOrMissingContentType_Returns422Without
 	}
 }
 
-func TestPutBarberPhotoHandler_ParametersInContentType_AreTolerated(t *testing.T) {
+func TestPutProfessionalPhotoHandler_ParametersInContentType_AreTolerated(t *testing.T) {
 	now := time.Now().UTC()
 	repo := &fakeRepository{putPhotoFn: func(_, id string, _ staff.Photo) (staff.PhotoResult, error) {
-		return staff.PhotoResult{Found: true, Barber: staff.Barber{ID: id, PhotoUpdatedAt: &now}}, nil
+		return staff.PhotoResult{Found: true, Professional: staff.Professional{ID: id, PhotoUpdatedAt: &now}}, nil
 	}}
-	h := httpapi.NewPutBarberPhotoHandler(staff.NewService(repo))
+	h := httpapi.NewPutProfessionalPhotoHandler(staff.NewService(repo))
 
 	rec := httptest.NewRecorder()
 	h.ServeHTTP(rec, putPhotoRequest("image/jpeg; charset=binary", jpegFixture(t)))
@@ -105,12 +105,12 @@ func TestPutBarberPhotoHandler_ParametersInContentType_AreTolerated(t *testing.T
 	}
 }
 
-func TestPutBarberPhotoHandler_BodyThatIsNotAnImage_Returns422(t *testing.T) {
+func TestPutProfessionalPhotoHandler_BodyThatIsNotAnImage_Returns422(t *testing.T) {
 	repo := &fakeRepository{putPhotoFn: func(string, string, staff.Photo) (staff.PhotoResult, error) {
 		t.Fatal("repository must not be called")
 		return staff.PhotoResult{}, nil
 	}}
-	h := httpapi.NewPutBarberPhotoHandler(staff.NewService(repo))
+	h := httpapi.NewPutProfessionalPhotoHandler(staff.NewService(repo))
 
 	rec := httptest.NewRecorder()
 	h.ServeHTTP(rec, putPhotoRequest("image/jpeg", []byte("<html></html>")))
@@ -122,11 +122,11 @@ func TestPutBarberPhotoHandler_BodyThatIsNotAnImage_Returns422(t *testing.T) {
 	}
 }
 
-func TestPutBarberPhotoHandler_BarberMissing_Returns404(t *testing.T) {
+func TestPutProfessionalPhotoHandler_ProfessionalMissing_Returns404(t *testing.T) {
 	repo := &fakeRepository{putPhotoFn: func(string, string, staff.Photo) (staff.PhotoResult, error) {
 		return staff.PhotoResult{Found: false}, nil
 	}}
-	h := httpapi.NewPutBarberPhotoHandler(staff.NewService(repo))
+	h := httpapi.NewPutProfessionalPhotoHandler(staff.NewService(repo))
 
 	rec := httptest.NewRecorder()
 	h.ServeHTTP(rec, putPhotoRequest("image/jpeg", jpegFixture(t)))
@@ -136,23 +136,23 @@ func TestPutBarberPhotoHandler_BarberMissing_Returns404(t *testing.T) {
 }
 
 func getPhotoRequest(ifNoneMatch string) *http.Request {
-	req := requestWithBarberID(http.MethodGet, "/api/v1/private/professionals/"+photoBarberID+"/photo", nil, photoBarberID)
+	req := requestWithProfessionalID(http.MethodGet, "/api/v1/private/professionals/"+photoProfessionalID+"/photo", nil, photoProfessionalID)
 	if ifNoneMatch != "" {
 		req.Header.Set("If-None-Match", ifNoneMatch)
 	}
 	return req
 }
 
-func TestGetBarberPhotoHandler_Found_ServesBytesWithETagAndPrivateCache(t *testing.T) {
+func TestGetProfessionalPhotoHandler_Found_ServesBytesWithETagAndPrivateCache(t *testing.T) {
 	data := jpegFixture(t)
 	updated := time.Unix(1790769600, 0).UTC()
 	repo := &fakeRepository{getPhotoFn: func(shop, id string) (staff.StoredPhoto, bool, error) {
-		if shop != testShopID || id != photoBarberID {
+		if shop != testShopID || id != photoProfessionalID {
 			t.Fatalf("unexpected scope %s/%s", shop, id)
 		}
 		return staff.StoredPhoto{ContentType: "image/jpeg", Data: data, UpdatedAt: updated}, true, nil
 	}}
-	h := httpapi.NewGetBarberPhotoHandler(staff.NewService(repo))
+	h := httpapi.NewGetProfessionalPhotoHandler(staff.NewService(repo))
 
 	rec := httptest.NewRecorder()
 	h.ServeHTTP(rec, getPhotoRequest(""))
@@ -178,12 +178,12 @@ func TestGetBarberPhotoHandler_Found_ServesBytesWithETagAndPrivateCache(t *testi
 	}
 }
 
-func TestGetBarberPhotoHandler_MatchingIfNoneMatch_Returns304WithoutBody(t *testing.T) {
+func TestGetProfessionalPhotoHandler_MatchingIfNoneMatch_Returns304WithoutBody(t *testing.T) {
 	updated := time.Unix(1790769600, 0).UTC()
 	repo := &fakeRepository{getPhotoFn: func(string, string) (staff.StoredPhoto, bool, error) {
 		return staff.StoredPhoto{ContentType: "image/jpeg", Data: jpegFixture(t), UpdatedAt: updated}, true, nil
 	}}
-	h := httpapi.NewGetBarberPhotoHandler(staff.NewService(repo))
+	h := httpapi.NewGetProfessionalPhotoHandler(staff.NewService(repo))
 
 	etag := `"` + strconv.FormatInt(updated.UnixMicro(), 10) + `"`
 	rec := httptest.NewRecorder()
@@ -197,11 +197,11 @@ func TestGetBarberPhotoHandler_MatchingIfNoneMatch_Returns304WithoutBody(t *test
 	}
 }
 
-func TestGetBarberPhotoHandler_NotFound_Returns404(t *testing.T) {
+func TestGetProfessionalPhotoHandler_NotFound_Returns404(t *testing.T) {
 	repo := &fakeRepository{getPhotoFn: func(string, string) (staff.StoredPhoto, bool, error) {
 		return staff.StoredPhoto{}, false, nil
 	}}
-	h := httpapi.NewGetBarberPhotoHandler(staff.NewService(repo))
+	h := httpapi.NewGetProfessionalPhotoHandler(staff.NewService(repo))
 
 	rec := httptest.NewRecorder()
 	h.ServeHTTP(rec, getPhotoRequest(""))
@@ -211,18 +211,18 @@ func TestGetBarberPhotoHandler_NotFound_Returns404(t *testing.T) {
 }
 
 func deletePhotoRequest() *http.Request {
-	return requestWithBarberID(http.MethodDelete, "/api/v1/private/professionals/"+photoBarberID+"/photo", nil, photoBarberID)
+	return requestWithProfessionalID(http.MethodDelete, "/api/v1/private/professionals/"+photoProfessionalID+"/photo", nil, photoProfessionalID)
 }
 
-func TestDeleteBarberPhotoHandler_Returns204AndNotFoundForMissingBarber(t *testing.T) {
+func TestDeleteProfessionalPhotoHandler_Returns204AndNotFoundForMissingProfessional(t *testing.T) {
 	exists := true
 	repo := &fakeRepository{deletePhotoFn: func(shop, id string) (bool, error) {
-		if shop != testShopID || id != photoBarberID {
+		if shop != testShopID || id != photoProfessionalID {
 			t.Fatalf("unexpected scope %s/%s", shop, id)
 		}
 		return exists, nil
 	}}
-	h := httpapi.NewDeleteBarberPhotoHandler(staff.NewService(repo))
+	h := httpapi.NewDeleteProfessionalPhotoHandler(staff.NewService(repo))
 
 	rec := httptest.NewRecorder()
 	h.ServeHTTP(rec, deletePhotoRequest())
@@ -234,16 +234,16 @@ func TestDeleteBarberPhotoHandler_Returns204AndNotFoundForMissingBarber(t *testi
 	rec = httptest.NewRecorder()
 	h.ServeHTTP(rec, deletePhotoRequest())
 	if rec.Code != http.StatusNotFound {
-		t.Fatalf("expected 404 for a missing barber, got %d", rec.Code)
+		t.Fatalf("expected 404 for a missing professional, got %d", rec.Code)
 	}
 }
 
 func TestPhotoHandlers_MissingPrincipal_Returns500Safely(t *testing.T) {
 	svc := staff.NewService(&fakeRepository{})
 	handlers := map[string]http.Handler{
-		"put":    httpapi.NewPutBarberPhotoHandler(svc),
-		"get":    httpapi.NewGetBarberPhotoHandler(svc),
-		"delete": httpapi.NewDeleteBarberPhotoHandler(svc),
+		"put":    httpapi.NewPutProfessionalPhotoHandler(svc),
+		"get":    httpapi.NewGetProfessionalPhotoHandler(svc),
+		"delete": httpapi.NewDeleteProfessionalPhotoHandler(svc),
 	}
 	for name, h := range handlers {
 		req := httptest.NewRequest(http.MethodGet, "/x", nil).WithContext(context.Background())

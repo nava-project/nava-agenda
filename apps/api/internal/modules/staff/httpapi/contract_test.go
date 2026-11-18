@@ -152,17 +152,17 @@ func requireResponses(t *testing.T, op operation, wantOperationID string, wantSt
 
 // --- Schemas -------------------------------------------------------------
 
-// TestContract_BarberResponseSchema_MatchesDTOFields verifica que
-// httpapi.BarberResponse (id, fullName, createdAt, updatedAt, photoUpdatedAt,
-// description) coincide exactamente con BarberResponse.yaml (CA-021-07: nunca
+// TestContract_ProfessionalResponseSchema_MatchesDTOFields verifica que
+// httpapi.ProfessionalResponse (id, fullName, createdAt, updatedAt, photoUpdatedAt,
+// description) coincide exactamente con ProfessionalResponse.yaml (CA-021-07: nunca
 // active, deletedAt, sortOrder, staffUserId, servicios ni horarios; DEC-104
 // añade photoUpdatedAt y DEC-127 description).
-func TestContract_BarberResponseSchema_MatchesDTOFields(t *testing.T) {
+func TestContract_ProfessionalResponseSchema_MatchesDTOFields(t *testing.T) {
 	schema := loadYAML[schemaDoc](t, "api/openapi/components/schemas/ProfessionalResponse.yaml")
 	requireProps(t, schema, []string{"id", "fullName", "createdAt", "updatedAt", "photoUpdatedAt", "description", "rating", "ratingCount"})
 }
 
-func TestContract_CreateBarberRequestSchema_MatchesDTOFields(t *testing.T) {
+func TestContract_CreateProfessionalRequestSchema_MatchesDTOFields(t *testing.T) {
 	schema := loadYAML[schemaDoc](t, "api/openapi/components/schemas/CreateProfessionalRequest.yaml")
 	requireOptionalProps(t, schema, []string{"fullName"}, []string{"description"})
 	if _, ok := schema.Properties["businessId"]; ok {
@@ -170,7 +170,7 @@ func TestContract_CreateBarberRequestSchema_MatchesDTOFields(t *testing.T) {
 	}
 }
 
-func TestContract_UpdateBarberRequestSchema_MatchesDTOFields(t *testing.T) {
+func TestContract_UpdateProfessionalRequestSchema_MatchesDTOFields(t *testing.T) {
 	schema := loadYAML[schemaDoc](t, "api/openapi/components/schemas/UpdateProfessionalRequest.yaml")
 	requireOptionalProps(t, schema, []string{"fullName"}, []string{"description"})
 	for _, forbidden := range []string{"active", "deletedAt", "sortOrder", "staffUserId", "businessId"} {
@@ -180,7 +180,7 @@ func TestContract_UpdateBarberRequestSchema_MatchesDTOFields(t *testing.T) {
 	}
 }
 
-func TestContract_BarberListResponseSchema_HasItemsAndNextCursor(t *testing.T) {
+func TestContract_ProfessionalListResponseSchema_HasItemsAndNextCursor(t *testing.T) {
 	schema := loadYAML[schemaDoc](t, "api/openapi/components/schemas/ProfessionalListResponse.yaml")
 	if len(schema.Properties) != 6 {
 		t.Fatalf("expected cursor fields and four optional page fields")
@@ -194,52 +194,52 @@ func TestContract_BarberListResponseSchema_HasItemsAndNextCursor(t *testing.T) {
 
 // --- Operaciones -----------------------------------------------------------
 
-func TestContract_ListBarbersOperation_MethodPathSecurityAndResponses(t *testing.T) {
+func TestContract_ListProfessionalsOperation_MethodPathSecurityAndResponses(t *testing.T) {
 	doc := loadYAML[staffPathsFile](t, "api/openapi/paths/staff.yaml")
 	requireResponses(t, doc.Collection.Get, "listProfessionals", []string{"200", "400", "401", "500"})
 }
 
-func TestContract_CreateBarberOperation_MethodPathSecurityAndResponses(t *testing.T) {
+func TestContract_CreateProfessionalOperation_MethodPathSecurityAndResponses(t *testing.T) {
 	doc := loadYAML[staffPathsFile](t, "api/openapi/paths/staff.yaml")
 	requireResponses(t, doc.Collection.Post, "createProfessional", []string{"201", "400", "401", "403", "409", "422", "500"})
 }
 
-func TestContract_GetBarberOperation_MethodPathSecurityAndResponses(t *testing.T) {
+func TestContract_GetProfessionalOperation_MethodPathSecurityAndResponses(t *testing.T) {
 	doc := loadYAML[staffPathsFile](t, "api/openapi/paths/staff.yaml")
 	requireResponses(t, doc.Item.Get, "getProfessional", []string{"200", "401", "403", "404", "500"})
 }
 
-func TestContract_RenameBarberOperation_MethodPathSecurityAndResponses(t *testing.T) {
+func TestContract_RenameProfessionalOperation_MethodPathSecurityAndResponses(t *testing.T) {
 	doc := loadYAML[staffPathsFile](t, "api/openapi/paths/staff.yaml")
 	requireResponses(t, doc.Item.Patch, "renameProfessional", []string{"200", "400", "401", "403", "404", "422", "500"})
 }
 
 // DEC-104: la fotografía es contenido binario, sin Idempotency-Key (el PUT
 // reemplaza y es idempotente por naturaleza).
-func TestContract_PutBarberPhotoOperation_MethodPathSecurityAndResponses(t *testing.T) {
+func TestContract_PutProfessionalPhotoOperation_MethodPathSecurityAndResponses(t *testing.T) {
 	doc := loadYAML[staffPathsFile](t, "api/openapi/paths/staff.yaml")
 	requireResponses(t, doc.Photo.Put, "putProfessionalPhoto", []string{"200", "400", "401", "403", "404", "422", "500"})
 }
 
-func TestContract_GetBarberPhotoOperation_MethodPathSecurityAndResponses(t *testing.T) {
+func TestContract_GetProfessionalPhotoOperation_MethodPathSecurityAndResponses(t *testing.T) {
 	doc := loadYAML[staffPathsFile](t, "api/openapi/paths/staff.yaml")
 	requireResponses(t, doc.Photo.Get, "getProfessionalPhoto", []string{"200", "304", "401", "403", "404", "500"})
 }
 
-func TestContract_DeleteBarberPhotoOperation_MethodPathSecurityAndResponses(t *testing.T) {
+func TestContract_DeleteProfessionalPhotoOperation_MethodPathSecurityAndResponses(t *testing.T) {
 	doc := loadYAML[staffPathsFile](t, "api/openapi/paths/staff.yaml")
 	requireResponses(t, doc.Photo.Delete, "deleteProfessionalPhoto", []string{"204", "401", "403", "404", "500"})
 }
 
 // DEC-100: el vínculo propio actúa sobre el principal de la sesión.
-func TestContract_MyBarberOperations_MethodPathSecurityAndResponses(t *testing.T) {
+func TestContract_MyProfessionalOperations_MethodPathSecurityAndResponses(t *testing.T) {
 	doc := loadYAML[staffPathsFile](t, "api/openapi/paths/staff.yaml")
 	requireResponses(t, doc.Me.Get, "getMyProfessional", []string{"200", "401", "404", "500"})
 	requireResponses(t, doc.Me.Put, "linkMyProfessional", []string{"200", "400", "401", "403", "404", "409", "500"})
 	requireResponses(t, doc.Me.Delete, "unlinkMyProfessional", []string{"204", "401", "403", "500"})
 }
 
-func TestContract_LinkMyBarberRequestSchema_OnlyBarberID(t *testing.T) {
+func TestContract_LinkMyProfessionalRequestSchema_OnlyProfessionalID(t *testing.T) {
 	schema := loadYAML[schemaDoc](t, "api/openapi/components/schemas/LinkMyProfessionalRequest.yaml")
 	requireProps(t, schema, []string{"professionalId"})
 	for _, forbidden := range []string{"staffUserId", "userId", "businessId"} {

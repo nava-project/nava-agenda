@@ -22,7 +22,7 @@ const appointmentRefPayloadLength = 24
 
 // sealAppointmentRef cifra, con AES-256-GCM, el turno y el vencimiento de la
 // referencia que Odin recibe en `lookup`. Es opaca (HU-106, DEC-179): no deja ver
-// el identificador interno, no necesita una tabla y no sirve en otra barbería,
+// el identificador interno, no necesita una tabla y no sirve en otro negocio,
 // porque el slug va como dato autenticado. La clave sale del secreto de
 // despliegue con su propio dominio.
 func sealAppointmentRef(appointmentID, slug string, expires time.Time, secret []byte) (string, error) {
@@ -46,8 +46,8 @@ func sealAppointmentRef(appointmentID, slug string, expires time.Time, secret []
 	return base64.RawURLEncoding.EncodeToString(sealed), nil
 }
 
-// openAppointmentRef devuelve el turno de una referencia propia, para esa barbería
-// y todavía vigente. Cualquier otra cosa (forma, firma, barbería o vencimiento)
+// openAppointmentRef devuelve el turno de una referencia propia, para ese negocio
+// y todavía vigente. Cualquier otra cosa (forma, firma, negocio o vencimiento)
 // devuelve ok=false sin distinguir la causa.
 func openAppointmentRef(ref, slug string, now time.Time, secret []byte) (appointmentID string, ok bool) {
 	ref = strings.TrimSpace(ref)

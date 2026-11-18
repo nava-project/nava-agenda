@@ -6,12 +6,12 @@ import (
 	"strings"
 	"time"
 
-	"system-barbershop/internal/platform/apperr"
-	"system-barbershop/internal/platform/idempotency"
+	"nava-agenda/internal/platform/apperr"
+	"nava-agenda/internal/platform/idempotency"
 )
 
 // CustomerRescheduleLimit es el máximo de reprogramaciones hechas por el
-// propio cliente sobre un mismo turno (DEC-178, punto 3). Las del barbero no
+// propio cliente sobre un mismo turno (DEC-178, punto 3). Las del profesional no
 // cuentan: él no necesita este freno porque decide sobre su propia agenda.
 const CustomerRescheduleLimit = 2
 
@@ -26,7 +26,7 @@ type CustomerReschedulePolicy struct {
 // Evaluate decide si el cliente puede reprogramar un turno que empieza en
 // startsAt con el reloj del servidor en now. Hasta startsAt-DeadlineMinutes
 // INCLUSIVE procede (mismo límite que la cancelación). No existe una
-// reprogramación tardía: pasado el límite se rechaza aunque la barbería
+// reprogramación tardía: pasado el límite se rechaza aunque el negocio
 // admita la cancelación tardía. Con DeadlineMinutes 0 (DEC-083 desactiva el
 // «dentro de plazo») el cliente nunca puede reprogramar.
 func (p CustomerReschedulePolicy) Evaluate(startsAt, now time.Time) error {
@@ -76,7 +76,7 @@ func errRescheduleSlotUnavailable() error {
 type RescheduleSlotsPort interface {
 	OfferedRescheduleStarts(
 		ctx context.Context,
-		barbershopID, barberID string,
+		businessID, professionalID string,
 		durationMinutes int,
 		ownStartsAt, ownEndsAt time.Time,
 	) ([]time.Time, error)
@@ -87,7 +87,7 @@ type RescheduleSlotsPort interface {
 // y para pedir las franjas. La verificación autoritativa se repite dentro de
 // la transacción, con la fila bloqueada.
 type CustomerRescheduleState struct {
-	BarberID            string
+	ProfessionalID      string
 	DurationMinutes     int
 	StartsAt            time.Time
 	EndsAt              time.Time
@@ -115,10 +115,10 @@ type RescheduleAppointmentByCustomerInput struct {
 // publicar en Google y escribir el historial con actor `customer`, sin aviso
 // al cliente (DEC-142). Un intervalo idéntico es un no-op exitoso.
 type CustomerRescheduleRepository interface {
-	CustomerRescheduleState(ctx context.Context, barbershopID, appointmentID string) (CustomerRescheduleState, bool, error)
+	CustomerRescheduleState(ctx context.Context, businessID, appointmentID string) (CustomerRescheduleState, bool, error)
 	RescheduleByCustomer(
 		ctx context.Context,
-		barbershopID string,
+		businessID string,
 		input RescheduleAppointmentByCustomerInput,
 		key idempotency.Key,
 		fingerprint idempotency.Fingerprint,
@@ -153,19 +153,19 @@ func NewRescheduleAppointmentByCustomerService(repo CustomerRescheduleRepository
 // ListRescheduleStarts devuelve los inicios a los que el cliente puede mover
 // su turno. Un turno que no está `confirmed` no tiene franjas: no hay nada
 // que mover.
-func (s *RescheduleAppointmentByCustomerService) ListRescheduleStarts(ctx context.Context, barbershopID, appointmentID string) ([]time.Time, error) {
-	state, err := s.readState(ctx, barbershopID, appointmentID)
+func (s *RescheduleAppointmentByCustomerService) ListRescheduleStarts(ctx context.Context, businessID, appointmentID string) ([]time.Time, error) {
+	state, err := s.readState(ctx, businessID, appointmentID)
 	if err != nil {
 		return nil, err
 	}
 	if state.Status != StatusConfirmed {
 		return []time.Time{}, nil
 	}
-	return s.slots.OfferedRescheduleStarts(ctx, barbershopID, state.BarberID, state.DurationMinutes, state.StartsAt, state.EndsAt)
+	return s.slots.OfferedRescheduleStarts(ctx, businessID, state.ProfessionalID, state.DurationMinutes, state.StartsAt, state.EndsAt)
 }
 
 // RescheduleAppointmentByCustomer valida la entrada y delega en el
-// repositorio. barbershopID y appointmentID llegan resueltos desde el token
+// repositorio. businessID y appointmentID llegan resueltos desde el token
 // por customeraccess; aquí nunca se aceptan del cliente. newStartsAtRaw es un
 // instante RFC 3339 tal como lo ofreció ListRescheduleStarts.
 //
@@ -174,7 +174,7 @@ func (s *RescheduleAppointmentByCustomerService) ListRescheduleStarts(ctx contex
 // está ocupada si ya no puede mover el turno.
 func (s *RescheduleAppointmentByCustomerService) RescheduleAppointmentByCustomer(
 	ctx context.Context,
-	barbershopID, appointmentID, newStartsAtRaw, expectedVersionToken string,
+	businessID, appointmentID, newStartsAtRaw, expectedVersionToken string,
 	key idempotency.Key,
 	fingerprint idempotency.Fingerprint,
 ) (RescheduleByCustomerResult, error) {
@@ -187,7 +187,7 @@ func (s *RescheduleAppointmentByCustomerService) RescheduleAppointmentByCustomer
 		return RescheduleByCustomerResult{}, apperr.Validation("startsAt debe ser un instante RFC 3339")
 	}
 
-	state, err := s.readState(ctx, barbershopID, appointmentID)
+	state, err := s.readState(ctx, businessID, appointmentID)
 	if err != nil {
 		return RescheduleByCustomerResult{}, err
 	}
@@ -202,7 +202,7 @@ func (s *RescheduleAppointmentByCustomerService) RescheduleAppointmentByCustomer
 		return RescheduleByCustomerResult{}, err
 	}
 
-	offered, err := s.slots.OfferedRescheduleStarts(ctx, barbershopID, state.BarberID, state.DurationMinutes, state.StartsAt, state.EndsAt)
+	offered, err := s.slots.OfferedRescheduleStarts(ctx, businessID, state.ProfessionalID, state.DurationMinutes, state.StartsAt, state.EndsAt)
 	if err != nil {
 		return RescheduleByCustomerResult{}, err
 	}
@@ -210,7 +210,7 @@ func (s *RescheduleAppointmentByCustomerService) RescheduleAppointmentByCustomer
 		return RescheduleByCustomerResult{}, errRescheduleSlotUnavailable()
 	}
 
-	return s.repo.RescheduleByCustomer(ctx, barbershopID, RescheduleAppointmentByCustomerInput{
+	return s.repo.RescheduleByCustomer(ctx, businessID, RescheduleAppointmentByCustomerInput{
 		AppointmentID:        appointmentID,
 		NewStartsAt:          newStartsAt,
 		NewEndsAt:            newStartsAt.Add(time.Duration(state.DurationMinutes) * time.Minute),
@@ -219,14 +219,14 @@ func (s *RescheduleAppointmentByCustomerService) RescheduleAppointmentByCustomer
 	}, key, fingerprint)
 }
 
-func (s *RescheduleAppointmentByCustomerService) readState(ctx context.Context, barbershopID, appointmentID string) (CustomerRescheduleState, error) {
+func (s *RescheduleAppointmentByCustomerService) readState(ctx context.Context, businessID, appointmentID string) (CustomerRescheduleState, error) {
 	if err := ctx.Err(); err != nil {
 		return CustomerRescheduleState{}, apperr.Internal(fmt.Errorf("booking: contexto cancelado antes de reprogramar: %w", err))
 	}
 	if !LooksLikeAppointmentID(appointmentID) {
 		return CustomerRescheduleState{}, errAppointmentNotFound()
 	}
-	state, found, err := s.repo.CustomerRescheduleState(ctx, barbershopID, appointmentID)
+	state, found, err := s.repo.CustomerRescheduleState(ctx, businessID, appointmentID)
 	if err != nil {
 		return CustomerRescheduleState{}, apperr.Internal(fmt.Errorf("booking: leer el turno antes de reprogramar: %w", err))
 	}

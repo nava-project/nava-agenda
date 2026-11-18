@@ -3,14 +3,14 @@ package catalog
 import (
 	"context"
 
-	"system-barbershop/internal/platform/idempotency"
+	"nava-agenda/internal/platform/idempotency"
 )
 
 // ListResult es una página de servicios ya ordenada de forma estable
 // (created_at, id). Page y PageSize reflejan lo que el servidor
 // efectivamente usó (ya clamped por CatalogService.List, no lo crudo que
 // pidió el cliente); Total es el conteo real de servicios que matchean el
-// filtro de búsqueda vigente (o de toda la barbería, sin filtro);
+// filtro de búsqueda vigente (o de todo el negocio, sin filtro);
 // TotalPages se deriva de Total/PageSize con un piso de 1, para que
 // "página 1 de 1" sea siempre representable aunque Total sea 0 (CA-022-01,
 // DEC-103).
@@ -89,7 +89,7 @@ type OptionalDescription struct {
 }
 
 // UpdateResult es el desenlace de un intento de edición. Found en false
-// cubre un servicio inexistente o de otra barbería (CA-022-06). NameTaken
+// cubre un servicio inexistente o de otro negocio (CA-022-06). NameTaken
 // es true cuando el UPDATE chocó con idx_service_active_name al cambiar el
 // nombre (DEC-067); en ese caso Found también queda false porque el UPDATE
 // no aplicó ningún cambio.
@@ -110,7 +110,7 @@ type UpdateResult struct {
 //   - Cualquier otro Outcome (incluido InvalidTransition): Decision.AsError()
 //     o el apperr correspondiente a InvalidTransition ya traduce el caso.
 //
-// Found es false cuando serviceID no existe o pertenece a otra barbería
+// Found es false cuando serviceID no existe o pertenece a otro negocio
 // (mismo apperr.NotFound uniforme que Get/Update, CA-024-07); solo es
 // significativo cuando Decision.Outcome == OutcomeProceed. InvalidTransition
 // es true cuando el servicio SÍ existe pero el UPDATE condicionado
@@ -140,26 +140,26 @@ type LifecycleResult struct {
 // ejecutarse dentro de UNA sola transacción tenant-aware (apps/api/README.md,
 // "Patrón obligatorio: idempotencia reutilizable").
 type Repository interface {
-	// List lee una página de servicios de barbershopID, ordenada por
+	// List lee una página de servicios de businessID, ordenada por
 	// (created_at, id). page y pageSize ya llegaron clamped por
 	// CatalogService.List ([1, +∞) y [MinPageSize, MaxPageSize]
 	// respectivamente); search ya llegó recortado y acotado a
 	// MaxSearchLength. search == "" significa "sin filtro"; en otro caso
 	// filtra por coincidencia parcial insensible a mayúsculas en `name`
-	// (DEC-103). Cada consulta filtra explícitamente por barbershopID
+	// (DEC-103). Cada consulta filtra explícitamente por businessID
 	// además de RLS.
-	List(ctx context.Context, barbershopID string, page, pageSize int, search string) (ListResult, error)
+	List(ctx context.Context, businessID string, page, pageSize int, search string) (ListResult, error)
 
 	// Get lee un servicio por id dentro del tenant vigente. found=false
-	// cubre tanto "no existe" como "es de otra barbería" (CA-022-06): la
-	// consulta filtra por barbershopID además de RLS, sin distinguir la
+	// cubre tanto "no existe" como "es de otro negocio" (CA-022-06): la
+	// consulta filtra por businessID además de RLS, sin distinguir la
 	// causa en el resultado.
-	Get(ctx context.Context, barbershopID, serviceID string) (service Service, found bool, err error)
+	Get(ctx context.Context, businessID, serviceID string) (service Service, found bool, err error)
 
 	// CountFutureAppointments cuenta las citas `confirmed` de serviceID en
-	// barbershopID cuyo inicio es posterior a ahora: el impacto real de
+	// businessID cuyo inicio es posterior a ahora: el impacto real de
 	// desactivarlo (RN-SER-03, CA-024-01). Solo lee; nunca modifica una cita.
-	CountFutureAppointments(ctx context.Context, barbershopID, serviceID string) (int, error)
+	CountFutureAppointments(ctx context.Context, businessID, serviceID string) (int, error)
 
 	// Create ejecuta el protocolo completo de idempotencia (Begin, INSERT,
 	// Complete) dentro de UNA sola InTenantTx. input ya llegó normalizado y
@@ -167,28 +167,28 @@ type Repository interface {
 	// la capa HTTP.
 	Create(
 		ctx context.Context,
-		barbershopID string,
+		businessID string,
 		input CreateInput,
 		key idempotency.Key,
 		fingerprint idempotency.Fingerprint,
 	) (CreateResult, error)
 
 	// Update ejecuta `UPDATE ... RETURNING` dentro de una transacción
-	// tenant-aware, filtrando por barbershopID además de RLS: nunca crea ni
-	// duplica una fila, y nunca edita la de otra barbería (CA-022-06).
+	// tenant-aware, filtrando por businessID además de RLS: nunca crea ni
+	// duplica una fila, y nunca edita la de otro negocio (CA-022-06).
 	// fields ya llegó normalizado y validado por Service.
-	Update(ctx context.Context, barbershopID, serviceID string, fields UpdateFields) (UpdateResult, error)
+	Update(ctx context.Context, businessID, serviceID string, fields UpdateFields) (UpdateResult, error)
 
 	// Deactivate ejecuta el protocolo completo de idempotencia (Begin,
 	// UPDATE condicionado a is_active = true, Complete) dentro de UNA sola
 	// InTenantTx (HU-024, CA-024-02, CA-024-03, CA-024-06). Un UPDATE que no
 	// afecta ninguna fila porque el servicio ya está inactivo se traduce a
 	// LifecycleResult.InvalidTransition; found=false (dentro de Service
-	// vacío) cubre "no existe" o "es de otra barbería" mediante el mismo
+	// vacío) cubre "no existe" o "es de otro negocio" mediante el mismo
 	// apperr.NotFound uniforme que Get.
 	Deactivate(
 		ctx context.Context,
-		barbershopID, serviceID string,
+		businessID, serviceID string,
 		key idempotency.Key,
 		fingerprint idempotency.Fingerprint,
 	) (LifecycleResult, error)
@@ -196,10 +196,10 @@ type Repository interface {
 	// Reactivate es el mismo protocolo que Deactivate, en sentido inverso
 	// (HU-024, CA-024-05, CA-024-06): UPDATE condicionado a is_active =
 	// false. Nunca crea otra fila ni toca duration_minutes, price_amount ni
-	// barber_service.
+	// professional_service.
 	Reactivate(
 		ctx context.Context,
-		barbershopID, serviceID string,
+		businessID, serviceID string,
 		key idempotency.Key,
 		fingerprint idempotency.Fingerprint,
 	) (LifecycleResult, error)

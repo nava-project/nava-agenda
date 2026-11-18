@@ -5,14 +5,14 @@ import (
 	"errors"
 	"net/http"
 
-	"system-barbershop/internal/modules/auth"
-	"system-barbershop/internal/modules/shops"
-	"system-barbershop/internal/platform/apperr"
-	"system-barbershop/internal/platform/httpserver"
+	"nava-agenda/internal/modules/auth"
+	"nava-agenda/internal/modules/shops"
+	"nava-agenda/internal/platform/apperr"
+	"nava-agenda/internal/platform/httpserver"
 )
 
 // GetBrandHandler expone GET /private/settings/brand (issue #292): lectura
-// autenticada de la marca y el vocabulario de la barbería activa.
+// autenticada de la marca y el vocabulario del negocio activo.
 type GetBrandHandler struct {
 	service  *shops.BrandService
 	profiles *shops.PanelProfileService
@@ -34,12 +34,12 @@ func (h *GetBrandHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	brand, err := h.service.Get(r.Context(), principal.BarbershopID)
+	brand, err := h.service.Get(r.Context(), principal.BusinessID)
 	if err != nil {
 		httpserver.WriteProblem(w, httpserver.Translate(err, requestID))
 		return
 	}
-	profile, err := h.profiles.For(r.Context(), principal.BarbershopID, principal.StaffUserID)
+	profile, err := h.profiles.For(r.Context(), principal.BusinessID, principal.StaffUserID)
 	if err != nil {
 		httpserver.WriteProblem(w, httpserver.Translate(err, requestID))
 		return
@@ -94,7 +94,7 @@ func (h *UpdateBrandHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 	// Normalización, validación y persistencia viven en shops.BrandService:
 	// este handler no repite ninguna regla (estandar-backend-go.md §4).
-	brand, err := h.service.Update(r.Context(), principal.BarbershopID, shops.Brand{
+	brand, err := h.service.Update(r.Context(), principal.BusinessID, shops.Brand{
 		Accent:                 req.Accent,
 		BusinessTerm:           req.BusinessTerm,
 		BusinessTermGender:     shops.Gender(req.BusinessTermGender),
@@ -113,7 +113,7 @@ func (h *UpdateBrandHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		httpserver.WriteProblem(w, httpserver.Translate(err, requestID))
 		return
 	}
-	profile, err := h.profiles.For(r.Context(), principal.BarbershopID, principal.StaffUserID)
+	profile, err := h.profiles.For(r.Context(), principal.BusinessID, principal.StaffUserID)
 	if err != nil {
 		httpserver.WriteProblem(w, httpserver.Translate(err, requestID))
 		return

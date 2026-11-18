@@ -3,26 +3,26 @@ package httpapi
 import (
 	"time"
 
-	"system-barbershop/internal/platform/httpserver"
+	"nava-agenda/internal/platform/httpserver"
 )
 
-// PublicBarbershopProfileResponse es la representación pública mínima de
-// una barbería habilitada (HU-090, CA-090-01, CA-090-04), forma exacta del
-// componente OpenAPI PublicBarbershopProfile.yaml. contactEmail/
+// PublicBusinessProfileResponse es la representación pública mínima de
+// un negocio habilitado (HU-090, CA-090-01, CA-090-04), forma exacta del
+// componente OpenAPI PublicBusinessProfile.yaml. contactEmail/
 // contactPhone viajan siempre presentes, con valor null explícito cuando la
-// barbería no tiene ese contacto configurado, igual que
-// shops/httpapi.BarbershopSettingsResponse.
-type PublicBarbershopProfileResponse struct {
+// negocio no tiene ese contacto configurado, igual que
+// shops/httpapi.BusinessSettingsResponse.
+type PublicBusinessProfileResponse struct {
 	Name         string                   `json:"name"`
 	Timezone     string                   `json:"timezone"`
 	ContactEmail *string                  `json:"contactEmail"`
 	ContactPhone *string                  `json:"contactPhone"`
 	Vocabulary   PublicVocabularyResponse `json:"vocabulary"`
-	// Location es null salvo que la barbería muestre un local (DEC-130, HU-102).
+	// Location es null salvo que el negocio muestre un local (DEC-130, HU-102).
 	Location *PublicLocationResponse `json:"location"`
-	// OffersHomeService indica si la barbería atiende a domicilio (DEC-131, HU-103).
+	// OffersHomeService indica si el negocio atiende a domicilio (DEC-131, HU-103).
 	OffersHomeService bool `json:"offersHomeService"`
-	// BrandAccent es la clave del color de marca de la barbería (DEC-171).
+	// BrandAccent es la clave del color de marca del negocio (DEC-171).
 	BrandAccent string `json:"brandAccent"`
 	// OpeningHours es el horario del local (DEC-182); lista vacía, nunca null,
 	// si no está configurado.
@@ -68,7 +68,7 @@ type PublicLocationResponse struct {
 }
 
 // PublicVocabularyResponse es la forma exacta del componente OpenAPI
-// PublicVocabulary.yaml (DEC-119): las palabras con las que la barbería nombra a
+// PublicVocabulary.yaml (DEC-119): las palabras con las que el negocio nombra a
 // su negocio y a su profesional. El acento viaja aparte, en brandAccent (DEC-171).
 type PublicVocabularyResponse struct {
 	BusinessTerm           string `json:"businessTerm"`
@@ -100,12 +100,12 @@ type PublicServiceListResponse struct {
 	NextCursor *string                 `json:"nextCursor"`
 }
 
-// PublicBarberResponse es la proyección pública mínima de un barbero con
+// PublicProfessionalResponse es la proyección pública mínima de un profesional con
 // asignación vigente (HU-092, CA-092-02), forma exacta del componente
-// OpenAPI PublicBarberResponse.yaml: id, nombre y, por DEC-127, descripción
+// OpenAPI PublicProfessionalResponse.yaml: id, nombre y, por DEC-127, descripción
 // (null si no tiene) y photoUpdatedAt (null si no tiene fotografía; si la
-// tiene, versiona la URL de la imagen). Nunca ningún otro campo del barbero.
-type PublicBarberResponse struct {
+// tiene, versiona la URL de la imagen). Nunca ningún otro campo del profesional.
+type PublicProfessionalResponse struct {
 	ID             string     `json:"id"`
 	FullName       string     `json:"fullName"`
 	Description    *string    `json:"description"`
@@ -116,30 +116,30 @@ type PublicBarberResponse struct {
 	RatingCount int      `json:"ratingCount"`
 }
 
-// PublicBarberListResponse es la lista completa de barberos elegibles para
+// PublicProfessionalListResponse es la lista completa de profesionales elegibles para
 // el servicio activo resuelto (HU-092). Sin paginar: ver
-// publicbooking.PublicBarberListResult.
-type PublicBarberListResponse struct {
-	Items []PublicBarberResponse `json:"items"`
+// publicbooking.PublicProfessionalListResult.
+type PublicProfessionalListResponse struct {
+	Items []PublicProfessionalResponse `json:"items"`
 }
 
-// PublicBarberServicesResponse es la proyección pública agregada de un
-// barbero (DEC-162), forma exacta del componente OpenAPI
-// PublicBarberServicesResponse.yaml: id y nombre con el mismo saneamiento que
-// PublicBarberResponse, más los ids de los servicios activos que hace.
-// serviceIds nunca es null ni vacío (solo se listan barberos con al menos una
+// PublicProfessionalServicesResponse es la proyección pública agregada de un
+// profesional (DEC-162), forma exacta del componente OpenAPI
+// PublicProfessionalServicesResponse.yaml: id y nombre con el mismo saneamiento que
+// PublicProfessionalResponse, más los ids de los servicios activos que hace.
+// serviceIds nunca es null ni vacío (solo se listan profesionales con al menos una
 // asignación vigente).
-type PublicBarberServicesResponse struct {
+type PublicProfessionalServicesResponse struct {
 	ID         string   `json:"id"`
 	FullName   string   `json:"fullName"`
 	ServiceIDs []string `json:"serviceIds"`
 }
 
-// PublicBarberServicesListResponse es la lista completa de barberos
+// PublicProfessionalServicesListResponse es la lista completa de profesionales
 // elegibles con sus servicios (DEC-162). Sin paginar, como
-// PublicBarberListResponse.
-type PublicBarberServicesListResponse struct {
-	Items []PublicBarberServicesResponse `json:"items"`
+// PublicProfessionalListResponse.
+type PublicProfessionalServicesListResponse struct {
+	Items []PublicProfessionalServicesResponse `json:"items"`
 }
 
 // AvailabilitySlotResponse es un inicio público válido (HU-094, CA-094-01),
@@ -151,7 +151,7 @@ type AvailabilitySlotResponse struct {
 // ConfirmPublicAppointmentRequest es el cuerpo de POST /public/businesses/
 // {slug}/services/{serviceId}/professionals/{professionalId}/appointments (HU-097).
 // Cerrado: el handler rechaza cualquier campo desconocido. Nunca declara
-// barbershopId, customerId, status, origin, precio, duración ni ningún
+// businessId, customerId, status, origin, precio, duración ni ningún
 // otro dato que el servidor derive o revalide (CA-097-02); startsAt es el
 // instante absoluto ISO 8601 que el cliente eligió de entre los `slots` de
 // HU-094 (nunca una hora civil, a diferencia de CreateManualAppointmentRequest).
@@ -165,7 +165,7 @@ type ConfirmPublicAppointmentRequest struct {
 	AttendeeName   *string `json:"attendeeName"`
 	// HomeService es null para un turno en el local (DEC-131, HU-103). Con valor,
 	// la dirección elegida con el autocompletado de Google Places y sus
-	// coordenadas; el servidor revalida que la barbería ofrezca domicilio.
+	// coordenadas; el servidor revalida que el negocio ofrezca domicilio.
 	HomeService *HomeServiceRequest `json:"homeService"`
 }
 
@@ -187,7 +187,7 @@ type HomeServiceRequest struct {
 // transacción (DEC-089); nunca vuelve a aparecer en ninguna otra respuesta.
 type ConfirmedPublicAppointmentResponse struct {
 	AttendeeName    string  `json:"attendeeName"`
-	BarbershopName  string  `json:"businessName"`
+	BusinessName    string  `json:"businessName"`
 	ServiceName     string  `json:"serviceName"`
 	DurationMinutes int     `json:"durationMinutes"`
 	PriceAmount     string  `json:"priceAmount"`
@@ -220,7 +220,7 @@ type ScheduleConflictProblemResponse struct {
 // AvailabilityResponse es la respuesta completa de HU-094: los inicios
 // válidos ya ordenados, más el contexto mínimo para interpretarlos sin
 // ambigüedad (RN-DIS-07). Un arreglo `slots` vacío cubre por igual "sin
-// disponibilidad hoy" y serviceId/barberId ajeno, inexistente, inactivo o
+// disponibilidad hoy" y serviceId/professionalId ajeno, inexistente, inactivo o
 // sin asignación vigente: la causa nunca se distingue (mismo criterio que
 // CA-092-03).
 type AvailabilityResponse struct {
@@ -230,28 +230,28 @@ type AvailabilityResponse struct {
 	SlotGridMinutes int                        `json:"slotGridMinutes"`
 }
 
-// BarberAvailabilitySlotResponse es un inicio válido atribuido a un barbero
+// ProfessionalAvailabilitySlotResponse es un inicio válido atribuido a un profesional
 // (DEC-162), forma exacta del componente OpenAPI
 // ProfessionalAvailabilitySlotResponse.yaml.
-type BarberAvailabilitySlotResponse struct {
-	BarberID string `json:"professionalId"`
-	// LegacyBarberID repite BarberID con el nombre anterior a DEC-183 (#661): Odin
+type ProfessionalAvailabilitySlotResponse struct {
+	ProfessionalID string `json:"professionalId"`
+	// LegacyBarberID repite ProfessionalID con el nombre anterior a DEC-183 (#661): Odin
 	// lo lee en cada hueco. Se retira cuando Odin migre al contrato nuevo.
 	LegacyBarberID string    `json:"barberId"`
 	StartsAt       time.Time `json:"startsAt"`
 }
 
 // ServiceAvailabilityResponse es la respuesta del agregado de disponibilidad
-// por servicio (DEC-162): los inicios de todos los barberos elegibles,
-// ordenados por (startsAt, barberId), más el mismo contexto que
+// por servicio (DEC-162): los inicios de todos los profesionales elegibles,
+// ordenados por (startsAt, professionalId), más el mismo contexto que
 // AvailabilityResponse. Un `slots` vacío cubre "sin franjas" y un
-// serviceId ajeno, inexistente, inactivo o sin barberos: la causa nunca se
+// serviceId ajeno, inexistente, inactivo o sin profesionales: la causa nunca se
 // distingue.
 type ServiceAvailabilityResponse struct {
-	Slots           []BarberAvailabilitySlotResponse `json:"slots"`
-	DurationMinutes int                              `json:"durationMinutes"`
-	Timezone        string                           `json:"timezone"`
-	SlotGridMinutes int                              `json:"slotGridMinutes"`
+	Slots           []ProfessionalAvailabilitySlotResponse `json:"slots"`
+	DurationMinutes int                                    `json:"durationMinutes"`
+	Timezone        string                                 `json:"timezone"`
+	SlotGridMinutes int                                    `json:"slotGridMinutes"`
 }
 
 // PublicGoogleReviewsResponse es la forma exacta del componente OpenAPI

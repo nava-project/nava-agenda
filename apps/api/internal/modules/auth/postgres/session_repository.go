@@ -8,8 +8,8 @@ import (
 
 	"github.com/jackc/pgx/v5"
 
-	"system-barbershop/internal/modules/auth"
-	"system-barbershop/internal/platform/database"
+	"nava-agenda/internal/modules/auth"
+	"nava-agenda/internal/platform/database"
 )
 
 var _ auth.SessionRepository = (*Repository)(nil)
@@ -42,11 +42,11 @@ func (r *Repository) ResolveSessionTenant(ctx context.Context, tokenHash string)
 // nulo) al desbloquearse, y no encuentra ninguna fila que actualizar
 // (found=false): el resultado final siempre queda revocado, y esta
 // renovación nunca reabre ni revive una sesión que acaba de revocarse.
-func (r *Repository) ValidateAndRenewSession(ctx context.Context, barbershopID, tokenHash string, now, newExpiresAt time.Time) (auth.Principal, bool, error) {
+func (r *Repository) ValidateAndRenewSession(ctx context.Context, businessID, tokenHash string, now, newExpiresAt time.Time) (auth.Principal, bool, error) {
 	var principal auth.Principal
 	found := false
 
-	err := r.db.InTenantTx(ctx, database.BarbershopID(barbershopID), func(ctx context.Context, q database.Queries) error {
+	err := r.db.InTenantTx(ctx, database.BusinessID(businessID), func(ctx context.Context, q database.Queries) error {
 		var sessionID, staffUserID string
 		err := q.QueryRow(ctx, `
 			UPDATE staff_session s
@@ -64,9 +64,9 @@ func (r *Repository) ValidateAndRenewSession(ctx context.Context, barbershopID, 
 		switch {
 		case err == nil:
 			principal = auth.Principal{
-				SessionID:    sessionID,
-				StaffUserID:  staffUserID,
-				BarbershopID: barbershopID,
+				SessionID:   sessionID,
+				StaffUserID: staffUserID,
+				BusinessID:  businessID,
 				// La UPDATE de arriba ya fijó expires_at = newExpiresAt en
 				// la misma sentencia atómica; reexponerlo aquí no cuesta
 				// una consulta adicional (HU-012, DEC-060).
@@ -88,24 +88,24 @@ func (r *Repository) ValidateAndRenewSession(ctx context.Context, barbershopID, 
 }
 
 // RevokeSession fija revoked_at = now en la fila sessionID, solo si
-// pertenece a barbershopID y no estaba revocada todavía. No distingue ni
+// pertenece a businessID y no estaba revocada todavía. No distingue ni
 // falla si la fila ya estaba revocada o no existe dentro del tenant: el
 // efecto observable de logout es idempotente (CA-006-02). RLS
 // (staff_session_update_tenant_policy) y el filtro explícito de
-// barbershop_id hacen estructuralmente imposible que esta sentencia revoque
+// business_id hacen estructuralmente imposible que esta sentencia revoque
 // una fila de otro tenant, incluso si sessionID llegara corrupto -en la
 // práctica nunca ocurre: sessionID proviene siempre de un auth.Principal ya
 // validado por el middleware de sesión, jamás de un parámetro que el
 // cliente controle (CA-006-07, DEC-058).
-func (r *Repository) RevokeSession(ctx context.Context, barbershopID, sessionID string, now time.Time) error {
-	err := r.db.InTenantTx(ctx, database.BarbershopID(barbershopID), func(ctx context.Context, q database.Queries) error {
+func (r *Repository) RevokeSession(ctx context.Context, businessID, sessionID string, now time.Time) error {
+	err := r.db.InTenantTx(ctx, database.BusinessID(businessID), func(ctx context.Context, q database.Queries) error {
 		_, err := q.Exec(ctx, `
 			UPDATE staff_session
 			   SET revoked_at = $3
 			 WHERE id = $1
 			   AND business_id = $2
 			   AND revoked_at IS NULL`,
-			sessionID, barbershopID, now,
+			sessionID, businessID, now,
 		)
 		return err
 	})
@@ -115,19 +115,19 @@ func (r *Repository) RevokeSession(ctx context.Context, barbershopID, sessionID 
 	return nil
 }
 
-// BarbershopName implementa auth.SessionRepository.BarbershopName leyendo la
-// columna real barbershop.name (existente desde
+// BusinessName implementa auth.SessionRepository.BusinessName leyendo la
+// columna real business.name (existente desde
 // 20260807170000_create_tenant_foundation.sql) dentro de la transacción
-// tenant-aware. barbershop_select_tenant_policy ya restringe la fila visible
-// a id = current_setting('app.barbershop_id'); el filtro explícito
+// tenant-aware. business_select_tenant_policy ya restringe la fila visible
+// a id = current_setting('app.business_id'); el filtro explícito
 // WHERE id = $1 es defensa en profundidad, igual que RevokeSession.
-func (r *Repository) BarbershopName(ctx context.Context, barbershopID string) (string, error) {
+func (r *Repository) BusinessName(ctx context.Context, businessID string) (string, error) {
 	var name string
-	err := r.db.InTenantTx(ctx, database.BarbershopID(barbershopID), func(ctx context.Context, q database.Queries) error {
-		return q.QueryRow(ctx, `SELECT name FROM business WHERE id = $1`, barbershopID).Scan(&name)
+	err := r.db.InTenantTx(ctx, database.BusinessID(businessID), func(ctx context.Context, q database.Queries) error {
+		return q.QueryRow(ctx, `SELECT name FROM business WHERE id = $1`, businessID).Scan(&name)
 	})
 	if err != nil {
-		return "", fmt.Errorf("auth/postgres: barbershop name: %w", err)
+		return "", fmt.Errorf("auth/postgres: business name: %w", err)
 	}
 	return name, nil
 }

@@ -7,10 +7,10 @@ import (
 	"strconv"
 	"time"
 
-	"system-barbershop/internal/modules/customeraccess"
-	"system-barbershop/internal/platform/apperr"
-	"system-barbershop/internal/platform/clientip"
-	"system-barbershop/internal/platform/httpserver"
+	"nava-agenda/internal/modules/customeraccess"
+	"nava-agenda/internal/platform/apperr"
+	"nava-agenda/internal/platform/clientip"
+	"nava-agenda/internal/platform/httpserver"
 )
 
 // slugParam es el parámetro de ruta {slug} de /public/businesses/{slug}/...
@@ -36,10 +36,10 @@ type AccessVerifyRequest struct {
 
 // AccessAppointmentResponse es un turno al que la verificación dio acceso.
 type AccessAppointmentResponse struct {
-	AccessToken string    `json:"accessToken"`
-	StartsAt    time.Time `json:"startsAt"`
-	ServiceName string    `json:"serviceName"`
-	BarberName  string    `json:"professionalName"`
+	AccessToken      string    `json:"accessToken"`
+	StartsAt         time.Time `json:"startsAt"`
+	ServiceName      string    `json:"serviceName"`
+	ProfessionalName string    `json:"professionalName"`
 }
 
 // AccessVerifyResponse es la respuesta 200 de una verificación válida.
@@ -149,7 +149,7 @@ func (h *VerifyAccessCodeHandler) ServeHTTP(w http.ResponseWriter, r *http.Reque
 	out := AccessVerifyResponse{Timezone: verified.Timezone, Appointments: make([]AccessAppointmentResponse, 0, len(verified.Appointments))}
 	for _, a := range verified.Appointments {
 		out.Appointments = append(out.Appointments, AccessAppointmentResponse{
-			AccessToken: a.AccessToken, StartsAt: a.StartsAt, ServiceName: a.ServiceName, BarberName: a.BarberName,
+			AccessToken: a.AccessToken, StartsAt: a.StartsAt, ServiceName: a.ServiceName, ProfessionalName: a.ProfessionalName,
 		})
 	}
 	w.Header().Set("Content-Type", "application/json")

@@ -13,21 +13,21 @@ import (
 	"net/http"
 	"strconv"
 
-	"system-barbershop/internal/modules/auth"
-	"system-barbershop/internal/modules/booking"
-	"system-barbershop/internal/platform/apperr"
-	"system-barbershop/internal/platform/httpserver"
-	"system-barbershop/internal/platform/idempotency"
+	"nava-agenda/internal/modules/auth"
+	"nava-agenda/internal/modules/booking"
+	"nava-agenda/internal/platform/apperr"
+	"nava-agenda/internal/platform/httpserver"
+	"nava-agenda/internal/platform/idempotency"
 )
 
 // appointmentBasePath es la base usada para construir el header Location
 // de una cita creada, relativa a /api/v1.
 const appointmentBasePath = "/private/appointments/"
 
-// agendaBarberIDParam es el nombre del parámetro de ruta que
+// agendaProfessionalIDParam es el nombre del parámetro de ruta que
 // cmd/api.buildRouter registra para
 // /private/professionals/{professionalId}/appointments/daily-agenda (HU-062).
-const agendaBarberIDParam = "professionalId"
+const agendaProfessionalIDParam = "professionalId"
 
 func principalOrInternalError(w http.ResponseWriter, r *http.Request, requestID string) (auth.Principal, bool) {
 	principal, ok := auth.PrincipalFromContext(r.Context())
@@ -100,8 +100,8 @@ func (h *CreateManualAppointmentHandler) ServeHTTP(w http.ResponseWriter, r *htt
 
 	fingerprint := httpserver.IdempotencyFingerprint(r, body)
 
-	result, err := h.service.CreateManualAppointment(r.Context(), principal.BarbershopID, booking.CreateManualAppointmentRequest{
-		BarberID:         req.BarberID,
+	result, err := h.service.CreateManualAppointment(r.Context(), principal.BusinessID, booking.CreateManualAppointmentRequest{
+		ProfessionalID:   req.ProfessionalID,
 		ServiceID:        req.ServiceID,
 		AttendeeName:     req.AttendeeName,
 		CustomerFullName: req.CustomerFullName,
@@ -133,7 +133,7 @@ func (h *CreateManualAppointmentHandler) ServeHTTP(w http.ResponseWriter, r *htt
 
 // ListDailyAgendaHandler expone
 // GET /private/professionals/{professionalId}/appointments/daily-agenda (HU-062,
-// CA-062-01 a CA-062-07): lectura de la agenda diaria de un único barbero,
+// CA-062-01 a CA-062-07): lectura de la agenda diaria de un único profesional,
 // sin idempotencia (operación de solo lectura).
 type ListDailyAgendaHandler struct {
 	service *booking.AgendaService
@@ -152,10 +152,10 @@ func (h *ListDailyAgendaHandler) ServeHTTP(w http.ResponseWriter, r *http.Reques
 		return
 	}
 
-	barberID := httpserver.URLParam(r, agendaBarberIDParam)
+	professionalID := httpserver.URLParam(r, agendaProfessionalIDParam)
 	date := r.URL.Query().Get("date")
 
-	entries, err := h.service.ListDailyAgenda(r.Context(), principal.BarbershopID, barberID, date)
+	entries, err := h.service.ListDailyAgenda(r.Context(), principal.BusinessID, professionalID, date)
 	if err != nil {
 		httpserver.WriteProblem(w, httpserver.Translate(err, requestID))
 		return
@@ -198,7 +198,7 @@ func newDailyAgendaResponse(entries []booking.DailyAgendaEntry) DailyAgendaRespo
 // bookingpostgres.formatPriceAmount/catalog.FormatPriceCOP; se repite aquí,
 // sin importar el paquete postgres, porque httpapi no depende de detalles
 // de persistencia, mismo criterio de duplicación mínima que
-// booking.LooksLikeBarberID frente a staff/schedule).
+// booking.LooksLikeProfessionalID frente a staff/schedule).
 func formatPriceAmount(cents int64) string {
 	whole := cents / 100
 	frac := cents % 100
@@ -231,7 +231,7 @@ func (h *GetAppointmentDetailHandler) ServeHTTP(w http.ResponseWriter, r *http.R
 	}
 
 	appointmentID := httpserver.URLParam(r, appointmentIDParam)
-	detail, err := h.service.GetDetail(r.Context(), principal.BarbershopID, appointmentID)
+	detail, err := h.service.GetDetail(r.Context(), principal.BusinessID, appointmentID)
 	if err != nil {
 		httpserver.WriteProblem(w, httpserver.Translate(err, requestID))
 		return
@@ -244,32 +244,32 @@ func (h *GetAppointmentDetailHandler) ServeHTTP(w http.ResponseWriter, r *http.R
 
 func newAppointmentDetailResponse(d booking.AppointmentDetail) AppointmentDetailResponse {
 	return AppointmentDetailResponse{
-		ID:               d.ID,
-		BarberID:         d.BarberID,
-		BarberFullName:   d.BarberFullName,
-		AttendeeName:     d.AttendeeName,
-		CustomerFullName: d.CustomerFullName,
-		CustomerPhone:    d.CustomerPhone,
-		CustomerEmail:    d.CustomerEmail,
-		CustomerNote:     d.CustomerNote,
-		StartsAt:         d.StartsAt,
-		EndsAt:           d.EndsAt,
-		Status:           string(d.Status),
-		Origin:           string(d.Origin),
-		ServiceName:      d.ServiceNameSnapshot,
-		DurationMinutes:  d.DurationMinutesSnapshot,
-		PriceAmount:      formatPriceAmount(d.PriceAmountCentsSnapshot),
-		Currency:         d.CurrencySnapshot,
-		HomeService:      newHomeServiceResponse(d.HomeService),
-		VersionToken:     d.VersionToken,
-		CreatedAt:        d.CreatedAt,
+		ID:                   d.ID,
+		ProfessionalID:       d.ProfessionalID,
+		ProfessionalFullName: d.ProfessionalFullName,
+		AttendeeName:         d.AttendeeName,
+		CustomerFullName:     d.CustomerFullName,
+		CustomerPhone:        d.CustomerPhone,
+		CustomerEmail:        d.CustomerEmail,
+		CustomerNote:         d.CustomerNote,
+		StartsAt:             d.StartsAt,
+		EndsAt:               d.EndsAt,
+		Status:               string(d.Status),
+		Origin:               string(d.Origin),
+		ServiceName:          d.ServiceNameSnapshot,
+		DurationMinutes:      d.DurationMinutesSnapshot,
+		PriceAmount:          formatPriceAmount(d.PriceAmountCentsSnapshot),
+		Currency:             d.CurrencySnapshot,
+		HomeService:          newHomeServiceResponse(d.HomeService),
+		VersionToken:         d.VersionToken,
+		CreatedAt:            d.CreatedAt,
 	}
 }
 
 // ListAppointmentHistoryHandler expone
 // GET /private/appointments/{appointmentId}/history (HU-064, CA-064-05):
 // lectura paginada por cursor opaco, sin idempotencia (operación de solo
-// lectura), mismo patrón de parámetros que ListBarbersHandler
+// lectura), mismo patrón de parámetros que ListProfessionalsHandler
 // (staff/httpapi).
 type ListAppointmentHistoryHandler struct {
 	service *booking.DetailService
@@ -303,7 +303,7 @@ func (h *ListAppointmentHistoryHandler) ServeHTTP(w http.ResponseWriter, r *http
 		limit = parsed
 	}
 
-	page, err := h.service.ListHistory(r.Context(), principal.BarbershopID, appointmentID, cursor, limit)
+	page, err := h.service.ListHistory(r.Context(), principal.BusinessID, appointmentID, cursor, limit)
 	if err != nil {
 		httpserver.WriteProblem(w, httpserver.Translate(err, requestID))
 		return
@@ -419,7 +419,7 @@ func (h *RescheduleAppointmentHandler) ServeHTTP(w http.ResponseWriter, r *http.
 
 	fingerprint := httpserver.IdempotencyFingerprint(r, body)
 
-	result, err := h.service.RescheduleAppointment(r.Context(), principal.BarbershopID, booking.RescheduleAppointmentRequest{
+	result, err := h.service.RescheduleAppointment(r.Context(), principal.BusinessID, booking.RescheduleAppointmentRequest{
 		AppointmentID:        appointmentID,
 		NewStartsAtLocal:     req.StartsAt,
 		ExpectedVersionToken: versionToken,
@@ -442,24 +442,24 @@ func (h *RescheduleAppointmentHandler) ServeHTTP(w http.ResponseWriter, r *http.
 	}
 }
 
-// CancelAppointmentByBarberHandler expone
+// CancelAppointmentByProfessionalHandler expone
 // POST /private/appointments/{appointmentId}/cancel (HU-066, T6,
 // CA-066-01 a CA-066-08), protegido por el protocolo de idempotencia
 // reutilizable de HU-004 (RN-IDE-01, DEC-043) y por la precondición de
 // versión de HU-064 (cabecera If-Match). Sin cuerpo de solicitud: T6 no
 // acepta ningún campo (CA-066-02, "el servidor no acepta un estado o actor
 // enviado por el body").
-type CancelAppointmentByBarberHandler struct {
-	service *booking.CancelAppointmentByBarberService
+type CancelAppointmentByProfessionalHandler struct {
+	service *booking.CancelAppointmentByProfessionalService
 }
 
-// NewCancelAppointmentByBarberHandler construye el handler de cancelación.
-func NewCancelAppointmentByBarberHandler(service *booking.CancelAppointmentByBarberService) *CancelAppointmentByBarberHandler {
-	return &CancelAppointmentByBarberHandler{service: service}
+// NewCancelAppointmentByProfessionalHandler construye el handler de cancelación.
+func NewCancelAppointmentByProfessionalHandler(service *booking.CancelAppointmentByProfessionalService) *CancelAppointmentByProfessionalHandler {
+	return &CancelAppointmentByProfessionalHandler{service: service}
 }
 
 // ServeHTTP implementa http.Handler.
-func (h *CancelAppointmentByBarberHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+func (h *CancelAppointmentByProfessionalHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	requestID := httpserver.RequestIDFromContext(r.Context())
 	principal, ok := principalOrInternalError(w, r, requestID)
 	if !ok {
@@ -516,7 +516,7 @@ func (h *CancelAppointmentByBarberHandler) ServeHTTP(w http.ResponseWriter, r *h
 
 	fingerprint := httpserver.IdempotencyFingerprint(r, body)
 
-	result, err := h.service.CancelAppointmentByBarber(r.Context(), principal.BarbershopID, booking.CancelAppointmentByBarberRequest{
+	result, err := h.service.CancelAppointmentByProfessional(r.Context(), principal.BusinessID, booking.CancelAppointmentByProfessionalRequest{
 		AppointmentID:        appointmentID,
 		ExpectedVersionToken: versionToken,
 		ActorStaffUserID:     principal.StaffUserID,
@@ -540,7 +540,7 @@ func (h *CancelAppointmentByBarberHandler) ServeHTTP(w http.ResponseWriter, r *h
 
 // readClosedAppointmentBody lee y valida el cuerpo crudo compartido por T4
 // manual y T7 (HU-067): ningún campo aceptado, mismo criterio exacto que
-// CancelAppointmentByBarberHandler.ServeHTTP (comentario §2 arriba). ok=false
+// CancelAppointmentByProfessionalHandler.ServeHTTP (comentario §2 arriba). ok=false
 // ya escribió la respuesta de error; el llamador debe retornar de inmediato.
 func readClosedAppointmentBody(w http.ResponseWriter, r *http.Request, requestID string) (body []byte, ok bool) {
 	body, err := io.ReadAll(r.Body)
@@ -574,7 +574,7 @@ func readClosedAppointmentBody(w http.ResponseWriter, r *http.Request, requestID
 // CA-067-01 a CA-067-08), protegido por el protocolo de idempotencia
 // reutilizable de HU-004 (RN-IDE-01, DEC-043) y por la precondición de
 // versión de HU-064 (cabecera If-Match). Sin cuerpo de solicitud, mismo
-// criterio que CancelAppointmentByBarberHandler.
+// criterio que CancelAppointmentByProfessionalHandler.
 type CompleteAppointmentHandler struct {
 	service *booking.CompleteAppointmentService
 }
@@ -614,7 +614,7 @@ func (h *CompleteAppointmentHandler) ServeHTTP(w http.ResponseWriter, r *http.Re
 
 	fingerprint := httpserver.IdempotencyFingerprint(r, body)
 
-	result, err := h.service.CompleteAppointment(r.Context(), principal.BarbershopID, booking.CloseAppointmentRequest{
+	result, err := h.service.CompleteAppointment(r.Context(), principal.BusinessID, booking.CloseAppointmentRequest{
 		AppointmentID:        appointmentID,
 		ExpectedVersionToken: versionToken,
 		ActorStaffUserID:     principal.StaffUserID,
@@ -675,7 +675,7 @@ func (h *MarkAppointmentNoShowHandler) ServeHTTP(w http.ResponseWriter, r *http.
 
 	fingerprint := httpserver.IdempotencyFingerprint(r, body)
 
-	result, err := h.service.MarkNoShow(r.Context(), principal.BarbershopID, booking.CloseAppointmentRequest{
+	result, err := h.service.MarkNoShow(r.Context(), principal.BusinessID, booking.CloseAppointmentRequest{
 		AppointmentID:        appointmentID,
 		ExpectedVersionToken: versionToken,
 		ActorStaffUserID:     principal.StaffUserID,
@@ -757,7 +757,7 @@ func (h *CorrectAppointmentStatusHandler) ServeHTTP(w http.ResponseWriter, r *ht
 
 	fingerprint := httpserver.IdempotencyFingerprint(r, body)
 
-	result, err := h.service.CorrectAppointmentStatus(r.Context(), principal.BarbershopID, booking.CorrectAppointmentStatusRequest{
+	result, err := h.service.CorrectAppointmentStatus(r.Context(), principal.BusinessID, booking.CorrectAppointmentStatusRequest{
 		AppointmentID:        appointmentID,
 		DestinationStatus:    req.Status,
 		Reason:               req.Reason,

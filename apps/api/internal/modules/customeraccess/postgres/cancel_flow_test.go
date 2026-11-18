@@ -1,6 +1,6 @@
 // Recorrido real de HU-099 sin dobles: handlers HTTP de customeraccess →
 // Service → booking (adaptador, servicio y repositorio PostgreSQL) con dos
-// barberías. Prueba el cableado que cmd/api hace: versionToken emitido por
+// negocios. Prueba el cableado que cmd/api hace: versionToken emitido por
 // booking.EncodeVersionToken, token → cita, política, historial y revocación.
 package postgres_test
 
@@ -13,14 +13,14 @@ import (
 	"testing"
 	"time"
 
-	"system-barbershop/internal/modules/booking"
-	bookingpostgres "system-barbershop/internal/modules/booking/postgres"
-	"system-barbershop/internal/modules/customeraccess"
-	"system-barbershop/internal/modules/customeraccess/httpapi"
-	customeraccesspostgres "system-barbershop/internal/modules/customeraccess/postgres"
-	"system-barbershop/internal/platform/database"
-	"system-barbershop/internal/platform/httpserver"
-	"system-barbershop/internal/platform/idempotency"
+	"nava-agenda/internal/modules/booking"
+	bookingpostgres "nava-agenda/internal/modules/booking/postgres"
+	"nava-agenda/internal/modules/customeraccess"
+	"nava-agenda/internal/modules/customeraccess/httpapi"
+	customeraccesspostgres "nava-agenda/internal/modules/customeraccess/postgres"
+	"nava-agenda/internal/platform/database"
+	"nava-agenda/internal/platform/httpserver"
+	"nava-agenda/internal/platform/idempotency"
 )
 
 func realCancelHandlers(t *testing.T, db *database.DB) (*httpapi.GetAppointmentHandler, *httpapi.CancelAppointmentHandler) {
@@ -59,7 +59,7 @@ func TestCancelFlow_ReadCancelThenLinkStillShowsCancelled(t *testing.T) {
 	db := setupTestDB(t)
 	get, cancel := realCancelHandlers(t, db)
 
-	appointment := createTestAppointment(t, db, shopUno, barberUno, serviceUno, booking.StatusConfirmed)
+	appointment := createTestAppointment(t, db, shopUno, professionalUno, serviceUno, booking.StatusConfirmed)
 	token := insertAccessToken(t, db, shopUno, appointment.ID, tokenState{expiresIn: 90 * 24 * time.Hour})
 
 	read := doGet(get, token)
@@ -88,7 +88,7 @@ func TestCancelFlow_ReadCancelThenLinkStillShowsCancelled(t *testing.T) {
 
 	var status string
 	var events int
-	err := db.InTenantTx(context.Background(), database.BarbershopID(shopUno), func(ctx context.Context, q database.Queries) error {
+	err := db.InTenantTx(context.Background(), database.BusinessID(shopUno), func(ctx context.Context, q database.Queries) error {
 		if err := q.QueryRow(ctx, `SELECT status FROM appointment WHERE business_id = $1 AND id = $2`, shopUno, appointment.ID).Scan(&status); err != nil {
 			return err
 		}
@@ -104,9 +104,9 @@ func TestCancelFlow_StaleVersionAndForeignTokenChangeNothing(t *testing.T) {
 	db := setupTestDB(t)
 	get, cancel := realCancelHandlers(t, db)
 
-	apptUno := createTestAppointment(t, db, shopUno, barberUno, serviceUno, booking.StatusConfirmed)
+	apptUno := createTestAppointment(t, db, shopUno, professionalUno, serviceUno, booking.StatusConfirmed)
 	tokenUno := insertAccessToken(t, db, shopUno, apptUno.ID, tokenState{expiresIn: 90 * 24 * time.Hour})
-	apptDos := createTestAppointment(t, db, shopDos, barberDos, serviceDos, booking.StatusConfirmed)
+	apptDos := createTestAppointment(t, db, shopDos, professionalDos, serviceDos, booking.StatusConfirmed)
 	tokenDos := insertAccessToken(t, db, shopDos, apptDos.ID, tokenState{expiresIn: 90 * 24 * time.Hour})
 
 	var viewDos httpapi.CustomerAppointmentResponse
@@ -126,7 +126,7 @@ func TestCancelFlow_StaleVersionAndForeignTokenChangeNothing(t *testing.T) {
 	// Ambas citas siguen confirmadas y la de shopDos no se tocó.
 	for _, tc := range []struct{ shop, id string }{{shopUno, apptUno.ID}, {shopDos, apptDos.ID}} {
 		var status string
-		err := db.InTenantTx(context.Background(), database.BarbershopID(tc.shop), func(ctx context.Context, q database.Queries) error {
+		err := db.InTenantTx(context.Background(), database.BusinessID(tc.shop), func(ctx context.Context, q database.Queries) error {
 			return q.QueryRow(ctx, `SELECT status FROM appointment WHERE business_id = $1 AND id = $2`, tc.shop, tc.id).Scan(&status)
 		})
 		if err != nil || status != "confirmed" {

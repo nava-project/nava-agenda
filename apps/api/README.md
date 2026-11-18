@@ -1350,13 +1350,13 @@ compartir nombre (`TestRename_DuplicateNameAcrossBarbers_Allowed`).
 
 | Criterio | Estado | Prueba o evidencia |
 | --- | --- | --- |
-| `CA-021-01` | Cumplido | `TestList_FourBarbersInATeamShop_ReturnedAsFourDistinctResources`, `TestStaff_HTTP_OneThenFourBarbers_SamePathBothCases`, `database/tests/hu021_barberos.sql` ("CA-021-01/02"). |
+| `CA-021-01` | Cumplido | `TestList_FourBarbersInATeamShop_ReturnedAsFourDistinctResources`, `TestStaff_HTTP_OneThenFourBarbers_SamePathBothCases`, `database/tests/hu021_profesionales.sql` ("CA-021-01/02"). |
 | `CA-021-02` | Cumplido | Los mismos anteriores; alta protegida con idempotencia: `TestCreate_FirstExecution_PersistsAndReturnsProceed`, `TestStaff_HTTP_Idempotency_ReplayAndConflict`. |
-| `CA-021-03` | Cumplido | `TestCreate_EmptyName_RejectedWithoutTouchingRepository`, `TestCreate_WhitespaceOnlyName_Rejected`, `TestCreate_NameOver120Characters_Rejected`, `TestCreate_NameExactly120Characters_Accepted`, `TestCreate_UnicodeName_CountsRunesNotBytes`, `barber_full_name_ck` en `database/tests/hu021_barberos.sql`. |
+| `CA-021-03` | Cumplido | `TestCreate_EmptyName_RejectedWithoutTouchingRepository`, `TestCreate_WhitespaceOnlyName_Rejected`, `TestCreate_NameOver120Characters_Rejected`, `TestCreate_NameExactly120Characters_Accepted`, `TestCreate_UnicodeName_CountsRunesNotBytes`, `barber_full_name_ck` en `database/tests/hu021_profesionales.sql`. |
 | `CA-021-04` | Cumplido | `TestRename_OwnTenant_UpdatesByIDWithoutDuplicating`, `TestStaff_HTTP_CreateGetListRenameReload_FullJourney`. |
-| `CA-021-05` | Cumplido | `TestGet_CrossTenant_NeverLeaksAnotherShopsBarber`, `TestRename_CrossTenant_NeverRenamesAnotherShopsBarber`, `TestStaff_HTTP_TwoTenants_CrossAccessAlwaysReturns404WithoutLeaking`, sección CA-021-05 de `hu021_barberos.sql`. |
-| `CA-021-06` | Cumplido | Sección CA-021-06 de `database/tests/hu021_barberos.sql` (RLS forzada, `WITH CHECK` rechaza `barbershop_id` ajeno, rol real sin `BYPASSRLS`). |
-| `CA-021-07` | Cumplido | Sin política/GRANT `DELETE` (`database/tests/hu021_barberos.sql`), contrato sin campos fuera de alcance (`TestContract_UpdateBarberRequestSchema_MatchesDTOFields`), `TestStaff_HTTP_UnknownField_Returns400`. |
+| `CA-021-05` | Cumplido | `TestGet_CrossTenant_NeverLeaksAnotherShopsBarber`, `TestRename_CrossTenant_NeverRenamesAnotherShopsBarber`, `TestStaff_HTTP_TwoTenants_CrossAccessAlwaysReturns404WithoutLeaking`, sección CA-021-05 de `hu021_profesionales.sql`. |
+| `CA-021-06` | Cumplido | Sección CA-021-06 de `database/tests/hu021_profesionales.sql` (RLS forzada, `WITH CHECK` rechaza `barbershop_id` ajeno, rol real sin `BYPASSRLS`). |
+| `CA-021-07` | Cumplido | Sin política/GRANT `DELETE` (`database/tests/hu021_profesionales.sql`), contrato sin campos fuera de alcance (`TestContract_UpdateBarberRequestSchema_MatchesDTOFields`), `TestStaff_HTTP_UnknownField_Returns400`. |
 | `CA-021-08` | Parcial (backend no aplica; ver `apps/web/README.md`) | Evidencia de frontend/accesibilidad documentada en `apps/web/README.md` y `apps/web/e2e/`. |
 
 ### Pruebas
@@ -1365,7 +1365,7 @@ compartir nombre (`TestRename_DuplicateNameAcrossBarbers_Allowed`).
 - HTTP con dobles: `internal/modules/staff/httpapi/handler_test.go`.
 - Contrato: `internal/modules/staff/httpapi/contract_test.go`.
 - PostgreSQL real, incluida concurrencia con `-race` (dos conexiones reales, misma clave): `internal/modules/staff/postgres/repository_test.go`.
-- SQL directo con el rol real: `database/tests/hu021_barberos.sql`.
+- SQL directo con el rol real: `database/tests/hu021_profesionales.sql`.
 - Router de producción con dos tenants reales: `cmd/api/staff_integration_test.go`.
 
 ## Catálogo básico de servicios (HU-022)
@@ -2155,7 +2155,7 @@ Playwright.
 ## Pruebas de integración
 
 Las pruebas en `internal/platform/database/*_test.go` requieren PostgreSQL real
-con las migraciones aplicadas y `database/testdata/dos_barberias.sql` cargado.
+con las migraciones aplicadas y `database/testdata/dos_negocios.sql` cargado.
 Conéctate como `barberia_app` (rol SIN `BYPASSRLS`, SIN propiedad).
 
 Ejecución:
@@ -2203,7 +2203,7 @@ go test -race ./internal/platform/httpserver/...
 ```
 
 `internal/modules/auth/postgres/repository_test.go` requiere, además de
-`database/testdata/dos_barberias.sql`,
+`database/testdata/dos_negocios.sql`,
 `database/testdata/hu005_credenciales_sesiones.sql` cargado (credenciales y
 una sesión vigente por barbería). Cubre resolución de tenant (activo,
 inactivo, inexistente), búsqueda de credencial (tenant real y señuelo,

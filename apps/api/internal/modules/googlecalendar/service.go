@@ -11,8 +11,8 @@ import (
 	"log/slog"
 	"time"
 
-	"system-barbershop/internal/platform/apperr"
-	"system-barbershop/internal/platform/clock"
+	"nava-agenda/internal/platform/apperr"
+	"nava-agenda/internal/platform/clock"
 )
 
 // StateTTL es la vigencia del estado OAuth: lo que tarda una persona en
@@ -21,7 +21,7 @@ import (
 const StateTTL = 10 * time.Minute
 
 // ErrReauthRequired indica que la conexión ya no puede publicar: Google
-// revocó el permiso (o nunca hubo credenciales) y el barbero debe reconectar.
+// revocó el permiso (o nunca hubo credenciales) y el profesional debe reconectar.
 var ErrReauthRequired = errors.New("googlecalendar: se requiere volver a autorizar con Google")
 
 // CallbackResult es el desenlace del regreso de Google, expresado como un
@@ -34,12 +34,12 @@ const (
 	CallbackFailed    CallbackResult = "failed"
 )
 
-// StatusView es lo que ve el barbero sobre su integración. Connection es nil
+// StatusView es lo que ve el profesional sobre su integración. Connection es nil
 // cuando nunca conectó.
 type StatusView struct {
-	Enabled      bool
-	BarberLinked bool
-	Connection   *Connection
+	Enabled            bool
+	ProfessionalLinked bool
+	Connection         *Connection
 	// Jobs resume la cola de la conexión (pendientes y fallidos).
 	Jobs JobCounts
 }
@@ -111,31 +111,31 @@ func hashState(state string) string {
 // fila no permite descifrarlo.
 func verifierAAD(stateHash string) []byte { return []byte("gcal-pkce|" + stateHash) }
 
-// tokenAAD ata el refresh token cifrado a su barbero: trasplantarlo a la fila
-// de otro barbero (o de otra barbería) no permite descifrarlo.
-func tokenAAD(barbershopID, barberID string) []byte {
-	return []byte("gcal-refresh|" + barbershopID + "|" + barberID)
+// tokenAAD ata el refresh token cifrado a su profesional: trasplantarlo a la fila
+// de otro profesional (o de otro negocio) no permite descifrarlo.
+func tokenAAD(businessID, professionalID string) []byte {
+	return []byte("gcal-refresh|" + businessID + "|" + professionalID)
 }
 
 // Status devuelve el estado de la integración del usuario autenticado.
-func (s *Service) Status(ctx context.Context, barbershopID, staffUserID string) (StatusView, error) {
+func (s *Service) Status(ctx context.Context, businessID, staffUserID string) (StatusView, error) {
 	view := StatusView{Enabled: s.Enabled()}
-	barberID, linked, err := s.repo.BarberOfUser(ctx, barbershopID, staffUserID)
+	professionalID, linked, err := s.repo.ProfessionalOfUser(ctx, businessID, staffUserID)
 	if err != nil {
-		return StatusView{}, apperr.Internal(fmt.Errorf("googlecalendar: resolver barbero del usuario: %w", err))
+		return StatusView{}, apperr.Internal(fmt.Errorf("googlecalendar: resolver profesional del usuario: %w", err))
 	}
 	if !linked {
 		return view, nil
 	}
-	view.BarberLinked = true
+	view.ProfessionalLinked = true
 
-	conn, found, err := s.repo.GetConnection(ctx, barbershopID, barberID)
+	conn, found, err := s.repo.GetConnection(ctx, businessID, professionalID)
 	if err != nil {
 		return StatusView{}, apperr.Internal(fmt.Errorf("googlecalendar: leer conexión: %w", err))
 	}
 	if found {
 		view.Connection = &conn
-		counts, err := s.repo.JobCounts(ctx, barbershopID, barberID)
+		counts, err := s.repo.JobCounts(ctx, businessID, professionalID)
 		if err != nil {
 			return StatusView{}, apperr.Internal(fmt.Errorf("googlecalendar: contar trabajos: %w", err))
 		}
@@ -145,21 +145,21 @@ func (s *Service) Status(ctx context.Context, barbershopID, staffUserID string) 
 }
 
 // SyncNow es «Sincronizar ahora»: hace vencer ya los trabajos pendientes de la
-// conexión del barbero y reintenta los fallidos. No llama a Google (lo hace el
+// conexión del profesional y reintenta los fallidos. No llama a Google (lo hace el
 // worker) ni toca el dominio de NAVA, solo reordena la cola de ESA conexión, y es
 // segura ante varios clics.
-func (s *Service) SyncNow(ctx context.Context, barbershopID, staffUserID string) (JobCounts, error) {
+func (s *Service) SyncNow(ctx context.Context, businessID, staffUserID string) (JobCounts, error) {
 	if !s.Enabled() {
 		return JobCounts{}, errIntegrationDisabled()
 	}
-	barberID, linked, err := s.repo.BarberOfUser(ctx, barbershopID, staffUserID)
+	professionalID, linked, err := s.repo.ProfessionalOfUser(ctx, businessID, staffUserID)
 	if err != nil {
-		return JobCounts{}, apperr.Internal(fmt.Errorf("googlecalendar: resolver barbero del usuario: %w", err))
+		return JobCounts{}, apperr.Internal(fmt.Errorf("googlecalendar: resolver profesional del usuario: %w", err))
 	}
 	if !linked {
-		return JobCounts{}, errNoLinkedBarber()
+		return JobCounts{}, errNoLinkedProfessional()
 	}
-	counts, found, err := s.repo.RequeueConnection(ctx, barbershopID, barberID, s.clock.Now())
+	counts, found, err := s.repo.RequeueConnection(ctx, businessID, professionalID, s.clock.Now())
 	if err != nil {
 		return JobCounts{}, apperr.Internal(fmt.Errorf("googlecalendar: sincronizar ahora: %w", err))
 	}
@@ -170,17 +170,17 @@ func (s *Service) SyncNow(ctx context.Context, barbershopID, staffUserID string)
 }
 
 // StartConnect inicia la autorización: guarda un estado de un solo uso ligado a
-// barbería, barbero, usuario y sesión, y devuelve la URL de consentimiento.
-func (s *Service) StartConnect(ctx context.Context, barbershopID, staffUserID, sessionID string) (string, error) {
+// negocio, profesional, usuario y sesión, y devuelve la URL de consentimiento.
+func (s *Service) StartConnect(ctx context.Context, businessID, staffUserID, sessionID string) (string, error) {
 	if !s.Enabled() {
 		return "", errIntegrationDisabled()
 	}
-	barberID, linked, err := s.repo.BarberOfUser(ctx, barbershopID, staffUserID)
+	professionalID, linked, err := s.repo.ProfessionalOfUser(ctx, businessID, staffUserID)
 	if err != nil {
-		return "", apperr.Internal(fmt.Errorf("googlecalendar: resolver barbero del usuario: %w", err))
+		return "", apperr.Internal(fmt.Errorf("googlecalendar: resolver profesional del usuario: %w", err))
 	}
 	if !linked {
-		return "", errNoLinkedBarber()
+		return "", errNoLinkedProfessional()
 	}
 
 	state, err := s.random.Token(32)
@@ -201,8 +201,8 @@ func (s *Service) StartConnect(ctx context.Context, barbershopID, staffUserID, s
 
 	now := s.clock.Now()
 	if err := s.repo.CreateState(ctx, OAuthState{
-		BarbershopID:      barbershopID,
-		BarberID:          barberID,
+		BusinessID:        businessID,
+		ProfessionalID:    professionalID,
 		StaffUserID:       staffUserID,
 		SessionID:         sessionID,
 		StateHash:         stateHash,
@@ -222,7 +222,7 @@ func (s *Service) StartConnect(ctx context.Context, barbershopID, staffUserID, s
 // tampoco puede reintentarse con el mismo enlace.
 func (s *Service) CompleteCallback(
 	ctx context.Context,
-	barbershopID, staffUserID, sessionID, rawState, code, providerError string,
+	businessID, staffUserID, sessionID, rawState, code, providerError string,
 ) (CallbackResult, error) {
 	if !s.Enabled() {
 		return "", errIntegrationDisabled()
@@ -231,7 +231,7 @@ func (s *Service) CompleteCallback(
 		return "", errAuthorizationInvalid()
 	}
 
-	state, found, err := s.repo.ConsumeState(ctx, barbershopID, hashState(rawState), s.clock.Now())
+	state, found, err := s.repo.ConsumeState(ctx, businessID, hashState(rawState), s.clock.Now())
 	if err != nil {
 		return "", apperr.Internal(fmt.Errorf("googlecalendar: consumir estado OAuth: %w", err))
 	}
@@ -240,13 +240,13 @@ func (s *Service) CompleteCallback(
 		return "", errAuthorizationInvalid()
 	}
 
-	// El barbero debe seguir siendo el del usuario: si cambió su vínculo entre
+	// El profesional debe seguir siendo el del usuario: si cambió su vínculo entre
 	// iniciar y terminar, la autorización ya no corresponde.
-	barberID, linked, err := s.repo.BarberOfUser(ctx, barbershopID, staffUserID)
+	professionalID, linked, err := s.repo.ProfessionalOfUser(ctx, businessID, staffUserID)
 	if err != nil {
-		return "", apperr.Internal(fmt.Errorf("googlecalendar: resolver barbero del usuario: %w", err))
+		return "", apperr.Internal(fmt.Errorf("googlecalendar: resolver profesional del usuario: %w", err))
 	}
-	if !linked || barberID != state.BarberID {
+	if !linked || professionalID != state.ProfessionalID {
 		return "", errAuthorizationInvalid()
 	}
 
@@ -262,20 +262,20 @@ func (s *Service) CompleteCallback(
 	tokens, err := s.provider.Exchange(ctx, code, string(verifier))
 	if err != nil || tokens.RefreshToken == "" {
 		// Sin detalle: el error del proveedor puede traer partes del código.
-		s.log.Warn("google_calendar.connect.exchange_failed", "professional_id", barberID)
+		s.log.Warn("google_calendar.connect.exchange_failed", "professional_id", professionalID)
 		return CallbackFailed, nil
 	}
 
-	previous, hadPrevious, err := s.repo.GetConnection(ctx, barbershopID, barberID)
+	previous, hadPrevious, err := s.repo.GetConnection(ctx, businessID, professionalID)
 	if err != nil {
 		return "", apperr.Internal(fmt.Errorf("googlecalendar: leer conexión previa: %w", err))
 	}
 
-	encrypted, keyID, err := s.cipher.Encrypt([]byte(tokens.RefreshToken), tokenAAD(barbershopID, barberID))
+	encrypted, keyID, err := s.cipher.Encrypt([]byte(tokens.RefreshToken), tokenAAD(businessID, professionalID))
 	if err != nil {
 		return "", apperr.Internal(fmt.Errorf("googlecalendar: cifrar refresh token: %w", err))
 	}
-	if _, err := s.repo.SaveConnected(ctx, barbershopID, barberID, ConnectedData{
+	if _, err := s.repo.SaveConnected(ctx, businessID, professionalID, ConnectedData{
 		AccountEmail: tokens.AccountEmail,
 		Credentials:  encrypted,
 		KeyID:        keyID,
@@ -287,25 +287,25 @@ func (s *Service) CompleteCallback(
 	// Reconectar con otra cuenta deja un token anterior vivo en Google: se
 	// revoca (mejor esfuerzo) para no acumular permisos olvidados.
 	if hadPrevious && previous.HasCredentials() {
-		s.revokeStored(ctx, previous, barbershopID, barberID)
+		s.revokeStored(ctx, previous, businessID, professionalID)
 	}
-	s.log.Info("google_calendar.connect.connected", "professional_id", barberID)
+	s.log.Info("google_calendar.connect.connected", "professional_id", professionalID)
 	return CallbackConnected, nil
 }
 
-// UpdateReminder guarda la anticipación del recordatorio del barbero.
-func (s *Service) UpdateReminder(ctx context.Context, barbershopID, staffUserID string, minutes *int) (Connection, error) {
+// UpdateReminder guarda la anticipación del recordatorio del profesional.
+func (s *Service) UpdateReminder(ctx context.Context, businessID, staffUserID string, minutes *int) (Connection, error) {
 	if err := ValidateReminderMinutes(minutes); err != nil {
 		return Connection{}, err
 	}
-	barberID, linked, err := s.repo.BarberOfUser(ctx, barbershopID, staffUserID)
+	professionalID, linked, err := s.repo.ProfessionalOfUser(ctx, businessID, staffUserID)
 	if err != nil {
-		return Connection{}, apperr.Internal(fmt.Errorf("googlecalendar: resolver barbero del usuario: %w", err))
+		return Connection{}, apperr.Internal(fmt.Errorf("googlecalendar: resolver profesional del usuario: %w", err))
 	}
 	if !linked {
 		return Connection{}, errNotConnected()
 	}
-	conn, found, err := s.repo.SetReminder(ctx, barbershopID, barberID, minutes)
+	conn, found, err := s.repo.SetReminder(ctx, businessID, professionalID, minutes)
 	if err != nil {
 		return Connection{}, apperr.Internal(fmt.Errorf("googlecalendar: guardar recordatorio: %w", err))
 	}
@@ -315,33 +315,33 @@ func (s *Service) UpdateReminder(ctx context.Context, barbershopID, staffUserID 
 	return conn, nil
 }
 
-// Disconnect desconecta al barbero del usuario. Es idempotente: sin barbero o
+// Disconnect desconecta al profesional del usuario. Es idempotente: sin profesional o
 // sin conexión también es un éxito.
-func (s *Service) Disconnect(ctx context.Context, barbershopID, staffUserID string) error {
-	barberID, linked, err := s.repo.BarberOfUser(ctx, barbershopID, staffUserID)
+func (s *Service) Disconnect(ctx context.Context, businessID, staffUserID string) error {
+	professionalID, linked, err := s.repo.ProfessionalOfUser(ctx, businessID, staffUserID)
 	if err != nil {
-		return apperr.Internal(fmt.Errorf("googlecalendar: resolver barbero del usuario: %w", err))
+		return apperr.Internal(fmt.Errorf("googlecalendar: resolver profesional del usuario: %w", err))
 	}
 	if !linked {
 		return nil
 	}
-	return s.disconnectBarber(ctx, barbershopID, barberID)
+	return s.disconnectProfessional(ctx, businessID, professionalID)
 }
 
-// BarberLinkReleased implementa staff.LinkObserver (DEC-100): si el usuario
-// cambia o quita su vínculo, se desconecta la conexión del barbero anterior,
-// revocando y borrando sus credenciales, para que quien tome ese barbero
+// ProfessionalLinkReleased implementa staff.LinkObserver (DEC-100): si el usuario
+// cambia o quita su vínculo, se desconecta la conexión del profesional anterior,
+// revocando y borrando sus credenciales, para que quien tome ese profesional
 // después no herede una cuenta de Google ajena.
-func (s *Service) BarberLinkReleased(ctx context.Context, barbershopID, barberID string) {
-	if err := s.disconnectBarber(ctx, barbershopID, barberID); err != nil {
+func (s *Service) ProfessionalLinkReleased(ctx context.Context, businessID, professionalID string) {
+	if err := s.disconnectProfessional(ctx, businessID, professionalID); err != nil {
 		// El vínculo ya cambió: no hay a quién devolverle el error. Se deja
 		// constancia sin datos personales para reconciliarlo.
-		s.log.Error("google_calendar.disconnect.after_link_released_failed", "professional_id", barberID, "error", err)
+		s.log.Error("google_calendar.disconnect.after_link_released_failed", "professional_id", professionalID, "error", err)
 	}
 }
 
-func (s *Service) disconnectBarber(ctx context.Context, barbershopID, barberID string) error {
-	conn, found, err := s.repo.GetConnection(ctx, barbershopID, barberID)
+func (s *Service) disconnectProfessional(ctx context.Context, businessID, professionalID string) error {
+	conn, found, err := s.repo.GetConnection(ctx, businessID, professionalID)
 	if err != nil {
 		return apperr.Internal(fmt.Errorf("googlecalendar: leer conexión: %w", err))
 	}
@@ -349,59 +349,59 @@ func (s *Service) disconnectBarber(ctx context.Context, barbershopID, barberID s
 		return nil
 	}
 	if conn.HasCredentials() {
-		s.revokeStored(ctx, conn, barbershopID, barberID)
+		s.revokeStored(ctx, conn, businessID, professionalID)
 	}
-	if _, err := s.repo.MarkStatus(ctx, barbershopID, barberID, StatusDisconnected, "", s.clock.Now()); err != nil {
+	if _, err := s.repo.MarkStatus(ctx, businessID, professionalID, StatusDisconnected, "", s.clock.Now()); err != nil {
 		return apperr.Internal(fmt.Errorf("googlecalendar: desconectar: %w", err))
 	}
-	s.log.Info("google_calendar.disconnect.disconnected", "professional_id", barberID)
+	s.log.Info("google_calendar.disconnect.disconnected", "professional_id", professionalID)
 	return nil
 }
 
 // revokeStored revoca en Google el refresh token guardado. Es de mejor
 // esfuerzo: desconectar localmente NUNCA depende de que Google responda.
-func (s *Service) revokeStored(ctx context.Context, conn Connection, barbershopID, barberID string) {
+func (s *Service) revokeStored(ctx context.Context, conn Connection, businessID, professionalID string) {
 	if !s.Enabled() {
 		return
 	}
-	token, err := s.cipher.Decrypt(conn.Credentials, conn.KeyID, tokenAAD(barbershopID, barberID))
+	token, err := s.cipher.Decrypt(conn.Credentials, conn.KeyID, tokenAAD(businessID, professionalID))
 	if err != nil {
-		s.log.Warn("google_calendar.revoke.undecryptable", "professional_id", barberID)
+		s.log.Warn("google_calendar.revoke.undecryptable", "professional_id", professionalID)
 		return
 	}
 	if err := s.provider.Revoke(ctx, string(token)); err != nil {
-		s.log.Warn("google_calendar.revoke.failed", "professional_id", barberID)
+		s.log.Warn("google_calendar.revoke.failed", "professional_id", professionalID)
 	}
 }
 
-// AccessToken obtiene un access token vigente del barbero para llamar a la API
+// AccessToken obtiene un access token vigente del profesional para llamar a la API
 // de Google Calendar; lo usa el publicador (issue #324). El access token no se
 // persiste (DEC-102): se renueva bajo demanda con el refresh token. Si Google
 // ya no acepta el refresh token, la conexión pasa a `reauth_required` con las
 // credenciales borradas y se devuelve ErrReauthRequired; un fallo transitorio
 // se devuelve tal cual y NO cambia el estado.
-func (s *Service) AccessToken(ctx context.Context, barbershopID, barberID string) (string, time.Time, error) {
+func (s *Service) AccessToken(ctx context.Context, businessID, professionalID string) (string, time.Time, error) {
 	if !s.Enabled() {
 		return "", time.Time{}, errIntegrationDisabled()
 	}
-	conn, found, err := s.repo.GetConnection(ctx, barbershopID, barberID)
+	conn, found, err := s.repo.GetConnection(ctx, businessID, professionalID)
 	if err != nil {
 		return "", time.Time{}, fmt.Errorf("googlecalendar: leer conexión: %w", err)
 	}
 	if !found || !conn.HasCredentials() {
 		return "", time.Time{}, ErrReauthRequired
 	}
-	refreshToken, err := s.cipher.Decrypt(conn.Credentials, conn.KeyID, tokenAAD(barbershopID, barberID))
+	refreshToken, err := s.cipher.Decrypt(conn.Credentials, conn.KeyID, tokenAAD(businessID, professionalID))
 	if err != nil {
 		return "", time.Time{}, fmt.Errorf("googlecalendar: descifrar refresh token: %w", err)
 	}
 
 	access, expiresAt, err := s.provider.RefreshAccessToken(ctx, string(refreshToken))
 	if errors.Is(err, ErrTokenRevoked) {
-		if _, markErr := s.repo.MarkStatus(ctx, barbershopID, barberID, StatusReauthRequired, "token_revoked", s.clock.Now()); markErr != nil {
+		if _, markErr := s.repo.MarkStatus(ctx, businessID, professionalID, StatusReauthRequired, "token_revoked", s.clock.Now()); markErr != nil {
 			return "", time.Time{}, fmt.Errorf("googlecalendar: marcar reauth_required: %w", markErr)
 		}
-		s.log.Warn("google_calendar.token.revoked", "professional_id", barberID)
+		s.log.Warn("google_calendar.token.revoked", "professional_id", professionalID)
 		return "", time.Time{}, ErrReauthRequired
 	}
 	if err != nil {

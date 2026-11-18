@@ -8,10 +8,10 @@ import (
 )
 
 // BookingPolicy es la configuración pública de reserva y cancelación de la
-// barbería activa (HU-093, RN-DIS-04, RN-DIS-06, RN-CAN-01, RN-CAN-02).
+// negocio activo (HU-093, RN-DIS-04, RN-DIS-06, RN-CAN-01, RN-CAN-02).
 // VersionToken es el token opaco de concurrencia (mismo patrón que
 // booking.EncodeVersionToken): determinista a partir del identificador de
-// la barbería y su updated_at vigente, irreversible.
+// el negocio y su updated_at vigente, irreversible.
 type BookingPolicy struct {
 	MinAdvanceMinutes              int
 	MaxAdvanceDays                 int
@@ -38,7 +38,7 @@ const (
 	CancellationDeadlineMinutesCeil  = 10080
 
 	// DEC-133 sustituye el conjunto discreto de DEC-083 por un entero de 1 a
-	// 60 (RN-DIS-06, barbershop_slot_grid_minutes_ck): un paso fuera del
+	// 60 (RN-DIS-06, business_slot_grid_minutes_ck): un paso fuera del
 	// rango se rechaza, nunca se redondea. El motor de disponibilidad funciona
 	// con cualquier paso positivo (rejilla fija del tramo, DEC-135).
 	SlotGridMinutesFloor = 1
@@ -46,7 +46,7 @@ const (
 )
 
 // EncodeBookingPolicyVersionToken produce el token opaco de concurrencia de
-// la política de reserva de una barbería a partir de su identificador y su
+// la política de reserva de un negocio a partir de su identificador y su
 // updated_at vigente (HU-093, CA-093-02). Duplica
 // booking.EncodeVersionToken a propósito (CA-002-06: el núcleo de shops no
 // importa booking): irreversible (SHA-256, no una codificación reversible
@@ -54,12 +54,12 @@ const (
 // precondición sin que updated_at se vuelva una regla de negocio pública.
 // Dos lecturas de la misma fila sin ninguna escritura entre medias
 // producen el mismo token; cualquier escritura que toque updated_at
-// (barbershop_set_updated_at) produce uno distinto -incluida una
+// (business_set_updated_at) produce uno distinto -incluida una
 // escritura de HU-020 sobre name/timezone/contacto, que también invalida
 // el token de la política: ambas comparten la misma fila y el mismo
 // updated_at, así que una edición concurrente de cualquiera de las dos se
 // detecta igual.
-func EncodeBookingPolicyVersionToken(barbershopID string, updatedAt time.Time) string {
-	sum := sha256.Sum256([]byte(barbershopID + "|" + strconv.FormatInt(updatedAt.UTC().UnixNano(), 10)))
+func EncodeBookingPolicyVersionToken(businessID string, updatedAt time.Time) string {
+	sum := sha256.Sum256([]byte(businessID + "|" + strconv.FormatInt(updatedAt.UTC().UnixNano(), 10)))
 	return base64.RawURLEncoding.EncodeToString(sum[:])
 }

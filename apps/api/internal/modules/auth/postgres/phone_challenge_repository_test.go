@@ -1,9 +1,9 @@
 // Pruebas de integración de HU-007 contra
 // auth_phone_challenge_request/verify con PostgreSQL REAL. Requieren las
-// siete migraciones y database/testdata/dos_barberias.sql +
+// siete migraciones y database/testdata/dos_negocios.sql +
 // hu005_credenciales_sesiones.sql + hu007_reto_telefonico.sql cargados.
 //
-//	export TEST_DATABASE_URL="postgres://barberia_app:app_test@localhost:5432/barberia_test?sslmode=disable"
+//	export TEST_DATABASE_URL="postgres://agenda_app:app_test@localhost:5432/postgres?sslmode=disable"
 //	go test -race ./internal/modules/auth/postgres/...
 package postgres_test
 
@@ -12,14 +12,14 @@ import (
 	"strings"
 	"testing"
 
-	"system-barbershop/internal/modules/auth"
-	authpostgres "system-barbershop/internal/modules/auth/postgres"
-	"system-barbershop/internal/platform/database"
+	"nava-agenda/internal/modules/auth"
+	authpostgres "nava-agenda/internal/modules/auth/postgres"
+	"nava-agenda/internal/platform/database"
 )
 
 // verifiedEmailA/verifiedEmailB corresponden a duena.a/dueno.b, con
 // teléfono verificado por testdata/hu007_reto_telefonico.sql.
-// unverifiedEmailA es barbero.a, SIN teléfono verificado a propósito.
+// unverifiedEmailA es profesional.a, SIN teléfono verificado a propósito.
 const (
 	verifiedEmailA   = "duena.a@ejemplo.test"
 	unverifiedEmailA = "barbero.a@ejemplo.test"
@@ -306,7 +306,7 @@ func TestPhoneChallengeRepository_VerifyChallenge_WrongDigest_ExhaustsAttempts(t
 	}
 }
 
-// --- DEC-139: el destino sale del canal de la barbería de la cuenta -------------
+// --- DEC-139: el destino sale del canal del negocio de la cuenta -------------
 
 const (
 	channelShopA    = "11111111-1111-1111-1111-111111111111"
@@ -315,14 +315,14 @@ const (
 	channelRestored = "whatsapp"
 )
 
-// setLoginChannel fija el canal de una barbería dentro de su propio tenant (la
+// setLoginChannel fija el canal de un negocio dentro de su propio tenant (la
 // misma ruta que usa la aplicación) y lo restablece a WhatsApp al terminar la
 // prueba, que es el valor con el que testdata/hu007_reto_telefonico.sql deja
-// las dos barberías.
+// los dos negocios.
 func setLoginChannel(t *testing.T, db *database.DB, shopID, channel string) {
 	t.Helper()
 	write := func(db *database.DB, value string) {
-		err := db.InTenantTx(context.Background(), database.BarbershopID(shopID), func(ctx context.Context, q database.Queries) error {
+		err := db.InTenantTx(context.Background(), database.BusinessID(shopID), func(ctx context.Context, q database.Queries) error {
 			_, err := q.Exec(ctx, `UPDATE business SET login_otp_channel = $2 WHERE id = $1`, shopID, value)
 			return err
 		})
@@ -394,8 +394,8 @@ func TestPhoneChallengeRepository_RequestChallenge_ChannelDecidesDestinations(t 
 	}
 }
 
-// El canal de una barbería no cambia el destino de la otra (RN-TEN-01).
-func TestPhoneChallengeRepository_RequestChallenge_ChannelIsPerBarbershop(t *testing.T) {
+// El canal de un negocio no cambia el destino de la otra (RN-TEN-01).
+func TestPhoneChallengeRepository_RequestChallenge_ChannelIsPerBusiness(t *testing.T) {
 	db := setupTestDB(t)
 	defer db.Close()
 	setLoginChannel(t, db, channelShopA, "both")
@@ -407,7 +407,7 @@ func TestPhoneChallengeRepository_RequestChallenge_ChannelIsPerBarbershop(t *tes
 		t.Fatalf("expected B accepted, got accepted=%v err=%v", accepted, err)
 	}
 	if dest.Phone == "" || dest.Email != "" {
-		t.Fatalf("barbershop B is on whatsapp and must not inherit A's channel, got %+v", dest)
+		t.Fatalf("business B is on whatsapp and must not inherit A's channel, got %+v", dest)
 	}
 
 	accepted, dest, err = repo.RequestChallenge(context.Background(), verifiedEmailA, escalatedIP(t, db, "per-shop-a"), testCodeHash(t, "per-shop-a"), testChallengeCfg())
@@ -415,7 +415,7 @@ func TestPhoneChallengeRepository_RequestChallenge_ChannelIsPerBarbershop(t *tes
 		t.Fatalf("expected A accepted, got accepted=%v err=%v", accepted, err)
 	}
 	if dest.Phone == "" || dest.Email == "" {
-		t.Fatalf("barbershop A is on both channels, got %+v", dest)
+		t.Fatalf("business A is on both channels, got %+v", dest)
 	}
 }
 

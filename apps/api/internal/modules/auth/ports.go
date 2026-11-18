@@ -50,28 +50,28 @@ type Repository interface {
 	// (modelo-fisico-referencia.sql sección A.0). found=false cubre tanto un
 	// correo inexistente como un usuario inactivo (CA-005-02, CA-005-07);
 	// esta interfaz no tiene forma de distinguirlos.
-	ResolveLoginTenant(ctx context.Context, email string) (barbershopID string, found bool, err error)
+	ResolveLoginTenant(ctx context.Context, email string) (businessID string, found bool, err error)
 
 	// LookupCredential ejecuta dentro de una transacción tenant-aware (el
 	// tenant real cuando resolved=true, o un tenant señuelo estable cuando
 	// resolved=false) exactamente la misma forma de consulta en ambos
-	// casos, para que un correo inexistente y una barbería resuelta con
+	// casos, para que un correo inexistente y un negocio resuelta con
 	// contraseña incorrecta impliquen el mismo trabajo de base de datos
 	// (CA-005-02). resolved debe ser el mismo valor que devolvió
 	// ResolveLoginTenant para esta solicitud.
-	LookupCredential(ctx context.Context, barbershopID string, resolved bool, email string) (Credential, error)
+	LookupCredential(ctx context.Context, businessID string, resolved bool, email string) (Credential, error)
 
 	// CreateSession persiste una sesión nueva para un usuario ya
 	// autenticado, en su propia transacción tenant-aware. tokenHash es el
 	// SHA-256 hexadecimal del token en claro (ver [HashToken]); el valor en
 	// claro nunca llega a este puerto.
-	CreateSession(ctx context.Context, barbershopID, staffUserID, tokenHash string, issuedAt, expiresAt time.Time) error
+	CreateSession(ctx context.Context, businessID, staffUserID, tokenHash string, issuedAt, expiresAt time.Time) error
 
 	// StaffUserNames resuelve, en una sola consulta por lote, el full_name
-	// de cada id de staffUserIDs dentro de barbershopID (HU-064,
+	// de cada id de staffUserIDs dentro de businessID (HU-064,
 	// StaffActorNameLookup): nunca expone email ni ninguna otra columna. Un
-	// id sin coincidencia (inexistente o de otra barbería) simplemente está
+	// id sin coincidencia (inexistente o de otro negocio) simplemente está
 	// ausente del mapa devuelto. staffUserIDs vacío devuelve un mapa vacío
 	// sin tocar PostgreSQL.
-	StaffUserNames(ctx context.Context, barbershopID string, staffUserIDs []string) (map[string]string, error)
+	StaffUserNames(ctx context.Context, businessID string, staffUserIDs []string) (map[string]string, error)
 }
