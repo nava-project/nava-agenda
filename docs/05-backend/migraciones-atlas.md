@@ -1,6 +1,6 @@
 ---
 titulo: "Gestión de migraciones PostgreSQL con Atlas"
-version: "1.5"
+version: "1.6"
 estado: "Decisión confirmada"
 responsable: "Propietario del proyecto"
 ultima_actualizacion: "2026-11-18"
@@ -43,7 +43,7 @@ database/
   atlas.hcl
   migrations/
     atlas.sum
-    20260806143000_create_barbershop.sql
+    20260806143000_create_business.sql
   seeds/
   testdata/
   tests/
@@ -65,7 +65,7 @@ Reglas:
 Los comandos se ejecutan desde `database/` o indicando su configuración explícitamente.
 
 ```text
-atlas migrate new create_barbershop
+atlas migrate new create_business
 # editar y revisar el SQL generado
 atlas migrate hash
 atlas migrate validate --env local
@@ -108,7 +108,7 @@ El pipeline:
 2. valida la semántica SQL contra la versión PostgreSQL del proyecto;
 3. aplica todas las migraciones sobre una base vacía;
 4. actualiza una base en la versión anterior con datos de prueba;
-5. ejecuta pruebas SQL y de integración con dos barberías;
+5. ejecuta pruebas SQL y de integración con dos negocios;
 6. falla ante archivos fuera de orden, modificados o SQL inválido.
 
 ### Despliegue
@@ -228,10 +228,11 @@ aceptada: los objetos que cree una migración nueva quedan `owned` por
 `barberia_migrator` (quien la ejecuta), no por `barberia_owner`; es
 reproducible porque `barberia_migrator` es el único rol que corre
 migraciones. Las políticas RLS administrativas de una tabla nueva se escriben
-igual `FOR ALL TO barberia_owner`: por membresía heredada, `barberia_migrator`
-las satisface sin que el objeto sea literalmente suyo.
+igual `FOR ALL TO agenda_owner` (antes de `DEC-183`, `barberia_owner`): por
+membresía heredada, `agenda_migrator` las satisface sin que el objeto sea
+literalmente suyo.
 
-Rotar la contraseña de `barberia_migrator`, `barberia_app` o `barberia_worker`
+Rotar la contraseña de `agenda_migrator`, `agenda_app` o `agenda_worker`
 no requiere una migración: es un cambio operativo sobre el rol existente.
 
 ## 7. Trazabilidad
@@ -256,7 +257,7 @@ El historial de la herramienta no reemplaza la auditoría funcional del sistema 
 -- atlas:txmode none
 
 CREATE INDEX CONCURRENTLY idx_appointment_shop_starts_at
-ON appointment (barbershop_id, starts_at);
+ON appointment (business_id, starts_at);
 ```
 
 - Una migración no transaccional incluye precondiciones, forma de detectar aplicación parcial y avance correctivo.

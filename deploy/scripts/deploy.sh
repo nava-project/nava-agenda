@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # Despliegue de una versión de NAVA en el VPS. Corre en el servidor como `deploy`,
-# desde el directorio de la versión (/srv/barberia/releases/<sha>/deploy/scripts).
+# desde el directorio de la versión (/srv/nava-agenda/releases/<sha>/deploy/scripts).
 #
 # Orden (docs/05-backend/migraciones-atlas.md, "Despliegue"):
 #   1. valida entornos y que las imágenes estén en el Docker del host
@@ -33,8 +33,8 @@ done
 [ -n "$db_tag" ] || { echo "falta --db-tag" >&2; exit 2; }
 
 here="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-ENV_DIR="${NAVA_ENV_DIR:-/srv/barberia/env}"
-BASE_DIR="${NAVA_BASE_DIR:-/srv/barberia}"
+ENV_DIR="${NAVA_ENV_DIR:-/srv/nava-agenda/env}"
+BASE_DIR="${NAVA_BASE_DIR:-/srv/nava-agenda}"
 LOG="$BASE_DIR/deploy.log"
 export IMAGE_TAG="$sha" DB_IMAGE_TAG="$db_tag"
 compose=(docker compose --env-file "$ENV_DIR/stack.env" -f "$here/compose.yaml")
@@ -55,7 +55,7 @@ log "inicio (actor: ${DEPLOY_ACTOR:-desconocido}, migraciones: $migrate)"
 
 # --- 1. Configuración y secretos ----------------------------------------------
 SECRETS_DIR="${NAVA_SECRETS_DIR:-$(get NAVA_SECRETS_DIR "$ENV_DIR/stack.env")}"
-SECRETS_DIR="${SECRETS_DIR:-/srv/barberia/secrets}"
+SECRETS_DIR="${SECRETS_DIR:-/srv/nava-agenda/secrets}"
 for f in stack.env db.env app.env backup.env; do
   [ -f "$ENV_DIR/$f" ] || fail "falta $ENV_DIR/$f (ejecuta deploy/scripts/env-init.sh)"
 done
@@ -91,7 +91,7 @@ exec </dev/null
 images="$("${compose[@]}" --profile tools config --images | sort -u)"
 for img in $images; do
   docker image inspect "$img" >/dev/null 2>&1 \
-    || fail "no está la imagen $img en el Docker del host: constrúyela con el job barberia/deploy de Jenkins"
+    || fail "no está la imagen $img en el Docker del host: constrúyela con el job agenda/deploy de Jenkins"
 done
 
 # --- 2. Base de datos -------------------------------------------------------

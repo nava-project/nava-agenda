@@ -1,9 +1,9 @@
 ---
 titulo: "Flujo de Git y GitHub"
-version: "1.0"
+version: "1.1"
 estado: "Obligatorio para desarrollo"
 responsable: "Propietario del proyecto"
-ultima_actualizacion: "2026-08-06"
+ultima_actualizacion: "2026-11-18"
 documentos_relacionados:
   - "../../CONTRIBUTING.md"
   - "../../.github/PULL_REQUEST_TEMPLATE.md"
@@ -132,7 +132,7 @@ Ejemplos:
 
 ```text
 feat(booking): crea una reserva pública idempotente
-fix(db): impide cruces de citas del mismo barbero
+fix(db): impide cruces de citas del mismo profesional
 docs(api): documenta errores de disponibilidad
 test(auth): cubre la expiración de sesiones
 ```
@@ -200,7 +200,7 @@ La lista de archivos no reemplaza un resumen. Las capturas no reemplazan pruebas
 El autor realiza una auto-revisión del diff completo antes de solicitar revisión. Un revisor comprueba, en este orden:
 
 1. comportamiento, reglas y alcance;
-2. seguridad, autorización y aislamiento por barbería;
+2. seguridad, autorización y aislamiento por negocio;
 3. integridad de datos, concurrencia y compatibilidad;
 4. pruebas y evidencia;
 5. claridad y mantenibilidad.

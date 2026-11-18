@@ -1,9 +1,9 @@
 ---
 titulo: "Sistema de prioridades y clasificación de funciones"
-version: "1.0"
+version: "1.1"
 estado: "Borrador"
 responsable: "Propietario del proyecto"
-ultima_actualizacion: "2026-08-05"
+ultima_actualizacion: "2026-11-18"
 documentos_relacionados:
   - "alcance-mvp.md"
   - "reglas-negocio.md"
@@ -13,6 +13,8 @@ documentos_relacionados:
   - "../00-control/registro-decisiones.md"
   - "../00-control/contradicciones.md"
 ---
+
+> Desde `DEC-183` (Nava Agenda) este documento dice «negocio» y «profesional»; las decisiones, el historial y los registros anteriores conservan los términos de entonces. Equivalencias en el [glosario](../00-control/glosario.md).
 
 > **Estado del contenido:** Las clasificaciones afectadas por las respuestas del propietario están confirmadas. Los elementos no respondidos expresamente conservan su estado previo.
 >
@@ -33,7 +35,7 @@ Toda función que alguien proponga debe pasar por el filtro de la sección 3 ant
 | Nivel | Definición | Prueba de fuego |
 | --- | --- | --- |
 | **P0** | Indispensable para operar el producto o iniciar el piloto. | Si falta, **el piloto no puede empezar** o el producto produce un error grave de agenda. |
-| **P1** | Importante, pero el piloto puede comenzar sin ella si existe una alternativa razonable. | Si falta, el barbero se las arregla con WhatsApp, papel o una llamada. |
+| **P1** | Importante, pero el piloto puede comenzar sin ella si existe una alternativa razonable. | Si falta, el profesional se las arregla con WhatsApp, papel o una llamada. |
 | **P2** | Conveniente para mejorar la experiencia o la operación. | Si falta, nadie se queja de forma espontánea. |
 | **Futura** | Debe posponerse hasta después de validar el MVP. | Construirla ahora consumiría tiempo que hace falta para validar la hipótesis principal. |
 | **Fuera de alcance** | No debe incorporarse sin una nueva decisión de producto. | Cambia lo que el producto **es**, no solo lo que hace. |
@@ -55,7 +57,7 @@ Antes de asignar prioridad, toda función debe responder estas diez preguntas.
 | # | Pregunta | Para qué sirve |
 | --- | --- | --- |
 | 1 | ¿Qué problema resuelve? | Descarta funciones que solo suenan bien |
-| 2 | ¿A qué usuario beneficia: barbero, cliente o propietario? | El propietario tiende a construir para sí mismo |
+| 2 | ¿A qué usuario beneficia: profesional, cliente o propietario? | El propietario tiende a construir para sí mismo |
 | 3 | ¿Con qué frecuencia ocurre el problema? | Un problema mensual no justifica una función |
 | 4 | ¿Qué impacto tiene en el negocio si no se resuelve? | Distingue lo incómodo de lo costoso |
 | 5 | ¿Qué complejidad técnica tiene? | Alta complejidad exige un beneficio proporcional |
@@ -80,11 +82,11 @@ Cada función señalada para evaluación fue analizada con el filtro anterior y 
 | Recordatorios automáticos | **P0 confirmada** | `DEC-032` resuelve `CT-001` |
 | Anticipación mínima | **P0 confirmada** | 60 minutos iniciales. `DEC-018` |
 | Ventana máxima de reservas | **P0 confirmada** | 3 días iniciales. `DEC-018` |
-| Política y motivo de cancelación fuera de plazo | **P0 confirmada** | `DEC-010`; configurable por barbería |
+| Política y motivo de cancelación fuera de plazo | **P0 confirmada** | `DEC-010`; configurable por negocio |
 | Estado "no asistió" | **P0 confirmada** | `DEC-017`; indispensable para las métricas |
-| Notas internas del barbero | **P1, construir antes del piloto** | Un campo de texto; alto valor percibido |
+| Notas internas del profesional | **P1, construir antes del piloto** | Un campo de texto; alto valor percibido |
 | Búsqueda de clientes | **P1** | Necesaria para crear citas manuales rápido |
-| Gestión y comunicación de retrasos | **P1 confirmada** | El barbero decide y avisa; no se desplaza la agenda automáticamente. `DEC-021` |
+| Gestión y comunicación de retrasos | **P1 confirmada** | El profesional decide y avisa; no se desplaza la agenda automáticamente. `DEC-021` |
 | Métricas básicas | **P1 sin interfaz** | Se resuelve con consultas directas durante el piloto |
 | Agenda semanal | **P2** | La agenda diaria con navegación cubre el MVP |
 | Repetición rápida de citas | **P2** | Muy útil, claramente posponible |
@@ -106,22 +108,22 @@ La anticipación mínima, la ventana máxima, la política de cancelación, `no_
 | Pregunta | Respuesta |
 | --- | --- |
 | Problema | Olvido de citas, el primero de la lista de problemas del producto |
-| Usuario | Barbero (pierde el ingreso) y cliente (pierde el turno) |
+| Usuario | Profesional (pierde el ingreso) y cliente (pierde el turno) |
 | Frecuencia | Varias veces por semana |
 | Impacto | Cada olvido es una franja perdida que ya no se recupera |
 | Complejidad | Media: tareas programadas, invalidación y regeneración, reintentos |
 | Riesgo | Recordatorios duplicados o con horario viejo; costo por mensaje |
 | Costo operativo | Depende del canal. Es el motivo real por el que se dudó de su prioridad |
-| Alternativa manual | El barbero escribiendo por WhatsApp uno por uno, que es exactamente lo que el producto promete eliminar |
+| Alternativa manual | El profesional escribiendo por WhatsApp uno por uno, que es exactamente lo que el producto promete eliminar |
 | ¿Posponible? | No sin renunciar a medir el problema principal |
 
 **Motivo de la elevación:**
 
 1. **El alcance del MVP ya lo presupone.** El listado de funciones P0 incluye "invalidación y regeneración de recordatorios". No se puede invalidar lo que no existe. Esta tensión se registra como contradicción (ver sección 6).
 2. **El criterio de éxito del piloto incluye reducir las citas olvidadas.** Sin recordatorios, esa medición es imposible y el piloto queda parcialmente ciego.
-3. **Es la razón por la que un barbero adopta la herramienta.** Una agenda sin recordatorios es un calendario; el barbero ya tiene uno.
+3. **Es la razón por la que un profesional adopta la herramienta.** Una agenda sin recordatorios es un calendario; el profesional ya tiene uno.
 
-El costo se controla con configuración por barbería y proveedores oficiales de correo y WhatsApp (`DEC-027`).
+El costo se controla con configuración por negocio y proveedores oficiales de correo y WhatsApp (`DEC-027`).
 
 **Alcance confirmado:** uno por defecto, configurable hasta tres, 30 minutos antes por defecto y canales de correo y WhatsApp oficial configurables, con invalidación y regeneración conforme a `RN-REC-01`.
 
@@ -133,19 +135,19 @@ El costo se controla con configuración por barbería y proveedores oficiales de
 
 | Pregunta | Respuesta |
 | --- | --- |
-| Problema | Un cliente reserva a las 10:00 para las 10:05, con el barbero atendiendo y sin mirar el teléfono |
-| Usuario | Barbero |
+| Problema | Un cliente reserva a las 10:00 para las 10:05, con el profesional atendiendo y sin mirar el teléfono |
+| Usuario | Profesional |
 | Frecuencia | Baja en volumen, alta en daño cuando ocurre |
-| Impacto | El cliente llega a una cita que el barbero no sabe que existe. Es el peor fallo de confianza posible en el primer piloto |
+| Impacto | El cliente llega a una cita que el profesional no sabe que existe. Es el peor fallo de confianza posible en el primer piloto |
 | Complejidad | **Muy baja**: un valor de configuración y un filtro en el cálculo de disponibilidad |
 | Riesgo | Ninguno relevante |
 | Costo operativo | Ninguno |
-| Alternativa manual | Ninguna. El barbero no puede impedirlo de otro modo |
+| Alternativa manual | Ninguna. El profesional no puede impedirlo de otro modo |
 | ¿Posponible? | Técnicamente sí; en la práctica, no conviene |
 
 **Motivo de la elevación:** las reglas de negocio confirmadas ya incluyen "las reglas de anticipación aprobadas" entre los factores obligatorios del cálculo de disponibilidad (`RN-DIS-02`). Es decir, la regla confirmada ya asume que existen. Además, es de las funciones más baratas del catálogo: dejarla fuera no ahorra tiempo apreciable y sí expone el piloto a su fallo más embarazoso.
 
-La misma decisión confirmó la ventana máxima configurable: el barbero puede limitar cuánto hacia el futuro reservan los clientes y las citas manuales quedan exentas de ambos límites.
+La misma decisión confirmó la ventana máxima configurable: el profesional puede limitar cuánto hacia el futuro reservan los clientes y las citas manuales quedan exentas de ambos límites.
 
 Los valores iniciales son 60 minutos y 3 días (`DEC-018`).
 
@@ -155,7 +157,7 @@ Los valores iniciales son 60 minutos y 3 días (`DEC-018`).
 
 **Estado: Decisión confirmada** (`DEC-010`)
 
-La política configurable determina si, vencido el plazo, cancela solo el barbero o también el cliente y si se exige motivo. No se conserva como una mejora analítica P1 porque ahora forma parte de la conducta operativa aprobada de la cancelación pública.
+La política configurable determina si, vencido el plazo, cancela solo el profesional o también el cliente y si se exige motivo. No se conserva como una mejora analítica P1 porque ahora forma parte de la conducta operativa aprobada de la cancelación pública.
 
 ---
 
@@ -165,13 +167,13 @@ La política configurable determina si, vencido el plazo, cancela solo el barber
 
 | Función | Costo estimado | Qué se pierde sin ella |
 | --- | --- | --- |
-| Notas internas del barbero | Muy bajo | El barbero seguirá anotando en papel lo que el sistema no guarda, y esa es una señal directa de que la herramienta no reemplazó su método anterior |
+| Notas internas del profesional | Muy bajo | El profesional seguirá anotando en papel lo que el sistema no guarda, y esa es una señal directa de que la herramienta no reemplazó su método anterior |
 
 ---
 
 ### 4.4 Funciones desplazadas a Futura, con su justificación
 
-Los festivos ya no están en esta sección: `DEC-020` los integra en `F-HOR-02` como calendario colombiano activable, con excepciones por barbero.
+Los festivos ya no están en esta sección: `DEC-020` los integra en `F-HOR-02` como calendario colombiano activable, con excepciones por profesional.
 
 #### Confirmación manual opcional → **Futura**
 
@@ -181,9 +183,9 @@ Contradice directamente `RN-CNF-01` (aprobación automática) como conducta por 
 
 #### Gestión básica de referidos → **Futura**
 
-Con un colaborador y menos de diez barberías, una hoja de cálculo es superior a cualquier función que se construya. `DEC-001` confirmó que la gestión de referidos y las comisiones quedan fuera de la versión actual; sus condiciones deben definirse antes de reactivar esa capacidad en una versión posterior.
+Con un colaborador y menos de diez negocios, una hoja de cálculo es superior a cualquier función que se construya. `DEC-001` confirmó que la gestión de referidos y las comisiones quedan fuera de la versión actual; sus condiciones deben definirse antes de reactivar esa capacidad en una versión posterior.
 
-**Condición para reconsiderarla:** más de un colaborador activo, o más de veinte barberías referidas.
+**Condición para reconsiderarla:** más de un colaborador activo, o más de veinte negocios referidos.
 
 ---
 
@@ -196,7 +198,7 @@ Se propone **no construir pantalla de métricas** para el piloto, y en su lugar:
 1. Asegurar que el modelo de datos permita responder las preguntas del piloto mediante consultas directas a la base de datos.
 2. Que el propietario ejecute esas consultas semanalmente durante el piloto.
 
-**Motivo:** las métricas del piloto las necesita el **propietario**, no el barbero. Construir una pantalla para un solo usuario que además tiene acceso directo a la base de datos es trabajo desperdiciado. En cambio, **verificar que los datos necesarios se estén registrando sí es P0**, porque un dato no capturado no se recupera después.
+**Motivo:** las métricas del piloto las necesita el **propietario**, no el profesional. Construir una pantalla para un solo usuario que además tiene acceso directo a la base de datos es trabajo desperdiciado. En cambio, **verificar que los datos necesarios se estén registrando sí es P0**, porque un dato no capturado no se recupera después.
 
 **Consecuencia:** el diseño del modelo de datos debe validarse explícitamente contra la lista de métricas del piloto antes de dar por cerrada la fase de diseño.
 

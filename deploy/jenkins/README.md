@@ -1,7 +1,7 @@
 # Jenkins de la VPS
 
 CI/CD propio de la VPS (`DEC-177`), en `https://jenkins.nava.wtf`. Sustituye a GitHub Actions para
-la barbería y está pensado para recibir también los demás proyectos de la máquina (una carpeta de
+Nava Agenda y está pensado para recibir también los demás proyectos de la máquina (una carpeta de
 jobs por proyecto). Todo es código: imagen, plugins, configuración (JCasC) y jobs (Job DSL) viven en
 esta carpeta; lo que se cambie en la interfaz se pierde al reiniciar.
 
@@ -39,9 +39,9 @@ En el servidor:
 
 | Job | Disparo | Qué hace |
 | --- | --- | --- |
-| `barberia/ci` (multibranch) | webhook de GitHub (push y PR); escaneo cada 5 min de respaldo | solo `main` y los PR. `tools/ci/plan.sh` decide los checks (ver abajo); todos corren a la vez, cada uno en un contenedor de `tools/ci/ci.Dockerfile` con prioridad baja de CPU; Go y SQL con un PostgreSQL 14 efímero. Después, las imágenes (en `main` siempre). Estado en el commit: `continuous-integration/jenkins/branch` (main) o `…/pr-merge` (PR). En `main`, si pasa, dispara `barberia/deploy` |
-| `barberia/deploy` | el CI de `main` (`AUTO=true`); a mano con `SHA` | verifica que el SHA sea de `main` y que su CI esté en verde (a mano consulta en GitHub el estado de Jenkins; los commits anteriores a la migración ya no se aceptan, #634). Con `AUTO=true` se omite si `main` ya avanzó. Worktree en el SHA → imágenes que falten → tar a `/srv/barberia/releases/<sha>` → `deploy.sh --no-pull` → `GET https://nava.wtf/health` |
-| `pedidos/ci` (multibranch) | webhook de `bcaceres19/nava-pedidos`; escaneo cada 5 min | mismo patrón que `barberia/ci` con el `Jenkinsfile` de ese repo: `npm test` con PostgreSQL 16 efímero, shellcheck y `deploy/compose.yaml` en paralelo; imagen `ghcr.io/bcaceres19/odin-pedidos:<sha>` (en `main` siempre). Árboles verificados en `$JENKINS_HOME/pedidos-ci-green/`. En `main`, si pasa, dispara `pedidos/deploy` |
+| `agenda/ci` (multibranch) | webhook de GitHub (push y PR); escaneo cada 5 min de respaldo | solo `main` y los PR. `tools/ci/plan.sh` decide los checks (ver abajo); todos corren a la vez, cada uno en un contenedor de `tools/ci/ci.Dockerfile` con prioridad baja de CPU; Go y SQL con un PostgreSQL 14 efímero. Después, las imágenes (en `main` siempre). Estado en el commit: `continuous-integration/jenkins/branch` (main) o `…/pr-merge` (PR). En `main`, si pasa, dispara `agenda/deploy` |
+| `agenda/deploy` | el CI de `main` (`AUTO=true`); a mano con `SHA` | verifica que el SHA sea de `main` y que su CI esté en verde (a mano consulta en GitHub el estado de Jenkins; los commits anteriores a la migración ya no se aceptan, #634). Con `AUTO=true` se omite si `main` ya avanzó. Worktree en el SHA → imágenes que falten → tar a `/srv/nava-agenda/releases/<sha>` → `deploy.sh --no-pull` → `GET https://nava.wtf/health` |
+| `pedidos/ci` (multibranch) | webhook de `bcaceres19/nava-pedidos`; escaneo cada 5 min | mismo patrón que `agenda/ci` con el `Jenkinsfile` de ese repo: `npm test` con PostgreSQL 16 efímero, shellcheck y `deploy/compose.yaml` en paralelo; imagen `ghcr.io/bcaceres19/odin-pedidos:<sha>` (en `main` siempre). Árboles verificados en `$JENKINS_HOME/pedidos-ci-green/`. En `main`, si pasa, dispara `pedidos/deploy` |
 | `pedidos/deploy` | el CI de `main` (`AUTO=true`); a mano con `SHA` | `deploy/jenkins/deploy.Jenkinsfile` de ese repo: verifica el SHA (solo con el CI de Jenkins en verde), imagen si falta, `compose.yaml` y `deploy.sh` a `/srv/pedidos/releases/<sha>` → `current` → `deploy.sh <sha>` (respaldo, salud por `edge`, vuelta atrás) → `GET https://pedidos.nava.wtf/healthz` |
 | `nava/ci` (multibranch) | webhook de `bcaceres19/nava`; escaneo cada 5 min | landing de la familia NAVA (`DEC-183`): typecheck, lint, formato, vitest, build, shellcheck e imagen `ghcr.io/bcaceres19/nava-landing:<sha>`. En `main`, si pasa, dispara `nava/deploy` |
 | `nava/deploy` | el CI de `main` (`AUTO=true`); a mano con `SHA` | `deploy/jenkins/deploy.Jenkinsfile` de ese repo: imagen, `/srv/nava/releases/<sha>` → `deploy.sh` (proyecto compose `nava-landing`, salud por `edge` con el alias `nava-landing`) → `GET https://nava.wtf/healthz` (solo avisa) |
@@ -51,7 +51,7 @@ En el servidor:
 
 Los demás proyectos traen su CI/CD en su propio repositorio (`Jenkinsfile`, `tools/ci/`, `deploy/jenkins/`) y
 aquí solo se registran sus jobs; sus variables propias (`GITHUB_REPO`, `PUBLIC_URL`) van en el `environment` de su
-pipeline, porque las globales de abajo son de la barbería. Lo que sigue describe los checks de la barbería.
+pipeline, porque las globales de abajo son de Nava Agenda. Lo que sigue describe los checks de Nava Agenda.
 
 Checks del CI (los mismos del antiguo `ci.yml`): `tools/ci/checks/go.sh`, `openapi.sh`, el frontend
 partido en `web-deps.sh` (instalación, una vez) + `web-static.sh` (formato, lint, tipos) +
@@ -90,39 +90,39 @@ repetir el CI completo.
 | `DEPLOY_KNOWN_HOSTS` | huella del host para esa conexión | `/etc/ssh/ssh_host_ed25519_key.pub` |
 | `MAPS_BROWSER_KEY` | `maps-browser-key` → `VITE_GOOGLE_MAPS_BROWSER_KEY` de la imagen web | la variable del antiguo entorno `production` de GitHub |
 
-Variables globales (JCasC): `PUBLIC_URL=https://nava.wtf` y `GITHUB_REPO=bcaceres19/barberia`.
+Variables globales (JCasC): `PUBLIC_URL=https://nava.wtf` y `GITHUB_REPO=bcaceres19/nava-agenda`.
 Las claves de la aplicación (Resend, Meta, Google) **no** pasan por Jenkins: siguen en
-`/srv/barberia/secrets` (`DEC-159`).
+`/srv/nava-agenda/secrets` (`DEC-159`).
 
-Ver la contraseña de `admin`: `ssh barberia-vps 'sudo cat /srv/jenkins/secrets/ADMIN_PASSWORD'`.
+Ver la contraseña de `admin`: `ssh nava-vps 'sudo cat /srv/jenkins/secrets/ADMIN_PASSWORD'`.
 Cambiar un secreto (lee de stdin, sin eco) y aplicarlo:
 
 ```bash
-ssh -t barberia-vps 'sudo bash /srv/jenkins/stack/scripts/jenkins-secret-set.sh GITHUB_TOKEN'
-ssh barberia-vps 'sudo bash /srv/jenkins/stack/scripts/jenkins-up.sh --restart'
+ssh -t nava-vps 'sudo bash /srv/jenkins/stack/scripts/jenkins-secret-set.sh GITHUB_TOKEN'
+ssh nava-vps 'sudo bash /srv/jenkins/stack/scripts/jenkins-up.sh --restart'
 ```
 
 ## 4. Instalación (una vez) y actualización
 
 1. DNS: registro `A` `jenkins` → `158.69.232.180` (TTL 300) en Hostinger. El certificado lo emite
-   el Caddy de la barbería en cuanto el registro existe y su `Caddyfile` incluye el sitio.
+   el Caddy de Nava Agenda en cuanto el registro existe y su `Caddyfile` incluye el sitio.
 2. Copiar esta carpeta y preparar secretos, llave y directorios:
    ```bash
-   tar -C deploy/jenkins -czf - . | ssh barberia-vps 'sudo install -d -m 755 /srv/jenkins/stack && sudo tar xzf - -C /srv/jenkins/stack && sudo chown -R root:root /srv/jenkins/stack'
-   ssh barberia-vps 'sudo bash /srv/jenkins/stack/scripts/jenkins-init.sh'
-   gh auth token | ssh barberia-vps 'sudo bash /srv/jenkins/stack/scripts/jenkins-secret-set.sh GITHUB_TOKEN'
+   tar -C deploy/jenkins -czf - . | ssh nava-vps 'sudo install -d -m 755 /srv/jenkins/stack && sudo tar xzf - -C /srv/jenkins/stack && sudo chown -R root:root /srv/jenkins/stack'
+   ssh nava-vps 'sudo bash /srv/jenkins/stack/scripts/jenkins-init.sh'
+   gh auth token | ssh nava-vps 'sudo bash /srv/jenkins/stack/scripts/jenkins-secret-set.sh GITHUB_TOKEN'
    gh variable get VITE_GOOGLE_MAPS_BROWSER_KEY --env production | tr -d '\n' \
-     | ssh barberia-vps 'sudo bash /srv/jenkins/stack/scripts/jenkins-secret-set.sh MAPS_BROWSER_KEY'
+     | ssh nava-vps 'sudo bash /srv/jenkins/stack/scripts/jenkins-secret-set.sh MAPS_BROWSER_KEY'
    ```
    (`jenkins-init.sh` corre como root porque crea `/srv/jenkins` y autoriza la llave en la cuenta
    de `deploy`. El paso 1 con `install -d` solo hace falta la primera vez.)
-3. Arrancar: `ssh barberia-vps 'sudo bash /srv/jenkins/stack/scripts/jenkins-up.sh'`.
+3. Arrancar: `ssh nava-vps 'sudo bash /srv/jenkins/stack/scripts/jenkins-up.sh'`.
 4. Webhook en GitHub (`https://jenkins.nava.wtf/github-webhook/`, JSON, eventos *push* y
    *pull_request*, con el secreto de `GITHUB_WEBHOOK_SECRET`):
    ```bash
-   ssh barberia-vps 'sudo cat /srv/jenkins/secrets/GITHUB_WEBHOOK_SECRET' \
+   ssh nava-vps 'sudo cat /srv/jenkins/secrets/GITHUB_WEBHOOK_SECRET' \
      | jq -R '{name:"web",active:true,events:["push","pull_request"],config:{url:"https://jenkins.nava.wtf/github-webhook/",content_type:"json",insecure_ssl:"0",secret:.}}' \
-     | gh api repos/bcaceres19/barberia/hooks --input -
+     | gh api repos/bcaceres19/nava-agenda/hooks --input -
    ```
 
 **Actualizar Jenkins** (plugins, JCasC, jobs o versión): cambiar esta carpeta por PR y, ya en `main`,
@@ -132,18 +132,18 @@ que Jenkins carga los jobs, y no queda en memoria hasta el siguiente reinicio (v
 devolvía 404 y el primer build falló con «No build record … could be located»). No se hace desde un pipeline: reiniciar el controlador
 corta su propia ejecución. Subir el LTS es cambiar la etiqueta de `controller.Dockerfile`.
 
-**Acceso de emergencia** (sin DNS o con Caddy caído): `ssh -L 8090:127.0.0.1:8090 barberia-vps` y
+**Acceso de emergencia** (sin DNS o con Caddy caído): `ssh -L 8090:127.0.0.1:8090 nava-vps` y
 abrir `http://localhost:8090`.
 
 ## 5. Operación
 
 ```bash
-ssh barberia-vps 'sudo docker logs --tail=100 jenkins-controller-1'   # registro del controlador
-ssh barberia-vps 'sudo docker stats --no-stream'                      # consumo frente a producción
+ssh nava-vps 'sudo docker logs --tail=100 jenkins-controller-1'   # registro del controlador
+ssh nava-vps 'sudo docker stats --no-stream'                      # consumo frente a producción
 ```
 
-- **Apagar el despliegue automático:** *Barbería → Deploy → Disable Project* (el CI sigue corriendo).
-- **Reintentar o volver atrás:** *Barbería → Deploy → Build with Parameters* con el SHA de `main`.
+- **Apagar el despliegue automático:** *Nava Agenda → Deploy → Disable Project* (el CI sigue corriendo).
+- **Reintentar o volver atrás:** *Nava Agenda → Deploy → Build with Parameters* con el SHA de `main`.
 - **Recursos:** el controlador tiene 1,5 CPU y 1,5 GB. Los checks corren a la vez, con prioridad de
   CPU baja (`--cpu-shares 512`, la producción tiene 1024) y topes de memoria (Go 3 GB, pruebas del
   frontend 2,5 GB, estático del frontend 2 GB, el resto 1 GB, PostgreSQL 768 MB), sin cuota fija de

@@ -1,6 +1,6 @@
 # apps/api
 
-Módulo Go único del backend: procesos `api` y `worker`. Ver
+Módulo Go único del backend de Nava Agenda (`nava-agenda`): procesos `api` y `worker`. Ver
 [`docs/04-arquitectura/backend-go.md`](../../docs/04-arquitectura/backend-go.md)
 y [`docs/03-desarrollo/estandar-backend-go.md`](../../docs/03-desarrollo/estandar-backend-go.md)
 antes de agregar código.
@@ -30,7 +30,7 @@ antes de agregar código.
   cierre de sesión (HU-006)" más abajo.
 - **Contexto de sesión (HU-012)**: `GET /api/v1/private/auth/session`
   (`DEC-060`), segunda operación privada real, de solo lectura: rehidrata la
-  cookie `HttpOnly` y devuelve la barbería activa. Ver la sección "Contexto
+  cookie `HttpOnly` y devuelve el negocio activo. Ver la sección "Contexto
   de sesión (HU-012)" más abajo.
 - **Defensa escalonada contra abuso (HU-007)**: conteo por IP de
   `POST /api/v1/public/auth/login` (`DEC-061`: la sexta solicitud dentro de
@@ -44,23 +44,23 @@ antes de agregar código.
   sin enumeración, con token de reinicio opaco y revocación total de
   sesiones al cambiar la contraseña. Purga periódica en `cmd/worker`. Ver la
   sección "Recuperación de acceso (HU-008)" más abajo.
-- **Configuración básica de la barbería (HU-020)**: `internal/modules/shops`
-  implementa `GET`/`PATCH /api/v1/private/settings/barbershop`: nombre, zona
+- **Configuración básica del negocio (HU-020)**: `internal/modules/shops`
+  implementa `GET`/`PATCH /api/v1/private/settings/business`: nombre, zona
   IANA (confirmada contra `pg_timezone_names` dentro de la misma transacción
-  del `UPDATE`) y contacto opcional. Ver la sección "Configuración básica de
-  la barbería (HU-020)" más abajo.
-- **Registro y listado de barberos (HU-021)**: `internal/modules/staff`
-  implementa `GET`/`POST /api/v1/private/barbers` y
-  `GET`/`PATCH /api/v1/private/barbers/{barberId}`: lista paginada por
+  del `UPDATE`) y contacto opcional. Ver la sección "Configuración básica
+  del negocio (HU-020)" más abajo.
+- **Registro y listado de profesionales (HU-021)**: `internal/modules/staff`
+  implementa `GET`/`POST /api/v1/private/professionals` y
+  `GET`/`PATCH /api/v1/private/professionals/{professionalId}`: lista paginada por
   cursor, alta protegida con `Idempotency-Key` (RN-IDE-01, `DEC-043`),
-  lectura individual y renombrado. `404` idéntico para un barbero
-  inexistente o de otra barbería (`CA-021-05`); sin borrado, desactivación,
+  lectura individual y renombrado. `404` idéntico para un profesional
+  inexistente o de otro negocio (`CA-021-05`); sin borrado, desactivación,
   orden manual ni vínculo con `staff_user` (`DEC-047`). Ver la sección
-  "Registro y listado de barberos (HU-021)" más abajo.
+  "Registro y listado de profesionales (HU-021)" más abajo.
   `DEC-127` añade la descripción opcional (`description`, 280 caracteres) al
   alta y a la edición, y la reserva pública la muestra junto a la fotografía:
-  `GET /api/v1/public/barbershops/{slug}/barbers/{barberId}/photo` sirve la
-  imagen solo de un barbero visible en la reserva, con el mismo `404` para
+  `GET /api/v1/public/businesses/{slug}/professionals/{professionalId}/photo` sirve la
+  imagen solo de un profesional visible en la reserva, con el mismo `404` para
   cualquier otro caso.
 - **Catálogo básico de servicios (HU-022)**: `internal/modules/catalog`
   implementa `GET`/`POST /api/v1/private/services` y
@@ -70,29 +70,29 @@ antes de agregar código.
   precio. Precio en centavos enteros (`ParsePriceCOP`/`FormatPriceCOP`,
   nunca coma flotante); moneda COP fija, sin campo editable (`DEC-067`).
   `409` con `code: "conflict"` para un nombre ya usado por otro servicio
-  activo de la misma barbería, distinto del `409` de idempotencia; `404`
-  idéntico para un servicio inexistente o de otra barbería (`CA-022-06`);
-  sin borrado, ciclo de activación ni vínculo con barberos (fuera de
+  activo del mismo negocio, distinto del `409` de idempotencia; `404`
+  idéntico para un servicio inexistente o de otro negocio (`CA-022-06`);
+  sin borrado, ciclo de activación ni vínculo con profesionales (fuera de
   alcance de HU-022). Ver la sección "Catálogo básico de servicios
   (HU-022)" más abajo.
-- **Asignación de servicios a barberos (HU-023)**: `internal/modules/
+- **Asignación de servicios a profesionales (HU-023)**: `internal/modules/
   catalog` (`AssignmentService`, dueño de la operación) implementa
-  `GET /api/v1/private/barbers/{barberId}/services`,
-  `PUT`/`DELETE .../{barberId}/services/{serviceId}`: lista paginada por
+  `GET /api/v1/private/professionals/{professionalId}/services`,
+  `PUT`/`DELETE .../{professionalId}/services/{serviceId}`: lista paginada por
   cursor, asignación con semántica HTTP naturalmente repetible (sin
   `Idempotency-Key`: repetir el mismo `PUT` responde `200` en vez de `201`
   con el mismo `createdAt`, sin crear una segunda fila) y desasignación.
-  Se puede retirar a cualquier barbero, también al último de un servicio
+  Se puede retirar a cualquier profesional, también al último de un servicio
   activo (`DEC-114`, que sustituye a `DEC-068`): la desasignación es un
   único `DELETE` acotado por tenant y repetirla responde `404`. `catalog` colabora con `staff` SOLO a través de
-  `catalog.BarberPort`, un puerto pequeño que `staff.BarberLookup`
+  `catalog.ProfessionalPort`, un puerto pequeño que `staff.ProfessionalLookup`
   satisface de forma estructural: ningún paquete de un módulo importa al
   otro (verificado por `internal/platform/archtest/
   module_boundary_test.go`); `cmd/api` es la única raíz de composición que
-  conecta ambos. `404` idéntico para un barbero o servicio inexistente o de
-  otra barbería (`CA-023-04`); la asociación (`barber_service`) nunca
+  conecta ambos. `404` idéntico para un profesional o servicio inexistente o de
+  otro negocio (`CA-023-04`); la asociación (`professional_service`) nunca
   duplica nombre, duración, precio ni estado (`CA-023-07`). Ver la sección
-  "Asignación de servicios a barberos (HU-023)" más abajo.
+  "Asignación de servicios a profesionales (HU-023)" más abajo.
 - **Ciclo de vida de servicios (HU-024)**: `internal/modules/catalog`
   implementa `GET .../{serviceId}/deactivation-impact`,
   `POST .../deactivate`, `POST .../reactivate`, protegidas por el mismo
@@ -107,24 +107,24 @@ antes de agregar código.
   `service.is_active`/`deactivated_at` ya existían desde HU-022. Ver la
   sección "Ciclo de vida de servicios (HU-024)" más abajo.
 - **Horario laboral recurrente (HU-040)**: `internal/modules/schedule`
-  implementa `GET`/`POST /api/v1/private/barbers/{barberId}/working-hours` y
+  implementa `GET`/`POST /api/v1/private/professionals/{professionalId}/working-hours` y
   `GET`/`PATCH`/`DELETE .../working-hours/{workingHourId}`: lista paginada
   por cursor ordenada por día ISO y hora de inicio, alta protegida con
   `Idempotency-Key` (RN-IDE-01, `DEC-043`), lectura individual, edición
   (reemplaza el intervalo completo) y retiro físico. Un tramo cuyo
   `startsTime` + `durationMinutes` cruza medianoche es válido (`DEC-020`);
-  el solape con otro tramo del mismo barbero y día responde `409`
+  el solape con otro tramo del mismo profesional y día responde `409`
   (`code: "conflict"`), verificado dentro de la transacción que bloquea la
-  fila de `barber` (`SELECT ... FOR UPDATE`) para resistir la carrera de
+  fila de `professional` (`SELECT ... FOR UPDATE`) para resistir la carrera de
   dos altas concurrentes que parten de cero tramos existentes. `schedule`
-  colabora con `staff` SOLO a través de `schedule.BarberPort`, mismo
-  patrón que `catalog.BarberPort` frente a HU-023. `CT-008` se resolvió
-  como `DEC-070`: la FK de `working_hour` hacia `barber` usa
+  colabora con `staff` SOLO a través de `schedule.ProfessionalPort`, mismo
+  patrón que `catalog.ProfessionalPort` frente a HU-023. `CT-008` se resolvió
+  como `DEC-070`: la FK de `working_hour` hacia `professional` usa
   `ON DELETE RESTRICT`, no `CASCADE`. Ver la sección "Horario laboral
   recurrente (HU-040)" más abajo.
 - **Excepciones de jornada y festivos (HU-041)**: extiende
   `internal/modules/schedule` con el interruptor de calendario colombiano
-  de festivos por barbero (`GET`/`PATCH .../holiday-calendar`), el CRUD de
+  de festivos por profesional (`GET`/`PATCH .../holiday-calendar`), el CRUD de
   excepciones de jornada por fecha (`GET`/`POST .../schedule-exceptions`,
   `GET`/`PATCH`/`DELETE .../schedule-exceptions/{exceptionId}`, alta
   protegida con `Idempotency-Key`) y el dato de referencia
@@ -138,7 +138,7 @@ antes de agregar código.
   RESTRICT`) aplica igual a las dos tablas nuevas. `schedule.
   ResolveEffectiveDay` es un puerto interno (nunca expuesto por HTTP) que
   aplica la precedencia de `CA-041-07`: excepción manual (abierta o
-  cerrada) > festivo automático (solo si el barbero activó su calendario)
+  cerrada) > festivo automático (solo si el profesional activó su calendario)
   > horario semanal de HU-040. Ver la sección "Excepciones de jornada y
   festivos (HU-041)" más abajo.
 - **Núcleo persistente de citas (HU-060)**: nuevo módulo
@@ -148,9 +148,9 @@ antes de agregar código.
   `confirmed` y el evento `appointment_created`, todo dentro de UNA sola
   `InTenantTx`. Sin endpoint HTTP, sin operación OpenAPI y sin pantalla:
   `HU-061` expondrá la creación manual sobre este núcleo. La restricción
-  `EXCLUDE USING gist (barbershop_id, barber_id, tstzrange(starts_at,
+  `EXCLUDE USING gist (business_id, professional_id, tstzrange(starts_at,
   ends_at, '[)')) WHERE (occupies_schedule)` es la última defensa contra
-  cruces del mismo barbero (RN-CON-01/RN-CON-03); probada con inserción SQL
+  cruces del mismo profesional (RN-CON-01/RN-CON-03); probada con inserción SQL
   directa (`database/tests/hu060_citas.sql`) y con una carrera real de dos
   conexiones en Go
   (`TestCreateInternal_ConcurrentOverlap_ExactlyOneSucceeds`,
@@ -161,7 +161,7 @@ antes de agregar código.
   repositorio traduce ambos códigos al mismo conflicto tipado
   (`bookingpostgres.isDeadlockDetected`, hallazgo real verificado contra
   PostgreSQL 14, no una hipótesis). `appointment_history`/
-  `appointment_history_change` son append-only para `barberia_app` (sin
+  `appointment_history_change` son append-only para `agenda_app` (sin
   `UPDATE` ni `DELETE`, RN-HIS-02). `booking` no importa `schedule` ni
   `catalog`, y viceversa. Ver la sección "Núcleo persistente de citas
   (HU-060)" más abajo.
@@ -215,7 +215,7 @@ import "nava-agenda/internal/platform/apperr"
 func (s *MiServicio) Buscar(ctx context.Context, id string) (*Turno, error) {
     turno, err := s.repo.Buscar(ctx, id)
     if errors.Is(err, sql.ErrNoRows) {
-        // Mismo Kind para "no existe" y "es de otra barbería": la capa
+        // Mismo Kind para "no existe" y "es de otro negocio": la capa
         // HTTP no tiene forma de distinguirlos (CA-003-03, RN-TEN-01).
         return nil, apperr.NotFound("no existe un turno con ese identificador")
     }
@@ -252,7 +252,7 @@ cookie ni cabecera `Authorization`.
 
 ## Patrón obligatorio: operaciones tenant-aware (HU-002)
 
-Toda operación de datos ocurre dentro de una transacción con `app.barbershop_id`
+Toda operación de datos ocurre dentro de una transacción con `app.business_id`
 fijado con alcance local. Es **IMPOSIBLE** escribir una consulta de negocio sin
 contexto: la API no lo permite.
 
@@ -264,9 +264,9 @@ import (
     "nava-agenda/internal/platform/database"
 )
 
-func (s *MiServicio) MiOperacion(ctx context.Context, shop database.BarbershopID) error {
+func (s *MiServicio) MiOperacion(ctx context.Context, shop database.BusinessID) error {
     return s.db.InTenantTx(ctx, shop, func(ctx context.Context, q database.Queries) error {
-        // Aquí SÍ puedes ejecutar consultas. El contexto de barbería YA está fijado.
+        // Aquí SÍ puedes ejecutar consultas. El contexto del negocio YA está fijado.
         var count int
         err := q.QueryRow(ctx, "SELECT count(*) FROM mi_tabla").Scan(&count)
         return err
@@ -278,7 +278,7 @@ func (s *MiServicio) MiOperacion(ctx context.Context, shop database.BarbershopID
 
 - `InTenantTx` es la **única** función exportada que entrega un ejecutor de
   consultas (`Queries`). El pool NO expone `Query`, `QueryRow`, `Exec` ni `Begin`.
-- `BarbershopID` es un tipo propio: no puedes pasar un `uuid.UUID` ni un `string`
+- `BusinessID` es un tipo propio: no puedes pasar un `uuid.UUID` ni un `string`
   por error (evita confundir ids de usuario, cita, etc.).
 - La secuencia interna es atómica: adquirir conexión → `BEGIN` → `set_config`
   local → ejecutar callback → `COMMIT` (o `ROLLBACK` ante error/pánico).
@@ -293,14 +293,14 @@ func (s *MiServicio) MiOperacion(ctx context.Context, shop database.BarbershopID
 
 ```go
 // INCORRECTO - no compila como consulta parametrizada
-tx.Exec(ctx, "SET LOCAL app.barbershop_id = $1", shopID)
+tx.Exec(ctx, "SET LOCAL app.business_id = $1", shopID)
 ```
 
 **LA FORMA CORRECTA** usa `set_config`, que SÍ es parametrizable:
 
 ```go
 // CORRECTO - parametrizable, alcance local a la transacción
-tx.Exec(ctx, "SELECT set_config('app.barbershop_id', $1::text, true)", shopID)
+tx.Exec(ctx, "SELECT set_config('app.business_id', $1::text, true)", shopID)
 ```
 
 El tercer argumento `true` significa "local a la transacción": revierte solo al
@@ -311,12 +311,12 @@ justamente lo que verifica CA-002-03.
 valor ya es un uuid validado". La regla es la forma de la llamada, no la
 confianza en el valor. Concatenar el identificador en la cadena SQL introduce
 inyección SQL en el punto exacto del que depende TODO el aislamiento entre
-barberías.
+negocios.
 
 ### Excepción autorizada: comprobación de salud
 
 La única lectura fuera del patrón `InTenantTx` es `DB.HealthCheck()` (y el
-handler HTTP `DatabaseHealthHandler`). No tiene barbería: verifica
+handler HTTP `DatabaseHealthHandler`). No tiene negocio: verifica
 conectividad únicamente. Su respuesta indica `ok` o `unavailable` y **NADA
 MÁS** (sin versión, host, usuario, error del driver).
 
@@ -441,7 +441,7 @@ Decidir si ese caso aplica es responsabilidad del módulo que llama, no de
   efecto ocurre exactamente una vez; la perdedora recibe
   `409 idempotency-locked` de inmediato, sin esperar (`DEC-043`, sin
   `lock_timeout` ni espera acotada).
-- `CA-004-04`: la misma clave literal en dos barberías no interfiere (RLS
+- `CA-004-04`: la misma clave literal en dos negocios no interfiere (RLS
   tenant-aware, igual que el resto del esquema).
 - `CA-004-05`: una clave vencida se trata como si no existiera; no revive
   una respuesta antigua.
@@ -457,7 +457,7 @@ completa, incluida la concurrencia real con `-race`.
 
 `POST /api/v1/public/auth/login` (`DEC-055`, sin middleware de
 autenticación: sería circular, `CT-003`) verifica correo y contraseña de un
-barbero activo y emite una cookie de sesión opaca de 30 días (`DEC-050`).
+profesional activo y emite una cookie de sesión opaca de 30 días (`DEC-050`).
 `internal/modules/auth` sigue la estructura estándar de un módulo: el
 núcleo (`domain.go`, `ports.go`, `service.go`, `password.go`, `token.go`) no
 importa Chi, `net/http`, pgx ni `internal/platform/database` (CA-002-06);
@@ -529,7 +529,7 @@ de extremo a extremo con un endpoint privado real.
 
 | Criterio | Estado | Prueba o evidencia |
 | --- | --- | --- |
-| `CA-005-01` | Cumplido | Emisión de sesión asociada a usuario y barbería (`TestLogin_Success_CreatesSessionWithHashedToken`, `TestLoginHandler_Success_SetsCookieWithoutTokenInBody`, `TestCreateSession_PersistsRetrievableSessionScopedToTenant`). "Solicitudes privadas posteriores operan con ese contexto": completado por `HU-006` (`TestSession_HTTP_ReusedCookieOnFreshRequest_StaysAuthenticatedWithoutCredentials`, `DEC-058`). |
+| `CA-005-01` | Cumplido | Emisión de sesión asociada a usuario y negocio (`TestLogin_Success_CreatesSessionWithHashedToken`, `TestLoginHandler_Success_SetsCookieWithoutTokenInBody`, `TestCreateSession_PersistsRetrievableSessionScopedToTenant`). "Solicitudes privadas posteriores operan con ese contexto": completado por `HU-006` (`TestSession_HTTP_ReusedCookieOnFreshRequest_StaysAuthenticatedWithoutCredentials`, `DEC-058`). |
 | `CA-005-02` | Cumplido | `TestLogin_StructuralNonEnumeration_SameShapeForUnknownEmailAndWrongPassword`, `TestLoginHandler_UnknownEmail_ReturnsIdenticalProblemToWrongPassword`, `TestLookupCredential_UnresolvedTenant_UsesDecoyWithoutError`, sección "CA-005-01/02/07" de `hu005_aislamiento_credenciales_sesiones.sql`. |
 | `CA-005-03` | Cumplido | `password.go` (argon2id, parámetros OWASP, sal `crypto/rand` por llamada), `TestArgon2Hasher_TwoUsersSamePassword_ProduceDistinctEncodedValues`, `staff_credential_password_hash_ck` + sección "Formato" de la suite SQL. |
 | `CA-005-04` | Cumplido | `TestLoginHandler_ThroughFullRouter_NeverLogsSensitiveValues`, `TestLoginHandler_Success_SetsCookieWithoutTokenInBody`, `TestLoginHandler_InternalRepositoryError_ReturnsSafe500`. |
@@ -589,20 +589,20 @@ llamada con el mismo material ya revocado nunca vuelve a ejecutar la
 operación: el middleware la detiene con el mismo `401` uniforme antes de
 llegar al handler (`CA-006-02`).
 
-### `CA-006-07`: aislamiento entre barberías contra el logout real
+### `CA-006-07`: aislamiento entre negocios contra el logout real
 
 `DEC-058` dividió la verificación de `CA-005-05`/`CA-005-01` de `HU-005`
 entre PostgreSQL/RLS (esa historia) y un endpoint privado real (esta). Como
 el contrato de logout no acepta ningún identificador de sesión objetivo -el
 tenant y la sesión se derivan exclusivamente de la cookie ya autenticada-,
-no existe ningún canal por el que la sesión de una barbería pudiera afectar
+no existe ningún canal por el que la sesión de un negocio pudiera afectar
 la de otra; `TestLogout_HTTP_SessionOfShopA_NeverExecutesShopBsLogout`
 (`apps/api/cmd/api/session_integration_test.go`) lo demuestra contra el
 router de producción con dos tenants reales, y
 `TestRevokeSession_WrongTenant_NeverRevokesAnotherShopsSession`
 (`internal/modules/auth/postgres/session_repository_test.go`) añade la
 defensa en profundidad a nivel de repositorio (RLS + filtro explícito de
-`barbershop_id`).
+`business_id`).
 
 ### Tabla de criterios de aceptación
 
@@ -633,15 +633,15 @@ A diferencia de `POST /private/auth/logout`, este endpoint nunca escribe
 `auth.Principal` ya validado y renovado por el middleware para esa misma
 solicitud (`ExpiresAt` es el mismo valor que la renovación deslizante ya
 fijó, sin una segunda consulta) y una lectura nueva y estrecha,
-`SessionRepository.BarbershopName`, que lee la columna real `barbershop.name`
+`SessionRepository.BusinessName`, que lee la columna real `business.name`
 (existente desde `20260807170000_create_tenant_foundation.sql`) dentro de
 la misma transacción tenant-aware, aislada por
-`barbershop_select_tenant_policy` (RLS, `DEC-024`).
+`business_select_tenant_policy` (RLS, `DEC-024`).
 
 ### Payload mínimo (RN-DAT-02)
 
-`{ barbershop: { id, name }, expiresAt }`. Nunca incluye `staffUserID`,
-correo ni nombre del barbero: ningún criterio de `HU-012` lo exige, y
+`{ business: { id, name }, expiresAt }`. Nunca incluye `staffUserID`,
+correo ni nombre del profesional: ningún criterio de `HU-012` lo exige, y
 ampliarlo rompería el patrón de `auth.Principal` (identificadores opacos,
 sin datos personales) que el resto del módulo ya sigue.
 
@@ -649,29 +649,29 @@ sin datos personales) que el resto del módulo ya sigue.
 
 | Criterio | Estado | Prueba o evidencia |
 | --- | --- | --- |
-| `CA-012-01` (parcial, backend) | Cumplido | La restauración real contra la cookie se demuestra en `TestSessionContext_HTTP_ValidSession_ReturnsRealBarbershopName`; la parte de frontend (bootstrap tras cerrar/reabrir el navegador) se documenta en `apps/web/README.md`. |
-| `CA-012-04` (parcial, backend) | Cumplido | `TestSessionContext_HTTP_ValidSession_ReturnsRealBarbershopName` y `TestSessionContext_HTTP_TwoTenants_NeverCrossesBarbershopNames` prueban que el nombre viene de la columna real y nunca se cruza entre tenants. |
+| `CA-012-01` (parcial, backend) | Cumplido | La restauración real contra la cookie se demuestra en `TestSessionContext_HTTP_ValidSession_ReturnsRealBusinessName`; la parte de frontend (bootstrap tras cerrar/reabrir el navegador) se documenta en `apps/web/README.md`. |
+| `CA-012-04` (parcial, backend) | Cumplido | `TestSessionContext_HTTP_ValidSession_ReturnsRealBusinessName` y `TestSessionContext_HTTP_TwoTenants_NeverCrossesBusinessNames` prueban que el nombre viene de la columna real y nunca se cruza entre tenants. |
 
 ### Pruebas
 
 - Unitarias: `TestSessionService_Context_*` (`internal/modules/auth/session_service_test.go`).
 - HTTP con doble de repositorio: `TestSessionContextHandler_*` (`internal/modules/auth/httpapi/session_context_handler_test.go`).
 - Contrato: `TestContract_SessionContextOperation_*`, `TestContract_OpenAPIYAML_RegistersSessionContextPath` (`internal/modules/auth/httpapi/contract_session_test.go`).
-- PostgreSQL real: `TestBarbershopName_*` (`internal/modules/auth/postgres/session_repository_test.go`).
+- PostgreSQL real: `TestBusinessName_*` (`internal/modules/auth/postgres/session_repository_test.go`).
 - Router de producción con dos tenants reales: `TestSessionContext_HTTP_*` (`cmd/api/session_context_integration_test.go`), incluida ausencia de material de sesión en logs (`CA-006-05`) y no exposición del nombre tras revocar la sesión.
 
 ## Defensa escalonada contra abuso (HU-007)
 
 Protege `POST /api/v1/public/auth/login` de intentos automatizados sin
-enumerar cuentas ni bloquear prematuramente a un barbero legítimo
+enumerar cuentas ni bloquear prematuramente a un profesional legítimo
 (`DEC-026`, `DEC-052`, `DEC-061`, `DEC-062`).
 
 ### Umbral: la sexta solicitud, no la quinta (`DEC-061`, resolvió `CT-005`)
 
 `login_throttle_register_attempt` cuenta por IP (HMAC-SHA256 con
 `APP_AUTH_HMAC_SECRET`, nunca en claro; única tabla del sistema sin
-`barbershop_id` ni RLS por diseño — asociarla a una barbería permitiría
-diluir el límite repartiendo intentos entre barberías). Con el umbral
+`business_id` ni RLS por diseño — asociarla a un negocio permitiría
+diluir el límite repartiendo intentos entre negocios). Con el umbral
 inicial de 5, las cinco primeras solicitudes dentro de la ventana se
 evalúan con normalidad (contraseña incluida); la **sexta** exige el reto
 telefónico antes de evaluar la contraseña (`LoginService.Login` nunca
@@ -686,8 +686,8 @@ resuelve tenant ni llama `PasswordHasher.Verify` en esa rama). Responde
   propio: 1 solicitud/60 s y máximo 3 activas por IP en 15 min
   (`auth_phone_challenge_request`, misma función que resuelve las
   condiciones y devuelve los destinos solo en el camino aceptado).
-- **Canal del código (`DEC-139`)**: cada barbería elige correo (por defecto),
-  WhatsApp o ambos (`barbershop.login_otp_channel`, `GET`/`PATCH
+- **Canal del código (`DEC-139`)**: cada negocio elige correo (por defecto),
+  WhatsApp o ambos (`business.login_otp_channel`, `GET`/`PATCH
   /api/v1/private/settings/login-otp`). La función devuelve solo los destinos
   de ese canal: teléfono verificado para WhatsApp y correo de la cuenta para
   correo; nada llega del cliente. Con `both` el mismo código sale por los dos
@@ -697,7 +697,7 @@ resuelve tenant ni llama `PasswordHasher.Verify` en esa rama). Responde
   correo usa Resend con asunto propio (`selectChallengeEmailSender`); sin
   Resend, un marcador que solo deja constancia en el log. En local/test,
   `APP_PHONE_CHALLENGE_CAPTURE_FILE` captura el código de cualquiera de los
-  dos canales. Las barberías anteriores a `DEC-139` quedaron en WhatsApp.
+  dos canales. Los negocios anteriores a `DEC-139` quedaron en WhatsApp.
 - `POST /api/v1/public/auth/challenge/verify { email, code }` → código de
   6 dígitos, vigente 5 min, máximo 5 intentos, atado a la IP concreta que lo
   pidió. Con `OTP_PROVIDER=meta`, se conserva el HMAC-SHA256 del código
@@ -705,7 +705,7 @@ resuelve tenant ni llama `PasswordHasher.Verify` en esa rama). Responde
   offline sin un secreto). NAVA genera y valida el código; Meta solo lo
   transporta (`DEC-123`).
   Éxito: `204`, limpia `escalated_until`/`attempt_count` de esa IP en la
-  misma transacción (`auth_phone_challenge_verify`); el barbero reintenta
+  misma transacción (`auth_phone_challenge_verify`); el profesional reintenta
   el login normalmente, sin token adicional.
 - `cmd/api.selectWhatsAppOTPProvider` es el único selector de proveedor.
   `meta` envía el código de NAVA por Meta WhatsApp Cloud API, en modo
@@ -763,7 +763,7 @@ captura es únicamente para E2E local y no demuestra entrega de Meta.
 | `APP_PHONE_CHALLENGE_RESEND_COOLDOWN_SECONDS` | `60` | Mínimo entre reenvíos. |
 | `APP_PHONE_CHALLENGE_PURGE_LIMIT` | `500` | Lote de purga del worker (1-1000). |
 
-### Ubicación de la barbería (DEC-130, HU-102)
+### Ubicación del negocio (DEC-130, HU-102)
 
 Guardar una dirección en `PATCH /private/settings/brand` la geocodifica **en el
 servidor, una sola vez** (Google Geocoding) y persiste las coordenadas; el
@@ -786,11 +786,11 @@ ella la sección se oculta fuera de desarrollo.
 
 `POST /customer/appointments/{token}/cancel` (sin sesión, `Idempotency-Key` e `If-Match` obligatorios, cuerpo
 opcional `{ "reason": string|null }`, cerrado). Reparto entre módulos sin que ninguno importe a otro:
-`customeraccess` resuelve el token (SHA-256 → `public_resolve_appointment_token_tenant`) a la barbería y la cita,
+`customeraccess` resuelve el token (SHA-256 → `public_resolve_appointment_token_tenant`) al negocio y la cita,
 y delega en `booking` a través del puerto `AppointmentCanceller` (adaptador
 `booking.CustomerAppointmentCancellerAdapter`, cableado en `cmd/api`). `booking.Repository.CancelByCustomer` hace
 todo en **una** transacción tenant-aware: reclamar la clave, bloquear la cita (`FOR UPDATE`), releer la política de
-la barbería, comparar versión y estado, evaluar la política, aplicar `cancelled_by_customer` + `cancellation_reason`,
+el negocio, comparar versión y estado, evaluar la política, aplicar `cancelled_by_customer` + `cancellation_reason`,
 insertar un único evento `appointment_cancelled_by_customer` con actor cliente, avisar al gancho de Google Calendar
 sin revocar el enlace (`DEC-136`): `GET` sigue mostrando el turno como cancelado.
 
@@ -812,38 +812,38 @@ iniciado nunca procede. El reloj lo inyecta `cmd/api` (`clock.System`) y llega a
 rechazo revierte la transacción, así que **no consume la clave**. Un `GET` posterior responde `404` (enlace
 revocado): por eso una repetición exacta *después* de commit también es `404`; la repetición concurrente sí
 reproduce la respuesta. `GET /customer/appointments/{token}` suma `versionToken` (mismo
-`booking.EncodeVersionToken`, inyectado a `customeraccess`) y el contacto público opcional de la barbería. El aviso
-al barbero y las confirmaciones por canal son de B5: no se envía nada.
+`booking.EncodeVersionToken`, inyectado a `customeraccess`) y el contacto público opcional del negocio. El aviso
+al profesional y las confirmaciones por canal son de B5: no se envía nada.
 
-### Reseñas por barbero (DEC-128, HU-100)
+### Reseñas por profesional (DEC-128, HU-100)
 
 Módulo `internal/modules/reviews` (sin dependencias de otros módulos): una reseña por turno `completed`
 (unicidad y estado los garantiza la base con un `UNIQUE` y un trigger, no solo el servicio).
 
 | Operación | Quién | Notas |
 | --- | --- | --- |
-| `POST /customer/appointments/{token}/review` | el cliente (enlace del turno) | `422` calificación fuera de 1–5 o comentario de más de 500 caracteres; `404` enlace inválido; `409` uniforme si el turno no admite reseña (no completado, de otro barbero o ya calificado), sin revelar la causa |
-| `GET /public/barbershops/{slug}/barbers/{barberId}/reviews` | público | solo no ocultas, hasta 20, de la más reciente a la más antigua |
-| `GET /private/barbers/{barberId}/reviews` | panel | todas, ocultas incluidas (hasta 100) |
-| `PATCH /private/barbers/{barberId}/reviews/{reviewId}` | panel | `{ "hidden": bool }`; la calificación y el comentario nunca se editan |
+| `POST /customer/appointments/{token}/review` | el cliente (enlace del turno) | `422` calificación fuera de 1–5 o comentario de más de 500 caracteres; `404` enlace inválido; `409` uniforme si el turno no admite reseña (no completado, de otro profesional o ya calificado), sin revelar la causa |
+| `GET /public/businesses/{slug}/professionals/{professionalId}/reviews` | público | solo no ocultas, hasta 20, de la más reciente a la más antigua |
+| `GET /private/professionals/{professionalId}/reviews` | panel | todas, ocultas incluidas (hasta 100) |
+| `PATCH /private/professionals/{professionalId}/reviews/{reviewId}` | panel | `{ "hidden": bool }`; la calificación y el comentario nunca se editan |
 
 `rating` (promedio de 1 decimal) y `ratingCount` se calculan sobre las no ocultas y viajan en
-`BarberResponse` y `PublicBarberResponse`. El enlace del turno vive 90 días, que acota cuándo puede
+`ProfessionalResponse` y `PublicProfessionalResponse`. El enlace del turno vive 90 días, que acota cuándo puede
 reseñarse.
 
 ### Reseñas de Google del negocio (DEC-129, HU-101)
 
-`GET /public/barbershops/{slug}/reviews` (sin sesión) devuelve la calificación, el total, el
-enlace a la ficha y hasta 5 reseñas de la ficha de Google de la barbería. El Place ID se guarda en
-`barbershop.google_place_id` y **solo se fija por base de datos** (`DEC-137`): `GET`/`PATCH
+`GET /public/businesses/{slug}/reviews` (sin sesión) devuelve la calificación, el total, el
+enlace a la ficha y hasta 5 reseñas de la ficha de Google del negocio. El Place ID se guarda en
+`business.google_place_id` y **solo se fija por base de datos** (`DEC-137`): `GET`/`PATCH
 /private/settings/brand` no lo exponen ni lo aceptan, y guardar la ubicación nunca lo toca. La base valida
-su forma con `barbershop_google_place_id_ck` (letras, números, `-` y `_`, de 1 a 200 caracteres).
+su forma con `business_google_place_id_ck` (letras, números, `-` y `_`, de 1 a 200 caracteres).
 
 Para fijarlo o quitarlo, con el rol propietario de la base (o `postgres`):
 
 ```sql
-UPDATE barbershop SET google_place_id = 'ChIJ...' WHERE id = '<uuid-de-la-barbería>';  -- fijar
-UPDATE barbershop SET google_place_id = NULL      WHERE id = '<uuid-de-la-barbería>';  -- quitar
+UPDATE business SET google_place_id = 'ChIJ...' WHERE id = '<uuid-del-negocio>';  -- fijar
+UPDATE business SET google_place_id = NULL      WHERE id = '<uuid-del-negocio>';  -- quitar
 ```
 
 La reserva pública lo lee de la base en cada visita; como la caché de 6 horas es por ficha, un Place ID nuevo se consulta a Google de inmediato.
@@ -869,11 +869,11 @@ lo avisa al arrancar.
 
 ### Servicio a domicilio (DEC-131, HU-103)
 
-Interruptor general `barbershop.offers_home_service` (`PATCH /private/settings/brand`, campo
-`offersHomeService`; también en `GET /public/barbershops/{slug}`). La confirmación pública
+Interruptor general `business.offers_home_service` (`PATCH /private/settings/brand`, campo
+`offersHomeService`; también en `GET /public/businesses/{slug}`). La confirmación pública
 (`POST .../appointments`) acepta `homeService { address, latitude, longitude }` y:
 
-- responde `422` **antes de crear el turno** si la barbería ya no ofrece domicilio (CA-103-05);
+- responde `422` **antes de crear el turno** si el negocio ya no ofrece domicilio (CA-103-05);
 - normaliza la dirección (espacios colapsados, 1–200 caracteres) y rechaza coordenadas no finitas o
   fuera de rango; el servidor **no vuelve a geocodificar** lo que envía el cliente (las coordenadas
   salen de la selección del autocompletado);
@@ -921,7 +921,7 @@ que ve el proceso `api`, p. ej. `127.0.0.1/32` en un run nativo).
 | `CA-007-03` | Cumplido | `TestChallengeHandler_AcceptedVsNotAccepted_IdenticalResponse`, `TestPhoneChallengeService_Verify_UnknownAccountAndWrongCode_SameError`, E2E "un código incorrecto...". |
 | `CA-007-04` | Cumplido | Semántica de ventana/escalamiento en `login_throttle_register_attempt`, comentada y probada en `hu007_defensa_abuso.sql`. |
 | `CA-007-05` | Cumplido | Todos los valores vienen de `config.Config`/variables de entorno; ver tabla arriba. Ningún valor incrustado en código. |
-| `CA-007-06` | Cumplido | `TestPurgeRepository_PurgeLoginThrottle_DeletesOnlyExpired`, `TestPurgeRepository_PurgePhoneChallenges_RunsWithoutError`, purga real vía `barberia_worker` (sin GRANT a `barberia_app`, `hu007_defensa_abuso.sql`). |
+| `CA-007-06` | Cumplido | `TestPurgeRepository_PurgeLoginThrottle_DeletesOnlyExpired`, `TestPurgeRepository_PurgePhoneChallenges_RunsWithoutError`, purga real vía `agenda_worker` (sin GRANT a `agenda_app`, `hu007_defensa_abuso.sql`). |
 | `CA-007-07` | Cumplido | `internal/platform/clientip` (paquete completo de pruebas: peer directo, proxy confiable, multi-salto, peer no confiable con cabecera falsificada, IPv4/IPv6, entradas malformadas). |
 
 ### Pruebas
@@ -929,14 +929,14 @@ que ve el proceso `api`, p. ej. `127.0.0.1/32` en un run nativo).
 - Unitarias: `internal/modules/auth/throttle_test.go`, `phone_challenge_test.go`, `purge_test.go`, `phone_sender_capture_test.go`.
 - Resolvedor de IP: `internal/platform/clientip/resolver_test.go`.
 - HTTP con dobles: `internal/modules/auth/httpapi/challenge_handler_test.go`, `login_throttle_test.go`, `contract_challenge_test.go`.
-- PostgreSQL real, incluida concurrencia (45 llamadas simultáneas sin incrementos perdidos): `internal/modules/auth/postgres/throttle_repository_test.go`, `phone_challenge_repository_test.go`, `purge_repository_test.go` (este último requiere `TEST_WORKER_DATABASE_URL` conectado como `barberia_worker`).
+- PostgreSQL real, incluida concurrencia (45 llamadas simultáneas sin incrementos perdidos): `internal/modules/auth/postgres/throttle_repository_test.go`, `phone_challenge_repository_test.go`, `purge_repository_test.go` (este último requiere `TEST_WORKER_DATABASE_URL` conectado como `agenda_worker`).
 - SQL directo con el rol real: `database/tests/hu007_defensa_abuso.sql`.
 - E2E contra API/PostgreSQL/navegador reales: `apps/web/e2e/reto-telefonico.spec.ts` (ver advertencia de umbral arriba).
 
 ## Recuperación de acceso (HU-008)
 
 `POST /api/v1/public/auth/recovery/request`, `.../verify` y
-`.../reset-password` (`DEC-063`–`DEC-066`) permiten a un barbero recuperar
+`.../reset-password` (`DEC-063`–`DEC-066`) permiten a un profesional recuperar
 acceso sin intervención del propietario: solicitar un código de un solo
 uso, verificarlo y establecer una contraseña nueva. `internal/modules/auth`
 extiende el módulo con `recovery.go` (núcleo: `RecoveryService`,
@@ -953,11 +953,11 @@ aporta los adaptadores reales de entrega
 ### Mismo patrón que HU-007: resolver la cuenta antes de tenant
 
 Igual que `login_throttle`/`auth_phone_challenge`, `staff_recovery_code` no
-tiene ningún `GRANT` directo para `barberia_app` (`DDL-AUT-01`): las tres
-operaciones públicas corren ANTES de resolver `app.barbershop_id`
+tiene ningún `GRANT` directo para `agenda_app` (`DDL-AUT-01`): las tres
+operaciones públicas corren ANTES de resolver `app.business_id`
 (resuelven la cuenta por correo dentro de la función), así que usan
 `database.DB.CallSecurityDefinerRow`, no `InTenantTx`. Solo
-`auth_recovery_purge_expired` está concedida a `barberia_worker`
+`auth_recovery_purge_expired` está concedida a `agenda_worker`
 (`cmd/worker`, purga periódica).
 
 ### Canal elegido por la persona (`DEC-092`, `DEC-093`)
@@ -972,7 +972,7 @@ antes de llamar a `auth.RecoveryCodeSender`, y `DualChannelRecoverySender`
 nunca usa el otro como respaldo. El teléfono identifica la cuenta con
 `auth_recovery_resolve_phone`, que solo resuelve una cuenta activa con ese
 número verificado y devuelve `NULL` con cero o con más de una coincidencia
-(el número no es único entre barberías); el servicio traduce el teléfono al
+(el número no es único entre negocios); el servicio traduce el teléfono al
 correo y reutiliza sin cambios las funciones de recuperación por correo, así
 que `verify` y `reset-password` reciben el mismo canal y valor del paso 1 y
 un teléfono ambiguo falla con el `401` uniforme de siempre.
@@ -1074,7 +1074,7 @@ crea o reprograma el turno, con la anticipación que eligió el negocio (10 a 60
 minutos, 30 por defecto; `DEC-174`), y al enviarse se descarta si el turno se
 canceló, cambió de hora o ya empezó. Necesita las mismas variables que el aviso
 de cambio (`APP_RESEND_API_KEY`, `APP_RESEND_FROM_ADDRESS`) y
-`APP_WORKER_DATABASE_URL` con el rol `barberia_worker`.
+`APP_WORKER_DATABASE_URL` con el rol `agenda_worker`.
 
 Si el cliente tiene teléfono, el mismo recordatorio sale **también por
 WhatsApp** (`DEC-175`) como una fila propia (`kind = reminder_whatsapp`), con la
@@ -1271,35 +1271,35 @@ existen con datos sintéticos que no compiten por la cuenta compartida).
 - SQL directo con el rol real: `database/tests/hu008_recuperacion_acceso.sql`.
 - E2E backend/sistema contra el router y PostgreSQL reales, proveedor interceptado: `cmd/api/recovery_integration_test.go`.
 
-## Registro y listado de barberos (HU-021)
+## Registro y listado de profesionales (HU-021)
 
 `internal/modules/staff` implementa las cuatro operaciones privadas de
-`api/openapi/paths/staff.yaml`: `GET`/`POST /api/v1/private/barbers` y
-`GET`/`PATCH /api/v1/private/barbers/{barberId}`. Núcleo (`domain.go`,
+`api/openapi/paths/staff.yaml`: `GET`/`POST /api/v1/private/professionals` y
+`GET`/`PATCH /api/v1/private/professionals/{professionalId}`. Núcleo (`domain.go`,
 `errors.go`, `ports.go`, `service.go`) sin Chi, `net/http`, pgx ni
 `internal/platform/database` (CA-002-06); `postgres/repository.go` traduce
 el puerto `staff.Repository` a `database.DB`; `httpapi/` decodifica, valida
 la forma y traduce el resultado a HTTP. Migración
-`database/migrations/20260823130000_create_barber.sql` (tabla `barber`
-mínima, DEC-047: sin `active`, `deleted_at`, `sort_order` ni vínculo con
+`database/migrations/20260823130000_create_barber.sql` (tabla `barber`,
+hoy `professional` por `20261121090000_rename_to_business_professional.sql`; mínima, DEC-047: sin `active`, `deleted_at`, `sort_order` ni vínculo con
 `staff_user`).
 
-### Un mismo camino para barbería unipersonal y de equipo (CA-021-01/02)
+### Un mismo camino para negocio unipersonal y de equipo (CA-021-01/02)
 
-`barber` es una tabla ordinaria, sin ninguna bandera ni columna que
-distinga "el único barbero" de "uno de varios": una barbería con una
-persona tiene exactamente una fila `barber`, y agregar tres más produce
+`professional` es una tabla ordinaria, sin ninguna bandera ni columna que
+distinga "el único profesional" de "uno de varios": un negocio con una
+persona tiene exactamente una fila `professional`, y agregar tres más produce
 cuatro filas distintas con el mismo `INSERT`, el mismo handler y el mismo
-componente Vue. `TestStaff_HTTP_OneThenFourBarbers_SamePathBothCases`
+componente Vue. `TestStaff_HTTP_OneThenFourProfessionals_SamePathBothCases`
 (`cmd/api/staff_integration_test.go`) lo demuestra contra el router real.
 
 ### Paginación por cursor (CA-021-02)
 
 La colección no tiene un máximo de negocio aprobado (`docs/06-api/
-estandar-openapi.md` §6.10), así que `GET /private/barbers` pagina por
+estandar-openapi.md` §6.10), así que `GET /private/professionals` pagina por
 cursor opaco (`staff.EncodeCursor`/`DecodeCursor`, base64 de
 `{createdAt, id}`) en vez de offset, con orden estable `(created_at, id)`
-respaldado por `idx_barber_shop_created_id`. `limit` se clampa en el
+respaldado por `idx_professional_shop_created_id`. `limit` se clampa en el
 servicio a `[1, 50]`, por defecto 20 (`staff.DefaultListLimit`); un cursor
 manipulado o de otra forma se rechaza como `400` sin tocar PostgreSQL
 (nunca revela ni modifica un recurso ajeno: el cursor es solo una posición
@@ -1307,57 +1307,57 @@ de recorrido, la fila real sigue protegida por RLS).
 
 ### Alta idempotente: Begin, INSERT y Complete en una sola transacción (RN-IDE-01, DEC-043)
 
-`POST /private/barbers` sigue al pie de la letra el patrón documentado en
+`POST /private/professionals` sigue al pie de la letra el patrón documentado en
 "Patrón obligatorio: idempotencia reutilizable" de arriba, pero a
 diferencia del ejemplo de esa sección (que solo demuestra el mecanismo), la
 orquestación completa vive en `staff/postgres.Repository.Create`: dentro de
 la MISMA `InTenantTx`, llama `Coordinator.Begin`, ejecuta el `INSERT
 ... RETURNING` solo si el resultado es `OutcomeProceed`, construye el
 cuerpo JSON de la respuesta (mismo formato exacto que
-`httpapi.BarberResponse`, ver la advertencia de mantenimiento manual en
+`httpapi.ProfessionalResponse`, ver la advertencia de mantenimiento manual en
 ambos archivos) y llama `Coordinator.Complete` con ese mismo cuerpo. El
 handler HTTP nunca decide el cuerpo por su cuenta: reproduce
 `result.Response` byte a byte tanto en la primera ejecución como en una
 repetición exacta (`CA-004-01`), reconstruyendo `Location` a partir del
 `id` que ese mismo cuerpo ya contiene (funciona igual para `OutcomeProceed`
 y `OutcomeReplay`, sin un campo aparte). La clave de idempotencia NO impone
-unicidad de nombre: dos claves distintas pueden crear dos barberos con el
-mismo `fullName` (`TestCreate_DifferentKeysSameName_CreatesTwoDistinctBarbers`).
+unicidad de nombre: dos claves distintas pueden crear dos profesionales con el
+mismo `fullName` (`TestCreate_DifferentKeysSameName_CreatesTwoDistinctProfessionals`).
 
-### `404` idéntico para inexistente y de otra barbería (CA-021-05, RN-TEN-01)
+### `404` idéntico para inexistente y de otro negocio (CA-021-05, RN-TEN-01)
 
-`Get` y `Rename` filtran explícitamente por `barbershop_id` además de RLS
-y colapsan "no existe" y "es de otra barbería" en el mismo
+`Get` y `Rename` filtran explícitamente por `business_id` además de RLS
+y colapsan "no existe" y "es de otro negocio" en el mismo
 `apperr.NotFound`, igual que el resto del backend. Un identificador que ni
 siquiera tiene forma de UUID se rechaza con el mismo `404` ANTES de tocar
-PostgreSQL (`staff.LooksLikeBarberID`), para no arriesgar un error de tipo
+PostgreSQL (`staff.LooksLikeProfessionalID`), para no arriesgar un error de tipo
 (500) por una comparación `text` contra una columna `uuid`.
 `TestStaff_HTTP_TwoTenants_CrossAccessAlwaysReturns404WithoutLeaking`
 (`cmd/api/staff_integration_test.go`) compara campo a campo el `Problem` de
-un identificador inexistente contra el de un barbero real de otra
-barbería (solo `instance`/`requestId`, de correlación por solicitud,
+un identificador inexistente contra el de un profesional real de otro
+negocio (solo `instance`/`requestId`, de correlación por solicitud,
 pueden diferir).
 
 ### Nombre: recorte, largo y Unicode (CA-021-03)
 
 `staff.NormalizeFullName` recorta espacios; el servicio rechaza vacío,
 solo espacios o más de 120 caracteres (`staff.FullNameMaxLength`, igual
-que `barber_full_name_ck`) usando `utf8.RuneCountInString` (cuenta
+que `professional_full_name_ck`) usando `utf8.RuneCountInString` (cuenta
 caracteres, no bytes: un nombre con tildes o `ñ` no se rechaza de forma
-prematura). Sin unicidad: dos barberos de la misma barbería pueden
-compartir nombre (`TestRename_DuplicateNameAcrossBarbers_Allowed`).
+prematura). Sin unicidad: dos profesionales del mismo negocio pueden
+compartir nombre (`TestRename_DuplicateNameAcrossProfessionals_Allowed`).
 
 ### Tabla de criterios de aceptación
 
 | Criterio | Estado | Prueba o evidencia |
 | --- | --- | --- |
-| `CA-021-01` | Cumplido | `TestList_FourBarbersInATeamShop_ReturnedAsFourDistinctResources`, `TestStaff_HTTP_OneThenFourBarbers_SamePathBothCases`, `database/tests/hu021_profesionales.sql` ("CA-021-01/02"). |
+| `CA-021-01` | Cumplido | `TestList_FourProfessionalsInATeamShop_ReturnedAsFourDistinctResources`, `TestStaff_HTTP_OneThenFourProfessionals_SamePathBothCases`, `database/tests/hu021_profesionales.sql` ("CA-021-01/02"). |
 | `CA-021-02` | Cumplido | Los mismos anteriores; alta protegida con idempotencia: `TestCreate_FirstExecution_PersistsAndReturnsProceed`, `TestStaff_HTTP_Idempotency_ReplayAndConflict`. |
-| `CA-021-03` | Cumplido | `TestCreate_EmptyName_RejectedWithoutTouchingRepository`, `TestCreate_WhitespaceOnlyName_Rejected`, `TestCreate_NameOver120Characters_Rejected`, `TestCreate_NameExactly120Characters_Accepted`, `TestCreate_UnicodeName_CountsRunesNotBytes`, `barber_full_name_ck` en `database/tests/hu021_profesionales.sql`. |
+| `CA-021-03` | Cumplido | `TestCreate_EmptyName_RejectedWithoutTouchingRepository`, `TestCreate_WhitespaceOnlyName_Rejected`, `TestCreate_NameOver120Characters_Rejected`, `TestCreate_NameExactly120Characters_Accepted`, `TestCreate_UnicodeName_CountsRunesNotBytes`, `professional_full_name_ck` en `database/tests/hu021_profesionales.sql`. |
 | `CA-021-04` | Cumplido | `TestRename_OwnTenant_UpdatesByIDWithoutDuplicating`, `TestStaff_HTTP_CreateGetListRenameReload_FullJourney`. |
-| `CA-021-05` | Cumplido | `TestGet_CrossTenant_NeverLeaksAnotherShopsBarber`, `TestRename_CrossTenant_NeverRenamesAnotherShopsBarber`, `TestStaff_HTTP_TwoTenants_CrossAccessAlwaysReturns404WithoutLeaking`, sección CA-021-05 de `hu021_profesionales.sql`. |
-| `CA-021-06` | Cumplido | Sección CA-021-06 de `database/tests/hu021_profesionales.sql` (RLS forzada, `WITH CHECK` rechaza `barbershop_id` ajeno, rol real sin `BYPASSRLS`). |
-| `CA-021-07` | Cumplido | Sin política/GRANT `DELETE` (`database/tests/hu021_profesionales.sql`), contrato sin campos fuera de alcance (`TestContract_UpdateBarberRequestSchema_MatchesDTOFields`), `TestStaff_HTTP_UnknownField_Returns400`. |
+| `CA-021-05` | Cumplido | `TestGet_CrossTenant_NeverLeaksAnotherShopsProfessional`, `TestRename_CrossTenant_NeverRenamesAnotherShopsProfessional`, `TestStaff_HTTP_TwoTenants_CrossAccessAlwaysReturns404WithoutLeaking`, sección CA-021-05 de `hu021_profesionales.sql`. |
+| `CA-021-06` | Cumplido | Sección CA-021-06 de `database/tests/hu021_profesionales.sql` (RLS forzada, `WITH CHECK` rechaza `business_id` ajeno, rol real sin `BYPASSRLS`). |
+| `CA-021-07` | Cumplido | Sin política/GRANT `DELETE` (`database/tests/hu021_profesionales.sql`), contrato sin campos fuera de alcance (`TestContract_UpdateProfessionalRequestSchema_MatchesDTOFields`), `TestStaff_HTTP_UnknownField_Returns400`. |
 | `CA-021-08` | Parcial (backend no aplica; ver `apps/web/README.md`) | Evidencia de frontend/accesibilidad documentada en `apps/web/README.md` y `apps/web/e2e/`. |
 
 ### Pruebas
@@ -1404,7 +1404,7 @@ decimales o formato inválido, también.
 
 ### Nombre único entre servicios activos: conflicto, no validación (DEC-067)
 
-`idx_service_active_name` (índice único parcial `(barbershop_id, name)
+`idx_service_active_name` (índice único parcial `(business_id, name)
 WHERE is_active`) es la única fuente de verdad de esta regla: el núcleo no
 la duplica con una consulta previa (evitaría una carrera entre dos altas
 simultáneas con el mismo nombre). `catalog/postgres.Repository.Create`/
@@ -1420,11 +1420,11 @@ misma `InTenantTx` que la reclamación de idempotencia: el `ROLLBACK`
 resultante deshace también esa reclamación, dejando la clave libre para un
 reintento legítimo con un nombre distinto (mismo criterio de `CA-004-06`).
 
-### `404` idéntico para inexistente y de otra barbería (CA-022-06, RN-TEN-01)
+### `404` idéntico para inexistente y de otro negocio (CA-022-06, RN-TEN-01)
 
 Mismo patrón que `staff`: `Get` y `Update` filtran explícitamente por
-`barbershop_id` además de RLS y colapsan "no existe" y "es de otra
-barbería" en el mismo `apperr.NotFound`. Un identificador que ni siquiera
+`business_id` además de RLS y colapsan "no existe" y "es de otro
+negocio" en el mismo `apperr.NotFound`. Un identificador que ni siquiera
 tiene forma de UUID se rechaza con el mismo `404` antes de tocar
 PostgreSQL (`catalog.LooksLikeServiceID`).
 
@@ -1441,7 +1441,7 @@ ELSE description END`, nunca con `COALESCE` a secas (que no podría
 expresar "borrar"). Un `PATCH` sin ningún campo de catálogo presente se
 rechaza como `apperr.Validation` antes de tocar el repositorio
 (`errUpdateEmptyBody`); ninguna operación acepta `isActive`, asignaciones a
-barberos ni alcance de propagación hacia una cita (RN-SER-04): el contrato
+profesionales ni alcance de propagación hacia una cita (RN-SER-04): el contrato
 ni siquiera declara esos campos.
 
 ### Tabla de criterios de aceptación
@@ -1452,7 +1452,7 @@ ni siquiera declara esos campos.
 | `CA-022-02` | Cumplido | Alta protegida con idempotencia: `TestCreate_FirstExecution_PersistsAndReturnsProceed`, `TestCreate_SameKeyAndContent_ReplaysWithoutCreatingASecondRow`, `TestCatalog_HTTP_Idempotency_ReplayAndConflict`. |
 | `CA-022-03` | Cumplido | `TestCreate_Durations25_30_45_90_AllAccepted`, `TestCreate_DurationZeroNegativeOrAbove1440_Rejected`, `TestCreateServiceHandler_FractionalDuration_Returns400`, sección de `hu022_catalogo.sql`. |
 | `CA-022-04` | Cumplido | `TestCreateServiceHandler_UnknownField_Returns400`, `TestCreate_PriceZeroOrNegative_Rejected`, `TestCreate_DuplicateActiveName_ReturnsNameTakenWithoutPersisting`, `TestCatalog_HTTP_DuplicateActiveName_Returns409`. |
-| `CA-022-05` | Cumplido | Contrato sin campo de alcance sobre citas (`TestContract_UpdateServiceRequestSchema_MatchesDTOFields` rechaza `barberIds`/`appointments`); `TestCatalog_HTTP_CreateGetListUpdateReload_FullJourney` confirma que un cambio de precio/duración no toca `name`. |
+| `CA-022-05` | Cumplido | Contrato sin campo de alcance sobre citas (`TestContract_UpdateServiceRequestSchema_MatchesDTOFields` rechaza `professionalIds`/`appointments`); `TestCatalog_HTTP_CreateGetListUpdateReload_FullJourney` confirma que un cambio de precio/duración no toca `name`. |
 | `CA-022-06` | Cumplido | `TestGet_CrossTenant_NeverLeaksAnotherShopsService`, `TestUpdate_CrossTenant_NeverEditsAnotherShopsService`, `TestCatalog_HTTP_TwoTenants_CrossAccessAlwaysReturns404WithoutLeaking`, sección CA-022-06 de `hu022_catalogo.sql`. |
 | `CA-022-07` | Cumplido | `openapi:lint`/`openapi:bundle` en verde; `contract_test.go` (9 pruebas) compara los DTO Go y las cuatro operaciones reales contra el YAML fuente. |
 | `CA-022-08` | Parcial (backend no aplica; ver `apps/web/README.md`) | Evidencia de frontend/accesibilidad documentada en `apps/web/README.md` y `apps/web/e2e/`. |
@@ -1466,12 +1466,12 @@ ni siquiera declara esos campos.
 - SQL directo con el rol real: `database/tests/hu022_catalogo.sql`.
 - Router de producción con dos tenants reales: `cmd/api/catalog_integration_test.go`.
 
-## Asignación de servicios a barberos (HU-023)
+## Asignación de servicios a profesionales (HU-023)
 
 `internal/modules/catalog` agrega las tres operaciones privadas de
-`api/openapi/paths/barber-services.yaml`:
-`GET /api/v1/private/barbers/{barberId}/services`,
-`PUT`/`DELETE .../{barberId}/services/{serviceId}`. Núcleo nuevo
+`api/openapi/paths/professional-services.yaml`:
+`GET /api/v1/private/professionals/{professionalId}/services`,
+`PUT`/`DELETE .../{professionalId}/services/{serviceId}`. Núcleo nuevo
 (`assignment.go`, `assignment_errors.go`, `assignment_ports.go`,
 `assignment_service.go`) en el mismo paquete `catalog` (dueño de la
 intención "qué servicios se prestan"), sin Chi, `net/http`, pgx ni
@@ -1479,14 +1479,14 @@ intención "qué servicios se prestan"), sin Chi, `net/http`, pgx ni
 assignment_repository.go` traduce `catalog.AssignmentRepository` a
 `database.DB`; `httpapi/assignment_{dto,handler}.go` decodifica y traduce a
 HTTP. Migración `database/migrations/20260824150000_create_barber_service.sql`
-(tabla de asociación PURA `barber_service`: solo `barbershop_id`,
-`barber_id`, `service_id`, `created_at`, sin duplicar nombre/duración/
+(tabla de asociación PURA `barber_service`, hoy `professional_service`: solo `business_id`,
+`professional_id`, `service_id`, `created_at`, sin duplicar nombre/duración/
 precio/estado, CA-023-07).
 
 ### Colaboración entre módulos SOLO por puerto explícito (trabajo requerido §3.1)
 
-`catalog.AssignmentService` necesita confirmar que un `barberId` pertenece
-a la barbería vigente antes de asignarle un servicio, pero **el paquete
+`catalog.AssignmentService` necesita confirmar que un `professionalId` pertenece
+al negocio vigente antes de asignarle un servicio, pero **el paquete
 `catalog` nunca importa `staff`**, ni siquiera en sus propias pruebas
 (`internal/platform/archtest/module_boundary_test.go` lo verifica
 recorriendo los imports de ambos árboles de paquetes). En su lugar,
@@ -1494,12 +1494,12 @@ recorriendo los imports de ambos árboles de paquetes). En su lugar,
 
 ```go
 // catalog/assignment_ports.go
-type BarberPort interface {
-    Exists(ctx context.Context, barbershopID, barberID string) (bool, error)
+type ProfessionalPort interface {
+    Exists(ctx context.Context, businessID, professionalID string) (bool, error)
 }
 ```
 
-`staff` expone `staff.BarberLookup` (`staff/lookup.go`), un adaptador de una
+`staff` expone `staff.ProfessionalLookup` (`staff/lookup.go`), un adaptador de una
 sola operación sobre `*staff.Service` que satisface esa interfaz de forma
 puramente estructural, sin que `staff` importe `catalog` tampoco.
 `cmd/api.buildRouter` (la única raíz de composición que conoce ambos
@@ -1508,7 +1508,7 @@ módulos) conecta ambos lados:
 ```go
 assignmentService := catalog.NewAssignmentService(
     catalogpostgres.NewAssignmentRepository(db),
-    staff.NewBarberLookup(staffService),
+    staff.NewProfessionalLookup(staffService),
 )
 ```
 
@@ -1516,16 +1516,16 @@ La existencia de `serviceId` la verifica `catalog` directamente (es su
 propia tabla `service`, mismo módulo bajo prueba, no una dependencia
 cruzada).
 
-### Retirar al último barbero de un servicio (DEC-114, CA-023-05/06)
+### Retirar al último profesional de un servicio (DEC-114, CA-023-05/06)
 
-`AssignmentRepository.Unassign` ejecuta un único `DELETE FROM barber_service
-WHERE barbershop_id = $1 AND barber_id = $2 AND service_id = $3` dentro de
+`AssignmentRepository.Unassign` ejecuta un único `DELETE FROM professional_service
+WHERE business_id = $1 AND professional_id = $2 AND service_id = $3` dentro de
 `InTenantTx`. Sin fila afectada devuelve `UnassignOutcomeNotFound` (404
-uniforme: la asociación nunca existió, ya se retiró, o el barbero/servicio es
+uniforme: la asociación nunca existió, ya se retiró, o el profesional/servicio es
 ajeno); con fila, `UnassignOutcomeDeleted`. No cuenta asignaciones ni bloquea
 `service`: `DEC-114` sustituye a `DEC-068`, que rechazaba retirar la última
-con `409`. Un servicio activo sin barberos no se ofrece en la reserva pública
-(`ListPublicServices` exige al menos una fila en `barber_service`).
+con `409`. Un servicio activo sin profesionales no se ofrece en la reserva pública
+(`ListPublicServices` exige al menos una fila en `professional_service`).
 `TestUnassign_ConcurrentOnLastTwoAssignments_BothSucceed` verifica con dos
 conexiones reales que dos retiros simultáneos de las dos únicas filas
 terminan ambos en `Deleted`.
@@ -1533,7 +1533,7 @@ terminan ambos en `Deleted`.
 ### Semántica HTTP naturalmente repetible, sin `Idempotency-Key`
 
 Asignar y desasignar son `PUT`/`DELETE` sobre un recurso identificado por
-sus propios dos identificadores (`barberId`+`serviceId`): repetir la misma
+sus propios dos identificadores (`professionalId`+`serviceId`): repetir la misma
 solicitud produce el mismo estado final sin ambigüedad de contenido, así
 que ninguna de las dos operaciones usa el protocolo de idempotencia de
 RN-IDE-01/`DEC-043` (reservado a un `POST` que no sería idempotente por sí
@@ -1545,21 +1545,21 @@ NOTHING`); repetir `DELETE` sobre una asociación ya retirada responde `404`.
 
 | Criterio | Estado | Prueba o evidencia |
 | --- | --- | --- |
-| `CA-023-01` | Cumplido | `TestAssign_New_CreatesRowAndIsVisibleInList`, `TestBarberServices_HTTP_AssignRepeatListUnassign_FullJourney`, E2E `servicios-por-barbero.spec.ts`. |
+| `CA-023-01` | Cumplido | `TestAssign_New_CreatesRowAndIsVisibleInList`, `TestProfessionalServices_HTTP_AssignRepeatListUnassign_FullJourney`, E2E `servicios-por-profesional.spec.ts`. |
 | `CA-023-02` | Cumplido | `TestAssign_Repeated_DoesNotCreateASecondRow`, `TestAssignmentService_Assign_Repeated_ReturnsAlreadyExistsWithoutError`, HTTP journey (200 con `createdAt` original en la repetición). |
-| `CA-023-03` | Cumplido | `TestAssign_SameServiceToMultipleBarbers_EachIsAnIndependentResource`, E2E ("un mismo servicio se asigna a varios barberos"). |
-| `CA-023-04` | Cumplido | `TestAssign_ServiceFromAnotherTenant_ServiceNotFound`, `TestRawSQL_CompositeFK_RejectsCrossTenantAssociation` (FK real, `23503`), `TestBarberServices_HTTP_TwoTenants_CrossAccessReturns404WithoutLeaking`, `hu023_asignaciones.sql` ("CA-023-04"). |
-| `CA-023-05` | Cumplido | `TestUnassign_LastAssignmentOfActiveService_Deletes` (incluye reintento con `NotFound`), `TestBarberServices_HTTP_LastAssignment_CanBeRemoved`, E2E «retirar la última asignación» (`DEC-114`). |
+| `CA-023-03` | Cumplido | `TestAssign_SameServiceToMultipleProfessionals_EachIsAnIndependentResource`, E2E ("un mismo servicio se asigna a varios profesionales"). |
+| `CA-023-04` | Cumplido | `TestAssign_ServiceFromAnotherTenant_ServiceNotFound`, `TestRawSQL_CompositeFK_RejectsCrossTenantAssociation` (FK real, `23503`), `TestProfessionalServices_HTTP_TwoTenants_CrossAccessReturns404WithoutLeaking`, `hu023_asignaciones.sql` ("CA-023-04"). |
+| `CA-023-05` | Cumplido | `TestUnassign_LastAssignmentOfActiveService_Deletes` (incluye reintento con `NotFound`), `TestProfessionalServices_HTTP_LastAssignment_CanBeRemoved`, E2E «retirar la última asignación» (`DEC-114`). |
 | `CA-023-06` | Cumplido | `TestUnassign_ConcurrentOnLastTwoAssignments_BothSucceed` (dos conexiones reales), `hu023_asignaciones.sql` ("CA-023-06", esquema). |
-| `CA-023-07` | Cumplido | Esquema exacto verificado en `hu023_asignaciones.sql`; `TestBarberServices_HTTP_ResponseNeverIncludesNameDurationPrice`. |
+| `CA-023-07` | Cumplido | Esquema exacto verificado en `hu023_asignaciones.sql`; `TestProfessionalServices_HTTP_ResponseNeverIncludesNameDurationPrice`. |
 | `CA-023-08` | Parcial (backend no aplica; ver `apps/web/README.md`) | Evidencia de frontend/accesibilidad documentada en `apps/web/README.md` y `apps/web/e2e/`. |
 
 ### Pruebas
 
-- Unitarias: `internal/modules/catalog/assignment_service_test.go` (doble en memoria de `catalog.AssignmentRepository`/`BarberPort`); `internal/modules/staff/lookup_test.go`.
+- Unitarias: `internal/modules/catalog/assignment_service_test.go` (doble en memoria de `catalog.AssignmentRepository`/`ProfessionalPort`); `internal/modules/staff/lookup_test.go`.
 - PostgreSQL real, incluidos dos retiros concurrentes de las dos únicas filas: `internal/modules/catalog/postgres/assignment_repository_test.go`.
 - SQL directo con el rol real: `database/tests/hu023_asignaciones.sql`.
-- Router de producción con dos tenants reales: `cmd/api/barber_services_integration_test.go`.
+- Router de producción con dos tenants reales: `cmd/api/professional_services_integration_test.go`.
 - Arquitectura (sin imports cruzados `catalog`↔`staff`): `internal/platform/archtest/module_boundary_test.go`.
 
 ## Ciclo de vida de servicios (HU-024)
@@ -1580,7 +1580,7 @@ exponer ningún endpoint que los cambiara).
 desactivar un servicio, consultado en el momento, nunca un valor por
 defecto. `appointment` no existe todavía en la cadena migrada (B3), así que
 "el impacto real" en B1 es, literalmente, cero: ninguna cita puede existir
-para ningún servicio de ninguna barbería. `catalog.currentDeactivationImpact()`
+para ningún servicio de ningún negocio. `catalog.currentDeactivationImpact()`
 (`domain.go`) documenta esta verdad explícitamente y es el ÚNICO lugar que
 decide `AffectedAppointments`; no es un `Port`/adaptador que finja consultar
 una tabla que no existe (`trabajo requerido §2`, "no inventes... un
@@ -1598,10 +1598,10 @@ RN-IDE-01):
    `OutcomeReplay` reproduce la respuesta guardada byte a byte; cualquier
    otro desenlace se traduce a `409` sin tocar la fila).
 2. `lockServiceForTransition` bloquea la fila (`SELECT is_active FROM
-   service WHERE id = $1 AND barbershop_id = $2 FOR UPDATE`): dos
+   service WHERE id = $1 AND business_id = $2 FOR UPDATE`): dos
    confirmaciones concurrentes del MISMO servicio se serializan aquí,
    para que la segunda vea el estado ya actualizado.
-   `found=false` (fila inexistente o de otra barbería) hace `ROLLBACK`
+   `found=false` (fila inexistente o de otro negocio) hace `ROLLBACK`
    entero, dejando la clave de idempotencia libre para un reintento
    legítimo (`CA-024-07`).
 3. Si el estado ya coincide con el destino (desactivar un servicio ya
@@ -1676,19 +1676,19 @@ comentario de la migración y en `estandar-base-datos.md §7`). En su lugar,
 minutos desde medianoche (semiabiertos: tramos contiguos NO se solapan,
 CA-040-03), y `postgres.overlapsExisting` la invoca dentro de la misma
 transacción que el `INSERT`/`UPDATE`, sobre los tramos existentes del mismo
-`(barbershopID, barberID, isoWeekday)` ya bloqueados con
+`(businessID, professionalID, isoWeekday)` ya bloqueados con
 `SELECT ... FOR UPDATE`.
 
-### Bloqueo de la fila de `barber`, no solo de `working_hour` (carrera de "cero tramos")
+### Bloqueo de la fila de `professional`, no solo de `working_hour` (carrera de "cero tramos")
 
-Si dos altas concurrentes para el MISMO barbero y día parten de un
+Si dos altas concurrentes para el MISMO profesional y día parten de un
 conjunto de tramos existentes VACÍO, un `SELECT ... FOR UPDATE` sobre
 `working_hour` no bloquea nada (no hay fila que bloquear): ambas
 transacciones podrían insertar tramos que se solapan entre sí sin que
 ninguna vea a la otra (phantom read clásico a `READ COMMITTED`).
-`lockBarberForScheduleWrite` bloquea en cambio la fila de `barber` antes de
+`lockProfessionalForScheduleWrite` bloquea en cambio la fila de `professional` antes de
 verificar solape, serializando todas las escrituras de horario de ese
-barbero (mismo criterio que `lockServiceForTransition` con la fila de `service`).
+profesional (mismo criterio que `lockServiceForTransition` con la fila de `service`).
 `TestCreate_ConcurrentOverlappingCreates_ExactlyOneSucceeds`
 (`internal/modules/schedule/postgres/repository_test.go`, `-race`, dos
 goroutines reales sobre el mismo pool) demuestra que exactamente una de dos
@@ -1698,16 +1698,16 @@ altas concurrentes que se solapan tiene éxito; la otra recibe
 ### `CT-008`/`DEC-070`: `ON DELETE RESTRICT`, no `CASCADE`
 
 El modelo de referencia proponía `ON DELETE CASCADE` de `working_hour`
-hacia `barber`; `AGENTS.md` prohíbe el borrado en cascada. Se resolvió como
-`DEC-070`: la FK usa `ON DELETE RESTRICT` (`barber` no tiene borrado físico
+hacia `professional`; `AGENTS.md` prohíbe el borrado en cascada. Se resolvió como
+`DEC-070`: la FK usa `ON DELETE RESTRICT` (`professional` no tiene borrado físico
 en su alcance vigente, HU-021/DDL-BIZ-02), verificado contra PostgreSQL
 real en `tests/hu040_horario.sql`, no solo documentado.
 
-### `BarberPort`: mismo patrón de colaboración entre módulos que HU-023
+### `ProfessionalPort`: mismo patrón de colaboración entre módulos que HU-023
 
-`schedule.Service` verifica que `barberId` exista en la barbería activa
-mediante `schedule.BarberPort`, satisfecho por `staff.NewBarberLookup`
-(mismo puerto pequeño y explícito que `catalog.BarberPort`): ni `schedule`
+`schedule.Service` verifica que `professionalId` exista en el negocio activo
+mediante `schedule.ProfessionalPort`, satisfecho por `staff.NewProfessionalLookup`
+(mismo puerto pequeño y explícito que `catalog.ProfessionalPort`): ni `schedule`
 importa `staff`, ni `staff` importa `schedule`; `cmd/api` conecta ambos.
 
 ### Tabla de criterios de aceptación
@@ -1718,13 +1718,13 @@ importa `staff`, ni `staff` importa `schedule`; `cmd/api` conecta ambos.
 | `CA-040-02` | Cumplido | `TestCreate_SplitShift_TwoNonOverlappingSegmentsSameDay`, `hu040_horario.sql` ("CA-040-02/03"). |
 | `CA-040-03` | Cumplido | `TestIntervalsOverlap_*` (dominio), `TestCreate_NightShift_CrossesMidnightWithoutError`, `TestCreate_ContiguousSegments_NoConflict`. |
 | `CA-040-04` | Cumplido | `TestCreate_ExactSameStart_ReturnsConflict`, `TestCreate_PartialOverlap_ReturnsConflict`, `TestUpdate_OverlapsAnotherSegment_ReturnsConflictWithoutChangingAnything`, `TestWorkingHours_HTTP_OverlappingCreate_Returns409`, `TestWorkingHours_HTTP_InvalidField_Returns422`, `hu040_horario.sql` (CHECK de día/duración). |
-| `CA-040-05` | Cumplido | `TestGet_CrossBarber_...`, `TestGet_CrossTenant_...`, `TestUpdate_CrossTenant_...`, `TestDelete_CrossTenant_...`, `TestDelete_ThenGet_NotFound`, `TestWorkingHours_HTTP_CrossTenantBarber_Returns404`, `hu040_horario.sql` ("CA-040-05"). |
+| `CA-040-05` | Cumplido | `TestGet_CrossProfessional_...`, `TestGet_CrossTenant_...`, `TestUpdate_CrossTenant_...`, `TestDelete_CrossTenant_...`, `TestDelete_ThenGet_NotFound`, `TestWorkingHours_HTTP_CrossTenantProfessional_Returns404`, `hu040_horario.sql` ("CA-040-05"). |
 | `CA-040-06` | Cumplido | `startsTime` viaja como hora civil `HH:MM` sin conversión alguna (`to_char(starts_time, 'HH24:MI')`); ver `apps/web/README.md` para la indicación explícita de zona en pantalla. |
 | `CA-040-07`/`08` | Parcial (backend no aplica) | Evidencia de frontend/accesibilidad documentada en `apps/web/README.md`. |
 
 ### Pruebas
 
-- Dominio: `internal/modules/schedule/domain_test.go`, `service_test.go` (doble en memoria de `schedule.Repository`/`BarberPort`).
+- Dominio: `internal/modules/schedule/domain_test.go`, `service_test.go` (doble en memoria de `schedule.Repository`/`ProfessionalPort`).
 - PostgreSQL real, incluida la carrera de dos altas concurrentes con `-race`: `internal/modules/schedule/postgres/repository_test.go`.
 - HTTP con dobles y contrato: `internal/modules/schedule/httpapi/contract_test.go` (contrato contra el YAML fuente; sin `handler_test.go` propio: las rutas con dos parámetros de ruta se cubren mediante el router real, mismo criterio que `catalog/httpapi/assignment_handler.go`).
 - SQL directo con el rol real: `database/tests/hu040_horario.sql` (incluida la verificación de `DEC-070` contra PostgreSQL real).
@@ -1737,7 +1737,7 @@ Extiende `internal/modules/schedule` (mismo módulo de HU-040, mismo
 `20260826090000_create_working_hour_override.sql`: `working_hour_override`
 (cabecera: fecha efectiva, `is_closed`, `reason` opcional) y
 `working_hour_override_segment` (tramos de un día abierto), más
-`barber.holiday_calendar_enabled`.
+`professional.holiday_calendar_enabled`.
 
 ### El solape SÍ vive en un `EXCLUDE` de PostgreSQL, a diferencia de HU-040
 
@@ -1747,10 +1747,10 @@ justificación de HU-040 para mover el solape a Go (una restricción de
 exclusión sobre una envolvente semanal es frágil frente a un tramo
 nocturno) no aplica aquí: cada excepción está anclada a una fecha civil
 fija de la cabecera, no a un día de la semana que se repite, así que no
-hay envolvente que fragilizar. `UNIQUE (barbershop_id, barber_id,
+hay envolvente que fragilizar. `UNIQUE (business_id, professional_id,
 effective_date)` hace atómica la detección de fecha duplicada
 (`CA-041-05`) por el mismo motivo: sin recurrencia, la base es un
-backstop seguro sin necesitar el truco de bloquear la fila de `barber`
+backstop seguro sin necesitar el truco de bloquear la fila de `professional`
 que sí hizo falta en HU-040.
 
 ### `UpdateException`: ROLLBACK completo si el conflicto aparece a mitad de transacción
@@ -1770,7 +1770,7 @@ tramos vacíos).
 Para una fecha civil concreta, en este orden: (1) una excepción manual de
 esa fecha, abierta o cerrada, prevalece siempre; (2) en su ausencia, un
 festivo colombiano (`ColombianHolidaysForYear`) bloquea el día SOLO si el
-barbero activó `holiday_calendar_enabled`; (3) en cualquier otro caso, el
+profesional activó `holiday_calendar_enabled`; (3) en cualquier otro caso, el
 horario semanal de `working_hour` (HU-040) para el día ISO
 correspondiente. Es un puerto interno para que la disponibilidad (B4) lo
 consuma después; no crea citas ni expone disponibilidad pública por sí
@@ -1786,7 +1786,7 @@ siguiente cuando no caen ya en lunes. La fecha de Pascua usa el algoritmo
 gregoriano anónimo (Meeus/Jones/Butcher), válido para cualquier año del
 calendario gregoriano. `GET /api/v1/private/schedule/colombian-holidays`
 expone este cálculo (parámetro `year` obligatorio) como dato de
-referencia, igual para toda barbería y todo barbero: útil para que la
+referencia, igual para todo negocio y todo profesional: útil para que la
 pantalla ofrezca "abrir este festivo" sin que el cliente reimplemente el
 algoritmo.
 
@@ -1798,13 +1798,13 @@ algoritmo.
 | `CA-041-03` | Cumplido | `TestResolveEffectiveDay_HolidayAuto_WhenEnabledAndNoException`, `TestResolveEffectiveDay_HolidayIgnored_WhenCalendarDisabled`. |
 | `CA-041-04` | Cumplido | `TestValidateExceptionShape_*` (dominio), `TestCreateException_OverlappingSegments_ReturnsConflictAndNothingPersists`, `TestScheduleExceptions_HTTP_InvalidShape_Returns422`, `hu041_excepciones.sql`. |
 | `CA-041-05` | Cumplido | `TestCreateException_DuplicateDate_ReturnsConflict`, `TestUpdateException_ConflictWithAnotherDate_LeavesOriginalUntouched`, `TestScheduleExceptions_HTTP_DuplicateDate_Returns409`, `hu041_excepciones.sql`. |
-| `CA-041-06` | Cumplido | `TestGetException_CrossBarber_*`, `TestGetException_CrossTenant_*`, `TestUpdateException_CrossTenant_*`, `TestDeleteException_CrossTenant_*`, `TestDeleteException_ThenGet_NotFound`, `TestScheduleExceptions_HTTP_CrossTenantBarber_Returns404`, `hu041_excepciones.sql` ("CA-041-06"). |
+| `CA-041-06` | Cumplido | `TestGetException_CrossProfessional_*`, `TestGetException_CrossTenant_*`, `TestUpdateException_CrossTenant_*`, `TestDeleteException_CrossTenant_*`, `TestDeleteException_ThenGet_NotFound`, `TestScheduleExceptions_HTTP_CrossTenantProfessional_Returns404`, `hu041_excepciones.sql` ("CA-041-06"). |
 | `CA-041-07` | Cumplido | `TestResolveEffectiveDay_ManualClosed_PrevailsOverEverything`, `TestResolveEffectiveDay_ManualOpen_PrevailsOverHolidayAndWeekly`, `TestResolveEffectiveDay_Weekly_WhenNoExceptionAndNotHoliday`. |
 | `CA-041-08` | Parcial (backend no aplica) | Evidencia de frontend/accesibilidad documentada en `apps/web/README.md`. |
 
 ### Pruebas
 
-- Dominio: `internal/modules/schedule/colombian_holidays_test.go`, `exception_domain_test.go`, `exception_service_test.go` (doble en memoria de `schedule.Repository`/`BarberPort`).
+- Dominio: `internal/modules/schedule/colombian_holidays_test.go`, `exception_domain_test.go`, `exception_service_test.go` (doble en memoria de `schedule.Repository`/`ProfessionalPort`).
 - PostgreSQL real: `internal/modules/schedule/postgres/exception_repository_test.go`.
 - HTTP con contrato: `internal/modules/schedule/httpapi/contract_test.go` (extendido con las ocho operaciones nuevas).
 - SQL directo con el rol real: `database/tests/hu041_excepciones.sql` (incluida la verificación de `DEC-070` contra PostgreSQL real).
@@ -1827,7 +1827,7 @@ cerrada de estado/origen/intervalo/snapshot/actor, sin tocar la base) y
 delega en `booking.Repository.CreateInternal`
 (`internal/modules/booking/postgres`), que dentro de UNA sola `InTenantTx`:
 crea o vincula el cliente que `CustomerInput` ya decidió (`ExistingID`
-resuelto por `SELECT ... WHERE barbershop_id = $1 AND id = $2`, tenant-aware;
+resuelto por `SELECT ... WHERE business_id = $1 AND id = $2`, tenant-aware;
 `New` inserta una fila), inserta la cita `confirmed` y el evento
 `appointment_created`. Un fallo en cualquier paso revierte los tres, incluido
 un cliente nuevo que nunca queda persistido si la cita choca con la
@@ -1835,9 +1835,9 @@ exclusión (`TestCreateInternal_ScheduleConflict_RollsBackNewCustomer`).
 
 ### La restricción de exclusión es la última defensa, no el dominio Go
 
-`appointment_barber_interval_excl` (`EXCLUDE USING gist (barbershop_id,
-barber_id, tstzrange(starts_at, ends_at, '[)')) WHERE (occupies_schedule)`)
-es quien de verdad impide dos citas cruzadas del mismo barbero, sea cual sea
+`appointment_professional_interval_excl` (`EXCLUDE USING gist (business_id,
+professional_id, tstzrange(starts_at, ends_at, '[)')) WHERE (occupies_schedule)`)
+es quien de verdad impide dos citas cruzadas del mismo profesional, sea cual sea
 lo que valide antes el dominio Go. `occupies_schedule` es una columna
 generada y almacenada (`status IN ('confirmed', 'completed', 'no_show')`,
 estados-citas.md §4/§11): el mismo criterio alimenta la exclusión y, en B4,
@@ -1869,7 +1869,7 @@ sin sincronización automática con el catálogo (`DEC-004`).
 ### Historial append-only
 
 `appointment_history`/`appointment_history_change` no tienen `GRANT UPDATE`
-ni `DELETE` para `barberia_app`, ni política RLS que los permita
+ni `DELETE` para `agenda_app`, ni política RLS que los permita
 (`database/tests/hu060_citas.sql`): una corrección futura (T8,
 `appointment_status_corrected`) agregará otra entrada, nunca editará la
 existente (RN-HIS-02, `DEC-014`).
@@ -1879,13 +1879,13 @@ existente (RN-HIS-02, `DEC-014`).
 | Criterio | Estado | Prueba o evidencia |
 | --- | --- | --- |
 | `CA-060-01` | Cumplido | `database/tests/hu060_citas.sql` ("esquema OK", "CHECK OK" ×2), `20260827110000_create_appointment_core.sql`. |
-| `CA-060-02` | Cumplido | `hu060_citas.sql` ("EXCLUDE OK"), `TestCreateInternal_ScheduleConflict_RollsBackNewCustomer`, `TestCreateInternal_ContiguousInterval_Succeeds`, `TestCreateInternal_DifferentBarber_SameWindow_Succeeds`. |
+| `CA-060-02` | Cumplido | `hu060_citas.sql` ("EXCLUDE OK"), `TestCreateInternal_ScheduleConflict_RollsBackNewCustomer`, `TestCreateInternal_ContiguousInterval_Succeeds`, `TestCreateInternal_DifferentProfessional_SameWindow_Succeeds`. |
 | `CA-060-03` | Cumplido | `hu060_citas.sql` ("occupies_schedule OK"), `TestStatus_OccupiesSchedule`, `TestCreateInternal_NewCustomer_PersistsAppointmentAndHistory`. |
 | `CA-060-04` | Cumplido | `hu060_citas.sql` ("DEC-007 OK", medianoche y cambio de horario de verano con la sesión en otra zona). |
 | `CA-060-05` | Cumplido | `TestCreateInternal_NewCustomer_PersistsAppointmentAndHistory`, `TestCreateInternal_ScheduleConflict_RollsBackNewCustomer`, `TestCreateInternal_ContextCancelled_NoPartialWrite`. |
 | `CA-060-06` | Cumplido | `hu060_citas.sql` ("CHECK/append-only OK": `UPDATE`/`DELETE` rechazados con `insufficient_privilege` en ambas tablas). |
 | `CA-060-07` | Cumplido | `hu060_citas.sql` ("RLS OK", "grants OK", "RN-TEN-01 OK"), `TestCreateInternal_ExistingCustomerFromOtherTenant_ReturnsNotFound`. |
-| `CA-060-08` | Cumplido | `atlas migrate hash/validate/apply` desde vacío y desde la versión anterior con datos representativos (14 barberías/9 barberos preexistentes, verificados intactos tras aplicar), segundo `apply` sin cambios, `atlas migrate status` limpio (16/16, "Already at latest version"). |
+| `CA-060-08` | Cumplido | `atlas migrate hash/validate/apply` desde vacío y desde la versión anterior con datos representativos (14 negocios/9 profesionales preexistentes, verificados intactos tras aplicar), segundo `apply` sin cambios, `atlas migrate status` limpio (16/16, "Already at latest version"). |
 
 ### Pruebas
 
@@ -1897,10 +1897,10 @@ existente (RN-HIS-02, `DEC-014`).
 ## Creación manual de turnos (HU-061)
 
 `POST /private/appointments` (`internal/modules/booking/httpapi`):
-`booking.ManualBookingService` resuelve la zona IANA de la barbería
+`booking.ManualBookingService` resuelve la zona IANA del negocio
 (`booking.TimezonePort`, adaptador `shops.NewTimezoneLookup`), interpreta
 `startsAt` como instante civil sin zona contra esa zona, verifica que el
-servicio esté activo y asignado al barbero elegido (`booking.BarberServicePort`,
+servicio esté activo y asignado al profesional elegido (`booking.ProfessionalServicePort`,
 adaptador `catalog.NewManualBookingCatalog`, `DEC-072`), verifica que no
 haya un bloqueo vigente en el intervalo (`booking.BlockCheckPort`, adaptador
 `schedule.NewManualBookingBlocks` sobre `schedule.Service.EffectiveBlocks`,
@@ -1911,7 +1911,7 @@ idempotencia de HU-004 (`RN-IDE-01`, `DEC-043`). `booking` nunca importa
 `catalog`, `schedule` ni `shops`: los tres puertos usan solo tipos
 universales en su firma para que el adaptador real (declarado en el módulo
 dueño de los datos) los satisfaga de forma puramente estructural, mismo
-criterio que `staff.NewBarberLookup` frente a `catalog.BarberPort`
+criterio que `staff.NewProfessionalLookup` frente a `catalog.ProfessionalPort`
 (HU-023).
 
 ### Tabla de criterios de aceptación
@@ -1936,12 +1936,12 @@ tampoco tiene E2E propio todavía): ninguno de los cuatro checks de CI
 - HTTP: `internal/modules/booking/httpapi/handler_test.go` (201/Location, 400 sin `Idempotency-Key`, 400 campo desconocido, 404, 409, repetición idempotente).
 - Componentes Vue: `apps/web/src/modules/agenda/pages/__tests__/NewAppointmentPage.test.ts` (carga, vacío, error, DEC-072 en el selector de servicio, validación, éxito con resumen honesto, conflicto, error de red con datos conservados, doble envío bloqueado, `vitest-axe`).
 
-## Agenda diaria de un barbero (HU-062)
+## Agenda diaria de un profesional (HU-062)
 
-`GET /private/barbers/{barberId}/appointments/daily-agenda` (`internal/modules/booking/httpapi`):
-`booking.AgendaService.ListDailyAgenda` exige un `barberId` explícito
-(`booking.BarberPort`, adaptador `staff.NewBarberLookup`, `DEC-074`), sin
-vista consolidada de varios barberos; resuelve la zona IANA de la barbería
+`GET /private/professionals/{professionalId}/appointments/daily-agenda` (`internal/modules/booking/httpapi`):
+`booking.AgendaService.ListDailyAgenda` exige un `professionalId` explícito
+(`booking.ProfessionalPort`, adaptador `staff.NewProfessionalLookup`, `DEC-074`), sin
+vista consolidada de varios profesionales; resuelve la zona IANA del negocio
 (`booking.TimezonePort`, mismo adaptador que HU-061), calcula el rango
 civil `[rangeStart, rangeEnd)` del día pedido (o "hoy", vía `clock.Clock`
 inyectado) con `time.Date` en esa zona -nunca sumando 24 horas fijas, para
@@ -1951,15 +1951,15 @@ La consulta filtra por intersección de rango (`starts_at`/`ends_at` contra
 `rangeStart`/`rangeEnd`), no por igualdad de fecha de `starts_at`: un turno
 que cruza medianoche aparece en cada agenda diaria cuyo rango interseca su
 intervalo (`DEC-075`). Reutiliza el índice
-`idx_appointment_shop_barber_starts_at (barbershop_id, barber_id, starts_at)`
+`idx_appointment_shop_professional_starts_at (business_id, professional_id, starts_at)`
 ya creado por `20260827110000_create_appointment_core.sql` (comentario
 original: "Agenda diaria del barbero (B3 posterior)"), acotado también por
 `starts_at >= rangeStart - 24h` para que PostgreSQL use un rango de índice
-en vez de recorrer todo el historial del barbero; verificado con
+en vez de recorrer todo el historial del profesional; verificado con
 `EXPLAIN (ANALYZE, BUFFERS)` como `Index Scan using
-idx_appointment_shop_barber_starts_at`. La respuesta es la proyección
+idx_appointment_shop_professional_starts_at`. La respuesta es la proyección
 mínima `booking.DailyAgendaEntry` (`CA-062-05`): nunca teléfono, correo,
-nota ni `customerId`, y sin repetir `barberId` por fila (la ruta ya lo
+nota ni `customerId`, y sin repetir `professionalId` por fila (la ruta ya lo
 fija). `booking` nunca importa `staff` ni `shops`, mismo criterio que
 `ManualBookingService`.
 
@@ -1983,10 +1983,10 @@ fuera de esta entrega.
 
 ### Pruebas
 
-- Dominio/servicio: `internal/modules/booking/agenda_test.go` (barbero inválido/inexistente sin tocar el repositorio, "hoy" por reloj inyectado en la zona de la barbería -nunca la del entorno-, fecha explícita, día de 23h por DST, fecha inválida, errores de los puertos).
+- Dominio/servicio: `internal/modules/booking/agenda_test.go` (profesional inválido/inexistente sin tocar el repositorio, "hoy" por reloj inyectado en la zona del negocio -nunca la del entorno-, fecha explícita, día de 23h por DST, fecha inválida, errores de los puertos).
 - PostgreSQL real: `internal/modules/booking/postgres/agenda_repository_test.go` (extremos del intervalo semiabierto, turno nocturno visible en las dos agendas diarias que interseca, aislamiento de tenant, orden estable).
-- HTTP: `internal/modules/booking/httpapi/agenda_handler_test.go` (200 con/sin turnos, forma exacta sin campos personales, 400 fecha inválida, 401 sin principal, 404 barbero ajeno, 500).
-- Componentes Vue: `apps/web/src/modules/agenda/pages/__tests__/DailyAgendaPage.test.ts` (carga, selector obligatorio de barbero, vacío, error con reintento, aislamiento entre selecciones rápidas, not-found, navegación a "Nuevo turno", `vitest-axe`).
+- HTTP: `internal/modules/booking/httpapi/agenda_handler_test.go` (200 con/sin turnos, forma exacta sin campos personales, 400 fecha inválida, 401 sin principal, 404 profesional ajeno, 500).
+- Componentes Vue: `apps/web/src/modules/agenda/pages/__tests__/DailyAgendaPage.test.ts` (carga, selector obligatorio de profesional, vacío, error con reintento, aislamiento entre selecciones rápidas, not-found, navegación a "Nuevo turno", `vitest-axe`).
 
 ## Detalle e historial de un turno (HU-064)
 
@@ -1997,9 +1997,9 @@ fuera de esta entrega.
 detalle e historial, sin ninguna mutación. `GetDetail` valida la forma del
 `appointmentId`, lee `booking.Repository.GetAppointmentDetail` (une
 `appointment`/`customer`, ambas propias de `booking`) y resuelve
-`BarberFullName` aparte, vía `booking.BarberNamePort` (adaptador
-`staff.NewBarberNameLookup`, nuevo junto a `staff.BarberLookup`): la
-respuesta nunca trae `customerId`, `barbershopId` ni `updatedAt` crudo
+`ProfessionalFullName` aparte, vía `booking.ProfessionalNamePort` (adaptador
+`staff.NewProfessionalNameLookup`, nuevo junto a `staff.ProfessionalLookup`): la
+respuesta nunca trae `customerId`, `businessId` ni `updatedAt` crudo
 (`CA-064-01`–`CA-064-04`). `VersionToken` es un token opaco irreversible
 (`booking.EncodeVersionToken`, SHA-256 de `appointmentId` + `updated_at` en
 nanosegundos, nunca una codificación reversible del instante) destinado a
@@ -2015,7 +2015,7 @@ esta sesión, ver nota de alcance). Cada página resuelve, en un solo lote
 por tipo de actor (nunca N+1), el nombre visible del actor: `staff` vía
 `booking.StaffActorNamePort` (adaptador `auth.NewStaffActorNameLookup`
 sobre `authpostgres.Repository.StaffUserNames`, nuevo — `staff_user` es
-tabla propia de `auth`, distinta de `barber`) y `customer` vía
+tabla propia de `auth`, distinta de `professional`) y `customer` vía
 `booking.Repository.CustomerNames` (tabla propia de `booking`); un id sin
 nombre autorizado usa una etiqueta segura ("Miembro del equipo", "Cliente",
 "Sistema") coherente con el tipo de actor. Ni `booking` importa
@@ -2053,11 +2053,11 @@ mismo motivo.
 
 ### Pruebas
 
-- Dominio/servicio: `internal/modules/booking/detail_test.go` (forma de `appointmentId`, `EncodeVersionToken` determinista/irreversible/distinto por cita, cursor codifica/decodifica) y `detail_service_test.go` (no encontrado, error interno, resolución de barbero, límite por defecto/máximo, cursor inválido, resolución de actor en un solo lote por tipo -staff/customer/system-, etiqueta segura de reserva, `Changes` preservados por entrada).
+- Dominio/servicio: `internal/modules/booking/detail_test.go` (forma de `appointmentId`, `EncodeVersionToken` determinista/irreversible/distinto por cita, cursor codifica/decodifica) y `detail_service_test.go` (no encontrado, error interno, resolución de profesional, límite por defecto/máximo, cursor inválido, resolución de actor en un solo lote por tipo -staff/customer/system-, etiqueta segura de reserva, `Changes` preservados por entrada).
 - PostgreSQL real: `internal/modules/booking/postgres/detail_repository_test.go` (detalle con snapshot de cliente/servicio, token de versión estable sin escritura, aislamiento de tenant en detalle e historial, historial tras `CreateInternal`, paginación de dos páginas sin duplicados/omisiones con filas sintéticas insertadas por SQL directo -HU-064 no expone todavía ninguna mutación que las genere-, `appointment_history_change` propio de cada entrada, `CustomerNames` por lote); `internal/modules/auth/postgres/staff_names_test.go` (nombre real, aislamiento de tenant, lote vacío).
 - HTTP: `internal/modules/booking/httpapi/detail_handler_test.go` (200 con forma exacta sin campos prohibidos, 404 no encontrado, 400 cursor/límite inválidos, 401 sin principal, 500).
 - Adaptadores: `internal/modules/staff/name_lookup_test.go`, `internal/modules/auth/actor_names_test.go` (delegación estructural, sin lógica propia que probar más allá de la traducción de error).
-- Componentes Vue: `apps/web/src/modules/agenda/pages/__tests__/AppointmentDetailPage.test.ts` (detalle listo, sin sección de contacto cuando falta, no encontrado, error/reintento, historial listo con motivo/cambios, "Cargar más" con dos páginas convivientes, error/reintento de historial, enlace "Volver" con fecha/barbero preservados, `vitest-axe`).
+- Componentes Vue: `apps/web/src/modules/agenda/pages/__tests__/AppointmentDetailPage.test.ts` (detalle listo, sin sección de contacto cuando falta, no encontrado, error/reintento, historial listo con motivo/cambios, "Cargar más" con dos páginas convivientes, error/reintento de historial, enlace "Volver" con fecha/profesional preservados, `vitest-axe`).
 
 ## Reprogramación auditada de un turno (HU-065, T2)
 
@@ -2073,7 +2073,7 @@ recién bloqueada.
 
 Dominio (`internal/modules/booking/reschedule.go`): valida forma de
 `appointmentId`, presencia de token/actor, inicio estrictamente futuro en la
-zona de la barbería (mismo `parseCivilLocal` de `HU-063`), deriva
+zona del negocio (mismo `parseCivilLocal` de `HU-063`), deriva
 `NewEndsAt` desde `duration_minutes_snapshot` (nunca del cliente) y consulta
 `BlockCheckPort` (adaptador `schedule.NewManualBookingBlocks`, el mismo ya
 usado por `ManualBookingService`) contra el nuevo intervalo: un bloqueo
@@ -2091,7 +2091,7 @@ código `version-conflict`) → exige `status = confirmed`
 (`apperr.KindInvalidState`, HTTP 409, código `invalid-state`) → si el nuevo
 intervalo es idéntico al actual, no-op exitoso (sin `UPDATE`, sin evento) →
 si difiere, `UPDATE appointment SET starts_at/ends_at` (la exclusión
-`appointment_barber_interval_excl` protege también `UPDATE`, no solo
+`appointment_professional_interval_excl` protege también `UPDATE`, no solo
 `INSERT` — verificado contra PostgreSQL real, ver más abajo; `23P01`/`40P01`
 se traducen al mismo conflicto uniforme que un cruce en `CreateInternal`) e
 `INSERT` de un único evento `appointment_rescheduled` con dos
@@ -2106,7 +2106,7 @@ de la misma transacción → `coord.Complete` con la respuesta serializada.
 distinguibles por `code` (agenda/bloqueo, versión, estado, idempotencia) en
 `api/openapi/paths/private-appointments.yaml`.
 
-La respuesta de éxito nunca incluye `barberFullName`/`customerFullName` ni
+La respuesta de éxito nunca incluye `professionalFullName`/`customerFullName` ni
 contacto: `T2` no los toca, así que el backend no vuelve a resolverlos (a
 diferencia de `GetAppointmentDetail`, que sí los resuelve para lectura). El
 frontend recarga el detalle completo tras un éxito en vez de reconstruirlo a
@@ -2157,21 +2157,21 @@ Playwright.
 
 Las pruebas en `internal/platform/database/*_test.go` requieren PostgreSQL real
 con las migraciones aplicadas y `database/testdata/dos_negocios.sql` cargado.
-Conéctate como `barberia_app` (rol SIN `BYPASSRLS`, SIN propiedad).
+Conéctate como `agenda_app` (rol SIN `BYPASSRLS`, SIN propiedad).
 
 Ejecución:
 
 ```bash
-export TEST_DATABASE_URL="postgres://barberia_app@localhost:5432/barberia_test?sslmode=disable"
+export TEST_DATABASE_URL="postgres://agenda_app@localhost:5432/barberia_test?sslmode=disable"
 go test -race ./internal/platform/database/...
 ```
 
 Desde HU-007, `internal/modules/auth/postgres/purge_repository_test.go`
-requiere ADEMÁS `TEST_WORKER_DATABASE_URL` conectado como `barberia_worker`
-(las funciones de purga no están concedidas a `barberia_app`, `DDL-AUT-01`):
+requiere ADEMÁS `TEST_WORKER_DATABASE_URL` conectado como `agenda_worker`
+(las funciones de purga no están concedidas a `agenda_app`, `DDL-AUT-01`):
 
 ```bash
-export TEST_WORKER_DATABASE_URL="postgres://barberia_worker@localhost:5432/barberia_test?sslmode=disable"
+export TEST_WORKER_DATABASE_URL="postgres://agenda_worker@localhost:5432/barberia_test?sslmode=disable"
 ```
 
 Criterios verificados (numeración según docs/02-requisitos/historias-usuario.md,
@@ -2193,7 +2193,7 @@ PostgreSQL (regla de diseño (f) de InTenantTx).
 
 `internal/platform/idempotency/postgres_test.go` y
 `internal/platform/httpserver/idempotency_test.go` requieren el mismo
-PostgreSQL real (misma `TEST_DATABASE_URL`, mismo `barberia_app`, mismas
+PostgreSQL real (misma `TEST_DATABASE_URL`, mismo `agenda_app`, mismas
 migraciones y testdata). Cubren `CA-004-01` a `CA-004-06`, `RN-IDE-01`
 (clave reutilizada con otra operación), el estado `conflict_in_progress`, y
 `CA-004-03` con dos conexiones reales y simultáneas del pool bajo `-race`.
@@ -2206,10 +2206,10 @@ go test -race ./internal/platform/httpserver/...
 `internal/modules/auth/postgres/repository_test.go` requiere, además de
 `database/testdata/dos_negocios.sql`,
 `database/testdata/hu005_credenciales_sesiones.sql` cargado (credenciales y
-una sesión vigente por barbería). Cubre resolución de tenant (activo,
+una sesión vigente por negocio). Cubre resolución de tenant (activo,
 inactivo, inexistente), búsqueda de credencial (tenant real y señuelo,
 cruce de tenant rechazado por RLS) y persistencia de sesión aislada por
-barbería.
+negocio.
 
 ```bash
 psql "$TEST_DATABASE_URL" -v ON_ERROR_STOP=1 -f database/testdata/hu005_credenciales_sesiones.sql
@@ -2217,7 +2217,7 @@ go test -race ./internal/modules/auth/...
 ```
 
 `internal/modules/auth/postgres/session_repository_test.go` (HU-006) usa el
-mismo `barberia_app` y la misma testdata; crea sus propias sesiones con
+mismo `agenda_app` y la misma testdata; crea sus propias sesiones con
 tokens únicos por prueba (no depende de las sesiones fijas del fixture) y
 cubre renovación deslizante, vencimiento, revocación, usuario inactivo,
 tenant equivocado y la carrera real renovación/revocación bajo `-race`.
@@ -2227,7 +2227,7 @@ producción (`buildRouter`, el mismo que usa `run()`) contra PostgreSQL real:
 la prueba estructural de `CA-006-04` (inventario de rutas privadas vía
 `chi.Walk`), persistencia de sesión (`CA-006-01`), reutilización tras logout
 (`CA-006-02`), cierre en un dispositivo sin afectar otro (`CA-006-06`) y
-aislamiento entre barberías contra el logout real (`CA-006-07`).
+aislamiento entre negocios contra el logout real (`CA-006-07`).
 
 ```bash
 go test -race ./internal/modules/auth/postgres/...
@@ -2246,13 +2246,13 @@ atlas migrate apply --env local
 
 `atlas.sum` se versiona. NO se ejecutan al arrancar la aplicación (CA-001-07).
 
-### Listado numerado de Barberos (DEC-107, #288)
+### Listado numerado de Profesionales (DEC-107, #288)
 
-`GET /private/barbers` conserva cursor/limit y añade modo optativo page/pageSize (1–50 filas, por defecto 20). No admite mezclar modos; parámetros inválidos responden 400. Una sola sentencia tenant-aware obtiene total, página efectiva y filas en orden (created_at,id), sin leer bytes de fotos; fuera de rango se ajusta a la última página. No requiere migraciones.
+`GET /private/professionals` conserva cursor/limit y añade modo optativo page/pageSize (1–50 filas, por defecto 20). No admite mezclar modos; parámetros inválidos responden 400. Una sola sentencia tenant-aware obtiene total, página efectiva y filas en orden (created_at,id), sin leer bytes de fotos; fuera de rango se ajusta a la última página. No requiere migraciones.
 
 ## Conexión y publicación en Google Calendar (HU-026 y HU-027)
 
-Cada barbero conecta SU Google Calendar (`DEC-099`): la sincronización es
+Cada profesional conecta SU Google Calendar (`DEC-099`): la sincronización es
 unidireccional, de NAVA hacia Google, y nada de lo que ocurra en Google altera
 citas ni disponibilidad. `HU-026` es la **conexión**; `HU-027`, la
 **publicación** de citas y bloqueos (más abajo). El módulo dueño es
@@ -2262,13 +2262,13 @@ SDK de Google, el adaptador de Google vive en `google/`, la persistencia en
 
 ### Operaciones
 
-Todas actúan sobre el barbero vinculado al usuario autenticado (`DEC-100`) y
-ninguna acepta un identificador de barbero, usuario ni barbería.
+Todas actúan sobre el profesional vinculado al usuario autenticado (`DEC-100`) y
+ninguna acepta un identificador de profesional, usuario ni negocio.
 
 | Operación | Efecto |
 | --- | --- |
-| `GET /private/integrations/google-calendar` | Estado: `enabled`, `barberLinked`, `status`, cuenta, recordatorio y fechas. Nunca tokens. |
-| `POST .../connect` | Emite un `state` de un solo uso (10 min, ligado a barbería, barbero, usuario y sesión) y devuelve la URL de consentimiento (PKCE S256, acceso offline, `prompt=consent`). `409` si la integración no está configurada o no hay barbero vinculado. |
+| `GET /private/integrations/google-calendar` | Estado: `enabled`, `professionalLinked`, `status`, cuenta, recordatorio y fechas. Nunca tokens. |
+| `POST .../connect` | Emite un `state` de un solo uso (10 min, ligado a negocio, profesional, usuario y sesión) y devuelve la URL de consentimiento (PKCE S256, acceso offline, `prompt=consent`). `409` si la integración no está configurada o no hay profesional vinculado. |
 | `POST .../callback` | La pantalla de retorno del frontend reenvía `state` y `code`. Consume el `state`, canjea el código con el verificador PKCE y guarda el refresh token cifrado. Responde `connected`, `denied` o `failed`; cualquier `state` inválido, vencido, usado o ajeno responde el mismo `400`. |
 | `PATCH .../google-calendar` | `reminderMinutes` de 0 a 40320 (o `null`). |
 | `DELETE .../google-calendar` | Revoca el permiso en Google (mejor esfuerzo), borra credenciales y correo y vacía la cola. Idempotente. |
@@ -2284,34 +2284,34 @@ valor presente pero mal formado sí impide el arranque. Ninguna se comitea.
 | --- | --- | --- |
 | `GOOGLE_CALENDAR_CLIENT_ID` | para activar | ID de cliente OAuth de Google Cloud (no es secreto). |
 | `GOOGLE_CALENDAR_CLIENT_SECRET` | para activar | Secreto del cliente. Solo en el gestor de secretos o en `.env.local`. |
-| `GOOGLE_CALENDAR_REDIRECT_URI` | para activar | URL registrada en Google a la que vuelve el navegador: la pantalla de retorno del frontend, `{origen}/panel/barberia/google-calendar/callback`. HTTPS fuera de local/test; `http://localhost` solo en local. |
+| `GOOGLE_CALENDAR_REDIRECT_URI` | para activar | URL registrada en Google a la que vuelve el navegador: la pantalla de retorno del frontend, `{origen}/panel/negocio/google-calendar/callback`. HTTPS fuera de local/test; `http://localhost` solo en local. |
 | `GOOGLE_CALENDAR_TOKEN_ENCRYPTION_KEY` | para activar | Clave AES-256 de 32 bytes en base64: `openssl rand -base64 32`. |
 | `GOOGLE_CALENDAR_TOKEN_ENCRYPTION_KEY_ID` | no (`v1`) | Identificador de esa clave; se guarda junto a cada texto cifrado. |
 | `GOOGLE_CALENDAR_TOKEN_ENCRYPTION_KEY_PREVIOUS` | no | Claves anteriores `id:base64` separadas por coma, solo para descifrar lo guardado antes de rotar. |
 
 ### Guía de Google Cloud
 
-1. En <https://console.cloud.google.com> crea un proyecto (p. ej. `nava-barberia`) y habilita **Google Calendar API** en *APIs y servicios → Biblioteca*.
+1. En <https://console.cloud.google.com> crea un proyecto (p. ej. `nava-agenda`) y habilita **Google Calendar API** en *APIs y servicios → Biblioteca*.
 2. En *Google Auth Platform* (o *Pantalla de consentimiento de OAuth*) elige tipo **Externo**, pon el nombre `NAVA` y tu correo de soporte, y deja el estado en **Testing**.
 3. En *Acceso a los datos* agrega solo los alcances `.../auth/calendar.events`, `openid` y `.../auth/userinfo.email` (nunca `calendar` completo).
-4. En *Público → Usuarios de prueba* agrega los correos de Google de cada barbero que conectará mientras la app esté en Testing (máximo 100; los tokens de prueba caducan a los 7 días).
+4. En *Público → Usuarios de prueba* agrega los correos de Google de cada profesional que conectará mientras la app esté en Testing (máximo 100; los tokens de prueba caducan a los 7 días).
 5. En *Credenciales → Crear credenciales → ID de cliente de OAuth* elige **Aplicación web** y registra como URI de redirección la de cada ambiente. Usa un cliente distinto por ambiente.
 
 | Ambiente | URI de redirección autorizada |
 | --- | --- |
-| Local | `http://localhost:5173/panel/barberia/google-calendar/callback` |
-| Desarrollo / piloto / producción | `https://<dominio>/panel/barberia/google-calendar/callback` (HTTPS obligatorio, mismo origen que sirve el frontend y `/api/v1`) |
+| Local | `http://localhost:5173/panel/negocio/google-calendar/callback` |
+| Desarrollo / piloto / producción | `https://<dominio>/panel/negocio/google-calendar/callback` (HTTPS obligatorio, mismo origen que sirve el frontend y `/api/v1`) |
 
 6. Copia el ID de cliente y el secreto a las variables anteriores. El secreto no se pega en chats ni en Git.
-7. **Producción:** `calendar.events` es un alcance **sensible**. Antes de pasar la app a *In production* Google exige verificación: dominio propio verificado, política de privacidad pública que describa el uso de los datos de Calendar, justificación del alcance y un video corto del flujo. Tarda de días a semanas; sin ella los barberos ven la advertencia «Google no ha verificado esta app» y están limitados a los usuarios de prueba.
+7. **Producción:** `calendar.events` es un alcance **sensible**. Antes de pasar la app a *In production* Google exige verificación: dominio propio verificado, política de privacidad pública que describa el uso de los datos de Calendar, justificación del alcance y un video corto del flujo. Tarda de días a semanas; sin ella los profesionales ven la advertencia «Google no ha verificado esta app» y están limitados a los usuarios de prueba.
 
 ### Seguridad y operación
 
-- El refresh token solo existe **cifrado** (AES-256-GCM con el contexto `barbería|barbero` como dato autenticado: trasplantarlo a otra fila no lo descifra). El access token nunca se persiste. Ningún token, `client_secret`, `state` ni código aparece en logs, respuestas o errores; los errores de Google se reducen a su código estándar.
+- El refresh token solo existe **cifrado** (AES-256-GCM con el contexto `negocio|profesional` como dato autenticado: trasplantarlo a otra fila no lo descifra). El access token nunca se persiste. Ningún token, `client_secret`, `state` ni código aparece en logs, respuestas o errores; los errores de Google se reducen a su código estándar.
 - **Rotar la clave:** genera una nueva, ponla como `GOOGLE_CALENDAR_TOKEN_ENCRYPTION_KEY` con un `..._KEY_ID` nuevo (`v2`) y deja la anterior en `..._KEY_PREVIOUS` (`v1:<base64>`). Lo nuevo se cifra con `v2`; lo viejo se sigue leyendo con `v1`. Quita la anterior cuando ningún registro la use (`SELECT DISTINCT token_key_id FROM google_calendar_connection`).
-- **`reauth_required`:** Google revocó o caducó el permiso (`invalid_grant`). Se borran las credenciales y la conexión queda a la espera de que el barbero vuelva a conectar; no hay nada que reparar en el servidor. Una caída de Google (`error`) nunca cambia ni pierde una cita.
-- Cambiar o quitar el vínculo barbero–usuario desconecta la conexión del barbero anterior (revoca y borra credenciales) para que quien tome ese barbero después no herede una cuenta ajena.
-- Pruebas: `go test ./internal/modules/googlecalendar/... ./cmd/api/...` (PostgreSQL real con dos barberías y un Google falso; no tocan la red) y `database/tests/google_calendar_conexion.sql`.
+- **`reauth_required`:** Google revocó o caducó el permiso (`invalid_grant`). Se borran las credenciales y la conexión queda a la espera de que el profesional vuelva a conectar; no hay nada que reparar en el servidor. Una caída de Google (`error`) nunca cambia ni pierde una cita.
+- Cambiar o quitar el vínculo profesional–usuario desconecta la conexión del profesional anterior (revoca y borra credenciales) para que quien tome ese profesional después no herede una cuenta ajena.
+- Pruebas: `go test ./internal/modules/googlecalendar/... ./cmd/api/...` (PostgreSQL real con dos negocios y un Google falso; no tocan la red) y `database/tests/google_calendar_conexion.sql`.
 
 ### Publicación de citas y bloqueos (HU-027)
 
@@ -2327,7 +2327,7 @@ definen un puerto `SyncHook` en su adaptador PostgreSQL (`booking/postgres/sync_
 después de toda escritura sobre `appointment` o `time_block`. La raíz de
 composición (`cmd/api`) inyecta `googlecalendar/postgres.Enqueuer`, que ejecuta una
 sentencia `INSERT ... ON CONFLICT DO NOTHING` sobre `google_calendar_sync_job` solo
-si el barbero tiene una conexión viva (`connected` o `error`). Ni `booking` ni
+si el profesional tiene una conexión viva (`connected` o `error`). Ni `booking` ni
 `schedule` importan la integración (lo comprueba `internal/platform/archtest`) y un
 error del gancho revierte el cambio de negocio. `sync_hook_test.go` falla si
 aparece una escritura sobre esas tablas sin llamar al gancho: **toda escritura
@@ -2335,7 +2335,7 @@ nueva debe llamarlo** (la cancelación por el cliente, HU-099, ya lo hace).
 
 **El worker** (`cmd/worker`) arranca el publicador si las variables
 `GOOGLE_CALENDAR_*` están completas (necesita las MISMAS que el API, la misma clave
-de cifrado incluida). Se conecta como `barberia_worker`, que no tiene acceso a
+de cifrado incluida). Se conecta como `agenda_worker`, que no tiene acceso a
 ninguna tabla: solo ejecuta funciones `SECURITY DEFINER` (`gcal_claim_jobs`,
 `gcal_job_context`, `gcal_finish_job`, `gcal_restore_*`, `gcal_enqueue_missing`),
 sin contexto de tenant (`DEC-040`). Cadencias (constantes en
@@ -2352,8 +2352,8 @@ sin contexto de tenant (`DEC-040`). Cadencias (constantes en
 **Qué publica.** Cita `confirmed` → un evento «Nombre — Servicio» (descripción: servicio y
 estado; nunca teléfono, notas ni identificadores internos fuera de las propiedades
 extendidas privadas `navaResourceType`, `navaResourceId` y `navaConnectionId`), en la
-zona horaria de la barbería. Reprogramar actualiza el mismo evento;
-`cancelled_by_customer`/`cancelled_by_barber` lo eliminan (un `404`/`410` es éxito);
+zona horaria del negocio. Reprogramar actualiza el mismo evento;
+`cancelled_by_customer`/`cancelled_by_professional` lo eliminan (un `404`/`410` es éxito);
 `completed` y `no_show` lo conservan. Bloqueos manuales de tipo `break`, `lunch`,
 `unavailable`, `day_off`, `vacation` y `emergency` (el festivo automático y las series
 no); el título es el del tipo, el motivo no se publica. Al conectar se publican las
@@ -2389,7 +2389,7 @@ reintentan con backoff. `403` sin cuota (permiso denegado), `404` del calendario
 código en `last_error_code`; «Sincronizar ahora» reintenta. Una caída de Google nunca
 pierde ni revierte una cita.
 
-**Operación.** Revisar la cola de un barbero: `GET /private/integrations/google-calendar`
+**Operación.** Revisar la cola de un profesional: `GET /private/integrations/google-calendar`
 (`pendingSyncJobs`, `failedSyncJobs`, `lastSyncedAt`). Los logs del worker
 (`google_calendar.event.reconciled`, `.job.*`, `.restore.*`) llevan conexión, recurso y
 operación, nunca tokens ni correos. Pruebas: `go test ./internal/modules/googlecalendar/...

@@ -1,9 +1,9 @@
 ---
 titulo: "Checklist de autenticación y sesión"
-version: "1.0"
+version: "1.1"
 estado: "Herramienta operativa, no normativa"
 responsable: "Propietario del proyecto"
-ultima_actualizacion: "2026-08-25"
+ultima_actualizacion: "2026-11-18"
 documentos_relacionados:
   - "README.md"
   - "02-checklist-transversal.md"
@@ -53,4 +53,4 @@ Límites reales: código de 6 dígitos numéricos exactos (`validateRecoveryCode
 - [ ] Sesión activa, cerrar la pestaña sin logout explícito, volver a abrir la app: la sesión persistente (`HU-006`) sigue activa según el tiempo configurado, sin pedir login de nuevo antes de tiempo.
 - [ ] Logout explícito y luego botón "Atrás" del navegador: no debe mostrar contenido privado cacheado ni permitir una acción real sin sesión.
 - [ ] Con la sesión a punto de expirar (o forzada a expirar manualmente en base de datos/cookie), realizar una acción que muta datos (crear un servicio, por ejemplo): el 401 resultante no debe simular un éxito ni dejar el formulario en un estado ambiguo — instala el mismo manejo único de 401 que ya cubre `installSessionHandling`.
-- [ ] Cabecera con el nombre de la barbería activa: tras cambiar el nombre desde "Configuración" en otra pestaña, ¿la cabecera de la primera pestaña queda desactualizada indefinidamente o se corrige en la siguiente navegación/petición?
+- [ ] Cabecera con el nombre del negocio activo: tras cambiar el nombre desde "Configuración" en otra pestaña, ¿la cabecera de la primera pestaña queda desactualizada indefinidamente o se corrige en la siguiente navegación/petición?

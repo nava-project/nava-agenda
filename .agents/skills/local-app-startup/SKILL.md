@@ -7,7 +7,7 @@ description: "Start or diagnose the local NAVA app: Docker PostgreSQL, Atlas mig
 
 El resultado es una app local utilizable, con esquema compatible y un recorrido real comprobado. PostgreSQL accesible o `/health` en verde no demuestran que la agenda funcione.
 
-Fuente: solicitud del propietario del 2026-10-02, DEC-106, issue [#287](https://github.com/bcaceres19/barberia/issues/287). Sigue [migraciones Atlas](../../../docs/05-backend/migraciones-atlas.md), [estándar de BD](../../../docs/05-backend/estandar-base-datos.md) y [estrategia de pruebas](../../../docs/03-desarrollo/estrategia-pruebas.md).
+Fuente: solicitud del propietario del 2026-10-02, DEC-106, issue [#287](https://github.com/bcaceres19/nava-agenda/issues/287). Sigue [migraciones Atlas](../../../docs/05-backend/migraciones-atlas.md), [estándar de BD](../../../docs/05-backend/estandar-base-datos.md) y [estrategia de pruebas](../../../docs/03-desarrollo/estrategia-pruebas.md).
 
 ## 1. Identificar el entorno y reutilizarlo
 

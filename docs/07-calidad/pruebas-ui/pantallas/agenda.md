@@ -9,7 +9,7 @@ Leer [protocolo](../02-protocolo-agentes.md), [transversal](../04-transversal.md
 | Caso | Acción | Resultado esperado |
 | --- | --- | --- |
 | UI-AGENDA-01 | Abrir panel en equipo → seleccionar profesional | Selector obligatorio, no agenda consolidada inventada. |
-| UI-AGENDA-02 | Día vacío/día con turnos propios | Estados distintos, orden y horas de barbería. |
+| UI-AGENDA-02 | Día vacío/día con turnos propios | Estados distintos, orden y horas del negocio. |
 | UI-AGENDA-03 | Anterior/siguiente/calendario/hoy → F5 | Fecha según HU-063, sin datos de otro día. |
 | UI-AGENDA-04 | Cambiar profesional/fecha con respuesta lenta | Respuesta tardía no pisa selección. |
 | UI-AGENDA-05 | Turno que cruza medianoche creado por UI | Visible en cada día que intersecta DEC-075. |

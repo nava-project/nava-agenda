@@ -1,9 +1,9 @@
 ---
 titulo: "Reglas de negocio"
-version: "1.8"
+version: "1.9"
 estado: "Vigente"
 responsable: "Propietario del proyecto"
-ultima_actualizacion: "2026-09-19"
+ultima_actualizacion: "2026-11-18"
 documentos_relacionados:
   - "../00-control/glosario.md"
   - "../00-control/supuestos.md"
@@ -12,6 +12,8 @@ documentos_relacionados:
   - "../02-requisitos/estados-citas.md"
   - "alcance-mvp.md"
 ---
+
+> Desde `DEC-183` (Nava Agenda) este documento dice «negocio» y «profesional»; las decisiones, el historial y los registros anteriores conservan los términos de entonces. Equivalencias en el [glosario](../00-control/glosario.md).
 
 > **Estado del contenido:** Las reglas de este catálogo están confirmadas. “Turno” es la etiqueta mostrada al usuario; “cita” se conserva como término técnico.
 >
@@ -42,10 +44,10 @@ Una misma persona puede tener más de una cita activa, en fechas iguales o disti
 **Excepción:** ninguna en el MVP. No se establece un tope de citas activas por cliente.
 
 **Casos límite:**
-- Dos citas bajo los mismos datos de contacto y a la misma hora con **barberos distintos**: permitido si corresponden a personas atendidas distintas.
+- Dos citas bajo los mismos datos de contacto y a la misma hora con **profesionales distintos**: permitido si corresponden a personas atendidas distintas.
 - Dos citas consecutivas del mismo cliente (9:00 y 9:30): permitido y es un caso frecuente y deseable (padre e hijo).
 
-**Módulos afectados:** reserva pública, agenda del barbero.
+**Módulos afectados:** reserva pública, agenda del profesional.
 
 **Pruebas asociadas:** crear dos citas para el mismo cliente en horarios distintos; crear dos citas consecutivas.
 
@@ -57,7 +59,7 @@ Una misma persona puede tener más de una cita activa, en fechas iguales o disti
 
 Cada cita registra el nombre de la persona que recibirá el servicio. En el caso habitual se reutiliza el nombre de quien reserva; el formulario solo solicita un segundo nombre cuando el cliente indica que reserva para otra persona.
 
-**Ejemplo:** Juan reserva y en el formulario indica que el servicio es para "Mateo Ruiz". El barbero ve en su agenda "Mateo Ruiz — Corte clásico" y sabe a quién esperar.
+**Ejemplo:** Juan reserva y en el formulario indica que el servicio es para "Mateo Ruiz". El profesional ve en su agenda "Mateo Ruiz — Corte clásico" y sabe a quién esperar.
 
 **Excepción:** ninguna. Aunque la interfaz no duplique el campo, el dato resuelto debe quedar almacenado en la cita.
 
@@ -79,11 +81,11 @@ El cliente y la persona atendida pueden ser roles separados. Por defecto son la 
 
 **Ejemplo:** Juan reserva para Mateo. Los recordatorios y avisos de cambio llegan a Juan.
 
-**Excepción:** en la creación manual, el barbero puede registrar a la persona atendida sin datos de contacto propios.
+**Excepción:** en la creación manual, el profesional puede registrar a la persona atendida sin datos de contacto propios.
 
 **Casos límite:**
 - Persona atendida menor de edad: no se recogen sus datos de contacto. Ver `RN-DAT-01`.
-- Se solicita cancelar por parte de la persona atendida, que no tiene acceso: no contemplado en el MVP; debe pedirlo a quien reservó o al barbero.
+- Se solicita cancelar por parte de la persona atendida, que no tiene acceso: no contemplado en el MVP; debe pedirlo a quien reservó o al profesional.
 
 **Módulos afectados:** modelo de datos, notificaciones, cancelación.
 
@@ -97,7 +99,7 @@ El cliente y la persona atendida pueden ser roles separados. Por defecto son la 
 
 **Estado: Decisión confirmada**
 
-La duración se expresa en minutos enteros y la define el barbero. Representa el tiempo planificado que ocupa la cita y permite calcular su hora final; el servicio real puede terminar antes o después sin desplazar automáticamente las citas siguientes (`DEC-002`).
+La duración se expresa en minutos enteros y la define el profesional. Representa el tiempo planificado que ocupa la cita y permite calcular su hora final; el servicio real puede terminar antes o después sin desplazar automáticamente las citas siguientes (`DEC-002`).
 
 **Ejemplo:** "Corte clásico" 30 min · "Corte + barba" 60 min · "Corte + barba + cejas" 90 min.
 
@@ -135,16 +137,16 @@ Esos son valores frecuentes, no un conjunto cerrado. Cualquier duración permiti
 
 **Estado: Decisión confirmada** (`DEC-003`)
 
-Los servicios no se eliminan físicamente. Al desactivarlos dejan de aparecer en el enlace público, pero las citas pasadas y futuras que los referencian siguen siendo legibles. Antes de completar la desactivación, el sistema advierte cuántas citas futuras quedan afectadas y permite al barbero mantenerlas o cancelarlas.
+Los servicios no se eliminan físicamente. Al desactivarlos dejan de aparecer en el enlace público, pero las citas pasadas y futuras que los referencian siguen siendo legibles. Antes de completar la desactivación, el sistema advierte cuántas citas futuras quedan afectadas y permite al profesional mantenerlas o cancelarlas.
 
 **Motivo:** eliminar un servicio rompería el historial y las citas ya agendadas.
 
-**Ejemplo:** el barbero deja de ofrecer "Mechas". Las citas de meses anteriores siguen mostrando "Mechas" en el historial.
+**Ejemplo:** el profesional deja de ofrecer "Mechas". Las citas de meses anteriores siguen mostrando "Mechas" en el historial.
 
-**Excepción:** ninguna prevista. El sistema nunca decide por el barbero qué citas cancelar.
+**Excepción:** ninguna prevista. El sistema nunca decide por el profesional qué citas cancelar.
 
 **Casos límite:**
-- Desactivar un servicio con citas futuras ya agendadas: se conservan por defecto; el barbero puede seleccionar cuáles cancelar y cada cancelación debe notificar al cliente.
+- Desactivar un servicio con citas futuras ya agendadas: se conservan por defecto; el profesional puede seleccionar cuáles cancelar y cada cancelación debe notificar al cliente.
 - Reactivar un servicio previamente desactivado: permitido.
 - Alcance por bloque (`DEC-069`): `HU-024` (B1) construye la advertencia como un recuento real de impacto antes de confirmar, sin cancelación selectiva ni protección de concurrencia sobre el conteo (no aplicable todavía porque `appointment` no existe en B1). La cancelación selectiva con notificación y el bloqueo optimista del conteo se completan en B3 junto con `appointment`, sin cambiar la forma de esta regla.
 
@@ -158,16 +160,16 @@ Los servicios no se eliminan físicamente. Al desactivarlos dejan de aparecer en
 
 **Estado: Decisión confirmada** (`DEC-004`)
 
-Cada cita almacena los datos de servicio, duración y precio con los que fue creada. Modificar el catálogo no cambia silenciosamente las citas existentes. En un cambio de precio, el barbero elige de forma explícita si lo aplica solo a citas nuevas o también a las futuras ya agendadas.
+Cada cita almacena los datos de servicio, duración y precio con los que fue creada. Modificar el catálogo no cambia silenciosamente las citas existentes. En un cambio de precio, el profesional elige de forma explícita si lo aplica solo a citas nuevas o también a las futuras ya agendadas.
 
 **Motivo:** si cambiar un servicio de 30 a 45 minutos recalculara todas las citas existentes, podría generar cruces masivos en una agenda ya confirmada.
 
-**Ejemplo:** el barbero sube "Corte clásico" de 30 a 40 minutos. Las 12 citas ya agendadas conservan 30 minutos; la número 13 se crea con 40.
+**Ejemplo:** el profesional sube "Corte clásico" de 30 a 40 minutos. Las 12 citas ya agendadas conservan 30 minutos; la número 13 se crea con 40.
 
-**Excepción:** el barbero puede editar manualmente una cita concreta o aplicar un cambio de precio a citas futuras ya agendadas. Cada cita modificada conserva el valor anterior en el historial y notifica al cliente por el canal vigente.
+**Excepción:** el profesional puede editar manualmente una cita concreta o aplicar un cambio de precio a citas futuras ya agendadas. Cada cita modificada conserva el valor anterior en el historial y notifica al cliente por el canal vigente.
 
 **Casos límite:**
-- El barbero intenta aplicar una nueva duración a varias citas: debe resolver antes cualquier cruce y confirmar el alcance; nunca se mutan en segundo plano.
+- El profesional intenta aplicar una nueva duración a varias citas: debe resolver antes cualquier cruce y confirmar el alcance; nunca se mutan en segundo plano.
 - El precio cambia sin aplicarse a citas existentes: no se notifica a esos clientes porque su cita no cambió.
 - El aviso usa correo, WhatsApp oficial o ambos según la configuración de `RN-REC-05`.
 
@@ -204,7 +206,7 @@ Un horario de inicio se muestra únicamente si el intervalo `[inicio, inicio + d
 
 **Estado: Decisión confirmada**
 
-El cálculo debe tener en cuenta, como mínimo: horario laboral, duración del servicio, citas que ocupan agenda, descansos, almuerzos, bloqueos, días libres, festivos, vacaciones, emergencias, configuraciones especiales del barbero y las reglas de anticipación aprobadas.
+El cálculo debe tener en cuenta, como mínimo: horario laboral, duración del servicio, citas que ocupan agenda, descansos, almuerzos, bloqueos, días libres, festivos, vacaciones, emergencias, configuraciones especiales del profesional y las reglas de anticipación aprobadas.
 
 **Ejemplo:** martes con jornada 9:00–18:00, almuerzo 13:00–14:00, cita confirmada 10:00–11:00 y bloqueo de emergencia 16:00–18:00. Las franjas ofrecidas salen de restar todo eso.
 
@@ -240,13 +242,13 @@ Consultar la disponibilidad no bloquea ni aparta el horario. Varios clientes pue
 
 **Estado: Decisión confirmada** (`DEC-005`, `DEC-018`, `DEC-169`)
 
-No se puede reservar con menos de X minutos de anticipación ni con más de Y días de anticipación. Ambos valores son configurables por barbería. Los valores iniciales son X = 60 minutos y Y = 3 días. Rango permitido: X entero en `[0, 1440]` minutos (0 desactiva el mínimo); Y entero en `[1, 90]` días (`DEC-083`). Un barbero puede tener valores propios de X e Y dentro de los mismos rangos; sin ellos hereda los de la barbería (`DEC-169`).
+No se puede reservar con menos de X minutos de anticipación ni con más de Y días de anticipación. Ambos valores son configurables por negocio. Los valores iniciales son X = 60 minutos y Y = 3 días. Rango permitido: X entero en `[0, 1440]` minutos (0 desactiva el mínimo); Y entero en `[1, 90]` días (`DEC-083`). Un profesional puede tener valores propios de X e Y dentro de los mismos rangos; sin ellos hereda los del negocio (`DEC-169`).
 
-**Motivo:** sin anticipación mínima, un cliente puede reservar a las 10:00 para las 10:05 mientras el barbero está atendiendo y no mira el teléfono. Sin ventana máxima, aparecen reservas a ocho meses que casi nunca se cumplen.
+**Motivo:** sin anticipación mínima, un cliente puede reservar a las 10:00 para las 10:05 mientras el profesional está atendiendo y no mira el teléfono. Sin ventana máxima, aparecen reservas a ocho meses que casi nunca se cumplen.
 
 **Ejemplo:** con X = 60 minutos, a las 10:00 la primera franja ofrecida es la de las 11:00.
 
-**Excepción:** el barbero, al crear una cita manual, **no** está sujeto ni a la anticipación mínima ni a la ventana máxima. Puede registrar una cita para dentro de cinco minutos, una que ya empezó o una posterior a la ventana pública, siempre que cumpla las reglas de integridad de agenda.
+**Excepción:** el profesional, al crear una cita manual, **no** está sujeto ni a la anticipación mínima ni a la ventana máxima. Puede registrar una cita para dentro de cinco minutos, una que ya empezó o una posterior a la ventana pública, siempre que cumpla las reglas de integridad de agenda.
 
 **Casos límite:**
 - Reserva enviada justo en el límite: se evalúa contra el instante de confirmación en el servidor, no en el navegador.
@@ -274,7 +276,7 @@ Todo intervalo de cita o de bloqueo se interpreta como `[inicio, fin)`: incluye 
 
 **Casos límite:**
 - Cita de duración cero: prohibida, `ends_at` debe ser estrictamente mayor que `starts_at`.
-- Cita que cruza la medianoche: permitida si el intervalo completo cabe en el horario laboral configurado del barbero.
+- Cita que cruza la medianoche: permitida si el intervalo completo cabe en el horario laboral configurado del profesional.
 
 **Módulos afectados:** modelo de datos, restricción de base de datos, disponibilidad, pruebas de concurrencia.
 
@@ -288,13 +290,13 @@ Todo intervalo de cita o de bloqueo se interpreta como `[inicio, fin)`: incluye 
 
 **Estado: Decisión confirmada** (`DEC-006`, `DEC-018`, `DEC-084` sustituida por `DEC-135`, `DEC-133`, `DEC-169`)
 
-Las franjas ofrecidas al cliente se generan cada N minutos desde el inicio de cada tramo laboral disponible. El valor inicial de N es 15 minutos. N es un entero de 1 a 60 minutos que cada barbería fija con un campo numérico (`DEC-133`, que sustituye el conjunto discreto de `DEC-083`). Un barbero puede fijar su propio N en el mismo rango; sin él usa el de la barbería (`DEC-169`).
+Las franjas ofrecidas al cliente se generan cada N minutos desde el inicio de cada tramo laboral disponible. El valor inicial de N es 15 minutos. N es un entero de 1 a 60 minutos que cada negocio fija con un campo numérico (`DEC-133`, que sustituye el conjunto discreto de `DEC-083`). Un profesional puede fijar su propio N en el mismo rango; sin él usa el del negocio (`DEC-169`).
 
 **Motivo:** ofrecer cualquier minuto produce listas inmanejables en un celular; un paso demasiado grande desperdicia huecos.
 
 **Ejemplo:** con N = 15 y jornada desde las 9:00, se ofrecen 9:00, 9:15, 9:30…
 
-**Excepción:** el barbero, en la creación manual, puede fijar cualquier hora sin ceñirse a la rejilla.
+**Excepción:** el profesional, en la creación manual, puede fijar cualquier hora sin ceñirse a la rejilla.
 
 **Casos límite:**
 - Un servicio de 25 minutos con rejilla de 15 deja huecos residuales de 5 minutos. Es aceptable y previsible.
@@ -312,7 +314,7 @@ Las franjas ofrecidas al cliente se generan cada N minutos desde el inicio de ca
 
 **Estado: Decisión confirmada** (`DEC-007`)
 
-Los instantes se almacenan con zona horaria y se presentan siempre en la zona horaria de la barbería.
+Los instantes se almacenan con zona horaria y se presentan siempre en la zona horaria del negocio.
 
 **Motivo:** un error de zona horaria desplaza la agenda completa una o más horas. Es uno de los riesgos técnicos principales del producto.
 
@@ -321,7 +323,7 @@ Los instantes se almacenan con zona horaria y se presentan siempre en la zona ho
 **Excepción:** los registros técnicos internos pueden expresarse en UTC.
 
 **Casos límite:**
-- Cliente que reserva desde otro país o con el reloj del teléfono mal configurado: la hora mostrada y almacenada es la de la barbería.
+- Cliente que reserva desde otro país o con el reloj del teléfono mal configurado: la hora mostrada y almacenada es la del negocio.
 - El servidor está configurado en otra zona: no debe influir en el resultado.
 
 **Módulos afectados:** todo el sistema.
@@ -332,7 +334,7 @@ Los instantes se almacenan con zona horaria y se presentan siempre en la zona ho
 
 ## 5. BLQ — Bloqueos y horario laboral
 
-### RN-BLQ-01 · Tipos de bloqueo que el barbero puede configurar
+### RN-BLQ-01 · Tipos de bloqueo que el profesional puede configurar
 
 **Estado: Decisión confirmada**
 
@@ -356,13 +358,13 @@ Descansos, almuerzos, horas no disponibles, días libres, festivos, vacaciones, 
 
 **Estado: Decisión confirmada**
 
-Cada barbero puede activar el calendario colombiano de festivos. Al activarlo, esos días se bloquean por defecto; el barbero puede abrir un festivo completo o configurar un horario especial para trabajarlo. Con la opción desactivada, el sistema no crea bloqueos de festivo.
+Cada profesional puede activar el calendario colombiano de festivos. Al activarlo, esos días se bloquean por defecto; el profesional puede abrir un festivo completo o configurar un horario especial para trabajarlo. Con la opción desactivada, el sistema no crea bloqueos de festivo.
 
-**Ejemplo:** el barbero decide trabajar el 20 de julio con horario reducido.
+**Ejemplo:** el profesional decide trabajar el 20 de julio con horario reducido.
 
-**Excepción:** la decisión de un barbero no altera el calendario de otro barbero de la misma barbería.
+**Excepción:** la decisión de un profesional no altera el calendario de otro profesional del mismo negocio.
 
-**Casos límite:** un festivo abierto manualmente prevalece sobre el bloqueo automático de ese barbero y fecha.
+**Casos límite:** un festivo abierto manualmente prevalece sobre el bloqueo automático de ese profesional y fecha.
 
 **Módulos afectados:** bloqueos, disponibilidad, configuración.
 
@@ -376,9 +378,9 @@ Cada barbero puede activar el calendario colombiano de festivos. Al activarlo, e
 
 Crear un bloqueo **nunca** falla por chocar con citas ya agendadas. El sistema debe advertir qué citas quedan afectadas y ofrecer un flujo de pocos pasos para reprogramarlas o cancelarlas, pero **no** debe hacerlo automáticamente. Cada acción realizada notifica al cliente correspondiente.
 
-**Motivo:** la emergencia es real y el barbero necesita bloquear su agenda de inmediato. Impedírselo porque hay citas encima sería exactamente lo contrario de lo que necesita. Y cancelar sus citas automáticamente le quitaría el control que `RN-RET-01` le reserva.
+**Motivo:** la emergencia es real y el profesional necesita bloquear su agenda de inmediato. Impedírselo porque hay citas encima sería exactamente lo contrario de lo que necesita. Y cancelar sus citas automáticamente le quitaría el control que `RN-RET-01` le reserva.
 
-**Ejemplo:** el barbero tiene una urgencia médica y bloquea de 15:00 a 19:00. Tiene tres citas dentro. El sistema crea el bloqueo, muestra las tres y le pregunta qué hacer con cada una.
+**Ejemplo:** el profesional tiene una urgencia médica y bloquea de 15:00 a 19:00. Tiene tres citas dentro. El sistema crea el bloqueo, muestra las tres y le pregunta qué hacer con cada una.
 
 **Excepción:** ninguna.
 
@@ -389,7 +391,7 @@ Crear un bloqueo **nunca** falla por chocar con citas ya agendadas. El sistema d
 
 **Módulos afectados:** bloqueos, citas, notificaciones, disponibilidad.
 
-**Pruebas asociadas:** crear bloqueo sobre tres citas confirmadas; verificar que el bloqueo se crea, que las citas siguen activas, que se listan al barbero y que solo las acciones elegidas generan cambios y notificaciones.
+**Pruebas asociadas:** crear bloqueo sobre tres citas confirmadas; verificar que el bloqueo se crea, que las citas siguen activas, que se listan al profesional y que solo las acciones elegidas generan cambios y notificaciones.
 
 > **Consecuencia técnica importante:** los bloqueos **no** entran en la restricción de exclusión de la base de datos junto a las citas. Se documentará en `05-backend/concurrencia.md` *(pendiente de creación)*.
 
@@ -403,7 +405,7 @@ Al eliminar un bloqueo se marca como eliminado y deja de restar disponibilidad, 
 
 **Motivo:** permite investigar por qué una franja apareció o desapareció, que es una de las causas de conflicto que el producto debe poder auditar.
 
-**Ejemplo:** el barbero elimina por error su bloqueo de vacaciones; queda constancia de quién y cuándo.
+**Ejemplo:** el profesional elimina por error su bloqueo de vacaciones; queda constancia de quién y cuándo.
 
 **Excepción:** ninguna.
 
@@ -417,15 +419,15 @@ Al eliminar un bloqueo se marca como eliminado y deja de restar disponibilidad, 
 
 ## 6. CIT — Administración de citas
 
-### RN-CIT-01 · Facultades del barbero sobre las citas
+### RN-CIT-01 · Facultades del profesional sobre las citas
 
 **Estado: Decisión confirmada**
 
-El barbero puede crear, modificar, reprogramar y cancelar citas, cambiar su estado mediante transiciones permitidas y consultar el historial de modificaciones.
+El profesional puede crear, modificar, reprogramar y cancelar citas, cambiar su estado mediante transiciones permitidas y consultar el historial de modificaciones.
 
-**Ejemplo:** el cliente llama para adelantar su cita; el barbero la reprograma desde la agenda.
+**Ejemplo:** el cliente llama para adelantar su cita; el profesional la reprograma desde la agenda.
 
-**Excepción:** un estado terminal no participa en las transiciones ordinarias, pero el barbero puede ejecutar la corrección auditada de `RN-CIT-04`.
+**Excepción:** un estado terminal no participa en las transiciones ordinarias, pero el profesional puede ejecutar la corrección auditada de `RN-CIT-04`.
 
 **Casos límite:** reprogramar a un horario ocupado debe fallar con el mismo conflicto que una reserva pública.
 
@@ -435,21 +437,21 @@ El barbero puede crear, modificar, reprogramar y cancelar citas, cambiar su esta
 
 ---
 
-### RN-CIT-02 · El barbero puede crear citas manuales
+### RN-CIT-02 · El profesional puede crear citas manuales
 
 **Estado: Decisión confirmada**
 
 Las citas recibidas por WhatsApp, teléfono o de forma presencial se registran manualmente y son indistinguibles de las públicas en cuanto a su efecto sobre la agenda.
 
-**Ejemplo:** entra un cliente al local y pide cita para el jueves; el barbero la crea desde su celular.
+**Ejemplo:** entra un cliente al local y pide cita para el jueves; el profesional la crea desde su celular.
 
 **Excepción:** la cita manual no está sujeta a la anticipación mínima (`RN-DIS-04`) y puede omitir el correo del cliente.
 
 **Casos límite:**
 - Cliente sin teléfono ni correo: permitido, pero entonces no recibirá recordatorios y la interfaz debe advertirlo.
-- Cliente sin teléfono pero con correo: `customer` se busca/reutiliza por correo dentro de la barbería; sin teléfono ni correo, la creación siempre inserta una fila nueva, nunca reconcilia por nombre (`DEC-071`).
-- Servicio elegido no asignado al barbero elegido: se rechaza; la cita manual solo admite servicios activos ya asignados a ese barbero (`DEC-072`).
-- Intervalo elegido coincide con un bloqueo vigente: se rechaza con el mismo tratamiento que un cruce de citas; el barbero debe retirar o exceptuar el bloqueo antes de crear la cita (`DEC-073`).
+- Cliente sin teléfono pero con correo: `customer` se busca/reutiliza por correo dentro del negocio; sin teléfono ni correo, la creación siempre inserta una fila nueva, nunca reconcilia por nombre (`DEC-071`).
+- Servicio elegido no asignado al profesional elegido: se rechaza; la cita manual solo admite servicios activos ya asignados a ese profesional (`DEC-072`).
+- Intervalo elegido coincide con un bloqueo vigente: se rechaza con el mismo tratamiento que un cruce de citas; el profesional debe retirar o exceptuar el bloqueo antes de crear la cita (`DEC-073`).
 - Cita manual que se cruza con una existente: se rechaza igual que una pública (`RN-CON-01`).
 
 **Módulos afectados:** agenda, citas, notificaciones.
@@ -480,7 +482,7 @@ El estado de una cita cambia únicamente mediante transiciones explícitamente p
 
 **Estado: Decisión confirmada** (`DEC-017`)
 
-El barbero puede corregir el resultado de una cita marcado por error. La operación conserva el estado anterior, el nuevo estado, el actor, el instante y el motivo; nunca edita ni elimina la entrada original.
+El profesional puede corregir el resultado de una cita marcado por error. La operación conserva el estado anterior, el nuevo estado, el actor, el instante y el motivo; nunca edita ni elimina la entrada original.
 
 **Ejemplo:** una cita marcada `completed` por error se corrige a `no_show` y ambas acciones quedan visibles.
 
@@ -496,7 +498,7 @@ El barbero puede corregir el resultado de una cita marcado por error. La operaci
 
 **Estado: Decisión confirmada** (`DEC-017`)
 
-Cada barbería elige entre:
+Cada negocio elige entre:
 
 1. cierre manual, con aviso al finalizar la jornada o al abrir el día siguiente; o
 2. cierre automático como `completed` después de X horas configurables.
@@ -517,15 +519,15 @@ El cierre automático registra al sistema como actor y usa `ends_at` como instan
 
 **Estado: Decisión confirmada** (`DEC-010`, `DEC-018`)
 
-El plazo inicial es de 20 minutos y es configurable por barbería. Rango permitido: entero en `[0, 10080]` minutos (0 desactiva la cancelación propia del cliente; tope de 7 días) (`DEC-083`).
+El plazo inicial es de 20 minutos y es configurable por negocio. Rango permitido: entero en `[0, 10080]` minutos (0 desactiva la cancelación propia del cliente; tope de 7 días) (`DEC-083`).
 
 **Ejemplo:** con el valor inicial, un cliente con cita a las 15:00 puede cancelar por su cuenta hasta las 14:40.
 
-**Excepción:** el barbero puede cancelar en cualquier momento, sin plazo (`RN-CAN-03`). Después del plazo, el cliente solo puede cancelar si la política configurable de `RN-CAN-02` lo permite.
+**Excepción:** el profesional puede cancelar en cualquier momento, sin plazo (`RN-CAN-03`). Después del plazo, el cliente solo puede cancelar si la política configurable de `RN-CAN-02` lo permite.
 
 **Casos límite:**
 - Solicitud enviada exactamente en el límite: se evalúa contra el reloj del servidor.
-- Cliente que intenta cancelar pasado el plazo: se evalúa la política de la barbería; si no está autorizado, recibe un mensaje que le indica contactar al barbero.
+- Cliente que intenta cancelar pasado el plazo: se evalúa la política del negocio; si no está autorizado, recibe un mensaje que le indica contactar al profesional.
 
 **Módulos afectados:** cancelación pública, notificaciones, configuración.
 
@@ -539,13 +541,13 @@ El plazo inicial es de 20 minutos y es configurable por barbería. Rango permiti
 
 **Estado: Decisión confirmada** (`DEC-010`)
 
-Vencido el plazo de `RN-CAN-01`, la configuración de la barbería determina si la cita solo puede cancelarla el barbero o si también puede hacerlo el cliente (campo `permite_cliente`), y si esa cancelación exige motivo (campo `motivo_obligatorio`), ambos booleanos independientes. Default de una barbería nueva: `permite_cliente = true`, `motivo_obligatorio = true` (`DEC-083`).
+Vencido el plazo de `RN-CAN-01`, la configuración del negocio determina si la cita solo puede cancelarla el profesional o si también puede hacerlo el cliente (campo `permite_cliente`), y si esa cancelación exige motivo (campo `motivo_obligatorio`), ambos booleanos independientes. Default de un negocio nuevo: `permite_cliente = true`, `motivo_obligatorio = true` (`DEC-083`).
 
-**Motivo:** protege al barbero de las cancelaciones de último minuto sin dejar la agenda bloqueada por una cita que ya no ocurrirá.
+**Motivo:** protege al profesional de las cancelaciones de último minuto sin dejar la agenda bloqueada por una cita que ya no ocurrirá.
 
-**Ejemplo:** el cliente intenta cancelar a las 14:50 una cita de las 15:00. En una barbería la acción se rechaza y se indica contactar al barbero; en otra se permite si registra el motivo exigido.
+**Ejemplo:** el cliente intenta cancelar a las 14:50 una cita de las 15:00. En un negocio la acción se rechaza y se indica contactar al profesional; en otro se permite si registra el motivo exigido.
 
-**Excepción:** el barbero conserva siempre la facultad de cancelar una cita activa (`RN-CAN-03`).
+**Excepción:** el profesional conserva siempre la facultad de cancelar una cita activa (`RN-CAN-03`).
 
 **Casos límite:** la interfaz pública debe mostrar la política vigente, por qué el botón no está disponible cuando corresponda y qué hacer entonces. Un cambio de configuración no altera citas ya canceladas.
 
@@ -555,15 +557,15 @@ Vencido el plazo de `RN-CAN-01`, la configuración de la barbería determina si 
 
 ---
 
-### RN-CAN-03 · El barbero puede cancelar en cualquier momento
+### RN-CAN-03 · El profesional puede cancelar en cualquier momento
 
 **Estado: Decisión confirmada** (`DEC-011`)
 
-No hay límite temporal para la cancelación por parte del barbero, ni siquiera después de la hora de inicio.
+No hay límite temporal para la cancelación por parte del profesional, ni siquiera después de la hora de inicio.
 
-**Motivo:** las emergencias del barbero no tienen horario.
+**Motivo:** las emergencias del profesional no tienen horario.
 
-**Ejemplo:** el barbero se enferma y cancela las citas del día.
+**Ejemplo:** el profesional se enferma y cancela las citas del día.
 
 **Excepción:** no puede cancelar una cita ya en estado terminal.
 
@@ -581,7 +583,7 @@ No hay límite temporal para la cancelación por parte del barbero, ni siquiera 
 
 En cuanto una cita pasa a un estado cancelado, su intervalo deja de ocupar agenda y vuelve a ofrecerse públicamente.
 
-**Motivo:** es la conducta esperada y recupera ingresos para el barbero.
+**Motivo:** es la conducta esperada y recupera ingresos para el profesional.
 
 **Ejemplo:** se cancela la cita de las 10:00; a los pocos segundos otro cliente puede reservar esa franja.
 
@@ -599,15 +601,15 @@ En cuanto una cita pasa a un estado cancelado, su intervalo deja de ocupar agend
 
 > Este es el bloque de reglas más crítico del producto. Su incumplimiento produce el peor fallo posible: dos clientes en la puerta a la misma hora.
 
-### RN-CON-01 · Dos citas que ocupan agenda no pueden cruzarse para el mismo barbero
+### RN-CON-01 · Dos citas que ocupan agenda no pueden cruzarse para el mismo profesional
 
 **Estado: Decisión confirmada**
 
-Para un mismo barbero, no pueden coexistir dos citas en estados que ocupan agenda cuyos intervalos se solapen, ni siquiera parcialmente.
+Para un mismo profesional, no pueden coexistir dos citas en estados que ocupan agenda cuyos intervalos se solapen, ni siquiera parcialmente.
 
 **Ejemplo:** existe una cita de 10:00 a 11:00. No puede crearse otra de 10:30 a 11:30, ni de 9:30 a 10:30, ni de 10:15 a 10:45.
 
-**Excepción:** las citas canceladas no cuentan (`RN-CAN-04`). Barberos distintos de la misma barbería pueden tener citas simultáneas.
+**Excepción:** las citas canceladas no cuentan (`RN-CAN-04`). Profesionales distintos del mismo negocio pueden tener citas simultáneas.
 
 **Casos límite:**
 - Citas exactamente contiguas (10:00–11:00 y 11:00–12:00): están **permitidas** por `RN-DIS-05`.
@@ -702,11 +704,11 @@ Si la franja deja de estar disponible al confirmar, el cliente debe recibir un m
 
 **Estado: Decisión confirmada** (`DEC-013`)
 
-Si el barbero crea un bloqueo mientras un cliente confirma esa misma franja, y la cita alcanza a confirmarse, la cita **permanece activa**. El sistema advierte de inmediato al barbero, aplicando `RN-BLQ-03`, para que decida mantenerla, reprogramarla o cancelarla.
+Si el profesional crea un bloqueo mientras un cliente confirma esa misma franja, y la cita alcanza a confirmarse, la cita **permanece activa**. El sistema advierte de inmediato al profesional, aplicando `RN-BLQ-03`, para que decida mantenerla, reprogramarla o cancelarla.
 
-**Motivo:** es la consecuencia directa de que los bloqueos no compitan por la restricción de la base de datos. Es preferible una cita que el barbero ve y decide, a una cita destruida en silencio.
+**Motivo:** es la consecuencia directa de que los bloqueos no compitan por la restricción de la base de datos. Es preferible una cita que el profesional ve y decide, a una cita destruida en silencio.
 
-**Ejemplo:** a las 14:00:03 el barbero bloquea de 16:00 a 18:00; a las 14:00:04 se confirma una cita a las 16:30. La cita existe y el barbero la ve marcada como afectada.
+**Ejemplo:** a las 14:00:03 el profesional bloquea de 16:00 a 18:00; a las 14:00:04 se confirma una cita a las 16:30. La cita existe y el profesional la ve marcada como afectada.
 
 **Excepción:** ninguna.
 
@@ -724,7 +726,7 @@ Si el barbero crea un bloqueo mientras un cliente confirma esa misma franja, y l
 
 **Estado: Decisión confirmada**
 
-Una reserva pública válida queda confirmada en el acto, sin requerir aprobación previa del barbero.
+Una reserva pública válida queda confirmada en el acto, sin requerir aprobación previa del profesional.
 
 **Ejemplo:** el cliente completa el formulario y ve de inmediato "Tu cita quedó confirmada".
 
@@ -744,7 +746,7 @@ Una reserva pública válida queda confirmada en el acto, sin requerir aprobaci�
 
 Durante el MVP, ninguna cita se cancela automáticamente porque el cliente no responda a una confirmación o a un recordatorio.
 
-**Ejemplo:** el cliente no responde al recordatorio. La cita sigue confirmada y el barbero la espera.
+**Ejemplo:** el cliente no responde al recordatorio. La cita sigue confirmada y el profesional la espera.
 
 **Excepción:** ninguna. La cancelación automática por falta de confirmación está **fuera del alcance** del MVP.
 
@@ -762,14 +764,14 @@ Durante el MVP, ninguna cita se cancela automáticamente porque el cliente no re
 
 **Estado: Decisión confirmada**
 
-Los retrasos deben poder comunicarse y administrarse, pero la decisión final sobre la cita es siempre del barbero. Puede atender tarde, reprogramar o cancelar y enviar un aviso a los clientes siguientes afectados.
+Los retrasos deben poder comunicarse y administrarse, pero la decisión final sobre la cita es siempre del profesional. Puede atender tarde, reprogramar o cancelar y enviar un aviso a los clientes siguientes afectados.
 
-**Ejemplo:** el cliente avisa que llega 15 minutos tarde. El barbero decide si lo espera, lo reprograma o lo cancela.
+**Ejemplo:** el cliente avisa que llega 15 minutos tarde. El profesional decide si lo espera, lo reprograma o lo cancela.
 
 **Excepción:** ninguna.
 
 **Casos límite:**
-- Un retraso que empuja la cita sobre la siguiente: el sistema **no** reacomoda la agenda solo; el barbero selecciona qué turnos avisar o modificar.
+- Un retraso que empuja la cita sobre la siguiente: el sistema **no** reacomoda la agenda solo; el profesional selecciona qué turnos avisar o modificar.
 - Cliente que no llega y no avisa: se resuelve con el estado `no_show`, no con un retraso.
 
 **Módulos afectados:** citas, notificaciones, agenda.
@@ -786,7 +788,7 @@ Los retrasos deben poder comunicarse y administrarse, pero la decisión final so
 
 Debe registrarse quién realizó cada cambio, cuándo, qué cambió y, cuando sea razonable, los valores anterior y nuevo. La información debe bastar para auditoría, soporte y resolución de conflictos.
 
-**Ejemplo:** *"14/08/2026 10:32 — Barbero Carlos reprogramó la cita: hora de 15:00 a 16:30."*
+**Ejemplo:** *"14/08/2026 10:32 — Carlos (profesional) reprogramó la cita: hora de 15:00 a 16:30."*
 
 **Excepción:** no se registran consultas de lectura, solo cambios.
 
@@ -866,7 +868,7 @@ Todo mensaje debe reflejar el estado vigente de la cita en el momento del envío
 
 **Ejemplo:** un recordatorio no puede decir "tu cita es a las 15:00" si ya fue movida a las 16:30.
 
-**Excepción:** ninguna. Este es el fallo más dañino de los recordatorios: destruye la confianza del cliente y del barbero.
+**Excepción:** ninguna. Este es el fallo más dañino de los recordatorios: destruye la confianza del cliente y del profesional.
 
 **Casos límite:** el mensaje debe construirse en el momento del envío, no almacenarse ya redactado al programarlo.
 
@@ -900,7 +902,7 @@ Cada intento de envío deja constancia con su resultado, aunque falle. La eviden
 
 **Estado: Decisión confirmada** (`DEC-027`)
 
-El MVP soporta correo electrónico y la interfaz oficial de WhatsApp. La barbería puede activar uno o ambos y elegirlos por evento: confirmación, recordatorio, reprogramación, cancelación, retraso e inasistencia.
+El MVP soporta correo electrónico y la interfaz oficial de WhatsApp. El negocio puede activar uno o ambos y elegirlos por evento: confirmación, recordatorio, reprogramación, cancelación, retraso e inasistencia.
 
 Para los códigos OTP de recuperación y reto adicional de acceso, la configuración del evento admite correo, WhatsApp oficial o ambos; correo es el valor predeterminado (`DEC-081`). El servidor usa contactos verificados almacenados y la interfaz nunca acepta un destino arbitrario durante el reto. En la **recuperación de acceso** la persona elige WhatsApp o correo y escribe su valor, que solo identifica la cuenta; el código se envía únicamente por el canal elegido y al contacto verificado almacenado (`DEC-092`, `DEC-093`): el número identifica la cuenta solo si coincide con exactamente una cuenta activa con ese número verificado, y el otro canal nunca es respaldo. Con el canal correo basta una cuenta activa con ese correo: no se exige teléfono ni que esté verificado (`DEC-094`). Una entrega por ambos canales comparte código y operación lógica, pero conserva evidencia independiente de cada intento conforme a `RN-REC-04`.
 
@@ -908,7 +910,7 @@ Para los códigos OTP de recuperación y reto adicional de acceso, la configurac
 
 **Módulos afectados:** configuración, clientes, notificaciones.
 
-**Pruebas asociadas:** matriz de eventos y canales; barbería con un canal; barbería con ambos; inasistencia desactivada.
+**Pruebas asociadas:** matriz de eventos y canales; negocio con un canal; negocio con ambos; inasistencia desactivada.
 
 ---
 
@@ -920,7 +922,7 @@ Al crear o modificar una cita se crean o actualizan, dentro de la misma operaci�
 
 Un trabajador ejecuta programaciones persistidas; no descubre tardíamente qué citas debían tener recordatorio.
 
-**Excepción:** una cita sin canal habilitado conserva la programación como no enviable y muestra una advertencia al barbero; no inventa un destinatario.
+**Excepción:** una cita sin canal habilitado conserva la programación como no enviable y muestra una advertencia al profesional; no inventa un destinatario.
 
 **Módulos afectados:** citas, recordatorios, tareas programadas.
 
@@ -928,27 +930,27 @@ Un trabajador ejecuta programaciones persistidas; no descubre tardíamente qué 
 
 ---
 
-## 13. TEN — Aislamiento entre barberías
+## 13. TEN — Aislamiento entre negocios
 
-### RN-TEN-01 · Ninguna barbería accede a datos de otra
+### RN-TEN-01 · Ningún negocio accede a datos de otro
 
 **Estado: Decisión confirmada**
 
-Toda consulta y toda modificación quedan restringidas a la barbería del usuario autenticado. Conocer o adivinar un identificador de otra barbería no debe dar acceso a nada.
+Toda consulta y toda modificación quedan restringidas al negocio del usuario autenticado. Conocer o adivinar un identificador de otro negocio no debe dar acceso a nada.
 
-PostgreSQL aplica RLS sobre `barbershop_id` como defensa obligatoria, además de los filtros de la aplicación (`DEC-024`).
+PostgreSQL aplica RLS sobre `business_id` como defensa obligatoria, además de los filtros de la aplicación (`DEC-024`).
 
-**Ejemplo:** el barbero A cambia el identificador en una petición por el de una cita del barbero B. Debe recibir un rechazo, no los datos.
+**Ejemplo:** el profesional A cambia el identificador en una petición por el de una cita del profesional B. Debe recibir un rechazo, no los datos.
 
 **Excepción:** ninguna.
 
 **Casos límite:**
-- El enlace público expone datos de una sola barbería, los estrictamente necesarios para reservar.
-- Un usuario que en el futuro pertenezca a varias barberías debe operar en una a la vez.
+- El enlace público expone datos de un solo negocio, los estrictamente necesarios para reservar.
+- Un usuario que en el futuro pertenezca a varios negocios debe operar en uno a la vez.
 
 **Módulos afectados:** todo el backend, base de datos, API.
 
-**Pruebas asociadas:** para cada endpoint privado, intentar acceder a un recurso de otra barbería y verificar el rechazo.
+**Pruebas asociadas:** para cada endpoint privado, intentar acceder a un recurso de otro negocio y verificar el rechazo.
 
 ---
 
@@ -964,7 +966,7 @@ Solo se solicitan los datos estrictamente necesarios para prestar el servicio. E
 
 **Excepción:** ninguna en el MVP.
 
-**Casos límite:** una cita manual puede omitir correo cuando el barbero acepta que no podrá enviar por ese canal.
+**Casos límite:** una cita manual puede omitir correo cuando el profesional acepta que no podrá enviar por ese canal.
 
 **Módulos afectados:** reserva pública, modelo de datos, protección de datos.
 
@@ -1049,9 +1051,9 @@ El propietario desarrolla el software, cubre inicialmente los costos, presta ini
 
 **Estado: Decisión confirmada**
 
-El barbero colaborador aporta contactos, validación y ventas. Su participación **no** genera propiedad, copropiedad ni derechos sobre el software o la marca.
+El profesional colaborador aporta contactos, validación y ventas. Su participación **no** genera propiedad, copropiedad ni derechos sobre el software o la marca.
 
-**Ejemplo:** el colaborador consigue diez barberías. Sigue sin tener participación en el producto.
+**Ejemplo:** el colaborador consigue diez negocios. Sigue sin tener participación en el producto.
 
 **Excepción:** ninguna.
 

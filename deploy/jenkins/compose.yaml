@@ -37,13 +37,13 @@ services:
       - /var/run/docker.sock:/var/run/docker.sock
     security_opt: ["label=disable", "no-new-privileges:true"]
     # Solo en el loopback del host: acceso de emergencia por túnel SSH
-    # (ssh -L 8090:127.0.0.1:8090 barberia-vps). El acceso normal es por Caddy.
+    # (ssh -L 8090:127.0.0.1:8090 nava-vps). El acceso normal es por Caddy.
     ports:
       - "127.0.0.1:8090:8080"
     networks:
       ci:
         ipv4_address: 10.89.10.2
-      # Red compartida con el Caddy de la barbería (DEC-176), que publica jenkins.nava.wtf.
+      # Red compartida con el Caddy de Nava Agenda (DEC-176), que publica jenkins.nava.wtf.
       edge:
         aliases: [jenkins]
     healthcheck:

@@ -4,7 +4,7 @@
 #
 # Conserva propietarios y permisos (agenda_owner, políticas RLS, funciones
 # SECURITY DEFINER): sin ellos una restauración rompería el aislamiento por
-# barbería. Se conecta como `agenda_backup` (BYPASSRLS + pg_read_all_data);
+# negocio. Se conecta como `agenda_backup` (BYPASSRLS + pg_read_all_data);
 # un rol corriente leería filas filtradas por RLS y produciría un respaldo
 # incompleto sin avisar.
 #

@@ -1,6 +1,6 @@
 # Cliente y confirmación pública
 
-Scope **public-confirm**, ruta **/reservar/:slug/servicios/:serviceId/barbero/:barberId/horario/:startsAt/cliente**. Cuenta: entrada scope=public-confirm de apps/web/.auth/nava-qa/current.json, leída privadamente; nunca credenciales del chat o suites ajenas.
+Scope **public-confirm**, ruta **/reservar/:slug/servicios/:serviceId/profesional/:professionalId/horario/:startsAt/cliente**. Cuenta: entrada scope=public-confirm de apps/web/.auth/nava-qa/current.json, leída privadamente; nunca credenciales del chat o suites ajenas.
 
 Fuentes: HU-096,HU-097 en [historias](../../../02-requisitos/historias-usuario.md), DEC-045,DEC-046,DEC-091,DEC-111 en [decisiones](../../../00-control/registro-decisiones.md), RN en [reglas](../../../01-producto/reglas-negocio.md). Leer fragmentos de la capacidad; norma prevalece sobre código. Duda = registrar y BLOCKED.
 

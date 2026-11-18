@@ -1,9 +1,9 @@
 ---
 titulo: "Arquitectura del backend en Go"
-version: "1.3"
+version: "1.4"
 estado: "Decisión confirmada"
 responsable: "Propietario del proyecto"
-ultima_actualizacion: "2026-08-13"
+ultima_actualizacion: "2026-11-18"
 documentos_relacionados:
   - "../00-control/registro-decisiones.md"
   - "../01-producto/reglas-negocio.md"
@@ -31,7 +31,7 @@ Fuente normativa: `DEC-034`.
 - rutas públicas de reserva;
 - acceso del cliente mediante token;
 - rutas privadas autenticadas;
-- contexto de barbería y RLS;
+- contexto de negocio y RLS;
 - limitación de abuso;
 - idempotencia;
 - endpoints operativos y de salud.
@@ -119,7 +119,7 @@ Orden base:
 6. encabezados de seguridad;
 7. límite de solicitudes para rutas públicas;
 8. autenticación para rutas privadas;
-9. selección autorizada de barbería;
+9. selección autorizada de negocio;
 10. contexto transaccional de tenant/RLS cuando el caso de uso toca datos;
 11. idempotencia en operaciones críticas.
 
@@ -131,7 +131,7 @@ Estructura conceptual:
 
 ```text
 /health
-/api/v1/public/barbershops/{slug}/...
+/api/v1/public/businesses/{slug}/...
 /api/v1/public/auth/login
 /api/v1/customer/appointments/{token}/...
 /api/v1/private/auth/logout
@@ -143,7 +143,7 @@ Estructura conceptual:
 
 Los subrouters públicos, de cliente y privados reciben cadenas de middleware distintas. El tenant no se acepta como dato confiable del cuerpo: se deriva del recurso público o de la identidad autorizada.
 
-El inicio de sesión (`HU-005`) vive en `/api/v1/public/auth/login`, sin middleware de autenticación: exigirlo sería circular, porque el barbero aún no tiene sesión (`CT-003`, resuelta por `DEC-055`). El cierre de sesión (`HU-006`) sí exige sesión y por eso vive bajo `/api/v1/private/auth/logout`. Ninguna otra ruta de `/api/v1/private` tiene excepción: la prueba estructural de `CA-006-04` cubre el subrouter completo sin lista de excepciones.
+El inicio de sesión (`HU-005`) vive en `/api/v1/public/auth/login`, sin middleware de autenticación: exigirlo sería circular, porque el profesional aún no tiene sesión (`CT-003`, resuelta por `DEC-055`). El cierre de sesión (`HU-006`) sí exige sesión y por eso vive bajo `/api/v1/private/auth/logout`. Ninguna otra ruta de `/api/v1/private` tiene excepción: la prueba estructural de `CA-006-04` cubre el subrouter completo sin lista de excepciones.
 
 ## 8. Dependencias permitidas
 
@@ -166,7 +166,7 @@ La versión menor se fija en `go.mod` y se actualiza mediante revisión, pruebas
 
 - handlers y middleware satisfacen interfaces `net/http`;
 - pruebas de servicios no levantan servidor HTTP;
-- cada ruta privada prueba aislamiento entre dos barberías;
+- cada ruta privada prueba aislamiento entre dos negocios;
 - timeouts cancelan consultas PostgreSQL;
 - el mismo `request_id` conecta logs HTTP, transacción e intento de notificación;
 - ningún log contiene nombre, teléfono, correo, token o contenido de mensaje;

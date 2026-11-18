@@ -1,9 +1,9 @@
 ---
 titulo: "Estándar de diseño y evolución de base de datos"
-version: "1.4"
+version: "1.5"
 estado: "Obligatorio para desarrollo"
 responsable: "Propietario del proyecto"
-ultima_actualizacion: "2026-08-11"
+ultima_actualizacion: "2026-11-18"
 documentos_relacionados:
   - "../00-control/registro-decisiones.md"
   - "../01-producto/reglas-negocio.md"
@@ -63,13 +63,13 @@ El modelo se documenta además con un diagrama y diccionario cuando se diseñen 
 ### Tercera forma normal
 
 - Un atributo no clave depende de la identidad de la fila, no de otro atributo no clave.
-- Zona horaria, configuración y datos de la barbería viven en `barbershop`; no se copian en cada barbero o cita como fuente de verdad.
+- Zona horaria, configuración y datos del negocio viven en `business`; no se copian en cada profesional o cita como fuente de verdad.
 - Los datos del servicio viven en `service`; una cita solo conserva snapshots aprobados para historia.
 - Estados editables o con metadatos propios se modelan como entidad; vocabularios cerrados y estables pueden usar `CHECK`.
 
 ### Excepciones autorizadas para este proyecto
 
-1. `barbershop_id` se repite en tablas de negocio y claves relacionadas para RLS, índices y FK compuestas. Es una duplicación deliberada de seguridad, no una fuente alternativa de la barbería.
+1. `business_id` se repite en tablas de negocio y claves relacionadas para RLS, índices y FK compuestas. Es una duplicación deliberada de seguridad, no una fuente alternativa del negocio.
 2. La cita conserva snapshots de duración y precio, y de nombre si la historia visible lo exige, para que un cambio de servicio no reescriba el pasado (`DEC-004`). Se establecen al crear o aplicar un cambio explícito y no se sincronizan silenciosamente.
 3. Contadores o vistas materializadas solo se incorporan después de medir una consulta y definir reconstrucción, consistencia y dueño.
 
@@ -80,7 +80,7 @@ Toda otra desnormalización documenta consulta que la requiere, volumen observad
 - Identificadores en inglés técnico, `snake_case`, minúscula y sin comillas.
 - Tablas en singular: `appointment`, `time_block`, `notification_attempt`.
 - Clave primaria: `id`.
-- Clave foránea: `<tabla>_id`; tenant: `barbershop_id`.
+- Clave foránea: `<tabla>_id`; tenant: `business_id`.
 - Instantes: `<evento>_at`; fechas locales: `<evento>_date`; booleanos: `is_*` o `has_*` cuando no exista un nombre de estado mejor.
 - Restricciones: `<tabla>_<columnas>_<tipo>`, con sufijos `pk`, `fk`, `uk`, `ck`, `excl`.
 - Índices: `idx_<tabla>_<columnas>` y, si es parcial, un sufijo que describa el predicado.
@@ -96,8 +96,8 @@ Las palabras SQL se escriben en mayúscula y los identificadores en minúscula p
 | Dato | Tipo preferido | Regla |
 | --- | --- | --- |
 | Identificador de dominio | `uuid` | no exponer secuencias predecibles en enlaces públicos |
-| Instante real | `timestamptz` | almacenar el instante; mostrar en zona IANA de barbería |
-| Fecha o hora civil de horario | `date`, `time` | interpretar junto con zona de la barbería |
+| Instante real | `timestamptz` | almacenar el instante; mostrar en zona IANA del negocio |
+| Fecha o hora civil de horario | `date`, `time` | interpretar junto con zona del negocio |
 | Duración o paso | entero en minutos | `CHECK (value > 0)` y rango de negocio |
 | Dinero | `numeric` + moneda ISO | nunca `real` o `double precision` |
 | Teléfono | `text` | normalizar a formato acordado; no tratar como número |
@@ -116,20 +116,20 @@ Reglas adicionales:
 
 ## 6. Claves, relaciones e integridad tenant-aware
 
-- Toda tabla de negocio tiene `barbershop_id NOT NULL`.
-- Cada tabla con ID global agrega `UNIQUE (barbershop_id, id)` cuando vaya a ser destino de una FK compuesta.
+- Toda tabla de negocio tiene `business_id NOT NULL`.
+- Cada tabla con ID global agrega `UNIQUE (business_id, id)` cuando vaya a ser destino de una FK compuesta.
 - Las relaciones de negocio incluyen el tenant en ambos lados:
 
 ```sql
-FOREIGN KEY (barbershop_id, barber_id)
-REFERENCES barber (barbershop_id, id)
+FOREIGN KEY (business_id, professional_id)
+REFERENCES professional (business_id, id)
 ```
 
-- Una FK simple por `barber_id` no basta para demostrar que el barbero pertenece a la misma barbería.
+- Una FK simple por `professional_id` no basta para demostrar que el profesional pertenece al mismo negocio.
 - Toda FK define acción de borrado explícita. `CASCADE` se reserva para hijos sin vida ni retención propias.
-- Citas, historial, intentos y auditoría no se borran en cascada desde una barbería o servicio.
+- Citas, historial, intentos y auditoría no se borran en cascada desde un negocio o servicio.
 - El borrado lógico se usa solo donde una regla lo exige; no se agrega `deleted_at` a todas las tablas.
-- Las restricciones de unicidad dentro de una barbería incluyen `barbershop_id`.
+- Las restricciones de unicidad dentro de un negocio incluyen `business_id`.
 - Crear índice en el lado referenciante de una FK cuando las consultas o borrados lo necesiten; PostgreSQL no lo crea automáticamente.
 
 ## 7. Restricciones de negocio en PostgreSQL
@@ -141,7 +141,7 @@ La base de datos debe proteger como mínimo:
 - estados permitidos;
 - claves de idempotencia únicas en su alcance;
 - tokens almacenados como hash y con unicidad apropiada;
-- pertenencia tenant-aware de barbero, servicio, cliente y cita;
+- pertenencia tenant-aware de profesional, servicio, cliente y cita;
 - ausencia de cruces para citas que ocupan agenda;
 - historial sin actualización o borrado por el rol de aplicación;
 - una sola programación lógica vigente por cita, tipo y canal cuando corresponda.
@@ -155,7 +155,7 @@ Las reglas que cambian con frecuencia o requieren contexto del actor permanecen 
 - Los intervalos son semiabiertos `[starts_at, ends_at)` en todas las capas.
 - La exclusión usa `tstzrange` y el conjunto exacto de estados que ocupan agenda.
 - Contigüidad es válida: una cita puede empezar cuando termina otra.
-- La zona IANA se almacena en la barbería; cambios de zona no reinterpretan instantes históricos.
+- La zona IANA se almacena en el negocio; cambios de zona no reinterpretan instantes históricos.
 - Horarios recurrentes representan tiempo civil local y sus excepciones tienen fecha y zona inequívocas.
 - El API no usa un bloqueo en memoria como defensa de agenda; múltiples procesos dependen de la misma restricción PostgreSQL.
 - Una violación de exclusión se traduce a conflicto de negocio seguro.
@@ -171,11 +171,11 @@ Las reglas que cambian con frecuencia o requieren contexto del actor permanecen 
 5. Procesos administrativos usan rol separado, acceso mínimo, auditoría y ninguna exposición a handlers ordinarios.
 6. Respaldos verifican que RLS no omita filas silenciosamente.
 7. Las políticas simples que comparan columnas de la fila con el contexto son preferibles a subconsultas complejas.
-8. Toda política se prueba con al menos dos barberías usando el rol real.
+8. Toda política se prueba con al menos dos negocios usando el rol real.
 9. `search_path` de todo rol y función se fija explícitamente; una función `SECURITY DEFINER` usa `SET search_path = ''` (vacío, no `public, pg_catalog`) y califica cada identificador (`public.tabla`, `pg_catalog.función`), porque un `search_path` no vacío sigue permitiendo que un objeto homónimo en un esquema escribible desvíe la resolución.
 10. Funciones `SECURITY DEFINER` son excepcionales: propietario controlado `NOLOGIN`, `search_path` vacío con nombres calificados, `REVOKE ALL ... FROM PUBLIC` antes de conceder `EXECUTE` solo al rol que la necesita (API o worker, nunca ambos por defecto), validación de parámetros y revisión de seguridad.
-11. Modelo de roles (`DEC-040`): un propietario `barberia_owner` `NOLOGIN` controla tablas, índices y funciones; `barberia_migrator` es el único login que ejecuta Atlas, es `INHERIT` y miembro de `barberia_owner`, así que actúa con sus privilegios en cada sesión sin `SET ROLE` explícito (probado contra PostgreSQL real: `SET ROLE` dentro de una migración rompe el registro de progreso que el propio Atlas escribe durante la aplicación); `barberia_app` (API, tenant-scoped) y `barberia_worker` (procesos en segundo plano, sin contexto de tenant fijo) son roles de login separados, sin privilegios generales cruzados entre sí. Los cuatro roles se aprovisionan con un administrador antes de que Atlas se conecte por primera vez (`migraciones-atlas.md`, bootstrap de roles); ninguna migración nueva debe crear estos roles base. Los objetos que cree una migración futura quedan owned por `barberia_migrator` (quien la ejecuta), no por `barberia_owner`; las políticas RLS administrativas de una tabla nueva se escriben igual `FOR ALL TO barberia_owner`, y `barberia_migrator` las satisface por membresía heredada.
-12. `ALTER DEFAULT PRIVILEGES` se fija una vez, sin `IN SCHEMA`, para `barberia_owner` y para `barberia_migrator` (probado contra PostgreSQL real: acotarlo a `IN SCHEMA public` no tuvo efecto sobre una función creada sin calificar el esquema, la forma global sí). No sustituye la defensa primaria: cada función `SECURITY DEFINER` lleva su propio `REVOKE ALL ... FROM PUBLIC` explícito, y un `GRANT EXECUTE` explícito sigue siendo obligatorio por función y por rol consumidor.
+11. Modelo de roles (`DEC-040`; nombres `agenda_*` desde `DEC-183`, antes `barberia_*`): un propietario `agenda_owner` `NOLOGIN` controla tablas, índices y funciones; `agenda_migrator` es el único login que ejecuta Atlas, es `INHERIT` y miembro de `agenda_owner`, así que actúa con sus privilegios en cada sesión sin `SET ROLE` explícito (probado contra PostgreSQL real: `SET ROLE` dentro de una migración rompe el registro de progreso que el propio Atlas escribe durante la aplicación); `agenda_app` (API, tenant-scoped) y `agenda_worker` (procesos en segundo plano, sin contexto de tenant fijo) son roles de login separados, sin privilegios generales cruzados entre sí. Los cuatro roles se aprovisionan con un administrador antes de que Atlas se conecte por primera vez (`migraciones-atlas.md`, bootstrap de roles); ninguna migración nueva debe crear estos roles base. Los objetos que cree una migración futura quedan owned por `agenda_migrator` (quien la ejecuta), no por `agenda_owner`; las políticas RLS administrativas de una tabla nueva se escriben igual `FOR ALL TO agenda_owner`, y `agenda_migrator` las satisface por membresía heredada.
+12. `ALTER DEFAULT PRIVILEGES` se fija una vez, sin `IN SCHEMA`, para `agenda_owner` y para `agenda_migrator` (probado contra PostgreSQL real: acotarlo a `IN SCHEMA public` no tuvo efecto sobre una función creada sin calificar el esquema, la forma global sí). No sustituye la defensa primaria: cada función `SECURITY DEFINER` lleva su propio `REVOKE ALL ... FROM PUBLIC` explícito, y un `GRANT EXECUTE` explícito sigue siendo obligatorio por función y por rol consumidor.
 
 ## 10. Migraciones
 
@@ -209,7 +209,7 @@ Cada migración incluye comentarios breves con propósito, decisión o regla rel
 ## 11. Consultas, transacciones e índices
 
 - Seleccionar columnas explícitas y aplicar límites.
-- Toda consulta de negocio filtra por `barbershop_id`, aunque RLS también proteja.
+- Toda consulta de negocio filtra por `business_id`, aunque RLS también proteja.
 - Mantener transacciones cortas; no llamar correo, WhatsApp u otra red dentro de ellas.
 - Usar el nivel de aislamiento mínimo que preserve la regla y apoyarse en restricciones para carreras.
 - Reintentar solo errores transitorios identificados y con operación idempotente.

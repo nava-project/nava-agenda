@@ -14,7 +14,7 @@ documentos_relacionados:
 
 # Auditoría y arquitectura propuesta para Claude Code y Codex
 
-**Estado:** aplicado mediante el issue [#259](https://github.com/bcaceres19/barberia/issues/259) y `DEC-086`. Las desviaciones respecto del borrador original se registran en la sección 12.  
+**Estado:** aplicado mediante el issue [#259](https://github.com/bcaceres19/nava-agenda/issues/259) y `DEC-086`. Las desviaciones respecto del borrador original se registran en la sección 12.  
 **Fecha:** 2026-09-13.  
 **Alcance:** instrucciones, skills, prompts, herramientas de diseño, revisión, pruebas visuales, hooks, MCP y coste de contexto.  
 **No incluye:** cambios funcionales de NAVA, dependencias de producto, configuración de CI ni eliminación de artefactos existentes.
@@ -282,7 +282,7 @@ Anthropic advierte que los hooks de comandos se ejecutan con permisos completos 
 
 ### Pendientes
 
-- ~~Decidir el versionado de `graphify-out/`~~ Resuelto por `DEC-087` (issue [#261](https://github.com/bcaceres19/barberia/issues/261)): la carpeta se ignora y se regenera solo en local.
+- ~~Decidir el versionado de `graphify-out/`~~ Resuelto por `DEC-087` (issue [#261](https://github.com/bcaceres19/nava-agenda/issues/261)): la carpeta se ignora y se regenera solo en local.
 - Medir durante 5–10 tareas reales las activaciones erróneas y ajustar solo las descripciones.
 - Una reinstalación o actualización de Graphify (`graphify install`) puede restaurar sus hooks, su bloque en `CLAUDE.md` o la invocación automática del skill. Tras actualizarlo, ejecutar el validador con `--strict`, que lo detecta.
 

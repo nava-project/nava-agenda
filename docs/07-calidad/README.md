@@ -1,9 +1,9 @@
 ---
 titulo: "Exploración combinatoria y checklists de bugs"
-version: "1.0"
+version: "1.1"
 estado: "Herramienta operativa, no normativa"
 responsable: "Propietario del proyecto"
-ultima_actualizacion: "2026-08-25"
+ultima_actualizacion: "2026-11-18"
 documentos_relacionados:
   - "../03-desarrollo/estrategia-pruebas.md"
   - "../03-desarrollo/estandar-diseno-visual.md"
@@ -40,11 +40,11 @@ Empieza siempre por [`01-metodologia-y-uso.md`](01-metodologia-y-uso.md): explic
 | [01-metodologia-y-uso.md](01-metodologia-y-uso.md) | Técnica de combinación, cómo correr una sesión (humano o IA), severidad, escalamiento a issue/prueba de regresión |
 | [02-checklist-transversal.md](02-checklist-transversal.md) | Checks que aplican a **toda** pantalla y flujo: responsive, errores HTTP, aislamiento de tenant, idempotencia, teclado/accesibilidad, almacenamiento |
 | [03-checklist-autenticacion-sesion.md](03-checklist-autenticacion-sesion.md) | Login, reto telefónico, recuperación en 3 pasos, sesión, guardia del panel |
-| [04-checklist-modulos-catalogo.md](04-checklist-modulos-catalogo.md) | Configuración de la barbería, barberos, catálogo de servicios (incl. ciclo de vida), servicios por barbero |
+| [04-checklist-modulos-catalogo.md](04-checklist-modulos-catalogo.md) | Configuración del negocio, profesionales, catálogo de servicios (incl. ciclo de vida), servicios por profesional |
 | [05-matriz-combinaciones.md](05-matriz-combinaciones.md) | Tablas concretas de combinaciones por pares, listas para ejecutar, con valores límite reales tomados del código |
 | [06-plantilla-hallazgo.md](06-plantilla-hallazgo.md) | Formato para reportar un defecto encontrado durante una sesión |
 | [07-modulos-futuros-pendientes.md](07-modulos-futuros-pendientes.md) | Qué falta cubrir cuando existan agenda, reserva pública, bloqueos y recordatorios (hoy son solo carpetas `index.ts` vacías) |
 
 ## 4. Alcance actual (2026-08-25)
 
-Los checklists de `03` y `04` cubren exactamente lo que existe en `apps/web`/`apps/api` hoy: autenticación y sesión (`HU-005`–`HU-012`), configuración de la barbería (`HU-020`), barberos (`HU-021`), catálogo de servicios y su ciclo de vida (`HU-022`, `HU-024`) y asignación de servicios a barberos (`HU-023`). Agenda, reserva pública, bloqueos y notificaciones (`schedule`, `booking`, `notification` en el backend; `agenda`, `public-booking`, `schedules`, `notifications` en el frontend) son hoy solo el esqueleto de un módulo — ver [`07-modulos-futuros-pendientes.md`](07-modulos-futuros-pendientes.md) en vez de inventar un flujo que no existe todavía.
+Los checklists de `03` y `04` cubren exactamente lo que existe en `apps/web`/`apps/api` hoy: autenticación y sesión (`HU-005`–`HU-012`), configuración del negocio (`HU-020`), profesionales (`HU-021`), catálogo de servicios y su ciclo de vida (`HU-022`, `HU-024`) y asignación de servicios a profesionales (`HU-023`). Agenda, reserva pública, bloqueos y notificaciones (`schedule`, `booking`, `notification` en el backend; `agenda`, `public-booking`, `schedules`, `notifications` en el frontend) son hoy solo el esqueleto de un módulo — ver [`07-modulos-futuros-pendientes.md`](07-modulos-futuros-pendientes.md) en vez de inventar un flujo que no existe todavía.

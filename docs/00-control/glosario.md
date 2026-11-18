@@ -1,9 +1,9 @@
 ---
 titulo: "Glosario y convenciones de nombres"
-version: "1.1"
+version: "1.2"
 estado: "Vigente"
 responsable: "Propietario del proyecto"
-ultima_actualizacion: "2026-08-07"
+ultima_actualizacion: "2026-11-18"
 documentos_relacionados:
   - "../01-producto/reglas-negocio.md"
   - "../02-requisitos/estados-citas.md"
@@ -15,7 +15,7 @@ documentos_relacionados:
   - "contradicciones.md"
 ---
 
-> **Estado del contenido:** Vocabulario confirmado por `DEC-016` y decisiones relacionadas.
+> **Estado del contenido:** Vocabulario confirmado por `DEC-016`, `DEC-183` y decisiones relacionadas. Desde `DEC-183` el producto se llama **Nava Agenda** y sirve a cualquier negocio que agenda citas; «barbería» pasó a **negocio** y «barbero» a **profesional**. Los registros históricos conservan los términos de su fecha; la equivalencia está en la [sección 12](#12-equivalencias-de-nava-agenda-dec-183).
 
 ---
 
@@ -35,7 +35,7 @@ Si necesitas un término nuevo, agrégalo aquí primero.
 
 **Estado: Decisión confirmada** (`DEC-016`)
 
-El producto habla de **turnos** con barberos y clientes; la entidad técnica se llama **cita**.
+El producto habla de **turnos** con profesionales y clientes; la entidad técnica se llama **cita**.
 
 | Palabra | Uso permitido |
 | --- | --- |
@@ -44,28 +44,30 @@ El producto habla de **turnos** con barberos y clientes; la entidad técnica se 
 | **Reserva** | Permitido **solo** como nombre de la *acción* de crear una cita ("reservar", "flujo de reserva", "enlace de reservas"). Nunca como nombre de la entidad. |
 | **Agendamiento**, **booking**, **appointment** (en prosa) | No usar. |
 
-**Motivo:** el producto se vende como "turnos" porque así habla el barbero, pero mezclar tres nombres para la misma entidad dentro de 90 documentos garantiza contradicciones. Se separa el lenguaje comercial del lenguaje del sistema.
+**Motivo:** el producto se vende como "turnos" porque así habla el profesional, pero mezclar tres nombres para la misma entidad dentro de 90 documentos garantiza contradicciones. Se separa el lenguaje comercial del lenguaje del sistema.
 
 ---
 
 ## 3. Términos de negocio
 
-### Barbería
-Negocio que presta servicios de barbería y que constituye la **unidad de aislamiento de datos** del sistema. Todo dato operativo pertenece a exactamente una barbería.
+### Negocio
+Negocio que muestra sus servicios y agenda citas (barbería, salón, consultorio, estudio…) y que constituye la **unidad de aislamiento de datos** del sistema. Todo dato operativo pertenece a exactamente un negocio.
 
-Entidad técnica: `barbershop`.
+Entidad técnica: `business` (hasta `DEC-183`, `barbershop`).
 
-Un barbero independiente sin local también se representa como una barbería con un solo barbero. No se crea un caso especial.
+Un profesional independiente sin local también se representa como un negocio con un solo profesional. No se crea un caso especial.
 
-### Barbero
-Persona que presta el servicio y que ocupa la agenda. Es el recurso cuya disponibilidad se calcula.
+Cada negocio puede elegir la palabra con la que la interfaz lo nombra (p. ej. «barbería», «salón», «estudio») y su género gramatical (`DEC-110`); el valor inicial es «negocio».
 
-Entidad técnica: `barber`.
+### Profesional
+Persona que presta el servicio y que ocupa la agenda. Es el recurso cuya disponibilidad se calcula. Se dice «el profesional» o «la profesional» según la persona, y «los profesionales» en plural.
 
-El MVP contempla uno o varios barberos por barbería. Disponibilidad y cruces se calculan por barbero (`DEC-019`).
+Entidad técnica: `professional` (hasta `DEC-183`, `barber`).
+
+El MVP contempla uno o varios profesionales por negocio. Disponibilidad y cruces se calculan por profesional (`DEC-019`). El negocio también elige cómo llama a quien atiende (p. ej. «barbero», «estilista»; `DEC-110`); el valor inicial es «profesional».
 
 ### Usuario
-Persona con credenciales de acceso al área privada. En el MVP, todo usuario es un barbero o el dueño de la barbería.
+Persona con credenciales de acceso al área privada. En el MVP, todo usuario es un profesional o el dueño del negocio.
 
 Entidad técnica: `user`.
 
@@ -83,20 +85,20 @@ Entidad técnica: `attendee`.
 
 **Estado: Decisión confirmada.** Toda cita identifica expresamente a la persona atendida (regla `RN-RES-02`).
 
-> Distinción crítica: si Juan reserva para su hijo Mateo, el **cliente** es Juan (recibe la confirmación y el recordatorio) y la **persona atendida** es Mateo (es a quien el barbero espera en la silla). Confundir ambos es una de las causas de error que el producto busca eliminar.
+> Distinción crítica: si Juan reserva para su hijo Mateo, el **cliente** es Juan (recibe la confirmación y el recordatorio) y la **persona atendida** es Mateo (es a quien el profesional espera para atender). Confundir ambos es una de las causas de error que el producto busca eliminar.
 
 ### Servicio
-Trabajo que presta el barbero, con nombre, duración y precio. La duración del servicio determina cuánto espacio ocupa una cita en la agenda.
+Trabajo que presta el profesional, con nombre, duración y precio. La duración del servicio determina cuánto espacio ocupa una cita en la agenda.
 
 Entidad técnica: `service`.
 
 ### Cita
-Compromiso entre una barbería y un cliente para atender a una persona atendida, con un barbero, un servicio y un intervalo de tiempo definido.
+Compromiso entre un negocio y un cliente para atender a una persona atendida, con un profesional, un servicio y un intervalo de tiempo definido.
 
 Entidad técnica: `appointment`.
 
 ### Bloqueo
-Intervalo en el que el barbero **no** atiende, por cualquier motivo.
+Intervalo en el que el profesional **no** atiende, por cualquier motivo.
 
 Entidad técnica: `time_block`.
 
@@ -115,20 +117,20 @@ Entidad técnica: `time_block`.
 **Motivo:** los siete casos tienen el mismo comportamiento (quitan disponibilidad en un intervalo). Crear siete entidades multiplica el código sin agregar capacidad. El `kind` conserva la intención para la interfaz y para las métricas.
 
 ### Horario laboral
-Definición recurrente de los días y las franjas en que la barbería atiende normalmente. Es la base sobre la que se restan bloqueos y citas.
+Definición recurrente de los días y las franjas en que el profesional atiende normalmente. Es la base sobre la que se restan bloqueos y citas.
 
 Entidad técnica: `working_hour` (DDL-NAM-01: nombre en singular). La excepción por fecha vive en
 `working_hour_override` y `working_hour_override_segment`.
 
 ### Enlace público de reservas
-Dirección web que el barbero comparte con sus clientes y que da acceso al flujo de reserva sin necesidad de iniciar sesión. Es única por barbería, lleva el nombre del negocio más un código aleatorio, todo junto (`cortefinok7x2m9q4`, `DEC-118`) y el dueño la consulta y copia desde Configuración (`DEC-117`).
+Dirección web que el negocio comparte con sus clientes y que da acceso al flujo de reserva sin necesidad de iniciar sesión. Es única por negocio, lleva el nombre del negocio más un código aleatorio, todo junto (`cortefinok7x2m9q4`, `DEC-118`) y el dueño la consulta y copia desde Configuración (`DEC-117`).
 
 ---
 
 ## 4. Términos de disponibilidad y tiempo
 
 ### Disponibilidad
-Conjunto de horarios de inicio en los que **cabe completo** un servicio determinado, para un barbero determinado, en una fecha determinada.
+Conjunto de horarios de inicio en los que **cabe completo** un servicio determinado, para un profesional determinado, en una fecha determinada.
 
 **Estado: Decisión confirmada.** Un horario que no tiene espacio suficiente para completar el servicio **no** se muestra como disponible (regla `RN-DIS-01`).
 
@@ -162,12 +164,12 @@ Tiempo mínimo antes del inicio de la cita hasta el cual el cliente puede cancel
 
 **Estado: Decisión confirmada.** Es configurable y su valor inicial es 20 minutos (`DEC-018`, `RN-CAN-01`).
 
-Después del plazo, la configuración define si cancela solo el barbero o también el cliente y si el motivo es obligatorio (`DEC-010`, `RN-CAN-02`).
+Después del plazo, la configuración define si cancela solo el profesional o también el cliente y si el motivo es obligatorio (`DEC-010`, `RN-CAN-02`).
 
-### Zona horaria de la barbería
-Zona horaria en la que el barbero y sus clientes piensan las horas.
+### Zona horaria del negocio
+Zona horaria en la que el profesional y sus clientes piensan las horas.
 
-**Estado: Decisión confirmada** que cada barbería tiene una zona, que los instantes se almacenan inequívocamente y que la interfaz muestra la zona de la barbería (`DEC-007`, `RN-DIS-07`).
+**Estado: Decisión confirmada** que cada negocio tiene una zona, que los instantes se almacenan inequívocamente y que la interfaz muestra la zona del negocio (`DEC-007`, `RN-DIS-07`).
 
 **Estado: Suposición temporal** que la única zona del piloto sea `America/Bogota` (UTC−05:00, sin horario de verano). Ver [supuestos.md](supuestos.md), `SUP-002`.
 
@@ -178,14 +180,14 @@ Zona horaria en la que el barbero y sus clientes piensan las horas.
 Estos tres conceptos se confunden con facilidad. **No son sinónimos.**
 
 ### Cita activa
-Cita en un estado **no terminal** que sigue vigente y aparece en la agenda futura del barbero.
+Cita en un estado **no terminal** que sigue vigente y aparece en la agenda futura del profesional.
 
 En el MVP: únicamente el estado `confirmed`.
 
 > Es el sentido en el que debe leerse la regla `RN-CON-01` ("dos citas activas no pueden cruzarse").
 
 ### Cita que ocupa agenda
-Cita cuyo intervalo **impide** que se cree otra cita solapada para el mismo barbero. Es el conjunto exacto que entra en la restricción de la base de datos.
+Cita cuyo intervalo **impide** que se cree otra cita solapada para el mismo profesional. Es el conjunto exacto que entra en la restricción de la base de datos.
 
 **Estado: Decisión confirmada.** En el MVP: `confirmed`, `completed` y `no_show`.
 
@@ -223,10 +225,10 @@ Campo propuesto: `deleted_at`.
 
 **Estado: Decisión confirmada** para los bloqueos (`DEC-009`, `RN-BLQ-04`).
 
-### Aislamiento entre barberías (multi-tenancy)
-Garantía de que ninguna barbería puede leer ni modificar datos de otra.
+### Aislamiento entre negocios (multi-tenancy)
+Garantía de que ningún negocio puede leer ni modificar datos de otro.
 
-**Estado: Decisión confirmada.** PostgreSQL aplica RLS por `barbershop_id` en un esquema compartido (`DEC-024`). Ver [../05-backend/base-datos.md](../05-backend/base-datos.md).
+**Estado: Decisión confirmada.** PostgreSQL aplica RLS por `business_id` (variable de sesión `app.business_id`) en un esquema compartido (`DEC-024`). Ver [../05-backend/base-datos.md](../05-backend/base-datos.md).
 
 ### Evento de dominio
 Hecho ocurrido en el sistema que puede desencadenar consecuencias. Ejemplo: `appointment_rescheduled` (DEC-041).
@@ -256,7 +258,7 @@ Persona dueña exclusiva del código, la marca, la documentación, el diseño y 
 **Estado: Decisión confirmada.**
 
 ### Colaborador
-Barbero que aporta contactos, validación y ventas. **No adquiere propiedad alguna sobre el software ni sobre los activos del proyecto.** Puede recibir una comisión por clientes referidos, en condiciones todavía por documentar y aprobar.
+Profesional que aporta contactos, validación y ventas. **No adquiere propiedad alguna sobre el software ni sobre los activos del proyecto.** Puede recibir una comisión por clientes referidos, en condiciones todavía por documentar y aprobar.
 
 **Estado: Decisión confirmada** en cuanto a la ausencia de propiedad.
 **Estado: Decisión confirmada para el MVP:** referidos y comisiones quedan fuera. Antes del primer pago, el propietario y el colaborador acuerdan por escrito porcentaje o monto fijo (`DEC-001`, `DEC-029`).
@@ -265,7 +267,7 @@ Barbero que aporta contactos, validación y ventas. **No adquiere propiedad algu
 Primera prueba operativa del producto durante 4 semanas con 2 o 3 participantes y clientes reales (`DEC-028`).
 
 ### Uso real
-Que el barbero opere su agenda en la plataforma durante su jornada. **No** es lo mismo que interés, ni que intención de usar, ni que intención de pagar. Esta distinción es obligatoria en todos los documentos del piloto y comerciales.
+Que el profesional opere su agenda en la plataforma durante su jornada. **No** es lo mismo que interés, ni que intención de usar, ni que intención de pagar. Esta distinción es obligatoria en todos los documentos del piloto y comerciales.
 
 ---
 
@@ -302,7 +304,7 @@ Todo elemento identificable lleva un código estable. **Los códigos no se reuti
 | `RET` | Retrasos |
 | `HIS` | Historial y auditoría |
 | `REC` | Recordatorios y notificaciones |
-| `TEN` | Aislamiento entre barberías |
+| `TEN` | Aislamiento entre negocios |
 | `DAT` | Datos personales |
 | `IDE` | Idempotencia |
 | `PRO` | Propiedad del proyecto |
@@ -312,12 +314,12 @@ Todo elemento identificable lleva un código estable. **Los códigos no se reuti
 | Épica | Cubre |
 | --- | --- |
 | `AUTH` | Acceso y recuperación de cuenta |
-| `CONF` | Configuración de la barbería |
+| `CONF` | Configuración del negocio |
 | `SERV` | Servicios |
 | `HOR` | Horario laboral y bloqueos |
 | `PUB` | Flujo público de reserva |
 | `DISP` | Cálculo de disponibilidad |
-| `CITA` | Gestión de citas del barbero |
+| `CITA` | Gestión de citas del profesional |
 | `EST` | Estados y transiciones |
 | `NOT` | Notificaciones y recordatorios |
 | `SEG` | Seguridad y aislamiento |
@@ -360,7 +362,7 @@ Toda afirmación relevante debe poder clasificarse en una de estas siete etiquet
 | Prosa en español | "la cita se reprograma" | "la cita se reschedulea" |
 | Instantes con zona horaria | "2026-08-14 09:00 (America/Bogota)" | "2026-08-14 09:00" |
 | Duraciones en minutos enteros | "45 minutos" | "0,75 horas" |
-| Nunca afirmar validación inexistente | "hipótesis por validar en el piloto" | "los barberos prefieren…" |
+| Nunca afirmar validación inexistente | "hipótesis por validar en el piloto" | "los profesionales prefieren…" |
 | Nunca afirmar implementación | "se propone" / "deberá" | "el sistema hace" |
 
 ---
@@ -368,3 +370,36 @@ Toda afirmación relevante debe poder clasificarse en una de estas siete etiquet
 ## 11. Decisión de vocabulario cerrada
 
 `DEC-016` resolvió `DP-PRD-01`: “turno” es la palabra de usuario y “cita” el nombre técnico estable. No quedan dudas de nomenclatura abiertas.
+
+---
+
+## 12. Equivalencias de Nava Agenda (`DEC-183`)
+
+`DEC-183` cambió el nombre del producto, su vocabulario y los nombres técnicos. La documentación vigente usa la columna «Ahora». Las decisiones, el historial de cambios, los prompts ya ejecutados, la evidencia y las migraciones aplicadas conservan los términos de su fecha: léanse con esta tabla.
+
+| Antes | Ahora | Dónde |
+| --- | --- | --- |
+| NAVA (agenda para barberías) | **Nava Agenda** (agenda para cualquier negocio) | Marca del producto; el logotipo `NAVA` no cambia |
+| barbería | **negocio** | Prosa, interfaz y documentación |
+| barbero / barberos | **profesional** / **profesionales** | Prosa, interfaz y documentación |
+| barbero independiente | **profesional independiente** | Perfil del panel (`DEC-115`) |
+| `barbershop` | `business` | Tabla y entidad técnica |
+| `barber` | `professional` | Tabla y entidad técnica |
+| `barber_service`, `barber_photo`, `barber_review`, `barber_booking_policy`, `barbershop_opening_hour` | `professional_service`, `professional_photo`, `professional_review`, `professional_booking_policy`, `business_opening_hour` | Tablas derivadas |
+| `barbershop_id`, `barber_id` | `business_id`, `professional_id` | Columnas, restricciones e índices |
+| `app.barbershop_id` | `app.business_id` | Variable de sesión que fija el tenant para RLS |
+| `public_resolve_barbershop_by_slug` | `public_resolve_business_by_slug` | Función `SECURITY DEFINER` |
+| `barberia_owner`, `barberia_migrator`, `barberia_app`, `barberia_worker`, `barberia_backup` | `agenda_owner`, `agenda_migrator`, `agenda_app`, `agenda_worker`, `agenda_backup` | Roles de PostgreSQL (`database/roles/rename_to_agenda.sql`) |
+| `cancelled_by_barber`, `appointment_cancelled_by_barber` | `cancelled_by_professional`, `appointment_cancelled_by_professional` | Estado de la cita y evento de historial |
+| `/public/barbershops/{slug}/…` | `/public/businesses/{slug}/…` | Rutas HTTP públicas |
+| `…/barbers`, `/private/barbers…`, `/private/me/barber` | `…/professionals`, `/private/professionals…`, `/private/me/professional` | Rutas HTTP |
+| `/private/settings/barbershop` | `/private/settings/business` | Ruta HTTP de Configuración |
+| `/integrations/odin/barbershops/{slug}/…` | `/integrations/odin/businesses/{slug}/…` | Integración de Odin; la forma vieja queda como alias deprecado hasta que Odin migre |
+| `barberId`, `barberName`, `barbershopId`… | `professionalId`, `professionalName`, `businessId`… | Campos JSON (detalle en `api/openapi/CHANGELOG.md`, 1.0.0) |
+| `/panel/barberia`, `/panel/barberos`, `/panel/servicios-por-barbero` | `/panel/negocio`, `/panel/profesionales`, `/panel/servicios-por-profesional` | Rutas del panel; las viejas redirigen |
+| `/reservar/:slug/servicios/:serviceId/barbero/…` | `/reservar/:slug/servicios/:serviceId/profesional/…` | Pasos de la reserva pública; los viejos redirigen |
+| cookie `barberia_session` | cookie `nava_agenda_session` | Sesión; el API acepta la vieja si falta la nueva (OpenAPI 1.1.0) |
+| módulo Go `system-barbershop` | módulo Go `nava-agenda` | `apps/api/go.mod` |
+| `nava.wtf` (app y landing) | `agenda.nava.wtf` (app y API); `nava.wtf` (landing de la familia NAVA, repositorio `bcaceres19/nava`) | Dominios |
+
+Lo que **no** cambia: el nombre propio de cada negocio (p. ej. «Vibras Barbería»), las palabras que un negocio elige para sí («barbería», «barbero»; `DEC-110`), las plantillas de WhatsApp aprobadas por Meta y los nombres de archivo de las migraciones aplicadas. El repositorio de GitHub, Jenkins, las imágenes y la ruta del servidor cambian en el issue #664.
