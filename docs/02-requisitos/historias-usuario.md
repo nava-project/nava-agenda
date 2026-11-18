@@ -1,9 +1,9 @@
 ---
 titulo: "Historias de usuario y criterios de aceptación"
-version: "1.65"
+version: "1.66"
 estado: "Propuesta"
 responsable: "Propietario del proyecto"
-ultima_actualizacion: "2026-11-17"
+ultima_actualizacion: "2026-11-18"
 documentos_relacionados:
   - "../01-producto/alcance-mvp.md"
   - "../01-producto/reglas-negocio.md"
@@ -16,6 +16,8 @@ documentos_relacionados:
 ---
 
 # Historias de usuario y criterios de aceptación
+
+> **Nava Agenda (`DEC-183`).** El producto sirve a cualquier negocio que agenda citas: estas historias hablan de **negocio** y **profesional**, y citan las tablas, rutas y archivos con sus nombres actuales. Las equivalencias con los nombres anteriores están en el [glosario](../00-control/glosario.md); las ramas, issues y PR enlazados conservan su nombre original.
 
 > **Estado del contenido: Propuesta.** Estas historias **derivan** de funciones P0 y reglas confirmadas; no crean alcance por sí solas y requieren aprobación antes de implementarse. B0, `HU-020`–`HU-024` y `HU-040`–`HU-042` ya están integradas en `main`. Las dudas históricas de B0 quedaron resueltas por `DEC-050`–`DEC-066`; `DP-SER-01`–`DP-SER-03` del lote de B1 quedaron resueltas por `DEC-067`–`DEC-069`; `CT-008` del lote de B2 quedó resuelta por `DEC-070`. Los issues [#90](https://github.com/bcaceres19/barberia/issues/90), [#95](https://github.com/bcaceres19/barberia/issues/95), [#98](https://github.com/bcaceres19/barberia/issues/98) y [#100](https://github.com/bcaceres19/barberia/issues/100) conservan seguimientos visuales/E2E parciales de B2; el de `HU-042` (#100) quedó completo el 2026-10-08. `HU-060`–`HU-062` están integradas en `main` mediante [PR #105](https://github.com/bcaceres19/barberia/pull/105), [PR #109](https://github.com/bcaceres19/barberia/pull/109) y [PR #113](https://github.com/bcaceres19/barberia/pull/113); `DP-CIT-01`–`DP-CIT-05` quedaron resueltas por `DEC-071`–`DEC-075`. `HU-063` (navegación de la agenda por fecha) tiene issue real [#116](https://github.com/bcaceres19/barberia/issues/116) y está implementada en `feat/116-hu063-navegacion-agenda`, integrada en `main` mediante [PR #118](https://github.com/bcaceres19/barberia/pull/118). `HU-064` (detalle e historial) tiene issue real [#120](https://github.com/bcaceres19/barberia/issues/120) e integrada en `main` mediante [PR #121](https://github.com/bcaceres19/barberia/pull/121). `DP-CIT-06` quedó resuelta el 2026-09-01 como `DEC-076` (bloqueo duro frente a un intervalo bloqueado, mismo tratamiento que un cruce de citas); `HU-065` (reprogramación T2) está implementada contra el issue real [#123](https://github.com/bcaceres19/barberia/issues/123), integrada en `main` mediante [PR #125](https://github.com/bcaceres19/barberia/pull/125).
 
@@ -49,7 +51,7 @@ La secuencia de bloques vive en [plan-bloques.md](../10-backlog/plan-bloques.md)
 | Bloque | Historias | Estado |
 | --- | --- | --- |
 | B0 · Cimientos, seguridad y primeras pantallas | `HU-001` – `HU-012` | Redactadas en este documento |
-| B1 · Identidad de la barbería y catálogo | `HU-020` – `HU-025` | `HU-020`–`HU-024` integradas en `main` ([PR #79](https://github.com/bcaceres19/barberia/pull/79), [PR #83](https://github.com/bcaceres19/barberia/pull/83), [PR #84](https://github.com/bcaceres19/barberia/pull/84)); `HU-025` implementada contra el issue [#292](https://github.com/bcaceres19/barberia/issues/292) (`DEC-110`) |
+| B1 · Identidad del negocio y catálogo | `HU-020` – `HU-025` | `HU-020`–`HU-024` integradas en `main` ([PR #79](https://github.com/bcaceres19/barberia/pull/79), [PR #83](https://github.com/bcaceres19/barberia/pull/83), [PR #84](https://github.com/bcaceres19/barberia/pull/84)); `HU-025` implementada contra el issue [#292](https://github.com/bcaceres19/barberia/issues/292) (`DEC-110`) |
 | B2 · Horario laboral y bloqueos | `HU-040` – `HU-042` | Integradas en `main` ([PR #93](https://github.com/bcaceres19/barberia/pull/93), [PR #96](https://github.com/bcaceres19/barberia/pull/96), [PR #99](https://github.com/bcaceres19/barberia/pull/99)); seguimientos parciales en `#90`, `#95`, `#98` y `#100` |
 | B3 · Agenda, estados e integridad | `HU-060` – `HU-068` | `HU-060`–`HU-068` integradas en `main`, issues reales [#225](https://github.com/bcaceres19/barberia/issues/225)–[#227](https://github.com/bcaceres19/barberia/issues/227); tercer lote de B3 completo, T3/cierre automático pendientes |
 | B4 · Reserva pública y disponibilidad | `HU-090` – `HU-106` | `HU-090`–`HU-099` redactadas como propuesta en issue [#240](https://github.com/bcaceres19/barberia/issues/240), `DP-PUB-01`–`DP-PUB-06`/`CT-011` resueltas; `HU-100`–`HU-103` (reseñas internas, reseñas de Google, ubicación y domicilio) redactadas el 2026-10-26 (`DEC-128`–`DEC-131`), sin issue real todavía; `HU-104`–`HU-105` (reprogramación por el cliente) redactadas el 2026-11-17 (`DEC-178`, issues [#636](https://github.com/bcaceres19/barberia/issues/636) y [#637](https://github.com/bcaceres19/barberia/issues/637)); `HU-106` (enlace de Odin para cancelar o reprogramar, `DEC-179`, issue [#645](https://github.com/bcaceres19/barberia/issues/645)) |
@@ -66,7 +68,7 @@ La base transversal de experiencia (`HU-009`) se adelanta a las pantallas para c
 
 ---
 
-### HU-001 · Esquema inicial con aislamiento por barbería
+### HU-001 · Esquema inicial con aislamiento por negocio
 
 | Campo | Valor |
 | --- | --- |
@@ -76,18 +78,18 @@ La base transversal de experiencia (`HU-009`) se adelanta a las pantallas para c
 | Actor | Propietario (operación) |
 | Depende de | — |
 | Bloquea | `HU-002` y todas las posteriores |
-| Riesgo | Un aislamiento débil expone datos de una barbería a otra. Es uno de los cuatro umbrales absolutos del piloto y no admite corrección posterior barata. |
+| Riesgo | Un aislamiento débil expone datos de un negocio a otro. Es uno de los cuatro umbrales absolutos del piloto y no admite corrección posterior barata. |
 
 **Historia**
 
-> Como propietario del sistema, necesito que la base de datos nazca con `barbershop_id` obligatorio, RLS activa y un rol de aplicación sin privilegios de omisión, para que ninguna barbería pueda leer ni modificar datos de otra aunque la aplicación tenga un defecto.
+> Como propietario del sistema, necesito que la base de datos nazca con `business_id` obligatorio, RLS activa y un rol de aplicación sin privilegios de omisión, para que ningún negocio pueda leer ni modificar datos de otra aunque la aplicación tenga un defecto.
 
 **Alcance incluido**
 
-- Migración inicial administrada con Atlas: extensiones necesarias, tabla `barbershop` y tabla de usuarios del área privada, ambas con clave primaria, `created_at`/`updated_at` con zona horaria y las restricciones de integridad correspondientes.
+- Migración inicial administrada con Atlas: extensiones necesarias, tabla `business` y tabla de usuarios del área privada, ambas con clave primaria, `created_at`/`updated_at` con zona horaria y las restricciones de integridad correspondientes.
 - Roles de base de datos separados: rol migrador (propietario de objetos) y rol de aplicación **sin** `BYPASSRLS` y sin propiedad sobre las tablas.
-- `ENABLE ROW LEVEL SECURITY` y `FORCE ROW LEVEL SECURITY` en toda tabla con datos de una barbería, con política de lectura y escritura contra `current_setting('app.barbershop_id')`.
-- Datos de prueba en `database/testdata/` con **dos** barberías y usuarios propios de cada una.
+- `ENABLE ROW LEVEL SECURITY` y `FORCE ROW LEVEL SECURITY` en toda tabla con datos de un negocio, con política de lectura y escritura contra `current_setting('app.business_id')`.
+- Datos de prueba en `database/testdata/` con **dos** negocios y usuarios propios de cada uno.
 - Pruebas SQL en `database/tests/` que demuestran el aislamiento.
 
 **Alcance excluido**
@@ -99,9 +101,9 @@ La base transversal de experiencia (`HU-009`) se adelanta a las pantallas para c
 
 | Código | Criterio |
 | --- | --- |
-| `CA-001-01` | Dado el rol de aplicación y el contexto de la barbería A fijado en la transacción, cuando se consulta la tabla de usuarios, entonces solo se devuelven filas de A y ninguna de B. |
-| `CA-001-02` | Dado el rol de aplicación con contexto de A, cuando se intenta insertar o actualizar una fila con `barbershop_id` de B, entonces la operación es rechazada por la política `WITH CHECK`. |
-| `CA-001-03` | Dada una transacción sin `app.barbershop_id` fijado, cuando se consulta cualquier tabla protegida, entonces no se devuelve ninguna fila y la operación falla de forma explícita, nunca devolviendo el conjunto completo. |
+| `CA-001-01` | Dado el rol de aplicación y el contexto del negocio A fijado en la transacción, cuando se consulta la tabla de usuarios, entonces solo se devuelven filas de A y ninguna de B. |
+| `CA-001-02` | Dado el rol de aplicación con contexto de A, cuando se intenta insertar o actualizar una fila con `business_id` de B, entonces la operación es rechazada por la política `WITH CHECK`. |
+| `CA-001-03` | Dada una transacción sin `app.business_id` fijado, cuando se consulta cualquier tabla protegida, entonces no se devuelve ninguna fila y la operación falla de forma explícita, nunca devolviendo el conjunto completo. |
 | `CA-001-04` | Dado el rol de aplicación, cuando se consultan sus atributos en el catálogo de PostgreSQL, entonces no posee `BYPASSRLS` ni es propietario de las tablas. |
 | `CA-001-05` | Dada una base de datos vacía, cuando se aplica la migración con Atlas, entonces el resultado es idéntico al de aplicarla dos veces sobre la misma base y `atlas.sum` queda versionado y válido. |
 | `CA-001-06` | Toda columna de instante almacena zona horaria; ninguna columna temporal usa un tipo sin zona. |
@@ -109,7 +111,7 @@ La base transversal de experiencia (`HU-009`) se adelanta a las pantallas para c
 
 **Pruebas obligatorias**
 
-- Integración con PostgreSQL real y dos barberías, conforme a `estrategia-pruebas.md` sección 4.4 y 6.
+- Integración con PostgreSQL real y dos negocios, conforme a `estrategia-pruebas.md` sección 4.4 y 6.
 - Prueba negativa de escritura cruzada y prueba de ausencia de contexto.
 - Validación Atlas: `migrate lint`, `migrate validate` y aplicación sobre base vacía.
 
@@ -117,7 +119,7 @@ La base transversal de experiencia (`HU-009`) se adelanta a las pantallas para c
 
 ---
 
-### HU-002 · Contexto de barbería en cada solicitud autenticada
+### HU-002 · Contexto de negocio en cada solicitud autenticada
 
 | Campo | Valor |
 | --- | --- |
@@ -127,38 +129,38 @@ La base transversal de experiencia (`HU-009`) se adelanta a las pantallas para c
 | Actor | Propietario (operación) |
 | Depende de | `HU-001` |
 | Bloquea | `HU-003`, `HU-005` |
-| Riesgo | Una conexión reutilizada con el contexto de otra barbería produce exactamente la fuga que `HU-001` intentaba impedir. |
+| Riesgo | Una conexión reutilizada con el contexto de otro negocio produce exactamente la fuga que `HU-001` intentaba impedir. |
 
 **Historia**
 
-> Como propietario del sistema, necesito que toda operación de datos ocurra dentro de una transacción con el identificador de barbería fijado con alcance local, para que las políticas de la base de datos tengan siempre un contexto correcto y nunca uno heredado.
+> Como propietario del sistema, necesito que toda operación de datos ocurra dentro de una transacción con el identificador de negocio fijado con alcance local, para que las políticas de la base de datos tengan siempre un contexto correcto y nunca uno heredado.
 
 **Alcance incluido**
 
-- Paquete de acceso a datos en `apps/api/internal/platform/database`: pool, apertura de transacción y fijación de `app.barbershop_id` con alcance de transacción.
+- Paquete de acceso a datos en `apps/api/internal/platform/database`: pool, apertura de transacción y fijación de `app.business_id` con alcance de transacción.
 - Un único punto autorizado para ejecutar trabajo tenant-aware; ninguna utilidad permite omitir el contexto.
 - Comprobación de salud que verifica conectividad sin exponer credenciales ni versiones internas.
-- Prueba con dos barberías ejecutadas de forma concurrente sobre el mismo pool.
+- Prueba con dos negocios ejecutados de forma concurrente sobre el mismo pool.
 
 **Alcance excluido**
 
-- Autenticación y sesión (`HU-005`): en esta historia el identificador de barbería llega desde el llamador, y las pruebas lo inyectan directamente.
+- Autenticación y sesión (`HU-005`): en esta historia el identificador de negocio llega desde el llamador, y las pruebas lo inyectan directamente.
 
 **Criterios de aceptación**
 
 | Código | Criterio |
 | --- | --- |
-| `CA-002-01` | Dada una operación de datos, cuando se ejecuta, entonces siempre ocurre dentro de una transacción con `app.barbershop_id` fijado con alcance local a esa transacción. |
-| `CA-002-02` | Dadas dos operaciones concurrentes de barberías distintas sobre el mismo pool, cuando ambas terminan, entonces ninguna observó filas de la otra. |
+| `CA-002-01` | Dada una operación de datos, cuando se ejecuta, entonces siempre ocurre dentro de una transacción con `app.business_id` fijado con alcance local a esa transacción. |
+| `CA-002-02` | Dadas dos operaciones concurrentes de negocios distintos sobre el mismo pool, cuando ambas terminan, entonces ninguna observó filas de la otra. |
 | `CA-002-03` | Al terminar la transacción, el valor de contexto no persiste en la conexión devuelta al pool, verificado leyendo el ajuste en una operación posterior. |
-| `CA-002-04` | No existe ninguna función exportada que ejecute consultas de negocio sin recibir el contexto de barbería. |
+| `CA-002-04` | No existe ninguna función exportada que ejecute consultas de negocio sin recibir el contexto de negocio. |
 | `CA-002-05` | Un fallo al fijar el contexto aborta la operación; nunca continúa con contexto vacío. |
 | `CA-002-06` | El dominio y los servicios no importan el paquete de base de datos ni tipos del controlador de PostgreSQL. |
 
 **Pruebas obligatorias**
 
 - Unitarias de dirección de dependencias (el dominio no compila contra el paquete de datos).
-- Integración concurrente con dos barberías y verificación de residuo de contexto.
+- Integración concurrente con dos negocios y verificación de residuo de contexto.
 
 **Terminado cuando** existe una prueba que falla si alguien agrega una consulta sin contexto, y `apps/api/README.md` documenta el patrón obligatorio.
 
@@ -171,14 +173,14 @@ La base transversal de experiencia (`HU-009`) se adelanta a las pantallas para c
 | Función | `F-OPS-01`, `F-OPS-04` |
 | Reglas | `RN-DAT-02`, `RN-TEN-01` |
 | Decisiones | `DEC-034`, `DEC-037` |
-| Actor | Barbero (recibe mensajes claros), propietario (diagnostica) |
+| Actor | Profesional (recibe mensajes claros), propietario (diagnostica) |
 | Depende de | `HU-002` |
 | Bloquea | `HU-004`, `HU-005`, `HU-007`, `HU-008` |
 | Riesgo | Si cada endpoint inventa su formato de error, el frontend acumula casos especiales y el soporte pierde trazabilidad. Si un log lleva un teléfono, se incumple un umbral absoluto del piloto. |
 
 **Historia**
 
-> Como barbero, quiero que cuando algo falle reciba una explicación clara y consistente en vez de un error técnico, y como propietario necesito poder rastrear esa falla en los registros sin que allí aparezca ni un solo dato personal.
+> Como profesional, quiero que cuando algo falle reciba una explicación clara y consistente en vez de un error técnico, y como propietario necesito poder rastrear esa falla en los registros sin que allí aparezca ni un solo dato personal.
 
 **Alcance incluido**
 
@@ -187,7 +189,7 @@ La base transversal de experiencia (`HU-009`) se adelanta a las pantallas para c
 - Respuesta de error uniforme RFC 9457 (`application/problem+json`) con `type`, `title`, `status`, `detail`, `instance` e identificador de correlación.
 - Identificador de solicitud propagado a la respuesta y a cada línea de registro.
 - Registro estructurado con nivel configurable, sin nombre, teléfono, correo, contraseña, token ni contenido de mensajes; los identificadores se registran como referencias opacas.
-- Respuesta `404` —no `403`— ante un recurso de otra barbería.
+- Respuesta `404` —no `403`— ante un recurso de otro negocio.
 - Los componentes de error, cabeceras y ejemplos correspondientes en `api/openapi/`, con `openapi:lint` y `openapi:bundle` en verde.
 
 **Criterios de aceptación**
@@ -196,7 +198,7 @@ La base transversal de experiencia (`HU-009`) se adelanta a las pantallas para c
 | --- | --- |
 | `CA-003-01` | Toda respuesta de error del API usa `application/problem+json` con los campos obligatorios y un identificador de correlación presente también en la cabecera de respuesta. |
 | `CA-003-02` | Ningún mensaje de error expuesto contiene nombres de excepciones, rutas de archivo, consultas SQL, nombres de proveedores ni versiones de dependencias. |
-| `CA-003-03` | Dado un recurso existente de otra barbería, cuando se solicita con una sesión válida de la barbería propia, entonces la respuesta es `404` y el cuerpo no revela que el recurso existe. |
+| `CA-003-03` | Dado un recurso existente de otro negocio, cuando se solicita con una sesión válida del negocio propio, entonces la respuesta es `404` y el cuerpo no revela que el recurso existe. |
 | `CA-003-04` | Ejecutado un recorrido completo de solicitudes válidas y fallidas, la revisión de los registros producidos no encuentra ningún dato personal ni secreto. |
 | `CA-003-05` | Un pánico en un handler produce `500` con el formato uniforme, deja registro con el identificador de correlación y no derriba el proceso. |
 | `CA-003-06` | El documento OpenAPI pasa lint y bundle, y cada respuesta de error declarada tiene ejemplo. |
@@ -219,7 +221,7 @@ La base transversal de experiencia (`HU-009`) se adelanta a las pantallas para c
 | Función | `F-OPS-02`, `F-OPS-03` |
 | Reglas | `RN-IDE-01` |
 | Decisiones | `DEC-035`, `DEC-037` |
-| Actor | Cliente y barbero (indirectamente) |
+| Actor | Cliente y profesional (indirectamente) |
 | Depende de | `HU-003` |
 | Bloquea | `HU-060` y siguientes (creación de citas) |
 | Riesgo | Sin este mecanismo listo antes de la primera escritura crítica, el doble toque produce dos turnos y el piloto pierde credibilidad en su primer día. |
@@ -230,7 +232,7 @@ La base transversal de experiencia (`HU-009`) se adelanta a las pantallas para c
 
 **Alcance incluido**
 
-- Migración con la tabla de claves de idempotencia (`idempotency_record`), con `barbershop_id`, clave, huella del contenido, resultado almacenado, estado y vencimiento; RLS activa igual que el resto.
+- Migración con la tabla de claves de idempotencia (`idempotency_record`), con `business_id`, clave, huella del contenido, resultado almacenado, estado y vencimiento; RLS activa igual que el resto.
 - Middleware o servicio reutilizable que interpreta la cabecera `Idempotency-Key`.
 - Semántica: misma clave y mismo contenido devuelve el resultado original sin repetir efectos; misma clave con contenido distinto responde `409`; solicitudes concurrentes con la misma clave no ejecutan el efecto dos veces.
 - Declaración de la cabecera y sus respuestas en `api/openapi/`.
@@ -243,43 +245,43 @@ La base transversal de experiencia (`HU-009`) se adelanta a las pantallas para c
 | `CA-004-01` | Dada una operación ejecutada con éxito con la clave K, cuando se repite con la misma clave y el mismo contenido, entonces se devuelve el resultado original sin ejecutar el efecto de nuevo. |
 | `CA-004-02` | Dada la clave K ya usada, cuando llega otra solicitud con la misma clave y contenido distinto, entonces la respuesta es `409` y no se ejecuta ningún efecto. |
 | `CA-004-03` | Dadas dos solicitudes simultáneas con la misma clave, cuando ambas terminan, entonces el efecto ocurrió exactamente una vez y ambas respuestas son coherentes entre sí. |
-| `CA-004-04` | Los registros de idempotencia respetan el aislamiento por barbería: una clave de A no interfiere con la misma clave literal en B. |
+| `CA-004-04` | Los registros de idempotencia respetan el aislamiento por negocio: una clave de A no interfiere con la misma clave literal en B. |
 | `CA-004-05` | Un registro vencido no revive una respuesta antigua; la operación se evalúa de nuevo. |
 | `CA-004-06` | Una operación fallida no deja una clave que impida reintentar legítimamente. |
 
 **Pruebas obligatorias**
 
-- Integración con PostgreSQL: repetición exacta, repetición divergente, concurrencia real con `-race`, vencimiento y dos barberías.
+- Integración con PostgreSQL: repetición exacta, repetición divergente, concurrencia real con `-race`, vencimiento y dos negocios.
 
 **Terminado cuando** el mecanismo está documentado en `apps/api/README.md` como obligatorio para toda operación de escritura crítica futura.
 
 ---
 
-### HU-005 · Inicio de sesión del barbero con correo y contraseña
+### HU-005 · Inicio de sesión del profesional con correo y contraseña
 
 | Campo | Valor |
 | --- | --- |
 | Función | `F-AUTH-01` |
 | Reglas | `RN-TEN-01`, `RN-DAT-02` |
 | Decisiones | `DEC-026`, `DEC-050`, `DEC-055`, `DEC-057`, `DEC-058` |
-| Actor | Barbero |
+| Actor | Profesional |
 | Depende de | `HU-002`, `HU-003` |
 | Bloquea | `HU-006`, `HU-007`, `HU-010`, `HU-012` |
 | Riesgo | Es la puerta de todo el área privada: un defecto aquí compromete todos los datos del sistema. |
 
 **Historia**
 
-> Como barbero, quiero entrar a mi agenda con mi correo y mi contraseña, para empezar a trabajar sin recordar códigos ni instalar nada.
+> Como profesional, quiero entrar a mi agenda con mi correo y mi contraseña, para empezar a trabajar sin recordar códigos ni instalar nada.
 
 > **Bloqueo resuelto:** `DEC-026` confirmaba "correo, contraseña y sesión larga" sin fijar el mecanismo de sesión ni su duración exacta. `DP-SEG-04` quedó resuelta el 2026-08-11 como `DEC-050`: cookie `HttpOnly`+`Secure`+`SameSite` con token opaco revocable en `staff_session`, 30 días con renovación por uso.
 
 > **Bloqueo resuelto:** `CT-003` señalaba que declarar el login bajo `/api/v1/private` lo volvía circular, porque ese prefijo exige sesión previa. Quedó resuelta el 2026-08-13 como `DEC-055`: el login se mueve a `/api/v1/public/auth/login`, la única operación pública del módulo `auth`.
 
-> **Bloqueo resuelto:** al implementar esta historia (issue `#44`) aparecieron dos vacíos nuevos. `DP-SEG-07` (atributos exactos de la cookie) quedó resuelta como `DEC-057`: `barberia_session`, `Path=/api/v1`, `SameSite=Lax`, sin `Domain`, 30 días. `DP-SEG-08` (`CA-005-05` exige un endpoint privado real que todavía no existe) quedó resuelta como `DEC-058`: el criterio se divide entre esta historia (aislamiento a nivel PostgreSQL/RLS) y `HU-006` (verificación end-to-end, nuevo `CA-006-07`).
+> **Bloqueo resuelto:** al implementar esta historia (issue `#44`) aparecieron dos vacíos nuevos. `DP-SEG-07` (atributos exactos de la cookie) quedó resuelta como `DEC-057`: `barberia_session` (hoy `nava_agenda_session`, `DEC-183`), `Path=/api/v1`, `SameSite=Lax`, sin `Domain`, 30 días. `DP-SEG-08` (`CA-005-05` exige un endpoint privado real que todavía no existe) quedó resuelta como `DEC-058`: el criterio se divide entre esta historia (aislamiento a nivel PostgreSQL/RLS) y `HU-006` (verificación end-to-end, nuevo `CA-006-07`).
 
 **Alcance incluido**
 
-- Migración con la tabla de credenciales y la de sesiones, ambas con `barbershop_id` y RLS.
+- Migración con la tabla de credenciales y la de sesiones, ambas con `business_id` y RLS.
 - Almacenamiento de contraseña con función de derivación resistente a fuerza bruta y parámetros documentados; nunca cifrado reversible ni hash simple.
 - Operación de inicio de sesión en `/api/v1/public/auth/login` declarada primero en OpenAPI (`DEC-055`).
 - Respuesta uniforme ante credenciales inválidas y ante correo inexistente: **el mismo mensaje y el mismo tiempo de respuesta**, para no revelar qué correos existen.
@@ -289,18 +291,18 @@ La base transversal de experiencia (`HU-009`) se adelanta a las pantallas para c
 
 | Código | Criterio |
 | --- | --- |
-| `CA-005-01` | Dadas credenciales válidas, cuando el barbero inicia sesión, entonces obtiene una sesión asociada a su barbería y a su usuario; el contexto de esa barbería queda probado a nivel de PostgreSQL/RLS en esta historia, y la verificación end-to-end contra solicitudes privadas reales se confirma en `CA-006-07` de `HU-006` (`DEC-058`). |
+| `CA-005-01` | Dadas credenciales válidas, cuando el profesional inicia sesión, entonces obtiene una sesión asociada a su negocio y a su usuario; el contexto de ese negocio queda probado a nivel de PostgreSQL/RLS en esta historia, y la verificación end-to-end contra solicitudes privadas reales se confirma en `CA-006-07` de `HU-006` (`DEC-058`). |
 | `CA-005-02` | Dado un correo inexistente y dado un correo existente con contraseña incorrecta, entonces ambas respuestas son indistinguibles en cuerpo, código y tiempo perceptible. |
 | `CA-005-03` | La contraseña se almacena mediante derivación de clave con sal única por usuario; la base de datos no contiene ninguna contraseña legible ni reversible. |
 | `CA-005-04` | Ni la contraseña, ni el correo, ni el material de sesión aparecen en registros, mensajes de error o respuestas. |
-| `CA-005-05` | Una sesión emitida para la barbería A no habilita ninguna operación sobre datos de B; en esta historia se prueba con aislamiento real de `staff_session`/`staff_credential` a nivel PostgreSQL/RLS con dos tenants, ya que `HU-005` no depende de ningún endpoint privado real. La verificación end-to-end contra una operación privada real (logout) se confirma en `CA-006-07` de `HU-006` (`DEC-058`). |
+| `CA-005-05` | Una sesión emitida para el negocio A no habilita ninguna operación sobre datos de B; en esta historia se prueba con aislamiento real de `staff_session`/`staff_credential` a nivel PostgreSQL/RLS con dos tenants, ya que `HU-005` no depende de ningún endpoint privado real. La verificación end-to-end contra una operación privada real (logout) se confirma en `CA-006-07` de `HU-006` (`DEC-058`). |
 | `CA-005-06` | La operación está declarada en OpenAPI con su esquema, sus errores y sus ejemplos antes de existir el handler. |
 | `CA-005-07` | Un usuario desactivado o eliminado no puede iniciar sesión ni conservar sesiones vigentes. |
 
 **Pruebas obligatorias**
 
 - Unitarias del servicio de autenticación (verificación, normalización del correo, usuario inactivo).
-- Integración HTTP: éxito, credenciales inválidas, correo inexistente, aislamiento entre barberías.
+- Integración HTTP: éxito, credenciales inválidas, correo inexistente, aislamiento entre negocios.
 - Prueba de que el hash almacenado cambia con la misma contraseña en dos usuarios distintos.
 
 **Terminado cuando** el contrato está publicado y todas las pruebas anteriores pasan.
@@ -314,14 +316,14 @@ La base transversal de experiencia (`HU-009`) se adelanta a las pantallas para c
 | Función | `F-AUTH-01` |
 | Reglas | `RN-TEN-01` |
 | Decisiones | `DEC-026`, `DEC-050`, `DEC-055`, `DEC-058` |
-| Actor | Barbero |
+| Actor | Profesional |
 | Depende de | `HU-005` |
 | Bloquea | `HU-012` |
 | Riesgo | Una sesión que no se puede revocar convierte cualquier dispositivo perdido en un acceso permanente a los datos de los clientes. |
 
 **Historia**
 
-> Como barbero, quiero seguir dentro de la aplicación al día siguiente sin volver a escribir mi contraseña, y quiero poder cerrar sesión y que ese cierre sea inmediato y real.
+> Como profesional, quiero seguir dentro de la aplicación al día siguiente sin volver a escribir mi contraseña, y quiero poder cerrar sesión y que ese cierre sea inmediato y real.
 
 > **Bloqueo resuelto:** `CT-003` dejaba en duda si `CA-006-04` exigía una excepción para el login. Quedó resuelta el 2026-08-13 como `DEC-055`: el login vive en `/api/v1/public/auth/login`, fuera de `/api/v1/private`, así que `CA-006-04` no necesita ninguna excepción.
 
@@ -338,13 +340,13 @@ La base transversal de experiencia (`HU-009`) se adelanta a las pantallas para c
 
 | Código | Criterio |
 | --- | --- |
-| `CA-006-01` | Dada una sesión iniciada, cuando el navegador se cierra y se vuelve a abrir dentro de la vigencia, entonces el barbero sigue autenticado sin volver a escribir la contraseña. |
+| `CA-006-01` | Dada una sesión iniciada, cuando el navegador se cierra y se vuelve a abrir dentro de la vigencia, entonces el profesional sigue autenticado sin volver a escribir la contraseña. |
 | `CA-006-02` | Dado un cierre de sesión, cuando se reutiliza el material de sesión anterior, entonces la respuesta es de no autorizado y ninguna operación se ejecuta. |
 | `CA-006-03` | Una sesión vencida no se renueva sola; exige un nuevo inicio de sesión. |
 | `CA-006-04` | Toda ruta bajo `/api/v1/private` exige sesión válida; una ruta nueva sin protección explícita hace fallar una prueba. |
 | `CA-006-05` | El material de sesión no es adivinable, no se registra y no viaja en la URL. |
-| `CA-006-06` | Cerrar sesión en un dispositivo no invalida las sesiones de otros dispositivos, salvo que el barbero lo solicite explícitamente si esa opción se implementa. |
-| `CA-006-07` | Una sesión emitida para la barbería A nunca ejecuta el logout (ni ninguna otra operación privada real) sobre datos de la barbería B, verificado end-to-end contra el endpoint real (`DEC-058`, completa `CA-005-05` de `HU-005`). |
+| `CA-006-06` | Cerrar sesión en un dispositivo no invalida las sesiones de otros dispositivos, salvo que el profesional lo solicite explícitamente si esa opción se implementa. |
+| `CA-006-07` | Una sesión emitida para el negocio A nunca ejecuta el logout (ni ninguna otra operación privada real) sobre datos del negocio B, verificado end-to-end contra el endpoint real (`DEC-058`, completa `CA-005-05` de `HU-005`). |
 
 **Pruebas obligatorias**
 
@@ -363,14 +365,14 @@ La base transversal de experiencia (`HU-009`) se adelanta a las pantallas para c
 | Función | `F-SEG-03` |
 | Reglas | `RN-DAT-02` |
 | Decisiones | `DEC-026`, `DEC-052`, `DEC-061`, `DEC-062`, `DEC-081`, `DEC-139` |
-| Actor | Propietario (protege), barbero (afectado si se excede) |
+| Actor | Propietario (protege), profesional (afectado si se excede) |
 | Depende de | `HU-003`, `HU-005` |
 | Bloquea | — |
-| Riesgo | Sin límite, un ataque automatizado prueba miles de contraseñas; con un límite mal calibrado, el barbero legítimo queda fuera en plena jornada. |
+| Riesgo | Sin límite, un ataque automatizado prueba miles de contraseñas; con un límite mal calibrado, el profesional legítimo queda fuera en plena jornada. |
 
 **Historia**
 
-> Como propietario del sistema, necesito que el formulario de acceso limite los intentos por IP y exija una prueba adicional cuando se supera el umbral, para frenar el abuso sin castigar al barbero que se equivocó dos veces.
+> Como propietario del sistema, necesito que el formulario de acceso limite los intentos por IP y exija una prueba adicional cuando se supera el umbral, para frenar el abuso sin castigar al profesional que se equivocó dos veces.
 
 > **Bloqueo resuelto:** `DEC-026` fijaba el umbral inicial de **5 solicitudes por IP** sin la duración de la ventana ni la del escalamiento. `DP-SEG-06` quedó resuelta el 2026-08-11 como `DEC-052`: ventana de 15 minutos, escalamiento a verificación adicional de 24 horas. `CT-005` y `DP-SEG-10` quedaron resueltas el 2026-08-17 como `DEC-061`/`DEC-062`: las cinco primeras solicitudes se evalúan con normalidad y la sexta exige completar un código de 6 dígitos, 5 min y 5 intentos antes de evaluar la contraseña. `DEC-081` sustituyó el WhatsApp único: correo es el canal predeterminado y la configuración del evento puede usar correo, WhatsApp oficial o ambos, siempre sobre contactos verificados resueltos por el servidor.
 
@@ -393,9 +395,9 @@ La base transversal de experiencia (`HU-009`) se adelanta a las pantallas para c
 | `CA-007-05` | El umbral y la ventana se cambian por configuración, sin recompilar ni editar código. |
 | `CA-007-06` | Los datos de conteo vencen solos y no contienen correo, nombre ni teléfono. |
 | `CA-007-07` | El límite no depende de una cabecera que el cliente pueda falsificar libremente; la obtención de la IP está documentada y probada según el despliegue previsto. |
-| `CA-007-08` | (`DEC-139`) El código del reto sale por el canal que la barbería configuró (`email`, `whatsapp` o `both`); las barberías nuevas nacen en `email` y las anteriores quedaron en `whatsapp`. Los destinos los deriva el servidor (teléfono verificado y/o correo de la cuenta) y ninguna petición pública los aporta. |
+| `CA-007-08` | (`DEC-139`) El código del reto sale por el canal que el negocio configuró (`email`, `whatsapp` o `both`); los negocios nuevos nacen en `email` y las anteriores quedaron en `whatsapp`. Los destinos los deriva el servidor (teléfono verificado y/o correo de la cuenta) y ninguna petición pública los aporta. |
 | `CA-007-09` | (`DEC-139`) Con `both` el mismo código sale por los dos canales en una sola operación lógica; basta que uno entregue y el fallo del otro solo se registra internamente. Un canal sin destino utilizable (WhatsApp sin teléfono verificado) no se sustituye por otro. La respuesta HTTP es la misma en todos los casos (`CA-007-03`). |
-| `CA-007-10` | (`DEC-139`) Configuración muestra y cambia el canal (`GET`/`PATCH /private/settings/login-otp`); cada barbería solo ve y cambia el suyo. |
+| `CA-007-10` | (`DEC-139`) Configuración muestra y cambia el canal (`GET`/`PATCH /private/settings/login-otp`); cada negocio solo ve y cambia el suyo. |
 
 **Pruebas obligatorias**
 
@@ -413,14 +415,14 @@ La base transversal de experiencia (`HU-009`) se adelanta a las pantallas para c
 | Función | `F-AUTH-02` |
 | Reglas | `RN-DAT-01`, `RN-DAT-02` |
 | Decisiones | `DEC-026`, `DEC-051`, `DEC-063`, `DEC-064`, `DEC-065`, `DEC-081`, `DEC-092`, `DEC-093`, `DEC-094` |
-| Actor | Barbero |
+| Actor | Profesional |
 | Depende de | `HU-005`, `HU-007` |
 | Bloquea | `HU-011` |
-| Riesgo | Un barbero sin acceso en plena jornada pierde su agenda; un mecanismo de recuperación débil es la vía más común de secuestro de cuentas. |
+| Riesgo | Un profesional sin acceso en plena jornada pierde su agenda; un mecanismo de recuperación débil es la vía más común de secuestro de cuentas. |
 
 **Historia**
 
-> Como barbero que olvidó su contraseña, quiero recuperar el acceso con un código enviado por el canal que yo elija —WhatsApp o correo—, para volver a mi agenda el mismo día sin depender de que alguien me responda.
+> Como profesional que olvidó su contraseña, quiero recuperar el acceso con un código enviado por el canal que yo elija —WhatsApp o correo—, para volver a mi agenda el mismo día sin depender de que alguien me responda.
 
 > **Cambio del 2026-09-19 (`DEC-092`):** la persona elige el canal y escribe su valor en el paso 1; el código se envía solo por ese canal. `CA-008-01` se reescribe y nacen `CA-008-09` y `CA-008-10`. `DEC-093` resolvió `DP-SEG-14`–`DP-SEG-16` y la implementación (migración `20260919200000`, contrato `0.22.0`, API y pantalla) se entrega en el issue [#276](https://github.com/bcaceres19/barberia/issues/276).
 
@@ -430,7 +432,7 @@ La base transversal de experiencia (`HU-009`) se adelanta a las pantallas para c
 
 **Alcance incluido**
 
-- Migración con la tabla de códigos de recuperación: hash del código, vencimiento corto, intentos, marca de uso, `barbershop_id` y RLS.
+- Migración con la tabla de códigos de recuperación: hash del código, vencimiento corto, intentos, marca de uso, `business_id` y RLS.
 - Solicitud de recuperación, verificación del código y establecimiento de contraseña nueva.
 - Envío únicamente por el canal elegido por la persona en la solicitud —WhatsApp oficial o correo (`DEC-092`)—, sobre contactos verificados y con los proveedores oficiales de `DEC-066`. Sustituye para la recuperación la configuración por evento de `DEC-081`.
 - Código de un solo uso, con vencimiento, con límite de intentos y con reenvío controlado.
@@ -450,7 +452,7 @@ La base transversal de experiencia (`HU-009`) se adelanta a las pantallas para c
 | `CA-008-07` | El reenvío tiene cooldown de 60 s y máximo 3 por hora (`DEC-064`); cada reenvío invalida atómicamente el código anterior, nunca deja dos vigentes. |
 | `CA-008-08` | La contraseña nueva se rechaza si no cumple la política de `DEC-063` (10-128 caracteres, no igual al correo ni a la contraseña actual), con un mensaje que explica qué falta. |
 | `CA-008-09` | Elegir un canal nunca envía el código por el otro: ninguna entrega ocurre por un canal que la persona no eligió, ni como respaldo si el elegido no tiene contacto verificado utilizable (`DEC-092`, `DP-SEG-16`). |
-| `CA-008-10` | El valor escrito solo identifica la cuenta y nunca se usa como destino: el envío va al contacto verificado almacenado; un número sin coincidencia única —ninguna cuenta o más de una en barberías distintas— produce la respuesta genérica sin envío, y en `verify`/`reset-password` el mismo `401` uniforme (`DEC-065`, `DEC-093`). |
+| `CA-008-10` | El valor escrito solo identifica la cuenta y nunca se usa como destino: el envío va al contacto verificado almacenado; un número sin coincidencia única —ninguna cuenta o más de una en negocios distintos— produce la respuesta genérica sin envío, y en `verify`/`reset-password` el mismo `401` uniforme (`DEC-065`, `DEC-093`). |
 | `CA-008-11` | Una cuenta activa sin teléfono, o con teléfono sin verificar, recibe el código por correo cuando elige Correo; con WhatsApp sigue exigiéndose un número verificado con coincidencia única, y en ningún caso se usa el otro canal como respaldo (`DEC-094`). |
 
 **Pruebas obligatorias**
@@ -469,14 +471,14 @@ La base transversal de experiencia (`HU-009`) se adelanta a las pantallas para c
 | Función | Soporte transversal de todas las pantallas P0 |
 | Reglas | Criterios no funcionales de UX y accesibilidad |
 | Decisiones | `DEC-033`, `DEC-035`, `DEC-077`, `DEC-078`, `DEC-079` |
-| Actor | Barbero y cliente (indirectamente) |
+| Actor | Profesional y cliente (indirectamente) |
 | Depende de | — |
 | Bloquea | `HU-010`, `HU-011`, `HU-012` y toda pantalla posterior |
 | Riesgo | Sin una base transversal de comportamiento, cada pantalla puede resolver foco, estados y errores de forma incompatible. La solución visual, en cambio, puede ser propia de cada pantalla siempre que conserve NAVA / Tailored Grid. |
 
 **Historia**
 
-> Como barbero que trabaja de pie y con las manos ocupadas, quiero que todos los controles de la aplicación se vean y se comporten igual, con áreas táctiles cómodas y textos legibles, para no equivocarme entre cliente y cliente.
+> Como profesional que trabaja de pie y con las manos ocupadas, quiero que todos los controles de la aplicación se vean y se comporten igual, con áreas táctiles cómodas y textos legibles, para no equivocarme entre cliente y cliente.
 
 **Alcance incluido**
 
@@ -488,7 +490,7 @@ La base transversal de experiencia (`HU-009`) se adelanta a las pantallas para c
 
 **Alcance excluido**
 
-- Una configuración funcional de temas o personalización por barbería: requiere una decisión de producto y no nace del mockup.
+- Una configuración funcional de temas o personalización por negocio: requiere una decisión de producto y no nace del mockup.
 - Una dependencia visual nueva sin justificar licencia, accesibilidad, mantenimiento e impacto en el bundle.
 
 **Criterios de aceptación**
@@ -519,14 +521,14 @@ La base transversal de experiencia (`HU-009`) se adelanta a las pantallas para c
 | Función | `F-AUTH-01` |
 | Reglas | Criterios no funcionales de UX; `RN-DAT-02` |
 | Decisiones | `DEC-033`, `DEC-056`, `DEC-078` |
-| Actor | Barbero |
+| Actor | Profesional |
 | Depende de | `HU-005`, `HU-009` |
 | Bloquea | `HU-012` |
-| Riesgo | Es la primera pantalla que el barbero ve del producto. Un formulario confuso o lento en un celular de gama media es una mala primera impresión difícil de revertir. |
+| Riesgo | Es la primera pantalla que el profesional ve del producto. Un formulario confuso o lento en un celular de gama media es una mala primera impresión difícil de revertir. |
 
 **Historia**
 
-> Como barbero, quiero una pantalla de acceso simple, con mi correo y mi contraseña visibles en un solo lugar y con la recuperación a la vista, para entrar rápido incluso con una conexión mala.
+> Como profesional, quiero una pantalla de acceso simple, con mi correo y mi contraseña visibles en un solo lugar y con la recuperación a la vista, para entrar rápido incluso con una conexión mala.
 
 > **Bloqueo resuelto:** `CT-004` señalaba que `HU-010` no podía demostrar su destino de éxito contra el panel privado sin implementar parte de `HU-012`, que a su vez depende de `HU-010`. Quedó resuelta el 2026-08-13 como `DEC-056`: `CA-010-01` se divide — `HU-010` navega a `/panel`, ruta privada real y protegida con un guard mínimo propio, sin cabecera ni navegación; `HU-012` reutiliza ese guard y construye ahí el cascarón completo.
 
@@ -543,7 +545,7 @@ La base transversal de experiencia (`HU-009`) se adelanta a las pantallas para c
 
 | Código | Criterio |
 | --- | --- |
-| `CA-010-01` | Con credenciales válidas, el barbero entra y la aplicación navega a `/panel`, ruta privada real y protegida por el guard de esta historia; la verificación de la llegada al panel completo (cabecera, navegación) se confirma en `CA-012-01`/`CA-012-02` de `HU-012` (`DEC-056`). |
+| `CA-010-01` | Con credenciales válidas, el profesional entra y la aplicación navega a `/panel`, ruta privada real y protegida por el guard de esta historia; la verificación de la llegada al panel completo (cabecera, navegación) se confirma en `CA-012-01`/`CA-012-02` de `HU-012` (`DEC-056`). |
 | `CA-010-02` | Con credenciales inválidas, el mensaje explica qué hacer, conserva el correo escrito y no indica si el correo existe. |
 | `CA-010-03` | Ante un fallo de red, la pantalla conserva lo escrito y ofrece reintentar sin recargar. |
 | `CA-010-04` | El botón de envío se deshabilita mientras la solicitud está en curso, y un doble toque no produce dos solicitudes. |
@@ -569,14 +571,14 @@ La base transversal de experiencia (`HU-009`) se adelanta a las pantallas para c
 | Función | `F-AUTH-02` |
 | Reglas | Criterios no funcionales de UX; `RN-DAT-01`, `RN-DAT-02` |
 | Decisiones | `DEC-026`, `DEC-078`, `DEC-092`, `DEC-093` |
-| Actor | Barbero |
+| Actor | Profesional |
 | Depende de | `HU-008`, `HU-009`, `HU-010` |
 | Bloquea | — |
 | Riesgo | Un flujo de recuperación confuso termina en una llamada al propietario; es exactamente el soporte que el MVP quiere evitar. |
 
 **Historia**
 
-> Como barbero que perdió su contraseña, quiero un flujo de pocos pasos que me diga en qué paso estoy, a dónde llegó el código y qué hacer si no llega, para recuperar mi acceso sin llamar a nadie.
+> Como profesional que perdió su contraseña, quiero un flujo de pocos pasos que me diga en qué paso estoy, a dónde llegó el código y qué hacer si no llega, para recuperar mi acceso sin llamar a nadie.
 
 **Alcance incluido**
 
@@ -595,7 +597,7 @@ La base transversal de experiencia (`HU-009`) se adelanta a las pantallas para c
 | `CA-011-03` | Un código incorrecto, vencido o agotado produce mensajes distintos y accionables, sin lenguaje técnico. |
 | `CA-011-04` | El reenvío indica cuánto falta para poder volver a solicitarlo y no permite pedirlo antes. |
 | `CA-011-05` | Al terminar, la pantalla confirma el cambio, informa que las sesiones se cerraron y lleva al acceso. |
-| `CA-011-06` | La política de contraseña se explica **antes** de que el barbero escriba, no solo al fallar. |
+| `CA-011-06` | La política de contraseña se explica **antes** de que el profesional escriba, no solo al fallar. |
 | `CA-011-07` | Recorrido operable con teclado, con foco movido al encabezado de cada paso y anunciado por lector de pantalla. |
 | `CA-011-08` | Utilizable en 320 y 360 px sin desplazamiento horizontal. |
 | `CA-011-09` | El paso 1 muestra dos botones —WhatsApp y correo— y ningún campo ni botón de envío hasta elegir uno; el elegido queda marcado con `aria-pressed` y con una señal visual distinta del color (`DEC-092`). |
@@ -608,7 +610,7 @@ La base transversal de experiencia (`HU-009`) se adelanta a las pantallas para c
 - E2E del recorrido completo con código válido y con código vencido.
 - Evidencia responsive y verificación accesible.
 
-**Terminado cuando** un barbero puede recuperar el acceso de principio a fin sin intervención del propietario.
+**Terminado cuando** un profesional puede recuperar el acceso de principio a fin sin intervención del propietario.
 
 ---
 
@@ -619,18 +621,18 @@ La base transversal de experiencia (`HU-009`) se adelanta a las pantallas para c
 | Función | `F-OPS-01` (comportamiento ante fallos y conexión inestable) |
 | Reglas | `RN-TEN-01`, criterios no funcionales de UX |
 | Decisiones | `DEC-033`, `DEC-056`, `DEC-060`, `DEC-078` |
-| Actor | Barbero |
+| Actor | Profesional |
 | Depende de | `HU-006`, `HU-009`, `HU-010` |
 | Bloquea | Todas las pantallas privadas de B1 en adelante |
 | Riesgo | Si cada pantalla resuelve por su cuenta la sesión, la navegación y los errores, el mismo problema se implementa siete veces de siete maneras. |
 
 **Historia**
 
-> Como barbero, quiero que la aplicación recuerde mi sesión, me lleve a mi agenda al entrar, me muestre siempre en qué barbería estoy y me avise con claridad cuando se pierda la conexión, para no quedarme mirando una pantalla en blanco.
+> Como profesional, quiero que la aplicación recuerde mi sesión, me lleve a mi agenda al entrar, me muestre siempre en qué negocio estoy y me avise con claridad cuando se pierda la conexión, para no quedarme mirando una pantalla en blanco.
 
 **Alcance incluido**
 
-- Estructura de aplicación autenticada: contexto de la barbería, navegación principal y área de contenido, con una composición visual libre dentro de NAVA / Tailored Grid, construida sobre la ruta `/panel` y el guard mínimo que ya entrega `HU-010` (`DEC-056`) — sin crear un guard paralelo ni cambiar la ruta.
+- Estructura de aplicación autenticada: contexto del negocio, navegación principal y área de contenido, con una composición visual libre dentro de NAVA / Tailored Grid, construida sobre la ruta `/panel` y el guard mínimo que ya entrega `HU-010` (`DEC-056`) — sin crear un guard paralelo ni cambiar la ruta.
 - Guarda de ruta: sin sesión válida se redirige al acceso, conservando el destino pretendido; generaliza el guard de `/panel` de `HU-010` a todas las rutas privadas.
 - Manejo central de respuestas no autorizadas: la sesión se limpia y se informa el motivo, sin bucles de redirección.
 - Patrones globales de estado: carga con esqueleto, error recuperable con "Reintentar" y aviso de conexión perdida.
@@ -643,7 +645,7 @@ La base transversal de experiencia (`HU-009`) se adelanta a las pantallas para c
 | `CA-012-01` | Con sesión válida, al abrir la aplicación se entra directamente al panel sin pedir credenciales; la restauración se verifica contra `GET /api/v1/private/auth/session` (`DEC-060`), nunca contra un marcador local. |
 | `CA-012-02` | Sin sesión, cualquier ruta privada redirige al acceso y, tras entrar, lleva al destino que se pretendía abrir. |
 | `CA-012-03` | Ante una respuesta de no autorizado, la sesión local se limpia una sola vez y no se produce un bucle de redirección. |
-| `CA-012-04` | La cabecera muestra siempre la barbería activa, con el nombre devuelto por `GET /api/v1/private/auth/session` (`DEC-060`); el barbero nunca puede dudar de en qué contexto está operando. |
+| `CA-012-04` | La cabecera muestra siempre el negocio activo, con el nombre devuelto por `GET /api/v1/private/auth/session` (`DEC-060`); el profesional nunca puede dudar de en qué contexto está operando. |
 | `CA-012-05` | Una pérdida de conexión muestra un aviso comprensible con acción de reintento, sin perder el estado de la pantalla. |
 | `CA-012-06` | Cada ruta se carga de forma diferida y la navegación no recarga la aplicación completa. |
 | `CA-012-07` | Cerrar sesión desde la cabecera invalida la sesión en el servidor y devuelve al acceso. |
@@ -659,7 +661,7 @@ La base transversal de experiencia (`HU-009`) se adelanta a las pantallas para c
 
 ---
 
-## 4. Bloque B1 · Identidad de la barbería y catálogo
+## 4. Bloque B1 · Identidad del negocio y catálogo
 
 > **B1 integrado.** `HU-020`–`HU-024` están integradas en `main`; `DP-SER-01`–`DP-SER-03` quedaron resueltas por `DEC-067`–`DEC-069` y el cierre de B1 está respaldado por [PR #84](https://github.com/bcaceres19/barberia/pull/84).
 
@@ -667,48 +669,48 @@ Orden de construcción recomendado para esta parte del bloque: `HU-020` → `HU-
 
 ---
 
-### HU-020 · Configuración básica de la barbería
+### HU-020 · Configuración básica del negocio
 
 | Campo | Valor |
 | --- | --- |
 | Función | `F-CONF-01` |
 | Reglas | `RN-DIS-07`, `RN-TEN-01` |
 | Decisiones | `DEC-007`, `DEC-024`, `DEC-033`, `DEC-037`, `DEC-078` |
-| Actor | Barbero autenticado |
+| Actor | Profesional autenticado |
 | Depende de | Criterio de salida de B0; en particular `HU-003`, `HU-006`, `HU-009` y `HU-012` |
-| Bloquea | `HU-021` y las pantallas de B1 que necesitan identificar la barbería activa |
-| Riesgo | Una zona inválida o tomada del dispositivo desplaza todas las horas; una actualización sin aislamiento puede modificar la identidad o el contacto de otra barbería. |
+| Bloquea | `HU-021` y las pantallas de B1 que necesitan identificar el negocio activo |
+| Riesgo | Una zona inválida o tomada del dispositivo desplaza todas las horas; una actualización sin aislamiento puede modificar la identidad o el contacto de otro negocio. |
 
 **Historia**
 
-> Como barbero, quiero consultar y actualizar el nombre, la zona horaria y los datos de contacto de mi barbería desde una sección propia, para que el sistema identifique correctamente el negocio y muestre todas las horas en su zona real.
+> Como profesional, quiero consultar y actualizar el nombre, la zona horaria y los datos de contacto de mi negocio desde una sección propia, para que el sistema identifique correctamente el negocio y muestre todas las horas en su zona real.
 
 **Alcance incluido**
 
-- Lectura y actualización autenticadas de la fila `barbershop` correspondiente a la sesión; el cliente nunca envía un `barbershopId` confiable.
+- Lectura y actualización autenticadas de la fila `business` correspondiente a la sesión; el cliente nunca envía un `businessId` confiable.
 - Nombre obligatorio, zona horaria IANA obligatoria, correo de contacto opcional y teléfono de contacto opcional. El correo se normaliza en minúsculas y el teléfono, cuando exista, usa E.164.
 - Validación de la zona contra el catálogo IANA disponible en PostgreSQL; no se acepta una abreviatura como `COT`, un desplazamiento como `UTC-5` ni la zona del navegador como fuente de verdad.
-- Sección “Barbería” dentro del módulo de configuración, con guardado independiente de las secciones futuras de reserva, cancelación, recordatorios y canales.
+- Sección “Negocio” dentro del módulo de configuración, con guardado independiente de las secciones futuras de reserva, cancelación, recordatorios y canales.
 - Contrato OpenAPI privado, caso de uso Go, persistencia PostgreSQL, cliente TypeScript derivado del bundle y pantalla Vue responsive.
-- Actualización inmediata del nombre de la barbería en el cascarón privado después de guardar con éxito, sin recargar la aplicación completa.
+- Actualización inmediata del nombre del negocio en el cascarón privado después de guardar con éxito, sin recargar la aplicación completa.
 
 **Alcance excluido**
 
-- Alta o eliminación de barberías; el aprovisionamiento sigue siendo administrativo.
+- Alta o eliminación de negocios; el aprovisionamiento sigue siendo administrativo.
 - Enlace público o `public_slug`, que pertenece a `F-PUB-01` en B4.
 - Políticas de cancelación, límites de reserva, recordatorios, canales y proveedores.
 - Conversión o reescritura masiva de instantes existentes al cambiar la zona: un instante almacenado nunca se modifica por una preferencia de presentación.
-- Personalización funcional de colores, tipografías o tema por barbería: no forma parte de esta HU. La marca, el vocabulario y la apariencia los cubre `HU-025` (`DEC-110`); la composición interna de la pantalla es libre dentro de NAVA / Tailored Grid.
+- Personalización funcional de colores, tipografías o tema por negocio: no forma parte de esta HU. La marca, el vocabulario y la apariencia los cubre `HU-025` (`DEC-110`); la composición interna de la pantalla es libre dentro de NAVA / Tailored Grid.
 
 **Criterios de aceptación**
 
 | Código | Criterio |
 | --- | --- |
-| `CA-020-01` | Dada una sesión válida, cuando se abre la sección “Barbería”, entonces se muestran el nombre, la zona IANA y los datos de contacto de la barbería activa, y ningún dato de otra barbería. |
+| `CA-020-01` | Dada una sesión válida, cuando se abre la sección “Negocio”, entonces se muestran el nombre, la zona IANA y los datos de contacto del negocio activo, y ningún dato de otro negocio. |
 | `CA-020-02` | Dado un nombre no vacío y una zona IANA válida, cuando se guarda la sección, entonces la actualización persiste y el cascarón privado refleja el nuevo nombre sin recargar la aplicación. |
 | `CA-020-03` | Dada una abreviatura, un desplazamiento UTC o un identificador inexistente, cuando se intenta guardar como zona, entonces la operación responde `422` con un error de campo comprensible y no modifica ningún dato. |
-| `CA-020-04` | Dado un instante conocido y dos dispositivos en zonas distintas, cuando ambos consultan la barbería, entonces la hora resultante se calcula con la zona configurada de la barbería y coincide en ambos dispositivos. |
-| `CA-020-05` | Dado un identificador de barbería ajeno incluido en URL, body o parámetro manipulado, cuando se intenta leer o actualizar la configuración, entonces se ignora como fuente de tenant o se responde `404`, y la barbería ajena permanece sin cambios. |
+| `CA-020-04` | Dado un instante conocido y dos dispositivos en zonas distintas, cuando ambos consultan el negocio, entonces la hora resultante se calcula con la zona configurada del negocio y coincide en ambos dispositivos. |
+| `CA-020-05` | Dado un identificador de negocio ajeno incluido en URL, body o parámetro manipulado, cuando se intenta leer o actualizar la configuración, entonces se ignora como fuente de tenant o se responde `404`, y el negocio ajeno permanece sin cambios. |
 | `CA-020-06` | Cuando correo o teléfono están vacíos se almacenan como ausencia de valor; cuando están presentes se normalizan y validan, y nunca aparecen en registros técnicos. |
 | `CA-020-07` | El contrato OpenAPI, el handler, el cliente tipado y el formulario coinciden en campos obligatorios, opcionales, límites y respuestas de error. |
 | `CA-020-08` | La sección conserva los datos no sensibles ante un error recuperable, anuncia carga, error y éxito de forma accesible, funciona con teclado y hace reflow sin pérdida a 320, 360, 768 y 1280 px. |
@@ -717,74 +719,74 @@ Orden de construcción recomendado para esta parte del bloque: `HU-020` → `HU-
 
 - Unitarias del caso de uso y de la validación de zona IANA, incluido un instante evaluado con zonas de dispositivo distintas.
 - HTTP y contrato para lectura, actualización, `422`, no autenticado y recurso de otro tenant.
-- Integración con PostgreSQL real y dos barberías, cubriendo RLS en lectura y actualización.
+- Integración con PostgreSQL real y dos negocios, cubriendo RLS en lectura y actualización.
 - Prueba de componente del formulario en carga, error de campo, error recuperable y éxito.
 - E2E del recorrido privado abrir → editar → guardar → comprobar cabecera, más evidencia responsive y accesible.
 
-**Terminado cuando** un barbero actualiza la identidad básica de su barbería de extremo a extremo, todas las pruebas pasan y ningún dato de contacto llega a los registros técnicos.
+**Terminado cuando** un profesional actualiza la identidad básica de su negocio de extremo a extremo, todas las pruebas pasan y ningún dato de contacto llega a los registros técnicos.
 
 ---
 
-### HU-021 · Registro y listado de barberos
+### HU-021 · Registro y listado de profesionales
 
 | Campo | Valor |
 | --- | --- |
 | Función | `F-CONF-02` (registro y listado; servicios y horario se completan en historias posteriores) |
 | Reglas | `RN-TEN-01` |
 | Decisiones | `DEC-019`, `DEC-024`, `DEC-033`, `DEC-037`, `DEC-078`, `DEC-100` (vínculo opcional, issue [#322](https://github.com/bcaceres19/barberia/issues/322)) |
-| Actor | Barbero autenticado |
+| Actor | Profesional autenticado |
 | Depende de | `HU-020` y criterio de salida de B0 |
-| Bloquea | Historias de servicios por barbero, B2 y la selección pública de barbero en B4 |
-| Riesgo | Modelar al barbero como un caso especial de la barbería unipersonal obliga a cambiar datos, API y agenda al incorporar el segundo barbero; omitir el tenant permite relaciones cruzadas. |
+| Bloquea | Historias de servicios por profesional, B2 y la selección pública de profesional en B4 |
+| Riesgo | Modelar al profesional como un caso especial del negocio unipersonal obliga a cambiar datos, API y agenda al incorporar el segundo profesional; omitir el tenant permite relaciones cruzadas. |
 
 **Historia**
 
-> Como barbero, quiero registrar, renombrar y consultar las personas que prestan servicios en mi barbería, para que el mismo sistema represente sin casos especiales tanto a un independiente como a un equipo de varios barberos.
+> Como profesional, quiero registrar, renombrar y consultar las personas que prestan servicios en mi negocio, para que el mismo sistema represente sin casos especiales tanto a un independiente como a un equipo de varios profesionales.
 
 **Alcance incluido**
 
-- Entidad `barber` distinta de `barbershop` y de la cuenta `staff_user`, con identificador propio, `barbershop_id`, nombre visible y marcas de tiempo con zona.
-- Lista privada de barberos de la barbería activa, alta de un barbero y edición de su nombre.
-- La barbería con una sola persona conserva una fila `barber`; no se infiere el barbero desde `barbershop` ni desde la sesión.
-- Pantalla “Barberos” en el módulo `staff`, con lista, estado vacío, formulario accesible para añadir y edición del nombre.
+- Entidad `professional` distinta de `business` y de la cuenta `staff_user`, con identificador propio, `business_id`, nombre visible y marcas de tiempo con zona.
+- Lista privada de profesionales del negocio activo, alta de un profesional y edición de su nombre.
+- El negocio con una sola persona conserva una fila `professional`; no se infiere el profesional desde `business` ni desde la sesión.
+- Pantalla “Profesionales” en el módulo `staff`, con lista, estado vacío, formulario accesible para añadir y edición del nombre.
 - Contrato OpenAPI privado, módulo Go `staff`, migración Atlas, RLS, cliente tipado y componentes Vue.
-- Vínculo explícito y opcional entre el usuario autenticado y su barbero (`DEC-100`, issue #322): `barber.staff_user_id` nullable, único por barbería en ambos sentidos, que el propio usuario selecciona, cambia o quita desde la ficha del barbero («Este soy yo»), y un aviso interno de «vínculo liberado» para que otros módulos reaccionen. Lo necesita la integración con Google Calendar (`DEC-099`).
+- Vínculo explícito y opcional entre el usuario autenticado y su profesional (`DEC-100`, issue #322): `professional.staff_user_id` nullable, único por negocio en ambos sentidos, que el propio usuario selecciona, cambia o quita desde la ficha del profesional («Este soy yo»), y un aviso interno de «vínculo liberado» para que otros módulos reaccionen. Lo necesita la integración con Google Calendar (`DEC-099`).
 
 **Alcance excluido**
 
-- Eliminar, desactivar o reactivar barberos: el efecto sobre citas futuras no está definido en el alcance confirmado y no se inventa en esta historia.
-- Crear credenciales, invitar usuarios, asignar roles o enlazar `staff_user` con `barber` de forma automática o por inferencia (nombre, correo, teléfono) o por una persona distinta del propio usuario.
+- Eliminar, desactivar o reactivar profesionales: el efecto sobre citas futuras no está definido en el alcance confirmado y no se inventa en esta historia.
+- Crear credenciales, invitar usuarios, asignar roles o enlazar `staff_user` con `professional` de forma automática o por inferencia (nombre, correo, teléfono) o por una persona distinta del propio usuario.
 - Asignar servicios, configurar horarios o calcular disponibilidad; llegan en las historias posteriores de B1 y B2.
-- Selección pública de barbero y agenda por barbero, que pertenecen a B4 y B3 respectivamente.
+- Selección pública de profesional y agenda por profesional, que pertenecen a B4 y B3 respectivamente.
 - Datos personales adicionales al nombre necesario para mostrar al profesional.
 
 **Criterios de aceptación**
 
 | Código | Criterio |
 | --- | --- |
-| `CA-021-01` | Dada una barbería unipersonal, cuando se consulta su equipo, entonces existe una fila `barber` y el sistema no usa una forma de datos ni una rama de código especial para “barbero único”. |
-| `CA-021-02` | Dada una barbería con un barbero, cuando se registran tres más, entonces la lista devuelve cuatro recursos distintos pertenecientes a la misma barbería. |
-| `CA-021-03` | Dado un nombre vacío, compuesto solo por espacios o mayor de 120 caracteres, cuando se intenta crear o editar un barbero, entonces se responde `422` con error de campo y no se persiste el cambio. |
-| `CA-021-04` | Dado un barbero existente de la barbería activa, cuando se modifica su nombre con un valor válido, entonces la lista muestra el nuevo nombre sin duplicar el recurso. |
-| `CA-021-05` | Dado el identificador de un barbero de otra barbería, cuando se intenta consultarlo o editarlo, entonces se responde `404`; cuando se lista el equipo, nunca aparece en el resultado. |
-| `CA-021-06` | La base de datos rechaza insertar o relacionar un `barber` con un `barbershop_id` distinto del contexto de la transacción, incluso mediante acceso directo con el rol de aplicación. |
+| `CA-021-01` | Dado un negocio unipersonal, cuando se consulta su equipo, entonces existe una fila `professional` y el sistema no usa una forma de datos ni una rama de código especial para “profesional único”. |
+| `CA-021-02` | Dado un negocio con un profesional, cuando se registran tres más, entonces la lista devuelve cuatro recursos distintos pertenecientes al mismo negocio. |
+| `CA-021-03` | Dado un nombre vacío, compuesto solo por espacios o mayor de 120 caracteres, cuando se intenta crear o editar un profesional, entonces se responde `422` con error de campo y no se persiste el cambio. |
+| `CA-021-04` | Dado un profesional existente del negocio activo, cuando se modifica su nombre con un valor válido, entonces la lista muestra el nuevo nombre sin duplicar el recurso. |
+| `CA-021-05` | Dado el identificador de un profesional de otro negocio, cuando se intenta consultarlo o editarlo, entonces se responde `404`; cuando se lista el equipo, nunca aparece en el resultado. |
+| `CA-021-06` | La base de datos rechaza insertar o relacionar un `professional` con un `business_id` distinto del contexto de la transacción, incluso mediante acceso directo con el rol de aplicación. |
 | `CA-021-07` | El API no expone operaciones de borrado, desactivación, credenciales, servicios ni horarios para esta historia; el contrato y el cliente generado contienen únicamente lectura, alta y edición del nombre y, por `DEC-100`, las tres operaciones del vínculo propio (`CA-021-09` a `CA-021-13`). |
 | `CA-021-08` | La pantalla presenta estados de carga, vacío, error recuperable y éxito; añadir o editar es operable con teclado, mantiene objetivos táctiles de 44 px y funciona sin pérdida a 320, 360, 768 y 1280 px. |
-| `CA-021-09` | Dado un usuario autenticado, cuando declara ser un barbero libre de su barbería, entonces `GET /private/me/barber` devuelve ese barbero; repetir la misma selección deja el mismo estado. La solicitud nunca lleva un identificador de usuario: actúa siempre sobre la sesión. |
-| `CA-021-10` | Dado un usuario ya vinculado, cuando elige otro barbero libre, entonces el vínculo se mueve en una sola operación y el barbero anterior queda libre; un usuario es como máximo un barbero y un barbero tiene como máximo un usuario, también ante solicitudes simultáneas. |
-| `CA-021-11` | Dado un barbero vinculado a otro usuario, cuando se intenta tomarlo, entonces se responde `409` sin revelar quién lo tiene y el vínculo anterior del solicitante se conserva. |
-| `CA-021-12` | Dado un usuario vinculado, cuando quita su vínculo (o no tenía ninguno), entonces se responde `204` y el barbero, sus citas y su agenda no cambian; sin vínculo, `GET /private/me/barber` responde `404`. |
-| `CA-021-13` | Dado un barbero de otra barbería o inexistente, cuando se intenta vincular, entonces se responde el mismo `404` que para cualquier operación del barbero; la base rechaza vincular un usuario de otra barbería (FK compuesta) y ninguna respuesta expone `staffUserId`. |
+| `CA-021-09` | Dado un usuario autenticado, cuando declara ser un profesional libre de su negocio, entonces `GET /private/me/professional` devuelve ese profesional; repetir la misma selección deja el mismo estado. La solicitud nunca lleva un identificador de usuario: actúa siempre sobre la sesión. |
+| `CA-021-10` | Dado un usuario ya vinculado, cuando elige otro profesional libre, entonces el vínculo se mueve en una sola operación y el profesional anterior queda libre; un usuario es como máximo un profesional y un profesional tiene como máximo un usuario, también ante solicitudes simultáneas. |
+| `CA-021-11` | Dado un profesional vinculado a otro usuario, cuando se intenta tomarlo, entonces se responde `409` sin revelar quién lo tiene y el vínculo anterior del solicitante se conserva. |
+| `CA-021-12` | Dado un usuario vinculado, cuando quita su vínculo (o no tenía ninguno), entonces se responde `204` y el profesional, sus citas y su agenda no cambian; sin vínculo, `GET /private/me/professional` responde `404`. |
+| `CA-021-13` | Dado un profesional de otro negocio o inexistente, cuando se intenta vincular, entonces se responde el mismo `404` que para cualquier operación del profesional; la base rechaza vincular un usuario de otro negocio (FK compuesta) y ninguna respuesta expone `staffUserId`. |
 
 **Pruebas obligatorias**
 
 - Unitarias del dominio y del caso de uso para nombre válido/inválido y actualización sin duplicación.
 - HTTP y contrato para lista, alta, edición, `422`, no autenticado y `404` de otro tenant.
-- Integración con PostgreSQL real y dos barberías, incluidas RLS, escritura cruzada y la representación idéntica de una y cuatro personas.
+- Integración con PostgreSQL real y dos negocios, incluidas RLS, escritura cruzada y la representación idéntica de una y cuatro personas.
 - Pruebas de componente para lista, vacío, alta, edición y error recuperable.
 - E2E privado del recorrido añadir → listar → renombrar, más evidencia responsive y accesible.
 
-**Terminado cuando** una barbería con una o cuatro personas usa exactamente el mismo modelo, API y pantalla, sin acceso cruzado y sin adelantar servicios, horarios, cuentas o agenda.
+**Terminado cuando** un negocio con una o cuatro personas usa exactamente el mismo modelo, API y pantalla, sin acceso cruzado y sin adelantar servicios, horarios, cuentas o agenda.
 
 ---
 
@@ -795,7 +797,7 @@ Orden de construcción recomendado para esta parte del bloque: `HU-020` → `HU-
 | Función | `F-SERV-01`, `F-SERV-02` (alta, consulta y edición del catálogo; ciclo de activación en `HU-024`) |
 | Reglas | `RN-SER-01`, `RN-SER-02`, `RN-SER-04`, `RN-TEN-01`, `RN-DAT-02` |
 | Decisiones | `DEC-002`, `DEC-004`, `DEC-024`, `DEC-033`–`DEC-040`, `DEC-043`, `DEC-067` |
-| Actor | Barbero autenticado |
+| Actor | Profesional autenticado |
 | Depende de | `HU-020`, `HU-021` |
 | Bloquea | `HU-023`, `HU-024`, disponibilidad y reserva pública |
 | Estado | Integrada en `main` ([PR #79](https://github.com/bcaceres19/barberia/pull/79), squash-merge, CI 4/4 verde) |
@@ -803,34 +805,34 @@ Orden de construcción recomendado para esta parte del bloque: `HU-020` → `HU-
 
 **Historia**
 
-> Como barbero, quiero crear, consultar y editar los servicios de mi barbería con su duración planificada y precio informativo, para mantener un catálogo reutilizable por todos los barberos y por la reserva futura.
+> Como profesional, quiero crear, consultar y editar los servicios de mi negocio con su duración planificada y precio informativo, para mantener un catálogo reutilizable por todos los profesionales y por la reserva futura.
 
 **Alcance incluido**
 
-- Recurso `service` perteneciente a la barbería, separado de `barber` y de cualquier cita, con nombre, descripción opcional, duración en minutos enteros, importe en COP, estado activo y marcas de tiempo.
+- Recurso `service` perteneciente al negocio, separado de `professional` y de cualquier cita, con nombre, descripción opcional, duración en minutos enteros, importe en COP, estado activo y marcas de tiempo.
 - Lista paginada, lectura individual, alta idempotente y edición de los campos de catálogo autorizados.
 - Duraciones positivas configurables, incluidos valores como 25 o 45 minutos; la interfaz no impone una lista cerrada de presets.
 - Pantalla privada “Servicios” en el módulo `catalog`, compuesta dentro del cascarón existente sin duplicar guard, navegación ni cliente HTTP.
 - Contrato OpenAPI privado, módulo Go `catalog`, migración Atlas mínima, RLS, cliente TypeScript generado y pruebas de dos tenants.
-- Moneda COP fija (sin campo editable), precio estrictamente mayor que cero y nombre único entre servicios activos de la misma barbería, conforme a `DEC-067`.
+- Moneda COP fija (sin campo editable), precio estrictamente mayor que cero y nombre único entre servicios activos del mismo negocio, conforme a `DEC-067`.
 
 **Alcance excluido**
 
-- Asignar servicios a barberos (`HU-023`).
+- Asignar servicios a profesionales (`HU-023`).
 - Desactivar, reactivar o eliminar servicios (`HU-024`); no se expone `DELETE` físico.
 - Horarios, disponibilidad, enlace público, citas, snapshots, cambios masivos, historial y notificaciones.
-- Precios por barbero, descuentos, impuestos, promociones, paquetes, inventario, comisiones o cobro en línea.
+- Precios por profesional, descuentos, impuestos, promociones, paquetes, inventario, comisiones o cobro en línea.
 
 **Criterios de aceptación**
 
 | Código | Criterio |
 | --- | --- |
-| `CA-022-01` | Dada una sesión válida, cuando se abre “Servicios”, entonces se listan únicamente los servicios de la barbería activa con paginación estable y estados de carga, vacío y error recuperable. |
+| `CA-022-01` | Dada una sesión válida, cuando se abre “Servicios”, entonces se listan únicamente los servicios del negocio activo con paginación estable y estados de carga, vacío y error recuperable. |
 | `CA-022-02` | Dados nombre y duración válidos y un precio en COP estrictamente mayor que cero, cuando se crea un servicio con una clave idempotente, entonces se persiste una sola fila activa y un reintento exacto reproduce el mismo recurso. |
 | `CA-022-03` | Dadas duraciones enteras positivas como 25, 30, 45 y 90 minutos, cuando se crean servicios, entonces todas son aceptadas sin redondeo ni catálogo cerrado; cero, negativas, fraccionarias o fuera del límite técnico documentado se rechazan. |
-| `CA-022-04` | Dados campos vacíos, excesivos, desconocidos, un precio menor o igual a cero, o un nombre igual al de otro servicio activo de la misma barbería (`DEC-067`), cuando se crea o edita, entonces se responde `400`, `409` o `422` según el contrato y no se persiste un estado parcial. |
+| `CA-022-04` | Dados campos vacíos, excesivos, desconocidos, un precio menor o igual a cero, o un nombre igual al de otro servicio activo del mismo negocio (`DEC-067`), cuando se crea o edita, entonces se responde `400`, `409` o `422` según el contrato y no se persiste un estado parcial. |
 | `CA-022-05` | Cuando se cambia nombre, descripción, duración o precio del catálogo, entonces solo cambia `service`; ninguna operación de esta HU acepta alcance sobre citas ni simula propagación a recursos futuros (`RN-SER-04`). |
-| `CA-022-06` | Dado un identificador de servicio de otra barbería, cuando se consulta o edita, entonces se responde el mismo `404` que para uno inexistente y RLS impide toda lectura o escritura cruzada. |
+| `CA-022-06` | Dado un identificador de servicio de otro negocio, cuando se consulta o edita, entonces se responde el mismo `404` que para uno inexistente y RLS impide toda lectura o escritura cruzada. |
 | `CA-022-07` | OpenAPI, handlers, cliente generado, dominio, migración y formulario coinciden en campos, límites, precisión monetaria, errores y trazabilidad `RN-*`/`DEC-*`. |
 | `CA-022-08` | La pantalla permite crear y editar con teclado, evita doble envío, conserva datos ante error recuperable y funciona sin pérdida a 320, 360, 768 y 1280 px y zoom 200 %. |
 
@@ -845,48 +847,48 @@ Orden de construcción recomendado para esta parte del bloque: `HU-020` → `HU-
 
 ---
 
-### HU-023 · Asignación de servicios a barberos
+### HU-023 · Asignación de servicios a profesionales
 
 | Campo | Valor |
 | --- | --- |
-| Función | `F-CONF-02` (servicios por barbero) |
+| Función | `F-CONF-02` (servicios por profesional) |
 | Reglas | `RN-SER-03`, `RN-SER-04`, `RN-TEN-01`, `RN-DAT-02` |
 | Decisiones | `DEC-004`, `DEC-019`, `DEC-024`, `DEC-033`–`DEC-040`, `DEC-068` (sustituida por `DEC-114` en la última asignación) |
-| Actor | Barbero autenticado |
+| Actor | Profesional autenticado |
 | Depende de | `HU-021`, `HU-022` integradas en `main` (cumplido) |
-| Bloquea | Horarios por barbero, disponibilidad y selección pública de barbero |
+| Bloquea | Horarios por profesional, disponibilidad y selección pública de profesional |
 | Estado | Implementada; issue real [#76](https://github.com/bcaceres19/barberia/issues/76); [PR #83](https://github.com/bcaceres19/barberia/pull/83) abierto contra `main`, pendiente de revisión/CI/merge |
-| Riesgo | Una relación sin tenant compuesto puede asociar recursos de barberías distintas; retirar la última asignación de un servicio activo (`DEC-114`) lo deja sin barberos y, mientras tanto, fuera de la reserva pública. |
+| Riesgo | Una relación sin tenant compuesto puede asociar recursos de negocios distintos; retirar la última asignación de un servicio activo (`DEC-114`) lo deja sin profesionales y, mientras tanto, fuera de la reserva pública. |
 
 **Historia**
 
-> Como barbero, quiero indicar qué servicios presta cada persona de mi equipo, para que la misma configuración represente correctamente una barbería independiente y una con varios especialistas.
+> Como profesional, quiero indicar qué servicios presta cada persona de mi equipo, para que la misma configuración represente correctamente un negocio independiente y una con varios especialistas.
 
 **Alcance incluido**
 
-- Asociación tenant-aware `barber_service` entre filas reales de `barber` y `service`, sin copiar nombre, duración ni precio.
-- Consulta de asignaciones por barbero y operaciones explícitas para asignar y desasignar; se puede desasignar cualquier fila, también la última de un servicio activo (`DEC-114`).
-- La misma ruta y pantalla funcionan para un barbero con todos los servicios, varios con servicios compartidos y un equipo con especialidades distintas.
+- Asociación tenant-aware `professional_service` entre filas reales de `professional` y `service`, sin copiar nombre, duración ni precio.
+- Consulta de asignaciones por profesional y operaciones explícitas para asignar y desasignar; se puede desasignar cualquier fila, también la última de un servicio activo (`DEC-114`).
+- La misma ruta y pantalla funcionan para un profesional con todos los servicios, varios con servicios compartidos y un equipo con especialidades distintas.
 - Interfaz dentro de la experiencia privada existente, usando APIs públicas mínimas de `staff` y `catalog` o composición en `app`; ningún módulo importa archivos internos de otro.
 - Migración Atlas mínima, RLS, FK compuestas, contrato privado, módulo Go y pruebas con dos tenants.
 
 **Alcance excluido**
 
-- Crear, editar, desactivar o reactivar servicios; renombrar barberos.
-- Horarios, disponibilidad, citas, selección pública, precios por barbero o duración distinta por profesional.
-- Credenciales, roles, comisiones, orden manual, borrado de barberos o servicios.
+- Crear, editar, desactivar o reactivar servicios; renombrar profesionales.
+- Horarios, disponibilidad, citas, selección pública, precios por profesional o duración distinta por profesional.
+- Credenciales, roles, comisiones, orden manual, borrado de profesionales o servicios.
 
 **Criterios de aceptación**
 
 | Código | Criterio |
 | --- | --- |
-| `CA-023-01` | Dado un barbero y servicios de su barbería, cuando se consultan sus asignaciones, entonces se devuelve el conjunto real sin duplicados y sin datos de otro tenant. |
-| `CA-023-02` | Cuando se asigna un servicio permitido a un barbero, entonces la relación aparece al recargar y repetir exactamente la operación no crea una segunda fila. |
-| `CA-023-03` | Un mismo servicio puede asignarse a varios barberos de la misma barbería y cada asociación sigue siendo un recurso independiente. |
-| `CA-023-04` | Intentar asociar un barbero o servicio de otra barbería responde `404` o conflicto uniforme y la FK tenant-aware/RLS rechaza la relación incluso con el rol real de aplicación. |
-| `CA-023-05` | Retirar una asignación existente responde `204`, incluida la última de un servicio activo (`DEC-114`, que sustituye a `DEC-068`); repetir la operación responde `404` uniforme y nunca borra el barbero, el servicio ni una cita. |
-| `CA-023-06` | Un servicio activo que queda sin asignaciones no se ofrece en la reserva pública hasta asignar otro barbero (`DEC-114`, `HU-091`); API e interfaz no lo tratan como error. |
-| `CA-023-07` | La asociación no contiene nombre, duración, precio, estado ni columnas de otro dueño; el contrato no expone precios o duraciones por barbero. |
+| `CA-023-01` | Dado un profesional y servicios de su negocio, cuando se consultan sus asignaciones, entonces se devuelve el conjunto real sin duplicados y sin datos de otro tenant. |
+| `CA-023-02` | Cuando se asigna un servicio permitido a un profesional, entonces la relación aparece al recargar y repetir exactamente la operación no crea una segunda fila. |
+| `CA-023-03` | Un mismo servicio puede asignarse a varios profesionales del mismo negocio y cada asociación sigue siendo un recurso independiente. |
+| `CA-023-04` | Intentar asociar un profesional o servicio de otro negocio responde `404` o conflicto uniforme y la FK tenant-aware/RLS rechaza la relación incluso con el rol real de aplicación. |
+| `CA-023-05` | Retirar una asignación existente responde `204`, incluida la última de un servicio activo (`DEC-114`, que sustituye a `DEC-068`); repetir la operación responde `404` uniforme y nunca borra el profesional, el servicio ni una cita. |
+| `CA-023-06` | Un servicio activo que queda sin asignaciones no se ofrece en la reserva pública hasta asignar otro profesional (`DEC-114`, `HU-091`); API e interfaz no lo tratan como error. |
+| `CA-023-07` | La asociación no contiene nombre, duración, precio, estado ni columnas de otro dueño; el contrato no expone precios o duraciones por profesional. |
 | `CA-023-08` | La interfaz anuncia guardado/error, funciona con teclado, evita doble envío y conserva una composición usable en 320, 360, 768 y 1280 px. |
 
 **Pruebas obligatorias**
@@ -894,9 +896,9 @@ Orden de construcción recomendado para esta parte del bloque: `HU-020` → `HU-
 - Dominio/servicio para asignación repetida y desasignación, incluida la de la última asignación (`DEC-114`).
 - PostgreSQL real con dos tenants, FK compuestas, RLS, permisos exactos y carreras de asignación repetida.
 - HTTP/contrato para consulta, alta/baja de asociación, `401`, `404`, conflicto y campos desconocidos.
-- Componente y E2E para un barbero, cuatro barberos, servicio compartido y aislamiento cruzado.
+- Componente y E2E para un profesional, cuatro profesionales, servicio compartido y aislamiento cruzado.
 
-**Terminado cuando** cada barbero conserva un conjunto tenant-aware de servicios sin duplicar atributos ni adelantar disponibilidad, horarios o citas.
+**Terminado cuando** cada profesional conserva un conjunto tenant-aware de servicios sin duplicar atributos ni adelantar disponibilidad, horarios o citas.
 
 ---
 
@@ -907,7 +909,7 @@ Orden de construcción recomendado para esta parte del bloque: `HU-020` → `HU-
 | Función | `F-SERV-01` (ciclo de vida sin borrado físico) |
 | Reglas | `RN-SER-03`, `RN-SER-04`, `RN-TEN-01`, `RN-IDE-01` |
 | Decisiones | `DEC-003`, `DEC-004`, `DEC-024`, `DEC-033`–`DEC-040`, `DEC-043`, `DEC-069` |
-| Actor | Barbero autenticado |
+| Actor | Profesional autenticado |
 | Depende de | `HU-022`, `HU-023` integradas en `main` |
 | Bloquea | Cierre de B1, consulta pública de servicios y flujos futuros con citas |
 | Estado | Integrada en `main` contra el issue real [#77](https://github.com/bcaceres19/barberia/issues/77); [PR #84](https://github.com/bcaceres19/barberia/pull/84) |
@@ -915,7 +917,7 @@ Orden de construcción recomendado para esta parte del bloque: `HU-020` → `HU-
 
 **Historia**
 
-> Como barbero, quiero desactivar o reactivar un servicio sin borrarlo y con una advertencia honesta sobre su impacto, para dejar de ofrecerlo sin perder historial ni modificar citas automáticamente.
+> Como profesional, quiero desactivar o reactivar un servicio sin borrarlo y con una advertencia honesta sobre su impacto, para dejar de ofrecerlo sin perder historial ni modificar citas automáticamente.
 
 **Alcance incluido**
 
@@ -956,38 +958,38 @@ Orden de construcción recomendado para esta parte del bloque: `HU-020` → `HU-
 
 ---
 
-### HU-025 · Marca, vocabulario y apariencia de la barbería
+### HU-025 · Marca, vocabulario y apariencia del negocio
 
 | Campo | Valor |
 | --- | --- |
-| Función | `F-CONF-01` (extensión de la configuración de la barbería) |
+| Función | `F-CONF-01` (extensión de la configuración del negocio) |
 | Reglas | `RN-TEN-01`, `RN-DAT-02`, `RN-DIS-07` |
 | Decisiones | `DEC-024`, `DEC-039` (ampliada), `DEC-077`, `DEC-095`, `DEC-110`, `DEC-115` (perfil del panel), `DEC-119` (vocabulario multirrubro) |
-| Actor | Barbero autenticado |
+| Actor | Profesional autenticado |
 | Depende de | `HU-012`, `HU-020`, `HU-093` (se conserva sin cambios); `HU-021`, `HU-023` para el perfil del panel |
 | Bloquea | Ninguna |
-| Riesgo | Un acento sin contraste suficiente vuelve ilegible el panel; un vocabulario mal concordado rompe la voz del producto; guardar la marca de una barbería en otra mezcla identidades; una preferencia de pantalla que se filtra al acceso o a la reserva pública cambia pantallas que no le pertenecen. |
+| Riesgo | Un acento sin contraste suficiente vuelve ilegible el panel; un vocabulario mal concordado rompe la voz del producto; guardar la marca de un negocio en otra mezcla identidades; una preferencia de pantalla que se filtra al acceso o a la reserva pública cambia pantallas que no le pertenecen. |
 
 **Historia**
 
-> Como barbero, quiero ajustar cómo se ve el panel en mi dispositivo y cómo se llama mi negocio, mi equipo y su color, para que NAVA hable como mi barbería y sea cómoda de leer en mi mostrador.
+> Como profesional, quiero ajustar cómo se ve el panel en mi dispositivo y cómo se llama mi negocio, mi equipo y su color, para que Nava Agenda hable con las palabras de mi negocio y sea cómoda de leer en mi mostrador.
 
 **Alcance incluido**
 
 - Preferencias de este dispositivo, guardadas en el navegador y aplicadas al instante: modo (Tinta, Marfil, Automático), tamaño de texto (cuatro pasos) y animaciones reducidas.
-- Marca y vocabulario de la barbería, guardados en el servidor: color de acento de una lista cerrada de seis, palabra del negocio y palabra del profesional (singular, plural y género gramatical).
-- Recurso `GET`/`PATCH /private/settings/brand` y seis columnas con `CHECK` en `barbershop`; el contrato de `HU-020` no se amplía.
+- Marca y vocabulario del negocio, guardados en el servidor: color de acento de una lista cerrada de seis, palabra del negocio y palabra del profesional (singular, plural y género gramatical).
+- Recurso `GET`/`PATCH /private/settings/brand` y seis columnas con `CHECK` en `business`; el contrato de `HU-020` no se amplía.
 - Pantalla de Configuración rediseñada sobre tinta: índice de secciones, selector de zona horaria con buscador y reloj en vivo, vista previa del vocabulario, barra de cambios sin guardar y animaciones con movimiento reducido.
-- Aplicación del vocabulario a navegación, Barberos, Agenda, Nuevo turno, Detalle del turno, Servicios, Servicios por barbero y Configuración.
-- Perfil del panel (`DEC-115`, reemplazada en su origen por `DEC-134`, issue [#365](https://github.com/bcaceres19/barberia/issues/365)): `shop` (con equipo, valor inicial), `solo` (barbero independiente) o `employee` (empleado, panel individual limitado). **Desde `DEC-134` lo deciden los roles del usuario en la base de datos (`empresa`, `independiente`, `empleado`), no un ajuste editable de Configuración**; la sección «Perfil del panel» ya no existe y el `PATCH` no admite `panelProfile`. Con `solo`: dock sin «Servicios por barbero» y con «Mi perfil», Agenda/Nuevo turno/Horarios sin selector cuando hay un único barbero, «mi día» en la Agenda e interruptor «Lo ofrezco» por servicio. Es presentación: no cambia datos ni permisos.
+- Aplicación del vocabulario a navegación, Profesionales, Agenda, Nuevo turno, Detalle del turno, Servicios, Servicios por profesional y Configuración.
+- Perfil del panel (`DEC-115`, reemplazada en su origen por `DEC-134`, issue [#365](https://github.com/bcaceres19/barberia/issues/365)): `shop` (con equipo, valor inicial), `solo` (profesional independiente) o `employee` (empleado, panel individual limitado). **Desde `DEC-134` lo deciden los roles del usuario en la base de datos (`empresa`, `independiente`, `empleado`), no un ajuste editable de Configuración**; la sección «Perfil del panel» ya no existe y el `PATCH` no admite `panelProfile`. Con `solo`: dock sin «Servicios por profesional» y con «Mi perfil», Agenda/Nuevo turno/Horarios sin selector cuando hay un único profesional, «mi día» en la Agenda e interruptor «Lo ofrezco» por servicio. Es presentación: no cambia datos ni permisos.
 
 **Alcance excluido**
 
 - Color libre, logotipo, personalización de la reserva pública, de los correos o de los colores de estado.
 - Idioma distinto de español, formato 12/24 h global y preferencias sincronizadas por usuario entre dispositivos.
 - Vocabulario en Horarios y en las pantallas públicas (conservan el inicial hasta su propio cambio).
-- Renombrar `barber`, los contratos de la API o los términos `turno` y estados.
-- Del perfil del panel: roles o permisos por usuario, el vínculo `barber`–`staff_user` (`DEC-100`), el enlace público de reserva en el panel (resuelto después por `DEC-117`) y cualquier función de negocio nueva.
+- Renombrar `professional`, los contratos de la API o los términos `turno` y estados.
+- Del perfil del panel: roles o permisos por usuario, el vínculo `professional`–`staff_user` (`DEC-100`), el enlace público de reserva en el panel (resuelto después por `DEC-117`) y cualquier función de negocio nueva.
 
 **Criterios de aceptación**
 
@@ -996,30 +998,30 @@ Orden de construcción recomendado para esta parte del bloque: `HU-020` → `HU-
 | `CA-025-01` | Elegir Marfil, Tinta o Automático cambia todo el panel privado al instante y persiste en el dispositivo; el acceso, la recuperación y la reserva pública no cambian. |
 | `CA-025-02` | Cada paso de tamaño de texto escala la interfaz sin desbordar a 320, 360, 768 y 1280 px, y el dock y los diálogos siguen dentro de la ventana. |
 | `CA-025-03` | Cada acento cumple WCAG 2.2 AA como texto y como relleno de botón en modo Tinta y Marfil; una prueba lo mide. |
-| `CA-025-04` | Guardar la marca persiste por barbería con RLS; un acento fuera de la lista, un término inválido o un género inválido responde `422` sin escribir; otra barbería no ve el cambio. |
+| `CA-025-04` | Guardar la marca persiste por negocio con RLS; un acento fuera de la lista, un término inválido o un género inválido responde `422` sin escribir; otro negocio no ve el cambio. |
 | `CA-025-05` | El vocabulario guardado aparece en las pantallas cubiertas con concordancia de género y número; con los valores iniciales el texto es idéntico al anterior. |
 | `CA-025-06` | La zona horaria se elige con buscador, muestra la hora actual de esa zona y nunca toma la del dispositivo por sí sola; el servidor sigue rechazando zonas inválidas (`CA-020-03`). |
 | `CA-025-07` | Los contratos, las pruebas y el comportamiento de `HU-020` y `HU-093` siguen vigentes. |
 | `CA-025-08` | Carga, error recuperable, guardando, éxito y error de campo son accesibles; el teclado alcanza todo; axe no reporta violaciones en ningún modo; un error recuperable conserva lo escrito. |
 | `CA-025-09` | OpenAPI, cliente tipado, migración, decisión, matriz e historial coinciden. |
-| `CA-025-10` | `panelProfile` vale `shop`, `solo` o `employee` y es `shop` para un usuario sin roles; `GET /private/settings/brand` lo deriva de los roles de quien consulta (`DEC-134`) y el `PATCH` lo rechaza como campo desconocido; otra barbería no ve los roles (RLS con dos tenants). *(Sustituye la redacción de `DEC-115`: valor guardado y editable.)* |
-| `CA-025-11` | Con `solo`, el dock muestra Agenda, Servicios, Mi perfil, Horarios, Configuración y Reserva pública; «Servicios por barbero» y la gestión de equipo no son destinos, y su ruta lleva a Servicios aunque el perfil llegue después de entrar. |
-| `CA-025-12` | Con `solo` y exactamente un barbero, Agenda, Nuevo turno y Horarios no piden elegirlo (la selección sigue en la URL, `DEC-074`) y «Mi perfil» es su ficha sin controles de equipo; con varios barberos, o en `shop`, los controles de elección y de alta se conservan. |
-| `CA-025-13` | Con `solo`, «Lo ofrezco» refleja y cambia la asignación real del único barbero solo cuando el servidor confirma; un servicio nuevo queda ofrecido y, si esa asignación falla, el servicio existe y se avisa. |
+| `CA-025-10` | `panelProfile` vale `shop`, `solo` o `employee` y es `shop` para un usuario sin roles; `GET /private/settings/brand` lo deriva de los roles de quien consulta (`DEC-134`) y el `PATCH` lo rechaza como campo desconocido; otro negocio no ve los roles (RLS con dos tenants). *(Sustituye la redacción de `DEC-115`: valor guardado y editable.)* |
+| `CA-025-11` | Con `solo`, el dock muestra Agenda, Servicios, Mi perfil, Horarios, Configuración y Reserva pública; «Servicios por profesional» y la gestión de equipo no son destinos, y su ruta lleva a Servicios aunque el perfil llegue después de entrar. |
+| `CA-025-12` | Con `solo` y exactamente un profesional, Agenda, Nuevo turno y Horarios no piden elegirlo (la selección sigue en la URL, `DEC-074`) y «Mi perfil» es su ficha sin controles de equipo; con varios profesionales, o en `shop`, los controles de elección y de alta se conservan. |
+| `CA-025-13` | Con `solo`, «Lo ofrezco» refleja y cambia la asignación real del único profesional solo cuando el servidor confirma; un servicio nuevo queda ofrecido y, si esa asignación falla, el servicio existe y se avisa. |
 | `CA-025-14` | Volver a `shop` devuelve las pantallas de equipo sin cambiar ningún dato; el perfil, «Lo ofrezco» y «mi día» son accesibles y se componen sin desbordar a 320, 360, 768 y 1280 px en Tinta y Marfil. |
 | `CA-025-15` | El vocabulario del negocio (`DEC-110`) rige todo el panel: Horarios, bloqueos, Nuevo turno, Detalle del turno, Política de reserva, validaciones y etiquetas «Cancelado por…» usan la palabra y el género configurados, y con los valores iniciales cada texto sale idéntico al anterior (`DEC-119`, #308). Las pantallas públicas y el acceso del cliente quedan para #309 (`CA-025-16`). |
-| `CA-025-16` | El vocabulario llega a quien reserva: `GET /public/barbershops/{slug}` y `GET /customer/appointments/{token}` devuelven `vocabulary` de la barbería del enlace o del turno (nunca de otra), la reserva pública y el acceso al turno lo usan con concordancia de género, y una barbería que nunca lo configuró ve exactamente los textos anteriores (`DEC-119`, #309). |
+| `CA-025-16` | El vocabulario llega a quien reserva: `GET /public/businesses/{slug}` y `GET /customer/appointments/{token}` devuelven `vocabulary` del negocio del enlace o del turno (nunca de otro), la reserva pública y el acceso al turno lo usan con concordancia de género, y un negocio que nunca lo configuró ve exactamente el vocabulario inicial, hoy «negocio»/«profesional» (`DEC-119`, #309; `DEC-183`). |
 
 **Pruebas obligatorias**
 
 - Unitarias del servicio (normalización y validación), del reloj de zona, del plural sugerido y de la concordancia del vocabulario con los valores iniciales.
 - HTTP y contrato para lectura, actualización, `400`, `401`, `404`, `422` y aislamiento entre tenants; enum del contrato igual al del dominio y al `CHECK`.
-- PostgreSQL real con dos barberías: valores iniciales, `CHECK`, RLS y que escribir la marca no toque las columnas de `HU-020` ni de `HU-093`.
+- PostgreSQL real con dos negocios: valores iniciales, `CHECK`, RLS y que escribir la marca no toque las columnas de `HU-020` ni de `HU-093`.
 - Prueba de contraste de la paleta y del tema Marfil; pruebas de componente de cada control interactivo con axe.
-- E2E contra el API real (guardar, recargar, aislamiento entre dos barberías, preferencias del dispositivo) y evidencia responsiva en ambos modos y los cuatro tamaños de texto.
-- Del perfil del panel: servicio, repositorio y contrato Go con dos tenants (incluido omitir el campo); `database/tests/panel_perfil_barbero_individual.sql`; pruebas de componente de la navegación, la Agenda, Nuevo turno, Horarios, Mi perfil, Servicios y Configuración; E2E `perfil-barbero-individual.spec.ts` contra el API real y evidencia `perfil-barbero-individual-evidencia-responsiva.spec.ts` con axe real.
+- E2E contra el API real (guardar, recargar, aislamiento entre dos negocios, preferencias del dispositivo) y evidencia responsiva en ambos modos y los cuatro tamaños de texto.
+- Del perfil del panel: servicio, repositorio y contrato Go con dos tenants (incluido omitir el campo); `database/tests/panel_perfil_profesional_individual.sql`; pruebas de componente de la navegación, la Agenda, Nuevo turno, Horarios, Mi perfil, Servicios y Configuración; E2E `perfil-profesional-individual.spec.ts` contra el API real y evidencia `perfil-profesional-individual-evidencia-responsiva.spec.ts` con axe real.
 
-**Terminado cuando** una barbería cambia su acento y su vocabulario, el panel entero los refleja tras recargar sin afectar a otra barbería, y el modo y el tamaño de texto se ajustan en el dispositivo sin tocar las pantallas públicas.
+**Terminado cuando** un negocio cambia su acento y su vocabulario, el panel entero los refleja tras recargar sin afectar a otro negocio, y el modo y el tamaño de texto se ajustan en el dispositivo sin tocar las pantallas públicas.
 
 ---
 
@@ -1029,59 +1031,59 @@ Orden de construcción recomendado para esta parte del bloque: `HU-020` → `HU-
 
 Orden recomendado: HU-040 → HU-041 → HU-042. La disponibilidad, las citas afectadas y la agenda consumen estas capacidades en B3/B4; no se implementan aquí.
 
-### HU-026 · Conexión del barbero con su Google Calendar
+### HU-026 · Conexión del profesional con su Google Calendar
 
 | Campo | Valor |
 | --- | --- |
-| Función | `F-CONF-02` (extensión: integración del barbero con un calendario externo; la publicación de citas es la historia siguiente de esta orquestación) |
+| Función | `F-CONF-02` (extensión: integración del profesional con un calendario externo; la publicación de citas es la historia siguiente de esta orquestación) |
 | Reglas | `RN-TEN-01`, `RN-DAT-02` |
-| Decisiones | `DEC-019`, `DEC-099` (NAVA → Google, por barbero), `DEC-100` (el barbero se resuelve por el vínculo con el usuario), `DEC-101`, `DEC-102` (tokens cifrados, PKCE, configuración) |
-| Actor | Barbero autenticado |
-| Depende de | `HU-021` con el vínculo barbero–usuario (`CA-021-09`–`CA-021-13`) |
-| Bloquea | La publicación de citas y bloqueos en Google Calendar y la pantalla de conexión del barbero |
-| Riesgo | Guardar un token en claro o dejarlo en un log da acceso al calendario personal de una persona; un `state` reutilizable o ajeno permite conectar la cuenta de Google de un atacante; heredar la conexión al cambiar de barbero expone una cuenta ajena; que una caída de Google afecte a las reservas rompe la regla de que NAVA manda. |
+| Decisiones | `DEC-019`, `DEC-099` (Nava Agenda → Google, por profesional), `DEC-100` (el profesional se resuelve por el vínculo con el usuario), `DEC-101`, `DEC-102` (tokens cifrados, PKCE, configuración) |
+| Actor | Profesional autenticado |
+| Depende de | `HU-021` con el vínculo profesional–usuario (`CA-021-09`–`CA-021-13`) |
+| Bloquea | La publicación de citas y bloqueos en Google Calendar y la pantalla de conexión del profesional |
+| Riesgo | Guardar un token en claro o dejarlo en un log da acceso al calendario personal de una persona; un `state` reutilizable o ajeno permite conectar la cuenta de Google de un atacante; heredar la conexión al cambiar de profesional expone una cuenta ajena; que una caída de Google afecte a las reservas rompe la regla de que Nava Agenda manda. |
 
 **Historia**
 
-> Como barbero, quiero conectar mi propio Google Calendar a NAVA, para ver mi agenda en el calendario que ya uso sin que lo que haga en Google altere mis citas ni mi disponibilidad.
+> Como profesional, quiero conectar mi propio Google Calendar a Nava Agenda, para ver mi agenda en el calendario que ya uso sin que lo que haga en Google altere mis citas ni mi disponibilidad.
 
 **Alcance incluido**
 
-- Conexión OAuth con PKCE (S256), acceso offline y consentimiento forzado; alcances mínimos `calendar.events`, `openid` y `email`. `state` de un solo uso, de 10 minutos, ligado a barbería, barbero, usuario y sesión.
-- Estados `not_connected`, `connected`, `reauth_required`, `error` y `disconnected`; una conexión por barbero que se reutiliza al reconectar.
+- Conexión OAuth con PKCE (S256), acceso offline y consentimiento forzado; alcances mínimos `calendar.events`, `openid` y `email`. `state` de un solo uso, de 10 minutos, ligado a negocio, profesional, usuario y sesión.
+- Estados `not_connected`, `connected`, `reauth_required`, `error` y `disconnected`; una conexión por profesional que se reutiliza al reconectar.
 - Refresh token cifrado con AES-256-GCM y `key_id` para rotar la clave; el access token no se persiste y se renueva bajo demanda.
 - `reminder_minutes` de 0 a 40320 (o predeterminado), guardado en la conexión.
-- Desconexión que revoca el permiso en Google (mejor esfuerzo) y borra credenciales y correo; desconectar al cambiar o quitar el vínculo del barbero (`DEC-100`).
+- Desconexión que revoca el permiso en Google (mejor esfuerzo) y borra credenciales y correo; desconectar al cambiar o quitar el vínculo del profesional (`DEC-100`).
 - Operaciones `GET`/`PATCH`/`DELETE /private/integrations/google-calendar`, `POST .../connect` y `POST .../callback`; configuración `GOOGLE_CALENDAR_*` con la integración desactivada si falta alguna variable; guía de Google Cloud.
 
 **Alcance excluido**
 
 - Crear, actualizar o eliminar eventos, la cola y el worker (siguiente historia de esta orquestación).
-- Leer cambios de Google, webhook, `watch` o `syncToken` (`DEC-099`) y la pantalla del barbero.
+- Leer cambios de Google, webhook, `watch` o `syncToken` (`DEC-099`) y la pantalla del profesional.
 - Cuentas de clientes, administradores o un calendario global.
 
 **Criterios de aceptación**
 
 | Código | Criterio |
 | --- | --- |
-| `CA-026-01` | Dado un usuario con barbero vinculado, cuando inicia la conexión, entonces recibe la URL de consentimiento de Google con PKCE S256, acceso offline y los alcances mínimos, y la base guarda solo el hash del `state` y el verificador cifrado; sin barbero vinculado o con la integración sin configurar responde `409`. |
+| `CA-026-01` | Dado un usuario con profesional vinculado, cuando inicia la conexión, entonces recibe la URL de consentimiento de Google con PKCE S256, acceso offline y los alcances mínimos, y la base guarda solo el hash del `state` y el verificador cifrado; sin profesional vinculado o con la integración sin configurar responde `409`. |
 | `CA-026-02` | Dado un `state` vigente de esa sesión, cuando Google devuelve el código, entonces se canjea con el verificador PKCE, la conexión queda `connected` con la cuenta de Google y el refresh token solo existe cifrado en la base. |
-| `CA-026-03` | Dado un `state` ausente, vencido, ya usado o emitido para otra sesión, usuario o barbería, cuando se intenta completar, entonces se responde `400` con el mismo mensaje, sin llamar a Google ni crear conexión, y el `state` queda consumido. |
-| `CA-026-04` | Dado que el barbero rechaza el permiso o no concede el de calendario, o Google falla al canjear, cuando vuelve a NAVA, entonces el resultado es `denied` o `failed` y no queda conexión. |
+| `CA-026-03` | Dado un `state` ausente, vencido, ya usado o emitido para otra sesión, usuario o negocio, cuando se intenta completar, entonces se responde `400` con el mismo mensaje, sin llamar a Google ni crear conexión, y el `state` queda consumido. |
+| `CA-026-04` | Dado que el profesional rechaza el permiso o no concede el de calendario, o Google falla al canjear, cuando vuelve a Nava Agenda, entonces el resultado es `denied` o `failed` y no queda conexión. |
 | `CA-026-05` | Dado un refresh token que Google ya no acepta, cuando se pide un access token, entonces la conexión pasa a `reauth_required` con las credenciales borradas; un fallo transitorio no cambia el estado y una caída de Google nunca afecta a una cita. |
 | `CA-026-06` | Dado un valor fuera de 0 a 40320, cuando se guarda el recordatorio, entonces se responde `422` sin escribir; `null` usa los recordatorios predeterminados del calendario; sin conexión responde `404`. |
-| `CA-026-07` | Dada una conexión, cuando el barbero desconecta (o su usuario cambia o quita el vínculo con ese barbero), entonces se revoca el permiso en Google aunque Google no responda, se borran credenciales y correo, la fila y el recordatorio se conservan y quien tome ese barbero después no hereda la cuenta. |
-| `CA-026-08` | Dadas dos barberías, entonces cada una ve y modifica solo sus conexiones y estados (RLS y claves foráneas compuestas) y dos callbacks simultáneos con el mismo `state` producen exactamente un ganador. |
+| `CA-026-07` | Dada una conexión, cuando el profesional desconecta (o su usuario cambia o quita el vínculo con ese profesional), entonces se revoca el permiso en Google aunque Google no responda, se borran credenciales y correo, la fila y el recordatorio se conservan y quien tome ese profesional después no hereda la cuenta. |
+| `CA-026-08` | Dados dos negocios, entonces cada uno ve y modifica solo sus conexiones y estados (RLS y claves foráneas compuestas) y dos callbacks simultáneos con el mismo `state` producen exactamente un ganador. |
 | `CA-026-09` | Ninguna respuesta, log ni error contiene tokens, `client_secret`, `state` ni el código OAuth; sin las variables `GOOGLE_CALENDAR_*` el API arranca con la integración desactivada y un valor presente pero mal formado impide el arranque. |
 
 **Pruebas obligatorias**
 
 - Unitarias del cifrado (ida y vuelta, clave o contexto incorrectos, rotación) y del servicio con un Google falso.
 - Adaptador de Google contra un servidor falso: URL de consentimiento, canje con PKCE, `invalid_grant` frente a un 503, revocación y que ningún error filtre el código o el token.
-- PostgreSQL real con dos barberías: RLS, claves foráneas, un único ganador por `state` y credenciales ligadas al estado.
+- PostgreSQL real con dos negocios: RLS, claves foráneas, un único ganador por `state` y credenciales ligadas al estado.
 - HTTP y contrato, y el recorrido completo contra el router real con un Google falso, incluida la desconexión al cambiar el vínculo.
 
-**Terminado cuando** un barbero puede conectar y desconectar su Google Calendar con el token cifrado en reposo, sin que ninguna falla de Google afecte a las citas y sin publicar todavía ningún evento.
+**Terminado cuando** un profesional puede conectar y desconectar su Google Calendar con el token cifrado en reposo, sin que ninguna falla de Google afecte a las citas y sin publicar todavía ningún evento.
 
 ---
 
@@ -1089,85 +1091,85 @@ Orden recomendado: HU-040 → HU-041 → HU-042. La disponibilidad, las citas af
 
 | Campo | Valor |
 | --- | --- |
-| Función | `F-CONF-02` (extensión: publicación de la agenda del barbero en su calendario externo) |
-| Reglas | `RN-TEN-01`, `RN-DAT-02`, `RN-CON-03` (NAVA manda), `RN-IDE-01` |
+| Función | `F-CONF-02` (extensión: publicación de la agenda del profesional en su calendario externo) |
+| Reglas | `RN-TEN-01`, `RN-DAT-02`, `RN-CON-03` (Nava Agenda manda), `RN-IDE-01` |
 | Decisiones | `DEC-019`, `DEC-040`, `DEC-099`, `DEC-100`, `DEC-101` (semántica), `DEC-102` (cola propia), `DEC-122` (invitación al cliente) |
-| Actor | Barbero autenticado y worker |
+| Actor | Profesional autenticado y worker |
 | Depende de | `HU-026`, `HU-061`/`HU-065`–`HU-068` (citas), `HU-042` (bloqueos), `HU-097` (reserva pública) |
-| Bloquea | La pantalla del barbero para conectar y sincronizar |
-| Riesgo | Llamar a Google dentro de la transacción de una reserva la ata a un servicio externo; un trabajo que cuenta operaciones en vez de leer el estado publica uno viejo; publicar de más expone datos personales; un worker con acceso a las tablas rompe el aislamiento por tenant; recrear lo cancelado confunde al barbero y al cliente. |
+| Bloquea | La pantalla del profesional para conectar y sincronizar |
+| Riesgo | Llamar a Google dentro de la transacción de una reserva la ata a un servicio externo; un trabajo que cuenta operaciones en vez de leer el estado publica uno viejo; publicar de más expone datos personales; un worker con acceso a las tablas rompe el aislamiento por tenant; recrear lo cancelado confunde al profesional y al cliente. |
 
 **Historia**
 
-> Como barbero con mi Google Calendar conectado, quiero ver mis citas y bloqueos como eventos de mi calendario (y que el cliente reciba la invitación), para organizar mi día con el calendario que ya uso sin que Google altere mis citas.
+> Como profesional con mi Google Calendar conectado, quiero ver mis citas y bloqueos como eventos de mi calendario (y que el cliente reciba la invitación), para organizar mi día con el calendario que ya uso sin que Google altere mis citas.
 
 **Alcance incluido**
 
 - Cola propia `google_calendar_sync_job` escrita en la misma transacción del cambio de negocio mediante un puerto `SyncHook` que definen `booking` y `schedule` (no importan la integración); un trabajo pendiente por recurso; reclamo con lease y finalización por `claim_token` (`DDL-CON-01`).
-- Worker con acceso solo a funciones `SECURITY DEFINER`: crear, actualizar el mismo evento y eliminar por cancelación; `completed` y `no_show` lo conservan; lo pasado no se publica; bloqueos manuales publicables; recordatorio de `reminder_minutes`; zona de la barbería; título «Nombre — Servicio» sin datos personales.
+- Worker con acceso solo a funciones `SECURITY DEFINER`: crear, actualizar el mismo evento y eliminar por cancelación; `completed` y `no_show` lo conservan; lo pasado no se publica; bloqueos manuales publicables; recordatorio de `reminder_minutes`; zona del negocio; título «Nombre — Servicio» sin datos personales.
 - Invitación del cliente como asistente cuando hay correo y la conexión está `connected` (`DEC-122`), con aviso solo de lo que el invitado ve.
 - Backoff exponencial con tope y máximo de intentos; error permanente cambia el estado de la conexión; `reauth_required` por permiso revocado.
-- Chequeo periódico que restaura los eventos que el barbero borró por error; publicación inicial de 6 meses al conectar; «Sincronizar ahora» y contadores de la cola en el estado de la conexión.
+- Chequeo periódico que restaura los eventos que el profesional borró por error; publicación inicial de 6 meses al conectar; «Sincronizar ahora» y contadores de la cola en el estado de la conexión.
 
 **Alcance excluido**
 
 - Importar cambios de Google, webhook, `watch`, `syncToken`, eventos externos como bloqueos o reprogramar/cancelar desde Google (`DEC-099`).
-- Series de bloqueo (`DP-INT-02`), la cancelación por el cliente (`HU-099`, que deberá llamar al gancho) y la pantalla del barbero (siguiente historia de esta orquestación).
+- Series de bloqueo (`DP-INT-02`), la cancelación por el cliente (`HU-099`, que deberá llamar al gancho) y la pantalla del profesional (siguiente historia de esta orquestación).
 
 **Criterios de aceptación**
 
 | Código | Criterio |
 | --- | --- |
-| `CA-027-01` | Dada una reserva pública o manual de un barbero conectado, entonces existe exactamente un evento «Nombre — Servicio» en su calendario, con el horario en la zona de la barbería, sin teléfono, notas ni identificadores internos fuera de las propiedades privadas; reintentar el trabajo no crea un segundo evento. |
-| `CA-027-02` | Reprogramar actualiza el mismo evento; cancelar (por el barbero o el cliente) lo elimina y cierra el vínculo, tratando `404`/`410` como éxito; `completed` y `no_show` lo conservan. |
-| `CA-027-03` | Con correo del cliente y la conexión `connected`, el evento lo incluye como asistente sin permisos de modificar, invitar ni ver a otros; Google le envía la invitación, el cambio de horario y la cancelación, y refrescar solo el recordatorio no le envía correos; sin correo no se invita; su respuesta no modifica NAVA. |
+| `CA-027-01` | Dada una reserva pública o manual de un profesional conectado, entonces existe exactamente un evento «Nombre — Servicio» en su calendario, con el horario en la zona del negocio, sin teléfono, notas ni identificadores internos fuera de las propiedades privadas; reintentar el trabajo no crea un segundo evento. |
+| `CA-027-02` | Reprogramar actualiza el mismo evento; cancelar (por el profesional o el cliente) lo elimina y cierra el vínculo, tratando `404`/`410` como éxito; `completed` y `no_show` lo conservan. |
+| `CA-027-03` | Con correo del cliente y la conexión `connected`, el evento lo incluye como asistente sin permisos de modificar, invitar ni ver a otros; Google le envía la invitación, el cambio de horario y la cancelación, y refrescar solo el recordatorio no le envía correos; sin correo no se invita; su respuesta no modifica Nava Agenda. |
 | `CA-027-04` | Un bloqueo manual publicable crea su evento con el título de su tipo y sin su motivo, y retirarlo lo elimina; el festivo automático y las series no se publican. |
 | `CA-027-05` | Una caída, `429` o `5xx` de Google nunca pierde la cita: el trabajo reintenta con backoff y se detiene al agotar los intentos; un `401` renueva el token una vez; un refresh token revocado deja la conexión en `reauth_required` con las credenciales borradas y la cola vacía; «Sincronizar ahora» reintenta los fallidos y es segura ante varios clics. |
 | `CA-027-06` | Un evento borrado en Google se recrea una sola vez en el siguiente ciclo sin modificar la cita; una cita cancelada en la app, terminal o pasada y un bloqueo retirado nunca se recrean; un cambio hecho en Google no altera citas ni bloqueos. |
 | `CA-027-07` | Cambiar `reminder_minutes` actualiza los eventos futuros ya publicados; con valor el evento lleva ese único recordatorio emergente y sin valor usa los predeterminados. |
 | `CA-027-08` | Varios workers simultáneos nunca toman el mismo trabajo; un worker caído deja que otro retome su trabajo y el primero ya no puede finalizarlo. |
-| `CA-027-09` | Cada barbería ve y reordena solo su cola y sus vínculos; el worker no tiene acceso directo a ninguna tabla y solo ejecuta las funciones de reclamo y finalización. |
+| `CA-027-09` | Cada negocio ve y reordena solo su cola y sus vínculos; el worker no tiene acceso directo a ninguna tabla y solo ejecuta las funciones de reclamo y finalización. |
 | `CA-027-10` | Si encolar falla, el cambio de negocio se revierte; toda escritura sobre `appointment` o `time_block` avisa al gancho, y `booking`/`schedule` no importan la integración. |
 
 **Pruebas obligatorias**
 
 - Publicador con un Google falso: crear, actualizar, eliminar, conservar, adoptar un evento ya creado, recrear con otra generación, invitación y notificaciones, errores por tipo, backoff, token expirado y revocado, caché del token, reclamación perdida y restauración.
-- Cliente de eventos de Google contra un servidor falso: forma del cuerpo, `sendUpdates`, errores sin cuerpo ni token, listado paginado solo de los eventos de NAVA.
-- PostgreSQL real con dos barberías: encolado y fundido, lease, varios workers, CAS, `retry`/`failed`/`reauth`, contexto solo con el token vigente, chequeo de borrados, publicación inicial, desconexión y recordatorio, y que el worker no lea tablas.
+- Cliente de eventos de Google contra un servidor falso: forma del cuerpo, `sendUpdates`, errores sin cuerpo ni token, listado paginado solo de los eventos de Nava Agenda.
+- PostgreSQL real con dos negocios: encolado y fundido, lease, varios workers, CAS, `retry`/`failed`/`reauth`, contexto solo con el token vigente, chequeo de borrados, publicación inicial, desconexión y recordatorio, y que el worker no lea tablas.
 - Recorrido completo por el router real con el worker real y un Google falso: reserva → reprogramar → cancelar, bloqueo, evento borrado, Google caído con «Sincronizar ahora», permiso revocado y aislamiento.
 
-**Terminado cuando** las citas y bloqueos de un barbero conectado aparecen como eventos de su calendario, el cliente recibe la invitación, una caída de Google no pierde nada y lo borrado por error se restaura, todo sin que Google altere NAVA.
+**Terminado cuando** las citas y bloqueos de un profesional conectado aparecen como eventos de su calendario, el cliente recibe la invitación, una caída de Google no pierde nada y lo borrado por error se restaura, todo sin que Google altere Nava Agenda.
 
 ---
 
-### HU-028 · Pantalla de Google Calendar del barbero
+### HU-028 · Pantalla de Google Calendar del profesional
 
 | Campo | Valor |
 | --- | --- |
 | Función | `F-CONF-02` (extensión: pantalla de la integración con el calendario externo) |
 | Reglas | `RN-TEN-01` |
 | Decisiones | `DEC-095` (avisos emergentes), `DEC-099`, `DEC-100`, `DEC-101`, `DEC-102`, `DEC-122` (invitación al cliente) |
-| Actor | Barbero autenticado y cliente de la reserva pública |
+| Actor | Profesional autenticado y cliente de la reserva pública |
 | Depende de | `HU-026`, `HU-027`, `HU-021` (vínculo «Este soy yo») |
 | Bloquea | La guía de puesta en marcha y la revisión integral de la integración |
-| Riesgo | Una pantalla que maneje el código OAuth o lo deje en la URL lo expone; un doble clic que repita una acción; no dejar claro que NAVA manda y Google es una vista lleva a editar allí esperando cambiar la agenda; prometer al cliente una invitación que el negocio quizá no envía. |
+| Riesgo | Una pantalla que maneje el código OAuth o lo deje en la URL lo expone; un doble clic que repita una acción; no dejar claro que Nava Agenda manda y Google es una vista lleva a editar allí esperando cambiar la agenda; prometer al cliente una invitación que el negocio quizá no envía. |
 
 **Historia**
 
-> Como barbero, quiero conectar, ver el estado, sincronizar y desconectar mi Google Calendar desde NAVA, y elegir mi recordatorio, para tener mi agenda en el calendario que ya uso sabiendo con claridad qué hace y qué no hace la integración.
+> Como profesional, quiero conectar, ver el estado, sincronizar y desconectar mi Google Calendar desde Nava Agenda, y elegir mi recordatorio, para tener mi agenda en el calendario que ya uso sabiendo con claridad qué hace y qué no hace la integración.
 
 **Alcance incluido**
 
-- Pantalla `/panel/barberia/google-calendar`, enlazada desde la sección «Integraciones» de Configuración (sin entrada propia en el dock), con los estados No disponible, Falta vincular el barbero, No conectado, Conectado (cuenta, calendario y última sincronización), Sincronizando (cambios en cola, con consulta periódica), Requiere reconexión y Error de sincronización, y las acciones Conectar, Sincronizar ahora y Desconectar (con confirmación).
-- Pantalla de retorno `/panel/barberia/google-calendar/callback` (el `redirect_uri` registrado en Google Cloud): reenvía `state` y `code` una sola vez al API, limpia la URL de inmediato y distingue conectado, permiso rechazado, fallo y autorización vencida.
+- Pantalla `/panel/negocio/google-calendar`, enlazada desde la sección «Integraciones» de Configuración (sin entrada propia en el dock), con los estados No disponible, Falta vincular el profesional, No conectado, Conectado (cuenta, calendario y última sincronización), Sincronizando (cambios en cola, con consulta periódica), Requiere reconexión y Error de sincronización, y las acciones Conectar, Sincronizar ahora y Desconectar (con confirmación).
+- Pantalla de retorno `/panel/negocio/google-calendar/callback` (el `redirect_uri` registrado en Google Cloud): reenvía `state` y `code` una sola vez al API, limpia la URL de inmediato y distingue conectado, permiso rechazado, fallo y autorización vencida.
 - Recordatorio en minutos (0 a 40320) o los predeterminados de Google, validado en el cliente y en el servidor.
-- Texto que explica que la publicación es de NAVA hacia Google, que un evento borrado por error se restaura y que solo se deja de publicar cancelando el turno en la app.
+- Texto que explica que la publicación es de Nava Agenda hacia Google, que un evento borrado por error se restaura y que solo se deja de publicar cancelando el turno en la app.
 - Aviso en el resumen de la reserva pública, antes de confirmar: «Si el negocio usa Google Calendar, recibirás una invitación a este turno en {correo}» (`DEC-122`).
 - Cliente tipado del contrato; la pantalla no maneja tokens.
 
 **Alcance excluido**
 
-- Cualquier cambio de backend o de contrato. Por eso el aviso al cliente es condicional («Si el negocio usa…»): la reserva pública no sabe si el barbero tiene la integración conectada y exponerlo exigiría un campo nuevo en su respuesta (seguimiento posible).
+- Cualquier cambio de backend o de contrato. Por eso el aviso al cliente es condicional («Si el negocio usa…»): la reserva pública no sabe si el profesional tiene la integración conectada y exponerlo exigiría un campo nuevo en su respuesta (seguimiento posible).
 - Mostrar bloqueos u origen de Google en la agenda (`DEC-099`).
 
 **Criterios de aceptación**
@@ -1175,10 +1177,10 @@ Orden recomendado: HU-040 → HU-041 → HU-042. La disponibilidad, las citas af
 | Código | Criterio |
 | --- | --- |
 | `CA-028-01` | Cada estado de la integración se muestra con su rótulo, texto y acciones (conectar, volver a conectar, sincronizar ahora, desconectar) y sin acciones cuando no está disponible; un cambio en cola muestra «Sincronizando» y se consulta hasta que se vacía. |
-| `CA-028-02` | Conectar envía al barbero a Google; la pantalla de retorno reenvía una sola vez `state` y `code`, limpia la URL antes de llamar al API y nunca los guarda; el rechazo del permiso, un fallo de Google y una autorización vencida tienen su propio mensaje y un camino de vuelta. |
+| `CA-028-02` | Conectar envía al profesional a Google; la pantalla de retorno reenvía una sola vez `state` y `code`, limpia la URL antes de llamar al API y nunca los guarda; el rechazo del permiso, un fallo de Google y una autorización vencida tienen su propio mensaje y un camino de vuelta. |
 | `CA-028-03` | Sincronizar, desconectar (tras confirmar), conectar y guardar el recordatorio se bloquean mientras están en curso: un doble clic no repite la acción; un error recuperable no pierde lo escrito ni deja la pantalla inutilizable. |
 | `CA-028-04` | El recordatorio acepta enteros de 0 a 40320 o «usar los de Google»; un valor inválido se rechaza en el cliente y un `422` del servidor se muestra bajo el campo. |
-| `CA-028-05` | La pantalla explica que NAVA manda y Google es una vista, que un evento borrado por error se restaura, que solo se deja de publicar cancelando el turno desde la app y que el cliente recibe la invitación. |
+| `CA-028-05` | La pantalla explica que Nava Agenda manda y Google es una vista, que un evento borrado por error se restaura, que solo se deja de publicar cancelando el turno desde la app y que el cliente recibe la invitación. |
 | `CA-028-06` | El resumen de la reserva pública avisa, de forma condicional, que Google puede invitar al cliente en el correo que dio. |
 | `CA-028-07` | Sin scroll horizontal a 320, 360, 768 y 1280 px en Tinta y Marfil, con teclado, foco visible, orden de encabezados correcto y sin violaciones de axe (contraste incluido). |
 
@@ -1188,7 +1190,7 @@ Orden recomendado: HU-040 → HU-041 → HU-042. La disponibilidad, las citas af
 - E2E con el API simulado: conectar (redirección simulada), sincronizar, guardar el recordatorio y desconectar; retorno con autorización vencida; enlace desde Configuración.
 - Evidencia responsive y accesible en `apps/web/e2e/evidence/google-calendar/`.
 
-**Terminado cuando** el barbero conecta y administra su Google Calendar desde NAVA sin que el código OAuth toque la URL ni el almacenamiento, entendiendo qué hace la integración.
+**Terminado cuando** el profesional conecta y administra su Google Calendar desde Nava Agenda sin que el código OAuth toque la URL ni el almacenamiento, entendiendo qué hace la integración.
 
 ### HU-029 · Aplicar el precio nuevo de un servicio a los turnos futuros
 
@@ -1197,20 +1199,20 @@ Orden recomendado: HU-040 → HU-041 → HU-042. La disponibilidad, las citas af
 | Función | `F-SERV-01`, `F-CITA-04` |
 | Reglas | `RN-SER-04`, `RN-HIS-01`, `RN-CON-03`, `RN-TEN-01` |
 | Decisiones | `DEC-004`, `DEC-141` |
-| Actor | Barbero autenticado |
+| Actor | Profesional autenticado |
 | Depende de | `HU-022`, `HU-024` (recuento de turnos futuros) integradas |
 | Bloquea | Ninguna |
 | Estado | Implementada en [#456](https://github.com/bcaceres19/barberia/issues/456); aceptada por el propietario el 2026-10-31 |
-| Riesgo | Cambiar el precio de turnos ya agendados sin que el barbero lo elija sorprende al cliente; no ofrecer la opción obliga a editar turno por turno. |
+| Riesgo | Cambiar el precio de turnos ya agendados sin que el profesional lo elija sorprende al cliente; no ofrecer la opción obliga a editar turno por turno. |
 
 **Historia**
 
-> Como barbero, quiero elegir si el precio nuevo de un servicio se aplica también a los turnos futuros ya agendados, para no sorprender a quien ya reservó ni tener que corregir turno por turno.
+> Como profesional, quiero elegir si el precio nuevo de un servicio se aplica también a los turnos futuros ya agendados, para no sorprender a quien ya reservó ni tener que corregir turno por turno.
 
 **Alcance incluido**
 
 - `PATCH /private/services/{serviceId}` acepta `applyPriceToUpcoming` (por defecto `false`, exige `price`; sin él, `422`) y responde `upcomingAppointmentsUpdated`. Contrato OpenAPI 0.48.0.
-- Con `true`, en la misma transacción que el servicio, los turnos `confirmed` con inicio futuro de ese servicio y esa barbería que tengan otro precio adoptan el precio nuevo y cada uno suma un evento `appointment_service_changed` con el precio anterior y el nuevo a nombre de quien edita. Su `updated_at` cambia, así que un detalle abierto queda con un token de versión obsoleto.
+- Con `true`, en la misma transacción que el servicio, los turnos `confirmed` con inicio futuro de ese servicio y ese negocio que tengan otro precio adoptan el precio nuevo y cada uno suma un evento `appointment_service_changed` con el precio anterior y el nuevo a nombre de quien edita. Su `updated_at` cambia, así que un detalle abierto queda con un token de versión obsoleto.
 - En el diálogo de editar servicio, si el precio cambia y hay turnos futuros (el número sale de `deactivation-impact`; si esa consulta falla se ofrece igual, sin el número), aparece la casilla «Aplicar el precio nuevo a los turnos ya agendados», **desmarcada por defecto**; el aviso de guardado dice cuántos turnos cambiaron.
 
 **Alcance excluido**
@@ -1223,14 +1225,14 @@ Orden recomendado: HU-040 → HU-041 → HU-042. La disponibilidad, las citas af
 | Código | Criterio |
 | --- | --- |
 | `CA-029-01` | Sin `applyPriceToUpcoming` (valor por defecto) ningún turno cambia, aunque el precio del servicio sí; la casilla de la pantalla aparece desmarcada. |
-| `CA-029-02` | Con `applyPriceToUpcoming: true` y `price`, todos los turnos `confirmed` futuros de ese servicio y barbería con otro precio adoptan el precio nuevo en la misma transacción, cada uno con un único evento `appointment_service_changed`; un fallo revierte servicio y turnos. |
-| `CA-029-03` | Los turnos de otro servicio, de otra barbería, pasados o en otro estado no cambian ni reciben evento. |
+| `CA-029-02` | Con `applyPriceToUpcoming: true` y `price`, todos los turnos `confirmed` futuros de ese servicio y negocio con otro precio adoptan el precio nuevo en la misma transacción, cada uno con un único evento `appointment_service_changed`; un fallo revierte servicio y turnos. |
+| `CA-029-03` | Los turnos de otro servicio, de otro negocio, pasados o en otro estado no cambian ni reciben evento. |
 | `CA-029-04` | `applyPriceToUpcoming: true` sin `price` responde `422` sin escribir nada. |
 | `CA-029-05` | La casilla solo aparece si el precio cambió y hay turnos futuros (o se desconoce cuántos); el diálogo cumple responsive, teclado, foco y contraste en 360 y 1280 px. |
 
-**Pruebas obligatorias:** PostgreSQL real con dos barberías (alcance, estado, historial y aislamiento), servicio y handler (actor y validación), contrato OpenAPI, cliente y componente del diálogo, y verificación en Chromium.
+**Pruebas obligatorias:** PostgreSQL real con dos negocios (alcance, estado, historial y aislamiento), servicio y handler (actor y validación), contrato OpenAPI, cliente y componente del diálogo, y verificación en Chromium.
 
-**Terminado cuando** ningún turno cambia de precio sin que el barbero lo haya elegido y cada cambio aplicado queda en el historial del turno.
+**Terminado cuando** ningún turno cambia de precio sin que el profesional lo haya elegido y cada cambio aplicado queda en el historial del turno.
 
 ---
 
@@ -1243,7 +1245,7 @@ Orden recomendado: HU-040 → HU-041 → HU-042. La disponibilidad, las citas af
 | Función | F-HOR-01 |
 | Reglas | RN-TEN-01, RN-DIS-05, RN-DIS-07 |
 | Decisiones | DEC-007, DEC-019, DEC-020, DEC-024, DEC-033–DEC-040 |
-| Actor | Barbero autenticado |
+| Actor | Profesional autenticado |
 | Depende de | Criterio de salida de B1; HU-020–HU-024 integradas en main; CT-008 resuelta (DEC-070) |
 | Bloquea | HU-041, HU-042 y el cálculo posterior de disponibilidad |
 | Estado | Integrada en main (PR #93, squash-merge 2026-08-25, CI 4/4 en verde); prompt PROMPT-HU-040-v1 executed; issue real #90 abierto por CA-040-08 parcial |
@@ -1251,14 +1253,14 @@ Orden recomendado: HU-040 → HU-041 → HU-042. La disponibilidad, las citas af
 
 **Historia**
 
-> Como barbero, quiero configurar los tramos de trabajo de cada barbero por día de la semana, para que el sistema sepa cuándo ofrecer turnos y pueda representar jornadas partidas o nocturnas.
+> Como profesional, quiero configurar los tramos de trabajo de cada profesional por día de la semana, para que el sistema sepa cuándo ofrecer turnos y pueda representar jornadas partidas o nocturnas.
 
 **Alcance incluido**
 
-- Consulta, alta, edición y retiro de tramos recurrentes por barbero y barbería activa.
+- Consulta, alta, edición y retiro de tramos recurrentes por profesional y negocio activo.
 - Días ISO del 1 al 7, varios tramos por día y duración en minutos enteros.
-- Horas civiles interpretadas con la zona IANA de la barbería; no se usa la zona del navegador.
-- Intervalos semiabiertos [inicio, fin), con tramos contiguos permitidos y solapes del mismo barbero/día rechazados.
+- Horas civiles interpretadas con la zona IANA del negocio; no se usa la zona del navegador.
+- Intervalos semiabiertos [inicio, fin), con tramos contiguos permitidos y solapes del mismo profesional/día rechazados.
 - Tramos que cruzan medianoche, según DEC-020, sin convertir la configuración en instantes dependientes del servidor.
 - Contrato OpenAPI, módulo schedule, persistencia tenant-aware, pantalla privada y cliente tipado.
 
@@ -1267,19 +1269,19 @@ Orden recomendado: HU-040 → HU-041 → HU-042. La disponibilidad, las citas af
 - Fechas especiales, festivos, horarios de excepción y calendario colombiano: HU-041.
 - Descansos, almuerzos, vacaciones, emergencias, recurrencias y listas explícitas: HU-042.
 - Citas, agenda, disponibilidad pública, reservas y notificaciones.
-- Credenciales, roles, eliminación de barberos y personalización visual por barbería.
+- Credenciales, roles, eliminación de profesionales y personalización visual por negocio.
 - Cualquier FK o cascada del modelo físico distinta de ON DELETE RESTRICT (DEC-070).
 
 **Criterios de aceptación**
 
 | Código | Criterio |
 | --- | --- |
-| CA-040-01 | Dada una barbería con uno o varios barberos, cuando se consulta el horario, entonces aparecen los siete días y solo los tramos de la barbería activa, sin filas de otro tenant. |
+| CA-040-01 | Dado un negocio con uno o varios profesionales, cuando se consulta el horario, entonces aparecen los siete días y solo los tramos del negocio activo, sin filas de otro tenant. |
 | CA-040-02 | Cuando se crean dos tramos no solapados el mismo día, entonces ambos persisten; una jornada partida no requiere una rama especial para el segundo tramo. |
 | CA-040-03 | Una duración positiva representa el fin del tramo de forma determinista; los intervalos contiguos no chocan y un tramo nocturno puede cruzar medianoche conforme a DEC-020. |
-| CA-040-04 | Un día fuera de 1–7, duración cero/negativa/excesiva, hora inválida o solape del mismo barbero responde con error de validación y no deja escritura parcial. |
-| CA-040-05 | Un barbero puede editar o retirar un tramo propio; intentar leerlo o modificarlo desde otra barbería responde 404 y la base de datos rechaza la operación cruzada con el rol de aplicación. |
-| CA-040-06 | La misma configuración se muestra con la zona de la barbería aunque el dispositivo use otra zona horaria; los instantes de una capacidad futura no se reescriben. |
+| CA-040-04 | Un día fuera de 1–7, duración cero/negativa/excesiva, hora inválida o solape del mismo profesional responde con error de validación y no deja escritura parcial. |
+| CA-040-05 | Un profesional puede editar o retirar un tramo propio; intentar leerlo o modificarlo desde otro negocio responde 404 y la base de datos rechaza la operación cruzada con el rol de aplicación. |
+| CA-040-06 | La misma configuración se muestra con la zona del negocio aunque el dispositivo use otra zona horaria; los instantes de una capacidad futura no se reescriben. |
 | CA-040-07 | La pantalla contempla carga, vacío, error recuperable y éxito; conserva los datos no sensibles ante error, evita doble envío y es operable por teclado. |
 | CA-040-08 | El contrato, handler, caso de uso, repositorio, cliente generado y pantalla coinciden en campos, límites y errores, con verificación responsive a 320, 360, 768 y 1280 px. |
 
@@ -1287,11 +1289,11 @@ Orden recomendado: HU-040 → HU-041 → HU-042. La disponibilidad, las citas af
 
 - Unitarias de dominio y aplicación para días, duración, tramos partidos, contiguidad, solape y medianoche.
 - HTTP y contrato para consulta, alta, edición, retiro, no autenticado, recurso ajeno, validación y error uniforme.
-- PostgreSQL real con dos barberías, RLS, FK en ON DELETE RESTRICT (DEC-070) y grants, lectura/escritura cruzada y ausencia de escritura parcial.
-- Componente y E2E del selector de barbero, alta, edición, conflicto, retiro, recarga y aislamiento.
+- PostgreSQL real con dos negocios, RLS, FK en ON DELETE RESTRICT (DEC-070) y grants, lectura/escritura cruzada y ausencia de escritura parcial.
+- Componente y E2E del selector de profesional, alta, edición, conflicto, retiro, recarga y aislamiento.
 - Evidencia responsive y accesible en 320, 360, 768 y 1280 px, teclado, foco, zoom 200 %, axe-core y contraste.
 
-**Terminado cuando** un barbero puede mantener la semana laboral real de cualquier profesional de su barbería, incluidos tramos partidos y nocturnos, sin cruces de tenant y sin adelantar excepciones, bloqueos o citas.
+**Terminado cuando** un profesional puede mantener la semana laboral real de cualquier profesional de su negocio, incluidos tramos partidos y nocturnos, sin cruces de tenant y sin adelantar excepciones, bloqueos o citas.
 
 ---
 
@@ -1302,23 +1304,23 @@ Orden recomendado: HU-040 → HU-041 → HU-042. La disponibilidad, las citas af
 | Función | F-HOR-02, parte de fechas especiales y festivos |
 | Reglas | RN-TEN-01, RN-BLQ-02, RN-DIS-05, RN-DIS-07 |
 | Decisiones | DEC-007, DEC-019, DEC-020, DEC-024, DEC-033–DEC-040 |
-| Actor | Barbero autenticado |
+| Actor | Profesional autenticado |
 | Depende de | HU-040 integrada en main y B1 cerrado |
 | Bloquea | HU-042 y la resolución posterior de jornada efectiva |
 | Estado | Integrada en `main`; prompt PROMPT-HU-041-v1.3 executed; issue real [#95](https://github.com/bcaceres19/barberia/issues/95), abierto por `CA-041-08` parcial; [PR #96](https://github.com/bcaceres19/barberia/pull/96) |
-| Riesgo | Compartir el calendario entre barberos o dejar que un festivo automático venza una apertura manual produce disponibilidad falsa. |
+| Riesgo | Compartir el calendario entre profesionales o dejar que un festivo automático venza una apertura manual produce disponibilidad falsa. |
 
 **Historia**
 
-> Como barbero, quiero activar el calendario colombiano de festivos y definir excepciones para fechas concretas, para cerrar un día o trabajar con un horario especial sin alterar a los demás barberos.
+> Como profesional, quiero activar el calendario colombiano de festivos y definir excepciones para fechas concretas, para cerrar un día o trabajar con un horario especial sin alterar a los demás profesionales.
 
 **Alcance incluido**
 
-- Toggle holiday_calendar_enabled independiente por barbero.
-- Resolución determinista del calendario colombiano para la fecha consultada y la zona de la barbería.
+- Toggle holiday_calendar_enabled independiente por profesional.
+- Resolución determinista del calendario colombiano para la fecha consultada y la zona del negocio.
 - Excepción por fecha para cerrar completamente el día o abrirlo con uno o varios tramos propios.
 - Apertura manual de un festivo completo o con horario reducido; la excepción manual prevalece sobre el bloqueo automático.
-- Consulta, alta, edición y retiro de excepciones, con una sola cabecera por barbero y fecha.
+- Consulta, alta, edición y retiro de excepciones, con una sola cabecera por profesional y fecha.
 - Puerto interno de resolución de jornada efectiva para consumos futuros, sin crear citas ni disponibilidad pública.
 - Modelo normalizado de cabecera y tramos, contrato OpenAPI, módulo schedule, pantalla y cliente generado.
 
@@ -1326,7 +1328,7 @@ Orden recomendado: HU-040 → HU-041 → HU-042. La disponibilidad, las citas af
 
 - Bloqueos de descanso, almuerzo, no disponible, vacaciones, días libres y emergencia: HU-042.
 - Citas afectadas, reprogramación, cancelación, notificaciones y agenda.
-- Cambio de zona de la barbería o conversión de instantes existentes.
+- Cambio de zona del negocio o conversión de instantes existentes.
 - Catálogo editable de festivos, calendarios externos y reglas comerciales.
 - Cualquier FK o cascada del modelo físico distinta de ON DELETE RESTRICT (DEC-070).
 
@@ -1334,24 +1336,24 @@ Orden recomendado: HU-040 → HU-041 → HU-042. La disponibilidad, las citas af
 
 | Código | Criterio |
 | --- | --- |
-| CA-041-01 | Dado un barbero con el calendario desactivado, entonces los festivos no agregan bloqueos automáticos; la decisión no cambia el resultado de otro barbero. |
-| CA-041-02 | Dado un barbero con el calendario activado, entonces un festivo queda cerrado por defecto en la resolución de jornada efectiva. |
-| CA-041-03 | Dado un festivo abierto manualmente, entonces prevalece la excepción y el barbero puede trabajar la jornada completa o uno o varios tramos reducidos. |
+| CA-041-01 | Dado un profesional con el calendario desactivado, entonces los festivos no agregan bloqueos automáticos; la decisión no cambia el resultado de otro profesional. |
+| CA-041-02 | Dado un profesional con el calendario activado, entonces un festivo queda cerrado por defecto en la resolución de jornada efectiva. |
+| CA-041-03 | Dado un festivo abierto manualmente, entonces prevalece la excepción y el profesional puede trabajar la jornada completa o uno o varios tramos reducidos. |
 | CA-041-04 | Una excepción cerrada no admite tramos; una excepción abierta exige tramos válidos, sin solapes, con intervalos semiabiertos y medianoche permitida por DEC-020. |
-| CA-041-05 | Existe como máximo una excepción por barbero y fecha; crear, editar o retirar una excepción no modifica el horario semanal ni la excepción de otro barbero. |
-| CA-041-06 | Una fecha, barbero o excepción de otra barbería no se expone y una escritura directa con el rol de aplicación queda bloqueada por tenant/RLS. |
-| CA-041-07 | La resolución de jornada aplica la precedencia excepción manual abierta/cerrada > festivo automático > horario semanal y usa siempre la zona de la barbería. |
+| CA-041-05 | Existe como máximo una excepción por profesional y fecha; crear, editar o retirar una excepción no modifica el horario semanal ni la excepción de otro profesional. |
+| CA-041-06 | Una fecha, profesional o excepción de otro negocio no se expone y una escritura directa con el rol de aplicación queda bloqueada por tenant/RLS. |
+| CA-041-07 | La resolución de jornada aplica la precedencia excepción manual abierta/cerrada > festivo automático > horario semanal y usa siempre la zona del negocio. |
 | CA-041-08 | La pantalla y el contrato comunican carga, vacío, error, éxito y el efecto del toggle; son operables por teclado y reflowan sin pérdida a 320, 360, 768 y 1280 px. |
 
 **Pruebas obligatorias**
 
 - Unitarias de calendario colombiano, toggle independiente, precedencia, fecha cerrada, horario especial, medianoche, contiguidad y solape.
 - HTTP y contrato para toggle y CRUD de excepciones, 401, 404, 409, 422 y RFC 9457.
-- PostgreSQL real con dos tenants y varios barberos, unicidad por fecha, cabecera cerrada sin tramos, RLS, FK en ON DELETE RESTRICT (DEC-070) y grants.
+- PostgreSQL real con dos tenants y varios profesionales, unicidad por fecha, cabecera cerrada sin tramos, RLS, FK en ON DELETE RESTRICT (DEC-070) y grants.
 - Componente y E2E para activar, cerrar festivo, abrir festivo reducido, editar, retirar y comprobar aislamiento.
 - Evidencia responsive y accesible en 320, 360, 768 y 1280 px, teclado, foco, zoom 200 %, axe-core y contraste.
 
-**Terminado cuando** cada barbero puede representar su decisión independiente sobre festivos y fechas especiales, la resolución es reproducible y ninguna pantalla promete todavía citas o disponibilidad.
+**Terminado cuando** cada profesional puede representar su decisión independiente sobre festivos y fechas especiales, la resolución es reproducible y ninguna pantalla promete todavía citas o disponibilidad.
 
 ---
 
@@ -1362,15 +1364,15 @@ Orden recomendado: HU-040 → HU-041 → HU-042. La disponibilidad, las citas af
 | Función | F-HOR-02, bloqueos puntuales, recurrentes y listas explícitas |
 | Reglas | RN-TEN-01, RN-BLQ-01, RN-BLQ-03, RN-BLQ-04, RN-DIS-05, RN-DIS-07, RN-IDE-01 |
 | Decisiones | DEC-007, DEC-008, DEC-009, DEC-013, DEC-019, DEC-020, DEC-024, DEC-033–DEC-040, DEC-043 |
-| Actor | Barbero autenticado |
+| Actor | Profesional autenticado |
 | Depende de | HU-040 y HU-041 integradas en main |
 | Bloquea | Proyección completa de disponibilidad y la integración B3 de citas afectadas |
 | Estado | Integrada en `main` mediante [PR #99](https://github.com/bcaceres19/barberia/pull/99); prompt `PROMPT-HU-042-v1` `executed`; issues [#98](https://github.com/bcaceres19/barberia/issues/98) y [#100](https://github.com/bcaceres19/barberia/issues/100) con seguimientos parciales; el de UI/E2E de `date_list`, excepciones y edición de serie (#100) quedó completo el 2026-10-08 |
-| Riesgo | Rechazar una emergencia por una cita existente, borrar el registro o duplicar una recurrencia destruye la confianza operativa del barbero. |
+| Riesgo | Rechazar una emergencia por una cita existente, borrar el registro o duplicar una recurrencia destruye la confianza operativa del profesional. |
 
 **Historia**
 
-> Como barbero, quiero bloquear descansos, almuerzos, días libres, vacaciones, emergencias y otros intervalos, de forma puntual o recurrente, para que el sistema deje de ofrecer esos espacios y conserve la explicación de cada cambio.
+> Como profesional, quiero bloquear descansos, almuerzos, días libres, vacaciones, emergencias y otros intervalos, de forma puntual o recurrente, para que el sistema deje de ofrecer esos espacios y conserve la explicación de cada cambio.
 
 **Alcance incluido**
 
@@ -1402,7 +1404,7 @@ Orden recomendado: HU-040 → HU-041 → HU-042. La disponibilidad, las citas af
 | CA-042-04 | Los intervalos validan duración, rango, contiguidad, medianoche y semántica [inicio, fin); los solapamientos de bloqueos se proyectan como una sola unión temporal. |
 | CA-042-05 | Retirar un bloqueo o serie marca su eliminación, registra actor e instante, lo excluye de la proyección y conserva el registro; no existe DELETE físico para el rol de aplicación. |
 | CA-042-06 | Crear un bloqueo no falla por la posible existencia de citas y no cancela, reprograma ni notifica ninguna cita; el punto de integración deja RN-BLQ-03 trazado a B3/B5. |
-| CA-042-07 | La lectura y escritura están aisladas por barbería, los reintentos críticos no duplican efectos y una carrera real no deja dos retiros o dos series para una misma intención. |
+| CA-042-07 | La lectura y escritura están aisladas por negocio, los reintentos críticos no duplican efectos y una carrera real no deja dos retiros o dos series para una misma intención. |
 | CA-042-08 | La pantalla diferencia punto/serie/lista, comunica estado retirado, conserva datos ante error y funciona con teclado, foco, zoom 200 % y anchos 320, 360, 768 y 1280 px. |
 
 **Pruebas obligatorias**
@@ -1415,7 +1417,7 @@ Orden recomendado: HU-040 → HU-041 → HU-042. La disponibilidad, las citas af
 - Evidencia responsive y accesible en 320, 360, 768 y 1280 px, teclado, foco, zoom 200 %, axe-core y contraste.
 - Evidencia separada de que esta HU no consulta ni crea appointment y deja la lista de afectados para B3/B5.
 
-**Terminado cuando** el barbero puede bloquear tiempo de forma puntual, recurrente y auditable sin que el sistema borre registros ni resuelva citas por su cuenta, y la parte pendiente de RN-BLQ-03 queda enlazada a las historias dueñas.
+**Terminado cuando** el profesional puede bloquear tiempo de forma puntual, recurrente y auditable sin que el sistema borre registros ni resuelva citas por su cuenta, y la parte pendiente de RN-BLQ-03 queda enlazada a las historias dueñas.
 
 ---
 
@@ -1443,15 +1445,15 @@ Orden recomendado: `HU-060` → `HU-061` → `HU-062` → `HU-063` → `HU-064` 
 
 **Historia**
 
-> Como propietario del producto, quiero que clientes, citas y su historial inicial se persistan con aislamiento por barbería y exclusión temporal en PostgreSQL, para que ninguna interfaz o proceso pueda guardar turnos cruzados ni alterar el rastro original.
+> Como propietario del producto, quiero que clientes, citas y su historial inicial se persistan con aislamiento por negocio y exclusión temporal en PostgreSQL, para que ninguna interfaz o proceso pueda guardar turnos cruzados ni alterar el rastro original.
 
 **Alcance incluido**
 
 - Migración Atlas mínima para `customer`, `appointment`, `appointment_history` y `appointment_history_change`, revisada contra la sección D del modelo físico de referencia.
 - Cinco estados técnicos cerrados; `confirmed`, `completed` y `no_show` ocupan agenda, mientras las dos cancelaciones la liberan.
-- Intervalos `timestamptz` semiabiertos `[inicio, fin)`, duración planificada coherente con el snapshot y exclusión GiST por barbería y barbero solo para estados que ocupan agenda.
+- Intervalos `timestamptz` semiabiertos `[inicio, fin)`, duración planificada coherente con el snapshot y exclusión GiST por negocio y profesional solo para estados que ocupan agenda.
 - Snapshots aprobados de nombre, duración, precio y moneda del servicio; un cambio posterior de catálogo no los sincroniza en silencio.
-- FK tenant-aware, RLS forzada, índices de agenda/historial, privilegios mínimos y ausencia de borrado físico de citas e historial para `barberia_app`.
+- FK tenant-aware, RLS forzada, índices de agenda/historial, privilegios mínimos y ausencia de borrado físico de citas e historial para `agenda_app`.
 - Operación interna transaccional que pueda crear cliente, cita `confirmed` y evento `appointment_created` como una unidad, sin exponer todavía un endpoint.
 - Fixtures y pruebas con PostgreSQL 14 real, dos tenants, inserción directa y dos conexiones concurrentes.
 
@@ -1459,7 +1461,7 @@ Orden recomendado: `HU-060` → `HU-061` → `HU-062` → `HU-063` → `HU-064` 
 
 - Endpoint HTTP, formulario Vue, agenda visible o creación pública.
 - Decidir la reconciliación de clientes manuales sin teléfono (`DP-CIT-01`). La base solo conserva formas válidas y permite ausencia significativa.
-- Validar jornada efectiva, bloqueos, asignación servicio-barbero o permisos de una cita concreta; pertenecen al caso de uso de `HU-061`.
+- Validar jornada efectiva, bloqueos, asignación servicio-profesional o permisos de una cita concreta; pertenecen al caso de uso de `HU-061`.
 - Modificar, reprogramar, cancelar, completar, marcar inasistencia o corregir estados.
 - Tokens públicos, recordatorios, notificaciones, cierre automático, anonimización o métricas del piloto.
 - Copiar el DDL de referencia sin reevaluar bloqueo, datos existentes, RLS, índices y recuperación conforme a Atlas.
@@ -1469,18 +1471,18 @@ Orden recomendado: `HU-060` → `HU-061` → `HU-062` → `HU-063` → `HU-064` 
 | Código | Criterio |
 | --- | --- |
 | `CA-060-01` | El esquema migrado representa `customer`, `appointment` y el historial normalizado con FK tenant-aware, RLS forzada y sin `jsonb`, cascadas ni datos duplicados fuera de los snapshots aprobados. |
-| `CA-060-02` | Una inserción SQL directa de dos citas que ocupan agenda y se cruzan para el mismo barbero es rechazada por PostgreSQL; dos citas contiguas y dos citas simultáneas de barberos distintos son aceptadas. |
+| `CA-060-02` | Una inserción SQL directa de dos citas que ocupan agenda y se cruzan para el mismo profesional es rechazada por PostgreSQL; dos citas contiguas y dos citas simultáneas de profesionales distintos son aceptadas. |
 | `CA-060-03` | El criterio derivado de ocupación incluye exactamente `confirmed`, `completed` y `no_show`; una cita cancelada no participa en la exclusión, sin repetir una lista divergente en otra restricción. |
 | `CA-060-04` | `ends_at - starts_at` coincide con `duration_minutes_snapshot`, incluso al cruzar medianoche o una transición DST, y los instantes nunca dependen de la zona de sesión. |
 | `CA-060-05` | La creación interna persiste cliente, cita `confirmed` y `appointment_created` en una sola transacción; cualquier fallo revierte las tres escrituras. |
 | `CA-060-06` | `appointment_history` y sus cambios aceptan solo inserción para el rol de aplicación; `UPDATE` y `DELETE` directos fallan y una corrección futura solo podrá añadir otra entrada. |
-| `CA-060-07` | Con el rol real y dos tenants, leer o relacionar IDs ajenos devuelve cero filas o falla por integridad/RLS sin revelar existencia; teléfono y correo solo son únicos dentro de la barbería conforme a `DEC-045`/`DEC-046`. |
+| `CA-060-07` | Con el rol real y dos tenants, leer o relacionar IDs ajenos devuelve cero filas o falla por integridad/RLS sin revelar existencia; teléfono y correo solo son únicos dentro del negocio conforme a `DEC-045`/`DEC-046`. |
 | `CA-060-08` | La migración valida y aplica desde vacío y desde la versión anterior con datos representativos, conserva `atlas.sum` y documenta bloqueo, avance correctivo y pruebas en README/matriz. |
 
 **Pruebas obligatorias**
 
-- SQL directo de estados, duración, snapshots, contigüidad, cruces total/parciales, multi-barbero y cancelación que libera la restricción.
-- PostgreSQL real con dos tenants y `barberia_app`: RLS, FK compuestas, grants, ausencia de `DELETE`, historial append-only y cierre por falta de contexto.
+- SQL directo de estados, duración, snapshots, contigüidad, cruces total/parciales, multiprofesional y cancelación que libera la restricción.
+- PostgreSQL real con dos tenants y `agenda_app`: RLS, FK compuestas, grants, ausencia de `DELETE`, historial append-only y cierre por falta de contexto.
 - Dos conexiones reales que intentan crear el mismo cruce; exactamente una persiste, coordinadas con barreras observables y nunca con `sleep`.
 - Repositorio/transacción Go para éxito y rollback de cliente+cita+historial, sin Chi ni detalles HTTP.
 - Atlas sobre base vacía y actualización desde la migración anterior con datos, incluido segundo `apply` sin cambios.
@@ -1496,7 +1498,7 @@ Orden recomendado: `HU-060` → `HU-061` → `HU-062` → `HU-063` → `HU-064` 
 | Función | `F-CITA-03` |
 | Reglas | `RN-CIT-02`, `RN-RES-01`–`RN-RES-03`, `RN-CON-01`, `RN-CON-03`, `RN-DIS-04`–`RN-DIS-07`, `RN-HIS-01`, `RN-TEN-01`, `RN-DAT-01`, `RN-DAT-02`, `RN-IDE-01` |
 | Decisiones | `DEC-002`, `DEC-004`–`DEC-007`, `DEC-016`, `DEC-019`, `DEC-020`, `DEC-024`, `DEC-035`–`DEC-040`, `DEC-043`, `DEC-045`, `DEC-046`, `DEC-071`, `DEC-072`, `DEC-073` |
-| Actor | Barbero autenticado |
+| Actor | Profesional autenticado |
 | Depende de | `HU-060` integrada (PR #105); B2 integrado y verificado |
 | Bloquea | `HU-062`, modificaciones, reprogramaciones, cancelación y recorridos posteriores de B3 |
 | Estado | Implementada; issue real [#107](https://github.com/bcaceres19/barberia/issues/107); prompt `PROMPT-HU-061-v1` `executed` |
@@ -1504,16 +1506,16 @@ Orden recomendado: `HU-060` → `HU-061` → `HU-062` → `HU-063` → `HU-064` 
 
 **Historia**
 
-> Como barbero, quiero registrar desde el celular un turno recibido por WhatsApp, teléfono o en persona, para que ocupe la agenda con las mismas garantías de integridad que una reserva pública aunque no tenga todos los datos de contacto.
+> Como profesional, quiero registrar desde el celular un turno recibido por WhatsApp, teléfono o en persona, para que ocupe la agenda con las mismas garantías de integridad que una reserva pública aunque no tenga todos los datos de contacto.
 
 **Alcance incluido**
 
 - Operación privada contract-first para crear una cita manual `confirmed`, protegida por sesión, tenant e `Idempotency-Key`.
-- Selección de barbero, servicio (solo activos ya asignados al barbero elegido, `DEC-072`), persona atendida, fecha/hora y contacto opcional; reconciliación de `customer` por teléfono (`DEC-045`) o por correo cuando falta el teléfono (`DEC-071`), y rechazo si el intervalo coincide con un bloqueo vigente (`DEC-073`).
+- Selección de profesional, servicio (solo activos ya asignados al profesional elegido, `DEC-072`), persona atendida, fecha/hora y contacto opcional; reconciliación de `customer` por teléfono (`DEC-045`) o por correo cuando falta el teléfono (`DEC-071`), y rechazo si el intervalo coincide con un bloqueo vigente (`DEC-073`).
 - Cualquier minuto válido, incluida una cita que ya empezó, sin aplicar anticipación mínima, ventana máxima ni rejilla pública.
 - Fin planificado derivado de la duración vigente del servicio y snapshots inmutables de servicio/precio/moneda al crear.
 - Transacción única de cliente, cita e historial usando el núcleo de `HU-060`; conflicto uniforme si PostgreSQL rechaza un cruce.
-- Formulario “Nuevo turno” dentro del panel privado, con resumen, zona IANA de la barbería y conservación de datos no sensibles ante error.
+- Formulario “Nuevo turno” dentro del panel privado, con resumen, zona IANA del negocio y conservación de datos no sensibles ante error.
 - Punto de integración explícito con `schedule` y `catalog`, sin leer tablas ajenas desde el núcleo `booking`.
 
 **Alcance excluido**
@@ -1522,8 +1524,8 @@ Orden recomendado: `HU-060` → `HU-061` → `HU-062` → `HU-063` → `HU-064` 
 - Reserva pública, consulta de franjas alternativas, token de cliente o cancelación pública.
 - Editar, reprogramar, cancelar, completar, marcar inasistencia o corregir una cita existente.
 - Enviar confirmaciones o crear la maquinaria de recordatorios; B5 conserva esa preocupación. La ausencia de B5 se documenta, no se simula como envío exitoso.
-- Crear servicios, barberos, horarios o bloqueos desde el formulario de cita.
-- Permitir un `barbershopId`, estado, precio, moneda, duración snapshot o actor confiado desde el body.
+- Crear servicios, profesionales, horarios o bloqueos desde el formulario de cita.
+- Permitir un `businessId`, estado, precio, moneda, duración snapshot o actor confiado desde el body.
 
 **Criterios de aceptación**
 
@@ -1532,10 +1534,10 @@ Orden recomendado: `HU-060` → `HU-061` → `HU-062` → `HU-063` → `HU-064` 
 | `CA-061-01` | Con sesión válida y datos permitidos por `DEC-071`–`DEC-073`, crear guarda exactamente una cita `confirmed` y un único `appointment_created`, y la devuelve con identificador opaco. |
 | `CA-061-02` | La cita manual acepta cualquier minuto válido y queda exenta de anticipación mínima, ventana máxima y rejilla pública; un instante equivocado por zona o un intervalo fuera de la jornada permitida se rechaza sin escritura parcial. |
 | `CA-061-03` | El servidor deriva servicio, duración, precio, moneda, tenant, actor y fin planificado desde fuentes autorizadas; el body no puede sobrescribir snapshots ni pertenencia. |
-| `CA-061-04` | La identidad/reutilización de `customer` (`DEC-071`), el servicio permitido para el barbero (`DEC-072`) y el efecto de un bloqueo vigente (`DEC-073`) coinciden literalmente con esas decisiones, con pruebas de cada rama aprobada. |
+| `CA-061-04` | La identidad/reutilización de `customer` (`DEC-071`), el servicio permitido para el profesional (`DEC-072`) y el efecto de un bloqueo vigente (`DEC-073`) coinciden literalmente con esas decisiones, con pruebas de cada rama aprobada. |
 | `CA-061-05` | Una cita que se cruza con otra que ocupa agenda responde `409` uniforme; contigüidad exacta es válida y la base de datos sigue siendo la última defensa bajo carrera. |
 | `CA-061-06` | Repetir la misma clave e intención devuelve el resultado lógico original sin duplicar cliente, cita ni historial; una clave concurrente o reutilizada con otro contenido responde según `DEC-043`/`RN-IDE-01`. |
-| `CA-061-07` | Recurso ajeno o inexistente responde `404` seguro; dos tenants reales no pueden leer ni escribir la cita, cliente, servicio o barbero del otro. |
+| `CA-061-07` | Recurso ajeno o inexistente responde `404` seguro; dos tenants reales no pueden leer ni escribir la cita, cliente, servicio o profesional del otro. |
 | `CA-061-08` | El formulario usa “turno”, conserva campos no sensibles, evita doble toque, gestiona carga/error/conflicto/éxito, funciona con teclado y foco y reflowa a 320, 360, 768 y 1280 px con zoom 200 %. |
 
 **Pruebas obligatorias**
@@ -1544,9 +1546,9 @@ Orden recomendado: `HU-060` → `HU-061` → `HU-062` → `HU-063` → `HU-064` 
 - HTTP/contrato para `201`, repetición, `400`, `401`, `404`, `409`, `422`, cuerpo excesivo, campos desconocidos y RFC 9457.
 - PostgreSQL real con dos tenants, rollback atómico, contigüidad, cruce, cita ya iniciada y carrera de dos conexiones.
 - Componente para validación, doble envío, foco, conflicto y conservación del formulario; `vitest-axe` sin violaciones conocidas.
-- E2E real del barbero que crea un turno manual fuera de la rejilla pública, recarga y observa una sola cita, con evidencia responsive/accesible.
+- E2E real del profesional que crea un turno manual fuera de la rejilla pública, recarga y observa una sola cita, con evidencia responsive/accesible.
 
-**Terminado cuando** el barbero puede crear un único turno manual auditable desde el panel, con decisiones de cliente/servicio/bloqueo aprobadas y sin adelantar edición, estados, reserva pública o notificaciones.
+**Terminado cuando** el profesional puede crear un único turno manual auditable desde el panel, con decisiones de cliente/servicio/bloqueo aprobadas y sin adelantar edición, estados, reserva pública o notificaciones.
 
 ---
 
@@ -1557,21 +1559,21 @@ Orden recomendado: `HU-060` → `HU-061` → `HU-062` → `HU-063` → `HU-064` 
 | Función | `F-CITA-01`; prepara `F-CITA-02` sin implementar navegación por fecha |
 | Reglas | `RN-CIT-01`, `RN-RES-02`, `RN-RES-03`, `RN-DIS-07`, `RN-TEN-01` y estados confirmados de `estados-citas.md` |
 | Decisiones | `DEC-007`, `DEC-016`, `DEC-019`, `DEC-024`, `DEC-033`–`DEC-038`, `DEC-047`, `DEC-078` |
-| Actor | Barbero autenticado |
+| Actor | Profesional autenticado |
 | Depende de | `HU-061` integrada (cumplida); `DP-CIT-04` y `DP-CIT-05` resueltas como `DEC-074`–`DEC-075` (cumplida); issue real [#111](https://github.com/bcaceres19/barberia/issues/111) (cumplida) |
 | Bloquea | Navegación por fecha, detalle, modificación, reprogramación, cancelación y transiciones visibles |
 | Estado | Implementada contra el issue real [#111](https://github.com/bcaceres19/barberia/issues/111): backend y frontend con pruebas reales; `CA-062-08` (E2E/evidencia responsiva) pendiente de ejecución contra un stack real, mismo estado que `HU-061` |
-| Riesgo | Una agenda que usa la zona del dispositivo, oculta estados terminales o elige un barbero implícito muestra una operación distinta de la realidad persistida. |
+| Riesgo | Una agenda que usa la zona del dispositivo, oculta estados terminales o elige un profesional implícito muestra una operación distinta de la realidad persistida. |
 
 **Historia**
 
-> Como barbero, quiero abrir el panel y ver cronológicamente los turnos de hoy con su hora, persona, servicio y estado, para operar la jornada desde el celular sin buscar en otras pantallas.
+> Como profesional, quiero abrir el panel y ver cronológicamente los turnos de hoy con su hora, persona, servicio y estado, para operar la jornada desde el celular sin buscar en otras pantallas.
 
 **Alcance incluido**
 
-- Consulta privada de la agenda de una fecha civil en la zona IANA de la barbería, con un turno nocturno visible en cada agenda cuyo rango interseca su intervalo (`DEC-075`) y paginada o acotada conforme al volumen real del día.
-- Apertura predeterminada en hoy con selector obligatorio de un barbero (`DEC-074`), sin vista consolidada ni vínculo inferido entre `staff_user` y `barber`.
-- Lista cronológica accesible con hora, persona atendida, servicio snapshot, barbero cuando corresponda y etiqueta visible de cada estado.
+- Consulta privada de la agenda de una fecha civil en la zona IANA del negocio, con un turno nocturno visible en cada agenda cuyo rango interseca su intervalo (`DEC-075`) y paginada o acotada conforme al volumen real del día.
+- Apertura predeterminada en hoy con selector obligatorio de un profesional (`DEC-074`), sin vista consolidada ni vínculo inferido entre `staff_user` y `professional`.
+- Lista cronológica accesible con hora, persona atendida, servicio snapshot, profesional cuando corresponda y etiqueta visible de cada estado.
 - Citas activas y terminales del día; las terminales pueden atenuarse o separarse, pero no desaparecen ni pierden legibilidad.
 - Acción “Nuevo turno” enlazada al formulario real de `HU-061`.
 - Estados de carga inicial, actualización, vacío y error recuperable; fecha completa y zona visibles.
@@ -1583,20 +1585,20 @@ Orden recomendado: `HU-060` → `HU-061` → `HU-062` → `HU-063` → `HU-064` 
 - Detalle completo, teléfono, correo, nota, historial o acciones sobre una cita.
 - Crear desde un hueco espacial, arrastrar, calendario semanal/mensual o tiempo real.
 - Modificar, reprogramar, cancelar, completar, marcar `no_show` o corregir estados.
-- Añadir un enlace automático `staff_user`→`barber` prohibido por `DEC-047`, o cualquier vista consolidada de varios barberos (`DEC-074` la excluye).
+- Añadir un enlace automático `staff_user`→`professional` prohibido por `DEC-047`, o cualquier vista consolidada de varios profesionales (`DEC-074` la excluye).
 - Cálculo de disponibilidad pública, huecos ofrecibles, recordatorios o notificaciones.
 
 **Criterios de aceptación**
 
 | Código | Criterio |
 | --- | --- |
-| `CA-062-01` | Al entrar al panel, la agenda consulta y muestra la fecha civil completa de hoy en la zona de la barbería, aunque dispositivo y servidor usen otras zonas. |
-| `CA-062-02` | La vista exige un `barberId` explícito (selector obligatorio, `DEC-074`); nunca presupone que el usuario autenticado sea una fila `barber` ni ofrece una vista consolidada de varios barberos. |
-| `CA-062-03` | Los turnos se ordenan por `startsAt` y cada fila muestra hora, persona atendida, servicio snapshot, barbero cuando corresponda y una etiqueta de estado en español que no depende solo del color. |
+| `CA-062-01` | Al entrar al panel, la agenda consulta y muestra la fecha civil completa de hoy en la zona del negocio, aunque dispositivo y servidor usen otras zonas. |
+| `CA-062-02` | La vista exige un `professionalId` explícito (selector obligatorio, `DEC-074`); nunca presupone que el usuario autenticado sea una fila `professional` ni ofrece una vista consolidada de varios profesionales. |
+| `CA-062-03` | Los turnos se ordenan por `startsAt` y cada fila muestra hora, persona atendida, servicio snapshot, profesional cuando corresponda y una etiqueta de estado en español que no depende solo del color. |
 | `CA-062-04` | Las citas activas y terminales que cruzan medianoche aparecen en cada agenda diaria cuyo rango civil interseca su intervalo (`DEC-075`), sin duplicación dentro de la misma agenda ni pérdida en los extremos `[inicio, fin)`. |
 | `CA-062-05` | La respuesta y la interfaz no exponen teléfono, correo, nota ni campos internos innecesarios; un tenant no obtiene filas de otro y un alcance ajeno responde de forma segura. |
 | `CA-062-06` | Carga, actualización, vacío y error recuperable conservan contexto y anuncian el estado; “Nuevo turno” navega al flujo real de `HU-061`. |
-| `CA-062-07` | La consulta usa índice y límite verificables para el acceso por barbería, alcance de barbero y rango diario; `EXPLAIN (ANALYZE, BUFFERS)` evita un recorrido completo con volumen representativo. |
+| `CA-062-07` | La consulta usa índice y límite verificables para el acceso por negocio, alcance de profesional y rango diario; `EXPLAIN (ANALYZE, BUFFERS)` evita un recorrido completo con volumen representativo. |
 | `CA-062-08` | En 320 y 360 px existe una lista completa operable con una mano y objetivos de 44 px; 768/1280 px, teclado, foco, zoom 200 %, axe-core y contraste no pierden información ni acciones. |
 
 **Pruebas obligatorias**
@@ -1605,7 +1607,7 @@ Orden recomendado: `HU-060` → `HU-061` → `HU-062` → `HU-063` → `HU-064` 
 - HTTP/contrato para hoy con agenda vacía/llena, `401`, `404`, límites, campos exactos y dos tenants.
 - PostgreSQL real para límites del día, citas nocturnas conforme a `DEC-075`, estados terminales, aislamiento y plan de consulta con volumen representativo.
 - Componente con cero, una y varias citas, actualización/error, estados visibles y enlace a “Nuevo turno”.
-- E2E en navegador real con dispositivo en otra zona, varios estados y el selector obligatorio de barbero; evidencia a 320, 360, 768 y 1280 px y accesibilidad.
+- E2E en navegador real con dispositivo en otra zona, varios estados y el selector obligatorio de profesional; evidencia a 320, 360, 768 y 1280 px y accesibilidad.
 
 **Terminado cuando** la pantalla principal abre en hoy y presenta una lista cronológica, tenant-aware y accesible que coincide con la base de datos, sin adelantar navegación, detalle o cambios sobre la cita.
 
@@ -1618,7 +1620,7 @@ Orden recomendado: `HU-060` → `HU-061` → `HU-062` → `HU-063` → `HU-064` 
 | Función | `F-CITA-02`; amplía la lectura diaria de `F-CITA-01` |
 | Reglas | `RN-CIT-01`, `RN-DIS-05`, `RN-DIS-07`, `RN-TEN-01` y estados confirmados de `estados-citas.md` |
 | Decisiones | `DEC-007`, `DEC-016`, `DEC-019`, `DEC-020`, `DEC-024`, `DEC-033`–`DEC-038`, `DEC-047`, `DEC-074`, `DEC-075`, `DEC-078` |
-| Actor | Barbero autenticado |
+| Actor | Profesional autenticado |
 | Depende de | `HU-062` integrada mediante PR #113; contrato diario con parámetro `date` vigente |
 | Bloquea | `HU-064` y recorridos posteriores que deben regresar a la fecha operativa de origen |
 | Estado | Integrada en `main` mediante [PR #118](https://github.com/bcaceres19/barberia/pull/118) contra el issue real [#116](https://github.com/bcaceres19/barberia/issues/116), que permanece abierto por E2E/evidencia responsiva pendientes; prompt `PROMPT-HU-063-v1` `executed` |
@@ -1626,48 +1628,48 @@ Orden recomendado: `HU-060` → `HU-061` → `HU-062` → `HU-063` → `HU-064` 
 
 **Historia**
 
-> Como barbero, quiero moverme al día anterior, al siguiente o a una fecha elegida sin perder el barbero seleccionado, para consultar y preparar jornadas distintas de hoy desde la misma agenda.
+> Como profesional, quiero moverme al día anterior, al siguiente o a una fecha elegida sin perder el profesional seleccionado, para consultar y preparar jornadas distintas de hoy desde la misma agenda.
 
 **Alcance incluido**
 
 - Controles estables de día anterior, selector de fecha y día siguiente sobre la pantalla real de `HU-062`; la primera entrada continúa abriendo hoy.
-- Cálculo por fechas civiles consecutivas en la zona IANA de la barbería, nunca mediante una duración fija de 24 horas ni mediante la zona del dispositivo.
-- Reutilización de `GET /private/barbers/{barberId}/appointments/daily-agenda?date=AAAA-MM-DD`; no se crea una segunda consulta ni otra semántica diaria.
-- Conservación del `barberId` explícito de `DEC-074` al cambiar de fecha y de la fecha elegida al cambiar de barbero.
+- Cálculo por fechas civiles consecutivas en la zona IANA del negocio, nunca mediante una duración fija de 24 horas ni mediante la zona del dispositivo.
+- Reutilización de `GET /private/professionals/{professionalId}/appointments/daily-agenda?date=AAAA-MM-DD`; no se crea una segunda consulta ni otra semántica diaria.
+- Conservación del `professionalId` explícito de `DEC-074` al cambiar de fecha y de la fecha elegida al cambiar de profesional.
 - Fecha completa, zona y contexto visible durante carga, actualización, vacío, error y reintento; una respuesta antigua no puede sobrescribir la selección más reciente.
 - Turnos nocturnos visibles en cada día intersecado conforme a `DEC-075`, con límites semiabiertos idénticos a `HU-062`.
 - Estado navegable coherente con recarga, historial del navegador y enlaces posteriores del módulo, sin convertirlo en una agenda semanal o mensual.
 
 **Alcance excluido**
 
-- Cambiar el selector obligatorio por una vista consolidada de varios barberos o inferir `staff_user`→`barber`.
+- Cambiar el selector obligatorio por una vista consolidada de varios profesionales o inferir `staff_user`→`professional`.
 - Calendario semanal/mensual, arrastrar, redimensionar, desplazamiento infinito, tiempo real o visualización de huecos.
 - Detalle, contacto, historial o cualquier operación de escritura sobre un turno.
 - Modificar el contrato diario, la consulta PostgreSQL o sus índices salvo que una prueba demuestre un defecto real; esta historia consume la capacidad ya integrada.
-- Usar la fecha del servidor o del dispositivo como autoridad después de que la barbería ya proporcionó su zona.
+- Usar la fecha del servidor o del dispositivo como autoridad después de que el negocio ya proporcionó su zona.
 
 **Criterios de aceptación**
 
 | Código | Criterio |
 | --- | --- |
-| `CA-063-01` | La primera entrada abre la fecha civil completa de hoy en la zona de la barbería y conserva el selector obligatorio de un único barbero de `DEC-074`. |
+| `CA-063-01` | La primera entrada abre la fecha civil completa de hoy en la zona del negocio y conserva el selector obligatorio de un único profesional de `DEC-074`. |
 | `CA-063-02` | Anterior y siguiente avanzan exactamente un día civil incluso en jornadas locales de 23 o 25 horas; nunca saltan ni repiten una fecha por DST. |
 | `CA-063-03` | Elegir una fecha válida consulta ese mismo `AAAA-MM-DD`; cancelar o introducir una fecha inválida conserva la selección y los datos confirmados anteriores sin enviar una petición ambigua. |
-| `CA-063-04` | Cambiar de fecha conserva el `barberId` vigente y cambiar de barbero conserva la fecha elegida; ninguna combinación produce una vista consolidada ni consulta un tenant distinto. |
+| `CA-063-04` | Cambiar de fecha conserva el `professionalId` vigente y cambiar de profesional conserva la fecha elegida; ninguna combinación produce una vista consolidada ni consulta un tenant distinto. |
 | `CA-063-05` | Un turno que cruza medianoche aparece en cada fecha cuyo intervalo civil interseca, exactamente como en `CA-062-04`, sin duplicarse dentro del mismo día. |
-| `CA-063-06` | Si dos consultas se resuelven fuera de orden, solo la correspondiente a la selección vigente actualiza la pantalla; un error conserva fecha/barbero, contenido confirmado y un reintento accesible. |
-| `CA-063-07` | Recargar, usar atrás/adelante o volver desde una ruta hija restaura una combinación coherente de fecha y barbero sin depender de estado global nuevo. |
+| `CA-063-06` | Si dos consultas se resuelven fuera de orden, solo la correspondiente a la selección vigente actualiza la pantalla; un error conserva fecha/profesional, contenido confirmado y un reintento accesible. |
+| `CA-063-07` | Recargar, usar atrás/adelante o volver desde una ruta hija restaura una combinación coherente de fecha y profesional sin depender de estado global nuevo. |
 | `CA-063-08` | Los tres controles conservan posición, nombre accesible, foco visible y objetivo de 44 px; la agenda reflowa a 320, 360, 768 y 1280 px, funciona con teclado y zoom 200 %, y axe-core no reporta violaciones conocidas. |
 
 **Pruebas obligatorias**
 
 - Unitarias del modelo de navegación para fin/inicio de mes y año, día local de 23/25 horas y zona del dispositivo distinta.
 - Cliente/contrato para parámetro `date`, codificación, cancelación de solicitud y descarte de respuestas obsoletas.
-- Componente para anterior, selector, siguiente, cambio de barbero, carga/actualización/vacío/error/reintento e historial del navegador.
+- Componente para anterior, selector, siguiente, cambio de profesional, carga/actualización/vacío/error/reintento e historial del navegador.
 - Regresión de PostgreSQL/HTTP de `HU-062` para extremos `[inicio, fin)`, nocturnidad de `DEC-075` y dos tenants; no se duplica una suite si el backend no cambia.
-- E2E real: iniciar en hoy, navegar a anterior/siguiente/fecha elegida, recargar, volver y observar la fecha/barbero correctos con dispositivo en otra zona; evidencia responsive/accesible.
+- E2E real: iniciar en hoy, navegar a anterior/siguiente/fecha elegida, recargar, volver y observar la fecha/profesional correctos con dispositivo en otra zona; evidencia responsive/accesible.
 
-**Terminado cuando** la agenda existente navega por cualquier fecha civil con los tres controles aprobados, conserva el barbero y el contexto de navegación y nunca altera la semántica diaria, la zona o el aislamiento ya verificados en `HU-062`.
+**Terminado cuando** la agenda existente navega por cualquier fecha civil con los tres controles aprobados, conserva el profesional y el contexto de navegación y nunca altera la semántica diaria, la zona o el aislamiento ya verificados en `HU-062`.
 
 ---
 
@@ -1678,7 +1680,7 @@ Orden recomendado: `HU-060` → `HU-061` → `HU-062` → `HU-063` → `HU-064` 
 | Función | Profundiza `F-CITA-01` y hace visible `F-EST-03` |
 | Reglas | `RN-CIT-01`, `RN-HIS-01`, `RN-HIS-02`, `RN-RES-02`, `RN-RES-03`, `RN-DAT-01`, `RN-DAT-02`, `RN-DIS-07`, `RN-TEN-01` |
 | Decisiones | `DEC-004`, `DEC-007`, `DEC-014`, `DEC-016`, `DEC-019`, `DEC-024`, `DEC-033`–`DEC-041`, `DEC-045`, `DEC-046`, `DEC-074`, `DEC-075` |
-| Actor | Barbero autenticado |
+| Actor | Profesional autenticado |
 | Depende de | `HU-063` integrada mediante PR #118; núcleo e historial append-only de `HU-060` vigentes |
 | Bloquea | `HU-065` y las acciones posteriores que necesitan contexto, estado e historial visibles |
 | Estado | Implementada contra el issue real [#120](https://github.com/bcaceres19/barberia/issues/120), que permanece abierto por E2E/evidencia responsiva pendientes: backend y frontend con pruebas reales; `CA-064-08` (E2E/evidencia responsiva) pendiente de ejecución contra un stack real, mismo estado que `HU-061`/`HU-062`/`HU-063`. Integrada en `main` mediante [PR #121](https://github.com/bcaceres19/barberia/pull/121); prompt `PROMPT-HU-064-v1` `executed` |
@@ -1686,17 +1688,17 @@ Orden recomendado: `HU-060` → `HU-061` → `HU-062` → `HU-063` → `HU-064` 
 
 **Historia**
 
-> Como barbero, quiero abrir un turno y ver su hora, persona, contacto, servicio, estado e historial, para entender el compromiso y sus cambios antes de decidir cualquier acción.
+> Como profesional, quiero abrir un turno y ver su hora, persona, contacto, servicio, estado e historial, para entender el compromiso y sus cambios antes de decidir cualquier acción.
 
 **Alcance incluido**
 
 - Lectura privada tenant-aware del detalle de una cita por identificador opaco, separada de la proyección mínima de agenda.
-- Persona atendida y cliente que reservó, contacto opcional, nota del cliente cuando exista, barbero, origen, intervalo, zona, estado y snapshots de servicio, duración, precio y moneda.
+- Persona atendida y cliente que reservó, contacto opcional, nota del cliente cuando exista, profesional, origen, intervalo, zona, estado y snapshots de servicio, duración, precio y moneda.
 - Servicio mostrado exclusivamente desde los snapshots de la cita; el catálogo vigente no sustituye ni corrige el dato histórico.
 - Token opaco de versión en la representación, destinado a precondiciones de mutaciones posteriores sin convertir `updated_at` en una regla de negocio pública.
 - Historial cronológico append-only con tipo de evento traducido, actor seguro, instante y cambios anterior/nuevo necesarios; motivo solo cuando pertenece al evento y está autorizado.
 - Lectura acotada o paginada por cursor del historial con orden estable, sin `SELECT *`, N+1 ni datos técnicos innecesarios.
-- Ruta de detalle desde cada fila de la agenda y regreso que conserva fecha y barbero de `HU-063`.
+- Ruta de detalle desde cada fila de la agenda y regreso que conserva fecha y profesional de `HU-063`.
 - Estados de carga, vacío de historial, error y reintento; los datos de contacto solo aparecen dentro de la superficie privada de detalle.
 
 **Alcance excluido**
@@ -1711,13 +1713,13 @@ Orden recomendado: `HU-060` → `HU-061` → `HU-062` → `HU-063` → `HU-064` 
 
 | Código | Criterio |
 | --- | --- |
-| `CA-064-01` | Una sesión válida abre el detalle de una cita propia; un ID inexistente, mal formado o de otra barbería responde `404` uniforme sin revelar existencia ni ejecutar una lectura fuera del tenant. |
-| `CA-064-02` | El detalle muestra persona atendida, cliente/contacto disponibles, nota opcional, barbero, origen, intervalo en la zona de la barbería, estado, snapshots exactos y un token opaco de versión; un cambio posterior de catálogo no altera la representación. |
+| `CA-064-01` | Una sesión válida abre el detalle de una cita propia; un ID inexistente, mal formado o de otro negocio responde `404` uniforme sin revelar existencia ni ejecutar una lectura fuera del tenant. |
+| `CA-064-02` | El detalle muestra persona atendida, cliente/contacto disponibles, nota opcional, profesional, origen, intervalo en la zona del negocio, estado, snapshots exactos y un token opaco de versión; un cambio posterior de catálogo no altera la representación. |
 | `CA-064-03` | Teléfono, correo y nota solo viajan en la operación de detalle autenticada y no aparecen en la respuesta diaria, logs, URL, errores ni telemetría. |
 | `CA-064-04` | El historial se ordena por `occurredAt` y un desempate estable; cada evento muestra actor comprensible, instante, tipo y pares anterior/nuevo persistidos, sin inventar valores ausentes. |
 | `CA-064-05` | Las entradas y cambios siguen siendo append-only: la entrega no concede `UPDATE`/`DELETE`, no modifica una migración aplicada y conserva las pruebas de `CA-060-06`. |
 | `CA-064-06` | La paginación o cota del historial no omite ni duplica eventos entre páginas y la consulta usa el índice tenant-aware existente o uno nuevo justificado mediante `EXPLAIN (ANALYZE, BUFFERS)`. |
-| `CA-064-07` | Abrir y volver conserva la fecha y el barbero de la agenda; carga, historial vacío, error y reintento mantienen contexto, anuncian el estado y no exhiben acciones no implementadas. |
+| `CA-064-07` | Abrir y volver conserva la fecha y el profesional de la agenda; carga, historial vacío, error y reintento mantienen contexto, anuncian el estado y no exhiben acciones no implementadas. |
 | `CA-064-08` | La pantalla sigue la plantilla P0 de detalle, reflowa a 320, 360, 768 y 1280 px, soporta teclado/zoom 200 %, mantiene objetivos de 44 px y axe-core no reporta violaciones conocidas. |
 
 **Pruebas obligatorias**
@@ -1729,7 +1731,7 @@ Orden recomendado: `HU-060` → `HU-061` → `HU-062` → `HU-063` → `HU-064` 
 - Componente y router para abrir/volver, carga, historial vacío/lleno, error/reintento, foco y `vitest-axe`.
 - E2E real desde una fecha distinta de hoy: abrir un turno, comprobar snapshots e historial, volver a la misma agenda y aportar evidencia responsive/accesible.
 
-**Terminado cuando** el barbero puede inspeccionar un turno y su rastro completo desde la agenda sin cambiarlo, sin sustituir snapshots por catálogo vigente y sin ampliar la exposición de datos personales.
+**Terminado cuando** el profesional puede inspeccionar un turno y su rastro completo desde la agenda sin cambiarlo, sin sustituir snapshots por catálogo vigente y sin ampliar la exposición de datos personales.
 
 ---
 
@@ -1740,7 +1742,7 @@ Orden recomendado: `HU-060` → `HU-061` → `HU-062` → `HU-063` → `HU-064` 
 | Función | `F-CITA-05`; transición `T2` de `estados-citas.md` |
 | Reglas | `RN-CIT-01`, `RN-CIT-03`, `RN-CON-01`, `RN-CON-03`, `RN-DIS-05`, `RN-DIS-07`, `RN-HIS-01`, `RN-HIS-02`, `RN-TEN-01`, `RN-IDE-01` |
 | Decisiones | `DEC-002`, `DEC-004`, `DEC-007`, `DEC-014`, `DEC-016`, `DEC-020`, `DEC-024`, `DEC-035`–`DEC-038`, `DEC-043`, `DEC-074`, `DEC-075`, `DEC-076`, `DEC-078` |
-| Actor | Barbero autenticado |
+| Actor | Profesional autenticado |
 | Depende de | `HU-064` integrada en `main` mediante [PR #121](https://github.com/bcaceres19/barberia/pull/121) (cumplido); `DP-CIT-06` resuelta como `DEC-076` (cumplido) |
 | Bloquea | Modificación T3, cancelación y demás transiciones visibles de B3 |
 | Estado | Implementada contra el issue real [#123](https://github.com/bcaceres19/barberia/issues/123), que permanece abierto por E2E/evidencia responsiva pendientes, integrada en `main` mediante [PR #125](https://github.com/bcaceres19/barberia/pull/125); prompt `PROMPT-HU-065-v1` `executed` |
@@ -1748,12 +1750,12 @@ Orden recomendado: `HU-060` → `HU-061` → `HU-062` → `HU-063` → `HU-064` 
 
 **Historia**
 
-> Como barbero, quiero mover un turno confirmado a otra fecha y hora disponibles, para atender un acuerdo con el cliente sin perder el intervalo anterior ni crear un cruce en la agenda.
+> Como profesional, quiero mover un turno confirmado a otra fecha y hora disponibles, para atender un acuerdo con el cliente sin perder el intervalo anterior ni crear un cruce en la agenda.
 
 **Alcance incluido**
 
-- Operación privada contract-first e idempotente para `T2`: cambia únicamente `starts_at`/`ends_at` de una cita `confirmed`; conserva barbero, servicio, duración, precio, persona, cliente, origen y estado.
-- Nuevo inicio estrictamente futuro, expresado como fecha/hora civil en la zona de la barbería; el fin se deriva de `duration_minutes_snapshot`, nunca del cliente.
+- Operación privada contract-first e idempotente para `T2`: cambia únicamente `starts_at`/`ends_at` de una cita `confirmed`; conserva profesional, servicio, duración, precio, persona, cliente, origen y estado.
+- Nuevo inicio estrictamente futuro, expresado como fecha/hora civil en la zona del negocio; el fin se deriva de `duration_minutes_snapshot`, nunca del cliente.
 - Validación de jornada efectiva mediante los puertos de `schedule`; un bloqueo vigente en el nuevo intervalo rechaza la reprogramación con el mismo conflicto uniforme que un cruce de citas (`DEC-076`). Un bloqueo ya solapado nunca mueve la cita por sí solo.
 - Exclusión GiST como última defensa ante cruce con otra cita que ocupa agenda; contigüidad exacta sigue permitida.
 - Actualización de intervalo y evento `appointment_rescheduled` con valores anterior/nuevo en una sola transacción tenant-aware.
@@ -1763,7 +1765,7 @@ Orden recomendado: `HU-060` → `HU-061` → `HU-062` → `HU-063` → `HU-064` 
 
 **Alcance excluido**
 
-- Cambiar barbero, servicio, duración, precio, persona atendida, cliente, contacto, nota o estado; `T3` y edición general tendrán historias propias.
+- Cambiar profesional, servicio, duración, precio, persona atendida, cliente, contacto, nota o estado; `T3` y edición general tendrán historias propias.
 - Reprogramar una cita terminal, reabrir una cancelada o crear una cita nueva como efecto oculto.
 - Reprogramación masiva, arrastrar en calendario, sugerencias de franjas o cálculo de disponibilidad pública.
 - Enviar avisos o regenerar recordatorios antes de B5. La operación deja el hecho de negocio e historial correctos; la ausencia temporal de B5 se documenta y no se simula como envío exitoso.
@@ -1775,7 +1777,7 @@ Orden recomendado: `HU-060` → `HU-061` → `HU-062` → `HU-063` → `HU-064` 
 | Código | Criterio |
 | --- | --- |
 | `CA-065-01` | Con cita propia `confirmed`, precondición vigente y nuevo inicio válido, la operación actualiza una vez el intervalo y agrega un único `appointment_rescheduled` con `starts_at`/`ends_at` anteriores y nuevos dentro de la misma transacción. |
-| `CA-065-02` | El servidor conserva todos los campos fuera de T2, deriva el fin desde la duración snapshot y usa la zona de la barbería; el body no puede cambiar tenant, barbero, servicio, duración, precio, estado ni actor. |
+| `CA-065-02` | El servidor conserva todos los campos fuera de T2, deriva el fin desde la duración snapshot y usa la zona del negocio; el body no puede cambiar tenant, profesional, servicio, duración, precio, estado ni actor. |
 | `CA-065-03` | Un inicio que no es futuro, una cita terminal o una transición distinta de `confirmed`→`confirmed` se rechaza con el código documentado y sin modificar cita ni historial. |
 | `CA-065-04` | Un intervalo fuera de la jornada efectiva se rechaza sin escritura; ante un bloqueo vigente, contrato, dominio, interfaz y pruebas coinciden literalmente con el `DEC-*` que resuelva `DP-CIT-06`. Una cita ya afectada por un bloqueo permanece intacta hasta una acción explícita. |
 | `CA-065-05` | Un cruce total, parcial o de un minuto responde `409`; la contigüidad exacta es válida y una carrera real de dos reprogramaciones incompatibles no deja más de una agenda válida en PostgreSQL. |
@@ -1795,14 +1797,14 @@ Orden recomendado: `HU-060` → `HU-061` → `HU-062` → `HU-063` → `HU-064` 
 
 ---
 
-### HU-066 · Cancelación de un turno por el barbero
+### HU-066 · Cancelación de un turno por el profesional
 
 | Campo | Valor |
 | --- | --- |
 | Función | `F-CITA-06`; transición `T6` de `estados-citas.md` |
 | Reglas | `RN-CIT-01`, `RN-CIT-03`, `RN-CAN-03`, `RN-CAN-04`, `RN-HIS-01`, `RN-HIS-02`, `RN-TEN-01`, `RN-IDE-01` |
 | Decisiones | `DEC-011`, `DEC-012`, `DEC-014`, `DEC-016`, `DEC-017`, `DEC-024`, `DEC-035`–`DEC-038`, `DEC-041`, `DEC-043`, `DEC-077`–`DEC-080` |
-| Actor | Barbero autenticado |
+| Actor | Profesional autenticado |
 | Depende de | `HU-064` y `HU-065` integradas en `main` |
 | Bloquea | Cancelación pública de B4 y efectos de notificación de B5 |
 | Estado | Implementada contra el issue real [#225](https://github.com/bcaceres19/barberia/issues/225); prompt `PROMPT-HU-066-v1` `executed`; [PR #235](https://github.com/bcaceres19/barberia/pull/235) abierto contra `main`, pendiente de CI/merge |
@@ -1810,13 +1812,13 @@ Orden recomendado: `HU-060` → `HU-061` → `HU-062` → `HU-063` → `HU-064` 
 
 **Historia**
 
-> Como barbero, quiero cancelar un turno confirmado incluso después de su hora de inicio, para resolver una contingencia operativa, liberar la franja cuando todavía sea futura y conservar quién tomó la decisión.
+> Como profesional, quiero cancelar un turno confirmado incluso después de su hora de inicio, para resolver una contingencia operativa, liberar la franja cuando todavía sea futura y conservar quién tomó la decisión.
 
 **Alcance incluido**
 
 - Comando privado y explícito para `T6`, con sesión, `Idempotency-Key` y precondición basada en el token opaco de versión del detalle.
-- Transición exclusiva `confirmed` → `cancelled_by_barber`, sin límite temporal; el servidor deriva tenant, actor y estado destino.
-- Cambio de estado y evento `appointment_cancelled_by_barber` dentro de una sola transacción tenant-aware.
+- Transición exclusiva `confirmed` → `cancelled_by_professional`, sin límite temporal; el servidor deriva tenant, actor y estado destino.
+- Cambio de estado y evento `appointment_cancelled_by_professional` dentro de una sola transacción tenant-aware.
 - La cita cancelada sale de la restricción de exclusión; una franja futura queda disponible inmediatamente salvo que exista otro bloqueo o cita vigente.
 - Repetición exacta por el mismo actor como éxito sin evento adicional; una cita ya terminada de otra forma produce conflicto y obliga a recargar.
 - Acción desde el detalle, visible solo para `confirmed`, con consecuencia explícita, confirmación, espera, conflicto, error recuperable y foco administrado.
@@ -1826,20 +1828,20 @@ Orden recomendado: `HU-060` → `HU-061` → `HU-062` → `HU-063` → `HU-064` 
 - Cancelación iniciada por el cliente, política de plazo o motivo obligatorio de `RN-CAN-01`/`RN-CAN-02` (B4).
 - Cancelación masiva, selección de citas afectadas por un servicio o bloqueo y reapertura de una cita cancelada.
 - Enviar avisos, invalidar recordatorios o afirmar entrega por correo/WhatsApp antes de B5.
-- Cambiar intervalo, servicio, duración, precio, persona, contacto, nota o barbero.
+- Cambiar intervalo, servicio, duración, precio, persona, contacto, nota o profesional.
 - Añadir un motivo obligatorio para T6: ninguna fuente vigente lo exige.
 
 **Criterios de aceptación**
 
 | Código | Criterio |
 | --- | --- |
-| `CA-066-01` | Con una cita propia `confirmed`, precondición vigente y clave nueva, la operación cambia una vez a `cancelled_by_barber` e inserta un único evento `appointment_cancelled_by_barber` con actor barbero dentro de la misma transacción. |
+| `CA-066-01` | Con una cita propia `confirmed`, precondición vigente y clave nueva, la operación cambia una vez a `cancelled_by_professional` e inserta un único evento `appointment_cancelled_by_professional` con actor profesional dentro de la misma transacción. |
 | `CA-066-02` | La cancelación se permite antes, durante o después del intervalo mientras la cita siga `confirmed`; ningún reloj del cliente impone un límite y el servidor no acepta un estado o actor enviado por el body. |
 | `CA-066-03` | Tras cancelar una cita futura, su intervalo deja de participar en la exclusión en la misma confirmación; una cita nueva contigua o coincidente solo se rechaza si otra cita o bloqueo vigente todavía ocupa la franja. |
-| `CA-066-04` | Una cita `completed`, `no_show` o cancelada por otro actor responde `409` sin cambiar estado ni historial; una cancelación repetida por el barbero devuelve éxito sin duplicar el evento. |
+| `CA-066-04` | Una cita `completed`, `no_show` o cancelada por otro actor responde `409` sin cambiar estado ni historial; una cancelación repetida por el profesional devuelve éxito sin duplicar el evento. |
 | `CA-066-05` | La misma `Idempotency-Key` e intención reproduce el resultado lógico, contenido distinto entra en conflicto y una precondición obsoleta responde `409` distinguible con instrucción segura de recargar. |
-| `CA-066-06` | Un ID inexistente, mal formado o de otra barbería no permite inferir existencia ni mutar datos: responde según el contrato uniforme y dos tenants reales permanecen aislados. |
-| `CA-066-07` | La operación no cambia intervalo, snapshots, cliente, persona, contacto, nota ni barbero; tampoco envía ni registra intentos de notificación dentro de la operación (el aviso real al cliente lo encola `HU-130` en la misma transacción y lo envía el worker) ni crea recordatorios ficticios, y ningún log contiene datos personales. |
+| `CA-066-06` | Un ID inexistente, mal formado o de otro negocio no permite inferir existencia ni mutar datos: responde según el contrato uniforme y dos tenants reales permanecen aislados. |
+| `CA-066-07` | La operación no cambia intervalo, snapshots, cliente, persona, contacto, nota ni profesional; tampoco envía ni registra intentos de notificación dentro de la operación (el aviso real al cliente lo encola `HU-130` en la misma transacción y lo envía el worker) ni crea recordatorios ficticios, y ningún log contiene datos personales. |
 | `CA-066-08` | El detalle ofrece la acción solo para `confirmed`, comunica la consecuencia antes de confirmar, evita doble toque, conserva contexto ante error y representa el resultado terminal en 320, 360, 768 y 1280 px, teclado y zoom 200 %, con axe-core limpio. |
 
 **Pruebas obligatorias**
@@ -1850,7 +1852,7 @@ Orden recomendado: `HU-060` → `HU-061` → `HU-062` → `HU-063` → `HU-064` 
 - Componente y E2E desde el detalle: confirmación, doble envío, conflicto, error, regreso a la agenda y nueva ocupación válida de la franja futura.
 - Evidencia responsive/accesible; el estado terminal reutiliza el tratamiento de `detalle-turno-eventos/10-turno-cancelado.png`, adaptando la atribución sin inventar un mockup de diálogo.
 
-**Terminado cuando** un barbero puede cancelar una cita activa una sola vez, sin límite temporal, con liberación e historial atómicos y sin adelantar cancelación pública ni B5.
+**Terminado cuando** un profesional puede cancelar una cita activa una sola vez, sin límite temporal, con liberación e historial atómicos y sin adelantar cancelación pública ni B5.
 
 ---
 
@@ -1861,7 +1863,7 @@ Orden recomendado: `HU-060` → `HU-061` → `HU-062` → `HU-063` → `HU-064` 
 | Función | `F-EST-01`, `F-EST-02`, `F-EST-04`; transiciones manuales `T4` y `T7` |
 | Reglas | `RN-CIT-01`, `RN-CIT-03`, `RN-CIT-05`, `RN-HIS-01`, `RN-HIS-02`, `RN-TEN-01`, `RN-IDE-01` |
 | Decisiones | `DEC-002`, `DEC-014`, `DEC-016`, `DEC-017`, `DEC-018`, `DEC-024`, `DEC-035`–`DEC-038`, `DEC-041`, `DEC-043`, `DEC-077`–`DEC-080` |
-| Actor | Barbero autenticado |
+| Actor | Profesional autenticado |
 | Depende de | `HU-066` integrada en `main` sin romper el núcleo de `HU-060` |
 | Bloquea | `HU-068` y cierre automático posterior |
 | Estado | Implementada contra el issue real [#226](https://github.com/bcaceres19/barberia/issues/226); prompt `PROMPT-HU-067-v1` `executed`; [PR #237](https://github.com/bcaceres19/barberia/pull/237) integrado en `main` |
@@ -1869,7 +1871,7 @@ Orden recomendado: `HU-060` → `HU-061` → `HU-062` → `HU-063` → `HU-064` 
 
 **Historia**
 
-> Como barbero, quiero cerrar manualmente un turno cuya hora de inicio ya pasó como atendido o no asistió, para que la agenda refleje el resultado real y las métricas del piloto no confundan ambos casos.
+> Como profesional, quiero cerrar manualmente un turno cuya hora de inicio ya pasó como atendido o no asistió, para que la agenda refleje el resultado real y las métricas del piloto no confundan ambos casos.
 
 **Alcance incluido**
 
@@ -1891,7 +1893,7 @@ Orden recomendado: `HU-060` → `HU-061` → `HU-062` → `HU-063` → `HU-064` 
 
 | Código | Criterio |
 | --- | --- |
-| `CA-067-01` | Con cita propia `confirmed`, `starts_at` pasado, versión vigente y clave nueva, completar cambia una vez a `completed` e inserta un único `appointment_completed` con actor barbero en la misma transacción. |
+| `CA-067-01` | Con cita propia `confirmed`, `starts_at` pasado, versión vigente y clave nueva, completar cambia una vez a `completed` e inserta un único `appointment_completed` con actor profesional en la misma transacción. |
 | `CA-067-02` | Bajo las mismas precondiciones, marcar inasistencia cambia una vez a `no_show` e inserta un único `appointment_no_show`; ambas representaciones quedan distinguibles por texto además del color. |
 | `CA-067-03` | Exactamente en `starts_at` la acción ya es válida según el reloj del servidor; antes de ese instante responde `422` sin modificar cita, historial ni idempotencia de forma que impida reintentar. |
 | `CA-067-04` | Ambos resultados conservan intervalo, snapshots y demás datos y continúan ocupando agenda; no se crea otra cita cruzada sobre su intervalo ni se recalcula `ends_at` por duración real. |
@@ -1908,7 +1910,7 @@ Orden recomendado: `HU-060` → `HU-061` → `HU-062` → `HU-063` → `HU-064` 
 - Componentes y E2E para las dos confirmaciones, espera, éxito, conflicto de versión/estado y estado terminal visible en detalle y agenda.
 - Evidencia responsive/accesible; `completed` usa el evento `09-turno-completado.png` del atlas de detalle y `no_show` su variante documentada.
 
-**Terminado cuando** el barbero registra exactamente uno de los dos resultados reales de un turno iniciado, sin liberar su intervalo, duplicar historial ni simular automatización o avisos.
+**Terminado cuando** el profesional registra exactamente uno de los dos resultados reales de un turno iniciado, sin liberar su intervalo, duplicar historial ni simular automatización o avisos.
 
 ---
 
@@ -1919,7 +1921,7 @@ Orden recomendado: `HU-060` → `HU-061` → `HU-062` → `HU-063` → `HU-064` 
 | Función | `F-EST-02`, `F-EST-03`, `F-EST-04`; transición `T8` |
 | Reglas | `RN-CIT-01`, `RN-CIT-03`, `RN-CIT-04`, `RN-HIS-01`, `RN-HIS-02`, `RN-CON-01`, `RN-CON-03`, `RN-TEN-01`, `RN-IDE-01` |
 | Decisiones | `DEC-011`, `DEC-012`, `DEC-014`, `DEC-016`, `DEC-017`, `DEC-024`, `DEC-035`–`DEC-038`, `DEC-041`, `DEC-043`, `DEC-077`–`DEC-080` |
-| Actor | Barbero autenticado |
+| Actor | Profesional autenticado |
 | Depende de | `HU-066` y `HU-067` integradas |
 | Bloquea | Verificación completa de T8 y del criterio de salida de B3 |
 | Estado | Implementada contra el issue real [#227](https://github.com/bcaceres19/barberia/issues/227); prompt `PROMPT-HU-068-v1` `executed`, integrada en `main` mediante [PR #239](https://github.com/bcaceres19/barberia/pull/239) |
@@ -1927,12 +1929,12 @@ Orden recomendado: `HU-060` → `HU-061` → `HU-062` → `HU-063` → `HU-064` 
 
 **Historia**
 
-> Como barbero, quiero corregir un resultado terminal marcado por error indicando el motivo, para que el estado vigente sea correcto sin borrar la decisión anterior ni reabrir silenciosamente el turno.
+> Como profesional, quiero corregir un resultado terminal marcado por error indicando el motivo, para que el estado vigente sea correcto sin borrar la decisión anterior ni reabrir silenciosamente el turno.
 
 **Alcance incluido**
 
 - Comando privado y explícito para T8 con estado terminal destino, motivo obligatorio, `Idempotency-Key` y token opaco de versión.
-- Corrección solo entre `completed`, `cancelled_by_customer`, `cancelled_by_barber` y `no_show`; nunca hacia `confirmed`.
+- Corrección solo entre `completed`, `cancelled_by_customer`, `cancelled_by_professional` y `no_show`; nunca hacia `confirmed`.
 - Cambio de estado más evento `appointment_status_corrected`, con estado anterior/nuevo y motivo, dentro de una sola transacción tenant-aware.
 - Los eventos anteriores permanecen intactos; la corrección agrega evidencia y el detalle muestra la secuencia completa.
 - Al pasar de cancelado a `completed`/`no_show`, se vuelven a aplicar la validación temporal del resultado y la exclusión PostgreSQL; un intervalo ya ocupado produce `409` sin escritura.
@@ -1942,7 +1944,7 @@ Orden recomendado: `HU-060` → `HU-061` → `HU-062` → `HU-063` → `HU-064` 
 
 - Corregir hacia `confirmed`, reabrir o recrear automáticamente una cita; se crea una nueva tras validar disponibilidad.
 - Editar o borrar historial, reemplazar el evento equivocado o ocultar una corrección posterior.
-- Cambiar intervalo, snapshots, persona, cliente, contacto, nota o barbero.
+- Cambiar intervalo, snapshots, persona, cliente, contacto, nota o profesional.
 - Notificar el cambio, regenerar recordatorios o ejecutar efectos de B5.
 - Configuración/cierre automático y edición T3.
 
@@ -1976,7 +1978,7 @@ Orden recomendado: `HU-060` → `HU-061` → `HU-062` → `HU-063` → `HU-064` 
 | Función | `F-HOR-02`, `F-CITA-04` |
 | Reglas | `RN-BLQ-03`, `RN-RET-01`, `RN-HIS-01`, `RN-IDE-01`, `RN-TEN-01` |
 | Decisiones | `DEC-008`, `DEC-141` |
-| Actor | Barbero autenticado |
+| Actor | Profesional autenticado |
 | Depende de | `HU-042` y `HU-062`–`HU-066` integradas |
 | Bloquea | Ninguna |
 | Estado | Implementada en [#455](https://github.com/bcaceres19/barberia/issues/455); aceptada por el propietario el 2026-10-31 |
@@ -1984,33 +1986,33 @@ Orden recomendado: `HU-060` → `HU-061` → `HU-062` → `HU-063` → `HU-064` 
 
 **Historia**
 
-> Como barbero, quiero ver qué turnos quedan debajo de un bloqueo que acabo de crear y decidir uno por uno si lo reprogramo o lo cancelo, para no dejar a ningún cliente esperando.
+> Como profesional, quiero ver qué turnos quedan debajo de un bloqueo que acabo de crear y decidir uno por uno si lo reprogramo o lo cancelo, para no dejar a ningún cliente esperando.
 
 **Alcance incluido**
 
-- Tras crear un bloqueo puntual, la pantalla consulta la agenda diaria del barbero (`HU-062`) de cada día civil que toca el bloqueo, hasta 7 días, y se queda con los turnos `confirmed` cuyo intervalo se solapa con el del bloqueo (intervalo semiabierto). No hay endpoint nuevo ni cambio de contrato.
+- Tras crear un bloqueo puntual, la pantalla consulta la agenda diaria del profesional (`HU-062`) de cada día civil que toca el bloqueo, hasta 7 días, y se queda con los turnos `confirmed` cuyo intervalo se solapa con el del bloqueo (intervalo semiabierto). No hay endpoint nuevo ni cambio de contrato.
 - Si hay turnos afectados, un aviso encima de los bloqueos los lista (fecha, hora, persona atendida, servicio), cada uno con enlace a su detalle, donde ya existen cancelar y reprogramar (`HU-065`, `HU-066`).
 - Cerrar el aviso sin actuar deja los turnos como están.
 
 **Alcance excluido**
 
 - Reprogramar o cancelar de forma automática o masiva (`RN-BLQ-03`, `RN-RET-01`) y proponer horas nuevas.
-- Series de bloqueo (semanales o por fechas): no muestran la lista; el barbero revisa la agenda de esos días.
-- El aviso al cliente cuando el barbero cancela o reprograma: lo cubre `HU-130` (`DEC-142`), solo por correo y para un cliente que lo tenga; esta historia no lo promete en pantalla ni lo implementa, y no avisa por sí misma de los turnos que un bloqueo cubre.
+- Series de bloqueo (semanales o por fechas): no muestran la lista; el profesional revisa la agenda de esos días.
+- El aviso al cliente cuando el profesional cancela o reprograma: lo cubre `HU-130` (`DEC-142`), solo por correo y para un cliente que lo tenga; esta historia no lo promete en pantalla ni lo implementa, y no avisa por sí misma de los turnos que un bloqueo cubre.
 
 **Criterios de aceptación**
 
 | Código | Criterio |
 | --- | --- |
 | `CA-069-01` | Crear un bloqueo puntual que solapa turnos lo crea igual (`CA-042-06`) y muestra el aviso con el número de turnos afectados; sin solape, no aparece aviso. |
-| `CA-069-02` | Solo se listan turnos `confirmed` del mismo barbero y barbería cuyo intervalo se solapa con el bloqueo; uno que termina cuando el bloqueo empieza, o empieza cuando termina, no cuenta, y un turno que cruza medianoche aparece una sola vez. Ningún turno cambia por crear el bloqueo. |
+| `CA-069-02` | Solo se listan turnos `confirmed` del mismo profesional y negocio cuyo intervalo se solapa con el bloqueo; uno que termina cuando el bloqueo empieza, o empieza cuando termina, no cuenta, y un turno que cruza medianoche aparece una sola vez. Ningún turno cambia por crear el bloqueo. |
 | `CA-069-03` | Cada turno de la lista enlaza a su detalle; quedar en la lista no obliga a ninguna acción y «Entendido» cierra el aviso. |
 | `CA-069-04` | Un bloqueo que toca más de 7 días consulta los 7 primeros y avisa de que revise la agenda de los siguientes; si la consulta falla, el bloqueo queda creado y no se muestra la lista. |
 | `CA-069-05` | El aviso cumple responsive, teclado y foco en 360 y 1280 px sin desbordar; la regla `heading-order` de axe es la excepción aceptada de `BaseAlert` (`DEC-140`). |
 
 **Pruebas obligatorias:** modelo (solape semiabierto, duplicados, días civiles), cliente HTTP (un día, límite de 7, fallo), componente del panel (con y sin turnos, truncado) y verificación en Chromium a 360 y 1280 px.
 
-**Terminado cuando** el barbero ve siempre qué turnos confirmados quedaron bajo un bloqueo puntual y ninguno cambia sin su decisión.
+**Terminado cuando** el profesional ve siempre qué turnos confirmados quedaron bajo un bloqueo puntual y ninguno cambia sin su decisión.
 
 ---
 
@@ -2022,7 +2024,7 @@ Orden recomendado: `HU-090` → `HU-091` → `HU-092` → `HU-093` → `HU-094` 
 
 ---
 
-### HU-090 · Entrada pública de reservas de una barbería
+### HU-090 · Entrada pública de reservas de un negocio
 
 | Campo | Valor |
 | --- | --- |
@@ -2033,23 +2035,23 @@ Orden recomendado: `HU-090` → `HU-091` → `HU-092` → `HU-093` → `HU-094` 
 | Depende de | Criterio de salida de B3 |
 | Bloquea | `HU-091`–`HU-099` |
 | Estado | Implementada contra el issue real [#243](https://github.com/bcaceres19/barberia/issues/243); `DP-PUB-01` resuelta (`DEC-082`); prompt `PROMPT-HU-090-v1` en `in_progress`, [PR #244](https://github.com/bcaceres19/barberia/pull/244) abierto pendiente de CI/merge |
-| Riesgo | Un identificador público enumerable o una resolución tenant incorrecta expone barberías ajenas o abre el flujo con contexto falso. |
+| Riesgo | Un identificador público enumerable o una resolución tenant incorrecta expone negocios ajenos o abre el flujo con contexto falso. |
 
 **Historia**
 
-> Como cliente, quiero abrir el enlace público de una barbería sin registrarme, para iniciar una reserva con el negocio correcto.
+> Como cliente, quiero abrir el enlace público de un negocio sin registrarme, para iniciar una reserva con el negocio correcto.
 
 **Alcance incluido**
 
-- Ruta pública que resuelve una barbería habilitada desde un identificador no confiado y muestra nombre, zona horaria y contacto público mínimo.
+- Ruta pública que resuelve un negocio habilitado desde un identificador no confiado y muestra nombre, zona horaria y contacto público mínimo.
 - Estado de carga, enlace inválido/no disponible y recuperación sin revelar IDs internos ni la existencia de otro tenant.
 - Cascarón público responsive y accesible, separado del panel autenticado.
-- `public_slug` generado automáticamente desde el nombre de la barbería (nombre sin separadores + código aleatorio de 8 símbolos, todo junto, `DEC-117` y `DEC-118`, que sustituyen el sufijo numérico de `DEC-082`), único globalmente. La edición manual con ruptura sin redirección que preveía `DEC-082` sigue sin implementarse.
-- Enlace del dueño en Configuración (`DEC-117`): ver la URL completa, copiarla y abrirla; si la barbería aún no tiene slug, la primera lectura lo genera. Solo lectura: sin regenerar ni editar.
+- `public_slug` generado automáticamente desde el nombre del negocio (nombre sin separadores + código aleatorio de 8 símbolos, todo junto, `DEC-117` y `DEC-118`, que sustituyen el sufijo numérico de `DEC-082`), único globalmente. La edición manual con ruptura sin redirección que preveía `DEC-082` sigue sin implementarse.
+- Enlace del dueño en Configuración (`DEC-117`): ver la URL completa, copiarla y abrirla; si el negocio aún no tiene slug, la primera lectura lo genera. Solo lectura: sin regenerar ni editar.
 
 **Alcance excluido**
 
-- Listar servicios, barberos o franjas; formular datos; crear o cancelar citas.
+- Listar servicios, profesionales o franjas; formular datos; crear o cancelar citas.
 - Cuentas de cliente, búsqueda por teléfono/correo, portal o bot.
 - Redirección de un slug anterior, historial de slugs o un tercer estado distinguible al deshabilitar (`DEC-082` ya lo descarta).
 
@@ -2057,12 +2059,12 @@ Orden recomendado: `HU-090` → `HU-091` → `HU-092` → `HU-093` → `HU-094` 
 
 | Código | Criterio |
 | --- | --- |
-| `CA-090-01` | Un enlace válido abre sin sesión el contexto público exacto de una barbería habilitada y presenta la hora en su zona. |
+| `CA-090-01` | Un enlace válido abre sin sesión el contexto público exacto de un negocio habilitado y presenta la hora en su zona. |
 | `CA-090-02` | Un identificador mal formado, desconocido o no publicable produce una respuesta pública uniforme sin IDs internos ni pistas de otro tenant. |
-| `CA-090-03` | Ningún parámetro del cliente fija `barbershopId`; API, aplicación y PostgreSQL resuelven y aíslan el tenant de forma coherente. |
+| `CA-090-03` | Ningún parámetro del cliente fija `businessId`; API, aplicación y PostgreSQL resuelven y aíslan el tenant de forma coherente. |
 | `CA-090-04` | La pantalla solo muestra datos públicos aprobados y logs/errores no contienen contacto privado, tokens ni datos personales. |
 | `CA-090-05` | Carga, error y reintento conservan contexto; 320, 360, 768 y 1280 px, teclado, foco, zoom 200 % y axe-core quedan verificados. |
-| `CA-090-06` | Cada barbería recibe un enlace único `<nombre><código aleatorio>` que no se puede deducir del nombre ni de otro enlace, que su dueño ve completo y copia desde Configuración cuando quiera (también si nunca guardó la configuración), que no cambia al renombrar la barbería y que abre únicamente su propia barbería: ni el endpoint del dueño ni el enlace permiten leer o abrir otro tenant (`DEC-117`). |
+| `CA-090-06` | Cada negocio recibe un enlace único `<nombre><código aleatorio>` que no se puede deducir del nombre ni de otro enlace, que su dueño ve completo y copia desde Configuración cuando quiera (también si nunca guardó la configuración), que no cambia al renombrar el negocio y que abre únicamente su propio negocio: ni el endpoint del dueño ni el enlace permiten leer o abrir otro tenant (`DEC-117`). |
 
 **Pruebas obligatorias:** dominio/HTTP para resolución uniforme; PostgreSQL real con dos tenants (unicidad, reintento ante colisión, aislamiento y generación concurrente del enlace del dueño); componente/router y E2E de enlace válido/inválido y de copiado; evidencia responsive y accesible.
 
@@ -2077,11 +2079,11 @@ Orden recomendado: `HU-090` → `HU-091` → `HU-092` → `HU-093` → `HU-094` 
 | Función | `F-PUB-02` |
 | Reglas | `RN-SER-01`, `RN-SER-02`, `RN-SER-03`, `RN-SER-04`, `RN-TEN-01`, `RN-DAT-02` |
 | Decisiones | `DEC-002`–`DEC-004`, `DEC-016`, `DEC-019`, `DEC-024`, `DEC-067`–`DEC-069`, `DEC-077`–`DEC-079` |
-| Actor | Visitante en una barbería pública |
+| Actor | Visitante en un negocio público |
 | Depende de | `HU-090`; `HU-022`–`HU-024` integradas |
 | Bloquea | `HU-092`, `HU-094`–`HU-097` |
 | Estado | En desarrollo; issue real [#245](https://github.com/bcaceres19/barberia/issues/245), rama `feat/245-hu091-catalogo-publico` |
-| Riesgo | Ofrecer servicios inactivos, sin barbero o con datos no vigentes conduce a reservas imposibles o engañosas. |
+| Riesgo | Ofrecer servicios inactivos, sin profesional o con datos no vigentes conduce a reservas imposibles o engañosas. |
 
 **Historia**
 
@@ -2102,19 +2104,19 @@ Orden recomendado: `HU-090` → `HU-091` → `HU-092` → `HU-093` → `HU-094` 
 
 | Código | Criterio |
 | --- | --- |
-| `CA-091-01` | La consulta pública devuelve únicamente servicios activos y asignados de la barbería resuelta, con duración positiva, precio vigente y COP. |
+| `CA-091-01` | La consulta pública devuelve únicamente servicios activos y asignados del negocio resuelto, con duración positiva, precio vigente y COP. |
 | `CA-091-02` | Desactivar un servicio lo retira de nuevas lecturas; reactivarlo con asignación válida lo recupera sin alterar citas existentes. |
-| `CA-091-03` | Un servicio o asignación de otra barbería nunca aparece ni puede seleccionarse, verificado con dos tenants reales. |
+| `CA-091-03` | Un servicio o asignación de otro negocio nunca aparece ni puede seleccionarse, verificado con dos tenants reales. |
 | `CA-091-04` | Vacío, carga, error y reintento son distinguibles y la selección no depende solo de color. |
 | `CA-091-05` | La lista y nombres largos reflowan en los cuatro anchos normativos, teclado/zoom 200 % y axe-core limpio. |
 
 **Pruebas obligatorias:** consulta y filtros en PostgreSQL real; contrato público; componente de selección; E2E con servicio activo/inactivo y dos tenants.
 
-**Terminado cuando** el cliente puede elegir exclusivamente un servicio realmente ofrecido por la barbería.
+**Terminado cuando** el cliente puede elegir exclusivamente un servicio realmente ofrecido por el negocio.
 
 ---
 
-### HU-092 · Selección pública de barbero
+### HU-092 · Selección pública de profesional
 
 | Campo | Valor |
 | --- | --- |
@@ -2125,7 +2127,7 @@ Orden recomendado: `HU-090` → `HU-091` → `HU-092` → `HU-093` → `HU-094` 
 | Depende de | `HU-091`; `HU-021`/`HU-023` integradas |
 | Bloquea | `HU-094`–`HU-097` |
 | Estado | En desarrollo; issue real [#247](https://github.com/bcaceres19/barberia/issues/247), rama `feat/247-hu092-seleccion-barbero` |
-| Riesgo | Permitir un barbero no asignado al servicio produce disponibilidad y reservas inválidas. |
+| Riesgo | Permitir un profesional no asignado al servicio produce disponibilidad y reservas inválidas. |
 
 **Historia**
 
@@ -2133,28 +2135,28 @@ Orden recomendado: `HU-090` → `HU-091` → `HU-092` → `HU-093` → `HU-094` 
 
 **Alcance incluido**
 
-- Lista pública de barberos pertenecientes a la barbería y asignados al servicio activo elegido.
+- Lista pública de profesionales pertenecientes al negocio y asignados al servicio activo elegido.
 - Preselección automática sin paso adicional cuando existe exactamente uno; elección explícita cuando existen varios.
 - Revalidación de servicio y asignación en cada lectura posterior; cambios concurrentes no conservan una selección inválida.
 
 **Alcance excluido**
 
-- Preferencias, ranking, “cualquiera”, asignación automática o baja de barberos. La descripción y la fotografía del barbero que muestra la selección son de `DEC-127`; las reseñas, de `DEC-128`.
+- Preferencias, ranking, “cualquiera”, asignación automática o baja de profesionales. La descripción y la fotografía del profesional que muestra la selección son de `DEC-127`; las reseñas, de `DEC-128`.
 - Consultar disponibilidad o crear la cita.
 
 **Criterios de aceptación**
 
 | Código | Criterio |
 | --- | --- |
-| `CA-092-01` | Con un único barbero asignado, queda seleccionado y el flujo no agrega un paso; con varios, exige una elección explícita. |
-| `CA-092-02` | Solo se listan barberos de la barbería pública con asignación vigente al servicio activo elegido. |
-| `CA-092-03` | Un ID ajeno, inexistente o ya no asignado nunca se ofrece ni se revela: la lista responde `200` con arreglo vacío si el servicio no tiene barberos, y la disponibilidad y la creación de la cita lo rechazan con el mismo `404` uniforme (`DEC-140`). |
+| `CA-092-01` | Con un único profesional asignado, queda seleccionado y el flujo no agrega un paso; con varios, exige una elección explícita. |
+| `CA-092-02` | Solo se listan profesionales del negocio público con asignación vigente al servicio activo elegido. |
+| `CA-092-03` | Un ID ajeno, inexistente o ya no asignado nunca se ofrece ni se revela: la lista responde `200` con arreglo vacío si el servicio no tiene profesionales, y la disponibilidad y la creación de la cita lo rechazan con el mismo `404` uniforme (`DEC-140`). |
 | `CA-092-04` | Cambiar el servicio limpia una selección incompatible y conserva una compatible únicamente tras revalidarla. |
 | `CA-092-05` | Estados y selector funcionan con teclado, foco visible, lector, zoom 200 % y los cuatro anchos normativos. |
 
-**Pruebas obligatorias:** matriz 0/1/N barberos; PostgreSQL real con asignaciones cruzadas; contrato, componente y E2E de preselección/elección.
+**Pruebas obligatorias:** matriz 0/1/N profesionales; PostgreSQL real con asignaciones cruzadas; contrato, componente y E2E de preselección/elección.
 
-**Terminado cuando** el flujo conserva exactamente un barbero elegible y nunca inventa asignación automática.
+**Terminado cuando** el flujo conserva exactamente un profesional elegible y nunca inventa asignación automática.
 
 ---
 
@@ -2165,7 +2167,7 @@ Orden recomendado: `HU-090` → `HU-091` → `HU-092` → `HU-093` → `HU-094` 
 | Función | `F-DISP-04`, `F-DISP-05`, `F-CITA-07`; configuración de `RN-DIS-06` |
 | Reglas | `RN-DIS-04`, `RN-DIS-06`, `RN-CAN-01`, `RN-CAN-02`, `RN-TEN-01` |
 | Decisiones | `DEC-005`, `DEC-006`, `DEC-010`, `DEC-018`, `DEC-024`, `DEC-077`–`DEC-079`, `DEC-083` |
-| Actor | Barbero autenticado |
+| Actor | Profesional autenticado |
 | Depende de | B3; `HU-020`/`HU-012`; `DP-PUB-02` resuelta |
 | Bloquea | `HU-094`, `HU-095`, `HU-099` |
 | Estado | En desarrollo; issue real [#249](https://github.com/bcaceres19/barberia/issues/249), rama `feat/249-hu093-configuracion-reserva-cancelacion` |
@@ -2173,7 +2175,7 @@ Orden recomendado: `HU-090` → `HU-091` → `HU-092` → `HU-093` → `HU-094` 
 
 **Historia**
 
-> Como barbero, quiero configurar anticipación, ventana, rejilla y política de cancelación pública, para ajustar la reserva autónoma a mi operación.
+> Como profesional, quiero configurar anticipación, ventana, rejilla y política de cancelación pública, para ajustar la reserva autónoma a mi operación.
 
 **Alcance incluido**
 
@@ -2190,15 +2192,15 @@ Orden recomendado: `HU-090` → `HU-091` → `HU-092` → `HU-093` → `HU-094` 
 
 | Código | Criterio |
 | --- | --- |
-| `CA-093-01` | Una barbería nueva recibe 60 minutos, 3 días, rejilla de 15 y plazo de cancelación de 20 minutos; los demás defaults coinciden con la decisión de `DP-PUB-02`. |
+| `CA-093-01` | Un negocio nuevo recibe 60 minutos, 3 días, rejilla de 15 y plazo de cancelación de 20 minutos; los demás defaults coinciden con la decisión de `DP-PUB-02`. |
 | `CA-093-02` | Solo valores dentro de rangos aprobados se guardan; campos desconocidos, combinaciones incoherentes y versión obsoleta se rechazan sin cambios parciales. |
-| `CA-093-03` | La configuración de A nunca se lee ni modifica desde B y el body no acepta `barbershopId`. |
+| `CA-093-03` | La configuración de A nunca se lee ni modifica desde B y el body no acepta `businessId`. |
 | `CA-093-04` | Cambiar la política afecta evaluaciones futuras, no reescribe citas, historial ni cancelaciones ya realizadas. |
 | `CA-093-05` | El formulario explica unidades y consecuencias, conserva datos ante error y cumple responsive, teclado, zoom 200 % y axe-core. |
 
 **Pruebas obligatorias:** dominio de rangos/fronteras; PostgreSQL real con dos tenants; contrato y conflicto de versión; componente y E2E de persistencia.
 
-**Terminado cuando** la barbería controla todas las variables públicas confirmadas sin alterar la creación manual ni decisiones históricas.
+**Terminado cuando** el negocio controla todas las variables públicas confirmadas sin alterar la creación manual ni decisiones históricas.
 
 ---
 
@@ -2209,7 +2211,7 @@ Orden recomendado: `HU-090` → `HU-091` → `HU-092` → `HU-093` → `HU-094` 
 | Función | `F-DISP-01` |
 | Reglas | `RN-DIS-01`–`RN-DIS-07`, `RN-BLQ-01`–`RN-BLQ-04`, `RN-CON-01`, `RN-CON-03`, `RN-CAN-04`, `RN-TEN-01` |
 | Decisiones | `DEC-002`, `DEC-005`–`DEC-009`, `DEC-012`, `DEC-018`–`DEC-020`, `DEC-024`, `DEC-070`, `DEC-073`, `DEC-076` |
-| Actor | Cliente con servicio y barbero válidos |
+| Actor | Cliente con servicio y profesional válidos |
 | Depende de | `HU-091`–`HU-093`; B2/B3; `DP-PUB-03` resuelta (`DEC-084`, 2026-09-11) |
 | Bloquea | `HU-095`, `HU-097`, `HU-099` |
 | Estado | Implementada contra el issue real [#251](https://github.com/bcaceres19/barberia/issues/251), rama `feat/251-hu094-disponibilidad-publica`; prompt `PROMPT-HU-094-v1` en `in_progress` |
@@ -2221,7 +2223,7 @@ Orden recomendado: `HU-090` → `HU-091` → `HU-092` → `HU-093` → `HU-094` 
 
 **Alcance incluido**
 
-- Proyección pura por fecha civil, zona de barbería, barbero y servicio vigentes.
+- Proyección pura por fecha civil, zona de negocio, profesional y servicio vigentes.
 - Intersección de jornada recurrente, excepciones/festivos, bloqueos vigentes y citas que ocupan agenda; unión de solapes antes de restar.
 - Aplicación de duración snapshot candidata, `[inicio, fin)`, anticipación, ventana y rejilla aprobada.
 - Rejilla fija anclada al inicio del tramo laboral, sin reiniciarla donde termina una interrupción (`DEC-135`, que sustituye el reinicio de `DEC-084`/`DP-PUB-03`).
@@ -2239,7 +2241,7 @@ Orden recomendado: `HU-090` → `HU-091` → `HU-092` → `HU-093` → `HU-094` 
 | `CA-094-02` | Hueco exacto y contigüidad son válidos; un minuto insuficiente, cierre excedido o duración no múltiplo de rejilla se resuelve conforme a reglas. |
 | `CA-094-03` | Festivo, excepción, recurrencia, vacaciones, emergencia, cruce de medianoche y restricciones solapadas producen una resta única y correcta. |
 | `CA-094-04` | Anticipación y ventana se evalúan con reloj del servidor; consultar no crea filas, bloqueos, sesiones ni efectos de negocio. |
-| `CA-094-05` | Dos tenants y dos barberos simultáneos permanecen aislados; cancelación futura libera la franja si ninguna otra restricción la cubre. |
+| `CA-094-05` | Dos tenants y dos profesionales simultáneos permanecen aislados; cancelación futura libera la franja si ninguna otra restricción la cubre. |
 | `CA-094-06` | La consulta tiene límite de rango/costo aprobado, plan de consulta justificado y pruebas de rendimiento reproducibles sin datos reales. |
 
 **Pruebas obligatorias:** tabla exhaustiva de dominio; PostgreSQL real con dos tenants y once factores; límites temporales/zona; contrato sin efectos y plan de consulta.
@@ -2255,7 +2257,7 @@ Orden recomendado: `HU-090` → `HU-091` → `HU-092` → `HU-093` → `HU-094` 
 | Función | `F-PUB-03` |
 | Reglas | `RN-DIS-01`–`RN-DIS-07`, `RN-CON-04`, `RN-DAT-02` |
 | Decisiones | `DEC-005`–`DEC-007`, `DEC-018`–`DEC-020`, `DEC-077`–`DEC-079` |
-| Actor | Cliente con servicio y barbero elegidos |
+| Actor | Cliente con servicio y profesional elegidos |
 | Depende de | `HU-094` integrada en `main` (satisfecho, PR #253) |
 | Bloquea | `HU-096`, `HU-097` |
 | Estado | Implementada contra el issue real [#254](https://github.com/bcaceres19/barberia/issues/254), rama `feat/254-hu095-fechas-horarios`; prompt `PROMPT-HU-095-v1` en `in_progress` |
@@ -2263,13 +2265,13 @@ Orden recomendado: `HU-090` → `HU-091` → `HU-092` → `HU-093` → `HU-094` 
 
 **Historia**
 
-> Como cliente, quiero explorar fechas y horas disponibles en la zona de la barbería, para escoger un turno válido con claridad.
+> Como cliente, quiero explorar fechas y horas disponibles en la zona del negocio, para escoger un turno válido con claridad.
 
 **Alcance incluido**
 
 - Navegación limitada por anticipación/ventana y consulta bajo demanda del motor `HU-094`.
-- Selección de una fecha y una franja con intervalo/duración visibles; zona de barbería explícita.
-- Carga, día sin horas, error, reintento y refresco cuando cambian servicio o barbero.
+- Selección de una fecha y una franja con intervalo/duración visibles; zona de negocio explícita.
+- Carga, día sin horas, error, reintento y refresco cuando cambian servicio o profesional.
 
 **Alcance excluido**
 
@@ -2281,8 +2283,8 @@ Orden recomendado: `HU-090` → `HU-091` → `HU-092` → `HU-093` → `HU-094` 
 | Código | Criterio |
 | --- | --- |
 | `CA-095-01` | Solo se pueden explorar fechas dentro de la ventana pública y solo se seleccionan horas devueltas por `HU-094`. |
-| `CA-095-02` | La hora, fecha, duración y zona de barbería se anuncian juntas; cambiar zona del dispositivo no cambia el turno mostrado. |
-| `CA-095-03` | Cambiar servicio o barbero invalida y vuelve a consultar la selección; una respuesta tardía no sobrescribe el contexto nuevo. |
+| `CA-095-02` | La hora, fecha, duración y zona de negocio se anuncian juntas; cambiar zona del dispositivo no cambia el turno mostrado. |
+| `CA-095-03` | Cambiar servicio o profesional invalida y vuelve a consultar la selección; una respuesta tardía no sobrescribe el contexto nuevo. |
 | `CA-095-04` | Día vacío, carga, error y reintento conservan selecciones previas válidas y no afirman que una consulta reserve la hora. |
 | `CA-095-05` | Teclado, foco, lector, objetivos de 44 px, zoom 200 %, axe-core y 320/360/768/1280 px quedan verificados. |
 
@@ -2307,7 +2309,7 @@ Orden recomendado: `HU-090` → `HU-091` → `HU-092` → `HU-093` → `HU-094` 
 
 **Historia**
 
-> Como cliente, quiero indicar mis datos y si el turno es para otra persona, para que la barbería sepa a quién atender y a quién contactar.
+> Como cliente, quiero indicar mis datos y si el turno es para otra persona, para que el negocio sepa a quién atender y a quién contactar.
 
 **Alcance incluido**
 
@@ -2327,7 +2329,7 @@ Orden recomendado: `HU-090` → `HU-091` → `HU-092` → `HU-093` → `HU-094` 
 | `CA-096-01` | Para sí mismo, el nombre atendido se deriva del cliente sin pedirlo dos veces; para otra persona, un nombre no vacío adicional es obligatorio. |
 | `CA-096-02` | Nombre, teléfono y correo son obligatorios, nota es opcional y ningún otro dato personal aparece en UI o request. |
 | `CA-096-03` | Validaciones y normalización coinciden en contrato/backend; errores por campo conservan todo dato no sensible escrito. |
-| `CA-096-04` | Coincidencias y conflictos de teléfono/correo siguen exactamente `DP-PUB-04`, siempre dentro de la barbería. |
+| `CA-096-04` | Coincidencias y conflictos de teléfono/correo siguen exactamente `DP-PUB-04`, siempre dentro del negocio. |
 | `CA-096-05` | Datos personales no aparecen en URL, logs, telemetría ni errores; pruebas usan valores ficticios. |
 | `CA-096-06` | Formulario condicional, mensajes y foco funcionan con teclado, autofill, zoom 200 %, axe-core y cuatro anchos normativos. |
 
@@ -2356,11 +2358,11 @@ Orden recomendado: `HU-090` → `HU-091` → `HU-092` → `HU-093` → `HU-094` 
 
 **Alcance incluido**
 
-- Comando público contract-first con `Idempotency-Key`; revalida barbería, servicio, asignación, jornada, bloqueo, límites y franja al confirmar.
+- Comando público contract-first con `Idempotency-Key`; revalida negocio, servicio, asignación, jornada, bloqueo, límites y franja al confirmar.
 - Cliente, cita `confirmed`, snapshots, `appointment_created` y credencial de acceso se persisten con atomicidad definida por `DP-PUB-05`/`CT-011`.
 - Exclusión PostgreSQL como última defensa; exactamente un ganador bajo N solicitudes concurrentes.
 - Perdedor recibe conflicto comprensible, conserva formulario y obtiene alternativas conforme a `DP-PUB-06`.
-- Carrera reserva/bloqueo conserva la cita confirmada y registra/expone la afectación al barbero según `RN-CON-06`.
+- Carrera reserva/bloqueo conserva la cita confirmada y registra/expone la afectación al profesional según `RN-CON-06`.
 
 **Alcance excluido**
 
@@ -2375,7 +2377,7 @@ Orden recomendado: `HU-090` → `HU-091` → `HU-092` → `HU-093` → `HU-094` 
 | `CA-097-02` | El servidor revalida todo; recursos inactivos/ajenos, ventana vencida, bloqueo o jornada inválida no producen cita ni historial parcial. |
 | `CA-097-03` | N confirmaciones simultáneas de una franja dejan una ganadora; las demás reciben `409` controlado y alternativas aprobadas sin perder formulario. |
 | `CA-097-04` | Misma clave/contenido reproduce el resultado; misma clave/contenido distinto o clave en curso sigue `DEC-043`; doble toque no duplica efectos. |
-| `CA-097-05` | Una carrera con bloqueo nunca borra una cita confirmada y deja al barbero la afectación exigida por `RN-CON-06`. |
+| `CA-097-05` | Una carrera con bloqueo nunca borra una cita confirmada y deja al profesional la afectación exigida por `RN-CON-06`. |
 | `CA-097-06` | Con dos tenants no hay relaciones cruzadas; logs, errores e idempotencia no conservan teléfono, correo, nota ni token en claro. |
 | `CA-097-07` | El resumen exige confirmación explícita, bloquea doble toque y maneja éxito/conflicto/red con foco y datos conservados en los anchos normativos y axe-core limpio. |
 
@@ -2405,7 +2407,7 @@ Orden recomendado: `HU-090` → `HU-091` → `HU-092` → `HU-093` → `HU-094` 
 **Alcance incluido**
 
 - Pantalla posterior a la creación y ruta `/customer` autenticada solo por credencial aleatoria larga.
-- Lectura mínima de la cita, barbería, persona atendida, servicio, barbero, intervalo/zona, estado y política vigente de cancelación.
+- Lectura mínima de la cita, negocio, persona atendida, servicio, profesional, intervalo/zona, estado y política vigente de cancelación.
 - Token almacenado solo como hash, respuesta uniforme para inválido/expirado/revocado y redacción de URL en logs.
 - Emisión, vigencia, rotación, revocación y entrega por correo según `DEC-089`/`DEC-091` (resuelven `DP-PUB-05`/`CT-011`).
 
@@ -2421,7 +2423,7 @@ Orden recomendado: `HU-090` → `HU-091` → `HU-092` → `HU-093` → `HU-094` 
 | `CA-098-01` | Tras confirmar, el cliente ve una representación coherente de su única cita y el acceso posterior requiere la credencial aprobada. |
 | `CA-098-02` | Token inválido, vencido, revocado o de cita anonimizada produce respuesta uniforme; el valor en claro no se persiste ni registra. |
 | `CA-098-03` | La lectura expone solo datos necesarios y nunca historial técnico, contacto completo innecesario, IDs internos o recursos relacionados. |
-| `CA-098-04` | Hora y política se muestran en zona de barbería y el estado vigente nunca implica cancelación por falta de respuesta. |
+| `CA-098-04` | Hora y política se muestran en zona de negocio y el estado vigente nunca implica cancelación por falta de respuesta. |
 | `CA-098-05` | Dos tenants y tokens distintos no se cruzan; una credencial no autoriza consultar otra cita. |
 | `CA-098-06` | Carga, error/reintento, estado terminal y enlace inválido cumplen teclado, foco, zoom 200 %, axe-core y cuatro anchos. |
 
@@ -2446,7 +2448,7 @@ Orden recomendado: `HU-090` → `HU-091` → `HU-092` → `HU-093` → `HU-094` 
 
 **Historia**
 
-> Como cliente, quiero cancelar mi turno desde su enlace cuando la política lo permita, para avisar a la barbería y liberar la hora.
+> Como cliente, quiero cancelar mi turno desde su enlace cuando la política lo permita, para avisar al negocio y liberar la hora.
 
 **Alcance incluido**
 
@@ -2454,12 +2456,12 @@ Orden recomendado: `HU-090` → `HU-091` → `HU-092` → `HU-093` → `HU-094` 
 - Dentro del plazo se permite; exactamente en el límite y fuera de plazo se aplica la política configurada, incluido motivo cuando corresponda.
 - Estado `cancelled_by_customer`, motivo aprobado y evento del cliente en una transacción; libera la exclusión inmediatamente.
 - Repetición exacta es no-op; otro terminal, versión obsoleta o intención divergente produce conflicto seguro.
-- UI explica política, contacto con barbería cuando se rechaza y consecuencia antes de confirmar.
+- UI explica política, contacto con negocio cuando se rechaza y consecuencia antes de confirmar.
 
 **Alcance excluido**
 
-- Cancelación por barbero, masiva, reprogramación, reapertura, penalidades o pagos.
-- Aviso al barbero/confirmación por canales e invalidación de recordatorios hasta B5; no se simulan envíos.
+- Cancelación por profesional, masiva, reprogramación, reapertura, penalidades o pagos.
+- Aviso al profesional/confirmación por canales e invalidación de recordatorios hasta B5; no se simulan envíos.
 
 **Criterios de aceptación**
 
@@ -2474,13 +2476,13 @@ Orden recomendado: `HU-090` → `HU-091` → `HU-092` → `HU-093` → `HU-094` 
 
 **Pruebas obligatorias:** tabla de política y fronteras temporales; HTTP/idempotencia; PostgreSQL real con dos tenants, atomicidad/liberación y carrera; componente y E2E cancelar→reconsultar franja.
 
-**Decisiones de implementación (sin cambiar los criterios):** el plazo se mide `startsAt - plazo` **inclusive** (el instante exacto cuenta como dentro de plazo); un plazo de `0` trata toda cancelación como tardía (`DEC-083`); con el turno ya iniciado la cancelación propia nunca procede, ni con la política tardía permitida. Cancelar **no revoca el enlace** (`DEC-136`, que reemplaza esa parte de `DEC-089`): después, `GET` muestra el turno como cancelado, sin acciones ni política, y repetir la llamada con la misma clave reproduce la respuesta original; la confirmación inmediata se muestra con la respuesta del propio `POST`. Los rechazos se distinguen por `code` (`cancellation-window-closed`, `cancellation-reason-required`, `version-conflict`, `invalid-state`). El contacto seguro es el contacto público opcional de la barbería (`HU-020`).
+**Decisiones de implementación (sin cambiar los criterios):** el plazo se mide `startsAt - plazo` **inclusive** (el instante exacto cuenta como dentro de plazo); un plazo de `0` trata toda cancelación como tardía (`DEC-083`); con el turno ya iniciado la cancelación propia nunca procede, ni con la política tardía permitida. Cancelar **no revoca el enlace** (`DEC-136`, que reemplaza esa parte de `DEC-089`): después, `GET` muestra el turno como cancelado, sin acciones ni política, y repetir la llamada con la misma clave reproduce la respuesta original; la confirmación inmediata se muestra con la respuesta del propio `POST`. Los rechazos se distinguen por `code` (`cancellation-window-closed`, `cancellation-reason-required`, `version-conflict`, `invalid-state`). El contacto seguro es el contacto público opcional del negocio (`HU-020`).
 
 **Terminado cuando** el cliente cancela solo cuando está autorizado, deja rastro correcto y libera de inmediato una franja futura.
 
 ---
 
-### HU-100 · Reseñas y calificación interna por barbero
+### HU-100 · Reseñas y calificación interna por profesional
 
 | Campo | Valor |
 | --- | --- |
@@ -2495,19 +2497,19 @@ Orden recomendado: `HU-090` → `HU-091` → `HU-092` → `HU-093` → `HU-094` 
 
 **Historia**
 
-> Como cliente que ya fue atendido, quiero calificar a mi barbero desde el acceso a mi turno, para dejar constancia de mi experiencia real.
+> Como cliente que ya fue atendido, quiero calificar a mi profesional desde el acceso a mi turno, para dejar constancia de mi experiencia real.
 
 **Alcance incluido**
 
-- Acción «Calificar a `{barbero}`» en la página de acceso al turno (`HU-098`), visible solo cuando el turno es `completed` y no tiene reseña todavía.
+- Acción «Calificar a `{profesional}`» en la página de acceso al turno (`HU-098`), visible solo cuando el turno es `completed` y no tiene reseña todavía.
 - Formulario con calificación de 1 a 5 (obligatoria) y comentario opcional de hasta 500 caracteres.
-- Persistencia con una sola reseña por turno; estrellas (`rating`) y total (`ratingCount`) del barbero expuestos en `BarberResponse`/`PublicBarberResponse`, calculados sobre reseñas no ocultas.
-- Ocultar/mostrar una reseña desde el panel del barbero o del propietario, reversible y sin borrar la fila.
+- Persistencia con una sola reseña por turno; estrellas (`rating`) y total (`ratingCount`) del profesional expuestos en `ProfessionalResponse`/`PublicProfessionalResponse`, calculados sobre reseñas no ocultas.
+- Ocultar/mostrar una reseña desde el panel del profesional o del propietario, reversible y sin borrar la fila.
 
 **Alcance excluido**
 
-- Reseña de la barbería o el local completo (la cubre `HU-101` con datos de Google).
-- Respuesta pública del barbero, edición de una reseña ya enviada, cola de aprobación previa a publicar, notificación al barbero.
+- Reseña del negocio o el local completo (la cubre `HU-101` con datos de Google).
+- Respuesta pública del profesional, edición de una reseña ya enviada, cola de aprobación previa a publicar, notificación al profesional.
 
 **Criterios de aceptación**
 
@@ -2516,7 +2518,7 @@ Orden recomendado: `HU-090` → `HU-091` → `HU-092` → `HU-093` → `HU-094` 
 | `CA-100-01` | Un turno `completed` sin reseña previa muestra la acción «Calificar»; uno no completado, cancelado, ajeno o ya calificado no la muestra, y cualquier intento responde el mismo `404`/`409` uniforme sin distinguir la causa. |
 | `CA-100-02` | Una calificación fuera de 1–5 o ausente se rechaza con `422`; un comentario vacío o de solo espacios se guarda `NULL`; más de 500 caracteres se rechaza. |
 | `CA-100-03` | Como máximo una reseña por `appointment_id` (`UNIQUE`); un segundo intento sobre el mismo turno no crea una fila ni modifica la existente. |
-| `CA-100-04` | La reseña publicada aparece de inmediato en la selección pública del barbero (`HU-092`) con su calificación y comentario; `rating`/`ratingCount` del barbero son el promedio y el total de reseñas no ocultas, `NULL` sin ninguna. |
+| `CA-100-04` | La reseña publicada aparece de inmediato en la selección pública del profesional (`HU-092`) con su calificación y comentario; `rating`/`ratingCount` del profesional son el promedio y el total de reseñas no ocultas, `NULL` sin ninguna. |
 | `CA-100-05` | Ocultar una reseña la retira del promedio y de la lista pública de inmediato, pero la conserva visible en el panel con su fecha; volver a mostrarla la reincorpora sin perder su contenido. |
 | `CA-100-06` | El formulario, las estrellas y la lista de reseñas cumplen teclado, foco visible, lector, zoom 200 % y los cuatro anchos normativos. |
 
@@ -2541,18 +2543,18 @@ Orden recomendado: `HU-090` → `HU-091` → `HU-092` → `HU-093` → `HU-094` 
 
 **Historia**
 
-> Como cliente, quiero ver la calificación y las reseñas reales de Google del negocio antes de reservar, para confiar en la barbería.
+> Como cliente, quiero ver la calificación y las reseñas reales de Google del negocio antes de reservar, para confiar en el negocio.
 
 **Alcance incluido**
 
-- `google_place_id` guardado por barbería y fijado **solo por base de datos** (`DEC-137`, que reemplaza el campo de Configuración que pedía `DEC-129`): el panel no lo muestra, no lo recibe ni lo envía, y guardar los ajustes de la barbería nunca lo modifica.
-- `GET /public/barbershops/{slug}/reviews`: calificación, total y hasta 5 reseñas con la atribución que exige Google.
+- `google_place_id` guardado por negocio y fijado **solo por base de datos** (`DEC-137`, que reemplaza el campo de Configuración que pedía `DEC-129`): el panel no lo muestra, no lo recibe ni lo envía, y guardar los ajustes del negocio nunca lo modifica.
+- `GET /public/businesses/{slug}/reviews`: calificación, total y hasta 5 reseñas con la atribución que exige Google.
 - Caché de servidor de 6 horas; nunca se persiste el texto de una reseña más allá de esa ventana.
 - Sección oculta, sin error visible, cuando falta el Place ID, falta la credencial o la consulta falla.
 
 **Alcance excluido**
 
-- Responder reseñas de Google desde NAVA, importarlas al sistema interno (`HU-100`), otros proveedores (Facebook, TripAdvisor), ficha de Google por barbero individual dentro de una empresa de varios barberos.
+- Responder reseñas de Google desde Nava Agenda, importarlas al sistema interno (`HU-100`), otros proveedores (Facebook, TripAdvisor), ficha de Google por profesional individual dentro de una empresa de varios profesionales.
 
 **Criterios de aceptación**
 
@@ -2571,7 +2573,7 @@ Orden recomendado: `HU-090` → `HU-091` → `HU-092` → `HU-093` → `HU-094` 
 
 ---
 
-### HU-102 · Ubicación de la barbería en la reserva pública
+### HU-102 · Ubicación del negocio en la reserva pública
 
 | Campo | Valor |
 | --- | --- |
@@ -2582,16 +2584,16 @@ Orden recomendado: `HU-090` → `HU-091` → `HU-092` → `HU-093` → `HU-094` 
 | Depende de | Credencial de Geocoding/Maps configurada en el ambiente de despliegue |
 | Bloquea | Ninguna |
 | Estado | Implementada en [#359](https://github.com/bcaceres19/barberia/issues/359) |
-| Riesgo | Geocodificar mal una dirección, o mostrar un mapa de una barbería que solo atiende a domicilio, confunde al cliente sobre dónde se presta el servicio. |
+| Riesgo | Geocodificar mal una dirección, o mostrar un mapa de un negocio que solo atiende a domicilio, confunde al cliente sobre dónde se presta el servicio. |
 
 **Historia**
 
-> Como cliente, quiero ver dónde queda la barbería antes de reservar, cuando tiene local, para saber si puedo llegar.
+> Como cliente, quiero ver dónde queda el negocio antes de reservar, cuando tiene local, para saber si puedo llegar.
 
 **Alcance incluido**
 
-- `has_physical_location`, `address`, `latitude` y `longitude` en `barbershop`; edición en Configuración y geocodificación en el servidor al guardar una dirección nueva.
-- Campos necesarios en `GET /public/barbershops/{slug}` para mostrar el mapa cuando corresponda.
+- `has_physical_location`, `address`, `latitude` y `longitude` en `business`; edición en Configuración y geocodificación en el servidor al guardar una dirección nueva.
+- Campos necesarios en `GET /public/businesses/{slug}` para mostrar el mapa cuando corresponda.
 - Mapa interactivo de Google con marcador y dirección en texto en la reserva pública, visible solo con `has_physical_location = true` y coordenadas presentes.
 
 **Alcance excluido**
@@ -2611,7 +2613,7 @@ Orden recomendado: `HU-090` → `HU-091` → `HU-092` → `HU-093` → `HU-094` 
 
 **Pruebas obligatorias:** adaptador de Geocoding simulado (éxito, dirección ambigua o no encontrada); PostgreSQL real con dos tenants; contrato; componente; E2E con y sin ubicación visible.
 
-**Terminado cuando** la reserva pública nunca muestra un mapa sin coordenadas reales, ni oculta la ubicación de una barbería que la activó con una dirección válida.
+**Terminado cuando** la reserva pública nunca muestra un mapa sin coordenadas reales, ni oculta la ubicación de un negocio que la activó con una dirección válida.
 
 ---
 
@@ -2626,19 +2628,19 @@ Orden recomendado: `HU-090` → `HU-091` → `HU-092` → `HU-093` → `HU-094` 
 | Depende de | `HU-096`, `HU-097` integradas (satisfecho); credencial de Google Places Autocomplete configurada |
 | Bloquea | Ninguna |
 | Estado | Implementada en [#360](https://github.com/bcaceres19/barberia/issues/360) |
-| Riesgo | Confirmar un turno a domicilio sin coordenadas reales deja al barbero sin saber a dónde ir; aceptar domicilio cuando la barbería lo desactivó entre la elección y el envío crea una expectativa que no se cumple. |
+| Riesgo | Confirmar un turno a domicilio sin coordenadas reales deja al profesional sin saber a dónde ir; aceptar domicilio cuando el negocio lo desactivó entre la elección y el envío crea una expectativa que no se cumple. |
 
 **Historia**
 
-> Como cliente, quiero pedir que me atiendan a domicilio e indicar mi dirección con un mapa, cuando la barbería ofrece esa modalidad, para que el barbero sepa exactamente a dónde ir.
+> Como cliente, quiero pedir que me atiendan a domicilio e indicar mi dirección con un mapa, cuando el negocio ofrece esa modalidad, para que el profesional sepa exactamente a dónde ir.
 
 **Alcance incluido**
 
-- `offers_home_service` en `barbershop` como interruptor general, editable en Configuración.
+- `offers_home_service` en `business` como interruptor general, editable en Configuración.
 - Paso «¿en el local o a domicilio?» en el flujo público, entre `HU-096` y la confirmación de `HU-097`, presente solo cuando `offers_home_service = true`.
 - Ubicación del cliente (`DEC-138`, `DEC-155`): obligatoria y con dos formas equivalentes, que el dispositivo la detecte (se intenta al elegir «a domicilio»; «Usar mi ubicación» lo repite) o mover el mapa hasta que un pin fijo quede sobre el lugar; sin buscador de dirección. Un campo opcional de detalles (torre, apartamento, referencia, hasta 80 caracteres) se antepone al texto de la dirección.
 - `is_home_service`, `service_address`, `service_latitude` y `service_longitude` en `appointment`, con una restricción que exige los tres datos de dirección juntos cuando hay domicilio y los tres nulos cuando no; la confirmación pública los acepta y los persiste en la misma transacción que crea el turno.
-- La dirección a domicilio es visible únicamente en el panel privado de esa barbería sobre ese turno.
+- La dirección a domicilio es visible únicamente en el panel privado de ese negocio sobre ese turno.
 
 **Alcance excluido**
 
@@ -2653,7 +2655,7 @@ Orden recomendado: `HU-090` → `HU-091` → `HU-092` → `HU-093` → `HU-094` 
 | `CA-103-03` | Elegir «a domicilio» exige una ubicación marcada con coordenadas (punto marcado moviendo el mapa o posición detectada, `DEC-138`, `DEC-155`) antes de habilitar continuar; los detalles escritos sin ubicación marcada no son suficientes. |
 | `CA-103-04` | Confirmar con domicilio persiste `is_home_service = true` junto con `service_address`/`latitude`/`longitude` en la misma transacción que crea el turno; confirmar sin domicilio deja los tres en `NULL`. Una combinación parcial queda impedida por una restricción de base de datos incluso ante un error de aplicación. |
 | `CA-103-05` | Confirmar con domicilio cuando `offers_home_service` pasó a `false` entre la elección y el envío responde `422` sin crear el turno, mismo criterio que las demás revalidaciones de `HU-097`. |
-| `CA-103-06` | La dirección a domicilio es visible en el panel privado de esa barbería sobre ese turno (agenda y detalle) y nunca en la reserva pública de otro cliente, en las reseñas de `HU-100`/`HU-101` ni en ningún registro (`RN-DAT-02`). |
+| `CA-103-06` | La dirección a domicilio es visible en el panel privado de ese negocio sobre ese turno (agenda y detalle) y nunca en la reserva pública de otro cliente, en las reseñas de `HU-100`/`HU-101` ni en ningún registro (`RN-DAT-02`). |
 | `CA-103-07` | El paso de modalidad, el autocompletado, el mapa y el botón de ubicación cumplen teclado, foco visible, lector, zoom 200 % y los cuatro anchos normativos. |
 | `CA-103-08` | (`DEC-138`) El cliente puede marcar su ubicación moviendo el mapa sin escribir dirección; el turno se envía con las coordenadas del pin y un texto (dirección aproximada o «Ubicación marcada en el mapa»). |
 | `CA-103-09` | (`DEC-138`, `DEC-155`) La posición del dispositivo se intenta detectar al elegir «a domicilio» (el navegador pide su permiso) y con «Usar mi ubicación»; la lectura se afina unos segundos y una precisión de hasta 150 m queda marcada, una mayor solo centra el mapa y pide ajustar el pin; si se niega, tarda o no existe, se explica y la persona marca en el mapa; si el mapa no carga, el botón sigue funcionando. |
@@ -2680,7 +2682,7 @@ Orden recomendado: `HU-090` → `HU-091` → `HU-092` → `HU-093` → `HU-094` 
 
 **Historia**
 
-> Como cliente, quiero cambiar la fecha y la hora de mi turno desde el enlace que me llegó, para no tener que llamar a la barbería cuando se me cruza algo.
+> Como cliente, quiero cambiar la fecha y la hora de mi turno desde el enlace que me llegó, para no tener que llamar al negocio cuando se me cruza algo.
 
 **Alcance incluido**
 
@@ -2692,7 +2694,7 @@ Orden recomendado: `HU-090` → `HU-091` → `HU-092` → `HU-093` → `HU-094` 
 **Alcance excluido**
 
 - Acceso por código de un solo uso (`HU-105`).
-- Cambiar servicio o profesional, avisar al barbero, plazo o límite configurables.
+- Cambiar servicio o profesional, avisar al profesional, plazo o límite configurables.
 
 **Criterios de aceptación**
 
@@ -2704,12 +2706,12 @@ Orden recomendado: `HU-090` → `HU-091` → `HU-092` → `HU-093` → `HU-094` 
 | `CA-104-04` | Una franja fuera de la disponibilidad, ya ocupada (también en carrera) o con un bloqueo se rechaza sin cambios; la ocupada vuelve como conflicto recuperable. |
 | `CA-104-05` | Fuera de plazo, con el turno no confirmado o con 2 reprogramaciones del cliente ya hechas, se rechaza con un error distinguible; versión vieja → 409; token inválido → 404 uniforme. |
 | `CA-104-06` | Misma clave y cuerpo reproducen el resultado; otro cuerpo con la misma clave es un conflicto (`RN-IDE-01`). |
-| `CA-104-07` | Con dos barberías reales, un token nunca lista franjas ni mueve turnos de otra. |
+| `CA-104-07` | Con dos negocios reales, un token nunca lista franjas ni mueve turnos de otro. |
 | `CA-104-08` | La pantalla muestra el turno actual, días y horarios, la comparación antes/después y pide confirmación explícita; cubre éxito, conflicto, fuera de plazo, límite alcanzado, carga y error con teclado, foco, axe-core y 320/360/768/1280 px. |
 
 **Pruebas obligatorias:** dominio del plazo y el límite; servicio con puertos simulados; HTTP customer; PostgreSQL real con dos tenants, carrera por la misma franja y efectos (historial, recordatorio, sin aviso); componente; E2E del recorrido con el API simulado y evidencia responsive.
 
-**Terminado cuando** el cliente mueve su turno a otra franja válida sin llamar, dentro del plazo y del límite, y el barbero lo ve en su agenda e historial.
+**Terminado cuando** el cliente mueve su turno a otra franja válida sin llamar, dentro del plazo y del límite, y el profesional lo ve en su agenda e historial.
 
 ---
 
@@ -2723,7 +2725,7 @@ Orden recomendado: `HU-090` → `HU-091` → `HU-092` → `HU-093` → `HU-094` 
 | Actor | Cliente sin el enlace a la mano |
 | Depende de | `HU-104` integrada |
 | Estado | Implementada contra el issue real [#637](https://github.com/bcaceres19/barberia/issues/637), [PR #643](https://github.com/bcaceres19/barberia/pull/643) |
-| Riesgo | Revelar si un contacto tiene turnos, permitir adivinar el código, enviar códigos sin límite o abrir turnos de otra barbería. |
+| Riesgo | Revelar si un contacto tiene turnos, permitir adivinar el código, enviar códigos sin límite o abrir turnos de otro negocio. |
 
 **Historia**
 
@@ -2733,8 +2735,8 @@ Orden recomendado: `HU-090` → `HU-091` → `HU-092` → `HU-093` → `HU-094` 
 
 - Pantalla `/reservar/<slug>/mi-turno` con tres pasos: contacto, código y elección del turno.
 - Código de 6 dígitos por correo o WhatsApp, 10 minutos, 5 intentos, un solo uso, guardado como HMAC; límite por contacto y por IP; respuesta uniforme.
-- Acceso de vida corta a cada turno futuro `confirmed` del cliente en esa barbería, que abre la pantalla de `HU-104`.
-- Enlace desde la entrada pública de la barbería.
+- Acceso de vida corta a cada turno futuro `confirmed` del cliente en ese negocio, que abre la pantalla de `HU-104`.
+- Enlace desde la entrada pública del negocio.
 
 **Alcance excluido**
 
@@ -2744,11 +2746,11 @@ Orden recomendado: `HU-090` → `HU-091` → `HU-092` → `HU-093` → `HU-094` 
 
 | Código | Criterio |
 | --- | --- |
-| `CA-105-01` | Pedir el código responde igual exista o no el contacto, y solo envía si hay un turno futuro confirmado de ese cliente en esa barbería. |
+| `CA-105-01` | Pedir el código responde igual exista o no el contacto, y solo envía si hay un turno futuro confirmado de ese cliente en ese negocio. |
 | `CA-105-02` | El código vale 10 minutos, 5 intentos y un solo uso; se guarda como HMAC y nunca aparece en logs, evidencia ni respuestas. |
 | `CA-105-03` | Hay límite de solicitudes por contacto y por IP; al excederlo, la respuesta es `429` con un `Retry-After`. |
 | `CA-105-04` | Verificar el código devuelve los turnos futuros confirmados con un acceso de vida corta; si hay uno solo, se entra directo a reprogramar. |
-| `CA-105-05` | Con dos barberías reales, un contacto de una no recibe ni ve turnos de otra. |
+| `CA-105-05` | Con dos negocios reales, un contacto de uno no recibe ni ve turnos de otro. |
 | `CA-105-06` | La pantalla cubre contacto, código (pegar, reenviar con cuenta atrás, error, bloqueo) y elección del turno, con teclado, axe-core y 320/360/768/1280 px. |
 
 **Pruebas obligatorias:** dominio del código y el límite; adaptadores de correo y WhatsApp contra un servidor de prueba; PostgreSQL real con dos tenants; HTTP público; componente; E2E con el API simulado.
@@ -2771,7 +2773,7 @@ Orden recomendado: `HU-090` → `HU-091` → `HU-092` → `HU-093` → `HU-094` 
 
 **Historia**
 
-> Como cliente que le escribe a Odin «¿cómo cancelo mi cita?», quiero que me confirme cuál es mi turno y me mande el enlace para hacerlo yo, para no llamar a la barbería.
+> Como cliente que le escribe a Odin «¿cómo cancelo mi cita?», quiero que me confirme cuál es mi turno y me mande el enlace para hacerlo yo, para no llamar al negocio.
 
 **Alcance incluido**
 
@@ -2789,12 +2791,12 @@ Orden recomendado: `HU-090` → `HU-091` → `HU-092` → `HU-093` → `HU-094` 
 | Código | Criterio |
 | --- | --- |
 | `CA-106-01` | Sin la credencial de servicio, o con una distinta, las rutas de Odin responden el mismo `401`; sin secreto configurado no existen. |
-| `CA-106-02` | `lookup` devuelve solo los turnos futuros confirmados de ese teléfono en esa barbería, sin identificadores internos ni datos del cliente, con `canCancel` y `canReschedule` según la política vigente. |
-| `CA-106-03` | `challenge` solo prospera si la referencia es de ese teléfono y barbería y el turno sigue elegible para el propósito; si no, `409` uniforme. |
-| `CA-106-04` | El límite de 3 por contacto cada 15 minutos cuenta también las solicitudes de Odin; hay un tope por barbería para el servicio y no aplica el límite por IP; `429` con `Retry-After`. |
+| `CA-106-02` | `lookup` devuelve solo los turnos futuros confirmados de ese teléfono en ese negocio, sin identificadores internos ni datos del cliente, con `canCancel` y `canReschedule` según la política vigente. |
+| `CA-106-03` | `challenge` solo prospera si la referencia es de ese teléfono y negocio y el turno sigue elegible para el propósito; si no, `409` uniforme. |
+| `CA-106-04` | El límite de 3 por contacto cada 15 minutos cuenta también las solicitudes de Odin; hay un tope por negocio para el servicio y no aplica el límite por IP; `429` con `Retry-After`. |
 | `CA-106-05` | `verify-ref` vale 10 minutos, 5 intentos y un solo uso, no revela la causa del fallo y emite un acceso de 60 minutos solo a ese turno. |
 | `CA-106-06` | Un reto de Odin no sirve en la verificación general de `HU-105`, ni al revés. |
-| `CA-106-07` | Con dos barberías, una referencia o un `accessRef` de una no funciona en la otra. |
+| `CA-106-07` | Con dos negocios, una referencia o un `accessRef` de uno no funciona en el otro. |
 | `CA-106-08` | La página cubre código, error, bloqueo y redirección por propósito, con teclado, axe-core y 320/360/768/1280 px. |
 | `CA-106-09` | Sin `purpose`, `challenge` usa `manage`: prospera si el turno admite cancelar o cambiar la hora, devuelve `purpose` y, con web pública configurada, `accessUrl` sin datos personales; tras el código, la página muestra el paso 03 con las dos acciones (`DEC-181`). |
 
@@ -2809,7 +2811,7 @@ Orden recomendado: `HU-090` → `HU-091` → `HU-092` → `HU-093` → `HU-094` 
 | Función | `F-PUB-14` |
 | Reglas | `RN-TEN-01`, `RN-DIS-07` |
 | Decisiones | `DEC-020`, `DEC-173`, `DEC-182` |
-| Actor | Dueño de la barbería; cliente en la reserva pública; Odin como servicio |
+| Actor | Dueño del negocio; cliente en la reserva pública; Odin como servicio |
 | Depende de | `HU-020` (Configuración) y `HU-090` (perfil público) integradas |
 | Estado | Implementada contra el issue real [#654](https://github.com/bcaceres19/barberia/issues/654), rama `feat/654-horario-del-local` |
 | Riesgo | Que el horario publicado contradiga la agenda real y un cliente llegue a un local cerrado, o que «sin horario» se lea como «cerrado». |
@@ -2838,7 +2840,7 @@ Orden recomendado: `HU-090` → `HU-091` → `HU-092` → `HU-093` → `HU-094` 
 | --- | --- |
 | `CA-107-01` | El dueño guarda el horario semanal con varios horarios por día; un día sin horarios queda cerrado y `24:00` (00:00 en el selector) es medianoche. |
 | `CA-107-02` | Un horario que cierra antes de abrir o igual, horas mal escritas, horarios que se cruzan o más de 4 por día se rechazan con `422` sin guardar nada; la pantalla los señala junto al día antes de enviar. |
-| `CA-107-03` | Un empleado recibe `403`; ninguna barbería ve, borra ni escribe el horario de otra (RLS con dos tenants). |
+| `CA-107-03` | Un empleado recibe `403`; ningún negocio ve, borra ni escribe el horario de otra (RLS con dos tenants). |
 | `CA-107-04` | El perfil público trae `openingHours` (lista vacía si no está configurado), `closedOnHolidays` y `today`, que es `null` sin horario. |
 | `CA-107-05` | `today` usa la fecha civil de la zona del local; en un festivo colombiano trae su nombre y, con `closedOnHolidays`, `hours` vacío. |
 | `CA-107-06` | La reserva pública muestra el estado de ahora y la semana solo con horario configurado; sin él no muestra nada. |
@@ -2852,27 +2854,27 @@ Orden recomendado: `HU-090` → `HU-091` → `HU-092` → `HU-093` → `HU-094` 
 
 ## 8. Bloque B5 · Notificaciones y recordatorios
 
-### HU-130 · Aviso al cliente cuando el barbero cancela o reprograma su turno
+### HU-130 · Aviso al cliente cuando el profesional cancela o reprograma su turno
 
 | Campo | Valor |
 | --- | --- |
 | Función | `F-NOT-02` (primer tramo de B5) |
 | Reglas | `RN-REC-01`, `RN-REC-02`, `RN-REC-03`, `RN-REC-04`, `RN-REC-06`, `RN-BLQ-03`, `RN-DAT-02`, `RN-IDE-01`, `RN-TEN-01` |
 | Decisiones | `DEC-004`, `DEC-008`, `DEC-027`, `DEC-032`, `DEC-040`, `DEC-102`, `DEC-142` |
-| Actor | Sistema (worker), a raíz de una acción del barbero |
+| Actor | Sistema (worker), a raíz de una acción del profesional |
 | Depende de | `HU-065` y `HU-066` integradas |
 | Estado | Implementada contra el issue real [#463](https://github.com/bcaceres19/barberia/issues/463) |
 | Riesgo | Avisar una hora que ya cambió, avisar dos veces el mismo cambio, perder el aviso si cae el proceso o dejar un correo en claro en la evidencia. |
 
 **Historia**
 
-> Como cliente, quiero recibir un correo cuando el barbero cancela o cambia la hora de mi turno, para no presentarme a una cita que ya no existe ni a una hora vieja.
+> Como cliente, quiero recibir un correo cuando el profesional cancela o cambia la hora de mi turno, para no presentarme a una cita que ya no existe ni a una hora vieja.
 
 **Alcance incluido**
 
-- Un aviso por correo tras `T6` (cancelación por el barbero) y `T2` (reprogramación), persistido en la misma transacción que el cambio.
+- Un aviso por correo tras `T6` (cancelación por el profesional) y `T2` (reprogramación), persistido en la misma transacción que el cambio.
 - Un solo aviso vigente por turno: cambios seguidos se funden en uno, tras una espera de 60 segundos.
-- Mensaje redactado al enviar con el estado vigente: servicio, barbería y fecha y hora locales de la barbería.
+- Mensaje redactado al enviar con el estado vigente: servicio, negocio y fecha y hora locales del negocio.
 - Evidencia de cada intento sin datos de contacto; reintentos acotados; rechazo permanente sin reintento.
 - Un cliente sin correo queda registrado como no enviable (`skipped`).
 
@@ -2880,21 +2882,21 @@ Orden recomendado: `HU-090` → `HU-091` → `HU-092` → `HU-093` → `HU-094` 
 
 - WhatsApp, recordatorios programados (`F-NOT-03`), configuración por evento y canal (`RN-REC-05`), aviso por cambio de precio (`HU-029`) y purga de la evidencia (B6).
 - Avisar cambios hechos por el cliente o por el sistema, y repeticiones idempotentes o reprogramaciones al mismo intervalo.
-- Mostrar al barbero el estado del aviso.
+- Mostrar al profesional el estado del aviso.
 
 **Criterios de aceptación**
 
 | Código | Criterio |
 | --- | --- |
 | `CA-130-01` | Cancelar o reprogramar un turno confirmado crea, en la misma transacción, un aviso `pending`; si la transacción se revierte no queda aviso. |
-| `CA-130-02` | Una cancelación repetida (mismo barbero o misma clave) y una reprogramación al mismo intervalo no crean aviso. |
+| `CA-130-02` | Una cancelación repetida (mismo profesional o misma clave) y una reprogramación al mismo intervalo no crean aviso. |
 | `CA-130-03` | Dos cambios seguidos del mismo turno dejan exactamente un aviso `pending`; la cancelación sustituye a la reprogramación pendiente. |
 | `CA-130-04` | El correo se redacta al enviar con la hora vigente; una reprogramación cuyo turno ya está cancelado, o un turno que ya empezó, no se envía y queda `skipped`. |
 | `CA-130-05` | Cada intento (enviado, reintento, fallo, omitido) deja una fila de evidencia sin correo, teléfono ni nombre; los logs tampoco los contienen. |
 | `CA-130-06` | Un fallo transitorio se reintenta con espera creciente hasta 5 intentos; un rechazo permanente del proveedor termina en `failed` sin reintento. |
 | `CA-130-07` | Un cliente sin correo no genera envío: el aviso queda `skipped` con causa `no_email`. |
 | `CA-130-08` | Dos workers no reclaman el mismo aviso; un lease vencido lo hace elegible de nuevo y el primer worker ya no puede cerrarlo. |
-| `CA-130-09` | Con dos barberías reales, ningún aviso, evidencia ni contexto de una es visible o reclamable desde la otra por la aplicación; el worker solo opera mediante funciones `SECURITY DEFINER`. |
+| `CA-130-09` | Con dos negocios reales, ningún aviso, evidencia ni contexto de uno es visible o reclamable desde el otro por la aplicación; el worker solo opera mediante funciones `SECURITY DEFINER`. |
 
 **Pruebas obligatorias**
 
@@ -2903,7 +2905,7 @@ Orden recomendado: `HU-090` → `HU-091` → `HU-092` → `HU-093` → `HU-094` 
 - PostgreSQL real con dos tenants: encolado en la transacción del cambio, fusión de avisos, reclamo concurrente, lease vencido, cierre por CAS, evidencia sin datos personales y RLS.
 - Repositorio de `booking`: el gancho se invoca en la transacción de `T6` y `T2` y no en una repetición ni en un no-op.
 
-**Terminado cuando** un cliente con correo recibe un único aviso con la hora vigente tras cada cancelación o reprogramación del barbero, y cada intento queda auditado sin datos de contacto.
+**Terminado cuando** un cliente con correo recibe un único aviso con la hora vigente tras cada cancelación o reprogramación del profesional, y cada intento queda auditado sin datos de contacto.
 
 ---
 
@@ -2928,12 +2930,12 @@ Orden recomendado: `HU-090` → `HU-091` → `HU-092` → `HU-093` → `HU-094` 
 - Un recordatorio por correo 30 minutos antes del inicio (la anticipación inicial de `RN-REC-01`), programado en la misma transacción que crea el turno (reserva pública y turno manual) y regenerado al reprogramar.
 - Reutiliza la cola de `HU-130`: lease, worker, evidencia por intento y plantilla de marca (`DEC-143`).
 - Un solo recordatorio vigente por turno; coexiste con un aviso de cambio pendiente sin sustituirlo.
-- Mensaje redactado al enviar con el estado vigente: servicio, barbería y fecha y hora locales.
+- Mensaje redactado al enviar con el estado vigente: servicio, negocio y fecha y hora locales.
 
 **Alcance excluido**
 
 - WhatsApp, más de un recordatorio por turno, anticipación configurable y configuración por evento y canal (`RN-REC-05`).
-- Recordatorio de un turno que vuelve a `confirmed` por corrección de estado; avisar al barbero; mostrar el estado del envío; purga de la evidencia (B6).
+- Recordatorio de un turno que vuelve a `confirmed` por corrección de estado; avisar al profesional; mostrar el estado del envío; purga de la evidencia (B6).
 
 **Criterios de aceptación**
 
@@ -2946,7 +2948,7 @@ Orden recomendado: `HU-090` → `HU-091` → `HU-092` → `HU-093` → `HU-094` 
 | `CA-131-05` | El correo se redacta al enviar con la hora vigente. Si el turno ya no está confirmado, cambió de hora desde que se programó o ya empezó, no se envía y queda `skipped` (`not_confirmed`, `superseded`, `past`). |
 | `CA-131-06` | Un recordatorio ya enviado para una hora no se repite para esa misma hora; uno de otra hora no se considera cubierto. |
 | `CA-131-07` | Cada intento deja evidencia sin correo, teléfono ni nombre; los reintentos, el rechazo permanente y el cliente sin correo (`no_email`) se comportan como en `HU-130`. |
-| `CA-131-08` | Con dos barberías reales, ninguna programa ni ve recordatorios de la otra; el worker solo opera mediante funciones `SECURITY DEFINER`. |
+| `CA-131-08` | Con dos negocios reales, ninguno programa ni ve recordatorios del otro; el worker solo opera mediante funciones `SECURITY DEFINER`. |
 
 **Pruebas obligatorias**
 
