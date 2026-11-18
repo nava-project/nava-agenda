@@ -33,7 +33,11 @@ Internet ──443──▶ web (Caddy) ── red "edge" (externa, compartida) 
                   pedidos.nava.wtf                                      (pila aparte)
                   jenkins.nava.wtf ──────────────────────────────────▶ jenkins:8080
                                                                         (pila aparte, DEC-177)
+                  nexos.nava.wtf ── red "nexos-edge" (solo Nexos) ──▶ nexos:7870
+                  (solo /webhooks/whatsapp)                             (pila aparte, #679)
 ```
+
+**Webhook de WhatsApp de Nava Nexos (#679, ADR 027 de `bcaceres19/nava-nexos`).** El sitio `nexos.{$DOMAIN}` solo deja pasar `GET`/`POST /webhooks/whatsapp` hacia `nexos:7870`, con cuerpo de hasta 1 MB; cualquier otra ruta responde 404 en el propio Caddy. Llega por la red externa `nexos-edge`, separada de `edge` para que Pedidos, Jenkins y la landing no alcancen el simulador ni los otros webhooks de Nexos. `deploy.sh` crea esa red si falta. La firma HMAC de Meta la valida Nexos.
 
 **Landing en `nava.wtf` (`DEC-183`, #658).** La app vive en `agenda.nava.wtf`. `nava.wtf` sirve la landing de la familia NAVA y `/privacidad` y `/terminos` desde el repo `bcaceres19/nava` (pila `nava-landing` en `/srv/nava`, alias `nava-landing` en `edge`, jobs `nava/ci` y `nava/deploy`). En `nava.wtf`, las rutas de la app (`/acceso`, `/recuperar-acceso`, `/panel/*`, `/reservar/*`, `/mi-turno/*`) redirigen con 308 a `agenda.nava.wtf` con la misma ruta, y `/api/*` y `/health` siguen llegando al API mientras Odin y el webhook de Meta cambian su URL. En `agenda.nava.wtf`, `/privacidad` y `/terminos` redirigen a `nava.wtf`.
 
@@ -141,6 +145,7 @@ editan en **hPanel → Dominios → nava.wtf → DNS / Servidores de nombres →
 | CNAME | `www` | `nava.wtf` | 300 | Conservar (ya existe; Caddy redirige `www` al dominio sin `www`) |
 | A | `pedidos` | `158.69.232.180` | 300 | Ya existe: Nava · Pedidos, servido por este Caddy (`DEC-176`) |
 | A | `jenkins` | `158.69.232.180` | 300 | Jenkins de la VPS, servido por este Caddy (`DEC-177`) |
+| A | `nexos` | `158.69.232.180` | 300 | Ya existe: webhook de WhatsApp de Nava Nexos (#679) |
 | A | `agenda` | `158.69.232.180` | 300 | **Nava Agenda** (`DEC-183`): la app y su API. `nava.wtf` queda para la landing de la familia NAVA |
 | CAA | `@` | `0 issue "letsencrypt.org"` | 3600 | Opcional: solo Let's Encrypt puede emitir certificados |
 

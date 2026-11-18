@@ -77,6 +77,10 @@ fi
 # si falta y nunca se borra aquí, porque otras pilas pueden estar usándola.
 docker network inspect edge >/dev/null 2>&1 || docker network create edge >/dev/null \
   || fail "no se pudo crear la red edge"
+# Red solo con Nava Nexos (#679): aparte de edge para que los demás proyectos no lleguen a
+# su simulador ni a sus otros webhooks. Misma regla: se crea si falta y no se borra aquí.
+docker network inspect nexos-edge >/dev/null 2>&1 || docker network create nexos-edge >/dev/null \
+  || fail "no se pudo crear la red nexos-edge"
 "${compose[@]}" config -q || fail "compose.yaml no es válido con los entornos actuales"
 
 # --- 1b. Imágenes -----------------------------------------------------------
