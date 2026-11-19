@@ -2896,6 +2896,11 @@ REVOKE UPDATE, DELETE ON TABLE notification_attempt FROM barberia_app;
 -- ===========================================================================
 -- Funciones F-SEG-02, F-OPS-05, F-OPS-06, F-OPS-09. Reglas RN-DAT-01 a
 -- RN-DAT-03, DEC-025.
+--
+-- Implementada en 20261123090000_create_customer_anonymization.sql (DEC-185,
+-- #693) con los nombres de DEC-183, el domicilio, el registro
+-- customer_anonymization_run y un plazo máximo de 24 meses (no 120). Lo que
+-- sigue es la referencia original; la migración es la fuente vigente.
 
 ALTER TABLE barbershop
   ADD COLUMN personal_data_retention_months integer NOT NULL DEFAULT 24,

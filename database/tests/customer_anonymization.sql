@@ -1,7 +1,10 @@
--- Pruebas SQL de la anonimización completa de clientes (issue #6, DEC-054).
--- Cubren DDL-PRI-01, DEC-042 (fecha ancla por última actividad) y DEC-049
--- (matriz completa de anonimización) sobre retention_claim_due_customers y
--- customer_anonymize.
+-- Pruebas SQL de la anonimización completa de clientes (issue #6, DEC-054;
+-- issue #693, DEC-185). Cubren DDL-PRI-01, DEC-042 (fecha ancla por última
+-- actividad), DEC-049 (matriz completa) y DEC-185 (domicilio, reseñas
+-- conservadas, registro de lo anonimizado, solicitud individual y plazo por
+-- negocio) sobre retention_claim_due_customers, customer_anonymize,
+-- customer_anonymize_expired y customer_anonymize_request. Corre en el CI
+-- (tools/ci/checks/database.sh).
 --
 -- Uso:
 --   psql "$DATABASE_TEST_URL" -v ON_ERROR_STOP=1 -f testdata/dos_negocios.sql
@@ -28,7 +31,7 @@
 -- Escenario 1 · Solicitud individual: cobertura completa de DEC-049
 -- ---------------------------------------------------------------------------
 BEGIN;
-SET ROLE agenda_migrator;
+RESET ROLE;  -- superusuario: prepara y verifica los datos, como las demás suites
 
 INSERT INTO customer (id, business_id, full_name, phone, created_at)
 VALUES ('00000000-0000-0000-0000-000000000101',
@@ -98,7 +101,7 @@ BEGIN
 END
 $$;
 
-SET ROLE agenda_migrator;
+RESET ROLE;  -- superusuario: prepara y verifica los datos, como las demás suites
 
 DO $$
 DECLARE
@@ -161,7 +164,7 @@ ROLLBACK;
 -- de p_limit hasta que no queda nada vencido
 -- ---------------------------------------------------------------------------
 BEGIN;
-SET ROLE agenda_migrator;
+RESET ROLE;  -- superusuario: prepara y verifica los datos, como las demás suites
 
 INSERT INTO customer (id, business_id, full_name, created_at) VALUES
   ('00000000-0000-0000-0000-000000000401', '11111111-1111-1111-1111-111111111111', 'Cliente Masivo Uno',   '2020-01-01 00:00:00-05'),
@@ -224,7 +227,7 @@ ROLLBACK;
 -- business_id/customer_id cruzados no hace nada
 -- ---------------------------------------------------------------------------
 BEGIN;
-SET ROLE agenda_migrator;
+RESET ROLE;  -- superusuario: prepara y verifica los datos, como las demás suites
 
 INSERT INTO customer (id, business_id, full_name, created_at) VALUES
   ('00000000-0000-0000-0000-000000000501', '11111111-1111-1111-1111-111111111111', 'Cliente Tenant A', '2020-01-01 00:00:00-05'),
@@ -274,7 +277,7 @@ BEGIN
 END
 $$;
 
-SET ROLE agenda_migrator;
+RESET ROLE;  -- superusuario: prepara y verifica los datos, como las demás suites
 
 DO $$
 DECLARE
@@ -301,7 +304,7 @@ ROLLBACK;
 -- Escenario 4 · Repetición: idempotente, sin doble efecto ni error
 -- ---------------------------------------------------------------------------
 BEGIN;
-SET ROLE agenda_migrator;
+RESET ROLE;  -- superusuario: prepara y verifica los datos, como las demás suites
 
 INSERT INTO customer (id, business_id, full_name, created_at)
 VALUES ('00000000-0000-0000-0000-000000000601',
@@ -327,7 +330,7 @@ BEGIN
 END
 $$;
 
-SET ROLE agenda_migrator;
+RESET ROLE;  -- superusuario: prepara y verifica los datos, como las demás suites
 
 DO $$
 DECLARE
@@ -351,7 +354,7 @@ ROLLBACK;
 -- deja ningún cliente a medio anonimizar
 -- ---------------------------------------------------------------------------
 BEGIN;
-SET ROLE agenda_migrator;
+RESET ROLE;  -- superusuario: prepara y verifica los datos, como las demás suites
 
 INSERT INTO customer (id, business_id, full_name, created_at) VALUES
   ('00000000-0000-0000-0000-000000000701', '11111111-1111-1111-1111-111111111111', 'Cliente Lote Uno',  '2020-01-01 00:00:00-05'),
@@ -387,7 +390,7 @@ $$;
 
 ROLLBACK;
 
-SET ROLE agenda_migrator;
+RESET ROLE;  -- superusuario: prepara y verifica los datos, como las demás suites
 
 DO $$
 DECLARE
@@ -436,7 +439,7 @@ BEGIN
 END
 $$;
 
-SET ROLE agenda_migrator;
+RESET ROLE;  -- superusuario: prepara y verifica los datos, como las demás suites
 
 DO $$
 DECLARE
@@ -472,7 +475,7 @@ COMMIT;
 -- antiguo con actividad reciente NO vence
 -- ---------------------------------------------------------------------------
 BEGIN;
-SET ROLE agenda_migrator;
+RESET ROLE;  -- superusuario: prepara y verifica los datos, como las demás suites
 
 -- Creado hace años, pero con una transición de historial reciente: no debe
 -- vencer, porque la actividad -no la creación- es la fecha ancla.
@@ -582,37 +585,385 @@ ROLLBACK;
 BEGIN;
 SET ROLE agenda_worker;
 
+-- El fallo se señala FUERA del bloque que atrapa la excepción esperada: un
+-- RAISE dentro de él lo atraparía el mismo `WHEN raise_exception` y la prueba
+-- no podría fallar nunca (#693).
 DO $$
 DECLARE
-  v_limit integer;
+  v_limit    integer;
+  v_rejected boolean;
 BEGIN
   FOREACH v_limit IN ARRAY ARRAY[NULL, 0, -1, 201] LOOP
+    v_rejected := false;
     BEGIN
       PERFORM * FROM retention_claim_due_customers(v_limit, now());
-      RAISE EXCEPTION 'Escenario 8: p_limit=% debía rechazarse en retention_claim_due_customers.', v_limit;
     EXCEPTION
-      WHEN raise_exception THEN NULL;  -- Esperado.
+      WHEN raise_exception THEN v_rejected := true;
     END;
+    IF NOT v_rejected THEN
+      RAISE EXCEPTION 'Escenario 8: p_limit=% debía rechazarse en retention_claim_due_customers.', v_limit;
+    END IF;
+
+    v_rejected := false;
+    BEGIN
+      PERFORM customer_anonymize_expired(v_limit, now());
+    EXCEPTION
+      WHEN raise_exception THEN v_rejected := true;
+    END;
+    IF NOT v_rejected THEN
+      RAISE EXCEPTION 'Escenario 8: p_limit=% debía rechazarse en customer_anonymize_expired.', v_limit;
+    END IF;
   END LOOP;
 
+  v_rejected := false;
   BEGIN
     PERFORM * FROM retention_claim_due_customers(10, NULL);
-    RAISE EXCEPTION 'Escenario 8: p_now NULL debía rechazarse en retention_claim_due_customers.';
   EXCEPTION
-    WHEN raise_exception THEN NULL;  -- Esperado.
+    WHEN raise_exception THEN v_rejected := true;
   END;
+  IF NOT v_rejected THEN
+    RAISE EXCEPTION 'Escenario 8: p_now NULL debía rechazarse en retention_claim_due_customers.';
+  END IF;
 
+  v_rejected := false;
   BEGIN
     PERFORM customer_anonymize(NULL, NULL, NULL);
-    RAISE EXCEPTION 'Escenario 8: customer_anonymize con NULL debía rechazarse.';
   EXCEPTION
-    WHEN raise_exception THEN NULL;  -- Esperado.
+    WHEN raise_exception THEN v_rejected := true;
   END;
+  IF NOT v_rejected THEN
+    RAISE EXCEPTION 'Escenario 8: customer_anonymize con NULL debía rechazarse.';
+  END IF;
 END
 $$;
 
 RESET ROLE;
 ROLLBACK;
 \echo 'Escenario 8 OK · p_limit/p_now fuera de rango y argumentos NULL se rechazan en ambas funciones'
+
+-- ---------------------------------------------------------------------------
+-- Escenario 9 · Lote del worker (DEC-185): domicilio anonimizado, reseña
+-- conservada y registro por negocio sin datos personales
+-- ---------------------------------------------------------------------------
+BEGIN;
+RESET ROLE;  -- superusuario: prepara y verifica los datos, como las demás suites
+
+-- A: vencido, con un turno a domicilio atendido, su reseña y un cambio de
+-- dirección en el historial. B: vencido sin turnos. A2: activo (no vence).
+INSERT INTO customer (id, business_id, full_name, phone, email, created_at) VALUES
+  ('00000000-0000-0000-0000-000000000901', '11111111-1111-1111-1111-111111111111',
+   'Cliente Domicilio A', '+573000000901', 'domicilio-a@example.test', '2020-01-01 00:00:00-05'),
+  ('00000000-0000-0000-0000-000000000902', '11111111-1111-1111-1111-111111111111',
+   'Cliente Activo A', '+573000000902', NULL, '2026-08-01 00:00:00-05'),
+  ('00000000-0000-0000-0000-000000000903', '22222222-2222-2222-2222-222222222222',
+   'Cliente Vencido B', '+573000000903', NULL, '2020-01-01 00:00:00-05');
+
+INSERT INTO appointment (
+  id, business_id, professional_id, service_id, customer_id, attendee_name,
+  starts_at, ends_at, origin, status,
+  service_name_snapshot, duration_minutes_snapshot, price_amount_snapshot, price_currency_snapshot,
+  is_home_service, service_address, service_latitude, service_longitude, created_at, resolved_at
+) VALUES (
+  '00000000-0000-0000-0000-000000000911',
+  '11111111-1111-1111-1111-111111111111',
+  'b1a00000-0000-0000-0000-00000000000a',
+  '5e100000-0000-0000-0000-00000000000a',
+  '00000000-0000-0000-0000-000000000901',
+  'Cliente Domicilio A',
+  '2020-01-05 10:00:00-05', '2020-01-05 10:30:00-05', 'manual', 'completed',
+  'Corte de prueba de anonimización A', 30, 20000.00, 'COP',
+  true, 'Calle de prueba 1 # 2-3', 4.533900, -75.681100, '2020-01-02 00:00:00-05',
+  '2020-01-05 10:30:00-05'
+);
+
+INSERT INTO appointment_history (
+  id, business_id, appointment_id, event_type, actor_type, actor_customer_id, occurred_at
+) VALUES (
+  '00000000-0000-0000-0000-000000000921',
+  '11111111-1111-1111-1111-111111111111',
+  '00000000-0000-0000-0000-000000000911',
+  'appointment_created', 'customer', '00000000-0000-0000-0000-000000000901',
+  '2020-01-02 00:00:00-05'
+);
+
+INSERT INTO appointment_history_change (business_id, history_id, field_name, previous_value, new_value)
+VALUES
+  ('11111111-1111-1111-1111-111111111111', '00000000-0000-0000-0000-000000000921',
+   'service_address', NULL, 'Calle de prueba 1 # 2-3'),
+  ('11111111-1111-1111-1111-111111111111', '00000000-0000-0000-0000-000000000921',
+   'service_latitude', NULL, '4.533900');
+
+INSERT INTO professional_review (business_id, professional_id, appointment_id, rating, comment, created_at)
+VALUES ('11111111-1111-1111-1111-111111111111', 'b1a00000-0000-0000-0000-00000000000a',
+        '00000000-0000-0000-0000-000000000911', 5, 'Comentario de prueba conservado',
+        '2020-01-06 00:00:00-05');
+
+SET ROLE agenda_worker;
+
+DO $$
+DECLARE
+  v_now   constant timestamptz := '2026-08-11 00:00:00-05';
+  v_count integer;
+BEGIN
+  v_count := customer_anonymize_expired(50, v_now);
+  IF v_count <> 2 THEN
+    RAISE EXCEPTION 'Escenario 9: el lote debía anonimizar 2 clientes (A y B), anonimizó %.', v_count;
+  END IF;
+
+  -- Repetir no encuentra a nadie ni registra un lote vacío.
+  v_count := customer_anonymize_expired(50, v_now + interval '1 hour');
+  IF v_count <> 0 THEN
+    RAISE EXCEPTION 'Escenario 9: repetir el lote debía anonimizar 0, anonimizó %.', v_count;
+  END IF;
+END
+$$;
+
+RESET ROLE;
+
+DO $$
+DECLARE
+  v_appointment appointment%ROWTYPE;
+  v_review      professional_review%ROWTYPE;
+  v_runs        integer;
+  v_left        integer;
+BEGIN
+  SELECT * INTO v_appointment FROM appointment WHERE id = '00000000-0000-0000-0000-000000000911';
+  IF NOT v_appointment.is_home_service
+     OR v_appointment.service_address IS DISTINCT FROM 'Cliente anonimizado'
+     OR v_appointment.service_latitude IS NOT NULL
+     OR v_appointment.service_longitude IS NOT NULL THEN
+    RAISE EXCEPTION 'Escenario 9: la dirección del domicilio no quedó anonimizada (modalidad conservada).';
+  END IF;
+
+  SELECT count(*) INTO v_left FROM appointment_history_change
+  WHERE history_id = '00000000-0000-0000-0000-000000000921'
+    AND (new_value IS DISTINCT FROM 'Cliente anonimizado' OR previous_value IS NOT NULL);
+  IF v_left <> 0 THEN
+    RAISE EXCEPTION 'Escenario 9: quedaron % cambios de dirección sin redactar en el historial.', v_left;
+  END IF;
+
+  SELECT * INTO v_review FROM professional_review
+  WHERE appointment_id = '00000000-0000-0000-0000-000000000911';
+  IF v_review.rating <> 5 OR v_review.comment IS DISTINCT FROM 'Comentario de prueba conservado' THEN
+    RAISE EXCEPTION 'Escenario 9: la reseña debía conservarse completa (DEC-185).';
+  END IF;
+
+  IF (SELECT anonymized_at FROM customer WHERE id = '00000000-0000-0000-0000-000000000902') IS NOT NULL THEN
+    RAISE EXCEPTION 'Escenario 9: el cliente activo no debía anonimizarse.';
+  END IF;
+
+  SELECT count(*) INTO v_runs FROM customer_anonymization_run;
+  IF v_runs <> 2 THEN
+    RAISE EXCEPTION 'Escenario 9: debía haber una fila de registro por negocio (2), hay %.', v_runs;
+  END IF;
+  IF NOT EXISTS (
+    SELECT 1 FROM customer_anonymization_run
+    WHERE business_id = '11111111-1111-1111-1111-111111111111' AND reason = 'expired'
+      AND customers_anonymized = 1 AND ran_at = '2026-08-11 00:00:00-05'::timestamptz
+  ) OR NOT EXISTS (
+    SELECT 1 FROM customer_anonymization_run
+    WHERE business_id = '22222222-2222-2222-2222-222222222222' AND reason = 'expired'
+      AND customers_anonymized = 1
+  ) THEN
+    RAISE EXCEPTION 'Escenario 9: el registro no tiene negocio, motivo, cantidad o instante esperados.';
+  END IF;
+END
+$$;
+
+ROLLBACK;
+\echo 'Escenario 9 OK · el lote anonimiza el domicilio, conserva la reseña y registra un lote por negocio'
+
+-- ---------------------------------------------------------------------------
+-- Escenario 10 · Solicitud individual del titular (DEC-185): anonimiza aunque
+-- no haya vencido, registra reason = request y solo la ejecuta el operador
+-- ---------------------------------------------------------------------------
+BEGIN;
+RESET ROLE;  -- superusuario: hace de operador
+
+INSERT INTO customer (id, business_id, full_name, phone, created_at)
+VALUES ('00000000-0000-0000-0000-000000001001', '11111111-1111-1111-1111-111111111111',
+        'Cliente Que Pide Borrar', '+573000001001', '2026-08-01 00:00:00-05');
+
+DO $$
+DECLARE
+  v_now constant timestamptz := '2026-08-11 00:00:00-05';
+BEGIN
+  IF NOT customer_anonymize_request('11111111-1111-1111-1111-111111111111',
+                                    '00000000-0000-0000-0000-000000001001', v_now) THEN
+    RAISE EXCEPTION 'Escenario 10: la solicitud debía anonimizar a un cliente no vencido.';
+  END IF;
+  IF customer_anonymize_request('11111111-1111-1111-1111-111111111111',
+                                '00000000-0000-0000-0000-000000001001', v_now) THEN
+    RAISE EXCEPTION 'Escenario 10: repetir la solicitud debía devolver false.';
+  END IF;
+  IF (SELECT full_name FROM customer WHERE id = '00000000-0000-0000-0000-000000001001')
+     <> 'Cliente anonimizado' THEN
+    RAISE EXCEPTION 'Escenario 10: el cliente no quedó anonimizado.';
+  END IF;
+  IF (SELECT count(*) FROM customer_anonymization_run WHERE reason = 'request') <> 1 THEN
+    RAISE EXCEPTION 'Escenario 10: la solicitud debía registrar exactamente una fila reason = request.';
+  END IF;
+END
+$$;
+
+SET ROLE agenda_worker;
+
+DO $$
+DECLARE
+  v_denied boolean := false;
+BEGIN
+  BEGIN
+    PERFORM customer_anonymize_request('11111111-1111-1111-1111-111111111111', gen_random_uuid(), now());
+  EXCEPTION
+    WHEN insufficient_privilege THEN v_denied := true;
+  END;
+  IF NOT v_denied THEN
+    RAISE EXCEPTION 'Escenario 10: agenda_worker pudo ejecutar customer_anonymize_request.';
+  END IF;
+END
+$$;
+
+SET ROLE agenda_app;
+
+DO $$
+DECLARE
+  v_denied boolean := false;
+BEGIN
+  BEGIN
+    PERFORM customer_anonymize_expired(10, now());
+  EXCEPTION
+    WHEN insufficient_privilege THEN v_denied := true;
+  END;
+  IF NOT v_denied THEN
+    RAISE EXCEPTION 'Escenario 10: agenda_app pudo ejecutar customer_anonymize_expired.';
+  END IF;
+
+  v_denied := false;
+  BEGIN
+    PERFORM count(*) FROM customer_anonymization_run;
+  EXCEPTION
+    WHEN insufficient_privilege THEN v_denied := true;
+  END;
+  IF NOT v_denied THEN
+    RAISE EXCEPTION 'Escenario 10: agenda_app pudo leer customer_anonymization_run.';
+  END IF;
+END
+$$;
+
+RESET ROLE;
+ROLLBACK;
+\echo 'Escenario 10 OK · la solicitud individual anonimiza, registra reason = request y es solo del operador'
+
+-- ---------------------------------------------------------------------------
+-- Escenario 11 · Plazo por negocio (DEC-025, DEC-185): 24 meses como máximo y
+-- un plazo menor adelanta el vencimiento solo en ese negocio
+-- ---------------------------------------------------------------------------
+BEGIN;
+RESET ROLE;  -- superusuario
+
+DO $$
+DECLARE
+  v_months   integer;
+  v_rejected boolean;
+BEGIN
+  IF (SELECT personal_data_retention_months FROM business
+      WHERE id = '11111111-1111-1111-1111-111111111111') <> 24 THEN
+    RAISE EXCEPTION 'Escenario 11: el plazo por defecto debía ser 24 meses.';
+  END IF;
+
+  FOREACH v_months IN ARRAY ARRAY[0, 25] LOOP
+    v_rejected := false;
+    BEGIN
+      UPDATE business SET personal_data_retention_months = v_months
+      WHERE id = '11111111-1111-1111-1111-111111111111';
+    EXCEPTION
+      WHEN check_violation THEN v_rejected := true;
+    END;
+    IF NOT v_rejected THEN
+      RAISE EXCEPTION 'Escenario 11: un plazo de % meses debía rechazarse.', v_months;
+    END IF;
+  END LOOP;
+END
+$$;
+
+UPDATE business SET personal_data_retention_months = 6
+WHERE id = '11111111-1111-1111-1111-111111111111';
+
+-- Misma última actividad (hace 7 meses) en los dos negocios.
+INSERT INTO customer (id, business_id, full_name, created_at) VALUES
+  ('00000000-0000-0000-0000-000000001101', '11111111-1111-1111-1111-111111111111',
+   'Cliente Plazo Corto A', '2026-01-11 00:00:00-05'),
+  ('00000000-0000-0000-0000-000000001102', '22222222-2222-2222-2222-222222222222',
+   'Cliente Plazo Normal B', '2026-01-11 00:00:00-05');
+
+SET ROLE agenda_worker;
+
+DO $$
+DECLARE
+  v_ids uuid[];
+BEGIN
+  SELECT array_agg(customer_id) INTO v_ids
+  FROM retention_claim_due_customers(50, '2026-08-11 00:00:00-05'::timestamptz);
+  IF v_ids IS DISTINCT FROM ARRAY['00000000-0000-0000-0000-000000001101'::uuid] THEN
+    RAISE EXCEPTION 'Escenario 11: solo debía vencer el cliente del negocio con plazo de 6 meses (%).', v_ids;
+  END IF;
+END
+$$;
+
+RESET ROLE;
+ROLLBACK;
+\echo 'Escenario 11 OK · el plazo es por negocio, 24 meses por defecto y como máximo'
+
+-- ---------------------------------------------------------------------------
+-- Escenario 12 · appointment_home_service_ck: el marcador solo vale con las
+-- coordenadas nulas, y una dirección real sigue exigiendo coordenadas
+-- ---------------------------------------------------------------------------
+BEGIN;
+RESET ROLE;  -- superusuario
+
+INSERT INTO customer (id, business_id, full_name, created_at)
+VALUES ('00000000-0000-0000-0000-000000001201', '11111111-1111-1111-1111-111111111111',
+        'Cliente Restricción', '2026-08-01 00:00:00-05');
+
+DO $$
+DECLARE
+  v_rejected boolean;
+  v_case     record;
+BEGIN
+  FOR v_case IN
+    SELECT * FROM (VALUES
+      ('Calle real sin coordenadas', NULL::numeric, NULL::numeric),
+      ('Cliente anonimizado',        4.5::numeric,  -75.6::numeric)
+    ) AS c (address, latitude, longitude)
+  LOOP
+    v_rejected := false;
+    BEGIN
+      INSERT INTO appointment (
+        business_id, professional_id, service_id, customer_id, attendee_name,
+        starts_at, ends_at, origin,
+        service_name_snapshot, duration_minutes_snapshot, price_amount_snapshot, price_currency_snapshot,
+        is_home_service, service_address, service_latitude, service_longitude
+      ) VALUES (
+        '11111111-1111-1111-1111-111111111111',
+        'b1a00000-0000-0000-0000-00000000000a',
+        '5e100000-0000-0000-0000-00000000000a',
+        '00000000-0000-0000-0000-000000001201', 'Cliente Restricción',
+        '2026-09-05 10:00:00-05', '2026-09-05 10:30:00-05', 'manual',
+        'Corte de prueba de anonimización A', 30, 20000.00, 'COP',
+        true, v_case.address, v_case.latitude, v_case.longitude
+      );
+    EXCEPTION
+      WHEN check_violation THEN v_rejected := true;
+    END;
+    IF NOT v_rejected THEN
+      RAISE EXCEPTION 'Escenario 12: «%» con coordenadas (%, %) debía rechazarse.',
+        v_case.address, v_case.latitude, v_case.longitude;
+    END IF;
+  END LOOP;
+END
+$$;
+
+ROLLBACK;
+\echo 'Escenario 12 OK · el marcador del domicilio solo vale sin coordenadas'
 
 \echo '=== customer_anonymization · todas las comprobaciones pasaron ==='

@@ -271,6 +271,25 @@ bash /srv/nava-agenda/releases/$(cat /srv/nava-agenda/previous-tag)/deploy/scrip
 (las imágenes se conservan 7 días en el servidor; para una versión más vieja, lanza *Deploy* con
 ese SHA: reconstruye sus imágenes desde el commit).
 
+**Solicitud de eliminación de datos de un cliente** (política de privacidad: respuesta en máximo 15
+días hábiles; `DEC-185`). Primero verifica que quien escribe es el titular. Después busca al cliente
+por su teléfono o correo en el negocio indicado y anonimízalo. La función registra la solicitud en
+`customer_anonymization_run` (sin datos personales) y devuelve `f` si ya estaba anonimizado. La cita,
+el servicio, el estado y el historial se conservan; la reseña también:
+```bash
+$C exec -T -u postgres db psql -U postgres -d nava -v ON_ERROR_STOP=1 <<'SQL'
+SELECT c.id AS customer_id, c.business_id
+  FROM customer c JOIN business b ON b.id = c.business_id
+ WHERE b.public_slug = '<slug>' AND (c.phone = '<+57…>' OR c.email = '<correo>')
+   AND c.anonymized_at IS NULL;
+SELECT customer_anonymize_request('<business_id>', '<customer_id>', now());
+SQL
+```
+No copies a ningún registro ni ticket el teléfono, el correo ni el nombre del titular. Los vencidos
+los anonimiza el worker solo, cada día; para ver lo hecho:
+`SELECT business_id, reason, customers_anonymized, ran_at FROM customer_anonymization_run ORDER BY ran_at DESC LIMIT 20;`
+Los respaldos rotados conservan el dato hasta 30 días más (`DEC-031`), como dice la política.
+
 ### Respaldos
 
 - **Diario** a las 03:00 UTC con `pg_dump` (formato custom), más el definición de roles. Cada

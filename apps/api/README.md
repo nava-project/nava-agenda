@@ -1182,6 +1182,14 @@ la misma cuenta se ignoran.
   códigos legítimos, así que Meta sigue siendo quien valida.
 - El worker purga los datos vencidos cada 5 minutos.
 
+**Anonimización de clientes vencidos (`DEC-185`, #693).** El worker corre el
+paquete `internal/modules/retention` al arrancar y cada 24 horas:
+`customer_anonymize_expired` anonimiza en lotes de 200 a los clientes 24 meses
+después de su última actividad (o el plazo menor de su negocio) y deja una fila
+por negocio en `customer_anonymization_run`. El log solo lleva el conteo
+(`customers_anonymized`). La solicitud individual del titular no pasa por el
+worker: ver `deploy/README.md` §7.
+
 **Probarlo en local.** Meta solo llama a una URL pública HTTPS; en desarrollo
 expón el puerto del API con un túnel (por ejemplo `cloudflared tunnel --url
 http://localhost:8080`) y registra `https://<túnel>/api/v1/public/webhooks/meta/whatsapp`
