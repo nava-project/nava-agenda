@@ -113,7 +113,7 @@ func seedAppointment(t *testing.T, db *database.DB, shop database.BusinessID, wi
 	// prueba ningún caso, así que se reintenta con otro minuto; cualquier otro error falla.
 	const attempts = 8
 	for attempt := 1; ; attempt++ {
-		id, email, err := insertSeedAppointment(t, db, shop, f, withEmail)
+		id, email, err := insertSeedAppointment(t, db, shop, f.professionalID, f.serviceID, withEmail)
 		if err == nil {
 			return id, email
 		}
@@ -123,7 +123,27 @@ func seedAppointment(t *testing.T, db *database.DB, shop database.BusinessID, wi
 	}
 }
 
-func insertSeedAppointment(t *testing.T, db *database.DB, shop database.BusinessID, f shopFixture, withEmail bool) (id, email string, err error) {
+// seedMovableAppointment es seedAppointment con un profesional propio, para las pruebas
+// que mueven la cita a una hora fija: con el profesional compartido, la hora nueva podía
+// caer encima de otra cita (23P01) y la prueba fallaba al azar (#695).
+func seedMovableAppointment(t *testing.T, db *database.DB, shop database.BusinessID) string {
+	t.Helper()
+	f := sharedFixture(t, db, shop)
+	var professionalID string
+	if err := db.InTenantTx(context.Background(), shop, func(ctx context.Context, q database.Queries) error {
+		return q.QueryRow(ctx, `INSERT INTO professional (business_id, full_name) VALUES ($1, $2) RETURNING id::text`,
+			string(shop), "Barbero aviso "+hex8(t)).Scan(&professionalID)
+	}); err != nil {
+		t.Fatalf("seedMovableAppointment: %v", err)
+	}
+	id, _, err := insertSeedAppointment(t, db, shop, professionalID, f.serviceID, true)
+	if err != nil {
+		t.Fatalf("seedMovableAppointment: %v", err)
+	}
+	return id
+}
+
+func insertSeedAppointment(t *testing.T, db *database.DB, shop database.BusinessID, professionalID, serviceID string, withEmail bool) (id, email string, err error) {
 	t.Helper()
 	b := make([]byte, 3)
 	if _, err := rand.Read(b); err != nil {
@@ -151,7 +171,7 @@ func insertSeedAppointment(t *testing.T, db *database.DB, shop database.Business
 			 VALUES ($1, $2, $3, $4, 'Ana Pérez', $5::timestamptz, $5::timestamptz + interval '40 minutes',
 			         'confirmed', 'manual', 'Corte clásico', 40, 30000, 'COP')
 			 RETURNING id::text`,
-			string(shop), f.professionalID, f.serviceID, customerID, start).Scan(&id)
+			string(shop), professionalID, serviceID, customerID, start).Scan(&id)
 	})
 	return id, email, err
 }
@@ -624,7 +644,7 @@ func TestReminder_IsNotScheduledWhenThereIsNothingToRemind(t *testing.T) {
 
 func TestReminder_MovingTheAppointmentRegeneratesOneAndTheOldHourIsNeverSent(t *testing.T) {
 	app, worker := appDB(t), noticepostgres.NewWorkerRepository(workerDB(t))
-	id, _ := seedAppointment(t, app, shopA, true)
+	id := seedMovableAppointment(t, app, shopA)
 	enqueueReminder(t, app, shopA, id)
 	oldRun, _ := reminderRunAt(t, app, shopA, id)
 	old := notices(t, app, shopA, id)[0]
@@ -745,10 +765,10 @@ func TestReminder_UsesTheLeadChosenByTheBusiness(t *testing.T) {
 }
 
 // nearAppointment crea un turno confirmado que empieza dentro de `in` y lo
-// cancela al terminar la prueba, para no ocupar al profesional compartido.
+// cancela al terminar la prueba.
 func nearAppointment(t *testing.T, db *database.DB, shop database.BusinessID, in time.Duration) string {
 	t.Helper()
-	id, _ := seedAppointment(t, db, shop, true)
+	id := seedMovableAppointment(t, db, shop)
 	setStart(t, db, shop, id, time.Now().UTC().Add(in), "confirmed")
 	t.Cleanup(func() { setStart(t, db, shop, id, time.Time{}, "cancelled_by_customer") })
 	return id
@@ -866,7 +886,7 @@ func TestWhatsAppReminder_IsScheduledOnlyWithAPhoneAndCoexistsWithTheOthers(t *t
 		t.Fatal("un cliente sin teléfono no tiene recordatorio por WhatsApp")
 	}
 
-	id, _ := seedAppointment(t, app, shopA, true)
+	id := seedMovableAppointment(t, app, shopA)
 	givePhone(t, app, shopA, id)
 	start := startsAt(t, app, shopA, id)
 	enqueueReminder(t, app, shopA, id)
