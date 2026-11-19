@@ -5,7 +5,7 @@
 // válido; `LoginPage.vue` decide qué ocurre después (llamar al API,
 // navegar, mostrar un resultado del servidor).
 import { computed, nextTick, ref } from 'vue'
-import { BaseAlert, BaseButton, BaseInput } from '@/shared/ui'
+import { BaseButton, BaseInput } from '@/shared/ui'
 import {
   hasLoginFieldErrors,
   validateLoginForm,
@@ -35,7 +35,7 @@ const emit = defineEmits<{
 
 const fieldErrors = ref<LoginFieldErrors>({})
 const attemptedSubmit = ref(false)
-const summaryRef = ref<{ focus: () => void } | null>(null)
+const formRef = ref<HTMLFormElement | null>(null)
 
 // Solo se muestran errores de campo tras el primer intento de envío: no se
 // regaña al profesional mientras todavía está escribiendo por primera vez.
@@ -44,9 +44,6 @@ const emailError = computed(() => (showFieldErrors.value ? fieldErrors.value.ema
 const passwordError = computed(() =>
   showFieldErrors.value ? fieldErrors.value.password : undefined,
 )
-
-const errorCount = computed(() => Object.keys(fieldErrors.value).length)
-const showSummary = computed(() => showFieldErrors.value && errorCount.value > 1)
 
 // Revalida en vivo, tras un intento fallido, en respuesta a la escritura
 // real del profesional (eventos de entrada de BaseInput), NUNCA a un cambio
@@ -79,13 +76,11 @@ const onSubmit = async () => {
   attemptedSubmit.value = true
 
   if (hasLoginFieldErrors(errors)) {
-    // Foco al resumen cuando hay más de un error (CA-010-05, estándar
-    // visual §16); con un único error el foco nativo del campo inválido
-    // ya es suficiente y un resumen de un solo ítem sería ruido.
-    if (errorCount.value > 1) {
-      await nextTick()
-      summaryRef.value?.focus?.()
-    }
+    // v2 (DEC-188): en un formulario de dos campos cada error ya va junto a
+    // su campo; un resumen que lo repita es ruido. El foco va al primer campo
+    // inválido (CA-010-05: orden y foco coherentes con teclado).
+    await nextTick()
+    formRef.value?.querySelector<HTMLElement>('[aria-invalid="true"]')?.focus()
     return
   }
 
@@ -94,7 +89,7 @@ const onSubmit = async () => {
 </script>
 
 <template>
-  <form class="login-form au-form" novalidate @submit.prevent="onSubmit">
+  <form ref="formRef" class="login-form au-form" novalidate @submit.prevent="onSubmit">
     <BaseInput
       :model-value="email"
       type="email"
@@ -137,36 +132,11 @@ const onSubmit = async () => {
     <p class="login-form__recovery">
       <RouterLink class="au-link" :to="recoveryHref">¿Olvidaste tu contraseña?</RouterLink>
     </p>
-
-    <!-- Ancla de alertas (issue #213, auth-eventos/README.md): la alerta
-         global va después del botón y del enlace de recuperación, nunca
-         entre el título y los campos. -->
-    <BaseAlert
-      v-if="showSummary"
-      ref="summaryRef"
-      variant="danger"
-      title="Revisa estos campos"
-      role="alert"
-      tabindex="-1"
-    >
-      <!-- Desviación conocida (trabajo requerido §7): el mockup muestra un
-           resumen que explica qué falta; el código sigue enumerando cada
-           error de campo tal como ya se comporta hoy. -->
-      <ul class="login-form__summary-list">
-        <li v-if="fieldErrors.email">{{ fieldErrors.email }}</li>
-        <li v-if="fieldErrors.password">{{ fieldErrors.password }}</li>
-      </ul>
-    </BaseAlert>
   </form>
 </template>
 
 <style scoped>
 /* La forma de campos, botón y enlace la pone authV2.css (DEC-188). */
-.login-form__summary-list {
-  margin: 0;
-  padding-left: var(--space-5);
-}
-
 .login-form__recovery {
   margin: calc(-1 * var(--space-2)) 0 0;
   text-align: center;
