@@ -771,6 +771,9 @@ describe('SchedulesPage · tablero semanal', () => {
     })
 
     it('sizes the loading header for the name, not the picker, from the first frame (CLS)', async () => {
+      // La carga queda pendiente a propósito: el test mira el primer cuadro y
+      // así no hay una respuesta vacía que llegue después del desmontaje.
+      fetchProfessionalSummariesMock.mockReturnValue(new Promise(() => {}))
       setBrand({ ...DEFAULT_BRAND, panelProfile: 'solo' })
       const solo = mountPage()
       // Sin esperar a la API: el perfil se lee de forma síncrona del brand.
