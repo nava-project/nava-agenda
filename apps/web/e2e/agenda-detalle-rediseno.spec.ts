@@ -143,7 +143,7 @@ for (const [label, status] of [
         await expect(page.getByText('Turno reprogramado')).toBeVisible()
         // La franja es decorativa; la hora completa sigue dicha en la fila «Hora» (solo lector de pantalla).
         await expect(page.locator('.appointment-detail-page__span-date')).toContainText(
-          'Zona America/Bogota',
+          'Hora de Colombia',
         )
         await expect(page.getByRole('button', { name: 'Corregir resultado' })).toHaveCount(
           status === 'confirmed' ? 0 : 1,

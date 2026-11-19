@@ -579,6 +579,23 @@ const timelineTicks = computed(() => {
 
 const timelineLabeledTicks = computed(() => timelineTicks.value.filter((t) => t.labeled))
 
+// Una etiqueta del eje que la vista corta por un borde («4 p.») se oculta hasta
+// que cabe entera (revisión del 4a). Se mide con el desplazamiento del carril.
+const timelineScrollLeft = ref(0)
+function onTimelineScroll(event: Event) {
+  timelineScrollLeft.value = (event.currentTarget as HTMLElement).scrollLeft
+}
+function isTickClipped(tick: { minute: number; align: 'start' | 'center' | 'end' }): boolean {
+  const bounds = timelineBounds.value
+  const view = timelineViewportWidth.value
+  if (!bounds || view === 0 || tick.align !== 'center') return false
+  const lane = timelineLaneWidthPx.value
+  const x = ((tick.minute - bounds.start) / (bounds.end - bounds.start)) * lane
+  const half = TIMELINE_TICK_LABEL_PX / 2
+  const left = timelineScrollLeft.value
+  return x - half < left || x + half > left + view
+}
+
 // Guías de media hora (issue #189): tenues, sin etiqueta — solo marcan el
 // carril entre cada par de horas para que una ficha corta se pueda leer
 // contra el eje sin contar píxeles. Con zoom >1 el eje ya etiqueta cada
@@ -1124,6 +1141,7 @@ const dayChangeMarkerPercent = computed(() => {
 
               <div
                 ref="timelineViewport"
+                @scroll.passive="onTimelineScroll"
                 class="daily-agenda-page__timeline"
                 role="region"
                 tabindex="0"
@@ -1155,7 +1173,13 @@ const dayChangeMarkerPercent = computed(() => {
                       :class="`daily-agenda-page__timeline-tick-wrap--${tick.align}`"
                       :style="{ left: timelinePercent(tick.minute) }"
                     >
-                      <span class="daily-agenda-page__timeline-tick-label">{{ tick.label }}</span>
+                      <span
+                        class="daily-agenda-page__timeline-tick-label"
+                        :class="{
+                          'daily-agenda-page__timeline-tick-label--clipped': isTickClipped(tick),
+                        }"
+                        >{{ tick.label }}</span
+                      >
                     </span>
                   </div>
 
@@ -2095,6 +2119,10 @@ const dayChangeMarkerPercent = computed(() => {
   .daily-agenda-page__timeline-tick-wrap {
     position: absolute;
     top: 0;
+  }
+
+  .daily-agenda-page__timeline-tick-label--clipped {
+    visibility: hidden;
   }
 
   .daily-agenda-page__timeline-tick-label {

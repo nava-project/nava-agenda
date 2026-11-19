@@ -241,7 +241,9 @@ describe('AppointmentDetailPage', () => {
     expect(wrapper.text()).toContain('Juan Pérez')
     expect(wrapper.text()).toContain('Ana Gómez')
     expect(wrapper.text()).toContain('Corte clásico')
-    expect(wrapper.text()).toContain('20000.00')
+    // El precio como en la reserva (es-CO, sin decimales para COP).
+    expect(wrapper.text()).toMatch(/Corte clásico · 30 min · \$\s20\.000/)
+    expect(wrapper.text()).not.toContain('20000.00')
     expect(wrapper.text()).toContain('+573001234567')
     expect(wrapper.text()).toContain('Prefiere silla junto a la ventana')
     expect(fetchAppointmentDetailMock).toHaveBeenCalledWith('a-1')
@@ -784,6 +786,33 @@ describe('AppointmentDetailPage', () => {
     startsAt: '2999-01-01T10:00:00Z',
     endsAt: '2999-01-01T10:30:00Z',
   }
+
+  it('reads a confirmed appointment by the hour, like the daily agenda (DEC-188)', async () => {
+    const status = async (detail: typeof readyDetail) => {
+      fetchAppointmentDetailMock.mockResolvedValue({ kind: 'success', detail })
+      const { wrapper } = await mountPage()
+      const root = wrapper.get('.appointment-detail-page')
+      return {
+        text: wrapper.get('.appointment-detail-page__status').text(),
+        classes: root.classes(),
+      }
+    }
+    const past = await status(readyDetail)
+    expect(past.text).toBe('Por registrar')
+    expect(past.classes).toContain('appointment-detail-page--to-record')
+
+    const now = Date.now()
+    const ongoing = await status({
+      ...readyDetail,
+      startsAt: new Date(now - 10 * 60_000).toISOString(),
+      endsAt: new Date(now + 20 * 60_000).toISOString(),
+    })
+    expect(ongoing.text).toBe('En curso')
+    expect(ongoing.classes).toContain('appointment-detail-page--current')
+
+    const upcoming = await status(futureDetail)
+    expect(upcoming.text).toBe('Confirmado')
+  })
 
   it('shows "Marcar como atendido" and "Marcar que no asistió" only once startsAt has passed', async () => {
     fetchAppointmentDetailMock.mockResolvedValue({ kind: 'success', detail: readyDetail })

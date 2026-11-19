@@ -44,6 +44,7 @@ import { newIdempotencyKey } from '../model/idempotencyKey'
 import type { ProfessionalSummary, ServiceSummary } from '../model/appointment'
 import type { CreatedManualAppointment } from '../model/appointmentOutcome'
 import NewAppointmentSkeleton from '../components/NewAppointmentSkeleton.vue'
+import { timezoneLabel } from '@/shared/time/timezoneName'
 import {
   buildStartsAt,
   validateAttendeeName,
@@ -81,6 +82,17 @@ const selectedServiceId = ref('')
 
 const attendeeName = ref('')
 const customerFullName = ref('')
+// Casi siempre la persona atendida es quien reserva (revisión de #716): el
+// nombre del cliente copia al atendido hasta que se edita a mano, para no
+// escribir el mismo nombre dos veces en cada turno.
+const customerNameEdited = ref(false)
+watch(attendeeName, (name) => {
+  if (!customerNameEdited.value) customerFullName.value = name
+})
+function onCustomerNameInput(value: string | number) {
+  customerFullName.value = String(value)
+  customerNameEdited.value = customerFullName.value !== attendeeName.value
+}
 // El teléfono se escribe con el prefijo en su propia casilla (`PhoneField`);
 // `customerPhone` es el E.164 compuesto que se valida y se envía (vacío si no
 // se escribió número: el teléfono es opcional).
@@ -312,6 +324,7 @@ function onStartNewAppointment() {
   created.value = null
   attendeeName.value = ''
   customerFullName.value = ''
+  customerNameEdited.value = false
   customerPhoneCountry.value = DEFAULT_PHONE_COUNTRY
   customerPhoneNational.value = ''
   customerEmail.value = ''
@@ -339,7 +352,7 @@ function onProfessionalSelect(professionalId: string) {
     <header class="new-appointment-page__header">
       <h1 id="new-appointment-title" class="new-appointment-page__title">Nuevo turno</h1>
       <p v-if="businessTimezone" class="new-appointment-page__timezone">
-        Horas en la zona horaria {{ v.ofTheBusiness }}: {{ businessTimezone }}
+        {{ timezoneLabel(businessTimezone) }}, la {{ v.ofTheBusiness }}
       </p>
     </header>
 
@@ -599,16 +612,20 @@ function onProfessionalSelect(professionalId: string) {
                     v-model="attendeeName"
                     type="text"
                     label="Persona atendida"
-                    placeholder="Persona atendida"
                     required
                     :class="{ 'new-appointment-page__input--filled': !!attendeeName }"
                     :error="attempted ? fieldErrors.attendeeName : undefined"
                   />
                   <BaseInput
-                    v-model="customerFullName"
+                    :model-value="customerFullName"
                     type="text"
                     label="Nombre del cliente"
-                    placeholder="Nombre del cliente"
+                    :hint="
+                      customerNameEdited
+                        ? undefined
+                        : 'Es la misma persona; cámbialo si reservó otra.'
+                    "
+                    @update:model-value="onCustomerNameInput"
                     required
                     :class="{ 'new-appointment-page__input--filled': !!customerFullName }"
                     :error="attempted ? fieldErrors.customerFullName : undefined"
@@ -627,7 +644,6 @@ function onProfessionalSelect(professionalId: string) {
                     v-model="customerEmail"
                     type="email"
                     label="Correo (opcional)"
-                    placeholder="Correo (opcional)"
                     :class="{ 'new-appointment-page__input--filled': !!customerEmail }"
                     :error="attempted ? fieldErrors.customerEmail : undefined"
                   />
@@ -944,7 +960,7 @@ function onProfessionalSelect(professionalId: string) {
 
 .new-appointment-page__title {
   margin: 0;
-  font-family: var(--font-display);
+  font-family: var(--font-sans);
   font-size: 32px;
   line-height: 1.05;
   font-weight: var(--font-weight-h1);
@@ -1042,7 +1058,7 @@ function onProfessionalSelect(professionalId: string) {
 }
 
 .new-appointment-page__section:not(:last-child)::after {
-  background-color: var(--color-brand-accent-surface);
+  background-color: var(--color-text-secondary);
   transform: scaleY(0);
   transform-origin: top;
   transition: transform 520ms cubic-bezier(0.2, 0.7, 0.2, 1);
@@ -1068,26 +1084,25 @@ function onProfessionalSelect(professionalId: string) {
   height: var(--step-size);
   grid-column: 1;
   grid-row: 1;
-  border: var(--border-width-normal) solid
-    color-mix(in srgb, var(--color-brand-accent-surface) 60%, transparent);
+  border: var(--border-width-normal) solid var(--color-border-control);
   border-radius: 50%;
-  font-family: var(--font-display);
+  font-family: var(--font-sans);
   font-size: var(--font-size-body);
   line-height: 1;
-  color: var(--color-brand-accent-surface);
-  background-color: var(--color-surface-strong);
+  color: var(--color-text-primary);
+  background-color: var(--color-surface);
   transition:
     background-color 260ms ease,
     border-color 260ms ease,
     color 260ms ease,
     box-shadow 260ms ease;
+  font-weight: 600;
 }
 
 .new-appointment-page__section--done .new-appointment-page__section-number {
-  border-color: var(--color-brand-accent-surface);
-  background-color: var(--color-brand-accent-surface);
-  color: var(--color-brand-accent-text);
-  box-shadow: 0 0 0 4px color-mix(in srgb, var(--color-brand-accent-surface) 18%, transparent);
+  border-color: var(--color-text-primary);
+  background-color: var(--color-text-primary);
+  color: var(--color-surface);
 }
 
 .new-appointment-page__section-check {
@@ -1112,10 +1127,10 @@ function onProfessionalSelect(professionalId: string) {
 
 .new-appointment-page__section-title {
   margin: 0;
-  font-family: var(--font-display);
+  font-family: var(--font-sans);
   font-size: var(--font-size-h3);
   line-height: 1.15;
-  font-weight: 400;
+  font-weight: 600;
   color: var(--color-on-strong);
 }
 
@@ -1206,12 +1221,10 @@ function onProfessionalSelect(professionalId: string) {
 
 .new-appointment-page__label {
   font-family: var(--font-sans);
-  font-size: var(--font-size-caption);
-  font-weight: 600;
-  line-height: 14px;
-  letter-spacing: 0.14em;
-  text-transform: uppercase;
-  color: var(--color-brand-accent-surface);
+  font-size: 13px;
+  font-weight: 500;
+  line-height: 16px;
+  color: var(--color-text-secondary);
 }
 
 /* El campo reglado sobre tinta se resuelve redefiniendo los tokens que
@@ -1224,12 +1237,13 @@ function onProfessionalSelect(professionalId: string) {
   --input-padding-x: 13px;
   --input-font-size: var(--font-size-body);
   --input-line-height: 1.3;
-  --input-bg: color-mix(in srgb, var(--color-on-strong) 4%, transparent);
-  --input-border-color: color-mix(in srgb, var(--color-on-strong) 12%, transparent);
-  --input-border-base-color: color-mix(in srgb, var(--color-on-strong) 30%, transparent);
+  --input-bg: var(--color-surface);
+  --input-border-color: var(--color-border-control);
+  --input-border-base-color: var(--color-border-control);
   --input-focus-ring: 0 0 0 2px var(--color-surface-strong), 0 0 0 4px var(--color-focus);
 
   color: var(--color-on-strong);
+  --input-radius: var(--radius-md);
 }
 
 .new-appointment-page :deep(.base-input__wrapper) {
@@ -1240,24 +1254,36 @@ function onProfessionalSelect(professionalId: string) {
    reglado de esta página: antes iba en tono papel y el prefijo se veía como
    una casilla blanca sobre la tinta (issue #575). */
 .new-appointment-page :deep(.phone-field) {
-  --pf-row-bg: color-mix(in srgb, var(--color-on-strong) 4%, transparent);
-  --pf-row-bg-hover: color-mix(in srgb, var(--color-on-strong) 6%, transparent);
-  --pf-row-bg-focus: color-mix(in srgb, var(--color-on-strong) 6%, transparent);
-  --pf-line-strong: color-mix(in srgb, var(--color-on-strong) 12%, transparent);
-  --pf-row-base: color-mix(in srgb, var(--color-on-strong) 30%, transparent);
+  --pf-row-bg: var(--color-surface);
+  --pf-row-bg-hover: var(--color-surface);
+  --pf-row-bg-focus: var(--color-surface);
+  --pf-line-strong: var(--color-border-control);
+  --pf-row-base: var(--color-border-control);
   --pf-text: var(--color-on-strong);
   --pf-muted: var(--color-on-strong-muted);
   --pf-ring-gap: var(--color-surface-strong);
 }
 
 .new-appointment-page :deep(.new-appointment-page__input--filled .phone-field__row) {
-  border-bottom-color: var(--color-brand-accent-surface);
+  border-bottom-color: var(--color-border-control);
+}
+
+.new-appointment-page :deep(.phone-field__label) {
+  font-size: 13px;
+  font-weight: 500;
+  line-height: 16px;
+  letter-spacing: normal;
+  text-transform: none;
+  color: var(--color-text-secondary);
 }
 
 .new-appointment-page :deep(.base-input__label) {
-  font-size: var(--font-size-caption);
-  line-height: 14px;
-  letter-spacing: 0.14em;
+  font-size: 13px;
+  line-height: 16px;
+  font-weight: 500;
+  text-transform: none;
+  color: var(--color-text-secondary);
+  letter-spacing: normal;
 }
 
 /* Asterisco de obligatorio en latón, nunca en rojo: el rojo se reserva para
@@ -1267,8 +1293,8 @@ function onProfessionalSelect(professionalId: string) {
    suelto, y el atlas lo pega al rótulo ("PERSONA ATENDIDA*"). */
 .new-appointment-page :deep(.base-input__required),
 .new-appointment-page__required {
-  margin-left: -5px;
-  color: var(--color-brand-accent-surface);
+  margin-left: -2px;
+  color: var(--color-text-secondary);
 }
 
 .new-appointment-page :deep(.base-input::placeholder) {
@@ -1277,7 +1303,7 @@ function onProfessionalSelect(professionalId: string) {
 }
 
 .new-appointment-page :deep(.base-input:hover:not(:disabled):not(.base-input--invalid)) {
-  border-color: color-mix(in srgb, var(--color-on-strong) 26%, transparent);
+  border-color: var(--color-text-secondary);
 }
 
 /* El latón del filete inferior marca el campo YA RESUELTO; uno vacío lleva
@@ -1285,8 +1311,8 @@ function onProfessionalSelect(professionalId: string) {
    un muestrario de oro y ya no distinguían lo hecho de lo pendiente (compara
    los eventos 04, 05 y 08 del atlas). */
 .new-appointment-page :deep(.new-appointment-page__input--filled .base-input) {
-  background-color: color-mix(in srgb, var(--color-on-strong) 6%, transparent);
-  border-bottom-color: var(--color-brand-accent-surface);
+  background-color: var(--color-surface);
+  border-bottom-color: var(--color-border-control);
 }
 
 .new-appointment-page :deep(.base-input:disabled),
@@ -1299,9 +1325,8 @@ function onProfessionalSelect(professionalId: string) {
 }
 
 .new-appointment-page :deep(.base-input--invalid) {
-  background-color: color-mix(in srgb, var(--color-danger-on-strong) 7%, transparent);
-  border-color: var(--input-border-color);
-  border-bottom-color: var(--color-danger-on-strong);
+  background-color: var(--color-surface);
+  border-color: var(--color-danger-on-strong);
 }
 
 .new-appointment-page :deep(.base-input__error) {
@@ -1334,12 +1359,9 @@ function onProfessionalSelect(professionalId: string) {
   font-size: var(--font-size-body);
   line-height: 1.3;
   color: var(--color-on-strong);
-  background-color: color-mix(in srgb, var(--color-on-strong) 4%, transparent);
-  border: var(--border-width-normal) solid
-    color-mix(in srgb, var(--color-on-strong) 12%, transparent);
-  border-bottom: var(--border-width-emphasis) solid
-    color-mix(in srgb, var(--color-on-strong) 30%, transparent);
-  border-radius: 2px;
+  background-color: var(--color-surface);
+  border: var(--border-width-normal) solid var(--color-border-control);
+  border-radius: var(--radius-md);
   outline: none;
   appearance: none;
 }
@@ -1368,15 +1390,14 @@ function onProfessionalSelect(professionalId: string) {
   right: 14px;
   width: 7px;
   height: 7px;
-  border-right: var(--border-width-normal) solid var(--color-brand-accent-surface);
-  border-bottom: var(--border-width-normal) solid var(--color-brand-accent-surface);
+  border-right: var(--border-width-normal) solid var(--color-text-secondary);
+  border-bottom: var(--border-width-normal) solid var(--color-text-secondary);
   transform: translateY(-70%) rotate(45deg);
   pointer-events: none;
 }
 
 .new-appointment-page__field--filled .new-appointment-page__select {
-  background-color: color-mix(in srgb, var(--color-on-strong) 6%, transparent);
-  border-bottom-color: var(--color-brand-accent-surface);
+  background-color: var(--color-surface);
 }
 
 /* Deshabilitado (servicio sin profesional elegido o cargando): se atenúa y pierde
@@ -1387,13 +1408,12 @@ function onProfessionalSelect(professionalId: string) {
 }
 
 .new-appointment-page__field--off .new-appointment-page__select {
-  border-bottom-color: color-mix(in srgb, var(--color-on-strong) 20%, transparent);
 }
 
 .new-appointment-page__field--error .new-appointment-page__select,
 .new-appointment-page__field--error .new-appointment-page__textarea {
-  background-color: color-mix(in srgb, var(--color-danger-on-strong) 7%, transparent);
-  border-bottom-color: var(--color-danger-on-strong);
+  background-color: var(--color-surface);
+  border-color: var(--color-danger-on-strong);
 }
 
 /* Selector de profesional (ProfessionalSelect, con monograma): misma altura y piel que
@@ -1405,19 +1425,20 @@ function onProfessionalSelect(professionalId: string) {
   padding: 0 13px;
   gap: 10px;
   font-size: var(--font-size-body);
-  background-color: color-mix(in srgb, var(--color-on-strong) 4%, transparent);
-  border-color: color-mix(in srgb, var(--color-on-strong) 12%, transparent);
-  border-bottom-color: color-mix(in srgb, var(--color-on-strong) 30%, transparent);
+  background-color: var(--color-surface);
+  border-color: var(--color-border-control);
+  border-bottom-color: var(--color-border-control);
+  border-radius: var(--radius-md);
 }
 
 .new-appointment-page__field--filled :deep(.professional-select__trigger) {
-  background-color: color-mix(in srgb, var(--color-on-strong) 6%, transparent);
-  border-bottom-color: var(--color-brand-accent-surface);
+  background-color: var(--color-surface);
+  border-bottom-color: var(--color-border-control);
 }
 
 .new-appointment-page__field--error :deep(.professional-select__trigger) {
-  background-color: color-mix(in srgb, var(--color-danger-on-strong) 7%, transparent);
-  border-bottom-color: var(--color-danger-on-strong);
+  background-color: var(--color-surface);
+  border-color: var(--color-danger-on-strong);
 }
 
 /* Sin profesional elegido el disparador dibuja un cuadrado vacío del tamaño del
@@ -1438,12 +1459,9 @@ function onProfessionalSelect(professionalId: string) {
   font-size: var(--font-size-body);
   line-height: 1.3;
   color: var(--color-on-strong);
-  background-color: color-mix(in srgb, var(--color-on-strong) 4%, transparent);
-  border: var(--border-width-normal) solid
-    color-mix(in srgb, var(--color-on-strong) 12%, transparent);
-  border-bottom: var(--border-width-emphasis) solid
-    color-mix(in srgb, var(--color-on-strong) 30%, transparent);
-  border-radius: 2px;
+  background-color: var(--color-surface);
+  border: var(--border-width-normal) solid var(--color-border-control);
+  border-radius: var(--radius-md);
   outline: none;
   overflow-y: hidden;
   resize: none;
@@ -1457,8 +1475,7 @@ function onProfessionalSelect(professionalId: string) {
 }
 
 .new-appointment-page__field--filled .new-appointment-page__textarea {
-  background-color: color-mix(in srgb, var(--color-on-strong) 6%, transparent);
-  border-bottom-color: var(--color-brand-accent-surface);
+  background-color: var(--color-surface);
 }
 
 .new-appointment-page__field-foot {
@@ -1497,9 +1514,7 @@ function onProfessionalSelect(professionalId: string) {
 
 .new-appointment-page__note--loading {
   font-weight: 600;
-  letter-spacing: 0.12em;
-  text-transform: uppercase;
-  color: var(--color-brand-accent-surface);
+  color: var(--color-text-secondary);
 }
 
 .new-appointment-page__note--warning {
@@ -1514,9 +1529,9 @@ function onProfessionalSelect(professionalId: string) {
   width: 13px;
   height: 13px;
   flex-shrink: 0;
-  border: 1.5px solid color-mix(in srgb, var(--color-brand-accent-surface) 22%, transparent);
-  border-top-color: var(--color-brand-accent-surface);
-  border-right-color: var(--color-brand-accent-surface);
+  border: 1.5px solid var(--color-border-control);
+  border-top-color: var(--color-text-secondary);
+  border-right-color: var(--color-text-secondary);
   border-radius: 50%;
   transform: rotate(-38deg);
 }
@@ -1535,8 +1550,7 @@ function onProfessionalSelect(professionalId: string) {
   background-color: var(--ticket-bg);
   border: var(--border-width-normal) solid
     color-mix(in srgb, var(--color-on-strong) 12%, transparent);
-  border-top: 3px solid var(--color-brand-accent-surface);
-  border-radius: 4px;
+  border-radius: 10px;
   box-shadow: 0 18px 40px -28px rgb(0 0 0 / 0.55);
 }
 
@@ -1550,12 +1564,10 @@ function onProfessionalSelect(professionalId: string) {
 .new-appointment-page__resumen-title {
   margin: 0;
   font-family: var(--font-sans);
-  font-size: var(--font-size-caption);
-  font-weight: 600;
-  line-height: 14px;
-  letter-spacing: 0.16em;
-  text-transform: uppercase;
-  color: var(--color-brand-accent-surface);
+  font-size: 13px;
+  font-weight: 500;
+  line-height: 16px;
+  color: var(--color-text-secondary);
 }
 
 .new-appointment-page__resumen-progress {
@@ -1574,7 +1586,7 @@ function onProfessionalSelect(professionalId: string) {
 }
 
 .new-appointment-page__resumen-time {
-  font-family: var(--font-display);
+  font-family: var(--font-sans);
   font-size: 44px;
   line-height: 1;
   color: var(--color-on-strong);
@@ -1646,12 +1658,10 @@ function onProfessionalSelect(professionalId: string) {
 
 .new-appointment-page__resumen-label {
   font-family: var(--font-sans);
-  font-size: var(--font-size-caption);
-  font-weight: 600;
-  line-height: 14px;
-  letter-spacing: 0.14em;
-  text-transform: uppercase;
-  color: var(--color-on-strong-muted);
+  font-size: 13px;
+  font-weight: 500;
+  line-height: 16px;
+  color: var(--color-text-secondary);
 }
 
 .new-appointment-page__resumen-value {
@@ -1786,7 +1796,7 @@ function onProfessionalSelect(professionalId: string) {
    «Profesionales» en el evento 04 del atlas de /panel. */
 .new-appointment-page__dest {
   font-weight: 600;
-  color: var(--color-brand-accent-surface);
+  color: var(--color-text-primary);
 }
 
 /* PageState fija su color de marca por estilo en línea, calibrado para los
@@ -1837,8 +1847,8 @@ function onProfessionalSelect(professionalId: string) {
   text-align: left;
   color: var(--color-text-primary);
   background-color: var(--color-surface-muted);
-  border-left: 3px solid var(--color-accent-brass);
-  border-radius: 2px;
+  border-left: 4px solid var(--color-appt-confirmed);
+  border-radius: 10px;
 }
 
 /* ------------------------------------------------------------- movimiento */

@@ -11,6 +11,7 @@
 // propósito: T3 o cualquier cambio de estado distinto de los seis comandos
 // ya implementados. Cada comando confirmado añade un aviso emergente
 // (DEC-095); el resultado persistente es el estado y el historial del turno.
+import { timezoneLabel } from '@/shared/time/timezoneName'
 import { computed, onMounted, ref } from 'vue'
 import { useRoute, type LocationQueryRaw } from 'vue-router'
 import { useToast, useVocabulary } from '@/shared/composables'
@@ -35,6 +36,7 @@ import { mapsLinkUrl } from '@/shared/model/mapEmbed'
 import { newIdempotencyKey } from '../model/idempotencyKey'
 import type { AppointmentDetail, HistoryEntry } from '../model/appointmentDetail'
 import { historyEventLabel, historyFieldLabel } from '../model/appointmentDetail'
+import { formatMoney } from '@/shared/model/money'
 import {
   APPOINTMENT_STATUS_BADGE_VARIANT,
   appointmentStatusLabel,
@@ -84,9 +86,29 @@ const historyItems = ref<HistoryEntry[]>([])
 const historyNextCursor = ref<string | null>(null)
 const historyLoadingMore = ref(false)
 
-const statusLabel = computed(() =>
+// v2 (DEC-188): como en la agenda del día, un `confirmed` se lee por la hora:
+// «En curso» mientras ocurre y «Por registrar» cuando terminó sin resultado.
+// Se evalúa al cargar, sin reloj en vivo.
+const timePhase = computed((): 'in-progress' | 'to-record' | null => {
+  if (!detail.value || detail.value.status !== 'confirmed') return null
+  const now = Date.now()
+  if (now >= new Date(detail.value.endsAt).getTime()) return 'to-record'
+  if (now >= new Date(detail.value.startsAt).getTime()) return 'in-progress'
+  return null
+})
+
+// El estado tal como está guardado, sin la lectura por la hora: la corrección
+// de resultado habla del estado registrado, no de «Por registrar».
+const recordedStatusLabel = computed(() =>
   detail.value ? appointmentStatusLabel(detail.value.status, v.value) : '',
 )
+
+const statusLabel = computed(() => {
+  if (!detail.value) return ''
+  if (timePhase.value === 'in-progress') return 'En curso'
+  if (timePhase.value === 'to-record') return 'Por registrar'
+  return appointmentStatusLabel(detail.value.status, v.value)
+})
 // Mismo mapa que DailyAgendaPage.vue: cancelled_by_professional ya tiene el
 // tratamiento terminal 'danger' que el atlas asigna a un turno cancelado
 // (nava-docs/agenda/10-backlog/evidence/.../detalle-turno-eventos/10-turno-cancelado.png),
@@ -104,7 +126,12 @@ const STATUS_TONE: Record<AppointmentStatus, string> = {
   cancelled_by_customer: 'cancelled',
   cancelled_by_professional: 'cancelled',
 }
-const statusTone = computed(() => (detail.value ? STATUS_TONE[detail.value.status] : 'pending'))
+const statusTone = computed(() => {
+  if (!detail.value) return 'pending'
+  if (timePhase.value === 'in-progress') return 'current'
+  if (timePhase.value === 'to-record') return 'to-record'
+  return STATUS_TONE[detail.value.status]
+})
 // Un turno terminal cambia de material (contorno sobre tinta), no de peso (§6.7).
 const isTerminal = computed(() => !!detail.value && isTerminalStatus(detail.value.status))
 const attendeeInitials = computed(() => {
@@ -743,12 +770,11 @@ function occurredAtLabel(entry: HistoryEntry): string {
 
     <template v-else-if="detail">
       <header class="appointment-detail-page__hero">
-        <div class="appointment-detail-page__avatar nv-pop" aria-hidden="true">
+        <div class="appointment-detail-page__avatar" aria-hidden="true">
           {{ attendeeInitials }}
         </div>
         <div class="appointment-detail-page__identity">
-          <p class="appointment-detail-page__eyebrow">Detalle del turno</p>
-          <h1 id="appointment-detail-page-title" class="appointment-detail-page__title nv-wipe">
+          <h1 id="appointment-detail-page-title" class="appointment-detail-page__title">
             {{ detail.attendeeName }}
           </h1>
           <p class="appointment-detail-page__status" role="status">
@@ -757,7 +783,7 @@ function occurredAtLabel(entry: HistoryEntry): string {
             </BaseBadge>
           </p>
         </div>
-        <div class="appointment-detail-page__actions nv-rise" style="--i: 3">
+        <div class="appointment-detail-page__actions">
           <BaseButton
             v-if="canReschedule"
             type="button"
@@ -828,14 +854,15 @@ function occurredAtLabel(entry: HistoryEntry): string {
 
       <div class="appointment-detail-page__body">
         <div
-          class="appointment-detail-page__sheet nv-rise"
+          class="appointment-detail-page__sheet"
           :class="{ 'appointment-detail-page__sheet--terminal': isTerminal }"
-          style="--i: 2"
         >
           <div v-if="timeSpan" class="appointment-detail-page__span" aria-hidden="true">
             <p class="appointment-detail-page__span-date">
               {{ timeSpan.date
-              }}<template v-if="businessTimezone"> · Zona {{ businessTimezone }}</template>
+              }}<template v-if="businessTimezone">
+                · {{ timezoneLabel(businessTimezone) }}</template
+              >
             </p>
             <div class="appointment-detail-page__span-row">
               <span class="appointment-detail-page__span-time">{{ timeSpan.start }}</span>
@@ -859,7 +886,7 @@ function occurredAtLabel(entry: HistoryEntry): string {
               <dt>Hora</dt>
               <dd>
                 {{ timeRangeLabel }}
-                <span v-if="businessTimezone">· Zona {{ businessTimezone }}</span>
+                <span v-if="businessTimezone">· {{ timezoneLabel(businessTimezone) }}</span>
               </dd>
             </div>
             <div class="appointment-detail-page__fact">
@@ -870,8 +897,7 @@ function occurredAtLabel(entry: HistoryEntry): string {
               <dt>Servicio</dt>
               <dd>
                 {{ detail.serviceName }} · {{ detail.durationMinutes }} min ·
-                {{ detail.priceAmount }}
-                {{ detail.currency }}
+                {{ formatMoney(detail.priceAmount, detail.currency) }}
               </dd>
             </div>
             <div class="appointment-detail-page__fact appointment-detail-page__fact--professional">
@@ -919,8 +945,7 @@ function occurredAtLabel(entry: HistoryEntry): string {
         </div>
 
         <section
-          class="appointment-detail-page__history nv-rise"
-          style="--i: 4"
+          class="appointment-detail-page__history"
           aria-labelledby="appointment-history-title"
         >
           <h2 id="appointment-history-title" class="appointment-detail-page__history-title">
@@ -957,10 +982,9 @@ function occurredAtLabel(entry: HistoryEntry): string {
 
             <ol v-else class="appointment-detail-page__history-list" aria-label="Eventos del turno">
               <li
-                v-for="(entry, index) in historyItems"
+                v-for="entry in historyItems"
                 :key="entry.id"
-                class="appointment-detail-page__history-item nv-rise"
-                :style="{ '--i': Math.min(index, 8) + 5 }"
+                class="appointment-detail-page__history-item"
               >
                 <span
                   class="appointment-detail-page__history-icon"
@@ -1086,7 +1110,7 @@ function occurredAtLabel(entry: HistoryEntry): string {
             <p class="appointment-detail-page__dialog-current">
               <strong>Horario actual</strong>
               {{ timeRangeLabel }}
-              <span v-if="businessTimezone">Zona {{ businessTimezone }}</span>
+              <span v-if="businessTimezone">{{ timezoneLabel(businessTimezone) }}</span>
             </p>
             <span class="appointment-detail-page__dialog-arrow" aria-hidden="true">→</span>
             <p
@@ -1095,7 +1119,7 @@ function occurredAtLabel(entry: HistoryEntry): string {
             >
               <strong>Vista previa</strong>
               {{ rescheduleTime }} – {{ rescheduleNewEndLabel }}
-              <span v-if="businessTimezone">Zona {{ businessTimezone }}</span>
+              <span v-if="businessTimezone">{{ timezoneLabel(businessTimezone) }}</span>
             </p>
           </div>
 
@@ -1479,7 +1503,7 @@ function occurredAtLabel(entry: HistoryEntry): string {
 
           <p class="appointment-detail-page__cancel-copy">
             El turno de <strong>{{ detail.attendeeName }}</strong> el {{ timeRangeLabel }} está
-            registrado como <strong>{{ statusLabel }}</strong
+            registrado como <strong>{{ recordedStatusLabel }}</strong
             >. Esta corrección agrega un evento nuevo al historial; no borra ni edita el anterior.
           </p>
 
@@ -1551,7 +1575,7 @@ function occurredAtLabel(entry: HistoryEntry): string {
    latón. Un turno terminal cambia de material (contorno sobre tinta), no de peso
    (§6.7). Los colores de estado son los de la agenda diaria. */
 .appointment-detail-page {
-  --tone: var(--color-pending-on-strong);
+  --tone: var(--color-appt-confirmed);
   --rule: color-mix(in srgb, var(--color-on-strong) 16%, transparent);
 
   display: flex;
@@ -1565,15 +1589,15 @@ function occurredAtLabel(entry: HistoryEntry): string {
 }
 
 .appointment-detail-page--completed {
-  --tone: var(--color-success-on-strong);
+  --tone: var(--color-appt-completed);
 }
 
 .appointment-detail-page--no-show {
-  --tone: var(--color-no-show-on-strong);
+  --tone: var(--color-appt-no-show);
 }
 
 .appointment-detail-page--cancelled {
-  --tone: var(--color-danger-on-strong);
+  --tone: var(--color-appt-cancelled);
 }
 
 @media (min-width: 1024px) {
@@ -1613,13 +1637,16 @@ function occurredAtLabel(entry: HistoryEntry): string {
   align-items: center;
   min-height: var(--control-height);
   font-family: var(--font-sans);
-  font-size: var(--font-size-caption);
+  font-size: 15px;
   font-weight: 600;
-  letter-spacing: 0.1em;
-  text-decoration: none;
-  text-transform: uppercase;
-  color: var(--color-brand-accent-surface);
-  border-radius: 2px;
+  letter-spacing: 0;
+  text-decoration: underline;
+  text-transform: none;
+  color: var(--color-text-primary);
+  border-radius: var(--radius-sm);
+  text-decoration-color: var(--color-brand-accent-surface);
+  text-decoration-thickness: 2px;
+  text-underline-offset: 4px;
 }
 
 .appointment-detail-page__back a:hover {
@@ -1628,7 +1655,7 @@ function occurredAtLabel(entry: HistoryEntry): string {
 }
 
 .appointment-detail-page__back a:focus-visible {
-  outline: 2px solid var(--color-brand-accent-surface);
+  outline: 2px solid var(--color-focus);
   outline-offset: 3px;
 }
 
@@ -1652,8 +1679,9 @@ function occurredAtLabel(entry: HistoryEntry): string {
   flex: none;
   width: 9px;
   height: 9px;
-  border: 1px solid var(--color-brand-accent-surface);
+  border: 1px solid var(--color-border-control);
   transform: rotate(45deg);
+  border-radius: 50%;
 }
 
 /* ── Cabecera ───────────────────────────────────────────────────────────── */
@@ -1673,12 +1701,13 @@ function occurredAtLabel(entry: HistoryEntry): string {
   place-items: center;
   width: 72px;
   height: 72px;
-  font-family: var(--font-display);
+  font-family: var(--font-sans);
   font-size: var(--font-size-title-item);
-  color: var(--color-brand-accent-surface);
-  background-color: color-mix(in srgb, var(--color-brand-accent-surface) 10%, transparent);
-  border: 1px solid color-mix(in srgb, var(--color-brand-accent-surface) 60%, transparent);
-  border-radius: 2px;
+  color: var(--color-text-primary);
+  background-color: var(--color-surface-muted);
+  border: 0;
+  border-radius: 50%;
+  font-weight: 600;
 }
 
 .appointment-detail-page__identity {
@@ -1689,31 +1718,11 @@ function occurredAtLabel(entry: HistoryEntry): string {
   min-width: 0;
 }
 
-.appointment-detail-page__eyebrow {
-  display: flex;
-  gap: var(--space-3);
-  align-items: center;
-  margin: 0;
-  font-family: var(--font-sans);
-  font-size: var(--font-size-caption);
-  font-weight: 600;
-  letter-spacing: 0.12em;
-  text-transform: uppercase;
-  color: var(--color-brand-accent-surface);
-}
-
-.appointment-detail-page__eyebrow::before {
-  content: '';
-  width: 28px;
-  height: 1px;
-  background-color: currentcolor;
-}
-
 .appointment-detail-page__title {
   margin: 0;
-  font-family: var(--font-display);
+  font-family: var(--font-sans);
   font-size: var(--font-size-title-page);
-  font-weight: var(--font-weight-h1);
+  font-weight: 600;
   line-height: 1.08;
   letter-spacing: -0.01em;
   overflow-wrap: anywhere;
@@ -1728,9 +1737,71 @@ function occurredAtLabel(entry: HistoryEntry): string {
 
 /* La palabra de estado lleva el color del estado, además del texto. */
 .appointment-detail-page__status :deep(.base-badge) {
+  gap: var(--space-2);
+  height: auto;
+  padding: 0;
+  font-family: var(--font-sans);
+  font-size: 15px;
+  font-weight: 600;
+  line-height: 20px;
+  letter-spacing: 0;
   color: var(--tone);
-  background-color: color-mix(in srgb, var(--tone) 10%, transparent);
-  border-color: color-mix(in srgb, var(--tone) 55%, transparent);
+  text-transform: none;
+  background-color: transparent;
+  border: 0;
+}
+
+/* El icono del estado, como en la agenda del día: el color nunca va solo. */
+.appointment-detail-page__status :deep(.base-badge)::before {
+  flex: none;
+  width: 14px;
+  height: 14px;
+  content: '';
+  background-color: currentColor;
+  mask: var(--tone-icon) center / contain no-repeat;
+}
+
+.appointment-detail-page {
+  --tone-icon: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 14 14'%3E%3Cpath d='M7 1.5 12.5 7 7 12.5 1.5 7z'/%3E%3C/svg%3E");
+}
+
+.appointment-detail-page--completed {
+  --tone-icon: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 14 14' fill='none' stroke='black' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m2.5 7.3 3 3 6-6.3'/%3E%3C/svg%3E");
+}
+
+.appointment-detail-page--no-show {
+  --tone-icon: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 14 14' fill='none' stroke='black' stroke-width='1.6' stroke-linejoin='round'%3E%3Cpath d='M7 1.8 12.2 7 7 12.2 1.8 7z'/%3E%3C/svg%3E");
+}
+
+.appointment-detail-page--current {
+  --tone: var(--color-appt-in-progress);
+  --tone-icon: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 14 14'%3E%3Ccircle cx='7' cy='7' r='5.5'/%3E%3C/svg%3E");
+}
+
+.appointment-detail-page--to-record {
+  --tone: var(--color-appt-pending);
+  --tone-icon: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 14 14' fill='none' stroke='black' stroke-width='1.6' stroke-linecap='round'%3E%3Ccircle cx='7' cy='7' r='5.6'/%3E%3Cpath d='M7 4v3.2l2 1.3'/%3E%3C/svg%3E");
+}
+
+.appointment-detail-page--cancelled {
+  --tone-icon: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 14 14' fill='none' stroke='black' stroke-width='1.6' stroke-linecap='round'%3E%3Ccircle cx='7' cy='7' r='5.6'/%3E%3Cpath d='M4.2 7h5.6'/%3E%3C/svg%3E");
+}
+
+/* En curso: la palabra en tinta (el Sol no da contraste como texto) y el disco
+   en Sol, como en la agenda. */
+.appointment-detail-page--current .appointment-detail-page__status :deep(.base-badge) {
+  color: var(--color-text-primary);
+}
+
+.appointment-detail-page--current .appointment-detail-page__status :deep(.base-badge)::before {
+  background-color: var(--color-sun);
+}
+
+/* Cancelado: el nombre tachado, como en la agenda del día. */
+.appointment-detail-page--cancelled .appointment-detail-page__title {
+  text-decoration: line-through;
+  text-decoration-thickness: 2px;
+  text-decoration-color: var(--color-appt-cancelled);
 }
 
 .appointment-detail-page__actions {
@@ -1757,6 +1828,7 @@ function occurredAtLabel(entry: HistoryEntry): string {
   color: var(--color-brand-accent-text);
   background-color: var(--color-brand-accent-surface);
   border-color: var(--color-brand-accent-surface);
+  border-radius: var(--radius-lg);
 }
 
 .appointment-detail-page .appointment-detail-page__complete:hover:not(:disabled) {
@@ -1767,18 +1839,19 @@ function occurredAtLabel(entry: HistoryEntry): string {
 .appointment-detail-page .appointment-detail-page__reschedule,
 .appointment-detail-page .appointment-detail-page__no-show,
 .appointment-detail-page .appointment-detail-page__correct {
-  color: var(--color-brand-accent-surface);
+  color: var(--color-text-primary);
   background-color: transparent;
-  border-color: color-mix(in srgb, var(--color-brand-accent-surface) 50%, transparent);
-  border-bottom-color: var(--color-brand-accent-surface);
+  border-color: var(--color-border-control);
+  border-bottom-color: var(--color-border-control);
+  border-radius: var(--radius-lg);
 }
 
 .appointment-detail-page .appointment-detail-page__reschedule:hover:not(:disabled),
 .appointment-detail-page .appointment-detail-page__no-show:hover:not(:disabled),
 .appointment-detail-page .appointment-detail-page__correct:hover:not(:disabled) {
-  background-color: color-mix(in srgb, var(--color-brand-accent-surface) 12%, transparent);
-  border-color: color-mix(in srgb, var(--color-brand-accent-surface) 50%, transparent);
-  border-bottom-color: var(--color-brand-accent-surface);
+  background-color: var(--color-surface-muted);
+  border-color: var(--color-text-primary);
+  border-bottom-color: var(--color-text-primary);
 }
 
 .appointment-detail-page .appointment-detail-page__cancel {
@@ -1814,29 +1887,31 @@ function occurredAtLabel(entry: HistoryEntry): string {
    Un turno vigente lleva un velo tenue del color del texto; uno terminal cambia de
    material a contorno puro con el color del estado (§6.7). */
 .appointment-detail-page__sheet {
-  --sx-text: var(--color-on-strong);
-  --sx-muted: var(--color-on-strong-soft);
-  --sx-label: var(--color-brand-accent-surface);
-  --sx-line: var(--rule);
+  --sx-text: var(--color-text-primary);
+  --sx-muted: var(--color-text-secondary);
+  --sx-label: var(--color-text-secondary);
+  --sx-line: var(--color-border-subtle);
 
   position: relative;
   min-width: 0;
-  background-color: color-mix(in srgb, var(--color-on-strong) 5%, transparent);
-  border: 1px solid color-mix(in srgb, var(--color-on-strong) 18%, transparent);
+  background-color: var(--color-surface);
+  border: 1px solid var(--color-border-subtle);
   border-left: 4px solid var(--tone);
-  border-radius: 0 0 2px 2px;
+  border-radius: 10px;
+  overflow: hidden;
 }
 
 .appointment-detail-page__sheet--terminal {
   background-color: transparent;
-  border-color: color-mix(in srgb, var(--tone) 45%, transparent);
+  border-color: var(--color-border-subtle);
   border-left-color: var(--tone);
+  border-style: dashed;
 }
 
 /* Cinta métrica de latón en el borde superior: marcas cada 10 px y una más larga
    cada 50, como la de la hoja de datos de la reserva pública. */
 .appointment-detail-page__sheet::before {
-  content: '';
+  content: none;
   position: absolute;
   inset: 0 0 auto;
   height: 11px;
@@ -1848,7 +1923,7 @@ function occurredAtLabel(entry: HistoryEntry): string {
     repeating-linear-gradient(90deg, var(--sx-label) 0 1px, transparent 1px 50px) top / 100% 10px
       no-repeat;
   transform-origin: left;
-  animation: nava-wipe 1s cubic-bezier(0.65, 0, 0.2, 1) 0.35s backwards;
+  animation: none;
 }
 
 /* Franja de tiempo: inicio, regla con la duración y fin. Decorativa. */
@@ -1860,11 +1935,12 @@ function occurredAtLabel(entry: HistoryEntry): string {
 .appointment-detail-page__span-date {
   margin: 0 0 var(--space-3);
   font-family: var(--font-sans);
-  font-size: var(--font-size-caption);
-  font-weight: 600;
-  letter-spacing: 0.1em;
-  text-transform: uppercase;
-  color: var(--sx-muted);
+  font-size: 14px;
+  font-weight: 500;
+  letter-spacing: 0;
+  text-transform: none;
+  color: var(--color-text-secondary);
+  line-height: 20px;
 }
 
 .appointment-detail-page__span-row {
@@ -1875,12 +1951,13 @@ function occurredAtLabel(entry: HistoryEntry): string {
 
 .appointment-detail-page__span-time {
   flex: none;
-  font-family: var(--font-display);
+  font-family: var(--font-sans);
   font-size: var(--font-size-title-page);
   line-height: 1;
   white-space: nowrap;
-  font-variant-numeric: lining-nums tabular-nums;
+  font-variant-numeric: tabular-nums;
   color: var(--sx-text);
+  font-weight: 600;
 }
 
 .appointment-detail-page__span-track {
@@ -1897,8 +1974,6 @@ function occurredAtLabel(entry: HistoryEntry): string {
   height: 1px;
   min-width: 12px;
   background-color: var(--sx-label);
-  transform-origin: left;
-  animation: nava-wipe 1.1s cubic-bezier(0.65, 0, 0.2, 1) 0.6s backwards;
 }
 
 .appointment-detail-page__span-line::before {
@@ -1922,11 +1997,12 @@ function occurredAtLabel(entry: HistoryEntry): string {
 .appointment-detail-page__span-length {
   flex: none;
   font-family: var(--font-sans);
-  font-size: var(--font-size-caption);
-  font-weight: 600;
-  letter-spacing: 0.1em;
-  text-transform: uppercase;
-  color: var(--sx-label);
+  font-size: 13px;
+  font-weight: 500;
+  letter-spacing: 0;
+  text-transform: none;
+  color: var(--color-text-secondary);
+  line-height: 16px;
 }
 
 /* Hechos en cuadrícula, con el rótulo sobre el valor: tres columnas en escritorio,
@@ -1977,11 +2053,12 @@ function occurredAtLabel(entry: HistoryEntry): string {
 
 .appointment-detail-page__fact dt {
   font-family: var(--font-sans);
-  font-size: var(--font-size-caption);
-  font-weight: 600;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-  color: var(--sx-label);
+  font-size: 13px;
+  font-weight: 500;
+  letter-spacing: 0;
+  text-transform: none;
+  color: var(--color-text-secondary);
+  line-height: 16px;
 }
 
 .appointment-detail-page__fact dd {
@@ -2011,9 +2088,9 @@ function occurredAtLabel(entry: HistoryEntry): string {
 
 .appointment-detail-page__history-title {
   margin: 0;
-  font-family: var(--font-display);
+  font-family: var(--font-sans);
   font-size: var(--font-size-title-section);
-  font-weight: var(--font-weight-h2);
+  font-weight: 600;
   line-height: 1.1;
   color: var(--color-on-strong);
 }
@@ -2030,7 +2107,7 @@ function occurredAtLabel(entry: HistoryEntry): string {
   position: relative;
   min-height: 72px;
   padding: 0 0 var(--space-6) var(--space-8);
-  border-left: 1px solid color-mix(in srgb, var(--color-brand-accent-surface) 45%, transparent);
+  border-left: 1px solid var(--color-border-subtle);
 }
 
 .appointment-detail-page__history-item:last-child {
@@ -2047,10 +2124,10 @@ function occurredAtLabel(entry: HistoryEntry): string {
   place-items: center;
   width: 30px;
   height: 30px;
-  color: var(--color-brand-accent-surface);
-  background-color: var(--color-surface-strong);
-  border: 1px solid var(--color-brand-accent-surface);
-  border-radius: 2px;
+  color: var(--color-text-secondary);
+  background-color: var(--color-surface);
+  border: 1px solid var(--color-border-control);
+  border-radius: 50%;
 }
 
 .appointment-detail-page__history-icon :deep(svg) {
@@ -2060,7 +2137,7 @@ function occurredAtLabel(entry: HistoryEntry): string {
 
 .appointment-detail-page__history-item:first-child .appointment-detail-page__history-icon {
   color: var(--color-brand-accent-text);
-  background-color: var(--color-brand-accent-surface);
+  background-color: var(--color-text-primary);
 }
 
 .appointment-detail-page__history-main {
@@ -2161,12 +2238,12 @@ function occurredAtLabel(entry: HistoryEntry): string {
 
 .appointment-detail-page__correct-label {
   font-family: var(--font-sans);
-  font-size: var(--font-size-caption);
-  font-weight: 600;
-  line-height: 14px;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-  color: var(--color-accent-brass);
+  font-size: 13px;
+  font-weight: 500;
+  line-height: 16px;
+  letter-spacing: 0;
+  text-transform: none;
+  color: var(--color-text-secondary);
 }
 
 .appointment-detail-page__correct-select,
@@ -2180,7 +2257,7 @@ function occurredAtLabel(entry: HistoryEntry): string {
   background-color: var(--color-surface);
   border: var(--border-width-normal) solid var(--color-border-subtle);
   border-bottom: var(--border-width-emphasis) solid var(--color-action-primary);
-  border-radius: 2px;
+  border-radius: var(--radius-md);
   outline: none;
   transition:
     border-color var(--motion-duration-fast) var(--motion-easing-standard),
@@ -2242,10 +2319,11 @@ function occurredAtLabel(entry: HistoryEntry): string {
    especificidad. Solo afecta a esta tarjeta (clase exclusiva de la pantalla). */
 :global(.appointment-detail-page__ink-dialog.base-dialog) {
   width: min(100%, 520px) !important;
-  background-color: var(--color-surface-strong) !important;
+  background-color: var(--color-surface) !important;
   border: 1px solid var(--color-field-strong-border) !important;
-  border-top: 3px solid var(--color-brand-accent-surface) !important;
+  border-top: 1px solid var(--color-border-subtle) !important;
   box-shadow: 0 28px 60px -24px rgb(0 0 0 / 55%) !important;
+  border-radius: 12px !important;
 }
 
 :global(.appointment-detail-page__ink-dialog--wide.base-dialog) {
@@ -2267,9 +2345,9 @@ function occurredAtLabel(entry: HistoryEntry): string {
 }
 
 :global(.appointment-detail-page__ink-dialog .base-dialog__title) {
-  font-family: var(--font-display);
+  font-family: var(--font-sans);
   font-size: var(--font-size-title-item);
-  font-weight: 400;
+  font-weight: 600;
   color: var(--color-on-strong) !important;
 }
 
@@ -2301,7 +2379,8 @@ function occurredAtLabel(entry: HistoryEntry): string {
   padding: var(--space-4);
   background: color-mix(in srgb, var(--color-on-strong) 5%, transparent);
   border: 1px solid var(--color-field-strong-border);
-  border-left: 3px solid var(--color-brand-accent-surface);
+  border-left: 3px solid var(--color-border-control);
+  border-radius: var(--radius-md);
 }
 
 .appointment-detail-page__dialog-compare .appointment-detail-page__dialog-current,
@@ -2310,11 +2389,13 @@ function occurredAtLabel(entry: HistoryEntry): string {
 }
 
 .appointment-detail-page__dialog-compare strong {
-  font-size: var(--font-size-caption);
-  font-weight: 600;
-  letter-spacing: 0.1em;
-  text-transform: uppercase;
-  color: var(--color-brand-accent-surface);
+  font-size: 13px;
+  font-weight: 500;
+  letter-spacing: 0;
+  text-transform: none;
+  color: var(--color-text-secondary);
+  font-family: var(--font-sans);
+  line-height: 16px;
 }
 
 .appointment-detail-page__dialog-compare span {
@@ -2325,7 +2406,7 @@ function occurredAtLabel(entry: HistoryEntry): string {
   align-self: center;
   font-size: var(--font-size-title-item);
   line-height: 1;
-  color: var(--color-brand-accent-surface);
+  color: var(--color-text-secondary);
 }
 
 /* Campos reglados sobre tinta, igual que Agenda y el catálogo. */
@@ -2345,7 +2426,13 @@ function occurredAtLabel(entry: HistoryEntry): string {
 
 .appointment-detail-page__ink-form :deep(.base-input__label),
 .appointment-detail-page__ink-form :deep(.base-input__required) {
-  color: var(--color-brand-accent-surface);
+  color: var(--color-text-secondary);
+  font-family: var(--font-sans);
+  font-size: 14px;
+  font-weight: 500;
+  line-height: 20px;
+  letter-spacing: 0;
+  text-transform: none;
 }
 
 .appointment-detail-page__ink-form
@@ -2405,19 +2492,21 @@ function occurredAtLabel(entry: HistoryEntry): string {
 
 .appointment-detail-page__cancel-eyebrow {
   font-family: var(--font-sans);
-  font-size: var(--font-size-caption);
-  font-weight: 600;
-  letter-spacing: 0.12em;
-  text-transform: uppercase;
-  color: var(--color-danger-on-strong);
+  font-size: 13px;
+  font-weight: 500;
+  letter-spacing: 0;
+  text-transform: none;
+  color: var(--color-text-secondary);
+  line-height: 16px;
 }
 
 .appointment-detail-page__cancel-name {
-  font-family: var(--font-display);
+  font-family: var(--font-sans);
   font-size: 28px;
   line-height: 1.15;
   color: var(--color-on-strong);
   overflow-wrap: anywhere;
+  font-weight: 600;
 }
 
 .appointment-detail-page__cancel-when {
@@ -2432,18 +2521,20 @@ function occurredAtLabel(entry: HistoryEntry): string {
 
 .appointment-detail-page__cancel-date {
   font-family: var(--font-sans);
-  font-size: var(--font-size-caption);
-  font-weight: 600;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-  color: var(--color-on-strong-soft);
+  font-size: 13px;
+  font-weight: 500;
+  letter-spacing: 0;
+  text-transform: none;
+  color: var(--color-text-secondary);
+  line-height: 16px;
 }
 
 .appointment-detail-page__cancel-time {
-  font-family: var(--font-display);
+  font-family: var(--font-sans);
   font-size: var(--font-size-title-item);
   line-height: 1.2;
   color: var(--color-on-strong-muted);
+  font-variant-numeric: tabular-nums;
 }
 
 /* Línea de peligro que atraviesa el horario, como un turno tachado en la libreta. */
@@ -2459,7 +2550,7 @@ function occurredAtLabel(entry: HistoryEntry): string {
   height: 2px;
   background: var(--color-danger-on-strong);
   transform-origin: left;
-  animation: nava-wipe 0.7s cubic-bezier(0.65, 0, 0.2, 1) 0.25s backwards;
+  animation: nava-wipe 180ms var(--motion-ease-out) backwards;
 }
 
 .appointment-detail-page__cancel-meta {
@@ -2493,7 +2584,7 @@ function occurredAtLabel(entry: HistoryEntry): string {
   width: 18px;
   height: 18px;
   margin-top: 1px;
-  color: var(--color-brand-accent-surface);
+  color: var(--color-text-secondary);
 }
 
 .appointment-detail-page__cancel-effects
@@ -2518,14 +2609,14 @@ function occurredAtLabel(entry: HistoryEntry): string {
 
 .appointment-detail-page__ink-form :deep(.base-button--secondary) {
   background-color: transparent;
-  color: var(--color-brand-accent-surface);
-  border-color: color-mix(in srgb, var(--color-brand-accent-surface) 50%, transparent);
-  border-bottom-color: var(--color-brand-accent-surface);
+  color: var(--color-text-primary);
+  border-color: var(--color-border-control);
+  border-bottom-color: var(--color-border-control);
 }
 
 .appointment-detail-page__ink-form
   :deep(.base-button--secondary:hover:not(:disabled):not(.base-button--loading)) {
-  background-color: color-mix(in srgb, var(--color-brand-accent-surface) 12%, transparent);
+  background-color: var(--color-surface-muted);
 }
 
 @media (max-width: 767px) {
@@ -2675,15 +2766,13 @@ function occurredAtLabel(entry: HistoryEntry): string {
 
 @media (prefers-reduced-motion: reduce) {
   .appointment-detail-page__sheet::before,
-  .appointment-detail-page__cancel-time-text::after,
-  .appointment-detail-page__span-line {
+  .appointment-detail-page__cancel-time-text::after {
     animation: none;
   }
 }
 
 :global(:root[data-motion='reduced']) .appointment-detail-page__sheet::before,
-:global(:root[data-motion='reduced']) .appointment-detail-page__cancel-time-text::after,
-:global(:root[data-motion='reduced']) .appointment-detail-page__span-line {
+:global(:root[data-motion='reduced']) .appointment-detail-page__cancel-time-text::after {
   animation: none;
 }
 </style>
