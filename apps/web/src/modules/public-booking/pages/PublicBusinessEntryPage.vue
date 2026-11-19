@@ -1,35 +1,49 @@
 <script setup lang="ts">
-// Página coordinadora de la entrada pública de reservas (HU-090, CA-090-01
-// a CA-090-05). Sin mockup asignado: composición libre dentro de NAVA /
-// Tailored Grid (DEC-078), alojada en el cascarón de la reserva pública
-// (`layouts/PublicBookingLayout.vue`, DEC-111). Posee estado y reintento; no
-// conoce la forma RFC 9457 del contrato (eso queda dentro de
-// `api/resolveBusinessApi.ts`).
-import { computed, onBeforeUnmount, onMounted, ref } from 'vue'
+// Entrada pública del negocio y catálogo de servicios (HU-090, HU-091). v2
+// «La luz del día» (DEC-188): la entrada ES el catálogo, así que reservar
+// empieza aquí sin un clic previo. El negocio es el protagonista: su nombre, su
+// franja de hoy (las horas reales que atiende, con «ahora» en Sol) y sus
+// servicios. Los datos del local (contacto, horario, plano y opiniones) van al
+// lado en escritorio y debajo en móvil.
+//
+// Con un solo servicio no hay nada que elegir: se pasa directo a «Día y hora»
+// con `replace`, para que «atrás» no devuelva a una pantalla que rebota.
+//
+// Perfil y catálogo se piden a la vez. El perfil se comparte con el cascarón
+// (publicProfile.ts) y el catálogo con «Día y hora» (publicServices.ts).
+import { computed, inject, onBeforeUnmount, onMounted, ref } from 'vue'
+import { RouterLink, useRouter } from 'vue-router'
+import { arrivalKey } from '@/shared/composables/useArrival'
 import { isMapAvailable } from '@/shared/model/mapEmbed'
+import { formatMoney } from '@/shared/model/money'
+import { civilNow, clockToMinutes, formatClock } from '@/shared/model/openingHours'
 import { LocationMap, PhoneDisplay } from '@/shared/ui'
-import { formatFullDateInTimezone, formatTimeInTimezone } from '@/shared/time/formatInstant'
+import { formatTimeInTimezone } from '@/shared/time/formatInstant'
 import BookingStateScreen from '../components/BookingStateScreen.vue'
+import DaylightStrip from '../components/DaylightStrip.vue'
 import GoogleReviews from '../components/GoogleReviews.vue'
-import LocalTimeDial from '../components/LocalTimeDial.vue'
 import OpeningHoursCard from '../components/OpeningHoursCard.vue'
-import { formatCoordinates } from '../model/clockDial'
-import { loadPublicProfile } from '../model/publicProfile'
 import type { PublicBusinessProfile } from '../model/businessProfileOutcome'
+import { loadPublicProfile } from '../model/publicProfile'
+import type { PublicService } from '../model/publicServiceListOutcome'
+import { loadPublicServices } from '../model/publicServices'
 import { usePublicVocabulary } from '../model/publicVocabulary'
 
 interface Props {
-  /** Identificador del enlace público, tal como llega del parámetro de
-   * ruta `:slug` (app/router, `props: true`). No confiado: el servidor lo
+  /** Identificador del enlace público (`:slug`). No confiado: el servidor lo
    * vuelve a resolver desde cero (CA-090-03). */
   slug: string
 }
 const props = defineProps<Props>()
 const v = usePublicVocabulary()
+const router = useRouter()
+// La llegada del cascarón empieza cuando hay contenido que mostrar.
+const arrival = inject(arrivalKey, null)
+const arriving = computed(() => arrival?.arriving.value ?? false)
 
 type ScreenState =
   | { status: 'loading' }
-  | { status: 'success'; profile: PublicBusinessProfile }
+  | { status: 'success'; profile: PublicBusinessProfile; services: PublicService[] }
   | { status: 'not-found' }
   | { status: 'network-error' }
   | { status: 'unexpected-error'; requestId?: string }
@@ -38,24 +52,33 @@ const screenState = ref<ScreenState>({ status: 'loading' })
 
 async function load() {
   screenState.value = { status: 'loading' }
-  const outcome = await loadPublicProfile(props.slug)
-  switch (outcome.kind) {
-    case 'success':
-      screenState.value = { status: 'success', profile: outcome.profile }
-      return
-    case 'not-found':
-      screenState.value = { status: 'not-found' }
-      return
-    case 'network-error':
-      screenState.value = { status: 'network-error' }
-      return
-    case 'unexpected-error':
-      screenState.value = { status: 'unexpected-error', requestId: outcome.requestId }
+  const [profile, services] = await Promise.all([
+    loadPublicProfile(props.slug),
+    loadPublicServices(props.slug),
+  ])
+  // El perfil manda: si el enlace no existe, eso es lo que se dice.
+  const failed =
+    profile.kind !== 'success' ? profile : services.kind !== 'success' ? services : null
+  if (failed) {
+    screenState.value =
+      failed.kind === 'unexpected-error'
+        ? { status: 'unexpected-error', requestId: failed.requestId }
+        : { status: failed.kind as 'not-found' | 'network-error' }
+    return
   }
+  if (profile.kind !== 'success' || services.kind !== 'success') return
+  const only = services.services.length === 1 ? services.services[0] : undefined
+  if (only) {
+    void router.replace({
+      name: 'reserva-publica-horario',
+      params: { slug: props.slug, serviceId: only.id },
+    })
+    return
+  }
+  arrival?.begin()
+  screenState.value = { status: 'success', profile: profile.profile, services: services.services }
 }
 
-// El reloj avanza solo: la hora del negocio es lo que la persona compara
-// con su propia hora antes de elegir, y una hora congelada engaña.
 const now = ref(new Date())
 let clockTimer: ReturnType<typeof setInterval> | undefined
 
@@ -63,7 +86,7 @@ onMounted(() => {
   void load()
   clockTimer = setInterval(() => {
     now.value = new Date()
-  }, 15_000)
+  }, 30_000)
 })
 onBeforeUnmount(() => clearInterval(clockTimer))
 
@@ -71,140 +94,180 @@ const retry = () => {
   void load()
 }
 
-// CA-090-01: "presenta la hora en su zona". El reloj del dispositivo solo
-// construye el instante a formatear; el día/hora civil resultante lo
-// decide `timezone` (la del negocio), nunca la zona del dispositivo
-// (mismo criterio que formatFullDateInTimezone, HU-062).
-const currentTimeLabel = computed(() => {
-  if (screenState.value.status !== 'success') return ''
-  return formatTimeInTimezone(now.value.toISOString(), screenState.value.profile.timezone)
-})
-const currentDateLabel = computed(() => {
-  if (screenState.value.status !== 'success') return ''
-  return formatFullDateInTimezone(screenState.value.profile.timezone, now.value)
+const profile = computed(() =>
+  screenState.value.status === 'success' ? screenState.value.profile : null,
+)
+const services = computed(() =>
+  screenState.value.status === 'success' ? screenState.value.services : [],
+)
+
+const currentTimeLabel = computed(() =>
+  profile.value ? formatTimeInTimezone(now.value.toISOString(), profile.value.timezone) : '',
+)
+
+// La franja de hoy: solo con horario configurado y si el día del perfil sigue
+// siendo hoy en la zona del local. Sin horario no se dibuja nada inventado.
+const today = computed(() => {
+  const p = profile.value
+  if (!p?.today) return null
+  const nowCivil = civilNow(p.timezone, now.value)
+  if (nowCivil.date !== p.today.date) return null
+  const open = p.today.hours.map((h) => ({
+    start: clockToMinutes(h.opens) ?? 0,
+    end: clockToMinutes(h.closes) ?? 0,
+  }))
+  const label =
+    p.today.hours.length === 0
+      ? 'Hoy no abre.'
+      : `Hoy atiende ${p.today.hours
+          .map((h) => `de ${formatClock(h.opens)} a ${formatClock(h.closes)}`)
+          .join(' y ')}. Son las ${currentTimeLabel.value}.`
+  return { open, now: nowCivil.minutes, label }
 })
 
-// Modalidades de atención: solo lo que el perfil ya declara (DEC-130, DEC-131).
 const attentionLabel = computed(() => {
-  if (screenState.value.status !== 'success') return ''
-  const { location, offersHomeService } = screenState.value.profile
-  const modes = [location ? 'En el local' : null, offersHomeService ? 'A domicilio' : null]
+  const p = profile.value
+  if (!p) return ''
+  const modes = [p.location ? 'En el local' : null, p.offersHomeService ? 'A domicilio' : null]
   return modes.filter(Boolean).join(' · ')
 })
 
 const failedRequestId = computed(() =>
   screenState.value.status === 'unexpected-error' ? screenState.value.requestId : undefined,
 )
+
+function durationLabel(minutes: number): string {
+  if (minutes < 60) return `${minutes} min`
+  const h = Math.floor(minutes / 60)
+  const m = minutes % 60
+  return m === 0 ? `${h} h` : `${h} h ${m} min`
+}
 </script>
 
 <template>
+  <main v-if="screenState.status === 'loading'" class="bk-page bk-entry" aria-busy="true">
+    <h1 class="pb-sr-only">Abriendo la reserva…</h1>
+    <div class="bk-hero">
+      <span class="bk-skel bk-skel--kicker"></span>
+      <span class="bk-skel bk-skel--name"></span>
+      <span class="bk-skel bk-skel--line"></span>
+      <span class="bk-skel bk-skel--strip"></span>
+    </div>
+    <div class="bk-entry__grid">
+      <div class="bk-services">
+        <span class="bk-skel bk-skel--title"></span>
+        <span v-for="n in 4" :key="n" class="bk-skel bk-skel--service"></span>
+      </div>
+    </div>
+  </main>
+
   <BookingStateScreen
-    v-if="screenState.status !== 'success'"
+    v-else-if="screenState.status !== 'success'"
     :status="screenState.status"
     :request-id="failedRequestId"
-    title="Entrada pública de reservas"
-    loading-headline="Abriendo tu reserva…"
+    title="Reserva en línea"
+    loading-headline="Abriendo la reserva…"
     @retry="retry"
   />
 
-  <main v-else class="pb-page pb-hero">
-    <div class="pb-hero__grid">
-      <div class="pb-hero__copy">
-        <p class="pb-eyebrow">Reserva en línea</p>
-        <h1 class="pb-hero__name">{{ screenState.profile.name }}</h1>
-        <div class="pb-rule" aria-hidden="true"></div>
+  <main v-else-if="profile" class="bk-page bk-entry">
+    <section class="bk-hero" aria-labelledby="bk-business-name">
+      <p class="bk-kicker">Reserva en línea</p>
+      <h1 id="bk-business-name" class="bk-hero__name">{{ profile.name }}</h1>
+      <p class="bk-hero__meta">
+        <span>Son las {{ currentTimeLabel }}</span>
+        <span v-if="attentionLabel">{{ attentionLabel }}</span>
+      </p>
+      <DaylightStrip
+        v-if="today"
+        class="bk-hero__strip"
+        :open="today.open"
+        :now="today.now"
+        :label="today.label"
+        :arrive="arriving"
+        variant="band"
+      />
+    </section>
 
-        <!-- La acción principal va justo bajo el nombre: en móvil no queda tras el mapa. -->
-        <RouterLink
-          :to="{ name: 'reserva-publica-servicios', params: { slug: props.slug } }"
-          class="pb-cta pb-cta--wide"
-        >
-          <span>Reservar un turno</span>
-          <span class="pb-cta__arrow" aria-hidden="true">→</span>
-        </RouterLink>
+    <div class="bk-entry__grid">
+      <section class="bk-services" aria-labelledby="bk-services-title">
+        <h2 id="bk-services-title" class="bk-section-title">Elige un servicio</h2>
 
-        <!-- Los cuatro pasos del recorrido (los mismos del progreso), para saber qué sigue. -->
-        <ol class="pb-steps" aria-label="Pasos de la reserva">
-          <li>Servicio</li>
-          <li>{{ v.Professional }}</li>
-          <li>Horario</li>
-          <li>Tus datos</li>
-        </ol>
+        <p v-if="services.length === 0" class="bk-empty">
+          {{ v.ThisBusiness }} aún no tiene servicios para reservar en línea.
+        </p>
 
-        <!-- Quien ya reservó entra a cambiar la hora con un código, sin el correo (HU-105). -->
-        <p class="pb-manage">
+        <ul v-else class="bk-services__list">
+          <li v-for="(service, index) in services" :key="service.id" :style="{ '--i': index }">
+            <RouterLink
+              class="bk-service"
+              :to="{
+                name: 'reserva-publica-horario',
+                params: { slug: props.slug, serviceId: service.id },
+              }"
+            >
+              <span class="bk-service__name">{{ service.name }}</span>
+              <span v-if="service.description" class="bk-service__desc">{{
+                service.description
+              }}</span>
+              <span class="bk-service__meta">
+                <span>{{ durationLabel(service.durationMinutes) }}</span>
+                <span class="bk-service__price">{{
+                  formatMoney(service.price, service.currency)
+                }}</span>
+              </span>
+              <span class="bk-service__go" aria-hidden="true">→</span>
+            </RouterLink>
+          </li>
+        </ul>
+
+        <!-- Quien ya reservó entra a cambiar la hora con un código (HU-105). -->
+        <p class="bk-manage">
           ¿Ya tienes un turno?
           <RouterLink :to="{ name: 'mi-turno-acceso', params: { slug: props.slug } }"
             >Cámbialo aquí</RouterLink
           >
         </p>
-      </div>
+      </section>
 
-      <!-- Ficha del local: hora, contacto, modalidad y plano. Solo lo que el perfil trae. -->
-      <aside class="pb-plate" aria-label="Datos del local">
-        <div class="pb-clock">
-          <LocalTimeDial :at="now" :time-zone="screenState.profile.timezone" />
-          <div class="pb-clock__text">
-            <p class="pb-clock__label">Hora local {{ v.ofTheBusiness }}</p>
-            <p class="pb-clock__time">{{ currentTimeLabel }}</p>
-            <p class="pb-clock__date">{{ currentDateLabel }}</p>
-          </div>
-        </div>
-
-        <dl
-          v-if="
-            screenState.profile.contactEmail || screenState.profile.contactPhone || attentionLabel
-          "
-          class="pb-contact"
-        >
-          <div v-if="screenState.profile.contactPhone" class="pb-contact__row">
+      <aside class="bk-local pb-plate" aria-label="Datos del local">
+        <dl v-if="profile.contactEmail || profile.contactPhone" class="pb-contact">
+          <div v-if="profile.contactPhone" class="pb-contact__row">
             <dt>Teléfono</dt>
-            <dd><PhoneDisplay :value="screenState.profile.contactPhone" /></dd>
+            <dd><PhoneDisplay :value="profile.contactPhone" /></dd>
           </div>
-          <div v-if="screenState.profile.contactEmail" class="pb-contact__row">
+          <div v-if="profile.contactEmail" class="pb-contact__row">
             <dt>Correo</dt>
-            <dd>{{ screenState.profile.contactEmail }}</dd>
-          </div>
-          <div v-if="attentionLabel" class="pb-contact__row">
-            <dt>Atención</dt>
-            <dd>{{ attentionLabel }}</dd>
+            <dd>{{ profile.contactEmail }}</dd>
           </div>
         </dl>
 
-        <!-- DEC-182: solo con horario configurado; si no, nada (no sabemos si abre). -->
+        <!-- DEC-182: solo con horario configurado. -->
         <OpeningHoursCard
-          :opening-hours="screenState.profile.openingHours"
-          :today="screenState.profile.today"
-          :closed-on-holidays="screenState.profile.closedOnHolidays"
-          :time-zone="screenState.profile.timezone"
+          :opening-hours="profile.openingHours"
+          :today="profile.today"
+          :closed-on-holidays="profile.closedOnHolidays"
+          :time-zone="profile.timezone"
           :at="now"
         />
 
-        <!-- DEC-130: solo con interruptor activo y coordenadas reales; si no, nada, sin error. -->
+        <!-- DEC-130: solo con interruptor activo y coordenadas reales. -->
         <section
-          v-if="screenState.profile.location && isMapAvailable()"
+          v-if="profile.location && isMapAvailable()"
           class="pb-location"
           aria-labelledby="pb-location-title"
         >
           <h2 id="pb-location-title" class="pb-location__title">Dónde estamos</h2>
           <div class="pb-plano">
             <LocationMap
-              :latitude="screenState.profile.location.latitude"
-              :longitude="screenState.profile.location.longitude"
-              :address="screenState.profile.location.address"
+              :latitude="profile.location.latitude"
+              :longitude="profile.location.longitude"
+              :address="profile.location.address"
             />
-            <p class="pb-plano__coords" aria-hidden="true">
-              {{
-                formatCoordinates(
-                  screenState.profile.location.latitude,
-                  screenState.profile.location.longitude,
-                )
-              }}
-            </p>
           </div>
         </section>
 
-        <!-- DEC-129: solo con ficha de Google y datos; si no, nada, sin error. -->
+        <!-- DEC-129: solo con ficha de Google y datos. -->
         <GoogleReviews :slug="props.slug" />
       </aside>
     </div>

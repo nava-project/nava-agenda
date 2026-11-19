@@ -108,12 +108,13 @@ test.describe('Cancelación pública del turno (HU-099)', () => {
       cancelled = true
       return json(route, 200, { status: 'cancelled_by_customer' })
     })
+    // La reserva v2 lee la disponibilidad del servicio con todos sus profesionales (DEC-162).
     const availability = (slots: string[]) =>
       page.route(
-        `**/api/v1/public/businesses/barberia-ejemplo/services/${SERVICE_ID}/professionals/${PROFESSIONAL_ID}/availability**`,
+        `**/api/v1/public/businesses/barberia-ejemplo/services/${SERVICE_ID}/availability**`,
         (route) =>
           json(route, 200, {
-            slots: slots.map((startsAt) => ({ startsAt })),
+            slots: slots.map((startsAt) => ({ professionalId: PROFESSIONAL_ID, startsAt })),
             durationMinutes: 30,
             timezone: 'America/Bogota',
             slotGridMinutes: 15,
@@ -143,10 +144,40 @@ test.describe('Cancelación pública del turno (HU-099)', () => {
 
     // CA-099-04: al reconsultar la disponibilidad pública la franja liberada vuelve.
     await availability([STARTS_AT])
-    await page.goto(
-      `/reservar/barberia-ejemplo/servicios/${SERVICE_ID}/profesional/${PROFESSIONAL_ID}/horario`,
+    await page.route('**/api/v1/public/businesses/barberia-ejemplo/services?*', (route) =>
+      json(route, 200, {
+        items: [
+          {
+            id: SERVICE_ID,
+            name: 'Corte',
+            description: null,
+            durationMinutes: 30,
+            price: '30000.00',
+            currency: 'COP',
+          },
+        ],
+      }),
     )
-    await expect(page.getByRole('radio')).toHaveCount(1)
+    await page.route(
+      `**/api/v1/public/businesses/barberia-ejemplo/services/${SERVICE_ID}/professionals`,
+      (route) =>
+        json(route, 200, {
+          items: [
+            {
+              id: PROFESSIONAL_ID,
+              fullName: 'Andrés Gómez',
+              description: null,
+              photoUpdatedAt: null,
+              rating: null,
+              ratingCount: 0,
+            },
+          ],
+        }),
+    )
+    await page.goto(
+      `/reservar/barberia-ejemplo/servicios/${SERVICE_ID}/horario?profesional=${PROFESSIONAL_ID}`,
+    )
+    await expect(page.getByRole('radiogroup', { name: 'Hora' }).getByRole('radio')).toHaveCount(1)
   })
 
   test('fuera de plazo con motivo obligatorio no envía en blanco y luego sí con motivo (CA-099-02, CA-099-03)', async ({

@@ -33,17 +33,23 @@ describe('BookingStateScreen', () => {
     expect(wrapper.find('button').exists()).toBe(false)
   })
 
-  it('shows the neutral not-found copy as an alert with a retry', () => {
+  it('guides on a missing link instead of offering a retry that would change nothing', () => {
     const wrapper = mountScreen('not-found')
-    expect(wrapper.find('[role="alert"]').text()).toContain('No encontramos ese enlace')
-    expect(wrapper.text()).toContain('Revisa que copiaste la dirección completa')
-    expect(wrapper.find('button').exists()).toBe(true)
+    expect(wrapper.find('[role="alert"]').text()).toContain('Este enlace no lleva a ninguna agenda')
+    expect(wrapper.text()).toContain('Pide al negocio el enlace de nuevo')
+    expect(wrapper.find('button').exists()).toBe(false)
   })
 
-  it('shows the connection copy as a warning alert', () => {
+  it('shows the connection copy as an alert that guides, without alarm labels', () => {
     const wrapper = mountScreen('network-error')
     expect(wrapper.find('[role="alert"]').text()).toContain('No pudimos conectar')
-    expect(wrapper.text()).toContain('Atención')
+    expect(wrapper.text()).toContain('Revisa tu conexión')
+    for (const status of ['not-found', 'network-error', 'unexpected-error'] as const)
+      expect(mountScreen(status).text()).not.toMatch(/\b(Error|Atención)\b/)
+  })
+
+  it('reserves the page height so the footer never jumps (CLS)', () => {
+    expect(mountScreen('not-found').get('main').classes()).toContain('bk-page')
   })
 
   it('shares the support request id only when the server provided one', () => {
@@ -53,8 +59,8 @@ describe('BookingStateScreen', () => {
     expect(bare.text()).not.toContain('código')
   })
 
-  it('emits retry from the action in every failure state', async () => {
-    for (const status of ['not-found', 'network-error', 'unexpected-error'] as const) {
+  it('emits retry from the action in every recoverable failure state', async () => {
+    for (const status of ['network-error', 'unexpected-error'] as const) {
       const wrapper = mountScreen(status)
       await wrapper.find('button').trigger('click')
       expect(wrapper.emitted('retry')).toHaveLength(1)

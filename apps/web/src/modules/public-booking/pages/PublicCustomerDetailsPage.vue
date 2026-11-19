@@ -58,8 +58,11 @@ interface Props {
    * revalida por completo al confirmar (CA-097-02); esta página solo la
    * conserva y la envía tal cual. */
   startsAt: string
+  /** El profesional lo asignó «Cualquiera» (DEC-188): al cambiar de hora se
+   * vuelve a Cualquiera y no a este profesional. */
+  anyProfessional?: boolean
 }
-const props = defineProps<Props>()
+const props = withDefaults(defineProps<Props>(), { anyProfessional: false })
 const v = usePublicVocabulary()
 const router = useRouter()
 const gemId = `seal-gem-${useId()}`
@@ -352,9 +355,11 @@ async function handleConfirm() {
 // cercanas (el resumen se actualiza y hay que volver a confirmar) o se vuelve
 // al calendario. Los datos del formulario siguen en esta página mientras tanto.
 function pickAnotherSlot() {
+  // Con «Cualquiera» se vuelve a Cualquiera; si no, al profesional elegido.
   void router.push({
     name: 'reserva-publica-horario',
-    params: { slug: props.slug, serviceId: props.serviceId, professionalId: props.professionalId },
+    params: { slug: props.slug, serviceId: props.serviceId },
+    query: props.anyProfessional ? {} : { profesional: props.professionalId },
   })
 }
 
@@ -863,8 +868,7 @@ function chooseAlternative(startsAt: string) {
   font-size: 11px;
   font-weight: 600;
   line-height: 14px;
-  letter-spacing: 0.12em;
-  text-transform: uppercase;
+  letter-spacing: 0;
   color: var(--pb-brass);
 }
 
@@ -875,7 +879,7 @@ function chooseAlternative(startsAt: string) {
 /* ── Campos de BaseInput sobre tinta ───────────────────────────────────── */
 
 .customer-details :deep(.base-input) {
-  --input-bg: color-mix(in srgb, #000 46%, var(--color-surface-strong));
+  --input-bg: var(--color-surface);
   --input-border-color: var(--pb-line-strong);
   --input-border-base-color: color-mix(in srgb, var(--pb-brass) 75%, transparent);
   --input-focus-ring:
@@ -891,13 +895,13 @@ function chooseAlternative(startsAt: string) {
 }
 
 .customer-details :deep(.base-input:hover:not(:disabled):not(.base-input--invalid)) {
-  background-color: color-mix(in srgb, #000 38%, var(--color-surface-strong));
+  background-color: color-mix(in srgb, var(--color-text-primary) 4%, var(--color-surface));
   border-color: color-mix(in srgb, var(--pb-brass) 60%, transparent);
   border-bottom-color: var(--pb-brass);
 }
 
 .customer-details :deep(.base-input:focus-visible) {
-  background-color: color-mix(in srgb, #000 52%, var(--color-surface-strong));
+  background-color: color-mix(in srgb, var(--color-text-primary) 8%, var(--color-surface));
   border-color: var(--pb-brass);
   border-bottom-color: var(--pb-brass);
 }
@@ -910,7 +914,7 @@ function chooseAlternative(startsAt: string) {
 }
 
 .customer-details :deep(.base-input__label) {
-  letter-spacing: 0.12em;
+  letter-spacing: 0;
   color: var(--pb-brass);
 }
 
@@ -1034,7 +1038,7 @@ function chooseAlternative(startsAt: string) {
   color: var(--pb-text);
   height: calc(var(--font-size-body-line) * 3 + var(--space-3) * 2);
   resize: none;
-  background-color: color-mix(in srgb, #000 46%, var(--color-surface-strong));
+  background-color: var(--color-surface);
   border: var(--border-width-normal) solid var(--pb-line-strong);
   border-bottom: var(--border-width-emphasis) solid
     color-mix(in srgb, var(--pb-brass) 75%, transparent);
@@ -1047,13 +1051,13 @@ function chooseAlternative(startsAt: string) {
 }
 
 .customer-details__textarea:hover {
-  background-color: color-mix(in srgb, #000 38%, var(--color-surface-strong));
+  background-color: color-mix(in srgb, var(--color-text-primary) 4%, var(--color-surface));
   border-color: color-mix(in srgb, var(--pb-brass) 60%, transparent);
   border-bottom-color: var(--pb-brass);
 }
 
 .customer-details__textarea:focus-visible {
-  background-color: color-mix(in srgb, #000 52%, var(--color-surface-strong));
+  background-color: color-mix(in srgb, var(--color-text-primary) 8%, var(--color-surface));
   border-color: var(--pb-brass);
   box-shadow:
     0 0 0 2px var(--color-surface-strong),
@@ -1174,8 +1178,7 @@ function chooseAlternative(startsAt: string) {
   font-size: 11px;
   font-weight: 600;
   line-height: 14px;
-  letter-spacing: 0.12em;
-  text-transform: uppercase;
+  letter-spacing: 0;
   color: var(--pb-brass);
 }
 
@@ -1195,7 +1198,6 @@ function chooseAlternative(startsAt: string) {
 
 /* El día llega en minúscula («viernes, 30 de octubre…»): solo la inicial. */
 .customer-details__when-day::first-letter {
-  text-transform: uppercase;
 }
 
 /* Profesional elegido: retrato y nombre al pie del talón, separados por un filete. */
@@ -1295,8 +1297,7 @@ function chooseAlternative(startsAt: string) {
   font-size: 11px;
   font-weight: 600;
   line-height: 24px;
-  letter-spacing: 0.12em;
-  text-transform: uppercase;
+  letter-spacing: 0;
   color: var(--pb-brass);
 }
 
@@ -1417,7 +1418,7 @@ function chooseAlternative(startsAt: string) {
   width: 100%;
   max-width: 560px;
   overflow: hidden;
-  background-color: color-mix(in srgb, #000 26%, var(--color-surface-strong));
+  background-color: var(--color-surface);
   background-image: linear-gradient(
     to bottom,
     color-mix(in srgb, var(--pb-brass) 7%, transparent),
@@ -1463,8 +1464,7 @@ function chooseAlternative(startsAt: string) {
   font-size: 11px;
   font-weight: 600;
   line-height: 14px;
-  letter-spacing: 0.12em;
-  text-transform: uppercase;
+  letter-spacing: 0;
   color: var(--pb-brass);
 }
 
@@ -1494,8 +1494,7 @@ function chooseAlternative(startsAt: string) {
   font-family: var(--font-sans);
   font-size: 12px;
   font-weight: 700;
-  letter-spacing: 0.2em;
-  text-transform: uppercase;
+  letter-spacing: 0;
   color: var(--color-success-on-strong);
   border: 2px solid currentcolor;
   border-radius: 3px;
@@ -1562,8 +1561,7 @@ function chooseAlternative(startsAt: string) {
   font-family: var(--font-sans);
   font-size: 11px;
   font-weight: 700;
-  letter-spacing: 0.14em;
-  text-transform: uppercase;
+  letter-spacing: 0;
   color: var(--pb-on-brass);
   background-color: var(--pb-brass);
 }
@@ -1602,8 +1600,7 @@ function chooseAlternative(startsAt: string) {
   font-family: var(--font-sans);
   font-size: 11px;
   font-weight: 600;
-  letter-spacing: 0.1em;
-  text-transform: uppercase;
+  letter-spacing: 0;
   color: var(--pb-brass);
   border: 1px solid color-mix(in srgb, var(--pb-brass) 60%, transparent);
   border-radius: 2px;

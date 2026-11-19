@@ -8,7 +8,6 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { flushPromises, mount } from '@vue/test-utils'
 import { createMemoryHistory, createRouter } from 'vue-router'
 import PublicBookingLayout from '../PublicBookingLayout.vue'
-import BookingProgress from '../../components/BookingProgress.vue'
 import { resetPublicProfileCache } from '../../model/publicProfile'
 import { usePublicVocabulary } from '../../model/publicVocabulary'
 import { defineComponent, h } from 'vue'
@@ -42,7 +41,6 @@ const Probe = defineComponent({
     return () =>
       h('div', [
         h('p', { class: 'probe' }, `Elige tu ${v.value.professional} ${v.value.ofTheBusiness}`),
-        h(BookingProgress, { step: 2 }),
       ])
   },
 })
@@ -82,7 +80,6 @@ describe('vocabulario de la reserva pública (DEC-119)', () => {
 
     expect(resolveBusinessMock).toHaveBeenCalledWith('estudiolila')
     expect(wrapper.get('.probe').text()).toBe('Elige tu manicurista del estudio de uñas')
-    expect(wrapper.get('.pb-progress').text()).toContain('Manicurista')
     expect(wrapper.text()).not.toMatch(/professional(o|a|os|as|ía|ías)\b/i)
     expect(wrapper.text()).not.toMatch(/profesional(es)?\b|negocio/i)
   })
@@ -100,7 +97,6 @@ describe('vocabulario de la reserva pública (DEC-119)', () => {
     const wrapper = await mountAt('barberia')
 
     expect(wrapper.get('.probe').text()).toBe('Elige tu barbero de la barbería')
-    expect(wrapper.get('.pb-progress').text()).toContain('Barbero')
   })
 
   it('no monta las pantallas hasta saber el vocabulario, para no mostrar un instante la palabra equivocada', async () => {

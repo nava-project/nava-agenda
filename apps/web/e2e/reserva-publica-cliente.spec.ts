@@ -10,7 +10,8 @@ import { test, expect } from '@playwright/test'
  */
 const SERVICE_ID = '8f3ac2b1-e4d5-46f6-a7c8-d9e0f1a2b3c4'
 const PROFESSIONAL_ID = 'a1111111-1111-1111-1111-111111111111'
-const STARTS_AT = encodeURIComponent('2026-09-20T14:30:00Z')
+// Siempre en el futuro: la ruta de «Tus datos» descarta las horas pasadas (#436).
+const STARTS_AT = encodeURIComponent('2030-09-20T14:30:00Z')
 const ROUTE = `/reservar/barberia-ejemplo/servicios/${SERVICE_ID}/profesional/${PROFESSIONAL_ID}/horario/${STARTS_AT}/cliente`
 
 test.describe('Datos del cliente y persona atendida (HU-096)', () => {
@@ -75,7 +76,8 @@ test.describe('Datos del cliente y persona atendida (HU-096)', () => {
     await page.getByRole('button', { name: 'Editar' }).click()
 
     await expect(page.getByLabel('Tu nombre')).toHaveValue('Ana Ríos')
-    await expect(page.getByLabel('Teléfono')).toHaveValue('+573001234567')
+    // El prefijo +57 vive en el selector de país: el campo conserva el número nacional.
+    await expect(page.getByLabel('Teléfono')).toHaveValue('3001234567')
     await expect(page.getByLabel('Correo')).toHaveValue('ana@example.com')
   })
 })

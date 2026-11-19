@@ -56,6 +56,35 @@ function json(body: unknown, status = 200) {
 }
 
 async function installApi(page: Page, reviews: { status: number; body: unknown }) {
+  // La entrada v2 es el catálogo (DEC-188): también lee los servicios.
+  await page.route(
+    (url) => url.pathname === `/api/v1/public/businesses/${SLUG}/services`,
+    (route) =>
+      route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({
+          items: [
+            {
+              id: 's-1',
+              name: 'Corte',
+              description: null,
+              durationMinutes: 30,
+              price: '30000.00',
+              currency: 'COP',
+            },
+            {
+              id: 's-2',
+              name: 'Barba',
+              description: null,
+              durationMinutes: 30,
+              price: '20000.00',
+              currency: 'COP',
+            },
+          ],
+        }),
+      }),
+  )
   await page.route(`**/api/v1/public/businesses/${SLUG}`, (route) =>
     route.fulfill(
       json({

@@ -1,21 +1,30 @@
 /**
- * Pruebas de PublicBusinessEntryPage (HU-090): carga, éxito (nombre, hora
- * local en la zona del negocio, contacto opcional), enlace no
- * disponible/desconocido/no publicable (CA-090-02, todos indistinguibles),
- * error de red con reintento, error inesperado con requestId, y ausencia
- * de violaciones de accesibilidad (axe-core) en cada estado observable.
+ * Pruebas de PublicBusinessEntryPage (HU-090, HU-091; v2 DEC-188): la entrada
+ * es el catálogo. Carga con siluetas, éxito (nombre, hora local en la zona del
+ * negocio, servicios con duración y precio, contacto opcional), un solo
+ * servicio pasa directo a «Día y hora», enlace inexistente con orientación y
+ * sin reintento (CA-090-02), error de red con reintento (CA-090-05), error
+ * inesperado con requestId, franja de hoy solo con horario real y ausencia de
+ * violaciones de accesibilidad (axe-core) en cada estado observable.
  */
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { mount, flushPromises } from '@vue/test-utils'
 import { axe } from 'vitest-axe'
+import { resetPublicProfileCache } from '../../model/publicProfile'
+import { resetPublicServicesCache } from '../../model/publicServices'
 
 const getMock = vi.hoisted(() => vi.fn())
 vi.mock('@/shared/api/httpClient', () => ({
   httpClient: { GET: getMock, POST: vi.fn() },
 }))
 
-// Las reseñas de Google (HU-101) tienen su propia suite: aquí se aíslan para que esta
-// siga contando solo las peticiones de la entrada.
+const replaceMock = vi.hoisted(() => vi.fn())
+vi.mock('vue-router', async (original) => ({
+  ...(await original<typeof import('vue-router')>()),
+  useRouter: () => ({ replace: replaceMock }),
+}))
+
+// Las reseñas de Google (HU-101) tienen su propia suite.
 const getGoogleReviewsMock = vi.hoisted(() => vi.fn())
 vi.mock('../../api/getPublicGoogleReviewsApi', () => ({
   getPublicGoogleReviews: getGoogleReviewsMock,
@@ -23,9 +32,7 @@ vi.mock('../../api/getPublicGoogleReviewsApi', () => ({
 
 const { default: PublicBusinessEntryPage } = await import('../PublicBusinessEntryPage.vue')
 
-// El vocabulario que guardó un negocio (DEC-119); la pantalla, montada sin el
-// cascarón, habla con el vocabulario inicial («negocio», DEC-183).
-const initialVocabulary = {
+const vocabulary = {
   businessTerm: 'barbería',
   businessTermGender: 'feminine',
   professionalTerm: 'barbero',
@@ -38,458 +45,259 @@ const profile = {
   timezone: 'America/Bogota',
   contactEmail: null,
   contactPhone: null,
-  vocabulary: initialVocabulary,
+  vocabulary,
   location: null,
   offersHomeService: false,
+  brandAccent: 'brass',
+  openingHours: [],
+  closedOnHolidays: false,
+  today: null,
 }
 
-function okResponse(): Response {
-  return { ok: true, status: 200, headers: new Headers() } as Response
+const services = [
+  {
+    id: 's-1',
+    name: 'Corte clásico',
+    description: 'Tijera y máquina.',
+    durationMinutes: 45,
+    price: '35000.00',
+    currency: 'COP',
+  },
+  {
+    id: 's-2',
+    name: 'Color',
+    description: null,
+    durationMinutes: 90,
+    price: '90000.00',
+    currency: 'COP',
+  },
+]
+
+const ok = { ok: true, status: 200, headers: new Headers() } as Response
+const failure = (status: number) => ({ ok: false, status, headers: new Headers() }) as Response
+
+/** Responde por ruta: el perfil y el catálogo se piden a la vez. */
+function respond(
+  profileData: Record<string, unknown> | null,
+  items: typeof services = services,
+  profileStatus = 200,
+) {
+  getMock.mockImplementation(async (path: string) => {
+    if (path === '/public/businesses/{slug}')
+      return profileData && profileStatus === 200
+        ? { data: profileData, error: undefined, response: ok }
+        : {
+            data: undefined,
+            error: { status: profileStatus, code: 'x', title: 'x', requestId: 'req-42' },
+            response: failure(profileStatus),
+          }
+    if (path === '/public/businesses/{slug}/services')
+      return { data: { items }, error: undefined, response: ok }
+    throw new Error(`unexpected ${path}`)
+  })
 }
 
-function errorResponse(status: number): Response {
-  return { ok: false, status, headers: new Headers() } as Response
-}
-
-// RouterLink stubbed en vez de un router real (mismo patrón que
-// LoginPage.test.ts): esta suite verifica el componente en aislamiento, no
-// el enrutamiento, y el CTA de la pantalla de éxito ("Reservar un turno")
-// navega a la ruta del catálogo público (HU-091).
-function mountEntryPage(props: { slug: string }) {
+function mountEntryPage(slug = 'barberia-ejemplo') {
   return mount(PublicBusinessEntryPage, {
-    props,
-    global: { stubs: { RouterLink: { props: ['to'], template: '<a><slot /></a>' } } },
+    props: { slug },
+    attachTo: document.body,
+    global: { stubs: { RouterLink: { props: ['to'], template: '<a href="#"><slot /></a>' } } },
   })
 }
 
 beforeEach(() => {
   getMock.mockReset()
+  replaceMock.mockReset()
   getGoogleReviewsMock.mockReset()
   getGoogleReviewsMock.mockResolvedValue({ kind: 'empty' })
+  resetPublicProfileCache()
+  resetPublicServicesCache()
+  document.body.innerHTML = ''
 })
 
 describe('PublicBusinessEntryPage', () => {
-  it('shows the loading state while the request is in flight', async () => {
-    let resolveRequest!: (value: unknown) => void
-    getMock.mockReturnValueOnce(
-      new Promise((resolve) => {
-        resolveRequest = resolve
-      }),
-    )
-    const wrapper = mountEntryPage({ slug: 'barberia-ejemplo' })
-
-    expect(wrapper.text()).toContain('Abriendo tu reserva')
-
-    resolveRequest({ data: undefined, error: undefined, response: errorResponse(500) })
-    await flushPromises()
+  it('shows silhouettes with an accessible heading while loading, without a retry', async () => {
+    getMock.mockReturnValue(new Promise(() => {}))
+    const wrapper = mountEntryPage()
+    expect(wrapper.get('main').attributes('aria-busy')).toBe('true')
+    expect(wrapper.get('h1').text()).toBe('Abriendo la reserva…')
+    expect(wrapper.find('button').exists()).toBe(false)
+    expect(await axe(wrapper.element)).toHaveNoViolations()
   })
 
-  it('resolves the slug from props, without reading useRoute (CA-090-03)', async () => {
-    getMock.mockResolvedValueOnce({
-      data: {
-        name: 'Barbería Ejemplo',
-        timezone: 'America/Bogota',
-        contactEmail: null,
-        contactPhone: null,
-        vocabulary: initialVocabulary,
-      },
-      error: undefined,
-      response: okResponse(),
-    })
-    mountEntryPage({ slug: 'barberia-ejemplo' })
+  it('asks for the profile and the catalog of the slug from props (CA-090-03)', async () => {
+    respond(profile)
+    mountEntryPage('barberia-ejemplo')
     await flushPromises()
-
-    expect(getMock).toHaveBeenCalledWith(
-      '/public/businesses/{slug}',
-      expect.objectContaining({ params: { path: { slug: 'barberia-ejemplo' } } }),
+    const calls = getMock.mock.calls.map(([path, init]) => [path, init.params.path.slug])
+    expect(calls).toEqual(
+      expect.arrayContaining([
+        ['/public/businesses/{slug}', 'barberia-ejemplo'],
+        ['/public/businesses/{slug}/services', 'barberia-ejemplo'],
+      ]),
     )
   })
 
-  it('renders the business name and its local time on success (CA-090-01)', async () => {
-    getMock.mockResolvedValueOnce({
-      data: {
-        name: 'Barbería Ejemplo',
-        timezone: 'America/Bogota',
-        contactEmail: null,
-        contactPhone: null,
-        vocabulary: initialVocabulary,
-      },
-      error: undefined,
-      response: okResponse(),
-    })
-    const wrapper = mountEntryPage({ slug: 'barberia-ejemplo' })
+  it('renders the business as protagonist and its services with duration and price', async () => {
+    respond(profile)
+    const wrapper = mountEntryPage()
     await flushPromises()
 
-    expect(wrapper.text()).toContain('Barbería Ejemplo')
-    expect(wrapper.text()).toContain('Hora local del negocio')
+    expect(wrapper.get('h1').text()).toBe('Barbería Ejemplo')
+    expect(wrapper.text()).toMatch(/Son las \d{1,2}:\d{2}/)
+    const rows = wrapper.findAll('.bk-service')
+    expect(rows).toHaveLength(2)
+    expect(rows[0]!.text()).toContain('Corte clásico')
+    expect(rows[0]!.text()).toContain('45 min')
+    expect(rows[0]!.text()).toContain('35.000')
+    expect(rows[1]!.text()).toContain('1 h 30 min')
+    expect(rows[1]!.find('.bk-service__desc').exists()).toBe(false)
+    expect(replaceMock).not.toHaveBeenCalled()
   })
 
-  it('keeps the business clock moving instead of freezing the time of the first paint (DEC-111)', async () => {
-    vi.useFakeTimers()
-    try {
-      vi.setSystemTime(new Date('2026-09-15T19:00:00Z'))
-      getMock.mockResolvedValueOnce({
-        data: {
-          name: 'Barbería Ejemplo',
-          timezone: 'America/Bogota',
-          contactEmail: null,
-          contactPhone: null,
-          vocabulary: initialVocabulary,
-        },
-        error: undefined,
-        response: okResponse(),
-      })
-      const wrapper = mountEntryPage({ slug: 'barberia-ejemplo' })
-      await flushPromises()
-      expect(wrapper.text()).toMatch(/2:00\s*p\.\s*m\./)
-
-      vi.setSystemTime(new Date('2026-09-15T19:05:00Z'))
-      await vi.advanceTimersByTimeAsync(15_000)
-      expect(wrapper.text()).toMatch(/2:05\s*p\.\s*m\./)
-
-      // Al salir de la pantalla el reloj deja de correr.
-      wrapper.unmount()
-      expect(vi.getTimerCount()).toBe(0)
-    } finally {
-      vi.useRealTimers()
-    }
+  it('goes straight to «Día y hora» when there is a single service, replacing the entry', async () => {
+    respond(profile, [services[0]!])
+    mountEntryPage('una-sola')
+    await flushPromises()
+    expect(replaceMock).toHaveBeenCalledWith({
+      name: 'reserva-publica-horario',
+      params: { slug: 'una-sola', serviceId: 's-1' },
+    })
   })
 
-  it('shows contact when configured and omits the block when both are absent (CA-090-04)', async () => {
-    getMock.mockResolvedValueOnce({
-      data: {
-        name: 'Barbería Ejemplo',
-        timezone: 'America/Bogota',
-        contactEmail: 'contacto@ejemplo.test',
-        contactPhone: '+573001234567',
-        vocabulary: initialVocabulary,
-      },
-      error: undefined,
-      response: okResponse(),
-    })
-    const withContact = mountEntryPage({ slug: 'barberia-ejemplo' })
+  it('says so, without an error, when the business has no services yet', async () => {
+    respond(profile, [])
+    const wrapper = mountEntryPage()
     await flushPromises()
-    expect(withContact.text()).toContain('contacto@ejemplo.test')
-    // Bandera, prefijo y número separados, no el E.164 pegado.
-    const phoneRow = withContact.get('.pb-contact__row .phone-display')
-    expect(phoneRow.get('.phone-display__dial').text()).toBe('+57')
-    expect(phoneRow.get('.phone-display__number').text()).toBe('300 123 4567')
-    expect(withContact.text()).not.toContain('+573001234567')
-
-    getMock.mockResolvedValueOnce({
-      data: {
-        name: 'Barbería Ejemplo',
-        timezone: 'America/Bogota',
-        contactEmail: null,
-        contactPhone: null,
-        vocabulary: initialVocabulary,
-      },
-      error: undefined,
-      response: okResponse(),
-    })
-    const withoutContact = mountEntryPage({ slug: 'barberia-ejemplo' })
-    await flushPromises()
-    expect(withoutContact.text()).not.toContain('Teléfono:')
-    expect(withoutContact.text()).not.toContain('Correo:')
-  })
-
-  it('never renders an internal id, businessId or the slug itself in the DOM (CA-090-04)', async () => {
-    getMock.mockResolvedValueOnce({
-      data: {
-        name: 'Barbería Ejemplo',
-        timezone: 'America/Bogota',
-        contactEmail: null,
-        contactPhone: null,
-        vocabulary: initialVocabulary,
-      },
-      error: undefined,
-      response: okResponse(),
-    })
-    const wrapper = mountEntryPage({ slug: 'barberia-secreta-interna' })
-    await flushPromises()
-
-    expect(wrapper.html()).not.toContain('barberia-secreta-interna')
-    expect(wrapper.html().toLowerCase()).not.toContain('businessid')
-  })
-
-  it('shows the same uniform message for a 404 (malformed, unknown or non-publishable, CA-090-02)', async () => {
-    getMock.mockResolvedValueOnce({
-      data: undefined,
-      error: { status: 404 },
-      response: errorResponse(404),
-    })
-    const wrapper = mountEntryPage({ slug: 'no-existe' })
-    await flushPromises()
-
-    expect(wrapper.text()).toContain('No encontramos ese enlace')
-  })
-
-  it('offers a retry action on a network error, re-fetching the same slug (CA-090-05)', async () => {
-    getMock.mockRejectedValueOnce(new TypeError('Failed to fetch'))
-    const wrapper = mountEntryPage({ slug: 'barberia-ejemplo' })
-    await flushPromises()
-    expect(wrapper.text()).toContain('No pudimos conectar')
-
-    getMock.mockResolvedValueOnce({
-      data: {
-        name: 'Barbería Ejemplo',
-        timezone: 'America/Bogota',
-        contactEmail: null,
-        contactPhone: null,
-        vocabulary: initialVocabulary,
-      },
-      error: undefined,
-      response: okResponse(),
-    })
-    await wrapper.find('button').trigger('click')
-    await flushPromises()
-
-    expect(wrapper.text()).toContain('Barbería Ejemplo')
-    expect(getMock).toHaveBeenCalledTimes(2)
-    expect(getMock).toHaveBeenLastCalledWith(
-      '/public/businesses/{slug}',
-      expect.objectContaining({ params: { path: { slug: 'barberia-ejemplo' } } }),
-    )
-  })
-
-  it('shows the requestId on an unexpected error, without leaking the raw problem body', async () => {
-    getMock.mockResolvedValueOnce({
-      data: undefined,
-      error: { status: 500, code: 'internal', title: 'Error interno', requestId: 'req-abc-123' },
-      response: errorResponse(500),
-    })
-    const wrapper = mountEntryPage({ slug: 'barberia-ejemplo' })
-    await flushPromises()
-
-    expect(wrapper.text()).toContain('req-abc-123')
-    expect(wrapper.text()).toContain('Ocurrió un error inesperado')
-  })
-
-  it('shows the Google reviews section only when the listing has data (HU-101, CA-101-01)', async () => {
-    getMock.mockResolvedValueOnce({
-      data: profile,
-      error: undefined,
-      response: okResponse(),
-    })
-    getGoogleReviewsMock.mockResolvedValueOnce({
-      kind: 'success',
-      reviews: { rating: 4.7, ratingCount: 128, mapsUrl: null, reviews: [] },
-    })
-    const wrapper = mountEntryPage({ slug: 'barberia-ejemplo' })
-    await flushPromises()
-
-    expect(getGoogleReviewsMock).toHaveBeenCalledWith('barberia-ejemplo')
-    expect(wrapper.text()).toContain('Opiniones en Google')
-  })
-
-  it('shows no Google section and no error when there is nothing to show (CA-101-01, CA-101-03)', async () => {
-    getMock.mockResolvedValueOnce({
-      data: profile,
-      error: undefined,
-      response: okResponse(),
-    })
-    const wrapper = mountEntryPage({ slug: 'barberia-ejemplo' })
-    await flushPromises()
-
-    expect(wrapper.text()).not.toContain('Google')
+    expect(wrapper.text()).toContain('aún no tiene servicios para reservar en línea')
     expect(wrapper.find('[role="alert"]').exists()).toBe(false)
   })
 
-  it('has no accessibility violations in the loading state', async () => {
-    getMock.mockReturnValueOnce(new Promise(() => {}))
-    const wrapper = mountEntryPage({ slug: 'barberia-ejemplo' })
-    const results = await axe(wrapper.element)
-    expect(results).toHaveNoViolations()
+  it('shows contact when configured and omits the block when both are absent (CA-090-04)', async () => {
+    respond({ ...profile, contactEmail: 'hola@example.test', contactPhone: '+573001234567' })
+    const withContact = mountEntryPage('con-contacto')
+    await flushPromises()
+    expect(withContact.get('.pb-contact').text()).toContain('hola@example.test')
+
+    resetPublicProfileCache()
+    respond(profile)
+    const without = mountEntryPage('sin-contacto')
+    await flushPromises()
+    expect(without.find('.pb-contact').exists()).toBe(false)
+  })
+
+  it('never renders an internal id or the slug itself in the DOM (CA-090-04)', async () => {
+    respond(profile)
+    const wrapper = mountEntryPage('slug-secreto')
+    await flushPromises()
+    expect(wrapper.html()).not.toContain('slug-secreto')
+    expect(wrapper.html()).not.toContain('s-1')
+  })
+
+  it('guides on an unknown link, with no retry that would change nothing (CA-090-02)', async () => {
+    respond(null, services, 404)
+    const wrapper = mountEntryPage('no-existe')
+    await flushPromises()
+    const alert = wrapper.get('[role="alert"]')
+    expect(alert.text()).toContain('Este enlace no lleva a ninguna agenda')
+    expect(alert.text()).toContain('Pide al negocio el enlace de nuevo')
+    expect(wrapper.find('button').exists()).toBe(false)
+    expect(await axe(wrapper.element)).toHaveNoViolations()
+  })
+
+  it('offers a retry on a network error, asking again for the same slug (CA-090-05)', async () => {
+    getMock.mockRejectedValue(new TypeError('Failed to fetch'))
+    const wrapper = mountEntryPage('barberia-red')
+    await flushPromises()
+    expect(wrapper.text()).toContain('No pudimos conectar')
+
+    respond(profile)
+    await wrapper.get('button').trigger('click')
+    await flushPromises()
+    expect(wrapper.get('h1').text()).toBe('Barbería Ejemplo')
+  })
+
+  it('shows the requestId on an unexpected error, without leaking the raw problem', async () => {
+    respond(null, services, 500)
+    const wrapper = mountEntryPage()
+    await flushPromises()
+    expect(wrapper.text()).toContain('req-42')
+    expect(wrapper.text()).not.toContain('status')
+  })
+
+  it('draws today’s daylight strip only from real opening hours, with a summary', async () => {
+    respond(profile)
+    const without = mountEntryPage('sin-horario')
+    await flushPromises()
+    expect(without.find('.daylight').exists()).toBe(false)
+    expect(without.find('.pb-hours').exists()).toBe(false)
+
+    const today = new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Bogota' }).format(
+      new Date(),
+    )
+    resetPublicProfileCache()
+    respond({
+      ...profile,
+      openingHours: [{ dayOfWeek: 'MONDAY', opens: '08:00', closes: '18:00' }],
+      today: {
+        date: today,
+        dayOfWeek: 'MONDAY',
+        holiday: null,
+        hours: [{ opens: '08:00', closes: '18:00' }],
+      },
+    })
+    const withHours = mountEntryPage('con-horario')
+    await flushPromises()
+    const strip = withHours.get('.daylight[role="img"]')
+    expect(strip.attributes('aria-label')).toContain('Hoy atiende de 8:00 a. m. a 6:00 p. m.')
+    expect(withHours.find('.pb-hours').exists()).toBe(true)
+  })
+
+  it('does not invent today when the profile day is not today in the business zone', async () => {
+    respond({
+      ...profile,
+      openingHours: [{ dayOfWeek: 'SATURDAY', opens: '08:00', closes: '16:00' }],
+      closedOnHolidays: true,
+      today: { date: '2000-01-01', dayOfWeek: 'SATURDAY', holiday: null, hours: [] },
+    })
+    const wrapper = mountEntryPage()
+    await flushPromises()
+    expect(wrapper.find('.daylight').exists()).toBe(false)
+    expect(wrapper.get('.pb-hours').text()).toContain('8:00 a. m. – 4:00 p. m.')
+  })
+
+  it('shows where the business is when it has a location, and nothing when not (CA-102-02/04)', async () => {
+    respond({
+      ...profile,
+      location: { address: 'Calle 10 # 5-20, Bogotá', latitude: 4.598056, longitude: -74.076111 },
+    })
+    const withMap = mountEntryPage('con-mapa')
+    await flushPromises()
+    const section = withMap.get('.pb-location')
+    expect(section.get('h2').text()).toBe('Dónde estamos')
+    expect(section.text()).toContain('Calle 10 # 5-20, Bogotá')
+    expect(withMap.text()).toContain('En el local')
+
+    resetPublicProfileCache()
+    respond(profile)
+    const without = mountEntryPage('sin-mapa')
+    await flushPromises()
+    expect(without.find('.pb-location').exists()).toBe(false)
+    expect(without.text()).not.toContain('En el local')
+  })
+
+  it('asks for the Google reviews of the link and shows nothing when there are none (HU-101)', async () => {
+    respond(profile)
+    const wrapper = mountEntryPage()
+    await flushPromises()
+    expect(getGoogleReviewsMock).toHaveBeenCalledWith('barberia-ejemplo')
+    expect(wrapper.find('.pb-google').exists()).toBe(false)
   })
 
   it('has no accessibility violations on success', async () => {
-    getMock.mockResolvedValueOnce({
-      data: {
-        name: 'Barbería Ejemplo',
-        timezone: 'America/Bogota',
-        contactEmail: 'contacto@ejemplo.test',
-        contactPhone: '+573001234567',
-        vocabulary: initialVocabulary,
-      },
-      error: undefined,
-      response: okResponse(),
-    })
-    const wrapper = mountEntryPage({ slug: 'barberia-ejemplo' })
+    respond({ ...profile, contactEmail: 'hola@example.test' })
+    const wrapper = mountEntryPage()
     await flushPromises()
-    const results = await axe(wrapper.element)
-    expect(results).toHaveNoViolations()
-  })
-
-  it('shows where the business is, with the map and the address, when it has a location (CA-102-04)', async () => {
-    getMock.mockResolvedValueOnce({
-      data: {
-        name: 'Barbería Ejemplo',
-        timezone: 'America/Bogota',
-        contactEmail: null,
-        contactPhone: null,
-        vocabulary: initialVocabulary,
-        location: { address: 'Calle 10 # 5-20, Bogotá', latitude: 4.598056, longitude: -74.076111 },
-      },
-      error: undefined,
-      response: okResponse(),
-    })
-    const wrapper = mountEntryPage({ slug: 'barberia-ubicacion-1' })
-    await flushPromises()
-
-    const section = wrapper.get('.pb-location')
-    expect(section.get('h2').text()).toBe('Dónde estamos')
-    expect(section.get('iframe').attributes('src')).toContain('4.598056')
-    expect(section.text()).toContain('Calle 10 # 5-20, Bogotá')
-  })
-
-  it.each([
-    ['location is null (switch off or not geocoded: CA-102-02, CA-102-03)', { location: null }],
-    ['the server omits location', {}],
-  ])('renders no location section, and no error, when %s', async (_name, extra) => {
-    getMock.mockResolvedValueOnce({
-      data: {
-        name: 'Barbería Ejemplo',
-        timezone: 'America/Bogota',
-        contactEmail: null,
-        contactPhone: null,
-        vocabulary: initialVocabulary,
-        ...extra,
-      },
-      error: undefined,
-      response: okResponse(),
-    })
-    const wrapper = mountEntryPage({ slug: 'barberia-ubicacion-2' })
-    await flushPromises()
-
-    expect(wrapper.find('.pb-location').exists()).toBe(false)
-    expect(wrapper.find('iframe').exists()).toBe(false)
-    expect(wrapper.text()).not.toContain('Dónde estamos')
-    expect(wrapper.text()).toContain('Reservar un turno')
-  })
-
-  it('draws the clock dial with the business hour, and keeps it out of the accessibility tree', async () => {
-    vi.useFakeTimers()
-    try {
-      vi.setSystemTime(new Date('2026-09-15T19:30:00Z'))
-      getMock.mockResolvedValueOnce({
-        data: { ...profile, name: 'Barbería Ejemplo' },
-        error: undefined,
-        response: okResponse(),
-      })
-      const wrapper = mountEntryPage({ slug: 'barberia-reloj' })
-      await flushPromises()
-
-      const dial = wrapper.get('svg.pb-dial')
-      expect(dial.attributes('aria-hidden')).toBe('true')
-      // 14:30 en Bogotá: el texto de la hora sigue siendo la señal para quien no ve el reloj.
-      expect(wrapper.get('.pb-clock__time').text()).toMatch(/2:30\s*p\.\s*m\./)
-      expect(wrapper.get('.pb-clock__label').text()).toBe('Hora local del negocio')
-    } finally {
-      vi.useRealTimers()
-    }
-  })
-
-  it('puts the primary action before the data sheet, so it never waits behind the map', async () => {
-    getMock.mockResolvedValueOnce({
-      data: {
-        ...profile,
-        location: { address: 'Calle 10 # 5-20, Bogotá', latitude: 4.598056, longitude: -74.076111 },
-      },
-      error: undefined,
-      response: okResponse(),
-    })
-    const wrapper = mountEntryPage({ slug: 'barberia-orden' })
-    await flushPromises()
-
-    const cta = wrapper.get('.pb-cta')
-    const plate = wrapper.get('.pb-plate')
-    expect(cta.element.compareDocumentPosition(plate.element)).toBe(
-      Node.DOCUMENT_POSITION_FOLLOWING,
-    )
-    expect(wrapper.get('.pb-steps').text()).toContain('Profesional')
-  })
-
-  it('frames the map as a plan with its coordinates, and the modes of attention only from the profile', async () => {
-    getMock.mockResolvedValueOnce({
-      data: {
-        ...profile,
-        offersHomeService: true,
-        location: { address: 'Calle 10 # 5-20, Bogotá', latitude: 4.598056, longitude: -74.076111 },
-      },
-      error: undefined,
-      response: okResponse(),
-    })
-    const wrapper = mountEntryPage({ slug: 'barberia-plano' })
-    await flushPromises()
-
-    expect(wrapper.get('.pb-plano__coords').text()).toBe('4.5981° N · 74.0761° O')
-    expect(wrapper.get('.pb-contact').text()).toContain('En el local · A domicilio')
-  })
-
-  it('omits the attention row when the profile declares neither a place nor home service', async () => {
-    getMock.mockResolvedValueOnce({ data: profile, error: undefined, response: okResponse() })
-    const wrapper = mountEntryPage({ slug: 'barberia-sin-modalidad' })
-    await flushPromises()
-
-    expect(wrapper.find('.pb-contact').exists()).toBe(false)
-    expect(wrapper.text()).not.toContain('Atención')
-  })
-
-  it('has no accessibility violations on success with a location', async () => {
-    getMock.mockResolvedValueOnce({
-      data: {
-        name: 'Barbería Ejemplo',
-        timezone: 'America/Bogota',
-        contactEmail: 'contacto@ejemplo.test',
-        contactPhone: '+573001234567',
-        vocabulary: initialVocabulary,
-        location: { address: 'Calle 10 # 5-20, Bogotá', latitude: 4.598056, longitude: -74.076111 },
-      },
-      error: undefined,
-      response: okResponse(),
-    })
-    const wrapper = mountEntryPage({ slug: 'barberia-ubicacion-3' })
-    await flushPromises()
-    // jsdom no resuelve el contenido del iframe: axe revisa el resto de la página.
-    const results = await axe(wrapper.element, { iframes: false })
-    expect(results).toHaveNoViolations()
-  })
-
-  it('shows the opening hours only when the business configured them (CA-107-06)', async () => {
-    getMock.mockResolvedValueOnce({ data: profile, error: undefined, response: okResponse() })
-    const without = mountEntryPage({ slug: 'sin-horario' })
-    await flushPromises()
-    expect(without.find('.pb-hours').exists()).toBe(false)
-
-    getMock.mockResolvedValueOnce({
-      data: {
-        ...profile,
-        openingHours: [{ dayOfWeek: 'SATURDAY', opens: '08:00', closes: '16:00' }],
-        closedOnHolidays: true,
-        today: { date: '2000-01-01', dayOfWeek: 'SATURDAY', holiday: null, hours: [] },
-      },
-      error: undefined,
-      response: okResponse(),
-    })
-    const withHours = mountEntryPage({ slug: 'con-horario' })
-    await flushPromises()
-    const section = withHours.get('section[aria-labelledby="pb-hours-title"]')
-    expect(section.get('h2').text()).toBe('Horario')
-    expect(section.text()).toContain('8:00 a. m. – 4:00 p. m.')
-    expect(section.text()).toContain('Cerramos los festivos.')
-    // `today` es de otra fecha: la entrada no inventa un «abierto» o «cerrado».
-    expect(section.find('.pb-hours__now').exists()).toBe(false)
-  })
-
-  it('has no accessibility violations on the not-found error state', async () => {
-    getMock.mockResolvedValueOnce({
-      data: undefined,
-      error: { status: 404 },
-      response: errorResponse(404),
-    })
-    const wrapper = mountEntryPage({ slug: 'no-existe' })
-    await flushPromises()
-    const results = await axe(wrapper.element)
-    expect(results).toHaveNoViolations()
+    expect(await axe(wrapper.element)).toHaveNoViolations()
   })
 })

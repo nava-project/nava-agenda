@@ -13,6 +13,13 @@
     <meta name="theme-color" content="#0b1022" media="(prefers-color-scheme: dark)" />
     <meta name="color-scheme" content="light dark" />
     <title>Nava Agenda · Agenda de citas</title>
+    <!-- Antes de que llegue el CSS de la app: sin el margen del navegador, la
+         primera pintura no se desplaza 8 px al cargar los estilos (CLS). -->
+    <style>
+      body {
+        margin: 0;
+      }
+    </style>
   </head>
   <body>
     <div id="app"></div>

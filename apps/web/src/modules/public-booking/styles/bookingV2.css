@@ -1,0 +1,1289 @@
+/*
+ * Reserva pública v2 · «La luz del día» (DEC-188).
+ *
+ * El cascarón, la entrada con el catálogo y «Día y hora». Las clases llevan el
+ * prefijo `bk-`; «Tus datos» y la confirmación aún usan el lenguaje `pb-` de
+ * publicBooking.css, que se apoya en los mismos tokens y por eso convive.
+ *
+ * Reparto del color: el negocio pinta la acción, la selección y los filetes
+ * (`--color-brand-accent-*`, DEC-171); la marca pone el Sol de la hora elegida
+ * y el amanecer de la llegada. El foco es un anillo de 2 px del color del texto.
+ *
+ * Movimiento: solo transform, opacity y clip-path. Las animaciones de llegada
+ * se llaman `llega-*` (un clic o una tecla las terminan, useArrival.ts) y todo
+ * se apaga con movimiento reducido: sin animación la pantalla ya está compuesta.
+ */
+
+.bk {
+  --bk-accent: var(--color-brand-accent-surface);
+  --bk-on-accent: var(--color-brand-accent-text);
+  --bk-line: var(--color-border-subtle);
+  --bk-ease: cubic-bezier(0.2, 0.7, 0.2, 1);
+  --bk-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
+  --bk-gutter: var(--space-4);
+  --bk-max: 1120px;
+
+  color: var(--color-text-primary);
+  background-color: var(--color-canvas);
+  font-family: var(--font-sans);
+}
+
+.bk :where(a, button):focus-visible {
+  outline: 2px solid var(--color-focus);
+  outline-offset: 2px;
+}
+
+@media (min-width: 768px) {
+  .bk {
+    --bk-gutter: var(--space-8);
+  }
+}
+
+/* ── Cabecera: el negocio (o volver) y los pasos ───────────────────────── */
+
+.bk-top {
+  position: relative;
+  z-index: 2;
+  border-bottom: 1px solid var(--bk-line);
+}
+
+.bk-top__inner {
+  display: flex;
+  gap: var(--space-4);
+  align-items: center;
+  justify-content: space-between;
+  max-width: var(--bk-max);
+  min-height: 56px;
+  padding: 0 var(--bk-gutter);
+  margin: 0 auto;
+}
+
+.bk-back,
+.bk-top__business {
+  display: inline-flex;
+  gap: var(--space-2);
+  align-items: center;
+  min-height: 44px;
+  overflow: hidden;
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--color-text-primary);
+  text-decoration: none;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.bk-top__lead {
+  display: flex;
+  gap: var(--space-3);
+  align-items: center;
+  min-width: 0;
+}
+
+.bk-top__name {
+  overflow: hidden;
+  font-size: 14px;
+  color: var(--color-text-secondary);
+  text-decoration: none;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.bk-top__name::before {
+  margin-right: var(--space-3);
+  content: '·';
+}
+
+.bk-top__name:hover {
+  color: var(--color-text-primary);
+}
+
+@media (max-width: 767px) {
+  .bk-top__name {
+    display: none;
+  }
+}
+
+.bk-back__arrow {
+  transition: transform var(--motion-duration-fast) var(--bk-ease);
+}
+
+.bk-back:hover .bk-back__arrow {
+  transform: translateX(-3px);
+}
+
+.bk-steps {
+  display: flex;
+  flex-shrink: 0;
+  gap: var(--space-4);
+  align-items: center;
+  padding: 0;
+  margin: 0;
+  list-style: none;
+}
+
+.bk-steps__item {
+  display: inline-flex;
+  gap: 6px;
+  align-items: center;
+  font-size: 13px;
+  color: var(--color-text-secondary);
+}
+
+.bk-steps__mark {
+  width: 8px;
+  height: 8px;
+  border: 1.5px solid currentcolor;
+  border-radius: 1px;
+  transform: rotate(45deg);
+  transition:
+    background-color var(--motion-duration-base) var(--bk-ease),
+    border-color var(--motion-duration-base) var(--bk-ease);
+}
+
+.bk-steps__item--done .bk-steps__mark {
+  background-color: var(--bk-accent);
+  border-color: var(--bk-accent);
+}
+
+.bk-steps__item--current {
+  font-weight: 600;
+  color: var(--color-text-primary);
+}
+
+.bk-steps__item--current .bk-steps__mark {
+  background-color: currentcolor;
+}
+
+/* En móvil solo se nombra el paso actual; los demás quedan como marcas. */
+@media (max-width: 639px) {
+  .bk-steps {
+    gap: var(--space-2);
+  }
+
+  .bk-steps__item:not(.bk-steps__item--current) .bk-steps__label {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
+  }
+}
+
+/* ── Página ─────────────────────────────────────────────────────────────── */
+
+.bk-page {
+  position: relative;
+  z-index: 1;
+  flex: 1;
+  width: 100%;
+  /* El pie empieza siempre bajo el pliegue: cuando llega el contenido (o la
+     pantalla siguiente), nada visible se desplaza (CLS). */
+  min-height: calc(100dvh - 57px);
+  max-width: var(--bk-max);
+  padding: var(--space-8) var(--bk-gutter) var(--space-12);
+  margin: 0 auto;
+}
+
+.bk-kicker {
+  margin: 0 0 var(--space-2);
+  font-size: 14px;
+  line-height: 20px;
+  color: var(--color-text-secondary);
+}
+
+.bk-title {
+  margin: 0 0 var(--space-6);
+  font-size: clamp(28px, 4vw, 34px);
+  font-weight: 600;
+  line-height: 1.1;
+  letter-spacing: -0.015em;
+}
+
+.bk-section-title {
+  margin: 0 0 var(--space-4);
+  font-size: 20px;
+  font-weight: 600;
+  line-height: 26px;
+}
+
+.bk-empty {
+  padding: var(--space-6);
+  color: var(--color-text-secondary);
+  background-color: var(--color-surface);
+  border: 1px dashed var(--color-border-control);
+  border-radius: var(--radius-lg);
+}
+
+.bk-empty p {
+  margin: 0 0 var(--space-3);
+}
+
+.bk-empty p:last-child {
+  margin-bottom: 0;
+}
+
+.bk-link {
+  min-height: 44px;
+  padding: 0;
+  font: inherit;
+  font-weight: 600;
+  color: var(--color-text-primary);
+  text-decoration: underline;
+  text-decoration-color: var(--bk-accent);
+  text-decoration-thickness: 2px;
+  text-underline-offset: 4px;
+  cursor: pointer;
+  background: none;
+  border: 0;
+}
+
+/* ── Entrada y catálogo ─────────────────────────────────────────────────── */
+
+.bk-hero {
+  max-width: 720px;
+  margin-bottom: var(--space-10);
+}
+
+.bk-hero__name {
+  margin: 0;
+  font-size: clamp(34px, 6vw, 56px);
+  font-weight: 600;
+  line-height: 1.04;
+  letter-spacing: -0.025em;
+  overflow-wrap: anywhere;
+}
+
+.bk-hero__meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-1) var(--space-4);
+  margin: var(--space-3) 0 0;
+  font-size: 15px;
+  color: var(--color-text-secondary);
+  font-variant-numeric: tabular-nums;
+}
+
+.bk-hero__meta span + span::before {
+  margin-right: var(--space-4);
+  content: '·';
+}
+
+.bk-hero__strip {
+  margin-top: var(--space-6);
+}
+
+.bk-entry__grid {
+  display: grid;
+  gap: var(--space-10);
+}
+
+@media (min-width: 1000px) {
+  .bk-entry__grid {
+    grid-template-columns: minmax(0, 1fr) 360px;
+    gap: var(--space-12);
+    align-items: start;
+  }
+}
+
+.bk-services__list {
+  display: grid;
+  gap: var(--space-3);
+  padding: 0;
+  margin: 0;
+  list-style: none;
+}
+
+.bk-service {
+  position: relative;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: var(--space-1) var(--space-4);
+  min-height: 84px;
+  padding: var(--space-4) var(--space-5);
+  color: var(--color-text-primary);
+  text-decoration: none;
+  background-color: var(--color-surface);
+  border: 1px solid var(--bk-line);
+  border-radius: var(--radius-lg);
+  transition:
+    border-color var(--motion-duration-fast) var(--bk-ease),
+    transform var(--motion-duration-fast) var(--bk-ease);
+}
+
+.bk-service:hover {
+  border-color: var(--bk-accent);
+}
+
+.bk-service:active {
+  transform: scale(0.99);
+}
+
+.bk-service__name {
+  grid-column: 1;
+  font-size: 17px;
+  font-weight: 600;
+  line-height: 24px;
+}
+
+.bk-service__desc {
+  display: -webkit-box;
+  grid-column: 1;
+  overflow: hidden;
+  font-size: 14px;
+  line-height: 20px;
+  color: var(--color-text-secondary);
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+}
+
+.bk-service__meta {
+  display: flex;
+  grid-column: 1;
+  gap: var(--space-4);
+  font-size: 14px;
+  line-height: 20px;
+  color: var(--color-text-secondary);
+  font-variant-numeric: tabular-nums;
+}
+
+.bk-service__price {
+  font-weight: 600;
+  color: var(--color-text-primary);
+}
+
+.bk-service__go {
+  grid-row: 1 / span 3;
+  grid-column: 2;
+  align-self: center;
+  font-size: 20px;
+  color: var(--bk-accent);
+  transition: transform var(--motion-duration-fast) var(--bk-ease);
+}
+
+.bk-service:hover .bk-service__go {
+  transform: translateX(4px);
+}
+
+.bk-manage {
+  margin: var(--space-6) 0 0;
+  font-size: 15px;
+  color: var(--color-text-secondary);
+}
+
+.bk-manage a {
+  font-weight: 600;
+  color: var(--color-text-primary);
+  text-decoration-color: var(--bk-accent);
+  text-decoration-thickness: 2px;
+  text-underline-offset: 4px;
+}
+
+/* El plato del local hereda el lenguaje pb- pero sobre la superficie v2. */
+.bk-local.pb-plate {
+  display: grid;
+  gap: var(--space-6);
+  padding: var(--space-5);
+  margin: 0;
+  color: var(--color-text-primary);
+  background: var(--color-surface);
+  border: 1px solid var(--bk-line);
+  border-radius: var(--radius-lg);
+}
+
+.bk-local.pb-plate::before,
+.bk-local .pb-plano::before,
+.bk-local .pb-plano::after {
+  display: none;
+}
+
+/* Rótulos del plato en tipo oración y texto secundario, no versalitas. */
+.bk-local .pb-contact dt,
+.bk-local .pb-location__title,
+.bk-local .pb-hours__title,
+.bk-local .pb-google__title {
+  font-size: 13px;
+  font-weight: 500;
+  letter-spacing: 0;
+  color: var(--color-text-secondary);
+  text-transform: none;
+}
+
+.bk-local .pb-contact {
+  border-top: 0;
+}
+
+.bk-local .pb-contact__row:last-child {
+  border-bottom: 0;
+}
+
+.bk-local .pb-plano {
+  padding: 0;
+}
+
+/* ── Día y hora ─────────────────────────────────────────────────────────── */
+
+.bk-daytime {
+  padding-bottom: calc(var(--space-12) + 96px);
+}
+
+.bk-daytime__grid {
+  display: grid;
+  gap: var(--space-10);
+}
+
+@media (min-width: 1024px) {
+  .bk-daytime {
+    padding-bottom: var(--space-12);
+  }
+
+  .bk-daytime__grid {
+    grid-template-columns: minmax(0, 1fr) 340px;
+    gap: var(--space-12);
+    align-items: start;
+  }
+}
+
+.bk-daytime__main {
+  min-width: 0;
+}
+
+.bk-attends {
+  display: flex;
+  gap: var(--space-3);
+  align-items: center;
+  margin: 0 0 var(--space-6);
+  font-size: 16px;
+}
+
+.bk-chips {
+  display: flex;
+  gap: var(--space-2);
+  padding: 2px var(--bk-gutter) var(--space-2);
+  margin: 0 calc(var(--bk-gutter) * -1) var(--space-3);
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+
+.bk-chips::-webkit-scrollbar {
+  display: none;
+}
+
+@media (min-width: 768px) {
+  .bk-chips {
+    flex-wrap: wrap;
+    padding: 2px 0 0;
+    margin: 0 0 var(--space-4);
+    overflow: visible;
+  }
+}
+
+.bk-chip {
+  display: inline-flex;
+  gap: var(--space-2);
+  align-items: center;
+  flex: 0 0 auto;
+  min-height: 44px;
+  padding: 0 var(--space-4) 0 var(--space-2);
+  font: inherit;
+  font-size: 15px;
+  font-weight: 500;
+  white-space: nowrap;
+  color: var(--color-text-primary);
+  cursor: pointer;
+  background-color: var(--color-surface);
+  border: 1px solid var(--color-border-control);
+  border-radius: var(--radius-pill);
+  transition:
+    background-color var(--motion-duration-fast) var(--bk-ease),
+    border-color var(--motion-duration-fast) var(--bk-ease);
+}
+
+.bk-chip:hover {
+  border-color: var(--color-text-primary);
+}
+
+.bk-chip[aria-checked='true'] {
+  font-weight: 600;
+  background-color: color-mix(in srgb, var(--bk-accent) 10%, var(--color-surface));
+  border-color: var(--bk-accent);
+  box-shadow: inset 0 0 0 1px var(--bk-accent);
+}
+
+/* «Cualquiera»: tres rombos, la marca de «el que esté libre». */
+.bk-chip__any {
+  width: 28px;
+  height: 28px;
+  padding: 2px;
+  fill: currentcolor;
+  background-color: var(--color-surface-muted);
+  border-radius: 50%;
+}
+
+.bk-chip .professional-avatar {
+  border-radius: 50%;
+}
+
+.bk-pro {
+  display: grid;
+  gap: var(--space-2);
+  max-width: 640px;
+  margin-bottom: var(--space-6);
+}
+
+.bk-pro__desc {
+  margin: 0;
+  font-size: 15px;
+  line-height: 22px;
+  color: var(--color-text-secondary);
+}
+
+.bk-days {
+  display: flex;
+  gap: var(--space-2);
+  padding: var(--space-1) var(--space-1) var(--space-3);
+  margin: var(--space-2) calc(var(--space-1) * -1) var(--space-4);
+  overflow-x: auto;
+  scroll-snap-type: x proximity;
+  scrollbar-width: thin;
+}
+
+.bk-day {
+  display: grid;
+  flex: 0 0 auto;
+  justify-items: center;
+  width: 64px;
+  height: 100px;
+  padding: var(--space-2) 0;
+  font: inherit;
+  color: var(--color-text-primary);
+  cursor: pointer;
+  background-color: var(--color-surface);
+  border: 1px solid var(--bk-line);
+  border-radius: var(--radius-lg);
+  scroll-snap-align: start;
+  transition:
+    background-color var(--motion-duration-fast) var(--bk-ease),
+    border-color var(--motion-duration-fast) var(--bk-ease),
+    transform var(--motion-duration-fast) var(--bk-ease);
+}
+
+.bk-day:hover {
+  border-color: var(--color-text-primary);
+}
+
+.bk-day:active {
+  transform: scale(0.97);
+}
+
+.bk-day__weekday,
+.bk-day__month {
+  font-size: 12px;
+  line-height: 16px;
+  color: var(--color-text-secondary);
+  text-transform: capitalize;
+}
+
+/* El mes solo cuando empieza (o cambia); vacío, conserva su renglón. */
+.bk-day__month {
+  min-height: 16px;
+  font-weight: 600;
+  color: var(--color-text-primary);
+}
+
+.bk-days-wrap {
+  position: relative;
+}
+
+.bk-days-wrap::before,
+.bk-days-wrap::after {
+  position: absolute;
+  top: 0;
+  bottom: var(--space-3);
+  z-index: 1;
+  width: 56px;
+  pointer-events: none;
+  content: '';
+  opacity: 0;
+  transition: opacity var(--motion-duration-fast) var(--bk-ease);
+}
+
+.bk-days-wrap::before {
+  left: -1px;
+  background: linear-gradient(90deg, var(--color-canvas) 20%, transparent);
+}
+
+.bk-days-wrap::after {
+  right: -1px;
+  background: linear-gradient(270deg, var(--color-canvas) 20%, transparent);
+}
+
+.bk-days-wrap--before::before,
+.bk-days-wrap--after::after {
+  opacity: 1;
+}
+
+.bk-days__nav {
+  position: absolute;
+  top: calc(50% - 24px);
+  z-index: 2;
+  display: grid;
+  place-items: center;
+  width: 36px;
+  height: 36px;
+  padding: 0 0 3px;
+  font: inherit;
+  font-size: 22px;
+  line-height: 1;
+  color: var(--color-text-primary);
+  cursor: pointer;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border-control);
+  border-radius: 50%;
+  box-shadow: 0 2px 8px color-mix(in srgb, #000 12%, transparent);
+}
+
+.bk-days__nav--before {
+  left: 0;
+}
+
+.bk-days__nav--after {
+  right: 0;
+}
+
+/* En táctil se desliza con el dedo: las flechas sobran. */
+@media (hover: none) {
+  .bk-days__nav {
+    display: none;
+  }
+}
+
+.bk-day__number {
+  font-size: 22px;
+  font-weight: 600;
+  line-height: 26px;
+  font-variant-numeric: tabular-nums;
+}
+
+/* La luz libre del día: cuánto le queda frente al día más libre. */
+.bk-day__light {
+  display: block;
+  width: 40px;
+  height: 4px;
+  overflow: hidden;
+  background-color: var(--color-surface-muted);
+  border-radius: 2px;
+}
+
+.bk-day__light span {
+  display: block;
+  height: 100%;
+  background-color: var(--color-text-secondary);
+  border-radius: 2px;
+}
+
+.bk-day[aria-checked='true'] {
+  color: var(--color-canvas);
+  background-color: var(--color-text-primary);
+  border-color: var(--color-text-primary);
+}
+
+.bk-day[aria-checked='true'] .bk-day__weekday,
+.bk-day[aria-checked='true'] .bk-day__month {
+  color: color-mix(in srgb, var(--color-canvas) 80%, transparent);
+}
+
+.bk-day[aria-checked='true'] .bk-day__light {
+  background-color: color-mix(in srgb, var(--color-canvas) 25%, transparent);
+}
+
+.bk-day[aria-checked='true'] .bk-day__light span {
+  background-color: var(--color-sun);
+}
+
+.bk-day-title {
+  margin: 0 0 var(--space-3);
+  font-size: 17px;
+  font-weight: 600;
+  line-height: 24px;
+}
+
+.bk-day-title::first-letter {
+  text-transform: uppercase;
+}
+
+.bk-daytime__strip {
+  margin-bottom: var(--space-6);
+}
+
+.bk-hours {
+  display: grid;
+  gap: var(--space-3);
+  animation: bk-hours-in 220ms var(--bk-ease) both;
+}
+
+.bk-hours__group {
+  --bk-sky: var(--color-sky-morning);
+
+  padding: var(--space-3) var(--space-4) var(--space-4);
+  background-color: color-mix(in srgb, var(--bk-sky) 60%, var(--color-surface));
+  border-radius: var(--radius-lg);
+}
+
+.bk-hours__group--afternoon {
+  --bk-sky: var(--color-sky-afternoon);
+}
+
+.bk-hours__group--night {
+  --bk-sky: var(--color-sky-night);
+}
+
+.bk-hours__label {
+  display: flex;
+  gap: var(--space-2);
+  align-items: center;
+  margin: 0 0 var(--space-3);
+  font-size: 14px;
+  font-weight: 600;
+  line-height: 20px;
+}
+
+/* El cielo de la parte del día: sol entero, medio sol y luna. */
+.bk-hours__sky {
+  width: 12px;
+  height: 12px;
+  background-color: var(--color-sun);
+  border-radius: 50%;
+  box-shadow: 0 0 0 1px color-mix(in srgb, var(--color-text-primary) 25%, transparent);
+}
+
+.bk-hours__group--afternoon .bk-hours__sky {
+  background: linear-gradient(180deg, var(--color-sun) 50%, transparent 50%);
+}
+
+.bk-hours__group--night .bk-hours__sky {
+  background: transparent;
+  box-shadow: inset -4px -1px 0 0 var(--color-text-primary);
+}
+
+.bk-hrow {
+  display: grid;
+  grid-template-columns: 3.25rem 1fr;
+  gap: var(--space-2);
+  align-items: center;
+  padding: var(--space-1) 0;
+}
+
+.bk-hrow + .bk-hrow {
+  border-top: 1px solid color-mix(in srgb, var(--color-text-primary) 8%, transparent);
+}
+
+/* La hora en punto, grande, como en una agenda de papel. */
+.bk-hrow__hour {
+  display: grid;
+  line-height: 1;
+  color: var(--color-text-secondary);
+  transition: color var(--motion-duration-fast) var(--bk-ease);
+}
+
+.bk-hrow__number {
+  font-size: 24px;
+  font-weight: 600;
+  letter-spacing: -0.02em;
+  font-variant-numeric: tabular-nums;
+}
+
+.bk-hrow__meridiem {
+  margin-top: 2px;
+  font-size: 12px;
+}
+
+.bk-hrow--chosen .bk-hrow__hour {
+  color: var(--color-text-primary);
+}
+
+.bk-hrow__mins {
+  display: grid;
+  grid-template-columns: repeat(var(--bk-cols, 4), minmax(44px, 64px));
+  gap: 6px;
+}
+
+.bk-hrow__mins--flow {
+  grid-template-columns: repeat(auto-fill, minmax(52px, 1fr));
+}
+
+/* Un minuto libre. Todos miden lo mismo, también el elegido: nada se mueve. */
+.bk-min {
+  position: relative;
+  min-height: 44px;
+  padding: 0;
+  font: inherit;
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--color-text-primary);
+  cursor: pointer;
+  background-color: color-mix(in srgb, var(--color-surface) 88%, transparent);
+  border: 1px solid color-mix(in srgb, var(--color-text-primary) 16%, transparent);
+  border-radius: var(--radius-pill);
+  font-variant-numeric: tabular-nums;
+  transition:
+    background-color var(--motion-duration-fast) var(--bk-ease),
+    border-color var(--motion-duration-fast) var(--bk-ease),
+    transform 260ms var(--bk-spring);
+}
+
+.bk-min:hover {
+  border-color: var(--color-text-primary);
+}
+
+.bk-min:active {
+  transform: scale(0.95);
+}
+
+/* La elegida es Sol (de la marca) y lleva su rombo colgado del borde. */
+.bk-min[aria-checked='true'] {
+  color: var(--color-on-sun);
+  background-color: var(--color-sun);
+  border-color: var(--color-sun);
+  transform: scale(1.06);
+}
+
+.bk-min[aria-checked='true']::after {
+  position: absolute;
+  top: -4px;
+  right: -2px;
+  width: 9px;
+  height: 9px;
+  content: '';
+  background-color: var(--color-on-sun);
+  border: 2px solid var(--color-sun);
+  border-radius: 1px;
+  transform: rotate(45deg);
+}
+
+@media (max-width: 379px) {
+  .bk-hours__group {
+    padding-inline: var(--space-3);
+  }
+
+  .bk-hrow {
+    grid-template-columns: 2.75rem 1fr;
+  }
+}
+
+/* ── El pase de la cita ─────────────────────────────────────────────────── */
+
+.bk-pase {
+  position: fixed;
+  inset: auto 0 0;
+  z-index: var(--layer-sticky);
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: var(--space-1) var(--space-3);
+  align-items: center;
+  padding: var(--space-3) var(--bk-gutter) calc(var(--space-3) + env(safe-area-inset-bottom));
+  background-color: var(--color-surface);
+  border-top: 1px solid var(--bk-line);
+  box-shadow: 0 -8px 24px color-mix(in srgb, var(--color-text-primary) 8%, transparent);
+}
+
+.bk-pase__label,
+.bk-pase__service,
+.bk-pase__when {
+  display: none;
+}
+
+.bk-pase__body {
+  grid-column: 1;
+  min-width: 0;
+}
+
+.bk-pase__who,
+.bk-pase__hint {
+  margin: 0;
+  overflow: hidden;
+  font-size: 14px;
+  line-height: 20px;
+  color: var(--color-text-secondary);
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.bk-pase__compact {
+  grid-column: 1;
+  margin: 0;
+  overflow: hidden;
+  font-size: 16px;
+  line-height: 22px;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  font-variant-numeric: tabular-nums;
+}
+
+.bk-pase__compact span {
+  text-transform: capitalize;
+}
+
+/* En móvil el botón inactivo ya dice qué falta. */
+.bk-pase__hint {
+  display: none;
+}
+
+.bk-cta__long {
+  display: none;
+}
+
+@media (min-width: 480px) {
+  .bk-cta__long {
+    display: inline;
+  }
+
+  .bk-cta__short {
+    display: none;
+  }
+}
+
+.bk-pase .bk-cta {
+  grid-row: 1 / span 2;
+  grid-column: 2;
+}
+
+.bk-cta {
+  display: inline-flex;
+  gap: var(--space-2);
+  align-items: center;
+  justify-content: center;
+  min-height: 52px;
+  padding: 0 var(--space-5);
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--bk-on-accent);
+  text-decoration: none;
+  white-space: nowrap;
+  background-color: var(--bk-accent);
+  border-radius: var(--radius-lg);
+  transition:
+    background-color var(--motion-duration-fast) var(--bk-ease),
+    transform var(--motion-duration-fast) var(--bk-ease);
+}
+
+.bk-cta:hover {
+  background-color: color-mix(in srgb, var(--bk-accent) 88%, var(--color-text-primary));
+}
+
+.bk-cta:active {
+  transform: scale(0.98);
+}
+
+.bk-cta--idle {
+  font-weight: 500;
+  color: var(--color-text-secondary);
+  background-color: var(--color-surface-muted);
+}
+
+.bk-cta--idle:hover {
+  background-color: var(--color-surface-muted);
+}
+
+@media (min-width: 1024px) {
+  .bk-pase {
+    position: sticky;
+    inset: var(--space-6) auto auto;
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: var(--space-4);
+    padding: var(--space-6);
+    border: 1px solid var(--bk-line);
+    border-radius: var(--radius-lg);
+    box-shadow: var(--shadow-raised);
+  }
+
+  .bk-pase__label {
+    display: block;
+    margin: 0;
+    font-size: 13px;
+    color: var(--color-text-secondary);
+  }
+
+  .bk-pase__body {
+    display: grid;
+    gap: var(--space-2);
+  }
+
+  .bk-pase__service {
+    display: flex;
+    gap: var(--space-3);
+    justify-content: space-between;
+    margin: 0;
+    font-size: 17px;
+    font-weight: 600;
+    line-height: 24px;
+  }
+
+  .bk-pase__price {
+    font-variant-numeric: tabular-nums;
+    white-space: nowrap;
+  }
+
+  .bk-pase__who,
+  .bk-pase__hint {
+    display: block;
+    font-size: 15px;
+    white-space: normal;
+  }
+
+  .bk-pase__when {
+    display: grid;
+    gap: 2px;
+    padding-top: var(--space-3);
+    margin: var(--space-1) 0 0;
+    border-top: 1px solid var(--bk-line);
+  }
+
+  .bk-pase__day {
+    font-size: 15px;
+    color: var(--color-text-secondary);
+  }
+
+  .bk-pase__day::first-letter {
+    text-transform: uppercase;
+  }
+
+  .bk-pase__time {
+    font-size: 24px;
+    font-weight: 600;
+    line-height: 30px;
+    font-variant-numeric: tabular-nums;
+  }
+
+  .bk-pase__compact {
+    display: none;
+  }
+
+  .bk-pase .bk-cta {
+    grid-row: auto;
+    grid-column: 1;
+    width: 100%;
+  }
+}
+
+/* ── Carga: siluetas con el alto de lo que viene, para que nada salte ───── */
+
+.bk-skel {
+  display: block;
+  margin-bottom: var(--space-4);
+  background:
+    linear-gradient(
+        90deg,
+        transparent 0%,
+        color-mix(in srgb, var(--color-sky-morning) 70%, transparent) 50%,
+        transparent 100%
+      )
+      0 0 / 200% 100% no-repeat,
+    var(--color-surface-muted);
+  border-radius: var(--radius-md);
+  animation: bk-shimmer 1.4s linear infinite;
+}
+
+.bk-skel--kicker {
+  width: 140px;
+  height: 20px;
+}
+
+.bk-skel--name {
+  width: min(520px, 80%);
+  height: clamp(36px, 6vw, 58px);
+}
+
+.bk-skel--line {
+  width: 220px;
+  height: 22px;
+}
+
+.bk-skel--strip {
+  max-width: 640px;
+  height: 28px;
+  margin-top: var(--space-6);
+}
+
+.bk-skel--title {
+  width: 220px;
+  height: 34px;
+}
+
+.bk-skel--service {
+  height: 84px;
+  margin-bottom: var(--space-3);
+  border-radius: var(--radius-lg);
+}
+
+.bk-skel--chips {
+  width: min(520px, 100%);
+  height: 44px;
+}
+
+.bk-skel--days {
+  height: 92px;
+}
+
+.bk-skel--hours {
+  height: 220px;
+  border-radius: var(--radius-lg);
+}
+
+.bk-pase--skeleton {
+  min-height: 76px;
+}
+
+@media (min-width: 1024px) {
+  .bk-pase--skeleton {
+    min-height: 260px;
+  }
+}
+
+/* Etiquetas de campo en tipo oración dentro de la reserva (DEC-188). El resto
+   de la app las cambia con sus propias pantallas (acceso y panel). */
+.bk .base-input__label,
+.bk .phone-field__label {
+  font-size: 14px;
+  font-weight: 500;
+  line-height: 20px;
+  letter-spacing: 0;
+  color: var(--color-text-primary);
+  text-transform: none;
+}
+
+/* ── Pie: la firma NAVA, discreta, lleva a su banda en nava.wtf ─────────── */
+
+.bk-foot {
+  display: grid;
+  gap: var(--space-2);
+  justify-items: center;
+  padding: var(--space-8) var(--bk-gutter) calc(var(--space-8) + env(safe-area-inset-bottom));
+  font-size: 13px;
+  color: var(--color-text-secondary);
+  border-top: 1px solid var(--bk-line);
+}
+
+.bk-foot__firm {
+  display: inline-flex;
+  gap: var(--space-2);
+  align-items: center;
+  min-height: 44px;
+  color: inherit;
+  text-decoration: none;
+}
+
+.bk-foot__firm:hover {
+  color: var(--color-text-primary);
+}
+
+.bk-foot__legal {
+  display: flex;
+  gap: var(--space-4);
+}
+
+.bk-foot__legal a {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  color: inherit;
+}
+
+/* ── Movimiento ─────────────────────────────────────────────────────────── */
+
+/* Llegada: el nombre y los servicios suben escalonados; los días también. */
+.bk--arrive .bk-hero__name,
+.bk--arrive .bk-hero__meta {
+  animation: llega-sube 520ms var(--bk-ease) both;
+}
+
+.bk--arrive .bk-hero__meta {
+  animation-delay: 80ms;
+}
+
+.bk--arrive .bk-services__list li {
+  animation: llega-sube 480ms var(--bk-ease) calc(240ms + var(--i, 0) * 40ms) both;
+}
+
+/* El plato del local entra con la coreografía (y termina con ella). */
+.bk--arrive .bk-local.pb-plate {
+  animation: llega-sube 520ms var(--bk-ease) 320ms both;
+}
+
+.bk--arrive .bk-day {
+  animation: llega-sube 420ms var(--bk-ease) calc(var(--i, 0) * 30ms) both;
+}
+
+/* Las entradas propias de la v1 (hoja que cae, mapa que se revela) no son de
+   esta llegada: no se pueden terminar con un clic y la alargaban a 1,9 s. */
+.bk .pb-plate,
+.bk .pb-plate *,
+.bk .pb-plano .location-map__frame {
+  animation: none;
+}
+
+/* El plano: en Día va con sus colores; el filtro de tinta de la v1 queda solo
+   para Noche (y se retira al señalarlo, para leer calles y puntos). */
+.bk .pb-plano .location-map__frame {
+  filter: none;
+}
+
+:root[data-app-theme='ink'] .bk .pb-plano .location-map__frame {
+  filter: invert(0.9) hue-rotate(180deg) saturate(0.55) brightness(0.95) contrast(0.92);
+}
+
+:root[data-app-theme='ink'] .bk .pb-plano:is(:hover, :focus-within) .location-map__frame {
+  filter: none;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-app-theme]) .bk .pb-plano .location-map__frame {
+    filter: invert(0.9) hue-rotate(180deg) saturate(0.55) brightness(0.95) contrast(0.92);
+  }
+
+  :root:not([data-app-theme]) .bk .pb-plano:is(:hover, :focus-within) .location-map__frame {
+    filter: none;
+  }
+}
+
+@keyframes llega-sube {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+}
+
+@keyframes bk-hours-in {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+}
+
+@keyframes bk-shimmer {
+  from {
+    background-position:
+      150% 0,
+      0 0;
+  }
+
+  to {
+    background-position:
+      -50% 0,
+      0 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .bk *,
+  .bk-skel {
+    transition: none !important;
+    animation: none !important;
+  }
+
+  .bk-min[aria-checked='true'] {
+    transform: none;
+  }
+}
