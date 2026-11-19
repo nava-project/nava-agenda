@@ -242,11 +242,36 @@ describe('LoginPage', () => {
     expect(toastState.items.map((item) => [item.variant, item.title])).toEqual([
       ['warning', 'Demasiados intentos'],
     ])
-    expect(toastState.items[0]!.detail).toContain('2 minuto(s)')
-    expect(toastState.items[0]!.detail).toContain('confirma tu identidad')
+    expect(toastState.items[0]!.detail).toBe(
+      'Podrás intentarlo de nuevo en 2 minutos. Si no quieres esperar, confirma que eres tú con un código.',
+    )
+    // El reto lleva título y es la única acción llena; «Iniciar sesión» cede.
+    expect(wrapper.get('.phone-challenge__title').text()).toBe('Confirma que eres tú')
+    const submit = wrapper.get('.login-form__submit')
+    expect(submit.classes().join(' ')).not.toMatch(/--primary/)
+    expect(submit.attributes('disabled')).toBeDefined()
     // Sin alerta fija (issue #485): queda solo la acción del reto.
     expect(wrapper.text()).not.toContain('Verifica tu identidad')
     expect(wrapper.text()).toContain('Enviar código')
+  })
+
+  it.each([
+    [86_400, '24 horas'],
+    [3_600, '1 hora'],
+    [60, '1 minuto'],
+    [30, 'unos momentos'],
+    [undefined, 'unos momentos'],
+  ])('says a %s s block in words: «%s», never «minuto(s)» (#714)', async (seconds, words) => {
+    loginMock.mockResolvedValueOnce({
+      kind: 'rate-limited',
+      retryAfterSeconds: seconds,
+    } satisfies LoginOutcome)
+    const { wrapper } = await mountPage()
+    await fillAndSubmit(wrapper)
+    await flushPromises()
+
+    expect(toastState.items[0]!.detail).toContain(`en ${words}.`)
+    expect(toastState.items[0]!.detail).not.toContain('(s)')
   })
 
   it('does not show the phone challenge outside the rate-limited state', async () => {

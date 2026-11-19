@@ -46,6 +46,16 @@ const showSessionExpired = computed(
 // cuándo mostrarlo y qué hacer cuando se verifica con éxito.
 const showPhoneChallenge = computed(() => screenState.value.status === 'rate-limited')
 
+function waitInWords(seconds: number | undefined): string {
+  if (!seconds || seconds < 60) return 'unos momentos'
+  if (seconds < 3600) {
+    const minutes = Math.ceil(seconds / 60)
+    return minutes === 1 ? '1 minuto' : `${minutes} minutos`
+  }
+  const hours = Math.ceil(seconds / 3600)
+  return hours === 1 ? '1 hora' : `${hours} horas`
+}
+
 async function attemptLogin() {
   // Guardia de doble envío (CA-010-04): la asignación a un ref es
   // síncrona, así que una segunda llamada reentrante (doble clic, Enter
@@ -96,10 +106,9 @@ async function attemptLogin() {
       const seconds = outcome.retryAfterSeconds
       // Un solo aviso (DEC-095, issue #485): explica el bloqueo y pide
       // confirmar la identidad; la acción «Enviar código» queda en el reto.
-      const wait =
-        seconds && seconds > 0
-          ? `Espera unos ${Math.ceil(seconds / 60) || 1} minuto(s) o confirma tu identidad ahora con el código que te enviaremos.`
-          : 'Espera un momento o confirma tu identidad ahora con el código que te enviaremos.'
+      // El tiempo se dice en palabras («24 horas», «5 minutos»), nunca con
+      // «minuto(s)» ni en minutos para un bloqueo de un día (issue #714).
+      const wait = `Podrás intentarlo de nuevo en ${waitInWords(seconds)}. Si no quieres esperar, confirma que eres tú con un código.`
       useToast().warning('Demasiados intentos', { detail: wait })
       return
     }

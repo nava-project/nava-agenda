@@ -120,10 +120,21 @@ async function onVerifyCode() {
          aviso emergente que emite `LoginPage` (DEC-095, issue #485), no una
          alerta fija; aquí queda solo la acción. -->
     <template v-if="requestPhase === 'idle' || requestPhase === 'error'">
+      <!-- Mientras dura el bloqueo, el reto es la salida: lleva título y una
+           frase, y «Enviar código» es la única acción llena (issue #714);
+           «Iniciar sesión» queda en contorno y deshabilitado. -->
+      <span class="phone-challenge__divider" aria-hidden="true"></span>
+      <div class="phone-challenge__intro">
+        <h2 class="phone-challenge__title">Confirma que eres tú</h2>
+        <p class="phone-challenge__lead">
+          Te enviaremos un código de 6 dígitos al teléfono de tu cuenta para entrar sin esperar.
+        </p>
+      </div>
       <BaseButton
         type="button"
-        variant="secondary"
-        size="md"
+        variant="primary"
+        size="lg"
+        class="phone-challenge__send"
         :disabled="!canRequest"
         @click="onRequestCode"
       >
@@ -192,6 +203,31 @@ async function onVerifyCode() {
   flex-direction: column;
   gap: var(--space-4);
   padding-top: var(--space-2);
+}
+
+.phone-challenge__intro {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+}
+
+.phone-challenge__title {
+  margin: 0;
+  font-size: 18px;
+  font-weight: 600;
+  line-height: 24px;
+  color: var(--color-text-primary);
+}
+
+.phone-challenge__lead {
+  margin: 0;
+  font-size: 14px;
+  line-height: 20px;
+  color: var(--color-text-secondary);
+}
+
+.phone-challenge__send {
+  width: 100%;
 }
 
 .phone-challenge__divider {
