@@ -40,7 +40,7 @@ export const DEFAULT_BRAND_ACCENT: BrandAccentKey = 'brass'
 /** Superficies del panel contra las que se mide el contraste de cada acento. */
 // DEC-188: lienzos de los modos Noche y Día de la v2.
 export const SURFACE_INK = '#0b1022'
-export const SURFACE_IVORY = '#f4f6fa'
+export const SURFACE_IVORY = '#f4f0e7'
 
 export function isBrandAccentKey(value: unknown): value is BrandAccentKey {
   return BRAND_ACCENTS.some((accent) => accent.key === value)

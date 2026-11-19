@@ -163,7 +163,8 @@ defineEmits<{ edit: [] }>()
 
 .my-profile-card__facts dd {
   margin: 0;
-  font-family: var(--font-display);
+  /* Dato, no titular: va en la sans con cifras tabulares (#726). */
+  font-family: var(--font-sans);
   font-size: var(--font-size-h3);
   line-height: 1.2;
   color: var(--color-on-strong);

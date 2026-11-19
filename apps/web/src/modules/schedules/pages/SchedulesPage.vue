@@ -2096,19 +2096,12 @@ const editPreview = computed(() =>
 /* Título como el de la agenda (DailyAgendaPage `__title`). */
 .schedules-page__title {
   margin: 0;
-  font-family: var(--font-sans);
-  font-size: 28px;
-  font-weight: 600;
-  line-height: 32px;
-  letter-spacing: -0.01em;
+  font-family: var(--font-display);
+  font-size: var(--font-size-page-title);
+  font-weight: 400;
+  line-height: var(--font-size-page-title-line);
+  letter-spacing: -0.005em;
   color: var(--color-text-primary);
-}
-
-@media (min-width: 1024px) {
-  .schedules-page__title {
-    font-size: 32px;
-    line-height: 36px;
-  }
 }
 
 .schedules-page__subtitle {
@@ -2439,11 +2432,6 @@ const editPreview = computed(() =>
     flex-wrap: nowrap;
     align-items: center;
     padding-bottom: 12px;
-  }
-
-  .schedules-page__title {
-    font-size: 32px;
-    line-height: 36px;
   }
 
   .schedules-page__controls {

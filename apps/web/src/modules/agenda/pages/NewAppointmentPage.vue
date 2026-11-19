@@ -960,10 +960,10 @@ function onProfessionalSelect(professionalId: string) {
 
 .new-appointment-page__title {
   margin: 0;
-  font-family: var(--font-sans);
-  font-size: 32px;
-  line-height: 1.05;
-  font-weight: var(--font-weight-h1);
+  font-family: var(--font-display);
+  font-size: var(--font-size-page-title);
+  line-height: var(--font-size-page-title-line);
+  font-weight: 400;
   color: var(--color-on-strong);
 }
 
@@ -1961,10 +1961,6 @@ function onProfessionalSelect(professionalId: string) {
   .new-appointment-page {
     gap: 18px;
     padding: 22px 40px 24px;
-  }
-
-  .new-appointment-page__title {
-    font-size: var(--font-size-title-page);
   }
 
   .new-appointment-page__timezone {

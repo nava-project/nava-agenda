@@ -132,10 +132,12 @@ const classes = computed(() => ['professional-avatar', `professional-avatar--${p
 }
 
 .professional-avatar__monogram {
-  font-family: var(--font-display);
+  /* Letra de monograma: sans 600. La serif por debajo de 20 px se ensucia (#726). */
+  font-family: var(--font-sans);
+  font-weight: 600;
   font-size: calc(var(--avatar-size) * 0.38);
   line-height: 1;
-  letter-spacing: -0.04em;
+  letter-spacing: 0;
   white-space: nowrap;
   color: var(--color-text-secondary);
 }

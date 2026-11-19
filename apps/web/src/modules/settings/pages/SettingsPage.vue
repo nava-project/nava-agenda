@@ -1247,19 +1247,12 @@ const previewClass = computed(() => ({ 'settings-page__preview--changed': brandD
 /* Mismo h1 que la Agenda del día (DailyAgendaPage). */
 .settings-page__title {
   margin: 0;
-  font-family: var(--font-sans);
-  font-size: 28px;
-  font-weight: 600;
-  line-height: 32px;
-  letter-spacing: -0.01em;
+  font-family: var(--font-display);
+  font-size: var(--font-size-page-title);
+  font-weight: 400;
+  line-height: var(--font-size-page-title-line);
+  letter-spacing: -0.005em;
   color: var(--color-text-primary);
-}
-
-@media (min-width: 1024px) {
-  .settings-page__title {
-    font-size: 32px;
-    line-height: 36px;
-  }
 }
 
 .settings-page__subtitle {
@@ -1422,7 +1415,7 @@ const previewClass = computed(() => ({ 'settings-page__preview--changed': brandD
 }
 
 .theme-tile__mini--ivory {
-  --mini-bg: #f4f6fa;
+  --mini-bg: #f4f0e7;
   --mini-chrome: #ffffff;
   --mini-line: rgb(16 27 43 / 70%);
   --mini-faint: rgb(16 27 43 / 20%);
@@ -1430,7 +1423,7 @@ const previewClass = computed(() => ({ 'settings-page__preview--changed': brandD
 }
 
 .theme-tile__mini--auto {
-  background: linear-gradient(115deg, #0b1022 0 50%, #f4f6fa 50% 100%);
+  background: linear-gradient(115deg, #0b1022 0 50%, #f4f0e7 50% 100%);
 }
 
 .theme-tile__mini--auto .theme-tile__bar {
