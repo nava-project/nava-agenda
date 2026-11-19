@@ -239,11 +239,10 @@ describe('LoginPage', () => {
     await fillAndSubmit(wrapper)
     await flushPromises()
 
-    expect(toastState.items.map((item) => [item.variant, item.title])).toEqual([
-      ['warning', 'Demasiados intentos'],
-    ])
-    expect(toastState.items[0]!.detail).toBe(
-      'Podrás intentarlo de nuevo en 2 minutos. Si no quieres esperar, confirma que eres tú con un código.',
+    // Sin aviso emergente (#715): la espera va dentro del reto, sobre su título.
+    expect(toastState.items).toEqual([])
+    expect(wrapper.get('.phone-challenge__notice').text()).toBe(
+      'Demasiados intentos. Podrás intentarlo de nuevo en 2 minutos.',
     )
     // El reto lleva título y es la única acción llena; «Iniciar sesión» cede.
     expect(wrapper.get('.phone-challenge__title').text()).toBe('Confirma que eres tú')
@@ -270,8 +269,9 @@ describe('LoginPage', () => {
     await fillAndSubmit(wrapper)
     await flushPromises()
 
-    expect(toastState.items[0]!.detail).toContain(`en ${words}.`)
-    expect(toastState.items[0]!.detail).not.toContain('(s)')
+    const notice = wrapper.get('.phone-challenge__notice').text()
+    expect(notice).toContain(`en ${words}.`)
+    expect(notice).not.toContain('(s)')
   })
 
   it('does not show the phone challenge outside the rate-limited state', async () => {
