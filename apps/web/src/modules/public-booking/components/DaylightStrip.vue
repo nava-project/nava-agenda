@@ -246,7 +246,11 @@ function onPick(event: MouseEvent) {
       <span v-if="props.current !== null"
         ><i class="daylight__key daylight__key--current"></i>Hora actual</span
       >
-      <span v-if="props.selected !== null"
+      <!-- Siempre ocupa su sitio: elegir una hora no reacomoda la leyenda ni empuja
+           las horas de debajo cuando la leyenda se parte en dos líneas. -->
+      <span
+        :class="{ 'daylight__legend-slot--empty': props.selected === null }"
+        :aria-hidden="props.selected === null ? 'true' : undefined"
         ><i class="daylight__key daylight__key--sun"></i>{{ props.selectedLabel }}</span
       >
     </p>
@@ -421,6 +425,10 @@ function onPick(event: MouseEvent) {
   display: inline-flex;
   gap: 6px;
   align-items: center;
+}
+
+.daylight__legend-slot--empty {
+  visibility: hidden;
 }
 
 .daylight__key {

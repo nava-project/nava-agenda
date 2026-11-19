@@ -516,10 +516,22 @@
   text-decoration-thickness: 2px;
 }
 
+.mt-swap__stack {
+  display: grid;
+}
+
+.mt-swap__stack > * {
+  grid-area: 1 / 1;
+  margin: 0;
+}
+
+.mt-swap__sizer {
+  visibility: hidden;
+}
+
 .mt-swap__placeholder {
   display: grid;
   place-items: center;
-  min-height: 64px;
   font-size: 14px;
   color: var(--color-text-secondary);
   border: 1px dashed var(--color-border-control);

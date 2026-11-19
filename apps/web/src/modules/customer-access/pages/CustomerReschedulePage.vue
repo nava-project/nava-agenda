@@ -470,13 +470,22 @@ const requestId = computed(() =>
             </div>
             <div class="mt-swap__row mt-swap__row--new">
               <p class="mt-swap__label">Hora nueva</p>
-              <p v-if="proposed" :key="selectedStart ?? ''" class="mt-pase__when mt-swap__in">
-                <span class="mt-pase__day"
-                  >{{ proposed.leaf.weekday }}, {{ proposed.leaf.longDate }}</span
-                >
-                <span class="mt-pase__time">{{ proposed.start }} – {{ proposed.end }}</span>
-              </p>
-              <p v-else class="mt-swap__placeholder">Elige un día y una hora</p>
+              <!-- Marcador y hora comparten celda con una medida invisible del texto más
+                   largo posible: elegir no cambia el alto del pase ni mueve el selector
+                   que queda debajo en móvil. -->
+              <div class="mt-swap__stack">
+                <p class="mt-pase__when mt-swap__sizer" aria-hidden="true">
+                  <span class="mt-pase__day">miércoles, 30 de septiembre de 2026</span>
+                  <span class="mt-pase__time">12:45 p. m. – 12:45 p. m.</span>
+                </p>
+                <p v-if="proposed" :key="selectedStart ?? ''" class="mt-pase__when mt-swap__in">
+                  <span class="mt-pase__day"
+                    >{{ proposed.leaf.weekday }}, {{ proposed.leaf.longDate }}</span
+                  >
+                  <span class="mt-pase__time">{{ proposed.start }} – {{ proposed.end }}</span>
+                </p>
+                <p v-else class="mt-swap__placeholder">Elige un día y una hora</p>
+              </div>
             </div>
             <p class="mt-pase__zone">{{ timezoneLabel(timezone) }}</p>
           </article>
