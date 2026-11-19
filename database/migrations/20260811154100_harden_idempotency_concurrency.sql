@@ -1,6 +1,6 @@
 -- Propósito
 --   Corrección roll-forward de DDL-IDEM-01
---   (nava-docs/agenda/05-backend/revision-ddl-seguridad-2026-08-11.md): implementa la
+--   (docs/05-backend/revision-ddl-seguridad-2026-08-11.md): implementa la
 --   semántica concurrente de idempotencia aprobada en DEC-043 (bloqueo
 --   consultivo transaccional, sin espera no acotada), revoca el acceso
 --   directo de escritura del API sobre `idempotency_record` y expone

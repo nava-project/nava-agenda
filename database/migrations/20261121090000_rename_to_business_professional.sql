@@ -27,7 +27,7 @@
 --   Los roles `barberia_*` no se renombran aquí: el rol que migra no puede
 --   renombrarse a sí mismo y las migraciones anteriores los nombran. Los
 --   renombra el superusuario justo después de esta versión
---   (`database/roles/rename_to_agenda.sql`); ver nava-docs/agenda/05-backend/migraciones-atlas.md.
+--   (`database/roles/rename_to_agenda.sql`); ver docs/05-backend/migraciones-atlas.md.
 --
 -- Clasificación de datos
 --   Sin datos nuevos.

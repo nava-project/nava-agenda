@@ -1,6 +1,6 @@
 -- Propósito
 --   Corrección roll-forward de DDL-SEC-01/02/03/04
---   (nava-docs/agenda/05-backend/revision-ddl-seguridad-2026-08-11.md): introduce un
+--   (docs/05-backend/revision-ddl-seguridad-2026-08-11.md): introduce un
 --   propietario de objetos NOLOGIN reproducible, separa el rol del worker del
 --   rol del API, y cierra la superficie de privilegios por defecto que
 --   `20260807170000_create_tenant_foundation.sql` dejó abierta.
