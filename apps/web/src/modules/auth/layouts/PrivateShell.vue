@@ -35,29 +35,28 @@ function onRetry() {
   <div class="private-shell">
     <template v-if="sessionState.bootstrap.status === 'authenticated'">
       <AppHeader :business-name="sessionState.bootstrap.businessName" />
-      <!-- v2 (DEC-188, entrega 5): en escritorio la navegación es un riel a la
-           izquierda; en el teléfono y la tableta, la barra al pie. Va antes del
-           contenido en el DOM (cabecera → navegación → contenido); en la barra
-           al pie solo cambia su posición visual. -->
-      <div class="private-shell__body">
-        <AppNav :extra-items="extraNavItems" />
-        <!-- Escenario posicionado entre cabecera y navegación: ancla la región
-           de avisos (DEC-095) sin depender de la altura de ninguna de las dos
-           ni desplazarse con el contenido. -->
-        <div class="private-shell__stage">
-          <!-- Fondo del panel: dos luces suaves y quietas (v2 retira la
-             cuadrícula de patronaje). Capa decorativa detrás del contenido,
-             sin eventos ni lectura de pantalla; las pantallas son
+      <!-- Escenario posicionado bajo la cabecera, con el contenido y la barra:
+           ancla la región de avisos (DEC-095) sin depender de la altura de
+           ninguna de las dos ni desplazarse con el contenido. -->
+      <div class="private-shell__stage">
+        <!-- Fondo del panel: dos luces suaves y quietas (v2 retira la
+             cuadrícula de patronaje). Capa decorativa detrás del contenido y de
+             la barra, sin eventos ni lectura de pantalla; las pantallas son
              transparentes y el fondo lo pone el escenario. -->
-          <div class="shell-ambient" aria-hidden="true">
-            <i class="shell-ambient__glow shell-ambient__glow--brass" />
-            <i class="shell-ambient__glow shell-ambient__glow--sage" />
-          </div>
-          <main class="private-shell__content">
-            <RouterView />
-          </main>
-          <ToastRegion placement="host" />
+        <div class="shell-ambient" aria-hidden="true">
+          <i class="shell-ambient__glow shell-ambient__glow--brass" />
+          <i class="shell-ambient__glow shell-ambient__glow--sage" />
         </div>
+        <!-- La navegación va al pie en todos los anchos (issue #724). En el DOM
+             sigue antes del contenido (cabecera → navegación → contenido); solo
+             cambia su posición visual. Vive dentro del escenario para que la
+             isla de tableta y escritorio flote sobre el mismo fondo, en su
+             propia fila: el contenido termina sobre ella y nunca queda tapado. -->
+        <AppNav :extra-items="extraNavItems" />
+        <main class="private-shell__content">
+          <RouterView />
+        </main>
+        <ToastRegion placement="host" />
       </div>
     </template>
 
@@ -92,27 +91,6 @@ function onRetry() {
    la columna entera más allá de 100dvh y arrastra el header y el dock
    fuera de pantalla en vez de quedarse fijos mientras solo el contenido
    se desplaza (reporte en vivo, issue #189). */
-.private-shell__body {
-  display: flex;
-  flex: 1;
-  flex-direction: column;
-  min-height: 0;
-}
-
-.private-shell__body > :deep(.app-nav) {
-  order: 2;
-}
-
-@media (min-width: 1024px) {
-  .private-shell__body {
-    flex-direction: row;
-  }
-
-  .private-shell__body > :deep(.app-nav) {
-    order: 0;
-  }
-}
-
 .private-shell__stage {
   position: relative;
   background-color: var(--color-surface-strong);
@@ -121,6 +99,10 @@ function onRetry() {
   flex-direction: column;
   min-width: 0;
   min-height: 0;
+}
+
+.private-shell__stage > :deep(.app-nav) {
+  order: 2;
 }
 
 .private-shell__content {

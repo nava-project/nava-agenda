@@ -184,8 +184,8 @@ for (const theme of themes) {
       const section = document.querySelector('.appointment-detail-page') as HTMLElement
       const back = document.querySelector('.appointment-detail-page__back') as HTMLElement
       const body = document.querySelector('.appointment-detail-page__body') as HTMLElement
-      // Centrado dentro del área de contenido: en escritorio el riel de
-      // navegación ocupa la izquierda (DEC-188, entrega 5).
+      // Centrado dentro del área de contenido (`main`), que es lo que mide la
+      // pantalla; la navegación va al pie en todos los anchos (issue #724).
       const area = (document.querySelector('main') as HTMLElement).getBoundingClientRect()
       const s = section.getBoundingClientRect()
       return {

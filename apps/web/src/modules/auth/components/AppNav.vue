@@ -1,8 +1,9 @@
 <script setup lang="ts">
 // Dock de navegación primaria del cascarón (HU-012; recompuesto a la
 // identidad NAVA en la Fase 2, especificacion-frontend-nava.md §5.2-§5.3,
-// §6 `DesktopDock`/`MobileDock`). Fijo al pie en todos los anchos ("No hay
-// sidebar lateral en la dirección NAVA"): icono + texto, 64px, con
+// §6 `DesktopDock`/`MobileDock`). Al pie en todos los anchos (issue #724:
+// el propietario prefiere la barra abajo también en escritorio, en vez del
+// riel lateral de la entrega 5a): icono sobre texto, 64px, con
 // `env(safe-area-inset-bottom)`. "Agenda" es la única entrada propia de
 // `auth`; cualquier módulo hermano con pantalla privada aporta la suya
 // mediante `extraItems` (mismo mecanismo de composición app → modules →
@@ -17,7 +18,8 @@
 // destinos marcados `primary` viven en el dock; el resto se expone dentro
 // de "Más" (BaseDialog, reutiliza su foco atrapado/Escape/restauración),
 // junto con "Cerrar sesión" para que ese cierre también sea alcanzable sin
-// depender del ancho de AppHeader.
+// depender del ancho de AppHeader. Desde 1024 px caben todos: la lista de
+// escritorio los muestra en línea, sin "Más".
 import { computed, ref } from 'vue'
 import type { NavItem } from '@/shared/navigation/navItem'
 import { useVocabulary } from '@/shared/composables'
@@ -90,13 +92,23 @@ async function onLogoutFromMore() {
          resuelve al MISMO path que el cascarón padre. El matching NO exacto
          de vue-router (`useLink`, activeRecordIndex) trata eso como "sigo
          dentro de /panel" y marca "Agenda" activa en cualquier hija
-         (Servicios, Profesionales...), dejando el filete/color de latón pegado
-         ahí sin importar el destino elegido. Exacto evita ese falso
+         (Servicios, Profesionales...), dejando la marca de activo pegada
+         ahí sin importar el destino elegido (hoy la píldora y el rombo de lo
+         elegido). Exacto evita ese falso
          positivo; ningún destino del dock necesita quedar "activo" mientras
          se navega a un descendiente propio (todos son hijas planas de
          `/panel`, no anidan más pantallas del dock debajo). -->
+    <!-- Configuración es de otra naturaleza (el negocio, no el día a día):
+         en escritorio la separa un filete fino. -->
     <ul class="app-nav__list app-nav__list--desktop">
-      <li v-for="item in items" :key="item.label" class="app-nav__item">
+      <li
+        v-for="item in items"
+        :key="item.label"
+        :class="[
+          'app-nav__item',
+          { 'app-nav__item--apart': item.to.name === 'configuracion-negocio' },
+        ]"
+      >
         <RouterLink :to="item.to" class="app-nav__link" exact-active-class="app-nav__link--active">
           <span class="app-nav__icon" aria-hidden="true" v-html="iconFor(item.to.name)" />
           <span class="app-nav__label">{{ labelOf(item) }}</span>
@@ -154,15 +166,18 @@ async function onLogoutFromMore() {
 </template>
 
 <style scoped>
+/* Barra inferior en todos los anchos (issue #724, pedido del propietario):
+   sustituye al riel lateral de escritorio de la entrega 5a. En el teléfono va
+   pegada al pie, a todo el ancho; desde la tableta es una isla centrada que
+   mide lo que sus destinos (nunca una barra de móvil estirada). Ocupa su propia
+   fila bajo el contenido, no flota encima: nada queda tapado y el scroll del
+   contenido termina justo sobre ella. */
 .app-nav {
-  margin-top: auto;
-  /* Superficie tinta, igual que AppHeader: la navegación es orientación
-     operativa (estandar-diseno-visual.md §3), no un formulario. Filete
-     superior del atlas (issue #189): rgba(244,240,231,.14), no una sombra
-     alzada — el dock no "flota" sobre el contenido. */
+  position: relative;
+  z-index: 2;
+  flex: none;
   background-color: var(--color-chrome-surface);
-  border-top: var(--border-width-normal) solid
-    color-mix(in srgb, var(--color-on-strong) 14%, transparent);
+  border-top: var(--border-width-normal) solid var(--color-border-subtle);
   padding-bottom: env(safe-area-inset-bottom, 0px);
 }
 
@@ -187,58 +202,44 @@ async function onLogoutFromMore() {
 
 .app-nav__link {
   display: flex;
+  position: relative;
   width: 100%;
   height: 100%;
+  min-height: 44px;
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: var(--space-1);
-  padding: var(--space-1);
+  gap: 3px;
+  padding: 6px 4px;
   background: transparent;
   border: none;
-  position: relative;
-  color: var(--color-on-strong-muted);
+  border-radius: var(--radius-lg);
+  color: var(--color-text-secondary);
   font-family: var(--font-family-base);
-  font-size: var(--font-size-caption);
+  font-size: 12px;
   font-weight: 500;
+  line-height: 16px;
   text-align: center;
   text-decoration: none;
   cursor: pointer;
-  transition:
-    color var(--motion-duration-fast) var(--motion-easing-standard),
-    background-color var(--motion-duration-fast) var(--motion-easing-standard);
+  transition: color var(--motion-duration-fast) var(--motion-easing-standard);
 }
 
 .app-nav__link--button {
   font-family: inherit;
-  font-size: var(--font-size-caption);
-  font-weight: 500;
-  line-height: inherit;
 }
 
-/* v2 (DEC-188, entrega 5): el destino activo es un filete en tinta, no en
-   latón ni en el acento (que es solo de la acción principal), y la palabra
-   pasa a tinta y a 600. Sin saltos del icono. */
-.app-nav__link::after {
-  content: '';
-  position: absolute;
-  right: 22%;
-  top: 0;
-  left: 22%;
-  height: 2px;
-  background-color: var(--color-text-primary);
-  border-radius: 0 0 2px 2px;
-  opacity: 0;
-}
-
+/* El icono vive en una píldora: el destino activo la rellena de tinta suave.
+   v2 (DEC-188): lo elegido va en tinta y a 600, nunca en el acento, que es solo
+   de la acción principal («Nuevo turno»). */
 .app-nav__icon {
   display: inline-flex;
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .app-nav__link {
-    transition: none;
-  }
+  align-items: center;
+  justify-content: center;
+  width: 52px;
+  height: 28px;
+  border-radius: var(--radius-pill);
+  transition: background-color var(--motion-duration-fast) var(--motion-easing-standard);
 }
 
 .app-nav__icon :deep(svg) {
@@ -253,50 +254,83 @@ async function onLogoutFromMore() {
   white-space: nowrap;
 }
 
+/* El rombo NAVA marca lo elegido: se posa sobre el filete superior de la barra,
+   como el rombo del logo sobre su horizonte. Decorativo (el destino activo ya
+   lo dicen `aria-current`, el peso y la píldora). */
+.app-nav__link::before {
+  content: '';
+  position: absolute;
+  top: -4px;
+  left: 50%;
+  width: 7px;
+  height: 7px;
+  background-color: var(--color-text-primary);
+  transform: translateX(-50%) rotate(45deg) scale(0);
+  transition: transform var(--motion-duration-base) var(--motion-easing-standard);
+}
+
 .app-nav__link:hover {
-  color: var(--color-on-strong);
+  color: var(--color-text-primary);
+}
+
+.app-nav__link:hover .app-nav__icon {
+  background-color: color-mix(in srgb, var(--color-text-primary) 6%, transparent);
 }
 
 .app-nav__link:focus-visible {
-  outline: none;
-  color: var(--color-on-strong);
-  box-shadow: inset 0 0 0 var(--border-width-emphasis) var(--color-focus);
+  outline: 2px solid var(--color-focus);
+  outline-offset: -2px;
+  color: var(--color-text-primary);
 }
 
 .app-nav__link--active,
 .app-nav__link[aria-expanded='true'] {
-  font-weight: 600;
   color: var(--color-text-primary);
+  font-weight: 600;
 }
 
-.app-nav__link--active::after,
-.app-nav__link[aria-expanded='true']::after {
-  opacity: 1;
+.app-nav__link--active .app-nav__icon,
+.app-nav__link[aria-expanded='true'] .app-nav__icon {
+  background-color: color-mix(in srgb, var(--color-text-primary) 11%, transparent);
 }
 
-/* Escritorio: un riel a la izquierda con todos los destinos en columna, en vez
-   de la barra al pie de siete pestañas (revisión del PR 4a). */
-@media (min-width: 1024px) {
+.app-nav__link--active::before {
+  transform: translateX(-50%) rotate(45deg) scale(1);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .app-nav__link,
+  .app-nav__link::before,
+  .app-nav__icon {
+    transition: none;
+  }
+}
+
+:root[data-motion='reduced'] .app-nav__link,
+:root[data-motion='reduced'] .app-nav__link::before,
+:root[data-motion='reduced'] .app-nav__icon {
+  transition: none;
+}
+
+/* Tableta y escritorio: una isla centrada que mide lo que sus destinos. Deja
+   ver el escenario a los lados, así que la fila de la barra es transparente. */
+@media (min-width: 768px) {
   .app-nav {
-    flex: none;
-    width: 248px;
-    margin-top: 0;
-    padding: var(--space-4) var(--space-3);
-    overflow-y: auto;
-    border-top: 0;
-    border-right: var(--border-width-normal) solid var(--color-border-subtle);
-  }
-
-  .app-nav__list--mobile {
-    display: none;
-  }
-
-  .app-nav__list--desktop {
     display: flex;
-    flex-direction: column;
+    justify-content: center;
+    padding: var(--space-2) var(--space-4) calc(var(--space-3) + env(safe-area-inset-bottom, 0px));
+    background-color: transparent;
+    border-top: 0;
+  }
+
+  .app-nav__list {
     gap: 2px;
-    height: auto;
-    padding: 0;
+    max-width: 100%;
+    padding: 0 6px;
+    background-color: var(--color-chrome-surface);
+    border: var(--border-width-normal) solid var(--color-border-subtle);
+    border-radius: 20px;
+    box-shadow: var(--shadow-raised);
   }
 
   .app-nav__item {
@@ -304,66 +338,83 @@ async function onLogoutFromMore() {
   }
 
   .app-nav__link {
-    flex-direction: row;
-    justify-content: flex-start;
-    gap: 12px;
-    min-height: 44px;
-    padding: 0 12px;
-    font-size: 15px;
-    line-height: 20px;
-    border-radius: var(--radius-md);
-  }
-
-  .app-nav__link:hover {
-    background-color: color-mix(in srgb, var(--color-text-primary) 5%, transparent);
-  }
-
-  .app-nav__link--active {
-    background-color: color-mix(in srgb, var(--color-text-primary) 8%, transparent);
-  }
-
-  .app-nav__link::after {
-    top: 10px;
-    right: auto;
-    bottom: 10px;
-    left: 0;
-    width: 3px;
-    height: auto;
-    border-radius: 0 2px 2px 0;
-  }
-
-  .app-nav__label {
-    white-space: normal;
-    text-align: left;
-  }
-
-  .app-nav__icon :deep(svg) {
-    width: 20px;
-    height: 20px;
+    min-width: 84px;
+    padding: 6px 12px;
+    font-size: 13px;
   }
 }
 
-/* Entre 1024 y 1279 px el riel completo le quitaba a la agenda el ancho de sus
-   controles: queda compacto, con el icono sobre la palabra. */
-@media (min-width: 1024px) and (max-width: 1279px) {
-  .app-nav {
-    /* 116 px: «Configuración», la palabra más larga, cabe sin cortarse. */
-    width: 116px;
-    padding: var(--space-3) var(--space-2);
+/* Desde 1024 px caben todos los destinos y la isla habla el idioma del
+   escritorio (revisión de nava en #725): icono y palabra en línea, a 14 px, en
+   una isla de 52 px. Lo elegido es una píldora que abraza icono y palabra, con
+   el rombo posado en el filete. «Configuración» va aparte, tras un filete. */
+@media (min-width: 1024px) {
+  .app-nav__list--mobile {
+    display: none;
+  }
+
+  .app-nav__list--desktop {
+    display: flex;
+    align-items: center;
+    height: 52px;
+    gap: 2px;
+    padding: 0 5px;
+    border-radius: 16px;
   }
 
   .app-nav__link {
-    flex-direction: column;
-    justify-content: center;
-    gap: 4px;
-    min-height: 60px;
-    padding: 6px 4px;
-    font-size: 12px;
-    line-height: 15px;
+    flex-direction: row;
+    gap: 8px;
+    min-width: 0;
+    height: 44px;
+    padding: 0 12px;
+    font-size: 14px;
+    line-height: 20px;
+    border-radius: 12px;
+    transition:
+      color var(--motion-duration-fast) var(--motion-easing-standard),
+      background-color var(--motion-duration-fast) var(--motion-easing-standard);
   }
 
-  .app-nav__label {
-    text-align: center;
+  /* La píldora ya no vive detrás del icono: es el enlace entero. */
+  .app-nav__icon,
+  .app-nav__link:hover .app-nav__icon,
+  .app-nav__link--active .app-nav__icon {
+    width: auto;
+    height: auto;
+    background-color: transparent;
+  }
+
+  .app-nav__link:hover {
+    background-color: color-mix(in srgb, var(--color-text-primary) 6%, transparent);
+  }
+
+  .app-nav__link--active {
+    background-color: color-mix(in srgb, var(--color-text-primary) 11%, transparent);
+  }
+
+  /* El enlace (44 px) va centrado en la isla (52 px con su borde de 1 px), así
+     que empieza 4 px bajo el filete: con top -7 px, el centro del rombo de 7 px
+     cae a 0,5 px del borde exterior, en medio del filete. */
+  .app-nav__link::before {
+    top: -7px;
+  }
+
+  .app-nav__item--apart {
+    display: flex;
+    align-items: center;
+    margin-left: 4px;
+    padding-left: 6px;
+    border-left: var(--border-width-normal) solid var(--color-border-subtle);
+  }
+}
+
+/* Entre 1024 y 1279 px la isla a 14 px pedía 1008 px y solo hay 992: se aprieta
+   el aire de cada destino, sin achicar la palabra ni cortarla. */
+@media (min-width: 1024px) and (max-width: 1279px) {
+  .app-nav__link {
+    gap: 6px;
+    padding: 0 9px;
   }
 }
 
@@ -388,6 +439,12 @@ async function onLogoutFromMore() {
   text-align: left;
   text-decoration: none;
   cursor: pointer;
+}
+
+/* En «Más» el icono acompaña a la palabra en línea: sin la píldora de la barra. */
+.app-nav__more-link .app-nav__icon {
+  width: auto;
+  height: auto;
 }
 
 .app-nav__more-link:hover {
