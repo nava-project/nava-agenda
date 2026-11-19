@@ -18,6 +18,8 @@ export default defineConfigWithVueTs(
       '**/coverage/**',
       '**/playwright-report/**',
       '**/test-results/**',
+      // Temporales de Vite/Vitest que «Frontend: pruebas» crea y borra en paralelo (#695).
+      '**/*.timestamp-*.mjs',
     ],
   },
   pluginVue.configs['flat/recommended'],
