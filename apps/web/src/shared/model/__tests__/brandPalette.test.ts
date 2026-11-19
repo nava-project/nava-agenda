@@ -1,5 +1,6 @@
 /**
- * Contraste de la paleta de acentos y del tema Marfil (DEC-110, WCAG 2.2 AA).
+ * Contraste de la paleta de acentos del negocio (DEC-110, WCAG 2.2 AA). Los
+ * pares de los tokens v2 se miden en styles/__tests__/tokens.test.ts (DEC-188).
  * Esta prueba es la garantía de que ningún acento ni par de texto llegue a
  * pantalla sin haber sido medido: si alguien cambia un color o añade un
  * acento sin contraste suficiente, falla aquí.
@@ -8,7 +9,6 @@ import { readFileSync } from 'node:fs'
 import { resolve } from 'node:path'
 import { describe, expect, it } from 'vitest'
 import {
-  accentByKey,
   BRAND_ACCENTS,
   contrastRatio,
   DEFAULT_BRAND_ACCENT,
@@ -49,7 +49,7 @@ describe('BRAND_ACCENTS', () => {
   })
 
   it.each(BRAND_ACCENTS.map((a) => [a.key, a] as const))(
-    '%s reads as text and as a button fill on the Tinta surface (AA)',
+    '%s reads as text and as a button fill on the Noche canvas (AA)',
     (_key, accent) => {
       // Como texto o filete sobre tinta...
       expect(contrastRatio(accent.ink, SURFACE_INK)).toBeGreaterThanOrEqual(AA_TEXT)
@@ -59,47 +59,39 @@ describe('BRAND_ACCENTS', () => {
   )
 
   it.each(BRAND_ACCENTS.map((a) => [a.key, a] as const))(
-    '%s reads as text and as a button fill on the Marfil surface (AA)',
+    '%s reads as text and as a button fill on the Día canvas (AA)',
     (_key, accent) => {
       expect(contrastRatio(accent.ivory, SURFACE_IVORY)).toBeGreaterThanOrEqual(AA_TEXT)
       expect(contrastRatio(SURFACE_IVORY, accent.ivory)).toBeGreaterThanOrEqual(AA_TEXT)
     },
   )
 
-  it('keeps every accent readable over a raised field and white in Marfil too', () => {
+  it('keeps every accent readable over the surfaces and fields of both modes', () => {
     for (const accent of BRAND_ACCENTS) {
-      expect(contrastRatio(accent.ink, '#16243a')).toBeGreaterThanOrEqual(AA_TEXT)
-      expect(contrastRatio(accent.ink, '#0b1420')).toBeGreaterThanOrEqual(AA_TEXT)
+      // Superficie y campos de Noche, y la superficie blanca de Día.
+      expect(contrastRatio(accent.ink, '#151b35')).toBeGreaterThanOrEqual(AA_TEXT)
+      expect(contrastRatio(accent.ink, '#1c2342')).toBeGreaterThanOrEqual(AA_TEXT)
+      expect(contrastRatio(accent.ink, '#080c1a')).toBeGreaterThanOrEqual(AA_TEXT)
       expect(contrastRatio(accent.ivory, '#ffffff')).toBeGreaterThanOrEqual(AA_TEXT)
+    }
+  })
+
+  // DEC-188: el acento del negocio también va como texto o filete sobre los
+  // cielos (los tintes de Mañana, Tarde y Noche) de cada modo.
+  it('keeps every accent readable over the skies of its mode', () => {
+    for (const accent of BRAND_ACCENTS) {
+      for (const sky of ['#fff0d2', '#ffe0d6', '#e2e3fa']) {
+        expect(contrastRatio(accent.ivory, sky)).toBeGreaterThanOrEqual(AA_TEXT)
+      }
+      for (const sky of ['#3a2d12', '#3c1f27', '#22264d']) {
+        expect(contrastRatio(accent.ink, sky)).toBeGreaterThanOrEqual(AA_TEXT)
+      }
     }
   })
 
   it('gives each accent distinct colors, so a choice is always visible', () => {
     expect(new Set(BRAND_ACCENTS.map((a) => a.ink)).size).toBe(BRAND_ACCENTS.length)
     expect(new Set(BRAND_ACCENTS.map((a) => a.ivory)).size).toBe(BRAND_ACCENTS.length)
-  })
-
-  it('keeps brass on Tinta identical to the token that styled the app before DEC-110', () => {
-    const tokens = readFileSync(resolve(__dirname, '../../../styles/tokens.css'), 'utf-8')
-    expect(tokens).toContain(`--color-brand-accent-surface: ${accentByKey('brass').ink};`)
-    expect(tokens).toContain(`--color-accent-brass: ${accentByKey('brass').ivory};`)
-  })
-})
-
-describe('texto de estado sobre Tinta (tokens.css)', () => {
-  const tokens = readFileSync(resolve(__dirname, '../../../styles/tokens.css'), 'utf-8')
-  const root = /:root \{([\s\S]*?)\n\}/.exec(tokens)?.[1] ?? ''
-
-  it.each([
-    '--color-danger-on-strong',
-    '--color-warning-on-strong',
-    '--color-success-on-strong',
-    '--color-info-on-strong',
-    '--color-brand-accent-surface',
-  ])('%s reads on Tinta (AA)', (name) => {
-    const color = new RegExp(`${name}: (#[0-9a-f]{6});`).exec(root)?.[1]
-    expect(color).toBeDefined()
-    expect(contrastRatio(color as string, SURFACE_INK)).toBeGreaterThanOrEqual(AA_TEXT)
   })
 })
 
@@ -123,35 +115,4 @@ describe('alertas en línea de BaseAlert sobre tinta (DEC-149)', () => {
       expect(alert).toContain(`${variant}: 'var(--color-${variant}-on-strong)'`)
     },
   )
-})
-
-describe('tema Marfil (tokens.css)', () => {
-  const tokens = readFileSync(resolve(__dirname, '../../../styles/tokens.css'), 'utf-8')
-  const block = /:root\[data-app-theme='ivory'\] \{([^}]*)\}/.exec(tokens)?.[1] ?? ''
-  const value = (name: string) => new RegExp(`${name}: (#[0-9a-f]{6});`).exec(block)?.[1] as string
-
-  it('defines the ivory block', () => {
-    expect(block).not.toBe('')
-  })
-
-  it.each([
-    '--color-on-strong',
-    '--color-on-strong-muted',
-    '--color-on-strong-soft',
-    '--color-danger-on-strong',
-    '--color-warning-on-strong',
-    '--color-success-on-strong',
-    '--color-pending-on-strong',
-    '--color-no-show-on-strong',
-    '--color-info-on-strong',
-  ])('%s reads on the ivory surface and on the darker chrome (AA)', (name) => {
-    const color = value(name)
-    expect(color).toBeDefined()
-    expect(contrastRatio(color, value('--color-surface-strong'))).toBeGreaterThanOrEqual(AA_TEXT)
-    expect(contrastRatio(color, value('--color-chrome-surface'))).toBeGreaterThanOrEqual(AA_TEXT)
-  })
-
-  it('uses the same ivory surface the palette is measured against', () => {
-    expect(value('--color-surface-strong')).toBe(SURFACE_IVORY)
-  })
 })

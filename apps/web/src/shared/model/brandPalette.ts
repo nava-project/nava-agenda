@@ -36,8 +36,9 @@ export const BRAND_ACCENTS: readonly BrandAccent[] = [
 export const DEFAULT_BRAND_ACCENT: BrandAccentKey = 'brass'
 
 /** Superficies del panel contra las que se mide el contraste de cada acento. */
-export const SURFACE_INK = '#101b2b'
-export const SURFACE_IVORY = '#f4f0e7'
+// DEC-188: lienzos de los modos Noche y Día de la v2.
+export const SURFACE_INK = '#0b1022'
+export const SURFACE_IVORY = '#f4f6fa'
 
 export function isBrandAccentKey(value: unknown): value is BrandAccentKey {
   return BRAND_ACCENTS.some((accent) => accent.key === value)
@@ -63,4 +64,19 @@ function luminance(hex: string): number {
 export function contrastRatio(a: string, b: string): number {
   const [light, dark] = [luminance(a), luminance(b)].sort((x, y) => y - x) as [number, number]
   return (light + 0.05) / (dark + 0.05)
+}
+
+/**
+ * Pinta en `root` el acento del negocio para los dos modos (DEC-188):
+ * tokens.css toma `--business-accent-day` en Día y `--business-accent-night` en
+ * Noche. `null` lo retira y deja el Alba de la marca.
+ */
+export function paintBusinessAccent(root: HTMLElement, accent: BrandAccent | null): void {
+  if (accent === null) {
+    root.style.removeProperty('--business-accent-day')
+    root.style.removeProperty('--business-accent-night')
+    return
+  }
+  root.style.setProperty('--business-accent-day', accent.ivory)
+  root.style.setProperty('--business-accent-night', accent.ink)
 }

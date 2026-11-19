@@ -1,112 +1,119 @@
 /*
- * Tokens primitivos y semánticos del sistema visual NAVA / Tailored Grid.
- * Fuente normativa: nava-docs/agenda/03-desarrollo/estandar-diseno-visual.md (DEC-077,
- * que conserva de DEC-039 el gobierno por tokens, móvil primero, WCAG 2.2 AA
- * y el tema claro único, y sustituye sus elecciones visuales concretas).
- * No editar un valor aquí sin actualizar ese documento; los componentes
- * consumen solo las variables semánticas, nunca un valor hexadecimal o
- * numérico suelto.
+ * Tokens del sistema visual de Nava Agenda, v2 «La luz del día» (DEC-188).
+ * Fuente normativa: nava-docs/agenda/03-desarrollo/estandar-diseno-visual.md.
+ * DEC-188 sustituye las elecciones visuales de DEC-077 a DEC-080, DEC-111 y
+ * DEC-171 (tinta, marfil, latón, serif); conserva de ellas el gobierno por
+ * tokens, móvil primero, WCAG 2.2 AA y el movimiento reducido.
+ *
+ * Dos modos con los mismos nombres de token:
+ *   - Día (por omisión, este bloque): lienzo de cielo de mañana, texto tinta.
+ *   - Noche: lienzo índigo. Se activa con `data-app-theme="ink"` (panel en
+ *     modo Noche) o, sin preferencia del panel, con prefers-color-scheme: dark
+ *     (acceso, reserva pública y turno del cliente siguen al sistema).
+ * Las dos familias históricas —la clara (canvas/surface/text-*) y la «fuerte»
+ * (surface-strong/on-strong)— resuelven al MISMO modo: ya no hay superficies
+ * claras dentro de un panel oscuro ni al revés. Cada par texto/fondo está
+ * medido (shared/model/__tests__/brandPalette.test.ts y la hoja de tokens en
+ * la bóveda). Los componentes consumen solo variables, nunca un hexadecimal.
  */
 
 :root {
-  /* Color: superficies y texto (estandar-diseno-visual.md §4.2) */
-  --color-canvas: #f4f0e7;
-  --color-surface: #ffffff;
-  --color-surface-muted: #e8e2d8;
-  --color-surface-strong: #101b2b;
-  --color-text-primary: #2a2d32;
-  --color-text-secondary: #5e625f;
-  --color-border-subtle: #c9c0b2;
-  --color-border-control: #748477;
+  color-scheme: light;
 
-  /* Color: acción */
-  --color-action-primary: #101b2b;
-  --color-action-primary-hover: #18283d;
-  --color-action-primary-active: #0a1420;
-  --color-action-soft: #f4f0e7;
-  --color-action-soft-border: #765c2f;
-  --color-action-soft-active: #e8e2d8;
-  --color-focus: #765c2f;
-  --color-brand-accent-surface: #b8955a;
-  --color-brand-accent-text: #101b2b;
-  --color-brand-sage: #748477;
-  /* Mismo tono que --color-focus, con un nombre propio: gobierna las
-     versalitas espaciadas de latón (rótulos de campo, conmutador de
-     contraseña, palabra de estado plano) y los filetes de latón de
-     alerta/botón del lenguaje reglado (issue #212, DEC-080). Un cambio
-     futuro al color del anillo de foco no debe mover accidentalmente
-     estos usos tipográficos y viceversa. */
-  --color-accent-brass: #765c2f;
-  /* Copia resuelta en :root del latón de arriba, para texto que se pinta
-     sobre una superficie clara PROPIA aunque su contenedor sea oscuro (la
-     palabra de estado de BaseAlert). Los ámbitos sobre tinta reasignan
-     --color-accent-brass al latón claro de marca; esta copia no se reasigna,
-     así que no lo hereda. */
+  /* Marca: Alba es el acento y el color de la acción; Sol marca «ahora» en el
+     panel y la hora elegida en la reserva (nunca los dos en una vista), y solo
+     como relleno con tinta encima. --color-brand-alba-mark es el Alba del
+     logo sobre su baldosa de tinta (fijo en los dos modos). */
+  --color-brand-alba: #b23157;
+  --color-brand-alba-mark: #ff8daa;
+  --color-brand-tile: #101b2b;
+  --color-brand-tile-mark: #f4f6fa;
+  --color-sun: #f4b740;
+  --color-on-sun: #101b2b;
+
+  /* Cielos: el tinte de cada parte del día (Mañana, Tarde, Noche). Con texto
+     del modo encima pasan AA con holgura; nunca llevan texto de color. */
+  --color-sky-morning: #fff0d2;
+  --color-sky-afternoon: #ffe0d6;
+  --color-sky-night: #e2e3fa;
+
+  /* Superficies y texto */
+  --color-canvas: #f4f6fa;
+  --color-surface: #ffffff;
+  --color-surface-muted: #e9edf4;
+  --color-surface-strong: #f4f6fa;
+  --color-text-primary: #101b2b;
+  --color-text-secondary: #4f5b6e;
+  --color-border-subtle: #d6dbe5;
+  --color-border-control: #7a8496;
+
+  /* Acción */
+  --color-action-primary: #b23157;
+  --color-action-primary-hover: #9c2a4c;
+  --color-action-primary-active: #85233f;
+  --color-action-soft: #fdf2f5;
+  --color-action-soft-border: #b23157;
+  --color-action-soft-active: #f7d6e0;
+  /* Foco: anillo de 2 px en el color del texto con separación (DEC-188); no
+     depende del acento para que siempre se distinga de un estado. */
+  --color-focus: #101b2b;
+  /* Acento del negocio (DEC-110/DEC-171): workspaceTheme.ts y publicAccent.ts
+     definen --business-accent-day/-night con el valor medido de cada modo;
+     sin acento propio se usa Alba. */
+  --color-brand-accent-surface: var(--business-accent-day, #b23157);
+  --color-brand-accent-text: #ffffff;
+  --color-brand-sage: #4f5b6e;
+  /* Nombre heredado (DEC-080): hoy es el Alba tipográfico de rótulos y filetes. */
+  --color-accent-brass: var(--business-accent-day, #b23157);
   --color-accent-brass-on-surface: var(--color-accent-brass);
 
-  /* Color: estado */
-  --color-success-surface: #eaf0eb;
-  --color-success-text: #325d43;
-  --color-success-border: #748477;
-  --color-warning-surface: #f8f1df;
-  --color-warning-text: #775019;
-  --color-warning-border: #9a6a24;
-  --color-danger-surface: #f8edec;
-  --color-danger-text: #8a2c2c;
-  --color-danger-border: #a43a3a;
-  --color-danger-action: #8a2c2c;
-  --color-info-surface: #e9eef3;
-  --color-info-text: #23405b;
-  --color-info-border: #667d93;
-  --color-inactive-surface: #eeece8;
-  --color-inactive-text: #56514a;
-  --color-inactive-border: #c9c0b2;
-  --color-on-strong: #f4f0e7;
-  /* Texto o icono sobre un relleno tinta o rojo FIJO (botón primario, de
-     peligro): no se invierte con el modo, a diferencia de --color-on-strong,
-     que es el texto sobre la superficie del tema. */
-  --color-on-ink: #f4f0e7;
-  /* Texto secundario sobre tinta (issue #189, atlas panel-agenda-eventos):
-     azul-gris apagado, no marfil con opacidad reducida — la fecha/zona, las
-     etiquetas del eje, el texto de un turno terminal y el cuerpo de un
-     estado de página lo usan de forma consistente en todo el atlas. */
-  --color-on-strong-muted: #a8b0bd;
+  /* Estado */
+  --color-success-surface: #e5f4ec;
+  --color-success-text: #1c7146;
+  --color-success-border: #3e9a68;
+  --color-warning-surface: #fff3d6;
+  --color-warning-text: #8f5b00;
+  --color-warning-border: #c08a1e;
+  --color-danger-surface: #fdecec;
+  --color-danger-text: #b3261e;
+  --color-danger-border: #d0453c;
+  --color-danger-action: #b3261e;
+  --color-info-surface: #e8eefc;
+  --color-info-text: #2453c2;
+  --color-info-border: #5b7fd6;
+  --color-inactive-surface: #eef0f4;
+  --color-inactive-text: #5b6475;
+  --color-inactive-border: #c9ced8;
+  --color-on-strong: #101b2b;
+  /* Texto sobre un relleno de acción o de peligro. */
+  --color-on-ink: #ffffff;
+  --color-on-strong-muted: #4f5b6e;
 
-  /* Tintes de estado LEVANTADOS al canvas de tinta (issue #190, atlas
-     nuevo-turno-eventos "Contrato visual común"): los pares de arriba están
-     calculados para superficies claras y #a43a3a sobre #101b2b no alcanza AA.
-     Son el mismo matiz aclarado hasta pasar AA sobre tinta y solo se usan
-     para TEXTO y FILETES sobre --color-surface-strong; las alertas y las
-     fichas siguen usando los pares claros del sistema. */
-  --color-danger-on-strong: #e3928d;
-  --color-warning-on-strong: #dfb063;
-  --color-success-on-strong: #9dc2a9;
-  /* Pendiente sobre tinta (agenda): amarillo suave, distinto del latón de
-     marca (#b8955a, más pardo) para no confundirse con los filetes. */
-  --color-pending-on-strong: #e6cf6e;
-  /* No se presentó sobre tinta (agenda): lila apagado, separado del amarillo
-     de pendiente, el verde de completado y el rosa de cancelado. */
-  --color-no-show-on-strong: #b7a6de;
-  /* Información sobre tinta (avisos emergentes, DEC-095): el azul de
-     --color-info-border aclarado hasta pasar AA sobre --color-surface-strong. */
-  --color-info-on-strong: #9db7cf;
-  /* Cuerpo de lectura sobre tinta: más claro que --color-on-strong-muted
-     para el texto explicativo de un aviso, sin llegar al marfil del título. */
-  --color-on-strong-soft: #cbd0d8;
-  /* Campos hundidos sobre tinta (select de profesional, selector de fecha): más
-     oscuros que --color-surface-strong, así leen como un hueco en la página y
-     no como un velo claro sobre el azul (el 5 % de marfil que usaban antes se
-     veía azul grisáceo). Los desplegables se levantan con #16243a. */
-  --color-field-strong: #0b1420;
-  --color-field-strong-border: rgb(244 240 231 / 12%);
-  /* Fila o día bajo el cursor dentro de un panel --color-field-strong. */
-  --color-field-strong-raised: #16243a;
-  /* Cabecera, dock y marco del panel privado. En Tinta es la propia
-     superficie tinta; en Marfil se asienta un tono más oscuro que el lienzo
-     para que el marco siga leyéndose como orientación y no como contenido. */
-  --color-chrome-surface: var(--color-surface-strong);
+  /* Tintes de estado sobre el lienzo del modo (texto y filetes). */
+  --color-danger-on-strong: #b3261e;
+  --color-warning-on-strong: #8f5b00;
+  --color-success-on-strong: #1c7146;
+  /* Por registrar: confirmada cuya hora ya pasó sin resultado. */
+  --color-pending-on-strong: #8f5b00;
+  --color-no-show-on-strong: #8a3a86;
+  /* Confirmada (y la información en general). */
+  --color-info-on-strong: #2453c2;
+  --color-on-strong-soft: #2e3a4d;
+  /* Campos */
+  --color-field-strong: #ffffff;
+  --color-field-strong-border: rgb(16 27 43 / 22%);
+  --color-field-strong-raised: #eef1f7;
+  --color-chrome-surface: #ffffff;
 
-  /* Color: estados de turno */
+  /* Estados de la cita (DEC-188): palabra, icono y forma; el color nunca va solo. */
+  --color-appt-confirmed: var(--color-info-on-strong);
+  --color-appt-pending: var(--color-pending-on-strong);
+  --color-appt-completed: var(--color-success-on-strong);
+  --color-appt-cancelled: var(--color-inactive-text);
+  --color-appt-no-show: var(--color-no-show-on-strong);
+  --color-appt-in-progress: var(--color-sun);
+
+  /* Estados de turno (fichas) */
   --color-status-confirmed-surface: var(--color-info-surface);
   --color-status-confirmed-text: var(--color-info-text);
   --color-status-confirmed-border: var(--color-info-border);
@@ -116,26 +123,23 @@
   --color-status-cancelled-customer-surface: var(--color-inactive-surface);
   --color-status-cancelled-customer-text: var(--color-inactive-text);
   --color-status-cancelled-customer-border: var(--color-inactive-border);
-  --color-status-cancelled-professional-surface: var(--color-danger-surface);
-  --color-status-cancelled-professional-text: var(--color-danger-text);
-  --color-status-cancelled-professional-border: var(--color-danger-border);
-  --color-status-no-show-surface: var(--color-warning-surface);
-  --color-status-no-show-text: var(--color-warning-text);
-  --color-status-no-show-border: var(--color-warning-border);
+  --color-status-cancelled-professional-surface: var(--color-inactive-surface);
+  --color-status-cancelled-professional-text: var(--color-inactive-text);
+  --color-status-cancelled-professional-border: var(--color-inactive-border);
+  --color-status-no-show-surface: #f6e9f5;
+  --color-status-no-show-text: var(--color-no-show-on-strong);
+  --color-status-no-show-border: #b56bb0;
 
   /*
-   * Tipografía. "Instrument Serif"/"Instrument Sans" todavía no están
-   * self-hosteadas: falta el issue propio que documente licencia, archivos
-   * WOFF2, font-display y medición (estandar-diseno-visual.md §5.1). Hasta
-   * entonces el navegador nunca encuentra esos nombres instalados y cae de
-   * forma determinista al fallback declarado aquí mismo; no se enlaza CDN.
-   * --font-family-base se conserva como alias de --font-sans para no tocar
-   * las pantallas de negocio que ya lo consumen; los componentes nuevos
-   * deben preferir --font-sans/--font-display directamente.
+   * Tipografía (DEC-188): solo Instrument Sans, auto-hosteada (fonts.css). La
+   * voz de Agenda la llevan los números de las horas, con cifras tabulares.
+   * --font-display se conserva como nombre para los títulos; ya no es serif.
    */
-  --font-display: 'Instrument Serif', Georgia, 'Times New Roman', serif;
+  --font-display:
+    'Instrument Sans', Inter, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
   --font-sans:
     'Instrument Sans', Inter, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  --font-numeric: tabular-nums;
   --font-family-base: var(--font-sans);
 
   /* Escala tipográfica (estandar-diseno-visual.md §5.2). display usa el
@@ -260,27 +264,139 @@
 }
 
 /*
- * Tema Marfil (DEC-110): el modo claro del panel privado. Solo se activa con
- * `data-app-theme="ivory"` en <html>, que el cascarón privado pone mientras
- * está montado; el acceso, la recuperación y la reserva pública nunca lo ven.
- * Redefine únicamente los tokens de superficie sobre tinta: cada pantalla ya
- * los consume, así que no hay una hoja de estilos paralela. Todos los pares
- * texto/fondo cumplen WCAG 2.2 AA sobre #f4f0e7 (medidos, ver
- * shared/model/__tests__/brandPalette.test.ts).
+ * Modo Noche (DEC-188, modos Día/Noche/Automático de DEC-110). El panel lo
+ * elige con `data-app-theme` (ink = Noche, ivory = Día); sin esa marca (acceso,
+ * reserva pública, turno del cliente) se sigue a prefers-color-scheme. El
+ * bloque se repite porque CSS no permite unir una media query y un selector de
+ * atributo en una sola regla; los dos deben quedar idénticos
+ * (styles/__tests__/tokens.test.ts lo comprueba).
  */
-:root[data-app-theme='ivory'] {
-  --color-surface-strong: #f4f0e7;
-  --color-chrome-surface: #ebe5d9;
-  --color-on-strong: #101b2b;
-  --color-on-strong-muted: #565a57;
-  --color-on-strong-soft: #3b424c;
-  --color-field-strong: #ffffff;
-  --color-field-strong-border: rgb(16 27 43 / 16%);
-  --color-field-strong-raised: #e8e2d8;
-  --color-danger-on-strong: #8a2c2c;
-  --color-warning-on-strong: #775019;
-  --color-success-on-strong: #325d43;
-  --color-pending-on-strong: #6f5a0c;
-  --color-no-show-on-strong: #5a4a8a;
-  --color-info-on-strong: #23405b;
+:root[data-app-theme='ink'] {
+  color-scheme: dark;
+  --color-brand-alba: #ff8daa;
+  --color-sky-morning: #3a2d12;
+  --color-sky-afternoon: #3c1f27;
+  --color-sky-night: #22264d;
+  --color-canvas: #0b1022;
+  --color-surface: #151b35;
+  --color-surface-muted: #1c2342;
+  --color-surface-strong: #0b1022;
+  --color-text-primary: #eef1f8;
+  --color-text-secondary: #a9b1c6;
+  --color-border-subtle: #2a3256;
+  --color-border-control: #7d86a3;
+  --color-action-primary: #ff8daa;
+  --color-action-primary-hover: #ffa6bc;
+  --color-action-primary-active: #f27596;
+  --color-action-soft: #2a1b33;
+  --color-action-soft-border: #ff8daa;
+  --color-action-soft-active: #3a2343;
+  --color-focus: #eef1f8;
+  --color-brand-accent-surface: var(--business-accent-night, #ff8daa);
+  --color-brand-accent-text: #0b1022;
+  --color-brand-sage: #a9b1c6;
+  --color-accent-brass: var(--business-accent-night, #ff8daa);
+  --color-success-surface: #12301f;
+  --color-success-text: #6fd39a;
+  --color-success-border: #3e9a68;
+  --color-warning-surface: #33280f;
+  --color-warning-text: #f2c060;
+  --color-warning-border: #b98b2a;
+  --color-danger-surface: #3a1518;
+  --color-danger-text: #ff8f87;
+  --color-danger-border: #d0453c;
+  --color-danger-action: #ff8f87;
+  --color-info-surface: #17244a;
+  --color-info-text: #93b1ff;
+  --color-info-border: #5b7fd6;
+  --color-inactive-surface: #1c2342;
+  --color-inactive-text: #a9b1c6;
+  --color-inactive-border: #3a4266;
+  --color-on-strong: #eef1f8;
+  --color-on-ink: #0b1022;
+  --color-on-strong-muted: #a9b1c6;
+  --color-danger-on-strong: #ff8f87;
+  --color-warning-on-strong: #f2c060;
+  --color-success-on-strong: #6fd39a;
+  --color-pending-on-strong: #f2c060;
+  --color-no-show-on-strong: #e59be0;
+  --color-info-on-strong: #93b1ff;
+  --color-on-strong-soft: #cdd3e3;
+  --color-field-strong: #080c1a;
+  --color-field-strong-border: rgb(238 241 248 / 16%);
+  --color-field-strong-raised: #1c2342;
+  --color-chrome-surface: #0e1430;
+  --color-status-no-show-surface: #2e1a3a;
+  --color-status-no-show-border: #b56bb0;
+  --shadow-raised: 0 1px 2px rgb(0 0 0 / 30%), 0 4px 12px rgb(0 0 0 / 24%);
+  --shadow-dialog: 0 16px 40px rgb(0 0 0 / 50%);
+  --color-overlay-scrim: rgb(4 6 15 / 64%);
+  --color-overlay-hover: rgb(238 241 248 / 8%);
+  --color-overlay-active: rgb(238 241 248 / 14%);
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-app-theme]) {
+    color-scheme: dark;
+    --color-brand-alba: #ff8daa;
+    --color-sky-morning: #3a2d12;
+    --color-sky-afternoon: #3c1f27;
+    --color-sky-night: #22264d;
+    --color-canvas: #0b1022;
+    --color-surface: #151b35;
+    --color-surface-muted: #1c2342;
+    --color-surface-strong: #0b1022;
+    --color-text-primary: #eef1f8;
+    --color-text-secondary: #a9b1c6;
+    --color-border-subtle: #2a3256;
+    --color-border-control: #7d86a3;
+    --color-action-primary: #ff8daa;
+    --color-action-primary-hover: #ffa6bc;
+    --color-action-primary-active: #f27596;
+    --color-action-soft: #2a1b33;
+    --color-action-soft-border: #ff8daa;
+    --color-action-soft-active: #3a2343;
+    --color-focus: #eef1f8;
+    --color-brand-accent-surface: var(--business-accent-night, #ff8daa);
+    --color-brand-accent-text: #0b1022;
+    --color-brand-sage: #a9b1c6;
+    --color-accent-brass: var(--business-accent-night, #ff8daa);
+    --color-success-surface: #12301f;
+    --color-success-text: #6fd39a;
+    --color-success-border: #3e9a68;
+    --color-warning-surface: #33280f;
+    --color-warning-text: #f2c060;
+    --color-warning-border: #b98b2a;
+    --color-danger-surface: #3a1518;
+    --color-danger-text: #ff8f87;
+    --color-danger-border: #d0453c;
+    --color-danger-action: #ff8f87;
+    --color-info-surface: #17244a;
+    --color-info-text: #93b1ff;
+    --color-info-border: #5b7fd6;
+    --color-inactive-surface: #1c2342;
+    --color-inactive-text: #a9b1c6;
+    --color-inactive-border: #3a4266;
+    --color-on-strong: #eef1f8;
+    --color-on-ink: #0b1022;
+    --color-on-strong-muted: #a9b1c6;
+    --color-danger-on-strong: #ff8f87;
+    --color-warning-on-strong: #f2c060;
+    --color-success-on-strong: #6fd39a;
+    --color-pending-on-strong: #f2c060;
+    --color-no-show-on-strong: #e59be0;
+    --color-info-on-strong: #93b1ff;
+    --color-on-strong-soft: #cdd3e3;
+    --color-field-strong: #080c1a;
+    --color-field-strong-border: rgb(238 241 248 / 16%);
+    --color-field-strong-raised: #1c2342;
+    --color-chrome-surface: #0e1430;
+    --color-status-no-show-surface: #2e1a3a;
+    --color-status-no-show-border: #b56bb0;
+    --shadow-raised: 0 1px 2px rgb(0 0 0 / 30%), 0 4px 12px rgb(0 0 0 / 24%);
+    --shadow-dialog: 0 16px 40px rgb(0 0 0 / 50%);
+    --color-overlay-scrim: rgb(4 6 15 / 64%);
+    --color-overlay-hover: rgb(238 241 248 / 8%);
+    --color-overlay-active: rgb(238 241 248 / 14%);
+  }
 }

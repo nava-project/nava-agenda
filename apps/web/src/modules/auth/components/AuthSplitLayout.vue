@@ -141,9 +141,9 @@ onBeforeUnmount(() => clearTimeout(introTimer))
 }
 
 .auth-split__brand :deep(.nava-wordmark--lg) {
-  font-size: 76px;
+  /* DEC-188: firma v2 (logo + NAVA Agenda en sans), más ancha que la serif. */
+  font-size: 44px;
   line-height: 1;
-  letter-spacing: 0.03em;
 }
 
 .auth-split__wordmark-group {
@@ -212,9 +212,8 @@ onBeforeUnmount(() => clearTimeout(introTimer))
 }
 
 .auth-split__mark :deep(.nava-wordmark--lg) {
-  font-size: 80px;
+  font-size: 30px;
   line-height: 1;
-  letter-spacing: 0.03em;
 }
 
 .auth-split__mark-rule {
@@ -504,7 +503,7 @@ onBeforeUnmount(() => clearTimeout(introTimer))
   }
 
   .auth-split__brand {
-    --auth-wordmark-font-size: clamp(120px, 9vw, 132px);
+    --auth-wordmark-font-size: clamp(44px, 3.6vw, 56px);
 
     display: flex;
     padding: var(--space-16) var(--space-10);

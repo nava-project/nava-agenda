@@ -60,7 +60,8 @@ async function mountAt(slug: string) {
 }
 
 const root = () => document.documentElement.style
-const accentOnPage = () => root().getPropertyValue('--color-brand-accent-surface')
+// DEC-188: el acento llega por modo; el de Noche basta para identificarlo.
+const accentOnPage = () => root().getPropertyValue('--business-accent-night')
 
 beforeEach(() => {
   resolveBusinessMock.mockReset()
@@ -69,15 +70,15 @@ beforeEach(() => {
 })
 
 describe('color de marca de la reserva pública (DEC-171)', () => {
-  it('pinta el acento Tinta del negocio del enlace en acentos, foco y rótulos', async () => {
+  it('pinta el acento del negocio del enlace con su valor de cada modo (DEC-188)', async () => {
     resolveBusinessMock.mockResolvedValueOnce(profile('emerald'))
     const { wrapper } = await mountAt('barberia-verde')
 
     const emerald = accentByKey('emerald')
     expect(accentOnPage()).toBe(emerald.ink)
-    expect(root().getPropertyValue('--color-focus')).toBe(emerald.ink)
-    expect(root().getPropertyValue('--color-accent-brass')).toBe(emerald.ink)
-    expect(root().getPropertyValue('--color-brand-accent-text')).toBe('#101b2b')
+    expect(root().getPropertyValue('--business-accent-day')).toBe(emerald.ivory)
+    // El foco ya no sigue al acento: es el anillo del color del texto.
+    expect(root().getPropertyValue('--color-focus')).toBe('')
     wrapper.unmount()
   })
 
@@ -86,7 +87,7 @@ describe('color de marca de la reserva pública (DEC-171)', () => {
     const { wrapper } = await mountAt('barberia')
 
     expect(accentOnPage()).toBe('')
-    expect(root().getPropertyValue('--color-accent-brass')).toBe('')
+    expect(root().getPropertyValue('--business-accent-day')).toBe('')
     wrapper.unmount()
   })
 
