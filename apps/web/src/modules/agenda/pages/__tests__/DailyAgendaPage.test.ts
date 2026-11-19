@@ -229,7 +229,8 @@ describe('DailyAgendaPage', () => {
     expect(fetchDailyAgendaMock).toHaveBeenCalledWith('b-1', civilDateMatcher)
     expect(wrapper.text()).toContain('Juan Pérez')
     expect(wrapper.text()).toContain('Corte clásico')
-    expect(wrapper.text()).toContain('Confirmado')
+    // El turno de la ficha ya pasó sin resultado: v2 lo muestra «Por registrar».
+    expect(wrapper.text()).toContain('Por registrar')
     // La URL queda normalizada con profesional y fecha explícitos.
     expect(router.currentRoute.value.query.professionalId).toBe('b-1')
     expect(router.currentRoute.value.query.date).toMatch(/^\d{4}-\d{2}-\d{2}$/)
@@ -380,7 +381,8 @@ describe('DailyAgendaPage', () => {
 
     const badges = wrapper.findAll('.base-badge')
     expect(badges.length).toBe(2)
-    const confirmedBadge = badges.find((b) => b.text() === 'Confirmado')!
+    // `confirmed` ya pasado sin resultado: «Por registrar», con la variante de confirmado.
+    const confirmedBadge = badges.find((b) => b.text() === 'Por registrar')!
     const terminalBadge = badges.find((b) => b.text() === 'Completado')!
     expect(confirmedBadge.classes()).toContain('base-badge--info')
     expect(terminalBadge.classes()).toContain('base-badge--success')
@@ -885,6 +887,27 @@ describe('DailyAgendaPage', () => {
       expect(wrapper.get('.daily-agenda-page__summary').text()).toBe(
         `2 turnos por atender · Siguiente a las ${hhmm(next.startsAt)} · Barba perfilada`,
       )
+    })
+
+    it('derives «Confirmado», «En curso» and «Por registrar» from `confirmed` by the hour (DEC-188)', async () => {
+      fetchDailyAgendaMock.mockResolvedValueOnce({
+        kind: 'success',
+        items: [
+          todayEntry('a-past', -40, 30, 'Corte clásico'),
+          todayEntry('a-now', -10, 40, 'Barba perfilada'),
+          todayEntry('a-next', 60, 30, 'Corte clásico'),
+        ],
+      })
+      const { wrapper } = await mountReady(oneProfessional)
+
+      const items = wrapper.findAll('.daily-agenda-page__item')
+      const byLabel = (label: string) =>
+        items.find((item) => item.get('.base-badge').text() === label)!
+      expect(byLabel('Por registrar').classes()).toContain('daily-agenda-page__item--pending')
+      expect(byLabel('En curso').classes()).toContain('daily-agenda-page__item--current')
+      const confirmed = byLabel('Confirmado')
+      expect(confirmed.classes()).not.toContain('daily-agenda-page__item--pending')
+      expect(confirmed.classes()).not.toContain('daily-agenda-page__item--current')
     })
 
     it('says when the appointment in progress ends', async () => {

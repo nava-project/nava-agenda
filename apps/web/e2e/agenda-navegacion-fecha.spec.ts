@@ -179,7 +179,7 @@ test.describe('Agenda en un dispositivo de otra zona horaria durante la navegaci
   }) => {
     await login(page)
     await expect(page.getByRole('heading', { name: 'Agenda', exact: true })).toBeVisible()
-    await expect(page.getByText('Zona America/Bogota')).toBeVisible()
+    await expect(page.getByText('Hora de Colombia')).toBeVisible()
 
     const bogotaToday = civilDateAt(0)
     await expect(page).toHaveURL(new RegExp(`date=${bogotaToday}`))

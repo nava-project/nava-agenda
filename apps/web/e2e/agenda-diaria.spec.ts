@@ -123,7 +123,7 @@ test.describe('Agenda diaria de hoy (HU-062)', () => {
     // La fecha completa y la zona aparecen siempre juntas, nunca solo una
     // hora suelta (CA-062-01).
     await expect(page.getByText(/\d{4}/)).toBeVisible()
-    await expect(page.getByText('Zona')).toBeVisible()
+    await expect(page.getByText(/· Hora de /)).toBeVisible()
   })
 
   test('un turno recién creado aparece en la agenda de su profesional, con estado Confirmado (CA-062-03)', async ({
@@ -194,6 +194,6 @@ test.describe('Agenda diaria en un dispositivo de otra zona horaria (CA-062-01, 
   }) => {
     await login(page)
     await expect(page.getByRole('heading', { name: 'Agenda', exact: true })).toBeVisible()
-    await expect(page.getByText('Zona America/Bogota')).toBeVisible()
+    await expect(page.getByText('Hora de Colombia')).toBeVisible()
   })
 })

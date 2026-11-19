@@ -125,5 +125,22 @@ const { loggingOut, logout: onLogout } = useLogout()
   .app-header__business {
     font-size: var(--font-size-body-sm);
   }
+
+  /* En tableta y teléfono la firma a 34 px tapaba «Cerrar sesión» y a 320 px
+     desbordaba la pantalla (DEC-188, entrega 4a): baja a 22 px y el negocio va
+     debajo, sin dejar de verse (CA-012-04). */
+  .app-header__identity {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 2px;
+  }
+
+  .app-header__identity :deep(.nava-wordmark) {
+    font-size: 22px;
+  }
+
+  .app-header__business {
+    max-width: 100%;
+  }
 }
 </style>

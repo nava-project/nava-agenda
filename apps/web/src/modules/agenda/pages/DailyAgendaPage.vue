@@ -36,6 +36,7 @@ import {
   minutesSinceCivilMidnight,
   shiftCivilDate,
 } from '@/shared/time/civilDate'
+import { timezoneLabel } from '@/shared/time/timezoneName'
 import {
   fetchProfessionalSummaries,
   fetchBusinessTimezone,
@@ -319,23 +320,11 @@ function goToNewAppointment() {
 // Ritmo propio del rombo de cada turno: duración y desfase derivados del id
 // (hash estable), así los rombos no laten a la vez y el orden no cambia al
 // volver a pintar la lista. El turno en proceso late algo más rápido.
-function diamondStyle(entry: DailyAgendaEntry): Record<string, string> {
-  let hash = 0
-  for (const char of entry.id) hash = (hash * 31 + char.charCodeAt(0)) >>> 0
-  const spread = (hash % 1000) / 1000
-  const phase = ((hash >>> 10) % 1000) / 1000
-  const [min, range] = isEntryInProgress(entry) ? [4, 2] : [6, 5]
-  const duration = min + spread * range
-  return {
-    '--diamond-duration': `${duration.toFixed(1)}s`,
-    '--diamond-delay': `-${(phase * duration).toFixed(1)}s`,
-  }
-}
-
-// El turno en curso se muestra como "En proceso" aunque su estado siga siendo
-// `confirmed`: es solo presentación de la agenda, no cambia el dato.
+// «En curso» y «Por registrar» se derivan de `confirmed` según la hora (diseno-v2,
+// «Estados de la cita»): es solo presentación de la agenda, no cambia el dato.
 function statusLabel(entry: DailyAgendaEntry): string {
-  if (isEntryInProgress(entry)) return 'En proceso'
+  if (isEntryInProgress(entry)) return 'En curso'
+  if (isEntryPending(entry)) return 'Por registrar'
   return appointmentStatusLabel(entry.status, v.value)
 }
 
@@ -578,6 +567,25 @@ function timelinePercent(minute: number): string {
   return `${((minute - bounds.start) / (bounds.end - bounds.start)) * 100}%`
 }
 
+// v2 (DEC-188): el carril pinta el cielo de la hora real del día, como la reserva:
+// noche, alba, mañana, tarde y otra vez noche. Las paradas son minutos civiles del
+// día mostrado, así que siguen en su hora con el zoom o si el eje pasa de medianoche.
+const timelineSkyStyle = computed((): Record<string, string> => {
+  if (!timelineBounds.value) return {}
+  const stops: Array<[string, number]> = [
+    ['night', 0],
+    ['night', 5 * 60],
+    ['morning', 7 * 60],
+    ['morning', 11 * 60 + 30],
+    ['afternoon', 13 * 60],
+    ['afternoon', 17 * 60],
+    ['night', 19 * 60],
+    ['night', 30 * 60],
+  ]
+  const list = stops.map(([sky, minute]) => `var(--color-sky-${sky}) ${timelinePercent(minute)}`)
+  return { backgroundImage: `linear-gradient(90deg, ${list.join(', ')})` }
+})
+
 function timelineSlipWidthPercent(entry: DailyAgendaEntry): number {
   const bounds = timelineBounds.value
   if (!bounds || !agendaDate.value || !businessTimezone.value) return 0
@@ -663,10 +671,11 @@ function isEntryCancelled(entry: (typeof entries.value)[number]): boolean {
   return entry.status === 'cancelled_by_customer' || entry.status === 'cancelled_by_professional'
 }
 
-// Pendiente: confirmado que aún no está en curso (por atender, o ya pasado de
-// hora y sin resolver). Es el caso "por hacer" de la agenda.
+// Por registrar (diseno-v2, «Estados de la cita»): confirmado cuya hora ya terminó
+// sin que se registrara el resultado. Como «En curso», se evalúa al pintar la agenda;
+// vale también para un día pasado. Un confirmado por llegar sigue siendo «Confirmada».
 function isEntryPending(entry: (typeof entries.value)[number]): boolean {
-  return entry.status === 'confirmed' && !isEntryInProgress(entry)
+  return entry.status === 'confirmed' && Date.now() >= new Date(entry.endsAt).getTime()
 }
 
 // Turno en curso: confirmado y con `ahora` dentro de [inicio, fin). Es solo
@@ -753,14 +762,14 @@ const dayChangeMarkerPercent = computed(() => {
         <h1 id="daily-agenda-page-title" class="daily-agenda-page__title">Agenda</h1>
         <p v-if="selectedDateLabel" class="daily-agenda-page__date">
           {{ selectedDateLabel
-          }}<template v-if="businessTimezone"> · Zona {{ businessTimezone }}</template>
+          }}<template v-if="businessTimezone"> · {{ timezoneLabel(businessTimezone) }}</template>
         </p>
         <p v-if="soloDaySummary" class="daily-agenda-page__summary">{{ soloDaySummary }}</p>
       </div>
       <BaseButton
         v-if="pageStatus === 'ready' && professionals.length > 0"
         type="button"
-        variant="secondary"
+        variant="primary"
         class="daily-agenda-page__cta"
         @click="goToNewAppointment"
       >
@@ -828,7 +837,10 @@ const dayChangeMarkerPercent = computed(() => {
               aria-label="Día anterior"
               @click="goToPreviousDay"
             >
-              Anterior
+              <svg class="daily-agenda-page__chevron" viewBox="0 0 16 16" aria-hidden="true">
+                <path d="M10 3.5 5.5 8l4.5 4.5" />
+              </svg>
+              <span class="daily-agenda-page__nav-word">Anterior</span>
             </BaseButton>
             <div class="daily-agenda-page__date-input-wrap">
               <label
@@ -853,7 +865,10 @@ const dayChangeMarkerPercent = computed(() => {
               aria-label="Día siguiente"
               @click="goToNextDay"
             >
-              Siguiente
+              <span class="daily-agenda-page__nav-word">Siguiente</span>
+              <svg class="daily-agenda-page__chevron" viewBox="0 0 16 16" aria-hidden="true">
+                <path d="M6 3.5 10.5 8 6 12.5" />
+              </svg>
             </BaseButton>
           </div>
         </div>
@@ -1017,6 +1032,7 @@ const dayChangeMarkerPercent = computed(() => {
                   </div>
 
                   <div class="daily-agenda-page__timeline-track nv-wipe">
+                    <div class="daily-agenda-page__timeline-sky" :style="timelineSkyStyle" />
                     <div
                       v-for="minute in timelineHalfHourGuides"
                       :key="`half-${minute}`"
@@ -1151,7 +1167,6 @@ const dayChangeMarkerPercent = computed(() => {
                   :variant="statusBadgeVariant(entry)"
                   size="sm"
                   :label="statusLabel(entry)"
-                  :style="diamondStyle(entry)"
                 >
                   {{ statusLabel(entry) }}
                 </BaseBadge>
@@ -1165,133 +1180,144 @@ const dayChangeMarkerPercent = computed(() => {
 </template>
 
 <style scoped>
-/* Superficie tinta de punta a punta (estandar-diseno-visual.md §3): la
-   agenda es tiempo y orientación operativa, no un formulario. Las fichas de
-   turno y los estados siguen en superficie clara para conservar el
-   contraste de lectura sobre el fondo oscuro (§6.6, mismo criterio que el
-   atlas: "convivencia de escritorio operativo con flujo móvil"). */
+/*
+ * Agenda del día, v2 «La luz del día» (DEC-188, entrega 4a).
+ *
+ * - El lienzo y las superficies son los del modo (Día o Noche), no la tinta fija.
+ * - Una sola acción con el acento lleno: «Nuevo turno». Anterior y Siguiente van
+ *   en contorno neutro; los rótulos, en texto secundario y tipo oración.
+ * - El carril pinta el cielo de la hora real; «Ahora» es el sol que lo recorre.
+ * - Cada estado lleva palabra, icono y forma; el color nunca va solo
+ *   (diseno-v2, «Estados de la cita»). «Cancelada» es gris, hueca y tachada.
+ *
+ * La geometría se conserva: la lista es la única región con scroll (issue #189),
+ * el carril cubre el día completo con zoom (pedido del propietario, 2026-09-04)
+ * y se encuadra en el primer turno (issue #587).
+ */
 .daily-agenda-page {
+  /* Color y forma de cada estado: una variable por estado, que usan igual la
+     franja del carril y la ficha de la lista. */
+  --ag-confirmed: var(--color-appt-confirmed);
+  --ag-current: var(--color-appt-in-progress);
+  --ag-pending: var(--color-appt-pending);
+  --ag-completed: var(--color-appt-completed);
+  --ag-cancelled: var(--color-appt-cancelled);
+  --ag-no-show: var(--color-appt-no-show);
+
   display: flex;
   flex-direction: column;
-  gap: 14px;
-  /* Alto del visor del cascarón, no solo un mínimo: así cabecera, controles y
-     línea temporal quedan fijos y el único scroll es el de la lista de turnos
-     (ver .daily-agenda-page__list). Si la pantalla es tan baja que ni con la
-     lista en su alto mínimo cabe todo, el contenido desborda y es el cascarón
-     quien desplaza, como antes. */
+  gap: var(--space-4);
+  /* Alto del visor del cascarón: cabecera, controles y carril quedan fijos y el
+     único scroll es el de la lista. Si ni así cabe, desplaza el cascarón. */
   height: 100%;
   min-height: 100%;
-  padding: 20px;
-  /* Transparente: la tinta y el fondo animado los pone el cascarón. */
+  padding: var(--space-5) var(--space-4);
+  font-family: var(--font-sans);
+  color: var(--color-text-primary);
   background: transparent;
 }
 
 @media (min-width: 1024px) {
   .daily-agenda-page {
-    padding: 26px 40px 30px;
+    padding: var(--space-6) var(--space-10, 40px) var(--space-8);
   }
 }
 
+/* ── Cabecera ─────────────────────────────────────────────────────────── */
+
 .daily-agenda-page__header {
   display: flex;
+  flex-wrap: wrap;
   align-items: flex-start;
   justify-content: space-between;
   gap: var(--space-4);
-  flex-wrap: wrap;
 }
 
 .daily-agenda-page__title {
   margin: 0;
-  font-family: var(--font-display);
-  font-size: var(--font-size-h1);
-  line-height: var(--font-size-h1-line);
-  font-weight: var(--font-weight-h1);
-  color: var(--color-on-strong);
+  font-family: var(--font-sans);
+  font-size: 28px;
+  font-weight: 600;
+  line-height: 32px;
+  letter-spacing: -0.01em;
+  color: var(--color-text-primary);
 }
 
 @media (min-width: 1024px) {
   .daily-agenda-page__title {
-    font-size: var(--font-size-title-page);
-    line-height: 46px;
+    font-size: 32px;
+    line-height: 36px;
   }
 }
 
 .daily-agenda-page__date {
   margin: var(--space-1) 0 0;
-  font-family: var(--font-family-base);
-  font-size: var(--font-size-body-sm);
-  color: var(--color-on-strong-muted);
+  font-size: 14px;
+  line-height: 20px;
+  color: var(--color-text-secondary);
 }
 
-/* «Mi día» del profesional individual: la única línea de latón del encabezado, para
-   que lo que sigue en la jornada se lea antes que la fecha. */
+/* «Mi día» del profesional individual: lo que queda de la jornada, en texto
+   pleno para que se lea antes que la fecha. */
 .daily-agenda-page__summary {
   margin: var(--space-2) 0 0;
-  font-family: var(--font-family-base);
-  font-size: var(--font-size-body);
+  font-size: 16px;
   font-weight: 500;
-  color: var(--color-brand-accent-surface);
+  line-height: 24px;
+  color: var(--color-text-primary);
 }
 
 .daily-agenda-page__cta {
   flex-shrink: 0;
-  /* Sobre tinta, el blanco puro de la variante secundaria deslumbra: el CTA
-     usa el mismo latón sobre fondo transparente que Anterior/Siguiente (ver
-     `.daily-agenda-page__date-nav`), para que todos los botones de la
-     pantalla sean de una sola familia. */
-  background-color: transparent;
-  color: var(--color-brand-accent-surface);
-  border-color: color-mix(in srgb, var(--color-brand-accent-surface) 50%, transparent);
-  border-bottom-color: var(--color-brand-accent-surface);
-}
-
-.daily-agenda-page__cta:hover:not(:disabled) {
-  background-color: color-mix(in srgb, var(--color-brand-accent-surface) 12%, transparent);
-  border-color: color-mix(in srgb, var(--color-brand-accent-surface) 50%, transparent);
-  border-bottom-color: var(--color-brand-accent-surface);
+  min-height: 44px;
+  border-radius: var(--radius-lg);
 }
 
 /* Aviso solo para lector de pantalla: fuera del flujo para que empezar una
-   carga no empuje la agenda hacia abajo y la devuelva al llegar la
-   respuesta (el "espasmo" al cambiar de fecha o profesional). El aviso visual es
-   el atenuado de la agenda anterior, de abajo. */
+   carga no empuje la agenda. El aviso visual es el atenuado de abajo. */
 .daily-agenda-page__updating {
   position: absolute;
   width: 1px;
   height: 1px;
-  margin: -1px;
   padding: 0;
+  margin: -1px;
   overflow: hidden;
-  clip-path: inset(50%);
   white-space: nowrap;
+  clip-path: inset(50%);
 }
 
-/* La agenda anterior se atenúa solo si la respuesta tarda: con la transición
-   demorada, una carga rápida (decenas de ms) no parpadea. Al volver a
-   'ready' la clase sale y el regreso a opacidad plena es inmediato. */
+/* La agenda anterior se atenúa solo si la respuesta tarda: una carga rápida
+   no parpadea. */
 .daily-agenda-page__timeline-wrapper,
 .daily-agenda-page__list,
 .daily-agenda-page__empty-state {
   transition: opacity 0.15s ease;
 }
 
-/* Día sin turnos (pedido del propietario, 2026-11-15: «no debería parecer
-   que fuera tan largo… no generar un scroll cuando no hay nada»): bajo la
-   línea temporal el vacío es una nota, no una portada. Sin el alto mínimo de
-   360 px de EmptyScene y con la ilustración más chica, el día vacío cabe en
-   la pantalla sin desplazar la página. */
+.daily-agenda-page--updating .daily-agenda-page__timeline-wrapper,
+.daily-agenda-page--updating .daily-agenda-page__list,
+.daily-agenda-page--updating .daily-agenda-page__empty-state {
+  opacity: 0.55;
+  transition-delay: 0.25s;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .daily-agenda-page__timeline-wrapper,
+  .daily-agenda-page__list,
+  .daily-agenda-page__empty-state {
+    transition: none;
+  }
+}
+
+/* Día sin turnos (pedido del propietario, 2026-11-15): bajo el carril el vacío
+   es una nota, no una portada, y no obliga a desplazar la página. */
 .daily-agenda-page__empty-state {
-  /* Nunca se encoge por debajo de su contenido (la página es una columna
-     flexible): si de verdad no cabe, se desplaza la página, no se recorta. */
   flex-shrink: 0;
   min-height: 0;
   padding: var(--space-6) var(--space-5);
   gap: var(--space-2);
 }
 
-/* Pantallas bajas (portátiles de 768 px): la ilustración es decorativa y es
-   lo primero que cede, para que título, ayuda y «Nuevo turno» quepan sin
-   desplazar la página. */
 @media (max-height: 860px) {
   .daily-agenda-page__empty-state {
     padding: var(--space-5);
@@ -1303,8 +1329,6 @@ const dayChangeMarkerPercent = computed(() => {
   }
 }
 
-/* En escritorio bajo, la nota va en una sola fila: título y ayuda a la
-   izquierda, «Nuevo turno» a la derecha. */
 @media (max-height: 860px) and (min-width: 1024px) {
   .daily-agenda-page__empty-state {
     display: grid;
@@ -1338,37 +1362,23 @@ const dayChangeMarkerPercent = computed(() => {
   top: 18px;
 }
 
-.daily-agenda-page--updating .daily-agenda-page__timeline-wrapper,
-.daily-agenda-page--updating .daily-agenda-page__list,
-.daily-agenda-page--updating .daily-agenda-page__empty-state {
-  opacity: 0.55;
-  transition-delay: 0.25s;
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .daily-agenda-page__timeline-wrapper,
-  .daily-agenda-page__list,
-  .daily-agenda-page__empty-state {
-    transition: none;
-  }
-}
-
 .daily-agenda-page__loading {
   display: flex;
   flex: 1;
   flex-direction: column;
 }
 
+/* ── Profesional y fecha ──────────────────────────────────────────────── */
+
 .daily-agenda-page__controls {
   display: flex;
   flex-direction: column;
-  gap: 16px;
+  gap: var(--space-4);
 }
 
 @media (min-width: 640px) {
   .daily-agenda-page__controls {
-    flex-direction: row;
-    flex-wrap: wrap;
+    flex-flow: row wrap;
     align-items: flex-end;
   }
 
@@ -1383,22 +1393,23 @@ const dayChangeMarkerPercent = computed(() => {
   gap: var(--space-2);
 }
 
+/* Rótulos en tipo oración, con peso y color: sin versalitas ni acento. */
 .daily-agenda-page__label {
-  font-family: var(--font-family-base);
-  font-size: var(--font-size-caption);
+  font-family: var(--font-sans);
+  font-size: 13px;
   font-weight: 500;
-  letter-spacing: 0.12em;
-  text-transform: uppercase;
-  color: var(--color-brand-accent-surface);
+  line-height: 16px;
+  letter-spacing: 0;
+  color: var(--color-text-secondary);
+  text-transform: none;
 }
 
-/* HU-063: anterior/fecha/siguiente conservan posiciones estables
-   (estandar-diseno-visual.md §11.2), sin reflow al cambiar de estado. */
+/* Anterior/fecha/siguiente conservan posiciones estables (HU-063). */
 .daily-agenda-page__date-nav {
   display: flex;
+  flex-wrap: wrap;
   align-items: flex-end;
   gap: var(--space-2);
-  flex-wrap: wrap;
 }
 
 .daily-agenda-page__date-input-wrap {
@@ -1409,24 +1420,63 @@ const dayChangeMarkerPercent = computed(() => {
   min-width: 160px;
 }
 
-/* Anterior/Siguiente/Fecha se apoyan directamente sobre
-   --color-surface-strong (tinta): BaseButton--ghost y BaseInput están
-   calibrados para superficie clara (blanco/latón oscuro), pero el atlas
-   panel-agenda-eventos usa latón claro sobre un campo casi transparente
-   para este control (.btn--ghost/.control en tools/mockups/
-   panel-agenda-eventos/render.mjs). Se sobrescribe solo aquí, no en los
-   componentes compartidos, porque el resto de sus usos (auth-eventos)
-   sí está sobre superficie clara y necesita el latón oscuro. */
+/* Anterior y Siguiente: contorno neutro, sin el acento (lo lleva solo la
+   acción de la pantalla). */
 .daily-agenda-page__date-nav :deep(.base-button--ghost) {
   --btn-height: var(--control-height);
-  color: var(--color-brand-accent-surface);
-  border-color: color-mix(in srgb, var(--color-brand-accent-surface) 50%, transparent);
-  border-bottom-color: var(--color-brand-accent-surface);
+  gap: var(--space-1);
+  padding-inline: var(--space-3);
+  font-size: 15px;
+  font-weight: 600;
+  letter-spacing: 0;
+  color: var(--color-text-primary);
+  text-transform: none;
+  background-color: var(--color-surface);
+  border: 1px solid var(--color-border-control);
+  border-radius: var(--radius-lg);
 }
 
 .daily-agenda-page__date-nav
   :deep(.base-button--ghost:hover:not(:disabled):not(.base-button--loading)) {
-  background-color: color-mix(in srgb, var(--color-brand-accent-surface) 12%, transparent);
+  background-color: var(--color-surface-muted);
+  border-color: var(--color-text-primary);
+}
+
+/* El selector de profesional y el de fecha, como campos v2: superficie, borde
+   de control y radio, sin el subrayado del campo reglado v1. (Son compartidos;
+   su versión global se alinea en la entrega 5.) */
+.daily-agenda-page__controls :deep(.professional-select__trigger),
+.daily-agenda-page__controls :deep(.agenda-date-picker__trigger) {
+  min-height: 44px;
+  color: var(--color-text-primary);
+  background-color: var(--color-surface);
+  border: 1px solid var(--color-border-control);
+  border-radius: var(--radius-lg);
+}
+
+.daily-agenda-page__controls :deep(.professional-select__trigger:hover:not(:disabled)),
+.daily-agenda-page__controls :deep(.agenda-date-picker__trigger:hover:not(:disabled)),
+.daily-agenda-page__controls :deep(.agenda-date-picker__trigger[aria-expanded='true']) {
+  border-color: var(--color-text-primary);
+}
+
+.daily-agenda-page__controls :deep(.agenda-date-picker__trigger) {
+  font-variant-numeric: tabular-nums;
+}
+
+.daily-agenda-page__controls :deep(.agenda-date-picker__icon) {
+  color: var(--color-text-secondary);
+}
+
+.daily-agenda-page__chevron {
+  flex: none;
+  width: 16px;
+  height: 16px;
+  fill: none;
+  stroke: currentColor;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-width: 1.75;
 }
 
 @media (min-width: 1024px) {
@@ -1448,181 +1498,132 @@ const dayChangeMarkerPercent = computed(() => {
   }
 }
 
+/* ── Lista de turnos ──────────────────────────────────────────────────── */
+
 .daily-agenda-page__list {
   display: flex;
   flex: 1 1 0;
   flex-direction: column;
-  gap: 10px;
-  /* Alto mínimo (dos fichas y media): en una pantalla muy baja la lista no
-     se reduce a una ranura; antes de eso prefiere desbordar la página. */
+  gap: var(--space-2);
+  /* Alto mínimo: en una pantalla muy baja prefiere desbordar la página antes
+     que reducirse a una ranura. */
   min-height: 120px;
-  /* El relleno deja sitio al foco, a la elevación de la ficha al pasar el
-     cursor y a la barra de scroll sin recortarlos. */
+  /* Sitio para el foco y la barra de scroll sin recortarlos. */
   padding: 3px 8px 3px 3px;
   margin: 0;
-  list-style: none;
   overflow-y: auto;
   overscroll-behavior: contain;
-  /* Misma barra de latón sobre tinta que usa el cascarón. */
+  list-style: none;
+  scrollbar-color: var(--color-border-control) transparent;
   scrollbar-width: thin;
-  scrollbar-color: color-mix(in srgb, var(--color-brand-accent-surface) 45%, transparent)
-    transparent;
 }
 
 .daily-agenda-page__list > .daily-agenda-page__item {
   flex-shrink: 0;
 }
 
-/* Pantallas bajas: se aprieta el ritmo vertical de la cabecera para dejar más
-   alto a la lista de turnos, que es la única región con scroll. */
 @media (max-height: 820px) {
   .daily-agenda-page {
-    gap: 10px;
-    padding-top: 14px;
-    padding-bottom: 14px;
+    gap: var(--space-3);
+    padding-top: var(--space-3);
+    padding-bottom: var(--space-3);
   }
 }
 
-/* Muy bajas (p. ej. un portátil pequeño en horizontal): la línea temporal es
-   una presentación aria-hidden del mismo contenido que la lista, así que cede
-   su alto antes de obligar al panel a desplazarse. */
+/* Pantallas muy bajas: el carril repite lo que dice la lista, así que cede su
+   alto antes de obligar al panel a desplazarse. */
 @media (max-height: 640px) {
-  /* Mayor especificidad que las reglas de escritorio posteriores, que fijan su
-     propio display. */
   .daily-agenda-page .daily-agenda-page__timeline-wrapper {
     display: none;
   }
 }
 
-/* Ficha (§6.1, §7.2): pergamino, no blanco puro — sobre tinta el blanco
-   deslumbra en una pantalla de uso continuo (issue #189). El filete
-   izquierdo de latón es la misma regla que BaseAlert usa para su nota al
-   margen, aquí en el color neutro de "turno vigente". */
+/* Ficha: superficie del modo, radio de tarjeta y filete del estado a la
+   izquierda. «Confirmada» es la franja llena con filete. */
 .daily-agenda-page__item {
+  --ag-color: var(--ag-confirmed);
+
+  position: relative;
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 20px;
-  /* Ficha (§6.1, §7.2): al menos 64px en móvil, no el objetivo táctil
-     mínimo de 44px. */
+  gap: var(--space-5);
   min-height: 64px;
-  min-height: 64px;
-  padding: 13px 18px;
-  background-color: transparent;
-  border: var(--border-width-normal) solid
-    color-mix(in srgb, var(--color-brand-accent-surface) 55%, transparent);
-  /* 3px literal, no --border-width-emphasis (2px): igual que
-     .daily-agenda-page__timeline-slip, calcado del filete de .row en el
-     atlas (border-left:3px solid var(--brass-deep)). */
-  border-left: 3px solid var(--color-accent-brass);
-  border-radius: 2px;
+  padding: var(--space-3) var(--space-5) var(--space-3) var(--space-4);
+  background-color: var(--color-surface);
+  border: 1px solid var(--color-border-subtle);
+  border-left: 4px solid var(--ag-color);
+  border-radius: 10px;
+  transition:
+    background-color var(--motion-duration-base) var(--motion-easing-standard),
+    border-color var(--motion-duration-base) var(--motion-easing-standard);
 }
 
-/* Turno terminal (issue #189): cambia de MATERIAL, no de peso — un relleno
-   gris u opacidad reducida lo dejaba pesando igual o más que un turno
-   vigente. Pasa a ser un registro con contorno sobre la tinta: sigue siendo
-   un hecho del día (RN-CIT-04), solo dejó de ser el foco de atención. */
-.daily-agenda-page__item--terminal {
-  background-color: transparent;
-  /* Más visible que el 24% original del atlas (issue #189, reporte en
-     vivo: "las tarjetas transparentes... ni se notan"). */
-  border-color: color-mix(in srgb, var(--color-brand-accent-surface) 45%, transparent);
-  border-left-color: var(--color-brand-accent-surface);
+@media (hover: hover) {
+  .daily-agenda-page__item:hover {
+    border-color: var(--color-border-control);
+    border-left-color: var(--ag-color);
+  }
 }
 
-/* Estados de la ficha, todos con la misma receta: velo tenue + contorno y
-   filete del color del estado, sobre el azul general. Van después de
-   --terminal para ganarle el contorno.
-   - Pendiente (confirmado por atender): amarillo, el "por hacer".
-   - Completado: verde apagado de la familia de éxito, el "ya hecho".
-   - Cancelado: rosa apagado de la familia de peligro.
-   - No se presentó: lila apagado, distinto de los otros tres y del latón. */
+/* En curso: relleno Sol con tinta, la única ficha llena de la lista. */
+.daily-agenda-page__item--current {
+  --ag-color: var(--ag-current);
+
+  background-color: color-mix(in srgb, var(--color-sun) 22%, var(--color-surface));
+  border-color: color-mix(in srgb, var(--color-sun) 70%, var(--color-border-subtle));
+}
+
+/* Por registrar: filete punteado, la hora ya pasó sin resultado. */
 .daily-agenda-page__item--pending {
-  background-color: color-mix(in srgb, var(--color-pending-on-strong) 8%, transparent);
-  border-color: color-mix(in srgb, var(--color-pending-on-strong) 50%, transparent);
-  border-left-color: var(--color-pending-on-strong);
-}
+  --ag-color: var(--ag-pending);
 
-.daily-agenda-page__item--pending :deep(.base-badge) {
-  color: var(--color-pending-on-strong);
+  border-style: dashed;
+  border-left-style: dotted;
 }
 
 .daily-agenda-page__item--completed {
-  background-color: color-mix(in srgb, var(--color-success-on-strong) 7%, transparent);
-  border-color: color-mix(in srgb, var(--color-success-on-strong) 40%, transparent);
-  border-left-color: var(--color-success-on-strong);
-}
-
-.daily-agenda-page__item.daily-agenda-page__item--completed :deep(.base-badge) {
-  color: var(--color-success-on-strong);
+  --ag-color: var(--ag-completed);
 }
 
 .daily-agenda-page__item--no-show {
-  background-color: color-mix(in srgb, var(--color-no-show-on-strong) 8%, transparent);
-  border-color: color-mix(in srgb, var(--color-no-show-on-strong) 45%, transparent);
-  border-left-color: var(--color-no-show-on-strong);
+  --ag-color: var(--ag-no-show);
 }
 
-.daily-agenda-page__item.daily-agenda-page__item--no-show :deep(.base-badge) {
-  color: var(--color-no-show-on-strong);
-}
-
-/* Turno cancelado (por el cliente o por el profesional): rosa apagado de la
-   familia de peligro, con un velo tenue, para separarlo a simple vista de los
-   completados sin gritar como una alerta. Va después de --terminal para
-   ganarle el color de contorno. */
+/* Cancelada: gris, franja hueca (sin superficie) y texto tachado. Nunca rosa
+   ni rojo: el rojo queda para errores y acciones destructivas. */
 .daily-agenda-page__item--cancelled {
-  background-color: color-mix(in srgb, var(--color-danger-on-strong) 7%, transparent);
-  border-color: color-mix(in srgb, var(--color-danger-on-strong) 45%, transparent);
-  border-left-color: var(--color-danger-on-strong);
+  --ag-color: var(--ag-cancelled);
+
+  background-color: transparent;
+  border-style: dashed;
+  border-left-style: solid;
 }
 
-.daily-agenda-page__item.daily-agenda-page__item--cancelled :deep(.base-badge) {
-  color: var(--color-danger-on-strong);
-}
-
-/* Turno en curso ("En proceso"): el azul general de la agenda (tinta), sin
-   velo, con contorno y filete en azul claro — el azul es su color de estado. */
-.daily-agenda-page__item--current {
-  background-color: var(--color-surface-strong);
-  border-color: color-mix(in srgb, var(--color-info-on-strong) 55%, transparent);
-  border-left-color: var(--color-info-on-strong);
-}
-
-.daily-agenda-page__item.daily-agenda-page__item--current :deep(.base-badge) {
-  color: var(--color-info-on-strong);
-}
-
-/* El nombre conserva color pleno incluso en un turno terminal — sigue
-   siendo el dato principal de la fila (atlas: .row--terminal solo atenúa
-   hora y servicio, nunca la persona). */
-.daily-agenda-page__item--terminal .daily-agenda-page__item-name {
-  color: var(--color-on-strong);
+.daily-agenda-page__item--cancelled .daily-agenda-page__item-name {
+  color: var(--color-text-secondary);
+  text-decoration: line-through;
+  text-decoration-thickness: 1px;
 }
 
 .daily-agenda-page__item--terminal .daily-agenda-page__item-time,
 .daily-agenda-page__item--terminal .daily-agenda-page__item-service {
-  color: var(--color-on-strong-muted);
+  color: var(--color-text-secondary);
 }
 
-/* La fila abre el detalle del turno (HU-064) por su bloque principal
-   (hora/persona/servicio), no por toda la tarjeta: el badge de estado queda
-   fuera del enlace, sin volverse un control ambiguo. */
+/* La fila abre el detalle del turno (HU-064) por su bloque principal; el
+   estado queda fuera del enlace. */
 .daily-agenda-page__item-main {
   display: flex;
   flex: 1;
-  min-width: 0;
   align-items: center;
-  gap: 20px;
+  gap: var(--space-5);
+  min-width: 0;
   min-height: 0;
   color: inherit;
   text-decoration: none;
   border-radius: var(--radius-sm);
   outline: none;
-}
-
-.daily-agenda-page__item-main:hover {
-  text-decoration: underline;
 }
 
 .daily-agenda-page__item-main:focus-visible {
@@ -1632,69 +1633,122 @@ const dayChangeMarkerPercent = computed(() => {
 }
 
 .daily-agenda-page__item-time {
-  flex: 0 0 118px;
-  font-family: var(--font-family-base);
-  font-size: var(--font-size-body);
-  font-weight: 400;
+  flex: 0 0 124px;
+  font-size: 16px;
+  font-weight: 500;
   font-variant-numeric: tabular-nums;
-  letter-spacing: 0.02em;
-  color: var(--color-on-strong-soft);
+  line-height: 24px;
+  color: var(--color-text-primary);
 }
 
 .daily-agenda-page__item-details {
   display: flex;
-  min-width: 0;
   flex-direction: column;
-  gap: 0;
-  line-height: 20px;
+  min-width: 0;
 }
 
-/* Persona atendida como texto principal de la ficha (§6.1). */
 .daily-agenda-page__item-name {
-  font-family: var(--font-family-base);
-  font-size: var(--font-size-body-lg);
+  font-size: 16px;
   font-weight: 600;
-  color: var(--color-on-strong);
-}
-
-.daily-agenda-page__item-service {
-  font-family: var(--font-family-base);
-  margin-top: 2px;
-  font-size: var(--font-size-body-sm);
-  line-height: 16px;
-  color: var(--color-on-strong-soft);
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .daily-agenda-page__timeline-slip,
-  .daily-agenda-page__timeline-mark--now::after {
-    animation: none;
-  }
-}
-
-/* Reflejo sutil al pasar sobre un turno de la lista: sube el velo y el
-   nombre toma el latón; el desplazamiento de 3px viene de `.nv-lift`. */
-.daily-agenda-page__item {
-  position: relative;
-  transition:
-    transform var(--motion-duration-base) var(--motion-ease-out),
-    box-shadow var(--motion-duration-base) var(--motion-easing-standard),
-    border-color var(--motion-duration-base) var(--motion-easing-standard),
-    background-color var(--motion-duration-base) var(--motion-easing-standard);
+  line-height: 24px;
+  color: var(--color-text-primary);
 }
 
 @media (hover: hover) {
-  .daily-agenda-page__item:hover {
-    background-color: color-mix(in srgb, var(--color-on-strong) 5%, transparent);
+  .daily-agenda-page__item-main:hover .daily-agenda-page__item-name {
+    text-decoration: underline;
+    text-decoration-color: var(--color-brand-accent-surface);
+    text-decoration-thickness: 2px;
+    text-underline-offset: 4px;
+  }
+
+  .daily-agenda-page__item--cancelled
+    .daily-agenda-page__item-main:hover
+    .daily-agenda-page__item-name {
+    text-decoration: line-through;
   }
 }
 
-.daily-agenda-page__item-main:hover {
-  text-decoration: none;
+.daily-agenda-page__item-service {
+  font-size: 14px;
+  line-height: 20px;
+  color: var(--color-text-secondary);
 }
 
-.daily-agenda-page__item:hover .daily-agenda-page__item-name {
-  color: var(--color-brand-accent-surface);
+/* Estado: palabra con su icono, en tipo oración y del color del estado. No es
+   un botón: sin caja ni versalitas. El icono es una máscara para que tome
+   el color del texto. */
+:deep(.base-badge) {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  gap: var(--space-2);
+  height: auto;
+  padding: 0;
+  font-family: var(--font-sans);
+  font-size: 14px;
+  font-weight: 600;
+  line-height: 20px;
+  letter-spacing: 0;
+  color: var(--ag-color);
+  text-transform: none;
+  background-color: transparent;
+  border: none;
+  border-radius: 0;
+}
+
+:deep(.base-badge)::before {
+  flex: none;
+  width: 14px;
+  height: 14px;
+  content: '';
+  background-color: currentColor;
+  mask: var(--ag-icon) center / contain no-repeat;
+}
+
+/* Confirmada: el rombo NAVA lleno. */
+.daily-agenda-page__item {
+  --ag-icon: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 14 14'%3E%3Cpath d='M7 1.5 12.5 7 7 12.5 1.5 7z'/%3E%3C/svg%3E");
+}
+
+/* En curso: el sol. El texto va en tinta sobre el relleno Sol de la ficha. */
+.daily-agenda-page__item--current {
+  --ag-icon: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 14 14'%3E%3Ccircle cx='7' cy='7' r='5.5'/%3E%3C/svg%3E");
+}
+
+.daily-agenda-page__item--current :deep(.base-badge) {
+  color: var(--color-text-primary);
+}
+
+.daily-agenda-page__item--current :deep(.base-badge)::before {
+  background-color: color-mix(in srgb, var(--color-sun) 80%, var(--color-text-primary));
+}
+
+/* Por registrar: un reloj. */
+.daily-agenda-page__item--pending {
+  --ag-icon: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 14 14' fill='none' stroke='black' stroke-width='1.6' stroke-linecap='round'%3E%3Ccircle cx='7' cy='7' r='5.6'/%3E%3Cpath d='M7 4v3.2l2 1.3'/%3E%3C/svg%3E");
+}
+
+/* Atendida: el sello ✓. */
+.daily-agenda-page__item--completed {
+  --ag-icon: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 14 14'%3E%3Ccircle cx='7' cy='7' r='6.5'/%3E%3Cpath d='m4.2 7.2 2 2 3.8-4' fill='none' stroke='white' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+}
+
+/* El ✓ va calado: la máscara usa la luminancia, así que el trazo blanco del
+   sello se vuelve transparente con `mask-mode: luminance`. */
+.daily-agenda-page__item--completed :deep(.base-badge)::before {
+  mask-mode: luminance;
+  -webkit-mask-source-type: luminance;
+}
+
+/* Cancelada: una raya, como el texto tachado. */
+.daily-agenda-page__item--cancelled {
+  --ag-icon: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 14 14' fill='none' stroke='black' stroke-width='1.6' stroke-linecap='round'%3E%3Ccircle cx='7' cy='7' r='5.6'/%3E%3Cpath d='M4.2 7h5.6'/%3E%3C/svg%3E");
+}
+
+/* No asistió: el rombo vacío. */
+.daily-agenda-page__item--no-show {
+  --ag-icon: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 14 14' fill='none' stroke='black' stroke-width='1.6' stroke-linejoin='round'%3E%3Cpath d='M7 1.8 12.2 7 7 12.2 1.8 7z'/%3E%3C/svg%3E");
 }
 
 @media (max-width: 1023px) {
@@ -1702,20 +1756,17 @@ const dayChangeMarkerPercent = computed(() => {
     width: 100%;
   }
 
-  /* El rótulo «Fecha» encabeza la fila completa (Anterior · fecha ·
-     Siguiente) alineado a la izquierda, igual que «Profesional» sobre su
-     selector: el contenedor del selector se disuelve y cada pieza ocupa su
-     área de la cuadrícula. */
+  /* «Fecha» encabeza la fila completa (Anterior · fecha · Siguiente), igual
+     que «Profesional» sobre su selector. */
   .daily-agenda-page__date-nav {
     display: grid;
-    align-items: end;
-    width: 100%;
-    column-gap: var(--space-2);
-    row-gap: var(--space-2);
-    grid-template-columns: minmax(0, 1fr) minmax(0, 1.65fr) minmax(0, 1.05fr);
     grid-template-areas:
       'label label label'
       'prev date next';
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1.65fr) minmax(0, 1fr);
+    gap: var(--space-2);
+    align-items: end;
+    width: 100%;
   }
 
   .daily-agenda-page__date-input-wrap {
@@ -1739,43 +1790,61 @@ const dayChangeMarkerPercent = computed(() => {
     grid-area: next;
   }
 
+  .daily-agenda-page__date-nav :deep(.base-button--ghost) {
+    justify-content: center;
+    padding-inline: var(--space-2);
+  }
+
   .daily-agenda-page__item {
     flex-direction: column;
     align-items: flex-start;
-    gap: 6px;
-    padding: 13px 15px;
+    gap: var(--space-2);
+    padding: var(--space-3) var(--space-4);
   }
 
   .daily-agenda-page__item-main {
     flex-direction: column;
     align-items: flex-start;
-    min-height: 0;
     gap: 0;
   }
 
   .daily-agenda-page__item-time {
     flex-basis: auto;
-    font-size: var(--font-size-body-sm);
-    color: var(--color-on-strong-soft);
-  }
-
-  .daily-agenda-page__item-name {
-    font-size: var(--font-size-body);
-    line-height: 22px;
-  }
-
-  .daily-agenda-page__item-service {
-    font-size: var(--font-size-body-sm);
-    line-height: 18px;
+    font-size: 14px;
+    line-height: 20px;
   }
 }
 
-/* Línea temporal horizontal de escritorio (§7.2, §11.2): oculta por defecto,
-   visible solo desde 1024px, donde hay espacio real para un eje legible. */
-.daily-agenda-page__timeline-wrapper {
-  display: none;
+/* En un teléfono la palabra cede y queda la flecha, en un botón de 44 px; el
+   nombre accesible («Día anterior», «Día siguiente») lo da `aria-label`. */
+@media (max-width: 639px) {
+  .daily-agenda-page__date-nav {
+    grid-template-columns: 44px minmax(0, 1fr) 44px;
+  }
+
+  .daily-agenda-page__date-nav :deep(.base-button--ghost) {
+    width: 44px;
+    padding: 0;
+  }
+
+  .daily-agenda-page__nav-word {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
+  }
+
+  .daily-agenda-page__chevron {
+    width: 20px;
+    height: 20px;
+  }
 }
 
+/* ── Carril del día (escritorio) ──────────────────────────────────────── */
+
+.daily-agenda-page__timeline-wrapper,
 .daily-agenda-page__timeline {
   display: none;
 }
@@ -1800,63 +1869,54 @@ const dayChangeMarkerPercent = computed(() => {
     width: 32px;
     height: 32px;
     padding: 0;
-    background-color: transparent;
-    color: var(--color-brand-accent-surface);
-    border: 1px solid color-mix(in srgb, var(--color-brand-accent-surface) 50%, transparent);
-    border-radius: 2px;
-    font-size: var(--font-size-body);
+    font-size: 18px;
     line-height: 1;
+    color: var(--color-text-primary);
     cursor: pointer;
-    transition:
-      background-color var(--motion-duration-fast) var(--motion-easing-standard),
-      transform var(--motion-duration-fast) var(--motion-ease-out);
-  }
-
-  .daily-agenda-page__timeline-zoom-btn:active:not(:disabled) {
-    transform: scale(0.9);
+    background-color: var(--color-surface);
+    border: 1px solid var(--color-border-control);
+    border-radius: var(--radius-md);
+    transition: background-color var(--motion-duration-fast) var(--motion-easing-standard);
   }
 
   .daily-agenda-page__timeline-zoom-btn:hover:not(:disabled) {
-    background-color: color-mix(in srgb, var(--color-brand-accent-surface) 12%, transparent);
+    background-color: var(--color-surface-muted);
+  }
+
+  .daily-agenda-page__timeline-zoom-btn:focus-visible {
+    outline: 2px solid var(--color-focus);
+    outline-offset: 2px;
   }
 
   .daily-agenda-page__timeline-zoom-btn:disabled {
-    opacity: 0.42;
     cursor: not-allowed;
+    opacity: 0.42;
   }
 
   .daily-agenda-page__timeline-zoom-label {
     min-width: 48px;
-    font-size: var(--font-size-caption);
+    font-size: 13px;
     font-variant-numeric: tabular-nums;
+    color: var(--color-text-secondary);
     text-align: center;
-    color: var(--color-on-strong-muted);
   }
 
+  /* El carril interno tiene ancho mínimo por hora y crece con el zoom: se
+     recorre con su propio scroll horizontal, nunca el de la página. */
   .daily-agenda-page__timeline {
     display: block;
-    /* Las posiciones del carril son % de su ancho (nunca px fijos), pero el
-       carril interno (.timeline-scroll) tiene un ancho mínimo por hora
-       (issue #587) y se ensancha con el zoom: casi siempre es más ancho que
-       este contenedor y se recorre con desplazamiento horizontal propio,
-       sin que la página entera se desplace. */
     overflow-x: auto;
     overscroll-behavior-x: contain;
+    scrollbar-color: var(--color-border-control) transparent;
     scrollbar-width: thin;
-    scrollbar-color: color-mix(in srgb, var(--color-brand-accent-surface) 45%, transparent)
-      transparent;
   }
 
   .daily-agenda-page__timeline-scroll {
     min-width: 100%;
   }
 
-  /* Eje, marcas y carril: tres filas propias apiladas, calcadas de
-     .axis/.marks/.track en tools/mockups/panel-agenda-eventos/render.mjs
-     (issue #189). Nunca texto posicionado con un top negativo dentro del
-     carril — así una marca ("Ahora"/"Cambio de día") nunca puede quedar
-     encima de una hora en punto: viven en bandas verticales disjuntas, no
-     compiten por el mismo espacio aunque coincidan en x. */
+  /* Eje, marcas y carril: tres filas propias (issue #189). Una marca nunca
+     queda encima de una hora en punto. */
   .daily-agenda-page__timeline-axis {
     position: relative;
     height: 18px;
@@ -1869,280 +1929,226 @@ const dayChangeMarkerPercent = computed(() => {
 
   .daily-agenda-page__timeline-tick-label {
     display: block;
-    white-space: nowrap;
-    font-size: var(--font-size-caption);
-    /* Mismo motivo que .timeline-mark-label: sin esto hereda
-       line-height:24px de body y desborda la fila de 18px del eje. */
-    line-height: 1;
+    font-size: 12px;
     font-variant-numeric: tabular-nums;
-    color: var(--color-on-strong-muted);
+    line-height: 1;
+    color: var(--color-text-secondary);
+    white-space: nowrap;
   }
 
-  /* Una marca interior se centra sobre su línea; en los dos extremos del
-     eje centrar saca la mitad de la etiqueta fuera del carril, así que ahí
-     se ancla hacia adentro en su lugar (issue #189: esto era la causa real
-     del scroll horizontal). translateX en vez de left/right: el wrap ya
-     lleva su posición por `:style`, y un estilo en línea siempre gana sobre
-     cualquier `left`/`right` de clase. */
+  /* En los extremos la etiqueta se ancla hacia adentro (issue #189). */
   .daily-agenda-page__timeline-tick-wrap--center {
     transform: translateX(-50%);
   }
 
-  /* El desplazamiento va en el wrap, no en la etiqueta: el wrap es el que
-     define el área desplazable del carril, y con `left: 100%` su caja (aún
-     sin desplazar) sobresalía ~31 px del borde derecho y daba un scroll
-     horizontal de más incluso a zoom 1. */
   .daily-agenda-page__timeline-tick-wrap--end {
     transform: translateX(-100%);
   }
 
   .daily-agenda-page__timeline-marks {
     position: relative;
-    height: 22px;
-  }
-
-  /* "Ahora" (latón, foco/énfasis secundario, §4.1): etiqueta como insignia
-     rellena — es la marca de mayor prioridad del eje. */
-  .daily-agenda-page__timeline-mark-label {
-    position: absolute;
-    top: 0;
-    transform: translateX(-50%);
-    padding: 4px 9px;
-    white-space: nowrap;
-    /* Literal 10px + .12em, no --font-size-caption (12px) ni el
-       letter-spacing de otras insignias (issue #189, reporte en vivo:
-       "está muy grande") — .mark em en el atlas usa exactamente estos dos
-       valores en escritorio, más angostos que el resto del sistema de
-       insignias porque esta es la única marca que flota sola sobre el eje,
-       no dentro de una fila con más contexto alrededor. */
-    font-size: var(--font-size-caption);
-    /* Sin esto hereda line-height:24px de body (src/styles/base.css) — el
-       atlas nunca fija un line-height para .mark em porque su body no
-       redefine el valor por defecto del navegador (issue #189, reporte en
-       vivo: "está muy grande" / "muy pegado al calendario"). Con la
-       herencia de 24px el badge medía 32px de alto real pese a su
-       font-size de 10px, desbordaba la fila de 22px y terminaba
-       superponiendo el borde del carril en vez de dejar aire antes de él. */
-    line-height: 1;
-    font-weight: 600;
-    letter-spacing: 0.12em;
-    text-transform: uppercase;
-    border-radius: 2px;
-  }
-
-  .daily-agenda-page__timeline-mark-label--now {
-    color: var(--color-surface-strong);
-    background-color: var(--color-brand-accent-surface);
-  }
-
-  /* "Cambio de día": misma familia que "Ahora" pero de menor prioridad —
-     contorno en vez de relleno. Cuando un turno nocturno que empieza "hoy"
-     hace coincidir "Ahora" y "Cambio de día" en el mismo x (evento 11), la
-     segunda insignia baja una fila dentro de esta misma banda en vez de
-     superponerse. */
-  .daily-agenda-page__timeline-mark-label--day-change {
-    top: 22px;
-    color: var(--color-brand-accent-surface);
-    background-color: transparent;
-    border: var(--border-width-normal) solid var(--color-brand-accent-surface);
+    height: 26px;
   }
 
   .daily-agenda-page__timeline-marks:has(.daily-agenda-page__timeline-mark-label--day-change) {
-    height: 44px;
+    height: 52px;
   }
 
-  /* El carril es una región definida: un borde propio, no solo marcas de
-     hora flotando sobre el fondo. */
+  /* «Ahora»: píldora Sol con tinta. Es del modo, no del negocio. */
+  .daily-agenda-page__timeline-mark-label {
+    position: absolute;
+    top: 2px;
+    padding: 3px 10px;
+    font-size: 12px;
+    font-weight: 600;
+    line-height: 16px;
+    letter-spacing: 0;
+    white-space: nowrap;
+    text-transform: none;
+    border-radius: var(--radius-pill);
+    transform: translateX(-50%);
+  }
+
+  .daily-agenda-page__timeline-mark-label--now {
+    color: var(--color-on-sun);
+    background-color: var(--color-sun);
+  }
+
+  .daily-agenda-page__timeline-mark-label--day-change {
+    top: 28px;
+    color: var(--color-text-secondary);
+    background-color: var(--color-surface);
+    border: 1px solid var(--color-border-control);
+  }
+
+  /* El carril: el cielo de la hora detrás de las franjas. */
   .daily-agenda-page__timeline-track {
     position: relative;
-    height: 96px;
-    /* Sin margen: en el atlas .axis/.marks/.track se apilan sin espacio
-       (issue #189, reporte en vivo: "está muy separado ahora"). */
+    height: 104px;
     padding: 0;
-    border: var(--border-width-normal) solid
-      color-mix(in srgb, var(--color-on-strong) 16%, transparent);
-    border-radius: 2px;
+    overflow: hidden;
+    background-color: var(--color-surface);
+    border: 1px solid var(--color-border-subtle);
+    border-radius: 10px;
   }
 
-  .daily-agenda-page__timeline-guide {
+  .daily-agenda-page__timeline-sky {
     position: absolute;
-    top: 0;
-    bottom: 0;
-    border-left: var(--border-width-normal) dashed
-      color-mix(in srgb, var(--color-on-strong) 10%, transparent);
+    inset: 0;
+    opacity: 0.85;
   }
 
+  .daily-agenda-page__timeline-guide,
   .daily-agenda-page__timeline-tick {
     position: absolute;
     top: 0;
     bottom: 0;
-    border-left: var(--border-width-normal) dashed
-      color-mix(in srgb, var(--color-on-strong) 24%, transparent);
+    border-left: 1px solid color-mix(in srgb, var(--color-text-primary) 7%, transparent);
+  }
+
+  .daily-agenda-page__timeline-tick {
+    border-left-color: color-mix(in srgb, var(--color-text-primary) 16%, transparent);
   }
 
   .daily-agenda-page__timeline-mark {
     position: absolute;
     top: 0;
     bottom: 0;
-    z-index: 1;
-    border-left: var(--border-width-emphasis) solid var(--color-brand-accent-surface);
+    z-index: 2;
+    border-left: 2px solid var(--color-text-secondary);
   }
 
-  /* Rombo con latido sobre la línea de "Ahora": el único elemento de la
-     pantalla que se mueve sin que nadie lo toque, y solo porque el tiempo
-     real avanza. */
-  .daily-agenda-page__timeline-mark--now::before {
-    content: '';
-    position: absolute;
-    top: -5px;
-    left: -6px;
-    width: 10px;
-    height: 10px;
-    background-color: var(--color-brand-accent-surface);
-    transform: rotate(45deg);
+  /* «Ahora» es el sol que recorre el día: la línea en Sol con su disco
+     arriba. Pulsa tres veces y se detiene (WCAG 2.2.2). */
+  .daily-agenda-page__timeline-mark--now {
+    border-left-color: var(--color-sun);
   }
 
-  /* Onda que sale del rombo: borde que escala y se apaga. Solo transform y
-     opacity, por pasos; animar `box-shadow` forzaba un repintado por cuadro. */
+  .daily-agenda-page__timeline-mark--now::before,
   .daily-agenda-page__timeline-mark--now::after {
-    content: '';
     position: absolute;
-    top: -5px;
-    left: -6px;
-    width: 10px;
-    height: 10px;
-    border: var(--border-width-emphasis) solid var(--color-brand-accent-surface);
+    top: -1px;
+    left: -7px;
+    width: 12px;
+    height: 12px;
+    content: '';
+    border-radius: 50%;
+  }
+
+  .daily-agenda-page__timeline-mark--now::before {
+    background-color: var(--color-sun);
+    box-shadow: 0 0 0 2px var(--color-surface);
+  }
+
+  .daily-agenda-page__timeline-mark--now::after {
+    border: 2px solid var(--color-sun);
     opacity: 0;
-    transform: rotate(45deg);
-    animation: agenda-now-ring 2.4s steps(24, end) infinite;
+    animation: agenda-now-ring 1.6s var(--motion-ease-out) 3;
   }
 
   @keyframes agenda-now-ring {
     from {
       opacity: 0.9;
-      transform: rotate(45deg) scale(1);
+      transform: scale(1);
     }
 
     to {
       opacity: 0;
-      transform: rotate(45deg) scale(2.8);
+      transform: scale(2.6);
     }
   }
 
-  /* Cada ficha crece desde su hora de inicio (borde izquierdo) con el
-     escalonado de la lista: el día se "dibuja" en el carril en vez de
-     aparecer de golpe. Solo escala/opacidad, nunca el ancho real. */
+  /* Franja: radio de 6 px, el filete del estado a la izquierda y la superficie
+     encima del cielo. Crece desde su hora de inicio al llegar. */
   .daily-agenda-page__timeline-slip {
-    transform-origin: left center;
-    animation: nava-grow-x 520ms var(--motion-ease-out) backwards;
-    animation-delay: calc(min(var(--i, 0), 14) * var(--motion-stagger));
-    transition:
-      box-shadow var(--motion-duration-base) var(--motion-easing-standard),
-      background-color var(--motion-duration-base) var(--motion-easing-standard);
-  }
+    --ag-color: var(--ag-confirmed);
+    --slip-bg: color-mix(in srgb, var(--ag-color) 12%, var(--color-surface));
 
-  .daily-agenda-page__timeline-slip {
     position: absolute;
-    top: 10px;
-    bottom: 10px;
+    top: 12px;
+    bottom: 12px;
+    z-index: 1;
     display: flex;
-    min-width: 0;
     flex-direction: column;
     justify-content: center;
     gap: 2px;
+    min-width: 0;
+    padding: 0 var(--space-3);
     overflow: hidden;
-    padding: 0 12px;
-    /* Tinte del estado; la ficha ensanchada lo apoya sobre tinta opaca. */
-    --slip-tint: transparent;
-    background-color: var(--slip-tint);
-    border: 0;
-    border-left: 3px solid var(--color-accent-brass);
-    border-radius: 2px;
-    color: var(--color-on-strong);
+    color: var(--color-text-primary);
     text-decoration: none;
+    background: var(--slip-bg);
+    border: 1px solid color-mix(in srgb, var(--ag-color) 45%, transparent);
+    border-left: 4px solid var(--ag-color);
+    border-radius: 6px;
+    transform-origin: left center;
+    animation: nava-grow-x 520ms var(--motion-ease-out) backwards;
+    animation-delay: calc(min(var(--i, 0), 14) * var(--motion-stagger));
+    transition: box-shadow var(--motion-duration-base) var(--motion-easing-standard);
   }
 
+  /* En curso: relleno Sol con tinta. Pulsa tres veces y se detiene. */
   .daily-agenda-page__timeline-slip--current {
-    background-color: var(--color-surface-strong);
-    border: var(--border-width-normal) solid
-      color-mix(in srgb, var(--color-info-on-strong) 55%, transparent);
-    border-left: 3px solid var(--color-info-on-strong);
+    --ag-color: var(--ag-current);
+    --slip-bg: var(--color-sun);
+
+    color: var(--color-on-sun);
+    border-color: var(--color-sun);
+    border-left-color: color-mix(in srgb, var(--color-sun) 60%, var(--color-on-sun));
   }
 
-  /* Mismo criterio de material que la ficha de lista: contorno sobre tinta,
-     no un relleno gris que pese igual o más que un turno vigente. */
-  .daily-agenda-page__timeline-slip--terminal {
-    background-color: transparent;
-    /* La base (.daily-agenda-page__timeline-slip) fija `border: 0` en los
-       cuatro lados y solo repone el izquierdo — un turno vigente no
-       necesita perímetro, apoya en el relleno de pergamino. Terminal SÍ
-       necesita un perímetro real (issue #189, reporte en vivo: "no está
-       la caja literal"): sin `border-width`/`border-style` propios aquí,
-       `border-color` no tenía nada que colorear y la ficha quedaba sin
-       contorno visible, solo con el filete izquierdo. Más visible que el
-       24% original del atlas ("las tarjetas transparentes... ni se
-       notan"). */
-    border: var(--border-width-normal) solid
-      color-mix(in srgb, var(--color-brand-accent-surface) 45%, transparent);
-    border-left: 3px solid var(--color-brand-accent-surface);
-    color: var(--color-on-strong);
+  .daily-agenda-page__timeline-slip--current .daily-agenda-page__timeline-slip-time,
+  .daily-agenda-page__timeline-slip--current .daily-agenda-page__timeline-slip-name,
+  .daily-agenda-page__timeline-slip--current .daily-agenda-page__timeline-slip-service {
+    color: var(--color-on-sun);
   }
 
-  /* Pendiente (amarillo) y completado (verde): misma receta que la ficha de
-     lista; el carril fija `border: 0` en la base, por eso llevan su contorno
-     completo. Después de --terminal para ganarle el color. */
+  /* Por registrar: filete punteado sobre la superficie. */
   .daily-agenda-page__timeline-slip--pending {
-    --slip-tint: color-mix(in srgb, var(--color-pending-on-strong) 8%, transparent);
-    background-color: var(--slip-tint);
-    border: var(--border-width-normal) solid
-      color-mix(in srgb, var(--color-pending-on-strong) 50%, transparent);
-    border-left: 3px solid var(--color-pending-on-strong);
+    --ag-color: var(--ag-pending);
+    --slip-bg: var(--color-surface);
+
+    border-style: dashed;
+    border-left-style: dotted;
   }
 
   .daily-agenda-page__timeline-slip--completed {
-    --slip-tint: color-mix(in srgb, var(--color-success-on-strong) 7%, transparent);
-    background-color: var(--slip-tint);
-    border-color: color-mix(in srgb, var(--color-success-on-strong) 40%, transparent);
-    border-left-color: var(--color-success-on-strong);
+    --ag-color: var(--ag-completed);
   }
 
+  /* No asistió y Cancelada: franjas huecas, sobre el cielo. */
   .daily-agenda-page__timeline-slip--no-show {
-    --slip-tint: color-mix(in srgb, var(--color-no-show-on-strong) 8%, transparent);
-    background-color: var(--slip-tint);
-    border-color: color-mix(in srgb, var(--color-no-show-on-strong) 45%, transparent);
-    border-left-color: var(--color-no-show-on-strong);
+    --ag-color: var(--ag-no-show);
+    --slip-bg: color-mix(in srgb, var(--color-surface) 55%, transparent);
+
+    border-style: dashed;
+    border-left-style: solid;
   }
 
-  /* Cancelado: rosa apagado; después de --terminal para ganarle el contorno. */
   .daily-agenda-page__timeline-slip--cancelled {
-    --slip-tint: color-mix(in srgb, var(--color-danger-on-strong) 7%, transparent);
-    background-color: var(--slip-tint);
-    border-color: color-mix(in srgb, var(--color-danger-on-strong) 45%, transparent);
-    border-left-color: var(--color-danger-on-strong);
+    --ag-color: var(--ag-cancelled);
+    --slip-bg: color-mix(in srgb, var(--color-surface) 55%, transparent);
+
+    border-style: dashed;
+    border-left-style: solid;
   }
 
-  /* Igual que la fila de lista: la hora se atenúa, la persona conserva
-     color pleno pero baja de peso (atlas: .slip--terminal redefine
-     .slip__time a --on-ink-2 y .slip__name a --on-ink/500, nunca 600). */
-  .daily-agenda-page__timeline-slip--terminal .daily-agenda-page__timeline-slip-time {
-    color: var(--color-on-strong-muted);
+  .daily-agenda-page__timeline-slip--cancelled .daily-agenda-page__timeline-slip-name {
+    color: var(--color-text-secondary);
+    text-decoration: line-through;
   }
 
   .daily-agenda-page__timeline-slip--terminal .daily-agenda-page__timeline-slip-name {
-    color: var(--color-on-strong);
     font-weight: 500;
   }
 
-  /* Ficha ensanchada (cursor encima o tocada): nunca menos ancha que su
-     contenido, así el nombre se lee entero; sobre tinta opaca y por encima de
-     las vecinas para que no se transparente el texto de otra ficha. El hover
-     solo cuenta con puntero fino: en táctil queda «pegado» tras el toque y la
-     selección la da --expanded. */
+  /* Ficha ensanchada (cursor encima o tocada): se lee entera, opaca y por
+     encima de las vecinas. El hover solo cuenta con puntero fino. */
   .daily-agenda-page__timeline-slip--expanded {
     z-index: 3;
     min-width: max-content;
     overflow: visible;
-    background: linear-gradient(var(--slip-tint), var(--slip-tint)), var(--color-surface-strong);
+    background: linear-gradient(var(--slip-bg), var(--slip-bg)), var(--color-surface);
     box-shadow: var(--shadow-dialog);
   }
 
@@ -2151,7 +2157,7 @@ const dayChangeMarkerPercent = computed(() => {
       z-index: 3;
       min-width: max-content;
       overflow: visible;
-      background: linear-gradient(var(--slip-tint), var(--slip-tint)), var(--color-surface-strong);
+      background: linear-gradient(var(--slip-bg), var(--slip-bg)), var(--color-surface);
       box-shadow: var(--shadow-dialog);
     }
 
@@ -2168,111 +2174,42 @@ const dayChangeMarkerPercent = computed(() => {
   }
 
   .daily-agenda-page__timeline-slip-time {
-    font-size: var(--font-size-caption);
-    font-weight: 400;
+    font-size: 12px;
+    font-weight: 500;
     font-variant-numeric: tabular-nums;
-    letter-spacing: 0.03em;
-    color: var(--color-on-strong-soft);
+    line-height: 16px;
+    color: var(--color-text-secondary);
   }
 
   .daily-agenda-page__timeline-slip-name {
     overflow: hidden;
-    font-size: var(--font-size-body-sm);
+    font-size: 14px;
     font-weight: 600;
-    color: var(--color-on-strong);
+    line-height: 20px;
+    color: var(--color-text-primary);
     text-overflow: ellipsis;
     white-space: nowrap;
   }
 
   .daily-agenda-page__timeline-slip-service {
     overflow: hidden;
-    font-size: var(--font-size-caption);
-    color: var(--color-on-strong-soft);
+    font-size: 12px;
+    line-height: 16px;
+    color: var(--color-text-secondary);
     text-overflow: ellipsis;
     white-space: nowrap;
   }
 }
 
-/* Rediseño local del estado de turno (issue #189, pedido explícito del
-   propietario 2026-09-04: "parecen botones" — el badge con caja del atlas
-   es fiel al mockup, pero al lado de Anterior/Siguiente/Nuevo turno (todas
-   cajas con borde) se lee como un control más, no como un dato de la
-   fila. Se abandona la caja por un rótulo — punto de color + versalitas
-   espaciadas, el mismo vocabulario que "PROFESIONAL"/"FECHA"/"AHORA" en esta
-   misma pantalla — nunca inventando un color nuevo: sigue siendo el color
-   de la variante (`--badge-text`), solo cambia cómo se presenta. */
-:deep(.base-badge) {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  height: auto;
-  padding: 0;
-  background-color: transparent;
-  border: none;
-  border-radius: 0;
-  font-size: var(--font-size-caption);
-  font-weight: 600;
-  line-height: 14px;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-}
-
-:deep(.base-badge)::before {
-  content: '';
-  flex-shrink: 0;
-  width: 5px;
-  height: 5px;
-  /* Rombo (cuadrado girado 45°) en vez de círculo: el marcador de estado de
-     esta pantalla, igual que el rombo de la marca. */
-  transform: rotate(45deg);
-  /* currentColor, no --badge-dot-color: el punto sigue el mismo color de
-     texto que ya resuelve la variante (y su atenuado terminal de abajo),
-     sin depender de la mecánica de padding negativo del prop `dot`
-     original de BaseBadge (pensada para su badge con caja). */
-  background-color: currentColor;
-}
-
-/* Parpadeo suave y esporádico del rombo: casi todo el ciclo queda quieto y
-   solo un tramo corto baja la opacidad y la escala, sin movimiento lateral.
-   Duración y desfase salen de `--diamond-duration`/`--diamond-delay` (uno
-   propio por turno, ver diamondStyle) para que no se sincronicen. */
-@keyframes agenda-diamond-blink {
-  0%,
-  62%,
-  100% {
-    opacity: 1;
-    transform: rotate(45deg) scale(1);
-  }
-
-  80% {
-    opacity: 0.55;
-    transform: rotate(45deg) scale(0.85);
-  }
-}
-
-:deep(.base-badge)::before {
-  animation: agenda-diamond-blink var(--diamond-duration, 7s) ease-in-out var(--diamond-delay, 0s)
-    infinite;
-}
-
 @media (prefers-reduced-motion: reduce) {
-  :deep(.base-badge)::before {
+  .daily-agenda-page__timeline-slip,
+  .daily-agenda-page__timeline-mark--now::after {
     animation: none;
   }
 }
 
-/* Terminal (atlas .row--terminal .badge: pierde su color de estado
-   individual): mismo criterio que el resto del material terminal de la
-   fila — el texto de la insignia ("Completado", "Cancelado...") sigue
-   distinguiendo el estado, el color ya no compite con un turno vigente. */
-.daily-agenda-page__item--terminal :deep(.base-badge) {
-  color: var(--color-on-strong-muted);
-}
-
-@media (max-width: 1023px) {
-  :deep(.base-badge) {
-    margin-top: 4px;
-    font-size: var(--font-size-caption);
-  }
+:root[data-motion='reduced'] .daily-agenda-page__timeline-slip,
+:root[data-motion='reduced'] .daily-agenda-page__timeline-mark--now::after {
+  animation: none;
 }
 </style>
