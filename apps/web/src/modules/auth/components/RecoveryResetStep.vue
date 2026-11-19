@@ -5,7 +5,7 @@
 // elegido, porque el código fue únicamente por ese canal (DEC-092, CA-011-11)—
 // y explica la
 // política de `DEC-063` ANTES del campo (CA-011-06), no solo al fallar.
-import { computed, ref } from 'vue'
+import { computed, nextTick, ref } from 'vue'
 import { BaseAlert, BaseButton, BaseInput } from '@/shared/ui'
 import { resetRecoveryPassword } from '../api/recoveryApi'
 import { notifyConnectionLost, notifyUnexpectedError } from '../model/authFeedback'
@@ -38,10 +38,7 @@ const maskedDestination = computed(() =>
 )
 
 const isSubmitting = computed(() => status.value === 'submitting')
-const errorCount = computed(() => Object.keys(fieldErrors.value).length)
-// Resumen visible cuando hay más de un error de campo a la vez (mockup
-// 08-contrasena-validacion), mismo umbral que LoginForm (CA-010-05).
-const showSummary = computed(() => attemptedSubmit.value && errorCount.value > 1)
+const formRef = ref<HTMLFormElement | null>(null)
 
 function runValidation() {
   const errors: { newPassword?: string; confirmPassword?: string } = {}
@@ -71,7 +68,13 @@ async function onSubmit() {
   attemptedSubmit.value = true
   const errors = runValidation()
   fieldErrors.value = errors
-  if (Object.keys(errors).length > 0) return
+  if (Object.keys(errors).length > 0) {
+    // Como en LoginForm (DEC-188): cada error va junto a su campo, sin
+    // resumen que lo repita, y el foco va al primer campo inválido.
+    await nextTick()
+    formRef.value?.querySelector<HTMLElement>('[aria-invalid="true"]')?.focus()
+    return
+  }
 
   status.value = 'submitting'
   const outcome = await resetRecoveryPassword(props.target, props.resetToken, newPassword.value)
@@ -101,7 +104,7 @@ const onRestart = () => emit('restart')
 </script>
 
 <template>
-  <form class="recovery-reset" novalidate @submit.prevent="onSubmit">
+  <form ref="formRef" class="recovery-reset" novalidate @submit.prevent="onSubmit">
     <p class="recovery-reset__confirmed" role="status">
       Verificamos tu código<template v-if="maskedDestination"
         >, enviado a {{ maskedDestination }}</template
@@ -179,16 +182,6 @@ const onRestart = () => emit('restart')
         <RouterLink :to="{ name: 'acceso' }">Volver al acceso</RouterLink>
       </p>
 
-      <!-- Ancla de alertas: después del grupo de acciones y de "Volver al
-           acceso" (trabajo requerido §3, auth-eventos/README.md). Resumen
-           enumerado (mockup 08-contrasena-validacion), mismo tratamiento
-           que LoginForm cuando hay más de un error de campo. -->
-      <BaseAlert v-if="showSummary" variant="danger" title="Revisa estos campos" role="alert">
-        <ul class="recovery-reset__summary-list">
-          <li v-if="fieldErrors.newPassword">{{ fieldErrors.newPassword }}</li>
-          <li v-if="fieldErrors.confirmPassword">{{ fieldErrors.confirmPassword }}</li>
-        </ul>
-      </BaseAlert>
       <BaseAlert
         v-if="status === 'policy-violation'"
         variant="danger"
@@ -202,6 +195,7 @@ const onRestart = () => emit('restart')
 </template>
 
 <style scoped>
+/* v2 (DEC-188): campos, acciones y enlaces de authV2.css; el paso entra completo. */
 .recovery-reset {
   display: flex;
   flex-direction: column;
@@ -211,66 +205,8 @@ const onRestart = () => emit('restart')
 
 .recovery-reset__confirmed {
   margin: 0;
-  font-size: 18px;
-  line-height: 26px;
+  font-size: 16px;
+  line-height: 24px;
   color: var(--color-text-secondary);
-}
-
-.recovery-reset__submit {
-  width: 100%;
-  min-height: 56px;
-}
-
-.recovery-reset__summary-list {
-  margin: 0;
-  padding-left: var(--space-5);
-}
-
-/* Cascada corta al entrar al paso: confirmación, requisitos, campos y acción
-   suben en orden, igual que la tarjeta de acceso. Solo alcanza a los seis
-   bloques que existen al entrar: el resumen de errores y el aviso de política
-   que llegan después no heredan retraso y usan la entrada de `BaseAlert`. */
-.recovery-reset > :nth-child(-n + 6) {
-  animation: recovery-reset-rise 0.55s cubic-bezier(0.2, 0.7, 0.2, 1) backwards;
-}
-
-.recovery-reset > :nth-child(2) {
-  animation-delay: 0.08s;
-}
-
-.recovery-reset > :nth-child(3) {
-  animation-delay: 0.16s;
-}
-
-.recovery-reset > :nth-child(4) {
-  animation-delay: 0.24s;
-}
-
-.recovery-reset > :nth-child(n + 5) {
-  animation-delay: 0.32s;
-}
-
-@keyframes recovery-reset-rise {
-  from {
-    opacity: 0;
-    transform: translateY(10px);
-  }
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .recovery-reset > :nth-child(-n + 6) {
-    animation: none;
-  }
-}
-
-.recovery-back {
-  margin: 0;
-  text-align: center;
-  font-size: var(--font-size-body-sm);
-}
-
-.recovery-back a {
-  color: var(--color-action-primary);
-  font-weight: 500;
 }
 </style>

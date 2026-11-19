@@ -87,6 +87,20 @@ describe('RecoveryResetStep', () => {
     expect(wrapper.text()).toContain('no coinciden')
   })
 
+  it('focuses the first invalid field, with no summary repeating the field errors (DEC-188)', async () => {
+    const wrapper = mount(RecoveryResetStep, {
+      props: { target: TARGET, resetToken: 'token-abc', maskedPhone: '', maskedEmail: '' },
+      attachTo: document.body,
+    })
+
+    await fillAndSubmit(wrapper, 'corta', 'otra')
+    await flushPromises()
+
+    expect(wrapper.text()).not.toContain('Revisa estos campos')
+    expect(document.activeElement).toBe(wrapper.get('input[name="newPassword"]').element)
+    wrapper.unmount()
+  })
+
   it('shows a gerund label and blocks the fields while submitting', async () => {
     let resolveOutcome!: (value: { kind: 'success' }) => void
     resetRecoveryPasswordMock.mockReturnValueOnce(

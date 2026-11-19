@@ -3,9 +3,10 @@ import path from 'node:path'
 import { fileURLToPath } from 'node:url'
 
 /**
- * Barra «Volver a la presentación» del acceso y la recuperación (issue #517): lleva a la landing
- * de https://nava.wtf (DEC-151, DEC-183), no tapa ni desplaza el formulario y no desborda en
- * 320/360/768/1280 px. Sin API. Capturas en e2e/evidence/acceso-volver-presentacion/.
+ * «Volver» del acceso y la recuperación (issue #517; v2, DEC-188 entrega 3): lleva a la sección
+ * de Agenda de la presentación (https://nava.wtf/#agenda, DEC-183), con un nombre accesible que
+ * dice adónde va. No tapa el formulario y no desborda en 320/360/768/1280 px. Sin API. Capturas
+ * en e2e/evidence/acceso-volver-presentacion/.
  */
 const here = path.dirname(fileURLToPath(import.meta.url))
 const evidenceDir = path.join(here, 'evidence', 'acceso-volver-presentacion')
@@ -52,7 +53,7 @@ for (const route of routes) {
       await page.setViewportSize({ width: viewport.width, height: viewport.height })
       await page.goto(route.url)
 
-      const back = page.getByRole('link', { name: 'Volver a la presentación' })
+      const back = page.getByRole('link', { name: 'Volver a Nava Agenda en nava.wtf' })
       await expect(back).toBeVisible()
       await expect(page.getByRole('heading', { level: 1, name: route.heading })).toBeVisible()
 
@@ -69,13 +70,15 @@ for (const route of routes) {
   }
 }
 
-test('«Volver a la presentación» apunta a la landing de nava.wtf y se alcanza con teclado', async ({
+test('«Volver» apunta a la sección de Agenda de nava.wtf y es lo primero que se alcanza con Tab', async ({
   page,
 }) => {
   // DEC-183: la landing es otro proyecto; no se navega fuera del servidor de pruebas.
   await page.goto('/acceso')
-  const back = page.getByRole('link', { name: 'Volver a la presentación' })
-  await back.focus()
+  const back = page.getByRole('link', { name: 'Volver a Nava Agenda en nava.wtf' })
+  await expect(page.getByRole('heading', { level: 1 })).toBeVisible()
+  await page.keyboard.press('Tab')
   await expect(back).toBeFocused()
-  await expect(back).toHaveAttribute('href', 'https://nava.wtf')
+  await expect(back).toHaveAttribute('href', 'https://nava.wtf/#agenda')
+  await expect(back).toHaveText(/Volver/)
 })

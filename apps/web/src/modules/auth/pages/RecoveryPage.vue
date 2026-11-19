@@ -99,11 +99,11 @@ function onRestart() {
 </script>
 
 <template>
-  <AuthSplitLayout class="recovery-page" caption="RECUPERACIÓN SEGURA">
-    <div class="recovery-page__header">
+  <AuthSplitLayout class="recovery-page">
+    <div class="au-head">
       <p
         :key="`progress-${step}`"
-        class="recovery-page__progress"
+        class="au-kicker recovery-page__progress"
         :class="{ 'recovery-page__swap': stepChanged }"
       >
         Paso {{ STEP_NUMBERS[step] }} de 3
@@ -111,7 +111,7 @@ function onRestart() {
       <h1
         :key="`title-${step}`"
         ref="headingRef"
-        class="recovery-page__title"
+        class="au-title recovery-page__title"
         :class="{ 'recovery-page__swap recovery-page__swap--title': stepChanged }"
         tabindex="-1"
       >
@@ -161,188 +161,70 @@ function onRestart() {
 </template>
 
 <style scoped>
-.recovery-page__header {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-6);
-}
-
-/* Versalitas de latón, mismo tratamiento reglado que "ACCESO SEGURO" y
-   los rótulos de campo (contrato visual, issue #212/#213). */
-.recovery-page__progress {
-  margin: 0;
-  font-family: var(--font-sans);
-  font-size: 11px;
-  font-weight: 600;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-  text-align: center;
-  color: var(--color-accent-brass);
-}
-
-.recovery-page__title {
-  margin: 0;
-  font-family: var(--font-display);
-  font-size: 52px;
-  line-height: 60px;
-  text-align: center;
-  color: var(--color-text-primary);
-}
-
-@media (min-width: 1024px) {
-  .recovery-page__header {
-    gap: var(--space-2);
-  }
-
-  .recovery-page__title {
-    font-size: 36px;
-    line-height: 42px;
-  }
-}
-
-.recovery-page__title:focus-visible {
-  outline: none;
-}
-
+/* Tipografía, campos y acciones: authV2.css (DEC-188). Aquí solo el paso a paso. */
 .recovery-page__done {
   display: flex;
   flex-direction: column;
   gap: var(--space-6);
 }
 
-.recovery-page__done-action {
-  width: 100%;
-  text-align: center;
-  animation: recovery-rise 0.6s cubic-bezier(0.2, 0.7, 0.2, 1) 0.25s backwards;
-}
-
-/* Movimiento de la recuperación: mismo lenguaje que la entrada de acceso
-   (subida corta con la curva de la marca, filete y reflejo de latón). Todo
-   termina en el estado normal del elemento, así que sin animación (reduced
-   motion) la pantalla queda ya compuesta. */
+/* Un paso a la vez: el saliente se desvanece rápido y el entrante llega desde el
+   lado al que se avanza (o desde el contrario al volver). Solo opacity y transform. */
 .recovery-page__swap {
-  animation: recovery-rise 0.45s cubic-bezier(0.2, 0.7, 0.2, 1) backwards;
+  animation: recovery-rise 0.3s cubic-bezier(0.2, 0.7, 0.2, 1) backwards;
 }
 
 .recovery-page__swap--title {
-  animation-delay: 0.06s;
+  animation-delay: 0.04s;
 }
 
 .recovery-step-fwd-leave-active,
 .recovery-step-back-leave-active {
   transition:
-    opacity 140ms ease-in,
-    transform 140ms ease-in;
+    opacity 120ms ease-in,
+    transform 120ms ease-in;
 }
 
 .recovery-step-fwd-enter-active,
 .recovery-step-back-enter-active {
   transition:
-    opacity 380ms cubic-bezier(0.2, 0.7, 0.2, 1),
-    transform 380ms cubic-bezier(0.2, 0.7, 0.2, 1);
+    opacity 260ms cubic-bezier(0.2, 0.7, 0.2, 1),
+    transform 260ms cubic-bezier(0.2, 0.7, 0.2, 1);
 }
 
-.recovery-step-fwd-enter-from {
-  opacity: 0;
-  transform: translateX(18px);
-}
-
-.recovery-step-fwd-leave-to {
-  opacity: 0;
-  transform: translateX(-18px);
-}
-
-.recovery-step-back-enter-from {
-  opacity: 0;
-  transform: translateX(-18px);
-}
-
+.recovery-step-fwd-enter-from,
 .recovery-step-back-leave-to {
   opacity: 0;
-  transform: translateX(18px);
+  transform: translateX(16px);
 }
 
-/* Campos y botón principal de los tres pasos: el rótulo pasa de latón a tinta
-   y un filete de latón recorre la base al enfocar; el botón recibe un reflejo
-   de latón al pasar o enfocar. Es el mismo tratamiento de `LoginForm`. */
-.recovery-page :deep(.base-input__label) {
-  transition: color var(--motion-duration-base) var(--motion-easing-standard);
-}
-
-.recovery-page :deep(.base-input__wrapper:focus-within .base-input__label) {
-  color: var(--color-action-primary);
-}
-
-.recovery-page :deep(.base-input__input-wrapper)::after {
-  content: '';
-  position: absolute;
-  right: 0;
-  bottom: 0;
-  left: 0;
-  height: var(--border-width-emphasis);
-  background-color: var(--color-brand-accent-surface);
-  border-radius: 0 0 var(--radius-sm) var(--radius-sm);
-  transform: scaleX(0);
-  transform-origin: left;
-  transition: transform 320ms cubic-bezier(0.2, 0.7, 0.2, 1);
-  pointer-events: none;
-}
-
-.recovery-page :deep(.base-input__input-wrapper:focus-within)::after {
-  transform: scaleX(1);
-}
-
-.recovery-page :deep(.base-button--primary) {
-  position: relative;
-  overflow: hidden;
-  isolation: isolate;
-}
-
-.recovery-page :deep(.base-button--primary)::after {
-  content: '';
-  position: absolute;
-  top: 0;
-  bottom: 0;
-  left: -40%;
-  z-index: -1;
-  width: 32%;
-  background: linear-gradient(
-    100deg,
-    transparent,
-    color-mix(in srgb, var(--color-brand-accent-surface) 38%, transparent),
-    transparent
-  );
-  transform: translateX(0) skewX(-18deg);
-  transition: transform 700ms cubic-bezier(0.2, 0.7, 0.2, 1);
-  pointer-events: none;
-}
-
-.recovery-page :deep(.base-button--primary:hover:not(:disabled))::after,
-.recovery-page :deep(.base-button--primary:focus-visible)::after {
-  transform: translateX(460%) skewX(-18deg);
+.recovery-step-fwd-leave-to,
+.recovery-step-back-enter-from {
+  opacity: 0;
+  transform: translateX(-16px);
 }
 
 @keyframes recovery-rise {
   from {
     opacity: 0;
-    transform: translateY(10px);
+    transform: translateY(8px);
   }
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .recovery-page__swap,
-  .recovery-page__done-action {
+  .recovery-page__swap {
     animation: none;
   }
 
   .recovery-step-fwd-enter-active,
   .recovery-step-fwd-leave-active,
   .recovery-step-back-enter-active,
-  .recovery-step-back-leave-active,
-  .recovery-page :deep(.base-input__label),
-  .recovery-page :deep(.base-input__input-wrapper)::after,
-  .recovery-page :deep(.base-button--primary)::after {
+  .recovery-step-back-leave-active {
     transition: none;
   }
+}
+
+:root[data-motion='reduced'] .recovery-page__swap {
+  animation: none;
 }
 </style>
