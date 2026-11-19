@@ -8,7 +8,6 @@ import { computed, useId } from 'vue'
 import {
   PHONE_COUNTRIES,
   flagEmoji,
-  nationalDigits,
   phoneCountry,
   splitInternationalPhone,
 } from '../model/phoneCountries'
@@ -42,6 +41,7 @@ const props = withDefaults(defineProps<Props>(), {
 const emit = defineEmits<{
   'update:country': [iso: string]
   'update:national': [value: string]
+  blur: [event: FocusEvent]
 }>()
 
 const uid = useId()
@@ -54,19 +54,42 @@ function onSelect(event: Event) {
   emit('update:country', (event.target as HTMLSelectElement).value)
 }
 
+// Lo escrito se respeta: dígitos y los separadores de siempre (espacios,
+// guiones, puntos, paréntesis) se quedan a la vista; solo viajan los dígitos
+// (composePhone). Lo que no puede ser parte de un teléfono, sí se descarta.
+function cleanTyping(value: string): string {
+  // Los espacios iniciales no significan nada (y esconderían el `+`).
+  const kept = value.replace(/^\s+/, '').replace(/[^\d\s().+-]/g, '')
+  // `+` solo al principio, donde empieza un prefijo.
+  return kept.replace(/(?!^)\+/g, '')
+}
+
+// Quita del texto el prefijo internacional (`+57` o `0057`) conservando el
+// formato de lo que sigue: «+57 300 123 4567» → «300 123 4567».
+function stripDial(value: string, dial: string): string {
+  let rest = value.trim().replace(/^(\+|00)/, '')
+  let pending = dial.replace(/\D/g, '').length
+  while (pending > 0 && rest.length > 0) {
+    if (/\d/.test(rest[0]!)) pending -= 1
+    rest = rest.slice(1)
+  }
+  // Se quitan los separadores que cerraban el prefijo, nunca el «(» que abre
+  // el primer grupo: «+57 (300) 123-45.67» → «(300) 123-45.67».
+  return rest.replace(/^[\s).-]+/, '')
+}
+
 function onInput(event: Event) {
   const target = event.target as HTMLInputElement
-  const pasted = splitInternationalPhone(target.value)
-  if (pasted) {
-    emit('update:country', pasted.country)
-    target.value = pasted.national
-    emit('update:national', pasted.national)
-    return
+  let value = cleanTyping(target.value)
+  // Un número con prefijo (pegado o escrito) elige el país en cuanto llega su
+  // primer dígito nacional; mientras se escribe «+57», se deja tal cual.
+  const international = /^\s*(\+|00)/.test(value) ? splitInternationalPhone(value) : null
+  if (international && international.national.length > 0) {
+    emit('update:country', international.country)
+    value = stripDial(value, phoneCountry(international.country).dial)
   }
-  // Solo dígitos: separadores copiados de una agenda no deben quedar a la vista.
-  const digits = nationalDigits(target.value)
-  if (digits !== target.value) target.value = digits
-  emit('update:national', digits)
+  if (value !== target.value) target.value = value
+  emit('update:national', value)
 }
 </script>
 
@@ -118,6 +141,7 @@ function onInput(event: Event) {
         :aria-invalid="!!error"
         :aria-describedby="error ? errorId : undefined"
         @input="onInput"
+        @blur="emit('blur', $event)"
       />
     </div>
 

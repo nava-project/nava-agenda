@@ -67,10 +67,12 @@ test.describe('Creación→consulta del turno del cliente (HU-097/HU-098)', () =
     const SERVICE_ID = '8f3ac2b1-e4d5-46f6-a7c8-d9e0f1a2b3c4'
     const PROFESSIONAL_ID = 'a1111111-1111-1111-1111-111111111111'
     const STARTS_AT = encodeURIComponent('2027-03-15T15:00:00Z')
+    let confirmations = 0
 
     await page.route(
       `**/api/v1/public/businesses/barberia-ejemplo/services/${SERVICE_ID}/professionals/${PROFESSIONAL_ID}/appointments`,
       async (route) => {
+        confirmations += 1
         await route.fulfill({
           status: 201,
           contentType: 'application/json',
@@ -100,7 +102,15 @@ test.describe('Creación→consulta del turno del cliente (HU-097/HU-098)', () =
     await page.getByRole('button', { name: 'Ver resumen' }).click()
     await expect(page.getByText('Revisa tus datos')).toBeVisible()
     await page.getByRole('button', { name: 'Confirmar turno' }).click()
-    await expect(page.getByText('¡Tu turno quedó confirmado!')).toBeVisible()
+    await expect(page.getByRole('heading', { name: 'Tu turno quedó agendado' })).toBeVisible()
+
+    // Recargar la confirmación la redibuja y no ofrece reservar otra vez (revisión de #707).
+    await expect(page).toHaveURL(/\/cliente\?confirmado=1$/)
+    await page.reload()
+    await expect(page.getByRole('heading', { name: 'Tu turno quedó agendado' })).toBeVisible()
+    await expect(page.getByText(APPOINTMENT_VIEW.serviceName)).toBeVisible()
+    await expect(page.getByRole('button', { name: 'Ver resumen' })).toHaveCount(0)
+    expect(confirmations).toBe(1)
 
     // El enlace en claro solo viaja por correo (DEC-091): esta pantalla
     // nunca lo muestra ni lo enlaza. HU-098 lo consume de forma

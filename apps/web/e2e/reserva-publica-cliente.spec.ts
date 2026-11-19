@@ -76,7 +76,7 @@ test.describe('Datos del cliente y persona atendida (HU-096)', () => {
     await page.getByRole('button', { name: 'Editar' }).click()
 
     await expect(page.getByLabel('Tu nombre')).toHaveValue('Ana Ríos')
-    // El prefijo +57 vive en el selector de país: el campo conserva el número nacional.
+    // El prefijo +57 pasa al selector de país; el campo conserva el número nacional tal como se escribió.
     await expect(page.getByLabel('Teléfono')).toHaveValue('3001234567')
     await expect(page.getByLabel('Correo')).toHaveValue('ana@example.com')
   })

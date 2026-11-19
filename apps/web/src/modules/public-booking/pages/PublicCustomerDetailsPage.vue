@@ -9,7 +9,7 @@
 // ante un error de validación o conflicto (CA-096-03, CA-097-03) y resuelve
 // `attendeeName` sin pedirlo dos veces cuando el cliente reserva para sí
 // mismo (CA-096-01, RN-RES-02).
-import { computed, nextTick, onMounted, ref, useId, watch } from 'vue'
+import { computed, nextTick, onMounted, reactive, ref, useId, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import {
   ProfessionalAvatar,
@@ -21,7 +21,29 @@ import {
 } from '@/shared/ui'
 import type { LatLng } from '@/shared/model/mapPicker'
 import { isPlacesAvailable, type PlaceSelection } from '@/shared/model/placesAutocomplete'
+import { clockToMinutes, DAYS_OF_WEEK, segmentsByDay } from '@/shared/model/openingHours'
+import {
+  formatCivilDateFull,
+  getCivilDateInTimezone,
+  minutesSinceCivilMidnight,
+} from '@/shared/time/civilDate'
+import { formatTimeInTimezone } from '@/shared/time/formatInstant'
 import { composeHomeAddress } from '../model/homeAddress'
+import {
+  buildCalendarFile,
+  directionsLink,
+  downloadCalendarFile,
+  whatsAppLink,
+} from '../model/calendarFile'
+import {
+  confirmedVisitKey,
+  readConfirmedVisit,
+  saveConfirmedVisit,
+  toConfirmedVisit,
+  type ConfirmedVisit,
+} from '../model/confirmedVisit'
+import DaylightStrip from '../components/DaylightStrip.vue'
+import type { PublicBusinessProfile } from '../model/businessProfileOutcome'
 import HomeLocationField from '../components/HomeLocationField.vue'
 import { confirmPublicAppointment } from '../api/confirmPublicAppointmentApi'
 import { listPublicProfessionals } from '../api/listPublicProfessionalsApi'
@@ -32,10 +54,7 @@ import type { PublicProfessional } from '../model/publicProfessionalListOutcome'
 import { publicProfessionalPhotoUrl } from '../model/publicProfessionalPhotoUrl'
 import { DEFAULT_PHONE_COUNTRY, composePhone, phoneCountry } from '@/shared/model/phoneCountries'
 import { usePublicVocabulary } from '../model/publicVocabulary'
-import type {
-  ConfirmedPublicAppointment,
-  PublicAppointmentAlternative,
-} from '../model/confirmPublicAppointmentOutcome'
+import type { PublicAppointmentAlternative } from '../model/confirmPublicAppointmentOutcome'
 import {
   ATTENDEE_NAME_MAX_LENGTH,
   CUSTOMER_NOTE_MAX_LENGTH,
@@ -61,11 +80,13 @@ interface Props {
   /** El profesional lo asignó «Cualquiera» (DEC-188): al cambiar de hora se
    * vuelve a Cualquiera y no a este profesional. */
   anyProfessional?: boolean
+  /** La URL lleva `?confirmado=1`: el turno ya se reservó en esta pestaña y se
+   * redibuja la confirmación, nunca el formulario (evita reservar dos veces). */
+  confirmed?: boolean
 }
-const props = withDefaults(defineProps<Props>(), { anyProfessional: false })
+const props = withDefaults(defineProps<Props>(), { anyProfessional: false, confirmed: false })
 const v = usePublicVocabulary()
 const router = useRouter()
-const gemId = `seal-gem-${useId()}`
 // Único por instancia: el diálogo vive en el <body> y no debe repetir ids.
 const conflictAltsLabelId = `pb-conflict-alts-${useId()}`
 
@@ -109,9 +130,11 @@ const homePlace = ref<PlaceSelection | null>(null)
 const homeDetails = ref('')
 // Dónde abre el mapa de «a domicilio»: el negocio, si publicó su ubicación (DEC-138).
 const homeMapStart = ref<LatLng | null>(null)
+const businessProfile = ref<PublicBusinessProfile | null>(null)
 onMounted(async () => {
   const outcome = await loadPublicProfile(props.slug)
   if (outcome.kind === 'success') {
+    businessProfile.value = outcome.profile
     offersHomeService.value = outcome.profile.offersHomeService && isPlacesAvailable()
     const where = outcome.profile.location
     homeMapStart.value = where ? { latitude: where.latitude, longitude: where.longitude } : null
@@ -129,7 +152,8 @@ const selectedStartsAt = ref(props.startsAt)
 
 type ConfirmState = 'idle' | 'submitting' | 'confirmed' | 'schedule-conflict' | 'error'
 const confirmState = ref<ConfirmState>('idle')
-const confirmedAppointment = ref<ConfirmedPublicAppointment | null>(null)
+// Sin la credencial del turno (DEC-089): solo lo que la confirmación dibuja.
+const confirmedAppointment = ref<ConfirmedVisit | null>(null)
 const alternatives = ref<PublicAppointmentAlternative[]>([])
 const errorMessage = ref('')
 // El servidor las entrega por cercanía; al cliente le sirven en orden de reloj.
@@ -140,6 +164,18 @@ const sortedAlternatives = computed(() =>
 // (red/error inesperado, RN-IDE-01): un contenido distinto (editar, elegir
 // otra alternativa) siempre pide una clave nueva.
 const idempotencyKey = ref<string | null>(null)
+
+// Recarga de la confirmación: se redibuja con lo guardado en esta pestaña. Si no
+// quedó nada (otra pestaña, almacenamiento bloqueado), igual se dice que el turno
+// ya está reservado y no se ofrece el formulario.
+if (props.confirmed) {
+  confirmedAppointment.value = readConfirmedVisit(
+    confirmedVisitKey(props.slug, props.serviceId, props.professionalId, props.startsAt),
+  )
+  reviewing.value = true
+  confirmState.value = 'confirmed'
+  chrome.completed.value = true
+}
 
 const formRef = ref<HTMLElement | null>(null)
 const summaryRef = ref<HTMLElement | null>(null)
@@ -160,6 +196,19 @@ const fieldErrors = computed(() => ({
       ? 'Marca tu ubicación en el mapa o usa el botón «Usar mi ubicación» para continuar.'
       : undefined,
 }))
+
+// Validación al salir del campo (DEC-188): un campo con algo escrito se revisa
+// cuando el cliente lo deja, y su mensaje va debajo. Un campo vacío no regaña
+// solo por pasar por él con Tab: eso lo dice «Ver resumen». Lo escrito nunca se
+// borra. Una vez visible, el mensaje sigue la escritura y se va al corregir.
+type FieldKey = keyof typeof fieldErrors.value
+const touched = reactive<Partial<Record<FieldKey, boolean>>>({})
+function leave(field: FieldKey, value: string) {
+  if (value.trim() !== '') touched[field] = true
+}
+function shown(field: FieldKey): string | undefined {
+  return attempted.value || touched[field] ? fieldErrors.value[field] : undefined
+}
 
 const hasErrors = computed(() => Object.values(fieldErrors.value).some((message) => !!message))
 
@@ -205,9 +254,13 @@ async function editAgain() {
 }
 
 // Fecha larga y hora por separado: el resumen da a la hora el protagonismo.
+// Se dicen en la zona del NEGOCIO (RN-DIS-07), como en «Día y hora»; mientras
+// el perfil no llega, en la del navegador.
+const zone = computed(() => businessProfile.value?.timezone)
+
 function formatLocalDay(iso: string): string {
   try {
-    return new Date(iso).toLocaleDateString('es-CO', { dateStyle: 'full' })
+    return new Date(iso).toLocaleDateString('es-CO', { dateStyle: 'full', timeZone: zone.value })
   } catch {
     return iso
   }
@@ -219,6 +272,7 @@ function formatLocalDayShort(iso: string): string {
       weekday: 'short',
       day: 'numeric',
       month: 'short',
+      timeZone: zone.value,
     })
   } catch {
     return iso
@@ -226,36 +280,12 @@ function formatLocalDayShort(iso: string): string {
 }
 
 function formatLocalTime(iso: string): string {
+  if (zone.value) return formatTimeInTimezone(iso, zone.value)
   try {
     return new Date(iso).toLocaleTimeString('es-CO', { timeStyle: 'short' })
   } catch {
     return ''
   }
-}
-
-// Piezas del talón de confirmación. Se calculan en la zona del navegador, igual
-// que el resto de fechas de esta pantalla.
-function leafParts(iso: string): { month: string; day: string; weekday: string } {
-  const date = new Date(iso)
-  return {
-    month: date.toLocaleDateString('es-CO', { month: 'short' }).replace('.', ''),
-    day: String(date.getDate()),
-    weekday: date.toLocaleDateString('es-CO', { weekday: 'long' }),
-  }
-}
-
-// «Hoy», «Mañana» o «En N días»: cuenta días de calendario, no bloques de 24 h.
-function untilLabel(iso: string): string {
-  const target = new Date(iso)
-  const today = new Date()
-  const days = Math.round(
-    (new Date(target.getFullYear(), target.getMonth(), target.getDate()).getTime() -
-      new Date(today.getFullYear(), today.getMonth(), today.getDate()).getTime()) /
-      86_400_000,
-  )
-  if (days <= 0) return 'Hoy'
-  if (days === 1) return 'Mañana'
-  return `En ${days} días`
 }
 
 function formatMoney(amount: string, currency: string): string {
@@ -270,6 +300,76 @@ function formatMoney(amount: string, currency: string): string {
   } catch {
     return `${amount} ${currency}`
   }
+}
+
+// ── Confirmado: el pase se agenda (DEC-188) ───────────────────────────────
+// Fechas y horas en la zona del NEGOCIO (RN-DIS-07), como en «Día y hora».
+const done = computed(() => {
+  const a = confirmedAppointment.value
+  if (!a) return null
+  const civilDate = getCivilDateInTimezone(a.timezone, new Date(a.startsAt))
+  const start = formatTimeInTimezone(a.startsAt, a.timezone)
+  const end = formatTimeInTimezone(a.endsAt, a.timezone)
+  const minutes = minutesSinceCivilMidnight(a.startsAt, civilDate, a.timezone)
+  // La franja del día del turno, con el horario que el local publicó.
+  const [y, m, d] = civilDate.split('-').map(Number)
+  const weekday = (new Date(Date.UTC(y!, m! - 1, d!)).getUTCDay() + 6) % 7
+  const hours = segmentsByDay(businessProfile.value?.openingHours ?? [])[DAYS_OF_WEEK[weekday]!]
+  // Sin horario publicado no se dibuja franja: no se inventa un horario.
+  const open =
+    hours && hours.length > 0
+      ? hours.map((h) => ({
+          start: clockToMinutes(h.opens) ?? 0,
+          end: clockToMinutes(h.closes) ?? 0,
+        }))
+      : null
+  return {
+    day: formatCivilDateFull(civilDate),
+    range: `${start} – ${end}`,
+    start,
+    minutes,
+    open,
+  }
+})
+
+const whatsApp = computed(() => {
+  const a = confirmedAppointment.value
+  if (!a || !done.value) return null
+  return whatsAppLink(
+    businessProfile.value?.contactPhone,
+    // La frase no termina en la hora: «9:15 a. m.» ya trae su punto.
+    `Hola, reservé ${a.serviceName} a las ${done.value.start} del ${done.value.day}.`,
+  )
+})
+
+// Dónde es el turno, bajo la hora: el domicilio o la dirección del local con «Cómo llegar».
+const place = computed<{ text: string; href: string | null } | null>(() => {
+  const a = confirmedAppointment.value
+  if (!a) return null
+  if (a.homeAddress) return { text: a.homeAddress, href: null }
+  const where = businessProfile.value?.location
+  return where
+    ? { text: where.address, href: directionsLink(where.latitude, where.longitude) }
+    : null
+})
+
+const calendarSaved = ref(false)
+function addToCalendar() {
+  const a = confirmedAppointment.value
+  if (!a) return
+  const where = place.value?.text ?? null
+  const who = professional.value ? ` con ${professional.value.fullName}` : ''
+  downloadCalendarFile(
+    buildCalendarFile({
+      uid: `${a.startsAt}-${props.serviceId}-${props.professionalId}@agenda.nava.wtf`,
+      startsAt: a.startsAt,
+      endsAt: a.endsAt,
+      summary: `${a.serviceName}, ${a.businessName}`,
+      location: where,
+      description: `${a.serviceName}${who}. El enlace para consultar o cambiar tu turno está en tu correo.`,
+    }),
+  )
+  calendarSaved.value = true
 }
 
 // CA-097-07: bloquea doble toque (confirmState guarda 'submitting' hasta
@@ -310,14 +410,43 @@ async function handleConfirm() {
   )
 
   switch (outcome.kind) {
-    case 'success':
-      confirmedAppointment.value = outcome.appointment
+    case 'success': {
+      const visit = toConfirmedVisit(
+        outcome.appointment,
+        attendeeChoice.value === 'other',
+        isHomeService.value && homePlace.value
+          ? composeHomeAddress(homePlace.value.address, homeDetails.value)
+          : null,
+      )
+      confirmedAppointment.value = visit
       confirmState.value = 'confirmed'
       chrome.completed.value = true
       idempotencyKey.value = null
+      // La URL pasa a ser la de la confirmación (replace: «Atrás» sigue llevando a
+      // «Día y hora»). Recargar ya no ofrece el formulario de una hora reservada.
+      saveConfirmedVisit(
+        confirmedVisitKey(
+          props.slug,
+          props.serviceId,
+          props.professionalId,
+          selectedStartsAt.value,
+        ),
+        visit,
+      )
+      void router.replace({
+        name: 'reserva-publica-cliente',
+        params: {
+          slug: props.slug,
+          serviceId: props.serviceId,
+          professionalId: props.professionalId,
+          startsAt: selectedStartsAt.value,
+        },
+        query: { ...(props.anyProfessional ? { cualquiera: '1' } : {}), confirmado: '1' },
+      })
       await nextTick()
       confirmedRef.value?.focus()
       return
+    }
     case 'schedule-conflict':
       alternatives.value = outcome.alternatives
       confirmState.value = 'schedule-conflict'
@@ -372,68 +501,32 @@ function chooseAlternative(startsAt: string) {
 </script>
 
 <template>
-  <main
-    class="pb-page pb-page--center"
-    :class="confirmState === 'confirmed' ? 'pb-page--confirmed' : 'pb-page--scroll-form'"
-  >
-    <span v-if="confirmState === 'confirmed'" class="customer-details__seal" aria-hidden="true">
-      <svg class="customer-details__gem" viewBox="0 0 64 64" fill="none" focusable="false">
-        <defs>
-          <clipPath :id="`${gemId}-clip`">
-            <path d="M32 4 60 32 32 60 4 32Z" />
-          </clipPath>
-          <linearGradient :id="`${gemId}-glint`" x1="0" y1="0" x2="1" y2="0">
-            <stop offset="0" stop-color="#e6f5ea" stop-opacity="0" />
-            <stop offset="0.5" stop-color="#e6f5ea" stop-opacity="0.85" />
-            <stop offset="1" stop-color="#e6f5ea" stop-opacity="0" />
-          </linearGradient>
-        </defs>
-        <path class="customer-details__gem-inner" d="M32 17 47 32 32 47 17 32Z" />
-        <path class="customer-details__gem-facets" d="M32 4V60M4 32H60M18 18 46 46M46 18 18 46" />
-        <path class="customer-details__gem-outline" d="M32 4 60 32 32 60 4 32Z" pathLength="100" />
-        <g :clip-path="`url(#${gemId}-clip)`">
-          <g transform="skewX(-22)">
-            <rect
-              class="customer-details__gem-glint"
-              x="-4"
-              y="0"
-              width="18"
-              height="64"
-              :fill="`url(#${gemId}-glint)`"
-            />
-          </g>
-        </g>
-      </svg>
-      <i
-        v-for="spark in 8"
-        :key="spark"
-        class="customer-details__spark"
-        :style="{
-          '--spark-angle': `${(spark - 1) * 45}deg`,
-          '--spark-delay': `${0.7 + (spark % 3) * 0.06}s`,
-        }"
-      ></i>
-    </span>
-    <p class="pb-eyebrow">
+  <main class="bk-page bk-details" :class="{ 'bk-details--done': confirmState === 'confirmed' }">
+    <!-- v2 (DEC-188): página de documento, sin región con desplazamiento propio:
+         los campos caben enteros y el navegador desplaza. Este comentario va
+         dentro de <main>: un solo elemento raíz, que el cascarón anima con
+         <Transition mode="out-in">. -->
+    <p class="bk-kicker">
       {{
         confirmState === 'confirmed'
-          ? 'Reserva completa'
+          ? 'Reserva confirmada'
           : reviewing
             ? 'Última revisión'
-            : 'Casi listo'
+            : 'Paso 3 de 3'
       }}
     </p>
-    <h1 class="pb-title">{{ confirmState === 'confirmed' ? 'Todo listo' : 'Tus datos' }}</h1>
-    <div class="pb-rule" aria-hidden="true"></div>
+    <h1 class="bk-title">
+      {{ confirmState === 'confirmed' ? 'Tu turno quedó agendado' : 'Tus datos' }}
+    </h1>
 
     <section
-      class="pb-sheet customer-details"
+      class="bk-sheet customer-details"
       :class="{ 'customer-details--ticket': confirmState === 'confirmed' }"
     >
       <form
         v-if="!reviewing"
         ref="formRef"
-        class="pb-sheet__form customer-details__rise"
+        class="bk-sheet__form customer-details__rise"
         novalidate
         @submit.prevent="handleSubmit"
       >
@@ -483,7 +576,7 @@ function chooseAlternative(startsAt: string) {
               v-model:details="homeDetails"
               class="customer-details__address customer-details__rise"
               :start="homeMapStart"
-              :error="attempted ? fieldErrors.home : undefined"
+              :error="shown('home')"
             />
           </fieldset>
 
@@ -494,7 +587,8 @@ function chooseAlternative(startsAt: string) {
             label="Tu nombre"
             autocomplete="name"
             required
-            :error="attempted ? fieldErrors.fullName : undefined"
+            :error="shown('fullName')"
+            @blur="leave('fullName', fullName)"
           />
 
           <BaseInput
@@ -506,14 +600,16 @@ function chooseAlternative(startsAt: string) {
             autocomplete="off"
             required
             :maxlength="ATTENDEE_NAME_MAX_LENGTH"
-            :error="attempted ? fieldErrors.attendeeName : undefined"
+            :error="shown('attendeeName')"
+            @blur="leave('attendeeName', attendeeName)"
           />
 
           <PhoneField
             v-model:country="phoneCountryIso"
             v-model:national="phoneNational"
             required
-            :error="attempted ? fieldErrors.phone : undefined"
+            :error="shown('phone')"
+            @blur="leave('phone', phoneNational)"
           />
 
           <BaseInput
@@ -522,7 +618,8 @@ function chooseAlternative(startsAt: string) {
             label="Correo"
             autocomplete="email"
             required
-            :error="attempted ? fieldErrors.email : undefined"
+            :error="shown('email')"
+            @blur="leave('email', email)"
           />
 
           <div class="customer-details__field customer-details__span">
@@ -534,21 +631,20 @@ function chooseAlternative(startsAt: string) {
               v-model="note"
               class="customer-details__textarea"
               rows="3"
-              :aria-invalid="attempted && !!fieldErrors.note"
+              :aria-invalid="!!shown('note')"
               :aria-describedby="
-                attempted && fieldErrors.note
-                  ? 'customer-details-note-error'
-                  : 'customer-details-note-counter'
+                shown('note') ? 'customer-details-note-error' : 'customer-details-note-counter'
               "
+              @blur="leave('note', note)"
             />
             <div class="customer-details__field-foot">
               <span
-                v-if="attempted && fieldErrors.note"
+                v-if="shown('note')"
                 id="customer-details-note-error"
                 class="customer-details__error"
                 role="alert"
               >
-                {{ fieldErrors.note }}
+                {{ shown('note') }}
               </span>
               <span v-else />
               <span id="customer-details-note-counter" class="customer-details__counter">
@@ -574,7 +670,7 @@ function chooseAlternative(startsAt: string) {
         role="status"
         tabindex="-1"
       >
-        <h2 class="pb-sheet__heading">Revisa tus datos</h2>
+        <h2 class="bk-section-title">Revisa tus datos</h2>
 
         <!-- La cita es lo que el cliente viene a comprobar: va arriba, grande,
              como el talón de un turno. -->
@@ -679,73 +775,75 @@ function chooseAlternative(startsAt: string) {
       <div
         v-else
         ref="confirmedRef"
-        class="customer-details__confirmed ticket"
+        class="customer-details__confirmed bk-done"
         role="status"
         tabindex="-1"
       >
-        <p class="ticket__title">¡Tu turno quedó confirmado!</p>
-
-        <article v-if="confirmedAppointment" class="ticket__card">
-          <div class="ticket__main">
-            <p class="ticket__shop">{{ confirmedAppointment.businessName }}</p>
-            <p class="ticket__service">{{ confirmedAppointment.serviceName }}</p>
-            <p class="ticket__meta">
-              <span>{{ confirmedAppointment.durationMinutes }} min</span>
-              <span aria-hidden="true">·</span>
-              <span>{{
+        <template v-if="confirmedAppointment && done">
+          <!-- El pase de la cita, el mismo que se armó en «Día y hora»: ahora
+               se agenda y cae en su franja del día (destello Sol). -->
+          <article class="bk-done__pase">
+            <p class="bk-done__business">{{ confirmedAppointment.businessName }}</p>
+            <p class="bk-done__service">
+              {{ confirmedAppointment.serviceName }}
+              <span class="bk-done__price">{{
                 formatMoney(confirmedAppointment.priceAmount, confirmedAppointment.currency)
               }}</span>
             </p>
-            <span class="ticket__stamp" aria-hidden="true">Confirmado</span>
+            <p v-if="professional" class="bk-done__who">Con {{ professional.fullName }}</p>
+            <p v-if="confirmedAppointment.forSomeoneElse" class="bk-done__who">
+              Turno para {{ confirmedAppointment.attendeeName }}
+            </p>
+            <p class="bk-done__when">
+              <span class="bk-done__day">{{ done.day }}</span>
+              <span class="bk-done__time">{{ done.range }}</span>
+            </p>
+            <p v-if="place" class="bk-done__place">
+              {{ place.text }}
+              <template v-if="place.href">
+                ·
+                <a :href="place.href" target="_blank" rel="noopener noreferrer"
+                  >Cómo llegar<span class="pb-sr-only"> (se abre en otra pestaña)</span></a
+                >
+              </template>
+            </p>
+          </article>
+
+          <DaylightStrip
+            v-if="done.open"
+            class="bk-done__strip"
+            :open="done.open"
+            :selected="done.minutes"
+            land
+          />
+
+          <div class="bk-done__actions">
+            <button type="button" class="bk-cta bk-done__calendar" @click="addToCalendar">
+              {{ calendarSaved ? 'Descargado: ábrelo para añadirlo' : 'Añadir a mi calendario' }}
+            </button>
+            <a
+              v-if="whatsApp"
+              class="bk-done__whatsapp"
+              :href="whatsApp"
+              target="_blank"
+              rel="noopener noreferrer"
+              >Abrir en WhatsApp<span class="pb-sr-only"> (se abre en otra pestaña)</span></a
+            >
           </div>
+        </template>
 
-          <div class="ticket__tear" aria-hidden="true"></div>
-
-          <div class="ticket__stub">
-            <div class="ticket__when">
-              <span class="ticket__leaf" aria-hidden="true">
-                <span class="ticket__leaf-month">{{
-                  leafParts(confirmedAppointment.startsAt).month
-                }}</span>
-                <span class="ticket__leaf-day">{{
-                  leafParts(confirmedAppointment.startsAt).day
-                }}</span>
-              </span>
-              <span class="ticket__when-text">
-                <span class="ticket__weekday">{{
-                  leafParts(confirmedAppointment.startsAt).weekday
-                }}</span>
-                <span class="ticket__time">{{
-                  formatLocalTime(confirmedAppointment.startsAt)
-                }}</span>
-                <span class="ticket__until">{{ untilLabel(confirmedAppointment.startsAt) }}</span>
-              </span>
-            </div>
-
-            <div v-if="professional" class="ticket__who">
-              <ProfessionalAvatar
-                size="row"
-                :full-name="professional.fullName"
-                :photo-url="publicProfessionalPhotoUrl(slug, professional)"
-              />
-              <span class="ticket__who-text">
-                <span class="ticket__label">{{ v.Professional }}</span>
-                <span class="ticket__who-name">{{ professional.fullName }}</span>
-              </span>
-            </div>
-          </div>
-
-          <p v-if="attendeeChoice === 'other'" class="ticket__for">
-            <span class="ticket__label">Turno para</span>
-            <span>{{ confirmedAppointment.attendeeName }}</span>
-          </p>
-
-          <span class="ticket__bars" aria-hidden="true"></span>
-        </article>
+        <p v-else class="bk-done__again">
+          Este turno ya quedó reservado: no hace falta reservarlo otra vez.
+        </p>
 
         <p class="customer-details__note">
-          Te enviamos un correo a <strong>{{ email }}</strong> con el enlace para consultar tu turno
-          cuando quieras.
+          <template v-if="email">
+            Te enviamos un correo a <strong>{{ email }}</strong> con el enlace para consultar o
+            cambiar tu turno cuando quieras.
+          </template>
+          <template v-else>
+            En tu correo está el enlace para consultar o cambiar tu turno cuando quieras.
+          </template>
         </p>
       </div>
     </section>
@@ -806,37 +904,18 @@ function chooseAlternative(startsAt: string) {
    y la confirmación se recomponen con los tokens de tinta y latón. `BaseInput`
    y `BaseButton` se pensaron para superficies claras, así que aquí se les
    ajustan sus variables y colores sin tocar el componente compartido. */
+/* v2 (DEC-188): sin entrada escalonada. Los campos son usables desde el primer
+   cuadro; la hoja solo aparece con un fundido corto (opacidad, 180 ms). */
 .customer-details__rise {
-  animation: pb-rise 0.55s var(--pb-ease, ease) 0.1s backwards;
+  animation: bk-fundido 180ms ease-out both;
 }
 
-/* Los campos del formulario entran escalonados, uno tras otro. */
-.customer-details__fields > * {
-  animation: pb-rise 0.6s var(--pb-ease, ease) calc(0.35s + var(--i, 0) * 0.07s) backwards;
+@keyframes bk-fundido {
+  from {
+    opacity: 0;
+  }
 }
 
-.customer-details__fields > :nth-child(2) {
-  --i: 1;
-}
-
-.customer-details__fields > :nth-child(3) {
-  --i: 2;
-}
-
-.customer-details__fields > :nth-child(4) {
-  --i: 3;
-}
-
-.customer-details__fields > :nth-child(5) {
-  --i: 4;
-}
-
-.customer-details__fields > :nth-child(6) {
-  --i: 5;
-}
-
-/* Rejilla de dos columnas: nombre y persona atendida, teléfono y correo van
-   en pareja; el selector, la nota y el nombre a solas ocupan el ancho. */
 .customer-details__fields {
   display: grid;
   grid-template-columns: minmax(0, 1fr);
@@ -1013,7 +1092,6 @@ function chooseAlternative(startsAt: string) {
   margin-right: var(--space-2);
   background-color: var(--pb-on-brass);
   transform: rotate(45deg);
-  animation: pb-pop 0.4s cubic-bezier(0.3, 1.5, 0.5, 1);
 }
 
 .customer-details__radio input:focus-visible + span {
@@ -1137,7 +1215,6 @@ function chooseAlternative(startsAt: string) {
   flex: none;
   width: 100%;
   margin-top: var(--space-2);
-  animation: pb-rise 0.6s var(--pb-ease, ease) 0.8s backwards;
 }
 
 .customer-details__summary,
@@ -1154,7 +1231,7 @@ function chooseAlternative(startsAt: string) {
   gap: var(--space-4);
 }
 
-.customer-details__summary .pb-sheet__heading {
+.customer-details__summary .bk-section-title {
   margin-bottom: 0;
 }
 
@@ -1222,7 +1299,6 @@ function chooseAlternative(startsAt: string) {
     grid-column: 1;
   }
 
-  .pb-page--scroll-form .customer-details__who,
   .customer-details__who {
     grid-row: 1 / span 3;
     grid-column: 2;
@@ -1269,27 +1345,6 @@ function chooseAlternative(startsAt: string) {
   justify-content: space-between;
   padding: var(--space-3) 0;
   border-bottom: 1px solid var(--pb-line);
-  animation: pb-rise 0.5s var(--pb-ease, ease) backwards;
-}
-
-.customer-details__summary-row:nth-child(2) {
-  animation-delay: 0.08s;
-}
-
-.customer-details__summary-row:nth-child(3) {
-  animation-delay: 0.16s;
-}
-
-.customer-details__summary-row:nth-child(4) {
-  animation-delay: 0.24s;
-}
-
-.customer-details__summary-row:nth-child(5) {
-  animation-delay: 0.32s;
-}
-
-.customer-details__summary-row:nth-child(n + 6) {
-  animation-delay: 0.4s;
 }
 
 .customer-details__summary-row dt {
@@ -1341,555 +1396,137 @@ function chooseAlternative(startsAt: string) {
   color: var(--pb-text);
 }
 
-/* ── Confirmación: boleto de turno ───────────────────────────────────────── */
+/* ── Confirmado: el pase se agenda (DEC-188) ────────────────────────────── */
 
-/* La hoja de papel deja paso al boleto: sin panel, sin cinta métrica. */
-.pb-sheet.customer-details--ticket {
+.bk-sheet.customer-details--ticket {
   padding: 0;
-  margin-top: var(--space-6);
   background: none;
   border: 0;
   box-shadow: none;
-  animation: none;
 }
 
 .customer-details--ticket::before {
   display: none;
 }
 
-.ticket {
-  align-items: center;
+.bk-done {
   gap: var(--space-5);
 }
 
-/* Cabecera de la confirmación: sello, rótulo y título centrados sobre el boleto. */
-.pb-page--confirmed {
-  align-items: center;
-}
-
-.pb-page--confirmed .pb-eyebrow {
-  justify-content: center;
-  margin-top: var(--space-5);
-}
-
-.pb-page--confirmed .pb-eyebrow::after {
-  content: '';
-  width: 28px;
-  height: 1px;
-  background-color: currentcolor;
-}
-
-.pb-page--confirmed .pb-title {
-  font-size: clamp(48px, 13vw, 76px);
-  text-align: center;
-}
-
-.pb-page--confirmed .pb-rule {
-  display: none;
-}
-
-.pb-page--confirmed .customer-details {
-  width: 100%;
-}
-
-/* Halo de latón tras el sello. */
-.pb-page--confirmed .customer-details__seal::before {
-  content: '';
-  position: absolute;
-  inset: -34px;
-  background-image: radial-gradient(
-    circle,
-    color-mix(in srgb, var(--color-success-on-strong) 24%, transparent),
-    transparent 68%
-  );
-  animation: ticket-halo 1.4s ease-out 0.8s backwards;
-}
-
-.ticket__title {
-  margin: 0;
-  font-size: var(--font-size-body-lg, 18px);
-  text-align: center;
-  color: var(--pb-soft);
-  animation: pb-rise 0.7s var(--pb-ease, ease) 0.9s backwards;
-}
-
-.ticket__card {
-  position: relative;
-  width: 100%;
-  max-width: 560px;
-  overflow: hidden;
-  background-color: var(--color-surface);
-  background-image: linear-gradient(
-    to bottom,
-    color-mix(in srgb, var(--pb-brass) 7%, transparent),
-    transparent 160px
-  );
-  border: 1px solid var(--pb-line);
-  border-top: 2px solid var(--pb-brass);
-  border-radius: 4px;
-  box-shadow:
-    0 36px 60px -30px rgb(0 0 0 / 80%),
-    0 0 0 1px color-mix(in srgb, var(--pb-brass) 6%, transparent);
-  transform-origin: 50% 0;
-  animation: ticket-drop 0.95s cubic-bezier(0.2, 0.8, 0.2, 1) 1.1s backwards;
-}
-
-/* Un destello de latón cruza el boleto una sola vez al aterrizar. */
-.ticket__card::after {
-  content: '';
-  position: absolute;
-  inset: 0;
-  pointer-events: none;
-  background-image: linear-gradient(
-    105deg,
-    transparent 40%,
-    color-mix(in srgb, var(--pb-brass) 22%, transparent) 50%,
-    transparent 60%
-  );
-  transform: translateX(-110%);
-  animation: ticket-shine 1.3s ease-in-out 1.9s;
-}
-
-.ticket__main {
-  position: relative;
+/* El mismo pase de «Día y hora», ahora con su hora fija. */
+.bk-done__pase {
   display: grid;
-  gap: var(--space-1);
-  padding: var(--space-6) var(--space-6) var(--space-5);
-}
-
-.ticket__shop,
-.ticket__label {
-  margin: 0;
-  font-family: var(--font-sans);
-  font-size: 11px;
-  font-weight: 600;
-  line-height: 14px;
-  letter-spacing: 0;
-  color: var(--pb-brass);
-}
-
-.ticket__service {
-  margin: var(--space-1) 0 0;
-  font-family: var(--font-display);
-  font-size: clamp(30px, 8vw, 40px);
-  line-height: 1.05;
-  color: var(--pb-text);
-  overflow-wrap: anywhere;
-}
-
-.ticket__meta {
-  display: flex;
   gap: var(--space-2);
-  margin: var(--space-2) 0 0;
-  color: var(--pb-soft);
-  font-variant-numeric: tabular-nums;
+  padding: var(--space-5);
+  background-color: var(--color-surface);
+  border: 1px solid var(--color-border-subtle);
+  border-radius: var(--radius-lg);
+  box-shadow: 0 10px 30px color-mix(in srgb, var(--color-text-primary) 8%, transparent);
+  animation: bk-se-agenda 620ms cubic-bezier(0.2, 0.7, 0.2, 1) both;
 }
 
-/* Sello de tinta: cae con un golpe y se queda un poco ladeado. */
-.ticket__stamp {
-  position: absolute;
-  right: var(--space-6);
-  bottom: var(--space-5);
-  padding: 3px var(--space-3);
-  font-family: var(--font-sans);
-  font-size: 12px;
-  font-weight: 700;
-  letter-spacing: 0;
-  color: var(--color-success-on-strong);
-  border: 2px solid currentcolor;
-  border-radius: 3px;
-  outline: 1px solid color-mix(in srgb, currentcolor 45%, transparent);
-  outline-offset: 2px;
-  opacity: 0.92;
-  transform: rotate(-7deg);
-  animation: ticket-stamp 0.5s cubic-bezier(0.3, 1.4, 0.5, 1) 2.1s backwards;
+.bk-done__pase p {
+  margin: 0;
 }
 
-/* Perforación: línea de puntos con una muesca a cada lado. */
-.ticket__tear {
-  position: relative;
-  height: 0;
-  border-top: 2px dashed var(--pb-line-strong);
+.bk-done__business {
+  font-size: 13px;
+  color: var(--color-text-secondary);
 }
 
-.ticket__tear::before,
-.ticket__tear::after {
-  content: '';
-  position: absolute;
-  top: -12px;
-  width: 22px;
-  height: 22px;
-  background-color: var(--color-surface-strong);
-  border: 1px solid var(--pb-line);
-  border-radius: 50%;
-}
-
-.ticket__tear::before {
-  left: -12px;
-}
-
-.ticket__tear::after {
-  right: -12px;
-}
-
-.ticket__stub {
-  display: grid;
-  gap: var(--space-5);
-  padding: var(--space-6);
-}
-
-.ticket__when {
-  display: flex;
-  gap: var(--space-4);
-  align-items: center;
-}
-
-/* Hoja de calendario: banda de latón con el mes y el día en grande. */
-.ticket__leaf {
-  display: grid;
-  flex: none;
-  width: 68px;
-  overflow: hidden;
-  text-align: center;
-  border: 1px solid var(--pb-brass);
-  border-radius: 3px;
-  animation: pb-pop 0.6s cubic-bezier(0.3, 1.5, 0.5, 1) 1.7s backwards;
-}
-
-.ticket__leaf-month {
-  padding: 3px 0;
-  font-family: var(--font-sans);
-  font-size: 11px;
-  font-weight: 700;
-  letter-spacing: 0;
-  color: var(--pb-on-brass);
-  background-color: var(--pb-brass);
-}
-
-.ticket__leaf-day {
-  padding: 2px 0 6px;
-  font-family: var(--font-display);
-  font-size: 38px;
-  line-height: 44px;
-  color: var(--pb-text);
-}
-
-.ticket__when-text {
-  display: grid;
-  gap: 2px;
-  justify-items: start;
-}
-
-.ticket__weekday {
-  color: var(--pb-soft);
-  text-transform: capitalize;
-}
-
-.ticket__time {
-  font-family: var(--font-sans);
-  font-size: 30px;
-  font-weight: 500;
-  line-height: 36px;
-  font-variant-numeric: tabular-nums;
-  color: var(--pb-text);
-}
-
-.ticket__until {
-  padding: 2px var(--space-2);
-  margin-top: var(--space-1);
-  font-family: var(--font-sans);
-  font-size: 11px;
-  font-weight: 600;
-  letter-spacing: 0;
-  color: var(--pb-brass);
-  border: 1px solid color-mix(in srgb, var(--pb-brass) 60%, transparent);
-  border-radius: 2px;
-}
-
-.ticket__who {
+.bk-done__service {
   display: flex;
   gap: var(--space-3);
-  align-items: center;
-  min-width: 0;
+  justify-content: space-between;
+  font-size: 18px;
+  font-weight: 600;
 }
 
-.ticket__who-text {
+.bk-done__price {
+  font-variant-numeric: tabular-nums;
+}
+
+.bk-done__who {
+  font-size: 15px;
+  color: var(--color-text-secondary);
+}
+
+.bk-done__when {
   display: grid;
   gap: 2px;
-  min-width: 0;
+  padding-top: var(--space-3);
+  margin-top: var(--space-1);
+  border-top: 1px solid var(--color-border-subtle);
 }
 
-.ticket__who-name {
-  font-weight: 500;
-  color: var(--pb-text);
+.bk-done__day {
+  font-size: 15px;
+}
+
+.bk-done__day::first-letter {
+  text-transform: uppercase;
+}
+
+.bk-done__time {
+  font-size: 26px;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  font-variant-numeric: tabular-nums;
+}
+
+.bk-done__place {
+  font-size: 15px;
   overflow-wrap: anywhere;
+  color: var(--color-text-secondary);
 }
 
-.ticket__for {
+/* Como los demás enlaces de la reserva: texto principal, subrayado en el acento. */
+.bk-done__place a {
+  font-weight: 500;
+  color: var(--color-text-primary);
+  text-decoration-color: var(--bk-accent, var(--color-brand-accent-surface));
+  text-underline-offset: 3px;
+}
+
+.bk-done__again {
+  font-size: 17px;
+  font-weight: 500;
+}
+
+.bk-done__actions {
   display: flex;
   flex-wrap: wrap;
-  gap: var(--space-1) var(--space-4);
-  align-items: baseline;
-  justify-content: space-between;
-  padding: var(--space-3) var(--space-6);
-  margin: 0;
-  color: var(--pb-text);
-  border-top: 1px solid var(--pb-line);
+  gap: var(--space-3);
+  align-items: center;
 }
 
-/* Franja de barras decorativa al pie, como el código de un boleto. No codifica
-   nada: la credencial del turno nunca se dibuja (DEC-089). */
-.ticket__bars {
-  display: block;
-  height: 26px;
-  margin: 0 var(--space-6) var(--space-5);
-  opacity: 0.4;
-  background-image: repeating-linear-gradient(
-    90deg,
-    var(--pb-text) 0 2px,
-    transparent 2px 5px,
-    var(--pb-text) 5px 6px,
-    transparent 6px 10px,
-    var(--pb-text) 10px 13px,
-    transparent 13px 15px,
-    var(--pb-text) 15px 16px,
-    transparent 16px 21px
-  );
+.bk-done__calendar {
+  flex: 1 1 220px;
 }
 
-@media (min-width: 560px) {
-  .ticket__stub {
-    grid-template-columns: 1fr auto;
-    align-items: center;
-  }
-
-  .ticket__who {
-    padding-left: var(--space-6);
-    border-left: 1px solid var(--pb-line);
-  }
+.bk-done__whatsapp {
+  display: inline-flex;
+  flex: 1 1 180px;
+  align-items: center;
+  justify-content: center;
+  min-height: 52px;
+  padding: 0 var(--space-5);
+  font-weight: 600;
+  color: var(--color-text-primary);
+  text-decoration: none;
+  border: 1px solid var(--color-border-control);
+  border-radius: var(--radius-pill);
 }
 
-/* Ventanas bajas: el boleto se compacta para que quepa sin desplazar la página. */
-@media (max-height: 900px) {
-  .pb-page--confirmed {
-    padding-top: var(--space-4);
-    padding-bottom: var(--space-6);
-  }
-
-  .pb-page--confirmed .customer-details__seal {
-    width: 72px;
-    height: 72px;
-  }
-
-  .pb-page--confirmed .pb-eyebrow {
-    margin-top: var(--space-2);
-  }
-
-  .pb-page--confirmed .pb-title {
-    font-size: clamp(40px, 11vw, 56px);
-  }
-
-  .pb-page--confirmed .customer-details--ticket {
-    margin-top: var(--space-4);
-  }
-
-  .ticket {
-    gap: var(--space-3);
-  }
-
-  .ticket__main {
-    padding: var(--space-5) var(--space-5) var(--space-4);
-  }
-
-  .ticket__stub {
-    gap: var(--space-4);
-    padding: var(--space-4) var(--space-5);
-  }
-
-  .ticket__for {
-    padding: var(--space-2) var(--space-5);
-  }
-
-  .ticket__bars {
-    display: none;
-  }
-
-  .ticket__stub {
-    padding-bottom: var(--space-5);
-  }
+.bk-done__whatsapp:hover {
+  border-color: var(--color-text-primary);
 }
 
-@media (max-height: 800px) {
-  .pb-page--confirmed {
-    padding-top: var(--space-2);
-    padding-bottom: var(--space-4);
-  }
-
-  .pb-page--confirmed .customer-details__seal {
-    width: 56px;
-    height: 56px;
-  }
-
-  .pb-page--confirmed .pb-title {
-    font-size: clamp(36px, 10vw, 48px);
-  }
-
-  .pb-page--confirmed .customer-details--ticket {
-    margin-top: var(--space-2);
-  }
-
-  .ticket__main {
-    padding-top: var(--space-4);
-  }
-
-  .ticket__stub {
-    padding-top: var(--space-3);
-    padding-bottom: var(--space-4);
-  }
-}
-
-@keyframes ticket-drop {
+/* El pase baja a su sitio: transform y opacidad, nada más. */
+@keyframes bk-se-agenda {
   from {
     opacity: 0;
-    transform: translateY(-34px) rotate(-1.6deg) scale(0.97);
-  }
-  60% {
-    opacity: 1;
-    transform: translateY(6px) rotate(0.4deg) scale(1);
-  }
-  to {
-    opacity: 1;
-    transform: none;
-  }
-}
-
-@keyframes ticket-stamp {
-  from {
-    opacity: 0;
-    transform: rotate(-16deg) scale(2.2);
-  }
-  to {
-    opacity: 0.92;
-    transform: rotate(-7deg) scale(1);
-  }
-}
-
-@keyframes ticket-shine {
-  to {
-    transform: translateX(110%);
-  }
-}
-
-@keyframes ticket-halo {
-  from {
-    opacity: 0;
-    transform: scale(0.4);
-  }
-  to {
-    opacity: 1;
-    transform: none;
-  }
-}
-
-/* Sello de confirmación: el rombo se traza, el check se dibuja y ocho
-   chispas de latón salen disparadas. Después queda quieto. */
-.customer-details__seal {
-  position: relative;
-  display: block;
-  align-self: center;
-  width: 104px;
-  height: 104px;
-}
-
-/* Piedra verde de «confirmado»: la misma gema tallada del cargador NAVA
-   (contorno, rombo interior, facetas y un destello), pero en verde y sin
-   repetirse. El contorno se talla una vez, aparecen las facetas, cruza el
-   destello y la piedra queda quieta. */
-.customer-details__gem {
-  position: relative;
-  width: 100%;
-  height: 100%;
-  overflow: visible;
-}
-
-.customer-details__gem-outline {
-  stroke: var(--color-success-on-strong);
-  stroke-width: 2;
-  stroke-linejoin: miter;
-  stroke-dasharray: 100;
-  animation: gem-draw 0.95s cubic-bezier(0.55, 0, 0.2, 1) 0.15s backwards;
-}
-
-.customer-details__gem-facets {
-  stroke: var(--color-success-on-strong);
-  stroke-width: 0.8;
-  opacity: 0.5;
-  animation: gem-facets 0.6s ease-out 0.85s backwards;
-}
-
-.customer-details__gem-inner {
-  fill: color-mix(in srgb, var(--color-success-on-strong) 30%, transparent);
-  stroke: color-mix(in srgb, var(--color-success-on-strong) 75%, transparent);
-  stroke-width: 1;
-  transform-box: fill-box;
-  transform-origin: center;
-  animation: gem-inner 0.7s cubic-bezier(0.3, 1.4, 0.5, 1) 0.8s backwards;
-}
-
-.customer-details__gem-glint {
-  transform: translateX(96px);
-  animation: gem-glint 1s cubic-bezier(0.5, 0, 0.3, 1) 1.5s backwards;
-}
-
-.customer-details__spark {
-  position: absolute;
-  top: 50%;
-  left: 50%;
-  width: 5px;
-  height: 5px;
-  margin: -2.5px 0 0 -2.5px;
-  background-color: var(--color-success-on-strong);
-  opacity: 0;
-  transform: rotate(var(--spark-angle)) translateY(0) rotate(45deg);
-  animation: seal-spark 1s cubic-bezier(0.2, 0.7, 0.2, 1) var(--spark-delay, 0.8s) backwards;
-}
-
-@keyframes gem-draw {
-  from {
-    stroke-dashoffset: 100;
-  }
-  to {
-    stroke-dashoffset: 0;
-  }
-}
-
-@keyframes gem-facets {
-  from {
-    opacity: 0;
-  }
-}
-
-@keyframes gem-inner {
-  from {
-    opacity: 0;
-    transform: scale(0.2);
-  }
-}
-
-@keyframes gem-glint {
-  from {
-    transform: translateX(-40px);
-  }
-}
-
-@keyframes seal-spark {
-  0% {
-    opacity: 1;
-    transform: rotate(var(--spark-angle)) translateY(0) rotate(45deg) scale(1);
-  }
-  100% {
-    opacity: 0;
-    transform: rotate(var(--spark-angle)) translateY(-74px) rotate(45deg) scale(0.4);
+    transform: translateY(-20px) scale(0.98);
   }
 }
 
@@ -1898,24 +1535,8 @@ function chooseAlternative(startsAt: string) {
   .customer-details__fields > *,
   .customer-details__submit,
   .customer-details__summary-row,
-  .customer-details__gem-outline,
-  .customer-details__gem-facets,
-  .customer-details__gem-inner,
-  .customer-details__gem-glint,
+  .bk-done__pase,
   .customer-details__radio input:checked + span::before {
-    animation: none;
-  }
-
-  .customer-details__spark,
-  .ticket__card::after {
-    display: none;
-  }
-
-  .ticket__card,
-  .ticket__title,
-  .ticket__leaf,
-  .ticket__stamp,
-  .pb-page--confirmed .customer-details__seal::before {
     animation: none;
   }
 

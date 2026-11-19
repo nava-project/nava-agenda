@@ -37,6 +37,8 @@ interface Props {
   label?: string
   /** Anima la llegada (el amanecer de izquierda a derecha). */
   arrive?: boolean
+  /** La hora elegida «se agenda»: el rombo cae en su sitio con un destello Sol. */
+  land?: boolean
   variant?: 'band' | 'map'
 }
 
@@ -46,6 +48,7 @@ const props = withDefaults(defineProps<Props>(), {
   now: null,
   label: '',
   arrive: false,
+  land: false,
   variant: 'band',
 })
 
@@ -168,7 +171,10 @@ function onPick(event: MouseEvent) {
 <template>
   <div
     class="daylight"
-    :class="[`daylight--${props.variant}`, { 'daylight--arrive': props.arrive }]"
+    :class="[
+      `daylight--${props.variant}`,
+      { 'daylight--arrive': props.arrive, 'daylight--land': props.land },
+    ]"
     :role="props.label ? 'img' : undefined"
     :aria-label="props.label || undefined"
     :aria-hidden="props.label ? undefined : 'true'"
@@ -196,6 +202,11 @@ function onPick(event: MouseEvent) {
         ></span>
       </template>
       <span v-if="props.arrive" class="daylight__dusk"></span>
+      <span
+        v-if="marker && props.land"
+        class="daylight__flash"
+        :style="{ left: pct(marker.at), top: `${marker.top}%` }"
+      ></span>
       <span
         v-if="marker"
         class="daylight__marker"
@@ -238,6 +249,7 @@ function onPick(event: MouseEvent) {
   --dl-afternoon: #ffb27e;
   --dl-dusk: #d9577a;
   --dl-veil: var(--color-canvas);
+  --dl-off: color-mix(in srgb, var(--color-text-primary) 16%, var(--color-canvas));
 
   position: relative;
   padding-bottom: 22px;
@@ -283,14 +295,16 @@ function onPick(event: MouseEvent) {
   background:
     repeating-linear-gradient(
       135deg,
-      color-mix(in srgb, var(--color-text-primary) 14%, transparent) 0 1.5px,
+      color-mix(in srgb, var(--color-text-primary) 22%, transparent) 0 1.5px,
       transparent 1.5px 7px
     ),
-    color-mix(in srgb, var(--dl-veil) 80%, transparent);
+    var(--dl-off);
 }
 
+/* «Sin horas» es un solo tono neutro, igual en toda la franja y en la
+   leyenda: un cliente no debe ver dos «apagados» con una sola clave. */
 .daylight__busy {
-  background: color-mix(in srgb, var(--dl-veil) 66%, transparent);
+  background: var(--dl-off);
 }
 
 .daylight__free {
@@ -399,7 +413,7 @@ function onPick(event: MouseEvent) {
 }
 
 .daylight__key--busy {
-  background: color-mix(in srgb, var(--dl-morning) 34%, var(--dl-veil));
+  background: var(--dl-off);
 }
 
 .daylight__key--closed {
@@ -409,7 +423,7 @@ function onPick(event: MouseEvent) {
       color-mix(in srgb, var(--color-text-primary) 30%, transparent) 0 1.5px,
       transparent 1.5px 4px
     ),
-    var(--color-surface-muted);
+    var(--dl-off);
 }
 
 .daylight__key--sun {
@@ -470,7 +484,53 @@ function onPick(event: MouseEvent) {
   }
 }
 
+/* ── Se agenda: el rombo cae en su hora y la franja destella en Sol ───── */
+
+.daylight__flash {
+  position: absolute;
+  width: 18px;
+  height: 18px;
+  pointer-events: none;
+  border: 2px solid var(--color-sun);
+  border-radius: 50%;
+  opacity: 0;
+  translate: -50% -50%;
+}
+
+.daylight--land .daylight__marker {
+  animation: bk-cae 560ms cubic-bezier(0.34, 1.5, 0.64, 1) 240ms both;
+}
+
+.daylight--land .daylight__flash {
+  animation: bk-destello 640ms cubic-bezier(0.2, 0.7, 0.2, 1) 640ms both;
+}
+
+@keyframes bk-cae {
+  from {
+    opacity: 0;
+    transform: translateY(-56px);
+  }
+
+  40% {
+    opacity: 1;
+  }
+}
+
+@keyframes bk-destello {
+  from {
+    opacity: 0.9;
+    transform: scale(0.6);
+  }
+
+  to {
+    opacity: 0;
+    transform: scale(3.2);
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
+  .daylight--land .daylight__marker,
+  .daylight--land .daylight__flash,
   .daylight--arrive .daylight__track,
   .daylight--arrive .daylight__dusk,
   .daylight--arrive .daylight__marker {

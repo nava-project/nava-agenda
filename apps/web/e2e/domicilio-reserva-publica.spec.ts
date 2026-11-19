@@ -183,7 +183,7 @@ test('marca la ubicación moviendo el mapa y antepone los detalles a la direcci�
   await expect(page.getByText('Torre 2, apto 304 · Punto marcado cerca de')).toBeVisible()
   await page.getByRole('button', { name: 'Confirmar turno' }).click()
 
-  await expect(page.getByText('¡Tu turno quedó confirmado!')).toBeVisible()
+  await expect(page.getByRole('heading', { name: 'Tu turno quedó agendado' })).toBeVisible()
   expect(confirmations).toHaveLength(1)
   const home = confirmations[0]!.homeService!
   expect(home.latitude).toBeCloseTo(4.712, 6)
@@ -226,7 +226,7 @@ test.describe('detección de la posición del dispositivo (DEC-155)', () => {
     await page.getByLabel('Detalles de la dirección (opcional)').fill('Casa azul, portón negro')
     await page.getByRole('button', { name: 'Ver resumen' }).click()
     await page.getByRole('button', { name: 'Confirmar turno' }).click()
-    await expect(page.getByText('¡Tu turno quedó confirmado!')).toBeVisible()
+    await expect(page.getByRole('heading', { name: 'Tu turno quedó agendado' })).toBeVisible()
     expect(confirmations[0]!.homeService).toMatchObject({ latitude: 4.5701, longitude: -74.1102 })
     expect(confirmations[0]!.homeService!.address.startsWith('Casa azul, portón negro · ')).toBe(
       true,
@@ -313,7 +313,7 @@ test('en el local no se envía ninguna dirección', async ({ page }) => {
   await page.getByRole('button', { name: 'Ver resumen' }).click()
   await page.getByRole('button', { name: 'Confirmar turno' }).click()
 
-  await expect(page.getByText('¡Tu turno quedó confirmado!')).toBeVisible()
+  await expect(page.getByRole('heading', { name: 'Tu turno quedó agendado' })).toBeVisible()
   expect(confirmations).toHaveLength(1)
   expect(confirmations[0]!.homeService ?? null).toBeNull()
 })
@@ -368,7 +368,7 @@ for (const viewport of viewports) {
     } else {
       await confirm.click()
     }
-    await expect(page.getByText('¡Tu turno quedó confirmado!')).toBeVisible()
+    await expect(page.getByRole('heading', { name: 'Tu turno quedó agendado' })).toBeVisible()
     expect(confirmations).toHaveLength(1)
     expect(confirmations[0]!.homeService).toEqual({
       address: 'Torre 2, apto 304 · Punto marcado cerca de 4.7120, -74.0721',
