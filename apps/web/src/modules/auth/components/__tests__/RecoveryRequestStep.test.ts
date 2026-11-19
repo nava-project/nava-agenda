@@ -91,9 +91,10 @@ describe('RecoveryRequestStep', () => {
       await wrapper.get('input[name="email"]').setValue('barbero@ejemplo.test')
       await channelButton(wrapper, 'Teléfono').trigger('click')
 
-      // Un número pegado con prefijo elige el país y deja solo el número nacional.
+      // Un número pegado con prefijo elige el país y deja el número nacional
+      // tal como se escribió (los separadores no viajan al API).
       expect((wrapper.get('input[name="whatsapp"]').element as HTMLInputElement).value).toBe(
-        '3001234567',
+        '300 123 4567',
       )
       expect(wrapper.get('.phone-field__dial').text()).toBe('+57')
       await channelButton(wrapper, 'Correo').trigger('click')

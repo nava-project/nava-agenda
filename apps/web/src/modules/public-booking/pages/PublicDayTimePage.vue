@@ -373,7 +373,27 @@ function pickFromStrip(minutes: number) {
       Math.abs(s.minutes - minutes) < Math.abs(best.minutes - minutes) ? s : best,
     )
   selectSlot(slot)
-  slotRefs.value[slot.startsAt]?.scrollIntoView?.({ block: 'nearest', behavior: 'smooth' })
+  void revealSlot(slot)
+}
+
+// Lleva a la vista el chip elegido desde la franja: si asoma, lo justo
+// ('nearest'); si está fuera, al centro. Sin desplazamiento suave con
+// movimiento reducido.
+async function revealSlot(slot: DaylightSlot) {
+  await nextTick()
+  const el = slotRefs.value[slot.startsAt]
+  if (!el?.scrollIntoView) return
+  const box = el.getBoundingClientRect()
+  // La barra del pase tapa el pie de la ventana en móvil.
+  const bottom = window.innerHeight - (window.innerWidth < 1024 ? 96 : 0)
+  const outside = box.bottom < 0 || box.top > bottom
+  const reduced =
+    document.documentElement.dataset.motion === 'reduced' ||
+    (window.matchMedia?.('(prefers-reduced-motion: reduce)').matches ?? false)
+  el.scrollIntoView({
+    block: outside ? 'center' : 'nearest',
+    behavior: reduced ? 'auto' : 'smooth',
+  })
 }
 
 function onSlotsKeydown(event: KeyboardEvent) {

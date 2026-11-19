@@ -247,7 +247,7 @@ describe('SettingsPage', () => {
 
         expect(saveMock.mock.calls[0]![0]).toMatchObject({ contactPhone: '+525512345678' })
         expect(phoneSelect(wrapper).value).toBe('MX')
-        expect(input(wrapper, 'contactPhone').value).toBe('5512345678')
+        expect(input(wrapper, 'contactPhone').value).toBe('55 1234 5678')
       })
 
       it('al pegar un número con prefijo elige el país', async () => {
@@ -256,7 +256,7 @@ describe('SettingsPage', () => {
         await wrapper.get('input[name="contactPhone"]').setValue('+593 99 123 4567')
 
         expect(phoneSelect(wrapper).value).toBe('EC')
-        expect(input(wrapper, 'contactPhone').value).toBe('991234567')
+        expect(input(wrapper, 'contactPhone').value).toBe('99 123 4567')
         expect(wrapper.find('.save-bar').exists()).toBe(true)
       })
 

@@ -1154,6 +1154,109 @@
   text-transform: none;
 }
 
+/* ── «Tus datos» y la confirmación (v2) ────────────────────────────────────
+   La página conserva su marcado `customer-details__*` (pruebas y E2E lo
+   usan); aquí se le da el lenguaje v2. Los selectores llevan `.bk .bk-details`
+   para ganar a los estilos con ámbito de la página, escritos para la v1. */
+
+.bk-details {
+  max-width: 720px;
+}
+
+.bk-sheet {
+  padding: var(--space-6) var(--space-5);
+  margin-top: var(--space-6);
+  background-color: var(--color-surface);
+  border: 1px solid var(--bk-line);
+  border-radius: var(--radius-lg);
+}
+
+@media (min-width: 560px) {
+  .bk-sheet {
+    padding: var(--space-8);
+  }
+}
+
+.bk-details--done .bk-sheet {
+  padding: 0;
+  margin-top: var(--space-5);
+  background: none;
+  border: 0;
+}
+
+.bk-sheet__form {
+  display: grid;
+  gap: var(--space-6);
+}
+
+.bk .bk-details .customer-details__legend,
+.bk .bk-details .customer-details__label,
+.bk .bk-details .customer-details .base-input__label,
+.bk .bk-details .customer-details .phone-field__label {
+  font-size: 14px;
+  font-weight: 500;
+  line-height: 20px;
+  letter-spacing: 0;
+  color: var(--color-text-primary);
+  text-transform: none;
+}
+
+/* «Para mí» / «Para otra persona»: chips como los de «Día y hora». */
+.bk .bk-details .customer-details__radio span {
+  min-height: 48px;
+  font-weight: 500;
+  color: var(--color-text-primary);
+  background-color: var(--color-surface);
+  border: 1px solid var(--color-border-control);
+  border-radius: var(--radius-pill);
+}
+
+.bk .bk-details .customer-details__radio:hover input:not(:checked) + span {
+  background-color: var(--color-surface);
+  border-color: var(--color-text-primary);
+  transform: none;
+}
+
+.bk .bk-details .customer-details__radio input:checked + span {
+  font-weight: 600;
+  color: var(--color-text-primary);
+  background-color: color-mix(in srgb, var(--bk-accent) 10%, var(--color-surface));
+  border-color: var(--bk-accent);
+  box-shadow: inset 0 0 0 1px var(--bk-accent);
+}
+
+.bk .bk-details .customer-details__radio input:checked + span::before {
+  background-color: var(--bk-accent);
+}
+
+.bk .bk-details .customer-details__radio input:focus-visible + span {
+  outline: 2px solid var(--color-focus);
+  outline-offset: 2px;
+  box-shadow: inset 0 0 0 1px var(--bk-accent);
+}
+
+/* El resumen: la cita arriba, como el pase, sin el filete de latón. */
+.bk .bk-details .customer-details__when {
+  background: var(--color-surface-muted);
+  border: 1px solid var(--bk-line);
+  border-radius: var(--radius-lg);
+}
+
+.bk .bk-details .customer-details__when-label {
+  font-size: 13px;
+  letter-spacing: 0;
+  color: var(--color-text-secondary);
+  text-transform: none;
+}
+
+.bk .bk-details .customer-details__summary-row dt {
+  font-size: 13px;
+  font-weight: 400;
+  letter-spacing: 0;
+  color: var(--color-text-secondary);
+  text-transform: none;
+}
+
 /* ── Pie: la firma NAVA, discreta, lleva a su banda en nava.wtf ─────────── */
 
 .bk-foot {

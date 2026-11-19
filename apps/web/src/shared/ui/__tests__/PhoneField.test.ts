@@ -43,11 +43,28 @@ describe('PhoneField', () => {
     expect(wrapper.emitted('update:country')).toEqual([['EC']])
   })
 
-  it('deja solo dígitos en la casilla del número', async () => {
+  it('respeta los espacios y separadores escritos y descarta lo que no es un teléfono', async () => {
     const wrapper = mountField()
     await wrapper.get('input[type="tel"]').setValue('300 12a3-4567')
 
-    expect(wrapper.emitted('update:national')).toEqual([['3001234567']])
+    expect(wrapper.emitted('update:national')).toEqual([['300 123-4567']])
+  })
+
+  it('deja escribir «+57» y elige el país con el primer dígito nacional', async () => {
+    const wrapper = mountField({ country: 'MX' })
+    const input = wrapper.get('input[type="tel"]')
+    await input.setValue('+57')
+    expect(wrapper.emitted('update:country')).toBeUndefined()
+    expect((input.element as HTMLInputElement).value).toBe('+57')
+    await input.setValue('+57 3')
+    expect(wrapper.emitted('update:country')).toEqual([['CO']])
+    expect(wrapper.emitted('update:national')!.at(-1)).toEqual(['3'])
+  })
+
+  it('avisa al salir de la casilla del número', async () => {
+    const wrapper = mountField()
+    await wrapper.get('input[type="tel"]').trigger('blur')
+    expect(wrapper.emitted('blur')).toHaveLength(1)
   })
 
   it('al pegar un número con prefijo elige el país y deja el número nacional', async () => {
@@ -55,7 +72,7 @@ describe('PhoneField', () => {
     await wrapper.get('input[type="tel"]').setValue('+52 55 1234 5678')
 
     expect(wrapper.emitted('update:country')).toEqual([['MX']])
-    expect(wrapper.emitted('update:national')).toEqual([['5512345678']])
+    expect(wrapper.emitted('update:national')).toEqual([['55 1234 5678']])
   })
 
   it('anuncia el error y lo asocia a la casilla', () => {

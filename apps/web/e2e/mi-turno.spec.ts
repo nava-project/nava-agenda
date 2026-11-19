@@ -100,7 +100,7 @@ test.describe('Creación→consulta del turno del cliente (HU-097/HU-098)', () =
     await page.getByRole('button', { name: 'Ver resumen' }).click()
     await expect(page.getByText('Revisa tus datos')).toBeVisible()
     await page.getByRole('button', { name: 'Confirmar turno' }).click()
-    await expect(page.getByText('¡Tu turno quedó confirmado!')).toBeVisible()
+    await expect(page.getByRole('heading', { name: 'Tu turno quedó agendado' })).toBeVisible()
 
     // El enlace en claro solo viaja por correo (DEC-091): esta pantalla
     // nunca lo muestra ni lo enlaza. HU-098 lo consume de forma

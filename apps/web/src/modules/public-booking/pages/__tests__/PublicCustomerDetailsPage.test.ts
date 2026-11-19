@@ -220,7 +220,8 @@ describe('PublicCustomerDetailsPage', () => {
     await wrapper.find('input[type="email"]').setValue('ana@example.com')
     await wrapper.find('form').trigger('submit')
 
-    expect(wrapper.text()).toContain('+52 5512345678')
+    // Lo escrito se respeta (con espacios); al API viaja solo el E.164.
+    expect(wrapper.text()).toContain('+52 55 1234 5678')
 
     await wrapper.findAll('button[type="button"]')[1]!.trigger('click')
     await flushPromises()
@@ -295,7 +296,7 @@ describe('PublicCustomerDetailsPage', () => {
     await flushPromises()
 
     expect(completed.value).toBe(true)
-    expect(wrapper.find('h1').text()).toBe('Todo listo')
+    expect(wrapper.find('h1').text()).toBe('Tu turno quedó agendado')
   })
 
   it('does not complete the shell on a schedule conflict (DEC-111)', async () => {
@@ -344,7 +345,7 @@ describe('PublicCustomerDetailsPage', () => {
     await flushPromises()
 
     expect(confirmPublicAppointmentMock).toHaveBeenCalledTimes(1)
-    expect(wrapper.text()).toContain('¡Tu turno quedó confirmado!')
+    expect(wrapper.text()).toContain('Tu turno quedó agendado')
     expect(wrapper.text()).toContain('Barbería Ejemplo')
     expect(wrapper.find('form').exists()).toBe(false)
     // El token en claro nunca se muestra en pantalla (DEC-089): solo viaja
@@ -434,7 +435,7 @@ describe('PublicCustomerDetailsPage', () => {
     const firstKey = confirmPublicAppointmentMock.mock.calls[0]![4]
     const secondKey = confirmPublicAppointmentMock.mock.calls[1]![4]
     expect(secondKey).not.toBe(firstKey)
-    expect(wrapper.text()).toContain('¡Tu turno quedó confirmado!')
+    expect(wrapper.text()).toContain('Tu turno quedó agendado')
     wrapper.unmount()
   })
 
@@ -488,7 +489,7 @@ describe('PublicCustomerDetailsPage', () => {
     const firstKey = confirmPublicAppointmentMock.mock.calls[0]![4]
     const secondKey = confirmPublicAppointmentMock.mock.calls[1]![4]
     expect(secondKey).toBe(firstKey)
-    expect(wrapper.text()).toContain('¡Tu turno quedó confirmado!')
+    expect(wrapper.text()).toContain('Tu turno quedó agendado')
   })
 
   it('gives the focus back to «Confirmar turno» after a failure so the retry works by keyboard (F-RQ-01)', async () => {
@@ -520,50 +521,124 @@ describe('PublicCustomerDetailsPage', () => {
     wrapper.unmount()
   })
 
-  it('presents the confirmation as a ticket with service, price, date, professional and no access token', async () => {
-    confirmPublicAppointmentMock.mockResolvedValueOnce({
-      kind: 'success',
-      appointment: CONFIRMED_APPOINTMENT,
-    })
+  async function confirmWith(
+    appointment = CONFIRMED_APPOINTMENT,
+    prepare?: (w: ReturnType<typeof mountPage>) => Promise<void>,
+  ) {
+    confirmPublicAppointmentMock.mockResolvedValueOnce({ kind: 'success', appointment })
     const wrapper = mountPage()
     await flushPromises()
     await fillValidForm(wrapper)
+    if (prepare) await prepare(wrapper)
     await wrapper.find('form').trigger('submit')
     await wrapper
       .findAll('button')
       .find((b) => b.text().includes('Confirmar turno'))!
       .trigger('click')
     await flushPromises()
+    return wrapper
+  }
 
-    const ticket = wrapper.get('.ticket__card')
-    expect(ticket.text()).toContain('Corte clásico')
-    expect(ticket.text()).toContain('30 min')
-    expect(ticket.text()).toMatch(/20\.000/)
-    expect(ticket.get('.ticket__leaf-day').text()).toBe('20')
-    expect(ticket.get('.ticket__who-name').text()).toBe('Mateo Cruz')
-    // Para uno mismo no hay fila «Turno para»; la credencial nunca se dibuja (DEC-089).
-    expect(ticket.find('.ticket__for').exists()).toBe(false)
+  it('shows the pass, now booked, in the business time zone and without the access token', async () => {
+    const wrapper = await confirmWith()
+    const pase = wrapper.get('.bk-done__pase')
+    expect(pase.text()).toContain('Barbería Ejemplo')
+    expect(pase.text()).toContain('Corte clásico')
+    expect(pase.text()).toMatch(/20\.000/)
+    expect(pase.text()).toContain('Con Mateo Cruz')
+    // 14:30 UTC son las 9:30 a. m. en Bogotá, sea cual sea la zona del navegador.
+    expect(pase.get('.bk-done__time').text()).toMatch(/^9:30\s?a\.\s?m\. – 10:00\s?a\.\s?m\.$/)
+    expect(pase.get('.bk-done__day').text()).toContain('20 de septiembre de 2026')
+    expect(pase.text()).not.toContain('Turno para')
+    // La credencial nunca se dibuja (DEC-089).
     expect(wrapper.html()).not.toContain(CONFIRMED_APPOINTMENT.accessToken)
     expect(wrapper.text()).toContain('ana@example.com')
   })
 
-  it('names the attendee on the ticket only when the turn is for someone else', async () => {
-    confirmPublicAppointmentMock.mockResolvedValueOnce({
-      kind: 'success',
-      appointment: { ...CONFIRMED_APPOINTMENT, attendeeName: 'Mateo Ruiz' },
-    })
-    const wrapper = mountPage()
-    await fillValidForm(wrapper)
-    await wrapper.findAll('input[type="radio"]')[1]!.setValue()
-    await wrapper.findAll('input[type="text"]')[1]!.setValue('Mateo Ruiz')
-    await wrapper.find('form').trigger('submit')
-    await wrapper
-      .findAll('button')
-      .find((b) => b.text().includes('Confirmar turno'))!
-      .trigger('click')
-    await flushPromises()
+  it('drops the pass into its day strip only when the business published its hours', async () => {
+    expect((await confirmWith()).find('.daylight').exists()).toBe(false)
 
-    expect(wrapper.get('.ticket__for').text()).toContain('Mateo Ruiz')
+    loadPublicProfileMock.mockResolvedValue({
+      ...profileOutcome(false),
+      profile: {
+        ...profileOutcome(false).profile,
+        openingHours: [{ dayOfWeek: 'SUNDAY', opens: '08:00', closes: '14:00' }],
+      },
+    })
+    const withHours = await confirmWith()
+    expect(withHours.get('.daylight').classes()).toContain('daylight--land')
+    expect(withHours.find('.daylight__marker--selected').exists()).toBe(true)
+  })
+
+  it('downloads an .ics built in the browser, without the access token', async () => {
+    const created: Blob[] = []
+    const createObjectURL = vi.fn((blob: Blob) => {
+      created.push(blob)
+      return 'blob:turno'
+    })
+    Object.assign(URL, { createObjectURL, revokeObjectURL: vi.fn() })
+    const click = vi.spyOn(HTMLAnchorElement.prototype, 'click').mockImplementation(() => {})
+
+    const wrapper = await confirmWith()
+    await wrapper.get('.bk-done__calendar').trigger('click')
+
+    expect(click).toHaveBeenCalled()
+    // jsdom no implementa Blob.text(): se lee con FileReader.
+    const ics = await new Promise<string>((resolve) => {
+      const reader = new FileReader()
+      reader.onload = () => resolve(String(reader.result))
+      reader.readAsText(created[0]!)
+    })
+    expect(ics).toContain('DTSTART:20260920T143000Z')
+    expect(ics).toContain('SUMMARY:Corte clásico\\, Barbería Ejemplo')
+    expect(ics).not.toContain(CONFIRMED_APPOINTMENT.accessToken)
+    expect(wrapper.get('.bk-done__calendar').text()).toContain('Descargado')
+    click.mockRestore()
+  })
+
+  it('offers WhatsApp only when the business has a number', async () => {
+    expect((await confirmWith()).find('.bk-done__whatsapp').exists()).toBe(false)
+
+    loadPublicProfileMock.mockResolvedValue({
+      ...profileOutcome(false),
+      profile: { ...profileOutcome(false).profile, contactPhone: '+573001234567' },
+    })
+    const link = (await confirmWith()).get('.bk-done__whatsapp')
+    expect(link.attributes('href')).toMatch(/^https:\/\/wa\.me\/573001234567\?text=Hola/)
+    expect(link.attributes('rel')).toContain('noopener')
+  })
+
+  it('names the attendee on the pass only when the turn is for someone else', async () => {
+    const wrapper = await confirmWith(
+      { ...CONFIRMED_APPOINTMENT, attendeeName: 'Mateo Ruiz' },
+      async (w) => {
+        await w.findAll('input[type="radio"]')[1]!.setValue()
+        await w.findAll('input[type="text"]')[1]!.setValue('Mateo Ruiz')
+      },
+    )
+    expect(wrapper.get('.bk-done__pase').text()).toContain('Turno para Mateo Ruiz')
+  })
+
+  it('checks a field when the customer leaves it, keeps what was typed, and never scolds an untouched one', async () => {
+    const wrapper = mountPage()
+    const email = wrapper.get('input[type="email"]')
+    // Pasar por un campo vacío no muestra nada.
+    await email.trigger('blur')
+    expect(wrapper.text()).not.toContain('El correo es obligatorio.')
+
+    await email.setValue('ana@')
+    await email.trigger('blur')
+    expect(wrapper.text()).toContain('El correo tiene un formato inválido.')
+    expect((email.element as HTMLInputElement).value).toBe('ana@')
+    // El mensaje sigue la escritura y se va al corregir.
+    await email.setValue('ana@example.com')
+    expect(wrapper.text()).not.toContain('El correo tiene un formato inválido.')
+
+    const tel = wrapper.get('input[type="tel"]')
+    await tel.setValue('300 12')
+    await tel.trigger('blur')
+    expect(wrapper.text()).toContain('El número no parece completo')
+    expect((tel.element as HTMLInputElement).value).toBe('300 12')
   })
 
   it('has no accessibility violations on the confirmed state', async () => {
