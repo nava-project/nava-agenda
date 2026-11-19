@@ -94,7 +94,7 @@ const onSubmit = async () => {
 </script>
 
 <template>
-  <form class="login-form" novalidate @submit.prevent="onSubmit">
+  <form class="login-form au-form" novalidate @submit.prevent="onSubmit">
     <BaseInput
       :model-value="email"
       type="email"
@@ -135,7 +135,7 @@ const onSubmit = async () => {
     </BaseButton>
 
     <p class="login-form__recovery">
-      <RouterLink :to="recoveryHref">¿Olvidaste tu contraseña?</RouterLink>
+      <RouterLink class="au-link" :to="recoveryHref">¿Olvidaste tu contraseña?</RouterLink>
     </p>
 
     <!-- Ancla de alertas (issue #213, auth-eventos/README.md): la alerta
@@ -161,176 +161,14 @@ const onSubmit = async () => {
 </template>
 
 <style scoped>
-.login-form {
-  display: flex;
-  flex-direction: column;
-  gap: 26px;
-  width: 100%;
-}
-
-.login-form :deep(.base-input__wrapper) {
-  gap: 6px;
-}
-
-.login-form :deep(.base-input__label) {
-  font-size: 16px;
-  font-weight: 600;
-  line-height: 22px;
-}
-
-.login-form :deep(.base-input) {
-  height: 56px;
-  padding-right: var(--space-4);
-  padding-left: var(--space-4);
-  font-size: 18px;
-  line-height: 24px;
-  background-color: var(--color-surface);
-  border-color: var(--color-border-subtle);
-  border-radius: var(--radius-sm);
-}
-
-/* "OCULTAR" (la palabra más larga del conmutador reglado) necesita más
-   ancho reservado que el icono de 22px que ocupaba este mismo lugar. */
-.login-form :deep(.base-input__input-wrapper:has(.base-input__toggle) .base-input) {
-  padding-right: 92px;
-}
-
-.login-form :deep(.base-input__toggle) {
-  min-width: 84px;
-}
-
-.login-form :deep(.base-input__toggle:hover:not(:disabled)) {
-  background-color: var(--color-overlay-hover);
-}
-
-.login-form :deep(.base-input__toggle:focus-visible) {
-  outline: var(--border-width-emphasis) solid var(--color-focus);
-  outline-offset: -4px;
-  box-shadow: none;
-}
-
-.login-form :deep(.base-input__toggle:disabled) {
-  opacity: 0.48;
-}
-
-/* Rótulo y línea base responden al foco: el rótulo pasa de latón a tinta y
-   un filete de latón recorre la base del campo de izquierda a derecha. El
-   anillo de foco de BaseInput sigue intacto; esto solo lo acompaña. */
-.login-form :deep(.base-input__label) {
-  transition: color var(--motion-duration-base) var(--motion-easing-standard);
-}
-
-.login-form :deep(.base-input__wrapper:focus-within .base-input__label) {
-  color: var(--color-action-primary);
-}
-
-.login-form :deep(.base-input__input-wrapper)::after {
-  content: '';
-  position: absolute;
-  right: 0;
-  bottom: 0;
-  left: 0;
-  height: var(--border-width-emphasis);
-  background-color: var(--color-brand-accent-surface);
-  border-radius: 0 0 var(--radius-sm) var(--radius-sm);
-  transform: scaleX(0);
-  transform-origin: left;
-  transition: transform 320ms cubic-bezier(0.2, 0.7, 0.2, 1);
-  pointer-events: none;
-}
-
-.login-form :deep(.base-input__input-wrapper:focus-within)::after {
-  transform: scaleX(1);
-}
-
-/* Reflejo de latón que cruza el botón al pasar o enfocar: una pasada, no un
-   bucle. El texto queda por encima y el botón no cambia de tamaño. */
-.login-form__submit {
-  position: relative;
-  overflow: hidden;
-  isolation: isolate;
-}
-
-.login-form__submit::after {
-  content: '';
-  position: absolute;
-  top: 0;
-  bottom: 0;
-  left: -40%;
-  z-index: -1;
-  width: 32%;
-  background: linear-gradient(
-    100deg,
-    transparent,
-    color-mix(in srgb, var(--color-brand-accent-surface) 38%, transparent),
-    transparent
-  );
-  transform: translateX(0) skewX(-18deg);
-  transition: transform 700ms cubic-bezier(0.2, 0.7, 0.2, 1);
-  pointer-events: none;
-}
-
-.login-form__submit:hover:not(:disabled)::after,
-.login-form__submit:focus-visible::after {
-  transform: translateX(460%) skewX(-18deg);
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .login-form :deep(.base-input__label),
-  .login-form :deep(.base-input__input-wrapper)::after,
-  .login-form__submit::after {
-    transition: none;
-  }
-}
-
+/* La forma de campos, botón y enlace la pone authV2.css (DEC-188). */
 .login-form__summary-list {
   margin: 0;
   padding-left: var(--space-5);
 }
 
-.login-form__submit {
-  width: 100%;
-  height: 56px;
-  border-radius: var(--radius-sm);
-  font-size: 18px;
-  font-weight: 600;
-  letter-spacing: 0.01em;
-}
-
 .login-form__recovery {
-  margin: 0;
+  margin: calc(-1 * var(--space-2)) 0 0;
   text-align: center;
-  font-size: 18px;
-  line-height: 26px;
-}
-
-.login-form__recovery a {
-  color: var(--color-action-primary);
-  font-weight: 500;
-  text-decoration-thickness: 1px;
-  text-underline-offset: 3px;
-}
-
-@media (min-width: 1024px) {
-  .login-form {
-    gap: 28px;
-  }
-
-  .login-form :deep(.base-input__wrapper) {
-    gap: 8px;
-  }
-
-  .login-form :deep(.base-input__label) {
-    font-size: 18px;
-    line-height: 24px;
-  }
-
-  .login-form :deep(.base-input__input-wrapper:has(.base-input__toggle) .base-input) {
-    padding-right: 96px;
-  }
-
-  .login-form :deep(.base-input__toggle) {
-    min-width: 88px;
-  }
 }
 </style>

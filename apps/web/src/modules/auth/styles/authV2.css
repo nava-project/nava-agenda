@@ -1,0 +1,456 @@
+/*
+ * Acceso y recuperación del profesional, v2 «La luz del día» (DEC-188, entrega 3).
+ * Global, con prefijo `au`: lo importa AuthSplitLayout y lo comparten el acceso,
+ * los tres pasos de la recuperación y el reto telefónico.
+ *
+ * - Rótulos en tipo oración, con peso y color (sin versalitas espaciadas).
+ * - Una sola acción con el Alba lleno por pantalla; las demás en contorno o enlace.
+ * - El cielo de la marca usa los tintes de cielo de los tokens, que ya cambian con
+ *   el modo del sistema.
+ */
+
+.au {
+  --au-ease: cubic-bezier(0.2, 0.7, 0.2, 1);
+  --au-horizon: 64%;
+
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  min-height: 100dvh;
+  font-family: var(--font-sans);
+  color: var(--color-text-primary);
+  background-color: var(--color-canvas);
+}
+
+.au :where(a, button):focus-visible {
+  outline: 2px solid var(--color-focus);
+  outline-offset: 2px;
+}
+
+/* ── Cielo de la marca ─────────────────────────────────────────────────── */
+
+.au-sky {
+  position: relative;
+  flex: none;
+  height: 148px;
+  overflow: hidden;
+  --au-horizon: 80%;
+}
+
+.au-sky > span {
+  position: absolute;
+  pointer-events: none;
+}
+
+.au-sky__dawn,
+.au-sky__night {
+  inset: 0;
+}
+
+/* El alba: de la noche arriba a la mañana sobre el horizonte. */
+.au-sky__dawn {
+  background: linear-gradient(
+    180deg,
+    var(--color-sky-night) 0%,
+    var(--color-sky-afternoon) 58%,
+    var(--color-sky-morning) 100%
+  );
+}
+
+/* La noche se retira: estado final transparente. */
+.au-sky__night {
+  background: var(--color-sky-night);
+  opacity: 0;
+  animation: au-night 900ms var(--au-ease) backwards;
+}
+
+.au-sky__glow {
+  inset: 0;
+  background: radial-gradient(
+    circle at 50% var(--au-horizon),
+    color-mix(in srgb, var(--color-sun) 40%, transparent) 0,
+    transparent 46%
+  );
+  animation: au-fade 1000ms var(--au-ease) 120ms backwards;
+}
+
+/* El sol del logo: su horizonte (58 % de la figura) cae sobre el del cielo. */
+.au-sky__sun {
+  top: var(--au-horizon);
+  left: 50%;
+  font-size: 64px;
+  line-height: 0;
+  color: var(--color-text-primary);
+  translate: -50% -58%;
+  animation: au-sunrise 1000ms var(--au-ease) 120ms backwards;
+}
+
+.au-sky__horizon {
+  top: var(--au-horizon);
+  right: 0;
+  left: 0;
+  height: 1px;
+  background: color-mix(in srgb, var(--color-text-primary) 14%, transparent);
+}
+
+.au-sky__tagline {
+  display: none;
+}
+
+@keyframes au-night {
+  from {
+    opacity: 1;
+  }
+}
+
+@keyframes au-fade {
+  from {
+    opacity: 0;
+  }
+}
+
+@keyframes au-sunrise {
+  from {
+    opacity: 0;
+    transform: translateY(30%);
+  }
+}
+
+/* Un gesto termina la llegada; con movimiento reducido no la hay. */
+.au--settled .au-sky > span {
+  animation: none;
+}
+
+:root[data-motion='reduced'] .au-sky > span {
+  animation: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .au-sky > span {
+    animation: none;
+  }
+}
+
+/* ── Columna del formulario ────────────────────────────────────────────── */
+
+.au-col {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  min-width: 0;
+}
+
+/* En móvil «Volver» va sobre el cielo, arriba a la izquierda. */
+.au-top {
+  position: absolute;
+  top: 0;
+  left: 0;
+  padding: var(--space-2) var(--space-4);
+}
+
+.au-back {
+  display: inline-flex;
+  gap: var(--space-2);
+  align-items: center;
+  min-height: 44px;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--color-text-primary);
+  text-decoration: none;
+}
+
+.au-back svg {
+  width: 18px;
+  height: 18px;
+  transition: transform var(--motion-duration-fast) var(--au-ease);
+}
+
+.au-back:hover {
+  text-decoration: underline;
+  text-decoration-color: var(--color-brand-accent-surface);
+  text-decoration-thickness: 2px;
+  text-underline-offset: 4px;
+}
+
+.au-back:hover svg {
+  transform: translateX(-3px);
+}
+
+.au-card {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-6);
+  width: 100%;
+  max-width: 440px;
+  padding: var(--space-6) var(--space-4) var(--space-10, 40px);
+  margin: 0 auto;
+}
+
+.au-legal {
+  display: flex;
+  gap: var(--space-4);
+  font-size: 13px;
+  line-height: 20px;
+}
+
+.au-legal a {
+  color: var(--color-text-secondary);
+  text-underline-offset: 3px;
+}
+
+/* ── Tipografía y acciones ─────────────────────────────────────────────── */
+
+.au-head {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.au-kicker {
+  margin: 0;
+  font-size: 14px;
+  font-weight: 500;
+  line-height: 20px;
+  color: var(--color-text-secondary);
+}
+
+.au-title {
+  margin: 0;
+  font-size: 28px;
+  font-weight: 600;
+  line-height: 32px;
+  letter-spacing: -0.01em;
+  color: var(--color-text-primary);
+}
+
+.au-title:focus {
+  outline: none;
+}
+
+.au-lead {
+  margin: 0;
+  font-size: 16px;
+  line-height: 24px;
+  color: var(--color-text-secondary);
+}
+
+.au-lead strong {
+  font-weight: 600;
+  color: var(--color-text-primary);
+}
+
+.au-link {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  padding: 0;
+  font: inherit;
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--color-text-primary);
+  text-decoration: underline;
+  text-decoration-color: var(--color-brand-accent-surface);
+  text-decoration-thickness: 2px;
+  text-underline-offset: 4px;
+  cursor: pointer;
+  background: none;
+  border: 0;
+}
+
+/* Los enlaces de regreso de la recuperación («Volver al acceso», «Elegir otro canal»). */
+.au .recovery-back {
+  margin: 0;
+}
+
+.au .recovery-back a,
+.au .recovery-back__link {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  padding: 0;
+  font: inherit;
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--color-text-primary);
+  text-decoration: underline;
+  text-decoration-color: var(--color-brand-accent-surface);
+  text-decoration-thickness: 2px;
+  text-underline-offset: 4px;
+  cursor: pointer;
+  background: none;
+  border: 0;
+}
+
+.au-links {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0 var(--space-5);
+  margin: 0;
+}
+
+.au-form {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-5);
+  width: 100%;
+}
+
+/* Campos: rótulo en tipo oración, 52 px, radio medio. */
+.au .base-input__label,
+.au .otp-input__label {
+  font-family: var(--font-sans);
+  font-size: 14px;
+  font-weight: 500;
+  line-height: 20px;
+  letter-spacing: 0;
+  color: var(--color-text-primary);
+  text-transform: none;
+}
+
+.au .base-input {
+  height: 52px;
+  font-size: 16px;
+  background-color: var(--color-surface);
+  border-color: var(--color-border-control);
+  border-radius: var(--radius-md);
+}
+
+.au .base-input__input-wrapper:has(.base-input__toggle) .base-input {
+  padding-right: 92px;
+}
+
+.au .base-input__toggle {
+  min-width: 84px;
+  font-size: 14px;
+  font-weight: 500;
+  letter-spacing: 0;
+  color: var(--color-text-secondary);
+  text-transform: none;
+  text-decoration-color: var(--color-brand-accent-surface);
+  text-underline-offset: 3px;
+}
+
+.au .base-input__toggle:hover:not(:disabled) {
+  color: var(--color-text-primary);
+}
+
+.au .otp-input__slots {
+  gap: var(--space-2);
+}
+
+.au .otp-input__slot {
+  height: 56px;
+  font-family: var(--font-sans);
+  font-size: 24px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  border: 1px solid var(--color-border-control);
+  border-radius: var(--radius-md);
+}
+
+.au .otp-input__slot--filled {
+  border-color: var(--color-text-primary);
+}
+
+.au .otp-input__slot--invalid {
+  border-color: var(--color-danger-border);
+}
+
+/* La acción de la pantalla: Alba lleno, 52 px, a lo ancho. */
+.au .base-button--primary {
+  width: 100%;
+  min-height: 52px;
+  font-size: 16px;
+  font-weight: 600;
+  letter-spacing: 0;
+  border-radius: var(--radius-lg);
+}
+
+/* Las secundarias: contorno, sin competir con la principal. */
+.au .base-button--secondary {
+  width: 100%;
+  min-height: 48px;
+  font-size: 15px;
+  font-weight: 600;
+  letter-spacing: 0;
+  color: var(--color-text-primary);
+  background-color: transparent;
+  border: 1px solid var(--color-border-control);
+  border-radius: var(--radius-lg);
+}
+
+.au .base-button--secondary:hover:not(:disabled) {
+  background-color: var(--color-surface-muted);
+  border-color: var(--color-text-primary);
+}
+
+/* Avisos: la palabra de estado y el título en tipo oración, como los rótulos.
+   (BaseAlert es compartido; su versión global se alinea en la entrega 5.) */
+.au .base-alert__status,
+.au .base-alert__title--plain {
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: 0;
+  text-transform: none;
+}
+
+/* ── Escritorio: el cielo a la izquierda, el formulario a la derecha ───── */
+
+@media (min-width: 1024px) {
+  .au {
+    display: grid;
+    grid-template-columns: minmax(0, 5fr) minmax(0, 7fr);
+  }
+
+  .au-sky {
+    height: auto;
+    min-height: 100dvh;
+    --au-horizon: 58%;
+  }
+
+  .au-sky__sun {
+    font-size: 176px;
+  }
+
+  .au-sky__tagline {
+    position: absolute;
+    top: calc(var(--au-horizon) + 56px);
+    right: var(--space-8);
+    left: var(--space-8);
+    display: block;
+    margin: 0;
+    font-size: 22px;
+    font-weight: 500;
+    line-height: 30px;
+    text-align: center;
+    color: var(--color-text-primary);
+    animation: au-fade 600ms var(--au-ease) 500ms backwards;
+  }
+
+  .au--settled .au-sky__tagline,
+  :root[data-motion='reduced'] .au-sky__tagline {
+    animation: none;
+  }
+
+  .au-top {
+    position: static;
+    padding: var(--space-4) var(--space-8);
+  }
+
+  .au-card {
+    gap: var(--space-8);
+    padding: var(--space-6) var(--space-8) var(--space-12, 48px);
+    margin: auto;
+  }
+
+  .au-title {
+    font-size: 32px;
+    line-height: 36px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .au-sky__tagline {
+    animation: none;
+  }
+}

@@ -185,6 +185,8 @@ async function onVerifyCode() {
 </template>
 
 <style scoped>
+/* v2 (DEC-188): un filete sobrio separa el reto del formulario; el canal es un
+   rótulo en tipo oración. Acciones y campos de authV2.css. */
 .phone-challenge {
   display: flex;
   flex-direction: column;
@@ -192,28 +194,12 @@ async function onVerifyCode() {
   padding-top: var(--space-2);
 }
 
-/* Regla de latón con rombo centrado: misma construcción que
-   `.auth-split__rule` del cascarón, aquí a lo ancho de la columna
-   (issue #213, trabajo requerido §4). */
 .phone-challenge__divider {
   display: block;
   width: 100%;
-  height: 2px;
+  height: 1px;
   margin: var(--space-2) 0;
-  background-color: var(--color-accent-brass);
-  position: relative;
-}
-
-.phone-challenge__divider::after {
-  content: '';
-  position: absolute;
-  top: 50%;
-  left: 50%;
-  width: 8px;
-  height: 8px;
-  transform: translate(-50%, -50%) rotate(45deg);
-  background-color: var(--color-accent-brass);
-  box-shadow: 0 0 0 8px var(--color-canvas);
+  background-color: var(--color-border-subtle);
 }
 
 .phone-challenge__channel {
@@ -224,17 +210,16 @@ async function onVerifyCode() {
 
 .phone-challenge__channel-chip {
   margin: 0;
-  font-family: var(--font-sans);
-  font-size: 11px;
+  font-size: 14px;
   font-weight: 600;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-  color: var(--color-accent-brass);
+  line-height: 20px;
+  color: var(--color-text-primary);
 }
 
 .phone-challenge__channel-note {
   margin: 0;
-  font-size: var(--font-size-body-sm);
+  font-size: 14px;
+  line-height: 20px;
   color: var(--color-text-secondary);
 }
 
@@ -244,13 +229,9 @@ async function onVerifyCode() {
   gap: var(--space-3);
 }
 
-.phone-challenge__actions :deep(.base-button) {
-  width: 100%;
-}
-
 .phone-challenge__error {
   margin: 0;
-  font-size: var(--font-size-body-sm);
+  font-size: 14px;
   color: var(--color-danger-text);
 }
 </style>
