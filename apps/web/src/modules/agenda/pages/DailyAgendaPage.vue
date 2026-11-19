@@ -360,18 +360,29 @@ const soloDaySummary = computed<string | null>(() => {
   return count
 })
 
+// v2 (revisión del 4a): la agenda dice la hora como la reserva y «Mi turno»
+// (es-CO, 12 h: «7:15 a. m.»), no en 24 h; una sola forma en toda la pantalla,
+// también en la franja del teléfono y en el eje del carril.
 function formatAgendaTime(instant: string): string {
   if (!businessTimezone.value) return ''
   return new Intl.DateTimeFormat('es-CO', {
     timeZone: businessTimezone.value,
-    hour: '2-digit',
+    hour: 'numeric',
     minute: '2-digit',
-    hourCycle: 'h23',
+    hourCycle: 'h12',
   }).format(new Date(instant))
 }
 
+// «7:15 – 7:45 a. m.»: el periodo una sola vez cuando los dos extremos lo
+// comparten; si no, en ambos («11:30 a. m. – 12:15 p. m.»).
 function entryTimeRange(entry: DailyAgendaEntry): string {
-  return `${formatAgendaTime(entry.startsAt)}–${formatAgendaTime(entry.endsAt)}`
+  const start = formatAgendaTime(entry.startsAt)
+  const end = formatAgendaTime(entry.endsAt)
+  const period = (text: string) => text.replace(/^[\d:]+\s*/, '')
+  if (period(start) && period(start) === period(end)) {
+    return `${start.slice(0, start.length - period(start).length).trim()} – ${end}`
+  }
+  return `${start} – ${end}`
 }
 
 function entryTime(entry: DailyAgendaEntry): string {
@@ -421,11 +432,14 @@ const TIMELINE_MIN_HOUR_PX = 180
 // carril ancho un % fijo inflaría un turno de 10 min).
 const TIMELINE_SLIP_FULL_PX = 120
 const TIMELINE_SLIP_MIN_PX = 44
+// En 12 h el rango («11:45 a. m. – 12:15 p. m.») pide ~190 px en una línea;
+// una ficha más estrecha lleva solo la hora de inicio (el rango está en la lista).
+const TIMELINE_SLIP_RANGE_PX = 190
 // Ancho aproximado de una ficha ensanchada (--expanded): decide si se ancla
 // por la derecha para no salirse del carril.
 const TIMELINE_SLIP_EXPANDED_PX = 200
-// Ancho que necesita una etiqueta de hora («00:00») con aire a los lados.
-const TIMELINE_TICK_LABEL_PX = 58
+// Ancho que necesita una etiqueta de hora («12:30 p. m.») con aire a los lados.
+const TIMELINE_TICK_LABEL_PX = 84
 
 const timelineViewport = ref<HTMLElement | null>(null)
 const timelineViewportWidth = ref(0)
@@ -555,7 +569,7 @@ const timelineTicks = computed(() => {
     const align = minute === bounds.start ? 'start' : minute === bounds.end ? 'end' : 'center'
     ticks.push({
       minute,
-      label: `${String(hour).padStart(2, '0')}:${String(mins).padStart(2, '0')}`,
+      label: `${hour % 12 === 0 ? 12 : hour % 12}${mins ? `:${String(mins).padStart(2, '0')}` : ''} ${hour < 12 ? 'a. m.' : 'p. m.'}`,
       align,
       labeled: ((minute - bounds.start) / step) % labelEvery === 0,
     })
@@ -754,9 +768,27 @@ watch(
     if (key === timelineFramedKey) return
     timelineFramedKey = key
     const span = bounds.end - bounds.start
+    const toPx = (minute: number) => ((minute - bounds.start) / span) * el.scrollWidth
     if (isViewingToday.value) {
-      const ratio = (focusMinute - bounds.start) / span
-      el.scrollLeft = Math.max(0, ratio * el.scrollWidth - el.clientWidth / 3)
+      const now = Date.now()
+      const ahead = entries.value.some((e) => new Date(e.endsAt).getTime() > now)
+      const last = entries.value[entries.value.length - 1]
+      if (ahead || !last) {
+        // Hay turnos por venir: «Ahora» a un tercio, para ver lo que viene.
+        el.scrollLeft = Math.max(0, toPx(focusMinute) - el.clientWidth / 3)
+        return
+      }
+      // Ya no queda nada: el último turno y «Ahora» a los dos tercios, para que
+      // el carril nunca abra vacío con la lista llena (revisión del 4a).
+      const lastStart = minutesIntoCivilDate(
+        last.startsAt,
+        agendaDate.value!,
+        businessTimezone.value!,
+      )
+      el.scrollLeft = Math.max(
+        0,
+        Math.min(toPx(focusMinute) - (el.clientWidth * 2) / 3, toPx(lastStart - 30)),
+      )
       return
     }
     const ratio = (Math.max(bounds.start, focusMinute - 30) - bounds.start) / span
@@ -861,9 +893,15 @@ const dayChangeMarkerPercent = computed(() => {
     <header class="daily-agenda-page__header">
       <div>
         <h1 id="daily-agenda-page-title" class="daily-agenda-page__title">Agenda</h1>
-        <p v-if="selectedDateLabel" class="daily-agenda-page__date">
-          {{ selectedDateLabel
-          }}<template v-if="businessTimezone"> · {{ timezoneLabel(businessTimezone) }}</template>
+        <!-- Siempre presente: reserva su línea mientras carga y el cargador no
+             salta cuando llega la fecha (CLS). -->
+        <p class="daily-agenda-page__date">
+          <template v-if="selectedDateLabel"
+            >{{ selectedDateLabel
+            }}<template v-if="businessTimezone">
+              · {{ timezoneLabel(businessTimezone) }}</template
+            ></template
+          >
         </p>
         <p v-if="soloDaySummary" class="daily-agenda-page__summary">{{ soloDaySummary }}</p>
       </div>
@@ -1190,7 +1228,8 @@ const dayChangeMarkerPercent = computed(() => {
                       @click.capture="onSlipClick($event, entry.id)"
                     >
                       <span class="daily-agenda-page__timeline-slip-time">{{
-                        timelineSlipDetail(entry) === 'full' || expandedSlipId === entry.id
+                        timelineSlipWidthPx(entry) >= TIMELINE_SLIP_RANGE_PX ||
+                        expandedSlipId === entry.id
                           ? entryTimeRange(entry)
                           : entryTime(entry)
                       }}</span>
@@ -1379,6 +1418,7 @@ const dayChangeMarkerPercent = computed(() => {
 }
 
 .daily-agenda-page__date {
+  min-height: 20px;
   margin: var(--space-1) 0 0;
   font-size: 14px;
   line-height: 20px;
@@ -1762,7 +1802,7 @@ const dayChangeMarkerPercent = computed(() => {
 }
 
 .daily-agenda-page__item-time {
-  flex: 0 0 124px;
+  flex: 0 0 196px;
   font-size: 16px;
   font-weight: 500;
   font-variant-numeric: tabular-nums;

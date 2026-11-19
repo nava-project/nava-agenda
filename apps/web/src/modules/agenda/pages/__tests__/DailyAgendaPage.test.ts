@@ -680,6 +680,12 @@ describe('DailyAgendaPage', () => {
       )
     })
 
+    it('says the list times in 12 h like the booking, with the period once when shared', async () => {
+      const { wrapper } = await mountWithFixedDate()
+      // 14:30–15:00 en Bogotá.
+      expect(wrapper.get('.daily-agenda-page__item-time').text()).toBe('2:30 – 3:00 p. m.')
+    })
+
     it('a 45-minute slip shows time range, person and service at the default zoom', async () => {
       const entry = [{ ...oneEntry[0]!, endsAt: '2026-08-28T20:15:00Z' }]
       const { wrapper } = await mountWithFixedDate(entry)
@@ -796,7 +802,8 @@ describe('DailyAgendaPage', () => {
         expect(zoomIn.attributes('disabled')).toBeUndefined()
 
         const ticks = wrapper.findAll('.daily-agenda-page__timeline-tick-label')
-        expect(ticks[0]!.text()).toMatch(/:00$/)
+        // v2: el eje en 12 h, como la reserva («12 a. m.», «1 p. m.»).
+        expect(ticks[0]!.text()).toBe('12 a. m.')
 
         const scroll = wrapper.get('.daily-agenda-page__timeline-scroll')
         expect(scroll.attributes('style')).toContain('width: 100%')
@@ -818,7 +825,7 @@ describe('DailyAgendaPage', () => {
           'width: 400%',
         )
         const ticks = wrapper.findAll('.daily-agenda-page__timeline-tick-label')
-        expect(ticks.some((t) => t.text().endsWith(':15'))).toBe(true)
+        expect(ticks.some((t) => /:15 [ap]\. m\.$/.test(t.text()))).toBe(true)
 
         // Al tope: "Acercar" se deshabilita, "Alejar" sigue disponible.
         const { out, zoomIn: zoomInAtMax } = zoomButtons(wrapper)
@@ -849,9 +856,9 @@ describe('DailyAgendaPage', () => {
     const hhmm = (instant: string) =>
       new Intl.DateTimeFormat('es-CO', {
         timeZone: 'America/Bogota',
-        hour: '2-digit',
+        hour: 'numeric',
         minute: '2-digit',
-        hourCycle: 'h23',
+        hourCycle: 'h12',
       }).format(new Date(instant))
 
     // Turnos de hoy en la zona del negocio, relativos al reloj real: la página
