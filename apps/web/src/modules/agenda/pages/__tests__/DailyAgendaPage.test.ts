@@ -672,6 +672,31 @@ describe('DailyAgendaPage', () => {
       )
     })
 
+    it('hides an axis label the viewport cuts at its edge, and shows it once it fits', async () => {
+      const width = vi
+        .spyOn(HTMLElement.prototype, 'clientWidth', 'get')
+        .mockImplementation(function (this: HTMLElement) {
+          return this.classList.contains('daily-agenda-page__timeline') ? 1000 : 0
+        })
+      try {
+        const { wrapper } = await mountWithFixedDate()
+        const viewport = wrapper.get('.daily-agenda-page__timeline')
+        // Carril de 6720 px (280 px por hora): «4 a. m.» cae en x = 1120 px.
+        const label = () =>
+          wrapper
+            .findAll('.daily-agenda-page__timeline-tick-label')
+            .find((t) => t.text() === '4 a. m.')!
+        ;(viewport.element as HTMLElement).scrollLeft = 0
+        await viewport.trigger('scroll')
+        expect(label().classes()).toContain('daily-agenda-page__timeline-tick-label--clipped')
+        ;(viewport.element as HTMLElement).scrollLeft = 400
+        await viewport.trigger('scroll')
+        expect(label().classes()).not.toContain('daily-agenda-page__timeline-tick-label--clipped')
+      } finally {
+        width.mockRestore()
+      }
+    })
+
     it('keeps the hour at 180 px when every appointment is long enough', async () => {
       const entry = [{ ...oneEntry[0]!, endsAt: '2026-08-28T20:30:00Z' }]
       const { wrapper } = await mountWithFixedDate(entry)
