@@ -117,11 +117,7 @@ onMounted(load)
 <template>
   <div class="opening" :aria-busy="status === 'loading' || saving">
     <div v-if="status === 'loading'" role="status">
-      <DiamondLoader
-        label="Cargando tu horario"
-        layout="inline"
-        :phrases="['Cargando tu horario']"
-      />
+      <DiamondLoader label="Cargando tu horario" layout="inline" />
     </div>
 
     <BaseAlert

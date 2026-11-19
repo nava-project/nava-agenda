@@ -876,13 +876,6 @@ onMounted(loadColombianHolidays)
 
 // --- Tablero semanal, cifras y reloj del negocio -------------------------
 
-const LOADING_PHRASES = [
-  'Revisando la semana',
-  'Afilando la navaja',
-  'Alineando los turnos',
-  'Todo a su hora',
-] as const
-
 // Duraciones que un profesional escribe una y otra vez: atajos, no una regla.
 // Panel lateral en acordeón: un solo apartado abierto a la vez para que la
 // pantalla quepa sin desplazarse. Las excepciones abren primero: son lo que
@@ -1058,11 +1051,7 @@ const editPreview = computed(() =>
         role="status"
         aria-live="polite"
       >
-        <DiamondLoader
-          :label="`Cargando ${v.professionals}…`"
-          layout="inline"
-          :phrases="LOADING_PHRASES"
-        />
+        <DiamondLoader :label="`Cargando ${v.professionals}…`" layout="inline" />
         <div class="schedules-page__skeleton" aria-hidden="true">
           <span v-for="n in 4" :key="n" class="schedules-page__skeleton-row">
             <span class="schedules-page__skeleton-bar schedules-page__skeleton-bar--day" />
@@ -1115,7 +1104,6 @@ const editPreview = computed(() =>
               <DiamondLoader
                 :label="`Cargando el horario de ${selectedProfessional?.fullName}…`"
                 layout="inline"
-                :phrases="LOADING_PHRASES"
               />
               <div class="schedules-page__skeleton" aria-hidden="true">
                 <span v-for="n in 7" :key="n" class="schedules-page__skeleton-row">
@@ -1177,7 +1165,6 @@ const editPreview = computed(() =>
                   >
                     <DiamondLoader
                       :label="`Cargando el horario de ${selectedProfessional?.fullName}…`"
-                      :phrases="LOADING_PHRASES"
                     />
                   </div>
                 </Transition>

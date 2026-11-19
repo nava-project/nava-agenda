@@ -106,13 +106,6 @@ import TimezoneField from '../components/TimezoneField.vue'
 type LoadStatus = 'loading' | 'ready' | 'load-error'
 type GroupError = 'validation' | 'network' | 'unexpected'
 
-const LOADING_PHRASES = [
-  'Ajustando la casa',
-  'Afinando los detalles',
-  'Alineando la marca',
-  'Todo a su hora',
-] as const
-
 const v = useVocabulary()
 const toast = useToast()
 
@@ -655,11 +648,7 @@ const previewClass = computed(() => ({ 'settings-page__preview--changed': brandD
         role="status"
         aria-live="polite"
       >
-        <DiamondLoader
-          label="Cargando la configuración…"
-          layout="inline"
-          :phrases="LOADING_PHRASES"
-        />
+        <DiamondLoader label="Cargando la configuración…" layout="inline" />
         <div class="settings-page__skeletons" aria-hidden="true">
           <span v-for="n in 3" :key="n" class="settings-page__skeleton" :style="{ '--n': n }" />
         </div>

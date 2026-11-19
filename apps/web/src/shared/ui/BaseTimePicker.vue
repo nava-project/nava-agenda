@@ -283,8 +283,6 @@ watch(
   font-size: var(--font-size-caption);
   font-weight: 600;
   line-height: 14px;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
 }
 .base-time-picker__label span {
   color: var(--color-danger-on-strong);
@@ -292,7 +290,6 @@ watch(
 .base-time-picker__label .base-time-picker__optional {
   color: var(--color-on-strong-muted);
   text-transform: none;
-  letter-spacing: normal;
 }
 .base-time-picker__trigger {
   display: flex;
@@ -306,12 +303,12 @@ watch(
   color: var(--color-on-strong);
   background: var(--color-field-strong);
   border: 1px solid var(--color-field-strong-border);
-  border-bottom: 2px solid var(--color-brand-accent-surface);
-  border-radius: 2px;
+  border-bottom: var(--border-width-normal) solid var(--color-border-control);
+  border-radius: var(--radius-md);
   cursor: pointer;
 }
 .base-time-picker__trigger svg {
-  color: var(--color-brand-accent-surface);
+  color: var(--color-text-secondary);
   flex-shrink: 0;
 }
 .base-time-picker__placeholder {
@@ -319,7 +316,7 @@ watch(
 }
 .base-time-picker__trigger:hover:not(:disabled),
 .base-time-picker__trigger[aria-expanded='true'] {
-  border-color: var(--color-brand-accent-surface);
+  border-color: var(--color-text-primary);
 }
 .base-time-picker__trigger:disabled {
   opacity: 0.5;
@@ -337,8 +334,8 @@ watch(
   color: var(--color-on-strong);
   background: var(--color-field-strong);
   border: 1px solid var(--color-field-strong-border);
-  border-top: 2px solid var(--color-brand-accent-surface);
-  border-radius: 2px;
+  border-top: var(--border-width-normal) solid var(--color-border-subtle);
+  border-radius: var(--radius-md);
   box-shadow: var(--shadow-dialog);
 }
 .base-time-picker__header {
@@ -363,12 +360,12 @@ watch(
   color: var(--color-on-strong);
   background: transparent;
   border: 1px solid transparent;
-  border-radius: 2px;
+  border-radius: var(--radius-md);
   cursor: pointer;
 }
 .base-time-picker__dialog button:hover {
   background: var(--color-field-strong-raised);
-  border-color: var(--color-brand-accent-surface);
+  border-color: var(--color-text-primary);
 }
 .base-time-picker__close {
   min-width: 44px;
@@ -389,8 +386,6 @@ watch(
   text-align: center;
   font-size: var(--font-size-caption);
   font-weight: 600;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
   color: var(--color-on-strong-muted);
 }
 .base-time-picker__column input {
@@ -404,18 +399,18 @@ watch(
   color: var(--color-on-strong);
   background: var(--color-field-strong-raised);
   border: 1px solid var(--color-field-strong-border);
-  border-bottom: 2px solid var(--color-brand-accent-surface);
-  border-radius: 2px;
+  border-bottom: var(--border-width-normal) solid var(--color-border-control);
+  border-radius: var(--radius-md);
 }
 .base-time-picker__colon {
   padding-top: 28px;
-  color: var(--color-brand-accent-surface);
+  color: var(--color-text-secondary);
   font: 500 20px/1 var(--font-family-base);
   text-align: center;
 }
 .base-time-picker__column input::selection {
-  background: var(--color-brand-accent-surface);
-  color: var(--color-brand-accent-text);
+  background: var(--color-text-primary);
+  color: var(--color-surface);
 }
 .base-time-picker__error {
   margin: 12px 0 0;
@@ -437,7 +432,7 @@ watch(
 .base-time-picker__footer .base-time-picker__apply {
   background: var(--color-brand-accent-surface);
   color: var(--color-brand-accent-text);
-  border-color: var(--color-brand-accent-surface);
+  border-color: var(--color-text-primary);
 }
 .base-time-picker__footer button:disabled {
   opacity: 0.5;
@@ -446,7 +441,7 @@ watch(
 .base-time-picker__trigger:focus-visible,
 .base-time-picker__dialog button:focus-visible,
 .base-time-picker__column input:focus-visible {
-  outline: 2px solid var(--color-brand-accent-surface);
+  outline: 2px solid var(--color-focus);
   outline-offset: 2px;
 }
 .time-picker-pop-enter-active,

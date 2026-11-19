@@ -50,14 +50,6 @@ const toast = useToast()
 // Palabras del negocio (DEC-110): con los valores iniciales, el mismo texto de siempre.
 const v = useVocabulary()
 
-// Frases decorativas del rombo de carga: las de la casa, con voz de equipo.
-const LOADING_PHRASES = [
-  'Reuniendo al equipo',
-  'Afilando la navaja',
-  'Alineando los turnos',
-  'Todo a su hora',
-] as const
-
 type LoadStatus = 'loading' | 'ready' | 'load-error'
 type SaveStatus =
   | 'idle'
@@ -707,7 +699,7 @@ async function onSubmitRename() {
         role="status"
         aria-live="polite"
       >
-        <DiamondLoader label="Cargando el equipo…" layout="inline" :phrases="LOADING_PHRASES" />
+        <DiamondLoader label="Cargando el equipo…" layout="inline" />
         <ul class="staff-page__list" aria-hidden="true">
           <li v-for="n in 3" :key="n" class="staff-page__skeleton-row">
             <span class="staff-page__skeleton-portrait" />

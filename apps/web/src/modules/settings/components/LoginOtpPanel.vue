@@ -33,7 +33,6 @@ const OPTIONS: readonly { value: LoginOtpChannel; label: string; hint: string }[
     hint: 'El mismo código por los dos canales; basta con que llegue por uno.',
   },
 ]
-const LOADING_PHRASES = ['Cargando tu preferencia'] as const
 
 const status = ref<Status>('loading')
 const channel = ref<LoginOtpChannel>('email')
@@ -74,7 +73,7 @@ onMounted(load)
 <template>
   <div class="login-otp" :aria-busy="status === 'loading' || saving">
     <div v-if="status === 'loading'" role="status">
-      <DiamondLoader label="Cargando tu preferencia" layout="inline" :phrases="LOADING_PHRASES" />
+      <DiamondLoader label="Cargando tu preferencia" layout="inline" />
     </div>
 
     <BaseAlert

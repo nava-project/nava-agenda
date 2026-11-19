@@ -961,6 +961,9 @@ function chooseAlternative(startsAt: string) {
   --input-bg: var(--color-surface);
   --input-border-color: var(--pb-line-strong);
   --input-border-base-color: color-mix(in srgb, var(--pb-brass) 75%, transparent);
+  /* La reserva conserva su línea base de 2 px del color del negocio; el
+     campo compartido v2 la tiene de 1 px y neutra (DEC-188, entrega 5). */
+  border-bottom-width: var(--border-width-emphasis);
   --input-focus-ring:
     0 0 0 2px var(--color-surface-strong), 0 0 0 4px var(--pb-brass),
     0 0 22px color-mix(in srgb, var(--pb-brass) 35%, transparent);
@@ -1120,7 +1123,7 @@ function chooseAlternative(startsAt: string) {
   border: var(--border-width-normal) solid var(--pb-line-strong);
   border-bottom: var(--border-width-emphasis) solid
     color-mix(in srgb, var(--pb-brass) 75%, transparent);
-  border-radius: 2px;
+  border-radius: var(--radius-md);
   outline: none;
   transition:
     border-color var(--motion-duration-fast) var(--motion-easing-standard),

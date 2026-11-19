@@ -150,15 +150,16 @@ function onInput(event: Event) {
 </template>
 
 <style scoped>
-/* Mismo campo reglado que `BaseInput` sobre la hoja de tinta: recuesto oscuro,
-   filete perimetral y línea base de latón. Aquí el filete envuelve las dos
-   casillas para que se lean como un solo teléfono, con un tabique entre ellas. */
+/* Mismo campo que `BaseInput`; el borde envuelve las dos casillas para que se
+   lean como un solo teléfono, con un tabique entre ellas. `--pf-brass` es el
+   tono del rótulo y la línea base: el de la reserva pública dentro de
+   `.pb-layout`, el texto secundario en el panel (v2, DEC-188). */
 .phone-field {
   /* Dentro de la reserva pública (`.pb-layout`) hereda su paleta; en cualquier
      otra hoja de tinta (Configuración) cae a los tokens de tinta directamente. */
   --pf-text: var(--pb-text, var(--color-on-strong));
   --pf-muted: var(--pb-muted, var(--color-on-strong-muted));
-  --pf-brass: var(--pb-brass, var(--color-brand-accent-surface));
+  --pf-brass: var(--pb-brass, var(--color-text-secondary));
   --pf-line-strong: var(--pb-line-strong, color-mix(in srgb, var(--pf-text) 30%, transparent));
   --pf-row-bg: var(--color-surface);
   --pf-row-bg-hover: color-mix(in srgb, var(--color-text-primary) 4%, var(--color-surface));
@@ -166,8 +167,8 @@ function onInput(event: Event) {
   --pf-row-base: color-mix(in srgb, var(--pf-brass) 75%, transparent);
   --pf-row-base-hover: var(--pf-brass);
   --pf-ring-gap: var(--color-surface-strong);
-  --pf-focus: var(--pf-brass);
-  --pf-focus-glow: 0 0 22px color-mix(in srgb, var(--pf-brass) 35%, transparent);
+  --pf-focus: var(--pb-brass, var(--color-focus));
+  --pf-focus-glow: 0 0 22px color-mix(in srgb, var(--pf-focus) 35%, transparent);
   --pf-danger: var(--color-danger-on-strong);
 
   display: flex;
@@ -178,11 +179,9 @@ function onInput(event: Event) {
 
 .phone-field__label {
   font-family: var(--font-sans);
-  font-size: 11px;
-  font-weight: 600;
-  line-height: 14px;
-  letter-spacing: 0.12em;
-  text-transform: uppercase;
+  font-size: 13px;
+  font-weight: 500;
+  line-height: 18px;
   color: var(--pf-brass);
 }
 
@@ -197,7 +196,7 @@ function onInput(event: Event) {
   background-color: var(--pf-row-bg);
   border: var(--border-width-normal) solid var(--pf-line-strong);
   border-bottom: var(--border-width-emphasis) solid var(--pf-row-base);
-  border-radius: 2px;
+  border-radius: var(--radius-md);
   transition:
     border-color var(--motion-duration-fast) var(--motion-easing-standard),
     box-shadow var(--motion-duration-fast) var(--motion-easing-standard),
@@ -331,7 +330,7 @@ function onInput(event: Event) {
 .phone-field--paper {
   --pf-text: var(--color-text-primary);
   --pf-muted: var(--color-text-secondary);
-  --pf-brass: var(--color-accent-brass);
+  --pf-brass: var(--color-text-secondary);
   --pf-line-strong: var(--color-border-subtle);
   --pf-row-bg: var(--color-surface);
   --pf-row-bg-hover: var(--color-surface);

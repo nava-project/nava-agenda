@@ -1,39 +1,23 @@
 /**
- * Tests for DiamondLoader: texto accesible único, decoración oculta a la
- * tecnología de asistencia, rotación de frases y respeto de
- * prefers-reduced-motion.
+ * Tests for DiamondLoader v2 (DEC-188, entrega 5): el texto de la espera a la
+ * vista y accesible, el dibujo del sol decorativo y sin temporizadores (ya no
+ * rota frases).
  */
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import { describe, expect, it, vi } from 'vitest'
 import { mount } from '@vue/test-utils'
 import { axe } from 'vitest-axe'
 import DiamondLoader from '../DiamondLoader.vue'
 
 const axeOptions = { rules: { region: { enabled: false }, 'color-contrast': { enabled: false } } }
 
-function stubMatchMedia(reduced: boolean) {
-  vi.stubGlobal(
-    'matchMedia',
-    vi.fn().mockReturnValue({ matches: reduced, addEventListener: vi.fn() }),
-  )
-  window.matchMedia = globalThis.matchMedia
-}
-
 describe('DiamondLoader', () => {
-  beforeEach(() => {
-    vi.useFakeTimers()
-    stubMatchMedia(false)
-  })
-
-  afterEach(() => {
-    vi.useRealTimers()
-    vi.unstubAllGlobals()
-  })
-
-  it('exposes only the label to assistive tech and hides graphic and phrases', () => {
-    const wrapper = mount(DiamondLoader, { props: { label: 'Cargando barberos…' } })
-    expect(wrapper.find('.diamond-loader__label').text()).toBe('Cargando barberos…')
-    expect(wrapper.find('.diamond-loader__stage').attributes('aria-hidden')).toBe('true')
-    expect(wrapper.find('.diamond-loader__text').attributes('aria-hidden')).toBe('true')
+  it('says what it waits for in visible text and hides the drawing', () => {
+    const wrapper = mount(DiamondLoader, { props: { label: 'Cargando el equipo…' } })
+    expect(wrapper.text()).toBe('Cargando el equipo…')
+    expect(wrapper.get('.diamond-loader__stage').attributes('aria-hidden')).toBe('true')
+    // Sin la voz v1: ni frases rotativas ni rombo.
+    expect(wrapper.find('.diamond-loader__phrase').exists()).toBe(false)
+    expect(wrapper.find('svg').exists()).toBe(false)
     wrapper.unmount()
   })
 
@@ -43,36 +27,15 @@ describe('DiamondLoader', () => {
     wrapper.unmount()
   })
 
-  it('rotates through the phrases and wraps around', async () => {
-    const wrapper = mount(DiamondLoader, {
-      props: { label: 'Cargando', phrases: ['Uno', 'Dos'] },
-    })
-    expect(wrapper.find('.diamond-loader__phrase').text()).toBe('Uno')
-    await vi.advanceTimersByTimeAsync(2600)
-    expect(wrapper.find('.diamond-loader__phrase').text()).toBe('Dos')
-    await vi.advanceTimersByTimeAsync(2600)
-    expect(wrapper.find('.diamond-loader__phrase').text()).toBe('Uno')
-    wrapper.unmount()
-  })
-
-  it('keeps the first phrase when the user prefers reduced motion', async () => {
-    stubMatchMedia(true)
-    const wrapper = mount(DiamondLoader, {
-      props: { label: 'Cargando', phrases: ['Uno', 'Dos'] },
-    })
-    await vi.advanceTimersByTimeAsync(10000)
-    expect(wrapper.find('.diamond-loader__phrase').text()).toBe('Uno')
-    wrapper.unmount()
-  })
-
-  it('stops its timer on unmount', () => {
+  it('leaves no timer behind', () => {
+    vi.useFakeTimers()
     const wrapper = mount(DiamondLoader, { props: { label: 'Cargando' } })
-    wrapper.unmount()
     expect(vi.getTimerCount()).toBe(0)
+    wrapper.unmount()
+    vi.useRealTimers()
   })
 
   it('has no obvious accessibility violations', async () => {
-    vi.useRealTimers()
     const wrapper = mount(DiamondLoader, {
       props: { label: 'Cargando' },
       attachTo: document.body,

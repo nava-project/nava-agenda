@@ -184,11 +184,14 @@ for (const theme of themes) {
       const section = document.querySelector('.appointment-detail-page') as HTMLElement
       const back = document.querySelector('.appointment-detail-page__back') as HTMLElement
       const body = document.querySelector('.appointment-detail-page__body') as HTMLElement
+      // Centrado dentro del área de contenido: en escritorio el riel de
+      // navegación ocupa la izquierda (DEC-188, entrega 5).
+      const area = (document.querySelector('main') as HTMLElement).getBoundingClientRect()
       const s = section.getBoundingClientRect()
       return {
         width: s.width,
-        left: s.left,
-        right: document.documentElement.clientWidth - s.right,
+        left: s.left - area.left,
+        right: area.left + (document.querySelector('main') as HTMLElement).clientWidth - s.right,
         top: back.getBoundingClientRect().top - s.top,
         bottom: s.bottom - body.getBoundingClientRect().bottom,
       }

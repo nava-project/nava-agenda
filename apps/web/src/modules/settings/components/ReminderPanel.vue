@@ -18,7 +18,6 @@ const OPTIONS = REMINDER_LEAD_OPTIONS.map((minutes) => ({
   value: String(minutes) as LeadValue,
   label: `${minutes} minutos antes`,
 }))
-const LOADING_PHRASES = ['Cargando tus recordatorios'] as const
 
 const status = ref<Status>('loading')
 const lead = ref<ReminderLeadMinutes>(30)
@@ -62,11 +61,7 @@ onMounted(load)
 <template>
   <div class="reminders" :aria-busy="status === 'loading' || saving">
     <div v-if="status === 'loading'" role="status">
-      <DiamondLoader
-        label="Cargando tus recordatorios"
-        layout="inline"
-        :phrases="LOADING_PHRASES"
-      />
+      <DiamondLoader label="Cargando tus recordatorios" layout="inline" />
     </div>
 
     <BaseAlert

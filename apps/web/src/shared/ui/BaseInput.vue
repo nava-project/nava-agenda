@@ -263,19 +263,14 @@ const handleFocus = (event: FocusEvent) => {
   width: 100%;
 }
 
-/* Rótulo reglado: versalitas espaciadas de latón sobre el campo, el mismo
-   tratamiento que "PASO 1 DE 3" y "ACCESO SEGURO" del contrato visual
-   (auth-eventos/README.md, issue #212). Reemplaza el label sans regular
-   anterior; el peso 600 y el letter-spacing compensan el tamaño pequeño
-   para que siga siendo legible como encabezado del campo, no como ayuda. */
+/* Rótulo v2 (DEC-188): tipo oración en texto secundario, sin versalitas ni
+   acento; el acento queda para la acción principal. */
 .base-input__label {
   font-family: var(--font-sans);
-  font-size: var(--font-size-caption);
-  font-weight: 600;
-  line-height: 14px;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-  color: var(--color-accent-brass);
+  font-size: 13px;
+  font-weight: 500;
+  line-height: 18px;
+  color: var(--color-text-secondary);
 }
 
 .base-input__required {
@@ -289,21 +284,18 @@ const handleFocus = (event: FocusEvent) => {
   align-items: center;
 }
 
-/* Campo reglado (issue #212, auth-eventos/README.md "Contrato visual
-   común"): superficie de papel blanco apoyada en una línea base de tinta
-   de 2px, con filete perimetral de 1px a baja opacidad y radio 2px. El
-   perímetro usa --color-border-subtle (piedra, ya de baja opacidad
-   visual en la paleta); la línea base usa --color-action-primary (tinta)
-   para que sea el trazo dominante, no un borde uniforme. */
+/* Campo v2 (DEC-188): superficie con borde de control de 1px alrededor y
+   radio medio; al pasar el cursor el borde pasa a tinta. Las variables
+   permiten a la reserva pública conservar su línea base propia. */
 .base-input {
   --input-height: var(--control-height);
   --input-padding-x: var(--space-4);
   --input-font-size: var(--font-size-body);
   --input-line-height: var(--font-size-body-line);
   --input-bg: var(--color-surface);
-  --input-border-color: var(--color-border-subtle);
-  --input-border-base-color: var(--color-action-primary);
-  --input-radius: 2px;
+  --input-border-color: var(--color-border-control);
+  --input-border-base-color: var(--color-border-control);
+  --input-radius: var(--radius-md);
   --input-transition:
     border-color var(--motion-duration-fast) var(--motion-easing-standard),
     box-shadow var(--motion-duration-fast) var(--motion-easing-standard),
@@ -319,7 +311,7 @@ const handleFocus = (event: FocusEvent) => {
   color: var(--color-text-primary);
   background-color: var(--input-bg);
   border: var(--border-width-normal) solid var(--input-border-color);
-  border-bottom: var(--border-width-emphasis) solid var(--input-border-base-color);
+  border-bottom: var(--border-width-normal) solid var(--input-border-base-color);
   border-radius: var(--input-radius);
   outline: none;
   transition: var(--input-transition);
@@ -350,8 +342,7 @@ const handleFocus = (event: FocusEvent) => {
 }
 
 .base-input:hover:not(:disabled):not(.base-input--readonly):not(.base-input--invalid) {
-  border-color: var(--color-text-secondary);
-  border-bottom-color: var(--input-border-base-color);
+  border-color: var(--color-text-primary);
 }
 
 .base-input:focus-visible {
@@ -409,9 +400,8 @@ const handleFocus = (event: FocusEvent) => {
   right: var(--space-3);
 }
 
-/* Conmutador de contraseña reglado: la palabra "Mostrar"/"Ocultar" en
-   versalitas de latón con filete inferior, no un glifo de ojo (contrato
-   visual del issue #212) — así el control tiene nombre accesible propio
+/* Conmutador de contraseña: la palabra «Mostrar»/«Ocultar» subrayada, no un
+   glifo de ojo (issue #212), así el control tiene nombre accesible propio
    sin depender de una forma. Sigue ocupando toda la altura del campo como
    objetivo táctil (estandar-diseno-visual.md §6.2, CA-009-03); el ancho
    mínimo reserva espacio para "OCULTAR", la palabra más larga. */
@@ -431,12 +421,10 @@ const handleFocus = (event: FocusEvent) => {
   font-family: var(--font-sans);
   font-size: var(--font-size-caption);
   font-weight: 600;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
   text-decoration: underline;
   text-decoration-thickness: 1px;
   text-underline-offset: 3px;
-  color: var(--color-accent-brass);
+  color: var(--color-text-secondary);
   cursor: pointer;
   transition: color var(--motion-duration-fast) var(--motion-easing-standard);
 }
@@ -448,7 +436,7 @@ const handleFocus = (event: FocusEvent) => {
 }
 
 .base-input__toggle:hover:not(:disabled) {
-  color: var(--color-action-primary);
+  color: var(--color-text-primary);
 }
 
 .base-input__toggle:focus-visible {

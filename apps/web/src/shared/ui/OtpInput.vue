@@ -4,8 +4,8 @@
  * "Contrato visual común"). Seis posiciones que repiten la construcción del
  * campo reglado de BaseInput en formato estrecho: no es un componente de
  * kit de formularios genérico con caja redondeada, pertenece a la misma
- * familia visual (superficie de papel, línea base de tinta, radio 2px,
- * rótulo en versalitas de latón).
+ * familia visual (en v2: superficie, borde de control, radio medio y rótulo
+ * en tipo oración y texto secundario).
  *
  * Expone un único valor lógico de seis dígitos hacia afuera (`modelValue`
  * string), nunca seis campos independientes: quien consume este componente
@@ -204,12 +204,10 @@ const slotsClasses = (index: number) => {
 
 .otp-input__label {
   font-family: var(--font-sans);
-  font-size: var(--font-size-caption);
-  font-weight: 600;
-  line-height: 14px;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-  color: var(--color-accent-brass);
+  font-size: 13px;
+  font-weight: 500;
+  line-height: 18px;
+  color: var(--color-text-secondary);
 }
 
 .otp-input__slots {
@@ -234,7 +232,7 @@ const slotsClasses = (index: number) => {
   background-color: var(--color-surface);
   border: var(--border-width-normal) solid var(--color-border-subtle);
   border-bottom: var(--border-width-emphasis) solid var(--color-action-primary);
-  border-radius: 2px;
+  border-radius: var(--radius-md);
   outline: none;
   transition:
     border-color var(--motion-duration-fast) var(--motion-easing-standard),
