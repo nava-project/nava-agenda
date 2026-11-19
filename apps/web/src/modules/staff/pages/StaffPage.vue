@@ -1685,7 +1685,9 @@ async function onSubmitRename() {
   background-color: color-mix(in srgb, var(--color-text-primary) 8%, transparent);
   color: var(--color-text-primary);
   border-radius: var(--radius-md);
-  font-family: var(--font-display);
+  /* Letra de monograma: sans 600. La serif por debajo de 20 px se ensucia (#726). */
+  font-family: var(--font-sans);
+  font-weight: 600;
   font-size: var(--font-size-title-item);
   line-height: 1;
 }

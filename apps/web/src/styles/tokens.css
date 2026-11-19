@@ -203,8 +203,8 @@
   --font-size-title-page-line: 44px;
   /* Titular de página del panel, del acceso y de la reserva, en serif: la serif
      condensada a 32-38 px pesa lo que la sans a 28 px y 600. */
-  --font-size-page-title: 32px;
-  --font-size-page-title-line: 36px;
+  --font-size-page-title: 36px;
+  --font-size-page-title-line: 38px;
 
   /* Espaciado: unidad base 4px */
   --space-0: 0;
@@ -275,8 +275,8 @@
   :root {
     --font-size-display: 48px;
     --font-size-display-line: 52px;
-    --font-size-page-title: 38px;
-    --font-size-page-title-line: 42px;
+    --font-size-page-title: 44px;
+    --font-size-page-title-line: 46px;
   }
 }
 

@@ -1723,7 +1723,7 @@ function occurredAtLabel(entry: HistoryEntry): string {
   font-family: var(--font-display);
   font-size: var(--font-size-title-page);
   font-weight: 400;
-  line-height: 1.08;
+  line-height: 1.05;
   letter-spacing: -0.005em;
   overflow-wrap: anywhere;
   color: var(--color-on-strong);
@@ -1947,6 +1947,12 @@ function occurredAtLabel(entry: HistoryEntry): string {
   display: flex;
   gap: var(--space-4);
   align-items: center;
+}
+
+@media (min-width: 1024px) {
+  .appointment-detail-page__title {
+    font-size: 48px;
+  }
 }
 
 .appointment-detail-page__span-time {
@@ -2639,9 +2645,10 @@ function occurredAtLabel(entry: HistoryEntry): string {
     height: 56px;
   }
 
+  /* La serif necesita ~20 % más que la sans de antes para leerse igual (#726). */
   .appointment-detail-page__title {
-    font-size: var(--font-size-h2);
-    line-height: 1.12;
+    font-size: 30px;
+    line-height: 1.05;
   }
 
   /* Hasta cuatro acciones pueden coexistir sobre un turno confirmado ya

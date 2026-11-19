@@ -1963,10 +1963,6 @@ function onProfessionalSelect(professionalId: string) {
     padding: 22px 40px 24px;
   }
 
-  .new-appointment-page__title {
-    font-size: var(--font-size-title-page);
-  }
-
   .new-appointment-page__timezone {
     font-size: var(--font-size-body);
     line-height: 22px;

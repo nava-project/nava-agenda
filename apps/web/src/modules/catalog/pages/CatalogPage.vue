@@ -2257,7 +2257,9 @@ async function reloadAfterConflict(serviceId: string) {
   border: var(--border-width-normal) solid var(--color-border-subtle);
   border-radius: var(--radius-md);
   color: var(--color-text-secondary);
-  font-family: var(--font-display);
+  /* Letra de monograma: sans 600. La serif por debajo de 20 px se ensucia (#726). */
+  font-family: var(--font-sans);
+  font-weight: 600;
   font-size: var(--font-size-body-lg);
   line-height: 1;
 }
@@ -2597,7 +2599,9 @@ async function reloadAfterConflict(serviceId: string) {
   background-color: color-mix(in srgb, var(--color-text-primary) 8%, transparent);
   color: var(--color-text-primary);
   border-radius: var(--radius-md);
-  font-family: var(--font-display);
+  /* Letra de monograma: sans 600. La serif por debajo de 20 px se ensucia (#726). */
+  font-family: var(--font-sans);
+  font-weight: 600;
   font-size: var(--font-size-title-item);
   line-height: 1;
 }
@@ -2725,7 +2729,9 @@ async function reloadAfterConflict(serviceId: string) {
   background-color: color-mix(in srgb, var(--color-on-strong) 8%, transparent);
   border-radius: 50%;
   color: var(--color-on-strong-muted);
-  font-family: var(--font-display);
+  /* Letra de monograma: sans 600. La serif por debajo de 20 px se ensucia (#726). */
+  font-family: var(--font-sans);
+  font-weight: 600;
   font-size: var(--font-size-body-sm);
   line-height: 1;
 }

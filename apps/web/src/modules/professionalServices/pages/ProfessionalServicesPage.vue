@@ -1135,7 +1135,9 @@ async function onToggleService(service: ServiceSummary, event: Event) {
   place-items: center;
   width: 36px;
   height: 36px;
-  font-family: var(--font-display);
+  /* Letra de monograma: sans 600. La serif por debajo de 20 px se ensucia (#726). */
+  font-family: var(--font-sans);
+  font-weight: 600;
   font-size: var(--font-size-body-lg);
   line-height: 1;
   color: var(--color-text-secondary);
