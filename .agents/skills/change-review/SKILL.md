@@ -21,7 +21,7 @@ Review the change against its issue and authoritative project sources. A diff wi
 - **Frontend:** semantic HTML, state ownership, component boundaries, responsiveness, accessibility, performance, and consistency with the selected NAVA mode.
 - **Security/privacy:** authorization, input/output exposure, secrets, personal data, logs, fixtures, dependency scripts, and destructive paths.
 - **Tests/evidence:** changed rule tested at the lowest adequate layer; PostgreSQL/tenant, component, E2E, visual, and accessibility coverage when applicable.
-- **Delivery:** issue/branch/commit/PR traceability, focused change, docs/contracts synchronized, and no unrelated generated artifacts.
+- **Delivery:** issue/branch/commit/PR traceability, focused change, contracts synchronized, documentation updated in `nava-docs/agenda` through a linked nava-docs PR (none added to this repo), and no unrelated generated artifacts.
 
 ## Findings standard
 
