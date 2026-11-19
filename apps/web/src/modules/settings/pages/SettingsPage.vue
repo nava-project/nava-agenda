@@ -501,8 +501,10 @@ function onDiscard() {
 // --- Preferencias de este dispositivo ---------------------------------------
 
 const THEME_OPTIONS: readonly { value: ThemeMode; label: string; hint: string }[] = [
-  { value: 'ink', label: 'Tinta', hint: 'Oscuro, como hasta ahora' },
-  { value: 'ivory', label: 'Marfil', hint: 'Claro y cálido' },
+  // DEC-188: los modos de la v2 se llaman Noche y Día; los valores guardados
+  // (ink, ivory) no cambian para no perder la preferencia de nadie.
+  { value: 'ink', label: 'Noche', hint: 'Oscuro, para el día largo' },
+  { value: 'ivory', label: 'Día', hint: 'Claro y luminoso' },
   { value: 'auto', label: 'Automático', hint: 'Sigue a tu sistema' },
 ]
 

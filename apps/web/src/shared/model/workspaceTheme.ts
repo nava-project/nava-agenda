@@ -12,7 +12,7 @@
 // desborda. `--ui-zoom` expone el factor real para compensar `100dvh`.
 import { computed, effectScope, ref, watchEffect, type EffectScope } from 'vue'
 import { appearance, TEXT_SCALES } from './appearanceStore'
-import { accentByKey, SURFACE_INK, SURFACE_IVORY } from './brandPalette'
+import { accentByKey, DEFAULT_BRAND_ACCENT, paintBusinessAccent } from './brandPalette'
 import { effectiveAccent } from './brandStore'
 
 /** Ancho mínimo efectivo que debe conservar la interfaz al escalar. */
@@ -31,24 +31,6 @@ export const resolvedTheme = computed<'ink' | 'ivory'>(() => {
   if (appearance.theme === 'auto') return systemPrefersLight.value ? 'ivory' : 'ink'
   return appearance.theme
 })
-
-const ACCENT_PROPERTIES = [
-  '--color-brand-accent-surface',
-  '--color-brand-accent-text',
-  '--color-focus',
-] as const
-
-// Latón «tipográfico» (rótulos en versalitas, filetes inferiores de los campos,
-// barra de desplazamiento): tokens.css lo fija en latón oscuro y antes solo
-// algunas pantallas lo reasignaban al acento, así que el resto del panel seguía
-// en latón con cualquier marca (issue #575). Se reasigna siempre al acento del
-// modo. Su copia `-on-surface` pinta texto sobre una superficie clara propia
-// dentro de la tinta (palabra de estado de BaseAlert): se fija aquí al valor de
-// Marfil, porque en :root resolvería al acento aclarado y perdería contraste.
-const TYPOGRAPHIC_ACCENT_PROPERTIES = [
-  '--color-accent-brass',
-  '--color-accent-brass-on-surface',
-] as const
 
 let scope: EffectScope | null = null
 let detach: (() => void) | null = null
@@ -87,22 +69,10 @@ export function attachWorkspaceTheme(): () => void {
       if (appearance.motion === 'reduced') root.dataset.motion = 'reduced'
       else delete root.dataset.motion
 
-      // El latón sobre Tinta es el valor de tokens.css: no se sobrescribe, así
-      // el negocio que nunca cambia su marca ve exactamente lo de siempre.
-      root.style.setProperty('--color-accent-brass', theme === 'ivory' ? accent.ivory : accent.ink)
-      root.style.setProperty('--color-accent-brass-on-surface', accent.ivory)
-
-      if (accent.key === 'brass' && theme === 'ink') {
-        for (const property of ACCENT_PROPERTIES) root.style.removeProperty(property)
-      } else {
-        const value = theme === 'ivory' ? accent.ivory : accent.ink
-        root.style.setProperty('--color-brand-accent-surface', value)
-        root.style.setProperty(
-          '--color-brand-accent-text',
-          theme === 'ivory' ? SURFACE_IVORY : SURFACE_INK,
-        )
-        root.style.setProperty('--color-focus', value)
-      }
+      // DEC-188: el acento por omisión es el Alba de tokens.css. Un acento
+      // elegido (DEC-110) entrega su valor medido para cada modo y tokens.css
+      // toma el del modo activo. El foco ya no sigue al acento.
+      paintBusinessAccent(root, accent.key === DEFAULT_BRAND_ACCENT ? null : accent)
 
       const zoom = effectiveZoom(TEXT_SCALES[appearance.textScale].factor, viewportWidth.value)
       if (zoom === 1) {
@@ -122,8 +92,7 @@ export function attachWorkspaceTheme(): () => void {
     window.removeEventListener('resize', onResize)
     delete root.dataset.appTheme
     delete root.dataset.motion
-    for (const property of ACCENT_PROPERTIES) root.style.removeProperty(property)
-    for (const property of TYPOGRAPHIC_ACCENT_PROPERTIES) root.style.removeProperty(property)
+    paintBusinessAccent(root, null)
     root.style.removeProperty('zoom')
     root.style.removeProperty('--ui-zoom')
     detach = null

@@ -246,7 +246,7 @@ test.describe('Configuración (HU-020, DEC-110)', () => {
   test('las preferencias de este dispositivo se aplican al instante, persisten y no tocan el acceso (DEC-110)', async () => {
     await openSettings(page)
 
-    await page.getByRole('radio', { name: /Marfil/ }).check()
+    await page.getByRole('radio', { name: /^Día/ }).check()
     await expect(page.locator('html')).toHaveAttribute('data-app-theme', 'ivory')
     await page.getByRole('radio', { name: 'Muy grande' }).check()
     await page.getByRole('switch', { name: 'Reducir animaciones' }).click()

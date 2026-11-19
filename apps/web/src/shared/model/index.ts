@@ -22,6 +22,7 @@ export {
   contrastRatio,
   DEFAULT_BRAND_ACCENT,
   isBrandAccentKey,
+  paintBusinessAccent,
   SURFACE_INK,
   SURFACE_IVORY,
 } from './brandPalette'

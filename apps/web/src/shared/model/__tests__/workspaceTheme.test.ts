@@ -66,21 +66,23 @@ describe('effectiveZoom', () => {
 })
 
 describe('attachWorkspaceTheme', () => {
-  it('paints the initial look: Tinta, brass untouched, no zoom', async () => {
+  it('paints the initial look: Noche, default Alba untouched, no zoom', async () => {
     const { theme } = await load()
     const detach = theme.attachWorkspaceTheme()
 
     expect(root.dataset.appTheme).toBe('ink')
     expect(root.dataset.motion).toBeUndefined()
     // El latón sobre Tinta es el de tokens.css: no se sobrescribe.
-    expect(prop('--color-brand-accent-surface')).toBe('')
+    expect(prop('--business-accent-night')).toBe('')
     expect(prop('--color-focus')).toBe('')
     expect(prop('zoom')).toBe('')
     expect(prop('--ui-zoom')).toBe('')
     detach()
   })
 
-  it('switches the mode and the brass with it', async () => {
+  // DEC-188: el acento por omisión es el Alba de tokens.css en los dos modos;
+  // no se escribe nada en <html>.
+  it('switches the mode and leaves the default Alba to tokens.css', async () => {
     const { theme, appearance } = await load()
     const detach = theme.attachWorkspaceTheme()
 
@@ -88,48 +90,31 @@ describe('attachWorkspaceTheme', () => {
     await nextTick()
 
     expect(root.dataset.appTheme).toBe('ivory')
-    expect(prop('--color-brand-accent-surface')).toBe('#765c2f')
-    expect(prop('--color-brand-accent-text')).toBe('#f4f0e7')
+    expect(prop('--business-accent-day')).toBe('')
+    expect(prop('--business-accent-night')).toBe('')
+    expect(prop('--color-focus')).toBe('')
     detach()
   })
 
-  it('paints another accent with the value measured for the current mode', async () => {
+  // Un acento elegido (DEC-110) entrega su valor medido para cada modo y
+  // tokens.css toma el del modo activo; el foco no sigue al acento.
+  it('paints another accent with the values measured for each mode', async () => {
     const { theme, appearance, brand } = await load()
     const detach = theme.attachWorkspaceTheme()
 
     brand.setBrand({ ...brand.brandState.brand, accent: 'emerald' })
     await nextTick()
-    expect(prop('--color-brand-accent-surface')).toBe('#4cb58a')
-    expect(prop('--color-brand-accent-text')).toBe('#101b2b')
-    expect(prop('--color-focus')).toBe('#4cb58a')
+    expect(prop('--business-accent-night')).toBe('#4cb58a')
+    expect(prop('--business-accent-day')).toBe('#1c6a4d')
+    expect(prop('--color-focus')).toBe('')
 
     appearance.setTheme('ivory')
     await nextTick()
-    expect(prop('--color-brand-accent-surface')).toBe('#1c6a4d')
-    expect(prop('--color-brand-accent-text')).toBe('#f4f0e7')
-    detach()
-  })
-
-  // Issue #575: rótulos y filetes que leen --color-accent-brass quedaban en
-  // latón aunque el negocio eligiera otro acento.
-  it('repaints the typographic brass with the accent and keeps its light-surface copy legible', async () => {
-    const { theme, appearance, brand } = await load()
-    const detach = theme.attachWorkspaceTheme()
-
-    expect(prop('--color-accent-brass')).toBe('#b8955a')
-
-    brand.setBrand({ ...brand.brandState.brand, accent: 'amethyst' })
-    await nextTick()
-    expect(prop('--color-accent-brass')).toBe('#b094ea')
-    expect(prop('--color-accent-brass-on-surface')).toBe('#5d3d9c')
-
-    appearance.setTheme('ivory')
-    await nextTick()
-    expect(prop('--color-accent-brass')).toBe('#5d3d9c')
+    expect(prop('--business-accent-day')).toBe('#1c6a4d')
 
     detach()
-    expect(prop('--color-accent-brass')).toBe('')
-    expect(prop('--color-accent-brass-on-surface')).toBe('')
+    expect(prop('--business-accent-day')).toBe('')
+    expect(prop('--business-accent-night')).toBe('')
   })
 
   it('previews an unsaved accent and returns to the confirmed one', async () => {
@@ -138,11 +123,11 @@ describe('attachWorkspaceTheme', () => {
 
     brand.setAccentPreview('ruby')
     await nextTick()
-    expect(prop('--color-brand-accent-surface')).toBe('#e8808c')
+    expect(prop('--business-accent-night')).toBe('#e8808c')
 
     brand.setAccentPreview(null)
     await nextTick()
-    expect(prop('--color-brand-accent-surface')).toBe('')
+    expect(prop('--business-accent-night')).toBe('')
     detach()
   })
 
