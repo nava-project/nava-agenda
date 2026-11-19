@@ -517,7 +517,7 @@ test('HU-066: movimiento reducido elimina la transición del diálogo de cancela
 
 // --- HU-067 (T4 manual/T7): cierre manual como atendido o no asistió,
 // issue #226 ----------------------------------------------------------
-// Los dos estados terminales (badge "Completado"/"No se presentó") reutilizan
+// Los dos estados terminales (badge "Completado"/"No asistió") reutilizan
 // el mismo componente/variant que el atlas ya fija (dailyAgenda.ts
 // APPOINTMENT_STATUS_BADGE_VARIANT = 'success'/'warning', mismo tratamiento
 // que detalle-turno-eventos/09-turno-completado.png y su variante no_show
@@ -583,7 +583,7 @@ for (const viewport of [
     const dialog = page.getByRole('dialog', { name: 'Marcar que no asistió' })
     await dialog.getByRole('button', { name: 'Sí, marcar que no asistió' }).click()
     await expect(page.getByRole('dialog')).toHaveCount(0)
-    await expect(page.getByRole('status').getByText('No se presentó')).toBeVisible()
+    await expect(page.getByRole('status').getByText('No asistió')).toBeVisible()
     await page.screenshot({
       path: path.join(evidenceDirClose, viewport.name, 'turno-no-show.png'),
       animations: 'disabled',
@@ -657,7 +657,7 @@ test('HU-067: recorrido completo por teclado, sin ratón, para ambas acciones', 
   await expect(dialog.getByRole('button', { name: 'Sí, marcar que no asistió' })).toBeFocused()
   await page.keyboard.press('Enter')
 
-  await expect(page.getByRole('status').getByText('No se presentó')).toBeVisible()
+  await expect(page.getByRole('status').getByText('No asistió')).toBeVisible()
 })
 
 test('HU-067: axe-core sin violaciones en ambos diálogos y en ambos estados terminales', async ({
@@ -693,7 +693,7 @@ test('HU-067: axe-core sin violaciones marcando inasistencia', async ({ page }) 
 
   const noShowDialog = page.getByRole('dialog', { name: 'Marcar que no asistió' })
   await noShowDialog.getByRole('button', { name: 'Sí, marcar que no asistió' }).click()
-  await expect(page.getByRole('status').getByText('No se presentó')).toBeVisible()
+  await expect(page.getByRole('status').getByText('No asistió')).toBeVisible()
   const noShowResults = await runAxe(page)
   expect(noShowResults.violations, JSON.stringify(noShowResults.violations, null, 2)).toEqual([])
 })
@@ -776,7 +776,7 @@ for (const viewport of [
     await openDetail(page, viewport.width, viewport.height, { initialStatus: 'completed' })
     await page.getByRole('button', { name: 'Corregir resultado' }).click()
     const dialog = page.getByRole('dialog', { name: 'Corregir resultado' })
-    await dialog.getByLabel('Nuevo resultado').selectOption({ label: 'No se presentó' })
+    await dialog.getByLabel('Nuevo resultado').selectOption({ label: 'No asistió' })
     await dialog
       .getByLabel('Motivo de la corrección')
       .fill('El barbero marcó completed por error; el cliente nunca llegó.')
@@ -791,13 +791,13 @@ for (const viewport of [
     await openDetail(page, viewport.width, viewport.height, { initialStatus: 'completed' })
     await page.getByRole('button', { name: 'Corregir resultado' }).click()
     const dialog = page.getByRole('dialog', { name: 'Corregir resultado' })
-    await dialog.getByLabel('Nuevo resultado').selectOption({ label: 'No se presentó' })
+    await dialog.getByLabel('Nuevo resultado').selectOption({ label: 'No asistió' })
     await dialog
       .getByLabel('Motivo de la corrección')
       .fill('El barbero marcó completed por error; el cliente nunca llegó.')
     await dialog.getByRole('button', { name: 'Confirmar corrección' }).click()
     await expect(page.getByRole('dialog')).toHaveCount(0)
-    await expect(page.getByRole('status').getByText('No se presentó')).toBeVisible()
+    await expect(page.getByRole('status').getByText('No asistió')).toBeVisible()
     // La corrección sigue disponible sobre el nuevo terminal (CA-068-08):
     // a diferencia de T4/T7, T8 nunca deja de ofrecerse sobre un terminal.
     await expect(page.getByRole('button', { name: 'Corregir resultado' })).toBeVisible()
@@ -814,7 +814,7 @@ for (const viewport of [
     })
     await page.getByRole('button', { name: 'Corregir resultado' }).click()
     const dialog = page.getByRole('dialog', { name: 'Corregir resultado' })
-    await dialog.getByLabel('Nuevo resultado').selectOption({ label: 'No se presentó' })
+    await dialog.getByLabel('Nuevo resultado').selectOption({ label: 'No asistió' })
     await dialog.getByLabel('Motivo de la corrección').fill('motivo de prueba')
     await dialog.getByRole('button', { name: 'Confirmar corrección' }).click()
     await expect(dialog.getByText('cambió mientras lo revisabas')).toBeVisible()
@@ -854,12 +854,12 @@ test('HU-068: doble toque no duplica la solicitud de corrección', async ({ page
 
   await page.getByRole('button', { name: 'Corregir resultado' }).click()
   const dialog = page.getByRole('dialog', { name: 'Corregir resultado' })
-  await dialog.getByLabel('Nuevo resultado').selectOption({ label: 'No se presentó' })
+  await dialog.getByLabel('Nuevo resultado').selectOption({ label: 'No asistió' })
   await dialog.getByLabel('Motivo de la corrección').fill('motivo de prueba')
   const confirm = dialog.getByRole('button', { name: 'Confirmar corrección' })
   await confirm.click()
   await confirm.click({ force: true }).catch(() => {})
-  await expect(page.getByRole('status').getByText('No se presentó')).toBeVisible()
+  await expect(page.getByRole('status').getByText('No asistió')).toBeVisible()
 
   expect(mockState.correctRequests).toBe(1)
 })
@@ -898,10 +898,10 @@ test('HU-068: axe-core sin violaciones en el diálogo y en el estado corregido',
   expect(dialogResults.violations, JSON.stringify(dialogResults.violations, null, 2)).toEqual([])
 
   const dialog = page.getByRole('dialog', { name: 'Corregir resultado' })
-  await dialog.getByLabel('Nuevo resultado').selectOption({ label: 'No se presentó' })
+  await dialog.getByLabel('Nuevo resultado').selectOption({ label: 'No asistió' })
   await dialog.getByLabel('Motivo de la corrección').fill('motivo de prueba')
   await dialog.getByRole('button', { name: 'Confirmar corrección' }).click()
-  await expect(page.getByRole('status').getByText('No se presentó')).toBeVisible()
+  await expect(page.getByRole('status').getByText('No asistió')).toBeVisible()
   const correctedResults = await runAxe(page)
   expect(correctedResults.violations, JSON.stringify(correctedResults.violations, null, 2)).toEqual(
     [],

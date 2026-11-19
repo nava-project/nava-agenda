@@ -144,3 +144,12 @@ export function buildDaylightDays(
 export function professionalForSlot(slot: DaylightSlot): string {
   return slot.professionalIds[0] ?? ''
 }
+
+/** Un turno del día en la franja del panel (agenda del día, DEC-188 entrega 4a). */
+export interface DaylightMark {
+  key: string
+  /** Minutos desde la medianoche del negocio. */
+  start: number
+  end: number
+  tone: 'confirmed' | 'current' | 'pending' | 'completed' | 'no-show' | 'cancelled'
+}

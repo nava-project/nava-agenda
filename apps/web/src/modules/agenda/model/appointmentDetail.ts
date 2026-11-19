@@ -73,7 +73,7 @@ const FIXED_EVENT_LABELS: Record<
   appointment_service_changed: 'Servicio cambiado',
   appointment_completed: 'Turno completado',
   appointment_cancelled_by_customer: 'Cancelado por el cliente',
-  appointment_no_show: 'Cliente no se presentó',
+  appointment_no_show: 'Cliente no asistió',
   appointment_status_corrected: 'Estado corregido',
 }
 

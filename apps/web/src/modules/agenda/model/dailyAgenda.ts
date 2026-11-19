@@ -41,7 +41,7 @@ const FIXED_STATUS_LABELS: Record<
   confirmed: 'Confirmado',
   completed: 'Completado',
   cancelled_by_customer: 'Cancelado por el cliente',
-  no_show: 'No se presentó',
+  no_show: 'No asistió',
 }
 
 // El estado técnico `cancelled_by_professional` no se renombra (DEC-016, contrato); su

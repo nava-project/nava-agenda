@@ -217,7 +217,7 @@ test.describe('Corrección auditada de un resultado terminal (HU-068, T8)', () =
 
     await page.getByRole('button', { name: 'Corregir resultado' }).click()
     const correctDialog = page.getByRole('dialog', { name: 'Corregir resultado' })
-    await correctDialog.getByLabel('Nuevo resultado').selectOption({ label: 'No se presentó' })
+    await correctDialog.getByLabel('Nuevo resultado').selectOption({ label: 'No asistió' })
     await correctDialog.getByLabel('Motivo de la corrección').fill('Motivo de prueba idempotente.')
 
     // Simula una caída de red justo tras el envío: el navegador queda sin
@@ -232,6 +232,6 @@ test.describe('Corrección auditada de un resultado terminal (HU-068, T8)', () =
     await correctDialog.getByRole('button', { name: 'Confirmar corrección' }).click()
     await expect(correctDialog).toBeHidden()
 
-    await expect(page.getByText('No se presentó', { exact: false })).toHaveCount(2) // insignia + evento de historial
+    await expect(page.getByText('No asistió', { exact: false })).toHaveCount(2) // insignia + evento de historial
   })
 })

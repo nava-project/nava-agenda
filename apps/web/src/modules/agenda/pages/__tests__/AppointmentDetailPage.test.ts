@@ -1033,7 +1033,7 @@ describe('AppointmentDetailPage', () => {
     })
     const { wrapper } = await mountPage()
 
-    expect(wrapper.text()).toContain('No se presentó')
+    expect(wrapper.text()).toContain('No asistió')
     expect(wrapper.findAll('button').some((b) => b.text() === 'Marcar que no asistió')).toBe(false)
   })
 

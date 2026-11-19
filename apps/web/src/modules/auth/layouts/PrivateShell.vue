@@ -136,17 +136,15 @@ function onRetry() {
   pointer-events: none;
 }
 
-/* Luces: manchas radiales muy tenues de latón y salvia. Solo se trasladan,
-   en ciclos de casi un minuto, y lo hacen POR PASOS (`steps`): el fondo se
-   mueve menos de un píxel por paso, imperceptible, pero se recompone ~5
-   veces por segundo en vez de 60. Medido en Firefox: de ~10-20 % de un
-   núcleo a ~3 % con la página quieta. */
+/* Luces: manchas radiales muy tenues de latón y salvia, quietas. Hasta la v2
+   se desplazaban en ciclos infinitos; en una herramienta que se abre decenas de
+   veces al día eso es movimiento que nadie pidió y sin forma de pararlo (WCAG
+   2.2.2). Revisión del 4a, DEC-188. */
 .shell-ambient__glow {
   position: absolute;
   width: max(70vmax, 520px);
   height: max(70vmax, 520px);
   border-radius: 50%;
-  will-change: transform;
 }
 
 .shell-ambient__glow--brass {
@@ -157,7 +155,6 @@ function onRetry() {
     color-mix(in srgb, var(--color-brand-accent-surface) 12%, transparent),
     transparent
   );
-  animation: shell-drift-a 52s steps(260, end) infinite alternate;
 }
 
 .shell-ambient__glow--sage {
@@ -168,12 +165,10 @@ function onRetry() {
     color-mix(in srgb, var(--color-brand-sage) 14%, transparent),
     transparent
   );
-  animation: shell-drift-b 64s steps(320, end) infinite alternate;
 }
 
 /* Cuadrícula de patronaje: líneas casi invisibles que se desvanecen hacia los
-   bordes y se desplazan una casilla por ciclo (el bucle es continuo porque
-   el desplazamiento iguala el tamaño de la celda). */
+   bordes. */
 .shell-ambient__grid {
   position: absolute;
   inset: -56px;
@@ -190,50 +185,6 @@ function onRetry() {
     );
   background-size: 56px 56px;
   mask-image: radial-gradient(ellipse 80% 70% at 50% 40%, #000 20%, transparent 100%);
-  animation: shell-grid 70s steps(56, end) infinite;
-  will-change: transform;
-}
-
-@keyframes shell-drift-a {
-  from {
-    transform: translate3d(0, 0, 0) scale(1);
-  }
-
-  to {
-    transform: translate3d(14vmax, 10vmax, 0) scale(1.15);
-  }
-}
-
-@keyframes shell-drift-b {
-  from {
-    transform: translate3d(0, 0, 0) scale(1.1);
-  }
-
-  to {
-    transform: translate3d(-12vmax, -8vmax, 0) scale(0.95);
-  }
-}
-
-@keyframes shell-grid {
-  from {
-    transform: translate3d(0, 0, 0);
-  }
-
-  to {
-    transform: translate3d(56px, 56px, 0);
-  }
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .shell-ambient__glow,
-  .shell-ambient__grid {
-    animation: none;
-  }
-}
-
-:root[data-motion='reduced'] .shell-ambient__glow,
-:root[data-motion='reduced'] .shell-ambient__grid {
-  animation: none;
 }
 
 .private-shell__state {

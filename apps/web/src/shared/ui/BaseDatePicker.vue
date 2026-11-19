@@ -42,6 +42,8 @@ interface Props {
   /** id del rótulo visible: el nombre accesible del disparador es
    * «<rótulo> <fecha>» para que un lector de pantalla oiga también el valor. */
   labelId?: string
+  /** Cómo se dice la fecha elegida en el disparador; sin él, la fecha civil tal cual. */
+  formatValue?: (date: string) => string
 }
 
 const props = withDefaults(defineProps<Props>(), {
@@ -51,6 +53,7 @@ const props = withDefaults(defineProps<Props>(), {
   placeholder: 'Elegir fecha',
   required: false,
   labelId: undefined,
+  formatValue: undefined,
 })
 
 const emit = defineEmits<{
@@ -369,7 +372,9 @@ const triggerLabelledBy = computed(() =>
       @click="toggle"
       @keydown="onTriggerKeydown"
     >
-      <span class="agenda-date-picker__value">{{ modelValue || placeholder }}</span>
+      <span class="agenda-date-picker__value">{{
+        modelValue ? (formatValue ? formatValue(modelValue) : modelValue) : placeholder
+      }}</span>
       <svg
         class="agenda-date-picker__icon"
         viewBox="0 0 16 16"

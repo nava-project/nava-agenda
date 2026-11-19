@@ -117,4 +117,31 @@ describe('DaylightStrip', () => {
     expect(await axe(labelled.element)).toHaveNoViolations()
     labelled.unmount()
   })
+
+  it('en el panel pinta los turnos como marcas tocables, sin velar nada como cerrado', async () => {
+    const wrapper = mount(DaylightStrip, {
+      props: {
+        open: [],
+        window: { start: 7 * 60, end: 15 * 60 },
+        marks: [
+          { key: 'a', start: 8 * 60, end: 8 * 60 + 30, tone: 'pending' as const },
+          { key: 'b', start: 11 * 60, end: 12 * 60, tone: 'current' as const },
+        ],
+        now: 11 * 60 + 20,
+      },
+    })
+    expect(wrapper.findAll('.daylight__closed')).toHaveLength(0)
+    const marks = wrapper.findAll('.daylight__mark')
+    expect(marks.map((m) => m.classes())).toEqual([
+      expect.arrayContaining(['daylight__mark--pending']),
+      expect.arrayContaining(['daylight__mark--current']),
+    ])
+    // 8:00 en una ventana de 7:00 a 15:00 cae a un octavo.
+    expect(marks[0]!.attributes('style')).toContain('left: 12.5%')
+    expect(wrapper.find('.daylight__marker--sun').exists()).toBe(true)
+    // Sin `label` la franja es decorativa: la lista de la agenda dice lo mismo.
+    expect(wrapper.attributes('aria-hidden')).toBe('true')
+    await marks[1]!.trigger('click')
+    expect(wrapper.emitted('mark')).toEqual([['b']])
+  })
 })
