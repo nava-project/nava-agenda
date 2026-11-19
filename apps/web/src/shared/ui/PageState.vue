@@ -9,7 +9,7 @@
  *
  * variant="loading": BaseSpinner + titular, sin divisor ni rótulo de estado
  * (evento 02). Los demás variants componen un filete corto del color de
- * estado (v2, DEC-188: sin la regla-rombo-regla de v1) con un rótulo de estado
+ * estado (la regla-rombo-regla de la familia, DEC-189) con un rótulo de estado
  * opcional (omitido para `info`, presente para `warning`/`danger`
  * con la palabra "Atención"/"Error", igual criterio que BaseAlert), titular
  * serif y cuerpo. La acción real (BaseButton) es responsabilidad del
@@ -17,6 +17,7 @@
  */
 import { computed } from 'vue'
 import BaseSpinner from './BaseSpinner.vue'
+import DiamondRule from './DiamondRule.vue'
 
 interface Props {
   variant?: 'loading' | 'info' | 'success' | 'warning' | 'danger'
@@ -66,7 +67,7 @@ const style = computed(() => ({ '--page-state-mark': markVar.value }))
     aria-atomic="true"
   >
     <BaseSpinner v-if="isLoading" size="lg" tone="brass" aria-hidden="true" />
-    <span v-else class="page-state__divider" aria-hidden="true" />
+    <DiamondRule v-else class="page-state__divider" size="short" tone="var(--page-state-mark)" />
 
     <p v-if="statusLabel" class="page-state__status">{{ statusLabel }}</p>
     <h2 class="page-state__headline">{{ headline }}</h2>
@@ -89,13 +90,9 @@ const style = computed(() => ({ '--page-state-mark': markVar.value }))
   text-align: center;
 }
 
-/* Filete corto del color de estado sobre el rótulo (v2, DEC-188). */
+/* Regla-rombo-regla corta, del color del estado, sobre el rótulo (DEC-189). */
 .page-state__divider {
-  width: 48px;
-  height: 2px;
   margin-bottom: var(--space-1);
-  background-color: var(--page-state-mark);
-  border-radius: 1px;
 }
 
 .page-state__status {

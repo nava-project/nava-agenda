@@ -506,14 +506,9 @@ function chooseAlternative(startsAt: string) {
          los campos caben enteros y el navegador desplaza. Este comentario va
          dentro de <main>: un solo elemento raíz, que el cascarón anima con
          <Transition mode="out-in">. -->
-    <p class="bk-kicker">
-      {{
-        confirmState === 'confirmed'
-          ? 'Reserva confirmada'
-          : reviewing
-            ? 'Última revisión'
-            : 'Paso 3 de 3'
-      }}
+    <!-- El paso ya lo dice la línea de rombos de la cabecera: sin «Paso 3 de 3» (#728). -->
+    <p v-if="confirmState === 'confirmed' || reviewing" class="bk-kicker">
+      {{ confirmState === 'confirmed' ? 'Reserva confirmada' : 'Última revisión' }}
     </p>
     <h1 class="bk-title">
       {{ confirmState === 'confirmed' ? 'Tu turno quedó agendado' : 'Tus datos' }}

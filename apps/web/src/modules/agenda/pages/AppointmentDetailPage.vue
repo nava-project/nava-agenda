@@ -1761,30 +1761,31 @@ function occurredAtLabel(entry: HistoryEntry): string {
   mask: var(--tone-icon) center / contain no-repeat;
 }
 
+/* Marcas de estado compartidas (styles/statusMarks.css): el rombo en cada forma. */
 .appointment-detail-page {
-  --tone-icon: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 14 14'%3E%3Cpath d='M7 1.5 12.5 7 7 12.5 1.5 7z'/%3E%3C/svg%3E");
+  --tone-icon: var(--mark-confirmed);
 }
 
 .appointment-detail-page--completed {
-  --tone-icon: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 14 14' fill='none' stroke='black' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m2.5 7.3 3 3 6-6.3'/%3E%3C/svg%3E");
+  --tone-icon: var(--mark-completed);
 }
 
 .appointment-detail-page--no-show {
-  --tone-icon: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 14 14' fill='none' stroke='black' stroke-width='1.6' stroke-linejoin='round'%3E%3Cpath d='M7 1.8 12.2 7 7 12.2 1.8 7z'/%3E%3C/svg%3E");
+  --tone-icon: var(--mark-no-show);
 }
 
 .appointment-detail-page--current {
   --tone: var(--color-appt-in-progress);
-  --tone-icon: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 14 14'%3E%3Ccircle cx='7' cy='7' r='5.5'/%3E%3C/svg%3E");
+  --tone-icon: var(--mark-in-progress);
 }
 
 .appointment-detail-page--to-record {
   --tone: var(--color-appt-pending);
-  --tone-icon: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 14 14' fill='none' stroke='black' stroke-width='1.6' stroke-linecap='round'%3E%3Ccircle cx='7' cy='7' r='5.6'/%3E%3Cpath d='M7 4v3.2l2 1.3'/%3E%3C/svg%3E");
+  --tone-icon: var(--mark-to-record);
 }
 
 .appointment-detail-page--cancelled {
-  --tone-icon: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 14 14' fill='none' stroke='black' stroke-width='1.6' stroke-linecap='round'%3E%3Ccircle cx='7' cy='7' r='5.6'/%3E%3Cpath d='M4.2 7h5.6'/%3E%3C/svg%3E");
+  --tone-icon: var(--mark-cancelled);
 }
 
 /* En curso: la palabra en tinta (el Sol no da contraste como texto) y el disco

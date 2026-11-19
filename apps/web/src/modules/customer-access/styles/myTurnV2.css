@@ -53,12 +53,14 @@
   border-radius: 999px;
 }
 
+/* La marca del estado, la misma de la agenda (styles/statusMarks.css). */
 .mt-status::before {
-  width: 8px;
-  height: 8px;
+  flex: none;
+  width: 12px;
+  height: 12px;
   content: '';
   background-color: currentcolor;
-  border-radius: 50%;
+  mask: var(--mt-mark, var(--mark-confirmed)) center / contain no-repeat;
 }
 
 .mt-status--confirmed {
@@ -71,6 +73,7 @@
 }
 
 .mt-status--completed {
+  --mt-mark: var(--mark-completed);
   color: var(--color-success-text);
   background-color: var(--color-success-surface);
   border-color: var(--color-success-border);
@@ -79,12 +82,14 @@
 /* Un turno cancelado es gris, nunca del color del negocio. */
 .mt-status--cancelled_by_customer,
 .mt-status--cancelled_by_professional {
+  --mt-mark: var(--mark-cancelled);
   color: var(--color-inactive-text);
   background-color: var(--color-inactive-surface);
   border-color: var(--color-inactive-border);
 }
 
 .mt-status--no_show {
+  --mt-mark: var(--mark-no-show);
   color: var(--color-warning-text);
   background-color: var(--color-warning-surface);
   border-color: var(--color-warning-border);

@@ -58,6 +58,7 @@ import {
   AddressAutocomplete,
   BaseInput,
   DiamondLoader,
+  DiamondRule,
   LocationMap,
   LocationPicker,
   PhoneField,
@@ -780,6 +781,9 @@ const previewClass = computed(() => ({ 'settings-page__preview--changed': brandD
           </SettingsPanel>
 
           <!-- Marca (todo el negocio) -->
+          <!-- El corte con intención de la página: de aquí abajo vale para todo el negocio (#728). -->
+          <DiamondRule label="Para todo el negocio" class="settings-page__scope-rule" />
+
           <SettingsPanel
             id="configuracion-marca"
             title="Marca"

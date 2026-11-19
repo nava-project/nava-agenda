@@ -115,7 +115,7 @@
 .bk-steps {
   display: flex;
   flex-shrink: 0;
-  gap: var(--space-4);
+  gap: var(--space-2);
   align-items: center;
   padding: 0;
   margin: 0;
@@ -141,6 +141,20 @@
     border-color var(--motion-duration-base) var(--bk-ease);
 }
 
+/* Una sola línea de rombos con nombre (DEC-189, #728): un filete de latón une
+   cada paso con el anterior; el tramo ya recorrido toma el acento. */
+.bk-steps__item + .bk-steps__item::before {
+  width: 20px;
+  height: 1px;
+  margin-right: var(--space-1);
+  content: '';
+  background-color: var(--color-brass-line);
+}
+
+.bk-steps__item--done + .bk-steps__item::before {
+  background-color: var(--bk-accent);
+}
+
 .bk-steps__item--done .bk-steps__mark {
   background-color: var(--bk-accent);
   border-color: var(--bk-accent);
@@ -157,8 +171,8 @@
 
 /* En móvil solo se nombra el paso actual; los demás quedan como marcas. */
 @media (max-width: 639px) {
-  .bk-steps {
-    gap: var(--space-2);
+  .bk-steps__item + .bk-steps__item::before {
+    width: 12px;
   }
 
   .bk-steps__item:not(.bk-steps__item--current) .bk-steps__label {
