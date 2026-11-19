@@ -8,7 +8,7 @@
 // como hijas de esta misma ruta.
 import { onBeforeUnmount } from 'vue'
 import { attachWorkspaceTheme } from '@/shared/model'
-import { BaseAlert, BaseButton, ToastRegion } from '@/shared/ui'
+import { BaseAlert, BaseButton, DiamondLoader, ToastRegion } from '@/shared/ui'
 import type { NavItem } from '@/shared/navigation/navItem'
 import { retryBootstrap, sessionState } from '../model/sessionStore'
 import AppHeader from '../components/AppHeader.vue'
@@ -74,7 +74,7 @@ function onRetry() {
     </div>
 
     <div v-else class="private-shell__state" role="status" aria-live="polite">
-      <p class="private-shell__loading-text">Comprobando tu sesión…</p>
+      <DiamondLoader label="Abriendo tu agenda…" />
     </div>
   </div>
 </template>
@@ -200,11 +200,5 @@ function onRetry() {
   min-height: var(--viewport-height);
   padding: var(--space-6) var(--space-4);
   gap: var(--space-4);
-}
-
-.private-shell__loading-text {
-  margin: 0;
-  color: var(--color-text-secondary);
-  font-size: var(--font-size-body);
 }
 </style>
