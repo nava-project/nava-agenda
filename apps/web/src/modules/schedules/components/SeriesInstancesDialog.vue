@@ -15,6 +15,7 @@ import {
 import type { SeriesChildOutcome } from '../model/blockOutcome'
 import { displayCivilDate } from '../model/displayDate'
 import { blockTypeLabel, type TimeBlockSeries } from '../model/timeBlock'
+import { civilClockLabel } from '../model/weekBoard'
 import { weekdayLabel } from '../model/workingHour'
 import { validateEffectiveFrom, validateReason } from '../validation/timeBlockValidation'
 
@@ -63,8 +64,8 @@ const heading = computed(() => {
   if (!current) return ''
   const kind = blockTypeLabel(current.blockType)
   return current.recurrenceKind === 'weekly' && current.isoWeekday
-    ? `${kind} · ${weekdayLabel(current.isoWeekday)} · ${current.startsTime}`
-    : `${kind} · ${current.startsTime}`
+    ? `${kind} · ${weekdayLabel(current.isoWeekday)} · ${civilClockLabel(current.startsTime)}`
+    : `${kind} · ${civilClockLabel(current.startsTime)}`
 })
 
 function track(key: string, on: boolean) {

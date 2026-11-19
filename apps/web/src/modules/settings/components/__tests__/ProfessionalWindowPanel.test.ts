@@ -4,7 +4,7 @@
  * sin enviar el formulario de la página y errores conservando lo escrito.
  * El cliente HTTP se sustituye por un doble.
  */
-import { describe, it, expect, vi, beforeEach } from 'vitest'
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { flushPromises, mount, type VueWrapper } from '@vue/test-utils'
 import { axe } from 'vitest-axe'
 import { resetToasts, toastState } from '@/shared/model/toastStore'
@@ -24,6 +24,29 @@ const { default: ProfessionalWindowPanel } = await import('../ProfessionalWindow
 const ANA = 'a0000000-0000-4000-8000-000000000001'
 const LEO = 'a0000000-0000-4000-8000-000000000002'
 const shopWindow = { minAdvanceMinutes: 60, maxAdvanceDays: 3, slotGridMinutes: 15 }
+
+// La muestra de «Día y hora» se pinta desde «ahora»: un reloj fijo a las 8:00
+// (hora local) la vuelve determinista. Solo se finge `Date`; las promesas y los
+// temporizadores siguen siendo reales.
+function at8am() {
+  vi.useFakeTimers({ toFake: ['Date'] })
+  vi.setSystemTime(new Date(2026, 10, 19, 8, 0))
+}
+afterEach(() => {
+  vi.useRealTimers()
+})
+
+/** La primera fila del selector de muestra: la hora y sus minutos. */
+function firstSampleRow(wrapper: VueWrapper) {
+  const row = wrapper.get('.professional-window .bk-hrow')
+  return {
+    hour: `${row.get('.bk-hrow__number').text()} ${row.get('.bk-hrow__meridiem').text()}`.replace(
+      /\s+/g,
+      ' ',
+    ),
+    minutes: row.findAll('.bk-min').map((m) => m.text()),
+  }
+}
 
 function loaded(windows: unknown[] = []) {
   return {
@@ -97,26 +120,28 @@ describe('ProfessionalWindowPanel', () => {
   })
 
   it('shows the first professional inheriting the shop window, with its sample slots', async () => {
+    at8am()
     const wrapper = await mountPanel()
 
     expect(wrapper.text()).toContain('Usa la ventana de')
     expect(ownSwitch(wrapper).attributes('aria-checked')).toBe('false')
     expect(wrapper.find('input[name="professionalSlotGridMinutes"]').exists()).toBe(false)
     expect(wrapper.text()).toContain('Cada 15 min')
-    expect(wrapper.findAll('.professional-window__slot').map((s) => s.text())).toEqual([
-      '10:00',
-      '10:15',
-      '10:30',
-      '10:45',
-      '11:00',
-      '11:15',
-      '11:30',
-    ])
+    // El mismo «Día y hora» que ve el cliente, en 12 h y con la ventana heredada:
+    // a las 8:00 con 1 h de anticipación, la primera hora libre es las 9:00 a. m.
+    expect(firstSampleRow(wrapper)).toEqual({
+      hour: '9 a. m.',
+      minutes: [':00', ':15', ':30', ':45'],
+    })
+    expect(wrapper.get('.professional-window__sample-text').text()).toMatch(
+      /^Primer horario libre: hoy, 9:00\sa\.\sm\./,
+    )
     expect(wrapper.text()).toMatch(/0\s*de 2 con ventana propia/)
     expect(await axe(wrapper.element, axeOptions)).toHaveNoViolations()
   })
 
   it('saves an own window for the chosen professional and lists it as customised', async () => {
+    at8am()
     const wrapper = await mountPanel()
     await chooseProfessional(wrapper, 'Leo Mora')
     await ownSwitch(wrapper).trigger('click')
@@ -128,7 +153,8 @@ describe('ProfessionalWindowPanel', () => {
     expect(wrapper.text()).toContain('Sin límite de días')
     await wrapper.get('input[name="professionalSlotGridMinutes"]').setValue('40')
     await wrapper.get('input[name="professionalMinAdvanceMinutes"]').setValue('30')
-    expect(wrapper.findAll('.professional-window__slot')[1]!.text()).toBe('10:40')
+    // Rejilla de 40 min desde las 9:00: 9:00 y 9:40 en la primera fila.
+    expect(firstSampleRow(wrapper).minutes).toEqual([':00', ':40'])
 
     saveMock.mockResolvedValueOnce({
       kind: 'success',

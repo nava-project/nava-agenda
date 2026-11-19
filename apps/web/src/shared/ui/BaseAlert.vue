@@ -5,16 +5,16 @@
  * Variantes: success | warning | danger | info | neutral | plain
  * Las variantes con estado se pintan con el mismo lenguaje de tinta que los
  * avisos emergentes (BaseToast, DEC-095): lienzo --color-surface-strong,
- * perímetro de latón tenue y un filete lateral del color de estado levantado
+ * perímetro neutro tenue y un filete lateral del color de estado levantado
  * a tinta (--color-*-on-strong). Ya no hay rosas, azules ni amarillos
  * pastel bajo los formularios (DEC-149).
  * `plain` es la variante sin relleno para contenido informativo que no
  * comunica un estado del sistema (por ejemplo, requisitos de contraseña):
- * filete lateral de latón, sin fondo teñido, sin palabra de estado.
+ * filete lateral del color de estado, sin fondo teñido, sin palabra de estado.
  * Con acción opcional (botón/link), dismissible.
  * Accesibilidad: role="alert" (assertive) o role="status" (polite),
  * aria-live, focus-visible en acción, focus trap si dismissible. La
- * palabra de estado en versalitas (Error/Atención/Nota/Confirmación) es
+ * palabra de estado en tipo oración (Error/Atención/Nota/Confirmación) es
  * la que cumple "icono, texto y estructura además del color" (WCAG 2.2 AA
  * 1.4.1): ya no hay un glifo circular genérico.
  */
@@ -69,7 +69,7 @@ const accentVar = computed(() => {
   return map[props.variant] || map.info
 })
 
-// Palabra de estado en versalitas sobre el título (contrato visual del
+// Palabra de estado en tipo oración sobre el título (contrato visual del
 // issue #212): sustituye el glifo circular anterior como el elemento que
 // distingue el estado además del color (WCAG 2.2 AA 1.4.1). `neutral` y
 // `plain` no representan un estado del sistema, así que no llevan palabra.
@@ -191,7 +191,7 @@ const style = computed(() => ({
 
 <style scoped>
 /* Etiqueta de tinta en línea (DEC-149): misma pieza que BaseToast pero sin
-   flotar. Lienzo de tinta, perímetro de latón al 45 % —que la separa tanto
+   flotar. Lienzo de tinta, perímetro neutro —que la separa tanto
    de una página clara como de un diálogo que ya es de tinta— y un filete
    lateral de 4px del color de estado. `plain` conserva solo el filete. */
 .base-alert {
@@ -199,9 +199,9 @@ const style = computed(() => ({
   --alert-gap: var(--space-3);
   --alert-radius: 3px;
   --alert-border-width: 4px;
-  --alert-surface: var(--color-surface-strong);
+  --alert-surface: var(--color-surface);
   --alert-text: var(--color-on-strong);
-  --alert-hairline: color-mix(in srgb, var(--color-brand-accent-surface) 45%, transparent);
+  --alert-hairline: var(--color-border-subtle);
   --alert-font-size: var(--font-size-body);
   --alert-title-size: var(--font-size-body);
   --alert-line-height: var(--font-size-body-line);
@@ -253,7 +253,7 @@ const style = computed(() => ({
     0 0 0 4px var(--color-focus);
 }
 
-/* Variante sin relleno: solo el filete de latón, sin lienzo ni perímetro. */
+/* Variante sin relleno: solo el filete del color de estado, sin lienzo ni perímetro. */
 .base-alert--plain {
   --alert-surface: transparent;
   --alert-text: var(--color-text-primary);
@@ -261,7 +261,7 @@ const style = computed(() => ({
   border-top-color: transparent;
   border-right-color: transparent;
   border-bottom-color: transparent;
-  border-radius: 2px;
+  border-radius: var(--radius-md);
   box-shadow: none;
 }
 
@@ -280,19 +280,15 @@ const style = computed(() => ({
   margin-bottom: var(--space-2);
 }
 
-/* Palabra de estado (Error/Atención/Nota/Confirmación): versalitas de
-   latón sobre el título, misma familia tipográfica que el rótulo de
-   BaseInput y las ranuras de OtpInput. Se pinta sobre tinta (o sobre Marfil
-   en ese tema), así que usa el latón de marca que sigue al tema, el mismo
-   de la palabra de estado de BaseToast. */
+/* Palabra de estado (Error/Atención/Nota/Confirmación) sobre el título, en
+   texto secundario y tipo oración, como la de BaseToast (v2: el acento es
+   solo de la acción principal; el color de estado lo lleva el filete). */
 .base-alert__status {
   margin: 0 0 var(--space-1) 0;
   font-family: var(--font-sans);
   font-size: var(--font-size-caption);
   font-weight: 600;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-  color: var(--color-brand-accent-surface);
+  color: var(--color-text-secondary);
 }
 
 .base-alert__title {
@@ -305,15 +301,13 @@ const style = computed(() => ({
 }
 
 /* Variante sin relleno (caja de requisitos de contraseña): el título es
-   la única línea de encabezado, compuesto como versalita de latón en vez
+   la única línea de encabezado, compuesto como texto secundario en vez
    de repetirse además como titular en negrita. */
 .base-alert__title--plain {
   font-family: var(--font-sans);
   font-size: var(--font-size-caption);
   font-weight: 600;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-  color: var(--color-accent-brass);
+  color: var(--color-text-secondary);
 }
 
 .base-alert__text:last-child {
@@ -350,8 +344,6 @@ const style = computed(() => ({
   font-family: var(--font-sans);
   font-size: var(--font-size-caption);
   font-weight: 600;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
   color: var(--color-on-strong-muted);
   cursor: pointer;
   transition:

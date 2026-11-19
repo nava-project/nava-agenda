@@ -151,49 +151,29 @@ function goTo(page: number) {
 }
 
 .base-pagination__where {
-  color: color-mix(in srgb, var(--color-brand-accent-surface) 85%, var(--color-on-strong-muted));
-  letter-spacing: 0.02em;
+  color: var(--color-text-secondary);
 }
 
-/* Cinta métrica de sastre: un filete que recorre toda la barra, relleno en
-   dorado hasta la proporción página/total, con un rombo en la punta (el mismo
-   rombo del estado y del interruptor "Lo ofrezco"). Es decorativa; la
-   posición real la comunica "Página X de Y" y aria-current. */
+/* v2 (DEC-188): una línea fina que se llena en tinta hasta la proporción
+   página/total, sin rombo ni brillo. Es decorativa; la posición real la
+   comunican «Página X de Y» y aria-current. */
 .base-pagination__track {
   position: absolute;
   inset-inline: 0;
   bottom: 0;
   height: 1px;
-  background: color-mix(in srgb, var(--color-brand-accent-surface) 22%, transparent);
+  background: var(--color-border-subtle);
   pointer-events: none;
 }
 
 .base-pagination__track::before {
   content: '';
   position: absolute;
-  inset-block: -1px;
+  inset-block: 0;
   inset-inline-start: 0;
   width: calc(var(--pager-progress, 0) * 100%);
-  background: linear-gradient(
-    90deg,
-    transparent,
-    color-mix(in srgb, var(--color-brand-accent-surface) 55%, transparent) 40%,
-    var(--color-brand-accent-surface)
-  );
-  transition: width 420ms cubic-bezier(0.22, 1, 0.36, 1);
-}
-
-.base-pagination__track::after {
-  content: '';
-  position: absolute;
-  top: 50%;
-  inset-inline-start: calc(var(--pager-progress, 0) * 100%);
-  width: 7px;
-  height: 7px;
-  background: var(--color-brand-accent-surface);
-  box-shadow: 0 0 10px color-mix(in srgb, var(--color-brand-accent-surface) 70%, transparent);
-  transform: translate(-50%, -50%) rotate(45deg);
-  transition: inset-inline-start 420ms cubic-bezier(0.22, 1, 0.36, 1);
+  background: var(--color-text-secondary);
+  transition: width 200ms ease-out;
 }
 
 .base-pagination__nav {
@@ -204,79 +184,38 @@ function goTo(page: number) {
 
 .base-pagination__ellipsis {
   padding-inline: 4px;
-  color: var(--color-on-strong-muted);
-  font-family: var(--font-display);
-  font-size: 1.2rem;
-  letter-spacing: 0.1em;
+  color: var(--color-text-secondary);
 }
 
-/* Botones del paginador: sin caja. Números en la tipografía de display sobre
-   la tinta de la barra; la página vigente se marca con un rombo dorado
-   (cuadrado girado 45°) y un halo; el hover levanta el número a dorado y
-   dibuja una marca de la cinta bajo él. Anulan los valores de BaseButton,
-   calibrados para botones de acción con texto. */
+/* Botones del paginador: sin caja, números tabulares; la página vigente va
+   en tinta y 600 sobre un fondo suave, sin el acento (que es de la acción
+   principal). Anulan los valores de BaseButton, pensados para acciones. */
 .base-pagination__nav :deep(.base-button) {
-  position: relative;
-  isolation: isolate;
   height: 32px;
   min-width: 32px;
   padding-inline: 8px;
   border: 0;
   background: transparent;
   box-shadow: none;
-  font-family: var(--font-display);
-  font-size: 1.2rem;
+  font-size: 15px;
   font-weight: 500;
   font-variant-numeric: tabular-nums;
-  color: var(--color-on-strong-soft);
-  --btn-focus-ring: 0 0 0 2px var(--color-surface-strong), 0 0 0 4px var(--color-focus);
-}
-
-.base-pagination__nav :deep(.base-button::before) {
-  content: '';
-  position: absolute;
-  z-index: -1;
-  top: 50%;
-  left: 50%;
-  width: 24px;
-  height: 24px;
-  border: 1px solid transparent;
-  background: transparent;
-  transform: translate(-50%, -50%) rotate(45deg) scale(0.6);
-  opacity: 0;
-  transition:
-    transform 260ms cubic-bezier(0.22, 1, 0.36, 1),
-    opacity 200ms ease,
-    background-color 200ms ease;
+  color: var(--color-text-secondary);
 }
 
 .base-pagination__nav :deep(.base-button--secondary:hover:not(:disabled)) {
-  background: transparent;
-  color: var(--color-brand-accent-surface);
-}
-
-.base-pagination__nav :deep(.base-button--secondary:hover:not(:disabled)::before) {
-  border-color: color-mix(in srgb, var(--color-brand-accent-surface) 45%, transparent);
-  transform: translate(-50%, -50%) rotate(45deg) scale(0.85);
-  opacity: 1;
+  background: color-mix(in srgb, var(--color-text-primary) 6%, transparent);
+  color: var(--color-text-primary);
 }
 
 .base-pagination__nav :deep(.base-button--primary),
 .base-pagination__nav :deep(.base-button--primary:hover:not(:disabled):not(.base-button--loading)) {
-  background: transparent;
+  background: color-mix(in srgb, var(--color-text-primary) 10%, transparent);
   border: 0;
   filter: none;
   box-shadow: none;
-  color: var(--color-brand-accent-surface);
+  color: var(--color-text-primary);
   font-weight: 600;
-}
-
-.base-pagination__nav :deep(.base-button--primary::before) {
-  border-color: var(--color-brand-accent-surface);
-  background: color-mix(in srgb, var(--color-brand-accent-surface) 16%, transparent);
-  box-shadow: 0 0 14px color-mix(in srgb, var(--color-brand-accent-surface) 35%, transparent);
-  transform: translate(-50%, -50%) rotate(45deg) scale(1);
-  opacity: 1;
 }
 
 /* Anterior/siguiente: flechas finas en vez de la caja, más grandes que los
@@ -285,7 +224,7 @@ function goTo(page: number) {
   font-family: var(--font-family-base);
   font-size: 1.4rem;
   line-height: 1;
-  color: var(--color-brand-accent-surface);
+  color: var(--color-text-secondary);
 }
 
 .base-pagination__nav :deep(.base-button:disabled) {
@@ -293,9 +232,7 @@ function goTo(page: number) {
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .base-pagination__track::before,
-  .base-pagination__track::after,
-  .base-pagination__nav :deep(.base-button::before) {
+  .base-pagination__track::before {
     transition: none;
   }
 }

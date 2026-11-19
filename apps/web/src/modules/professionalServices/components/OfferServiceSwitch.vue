@@ -1,7 +1,7 @@
 <script setup lang="ts">
 // Interruptor «Lo ofrezco» de un servicio para el profesional individual (DEC-115).
-// Es el mismo lenguaje de interruptor de Configuración (pista fina y rombo que
-// se desliza), en tamaño de fila. El estado se anuncia con `aria-checked` y con
+// Interruptor v2 (DEC-188) en tamaño de fila: pista redonda y botón circular;
+// encendido en tinta, nunca en acento (el acento es solo de la acción principal). El estado se anuncia con `aria-checked` y con
 // texto, nunca solo con el color. Solo cambia cuando el servidor confirma
 // (`ProfessionalOffering.setOffered`), así que mientras viaja la petición queda
 // ocupado y no admite un segundo clic. Usa `aria-disabled` y no `disabled`: un botón
@@ -78,8 +78,8 @@ async function onToggle() {
   padding: 0 2px;
   background: transparent;
   border: 0;
-  border-radius: 3px;
-  color: var(--color-on-strong-muted);
+  border-radius: var(--radius-md);
+  color: var(--color-text-secondary);
   font-family: var(--font-sans);
   cursor: pointer;
 }
@@ -89,60 +89,60 @@ async function onToggle() {
   outline-offset: 2px;
 }
 
+/* Rótulo v2: tipo oración, 13px/500; encendido pasa a texto primario. */
 .offer-switch__text {
-  font-size: 11px;
-  font-weight: 600;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
+  font-size: 13px;
+  font-weight: 500;
   white-space: nowrap;
-  transition: color var(--motion-duration-base) var(--motion-easing-standard);
+  transition: color var(--motion-duration-fast) var(--motion-easing-standard);
 }
 
 .offer-switch--on .offer-switch__text {
-  color: var(--color-brand-accent-surface);
+  color: var(--color-text-primary);
 }
 
 .offer-switch__track {
   position: relative;
   display: block;
   flex: 0 0 auto;
-  width: 46px;
+  width: 44px;
   height: 24px;
-  border: var(--border-width-normal) solid
-    color-mix(in srgb, var(--color-on-strong) 32%, transparent);
-  border-radius: 3px;
-  background: color-mix(in srgb, var(--color-on-strong) 5%, transparent);
+  border: var(--border-width-normal) solid var(--color-border-control);
+  border-radius: var(--radius-pill);
+  background: var(--color-surface);
   transition:
-    background-color var(--motion-duration-base) var(--motion-easing-standard),
-    border-color var(--motion-duration-base) var(--motion-easing-standard);
+    background-color var(--motion-duration-fast) var(--motion-easing-standard),
+    border-color var(--motion-duration-fast) var(--motion-easing-standard);
 }
 
+/* Encendido: pista llena de tinta, el mismo «seleccionado en tinta» del resto. */
 .offer-switch--on .offer-switch__track {
-  background: color-mix(in srgb, var(--color-brand-accent-surface) 22%, transparent);
-  border-color: var(--color-brand-accent-surface);
+  background: var(--color-text-primary);
+  border-color: var(--color-text-primary);
 }
 
-/* Un rombo, el motivo de la casa, recorre la pista con un leve rebote. */
+/* Botón circular que se desliza (respuesta al clic, sin rebote). */
 .offer-switch__thumb {
   position: absolute;
   top: 50%;
-  left: 5px;
-  width: 12px;
-  height: 12px;
-  background: var(--color-on-strong-muted);
-  transform: translateY(-50%) rotate(45deg);
+  left: 3px;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: var(--color-text-secondary);
+  transform: translateY(-50%);
   transition:
-    left 280ms cubic-bezier(0.34, 1.56, 0.64, 1),
-    background-color var(--motion-duration-base) var(--motion-easing-standard);
+    left var(--motion-duration-fast) var(--motion-easing-standard),
+    background-color var(--motion-duration-fast) var(--motion-easing-standard);
 }
 
 .offer-switch--on .offer-switch__thumb {
-  left: 27px;
-  background: var(--color-brand-accent-surface);
+  left: 23px;
+  background: var(--color-surface);
 }
 
 .offer-switch:hover:not([aria-disabled='true']) .offer-switch__track {
-  border-color: var(--color-brand-accent-surface);
+  border-color: var(--color-text-primary);
 }
 
 .offer-switch[aria-disabled='true'] {
@@ -151,6 +151,8 @@ async function onToggle() {
 }
 
 @media (prefers-reduced-motion: reduce) {
+  .offer-switch__text,
+  .offer-switch__track,
   .offer-switch__thumb {
     transition: none;
   }

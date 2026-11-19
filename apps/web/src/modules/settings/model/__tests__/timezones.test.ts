@@ -55,17 +55,23 @@ describe('offsetLabel', () => {
 describe('clockParts', () => {
   it('reads the time and the day in the zone, never in the device zone', () => {
     const bogota = clockParts('America/Bogota', AT)!
-    expect(bogota.hours).toBe('07')
+    expect(bogota.hours).toBe('7')
     expect(bogota.minutes).toBe('00')
+    expect(bogota.meridiem).toBe('a. m.')
     expect(bogota.day).toBe('Sábado, 3 de octubre')
 
     const madrid = clockParts('Europe/Madrid', AT)!
-    expect(madrid.hours).toBe('14')
+    // En 12 h, como todo lo que lee el dueño.
+    expect(madrid.hours).toBe('2')
+    expect(madrid.meridiem).toBe('p. m.')
   })
 
   it('crosses midnight correctly', () => {
     const tokyo = clockParts('Asia/Tokyo', new Date('2026-10-03T20:30:00Z'))!
-    expect(tokyo.hours).toBe('05')
+    expect(tokyo.hours).toBe('5')
+    expect(tokyo.meridiem).toBe('a. m.')
+    const midnight = clockParts('America/Bogota', new Date('2026-10-03T05:05:00Z'))!
+    expect(`${midnight.hours}:${midnight.minutes} ${midnight.meridiem}`).toBe('12:05 a. m.')
     expect(tokyo.day).toBe('Domingo, 4 de octubre')
   })
 

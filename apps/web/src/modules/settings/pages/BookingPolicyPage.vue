@@ -257,10 +257,6 @@ function onReloadAfterConflict() {
             : 'Define cuándo pueden reservar tus clientes y hasta cuándo pueden cancelar.'
         }}
       </p>
-      <span class="booking-policy-page__rule" aria-hidden="true"
-        ><span class="booking-policy-page__rule-line" /><span
-          class="booking-policy-page__rule-diamond" /><span class="booking-policy-page__rule-line"
-      /></span>
     </header>
 
     <Transition name="booking-policy-content" mode="out-in">
@@ -273,12 +269,7 @@ function onReloadAfterConflict() {
       >
         <DiamondLoader label="Cargando la configuración…" layout="inline" />
         <div class="booking-policy-page__skeletons" aria-hidden="true">
-          <span
-            v-for="n in 2"
-            :key="n"
-            class="booking-policy-page__skeleton"
-            :style="{ '--n': n }"
-          />
+          <span v-for="n in 2" :key="n" class="booking-policy-page__skeleton" />
         </div>
       </div>
 
@@ -354,15 +345,13 @@ function onReloadAfterConflict() {
             Inténtalo de nuevo en unos segundos. No perdiste lo que escribiste.
           </BaseAlert>
 
-          <!-- 01 · Ventana de reserva -->
+          <!-- Ventana de reserva -->
           <SettingsPanel
             id="reserva-ventana"
-            number="01"
             title="Ventana de reserva"
             description="Desde cuándo y hasta cuándo puede reservar un cliente, y cada cuánto se ofrece una franja."
             scope="shop"
             :scope-label="`Para ${v.allTheBusiness}`"
-            style="--panel-index: 0"
           >
             <div class="policy-grid">
               <BaseInput
@@ -412,19 +401,17 @@ function onReloadAfterConflict() {
             </div>
           </SettingsPanel>
 
-          <!-- 02 · Ventana por profesional (DEC-169): carga y guarda por su cuenta;
+          <!-- Ventana por profesional (DEC-169): carga y guarda por su cuenta;
                hereda la ventana del negocio YA guardada, no el borrador. -->
           <ProfessionalWindowPanel :shop-window="savedForm" />
 
-          <!-- 03 · Cancelación del cliente -->
+          <!-- Cancelación del cliente -->
           <SettingsPanel
             id="reserva-cancelacion"
-            number="03"
             title="Cancelación del cliente"
             description="Hasta cuándo puede cancelar por su cuenta y qué pasa si lo hace fuera de plazo."
             scope="shop"
             :scope-label="`Para ${v.allTheBusiness}`"
-            style="--panel-index: 2"
           >
             <BaseInput
               :model-value="form.cancellationDeadlineMinutes"
@@ -481,8 +468,12 @@ function onReloadAfterConflict() {
 </template>
 
 <style scoped>
-/* Superficie tinta de punta a punta, el mismo canvas que Agenda, Servicios,
-   Profesionales y Configuración (estandar-diseno-visual.md §3). */
+/*
+ * Reserva pública, v2 «La luz del día» (DEC-188): el lienzo y las superficies
+ * son los del modo (Día o Noche); tarjetas con borde sutil; rótulos en tipo
+ * oración y texto secundario. «Guardar» (SaveBar) es el único acento lleno.
+ * Nada se anima al cargar; solo responden las acciones (guardar, cambiar).
+ */
 .booking-policy-page {
   --policy-width: 1040px;
 
@@ -491,8 +482,8 @@ function onReloadAfterConflict() {
   gap: 24px;
   min-height: 100%;
   padding: 34px 32px 48px;
-  color: var(--color-on-strong);
-  /* Transparente: la tinta y el fondo animado los pone el cascarón. */
+  color: var(--color-text-primary);
+  /* Transparente: el lienzo del modo lo pone el cascarón. */
   background: transparent;
   box-sizing: border-box;
 }
@@ -506,19 +497,21 @@ function onReloadAfterConflict() {
   margin-inline: auto;
 }
 
+/* Mismo h1 que la Agenda del día (DailyAgendaPage). */
 .booking-policy-page__title {
   margin: 0;
-  font-family: var(--font-display);
-  font-size: var(--font-size-h1);
-  font-weight: var(--font-weight-h1);
-  line-height: var(--font-size-h1-line);
-  animation: policy-title-enter 520ms var(--motion-easing-standard) both;
+  font-family: var(--font-sans);
+  font-size: 28px;
+  font-weight: 600;
+  line-height: 32px;
+  letter-spacing: -0.01em;
+  color: var(--color-text-primary);
 }
 
 @media (min-width: 1024px) {
   .booking-policy-page__title {
-    font-size: var(--font-size-title-page);
-    line-height: 46px;
+    font-size: 32px;
+    line-height: 36px;
   }
 }
 
@@ -530,44 +523,14 @@ function onReloadAfterConflict() {
   margin: 4px 0 0;
   font-size: var(--font-size-body-sm);
   line-height: var(--font-size-body-sm-line);
-  color: var(--color-on-strong-muted);
-  animation: policy-title-enter 520ms var(--motion-easing-standard) 80ms both;
-}
-
-/* Regla – rombo – regla, el divisor de la casa, que se dibuja al entrar. */
-.booking-policy-page__rule {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  margin-top: 18px;
-}
-
-.booking-policy-page__rule-line {
-  height: 1px;
-  flex: 1;
-  background: color-mix(in srgb, var(--color-brand-accent-surface) 45%, transparent);
-  transform: scaleX(0);
-  transform-origin: left center;
-  animation: policy-rule-draw 700ms var(--motion-easing-standard) 160ms both;
-}
-
-.booking-policy-page__rule-line:last-child {
-  transform-origin: right center;
-}
-
-.booking-policy-page__rule-diamond {
-  width: 7px;
-  height: 7px;
-  background: var(--color-brand-accent-surface);
-  transform: rotate(45deg);
-  animation: policy-diamond-pop 420ms cubic-bezier(0.34, 1.56, 0.64, 1) 260ms both;
+  color: var(--color-text-secondary);
 }
 
 .booking-policy-page__state {
   display: flex;
   flex-direction: column;
   gap: 16px;
-  color: var(--color-on-strong-muted);
+  color: var(--color-text-secondary);
 }
 
 .booking-policy-page__skeletons {
@@ -576,13 +539,13 @@ function onReloadAfterConflict() {
   gap: 16px;
 }
 
+/* El esqueleto pulsa solo mientras carga (estado finito, sin rombos). */
 .booking-policy-page__skeleton {
   display: block;
   height: 132px;
-  background: color-mix(in srgb, var(--color-on-strong) 8%, transparent);
-  border-radius: 3px;
+  background: var(--color-surface-muted);
+  border-radius: var(--radius-lg);
   animation: policy-skeleton-pulse 1400ms ease-in-out infinite;
-  animation-delay: calc(var(--n) * 120ms);
 }
 
 .booking-policy-page__own {
@@ -619,19 +582,18 @@ function onReloadAfterConflict() {
   z-index: var(--layer-sticky);
 }
 
-/* Confirmación persistente: nota al margen de éxito con el check que se dibuja. */
+/* Confirmación persistente de éxito: aparece con un fundido corto porque
+   responde a «Guardar». */
 .booking-policy-page__saved {
   display: flex;
   align-items: flex-start;
   gap: 14px;
   padding: 13px 16px;
-  color: var(--color-success-on-strong);
-  background: color-mix(in srgb, var(--color-success-on-strong) 9%, transparent);
-  border: var(--border-width-normal) solid
-    color-mix(in srgb, var(--color-success-on-strong) 35%, transparent);
-  border-left: 4px solid var(--color-success-on-strong);
-  border-radius: 3px;
-  animation: policy-title-enter 360ms var(--motion-easing-standard) both;
+  color: var(--color-success-text);
+  background: var(--color-success-surface);
+  border: var(--border-width-normal) solid var(--color-success-border);
+  border-radius: var(--radius-lg);
+  animation: policy-saved-enter var(--motion-duration-base) var(--motion-easing-standard) both;
 }
 
 .booking-policy-page__saved-icon {
@@ -649,9 +611,6 @@ function onReloadAfterConflict() {
   stroke-width: 2.4;
   stroke-linecap: round;
   stroke-linejoin: round;
-  stroke-dasharray: 1;
-  stroke-dashoffset: 1;
-  animation: policy-check-draw 420ms var(--motion-easing-standard) 120ms forwards;
 }
 
 .booking-policy-page__saved-title,
@@ -666,9 +625,9 @@ function onReloadAfterConflict() {
 }
 
 .booking-policy-page__saved-copy {
-  font-size: var(--font-size-caption);
+  font-size: 13px;
   line-height: 18px;
-  color: var(--color-on-strong-muted);
+  color: var(--color-text-secondary);
 }
 
 /* --- Campos de una sección ------------------------------------------------- */
@@ -696,90 +655,31 @@ function onReloadAfterConflict() {
 
 .policy-field__label {
   padding: 0;
-  color: var(--color-brand-accent-surface);
-  font-size: var(--font-size-caption);
-  font-weight: 600;
-  letter-spacing: 0.08em;
-  line-height: 14px;
-  text-transform: uppercase;
+  color: var(--color-text-secondary);
+  font-size: 13px;
+  font-weight: 500;
+  line-height: 18px;
 }
 
 .policy-field__hint {
   margin: -4px 0 0;
   max-width: 60ch;
-  font-size: var(--font-size-caption);
+  font-size: 13px;
   line-height: 18px;
-  color: var(--color-on-strong-muted);
+  color: var(--color-text-secondary);
 }
 
 .policy-field__error {
   margin: 0;
-  color: var(--color-danger-on-strong);
+  color: var(--color-danger-text);
   font-size: var(--font-size-caption);
   line-height: 18px;
 }
 
-/* --- Campos reglados: mismo tratamiento que Servicios, Profesionales y Configuración --- */
-
+/* Campos y botones: los compartidos v2 (BaseInput, BaseButton) sin repintar.
+   `.policy-ink` ya no cambia el aspecto; solo fija el alto de los campos. */
 .policy-ink :deep(.base-input) {
-  --input-bg: color-mix(in srgb, var(--color-on-strong) 4%, transparent);
-  --input-border-color: color-mix(in srgb, var(--color-on-strong) 12%, transparent);
-  --input-border-base-color: color-mix(in srgb, var(--color-on-strong) 30%, transparent);
-  --input-focus-ring: 0 0 0 2px var(--color-surface-strong), 0 0 0 4px var(--color-focus);
-
   height: 44px;
-  color: var(--color-on-strong);
-}
-
-.policy-ink :deep(.base-input__label),
-.policy-ink :deep(.base-input__required) {
-  color: var(--color-brand-accent-surface);
-}
-
-.policy-ink :deep(.base-input__hint) {
-  color: var(--color-on-strong-muted);
-}
-
-.policy-ink :deep(.base-input:hover:not(:disabled):not(.base-input--invalid)) {
-  border-color: color-mix(in srgb, var(--color-on-strong) 26%, transparent);
-}
-
-.policy-ink :deep(.base-input:disabled),
-.policy-ink :deep(.base-input--disabled) {
-  background-color: var(--input-bg);
-  border-color: var(--input-border-color);
-  border-bottom-color: color-mix(in srgb, var(--color-on-strong) 20%, transparent);
-  color: var(--color-on-strong-muted);
-  opacity: 0.45;
-}
-
-.policy-ink :deep(.base-input--invalid) {
-  background-color: color-mix(in srgb, var(--color-danger-on-strong) 7%, transparent);
-  border-color: var(--input-border-color);
-  border-bottom-color: var(--color-danger-on-strong);
-}
-
-.policy-ink :deep(.base-input__error) {
-  color: var(--color-danger-on-strong);
-}
-
-.policy-ink :deep(.base-button) {
-  --btn-focus-ring: 0 0 0 2px var(--color-surface-strong), 0 0 0 4px var(--color-focus);
-}
-
-.policy-ink :deep(.base-button--secondary) {
-  background-color: transparent;
-  color: var(--color-brand-accent-surface);
-  border-color: color-mix(in srgb, var(--color-brand-accent-surface) 50%, transparent);
-  border-bottom-color: var(--color-brand-accent-surface);
-}
-
-.policy-ink :deep(.base-button--secondary:hover:not(:disabled):not(.base-button--loading)) {
-  background-color: color-mix(in srgb, var(--color-brand-accent-surface) 12%, transparent);
-}
-
-.policy-ink :deep(.base-button:disabled) {
-  opacity: 0.4;
 }
 
 /* Fundido entre carga/error/listo. */
@@ -793,33 +693,13 @@ function onReloadAfterConflict() {
   opacity: 0;
 }
 
-@keyframes policy-title-enter {
+@keyframes policy-saved-enter {
   from {
     opacity: 0;
-    transform: translateY(8px);
   }
 
   to {
     opacity: 1;
-    transform: none;
-  }
-}
-
-@keyframes policy-rule-draw {
-  to {
-    transform: scaleX(1);
-  }
-}
-
-@keyframes policy-diamond-pop {
-  from {
-    opacity: 0;
-    transform: rotate(-45deg) scale(0);
-  }
-
-  to {
-    opacity: 1;
-    transform: rotate(45deg) scale(1);
   }
 }
 
@@ -834,21 +714,10 @@ function onReloadAfterConflict() {
   }
 }
 
-@keyframes policy-check-draw {
-  to {
-    stroke-dashoffset: 0;
-  }
-}
-
 @media (max-width: 640px) {
   .booking-policy-page {
     gap: 16px;
     padding: 16px 16px 28px;
-  }
-
-  .booking-policy-page__title {
-    font-size: var(--font-size-title-item);
-    line-height: 1.2;
   }
 
   .booking-policy-page__title--desktop {
@@ -869,22 +738,9 @@ function onReloadAfterConflict() {
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .booking-policy-page__title,
-  .booking-policy-page__subtitle,
-  .booking-policy-page__rule-line,
-  .booking-policy-page__rule-diamond,
   .booking-policy-page__skeleton,
   .booking-policy-page__saved {
     animation: none;
-  }
-
-  .booking-policy-page__rule-line {
-    transform: none;
-  }
-
-  .booking-policy-page__saved-icon path {
-    animation: none;
-    stroke-dashoffset: 0;
   }
 }
 </style>

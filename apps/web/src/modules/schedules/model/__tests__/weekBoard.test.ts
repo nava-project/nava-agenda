@@ -2,9 +2,12 @@ import { describe, expect, it } from 'vitest'
 import {
   civilDateTile,
   computeScale,
+  civilClockLabel,
+  clockLabel,
+  clockRangeLabel,
   durationBetween,
-  endLabel,
   formatHours,
+  hourLabel,
   minutesToTime,
   nowInTimezone,
   scaleTicks,
@@ -36,7 +39,19 @@ describe('weekBoard', () => {
     const geometry = segmentGeometry('20:00', 480, scale)
     expect(geometry.crossesMidnight).toBe(true)
     expect(geometry.from + geometry.span).toBeCloseTo(100)
-    expect(endLabel('20:00', 480)).toBe('04:00 (+1)')
+    expect(clockRangeLabel('20:00', 480)).toBe('8:00 p. m. – 4:00 a. m. (+1)')
+  })
+
+  it('dice las horas en 12 h, como la agenda', () => {
+    expect(clockLabel(0)).toBe('12:00 a. m.')
+    expect(clockLabel(480)).toBe('8:00 a. m.')
+    expect(clockLabel(750)).toBe('12:30 p. m.')
+    expect(clockLabel(1200)).toBe('8:00 p. m.')
+    expect(hourLabel(420)).toBe('7 a. m.')
+    expect(hourLabel(720)).toBe('12 p. m.')
+    expect(hourLabel(1440)).toBe('12 a. m.')
+    expect(hourLabel(330)).toBe('5:30 a. m.')
+    expect(clockRangeLabel('08:00', 720)).toBe('8:00 a. m. – 8:00 p. m.')
   })
 
   it('calcula la duración entre dos horas, cruzando la medianoche si hace falta', () => {
@@ -63,7 +78,16 @@ describe('weekBoard', () => {
 
   it('rotula la regla cada dos horas en una jornada normal', () => {
     const ticks = scaleTicks({ startMinute: 420, endMinute: 1260 })
-    expect(ticks.map((t) => t.label)).toEqual(['07', '09', '11', '13', '15', '17', '19', '21'])
+    expect(ticks.map((t) => t.label)).toEqual([
+      '7 a. m.',
+      '9 a. m.',
+      '11 a. m.',
+      '1 p. m.',
+      '3 p. m.',
+      '5 p. m.',
+      '7 p. m.',
+      '9 p. m.',
+    ])
     expect(ticks[0]!.percent).toBe(0)
     expect(ticks.at(-1)!.percent).toBe(100)
   })
@@ -94,10 +118,12 @@ describe('weekBoard', () => {
   })
 
   it('describe un bloque como rango de horas y no como minutos', () => {
-    expect(timeRangeLabel('13:00', 60)).toBe('13:00 – 14:00')
-    expect(timeRangeLabel('15:00', 120)).toBe('15:00 – 17:00')
-    expect(timeRangeLabel('23:00', 60)).toBe('23:00 – 00:00')
-    expect(timeRangeLabel('22:00', 240)).toBe('22:00 – 02:00 (día siguiente)')
+    expect(timeRangeLabel('13:00', 60)).toBe('1:00 p. m. – 2:00 p. m.')
+    expect(timeRangeLabel('15:00', 120)).toBe('3:00 p. m. – 5:00 p. m.')
+    expect(timeRangeLabel('23:00', 60)).toBe('11:00 p. m. – 12:00 a. m.')
+    expect(timeRangeLabel('22:00', 240)).toBe('10:00 p. m. – 2:00 a. m. (día siguiente)')
+    expect(civilClockLabel('13:30')).toBe('1:30 p. m.')
+    expect(civilClockLabel('')).toBe('')
     expect(timeRangeLabel('00:00', 1440)).toBe('Todo el día')
   })
 })

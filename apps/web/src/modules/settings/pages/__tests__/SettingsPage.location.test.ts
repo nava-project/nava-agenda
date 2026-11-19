@@ -63,11 +63,10 @@ describe('SettingsPage', () => {
       return wrapper
     }
 
-    it('adds the section 06 with the switch and the saved address', async () => {
+    it('adds the location section with the switch and the saved address', async () => {
       const wrapper = await mountWithLocation(savedLocation)
 
       const panel = wrapper.get('#configuracion-ubicacion')
-      expect(panel.get('.settings-panel__number').text()).toBe('06')
       expect(panel.get('h2').text()).toBe('Ubicación')
       expect(panel.get('[role="switch"]').attributes('aria-checked')).toBe('true')
       expect((panel.get('input[name="address"]').element as HTMLInputElement).value).toBe(

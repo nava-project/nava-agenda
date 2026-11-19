@@ -379,15 +379,11 @@ const HOW_IT_WORKS = [
 
 <template>
   <section class="gcal-page" aria-labelledby="gcal-page-title">
-    <header class="gcal-page__header nv-rise">
+    <header class="gcal-page__header">
       <h1 id="gcal-page-title" class="gcal-page__title">Google Calendar</h1>
       <p class="gcal-page__subtitle">
         Tus turnos y bloqueos de Nava Agenda, en el calendario que ya usas.
       </p>
-      <span class="gcal-page__rule" aria-hidden="true"
-        ><span class="gcal-page__rule-line nv-wipe" /><span
-          class="gcal-page__rule-diamond nv-pop" /><span class="gcal-page__rule-line nv-wipe"
-      /></span>
     </header>
 
     <div v-if="loadStatus === 'loading'" class="gcal-page__state" role="status" aria-live="polite">
@@ -414,12 +410,7 @@ const HOW_IT_WORKS = [
       </BaseAlert>
 
       <!-- Estado y acciones -->
-      <section
-        class="gcal-hero nv-rise"
-        :class="`gcal-hero--${view}`"
-        style="--i: 1"
-        aria-labelledby="gcal-state-title"
-      >
+      <section class="gcal-hero" :class="`gcal-hero--${view}`" aria-labelledby="gcal-state-title">
         <GoogleCalendarEmblem class="gcal-hero__emblem" :view="view" />
 
         <div class="gcal-hero__main">
@@ -427,8 +418,7 @@ const HOW_IT_WORKS = [
             <span class="gcal-status__dot" aria-hidden="true" />
             {{ statusLabel }}
           </span>
-          <!-- `key`: al cambiar de estado el texto entra de nuevo en vez de cambiar a golpe. -->
-          <div :key="view" class="gcal-hero__copy nv-rise">
+          <div class="gcal-hero__copy">
             <h2 id="gcal-state-title" class="gcal-hero__title">{{ headline }}</h2>
             <p class="gcal-copy" aria-live="polite">{{ lead }}</p>
           </div>
@@ -436,7 +426,7 @@ const HOW_IT_WORKS = [
           <RouterLink
             v-if="view === 'needs-professional'"
             :to="{ name: 'staff-profesionales' }"
-            class="gcal-link nv-lift"
+            class="gcal-link"
           >
             <span class="gcal-link__copy">
               <span class="gcal-link__title">Ir a {{ v.Professionals }}</span>
@@ -446,15 +436,15 @@ const HOW_IT_WORKS = [
           </RouterLink>
 
           <dl v-if="isConnectedLike" class="gcal-facts">
-            <div class="nv-rise" style="--i: 2">
+            <div>
               <dt>Cuenta de Google</dt>
               <dd>{{ connection.accountEmail ?? 'Cuenta conectada' }}</dd>
             </div>
-            <div class="nv-rise" style="--i: 3">
+            <div>
               <dt>Calendario</dt>
               <dd>Principal</dd>
             </div>
-            <div class="nv-rise" style="--i: 4">
+            <div>
               <dt>Última sincronización</dt>
               <dd v-if="connection.lastSyncedAt">
                 {{ formatMoment(connection.lastSyncedAt) }}
@@ -545,12 +535,7 @@ const HOW_IT_WORKS = [
       />
 
       <!-- Recordatorio (solo con una conexión viva) -->
-      <section
-        v-if="isConnectedLike"
-        class="gcal-panel nv-rise"
-        style="--i: 2"
-        aria-labelledby="gcal-reminder-title"
-      >
+      <section v-if="isConnectedLike" class="gcal-panel" aria-labelledby="gcal-reminder-title">
         <header class="gcal-panel__header">
           <h2 id="gcal-reminder-title" class="gcal-panel__title">Recordatorio</h2>
         </header>
@@ -622,14 +607,9 @@ const HOW_IT_WORKS = [
       <!-- Cómo funciona: visible salvo cuando la integración no está disponible (no hay nada
            que explicar y, sin ningún control enfocable, la región desplazable fallaría axe). -->
       <section v-if="view !== 'unavailable'" class="gcal-how" aria-labelledby="gcal-how-title">
-        <h2 id="gcal-how-title" class="gcal-how__title nv-rise" style="--i: 3">Cómo funciona</h2>
+        <h2 id="gcal-how-title" class="gcal-how__title">Cómo funciona</h2>
         <ul class="gcal-how__grid">
-          <li
-            v-for="(item, index) in HOW_IT_WORKS"
-            :key="item.title"
-            class="gcal-how__item nv-rise"
-            :style="{ '--i': index + 4 }"
-          >
+          <li v-for="(item, index) in HOW_IT_WORKS" :key="item.title" class="gcal-how__item">
             <span class="gcal-how__num" aria-hidden="true">{{ index + 1 }}</span>
             <strong class="gcal-how__name">{{ item.title }}</strong>
             <span class="gcal-how__text">{{ item.text }}</span>
@@ -675,8 +655,14 @@ const HOW_IT_WORKS = [
 </template>
 
 <style scoped>
-/* Superficie tinta de punta a punta, el mismo canvas que Configuración,
-   Agenda y Profesionales (estandar-diseno-visual.md §3). */
+/*
+ * Google Calendar, v2 «La luz del día» (DEC-188): el lienzo y las superficies
+ * son los del modo (Día o Noche); tarjetas con borde sutil; rótulos en tipo
+ * oración. El acento lleno queda para la acción principal (Conectar /
+ * Sincronizar ahora / Guardar recordatorio, `BaseButton` primary). El estado
+ * de la conexión usa los colores semánticos (rojo, verde, azul, ámbar) solo en
+ * su etiqueta y en la insignia del emblema. Nada se anima al cargar.
+ */
 .gcal-page {
   --gcal-width: 760px;
 
@@ -685,7 +671,7 @@ const HOW_IT_WORKS = [
   gap: 24px;
   min-height: 100%;
   padding: 34px 32px 48px;
-  color: var(--color-on-strong);
+  color: var(--color-text-primary);
   background: transparent;
   box-sizing: border-box;
 }
@@ -698,18 +684,21 @@ const HOW_IT_WORKS = [
   margin-inline: auto;
 }
 
+/* Mismo h1 que la Agenda del día (DailyAgendaPage). */
 .gcal-page__title {
   margin: 0;
-  font-family: var(--font-display);
-  font-size: var(--font-size-h1);
-  font-weight: var(--font-weight-h1);
-  line-height: var(--font-size-h1-line);
+  font-family: var(--font-sans);
+  font-size: 28px;
+  font-weight: 600;
+  line-height: 32px;
+  letter-spacing: -0.01em;
+  color: var(--color-text-primary);
 }
 
 @media (min-width: 1024px) {
   .gcal-page__title {
-    font-size: var(--font-size-title-page);
-    line-height: 46px;
+    font-size: 32px;
+    line-height: 36px;
   }
 }
 
@@ -717,31 +706,11 @@ const HOW_IT_WORKS = [
   margin: 4px 0 0;
   font-size: var(--font-size-body-sm);
   line-height: var(--font-size-body-sm-line);
-  color: var(--color-on-strong-muted);
-}
-
-.gcal-page__rule {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  margin-top: 18px;
-}
-
-.gcal-page__rule-line {
-  height: 1px;
-  flex: 1;
-  background: color-mix(in srgb, var(--color-brand-accent-surface) 45%, transparent);
-}
-
-.gcal-page__rule-diamond {
-  width: 7px;
-  height: 7px;
-  background: var(--color-brand-accent-surface);
-  transform: rotate(45deg);
+  color: var(--color-text-secondary);
 }
 
 .gcal-page__state {
-  color: var(--color-on-strong-muted);
+  color: var(--color-text-secondary);
 }
 
 .gcal-page__layout {
@@ -752,10 +721,9 @@ const HOW_IT_WORKS = [
 }
 
 .gcal-panel {
-  background: color-mix(in srgb, var(--color-on-strong) 3%, transparent);
-  border: var(--border-width-normal) solid var(--color-field-strong-border);
-  border-top: var(--border-width-emphasis) solid var(--color-brand-accent-surface);
-  border-radius: 3px;
+  background: var(--color-surface);
+  border: var(--border-width-normal) solid var(--color-border-subtle);
+  border-radius: var(--radius-lg);
 }
 
 .gcal-panel__header {
@@ -765,16 +733,15 @@ const HOW_IT_WORKS = [
   justify-content: space-between;
   gap: 12px;
   padding: 18px 24px 14px;
-  border-bottom: var(--border-width-normal) solid
-    color-mix(in srgb, var(--color-brand-accent-surface) 35%, transparent);
+  border-bottom: var(--border-width-normal) solid var(--color-border-subtle);
 }
 
 .gcal-panel__title {
   margin: 0;
-  font-family: var(--font-display);
-  font-size: var(--font-size-h3);
-  font-weight: var(--font-weight-h1);
-  line-height: 1.2;
+  font-family: var(--font-sans);
+  font-size: 20px;
+  font-weight: 600;
+  line-height: 28px;
 }
 
 .gcal-panel__body {
@@ -799,7 +766,7 @@ const HOW_IT_WORKS = [
   margin: 0;
   font-size: var(--font-size-body);
   line-height: 1.55;
-  color: var(--color-on-strong);
+  color: var(--color-text-primary);
 }
 
 .gcal-sr-only {
@@ -817,8 +784,8 @@ const HOW_IT_WORKS = [
 /* --- Encabezado de estado --------------------------------------------------- */
 
 .gcal-hero {
-  /* El tono lo fija el estado; lo lee también el emblema. */
-  --gcal-tone: var(--color-brand-accent-surface);
+  /* El tono lo fija el estado; lo leen la etiqueta y la insignia del emblema. */
+  --gcal-tone: var(--color-text-secondary);
 
   position: relative;
   display: grid;
@@ -827,20 +794,9 @@ const HOW_IT_WORKS = [
   row-gap: 20px;
   align-items: center;
   padding: 26px 28px 24px;
-  overflow: hidden;
-  background:
-    radial-gradient(
-      ellipse 60% 120% at 0% 0%,
-      color-mix(in srgb, var(--gcal-tone) 14%, transparent),
-      transparent 70%
-    ),
-    color-mix(in srgb, var(--color-on-strong) 3%, transparent);
-  border: var(--border-width-normal) solid var(--color-field-strong-border);
-  border-top: var(--border-width-emphasis) solid var(--gcal-tone);
-  border-radius: 3px;
-  transition:
-    border-color 400ms var(--motion-ease-out, ease-out),
-    background-color 400ms var(--motion-ease-out, ease-out);
+  background: var(--color-surface);
+  border: var(--border-width-normal) solid var(--color-border-subtle);
+  border-radius: var(--radius-lg);
 }
 
 /* Sin conexión: rojo; conectado: verde. Son los dos extremos que el profesional debe distinguir
@@ -867,7 +823,7 @@ const HOW_IT_WORKS = [
 }
 
 .gcal-hero--unavailable {
-  --gcal-tone: var(--color-on-strong-muted);
+  --gcal-tone: var(--color-text-secondary);
 }
 
 .gcal-hero__emblem {
@@ -875,40 +831,32 @@ const HOW_IT_WORKS = [
   height: 112px;
 }
 
-/* Etiqueta de estado propia: el badge compartido pinta su punto con un color de superficie
-   clara y desaparece sobre tinta. Aquí el punto y el borde toman el tono del estado. */
+/* Etiqueta de estado propia: el punto y el borde toman el tono del estado; la
+   palabra va en tinta para que el color nunca diga el estado solo. */
 .gcal-status {
   display: inline-flex;
   align-items: center;
-  gap: 10px;
+  gap: 8px;
   min-height: 28px;
-  padding: 0 14px 0 12px;
-  font-size: var(--font-size-body-sm);
+  padding: 0 12px 0 10px;
+  font-size: 13px;
   font-weight: 600;
   line-height: 1.2;
-  color: var(--color-on-strong);
+  color: var(--color-text-primary);
   white-space: nowrap;
-  background: color-mix(in srgb, var(--gcal-tone) 12%, transparent);
-  border: var(--border-width-normal) solid color-mix(in srgb, var(--gcal-tone) 65%, transparent);
-  border-radius: 999px;
-  transition:
-    background-color 400ms var(--motion-ease-out, ease-out),
-    border-color 400ms var(--motion-ease-out, ease-out);
+  background: color-mix(in srgb, var(--gcal-tone) 10%, transparent);
+  border: var(--border-width-normal) solid color-mix(in srgb, var(--gcal-tone) 55%, transparent);
+  border-radius: var(--radius-pill);
 }
 
-/* El rombo de NAVA hace de indicador: cambia de tono con el estado (la transición suaviza el
-   cambio) y, sin conexión, es solo contorno: «todavía no hay nada encendido». */
+/* Punto redondo (sin rombo, sin latido): lleno con la conexión viva; sin
+   conexión es solo contorno, «todavía no hay nada encendido». */
 .gcal-status__dot {
-  position: relative;
   flex: 0 0 auto;
   width: 8px;
   height: 8px;
   background: var(--gcal-tone);
-  border-radius: 1px;
-  transform: rotate(45deg);
-  transition:
-    background-color 400ms var(--motion-ease-out, ease-out),
-    box-shadow 400ms var(--motion-ease-out, ease-out);
+  border-radius: 50%;
 }
 
 .gcal-hero--not-connected .gcal-status__dot,
@@ -916,32 +864,6 @@ const HOW_IT_WORKS = [
 .gcal-hero--unavailable .gcal-status__dot {
   background: transparent;
   box-shadow: inset 0 0 0 1.5px var(--gcal-tone);
-}
-
-.gcal-hero--connected .gcal-status__dot::after,
-.gcal-hero--syncing .gcal-status__dot::after {
-  position: absolute;
-  inset: 0;
-  content: '';
-  border: 1.5px solid var(--gcal-tone);
-  border-radius: 1px;
-  animation: gcal-dot-ping 2.4s var(--motion-ease-out, ease-out) infinite;
-}
-
-.gcal-hero--syncing .gcal-status__dot::after {
-  animation-duration: 1.2s;
-}
-
-@keyframes gcal-dot-ping {
-  from {
-    opacity: 0.8;
-    transform: scale(1);
-  }
-
-  to {
-    opacity: 0;
-    transform: scale(2.6);
-  }
 }
 
 .gcal-hero__main {
@@ -961,16 +883,16 @@ const HOW_IT_WORKS = [
 
 .gcal-hero__title {
   margin: 0;
-  font-family: var(--font-display);
-  font-size: var(--font-size-h2, 26px);
-  font-weight: var(--font-weight-h1);
-  line-height: 1.15;
+  font-family: var(--font-sans);
+  font-size: 22px;
+  font-weight: 600;
+  line-height: 28px;
   overflow-wrap: anywhere;
 }
 
 .gcal-hero__copy .gcal-copy {
   max-width: 56ch;
-  color: var(--color-on-strong-muted);
+  color: var(--color-text-secondary);
 }
 
 .gcal-hero__actions {
@@ -979,7 +901,7 @@ const HOW_IT_WORKS = [
   grid-column: 1 / -1;
   gap: 12px;
   padding-top: 18px;
-  border-top: var(--border-width-normal) solid color-mix(in srgb, var(--gcal-tone) 28%, transparent);
+  border-top: var(--border-width-normal) solid var(--color-border-subtle);
 }
 
 .gcal-action {
@@ -997,25 +919,10 @@ const HOW_IT_WORKS = [
   stroke-linejoin: round;
 }
 
+/* Indicador de progreso de «Sincronizar ahora»: gira solo mientras la
+   sincronización está en curso (estado finito, como una carga). */
 .gcal-action__icon--spin {
   animation: gcal-spin 1s linear infinite;
-}
-
-/* Gestos de los iconos al señalar el botón: el de sincronizar da media vuelta y el de enlace
-   se acerca; con la acción en curso (`--spin`) gira sin parar. */
-.gcal-action__icon {
-  transition: transform 360ms var(--motion-ease-out, ease-out);
-}
-
-@media (hover: hover) {
-  :is(.base-button:hover:not(:disabled))
-    .gcal-action__icon:not(.gcal-action__icon--spin):not(.gcal-action__icon--plug) {
-    transform: rotate(180deg);
-  }
-
-  :is(.base-button:hover:not(:disabled)) .gcal-action__icon--plug {
-    transform: rotate(-12deg) scale(1.12);
-  }
 }
 
 /* «Desconectar» queda al final de la fila, apartado de la acción principal. */
@@ -1042,17 +949,15 @@ const HOW_IT_WORKS = [
   gap: 4px;
   min-width: 0;
   padding: 12px 14px;
-  background-color: color-mix(in srgb, var(--color-on-strong) 4%, transparent);
-  border: var(--border-width-normal) solid var(--color-field-strong-border);
-  border-left: 2px solid var(--gcal-tone);
-  border-radius: var(--radius-sm);
+  background-color: var(--color-surface-muted);
+  border-radius: var(--radius-md);
 }
 
 .gcal-facts dt {
-  color: var(--color-on-strong-muted);
-  font-size: var(--font-size-caption);
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
+  color: var(--color-text-secondary);
+  font-size: 13px;
+  font-weight: 500;
+  line-height: 18px;
 }
 
 .gcal-facts dd {
@@ -1066,8 +971,8 @@ const HOW_IT_WORKS = [
 }
 
 .gcal-facts dd small {
-  font-size: var(--font-size-caption);
-  color: var(--color-on-strong-muted);
+  font-size: 13px;
+  color: var(--color-text-secondary);
 }
 
 .gcal-link {
@@ -1081,15 +986,17 @@ const HOW_IT_WORKS = [
   padding: 14px 16px;
   color: inherit;
   text-decoration: none;
-  background-color: color-mix(in srgb, var(--color-brand-accent-surface) 10%, transparent);
-  border: var(--border-width-normal) solid
-    color-mix(in srgb, var(--color-brand-accent-surface) 50%, transparent);
-  border-radius: var(--radius-sm);
+  background-color: var(--color-surface);
+  border: var(--border-width-normal) solid var(--color-border-control);
+  border-radius: var(--radius-md);
+  transition:
+    background-color var(--motion-duration-fast) var(--motion-easing-standard),
+    border-color var(--motion-duration-fast) var(--motion-easing-standard);
 }
 
-.gcal-link:hover,
-.gcal-link:focus-visible {
-  border-color: var(--color-brand-accent-surface);
+.gcal-link:hover {
+  background: color-mix(in srgb, var(--color-text-primary) 4%, var(--color-surface));
+  border-color: var(--color-text-primary);
 }
 
 .gcal-link:focus-visible {
@@ -1108,18 +1015,18 @@ const HOW_IT_WORKS = [
 }
 
 .gcal-link__detail {
-  font-size: var(--font-size-caption);
-  color: var(--color-on-strong-muted);
+  font-size: 13px;
+  color: var(--color-text-secondary);
 }
 
 .gcal-link__arrow {
-  color: var(--color-brand-accent-surface);
-  transition: transform 220ms var(--motion-ease-out, ease-out);
+  color: var(--color-text-secondary);
+  transition: transform var(--motion-duration-fast) var(--motion-easing-standard);
 }
 
 .gcal-link:hover .gcal-link__arrow,
 .gcal-link:focus-visible .gcal-link__arrow {
-  transform: translateX(4px);
+  transform: translateX(3px);
 }
 
 /* --- Recordatorio ----------------------------------------------------------- */
@@ -1142,22 +1049,23 @@ const HOW_IT_WORKS = [
   min-height: 44px;
   padding: 14px 16px;
   cursor: pointer;
-  background: color-mix(in srgb, var(--color-on-strong) 3%, transparent);
-  border: var(--border-width-normal) solid var(--color-field-strong-border);
-  border-radius: var(--radius-sm);
+  background: var(--color-surface);
+  border: var(--border-width-normal) solid var(--color-border-control);
+  border-radius: var(--radius-md);
   transition:
-    background-color 220ms var(--motion-ease-out, ease-out),
-    border-color 220ms var(--motion-ease-out, ease-out),
-    transform 220ms var(--motion-ease-out, ease-out);
+    background-color var(--motion-duration-fast) var(--motion-easing-standard),
+    border-color var(--motion-duration-fast) var(--motion-easing-standard);
 }
 
 .gcal-mode:hover {
-  border-color: color-mix(in srgb, var(--color-brand-accent-surface) 60%, transparent);
+  border-color: var(--color-text-primary);
 }
 
+/* Opción elegida en tinta, no en el acento. */
 .gcal-mode--on {
-  background: color-mix(in srgb, var(--color-brand-accent-surface) 10%, transparent);
-  border-color: var(--color-brand-accent-surface);
+  background: color-mix(in srgb, var(--color-text-primary) 8%, transparent);
+  border-color: var(--color-text-primary);
+  box-shadow: inset 0 0 0 1px var(--color-text-primary);
 }
 
 /* El radio nativo sigue siendo el control; se oculta solo a la vista. */
@@ -1182,24 +1090,23 @@ const HOW_IT_WORKS = [
   width: 20px;
   height: 20px;
   margin-top: 1px;
-  border: var(--border-width-normal) solid
-    color-mix(in srgb, var(--color-on-strong) 40%, transparent);
+  border: var(--border-width-normal) solid var(--color-border-control);
   border-radius: 50%;
-  transition: border-color 220ms var(--motion-ease-out, ease-out);
+  transition: border-color var(--motion-duration-fast) var(--motion-easing-standard);
 }
 
 .gcal-mode__dot::after {
   position: absolute;
   inset: 4px;
   content: '';
-  background: var(--color-brand-accent-surface);
+  background: var(--color-text-primary);
   border-radius: 50%;
   transform: scale(0);
-  transition: transform 260ms var(--motion-ease-spring, ease-out);
+  transition: transform var(--motion-duration-fast) var(--motion-easing-standard);
 }
 
 .gcal-mode--on .gcal-mode__dot {
-  border-color: var(--color-brand-accent-surface);
+  border-color: var(--color-text-primary);
 }
 
 .gcal-mode--on .gcal-mode__dot::after {
@@ -1219,9 +1126,9 @@ const HOW_IT_WORKS = [
 }
 
 .gcal-mode__detail {
-  font-size: var(--font-size-caption);
-  line-height: 1.4;
-  color: var(--color-on-strong-muted);
+  font-size: 13px;
+  line-height: 18px;
+  color: var(--color-text-secondary);
 }
 
 .gcal-custom {
@@ -1229,8 +1136,8 @@ const HOW_IT_WORKS = [
   flex-direction: column;
   gap: 14px;
   padding: 16px;
-  background: color-mix(in srgb, var(--color-on-strong) 3%, transparent);
-  border-left: 2px solid var(--color-brand-accent-surface);
+  background: var(--color-surface-muted);
+  border-radius: var(--radius-md);
 }
 
 .gcal-chips {
@@ -1239,52 +1146,39 @@ const HOW_IT_WORKS = [
   gap: 8px;
 }
 
-/* Atajos: misma familia reglada que los botones del panel (esquina de 2 px, filete de latón con
-   filete inferior acentuado) y el mismo gesto al pulsar. */
+/* Atajos: contorno neutro; el elegido, en tinta (v2). */
 .gcal-chip {
   min-height: 40px;
   padding: 0 16px;
   font: inherit;
   font-size: var(--font-size-body-sm);
   font-weight: 500;
-  color: var(--color-brand-accent-surface);
+  color: var(--color-text-primary);
   cursor: pointer;
-  background: transparent;
-  border: var(--border-width-normal) solid
-    color-mix(in srgb, var(--color-brand-accent-surface) 50%, transparent);
-  border-bottom: var(--border-width-emphasis) solid var(--color-brand-accent-surface);
-  border-radius: 2px;
+  background: var(--color-surface);
+  border: var(--border-width-normal) solid var(--color-border-control);
+  border-radius: var(--radius-md);
   transition:
-    background-color 160ms var(--motion-easing-standard, ease),
-    color 160ms var(--motion-easing-standard, ease),
-    box-shadow 160ms var(--motion-easing-standard, ease),
-    transform 160ms var(--motion-ease-out, ease-out);
+    background-color var(--motion-duration-fast) var(--motion-easing-standard),
+    border-color var(--motion-duration-fast) var(--motion-easing-standard);
 }
 
 @media (hover: hover) {
-  .gcal-chip:hover:not(:disabled):not(.gcal-chip--on) {
-    background: color-mix(in srgb, var(--color-brand-accent-surface) 12%, transparent);
-  }
-
   .gcal-chip:hover:not(:disabled) {
-    box-shadow: 0 8px 18px -12px var(--color-brand-accent-surface);
+    border-color: var(--color-text-primary);
   }
-}
-
-.gcal-chip:active:not(:disabled) {
-  transform: translateY(1px) scale(0.985);
 }
 
 .gcal-chip--on {
-  color: var(--color-brand-accent-text);
-  background: var(--color-brand-accent-surface);
+  font-weight: 600;
+  background: color-mix(in srgb, var(--color-text-primary) 8%, var(--color-surface));
+  border-color: var(--color-text-primary);
+  box-shadow: inset 0 0 0 1px var(--color-text-primary);
 }
 
 .gcal-chip:focus-visible {
-  outline: none;
-  box-shadow:
-    0 0 0 2px var(--color-surface-strong),
-    0 0 0 4px var(--color-focus);
+  outline: 2px solid var(--color-focus);
+  outline-offset: 2px;
 }
 
 .gcal-chip:disabled {
@@ -1292,17 +1186,15 @@ const HOW_IT_WORKS = [
   opacity: 0.4;
 }
 
+/* Se abre al elegir «Avisarme antes…»: fundido corto, responde a la acción. */
 .gcal-expand-enter-active,
 .gcal-expand-leave-active {
-  transition:
-    opacity 240ms var(--motion-ease-out, ease-out),
-    transform 240ms var(--motion-ease-out, ease-out);
+  transition: opacity var(--motion-duration-fast) var(--motion-easing-standard);
 }
 
 .gcal-expand-enter-from,
 .gcal-expand-leave-to {
   opacity: 0;
-  transform: translateY(-6px);
 }
 
 /* --- Cómo funciona ---------------------------------------------------------- */
@@ -1316,10 +1208,10 @@ const HOW_IT_WORKS = [
 
 .gcal-how__title {
   margin: 0;
-  font-family: var(--font-display);
-  font-size: var(--font-size-h3);
-  font-weight: var(--font-weight-h1);
-  line-height: 1.2;
+  font-family: var(--font-sans);
+  font-size: 20px;
+  font-weight: 600;
+  line-height: 28px;
 }
 
 .gcal-how__grid {
@@ -1338,32 +1230,23 @@ const HOW_IT_WORKS = [
   row-gap: 4px;
   align-content: start;
   padding: 16px;
-  background: color-mix(in srgb, var(--color-on-strong) 3%, transparent);
-  border: var(--border-width-normal) solid var(--color-field-strong-border);
-  border-radius: var(--radius-sm);
-  transition:
-    border-color 240ms var(--motion-ease-out, ease-out),
-    transform 240ms var(--motion-ease-out, ease-out);
+  background: var(--color-surface);
+  border: var(--border-width-normal) solid var(--color-border-subtle);
+  border-radius: var(--radius-lg);
 }
 
-@media (hover: hover) {
-  .gcal-how__item:hover {
-    border-color: color-mix(in srgb, var(--color-brand-accent-surface) 55%, transparent);
-    transform: translateY(-2px);
-  }
-}
-
+/* Número de orden en texto secundario, sin acento. */
 .gcal-how__num {
   grid-row: span 2;
   display: grid;
   place-content: center;
   width: 28px;
   height: 28px;
-  font-family: var(--font-display);
-  font-size: var(--font-size-body-sm);
-  color: var(--color-brand-accent-surface);
-  border: var(--border-width-normal) solid
-    color-mix(in srgb, var(--color-brand-accent-surface) 55%, transparent);
+  font-size: 13px;
+  font-weight: 500;
+  font-variant-numeric: tabular-nums;
+  color: var(--color-text-secondary);
+  border: var(--border-width-normal) solid var(--color-border-subtle);
   border-radius: 50%;
 }
 
@@ -1376,7 +1259,7 @@ const HOW_IT_WORKS = [
   grid-column: 2;
   font-size: var(--font-size-body-sm);
   line-height: 1.5;
-  color: var(--color-on-strong-muted);
+  color: var(--color-text-secondary);
 }
 
 .gcal-dialog__body {
@@ -1397,99 +1280,10 @@ const HOW_IT_WORKS = [
   }
 }
 
-/* --- Campos y botones sobre tinta: mismo tratamiento que Servicios, Profesionales y
-   Configuración (el relleno claro por defecto de BaseInput/BaseButton está pensado
-   para superficie clara). --- */
-
+/* Campos y botones: los compartidos v2 (BaseInput, BaseButton) sin repintar;
+   `.gcal-ink` ya no cambia su aspecto, solo fija el alto de los campos. */
 .gcal-ink :deep(.base-input) {
-  --input-bg: color-mix(in srgb, var(--color-on-strong) 4%, transparent);
-  --input-border-color: color-mix(in srgb, var(--color-on-strong) 12%, transparent);
-  --input-border-base-color: color-mix(in srgb, var(--color-on-strong) 30%, transparent);
-  --input-focus-ring: 0 0 0 2px var(--color-surface-strong), 0 0 0 4px var(--color-focus);
-
   height: 44px;
-  color: var(--color-on-strong);
-}
-
-.gcal-ink :deep(.base-input__label),
-.gcal-ink :deep(.base-input__required) {
-  color: var(--color-brand-accent-surface);
-}
-
-.gcal-ink :deep(.base-input__hint) {
-  color: var(--color-on-strong-muted);
-}
-
-.gcal-ink :deep(.base-input:hover:not(:disabled):not(.base-input--invalid)) {
-  border-color: color-mix(in srgb, var(--color-on-strong) 26%, transparent);
-}
-
-.gcal-ink :deep(.base-input:disabled),
-.gcal-ink :deep(.base-input--disabled) {
-  background-color: var(--input-bg);
-  border-color: var(--input-border-color);
-  border-bottom-color: color-mix(in srgb, var(--color-on-strong) 20%, transparent);
-  color: var(--color-on-strong-muted);
-  opacity: 0.45;
-}
-
-.gcal-ink :deep(.base-input--invalid) {
-  background-color: color-mix(in srgb, var(--color-danger-on-strong) 7%, transparent);
-  border-color: var(--input-border-color);
-  border-bottom-color: var(--color-danger-on-strong);
-}
-
-.gcal-ink :deep(.base-input__error) {
-  color: var(--color-danger-on-strong);
-}
-
-.gcal-ink :deep(.base-button) {
-  --btn-focus-ring: 0 0 0 2px var(--color-surface-strong), 0 0 0 4px var(--color-focus);
-}
-
-.gcal-ink :deep(.base-button--primary) {
-  background-color: var(--color-brand-accent-surface);
-  color: var(--color-brand-accent-text);
-  border-color: var(--color-brand-accent-surface);
-}
-
-.gcal-ink :deep(.base-button--primary:hover:not(:disabled):not(.base-button--loading)) {
-  filter: brightness(92%);
-  box-shadow: 0 8px 18px -10px var(--color-brand-accent-surface);
-}
-
-.gcal-ink :deep(.base-button--primary:active:not(:disabled):not(.base-button--loading)) {
-  filter: brightness(84%);
-}
-
-.gcal-ink :deep(.base-button--secondary) {
-  background-color: transparent;
-  color: var(--color-brand-accent-surface);
-  border-color: color-mix(in srgb, var(--color-brand-accent-surface) 50%, transparent);
-  border-bottom-color: var(--color-brand-accent-surface);
-}
-
-.gcal-ink :deep(.base-button--secondary:hover:not(:disabled):not(.base-button--loading)) {
-  background-color: color-mix(in srgb, var(--color-brand-accent-surface) 12%, transparent);
-  box-shadow: 0 8px 18px -12px var(--color-brand-accent-surface);
-}
-
-/* «Desconectar» confirmado (variant="danger"): ghost rojo, como «Desactivar» en Servicios. */
-.gcal-ink :deep(.base-button--danger) {
-  background-color: transparent;
-  color: var(--color-danger-on-strong);
-  border-color: color-mix(in srgb, var(--color-danger-on-strong) 50%, transparent);
-  border-bottom-color: var(--color-danger-on-strong);
-}
-
-.gcal-ink :deep(.base-button--danger:hover:not(:disabled):not(.base-button--loading)) {
-  background-color: color-mix(in srgb, var(--color-danger-on-strong) 12%, transparent);
-  box-shadow: 0 8px 18px -12px var(--color-danger-on-strong);
-  filter: none;
-}
-
-.gcal-ink :deep(.base-button:disabled) {
-  opacity: 0.4;
 }
 
 @media (max-width: 640px) {
@@ -1534,25 +1328,21 @@ const HOW_IT_WORKS = [
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .gcal-action__icon--spin,
-  .gcal-status__dot::after {
+  .gcal-action__icon--spin {
     animation: none;
   }
 
-  .gcal-status,
-  .gcal-status__dot,
-  .gcal-hero,
   .gcal-mode,
+  .gcal-mode__dot,
   .gcal-mode__dot::after,
   .gcal-chip,
-  .gcal-how__item,
+  .gcal-link,
   .gcal-link__arrow,
   .gcal-expand-enter-active,
   .gcal-expand-leave-active {
     transition: none;
   }
 
-  .gcal-how__item:hover,
   .gcal-link:hover .gcal-link__arrow {
     transform: none;
   }
@@ -1560,59 +1350,25 @@ const HOW_IT_WORKS = [
 </style>
 
 <style>
-/* SIN "scoped" a propósito (igual que Profesionales y Servicios): BaseDialog dibuja su tarjeta,
-   encabezado y botón de cerrar en <Teleport to="body">, fuera del alcance del componente.
-   Se selecciona por la clase propia de esta pantalla. El !important es necesario porque la
-   regla de BaseDialog tiene la misma especificidad y el orden de los <style> no está garantizado. */
-.gcal-dialog.base-dialog {
-  background-color: var(--color-surface-strong) !important;
-  border: var(--border-width-normal) solid var(--color-field-strong-border) !important;
-}
-
-.gcal-dialog .base-dialog__header {
-  border-bottom-width: var(--border-width-emphasis) !important;
-  border-bottom-color: var(--color-brand-accent-surface) !important;
-}
-
+/* SIN "scoped" a propósito: BaseDialog dibuja su tarjeta en <Teleport to="body">, fuera del
+   alcance del componente. El diálogo usa el aspecto v2 compartido de BaseDialog; aquí solo se
+   evita que un título largo desborde. */
 .gcal-dialog .base-dialog__title {
-  color: var(--color-on-strong) !important;
   overflow-wrap: anywhere;
-}
-
-.gcal-dialog .base-dialog__footer {
-  border-top-color: var(--color-field-strong-border) !important;
-}
-
-.gcal-dialog .base-dialog__close {
-  color: var(--color-on-strong-muted) !important;
-}
-
-.gcal-dialog .base-dialog__close:hover {
-  background-color: color-mix(in srgb, var(--color-on-strong) 8%, transparent) !important;
-  color: var(--color-on-strong) !important;
-}
-
-.gcal-dialog .base-dialog__close:focus-visible {
-  box-shadow:
-    0 0 0 2px var(--color-surface-strong),
-    0 0 0 4px var(--color-focus) !important;
 }
 </style>
 
 <style>
 /* Animaciones reducidas desde Configuración (DEC-112): mismo efecto que prefers-reduced-motion. */
-:root[data-motion='reduced'] .gcal-action__icon--spin,
-:root[data-motion='reduced'] .gcal-status__dot::after {
+:root[data-motion='reduced'] .gcal-action__icon--spin {
   animation: none;
 }
 
-:root[data-motion='reduced'] .gcal-status,
-:root[data-motion='reduced'] .gcal-status__dot,
-:root[data-motion='reduced'] .gcal-hero,
 :root[data-motion='reduced'] .gcal-mode,
+:root[data-motion='reduced'] .gcal-mode__dot,
 :root[data-motion='reduced'] .gcal-mode__dot::after,
 :root[data-motion='reduced'] .gcal-chip,
-:root[data-motion='reduced'] .gcal-how__item,
+:root[data-motion='reduced'] .gcal-link,
 :root[data-motion='reduced'] .gcal-link__arrow,
 :root[data-motion='reduced'] .gcal-expand-enter-active,
 :root[data-motion='reduced'] .gcal-expand-leave-active {

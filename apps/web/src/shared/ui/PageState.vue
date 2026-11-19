@@ -8,9 +8,9 @@
  * componente no reemplaza esa variante.
  *
  * variant="loading": BaseSpinner + titular, sin divisor ni rótulo de estado
- * (evento 02). Los demás variants componen el divisor NAVA (regla-rombo-regla,
- * misma construcción que AuthSplitLayout.vue) con un rótulo de estado en
- * versalitas opcional (omitido para `info`, presente para `warning`/`danger`
+ * (evento 02). Los demás variants componen un filete corto del color de
+ * estado (v2, DEC-188: sin la regla-rombo-regla de v1) con un rótulo de estado
+ * opcional (omitido para `info`, presente para `warning`/`danger`
  * con la palabra "Atención"/"Error", igual criterio que BaseAlert), titular
  * serif y cuerpo. La acción real (BaseButton) es responsabilidad del
  * consumidor vía el slot `action`.
@@ -20,7 +20,7 @@ import BaseSpinner from './BaseSpinner.vue'
 
 interface Props {
   variant?: 'loading' | 'info' | 'success' | 'warning' | 'danger'
-  /** Rótulo de estado en versalitas, p. ej. "Atención"/"Error". Se omite si
+  /** Rótulo de estado en tipo oración, p. ej. "Atención"/"Error". Se omite si
    * no se pasa: no todo estado necesita nombrarse (evento 04, informativo). */
   statusLabel?: string
   /** Titular serif — el texto exacto del código, nunca reescrito aquí. */
@@ -89,28 +89,13 @@ const style = computed(() => ({ '--page-state-mark': markVar.value }))
   text-align: center;
 }
 
-/* Divisor NAVA regla-rombo-regla (misma construcción que
- * AuthSplitLayout.vue .auth-split__rule): línea de 2px con un rombo fijo al
- * centro, "recortado" con box-shadow del color de la superficie donde vive
- * PageState (tinta de punta a punta en /panel). */
+/* Filete corto del color de estado sobre el rótulo (v2, DEC-188). */
 .page-state__divider {
-  position: relative;
-  width: 220px;
+  width: 48px;
   height: 2px;
   margin-bottom: var(--space-1);
   background-color: var(--page-state-mark);
-}
-
-.page-state__divider::after {
-  content: '';
-  position: absolute;
-  top: 50%;
-  left: 50%;
-  width: 9px;
-  height: 9px;
-  transform: translate(-50%, -50%) rotate(45deg);
-  background-color: var(--page-state-mark);
-  box-shadow: 0 0 0 8px var(--color-surface-strong);
+  border-radius: 1px;
 }
 
 .page-state__status {
@@ -118,8 +103,6 @@ const style = computed(() => ({ '--page-state-mark': markVar.value }))
   font-family: var(--font-sans);
   font-size: var(--font-size-caption);
   font-weight: 600;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
   color: var(--page-state-mark);
 }
 
@@ -143,11 +126,11 @@ const style = computed(() => ({ '--page-state-mark': markVar.value }))
 }
 
 /* Destino de otra sección del producto (evento 04, "Profesionales"): el
- * consumidor marca el enlace con esta clase para heredar el latón — PageState
+ * consumidor marca el enlace con esta clase para heredar el estilo del enlace — PageState
  * no expone un prop de color libre (props describen intención, no valores
  * libres, mismo criterio que BaseBadge). */
 .page-state__body :deep(.page-state__link) {
-  color: var(--color-brand-accent-surface);
+  color: var(--color-text-secondary);
   font-weight: 600;
   text-decoration: none;
 }

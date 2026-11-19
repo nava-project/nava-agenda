@@ -1,12 +1,11 @@
 <script setup lang="ts">
-// Sección numerada de Configuración (DEC-110): el mismo lenguaje reglado de
-// Agenda, Servicios y Profesionales —superficie tinta, filete de latón, versalitas
-// espaciadas, rombo de estado— con un número editorial en serif como ancla. El
-// encabezado deja claro DÓNDE vale lo que se cambia (este dispositivo o todo el
-// negocio) y si aplica al instante o necesita guardarse.
+// Sección de Configuración (DEC-110) en el lenguaje v2 (DEC-188): tarjeta
+// sobre la superficie con borde sutil y título en tipo oración. Sin número: las
+// secciones son ajustes independientes, no pasos de un orden. El encabezado deja
+// claro DÓNDE vale lo que se cambia (este dispositivo o todo el negocio) y si
+// aplica al instante o necesita guardarse.
 defineProps<{
   id: string
-  number: string
   title: string
   description?: string
   /** `device`: vale en este aparato y se aplica al instante. `shop`: vale para todo el negocio y se guarda. */
@@ -18,7 +17,6 @@ defineProps<{
 <template>
   <section :id="id" class="settings-panel" :aria-labelledby="`${id}-title`">
     <header class="settings-panel__header">
-      <span class="settings-panel__number" aria-hidden="true">{{ number }}</span>
       <div class="settings-panel__heading">
         <h2 :id="`${id}-title`" class="settings-panel__title">{{ title }}</h2>
         <p v-if="description" class="settings-panel__description">{{ description }}</p>
@@ -39,19 +37,15 @@ defineProps<{
 
 <style scoped>
 .settings-panel {
+  /* `position` + `z-index` en el foco: el desplegable de la zona horaria debe
+     quedar por encima del panel siguiente mientras se usa. */
   position: relative;
   scroll-margin-top: 72px;
-  background: color-mix(in srgb, var(--color-on-strong) 3%, transparent);
-  border: var(--border-width-normal) solid var(--color-field-strong-border);
-  border-top: var(--border-width-emphasis) solid var(--color-brand-accent-surface);
-  border-radius: 3px;
-  animation: settings-panel-enter 420ms var(--motion-easing-standard) both;
-  animation-delay: calc(var(--panel-index, 0) * 70ms);
+  background: var(--color-surface);
+  border: var(--border-width-normal) solid var(--color-border-subtle);
+  border-radius: var(--radius-lg);
 }
 
-/* La animación de entrada deja a cada panel en su propio contexto de
-   apilamiento: sin esto, el desplegable de la zona horaria quedaría tapado por
-   el panel siguiente. El panel con el foco sube por encima de sus vecinos. */
 .settings-panel:focus-within {
   z-index: 2;
 }
@@ -59,18 +53,9 @@ defineProps<{
 .settings-panel__header {
   display: flex;
   align-items: flex-start;
-  gap: 16px;
+  gap: 12px;
   padding: 20px 24px 16px;
-  border-bottom: var(--border-width-normal) solid
-    color-mix(in srgb, var(--color-brand-accent-surface) 35%, transparent);
-}
-
-.settings-panel__number {
-  flex: 0 0 auto;
-  font-family: var(--font-display);
-  font-size: var(--font-size-title-page);
-  line-height: 1;
-  color: var(--color-brand-accent-surface);
+  border-bottom: var(--border-width-normal) solid var(--color-border-subtle);
 }
 
 .settings-panel__heading {
@@ -80,52 +65,32 @@ defineProps<{
 
 .settings-panel__title {
   margin: 0;
-  font-family: var(--font-display);
-  font-size: var(--font-size-h2);
-  font-weight: 400;
+  font-family: var(--font-sans);
+  font-size: 20px;
+  font-weight: 600;
   line-height: 28px;
-  color: var(--color-on-strong);
+  color: var(--color-text-primary);
 }
 
 .settings-panel__description {
   margin: 4px 0 0;
   max-width: 56ch;
   font-size: var(--font-size-body-sm);
-  line-height: 19px;
-  color: var(--color-on-strong-muted);
+  line-height: 20px;
+  color: var(--color-text-secondary);
 }
 
-/* Palabra de alcance en versalitas con rombo, como los estados de la agenda. */
+/* Alcance en tipo oración y texto secundario: la palabra lo dice, sin marca. */
 .settings-panel__scope {
   display: inline-flex;
   flex: 0 0 auto;
   align-items: center;
-  gap: 6px;
-  margin-top: 6px;
-  color: var(--color-on-strong-muted);
-  font-size: var(--font-size-caption);
-  font-weight: 600;
-  letter-spacing: 0.08em;
-  line-height: 16px;
-  text-transform: uppercase;
+  margin-top: 4px;
+  color: var(--color-text-secondary);
+  font-size: 13px;
+  font-weight: 500;
+  line-height: 18px;
   white-space: nowrap;
-}
-
-.settings-panel__scope::before {
-  content: '';
-  width: 5px;
-  height: 5px;
-  background: currentColor;
-  transform: rotate(45deg);
-  animation: settings-scope-blink 7s ease-in-out infinite;
-}
-
-.settings-panel__scope--device {
-  color: var(--color-success-on-strong);
-}
-
-.settings-panel__scope--shop {
-  color: var(--color-brand-accent-surface);
 }
 
 .settings-panel__body {
@@ -135,46 +100,16 @@ defineProps<{
   padding: 22px 24px 26px;
 }
 
-@keyframes settings-panel-enter {
-  from {
-    opacity: 0;
-    transform: translateY(14px);
-  }
-
-  to {
-    opacity: 1;
-    transform: none;
-  }
-}
-
-@keyframes settings-scope-blink {
-  0%,
-  62%,
-  100% {
-    opacity: 1;
-    transform: rotate(45deg) scale(1);
-  }
-
-  80% {
-    opacity: 0.55;
-    transform: rotate(45deg) scale(0.85);
-  }
-}
-
 @media (max-width: 640px) {
   .settings-panel__header {
     flex-wrap: wrap;
-    gap: 8px 12px;
+    gap: 4px 10px;
     padding: 16px 16px 14px;
   }
 
-  .settings-panel__number {
-    font-size: var(--font-size-title-section);
-  }
-
   .settings-panel__title {
-    font-size: var(--font-size-title-item);
-    line-height: 25px;
+    font-size: 18px;
+    line-height: 26px;
   }
 
   .settings-panel__scope {
@@ -186,13 +121,6 @@ defineProps<{
   .settings-panel__body {
     gap: 20px;
     padding: 18px 16px 20px;
-  }
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .settings-panel,
-  .settings-panel__scope::before {
-    animation: none;
   }
 }
 </style>

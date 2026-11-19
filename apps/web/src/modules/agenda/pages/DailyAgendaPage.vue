@@ -1515,8 +1515,7 @@ const dayChangeMarkerPercent = computed(() => {
     padding: var(--space-5);
   }
 
-  .daily-agenda-page__empty-state :deep(.empty-scene__art),
-  .daily-agenda-page__empty-state :deep(.empty-scene__glow) {
+  .daily-agenda-page__empty-state :deep(.empty-scene__art) {
     display: none;
   }
 }
@@ -1548,10 +1547,6 @@ const dayChangeMarkerPercent = computed(() => {
 .daily-agenda-page__empty-state :deep(.empty-scene__art) {
   width: 176px;
   height: 110px;
-}
-
-.daily-agenda-page__empty-state :deep(.empty-scene__glow) {
-  top: 18px;
 }
 
 .daily-agenda-page__loading {

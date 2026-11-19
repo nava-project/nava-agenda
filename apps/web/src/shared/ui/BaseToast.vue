@@ -207,7 +207,7 @@ function onFocusOut(event: FocusEvent) {
 </template>
 
 <style scoped>
-/* Etiqueta de sastre sobre tinta (DEC-095). El filete perimetral es el latón
+/* Etiqueta de sastre sobre tinta (DEC-095). El filete perimetral es neutro (v2; antes, el latón)
    de baja opacidad del header del shell: separa el aviso tanto de las
    pantallas claras como de las que ya están sobre tinta (agenda). */
 .base-toast {
@@ -217,10 +217,9 @@ function onFocusOut(event: FocusEvent) {
 
   position: relative;
   overflow: hidden;
-  background-color: var(--color-surface-strong);
+  background-color: var(--color-surface);
   color: var(--color-on-strong);
-  border: var(--border-width-normal) solid
-    color-mix(in srgb, var(--color-brand-accent-surface) 45%, transparent);
+  border: var(--border-width-normal) solid var(--color-border-subtle);
   border-radius: var(--toast-radius);
   box-shadow:
     inset 0 1px 0 color-mix(in srgb, var(--color-on-strong) 8%, transparent),
@@ -282,7 +281,7 @@ function onFocusOut(event: FocusEvent) {
   color: var(--toast-accent);
   background-color: color-mix(in srgb, var(--color-on-strong) 5%, transparent);
   border: var(--border-width-normal) solid var(--toast-accent);
-  border-radius: 2px;
+  border-radius: var(--radius-md);
 }
 
 .base-toast__text {
@@ -297,9 +296,7 @@ function onFocusOut(event: FocusEvent) {
   font-size: var(--font-size-caption);
   font-weight: 600;
   line-height: 12px;
-  letter-spacing: 0.1em;
-  text-transform: uppercase;
-  color: var(--color-brand-accent-surface);
+  color: var(--color-text-secondary);
 }
 
 .base-toast__title {
@@ -380,7 +377,6 @@ function onFocusOut(event: FocusEvent) {
   margin: 10px 0 0;
   font-size: var(--font-size-caption);
   line-height: 16px;
-  letter-spacing: 0.04em;
   color: var(--color-on-strong-muted);
   font-variant-numeric: tabular-nums;
 }
@@ -400,7 +396,7 @@ function onFocusOut(event: FocusEvent) {
   display: inline-flex;
   align-items: center;
   height: 40px;
-  border-radius: 2px;
+  border-radius: var(--radius-md);
   cursor: pointer;
   transition:
     background-color var(--motion-duration-fast) var(--motion-easing-standard),
@@ -451,8 +447,6 @@ function onFocusOut(event: FocusEvent) {
   color: var(--color-on-strong-muted);
   font-size: var(--font-size-caption);
   font-weight: 600;
-  letter-spacing: 0.1em;
-  text-transform: uppercase;
 }
 
 .base-toast__dismiss:hover {

@@ -1,10 +1,10 @@
 <script setup lang="ts">
 /**
  * DayTrack - Pista horaria de un día: una regla con marcas por hora y una
- * barra de latón por cada tramo. Decorativa (aria-hidden): los tramos reales
- * se leen en la lista que la acompaña. Las barras crecen desde el inicio al
- * montarse, escalonadas por `order`; `activeId` resalta la barra del tramo que
- * el usuario señala en la lista. Con `nowMinute` dibuja el marcador de "ahora".
+ * barra en tinta suave por cada tramo (v2, DEC-188). Decorativa (aria-hidden):
+ * los tramos reales se leen en la lista que la acompaña. Sin animación al
+ * montarse; `activeId` resalta la barra del tramo que el usuario señala en la
+ * lista. Con `nowMinute` dibuja el marcador de "ahora" en Sol.
  */
 import { computed } from 'vue'
 import { segmentGeometry, type BoardScale } from '../model/weekBoard'
@@ -20,16 +20,13 @@ interface TrackSegment {
 interface Props {
   segments: readonly TrackSegment[]
   scale: BoardScale
-  /** Posición del día en la semana: escalona la entrada de las barras. */
-  order?: number
   activeId?: string | null
   nowMinute?: number | null
-  /** Pista del diálogo: la barra es la propuesta y late con suavidad. */
+  /** Pista del diálogo: la barra es la propuesta y sigue al formulario. */
   preview?: boolean
 }
 
 const props = withDefaults(defineProps<Props>(), {
-  order: 0,
   activeId: null,
   nowMinute: null,
   preview: false,
@@ -59,7 +56,7 @@ const nowPercent = computed(() => {
   <div
     class="day-track"
     :class="{ 'day-track--preview': preview }"
-    :style="{ '--track-hours': hours, '--track-order': order }"
+    :style="{ '--track-hours': hours }"
     aria-hidden="true"
   >
     <span
@@ -78,19 +75,25 @@ const nowPercent = computed(() => {
 </template>
 
 <style scoped>
+/* Barras en tinta suave y no en el azul «confirmado» de la agenda: aquí la
+   barra es la jornada disponible, no una cita, y ese azul ya significa «cita
+   confirmada» en el carril del día. El acento del negocio queda fuera (v2).
+   Las barras son opacas (mezcla con la superficie) para que las líneas de hora
+   de la regla no las crucen. */
 .day-track {
+  --day-track-bar: color-mix(in srgb, var(--color-text-primary) 36%, var(--color-surface));
+
   position: relative;
   height: var(--track-height, 20px);
-  background-color: color-mix(in srgb, var(--color-on-strong) 3%, transparent);
+  background-color: color-mix(in srgb, var(--color-text-primary) 3%, transparent);
   /* Una línea por hora: la regla se lee sin necesidad de etiquetas en cada día. */
   background-image: linear-gradient(
     90deg,
-    color-mix(in srgb, var(--color-on-strong) 10%, transparent) 1px,
+    color-mix(in srgb, var(--color-text-primary) 10%, transparent) 1px,
     transparent 1px
   );
   background-size: calc(100% / var(--track-hours)) 100%;
-  border-bottom: var(--border-width-normal) solid
-    color-mix(in srgb, var(--color-on-strong) 14%, transparent);
+  border-bottom: var(--border-width-normal) solid var(--color-border-subtle);
   border-radius: 2px;
 }
 
@@ -100,39 +103,12 @@ const nowPercent = computed(() => {
   bottom: 3px;
   left: var(--bar-from);
   width: var(--bar-span);
-  overflow: hidden;
-  background: linear-gradient(
-    90deg,
-    color-mix(in srgb, var(--color-brand-accent-surface) 90%, black),
-    var(--color-brand-accent-surface) 55%,
-    color-mix(in srgb, var(--color-brand-accent-surface) 75%, white)
-  );
+  background-color: var(--day-track-bar);
   border-radius: 2px;
-  box-shadow: 0 0 0 0 color-mix(in srgb, var(--color-brand-accent-surface) 0%, transparent);
-  transform-origin: left center;
   transition:
     top var(--motion-duration-fast) var(--motion-easing-standard),
     bottom var(--motion-duration-fast) var(--motion-easing-standard),
-    box-shadow var(--motion-duration-base) var(--motion-easing-standard),
-    filter var(--motion-duration-fast) var(--motion-easing-standard);
-  animation: day-track-grow 640ms cubic-bezier(0.2, 0.8, 0.2, 1) both;
-  animation-delay: calc(var(--track-order) * 70ms + 180ms);
-}
-
-/* Un solo destello cruza la barra cuando termina de crecer. */
-.day-track__bar::after {
-  content: '';
-  position: absolute;
-  inset: 0 -60%;
-  background: linear-gradient(
-    75deg,
-    transparent 40%,
-    color-mix(in srgb, var(--color-on-strong) 55%, transparent) 50%,
-    transparent 60%
-  );
-  transform: translateX(-100%);
-  animation: day-track-glint 700ms cubic-bezier(0.5, 0, 0.3, 1) both;
-  animation-delay: calc(var(--track-order) * 70ms + 760ms);
+    background-color var(--motion-duration-fast) var(--motion-easing-standard);
 }
 
 .day-track__bar--cut {
@@ -142,113 +118,55 @@ const nowPercent = computed(() => {
   mask-image: linear-gradient(90deg, #000 88%, transparent);
 }
 
+/* Tramo ya existente bajo la propuesta del diálogo: más tenue. */
 .day-track__bar--muted {
-  background: color-mix(in srgb, var(--color-brand-accent-surface) 28%, transparent);
-  animation-delay: 0ms;
+  background-color: color-mix(in srgb, var(--color-text-primary) 16%, var(--color-surface));
 }
 
-.day-track__bar--muted::after {
-  display: none;
-}
-
+/* El tramo que se señala en la lista se ve entero y en tinta más firme. */
 .day-track__bar--active {
   top: 0;
   bottom: 0;
-  box-shadow: 0 0 14px 0 color-mix(in srgb, var(--color-brand-accent-surface) 55%, transparent);
-  filter: brightness(1.12);
+  background-color: color-mix(in srgb, var(--color-text-primary) 64%, var(--color-surface));
 }
 
-/* "Ahora": filete de marfil con un rombo que respira, sobre la barra. */
+/* "Ahora": línea de Sol con su disco, como la de la agenda, sin pulso. */
 .day-track__now {
   position: absolute;
   top: -4px;
   bottom: -4px;
   width: 2px;
   margin-left: -1px;
-  background-color: var(--color-on-strong);
-  box-shadow: 0 0 8px color-mix(in srgb, var(--color-on-strong) 45%, transparent);
-  animation: day-track-fade 400ms var(--motion-easing-standard) 900ms both;
+  background-color: var(--color-sun);
 }
 
 .day-track__now::before {
   content: '';
   position: absolute;
-  top: -3px;
+  top: -4px;
   left: -3px;
   width: 8px;
   height: 8px;
-  background-color: var(--color-on-strong);
-  transform: rotate(45deg);
-  animation: day-track-now-pulse 2.6s ease-in-out 1.3s infinite;
+  background-color: var(--color-sun);
+  border-radius: 50%;
+  box-shadow: 0 0 0 2px var(--color-surface);
+}
+
+/* En el diálogo la propuesta va en tinta firme y sigue al formulario. */
+.day-track--preview {
+  --day-track-bar: color-mix(in srgb, var(--color-text-primary) 64%, var(--color-surface));
 }
 
 .day-track--preview .day-track__bar {
-  animation-delay: 0ms;
   transition:
-    left 280ms cubic-bezier(0.2, 0.8, 0.2, 1),
-    width 280ms cubic-bezier(0.2, 0.8, 0.2, 1);
-}
-
-.day-track--preview .day-track__bar::after {
-  animation: none;
-}
-
-@keyframes day-track-grow {
-  from {
-    opacity: 0;
-    transform: scaleX(0);
-  }
-
-  to {
-    opacity: 1;
-    transform: scaleX(1);
-  }
-}
-
-@keyframes day-track-glint {
-  from {
-    transform: translateX(-100%);
-  }
-
-  to {
-    transform: translateX(100%);
-  }
-}
-
-@keyframes day-track-fade {
-  from {
-    opacity: 0;
-  }
-
-  to {
-    opacity: 1;
-  }
-}
-
-@keyframes day-track-now-pulse {
-  0%,
-  100% {
-    opacity: 1;
-    transform: rotate(45deg) scale(1);
-  }
-
-  50% {
-    opacity: 0.55;
-    transform: rotate(45deg) scale(0.8);
-  }
+    left 200ms var(--motion-easing-standard),
+    width 200ms var(--motion-easing-standard);
 }
 
 @media (prefers-reduced-motion: reduce) {
   .day-track__bar,
-  .day-track__bar::after,
-  .day-track__now,
-  .day-track__now::before {
-    animation: none;
+  .day-track--preview .day-track__bar {
     transition: none;
-  }
-
-  .day-track__bar::after {
-    display: none;
   }
 }
 </style>

@@ -94,11 +94,11 @@ test.describe('Horario laboral recurrente (HU-040)', () => {
       durationMinutes: '240',
     })
     await expect(dialog).toBeHidden()
-    await expect(page.getByText('08:00 · 240 min')).toBeVisible()
+    await expect(page.getByText('8:00 a. m. – 12:00 p. m.')).toBeVisible()
 
     await page.reload()
     await selectProfessional(page, professionalName)
-    await expect(page.getByText('08:00 · 240 min')).toBeVisible()
+    await expect(page.getByText('8:00 a. m. – 12:00 p. m.')).toBeVisible()
   })
 
   test('una jornada partida agrega dos tramos no solapados al mismo día (CA-040-02)', async ({
@@ -114,11 +114,11 @@ test.describe('Horario laboral recurrente (HU-040)', () => {
     await selectProfessional(page, professionalName)
 
     await addWorkingHour(page, { weekday: 'Martes', startsTime: '08:00', durationMinutes: '240' })
-    await expect(page.getByText('08:00 · 240 min')).toBeVisible()
+    await expect(page.getByText('8:00 a. m. – 12:00 p. m.')).toBeVisible()
 
     await addWorkingHour(page, { weekday: 'Martes', startsTime: '14:00', durationMinutes: '240' })
-    await expect(page.getByText('14:00 · 240 min')).toBeVisible()
-    await expect(page.getByText('08:00 · 240 min')).toBeVisible()
+    await expect(page.getByText('2:00 p. m. – 6:00 p. m.')).toBeVisible()
+    await expect(page.getByText('8:00 a. m. – 12:00 p. m.')).toBeVisible()
   })
 
   test('un tramo que se solapa con otro existente se rechaza sin cerrar el diálogo (CA-040-04)', async ({
@@ -138,7 +138,7 @@ test.describe('Horario laboral recurrente (HU-040)', () => {
       startsTime: '08:00',
       durationMinutes: '120',
     })
-    await expect(page.getByText('08:00 · 120 min')).toBeVisible()
+    await expect(page.getByText('8:00 a. m. – 10:00 a. m.')).toBeVisible()
 
     const dialog = await addWorkingHour(page, {
       weekday: 'Miércoles',
@@ -153,7 +153,7 @@ test.describe('Horario laboral recurrente (HU-040)', () => {
     // Nada nuevo se persistió: sigue habiendo un único tramo ese día.
     await page.reload()
     await selectProfessional(page, professionalName)
-    await expect(page.getByText('09:00 · 60 min')).not.toBeVisible()
+    await expect(page.getByText('9:00 a. m. – 10:00 a. m.')).not.toBeVisible()
   })
 
   test('editar un tramo cambia su intervalo, y retirarlo lo elimina de la lista', async ({
@@ -168,7 +168,7 @@ test.describe('Horario laboral recurrente (HU-040)', () => {
     await openSchedules(page)
     await selectProfessional(page, professionalName)
     await addWorkingHour(page, { weekday: 'Jueves', startsTime: '08:00', durationMinutes: '60' })
-    await expect(page.getByText('08:00 · 60 min')).toBeVisible()
+    await expect(page.getByText('8:00 a. m. – 9:00 a. m.')).toBeVisible()
 
     await page.getByRole('button', { name: /Editar tramo de Jueves/ }).click()
     const editDialog = page.getByRole('dialog', { name: 'Editar tramo' })
@@ -177,17 +177,17 @@ test.describe('Horario laboral recurrente (HU-040)', () => {
     await pickTime(editDialog, page, 'Hora de fin', '10:00')
     await editDialog.getByRole('button', { name: 'Guardar' }).click()
     await expect(editDialog).toBeHidden()
-    await expect(page.getByText('09:00 · 60 min')).toBeVisible()
-    await expect(page.getByText('08:00 · 60 min')).not.toBeVisible()
+    await expect(page.getByText('9:00 a. m. – 10:00 a. m.')).toBeVisible()
+    await expect(page.getByText('8:00 a. m. – 9:00 a. m.')).not.toBeVisible()
 
     await page.getByRole('button', { name: /Retirar tramo de Jueves/ }).click()
-    await expect(page.getByText('09:00 · 60 min')).not.toBeVisible()
+    await expect(page.getByText('9:00 a. m. – 10:00 a. m.')).not.toBeVisible()
 
     // Persistencia real: recargar confirma que el retiro fue físico, no
     // solo un cambio visual.
     await page.reload()
     await selectProfessional(page, professionalName)
-    await expect(page.getByText('09:00 · 60 min')).not.toBeVisible()
+    await expect(page.getByText('9:00 a. m. – 10:00 a. m.')).not.toBeVisible()
   })
 
   test('un identificador real de otro negocio responde 404 al consultar su horario (RN-TEN-01)', async ({

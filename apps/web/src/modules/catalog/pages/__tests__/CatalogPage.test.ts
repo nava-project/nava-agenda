@@ -234,14 +234,16 @@ describe('CatalogPage', () => {
       service('s-1', 'Corte clásico', { durationMinutes: 45, price: '65000.00' }),
     ])
     expect(wrapper.text()).toContain('45 min')
-    expect(wrapper.text()).toContain('65000.00 COP')
+    // formatMoney (revisión de #720): símbolo, miles con punto y sin decimales en cero.
+    expect(wrapper.get('.catalog-page__item-price').text()).toMatch(/^\$\s65\.000$/)
+    expect(wrapper.text()).not.toContain('65000.00')
   })
 
-  it('never concatenates a literal "$" to the price (estandar-diseno-visual.md §10.3, Fase 5)', async () => {
+  it('takes the symbol from the real currency, never a literal "$" (estandar-diseno-visual.md §10.3, Fase 5)', async () => {
     const wrapper = await mountReady([
-      service('s-1', 'Corte clásico', { durationMinutes: 45, price: '65000.00' }),
+      service('s-1', 'Corte clásico', { durationMinutes: 45, price: '65000.00', currency: 'USD' }),
     ])
-    expect(wrapper.text()).not.toContain('$')
+    expect(wrapper.get('.catalog-page__item-price').text()).toMatch(/^US\$\s65\.000$/)
   })
 
   it('shows a recoverable error with Reintentar when the initial load fails', async () => {
@@ -757,7 +759,7 @@ describe('CatalogPage', () => {
       false,
     )
     expect(wrapper.findAll('li').length).toBe(1)
-    expect(wrapper.text()).toContain('50000.00 COP')
+    expect(wrapper.get('.catalog-page__item-price').text()).toMatch(/^\$\s50\.000$/)
     expect(toastState.items.map((item) => item.title)).toEqual(['Servicio actualizado'])
   })
 
@@ -1033,7 +1035,9 @@ describe('CatalogPage', () => {
     expect(dialog.querySelector('[role="switch"]')?.getAttribute('aria-checked')).toBe('false')
     const facts = dialog.querySelector('dl')?.textContent ?? ''
     expect(facts).toContain('45')
-    expect(facts).toContain('22000.00')
+    // Precio con formatMoney (revisión de #720), nunca el decimal en crudo.
+    expect(facts).toMatch(/\$\s22\.000/)
+    expect(facts).not.toContain('22000.00')
     expect(facts).toContain('25/08/2026')
     expect(dialog.querySelectorAll('ul li').length).toBe(3)
   })

@@ -279,10 +279,10 @@ watch(
   gap: 8px;
 }
 .base-time-picker__label {
-  color: var(--color-on-strong-muted);
-  font-size: var(--font-size-caption);
-  font-weight: 600;
-  line-height: 14px;
+  color: var(--color-text-secondary);
+  font-size: 13px;
+  font-weight: 500;
+  line-height: 18px;
 }
 .base-time-picker__label span {
   color: var(--color-danger-on-strong);

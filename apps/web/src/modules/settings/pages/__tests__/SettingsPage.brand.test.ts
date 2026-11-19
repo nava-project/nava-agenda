@@ -106,24 +106,26 @@ describe('SettingsPage', () => {
       expect(wrapper.text()).not.toContain('Cómo trabajas')
     })
 
-    it('numbers the remaining sections without a gap', async () => {
+    it('lists the remaining sections in order, without ordinal numbers', async () => {
       const wrapper = await mountReady()
 
-      const numbers = wrapper.findAll('.settings-panel__number').map((n) => n.text())
-      expect(numbers).toEqual([
-        '01',
-        '02',
-        '03',
-        '04',
-        '05',
-        '06',
-        '07',
-        '08',
-        '09',
-        '10',
-        '11',
-        '12',
+      const ids = wrapper.findAll('section.settings-panel').map((s) => s.attributes('id'))
+      expect(ids).toEqual([
+        'configuracion-pantalla',
+        'configuracion-marca',
+        'configuracion-vocabulario',
+        'configuracion-hora',
+        'configuracion-contacto',
+        'configuracion-ubicacion',
+        'configuracion-horario',
+        'configuracion-enlace',
+        'configuracion-reservas',
+        'configuracion-recordatorios',
+        'configuracion-integraciones',
+        'configuracion-acceso',
       ])
+      expect(wrapper.find('.settings-panel__number').exists()).toBe(false)
+      expect(wrapper.find('.settings-index__number').exists()).toBe(false)
     })
 
     it('keeps the panel of the user when the brand is saved, and never sends it', async () => {

@@ -83,7 +83,7 @@ test.describe('Catálogo básico de servicios (HU-022)', () => {
     await expect(editDialog).toBeHidden()
 
     await expect(row.getByText('45 min')).toBeVisible()
-    await expect(row.getByText(/50000\.00 COP/)).toBeVisible()
+    await expect(row.getByText(/\$\s50\.000/)).toBeVisible()
 
     // Persistencia real, verificada contra el servidor tras recargar (mismo
     // criterio que e2e/profesionales.spec.ts: este negocio real acumula datos

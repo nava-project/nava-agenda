@@ -85,15 +85,16 @@ describe('SettingsPage', () => {
   })
 
   describe('enlace público (DEC-117)', () => {
-    it('adds the link as section 08, after the opening hours and before the booking rules', async () => {
+    it('adds the link section after the opening hours and before the booking rules', async () => {
       const wrapper = await mountReady()
 
       const panel = wrapper.get('#configuracion-enlace')
-      expect(panel.get('.settings-panel__number').text()).toBe('08')
       expect(panel.get('h2').text()).toBe('Enlace público')
-      expect(wrapper.get('#configuracion-horario .settings-panel__number').text()).toBe('07')
+      const ids = wrapper.findAll('section.settings-panel').map((s) => s.attributes('id'))
+      const at = ids.indexOf('configuracion-enlace')
+      expect(ids[at - 1]).toBe('configuracion-horario')
+      expect(ids[at + 1]).toBe('configuracion-reservas')
       expect(panel.get('[role="textbox"]').text()).toContain('/reservar/barberia-ejemplo-k7x2m9')
-      expect(wrapper.get('#configuracion-reservas .settings-panel__number').text()).toBe('09')
       expect(wrapper.get('a[href="#configuracion-enlace"]').text()).toContain('Enlace')
       wrapper.unmount()
     })

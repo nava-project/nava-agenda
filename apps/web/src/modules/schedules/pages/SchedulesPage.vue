@@ -10,12 +10,13 @@
 // una respuesta exitosa del servidor cierra el diálogo o cambia una fila
 // (trabajo requerido §4.3/§4.4 de HU-021, mismo criterio aquí). Cada cambio
 // confirmado añade un aviso emergente (DEC-095); los errores siguen en línea.
-// La semana se dibuja como un tablero (WeeklyBoard): barras de latón sobre una
+// La semana se dibuja como un tablero (WeeklyBoard): barras en tinta suave sobre una
 // regla horaria común, con la lista real de tramos debajo de cada día.
 import { computed, onMounted, onUnmounted, ref, watch } from 'vue'
 import { useToast, useVocabulary } from '@/shared/composables'
 import { isSoloProfile, worksOwnProfessional } from '@/shared/model'
 import { getCivilDateInTimezone } from '@/shared/time/civilDate'
+import { timezoneName } from '@/shared/time/timezoneName'
 import {
   ProfessionalAvatar,
   BaseAlert,
@@ -53,9 +54,9 @@ import {
 import { newIdempotencyKey } from '../model/idempotencyKey'
 import {
   civilDateTile as dateTile,
+  clockRangeLabel,
   computeScale,
   durationBetween,
-  endLabel,
   formatHours,
   minutesToTime,
   timeToMinutes,
@@ -165,6 +166,8 @@ const hasShownWorkingHours = ref(false)
 const boardBusy = computed(
   () => workingHoursStatus.value === 'loading' && hasShownWorkingHours.value,
 )
+// Las cifras de la semana aún no tienen dato que mostrar (primera carga).
+const statsPending = computed(() => workingHoursStatus.value !== 'ready' && !boardBusy.value)
 
 async function selectProfessional(professionalId: string) {
   selectedProfessionalId.value = professionalId
@@ -965,7 +968,7 @@ function buildPreview(
     segments: valid ? [...context, draft] : context,
     scale: computeScale(valid ? [...context, draft] : context),
     text: valid
-      ? `${weekdayLabel(isoWeekday)} · ${startsTime} – ${endLabel(startsTime, durationMinutes)} · ${formatHours(durationMinutes)}`
+      ? `${weekdayLabel(isoWeekday)} · ${clockRangeLabel(startsTime, durationMinutes)} · ${formatHours(durationMinutes)}`
       : 'Elige la hora de inicio y de fin para ver cómo queda.',
   }
 }
@@ -991,12 +994,33 @@ const editPreview = computed(() =>
         <p class="schedules-page__subtitle">Jornada semanal, festivos y excepciones.</p>
       </div>
       <!-- Controles de la jornada junto al título: sin profesionales no hay jornada
-           que armar, así que la acción principal tampoco aparece. -->
+           que armar, así que la acción principal tampoco aparece. Mientras carga,
+           un esqueleto del mismo alto ocupa su sitio: la cabecera no crece al
+           llegar los datos y el contenido de debajo no salta (CLS, revisión de
+           #720). -->
       <div
-        v-if="pageStatus === 'ready' && professionals.length > 0"
+        v-if="pageStatus === 'loading' || (pageStatus === 'ready' && professionals.length > 0)"
         class="schedules-page__controls"
       >
-        <div class="schedules-page__who">
+        <div
+          v-if="pageStatus === 'loading'"
+          class="schedules-page__who schedules-page__who--skeleton"
+          aria-hidden="true"
+        >
+          <span class="schedules-page__skeleton-bar schedules-page__skeleton-bar--portrait" />
+          <!-- El perfil del panel se conoce antes de cargar (DEC-115): quien trabaja
+               su propia agenda ve su nombre y no el selector, así que el esqueleto
+               toma desde el primer cuadro el alto del nombre (47 px). -->
+          <span
+            v-if="worksOwnProfessional"
+            class="schedules-page__skeleton-bar schedules-page__skeleton-bar--name"
+          />
+          <span v-else class="schedules-page__select schedules-page__skeleton-select">
+            <span class="schedules-page__skeleton-bar schedules-page__skeleton-bar--label" />
+            <span class="schedules-page__skeleton-bar schedules-page__skeleton-bar--field" />
+          </span>
+        </div>
+        <div v-else class="schedules-page__who">
           <ProfessionalAvatar
             class="schedules-page__portrait"
             size="row"
@@ -1016,15 +1040,23 @@ const editPreview = computed(() =>
           <span v-else class="schedules-page__who-name">{{ selectedProfessional?.fullName }}</span>
         </div>
 
+        <!-- Las cifras quedan montadas desde la carga (con un marcador en lugar
+             del número) para no empujar el tablero al llegar la jornada. -->
         <dl
-          v-if="workingHoursStatus === 'ready' || boardBusy"
+          v-if="workingHoursStatus !== 'error'"
           class="schedules-page__stats"
           :class="{ 'schedules-page__stats--busy': boardBusy }"
+          :aria-busy="statsPending || undefined"
         >
           <div>
             <dt>Horas por semana</dt>
             <dd>
-              <Transition name="schedules-stat" mode="out-in">
+              <span
+                v-if="statsPending"
+                class="schedules-page__skeleton-bar schedules-page__skeleton-bar--stat"
+                aria-hidden="true"
+              />
+              <Transition v-else name="schedules-stat" mode="out-in">
                 <span :key="weekMinutes">{{ formatHours(weekMinutes) }}</span>
               </Transition>
             </dd>
@@ -1032,7 +1064,12 @@ const editPreview = computed(() =>
           <div>
             <dt>Días con jornada</dt>
             <dd>
-              <Transition name="schedules-stat" mode="out-in">
+              <span
+                v-if="statsPending"
+                class="schedules-page__skeleton-bar schedules-page__skeleton-bar--stat"
+                aria-hidden="true"
+              />
+              <Transition v-else name="schedules-stat" mode="out-in">
                 <span :key="activeDays"
                   >{{ activeDays }}<small class="schedules-page__stat-total">/7</small></span
                 >
@@ -1176,9 +1213,10 @@ const editPreview = computed(() =>
                 <circle cx="8" cy="8" r="6" />
                 <path d="M8 4.5V8l2.4 1.6" />
               </svg>
+              <!-- La zona con su nombre, como en la agenda («hora de Colombia»),
+                   no el identificador IANA (revisión de #720). -->
               <span
-                >Horas en la zona horaria {{ v.ofTheBusiness }}:
-                <strong>{{ businessTimezone }}</strong></span
+                >Horas en <strong>{{ timezoneName(businessTimezone) }}</strong></span
               >
             </p>
           </div>
@@ -1310,7 +1348,7 @@ const editPreview = computed(() =>
                           >
                           <span class="schedules-row__segments">{{
                             exception.segments
-                              .map((s) => `${s.startsTime} (${s.durationMinutes} min)`)
+                              .map((s) => clockRangeLabel(s.startsTime, s.durationMinutes))
                               .join(', ')
                           }}</span>
                         </template>
@@ -1486,12 +1524,7 @@ const editPreview = computed(() =>
 
         <div class="schedules-page__preview" aria-live="polite">
           <span class="schedules-page__eyebrow">Así queda</span>
-          <DayTrack
-            :segments="createPreview.segments"
-            :scale="createPreview.scale"
-            :order="0"
-            preview
-          />
+          <DayTrack :segments="createPreview.segments" :scale="createPreview.scale" preview />
           <p>{{ createPreview.text }}</p>
         </div>
 
@@ -1600,12 +1633,7 @@ const editPreview = computed(() =>
 
         <div class="schedules-page__preview" aria-live="polite">
           <span class="schedules-page__eyebrow">Así queda</span>
-          <DayTrack
-            :segments="editPreview.segments"
-            :scale="editPreview.scale"
-            :order="0"
-            preview
-          />
+          <DayTrack :segments="editPreview.segments" :scale="editPreview.scale" preview />
           <p>{{ editPreview.text }}</p>
         </div>
 
@@ -2019,18 +2047,11 @@ const editPreview = computed(() =>
 </template>
 
 <style scoped>
-/* Superficie tinta de punta a punta (estandar-diseno-visual.md §3), el mismo
-   canvas que Agenda, Servicios y Profesionales; columna de lectura de 980px. */
+/* Lenguaje v2 «La luz del día» (DEC-188): el mismo lienzo que la agenda, sin
+   reasignar tokens; los controles compartidos (BaseSelect, BaseInput,
+   BaseButton) se pintan con sus valores v2. Columna de lectura de 980px. */
 .schedules-page {
   --schedules-width: 980px;
-
-  /* Los controles compartidos (BaseSelect) se pintan con tokens de superficie
-     clara: aquí se reasignan a la tinta, igual que en el panel de bloqueos. */
-  --color-text-primary: var(--color-on-strong);
-  --color-text-secondary: var(--color-on-strong-muted);
-  --color-accent-brass: var(--color-brand-accent-surface);
-  --color-border-control: var(--color-field-strong-border);
-  --color-surface: var(--color-field-strong);
 
   display: flex;
   flex-direction: column;
@@ -2069,21 +2090,24 @@ const editPreview = computed(() =>
   justify-content: space-between;
   gap: 14px var(--space-4);
   padding-bottom: 14px;
-  border-bottom: var(--border-width-normal) solid var(--color-field-strong-border);
+  border-bottom: var(--border-width-normal) solid var(--color-border-subtle);
 }
 
+/* Título como el de la agenda (DailyAgendaPage `__title`). */
 .schedules-page__title {
   margin: 0;
-  font-family: var(--font-display);
-  font-size: var(--font-size-h1);
-  line-height: var(--font-size-h1-line);
-  font-weight: var(--font-weight-h1);
+  font-family: var(--font-sans);
+  font-size: 28px;
+  font-weight: 600;
+  line-height: 32px;
+  letter-spacing: -0.01em;
+  color: var(--color-text-primary);
 }
 
 @media (min-width: 1024px) {
   .schedules-page__title {
-    font-size: var(--font-size-title-page);
-    line-height: 46px;
+    font-size: 32px;
+    line-height: 36px;
   }
 }
 
@@ -2133,13 +2157,13 @@ const editPreview = computed(() =>
   margin: 0;
 }
 
-/* Esqueleto de la semana: una fila por día con su pista, con el pulso de
-   Profesionales/Servicios/Agenda. */
+/* Esqueleto de la semana: una fila por día con su pista. Es el único
+   movimiento repetido de la pantalla y solo dura lo que tarda la carga. */
 .schedules-page__skeleton {
   overflow: hidden;
-  background-color: var(--color-field-strong);
-  border: var(--border-width-normal) solid var(--color-field-strong-border);
-  border-radius: 3px;
+  background-color: var(--color-surface);
+  border: var(--border-width-normal) solid var(--color-border-subtle);
+  border-radius: var(--radius-lg);
 }
 
 .schedules-page__skeleton-row {
@@ -2148,7 +2172,7 @@ const editPreview = computed(() =>
   gap: 18px;
   height: 64px;
   padding: 0 18px;
-  border-top: var(--border-width-normal) solid var(--color-field-strong-border);
+  border-top: var(--border-width-normal) solid var(--color-border-subtle);
 }
 
 .schedules-page__skeleton-row:first-child {
@@ -2173,6 +2197,52 @@ const editPreview = computed(() =>
   background-color: color-mix(in srgb, var(--color-on-strong) 8%, transparent);
 }
 
+/* Esqueleto de los controles: mismas medidas que el retrato (47 px), el
+   selector (rótulo de 18 px + 8 px + campo de 46 px) y la cifra (línea de
+   26 px), para que el cambio a los datos reales no mueva nada. */
+.schedules-page__who--skeleton {
+  align-items: flex-end;
+}
+
+.schedules-page__skeleton-bar--portrait {
+  flex: 0 0 47px;
+  height: 47px;
+  border-radius: var(--radius-md);
+}
+
+.schedules-page__skeleton-select {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.schedules-page__skeleton-bar--label {
+  width: 88px;
+  height: 18px;
+  background-color: color-mix(in srgb, var(--color-on-strong) 8%, transparent);
+}
+
+.schedules-page__skeleton-bar--field {
+  height: 46px;
+  border-radius: var(--radius-md);
+  background-color: color-mix(in srgb, var(--color-on-strong) 8%, transparent);
+}
+
+/* Nombre del perfil individual: centrado junto al retrato, como el real. */
+.schedules-page__skeleton-bar--name {
+  align-self: center;
+  width: 160px;
+  max-width: 50%;
+  height: 20px;
+}
+
+.schedules-page__skeleton-bar--stat {
+  display: inline-block;
+  width: 44px;
+  height: 18px;
+  vertical-align: middle;
+}
+
 @keyframes schedules-skeleton-pulse {
   0%,
   100% {
@@ -2192,7 +2262,6 @@ const editPreview = computed(() =>
   align-items: flex-end;
   gap: 14px;
   min-width: 0;
-  animation: schedules-rise 360ms var(--motion-easing-standard) both;
 }
 
 /* Perfil de profesional individual (DEC-115): sin selector, el nombre acompaña al retrato. */
@@ -2226,30 +2295,10 @@ const editPreview = computed(() =>
   }
 }
 
+/* El selector conserva el aspecto v2 de BaseSelect: sin filete de acento. */
 .schedules-page__select {
   flex: 1;
   max-width: 340px;
-  --color-focus: var(--color-brand-accent-surface);
-}
-
-.schedules-page__select :deep(.base-select__trigger) {
-  background-color: color-mix(in srgb, var(--color-on-strong) 5%, transparent);
-  border-color: color-mix(in srgb, var(--color-on-strong) 16%, transparent);
-  border-bottom-color: var(--color-brand-accent-surface);
-}
-
-.schedules-page__select :deep(.base-select__trigger:hover:not(:disabled)),
-.schedules-page__select :deep(.base-select__trigger[aria-expanded='true']) {
-  border-color: color-mix(in srgb, var(--color-brand-accent-surface) 55%, transparent);
-}
-
-.schedules-page__select :deep(.base-select__option:hover),
-.schedules-page__select :deep(.base-select__option:focus-visible) {
-  background-color: var(--color-field-strong-raised);
-}
-
-.schedules-page__select :deep(.base-select__option) {
-  border-left-color: transparent;
 }
 
 .schedules-page__stats {
@@ -2258,33 +2307,32 @@ const editPreview = computed(() =>
   flex: 0 0 auto;
   gap: 8px;
   margin: 0;
-  animation: schedules-rise 360ms var(--motion-easing-standard) 60ms both;
 }
 
+/* Cifras de la semana: tarjetas v2, rótulo en tipo oración y cifra en tinta. */
 .schedules-page__stats > div {
   display: flex;
   min-width: 112px;
   flex-direction: column;
-  gap: 0;
+  gap: 2px;
   padding: 6px 12px;
-  background-color: color-mix(in srgb, var(--color-on-strong) 4%, transparent);
-  border: var(--border-width-normal) solid
-    color-mix(in srgb, var(--color-on-strong) 10%, transparent);
-  border-left: var(--border-width-emphasis) solid var(--color-brand-accent-surface);
-  border-radius: 2px;
+  background-color: var(--color-surface);
+  border: var(--border-width-normal) solid var(--color-border-subtle);
+  border-radius: var(--radius-lg);
 }
 
 .schedules-page__stats dt {
-  color: var(--color-on-strong-muted);
-  font-size: var(--font-size-caption);
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
+  color: var(--color-text-secondary);
+  font-size: 13px;
+  font-weight: 500;
+  line-height: 18px;
 }
 
 .schedules-page__stats dd {
   margin: 0;
-  font-family: var(--font-display);
+  font-family: var(--font-sans);
   font-size: var(--font-size-title-item);
+  font-weight: 600;
   line-height: 26px;
   font-variant-numeric: tabular-nums;
 }
@@ -2327,7 +2375,7 @@ const editPreview = computed(() =>
   flex: 0 0 auto;
   width: 14px;
   height: 14px;
-  color: var(--color-brand-accent-surface);
+  color: var(--color-text-secondary);
 }
 
 .schedules-page__timezone strong {
@@ -2364,13 +2412,10 @@ const editPreview = computed(() =>
   align-self: start;
   width: 100%;
   overflow: hidden;
-  background-color: var(--color-field-strong);
-  border: var(--border-width-normal) solid var(--color-field-strong-border);
-  border-top: var(--border-width-emphasis) solid
-    color-mix(in srgb, var(--color-brand-accent-surface) 70%, transparent);
-  border-radius: 3px;
+  background-color: var(--color-surface);
+  border: var(--border-width-normal) solid var(--color-border-subtle);
+  border-radius: var(--radius-lg);
   container: aside / inline-size;
-  animation: schedules-rise 400ms var(--motion-easing-standard) 180ms both;
 }
 
 .schedules-page__aside-action {
@@ -2397,8 +2442,8 @@ const editPreview = computed(() =>
   }
 
   .schedules-page__title {
-    font-size: var(--font-size-title-page);
-    line-height: 40px;
+    font-size: 32px;
+    line-height: 36px;
   }
 
   .schedules-page__controls {
@@ -2472,9 +2517,8 @@ const editPreview = computed(() =>
 .schedules-card__empty {
   padding: 18px 12px;
   text-align: center;
-  border: var(--border-width-normal) dashed
-    color-mix(in srgb, var(--color-on-strong) 16%, transparent);
-  border-radius: 2px;
+  background-color: color-mix(in srgb, var(--color-text-primary) 3%, transparent);
+  border-radius: var(--radius-md);
 }
 
 .schedules-card__list {
@@ -2485,34 +2529,13 @@ const editPreview = computed(() =>
   list-style: none;
 }
 
-/* Acciones del panel y de fila: botón fantasma de latón, igual que en Profesionales. */
+/* Acciones del panel y de fila: BaseButton secundario neutro (v2), solo más
+   compacto; el acento queda para la acción principal de cada diálogo. */
 .schedules-page__aside-action.base-button,
 .schedules-row :deep(.base-button) {
-  --btn-focus-ring: 0 0 0 2px var(--color-field-strong), 0 0 0 4px var(--color-focus);
-
   height: 34px;
   padding-inline: 14px;
   font-size: var(--font-size-body-sm);
-}
-
-.schedules-page__aside-action.base-button--secondary,
-.schedules-row :deep(.base-button--secondary) {
-  background-color: transparent;
-  color: var(--color-brand-accent-surface);
-  border-color: color-mix(in srgb, var(--color-brand-accent-surface) 45%, transparent);
-  border-bottom-color: var(--color-brand-accent-surface);
-}
-
-.schedules-page__aside-action.base-button--secondary:hover:not(:disabled):not(
-    .base-button--loading
-  ),
-.schedules-row :deep(.base-button--secondary:hover:not(:disabled):not(.base-button--loading)) {
-  background-color: color-mix(in srgb, var(--color-brand-accent-surface) 14%, transparent);
-  border-color: color-mix(in srgb, var(--color-brand-accent-surface) 55%, transparent);
-}
-
-.schedules-row :deep(.base-button--secondary:active:not(:disabled):not(.base-button--loading)) {
-  background-color: color-mix(in srgb, var(--color-brand-accent-surface) 22%, transparent);
 }
 
 .schedules-row
@@ -2524,7 +2547,8 @@ const editPreview = computed(() =>
   border-color: color-mix(in srgb, var(--color-danger-on-strong) 55%, transparent);
 }
 
-/* Interruptor de festivos: un carril con una pieza que se desliza y se ilumina. */
+/* Interruptor de festivos: carril redondo con una pieza que se desliza; activo
+   en tinta, como el seleccionado del resto de v2. */
 .schedules-switch {
   display: inline-flex;
   max-width: 100%;
@@ -2548,10 +2572,9 @@ const editPreview = computed(() =>
   flex: 0 0 auto;
   width: 46px;
   height: 24px;
-  background-color: color-mix(in srgb, var(--color-on-strong) 6%, transparent);
-  border: var(--border-width-normal) solid
-    color-mix(in srgb, var(--color-on-strong) 26%, transparent);
-  border-radius: 2px;
+  background-color: var(--color-surface);
+  border: var(--border-width-normal) solid var(--color-border-control);
+  border-radius: var(--radius-pill);
   transition:
     background-color var(--motion-duration-base) var(--motion-easing-standard),
     border-color var(--motion-duration-base) var(--motion-easing-standard);
@@ -2563,29 +2586,27 @@ const editPreview = computed(() =>
   left: 3px;
   width: 16px;
   height: 16px;
-  background-color: var(--color-on-strong-muted);
-  transform: rotate(45deg) scale(0.78);
+  background-color: var(--color-text-secondary);
+  border-radius: 50%;
   transition:
-    left var(--motion-duration-base) cubic-bezier(0.34, 1.56, 0.64, 1),
-    background-color var(--motion-duration-base) var(--motion-easing-standard),
-    transform var(--motion-duration-base) cubic-bezier(0.34, 1.56, 0.64, 1);
+    left var(--motion-duration-base) var(--motion-easing-standard),
+    background-color var(--motion-duration-base) var(--motion-easing-standard);
 }
 
 .schedules-switch--on .schedules-switch__track {
-  background-color: color-mix(in srgb, var(--color-brand-accent-surface) 22%, transparent);
-  border-color: var(--color-brand-accent-surface);
+  background-color: var(--color-text-primary);
+  border-color: var(--color-text-primary);
 }
 
 .schedules-switch--on .schedules-switch__thumb {
   left: 25px;
-  background-color: var(--color-brand-accent-surface);
-  transform: rotate(45deg) scale(0.9);
+  background-color: var(--color-surface);
 }
 
 .schedules-switch__input:focus-visible + .schedules-switch__track {
   box-shadow:
-    0 0 0 2px var(--color-field-strong),
-    0 0 0 4px var(--color-brand-accent-surface);
+    0 0 0 2px var(--color-surface),
+    0 0 0 4px var(--color-focus);
 }
 
 .schedules-switch__input:disabled ~ * {
@@ -2619,19 +2640,13 @@ const editPreview = computed(() =>
   border-top: none;
 }
 
-.schedules-row--static {
-  animation: schedules-rise 320ms var(--motion-easing-standard) both;
-  animation-delay: calc(min(var(--row-index, 0), 8) * 45ms + 360ms);
-}
-
 @media (hover: hover) {
   .schedules-row:hover {
     background-color: color-mix(in srgb, var(--color-on-strong) 4%, transparent);
   }
 
   .schedules-row:hover .schedules-tile {
-    border-color: var(--color-brand-accent-surface);
-    transform: translateY(-2px);
+    border-color: var(--color-border-control);
   }
 }
 
@@ -2649,33 +2664,27 @@ const editPreview = computed(() =>
   justify-content: center;
   gap: 3px;
   padding: 5px 0 6px;
-  background-color: var(--color-surface-strong);
-  border: var(--border-width-normal) solid
-    color-mix(in srgb, var(--color-brand-accent-surface) 45%, transparent);
-  border-top: var(--border-width-emphasis) solid var(--color-brand-accent-surface);
-  border-radius: 2px;
-  transition:
-    border-color var(--motion-duration-fast) var(--motion-easing-standard),
-    transform var(--motion-duration-base) cubic-bezier(0.34, 1.56, 0.64, 1);
+  background-color: var(--color-surface);
+  border: var(--border-width-normal) solid var(--color-border-subtle);
+  border-radius: var(--radius-md);
+  transition: border-color var(--motion-duration-fast) var(--motion-easing-standard);
 }
 
 .schedules-tile b {
-  color: var(--color-on-strong);
-  font-family: var(--font-display);
+  color: var(--color-text-primary);
+  font-family: var(--font-sans);
   font-size: var(--font-size-title-item);
-  font-weight: 400;
+  font-weight: 600;
   line-height: 1;
   font-variant-numeric: tabular-nums;
 }
 
 .schedules-tile i {
-  color: var(--color-brand-accent-surface);
+  color: var(--color-text-secondary);
   font-size: var(--font-size-caption);
   line-height: 1;
   font-style: normal;
-  font-weight: 700;
-  letter-spacing: 0.14em;
-  text-transform: uppercase;
+  font-weight: 500;
 }
 
 .schedules-row__main {
@@ -2699,23 +2708,23 @@ const editPreview = computed(() =>
   line-height: 22px;
 }
 
+/* Estado de la excepción: punto del color del estado (no rombo) y rótulo en
+   tipo oración. */
 .schedules-row__state {
   color: var(--color-danger-on-strong);
-  font-size: var(--font-size-caption);
-  font-weight: 700;
-  letter-spacing: 0.1em;
-  text-transform: uppercase;
+  font-size: 13px;
+  font-weight: 500;
 }
 
 .schedules-row__state::before {
   content: '';
   display: inline-block;
-  width: 5px;
-  height: 5px;
+  width: 6px;
+  height: 6px;
   margin-right: 6px;
   vertical-align: 1px;
   background-color: currentColor;
-  transform: rotate(45deg);
+  border-radius: 50%;
 }
 
 .schedules-row__state--open {
@@ -2745,10 +2754,8 @@ const editPreview = computed(() =>
 
 .schedules-row__tag {
   color: var(--color-success-on-strong);
-  font-size: var(--font-size-caption);
-  font-weight: 700;
-  letter-spacing: 0.1em;
-  text-transform: uppercase;
+  font-size: 13px;
+  font-weight: 500;
   white-space: nowrap;
 }
 
@@ -2778,164 +2785,32 @@ const editPreview = computed(() =>
   left: 0;
 }
 
-/* Diálogos: mismo tinte, filete de latón y campos reglados que los de Profesionales.
-   Solo aplica dentro de .schedules-page__ink (el contenido que esta plantilla
-   pone en el diálogo); el fondo y el encabezado, que BaseDialog renderiza en
-   <Teleport to="body">, se sobrescriben en el bloque sin "scoped" del final. */
+/* Diálogos v2: el contenido (.schedules-page__ink) usa los campos y botones
+   compartidos tal cual; el fondo y el encabezado, que BaseDialog renderiza en
+   <Teleport to="body">, se ajustan en el bloque sin "scoped" del final.
+   La ficha del encabezado es decorativa: queda en tinta suave, sin acento
+   ni animación de entrada. */
 .schedules-page__dialog-chip {
-  position: relative;
   display: flex;
   flex: 0 0 auto;
   align-items: center;
   justify-content: center;
   width: 40px;
   height: 40px;
-  overflow: hidden;
-  background-color: var(--color-brand-accent-surface);
-  color: var(--color-brand-accent-text);
+  color: var(--color-text-primary);
+  background-color: color-mix(in srgb, var(--color-text-primary) 8%, transparent);
   border-radius: var(--radius-md);
-  font-family: var(--font-display);
+  font-family: var(--font-sans);
   font-size: var(--font-size-title-item);
+  font-weight: 600;
   line-height: 1;
-  animation: schedules-chip-pop var(--motion-duration-base) cubic-bezier(0.34, 1.56, 0.64, 1) 60ms
-    both;
-}
-
-.schedules-page__dialog-chip::after {
-  content: '';
-  position: absolute;
-  inset: -40% -60%;
-  background: linear-gradient(
-    75deg,
-    transparent 40%,
-    color-mix(in srgb, var(--color-on-strong) 50%, transparent) 50%,
-    transparent 60%
-  );
-  transform: translateX(-100%);
-  animation: schedules-chip-glint 480ms cubic-bezier(0.5, 0, 0.3, 1) 260ms both;
-}
-
-@keyframes schedules-chip-pop {
-  from {
-    opacity: 0;
-    transform: scale(0.5) rotate(-20deg);
-  }
-
-  to {
-    opacity: 1;
-    transform: scale(1) rotate(0deg);
-  }
-}
-
-@keyframes schedules-chip-glint {
-  from {
-    transform: translateX(-100%);
-  }
-
-  to {
-    transform: translateX(100%);
-  }
 }
 
 .schedules-page__ink {
-  --color-text-primary: var(--color-on-strong);
-  --color-text-secondary: var(--color-on-strong-muted);
-  --color-accent-brass: var(--color-brand-accent-surface);
-  --color-border-control: var(--color-field-strong-border);
-  --color-surface: var(--color-field-strong);
-
   display: flex;
   flex-direction: column;
   gap: var(--space-4);
-  color: var(--color-on-strong);
-}
-
-.schedules-page__ink :deep(.base-input) {
-  --input-bg: color-mix(in srgb, var(--color-on-strong) 4%, transparent);
-  --input-border-color: color-mix(in srgb, var(--color-on-strong) 12%, transparent);
-  --input-border-base-color: color-mix(in srgb, var(--color-on-strong) 30%, transparent);
-  --input-focus-ring: 0 0 0 2px var(--color-surface-strong), 0 0 0 4px var(--color-focus);
-
-  color: var(--color-on-strong);
-}
-
-.schedules-page__ink :deep(.base-input__label),
-.schedules-page__ink :deep(.base-input__required) {
-  color: var(--color-brand-accent-surface);
-}
-
-.schedules-page__ink :deep(.base-input__required) {
-  margin-left: 2px;
-}
-
-.schedules-page__ink :deep(.base-input__hint) {
-  color: var(--color-on-strong-muted);
-}
-
-.schedules-page__ink :deep(.base-input:hover:not(:disabled):not(.base-input--invalid)) {
-  border-color: color-mix(in srgb, var(--color-on-strong) 26%, transparent);
-}
-
-/* El filete dorado inferior marca el campo YA RESUELTO (mismo criterio que
-   Agenda, Servicios y Profesionales). */
-.schedules-page__ink :deep(.schedules-page__input--filled .base-input) {
-  background-color: color-mix(in srgb, var(--color-on-strong) 6%, transparent);
-  border-bottom-color: var(--color-brand-accent-surface);
-}
-
-.schedules-page__ink :deep(.base-input:disabled),
-.schedules-page__ink :deep(.base-input--disabled) {
-  background-color: var(--input-bg);
-  border-color: var(--input-border-color);
-  border-bottom-color: color-mix(in srgb, var(--color-on-strong) 20%, transparent);
-  color: var(--color-on-strong-muted);
-  opacity: 0.45;
-}
-
-.schedules-page__ink :deep(.base-input--invalid) {
-  background-color: color-mix(in srgb, var(--color-danger-on-strong) 7%, transparent);
-  border-color: var(--input-border-color);
-  border-bottom-color: var(--color-danger-on-strong);
-}
-
-.schedules-page__ink :deep(.base-input__error) {
-  color: var(--color-danger-on-strong);
-}
-
-.schedules-page__ink :deep(.base-button) {
-  --btn-focus-ring: 0 0 0 2px var(--color-surface-strong), 0 0 0 4px var(--color-focus);
-}
-
-.schedules-page__ink :deep(.base-button--primary) {
-  background-color: var(--color-brand-accent-surface);
-  color: var(--color-brand-accent-text);
-  border-color: var(--color-brand-accent-surface);
-}
-
-.schedules-page__ink :deep(.base-button--primary:hover:not(:disabled):not(.base-button--loading)) {
-  filter: brightness(92%);
-}
-
-.schedules-page__ink :deep(.base-button--primary:active:not(:disabled):not(.base-button--loading)) {
-  filter: brightness(84%);
-}
-
-.schedules-page__ink :deep(.base-button--secondary) {
-  background-color: transparent;
-  color: var(--color-brand-accent-surface);
-  border-color: color-mix(in srgb, var(--color-brand-accent-surface) 50%, transparent);
-  border-bottom-color: var(--color-brand-accent-surface);
-}
-
-.schedules-page__ink
-  :deep(.base-button--secondary:hover:not(:disabled):not(.base-button--loading)) {
-  background-color: color-mix(in srgb, var(--color-brand-accent-surface) 12%, transparent);
-  border-color: color-mix(in srgb, var(--color-brand-accent-surface) 50%, transparent);
-}
-
-.schedules-page__ink
-  :deep(.base-button--secondary:active:not(:disabled):not(.base-button--loading)) {
-  background-color: color-mix(in srgb, var(--color-brand-accent-surface) 20%, transparent);
+  color: var(--color-text-primary);
 }
 
 .schedules-page__form {
@@ -2949,13 +2824,12 @@ const editPreview = computed(() =>
   gap: 8px;
 }
 
+/* Rótulo de grupo: el mismo que BaseInput v2 (tipo oración, secundario). */
 .schedules-page__label {
-  color: var(--color-brand-accent-surface);
-  font-size: var(--font-size-caption);
-  font-weight: 600;
-  line-height: 14px;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
+  color: var(--color-text-secondary);
+  font-size: 13px;
+  font-weight: 500;
+  line-height: 18px;
 }
 
 .schedules-page__label span {
@@ -2974,33 +2848,33 @@ const editPreview = computed(() =>
   gap: var(--space-4);
 }
 
-/* "Así queda": la pista del día con la propuesta en latón y lo ya existente
-   atenuado, para ver el solape antes de guardar. */
+/* "Así queda": la pista del día con la propuesta y lo ya existente atenuado,
+   para ver el solape antes de guardar. Tarjeta v2 sin filete de acento. */
 .schedules-page__preview {
   display: flex;
   flex-direction: column;
   gap: 10px;
   padding: 14px 16px;
-  background: var(--color-field-strong);
-  border-left: var(--border-width-emphasis) solid var(--color-brand-accent-surface);
+  background: var(--color-surface);
+  border: var(--border-width-normal) solid var(--color-border-subtle);
+  border-radius: var(--radius-lg);
 }
 
 .schedules-page__eyebrow {
-  color: var(--color-brand-accent-surface);
-  font-size: var(--font-size-caption);
-  font-weight: 600;
-  letter-spacing: 0.12em;
-  text-transform: uppercase;
+  color: var(--color-text-secondary);
+  font-size: 13px;
+  font-weight: 500;
+  line-height: 18px;
 }
 
 .schedules-page__preview p {
   margin: 0;
-  color: var(--color-on-strong);
+  color: var(--color-text-primary);
   font-size: var(--font-size-body-sm);
   font-variant-numeric: tabular-nums;
 }
 
-/* Estado del día: dos opciones como fichas; la elegida se enciende de latón. */
+/* Estado del día: dos opciones como fichas; la elegida queda en tinta. */
 .schedules-page__choice {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -3014,15 +2888,12 @@ const editPreview = computed(() =>
   align-items: center;
   justify-content: center;
   padding: 8px 12px;
-  color: var(--color-on-strong);
+  color: var(--color-text-primary);
   font-size: var(--font-size-body-sm);
   text-align: center;
-  background-color: color-mix(in srgb, var(--color-on-strong) 4%, transparent);
-  border: var(--border-width-normal) solid
-    color-mix(in srgb, var(--color-on-strong) 14%, transparent);
-  border-bottom: var(--border-width-emphasis) solid
-    color-mix(in srgb, var(--color-brand-accent-surface) 45%, transparent);
-  border-radius: 2px;
+  background-color: var(--color-surface);
+  border: var(--border-width-normal) solid var(--color-border-control);
+  border-radius: var(--radius-md);
   cursor: pointer;
   transition:
     background-color var(--motion-duration-fast) var(--motion-easing-standard),
@@ -3038,15 +2909,15 @@ const editPreview = computed(() =>
 }
 
 .schedules-page__choice-option:has(input:checked) {
-  color: var(--color-brand-accent-text);
+  color: var(--color-text-primary);
   font-weight: 600;
-  background-color: var(--color-brand-accent-surface);
-  border-color: var(--color-brand-accent-surface);
+  background-color: color-mix(in srgb, var(--color-text-primary) 8%, transparent);
+  border-color: var(--color-text-primary);
 }
 
 .schedules-page__choice-option:has(input:focus-visible) {
   box-shadow:
-    0 0 0 2px var(--color-surface-strong),
+    0 0 0 2px var(--color-surface),
     0 0 0 4px var(--color-focus);
 }
 
@@ -3057,8 +2928,8 @@ const editPreview = computed(() =>
 
 @media (hover: hover) {
   .schedules-page__choice-option:hover:not(:has(input:checked)):not(:has(input:disabled)) {
-    background-color: color-mix(in srgb, var(--color-brand-accent-surface) 12%, transparent);
-    border-color: color-mix(in srgb, var(--color-brand-accent-surface) 55%, transparent);
+    background-color: color-mix(in srgb, var(--color-text-primary) 4%, var(--color-surface));
+    border-color: var(--color-text-primary);
   }
 }
 
@@ -3074,11 +2945,9 @@ const editPreview = computed(() =>
   align-items: end;
   gap: var(--space-3);
   padding: 12px;
-  background-color: color-mix(in srgb, var(--color-on-strong) 3%, transparent);
-  border: var(--border-width-normal) solid
-    color-mix(in srgb, var(--color-on-strong) 10%, transparent);
-  border-radius: 2px;
-  animation: schedules-rise 260ms var(--motion-easing-standard) both;
+  background-color: var(--color-surface);
+  border: var(--border-width-normal) solid var(--color-border-subtle);
+  border-radius: var(--radius-lg);
 }
 
 .schedules-page__segment :deep(.base-button) {
@@ -3114,7 +2983,7 @@ const editPreview = computed(() =>
   display: flex;
   align-items: center;
   justify-content: center;
-  background: color-mix(in srgb, var(--color-field-strong) 50%, transparent);
+  background: color-mix(in srgb, var(--color-surface) 50%, transparent);
   backdrop-filter: blur(2px);
 }
 
@@ -3156,15 +3025,14 @@ const editPreview = computed(() =>
   width: 44px;
   height: 44px;
   padding: 0;
-  color: var(--color-brand-accent-surface);
+  color: var(--color-text-primary);
   cursor: pointer;
-  background: color-mix(in srgb, var(--color-brand-accent-surface) 8%, transparent);
-  border: 1px dashed color-mix(in srgb, var(--color-brand-accent-surface) 60%, transparent);
+  background: var(--color-surface);
+  border: var(--border-width-normal) solid var(--color-border-control);
   border-radius: 50%;
   transition:
     background-color var(--motion-duration-fast) var(--motion-easing-standard),
-    border-color var(--motion-duration-fast) var(--motion-easing-standard),
-    transform var(--motion-duration-base) cubic-bezier(0.34, 1.56, 0.64, 1);
+    border-color var(--motion-duration-fast) var(--motion-easing-standard);
 }
 
 .schedules-page__segment-add svg {
@@ -3174,24 +3042,17 @@ const editPreview = computed(() =>
   stroke: currentColor;
   stroke-width: 2;
   stroke-linecap: round;
-  transition: transform var(--motion-duration-base) var(--motion-easing-standard);
 }
 
 .schedules-page__segment-add:hover:not(:disabled) {
-  background: color-mix(in srgb, var(--color-brand-accent-surface) 18%, transparent);
-  border-style: solid;
-  border-color: var(--color-brand-accent-surface);
-  transform: scale(1.06);
-}
-
-.schedules-page__segment-add:hover:not(:disabled) svg {
-  transform: rotate(90deg);
+  background: color-mix(in srgb, var(--color-text-primary) 4%, var(--color-surface));
+  border-color: var(--color-text-primary);
 }
 
 .schedules-page__segment-add:focus-visible {
   outline: none;
   box-shadow:
-    0 0 0 2px var(--color-surface-strong),
+    0 0 0 2px var(--color-surface),
     0 0 0 4px var(--color-focus);
 }
 
@@ -3201,14 +3062,8 @@ const editPreview = computed(() =>
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .schedules-page__segment-add,
-  .schedules-page__segment-add svg {
+  .schedules-page__segment-add {
     transition: none;
-  }
-
-  .schedules-page__segment-add:hover:not(:disabled),
-  .schedules-page__segment-add:hover:not(:disabled) svg {
-    transform: none;
   }
 }
 
@@ -3294,16 +3149,6 @@ const editPreview = computed(() =>
     transition: none;
   }
 
-  .schedules-page__who,
-  .schedules-page__stats,
-  .schedules-page__aside,
-  .schedules-row--static,
-  .schedules-page__segment,
-  .schedules-page__dialog-chip,
-  .schedules-page__dialog-chip::after {
-    animation: none;
-  }
-
   .schedules-page__skeleton-bar {
     animation: none;
     opacity: 0.8;
@@ -3320,8 +3165,8 @@ const editPreview = computed(() =>
    necesario porque la regla propia de BaseDialog tiene la misma
    especificidad y el orden de inserción de los <style> no está garantizado. */
 .schedules-page__dialog.base-dialog {
-  background-color: var(--color-surface-strong) !important;
-  border: var(--border-width-normal) solid var(--color-field-strong-border) !important;
+  background-color: var(--color-surface) !important;
+  border: var(--border-width-normal) solid var(--color-border-subtle) !important;
 }
 
 /* Ancho explícito: sin él el diálogo se ajusta al contenido y, sin los campos
@@ -3357,9 +3202,10 @@ const editPreview = computed(() =>
   padding: var(--space-5) var(--space-6) var(--space-6) !important;
 }
 
+/* Separador v2 del encabezado: línea sutil de 1px, sin filete de acento. */
 .schedules-page__dialog .base-dialog__header {
-  border-bottom-width: var(--border-width-emphasis) !important;
-  border-bottom-color: var(--color-brand-accent-surface) !important;
+  border-bottom-width: var(--border-width-normal) !important;
+  border-bottom-color: var(--color-border-subtle) !important;
 }
 
 .schedules-page__dialog .base-dialog__title {
@@ -3382,7 +3228,7 @@ const editPreview = computed(() =>
 
 .schedules-page__dialog .base-dialog__close:focus-visible {
   box-shadow:
-    0 0 0 2px var(--color-surface-strong),
+    0 0 0 2px var(--color-surface),
     0 0 0 4px var(--color-focus) !important;
 }
 </style>

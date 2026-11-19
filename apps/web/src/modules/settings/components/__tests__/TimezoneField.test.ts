@@ -46,7 +46,7 @@ describe('TimezoneField', () => {
   it('shows the live clock of the chosen zone, not of the device', () => {
     const wrapper = mountField()
 
-    expect(wrapper.get('.tz-field__time').text()).toBe('07:00')
+    expect(wrapper.get('.tz-field__time').text().replace(/\s+/g, ' ')).toBe('7:00 a. m.')
     expect(wrapper.text()).toContain('Hora en Bogota')
     expect(wrapper.text()).toContain('UTC−5')
     expect(wrapper.text()).toContain('Sábado, 3 de octubre')
@@ -57,7 +57,7 @@ describe('TimezoneField', () => {
 
     await vi.advanceTimersByTimeAsync(61_000)
 
-    expect(wrapper.get('.tz-field__time').text()).toBe('07:01')
+    expect(wrapper.get('.tz-field__time').text().replace(/\s+/g, ' ')).toBe('7:01 a. m.')
   })
 
   it('opens a listbox and wires the active option for assistive technology', async () => {

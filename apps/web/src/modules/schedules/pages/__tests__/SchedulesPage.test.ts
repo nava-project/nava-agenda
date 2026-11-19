@@ -175,7 +175,7 @@ describe('SchedulesPage', () => {
   it('a professional with one tramo and one with a full team select use the same component', async () => {
     const oneWrapper = await mountReady(oneProfessional, [mondayMorning])
     expect((await openProfessionalList(oneWrapper)).length).toBe(1)
-    expect(oneWrapper.text()).toContain('08:00')
+    expect(oneWrapper.text()).toContain('8:00 a. m.')
 
     const fourWrapper = await mountReady(fourProfessionals, [])
     expect((await openProfessionalList(fourWrapper)).length).toBe(4)
@@ -188,13 +188,14 @@ describe('SchedulesPage', () => {
     }
   })
 
-  it('shows the business IANA timezone, never the device one (CA-040-06)', async () => {
+  it('names the business timezone, never the device one (CA-040-06)', async () => {
     fetchBusinessTimezoneMock.mockReset().mockResolvedValueOnce({
       kind: 'success',
       timezone: 'America/Bogota',
     })
     const wrapper = await mountReady(oneProfessional, [])
-    expect(wrapper.text()).toContain('America/Bogota')
+    expect(wrapper.text()).toContain('Horas en hora de Colombia')
+    expect(wrapper.text()).not.toContain('America/Bogota')
   })
 
   it('shows an empty state when there are no professionals, without an interactive picker', async () => {
@@ -229,7 +230,7 @@ describe('SchedulesPage', () => {
 
   it('switching professionals loads that professional schedule independently (cross-professional isolation)', async () => {
     const wrapper = await mountReady(fourProfessionals, [mondayMorning])
-    expect(wrapper.text()).toContain('08:00')
+    expect(wrapper.text()).toContain('8:00 a. m.')
 
     fetchWorkingHoursMock.mockResolvedValueOnce({
       kind: 'success',
@@ -240,8 +241,8 @@ describe('SchedulesPage', () => {
     await flushPromises()
 
     expect(fetchWorkingHoursMock).toHaveBeenLastCalledWith('b-2')
-    expect(wrapper.text()).toContain('10:00')
-    expect(wrapper.text()).not.toContain('08:00')
+    expect(wrapper.text()).toContain('10:00 a. m.')
+    expect(wrapper.text()).not.toContain('8:00 a. m.')
   })
 
   it('creating a tramo succeeds and appends it to its day', async () => {
@@ -254,7 +255,7 @@ describe('SchedulesPage', () => {
     await flushPromises()
 
     expect(createWorkingHourMock).toHaveBeenCalledWith('b-1', 1, '08:00', 60, expect.any(String))
-    expect(wrapper.text()).toContain('08:00')
+    expect(wrapper.text()).toContain('8:00 a. m.')
     expect(toastState.items.map((item) => item.title)).toEqual(['Tramo agregado'])
   })
 
@@ -301,8 +302,8 @@ describe('SchedulesPage', () => {
     await flushPromises()
 
     expect(updateWorkingHourMock).toHaveBeenCalledWith('b-1', 'wh-1', 1, '09:00', 240)
-    expect(wrapper.text()).toContain('09:00')
-    expect(wrapper.text()).not.toContain('08:00')
+    expect(wrapper.text()).toContain('9:00 a. m.')
+    expect(wrapper.text()).not.toContain('8:00 a. m.')
     expect(toastState.items.map((item) => item.title)).toEqual(['Tramo actualizado'])
   })
 
@@ -315,7 +316,7 @@ describe('SchedulesPage', () => {
     await flushPromises()
 
     expect(deleteWorkingHourMock).toHaveBeenCalledWith('b-1', 'wh-1')
-    expect(wrapper.text()).not.toContain('08:00')
+    expect(wrapper.text()).not.toContain('8:00 a. m.')
     expect(toastState.items.map((item) => item.title)).toEqual(['Tramo retirado'])
   })
 
@@ -327,7 +328,7 @@ describe('SchedulesPage', () => {
     await retireButton.trigger('click')
     await flushPromises()
 
-    expect(wrapper.text()).not.toContain('08:00')
+    expect(wrapper.text()).not.toContain('8:00 a. m.')
     expect(wrapper.find('[role="alert"]').exists()).toBe(false)
   })
 
@@ -340,7 +341,7 @@ describe('SchedulesPage', () => {
     await flushPromises()
 
     expect(wrapper.text()).toContain('No pudimos conectar')
-    expect(wrapper.text()).toContain('08:00')
+    expect(wrapper.text()).toContain('8:00 a. m.')
     // Con la fila visible el error sigue en línea (DEC-095).
     expect(toastState.items).toHaveLength(0)
   })
@@ -650,11 +651,11 @@ describe('SchedulesPage · tablero semanal', () => {
     expect(wrapper.text()).toContain('Día libre')
   })
 
-  it('shows when each tramo ends next to its start and duration', async () => {
+  it('shows each tramo as a 12-hour range, without its minutes', async () => {
     const wrapper = await mountReady(oneProfessional, [mondayMorning])
 
-    expect(wrapper.text()).toContain('08:00 · 240 min')
-    expect(wrapper.text()).toContain('hasta 12:00')
+    expect(wrapper.text()).toContain('8:00 a. m. – 12:00 p. m.')
+    expect(wrapper.text()).not.toContain('240 min')
   })
 
   it('opens the create dialog on the day whose + was pressed', async () => {
@@ -690,7 +691,7 @@ describe('SchedulesPage · tablero semanal', () => {
     await setTime(createForm(wrapper), '13:00', 0)
     await setTime(createForm(wrapper), '14:00', 1)
 
-    expect(createForm(wrapper).text()).toContain('Lunes · 13:00 – 14:00 · 1 h')
+    expect(createForm(wrapper).text()).toContain('Lunes · 1:00 p. m. – 2:00 p. m. · 1 h')
     // El de la mañana sigue en la pista como contexto, atenuado.
     expect(createForm(wrapper).findAll('.day-track__bar--muted')).toHaveLength(1)
   })
@@ -766,7 +767,26 @@ describe('SchedulesPage · tablero semanal', () => {
 
       expect(wrapper.find('#schedules-professional-select').exists()).toBe(false)
       expect(fetchWorkingHoursMock).toHaveBeenCalledWith('b-1')
-      expect(wrapper.text()).toContain('08:00')
+      expect(wrapper.text()).toContain('8:00 a. m.')
+    })
+
+    it('sizes the loading header for the name, not the picker, from the first frame (CLS)', async () => {
+      // La carga queda pendiente a propósito: el test mira el primer cuadro y
+      // así no hay una respuesta vacía que llegue después del desmontaje.
+      fetchProfessionalSummariesMock.mockReturnValue(new Promise(() => {}))
+      setBrand({ ...DEFAULT_BRAND, panelProfile: 'solo' })
+      const solo = mountPage()
+      // Sin esperar a la API: el perfil se lee de forma síncrona del brand.
+      expect(solo.find('.schedules-page__who--skeleton').exists()).toBe(true)
+      expect(solo.find('.schedules-page__skeleton-bar--name').exists()).toBe(true)
+      expect(solo.find('.schedules-page__skeleton-select').exists()).toBe(false)
+      solo.unmount()
+
+      resetBrand()
+      const team = mountPage()
+      expect(team.find('.schedules-page__skeleton-select').exists()).toBe(true)
+      expect(team.find('.schedules-page__skeleton-bar--name').exists()).toBe(false)
+      team.unmount()
     })
 
     it('keeps the picker in the solo profile with several professionals, and in the full panel', async () => {
@@ -832,13 +852,13 @@ describe('SchedulesPage · vocabulario del negocio (DEC-119)', () => {
     expect(wrapper.text()).not.toMatch(/profesional(es)?\b|negocio/i)
   }
 
-  it('names the picker, the timezone note and the holiday switch with the configured words', async () => {
+  it('names the picker and the holiday switch with the configured words', async () => {
     setBrand(nails)
     const wrapper = await mountReady(fourProfessionals)
 
     expect(wrapper.get('#schedules-professional-select').text()).not.toBe('')
     expect(wrapper.text()).toContain('Manicurista')
-    expect(wrapper.text()).toContain('Horas en la zona horaria del estudio:')
+    expect(wrapper.text()).toContain('Horas en hora de Colombia')
     expect(wrapper.text()).toContain('festivos colombianos de esta manicurista')
     expectNoFixedWords(wrapper)
   })
@@ -872,7 +892,7 @@ describe('SchedulesPage · vocabulario del negocio (DEC-119)', () => {
   it('uses the generic words when the business never configured its own (DEC-183)', async () => {
     const wrapper = await mountReady(fourProfessionals)
 
-    expect(wrapper.text()).toContain('Horas en la zona horaria del negocio:')
+    expect(wrapper.text()).toContain('Horas en hora de Colombia')
     expect(wrapper.text()).toContain('festivos colombianos de este profesional')
   })
 })

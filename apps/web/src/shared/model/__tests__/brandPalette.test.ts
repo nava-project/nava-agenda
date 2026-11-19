@@ -99,12 +99,15 @@ describe('alertas en línea de BaseAlert sobre tinta (DEC-149)', () => {
   const alert = readFileSync(resolve(__dirname, '../../ui/BaseAlert.vue'), 'utf-8')
   const css = alert.slice(alert.indexOf('<style'))
 
-  it('pinta la palabra de estado con el latón de marca que sigue al tema, como BaseToast', () => {
-    expect(/\.base-alert__status \{[^}]*var\(--color-brand-accent-surface\)/.test(css)).toBe(true)
+  // v2 (DEC-188, entrega 5): el acento es solo de la acción principal; la
+  // palabra de estado va en texto secundario y el filete lleva el color.
+  it('pinta la palabra de estado en texto secundario, sin el acento', () => {
+    expect(/\.base-alert__status \{[^}]*var\(--color-text-secondary\)/.test(css)).toBe(true)
+    expect(/\.base-alert__status \{[^}]*brand-accent/.test(css)).toBe(false)
   })
 
   it('usa el lienzo y el texto de tinta, no las superficies pastel de estado', () => {
-    expect(css).toContain('--alert-surface: var(--color-surface-strong);')
+    expect(css).toContain('--alert-surface: var(--color-surface);')
     expect(css).toContain('--alert-text: var(--color-on-strong);')
     expect(css).not.toMatch(/--color-(success|warning|danger|info)-(surface|text|border)/)
   })

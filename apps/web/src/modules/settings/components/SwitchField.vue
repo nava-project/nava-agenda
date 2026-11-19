@@ -1,6 +1,6 @@
 <script setup lang="ts">
-// Interruptor accesible (`role="switch"`) con el lenguaje reglado de NAVA: una
-// pista fina con un rombo que se desliza, no una píldora genérica. El estado
+// Interruptor accesible (`role="switch"`) en el lenguaje v2 (DEC-188): pista
+// y botón redondos; encendido se pinta en tinta, no en el acento. El estado
 // se anuncia con `aria-checked` y también con texto ("Activado"/"Desactivado"),
 // nunca solo con el color.
 import { useId } from 'vue'
@@ -61,14 +61,14 @@ const id = useId()
   font-size: var(--font-size-body-sm);
   font-weight: 600;
   line-height: 20px;
-  color: var(--color-on-strong);
+  color: var(--color-text-primary);
 }
 
 .switch-field__hint {
   margin: 2px 0 0;
-  font-size: var(--font-size-caption);
+  font-size: 13px;
   line-height: 18px;
-  color: var(--color-on-strong-muted);
+  color: var(--color-text-secondary);
 }
 
 .switch-field__control {
@@ -80,8 +80,8 @@ const id = useId()
   padding: 0 2px;
   background: transparent;
   border: 0;
-  border-radius: 3px;
-  color: var(--color-on-strong-muted);
+  border-radius: var(--radius-md);
+  color: var(--color-text-secondary);
   font-family: var(--font-sans);
   cursor: pointer;
 }
@@ -91,64 +91,70 @@ const id = useId()
   outline-offset: 2px;
 }
 
+/* El estado en palabras, en tipo oración: el color nunca lo dice solo. */
 .switch-field__state {
   min-width: 76px;
   text-align: right;
-  font-size: var(--font-size-caption);
-  font-weight: 600;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-  transition: color var(--motion-duration-base) var(--motion-easing-standard);
+  font-size: 13px;
+  font-weight: 500;
+  line-height: 18px;
+  color: var(--color-text-secondary);
 }
 
 .switch-field--on .switch-field__state {
-  color: var(--color-brand-accent-surface);
+  color: var(--color-text-primary);
 }
 
 .switch-field__track {
   position: relative;
   display: block;
-  width: 46px;
+  width: 44px;
   height: 24px;
-  border: var(--border-width-normal) solid
-    color-mix(in srgb, var(--color-on-strong) 32%, transparent);
-  border-radius: 3px;
-  background: color-mix(in srgb, var(--color-on-strong) 5%, transparent);
+  border: var(--border-width-normal) solid var(--color-border-control);
+  border-radius: var(--radius-pill);
+  background: var(--color-surface-muted);
   transition:
-    background-color var(--motion-duration-base) var(--motion-easing-standard),
-    border-color var(--motion-duration-base) var(--motion-easing-standard);
+    background-color var(--motion-duration-fast) var(--motion-easing-standard),
+    border-color var(--motion-duration-fast) var(--motion-easing-standard);
 }
 
 .switch-field--on .switch-field__track {
-  background: color-mix(in srgb, var(--color-brand-accent-surface) 22%, transparent);
-  border-color: var(--color-brand-accent-surface);
+  background: var(--color-text-primary);
+  border-color: var(--color-text-primary);
 }
 
-/* Un rombo, el motivo de la casa, recorre la pista con un leve rebote. */
 .switch-field__thumb {
   position: absolute;
   top: 50%;
-  left: 5px;
-  width: 12px;
-  height: 12px;
-  background: var(--color-on-strong-muted);
-  transform: translateY(-50%) rotate(45deg);
+  left: 3px;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: var(--color-text-secondary);
+  transform: translateY(-50%);
   transition:
-    left 280ms cubic-bezier(0.34, 1.56, 0.64, 1),
-    background-color var(--motion-duration-base) var(--motion-easing-standard);
+    left var(--motion-duration-fast) var(--motion-easing-standard),
+    background-color var(--motion-duration-fast) var(--motion-easing-standard);
 }
 
 .switch-field--on .switch-field__thumb {
-  left: 27px;
-  background: var(--color-brand-accent-surface);
+  left: 23px;
+  background: var(--color-surface);
 }
 
 .switch-field__control:hover:not(:disabled) .switch-field__track {
-  border-color: var(--color-brand-accent-surface);
+  border-color: var(--color-text-primary);
 }
 
 .switch-field__control:disabled {
   cursor: not-allowed;
   opacity: 0.5;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .switch-field__track,
+  .switch-field__thumb {
+    transition: none;
+  }
 }
 </style>

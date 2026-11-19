@@ -43,7 +43,8 @@ const width = computed(() => Math.min(1, Math.max(0, props.fill)) * 24)
 
 <style scoped>
 .rating-gem {
-  --gem: var(--star-filled-color, var(--color-accent-brass));
+  /* v2: tinta por omisión; la reserva pública lo pinta con su acento. */
+  --gem: var(--star-filled-color, var(--color-text-primary));
   --gem-light: color-mix(in srgb, var(--gem) 55%, white);
   --gem-dark: color-mix(in srgb, var(--gem) 62%, black);
   --gem-mid: color-mix(in srgb, var(--gem) 82%, black);

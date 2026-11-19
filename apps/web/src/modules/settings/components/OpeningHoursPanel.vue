@@ -203,8 +203,9 @@ onMounted(load)
       </ul>
 
       <p class="opening__hint">
-        Cierra a las 00:00 si atiendes hasta la medianoche. Si sigues abierto después, añade el
-        resto en el día siguiente desde las 00:00. Para el almuerzo, usa dos horarios el mismo día.
+        Si atiendes hasta la medianoche, cierra a las 12:00 a. m. (00:00 en el selector). Si sigues
+        abierto después, añade el resto en el día siguiente desde las 12:00 a. m. Para el almuerzo,
+        usa dos horarios el mismo día.
       </p>
 
       <button type="button" class="opening__add" @click="copyMondayToWeekdays">
@@ -276,7 +277,7 @@ onMounted(load)
 }
 
 .opening__hint {
-  opacity: 0.8;
+  color: var(--color-text-secondary);
 }
 
 .opening__feedback {
@@ -289,7 +290,7 @@ onMounted(load)
   margin: 0;
   padding: 0;
   list-style: none;
-  border-top: var(--border-width-normal) solid var(--color-field-strong-border);
+  border-top: var(--border-width-normal) solid var(--color-border-subtle);
 }
 
 .opening__day {
@@ -298,7 +299,7 @@ onMounted(load)
   gap: 12px 24px;
   align-items: start;
   padding: 14px 0;
-  border-bottom: var(--border-width-normal) solid var(--color-field-strong-border);
+  border-bottom: var(--border-width-normal) solid var(--color-border-subtle);
 }
 
 .opening__day--invalid {
@@ -315,9 +316,10 @@ onMounted(load)
 }
 
 .opening__day-name {
-  font-family: var(--font-family-display, inherit);
-  font-size: 20px;
-  line-height: 1.2;
+  font-size: var(--font-size-body);
+  font-weight: 600;
+  line-height: 24px;
+  color: var(--color-text-primary);
 }
 
 .opening__day--closed .opening__day-name {
@@ -337,7 +339,8 @@ onMounted(load)
   width: 20px;
   height: 20px;
   margin: 0;
-  accent-color: var(--color-brand-accent-surface);
+  /* Casilla en tinta: el acento queda para «Guardar». */
+  accent-color: var(--color-text-primary);
   cursor: pointer;
 }
 
@@ -364,7 +367,7 @@ onMounted(load)
   font-size: var(--font-size-body-sm);
   background: transparent;
   border: var(--border-width-normal) solid transparent;
-  border-radius: 2px;
+  border-radius: var(--radius-md);
   cursor: pointer;
   text-decoration: underline;
   text-underline-offset: 3px;
@@ -373,7 +376,7 @@ onMounted(load)
 .opening__add {
   align-self: flex-start;
   padding-left: 0;
-  color: var(--color-brand-accent-surface);
+  color: var(--color-text-primary);
   text-align: left;
 }
 
@@ -384,14 +387,14 @@ onMounted(load)
 
 .opening__remove:focus-visible,
 .opening__add:focus-visible {
-  outline: var(--border-width-emphasis, 2px) solid var(--color-brand-accent-surface);
+  outline: var(--border-width-emphasis) solid var(--color-focus);
   outline-offset: 2px;
 }
 
 .opening__error {
   grid-column: 1 / -1;
   margin: 0;
-  color: var(--color-danger-on-strong);
+  color: var(--color-danger-text);
   font-size: var(--font-size-body-sm);
 }
 

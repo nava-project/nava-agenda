@@ -2,8 +2,9 @@
 // Pantalla "Configuración" (HU-020, DEC-110): nombre, zona horaria y contacto
 // del negocio activo (HU-020) más la marca y el vocabulario de todo el
 // negocio y las preferencias de pantalla de ESTE dispositivo. Mismo lenguaje
-// que Agenda, Servicios y Profesionales (tinta, latón, campos reglados, rombo de
-// estado, entrada escalonada, carga con el rombo).
+// v2 «La luz del día» que la Agenda (DEC-188): superficies del modo, tarjetas
+// con borde sutil, rótulos en tipo oración y un solo acento lleno por panel
+// (su acción principal); nada se anima al cargar.
 //
 // Dos clases de ajuste, y la pantalla lo dice en cada sección:
 //  - Este dispositivo (modo, tamaño de texto, animaciones): se aplican al
@@ -540,18 +541,18 @@ const reduceMotion = computed({
 // --- Índice de secciones ----------------------------------------------------
 
 const SECTIONS = [
-  { id: 'configuracion-pantalla', number: '01', label: 'Pantalla' },
-  { id: 'configuracion-marca', number: '02', label: 'Marca' },
-  { id: 'configuracion-vocabulario', number: '03', label: 'Vocabulario' },
-  { id: 'configuracion-hora', number: '04', label: 'Hora' },
-  { id: 'configuracion-contacto', number: '05', label: 'Contacto' },
-  { id: 'configuracion-ubicacion', number: '06', label: 'Ubicación' },
-  { id: 'configuracion-horario', number: '07', label: 'Horario' },
-  { id: 'configuracion-enlace', number: '08', label: 'Enlace' },
-  { id: 'configuracion-reservas', number: '09', label: 'Reservas' },
-  { id: 'configuracion-recordatorios', number: '10', label: 'Recordatorios' },
-  { id: 'configuracion-integraciones', number: '11', label: 'Integraciones' },
-  { id: 'configuracion-acceso', number: '12', label: 'Acceso' },
+  { id: 'configuracion-pantalla', label: 'Pantalla' },
+  { id: 'configuracion-marca', label: 'Marca' },
+  { id: 'configuracion-vocabulario', label: 'Vocabulario' },
+  { id: 'configuracion-hora', label: 'Hora' },
+  { id: 'configuracion-contacto', label: 'Contacto' },
+  { id: 'configuracion-ubicacion', label: 'Ubicación' },
+  { id: 'configuracion-horario', label: 'Horario' },
+  { id: 'configuracion-enlace', label: 'Enlace' },
+  { id: 'configuracion-reservas', label: 'Reservas' },
+  { id: 'configuracion-recordatorios', label: 'Recordatorios' },
+  { id: 'configuracion-integraciones', label: 'Integraciones' },
+  { id: 'configuracion-acceso', label: 'Acceso' },
 ] as const
 
 const activeSection = ref<string>(SECTIONS[0].id)
@@ -634,10 +635,6 @@ const previewClass = computed(() => ({ 'settings-page__preview--changed': brandD
       <p class="settings-page__subtitle">
         Ajusta cómo se ve Nava Agenda en este dispositivo y cómo se llama {{ v.theBusiness }}.
       </p>
-      <span class="settings-page__rule" aria-hidden="true"
-        ><span class="settings-page__rule-line" /><span class="settings-page__rule-diamond" /><span
-          class="settings-page__rule-line"
-      /></span>
     </header>
 
     <Transition name="settings-content" mode="out-in" @after-enter="observeSections">
@@ -650,7 +647,7 @@ const previewClass = computed(() => ({ 'settings-page__preview--changed': brandD
       >
         <DiamondLoader label="Cargando la configuración…" layout="inline" />
         <div class="settings-page__skeletons" aria-hidden="true">
-          <span v-for="n in 3" :key="n" class="settings-page__skeleton" :style="{ '--n': n }" />
+          <span v-for="n in 3" :key="n" class="settings-page__skeleton" />
         </div>
       </div>
 
@@ -689,15 +686,13 @@ const previewClass = computed(() => ({ 'settings-page__preview--changed': brandD
             Revisa las palabras: usa solo letras, espacios, guion o apóstrofo.
           </BaseAlert>
 
-          <!-- 01 · Pantalla (este dispositivo) -->
+          <!-- Pantalla (este dispositivo) -->
           <SettingsPanel
             id="configuracion-pantalla"
-            number="01"
             title="Pantalla"
             description="Cómo se ve Nava Agenda en este aparato. Se aplica al instante y no hace falta guardar."
             scope="device"
             scope-label="Solo este dispositivo"
-            style="--panel-index: 0"
           >
             <div class="settings-field">
               <span class="settings-field__label" id="field-theme">Modo</span>
@@ -784,15 +779,13 @@ const previewClass = computed(() => ({ 'settings-page__preview--changed': brandD
             </div>
           </SettingsPanel>
 
-          <!-- 02 · Marca (todo el negocio) -->
+          <!-- Marca (todo el negocio) -->
           <SettingsPanel
             id="configuracion-marca"
-            number="02"
             title="Marca"
             description="El nombre y el color con los que tu equipo reconoce el panel."
             scope="shop"
             :scope-label="`Para ${v.theBusiness}`"
-            style="--panel-index: 1"
           >
             <BaseInput
               :model-value="shop.name"
@@ -836,15 +829,13 @@ const previewClass = computed(() => ({ 'settings-page__preview--changed': brandD
             </div>
           </SettingsPanel>
 
-          <!-- 03 · Vocabulario (todo el negocio) -->
+          <!-- Vocabulario (todo el negocio) -->
           <SettingsPanel
             id="configuracion-vocabulario"
-            number="03"
             title="Vocabulario"
             description="Las palabras con las que Nava Agenda nombra tu negocio y a quien atiende los turnos."
             scope="shop"
             :scope-label="`Para ${v.theBusiness}`"
-            style="--panel-index: 2"
           >
             <div class="vocab-group">
               <BaseInput
@@ -996,15 +987,13 @@ const previewClass = computed(() => ({ 'settings-page__preview--changed': brandD
             </aside>
           </SettingsPanel>
 
-          <!-- 04 · Hora (todo el negocio) -->
+          <!-- Hora (todo el negocio) -->
           <SettingsPanel
             id="configuracion-hora"
-            number="04"
             title="Hora"
             description="Toda hora de la agenda, de los horarios y de las reservas se calcula en esta zona, nunca en la de cada dispositivo."
             scope="shop"
             :scope-label="`Para ${v.theBusiness}`"
-            style="--panel-index: 3"
           >
             <TimezoneField
               :model-value="shop.timezone"
@@ -1015,15 +1004,13 @@ const previewClass = computed(() => ({ 'settings-page__preview--changed': brandD
             />
           </SettingsPanel>
 
-          <!-- 05 · Contacto (todo el negocio) -->
+          <!-- Contacto (todo el negocio) -->
           <SettingsPanel
             id="configuracion-contacto"
-            number="05"
             title="Contacto"
             description="Opcional. Es el correo y el teléfono con los que tus clientes pueden escribirte."
             scope="shop"
             :scope-label="`Para ${v.theBusiness}`"
-            style="--panel-index: 4"
           >
             <div class="settings-grid">
               <BaseInput
@@ -1050,15 +1037,13 @@ const previewClass = computed(() => ({ 'settings-page__preview--changed': brandD
             </div>
           </SettingsPanel>
 
-          <!-- 06 · Ubicación (DEC-130, HU-102): interruptor, dirección y vista previa del mapa -->
+          <!-- Ubicación (DEC-130, HU-102): interruptor, dirección y vista previa del mapa -->
           <SettingsPanel
             id="configuracion-ubicacion"
-            number="06"
             title="Ubicación"
             description="Dónde queda tu local y si atiendes a domicilio. Tus clientes lo ven al reservar."
             scope="shop"
             :scope-label="`Para ${v.theBusiness}`"
-            style="--panel-index: 5"
           >
             <SwitchField
               v-model="location.hasPhysicalLocation"
@@ -1149,35 +1134,29 @@ const previewClass = computed(() => ({ 'settings-page__preview--changed': brandD
             </div>
           </SettingsPanel>
 
-          <!-- 07 · Horario de atención (DEC-182): se guarda con su propio botón, no es parte del borrador -->
+          <!-- Horario de atención (DEC-182): se guarda con su propio botón, no es parte del borrador -->
           <SettingsPanel
             id="configuracion-horario"
-            number="07"
             title="Horario de atención"
             description="Los días y horas en que abre el local. Lo ven tus clientes al reservar."
-            style="--panel-index: 6"
           >
             <OpeningHoursPanel />
           </SettingsPanel>
 
-          <!-- 08 · Enlace público de reservas (DEC-117): solo lectura, no es parte del borrador -->
+          <!-- Enlace público de reservas (DEC-117): solo lectura, no es parte del borrador -->
           <SettingsPanel
             id="configuracion-enlace"
-            number="08"
             title="Enlace público"
             description="La dirección que compartes para que tus clientes reserven. Cópiala cuando la necesites."
-            style="--panel-index: 7"
           >
             <PublicLinkPanel />
           </SettingsPanel>
 
-          <!-- 09 · Reservas públicas: enlace a su propia pantalla (HU-093) -->
+          <!-- Reservas públicas: enlace a su propia pantalla (HU-093) -->
           <SettingsPanel
             id="configuracion-reservas"
-            number="09"
             title="Reservas"
             description="Cuándo y con cuánta anticipación pueden reservar tus clientes, y cómo cancelan."
-            style="--panel-index: 8"
           >
             <RouterLink :to="{ name: 'configuracion-reserva-publica' }" class="settings-link">
               <span class="settings-link__copy">
@@ -1190,24 +1169,20 @@ const previewClass = computed(() => ({ 'settings-page__preview--changed': brandD
             </RouterLink>
           </SettingsPanel>
 
-          <!-- 10 · Recordatorios (DEC-174): se aplica al instante, no es parte del borrador -->
+          <!-- Recordatorios (DEC-174): se aplica al instante, no es parte del borrador -->
           <SettingsPanel
             id="configuracion-recordatorios"
-            number="10"
             title="Recordatorios"
             description="Cuánto antes de su turno le recordamos la cita a cada cliente."
-            style="--panel-index: 9"
           >
             <ReminderPanel />
           </SettingsPanel>
 
-          <!-- 11 · Integraciones: enlace a la pantalla de Google Calendar (DEC-099) -->
+          <!-- Integraciones: enlace a la pantalla de Google Calendar (DEC-099) -->
           <SettingsPanel
             id="configuracion-integraciones"
-            number="11"
             title="Integraciones"
             description="Conecta tu calendario para ver tus turnos de Nava Agenda donde ya organizas tu día."
-            style="--panel-index: 10"
           >
             <RouterLink :to="{ name: 'integraciones-google-calendar' }" class="settings-link">
               <span class="settings-link__copy">
@@ -1220,13 +1195,11 @@ const previewClass = computed(() => ({ 'settings-page__preview--changed': brandD
             </RouterLink>
           </SettingsPanel>
 
-          <!-- 12 · Código de acceso (DEC-139): se aplica al instante, no es parte del borrador -->
+          <!-- Código de acceso (DEC-139): se aplica al instante, no es parte del borrador -->
           <SettingsPanel
             id="configuracion-acceso"
-            number="12"
             title="Código de acceso"
             description="Por dónde llega el código de verificación cuando alguien necesita confirmar su identidad para entrar."
-            style="--panel-index: 11"
           >
             <LoginOtpPanel />
           </SettingsPanel>
@@ -1247,8 +1220,8 @@ const previewClass = computed(() => ({ 'settings-page__preview--changed': brandD
 </template>
 
 <style scoped>
-/* Superficie tinta de punta a punta (estandar-diseno-visual.md §3), el mismo
-   canvas que Agenda, Servicios y Profesionales. */
+/* v2 (DEC-188): el lienzo y las superficies son los del modo (Día o Noche),
+   como en la Agenda del día. */
 .settings-page {
   --settings-width: 1040px;
 
@@ -1257,8 +1230,8 @@ const previewClass = computed(() => ({ 'settings-page__preview--changed': brandD
   gap: 24px;
   min-height: 100%;
   padding: 34px 32px 48px;
-  color: var(--color-on-strong);
-  /* Transparente: la tinta y el fondo animado los pone el cascarón. */
+  color: var(--color-text-primary);
+  /* Transparente: el lienzo del modo lo pone el cascarón. */
   background: transparent;
   box-sizing: border-box;
 }
@@ -1271,19 +1244,21 @@ const previewClass = computed(() => ({ 'settings-page__preview--changed': brandD
   margin-inline: auto;
 }
 
+/* Mismo h1 que la Agenda del día (DailyAgendaPage). */
 .settings-page__title {
   margin: 0;
-  font-family: var(--font-display);
-  font-size: var(--font-size-h1);
-  font-weight: var(--font-weight-h1);
-  line-height: var(--font-size-h1-line);
-  animation: settings-title-enter 520ms var(--motion-easing-standard) both;
+  font-family: var(--font-sans);
+  font-size: 28px;
+  font-weight: 600;
+  line-height: 32px;
+  letter-spacing: -0.01em;
+  color: var(--color-text-primary);
 }
 
 @media (min-width: 1024px) {
   .settings-page__title {
-    font-size: var(--font-size-title-page);
-    line-height: 46px;
+    font-size: 32px;
+    line-height: 36px;
   }
 }
 
@@ -1291,44 +1266,14 @@ const previewClass = computed(() => ({ 'settings-page__preview--changed': brandD
   margin: 4px 0 0;
   font-size: var(--font-size-body-sm);
   line-height: var(--font-size-body-sm-line);
-  color: var(--color-on-strong-muted);
-  animation: settings-title-enter 520ms var(--motion-easing-standard) 80ms both;
-}
-
-/* Regla – rombo – regla, el divisor de la casa, que se dibuja al entrar. */
-.settings-page__rule {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  margin-top: 18px;
-}
-
-.settings-page__rule-line {
-  height: 1px;
-  flex: 1;
-  background: color-mix(in srgb, var(--color-brand-accent-surface) 45%, transparent);
-  transform: scaleX(0);
-  transform-origin: left center;
-  animation: settings-rule-draw 700ms var(--motion-easing-standard) 160ms both;
-}
-
-.settings-page__rule-line:last-child {
-  transform-origin: right center;
-}
-
-.settings-page__rule-diamond {
-  width: 7px;
-  height: 7px;
-  background: var(--color-brand-accent-surface);
-  transform: rotate(45deg);
-  animation: settings-diamond-pop 420ms cubic-bezier(0.34, 1.56, 0.64, 1) 260ms both;
+  color: var(--color-text-secondary);
 }
 
 .settings-page__state {
   display: flex;
   flex-direction: column;
   gap: 16px;
-  color: var(--color-on-strong-muted);
+  color: var(--color-text-secondary);
 }
 
 .settings-page__skeletons {
@@ -1337,13 +1282,13 @@ const previewClass = computed(() => ({ 'settings-page__preview--changed': brandD
   gap: 16px;
 }
 
+/* El esqueleto pulsa solo mientras carga (estado finito, sin rombos). */
 .settings-page__skeleton {
   display: block;
   height: 132px;
-  background: color-mix(in srgb, var(--color-on-strong) 8%, transparent);
-  border-radius: 3px;
+  background: var(--color-surface-muted);
+  border-radius: var(--radius-lg);
   animation: settings-skeleton-pulse 1400ms ease-in-out infinite;
-  animation-delay: calc(var(--n) * 120ms);
 }
 
 .settings-page__layout {
@@ -1379,30 +1324,25 @@ const previewClass = computed(() => ({ 'settings-page__preview--changed': brandD
 }
 
 .settings-field__label {
-  color: var(--color-brand-accent-surface);
-  font-size: var(--font-size-caption);
-  font-weight: 600;
-  letter-spacing: 0.08em;
-  line-height: 14px;
-  text-transform: uppercase;
-}
-
-.settings-field__label--sub {
-  color: var(--color-on-strong-muted);
+  color: var(--color-text-secondary);
+  font-size: 13px;
+  font-weight: 500;
+  line-height: 18px;
 }
 
 .settings-field__hint {
   margin: 0;
   max-width: 60ch;
-  font-size: var(--font-size-caption);
+  font-size: 13px;
   line-height: 18px;
-  color: var(--color-on-strong-muted);
+  color: var(--color-text-secondary);
 }
 
-/* Dirección sin punto en el mapa (issue #589): el aviso lleva el acento para
-   leerse como una acción pendiente, no como ayuda de fondo. */
+/* Dirección sin punto en el mapa (issue #589): el aviso va en tinta y con
+   peso para leerse como una acción pendiente, no como ayuda de fondo. */
 .settings-location-pending {
-  color: var(--color-brand-accent-surface);
+  color: var(--color-text-primary);
+  font-weight: 500;
 }
 
 .settings-location-preview {
@@ -1441,35 +1381,35 @@ const previewClass = computed(() => ({ 'settings-page__preview--changed': brandD
   gap: 8px;
   width: 100%;
   padding: 10px;
-  background: color-mix(in srgb, var(--color-on-strong) 3%, transparent);
-  border: var(--border-width-normal) solid var(--color-field-strong-border);
-  border-radius: 3px;
+  background: var(--color-surface);
+  border: var(--border-width-normal) solid var(--color-border-control);
+  border-radius: var(--radius-lg);
   transition:
-    transform var(--motion-duration-base) var(--motion-easing-standard),
-    border-color var(--motion-duration-base) var(--motion-easing-standard),
-    background-color var(--motion-duration-base) var(--motion-easing-standard);
+    border-color var(--motion-duration-fast) var(--motion-easing-standard),
+    background-color var(--motion-duration-fast) var(--motion-easing-standard);
 }
 
 .theme-tile:hover {
-  transform: translateY(-3px);
-  border-color: color-mix(in srgb, var(--color-brand-accent-surface) 55%, transparent);
+  border-color: var(--color-text-primary);
 }
 
+/* Elegida en tinta (v2): borde de 2px y fondo tenue, no el acento. */
 .theme-tile--selected {
-  background: color-mix(in srgb, var(--color-brand-accent-surface) 10%, transparent);
-  border-color: var(--color-brand-accent-surface);
-  box-shadow: 0 0 0 1px var(--color-brand-accent-surface);
+  background: color-mix(in srgb, var(--color-text-primary) 8%, transparent);
+  border-color: var(--color-text-primary);
+  box-shadow: 0 0 0 1px var(--color-text-primary);
 }
 
-/* Miniatura: superficies literales a propósito, porque cada una muestra SU modo
-   sin importar cuál esté activo. El acento llega de la plantilla con su valor
-   para cada modo; el latón queda solo como respaldo. */
+/* Miniatura: superficies literales a propósito (los valores v2 de Noche y
+   Día), porque cada una muestra SU modo sin importar cuál esté activo. Su
+   pequeño botón es la réplica de la acción principal, por eso lleva el acento
+   elegido con el valor medido para cada modo. */
 .theme-tile__mini {
-  --mini-bg: #101b2b;
-  --mini-chrome: #101b2b;
-  --mini-line: rgb(244 240 231 / 70%);
-  --mini-faint: rgb(244 240 231 / 22%);
-  --mini-accent: var(--mini-accent-ink, #b8955a);
+  --mini-bg: #0b1022;
+  --mini-chrome: #0e1430;
+  --mini-line: rgb(238 241 248 / 70%);
+  --mini-faint: rgb(238 241 248 / 22%);
+  --mini-accent: var(--mini-accent-ink, #ff8daa);
 
   position: relative;
   display: flex;
@@ -1478,41 +1418,41 @@ const previewClass = computed(() => ({ 'settings-page__preview--changed': brandD
   overflow: hidden;
   background: var(--mini-bg);
   border: 1px solid rgb(127 127 127 / 35%);
-  border-radius: 2px;
+  border-radius: var(--radius-sm);
 }
 
 .theme-tile__mini--ivory {
-  --mini-bg: #f4f0e7;
-  --mini-chrome: #ebe5d9;
+  --mini-bg: #f4f6fa;
+  --mini-chrome: #ffffff;
   --mini-line: rgb(16 27 43 / 70%);
   --mini-faint: rgb(16 27 43 / 20%);
-  --mini-accent: var(--mini-accent-ivory, #765c2f);
+  --mini-accent: var(--mini-accent-ivory, #b23157);
 }
 
 .theme-tile__mini--auto {
-  background: linear-gradient(115deg, #101b2b 0 50%, #f4f0e7 50% 100%);
+  background: linear-gradient(115deg, #0b1022 0 50%, #f4f6fa 50% 100%);
 }
 
 .theme-tile__mini--auto .theme-tile__bar {
-  background: linear-gradient(115deg, #101b2b 0 50%, #ebe5d9 50% 100%);
+  background: linear-gradient(115deg, #0e1430 0 50%, #ffffff 50% 100%);
 }
 
 .theme-tile__mini--auto .theme-tile__line {
-  background: linear-gradient(115deg, rgb(244 240 231 / 70%) 0 50%, rgb(16 27 43 / 70%) 50% 100%);
+  background: linear-gradient(115deg, rgb(238 241 248 / 70%) 0 50%, rgb(16 27 43 / 70%) 50% 100%);
 }
 
 .theme-tile__mini--auto .theme-tile__accent {
   background: linear-gradient(
     115deg,
-    var(--mini-accent-ink, #b8955a) 0 50%,
-    var(--mini-accent-ivory, #765c2f) 50% 100%
+    var(--mini-accent-ink, #ff8daa) 0 50%,
+    var(--mini-accent-ivory, #b23157) 50% 100%
   );
 }
 
 .theme-tile__bar {
   height: 14px;
   background: var(--mini-chrome);
-  border-bottom: 1px solid var(--mini-accent);
+  border-bottom: 1px solid var(--mini-faint);
 }
 
 .theme-tile__body {
@@ -1549,7 +1489,7 @@ const previewClass = computed(() => ({ 'settings-page__preview--changed': brandD
   width: 16px;
   height: 6px;
   background: var(--mini-accent);
-  border-radius: 1px;
+  border-radius: 2px;
 }
 
 .theme-tile__name {
@@ -1559,18 +1499,17 @@ const previewClass = computed(() => ({ 'settings-page__preview--changed': brandD
   font-size: var(--font-size-body-sm);
   font-weight: 600;
   line-height: 18px;
-  color: var(--color-on-strong);
+  color: var(--color-text-primary);
 }
 
 .theme-tile__check {
-  color: var(--color-brand-accent-surface);
-  animation: settings-check-pop 360ms cubic-bezier(0.34, 1.56, 0.64, 1) both;
+  color: var(--color-text-primary);
 }
 
 .theme-tile__hint {
-  font-size: var(--font-size-caption);
-  line-height: 15px;
-  color: var(--color-on-strong-muted);
+  font-size: 13px;
+  line-height: 18px;
+  color: var(--color-text-secondary);
 }
 
 /* --- Tamaño del texto: cuatro escalones ---------------------------------- */
@@ -1588,38 +1527,28 @@ const previewClass = computed(() => ({ 'settings-page__preview--changed': brandD
   width: 92px;
   min-height: 76px;
   padding: 10px 8px 8px;
-  background: color-mix(in srgb, var(--color-on-strong) 3%, transparent);
-  border: var(--border-width-normal) solid var(--color-field-strong-border);
-  border-bottom: var(--border-width-emphasis) solid var(--color-field-strong-border);
-  border-radius: 3px;
+  background: var(--color-surface);
+  border: var(--border-width-normal) solid var(--color-border-control);
+  border-radius: var(--radius-md);
   transition:
-    transform var(--motion-duration-base) var(--motion-easing-standard),
-    border-color var(--motion-duration-base) var(--motion-easing-standard),
-    background-color var(--motion-duration-base) var(--motion-easing-standard);
+    border-color var(--motion-duration-fast) var(--motion-easing-standard),
+    background-color var(--motion-duration-fast) var(--motion-easing-standard);
 }
 
 .size-step:hover {
-  transform: translateY(-2px);
-  border-color: color-mix(in srgb, var(--color-brand-accent-surface) 55%, transparent);
+  border-color: var(--color-text-primary);
 }
 
+/* La elegida se marca en tinta: borde de 2px y fondo tenue. */
 .size-step--selected {
-  background: color-mix(in srgb, var(--color-brand-accent-surface) 12%, transparent);
-  border-color: var(--color-brand-accent-surface);
+  background: color-mix(in srgb, var(--color-text-primary) 8%, transparent);
+  border-color: var(--color-text-primary);
+  box-shadow: inset 0 0 0 1px var(--color-text-primary);
 }
 
 .size-step__glyph {
-  font-family: var(--font-display);
   line-height: 1;
-  color: var(--color-on-strong);
-  transition: color var(--motion-duration-base) var(--motion-easing-standard);
-}
-
-/* La elegida se marca con el filete y el fondo de acento; el glifo conserva el
-   color de texto del modo para no perder contraste sobre el tinte (en Marfil,
-   el latón sobre su propio tinte no alcanza AA). */
-.size-step--selected {
-  border-bottom-color: var(--color-brand-accent-surface);
+  color: var(--color-text-primary);
 }
 
 .size-step__glyph--small {
@@ -1640,16 +1569,17 @@ const previewClass = computed(() => ({ 'settings-page__preview--changed': brandD
 
 .size-step__label {
   font-size: var(--font-size-caption);
-  font-weight: 600;
-  line-height: 14px;
-  color: var(--color-on-strong-muted);
+  font-weight: 500;
+  line-height: 16px;
+  color: var(--color-text-secondary);
 }
 
 .size-step--selected .size-step__label {
-  color: var(--color-on-strong);
+  font-weight: 600;
+  color: var(--color-text-primary);
 }
 
-/* --- Acento: rombos de color --------------------------------------------- */
+/* --- Acento: muestras de color -------------------------------------------- */
 
 .settings-accents {
   --option-group-gap: 10px;
@@ -1663,21 +1593,19 @@ const previewClass = computed(() => ({ 'settings-page__preview--changed': brandD
   width: 92px;
   padding: 8px 4px 10px;
   border: var(--border-width-normal) solid transparent;
-  border-radius: 3px;
+  border-radius: var(--radius-md);
   transition:
-    transform var(--motion-duration-base) var(--motion-easing-standard),
-    background-color var(--motion-duration-base) var(--motion-easing-standard),
-    border-color var(--motion-duration-base) var(--motion-easing-standard);
+    background-color var(--motion-duration-fast) var(--motion-easing-standard),
+    border-color var(--motion-duration-fast) var(--motion-easing-standard);
 }
 
 .accent-swatch:hover {
-  transform: translateY(-3px);
-  background: color-mix(in srgb, var(--color-on-strong) 4%, transparent);
+  background: color-mix(in srgb, var(--color-text-primary) 4%, transparent);
 }
 
 .accent-swatch--selected {
-  background: color-mix(in srgb, var(--swatch-tint, var(--color-on-strong)) 5%, transparent);
-  border-color: color-mix(in srgb, var(--color-on-strong) 28%, transparent);
+  background: color-mix(in srgb, var(--color-text-primary) 8%, transparent);
+  border-color: var(--color-text-primary);
 }
 
 .accent-swatch__stage {
@@ -1687,37 +1615,33 @@ const previewClass = computed(() => ({ 'settings-page__preview--changed': brandD
   height: 44px;
 }
 
+/* Cada muestra pinta SU color (`--swatch`): es el dato que se elige, no un
+   adorno. Círculo, no rombo (v2, DEC-188); la elegida lleva un anillo. */
 .accent-swatch__gem {
   position: relative;
-  width: 24px;
-  height: 24px;
+  width: 26px;
+  height: 26px;
   background: var(--swatch);
-  transform: rotate(45deg);
-  transition:
-    transform 320ms cubic-bezier(0.34, 1.56, 0.64, 1),
-    box-shadow var(--motion-duration-base) var(--motion-easing-standard);
-}
-
-.accent-swatch:hover .accent-swatch__gem {
-  transform: rotate(45deg) scale(1.12);
+  border-radius: 50%;
+  transition: box-shadow var(--motion-duration-fast) var(--motion-easing-standard);
 }
 
 .accent-swatch--selected .accent-swatch__gem {
-  transform: rotate(225deg) scale(1.2);
   box-shadow:
-    0 0 0 3px var(--color-surface-strong),
+    0 0 0 3px var(--color-surface),
     0 0 0 5px var(--swatch);
 }
 
 .accent-swatch__label {
   font-size: var(--font-size-caption);
-  font-weight: 600;
+  font-weight: 500;
   line-height: 16px;
-  color: var(--color-on-strong-muted);
+  color: var(--color-text-secondary);
 }
 
 .accent-swatch--selected .accent-swatch__label {
-  color: var(--color-on-strong);
+  font-weight: 600;
+  color: var(--color-text-primary);
 }
 
 /* --- Vocabulario ---------------------------------------------------------- */
@@ -1727,7 +1651,7 @@ const previewClass = computed(() => ({ 'settings-page__preview--changed': brandD
   flex-direction: column;
   gap: 14px;
   padding-bottom: 22px;
-  border-bottom: var(--border-width-normal) solid var(--color-field-strong-border);
+  border-bottom: var(--border-width-normal) solid var(--color-border-subtle);
 }
 
 .vocab-group:nth-of-type(2) {
@@ -1750,36 +1674,38 @@ const previewClass = computed(() => ({ 'settings-page__preview--changed': brandD
   align-items: center;
   min-height: 44px;
   padding: 0 18px;
-  color: var(--color-on-strong-muted);
-  border: var(--border-width-normal) solid var(--color-field-strong-border);
+  color: var(--color-text-secondary);
+  background: var(--color-surface);
+  border: var(--border-width-normal) solid var(--color-border-control);
   font-size: var(--font-size-body-sm);
-  font-weight: 600;
+  font-weight: 500;
   transition:
-    background-color var(--motion-duration-base) var(--motion-easing-standard),
-    color var(--motion-duration-base) var(--motion-easing-standard),
-    border-color var(--motion-duration-base) var(--motion-easing-standard);
+    background-color var(--motion-duration-fast) var(--motion-easing-standard),
+    color var(--motion-duration-fast) var(--motion-easing-standard),
+    border-color var(--motion-duration-fast) var(--motion-easing-standard);
 }
 
 .settings-genders > :first-child .gender-pill {
-  border-radius: 3px 0 0 3px;
+  border-radius: var(--radius-md) 0 0 var(--radius-md);
 }
 
 .settings-genders > :last-child .gender-pill {
   margin-left: -1px;
-  border-radius: 0 3px 3px 0;
+  border-radius: 0 var(--radius-md) var(--radius-md) 0;
 }
 
 .gender-pill:hover {
-  color: var(--color-on-strong);
-  border-color: color-mix(in srgb, var(--color-brand-accent-surface) 55%, transparent);
+  color: var(--color-text-primary);
 }
 
+/* Segmento elegido en tinta, no en el acento. */
 .gender-pill--selected {
   position: relative;
   z-index: 1;
-  background: var(--color-brand-accent-surface);
-  color: var(--color-brand-accent-text);
-  border-color: var(--color-brand-accent-surface);
+  font-weight: 600;
+  background: color-mix(in srgb, var(--color-text-primary) 8%, var(--color-surface));
+  color: var(--color-text-primary);
+  border-color: var(--color-text-primary);
 }
 
 .preset-list {
@@ -1794,29 +1720,22 @@ const previewClass = computed(() => ({ 'settings-page__preview--changed': brandD
 .preset-chip {
   min-height: 36px;
   padding: 0 14px;
-  color: var(--color-on-strong-muted);
+  color: var(--color-text-secondary);
   background: transparent;
-  border: var(--border-width-normal) dashed
-    color-mix(in srgb, var(--color-on-strong) 28%, transparent);
-  border-radius: 999px;
+  border: var(--border-width-normal) solid var(--color-border-subtle);
+  border-radius: var(--radius-pill);
   font-family: var(--font-sans);
-  font-size: var(--font-size-caption);
+  font-size: 13px;
   cursor: pointer;
   transition:
-    color var(--motion-duration-base) var(--motion-easing-standard),
-    border-color var(--motion-duration-base) var(--motion-easing-standard),
-    background-color var(--motion-duration-base) var(--motion-easing-standard),
-    transform var(--motion-duration-fast) var(--motion-easing-standard);
+    color var(--motion-duration-fast) var(--motion-easing-standard),
+    border-color var(--motion-duration-fast) var(--motion-easing-standard),
+    background-color var(--motion-duration-fast) var(--motion-easing-standard);
 }
 
 .preset-chip:hover:not(:disabled) {
-  color: var(--color-on-strong);
-  border-color: var(--color-brand-accent-surface);
-  transform: translateY(-1px);
-}
-
-.preset-chip:active:not(:disabled) {
-  transform: scale(0.97);
+  color: var(--color-text-primary);
+  border-color: var(--color-text-primary);
 }
 
 .preset-chip:focus-visible {
@@ -1825,10 +1744,9 @@ const previewClass = computed(() => ({ 'settings-page__preview--changed': brandD
 }
 
 .preset-chip--active {
-  color: var(--color-on-strong);
-  background: color-mix(in srgb, var(--color-brand-accent-surface) 12%, transparent);
-  border-style: solid;
-  border-color: var(--color-brand-accent-surface);
+  color: var(--color-text-primary);
+  background: color-mix(in srgb, var(--color-text-primary) 8%, transparent);
+  border-color: var(--color-text-primary);
 }
 
 .preset-chip:disabled {
@@ -1836,25 +1754,20 @@ const previewClass = computed(() => ({ 'settings-page__preview--changed': brandD
   cursor: not-allowed;
 }
 
+/* Vista previa del vocabulario: superficie hundida, sin filete de acento. Se
+   actualiza al escribir; no destella (v2: nada parpadea). */
 .settings-page__preview {
   padding: 16px 18px 18px;
-  background: color-mix(in srgb, var(--color-brand-accent-surface) 7%, transparent);
-  border-left: 3px solid var(--color-brand-accent-surface);
-  border-radius: 2px;
-}
-
-.settings-page__preview--changed {
-  animation: settings-preview-flash 900ms var(--motion-easing-standard);
+  background: var(--color-surface-muted);
+  border-radius: var(--radius-md);
 }
 
 .settings-page__preview-kicker {
   margin: 0 0 12px;
-  color: var(--color-brand-accent-surface);
-  font-size: var(--font-size-caption);
-  font-weight: 600;
-  letter-spacing: 0.08em;
-  line-height: 14px;
-  text-transform: uppercase;
+  color: var(--color-text-secondary);
+  font-size: 13px;
+  font-weight: 500;
+  line-height: 18px;
 }
 
 .settings-page__preview-list {
@@ -1877,24 +1790,24 @@ const previewClass = computed(() => ({ 'settings-page__preview--changed': brandD
 
 .settings-page__preview-tag {
   flex: 0 0 56px;
-  color: var(--color-on-strong-muted);
+  color: var(--color-text-secondary);
   font-size: var(--font-size-caption);
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
 }
 
 .settings-page__preview-dock {
   font-weight: 600;
 }
 
+/* Réplica del botón principal del panel («Agregar…»): por eso, y solo por eso,
+   lleva el acento lleno. */
 .settings-page__preview-button {
   display: inline-flex;
   align-items: center;
   height: 30px;
   padding: 0 12px;
-  background: var(--color-brand-accent-surface);
+  background: var(--color-action-primary);
   color: var(--color-brand-accent-text);
-  border-radius: 3px;
+  border-radius: var(--radius-md);
   font-size: var(--font-size-caption);
   font-weight: 600;
 }
@@ -1907,21 +1820,19 @@ const previewClass = computed(() => ({ 'settings-page__preview--changed': brandD
   justify-content: space-between;
   gap: 16px;
   padding: 14px 16px;
-  color: var(--color-on-strong);
-  background: color-mix(in srgb, var(--color-on-strong) 3%, transparent);
-  border: var(--border-width-normal) solid var(--color-field-strong-border);
-  border-left: 3px solid var(--color-brand-accent-surface);
-  border-radius: 2px;
+  color: var(--color-text-primary);
+  background: var(--color-surface);
+  border: var(--border-width-normal) solid var(--color-border-control);
+  border-radius: var(--radius-md);
   text-decoration: none;
   transition:
-    background-color var(--motion-duration-base) var(--motion-easing-standard),
-    border-color var(--motion-duration-base) var(--motion-easing-standard);
+    background-color var(--motion-duration-fast) var(--motion-easing-standard),
+    border-color var(--motion-duration-fast) var(--motion-easing-standard);
 }
 
 .settings-link:hover {
-  background: color-mix(in srgb, var(--color-brand-accent-surface) 10%, transparent);
-  border-color: color-mix(in srgb, var(--color-brand-accent-surface) 55%, transparent);
-  border-left-color: var(--color-brand-accent-surface);
+  background: color-mix(in srgb, var(--color-text-primary) 4%, var(--color-surface));
+  border-color: var(--color-text-primary);
 }
 
 .settings-link:focus-visible {
@@ -1942,126 +1853,92 @@ const previewClass = computed(() => ({ 'settings-page__preview--changed': brandD
 }
 
 .settings-link__detail {
-  font-size: var(--font-size-caption);
+  font-size: 13px;
   line-height: 18px;
-  color: var(--color-on-strong-muted);
+  color: var(--color-text-secondary);
 }
 
 .settings-link__arrow {
   flex: 0 0 auto;
-  font-size: var(--font-size-title-item);
-  color: var(--color-brand-accent-surface);
-  transition: transform 280ms cubic-bezier(0.34, 1.56, 0.64, 1);
+  font-size: var(--font-size-h3);
+  color: var(--color-text-secondary);
+  transition: transform var(--motion-duration-fast) var(--motion-easing-standard);
 }
 
 .settings-link:hover .settings-link__arrow {
-  transform: translateX(6px);
+  transform: translateX(3px);
 }
 
-/* --- Campos reglados: mismo tratamiento que Servicios y Profesionales --------- */
+/* --- Campos v2: los compartidos (BaseInput, BaseButton) sin repintar ---------
+   Solo se alinean al mismo campo los controles compartidos que aún traen su
+   propio aspecto (teléfono, buscador del local y mapa): borde de control de
+   1px, radio medio y rótulo en tipo oración. */
 
 .settings-ink :deep(.base-input) {
-  --input-bg: color-mix(in srgb, var(--color-on-strong) 4%, transparent);
-  --input-border-color: color-mix(in srgb, var(--color-on-strong) 12%, transparent);
-  --input-border-base-color: color-mix(in srgb, var(--color-on-strong) 30%, transparent);
-  --input-focus-ring: 0 0 0 2px var(--color-surface-strong), 0 0 0 4px var(--color-focus);
-
   height: 44px;
-  color: var(--color-on-strong);
 }
 
-.settings-ink :deep(.base-input__label),
-.settings-ink :deep(.base-input__required) {
-  color: var(--color-brand-accent-surface);
+.settings-ink :deep(.phone-field) {
+  --pf-row-bg: var(--color-surface);
+  --pf-row-bg-hover: var(--color-surface);
+  --pf-row-bg-focus: var(--color-surface);
+  --pf-line-strong: var(--color-border-control);
+  --pf-row-base: var(--color-border-control);
+  --pf-text: var(--color-text-primary);
+  --pf-muted: var(--color-text-secondary);
+  --pf-ring-gap: var(--color-surface);
 }
 
-.settings-ink :deep(.base-input__hint) {
-  color: var(--color-on-strong-muted);
-}
-
-.settings-ink :deep(.base-input:hover:not(:disabled):not(.base-input--invalid)) {
-  border-color: color-mix(in srgb, var(--color-on-strong) 26%, transparent);
-}
-
-/* El teléfono (casilla de país + número) toma el mismo fondo y filete que los
-   demás campos de la hoja, para que no parezca de otra pantalla. */
 .settings-ink :deep(.phone-field__row) {
   height: 44px;
-  background-color: color-mix(in srgb, var(--color-on-strong) 4%, transparent);
-  border-color: color-mix(in srgb, var(--color-on-strong) 12%, transparent);
-  border-bottom-color: color-mix(in srgb, var(--color-on-strong) 30%, transparent);
-}
-
-.settings-ink :deep(.phone-field__row--invalid),
-.settings-ink :deep(.phone-field__row--invalid:hover) {
-  border-color: var(--color-danger-on-strong);
-  border-bottom-color: var(--color-danger-on-strong);
+  border-bottom-width: var(--border-width-normal);
 }
 
 .settings-ink :deep(.phone-field__row:hover:not(.phone-field__row--invalid)) {
-  border-color: color-mix(in srgb, var(--color-on-strong) 26%, transparent);
+  border-color: var(--color-text-primary);
 }
 
-.settings-ink :deep(.phone-field__row:focus-within) {
-  box-shadow:
-    0 0 0 2px var(--color-surface-strong),
-    0 0 0 4px var(--color-focus);
-}
-
-.settings-ink :deep(.phone-field__row--invalid:focus-within) {
-  box-shadow:
-    0 0 0 2px var(--color-surface-strong),
-    0 0 0 4px var(--color-danger-on-strong);
-}
-
-/* Buscador del local y selector del mapa (DEC-170): mismo campo reglado y
-   mismos rótulos que el resto de la hoja; la lista de sugerencias sobre la
-   superficie del modo activo, nunca un blanco fijo sobre la tinta. */
 .settings-ink :deep(.address-autocomplete__label),
 .settings-ink :deep(.location-picker__label) {
-  font-size: var(--font-size-caption);
-  font-weight: 600;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-  color: var(--color-brand-accent-surface);
+  font-size: 13px;
+  font-weight: 500;
+  line-height: 18px;
+  color: var(--color-text-secondary);
 }
 
 .settings-ink :deep(.address-autocomplete__input) {
   height: 44px;
   padding: 0 var(--space-4);
-  color: var(--color-on-strong);
-  background-color: color-mix(in srgb, var(--color-on-strong) 4%, transparent);
-  border: var(--border-width-normal) solid
-    color-mix(in srgb, var(--color-on-strong) 12%, transparent);
-  border-bottom: var(--border-width-emphasis) solid
-    color-mix(in srgb, var(--color-on-strong) 30%, transparent);
+  color: var(--color-text-primary);
+  background-color: var(--color-surface);
+  border: var(--border-width-normal) solid var(--color-border-control);
+  border-radius: var(--radius-md);
   outline: none;
 }
 
 .settings-ink :deep(.address-autocomplete__input:hover:not(:disabled)) {
-  border-color: color-mix(in srgb, var(--color-on-strong) 26%, transparent);
+  border-color: var(--color-text-primary);
 }
 
 .settings-ink :deep(.address-autocomplete__input:focus-visible) {
-  border-bottom-color: var(--color-brand-accent-surface);
   box-shadow:
-    0 0 0 2px var(--color-surface-strong),
+    0 0 0 2px var(--color-surface),
     0 0 0 4px var(--color-focus);
 }
 
 .settings-ink :deep(.address-autocomplete__input[aria-invalid='true']) {
-  background-color: color-mix(in srgb, var(--color-danger-on-strong) 7%, transparent);
-  border-bottom-color: var(--color-danger-on-strong);
+  border-color: var(--color-danger-border);
 }
 
 .settings-ink :deep(.address-autocomplete__error) {
-  color: var(--color-danger-on-strong);
+  color: var(--color-danger-text);
 }
 
 .settings-ink :deep(.address-autocomplete__list) {
-  background: var(--color-surface-strong);
-  color: var(--color-on-strong);
-  border-color: color-mix(in srgb, var(--color-on-strong) 18%, transparent);
+  background: var(--color-surface);
+  color: var(--color-text-primary);
+  border-color: var(--color-border-subtle);
+  border-radius: var(--radius-lg);
   box-shadow: var(--shadow-dialog);
 }
 
@@ -2070,59 +1947,12 @@ const previewClass = computed(() => ({ 'settings-page__preview--changed': brandD
 .settings-ink :deep(.location-picker__hint),
 .settings-ink :deep(.location-picker__notice),
 .settings-ink :deep(.location-picker__chosen) {
-  color: var(--color-on-strong-muted);
+  color: var(--color-text-secondary);
 }
 
 .settings-ink :deep(.location-picker__map) {
-  border-color: color-mix(in srgb, var(--color-on-strong) 16%, transparent);
-}
-
-.settings-ink :deep(.settings-input--filled .base-input) {
-  background-color: color-mix(in srgb, var(--color-on-strong) 6%, transparent);
-  border-bottom-color: var(--color-brand-accent-surface);
-}
-
-.settings-ink :deep(.base-input:disabled),
-.settings-ink :deep(.base-input--disabled) {
-  background-color: var(--input-bg);
-  border-color: var(--input-border-color);
-  border-bottom-color: color-mix(in srgb, var(--color-on-strong) 20%, transparent);
-  color: var(--color-on-strong-muted);
-  opacity: 0.45;
-}
-
-.settings-ink :deep(.base-input--invalid) {
-  background-color: color-mix(in srgb, var(--color-danger-on-strong) 7%, transparent);
-  border-color: var(--input-border-color);
-  border-bottom-color: var(--color-danger-on-strong);
-}
-
-.settings-ink :deep(.base-input__error) {
-  color: var(--color-danger-on-strong);
-}
-
-/* Botones: par latón-sólido / tinta-fantasma calibrado para este fondo. */
-.settings-ink :deep(.base-button) {
-  --btn-focus-ring: 0 0 0 2px var(--color-surface-strong), 0 0 0 4px var(--color-focus);
-}
-
-.settings-ink :deep(.base-button--secondary) {
-  background-color: transparent;
-  color: var(--color-brand-accent-surface);
-  border-color: color-mix(in srgb, var(--color-brand-accent-surface) 50%, transparent);
-  border-bottom-color: var(--color-brand-accent-surface);
-}
-
-.settings-ink :deep(.base-button--secondary:hover:not(:disabled):not(.base-button--loading)) {
-  background-color: color-mix(in srgb, var(--color-brand-accent-surface) 12%, transparent);
-}
-
-.settings-ink :deep(.base-button--secondary:active:not(:disabled):not(.base-button--loading)) {
-  background-color: color-mix(in srgb, var(--color-brand-accent-surface) 20%, transparent);
-}
-
-.settings-ink :deep(.base-button:disabled) {
-  opacity: 0.4;
+  border-color: var(--color-border-subtle);
+  border-radius: var(--radius-lg);
 }
 
 /* Fundido entre carga/error/listo (estandar-diseno-visual.md §12). */
@@ -2136,36 +1966,6 @@ const previewClass = computed(() => ({ 'settings-page__preview--changed': brandD
   opacity: 0;
 }
 
-@keyframes settings-title-enter {
-  from {
-    opacity: 0;
-    transform: translateY(8px);
-  }
-
-  to {
-    opacity: 1;
-    transform: none;
-  }
-}
-
-@keyframes settings-rule-draw {
-  to {
-    transform: scaleX(1);
-  }
-}
-
-@keyframes settings-diamond-pop {
-  from {
-    opacity: 0;
-    transform: rotate(-45deg) scale(0);
-  }
-
-  to {
-    opacity: 1;
-    transform: rotate(45deg) scale(1);
-  }
-}
-
 @keyframes settings-skeleton-pulse {
   0%,
   100% {
@@ -2174,24 +1974,6 @@ const previewClass = computed(() => ({ 'settings-page__preview--changed': brandD
 
   50% {
     opacity: 1;
-  }
-}
-
-@keyframes settings-check-pop {
-  from {
-    opacity: 0;
-    transform: scale(0.3) rotate(-30deg);
-  }
-
-  to {
-    opacity: 1;
-    transform: none;
-  }
-}
-
-@keyframes settings-preview-flash {
-  0% {
-    background-color: color-mix(in srgb, var(--color-brand-accent-surface) 22%, transparent);
   }
 }
 
@@ -2236,18 +2018,8 @@ const previewClass = computed(() => ({ 'settings-page__preview--changed': brandD
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .settings-page__title,
-  .settings-page__subtitle,
-  .settings-page__rule-line,
-  .settings-page__rule-diamond,
-  .settings-page__skeleton,
-  .theme-tile__check,
-  .settings-page__preview--changed {
+  .settings-page__skeleton {
     animation: none;
-  }
-
-  .settings-page__rule-line {
-    transform: none;
   }
 }
 </style>

@@ -146,15 +146,17 @@ onMounted(load)
   min-height: 44px;
   padding: 14px 16px;
   box-sizing: border-box;
-  color: var(--color-on-strong);
-  background: color-mix(in srgb, var(--color-on-strong) 6%, transparent);
-  border: var(--border-width-normal) solid var(--color-field-strong-border);
-  border-radius: 2px;
+  color: var(--color-text-primary);
+  background: var(--color-surface);
+  border: var(--border-width-normal) solid var(--color-border-control);
+  border-radius: var(--radius-md);
 }
 
+/* Seleccionada en tinta (v2, DEC-188): borde de 2px y fondo tenue, sin acento. */
 .login-otp__option--selected {
-  border-color: var(--color-brand-accent-surface);
-  box-shadow: inset 0 calc(var(--border-width-emphasis) * -1) 0 var(--color-brand-accent-surface);
+  background: color-mix(in srgb, var(--color-text-primary) 8%, transparent);
+  border-color: var(--color-text-primary);
+  box-shadow: inset 0 0 0 1px var(--color-text-primary);
 }
 
 .login-otp__name {

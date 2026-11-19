@@ -9,8 +9,9 @@
 // que el profesional ya escribió ni la foto que ya eligió; solo un guardado exitoso
 // confirmado por el servidor cierra el diálogo. Cada guardado confirmado añade
 // un aviso emergente (DEC-095); los errores siguen dentro del diálogo, junto al
-// formulario. Mismo lenguaje visual que Servicios (tinta, latón, tabla hundida,
-// entrada escalonada, carga con el rombo) con el retrato del profesional como
+// formulario. Mismo lenguaje visual v2 que Servicios (DEC-188: tarjeta con
+// borde sutil, rótulos en tipo oración, el acento solo en «Agregar
+// profesional», sin entradas animadas) con el retrato del profesional como
 // protagonista.
 import { computed, nextTick, onMounted, onUnmounted, ref, watch } from 'vue'
 import { RouterLink } from 'vue-router'
@@ -241,9 +242,6 @@ onUnmounted(() => {
 function onRetryLoad() {
   void load(1, true)
 }
-function rowIndex(index: number): number {
-  return index
-}
 function goToPage(page: number) {
   if (page < 1 || page > totalPages.value || page === currentPage.value || pageLoading.value) return
   void load(page)
@@ -280,21 +278,6 @@ function hasPhoto(professional: Professional): boolean {
 // nombre, la misma inicial que abre el retrato sin foto de la fila.
 function firstInitial(fullName: string): string {
   return fullName.trim().charAt(0).toUpperCase()
-}
-
-// Ritmo propio del rombo de estado, igual técnica que Servicios/Agenda: hash
-// estable del id para que la duración y el desfase del parpadeo no cambien al
-// volver a pintar la lista y las filas no latan sincronizadas.
-function diamondStyle(professional: Professional): Record<string, string> {
-  let hash = 0
-  for (const char of professional.id) hash = (hash * 31 + char.charCodeAt(0)) >>> 0
-  const spread = (hash % 1000) / 1000
-  const phase = ((hash >>> 10) % 1000) / 1000
-  const duration = 6 + spread * 5
-  return {
-    '--diamond-duration': `${duration.toFixed(1)}s`,
-    '--diamond-delay': `-${(phase * duration).toFixed(1)}s`,
-  }
 }
 
 // Fecha de alta. Zona fija de la moneda del contrato (COP, DEC-067), igual que
@@ -690,7 +673,7 @@ async function onSubmitRename() {
     </header>
 
     <!-- Un solo fundido entre carga/error/listo (mismo criterio que Servicios):
-         sin esto el paso del rombo a la lista real sería un corte seco.
+         sin esto el paso del cargador a la lista real sería un corte seco.
          mode="out-in" espera a que lo anterior termine de desvanecerse. -->
     <Transition name="staff-content" mode="out-in">
       <div
@@ -806,13 +789,12 @@ async function onSubmitRename() {
             :aria-label="`${v.Professionals} ${v.ofTheBusiness}`"
           >
             <li
-              v-for="(professional, index) in pageLoading ? [] : professionals"
+              v-for="professional in pageLoading ? [] : professionals"
               :key="professional.id"
               class="staff-page__row"
               :class="{
                 'staff-page__row--new': professional.id === justAddedId,
               }"
-              :style="{ '--row-index': rowIndex(index) }"
             >
               <div class="staff-page__item-heading">
                 <ProfessionalAvatar
@@ -849,7 +831,6 @@ async function onSubmitRename() {
               <span
                 class="staff-page__photo-state"
                 :class="{ 'staff-page__photo-state--has': hasPhoto(professional) }"
-                :style="diamondStyle(professional)"
               >
                 {{ hasPhoto(professional) ? 'Con foto' : 'Sin foto' }}
               </span>
@@ -929,7 +910,7 @@ async function onSubmitRename() {
       content-class="staff-page__dialog staff-page__detail-dialog"
     >
       <div v-if="detailTarget" class="staff-page__ink staff-page__detail">
-        <div class="staff-page__detail-hero" :style="{ '--row-index': 0 }">
+        <div class="staff-page__detail-hero">
           <span class="staff-page__detail-frame">
             <ProfessionalAvatar
               size="hero"
@@ -944,11 +925,11 @@ async function onSubmitRename() {
         </div>
 
         <dl class="staff-page__facts">
-          <div :style="{ '--row-index': 1 }">
+          <div>
             <dt>En Nava Agenda desde</dt>
             <dd>{{ formatDate(detailTarget.createdAt) }}</dd>
           </div>
-          <div :style="{ '--row-index': 2 }">
+          <div>
             <dt>Foto</dt>
             <dd>{{ hasPhoto(detailTarget) ? 'Con foto' : 'Sin foto' }}</dd>
           </div>
@@ -964,11 +945,7 @@ async function onSubmitRename() {
              scroll, junto al dato que cambia. Así la ficha no pierde altura en el
              pie y, si en una pantalla baja se vuelve desplazable, la región ya
              contiene un control enfocable (axe: scrollable-region-focusable). -->
-        <div
-          v-if="myProfessionalKnown && !isEmployeeProfile"
-          class="staff-page__link"
-          :style="{ '--row-index': 3 }"
-        >
+        <div v-if="myProfessionalKnown && !isEmployeeProfile" class="staff-page__link">
           <div class="staff-page__link-text">
             <span class="staff-page__link-label">Tu usuario</span>
             <span class="staff-page__link-state">{{
@@ -993,7 +970,6 @@ async function onSubmitRename() {
           v-if="myProfessionalKnown && detailIsMine"
           :to="{ name: 'integraciones-google-calendar' }"
           class="staff-page__gcal"
-          :style="{ '--row-index': 4 }"
         >
           <span class="staff-page__link-text">
             <span class="staff-page__gcal-title">Conectar Google Calendar</span>
@@ -1081,7 +1057,6 @@ async function onSubmitRename() {
           :maxlength="120"
           :disabled="createStatus === 'saving'"
           :error="createFieldError"
-          :class="{ 'staff-page__input--filled': !!createFullName }"
           @update:model-value="onCreateFullNameInput"
         />
 
@@ -1182,7 +1157,6 @@ async function onSubmitRename() {
           :maxlength="120"
           :disabled="renameStatus === 'saving'"
           :error="renameFieldError"
-          :class="{ 'staff-page__input--filled': !!renameFullName }"
           @update:model-value="onRenameFullNameInput"
         />
 
@@ -1227,8 +1201,8 @@ async function onSubmitRename() {
   opacity: 0;
 }
 
-/* Superficie tinta de punta a punta (estandar-diseno-visual.md §3), el mismo
-   canvas que Agenda y Servicios; columna de lectura de 820px centrada. */
+/* Fondo transparente sobre el canvas del cascarón, igual que Agenda y
+   Servicios; columna de lectura centrada. */
 .staff-page {
   --staff-width: 920px;
   --staff-row-height: 84px;
@@ -1291,14 +1265,16 @@ async function onSubmitRename() {
   gap: 6px;
   min-height: 44px;
   padding: 0 var(--space-3);
-  color: var(--color-brand-accent-surface);
+  /* Enlace secundario en tinta (v2, DEC-188): el acento es solo de la acción
+     principal. */
+  color: var(--color-text-primary);
   font-weight: 600;
   text-decoration: none;
-  border-bottom: 1px solid var(--color-brand-accent-surface);
+  border-bottom: 1px solid var(--color-border-control);
 }
 
 .staff-page__card-gcal:hover {
-  background-color: color-mix(in srgb, var(--color-brand-accent-surface) 12%, transparent);
+  background-color: color-mix(in srgb, var(--color-text-primary) 6%, transparent);
 }
 
 .staff-page__card-gcal:focus-visible {
@@ -1348,21 +1324,24 @@ async function onSubmitRename() {
   justify-content: space-between;
   gap: var(--space-4);
   padding-bottom: 16px;
-  border-bottom: var(--border-width-normal) solid var(--color-field-strong-border);
+  border-bottom: var(--border-width-normal) solid var(--color-border-subtle);
 }
 
+/* h1 v2 (DEC-188): el mismo título que DailyAgendaPage.vue. */
 .staff-page__title {
   margin: 0;
-  font-family: var(--font-display);
-  font-size: var(--font-size-h1);
-  line-height: var(--font-size-h1-line);
-  font-weight: var(--font-weight-h1);
+  font-family: var(--font-sans);
+  font-size: 28px;
+  font-weight: 600;
+  line-height: 32px;
+  letter-spacing: -0.01em;
+  color: var(--color-text-primary);
 }
 
 @media (min-width: 1024px) {
   .staff-page__title {
-    font-size: var(--font-size-title-page);
-    line-height: 46px;
+    font-size: 32px;
+    line-height: 36px;
   }
 }
 
@@ -1373,9 +1352,8 @@ async function onSubmitRename() {
   color: var(--color-on-strong-muted);
 }
 
-/* CTA "Agregar profesional": el relleno tinta de BaseButton--primary es el MISMO
-   color que el fondo de la página, así que se levanta con el dorado de marca
-   (mismo criterio que "Agregar servicio"). */
+/* "Agregar profesional" es la acción principal y la ÚNICA con el acento lleno
+   (v2, DEC-188), con el acento del negocio como "Agregar servicio". */
 .staff-page__create.base-button {
   height: 40px;
   padding-inline: 18px;
@@ -1415,7 +1393,8 @@ async function onSubmitRename() {
 }
 
 /* Esqueletos: la forma de una fila real (retrato cuadrado, dos líneas de texto,
-   un botón) con el pulso de Servicios/Agenda. */
+   un botón) con el pulso de Servicios/Agenda: es carga (dura lo que dura la
+   petición), por eso v2 lo permite; se apaga con movimiento reducido. */
 .staff-page__skeleton-row {
   display: flex;
   align-items: center;
@@ -1423,7 +1402,7 @@ async function onSubmitRename() {
   height: var(--staff-row-height);
   padding: 16px;
   overflow: hidden;
-  border-top: var(--border-width-normal) solid var(--color-field-strong-border);
+  border-top: var(--border-width-normal) solid var(--color-border-subtle);
 }
 
 .staff-page__skeleton-text {
@@ -1439,7 +1418,7 @@ async function onSubmitRename() {
   display: block;
   flex: 0 0 auto;
   background-color: color-mix(in srgb, var(--color-on-strong) 16%, transparent);
-  border-radius: 2px;
+  border-radius: var(--radius-sm);
   animation: staff-skeleton-pulse 1400ms ease-in-out infinite;
 }
 
@@ -1465,10 +1444,6 @@ async function onSubmitRename() {
   height: 34px;
 }
 
-.staff-page__skeleton-row--page {
-  animation: staff-row-enter 280ms var(--motion-easing-standard) both;
-}
-
 @keyframes staff-skeleton-pulse {
   0%,
   100% {
@@ -1480,17 +1455,17 @@ async function onSubmitRename() {
   }
 }
 
-/* Panel hundido sobre tinta (--color-field-strong): el mismo hueco en la página
-   que los campos de Agenda y la tabla de Servicios. */
+/* Tarjeta v2 (DEC-188): superficie con borde sutil de 1px y radio grande, la
+   misma que la tabla de Servicios. */
 .staff-page__list {
   display: flex;
   flex-direction: column;
   padding: 0;
   margin: 0;
   list-style: none;
-  background-color: var(--color-field-strong);
-  border: var(--border-width-normal) solid var(--color-field-strong-border);
-  border-radius: 3px;
+  background-color: var(--color-surface);
+  border: var(--border-width-normal) solid var(--color-border-subtle);
+  border-radius: var(--radius-lg);
   overflow: hidden;
 }
 
@@ -1506,13 +1481,12 @@ async function onSubmitRename() {
   min-height: 44px;
   padding: 0 16px;
   font-family: var(--font-sans);
-  /* Encabezado reglado: versalitas espaciadas de latón, igual que el de
-     Servicios y los rótulos de campo del panel. */
-  font-size: var(--font-size-caption);
-  font-weight: 600;
-  letter-spacing: 0.1em;
-  text-transform: uppercase;
-  color: var(--color-brand-accent-surface);
+  /* Rótulo v2 (DEC-188): tipo oración, 13px/500 en texto secundario, igual
+     que el encabezado de Servicios. */
+  font-size: 13px;
+  font-weight: 500;
+  line-height: 18px;
+  color: var(--color-text-secondary);
 }
 
 .staff-page__columns span:last-child {
@@ -1524,48 +1498,18 @@ async function onSubmitRename() {
   height: var(--staff-row-height);
   padding: 16px;
   overflow: hidden;
-  border-top: var(--border-width-normal) solid var(--color-field-strong-border);
+  border-top: var(--border-width-normal) solid var(--color-border-subtle);
   transition: background-color var(--motion-duration-fast) var(--motion-easing-standard);
-  /* Entrada escalonada: cada fila arranca --row-index pasos después de la
-     anterior (tope de 8). `both` la mantiene oculta durante su retraso. */
-  animation: staff-row-enter 320ms var(--motion-easing-standard) both;
-  animation-delay: calc(min(var(--row-index, 0), 8) * 45ms);
 }
 
-@keyframes staff-row-enter {
-  from {
-    opacity: 0;
-    transform: translateY(10px);
-  }
-
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
-
-/* Profesional recién agregado: un velo de latón que se apaga, detrás del contenido. */
+/* Profesional recién agregado: un velo de tinta quieto, detrás del contenido
+   (v2, DEC-188: sin destello animado ni acento; seleccionado en tinta). */
 .staff-page__row--new::before {
   content: '';
   position: absolute;
   inset: 0;
   pointer-events: none;
-  background: linear-gradient(
-    90deg,
-    color-mix(in srgb, var(--color-brand-accent-surface) 34%, transparent),
-    color-mix(in srgb, var(--color-brand-accent-surface) 0%, transparent) 70%
-  );
-  animation: staff-row-flash 1800ms var(--motion-easing-standard) 200ms both;
-}
-
-@keyframes staff-row-flash {
-  from {
-    opacity: 1;
-  }
-
-  to {
-    opacity: 0;
-  }
+  background-color: color-mix(in srgb, var(--color-text-primary) 6%, transparent);
 }
 
 .staff-page__item-heading {
@@ -1576,7 +1520,7 @@ async function onSubmitRename() {
 }
 
 .staff-page__portrait {
-  transition: transform var(--motion-duration-base) cubic-bezier(0.34, 1.56, 0.64, 1);
+  transition: transform var(--motion-duration-fast) var(--motion-easing-standard);
 }
 
 .staff-page__item-text {
@@ -1594,7 +1538,6 @@ async function onSubmitRename() {
   color: var(--color-on-strong);
   white-space: nowrap;
   text-overflow: ellipsis;
-  transition: color var(--motion-duration-fast) var(--motion-easing-standard);
 }
 
 /* Disparador del detalle: botón sin cromo que hereda la tipografía del nombre.
@@ -1632,7 +1575,7 @@ async function onSubmitRename() {
 
 .staff-page__item-chevron {
   flex: 0 0 auto;
-  color: var(--color-brand-accent-surface);
+  color: var(--color-text-secondary);
   font-size: var(--font-size-body-lg);
   line-height: 1;
   opacity: 0.55;
@@ -1644,11 +1587,7 @@ async function onSubmitRename() {
 /* Solo con puntero real: en táctil :hover se queda pegado tras el toque. */
 @media (hover: hover) {
   .staff-page__row:hover {
-    background-color: color-mix(in srgb, var(--color-on-strong) 4%, transparent);
-  }
-
-  .staff-page__row:hover .staff-page__item-name {
-    color: var(--color-brand-accent-surface);
+    background-color: color-mix(in srgb, var(--color-text-primary) 4%, transparent);
   }
 
   .staff-page__row:hover .staff-page__item-chevron {
@@ -1678,49 +1617,31 @@ async function onSubmitRename() {
   text-overflow: ellipsis;
 }
 
-/* Estado de la foto como rombo con rótulo (mismo lenguaje que Activo/Inactivo
-   de Servicios y los estados de la agenda): sin caja, versalitas espaciadas y
-   un rombo que late con el ritmo propio de la fila. */
+/* Estado de la foto como rótulo con punto (mismo lenguaje que Activo/Inactivo
+   de Servicios): sin caja, tipo oración y un punto quieto de color (v2,
+   DEC-188: sin rombo parpadeante ni versalitas). */
 .staff-page__photo-state {
   display: inline-flex;
   align-items: center;
   gap: 6px;
   color: var(--color-on-strong-muted);
-  font-size: var(--font-size-caption);
-  font-weight: 600;
-  line-height: var(--font-size-caption-line);
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
+  font-size: 13px;
+  font-weight: 500;
+  line-height: 18px;
   white-space: nowrap;
 }
 
 .staff-page__photo-state::before {
   content: '';
   flex-shrink: 0;
-  width: 5px;
-  height: 5px;
-  transform: rotate(45deg);
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
   background-color: currentColor;
-  animation: staff-diamond-blink var(--diamond-duration, 7s) ease-in-out var(--diamond-delay, 0s)
-    infinite;
 }
 
 .staff-page__photo-state--has {
   color: var(--color-success-on-strong);
-}
-
-@keyframes staff-diamond-blink {
-  0%,
-  62%,
-  100% {
-    opacity: 1;
-    transform: rotate(45deg) scale(1);
-  }
-
-  80% {
-    opacity: 0.55;
-    transform: rotate(45deg) scale(0.85);
-  }
 }
 
 .staff-page__item-actions {
@@ -1732,31 +1653,12 @@ async function onSubmitRename() {
   gap: 8px;
 }
 
-/* "Editar" usa BaseButton--secondary, calibrado para relleno blanco sobre
-   superficie clara: sobre tinta se quita el relleno y se sube el latón claro,
-   igual que las acciones de fila de Servicios. */
+/* "Editar" usa el BaseButton--secondary v2 tal cual (contorno neutro); solo
+   se compacta para caber en la fila. */
 .staff-page__item-actions :deep(.base-button) {
   height: 36px;
   padding-inline: 14px;
   font-size: var(--font-size-body-sm);
-}
-
-.staff-page__item-actions :deep(.base-button--secondary) {
-  background-color: transparent;
-  color: var(--color-brand-accent-surface);
-  border-color: color-mix(in srgb, var(--color-brand-accent-surface) 50%, transparent);
-  border-bottom-color: var(--color-brand-accent-surface);
-}
-
-.staff-page__item-actions
-  :deep(.base-button--secondary:hover:not(:disabled):not(.base-button--loading)) {
-  background-color: color-mix(in srgb, var(--color-brand-accent-surface) 12%, transparent);
-  border-color: color-mix(in srgb, var(--color-brand-accent-surface) 50%, transparent);
-}
-
-.staff-page__item-actions
-  :deep(.base-button--secondary:active:not(:disabled):not(.base-button--loading)) {
-  background-color: color-mix(in srgb, var(--color-brand-accent-surface) 20%, transparent);
 }
 
 /* Pie de la tabla: conteo a la izquierda, "Cargar más" a la derecha. */
@@ -1770,25 +1672,14 @@ async function onSubmitRename() {
   height: 34px;
   padding-inline: 14px;
   font-size: var(--font-size-caption);
-  --btn-focus-ring: 0 0 0 2px var(--color-surface-strong), 0 0 0 4px var(--color-focus);
 }
 
-.staff-page__load-more.base-button--secondary {
-  background-color: transparent;
-  color: var(--color-brand-accent-surface);
-  border-color: color-mix(in srgb, var(--color-brand-accent-surface) 50%, transparent);
-  border-bottom-color: var(--color-brand-accent-surface);
-}
-
-.staff-page__load-more.base-button--secondary:hover:not(:disabled):not(.base-button--loading) {
-  background-color: color-mix(in srgb, var(--color-brand-accent-surface) 12%, transparent);
-}
-
-/* Diálogos (alta, edición, detalle): mismo tinte, filete de latón y campos
-   reglados que los de Servicios. Solo aplica dentro de .staff-page__ink (el
-   contenido que esta plantilla pone en el diálogo); el fondo, el encabezado y
-   el botón de cerrar —que BaseDialog renderiza en <Teleport to="body">— se
-   sobrescriben en el bloque sin "scoped" del final. */
+/* Diálogos (alta, edición, detalle): mismo tratamiento v2 que los de
+   Servicios (DEC-188). Solo aplica dentro de .staff-page__ink (el contenido
+   que esta plantilla pone en el diálogo); el fondo y el borde —que BaseDialog
+   renderiza en <Teleport to="body">— se ajustan en el bloque sin "scoped" del
+   final. La ficha del encabezado es neutra (tinta sobre velo de tinta) y no
+   se anima: ya entra con el propio diálogo. */
 .staff-page__dialog-chip {
   position: relative;
   display: flex;
@@ -1798,50 +1689,12 @@ async function onSubmitRename() {
   width: 40px;
   height: 40px;
   overflow: hidden;
-  background-color: var(--color-brand-accent-surface);
-  color: var(--color-brand-accent-text);
+  background-color: color-mix(in srgb, var(--color-text-primary) 8%, transparent);
+  color: var(--color-text-primary);
   border-radius: var(--radius-md);
   font-family: var(--font-display);
   font-size: var(--font-size-title-item);
   line-height: 1;
-  animation: staff-chip-pop var(--motion-duration-base) cubic-bezier(0.34, 1.56, 0.64, 1) 60ms both;
-}
-
-/* Un solo barrido de destello cuando la ficha termina de asentarse. */
-.staff-page__dialog-chip::after {
-  content: '';
-  position: absolute;
-  inset: -40% -60%;
-  background: linear-gradient(
-    75deg,
-    transparent 40%,
-    color-mix(in srgb, var(--color-on-strong) 50%, transparent) 50%,
-    transparent 60%
-  );
-  transform: translateX(-100%);
-  animation: staff-chip-glint 480ms cubic-bezier(0.5, 0, 0.3, 1) 260ms both;
-}
-
-@keyframes staff-chip-pop {
-  from {
-    opacity: 0;
-    transform: scale(0.5) rotate(-20deg);
-  }
-
-  to {
-    opacity: 1;
-    transform: scale(1) rotate(0deg);
-  }
-}
-
-@keyframes staff-chip-glint {
-  from {
-    transform: translateX(-100%);
-  }
-
-  to {
-    transform: translateX(100%);
-  }
 }
 
 .staff-page__ink {
@@ -1851,63 +1704,10 @@ async function onSubmitRename() {
   color: var(--color-on-strong);
 }
 
-.staff-page__ink :deep(.base-input) {
-  --input-bg: color-mix(in srgb, var(--color-on-strong) 4%, transparent);
-  --input-border-color: color-mix(in srgb, var(--color-on-strong) 12%, transparent);
-  --input-border-base-color: color-mix(in srgb, var(--color-on-strong) 30%, transparent);
-  --input-focus-ring: 0 0 0 2px var(--color-surface-strong), 0 0 0 4px var(--color-focus);
-
-  color: var(--color-on-strong);
-}
-
-.staff-page__ink :deep(.base-input__label),
-.staff-page__ink :deep(.base-input__required) {
-  color: var(--color-brand-accent-surface);
-}
-
-.staff-page__ink :deep(.base-input__required) {
-  margin-left: 2px;
-}
-
-.staff-page__ink :deep(.base-input__hint) {
-  color: var(--color-on-strong-muted);
-}
-
-.staff-page__ink :deep(.base-input:hover:not(:disabled):not(.base-input--invalid)) {
-  border-color: color-mix(in srgb, var(--color-on-strong) 26%, transparent);
-}
-
-/* El filete dorado inferior marca el campo YA RESUELTO (mismo criterio que
-   Agenda y Servicios). */
-.staff-page__ink :deep(.staff-page__input--filled .base-input) {
-  background-color: color-mix(in srgb, var(--color-on-strong) 6%, transparent);
-  border-bottom-color: var(--color-brand-accent-surface);
-}
-
-.staff-page__ink :deep(.base-input:disabled),
-.staff-page__ink :deep(.base-input--disabled) {
-  background-color: var(--input-bg);
-  border-color: var(--input-border-color);
-  border-bottom-color: color-mix(in srgb, var(--color-on-strong) 20%, transparent);
-  color: var(--color-on-strong-muted);
-  opacity: 0.45;
-}
-
-.staff-page__ink :deep(.base-input--invalid) {
-  background-color: color-mix(in srgb, var(--color-danger-on-strong) 7%, transparent);
-  border-color: var(--input-border-color);
-  border-bottom-color: var(--color-danger-on-strong);
-}
-
-.staff-page__ink :deep(.base-input__error) {
-  color: var(--color-danger-on-strong);
-}
-
-/* Botones del pie: par latón-sólido / tinta-fantasma calibrado para este fondo
-   (BaseButton está pensado para flotar sobre superficie clara). */
-.staff-page__ink :deep(.base-button) {
-  --btn-focus-ring: 0 0 0 2px var(--color-surface-strong), 0 0 0 4px var(--color-focus);
-}
+/* Los campos usan BaseInput v2 tal cual (DEC-188). Botones del pie: el
+   principal de cada diálogo es su única acción con el acento lleno, con el
+   acento del negocio como "Agregar profesional"; "Cancelar"/"Cerrar" son el
+   BaseButton--secondary v2 neutro. */
 
 .staff-page__ink :deep(.base-button--primary) {
   background-color: var(--color-brand-accent-surface);
@@ -1923,22 +1723,6 @@ async function onSubmitRename() {
   filter: brightness(84%);
 }
 
-.staff-page__ink :deep(.base-button--secondary) {
-  background-color: transparent;
-  color: var(--color-brand-accent-surface);
-  border-color: color-mix(in srgb, var(--color-brand-accent-surface) 50%, transparent);
-  border-bottom-color: var(--color-brand-accent-surface);
-}
-
-.staff-page__ink :deep(.base-button--secondary:hover:not(:disabled):not(.base-button--loading)) {
-  background-color: color-mix(in srgb, var(--color-brand-accent-surface) 12%, transparent);
-  border-color: color-mix(in srgb, var(--color-brand-accent-surface) 50%, transparent);
-}
-
-.staff-page__ink :deep(.base-button--secondary:active:not(:disabled):not(.base-button--loading)) {
-  background-color: color-mix(in srgb, var(--color-brand-accent-surface) 20%, transparent);
-}
-
 .staff-page__dialog-actions {
   display: flex;
   justify-content: flex-end;
@@ -1947,15 +1731,9 @@ async function onSubmitRename() {
   flex-wrap: wrap;
 }
 
-/* Detalle: retrato grande en un marco de esquinas de latón, el nombre ya está en
-   el encabezado del diálogo. Todo entra escalonado con --row-index un instante
-   después de la tarjeta, para que la ficha se arme en vez de aparecer de golpe. */
-.staff-page__detail-hero,
-.staff-page__facts > div {
-  animation: staff-detail-enter 380ms var(--motion-easing-standard) both;
-  animation-delay: calc(120ms + var(--row-index, 0) * 70ms);
-}
-
+/* Detalle: retrato grande, el nombre ya está en el encabezado del diálogo.
+   v2 (DEC-188): sin marco de esquinas de acento ni entrada escalonada; todo
+   llega con el propio diálogo. */
 .staff-page__detail-hero {
   display: flex;
   flex-direction: column;
@@ -1965,35 +1743,7 @@ async function onSubmitRename() {
 }
 
 .staff-page__detail-frame {
-  position: relative;
   display: inline-flex;
-  padding: 10px;
-  background-color: var(--color-field-strong);
-  border: var(--border-width-normal) solid var(--color-field-strong-border);
-  border-radius: 2px;
-}
-
-.staff-page__detail-frame::before,
-.staff-page__detail-frame::after {
-  content: '';
-  position: absolute;
-  width: 16px;
-  height: 16px;
-  border: var(--border-width-emphasis) solid var(--color-brand-accent-surface);
-}
-
-.staff-page__detail-frame::before {
-  top: -5px;
-  left: -5px;
-  border-right: 0;
-  border-bottom: 0;
-}
-
-.staff-page__detail-frame::after {
-  right: -5px;
-  bottom: -5px;
-  border-top: 0;
-  border-left: 0;
 }
 
 .staff-page__detail-description {
@@ -2007,13 +1757,12 @@ async function onSubmitRename() {
   white-space: pre-line;
 }
 
+/* Rótulo v2 (DEC-188): tipo oración, 13px/500 en texto secundario. */
 .staff-page__detail-role {
   margin: 0;
-  color: var(--color-brand-accent-surface);
-  font-size: var(--font-size-caption);
-  font-weight: 600;
-  letter-spacing: 0.16em;
-  text-transform: uppercase;
+  color: var(--color-text-secondary);
+  font-size: 13px;
+  font-weight: 500;
 }
 
 .staff-page__facts {
@@ -2029,16 +1778,15 @@ async function onSubmitRename() {
   flex-direction: column;
   gap: var(--space-1);
   padding: var(--space-3);
-  background-color: var(--color-field-strong);
-  border: var(--border-width-normal) solid var(--color-field-strong-border);
-  border-radius: var(--radius-sm);
+  background-color: var(--color-surface);
+  border: var(--border-width-normal) solid var(--color-border-subtle);
+  border-radius: var(--radius-lg);
 }
 
 .staff-page__facts dt {
-  color: var(--color-on-strong-muted);
-  font-size: var(--font-size-caption);
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
+  color: var(--color-text-secondary);
+  font-size: 13px;
+  font-weight: 500;
 }
 
 .staff-page__facts dd {
@@ -2058,11 +1806,9 @@ async function onSubmitRename() {
   gap: var(--space-3);
   margin-top: var(--space-2);
   padding: var(--space-3);
-  background-color: var(--color-field-strong);
-  border: var(--border-width-normal) solid var(--color-field-strong-border);
-  border-radius: var(--radius-sm);
-  animation: staff-detail-enter 380ms var(--motion-easing-standard) both;
-  animation-delay: calc(120ms + var(--row-index, 0) * 70ms);
+  background-color: var(--color-surface);
+  border: var(--border-width-normal) solid var(--color-border-subtle);
+  border-radius: var(--radius-lg);
 }
 
 .staff-page__link-text {
@@ -2073,10 +1819,9 @@ async function onSubmitRename() {
 }
 
 .staff-page__link-label {
-  color: var(--color-on-strong-muted);
-  font-size: var(--font-size-caption);
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
+  color: var(--color-text-secondary);
+  font-size: 13px;
+  font-weight: 500;
 }
 
 .staff-page__link-state {
@@ -2101,18 +1846,17 @@ async function onSubmitRename() {
   padding: var(--space-3);
   color: inherit;
   text-decoration: none;
-  background-color: color-mix(in srgb, var(--color-brand-accent-surface) 10%, transparent);
-  border: var(--border-width-normal) solid
-    color-mix(in srgb, var(--color-brand-accent-surface) 55%, transparent);
-  border-radius: var(--radius-sm);
+  /* Tarjeta enlace neutra (v2, DEC-188): borde de control que pasa a tinta al
+     pasar el cursor; el acento es solo de la acción principal. */
+  background-color: var(--color-surface);
+  border: var(--border-width-normal) solid var(--color-border-control);
+  border-radius: var(--radius-lg);
   transition: border-color 200ms var(--motion-easing-standard);
-  animation: staff-detail-enter 380ms var(--motion-easing-standard) both;
-  animation-delay: calc(120ms + var(--row-index, 0) * 70ms);
 }
 
 .staff-page__gcal:hover,
 .staff-page__gcal:focus-visible {
-  border-color: var(--color-brand-accent-surface);
+  border-color: var(--color-text-primary);
 }
 
 .staff-page__gcal:focus-visible {
@@ -2125,7 +1869,7 @@ async function onSubmitRename() {
 }
 
 .staff-page__gcal-arrow {
-  color: var(--color-brand-accent-surface);
+  color: var(--color-text-secondary);
   transition: transform 220ms var(--motion-easing-standard);
 }
 
@@ -2137,7 +1881,6 @@ async function onSubmitRename() {
 @media (prefers-reduced-motion: reduce) {
   .staff-page__gcal,
   .staff-page__gcal-arrow {
-    animation: none;
     transition: none;
   }
 }
@@ -2151,50 +1894,6 @@ async function onSubmitRename() {
   flex-flow: row wrap;
   justify-content: flex-end;
   gap: var(--space-3);
-}
-
-/* Campos de alta/edición: llegan escalonados tras el rebote de la tarjeta. */
-.staff-page__form > * {
-  animation: staff-detail-enter 360ms var(--motion-easing-standard) backwards;
-  animation-delay: calc(140ms + var(--field-index, 0) * 60ms);
-}
-
-.staff-page__form > :nth-child(1) {
-  --field-index: 0;
-}
-
-.staff-page__form > :nth-child(2) {
-  --field-index: 1;
-}
-
-.staff-page__form > :nth-child(3) {
-  --field-index: 2;
-}
-
-.staff-page__form > :nth-child(4) {
-  --field-index: 3;
-}
-
-.staff-page__form > :nth-child(n + 5) {
-  --field-index: 4;
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .staff-page__form > * {
-    animation: none;
-  }
-}
-
-@keyframes staff-detail-enter {
-  from {
-    opacity: 0;
-    transform: translateY(8px);
-  }
-
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
 }
 
 /* Zona media 641–960px: las columnas fijas ya no caben junto al mínimo de la
@@ -2296,21 +1995,10 @@ async function onSubmitRename() {
 @media (prefers-reduced-motion: reduce) {
   .staff-content-enter-active,
   .staff-content-leave-active,
+  .staff-page__row,
   .staff-page__portrait,
-  .staff-page__item-name,
   .staff-page__item-chevron {
     transition: none;
-  }
-
-  .staff-page__row,
-  .staff-page__row--new::before,
-  .staff-page__skeleton-row--page,
-  .staff-page__photo-state::before,
-  .staff-page__dialog-chip,
-  .staff-page__dialog-chip::after,
-  .staff-page__detail-hero,
-  .staff-page__facts > div {
-    animation: none;
   }
 
   .staff-page__skeleton-portrait,
@@ -2318,6 +2006,14 @@ async function onSubmitRename() {
     animation: none;
     opacity: 0.8;
   }
+}
+
+/* «Animaciones reducidas» de Configuración (DEC-110): el esqueleto queda
+   quieto igual que con la preferencia del sistema. */
+:global(:root[data-motion='reduced']) .staff-page__skeleton-portrait,
+:global(:root[data-motion='reduced']) .staff-page__skeleton-bar {
+  animation: none;
+  opacity: 0.8;
 }
 </style>
 
@@ -2331,12 +2027,10 @@ async function onSubmitRename() {
    propia de BaseDialog tiene la misma especificidad y el orden de inserción de
    los <style> no está garantizado. Contenido a esta única pantalla. */
 .staff-page__dialog.base-dialog {
-  background-color: var(--color-surface-strong) !important;
-  border: var(--border-width-normal) solid var(--color-field-strong-border) !important;
+  background-color: var(--color-surface) !important;
+  border: var(--border-width-normal) solid var(--color-border-subtle) !important;
 }
 
-/* Mismo rebote de apertura que ya usan los diálogos de Servicios y
-   ProfessionalSelect: un elemento que llega y se asienta. */
 /* `size` solo fija max-width: el ancho real de cada diálogo se declara aquí. */
 .staff-page__create-dialog.base-dialog,
 .staff-page__edit-dialog.base-dialog {
@@ -2347,20 +2041,8 @@ async function onSubmitRename() {
   width: min(100%, 560px) !important;
 }
 
-.staff-page__dialog.base-dialog--open {
-  transition-timing-function: cubic-bezier(0.34, 1.56, 0.64, 1) !important;
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .staff-page__dialog.base-dialog--open {
-    transition-timing-function: var(--motion-easing-standard) !important;
-  }
-}
-
-.staff-page__dialog .base-dialog__header {
-  border-bottom-width: var(--border-width-emphasis) !important;
-  border-bottom-color: var(--color-brand-accent-surface) !important;
-}
+/* v2 (DEC-188): la apertura usa la curva estándar de BaseDialog (sin rebote)
+   y el encabezado conserva su separador sutil de 1px, sin filete de acento. */
 
 .staff-page__dialog .base-dialog__title {
   color: var(--color-on-strong) !important;
@@ -2372,7 +2054,7 @@ async function onSubmitRename() {
 }
 
 .staff-page__detail-dialog .base-dialog__footer {
-  border-top-color: var(--color-field-strong-border) !important;
+  border-top-color: var(--color-border-subtle) !important;
 }
 
 .staff-page__dialog .base-dialog__close {
