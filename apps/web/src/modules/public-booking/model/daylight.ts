@@ -32,13 +32,29 @@ export interface DaylightSlot {
   shortLabel: string
   /** «2:00 p. m., tarde»: lo que oye un lector de pantalla. */
   spokenLabel: string
+  /** «:15»: el minuto, para el chip dentro de la fila de su hora. */
+  minuteLabel: string
+  /** Minutos desde la medianoche civil del negocio. */
+  minutes: number
   part: PartOfDay
+}
+
+/** Una fila de la agenda: la hora en punto y sus inicios libres. */
+export interface DaylightRow {
+  /** «2»: la hora, grande a la izquierda de la fila. */
+  hour: string
+  /** «p. m.» */
+  meridiem: string
+  /** «2 p. m.»: el nombre de la fila para el lector de pantalla. */
+  label: string
+  slots: DaylightSlot[]
 }
 
 export interface DaylightGroup {
   part: PartOfDay
   label: string
   slots: DaylightSlot[]
+  rows: DaylightRow[]
 }
 
 export interface DaylightDay {
@@ -52,6 +68,24 @@ export interface DaylightDay {
 /** Quita «a. m.»/«p. m.» (con espacios normales o finos) de una hora formateada. */
 export function withoutMeridiem(label: string): string {
   return label.replace(/\s*[ap]\.\s?m\.?$/i, '').trim()
+}
+
+/** Las filas por hora en punto de unos inicios ya ordenados. */
+function rowsOf(slots: DaylightSlot[]): DaylightRow[] {
+  const rows = new Map<number, DaylightRow>()
+  for (const slot of slots) {
+    const hour = Math.floor(slot.minutes / 60)
+    let row = rows.get(hour)
+    if (!row) {
+      // «2:15 p. m.» → «2» y «p. m.», con el mismo formato que el resto.
+      const number = slot.label.replace(/:\d{2}.*$/, '').trim()
+      const meridiem = slot.label.slice(slot.label.search(/\s*[ap]\.\s?m/i)).trim()
+      row = { hour: number, meridiem, label: `${number} ${meridiem}`.trim(), slots: [] }
+      rows.set(hour, row)
+    }
+    row.slots.push(slot)
+  }
+  return Array.from(rows.values())
 }
 
 /**
@@ -78,22 +112,24 @@ export function buildDaylightDays(
   const days = Array.from(byDay.entries(), ([civilDate, starts]) => {
     const daySlots = Array.from(starts.entries(), ([startsAt, professionalIds]): DaylightSlot => {
       const label = formatTimeInTimezone(startsAt, timezone)
-      const part = partOfDay(minutesSinceCivilMidnight(startsAt, civilDate, timezone))
+      const minutes = minutesSinceCivilMidnight(startsAt, civilDate, timezone)
+      const part = partOfDay(minutes)
       return {
         startsAt,
         professionalIds,
         label,
         shortLabel: withoutMeridiem(label),
         spokenLabel: `${label}, ${PART_OF_DAY_LABEL[part].toLowerCase()}`,
+        minuteLabel: `:${String(minutes % 60).padStart(2, '0')}`,
+        minutes,
         part,
       }
     })
     const groups = (['morning', 'afternoon', 'night'] as const)
-      .map((part) => ({
-        part,
-        label: PART_OF_DAY_LABEL[part],
-        slots: daySlots.filter((s) => s.part === part),
-      }))
+      .map((part) => {
+        const partSlots = daySlots.filter((s) => s.part === part)
+        return { part, label: PART_OF_DAY_LABEL[part], slots: partSlots, rows: rowsOf(partSlots) }
+      })
       .filter((group) => group.slots.length > 0)
     return { civilDate, slots: daySlots, groups, freeRatio: 0 }
   })

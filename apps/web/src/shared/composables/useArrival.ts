@@ -8,9 +8,23 @@
 // - Con movimiento reducido (sistema o Configuración) no existe: `arriving`
 //   nace en `false` y se ve el estado final directo.
 // - Dura menos de 1,5 s; pasado ese tiempo la clase se retira sola.
-import { onBeforeUnmount, onMounted, ref } from 'vue'
+// - Ocurre una sola vez. Con `deferred`, empieza cuando la pantalla tiene su
+//   contenido (`begin()`), no al montar: así la coreografía no se consume
+//   durante la carga. Si antes de eso hubo un clic o una tecla, ya no ocurre.
+import { onBeforeUnmount, onMounted, ref, type InjectionKey, type Ref } from 'vue'
 
 export const ARRIVAL_MS = 1500
+
+export interface Arrival {
+  arriving: Ref<boolean>
+  /** Empieza la llegada (solo la primera vez y si nadie la interrumpió). */
+  begin: () => void
+  /** La termina en seco. */
+  stop: () => void
+}
+
+/** El cascarón ofrece su llegada a las pantallas que aloja. */
+export const arrivalKey: InjectionKey<Arrival> = Symbol('arrival')
 
 function prefersReducedMotion(): boolean {
   if (typeof window === 'undefined') return true
@@ -30,29 +44,54 @@ export function finishArrival(root: Document | Element = document): void {
   }
 }
 
-export function useArrival() {
+export function useArrival(options: { deferred?: boolean } = {}): Arrival {
+  const enabled = !prefersReducedMotion()
   // Se decide antes del primer cuadro: si la clase llegara después, el estado
   // final se vería un instante y luego «saltaría» al inicio de la animación.
-  const arriving = ref(!prefersReducedMotion())
+  const arriving = ref(enabled && !options.deferred)
+  let used = !enabled
   let timer: ReturnType<typeof setTimeout> | undefined
 
+  const detach = () => {
+    window.removeEventListener('pointerdown', interrupt, true)
+    window.removeEventListener('keydown', interrupt, true)
+  }
+
   const stop = () => {
+    clearTimeout(timer)
     if (!arriving.value) return
     finishArrival()
     arriving.value = false
-    clearTimeout(timer)
-    window.removeEventListener('pointerdown', stop, true)
-    window.removeEventListener('keydown', stop, true)
+    detach()
+  }
+
+  function interrupt() {
+    used = true
+    stop()
+    detach()
+  }
+
+  const begin = () => {
+    if (used) return
+    used = true
+    arriving.value = true
+    timer = setTimeout(stop, ARRIVAL_MS)
   }
 
   onMounted(() => {
-    if (!arriving.value) return
-    timer = setTimeout(stop, ARRIVAL_MS)
-    window.addEventListener('pointerdown', stop, true)
-    window.addEventListener('keydown', stop, true)
+    if (!enabled) return
+    window.addEventListener('pointerdown', interrupt, true)
+    window.addEventListener('keydown', interrupt, true)
+    if (!options.deferred) {
+      used = false
+      begin()
+    }
   })
 
-  onBeforeUnmount(stop)
+  onBeforeUnmount(() => {
+    stop()
+    detach()
+  })
 
-  return { arriving, stop }
+  return { arriving, begin, stop }
 }

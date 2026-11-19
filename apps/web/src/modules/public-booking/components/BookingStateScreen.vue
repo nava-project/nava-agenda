@@ -1,19 +1,19 @@
 <script setup lang="ts">
-// Pantalla de estado de página de los pasos públicos: carga, enlace no
-// encontrado, error de red y error inesperado. Las cuatro pantallas de la
-// reserva repetían este bloque al pie de la letra (mismo copy, misma
-// jerarquía de roles); aquí vive una sola vez y cada página solo aporta su
-// título oculto y el texto de carga. `PageState` ya compone el divisor, el
-// rótulo y el titular sobre tinta; este componente solo le da a la acción
-// (Reintentar) el tratamiento de latón de la reserva, porque `BaseButton`
-// sin ajustar es blanco o tinta sobre tinta.
+// Pantalla de estado de página de la reserva pública: carga, enlace no
+// encontrado, error de red y error inesperado (DEC-111). Las pantallas de la
+// reserva comparten este bloque; cada una solo aporta su título oculto y el
+// texto de carga.
+//
+// v2 (DEC-188): al cliente se le orienta, no se le alarma. Nada de rótulos
+// «Error» en rojo ni filetes: un horizonte tranquilo, una frase que dice qué
+// pasa y, solo si sirve de algo, «Reintentar». La pantalla reserva el alto de
+// la página para que el pie no salte cuando llega el estado (CLS).
 import { computed } from 'vue'
-import { BaseButton, PageState } from '@/shared/ui'
 
 interface Props {
   status: 'loading' | 'not-found' | 'network-error' | 'unexpected-error'
-  /** Título `<h1>` accesible pero oculto: `PageState` solo aporta un `<h2>`
-   * y estas pantallas no tienen otro `<h1>` (page-has-heading-one, axe). */
+  /** Título `<h1>` accesible pero oculto: estas pantallas no tienen otro `<h1>`
+   * (page-has-heading-one, axe). */
   title: string
   loadingHeadline: string
   requestId?: string
@@ -22,132 +22,118 @@ interface Props {
 const props = defineProps<Props>()
 const emit = defineEmits<{ retry: [] }>()
 
-const unexpectedErrorMessage = computed(() =>
-  props.requestId
-    ? `Inténtalo de nuevo. Si continúa, comparte este código con soporte: ${props.requestId}.`
-    : 'Inténtalo de nuevo en unos segundos.',
-)
+const content = computed(() => {
+  switch (props.status) {
+    case 'not-found':
+      // Reintentar no cambiaría nada: el enlace no existe o ya no se publica.
+      return {
+        headline: 'Este enlace no lleva a ninguna agenda',
+        body: 'Pide al negocio el enlace de nuevo y ábrelo tal como te llegue.',
+        retry: false,
+      }
+    case 'network-error':
+      return {
+        headline: 'No pudimos conectar',
+        body: 'Revisa tu conexión e inténtalo de nuevo.',
+        retry: true,
+      }
+    case 'unexpected-error':
+      return {
+        headline: 'Algo no salió bien',
+        body: props.requestId
+          ? `Inténtalo de nuevo. Si continúa, comparte este código con soporte: ${props.requestId}.`
+          : 'Inténtalo de nuevo en unos segundos.',
+        retry: true,
+      }
+    default:
+      return null
+  }
+})
 </script>
 
 <template>
-  <main class="pb-page pb-page--state">
+  <main class="bk-page bk-state">
     <h1 class="pb-sr-only">{{ title }}</h1>
-    <PageState
-      v-if="status === 'loading'"
-      class="pb-state"
-      variant="loading"
-      :headline="loadingHeadline"
-      role="status"
-    />
-    <PageState
-      v-else-if="status === 'not-found'"
-      class="pb-state pb-state--danger"
-      variant="danger"
-      status-label="Error"
-      headline="Este enlace no lleva a ninguna agenda"
-      role="alert"
-    >
-      <!-- Reintentar no cambiaría nada: el enlace no existe o ya no se publica. -->
-      <template #default>Pide al negocio el enlace de nuevo y ábrelo tal como te llegue.</template>
-    </PageState>
-    <PageState
-      v-else-if="status === 'network-error'"
-      class="pb-state pb-state--warning"
-      variant="warning"
-      status-label="Atención"
-      headline="No pudimos conectar"
-      role="alert"
-    >
-      <template #default>Revisa tu conexión e inténtalo de nuevo.</template>
-      <template #action>
-        <BaseButton variant="primary" @click="emit('retry')">Reintentar</BaseButton>
-      </template>
-    </PageState>
-    <PageState
-      v-else
-      class="pb-state pb-state--danger"
-      variant="danger"
-      status-label="Error"
-      headline="Ocurrió un error inesperado"
-      role="alert"
-    >
-      <template #default>{{ unexpectedErrorMessage }}</template>
-      <template #action>
-        <BaseButton variant="primary" @click="emit('retry')">Reintentar</BaseButton>
-      </template>
-    </PageState>
+    <p v-if="status === 'loading'" class="bk-state__loading" role="status">
+      {{ loadingHeadline }}
+    </p>
+    <div v-else-if="content" class="bk-state__box" role="alert">
+      <!-- Un horizonte con el sol a medio salir: tranquilo, sin alarma. -->
+      <svg class="bk-state__horizon" viewBox="0 0 64 32" aria-hidden="true">
+        <path class="bk-state__sun" d="M18 30a14 14 0 0 1 28 0z" />
+        <path class="bk-state__line" d="M4 30h56" />
+      </svg>
+      <h2 class="bk-state__headline">{{ content.headline }}</h2>
+      <p class="bk-state__body">{{ content.body }}</p>
+      <button
+        v-if="content.retry"
+        type="button"
+        class="bk-cta bk-state__retry"
+        @click="emit('retry')"
+      >
+        Reintentar
+      </button>
+    </div>
   </main>
 </template>
 
 <style scoped>
-/* El estado entra con la misma subida suave que el resto de la reserva. */
-.pb-state {
-  animation: pb-rise 0.6s var(--pb-ease, ease) backwards;
+.bk-state {
+  display: grid;
+  align-content: start;
+  justify-items: center;
+  padding-top: clamp(48px, 14vh, 128px);
 }
 
-/* `PageState` pinta el rótulo y el divisor con el rojo/ámbar de las
-   superficies claras (--color-danger-action, --color-warning-border), que
-   sobre tinta no llegan a 3:1. Aquí se sustituyen por los tintes LEVANTADOS
-   al lienzo de tinta que el sistema ya define para ese fin. */
-.pb-state--danger :deep(.page-state__status) {
-  color: var(--color-danger-on-strong);
+.bk-state__loading {
+  font-size: 15px;
+  color: var(--color-text-secondary);
 }
 
-.pb-state--danger :deep(.page-state__divider),
-.pb-state--danger :deep(.page-state__divider)::after {
-  background-color: var(--color-danger-on-strong);
+.bk-state__box {
+  display: grid;
+  gap: var(--space-3);
+  justify-items: center;
+  max-width: 30rem;
+  text-align: center;
 }
 
-.pb-state--warning :deep(.page-state__status) {
-  color: var(--color-warning-on-strong);
+.bk-state__horizon {
+  width: 80px;
+  height: 40px;
+  margin-bottom: var(--space-2);
+  overflow: visible;
 }
 
-.pb-state--warning :deep(.page-state__divider),
-.pb-state--warning :deep(.page-state__divider)::after {
-  background-color: var(--color-warning-on-strong);
+.bk-state__sun {
+  fill: var(--color-sun);
 }
 
-/* Reintentar: latón sobre tinta. La primaria se llena; la secundaria queda
-   en contorno con el filete inferior acentuado del lenguaje reglado. */
-.pb-state :deep(.base-button) {
-  min-width: 148px;
-  height: var(--control-height-primary-mobile);
+.bk-state__line {
+  stroke: var(--color-text-secondary);
+  stroke-width: 1.5;
+  stroke-linecap: round;
+}
+
+.bk-state__headline {
+  margin: 0;
+  font-size: clamp(22px, 4vw, 28px);
   font-weight: 600;
+  line-height: 1.2;
+  letter-spacing: -0.01em;
+  text-wrap: balance;
 }
 
-.pb-state :deep(.base-button--primary) {
-  color: var(--color-brand-accent-text);
-  background-color: var(--color-brand-accent-surface);
-  border-color: var(--color-brand-accent-surface);
-  border-bottom-width: var(--border-width-emphasis);
-  border-bottom-color: color-mix(in srgb, var(--color-brand-accent-surface) 70%, #000);
+.bk-state__body {
+  margin: 0;
+  font-size: 16px;
+  line-height: 24px;
+  color: var(--color-text-secondary);
+  text-wrap: pretty;
 }
 
-.pb-state :deep(.base-button--primary:hover:not(:disabled):not(.base-button--loading)) {
-  background-color: color-mix(in srgb, var(--color-brand-accent-surface) 86%, #fff);
-  border-color: color-mix(in srgb, var(--color-brand-accent-surface) 86%, #fff);
-}
-
-.pb-state :deep(.base-button--secondary) {
-  color: var(--color-brand-accent-surface);
-  background-color: transparent;
-  border-color: var(--color-brand-accent-surface);
-  border-bottom-width: var(--border-width-emphasis);
-}
-
-.pb-state :deep(.base-button--secondary:hover:not(:disabled):not(.base-button--loading)) {
-  background-color: color-mix(in srgb, var(--color-brand-accent-surface) 14%, transparent);
-}
-
-.pb-state :deep(.base-button:focus-visible) {
-  box-shadow:
-    0 0 0 2px var(--color-surface-strong),
-    0 0 0 4px var(--color-on-strong);
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .pb-state {
-    animation: none;
-  }
+.bk-state__retry {
+  margin-top: var(--space-3);
+  min-width: 160px;
 }
 </style>

@@ -59,6 +59,23 @@ describe('buildDaylightDays', () => {
     expect(hour.spokenLabel).toMatch(/^2:00\s?p\.\s?m\., tarde$/)
   })
 
+  it('reads like an agenda: one row per hour with its minutes as chips', () => {
+    const [day] = buildDaylightDays(
+      [
+        slot(A, '2026-11-20T14:00:00-05:00'),
+        slot(A, '2026-11-20T14:30:00-05:00'),
+        slot(A, '2026-11-20T15:45:00-05:00'),
+      ],
+      TZ,
+      null,
+    )
+    const rows = day!.groups[0]!.rows
+    expect(rows.map((r) => r.hour)).toEqual(['2', '3'])
+    expect(rows[0]!.meridiem).toMatch(/^p\.\s?m\.$/)
+    expect(rows[0]!.slots.map((s) => s.minuteLabel)).toEqual([':00', ':30'])
+    expect(rows[1]!.slots.map((s) => s.minutes)).toEqual([15 * 60 + 45])
+  })
+
   it('measures the free light of each day against the freest day, from real data only', () => {
     const days = buildDaylightDays(slots, TZ, null)
     expect(days.map((d) => d.freeRatio)).toEqual([1, 1 / 3])

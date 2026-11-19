@@ -73,6 +73,37 @@
   text-overflow: ellipsis;
 }
 
+.bk-top__lead {
+  display: flex;
+  gap: var(--space-3);
+  align-items: center;
+  min-width: 0;
+}
+
+.bk-top__name {
+  overflow: hidden;
+  font-size: 14px;
+  color: var(--color-text-secondary);
+  text-decoration: none;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.bk-top__name::before {
+  margin-right: var(--space-3);
+  content: '·';
+}
+
+.bk-top__name:hover {
+  color: var(--color-text-primary);
+}
+
+@media (max-width: 767px) {
+  .bk-top__name {
+    display: none;
+  }
+}
+
 .bk-back__arrow {
   transition: transform var(--motion-duration-fast) var(--bk-ease);
 }
@@ -240,7 +271,6 @@
 }
 
 .bk-hero__strip {
-  max-width: 640px;
   margin-top: var(--space-6);
 }
 
@@ -523,8 +553,8 @@
   display: grid;
   flex: 0 0 auto;
   justify-items: center;
-  width: 66px;
-  height: 92px;
+  width: 64px;
+  height: 100px;
   padding: var(--space-2) 0;
   font: inherit;
   color: var(--color-text-primary);
@@ -553,6 +583,80 @@
   line-height: 16px;
   color: var(--color-text-secondary);
   text-transform: capitalize;
+}
+
+/* El mes solo cuando empieza (o cambia); vacío, conserva su renglón. */
+.bk-day__month {
+  min-height: 16px;
+  font-weight: 600;
+  color: var(--color-text-primary);
+}
+
+.bk-days-wrap {
+  position: relative;
+}
+
+.bk-days-wrap::before,
+.bk-days-wrap::after {
+  position: absolute;
+  top: 0;
+  bottom: var(--space-3);
+  z-index: 1;
+  width: 56px;
+  pointer-events: none;
+  content: '';
+  opacity: 0;
+  transition: opacity var(--motion-duration-fast) var(--bk-ease);
+}
+
+.bk-days-wrap::before {
+  left: -1px;
+  background: linear-gradient(90deg, var(--color-canvas) 20%, transparent);
+}
+
+.bk-days-wrap::after {
+  right: -1px;
+  background: linear-gradient(270deg, var(--color-canvas) 20%, transparent);
+}
+
+.bk-days-wrap--before::before,
+.bk-days-wrap--after::after {
+  opacity: 1;
+}
+
+.bk-days__nav {
+  position: absolute;
+  top: calc(50% - 24px);
+  z-index: 2;
+  display: grid;
+  place-items: center;
+  width: 36px;
+  height: 36px;
+  padding: 0 0 3px;
+  font: inherit;
+  font-size: 22px;
+  line-height: 1;
+  color: var(--color-text-primary);
+  cursor: pointer;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border-control);
+  border-radius: 50%;
+  box-shadow: 0 2px 8px color-mix(in srgb, #000 12%, transparent);
+}
+
+.bk-days__nav--before {
+  left: 0;
+}
+
+.bk-days__nav--after {
+  right: 0;
+}
+
+/* En táctil se desliza con el dedo: las flechas sobran. */
+@media (hover: none) {
+  .bk-days__nav {
+    display: none;
+  }
 }
 
 .bk-day__number {
@@ -663,24 +767,64 @@
   box-shadow: inset -4px -1px 0 0 var(--color-text-primary);
 }
 
-.bk-hours__pills {
+.bk-hrow {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(70px, 1fr));
+  grid-template-columns: 3.25rem 1fr;
   gap: var(--space-2);
+  align-items: center;
+  padding: var(--space-1) 0;
 }
 
-.bk-hour {
+.bk-hrow + .bk-hrow {
+  border-top: 1px solid color-mix(in srgb, var(--color-text-primary) 8%, transparent);
+}
+
+/* La hora en punto, grande, como en una agenda de papel. */
+.bk-hrow__hour {
+  display: grid;
+  line-height: 1;
+  color: var(--color-text-secondary);
+  transition: color var(--motion-duration-fast) var(--bk-ease);
+}
+
+.bk-hrow__number {
+  font-size: 24px;
+  font-weight: 600;
+  letter-spacing: -0.02em;
+  font-variant-numeric: tabular-nums;
+}
+
+.bk-hrow__meridiem {
+  margin-top: 2px;
+  font-size: 12px;
+}
+
+.bk-hrow--chosen .bk-hrow__hour {
+  color: var(--color-text-primary);
+}
+
+.bk-hrow__mins {
+  display: grid;
+  grid-template-columns: repeat(var(--bk-cols, 4), minmax(44px, 64px));
+  gap: 6px;
+}
+
+.bk-hrow__mins--flow {
+  grid-template-columns: repeat(auto-fill, minmax(52px, 1fr));
+}
+
+/* Un minuto libre. Todos miden lo mismo, también el elegido: nada se mueve. */
+.bk-min {
   position: relative;
   min-height: 44px;
-  padding: 0 var(--space-2);
-  white-space: nowrap;
+  padding: 0;
   font: inherit;
   font-size: 15px;
   font-weight: 600;
   color: var(--color-text-primary);
   cursor: pointer;
-  background-color: var(--color-surface);
-  border: 1px solid var(--color-border-control);
+  background-color: color-mix(in srgb, var(--color-surface) 88%, transparent);
+  border: 1px solid color-mix(in srgb, var(--color-text-primary) 16%, transparent);
   border-radius: var(--radius-pill);
   font-variant-numeric: tabular-nums;
   transition:
@@ -689,29 +833,43 @@
     transform 260ms var(--bk-spring);
 }
 
-.bk-hour:hover {
+.bk-min:hover {
   border-color: var(--color-text-primary);
 }
 
-/* La hora elegida es Sol (de la marca), con su rombo. */
-.bk-hour[aria-checked='true'] {
-  grid-column: span 2;
-  padding-left: var(--space-6);
+.bk-min:active {
+  transform: scale(0.95);
+}
+
+/* La elegida es Sol (de la marca) y lleva su rombo colgado del borde. */
+.bk-min[aria-checked='true'] {
   color: var(--color-on-sun);
   background-color: var(--color-sun);
   border-color: var(--color-sun);
+  transform: scale(1.06);
 }
 
-.bk-hour[aria-checked='true']::before {
+.bk-min[aria-checked='true']::after {
   position: absolute;
-  top: 50%;
-  left: 12px;
-  width: 7px;
-  height: 7px;
-  margin-top: -3.5px;
+  top: -4px;
+  right: -2px;
+  width: 9px;
+  height: 9px;
   content: '';
-  background-color: currentcolor;
+  background-color: var(--color-on-sun);
+  border: 2px solid var(--color-sun);
+  border-radius: 1px;
   transform: rotate(45deg);
+}
+
+@media (max-width: 379px) {
+  .bk-hours__group {
+    padding-inline: var(--space-3);
+  }
+
+  .bk-hrow {
+    grid-template-columns: 2.75rem 1fr;
+  }
 }
 
 /* ── El pase de la cita ─────────────────────────────────────────────────── */
@@ -1049,8 +1207,45 @@
   animation: llega-sube 480ms var(--bk-ease) calc(240ms + var(--i, 0) * 40ms) both;
 }
 
-.bk-days--arrive .bk-day {
+/* El plato del local entra con la coreografía (y termina con ella). */
+.bk--arrive .bk-local.pb-plate {
+  animation: llega-sube 520ms var(--bk-ease) 320ms both;
+}
+
+.bk--arrive .bk-day {
   animation: llega-sube 420ms var(--bk-ease) calc(var(--i, 0) * 30ms) both;
+}
+
+/* Las entradas propias de la v1 (hoja que cae, mapa que se revela) no son de
+   esta llegada: no se pueden terminar con un clic y la alargaban a 1,9 s. */
+.bk .pb-plate,
+.bk .pb-plate *,
+.bk .pb-plano .location-map__frame {
+  animation: none;
+}
+
+/* El plano: en Día va con sus colores; el filtro de tinta de la v1 queda solo
+   para Noche (y se retira al señalarlo, para leer calles y puntos). */
+.bk .pb-plano .location-map__frame {
+  filter: none;
+}
+
+:root[data-app-theme='ink'] .bk .pb-plano .location-map__frame {
+  filter: invert(0.9) hue-rotate(180deg) saturate(0.55) brightness(0.95) contrast(0.92);
+}
+
+:root[data-app-theme='ink'] .bk .pb-plano:is(:hover, :focus-within) .location-map__frame {
+  filter: none;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-app-theme]) .bk .pb-plano .location-map__frame {
+    filter: invert(0.9) hue-rotate(180deg) saturate(0.55) brightness(0.95) contrast(0.92);
+  }
+
+  :root:not([data-app-theme]) .bk .pb-plano:is(:hover, :focus-within) .location-map__frame {
+    filter: none;
+  }
 }
 
 @keyframes llega-sube {
@@ -1088,7 +1283,7 @@
     animation: none !important;
   }
 
-  .bk-hour[aria-checked='true'] {
+  .bk-min[aria-checked='true'] {
     transform: none;
   }
 }

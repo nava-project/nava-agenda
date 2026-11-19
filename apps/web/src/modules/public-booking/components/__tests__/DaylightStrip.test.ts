@@ -28,7 +28,7 @@ describe('DaylightStrip', () => {
   it('marks «now» only inside the visible window', () => {
     expect(
       mount(DaylightStrip, { props: { open, now: 10 * 60 } })
-        .find('.daylight__marker--now')
+        .find('.daylight__marker--sun')
         .exists(),
     ).toBe(true)
     expect(
@@ -43,9 +43,44 @@ describe('DaylightStrip', () => {
       { start: 9 * 60, end: 10 * 60 },
       { start: 16 * 60, end: 17 * 60 },
     ]
-    expect(mount(DaylightStrip, { props: { open, free } }).findAll('.daylight__free')).toHaveLength(
-      2,
-    )
+    const map = mount(DaylightStrip, { props: { open, free, variant: 'map' } })
+    expect(map.findAll('.daylight__free')).toHaveLength(2)
+    // Lo abierto sin horas se apaga: 9–13 y 14–17 menos los dos tramos libres.
+    expect(map.findAll('.daylight__busy')).toHaveLength(2)
+    expect(map.find('.daylight__legend').text()).toContain('Libre')
+  })
+
+  it('draws the moon at night and keeps the sun higher at noon than at opening', () => {
+    expect(
+      mount(DaylightStrip, { props: { open: [{ start: 17 * 60, end: 23 * 60 }], now: 21 * 60 } })
+        .find('.daylight__marker--moon')
+        .exists(),
+    ).toBe(true)
+    const top = (now: number) =>
+      parseFloat(
+        mount(DaylightStrip, { props: { open, now } })
+          .get('.daylight__marker')
+          .attributes('style')!
+          .match(/top:\s*([\d.]+)%/)![1]!,
+      )
+    expect(top(12 * 60)).toBeLessThan(top(9 * 60))
+  })
+
+  it('labels opening, noon and closing without overlapping', () => {
+    const labels = mount(DaylightStrip, { props: { open: [{ start: 8 * 60, end: 20 * 60 }] } })
+      .findAll('.daylight__hours span')
+      .map((l) => l.text())
+    expect(labels).toEqual(['8 a. m.', '12 p. m.', '8 p. m.'])
+  })
+
+  it('a tap on a free stretch picks those minutes', async () => {
+    const free = [{ start: 9 * 60, end: 10 * 60 }]
+    const map = mount(DaylightStrip, { props: { open, free, variant: 'map' } })
+    const track = map.get('.daylight__track').element as HTMLElement
+    track.getBoundingClientRect = () => ({ left: 0, width: 1000 }) as DOMRect
+    // La ventana va de 8 a. m. a 6 p. m.: x = 150 de 1000 son las 9:30.
+    await map.get('.daylight__free').trigger('click', { clientX: 150 })
+    expect(map.emitted('pick')![0]).toEqual([9 * 60 + 30])
   })
 
   it('is decorative without a label and an image with one', async () => {

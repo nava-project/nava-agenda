@@ -16,8 +16,9 @@
 //
 // Una respuesta tardía de una carga ya reemplazada se descarta con un token
 // monótono (CA-095-03).
-import { computed, nextTick, ref, watch } from 'vue'
+import { computed, inject, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { RouterLink, useRouter } from 'vue-router'
+import { arrivalKey } from '@/shared/composables/useArrival'
 import { formatMoney } from '@/shared/model/money'
 import { DAYS_OF_WEEK, clockToMinutes, segmentsByDay } from '@/shared/model/openingHours'
 import { ProfessionalAvatar, StarRating } from '@/shared/ui'
@@ -57,6 +58,9 @@ interface Props {
 const props = withDefaults(defineProps<Props>(), { professionalId: null })
 const v = usePublicVocabulary()
 const router = useRouter()
+// La llegada del cascarón (solo si esta es la pantalla con la que se abrió el enlace).
+const arrival = inject(arrivalKey, null)
+const arriving = computed(() => arrival?.arriving.value ?? false)
 
 type ScreenState =
   | { status: 'loading' }
@@ -78,7 +82,6 @@ const chosenProfessionalId = ref<string | null>(props.professionalId)
 const activeDate = ref<string | null>(null)
 const selected = ref<DaylightSlot | null>(null)
 const activeSlotIndex = ref(0)
-const firstLoad = ref(true)
 
 let requestToken = 0
 
@@ -112,6 +115,7 @@ async function load() {
   )
     return
 
+  arrival?.begin()
   screenState.value = {
     status: 'success',
     service: services.services.find((s) => s.id === props.serviceId) ?? null,
@@ -151,6 +155,35 @@ watch(
     chosenProfessionalId.value = id
   },
 )
+
+// Los chips son un grupo de radio: una sola parada de Tab y las flechas eligen.
+const chipRefs = ref<HTMLElement[]>([])
+function setChipRef(el: unknown, index: number) {
+  if (el instanceof HTMLElement) chipRefs.value[index] = el
+}
+const chipOptions = computed(() => [null, ...professionals.value.map((p) => p.id)])
+
+function onChipsKeydown(event: KeyboardEvent) {
+  const options = chipOptions.value
+  const at = Math.max(0, options.indexOf(effectiveProfessionalId.value))
+  const last = options.length - 1
+  const target =
+    event.key === 'ArrowRight' || event.key === 'ArrowDown'
+      ? (at + 1) % options.length
+      : event.key === 'ArrowLeft' || event.key === 'ArrowUp'
+        ? (at - 1 + options.length) % options.length
+        : event.key === 'Home'
+          ? 0
+          : event.key === 'End'
+            ? last
+            : null
+  if (target === null) return
+  event.preventDefault()
+  chooseProfessional(options[target] ?? null)
+  const el = chipRefs.value[target]
+  el?.focus()
+  el?.scrollIntoView?.({ inline: 'nearest', block: 'nearest' })
+}
 
 function chooseProfessional(id: string | null) {
   if (id === effectiveProfessionalId.value) return
@@ -271,10 +304,39 @@ function onDaysKeydown(event: KeyboardEvent) {
   void chooseDay(target, true)
 }
 
+// Son inicios posibles, no horas de reloj: «46 horarios libres» en un día que
+// abre 12 horas es cierto; «46 horas libres» no.
 function dayAria(day: DaylightDay): string {
   const n = day.slots.length
-  return `${formatCivilDateFull(day.civilDate)}, ${n} ${n === 1 ? 'hora libre' : 'horas libres'}`
+  return `${formatCivilDateFull(day.civilDate)}, ${n} ${n === 1 ? 'horario libre' : 'horarios libres'}`
 }
+
+// El mes se dice una vez y se repite solo cuando cambia.
+function monthOf(index: number): string {
+  const day = days.value[index]
+  if (!day) return ''
+  const month = civilDateChip(day.civilDate).month
+  const previous = days.value[index - 1]
+  return previous && civilDateChip(previous.civilDate).month === month ? '' : month
+}
+
+// Más días a un lado: un degradado en el borde y una flecha lo dicen.
+const daysEl = ref<HTMLElement | null>(null)
+const moreBefore = ref(false)
+const moreAfter = ref(false)
+function measureDays() {
+  const el = daysEl.value
+  if (!el) return
+  moreBefore.value = el.scrollLeft > 4
+  moreAfter.value = el.scrollLeft + el.clientWidth < el.scrollWidth - 4
+}
+function scrollDays(direction: 1 | -1) {
+  const el = daysEl.value
+  el?.scrollBy?.({ left: direction * el.clientWidth * 0.8, behavior: 'smooth' })
+}
+watch(days, () => void nextTick(measureDays))
+onMounted(() => window.addEventListener('resize', measureDays))
+onBeforeUnmount(() => window.removeEventListener('resize', measureDays))
 
 // ── Horas ─────────────────────────────────────────────────────────────────
 const slotRefs = ref<Record<string, HTMLElement>>({})
@@ -285,6 +347,33 @@ function setSlotRef(el: unknown, startsAt: string) {
 function selectSlot(slot: DaylightSlot) {
   selected.value = slot
   activeSlotIndex.value = flatSlots.value.findIndex((s) => s.startsAt === slot.startsAt)
+}
+
+// Las columnas de los minutos: con rejilla de 15, 20, 30 o 60 minutos cada
+// minuto tiene su columna (:00 :15 :30 :45) y las filas se leen como una agenda.
+const minuteColumns = computed(() => {
+  const grid = success.value?.slotGridMinutes ?? 15
+  return grid >= 15 && 60 % grid === 0 ? 60 / grid : 0
+})
+function minuteColumn(slot: DaylightSlot): string | undefined {
+  if (minuteColumns.value === 0) return undefined
+  const grid = 60 / minuteColumns.value
+  return String(Math.floor((slot.minutes % 60) / grid) + 1)
+}
+
+// Tocar un tramo libre de la franja elige la hora libre que cae ahí.
+function pickFromStrip(minutes: number) {
+  const slots = flatSlots.value
+  if (slots.length === 0) return
+  const step = success.value?.slotGridMinutes || 15
+  const inside = slots.find((s) => s.minutes <= minutes && minutes < s.minutes + step)
+  const slot =
+    inside ??
+    slots.reduce((best, s) =>
+      Math.abs(s.minutes - minutes) < Math.abs(best.minutes - minutes) ? s : best,
+    )
+  selectSlot(slot)
+  slotRefs.value[slot.startsAt]?.scrollIntoView?.({ block: 'nearest', behavior: 'smooth' })
 }
 
 function onSlotsKeydown(event: KeyboardEvent) {
@@ -356,11 +445,6 @@ function durationLabel(minutes: number): string {
 const failedRequestId = computed(() =>
   screenState.value.status === 'unexpected-error' ? screenState.value.requestId : undefined,
 )
-
-// La llegada de esta pantalla (la franja amanece) solo la primera vez.
-watch(success, (value) => {
-  if (value) void nextTick(() => setTimeout(() => (firstLoad.value = false), 1500))
-})
 </script>
 
 <template>
@@ -422,12 +506,20 @@ watch(success, (value) => {
             >
           </p>
 
-          <div v-else class="bk-chips" role="radiogroup" :aria-label="`Con qué ${v.professional}`">
+          <div
+            v-else
+            class="bk-chips"
+            role="radiogroup"
+            :aria-label="`Con qué ${v.professional}`"
+            @keydown="onChipsKeydown"
+          >
             <button
+              :ref="(el) => setChipRef(el, 0)"
               type="button"
               role="radio"
               class="bk-chip"
               :aria-checked="effectiveProfessionalId === null"
+              :tabindex="effectiveProfessionalId === null ? 0 : -1"
               @click="chooseProfessional(null)"
             >
               <svg class="bk-chip__any" viewBox="0 0 28 28" aria-hidden="true">
@@ -436,12 +528,14 @@ watch(success, (value) => {
               Cualquiera
             </button>
             <button
-              v-for="professional in professionals"
+              v-for="(professional, index) in professionals"
               :key="professional.id"
+              :ref="(el) => setChipRef(el, index + 1)"
               type="button"
               role="radio"
               class="bk-chip"
               :aria-checked="effectiveProfessionalId === professional.id"
+              :tabindex="effectiveProfessionalId === professional.id ? 0 : -1"
               @click="chooseProfessional(professional.id)"
             >
               <ProfessionalAvatar
@@ -498,31 +592,58 @@ watch(success, (value) => {
           <template v-else>
             <h2 class="pb-sr-only">Día</h2>
             <div
-              class="bk-days"
-              role="radiogroup"
-              aria-label="Día"
-              :class="{ 'bk-days--arrive': firstLoad }"
-              @keydown="onDaysKeydown"
+              class="bk-days-wrap"
+              :class="{ 'bk-days-wrap--before': moreBefore, 'bk-days-wrap--after': moreAfter }"
             >
-              <button
-                v-for="(day, index) in days"
-                :key="day.civilDate"
-                :ref="(el) => setDayRef(el, index)"
-                type="button"
-                role="radio"
-                class="bk-day"
-                :style="{ '--i': index }"
-                :aria-checked="day.civilDate === activeDate"
-                :aria-label="dayAria(day)"
-                :tabindex="day.civilDate === activeDate ? 0 : -1"
-                @click="chooseDay(index)"
+              <div
+                ref="daysEl"
+                class="bk-days"
+                role="radiogroup"
+                aria-label="Día"
+                @keydown="onDaysKeydown"
+                @scroll.passive="measureDays"
               >
-                <span class="bk-day__weekday">{{ civilDateChip(day.civilDate).weekday }}</span>
-                <span class="bk-day__number">{{ civilDateChip(day.civilDate).day }}</span>
-                <span class="bk-day__month">{{ civilDateChip(day.civilDate).month }}</span>
-                <span class="bk-day__light"
-                  ><span :style="{ inlineSize: `${Math.max(8, day.freeRatio * 100)}%` }"></span
-                ></span>
+                <button
+                  v-for="(day, index) in days"
+                  :key="day.civilDate"
+                  :ref="(el) => setDayRef(el, index)"
+                  type="button"
+                  role="radio"
+                  class="bk-day"
+                  :style="{ '--i': index }"
+                  :aria-checked="day.civilDate === activeDate"
+                  :aria-label="dayAria(day)"
+                  :tabindex="day.civilDate === activeDate ? 0 : -1"
+                  @click="chooseDay(index)"
+                >
+                  <span class="bk-day__month">{{ monthOf(index) }}</span>
+                  <span class="bk-day__weekday">{{ civilDateChip(day.civilDate).weekday }}</span>
+                  <span class="bk-day__number">{{ civilDateChip(day.civilDate).day }}</span>
+                  <span class="bk-day__light"
+                    ><span :style="{ inlineSize: `${Math.max(8, day.freeRatio * 100)}%` }"></span
+                  ></span>
+                </button>
+              </div>
+              <!-- Atajo de puntero: con teclado, las flechas del grupo recorren los días. -->
+              <button
+                v-if="moreBefore"
+                type="button"
+                class="bk-days__nav bk-days__nav--before"
+                tabindex="-1"
+                aria-hidden="true"
+                @click="scrollDays(-1)"
+              >
+                ‹
+              </button>
+              <button
+                v-if="moreAfter"
+                type="button"
+                class="bk-days__nav bk-days__nav--after"
+                tabindex="-1"
+                aria-hidden="true"
+                @click="scrollDays(1)"
+              >
+                ›
               </button>
             </div>
 
@@ -530,12 +651,17 @@ watch(success, (value) => {
               <h2 class="bk-day-title">{{ formatCivilDateFull(activeDay.civilDate) }}</h2>
               <DaylightStrip
                 class="bk-daytime__strip"
+                variant="map"
                 :open="activeOpen"
                 :free="activeFree"
                 :selected="selectedMinutes"
-                :arrive="firstLoad"
+                :arrive="arriving"
+                @pick="pickFromStrip"
               />
 
+              <!-- Una fila por hora, como una agenda: la hora grande a la
+                   izquierda y sus minutos libres como chips en columnas fijas.
+                   La elegida pasa a Sol sin mover nada. -->
               <div
                 :key="activeDay.civilDate"
                 class="bk-hours"
@@ -553,21 +679,39 @@ watch(success, (value) => {
                   <h3 class="bk-hours__label">
                     <span class="bk-hours__sky" aria-hidden="true"></span>{{ group.label }}
                   </h3>
-                  <div class="bk-hours__pills">
-                    <button
-                      v-for="slot in group.slots"
-                      :key="slot.startsAt"
-                      :ref="(el) => setSlotRef(el, slot.startsAt)"
-                      type="button"
-                      role="radio"
-                      class="bk-hour"
-                      :aria-checked="selected?.startsAt === slot.startsAt"
-                      :aria-label="slot.spokenLabel"
-                      :tabindex="flatSlots[activeSlotIndex]?.startsAt === slot.startsAt ? 0 : -1"
-                      @click="selectSlot(slot)"
+                  <div
+                    v-for="row in group.rows"
+                    :key="row.label"
+                    class="bk-hrow"
+                    :class="{
+                      'bk-hrow--chosen': row.slots.some((s) => s.startsAt === selected?.startsAt),
+                    }"
+                  >
+                    <span class="bk-hrow__hour" aria-hidden="true"
+                      ><span class="bk-hrow__number">{{ row.hour }}</span
+                      ><span class="bk-hrow__meridiem">{{ row.meridiem }}</span></span
                     >
-                      {{ selected?.startsAt === slot.startsAt ? slot.label : slot.shortLabel }}
-                    </button>
+                    <div
+                      class="bk-hrow__mins"
+                      :class="{ 'bk-hrow__mins--flow': minuteColumns === 0 }"
+                      :style="{ '--bk-cols': minuteColumns || undefined }"
+                    >
+                      <button
+                        v-for="slot in row.slots"
+                        :key="slot.startsAt"
+                        :ref="(el) => setSlotRef(el, slot.startsAt)"
+                        type="button"
+                        role="radio"
+                        class="bk-min"
+                        :style="{ gridColumn: minuteColumn(slot) }"
+                        :aria-checked="selected?.startsAt === slot.startsAt"
+                        :aria-label="slot.spokenLabel"
+                        :tabindex="flatSlots[activeSlotIndex]?.startsAt === slot.startsAt ? 0 : -1"
+                        @click="selectSlot(slot)"
+                      >
+                        {{ slot.minuteLabel }}
+                      </button>
+                    </div>
                   </div>
                 </section>
               </div>

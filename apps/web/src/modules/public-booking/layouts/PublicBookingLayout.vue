@@ -13,7 +13,7 @@ import { computed, onBeforeUnmount, provide, ref, watch } from 'vue'
 import { RouterLink, RouterView, useRoute, type RouteLocationRaw } from 'vue-router'
 import { buildVocabularyFromTerms } from '@/shared/model'
 import { NAVA_PRIVACY_URL, NAVA_TERMS_URL } from '@/shared/model/navaSite'
-import { useArrival } from '@/shared/composables/useArrival'
+import { arrivalKey, useArrival } from '@/shared/composables/useArrival'
 import { NavaWordmark } from '@/shared/ui'
 import { bookingChromeKey } from '../model/bookingChrome'
 import { paintPublicAccent } from '../model/publicAccent'
@@ -130,19 +130,28 @@ watch(
   { flush: 'sync' },
 )
 
-// Llegada (DEC-188): un solo momento al abrir el enlace; un clic o una tecla
-// la terminan y con movimiento reducido no existe.
-const { arriving } = useArrival()
+// Llegada (DEC-188): un solo momento al abrir el enlace. La pantalla que se
+// abre la empieza cuando ya tiene su contenido (no durante la carga); un clic
+// o una tecla la terminan y con movimiento reducido no existe.
+const arrival = useArrival({ deferred: true })
+provide(arrivalKey, arrival)
+const arriving = arrival.arriving
 </script>
 
 <template>
   <div class="pb-layout bk" :class="{ 'bk--arrive': arriving }">
     <header class="bk-top">
       <div class="bk-top__inner">
-        <RouterLink v-if="back" :to="back.to" class="bk-back">
-          <span class="bk-back__arrow" aria-hidden="true">←</span>
-          <span>{{ back.label }}</span>
-        </RouterLink>
+        <div v-if="back" class="bk-top__lead">
+          <RouterLink :to="back.to" class="bk-back">
+            <span class="bk-back__arrow" aria-hidden="true">←</span>
+            <span>{{ back.label }}</span>
+          </RouterLink>
+          <!-- En los pasos interiores, el negocio sigue a la vista. -->
+          <RouterLink v-if="businessName" :to="entry" class="bk-top__name">{{
+            businessName
+          }}</RouterLink>
+        </div>
         <RouterLink
           v-else-if="route.name !== 'reserva-publica-entrada'"
           :to="entry"
@@ -152,7 +161,12 @@ const { arriving } = useArrival()
         </RouterLink>
         <span v-else class="bk-top__spacer" aria-hidden="true"></span>
 
-        <ol v-if="step !== null || completed" class="bk-steps" aria-label="Pasos de la reserva">
+        <!-- Sin negocio (enlace inexistente) no hay recorrido que mostrar. -->
+        <ol
+          v-if="(step !== null || completed) && businessName"
+          class="bk-steps"
+          aria-label="Pasos de la reserva"
+        >
           <li
             v-for="(label, index) in STEPS"
             :key="label"
@@ -184,7 +198,11 @@ const { arriving } = useArrival()
     <!-- El negocio lleva la jerarquía; NAVA solo firma al pie y lleva a su
          banda en nava.wtf, para que nadie crea que reserva en «NAVA». -->
     <footer class="bk-foot">
-      <a class="bk-foot__firm" href="https://nava.wtf/#agenda">
+      <a
+        class="bk-foot__firm"
+        href="https://nava.wtf/#agenda"
+        aria-label="Reservas con Nava Agenda, en nava.wtf"
+      >
         <span>Reservas con</span>
         <NavaWordmark size="sm" />
       </a>

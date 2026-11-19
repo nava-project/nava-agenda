@@ -27,7 +27,38 @@ afterEach(() => {
   delete document.documentElement.dataset.motion
 })
 
+const Deferred = defineComponent({
+  setup(_, { expose }) {
+    const arrival = useArrival({ deferred: true })
+    expose({ begin: arrival.begin })
+    return () => h('div', { class: { arriving: arrival.arriving.value } })
+  },
+})
+
 describe('useArrival', () => {
+  it('when deferred, waits for the content and happens only once', async () => {
+    setReducedMotion(false)
+    const wrapper = mount(Deferred)
+    expect(wrapper.classes()).not.toContain('arriving')
+    ;(wrapper.vm as unknown as { begin: () => void }).begin()
+    await wrapper.vm.$nextTick()
+    expect(wrapper.classes()).toContain('arriving')
+    vi.advanceTimersByTime(ARRIVAL_MS)
+    await wrapper.vm.$nextTick()
+    ;(wrapper.vm as unknown as { begin: () => void }).begin()
+    await wrapper.vm.$nextTick()
+    expect(wrapper.classes()).not.toContain('arriving')
+  })
+
+  it('when deferred, a click during the load cancels it', async () => {
+    setReducedMotion(false)
+    const wrapper = mount(Deferred)
+    window.dispatchEvent(new Event('pointerdown'))
+    ;(wrapper.vm as unknown as { begin: () => void }).begin()
+    await wrapper.vm.$nextTick()
+    expect(wrapper.classes()).not.toContain('arriving')
+  })
+
   it('arrives from the first frame and retires itself within 1.5 s', async () => {
     setReducedMotion(false)
     const wrapper = mount(Probe)

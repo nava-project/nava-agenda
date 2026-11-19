@@ -11,8 +11,9 @@
 //
 // Perfil y catálogo se piden a la vez. El perfil se comparte con el cascarón
 // (publicProfile.ts) y el catálogo con «Día y hora» (publicServices.ts).
-import { computed, onBeforeUnmount, onMounted, ref } from 'vue'
+import { computed, inject, onBeforeUnmount, onMounted, ref } from 'vue'
 import { RouterLink, useRouter } from 'vue-router'
+import { arrivalKey } from '@/shared/composables/useArrival'
 import { isMapAvailable } from '@/shared/model/mapEmbed'
 import { formatMoney } from '@/shared/model/money'
 import { civilNow, clockToMinutes, formatClock } from '@/shared/model/openingHours'
@@ -36,6 +37,9 @@ interface Props {
 const props = defineProps<Props>()
 const v = usePublicVocabulary()
 const router = useRouter()
+// La llegada del cascarón empieza cuando hay contenido que mostrar.
+const arrival = inject(arrivalKey, null)
+const arriving = computed(() => arrival?.arriving.value ?? false)
 
 type ScreenState =
   | { status: 'loading' }
@@ -71,6 +75,7 @@ async function load() {
     })
     return
   }
+  arrival?.begin()
   screenState.value = { status: 'success', profile: profile.profile, services: services.services }
 }
 
@@ -179,7 +184,8 @@ function durationLabel(minutes: number): string {
         :open="today.open"
         :now="today.now"
         :label="today.label"
-        arrive
+        :arrive="arriving"
+        variant="band"
       />
     </section>
 

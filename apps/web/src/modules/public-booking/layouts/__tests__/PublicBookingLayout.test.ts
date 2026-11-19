@@ -6,14 +6,50 @@
  * firma al pie como «Reservas con NAVA», con enlace a su banda en nava.wtf.
  * Las pantallas se sustituyen por un doble: aquí no se prueba su contenido.
  */
-import { afterEach, describe, it, expect } from 'vitest'
+import { afterEach, beforeEach, describe, it, expect, vi } from 'vitest'
 import { defineComponent, h } from 'vue'
 import { mount, flushPromises } from '@vue/test-utils'
 import { createRouter, createMemoryHistory, type RouteRecordRaw } from 'vue-router'
 import { axe } from 'vitest-axe'
 import PublicBookingLayout from '../PublicBookingLayout.vue'
 import { useBookingChrome } from '../../model/bookingChrome'
+import { resetPublicProfileCache } from '../../model/publicProfile'
 import { publicBookingRoutes } from '../../routes'
+
+// El cascarón lee el perfil del enlace: con negocio hay recorrido (pasos); sin
+// él (enlace inexistente) no.
+const getMock = vi.hoisted(() => vi.fn())
+vi.mock('@/shared/api/httpClient', () => ({ httpClient: { GET: getMock, POST: vi.fn() } }))
+
+const profile = {
+  name: 'Barbería Ejemplo',
+  timezone: 'America/Bogota',
+  contactEmail: null,
+  contactPhone: null,
+  vocabulary: {
+    businessTerm: 'barbería',
+    businessTermGender: 'feminine',
+    professionalTerm: 'barbero',
+    professionalTermPlural: 'barberos',
+    professionalTermGender: 'masculine',
+  },
+  location: null,
+  offersHomeService: false,
+  brandAccent: 'brass',
+  openingHours: [],
+  closedOnHolidays: false,
+  today: null,
+}
+
+beforeEach(() => {
+  resetPublicProfileCache()
+  getMock.mockReset()
+  getMock.mockResolvedValue({
+    data: profile,
+    error: undefined,
+    response: { ok: true, status: 200, headers: new Headers() },
+  })
+})
 
 // Doble de pantalla: un `<main>` que, si se le pide, confirma el turno por el
 // canal del cascarón (lo que hace la página de datos tras el éxito del API).
@@ -72,6 +108,28 @@ const FUTURE_START = new Date(Date.now() + 24 * 3600 * 1000).toISOString()
 const DETAILS = `/reservar/b/servicios/${SERVICE}/profesional/${PROFESSIONAL}/horario/${FUTURE_START}/cliente`
 
 describe('PublicBookingLayout', () => {
+  it('shows no steps when the link leads to no business', async () => {
+    getMock.mockResolvedValue({
+      data: undefined,
+      error: { status: 404, code: 'not-found', title: 'x' },
+      response: { ok: false, status: 404, headers: new Headers() },
+    })
+    const { wrapper } = await mountAt('/reservar/no-existe')
+    expect(wrapper.find('.bk-steps').exists()).toBe(false)
+  })
+
+  it('keeps the business in view on the inner steps', async () => {
+    const { wrapper } = await mountAt(`/reservar/b/servicios/${SERVICE}/horario`)
+    expect(wrapper.get('.bk-top__name').text()).toBe('Barbería Ejemplo')
+  })
+
+  it('names the NAVA signature with real spaces for screen readers', async () => {
+    const { wrapper } = await mountAt('/reservar/barberia-ejemplo')
+    expect(wrapper.get('.bk-foot__firm').attributes('aria-label')).toBe(
+      'Reservas con Nava Agenda, en nava.wtf',
+    )
+  })
+
   it('on the entry marks «Servicio» as the current step, with no back link', async () => {
     const { wrapper } = await mountAt('/reservar/barberia-ejemplo')
     expect(wrapper.find('.bk-back').exists()).toBe(false)

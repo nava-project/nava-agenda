@@ -1,14 +1,21 @@
 <script setup lang="ts">
 /**
- * DaylightStrip · la franja del día (DEC-188, «La luz del día»). Un riel de
- * horas cuyo color es el cielo de cada hora REAL: mañana hasta las 12:00, tarde
- * hasta las 18:00 y noche desde entonces. Solo se ilumina lo que el negocio
- * atiende (`open`); lo cerrado queda rayado. Opcionalmente marca los tramos
- * libres (`free`, una línea dentro del cielo), la hora elegida (Sol, rombo) o
- * «ahora» (Sol, círculo), nunca las dos a la vez.
+ * DaylightStrip · la franja del día (DEC-188, «La luz del día»). Es la
+ * identidad de la reserva: el cielo de cada hora REAL, de la noche al alba, al
+ * mediodía, al atardecer y otra vez a la noche, entre la apertura y el cierre
+ * del negocio. Lo cerrado queda velado y rayado.
  *
- * Es decorativa para la tecnología de asistencia salvo por `label`, que resume
- * en una frase lo que dibuja (la misma información está en texto en la página).
+ * Dos formas:
+ * - `band` (entrada): una banda alta con el sol en «ahora», alto a mediodía y
+ *   bajo al abrir y cerrar; de noche, la luna. La llegada es esta banda
+ *   amaneciendo de izquierda a derecha.
+ * - `map` (Día y hora): el mapa del día. Los tramos libres quedan encendidos,
+ *   lo abierto sin horas se apaga y lo cerrado se raya; la hora elegida es un
+ *   rombo Sol. Tocar un tramo libre emite `pick` con esos minutos: es un atajo
+ *   de puntero, la misma elección está en el grupo de horas (teclado y lector).
+ *
+ * Para la tecnología de asistencia solo existe `label`, una frase con lo que
+ * dibuja; sin ella la franja es decorativa (la información está en texto).
  */
 import { computed } from 'vue'
 
@@ -22,14 +29,15 @@ interface Props {
   open: Interval[]
   /** Tramos libres, en minutos desde la medianoche del negocio. */
   free?: Interval[]
-  /** Hora elegida (Sol). Excluye `now`. */
+  /** Hora elegida (Sol, rombo). Excluye `now`. */
   selected?: number | null
-  /** «Ahora» (Sol), solo si no hay `selected`. */
+  /** «Ahora» (sol o luna), solo si no hay `selected`. */
   now?: number | null
   /** Resumen accesible; sin él la franja es decorativa. */
   label?: string
   /** Anima la llegada (el amanecer de izquierda a derecha). */
   arrive?: boolean
+  variant?: 'band' | 'map'
 }
 
 const props = withDefaults(defineProps<Props>(), {
@@ -38,7 +46,10 @@ const props = withDefaults(defineProps<Props>(), {
   now: null,
   label: '',
   arrive: false,
+  variant: 'band',
 })
+
+const emit = defineEmits<{ pick: [minutes: number] }>()
 
 const HOUR = 60
 
@@ -54,55 +65,110 @@ const range = computed(() => {
   return { from, to }
 })
 
-const pct = (minutes: number) => {
+const ratio = (minutes: number) => {
   const { from, to } = range.value
-  return `${(((minutes - from) / (to - from)) * 100).toFixed(3)}%`
+  return (minutes - from) / (to - from)
 }
+const pct = (minutes: number) => `${(ratio(minutes) * 100).toFixed(3)}%`
+const spanStyle = (i: Interval) => ({
+  left: pct(i.start),
+  width: `${((ratio(i.end) - ratio(i.start)) * 100).toFixed(3)}%`,
+})
 
-// El cielo: las paradas caen en las horas reales de cambio.
+// El cielo: cada color cae en su hora real (fuera de la ventana también, para
+// que el borde tenga el tono que le toca).
+const SKY: [number, string][] = [
+  [0, 'night'],
+  [5, 'night'],
+  [6.5, 'dawn'],
+  [8.5, 'morning'],
+  [12.5, 'noon'],
+  [16, 'afternoon'],
+  [18, 'dusk'],
+  [19.5, 'night'],
+  [24, 'night'],
+]
 const sky = computed(
   () =>
-    `linear-gradient(90deg, var(--color-sky-morning) 0%, var(--color-sky-morning) ${pct(11 * HOUR)}, ` +
-    `var(--color-sky-afternoon) ${pct(13 * HOUR)}, var(--color-sky-afternoon) ${pct(17 * HOUR)}, ` +
-    `var(--color-sky-night) ${pct(19 * HOUR)}, var(--color-sky-night) 100%)`,
+    `linear-gradient(90deg, ${SKY.map(([h, c]) => `var(--dl-${c}) ${pct(h * HOUR)}`).join(', ')})`,
 )
 
-// Lo cerrado: los huecos entre tramos abiertos dentro de la ventana.
-const closed = computed(() => {
-  const sorted = [...props.open].sort((a, b) => a.start - b.start)
-  const gaps: Interval[] = []
-  let cursor = range.value.from
-  for (const interval of sorted) {
-    if (interval.start > cursor) gaps.push({ start: cursor, end: interval.start })
-    cursor = Math.max(cursor, interval.end)
+function complement(spans: Interval[], within: Interval[]): Interval[] {
+  const out: Interval[] = []
+  for (const w of within) {
+    let cursor = w.start
+    for (const s of [...spans].sort((a, b) => a.start - b.start)) {
+      if (s.end <= cursor || s.start >= w.end) continue
+      if (s.start > cursor) out.push({ start: cursor, end: s.start })
+      cursor = Math.max(cursor, s.end)
+    }
+    if (cursor < w.end) out.push({ start: cursor, end: w.end })
   }
-  if (cursor < range.value.to) gaps.push({ start: cursor, end: range.value.to })
-  return gaps
-})
+  return out
+}
+
+// Lo cerrado: los huecos entre tramos abiertos dentro de la ventana.
+const closed = computed(() =>
+  complement(props.open, [{ start: range.value.from, end: range.value.to }]),
+)
+
+// En el mapa, lo abierto sin horas libres se apaga.
+const busy = computed(() =>
+  props.variant === 'map' ? complement(props.free, props.open).filter((i) => i.end > i.start) : [],
+)
 
 const marker = computed(() => {
-  if (props.selected !== null) return { at: props.selected, kind: 'selected' as const }
-  if (props.now !== null && props.now >= range.value.from && props.now <= range.value.to)
-    return { at: props.now, kind: 'now' as const }
-  return null
+  const { from, to } = range.value
+  if (props.selected !== null) return { at: props.selected, kind: 'selected' as const, top: 50 }
+  const now = props.now
+  if (now === null || now < from || now > to) return null
+  // El sol sube hasta el mediodía y baja hasta el atardecer; de noche, la luna.
+  const t = (now - 6 * HOUR) / (12 * HOUR)
+  if (t <= 0 || t >= 1) return { at: now, kind: 'moon' as const, top: 32 }
+  return { at: now, kind: 'sun' as const, top: 74 - Math.sin(Math.PI * t) * 46 }
 })
 
+function clock(minutes: number): string {
+  const h = Math.floor(minutes / HOUR) % 24
+  const m = minutes % HOUR
+  const h12 = h % 12 === 0 ? 12 : h % 12
+  return `${h12}${m ? `:${String(m).padStart(2, '0')}` : ''} ${h < 12 ? 'a. m.' : 'p. m.'}`
+}
+
+// Rótulos: la apertura, el mediodía y el cierre. Uno que caería a menos de un
+// 18 % del anterior se omite, para que nunca se pisen en pantallas estrechas.
 const hourLabels = computed(() => {
-  const labels: { at: number; text: string }[] = []
   const { from, to } = range.value
-  const step = to - from > 12 * HOUR ? 3 * HOUR : 2 * HOUR
-  for (let m = Math.ceil(from / step) * step; m <= to; m += step) {
-    const h = Math.floor(m / HOUR) % 24
-    labels.push({ at: m, text: `${h % 12 === 0 ? 12 : h % 12}${h < 12 ? ' a. m.' : ' p. m.'}` })
+  const wanted = new Set<number>()
+  for (const i of props.open) {
+    wanted.add(i.start)
+    wanted.add(i.end)
   }
-  return labels
+  if (12 * HOUR > from && 12 * HOUR < to) wanted.add(12 * HOUR)
+  const sorted = [...wanted].filter((m) => m >= from && m <= to).sort((a, b) => a - b)
+  const kept: number[] = []
+  for (const m of sorted) {
+    const last = kept[kept.length - 1]
+    if (last === undefined || ratio(m) - ratio(last) >= 0.18) kept.push(m)
+    else if (m === sorted[sorted.length - 1] && kept.length > 1) kept[kept.length - 1] = m
+  }
+  return kept.map((at) => ({ at, text: clock(at), edge: ratio(at) }))
 })
+
+function onPick(event: MouseEvent) {
+  const track = (event.currentTarget as HTMLElement).closest('.daylight__track')
+  if (!track) return
+  const box = track.getBoundingClientRect()
+  if (box.width === 0) return
+  const { from, to } = range.value
+  emit('pick', from + ((event.clientX - box.left) / box.width) * (to - from))
+}
 </script>
 
 <template>
   <div
     class="daylight"
-    :class="{ 'daylight--arrive': props.arrive }"
+    :class="[`daylight--${props.variant}`, { 'daylight--arrive': props.arrive }]"
     :role="props.label ? 'img' : undefined"
     :aria-label="props.label || undefined"
     :aria-hidden="props.label ? undefined : 'true'"
@@ -112,89 +178,182 @@ const hourLabels = computed(() => {
         v-for="gap in closed"
         :key="`c${gap.start}`"
         class="daylight__closed"
-        :style="{ left: pct(gap.start), width: `calc(${pct(gap.end)} - ${pct(gap.start)})` }"
+        :style="spanStyle(gap)"
       ></span>
       <span
-        v-for="span in props.free"
-        :key="`f${span.start}`"
-        class="daylight__free"
-        :style="{ left: pct(span.start), width: `calc(${pct(span.end)} - ${pct(span.start)})` }"
+        v-for="span in busy"
+        :key="`b${span.start}`"
+        class="daylight__busy"
+        :style="spanStyle(span)"
       ></span>
+      <template v-if="props.variant === 'map'">
+        <span
+          v-for="span in props.free"
+          :key="`f${span.start}`"
+          class="daylight__free"
+          :style="spanStyle(span)"
+          @click="onPick"
+        ></span>
+      </template>
+      <span v-if="props.arrive" class="daylight__dusk"></span>
       <span
         v-if="marker"
         class="daylight__marker"
         :class="`daylight__marker--${marker.kind}`"
-        :style="{ left: pct(marker.at) }"
+        :style="{ left: pct(marker.at), top: `${marker.top}%` }"
       ></span>
     </div>
     <div class="daylight__hours">
-      <span v-for="hour in hourLabels" :key="hour.at" :style="{ left: pct(hour.at) }">{{
-        hour.text
-      }}</span>
+      <span
+        v-for="hour in hourLabels"
+        :key="hour.at"
+        :class="{
+          'daylight__hour--start': hour.edge < 0.08,
+          'daylight__hour--end': hour.edge > 0.92,
+        }"
+        :style="{ left: pct(hour.at) }"
+        >{{ hour.text }}</span
+      >
     </div>
+    <p v-if="props.variant === 'map'" class="daylight__legend">
+      <span><i class="daylight__key daylight__key--free"></i>Libre</span>
+      <span><i class="daylight__key daylight__key--busy"></i>Sin horas</span>
+      <span v-if="closed.length > 0"
+        ><i class="daylight__key daylight__key--closed"></i>Cerrado</span
+      >
+      <span v-if="props.selected !== null"
+        ><i class="daylight__key daylight__key--sun"></i>Tu hora</span
+      >
+    </p>
   </div>
 </template>
 
 <style scoped>
 .daylight {
+  /* El cielo de la marca, igual en Día y en Noche: es luz, no superficie. */
+  --dl-night: #2a2e66;
+  --dl-dawn: #f08a7a;
+  --dl-morning: #ffc96b;
+  --dl-noon: #ffeab8;
+  --dl-afternoon: #ffb27e;
+  --dl-dusk: #d9577a;
+  --dl-veil: var(--color-canvas);
+
   position: relative;
-  padding-bottom: 18px;
+  padding-bottom: 22px;
 }
 
 .daylight__track {
   position: relative;
-  height: 10px;
-  border-radius: var(--radius-pill);
+  height: 64px;
   overflow: hidden;
-  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--color-text-primary) 10%, transparent);
+  border-radius: var(--radius-lg);
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--color-text-primary) 12%, transparent);
 }
 
-.daylight__closed {
+.daylight--map .daylight__track {
+  height: 36px;
+  border-radius: var(--radius-md, 8px);
+}
+
+@media (max-width: 639px) {
+  .daylight--band .daylight__track {
+    height: 56px;
+  }
+}
+
+/* El horizonte: un filete claro al pie de la banda. */
+.daylight--band .daylight__track::after {
+  position: absolute;
+  inset: auto 0 0;
+  height: 1px;
+  content: '';
+  background: color-mix(in srgb, #fff 55%, transparent);
+}
+
+.daylight__closed,
+.daylight__busy,
+.daylight__free {
   position: absolute;
   top: 0;
   bottom: 0;
-  background: repeating-linear-gradient(
-    135deg,
-    var(--color-surface-muted) 0 4px,
-    color-mix(in srgb, var(--color-surface-muted) 70%, var(--color-canvas)) 4px 8px
-  );
+}
+
+.daylight__closed {
+  background:
+    repeating-linear-gradient(
+      135deg,
+      color-mix(in srgb, var(--color-text-primary) 14%, transparent) 0 1.5px,
+      transparent 1.5px 7px
+    ),
+    color-mix(in srgb, var(--dl-veil) 80%, transparent);
+}
+
+.daylight__busy {
+  background: color-mix(in srgb, var(--dl-veil) 66%, transparent);
 }
 
 .daylight__free {
-  position: absolute;
-  top: 3px;
-  bottom: 3px;
-  border-radius: 2px;
-  background: color-mix(in srgb, var(--color-text-primary) 62%, transparent);
+  cursor: pointer;
+  border-radius: 3px;
+  transition: box-shadow var(--motion-duration-fast) ease;
+}
+
+.daylight__free:hover {
+  box-shadow: inset 0 0 0 2px color-mix(in srgb, var(--color-text-primary) 55%, transparent);
 }
 
 .daylight__marker {
   position: absolute;
-  top: 50%;
-  width: 14px;
-  height: 14px;
-  margin: -7px 0 0 -7px;
+  pointer-events: none;
+  translate: -50% -50%;
+}
+
+.daylight__marker--sun {
+  width: 22px;
+  height: 22px;
   background: var(--color-sun);
-  box-shadow: 0 0 0 2px var(--color-canvas);
+  border-radius: 50%;
+  box-shadow:
+    0 0 0 2px #fff8e6,
+    0 0 18px 6px color-mix(in srgb, var(--color-sun) 70%, transparent);
+}
+
+.daylight__marker--moon {
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  box-shadow: inset -5px -2px 0 0 #fff4d6;
 }
 
 .daylight__marker--selected {
-  transform: rotate(45deg) scale(0.9);
+  width: 16px;
+  height: 16px;
+  background: var(--color-sun);
   border-radius: 2px;
-}
-
-.daylight__marker--now {
-  border-radius: 50%;
+  box-shadow:
+    0 0 0 2px var(--color-canvas),
+    0 0 0 3px color-mix(in srgb, var(--color-text-primary) 35%, transparent);
+  rotate: 45deg;
 }
 
 .daylight__hours {
   position: absolute;
   inset: auto 0 0;
-  height: 14px;
-  font-size: 11px;
-  line-height: 14px;
+  height: 16px;
+  font-size: 12px;
+  line-height: 16px;
   color: var(--color-text-secondary);
   font-variant-numeric: tabular-nums;
+}
+
+.daylight--map .daylight__hours {
+  position: relative;
+  margin-top: 4px;
+}
+
+.daylight--map {
+  padding-bottom: 0;
 }
 
 .daylight__hours span {
@@ -203,42 +362,117 @@ const hourLabels = computed(() => {
   white-space: nowrap;
 }
 
-.daylight__hours span:first-child {
+.daylight__hours .daylight__hour--start {
   transform: none;
 }
 
-.daylight__hours span:last-child {
+.daylight__hours .daylight__hour--end {
   transform: translateX(-100%);
 }
 
-/* Llegada: la franja amanece de izquierda a derecha (solo clip-path). */
+.daylight__legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-1) var(--space-4);
+  margin: var(--space-2) 0 0;
+  font-size: 12px;
+  line-height: 16px;
+  color: var(--color-text-secondary);
+}
+
+.daylight__legend span {
+  display: inline-flex;
+  gap: 6px;
+  align-items: center;
+}
+
+.daylight__key {
+  display: inline-block;
+  width: 14px;
+  height: 10px;
+  border-radius: 2px;
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--color-text-primary) 18%, transparent);
+}
+
+.daylight__key--free {
+  background: linear-gradient(90deg, var(--dl-morning), var(--dl-afternoon));
+}
+
+.daylight__key--busy {
+  background: color-mix(in srgb, var(--dl-morning) 34%, var(--dl-veil));
+}
+
+.daylight__key--closed {
+  background:
+    repeating-linear-gradient(
+      135deg,
+      color-mix(in srgb, var(--color-text-primary) 30%, transparent) 0 1.5px,
+      transparent 1.5px 4px
+    ),
+    var(--color-surface-muted);
+}
+
+.daylight__key--sun {
+  width: 9px;
+  height: 9px;
+  margin: 0 2px;
+  background: var(--color-sun);
+  rotate: 45deg;
+}
+
+/* ── Llegada: la banda amanece de izquierda a derecha ───────────────────── */
+
+.daylight__dusk {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: var(--dl-night);
+  opacity: 0;
+}
+
 .daylight--arrive .daylight__track {
-  animation: llega-amanecer 760ms cubic-bezier(0.65, 0, 0.25, 1) both;
+  animation: llega-amanecer 720ms cubic-bezier(0.65, 0, 0.25, 1) both;
+}
+
+.daylight--arrive .daylight__dusk {
+  animation: llega-alba 820ms cubic-bezier(0.4, 0, 0.2, 1) both;
 }
 
 .daylight--arrive .daylight__marker {
-  animation: llega-sol 420ms cubic-bezier(0.34, 1.56, 0.64, 1) 600ms both;
+  animation: llega-sol 460ms cubic-bezier(0.34, 1.4, 0.64, 1) 520ms both;
 }
 
 @keyframes llega-amanecer {
   from {
-    clip-path: inset(0 100% 0 0 round 999px);
+    clip-path: inset(0 100% 0 0 round 12px);
   }
 
   to {
-    clip-path: inset(0 0 0 0 round 999px);
+    clip-path: inset(0 0 0 0 round 12px);
+  }
+}
+
+/* El cielo pasa de la noche al alba mientras se abre. */
+@keyframes llega-alba {
+  from {
+    opacity: 0.85;
+  }
+
+  to {
+    opacity: 0;
   }
 }
 
 @keyframes llega-sol {
   from {
     opacity: 0;
-    transform: scale(0.4);
+    transform: translateY(24px) scale(0.6);
   }
 }
 
 @media (prefers-reduced-motion: reduce) {
   .daylight--arrive .daylight__track,
+  .daylight--arrive .daylight__dusk,
   .daylight--arrive .daylight__marker {
     animation: none;
   }

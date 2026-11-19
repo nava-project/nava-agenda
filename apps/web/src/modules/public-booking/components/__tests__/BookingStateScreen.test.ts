@@ -40,10 +40,16 @@ describe('BookingStateScreen', () => {
     expect(wrapper.find('button').exists()).toBe(false)
   })
 
-  it('shows the connection copy as a warning alert', () => {
+  it('shows the connection copy as an alert that guides, without alarm labels', () => {
     const wrapper = mountScreen('network-error')
     expect(wrapper.find('[role="alert"]').text()).toContain('No pudimos conectar')
-    expect(wrapper.text()).toContain('Atención')
+    expect(wrapper.text()).toContain('Revisa tu conexión')
+    for (const status of ['not-found', 'network-error', 'unexpected-error'] as const)
+      expect(mountScreen(status).text()).not.toMatch(/\b(Error|Atención)\b/)
+  })
+
+  it('reserves the page height so the footer never jumps (CLS)', () => {
+    expect(mountScreen('not-found').get('main').classes()).toContain('bk-page')
   })
 
   it('shares the support request id only when the server provided one', () => {

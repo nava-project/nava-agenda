@@ -142,8 +142,8 @@ describe('PublicDayTimePage', () => {
     const wrapper = mountPage()
     await flushPromises()
     const [monday, tuesday] = days(wrapper)
-    expect(monday!.attributes('aria-label')).toMatch(/14 de enero de 2030, 2 horas libres$/)
-    expect(tuesday!.attributes('aria-label')).toMatch(/15 de enero de 2030, 1 hora libre$/)
+    expect(monday!.attributes('aria-label')).toMatch(/14 de enero de 2030, 2 horarios libres$/)
+    expect(tuesday!.attributes('aria-label')).toMatch(/15 de enero de 2030, 1 horario libre$/)
     expect(monday!.attributes('aria-checked')).toBe('true')
   })
 
@@ -172,8 +172,11 @@ describe('PublicDayTimePage', () => {
     await hours(wrapper)[0]!.trigger('click')
     const chosen = hours(wrapper)[0]!
     expect(chosen.attributes('aria-checked')).toBe('true')
-    // La elegida siempre muestra a. m./p. m.
-    expect(chosen.text()).toMatch(/9:00\s?a\.\s?m\./)
+    // La elegida es el chip de su minuto en la fila de su hora, que dice a. m./p. m.
+    expect(chosen.text()).toBe(':00')
+    expect(chosen.attributes('aria-label')).toMatch(/^9:00\s?a\.\s?m\., mañana$/)
+    const row = wrapper.get('.bk-hrow--chosen')
+    expect(row.get('.bk-hrow__hour').text()).toMatch(/^9\s?a\.\s?m\.$/)
 
     const pase = wrapper.get('.bk-pase')
     expect(pase.text()).toContain('Corte clásico')
@@ -203,6 +206,29 @@ describe('PublicDayTimePage', () => {
     const next = JSON.parse(wrapper.get('a.bk-cta').attributes('data-to')!)
     expect(next.params.professionalId).toBe(BETO.id)
     expect(next.query).toEqual({})
+  })
+
+  it('makes the professional chips a single Tab stop that arrows move through', async () => {
+    respond()
+    const wrapper = mountPage()
+    await flushPromises()
+    const chips = wrapper.findAll('.bk-chip')
+    expect(chips.map((c) => c.attributes('tabindex'))).toEqual(['0', '-1', '-1'])
+    await wrapper.get('.bk-chips').trigger('keydown', { key: 'ArrowRight' })
+    expect(replaceMock).toHaveBeenLastCalledWith({
+      name: 'reserva-publica-horario',
+      params: { slug: 'barberia', serviceId: 'svc' },
+      query: { profesional: ANA.id },
+    })
+  })
+
+  it('says the month once and again only when it changes', async () => {
+    respond()
+    const wrapper = mountPage()
+    await flushPromises()
+    const months = days(wrapper).map((d) => d.get('.bk-day__month').text())
+    expect(months[0]).not.toBe('')
+    expect(months.slice(1).every((m) => m === '')).toBe(true)
   })
 
   it('hides the chips when a single professional attends, and says who', async () => {
