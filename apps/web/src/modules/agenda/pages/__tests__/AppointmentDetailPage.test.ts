@@ -241,7 +241,9 @@ describe('AppointmentDetailPage', () => {
     expect(wrapper.text()).toContain('Juan Pérez')
     expect(wrapper.text()).toContain('Ana Gómez')
     expect(wrapper.text()).toContain('Corte clásico')
-    expect(wrapper.text()).toContain('20000.00')
+    // El precio como en la reserva (es-CO, sin decimales para COP).
+    expect(wrapper.text()).toMatch(/Corte clásico · 30 min · \$\s20\.000/)
+    expect(wrapper.text()).not.toContain('20000.00')
     expect(wrapper.text()).toContain('+573001234567')
     expect(wrapper.text()).toContain('Prefiere silla junto a la ventana')
     expect(fetchAppointmentDetailMock).toHaveBeenCalledWith('a-1')

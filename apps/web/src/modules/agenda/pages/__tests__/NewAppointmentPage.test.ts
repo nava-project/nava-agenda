@@ -143,6 +143,22 @@ describe('NewAppointmentPage', () => {
 
   // Rediseño del issue #576: el boleto del resumen está desde el inicio y
   // nombra lo pendiente en vez de ocultarlo, para que su forma no salte.
+  it('copies the attended person into the client name until it is edited (#716)', async () => {
+    const wrapper = await mountReady()
+    const byLabel = (text: string) =>
+      wrapper.findAll('input').find((i) => i.element.labels?.[0]?.textContent?.includes(text))!
+    await byLabel('Persona atendida').setValue('Ana Pérez')
+    expect((byLabel('Nombre del cliente').element as HTMLInputElement).value).toBe('Ana Pérez')
+    expect(wrapper.text()).toContain('Es la misma persona; cámbialo si reservó otra.')
+
+    await byLabel('Nombre del cliente').setValue('Luis Pérez')
+    await byLabel('Persona atendida').setValue('Ana María Pérez')
+    expect((byLabel('Nombre del cliente').element as HTMLInputElement).value).toBe('Luis Pérez')
+    expect(wrapper.text()).not.toContain('Es la misma persona')
+    // Sin placeholders que repitan el rótulo.
+    expect(byLabel('Persona atendida').attributes('placeholder')).toBeUndefined()
+  })
+
   it('shows the summary ticket with every pending item named on an untouched form', async () => {
     const wrapper = await mountReady()
     const resumen = wrapper.get('.new-appointment-page__resumen')

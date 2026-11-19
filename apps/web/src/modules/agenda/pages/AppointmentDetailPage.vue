@@ -36,6 +36,7 @@ import { mapsLinkUrl } from '@/shared/model/mapEmbed'
 import { newIdempotencyKey } from '../model/idempotencyKey'
 import type { AppointmentDetail, HistoryEntry } from '../model/appointmentDetail'
 import { historyEventLabel, historyFieldLabel } from '../model/appointmentDetail'
+import { formatMoney } from '@/shared/model/money'
 import {
   APPOINTMENT_STATUS_BADGE_VARIANT,
   appointmentStatusLabel,
@@ -95,6 +96,12 @@ const timePhase = computed((): 'in-progress' | 'to-record' | null => {
   if (now >= new Date(detail.value.startsAt).getTime()) return 'in-progress'
   return null
 })
+
+// El estado tal como está guardado, sin la lectura por la hora: la corrección
+// de resultado habla del estado registrado, no de «Por registrar».
+const recordedStatusLabel = computed(() =>
+  detail.value ? appointmentStatusLabel(detail.value.status, v.value) : '',
+)
 
 const statusLabel = computed(() => {
   if (!detail.value) return ''
@@ -767,7 +774,6 @@ function occurredAtLabel(entry: HistoryEntry): string {
           {{ attendeeInitials }}
         </div>
         <div class="appointment-detail-page__identity">
-          <p class="appointment-detail-page__eyebrow">Detalle del turno</p>
           <h1 id="appointment-detail-page-title" class="appointment-detail-page__title">
             {{ detail.attendeeName }}
           </h1>
@@ -891,8 +897,7 @@ function occurredAtLabel(entry: HistoryEntry): string {
               <dt>Servicio</dt>
               <dd>
                 {{ detail.serviceName }} · {{ detail.durationMinutes }} min ·
-                {{ detail.priceAmount }}
-                {{ detail.currency }}
+                {{ formatMoney(detail.priceAmount, detail.currency) }}
               </dd>
             </div>
             <div class="appointment-detail-page__fact appointment-detail-page__fact--professional">
@@ -1105,7 +1110,7 @@ function occurredAtLabel(entry: HistoryEntry): string {
             <p class="appointment-detail-page__dialog-current">
               <strong>Horario actual</strong>
               {{ timeRangeLabel }}
-              <span v-if="businessTimezone">Zona {{ businessTimezone }}</span>
+              <span v-if="businessTimezone">{{ timezoneLabel(businessTimezone) }}</span>
             </p>
             <span class="appointment-detail-page__dialog-arrow" aria-hidden="true">→</span>
             <p
@@ -1114,7 +1119,7 @@ function occurredAtLabel(entry: HistoryEntry): string {
             >
               <strong>Vista previa</strong>
               {{ rescheduleTime }} – {{ rescheduleNewEndLabel }}
-              <span v-if="businessTimezone">Zona {{ businessTimezone }}</span>
+              <span v-if="businessTimezone">{{ timezoneLabel(businessTimezone) }}</span>
             </p>
           </div>
 
@@ -1498,7 +1503,7 @@ function occurredAtLabel(entry: HistoryEntry): string {
 
           <p class="appointment-detail-page__cancel-copy">
             El turno de <strong>{{ detail.attendeeName }}</strong> el {{ timeRangeLabel }} está
-            registrado como <strong>{{ statusLabel }}</strong
+            registrado como <strong>{{ recordedStatusLabel }}</strong
             >. Esta corrección agrega un evento nuevo al historial; no borra ni edita el anterior.
           </p>
 
@@ -1711,27 +1716,6 @@ function occurredAtLabel(entry: HistoryEntry): string {
   flex-direction: column;
   gap: var(--space-2);
   min-width: 0;
-}
-
-.appointment-detail-page__eyebrow {
-  display: flex;
-  gap: var(--space-3);
-  align-items: center;
-  margin: 0;
-  font-family: var(--font-sans);
-  font-size: 14px;
-  font-weight: 500;
-  letter-spacing: 0;
-  text-transform: none;
-  color: var(--color-text-secondary);
-  line-height: 20px;
-}
-
-.appointment-detail-page__eyebrow::before {
-  content: '';
-  width: 28px;
-  height: 1px;
-  background-color: currentcolor;
 }
 
 .appointment-detail-page__title {

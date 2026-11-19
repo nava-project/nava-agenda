@@ -82,6 +82,17 @@ const selectedServiceId = ref('')
 
 const attendeeName = ref('')
 const customerFullName = ref('')
+// Casi siempre la persona atendida es quien reserva (revisión de #716): el
+// nombre del cliente copia al atendido hasta que se edita a mano, para no
+// escribir el mismo nombre dos veces en cada turno.
+const customerNameEdited = ref(false)
+watch(attendeeName, (name) => {
+  if (!customerNameEdited.value) customerFullName.value = name
+})
+function onCustomerNameInput(value: string | number) {
+  customerFullName.value = String(value)
+  customerNameEdited.value = customerFullName.value !== attendeeName.value
+}
 // El teléfono se escribe con el prefijo en su propia casilla (`PhoneField`);
 // `customerPhone` es el E.164 compuesto que se valida y se envía (vacío si no
 // se escribió número: el teléfono es opcional).
@@ -313,6 +324,7 @@ function onStartNewAppointment() {
   created.value = null
   attendeeName.value = ''
   customerFullName.value = ''
+  customerNameEdited.value = false
   customerPhoneCountry.value = DEFAULT_PHONE_COUNTRY
   customerPhoneNational.value = ''
   customerEmail.value = ''
@@ -600,16 +612,20 @@ function onProfessionalSelect(professionalId: string) {
                     v-model="attendeeName"
                     type="text"
                     label="Persona atendida"
-                    placeholder="Persona atendida"
                     required
                     :class="{ 'new-appointment-page__input--filled': !!attendeeName }"
                     :error="attempted ? fieldErrors.attendeeName : undefined"
                   />
                   <BaseInput
-                    v-model="customerFullName"
+                    :model-value="customerFullName"
                     type="text"
                     label="Nombre del cliente"
-                    placeholder="Nombre del cliente"
+                    :hint="
+                      customerNameEdited
+                        ? undefined
+                        : 'Es la misma persona; cámbialo si reservó otra.'
+                    "
+                    @update:model-value="onCustomerNameInput"
                     required
                     :class="{ 'new-appointment-page__input--filled': !!customerFullName }"
                     :error="attempted ? fieldErrors.customerFullName : undefined"
@@ -628,7 +644,6 @@ function onProfessionalSelect(professionalId: string) {
                     v-model="customerEmail"
                     type="email"
                     label="Correo (opcional)"
-                    placeholder="Correo (opcional)"
                     :class="{ 'new-appointment-page__input--filled': !!customerEmail }"
                     :error="attempted ? fieldErrors.customerEmail : undefined"
                   />
