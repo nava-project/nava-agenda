@@ -98,8 +98,17 @@ async function onLogoutFromMore() {
          positivo; ningún destino del dock necesita quedar "activo" mientras
          se navega a un descendiente propio (todos son hijas planas de
          `/panel`, no anidan más pantallas del dock debajo). -->
+    <!-- Configuración es de otra naturaleza (el negocio, no el día a día):
+         en escritorio la separa un filete fino. -->
     <ul class="app-nav__list app-nav__list--desktop">
-      <li v-for="item in items" :key="item.label" class="app-nav__item">
+      <li
+        v-for="item in items"
+        :key="item.label"
+        :class="[
+          'app-nav__item',
+          { 'app-nav__item--apart': item.to.name === 'configuracion-negocio' },
+        ]"
+      >
         <RouterLink :to="item.to" class="app-nav__link" exact-active-class="app-nav__link--active">
           <span class="app-nav__icon" aria-hidden="true" v-html="iconFor(item.to.name)" />
           <span class="app-nav__label">{{ labelOf(item) }}</span>
@@ -335,7 +344,10 @@ async function onLogoutFromMore() {
   }
 }
 
-/* Desde 1024 px caben todos los destinos: la isla los lista sin «Más». */
+/* Desde 1024 px caben todos los destinos y la isla habla el idioma del
+   escritorio (revisión de nava en #725): icono y palabra en línea, a 14 px, en
+   una isla de 52 px. Lo elegido es una píldora que abraza icono y palabra, con
+   el rombo posado en el filete. «Configuración» va aparte, tras un filete. */
 @media (min-width: 1024px) {
   .app-nav__list--mobile {
     display: none;
@@ -343,6 +355,66 @@ async function onLogoutFromMore() {
 
   .app-nav__list--desktop {
     display: flex;
+    align-items: center;
+    height: 52px;
+    gap: 2px;
+    padding: 0 5px;
+    border-radius: 16px;
+  }
+
+  .app-nav__link {
+    flex-direction: row;
+    gap: 8px;
+    min-width: 0;
+    height: 44px;
+    padding: 0 12px;
+    font-size: 14px;
+    line-height: 20px;
+    border-radius: 12px;
+    transition:
+      color var(--motion-duration-fast) var(--motion-easing-standard),
+      background-color var(--motion-duration-fast) var(--motion-easing-standard);
+  }
+
+  /* La píldora ya no vive detrás del icono: es el enlace entero. */
+  .app-nav__icon,
+  .app-nav__link:hover .app-nav__icon,
+  .app-nav__link--active .app-nav__icon {
+    width: auto;
+    height: auto;
+    background-color: transparent;
+  }
+
+  .app-nav__link:hover {
+    background-color: color-mix(in srgb, var(--color-text-primary) 6%, transparent);
+  }
+
+  .app-nav__link--active {
+    background-color: color-mix(in srgb, var(--color-text-primary) 11%, transparent);
+  }
+
+  /* El enlace (44 px) va centrado en la isla (52 px con su borde de 1 px), así
+     que empieza 4 px bajo el filete: con top -7 px, el centro del rombo de 7 px
+     cae a 0,5 px del borde exterior, en medio del filete. */
+  .app-nav__link::before {
+    top: -7px;
+  }
+
+  .app-nav__item--apart {
+    display: flex;
+    align-items: center;
+    margin-left: 4px;
+    padding-left: 6px;
+    border-left: var(--border-width-normal) solid var(--color-border-subtle);
+  }
+}
+
+/* Entre 1024 y 1279 px la isla a 14 px pedía 1008 px y solo hay 992: se aprieta
+   el aire de cada destino, sin achicar la palabra ni cortarla. */
+@media (min-width: 1024px) and (max-width: 1279px) {
+  .app-nav__link {
+    gap: 6px;
+    padding: 0 9px;
   }
 }
 
