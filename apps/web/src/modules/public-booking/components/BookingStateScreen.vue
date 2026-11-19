@@ -44,15 +44,11 @@ const unexpectedErrorMessage = computed(() =>
       class="pb-state pb-state--danger"
       variant="danger"
       status-label="Error"
-      headline="No encontramos ese enlace"
+      headline="Este enlace no lleva a ninguna agenda"
       role="alert"
     >
-      <template #default
-        >Revisa que copiaste la dirección completa, o pide que te la vuelvan a compartir.</template
-      >
-      <template #action>
-        <BaseButton variant="secondary" @click="emit('retry')">Reintentar</BaseButton>
-      </template>
+      <!-- Reintentar no cambiaría nada: el enlace no existe o ya no se publica. -->
+      <template #default>Pide al negocio el enlace de nuevo y ábrelo tal como te llegue.</template>
     </PageState>
     <PageState
       v-else-if="status === 'network-error'"

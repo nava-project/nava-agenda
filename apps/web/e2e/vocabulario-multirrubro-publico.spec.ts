@@ -43,6 +43,30 @@ function json(body: unknown, status = 200) {
 }
 
 async function mockPublicApi(page: Page) {
+  // «Día y hora» v2 (DEC-188) lee el catálogo y la disponibilidad del servicio.
+  await page.route(`**/api/v1/public/businesses/${SLUG}/services?*`, (route) =>
+    route.fulfill(
+      json({
+        items: [
+          {
+            id: SERVICE_ID,
+            name: 'Manicure semipermanente',
+            description: null,
+            durationMinutes: 60,
+            price: '50000.00',
+            currency: 'COP',
+          },
+        ],
+      }),
+    ),
+  )
+  await page.route(
+    `**/api/v1/public/businesses/${SLUG}/services/${SERVICE_ID}/availability`,
+    (route) =>
+      route.fulfill(
+        json({ slots: [], durationMinutes: 60, timezone: 'America/Bogota', slotGridMinutes: 15 }),
+      ),
+  )
   await page.route(`**/api/v1/public/businesses/${SLUG}`, (route) =>
     route.fulfill(
       json({
@@ -90,11 +114,11 @@ for (const viewport of viewports) {
   }) => {
     await page.setViewportSize({ width: viewport.width, height: viewport.height })
     await mockPublicApi(page)
-    await page.goto(`/reservar/${SLUG}/servicios/${SERVICE_ID}/profesional`)
+    await page.goto(`/reservar/${SLUG}/servicios/${SERVICE_ID}/horario`)
 
-    await expect(page.getByRole('heading', { name: 'Elige tu manicurista' })).toBeVisible()
-    await expect(page.getByRole('radiogroup', { name: 'Manicuristas disponibles' })).toBeVisible()
-    await expect(page.locator('.pb-progress')).toContainText('Manicurista')
+    await expect(page.getByRole('heading', { name: 'Elige día y hora' })).toBeVisible()
+    await expect(page.getByRole('radiogroup', { name: 'Con qué manicurista' })).toBeVisible()
+    await expect(page.locator('.bk-pase')).toContainText('Con cualquier manicurista libre')
     await expect(page.locator('body')).not.toContainText(FIXED_WORDS)
 
     await expectAccessibleWithoutOverflow(page)

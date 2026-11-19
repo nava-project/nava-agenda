@@ -12,10 +12,12 @@
 import { reactive } from 'vue'
 import type { BrandAccentKey, VocabularyTerms } from '@/shared/model'
 import { resolveBusiness } from '../api/resolveBusinessApi'
-import type { ResolveBusinessOutcome } from './businessProfileOutcome'
+import type { PublicBusinessProfile, ResolveBusinessOutcome } from './businessProfileOutcome'
 
 const termsBySlug = reactive<Record<string, VocabularyTerms>>({})
 const accentBySlug = reactive<Record<string, BrandAccentKey>>({})
+// DEC-188: el cascarón v2 muestra el nombre del negocio y su franja de hoy.
+const profileBySlug = reactive<Record<string, PublicBusinessProfile>>({})
 const inFlight = new Map<string, Promise<ResolveBusinessOutcome>>()
 
 /** Resuelve el enlace; llamadas simultáneas para el mismo enlace comparten una sola petición. */
@@ -27,6 +29,7 @@ export function loadPublicProfile(slug: string): Promise<ResolveBusinessOutcome>
       if (outcome.kind === 'success') {
         termsBySlug[slug] = outcome.profile.vocabulary
         accentBySlug[slug] = outcome.profile.brandAccent
+        profileBySlug[slug] = outcome.profile
       }
       return outcome
     })
@@ -45,9 +48,15 @@ export function publicAccentFor(slug: string): BrandAccentKey | null {
   return accentBySlug[slug] ?? null
 }
 
+/** Perfil completo del enlace, o `null` si aún no se leyó. */
+export function publicProfileFor(slug: string): PublicBusinessProfile | null {
+  return profileBySlug[slug] ?? null
+}
+
 /** Solo para pruebas: olvida lo leído. */
 export function resetPublicProfileCache(): void {
   for (const key of Object.keys(termsBySlug)) delete termsBySlug[key]
   for (const key of Object.keys(accentBySlug)) delete accentBySlug[key]
+  for (const key of Object.keys(profileBySlug)) delete profileBySlug[key]
   inFlight.clear()
 }

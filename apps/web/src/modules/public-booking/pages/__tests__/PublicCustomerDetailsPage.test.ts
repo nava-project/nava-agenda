@@ -452,11 +452,8 @@ describe('PublicCustomerDetailsPage', () => {
 
     expect(routerPushMock).toHaveBeenCalledWith({
       name: 'reserva-publica-horario',
-      params: {
-        slug: BASE_PROPS.slug,
-        serviceId: BASE_PROPS.serviceId,
-        professionalId: BASE_PROPS.professionalId,
-      },
+      params: { slug: BASE_PROPS.slug, serviceId: BASE_PROPS.serviceId },
+      query: { profesional: BASE_PROPS.professionalId },
     })
     wrapper.unmount()
   })

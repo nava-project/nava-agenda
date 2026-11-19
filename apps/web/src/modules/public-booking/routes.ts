@@ -4,29 +4,22 @@
 // `app/router/index.ts` las importa y las compone, sin conocer los
 // componentes internos del módulo.
 //
-// `/reservar/:slug` es la entrada pública (HU-090), `/reservar/:slug/servicios`
-// el catálogo público de servicios (HU-091), `/reservar/:slug/servicios/:serviceId/profesional`
-// la selección pública de profesional (HU-092),
-// `/reservar/:slug/servicios/:serviceId/profesional/:professionalId/horario` la
-// exploración pública de fechas y horarios (HU-095) y
-// `/reservar/:slug/servicios/:serviceId/profesional/:professionalId/horario/:startsAt/cliente`
-// la captura de datos del cliente (HU-096): cinco pantallas propias,
-// separadas del panel autenticado (`auth.privateShellRoute`) y sin el guard
-// `requireSession` -ninguna ruta pública de reserva exige sesión
-// (CA-090-03). `props: true` entrega `slug`/`serviceId`/`professionalId`/
-// `startsAt` como props del componente, no vía `useRoute()`: la página no
-// depende del router para sus propios parámetros, lo que la hace
-// verificable en aislamiento (component tests). `startsAt` viaja en la URL
-// sin que esta página revalide la franja (lo hace el servidor al confirmar, HU-097): solo se
-// conserva para que la confirmación reciba el contexto completo. La ruta únicamente descarta
-// un valor ilegible o ya pasado (`beforeEnter`).
+// v2 «La luz del día» (DEC-188): tres pasos y la confirmación.
 //
-// Las cinco pantallas son hijas de un único cascarón (`PublicBookingLayout`):
-// el fondo, el progreso y la transición entre pasos persisten mientras la
-// persona recorre la reserva, en vez de reiniciarse con cada ruta. Las
-// hijas conservan su ruta absoluta y su nombre, así que ninguna URL ni
-// `router.push({ name })` cambia. `meta.bookingStep` indica el paso del
-// asistente (1-4); la entrada no lo tiene porque aún no es un paso.
+// - `/reservar/:slug` es la entrada y a la vez el catálogo (Servicio, paso 1).
+// - `/reservar/:slug/servicios/:serviceId/horario` es «Día y hora» (paso 2): el
+//   profesional es un filtro de la misma pantalla (`?profesional=<id>`), con
+//   «Cualquiera» cuando no se indica.
+// - `…/profesional/:professionalId/horario/:startsAt/cliente` es «Tus datos»
+//   (paso 3) y la confirmación. Lleva el profesional que atiende: el elegido o,
+//   con «Cualquiera», el primero que ofrece esa hora (`?cualquiera=1`).
+//
+// Las rutas v1 de catálogo, profesional y horario por profesional redirigen a
+// sus equivalentes, así que ningún enlace compartido se rompe. Todas cuelgan de
+// un único cascarón (`PublicBookingLayout`) y ninguna exige sesión (CA-090-03).
+// `props: true` entrega los parámetros como props: las páginas se prueban sin
+// router. `startsAt` no se revalida aquí (lo hace el servidor al confirmar,
+// HU-097); la ruta solo descarta un valor ilegible o ya pasado (`beforeEnter`).
 import type { RouteRecordRaw } from 'vue-router'
 import { isBookableStart } from './model/bookableStart'
 
@@ -40,46 +33,62 @@ export const publicBookingRoutes: RouteRecordRaw[] = [
         name: 'reserva-publica-entrada',
         component: () => import('./pages/PublicBusinessEntryPage.vue'),
         props: true,
+        meta: { bookingStep: 1 },
       },
       {
         path: '/reservar/:slug/servicios',
         name: 'reserva-publica-servicios',
-        component: () => import('./pages/PublicServiceCatalogPage.vue'),
-        props: true,
-        meta: { bookingStep: 1 },
+        redirect: (to) => ({ name: 'reserva-publica-entrada', params: { slug: to.params.slug } }),
       },
       {
         path: '/reservar/:slug/servicios/:serviceId/profesional',
         name: 'reserva-publica-profesional',
-        component: () => import('./pages/PublicProfessionalSelectionPage.vue'),
-        props: true,
+        redirect: (to) => ({
+          name: 'reserva-publica-horario',
+          params: { slug: to.params.slug, serviceId: to.params.serviceId },
+        }),
+      },
+      {
+        path: '/reservar/:slug/servicios/:serviceId/horario',
+        name: 'reserva-publica-horario',
+        component: () => import('./pages/PublicDayTimePage.vue'),
+        props: (to) => ({
+          slug: String(to.params.slug),
+          serviceId: String(to.params.serviceId),
+          professionalId: typeof to.query.profesional === 'string' ? to.query.profesional : null,
+        }),
         meta: { bookingStep: 2 },
       },
       {
         path: '/reservar/:slug/servicios/:serviceId/profesional/:professionalId/horario',
-        name: 'reserva-publica-horario',
-        component: () => import('./pages/PublicAvailabilityPage.vue'),
-        props: true,
-        meta: { bookingStep: 3 },
+        name: 'reserva-publica-horario-profesional',
+        redirect: (to) => ({
+          name: 'reserva-publica-horario',
+          params: { slug: to.params.slug, serviceId: to.params.serviceId },
+          query: { profesional: to.params.professionalId },
+        }),
       },
       {
         path: '/reservar/:slug/servicios/:serviceId/profesional/:professionalId/horario/:startsAt/cliente',
         name: 'reserva-publica-cliente',
         component: () => import('./pages/PublicCustomerDetailsPage.vue'),
-        props: true,
-        meta: { bookingStep: 4 },
-        // Un `startsAt` ilegible o pasado (enlace viejo, URL tocada) devuelve al horario en vez
-        // de abrir un formulario que acabaría en «Invalid Date» o en un falso «horario ocupado».
+        props: (to) => ({
+          slug: String(to.params.slug),
+          serviceId: String(to.params.serviceId),
+          professionalId: String(to.params.professionalId),
+          startsAt: String(to.params.startsAt),
+          anyProfessional: to.query.cualquiera === '1',
+        }),
+        meta: { bookingStep: 3 },
+        // Un `startsAt` ilegible o pasado (enlace viejo, URL tocada) devuelve a la
+        // hora en vez de abrir un formulario que acabaría en «Invalid Date».
         beforeEnter: (to) =>
           isBookableStart(to.params.startsAt)
             ? true
             : {
                 name: 'reserva-publica-horario',
-                params: {
-                  slug: to.params.slug,
-                  serviceId: to.params.serviceId,
-                  professionalId: to.params.professionalId,
-                },
+                params: { slug: to.params.slug, serviceId: to.params.serviceId },
+                query: to.query.cualquiera === '1' ? {} : { profesional: to.params.professionalId },
                 replace: true,
               },
       },

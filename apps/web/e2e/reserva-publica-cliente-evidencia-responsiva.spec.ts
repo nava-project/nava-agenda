@@ -51,7 +51,8 @@ const viewports = [
 
 const SERVICE_ID = '8f3ac2b1-e4d5-46f6-a7c8-d9e0f1a2b3c4'
 const PROFESSIONAL_ID = 'a1111111-1111-1111-1111-111111111111'
-const STARTS_AT = encodeURIComponent('2026-09-20T14:30:00Z')
+// Siempre en el futuro: la ruta de «Tus datos» descarta las horas pasadas (#436).
+const STARTS_AT = encodeURIComponent('2030-09-20T14:30:00Z')
 const ROUTE = `/reservar/barberia-ejemplo/servicios/${SERVICE_ID}/profesional/${PROFESSIONAL_ID}/horario/${STARTS_AT}/cliente`
 
 for (const viewport of viewports) {

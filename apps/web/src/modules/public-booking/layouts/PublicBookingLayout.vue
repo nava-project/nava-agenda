@@ -1,28 +1,31 @@
 <script setup lang="ts">
-// Cascarón de la reserva pública. Aloja las cinco pantallas del recorrido y
-// conserva entre ellas lo que no debe reiniciarse: el fondo animado, la
-// cabecera con la marca, el enlace de retorno y el progreso, que se dibuja
-// de un paso al siguiente. Cada pantalla conserva su propio `<main>`, su
+// Cascarón de la reserva pública. Aloja las pantallas del recorrido y conserva
+// entre ellas lo que no debe reiniciarse: la cabecera con el negocio, el enlace
+// de retorno, los pasos y la firma. Cada pantalla conserva su propio `<main>`, su
 // estado y su `<h1>`; el cascarón solo aporta el marco (el `<header>` es el
 // único landmark de banner) y la transición de entrada/salida entre pasos.
 //
-// Es un lienzo de tinta fijo: no hereda `data-app-theme` del panel privado.
-// Sí lleva el color de marca de SU negocio (DEC-171, amplía DEC-110/DEC-111),
-// leído del perfil público del enlace, y NAVA aparece
-// como firma secundaria, porque el nombre del negocio es la jerarquía
-// principal de la entrada (estandar-diseno-visual.md §3.2).
+// v2 «La luz del día» (DEC-188): sigue al modo del sistema (Día/Noche), lleva el
+// color de SU negocio (DEC-171, «que mande el negocio») y el nombre del negocio
+// es la jerarquía principal; NAVA solo firma al pie (estandar-diseno-visual.md
+// §3.2). Tres pasos: Servicio → Día y hora → Tus datos, y la confirmación.
 import { computed, onBeforeUnmount, provide, ref, watch } from 'vue'
 import { RouterLink, RouterView, useRoute, type RouteLocationRaw } from 'vue-router'
 import { buildVocabularyFromTerms } from '@/shared/model'
 import { NAVA_PRIVACY_URL, NAVA_TERMS_URL } from '@/shared/model/navaSite'
+import { useArrival } from '@/shared/composables/useArrival'
 import { NavaWordmark } from '@/shared/ui'
-import BookingBackdrop from '../components/BookingBackdrop.vue'
-import BookingProgress from '../components/BookingProgress.vue'
 import { bookingChromeKey } from '../model/bookingChrome'
 import { paintPublicAccent } from '../model/publicAccent'
-import { loadPublicProfile, publicAccentFor, publicTermsFor } from '../model/publicProfile'
+import {
+  loadPublicProfile,
+  publicAccentFor,
+  publicProfileFor,
+  publicTermsFor,
+} from '../model/publicProfile'
 import { publicVocabularyKey } from '../model/publicVocabulary'
 import '../styles/publicBooking.css'
+import '../styles/bookingV2.css'
 
 const route = useRoute()
 
@@ -76,49 +79,44 @@ onBeforeUnmount(() => {
   clearAccent = null
 })
 
-const TOTAL_STEPS = 4
+const STEPS = ['Servicio', 'Día y hora', 'Tus datos'] as const
 
 const step = computed<number | null>(() => {
   const value = route.meta.bookingStep
   return typeof value === 'number' ? value : null
 })
 
-// Confirmado: el progreso pasa del último rombo y todos quedan completados.
-const progressStep = computed(() => (completed.value ? TOTAL_STEPS + 1 : (step.value ?? 1)))
+const businessName = computed(() => publicProfileFor(currentSlug.value)?.name ?? '')
 
-// Un paso atrás deshace exactamente el anterior: mismos parámetros menos el
-// último. Es navegación entre rutas que ya existen, no una función nueva.
+// Un paso atrás deshace exactamente el anterior. «Día y hora» vuelve a la
+// entrada (que es el catálogo); «Tus datos» vuelve a la hora, con el
+// profesional solo si se eligió uno (con «Cualquiera» vuelve a Cualquiera).
 const back = computed<{ to: RouteLocationRaw; label: string } | null>(() => {
   if (completed.value) return null
   const slug = String(route.params.slug ?? '')
   const serviceId = String(route.params.serviceId ?? '')
   const professionalId = String(route.params.professionalId ?? '')
   switch (route.name) {
-    case 'reserva-publica-servicios':
-      return { to: { name: 'reserva-publica-entrada', params: { slug } }, label: 'Inicio' }
-    case 'reserva-publica-profesional':
-      return { to: { name: 'reserva-publica-servicios', params: { slug } }, label: 'Servicios' }
     case 'reserva-publica-horario':
-      return {
-        to: { name: 'reserva-publica-profesional', params: { slug, serviceId } },
-        label: v.value.Professional,
-      }
+      return { to: { name: 'reserva-publica-entrada', params: { slug } }, label: 'Servicios' }
     case 'reserva-publica-cliente':
       return {
-        to: { name: 'reserva-publica-horario', params: { slug, serviceId, professionalId } },
-        label: 'Horario',
+        to: {
+          name: 'reserva-publica-horario',
+          params: { slug, serviceId },
+          query: route.query.cualquiera === '1' ? {} : { profesional: professionalId },
+        },
+        label: 'Día y hora',
       }
     default:
       return null
   }
 })
 
-// La entrada no es un paso y ya se rotula «Reserva en línea» en su cuerpo:
-// repetirlo en la cabecera solo quitaría ancho a la marca en 320 px.
-const caption = computed(() => {
-  if (completed.value) return 'Confirmado'
-  return step.value === null ? '' : `Paso ${step.value} de ${TOTAL_STEPS}`
-})
+const entry = computed<RouteLocationRaw>(() => ({
+  name: 'reserva-publica-entrada',
+  params: { slug: currentSlug.value },
+}))
 
 // La página sale hacia el lado contrario al volver atrás. Se decide con
 // `flush: 'sync'` para que el nombre de la transición ya sea el correcto
@@ -131,44 +129,66 @@ watch(
   },
   { flush: 'sync' },
 )
+
+// Llegada (DEC-188): un solo momento al abrir el enlace; un clic o una tecla
+// la terminan y con movimiento reducido no existe.
+const { arriving } = useArrival()
 </script>
 
 <template>
-  <div class="pb-layout">
-    <BookingBackdrop />
-
-    <header class="pb-header">
-      <div class="pb-header__bar">
-        <RouterLink v-if="back" :to="back.to" class="pb-back">
-          <span class="pb-back__arrow" aria-hidden="true">‹</span>
+  <div class="pb-layout bk" :class="{ 'bk--arrive': arriving }">
+    <header class="bk-top">
+      <div class="bk-top__inner">
+        <RouterLink v-if="back" :to="back.to" class="bk-back">
+          <span class="bk-back__arrow" aria-hidden="true">←</span>
           <span>{{ back.label }}</span>
         </RouterLink>
-        <span v-else class="pb-header__spacer" aria-hidden="true"></span>
+        <RouterLink
+          v-else-if="route.name !== 'reserva-publica-entrada'"
+          :to="entry"
+          class="bk-top__business"
+        >
+          {{ businessName }}
+        </RouterLink>
+        <span v-else class="bk-top__spacer" aria-hidden="true"></span>
 
-        <span class="pb-header__brand">
-          <NavaWordmark variant="inverted" size="sm" />
-        </span>
-
-        <span class="pb-header__caption">{{ caption }}</span>
+        <ol v-if="step !== null || completed" class="bk-steps" aria-label="Pasos de la reserva">
+          <li
+            v-for="(label, index) in STEPS"
+            :key="label"
+            class="bk-steps__item"
+            :class="{
+              'bk-steps__item--done': completed || index + 1 < (step ?? 0),
+              'bk-steps__item--current': !completed && index + 1 === step,
+            }"
+            :aria-current="!completed && index + 1 === step ? 'step' : undefined"
+          >
+            <span class="bk-steps__mark" aria-hidden="true"></span>
+            <span class="bk-steps__label">{{ label }}</span>
+            <span v-if="completed || index + 1 < (step ?? 0)" class="pb-sr-only">
+              (completado)</span
+            >
+          </li>
+        </ol>
       </div>
-
-      <BookingProgress v-if="step !== null" :step="progressStep" />
     </header>
 
-    <RouterView v-if="showScreens" v-slot="{ Component, route: current }">
+    <!-- Mientras se lee el vocabulario, un hueco del alto de una pantalla. -->
+    <div v-if="!showScreens" class="bk-page" aria-hidden="true"></div>
+    <RouterView v-else v-slot="{ Component, route: current }">
       <Transition :name="`pb-step-${direction}`" mode="out-in">
         <component :is="Component" :key="String(current.name)" />
       </Transition>
     </RouterView>
 
-    <!-- Firma secundaria (especificacion-frontend-nava.md §2.1): el negocio
-         lleva la jerarquía principal; NAVA solo firma al pie, para que nadie
-         crea que reserva en un negocio llamado NAVA. -->
-    <footer class="pb-footer">
-      <span>Reservas con</span>
-      <NavaWordmark variant="inverted" size="sm" />
-      <!-- Issue #545: enlaces legales en una segunda línea bajo la firma. -->
-      <nav class="pb-footer__legal" aria-label="Documentos legales">
+    <!-- El negocio lleva la jerarquía; NAVA solo firma al pie y lleva a su
+         banda en nava.wtf, para que nadie crea que reserva en «NAVA». -->
+    <footer class="bk-foot">
+      <a class="bk-foot__firm" href="https://nava.wtf/#agenda">
+        <span>Reservas con</span>
+        <NavaWordmark size="sm" />
+      </a>
+      <nav class="bk-foot__legal" aria-label="Documentos legales">
         <a :href="NAVA_PRIVACY_URL">Privacidad</a>
         <a :href="NAVA_TERMS_URL">Condiciones</a>
       </nav>

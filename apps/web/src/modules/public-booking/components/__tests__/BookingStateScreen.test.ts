@@ -33,11 +33,11 @@ describe('BookingStateScreen', () => {
     expect(wrapper.find('button').exists()).toBe(false)
   })
 
-  it('shows the neutral not-found copy as an alert with a retry', () => {
+  it('guides on a missing link instead of offering a retry that would change nothing', () => {
     const wrapper = mountScreen('not-found')
-    expect(wrapper.find('[role="alert"]').text()).toContain('No encontramos ese enlace')
-    expect(wrapper.text()).toContain('Revisa que copiaste la dirección completa')
-    expect(wrapper.find('button').exists()).toBe(true)
+    expect(wrapper.find('[role="alert"]').text()).toContain('Este enlace no lleva a ninguna agenda')
+    expect(wrapper.text()).toContain('Pide al negocio el enlace de nuevo')
+    expect(wrapper.find('button').exists()).toBe(false)
   })
 
   it('shows the connection copy as a warning alert', () => {
@@ -53,8 +53,8 @@ describe('BookingStateScreen', () => {
     expect(bare.text()).not.toContain('código')
   })
 
-  it('emits retry from the action in every failure state', async () => {
-    for (const status of ['not-found', 'network-error', 'unexpected-error'] as const) {
+  it('emits retry from the action in every recoverable failure state', async () => {
+    for (const status of ['network-error', 'unexpected-error'] as const) {
       const wrapper = mountScreen(status)
       await wrapper.find('button').trigger('click')
       expect(wrapper.emitted('retry')).toHaveLength(1)

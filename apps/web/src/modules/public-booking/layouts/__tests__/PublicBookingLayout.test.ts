@@ -1,11 +1,10 @@
 /**
- * Pruebas de PublicBookingLayout (DEC-111): el cascarón aloja las cinco
- * pantallas con las rutas reales del módulo (mismos paths, nombres y
- * `meta.bookingStep`), dibuja el progreso del paso vigente, ofrece el
- * retorno al paso anterior con los parámetros correctos, se completa cuando
- * la página de datos confirma el turno y firma al pie como «Reservas con
- * NAVA». Las pantallas se sustituyen por un doble: aquí no se prueba su
- * contenido.
+ * Pruebas de PublicBookingLayout (DEC-111, v2 DEC-188): el cascarón aloja las
+ * pantallas con las rutas reales del módulo, marca el paso vigente de los tres
+ * (Servicio, Día y hora, Tus datos), ofrece el retorno al paso anterior con
+ * sus parámetros, se completa cuando la página de datos confirma el turno y
+ * firma al pie como «Reservas con NAVA», con enlace a su banda en nava.wtf.
+ * Las pantallas se sustituyen por un doble: aquí no se prueba su contenido.
  */
 import { afterEach, describe, it, expect } from 'vitest'
 import { defineComponent, h } from 'vue'
@@ -31,11 +30,15 @@ function stubbedRoutes(): RouteRecordRaw[] {
   const booking = publicBookingRoutes.map((route) => ({
     ...route,
     component: PublicBookingLayout,
-    children: route.children?.map((child) => ({
-      ...child,
-      component: Screen,
-      props: child.name === 'reserva-publica-cliente' ? { confirm: true } : false,
-    })) as RouteRecordRaw[],
+    children: route.children?.map((child) =>
+      child.redirect
+        ? child
+        : {
+            ...child,
+            component: Screen,
+            props: child.name === 'reserva-publica-cliente' ? { confirm: true } : false,
+          },
+    ) as RouteRecordRaw[],
   })) as RouteRecordRaw[]
   return booking
 }
@@ -61,61 +64,78 @@ async function mountAt(path: string, routes: RouteRecordRaw[] = stubbedRoutes())
   return { wrapper, router }
 }
 
-const STEP_LABELS = ['Servicio', 'Profesional', 'Horario', 'Tus datos']
+const STEP_LABELS = ['Servicio', 'Día y hora', 'Tus datos']
 const SERVICE = '8f3ac2b1-e4d5-46f6-a7c8-d9e0f1a2b3c4'
 const PROFESSIONAL = 'a1111111-1111-1111-1111-111111111111'
 // La ruta de «Tus datos» descarta franjas pasadas (#436): siempre una futura.
 const FUTURE_START = new Date(Date.now() + 24 * 3600 * 1000).toISOString()
+const DETAILS = `/reservar/b/servicios/${SERVICE}/profesional/${PROFESSIONAL}/horario/${FUTURE_START}/cliente`
 
 describe('PublicBookingLayout', () => {
-  it('on the entry shows no progress, no back link and no step caption', async () => {
+  it('on the entry marks «Servicio» as the current step, with no back link', async () => {
     const { wrapper } = await mountAt('/reservar/barberia-ejemplo')
-    expect(wrapper.find('nav[aria-label="Progreso de la reserva"]').exists()).toBe(false)
-    expect(wrapper.find('.pb-back').exists()).toBe(false)
-    expect(wrapper.find('.pb-header__caption').text()).toBe('')
+    expect(wrapper.find('.bk-back').exists()).toBe(false)
+    const current = wrapper.findAll('li[aria-current="step"]')
+    expect(current).toHaveLength(1)
+    expect(current[0]!.text()).toBe('Servicio')
     wrapper.unmount()
   })
 
-  it('draws the progress for the route step and captions «Paso N de 4»', async () => {
-    const cases: Array<[string, number]> = [
-      ['/reservar/b/servicios', 1],
-      [`/reservar/b/servicios/${SERVICE}/profesional`, 2],
-      [`/reservar/b/servicios/${SERVICE}/profesional/${PROFESSIONAL}/horario`, 3],
-    ]
+  it('marks the route step as current and the previous ones as completed', async () => {
+    const cases: Array<[string, number]> = [[`/reservar/b/servicios/${SERVICE}/horario`, 2]]
     for (const [path, step] of cases) {
       const { wrapper } = await mountAt(path)
-      expect(wrapper.find('.pb-header__caption').text()).toBe(`Paso ${step} de 4`)
-      const current = wrapper.findAll('li[aria-current="step"]')
-      expect(current).toHaveLength(1)
-      expect(current[0]!.find('.pb-progress__label').text()).toBe(STEP_LABELS[step - 1])
+      const items = wrapper.findAll('ol[aria-label="Pasos de la reserva"] li')
+      expect(items.map((item) => item.find('.bk-steps__label').text())).toEqual(STEP_LABELS)
+      expect(items[step - 1]!.attributes('aria-current')).toBe('step')
+      for (const done of items.slice(0, step - 1)) expect(done.text()).toContain('(completado)')
       wrapper.unmount()
     }
   })
 
-  it("links back to the previous step with that step's own params", async () => {
-    const { wrapper, router } = await mountAt(
-      `/reservar/b/servicios/${SERVICE}/profesional/${PROFESSIONAL}/horario`,
-    )
-    const back = wrapper.find('a.pb-back')
-    expect(back.text()).toContain('Profesional')
-    expect(router.resolve(back.attributes('href')!).name).toBe('reserva-publica-profesional')
-    expect(back.attributes('href')).toBe(`/reservar/b/servicios/${SERVICE}/profesional`)
-    wrapper.unmount()
-
-    const services = await mountAt('/reservar/b/servicios')
-    expect(services.wrapper.find('a.pb-back').attributes('href')).toBe('/reservar/b')
-    services.wrapper.unmount()
+  it('links back from «Día y hora» to the services of the entry', async () => {
+    const dayTime = await mountAt(`/reservar/b/servicios/${SERVICE}/horario`)
+    const toEntry = dayTime.wrapper.get('a.bk-back')
+    expect(toEntry.text()).toContain('Servicios')
+    expect(toEntry.attributes('href')).toBe('/reservar/b')
+    dayTime.wrapper.unmount()
   })
 
-  it('completes the progress and drops the back link once the booking is confirmed', async () => {
-    const { wrapper } = await mountAt(
-      `/reservar/b/servicios/${SERVICE}/profesional/${PROFESSIONAL}/horario/${FUTURE_START}/cliente`,
+  it('returns from «Tus datos» to the chosen professional, or to «Cualquiera»', async () => {
+    const routes = stubbedRoutes().map((route) => ({
+      ...route,
+      children: (route.children ?? []).map((child) =>
+        child.redirect ? child : { ...child, props: false },
+      ),
+    })) as RouteRecordRaw[]
+    const chosen = await mountAt(DETAILS, routes)
+    expect(chosen.wrapper.get('a.bk-back').attributes('href')).toBe(
+      `/reservar/b/servicios/${SERVICE}/horario?profesional=${PROFESSIONAL}`,
     )
-    expect(wrapper.find('.pb-header__caption').text()).toBe('Confirmado')
-    expect(wrapper.find('.pb-back').exists()).toBe(false)
-    const items = wrapper.findAll('li')
-    expect(items).toHaveLength(4)
+    chosen.wrapper.unmount()
+
+    const any = await mountAt(`${DETAILS}?cualquiera=1`, routes)
+    expect(any.wrapper.get('a.bk-back').attributes('href')).toBe(
+      `/reservar/b/servicios/${SERVICE}/horario`,
+    )
+    any.wrapper.unmount()
+  })
+
+  it('completes every step and drops the back link once the booking is confirmed', async () => {
+    const { wrapper } = await mountAt(DETAILS)
+    expect(wrapper.find('.bk-back').exists()).toBe(false)
+    const items = wrapper.findAll('ol[aria-label="Pasos de la reserva"] li')
+    expect(items).toHaveLength(3)
     expect(items.every((item) => item.text().includes('(completado)'))).toBe(true)
+    expect(wrapper.find('li[aria-current="step"]').exists()).toBe(false)
+    wrapper.unmount()
+  })
+
+  it('links the NAVA signature to its band on nava.wtf', async () => {
+    const { wrapper } = await mountAt('/reservar/barberia-ejemplo')
+    expect(wrapper.get('footer a.bk-foot__firm').attributes('href')).toBe(
+      'https://nava.wtf/#agenda',
+    )
     wrapper.unmount()
   })
 
@@ -136,7 +156,7 @@ describe('PublicBookingLayout', () => {
   })
 
   it('keeps one banner, one <main> and no accessibility violations', async () => {
-    const { wrapper } = await mountAt(`/reservar/b/servicios/${SERVICE}/profesional`)
+    const { wrapper } = await mountAt(`/reservar/b/servicios/${SERVICE}/horario`)
     expect(wrapper.findAll('header')).toHaveLength(1)
     expect(wrapper.findAll('main')).toHaveLength(1)
     expect(await axe(wrapper.element)).toHaveNoViolations()

@@ -136,9 +136,9 @@ function onInput(event: Event) {
   --pf-muted: var(--pb-muted, var(--color-on-strong-muted));
   --pf-brass: var(--pb-brass, var(--color-brand-accent-surface));
   --pf-line-strong: var(--pb-line-strong, color-mix(in srgb, var(--pf-text) 30%, transparent));
-  --pf-row-bg: color-mix(in srgb, #000 46%, var(--color-surface-strong));
-  --pf-row-bg-hover: color-mix(in srgb, #000 38%, var(--color-surface-strong));
-  --pf-row-bg-focus: color-mix(in srgb, #000 52%, var(--color-surface-strong));
+  --pf-row-bg: var(--color-surface);
+  --pf-row-bg-hover: color-mix(in srgb, var(--color-text-primary) 4%, var(--color-surface));
+  --pf-row-bg-focus: color-mix(in srgb, var(--color-text-primary) 8%, var(--color-surface));
   --pf-row-base: color-mix(in srgb, var(--pf-brass) 75%, transparent);
   --pf-row-base-hover: var(--pf-brass);
   --pf-ring-gap: var(--color-surface-strong);
