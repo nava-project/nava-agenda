@@ -62,6 +62,29 @@ export function formatCivilDateFull(civilDate: string): string {
   return new Intl.DateTimeFormat('es-CO', { timeZone: 'UTC', dateStyle: 'full' }).format(at)
 }
 
+// formatCivilDateShort (DEC-188, agenda v2): la fecha de un control en palabras
+// cortas, sin ISO: «Hoy, jue 19 nov», «Mañana, vie 20 nov», «Ayer, mié 18 nov» o
+// «sáb 21 nov». Con otro año que `today`, lo añade: «lun 4 ene 2027». Igual que
+// formatCivilDateFull, ancla a mediodía UTC y formatea en UTC.
+export function formatCivilDateShort(civilDate: string, today: string | null = null): string {
+  const [year, month, day] = civilDate.split('-').map(Number)
+  const at = new Date(Date.UTC(year!, month! - 1, day!, 12))
+  const part = (options: Intl.DateTimeFormatOptions) =>
+    new Intl.DateTimeFormat('es-CO', { timeZone: 'UTC', ...options }).format(at).replace('.', '')
+  let text = `${part({ weekday: 'short' })} ${day} ${part({ month: 'short' })}`
+  if (today && today.slice(0, 4) !== civilDate.slice(0, 4)) text += ` ${year}`
+  if (!today) return text
+  const relative =
+    civilDate === today
+      ? 'Hoy'
+      : civilDate === shiftCivilDate(today, 1)
+        ? 'Mañana'
+        : civilDate === shiftCivilDate(today, -1)
+          ? 'Ayer'
+          : null
+  return relative ? `${relative}, ${text}` : text
+}
+
 // minutesIntoCivilDate (Fase 4a de la adopción NAVA, issue de la línea
 // temporal de escritorio, especificacion-frontend-nava.md §7.2): minutos
 // transcurridos desde la medianoche de `civilDate` (en `timezone`) hasta

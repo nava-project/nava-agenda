@@ -45,6 +45,7 @@ const { loggingOut, logout: onLogout } = useLogout()
   display: flex;
   align-items: center;
   justify-content: space-between;
+  gap: 12px;
   min-height: 75px;
   padding: 20px 40px;
   background-color: var(--color-chrome-surface);
@@ -56,7 +57,7 @@ const { loggingOut, logout: onLogout } = useLogout()
 .app-header__identity {
   display: flex;
   min-width: 0;
-  align-items: baseline;
+  align-items: center;
   gap: 14px;
 }
 
@@ -65,8 +66,13 @@ const { loggingOut, logout: onLogout } = useLogout()
 }
 
 .app-header__business {
+  /* El negocio, separado de la firma por un filete vertical y centrado con ella
+     (antes caía como subíndice bajo la línea base del logo). */
+  padding-left: 14px;
   margin: 0;
   overflow: hidden;
+  line-height: 24px;
+  border-left: 1px solid var(--color-border-subtle);
   font-size: var(--font-size-body);
   font-weight: 400;
   color: var(--color-on-strong-muted);
@@ -141,6 +147,20 @@ const { loggingOut, logout: onLogout } = useLogout()
 
   .app-header__business {
     max-width: 100%;
+    padding-left: 0;
+    border-left: 0;
+  }
+}
+
+/* A 320–399 px la firma a 22 px aún se montaba sobre «Cerrar sesión» (la
+   firma no se encoge): baja a 18 px y el botón cede su relleno lateral. */
+@media (max-width: 399px) {
+  .app-header__identity :deep(.nava-wordmark) {
+    font-size: 18px;
+  }
+
+  .app-header__logout {
+    padding: 0 var(--space-1);
   }
 }
 </style>

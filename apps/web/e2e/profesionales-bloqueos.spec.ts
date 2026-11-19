@@ -407,9 +407,13 @@ test('el calendario compartido conserva selección civil y recarga en la agenda'
   await page.keyboard.press('Enter')
   await expect(calendar).not.toBeVisible()
   expect(new URL(page.url()).searchParams.get('date')).toBe(date)
-  await expect(trigger).toContainText(date!)
+  // v2 (DEC-188): el disparador dice la fecha en palabras cortas («Mañana, vie
+  // 20 nov»), nunca en ISO.
+  const shortDate = new RegExp(`\\b${Number(date!.slice(8))} [a-zé]{3,4}\\b`)
+  await expect(trigger).toContainText(shortDate)
+  await expect(trigger).not.toContainText(date!)
   await page.reload()
-  await expect(trigger).toContainText(date!)
+  await expect(trigger).toContainText(shortDate)
   await trigger.click()
   await page.screenshot({
     path: path.join(evidence, `${testInfo.project.name}-agenda-calendario.png`),

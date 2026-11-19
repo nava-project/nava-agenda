@@ -95,7 +95,7 @@ const statusBadgeVariant = computed(() =>
   detail.value ? APPOINTMENT_STATUS_BADGE_VARIANT[detail.value.status] : 'neutral',
 )
 // Tono de la ficha: el mismo reparto de colores por estado que la agenda diaria
-// (pendiente, completado, no se presentó, cancelado), con la palabra de estado como
+// (pendiente, completado, no asistió, cancelado), con la palabra de estado como
 // señal además del color.
 const STATUS_TONE: Record<AppointmentStatus, string> = {
   confirmed: 'pending',

@@ -12,6 +12,12 @@ export { publicBookingRoutes } from './routes'
 export { default as PublicFrame } from './components/PublicFrame.vue'
 export { default as BookingStateScreen } from './components/BookingStateScreen.vue'
 export { default as DayTimePicker } from './components/DayTimePicker.vue'
+export { default as DaylightStrip } from './components/DaylightStrip.vue'
 export { buildCalendarFile, downloadCalendarFile } from './model/calendarFile'
-export { buildDaylightDays, type DaylightDay, type DaylightSlot } from './model/daylight'
+export {
+  buildDaylightDays,
+  type DaylightDay,
+  type DaylightMark,
+  type DaylightSlot,
+} from './model/daylight'
 export { usePublicBusinessName } from './model/publicBusinessName'

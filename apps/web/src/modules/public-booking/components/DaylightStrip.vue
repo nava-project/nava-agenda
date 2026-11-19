@@ -14,10 +14,17 @@
  *   rombo Sol y, al cambiar la hora de un turno, la actual un rombo hueco. Tocar un tramo libre emite `pick` con esos minutos: es un atajo
  *   de puntero, la misma elección está en el grupo de horas (teclado y lector).
  *
+ * En el panel (agenda del día) la franja lleva además `marks`, los turnos del
+ * día como marcas del color y la forma de su estado, y `window`, la ventana
+ * que se ve. Con `window` no se vela nada como cerrado: el panel no conoce la
+ * apertura del día, solo los turnos. Tocar una marca emite `mark` con su
+ * clave; es un atajo de puntero, la misma información está en la lista.
+ *
  * Para la tecnología de asistencia solo existe `label`, una frase con lo que
  * dibuja; sin ella la franja es decorativa (la información está en texto).
  */
 import { computed } from 'vue'
+import type { DaylightMark } from '../model/daylight'
 
 interface Interval {
   start: number
@@ -44,6 +51,10 @@ interface Props {
   /** La hora elegida «se agenda»: el rombo cae en su sitio con un destello Sol. */
   land?: boolean
   variant?: 'band' | 'map'
+  /** Ventana visible fija; sin ella, la deciden los tramos abiertos. */
+  window?: Interval | null
+  /** Turnos del día (panel), como marcas tocables. */
+  marks?: DaylightMark[]
 }
 
 const props = withDefaults(defineProps<Props>(), {
@@ -56,15 +67,25 @@ const props = withDefaults(defineProps<Props>(), {
   arrive: false,
   land: false,
   variant: 'band',
+  window: null,
+  marks: () => [],
 })
 
-const emit = defineEmits<{ pick: [minutes: number] }>()
+const emit = defineEmits<{ pick: [minutes: number]; mark: [key: string] }>()
 
 const HOUR = 60
 
 // La ventana visible: de la hora en punto anterior a la primera apertura a la
 // siguiente al último cierre, con al menos 8 horas para que el cielo se lea.
 const range = computed(() => {
+  if (props.window) {
+    // Panel: la ventana que pide la agenda, a horas en punto y de al menos 8 h.
+    let from = Math.floor(props.window.start / HOUR) * HOUR
+    let to = Math.ceil(props.window.end / HOUR) * HOUR
+    if (to - from < 8 * HOUR) to = Math.min(24 * HOUR, from + 8 * HOUR)
+    if (to - from < 8 * HOUR) from = Math.max(0, to - 8 * HOUR)
+    return { from, to }
+  }
   const starts = props.open.map((i) => i.start)
   const ends = props.open.map((i) => i.end)
   let from = Math.floor(Math.min(...starts, 8 * HOUR) / HOUR) * HOUR
@@ -118,7 +139,7 @@ function complement(spans: Interval[], within: Interval[]): Interval[] {
 
 // Lo cerrado: los huecos entre tramos abiertos dentro de la ventana.
 const closed = computed(() =>
-  complement(props.open, [{ start: range.value.from, end: range.value.to }]),
+  props.window ? [] : complement(props.open, [{ start: range.value.from, end: range.value.to }]),
 )
 
 // En el mapa, lo abierto sin horas libres se apaga.
@@ -149,7 +170,11 @@ function clock(minutes: number): string {
 const hourLabels = computed(() => {
   const { from, to } = range.value
   const wanted = new Set<number>()
-  for (const i of props.open) {
+  if (props.window) {
+    wanted.add(from)
+    wanted.add(to)
+  }
+  for (const i of props.window ? [] : props.open) {
     wanted.add(i.start)
     wanted.add(i.end)
   }
@@ -207,6 +232,14 @@ function onPick(event: MouseEvent) {
           @click="onPick"
         ></span>
       </template>
+      <span
+        v-for="mark in props.marks"
+        :key="`m${mark.key}`"
+        class="daylight__mark"
+        :class="`daylight__mark--${mark.tone}`"
+        :style="spanStyle(mark)"
+        @click="emit('mark', mark.key)"
+      ></span>
       <span v-if="props.arrive" class="daylight__dusk"></span>
       <span
         v-if="marker && props.land"
@@ -333,6 +366,60 @@ function onPick(event: MouseEvent) {
 
 .daylight__free:hover {
   box-shadow: inset 0 0 0 2px color-mix(in srgb, var(--color-text-primary) 55%, transparent);
+}
+
+/* Turnos del panel: una barra al pie del cielo, del color y la forma de su
+   estado (diseno-v2, «Estados de la cita»). El área táctil cubre todo el alto
+   de la franja y al menos 24 px de ancho (WCAG 2.5.8). */
+.daylight__mark {
+  --mk: var(--color-appt-confirmed);
+
+  position: absolute;
+  bottom: 8px;
+  z-index: 1;
+  min-width: 10px;
+  height: 14px;
+  cursor: pointer;
+  background: var(--mk);
+  border: 2px solid var(--mk);
+  border-radius: 4px;
+  box-shadow: 0 0 0 1.5px color-mix(in srgb, #fff 80%, transparent);
+}
+
+.daylight__mark::before {
+  position: absolute;
+  inset: -40px -8px -8px;
+  content: '';
+}
+
+.daylight__mark--current {
+  --mk: var(--color-sun);
+
+  border-color: var(--color-on-sun);
+}
+
+.daylight__mark--pending {
+  --mk: var(--color-appt-pending);
+
+  background: var(--color-surface);
+  border-style: dotted;
+}
+
+.daylight__mark--completed {
+  --mk: var(--color-appt-completed);
+}
+
+.daylight__mark--no-show {
+  --mk: var(--color-appt-no-show);
+
+  background: var(--color-surface);
+}
+
+.daylight__mark--cancelled {
+  --mk: var(--color-appt-cancelled);
+
+  background: transparent;
+  border-style: dashed;
 }
 
 .daylight__marker {

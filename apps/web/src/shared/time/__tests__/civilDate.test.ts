@@ -4,6 +4,7 @@
 // español a partir de una fecha ya resuelta.
 import { describe, expect, it } from 'vitest'
 import {
+  formatCivilDateShort,
   formatCivilDateFull,
   getCivilDateInTimezone,
   isCivilDateString,
@@ -131,5 +132,19 @@ describe('formatCivilDateFull', () => {
   it('never shifts the day, even for a date that would cross UTC+14 near midnight', () => {
     expect(formatCivilDateFull('2026-01-01')).toBe('jueves, 1 de enero de 2026')
     expect(formatCivilDateFull('2026-12-31')).toBe('jueves, 31 de diciembre de 2026')
+  })
+})
+
+describe('formatCivilDateShort (DEC-188)', () => {
+  it('names today, tomorrow and yesterday in short words, never ISO', () => {
+    expect(formatCivilDateShort('2026-11-19', '2026-11-19')).toBe('Hoy, jue 19 nov')
+    expect(formatCivilDateShort('2026-11-20', '2026-11-19')).toBe('Mañana, vie 20 nov')
+    expect(formatCivilDateShort('2026-11-18', '2026-11-19')).toBe('Ayer, mié 18 nov')
+    expect(formatCivilDateShort('2026-11-21', '2026-11-19')).toBe('sáb 21 nov')
+  })
+
+  it('adds the year when it is not the current one, and works without today', () => {
+    expect(formatCivilDateShort('2027-01-04', '2026-11-19')).toBe('lun 4 ene 2027')
+    expect(formatCivilDateShort('2026-11-21')).toBe('sáb 21 nov')
   })
 })

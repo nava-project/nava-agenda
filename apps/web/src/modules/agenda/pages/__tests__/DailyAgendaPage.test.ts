@@ -614,8 +614,15 @@ describe('DailyAgendaPage', () => {
     it('renders one hidden, non-focusable timeline slip per entry, alongside the accessible list', async () => {
       const { wrapper } = await mountWithFixedDate()
 
+      // El carril desplazable es una parada de Tab con nombre propio; su
+      // contenido es decorativo (la lista dice lo mismo en texto).
       const timeline = wrapper.get('.daily-agenda-page__timeline')
-      expect(timeline.attributes('aria-hidden')).toBe('true')
+      expect(timeline.attributes('role')).toBe('region')
+      expect(timeline.attributes('tabindex')).toBe('0')
+      expect(timeline.attributes('aria-label')).toMatch(/^Carril de Carlos Ramírez, /)
+      expect(wrapper.get('.daily-agenda-page__timeline-scroll').attributes('aria-hidden')).toBe(
+        'true',
+      )
 
       const slips = wrapper.findAll('.daily-agenda-page__timeline-slip')
       expect(slips.length).toBe(1)
@@ -651,15 +658,25 @@ describe('DailyAgendaPage', () => {
     })
 
     // Issue #587: el día completo en el ancho de la pantalla dejaba ~76 px por
-    // hora y las fichas en «Nic…». Cada hora mide al menos 180 px a zoom 1.
+    // hora y las fichas en «Nic…». Cada hora mide al menos 180 px a zoom 1 y,
+    // desde la v2 (DEC-188), lo que haga falta para que el turno más corto mida
+    // 140 px: con uno de 30 min, 280 px por hora (24 h = 6720 px).
     it('gives every hour a legible minimum width, multiplied by the zoom', async () => {
       const { wrapper } = await mountWithFixedDate()
       const scroll = wrapper.get('.daily-agenda-page__timeline-scroll')
-      expect(scroll.attributes('style')).toContain('min-width: 4320px')
+      expect(scroll.attributes('style')).toContain('min-width: 6720px')
 
       await wrapper.get('[aria-label="Acercar el calendario"]').trigger('click')
       expect(wrapper.get('.daily-agenda-page__timeline-scroll').attributes('style')).toContain(
-        'min-width: 8640px',
+        'min-width: 13440px',
+      )
+    })
+
+    it('keeps the hour at 180 px when every appointment is long enough', async () => {
+      const entry = [{ ...oneEntry[0]!, endsAt: '2026-08-28T20:30:00Z' }]
+      const { wrapper } = await mountWithFixedDate(entry)
+      expect(wrapper.get('.daily-agenda-page__timeline-scroll').attributes('style')).toContain(
+        'min-width: 4320px',
       )
     })
 
@@ -673,9 +690,13 @@ describe('DailyAgendaPage', () => {
       const entry = [{ ...oneEntry[0]!, endsAt: '2026-08-28T19:35:00Z' }]
       const { wrapper } = await mountWithFixedDate(entry)
       const slip = wrapper.get('.daily-agenda-page__timeline-slip')
-      // 5 min = 15 px; el mínimo visual es 44 px de 4320 = 1.0185...%.
-      expect(slip.attributes('style')).toMatch(/width: 1\.018/)
+      // Con 5 min la hora llega a su tope de 420 px (24 h = 10080 px): 5 min son
+      // 35 px y el mínimo visual es 44 px de 10080 = 0.4365...%.
+      expect(slip.attributes('style')).toMatch(/width: 0\.436/)
       expect(slip.text()).not.toContain('Corte clásico')
+      // Estrecha: la hora y la inicial, nunca un nombre cortado a una sílaba.
+      expect(slip.get('.daily-agenda-page__timeline-slip-initial').text()).toBe('J')
+      expect(slip.text()).not.toContain('Juan')
     })
 
     it('con el dedo, el primer toque ensancha la ficha con horario y servicio y el segundo abre el detalle', async () => {
@@ -908,6 +929,44 @@ describe('DailyAgendaPage', () => {
       const confirmed = byLabel('Confirmado')
       expect(confirmed.classes()).not.toContain('daily-agenda-page__item--pending')
       expect(confirmed.classes()).not.toContain('daily-agenda-page__item--current')
+    })
+
+    it('marks «Ahora» in the list between what happened and what comes, and draws the day strip (DEC-188)', async () => {
+      fetchDailyAgendaMock.mockResolvedValueOnce({
+        kind: 'success',
+        items: [
+          todayEntry('a-past', -90, 30, 'Corte clásico'),
+          todayEntry('a-next', 60, 30, 'Barba perfilada'),
+        ],
+      })
+      const { wrapper } = await mountReady(oneProfessional)
+
+      const rows = wrapper.findAll('.daily-agenda-page__list > li')
+      expect(rows.map((r) => r.classes()[0])).toEqual([
+        'daily-agenda-page__item',
+        'daily-agenda-page__now',
+        'daily-agenda-page__item',
+      ])
+      expect(rows[1]!.text()).toBe(`Ahora · ${hhmm(new Date().toISOString())}`)
+
+      const strip = wrapper.get('.daily-agenda-page__strip')
+      expect(strip.findAll('.daylight__mark')).toHaveLength(2)
+      expect(strip.find('.daylight__marker--sun').exists()).toBe(true)
+    })
+
+    it('a tap on a strip mark brings its card into view and focuses it', async () => {
+      fetchDailyAgendaMock.mockResolvedValueOnce({
+        kind: 'success',
+        items: [todayEntry('a-next', 60, 30, 'Barba perfilada')],
+      })
+      const { wrapper } = await mountReady(oneProfessional)
+      const link = wrapper.get('[data-entry-id="a-next"] .daily-agenda-page__item-main')
+      const scrollIntoView = vi.fn()
+      const focus = vi.spyOn(link.element as HTMLElement, 'focus')
+      ;(link.element as HTMLElement).scrollIntoView = scrollIntoView
+      await wrapper.get('.daily-agenda-page__strip .daylight__mark').trigger('click')
+      expect(scrollIntoView).toHaveBeenCalled()
+      expect(focus).toHaveBeenCalledWith({ preventScroll: true })
     })
 
     it('says when the appointment in progress ends', async () => {

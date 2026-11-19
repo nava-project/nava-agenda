@@ -30,6 +30,7 @@ import {
 } from '@/shared/ui'
 import {
   formatCivilDateFull,
+  formatCivilDateShort,
   getCivilDateInTimezone,
   isCivilDateString,
   minutesIntoCivilDate,
@@ -50,6 +51,7 @@ import {
   type DailyAgendaEntry,
 } from '../model/dailyAgenda'
 import AgendaSkeleton from '../components/AgendaSkeleton.vue'
+import { DaylightStrip, type DaylightMark } from '@/modules/public-booking'
 import BaseDatePicker from '@/shared/ui/BaseDatePicker.vue'
 
 type PageStatus = 'loading' | 'ready' | 'load-error'
@@ -449,10 +451,27 @@ onUnmounted(() => timelineResizeObserver?.disconnect())
  * sin desplazamiento horizontal (pedido del propietario, 2026-11-15: «debe
  * acomodarse siempre y no generar un scroll cuando no hay nada»).
  */
+// v2 (DEC-188, revisión del 4a): a zoom 1 el turno más corto del día mide al
+// menos TIMELINE_SHORTEST_PX, para que su ficha lleve el nombre completo y no
+// «Daniel …». La hora crece hasta TIMELINE_MAX_HOUR_PX; un turno aún más corto
+// queda en modo compacto (hora e inicial), con el nombre en la lista.
+const TIMELINE_SHORTEST_PX = 140
+const TIMELINE_MAX_HOUR_PX = 420
+const timelineHourPx = computed(() => {
+  const durations = entries.value.map(
+    (e) => (new Date(e.endsAt).getTime() - new Date(e.startsAt).getTime()) / 60_000,
+  )
+  const shortest = Math.max(5, Math.min(...durations, 60))
+  return Math.min(
+    TIMELINE_MAX_HOUR_PX,
+    Math.max(TIMELINE_MIN_HOUR_PX, (TIMELINE_SHORTEST_PX * 60) / shortest),
+  )
+})
+
 const timelineMinWidthPx = computed(() => {
   const bounds = timelineBounds.value
   if (!bounds || entries.value.length === 0) return 0
-  return ((bounds.end - bounds.start) / 60) * TIMELINE_MIN_HOUR_PX * timelineZoom.value
+  return ((bounds.end - bounds.start) / 60) * timelineHourPx.value * timelineZoom.value
 })
 
 /** Ancho real del carril: el del contenedor por el zoom, nunca menos que el mínimo. */
@@ -711,15 +730,17 @@ const nowMarkerPercent = computed(() => {
 // turnos, con media hora de aire a la izquierda. Solo una vez por día y
 // profesional: una recarga tras atender o cancelar un turno no le mueve la vista
 // a quien ya está mirando otra hora.
+// v2 (revisión del 4a): hoy, el carril abre con «Ahora» a un tercio del ancho,
+// para que se vea lo que viene y no lo que pasó; otro día, en el primer turno.
 const timelineFocusMinute = computed(() => {
   const date = agendaDate.value
   const tz = businessTimezone.value
   if (!timelineBounds.value || !date || !tz) return null
+  if (isViewingToday.value) return minutesIntoCivilDate(new Date().toISOString(), date, tz)
   if (entries.value.length > 0) {
     return Math.min(...entries.value.map((e) => minutesIntoCivilDate(e.startsAt, date, tz)))
   }
-  if (!isViewingToday.value) return null
-  return minutesIntoCivilDate(new Date().toISOString(), date, tz)
+  return null
 })
 
 let timelineFramedKey: string | null = null
@@ -732,12 +753,92 @@ watch(
     const key = `${agendaDate.value}|${selectedProfessionalId.value}`
     if (key === timelineFramedKey) return
     timelineFramedKey = key
-    const ratio =
-      (Math.max(bounds.start, focusMinute - 30) - bounds.start) / (bounds.end - bounds.start)
+    const span = bounds.end - bounds.start
+    if (isViewingToday.value) {
+      const ratio = (focusMinute - bounds.start) / span
+      el.scrollLeft = Math.max(0, ratio * el.scrollWidth - el.clientWidth / 3)
+      return
+    }
+    const ratio = (Math.max(bounds.start, focusMinute - 30) - bounds.start) / span
     el.scrollLeft = Math.max(0, ratio * el.scrollWidth)
   },
   { flush: 'post' },
 )
+
+function entryTone(entry: DailyAgendaEntry): DaylightMark['tone'] {
+  if (isEntryInProgress(entry)) return 'current'
+  if (isEntryPending(entry)) return 'pending'
+  if (entry.status === 'completed') return 'completed'
+  if (entry.status === 'no_show') return 'no-show'
+  if (isEntryCancelled(entry)) return 'cancelled'
+  return 'confirmed'
+}
+
+// Franja del día en el teléfono (revisión del 4a): el mismo DaylightStrip de la
+// reserva y de «Cambiar la hora», con los turnos como marcas y «Ahora» como el
+// sol. Así el dueño ve el día como lo vio su cliente al reservar. Es decorativa:
+// la lista de abajo dice lo mismo en texto y es la que se recorre con teclado.
+const stripNowMinute = computed(() => {
+  if (!isViewingToday.value || !agendaDate.value || !businessTimezone.value) return null
+  return minutesIntoCivilDate(new Date().toISOString(), agendaDate.value, businessTimezone.value)
+})
+
+const stripMarks = computed<DaylightMark[]>(() => {
+  const date = agendaDate.value
+  const tz = businessTimezone.value
+  if (!date || !tz) return []
+  return entries.value.map((entry) => ({
+    key: entry.id,
+    start: minutesSinceCivilMidnight(entry.startsAt, date, tz),
+    end: Math.min(24 * 60, minutesSinceCivilMidnight(entry.endsAt, date, tz)),
+    tone: entryTone(entry),
+  }))
+})
+
+const stripWindow = computed(() => {
+  const points = stripMarks.value.flatMap((m) => [m.start, m.end])
+  if (stripNowMinute.value !== null) points.push(stripNowMinute.value)
+  if (points.length === 0) return null
+  return {
+    start: Math.max(0, Math.min(...points) - 30),
+    end: Math.min(24 * 60, Math.max(...points) + 30),
+  }
+})
+
+// Un toque en una marca lleva a su ficha de la lista y la enfoca.
+const entryList = ref<HTMLElement | null>(null)
+function focusEntry(entryId: string) {
+  const row = [...(entryList.value?.querySelectorAll<HTMLElement>('[data-entry-id]') ?? [])].find(
+    (el) => el.dataset.entryId === entryId,
+  )
+  const link = row?.querySelector<HTMLElement>('.daily-agenda-page__item-main')
+  if (!link) return
+  const reduced =
+    document.documentElement.dataset.motion === 'reduced' ||
+    window.matchMedia?.('(prefers-reduced-motion: reduce)').matches
+  link.scrollIntoView({ block: 'center', behavior: reduced ? 'auto' : 'smooth' })
+  link.focus({ preventScroll: true })
+}
+
+// «Ahora» en la lista (revisión del 4a): un separador entre lo que pasó y lo
+// que viene. Va antes del primer turno que no ha terminado; si todos
+// terminaron, al final. Solo hoy, y como «Ahora» del carril, sin reloj en vivo.
+const nowSeparatorIndex = computed(() => {
+  if (!isViewingToday.value || entries.value.length === 0) return null
+  const now = Date.now()
+  const index = entries.value.findIndex((e) => new Date(e.endsAt).getTime() > now)
+  return index === -1 ? entries.value.length : index
+})
+
+const nowSeparatorLabel = computed(() => `Ahora · ${formatAgendaTime(new Date().toISOString())}`)
+
+// El carril desplazable es una parada de Tab: lleva nombre propio, y su
+// contenido (eje, marcas y fichas) es decorativo: la lista lo dice en texto.
+const timelineRegionLabel = computed(() => {
+  const who = selectedProfessional.value?.fullName
+  const when = agendaDateLabel.value
+  return ['Carril', who ? `de ${who}` : '', when ? `, ${when}` : ''].join(' ').replace(' ,', ',')
+})
 
 // "Cambio de día" (issue #189, evento 11 del atlas): decorativa igual que
 // "Ahora" — marca dónde el carril cruza medianoche cuando un turno de este
@@ -757,7 +858,7 @@ const dayChangeMarkerPercent = computed(() => {
     :aria-busy="agendaStatus === 'updating'"
     aria-labelledby="daily-agenda-page-title"
   >
-    <header class="daily-agenda-page__header nv-rise">
+    <header class="daily-agenda-page__header">
       <div>
         <h1 id="daily-agenda-page-title" class="daily-agenda-page__title">Agenda</h1>
         <p v-if="selectedDateLabel" class="daily-agenda-page__date">
@@ -816,7 +917,7 @@ const dayChangeMarkerPercent = computed(() => {
       </EmptyScene>
 
       <template v-else>
-        <div class="daily-agenda-page__controls nv-rise" style="--i: 1">
+        <div class="daily-agenda-page__controls">
           <div v-if="!hideProfessionalPicker" class="daily-agenda-page__picker">
             <label for="daily-agenda-professional-select" class="daily-agenda-page__label">{{
               v.Professional
@@ -855,6 +956,7 @@ const dayChangeMarkerPercent = computed(() => {
                 :today="todayCivilDate"
                 :disabled="!canNavigateDates"
                 label-id="daily-agenda-date-label"
+                :format-value="(date: string) => formatCivilDateShort(date, todayCivilDate)"
                 @update:model-value="goToDate"
               />
             </div>
@@ -950,11 +1052,7 @@ const dayChangeMarkerPercent = computed(() => {
                  redundante de llegar al mismo detalle para teclado/lector.
                  Se dibuja también con la lista vacía (evento 09): el eje del
                  día vacío se conserva con el marcador "Ahora". -->
-            <div
-              v-if="timelineBounds"
-              class="daily-agenda-page__timeline-wrapper nv-rise"
-              style="--i: 2"
-            >
+            <div v-if="timelineBounds" class="daily-agenda-page__timeline-wrapper">
               <!-- Control de zoom (pedido explícito del propietario,
                    2026-09-04): no representado en el atlas — es una imagen
                    estática sin controles — y por eso vive fuera del bloque
@@ -986,8 +1084,15 @@ const dayChangeMarkerPercent = computed(() => {
                 </button>
               </div>
 
-              <div ref="timelineViewport" class="daily-agenda-page__timeline" aria-hidden="true">
+              <div
+                ref="timelineViewport"
+                class="daily-agenda-page__timeline"
+                role="region"
+                tabindex="0"
+                :aria-label="timelineRegionLabel"
+              >
                 <div
+                  aria-hidden="true"
                   class="daily-agenda-page__timeline-scroll"
                   :style="{
                     width: `${timelineZoom * 100}%`,
@@ -1031,7 +1136,7 @@ const dayChangeMarkerPercent = computed(() => {
                     >
                   </div>
 
-                  <div class="daily-agenda-page__timeline-track nv-wipe">
+                  <div class="daily-agenda-page__timeline-track">
                     <div class="daily-agenda-page__timeline-sky" :style="timelineSkyStyle" />
                     <div
                       v-for="minute in timelineHalfHourGuides"
@@ -1060,7 +1165,7 @@ const dayChangeMarkerPercent = computed(() => {
                     />
 
                     <RouterLink
-                      v-for="(entry, index) in entries"
+                      v-for="entry in entries"
                       :key="`timeline-${entry.id}`"
                       tabindex="-1"
                       class="daily-agenda-page__timeline-slip"
@@ -1075,7 +1180,7 @@ const dayChangeMarkerPercent = computed(() => {
                         'daily-agenda-page__timeline-slip--end':
                           timelineSlipStyle(entry).right !== undefined,
                       }"
-                      :style="{ ...timelineSlipStyle(entry), '--i': index + 3 }"
+                      :style="timelineSlipStyle(entry)"
                       :to="{
                         name: 'agenda-detalle-turno',
                         params: { appointmentId: entry.id },
@@ -1089,8 +1194,13 @@ const dayChangeMarkerPercent = computed(() => {
                           ? entryTimeRange(entry)
                           : entryTime(entry)
                       }}</span>
-                      <span class="daily-agenda-page__timeline-slip-name">{{
-                        entry.attendeeName
+                      <span
+                        v-if="timelineSlipDetail(entry) === 'full' || expandedSlipId === entry.id"
+                        class="daily-agenda-page__timeline-slip-name"
+                        >{{ entry.attendeeName }}</span
+                      >
+                      <span v-else class="daily-agenda-page__timeline-slip-initial">{{
+                        entry.attendeeName.trim().slice(0, 1).toUpperCase()
                       }}</span>
                       <span
                         v-if="timelineSlipDetail(entry) === 'full' || expandedSlipId === entry.id"
@@ -1126,50 +1236,68 @@ const dayChangeMarkerPercent = computed(() => {
               </template>
             </EmptyScene>
 
+            <DaylightStrip
+              v-if="entries.length > 0 && stripWindow"
+              class="daily-agenda-page__strip"
+              variant="band"
+              :open="[]"
+              :window="stripWindow"
+              :marks="stripMarks"
+              :now="stripNowMinute"
+              @mark="focusEntry"
+            />
+
             <ul
-              v-else
+              v-if="entries.length > 0"
+              ref="entryList"
               :key="`${selectedProfessionalId}-${selectedDate}`"
               class="daily-agenda-page__list"
               :aria-label="`Turnos de ${selectedProfessional?.fullName}`"
             >
-              <li
-                v-for="(entry, index) in entries"
-                :key="entry.id"
-                class="daily-agenda-page__item nv-rise nv-lift"
-                :style="{ '--i': index + 3 }"
-                :class="{
-                  'daily-agenda-page__item--terminal': entry.status !== 'confirmed',
-                  'daily-agenda-page__item--current': isEntryInProgress(entry),
-                  'daily-agenda-page__item--pending': isEntryPending(entry),
-                  'daily-agenda-page__item--completed': entry.status === 'completed',
-                  'daily-agenda-page__item--no-show': entry.status === 'no_show',
-                  'daily-agenda-page__item--cancelled': isEntryCancelled(entry),
-                }"
-              >
-                <RouterLink
-                  class="daily-agenda-page__item-main"
-                  :to="{
-                    name: 'agenda-detalle-turno',
-                    params: { appointmentId: entry.id },
-                    query: withQuery({}),
+              <template v-for="(entry, index) in entries" :key="entry.id">
+                <li v-if="index === nowSeparatorIndex" class="daily-agenda-page__now">
+                  {{ nowSeparatorLabel }}
+                </li>
+                <li
+                  :data-entry-id="entry.id"
+                  class="daily-agenda-page__item"
+                  :class="{
+                    'daily-agenda-page__item--terminal': entry.status !== 'confirmed',
+                    'daily-agenda-page__item--current': isEntryInProgress(entry),
+                    'daily-agenda-page__item--pending': isEntryPending(entry),
+                    'daily-agenda-page__item--completed': entry.status === 'completed',
+                    'daily-agenda-page__item--no-show': entry.status === 'no_show',
+                    'daily-agenda-page__item--cancelled': isEntryCancelled(entry),
                   }"
                 >
-                  <span class="daily-agenda-page__item-time">{{ entryTimeRange(entry) }}</span>
-                  <span class="daily-agenda-page__item-details">
-                    <span class="daily-agenda-page__item-name">{{ entry.attendeeName }}</span>
-                    <span class="daily-agenda-page__item-service"
-                      >{{ entry.serviceName
-                      }}<template v-if="entry.homeService"> · A domicilio</template></span
-                    >
-                  </span>
-                </RouterLink>
-                <BaseBadge
-                  :variant="statusBadgeVariant(entry)"
-                  size="sm"
-                  :label="statusLabel(entry)"
-                >
-                  {{ statusLabel(entry) }}
-                </BaseBadge>
+                  <RouterLink
+                    class="daily-agenda-page__item-main"
+                    :to="{
+                      name: 'agenda-detalle-turno',
+                      params: { appointmentId: entry.id },
+                      query: withQuery({}),
+                    }"
+                  >
+                    <span class="daily-agenda-page__item-time">{{ entryTimeRange(entry) }}</span>
+                    <span class="daily-agenda-page__item-details">
+                      <span class="daily-agenda-page__item-name">{{ entry.attendeeName }}</span>
+                      <span class="daily-agenda-page__item-service"
+                        >{{ entry.serviceName
+                        }}<template v-if="entry.homeService"> · A domicilio</template></span
+                      >
+                    </span>
+                  </RouterLink>
+                  <BaseBadge
+                    :variant="statusBadgeVariant(entry)"
+                    size="sm"
+                    :label="statusLabel(entry)"
+                  >
+                    {{ statusLabel(entry) }}
+                  </BaseBadge>
+                </li>
+              </template>
+              <li v-if="nowSeparatorIndex === entries.length" class="daily-agenda-page__now">
+                {{ nowSeparatorLabel }}
               </li>
             </ul>
           </template>
@@ -1492,9 +1620,10 @@ const dayChangeMarkerPercent = computed(() => {
     flex-wrap: nowrap;
   }
 
+  /* «Mañana, mié 30 sept» entra completo (la fecha va en palabras, v2). */
   .daily-agenda-page__date-input-wrap {
-    flex: 0 0 150px;
-    min-width: 150px;
+    flex: 0 0 216px;
+    min-width: 216px;
   }
 }
 
@@ -1905,6 +2034,7 @@ const dayChangeMarkerPercent = computed(() => {
      recorre con su propio scroll horizontal, nunca el de la página. */
   .daily-agenda-page__timeline {
     display: block;
+    border-radius: 10px;
     overflow-x: auto;
     overscroll-behavior-x: contain;
     scrollbar-color: var(--color-border-control) transparent;
@@ -2081,9 +2211,6 @@ const dayChangeMarkerPercent = computed(() => {
     border: 1px solid color-mix(in srgb, var(--ag-color) 45%, transparent);
     border-left: 4px solid var(--ag-color);
     border-radius: 6px;
-    transform-origin: left center;
-    animation: nava-grow-x 520ms var(--motion-ease-out) backwards;
-    animation-delay: calc(min(var(--i, 0), 14) * var(--motion-stagger));
     transition: box-shadow var(--motion-duration-base) var(--motion-easing-standard);
   }
 
@@ -2173,6 +2300,27 @@ const dayChangeMarkerPercent = computed(() => {
     text-overflow: clip;
   }
 
+  .daily-agenda-page__timeline:focus-visible {
+    outline: 2px solid var(--color-focus);
+    outline-offset: 2px;
+  }
+
+  /* Ficha estrecha: la hora y la inicial en un círculo; el nombre completo
+     está en la lista y al pasar o tocar la ficha. */
+  .daily-agenda-page__timeline-slip-initial {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 22px;
+    height: 22px;
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--color-text-primary);
+    background-color: var(--color-surface);
+    border: 1px solid var(--color-border-control);
+    border-radius: 50%;
+  }
+
   .daily-agenda-page__timeline-slip-time {
     font-size: 12px;
     font-weight: 500;
@@ -2202,14 +2350,56 @@ const dayChangeMarkerPercent = computed(() => {
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .daily-agenda-page__timeline-slip,
   .daily-agenda-page__timeline-mark--now::after {
     animation: none;
   }
 }
 
-:root[data-motion='reduced'] .daily-agenda-page__timeline-slip,
 :root[data-motion='reduced'] .daily-agenda-page__timeline-mark--now::after {
   animation: none;
+}
+
+/* «Ahora» en la lista: un filete Sol fino entre lo que pasó y lo que viene. */
+.daily-agenda-page__now {
+  display: flex;
+  flex-shrink: 0;
+  gap: var(--space-2);
+  align-items: center;
+  margin: var(--space-1) 0;
+  font-size: 13px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  line-height: 16px;
+  color: var(--color-text-primary);
+}
+
+.daily-agenda-page__now::before {
+  flex: none;
+  width: 10px;
+  height: 10px;
+  content: '';
+  background-color: var(--color-sun);
+  border-radius: 50%;
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--color-sun) 30%, transparent);
+}
+
+.daily-agenda-page__now::after {
+  flex: 1;
+  height: 2px;
+  content: '';
+  background-color: var(--color-sun);
+  border-radius: 1px;
+}
+
+/* La franja del día va en el teléfono y la tableta; en escritorio la reemplaza
+   el carril. */
+.daily-agenda-page__strip {
+  flex-shrink: 0;
+}
+
+@media (min-width: 1024px) {
+  .daily-agenda-page__strip {
+    display: none;
+  }
 }
 </style>
