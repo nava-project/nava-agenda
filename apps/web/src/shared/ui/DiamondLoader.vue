@@ -4,7 +4,8 @@
  *
  * Conserva el nombre y la API de la v1 (`label`, `layout`) para no tocar las
  * pantallas que lo usan, pero ya no talla un rombo: es el sol del logo
- * «Horizonte» asomando sobre su línea, despacio. Sin destello, sin rombo
+ * «Horizonte» asomando sobre su línea, despacio, con el rombo del logo posado
+ * en el horizonte y su punta en Alba (DEC-189, #728). Sin destello, sin rombo
  * viajero y sin frases rotativas («Afilando la navaja»): la espera dice lo que
  * espera, con el `label` a la vista.
  *
@@ -27,8 +28,9 @@ withDefaults(defineProps<Props>(), { layout: 'stacked' })
 <template>
   <div class="diamond-loader" :class="`diamond-loader--${layout}`">
     <span class="diamond-loader__stage" aria-hidden="true">
-      <span class="diamond-loader__sun" />
+      <span class="diamond-loader__sky"><span class="diamond-loader__sun" /></span>
       <span class="diamond-loader__horizon" />
+      <span class="diamond-loader__mark" />
     </span>
     <span class="diamond-loader__label">{{ label }}</span>
   </div>
@@ -63,19 +65,44 @@ withDefaults(defineProps<Props>(), { layout: 'stacked' })
   line-height: 22px;
 }
 
-/* El sol del logo bajo un horizonte: la mitad de abajo queda oculta. */
+/* El sol del logo sobre un horizonte, con el rombo posado en él como en el
+   logo: la punta en Alba asoma bajo la línea. */
 .diamond-loader__stage {
+  --dl-sky: 22px;
+  --dl-rombo: 8px;
+
   position: relative;
   display: block;
   flex: none;
   width: 40px;
-  height: 22px;
-  overflow: hidden;
+  height: calc(var(--dl-sky) + var(--dl-rombo) * 0.75);
 }
 
 .diamond-loader--inline .diamond-loader__stage {
+  --dl-sky: 18px;
+  --dl-rombo: 7px;
+
   width: 32px;
-  height: 18px;
+}
+
+/* El cielo recorta al sol: la mitad de abajo queda oculta tras el horizonte. */
+.diamond-loader__sky {
+  position: absolute;
+  inset: 0 0 auto;
+  height: var(--dl-sky);
+  overflow: hidden;
+}
+
+.diamond-loader__mark {
+  position: absolute;
+  top: calc(var(--dl-sky) - 1px);
+  left: 50%;
+  width: var(--dl-rombo);
+  height: var(--dl-rombo);
+  /* Como en el logo: la mitad de arriba va calada en el sol (color del lienzo)
+     y la punta de abajo, en Alba bajo el horizonte. */
+  background: linear-gradient(135deg, var(--color-canvas) 50%, var(--color-brand-alba) 50%);
+  transform: translate(-50%, -50%) rotate(45deg);
 }
 
 .diamond-loader__sun {
@@ -92,7 +119,9 @@ withDefaults(defineProps<Props>(), { layout: 'stacked' })
 
 .diamond-loader__horizon {
   position: absolute;
-  inset: auto 0 0;
+  top: calc(var(--dl-sky) - 2px);
+  right: 0;
+  left: 0;
   height: 2px;
   background-color: var(--color-text-primary);
   border-radius: 1px;

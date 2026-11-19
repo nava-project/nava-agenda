@@ -1887,14 +1887,14 @@ const dayChangeMarkerPercent = computed(() => {
   mask: var(--ag-icon) center / contain no-repeat;
 }
 
-/* Confirmada: el rombo NAVA lleno. */
+/* Confirmada: el rombo NAVA lleno (marcas en styles/statusMarks.css). */
 .daily-agenda-page__item {
-  --ag-icon: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 14 14'%3E%3Cpath d='M7 1.5 12.5 7 7 12.5 1.5 7z'/%3E%3C/svg%3E");
+  --ag-icon: var(--mark-confirmed);
 }
 
-/* En curso: el sol. El texto va en tinta sobre el relleno Sol de la ficha. */
+/* En curso: el Sol. El texto va en tinta sobre el relleno Sol de la ficha. */
 .daily-agenda-page__item--current {
-  --ag-icon: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 14 14'%3E%3Ccircle cx='7' cy='7' r='5.5'/%3E%3C/svg%3E");
+  --ag-icon: var(--mark-in-progress);
 }
 
 .daily-agenda-page__item--current :deep(.base-badge) {
@@ -1905,31 +1905,24 @@ const dayChangeMarkerPercent = computed(() => {
   background-color: color-mix(in srgb, var(--color-sun) 80%, var(--color-text-primary));
 }
 
-/* Por registrar: un reloj. */
+/* Por registrar: el rombo medio. */
 .daily-agenda-page__item--pending {
-  --ag-icon: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 14 14' fill='none' stroke='black' stroke-width='1.6' stroke-linecap='round'%3E%3Ccircle cx='7' cy='7' r='5.6'/%3E%3Cpath d='M7 4v3.2l2 1.3'/%3E%3C/svg%3E");
+  --ag-icon: var(--mark-to-record);
 }
 
-/* Atendida: el sello ✓. */
+/* Atendida: el rombo con el ✓ calado. */
 .daily-agenda-page__item--completed {
-  --ag-icon: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 14 14'%3E%3Ccircle cx='7' cy='7' r='6.5'/%3E%3Cpath d='m4.2 7.2 2 2 3.8-4' fill='none' stroke='white' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+  --ag-icon: var(--mark-completed);
 }
 
-/* El ✓ va calado: la máscara usa la luminancia, así que el trazo blanco del
-   sello se vuelve transparente con `mask-mode: luminance`. */
-.daily-agenda-page__item--completed :deep(.base-badge)::before {
-  mask-mode: luminance;
-  -webkit-mask-source-type: luminance;
-}
-
-/* Cancelada: una raya, como el texto tachado. */
+/* Cancelada: el rombo punteado. */
 .daily-agenda-page__item--cancelled {
-  --ag-icon: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 14 14' fill='none' stroke='black' stroke-width='1.6' stroke-linecap='round'%3E%3Ccircle cx='7' cy='7' r='5.6'/%3E%3Cpath d='M4.2 7h5.6'/%3E%3C/svg%3E");
+  --ag-icon: var(--mark-cancelled);
 }
 
 /* No asistió: el rombo vacío. */
 .daily-agenda-page__item--no-show {
-  --ag-icon: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 14 14' fill='none' stroke='black' stroke-width='1.6' stroke-linejoin='round'%3E%3Cpath d='M7 1.8 12.2 7 7 12.2 1.8 7z'/%3E%3C/svg%3E");
+  --ag-icon: var(--mark-no-show);
 }
 
 @media (max-width: 1023px) {
