@@ -34,13 +34,16 @@ forma explícita después de distinguirlo de los mockups visuales.
 5. Mantener invariantes entre eventos: cascarón, navegación, retícula, escala,
    posición de controles, tipografía, paleta y datos ficticios. Cambiar solo el
    estado solicitado en cada variante.
-6. Guardar los PNG dentro del directorio del atlas solicitado en el proyecto,
-   no únicamente en el directorio interno de imágenes generadas.
+6. Guardar los PNG dentro del directorio del atlas solicitado en la bóveda
+   (`nava-docs/agenda/10-backlog/evidence/...`), con un PR a nava-docs según el
+   skill `documentacion-nava`; nunca en el repo de código ni solo en el
+   directorio interno de imágenes generadas.
 7. Abrir y revisar cada salida. Rehacer cualquier archivo con texto ilegible,
    elementos fuera de alcance, diferencias de estructura, recortes o errores
    ortográficos.
-8. Documentar la matriz evento/viewport/archivo, referencias visuales,
-   decisiones y exclusiones. La documentación no sustituye ningún PNG.
+8. Documentar en la bóveda, junto al atlas, la matriz evento/viewport/archivo,
+   las referencias visuales, las decisiones y las exclusiones. La documentación
+   no sustituye ningún PNG.
 
 ## Reglas de diseño del proyecto
 

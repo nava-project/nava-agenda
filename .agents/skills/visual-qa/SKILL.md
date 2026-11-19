@@ -75,4 +75,4 @@ Lead with defects, not praise. For each finding give severity, location, visible
 - **P2:** responsive drift, inconsistent state, or material polish problem.
 - **P3:** non-blocking refinement.
 
-Finish with `passed` (or `PASS` for fidelity) only when no actionable P0–P2 remains. Store evidence where the issue or prompt defines it, normally under `apps/web/e2e/evidence/`; do not invent a new root-level report convention.
+Finish with `passed` (or `PASS` for fidelity) only when no actionable P0–P2 remains. Playwright writes captures to `apps/web/e2e/evidence/`, which git ignores. Evidence that must be kept goes to the vault path the issue or prompt defines, under `nava-docs/agenda/`, through a nava-docs PR (skill `documentacion-nava`). Never commit evidence or reports to this repo.
