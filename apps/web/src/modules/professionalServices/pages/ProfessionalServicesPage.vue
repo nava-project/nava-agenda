@@ -416,7 +416,10 @@ async function onToggleService(service: ServiceSummary, event: Event) {
       <div v-else class="professional-services-page__workspace">
         <!-- Ficha de la persona elegida: retrato, selector y medidor. Sin
              entrada animada (v2, DEC-188). -->
-        <aside class="professional-services-page__profile">
+        <aside
+          class="professional-services-page__profile"
+          :class="{ 'professional-services-page__profile--picker': !hideProfessionalPicker }"
+        >
           <!-- La ficha cambia en su sitio: re-montarla (o una transición de salida y
                entrada) la dejaba vacía un instante y la pantalla parpadeaba. -->
           <div class="professional-services-page__identity">
@@ -749,6 +752,25 @@ async function onToggleService(service: ServiceSummary, event: Event) {
 @media (max-width: 899px) {
   .professional-services-page .professional-services-page__avatar {
     --avatar-size: 64px;
+  }
+
+  /* Con selector, en angosto el nombre salía dos veces seguidas (revisión de
+     #720): el selector ya lo muestra y hace de título, así que la ficha deja
+     el retrato a su izquierda y oculta el nombre repetido. Sin selector (el
+     empleado ve solo su perfil) el nombre se queda. */
+  .professional-services-page__profile--picker {
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr);
+    align-items: end;
+    column-gap: 16px;
+  }
+
+  .professional-services-page__profile--picker .professional-services-page__identity-name {
+    display: none;
+  }
+
+  .professional-services-page__profile--picker .professional-services-page__meter {
+    grid-column: 1 / -1;
   }
 }
 

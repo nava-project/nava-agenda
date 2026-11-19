@@ -78,11 +78,12 @@ export function offsetLabel(timezone: string, at: Date = new Date()): string {
   }
 }
 
-/** Reloj de la zona: hora en 24 h sin segundos para que el ritmo lo ponga la animación. */
+/** Reloj de la zona en 12 h, como todo lo que lee el dueño («3:36 p. m.», con el
+ * mismo sufijo que `formatClock`), sin segundos. */
 export function clockParts(
   timezone: string,
   at: Date = new Date(),
-): { hours: string; minutes: string; day: string } | null {
+): { hours: string; minutes: string; meridiem: string; day: string } | null {
   try {
     const time = new Intl.DateTimeFormat('en-GB', {
       timeZone: timezone,
@@ -97,9 +98,12 @@ export function clockParts(
       month: 'long',
     }).format(at)
     const day = rawDay.charAt(0).toLocaleUpperCase('es') + rawDay.slice(1)
+    const hour24 = Number(time.find((p) => p.type === 'hour')?.value)
+    if (!Number.isFinite(hour24)) return null
     return {
-      hours: time.find((p) => p.type === 'hour')?.value ?? '--',
+      hours: String(hour24 % 12 === 0 ? 12 : hour24 % 12),
       minutes: time.find((p) => p.type === 'minute')?.value ?? '--',
+      meridiem: hour24 < 12 ? 'a. m.' : 'p. m.',
       day,
     }
   } catch {

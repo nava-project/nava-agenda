@@ -9,7 +9,7 @@ import SettingsPanel from '../SettingsPanel.vue'
 describe('SettingsPanel', () => {
   it('is a region named by its own heading, with the content in the slot', () => {
     const wrapper = mount(SettingsPanel, {
-      props: { id: 'marca', number: '02', title: 'Marca', description: 'Nombre y color.' },
+      props: { id: 'marca', title: 'Marca', description: 'Nombre y color.' },
       slots: { default: '<p>contenido</p>' },
     })
 
@@ -21,17 +21,17 @@ describe('SettingsPanel', () => {
     expect(wrapper.text()).toContain('contenido')
   })
 
-  it('hides the decorative number from assistive technology', () => {
-    const wrapper = mount(SettingsPanel, { props: { id: 'x', number: '03', title: 'Hora' } })
+  it('shows no ordinal number: the sections are independent settings, not steps', () => {
+    const wrapper = mount(SettingsPanel, { props: { id: 'x', title: 'Hora' } })
 
-    expect(wrapper.get('.settings-panel__number').attributes('aria-hidden')).toBe('true')
+    expect(wrapper.get('header').text()).toBe('Hora')
+    expect(wrapper.find('.settings-panel__number').exists()).toBe(false)
   })
 
   it('says where a change applies, in words and not only in color', () => {
     const wrapper = mount(SettingsPanel, {
       props: {
         id: 'x',
-        number: '01',
         title: 'Pantalla',
         scope: 'device',
         scopeLabel: 'Solo este dispositivo',
@@ -42,7 +42,7 @@ describe('SettingsPanel', () => {
   })
 
   it('shows no scope when none is given', () => {
-    const wrapper = mount(SettingsPanel, { props: { id: 'x', number: '06', title: 'Reservas' } })
+    const wrapper = mount(SettingsPanel, { props: { id: 'x', title: 'Reservas' } })
 
     expect(wrapper.find('.settings-panel__scope').exists()).toBe(false)
   })
@@ -52,7 +52,6 @@ describe('SettingsPanel', () => {
       attachTo: document.body,
       props: {
         id: 'x',
-        number: '01',
         title: 'Pantalla',
         scope: 'shop',
         scopeLabel: 'Para la barbería',

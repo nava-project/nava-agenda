@@ -36,7 +36,7 @@ import {
 import { describeWeekdays, joinWeekdayNames } from '../model/workingHour'
 import WeekdayMultiPicker from './WeekdayMultiPicker.vue'
 import { validateDurationMinutes } from '../validation/scheduleValidation'
-import { durationBetween, minutesToTime, timeToMinutes } from '../model/weekBoard'
+import { civilClockLabel, durationBetween, minutesToTime, timeToMinutes } from '../model/weekBoard'
 import {
   validateEffectiveFrom,
   validateReason,
@@ -234,7 +234,7 @@ function removePendingDate(date: string) {
 
 const summary = computed(() => {
   const kind = blockTypeLabel(blockType.value)
-  const clock = `${startsTime.value || '—'} → ${endsTime.value || '—'}`
+  const clock = `${startsTime.value ? civilClockLabel(startsTime.value) : '—'} → ${endsTime.value ? civilClockLabel(endsTime.value) : '—'}`
   if (isEdit.value && isWeekly.value && props.series?.isoWeekday) {
     const days = weekdays.value.length > 0 ? describeWeekdays(weekdays.value) : 'elige los días'
     return `${kind} · ${days} · ${clock}`

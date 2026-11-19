@@ -31,7 +31,7 @@ import {
   updateService,
   type ServiceInput,
 } from '../api/catalogApi'
-import { moneyParts } from '@/shared/model/money'
+import { formatMoney, moneyParts } from '@/shared/model/money'
 import { newIdempotencyKey } from '../model/idempotencyKey'
 import type { Service } from '../model/service'
 import {
@@ -477,14 +477,13 @@ onUnmounted(() => {
   if (searchDebounceTimer !== undefined) clearTimeout(searchDebounceTimer)
 })
 
-// No concatena "$" (estandar-diseno-visual.md §10.3: "Dinero se formatea
-// según la moneda definida por el contrato; no se concatena '$' ni se
-// asumen pesos desde el componente"). service.price es un string decimal
-// exacto que nunca se convierte a number en el cliente (nava-docs/agenda/06-api/
-// estandar-openapi.md §6); esta función no reformatea sus dígitos, solo
-// añade la moneda real recibida del contrato.
+// «$ 22.000» y no «22000.00 COP» (revisión de #720): formatMoney toma el
+// símbolo de la moneda REAL del contrato vía Intl (estandar-diseno-visual.md
+// §10.3: no se concatena '$' ni se asumen pesos) y agrupa el decimal exacto
+// sin pasarlo nunca por `number` (estandar-openapi.md §6), igual que
+// AppointmentDetailPage.vue.
 function formatPrice(service: Service): string {
-  return `${service.price} ${service.currency}`
+  return formatMoney(service.price, service.currency)
 }
 
 // Monograma de la fila: primera letra del nombre, igual criterio que
@@ -1019,15 +1018,20 @@ async function reloadAfterConflict(serviceId: string) {
         <h1 id="catalog-page-title" class="catalog-page__title">Servicios</h1>
         <p class="catalog-page__subtitle">Catálogo de servicios {{ v.ofTheBusiness }}.</p>
       </div>
-      <BaseButton
-        v-if="loadStatus === 'ready'"
-        type="button"
-        variant="primary"
-        class="catalog-page__create"
-        @click="openCreateDialog"
-      >
-        Agregar servicio
-      </BaseButton>
+      <!-- El hueco del botón existe desde el primer cuadro (revisión de #720,
+           CLS): sin él la cabecera crecía al aparecer el botón y empujaba
+           el estado de carga. -->
+      <div class="catalog-page__header-action">
+        <BaseButton
+          v-if="loadStatus === 'ready'"
+          type="button"
+          variant="primary"
+          class="catalog-page__create"
+          @click="openCreateDialog"
+        >
+          Agregar servicio
+        </BaseButton>
+      </div>
     </header>
 
     <!-- Buscador (issue reportado 2026-09-28, "colócalos en una tabla con
@@ -1048,6 +1052,15 @@ async function reloadAfterConflict(serviceId: string) {
         class="catalog-page__search"
         @update:model-value="onSearchInput"
       />
+    </div>
+    <!-- Mientras carga, un esqueleto del mismo alto que el buscador (rótulo +
+         campo) ocupa su sitio: así, al llegar los datos, solo cambia el
+         contenido de debajo y nada salta (revisión de #720, CLS). -->
+    <div v-else-if="loadStatus === 'loading'" class="catalog-page__toolbar" aria-hidden="true">
+      <span class="catalog-page__search catalog-page__skeleton-search">
+        <span class="catalog-page__skeleton-bar catalog-page__skeleton-bar--label" />
+        <span class="catalog-page__skeleton-bar catalog-page__skeleton-bar--field" />
+      </span>
     </div>
 
     <!-- Transition envuelve carga/error/listo en un único fundido (issue
@@ -1152,7 +1165,7 @@ async function reloadAfterConflict(serviceId: string) {
           :aria-busy="pageStatus === 'loading'"
         >
           <div class="catalog-page__columns" aria-hidden="true">
-            <span>Servicio</span><span>Duración</span><span>Precio (COP)</span><span>Estado</span>
+            <span>Servicio</span><span>Duración</span><span>Precio</span><span>Estado</span>
             <span v-if="hasOfferColumn()">Lo ofrezco</span>
           </div>
           <!-- Mientras carga una búsqueda/página, esqueletos con la altura de
@@ -1773,7 +1786,11 @@ async function reloadAfterConflict(serviceId: string) {
             <div>
               <dt>Precio</dt>
               <dd>
-                {{ lifecycleTarget?.price }}
+                {{
+                  lifecycleTarget
+                    ? formatMoney(lifecycleTarget.price, lifecycleTarget.currency)
+                    : ''
+                }}
                 <small>{{ lifecycleTarget?.currency }}</small>
               </dd>
             </div>
@@ -1961,6 +1978,12 @@ async function reloadAfterConflict(serviceId: string) {
   color: var(--color-on-strong-muted);
 }
 
+.catalog-page__header-action {
+  display: flex;
+  flex: 0 0 auto;
+  min-height: 40px;
+}
+
 .catalog-page__create.base-button {
   height: 40px;
   padding-inline: 18px;
@@ -2073,6 +2096,26 @@ async function reloadAfterConflict(serviceId: string) {
 .catalog-page__skeleton-bar--button {
   width: 72px;
   height: 34px;
+}
+
+/* Esqueleto del buscador: rótulo de 18px de línea (BaseInput) + su espacio +
+   un campo de --control-height, el mismo alto que el buscador real. */
+.catalog-page__skeleton-search {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.catalog-page__skeleton-bar--label {
+  width: 52px;
+  height: 12px;
+  margin-block: 3px;
+}
+
+.catalog-page__skeleton-bar--field {
+  width: 100%;
+  height: var(--control-height);
+  border-radius: var(--radius-md);
 }
 
 @keyframes catalog-skeleton-pulse {
@@ -2347,38 +2390,10 @@ async function reloadAfterConflict(serviceId: string) {
   font-size: var(--font-size-body-sm);
 }
 
-/* "Editar" usa el BaseButton--secondary v2 tal cual (contorno neutro): el
-   acento lleno queda solo para "Agregar servicio" (DEC-188).
-
-   "Cambiar estado" (issue 2026-09-29, "colócale un color distinto a ese
-   botón"): mismo contorno que "Editar", pero en verde de éxito
-   (--color-success-on-strong, el mismo verde del interruptor del diálogo que
-   abre) para separarlo de la edición sin recurrir al acento ni al rojo, que
-   sigue reservado a la confirmación destructiva. */
-.catalog-page__item-actions :deep(.catalog-page__state-action.base-button--secondary) {
-  color: var(--color-success-on-strong);
-  border-color: color-mix(in srgb, var(--color-success-on-strong) 50%, transparent);
-  border-bottom-color: var(--color-success-on-strong);
-}
-
-.catalog-page__item-actions
-  :deep(
-    .catalog-page__state-action.base-button--secondary:hover:not(:disabled):not(
-        .base-button--loading
-      )
-  ) {
-  background-color: color-mix(in srgb, var(--color-success-on-strong) 12%, transparent);
-  border-color: color-mix(in srgb, var(--color-success-on-strong) 50%, transparent);
-}
-
-.catalog-page__item-actions
-  :deep(
-    .catalog-page__state-action.base-button--secondary:active:not(:disabled):not(
-        .base-button--loading
-      )
-  ) {
-  background-color: color-mix(in srgb, var(--color-success-on-strong) 20%, transparent);
-}
+/* "Editar" y "Cambiar estado" usan el BaseButton--secondary v2 tal cual
+   (contorno neutro): el acento lleno queda solo para "Agregar servicio"
+   (DEC-188) y el punto de color de la insignia ya dice el estado, así que
+   "Cambiar estado" no necesita su propio verde (revisión de #720). */
 
 /* Insignia "Activo"/"Inactivo" como rótulo, no como caja (issue reportado
    2026-09-28, "esos estados se ven feos"; pedido del propietario 2026-09-04:
@@ -3231,6 +3246,10 @@ async function reloadAfterConflict(serviceId: string) {
 
   .catalog-page__search {
     max-width: none;
+  }
+
+  .catalog-page__header-action {
+    min-height: var(--control-height-icon);
   }
 
   .catalog-page__create.base-button {

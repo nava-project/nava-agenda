@@ -405,8 +405,8 @@ describe('ProfessionalBlocksPanel · avisos emergentes (DEC-095)', () => {
     expect(days[1]!.get('.affected-day__title').text()).toContain('1 turno')
     // America/Bogota es UTC-5: 14:00Z son las 09:00 locales.
     expect(days[0]!.findAll('.affected-row__time').map((row) => row.text())).toEqual([
-      '09:00 – 09:30',
-      '11:00 – 11:45',
+      '9:00 a. m. – 9:30 a. m.',
+      '11:00 a. m. – 11:45 a. m.',
     ])
     expect(days[0]!.get('.affected-row__who strong').text()).toBe('Ana')
     expect(days[0]!.get('.affected-row__who small').text()).toBe('Corte')
@@ -759,12 +759,12 @@ describe('ProfessionalBlocksPanel · series similares agrupadas (#499)', () => {
 
     expect(records(wrapper)).toHaveLength(3)
     const card = records(wrapper)[0]!
-    expect(card.text()).toContain('Lunes, miércoles y viernes · 12:00 – 13:00')
+    expect(card.text()).toContain('Lunes, miércoles y viernes · 12:00 p. m. – 1:00 p. m.')
     const lit = card.findAll('.blocks-panel__week-day--on').map((item) => item.text())
     expect(lit).toEqual(['L', 'X', 'V'])
     // La serie por fechas y la de otra hora quedan aparte.
     expect(records(wrapper)[1]!.text()).toContain('Lista de fechas')
-    expect(records(wrapper)[2]!.text()).toContain('Martes · 15:00')
+    expect(records(wrapper)[2]!.text()).toContain('Martes · 3:00 p. m.')
     wrapper.unmount()
   })
 
@@ -822,7 +822,7 @@ describe('ProfessionalBlocksPanel · series similares agrupadas (#499)', () => {
 
     expect(deleteTimeBlockSeriesMock).toHaveBeenCalledTimes(1)
     expect(deleteTimeBlockSeriesMock).toHaveBeenCalledWith('b-1', 's3')
-    expect(records(wrapper)[0]!.text()).toContain('Lunes y viernes · 12:00 – 13:00')
+    expect(records(wrapper)[0]!.text()).toContain('Lunes y viernes · 12:00 p. m. – 1:00 p. m.')
     // El diálogo sigue abierto, el día retirado ya no se puede elegir y pasa al primero.
     expect(tile(wrapper, 'Miércoles').attributes('disabled')).toBeDefined()
     expect(wrapper.find('.block-dialog--days .days-picker__day').text()).toBe('Lunes')
@@ -888,7 +888,7 @@ describe('ProfessionalBlocksPanel · series similares agrupadas (#499)', () => {
     await flushPromises()
 
     expect(records(wrapper)).toHaveLength(1)
-    expect(records(wrapper)[0]!.text()).toContain('Miércoles · 12:00 – 13:00')
+    expect(records(wrapper)[0]!.text()).toContain('Miércoles · 12:00 p. m. – 1:00 p. m.')
     const toast = toastState.items[0]!
     expect(toast.title).toBe('No pudimos retirar todos los días')
     expect(toast.detail).toContain('Se retiraron 2 de 3')
@@ -921,7 +921,7 @@ describe('ProfessionalBlocksPanel · series similares agrupadas (#499)', () => {
 
     expect(deleteTimeBlockSeriesMock).toHaveBeenCalledWith('b-1', 's3')
     expect(records(wrapper)).toHaveLength(1)
-    expect(records(wrapper)[0]!.text()).toContain('Lunes y viernes · 12:00 – 13:00')
+    expect(records(wrapper)[0]!.text()).toContain('Lunes y viernes · 12:00 p. m. – 1:00 p. m.')
     wrapper.unmount()
   })
 
@@ -946,7 +946,7 @@ describe('ProfessionalBlocksPanel · series similares agrupadas (#499)', () => {
     expect(createTimeBlockSeriesMock.mock.calls[0]![2]).toBe(2)
     expect(records(wrapper)).toHaveLength(1)
     expect(records(wrapper)[0]!.text()).toContain(
-      'Lunes, martes, miércoles y viernes · 12:00 – 13:00',
+      'Lunes, martes, miércoles y viernes · 12:00 p. m. – 1:00 p. m.',
     )
     wrapper.unmount()
   })
@@ -969,7 +969,7 @@ describe('ProfessionalBlocksPanel · series similares agrupadas (#499)', () => {
 
     expect(updateTimeBlockSeriesMock.mock.calls.map((call) => call[1])).toEqual(['s1', 's3', 's5'])
     expect(records(wrapper)).toHaveLength(1)
-    expect(records(wrapper)[0]!.text()).toContain('13:30')
+    expect(records(wrapper)[0]!.text()).toContain('1:30 p. m.')
     wrapper.unmount()
   })
 })
@@ -1162,7 +1162,7 @@ describe('ProfessionalBlocksPanel · series por fechas, edición y excepciones (
 
     const records = seriesRecords(wrapper)
     expect(records).toHaveLength(1)
-    expect(records[0]!.text()).toContain('13:30')
+    expect(records[0]!.text()).toContain('1:30 p. m.')
   })
 
   it('shows both halves of a split series: the original cut the day before and the new one', async () => {
@@ -1184,7 +1184,7 @@ describe('ProfessionalBlocksPanel · series por fechas, edición y excepciones (
     const records = seriesRecords(wrapper)
     expect(records).toHaveLength(2)
     expect(records[0]!.text()).toContain(displayCivilDate('2026-11-30'))
-    expect(records[1]!.text()).toContain('14:00')
+    expect(records[1]!.text()).toContain('2:00 p. m.')
   })
 
   it('adds an exception from its dialog and counts it on the record', async () => {

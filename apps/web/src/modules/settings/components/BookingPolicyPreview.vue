@@ -1,25 +1,13 @@
 <script setup lang="ts">
-// Vista previa de la política de reserva: traduce lo que se está editando a lo
-// que verá la persona que reserva. Es solo lectura y deriva de los valores del
-// formulario (no consulta ni crea nada). La regla dibuja la ventana de reserva
-// desde «ahora»: el tramo rayado es la anticipación mínima, que todavía no se
-// puede reservar. Debajo, las franjas de una mañana de ejemplo con la rejilla
-// elegida. El gráfico es decorativo (`aria-hidden`); la lista de datos lleva
-// el mismo contenido en texto para lectores de pantalla. En v2 (DEC-188) la
-// tarjeta es neutra, quieta al cargar, y «ahora» es la marca del Sol.
+// Vista previa de la política de reserva: lo que se está editando, pintado con
+// el mismo selector «Día y hora» que usa el cliente (BookingSamplePicker, en
+// modo de muestra y de solo lectura). La lista de datos de abajo dice lo mismo
+// en texto para lectores de pantalla.
 import { computed } from 'vue'
-import {
-  blockedShareOfWindow,
-  formatDuration,
-  sampleSlotLabels,
-  type BookingPolicyFormValues,
-} from '../model/bookingPolicy'
+import { formatDuration, type BookingPolicyFormValues } from '../model/bookingPolicy'
+import BookingSamplePicker from './BookingSamplePicker.vue'
 
 const props = defineProps<{ policy: BookingPolicyFormValues }>()
-
-const blockedPercent = computed(
-  () => blockedShareOfWindow(props.policy.minAdvanceMinutes, props.policy.maxAdvanceDays) * 100,
-)
 
 const leadText = computed(() =>
   props.policy.minAdvanceMinutes > 0
@@ -45,8 +33,6 @@ const lateText = computed(() => {
     ? 'puede cancelar, indicando un motivo'
     : 'puede cancelar sin motivo'
 })
-
-const slots = computed(() => sampleSlotLabels(props.policy.slotGridMinutes))
 </script>
 
 <template>
@@ -54,49 +40,36 @@ const slots = computed(() => sampleSlotLabels(props.policy.slotGridMinutes))
     <p class="policy-preview__kicker">Vista previa</p>
     <h2 id="policy-preview-title" class="policy-preview__title">Así lo ve tu cliente</h2>
 
-    <div class="policy-preview__window" aria-hidden="true">
-      <div class="policy-preview__track">
-        <span class="policy-preview__blocked" :style="{ width: `${blockedPercent}%` }" />
-        <span class="policy-preview__open" :style="{ left: `${blockedPercent}%` }" />
-        <span class="policy-preview__now" />
-      </div>
-      <div class="policy-preview__legend">
-        <span>Ahora</span>
-        <span>+{{ policy.maxAdvanceDays }} d</span>
-      </div>
-    </div>
-
-    <dl class="policy-preview__facts">
-      <div class="policy-preview__fact">
-        <dt>Reserva</dt>
-        <dd>{{ leadText }}, {{ windowText }}</dd>
-      </div>
-      <div class="policy-preview__fact">
-        <dt>Franjas</dt>
-        <dd>una cada {{ policy.slotGridMinutes }} min</dd>
-      </div>
-      <div class="policy-preview__fact">
-        <dt>Cancelación</dt>
-        <dd>{{ cancelText }}</dd>
-      </div>
-      <div class="policy-preview__fact">
-        <dt>Fuera de plazo</dt>
-        <dd>{{ lateText }}</dd>
-      </div>
-    </dl>
-
-    <div v-if="slots.length > 0" class="policy-preview__sample" aria-hidden="true">
-      <span class="policy-preview__sample-label">Ejemplo de franjas</span>
-      <ul class="policy-preview__slots">
-        <li
-          v-for="slot in slots"
-          :key="`${policy.slotGridMinutes}-${slot}`"
-          class="policy-preview__slot"
-        >
-          {{ slot }}
-        </li>
-      </ul>
-    </div>
+    <BookingSamplePicker :window="policy" class="policy-preview__sample">
+      <template #default="{ firstText, lastDayText }">
+        <dl class="policy-preview__facts">
+          <div class="policy-preview__fact">
+            <dt>Reserva</dt>
+            <dd>{{ leadText }}, {{ windowText }}</dd>
+          </div>
+          <div class="policy-preview__fact">
+            <dt>Primer horario libre</dt>
+            <dd>{{ firstText }}</dd>
+          </div>
+          <div class="policy-preview__fact">
+            <dt>Último día para reservar</dt>
+            <dd>{{ lastDayText }}</dd>
+          </div>
+          <div class="policy-preview__fact">
+            <dt>Franjas</dt>
+            <dd>una cada {{ policy.slotGridMinutes }} min</dd>
+          </div>
+          <div class="policy-preview__fact">
+            <dt>Cancelación</dt>
+            <dd>{{ cancelText }}</dd>
+          </div>
+          <div class="policy-preview__fact">
+            <dt>Fuera de plazo</dt>
+            <dd>{{ lateText }}</dd>
+          </div>
+        </dl>
+      </template>
+    </BookingSamplePicker>
   </aside>
 </template>
 
@@ -131,66 +104,14 @@ const slots = computed(() => sampleSlotLabels(props.policy.slotGridMinutes))
   color: var(--color-text-primary);
 }
 
-/* --- Ventana de reserva ---------------------------------------------------- */
-
-.policy-preview__window {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
+/* La muestra la pinta BookingSamplePicker; aquí solo se ensancha un poco
+   sobre el relleno de la tarjeta. */
+.policy-preview__sample :deep(.booking-sample__screen) {
+  margin-inline: -8px;
 }
 
-.policy-preview__track {
-  position: relative;
-  height: 14px;
-  overflow: hidden;
-  background: var(--color-surface-muted);
-  border: var(--border-width-normal) solid var(--color-border-subtle);
-  border-radius: var(--radius-sm);
-}
-
-/* Las barras responden al valor que se edita: transición corta, sin rebote. */
-.policy-preview__blocked,
-.policy-preview__open {
-  position: absolute;
-  top: 0;
-  bottom: 0;
-  transition:
-    width var(--motion-duration-base) var(--motion-easing-standard),
-    left var(--motion-duration-base) var(--motion-easing-standard);
-}
-
-/* Tramo cerrado: rayado fino, el «aún no» de la anticipación mínima. */
-.policy-preview__blocked {
-  left: 0;
-  background: repeating-linear-gradient(
-    135deg,
-    color-mix(in srgb, var(--color-text-primary) 28%, transparent) 0 2px,
-    transparent 2px 6px
-  );
-}
-
-/* Tramo abierto: tinta tenue; el acento queda para la acción principal. */
-.policy-preview__open {
-  right: 0;
-  background: color-mix(in srgb, var(--color-text-primary) 55%, transparent);
-}
-
-/* «Ahora» es una marca de tiempo: la pinta el Sol. */
-.policy-preview__now {
-  position: absolute;
-  top: 0;
-  bottom: 0;
-  left: 0;
-  width: 3px;
-  background: var(--color-sun);
-}
-
-.policy-preview__legend {
-  display: flex;
-  justify-content: space-between;
-  color: var(--color-text-secondary);
-  font-size: var(--font-size-caption);
-  line-height: 16px;
+.policy-preview__facts {
+  margin-top: 8px;
 }
 
 /* --- Datos en texto --------------------------------------------------------- */
@@ -223,50 +144,9 @@ const slots = computed(() => sampleSlotLabels(props.policy.slotGridMinutes))
   color: var(--color-text-primary);
 }
 
-/* --- Franjas de ejemplo ------------------------------------------------------ */
-
-.policy-preview__sample {
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-}
-
-.policy-preview__sample-label {
-  color: var(--color-text-secondary);
-  font-size: 13px;
-  font-weight: 500;
-  line-height: 18px;
-}
-
-.policy-preview__slots {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-  margin: 0;
-  padding: 0;
-  list-style: none;
-}
-
-.policy-preview__slot {
-  padding: 5px 10px;
-  font-size: var(--font-size-body-sm);
-  font-variant-numeric: tabular-nums;
-  line-height: 20px;
-  color: var(--color-text-primary);
-  border: var(--border-width-normal) solid var(--color-border-control);
-  border-radius: var(--radius-md);
-}
-
 @media (max-width: 1099px) {
   .policy-preview {
     position: static;
-  }
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .policy-preview__blocked,
-  .policy-preview__open {
-    transition: none;
   }
 }
 </style>

@@ -294,7 +294,13 @@ describe('BookingPolicyPage', () => {
     await wrapper.get('input[name="slotGridMinutes"]').setValue('30')
 
     expect(wrapper.get('.policy-preview').text()).toContain('una cada 30 min')
-    expect(wrapper.get('.policy-preview').text()).toContain('10:30')
+    // El selector real de la reserva, en muestra: con 30 min, cada hora ofrece
+    // :00 y :30 (y la muestra es de solo lectura).
+    const minutes = new Set(wrapper.findAll('.policy-preview .bk-min').map((m) => m.text()))
+    expect([...minutes].sort()).toEqual([':00', ':30'])
+    const screen = wrapper.get('.policy-preview .booking-sample__screen')
+    expect(screen.attributes('aria-hidden')).toBe('true')
+    expect(screen.attributes('inert')).toBeDefined()
     saveMock.mockResolvedValueOnce({
       kind: 'success',
       policy: { ...loadedPolicy, slotGridMinutes: 30, versionToken: 'tok-2' },

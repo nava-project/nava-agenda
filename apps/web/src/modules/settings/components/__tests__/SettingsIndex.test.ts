@@ -7,8 +7,8 @@ import { axe } from 'vitest-axe'
 import SettingsIndex from '../SettingsIndex.vue'
 
 const items = [
-  { id: 'uno', number: '01', label: 'Pantalla' },
-  { id: 'dos', number: '02', label: 'Marca' },
+  { id: 'uno', label: 'Pantalla' },
+  { id: 'dos', label: 'Marca' },
 ] as const
 
 describe('SettingsIndex', () => {
@@ -24,7 +24,8 @@ describe('SettingsIndex', () => {
 
     const current = wrapper.findAll('a').map((a) => a.attributes('aria-current'))
     expect(current).toEqual([undefined, 'location'])
-    expect(wrapper.get('[aria-current]').text()).toContain('Marca')
+    // Solo el nombre: sin numerales, las secciones no son una secuencia.
+    expect(wrapper.get('[aria-current]').text()).toBe('Marca')
   })
 
   it('emits the section instead of jumping, so the page can scroll smoothly', async () => {

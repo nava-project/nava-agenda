@@ -43,7 +43,7 @@ import {
   weekdayLabel,
 } from '../model/workingHour'
 import { groupSeries, type SeriesGroup } from '../model/seriesGroups'
-import { timeRangeLabel } from '../model/weekBoard'
+import { civilClockLabel, timeRangeLabel } from '../model/weekBoard'
 import {
   validateBlockInterval,
   validateInstant,
@@ -195,7 +195,7 @@ const affectedByDay = computed(() => {
       day = { date: start.date, heading: affectedDayHeading(start.date), rows: [] }
       days.set(start.date, day)
     }
-    day.rows.push({ item, time: `${start.time} – ${end.time}` })
+    day.rows.push({ item, time: `${civilClockLabel(start.time)} – ${civilClockLabel(end.time)}` })
   }
   return [...days.values()]
 })
@@ -213,7 +213,7 @@ function affectedWhen(item: AffectedAppointment): string {
   const tz = businessTimezone.value ?? 'UTC'
   const start = formatInstantInTimezone(item.startsAt, tz)
   const end = formatInstantInTimezone(item.endsAt, tz)
-  return `${displayCivilDate(start.date)}, ${start.time} a ${end.time}`
+  return `${displayCivilDate(start.date)}, ${civilClockLabel(start.time)} a ${civilClockLabel(end.time)}`
 }
 
 async function loadLists() {
@@ -293,7 +293,7 @@ const blockPreview = computed(() => {
       ? `${displayDate(startDate)} · Todo el día`
       : `${displayDate(startDate)} → ${displayDate(endDate)} · Todo el día`
   }
-  return `${displayDate(startDate)} · ${startTime || 'Inicio del día'} → ${displayDate(endDate)} · ${endTime || 'Fin del día'}`
+  return `${displayDate(startDate)} · ${startTime ? civilClockLabel(startTime) : 'Inicio del día'} → ${displayDate(endDate)} · ${endTime ? civilClockLabel(endTime) : 'Fin del día'}`
 })
 
 // --- Alta de bloqueo puntual --------------------------------------------
@@ -437,7 +437,7 @@ async function onDeleteBlock(block: TimeBlock) {
 function displayInstant(instant: string): string {
   if (!businessTimezone.value) return instant
   const { date, time } = formatInstantInTimezone(instant, businessTimezone.value)
-  return `${displayDate(date)} · ${time}`
+  return `${displayDate(date)} · ${civilClockLabel(time)}`
 }
 
 // Un bloqueo de días completos (de 00:00 a 00:00 en la zona del negocio) se muestra por
@@ -523,7 +523,7 @@ async function onDeleteGroup(group: SeriesGroup) {
   })
 }
 
-// «Lunes a viernes · 13:00 – 14:00» (o «Lista de fechas · Todo el día»).
+// «Lunes a viernes · 1:00 p. m. – 2:00 p. m.» (o «Lista de fechas · Todo el día»).
 function groupSchedule(group: SeriesGroup): string {
   const first = group.items[0]!
   const when = timeRangeLabel(first.startsTime, first.durationMinutes)

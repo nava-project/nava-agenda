@@ -3,10 +3,10 @@
 // fija con un filete en tinta que marca la sección visible; en
 // pantallas angostas, una fila de pestañas que se desplaza en horizontal. Es
 // navegación por anclas (enlaces reales), no pestañas que oculten contenido:
-// toda la información sigue en la página.
+// toda la información sigue en la página. Sin numerales: las secciones son
+// ajustes independientes, no una secuencia.
 export interface SettingsIndexItem {
   id: string
-  number: string
   label: string
 }
 
@@ -30,7 +30,6 @@ function onClick(event: MouseEvent, id: string) {
           :aria-current="item.id === active ? 'location' : undefined"
           @click="onClick($event, item.id)"
         >
-          <span class="settings-index__number" aria-hidden="true">{{ item.number }}</span>
           <span class="settings-index__label">{{ item.label }}</span>
         </a>
       </li>
@@ -103,15 +102,6 @@ function onClick(event: MouseEvent, id: string) {
 
 .settings-index__link--active::before {
   opacity: 1;
-}
-
-/* El número es solo orientación: texto secundario, cifras tabulares. */
-.settings-index__number {
-  min-width: 2ch;
-  font-size: var(--font-size-caption);
-  font-weight: 500;
-  font-variant-numeric: tabular-nums;
-  color: var(--color-text-secondary);
 }
 
 @media (max-width: 1099px) {

@@ -9,7 +9,14 @@
  */
 import { computed, ref } from 'vue'
 import { BaseButton } from '@/shared/ui'
-import { endLabel, formatHours, scaleTicks, type BoardScale } from '../model/weekBoard'
+import {
+  clockLabel,
+  clockRangeParts,
+  formatHours,
+  scaleTicks,
+  timeToMinutes,
+  type BoardScale,
+} from '../model/weekBoard'
 import type { WorkingHour } from '../model/workingHour'
 import DayTrack from './DayTrack.vue'
 
@@ -57,6 +64,10 @@ function countLabel(day: BoardDay): string {
           v-for="tick in ticks"
           :key="tick.minute"
           class="week-board__tick"
+          :class="{
+            'week-board__tick--start': tick.percent === 0,
+            'week-board__tick--end': tick.percent === 100,
+          }"
           :style="{ left: `${tick.percent}%` }"
           >{{ tick.label }}</span
         >
@@ -108,19 +119,20 @@ function countLabel(day: BoardDay): string {
               @focusin="activeId = wh.id"
               @focusout="activeId = null"
             >
-              <span class="week-board__chip-text">
-                <span class="week-board__chip-time">
-                  {{ wh.startsTime }} · {{ wh.durationMinutes }} min
-                </span>
-                <span class="week-board__chip-until">
-                  hasta {{ endLabel(wh.startsTime, wh.durationMinutes) }}
-                </span>
-              </span>
+              <span class="week-board__chip-time"
+                ><span class="week-board__clock">{{
+                  clockRangeParts(wh.startsTime, wh.durationMinutes).start
+                }}</span>
+                –
+                <span class="week-board__clock">{{
+                  clockRangeParts(wh.startsTime, wh.durationMinutes).end
+                }}</span></span
+              >
               <div class="week-board__chip-actions">
                 <BaseButton
                   type="button"
                   variant="secondary"
-                  :aria-label="`Editar tramo de ${day.label} a las ${wh.startsTime}`"
+                  :aria-label="`Editar tramo de ${day.label} a las ${clockLabel(timeToMinutes(wh.startsTime))}`"
                   @click="emit('edit', wh)"
                 >
                   Editar
@@ -131,7 +143,7 @@ function countLabel(day: BoardDay): string {
                   class="week-board__remove"
                   :loading="pendingDeleteIds.has(wh.id)"
                   :disabled="pendingDeleteIds.has(wh.id)"
-                  :aria-label="`Retirar tramo de ${day.label} a las ${wh.startsTime}`"
+                  :aria-label="`Retirar tramo de ${day.label} a las ${clockLabel(timeToMinutes(wh.startsTime))}`"
                   @click="emit('remove', wh)"
                 >
                   Retirar
@@ -190,9 +202,11 @@ function countLabel(day: BoardDay): string {
   content: '';
 }
 
+/* Contenedor: el eje decide por su propio ancho cuántas etiquetas caben. */
 .week-board__axis-scale {
   position: relative;
   height: 20px;
+  container-type: inline-size;
 }
 
 .week-board__tick {
@@ -202,7 +216,27 @@ function countLabel(day: BoardDay): string {
   font-size: var(--font-size-caption);
   font-variant-numeric: tabular-nums;
   font-weight: 500;
+  white-space: nowrap;
   transform: translateX(-50%);
+}
+
+/* Las etiquetas de los extremos se anclan hacia adentro (como en el carril de
+   la agenda): centradas, la mitad caería fuera del tablero. */
+.week-board__tick--start {
+  transform: none;
+}
+
+.week-board__tick--end {
+  transform: translateX(-100%);
+}
+
+/* La regla tiene a lo sumo 7 tramos entre etiquetas; «12 p. m.» mide unos
+   50 px, así que con menos de ~60 px por tramo se rotula una de cada dos
+   (la primera siempre) y las rayitas de hora siguen todas en la pista. */
+@container (max-width: 420px) {
+  .week-board__tick:nth-child(even) {
+    visibility: hidden;
+  }
 }
 
 .week-board__tick::after {
@@ -213,6 +247,15 @@ function countLabel(day: BoardDay): string {
   width: 1px;
   height: 4px;
   background-color: var(--color-border-control);
+}
+
+.week-board__tick--start::after {
+  left: 0;
+}
+
+.week-board__tick--end::after {
+  right: 0;
+  left: auto;
 }
 
 .week-board__day {
@@ -344,26 +387,17 @@ function countLabel(day: BoardDay): string {
   border-color: var(--color-border-control);
 }
 
-/* Hora y fin apilados: el tramo ocupa poco ancho y caben varios por día. */
-.week-board__chip-text {
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-  line-height: 1.15;
-}
-
+/* El tramo como rango en 12 h; la duración ya va en la cabecera del día. */
 .week-board__chip-time {
   color: var(--color-text-primary);
   font-size: var(--font-size-body-sm);
   font-weight: 600;
+  line-height: 1.15;
   font-variant-numeric: tabular-nums;
   white-space: nowrap;
 }
 
-.week-board__chip-until {
-  color: var(--color-text-secondary);
-  font-size: var(--font-size-caption);
-  font-variant-numeric: tabular-nums;
+.week-board__clock {
   white-space: nowrap;
 }
 
@@ -468,10 +502,29 @@ function countLabel(day: BoardDay): string {
     text-align: right;
   }
 
+  /* Angosto: el tramo, sus acciones y el «+» en un renglón; el rango puede
+     partirse en el guion (cada hora queda entera) para hacerse sitio. */
+  .week-board__line {
+    flex-wrap: nowrap;
+  }
+
+  .week-board__list {
+    flex: 1 1 auto;
+  }
+
   .week-board__chip {
     flex: 1 1 100%;
-    flex-wrap: wrap;
-    row-gap: 4px;
+    gap: 8px;
+  }
+
+  .week-board__chip-time {
+    flex: 1 1 auto;
+    min-width: 0;
+    white-space: normal;
+  }
+
+  .week-board__add {
+    flex: 0 0 auto;
   }
 
   .week-board__chip-actions {

@@ -203,8 +203,9 @@ onMounted(load)
       </ul>
 
       <p class="opening__hint">
-        Cierra a las 00:00 si atiendes hasta la medianoche. Si sigues abierto después, añade el
-        resto en el día siguiente desde las 00:00. Para el almuerzo, usa dos horarios el mismo día.
+        Si atiendes hasta la medianoche, cierra a las 12:00 a. m. (00:00 en el selector). Si sigues
+        abierto después, añade el resto en el día siguiente desde las 12:00 a. m. Para el almuerzo,
+        usa dos horarios el mismo día.
       </p>
 
       <button type="button" class="opening__add" @click="copyMondayToWeekdays">

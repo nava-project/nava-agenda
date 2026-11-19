@@ -67,7 +67,7 @@ export function scaleTicks(scale: BoardScale): BoardTick[] {
   for (let minute = scale.startMinute; minute <= scale.endMinute; minute += stepHours * 60) {
     ticks.push({
       minute,
-      label: String(Math.floor(minute / 60) % 24).padStart(2, '0'),
+      label: hourLabel(minute),
       percent: ((minute - scale.startMinute) / span) * 100,
     })
   }
@@ -100,12 +100,52 @@ export function segmentGeometry(
   }
 }
 
-// endLabel es la hora de fin de un tramo ("13:00", o "02:00 (+1)" si termina
-// el día siguiente).
-export function endLabel(startsTime: string, durationMinutes: number): string {
-  const end = timeToMinutes(startsTime) + durationMinutes
-  const time = minutesToTime(end)
-  return end > MINUTES_PER_DAY ? `${time} (+1)` : time
+// Hora en 12 h como la agenda (es-CO: «8:00 a. m.», «12:30 p. m.»), no en 24 h
+// (revisión de #720). Se arma a mano, igual que las etiquetas del eje del carril
+// de DailyAgendaPage, y no con Intl: una hora civil no tiene zona que convertir
+// y así el texto no cambia con la versión de ICU del navegador.
+function hour12(minuteOfDay: number): { hour: number; minutes: number; period: string } {
+  const wrapped = ((minuteOfDay % MINUTES_PER_DAY) + MINUTES_PER_DAY) % MINUTES_PER_DAY
+  const hour = Math.floor(wrapped / 60)
+  return {
+    hour: hour % 12 === 0 ? 12 : hour % 12,
+    minutes: wrapped % 60,
+    period: hour < 12 ? 'a. m.' : 'p. m.',
+  }
+}
+
+// clockLabel: 480 → «8:00 a. m.», 1200 → «8:00 p. m.».
+export function clockLabel(minuteOfDay: number): string {
+  const { hour, minutes, period } = hour12(minuteOfDay)
+  return `${hour}:${String(minutes).padStart(2, '0')} ${period}`
+}
+
+// hourLabel: etiqueta del eje, sin minutos en punto («7 a. m.», «12 p. m.»).
+export function hourLabel(minuteOfDay: number): string {
+  const { hour, minutes, period } = hour12(minuteOfDay)
+  return `${hour}${minutes ? `:${String(minutes).padStart(2, '0')}` : ''} ${period}`
+}
+
+// clockRangeParts: los dos extremos del tramo en 12 h; el fin lleva «(+1)» si
+// termina el día siguiente. Separados para que la vista pueda partir la línea
+// en el guion sin cortar una hora por la mitad.
+export function clockRangeParts(
+  startsTime: string,
+  durationMinutes: number,
+): { start: string; end: string } {
+  const start = timeToMinutes(startsTime)
+  const end = start + durationMinutes
+  return {
+    start: clockLabel(start),
+    end: `${clockLabel(end)}${end > MINUTES_PER_DAY ? ' (+1)' : ''}`,
+  }
+}
+
+// clockRangeLabel: el tramo como «8:00 a. m. – 8:00 p. m.». La duración en
+// horas se muestra aparte.
+export function clockRangeLabel(startsTime: string, durationMinutes: number): string {
+  const { start, end } = clockRangeParts(startsTime, durationMinutes)
+  return `${start} – ${end}`
 }
 
 // durationBetween traduce «de HH:MM a HH:MM» a los minutos que pide la API. Una
@@ -118,15 +158,20 @@ export function durationBetween(startsTime: string, endsTime: string): number {
   return wrapped === 0 ? MINUTES_PER_DAY : wrapped
 }
 
-// timeRangeLabel: «13:00 – 14:00», «Todo el día» o, si cruza la medianoche,
-// «22:00 – 02:00 (día siguiente)». Se muestra el rango y no los minutos: así se lee
-// lo mismo que se eligió en el formulario (hora de inicio y hora de fin).
+// timeRangeLabel (bloqueos): «1:00 p. m. – 2:00 p. m.», «Todo el día» o, si
+// cruza la medianoche, «10:00 p. m. – 2:00 a. m. (día siguiente)». Se muestra el
+// rango y no los minutos: así se lee lo mismo que se eligió en el formulario.
 export function timeRangeLabel(startsTime: string, durationMinutes: number): string {
   if (durationMinutes >= MINUTES_PER_DAY) return 'Todo el día'
   const start = timeToMinutes(startsTime)
-  const end = minutesToTime(start + durationMinutes)
   const nextDay = start + durationMinutes > MINUTES_PER_DAY
-  return `${startsTime} – ${end}${nextDay ? ' (día siguiente)' : ''}`
+  return `${clockLabel(start)} – ${clockLabel(start + durationMinutes)}${nextDay ? ' (día siguiente)' : ''}`
+}
+
+// civilClockLabel: una hora civil «HH:MM» en 12 h («13:30» → «1:30 p. m.»). Lo
+// que no tenga esa forma (campo a medio llenar) se devuelve tal cual.
+export function civilClockLabel(time: string): string {
+  return /^\d{2}:\d{2}$/.test(time) ? clockLabel(timeToMinutes(time)) : time
 }
 
 // formatHours: 480 → "8 h", 450 → "7 h 30 min", 45 → "45 min".

@@ -159,7 +159,7 @@ async function openSchedules(page: Page, width: number, height: number) {
   })
   await page.goto('/panel/horarios')
   await expect(page.getByRole('heading', { name: 'Horarios' })).toBeVisible()
-  await expect(page.getByText('09:00 · 240 min').first()).toBeVisible()
+  await expect(page.getByText(/^9:00\sa\.\sm\.\s–\s1:00\sp\.\sm\.$/).first()).toBeVisible()
 }
 
 async function expectNoAxeViolations(page: Page) {
@@ -279,10 +279,12 @@ test('horarios: el alta de un tramo y de una excepción funciona con los control
   await tramo.getByRole('radio', { name: 'Miércoles' }).click()
   await pickTime(tramo, page, 'Hora de inicio', '11:30')
   await tramo.getByLabel('Duración (minutos)').fill('90')
-  await expect(tramo.getByText('Miércoles · 11:30 – 13:00 · 1 h 30 min')).toBeVisible()
+  await expect(
+    tramo.getByText(/Miércoles · 11:30\sa\.\sm\.\s–\s1:00\sp\.\sm\. · 1 h 30 min/),
+  ).toBeVisible()
   await tramo.getByRole('button', { name: 'Guardar' }).click()
   await expect(tramo).toBeHidden()
-  await expect(page.getByText('11:30 · 90 min')).toBeVisible()
+  await expect(page.getByText(/^11:30\sa\.\sm\.\s–\s1:00\sp\.\sm\.$/)).toBeVisible()
 
   await page.getByRole('button', { name: 'Agregar excepción', exact: true }).click()
   const excepcion = page.getByRole('dialog', { name: 'Agregar excepción' })

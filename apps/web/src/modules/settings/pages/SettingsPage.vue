@@ -541,18 +541,18 @@ const reduceMotion = computed({
 // --- Índice de secciones ----------------------------------------------------
 
 const SECTIONS = [
-  { id: 'configuracion-pantalla', number: '01', label: 'Pantalla' },
-  { id: 'configuracion-marca', number: '02', label: 'Marca' },
-  { id: 'configuracion-vocabulario', number: '03', label: 'Vocabulario' },
-  { id: 'configuracion-hora', number: '04', label: 'Hora' },
-  { id: 'configuracion-contacto', number: '05', label: 'Contacto' },
-  { id: 'configuracion-ubicacion', number: '06', label: 'Ubicación' },
-  { id: 'configuracion-horario', number: '07', label: 'Horario' },
-  { id: 'configuracion-enlace', number: '08', label: 'Enlace' },
-  { id: 'configuracion-reservas', number: '09', label: 'Reservas' },
-  { id: 'configuracion-recordatorios', number: '10', label: 'Recordatorios' },
-  { id: 'configuracion-integraciones', number: '11', label: 'Integraciones' },
-  { id: 'configuracion-acceso', number: '12', label: 'Acceso' },
+  { id: 'configuracion-pantalla', label: 'Pantalla' },
+  { id: 'configuracion-marca', label: 'Marca' },
+  { id: 'configuracion-vocabulario', label: 'Vocabulario' },
+  { id: 'configuracion-hora', label: 'Hora' },
+  { id: 'configuracion-contacto', label: 'Contacto' },
+  { id: 'configuracion-ubicacion', label: 'Ubicación' },
+  { id: 'configuracion-horario', label: 'Horario' },
+  { id: 'configuracion-enlace', label: 'Enlace' },
+  { id: 'configuracion-reservas', label: 'Reservas' },
+  { id: 'configuracion-recordatorios', label: 'Recordatorios' },
+  { id: 'configuracion-integraciones', label: 'Integraciones' },
+  { id: 'configuracion-acceso', label: 'Acceso' },
 ] as const
 
 const activeSection = ref<string>(SECTIONS[0].id)
@@ -686,10 +686,9 @@ const previewClass = computed(() => ({ 'settings-page__preview--changed': brandD
             Revisa las palabras: usa solo letras, espacios, guion o apóstrofo.
           </BaseAlert>
 
-          <!-- 01 · Pantalla (este dispositivo) -->
+          <!-- Pantalla (este dispositivo) -->
           <SettingsPanel
             id="configuracion-pantalla"
-            number="01"
             title="Pantalla"
             description="Cómo se ve Nava Agenda en este aparato. Se aplica al instante y no hace falta guardar."
             scope="device"
@@ -780,10 +779,9 @@ const previewClass = computed(() => ({ 'settings-page__preview--changed': brandD
             </div>
           </SettingsPanel>
 
-          <!-- 02 · Marca (todo el negocio) -->
+          <!-- Marca (todo el negocio) -->
           <SettingsPanel
             id="configuracion-marca"
-            number="02"
             title="Marca"
             description="El nombre y el color con los que tu equipo reconoce el panel."
             scope="shop"
@@ -831,10 +829,9 @@ const previewClass = computed(() => ({ 'settings-page__preview--changed': brandD
             </div>
           </SettingsPanel>
 
-          <!-- 03 · Vocabulario (todo el negocio) -->
+          <!-- Vocabulario (todo el negocio) -->
           <SettingsPanel
             id="configuracion-vocabulario"
-            number="03"
             title="Vocabulario"
             description="Las palabras con las que Nava Agenda nombra tu negocio y a quien atiende los turnos."
             scope="shop"
@@ -990,10 +987,9 @@ const previewClass = computed(() => ({ 'settings-page__preview--changed': brandD
             </aside>
           </SettingsPanel>
 
-          <!-- 04 · Hora (todo el negocio) -->
+          <!-- Hora (todo el negocio) -->
           <SettingsPanel
             id="configuracion-hora"
-            number="04"
             title="Hora"
             description="Toda hora de la agenda, de los horarios y de las reservas se calcula en esta zona, nunca en la de cada dispositivo."
             scope="shop"
@@ -1008,10 +1004,9 @@ const previewClass = computed(() => ({ 'settings-page__preview--changed': brandD
             />
           </SettingsPanel>
 
-          <!-- 05 · Contacto (todo el negocio) -->
+          <!-- Contacto (todo el negocio) -->
           <SettingsPanel
             id="configuracion-contacto"
-            number="05"
             title="Contacto"
             description="Opcional. Es el correo y el teléfono con los que tus clientes pueden escribirte."
             scope="shop"
@@ -1042,10 +1037,9 @@ const previewClass = computed(() => ({ 'settings-page__preview--changed': brandD
             </div>
           </SettingsPanel>
 
-          <!-- 06 · Ubicación (DEC-130, HU-102): interruptor, dirección y vista previa del mapa -->
+          <!-- Ubicación (DEC-130, HU-102): interruptor, dirección y vista previa del mapa -->
           <SettingsPanel
             id="configuracion-ubicacion"
-            number="06"
             title="Ubicación"
             description="Dónde queda tu local y si atiendes a domicilio. Tus clientes lo ven al reservar."
             scope="shop"
@@ -1140,30 +1134,27 @@ const previewClass = computed(() => ({ 'settings-page__preview--changed': brandD
             </div>
           </SettingsPanel>
 
-          <!-- 07 · Horario de atención (DEC-182): se guarda con su propio botón, no es parte del borrador -->
+          <!-- Horario de atención (DEC-182): se guarda con su propio botón, no es parte del borrador -->
           <SettingsPanel
             id="configuracion-horario"
-            number="07"
             title="Horario de atención"
             description="Los días y horas en que abre el local. Lo ven tus clientes al reservar."
           >
             <OpeningHoursPanel />
           </SettingsPanel>
 
-          <!-- 08 · Enlace público de reservas (DEC-117): solo lectura, no es parte del borrador -->
+          <!-- Enlace público de reservas (DEC-117): solo lectura, no es parte del borrador -->
           <SettingsPanel
             id="configuracion-enlace"
-            number="08"
             title="Enlace público"
             description="La dirección que compartes para que tus clientes reserven. Cópiala cuando la necesites."
           >
             <PublicLinkPanel />
           </SettingsPanel>
 
-          <!-- 09 · Reservas públicas: enlace a su propia pantalla (HU-093) -->
+          <!-- Reservas públicas: enlace a su propia pantalla (HU-093) -->
           <SettingsPanel
             id="configuracion-reservas"
-            number="09"
             title="Reservas"
             description="Cuándo y con cuánta anticipación pueden reservar tus clientes, y cómo cancelan."
           >
@@ -1178,20 +1169,18 @@ const previewClass = computed(() => ({ 'settings-page__preview--changed': brandD
             </RouterLink>
           </SettingsPanel>
 
-          <!-- 10 · Recordatorios (DEC-174): se aplica al instante, no es parte del borrador -->
+          <!-- Recordatorios (DEC-174): se aplica al instante, no es parte del borrador -->
           <SettingsPanel
             id="configuracion-recordatorios"
-            number="10"
             title="Recordatorios"
             description="Cuánto antes de su turno le recordamos la cita a cada cliente."
           >
             <ReminderPanel />
           </SettingsPanel>
 
-          <!-- 11 · Integraciones: enlace a la pantalla de Google Calendar (DEC-099) -->
+          <!-- Integraciones: enlace a la pantalla de Google Calendar (DEC-099) -->
           <SettingsPanel
             id="configuracion-integraciones"
-            number="11"
             title="Integraciones"
             description="Conecta tu calendario para ver tus turnos de Nava Agenda donde ya organizas tu día."
           >
@@ -1206,10 +1195,9 @@ const previewClass = computed(() => ({ 'settings-page__preview--changed': brandD
             </RouterLink>
           </SettingsPanel>
 
-          <!-- 12 · Código de acceso (DEC-139): se aplica al instante, no es parte del borrador -->
+          <!-- Código de acceso (DEC-139): se aplica al instante, no es parte del borrador -->
           <SettingsPanel
             id="configuracion-acceso"
-            number="12"
             title="Código de acceso"
             description="Por dónde llega el código de verificación cuando alguien necesita confirmar su identidad para entrar."
           >

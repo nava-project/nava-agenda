@@ -253,6 +253,7 @@ defineExpose({ focus: () => inputRef.value?.focus() })
         <span class="tz-field__digits">{{ clock.hours }}</span
         ><span class="tz-field__colon">:</span
         ><span class="tz-field__digits">{{ clock.minutes }}</span>
+        <span class="tz-field__meridiem">&nbsp;{{ clock.meridiem }}</span>
       </span>
       <span class="tz-field__clock-copy">
         <span class="tz-field__clock-title"
@@ -435,8 +436,8 @@ defineExpose({ focus: () => inputRef.value?.focus() })
   line-height: 16px;
 }
 
-/* Reloj de la zona elegida: cifras tabulares en tinta, sin parpadeo (los dos
-   puntos ya no laten: WCAG 2.2.2). */
+/* Reloj de la zona elegida en 12 h: cifras tabulares en tinta, sin parpadeo
+   (los dos puntos ya no laten: WCAG 2.2.2). */
 .tz-field__clock {
   display: flex;
   align-items: center;
@@ -459,6 +460,12 @@ defineExpose({ focus: () => inputRef.value?.focus() })
 
 .tz-field__colon {
   margin-inline: 1px;
+}
+
+.tz-field__meridiem {
+  font-size: var(--font-size-body-sm);
+  font-weight: 500;
+  color: var(--color-text-secondary);
 }
 
 .tz-field__clock-copy {

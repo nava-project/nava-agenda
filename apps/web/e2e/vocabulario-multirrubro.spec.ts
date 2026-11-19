@@ -80,7 +80,7 @@ for (const viewport of viewports) {
     await page.goto('/panel/horarios')
     await expect(page.getByRole('heading', { name: 'Horarios' })).toBeVisible()
 
-    await expect(page.getByText('Horas en la zona horaria del estudio:')).toBeVisible()
+    await expect(page.getByText('Horas en hora de Colombia')).toBeVisible()
     // El interruptor vive dentro de un acordeón cerrado: basta con que esté en el DOM.
     await expect(page.getByText('festivos colombianos de esta manicurista')).toBeAttached()
     await expect(page.locator('main')).not.toContainText(FIXED_WORDS)

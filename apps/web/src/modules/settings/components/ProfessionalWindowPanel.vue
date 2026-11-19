@@ -21,12 +21,13 @@ import {
   type ProfessionalWindowOption,
   type BookingWindowValues,
 } from '../model/professionalBookingPolicy'
-import { formatDuration, sampleSlotLabels } from '../model/bookingPolicy'
+import { formatDuration } from '../model/bookingPolicy'
 import {
   SLOT_GRID_MINUTES_CEIL,
   validateMinAdvanceMinutes,
   validateSlotGridMinutes,
 } from '../validation/bookingPolicyValidation'
+import BookingSamplePicker from './BookingSamplePicker.vue'
 import SettingsPanel from './SettingsPanel.vue'
 import SwitchField from './SwitchField.vue'
 
@@ -223,7 +224,6 @@ function onEnter(event: KeyboardEvent) {
 }
 
 const shownWindow = computed<BookingWindowValues>(() => (ownDraft.value ? draft : props.shopWindow))
-const slots = computed(() => sampleSlotLabels(shownWindow.value.slotGridMinutes, 7))
 
 function summaryOf(w: BookingWindowValues): string {
   const lead = w.minAdvanceMinutes > 0 ? formatDuration(w.minAdvanceMinutes) : 'sin mínimo'
@@ -241,7 +241,6 @@ const ownRoster = computed(() =>
 <template>
   <SettingsPanel
     id="reserva-por-profesional"
-    :number="ownOnly ? '01' : '02'"
     :title="ownOnly ? 'Tu ventana de reserva' : `Ventana por ${v.professional}`"
     :description="
       ownOnly
@@ -385,19 +384,18 @@ const ownRoster = computed(() =>
               </dl>
             </Transition>
 
+            <!-- El mismo «Día y hora» que ve el cliente, con el ritmo que se
+                 muestra (el propio o el heredado); lo esencial, también en texto. -->
             <div class="professional-window__strip">
-              <p class="professional-window__strip-label">
-                Así ve el cliente sus horarios de una mañana
-              </p>
-              <ol
-                :key="shownWindow.slotGridMinutes"
-                class="professional-window__slots"
-                :aria-label="`Franjas de ejemplo cada ${shownWindow.slotGridMinutes} minutos`"
-              >
-                <li v-for="slot in slots" :key="slot" class="professional-window__slot">
-                  {{ slot }}
-                </li>
-              </ol>
+              <p class="professional-window__strip-label">Así ve el cliente sus horarios</p>
+              <BookingSamplePicker :window="shownWindow">
+                <template #default="{ firstText, lastDayText }">
+                  <p class="professional-window__sample-text">
+                    Primer horario libre: {{ firstText }}<br />
+                    Último día para reservar: {{ lastDayText }}
+                  </p>
+                </template>
+              </BookingSamplePicker>
             </div>
 
             <BaseAlert
@@ -651,30 +649,11 @@ const ownRoster = computed(() =>
   gap: 10px;
 }
 
-.professional-window__slots {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-  padding: 0;
+.professional-window__sample-text {
   margin: 0;
-  list-style: none;
-}
-
-.professional-window__slot {
-  padding: 6px 10px;
-  font-size: var(--font-size-caption);
-  font-variant-numeric: tabular-nums;
-  line-height: 16px;
+  font-size: var(--font-size-body-sm);
+  line-height: var(--font-size-body-sm-line);
   color: var(--color-text-primary);
-  border: var(--border-width-normal) solid var(--color-border-control);
-  border-radius: var(--radius-md);
-}
-
-/* La primera franja, la más temprana, se destaca en tinta. */
-.professional-window__slot:first-child {
-  font-weight: 600;
-  background: color-mix(in srgb, var(--color-text-primary) 8%, transparent);
-  border-color: var(--color-text-primary);
 }
 
 .professional-window__actions {

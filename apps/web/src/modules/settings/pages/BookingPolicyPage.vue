@@ -345,10 +345,9 @@ function onReloadAfterConflict() {
             Inténtalo de nuevo en unos segundos. No perdiste lo que escribiste.
           </BaseAlert>
 
-          <!-- 01 · Ventana de reserva -->
+          <!-- Ventana de reserva -->
           <SettingsPanel
             id="reserva-ventana"
-            number="01"
             title="Ventana de reserva"
             description="Desde cuándo y hasta cuándo puede reservar un cliente, y cada cuánto se ofrece una franja."
             scope="shop"
@@ -402,14 +401,13 @@ function onReloadAfterConflict() {
             </div>
           </SettingsPanel>
 
-          <!-- 02 · Ventana por profesional (DEC-169): carga y guarda por su cuenta;
+          <!-- Ventana por profesional (DEC-169): carga y guarda por su cuenta;
                hereda la ventana del negocio YA guardada, no el borrador. -->
           <ProfessionalWindowPanel :shop-window="savedForm" />
 
-          <!-- 03 · Cancelación del cliente -->
+          <!-- Cancelación del cliente -->
           <SettingsPanel
             id="reserva-cancelacion"
-            number="03"
             title="Cancelación del cliente"
             description="Hasta cuándo puede cancelar por su cuenta y qué pasa si lo hace fuera de plazo."
             scope="shop"

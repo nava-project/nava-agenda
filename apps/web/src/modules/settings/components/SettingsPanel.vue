@@ -1,12 +1,11 @@
 <script setup lang="ts">
-// Sección numerada de Configuración (DEC-110) en el lenguaje v2 (DEC-188):
-// tarjeta sobre la superficie con borde sutil, título en tipo oración y el
-// número como orientación en texto secundario (sin acento). El encabezado deja
+// Sección de Configuración (DEC-110) en el lenguaje v2 (DEC-188): tarjeta
+// sobre la superficie con borde sutil y título en tipo oración. Sin número: las
+// secciones son ajustes independientes, no pasos de un orden. El encabezado deja
 // claro DÓNDE vale lo que se cambia (este dispositivo o todo el negocio) y si
 // aplica al instante o necesita guardarse.
 defineProps<{
   id: string
-  number: string
   title: string
   description?: string
   /** `device`: vale en este aparato y se aplica al instante. `shop`: vale para todo el negocio y se guarda. */
@@ -18,7 +17,6 @@ defineProps<{
 <template>
   <section :id="id" class="settings-panel" :aria-labelledby="`${id}-title`">
     <header class="settings-panel__header">
-      <span class="settings-panel__number" aria-hidden="true">{{ number }}</span>
       <div class="settings-panel__heading">
         <h2 :id="`${id}-title`" class="settings-panel__title">{{ title }}</h2>
         <p v-if="description" class="settings-panel__description">{{ description }}</p>
@@ -58,16 +56,6 @@ defineProps<{
   gap: 12px;
   padding: 20px 24px 16px;
   border-bottom: var(--border-width-normal) solid var(--color-border-subtle);
-}
-
-.settings-panel__number {
-  flex: 0 0 auto;
-  min-width: 2ch;
-  font-size: 13px;
-  font-weight: 500;
-  line-height: 28px;
-  font-variant-numeric: tabular-nums;
-  color: var(--color-text-secondary);
 }
 
 .settings-panel__heading {
@@ -121,10 +109,6 @@ defineProps<{
 
   .settings-panel__title {
     font-size: 18px;
-    line-height: 26px;
-  }
-
-  .settings-panel__number {
     line-height: 26px;
   }
 

@@ -16,6 +16,7 @@ import { computed, onMounted, onUnmounted, ref, watch } from 'vue'
 import { useToast, useVocabulary } from '@/shared/composables'
 import { isSoloProfile, worksOwnProfessional } from '@/shared/model'
 import { getCivilDateInTimezone } from '@/shared/time/civilDate'
+import { timezoneName } from '@/shared/time/timezoneName'
 import {
   ProfessionalAvatar,
   BaseAlert,
@@ -53,9 +54,9 @@ import {
 import { newIdempotencyKey } from '../model/idempotencyKey'
 import {
   civilDateTile as dateTile,
+  clockRangeLabel,
   computeScale,
   durationBetween,
-  endLabel,
   formatHours,
   minutesToTime,
   timeToMinutes,
@@ -165,6 +166,8 @@ const hasShownWorkingHours = ref(false)
 const boardBusy = computed(
   () => workingHoursStatus.value === 'loading' && hasShownWorkingHours.value,
 )
+// Las cifras de la semana aún no tienen dato que mostrar (primera carga).
+const statsPending = computed(() => workingHoursStatus.value !== 'ready' && !boardBusy.value)
 
 async function selectProfessional(professionalId: string) {
   selectedProfessionalId.value = professionalId
@@ -965,7 +968,7 @@ function buildPreview(
     segments: valid ? [...context, draft] : context,
     scale: computeScale(valid ? [...context, draft] : context),
     text: valid
-      ? `${weekdayLabel(isoWeekday)} · ${startsTime} – ${endLabel(startsTime, durationMinutes)} · ${formatHours(durationMinutes)}`
+      ? `${weekdayLabel(isoWeekday)} · ${clockRangeLabel(startsTime, durationMinutes)} · ${formatHours(durationMinutes)}`
       : 'Elige la hora de inicio y de fin para ver cómo queda.',
   }
 }
@@ -991,12 +994,33 @@ const editPreview = computed(() =>
         <p class="schedules-page__subtitle">Jornada semanal, festivos y excepciones.</p>
       </div>
       <!-- Controles de la jornada junto al título: sin profesionales no hay jornada
-           que armar, así que la acción principal tampoco aparece. -->
+           que armar, así que la acción principal tampoco aparece. Mientras carga,
+           un esqueleto del mismo alto ocupa su sitio: la cabecera no crece al
+           llegar los datos y el contenido de debajo no salta (CLS, revisión de
+           #720). -->
       <div
-        v-if="pageStatus === 'ready' && professionals.length > 0"
+        v-if="pageStatus === 'loading' || (pageStatus === 'ready' && professionals.length > 0)"
         class="schedules-page__controls"
       >
-        <div class="schedules-page__who">
+        <div
+          v-if="pageStatus === 'loading'"
+          class="schedules-page__who schedules-page__who--skeleton"
+          aria-hidden="true"
+        >
+          <span class="schedules-page__skeleton-bar schedules-page__skeleton-bar--portrait" />
+          <!-- El perfil del panel se conoce antes de cargar (DEC-115): quien trabaja
+               su propia agenda ve su nombre y no el selector, así que el esqueleto
+               toma desde el primer cuadro el alto del nombre (47 px). -->
+          <span
+            v-if="worksOwnProfessional"
+            class="schedules-page__skeleton-bar schedules-page__skeleton-bar--name"
+          />
+          <span v-else class="schedules-page__select schedules-page__skeleton-select">
+            <span class="schedules-page__skeleton-bar schedules-page__skeleton-bar--label" />
+            <span class="schedules-page__skeleton-bar schedules-page__skeleton-bar--field" />
+          </span>
+        </div>
+        <div v-else class="schedules-page__who">
           <ProfessionalAvatar
             class="schedules-page__portrait"
             size="row"
@@ -1016,15 +1040,23 @@ const editPreview = computed(() =>
           <span v-else class="schedules-page__who-name">{{ selectedProfessional?.fullName }}</span>
         </div>
 
+        <!-- Las cifras quedan montadas desde la carga (con un marcador en lugar
+             del número) para no empujar el tablero al llegar la jornada. -->
         <dl
-          v-if="workingHoursStatus === 'ready' || boardBusy"
+          v-if="workingHoursStatus !== 'error'"
           class="schedules-page__stats"
           :class="{ 'schedules-page__stats--busy': boardBusy }"
+          :aria-busy="statsPending || undefined"
         >
           <div>
             <dt>Horas por semana</dt>
             <dd>
-              <Transition name="schedules-stat" mode="out-in">
+              <span
+                v-if="statsPending"
+                class="schedules-page__skeleton-bar schedules-page__skeleton-bar--stat"
+                aria-hidden="true"
+              />
+              <Transition v-else name="schedules-stat" mode="out-in">
                 <span :key="weekMinutes">{{ formatHours(weekMinutes) }}</span>
               </Transition>
             </dd>
@@ -1032,7 +1064,12 @@ const editPreview = computed(() =>
           <div>
             <dt>Días con jornada</dt>
             <dd>
-              <Transition name="schedules-stat" mode="out-in">
+              <span
+                v-if="statsPending"
+                class="schedules-page__skeleton-bar schedules-page__skeleton-bar--stat"
+                aria-hidden="true"
+              />
+              <Transition v-else name="schedules-stat" mode="out-in">
                 <span :key="activeDays"
                   >{{ activeDays }}<small class="schedules-page__stat-total">/7</small></span
                 >
@@ -1176,9 +1213,10 @@ const editPreview = computed(() =>
                 <circle cx="8" cy="8" r="6" />
                 <path d="M8 4.5V8l2.4 1.6" />
               </svg>
+              <!-- La zona con su nombre, como en la agenda («hora de Colombia»),
+                   no el identificador IANA (revisión de #720). -->
               <span
-                >Horas en la zona horaria {{ v.ofTheBusiness }}:
-                <strong>{{ businessTimezone }}</strong></span
+                >Horas en <strong>{{ timezoneName(businessTimezone) }}</strong></span
               >
             </p>
           </div>
@@ -1310,7 +1348,7 @@ const editPreview = computed(() =>
                           >
                           <span class="schedules-row__segments">{{
                             exception.segments
-                              .map((s) => `${s.startsTime} (${s.durationMinutes} min)`)
+                              .map((s) => clockRangeLabel(s.startsTime, s.durationMinutes))
                               .join(', ')
                           }}</span>
                         </template>
@@ -2157,6 +2195,52 @@ const editPreview = computed(() =>
   flex: 1;
   height: 20px;
   background-color: color-mix(in srgb, var(--color-on-strong) 8%, transparent);
+}
+
+/* Esqueleto de los controles: mismas medidas que el retrato (47 px), el
+   selector (rótulo de 18 px + 8 px + campo de 46 px) y la cifra (línea de
+   26 px), para que el cambio a los datos reales no mueva nada. */
+.schedules-page__who--skeleton {
+  align-items: flex-end;
+}
+
+.schedules-page__skeleton-bar--portrait {
+  flex: 0 0 47px;
+  height: 47px;
+  border-radius: var(--radius-md);
+}
+
+.schedules-page__skeleton-select {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.schedules-page__skeleton-bar--label {
+  width: 88px;
+  height: 18px;
+  background-color: color-mix(in srgb, var(--color-on-strong) 8%, transparent);
+}
+
+.schedules-page__skeleton-bar--field {
+  height: 46px;
+  border-radius: var(--radius-md);
+  background-color: color-mix(in srgb, var(--color-on-strong) 8%, transparent);
+}
+
+/* Nombre del perfil individual: centrado junto al retrato, como el real. */
+.schedules-page__skeleton-bar--name {
+  align-self: center;
+  width: 160px;
+  max-width: 50%;
+  height: 20px;
+}
+
+.schedules-page__skeleton-bar--stat {
+  display: inline-block;
+  width: 44px;
+  height: 18px;
+  vertical-align: middle;
 }
 
 @keyframes schedules-skeleton-pulse {
