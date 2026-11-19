@@ -120,7 +120,7 @@ const onSubmit = async () => {
 
     <BaseButton
       type="submit"
-      variant="primary"
+      :variant="challengeActive ? 'secondary' : 'primary'"
       size="lg"
       :loading="submitting"
       :disabled="submitting || challengeActive"

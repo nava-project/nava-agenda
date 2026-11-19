@@ -11,7 +11,7 @@
 // tampoco lo confirma, y tampoco nombra el canal: antes de entrar no se sabe a
 // qué negocio pertenece la cuenta y decir «correo» o «teléfono» revelaría su
 // configuración o su existencia (DEC-065, DEC-139).
-import { computed, onUnmounted, ref } from 'vue'
+import { computed, nextTick, onMounted, onUnmounted, ref } from 'vue'
 import { BaseButton, OtpInput } from '@/shared/ui'
 import { requestChallenge, verifyChallenge } from '../api/challengeApi'
 
@@ -28,6 +28,8 @@ const CHANNEL_CHIP = 'Código de verificación'
 
 const props = defineProps<{
   email: string
+  /** Por qué aparece el reto y cuánto falta («Demasiados intentos. Podrás…»). */
+  notice?: string
   /** Se deshabilitan las acciones mientras el formulario de acceso está
    * reintentando el login tras un reto verificado (evita doble envío). */
   disabled: boolean
@@ -68,6 +70,14 @@ function startResendCooldown() {
     }
   }, 1_000)
 }
+
+// El reto aparece tras un 429: el foco va a su título (que describe la espera)
+// para que el lector anuncie qué pasó y el siguiente Tab sea «Enviar código».
+const titleRef = ref<HTMLElement | null>(null)
+onMounted(async () => {
+  await nextTick()
+  titleRef.value?.focus()
+})
 
 onUnmounted(() => {
   if (cooldownTimer) clearInterval(cooldownTimer)
@@ -120,10 +130,31 @@ async function onVerifyCode() {
          aviso emergente que emite `LoginPage` (DEC-095, issue #485), no una
          alerta fija; aquí queda solo la acción. -->
     <template v-if="requestPhase === 'idle' || requestPhase === 'error'">
+      <!-- Mientras dura el bloqueo, el reto es la salida: lleva título y una
+           frase, y «Enviar código» es la única acción llena (issue #714);
+           «Iniciar sesión» queda en contorno y deshabilitado. -->
+      <span class="phone-challenge__divider" aria-hidden="true"></span>
+      <div class="phone-challenge__intro">
+        <p v-if="notice" id="phone-challenge-notice" class="phone-challenge__notice">
+          {{ notice }}
+        </p>
+        <h2
+          ref="titleRef"
+          class="phone-challenge__title"
+          tabindex="-1"
+          :aria-describedby="notice ? 'phone-challenge-notice' : undefined"
+        >
+          Confirma que eres tú
+        </h2>
+        <p class="phone-challenge__lead">
+          Te enviaremos un código de 6 dígitos al teléfono de tu cuenta para entrar sin esperar.
+        </p>
+      </div>
       <BaseButton
         type="button"
-        variant="secondary"
-        size="md"
+        variant="primary"
+        size="lg"
+        class="phone-challenge__send"
         :disabled="!canRequest"
         @click="onRequestCode"
       >
@@ -192,6 +223,40 @@ async function onVerifyCode() {
   flex-direction: column;
   gap: var(--space-4);
   padding-top: var(--space-2);
+}
+
+.phone-challenge__intro {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+}
+
+.phone-challenge__notice {
+  margin: 0 0 var(--space-2);
+  font-size: 15px;
+  font-weight: 500;
+  line-height: 22px;
+  color: var(--color-text-primary);
+}
+
+.phone-challenge__title {
+  margin: 0;
+  outline: none;
+  font-size: 18px;
+  font-weight: 600;
+  line-height: 24px;
+  color: var(--color-text-primary);
+}
+
+.phone-challenge__lead {
+  margin: 0;
+  font-size: 14px;
+  line-height: 20px;
+  color: var(--color-text-secondary);
+}
+
+.phone-challenge__send {
+  width: 100%;
 }
 
 .phone-challenge__divider {

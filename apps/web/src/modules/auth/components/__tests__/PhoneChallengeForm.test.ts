@@ -52,9 +52,29 @@ describe('PhoneChallengeForm', () => {
   })
 
   describe('Fase previa (no representada en los mockups, composición actual)', () => {
+    it('says the wait above its title and takes the focus there, described by it (#715)', async () => {
+      const wrapper = mount(PhoneChallengeForm, {
+        props: {
+          email: 'barbero@ejemplo.test',
+          disabled: false,
+          notice: 'Demasiados intentos. Podrás intentarlo de nuevo en 24 horas.',
+        },
+        attachTo: document.body,
+      })
+      await flushPromises()
+      const title = wrapper.get('.phone-challenge__title')
+      expect(document.activeElement).toBe(title.element)
+      expect(title.attributes('tabindex')).toBe('-1')
+      const notice = wrapper.get(`#${title.attributes('aria-describedby')}`)
+      expect(notice.text()).toBe('Demasiados intentos. Podrás intentarlo de nuevo en 24 horas.')
+      // El siguiente Tab es la acción: «Enviar código» es el único botón del bloque.
+      expect(wrapper.findAll('button').map((b) => b.text())).toEqual(['Enviar código'])
+      wrapper.unmount()
+    })
+
     it('shows the request-code button initially, no code input yet', () => {
       const wrapper = mountChallenge()
-      // El porqué del reto es un aviso emergente de LoginPage, no una alerta fija (issue #485).
+      // El porqué del reto lo da su propia frase (`notice`), no una alerta fija (issue #485, #715).
       expect(wrapper.text()).not.toContain('Verifica tu identidad')
       expect(wrapper.find('[role="alert"]').exists()).toBe(false)
       expect(wrapper.find('button').text()).toContain('Enviar código')

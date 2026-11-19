@@ -10,7 +10,6 @@ import AuthSplitLayout from '../components/AuthSplitLayout.vue'
 import LoginForm from '../components/LoginForm.vue'
 import PhoneChallengeForm from '../components/PhoneChallengeForm.vue'
 import { login } from '../api/loginApi'
-import { useToast } from '@/shared/composables'
 import {
   notifyConnectionLost,
   notifyInvalidCredentials,
@@ -45,6 +44,17 @@ const showSessionExpired = computed(
 // su propio flujo (solicitar/verificar código); esta página solo decide
 // cuándo mostrarlo y qué hacer cuando se verifica con éxito.
 const showPhoneChallenge = computed(() => screenState.value.status === 'rate-limited')
+const rateLimitNotice = ref('')
+
+function waitInWords(seconds: number | undefined): string {
+  if (!seconds || seconds < 60) return 'unos momentos'
+  if (seconds < 3600) {
+    const minutes = Math.ceil(seconds / 60)
+    return minutes === 1 ? '1 minuto' : `${minutes} minutos`
+  }
+  const hours = Math.ceil(seconds / 3600)
+  return hours === 1 ? '1 hora' : `${hours} horas`
+}
 
 async function attemptLogin() {
   // Guardia de doble envío (CA-010-04): la asignación a un ref es
@@ -94,13 +104,11 @@ async function attemptLogin() {
       screenState.value = { status: 'rate-limited', retryAfterSeconds: outcome.retryAfterSeconds }
       // El estado conserva `rate-limited` porque abre el reto telefónico.
       const seconds = outcome.retryAfterSeconds
-      // Un solo aviso (DEC-095, issue #485): explica el bloqueo y pide
-      // confirmar la identidad; la acción «Enviar código» queda en el reto.
-      const wait =
-        seconds && seconds > 0
-          ? `Espera unos ${Math.ceil(seconds / 60) || 1} minuto(s) o confirma tu identidad ahora con el código que te enviaremos.`
-          : 'Espera un momento o confirma tu identidad ahora con el código que te enviaremos.'
-      useToast().warning('Demasiados intentos', { detail: wait })
+      // Un solo aviso (DEC-095, issue #485), ahora dentro del reto y no en un
+      // aviso emergente plegado (revisión de #715): la espera va encima de su
+      // título, en palabras («24 horas», «5 minutos»), nunca con
+      // «minuto(s)» ni en minutos para un bloqueo de un día (issue #714).
+      rateLimitNotice.value = `Demasiados intentos. Podrás intentarlo de nuevo en ${waitInWords(seconds)}.`
       return
     }
     case 'unexpected-error':
@@ -152,6 +160,7 @@ const onChallengeVerified = () => {
     <PhoneChallengeForm
       v-if="showPhoneChallenge"
       :email="email"
+      :notice="rateLimitNotice"
       :disabled="isSubmitting"
       @verified="onChallengeVerified"
     />
