@@ -224,7 +224,8 @@ const slotsClasses = (index: number) => {
   min-width: 0;
   height: var(--control-height);
   padding: 0;
-  font-family: var(--font-display);
+  /* Dato, no titular: va en la sans con cifras tabulares (#726). */
+  font-family: var(--font-sans);
   font-size: 22px;
   line-height: 1;
   text-align: center;

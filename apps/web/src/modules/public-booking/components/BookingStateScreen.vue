@@ -122,8 +122,9 @@ const content = computed(() => {
 
 .bk-state__headline {
   margin: 0;
-  font-size: clamp(22px, 4vw, 28px);
-  font-weight: 600;
+  font-family: var(--font-display);
+  font-size: clamp(28px, 4.6vw, 34px);
+  font-weight: 400;
   line-height: 1.2;
   letter-spacing: -0.01em;
   text-wrap: balance;

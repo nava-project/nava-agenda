@@ -1,12 +1,58 @@
 /*
- * Fuente auto-hosteada: Instrument Sans (Google Fonts, licencia SIL Open Font
- * License). DEC-188: la v2 no usa serif. Se sirve como fuente variable (un
- * solo archivo cubre 400-700) para no repetir descarga por peso.
+ * Fuentes auto-hosteadas de la familia NAVA (#726): Instrument Serif para los
+ * titulares e Instrument Sans para la operativa (Google Fonts, licencia SIL Open
+ * Font License). La sans es variable: un solo archivo cubre 400-700.
  */
+@font-face {
+  font-family: 'Instrument Serif';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url('../assets/fonts/instrument-serif-latin-400.woff2') format('woff2');
+}
+
 @font-face {
   font-family: 'Instrument Sans';
   font-style: normal;
   font-weight: 400 700;
   font-display: swap;
   src: url('../assets/fonts/instrument-sans-latin-400-700.woff2') format('woff2');
+}
+
+/* Reservas con las métricas de Instrument, medidas en Pedidos contra Times New
+   Roman y Arial (o Liberation, Tinos y Arimo): mientras la fuente llega, el
+   texto ocupa lo mismo y el cambio no mueve nada (CLS). */
+@font-face {
+  font-family: 'Instrument Serif Reserva';
+  src:
+    local('Times New Roman'), local('TimesNewRomanPSMT'), local('Liberation Serif'),
+    local('LiberationSerif'), local('Tinos');
+  size-adjust: 79.7%;
+  ascent-override: 124.2%;
+  descent-override: 38.9%;
+  line-gap-override: 0%;
+}
+
+@font-face {
+  font-family: 'Instrument Sans Reserva';
+  font-weight: 400 549;
+  src:
+    local('Arial'), local('ArialMT'), local('Liberation Sans'), local('LiberationSans'),
+    local('Arimo');
+  size-adjust: 101.1%;
+  ascent-override: 96%;
+  descent-override: 24.7%;
+  line-gap-override: 0%;
+}
+
+@font-face {
+  font-family: 'Instrument Sans Reserva';
+  font-weight: 550 700;
+  src:
+    local('Arial Bold'), local('Arial-BoldMT'), local('Liberation Sans Bold'),
+    local('LiberationSans-Bold'), local('Arimo Bold');
+  size-adjust: 99.3%;
+  ascent-override: 97.7%;
+  descent-override: 25.2%;
+  line-gap-override: 0%;
 }

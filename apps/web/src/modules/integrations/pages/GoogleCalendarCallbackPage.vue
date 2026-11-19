@@ -113,19 +113,12 @@ onMounted(() => {
 /* Mismo h1 que la Agenda del día (v2, DEC-188). */
 .gcal-return__title {
   margin: 0;
-  font-family: var(--font-sans);
-  font-size: 28px;
-  font-weight: 600;
-  line-height: 32px;
-  letter-spacing: -0.01em;
+  font-family: var(--font-display);
+  font-size: var(--font-size-page-title);
+  font-weight: 400;
+  line-height: var(--font-size-page-title-line);
+  letter-spacing: -0.005em;
   color: var(--color-text-primary);
-}
-
-@media (min-width: 1024px) {
-  .gcal-return__title {
-    font-size: 32px;
-    line-height: 36px;
-  }
 }
 
 .gcal-return__state {

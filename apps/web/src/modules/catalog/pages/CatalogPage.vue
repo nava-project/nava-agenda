@@ -1952,19 +1952,12 @@ async function reloadAfterConflict(serviceId: string) {
    (.daily-agenda-page__title), 28px y 32px desde 1024px. */
 .catalog-page__title {
   margin: 0;
-  font-family: var(--font-sans);
-  font-size: 28px;
-  font-weight: 600;
-  line-height: 32px;
-  letter-spacing: -0.01em;
+  font-family: var(--font-display);
+  font-size: var(--font-size-page-title);
+  font-weight: 400;
+  line-height: var(--font-size-page-title-line);
+  letter-spacing: -0.005em;
   color: var(--color-text-primary);
-}
-
-@media (min-width: 1024px) {
-  .catalog-page__title {
-    font-size: 32px;
-    line-height: 36px;
-  }
 }
 
 /* body-sm (antes 11px suelto): mismo reclamo del propietario sobre el
@@ -2881,7 +2874,8 @@ async function reloadAfterConflict(serviceId: string) {
 
 .catalog-page__lifecycle-facts dd {
   margin: 0;
-  font-family: var(--font-display);
+  /* Dato, no titular: va en la sans con cifras tabulares (#726). */
+  font-family: var(--font-sans);
   font-size: var(--font-size-body);
   line-height: 1.2;
   overflow-wrap: anywhere;
@@ -3044,7 +3038,8 @@ async function reloadAfterConflict(serviceId: string) {
 }
 
 .catalog-page__detail-amount {
-  font-family: var(--font-display);
+  /* Dato, no titular: va en la sans con cifras tabulares (#726). */
+  font-family: var(--font-sans);
   font-size: var(--font-size-h1);
   line-height: 1.05;
   font-variant-numeric: tabular-nums;
@@ -3059,7 +3054,8 @@ async function reloadAfterConflict(serviceId: string) {
   align-self: flex-start;
   margin-top: 4px;
   color: var(--color-text-secondary);
-  font-family: var(--font-display);
+  /* Dato, no titular: va en la sans con cifras tabulares (#726). */
+  font-family: var(--font-sans);
   font-size: var(--font-size-h3);
 }
 

@@ -1720,11 +1720,11 @@ function occurredAtLabel(entry: HistoryEntry): string {
 
 .appointment-detail-page__title {
   margin: 0;
-  font-family: var(--font-sans);
+  font-family: var(--font-display);
   font-size: var(--font-size-title-page);
-  font-weight: 600;
+  font-weight: 400;
   line-height: 1.08;
-  letter-spacing: -0.01em;
+  letter-spacing: -0.005em;
   overflow-wrap: anywhere;
   color: var(--color-on-strong);
 }

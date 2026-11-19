@@ -6,7 +6,7 @@
  * appointmentsApi se sustituye por un doble de prueba; el recorrido real
  * contra el API vive en el E2E de HU-062.
  */
-import { describe, it, expect, vi, beforeEach } from 'vitest'
+import { describe, it, expect, vi, beforeEach, onTestFinished } from 'vitest'
 import { mount, flushPromises } from '@vue/test-utils'
 import { createRouter, createMemoryHistory } from 'vue-router'
 import { axe } from 'vitest-axe'
@@ -964,6 +964,12 @@ describe('DailyAgendaPage', () => {
     })
 
     it('marks «Ahora» in the list between what happened and what comes, and draws the day strip (DEC-188)', async () => {
+      // Media mañana en Bogotá: con el reloj real, de noche el sol queda fuera
+      // de la franja del día y la prueba fallaba según la hora en que corría.
+      vi.useFakeTimers({ toFake: ['Date'], now: new Date('2026-11-19T15:00:00Z') })
+      onTestFinished(() => {
+        vi.useRealTimers()
+      })
       fetchDailyAgendaMock.mockResolvedValueOnce({
         kind: 'success',
         items: [

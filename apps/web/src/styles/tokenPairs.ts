@@ -54,6 +54,7 @@ export const TOKEN_PAIRS: TokenPair[] = [
     '--color-sky-afternoon',
     '--color-sky-night',
   ]),
+  ...text('--color-brass-text', [...PAGE, '--color-surface-muted', '--color-field-strong']),
   ...text('--color-on-sun', ['--color-sun']),
   ...text('--color-text-primary', [
     '--color-sky-morning',

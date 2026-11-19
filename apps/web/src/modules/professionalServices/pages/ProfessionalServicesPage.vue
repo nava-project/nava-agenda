@@ -642,19 +642,12 @@ async function onToggleService(service: ServiceSummary, event: Event) {
 /* h1 v2 (DEC-188): el mismo título que DailyAgendaPage.vue. */
 .professional-services-page__title {
   margin: 0;
-  font-family: var(--font-sans);
-  font-size: 28px;
-  font-weight: 600;
-  line-height: 32px;
-  letter-spacing: -0.01em;
+  font-family: var(--font-display);
+  font-size: var(--font-size-page-title);
+  font-weight: 400;
+  line-height: var(--font-size-page-title-line);
+  letter-spacing: -0.005em;
   color: var(--color-text-primary);
-}
-
-@media (min-width: 1024px) {
-  .professional-services-page__title {
-    font-size: 32px;
-    line-height: 36px;
-  }
 }
 
 .professional-services-page__subtitle {
@@ -824,7 +817,8 @@ async function onToggleService(service: ServiceSummary, event: Event) {
 }
 
 .professional-services-page__meter-count {
-  font-family: var(--font-display);
+  /* Dato, no titular: va en la sans con cifras tabulares (#726). */
+  font-family: var(--font-sans);
   font-size: var(--font-size-title-page);
   line-height: 1;
   color: var(--color-text-primary);
@@ -832,7 +826,8 @@ async function onToggleService(service: ServiceSummary, event: Event) {
 }
 
 .professional-services-page__meter-total {
-  font-family: var(--font-display);
+  /* Dato, no titular: va en la sans con cifras tabulares (#726). */
+  font-family: var(--font-sans);
   font-size: var(--font-size-title-item);
   color: var(--color-on-strong-muted);
   font-variant-numeric: tabular-nums;
@@ -877,7 +872,8 @@ async function onToggleService(service: ServiceSummary, event: Event) {
 .professional-services-page__legend {
   padding: 0;
   margin-bottom: 14px;
-  font-family: var(--font-display);
+  /* Dato, no titular: va en la sans con cifras tabulares (#726). */
+  font-family: var(--font-sans);
   font-size: var(--font-size-title-item);
   line-height: var(--font-size-title-item-line);
   color: var(--color-on-strong);

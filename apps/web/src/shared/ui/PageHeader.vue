@@ -93,9 +93,9 @@ withDefaults(defineProps<Props>(), {
   gap: var(--space-3);
   margin: 0;
   font-family: var(--font-display);
-  font-size: var(--font-size-h1);
-  line-height: var(--font-size-h1-line);
-  font-weight: var(--font-weight-h1);
+  font-size: var(--font-size-page-title);
+  line-height: var(--font-size-page-title-line);
+  font-weight: 400;
   color: var(--color-text-primary);
 }
 

@@ -1,5 +1,5 @@
 /**
- * Paleta v2 «La luz del día» (DEC-188): cada par de TOKEN_PAIRS se mide en los
+ * Paleta v2 «La luz del día» (DEC-188), con la familia NAVA de vuelta (#726): cada par de TOKEN_PAIRS se mide en los
  * modos Día y Noche leyendo tokens.css tal como lo sirve la app. Si alguien
  * cambia un color sin contraste suficiente, falla aquí.
  */
@@ -45,8 +45,14 @@ describe('tokens v2 (DEC-188)', () => {
     expect([...declarations(systemDarkBlock)]).toEqual([...declarations(inkBlock)])
   })
 
-  it('no conserva la tinta, el marfil ni la serif de la v1 como valores', () => {
-    expect(css).not.toMatch(/#f4f0e7|#b8955a|Instrument Serif/i)
+  // La familia NAVA vuelve (#726): Día es el marfil de Pedidos y la landing, los
+  // titulares van en Instrument Serif y el latón tiene su par de texto.
+  it('Día es el marfil de la familia y los titulares van en Instrument Serif', () => {
+    expect(resolveColor(day, '--color-canvas')).toBe('#f4f0e7')
+    expect(day.get('--font-serif')).toMatch(/^'Instrument Serif'/)
+    expect(day.get('--font-display')).toBe('var(--font-serif)')
+    expect(resolveColor(day, '--color-brass-line')).toBe('#b8955a')
+    expect(resolveColor(night, '--color-brass-text')).toBe('#c9a86f')
   })
 
   for (const [label, mode] of [
