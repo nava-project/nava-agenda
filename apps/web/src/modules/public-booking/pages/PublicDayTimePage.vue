@@ -16,20 +16,15 @@
 //
 // Una respuesta tardía de una carga ya reemplazada se descarta con un token
 // monótono (CA-095-03).
-import { computed, inject, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue'
+import { computed, inject, ref, watch } from 'vue'
 import { RouterLink, useRouter } from 'vue-router'
 import { arrivalKey } from '@/shared/composables/useArrival'
 import { formatMoney } from '@/shared/model/money'
-import { DAYS_OF_WEEK, clockToMinutes, segmentsByDay } from '@/shared/model/openingHours'
 import { ProfessionalAvatar, StarRating } from '@/shared/ui'
-import {
-  civilDateChip,
-  formatCivilDateFull,
-  minutesSinceCivilMidnight,
-} from '@/shared/time/civilDate'
+import { civilDateChip, formatCivilDateFull } from '@/shared/time/civilDate'
 import { formatTimeInTimezone } from '@/shared/time/formatInstant'
 import BookingStateScreen from '../components/BookingStateScreen.vue'
-import DaylightStrip from '../components/DaylightStrip.vue'
+import DayTimePicker from '../components/DayTimePicker.vue'
 import ProfessionalReviews from '../components/ProfessionalReviews.vue'
 import { listPublicProfessionals } from '../api/listPublicProfessionalsApi'
 import { listPublicServiceAvailability } from '../api/listPublicServiceAvailabilityApi'
@@ -81,7 +76,6 @@ const screenState = ref<ScreenState>({ status: 'loading' })
 const chosenProfessionalId = ref<string | null>(props.professionalId)
 const activeDate = ref<string | null>(null)
 const selected = ref<DaylightSlot | null>(null)
-const activeSlotIndex = ref(0)
 
 let requestToken = 0
 
@@ -214,204 +208,9 @@ watch(days, (next) => {
   }
 })
 
-const activeDay = computed(() => days.value.find((d) => d.civilDate === activeDate.value) ?? null)
-const activeDayIndex = computed(() => days.value.findIndex((d) => d.civilDate === activeDate.value))
-
-// Tramos abiertos del día activo: el horario del local si lo configuró; si
-// no, de la primera a la última hora libre más la duración. Nunca se inventa.
-const activeOpen = computed(() => {
-  const day = activeDay.value
-  if (!day) return []
-  const segments = publicProfileFor(props.slug)?.openingHours ?? []
-  if (segments.length > 0) {
-    const [y, m, d] = day.civilDate.split('-').map(Number)
-    const weekday = (new Date(Date.UTC(y!, m! - 1, d!)).getUTCDay() + 6) % 7
-    const hours = segmentsByDay(segments)[DAYS_OF_WEEK[weekday]!]
-    if (hours.length > 0)
-      return hours.map((h) => ({
-        start: clockToMinutes(h.opens) ?? 0,
-        end: clockToMinutes(h.closes) ?? 0,
-      }))
-  }
-  const minutes = day.slots.map((s) => minutesOf(s))
-  return [
-    {
-      start: Math.min(...minutes),
-      end: Math.max(...minutes) + (success.value?.durationMinutes ?? 0),
-    },
-  ]
-})
-
-// Tramos libres del día activo: cada inicio cubre un paso de rejilla y los
-// contiguos se funden, así la franja dice «aquí hay sitio» sin 40 marcas.
-const activeFree = computed(() => {
-  const step = success.value?.slotGridMinutes || 15
-  const spans: { start: number; end: number }[] = []
-  for (const slot of activeDay.value?.slots ?? []) {
-    const start = minutesOf(slot)
-    const last = spans[spans.length - 1]
-    if (last && start <= last.end) last.end = Math.max(last.end, start + step)
-    else spans.push({ start, end: start + step })
-  }
-  return spans
-})
-
-function minutesOf(slot: DaylightSlot): number {
-  return minutesSinceCivilMidnight(slot.startsAt, activeDate.value ?? '', timezone.value)
-}
-
-const selectedMinutes = computed(() =>
-  selected.value && activeDay.value?.slots.some((s) => s.startsAt === selected.value!.startsAt)
-    ? minutesOf(selected.value)
-    : null,
-)
-
-const flatSlots = computed(() => activeDay.value?.slots ?? [])
-
-// ── Días ──────────────────────────────────────────────────────────────────
-const dayRefs = ref<HTMLElement[]>([])
-function setDayRef(el: unknown, index: number) {
-  if (el instanceof HTMLElement) dayRefs.value[index] = el
-}
-
-async function chooseDay(index: number, focus = false) {
-  const day = days.value[index]
-  if (!day) return
-  activeDate.value = day.civilDate
-  const preserved = day.slots.findIndex((s) => s.startsAt === selected.value?.startsAt)
-  activeSlotIndex.value = preserved >= 0 ? preserved : 0
-  await nextTick()
-  const el = dayRefs.value[index]
-  el?.scrollIntoView?.({ inline: 'nearest', block: 'nearest', behavior: 'smooth' })
-  if (focus) el?.focus()
-}
-
-function onDaysKeydown(event: KeyboardEvent) {
-  const last = days.value.length - 1
-  const at = activeDayIndex.value
-  const target =
-    event.key === 'ArrowRight' || event.key === 'ArrowDown'
-      ? Math.min(last, at + 1)
-      : event.key === 'ArrowLeft' || event.key === 'ArrowUp'
-        ? Math.max(0, at - 1)
-        : event.key === 'Home'
-          ? 0
-          : event.key === 'End'
-            ? last
-            : null
-  if (target === null) return
-  event.preventDefault()
-  void chooseDay(target, true)
-}
-
-// Son inicios posibles, no horas de reloj: «46 horarios libres» en un día que
-// abre 12 horas es cierto; «46 horas libres» no.
-function dayAria(day: DaylightDay): string {
-  const n = day.slots.length
-  return `${formatCivilDateFull(day.civilDate)}, ${n} ${n === 1 ? 'horario libre' : 'horarios libres'}`
-}
-
-// El mes se dice una vez y se repite solo cuando cambia.
-function monthOf(index: number): string {
-  const day = days.value[index]
-  if (!day) return ''
-  const month = civilDateChip(day.civilDate).month
-  const previous = days.value[index - 1]
-  return previous && civilDateChip(previous.civilDate).month === month ? '' : month
-}
-
-// Más días a un lado: un degradado en el borde y una flecha lo dicen.
-const daysEl = ref<HTMLElement | null>(null)
-const moreBefore = ref(false)
-const moreAfter = ref(false)
-function measureDays() {
-  const el = daysEl.value
-  if (!el) return
-  moreBefore.value = el.scrollLeft > 4
-  moreAfter.value = el.scrollLeft + el.clientWidth < el.scrollWidth - 4
-}
-function scrollDays(direction: 1 | -1) {
-  const el = daysEl.value
-  el?.scrollBy?.({ left: direction * el.clientWidth * 0.8, behavior: 'smooth' })
-}
-watch(days, () => void nextTick(measureDays))
-onMounted(() => window.addEventListener('resize', measureDays))
-onBeforeUnmount(() => window.removeEventListener('resize', measureDays))
-
-// ── Horas ─────────────────────────────────────────────────────────────────
-const slotRefs = ref<Record<string, HTMLElement>>({})
-function setSlotRef(el: unknown, startsAt: string) {
-  if (el instanceof HTMLElement) slotRefs.value[startsAt] = el
-}
-
+// Elegir una hora; el selector ya ignora lo que no se puede elegir.
 function selectSlot(slot: DaylightSlot) {
   selected.value = slot
-  activeSlotIndex.value = flatSlots.value.findIndex((s) => s.startsAt === slot.startsAt)
-}
-
-// Las columnas de los minutos: con rejilla de 15, 20, 30 o 60 minutos cada
-// minuto tiene su columna (:00 :15 :30 :45) y las filas se leen como una agenda.
-const minuteColumns = computed(() => {
-  const grid = success.value?.slotGridMinutes ?? 15
-  return grid >= 15 && 60 % grid === 0 ? 60 / grid : 0
-})
-function minuteColumn(slot: DaylightSlot): string | undefined {
-  if (minuteColumns.value === 0) return undefined
-  const grid = 60 / minuteColumns.value
-  return String(Math.floor((slot.minutes % 60) / grid) + 1)
-}
-
-// Tocar un tramo libre de la franja elige la hora libre que cae ahí.
-function pickFromStrip(minutes: number) {
-  const slots = flatSlots.value
-  if (slots.length === 0) return
-  const step = success.value?.slotGridMinutes || 15
-  const inside = slots.find((s) => s.minutes <= minutes && minutes < s.minutes + step)
-  const slot =
-    inside ??
-    slots.reduce((best, s) =>
-      Math.abs(s.minutes - minutes) < Math.abs(best.minutes - minutes) ? s : best,
-    )
-  selectSlot(slot)
-  void revealSlot(slot)
-}
-
-// Lleva a la vista el chip elegido desde la franja: si asoma, lo justo
-// ('nearest'); si está fuera, al centro. Sin desplazamiento suave con
-// movimiento reducido.
-async function revealSlot(slot: DaylightSlot) {
-  await nextTick()
-  const el = slotRefs.value[slot.startsAt]
-  if (!el?.scrollIntoView) return
-  const box = el.getBoundingClientRect()
-  // La barra del pase tapa el pie de la ventana en móvil.
-  const bottom = window.innerHeight - (window.innerWidth < 1024 ? 96 : 0)
-  const outside = box.bottom < 0 || box.top > bottom
-  const reduced =
-    document.documentElement.dataset.motion === 'reduced' ||
-    (window.matchMedia?.('(prefers-reduced-motion: reduce)').matches ?? false)
-  el.scrollIntoView({
-    block: outside ? 'center' : 'nearest',
-    behavior: reduced ? 'auto' : 'smooth',
-  })
-}
-
-function onSlotsKeydown(event: KeyboardEvent) {
-  const count = flatSlots.value.length
-  if (count === 0) return
-  let next: number | null = null
-  if (event.key === 'ArrowRight' || event.key === 'ArrowDown')
-    next = (activeSlotIndex.value + 1) % count
-  else if (event.key === 'ArrowLeft' || event.key === 'ArrowUp')
-    next = (activeSlotIndex.value - 1 + count) % count
-  else if (event.key === 'Home') next = 0
-  else if (event.key === 'End') next = count - 1
-  if (next === null) return
-  event.preventDefault()
-  activeSlotIndex.value = next
-  const slot = flatSlots.value[next]!
-  selectSlot(slot)
-  slotRefs.value[slot.startsAt]?.focus()
 }
 
 // ── Pase ──────────────────────────────────────────────────────────────────
@@ -610,132 +409,17 @@ const failedRequestId = computed(() =>
           </div>
 
           <template v-else>
-            <h2 class="pb-sr-only">Día</h2>
-            <div
-              class="bk-days-wrap"
-              :class="{ 'bk-days-wrap--before': moreBefore, 'bk-days-wrap--after': moreAfter }"
-            >
-              <div
-                ref="daysEl"
-                class="bk-days"
-                role="radiogroup"
-                aria-label="Día"
-                @keydown="onDaysKeydown"
-                @scroll.passive="measureDays"
-              >
-                <button
-                  v-for="(day, index) in days"
-                  :key="day.civilDate"
-                  :ref="(el) => setDayRef(el, index)"
-                  type="button"
-                  role="radio"
-                  class="bk-day"
-                  :style="{ '--i': index }"
-                  :aria-checked="day.civilDate === activeDate"
-                  :aria-label="dayAria(day)"
-                  :tabindex="day.civilDate === activeDate ? 0 : -1"
-                  @click="chooseDay(index)"
-                >
-                  <span class="bk-day__month">{{ monthOf(index) }}</span>
-                  <span class="bk-day__weekday">{{ civilDateChip(day.civilDate).weekday }}</span>
-                  <span class="bk-day__number">{{ civilDateChip(day.civilDate).day }}</span>
-                  <span class="bk-day__light"
-                    ><span :style="{ inlineSize: `${Math.max(8, day.freeRatio * 100)}%` }"></span
-                  ></span>
-                </button>
-              </div>
-              <!-- Atajo de puntero: con teclado, las flechas del grupo recorren los días. -->
-              <button
-                v-if="moreBefore"
-                type="button"
-                class="bk-days__nav bk-days__nav--before"
-                tabindex="-1"
-                aria-hidden="true"
-                @click="scrollDays(-1)"
-              >
-                ‹
-              </button>
-              <button
-                v-if="moreAfter"
-                type="button"
-                class="bk-days__nav bk-days__nav--after"
-                tabindex="-1"
-                aria-hidden="true"
-                @click="scrollDays(1)"
-              >
-                ›
-              </button>
-            </div>
-
-            <template v-if="activeDay">
-              <h2 class="bk-day-title">{{ formatCivilDateFull(activeDay.civilDate) }}</h2>
-              <DaylightStrip
-                class="bk-daytime__strip"
-                variant="map"
-                :open="activeOpen"
-                :free="activeFree"
-                :selected="selectedMinutes"
-                :arrive="arriving"
-                @pick="pickFromStrip"
-              />
-
-              <!-- Una fila por hora, como una agenda: la hora grande a la
-                   izquierda y sus minutos libres como chips en columnas fijas.
-                   La elegida pasa a Sol sin mover nada. -->
-              <div
-                :key="activeDay.civilDate"
-                class="bk-hours"
-                role="radiogroup"
-                aria-label="Hora"
-                @keydown="onSlotsKeydown"
-              >
-                <section
-                  v-for="group in activeDay.groups"
-                  :key="group.part"
-                  class="bk-hours__group"
-                  :class="`bk-hours__group--${group.part}`"
-                  :aria-label="group.label"
-                >
-                  <h3 class="bk-hours__label">
-                    <span class="bk-hours__sky" aria-hidden="true"></span>{{ group.label }}
-                  </h3>
-                  <div
-                    v-for="row in group.rows"
-                    :key="row.label"
-                    class="bk-hrow"
-                    :class="{
-                      'bk-hrow--chosen': row.slots.some((s) => s.startsAt === selected?.startsAt),
-                    }"
-                  >
-                    <span class="bk-hrow__hour" aria-hidden="true"
-                      ><span class="bk-hrow__number">{{ row.hour }}</span
-                      ><span class="bk-hrow__meridiem">{{ row.meridiem }}</span></span
-                    >
-                    <div
-                      class="bk-hrow__mins"
-                      :class="{ 'bk-hrow__mins--flow': minuteColumns === 0 }"
-                      :style="{ '--bk-cols': minuteColumns || undefined }"
-                    >
-                      <button
-                        v-for="slot in row.slots"
-                        :key="slot.startsAt"
-                        :ref="(el) => setSlotRef(el, slot.startsAt)"
-                        type="button"
-                        role="radio"
-                        class="bk-min"
-                        :style="{ gridColumn: minuteColumn(slot) }"
-                        :aria-checked="selected?.startsAt === slot.startsAt"
-                        :aria-label="slot.spokenLabel"
-                        :tabindex="flatSlots[activeSlotIndex]?.startsAt === slot.startsAt ? 0 : -1"
-                        @click="selectSlot(slot)"
-                      >
-                        {{ slot.minuteLabel }}
-                      </button>
-                    </div>
-                  </div>
-                </section>
-              </div>
-            </template>
+            <DayTimePicker
+              v-model:active-date="activeDate"
+              :days="days"
+              :selected-start="selected?.startsAt ?? null"
+              :slot-grid-minutes="success?.slotGridMinutes ?? 15"
+              :duration-minutes="success?.durationMinutes ?? 0"
+              :opening-hours="publicProfileFor(props.slug)?.openingHours ?? []"
+              :timezone="timezone"
+              :arrive="arriving"
+              @select="selectSlot"
+            />
           </template>
         </template>
       </div>

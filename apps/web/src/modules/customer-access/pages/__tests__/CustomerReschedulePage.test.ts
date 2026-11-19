@@ -105,8 +105,9 @@ async function mountPage() {
   return wrapper
 }
 
-const slots = (w: VueWrapper) => w.findAll('[role="radio"]')
-const days = (w: VueWrapper) => w.findAll('.reschedule__day')
+// El selector es el de «Día y hora» (DayTimePicker): días y horas son grupos de radio.
+const slots = (w: VueWrapper) => w.findAll('.bk-hours [role="radio"]')
+const days = (w: VueWrapper) => w.findAll('.bk-days [role="radio"]')
 const confirmButton = (w: VueWrapper) =>
   w
     .findAll('button')
@@ -129,11 +130,17 @@ describe('CustomerReschedulePage', () => {
     mockLoad()
     const w = await mountPage()
 
-    expect(w.find('h1').text()).toBe('Barbería Ejemplo')
+    expect(w.find('h1').text()).toBe('Cambiar la hora')
+    expect(w.text()).toContain('Barbería Ejemplo')
     expect(w.text()).toContain('Hora actual')
     expect(w.text()).toContain('Corte clásico')
+    // La zona en palabras, nunca el identificador IANA («Bogota» sin tilde).
+    expect(w.text()).toContain('Hora de Colombia')
+    expect(w.text()).not.toContain('Bogota')
+    // La franja del día marca la hora actual con el rombo hueco.
+    expect(w.find('.daylight__marker--current').exists()).toBe(true)
     expect(days(w)).toHaveLength(2)
-    expect(days(w)[0]!.attributes('aria-current')).toBe('date')
+    expect(days(w)[0]!.attributes('aria-checked')).toBe('true')
     expect(w.text()).toContain('Te quedan 2 cambios')
     expect(w.text()).toContain('Puedes cambiarla hasta las')
     expect(confirmButton(w).attributes('disabled')).toBeDefined()
@@ -156,7 +163,7 @@ describe('CustomerReschedulePage', () => {
     const w = await mountPage()
 
     await days(w)[1]!.trigger('click')
-    expect(days(w)[1]!.attributes('aria-current')).toBe('date')
+    expect(days(w)[1]!.attributes('aria-checked')).toBe('true')
     await slots(w)[0]!.trigger('click')
 
     expect(slots(w)[0]!.attributes('aria-checked')).toBe('true')
@@ -166,20 +173,20 @@ describe('CustomerReschedulePage', () => {
     expect(w.find('[role="status"].visually-hidden').text()).toContain('Nueva hora elegida')
   })
 
-  it('con el teclado las flechas mueven el foco y Enter elige', async () => {
+  it('con el teclado las flechas recorren y eligen, como en «Día y hora»', async () => {
     mockLoad()
     const w = await mountPage()
     await days(w)[1]!.trigger('click')
     await flushPromises()
 
-    const group = w.find('[role="radiogroup"]')
+    const group = w.find('.bk-hours[role="radiogroup"]')
     expect(slots(w)[0]!.attributes('tabindex')).toBe('0')
     await group.trigger('keydown', { key: 'ArrowRight' })
     await flushPromises()
     expect(slots(w)[1]!.attributes('tabindex')).toBe('0')
     expect(document.activeElement).toBe(slots(w)[1]!.element)
-    await group.trigger('keydown', { key: 'Enter' })
     expect(slots(w)[1]!.attributes('aria-checked')).toBe('true')
+    expect(confirmButton(w).attributes('disabled')).toBeUndefined()
   })
 
   it('confirma con If-Match y clave de idempotencia y muestra el boleto nuevo', async () => {
@@ -215,7 +222,7 @@ describe('CustomerReschedulePage', () => {
     await flushPromises()
 
     expect(w.text()).toContain('Esa hora se acaba de ocupar')
-    expect(days(w)[1]!.attributes('aria-current')).toBe('date')
+    expect(days(w)[1]!.attributes('aria-checked')).toBe('true')
     expect(slots(w)).toHaveLength(1)
     expect(slots(w)[0]!.attributes('aria-checked')).toBe('false')
   })

@@ -51,10 +51,7 @@ async function mountAt(slug: string) {
     ],
   })
   await router.push(`/reservar/${slug}`)
-  const wrapper = mount(
-    { template: '<RouterView />' },
-    { global: { plugins: [router], stubs: { BookingBackdrop: true } } },
-  )
+  const wrapper = mount({ template: '<RouterView />' }, { global: { plugins: [router] } })
   await flushPromises()
   return { wrapper, router }
 }

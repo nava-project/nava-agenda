@@ -253,7 +253,7 @@ test.describe('HU-105 · entrar al turno con un código', () => {
       'href',
       `/mi-turno/${TOKEN_B}/reprogramar`,
     )
-    await page.getByRole('button', { name: '← Elegir otro turno' }).click()
+    await page.getByRole('button', { name: 'Elegir otro turno' }).click()
     await expect(page.getByRole('heading', { level: 1, name: 'Elige tu turno' })).toBeVisible()
   })
 

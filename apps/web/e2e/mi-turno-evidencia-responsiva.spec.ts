@@ -82,7 +82,8 @@ for (const viewport of viewports) {
       })
 
       await page.goto(ROUTE)
-      await expect(page.getByRole('heading', { name: 'Barbería Ejemplo' })).toBeVisible()
+      await expect(page.getByRole('heading', { level: 1, name: 'Tu turno' })).toBeVisible()
+      await expect(page.getByRole('banner')).toContainText('Barbería Ejemplo')
 
       const hasHorizontalScroll = await page.evaluate(
         () => document.documentElement.scrollWidth > document.documentElement.clientWidth,
@@ -96,7 +97,9 @@ for (const viewport of viewports) {
       await assertNoAxeViolations(page)
     })
 
-    test(`enlace inválido, con reintento visible y foco por teclado (${viewport.name}px)`, async ({
+    // v2 (DEC-188): un enlace que no existe no ofrece «Reintentar» (no cambiaría nada); la
+    // pantalla orienta a abrirlo de nuevo desde el correo, y el foco recorre sus enlaces.
+    test(`enlace inválido, orientado y con foco por teclado (${viewport.name}px)`, async ({
       page,
     }) => {
       await page.route('**/api/v1/customer/appointments/**', async (route) => {
@@ -118,9 +121,11 @@ for (const viewport of viewports) {
       await page.goto('/mi-turno/token-invalido')
       await expect(page.getByRole('alert')).toContainText('No pudimos abrir ese enlace')
 
-      const retryButton = page.getByRole('button', { name: 'Reintentar' })
-      await retryButton.focus()
-      await expect(retryButton).toBeFocused()
+      await expect(page.getByRole('alert')).toContainText('desde el correo de tu reserva')
+      await expect(page.getByRole('button', { name: 'Reintentar' })).toHaveCount(0)
+      const legal = page.getByRole('link', { name: 'Privacidad' })
+      await legal.focus()
+      await expect(legal).toBeFocused()
 
       await page.screenshot({
         path: path.join(evidenceDir, viewport.name, 'enlace-invalido.png'),

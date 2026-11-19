@@ -11,7 +11,7 @@
  *   amaneciendo de izquierda a derecha.
  * - `map` (Día y hora): el mapa del día. Los tramos libres quedan encendidos,
  *   lo abierto sin horas se apaga y lo cerrado se raya; la hora elegida es un
- *   rombo Sol. Tocar un tramo libre emite `pick` con esos minutos: es un atajo
+ *   rombo Sol y, al cambiar la hora de un turno, la actual un rombo hueco. Tocar un tramo libre emite `pick` con esos minutos: es un atajo
  *   de puntero, la misma elección está en el grupo de horas (teclado y lector).
  *
  * Para la tecnología de asistencia solo existe `label`, una frase con lo que
@@ -31,6 +31,10 @@ interface Props {
   free?: Interval[]
   /** Hora elegida (Sol, rombo). Excluye `now`. */
   selected?: number | null
+  /** Hora que ya tiene el turno («Cambiar la hora»): un rombo hueco. */
+  current?: number | null
+  /** Rótulo de la hora elegida en la leyenda del mapa. */
+  selectedLabel?: string
   /** «Ahora» (sol o luna), solo si no hay `selected`. */
   now?: number | null
   /** Resumen accesible; sin él la franja es decorativa. */
@@ -45,6 +49,8 @@ interface Props {
 const props = withDefaults(defineProps<Props>(), {
   free: () => [],
   selected: null,
+  current: null,
+  selectedLabel: 'Tu hora',
   now: null,
   label: '',
   arrive: false,
@@ -208,6 +214,11 @@ function onPick(event: MouseEvent) {
         :style="{ left: pct(marker.at), top: `${marker.top}%` }"
       ></span>
       <span
+        v-if="props.current !== null && props.variant === 'map'"
+        class="daylight__marker daylight__marker--current"
+        :style="{ left: pct(props.current), top: '50%' }"
+      ></span>
+      <span
         v-if="marker"
         class="daylight__marker"
         :class="`daylight__marker--${marker.kind}`"
@@ -232,8 +243,15 @@ function onPick(event: MouseEvent) {
       <span v-if="closed.length > 0"
         ><i class="daylight__key daylight__key--closed"></i>Cerrado</span
       >
-      <span v-if="props.selected !== null"
-        ><i class="daylight__key daylight__key--sun"></i>Tu hora</span
+      <span v-if="props.current !== null"
+        ><i class="daylight__key daylight__key--current"></i>Hora actual</span
+      >
+      <!-- Siempre ocupa su sitio: elegir una hora no reacomoda la leyenda ni empuja
+           las horas de debajo cuando la leyenda se parte en dos líneas. -->
+      <span
+        :class="{ 'daylight__legend-slot--empty': props.selected === null }"
+        :aria-hidden="props.selected === null ? 'true' : undefined"
+        ><i class="daylight__key daylight__key--sun"></i>{{ props.selectedLabel }}</span
       >
     </p>
   </div>
@@ -351,6 +369,15 @@ function onPick(event: MouseEvent) {
   rotate: 45deg;
 }
 
+.daylight__marker--current {
+  width: 14px;
+  height: 14px;
+  background: var(--color-canvas);
+  border: 2px solid var(--color-text-primary);
+  border-radius: 2px;
+  rotate: 45deg;
+}
+
 .daylight__hours {
   position: absolute;
   inset: auto 0 0;
@@ -400,6 +427,10 @@ function onPick(event: MouseEvent) {
   align-items: center;
 }
 
+.daylight__legend-slot--empty {
+  visibility: hidden;
+}
+
 .daylight__key {
   display: inline-block;
   width: 14px;
@@ -424,6 +455,16 @@ function onPick(event: MouseEvent) {
       transparent 1.5px 4px
     ),
     var(--dl-off);
+}
+
+.daylight__key--current {
+  width: 9px;
+  height: 9px;
+  margin: 0 2px;
+  background: transparent;
+  border: 1.5px solid var(--color-text-primary);
+  box-shadow: none;
+  rotate: 45deg;
 }
 
 .daylight__key--sun {

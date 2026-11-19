@@ -166,7 +166,8 @@ test.describe('HU-106 · el enlace de Odin', () => {
     await typeCode(page, GOOD_CODE)
 
     await expect(page).toHaveURL(new RegExp(`/mi-turno/${TOKEN}/reprogramar$`))
-    await expect(page.getByRole('heading', { name: 'Barbería Ejemplo' })).toBeVisible()
+    await expect(page.getByRole('heading', { level: 1, name: 'Cambiar la hora' })).toBeVisible()
+    await expect(page.getByRole('banner')).toContainText('Barbería Ejemplo')
   })
 
   test('código incorrecto: error uniforme, se limpia y a los cinco se bloquea', async ({

@@ -4,7 +4,7 @@
 // reseña (formulario), el cliente ya la dejó (se muestra de solo lectura) o ninguno
 // (no renderiza nada: un turno no completado nunca ofrece «Calificar», CA-100-01).
 import { computed, ref } from 'vue'
-import { BaseAlert, BaseButton, StarRating, StarRatingInput } from '@/shared/ui'
+import { BaseAlert, StarRating, StarRatingInput } from '@/shared/ui'
 import { commentLength, REVIEW_COMMENT_MAX_LENGTH } from '@/shared/model/rating'
 import type { CustomerReview, ReviewInput } from '../model/customerAppointmentOutcome'
 
@@ -39,13 +39,15 @@ function onSubmit() {
 </script>
 
 <template>
-  <section v-if="canReview" class="appointment-review" aria-labelledby="appointment-review-title">
-    <h2 id="appointment-review-title" class="appointment-review__title">
-      Califica a {{ professionalName }}
-    </h2>
-    <p class="appointment-review__lead">Tu opinión ayuda a otras personas a elegir. Es pública.</p>
+  <section
+    v-if="canReview"
+    class="mt-section appointment-review"
+    aria-labelledby="appointment-review-title"
+  >
+    <h2 id="appointment-review-title">Califica a {{ professionalName }}</h2>
+    <p class="mt-section__lead">Tu opinión ayuda a otras personas a elegir. Es pública.</p>
 
-    <form class="appointment-review__form" novalidate @submit.prevent="onSubmit">
+    <form class="mt-section mt-section--flush" novalidate @submit.prevent="onSubmit">
       <StarRatingInput
         v-model="rating"
         legend="Tu calificación"
@@ -53,49 +55,52 @@ function onSubmit() {
         :disabled="submitting"
       />
 
-      <div class="appointment-review__field">
-        <label for="appointment-review-comment" class="appointment-review__label">
-          Comentario <span class="appointment-review__optional">(opcional)</span>
+      <div class="mt-field">
+        <label for="appointment-review-comment">
+          Comentario <span class="mt-field__optional">(opcional)</span>
         </label>
         <textarea
           id="appointment-review-comment"
           v-model="comment"
-          class="appointment-review__textarea"
           rows="4"
           name="comment"
           :disabled="submitting"
           :aria-invalid="!!commentError"
           aria-describedby="appointment-review-hint"
         />
-        <div class="appointment-review__foot">
-          <p id="appointment-review-hint" class="appointment-review__hint">
+        <div class="mt-field__foot">
+          <p id="appointment-review-hint">
             No escribas teléfonos, direcciones ni nombres de otras personas.
           </p>
           <span
-            class="appointment-review__counter"
-            :class="{ 'appointment-review__counter--over': overLimit }"
+            class="mt-field__counter"
+            :class="{ 'mt-field__counter--over': overLimit }"
             aria-hidden="true"
             >{{ length }} / {{ REVIEW_COMMENT_MAX_LENGTH }}</span
           >
         </div>
-        <p v-if="commentError" class="appointment-review__error" role="alert">
+        <p v-if="commentError" class="mt-field__error" role="alert">
           {{ commentError }}
         </p>
       </div>
 
       <BaseAlert v-if="errorMessage" variant="danger" role="alert">{{ errorMessage }}</BaseAlert>
 
-      <BaseButton type="submit" variant="primary" :loading="submitting">Enviar reseña</BaseButton>
+      <div class="mt-section__actions">
+        <button type="submit" class="bk-cta" :disabled="submitting" :aria-busy="submitting">
+          {{ submitting ? 'Enviando…' : 'Enviar reseña' }}
+        </button>
+      </div>
     </form>
   </section>
 
   <section
     v-else-if="props.review"
-    class="appointment-review"
+    class="mt-section appointment-review"
     aria-labelledby="appointment-review-title"
   >
-    <h2 id="appointment-review-title" class="appointment-review__title">Gracias por tu reseña</h2>
-    <p class="appointment-review__lead">Así la ven quienes eligen a {{ professionalName }}.</p>
+    <h2 id="appointment-review-title">Gracias por tu reseña</h2>
+    <p class="mt-section__lead">Así la ven quienes eligen a {{ professionalName }}.</p>
     <StarRating :rating="props.review.rating" :count="1" :show-value="false" />
     <p v-if="props.review.comment" class="appointment-review__comment">
       {{ props.review.comment }}
@@ -104,129 +109,10 @@ function onSubmit() {
 </template>
 
 <style scoped>
-.appointment-review {
-  --star-filled-color: var(--color-brand-accent-surface);
-
-  display: flex;
-  width: 100%;
-  flex-direction: column;
-  align-items: stretch;
-  gap: var(--space-3);
-  padding-top: var(--space-5);
-  text-align: left;
-  border-top: 1px solid color-mix(in srgb, var(--color-on-strong) 14%, transparent);
-}
-
-.appointment-review__title {
-  margin: 0;
-  font-family: var(--font-display);
-  font-size: 30px;
-  font-weight: 400;
-  line-height: 36px;
-  color: var(--color-on-strong);
-}
-
-.appointment-review__lead,
 .appointment-review__comment {
-  margin: 0;
-  font-family: var(--font-family-base);
-  font-size: var(--font-size-body);
-  color: var(--color-on-strong-soft);
-}
-
-.appointment-review__comment {
-  color: var(--color-on-strong);
-  overflow-wrap: anywhere;
-}
-
-.appointment-review__form {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-4);
-  color: var(--color-on-strong);
-}
-
-.appointment-review__form :deep(.star-input__legend) {
-  font-family: var(--font-family-base);
-  font-size: 11px;
-  font-weight: 600;
-  line-height: 16px;
-  letter-spacing: 0.12em;
-  text-transform: uppercase;
-  color: var(--color-brand-accent-surface);
-}
-
-.appointment-review__field {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-2);
-}
-
-.appointment-review__label {
-  font-family: var(--font-family-base);
-  font-size: 11px;
-  font-weight: 600;
-  line-height: 16px;
-  letter-spacing: 0.12em;
-  text-transform: uppercase;
-  color: var(--color-brand-accent-surface);
-}
-
-.appointment-review__optional {
-  font-weight: 400;
-  letter-spacing: normal;
-  text-transform: none;
-  color: var(--color-on-strong-soft);
-}
-
-.appointment-review__textarea {
-  width: 100%;
-  min-height: 96px;
-  padding: 12px var(--space-4);
-  font-family: var(--font-family-base);
-  font-size: var(--font-size-body);
-  line-height: var(--font-size-body-line);
-  color: var(--color-on-strong);
-  resize: vertical;
-  background-color: color-mix(in srgb, #000 46%, var(--color-surface-strong));
-  border: var(--border-width-normal) solid
-    color-mix(in srgb, var(--color-on-strong) 30%, transparent);
-  border-bottom: var(--border-width-emphasis) solid
-    color-mix(in srgb, var(--color-brand-accent-surface) 75%, transparent);
-  border-radius: 2px;
-}
-
-.appointment-review__textarea:focus-visible {
-  outline: 2px solid var(--color-brand-accent-surface);
-  outline-offset: 2px;
-}
-
-.appointment-review__foot {
-  display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
-  gap: var(--space-3);
-}
-
-.appointment-review__hint {
-  margin: 0;
-  font-family: var(--font-family-base);
-  font-size: 13px;
-  color: var(--color-on-strong-soft);
-}
-
-.appointment-review__counter {
-  flex: none;
-  font-family: var(--font-family-base);
-  font-size: 13px;
-  color: var(--color-on-strong-soft);
-}
-
-.appointment-review__counter--over,
-.appointment-review__error {
-  margin: 0;
-  font-family: var(--font-family-base);
-  font-size: 13px;
-  color: var(--color-danger-on-strong);
+  padding-left: var(--space-3);
+  font-size: 15px;
+  line-height: 1.5;
+  border-left: 3px solid var(--color-border-control);
 }
 </style>

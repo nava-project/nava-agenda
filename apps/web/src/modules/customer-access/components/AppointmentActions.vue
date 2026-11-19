@@ -6,15 +6,16 @@
 // Lee el turno con la misma credencial de 60 minutos (HU-105). «Cambiar la hora» lleva a la
 // pantalla de HU-104; «Cancelar turno» se confirma aquí mismo con las reglas de HU-099. Las
 // dos se ofrecen según la pista local; el servidor sigue decidiendo y su rechazo prevalece.
-// Sin mockup asignado: identidad guiada NAVA / Tailored Grid (DEC-078).
+// v2 (DEC-188, 2c): el pase compacto y dos filas de acción, como las filas del catálogo.
 import { computed, nextTick, onMounted, ref, watch } from 'vue'
-import { BaseAlert, BaseButton } from '@/shared/ui'
+import { BaseAlert } from '@/shared/ui'
 import { buildVocabularyFromTerms } from '@/shared/model'
 import { formatTimeInTimezone } from '@/shared/time/formatInstant'
 import { getCustomerAppointment } from '../api/getCustomerAppointmentApi'
 import { useAppointmentCancel } from '../composables/useAppointmentCancel'
 import AppointmentCancellation from './AppointmentCancellation.vue'
-import { calendarLeaf, timezoneCity } from '../model/appointmentMoment'
+import { calendarLeaf } from '../model/appointmentMoment'
+import { timezoneLabel } from '@/shared/time/timezoneName'
 import { cancellationAvailability } from '../model/cancellationAvailability'
 import { rescheduleAvailability } from '../model/rescheduleAvailability'
 import type {
@@ -92,7 +93,7 @@ const summary = computed(() => {
     leaf: calendarLeaf(a.startsAt, a.timezone),
     start: formatTimeInTimezone(a.startsAt, a.timezone),
     end: formatTimeInTimezone(a.endsAt, a.timezone),
-    city: timezoneCity(a.timezone),
+    zone: timezoneLabel(a.timezone),
   }
 })
 
@@ -211,27 +212,28 @@ const bookAgainHref = computed(() => `/reservar/${encodeURIComponent(props.slug)
               : 'No pudimos abrir tu turno. Inténtalo de nuevo.'
         }}
       </BaseAlert>
-      <BaseButton variant="secondary" @click="load">Reintentar</BaseButton>
+      <button type="button" class="mt-button" @click="load">Reintentar</button>
     </div>
 
     <template v-else-if="appointment && summary">
       <!-- El turno en una línea: lo justo para reconocerlo antes de decidir. -->
-      <article class="actions__ticket" aria-labelledby="actions-ticket-when">
-        <span class="actions__leaf" aria-hidden="true">
-          <span class="actions__leaf-month">{{ summary.leaf.month }}</span>
-          <span class="actions__leaf-day">{{ summary.leaf.day }}</span>
-        </span>
+      <article
+        class="actions__ticket"
+        :class="{ 'actions__ticket--off': isCancelled }"
+        aria-labelledby="actions-ticket-when"
+      >
         <div class="actions__ticket-body">
           <span v-if="isCancelled" class="actions__stamp">Cancelado</span>
           <h2 id="actions-ticket-when" class="actions__when">
-            <span class="actions__weekday">{{ summary.leaf.weekday }}</span
-            >,
+            <span class="actions__weekday"
+              >{{ summary.leaf.weekday }} {{ summary.leaf.day }} {{ summary.leaf.month }}</span
+            ><span class="visually-hidden">,</span>
             <span class="actions__time">{{ summary.start }} – {{ summary.end }}</span>
           </h2>
           <p class="actions__what">
             {{ appointment.serviceName }} con {{ appointment.professionalName }}
           </p>
-          <p class="actions__where">{{ appointment.businessName }} · Hora de {{ summary.city }}</p>
+          <p class="actions__where">{{ appointment.businessName }} · {{ summary.zone }}</p>
         </div>
       </article>
 
@@ -240,7 +242,7 @@ const bookAgainHref = computed(() => `/reservar/${encodeURIComponent(props.slug)
       <div v-if="justCancelled" class="actions__done" tabindex="-1" role="status">
         <p class="actions__done-title">Tu turno quedó cancelado</p>
         <p class="actions__done-text">Liberamos el horario. Si quieres volver, reserva de nuevo.</p>
-        <a class="actions__done-link" :href="bookAgainHref">Reservar otro turno →</a>
+        <a class="bk-link actions__done-link" :href="bookAgainHref">Reservar otro turno</a>
       </div>
 
       <p v-else-if="isCancelled" class="actions__note">
@@ -304,230 +306,183 @@ const bookAgainHref = computed(() => `/reservar/${encodeURIComponent(props.slug)
           @submit="submitCancel"
           @close="backToMenu"
         />
-        <button v-if="cancelUnavailable" type="button" class="actions__back" @click="backToMenu">
-          ← Volver a las opciones
+        <button v-if="cancelUnavailable" type="button" class="bk-link" @click="backToMenu">
+          Volver a las opciones
         </button>
       </div>
 
-      <a class="actions__full" :href="myTurnHref">Ver el detalle completo del turno</a>
+      <a class="bk-link actions__full" :href="myTurnHref">Ver el detalle completo del turno</a>
     </template>
   </div>
 </template>
 
 <style scoped>
+/* v2 (DEC-188, 2c). El pase compacto, las acciones como filas del catálogo y el aviso
+   de cancelado. Colores de tokens; la única acción con acento es la fila elegida al
+   pasar, nunca «Cancelar». */
 .actions {
-  --ax-text: var(--color-on-strong);
-  --ax-soft: var(--color-on-strong-soft);
-  --ax-muted: var(--color-on-strong-muted);
-  --ax-brass: var(--color-brand-accent-surface);
-  --ax-line: color-mix(in srgb, var(--ax-text) 14%, transparent);
-  --ax-line-strong: color-mix(in srgb, var(--ax-text) 30%, transparent);
-  --ax-panel: color-mix(in srgb, #000 26%, var(--color-surface-strong));
-  --ax-ease: cubic-bezier(0.2, 0.7, 0.2, 1);
-
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-5);
-  color: var(--ax-text);
+  display: grid;
+  gap: var(--space-4);
 }
 
 .actions__loading {
   display: flex;
-  gap: var(--space-3);
+  gap: var(--space-2);
   align-items: center;
   margin: 0;
   font-size: 15px;
-  color: var(--ax-soft);
+  color: var(--color-text-secondary);
 }
 
 .actions__pulse {
   width: 8px;
   height: 8px;
-  background-color: var(--ax-brass);
-  transform: rotate(45deg);
-  animation: ax-pulse 1.1s ease-in-out infinite alternate;
+  background-color: var(--color-sun);
+  border-radius: 50%;
+  animation: actions-pulse 1.2s ease-in-out infinite;
 }
 
 .actions__error {
-  display: flex;
-  flex-direction: column;
+  display: grid;
   gap: var(--space-3);
-  align-items: flex-start;
+  justify-items: start;
 }
-
-/* ── El turno en una línea ─────────────────────────────────────────────── */
 
 .actions__ticket {
   position: relative;
-  display: grid;
-  grid-template-columns: auto 1fr;
-  gap: var(--space-4);
-  align-items: center;
-  padding: var(--space-4);
-  background-color: var(--ax-panel);
-  border: 1px solid var(--ax-line);
-  border-top: 3px solid var(--ax-brass);
-  border-radius: 2px;
-  animation: ax-rise 0.6s var(--ax-ease) backwards;
+  padding: var(--space-4) var(--space-5);
+  overflow: hidden;
+  background-color: var(--color-surface);
+  border: 1px solid var(--color-border-subtle);
+  border-radius: var(--radius-lg);
 }
 
-.actions__leaf {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  min-width: 56px;
-  padding: var(--space-2) var(--space-1);
-  color: var(--color-brand-accent-text);
-  background-color: var(--ax-brass);
-  border-radius: 2px;
+.actions__ticket::before {
+  position: absolute;
+  inset: 0 auto 0 0;
+  width: 4px;
+  content: '';
+  background-color: var(--bk-accent, var(--color-brand-accent-surface));
 }
 
-.actions__leaf-month {
-  font-size: 11px;
-  font-weight: 700;
-  letter-spacing: 0.12em;
-  text-transform: uppercase;
-}
-
-.actions__leaf-day {
-  font-family: var(--font-display);
-  font-size: 28px;
-  line-height: 1;
+.actions__ticket--off::before {
+  background-color: var(--color-border-control);
 }
 
 .actions__ticket-body {
-  display: flex;
-  flex-direction: column;
+  display: grid;
   gap: 2px;
-  min-width: 0;
+}
+
+.actions__ticket-body p {
+  margin: 0;
+}
+
+.actions__stamp {
+  justify-self: start;
+  padding: 2px var(--space-2);
+  margin-bottom: var(--space-1);
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--color-inactive-text);
+  background-color: var(--color-inactive-surface);
+  border: 1px solid var(--color-inactive-border);
+  border-radius: 999px;
 }
 
 .actions__when {
+  display: grid;
   margin: 0;
-  font-family: var(--font-sans);
-  font-size: 17px;
-  font-weight: 600;
-  line-height: 24px;
+  font-size: 15px;
+  font-weight: 400;
+}
+
+.actions__weekday::first-letter {
+  text-transform: uppercase;
 }
 
 .actions__time {
-  white-space: nowrap;
+  font-size: 24px;
+  font-weight: 600;
+  line-height: 1.2;
+  font-variant-numeric: tabular-nums;
 }
 
-/* Solo el día de la semana lleva mayúscula inicial: «a. m.» no debe volverse «A. M.». */
-.actions__weekday {
-  text-transform: capitalize;
+.actions__ticket--off .actions__time {
+  color: var(--color-text-secondary);
+  text-decoration: line-through;
 }
 
-.actions__what,
-.actions__where {
-  margin: 0;
-  font-size: 14px;
-  line-height: 20px;
-  color: var(--ax-soft);
-  overflow-wrap: anywhere;
+.actions__what {
+  margin-top: var(--space-2);
+  font-size: 15px;
 }
 
 .actions__where {
   font-size: 13px;
-  color: var(--ax-muted);
+  color: var(--color-text-secondary);
 }
-
-.actions__stamp {
-  align-self: flex-start;
-  margin-bottom: var(--space-1);
-  padding: 2px var(--space-2);
-  font-size: 11px;
-  font-weight: 700;
-  letter-spacing: 0.12em;
-  text-transform: uppercase;
-  color: var(--color-danger-on-strong);
-  border: 1px solid currentcolor;
-  border-radius: 2px;
-}
-
-/* ── Las dos acciones ──────────────────────────────────────────────────── */
 
 .actions__menu {
   display: grid;
-  gap: var(--space-3);
+  gap: var(--space-2);
   padding: 0;
   margin: 0;
   list-style: none;
 }
 
-.actions__menu > li {
-  display: flex;
-  animation: ax-rise 0.6s var(--ax-ease) 0.08s backwards;
-}
-
-.actions__menu > li + li {
-  animation-delay: 0.16s;
-}
-
 .actions__choice {
-  display: grid;
-  grid-template-columns: auto 1fr auto;
-  gap: var(--space-4);
+  display: flex;
+  gap: var(--space-3);
   align-items: center;
   width: 100%;
-  min-height: 88px;
-  padding: var(--space-4) var(--space-5);
+  min-height: 72px;
+  padding: var(--space-3) var(--space-4);
   font: inherit;
-  color: var(--ax-text);
+  color: var(--color-text-primary);
   text-align: left;
   text-decoration: none;
   cursor: pointer;
-  background-color: var(--ax-panel);
-  border: 1px solid var(--ax-line);
-  border-radius: 2px;
+  background-color: var(--color-surface);
+  border: 1px solid var(--color-border-subtle);
+  border-radius: var(--radius-lg);
   transition:
-    transform 0.25s var(--ax-ease),
-    border-color 0.2s ease,
-    background-color 0.2s ease;
+    border-color var(--motion-duration-fast) ease,
+    transform var(--motion-duration-fast) ease;
 }
 
-.actions__choice:hover {
-  background-color: color-mix(in srgb, var(--ax-brass) 7%, var(--ax-panel));
-  border-color: color-mix(in srgb, var(--ax-brass) 55%, transparent);
-  transform: translateY(-2px);
-}
-
-.actions__choice:focus-visible {
-  outline: 2px solid var(--ax-brass);
-  outline-offset: 3px;
+a.actions__choice:hover {
+  border-color: var(--bk-accent, var(--color-brand-accent-surface));
 }
 
 .actions__choice--cancel:hover {
-  background-color: color-mix(in srgb, var(--color-danger-on-strong) 7%, var(--ax-panel));
-  border-color: color-mix(in srgb, var(--color-danger-on-strong) 55%, transparent);
+  border-color: var(--color-text-primary);
+}
+
+.actions__choice:hover .actions__go {
+  transform: translateX(3px);
 }
 
 .actions__choice--off {
   cursor: default;
-  opacity: 0.72;
+  background-color: transparent;
+  border-style: dashed;
 }
 
-.actions__choice--off:hover {
-  background-color: var(--ax-panel);
-  border-color: var(--ax-line);
-  transform: none;
+.actions__choice--off .actions__label,
+.actions__choice--off .actions__icon {
+  color: var(--color-text-secondary);
 }
 
 .actions__icon {
   display: grid;
+  flex: none;
   place-items: center;
-  width: 44px;
-  height: 44px;
-  color: var(--ax-brass);
-  border: 1px solid color-mix(in srgb, var(--ax-brass) 45%, transparent);
+  width: 40px;
+  height: 40px;
+  color: var(--color-text-primary);
+  background-color: var(--color-surface-muted);
   border-radius: 50%;
-}
-
-.actions__choice--cancel .actions__icon {
-  color: var(--color-danger-on-strong);
-  border-color: color-mix(in srgb, var(--color-danger-on-strong) 45%, transparent);
 }
 
 .actions__icon svg {
@@ -535,182 +490,93 @@ const bookAgainHref = computed(() => `/reservar/${encodeURIComponent(props.slug)
   stroke: currentcolor;
   stroke-width: 1.6;
   stroke-linecap: round;
-  stroke-linejoin: round;
 }
 
 .actions__text {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
+  display: grid;
+  flex: 1;
+  gap: 2px;
   min-width: 0;
 }
 
 .actions__label {
-  font-family: var(--font-display);
-  font-size: 24px;
-  line-height: 28px;
+  font-size: 16px;
+  font-weight: 600;
 }
 
 .actions__hint {
-  font-size: 14px;
-  line-height: 20px;
-  color: var(--ax-soft);
-  overflow-wrap: anywhere;
+  font-size: 13px;
+  color: var(--color-text-secondary);
 }
 
 .actions__go {
-  font-size: 20px;
-  color: var(--ax-brass);
-  transition: transform 0.25s var(--ax-ease);
+  flex: none;
+  color: var(--color-text-secondary);
+  transition: transform var(--motion-duration-fast) ease;
 }
-
-.actions__choice--cancel .actions__go {
-  color: var(--color-danger-on-strong);
-}
-
-.actions__choice:hover .actions__go {
-  transform: translateX(4px);
-}
-
-/* ── Cancelar aquí mismo ───────────────────────────────────────────────── */
-
-.actions__cancel {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-4);
-  padding: var(--space-5);
-  background-color: var(--ax-panel);
-  border: 1px solid var(--ax-line);
-  border-top: 3px solid var(--color-danger-on-strong);
-  border-radius: 2px;
-  animation: ax-rise 0.5s var(--ax-ease) backwards;
-}
-
-/* Dentro del panel la sección no necesita su propia raya superior. */
-.actions__cancel :deep(.appointment-cancel) {
-  padding-top: 0;
-  border-top: 0;
-}
-
-.actions__back {
-  align-self: flex-start;
-  min-height: 44px;
-  padding: 0;
-  font: inherit;
-  font-size: 14px;
-  font-weight: 600;
-  color: var(--ax-soft);
-  cursor: pointer;
-  background: none;
-  border: 0;
-}
-
-.actions__back:hover {
-  color: var(--ax-text);
-}
-
-.actions__back:focus-visible {
-  outline: 2px solid var(--ax-brass);
-  outline-offset: 3px;
-}
-
-/* ── Desenlaces y salida ───────────────────────────────────────────────── */
 
 .actions__done {
-  display: flex;
-  flex-direction: column;
+  display: grid;
   gap: var(--space-2);
-  padding: var(--space-5);
-  background-color: color-mix(in srgb, var(--color-success-on-strong) 10%, var(--ax-panel));
-  border: 1px solid color-mix(in srgb, var(--color-success-on-strong) 40%, transparent);
-  border-radius: 2px;
+  justify-items: start;
+  padding: var(--space-4) var(--space-5);
+  background-color: var(--color-success-surface);
+  border: 1px solid var(--color-success-border);
+  border-radius: var(--radius-lg);
+}
+
+.actions__done:focus {
+  outline: none;
 }
 
 .actions__done:focus-visible {
-  outline: 2px solid var(--ax-brass);
-  outline-offset: 3px;
+  outline: 2px solid var(--color-focus);
+  outline-offset: 2px;
+}
+
+.actions__done p {
+  margin: 0;
 }
 
 .actions__done-title {
-  margin: 0;
-  font-family: var(--font-display);
-  font-size: 26px;
-  line-height: 32px;
+  font-size: 17px;
+  font-weight: 600;
+  color: var(--color-success-text);
 }
 
 .actions__done-text,
 .actions__note {
   margin: 0;
   font-size: 15px;
-  line-height: 22px;
-  color: var(--ax-soft);
+  color: var(--color-text-secondary);
 }
 
-.actions__done-link {
-  align-self: flex-start;
-  margin-top: var(--space-2);
-  font-weight: 600;
-  color: var(--ax-brass);
+.actions__cancel {
+  display: grid;
+  gap: var(--space-3);
+  justify-items: start;
+}
+
+.actions__cancel > :first-child {
+  justify-self: stretch;
 }
 
 .actions__full {
-  align-self: center;
-  padding: var(--space-2) 0;
-  font-size: 14px;
-  color: var(--ax-soft);
-  text-underline-offset: 3px;
+  justify-self: start;
 }
 
-.actions__full:hover {
-  color: var(--ax-text);
-}
-
-.actions__full:focus-visible,
-.actions__done-link:focus-visible {
-  outline: 2px solid var(--ax-brass);
-  outline-offset: 3px;
-}
-
-@keyframes ax-rise {
-  from {
-    opacity: 0;
-    transform: translateY(10px);
-  }
-}
-
-@keyframes ax-pulse {
-  to {
+@keyframes actions-pulse {
+  50% {
     opacity: 0.35;
   }
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .actions__ticket,
-  .actions__menu > li,
-  .actions__cancel,
-  .actions__pulse {
-    animation: none;
-  }
-
+  .actions__pulse,
   .actions__choice,
   .actions__go {
+    animation: none;
     transition: none;
-  }
-
-  .actions__choice:hover,
-  .actions__choice:hover .actions__go {
-    transform: none;
-  }
-}
-
-@media (width < 400px) {
-  .actions__choice {
-    grid-template-columns: auto 1fr;
-    padding: var(--space-4);
-  }
-
-  .actions__go {
-    display: none;
   }
 }
 </style>

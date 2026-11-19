@@ -1,10 +1,6 @@
 // Pista local de la reprogramación (HU-104, DEC-178): misma regla que el servidor.
 import { describe, expect, it } from 'vitest'
-import {
-  groupStartsByCivilDate,
-  rescheduleAvailability,
-  sameInstant,
-} from '../rescheduleAvailability'
+import { rescheduleAvailability } from '../rescheduleAvailability'
 
 const STARTS_AT = '2027-03-15T15:00:00Z'
 const deadlineMs = Date.parse(STARTS_AT) - 20 * 60_000
@@ -59,31 +55,5 @@ describe('rescheduleAvailability', () => {
       mode: 'unavailable',
       reason: 'window-closed',
     })
-  })
-})
-
-describe('groupStartsByCivilDate', () => {
-  it('agrupa por el día civil del negocio, no del dispositivo', () => {
-    // 04:30Z del 16 sigue siendo el 15 en Bogotá (UTC-5).
-    const days = groupStartsByCivilDate(
-      ['2027-03-15T22:00:00Z', '2027-03-16T04:30:00Z', '2027-03-16T14:00:00Z'],
-      'America/Bogota',
-    )
-    expect(days).toEqual([
-      { civilDate: '2027-03-15', starts: ['2027-03-15T22:00:00Z', '2027-03-16T04:30:00Z'] },
-      { civilDate: '2027-03-16', starts: ['2027-03-16T14:00:00Z'] },
-    ])
-  })
-
-  it('sin inicios no hay días', () => {
-    expect(groupStartsByCivilDate([], 'America/Bogota')).toEqual([])
-  })
-})
-
-describe('sameInstant', () => {
-  it('compara el instante, no el texto', () => {
-    expect(sameInstant('2027-03-15T15:00:00Z', '2027-03-15T15:00:00.000Z')).toBe(true)
-    expect(sameInstant('2027-03-15T15:00:00Z', '2027-03-15T10:00:00-05:00')).toBe(true)
-    expect(sameInstant('2027-03-15T15:00:00Z', '2027-03-15T15:30:00Z')).toBe(false)
   })
 })

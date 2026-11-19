@@ -6,7 +6,7 @@
  * requestId, ausencia de identificadores internos (CA-098-03) y ausencia de
  * violaciones de accesibilidad (axe-core) en cada estado observable.
  */
-import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
+import { describe, it, expect, vi, beforeEach, afterEach, onTestFinished } from 'vitest'
 import { mount, flushPromises } from '@vue/test-utils'
 import { axe } from 'vitest-axe'
 
@@ -174,7 +174,11 @@ describe('CustomerAppointmentPage', () => {
     await flushPromises()
 
     expect(wrapper.text()).toContain('20 minutos antes')
-    expect(wrapper.findAll('button').map((b) => b.text())).toEqual(['Cancelar turno'])
+    // Un turno que aún viene también ofrece llevarlo al calendario (DEC-188, 2c).
+    expect(wrapper.findAll('button').map((b) => b.text())).toEqual([
+      'Añadir a mi calendario',
+      'Cancelar turno',
+    ])
 
     getMock.mockResolvedValueOnce({
       data: { ...successData(), status: 'completed' },
@@ -237,7 +241,7 @@ describe('CustomerAppointmentPage', () => {
     await flushPromises()
 
     expect(wrapper.text()).toContain('req-abc-123')
-    expect(wrapper.text()).toContain('Ocurrió un error inesperado')
+    expect(wrapper.text()).toContain('Algo no salió bien')
   })
 
   it('names the business and the professional with the words the business configured (DEC-119)', async () => {
@@ -736,12 +740,14 @@ describe('CustomerAppointmentPage · entrada a «Cambiar la hora» (HU-104)', ()
     expect(entry(wrapper).exists()).toBe(true)
     expect(entry(wrapper).attributes('href')).toBe('/mi-turno/tok%2Fraro/reprogramar')
     expect(entry(wrapper).text()).toContain('Cambiar la hora')
-    expect(entry(wrapper).text()).toContain('Puedes cambiarla hasta 2 veces')
+    // El aviso de cambios restantes describe el enlace (aria-describedby).
+    const hint = wrapper.get(`#${entry(wrapper).attributes('aria-describedby')}`)
+    expect(hint.text()).toContain('Puedes cambiarla hasta 2 veces')
   })
 
   it('con un solo cambio restante lo dice en singular', async () => {
     const wrapper = await mountWith({ rescheduleRemaining: 1 })
-    expect(entry(wrapper).text()).toContain('Te queda 1 cambio de hora')
+    expect(wrapper.get('.mt-actions').text()).toContain('Te queda 1 cambio de hora')
   })
 
   it.each([
@@ -766,13 +772,26 @@ describe('CustomerAppointmentPage · entrada a «Cambiar la hora» (HU-104)', ()
       document.body.innerHTML = ''
     })
 
-    it('con focus="cancel" deja el foco en el título de la cancelación, una sola vez', async () => {
+    it('con focus="cancel" abre la cancelación, la sube a la vista y enfoca su título', async () => {
+      const scrollIntoView = vi.fn()
+      const original = Element.prototype.scrollIntoView
+      Element.prototype.scrollIntoView = scrollIntoView
+      onTestFinished(() => {
+        Element.prototype.scrollIntoView = original
+      })
       getMock.mockResolvedValue({ data: successData(), error: undefined, response: okResponse() })
       const wrapper = mountAttached({ token: 'token-en-claro', focus: 'cancel' })
       await flushPromises()
 
       const title = wrapper.find('#appointment-cancel-title').element
       expect(document.activeElement).toBe(title)
+      // Llega abierta: el motivo y «Sí, cancelar mi turno» ya están, sin un segundo botón.
+      expect(wrapper.find('textarea').exists()).toBe(true)
+      expect(wrapper.text()).toContain('Sí, cancelar mi turno')
+      // El bloque sube a la vista (a 390 px quedaba bajo el pliegue).
+      expect(scrollIntoView).toHaveBeenCalledTimes(1)
+      expect(scrollIntoView.mock.contexts[0]).toBe(title.closest('section'))
+      expect(scrollIntoView.mock.calls[0]![0]).toMatchObject({ block: 'start' })
       wrapper.unmount()
     })
 

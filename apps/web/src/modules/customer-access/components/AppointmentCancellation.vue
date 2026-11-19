@@ -6,7 +6,7 @@
 // por delante, y el rechazo del servidor (que siempre prevalece sobre la pista local
 // de `cancellationAvailability`, que usa el reloj del dispositivo).
 import { computed, nextTick, onMounted, ref, watch } from 'vue'
-import { BaseAlert, BaseButton } from '@/shared/ui'
+import { BaseAlert } from '@/shared/ui'
 import type { Vocabulary } from '@/shared/model'
 import {
   CANCELLATION_REASON_MAX_LENGTH,
@@ -119,13 +119,10 @@ function onSubmit() {
 </script>
 
 <template>
-  <section class="appointment-cancel" aria-labelledby="appointment-cancel-title">
-    <h2
-      id="appointment-cancel-title"
-      ref="title"
-      class="appointment-cancel__title"
-      :tabindex="startOpen ? -1 : undefined"
-    >
+  <!-- v2 (DEC-188): bloque sobrio. «Cancelar turno» es secundaria (contorno) y la
+       confirmación es la única acción roja; nada usa el color del negocio. -->
+  <section class="mt-section appointment-cancel" aria-labelledby="appointment-cancel-title">
+    <h2 id="appointment-cancel-title" ref="title" :tabindex="startOpen ? -1 : undefined">
       Cancelar turno
     </h2>
 
@@ -133,7 +130,7 @@ function onSubmit() {
       <BaseAlert variant="warning" role="status">
         {{ unavailableText }}
       </BaseAlert>
-      <p v-if="hasContact" class="appointment-cancel__contact">
+      <p v-if="hasContact" class="mt-section__lead">
         Contacto:
         <a
           v-if="appointment.businessContactPhone"
@@ -149,28 +146,26 @@ function onSubmit() {
           >{{ appointment.businessContactEmail }}</a
         >
       </p>
-      <p v-else class="appointment-cancel__contact">
-        Escríbele por el mismo medio por el que reservaste.
-      </p>
+      <p v-else class="mt-section__lead">Escríbele por el mismo medio por el que reservaste.</p>
     </template>
 
     <template v-else-if="!confirming">
-      <p class="appointment-cancel__lead">
-        Si ya no puedes asistir, cancela para liberar el horario.
-      </p>
-      <BaseButton variant="secondary" @click="open">Cancelar turno</BaseButton>
+      <p class="mt-section__lead">Si ya no puedes ir, cancela para liberar el horario.</p>
+      <div class="mt-section__actions">
+        <button type="button" class="mt-button" @click="open">Cancelar turno</button>
+      </div>
     </template>
 
-    <form v-else class="appointment-cancel__form" novalidate @submit.prevent="onSubmit">
-      <p id="appointment-cancel-consequence" class="appointment-cancel__consequence">
-        Al cancelar se libera tu horario y este enlace seguirá mostrando el turno como cancelado. No
-        se puede deshacer: para volver a venir tendrás que reservar de nuevo.
+    <form v-else class="mt-section" novalidate @submit.prevent="onSubmit">
+      <p id="appointment-cancel-consequence" class="mt-section__lead">
+        Se libera tu horario y este enlace seguirá mostrando el turno como cancelado. No se puede
+        deshacer: para volver tendrás que reservar de nuevo.
       </p>
 
-      <div class="appointment-cancel__field">
-        <label for="appointment-cancel-reason" class="appointment-cancel__label">
+      <div class="mt-field">
+        <label for="appointment-cancel-reason">
           Motivo
-          <span class="appointment-cancel__optional">{{
+          <span class="mt-field__optional">{{
             reasonRequired ? '(obligatorio)' : '(opcional)'
           }}</span>
         </label>
@@ -178,7 +173,6 @@ function onSubmit() {
           id="appointment-cancel-reason"
           ref="reasonField"
           v-model="reason"
-          class="appointment-cancel__textarea"
           rows="3"
           name="reason"
           :disabled="submitting"
@@ -190,18 +184,18 @@ function onSubmit() {
               : 'appointment-cancel-consequence'
           "
         />
-        <div class="appointment-cancel__foot">
+        <div class="mt-field__foot">
           <p
             v-if="reasonError"
             id="appointment-cancel-reason-error"
-            class="appointment-cancel__error"
+            class="mt-field__error"
             role="alert"
           >
             {{ reasonError }}
           </p>
           <span
-            class="appointment-cancel__counter"
-            :class="{ 'appointment-cancel__counter--over': overLimit }"
+            class="mt-field__counter"
+            :class="{ 'mt-field__counter--over': overLimit }"
             aria-hidden="true"
             >{{ reasonLength }} / {{ CANCELLATION_REASON_MAX_LENGTH }}</span
           >
@@ -210,148 +204,19 @@ function onSubmit() {
 
       <BaseAlert v-if="errorMessage" variant="danger" role="alert">{{ errorMessage }}</BaseAlert>
 
-      <div class="appointment-cancel__actions">
-        <BaseButton type="submit" variant="danger" :loading="submitting">
-          Sí, cancelar mi turno
-        </BaseButton>
-        <BaseButton variant="ghost" :disabled="submitting" @click="close">
+      <div class="mt-section__actions">
+        <button
+          type="submit"
+          class="mt-button mt-button--danger"
+          :disabled="submitting"
+          :aria-busy="submitting"
+        >
+          {{ submitting ? 'Cancelando…' : 'Sí, cancelar mi turno' }}
+        </button>
+        <button type="button" class="mt-button" :disabled="submitting" @click="close">
           Mantener mi turno
-        </BaseButton>
+        </button>
       </div>
     </form>
   </section>
 </template>
-
-<style scoped>
-.appointment-cancel {
-  display: flex;
-  width: 100%;
-  flex-direction: column;
-  align-items: stretch;
-  gap: var(--space-3);
-  padding-top: var(--space-5);
-  text-align: left;
-  border-top: 1px solid color-mix(in srgb, var(--color-on-strong) 14%, transparent);
-}
-
-.appointment-cancel__title {
-  margin: 0;
-  font-family: var(--font-display);
-  font-size: 30px;
-  font-weight: 400;
-  line-height: 36px;
-  color: var(--color-on-strong);
-}
-
-/* Recibe el foco solo para anunciar la sección (tabindex -1): no es un control. */
-.appointment-cancel__title:focus {
-  outline: none;
-}
-
-.appointment-cancel__lead,
-.appointment-cancel__consequence,
-.appointment-cancel__contact {
-  margin: 0;
-  font-family: var(--font-family-base);
-  font-size: var(--font-size-body);
-  color: var(--color-on-strong-soft);
-  overflow-wrap: anywhere;
-}
-
-.appointment-cancel__contact a {
-  color: var(--color-on-strong);
-}
-
-.appointment-cancel__form {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-4);
-}
-
-.appointment-cancel__field {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-2);
-}
-
-.appointment-cancel__label {
-  font-family: var(--font-family-base);
-  font-size: 11px;
-  font-weight: 600;
-  line-height: 16px;
-  letter-spacing: 0.12em;
-  text-transform: uppercase;
-  color: var(--color-brand-accent-surface);
-}
-
-.appointment-cancel__optional {
-  font-weight: 400;
-  letter-spacing: normal;
-  text-transform: none;
-  color: var(--color-on-strong-soft);
-}
-
-.appointment-cancel__textarea {
-  width: 100%;
-  min-height: 80px;
-  padding: 12px var(--space-4);
-  font-family: var(--font-family-base);
-  font-size: var(--font-size-body);
-  line-height: var(--font-size-body-line);
-  color: var(--color-on-strong);
-  resize: vertical;
-  background-color: color-mix(in srgb, #000 46%, var(--color-surface-strong));
-  border: var(--border-width-normal) solid
-    color-mix(in srgb, var(--color-on-strong) 30%, transparent);
-  border-bottom: var(--border-width-emphasis) solid
-    color-mix(in srgb, var(--color-brand-accent-surface) 75%, transparent);
-  border-radius: 2px;
-}
-
-.appointment-cancel__textarea:focus-visible {
-  outline: 2px solid var(--color-brand-accent-surface);
-  outline-offset: 2px;
-}
-
-.appointment-cancel__foot {
-  display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
-  gap: var(--space-3);
-}
-
-.appointment-cancel__counter,
-.appointment-cancel__error {
-  margin: 0;
-  font-family: var(--font-family-base);
-  font-size: 13px;
-  color: var(--color-on-strong-soft);
-}
-
-.appointment-cancel__counter {
-  flex: none;
-  margin-left: auto;
-}
-
-.appointment-cancel__counter--over,
-.appointment-cancel__error {
-  color: var(--color-danger-on-strong);
-}
-
-.appointment-cancel__actions {
-  display: flex;
-  flex-wrap: wrap;
-  gap: var(--space-3);
-}
-
-/* La sección vive sobre tinta oscura: el fantasma de la biblioteca trae texto de tinta pensado
-   para papel y aquí casi no se leía «Mantener mi turno» (#647). */
-.appointment-cancel__actions :deep(.base-button--ghost) {
-  color: var(--color-on-strong);
-}
-
-.appointment-cancel__actions
-  :deep(.base-button--ghost:hover:not(:disabled):not(.base-button--loading)) {
-  background-color: color-mix(in srgb, var(--color-on-strong) 8%, transparent);
-}
-</style>

@@ -12,6 +12,28 @@ const open = [
 ]
 
 describe('DaylightStrip', () => {
+  it('en el mapa la leyenda reserva el sitio de la hora elegida: elegir no la reacomoda', () => {
+    const empty = mount(DaylightStrip, { props: { open, variant: 'map' } })
+    const slot = empty.get('.daylight__legend-slot--empty')
+    expect(slot.attributes('aria-hidden')).toBe('true')
+    const picked = mount(DaylightStrip, {
+      props: { open, variant: 'map', selected: 10 * 60, selectedLabel: 'Hora nueva' },
+    })
+    expect(picked.find('.daylight__legend-slot--empty').exists()).toBe(false)
+    expect(picked.get('.daylight__legend').text()).toContain('Hora nueva')
+    expect(empty.findAll('.daylight__legend > span')).toHaveLength(
+      picked.findAll('.daylight__legend > span').length,
+    )
+  })
+
+  it('al cambiar la hora de un turno marca la actual con un rombo hueco en el mapa', () => {
+    const wrapper = mount(DaylightStrip, {
+      props: { open, variant: 'map', current: 9 * 60 + 45, selected: 10 * 60 },
+    })
+    expect(wrapper.find('.daylight__marker--current').exists()).toBe(true)
+    expect(wrapper.get('.daylight__legend').text()).toContain('Hora actual')
+  })
+
   it('shades what is closed, including the lunch gap', () => {
     const wrapper = mount(DaylightStrip, { props: { open } })
     // La ventana va de 8 a. m. a 6 p. m.: antes de abrir, el almuerzo y después de cerrar.
