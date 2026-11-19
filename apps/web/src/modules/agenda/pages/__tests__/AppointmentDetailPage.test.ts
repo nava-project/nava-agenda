@@ -785,6 +785,33 @@ describe('AppointmentDetailPage', () => {
     endsAt: '2999-01-01T10:30:00Z',
   }
 
+  it('reads a confirmed appointment by the hour, like the daily agenda (DEC-188)', async () => {
+    const status = async (detail: typeof readyDetail) => {
+      fetchAppointmentDetailMock.mockResolvedValue({ kind: 'success', detail })
+      const { wrapper } = await mountPage()
+      const root = wrapper.get('.appointment-detail-page')
+      return {
+        text: wrapper.get('.appointment-detail-page__status').text(),
+        classes: root.classes(),
+      }
+    }
+    const past = await status(readyDetail)
+    expect(past.text).toBe('Por registrar')
+    expect(past.classes).toContain('appointment-detail-page--to-record')
+
+    const now = Date.now()
+    const ongoing = await status({
+      ...readyDetail,
+      startsAt: new Date(now - 10 * 60_000).toISOString(),
+      endsAt: new Date(now + 20 * 60_000).toISOString(),
+    })
+    expect(ongoing.text).toBe('En curso')
+    expect(ongoing.classes).toContain('appointment-detail-page--current')
+
+    const upcoming = await status(futureDetail)
+    expect(upcoming.text).toBe('Confirmado')
+  })
+
   it('shows "Marcar como atendido" and "Marcar que no asistió" only once startsAt has passed', async () => {
     fetchAppointmentDetailMock.mockResolvedValue({ kind: 'success', detail: readyDetail })
     const { wrapper } = await mountPage()
