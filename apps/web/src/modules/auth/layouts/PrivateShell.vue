@@ -8,7 +8,7 @@
 // como hijas de esta misma ruta.
 import { onBeforeUnmount } from 'vue'
 import { attachWorkspaceTheme } from '@/shared/model'
-import { BaseAlert, BaseButton, ToastRegion } from '@/shared/ui'
+import { BaseAlert, BaseButton, DiamondLoader, ToastRegion } from '@/shared/ui'
 import type { NavItem } from '@/shared/navigation/navItem'
 import { retryBootstrap, sessionState } from '../model/sessionStore'
 import AppHeader from '../components/AppHeader.vue'
@@ -35,26 +35,30 @@ function onRetry() {
   <div class="private-shell">
     <template v-if="sessionState.bootstrap.status === 'authenticated'">
       <AppHeader :business-name="sessionState.bootstrap.businessName" />
-      <!-- Escenario posicionado entre cabecera y navegación: ancla la región
+      <!-- v2 (DEC-188, entrega 5): en escritorio la navegación es un riel a la
+           izquierda; en el teléfono y la tableta, la barra al pie. Va antes del
+           contenido en el DOM (cabecera → navegación → contenido); en la barra
+           al pie solo cambia su posición visual. -->
+      <div class="private-shell__body">
+        <AppNav :extra-items="extraNavItems" />
+        <!-- Escenario posicionado entre cabecera y navegación: ancla la región
            de avisos (DEC-095) sin depender de la altura de ninguna de las dos
            ni desplazarse con el contenido. -->
-      <div class="private-shell__stage">
-        <!-- Fondo vivo del panel: dos luces suaves que derivan despacio y una
-             cuadrícula de patronaje que avanza una casilla por ciclo. Es una
-             capa decorativa detrás del contenido (sin eventos ni lectura de
-             pantalla); las pantallas son transparentes y la tinta la pone el
-             escenario. -->
-        <div class="shell-ambient" aria-hidden="true">
-          <i class="shell-ambient__glow shell-ambient__glow--brass" />
-          <i class="shell-ambient__glow shell-ambient__glow--sage" />
-          <i class="shell-ambient__grid" />
+        <div class="private-shell__stage">
+          <!-- Fondo del panel: dos luces suaves y quietas (v2 retira la
+             cuadrícula de patronaje). Capa decorativa detrás del contenido,
+             sin eventos ni lectura de pantalla; las pantallas son
+             transparentes y el fondo lo pone el escenario. -->
+          <div class="shell-ambient" aria-hidden="true">
+            <i class="shell-ambient__glow shell-ambient__glow--brass" />
+            <i class="shell-ambient__glow shell-ambient__glow--sage" />
+          </div>
+          <main class="private-shell__content">
+            <RouterView />
+          </main>
+          <ToastRegion placement="host" />
         </div>
-        <main class="private-shell__content">
-          <RouterView />
-        </main>
-        <ToastRegion placement="host" />
       </div>
-      <AppNav :extra-items="extraNavItems" />
     </template>
 
     <div
@@ -70,7 +74,7 @@ function onRetry() {
     </div>
 
     <div v-else class="private-shell__state" role="status" aria-live="polite">
-      <p class="private-shell__loading-text">Comprobando tu sesión…</p>
+      <DiamondLoader label="Abriendo tu agenda…" />
     </div>
   </div>
 </template>
@@ -88,12 +92,34 @@ function onRetry() {
    la columna entera más allá de 100dvh y arrastra el header y el dock
    fuera de pantalla en vez de quedarse fijos mientras solo el contenido
    se desplaza (reporte en vivo, issue #189). */
+.private-shell__body {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  min-height: 0;
+}
+
+.private-shell__body > :deep(.app-nav) {
+  order: 2;
+}
+
+@media (min-width: 1024px) {
+  .private-shell__body {
+    flex-direction: row;
+  }
+
+  .private-shell__body > :deep(.app-nav) {
+    order: 0;
+  }
+}
+
 .private-shell__stage {
   position: relative;
   background-color: var(--color-surface-strong);
   display: flex;
   flex: 1;
   flex-direction: column;
+  min-width: 0;
   min-height: 0;
 }
 
@@ -103,11 +129,9 @@ function onRetry() {
   flex: 1;
   min-height: 0;
   overflow-y: auto;
-  /* Barra de scroll propia (latón sobre tinta), no la gris genérica del
-     navegador — mismo acento que el resto del cascarón. */
+  /* Barra de scroll fina y neutra (v2: sin latón). */
   scrollbar-width: thin;
-  scrollbar-color: color-mix(in srgb, var(--color-brand-accent-surface) 45%, transparent)
-    transparent;
+  scrollbar-color: color-mix(in srgb, var(--color-text-primary) 28%, transparent) transparent;
 }
 
 .private-shell__content::-webkit-scrollbar {
@@ -119,13 +143,13 @@ function onRetry() {
 }
 
 .private-shell__content::-webkit-scrollbar-thumb {
-  background-color: color-mix(in srgb, var(--color-brand-accent-surface) 45%, transparent);
+  background-color: color-mix(in srgb, var(--color-text-primary) 28%, transparent);
   border: 2px solid var(--color-surface-strong);
   border-radius: var(--radius-pill);
 }
 
 .private-shell__content::-webkit-scrollbar-thumb:hover {
-  background-color: color-mix(in srgb, var(--color-brand-accent-surface) 70%, transparent);
+  background-color: color-mix(in srgb, var(--color-text-primary) 45%, transparent);
 }
 
 .shell-ambient {
@@ -167,26 +191,6 @@ function onRetry() {
   );
 }
 
-/* Cuadrícula de patronaje: líneas casi invisibles que se desvanecen hacia los
-   bordes. */
-.shell-ambient__grid {
-  position: absolute;
-  inset: -56px;
-  background-image:
-    linear-gradient(
-      to right,
-      color-mix(in srgb, var(--color-on-strong) 4%, transparent) 1px,
-      transparent 1px
-    ),
-    linear-gradient(
-      to bottom,
-      color-mix(in srgb, var(--color-on-strong) 4%, transparent) 1px,
-      transparent 1px
-    );
-  background-size: 56px 56px;
-  mask-image: radial-gradient(ellipse 80% 70% at 50% 40%, #000 20%, transparent 100%);
-}
-
 .private-shell__state {
   display: flex;
   flex-direction: column;
@@ -196,11 +200,5 @@ function onRetry() {
   min-height: var(--viewport-height);
   padding: var(--space-6) var(--space-4);
   gap: var(--space-4);
-}
-
-.private-shell__loading-text {
-  margin: 0;
-  color: var(--color-text-secondary);
-  font-size: var(--font-size-body);
 }
 </style>

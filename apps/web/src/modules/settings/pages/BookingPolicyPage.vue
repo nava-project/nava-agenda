@@ -40,13 +40,6 @@ type SaveStatus =
   | 'network-error'
   | 'unexpected-error'
 
-const LOADING_PHRASES = [
-  'Midiendo la agenda',
-  'Afinando la rejilla',
-  'Ajustando los plazos',
-  'Todo a su hora',
-] as const
-
 const loadStatus = ref<LoadStatus>('loading')
 const saveStatus = ref<SaveStatus>('idle')
 
@@ -278,11 +271,7 @@ function onReloadAfterConflict() {
         role="status"
         aria-live="polite"
       >
-        <DiamondLoader
-          label="Cargando la configuración…"
-          layout="inline"
-          :phrases="LOADING_PHRASES"
-        />
+        <DiamondLoader label="Cargando la configuración…" layout="inline" />
         <div class="booking-policy-page__skeletons" aria-hidden="true">
           <span
             v-for="n in 2"

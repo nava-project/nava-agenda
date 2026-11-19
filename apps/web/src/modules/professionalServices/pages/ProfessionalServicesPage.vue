@@ -56,12 +56,6 @@ const catalogBusy = computed(() => assignmentsStatus.value === 'loading' || fitP
 // Primera carga: todavía no hay asignaciones reales que mostrar debajo del velo.
 const hasShownAssignments = ref(false)
 
-const LOADING_PHRASES = [
-  'Repasando el catálogo',
-  'Afilando la navaja',
-  'Alineando los servicios',
-] as const
-
 const selectedProfessional = computed(
   () => professionals.value.find((b) => b.id === selectedProfessionalId.value) ?? null,
 )
@@ -350,11 +344,7 @@ async function onToggleService(service: ServiceSummary, event: Event) {
       role="status"
       aria-live="polite"
     >
-      <DiamondLoader
-        :label="`Cargando ${v.professionals} y servicios…`"
-        layout="inline"
-        :phrases="LOADING_PHRASES"
-      />
+      <DiamondLoader :label="`Cargando ${v.professionals} y servicios…`" layout="inline" />
       <!-- Esqueleto con la misma forma que la pantalla lista (ficha a la
            izquierda, tabla a la derecha) para que nada cambie de sitio al
            llegar los datos. -->
@@ -494,7 +484,6 @@ async function onToggleService(service: ServiceSummary, event: Event) {
             >
               <DiamondLoader
                 :label="`Cargando los servicios de ${selectedProfessional?.fullName ?? v.theProfessional}…`"
-                :phrases="LOADING_PHRASES"
               />
             </div>
           </Transition>

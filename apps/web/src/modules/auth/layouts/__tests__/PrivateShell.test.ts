@@ -68,6 +68,21 @@ describe('PrivateShell', () => {
     expect(wrapper.text()).toContain('contenido del panel')
   })
 
+  it('reads header, then navigation, then content (the desktop rail sits before main)', async () => {
+    mockState.bootstrap = {
+      status: 'authenticated',
+      businessId: 'shop-1',
+      businessName: 'Barbería El Corte',
+      expiresAt: new Date().toISOString(),
+    }
+    const wrapper = await mountShell()
+
+    const order = [...wrapper.element.querySelectorAll('header, nav, main')].map((el) =>
+      el.tagName.toLowerCase(),
+    )
+    expect(order).toEqual(['header', 'nav', 'main'])
+  })
+
   it('shows a recoverable connection-lost state with Reintentar (CA-012-05)', async () => {
     mockState.bootstrap = { status: 'connection-lost' }
     const wrapper = await mountShell()

@@ -259,11 +259,7 @@ const ownRoster = computed(() =>
         role="status"
         aria-live="polite"
       >
-        <DiamondLoader
-          :label="`Cargando ${v.theProfessionals}…`"
-          layout="inline"
-          :phrases="['Leyendo cada ritmo', 'Afinando las franjas']"
-        />
+        <DiamondLoader :label="`Cargando ${v.theProfessionals}…`" layout="inline" />
       </div>
 
       <BaseAlert

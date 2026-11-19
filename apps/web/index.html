@@ -19,9 +19,139 @@
       body {
         margin: 0;
       }
+
+      /* Arranque del panel (DEC-188, entrega 5a): el modo guardado y el sol
+         del logo desde la primera pintura, mientras se resuelve la sesión. */
+      .boot-loader {
+        display: none;
+      }
+
+      html[data-boot='panel'] {
+        background-color: #0b1022;
+      }
+
+      html[data-boot='panel'][data-app-theme='ivory'] {
+        background-color: #f4f6fa;
+      }
+
+      html[data-boot='panel'] .boot-loader {
+        position: fixed;
+        inset: 0;
+        z-index: 1;
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+        align-items: center;
+        justify-content: center;
+        font:
+          15px/22px 'Instrument Sans',
+          system-ui,
+          sans-serif;
+        color: #a9b1c6;
+        background-color: #0b1022;
+      }
+
+      html[data-boot='panel'][data-app-theme='ivory'] .boot-loader {
+        color: #4f5b6e;
+        background-color: #f4f6fa;
+      }
+
+      .boot-loader__stage {
+        position: relative;
+        width: 40px;
+        height: 22px;
+        overflow: hidden;
+        animation: boot-loader-in 200ms ease-out 300ms backwards;
+      }
+
+      .boot-loader__text {
+        animation: boot-loader-in 200ms ease-out 300ms backwards;
+      }
+
+      .boot-loader__sun {
+        position: absolute;
+        bottom: -9px;
+        left: 11px;
+        width: 18px;
+        height: 18px;
+        background-color: #f4b740;
+        border-radius: 50%;
+        animation: boot-loader-rise 1.8s ease-in-out infinite alternate;
+      }
+
+      .boot-loader__horizon {
+        position: absolute;
+        right: 0;
+        bottom: 0;
+        left: 0;
+        height: 2px;
+        background-color: #eef1f8;
+        border-radius: 1px;
+      }
+
+      html[data-app-theme='ivory'] .boot-loader__horizon {
+        background-color: #101b2b;
+      }
+
+      @keyframes boot-loader-rise {
+        from {
+          transform: translateY(6px);
+        }
+
+        to {
+          transform: translateY(-4px);
+        }
+      }
+
+      @keyframes boot-loader-in {
+        from {
+          opacity: 0;
+        }
+      }
+
+      @media (prefers-reduced-motion: reduce) {
+        .boot-loader * {
+          animation: none !important;
+        }
+      }
+
+      html[data-motion='reduced'] .boot-loader * {
+        animation: none !important;
+      }
     </style>
+    <!-- Solo en /panel: pinta el modo del panel guardado en este dispositivo
+         (DEC-110, `nava.appearance.v1`) antes de que cargue la app, para que
+         quien usa Noche no vea un fogonazo claro en cada recarga. Sin valor
+         guardado vale lo mismo que la app: Noche. `app/bootstrap/bootLoader.ts`
+         lo retira al resolver la primera navegación. -->
+    <script>
+      ;(function () {
+        if (!/^\/panel(\/|$)/.test(window.location.pathname)) return
+        var prefs = {}
+        try {
+          prefs = JSON.parse(window.localStorage.getItem('nava.appearance.v1') || '{}') || {}
+        } catch (error) {
+          prefs = {}
+        }
+        var theme = prefs.theme === 'ivory' ? 'ivory' : 'ink'
+        if (prefs.theme === 'auto' && window.matchMedia) {
+          theme = window.matchMedia('(prefers-color-scheme: light)').matches ? 'ivory' : 'ink'
+        }
+        var root = document.documentElement
+        root.setAttribute('data-app-theme', theme)
+        if (prefs.motion === 'reduced') root.setAttribute('data-motion', 'reduced')
+        root.setAttribute('data-boot', 'panel')
+      })()
+    </script>
   </head>
   <body>
+    <div id="boot-loader" class="boot-loader" role="status" aria-live="polite">
+      <span class="boot-loader__stage" aria-hidden="true">
+        <span class="boot-loader__sun"></span>
+        <span class="boot-loader__horizon"></span>
+      </span>
+      <span class="boot-loader__text">Abriendo tu agenda…</span>
+    </div>
     <div id="app"></div>
     <script type="module" src="/src/main.ts"></script>
   </body>

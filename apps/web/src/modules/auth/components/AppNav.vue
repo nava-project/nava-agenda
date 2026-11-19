@@ -216,39 +216,27 @@ async function onLogoutFromMore() {
   line-height: inherit;
 }
 
-/* Filete de latón que se dibuja desde el centro bajo el destino activo (y,
-   a medias, bajo el que recibe el cursor): reemplaza el borde estático para
-   que cambiar de pantalla se sienta como un gesto, no un salto. */
+/* v2 (DEC-188, entrega 5): el destino activo es un filete en tinta, no en
+   latón ni en el acento (que es solo de la acción principal), y la palabra
+   pasa a tinta y a 600. Sin saltos del icono. */
 .app-nav__link::after {
   content: '';
   position: absolute;
-  right: 14%;
-  bottom: 0;
-  left: 14%;
-  height: var(--border-width-emphasis);
-  background-color: var(--color-brand-accent-surface);
-  transform: scaleX(0);
-  transition: transform var(--motion-duration-base) var(--motion-ease-out);
-}
-
-.app-nav__link:hover::after {
-  transform: scaleX(0.35);
+  right: 22%;
+  top: 0;
+  left: 22%;
+  height: 2px;
+  background-color: var(--color-text-primary);
+  border-radius: 0 0 2px 2px;
+  opacity: 0;
 }
 
 .app-nav__icon {
   display: inline-flex;
-  transition: transform var(--motion-duration-base) var(--motion-ease-spring);
-}
-
-.app-nav__link--active .app-nav__icon,
-.app-nav__link:hover .app-nav__icon {
-  transform: translateY(-2px);
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .app-nav__link,
-  .app-nav__link::after,
-  .app-nav__icon {
+  .app-nav__link {
     transition: none;
   }
 }
@@ -277,42 +265,105 @@ async function onLogoutFromMore() {
 
 .app-nav__link--active,
 .app-nav__link[aria-expanded='true'] {
-  color: var(--color-brand-accent-surface);
+  font-weight: 600;
+  color: var(--color-text-primary);
 }
 
 .app-nav__link--active::after,
 .app-nav__link[aria-expanded='true']::after {
-  transform: scaleX(1);
+  opacity: 1;
 }
 
+/* Escritorio: un riel a la izquierda con todos los destinos en columna, en vez
+   de la barra al pie de siete pestañas (revisión del PR 4a). */
 @media (min-width: 1024px) {
+  .app-nav {
+    flex: none;
+    width: 248px;
+    margin-top: 0;
+    padding: var(--space-4) var(--space-3);
+    overflow-y: auto;
+    border-top: 0;
+    border-right: var(--border-width-normal) solid var(--color-border-subtle);
+  }
+
   .app-nav__list--mobile {
     display: none;
   }
 
   .app-nav__list--desktop {
     display: flex;
-    justify-content: flex-start;
-    height: 64px;
-    padding: 0 40px;
+    flex-direction: column;
+    gap: 2px;
+    height: auto;
+    padding: 0;
   }
 
-  /* Cada destino mide lo que su rótulo necesita y reparte el sobrante: con
-     partes iguales, «Servicios por profesional» se truncaba a 1280 px. */
   .app-nav__item {
-    flex: 1 1 auto;
+    flex: none;
   }
 
   .app-nav__link {
     flex-direction: row;
-    gap: 10px;
-    padding: 0 8px;
-    font-size: var(--font-size-body-sm);
+    justify-content: flex-start;
+    gap: 12px;
+    min-height: 44px;
+    padding: 0 12px;
+    font-size: 15px;
+    line-height: 20px;
+    border-radius: var(--radius-md);
+  }
+
+  .app-nav__link:hover {
+    background-color: color-mix(in srgb, var(--color-text-primary) 5%, transparent);
+  }
+
+  .app-nav__link--active {
+    background-color: color-mix(in srgb, var(--color-text-primary) 8%, transparent);
+  }
+
+  .app-nav__link::after {
+    top: 10px;
+    right: auto;
+    bottom: 10px;
+    left: 0;
+    width: 3px;
+    height: auto;
+    border-radius: 0 2px 2px 0;
+  }
+
+  .app-nav__label {
+    white-space: normal;
+    text-align: left;
   }
 
   .app-nav__icon :deep(svg) {
-    width: 19px;
-    height: 19px;
+    width: 20px;
+    height: 20px;
+  }
+}
+
+/* Entre 1024 y 1279 px el riel completo le quitaba a la agenda el ancho de sus
+   controles: queda compacto, con el icono sobre la palabra. */
+@media (min-width: 1024px) and (max-width: 1279px) {
+  .app-nav {
+    /* 116 px: «Configuración», la palabra más larga, cabe sin cortarse. */
+    width: 116px;
+    padding: var(--space-3) var(--space-2);
+  }
+
+  .app-nav__link {
+    flex-direction: column;
+    justify-content: center;
+    gap: 4px;
+    min-height: 60px;
+    padding: 6px 4px;
+    font-size: 12px;
+    line-height: 15px;
+  }
+
+  .app-nav__label {
+    text-align: center;
   }
 }
 

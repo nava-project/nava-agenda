@@ -18,7 +18,6 @@ const router = useRouter()
 const toast = useToast()
 
 const phase = ref<Phase>('working')
-const LOADING_PHRASES = ['Hablando con Google', 'Guardando tu permiso', 'Todo a su hora'] as const
 
 function first(value: unknown): string {
   if (Array.isArray(value)) return typeof value[0] === 'string' ? value[0] : ''
@@ -66,7 +65,7 @@ onMounted(() => {
     <h1 id="gcal-return-title" class="gcal-return__title">Google Calendar</h1>
 
     <div v-if="phase === 'working'" class="gcal-return__state" role="status" aria-live="polite">
-      <DiamondLoader label="Conectando con Google…" layout="inline" :phrases="LOADING_PHRASES" />
+      <DiamondLoader label="Conectando con Google…" layout="inline" />
     </div>
 
     <BaseAlert v-else :variant="phase === 'denied' ? 'warning' : 'danger'" role="alert">

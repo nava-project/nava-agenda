@@ -243,8 +243,8 @@ onUnmounted(() => document.removeEventListener('mousedown', onDocumentClick))
   position: relative;
 }
 
-/* Control reglado sobre tinta (atlas panel-agenda-eventos): caja tenue con
-   línea base de latón de doble peso, el mismo lenguaje que BaseInput. */
+/* v2 (DEC-188): el mismo campo que BaseInput, superficie con borde de
+   control y radio medio. */
 .professional-select__trigger {
   display: flex;
   align-items: center;
@@ -259,13 +259,13 @@ onUnmounted(() => document.removeEventListener('mousedown', onDocumentClick))
   background-color: color-mix(in srgb, var(--color-on-strong) 5%, transparent);
   border: var(--border-width-normal) solid
     color-mix(in srgb, var(--color-on-strong) 16%, transparent);
-  border-bottom: var(--border-width-emphasis) solid var(--color-accent-brass);
-  border-radius: 2px;
+  border-bottom: var(--border-width-normal) solid var(--color-border-control);
+  border-radius: var(--radius-md);
   cursor: pointer;
 }
 
 .professional-select__trigger[aria-expanded='true'] {
-  border-bottom-color: var(--color-accent-brass);
+  border-bottom-color: var(--color-text-primary);
 }
 
 /* Variante compacta de la agenda diaria: campo hundido (más oscuro que la
@@ -277,13 +277,13 @@ onUnmounted(() => document.removeEventListener('mousedown', onDocumentClick))
   padding-block: 0;
   background-color: var(--color-field-strong);
   border-color: var(--color-field-strong-border);
-  border-bottom-color: var(--color-accent-brass);
+  border-bottom-color: var(--color-text-primary);
 }
 
 .professional-select--compact .professional-select__trigger:hover:not(:disabled),
 .professional-select--compact .professional-select__trigger[aria-expanded='true'] {
-  border-color: color-mix(in srgb, var(--color-brand-accent-surface) 55%, transparent);
-  border-bottom-color: var(--color-brand-accent-surface);
+  border-color: var(--color-text-primary);
+  border-bottom-color: var(--color-text-primary);
 }
 
 .professional-select__trigger:disabled {
@@ -304,9 +304,8 @@ onUnmounted(() => document.removeEventListener('mousedown', onDocumentClick))
   height: 28px;
   flex-shrink: 0;
   background-color: var(--color-field-strong-raised);
-  border: var(--border-width-normal) solid
-    color-mix(in srgb, var(--color-brand-accent-surface) 55%, transparent);
-  border-radius: 2px;
+  border: var(--border-width-normal) solid var(--color-border-subtle);
+  border-radius: var(--radius-md);
 }
 
 .professional-select__trigger-label {
@@ -326,8 +325,8 @@ onUnmounted(() => document.removeEventListener('mousedown', onDocumentClick))
   flex-shrink: 0;
   width: 8px;
   height: 8px;
-  border-right: var(--border-width-normal) solid var(--color-accent-brass);
-  border-bottom: var(--border-width-normal) solid var(--color-accent-brass);
+  border-right: var(--border-width-normal) solid var(--color-text-secondary);
+  border-bottom: var(--border-width-normal) solid var(--color-text-secondary);
   transform: rotate(45deg) translateY(-2px);
   transition: transform 0.18s ease;
 }
@@ -348,8 +347,8 @@ onUnmounted(() => document.removeEventListener('mousedown', onDocumentClick))
   background-color: var(--color-field-strong);
   border: var(--border-width-normal) solid
     color-mix(in srgb, var(--color-on-strong) 16%, transparent);
-  border-top: var(--border-width-emphasis) solid var(--color-accent-brass);
-  border-radius: 2px;
+  border-top: var(--border-width-normal) solid var(--color-border-subtle);
+  border-radius: var(--radius-md);
   box-shadow: var(--shadow-dialog);
 }
 
@@ -375,10 +374,9 @@ onUnmounted(() => document.removeEventListener('mousedown', onDocumentClick))
     color-mix(in srgb, var(--color-on-strong) 8%, transparent);
 }
 
-/* Al pasar el cursor la fila se levanta un tono de tinta sobre el fondo del
-   panel (sin grises: latón al 15 % sobre azul se ve apagado). La elegida no
-   lleva relleno: barra y rombo de latón, y texto en negrita. Barra de latón a la izquierda: crece desde el centro al pasar el cursor o
-   enfocar con teclado, el mismo latón que el día elegido del calendario. */
+/* La elegida no lleva relleno: barra y marca en tinta y texto en negrita.
+   La barra a la izquierda crece desde el centro al pasar el cursor o enfocar
+   con teclado; el acento queda para la acción principal (v2, DEC-188). */
 .professional-select__option::before {
   position: absolute;
   top: 0;
@@ -386,7 +384,7 @@ onUnmounted(() => document.removeEventListener('mousedown', onDocumentClick))
   left: 0;
   width: 3px;
   content: '';
-  background-color: var(--color-brand-accent-surface);
+  background-color: var(--color-text-primary);
   transform: scaleY(0);
   transition: transform 0.18s ease;
 }
@@ -405,7 +403,7 @@ onUnmounted(() => document.removeEventListener('mousedown', onDocumentClick))
 }
 
 .professional-select__option:active {
-  background-color: var(--color-surface-strong);
+  background-color: color-mix(in srgb, var(--color-text-primary) 8%, var(--color-surface));
 }
 
 .professional-select__option--selected .professional-select__option-name {
@@ -425,7 +423,7 @@ onUnmounted(() => document.removeEventListener('mousedown', onDocumentClick))
   flex-shrink: 0;
   width: 8px;
   height: 8px;
-  background-color: var(--color-brand-accent-surface);
+  background-color: var(--color-text-primary);
   opacity: 0;
   transform: rotate(0deg) scale(0);
   transition:

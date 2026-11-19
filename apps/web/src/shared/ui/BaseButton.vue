@@ -113,7 +113,7 @@ const handleClick = (event: MouseEvent) => {
   --btn-gap: var(--space-2);
   --btn-font-size: var(--font-size-body);
   --btn-font-weight: 500;
-  --btn-radius: 2px;
+  --btn-radius: var(--radius-md);
   --btn-transition:
     background-color var(--motion-duration-fast) var(--motion-easing-standard),
     border-color var(--motion-duration-fast) var(--motion-easing-standard),
@@ -197,23 +197,21 @@ const handleClick = (event: MouseEvent) => {
   border-color: var(--color-action-primary-active);
 }
 
-/* Variant: secondary — filete de latón con filete inferior acentuado
-   (issue #212): la línea base recibe el mismo doble espesor que el campo
-   reglado, no un borde uniforme de 1px. */
+/* Variant: secondary — v2 (DEC-188): contorno neutro de 1px; el acento
+   lleno queda solo para la acción principal. */
 .base-button--secondary {
   background-color: var(--color-surface);
   color: var(--color-text-primary);
-  border-color: var(--color-accent-brass);
-  border-bottom-width: var(--border-width-emphasis);
+  border-color: var(--color-border-control);
 }
 
 .base-button--secondary:hover:not(:disabled):not(.base-button--loading) {
-  background-color: var(--color-surface-muted);
-  border-color: var(--color-accent-brass);
+  background-color: color-mix(in srgb, var(--color-text-primary) 4%, var(--color-surface));
+  border-color: var(--color-text-primary);
 }
 
 .base-button--secondary:active:not(:disabled):not(.base-button--loading) {
-  background-color: var(--color-border-subtle);
+  background-color: color-mix(in srgb, var(--color-text-primary) 9%, var(--color-surface));
 }
 
 /* Variant: soft */
@@ -232,21 +230,19 @@ const handleClick = (event: MouseEvent) => {
   background-color: var(--color-action-soft-active);
 }
 
-/* Variant: ghost — misma familia reglada que secondary: filete de latón y
-   filete inferior acentuado en vez de borde transparente. */
+/* Variant: ghost — v2: solo la palabra en tinta, sin borde; el fondo
+   aparece al pasar el cursor. */
 .base-button--ghost {
   background-color: transparent;
-  color: var(--color-action-primary);
-  border-color: var(--color-accent-brass);
-  border-bottom-width: var(--border-width-emphasis);
+  color: var(--color-text-primary);
 }
 
 .base-button--ghost:hover:not(:disabled):not(.base-button--loading) {
-  background-color: var(--color-action-soft);
+  background-color: color-mix(in srgb, var(--color-text-primary) 6%, transparent);
 }
 
 .base-button--ghost:active:not(:disabled):not(.base-button--loading) {
-  background-color: var(--color-action-soft-active);
+  background-color: color-mix(in srgb, var(--color-text-primary) 11%, transparent);
 }
 
 /* Variant: danger */

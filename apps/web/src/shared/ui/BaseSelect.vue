@@ -146,12 +146,10 @@ onUnmounted(() => document.removeEventListener('mousedown', onOutside))
   gap: 8px;
 }
 .base-select__label {
-  font-size: var(--font-size-caption);
-  font-weight: 600;
-  line-height: 14px;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-  color: var(--color-accent-brass);
+  font-size: 13px;
+  font-weight: 500;
+  line-height: 18px;
+  color: var(--color-text-secondary);
 }
 .base-select__trigger {
   display: flex;
@@ -166,13 +164,13 @@ onUnmounted(() => document.removeEventListener('mousedown', onOutside))
   color: var(--color-text-primary);
   background: var(--color-surface);
   border: 1px solid var(--color-border-control);
-  border-bottom: 2px solid var(--color-accent-brass);
-  border-radius: 2px;
+  border-bottom: var(--border-width-normal) solid var(--color-border-control);
+  border-radius: var(--radius-md);
   cursor: pointer;
 }
 .base-select__trigger:hover:not(:disabled),
 .base-select__trigger[aria-expanded='true'] {
-  border-color: var(--color-accent-brass);
+  border-color: var(--color-text-primary);
 }
 .base-select__trigger:focus-visible {
   outline: 2px solid var(--color-focus);
@@ -185,8 +183,8 @@ onUnmounted(() => document.removeEventListener('mousedown', onOutside))
 .base-select__chevron {
   width: 7px;
   height: 7px;
-  border-right: 1px solid var(--color-accent-brass);
-  border-bottom: 1px solid var(--color-accent-brass);
+  border-right: 1px solid var(--color-text-secondary);
+  border-bottom: 1px solid var(--color-text-secondary);
   transform: rotate(45deg);
   transition: transform 160ms ease;
 }
@@ -207,8 +205,8 @@ onUnmounted(() => document.removeEventListener('mousedown', onOutside))
   list-style: none;
   background: var(--color-surface);
   border: 1px solid var(--color-border-control);
-  border-top: 2px solid var(--color-accent-brass);
-  border-radius: 2px;
+  border-top: var(--border-width-normal) solid var(--color-border-subtle);
+  border-radius: var(--radius-md);
   box-shadow: var(--shadow-dialog);
 }
 .base-select__option {
@@ -231,17 +229,17 @@ onUnmounted(() => document.removeEventListener('mousedown', onOutside))
   outline: none;
   background: var(--color-field-strong-raised);
   color: var(--color-on-strong);
-  border-left-color: var(--color-accent-brass);
+  border-left-color: var(--color-text-primary);
 }
 .base-select__option[aria-selected='true'] {
   font-weight: 600;
-  border-left-color: var(--color-accent-brass);
+  border-left-color: var(--color-text-primary);
 }
 .base-select__mark {
   width: 7px;
   height: 7px;
   flex-shrink: 0;
-  background: var(--color-accent-brass);
+  background: var(--color-text-primary);
   transform: rotate(45deg);
   visibility: hidden;
 }

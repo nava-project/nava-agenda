@@ -39,11 +39,6 @@ import {
 const toast = useToast()
 const v = useVocabulary()
 
-const LOADING_PHRASES = [
-  'Revisando tu calendario',
-  'Alineando los turnos',
-  'Todo a su hora',
-] as const
 // Mientras hay cambios en cola se vuelve a consultar el estado hasta que se vacíe.
 const POLL_MS = 5000
 
@@ -396,7 +391,7 @@ const HOW_IT_WORKS = [
     </header>
 
     <div v-if="loadStatus === 'loading'" class="gcal-page__state" role="status" aria-live="polite">
-      <DiamondLoader label="Cargando Google Calendar…" layout="inline" :phrases="LOADING_PHRASES" />
+      <DiamondLoader label="Cargando Google Calendar…" layout="inline" />
     </div>
 
     <BaseAlert

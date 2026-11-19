@@ -17,7 +17,6 @@ type Status = 'loading' | 'ready' | 'network-error' | 'unexpected-error'
 type CopyState = 'idle' | 'copied' | 'manual'
 
 const COPIED_FEEDBACK_MS = 3000
-const LOADING_PHRASES = ['Preparando tu enlace'] as const
 
 const status = ref<Status>('loading')
 const slug = ref('')
@@ -72,7 +71,7 @@ onBeforeUnmount(() => clearTimeout(resetTimer))
 <template>
   <div class="public-link" :aria-busy="status === 'loading'">
     <div v-if="status === 'loading'" role="status">
-      <DiamondLoader label="Preparando tu enlace" layout="inline" :phrases="LOADING_PHRASES" />
+      <DiamondLoader label="Preparando tu enlace" layout="inline" />
     </div>
 
     <BaseAlert
