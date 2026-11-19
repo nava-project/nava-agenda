@@ -250,7 +250,6 @@ const ownRoster = computed(() =>
     "
     scope="shop"
     :scope-label="ownOnly ? 'Solo tú' : `Por ${v.professional}`"
-    style="--panel-index: 1"
   >
     <div class="professional-window" @keydown.enter="onEnter">
       <div
@@ -395,12 +394,7 @@ const ownRoster = computed(() =>
                 class="professional-window__slots"
                 :aria-label="`Franjas de ejemplo cada ${shownWindow.slotGridMinutes} minutos`"
               >
-                <li
-                  v-for="(slot, index) in slots"
-                  :key="slot"
-                  class="professional-window__slot"
-                  :style="{ '--i': index }"
-                >
+                <li v-for="slot in slots" :key="slot" class="professional-window__slot">
                   {{ slot }}
                 </li>
               </ol>
@@ -500,14 +494,14 @@ const ownRoster = computed(() =>
 }
 
 .professional-window__state {
-  color: var(--color-on-strong-muted);
+  color: var(--color-text-secondary);
 }
 
 .professional-window__empty {
   margin: 0;
   font-size: var(--font-size-body-sm);
   line-height: var(--font-size-body-sm-line);
-  color: var(--color-on-strong-muted);
+  color: var(--color-text-secondary);
 }
 
 .professional-window__body {
@@ -539,12 +533,10 @@ const ownRoster = computed(() =>
 .professional-window__strip-label,
 .professional-window__roster-label {
   margin: 0;
-  color: var(--color-brand-accent-surface);
-  font-size: var(--font-size-caption);
-  font-weight: 600;
-  letter-spacing: 0.08em;
-  line-height: 14px;
-  text-transform: uppercase;
+  color: var(--color-text-secondary);
+  font-size: 13px;
+  font-weight: 500;
+  line-height: 18px;
 }
 
 .professional-window__count {
@@ -552,51 +544,51 @@ const ownRoster = computed(() =>
   padding-bottom: 12px;
   font-size: var(--font-size-caption);
   line-height: 18px;
-  color: var(--color-on-strong-muted);
+  color: var(--color-text-secondary);
 }
 
 .professional-window__count-number {
-  font-family: var(--font-display);
-  font-size: 20px;
-  color: var(--color-brand-accent-surface);
+  font-size: var(--font-size-body);
+  font-weight: 600;
+  color: var(--color-text-primary);
   font-variant-numeric: tabular-nums;
 }
 
-/* La ficha del profesional elegido: una hoja reglada dentro del panel. */
+/* La ficha del profesional elegido: una superficie hundida dentro del panel,
+   sin filete de acento (v2, DEC-188). */
 .professional-window__card {
   display: flex;
   flex-direction: column;
   gap: 16px;
   min-width: 0;
   padding: 18px;
-  background: color-mix(in srgb, var(--color-on-strong) 3%, transparent);
-  border: var(--border-width-normal) solid var(--color-field-strong-border);
-  border-left: 3px solid color-mix(in srgb, var(--color-brand-accent-surface) 55%, transparent);
-  border-radius: 3px;
+  background: color-mix(in srgb, var(--color-text-primary) 3%, transparent);
+  border: var(--border-width-normal) solid var(--color-border-subtle);
+  border-radius: var(--radius-lg);
 }
 
 .professional-window__status {
   display: inline-flex;
   align-items: center;
   gap: 8px;
-  font-size: var(--font-size-caption);
-  font-weight: 600;
-  letter-spacing: 0.04em;
-  color: var(--color-on-strong-muted);
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--color-text-secondary);
 }
 
+/* Punto hueco (hereda) o lleno (propia): la palabra lo dice, el punto acompaña. */
 .professional-window__status-mark {
-  width: 7px;
-  height: 7px;
+  width: 8px;
+  height: 8px;
   border: var(--border-width-normal) solid currentColor;
-  transform: rotate(45deg);
+  border-radius: 50%;
   transition:
     background-color var(--motion-duration-base) var(--motion-easing-standard),
     color var(--motion-duration-base) var(--motion-easing-standard);
 }
 
 .professional-window__status--own {
-  color: var(--color-brand-accent-surface);
+  color: var(--color-text-primary);
 }
 
 .professional-window__status--own .professional-window__status-mark {
@@ -615,7 +607,7 @@ const ownRoster = computed(() =>
   font-family: var(--font-sans);
   font-size: var(--font-size-body-sm);
   line-height: var(--font-size-body-sm-line);
-  color: var(--color-on-strong-muted);
+  color: var(--color-text-secondary);
 }
 
 /* Lo heredado se lee, no se edita: tres cifras sobre una regla fina. */
@@ -624,8 +616,8 @@ const ownRoster = computed(() =>
   grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 0;
   margin: 0;
-  border-top: var(--border-width-normal) dashed var(--color-field-strong-border);
-  border-bottom: var(--border-width-normal) dashed var(--color-field-strong-border);
+  border-top: var(--border-width-normal) solid var(--color-border-subtle);
+  border-bottom: var(--border-width-normal) solid var(--color-border-subtle);
 }
 
 .professional-window__inherited > div {
@@ -636,21 +628,21 @@ const ownRoster = computed(() =>
 }
 
 .professional-window__inherited > div + div {
-  border-left: var(--border-width-normal) dashed var(--color-field-strong-border);
+  border-left: var(--border-width-normal) solid var(--color-border-subtle);
 }
 
 .professional-window__inherited dt {
   font-size: var(--font-size-caption);
   line-height: 16px;
-  color: var(--color-on-strong-muted);
+  color: var(--color-text-secondary);
 }
 
 .professional-window__inherited dd {
   margin: 0;
-  font-family: var(--font-display);
-  font-size: 18px;
+  font-size: var(--font-size-body);
+  font-weight: 600;
   line-height: 24px;
-  color: var(--color-on-strong);
+  color: var(--color-text-primary);
 }
 
 .professional-window__strip {
@@ -673,18 +665,16 @@ const ownRoster = computed(() =>
   font-size: var(--font-size-caption);
   font-variant-numeric: tabular-nums;
   line-height: 16px;
-  color: var(--color-on-strong);
-  border: var(--border-width-normal) solid
-    color-mix(in srgb, var(--color-brand-accent-surface) 40%, transparent);
-  border-radius: 2px;
-  animation: professional-window-slot 320ms var(--motion-easing-standard) backwards;
-  animation-delay: calc(var(--i) * 40ms);
+  color: var(--color-text-primary);
+  border: var(--border-width-normal) solid var(--color-border-control);
+  border-radius: var(--radius-md);
 }
 
+/* La primera franja, la más temprana, se destaca en tinta. */
 .professional-window__slot:first-child {
-  color: var(--color-brand-accent-text);
-  background: var(--color-brand-accent-surface);
-  border-color: var(--color-brand-accent-surface);
+  font-weight: 600;
+  background: color-mix(in srgb, var(--color-text-primary) 8%, transparent);
+  border-color: var(--color-text-primary);
 }
 
 .professional-window__actions {
@@ -693,7 +683,7 @@ const ownRoster = computed(() =>
   justify-content: flex-end;
   gap: 10px;
   padding-top: 14px;
-  border-top: var(--border-width-normal) solid var(--color-field-strong-border);
+  border-top: var(--border-width-normal) solid var(--color-border-subtle);
 }
 
 .professional-window__roster {
@@ -720,30 +710,30 @@ const ownRoster = computed(() =>
   padding: 8px 12px;
   font: inherit;
   font-size: var(--font-size-caption);
-  color: var(--color-on-strong);
+  color: var(--color-text-primary);
   cursor: pointer;
   background: transparent;
-  border: var(--border-width-normal) solid var(--color-field-strong-border);
-  border-radius: 2px;
+  border: var(--border-width-normal) solid var(--color-border-control);
+  border-radius: var(--radius-md);
   transition:
-    border-color var(--motion-duration-base) var(--motion-easing-standard),
-    background-color var(--motion-duration-base) var(--motion-easing-standard);
+    border-color var(--motion-duration-fast) var(--motion-easing-standard),
+    background-color var(--motion-duration-fast) var(--motion-easing-standard);
 }
 
 .professional-window__chip:hover:not(:disabled) {
-  border-color: color-mix(in srgb, var(--color-brand-accent-surface) 60%, transparent);
+  border-color: var(--color-text-primary);
 }
 
 .professional-window__chip:focus-visible {
   outline: none;
   box-shadow:
-    0 0 0 2px var(--color-surface-strong),
+    0 0 0 2px var(--color-surface),
     0 0 0 4px var(--color-focus);
 }
 
 .professional-window__chip--active {
-  background: color-mix(in srgb, var(--color-brand-accent-surface) 14%, transparent);
-  border-color: var(--color-brand-accent-surface);
+  background: color-mix(in srgb, var(--color-text-primary) 8%, transparent);
+  border-color: var(--color-text-primary);
 }
 
 .professional-window__chip-name {
@@ -755,67 +745,15 @@ const ownRoster = computed(() =>
 
 .professional-window__chip-grid {
   flex: 0 0 auto;
-  color: var(--color-brand-accent-surface);
+  color: var(--color-text-secondary);
 }
 
-/* Campos reglados: mismo tratamiento que el resto de la página. */
-.professional-window :deep(.base-input) {
-  --input-bg: color-mix(in srgb, var(--color-on-strong) 4%, transparent);
-  --input-border-color: color-mix(in srgb, var(--color-on-strong) 12%, transparent);
-  --input-border-base-color: color-mix(in srgb, var(--color-on-strong) 30%, transparent);
-  --input-focus-ring: 0 0 0 2px var(--color-surface-strong), 0 0 0 4px var(--color-focus);
-
-  height: 44px;
-  color: var(--color-on-strong);
-}
-
-.professional-window :deep(.base-input__label) {
-  color: var(--color-brand-accent-surface);
-}
-
-.professional-window :deep(.base-input__hint) {
-  color: var(--color-on-strong-muted);
-}
-
-.professional-window :deep(.base-input--invalid) {
-  background-color: color-mix(in srgb, var(--color-danger-on-strong) 7%, transparent);
-  border-bottom-color: var(--color-danger-on-strong);
-}
-
-.professional-window :deep(.base-input__error) {
-  color: var(--color-danger-on-strong);
-}
-
-/* Botones: los mismos de la barra de guardado (SaveBar), con el acento de la
-   marca, para que «guardar» se lea igual en toda la pantalla. */
+/* Campos y botones: los compartidos v2 (BaseInput, BaseButton) sin
+   repintar; aquí solo la altura de las acciones. «Guardar ventana» es la
+   acción principal del panel y conserva el acento de BaseButton primary. */
 .professional-window__actions :deep(.base-button) {
-  --btn-focus-ring: 0 0 0 2px var(--color-surface-strong), 0 0 0 4px var(--color-focus);
-
   height: 40px;
   padding-inline: 18px;
-}
-
-.professional-window__actions :deep(.base-button--primary) {
-  background-color: var(--color-brand-accent-surface);
-  color: var(--color-brand-accent-text);
-  border-color: var(--color-brand-accent-surface);
-}
-
-.professional-window__actions
-  :deep(.base-button--primary:hover:not(:disabled):not(.base-button--loading)) {
-  filter: brightness(92%);
-}
-
-.professional-window__actions :deep(.base-button--secondary) {
-  background-color: transparent;
-  color: var(--color-brand-accent-surface);
-  border-color: color-mix(in srgb, var(--color-brand-accent-surface) 50%, transparent);
-  border-bottom-color: var(--color-brand-accent-surface);
-}
-
-.professional-window__actions
-  :deep(.base-button--secondary:hover:not(:disabled):not(.base-button--loading)) {
-  background-color: color-mix(in srgb, var(--color-brand-accent-surface) 12%, transparent);
 }
 
 /* Cambio de profesional: la ficha sale y entra con un desliz corto. */
@@ -857,13 +795,6 @@ const ownRoster = computed(() =>
   transform: translateY(6px);
 }
 
-@keyframes professional-window-slot {
-  from {
-    opacity: 0;
-    transform: translateY(4px);
-  }
-}
-
 @media (max-width: 760px) {
   .professional-window__grid {
     grid-template-columns: minmax(0, 1fr);
@@ -880,7 +811,7 @@ const ownRoster = computed(() =>
   }
 
   .professional-window__inherited > div + div {
-    border-top: var(--border-width-normal) dashed var(--color-field-strong-border);
+    border-top: var(--border-width-normal) solid var(--color-border-subtle);
     border-left: 0;
   }
 
@@ -903,10 +834,6 @@ const ownRoster = computed(() =>
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .professional-window__slot {
-    animation: none;
-  }
-
   .professional-window-swap-enter-active,
   .professional-window-swap-leave-active,
   .professional-window-fields-enter-active,
@@ -914,9 +841,5 @@ const ownRoster = computed(() =>
   .professional-window-actions-enter-active {
     transition: none;
   }
-}
-
-:root[data-motion='reduced'] .professional-window__slot {
-  animation: none;
 }
 </style>

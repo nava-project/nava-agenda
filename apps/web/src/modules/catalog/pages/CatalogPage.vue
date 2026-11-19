@@ -276,7 +276,7 @@ const resultsLabel = computed(() => {
 
 // useMinHoldLoading (issue reportado 2026-09-28: primero "espasmo cuando
 // se cambia de pantallas", luego "se ve como se genera el objeto... quiero
-// el tema de la carga para tapar ese evento"): el rombo/esqueleto se
+// el tema de la carga para tapar ese evento"): el cargador/esqueleto se
 // muestra DE INMEDIATO (nunca una pantalla en blanco que deje ver el
 // contenido armándose), pero no se le permite ceder el paso al contenido
 // real hasta que pasen al menos 400ms desde que empezó — así una carga
@@ -493,25 +493,6 @@ function formatPrice(service: Service): string {
 // vacío (validateName), así que siempre hay una letra real que mostrar.
 function serviceInitial(name: string): string {
   return name.trim().charAt(0).toUpperCase()
-}
-
-// Ritmo propio del rombo de estado, igual técnica que
-// DailyAgendaPage.vue#diamondStyle (issue #189): hash estable del id para
-// que la duración/desfase del parpadeo no cambien al volver a pintar la
-// lista y para que las filas no laten sincronizadas. Aquí no existe el
-// concepto de "en proceso" de la agenda (un servicio solo está activo o
-// inactivo), así que se usa un único rango, el mismo [6, 5] que Agenda
-// aplica a sus turnos que no están en curso.
-function diamondStyle(service: Service): Record<string, string> {
-  let hash = 0
-  for (const char of service.id) hash = (hash * 31 + char.charCodeAt(0)) >>> 0
-  const spread = (hash % 1000) / 1000
-  const phase = ((hash >>> 10) % 1000) / 1000
-  const duration = 6 + spread * 5
-  return {
-    '--diamond-duration': `${duration.toFixed(1)}s`,
-    '--diamond-delay': `-${(phase * duration).toFixed(1)}s`,
-  }
 }
 
 // --- Detalle --------------------------------------------------------------
@@ -1072,15 +1053,15 @@ async function reloadAfterConflict(serviceId: string) {
     <!-- Transition envuelve carga/error/listo en un único fundido (issue
          reportado 2026-09-28, "se ve como se genera el objeto... quiero el
          tema de la carga para tapar ese evento"): sin esto, el cambio de
-         rombo/esqueleto a la tabla real es un corte instantáneo — con
+         cargador/esqueleto a la tabla real es un corte instantáneo — con
          useMinHoldLoading ya no "parpadea", pero seguía siendo un corte
          seco. mode="out-in" espera a que lo anterior termine de
          desvanecerse antes de que entre lo nuevo, así nunca se ven ambos
          a la vez ni un salto de layout a medio fundido.
 
          Mismo tratamiento que AgendaSkeleton.vue (evento 05 del atlas
-         panel-agenda-eventos) para el estado de carga: rombo NAVA en
-         miniatura + la geometría del contenido por llegar, para que la
+         panel-agenda-eventos) para el estado de carga: cargador compartido
+         en miniatura + la geometría del contenido por llegar, para que la
          lista real no "aparezca de golpe" (issue reportado 2026-09-28,
          "revisa la Agenda... hace algo antes de mostrar el componente").
          No se reutiliza AgendaSkeleton (documentado como local al módulo
@@ -1176,9 +1157,9 @@ async function reloadAfterConflict(serviceId: string) {
           </div>
           <!-- Mientras carga una búsqueda/página, esqueletos con la altura de
              una fila real (ver .catalog-page__skeleton-row--table); al llegar
-             el resultado las filas montan de nuevo y entran escalonadas
-             (--row-index, ver .catalog-page__row). El mismo <ul> conserva
-             tableListRef para el cálculo de filas que caben. -->
+             el resultado las filas montan de nuevo, sin animación de entrada
+             (v2, DEC-188). El mismo <ul> conserva tableListRef para el
+             cálculo de filas que caben. -->
           <ul
             ref="tableListRef"
             class="catalog-page__list"
@@ -1204,12 +1185,7 @@ async function reloadAfterConflict(serviceId: string) {
               </li>
             </template>
             <template v-else>
-              <li
-                v-for="(service, index) in services"
-                :key="service.id"
-                class="catalog-page__row"
-                :style="{ '--row-index': index }"
-              >
+              <li v-for="service in services" :key="service.id" class="catalog-page__row">
                 <div class="catalog-page__item-heading">
                   <span class="catalog-page__item-icon" aria-hidden="true">{{
                     serviceInitial(service.name)
@@ -1245,7 +1221,6 @@ async function reloadAfterConflict(serviceId: string) {
                   :variant="service.isActive ? 'success' : 'neutral'"
                   size="sm"
                   :label="service.isActive ? 'Activo' : 'Inactivo'"
-                  :style="diamondStyle(service)"
                   role="status"
                 >
                   {{ service.isActive ? 'Activo' : 'Inactivo' }}
@@ -1320,8 +1295,8 @@ async function reloadAfterConflict(serviceId: string) {
          propósito: al pulsar "Editar" se cierra este y se abre el de edición
          en el mismo ciclo, y BaseDialog guarda como "foco previo" el elemento
          activo al abrirse; con este orden el foco ya volvió a la fila cuando
-         el de edición lo lee. Mismo tinte tinta/dorado y ficha con la
-         inicial que los demás diálogos de la pantalla. -->
+         el de edición lo lee. Misma ficha neutra con la inicial que los
+         demás diálogos de la pantalla. -->
     <BaseDialog
       v-model="isDetailOpen"
       :title="detailTarget?.name"
@@ -1334,21 +1309,19 @@ async function reloadAfterConflict(serviceId: string) {
         }}</span>
       </template>
       <!-- catalog-page__lifecycle aporta solo el apilado, el color de texto
-           sobre tinta y el par de botones dorado/fantasma ya calibrado para
-           este fondo; el resto es propio del detalle. -->
+           y el par de botones del pie; el resto es propio del detalle. -->
       <!-- Rediseño del issue #577: una cabecera con el estado y la fecha de
            registro, una sola ficha de cifras (precio en la moneda del
            contrato y duración) y la descripción como texto corrido. Antes
            eran dos cajas grandes con «25000.00 COP» y metadatos sueltos al
-           pie. Cada bloque entra escalonado con --row-index. -->
+           pie. Todo está a la vista desde el primer cuadro (v2, DEC-188). -->
       <div v-if="detailTarget" class="catalog-page__lifecycle catalog-page__detail">
-        <div class="catalog-page__detail-head" :style="{ '--row-index': 0 }">
+        <div class="catalog-page__detail-head">
           <p
             class="catalog-page__detail-status"
             :class="{ 'catalog-page__detail-status--active': detailTarget.isActive }"
-            :style="diamondStyle(detailTarget)"
           >
-            <span class="catalog-page__detail-diamond" aria-hidden="true" />
+            <span class="catalog-page__detail-dot" aria-hidden="true" />
             {{ detailTarget.isActive ? 'Activo' : 'Inactivo' }}
           </p>
           <dl class="catalog-page__detail-meta">
@@ -1363,7 +1336,7 @@ async function reloadAfterConflict(serviceId: string) {
           </dl>
         </div>
 
-        <dl class="catalog-page__detail-figures" :style="{ '--row-index': 1 }">
+        <dl class="catalog-page__detail-figures">
           <div class="catalog-page__detail-figure catalog-page__detail-figure--price">
             <dt>Precio</dt>
             <dd>
@@ -1390,7 +1363,7 @@ async function reloadAfterConflict(serviceId: string) {
           </div>
         </dl>
 
-        <div class="catalog-page__detail-section" :style="{ '--row-index': 2 }">
+        <div class="catalog-page__detail-section">
           <h3 class="catalog-page__detail-label">Descripción</h3>
           <p v-if="detailTarget.description" class="catalog-page__detail-text">
             {{ detailTarget.description }}
@@ -1478,7 +1451,6 @@ async function reloadAfterConflict(serviceId: string) {
           :maxlength="120"
           :disabled="createStatus === 'saving'"
           :error="createFieldErrors.name"
-          :class="{ 'catalog-page__create-input--filled': !!createForm.name }"
           @update:model-value="onCreateNameInput"
         />
         <BaseInput
@@ -1488,7 +1460,6 @@ async function reloadAfterConflict(serviceId: string) {
           :maxlength="500"
           :disabled="createStatus === 'saving'"
           :error="createFieldErrors.description"
-          :class="{ 'catalog-page__create-input--filled': !!createForm.description }"
           @update:model-value="onCreateDescriptionInput"
         />
         <BaseInput
@@ -1503,7 +1474,6 @@ async function reloadAfterConflict(serviceId: string) {
           :step="1"
           :disabled="createStatus === 'saving'"
           :error="createFieldErrors.durationMinutes"
-          :class="{ 'catalog-page__create-input--filled': !!createDurationRaw }"
           @update:model-value="onCreateDurationInput"
         />
         <BaseInput
@@ -1516,7 +1486,6 @@ async function reloadAfterConflict(serviceId: string) {
           hint="Precio informativo en pesos colombianos, mayor que cero."
           :disabled="createStatus === 'saving'"
           :error="createFieldErrors.price"
-          :class="{ 'catalog-page__create-input--filled': !!createForm.price }"
           @update:model-value="onCreatePriceInput"
         />
 
@@ -1537,8 +1506,8 @@ async function reloadAfterConflict(serviceId: string) {
     </BaseDialog>
 
     <!-- Edición (issue 2026-09-28, "aplica eso mismo para las pantallas
-         emergentes de editar y eliminar"): mismo tratamiento tinta/dorado
-         que el diálogo de alta, arriba. La ficha del encabezado reutiliza
+         emergentes de editar y eliminar"): mismo tratamiento v2 que el
+         diálogo de alta, arriba. La ficha del encabezado reutiliza
          serviceInitial() — la misma inicial que ya identifica a este
          servicio en la fila — en vez de un glifo genérico, así la ficha
          señala DE QUÉ servicio se trata, no solo que es "un" diálogo de
@@ -1602,7 +1571,6 @@ async function reloadAfterConflict(serviceId: string) {
           :maxlength="120"
           :disabled="editStatus === 'saving'"
           :error="editFieldErrors.name"
-          :class="{ 'catalog-page__edit-input--filled': !!editForm.name }"
           @update:model-value="onEditNameInput"
         />
         <BaseInput
@@ -1612,7 +1580,6 @@ async function reloadAfterConflict(serviceId: string) {
           :maxlength="500"
           :disabled="editStatus === 'saving'"
           :error="editFieldErrors.description"
-          :class="{ 'catalog-page__edit-input--filled': !!editForm.description }"
           @update:model-value="onEditDescriptionInput"
         />
         <BaseInput
@@ -1627,7 +1594,6 @@ async function reloadAfterConflict(serviceId: string) {
           :step="1"
           :disabled="editStatus === 'saving'"
           :error="editFieldErrors.durationMinutes"
-          :class="{ 'catalog-page__edit-input--filled': !!editDurationRaw }"
           @update:model-value="onEditDurationInput"
         />
         <BaseInput
@@ -1640,7 +1606,6 @@ async function reloadAfterConflict(serviceId: string) {
           hint="Precio informativo en pesos colombianos, mayor que cero."
           :disabled="editStatus === 'saving'"
           :error="editFieldErrors.price"
-          :class="{ 'catalog-page__edit-input--filled': !!editForm.price }"
           @update:model-value="onEditPriceInput"
         />
 
@@ -1681,11 +1646,10 @@ async function reloadAfterConflict(serviceId: string) {
 
     <!-- HU-024: desactivar/reactivar (issue 2026-09-28, "aplica eso mismo
          para las pantallas emergentes de editar y eliminar"): mismo tinte
-         base que alta/edición, pero la ficha y el filete del encabezado
-         cambian a --color-danger-on-strong cuando la intención es
-         "deactivate" (mismo rojo ya usado por el botón "Desactivar" de la
-         fila) — el diálogo advierte visualmente antes de que el profesional
-         lea una sola palabra. "reactivate" conserva el dorado neutro. -->
+         base que alta/edición, pero la ficha del encabezado cambia a
+         --color-danger-on-strong cuando la intención es "deactivate" — el
+         diálogo advierte visualmente antes de que el profesional lea una
+         sola palabra. "reactivate" conserva la ficha neutra. -->
     <BaseDialog
       v-model="isLifecycleOpen"
       title="Estado del servicio"
@@ -1964,25 +1928,25 @@ async function reloadAfterConflict(serviceId: string) {
   justify-content: space-between;
   gap: var(--space-4);
   padding-bottom: 16px;
-  border-bottom: var(--border-width-normal) solid var(--color-field-strong-border);
+  border-bottom: var(--border-width-normal) solid var(--color-border-subtle);
 }
 
-/* h1 del sistema (antes 30px suelto), mismo escalón que DailyAgendaPage.vue
-   usa para su propio título sobre tinta (issue 2026-09-28, "el título se ve
-   muy pequeño"): 32px base, 40px desde 1024px — Catalog se había quedado
-   más chico que su página hermana sin motivo. */
+/* h1 v2 (DEC-188): el mismo título que DailyAgendaPage.vue
+   (.daily-agenda-page__title), 28px y 32px desde 1024px. */
 .catalog-page__title {
   margin: 0;
-  font-family: var(--font-display);
-  font-size: var(--font-size-h1);
-  line-height: var(--font-size-h1-line);
-  font-weight: var(--font-weight-h1);
+  font-family: var(--font-sans);
+  font-size: 28px;
+  font-weight: 600;
+  line-height: 32px;
+  letter-spacing: -0.01em;
+  color: var(--color-text-primary);
 }
 
 @media (min-width: 1024px) {
   .catalog-page__title {
-    font-size: var(--font-size-title-page);
-    line-height: 46px;
+    font-size: 32px;
+    line-height: 36px;
   }
 }
 
@@ -2009,15 +1973,10 @@ async function reloadAfterConflict(serviceId: string) {
   margin-right: 6px;
 }
 
-/* "Agregar servicio" es la acción primaria de la pantalla: el relleno tinta
-   por defecto de BaseButton--primary (--color-action-primary) es el MISMO
-   color que ahora tiene el fondo de la página (#101b2b), así que se
-   fundiría con el canvas. Se levanta con el dorado de marca, igual criterio
-   que ya usa BaseBadge--outline y el filete activo de AppNav sobre tinta:
-   ningún color nuevo, solo los tokens de acento ya pensados para superficie
-   oscura (--color-brand-accent-surface/--color-brand-accent-text). Se
-   sobrescribe aquí, no en BaseButton, porque el resto de sus usos siguen
-   sobre superficie clara. */
+/* "Agregar servicio" es la acción principal de la pantalla y la ÚNICA con el
+   acento lleno (v2, DEC-188): toma el acento del negocio
+   (--color-brand-accent-surface) en vez del Alba fijo de BaseButton, igual
+   que la acción principal de NewAppointmentPage.vue. */
 .catalog-page__create.base-button--primary {
   background-color: var(--color-brand-accent-surface);
   color: var(--color-brand-accent-text);
@@ -2037,8 +1996,8 @@ async function reloadAfterConflict(serviceId: string) {
   color: var(--color-on-strong-muted);
 }
 
-/* layout="inline" (rombo chico a la izquierda, mismo criterio que
-   AgendaSkeleton) en vez del rombo grande centrado: aquí no está solo,
+/* layout="inline" (cargador chico a la izquierda, mismo criterio que
+   AgendaSkeleton) en vez del grande centrado: aquí no está solo,
    acompaña a las filas placeholder de abajo. */
 .catalog-page__loading {
   display: flex;
@@ -2059,7 +2018,7 @@ async function reloadAfterConflict(serviceId: string) {
   gap: 16px;
   min-height: 80px;
   padding: 16px;
-  border-top: var(--border-width-normal) solid var(--color-field-strong-border);
+  border-top: var(--border-width-normal) solid var(--color-border-subtle);
 }
 
 .catalog-page__skeleton-text {
@@ -2078,7 +2037,8 @@ async function reloadAfterConflict(serviceId: string) {
 }
 
 /* Mismo `agenda-skeleton-pulse` que AgendaSkeleton.vue, aquí
-   `catalog-skeleton-pulse`. */
+   `catalog-skeleton-pulse`: es un indicador de carga (dura lo que dura la
+   petición), por eso v2 lo permite; se apaga con movimiento reducido. */
 .catalog-page__skeleton-icon,
 .catalog-page__skeleton-bar {
   display: block;
@@ -2134,6 +2094,14 @@ async function reloadAfterConflict(serviceId: string) {
   }
 }
 
+/* «Animaciones reducidas» de Configuración (DEC-110): el esqueleto queda
+   quieto igual que con la preferencia del sistema. */
+:global(:root[data-motion='reduced']) .catalog-page__skeleton-icon,
+:global(:root[data-motion='reduced']) .catalog-page__skeleton-bar {
+  animation: none;
+  opacity: 0.8;
+}
+
 @media (max-width: 640px) {
   .catalog-page__skeleton-row {
     gap: 10px;
@@ -2172,18 +2140,16 @@ async function reloadAfterConflict(serviceId: string) {
   }
 }
 
-/* Panel hundido sobre tinta (--color-field-strong, tokens.css: "así leen
-   como un hueco en la página y no como un velo claro sobre el azul"), mismo
-   vocabulario que los campos de ProfessionalSelect/AgendaDatePicker. */
+/* Tarjeta v2 (DEC-188): superficie con borde sutil de 1px y radio grande. */
 .catalog-page__list {
   display: flex;
   flex-direction: column;
   padding: 0;
   margin: 0;
   list-style: none;
-  background-color: var(--color-field-strong);
-  border: var(--border-width-normal) solid var(--color-field-strong-border);
-  border-radius: 3px;
+  background-color: var(--color-surface);
+  border: var(--border-width-normal) solid var(--color-border-subtle);
+  border-radius: var(--radius-lg);
   overflow: hidden;
 }
 
@@ -2211,14 +2177,12 @@ async function reloadAfterConflict(serviceId: string) {
   margin: 0;
   border: none;
   font-family: var(--font-sans);
-  /* Encabezado reglado: versalitas espaciadas de latón, el mismo rótulo que
-     usan los campos y las demás pantallas del panel (antes un gris en negrita
-     de 16px que competía con los datos que etiqueta). */
-  font-size: var(--font-size-caption);
-  font-weight: 600;
-  letter-spacing: 0.1em;
-  text-transform: uppercase;
-  color: var(--color-brand-accent-surface);
+  /* Rótulo v2 (DEC-188): tipo oración, 13px/500 en texto secundario, como el
+     rótulo de BaseInput; sin versalitas ni acento. */
+  font-size: 13px;
+  font-weight: 500;
+  line-height: 18px;
+  color: var(--color-text-secondary);
 }
 
 /* Alto FIJO, no min-height (issue reportado 2026-09-28, "que se adapte
@@ -2231,7 +2195,7 @@ async function reloadAfterConflict(serviceId: string) {
   height: 80px;
   padding: 16px;
   overflow: hidden;
-  border-top: var(--border-width-normal) solid var(--color-field-strong-border);
+  border-top: var(--border-width-normal) solid var(--color-border-subtle);
 }
 
 .catalog-page__item-heading {
@@ -2253,10 +2217,10 @@ async function reloadAfterConflict(serviceId: string) {
   justify-content: center;
   width: 40px;
   height: 40px;
-  background-color: var(--color-field-strong-raised);
-  border: var(--border-width-normal) solid var(--color-field-strong-border);
-  border-radius: var(--radius-sm);
-  color: var(--color-brand-accent-surface);
+  background-color: var(--color-surface-muted);
+  border: var(--border-width-normal) solid var(--color-border-subtle);
+  border-radius: var(--radius-md);
+  color: var(--color-text-secondary);
   font-family: var(--font-display);
   font-size: var(--font-size-body-lg);
   line-height: 1;
@@ -2322,7 +2286,7 @@ async function reloadAfterConflict(serviceId: string) {
 
 .catalog-page__item-chevron {
   flex: 0 0 auto;
-  color: var(--color-brand-accent-surface);
+  color: var(--color-text-secondary);
   font-size: var(--font-size-body-lg);
   line-height: 1;
   opacity: 0.55;
@@ -2339,21 +2303,13 @@ async function reloadAfterConflict(serviceId: string) {
 /* Solo con puntero real: en táctil :hover se queda pegado tras el toque. */
 @media (hover: hover) {
   .catalog-page__row:hover {
-    background-color: color-mix(in srgb, var(--color-on-strong) 4%, transparent);
-  }
-
-  .catalog-page__row:hover .catalog-page__item-name {
-    color: var(--color-brand-accent-surface);
+    background-color: color-mix(in srgb, var(--color-text-primary) 4%, transparent);
   }
 
   .catalog-page__row:hover .catalog-page__item-chevron {
     opacity: 1;
     transform: translateX(3px);
   }
-}
-
-.catalog-page__item-name {
-  transition: color var(--motion-duration-fast) var(--motion-easing-standard);
 }
 
 /* Columna «Lo ofrezco» (DEC-115): una pista de 46px sin texto; el encabezado y el
@@ -2391,36 +2347,14 @@ async function reloadAfterConflict(serviceId: string) {
   font-size: var(--font-size-body-sm);
 }
 
-/* "Editar"/"Cambiar estado" usan BaseButton--secondary, calibrado para relleno
-   blanco sobre superficie clara (estandar-diseno-visual.md §8.1). Mismo
-   ajuste ya aplicado en DailyAgendaPage.vue (.daily-agenda-page__date-nav)
-   para su BaseButton--ghost: se quita el relleno y se sube el latón claro,
-   sin tocar el componente compartido porque sus demás usos sí están sobre
-   superficie clara. */
-.catalog-page__item-actions :deep(.base-button--secondary) {
-  background-color: transparent;
-  color: var(--color-brand-accent-surface);
-  border-color: color-mix(in srgb, var(--color-brand-accent-surface) 50%, transparent);
-  border-bottom-color: var(--color-brand-accent-surface);
-}
+/* "Editar" usa el BaseButton--secondary v2 tal cual (contorno neutro): el
+   acento lleno queda solo para "Agregar servicio" (DEC-188).
 
-.catalog-page__item-actions
-  :deep(.base-button--secondary:hover:not(:disabled):not(.base-button--loading)) {
-  background-color: color-mix(in srgb, var(--color-brand-accent-surface) 12%, transparent);
-  border-color: color-mix(in srgb, var(--color-brand-accent-surface) 50%, transparent);
-}
-
-.catalog-page__item-actions
-  :deep(.base-button--secondary:active:not(:disabled):not(.base-button--loading)) {
-  background-color: color-mix(in srgb, var(--color-brand-accent-surface) 20%, transparent);
-}
-
-/* "Cambiar estado" (issue 2026-09-29, "colócale un color distinto a ese
-   botón"): mismo ghost sobre tinta que "Editar", pero en salvia
-   (--color-success-on-strong, ya calculado para AA sobre tinta y el mismo
-   verde del interruptor del diálogo que abre) para separarlo de la acción
-   de edición (latón) sin recurrir al rojo, que sigue reservado a la
-   confirmación destructiva. */
+   "Cambiar estado" (issue 2026-09-29, "colócale un color distinto a ese
+   botón"): mismo contorno que "Editar", pero en verde de éxito
+   (--color-success-on-strong, el mismo verde del interruptor del diálogo que
+   abre) para separarlo de la edición sin recurrir al acento ni al rojo, que
+   sigue reservado a la confirmación destructiva. */
 .catalog-page__item-actions :deep(.catalog-page__state-action.base-button--secondary) {
   color: var(--color-success-on-strong);
   border-color: color-mix(in srgb, var(--color-success-on-strong) 50%, transparent);
@@ -2446,16 +2380,13 @@ async function reloadAfterConflict(serviceId: string) {
   background-color: color-mix(in srgb, var(--color-success-on-strong) 20%, transparent);
 }
 
-/* Insignia "Activo"/"Inactivo" como rombo (issue reportado 2026-09-28,
-   "esos estados se ven feos, colócalos como diamantes... con animación
-   como en agenda"): mismo rediseño local que ya usa DailyAgendaPage.vue
-   (issue #189, pedido explícito del propietario 2026-09-04: "parecen
-   botones") — se abandona la caja de BaseBadge por un rótulo: rombo de
-   color + versalitas espaciadas. Sigue sin inventar un color nuevo: el
-   rombo es `currentColor`, tomado del `color` que ya resuelve la variante
-   (los mismos tintes on-strong de abajo). Se sobrescribe aquí, no en
-   BaseBadge, porque el resto de sus usos en la app sí necesitan la caja
-   con relleno sobre superficie clara. */
+/* Insignia "Activo"/"Inactivo" como rótulo, no como caja (issue reportado
+   2026-09-28, "esos estados se ven feos"; pedido del propietario 2026-09-04:
+   "parecen botones"): un punto de color + la palabra en tipo oración. v2
+   (DEC-188) quita el rombo parpadeante y las versalitas: el punto queda
+   quieto y es `currentColor`, el `color` que ya resuelve la variante (los
+   tintes de estado de abajo). Se sobrescribe aquí, no en BaseBadge, porque
+   el resto de sus usos sí necesitan la caja. */
 .catalog-page__row :deep(.base-badge) {
   display: inline-flex;
   align-items: center;
@@ -2465,54 +2396,23 @@ async function reloadAfterConflict(serviceId: string) {
   background-color: transparent;
   border: none;
   border-radius: 0;
-  font-size: var(--font-size-caption);
-  font-weight: 600;
-  line-height: var(--font-size-caption-line);
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
+  font-size: 13px;
+  font-weight: 500;
+  line-height: 18px;
 }
 
 .catalog-page__row :deep(.base-badge)::before {
   content: '';
   flex-shrink: 0;
-  width: 5px;
-  height: 5px;
-  /* Rombo (cuadrado girado 45°), igual que el marcador de agenda. */
-  transform: rotate(45deg);
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
   background-color: currentColor;
-  /* Ritmo propio por fila (ver diamondStyle): --diamond-duration/-delay
-     vienen del `:style` de cada BaseBadge, con esta duración/desfase de
-     respaldo si faltaran. */
-  animation: catalog-diamond-blink var(--diamond-duration, 7s) ease-in-out var(--diamond-delay, 0s)
-    infinite;
 }
 
-/* Parpadeo suave y esporádico: casi todo el ciclo queda quieto y solo un
-   tramo corto baja la opacidad y la escala, sin movimiento lateral (mismos
-   valores que agenda-diamond-blink en DailyAgendaPage.vue). */
-@keyframes catalog-diamond-blink {
-  0%,
-  62%,
-  100% {
-    opacity: 1;
-    transform: rotate(45deg) scale(1);
-  }
-
-  80% {
-    opacity: 0.55;
-    transform: rotate(45deg) scale(0.85);
-  }
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .catalog-page__row :deep(.base-badge)::before {
-    animation: none;
-  }
-}
-
-/* Tintes YA calculados para AA sobre tinta (tokens.css §"Tintes de estado
-   LEVANTADOS al canvas de tinta"), ningún color nuevo: el `color` de cada
-   variant también es el que hereda el rombo vía currentColor. */
+/* Tintes de estado de tokens.css (AA en los dos modos), ningún color nuevo:
+   el `color` de cada variant también es el que hereda el punto vía
+   currentColor. */
 .catalog-page__row :deep(.base-badge--success) {
   color: var(--color-success-on-strong);
 }
@@ -2537,12 +2437,8 @@ async function reloadAfterConflict(serviceId: string) {
 }
 
 /* Buscador (issue 2026-09-28, "con su buscador"): BaseInput type="search"
-   reutilizado tal cual, sin campo nuevo — solo se acota su ancho (no tiene
-   sentido que un solo input ocupe las mismas 820px que la tabla completa)
-   y se reaplica el mismo tratamiento "reglado sobre tinta" que ya usan los
-   demás BaseInput de esta pantalla (diálogos de alta/edición), porque
-   shared/ui/BaseInput sigue calibrado para superficie clara
-   (estandar-diseno-visual.md). */
+   reutilizado tal cual, con su estilo v2 (DEC-188) — solo se acota su
+   ancho: no tiene sentido que un solo campo ocupe el ancho de la tabla. */
 .catalog-page__toolbar {
   display: flex;
 }
@@ -2552,71 +2448,24 @@ async function reloadAfterConflict(serviceId: string) {
   max-width: 320px;
 }
 
-.catalog-page__search :deep(.base-input) {
-  --input-bg: color-mix(in srgb, var(--color-on-strong) 4%, transparent);
-  --input-border-color: color-mix(in srgb, var(--color-on-strong) 12%, transparent);
-  --input-border-base-color: color-mix(in srgb, var(--color-on-strong) 30%, transparent);
-  --input-focus-ring: 0 0 0 2px var(--color-surface-strong), 0 0 0 4px var(--color-focus);
-
-  color: var(--color-on-strong);
-}
-
-.catalog-page__search :deep(.base-input__label) {
-  color: var(--color-brand-accent-surface);
-}
-
-.catalog-page__search :deep(.base-input::placeholder) {
-  color: var(--color-on-strong-muted);
-  opacity: 1;
-}
-
-.catalog-page__search :deep(.base-input:hover:not(:disabled)) {
-  border-color: color-mix(in srgb, var(--color-on-strong) 26%, transparent);
-}
-
 /* Buscar o cambiar de página (issue 2026-09-29, "que al buscar un servicio
    se haga una animación y no que muestre el resultado, ya que se ve feo"):
    la tabla y su encabezado de columnas se quedan (nunca el esqueleto de
    página completa de la carga inicial, eso sería el parpadeo que
    useMinHoldLoading ya resolvió); solo el cuerpo pasa a esqueletos con
    pulso -misma altura que una fila real, así el paginador no salta- y el
-   resultado entra fila por fila. */
+   resultado aparece de una vez: v2 (DEC-188) quita la entrada escalonada
+   que se repetía en cada búsqueda. */
 .catalog-page__skeleton-row--table {
   height: 80px;
   min-height: 0;
   overflow: hidden;
 }
 
-/* Entrada escalonada: cada fila arranca `--row-index` pasos después que la
-   anterior (tope de 8 pasos para que una página de 50 filas no tarde en
-   terminar de aparecer). `both` mantiene la fila oculta durante su retraso. */
-.catalog-page__row {
-  animation: catalog-row-enter 320ms var(--motion-easing-standard) both;
-  animation-delay: calc(min(var(--row-index, 0), 8) * 45ms);
-}
-
 @media (max-width: 640px) {
   /* Igual que .catalog-page__row en móvil (ROW_HEIGHT_MOBILE_PX). */
   .catalog-page__skeleton-row--table {
     height: 100px;
-  }
-}
-
-@keyframes catalog-row-enter {
-  from {
-    opacity: 0;
-    transform: translateY(10px);
-  }
-
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .catalog-page__row {
-    animation: none;
   }
 }
 
@@ -2661,7 +2510,8 @@ async function reloadAfterConflict(serviceId: string) {
   width: 1.25rem;
   height: 1.25rem;
   margin-top: 0.125rem;
-  accent-color: var(--color-accent, #b8955a);
+  /* Casilla marcada en tinta: el acento es solo de la acción principal. */
+  accent-color: var(--color-text-primary);
 }
 
 .catalog-page__apply-upcoming span {
@@ -2694,17 +2544,15 @@ async function reloadAfterConflict(serviceId: string) {
    una simple ventana que aparece de la nada, sorpréndeme", luego "sigue
    blanco, no respetas los colores del fondo... ajusta los inputs como los
    de Agenda"; edición/ciclo de vida: "aplica eso mismo para las pantallas
-   emergentes de editar y eliminar"): ninguno usa ya la superficie clara
-   por defecto de BaseDialog — los tres usan el mismo canvas de tinta que
-   el resto de esta pantalla y el mismo tratamiento de campos "reglados
-   sobre tinta" que NewAppointmentPage.vue (Agenda) ya estableció para sus
-   propios formularios, en vez de flotar como una tarjeta blanca genérica.
+   emergentes de editar y eliminar"): en v2 (DEC-188) los diálogos usan la
+   superficie del modo con borde sutil, los campos son BaseInput v2 tal cual
+   y una ficha con la inicial del servicio en el encabezado.
    Nada de esto toca BaseDialog.vue ni BaseInput.vue para el resto de la
    app: solo aplica dentro de .catalog-page__create-dialog/__edit-dialog/
    __lifecycle-dialog y sus respectivas clases de formulario/contenedor
    (content-class y clase del <form>/<div>, ver plantilla).
 
-   El fondo, el filete del encabezado, el título, la descripción y el botón
+   El fondo, el borde, el título, la descripción y el botón
    de cerrar (elementos propios de BaseDialog.vue, no de esta plantilla) se
    sobrescriben en el bloque <style> SIN "scoped" al final del archivo, no
    aquí: BaseDialog renderiza su contenido en <Teleport to="body">, y Vue
@@ -2719,13 +2567,13 @@ async function reloadAfterConflict(serviceId: string) {
    :deep(...), y sus equivalentes __edit-* / __lifecycle-*): viajan con el
    elemento sin importar dónde lo monte Vue. */
 
-/* Ficha del encabezado, los tres diálogos (issue 2026-09-28, "aplica eso
-   mismo para las pantallas emergentes de editar y eliminar"): mismo par
-   dorado/tinta que ya usa el botón "Agregar servicio" (fondo
-   --color-brand-accent-surface, texto --color-brand-accent-text). Alta
-   muestra "+"; Editar y Desactivar/Reactivar muestran serviceInitial() del
-   servicio destino — la misma inicial que ya lo identifica en la fila —
-   para que la ficha señale DE QUÉ servicio se trata, no solo la acción. */
+/* Ficha del encabezado, los diálogos (issue 2026-09-28, "aplica eso mismo
+   para las pantallas emergentes de editar y eliminar"): en v2 (DEC-188) es
+   neutra, tinta sobre un velo de tinta, como el monograma de la fila; el
+   acento queda para el botón principal del pie. Alta muestra "+"; Editar y
+   Desactivar/Reactivar muestran serviceInitial() del servicio destino para
+   que la ficha señale DE QUÉ servicio se trata. Sin animación de entrada:
+   ya entra con el propio diálogo. */
 .catalog-page__create-icon,
 .catalog-page__edit-icon,
 .catalog-page__detail-icon,
@@ -2738,186 +2586,28 @@ async function reloadAfterConflict(serviceId: string) {
   width: 40px;
   height: 40px;
   overflow: hidden;
-  background-color: var(--color-brand-accent-surface);
-  color: var(--color-brand-accent-text);
+  background-color: color-mix(in srgb, var(--color-text-primary) 8%, transparent);
+  color: var(--color-text-primary);
   border-radius: var(--radius-md);
   font-family: var(--font-display);
   font-size: var(--font-size-title-item);
   line-height: 1;
-  /* Entra un instante después de la tarjeta (mitad de --motion-duration-
-     fast) para que se sienta como un segundo tiempo del mismo gesto, no
-     dos animaciones independientes arrancando a la vez. */
-  animation: catalog-dialog-icon-pop var(--motion-duration-base) cubic-bezier(0.34, 1.56, 0.64, 1)
-    60ms both;
 }
 
-/* "Desactivar" tiñe su propia ficha con el mismo rojo ya calculado para AA
-   sobre tinta (--color-danger-on-strong, el que ya usa el botón "Desactivar"
-   de la fila) en vez del dorado neutro: advierte antes de leer una palabra.
-   Mismo par fondo/texto invertido que el dorado (fondo claro, texto tinta),
-   ningún color nuevo. */
+/* "Desactivar" tiñe su propia ficha con el rojo de peligro
+   (--color-danger-on-strong) en vez de la ficha neutra: advierte antes de
+   leer una palabra. Ningún color nuevo. */
 .catalog-page__lifecycle-icon--danger {
   background-color: var(--color-danger-on-strong);
   color: var(--color-surface-strong);
 }
 
-/* Destello: un solo barrido diagonal, una vez, justo cuando la ficha
-   termina de asentarse. En tinta el glint de DiamondLoader es dorado
-   sobre un fondo transparente; aquí la ficha YA es dorada (o roja), así
-   que el barrido usa el mismo triplete RGB de --color-on-strong que
-   tokens.css ya reutiliza para sus propios veladores translúcidos
-   (--color-field-strong-border es "color-mix(in srgb, var(--color-on-strong) 12%, transparent)") en vez de más
-   color sobre color, que no se vería. UNA sola pasada, no en bucle: es el
-   remate de abrir el diálogo, no un indicador de carga. */
-.catalog-page__create-icon::after,
-.catalog-page__edit-icon::after,
-.catalog-page__detail-icon::after,
-.catalog-page__lifecycle-icon::after {
-  content: '';
-  position: absolute;
-  inset: -40% -60%;
-  background: linear-gradient(
-    75deg,
-    transparent 40%,
-    color-mix(in srgb, var(--color-on-strong) 50%, transparent) 50%,
-    transparent 60%
-  );
-  transform: translateX(-100%);
-  animation: catalog-dialog-icon-glint 480ms cubic-bezier(0.5, 0, 0.3, 1) 260ms both;
-}
+/* Los campos de alta y edición usan BaseInput v2 tal cual (DEC-188):
+   rótulo en texto secundario, borde de control y foco en tinta.
 
-@keyframes catalog-dialog-icon-pop {
-  from {
-    opacity: 0;
-    transform: scale(0.5) rotate(-20deg);
-  }
-
-  to {
-    opacity: 1;
-    transform: scale(1) rotate(0deg);
-  }
-}
-
-@keyframes catalog-dialog-icon-glint {
-  from {
-    transform: translateX(-100%);
-  }
-
-  to {
-    transform: translateX(100%);
-  }
-}
-
-/* El rebote de apertura (transition-timing-function de .base-dialog--open)
-   se desactiva junto con el resto en el bloque sin scope, al final del
-   archivo — vive ahí por el mismo motivo de Teleport explicado arriba. */
-@media (prefers-reduced-motion: reduce) {
-  .catalog-page__create-icon,
-  .catalog-page__create-icon::after,
-  .catalog-page__edit-icon,
-  .catalog-page__edit-icon::after,
-  .catalog-page__detail-icon,
-  .catalog-page__detail-icon::after,
-  .catalog-page__lifecycle-icon,
-  .catalog-page__lifecycle-icon::after {
-    animation: none;
-  }
-}
-
-/* Campos reglados sobre tinta, alta Y edición (issue 2026-09-28, "ajusta
-   los inputs como están los inputs de la pantalla Agenda", luego "aplica
-   eso mismo para... editar"): mismas variables que NewAppointmentPage.vue
-   ya redefine para sus propios BaseInput sobre --color-surface-strong
-   (nava-docs/agenda/03-desarrollo/estandar-diseno-visual.md: shared/ui sigue calibrado
-   para superficie clara; cada pantalla sobre tinta redefine estos tokens
-   en su propio ámbito, no en BaseInput.vue). */
-.catalog-page__create-form :deep(.base-input),
-.catalog-page__edit-form :deep(.base-input) {
-  --input-bg: color-mix(in srgb, var(--color-on-strong) 4%, transparent);
-  --input-border-color: color-mix(in srgb, var(--color-on-strong) 12%, transparent);
-  --input-border-base-color: color-mix(in srgb, var(--color-on-strong) 30%, transparent);
-  --input-focus-ring: 0 0 0 2px var(--color-surface-strong), 0 0 0 4px var(--color-focus);
-
-  color: var(--color-on-strong);
-}
-
-/* Rótulo y asterisco en el dorado de marca, no en el latón oscuro
-   (--color-accent-brass) ni en el rojo por defecto de BaseInput: ambos
-   están calibrados para AA sobre superficie CLARA (tokens.css) y aquí
-   apenas rozan 2.7:1 sobre tinta. --color-brand-accent-surface sí resuelve
-   AA sobre --color-surface-strong (ya verificado para el filete del
-   encabezado, arriba) y es el mismo dorado que el resto del diálogo. */
-.catalog-page__create-form :deep(.base-input__label),
-.catalog-page__edit-form :deep(.base-input__label) {
-  color: var(--color-brand-accent-surface);
-}
-
-.catalog-page__create-form :deep(.base-input__required),
-.catalog-page__edit-form :deep(.base-input__required) {
-  margin-left: 2px;
-  color: var(--color-brand-accent-surface);
-}
-
-.catalog-page__create-form :deep(.base-input__hint),
-.catalog-page__edit-form :deep(.base-input__hint) {
-  color: var(--color-on-strong-muted);
-}
-
-.catalog-page__create-form :deep(.base-input::placeholder),
-.catalog-page__edit-form :deep(.base-input::placeholder) {
-  color: var(--color-on-strong-muted);
-  opacity: 1;
-}
-
-.catalog-page__create-form :deep(.base-input:hover:not(:disabled):not(.base-input--invalid)),
-.catalog-page__edit-form :deep(.base-input:hover:not(:disabled):not(.base-input--invalid)) {
-  border-color: color-mix(in srgb, var(--color-on-strong) 26%, transparent);
-}
-
-/* El dorado del filete inferior marca el campo YA RESUELTO (mismo criterio
-   que NewAppointmentPage.vue: ocho filetes dorados a la vez no distinguen
-   lo hecho de lo pendiente); la clase la pone :class en cada BaseInput
-   (ver plantilla) según si su propio v-model tiene contenido. Alta y
-   edición usan cada una su propia clase --filled (no comparten estado). */
-.catalog-page__create-form :deep(.catalog-page__create-input--filled .base-input),
-.catalog-page__edit-form :deep(.catalog-page__edit-input--filled .base-input) {
-  background-color: color-mix(in srgb, var(--color-on-strong) 6%, transparent);
-  border-bottom-color: var(--color-brand-accent-surface);
-}
-
-.catalog-page__create-form :deep(.base-input:disabled),
-.catalog-page__create-form :deep(.base-input--disabled),
-.catalog-page__edit-form :deep(.base-input:disabled),
-.catalog-page__edit-form :deep(.base-input--disabled) {
-  background-color: var(--input-bg);
-  border-color: var(--input-border-color);
-  border-bottom-color: color-mix(in srgb, var(--color-on-strong) 20%, transparent);
-  color: var(--color-on-strong-muted);
-  opacity: 0.45;
-}
-
-.catalog-page__create-form :deep(.base-input--invalid),
-.catalog-page__edit-form :deep(.base-input--invalid) {
-  background-color: color-mix(in srgb, var(--color-danger-on-strong) 7%, transparent);
-  border-color: var(--input-border-color);
-  border-bottom-color: var(--color-danger-on-strong);
-}
-
-.catalog-page__create-form :deep(.base-input__error),
-.catalog-page__edit-form :deep(.base-input__error) {
-  color: var(--color-danger-on-strong);
-}
-
-/* Botones del pie, los tres diálogos: mismo par dorado-sólido/tinta-fantasma
-   que ya usan el CTA "Agregar servicio" y las acciones de fila de esta
-   misma pantalla sobre tinta — no los valores por defecto de BaseButton
-   (calibrados para flotar sobre superficie clara, donde --primary es tinta
-   sobre tinta y --secondary es un bloque blanco: ambos se romperían aquí).
-   "Desactivar" (variant="danger" en la plantilla) es la única excepción:
-   conserva su relleno rojo sólido normal — es la acción destructiva del
-   diálogo de ciclo de vida, y aquí SÍ debe seguir leyendo como tal (ver
-   comentario en la sección de item-actions, arriba, sobre el mismo
-   criterio para la fila). */
+   Botones del pie: el principal de cada diálogo (Guardar, Reactivar…) es su
+   única acción con el acento lleno, con el acento del negocio como
+   "Agregar servicio"; "Cancelar" es el BaseButton--secondary v2 neutro. */
 .catalog-page__create-form :deep(.base-button),
 .catalog-page__edit-form :deep(.base-button),
 .catalog-page__lifecycle :deep(.base-button) {
@@ -2948,34 +2638,6 @@ async function reloadAfterConflict(serviceId: string) {
 .catalog-page__lifecycle
   :deep(.base-button--primary:active:not(:disabled):not(.base-button--loading)) {
   filter: brightness(84%);
-}
-
-.catalog-page__create-form :deep(.base-button--secondary),
-.catalog-page__edit-form :deep(.base-button--secondary),
-.catalog-page__lifecycle :deep(.base-button--secondary) {
-  background-color: transparent;
-  color: var(--color-brand-accent-surface);
-  border-color: color-mix(in srgb, var(--color-brand-accent-surface) 50%, transparent);
-  border-bottom-color: var(--color-brand-accent-surface);
-}
-
-.catalog-page__create-form
-  :deep(.base-button--secondary:hover:not(:disabled):not(.base-button--loading)),
-.catalog-page__edit-form
-  :deep(.base-button--secondary:hover:not(:disabled):not(.base-button--loading)),
-.catalog-page__lifecycle
-  :deep(.base-button--secondary:hover:not(:disabled):not(.base-button--loading)) {
-  background-color: color-mix(in srgb, var(--color-brand-accent-surface) 12%, transparent);
-  border-color: color-mix(in srgb, var(--color-brand-accent-surface) 50%, transparent);
-}
-
-.catalog-page__create-form
-  :deep(.base-button--secondary:active:not(:disabled):not(.base-button--loading)),
-.catalog-page__edit-form
-  :deep(.base-button--secondary:active:not(:disabled):not(.base-button--loading)),
-.catalog-page__lifecycle
-  :deep(.base-button--secondary:active:not(:disabled):not(.base-button--loading)) {
-  background-color: color-mix(in srgb, var(--color-brand-accent-surface) 20%, transparent);
 }
 
 /* "Desactivar" (variant="danger"): ghost rojo, mismo tratamiento que ya usa
@@ -3040,9 +2702,9 @@ async function reloadAfterConflict(serviceId: string) {
   align-items: center;
   gap: var(--space-3);
   padding: var(--space-3) var(--space-4);
-  background-color: var(--color-field-strong);
-  border: var(--border-width-normal) solid var(--color-field-strong-border);
-  border-radius: var(--radius-sm);
+  background-color: var(--color-surface);
+  border: var(--border-width-normal) solid var(--color-border-subtle);
+  border-radius: var(--radius-lg);
 }
 
 .catalog-page__lifecycle-impact-icon {
@@ -3100,14 +2762,13 @@ async function reloadAfterConflict(serviceId: string) {
   justify-content: center;
   gap: var(--space-3);
   padding: var(--space-4);
-  background-color: var(--color-field-strong);
-  border: var(--border-width-normal) solid var(--color-field-strong-border);
-  border-radius: var(--radius-sm);
+  background-color: var(--color-surface);
+  border: var(--border-width-normal) solid var(--color-border-subtle);
+  border-radius: var(--radius-lg);
   color: var(--color-on-strong);
   font: inherit;
-  font-size: var(--font-size-caption);
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
+  font-size: 13px;
+  font-weight: 500;
   cursor: pointer;
 }
 
@@ -3192,16 +2853,15 @@ async function reloadAfterConflict(serviceId: string) {
   flex-direction: column;
   gap: var(--space-1);
   padding: var(--space-3) var(--space-2);
-  background-color: var(--color-field-strong);
-  border: var(--border-width-normal) solid var(--color-field-strong-border);
-  border-radius: var(--radius-sm);
+  background-color: var(--color-surface);
+  border: var(--border-width-normal) solid var(--color-border-subtle);
+  border-radius: var(--radius-lg);
 }
 
 .catalog-page__lifecycle-facts dt {
-  color: var(--color-on-strong-muted);
-  font-size: var(--font-size-caption);
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
+  color: var(--color-text-secondary);
+  font-size: 13px;
+  font-weight: 500;
 }
 
 .catalog-page__lifecycle-facts dd {
@@ -3218,7 +2878,6 @@ async function reloadAfterConflict(serviceId: string) {
   color: var(--color-on-strong-muted);
   font-family: inherit;
   font-size: var(--font-size-caption);
-  letter-spacing: 0.06em;
 }
 
 .catalog-page__lifecycle-checks {
@@ -3262,18 +2921,10 @@ async function reloadAfterConflict(serviceId: string) {
 }
 
 /* Detalle del servicio (issue 2026-09-29, rediseñado en el #577): cabecera
-   con estado y fechas, una sola ficha de cifras y la descripción. Cada bloque
-   entra escalonado con --row-index un instante después de la tarjeta, para
-   que el diálogo se arme en vez de aparecer de golpe. */
+   con estado y fechas, una sola ficha de cifras y la descripción. Sin
+   entrada escalonada (v2, DEC-188): todo llega con el propio diálogo. */
 .catalog-page__detail {
   gap: var(--space-5);
-}
-
-.catalog-page__detail-head,
-.catalog-page__detail-figures,
-.catalog-page__detail-section {
-  animation: catalog-detail-enter 380ms var(--motion-easing-standard) both;
-  animation-delay: calc(120ms + var(--row-index, 0) * 70ms);
 }
 
 .catalog-page__detail-head {
@@ -3291,10 +2942,8 @@ async function reloadAfterConflict(serviceId: string) {
   margin: 0;
   padding: 5px 12px 5px 10px;
   color: var(--color-on-strong-muted);
-  font-size: var(--font-size-caption);
-  font-weight: 600;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
+  font-size: 13px;
+  font-weight: 500;
   border: var(--border-width-normal) solid currentColor;
   border-radius: 999px;
 }
@@ -3303,16 +2952,14 @@ async function reloadAfterConflict(serviceId: string) {
   color: var(--color-success-on-strong);
 }
 
-/* Mismo rombo que la insignia de la fila, con el ritmo propio del servicio
-   (diamondStyle), para que el detalle lea como continuación de la fila. */
-.catalog-page__detail-diamond {
+/* Mismo punto quieto que la insignia de la fila, para que el detalle lea
+   como continuación de la fila. */
+.catalog-page__detail-dot {
   flex-shrink: 0;
-  width: 7px;
-  height: 7px;
-  transform: rotate(45deg);
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
   background-color: currentColor;
-  animation: catalog-diamond-blink var(--diamond-duration, 7s) ease-in-out var(--diamond-delay, 0s)
-    infinite;
 }
 
 .catalog-page__detail-meta {
@@ -3329,10 +2976,9 @@ async function reloadAfterConflict(serviceId: string) {
 }
 
 .catalog-page__detail-meta dt {
-  color: var(--color-on-strong-muted);
-  font-size: var(--font-size-caption);
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
+  color: var(--color-text-secondary);
+  font-size: 13px;
+  font-weight: 500;
 }
 
 .catalog-page__detail-meta dd {
@@ -3342,17 +2988,17 @@ async function reloadAfterConflict(serviceId: string) {
   font-variant-numeric: tabular-nums;
 }
 
-/* Ficha de cifras: una sola superficie con filete de acento arriba y las dos
-   cifras separadas por un filete vertical (en angosto, horizontal). El
-   precio pesa más que la duración: es lo que se busca al abrir el detalle. */
+/* Ficha de cifras: una tarjeta v2 (borde sutil de 1px, sin filete de acento)
+   con las dos cifras separadas por un filete vertical (en angosto,
+   horizontal). El precio pesa más que la duración: es lo que se busca al
+   abrir el detalle. */
 .catalog-page__detail-figures {
   display: grid;
   grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr);
   margin: 0;
-  background-color: var(--color-field-strong);
-  border: var(--border-width-normal) solid var(--color-field-strong-border);
-  border-top: var(--border-width-emphasis) solid var(--color-brand-accent-surface);
-  border-radius: var(--radius-sm);
+  background-color: var(--color-surface);
+  border: var(--border-width-normal) solid var(--color-border-subtle);
+  border-radius: var(--radius-lg);
 }
 
 .catalog-page__detail-figure {
@@ -3364,15 +3010,13 @@ async function reloadAfterConflict(serviceId: string) {
 }
 
 .catalog-page__detail-figure + .catalog-page__detail-figure {
-  border-left: var(--border-width-normal) solid var(--color-field-strong-border);
+  border-left: var(--border-width-normal) solid var(--color-border-subtle);
 }
 
 .catalog-page__detail-figure dt {
-  color: var(--color-on-strong-muted);
-  font-size: var(--font-size-caption);
-  font-weight: 600;
-  letter-spacing: 0.1em;
-  text-transform: uppercase;
+  color: var(--color-text-secondary);
+  font-size: 13px;
+  font-weight: 500;
 }
 
 .catalog-page__detail-figure dd {
@@ -3399,17 +3043,15 @@ async function reloadAfterConflict(serviceId: string) {
 .catalog-page__detail-symbol {
   align-self: flex-start;
   margin-top: 4px;
-  color: var(--color-brand-accent-surface);
+  color: var(--color-text-secondary);
   font-family: var(--font-display);
   font-size: var(--font-size-h3);
 }
 
 .catalog-page__detail-figure dd small {
-  color: var(--color-on-strong-muted);
-  font-size: var(--font-size-caption);
-  font-weight: 600;
-  letter-spacing: 0.1em;
-  text-transform: uppercase;
+  color: var(--color-text-secondary);
+  font-size: 13px;
+  font-weight: 500;
 }
 
 .catalog-page__detail-clock {
@@ -3418,7 +3060,7 @@ async function reloadAfterConflict(serviceId: string) {
   height: 18px;
   margin-right: 2px;
   fill: none;
-  stroke: var(--color-brand-accent-surface);
+  stroke: var(--color-text-secondary);
   stroke-width: 1.6;
   stroke-linecap: round;
 }
@@ -3427,20 +3069,14 @@ async function reloadAfterConflict(serviceId: string) {
   display: flex;
   flex-direction: column;
   gap: var(--space-2);
-  padding-left: var(--space-4);
-  /* Filete de acento a la izquierda, como cita: marca el texto largo como el
-     contenido principal sin otra caja de color. */
-  border-left: var(--border-width-emphasis) solid
-    color-mix(in srgb, var(--color-brand-accent-surface) 70%, transparent);
 }
 
+/* Rótulo v2 (DEC-188): tipo oración, 13px/500 en texto secundario. */
 .catalog-page__detail-label {
   margin: 0;
-  color: var(--color-brand-accent-surface);
-  font-size: var(--font-size-caption);
-  font-weight: 600;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
+  color: var(--color-text-secondary);
+  font-size: 13px;
+  font-weight: 500;
 }
 
 /* Las fichas de cifra del diálogo de estado (Desactivar/Reactivar) conservan
@@ -3452,7 +3088,6 @@ async function reloadAfterConflict(serviceId: string) {
 .catalog-page__facts-rich > div {
   gap: var(--space-3);
   padding: var(--space-4) var(--space-5) var(--space-5);
-  border-top: var(--border-width-emphasis) solid var(--color-brand-accent-surface);
 }
 
 .catalog-page__facts-rich dd {
@@ -3474,7 +3109,6 @@ async function reloadAfterConflict(serviceId: string) {
   flex-basis: auto;
   margin: 0;
   font-size: var(--font-size-body-sm);
-  text-transform: uppercase;
 }
 
 /* pre-wrap respeta los saltos de línea que la persona escribió; anywhere evita
@@ -3490,8 +3124,7 @@ async function reloadAfterConflict(serviceId: string) {
 }
 
 .catalog-page__detail-text--empty {
-  color: var(--color-on-strong-muted);
-  font-style: italic;
+  color: var(--color-text-secondary);
 }
 
 .catalog-page__detail-footer {
@@ -3507,32 +3140,14 @@ async function reloadAfterConflict(serviceId: string) {
   }
 
   .catalog-page__detail-figure + .catalog-page__detail-figure {
-    border-top: var(--border-width-normal) solid var(--color-field-strong-border);
+    border-top: var(--border-width-normal) solid var(--color-border-subtle);
     border-left: none;
   }
 }
 
-@keyframes catalog-detail-enter {
-  from {
-    opacity: 0;
-    transform: translateY(8px);
-  }
-
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
-
 @media (prefers-reduced-motion: reduce) {
-  .catalog-page__detail-head,
-  .catalog-page__detail-figures,
-  .catalog-page__detail-section,
-  .catalog-page__detail-diamond,
   .catalog-page__item-chevron,
-  .catalog-page__item-name,
   .catalog-page__row {
-    animation: none;
     transition: none;
   }
 }
@@ -3563,10 +3178,6 @@ async function reloadAfterConflict(serviceId: string) {
   .catalog-page__table--offer .catalog-page__columns,
   .catalog-page__table--offer .catalog-page__row {
     grid-template-columns: minmax(70px, 1fr) 56px 82px 70px 60px 140px;
-  }
-
-  .catalog-page__columns {
-    letter-spacing: 0.06em;
   }
 
   .catalog-page__item-meta {
@@ -3778,8 +3389,8 @@ async function reloadAfterConflict(serviceId: string) {
 .catalog-page__edit-dialog.base-dialog,
 .catalog-page__detail-dialog.base-dialog,
 .catalog-page__lifecycle-dialog.base-dialog {
-  background-color: var(--color-surface-strong) !important;
-  border: var(--border-width-normal) solid var(--color-field-strong-border) !important;
+  background-color: var(--color-surface) !important;
+  border: var(--border-width-normal) solid var(--color-border-subtle) !important;
 }
 
 /* Detalle, alta y edición se ensanchan a 720 px (size="lg"): con size="sm" los
@@ -3792,45 +3403,9 @@ async function reloadAfterConflict(serviceId: string) {
   width: min(100%, 720px) !important;
 }
 
-/* Mismo cubic-bezier con rebote que ya usa ProfessionalSelect.vue para su marca
-   de opción elegida (0.34, 1.56, 0.64, 1): no es un valor nuevo, es el que
-   este código base ya usa para "un elemento pequeño que llega y se
-   asienta". */
-.catalog-page__create-dialog.base-dialog--open,
-.catalog-page__edit-dialog.base-dialog--open,
-.catalog-page__detail-dialog.base-dialog--open,
-.catalog-page__lifecycle-dialog.base-dialog--open {
-  transition-timing-function: cubic-bezier(0.34, 1.56, 0.64, 1) !important;
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .catalog-page__create-dialog.base-dialog--open,
-  .catalog-page__edit-dialog.base-dialog--open,
-  .catalog-page__detail-dialog.base-dialog--open,
-  .catalog-page__lifecycle-dialog.base-dialog--open {
-    transition-timing-function: var(--motion-easing-standard) !important;
-  }
-}
-
-/* Filete dorado (--border-width-emphasis, el mismo grosor que ya marca la
-   fecha activa de AgendaDatePicker/DailyAgendaPage) en vez del filete gris
-   por defecto de BaseDialog: --color-brand-accent-surface es correcto
-   aquí porque el encabezado ahora vive sobre tinta. */
-.catalog-page__create-dialog .base-dialog__header,
-.catalog-page__edit-dialog .base-dialog__header,
-.catalog-page__detail-dialog .base-dialog__header,
-.catalog-page__lifecycle-dialog .base-dialog__header {
-  border-bottom-width: var(--border-width-emphasis) !important;
-  border-bottom-color: var(--color-brand-accent-surface) !important;
-}
-
-/* "Desactivar" tiñe el filete de rojo (mismo tinte que ya tiñe su ficha,
-   arriba): la clase modificadora --danger viaja junto con
-   .catalog-page__lifecycle-dialog en el mismo content-class (ver
-   plantilla), así que ambas quedan en el elemento raíz del diálogo. */
-.catalog-page__lifecycle-dialog--danger .base-dialog__header {
-  border-bottom-color: var(--color-danger-on-strong) !important;
-}
+/* v2 (DEC-188): la apertura usa la curva estándar de BaseDialog (sin rebote) y
+   el encabezado conserva su separador sutil de 1px; el filete de acento de
+   v1 se quitó. "Desactivar" ya avisa con su ficha roja. */
 
 .catalog-page__create-dialog .base-dialog__title,
 .catalog-page__edit-dialog .base-dialog__title,

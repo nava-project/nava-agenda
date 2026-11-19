@@ -1,6 +1,6 @@
 <script setup lang="ts">
 // Índice de secciones de Configuración (DEC-110): en escritorio una columna
-// fija con un filete de latón que se desliza hasta la sección visible; en
+// fija con un filete en tinta que marca la sección visible; en
 // pantallas angostas, una fila de pestañas que se desplaza en horizontal. Es
 // navegación por anclas (enlaces reales), no pestañas que oculten contenido:
 // toda la información sigue en la página.
@@ -51,7 +51,7 @@ function onClick(event: MouseEvent, id: string) {
   margin: 0;
   padding: 0;
   list-style: none;
-  border-left: var(--border-width-normal) solid var(--color-field-strong-border);
+  border-left: var(--border-width-normal) solid var(--color-border-subtle);
 }
 
 .settings-index__link {
@@ -61,33 +61,33 @@ function onClick(event: MouseEvent, id: string) {
   gap: 10px;
   min-height: 40px;
   padding: 9px 12px;
-  color: var(--color-on-strong-muted);
+  border-radius: 0 var(--radius-md) var(--radius-md) 0;
+  color: var(--color-text-secondary);
   font-size: var(--font-size-body-sm);
   line-height: 20px;
   text-decoration: none;
   transition:
-    color var(--motion-duration-base) var(--motion-easing-standard),
-    background-color var(--motion-duration-base) var(--motion-easing-standard),
-    transform var(--motion-duration-base) var(--motion-easing-standard);
+    color var(--motion-duration-fast) var(--motion-easing-standard),
+    background-color var(--motion-duration-fast) var(--motion-easing-standard);
 }
 
-/* El filete de latón crece desde el centro al activarse la sección. */
+/* v2 (DEC-188): la sección visible se marca en tinta —filete y fondo tenue—,
+   no en el acento, que queda reservado a la acción principal. */
 .settings-index__link::before {
   content: '';
   position: absolute;
   top: 6px;
   bottom: 6px;
-  left: -2px;
+  left: -1px;
   width: 2px;
-  background: var(--color-brand-accent-surface);
-  transform: scaleY(0);
-  transition: transform 260ms cubic-bezier(0.34, 1.56, 0.64, 1);
+  background: var(--color-text-primary);
+  opacity: 0;
+  transition: opacity var(--motion-duration-fast) var(--motion-easing-standard);
 }
 
 .settings-index__link:hover {
-  color: var(--color-on-strong);
-  background: color-mix(in srgb, var(--color-on-strong) 4%, transparent);
-  transform: translateX(2px);
+  color: var(--color-text-primary);
+  background: color-mix(in srgb, var(--color-text-primary) 4%, transparent);
 }
 
 .settings-index__link:focus-visible {
@@ -96,18 +96,22 @@ function onClick(event: MouseEvent, id: string) {
 }
 
 .settings-index__link--active {
-  color: var(--color-on-strong);
+  color: var(--color-text-primary);
   font-weight: 600;
+  background: color-mix(in srgb, var(--color-text-primary) 8%, transparent);
 }
 
 .settings-index__link--active::before {
-  transform: scaleY(1);
+  opacity: 1;
 }
 
+/* El número es solo orientación: texto secundario, cifras tabulares. */
 .settings-index__number {
-  font-family: var(--font-display);
-  font-size: var(--font-size-body);
-  color: var(--color-brand-accent-surface);
+  min-width: 2ch;
+  font-size: var(--font-size-caption);
+  font-weight: 500;
+  font-variant-numeric: tabular-nums;
+  color: var(--color-text-secondary);
 }
 
 @media (max-width: 1099px) {
@@ -118,7 +122,7 @@ function onClick(event: MouseEvent, id: string) {
     margin-inline: -16px;
     padding: 8px 16px;
     background: var(--color-surface-strong);
-    border-bottom: var(--border-width-normal) solid var(--color-field-strong-border);
+    border-bottom: var(--border-width-normal) solid var(--color-border-subtle);
   }
 
   .settings-index__list {
@@ -137,6 +141,7 @@ function onClick(event: MouseEvent, id: string) {
     flex: 0 0 auto;
     min-height: 44px;
     padding: 10px 12px;
+    border-radius: var(--radius-md);
     white-space: nowrap;
   }
 
@@ -147,15 +152,6 @@ function onClick(event: MouseEvent, id: string) {
     right: 12px;
     width: auto;
     height: 2px;
-    transform: scaleX(0);
-  }
-
-  .settings-index__link--active::before {
-    transform: scaleX(1);
-  }
-
-  .settings-index__link:hover {
-    transform: none;
   }
 }
 

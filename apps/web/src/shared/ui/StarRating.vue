@@ -7,7 +7,7 @@
  * pantalla con el texto completo («4,5 de 5 · 12 reseñas»); los glifos y el texto
  * visible son decorativos para no leer dos veces. Sin reseñas visibles muestra
  * diamantes vacíos y «Sin reseñas todavía», nunca «0».
- * El color lo da `--star-filled-color` (latón por defecto) y se ajusta por superficie.
+ * El color lo da `--star-filled-color` (tinta por defecto en v2) y se ajusta por superficie.
  */
 import { computed } from 'vue'
 import RatingGem from './RatingGem.vue'

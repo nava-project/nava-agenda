@@ -276,6 +276,8 @@ defineExpose({ focus: () => inputRef.value?.focus() })
 </template>
 
 <style scoped>
+/* v2 (DEC-188): rótulo en tipo oración, campo con borde de control y radio
+   medio, opción activa en tinta y reloj quieto (sin parpadeos). */
 .tz-field {
   display: flex;
   flex-direction: column;
@@ -283,12 +285,10 @@ defineExpose({ focus: () => inputRef.value?.focus() })
 }
 
 .tz-field__label {
-  color: var(--color-brand-accent-surface);
-  font-size: var(--font-size-caption);
-  font-weight: 600;
-  letter-spacing: 0.08em;
-  line-height: 14px;
-  text-transform: uppercase;
+  color: var(--color-text-secondary);
+  font-size: 13px;
+  font-weight: 500;
+  line-height: 18px;
 }
 
 .tz-field__combo {
@@ -299,40 +299,34 @@ defineExpose({ focus: () => inputRef.value?.focus() })
   width: 100%;
   height: 44px;
   padding: 0 40px 0 14px;
-  color: var(--color-on-strong);
-  background: color-mix(in srgb, var(--color-on-strong) 4%, transparent);
-  border: var(--border-width-normal) solid
-    color-mix(in srgb, var(--color-on-strong) 12%, transparent);
-  border-bottom: var(--border-width-normal) solid var(--color-brand-accent-surface);
-  border-radius: 3px;
+  color: var(--color-text-primary);
+  background: var(--color-surface);
+  border: var(--border-width-normal) solid var(--color-border-control);
+  border-radius: var(--radius-md);
   font-family: var(--font-sans);
   font-size: var(--font-size-body-sm);
   transition:
-    border-color var(--motion-duration-base) var(--motion-easing-standard),
-    background-color var(--motion-duration-base) var(--motion-easing-standard),
-    box-shadow var(--motion-duration-base) var(--motion-easing-standard);
+    border-color var(--motion-duration-fast) var(--motion-easing-standard),
+    box-shadow var(--motion-duration-fast) var(--motion-easing-standard);
 }
 
 .tz-field__input::placeholder {
-  color: var(--color-on-strong-muted);
+  color: var(--color-text-secondary);
 }
 
 .tz-field__input:hover:not(:disabled) {
-  border-color: color-mix(in srgb, var(--color-on-strong) 26%, transparent);
-  border-bottom-color: var(--color-brand-accent-surface);
+  border-color: var(--color-text-primary);
 }
 
 .tz-field__input:focus-visible {
   outline: none;
-  background: color-mix(in srgb, var(--color-on-strong) 6%, transparent);
   box-shadow:
-    0 0 0 2px var(--color-surface-strong),
+    0 0 0 2px var(--color-surface),
     0 0 0 4px var(--color-focus);
 }
 
 .tz-field--invalid .tz-field__input {
-  background: color-mix(in srgb, var(--color-danger-on-strong) 7%, transparent);
-  border-bottom-color: var(--color-danger-on-strong);
+  border-color: var(--color-danger-border);
 }
 
 .tz-field__input:disabled {
@@ -346,11 +340,11 @@ defineExpose({ focus: () => inputRef.value?.focus() })
   right: 16px;
   width: 7px;
   height: 7px;
-  border-right: 1.5px solid var(--color-on-strong-muted);
-  border-bottom: 1.5px solid var(--color-on-strong-muted);
+  border-right: 1.5px solid var(--color-text-secondary);
+  border-bottom: 1.5px solid var(--color-text-secondary);
   pointer-events: none;
   transform: translateY(-70%) rotate(45deg);
-  transition: transform var(--motion-duration-base) var(--motion-easing-standard);
+  transition: transform var(--motion-duration-fast) var(--motion-easing-standard);
 }
 
 .tz-field--open .tz-field__chevron {
@@ -368,14 +362,11 @@ defineExpose({ focus: () => inputRef.value?.focus() })
   padding: 4px 0;
   overflow-y: auto;
   list-style: none;
-  background: var(--color-field-strong-raised);
-  border: var(--border-width-normal) solid
-    color-mix(in srgb, var(--color-brand-accent-surface) 45%, transparent);
-  border-radius: 3px;
-  box-shadow: 0 18px 36px -12px rgb(16 27 43 / 55%);
+  background: var(--color-surface);
+  border: var(--border-width-normal) solid var(--color-border-subtle);
+  border-radius: var(--radius-lg);
+  box-shadow: 0 16px 32px -12px rgb(16 27 43 / 35%);
   scrollbar-width: thin;
-  scrollbar-color: color-mix(in srgb, var(--color-brand-accent-surface) 45%, transparent)
-    transparent;
 }
 
 .tz-field__option {
@@ -388,24 +379,17 @@ defineExpose({ focus: () => inputRef.value?.focus() })
   align-items: center;
   min-height: 44px;
   padding: 6px 14px;
-  border-left: 2px solid transparent;
-  color: var(--color-on-strong);
+  color: var(--color-text-primary);
   cursor: pointer;
 }
 
 .tz-field__option--active {
-  background: color-mix(in srgb, var(--color-brand-accent-surface) 14%, transparent);
-  border-left-color: var(--color-brand-accent-surface);
-}
-
-/* Sobre el tinte de la opción activa el acento no alcanza AA como texto. */
-.tz-field__option--active .tz-field__offset {
-  color: var(--color-on-strong);
+  background: color-mix(in srgb, var(--color-text-primary) 8%, transparent);
 }
 
 .tz-field__option--selected .tz-field__city::after {
   content: ' ✓';
-  color: var(--color-brand-accent-surface);
+  color: var(--color-text-primary);
 }
 
 .tz-field__city {
@@ -420,7 +404,7 @@ defineExpose({ focus: () => inputRef.value?.focus() })
 .tz-field__zone {
   grid-area: zone;
   overflow: hidden;
-  color: var(--color-on-strong-muted);
+  color: var(--color-text-secondary);
   font-size: var(--font-size-caption);
   line-height: 15px;
   text-overflow: ellipsis;
@@ -429,53 +413,52 @@ defineExpose({ focus: () => inputRef.value?.focus() })
 
 .tz-field__offset {
   grid-area: offset;
-  color: var(--color-brand-accent-surface);
+  color: var(--color-text-secondary);
   font-size: var(--font-size-caption);
-  font-weight: 600;
-  letter-spacing: 0.06em;
+  font-weight: 500;
+  font-variant-numeric: tabular-nums;
   white-space: nowrap;
 }
 
 .tz-field__empty,
 .tz-field__more {
   padding: 10px 14px;
-  color: var(--color-on-strong-muted);
+  color: var(--color-text-secondary);
   font-size: var(--font-size-caption);
   line-height: 18px;
 }
 
 .tz-field__error {
   margin: 0;
-  color: var(--color-danger-on-strong);
+  color: var(--color-danger-text);
   font-size: var(--font-size-caption);
   line-height: 16px;
 }
 
-/* Reloj de la zona elegida: dígitos serif en latón, dos puntos que laten. */
+/* Reloj de la zona elegida: cifras tabulares en tinta, sin parpadeo (los dos
+   puntos ya no laten: WCAG 2.2.2). */
 .tz-field__clock {
   display: flex;
   align-items: center;
   gap: 16px;
   padding: 12px 14px;
-  background: color-mix(in srgb, var(--color-brand-accent-surface) 8%, transparent);
-  border-left: 3px solid var(--color-brand-accent-surface);
-  border-radius: 2px;
+  background: var(--color-surface-muted);
+  border-radius: var(--radius-md);
 }
 
 .tz-field__time {
   display: inline-flex;
   align-items: baseline;
-  font-family: var(--font-display);
-  font-size: var(--font-size-title-page);
+  font-family: var(--font-sans);
+  font-size: 28px;
+  font-weight: 600;
   line-height: 1;
-  color: var(--color-on-strong);
+  color: var(--color-text-primary);
   font-variant-numeric: tabular-nums;
 }
 
 .tz-field__colon {
-  margin-inline: 2px;
-  color: var(--color-brand-accent-surface);
-  animation: tz-colon 2s steps(1, end) infinite;
+  margin-inline: 1px;
 }
 
 .tz-field__clock-copy {
@@ -488,20 +471,21 @@ defineExpose({ focus: () => inputRef.value?.focus() })
   font-size: var(--font-size-body-sm);
   font-weight: 600;
   line-height: 18px;
-  color: var(--color-on-strong);
+  color: var(--color-text-primary);
 }
 
 .tz-field__clock-offset {
   font-weight: 400;
-  color: var(--color-on-strong-muted);
+  color: var(--color-text-secondary);
 }
 
 .tz-field__clock-day {
-  font-size: var(--font-size-caption);
-  line-height: 17px;
-  color: var(--color-on-strong-muted);
+  font-size: 13px;
+  line-height: 18px;
+  color: var(--color-text-secondary);
 }
 
+/* Atajo secundario: enlace en tinta, no en el acento. */
 .tz-field__device {
   display: inline-flex;
   flex-wrap: wrap;
@@ -510,13 +494,13 @@ defineExpose({ focus: () => inputRef.value?.focus() })
   align-self: flex-start;
   min-height: 44px;
   padding: 6px 2px;
-  color: var(--color-brand-accent-surface);
+  color: var(--color-text-primary);
   background: transparent;
   border: 0;
-  border-radius: 3px;
+  border-radius: var(--radius-md);
   font-family: var(--font-sans);
-  font-size: var(--font-size-caption);
-  font-weight: 600;
+  font-size: 13px;
+  font-weight: 500;
   text-align: left;
   text-decoration: underline;
   text-underline-offset: 3px;
@@ -533,39 +517,19 @@ defineExpose({ focus: () => inputRef.value?.focus() })
 }
 
 .tz-field__device-zone {
-  color: var(--color-on-strong-muted);
+  color: var(--color-text-secondary);
   font-weight: 400;
   text-decoration: none;
 }
 
+/* La lista responde a abrir el campo: fundido corto, sin rebote. */
 .tz-pop-enter-active,
 .tz-pop-leave-active {
-  transition:
-    opacity var(--motion-duration-fast) var(--motion-easing-standard),
-    transform var(--motion-duration-base) cubic-bezier(0.34, 1.56, 0.64, 1);
-  transform-origin: top center;
+  transition: opacity var(--motion-duration-fast) var(--motion-easing-standard);
 }
 
 .tz-pop-enter-from,
 .tz-pop-leave-to {
   opacity: 0;
-  transform: translateY(-6px) scale(0.98);
-}
-
-@keyframes tz-colon {
-  0%,
-  100% {
-    opacity: 1;
-  }
-
-  50% {
-    opacity: 0.2;
-  }
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .tz-field__colon {
-    animation: none;
-  }
 }
 </style>

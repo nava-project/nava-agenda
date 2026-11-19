@@ -3,7 +3,8 @@
 // inputs nativos ocultos dentro de cada etiqueta, así el navegador resuelve las
 // flechas, el foco y el anuncio de "n de m" sin código propio. El aspecto de
 // cada opción lo pone el consumidor por el slot; aquí solo viven la semántica,
-// el foco visible y la entrada escalonada.
+// el foco visible. Sin entrada animada al montar (v2, DEC-188: nada se mueve
+// solo al cargar la página).
 import { useId } from 'vue'
 
 const props = defineProps<{
@@ -20,11 +21,10 @@ const name = `option-group-${useId()}`
 <template>
   <div class="option-group" role="radiogroup" :aria-label="label">
     <label
-      v-for="(option, index) in options"
+      v-for="option in options"
       :key="option.value"
       class="option-group__option"
       :class="{ 'option-group__option--selected': option.value === props.modelValue }"
-      :style="{ '--option-index': index }"
     >
       <input
         class="option-group__input"
@@ -51,8 +51,6 @@ const name = `option-group-${useId()}`
   position: relative;
   display: block;
   cursor: pointer;
-  animation: option-enter 320ms var(--motion-easing-standard) both;
-  animation-delay: calc(var(--option-index, 0) * 45ms);
 }
 
 /* Oculto a la vista pero operable: sigue siendo el control real. */
@@ -64,8 +62,8 @@ const name = `option-group-${useId()}`
   margin: 0;
   opacity: 0;
   cursor: pointer;
-  /* Por encima del contenido de la opción: un clic sobre un elemento con
-     transform (el rombo del acento) llega igualmente al radio real. */
+  /* Por encima del contenido de la opción: un clic sobre cualquier adorno del
+     slot llega igualmente al radio real. */
   z-index: 1;
 }
 
@@ -82,18 +80,6 @@ const name = `option-group-${useId()}`
 .option-group__option:has(.option-group__input:focus-visible) {
   outline: var(--border-width-emphasis) solid var(--color-focus);
   outline-offset: 3px;
-  border-radius: 3px;
-}
-
-@keyframes option-enter {
-  from {
-    opacity: 0;
-    transform: translateY(6px);
-  }
-
-  to {
-    opacity: 1;
-    transform: none;
-  }
+  border-radius: var(--radius-md);
 }
 </style>

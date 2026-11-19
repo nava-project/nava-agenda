@@ -10,7 +10,8 @@
  * Accesibilidad: el marco es decorativo (el nombre del profesional ya está en el
  * formulario); todo se opera con botones reales. El estado ("nueva foto lista",
  * "se quitará al guardar") y los errores se anuncian en una región `aria-live`.
- * `prefers-reduced-motion` apaga el destello, el pulso y la escala del marco.
+ * El giro del indicador de «preparando» (carga, finita) se apaga con
+ * `prefers-reduced-motion` y con «Animaciones reducidas» (DEC-110).
  */
 import { computed, onBeforeUnmount, ref, useId, watch } from 'vue'
 import { ProfessionalAvatar, BaseButton } from '@/shared/ui'
@@ -150,7 +151,7 @@ onBeforeUnmount(() => {
       @dragleave="onDragLeave"
       @drop="onDrop"
     >
-      <!-- La clave reinicia la entrada animada cada vez que cambia la imagen
+      <!-- La clave vuelve a montar el retrato cada vez que cambia la imagen
            mostrada (elegir, quitar, deshacer). -->
       <ProfessionalAvatar
         :key="shownUrl ?? 'monogram'"
@@ -160,7 +161,7 @@ onBeforeUnmount(() => {
         :photo-url="shownUrl"
       />
       <span v-if="preparing" class="professional-photo-field__busy">
-        <span class="professional-photo-field__busy-diamond" />
+        <span class="professional-photo-field__busy-spinner" />
       </span>
       <span v-else-if="dragging" class="professional-photo-field__drop">Suelta la foto</span>
     </div>
@@ -232,17 +233,17 @@ onBeforeUnmount(() => {
   align-items: center;
   gap: var(--space-5);
   padding: var(--space-4);
-  background-color: var(--color-field-strong);
-  border: var(--border-width-normal) solid var(--color-field-strong-border);
-  border-radius: var(--radius-sm);
+  background-color: var(--color-surface);
+  border: var(--border-width-normal) solid var(--color-border-subtle);
+  border-radius: var(--radius-lg);
 }
 
 .professional-photo-field__input {
   display: none;
 }
 
-/* Marco: cuadrado hundido con esquinas de latón (los cuatro "cortes" del
-   Tailored Grid). Vacío, lleva el borde punteado de una zona para soltar. */
+/* Marco: cuadrado con borde sutil (v2, DEC-188: sin esquinas de acento).
+   Vacío, lleva el borde punteado de una zona para soltar. */
 .professional-photo-field__frame {
   position: relative;
   display: grid;
@@ -251,8 +252,8 @@ onBeforeUnmount(() => {
   width: 136px;
   height: 136px;
   background-color: var(--color-surface-strong);
-  border: var(--border-width-normal) solid var(--color-field-strong-border);
-  border-radius: 2px;
+  border: var(--border-width-normal) solid var(--color-border-subtle);
+  border-radius: var(--radius-md);
   transition:
     border-color var(--motion-duration-base) var(--motion-easing-standard),
     background-color var(--motion-duration-base) var(--motion-easing-standard);
@@ -260,41 +261,14 @@ onBeforeUnmount(() => {
 
 .professional-photo-field__frame--empty {
   border-style: dashed;
-  border-color: color-mix(in srgb, var(--color-brand-accent-surface) 45%, transparent);
+  border-color: var(--color-border-control);
 }
 
+/* Arrastrando encima: seleccionado en tinta, no en acento. */
 .professional-photo-field__frame--dragging {
-  background-color: color-mix(in srgb, var(--color-brand-accent-surface) 12%, transparent);
+  background-color: color-mix(in srgb, var(--color-text-primary) 8%, transparent);
   border-style: solid;
-  border-color: var(--color-brand-accent-surface);
-}
-
-.professional-photo-field__frame::before,
-.professional-photo-field__frame::after {
-  content: '';
-  position: absolute;
-  width: 14px;
-  height: 14px;
-  pointer-events: none;
-  border: var(--border-width-emphasis) solid var(--color-brand-accent-surface);
-}
-
-.professional-photo-field__frame::before {
-  top: -4px;
-  left: -4px;
-  border-right: 0;
-  border-bottom: 0;
-}
-
-.professional-photo-field__frame::after {
-  right: -4px;
-  bottom: -4px;
-  border-top: 0;
-  border-left: 0;
-}
-
-.professional-photo-field__portrait {
-  animation: professional-photo-enter 320ms cubic-bezier(0.34, 1.56, 0.64, 1) both;
+  border-color: var(--color-text-primary);
 }
 
 .professional-photo-field__busy,
@@ -304,18 +278,21 @@ onBeforeUnmount(() => {
   display: grid;
   place-items: center;
   background-color: rgb(16 27 43 / 72%);
-  color: var(--color-on-strong);
-  font-size: var(--font-size-caption);
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
+  /* Blanco fijo: el velo es tinta en los dos modos. */
+  color: #fff;
+  font-size: 13px;
+  font-weight: 500;
 }
 
-.professional-photo-field__busy-diamond {
+/* Preparando la foto: un aro que gira mientras dura el trabajo (es carga,
+   finita), sin rombo ni acento (v2, DEC-188). */
+.professional-photo-field__busy-spinner {
   width: 22px;
   height: 22px;
-  background-color: var(--color-brand-accent-surface);
-  transform: rotate(45deg);
-  animation: professional-photo-spin 1s cubic-bezier(0.55, 0, 0.3, 1) infinite;
+  border: 2px solid rgb(255 255 255 / 35%);
+  border-top-color: #fff;
+  border-radius: 50%;
+  animation: professional-photo-spin 0.9s linear infinite;
 }
 
 .professional-photo-field__side {
@@ -326,13 +303,12 @@ onBeforeUnmount(() => {
   gap: var(--space-2);
 }
 
+/* Rótulo v2 (DEC-188): tipo oración, 13px/500 en texto secundario. */
 .professional-photo-field__label {
   margin: 0;
-  color: var(--color-brand-accent-surface);
-  font-size: var(--font-size-caption);
-  font-weight: 600;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
+  color: var(--color-text-secondary);
+  font-size: 13px;
+  font-weight: 500;
 }
 
 .professional-photo-field__hint {
@@ -361,25 +337,13 @@ onBeforeUnmount(() => {
   color: var(--color-danger-on-strong);
 }
 
-/* Botones sobre tinta: mismo par latón-fantasma / rojo-fantasma que los
-   diálogos de Servicios (BaseButton está calibrado para superficie clara). */
+/* Botones compactos. «Elegir foto» y «Deshacer» usan el secundario y el
+   fantasma v2 tal cual (DEC-188); «Quitar foto» es un contorno rojo, para no
+   competir con el «Guardar» del diálogo, que es la acción principal. */
 .professional-photo-field__actions :deep(.base-button) {
   height: 36px;
   padding-inline: 14px;
   font-size: var(--font-size-caption);
-  --btn-focus-ring: 0 0 0 2px var(--color-surface-strong), 0 0 0 4px var(--color-focus);
-}
-
-.professional-photo-field__actions :deep(.base-button--secondary) {
-  background-color: transparent;
-  color: var(--color-brand-accent-surface);
-  border-color: color-mix(in srgb, var(--color-brand-accent-surface) 50%, transparent);
-  border-bottom-color: var(--color-brand-accent-surface);
-}
-
-.professional-photo-field__actions
-  :deep(.base-button--secondary:hover:not(:disabled):not(.base-button--loading)) {
-  background-color: color-mix(in srgb, var(--color-brand-accent-surface) 12%, transparent);
 }
 
 .professional-photo-field__actions :deep(.base-button--danger) {
@@ -395,41 +359,9 @@ onBeforeUnmount(() => {
   filter: none;
 }
 
-.professional-photo-field__actions :deep(.base-button--ghost) {
-  background-color: transparent;
-  color: var(--color-on-strong-muted);
-  border-color: transparent;
-}
-
-.professional-photo-field__actions
-  :deep(.base-button--ghost:hover:not(:disabled):not(.base-button--loading)) {
-  background-color: color-mix(in srgb, var(--color-on-strong) 8%, transparent);
-  color: var(--color-on-strong);
-}
-
-@keyframes professional-photo-enter {
-  from {
-    opacity: 0;
-    transform: scale(0.86);
-  }
-
-  to {
-    opacity: 1;
-    transform: scale(1);
-  }
-}
-
 @keyframes professional-photo-spin {
-  0% {
-    transform: rotate(45deg) scale(1);
-  }
-
-  50% {
-    transform: rotate(225deg) scale(0.7);
-  }
-
-  100% {
-    transform: rotate(405deg) scale(1);
+  to {
+    transform: rotate(360deg);
   }
 }
 
@@ -446,13 +378,17 @@ onBeforeUnmount(() => {
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .professional-photo-field__portrait,
-  .professional-photo-field__busy-diamond {
+  .professional-photo-field__busy-spinner {
     animation: none;
   }
 
   .professional-photo-field__frame {
     transition: none;
   }
+}
+
+/* «Animaciones reducidas» de Configuración (DEC-110): el aro queda quieto. */
+:global(:root[data-motion='reduced']) .professional-photo-field__busy-spinner {
+  animation: none;
 }
 </style>

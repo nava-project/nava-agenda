@@ -1,8 +1,10 @@
 <script setup lang="ts">
 // Recorrido de tres pasos hasta tener Google Calendar conectado (issue #331). Solo
 // presenta el avance: no navega ni decide nada; la pantalla le dice en qué paso va.
-// El avance entre pasos es un relleno de `transform` (sin layout) y se queda quieto
-// con `prefers-reduced-motion` o `data-motion="reduced"`.
+// v2 (DEC-188): los pasos no entran animados al cargar; el hecho y el actual se
+// marcan en tinta (no en el acento). El filete entre pasos cambia con una
+// transición corta cuando avanza el estado, y se queda quieto con
+// `prefers-reduced-motion` o `data-motion="reduced"`.
 interface Step {
   title: string
   detail: string
@@ -21,12 +23,11 @@ defineProps<{
     <li
       v-for="(step, index) in steps"
       :key="step.title"
-      class="gcal-step nv-rise"
+      class="gcal-step"
       :class="{
         'gcal-step--done': index + 1 < current,
         'gcal-step--current': index + 1 === current,
       }"
-      :style="{ '--i': index + 2 }"
       :aria-current="index + 1 === current ? 'step' : undefined"
     >
       <span class="gcal-step__head" aria-hidden="true">
@@ -64,8 +65,8 @@ defineProps<{
   gap: 10px;
   min-width: 0;
   padding-right: 12px;
-  color: var(--color-on-strong-muted);
-  transition: color 300ms var(--motion-ease-out, ease-out);
+  color: var(--color-text-secondary);
+  transition: color var(--motion-duration-base) var(--motion-easing-standard);
 }
 
 .gcal-step:last-child {
@@ -74,7 +75,7 @@ defineProps<{
 
 .gcal-step--current,
 .gcal-step--done {
-  color: var(--color-on-strong);
+  color: var(--color-text-primary);
 }
 
 .gcal-step__head {
@@ -91,17 +92,17 @@ defineProps<{
   place-content: center;
   width: 30px;
   height: 30px;
-  font-family: var(--font-display);
   font-size: var(--font-size-body-sm);
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
   color: inherit;
-  background: var(--color-surface-strong);
-  border: var(--border-width-normal) solid
-    color-mix(in srgb, var(--color-on-strong) 28%, transparent);
+  background: var(--color-surface);
+  border: var(--border-width-normal) solid var(--color-border-control);
   border-radius: 50%;
   transition:
-    background-color 300ms var(--motion-ease-out, ease-out),
-    border-color 300ms var(--motion-ease-out, ease-out),
-    color 300ms var(--motion-ease-out, ease-out);
+    background-color var(--motion-duration-base) var(--motion-easing-standard),
+    border-color var(--motion-duration-base) var(--motion-easing-standard),
+    color var(--motion-duration-base) var(--motion-easing-standard);
 }
 
 .gcal-step__mark svg path {
@@ -111,16 +112,17 @@ defineProps<{
   stroke-linejoin: round;
 }
 
+/* Paso actual: contorno de tinta de 2px; hecho: lleno de tinta. */
 .gcal-step--current .gcal-step__mark {
-  border-color: var(--color-brand-accent-surface);
-  color: var(--color-brand-accent-surface);
-  box-shadow: 0 0 0 4px color-mix(in srgb, var(--color-brand-accent-surface) 16%, transparent);
+  border-color: var(--color-text-primary);
+  box-shadow: inset 0 0 0 1px var(--color-text-primary);
+  color: var(--color-text-primary);
 }
 
 .gcal-step--done .gcal-step__mark {
-  background: var(--color-brand-accent-surface);
-  border-color: var(--color-brand-accent-surface);
-  color: var(--color-brand-accent-text);
+  background: var(--color-text-primary);
+  border-color: var(--color-text-primary);
+  color: var(--color-surface);
 }
 
 .gcal-step__copy {
@@ -136,9 +138,9 @@ defineProps<{
 }
 
 .gcal-step__detail {
-  font-size: var(--font-size-caption);
-  line-height: 1.4;
-  color: var(--color-on-strong-muted);
+  font-size: 13px;
+  line-height: 18px;
+  color: var(--color-text-secondary);
 }
 
 /* Filete entre pasos: parte de la marca y se rellena al completar el paso. */
@@ -146,17 +148,17 @@ defineProps<{
   flex: 1;
   height: 2px;
   overflow: hidden;
-  background: color-mix(in srgb, var(--color-on-strong) 14%, transparent);
+  background: var(--color-border-subtle);
 }
 
 .gcal-step__fill {
   display: block;
   width: 100%;
   height: 100%;
-  background: var(--color-brand-accent-surface);
+  background: var(--color-text-primary);
   transform: scaleX(0);
   transform-origin: left;
-  transition: transform 600ms var(--motion-ease-out, ease-out);
+  transition: transform var(--motion-duration-base) var(--motion-easing-standard);
 }
 
 .gcal-step--done .gcal-step__fill {

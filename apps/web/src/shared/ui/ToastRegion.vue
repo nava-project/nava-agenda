@@ -124,17 +124,14 @@ function onAction(id: number, run: (() => void) | undefined) {
   gap: var(--space-2);
   height: 36px;
   padding: 0 var(--space-3);
-  background-color: var(--color-surface-strong);
-  border: var(--border-width-normal) solid
-    color-mix(in srgb, var(--color-brand-accent-surface) 45%, transparent);
-  border-radius: 2px;
+  background-color: var(--color-surface);
+  border: var(--border-width-normal) solid var(--color-border-subtle);
+  border-radius: var(--radius-md);
   box-shadow: 0 8px 20px -8px rgb(16 27 43 / 50%);
   color: var(--color-on-strong);
   font-family: var(--font-sans);
   font-size: var(--font-size-caption);
   font-weight: 600;
-  letter-spacing: 0.1em;
-  text-transform: uppercase;
   cursor: pointer;
   pointer-events: auto;
   transition:
@@ -159,7 +156,7 @@ function onAction(id: number, run: (() => void) | undefined) {
 
 .toast-region__clear svg {
   flex: none;
-  color: var(--color-brand-accent-surface);
+  color: var(--color-text-secondary);
 }
 
 .toast-region__clear:focus-visible {
@@ -171,7 +168,7 @@ function onAction(id: number, run: (() => void) | undefined) {
   padding-left: var(--space-2);
   border-left: var(--border-width-normal) solid
     color-mix(in srgb, var(--color-on-strong) 20%, transparent);
-  color: var(--color-brand-accent-surface);
+  color: var(--color-text-secondary);
 }
 
 @media (prefers-reduced-motion: reduce) {

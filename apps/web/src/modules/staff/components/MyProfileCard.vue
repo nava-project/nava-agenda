@@ -3,9 +3,9 @@
 // sin cabecera de una tabla de equipo, es su propia tarjeta. StaffPage.vue
 // sigue siendo dueño de los datos, la carga y los diálogos (alta, edición);
 // este componente es puramente de presentación y emite `edit` para abrir el
-// diálogo de edición que StaffPage ya tiene. Mismo lenguaje visual que el
-// detalle de profesional y los diálogos de Servicios: tinta hundida, filete de
-// latón, retrato con marco de esquinas y rombo de estado.
+// diálogo de edición que StaffPage ya tiene. Mismo lenguaje visual v2 que el
+// detalle de profesional (DEC-188): tarjeta con borde sutil, rótulos en tipo
+// oración, punto de estado quieto y sin acento fuera de la acción principal.
 import { ProfessionalAvatar, BaseButton } from '@/shared/ui'
 
 defineProps<{
@@ -86,23 +86,11 @@ defineEmits<{ edit: [] }>()
   width: min(100%, 460px);
   margin-inline: auto;
   padding: 40px 32px 32px;
-  background-color: var(--color-field-strong);
-  border: var(--border-width-normal) solid var(--color-field-strong-border);
-  border-top: var(--border-width-emphasis) solid var(--color-brand-accent-surface);
-  border-radius: 4px;
-  animation: my-profile-card-enter 380ms var(--motion-easing-standard) both;
-}
-
-@keyframes my-profile-card-enter {
-  from {
-    opacity: 0;
-    transform: translateY(10px);
-  }
-
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
+  /* Tarjeta v2 (DEC-188): superficie, borde sutil de 1px y radio grande; sin
+     filete de acento ni entrada animada. */
+  background-color: var(--color-surface);
+  border: var(--border-width-normal) solid var(--color-border-subtle);
+  border-radius: var(--radius-lg);
 }
 
 .my-profile-card__hero {
@@ -112,46 +100,18 @@ defineEmits<{ edit: [] }>()
   gap: var(--space-2);
 }
 
+/* El retrato va solo, sin marco de esquinas de acento (v2, DEC-188). */
 .my-profile-card__frame {
-  position: relative;
   display: inline-flex;
-  padding: 12px;
   margin-bottom: var(--space-1);
-  background-color: var(--color-surface-strong);
-  border: var(--border-width-normal) solid var(--color-field-strong-border);
-  border-radius: 2px;
 }
 
-.my-profile-card__frame::before,
-.my-profile-card__frame::after {
-  content: '';
-  position: absolute;
-  width: 18px;
-  height: 18px;
-  border: var(--border-width-emphasis) solid var(--color-brand-accent-surface);
-}
-
-.my-profile-card__frame::before {
-  top: -5px;
-  left: -5px;
-  border-right: 0;
-  border-bottom: 0;
-}
-
-.my-profile-card__frame::after {
-  right: -5px;
-  bottom: -5px;
-  border-top: 0;
-  border-left: 0;
-}
-
+/* Rótulo v2: tipo oración, 13px/500 en texto secundario. */
 .my-profile-card__role {
   margin: 0;
-  color: var(--color-brand-accent-surface);
-  font-size: var(--font-size-caption);
-  font-weight: 600;
-  letter-spacing: 0.16em;
-  text-transform: uppercase;
+  color: var(--color-text-secondary);
+  font-size: 13px;
+  font-weight: 500;
 }
 
 .my-profile-card__description {
@@ -184,7 +144,7 @@ defineEmits<{ edit: [] }>()
   width: 100%;
   margin: 0;
   padding-top: var(--space-4);
-  border-top: var(--border-width-normal) solid var(--color-field-strong-border);
+  border-top: var(--border-width-normal) solid var(--color-border-subtle);
 }
 
 .my-profile-card__facts > div {
@@ -196,10 +156,9 @@ defineEmits<{ edit: [] }>()
 }
 
 .my-profile-card__facts dt {
-  color: var(--color-on-strong-muted);
-  font-size: var(--font-size-caption);
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
+  color: var(--color-text-secondary);
+  font-size: 13px;
+  font-weight: 500;
 }
 
 .my-profile-card__facts dd {
@@ -211,16 +170,14 @@ defineEmits<{ edit: [] }>()
   font-variant-numeric: tabular-nums;
 }
 
-/* Mismo rombo con rótulo que el estado de la foto en el equipo: sin caja,
-   versalitas de latón. */
+/* Mismo punto con rótulo que el estado de la foto en el equipo: sin caja y
+   en tipo oración (v2, DEC-188: sin rombo ni versalitas). */
 .my-profile-card__photo-state {
   display: inline-flex;
   align-items: center;
   gap: 6px;
   font-size: var(--font-size-body);
   font-weight: 600;
-  letter-spacing: 0.04em;
-  text-transform: uppercase;
   color: var(--color-on-strong-muted);
 }
 
@@ -229,7 +186,7 @@ defineEmits<{ edit: [] }>()
   flex-shrink: 0;
   width: 6px;
   height: 6px;
-  transform: rotate(45deg);
+  border-radius: 50%;
   background-color: currentColor;
 }
 
@@ -247,29 +204,8 @@ defineEmits<{ edit: [] }>()
 }
 
 /* «Editar mi perfil» y «Bloquear» (que llega por slot desde StaffWorkspacePage)
-   comparten forma: BaseButton secundario, fantasma con filete inferior de color
-   e icono de línea. Aquí el color es el latón de la marca; el de Bloquear es el
-   de peligro. */
-.my-profile-card__edit.base-button.base-button--secondary {
-  background-color: transparent;
-  color: var(--color-brand-accent-surface);
-  border-color: color-mix(in srgb, var(--color-brand-accent-surface) 50%, transparent);
-  border-bottom-color: var(--color-brand-accent-surface);
-}
-
-.my-profile-card__edit.base-button.base-button--secondary:hover:not(:disabled):not(
-    .base-button--loading
-  ) {
-  background-color: color-mix(in srgb, var(--color-brand-accent-surface) 12%, transparent);
-  border-color: color-mix(in srgb, var(--color-brand-accent-surface) 50%, transparent);
-  border-bottom-color: var(--color-brand-accent-surface);
-}
-
-.my-profile-card__edit.base-button.base-button--secondary:active:not(:disabled):not(
-    .base-button--loading
-  ) {
-  background-color: color-mix(in srgb, var(--color-brand-accent-surface) 20%, transparent);
-}
+   comparten forma: BaseButton secundario con icono de línea. «Editar» usa el
+   secundario v2 neutro tal cual (DEC-188); el de Bloquear es el de peligro. */
 
 .my-profile-card__edit :deep(.base-button__content) {
   display: inline-flex;
@@ -299,12 +235,6 @@ defineEmits<{ edit: [] }>()
 
   .my-profile-card__actions > * {
     width: 100%;
-  }
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .my-profile-card {
-    animation: none;
   }
 }
 </style>

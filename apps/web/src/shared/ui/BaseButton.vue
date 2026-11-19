@@ -150,7 +150,7 @@ const handleClick = (event: MouseEvent) => {
 
 @media (hover: hover) {
   .base-button--primary:hover:not(:disabled):not(.base-button--loading) {
-    box-shadow: 0 8px 18px -10px var(--color-action-primary);
+    box-shadow: 0 8px 18px -10px var(--color-brand-accent-surface);
   }
 }
 
@@ -174,10 +174,14 @@ const handleClick = (event: MouseEvent) => {
 }
 
 /* Variant: primary */
+/* La acción principal es la única con el acento lleno, y el acento es el del
+   negocio (DEC-110/DEC-188): `--color-brand-accent-surface` cae al Alba de
+   tokens.css donde no hay negocio (acceso). Cada acento de la paleta pasa AA
+   como relleno con `--color-brand-accent-text`. */
 .base-button--primary {
-  background-color: var(--color-action-primary);
-  color: var(--color-on-ink);
-  border-color: var(--color-action-primary);
+  background-color: var(--color-brand-accent-surface);
+  color: var(--color-brand-accent-text);
+  border-color: var(--color-brand-accent-surface);
 }
 
 /* `:where()` deja los estados hover/active con la especificidad de la variante

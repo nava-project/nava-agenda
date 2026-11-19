@@ -754,7 +754,6 @@ function seriesCounts(item: TimeBlockSeries): string {
     <div class="blocks-panel__ledger">
       <section aria-labelledby="single-blocks-title">
         <div class="blocks-panel__section-head">
-          <span aria-hidden="true">01</span>
           <h3 id="single-blocks-title">Bloqueos puntuales</h3>
         </div>
         <div
@@ -781,7 +780,6 @@ function seriesCounts(item: TimeBlockSeries): string {
           </BaseAlert>
           <template v-else-if="blocksStatus === 'ready'">
             <div v-if="visibleBlocks.length === 0" class="blocks-panel__empty">
-              <span aria-hidden="true">◇</span>
               <p>Sin bloqueos puntuales</p>
               <small>Cuando necesite una pausa, aparecerá aquí.</small>
             </div>
@@ -857,7 +855,6 @@ function seriesCounts(item: TimeBlockSeries): string {
       </section>
       <section aria-labelledby="weekly-blocks-title">
         <div class="blocks-panel__section-head">
-          <span aria-hidden="true">02</span>
           <h3 id="weekly-blocks-title">Series de bloqueo</h3>
         </div>
         <div
@@ -884,7 +881,6 @@ function seriesCounts(item: TimeBlockSeries): string {
           </BaseAlert>
           <template v-else-if="seriesStatus === 'ready'">
             <div v-if="activeSeries.length === 0" class="blocks-panel__empty">
-              <span aria-hidden="true">↻</span>
               <p>Sin pausas recurrentes</p>
               <small>Una misma pausa, cada semana.</small>
             </div>
@@ -1224,15 +1220,15 @@ function seriesCounts(item: TimeBlockSeries): string {
   border: 0;
 }
 
+/* Panel v2 (DEC-188): superficie con borde sutil, rótulos en tipo oración y
+   seleccionado en tinta. El acento del negocio queda solo en «Agregar
+   bloqueo», la acción principal (BaseButton primario sin repintar). */
 .blocks-panel {
-  --color-text-primary: var(--color-on-strong);
-  --color-text-secondary: var(--color-on-strong-muted);
-  --color-accent-brass: var(--color-brand-accent-surface);
-  color: var(--color-on-strong);
+  color: var(--color-text-primary);
   padding: 28px;
-  background: var(--color-surface-strong);
-  border: 1px solid var(--color-field-strong-border);
-  border-top: 2px solid var(--color-brand-accent-surface);
+  background: var(--color-surface);
+  border: 1px solid var(--color-border-subtle);
+  border-radius: var(--radius-lg);
 }
 .blocks-panel__header,
 .blocks-panel__identity,
@@ -1252,19 +1248,20 @@ function seriesCounts(item: TimeBlockSeries): string {
   min-width: 0;
 }
 .blocks-panel h2 {
-  margin: 5px 0 0;
-  font-family: var(--font-display);
-  font-size: clamp(24px, 3vw, 32px);
-  font-weight: 400;
+  margin: 4px 0 0;
+  font-family: var(--font-sans);
+  font-size: clamp(22px, 3vw, 28px);
+  font-weight: 600;
   line-height: 1.2;
+  letter-spacing: -0.01em;
 }
 .blocks-panel__eyebrow {
   margin: 0;
-  color: var(--color-brand-accent-surface);
+  color: var(--color-text-secondary);
+  font-size: 13px;
+  font-weight: 500;
+  line-height: 18px;
   font-family: var(--font-sans);
-  font-size: var(--font-size-caption);
-  letter-spacing: 0.12em;
-  text-transform: uppercase;
   overflow-wrap: anywhere;
 }
 .blocks-panel__lede {
@@ -1278,17 +1275,17 @@ function seriesCounts(item: TimeBlockSeries): string {
 .blocks-panel__intro {
   margin: 0;
   font-size: var(--font-size-body-sm);
-  color: var(--color-on-strong-muted);
+  color: var(--color-text-secondary);
 }
 /* La zona va como etiqueta discreta al final del renglón. */
 .blocks-panel__timezone {
   margin: 0;
   padding: 3px 10px;
-  color: var(--color-on-strong-muted);
+  color: var(--color-text-secondary);
   font-size: var(--font-size-caption);
   white-space: nowrap;
-  border: 1px solid var(--color-field-strong-border);
-  border-radius: 999px;
+  border: 1px solid var(--color-border-subtle);
+  border-radius: var(--radius-pill);
 }
 .blocks-panel__timezone-alert {
   flex-basis: 100%;
@@ -1305,19 +1302,14 @@ function seriesCounts(item: TimeBlockSeries): string {
   display: flex;
   align-items: baseline;
   gap: 12px;
-  border-bottom: 1px solid var(--color-field-strong-border);
+  border-bottom: 1px solid var(--color-border-subtle);
   padding-bottom: 14px;
   margin-bottom: 16px;
 }
-.blocks-panel__section-head > span {
-  color: var(--color-brand-accent-surface);
-  font-size: var(--font-size-caption);
-  letter-spacing: 0.1em;
-}
 .blocks-panel h3 {
   margin: 0;
-  font-family: var(--font-display);
-  font-weight: 400;
+  font-family: var(--font-sans);
+  font-weight: 600;
   font-size: var(--font-size-title-item);
 }
 .blocks-panel__list {
@@ -1334,23 +1326,20 @@ function seriesCounts(item: TimeBlockSeries): string {
   outline: none;
   box-shadow: 0 0 0 2px var(--color-focus);
 }
-/* Ficha de bloqueo: hueco hundido sobre la tinta del diálogo con filete de latón
-   a la izquierda, el mismo lenguaje de las fichas del tablero de Horarios. */
+/* Ficha de bloqueo: tarjeta v2 con borde sutil, sin filete de acento. */
 .blocks-panel__record {
   display: grid;
   gap: 10px;
   padding: 16px 18px;
-  color: var(--color-on-strong);
-  background: var(--color-field-strong);
-  border: 1px solid var(--color-field-strong-border);
-  border-left: 3px solid var(--color-brand-accent-surface);
-  border-radius: 2px;
+  color: var(--color-text-primary);
+  background: var(--color-surface);
+  border: 1px solid var(--color-border-subtle);
+  border-radius: var(--radius-lg);
   overflow-wrap: anywhere;
 }
 .blocks-panel__record--past {
-  background: transparent;
-  color: var(--color-on-strong-muted);
-  border-left-color: color-mix(in srgb, var(--color-brand-accent-surface) 40%, transparent);
+  background: color-mix(in srgb, var(--color-text-primary) 3%, transparent);
+  color: var(--color-text-secondary);
 }
 .blocks-panel__record-top {
   display: flex;
@@ -1359,38 +1348,37 @@ function seriesCounts(item: TimeBlockSeries): string {
   gap: 12px;
 }
 .blocks-panel__record-top strong {
-  font-family: var(--font-display);
+  font-family: var(--font-sans);
   font-size: var(--font-size-title-item);
-  font-weight: 400;
+  font-weight: 600;
   line-height: 1.2;
 }
+/* Sello del tipo: pastilla neutra en tipo oración. */
 .blocks-panel__stamp {
   flex-shrink: 0;
-  padding: 3px 8px;
-  color: var(--color-brand-accent-surface);
-  font-size: var(--font-size-caption);
-  font-weight: 600;
-  line-height: 1.3;
-  letter-spacing: 0.12em;
-  text-transform: uppercase;
-  border: 1px solid color-mix(in srgb, var(--color-brand-accent-surface) 55%, transparent);
-  border-radius: 2px;
+  padding: 1px 8px;
+  color: var(--color-text-secondary);
+  font-size: 13px;
+  font-weight: 500;
+  line-height: 18px;
+  border: 1px solid var(--color-border-subtle);
+  border-radius: var(--radius-pill);
 }
 .blocks-panel__interval {
   margin: 0;
-  color: var(--color-on-strong);
+  color: var(--color-text-primary);
   font-size: var(--font-size-body);
   line-height: 1.4;
 }
 .blocks-panel__reason {
   margin: 0;
-  color: var(--color-on-strong);
+  color: var(--color-text-primary);
   font-size: var(--font-size-body-sm);
   line-height: 1.5;
 }
 .blocks-panel__validity {
   margin: 0;
-  color: var(--color-on-strong-muted);
+  color: var(--color-text-secondary);
   font-size: var(--font-size-caption);
   line-height: 1.5;
 }
@@ -1402,10 +1390,10 @@ function seriesCounts(item: TimeBlockSeries): string {
   gap: 10px 12px;
   margin-top: 4px;
   padding-top: 12px;
-  border-top: 1px solid var(--color-field-strong-border);
+  border-top: 1px solid var(--color-border-subtle);
 }
 .blocks-panel__record-footer > span {
-  color: var(--color-on-strong-muted);
+  color: var(--color-text-secondary);
   font-size: var(--font-size-caption);
 }
 .blocks-panel__record-actions {
@@ -1414,20 +1402,14 @@ function seriesCounts(item: TimeBlockSeries): string {
   justify-content: flex-end;
   gap: 8px;
 }
-/* Acciones compactas: la ficha manda, los botones acompañan. */
+/* Acciones compactas: BaseButton secundario neutro, solo más pequeño. */
 .blocks-panel__record :deep(.base-button) {
   min-height: 34px;
+  height: 34px;
   padding-inline: 12px;
   font-size: var(--font-size-body-sm);
-  color: var(--color-on-strong);
-  background: transparent;
-  border-color: color-mix(in srgb, var(--color-brand-accent-surface) 55%, transparent);
 }
-.blocks-panel__record :deep(.base-button:hover:not(:disabled):not(.base-button--loading)) {
-  color: var(--color-on-strong);
-  background: color-mix(in srgb, var(--color-brand-accent-surface) 14%, transparent);
-  border-color: var(--color-brand-accent-surface);
-}
+/* Días de la serie: el día incluido queda en tinta. */
 .blocks-panel__week {
   display: flex;
   gap: 4px;
@@ -1440,17 +1422,18 @@ function seriesCounts(item: TimeBlockSeries): string {
   place-items: center;
   width: 26px;
   height: 26px;
-  color: var(--color-on-strong-muted);
-  font-family: var(--font-display);
+  color: var(--color-text-secondary);
+  font-family: var(--font-sans);
   font-size: var(--font-size-caption);
   line-height: 1;
-  border: 1px solid color-mix(in srgb, var(--color-on-strong) 14%, transparent);
-  border-radius: 2px;
+  border: 1px solid var(--color-border-subtle);
+  border-radius: var(--radius-md);
 }
 .blocks-panel__week > li.blocks-panel__week-day--on {
-  color: var(--color-brand-accent-text);
-  background: var(--color-brand-accent-surface);
-  border-color: var(--color-brand-accent-surface);
+  color: var(--color-text-primary);
+  font-weight: 600;
+  background: color-mix(in srgb, var(--color-text-primary) 8%, transparent);
+  border-color: var(--color-text-primary);
 }
 .blocks-panel__affected {
   margin-bottom: var(--space-4, 1rem);
@@ -1462,7 +1445,7 @@ function seriesCounts(item: TimeBlockSeries): string {
 }
 .affected-empty {
   margin: 0;
-  color: var(--color-on-strong-muted);
+  color: var(--color-text-secondary);
 }
 .affected-day__title {
   display: flex;
@@ -1471,18 +1454,16 @@ function seriesCounts(item: TimeBlockSeries): string {
   gap: 12px;
   margin: 0 0 6px;
   padding-bottom: 6px;
-  color: var(--color-brand-accent-surface);
+  color: var(--color-text-primary);
   font-family: var(--font-sans);
-  font-size: var(--font-size-caption);
+  font-size: 13px;
   font-weight: 600;
-  letter-spacing: 0.1em;
-  text-transform: uppercase;
-  border-bottom: 1px solid color-mix(in srgb, var(--color-brand-accent-surface) 35%, transparent);
+  line-height: 18px;
+  border-bottom: 1px solid var(--color-border-subtle);
 }
 .affected-day__title span {
-  color: var(--color-on-strong-muted);
-  font-weight: 400;
-  letter-spacing: 0.06em;
+  color: var(--color-text-secondary);
+  font-weight: 500;
 }
 .affected-day__list {
   display: grid;
@@ -1497,29 +1478,29 @@ function seriesCounts(item: TimeBlockSeries): string {
   align-items: center;
   gap: 14px;
   padding: 6px 12px;
-  color: var(--color-on-strong);
+  color: var(--color-text-primary);
   text-decoration: none;
-  background: color-mix(in srgb, var(--color-on-strong) 4%, transparent);
-  border: 1px solid transparent;
-  border-left: 2px solid color-mix(in srgb, var(--color-brand-accent-surface) 55%, transparent);
-  border-radius: 2px;
+  background: color-mix(in srgb, var(--color-text-primary) 3%, transparent);
+  border: 1px solid var(--color-border-subtle);
+  border-radius: var(--radius-md);
   transition:
     background-color var(--motion-duration-fast) var(--motion-easing-standard),
     border-color var(--motion-duration-fast) var(--motion-easing-standard);
 }
 .affected-row:hover {
-  background: color-mix(in srgb, var(--color-on-strong) 9%, transparent);
-  border-left-color: var(--color-brand-accent-surface);
+  background: color-mix(in srgb, var(--color-text-primary) 6%, transparent);
+  border-color: var(--color-border-control);
 }
 .affected-row:focus-visible {
   outline: none;
   box-shadow:
-    0 0 0 2px var(--color-surface-strong),
+    0 0 0 2px var(--color-surface),
     0 0 0 4px var(--color-focus);
 }
 .affected-row__time {
-  font-family: var(--font-display);
-  font-size: 17px;
+  font-family: var(--font-sans);
+  font-size: 16px;
+  font-weight: 600;
   font-variant-numeric: tabular-nums;
   white-space: nowrap;
 }
@@ -1537,13 +1518,13 @@ function seriesCounts(item: TimeBlockSeries): string {
 .affected-row__who small {
   overflow: hidden;
   line-height: 1.3;
-  color: var(--color-on-strong-muted);
+  color: var(--color-text-secondary);
   font-size: var(--font-size-caption);
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 .affected-row__go {
-  color: var(--color-brand-accent-surface);
+  color: var(--color-text-secondary);
 }
 @media (max-width: 520px) {
   .affected-row {
@@ -1562,43 +1543,27 @@ function seriesCounts(item: TimeBlockSeries): string {
   justify-content: center;
   padding: 18px;
   text-align: center;
-  border: 1px dashed var(--color-field-strong-border);
-  color: var(--color-on-strong-muted);
+  background: color-mix(in srgb, var(--color-text-primary) 3%, transparent);
+  border-radius: var(--radius-md);
+  color: var(--color-text-secondary);
 }
-/* Vacío compacto (issue #577): un renglón con el glifo a la izquierda y el
-   texto al lado, en vez de una caja alta centrada que dejaba media columna
-   en blanco. */
+/* Vacío compacto (issue #577): un renglón con el texto y su ayuda, sin glifo
+   decorativo (v2 quita los rombos y adornos). */
 .blocks-panel__empty {
   display: grid;
-  grid-template-columns: auto minmax(0, 1fr);
-  grid-template-rows: auto auto;
-  column-gap: 14px;
   row-gap: 2px;
-  align-items: center;
   padding: 16px 18px;
-  color: var(--color-on-strong-muted);
-  background: color-mix(in srgb, var(--color-on-strong) 3%, transparent);
-  border: 1px dashed var(--color-field-strong-border);
-  border-radius: 2px;
-}
-.blocks-panel__empty > span {
-  grid-row: 1 / 3;
-  display: grid;
-  place-items: center;
-  width: 40px;
-  height: 40px;
-  color: var(--color-brand-accent-surface);
-  font-size: 20px;
-  line-height: 1;
-  border: 1px solid color-mix(in srgb, var(--color-brand-accent-surface) 45%, transparent);
-  border-radius: 50%;
+  color: var(--color-text-secondary);
+  background: color-mix(in srgb, var(--color-text-primary) 3%, transparent);
+  border-radius: var(--radius-md);
 }
 .blocks-panel__empty p {
   margin: 0;
-  color: var(--color-on-strong);
-  font-family: var(--font-display);
-  font-size: var(--font-size-body-lg);
-  line-height: 1.25;
+  color: var(--color-text-primary);
+  font-family: var(--font-sans);
+  font-size: var(--font-size-body);
+  font-weight: 500;
+  line-height: 1.3;
 }
 .blocks-panel__empty small {
   font-size: var(--font-size-caption);
@@ -1607,25 +1572,10 @@ function seriesCounts(item: TimeBlockSeries): string {
 .blocks-panel__note {
   margin: 20px 0 0;
   padding-top: 16px;
-  border-top: 1px solid var(--color-field-strong-border);
+  border-top: 1px solid var(--color-border-subtle);
   font-size: var(--font-size-caption);
-  color: var(--color-on-strong-muted);
+  color: var(--color-text-secondary);
   line-height: 1.6;
-}
-.blocks-panel__actions :deep(.base-button--primary) {
-  --color-action-primary-hover: var(--color-brand-accent-surface);
-  --color-action-primary-active: var(--color-brand-accent-surface);
-  background: var(--color-brand-accent-surface);
-  color: var(--color-brand-accent-text);
-  border-color: var(--color-brand-accent-surface);
-}
-.blocks-panel__actions :deep(.base-button--secondary),
-.blocks-panel__scroll > :deep(.base-button--secondary) {
-  --color-surface-muted: var(--color-field-strong);
-  --color-border-subtle: var(--color-field-strong-border);
-  color: var(--color-on-strong);
-  border-color: var(--color-brand-accent-surface);
-  background: transparent;
 }
 .block-form {
   display: grid;
@@ -1636,13 +1586,13 @@ function seriesCounts(item: TimeBlockSeries): string {
   gap: 14px;
   align-items: center;
   padding-bottom: 18px;
-  border-bottom: 1px solid var(--color-field-strong-border);
+  border-bottom: 1px solid var(--color-border-subtle);
 }
 .block-form__identity strong {
   display: block;
-  font-family: var(--font-display);
+  font-family: var(--font-sans);
   font-size: var(--font-size-body-lg);
-  font-weight: 400;
+  font-weight: 600;
   margin-top: 5px;
   overflow-wrap: anywhere;
 }
@@ -1653,10 +1603,10 @@ function seriesCounts(item: TimeBlockSeries): string {
   margin: 0;
 }
 .block-form legend {
-  color: var(--color-brand-accent-surface);
-  font-size: var(--font-size-caption);
-  text-transform: uppercase;
-  letter-spacing: 0.1em;
+  color: var(--color-text-secondary);
+  font-size: 13px;
+  font-weight: 500;
+  line-height: 18px;
   margin-bottom: 14px;
   display: flex;
   align-items: center;
@@ -1674,12 +1624,10 @@ function seriesCounts(item: TimeBlockSeries): string {
   min-width: 0;
 }
 .block-form__date-field > label {
-  color: var(--color-on-strong-muted);
-  font-size: var(--font-size-caption);
-  font-weight: 600;
-  line-height: 14px;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
+  color: var(--color-text-secondary);
+  font-size: 13px;
+  font-weight: 500;
+  line-height: 18px;
 }
 .block-form__date-field > label span {
   color: var(--color-danger-on-strong);
@@ -1690,19 +1638,21 @@ function seriesCounts(item: TimeBlockSeries): string {
 .block-form__row > * {
   min-width: 0;
 }
+/* «Así queda el bloqueo»: tarjeta v2, sin filete de acento. */
 .block-form__preview {
-  border-top: 2px solid var(--color-brand-accent-surface);
-  background: var(--color-field-strong);
+  background: var(--color-surface);
+  border: 1px solid var(--color-border-subtle);
+  border-radius: var(--radius-lg);
   padding: 16px 20px;
 }
 .block-form__preview p {
-  font-family: var(--font-display);
+  font-family: var(--font-sans);
   font-size: var(--font-size-body-lg);
   line-height: 1.4;
   margin: 8px 0;
 }
 .block-form__preview small {
-  color: var(--color-on-strong-muted);
+  color: var(--color-text-secondary);
   font-size: var(--font-size-caption);
 }
 .block-form__footer {
@@ -1710,12 +1660,13 @@ function seriesCounts(item: TimeBlockSeries): string {
   justify-content: flex-end;
   gap: 12px;
 }
+/* Alta y retiro de un bloqueo: respuesta a la acción, no entrada al cargar. */
 .block-record-enter-active,
 .block-record-leave-active,
 .block-record-move {
   transition:
-    opacity 220ms ease,
-    transform 220ms ease;
+    opacity 200ms ease,
+    transform 200ms ease;
 }
 .block-record-enter-from,
 .block-record-leave-to {
@@ -1753,8 +1704,7 @@ function seriesCounts(item: TimeBlockSeries): string {
     overscroll-behavior: contain;
     padding-right: 6px;
     scrollbar-width: thin;
-    scrollbar-color: color-mix(in srgb, var(--color-brand-accent-surface) 55%, transparent)
-      transparent;
+    scrollbar-color: var(--color-border-control) transparent;
   }
   .blocks-panel__note {
     flex-shrink: 0;
@@ -1796,75 +1746,31 @@ function seriesCounts(item: TimeBlockSeries): string {
     flex: 1;
   }
 }
-/* Entrada del panel (issue #577): el panel se monta al abrir el diálogo, así
-   que cada bloque sube y aparece en orden mientras el diálogo se despliega.
-   `backwards` y no `both`: terminada la entrada no queda transform que cree
-   contextos de apilamiento sobre las listas. */
-.blocks-panel__header,
-.blocks-panel__lede,
-.blocks-panel__ledger > section,
-.blocks-panel__note {
-  animation: blocks-panel-rise 420ms cubic-bezier(0.2, 0.7, 0.2, 1) backwards;
-}
-.blocks-panel__header {
-  animation-delay: 220ms;
-}
-.blocks-panel__lede {
-  animation-delay: 280ms;
-}
-.blocks-panel__ledger > section:first-child {
-  animation-delay: 340ms;
-}
-.blocks-panel__ledger > section:nth-child(2) {
-  animation-delay: 410ms;
-}
-.blocks-panel__note {
-  animation-delay: 480ms;
-}
-@keyframes blocks-panel-rise {
-  from {
-    opacity: 0;
-    transform: translateY(10px);
-  }
-  to {
-    opacity: 1;
-    transform: none;
-  }
-}
 @media (prefers-reduced-motion: reduce) {
   .block-record-enter-active,
   .block-record-leave-active,
-  .block-record-move {
+  .block-record-move,
+  .affected-row {
     transition: none;
   }
-  .blocks-panel__header,
-  .blocks-panel__lede,
-  .blocks-panel__ledger > section,
-  .blocks-panel__note {
-    animation: none;
-  }
-}
-:root[data-motion='reduced'] .blocks-panel__header,
-:root[data-motion='reduced'] .blocks-panel__lede,
-:root[data-motion='reduced'] .blocks-panel__ledger > section,
-:root[data-motion='reduced'] .blocks-panel__note {
-  animation: none;
 }
 </style>
 
 <style>
-/* BaseDialog se teleporta al body: este ámbito solo gobierna el panel de HU-042. */
+/* BaseDialog se teleporta al body: este ámbito solo gobierna el panel de HU-042
+   y los diálogos de series (content-class="block-dialog"). Lenguaje v2
+   (DEC-188): sin reasignar tokens; campos y botones compartidos tal cual. */
 /* Ayuda bajo las horas opcionales del bloqueo puntual (#507). */
 .block-dialog .block-form__hint {
   margin: -10px 0 0;
-  color: var(--color-on-strong-muted);
+  color: var(--color-text-secondary);
   font-size: var(--font-size-caption);
   line-height: 1.5;
 }
 .block-dialog.block-dialog--affected.base-dialog {
   width: min(100%, 600px) !important;
 }
-/* Diálogo «Días» (#505): un renglón por día con sus acciones, sobre hueco hundido. */
+/* Diálogo «Días» (#505): un renglón por día con sus acciones. */
 .block-dialog.block-dialog--days.base-dialog {
   width: min(100%, 520px) !important;
 }
@@ -1874,7 +1780,7 @@ function seriesCounts(item: TimeBlockSeries): string {
 }
 .days-picker__summary {
   margin: 0;
-  color: var(--color-on-strong-muted);
+  color: var(--color-text-secondary);
   font-size: var(--font-size-body-sm);
 }
 .days-picker__week {
@@ -1882,75 +1788,74 @@ function seriesCounts(item: TimeBlockSeries): string {
   grid-template-columns: repeat(7, minmax(0, 1fr));
   gap: 6px;
 }
+/* Fichas de día: contorno de control; el día elegido queda en tinta. */
 .days-picker__tile {
   display: grid;
   justify-items: center;
   gap: 2px;
   padding: 10px 0 8px;
-  color: var(--color-on-strong-muted);
+  color: var(--color-text-secondary);
   background: transparent;
-  border: 1px solid color-mix(in srgb, var(--color-on-strong) 14%, transparent);
-  border-radius: 2px;
+  border: 1px solid var(--color-border-subtle);
+  border-radius: var(--radius-md);
   cursor: pointer;
   transition:
     background-color var(--motion-duration-fast) var(--motion-easing-standard),
     border-color var(--motion-duration-fast) var(--motion-easing-standard);
 }
 .days-picker__tile:disabled {
-  opacity: 0.35;
-  border-style: dashed;
+  opacity: 0.45;
   cursor: default;
 }
 .days-picker__tile--on {
-  color: var(--color-on-strong);
-  background: var(--color-field-strong);
-  border-color: color-mix(in srgb, var(--color-brand-accent-surface) 55%, transparent);
+  color: var(--color-text-primary);
+  background: var(--color-surface);
+  border-color: var(--color-border-control);
 }
 .days-picker__tile--on:hover {
-  background: var(--color-field-strong-raised);
+  background: color-mix(in srgb, var(--color-text-primary) 4%, var(--color-surface));
+  border-color: var(--color-text-primary);
 }
 .days-picker__tile--active,
 .days-picker__tile--active:hover {
-  color: var(--color-brand-accent-text);
-  background: var(--color-brand-accent-surface);
-  border-color: var(--color-brand-accent-surface);
+  color: var(--color-text-primary);
+  background: color-mix(in srgb, var(--color-text-primary) 8%, transparent);
+  border-color: var(--color-text-primary);
 }
 .days-picker__tile:focus-visible {
   outline: none;
   box-shadow:
-    0 0 0 2px var(--color-surface-strong),
+    0 0 0 2px var(--color-surface),
     0 0 0 4px var(--color-focus);
 }
 .days-picker__initial {
-  font-family: var(--font-display);
-  font-size: 22px;
+  font-family: var(--font-sans);
+  font-size: 20px;
+  font-weight: 600;
   line-height: 1;
 }
 .days-picker__abbr {
   font-size: var(--font-size-caption);
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
 }
 .days-picker__detail {
   display: grid;
   gap: 6px;
   padding: 16px 18px 18px;
-  background: var(--color-field-strong);
-  border: 1px solid var(--color-field-strong-border);
-  border-left: 4px solid var(--color-brand-accent-surface);
-  border-radius: 2px;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border-subtle);
+  border-radius: var(--radius-lg);
 }
 .days-picker__day {
   margin: 0;
-  font-family: var(--font-display);
-  font-size: 30px;
-  font-weight: 400;
-  line-height: 1.1;
-  color: var(--color-on-strong);
+  font-family: var(--font-sans);
+  font-size: 26px;
+  font-weight: 600;
+  line-height: 1.15;
+  color: var(--color-text-primary);
 }
 .days-picker__meta {
   margin: 0;
-  color: var(--color-on-strong-muted);
+  color: var(--color-text-secondary);
   font-size: var(--font-size-body-sm);
 }
 .days-picker__actions {
@@ -1959,151 +1864,50 @@ function seriesCounts(item: TimeBlockSeries): string {
   gap: 8px;
   margin-top: 10px;
 }
+@media (prefers-reduced-motion: reduce) {
+  .days-picker__tile {
+    transition: none;
+  }
+}
 /* `size="lg"` solo fija max-width; el ancho real se declara aquí para que los
    formularios de bloqueo respiren igual que los de Servicios. */
 .block-dialog.base-dialog {
   width: min(100%, 720px) !important;
 }
 .block-dialog {
-  --color-text-primary: var(--color-on-strong);
-  --color-text-secondary: var(--color-on-strong-muted);
-  --color-accent-brass: var(--color-brand-accent-surface);
-  --color-border-control: var(--color-field-strong-border);
-  --color-surface: var(--color-field-strong);
-  --color-focus: var(--color-brand-accent-surface);
-  background: var(--color-surface-strong);
-  color: var(--color-on-strong);
-  border: 1px solid var(--color-field-strong-border);
-  border-top: 2px solid var(--color-brand-accent-surface);
+  background: var(--color-surface);
+  color: var(--color-text-primary);
+  border: 1px solid var(--color-border-subtle);
   box-shadow: var(--shadow-dialog);
 }
 .block-dialog .base-dialog__title {
-  font-family: var(--font-display);
+  font-family: var(--font-sans);
   font-size: var(--font-size-title-section);
-  font-weight: 400;
+  font-weight: 600;
   line-height: 1.2;
 }
 .block-dialog .base-dialog__header,
 .block-dialog .base-dialog__footer {
-  border-color: var(--color-field-strong-border);
-}
-.block-dialog .base-input {
-  --input-bg: var(--color-field-strong);
-  --input-border-color: var(--color-field-strong-border);
-  --input-border-base-color: var(--color-brand-accent-surface);
-  --input-focus-ring: 0 0 0 2px var(--color-surface-strong), 0 0 0 4px var(--color-focus);
-  color-scheme: dark;
-}
-.block-dialog .base-input__label {
-  color: var(--color-on-strong-muted);
-}
-.block-dialog .base-button--primary {
-  --color-action-primary-hover: var(--color-brand-accent-surface);
-  --color-action-primary-active: var(--color-brand-accent-surface);
-  background: var(--color-brand-accent-surface);
-  border-color: var(--color-brand-accent-surface);
-  color: var(--color-brand-accent-text);
-}
-.block-dialog .base-button--secondary {
-  background: transparent;
-  border-color: var(--color-brand-accent-surface);
-  color: var(--color-on-strong);
-}
-/* El hover/active base del botón secundario usa superficies claras: sobre la
-   tinta del diálogo dejaban texto claro sobre fondo claro (contraste 1,13). */
-.block-dialog .base-button--secondary:hover:not(:disabled):not(.base-button--loading),
-.block-dialog .base-button--secondary:active:not(:disabled):not(.base-button--loading) {
-  background: var(--color-field-strong);
-  border-color: var(--color-brand-accent-surface);
+  border-color: var(--color-border-subtle);
 }
 .block-dialog .base-dialog__close {
-  color: var(--color-on-strong-muted) !important;
+  color: var(--color-text-secondary) !important;
 }
 
 .block-dialog .base-dialog__close:hover {
-  background-color: color-mix(in srgb, var(--color-on-strong) 8%, transparent) !important;
-  color: var(--color-on-strong) !important;
+  background-color: color-mix(in srgb, var(--color-text-primary) 8%, transparent) !important;
+  color: var(--color-text-primary) !important;
 }
 
-/* Entrada: la tarjeta rebota al asentarse (misma curva que Servicios y Mi
-   perfil) y los campos del formulario llegan escalonados, de arriba abajo, un
-   instante después. El resumen traza su filete dorado de izquierda a derecha. */
+/* Apertura: la tarjeta se asienta con la misma curva que Servicios y Mi
+   perfil (respuesta a la acción de abrir). Sin entrada escalonada de campos
+   ni filete que se dibuja (v2: sin animaciones de entrada). */
 .block-dialog.base-dialog--open {
   transition-timing-function: cubic-bezier(0.34, 1.56, 0.64, 1) !important;
-}
-.block-dialog .block-form > * {
-  animation: block-dialog-field-enter 360ms var(--motion-easing-standard) backwards;
-  animation-delay: calc(140ms + var(--field-index, 0) * 55ms);
-}
-/* `backwards` (no `both`): al terminar la entrada el campo vuelve a su estado
-   natural y no deja un contexto de apilamiento; con `both` el transform final
-   atrapaba la lista de BaseSelect y los campos siguientes se pintaban encima. */
-.block-dialog .block-form > :focus-within {
-  position: relative;
-  z-index: 2;
-}
-.block-dialog .block-form > :nth-child(1) {
-  --field-index: 0;
-}
-.block-dialog .block-form > :nth-child(2) {
-  --field-index: 1;
-}
-.block-dialog .block-form > :nth-child(3) {
-  --field-index: 2;
-}
-.block-dialog .block-form > :nth-child(4) {
-  --field-index: 3;
-}
-.block-dialog .block-form > :nth-child(5) {
-  --field-index: 4;
-}
-.block-dialog .block-form > :nth-child(6) {
-  --field-index: 5;
-}
-.block-dialog .block-form > :nth-child(n + 7) {
-  --field-index: 6;
-}
-.block-dialog .block-form__preview,
-.block-dialog .block-form__summary {
-  position: relative;
-  border-top-color: transparent;
-}
-.block-dialog .block-form__preview::before,
-.block-dialog .block-form__summary::before {
-  content: '';
-  position: absolute;
-  inset: -2px 0 auto;
-  height: 2px;
-  background: var(--color-brand-accent-surface);
-  transform-origin: left;
-  animation: block-dialog-rule-draw 520ms var(--motion-easing-standard) 420ms both;
-}
-@keyframes block-dialog-field-enter {
-  from {
-    opacity: 0;
-    transform: translateY(10px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
-@keyframes block-dialog-rule-draw {
-  from {
-    transform: scaleX(0);
-  }
-  to {
-    transform: scaleX(1);
-  }
 }
 @media (prefers-reduced-motion: reduce) {
   .block-dialog.base-dialog--open {
     transition-timing-function: var(--motion-easing-standard) !important;
-  }
-  .block-dialog .block-form > *,
-  .block-dialog .block-form__preview::before,
-  .block-dialog .block-form__summary::before {
-    animation: none;
   }
 }
 </style>

@@ -6,13 +6,12 @@
   min-width: 0;
 }
 
+/* v2 (DEC-188): rótulo en tipo oración; el día elegido queda en tinta. */
 .weekday-picker__label {
-  color: var(--color-brand-accent-surface);
-  font-size: var(--font-size-caption);
-  font-weight: 600;
-  line-height: 14px;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
+  color: var(--color-text-secondary);
+  font-size: 13px;
+  font-weight: 500;
+  line-height: 18px;
 }
 
 .weekday-picker__group {
@@ -26,44 +25,39 @@
   min-height: 44px;
   padding: 0;
   overflow: hidden;
-  color: var(--color-on-strong);
-  font-family: var(--font-display);
-  font-size: var(--font-size-title-item);
+  color: var(--color-text-primary);
+  font-family: var(--font-sans);
+  font-size: var(--font-size-body);
+  font-weight: 500;
   line-height: 1;
-  background-color: color-mix(in srgb, var(--color-on-strong) 4%, transparent);
-  border: var(--border-width-normal) solid
-    color-mix(in srgb, var(--color-on-strong) 14%, transparent);
-  border-bottom: var(--border-width-emphasis) solid
-    color-mix(in srgb, var(--color-brand-accent-surface) 45%, transparent);
-  border-radius: 2px;
+  background-color: var(--color-surface);
+  border: var(--border-width-normal) solid var(--color-border-control);
+  border-radius: var(--radius-md);
   cursor: pointer;
   transition:
     background-color var(--motion-duration-fast) var(--motion-easing-standard),
     color var(--motion-duration-fast) var(--motion-easing-standard),
-    border-color var(--motion-duration-fast) var(--motion-easing-standard),
-    transform var(--motion-duration-base) cubic-bezier(0.34, 1.56, 0.64, 1);
+    border-color var(--motion-duration-fast) var(--motion-easing-standard);
 }
 
 @media (hover: hover) {
   .weekday-picker__chip:hover:not(:disabled):not(.weekday-picker__chip--on) {
-    background-color: color-mix(in srgb, var(--color-brand-accent-surface) 12%, transparent);
-    border-color: color-mix(in srgb, var(--color-brand-accent-surface) 55%, transparent);
-    transform: translateY(-2px);
+    background-color: color-mix(in srgb, var(--color-text-primary) 4%, var(--color-surface));
+    border-color: var(--color-text-primary);
   }
 }
 
 .weekday-picker__chip--on {
-  color: var(--color-brand-accent-text);
-  background-color: var(--color-brand-accent-surface);
-  border-color: var(--color-brand-accent-surface);
-  transform: translateY(-2px);
-  animation: weekday-chip-pop var(--motion-duration-base) cubic-bezier(0.34, 1.56, 0.64, 1) both;
+  color: var(--color-text-primary);
+  font-weight: 600;
+  background-color: color-mix(in srgb, var(--color-text-primary) 8%, transparent);
+  border-color: var(--color-text-primary);
 }
 
 .weekday-picker__chip:focus-visible {
   outline: none;
   box-shadow:
-    0 0 0 2px var(--color-surface-strong),
+    0 0 0 2px var(--color-surface),
     0 0 0 4px var(--color-focus);
 }
 
@@ -78,20 +72,8 @@
   font-size: var(--font-size-body-sm);
 }
 
-@keyframes weekday-chip-pop {
-  from {
-    transform: translateY(0) scale(0.9);
-  }
-
-  to {
-    transform: translateY(-2px) scale(1);
-  }
-}
-
 @media (prefers-reduced-motion: reduce) {
-  .weekday-picker__chip,
-  .weekday-picker__chip--on {
-    animation: none;
+  .weekday-picker__chip {
     transition: none;
   }
 }
@@ -105,29 +87,26 @@
 .weekday-picker__quick-button {
   min-height: 32px;
   padding: 0 12px;
-  color: var(--color-on-strong-muted);
-  font-size: var(--font-size-caption);
-  font-weight: 600;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-  background: transparent;
-  border: var(--border-width-normal) solid
-    color-mix(in srgb, var(--color-on-strong) 18%, transparent);
-  border-radius: 2px;
+  color: var(--color-text-primary);
+  font-size: 13px;
+  font-weight: 500;
+  background: var(--color-surface);
+  border: var(--border-width-normal) solid var(--color-border-control);
+  border-radius: var(--radius-md);
   cursor: pointer;
 }
 
 @media (hover: hover) {
   .weekday-picker__quick-button:hover:not(:disabled) {
-    color: var(--color-on-strong);
-    border-color: color-mix(in srgb, var(--color-brand-accent-surface) 55%, transparent);
+    background: color-mix(in srgb, var(--color-text-primary) 4%, var(--color-surface));
+    border-color: var(--color-text-primary);
   }
 }
 
 .weekday-picker__quick-button:focus-visible {
   outline: none;
   box-shadow:
-    0 0 0 2px var(--color-surface-strong),
+    0 0 0 2px var(--color-surface),
     0 0 0 4px var(--color-focus);
 }
 

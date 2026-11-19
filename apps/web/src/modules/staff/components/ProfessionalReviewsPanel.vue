@@ -243,8 +243,9 @@ function formatDate(iso: string): string {
 
 <style scoped>
 .professional-reviews {
-  /* Sobre tinta, los diamantes usan el latón claro de la marca (issue #489). */
-  --star-filled-color: var(--color-brand-accent-surface);
+  /* Las gemas de la valoración van en tinta (v2, DEC-188): el acento es solo
+     de la acción principal (antes latón, issue #489). */
+  --star-filled-color: var(--color-text-primary);
   display: flex;
   width: 100%;
   flex-direction: column;
@@ -264,8 +265,8 @@ function formatDate(iso: string): string {
   gap: var(--space-3);
 }
 
-/* Fila-resumen: tinta hundida con filete lateral de latón, como las demás piezas de la
-   ficha; al abrir el cuadro queda resaltada para ligarla con él. */
+/* Fila-resumen: tarjeta v2 con borde sutil (sin filete lateral de acento); al abrir
+   el cuadro queda resaltada en tinta para ligarla con él. */
 .professional-reviews__toggle {
   display: flex;
   flex-wrap: wrap;
@@ -279,10 +280,9 @@ function formatDate(iso: string): string {
   color: var(--color-on-strong);
   text-align: left;
   cursor: pointer;
-  background-color: var(--color-surface-strong);
-  border: var(--border-width-normal) solid var(--color-field-strong-border);
-  border-left: 3px solid color-mix(in srgb, var(--color-brand-accent-surface) 55%, transparent);
-  border-radius: 2px;
+  background-color: var(--color-surface);
+  border: var(--border-width-normal) solid var(--color-border-subtle);
+  border-radius: var(--radius-lg);
   transition:
     background-color var(--motion-duration-fast) var(--motion-easing-standard),
     border-color var(--motion-duration-fast) var(--motion-easing-standard);
@@ -290,13 +290,8 @@ function formatDate(iso: string): string {
 
 .professional-reviews__toggle:hover,
 .professional-reviews__toggle--open {
-  background-color: color-mix(
-    in srgb,
-    var(--color-brand-accent-surface) 10%,
-    var(--color-surface-strong)
-  );
-  border-color: color-mix(in srgb, var(--color-brand-accent-surface) 45%, transparent);
-  border-left-color: var(--color-brand-accent-surface);
+  background-color: color-mix(in srgb, var(--color-text-primary) 4%, var(--color-surface));
+  border-color: var(--color-text-primary);
 }
 
 .professional-reviews__toggle:focus-visible {
@@ -309,11 +304,9 @@ function formatDate(iso: string): string {
   white-space: nowrap;
   gap: 8px;
   align-items: center;
-  color: var(--color-brand-accent-surface);
-  font-size: var(--font-size-caption);
-  font-weight: 600;
-  letter-spacing: 0.1em;
-  text-transform: uppercase;
+  color: var(--color-text-primary);
+  font-size: 13px;
+  font-weight: 500;
 }
 
 .professional-reviews__cta-arrow {
@@ -333,19 +326,6 @@ function formatDate(iso: string): string {
   transform: rotate(180deg);
 }
 
-.professional-reviews__close.base-button.base-button--secondary {
-  background-color: transparent;
-  color: var(--color-brand-accent-surface);
-  border-color: color-mix(in srgb, var(--color-brand-accent-surface) 50%, transparent);
-  border-bottom-color: var(--color-brand-accent-surface);
-}
-
-.professional-reviews__close.base-button.base-button--secondary:hover:not(:disabled):not(
-    .base-button--loading
-  ) {
-  background-color: color-mix(in srgb, var(--color-brand-accent-surface) 12%, transparent);
-}
-
 @media (prefers-reduced-motion: reduce) {
   .professional-reviews__toggle,
   .professional-reviews__cta-arrow {
@@ -357,31 +337,17 @@ function formatDate(iso: string): string {
   }
 }
 
-/* Cuadro lateral (issue #487): misma tinta hundida y filete de latón que la tarjeta
-   del perfil; el scroll vive en la lista, no en la página ni en la tarjeta. */
+/* Cuadro lateral (issue #487): la misma tarjeta v2 que la del perfil (borde sutil,
+   sin filete de acento ni entrada animada); el scroll vive en la lista. */
 .professional-reviews__panel--aside {
   gap: var(--space-4);
   width: 100%;
   box-sizing: border-box;
   padding: 24px 24px 16px;
-  background-color: var(--color-field-strong);
+  background-color: var(--color-surface);
   color: var(--color-on-strong);
-  border: var(--border-width-normal) solid var(--color-field-strong-border);
-  border-top: var(--border-width-emphasis) solid var(--color-brand-accent-surface);
-  border-radius: 4px;
-  animation: professional-reviews-enter 260ms var(--motion-easing-standard) both;
-}
-
-@keyframes professional-reviews-enter {
-  from {
-    opacity: 0;
-    transform: translateX(10px);
-  }
-
-  to {
-    opacity: 1;
-    transform: translateX(0);
-  }
+  border: var(--border-width-normal) solid var(--color-border-subtle);
+  border-radius: var(--radius-lg);
 }
 
 .professional-reviews__aside-head {
@@ -390,7 +356,7 @@ function formatDate(iso: string): string {
   align-items: flex-start;
   justify-content: space-between;
   padding-bottom: var(--space-3);
-  border-bottom: var(--border-width-normal) solid var(--color-field-strong-border);
+  border-bottom: var(--border-width-normal) solid var(--color-border-subtle);
 }
 
 .professional-reviews__aside-title {
@@ -399,13 +365,12 @@ function formatDate(iso: string): string {
   gap: var(--space-2);
 }
 
+/* Rótulo v2 (DEC-188): tipo oración, 13px/500 en texto secundario. */
 .professional-reviews__eyebrow {
   margin: 0;
-  color: var(--color-brand-accent-surface);
-  font-size: var(--font-size-caption);
-  font-weight: 600;
-  letter-spacing: 0.16em;
-  text-transform: uppercase;
+  color: var(--color-text-secondary);
+  font-size: 13px;
+  font-weight: 500;
 }
 
 .professional-reviews__body--scroll {
@@ -428,18 +393,6 @@ function formatDate(iso: string): string {
 .professional-reviews__panel--aside .professional-reviews__item:last-child {
   padding-bottom: 0;
   border-bottom: 0;
-}
-
-.professional-reviews__panel--aside .professional-reviews__item .base-button--secondary {
-  color: var(--color-brand-accent-surface);
-  background-color: transparent;
-  border-color: color-mix(in srgb, var(--color-brand-accent-surface) 50%, transparent);
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .professional-reviews__panel--aside {
-    animation: none;
-  }
 }
 
 .professional-reviews__note,

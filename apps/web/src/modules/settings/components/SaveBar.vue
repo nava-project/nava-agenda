@@ -1,9 +1,10 @@
 <script setup lang="ts">
 // Barra de guardado flotante (DEC-110): aparece al pie de la columna cuando hay
-// cambios del negocio sin guardar, con un rombo que late, el resumen de qué
-// cambió y las dos acciones. Mientras no hay nada pendiente no ocupa espacio ni
-// entra en el orden de foco (`v-if`). El resultado se anuncia con
-// `role="status"` y el rombo es decorativo.
+// cambios del negocio sin guardar, con el resumen de qué cambió y las dos
+// acciones. Mientras no hay nada pendiente no ocupa espacio ni entra en el
+// orden de foco (`v-if`). El resultado se anuncia con `role="status"`. En v2
+// (DEC-188) «Guardar» es el único acento lleno; la barra es una superficie
+// neutra que aparece con un fundido breve, en respuesta al cambio.
 import { BaseButton } from '@/shared/ui'
 
 defineProps<{
@@ -17,7 +18,6 @@ const emit = defineEmits<{ discard: []; save: [] }>()
 <template>
   <div class="save-bar" role="status" aria-live="polite">
     <p class="save-bar__message">
-      <span class="save-bar__diamond" aria-hidden="true" />
       <span class="save-bar__text">
         <strong>Cambios sin guardar</strong>
         <span class="save-bar__summary">{{ summary }}</span>
@@ -47,13 +47,11 @@ const emit = defineEmits<{ discard: []; save: [] }>()
   justify-content: space-between;
   gap: 16px;
   padding: 12px 16px 12px 20px;
-  background: var(--color-field-strong-raised);
-  border: var(--border-width-normal) solid
-    color-mix(in srgb, var(--color-brand-accent-surface) 55%, transparent);
-  border-left: 3px solid var(--color-brand-accent-surface);
-  border-radius: 3px;
-  box-shadow: 0 -10px 30px -12px rgb(16 27 43 / 55%);
-  animation: save-bar-enter 380ms cubic-bezier(0.34, 1.56, 0.64, 1) both;
+  background: var(--color-surface);
+  border: var(--border-width-normal) solid var(--color-border-subtle);
+  border-radius: var(--radius-lg);
+  box-shadow: 0 -8px 24px -12px rgb(16 27 43 / 35%);
+  animation: save-bar-enter var(--motion-duration-base) var(--motion-easing-standard) both;
 }
 
 .save-bar__message {
@@ -64,28 +62,19 @@ const emit = defineEmits<{ discard: []; save: [] }>()
   min-width: 0;
 }
 
-.save-bar__diamond {
-  flex: 0 0 auto;
-  width: 8px;
-  height: 8px;
-  background: var(--color-brand-accent-surface);
-  transform: rotate(45deg);
-  animation: save-bar-pulse 2.4s ease-in-out infinite;
-}
-
 .save-bar__text {
   display: flex;
   flex-direction: column;
   min-width: 0;
-  font-size: var(--font-size-caption);
-  line-height: 17px;
-  color: var(--color-on-strong-muted);
+  font-size: 13px;
+  line-height: 18px;
+  color: var(--color-text-secondary);
 }
 
 .save-bar__text strong {
   font-size: var(--font-size-body-sm);
   font-weight: 600;
-  color: var(--color-on-strong);
+  color: var(--color-text-primary);
 }
 
 .save-bar__actions {
@@ -95,60 +84,18 @@ const emit = defineEmits<{ discard: []; save: [] }>()
 }
 
 .save-bar :deep(.base-button) {
-  --btn-focus-ring: 0 0 0 2px var(--color-field-strong-raised), 0 0 0 4px var(--color-focus);
-
-  height: 36px;
+  height: 40px;
   padding-inline: 16px;
-  font-size: var(--font-size-caption);
 }
 
-.save-bar :deep(.base-button--primary) {
-  background-color: var(--color-brand-accent-surface);
-  color: var(--color-brand-accent-text);
-  border-color: var(--color-brand-accent-surface);
-}
-
-.save-bar :deep(.base-button--primary:hover:not(:disabled):not(.base-button--loading)) {
-  filter: brightness(92%);
-}
-
-.save-bar :deep(.base-button--primary:active:not(:disabled):not(.base-button--loading)) {
-  filter: brightness(84%);
-}
-
-.save-bar :deep(.base-button--secondary) {
-  background-color: transparent;
-  color: var(--color-brand-accent-surface);
-  border-color: color-mix(in srgb, var(--color-brand-accent-surface) 50%, transparent);
-  border-bottom-color: var(--color-brand-accent-surface);
-}
-
-.save-bar :deep(.base-button--secondary:hover:not(:disabled):not(.base-button--loading)) {
-  background-color: color-mix(in srgb, var(--color-brand-accent-surface) 12%, transparent);
-}
-
+/* Responde a una acción (el primer cambio sin guardar): fundido corto, sin rebote. */
 @keyframes save-bar-enter {
   from {
     opacity: 0;
-    transform: translateY(24px);
   }
 
   to {
     opacity: 1;
-    transform: none;
-  }
-}
-
-@keyframes save-bar-pulse {
-  0%,
-  100% {
-    opacity: 1;
-    transform: rotate(45deg) scale(1);
-  }
-
-  50% {
-    opacity: 0.45;
-    transform: rotate(45deg) scale(0.7);
   }
 }
 
@@ -167,8 +114,7 @@ const emit = defineEmits<{ discard: []; save: [] }>()
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .save-bar,
-  .save-bar__diamond {
+  .save-bar {
     animation: none;
   }
 }

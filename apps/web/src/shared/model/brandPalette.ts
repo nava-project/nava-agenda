@@ -25,7 +25,9 @@ export interface BrandAccent {
 }
 
 export const BRAND_ACCENTS: readonly BrandAccent[] = [
-  { key: 'brass', label: 'Latón', ink: '#b8955a', ivory: '#765c2f' },
+  // DEC-188: el acento por omisión es Alba, el de tokens.css. Conserva la clave
+  // `brass` (CHECK de la base y enum del contrato); solo cambian nombre y valor.
+  { key: 'brass', label: 'Alba', ink: '#ff8daa', ivory: '#b23157' },
   { key: 'emerald', label: 'Esmeralda', ink: '#4cb58a', ivory: '#1c6a4d' },
   { key: 'sapphire', label: 'Zafiro', ink: '#6da8e6', ivory: '#27519a' },
   { key: 'ruby', label: 'Rubí', ink: '#e8808c', ivory: '#9a2b3c' },

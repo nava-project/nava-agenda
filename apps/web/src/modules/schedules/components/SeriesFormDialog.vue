@@ -690,10 +690,11 @@ const previousDay = computed(() =>
 
 <style scoped src="./block-form.css"></style>
 <style scoped>
+/* Antetítulo del resumen: rótulo v2 en tipo oración, no versalitas en acento. */
 .block-form__eyebrow {
-  color: var(--color-brand-accent-surface);
-  font-size: var(--font-size-caption);
-  letter-spacing: 0.12em;
-  text-transform: uppercase;
+  color: var(--color-text-secondary);
+  font-size: 13px;
+  font-weight: 500;
+  line-height: 18px;
 }
 </style>

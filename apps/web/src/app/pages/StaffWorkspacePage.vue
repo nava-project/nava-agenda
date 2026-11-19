@@ -92,17 +92,13 @@ function openBlocks(id: string, name: string, photoUrl: string | null) {
 </style>
 
 <style>
-/* Superficie propia del diálogo teletransportado; conserva foco, pila y
+/* Diálogo teletransportado en v2 (DEC-188): la superficie del modo con borde
+   sutil de 1px y radio grande, sin filete de acento; conserva foco, pila y
    movimiento reducido del componente compartido (DEC-105, #286). */
 .blocks-workspace-dialog {
-  --color-text-primary: var(--color-on-strong);
-  --color-text-secondary: var(--color-on-strong-muted);
-  --color-surface: var(--color-surface-strong);
-  --color-border-subtle: var(--color-field-strong-border);
   width: min(100%, 1092px);
-  border: 1px solid var(--color-field-strong-border);
-  border-top: 2px solid var(--color-brand-accent-surface);
-  border-radius: 2px;
+  border: 1px solid var(--color-border-subtle);
+  border-radius: var(--radius-lg);
 }
 .blocks-workspace-dialog .base-dialog__header {
   padding: 16px 28px;
@@ -145,39 +141,6 @@ function openBlocks(id: string, name: string, photoUrl: string | null) {
   }
 }
 
-/* Apertura propia (issue #577): primero se traza la línea de acento desde el
-   centro y después el panel se despliega hacia abajo desde ella, mientras
-   sube unos píxeles. El recorte final es negativo para no cortar la sombra, y
-   el relleno es `backwards`: al terminar no queda ningún recorte que pueda
-   cortar un desplegable. Al cerrar se desvanece como los demás diálogos. */
-.blocks-workspace-dialog.base-dialog--open {
-  animation: blocks-dialog-unfold 640ms cubic-bezier(0.65, 0, 0.35, 1) backwards;
-}
-@keyframes blocks-dialog-unfold {
-  0% {
-    opacity: 0;
-    transform: translateY(14px);
-    clip-path: inset(0 50% calc(100% - 2px) 50%);
-  }
-  12% {
-    opacity: 1;
-  }
-  38% {
-    transform: translateY(8px);
-    clip-path: inset(0 0 calc(100% - 2px) 0);
-  }
-  100% {
-    opacity: 1;
-    transform: none;
-    clip-path: inset(-80px);
-  }
-}
-@media (prefers-reduced-motion: reduce) {
-  .blocks-workspace-dialog.base-dialog--open {
-    animation: none;
-  }
-}
-:root[data-motion='reduced'] .blocks-workspace-dialog.base-dialog--open {
-  animation: none;
-}
+/* La apertura es la de BaseDialog (v2, DEC-188): ya no se traza la línea de
+   acento ni se despliega el panel en 640 ms (issue #577). */
 </style>

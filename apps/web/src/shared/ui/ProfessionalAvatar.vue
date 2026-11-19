@@ -1,7 +1,7 @@
 <script setup lang="ts">
 /**
  * ProfessionalAvatar - Retrato cuadrado de un profesional (issue #189, atlas
- * panel-agenda-eventos evento 12): radio 2px, filete de latón, monograma
+ * panel-agenda-eventos evento 12): radio medio, filete neutro (v2), monograma
  * derivado de `fullName` en la serif del wordmark sobre tinta cuando no hay
  * fotografía. Siempre decorativo (aria-hidden): el nombre adyacente visible
  * es la identidad accesible, nunca falta junto a un retrato.
@@ -83,9 +83,8 @@ const classes = computed(() => ['professional-avatar', `professional-avatar--${p
      #16243a) para que el retrato se distinga incluso antes de leer el
      monograma o el filete. */
   background-color: var(--color-field-strong-raised);
-  border: var(--border-width-normal) solid
-    color-mix(in srgb, var(--color-brand-accent-surface) 55%, transparent);
-  border-radius: 2px;
+  border: var(--border-width-normal) solid var(--color-border-subtle);
+  border-radius: var(--radius-md);
 }
 
 .professional-avatar--option {
@@ -138,6 +137,6 @@ const classes = computed(() => ['professional-avatar', `professional-avatar--${p
   line-height: 1;
   letter-spacing: -0.04em;
   white-space: nowrap;
-  color: var(--color-brand-accent-surface);
+  color: var(--color-text-secondary);
 }
 </style>

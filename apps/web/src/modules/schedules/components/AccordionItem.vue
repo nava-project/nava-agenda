@@ -69,36 +69,37 @@ defineEmits<{ toggle: [] }>()
 </template>
 
 <style scoped>
+/* Apartado v2 (DEC-188): separadores sutiles, rótulos en tipo oración y el
+   apartado abierto marcado en tinta, sin acento del negocio. */
 .accordion-item {
   position: relative;
-  border-top: var(--border-width-normal) solid var(--color-field-strong-border);
-  transition: background-color var(--motion-duration-base) var(--motion-easing-standard);
+  border-top: var(--border-width-normal) solid var(--color-border-subtle);
+  transition: background-color var(--motion-duration-fast) var(--motion-easing-standard);
 }
 
 .accordion-item:first-child {
   border-top: none;
 }
 
-/* Filete de latón del apartado abierto: crece desde arriba al abrirse. */
+/* Filete en tinta del apartado abierto. */
 .accordion-item::before {
   content: '';
   position: absolute;
   top: 0;
   bottom: 0;
   left: 0;
-  width: 3px;
-  background-color: var(--color-brand-accent-surface);
-  transform: scaleY(0);
-  transform-origin: top;
-  transition: transform var(--motion-duration-base) var(--motion-easing-standard);
+  width: 2px;
+  background-color: var(--color-text-primary);
+  opacity: 0;
+  transition: opacity var(--motion-duration-fast) var(--motion-easing-standard);
 }
 
 .accordion-item--open {
-  background-color: color-mix(in srgb, var(--color-on-strong) 3%, transparent);
+  background-color: color-mix(in srgb, var(--color-text-primary) 3%, transparent);
 }
 
 .accordion-item--open::before {
-  transform: scaleY(1);
+  opacity: 1;
 }
 
 .accordion-item__heading {
@@ -112,7 +113,7 @@ defineEmits<{ toggle: [] }>()
   align-items: center;
   gap: 10px;
   padding: 8px 16px;
-  color: var(--color-on-strong);
+  color: var(--color-text-primary);
   text-align: left;
   background: transparent;
   border: 0;
@@ -122,76 +123,74 @@ defineEmits<{ toggle: [] }>()
 
 @media (hover: hover) {
   .accordion-item__trigger:hover {
-    background-color: color-mix(in srgb, var(--color-on-strong) 4%, transparent);
+    background-color: color-mix(in srgb, var(--color-text-primary) 4%, transparent);
   }
 }
 
 .accordion-item__trigger:focus-visible {
   outline: none;
   box-shadow:
-    inset 0 0 0 2px var(--color-field-strong),
-    inset 0 0 0 4px var(--color-brand-accent-surface);
+    inset 0 0 0 2px var(--color-surface),
+    inset 0 0 0 4px var(--color-focus);
 }
 
 .accordion-item__title {
   flex: 1;
   min-width: 0;
-  font-family: var(--font-display);
+  font-family: var(--font-sans);
   font-size: var(--font-size-body-lg);
-  font-weight: 400;
+  font-weight: 600;
   line-height: 22px;
 }
 
+/* Dato junto al título: pastilla neutra en tipo oración. */
 .accordion-item__badge {
   flex: 0 0 auto;
-  padding: 2px 8px;
-  color: var(--color-on-strong-muted);
-  font-size: var(--font-size-caption);
+  padding: 1px 8px;
+  color: var(--color-text-secondary);
+  font-size: 13px;
   font-variant-numeric: tabular-nums;
-  font-weight: 700;
-  letter-spacing: 0.1em;
-  text-transform: uppercase;
-  border: var(--border-width-normal) solid
-    color-mix(in srgb, var(--color-on-strong) 20%, transparent);
-  border-radius: 2px;
+  font-weight: 500;
+  line-height: 18px;
+  border: var(--border-width-normal) solid var(--color-border-subtle);
+  border-radius: var(--radius-pill);
   transition:
-    color var(--motion-duration-base) var(--motion-easing-standard),
-    border-color var(--motion-duration-base) var(--motion-easing-standard),
-    background-color var(--motion-duration-base) var(--motion-easing-standard);
+    color var(--motion-duration-fast) var(--motion-easing-standard),
+    border-color var(--motion-duration-fast) var(--motion-easing-standard);
 }
 
 .accordion-item__badge--on {
   color: var(--color-success-on-strong);
-  background-color: color-mix(in srgb, var(--color-brand-accent-surface) 10%, transparent);
-  border-color: color-mix(in srgb, var(--color-brand-accent-surface) 55%, transparent);
+  border-color: color-mix(in srgb, var(--color-success-on-strong) 45%, transparent);
 }
 
 .accordion-item--open .accordion-item__badge--neutral {
-  color: var(--color-brand-accent-surface);
-  border-color: color-mix(in srgb, var(--color-brand-accent-surface) 55%, transparent);
+  color: var(--color-text-primary);
+  border-color: var(--color-border-control);
 }
 
 .accordion-item__chevron {
   flex: 0 0 auto;
   width: 14px;
   height: 14px;
-  color: var(--color-brand-accent-surface);
-  transition: transform var(--motion-duration-base) cubic-bezier(0.34, 1.56, 0.64, 1);
+  color: var(--color-text-secondary);
+  transition: transform var(--motion-duration-fast) var(--motion-easing-standard);
 }
 
 .accordion-item--open .accordion-item__chevron {
   transform: rotate(180deg);
 }
 
-/* La altura se anima con filas de grid (0fr → 1fr); la visibilidad se retrasa
-   al cerrar para que el contenido no desaparezca antes de plegarse. */
+/* La altura se anima con filas de grid (0fr → 1fr) en respuesta al clic, sin
+   pasar de 200 ms; la visibilidad se retrasa al cerrar para que el contenido
+   no desaparezca antes de plegarse. */
 .accordion-item__panel {
   display: grid;
   grid-template-rows: 0fr;
   visibility: hidden;
   transition:
-    grid-template-rows 340ms var(--motion-easing-standard),
-    visibility 0s linear 340ms;
+    grid-template-rows 200ms var(--motion-easing-standard),
+    visibility 0s linear 200ms;
 }
 
 .accordion-item--open .accordion-item__panel {
@@ -215,25 +214,8 @@ defineEmits<{ toggle: [] }>()
   padding: 4px 16px 16px;
   overflow-y: auto;
   overscroll-behavior: contain;
-  scrollbar-color: color-mix(in srgb, var(--color-brand-accent-surface) 55%, transparent)
-    transparent;
+  scrollbar-color: var(--color-border-control) transparent;
   scrollbar-width: thin;
-}
-
-.accordion-item--open .accordion-item__body {
-  animation: accordion-item-body-in 380ms var(--motion-easing-standard) 90ms both;
-}
-
-@keyframes accordion-item-body-in {
-  from {
-    opacity: 0;
-    transform: translateY(-6px);
-  }
-
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -244,10 +226,6 @@ defineEmits<{ toggle: [] }>()
   .accordion-item__chevron,
   .accordion-item__panel {
     transition: none;
-  }
-
-  .accordion-item--open .accordion-item__body {
-    animation: none;
   }
 }
 </style>

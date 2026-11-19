@@ -1,8 +1,8 @@
 <script setup lang="ts">
 // Campo «Descripción» del profesional (DEC-127): un texto corto y opcional que la
 // reserva pública muestra junto a su nombre y su foto. BaseInput no admite
-// varias líneas, así que el campo vive aquí con la misma piel del diálogo de
-// Staff (tinta hundida, filete inferior, etiqueta de latón). El contador cuenta
+// varias líneas, así que el campo vive aquí con la misma piel v2 que BaseInput
+// (DEC-188: rótulo en texto secundario, borde de control). El contador cuenta
 // caracteres Unicode igual que el servidor y no fija `maxlength`: un exceso
 // pegado produce el mensaje de validación real en vez de truncarse en silencio.
 import { computed, useId } from 'vue'
@@ -33,7 +33,6 @@ function onInput(event: Event) {
   <div
     class="professional-description"
     :class="{
-      'professional-description--filled': !!modelValue.trim(),
       'professional-description--invalid': !!error,
     }"
   >
@@ -75,12 +74,10 @@ function onInput(event: Event) {
 
 .professional-description__label {
   font-family: var(--font-sans);
-  font-size: var(--font-size-caption);
-  font-weight: 600;
-  line-height: 14px;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-  color: var(--color-brand-accent-surface);
+  font-size: 13px;
+  font-weight: 500;
+  line-height: 18px;
+  color: var(--color-text-secondary);
 }
 
 .professional-description__textarea {
@@ -90,14 +87,11 @@ function onInput(event: Event) {
   font-family: var(--font-family-base);
   font-size: var(--font-size-body);
   line-height: var(--font-size-body-line);
-  color: var(--color-on-strong);
+  color: var(--color-text-primary);
   resize: vertical;
-  background-color: color-mix(in srgb, var(--color-on-strong) 4%, transparent);
-  border: var(--border-width-normal) solid
-    color-mix(in srgb, var(--color-on-strong) 12%, transparent);
-  border-bottom: var(--border-width-emphasis) solid
-    color-mix(in srgb, var(--color-on-strong) 30%, transparent);
-  border-radius: 2px;
+  background-color: var(--color-surface);
+  border: var(--border-width-normal) solid var(--color-border-control);
+  border-radius: var(--radius-md);
   outline: none;
   transition:
     border-color var(--motion-duration-fast) var(--motion-easing-standard),
@@ -105,30 +99,25 @@ function onInput(event: Event) {
 }
 
 .professional-description__textarea:hover:not(:disabled) {
-  border-color: color-mix(in srgb, var(--color-on-strong) 26%, transparent);
+  border-color: var(--color-text-primary);
 }
 
 .professional-description__textarea:focus-visible {
+  border-color: var(--color-focus);
   box-shadow:
-    0 0 0 2px var(--color-surface-strong),
+    0 0 0 2px var(--color-surface),
     0 0 0 4px var(--color-focus);
 }
 
 .professional-description__textarea:disabled {
-  color: var(--color-on-strong-muted);
-  opacity: 0.45;
-}
-
-/* El filete dorado inferior marca el campo YA RESUELTO (mismo criterio que el
-   nombre en este diálogo). */
-.professional-description--filled .professional-description__textarea {
-  background-color: color-mix(in srgb, var(--color-on-strong) 6%, transparent);
-  border-bottom-color: var(--color-brand-accent-surface);
+  background-color: var(--color-surface-muted);
+  border-color: var(--color-border-subtle);
+  color: var(--color-text-secondary);
+  opacity: 0.64;
 }
 
 .professional-description--invalid .professional-description__textarea {
-  background-color: color-mix(in srgb, var(--color-danger-on-strong) 7%, transparent);
-  border-bottom-color: var(--color-danger-on-strong);
+  border-color: var(--color-danger-on-strong);
 }
 
 .professional-description__foot {

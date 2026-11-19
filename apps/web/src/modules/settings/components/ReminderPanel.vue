@@ -137,32 +137,32 @@ onMounted(load)
   min-height: 72px;
   padding: 12px 8px;
   box-sizing: border-box;
-  color: var(--color-on-strong);
+  color: var(--color-text-primary);
   text-align: center;
-  background: color-mix(in srgb, var(--color-on-strong) 6%, transparent);
-  border: var(--border-width-normal) solid var(--color-field-strong-border);
-  border-radius: 2px;
+  background: var(--color-surface);
+  border: var(--border-width-normal) solid var(--color-border-control);
+  border-radius: var(--radius-md);
   transition:
     border-color 0.15s ease,
     background-color 0.15s ease;
 }
 
 .reminders__option--selected {
-  background: color-mix(in srgb, var(--color-brand-accent-surface) 14%, transparent);
-  border-color: var(--color-brand-accent-surface);
-  box-shadow: inset 0 calc(var(--border-width-emphasis) * -1) 0 var(--color-brand-accent-surface);
+  background: color-mix(in srgb, var(--color-text-primary) 8%, transparent);
+  border-color: var(--color-text-primary);
+  box-shadow: inset 0 0 0 1px var(--color-text-primary);
 }
 
 .reminders__minutes {
-  font-family: var(--font-family-display, inherit);
-  font-size: 28px;
+  font-size: 24px;
+  font-weight: 600;
   font-variant-numeric: tabular-nums;
   line-height: 1;
 }
 
 .reminders__unit {
-  font-size: var(--font-size-caption, 13px);
-  opacity: 0.8;
+  font-size: 13px;
+  color: var(--color-text-secondary);
 }
 
 .reminders__summary,

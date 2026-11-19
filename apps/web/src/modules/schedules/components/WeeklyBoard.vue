@@ -1,7 +1,7 @@
 <script setup lang="ts">
 /**
  * WeeklyBoard - La jornada semanal como un tablero: siete días, cada uno con
- * su pista horaria (barras de latón sobre una regla común) y, debajo, la lista
+ * su pista horaria (barras en tinta suave sobre una regla común) y, debajo, la lista
  * real de tramos con sus acciones. Los siete días siempre aparecen, con o sin
  * tramos (CA-040-01). El tablero no conoce la API: quien lo monta recibe los
  * eventos `add`/`edit`/`remove` y decide qué hacer (mismo contrato de estado
@@ -64,14 +64,13 @@ function countLabel(day: BoardDay): string {
     </div>
 
     <section
-      v-for="(day, index) in days"
+      v-for="day in days"
       :key="day.value"
       class="week-board__day"
       :class="{
         'week-board__day--today': day.value === todayIsoWeekday,
         'week-board__day--free': day.items.length === 0,
       }"
-      :style="{ '--day-index': index }"
       :aria-labelledby="`schedules-day-${day.value}-title`"
     >
       <header class="week-board__day-header">
@@ -92,7 +91,6 @@ function countLabel(day: BoardDay): string {
         <DayTrack
           :segments="day.items"
           :scale="scale"
-          :order="index"
           :active-id="activeId"
           :now-minute="day.value === todayIsoWeekday ? nowMinute : null"
         />
@@ -158,7 +156,8 @@ function countLabel(day: BoardDay): string {
 </template>
 
 <style scoped>
-/* Panel hundido sobre tinta: el mismo hueco que la tabla de Profesionales. */
+/* Tablero v2 (DEC-188): tarjeta sobre la superficie con borde sutil. El acento
+   del negocio no aparece aquí; «hoy» y «ahora» van en Sol, como en la agenda. */
 .week-board {
   --track-height: 14px;
 
@@ -166,9 +165,9 @@ function countLabel(day: BoardDay): string {
   min-height: 0;
   flex-direction: column;
   overflow: hidden;
-  background-color: var(--color-field-strong);
-  border: var(--border-width-normal) solid var(--color-field-strong-border);
-  border-radius: 3px;
+  background-color: var(--color-surface);
+  border: var(--border-width-normal) solid var(--color-border-subtle);
+  border-radius: var(--radius-lg);
 }
 
 /* Regla horaria: sus etiquetas quedan sobre la columna de pistas, alineadas
@@ -184,7 +183,7 @@ function countLabel(day: BoardDay): string {
   height: 30px;
   padding: 0 18px;
   align-items: end;
-  background-color: var(--color-field-strong);
+  background-color: var(--color-surface);
 }
 
 .week-board__axis::before {
@@ -199,13 +198,11 @@ function countLabel(day: BoardDay): string {
 .week-board__tick {
   position: absolute;
   bottom: 6px;
-  color: var(--color-brand-accent-surface);
+  color: var(--color-text-secondary);
   font-size: var(--font-size-caption);
   font-variant-numeric: tabular-nums;
-  font-weight: 600;
-  letter-spacing: 0.08em;
+  font-weight: 500;
   transform: translateX(-50%);
-  opacity: 0.85;
 }
 
 .week-board__tick::after {
@@ -215,7 +212,7 @@ function countLabel(day: BoardDay): string {
   left: 50%;
   width: 1px;
   height: 4px;
-  background-color: color-mix(in srgb, var(--color-brand-accent-surface) 60%, transparent);
+  background-color: var(--color-border-control);
 }
 
 .week-board__day {
@@ -225,22 +222,11 @@ function countLabel(day: BoardDay): string {
   grid-template-columns: 132px minmax(0, 1fr);
   gap: 18px;
   padding: 7px 18px;
-  border-top: var(--border-width-normal) solid var(--color-field-strong-border);
+  border-top: var(--border-width-normal) solid var(--color-border-subtle);
   transition: background-color var(--motion-duration-fast) var(--motion-easing-standard);
-  /* Entrada escalonada: cada día arranca un paso después del anterior. */
-  animation: week-board-day-in 360ms var(--motion-easing-standard) both;
-  animation-delay: calc(var(--day-index, 0) * 55ms);
 }
 
-/* Hoy: filete de latón a la izquierda y un velo que se apaga hacia la derecha. */
-.week-board__day--today {
-  background-image: linear-gradient(
-    90deg,
-    color-mix(in srgb, var(--color-brand-accent-surface) 11%, transparent),
-    color-mix(in srgb, var(--color-brand-accent-surface) 0%, transparent) 55%
-  );
-}
-
+/* Hoy: filete de Sol a la izquierda, el mismo color que «Ahora» en la agenda. */
 .week-board__day--today::before {
   content: '';
   position: absolute;
@@ -248,14 +234,12 @@ function countLabel(day: BoardDay): string {
   bottom: 0;
   left: 0;
   width: 3px;
-  background-color: var(--color-brand-accent-surface);
-  transform-origin: top;
-  animation: week-board-rule-in 520ms cubic-bezier(0.2, 0.8, 0.2, 1) 240ms both;
+  background-color: var(--color-sun);
 }
 
 @media (hover: hover) {
   .week-board__day:hover {
-    background-color: color-mix(in srgb, var(--color-on-strong) 3.5%, transparent);
+    background-color: color-mix(in srgb, var(--color-text-primary) 3%, transparent);
   }
 }
 
@@ -270,36 +254,29 @@ function countLabel(day: BoardDay): string {
 
 .week-board__day-title {
   margin: 0;
-  color: var(--color-on-strong);
-  font-family: var(--font-display);
+  color: var(--color-text-primary);
+  font-family: var(--font-sans);
   font-size: var(--font-size-title-item);
-  font-weight: 400;
+  font-weight: 600;
   line-height: 26px;
 }
 
+/* «Hoy»: la misma pastilla de Sol que la etiqueta «Ahora» de la agenda. */
 .week-board__today {
   display: inline-flex;
   align-items: center;
-  gap: 5px;
-  color: var(--color-brand-accent-surface);
-  font-size: var(--font-size-caption);
-  font-weight: 700;
-  letter-spacing: 0.14em;
-  text-transform: uppercase;
-}
-
-.week-board__today::before {
-  content: '';
-  width: 5px;
-  height: 5px;
-  background-color: currentColor;
-  transform: rotate(45deg);
-  animation: week-board-diamond 2.6s ease-in-out infinite;
+  padding: 0 8px;
+  color: var(--color-on-sun);
+  background-color: var(--color-sun);
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 18px;
+  border-radius: var(--radius-pill);
 }
 
 .week-board__day-count {
   flex-basis: 100%;
-  color: var(--color-on-strong-muted);
+  color: var(--color-text-secondary);
   font-size: var(--font-size-caption);
   line-height: var(--font-size-caption-line);
 }
@@ -307,14 +284,13 @@ function countLabel(day: BoardDay): string {
 .week-board__day-hours {
   margin-left: 6px;
   padding-left: 6px;
-  color: var(--color-on-strong);
+  color: var(--color-text-primary);
   font-variant-numeric: tabular-nums;
-  border-left: var(--border-width-normal) solid
-    color-mix(in srgb, var(--color-on-strong) 22%, transparent);
+  border-left: var(--border-width-normal) solid var(--color-border-subtle);
 }
 
 .week-board__day--free .week-board__day-title {
-  color: var(--color-on-strong-muted);
+  color: var(--color-text-secondary);
 }
 
 .week-board__body {
@@ -343,34 +319,29 @@ function countLabel(day: BoardDay): string {
   list-style: none;
 }
 
+/* Tramo: ficha v2 con borde sutil; al señalarla el borde pasa a control. */
 .week-board__chip {
   display: flex;
   align-items: center;
   gap: 12px;
   min-height: 42px;
   padding: 3px 4px 3px 14px;
-  background-color: color-mix(in srgb, var(--color-on-strong) 4%, transparent);
-  border: var(--border-width-normal) solid
-    color-mix(in srgb, var(--color-on-strong) 12%, transparent);
-  border-left: var(--border-width-emphasis) solid var(--color-brand-accent-surface);
-  border-radius: 2px;
+  background-color: var(--color-surface);
+  border: var(--border-width-normal) solid var(--color-border-subtle);
+  border-radius: var(--radius-md);
   transition:
     background-color var(--motion-duration-fast) var(--motion-easing-standard),
-    border-color var(--motion-duration-fast) var(--motion-easing-standard),
-    transform var(--motion-duration-base) var(--motion-easing-standard);
+    border-color var(--motion-duration-fast) var(--motion-easing-standard);
 }
 
 @media (hover: hover) {
   .week-board__chip:hover {
-    background-color: color-mix(in srgb, var(--color-brand-accent-surface) 10%, transparent);
-    border-color: color-mix(in srgb, var(--color-brand-accent-surface) 45%, transparent);
-    transform: translateY(-1px);
+    border-color: var(--color-border-control);
   }
 }
 
 .week-board__chip:focus-within {
-  background-color: color-mix(in srgb, var(--color-brand-accent-surface) 10%, transparent);
-  border-color: color-mix(in srgb, var(--color-brand-accent-surface) 45%, transparent);
+  border-color: var(--color-border-control);
 }
 
 /* Hora y fin apilados: el tramo ocupa poco ancho y caben varios por día. */
@@ -382,7 +353,7 @@ function countLabel(day: BoardDay): string {
 }
 
 .week-board__chip-time {
-  color: var(--color-on-strong);
+  color: var(--color-text-primary);
   font-size: var(--font-size-body-sm);
   font-weight: 600;
   font-variant-numeric: tabular-nums;
@@ -390,7 +361,7 @@ function countLabel(day: BoardDay): string {
 }
 
 .week-board__chip-until {
-  color: var(--color-on-strong-muted);
+  color: var(--color-text-secondary);
   font-size: var(--font-size-caption);
   font-variant-numeric: tabular-nums;
   white-space: nowrap;
@@ -403,34 +374,14 @@ function countLabel(day: BoardDay): string {
   margin-left: 4px;
 }
 
-/* Acciones de fila: mismo par fantasma de latón que Profesionales y Servicios. */
+/* Acciones de fila: BaseButton secundario neutro (v2), solo más compacto. */
 .week-board__chip-actions :deep(.base-button) {
-  --btn-focus-ring: 0 0 0 2px var(--color-field-strong), 0 0 0 4px var(--color-focus);
-
   height: 32px;
   padding-inline: 12px;
   font-size: var(--font-size-body-sm);
 }
 
-.week-board__chip-actions :deep(.base-button--secondary) {
-  background-color: transparent;
-  color: var(--color-brand-accent-surface);
-  border-color: color-mix(in srgb, var(--color-brand-accent-surface) 40%, transparent);
-  border-bottom-color: var(--color-brand-accent-surface);
-}
-
-.week-board__chip-actions
-  :deep(.base-button--secondary:hover:not(:disabled):not(.base-button--loading)) {
-  background-color: color-mix(in srgb, var(--color-brand-accent-surface) 14%, transparent);
-  border-color: color-mix(in srgb, var(--color-brand-accent-surface) 55%, transparent);
-}
-
-.week-board__chip-actions
-  :deep(.base-button--secondary:active:not(:disabled):not(.base-button--loading)) {
-  background-color: color-mix(in srgb, var(--color-brand-accent-surface) 22%, transparent);
-}
-
-/* Retirar es la acción destructiva: se tiñe de rosa solo al señalarla. */
+/* Retirar es la acción destructiva: se tiñe de peligro solo al señalarla. */
 .week-board__chip-actions
   :deep(
     .week-board__remove.base-button--secondary:hover:not(:disabled):not(.base-button--loading)
@@ -446,85 +397,43 @@ function countLabel(day: BoardDay): string {
   min-height: 42px;
   padding: 0 14px;
   margin: 0;
-  color: var(--color-on-strong-muted);
+  color: var(--color-text-secondary);
   font-size: var(--font-size-body-sm);
-  border: var(--border-width-normal) dashed
-    color-mix(in srgb, var(--color-on-strong) 16%, transparent);
-  border-radius: 2px;
+  background-color: color-mix(in srgb, var(--color-text-primary) 3%, transparent);
+  border-radius: var(--radius-md);
 }
 
-/* "+" por día: ficha punteada que se rellena de latón al señalarla. */
+/* "+" por día: botón neutro de contorno, como el secundario v2. */
 .week-board__add {
   display: inline-grid;
   place-items: center;
   width: 42px;
   height: 42px;
   padding: 0;
-  color: var(--color-brand-accent-surface);
+  color: var(--color-text-primary);
   font-size: var(--font-size-title-item);
   line-height: 1;
-  background: transparent;
-  border: var(--border-width-normal) dashed
-    color-mix(in srgb, var(--color-brand-accent-surface) 50%, transparent);
-  border-radius: 2px;
+  background: var(--color-surface);
+  border: var(--border-width-normal) solid var(--color-border-control);
+  border-radius: var(--radius-md);
   cursor: pointer;
   transition:
     background-color var(--motion-duration-fast) var(--motion-easing-standard),
-    color var(--motion-duration-fast) var(--motion-easing-standard),
-    border-color var(--motion-duration-fast) var(--motion-easing-standard),
-    transform var(--motion-duration-base) cubic-bezier(0.34, 1.56, 0.64, 1);
+    border-color var(--motion-duration-fast) var(--motion-easing-standard);
 }
 
 @media (hover: hover) {
   .week-board__add:hover {
-    color: var(--color-brand-accent-text);
-    background-color: var(--color-brand-accent-surface);
-    border-style: solid;
-    transform: rotate(90deg) scale(1.06);
+    background-color: color-mix(in srgb, var(--color-text-primary) 4%, var(--color-surface));
+    border-color: var(--color-text-primary);
   }
 }
 
 .week-board__add:focus-visible {
   outline: none;
   box-shadow:
-    0 0 0 2px var(--color-field-strong),
+    0 0 0 2px var(--color-surface),
     0 0 0 4px var(--color-focus);
-}
-
-@keyframes week-board-day-in {
-  from {
-    opacity: 0;
-    transform: translateY(10px);
-  }
-
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
-
-@keyframes week-board-rule-in {
-  from {
-    transform: scaleY(0);
-  }
-
-  to {
-    transform: scaleY(1);
-  }
-}
-
-@keyframes week-board-diamond {
-  0%,
-  62%,
-  100% {
-    opacity: 1;
-    transform: rotate(45deg) scale(1);
-  }
-
-  80% {
-    opacity: 0.5;
-    transform: rotate(45deg) scale(0.8);
-  }
 }
 
 @media (max-width: 760px) {
@@ -575,12 +484,6 @@ function countLabel(day: BoardDay): string {
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .week-board__day,
-  .week-board__day--today::before,
-  .week-board__today::before {
-    animation: none;
-  }
-
   .week-board__day,
   .week-board__chip,
   .week-board__add {

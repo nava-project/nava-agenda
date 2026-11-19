@@ -325,7 +325,7 @@ async function onToggleService(service: ServiceSummary, event: Event) {
     class="professional-services-page"
     aria-labelledby="professional-services-page-title"
   >
-    <header class="professional-services-page__header nv-rise">
+    <header class="professional-services-page__header">
       <h1 id="professional-services-page-title" class="professional-services-page__title">
         {{ isEmployeeProfile ? 'Mis servicios' : `Servicios por ${v.professional}` }}
       </h1>
@@ -414,11 +414,9 @@ async function onToggleService(service: ServiceSummary, event: Event) {
       </EmptyScene>
 
       <div v-else class="professional-services-page__workspace">
-        <!-- Ficha de la persona elegida: retrato, selector y medidor. Cambiar de
-             persona reemplaza la ficha con una entrada breve (la clave fuerza el
-             re-montaje) para que se lea como "otra persona", no como un dato
-             que cambia de sitio. -->
-        <aside class="professional-services-page__profile nv-rise" style="--i: 1">
+        <!-- Ficha de la persona elegida: retrato, selector y medidor. Sin
+             entrada animada (v2, DEC-188). -->
+        <aside class="professional-services-page__profile">
           <!-- La ficha cambia en su sitio: re-montarla (o una transición de salida y
                entrada) la dejaba vacía un instante y la pantalla parpadeaba. -->
           <div class="professional-services-page__identity">
@@ -539,14 +537,13 @@ async function onToggleService(service: ServiceSummary, event: Event) {
                 aria-label="Catálogo de servicios"
               >
                 <li
-                  v-for="(service, index) in pagedServices"
+                  v-for="service in pagedServices"
                   :key="service.id"
-                  class="professional-services-page__row nv-rise"
+                  class="professional-services-page__row"
                   :class="{
                     'professional-services-page__row--assigned': isAssigned(service.id),
                     'professional-services-page__row--pending': isPending(service.id),
                   }"
-                  :style="{ '--i': index }"
                 >
                   <label
                     :for="`professional-services-service-${service.id}`"
@@ -605,11 +602,12 @@ async function onToggleService(service: ServiceSummary, event: Event) {
 </template>
 
 <style scoped>
-/* Lienzo de tinta de punta a punta, igual que Agenda, Servicios y Profesionales:
-   esta pantalla se había quedado en la superficie clara previa al rediseño.
-   Composición propia (identidad guiada): a la izquierda la ficha de la
-   persona con su medidor, a la derecha el catálogo como filas de
-   interruptor; en móvil la ficha pasa arriba y el catálogo debajo. */
+/* Lenguaje v2 «La luz del día» (DEC-188), igual que Agenda, Servicios y
+   Profesionales: tarjetas con borde sutil, rótulos en tipo oración, lo
+   seleccionado en tinta y sin acento (esta pantalla no tiene una acción
+   principal con botón: cada fila se guarda sola). Composición propia: a la
+   izquierda la ficha de la persona con su medidor, a la derecha el catálogo
+   como filas de casilla; en móvil la ficha pasa arriba y el catálogo debajo. */
 .professional-services-page {
   --professional-services-width: 920px;
   --professional-services-row-height: 72px;
@@ -635,21 +633,24 @@ async function onToggleService(service: ServiceSummary, event: Event) {
 
 .professional-services-page__header {
   padding-bottom: 16px;
-  border-bottom: var(--border-width-normal) solid var(--color-field-strong-border);
+  border-bottom: var(--border-width-normal) solid var(--color-border-subtle);
 }
 
+/* h1 v2 (DEC-188): el mismo título que DailyAgendaPage.vue. */
 .professional-services-page__title {
   margin: 0;
-  font-family: var(--font-display);
-  font-size: var(--font-size-h1);
-  line-height: var(--font-size-h1-line);
-  font-weight: var(--font-weight-h1);
+  font-family: var(--font-sans);
+  font-size: 28px;
+  font-weight: 600;
+  line-height: 32px;
+  letter-spacing: -0.01em;
+  color: var(--color-text-primary);
 }
 
 @media (min-width: 1024px) {
   .professional-services-page__title {
-    font-size: var(--font-size-title-page);
-    line-height: 46px;
+    font-size: 32px;
+    line-height: 36px;
   }
 }
 
@@ -670,7 +671,9 @@ async function onToggleService(service: ServiceSummary, event: Event) {
 }
 
 /* Esqueleto: filas del tamaño de las reales con el brillo que cruza de
-   izquierda a derecha, para que la carga ocupe el lugar del contenido. */
+   izquierda a derecha, para que la carga ocupe el lugar del contenido. Es
+   carga (dura lo que dura la petición), por eso v2 lo permite; con
+   movimiento reducido queda quieto (ver abajo). */
 .professional-services-page__skeleton {
   display: flex;
   flex-direction: column;
@@ -679,9 +682,9 @@ async function onToggleService(service: ServiceSummary, event: Event) {
   margin: 0;
   list-style: none;
   overflow: hidden;
-  background-color: var(--color-field-strong);
-  border: var(--border-width-normal) solid var(--color-field-strong-border);
-  border-radius: 3px;
+  background-color: var(--color-surface);
+  border: var(--border-width-normal) solid var(--color-border-subtle);
+  border-radius: var(--radius-lg);
 }
 
 .professional-services-page__skeleton-row {
@@ -721,10 +724,10 @@ async function onToggleService(service: ServiceSummary, event: Event) {
   flex-direction: column;
   gap: 20px;
   padding: 20px;
-  background-color: var(--color-field-strong);
-  border: var(--border-width-normal) solid var(--color-field-strong-border);
-  border-top: var(--border-width-emphasis) solid var(--color-brand-accent-surface);
-  border-radius: 3px;
+  /* Tarjeta v2: borde sutil de 1px, sin filete superior de acento. */
+  background-color: var(--color-surface);
+  border: var(--border-width-normal) solid var(--color-border-subtle);
+  border-radius: var(--radius-lg);
 }
 
 .professional-services-page__identity {
@@ -773,22 +776,22 @@ async function onToggleService(service: ServiceSummary, event: Event) {
   gap: 8px;
 }
 
+/* Rótulo v2 (DEC-188): tipo oración, 13px/500 en texto secundario. */
 .professional-services-page__label {
   font-family: var(--font-sans);
-  font-size: var(--font-size-caption);
-  font-weight: 600;
-  letter-spacing: 0.1em;
-  text-transform: uppercase;
-  color: var(--color-brand-accent-surface);
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--color-text-secondary);
 }
 
-/* Medidor: cifra serif grande y una regla de latón que se llena. */
+/* Medidor: cifra grande y una barra que se llena, ambas en tinta (v2: el
+   acento es solo de la acción principal). */
 .professional-services-page__meter {
   display: flex;
   flex-direction: column;
   gap: 10px;
   padding-top: 16px;
-  border-top: var(--border-width-normal) solid var(--color-field-strong-border);
+  border-top: var(--border-width-normal) solid var(--color-border-subtle);
 }
 
 .professional-services-page__meter-figure {
@@ -802,7 +805,7 @@ async function onToggleService(service: ServiceSummary, event: Event) {
   font-family: var(--font-display);
   font-size: var(--font-size-title-page);
   line-height: 1;
-  color: var(--color-brand-accent-surface);
+  color: var(--color-text-primary);
   font-variant-numeric: tabular-nums;
 }
 
@@ -815,11 +818,9 @@ async function onToggleService(service: ServiceSummary, event: Event) {
 
 .professional-services-page__meter-unit {
   margin-left: 2px;
-  font-size: var(--font-size-caption);
-  font-weight: 600;
-  letter-spacing: 0.1em;
-  text-transform: uppercase;
-  color: var(--color-on-strong-muted);
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--color-text-secondary);
 }
 
 .professional-services-page__meter-track {
@@ -834,9 +835,10 @@ async function onToggleService(service: ServiceSummary, event: Event) {
   display: block;
   width: 100%;
   height: 100%;
-  background-color: var(--color-brand-accent-surface);
+  background-color: var(--color-text-primary);
   transform-origin: left center;
-  transition: transform 520ms var(--motion-ease-out);
+  /* Respuesta a asignar o cambiar de persona: ≤200 ms (v2, DEC-188). */
+  transition: transform var(--motion-duration-base) var(--motion-easing-standard);
 }
 
 /* Catálogo */
@@ -892,9 +894,9 @@ async function onToggleService(service: ServiceSummary, event: Event) {
   display: flex;
   align-items: center;
   justify-content: center;
-  background: color-mix(in srgb, var(--color-field-strong) 55%, transparent);
-  border: var(--border-width-normal) solid var(--color-field-strong-border);
-  border-radius: 3px;
+  background: color-mix(in srgb, var(--color-surface) 55%, transparent);
+  border: var(--border-width-normal) solid var(--color-border-subtle);
+  border-radius: var(--radius-lg);
   backdrop-filter: blur(2px);
 }
 
@@ -937,12 +939,10 @@ async function onToggleService(service: ServiceSummary, event: Event) {
     color-mix(in srgb, var(--color-on-strong) 8%, transparent) 50%,
     transparent 70%
   );
-  background-color: var(--color-field-strong);
+  background-color: var(--color-surface);
   background-size: 200% 100%;
-  border: var(--border-width-normal) solid var(--color-field-strong-border);
-  border-top: var(--border-width-emphasis) solid
-    color-mix(in srgb, var(--color-brand-accent-surface) 50%, transparent);
-  border-radius: 3px;
+  border: var(--border-width-normal) solid var(--color-border-subtle);
+  border-radius: var(--radius-lg);
   animation: nava-shimmer 1.6s linear infinite;
 }
 
@@ -970,7 +970,7 @@ async function onToggleService(service: ServiceSummary, event: Event) {
   }
 }
 
-/* Encabezado reglado: versalitas espaciadas de latón, igual que Profesionales y
+/* Encabezado de columnas: rótulo v2 en tipo oración, igual que Profesionales y
    Servicios. Comparte columnas con la fila. */
 .professional-services-page__columns,
 .professional-services-page__row {
@@ -984,11 +984,10 @@ async function onToggleService(service: ServiceSummary, event: Event) {
   min-height: 44px;
   padding: 0 16px;
   font-family: var(--font-sans);
-  font-size: var(--font-size-caption);
-  font-weight: 600;
-  letter-spacing: 0.1em;
-  text-transform: uppercase;
-  color: var(--color-brand-accent-surface);
+  font-size: 13px;
+  font-weight: 500;
+  line-height: 18px;
+  color: var(--color-text-secondary);
 }
 
 .professional-services-page__columns span:last-child {
@@ -1002,16 +1001,16 @@ async function onToggleService(service: ServiceSummary, event: Event) {
   margin: 0;
   list-style: none;
   overflow: hidden;
-  background-color: var(--color-field-strong);
-  border: var(--border-width-normal) solid var(--color-field-strong-border);
-  border-radius: 3px;
+  background-color: var(--color-surface);
+  border: var(--border-width-normal) solid var(--color-border-subtle);
+  border-radius: var(--radius-lg);
 }
 
 .professional-services-page__row {
   position: relative;
   height: var(--professional-services-row-height);
   padding: 0 16px;
-  border-top: var(--border-width-normal) solid var(--color-field-strong-border);
+  border-top: var(--border-width-normal) solid var(--color-border-subtle);
   transition: background-color var(--motion-duration-base) var(--motion-easing-standard);
 }
 
@@ -1019,35 +1018,19 @@ async function onToggleService(service: ServiceSummary, event: Event) {
   border-top: none;
 }
 
-/* Filete de latón que se dibuja en el borde izquierdo al asignar. */
-.professional-services-page__row::before {
-  content: '';
-  position: absolute;
-  top: 0;
-  bottom: 0;
-  left: 0;
-  width: 3px;
-  background-color: var(--color-brand-accent-surface);
-  transform: scaleY(0);
-  transform-origin: center;
-  transition: transform var(--motion-duration-base) var(--motion-ease-out);
-}
-
+/* Asignado: seleccionado en tinta (v2, DEC-188), un velo leve de tinta en vez
+   del filete y el tinte de acento de v1. */
 .professional-services-page__row--assigned {
-  background-color: color-mix(in srgb, var(--color-brand-accent-surface) 7%, transparent);
-}
-
-.professional-services-page__row--assigned::before {
-  transform: scaleY(1);
+  background-color: color-mix(in srgb, var(--color-text-primary) 5%, transparent);
 }
 
 @media (hover: hover) {
   .professional-services-page__row:hover {
-    background-color: color-mix(in srgb, var(--color-on-strong) 5%, transparent);
+    background-color: color-mix(in srgb, var(--color-text-primary) 4%, transparent);
   }
 
   .professional-services-page__row--assigned:hover {
-    background-color: color-mix(in srgb, var(--color-brand-accent-surface) 11%, transparent);
+    background-color: color-mix(in srgb, var(--color-text-primary) 8%, transparent);
   }
 }
 
@@ -1072,7 +1055,8 @@ async function onToggleService(service: ServiceSummary, event: Event) {
   inset: 0;
 }
 
-/* Casilla propia: cuadro de latón que se rellena y dibuja la marca. */
+/* Casilla propia v2: contorno de control que se rellena de tinta y dibuja la
+   marca (sin acento ni rebote). */
 .professional-services-page__checkbox {
   position: relative;
   appearance: none;
@@ -1081,14 +1065,12 @@ async function onToggleService(service: ServiceSummary, event: Event) {
   height: 24px;
   margin: 0;
   cursor: pointer;
-  background-color: transparent;
-  border: var(--border-width-emphasis) solid
-    color-mix(in srgb, var(--color-brand-accent-surface) 70%, transparent);
-  border-radius: 2px;
+  background-color: var(--color-surface);
+  border: var(--border-width-emphasis) solid var(--color-border-control);
+  border-radius: var(--radius-sm);
   transition:
     background-color var(--motion-duration-fast) var(--motion-easing-standard),
-    border-color var(--motion-duration-fast) var(--motion-easing-standard),
-    transform var(--motion-duration-base) var(--motion-ease-spring);
+    border-color var(--motion-duration-fast) var(--motion-easing-standard);
 }
 
 .professional-services-page__checkbox::after {
@@ -1098,19 +1080,18 @@ async function onToggleService(service: ServiceSummary, event: Event) {
   left: 7px;
   width: 6px;
   height: 11px;
-  border-right: var(--border-width-emphasis) solid var(--color-brand-accent-text);
-  border-bottom: var(--border-width-emphasis) solid var(--color-brand-accent-text);
+  border-right: var(--border-width-emphasis) solid var(--color-surface);
+  border-bottom: var(--border-width-emphasis) solid var(--color-surface);
   opacity: 0;
   transform: rotate(45deg) scale(0.4);
   transition:
     opacity var(--motion-duration-fast) var(--motion-easing-standard),
-    transform var(--motion-duration-base) var(--motion-ease-spring);
+    transform var(--motion-duration-fast) var(--motion-easing-standard);
 }
 
 .professional-services-page__checkbox:checked {
-  background-color: var(--color-brand-accent-surface);
-  border-color: var(--color-brand-accent-surface);
-  transform: scale(1.06);
+  background-color: var(--color-text-primary);
+  border-color: var(--color-text-primary);
 }
 
 .professional-services-page__checkbox:checked::after {
@@ -1126,7 +1107,7 @@ async function onToggleService(service: ServiceSummary, event: Event) {
 .professional-services-page__checkbox:focus-visible {
   outline: none;
   box-shadow:
-    0 0 0 2px var(--color-field-strong),
+    0 0 0 2px var(--color-surface),
     0 0 0 4px var(--color-focus);
 }
 
@@ -1139,10 +1120,10 @@ async function onToggleService(service: ServiceSummary, event: Event) {
   font-family: var(--font-display);
   font-size: var(--font-size-body-lg);
   line-height: 1;
-  color: var(--color-brand-accent-surface);
-  background-color: var(--color-field-strong-raised);
-  border: var(--border-width-normal) solid var(--color-field-strong-border);
-  border-radius: 2px;
+  color: var(--color-text-secondary);
+  background-color: var(--color-surface-muted);
+  border: var(--border-width-normal) solid var(--color-border-subtle);
+  border-radius: var(--radius-md);
 }
 
 .professional-services-page__service-name {
@@ -1150,14 +1131,10 @@ async function onToggleService(service: ServiceSummary, event: Event) {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-  transition: color var(--motion-duration-fast) var(--motion-easing-standard);
 }
 
-.professional-services-page__row--assigned .professional-services-page__service-name {
-  color: var(--color-brand-accent-surface);
-}
-
-/* Estado como rombo con rótulo (mismo lenguaje que Servicios y Profesionales). */
+/* Estado como rótulo con punto quieto (mismo lenguaje v2 que Servicios y
+   Profesionales: tipo oración, sin rombo ni entrada animada). */
 .professional-services-page__assignment,
 .professional-services-page__pending {
   position: relative;
@@ -1167,26 +1144,20 @@ async function onToggleService(service: ServiceSummary, event: Event) {
   align-items: center;
   gap: 6px;
   font-family: var(--font-family-base);
-  font-size: var(--font-size-caption);
-  font-weight: 600;
-  line-height: var(--font-size-caption-line);
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
+  font-size: 13px;
+  font-weight: 500;
+  line-height: 18px;
   white-space: nowrap;
   color: var(--color-on-strong-muted);
   pointer-events: none;
-}
-
-.professional-services-page__assignment {
-  animation: nava-pop 360ms var(--motion-ease-spring) backwards;
 }
 
 .professional-services-page__assignment::before {
   content: '';
   width: 6px;
   height: 6px;
+  border-radius: 50%;
   background-color: currentColor;
-  transform: rotate(45deg);
 }
 
 .professional-services-page__assignment--assigned {
@@ -1202,7 +1173,9 @@ async function onToggleService(service: ServiceSummary, event: Event) {
 .professional-services-page__spinner {
   width: 12px;
   height: 12px;
-  border: var(--border-width-emphasis) solid var(--color-brand-accent-surface);
+  /* «Guardando…»: aro en texto secundario que gira mientras dura el guardado
+     (es carga, finita); sin acento. */
+  border: var(--border-width-emphasis) solid var(--color-text-secondary);
   border-top-color: transparent;
   border-radius: 50%;
   animation: professional-services-spin 800ms linear infinite;
@@ -1215,18 +1188,26 @@ async function onToggleService(service: ServiceSummary, event: Event) {
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .professional-services-page__assignment,
   .professional-services-page__spinner,
-  .professional-services-page__skeleton-row {
+  .professional-services-page__skeleton-row,
+  .professional-services-page__skeleton-profile {
     animation: none;
   }
 
+  .professional-services-page__row,
   .professional-services-page__checkbox,
   .professional-services-page__checkbox::after,
-  .professional-services-page__row::before,
   .professional-services-page__meter-fill {
     transition: none;
   }
+}
+
+/* «Animaciones reducidas» de Configuración (DEC-110): esqueletos y aro quedan
+   quietos igual que con la preferencia del sistema. */
+:global(:root[data-motion='reduced']) .professional-services-page__spinner,
+:global(:root[data-motion='reduced']) .professional-services-page__skeleton-row,
+:global(:root[data-motion='reduced']) .professional-services-page__skeleton-profile {
+  animation: none;
 }
 
 @media (max-width: 640px) {
