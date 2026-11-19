@@ -3,7 +3,7 @@
 // transacción real, el reintento ante unique_violation y la unicidad
 // GLOBAL entre dos tenants se prueban contra PostgreSQL real en
 // internal/modules/shops/postgres/repository_test.go
-// (docs/03-desarrollo/estrategia-pruebas.md §2).
+// (nava-docs/agenda/03-desarrollo/estrategia-pruebas.md §2).
 package shops_test
 
 import (

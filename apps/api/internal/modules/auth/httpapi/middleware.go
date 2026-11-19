@@ -25,7 +25,7 @@ const maxSessionCookieLen = 512
 var sessionCookiePattern = regexp.MustCompile(`^[A-Za-z0-9_-]+$`)
 
 // SessionMiddleware implementa el paso 8 del orden de middleware
-// (docs/04-arquitectura/backend-go.md sección 6): autenticación para rutas
+// (nava-docs/agenda/04-arquitectura/backend-go.md sección 6): autenticación para rutas
 // privadas. Se monta UNA sola vez sobre el subrouter de /api/v1/private
 // (DEC-055 ya dejó ese subrouter libre del login, CT-003 resuelta):
 // ninguna ruta de ese subrouter se registra sin pasar por aquí, sin

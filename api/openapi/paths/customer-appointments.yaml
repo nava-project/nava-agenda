@@ -1,9 +1,9 @@
 # Operaciones de acceso del cliente mediante el token del enlace de su cita
-# (consultar, cancelar y reprogramar). Ver docs/06-api/estandar-openapi.md. HU-098 agrega
+# (consultar, cancelar y reprogramar). Ver nava-docs/agenda/06-api/estandar-openapi.md. HU-098 agrega
 # la primera: GET /customer/appointments/{token}, lectura mínima autenticada
 # únicamente por la credencial del enlace, sin sesión. La cancelación
 # (HU-099, T5) vive en este mismo archivo: POST .../cancel.
-# security: [] en cada operación, según docs/06-api/estandar-openapi.md: la
+# security: [] en cada operación, según nava-docs/agenda/06-api/estandar-openapi.md: la
 # audiencia customer no usa el esquema de sesión del profesional, la credencial
 # viaja en la ruta, no en una cabecera de autorización.
 /customer/appointments/{token}:

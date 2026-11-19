@@ -1,4 +1,4 @@
-// Validación de forma en cliente (docs/03-desarrollo/estandar-frontend-vue.md
+// Validación de forma en cliente (nava-docs/agenda/03-desarrollo/estandar-frontend-vue.md
 // §7.6): ayuda a corregir antes de enviar, nunca sustituye al backend (la
 // validación real, incluida la unicidad de nombre entre activos DEC-067,
 // vive en el servicio Go). Duraciones sin lista cerrada (RN-SER-02): 25 o

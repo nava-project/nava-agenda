@@ -1,5 +1,5 @@
 // Único punto del módulo `agenda` que llama al cliente HTTP tipado
-// (docs/03-desarrollo/estandar-frontend-vue.md §6). Traduce las respuestas
+// (nava-docs/agenda/03-desarrollo/estandar-frontend-vue.md §6). Traduce las respuestas
 // reales de POST /private/appointments y de los selectores de profesional/
 // servicio/zona a los outcomes discriminados que la página consume; ningún
 // componente ve `Problem`, `status` HTTP crudo ni cabeceras.

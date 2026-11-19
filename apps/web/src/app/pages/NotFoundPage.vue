@@ -1,5 +1,5 @@
 <script setup lang="ts">
-// Destino de cualquier ruta desconocida (docs/03-desarrollo/especificacion-frontend-nava.md §7.13).
+// Destino de cualquier ruta desconocida (nava-docs/agenda/03-desarrollo/especificacion-frontend-nava.md §7.13).
 // Es la misma pantalla para `/nada` y para `/panel/nada`: no distingue rutas privadas
 // inexistentes de públicas, así que no revela cuáles existen. La acción lleva a `/`, que
 // redirige al acceso (o al panel si ya hay sesión), sin inventar otra navegación.

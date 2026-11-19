@@ -13,7 +13,7 @@ import (
 // business_contact_email_ck exige en la base (al menos un carácter antes
 // y después de '@', un '.' con al menos un carácter después): sin
 // espacios, con '@' y con un '.' posterior. No es una validación RFC 5322
-// completa a propósito (docs/06-api/estandar-openapi.md: "no crear reglas
+// completa a propósito (nava-docs/agenda/06-api/estandar-openapi.md: "no crear reglas
 // más restrictivas que las fuentes"); la normalización a minúsculas ocurre
 // antes, en [NormalizeContactEmail].
 var contactEmailShapePattern = regexp.MustCompile(`^[^\s@]+@[^\s@]+\.[^\s@]+$`)

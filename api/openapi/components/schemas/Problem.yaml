@@ -1,5 +1,5 @@
 # Cuerpo de error uniforme para toda respuesta que no sea 2xx, según RFC 9457
-# (application/problem+json) y docs/06-api/estandar-openapi.md sección 12.
+# (application/problem+json) y nava-docs/agenda/06-api/estandar-openapi.md sección 12.
 # additionalProperties se deja abierto a propósito (regla 4 de la sección 9):
 # una historia futura con validación de campo agrega "errors" a este mismo
 # esquema en vez de crear uno paralelo.

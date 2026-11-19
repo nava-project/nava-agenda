@@ -1,6 +1,6 @@
 // Command worker arranca el proceso trabajador que enviará recordatorios ya
 // persistidos. Reutiliza servicios y repositorios de los módulos, no
-// handlers HTTP, según docs/04-arquitectura/stack-despliegue-operacion.md.
+// handlers HTTP, según nava-docs/agenda/04-arquitectura/stack-despliegue-operacion.md.
 package main
 
 import (
@@ -84,7 +84,7 @@ func run() error {
 	// agenda_worker (DDL-AUT-01, DEC-040). El reclamo de recordatorios
 	// con SKIP LOCKED, el envío por canal y los reintentos se agregan junto
 	// con la maquinaria general de notificaciones de B5, según
-	// docs/05-backend/estandar-base-datos.md.
+	// nava-docs/agenda/05-backend/estandar-base-datos.md.
 	purgeService := auth.NewPurgeService(
 		authpostgres.NewPurgeRepository(db),
 		cfg.LoginThrottlePurgeLimit,

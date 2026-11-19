@@ -2,7 +2,7 @@
 # Despliegue de una versión de NAVA en el VPS. Corre en el servidor como `deploy`,
 # desde el directorio de la versión (/srv/nava-agenda/releases/<sha>/deploy/scripts).
 #
-# Orden (docs/05-backend/migraciones-atlas.md, "Despliegue"):
+# Orden (nava-docs/agenda/05-backend/migraciones-atlas.md, "Despliegue"):
 #   1. valida entornos y que las imágenes estén en el Docker del host
 #   2. levanta PostgreSQL (la crea y hace el bootstrap de roles si es la primera vez)
 #   3. respaldo previo verificado
@@ -150,7 +150,7 @@ if [ "$migrate" = 1 ]; then
   # migración que renombra el esquema (DEC-183, #660): se aplica hasta ella, se
   # renombran los roles y se aplica el resto. Atlas rechaza --to-version con una versión
   # ya aplicada, así que en una base ya renombrada la primera fase se salta (#674) y
-  # rename_roles no hace nada. Ver docs/05-backend/migraciones-atlas.md.
+  # rename_roles no hace nada. Ver nava-docs/agenda/05-backend/migraciones-atlas.md.
   rename_applied="$(psql_db -c "SELECT EXISTS (SELECT 1 FROM atlas_schema_revisions.atlas_schema_revisions WHERE version = '$ROLE_RENAME_VERSION')")"
   if [ "$rename_applied" != t ]; then
     show atlas migrate apply --env production --to-version "$ROLE_RENAME_VERSION" \

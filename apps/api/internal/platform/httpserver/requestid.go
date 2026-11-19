@@ -10,7 +10,7 @@ import (
 
 // RequestIDHeader es el encabezado que transporta el identificador de
 // solicitud entre el cliente, los logs y las respuestas de error, según
-// docs/06-api/estandar-openapi.md.
+// nava-docs/agenda/06-api/estandar-openapi.md.
 const RequestIDHeader = "X-Request-Id"
 
 // requestIDPattern acota lo que se acepta de un cliente: caracteres seguros
@@ -26,7 +26,7 @@ type requestIDKey struct{}
 // identificador si el cliente no envió uno o si el que envió no tiene un
 // formato seguro, lo expone en el contexto tipado y lo refleja en la
 // respuesta para poder correlacionar logs, transacción e intento de
-// notificación, según docs/04-arquitectura/backend-go.md.
+// notificación, según nava-docs/agenda/04-arquitectura/backend-go.md.
 func RequestID(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		id := r.Header.Get(RequestIDHeader)

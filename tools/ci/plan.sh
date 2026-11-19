@@ -77,7 +77,7 @@ while IFS= read -r f; do
     Jenkinsfile|tools/ci/*|.gitattributes)
       everything "cambia el propio CI o el checkout ($f)" ;;
     # Solo documentación y material de agentes: ningún check lo lee.
-    docs/*|.agents/*|.claude/*|.github/*|tools/ai/*|tools/mockups/*|tools/qa/*|respuesta-manuales/*|.gitignore) ;;
+    .agents/*|.claude/*|.github/*|tools/ai/*|tools/mockups/*|tools/qa/*|.gitignore) ;;
     *.md|*.docx|*.txt)
       case "$f" in */*) everything "documento dentro de código ($f)" ;; esac ;;
     apps/web/*) need[web]=1; need[images]=1 ;;

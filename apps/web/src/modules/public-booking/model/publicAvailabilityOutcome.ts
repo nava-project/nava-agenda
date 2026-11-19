@@ -2,7 +2,7 @@
 // (HU-095). `PublicAvailabilitySlot`/`PublicAvailabilityWindow` son la
 // forma que la página consume; `ListPublicAvailabilityOutcome` es lo único
 // que `api/listPublicAvailabilityApi.ts` entrega. Ninguno de los dos
-// expone la forma RFC 9457 (`Problem`) del contrato (docs/03-desarrollo/
+// expone la forma RFC 9457 (`Problem`) del contrato (nava-docs/agenda/03-desarrollo/
 // estandar-frontend-vue.md §6), mismo criterio que
 // model/publicProfessionalListOutcome.ts.
 

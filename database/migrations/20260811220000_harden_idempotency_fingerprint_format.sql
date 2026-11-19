@@ -1,6 +1,6 @@
 -- Propósito
 --   Corrección roll-forward pendiente desde el issue #3, registrada como
---   comentario en el issue #7 (docs/05-backend/revision-ddl-seguridad-2026-08-11.md,
+--   comentario en el issue #7 (nava-docs/agenda/05-backend/revision-ddl-seguridad-2026-08-11.md,
 --   DDL-VAL-01): `idempotency_record.request_fingerprint` se validaba solo
 --   por longitud, no por formato ni codificación.
 --

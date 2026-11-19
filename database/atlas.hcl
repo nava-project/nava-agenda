@@ -1,5 +1,5 @@
 # Configuración de Atlas para migraciones SQL versionadas.
-# Fuente normativa: docs/05-backend/migraciones-atlas.md (DEC-036).
+# Fuente normativa: nava-docs/agenda/05-backend/migraciones-atlas.md (DEC-036).
 #
 # Ninguna URL vive en este archivo: cada ambiente la recibe de una variable
 # de entorno o de un secreto de CI, nunca de un valor escrito aquí.

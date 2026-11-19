@@ -1,4 +1,4 @@
-# Colección paginada por cursor (docs/06-api/estandar-openapi.md §6.10),
+# Colección paginada por cursor (nava-docs/agenda/06-api/estandar-openapi.md §6.10),
 # mismo criterio que ProfessionalListResponse: el historial de un turno con mucha
 # actividad y uno con una sola entrada usan exactamente la misma forma.
 type: object

@@ -1,7 +1,7 @@
 import { test, expect, type Route } from '@playwright/test'
 
 /**
- * Recorrido E2E de HU-092 (docs/03-desarrollo/estrategia-pruebas.md §5.3):
+ * Recorrido E2E de HU-092 (nava-docs/agenda/03-desarrollo/estrategia-pruebas.md §5.3):
  * selección pública de profesional. Mismo criterio que
  * reserva-publica-catalogo.spec.ts (HU-091): un único endpoint sin sesión
  * (`GET /public/businesses/{slug}/services/{serviceId}/professionals`),

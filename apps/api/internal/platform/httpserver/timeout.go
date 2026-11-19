@@ -9,7 +9,7 @@ import (
 // DefaultRequestTimeout limita cuánto puede tardar el procesamiento de una
 // solicitud antes de que su context.Context se cancele, para que una
 // consulta PostgreSQL downstream se cancele con ella
-// (docs/04-arquitectura/backend-go.md sección 9). Es menor que los timeouts
+// (nava-docs/agenda/04-arquitectura/backend-go.md sección 9). Es menor que los timeouts
 // de servidor de [New] para que la cancelación por contexto llegue primero
 // y deje registrar la causa real.
 const DefaultRequestTimeout = 10 * time.Second

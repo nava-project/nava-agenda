@@ -1,5 +1,5 @@
 // Único punto del módulo `schedules` que llama al cliente HTTP tipado
-// (docs/03-desarrollo/estandar-frontend-vue.md §6). Traduce las respuestas
+// (nava-docs/agenda/03-desarrollo/estandar-frontend-vue.md §6). Traduce las respuestas
 // reales de GET/POST /private/professionals/{professionalId}/working-hours y
 // GET/PATCH/DELETE .../working-hours/{workingHourId} a los outcomes
 // discriminados que la página consume; ningún componente ve `Problem`,
@@ -21,7 +21,7 @@ import type {
 } from '../model/scheduleOutcome'
 
 // PICKER_LIMIT es el máximo que el contrato admite por página
-// (docs/06-api/estandar-openapi.md §6.10), mismo criterio que
+// (nava-docs/agenda/06-api/estandar-openapi.md §6.10), mismo criterio que
 // professionalServicesApi.PICKER_LIMIT.
 const PICKER_LIMIT = 50
 
@@ -122,7 +122,7 @@ export async function createWorkingHour(
       case 409:
         // RN-IDE-01 (idempotency-conflict/idempotency-locked) frente a
         // CA-040-04 (conflict, solape): el cliente decide por `code`, nunca
-        // por `detail` (docs/06-api/estandar-openapi.md §5).
+        // por `detail` (nava-docs/agenda/06-api/estandar-openapi.md §5).
         return isProblemCode(error, 'conflict')
           ? { kind: 'overlap-conflict' }
           : { kind: 'idempotency-conflict' }

@@ -4,7 +4,7 @@ import "time"
 
 // LoginRequest es el cuerpo de POST /api/v1/public/auth/login. Cerrado: el
 // handler rechaza cualquier campo desconocido (json.Decoder con
-// DisallowUnknownFields), según docs/06-api/estandar-openapi.md sección 9.4.
+// DisallowUnknownFields), según nava-docs/agenda/06-api/estandar-openapi.md sección 9.4.
 type LoginRequest struct {
 	Email    string `json:"email"`
 	Password string `json:"password"`

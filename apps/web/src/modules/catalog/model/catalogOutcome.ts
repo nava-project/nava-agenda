@@ -1,6 +1,6 @@
 // Resultados discriminados de las operaciones de HU-022, tal como los
 // recibe la página coordinadora. Ninguno expone `Problem`, `status` HTTP
-// crudo ni cabeceras (docs/03-desarrollo/estandar-frontend-vue.md §6),
+// crudo ni cabeceras (nava-docs/agenda/03-desarrollo/estandar-frontend-vue.md §6),
 // mismo criterio que staffOutcome.ts. Un 401 real de estas rutas ya lo
 // intercepta la coordinación única de `installSessionHandling`; todos
 // igual declaran `unexpected-error` como frontera defensiva por si esa

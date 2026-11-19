@@ -1,7 +1,7 @@
 import { test, expect } from '@playwright/test'
 
 /**
- * Recorrido E2E de HU-096 (docs/03-desarrollo/estrategia-pruebas.md §5.3):
+ * Recorrido E2E de HU-096 (nava-docs/agenda/03-desarrollo/estrategia-pruebas.md §5.3):
  * datos del cliente y persona atendida. A diferencia de las demás rutas
  * públicas, esta página no llama a ningún endpoint (HU-097, que persiste,
  * está bloqueada por DP-PUB-05/DP-PUB-06/CT-011): no hace falta

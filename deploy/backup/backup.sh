@@ -53,7 +53,7 @@ for f in $(ls -1t "$DIR"/nava-*.dump 2>/dev/null | tail -n +"$((MIN_KEEP + 1))")
   fi
 done
 
-# Copia externa opcional (docs/04-arquitectura/stack-despliegue-operacion.md §5:
+# Copia externa opcional (nava-docs/agenda/04-arquitectura/stack-despliegue-operacion.md §5:
 # almacenamiento separado del servidor). Un fallo aquí no invalida el respaldo
 # local, pero sí termina con error para que quede visible.
 if [ -n "${BACKUP_RCLONE_REMOTE:-}" ]; then

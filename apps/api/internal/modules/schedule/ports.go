@@ -80,7 +80,7 @@ type UpdateResult struct {
 // Repository.Create es la única operación que además coordina
 // internal/platform/idempotency: Begin, la verificación de solape, el
 // INSERT y Complete DEBEN ejecutarse dentro de UNA sola transacción
-// tenant-aware (apps/api/README.md, "Patrón obligatorio: idempotencia
+// tenant-aware (nava-docs/agenda/apps/api/README.md, "Patrón obligatorio: idempotencia
 // reutilizable"), así que esa orquestación vive en el adaptador postgres,
 // no en Service.
 type Repository interface {

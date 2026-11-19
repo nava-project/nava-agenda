@@ -4,7 +4,7 @@
 // (SELECT ... FOR UPDATE) y la atomicidad de la escritura se prueban
 // contra PostgreSQL real en
 // internal/modules/shops/postgres/booking_policy_repository_test.go
-// (docs/03-desarrollo/estrategia-pruebas.md §2).
+// (nava-docs/agenda/03-desarrollo/estrategia-pruebas.md §2).
 package shops_test
 
 import (

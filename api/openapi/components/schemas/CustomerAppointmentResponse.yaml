@@ -63,7 +63,7 @@ properties:
   status:
     type: string
     description: >
-      Estado vigente del turno (docs/02-requisitos/estados-citas.md).
+      Estado vigente del turno (nava-docs/agenda/02-requisitos/estados-citas.md).
       `confirmed` NUNCA implica que la falta de respuesta del cliente vaya a
       cancelarlo (RN-CNF-02, CA-098-04).
     enum: [confirmed, completed, cancelled_by_customer, cancelled_by_professional, no_show]

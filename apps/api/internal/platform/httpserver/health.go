@@ -9,7 +9,7 @@ import (
 )
 
 // HealthHandler responde la comprobación operativa de /health descrita en
-// docs/04-arquitectura/backend-go.md. No depende de PostgreSQL ni de ningún
+// nava-docs/agenda/04-arquitectura/backend-go.md. No depende de PostgreSQL ni de ningún
 // módulo: solo confirma que el proceso acepta conexiones.
 func HealthHandler() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {

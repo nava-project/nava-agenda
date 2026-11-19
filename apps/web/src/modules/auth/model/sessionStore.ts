@@ -1,5 +1,5 @@
 // Estado de sesión compartido entre TODAS las rutas privadas (DEC-033,
-// docs/03-desarrollo/estandar-frontend-vue.md §113: "Pinia solo se
+// nava-docs/agenda/03-desarrollo/estandar-frontend-vue.md §113: "Pinia solo se
 // incorpora con estado compartido real entre rutas"). Aquí sí hay estado
 // compartido real -la cabecera, el guard y cualquier llamada privada futura
 // necesitan el mismo contexto-, pero una sola pieza de estado no justifica

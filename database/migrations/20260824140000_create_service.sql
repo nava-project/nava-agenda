@@ -28,7 +28,7 @@
 --        aceptaba cualquier código de tres letras mayúsculas): DEC-067 fija
 --        la moneda, sin columna editable por el cliente. `price_currency`
 --        sigue existiendo como columna (numeric + moneda ISO,
---        docs/05-backend/estandar-base-datos.md §5) para no romper esa
+--        nava-docs/agenda/05-backend/estandar-base-datos.md §5) para no romper esa
 --        forma si una decisión futura la abre, pero ningún endpoint de
 --        HU-022 la acepta como entrada: siempre 'COP', puesto por el
 --        servidor.

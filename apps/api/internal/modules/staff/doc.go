@@ -1,5 +1,5 @@
 // Package staff administra los profesionales y su pertenencia al negocio,
-// según docs/03-desarrollo/estandar-backend-go.md.
+// según nava-docs/agenda/03-desarrollo/estandar-backend-go.md.
 //
 // HU-021 entrega el primer alcance real: consultar, listar, registrar y
 // renombrar profesionales (registro/listado/lectura/renombrado). domain.go,

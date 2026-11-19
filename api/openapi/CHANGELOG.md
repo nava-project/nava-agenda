@@ -1,7 +1,7 @@
 # Registro de cambios del contrato OpenAPI
 
 Formato basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/).
-Ver [`docs/06-api/estandar-openapi.md`](../../docs/06-api/estandar-openapi.md)
+Ver [`nava-docs/agenda/06-api/estandar-openapi.md`](https://github.com/nava-project/nava-docs/blob/main/agenda/06-api/estandar-openapi.md)
 sección 18 para qué cuenta como cambio compatible o incompatible.
 
 
@@ -765,7 +765,7 @@ solicitud son opcionales.
   `PUT` reemplaza y es idempotente por naturaleza. Primer contenido binario
   del contrato: caso aprobado por el propietario el 2026-09-30 (excepción
   documentada en `DEC-104` a "archivos o contenido binario solo cuando exista
-  un caso aprobado", `docs/06-api/estandar-openapi.md` §10).
+  un caso aprobado", `nava-docs/agenda/06-api/estandar-openapi.md` §10).
 
 ### Modificado (compatible)
 
@@ -784,7 +784,7 @@ solicitud son opcionales.
   `page`/`pageSize`; se agrega `search` (filtro opcional por nombre,
   coincidencia parcial insensible a mayúsculas). La respuesta reemplaza
   `nextCursor` por `page`, `pageSize`, `total` y `totalPages`. Excepción
-  explícita del propietario a `docs/06-api/estandar-openapi.md` §6.10
+  explícita del propietario a `nava-docs/agenda/06-api/estandar-openapi.md` §6.10
   ("listas potencialmente crecientes usan paginación por cursor"), acotada
   a este único endpoint: el panel privado necesita un paginador numerado
   con total exacto para su tabla de servicios, algo que un cursor opaco no

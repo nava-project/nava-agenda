@@ -8,7 +8,7 @@ import (
 
 // IdempotencyKeyHeader es la cabecera HTTP que transporta la clave de
 // idempotencia de una escritura crítica (RN-IDE-01, DEC-043). Requests de
-// creación crítica la declaran obligatoria (docs/06-api/estandar-openapi.md
+// creación crítica la declaran obligatoria (nava-docs/agenda/06-api/estandar-openapi.md
 // sección 10).
 const IdempotencyKeyHeader = "Idempotency-Key"
 

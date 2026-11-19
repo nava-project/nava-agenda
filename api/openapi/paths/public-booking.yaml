@@ -6,7 +6,7 @@
 # DEC-162 agrega dos agregados de solo lectura para clientes que leen mucho
 # (el agente Odin): los profesionales con sus servicios y la disponibilidad de un
 # servicio para todos sus profesionales, ambos en una sola petición.
-# security: [] en cada operación, según docs/06-api/estandar-openapi.md.
+# security: [] en cada operación, según nava-docs/agenda/06-api/estandar-openapi.md.
 # El acceso/cancelación del cliente mediante el token emitido por HU-097
 # vive en api/openapi/paths/customer-appointments.yaml (HU-098 agrega la
 # lectura; HU-099 agregará la cancelación).

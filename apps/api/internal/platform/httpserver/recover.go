@@ -10,7 +10,7 @@ import (
 // Recover intercepta un panic de un handler downstream, lo registra con el
 // request_id vigente y responde 500 en application/problem+json sin filtrar
 // detalles internos, según el orden de middleware de
-// docs/04-arquitectura/backend-go.md.
+// nava-docs/agenda/04-arquitectura/backend-go.md.
 func Recover(logger *slog.Logger) func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {

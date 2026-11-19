@@ -1,5 +1,5 @@
 // Pruebas de la matriz de selección de HU-008 (issue #86,
-// docs/10-backlog/prompts/test/issue-86-otp-correo-resend.md): confirman
+// nava-docs/agenda/10-backlog/prompts/test/issue-86-otp-correo-resend.md): confirman
 // qué auth.RecoveryCodeSender concreto construye selectRecoverySender para
 // cada combinación de ambiente y credenciales, sin llamadas de red reales
 // (las credenciales usadas aquí son ficticias, nunca reales).

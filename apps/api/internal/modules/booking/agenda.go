@@ -65,7 +65,7 @@ func NewAgendaService(repo Repository, professionals ProfessionalPort, timezones
 // del profesional professionalID cuyo intervalo interseca el rango civil de
 // dateLocal (DEC-075). dateLocal vacío significa "hoy" en la zona del
 // negocio, resuelto a partir de s.clock.Now() (nunca time.Now
-// directamente, docs/03-desarrollo/estandar-backend-go.md). Un professionalID con
+// directamente, nava-docs/agenda/03-desarrollo/estandar-backend-go.md). Un professionalID con
 // forma inválida, inexistente o de otro negocio responde el mismo
 // apperr.NotFound (DEC-074, RN-TEN-01), verificado ANTES de tocar el
 // repositorio (mismo criterio que schedule.Service.List).

@@ -480,7 +480,7 @@ onUnmounted(() => {
 // No concatena "$" (estandar-diseno-visual.md §10.3: "Dinero se formatea
 // según la moneda definida por el contrato; no se concatena '$' ni se
 // asumen pesos desde el componente"). service.price es un string decimal
-// exacto que nunca se convierte a number en el cliente (docs/06-api/
+// exacto que nunca se convierte a number en el cliente (nava-docs/agenda/06-api/
 // estandar-openapi.md §6); esta función no reformatea sus dígitos, solo
 // añade la moneda real recibida del contrato.
 function formatPrice(service: Service): string {
@@ -2828,7 +2828,7 @@ async function reloadAfterConflict(serviceId: string) {
    los inputs como están los inputs de la pantalla Agenda", luego "aplica
    eso mismo para... editar"): mismas variables que NewAppointmentPage.vue
    ya redefine para sus propios BaseInput sobre --color-surface-strong
-   (docs/03-desarrollo/estandar-diseno-visual.md: shared/ui sigue calibrado
+   (nava-docs/agenda/03-desarrollo/estandar-diseno-visual.md: shared/ui sigue calibrado
    para superficie clara; cada pantalla sobre tinta redefine estos tokens
    en su propio ámbito, no en BaseInput.vue). */
 .catalog-page__create-form :deep(.base-input),

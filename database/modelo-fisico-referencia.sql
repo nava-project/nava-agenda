@@ -46,7 +46,7 @@
 --                                 verificación telefónica de 24 horas (DEC-052).
 --
 -- `staff_credential` y `login_throttle` además incorporan el endurecimiento
--- de `DDL-AUT-01` (docs/05-backend/revision-ddl-seguridad-2026-08-11.md):
+-- de `DDL-AUT-01` (nava-docs/agenda/05-backend/revision-ddl-seguridad-2026-08-11.md):
 -- ninguna de las dos concede ya SELECT/DML directo y amplio a `barberia_app`;
 -- se exponen funciones `SECURITY DEFINER` estrechas y revisadas en su lugar.
 --
@@ -1095,7 +1095,7 @@ GRANT SELECT, INSERT, UPDATE ON TABLE service TO barberia_app;
 --      único que proponía esta sección) queda fuera de alcance de HU-023
 --      (no existe todavía esa operación pública): una historia futura lo
 --      agrega junto con esa capacidad, sin abstracción anticipada sin uso
---      demostrado (docs/03-desarrollo/estandar-backend-go.md §5).
+--      demostrado (nava-docs/agenda/03-desarrollo/estandar-backend-go.md §5).
 
 CREATE TABLE barber_service (
   barbershop_id uuid        NOT NULL,
@@ -3373,7 +3373,7 @@ COMMENT ON FUNCTION whatsapp_webhook_purge_expired(integer, integer) IS
 --       exigencia de RN-BLQ-03 y DEC-008. La consecuencia —una cita puede
 --       quedar dentro de un bloqueo— es deliberada (RN-CON-06) y el flujo
 --       asistido que la resuelve es responsabilidad de la aplicación.
---       `docs/05-backend/concurrencia.md` sigue pendiente de creación.
+--       `nava-docs/agenda/05-backend/concurrencia.md` sigue pendiente de creación.
 --
 -- H.9 · Índices parciales ensanchados a completos (DDL-PER-01, issue #7)
 --       staff_session, staff_recovery_code (índice nuevo aparte, no

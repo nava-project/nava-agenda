@@ -38,7 +38,7 @@ build_image
 
 # Go y las pruebas del frontend corren a la vez que el resto (#625). Son topes contra un
 # check desbocado, no reservas: el pico real medido de todos juntos está en
-# deploy/README.md (sección 5) y cabe en la memoria libre del VPS.
+# nava-docs/agenda/deploy/README.md (sección 5) y cabe en la memoria libre del VPS.
 case "$check" in
   go)         limits=(--memory 3g) ;;
   web-test)   limits=(--memory 2560m) ;;

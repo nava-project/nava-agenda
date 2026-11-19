@@ -114,7 +114,7 @@ func setupIdempotencyTestDB(t *testing.T) *database.DB {
 	return db
 }
 
-// testIdempotentHandler es el patrón documentado en apps/api/README.md: un
+// testIdempotentHandler es el patrón documentado en nava-docs/agenda/apps/api/README.md: un
 // futuro módulo de negocio llama IdempotencyKeyFromRequest,
 // IdempotencyFingerprint, y dentro de SU PROPIA InTenantTx, Begin seguido
 // de su efecto y Complete. Aquí el "efecto" es ficticio a propósito (HU-004

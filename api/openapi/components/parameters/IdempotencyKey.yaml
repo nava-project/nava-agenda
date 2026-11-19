@@ -1,5 +1,5 @@
 # Cabecera obligatoria en toda escritura crítica (RN-IDE-01, DEC-043,
-# docs/06-api/estandar-openapi.md sección 10). apps/api implementa el
+# nava-docs/agenda/06-api/estandar-openapi.md sección 10). apps/api implementa el
 # protocolo en internal/platform/idempotency: la misma clave con el mismo
 # contenido reproduce byte a byte la respuesta original sin repetir el
 # efecto; la misma clave con contenido distinto responde

@@ -1,6 +1,6 @@
 // Resultados discriminados de las operaciones de la integración con Google
 // Calendar, tal como los recibe la página. Ninguno expone `Problem`, `status`
-// HTTP crudo ni cabeceras (docs/03-desarrollo/estandar-frontend-vue.md §6). Un
+// HTTP crudo ni cabeceras (nava-docs/agenda/03-desarrollo/estandar-frontend-vue.md §6). Un
 // 401 real ya lo intercepta la coordinación única de `installSessionHandling`.
 import type { GoogleCalendarCallbackResult, GoogleCalendarConnection } from './googleCalendar'
 

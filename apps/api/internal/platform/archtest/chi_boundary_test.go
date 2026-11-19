@@ -24,7 +24,7 @@ var packagesAllowedToImportChi = map[string]bool{
 
 // TestDomainAndServicesDoNotImportChi recorre internal/ y falla si algún
 // paquete fuera de la excepción importa Chi, directa o indirectamente vía
-// alias. Protege docs/04-arquitectura/backend-go.md sección 5 ("el servicio
+// alias. Protege nava-docs/agenda/04-arquitectura/backend-go.md sección 5 ("el servicio
 // no conoce Chi") y CA-003-07.
 func TestDomainAndServicesDoNotImportChi(t *testing.T) {
 	root := findInternalDir(t)

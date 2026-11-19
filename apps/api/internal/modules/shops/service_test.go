@@ -3,7 +3,7 @@
 // confirmación de zona IANA contra pg_timezone_names y la atomicidad de la
 // escritura se prueban contra PostgreSQL real en
 // internal/modules/shops/postgres/repository_test.go
-// (docs/03-desarrollo/estrategia-pruebas.md §2: nada de eso se prueba con
+// (nava-docs/agenda/03-desarrollo/estrategia-pruebas.md §2: nada de eso se prueba con
 // un doble).
 package shops_test
 

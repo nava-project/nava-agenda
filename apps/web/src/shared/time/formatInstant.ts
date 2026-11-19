@@ -1,6 +1,6 @@
 // Presentación de instantes en una zona IANA SIEMPRE explícita, con la API
 // de plataforma `Intl.DateTimeFormat` (sin agregar una librería de fechas
-// nueva, docs/10-backlog/prompts/hu/hu-020-configuracion-barberia.md
+// nueva, nava-docs/agenda/10-backlog/prompts/hu/hu-020-configuracion-barberia.md
 // "trabajo requerido" §4.6). `timezone` es obligatorio y nunca tiene un
 // valor por defecto: la zona del dispositivo NUNCA sustituye la zona
 // configurada del negocio (CA-020-04, RN-DIS-07). Ningún otro punto del

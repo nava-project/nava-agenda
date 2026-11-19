@@ -5,7 +5,7 @@ import { tmpdir } from 'node:os'
 import path from 'node:path'
 
 /**
- * Recorrido E2E de HU-011 (docs/03-desarrollo/estrategia-pruebas.md §5.3):
+ * Recorrido E2E de HU-011 (nava-docs/agenda/03-desarrollo/estrategia-pruebas.md §5.3):
  * recuperación de acceso de punta a punta contra el backend real de HU-008
  * (integrado en `main`, PR #63) y la pantalla real de esta historia.
  *

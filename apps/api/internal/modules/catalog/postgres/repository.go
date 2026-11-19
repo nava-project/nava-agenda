@@ -109,7 +109,7 @@ type deactivationResponseWire struct {
 
 // numericFromCents construye el valor pgtype.Numeric que representa cents
 // centavos como cantidad exacta en pesos (dos decimales), sin pasar nunca
-// por coma flotante: Int = cents, Exp = -2 (docs/05-backend/
+// por coma flotante: Int = cents, Exp = -2 (nava-docs/agenda/05-backend/
 // estandar-base-datos.md §5).
 func numericFromCents(cents int64) pgtype.Numeric {
 	return pgtype.Numeric{Int: big.NewInt(cents), Exp: -2, Valid: true}
@@ -196,7 +196,7 @@ func scanServiceWithID(row rowScanner) (catalog.Service, error) {
 // List implementa catalog.Repository.List: orden estable (created_at, id)
 // dentro del tenant vigente, paginación por página/offset con conteo total
 // (DEC-103: excepción documentada a la paginación por cursor de
-// docs/06-api/estandar-openapi.md §6.10 — decisión explícita del
+// nava-docs/agenda/06-api/estandar-openapi.md §6.10 — decisión explícita del
 // propietario para que el panel de Servicios ofrezca un paginador numerado
 // con total exacto, cosa que un cursor opaco no puede representar sin una
 // consulta COUNT aparte de todos modos). search == "" es "sin filtro";
@@ -370,7 +370,7 @@ func (r *Repository) Get(ctx context.Context, businessID, serviceID string) (cat
 }
 
 // Create implementa catalog.Repository.Create: Begin, INSERT y Complete
-// ocurren dentro de la MISMA InTenantTx (apps/api/README.md, "Patrón
+// ocurren dentro de la MISMA InTenantTx (nava-docs/agenda/apps/api/README.md, "Patrón
 // obligatorio: idempotencia reutilizable"). Un unique_violation de
 // nameUniqueConstraint durante el INSERT hace ROLLBACK de toda la
 // transacción -incluida la reclamación de idempotencia que Begin ya había

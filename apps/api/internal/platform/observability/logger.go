@@ -1,7 +1,7 @@
 // Package observability construye el logger estructurado compartido por los
 // procesos api y worker. No decide qué campos de negocio se registran; cada
 // llamador es responsable de no incluir nombre, teléfono, correo, tokens ni
-// contenido de mensajes, según docs/04-arquitectura/backend-go.md.
+// contenido de mensajes, según nava-docs/agenda/04-arquitectura/backend-go.md.
 package observability
 
 import (

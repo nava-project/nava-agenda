@@ -1,12 +1,12 @@
 // Único punto del módulo `professionalServices` que llama al cliente HTTP tipado
-// (docs/03-desarrollo/estandar-frontend-vue.md §6). Traduce las respuestas
+// (nava-docs/agenda/03-desarrollo/estandar-frontend-vue.md §6). Traduce las respuestas
 // reales de GET/PUT/DELETE /private/professionals/{professionalId}/services[/{serviceId}]
 // a los outcomes discriminados que la página consume; ningún componente ve
 // `Problem`, `status` HTTP crudo ni cabeceras.
 //
 // fetchProfessionalSummaries/fetchServiceSummaries llaman DIRECTAMENTE al cliente
 // HTTP compartido (nunca a staffApi.ts/catalogApi.ts, privados de sus
-// propios módulos, docs/03-desarrollo/estandar-frontend-vue.md §3): esta
+// propios módulos, nava-docs/agenda/03-desarrollo/estandar-frontend-vue.md §3): esta
 // pequeña duplicación de forma es preferible a un acoplamiento cruzado entre
 // módulos (mismo criterio que catalog.Cursor/staff.Cursor en el backend).
 import { httpClient } from '@/shared/api/httpClient'
@@ -25,7 +25,7 @@ import type {
 } from '../model/professionalServicesOutcome'
 
 // PICKER_LIMIT es el máximo que el contrato admite por página
-// (docs/06-api/estandar-openapi.md §6.10). Un negocio con más de 50
+// (nava-docs/agenda/06-api/estandar-openapi.md §6.10). Un negocio con más de 50
 // profesionales o 50 servicios queda fuera del alcance de esta pantalla (HU-023
 // no exige paginar los selectores, a diferencia de StaffPage/CatalogPage,
 // que sí pagina su propia lista completa): un equipo o catálogo tan grande

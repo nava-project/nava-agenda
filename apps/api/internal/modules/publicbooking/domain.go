@@ -179,7 +179,7 @@ type PublicServiceListResult struct {
 // ServiceCursor es la posición decodificada de una página del catálogo
 // público, mismo patrón que catalog.Cursor (el núcleo de publicbooking no
 // importa catalog, CA-002-06: duplicación pequeña y clara preferible a una
-// abstracción cruzada entre módulos, docs/03-desarrollo/
+// abstracción cruzada entre módulos, nava-docs/agenda/03-desarrollo/
 // estandar-backend-go.md §5.23).
 type ServiceCursor struct {
 	CreatedAt time.Time

@@ -29,7 +29,7 @@ const (
 
 // DefaultListLimit, MinListLimit y MaxListLimit acotan `limit` en la lista
 // paginada (CA-040-01): límites técnicos, no un máximo de negocio de tramos
-// por profesional (docs/06-api/estandar-openapi.md §6.10).
+// por profesional (nava-docs/agenda/06-api/estandar-openapi.md §6.10).
 const (
 	DefaultListLimit = 20
 	MinListLimit     = 1

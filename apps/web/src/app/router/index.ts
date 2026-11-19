@@ -15,7 +15,7 @@ import { staffNavItems, staffPrivateShellChildRoutes } from '@/modules/staff'
 import { installChunkLoadRecovery } from './chunkLoadRecovery'
 import { installProfileRedirect } from './profileGuard'
 
-// Cada ruta se carga de forma diferida (docs/04-arquitectura/frontend.md):
+// Cada ruta se carga de forma diferida (nava-docs/agenda/04-arquitectura/frontend.md):
 // un módulo futuro no aumenta el bundle inicial sin necesidad. `app/router`
 // compone las rutas que cada módulo expone en su índice público; no conoce
 // los componentes internos de ningún módulo (estandar-frontend-vue.md §3).

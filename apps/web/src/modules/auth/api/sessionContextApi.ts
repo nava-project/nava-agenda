@@ -1,5 +1,5 @@
 // Único punto del módulo `auth` que llama a GET /private/auth/session
-// (docs/03-desarrollo/estandar-frontend-vue.md §6, mismo patrón que
+// (nava-docs/agenda/03-desarrollo/estandar-frontend-vue.md §6, mismo patrón que
 // api/loginApi.ts): traduce la respuesta real del contrato a
 // SessionContextOutcome. La página/guard nunca ven `Problem`, `status` HTTP
 // crudo ni cabeceras.

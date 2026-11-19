@@ -2,7 +2,7 @@
 // que el formulario conoce; `LoginOutcome` es lo único que la página
 // coordinadora recibe del cliente API. Ninguno de los dos expone la forma
 // RFC 9457 (`Problem`) del contrato: eso queda dentro de `api/loginApi.ts`
-// (docs/03-desarrollo/estandar-frontend-vue.md §6, "la vista no conoce la
+// (nava-docs/agenda/03-desarrollo/estandar-frontend-vue.md §6, "la vista no conoce la
 // forma interna de errores de cada proveedor").
 
 /** Credenciales tal como las escribe el profesional. Nunca se serializan a

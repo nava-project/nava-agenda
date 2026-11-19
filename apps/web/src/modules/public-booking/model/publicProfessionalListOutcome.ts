@@ -1,7 +1,7 @@
 // Modelo de dominio de la selección pública de profesional (HU-092).
 // `PublicProfessional` es la forma que la página consume; `ListPublicProfessionalsOutcome`
 // es lo único que `api/listPublicProfessionalsApi.ts` entrega. Ninguno de los dos
-// expone la forma RFC 9457 (`Problem`) del contrato (docs/03-desarrollo/
+// expone la forma RFC 9457 (`Problem`) del contrato (nava-docs/agenda/03-desarrollo/
 // estandar-frontend-vue.md §6), mismo criterio que
 // model/publicServiceListOutcome.ts.
 

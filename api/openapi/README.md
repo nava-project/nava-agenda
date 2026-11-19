@@ -1,7 +1,7 @@
 # api/openapi
 
 Contrato HTTP contract-first entre `apps/web` y `apps/api`. Ver
-[`docs/06-api/estandar-openapi.md`](../../docs/06-api/estandar-openapi.md)
+[`nava-docs/agenda/06-api/estandar-openapi.md`](https://github.com/nava-project/nava-docs/blob/main/agenda/06-api/estandar-openapi.md)
 antes de agregar una operación.
 
 ## Estado

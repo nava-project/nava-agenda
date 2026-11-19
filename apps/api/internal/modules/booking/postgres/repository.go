@@ -1,5 +1,5 @@
 // Package postgres traduce el núcleo booking hacia PostgreSQL, según
-// docs/03-desarrollo/estandar-backend-go.md. Repository es la única pieza
+// nava-docs/agenda/03-desarrollo/estandar-backend-go.md. Repository es la única pieza
 // que conoce pgx, database.DB y los nombres reales de tablas/constraints de
 // database/migrations/20260827110000_create_appointment_core.sql.
 package postgres
@@ -823,7 +823,7 @@ func appointmentExists(ctx context.Context, q database.Queries, businessID, appo
 // segunda consulta COUNT, ordenadas por (occurred_at, id) — los dos últimos
 // campos de idx_appointment_history_shop_appointment_occurred
 // (business_id, appointment_id, occurred_at), verificado con
-// EXPLAIN (ANALYZE, BUFFERS) como Index Scan (ver apps/api/README.md). Las
+// EXPLAIN (ANALYZE, BUFFERS) como Index Scan (ver nava-docs/agenda/apps/api/README.md). Las
 // filas de appointment_history_change de toda la página se leen en UNA
 // segunda consulta con `history_id = ANY(...)`, nunca una por fila (trabajo
 // requerido §2.3, "sin generar N+1").

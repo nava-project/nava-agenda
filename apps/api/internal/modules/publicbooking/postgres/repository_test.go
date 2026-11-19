@@ -2,7 +2,7 @@
 // PostgreSQL REAL con todas las migraciones aplicadas (incluida
 // 20260911045044_add_barbershop_public_slug.sql) y
 // database/testdata/{hu090_reserva_publica.sql,hu091_catalogo_publico.sql}
-// cargados. Conéctate como agenda_app (docs/03-desarrollo/
+// cargados. Conéctate como agenda_app (nava-docs/agenda/03-desarrollo/
 // estrategia-pruebas.md §2 prohíbe mocks para RLS/resolución de tenant sin
 // contexto).
 //

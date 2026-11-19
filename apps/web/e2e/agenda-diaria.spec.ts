@@ -10,7 +10,7 @@ import { test, expect, type Page } from '@playwright/test'
  * parte de los checks de CI, que solo corren `test:unit`), mismo estado
  * documentado que `e2e/nuevo-turno.spec.ts` (HU-061), `e2e/horarios.spec.ts`
  * (HU-040) y `e2e/excepciones-festivos.spec.ts` (HU-041) en
- * `apps/web/README.md`.
+ * `nava-docs/agenda/apps/web/README.md`.
  *
  * Variables de entorno:
  *   E2E_EMAIL / E2E_PASSWORD: credenciales válidas contra el API real

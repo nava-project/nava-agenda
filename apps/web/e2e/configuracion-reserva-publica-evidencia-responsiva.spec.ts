@@ -3,7 +3,7 @@ import path from 'node:path'
 import { fileURLToPath } from 'node:url'
 
 /**
- * Evidencia visual responsive/accesible de HU-093 (docs/03-desarrollo/
+ * Evidencia visual responsive/accesible de HU-093 (nava-docs/agenda/03-desarrollo/
  * estandar-diseno-visual.md §16 y estrategia-pruebas.md §5.4): pantalla
  * "Reserva pública" en 320/360/768/1280 px, más zoom 200% aproximado
  * (mismo criterio que

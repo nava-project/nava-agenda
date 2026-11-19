@@ -3,7 +3,7 @@ import path from 'node:path'
 import { fileURLToPath } from 'node:url'
 
 /**
- * Evidencia visual responsive/accesible de HU-092 (docs/03-desarrollo/
+ * Evidencia visual responsive/accesible de HU-092 (nava-docs/agenda/03-desarrollo/
  * estandar-diseno-visual.md §16 y estrategia-pruebas.md §5.4): carga,
  * preselección con un profesional, elección con varios, vacío y error "no
  * encontrado" en 320/360/768/1280 px, más una aproximación de zoom de texto

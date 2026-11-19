@@ -2,7 +2,7 @@
 // PostgreSQL REAL con las trece migraciones aplicadas (incluida
 // 20260825160000_create_working_hour.sql) y
 // database/testdata/hu040_horario.sql cargado. Conéctate como
-// agenda_app (docs/03-desarrollo/estrategia-pruebas.md §2 prohíbe mocks
+// agenda_app (nava-docs/agenda/03-desarrollo/estrategia-pruebas.md §2 prohíbe mocks
 // para RLS/idempotencia/atomicidad).
 //
 //	export TEST_DATABASE_URL="postgres://agenda_app@localhost:5432/postgres?sslmode=disable"

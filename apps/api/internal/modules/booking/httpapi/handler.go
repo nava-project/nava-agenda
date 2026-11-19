@@ -1,6 +1,6 @@
 // Package httpapi es el adaptador HTTP del módulo booking (HU-061):
 // decodifica, invoca booking.ManualBookingService y traduce el resultado a
-// HTTP (docs/03-desarrollo/estandar-backend-go.md §4), mismo patrón que
+// HTTP (nava-docs/agenda/03-desarrollo/estandar-backend-go.md §4), mismo patrón que
 // schedule/httpapi y catalog/httpapi.
 package httpapi
 
@@ -65,7 +65,7 @@ func (h *CreateManualAppointmentHandler) ServeHTTP(w http.ResponseWriter, r *htt
 	}
 
 	// 1. Cabecera: obligatoria, validada antes de tocar PostgreSQL o leer
-	//    el cuerpo (apps/api/README.md, "Patrón obligatorio: idempotencia
+	//    el cuerpo (nava-docs/agenda/apps/api/README.md, "Patrón obligatorio: idempotencia
 	//    reutilizable").
 	key, err := httpserver.IdempotencyKeyFromRequest(r)
 	if err != nil {

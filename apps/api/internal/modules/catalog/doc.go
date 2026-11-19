@@ -1,6 +1,6 @@
 // Package catalog administra los servicios ofrecidos por el negocio, su
 // duración planificada y su precio informativo, según
-// docs/03-desarrollo/estandar-backend-go.md.
+// nava-docs/agenda/03-desarrollo/estandar-backend-go.md.
 //
 // HU-022 entrega el primer alcance real: listar, consultar, crear y editar
 // servicios del catálogo básico (nombre, descripción opcional, duración en

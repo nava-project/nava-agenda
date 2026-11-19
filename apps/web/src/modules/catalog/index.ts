@@ -1,5 +1,5 @@
 // Módulo: catálogo básico de servicios del negocio (HU-022). API
-// pública mínima para `app`, según docs/03-desarrollo/estandar-frontend-vue.md:
+// pública mínima para `app`, según nava-docs/agenda/03-desarrollo/estandar-frontend-vue.md:
 // la ruta hija privada (cargada de forma diferida) y la entrada de
 // navegación que la representa. `app/router/index.ts` combina esto con las
 // rutas de `auth`/`settings`/`staff` (y de cualquier otro módulo con

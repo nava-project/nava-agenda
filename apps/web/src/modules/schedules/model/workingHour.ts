@@ -70,7 +70,7 @@ export function describeWeekdays(days: number[]): string {
 // de `staff` (id, el nombre visible y la URL de su retrato para el selector),
 // obtenido por este módulo directamente del cliente HTTP compartido -nunca
 // importando staffApi.ts, privado de su propio módulo
-// (docs/03-desarrollo/estandar-frontend-vue.md §3), mismo criterio que
+// (nava-docs/agenda/03-desarrollo/estandar-frontend-vue.md §3), mismo criterio que
 // professionalServices.ProfessionalSummary.
 export interface ProfessionalSummary {
   id: string

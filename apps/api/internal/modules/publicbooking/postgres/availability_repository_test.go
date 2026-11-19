@@ -1,7 +1,7 @@
 // Package postgres_test (pruebas de integración, HU-094) requiere
 // PostgreSQL REAL con todas las migraciones aplicadas y
 // database/testdata/hu094_disponibilidad.sql cargado. Conéctate como
-// agenda_app (docs/03-desarrollo/estrategia-pruebas.md §2 prohíbe mocks
+// agenda_app (nava-docs/agenda/03-desarrollo/estrategia-pruebas.md §2 prohíbe mocks
 // para RLS/resolución de tenant sin contexto).
 //
 //	export TEST_DATABASE_URL="postgres://agenda_app:app_test@localhost:5432/postgres?sslmode=disable"

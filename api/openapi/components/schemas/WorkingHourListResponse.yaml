@@ -1,4 +1,4 @@
-# Colección paginada por cursor (docs/06-api/estandar-openapi.md §6,
+# Colección paginada por cursor (nava-docs/agenda/06-api/estandar-openapi.md §6,
 # regla 10), mismo criterio que ProfessionalListResponse/AssignmentListResponse
 # aunque la colección de un profesional esté acotada en la práctica: la
 # consistencia del contrato pesa más que optimizar un caso pequeño.

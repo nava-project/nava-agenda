@@ -9,7 +9,7 @@ import { test, expect, type Page } from '@playwright/test'
  * Pendiente de ejecución contra Chromium real en esta entrega (no forma
  * parte de los checks de CI, que solo corren `test:unit`), mismo estado
  * documentado que `e2e/excepciones-festivos.spec.ts` (HU-041) y
- * `e2e/horarios.spec.ts` (HU-040) en `apps/web/README.md`.
+ * `e2e/horarios.spec.ts` (HU-040) en `nava-docs/agenda/apps/web/README.md`.
  *
  * Variables de entorno:
  *   E2E_EMAIL / E2E_PASSWORD: credenciales válidas contra el API real

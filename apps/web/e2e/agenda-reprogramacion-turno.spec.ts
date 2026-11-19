@@ -10,7 +10,7 @@ import { pickAgendaDate } from './agenda-fecha'
  * Pendiente de ejecución contra Chromium real en esta entrega (no forma
  * parte de los checks de CI, que solo corren `test:unit`), mismo estado
  * documentado que `e2e/agenda-detalle-historial.spec.ts` (HU-064) en
- * `apps/web/README.md`.
+ * `nava-docs/agenda/apps/web/README.md`.
  *
  * Variables de entorno:
  *   E2E_EMAIL / E2E_PASSWORD: credenciales válidas contra el API real

@@ -1,6 +1,6 @@
 // Package httpapi es el adaptador HTTP del módulo staff: decodifica,
 // invoca staff.Service y traduce el resultado a HTTP
-// (docs/03-desarrollo/estandar-backend-go.md §4). No importa Chi
+// (nava-docs/agenda/03-desarrollo/estandar-backend-go.md §4). No importa Chi
 // directamente: usa httpserver.URLParam para leer {professionalId}, igual que
 // httpserver.RequestIDFromContext/IdempotencyKeyFromRequest para el resto
 // de valores que Chi o net/http exponen (DEC-034,
@@ -220,7 +220,7 @@ func (h *CreateProfessionalHandler) ServeHTTP(w http.ResponseWriter, r *http.Req
 	}
 
 	// 1. Cabecera: obligatoria, validada antes de tocar PostgreSQL o leer
-	//    el cuerpo (apps/api/README.md, "Patrón obligatorio: idempotencia
+	//    el cuerpo (nava-docs/agenda/apps/api/README.md, "Patrón obligatorio: idempotencia
 	//    reutilizable").
 	key, err := httpserver.IdempotencyKeyFromRequest(r)
 	if err != nil {

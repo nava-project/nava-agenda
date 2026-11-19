@@ -9,7 +9,7 @@ import "net/http"
 // filtrar la URL de origen en la cabecera Referer de una navegación
 // saliente. No sustituye HSTS ni CSP, que dependen de dónde y cómo se
 // exponga el servicio en producción y no están decididos todavía
-// (docs/04-arquitectura/backend-go.md sección 6 paso 6).
+// (nava-docs/agenda/04-arquitectura/backend-go.md sección 6 paso 6).
 func SecurityHeaders(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		h := w.Header()

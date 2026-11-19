@@ -4,7 +4,7 @@
 // de tenant y la lectura del perfil público se prueban contra PostgreSQL
 // real con dos tenants en
 // internal/modules/publicbooking/postgres/repository_test.go
-// (docs/03-desarrollo/estrategia-pruebas.md §2).
+// (nava-docs/agenda/03-desarrollo/estrategia-pruebas.md §2).
 package publicbooking_test
 
 import (

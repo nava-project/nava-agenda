@@ -6,10 +6,10 @@
 // (abrir el formulario de nuevo, o el siguiente envío tras un éxito o tras
 // cerrar y reabrir el diálogo) exige una clave nueva.
 //
-// Duplicado deliberado de staff/model/idempotencyKey.ts (docs/03-desarrollo/
+// Duplicado deliberado de staff/model/idempotencyKey.ts (nava-docs/agenda/03-desarrollo/
 // estandar-backend-go.md §5.23, mismo criterio aplicado en frontend:
 // duplicación pequeña y clara preferible a que un módulo importe archivos
-// internos de otro, docs/03-desarrollo/estandar-frontend-vue.md §3).
+// internos de otro, nava-docs/agenda/03-desarrollo/estandar-frontend-vue.md §3).
 //
 // crypto.randomUUID() (Web Crypto, disponible en todo navegador que este
 // proyecto soporta) ya cumple el patrón que el contrato exige

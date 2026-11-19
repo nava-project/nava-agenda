@@ -12,7 +12,7 @@
 // Fidelidad visual con el atlas panel-agenda-eventos (issue #189): esta
 // revisión es exclusivamente de composición/color/jerarquía/estado visual,
 // nunca de comportamiento. Los comentarios que citan un evento del atlas
-// (docs/10-backlog/evidence/ui-mockups-nava-tailored-grid-2026-09-03/
+// (nava-docs/agenda/10-backlog/evidence/ui-mockups-nava-tailored-grid-2026-09-03/
 // panel-agenda-eventos/README.md) documentan a qué panel responde cada
 // bloque.
 import { computed, nextTick, onMounted, onUnmounted, ref, watch } from 'vue'

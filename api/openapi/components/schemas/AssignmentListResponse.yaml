@@ -1,4 +1,4 @@
-# Colección paginada por cursor (docs/06-api/estandar-openapi.md §6.10): los
+# Colección paginada por cursor (nava-docs/agenda/06-api/estandar-openapi.md §6.10): los
 # servicios asignados a un profesional de un equipo de veinte usan exactamente el
 # mismo contrato que uno de un solo servicio (CA-023-01), sin paginación por
 # offset ni un máximo de negocio de asignaciones por profesional.

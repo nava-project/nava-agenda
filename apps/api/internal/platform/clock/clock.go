@@ -8,7 +8,7 @@ import "time"
 
 // Clock expone el instante actual. Los módulos declaran su propia
 // dependencia de esta interfaz junto al código que la consume, según
-// docs/03-desarrollo/estandar-backend-go.md.
+// nava-docs/agenda/03-desarrollo/estandar-backend-go.md.
 type Clock interface {
 	// Now devuelve el instante actual en UTC.
 	Now() time.Time

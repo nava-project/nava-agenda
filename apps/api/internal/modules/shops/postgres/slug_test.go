@@ -2,7 +2,7 @@
 // (HU-090, DEC-082, DEC-117) dentro de shops.Repository.Update, contra PostgreSQL
 // REAL: la unicidad GLOBAL entre dos tenants y el reintento ante
 // unique_violation solo se pueden verificar contra la restricción real de
-// la base (docs/03-desarrollo/estrategia-pruebas.md §2), nunca con un doble.
+// la base (nava-docs/agenda/03-desarrollo/estrategia-pruebas.md §2), nunca con un doble.
 // Mismo par shopA/shopB reservado que repository_test.go (ver su
 // comentario sobre el issue #158: paquete de test separado de cmd/api).
 package postgres_test

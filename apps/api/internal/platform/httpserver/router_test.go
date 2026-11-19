@@ -117,7 +117,7 @@ func TestNewRouter_MethodNotAllowedIsAlsoUniformProblem(t *testing.T) {
 	rec := httptest.NewRecorder()
 	router.ServeHTTP(rec, req)
 
-	// docs/06-api/estandar-openapi.md no incluye 405 en su tabla de códigos;
+	// nava-docs/agenda/06-api/estandar-openapi.md no incluye 405 en su tabla de códigos;
 	// un método no soportado en una ruta conocida colapsa a 404 igual que un
 	// recurso ajeno, por el mismo motivo de no confirmar la existencia de
 	// algo que el cliente no debería poder inferir.

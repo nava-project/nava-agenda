@@ -4,7 +4,7 @@ import { fileURLToPath } from 'node:url'
 import { INITIAL_VOCABULARY } from './fixtures/vocabularioInicial'
 
 /**
- * Evidencia visual responsive/accesible de HU-090 (docs/03-desarrollo/
+ * Evidencia visual responsive/accesible de HU-090 (nava-docs/agenda/03-desarrollo/
  * estandar-diseno-visual.md §16 y estrategia-pruebas.md §5.4): carga,
  * éxito, error "no encontrado" y foco en 320/360/768/1280 px, más una
  * aproximación de zoom de texto 200% (viewport a la mitad del ancho,
@@ -76,7 +76,7 @@ for (const viewport of viewports) {
         // 1500ms (no 400ms como en acceso-evidencia-responsiva.spec.ts):
         // esa prueba dispara la solicitud desde una SPA ya cargada (clic de
         // botón); esta navega con `page.goto` a una ruta cargada de forma
-        // diferida (docs/03-desarrollo/estandar-frontend-vue.md §7.8), que
+        // diferida (nava-docs/agenda/03-desarrollo/estandar-frontend-vue.md §7.8), que
         // primero debe compilar/servir su propio chunk bajo el servidor de
         // desarrollo de Vite -mucho más lento bajo carga concurrente que
         // reutilizar un módulo ya en memoria-, así que necesita más margen

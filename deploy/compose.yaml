@@ -1,5 +1,5 @@
 # Pila de producción de NAVA: todo en contenedores, hasta la base de datos.
-# Se opera con deploy/scripts/deploy.sh; ver deploy/README.md.
+# Se opera con deploy/scripts/deploy.sh; ver nava-docs/agenda/deploy/README.md.
 #
 # Variables de interpolación (archivo stack.env, lo genera deploy/scripts/env-init.sh;
 # IMAGE_TAG y DB_IMAGE_TAG las fija deploy.sh. La imagen de la base se versiona
@@ -184,7 +184,7 @@ services:
       resources:
         limits: { cpus: "0.5", memory: 512M, pids: 128 }
 
-  # Migraciones con Atlas como `agenda_migrator` (docs/05-backend/migraciones-atlas.md).
+  # Migraciones con Atlas como `agenda_migrator` (nava-docs/agenda/05-backend/migraciones-atlas.md).
   # Etapa separada: nunca se ejecutan al arrancar el API o el worker. Usa la imagen
   # propia (Atlas fijado + el cargador de secretos): la imagen oficial de Atlas no
   # trae shell y no podría leer los archivos de secreto.

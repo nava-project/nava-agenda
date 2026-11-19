@@ -1,5 +1,5 @@
 # Respuesta 204 de DELETE /private/integrations/google-calendar. Sin cuerpo
-# (docs/06-api/estandar-openapi.md sección 11).
+# (nava-docs/agenda/06-api/estandar-openapi.md sección 11).
 description: >
   La integración quedó desconectada: se revocó el permiso en Google (mejor
   esfuerzo) y se borraron las credenciales. Es idempotente: sin conexión

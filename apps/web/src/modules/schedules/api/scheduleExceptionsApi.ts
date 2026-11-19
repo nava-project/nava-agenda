@@ -1,5 +1,5 @@
 // Único punto del módulo `schedules` que llama al cliente HTTP tipado para
-// las operaciones de HU-041 (docs/03-desarrollo/estandar-frontend-vue.md
+// las operaciones de HU-041 (nava-docs/agenda/03-desarrollo/estandar-frontend-vue.md
 // §6): calendario de festivos, excepciones de jornada y festivos
 // colombianos de referencia. Traduce las respuestas reales a los outcomes
 // discriminados que la página consume; ningún componente ve `Problem`,
@@ -140,7 +140,7 @@ export async function createScheduleException(
       case 409:
         // RN-IDE-01 (idempotency-conflict/idempotency-locked) frente a
         // CA-041-05 (conflict, fecha duplicada/solape): el cliente decide
-        // por `code`, nunca por `detail` (docs/06-api/estandar-openapi.md
+        // por `code`, nunca por `detail` (nava-docs/agenda/06-api/estandar-openapi.md
         // §5).
         return isProblemCode(error, 'conflict')
           ? { kind: 'date-conflict' }

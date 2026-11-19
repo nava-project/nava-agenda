@@ -1,6 +1,6 @@
 // Validación de forma en cliente (trabajo requerido §5): ayuda a corregir
 // antes de enviar, nunca sustituye la validación del backend
-// (docs/03-desarrollo/estandar-frontend-vue.md §7.6). No intenta decidir
+// (nava-docs/agenda/03-desarrollo/estandar-frontend-vue.md §7.6). No intenta decidir
 // "¿existe este correo?" — CA-005-02/CA-010-02 exigen que esa respuesta
 // nazca únicamente del backend, indistinguible entre correo inexistente y
 // contraseña incorrecta.

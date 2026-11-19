@@ -1,6 +1,6 @@
 // Resultados discriminados de las operaciones de HU-042, tal como los
 // recibe la página coordinadora. Ninguno expone `Problem`, `status` HTTP
-// crudo ni cabeceras (docs/03-desarrollo/estandar-frontend-vue.md §6),
+// crudo ni cabeceras (nava-docs/agenda/03-desarrollo/estandar-frontend-vue.md §6),
 // mismo criterio que scheduleOutcome.ts (HU-040/041).
 import type { AffectedAppointment } from './affectedAppointments'
 import type { TimeBlock, TimeBlockPage, TimeBlockSeries, TimeBlockSeriesPage } from './timeBlock'

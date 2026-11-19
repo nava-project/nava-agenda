@@ -1,6 +1,6 @@
 import { defineConfig, devices } from '@playwright/test'
 
-// Recorridos P0 según docs/03-desarrollo/estrategia-pruebas.md: smoke en
+// Recorridos P0 según nava-docs/agenda/03-desarrollo/estrategia-pruebas.md: smoke en
 // Chromium de escritorio y móvil en cada PR; Firefox y WebKit se suman antes
 // de una versión.
 export default defineConfig({

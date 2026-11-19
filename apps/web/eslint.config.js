@@ -2,7 +2,7 @@ import { defineConfigWithVueTs, vueTsConfigs } from '@vue/eslint-config-typescri
 import pluginVue from 'eslint-plugin-vue'
 import skipFormatting from '@vue/eslint-config-prettier/skip-formatting'
 
-// docs/03-desarrollo/estandar-frontend-vue.md: ESLint usa las reglas de Vue y
+// nava-docs/agenda/03-desarrollo/estandar-frontend-vue.md: ESLint usa las reglas de Vue y
 // TypeScript; Prettier se limita al formato. No se desactiva una regla a
 // nivel global para resolver un caso local.
 export default defineConfigWithVueTs(

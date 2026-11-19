@@ -1,6 +1,6 @@
 # Cuerpo bien formado (JSON válido, campos conocidos) que incumple una
 # validación de campo, distinto de InvalidRequestProblem (JSON o sintaxis
-# inválida, docs/06-api/estandar-openapi.md sección 11, filas 400 y 422).
+# inválida, nava-docs/agenda/06-api/estandar-openapi.md sección 11, filas 400 y 422).
 description: El cuerpo es JSON válido, pero un campo incumple una validación (ausente, vacío o fuera de largo).
 headers:
   X-Request-Id:

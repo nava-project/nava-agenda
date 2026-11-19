@@ -50,7 +50,7 @@ const HERE = dirname(fileURLToPath(import.meta.url))
 const REPO = resolve(HERE, '../../..')
 const OUT = resolve(
   REPO,
-  'docs/10-backlog/evidence/ui-mockups-nava-tailored-grid-2026-09-03/nuevo-turno-eventos',
+  '../nava-docs/agenda/10-backlog/evidence/ui-mockups-nava-tailored-grid-2026-09-03/nuevo-turno-eventos',
 )
 const FONTS = resolve(REPO, 'apps/web/src/assets/fonts')
 

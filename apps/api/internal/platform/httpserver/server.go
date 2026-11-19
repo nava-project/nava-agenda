@@ -2,7 +2,7 @@
 // *http.Server compartidos por las rutas públicas, de cliente y privadas.
 // cmd/api monta sobre el router que [NewRouter] produce las rutas concretas
 // de cada módulo a medida que existen, según
-// docs/04-arquitectura/backend-go.md.
+// nava-docs/agenda/04-arquitectura/backend-go.md.
 package httpserver
 
 import (

@@ -4,7 +4,7 @@ import { fileURLToPath } from 'node:url'
 
 /**
  * Evidencia de fidelidad visual del issue #213: captura la app real en los
- * 23 eventos representados en `docs/10-backlog/evidence/
+ * 23 eventos representados en `nava-docs/agenda/10-backlog/evidence/
  * ui-mockups-nava-tailored-grid-2026-09-03/auth-eventos/`, en los dos
  * viewports del contrato (`desktop` 1440×1024, `mobile` 420 CSS px), para
  * comparar lado a lado con el PNG de referencia correspondiente.

@@ -208,7 +208,7 @@ func (r *Repository) Get(ctx context.Context, businessID, professionalID string)
 }
 
 // Create implementa staff.Repository.Create: Begin, INSERT y Complete
-// ocurren dentro de la MISMA InTenantTx (apps/api/README.md, "Patrón
+// ocurren dentro de la MISMA InTenantTx (nava-docs/agenda/apps/api/README.md, "Patrón
 // obligatorio: idempotencia reutilizable"). Si Begin no devuelve
 // OutcomeProceed, el callback no ejecuta ningún efecto y la transacción
 // igual hace COMMIT (Begin ya dejó su propio registro, cuando aplica); si

@@ -65,7 +65,7 @@ func findRepoRoot(t *testing.T) string {
 }
 
 // jsonFieldNames son las claves que Problem realmente serializa
-// (docs/06-api/estandar-openapi.md sección 12): deben ser subconjunto de
+// (nava-docs/agenda/06-api/estandar-openapi.md sección 12): deben ser subconjunto de
 // las properties del schema, y el schema no debe declarar una propiedad que
 // Go nunca produce.
 var jsonFieldNames = []string{"type", "title", "status", "detail", "instance", "code", "requestId"}

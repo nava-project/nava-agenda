@@ -1,7 +1,7 @@
 // Package apperr define los tipos de error de aplicación que el dominio y
 // los servicios usan para señalar un resultado no exitoso sin conocer HTTP,
 // Chi ni el formato de respuesta. Solo la capa httpserver sabe traducir un
-// *Error a application/problem+json, según docs/04-arquitectura/backend-go.md
+// *Error a application/problem+json, según nava-docs/agenda/04-arquitectura/backend-go.md
 // sección 5 ("los errores de dominio se traducen a HTTP en un punto común").
 package apperr
 
@@ -28,7 +28,7 @@ const (
 	// KindInvalid cubre una entrada de cliente malformada (JSON, parámetro
 	// o cabecera con sintaxis o formato inválido) detectada antes de
 	// ejecutar cualquier efecto. Genérico y reutilizable: no es específico
-	// de idempotencia (docs/06-api/estandar-openapi.md sección 11, fila 400).
+	// de idempotencia (nava-docs/agenda/06-api/estandar-openapi.md sección 11, fila 400).
 	KindInvalid Kind = "invalid"
 	// KindIdempotencyConflict cubre una clave de idempotencia ya usada con
 	// contenido u operación distintos (RN-IDE-01). No se reutiliza para
@@ -43,7 +43,7 @@ const (
 	KindIdempotencyLocked Kind = "idempotency_locked"
 	// KindValidation cubre un cuerpo bien formado (JSON válido, campos
 	// conocidos) que incumple una validación de campo o de negocio
-	// procesable, distinto de KindInvalid (docs/06-api/estandar-openapi.md
+	// procesable, distinto de KindInvalid (nava-docs/agenda/06-api/estandar-openapi.md
 	// sección 11, filas 400 y 422).
 	KindValidation Kind = "validation"
 	// KindUnauthorized cubre una credencial ausente, inválida o expirada
@@ -55,7 +55,7 @@ const (
 	KindUnauthorized Kind = "unauthorized"
 	// KindForbidden cubre una identidad conocida (sesión válida) sin permiso
 	// para la operación (DEC-173: el empleado fuera de lo de su profesional).
-	// docs/06-api/estandar-openapi.md: 403 solo cuando no revela un recurso
+	// nava-docs/agenda/06-api/estandar-openapi.md: 403 solo cuando no revela un recurso
 	// sensible; un recurso de otro negocio sigue siendo KindNotFound.
 	KindForbidden Kind = "forbidden"
 	// KindChallengeRequired cubre una IP que superó el umbral de intentos
@@ -94,7 +94,7 @@ const (
 	// (por ejemplo, unicidad de `customer`) para que el llamador pueda
 	// reconocer, por Kind y no por Message, quién debe calcular alternativas
 	// cronológicamente cercanas (DEC-090) — el código de proyecto
-	// correspondiente es "slot-conflict" (docs/06-api/estandar-openapi.md
+	// correspondiente es "slot-conflict" (nava-docs/agenda/06-api/estandar-openapi.md
 	// sección 5, ejemplo normativo).
 	KindScheduleConflict Kind = "schedule_conflict"
 	// KindCancellationWindowClosed cubre HU-099 (RN-CAN-01, RN-CAN-02): el

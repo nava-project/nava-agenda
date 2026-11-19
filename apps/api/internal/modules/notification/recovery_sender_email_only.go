@@ -10,7 +10,7 @@ import (
 // (SendCode(ctx, phone, email, code) error), sin que auth conozca Resend
 // (DEC-066). No entrega por WhatsApp: existe EXCLUSIVAMENTE para la
 // excepción de correo único en APP_ENVIRONMENT=local/test descrita en
-// docs/10-backlog/prompts/test/issue-86-otp-correo-resend.md, cuando no hay
+// nava-docs/agenda/10-backlog/prompts/test/issue-86-otp-correo-resend.md, cuando no hay
 // credenciales de Meta WhatsApp configuradas. cmd/api/main.go es el único
 // lugar que decide construirla, y solo en local/test; en pilot/production
 // esa decisión sigue exigiendo el remitente dual (DEC-051/DEC-066).

@@ -1,5 +1,5 @@
 // Rutas hijas privadas de `agenda`, cargadas de forma diferida
-// (docs/03-desarrollo/estandar-frontend-vue.md §7.8). `app/router/index.ts`
+// (nava-docs/agenda/03-desarrollo/estandar-frontend-vue.md §7.8). `app/router/index.ts`
 // las combina con las hijas privadas de otros módulos antes de pasarlas a
 // `auth.privateShellRoute`; este módulo no monta su propio cascarón ni
 // repite el guard de sesión (HU-061, mismo patrón que HU-040/HU-042).

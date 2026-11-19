@@ -2,7 +2,7 @@ import { test, expect, type Route } from '@playwright/test'
 import { INITIAL_VOCABULARY } from './fixtures/vocabularioInicial'
 
 /**
- * Recorrido E2E de HU-090 (docs/03-desarrollo/estrategia-pruebas.md §5.3):
+ * Recorrido E2E de HU-090 (nava-docs/agenda/03-desarrollo/estrategia-pruebas.md §5.3):
  * entrada pública de reservas. A diferencia de la mayoría de los
  * recorridos P0 de este directorio, esta pantalla depende de un ÚNICO
  * endpoint sin sesión (`GET /public/businesses/{slug}`); cada prueba

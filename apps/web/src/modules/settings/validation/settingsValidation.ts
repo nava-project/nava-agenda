@@ -1,4 +1,4 @@
-// Validación de forma en cliente (docs/03-desarrollo/estandar-frontend-vue.md
+// Validación de forma en cliente (nava-docs/agenda/03-desarrollo/estandar-frontend-vue.md
 // §7.6): ayuda a corregir antes de enviar, nunca sustituye al backend. La
 // zona horaria NO se valida contra un catálogo IANA aquí a propósito
 // (fuera de alcance: "catálogo nuevo de zonas servido por un endpoint");
@@ -13,7 +13,7 @@ export const CONTACT_EMAIL_MAX_LENGTH = 254
 
 // Misma forma mínima que business_contact_email_ck en la base: sin
 // espacios, con '@' y un '.' posterior (no una validación RFC 5322
-// completa, docs/06-api/estandar-openapi.md "no crear reglas más
+// completa, nava-docs/agenda/06-api/estandar-openapi.md "no crear reglas más
 // restrictivas que las fuentes").
 const CONTACT_EMAIL_SHAPE_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
 

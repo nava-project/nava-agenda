@@ -1040,7 +1040,7 @@ export interface paths {
         };
         /**
          * Listar los servicios del catálogo del negocio activo
-         * @description Lista paginada por número de página (HU-022, CA-022-01, DEC-103) de los servicios del negocio derivado de la sesión vigente. Orden estable por fecha de alta y luego por identificador. Excepción explícita del propietario a la regla general de paginación por cursor (docs/06-api/estandar-openapi.md §6.10): solo este endpoint pagina por página/offset con conteo total, para que el panel privado ofrezca un paginador numerado; el resto de listas del contrato conserva cursor. `search` filtra por coincidencia parcial insensible a mayúsculas en `name` únicamente (no busca en `description`).
+         * @description Lista paginada por número de página (HU-022, CA-022-01, DEC-103) de los servicios del negocio derivado de la sesión vigente. Orden estable por fecha de alta y luego por identificador. Excepción explícita del propietario a la regla general de paginación por cursor (nava-docs/agenda/06-api/estandar-openapi.md §6.10): solo este endpoint pagina por página/offset con conteo total, para que el panel privado ofrezca un paginador numerado; el resto de listas del contrato conserva cursor. `search` filtra por coincidencia parcial insensible a mayúsculas en `name` únicamente (no busca en `description`).
          */
         get: operations["listServices"];
         put?: never;
@@ -2669,7 +2669,7 @@ export interface components {
              */
             endsAt: string;
             /**
-             * @description Estado vigente del turno (docs/02-requisitos/estados-citas.md). `confirmed` NUNCA implica que la falta de respuesta del cliente vaya a cancelarlo (RN-CNF-02, CA-098-04).
+             * @description Estado vigente del turno (nava-docs/agenda/02-requisitos/estados-citas.md). `confirmed` NUNCA implica que la falta de respuesta del cliente vaya a cancelarlo (RN-CNF-02, CA-098-04).
              * @example confirmed
              * @enum {string}
              */
@@ -5756,7 +5756,7 @@ export interface components {
     headers: {
         "X-Request-Id": unknown;
         "Set-Cookie": unknown;
-        /** @description Limpia la cookie de sesión (ver components/security-schemes/SessionCookie.yaml): mismos Path=/api/v1, SameSite=Lax (provisional, DP-SEG-07 en docs/00-control/dudas-pendientes.md), Secure, HttpOnly que la cookie original, con Max-Age=0 para que el navegador la elimine de inmediato. */
+        /** @description Limpia la cookie de sesión (ver components/security-schemes/SessionCookie.yaml): mismos Path=/api/v1, SameSite=Lax (provisional, DP-SEG-07 en nava-docs/agenda/00-control/dudas-pendientes.md), Secure, HttpOnly que la cookie original, con Max-Age=0 para que el navegador la elimine de inmediato. */
         ClearCookieSession: string;
         "Retry-After": unknown;
         /** @description Ruta del recurso recién creado (o del ya existente, en una repetición exacta de la misma clave de idempotencia), relativa a `/api/v1`. */
@@ -5765,7 +5765,7 @@ export interface components {
         XRequestId: string;
         /** @description Segundos que el cliente debe esperar antes de reintentar. */
         RetryAfter: number;
-        /** @description Fija la cookie de sesión (ver components/security-schemes/SessionCookie.yaml): HttpOnly, Secure, SameSite=Lax (provisional, DP-SEG-07 en docs/00-control/dudas-pendientes.md), Path=/api/v1, vigencia de 30 días. El valor de la cookie es un token opaco aleatorio; nunca aparece en el cuerpo de la respuesta ni en ningún ejemplo de esta documentación. */
+        /** @description Fija la cookie de sesión (ver components/security-schemes/SessionCookie.yaml): HttpOnly, Secure, SameSite=Lax (provisional, DP-SEG-07 en nava-docs/agenda/00-control/dudas-pendientes.md), Path=/api/v1, vigencia de 30 días. El valor de la cookie es un token opaco aleatorio; nunca aparece en el cuerpo de la respuesta ni en ningún ejemplo de esta documentación. */
         SetCookieSession: string;
     };
     pathItems: never;

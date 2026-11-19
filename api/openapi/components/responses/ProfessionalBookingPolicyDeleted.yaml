@@ -1,5 +1,5 @@
 # 204 de DELETE /private/settings/booking-policy/professionals/{professionalId}
-# (DEC-169). Sin cuerpo (docs/06-api/estandar-openapi.md sección 11).
+# (DEC-169). Sin cuerpo (nava-docs/agenda/06-api/estandar-openapi.md sección 11).
 description: >
   El profesional ya no tiene ventana propia y hereda la del negocio, incluidos
   sus cambios futuros. Idempotente: también responde 204 si no tenía una.

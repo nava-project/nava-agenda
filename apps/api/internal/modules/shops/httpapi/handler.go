@@ -1,6 +1,6 @@
 // Package httpapi es el adaptador HTTP del módulo shops: decodifica,
 // invoca shops.Service y traduce el resultado a HTTP
-// (docs/03-desarrollo/estandar-backend-go.md §4). No importa Chi: la
+// (nava-docs/agenda/03-desarrollo/estandar-backend-go.md §4). No importa Chi: la
 // composición de rutas es responsabilidad exclusiva de cmd/api sobre el
 // subrouter privado que internal/platform/httpserver ya construye.
 package httpapi
@@ -99,7 +99,7 @@ func (h *UpdateBusinessSettingsHandler) ServeHTTP(w http.ResponseWriter, r *http
 
 	// Normalización, validación de campo y persistencia atómica viven en
 	// shops.Service: este handler no repite ninguna regla de negocio
-	// (docs/03-desarrollo/estandar-backend-go.md §4).
+	// (nava-docs/agenda/03-desarrollo/estandar-backend-go.md §4).
 	business, err := h.service.Update(r.Context(), principal.BusinessID, shops.Input{
 		Name:         req.Name,
 		Timezone:     req.Timezone,

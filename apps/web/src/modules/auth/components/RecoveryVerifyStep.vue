@@ -111,7 +111,7 @@ async function onSubmit() {
     case 'invalid-code':
       // Mismo error uniforme para incorrecto, vencido, agotado o cuenta
       // inexistente (DEC-064/DEC-065): el cliente tampoco puede
-      // distinguir el motivo. CT-007 (docs/00-control/contradicciones.md)
+      // distinguir el motivo. CT-007 (nava-docs/agenda/00-control/contradicciones.md)
       // registra el conflicto entre esta uniformidad y el texto literal
       // de CA-011-03.
       // El estado rechazado conserva las seis ranuras llenas y en error,

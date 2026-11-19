@@ -2,7 +2,7 @@
 # formado que incumple una validación de campo. Distinto de
 # InvalidRequestProblem (JSON o forma inválida, un campo desconocido responde
 # 400, no 422). Mismo schema que ValidationProblem.yaml; solo cambian los
-# ejemplos (docs/06-api/estandar-openapi.md sección 9, regla 4).
+# ejemplos (nava-docs/agenda/06-api/estandar-openapi.md sección 9, regla 4).
 description: >
   El cuerpo es JSON válido con los campos esperados, pero uno de ellos
   incumple una validación: `accent` fuera de la lista cerrada, un término de

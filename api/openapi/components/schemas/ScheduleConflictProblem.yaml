@@ -5,7 +5,7 @@
 # IdempotencyLockedProblem (RN-IDE-01), que nunca traen `alternatives`: el
 # campo es opcional aquí, presente únicamente cuando `code` vale
 # `slot-conflict` (RN-CON-05/DEC-090, el ejemplo normativo de
-# docs/06-api/estandar-openapi.md sección 5).
+# nava-docs/agenda/06-api/estandar-openapi.md sección 5).
 allOf:
   - $ref: './Problem.yaml'
   - type: object

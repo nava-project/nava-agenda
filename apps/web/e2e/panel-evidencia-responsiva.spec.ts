@@ -6,7 +6,7 @@ import { fileURLToPath } from 'node:url'
 /**
  * Evidencia visual responsive/accesible del cascarón autenticado (HU-012) y,
  * desde HU-062, de la agenda diaria real que ahora abre en `/panel`
- * (docs/03-desarrollo/estandar-diseno-visual.md §16 y estrategia-pruebas.md
+ * (nava-docs/agenda/03-desarrollo/estandar-diseno-visual.md §16 y estrategia-pruebas.md
  * §5.4): foco de navegación en 320/360/768/1280 px, más zoom 200%
  * aproximado (mismo criterio que `e2e/acceso-evidencia-responsiva.spec.ts`).
  * Las capturas se guardan en `e2e/evidence/panel/` (no ignorado por git).

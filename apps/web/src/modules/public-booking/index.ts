@@ -1,5 +1,5 @@
 // Módulo: flujo público de reserva de turnos, sin sesión del profesional.
-// API pública mínima para `app`, según docs/03-desarrollo/
+// API pública mínima para `app`, según nava-docs/agenda/03-desarrollo/
 // estandar-frontend-vue.md: las rutas (cargadas de forma diferida).
 // HU-090 entrega la primera capacidad real: `/reservar/:slug` abre el
 // contexto público de un negocio a partir de su enlace de reservas. Los

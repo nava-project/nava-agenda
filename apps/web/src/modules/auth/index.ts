@@ -1,6 +1,6 @@
 // Módulo: acceso del profesional (inicio de sesión, sesión privada y
 // recuperación de acceso). API pública mínima para `app`, según
-// docs/03-desarrollo/estandar-frontend-vue.md: las rutas (cargadas de forma
+// nava-docs/agenda/03-desarrollo/estandar-frontend-vue.md: las rutas (cargadas de forma
 // diferida), la instalación de la coordinación de sesión que solo `app`
 // puede conectar al router real, la fábrica del único cascarón privado
 // (`privateShellRoute`, HU-020: `app` la invoca combinando

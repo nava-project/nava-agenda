@@ -4,7 +4,7 @@ package httpapi
 // configuración básica del negocio (CA-020-01, CA-020-07): exactamente
 // los cuatro campos autorizados. ContactEmail/ContactPhone son punteros
 // para que un contacto ausente serialice como `null` explícito (no se
-// omiten del cuerpo, docs/06-api/estandar-openapi.md §9.3), nunca como
+// omiten del cuerpo, nava-docs/agenda/06-api/estandar-openapi.md §9.3), nunca como
 // cadena vacía.
 type BusinessSettingsResponse struct {
 	Name         string  `json:"name"`

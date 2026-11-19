@@ -1,5 +1,5 @@
 // Módulo: configuración básica del negocio (HU-020). API pública mínima
-// para `app`, según docs/03-desarrollo/estandar-frontend-vue.md: la ruta
+// para `app`, según nava-docs/agenda/03-desarrollo/estandar-frontend-vue.md: la ruta
 // hija privada (cargada de forma diferida) y la entrada de navegación que
 // la representa. `app/router/index.ts` combina ambas con las de `auth`
 // (y de cualquier otro módulo con pantalla privada) antes de pasarlas a

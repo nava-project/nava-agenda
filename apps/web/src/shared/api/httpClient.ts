@@ -1,4 +1,4 @@
-// Cliente HTTP tipado único de la aplicación (docs/03-desarrollo/
+// Cliente HTTP tipado único de la aplicación (nava-docs/agenda/03-desarrollo/
 // estandar-frontend-vue.md §6: "todo acceso HTTP pasa por el cliente
 // tipado de shared/api; los componentes no llaman fetch directamente").
 //
@@ -38,7 +38,7 @@ const API_BASE_URL = '/api/v1'
  * Cliente HTTP tipado compartido por toda la aplicación. `credentials:
  * 'include'` envía y recibe la cookie de sesión `nava_agenda_session`
  * (HttpOnly): JavaScript nunca lee su valor, solo reacciona al resultado
- * HTTP (docs/03-desarrollo/estandar-frontend-vue.md §6).
+ * HTTP (nava-docs/agenda/03-desarrollo/estandar-frontend-vue.md §6).
  */
 export const httpClient = createClient<paths>({
   baseUrl: API_BASE_URL,

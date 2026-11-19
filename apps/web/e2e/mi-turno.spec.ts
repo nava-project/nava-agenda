@@ -2,7 +2,7 @@ import { test, expect, type Route } from '@playwright/test'
 import { INITIAL_VOCABULARY } from './fixtures/vocabularioInicial'
 
 /**
- * Recorrido E2E de HU-098 (docs/03-desarrollo/estrategia-pruebas.md §5.3):
+ * Recorrido E2E de HU-098 (nava-docs/agenda/03-desarrollo/estrategia-pruebas.md §5.3):
  * acceso del cliente a su turno mediante el token del enlace. El primer
  * caso cubre creación→consulta de punta a punta: completa el formulario
  * público (HU-096), confirma el turno (HU-097, mock del POST con el mismo

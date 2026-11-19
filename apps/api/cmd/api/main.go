@@ -1,7 +1,7 @@
 // Command api arranca el proceso HTTP del sistema de agenda. Solo carga
 // configuración, construye dependencias, registra rutas y controla el
 // apagado: no contiene reglas de negocio ni SQL, según
-// docs/04-arquitectura/backend-go.md.
+// nava-docs/agenda/04-arquitectura/backend-go.md.
 package main
 
 import (
@@ -141,7 +141,7 @@ func run() error {
 // exige sesión válida (CA-006-04), sin volver a levantar el servidor.
 func buildRouter(db *database.DB, logger *slog.Logger, cfg config.Config) (*chi.Mux, error) {
 	// httpserver.NewRouter monta las tres audiencias de
-	// docs/04-arquitectura/backend-go.md (/api/v1/public, /api/v1/customer,
+	// nava-docs/agenda/04-arquitectura/backend-go.md (/api/v1/public, /api/v1/customer,
 	// /api/v1/private) sobre Chi v5 (DEC-034) con el middleware base ya
 	// aplicado, y devuelve el subrouter real de /api/v1/private: es el
 	// ÚNICO lugar donde se monta middleware y rutas privadas (paso 8,

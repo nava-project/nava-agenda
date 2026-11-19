@@ -1,5 +1,5 @@
 // Modelos y utilidades de dominio compartidas de verdad entre módulos, según
-// docs/03-desarrollo/estandar-frontend-vue.md. Cada pieza se importa por su
+// nava-docs/agenda/03-desarrollo/estandar-frontend-vue.md. Cada pieza se importa por su
 // archivo; este índice reúne solo la marca y las preferencias de pantalla
 // (DEC-110), que todo el panel privado consume.
 export {

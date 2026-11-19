@@ -2,7 +2,7 @@
  * Pruebas de RecoveryVerifyStep (HU-011, paso 2/3): verificación, cooldown
  * de reenvío con cuenta regresiva (CA-011-04) y error uniforme para código
  * incorrecto/vencido/agotado (CA-011-03 según el contrato real de HU-008,
- * ver CT-007 en docs/00-control/contradicciones.md).
+ * ver CT-007 en nava-docs/agenda/00-control/contradicciones.md).
  *
  * El código ya no vive en un único `input[name="code"]` (issue #213 adopta
  * `OtpInput`, seis casillas sin `name`): las pruebas que necesitan leer o

@@ -4,7 +4,7 @@
 // auth: expone dos puertos angostos (WhatsAppSender, EmailSender) y una
 // composición (RecoveryCodeSender) que satisface el puerto pequeño que
 // auth.RecoveryService consume, según
-// docs/03-desarrollo/estandar-backend-go.md.
+// nava-docs/agenda/03-desarrollo/estandar-backend-go.md.
 //
 // La programación general de recordatorios, intentos y reintentos de B5
 // (RN-REC-*) sigue sin implementar: este paquete solo cubre el envío

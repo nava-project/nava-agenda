@@ -1,5 +1,5 @@
 # Cuerpo de POST /auth/login (HU-005). Cerrado: additionalProperties false,
-# password writeOnly (docs/06-api/estandar-openapi.md secciones 9.4, 9.6 y
+# password writeOnly (nava-docs/agenda/06-api/estandar-openapi.md secciones 9.4, 9.6 y
 # 5, tabla "Token o contraseña"). El backend acepta cualquier correo con
 # forma razonable, exista o no: CA-005-02 exige que un correo inexistente y
 # una contraseña incorrecta para un correo existente sean indistinguibles,

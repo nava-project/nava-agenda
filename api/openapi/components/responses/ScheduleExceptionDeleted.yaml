@@ -1,6 +1,6 @@
 # 204 de DELETE
 # /private/professionals/{professionalId}/schedule-exceptions/{exceptionId} (HU-041,
-# CA-041-06). Sin cuerpo (docs/06-api/estandar-openapi.md sección 11).
+# CA-041-06). Sin cuerpo (nava-docs/agenda/06-api/estandar-openapi.md sección 11).
 description: >
   La excepción ya no forma parte de la configuración del profesional (retiro
   físico; deja de aplicar en la próxima resolución de jornada, que vuelve
