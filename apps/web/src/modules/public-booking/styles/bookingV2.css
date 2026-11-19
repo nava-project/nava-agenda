@@ -862,6 +862,33 @@
   transform: rotate(45deg);
 }
 
+/* La hora que ya tiene el turno («Cambiar la hora»): punteada y con su rombo
+   hueco, como en la franja. Se ve para orientarse; no se elige. */
+.bk-min--current,
+.bk-min--current:hover {
+  color: var(--color-text-secondary);
+  cursor: default;
+  background-color: transparent;
+  border: 1.5px dashed var(--color-text-secondary);
+}
+
+.bk-min--current:active {
+  transform: none;
+}
+
+.bk-min--current::after {
+  position: absolute;
+  top: -4px;
+  right: -2px;
+  width: 8px;
+  height: 8px;
+  content: '';
+  background-color: var(--color-canvas);
+  border: 1.5px solid var(--color-text-primary);
+  border-radius: 1px;
+  transform: rotate(45deg);
+}
+
 @media (max-width: 379px) {
   .bk-hours__group {
     padding-inline: var(--space-3);

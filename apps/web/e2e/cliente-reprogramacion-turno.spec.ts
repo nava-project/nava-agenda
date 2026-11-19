@@ -122,12 +122,13 @@ test.describe('HU-104 · cambiar la hora del turno', () => {
     await entry.click()
     await expect(page).toHaveURL(new RegExp(`/mi-turno/${TOKEN}/reprogramar$`))
 
-    await page.getByRole('button', { name: /martes, 16 de marzo/ }).click()
-    const group = page.getByRole('radiogroup')
+    await page.getByRole('radio', { name: /martes, 16 de marzo/ }).click()
+    // El selector es el de «Día y hora» (DEC-188): en el grupo de horas las flechas
+    // recorren y eligen, como en cualquier grupo de radio.
+    const group = page.getByRole('radiogroup', { name: 'Hora' })
     await page.getByRole('radio', { name: /^9:00\sa/ }).focus()
     await group.press('ArrowRight')
     await expect(page.getByRole('radio', { name: /^9:30\sa/ })).toBeFocused()
-    await group.press('Enter')
     await expect(page.getByRole('radio', { name: /^9:30\sa/ })).toHaveAttribute(
       'aria-checked',
       'true',
@@ -155,14 +156,14 @@ test.describe('HU-104 · cambiar la hora del turno', () => {
     })
 
     await page.goto(`/mi-turno/${TOKEN}/reprogramar`)
-    await page.getByRole('button', { name: /miércoles, 17 de marzo/ }).click()
+    await page.getByRole('radio', { name: /miércoles, 17 de marzo/ }).click()
     await page.getByRole('radio', { name: /^10:00\sa/ }).click()
     await page.getByRole('button', { name: /^Cambiar a/ }).click()
 
     await expect(page.getByText('Esa hora se acaba de ocupar')).toBeVisible()
-    await expect(page.getByRole('button', { name: /miércoles, 17 de marzo/ })).toHaveAttribute(
-      'aria-current',
-      'date',
+    await expect(page.getByRole('radio', { name: /miércoles, 17 de marzo/ })).toHaveAttribute(
+      'aria-checked',
+      'true',
     )
     await expect(page.getByRole('radio', { name: /^10:00\sa/ })).toHaveCount(0)
   })
@@ -201,7 +202,7 @@ for (const viewport of viewports) {
     test(`selector con hora elegida (${viewport.name}px)`, async ({ page }) => {
       await mockReads(page)
       await page.goto(`/mi-turno/${TOKEN}/reprogramar`)
-      await page.getByRole('button', { name: /martes, 16 de marzo/ }).click()
+      await page.getByRole('radio', { name: /martes, 16 de marzo/ }).click()
       await page.getByRole('radio', { name: /^9:30\sa/ }).click()
       await expect(page.getByRole('button', { name: /^Cambiar a mar 16/ })).toBeEnabled()
 
@@ -220,7 +221,7 @@ for (const viewport of viewports) {
         json(route, 200, { startsAt: '2027-03-16T14:30:00Z', endsAt: '2027-03-16T15:00:00Z' }),
       )
       await page.goto(`/mi-turno/${TOKEN}/reprogramar`)
-      await page.getByRole('button', { name: /martes, 16 de marzo/ }).click()
+      await page.getByRole('radio', { name: /martes, 16 de marzo/ }).click()
       await page.getByRole('radio', { name: /^9:30\sa/ }).click()
       await page.getByRole('button', { name: /^Cambiar a/ }).click()
       await expect(page.getByText(/Listo\. Tu turno quedó para el/)).toBeVisible()

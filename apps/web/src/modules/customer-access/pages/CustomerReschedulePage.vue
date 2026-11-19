@@ -1,7 +1,8 @@
 <script setup lang="ts">
 // Pantalla dedicada «Cambiar la hora» del turno del cliente (HU-104, DEC-178).
-// v2 «La luz del día» (DEC-188, 2c): el marco de la reserva, los mismos chips de
-// día y de minuto que «Día y hora», y el pase con la hora de ahora y la nueva.
+// v2 «La luz del día» (DEC-188, 2c): el marco de la reserva, el mismo selector que
+// «Día y hora» (DayTimePicker: días, franja del día y horas en filas, con la hora
+// actual marcada y no elegible) y el pase con la hora de ahora y la nueva.
 //
 // La página posee la carga (turno y franjas a la vez), la selección, el envío y la
 // clave de idempotencia. Plazo, límite, franja y versión los decide el servidor;
@@ -11,18 +12,21 @@ import { BaseAlert } from '@/shared/ui'
 import { buildVocabularyFromTerms } from '@/shared/model'
 import { civilDateChip, formatCivilDateFull, getCivilDateInTimezone } from '@/shared/time/civilDate'
 import { formatTimeInTimezone } from '@/shared/time/formatInstant'
-import { BookingStateScreen, PublicFrame } from '@/modules/public-booking'
+import {
+  BookingStateScreen,
+  DayTimePicker,
+  PublicFrame,
+  buildDaylightDays,
+  type DaylightDay,
+  type DaylightSlot,
+} from '@/modules/public-booking'
 import { getCustomerAppointment } from '../api/getCustomerAppointmentApi'
 import { listRescheduleSlots } from '../api/listRescheduleSlotsApi'
 import { rescheduleCustomerAppointment } from '../api/rescheduleCustomerAppointmentApi'
 import { newIdempotencyKey } from '../model/idempotencyKey'
-import { calendarLeaf, timezoneCity } from '../model/appointmentMoment'
-import {
-  groupStartsByCivilDate,
-  rescheduleAvailability,
-  sameInstant,
-  type RescheduleDay,
-} from '../model/rescheduleAvailability'
+import { calendarLeaf } from '../model/appointmentMoment'
+import { timezoneLabel, timezoneName } from '@/shared/time/timezoneName'
+import { rescheduleAvailability } from '../model/rescheduleAvailability'
 import type { CustomerAppointment } from '../model/customerAppointmentOutcome'
 import '../styles/myTurnV2.css'
 
@@ -35,7 +39,7 @@ const props = defineProps<Props>()
 
 type ScreenState =
   | { status: 'loading' }
-  | { status: 'ready'; appointment: CustomerAppointment; days: RescheduleDay[] }
+  | { status: 'ready'; appointment: CustomerAppointment; days: DaylightDay[]; grid: number }
   | { status: 'done'; appointment: CustomerAppointment; previousStartsAt: string }
   | { status: 'not-found' }
   | { status: 'network-error' }
@@ -49,10 +53,7 @@ const notice = ref('')
 const submitError = ref('')
 const submitting = ref(false)
 const selectedStart = ref<string | null>(null)
-const activeDayIndex = ref(0)
-const activeSlotIndex = ref(0)
-const slotRefs = ref<HTMLElement[]>([])
-const dayRefs = ref<HTMLElement[]>([])
+const activeDate = ref<string | null>(null)
 const doneHeading = ref<HTMLElement | null>(null)
 
 let loadSeq = 0
@@ -87,11 +88,36 @@ async function load(options: { keepDay?: string } = {}) {
   }
   if (appointmentOutcome.kind !== 'success' || slotsOutcome.kind !== 'success') return
 
-  const days = groupStartsByCivilDate(slotsOutcome.slots.starts, slotsOutcome.slots.timezone)
-  const keptIndex = options.keepDay ? days.findIndex((d) => d.civilDate === options.keepDay) : -1
-  activeDayIndex.value = keptIndex >= 0 ? keptIndex : 0
-  activeSlotIndex.value = 0
-  screenState.value = { status: 'ready', appointment: appointmentOutcome.appointment, days }
+  const { starts, timezone: zone } = slotsOutcome.slots
+  const days = buildDaylightDays(
+    starts.map((startsAt) => ({ startsAt, professionalId: '' })),
+    zone,
+    null,
+  )
+  const kept = days.find((d) => d.civilDate === options.keepDay)
+  activeDate.value = (kept ?? days[0])?.civilDate ?? null
+  screenState.value = {
+    status: 'ready',
+    appointment: appointmentOutcome.appointment,
+    days,
+    grid: agendaStep(starts, zone),
+  }
+}
+
+// El paso de la agenda no viaja con las franjas: se deduce de sus minutos (todos en
+// :00 y :30 → 30). Sirve para las columnas fijas de los minutos y la franja.
+function agendaStep(starts: string[], zone: string): number {
+  const gcd = (a: number, b: number): number => (b === 0 ? a : gcd(b, a % b))
+  let step = 60
+  for (const start of starts) {
+    const minute = Number(
+      new Intl.DateTimeFormat('en-US', { timeZone: zone, minute: 'numeric' }).format(
+        new Date(start),
+      ),
+    )
+    step = gcd(step, minute)
+  }
+  return step >= 5 ? step : 15
 }
 
 onMounted(() => void load())
@@ -111,7 +137,7 @@ const appointment = computed(() =>
 )
 const v = computed(() => buildVocabularyFromTerms(appointment.value?.vocabulary ?? null))
 const days = computed(() => (screenState.value.status === 'ready' ? screenState.value.days : []))
-const activeDay = computed<RescheduleDay | null>(() => days.value[activeDayIndex.value] ?? null)
+const grid = computed(() => (screenState.value.status === 'ready' ? screenState.value.grid : 15))
 const timezone = computed(() => appointment.value?.timezone ?? 'UTC')
 
 const availability = computed(() => {
@@ -130,21 +156,6 @@ function timeLabel(iso: string): string {
 function endFor(startIso: string): string {
   const minutes = appointment.value?.durationMinutes ?? 0
   return new Date(Date.parse(startIso) + minutes * 60_000).toISOString()
-}
-
-function dayChip(civilDate: string) {
-  return civilDateChip(civilDate)
-}
-
-// El mes solo en el primer día y donde cambia, como en «Día y hora».
-function monthOf(index: number): string {
-  const month = dayChip(days.value[index]!.civilDate).month
-  const previous = index > 0 ? dayChip(days.value[index - 1]!.civilDate).month : null
-  return month === previous ? '' : month
-}
-
-function isCurrent(start: string): boolean {
-  return appointment.value ? sameInstant(start, appointment.value.startsAt) : false
 }
 
 // ── Lectura del «antes» y el «después» ───────────────────────────────────────
@@ -234,7 +245,7 @@ const selectionSummary = computed(() => {
   const start = selectedStart.value
   if (!start) return ''
   const civil = getCivilDateInTimezone(timezone.value, new Date(start))
-  return `Nueva hora elegida: ${formatCivilDateFull(civil)}, de ${timeLabel(start)} a ${timeLabel(endFor(start))}, hora de ${timezoneCity(timezone.value)}.`
+  return `Nueva hora elegida: ${formatCivilDateFull(civil)}, de ${timeLabel(start)} a ${timeLabel(endFor(start))}, ${timezoneName(timezone.value)}.`
 })
 
 const confirmLabel = computed(() => {
@@ -244,77 +255,12 @@ const confirmLabel = computed(() => {
   return `Cambiar a ${chip.weekday} ${chip.day}, ${timeLabel(start)}`
 })
 
-// ── Selección con teclado (roving tabindex, mismo patrón que HU-095) ─────────
+// ── Selección (el teclado y el foco los lleva DayTimePicker) ─────────────────
 
-function setSlotRef(el: Element | { $el?: Element } | null, index: number) {
-  if (el instanceof HTMLElement) slotRefs.value[index] = el
-}
-
-function setDayRef(el: Element | { $el?: Element } | null, index: number) {
-  if (el instanceof HTMLElement) dayRefs.value[index] = el
-}
-
-watch(activeDayIndex, async () => {
-  slotRefs.value = []
-  const day = activeDay.value
-  const preserved = day?.starts.findIndex((s) => s === selectedStart.value) ?? -1
-  activeSlotIndex.value = preserved >= 0 ? preserved : 0
-  await nextTick()
-  dayRefs.value[activeDayIndex.value]?.scrollIntoView?.({
-    inline: 'center',
-    block: 'nearest',
-    behavior: 'smooth',
-  })
-})
-
-function chooseDay(index: number) {
-  activeDayIndex.value = index
-}
-
-function selectStart(start: string) {
-  if (isCurrent(start) || submitting.value) return
-  selectedStart.value = start
+function selectSlot(slot: DaylightSlot) {
+  if (submitting.value) return
+  selectedStart.value = slot.startsAt
   submitError.value = ''
-  const index = activeDay.value?.starts.indexOf(start) ?? -1
-  if (index >= 0) activeSlotIndex.value = index
-}
-
-async function focusActiveSlot() {
-  await nextTick()
-  slotRefs.value[activeSlotIndex.value]?.focus()
-}
-
-function onSlotsKeydown(event: KeyboardEvent) {
-  const count = activeDay.value?.starts.length ?? 0
-  if (count === 0) return
-  const move = (to: number) => {
-    event.preventDefault()
-    activeSlotIndex.value = (to + count) % count
-    void focusActiveSlot()
-  }
-  switch (event.key) {
-    case 'ArrowDown':
-    case 'ArrowRight':
-      move(activeSlotIndex.value + 1)
-      break
-    case 'ArrowUp':
-    case 'ArrowLeft':
-      move(activeSlotIndex.value - 1)
-      break
-    case 'Home':
-      move(0)
-      break
-    case 'End':
-      move(count - 1)
-      break
-    case ' ':
-    case 'Enter': {
-      event.preventDefault()
-      const start = activeDay.value?.starts[activeSlotIndex.value]
-      if (start) selectStart(start)
-      break
-    }
-  }
 }
 
 // ── Envío ────────────────────────────────────────────────────────────────────
@@ -358,7 +304,7 @@ async function confirmChange() {
       return
     case 'slot-taken': {
       lastAttempt = null
-      const day = activeDay.value?.civilDate
+      const day = activeDate.value ?? undefined
       await load({ keepDay: day })
       notice.value = 'Esa hora se acaba de ocupar. Te mostramos las que siguen libres.'
       return
@@ -501,8 +447,8 @@ const requestId = computed(() =>
       <BaseAlert v-if="notice" variant="warning" role="status">{{ notice }}</BaseAlert>
 
       <div class="mt-swap__grid">
-        <!-- El pase: la hora de ahora y la nueva. En pantallas anchas queda fijo a la
-             izquierda mientras se elige a la derecha. -->
+        <!-- El pase: la hora de ahora y la nueva. En pantallas anchas queda fijo en el
+             riel derecho, como en «Día y hora»; en móvil, arriba. -->
         <aside class="mt-swap__aside">
           <article
             class="mt-pase stamp"
@@ -532,7 +478,7 @@ const requestId = computed(() =>
               </p>
               <p v-else class="mt-swap__placeholder">Elige un día y una hora</p>
             </div>
-            <p class="mt-pase__zone">Horas de {{ timezoneCity(timezone) }}</p>
+            <p class="mt-pase__zone">{{ timezoneLabel(timezone) }}</p>
           </article>
 
           <ul v-if="availability?.mode === 'available'" class="mt-swap__facts">
@@ -563,7 +509,7 @@ const requestId = computed(() =>
         </section>
 
         <section v-else class="mt-swap__picker" aria-labelledby="reschedule-picker-title">
-          <h2 id="reschedule-picker-title" class="bk-section-title">Elige el día</h2>
+          <h2 id="reschedule-picker-title" class="bk-section-title">Elige día y hora</h2>
 
           <div v-if="days.length === 0" class="bk-empty">
             <p>
@@ -574,55 +520,18 @@ const requestId = computed(() =>
           </div>
 
           <template v-else>
-            <div class="bk-days mt-swap__days" role="group" aria-label="Días con horas libres">
-              <button
-                v-for="(day, index) in days"
-                :key="day.civilDate"
-                :ref="(el) => setDayRef(el as Element | null, index)"
-                type="button"
-                class="bk-day reschedule__day"
-                :aria-current="index === activeDayIndex ? 'date' : undefined"
-                :aria-label="formatCivilDateFull(day.civilDate)"
-                @click="chooseDay(index)"
-              >
-                <span class="bk-day__month">{{ monthOf(index) }}</span>
-                <span class="bk-day__weekday">{{ dayChip(day.civilDate).weekday }}</span>
-                <span class="bk-day__number">{{ dayChip(day.civilDate).day }}</span>
-              </button>
-            </div>
-
-            <h2 class="bk-section-title">
-              Elige la hora
-              <span class="mt-swap__note">{{
-                activeDay ? formatCivilDateFull(activeDay.civilDate) : ''
-              }}</span>
-            </h2>
-
-            <ul
-              class="mt-swap__slots"
-              role="radiogroup"
-              :aria-label="`Horas libres del ${activeDay ? formatCivilDateFull(activeDay.civilDate) : ''}`"
-              @keydown="onSlotsKeydown"
-            >
-              <li
-                v-for="(start, index) in activeDay?.starts ?? []"
-                :key="start"
-                :ref="(el) => setSlotRef(el as Element | null, index)"
-                class="bk-min mt-swap__slot"
-                :class="{ 'mt-swap__slot--current': isCurrent(start) }"
-                role="radio"
-                :aria-checked="selectedStart === start"
-                :aria-disabled="isCurrent(start) ? 'true' : undefined"
-                :aria-label="
-                  isCurrent(start) ? `${timeLabel(start)}, tu hora actual` : timeLabel(start)
-                "
-                :tabindex="index === activeSlotIndex ? 0 : -1"
-                @click="selectStart(start)"
-              >
-                {{ timeLabel(start) }}
-                <span v-if="isCurrent(start)" class="mt-swap__tag" aria-hidden="true">actual</span>
-              </li>
-            </ul>
+            <DayTimePicker
+              v-model:active-date="activeDate"
+              :days="days"
+              :selected-start="selectedStart"
+              :current="appointment.startsAt"
+              :slot-grid-minutes="grid"
+              :duration-minutes="appointment.durationMinutes"
+              :timezone="timezone"
+              :disabled="submitting"
+              selected-label="Hora nueva"
+              @select="selectSlot"
+            />
 
             <p v-if="selectionSummary" class="visually-hidden" role="status">
               {{ selectionSummary }}

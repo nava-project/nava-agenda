@@ -30,8 +30,8 @@ import {
   appointmentProgress,
   calendarLeaf,
   countdownLabel,
-  timezoneCity,
 } from '../model/appointmentMoment'
+import { timezoneLabel } from '@/shared/time/timezoneName'
 import {
   appointmentStatusLabel,
   type CancelAppointmentInput,
@@ -103,8 +103,10 @@ onMounted(() => {
 })
 onBeforeUnmount(() => clearInterval(clockTimer))
 
-// Con `focus="cancel"` la sección de cancelación recibe el foco una sola vez, cuando el turno
-// ya se pintó: así quien llega a cancelar no tiene que buscarla al fondo de la página.
+// Con `focus="cancel"` (el «Cancelar» del correo) la cancelación llega ya abierta y su
+// bloque sube a la vista; el foco va a su título. No va al motivo: en un celular el teclado
+// taparía la consecuencia («No se puede deshacer…»), que es lo primero que hay que leer
+// (mismo criterio que AppointmentCancellation con `startOpen`). Una sola vez por carga.
 const cancelSlot = ref<HTMLElement | null>(null)
 let cancelFocused = false
 watch(
@@ -112,11 +114,16 @@ watch(
   async (status) => {
     if (status !== 'success' || props.focus !== 'cancel' || cancelFocused) return
     await nextTick()
-    const title = cancelSlot.value?.querySelector<HTMLElement>('h2')
-    if (!title) return
+    const section = cancelSlot.value?.querySelector<HTMLElement>('section')
+    const title = section?.querySelector<HTMLElement>('h2')
+    if (!section || !title) return
     cancelFocused = true
     title.tabIndex = -1
-    title.focus()
+    title.focus({ preventScroll: true })
+    const reduced =
+      document.documentElement.dataset.motion === 'reduced' ||
+      (window.matchMedia?.('(prefers-reduced-motion: reduce)').matches ?? false)
+    section.scrollIntoView?.({ block: 'start', behavior: reduced ? 'auto' : 'smooth' })
   },
 )
 // El componente se reutiliza al cambiar de token dentro de la SPA: sin esto no recargaba.
@@ -241,7 +248,7 @@ const moment = computed(() => {
     leaf: calendarLeaf(a.startsAt, a.timezone),
     start: formatTimeInTimezone(a.startsAt, a.timezone),
     end: formatTimeInTimezone(a.endsAt, a.timezone),
-    city: timezoneCity(a.timezone),
+    zone: timezoneLabel(a.timezone),
     phase,
     progress: appointmentProgress(a.startsAt, a.endsAt, clockMs.value),
     countdown: countdownLabel(a.startsAt, a.endsAt, a.timezone, clockMs.value),
@@ -341,7 +348,7 @@ function addToCalendar() {
             >{{ moment.start }}<span class="visually-hidden"> hasta </span
             ><span aria-hidden="true"> – </span>{{ moment.end }}</span
           >
-          <span class="mt-pase__zone">Hora de {{ moment.city }}</span>
+          <span class="mt-pase__zone">{{ moment.zone }}</span>
         </p>
         <!-- En curso, una línea avanza con el reloj hasta el final del turno. -->
         <span
@@ -414,6 +421,7 @@ function addToCalendar() {
           :submitting="cancelSubmitting"
           :rejection="cancelRejection"
           :error-message="cancelError"
+          :start-open="props.focus === 'cancel'"
           @submit="submitCancel"
         />
       </div>

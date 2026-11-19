@@ -1,7 +1,6 @@
 // Pista local de la reprogramación del cliente (HU-104, DEC-178) para decidir qué
 // ofrecer antes de llamar al API. Usa el reloj del dispositivo, así que es solo una
 // pista: la decisión real es del servidor y su rechazo siempre prevalece.
-import { getCivilDateInTimezone } from '@/shared/time/civilDate'
 import type { CustomerAppointment } from './customerAppointmentOutcome'
 
 export type RescheduleAvailability =
@@ -31,29 +30,4 @@ export function rescheduleAvailability(
   }
   if (appointment.rescheduleRemaining <= 0) return { mode: 'unavailable', reason: 'limit-reached' }
   return { mode: 'available', remaining: appointment.rescheduleRemaining, deadlineMs }
-}
-
-/** Un día civil del negocio con sus inicios ofrecidos, en orden. */
-export interface RescheduleDay {
-  civilDate: string
-  starts: string[]
-}
-
-/** Agrupa los inicios (ya en orden cronológico) por día civil en la zona del
- * negocio, nunca en la del dispositivo (RN-DIS-07). */
-export function groupStartsByCivilDate(starts: string[], timezone: string): RescheduleDay[] {
-  const byDay = new Map<string, string[]>()
-  for (const start of starts) {
-    const civilDate = getCivilDateInTimezone(timezone, new Date(start))
-    const bucket = byDay.get(civilDate)
-    if (bucket) bucket.push(start)
-    else byDay.set(civilDate, [start])
-  }
-  return Array.from(byDay.entries(), ([civilDate, dayStarts]) => ({ civilDate, starts: dayStarts }))
-}
-
-/** Compara instantes por valor, no por texto: el servidor puede escribir el mismo
- * instante con o sin fracción de segundo. */
-export function sameInstant(a: string, b: string): boolean {
-  return Date.parse(a) === Date.parse(b)
 }

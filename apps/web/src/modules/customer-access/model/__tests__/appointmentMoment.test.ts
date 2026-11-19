@@ -4,7 +4,6 @@ import {
   appointmentProgress,
   calendarLeaf,
   countdownLabel,
-  timezoneCity,
 } from '../appointmentMoment'
 
 // 15:00Z es 10:00 en Bogotá (UTC-5, sin horario de verano).
@@ -58,12 +57,5 @@ describe('countdownLabel', () => {
     expect(countdownLabel(START, END, TZ, at('2027-03-15T16:00:00Z'))).toBe(
       'La hora del turno ya pasó',
     )
-  })
-})
-
-describe('timezoneCity', () => {
-  it('keeps only the readable city of an IANA zone', () => {
-    expect(timezoneCity('America/Bogota')).toBe('Bogota')
-    expect(timezoneCity('America/Argentina/Buenos_Aires')).toBe('Buenos Aires')
   })
 })

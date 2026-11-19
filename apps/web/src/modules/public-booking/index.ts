@@ -5,9 +5,13 @@
 // contexto público de un negocio a partir de su enlace de reservas. Los
 // componentes, el estado y el cliente API internos permanecen privados.
 export { publicBookingRoutes } from './routes'
-// DEC-188 (2c): «Mi turno» usa el mismo marco v2, las mismas pantallas de estado
-// y el mismo archivo de calendario que la reserva. Se exponen esas
+// DEC-188 (2c): «Mi turno» usa el mismo marco v2, las mismas pantallas de estado,
+// el mismo selector de día y hora y el mismo archivo de calendario que la
+// reserva. Se exponen esas
 // piezas, no el cascarón con sus rutas ni el estado interno.
 export { default as PublicFrame } from './components/PublicFrame.vue'
 export { default as BookingStateScreen } from './components/BookingStateScreen.vue'
+export { default as DayTimePicker } from './components/DayTimePicker.vue'
 export { buildCalendarFile, downloadCalendarFile } from './model/calendarFile'
+export { buildDaylightDays, type DaylightDay, type DaylightSlot } from './model/daylight'
+export { usePublicBusinessName } from './model/publicBusinessName'

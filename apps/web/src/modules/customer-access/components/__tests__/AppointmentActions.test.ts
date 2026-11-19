@@ -89,7 +89,7 @@ describe('AppointmentActions · el turno y sus dos acciones', () => {
     expect(ticket.text()).toContain('10:00')
     expect(ticket.text()).toContain('10:30')
     expect(ticket.text()).toContain('Corte clásico con Juan')
-    expect(ticket.text()).toContain('Casa Ejemplo · Hora de Bogota')
+    expect(ticket.text()).toContain('Casa Ejemplo · Hora de Colombia')
   })
 
   it('«Cambiar la hora» lleva a la pantalla de HU-104 y dice cuántos cambios quedan', async () => {

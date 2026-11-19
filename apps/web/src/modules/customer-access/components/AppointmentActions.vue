@@ -14,7 +14,8 @@ import { formatTimeInTimezone } from '@/shared/time/formatInstant'
 import { getCustomerAppointment } from '../api/getCustomerAppointmentApi'
 import { useAppointmentCancel } from '../composables/useAppointmentCancel'
 import AppointmentCancellation from './AppointmentCancellation.vue'
-import { calendarLeaf, timezoneCity } from '../model/appointmentMoment'
+import { calendarLeaf } from '../model/appointmentMoment'
+import { timezoneLabel } from '@/shared/time/timezoneName'
 import { cancellationAvailability } from '../model/cancellationAvailability'
 import { rescheduleAvailability } from '../model/rescheduleAvailability'
 import type {
@@ -92,7 +93,7 @@ const summary = computed(() => {
     leaf: calendarLeaf(a.startsAt, a.timezone),
     start: formatTimeInTimezone(a.startsAt, a.timezone),
     end: formatTimeInTimezone(a.endsAt, a.timezone),
-    city: timezoneCity(a.timezone),
+    zone: timezoneLabel(a.timezone),
   }
 })
 
@@ -232,7 +233,7 @@ const bookAgainHref = computed(() => `/reservar/${encodeURIComponent(props.slug)
           <p class="actions__what">
             {{ appointment.serviceName }} con {{ appointment.professionalName }}
           </p>
-          <p class="actions__where">{{ appointment.businessName }} · Hora de {{ summary.city }}</p>
+          <p class="actions__where">{{ appointment.businessName }} · {{ summary.zone }}</p>
         </div>
       </article>
 

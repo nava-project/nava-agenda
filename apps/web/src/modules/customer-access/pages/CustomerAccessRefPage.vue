@@ -20,7 +20,7 @@
 import { computed, nextTick, onMounted, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { BaseAlert, OtpInput } from '@/shared/ui'
-import { BookingStateScreen, PublicFrame } from '@/modules/public-booking'
+import { BookingStateScreen, PublicFrame, usePublicBusinessName } from '@/modules/public-booking'
 import AppointmentActions from '../components/AppointmentActions.vue'
 import { verifyAccessRef } from '../api/verifyAccessRefApi'
 import type { AccessPurpose } from '../model/customerAccessOutcome'
@@ -33,6 +33,8 @@ interface Props {
   accessRef: string
 }
 const props = defineProps<Props>()
+// El negocio en la cabecera, como en la reserva y en las páginas del turno (DEC-188).
+const businessName = usePublicBusinessName(() => props.slug)
 const router = useRouter()
 
 type Step = 'code' | 'manage' | 'opening' | 'business-not-found'
@@ -140,7 +142,7 @@ async function submitCode() {
 </script>
 
 <template>
-  <PublicFrame caption="Mi turno">
+  <PublicFrame caption="Mi turno" :business-name="businessName">
     <template v-if="step !== 'business-not-found' && step !== 'opening'" #aside>
       <ol class="bk-steps" aria-label="Pasos para entrar a tu turno">
         <li

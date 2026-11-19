@@ -16,12 +16,13 @@
 // pantalla completa de «Mi turno» queda como enlace secundario.
 import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { BaseAlert, BaseInput, OtpInput } from '@/shared/ui'
-import { BookingStateScreen, PublicFrame } from '@/modules/public-booking'
+import { BookingStateScreen, PublicFrame, usePublicBusinessName } from '@/modules/public-booking'
 import AppointmentActions from '../components/AppointmentActions.vue'
 import { requestAccessCode } from '../api/requestAccessCodeApi'
 import { verifyAccessCode } from '../api/verifyAccessCodeApi'
 import { formatCountdown, maskContact, waitMinutes, isEmailContact } from '../model/accessContact'
-import { calendarLeaf, timezoneCity } from '../model/appointmentMoment'
+import { calendarLeaf } from '../model/appointmentMoment'
+import { timezoneName } from '@/shared/time/timezoneName'
 import { formatTimeInTimezone } from '@/shared/time/formatInstant'
 import type { AccessGrant } from '../model/customerAccessOutcome'
 import '../styles/myTurnV2.css'
@@ -31,6 +32,8 @@ interface Props {
   slug: string
 }
 const props = defineProps<Props>()
+// El negocio en la cabecera, como en la reserva y en las páginas del turno (DEC-188).
+const businessName = usePublicBusinessName(() => props.slug)
 
 type Step = 'contact' | 'code' | 'choose' | 'manage' | 'business-not-found'
 
@@ -294,11 +297,11 @@ const choices = computed(() => {
     time: formatTimeInTimezone(a.startsAt, access.timezone),
   }))
 })
-const zoneCity = computed(() => (grant.value ? timezoneCity(grant.value.timezone) : ''))
+const zoneName = computed(() => (grant.value ? timezoneName(grant.value.timezone) : ''))
 </script>
 
 <template>
-  <PublicFrame caption="Mi turno">
+  <PublicFrame caption="Mi turno" :business-name="businessName">
     <template v-if="step !== 'business-not-found'" #aside>
       <ol class="bk-steps" aria-label="Pasos para entrar a tu turno">
         <li
@@ -475,7 +478,7 @@ const zoneCity = computed(() => (grant.value ? timezoneCity(grant.value.timezone
             <span class="mt-choice__go" aria-hidden="true">Abrir</span>
           </button>
         </li>
-        <li v-if="zoneCity" class="mt-choices__zone">Todas las horas son de {{ zoneCity }}.</li>
+        <li v-if="zoneName" class="mt-choices__zone">Todas las horas van en {{ zoneName }}.</li>
       </ul>
     </main>
   </PublicFrame>

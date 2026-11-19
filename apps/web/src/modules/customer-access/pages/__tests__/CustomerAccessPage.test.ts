@@ -13,9 +13,29 @@ import { createMemoryHistory, createRouter, type Router } from 'vue-router'
 import { axe } from 'vitest-axe'
 
 const postMock = vi.hoisted(() => vi.fn())
-vi.mock('@/shared/api/httpClient', () => ({ httpClient: { POST: postMock } }))
+const getMock = vi.hoisted(() => vi.fn())
+vi.mock('@/shared/api/httpClient', () => ({ httpClient: { POST: postMock, GET: getMock } }))
 
 const { default: CustomerAccessPage } = await import('../CustomerAccessPage.vue')
+const { resetPublicProfileCache } = await import('@/modules/public-booking/model/publicProfile')
+
+// El perfil público del enlace: solo pone el nombre del negocio en la cabecera.
+const PROFILE = {
+  name: 'Barbería Ejemplo',
+  timezone: 'America/Bogota',
+  contactEmail: null,
+  contactPhone: null,
+  vocabulary: {
+    businessTerm: 'barbería',
+    businessTermGender: 'feminine',
+    professionalTerm: 'barbero',
+    professionalTermPlural: 'barberos',
+    professionalTermGender: 'masculine',
+  },
+  location: null,
+  offersHomeService: false,
+  brandAccent: 'brass',
+}
 
 const problem = (status: number, code: string) => ({
   type: `/api/v1/problems/${code}`,
@@ -139,11 +159,32 @@ async function typeCode(w: VueWrapper, code: string) {
 beforeEach(() => {
   vi.useFakeTimers({ toFake: ['Date', 'setInterval', 'clearInterval'] })
   postMock.mockReset()
+  getMock.mockReset()
+  getMock.mockResolvedValue({
+    data: PROFILE,
+    error: undefined,
+    response: { ok: true, status: 200 },
+  })
+  resetPublicProfileCache()
 })
 
 afterEach(() => {
   wrappers.splice(0).forEach((w) => w.unmount())
   vi.useRealTimers()
+})
+
+describe('CustomerAccessPage · cabecera', () => {
+  it('muestra el negocio del enlace en la cabecera, como en la reserva y en «Mi turno»', async () => {
+    const w = await mountPage()
+    expect(w.get('header').text()).toContain('Barbería Ejemplo')
+  })
+
+  it('si el perfil no llega, la pantalla sigue usable sin nombre en la cabecera', async () => {
+    getMock.mockRejectedValue(new TypeError('Failed to fetch'))
+    const w = await mountPage()
+    expect(w.get('header').text()).not.toContain('Barbería Ejemplo')
+    expect(contactInput(w).exists()).toBe(true)
+  })
 })
 
 describe('CustomerAccessPage · paso 1, contacto', () => {
@@ -387,7 +428,7 @@ describe('CustomerAccessPage · paso 3, turno', () => {
     expect(tickets[0]!.text()).toContain('Corte clásico con Juan')
     expect(tickets[1]!.text()).toContain('3:30')
     expect(tickets[1]!.text()).toContain('Corte y barba con Ana')
-    expect(w.text()).toContain('Todas las horas son de Bogota.')
+    expect(w.text()).toContain('Todas las horas van en hora de Colombia.')
 
     await tickets[1]!.trigger('click')
     await flushPromises()

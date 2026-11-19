@@ -6,7 +6,7 @@
  * requestId, ausencia de identificadores internos (CA-098-03) y ausencia de
  * violaciones de accesibilidad (axe-core) en cada estado observable.
  */
-import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
+import { describe, it, expect, vi, beforeEach, afterEach, onTestFinished } from 'vitest'
 import { mount, flushPromises } from '@vue/test-utils'
 import { axe } from 'vitest-axe'
 
@@ -772,13 +772,26 @@ describe('CustomerAppointmentPage · entrada a «Cambiar la hora» (HU-104)', ()
       document.body.innerHTML = ''
     })
 
-    it('con focus="cancel" deja el foco en el título de la cancelación, una sola vez', async () => {
+    it('con focus="cancel" abre la cancelación, la sube a la vista y enfoca su título', async () => {
+      const scrollIntoView = vi.fn()
+      const original = Element.prototype.scrollIntoView
+      Element.prototype.scrollIntoView = scrollIntoView
+      onTestFinished(() => {
+        Element.prototype.scrollIntoView = original
+      })
       getMock.mockResolvedValue({ data: successData(), error: undefined, response: okResponse() })
       const wrapper = mountAttached({ token: 'token-en-claro', focus: 'cancel' })
       await flushPromises()
 
       const title = wrapper.find('#appointment-cancel-title').element
       expect(document.activeElement).toBe(title)
+      // Llega abierta: el motivo y «Sí, cancelar mi turno» ya están, sin un segundo botón.
+      expect(wrapper.find('textarea').exists()).toBe(true)
+      expect(wrapper.text()).toContain('Sí, cancelar mi turno')
+      // El bloque sube a la vista (a 390 px quedaba bajo el pliegue).
+      expect(scrollIntoView).toHaveBeenCalledTimes(1)
+      expect(scrollIntoView.mock.contexts[0]).toBe(title.closest('section'))
+      expect(scrollIntoView.mock.calls[0]![0]).toMatchObject({ block: 'start' })
       wrapper.unmount()
     })
 

@@ -107,9 +107,3 @@ export function countdownLabel(
   const minutes = Math.max(1, Math.ceil((startMs - nowMs) / 60_000))
   return minutes < 60 ? `En ${minutes} min` : `Hoy · en ${hoursAndMinutes(minutes)}`
 }
-
-/** Nombre legible de la zona IANA: «America/Bogota» → «Bogota». */
-export function timezoneCity(timezone: string): string {
-  const city = timezone.split('/').pop() ?? timezone
-  return city.replace(/_/g, ' ')
-}
