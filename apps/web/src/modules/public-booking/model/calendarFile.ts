@@ -95,3 +95,9 @@ export function whatsAppLink(phone: string | null | undefined, message: string):
   if (digits.length < 8) return null
   return `https://wa.me/${digits}?text=${encodeURIComponent(message)}`
 }
+
+/** Enlace «Cómo llegar» a las coordenadas que el negocio publicó (DEC-138). Se abre
+ * en la app de mapas del teléfono o en Google Maps en el navegador. */
+export function directionsLink(latitude: number, longitude: number): string {
+  return `https://www.google.com/maps/dir/?api=1&destination=${latitude},${longitude}`
+}

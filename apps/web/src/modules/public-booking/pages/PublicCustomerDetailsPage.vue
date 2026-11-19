@@ -29,7 +29,19 @@ import {
 } from '@/shared/time/civilDate'
 import { formatTimeInTimezone } from '@/shared/time/formatInstant'
 import { composeHomeAddress } from '../model/homeAddress'
-import { buildCalendarFile, downloadCalendarFile, whatsAppLink } from '../model/calendarFile'
+import {
+  buildCalendarFile,
+  directionsLink,
+  downloadCalendarFile,
+  whatsAppLink,
+} from '../model/calendarFile'
+import {
+  confirmedVisitKey,
+  readConfirmedVisit,
+  saveConfirmedVisit,
+  toConfirmedVisit,
+  type ConfirmedVisit,
+} from '../model/confirmedVisit'
 import DaylightStrip from '../components/DaylightStrip.vue'
 import type { PublicBusinessProfile } from '../model/businessProfileOutcome'
 import HomeLocationField from '../components/HomeLocationField.vue'
@@ -42,10 +54,7 @@ import type { PublicProfessional } from '../model/publicProfessionalListOutcome'
 import { publicProfessionalPhotoUrl } from '../model/publicProfessionalPhotoUrl'
 import { DEFAULT_PHONE_COUNTRY, composePhone, phoneCountry } from '@/shared/model/phoneCountries'
 import { usePublicVocabulary } from '../model/publicVocabulary'
-import type {
-  ConfirmedPublicAppointment,
-  PublicAppointmentAlternative,
-} from '../model/confirmPublicAppointmentOutcome'
+import type { PublicAppointmentAlternative } from '../model/confirmPublicAppointmentOutcome'
 import {
   ATTENDEE_NAME_MAX_LENGTH,
   CUSTOMER_NOTE_MAX_LENGTH,
@@ -71,8 +80,11 @@ interface Props {
   /** El profesional lo asignó «Cualquiera» (DEC-188): al cambiar de hora se
    * vuelve a Cualquiera y no a este profesional. */
   anyProfessional?: boolean
+  /** La URL lleva `?confirmado=1`: el turno ya se reservó en esta pestaña y se
+   * redibuja la confirmación, nunca el formulario (evita reservar dos veces). */
+  confirmed?: boolean
 }
-const props = withDefaults(defineProps<Props>(), { anyProfessional: false })
+const props = withDefaults(defineProps<Props>(), { anyProfessional: false, confirmed: false })
 const v = usePublicVocabulary()
 const router = useRouter()
 // Único por instancia: el diálogo vive en el <body> y no debe repetir ids.
@@ -140,7 +152,8 @@ const selectedStartsAt = ref(props.startsAt)
 
 type ConfirmState = 'idle' | 'submitting' | 'confirmed' | 'schedule-conflict' | 'error'
 const confirmState = ref<ConfirmState>('idle')
-const confirmedAppointment = ref<ConfirmedPublicAppointment | null>(null)
+// Sin la credencial del turno (DEC-089): solo lo que la confirmación dibuja.
+const confirmedAppointment = ref<ConfirmedVisit | null>(null)
 const alternatives = ref<PublicAppointmentAlternative[]>([])
 const errorMessage = ref('')
 // El servidor las entrega por cercanía; al cliente le sirven en orden de reloj.
@@ -151,6 +164,18 @@ const sortedAlternatives = computed(() =>
 // (red/error inesperado, RN-IDE-01): un contenido distinto (editar, elegir
 // otra alternativa) siempre pide una clave nueva.
 const idempotencyKey = ref<string | null>(null)
+
+// Recarga de la confirmación: se redibuja con lo guardado en esta pestaña. Si no
+// quedó nada (otra pestaña, almacenamiento bloqueado), igual se dice que el turno
+// ya está reservado y no se ofrece el formulario.
+if (props.confirmed) {
+  confirmedAppointment.value = readConfirmedVisit(
+    confirmedVisitKey(props.slug, props.serviceId, props.professionalId, props.startsAt),
+  )
+  reviewing.value = true
+  confirmState.value = 'confirmed'
+  chrome.completed.value = true
+}
 
 const formRef = ref<HTMLElement | null>(null)
 const summaryRef = ref<HTMLElement | null>(null)
@@ -312,18 +337,27 @@ const whatsApp = computed(() => {
   if (!a || !done.value) return null
   return whatsAppLink(
     businessProfile.value?.contactPhone,
-    `Hola, acabo de reservar ${a.serviceName} para el ${done.value.day} a las ${done.value.start}.`,
+    // La frase no termina en la hora: «9:15 a. m.» ya trae su punto.
+    `Hola, reservé ${a.serviceName} a las ${done.value.start} del ${done.value.day}.`,
   )
+})
+
+// Dónde es el turno, bajo la hora: el domicilio o la dirección del local con «Cómo llegar».
+const place = computed<{ text: string; href: string | null } | null>(() => {
+  const a = confirmedAppointment.value
+  if (!a) return null
+  if (a.homeAddress) return { text: a.homeAddress, href: null }
+  const where = businessProfile.value?.location
+  return where
+    ? { text: where.address, href: directionsLink(where.latitude, where.longitude) }
+    : null
 })
 
 const calendarSaved = ref(false)
 function addToCalendar() {
   const a = confirmedAppointment.value
   if (!a) return
-  const where =
-    isHomeService.value && homePlace.value
-      ? composeHomeAddress(homePlace.value.address, homeDetails.value)
-      : (businessProfile.value?.location?.address ?? null)
+  const where = place.value?.text ?? null
   const who = professional.value ? ` con ${professional.value.fullName}` : ''
   downloadCalendarFile(
     buildCalendarFile({
@@ -376,14 +410,43 @@ async function handleConfirm() {
   )
 
   switch (outcome.kind) {
-    case 'success':
-      confirmedAppointment.value = outcome.appointment
+    case 'success': {
+      const visit = toConfirmedVisit(
+        outcome.appointment,
+        attendeeChoice.value === 'other',
+        isHomeService.value && homePlace.value
+          ? composeHomeAddress(homePlace.value.address, homeDetails.value)
+          : null,
+      )
+      confirmedAppointment.value = visit
       confirmState.value = 'confirmed'
       chrome.completed.value = true
       idempotencyKey.value = null
+      // La URL pasa a ser la de la confirmación (replace: «Atrás» sigue llevando a
+      // «Día y hora»). Recargar ya no ofrece el formulario de una hora reservada.
+      saveConfirmedVisit(
+        confirmedVisitKey(
+          props.slug,
+          props.serviceId,
+          props.professionalId,
+          selectedStartsAt.value,
+        ),
+        visit,
+      )
+      void router.replace({
+        name: 'reserva-publica-cliente',
+        params: {
+          slug: props.slug,
+          serviceId: props.serviceId,
+          professionalId: props.professionalId,
+          startsAt: selectedStartsAt.value,
+        },
+        query: { ...(props.anyProfessional ? { cualquiera: '1' } : {}), confirmado: '1' },
+      })
       await nextTick()
       confirmedRef.value?.focus()
       return
+    }
     case 'schedule-conflict':
       alternatives.value = outcome.alternatives
       confirmState.value = 'schedule-conflict'
@@ -728,12 +791,21 @@ function chooseAlternative(startsAt: string) {
               }}</span>
             </p>
             <p v-if="professional" class="bk-done__who">Con {{ professional.fullName }}</p>
-            <p v-if="attendeeChoice === 'other'" class="bk-done__who">
+            <p v-if="confirmedAppointment.forSomeoneElse" class="bk-done__who">
               Turno para {{ confirmedAppointment.attendeeName }}
             </p>
             <p class="bk-done__when">
               <span class="bk-done__day">{{ done.day }}</span>
               <span class="bk-done__time">{{ done.range }}</span>
+            </p>
+            <p v-if="place" class="bk-done__place">
+              {{ place.text }}
+              <template v-if="place.href">
+                ·
+                <a :href="place.href" target="_blank" rel="noopener noreferrer"
+                  >Cómo llegar<span class="pb-sr-only"> (se abre en otra pestaña)</span></a
+                >
+              </template>
             </p>
           </article>
 
@@ -760,9 +832,18 @@ function chooseAlternative(startsAt: string) {
           </div>
         </template>
 
+        <p v-else class="bk-done__again">
+          Este turno ya quedó reservado: no hace falta reservarlo otra vez.
+        </p>
+
         <p class="customer-details__note">
-          Te enviamos un correo a <strong>{{ email }}</strong> con el enlace para consultar o
-          cambiar tu turno cuando quieras.
+          <template v-if="email">
+            Te enviamos un correo a <strong>{{ email }}</strong> con el enlace para consultar o
+            cambiar tu turno cuando quieras.
+          </template>
+          <template v-else>
+            En tu correo está el enlace para consultar o cambiar tu turno cuando quieras.
+          </template>
         </p>
       </div>
     </section>
@@ -823,37 +904,18 @@ function chooseAlternative(startsAt: string) {
    y la confirmación se recomponen con los tokens de tinta y latón. `BaseInput`
    y `BaseButton` se pensaron para superficies claras, así que aquí se les
    ajustan sus variables y colores sin tocar el componente compartido. */
+/* v2 (DEC-188): sin entrada escalonada. Los campos son usables desde el primer
+   cuadro; la hoja solo aparece con un fundido corto (opacidad, 180 ms). */
 .customer-details__rise {
-  animation: pb-rise 0.55s var(--pb-ease, ease) 0.1s backwards;
+  animation: bk-fundido 180ms ease-out both;
 }
 
-/* Los campos del formulario entran escalonados, uno tras otro. */
-.customer-details__fields > * {
-  animation: pb-rise 0.6s var(--pb-ease, ease) calc(0.35s + var(--i, 0) * 0.07s) backwards;
+@keyframes bk-fundido {
+  from {
+    opacity: 0;
+  }
 }
 
-.customer-details__fields > :nth-child(2) {
-  --i: 1;
-}
-
-.customer-details__fields > :nth-child(3) {
-  --i: 2;
-}
-
-.customer-details__fields > :nth-child(4) {
-  --i: 3;
-}
-
-.customer-details__fields > :nth-child(5) {
-  --i: 4;
-}
-
-.customer-details__fields > :nth-child(6) {
-  --i: 5;
-}
-
-/* Rejilla de dos columnas: nombre y persona atendida, teléfono y correo van
-   en pareja; el selector, la nota y el nombre a solas ocupan el ancho. */
 .customer-details__fields {
   display: grid;
   grid-template-columns: minmax(0, 1fr);
@@ -1030,7 +1092,6 @@ function chooseAlternative(startsAt: string) {
   margin-right: var(--space-2);
   background-color: var(--pb-on-brass);
   transform: rotate(45deg);
-  animation: pb-pop 0.4s cubic-bezier(0.3, 1.5, 0.5, 1);
 }
 
 .customer-details__radio input:focus-visible + span {
@@ -1154,7 +1215,6 @@ function chooseAlternative(startsAt: string) {
   flex: none;
   width: 100%;
   margin-top: var(--space-2);
-  animation: pb-rise 0.6s var(--pb-ease, ease) 0.8s backwards;
 }
 
 .customer-details__summary,
@@ -1285,27 +1345,6 @@ function chooseAlternative(startsAt: string) {
   justify-content: space-between;
   padding: var(--space-3) 0;
   border-bottom: 1px solid var(--pb-line);
-  animation: pb-rise 0.5s var(--pb-ease, ease) backwards;
-}
-
-.customer-details__summary-row:nth-child(2) {
-  animation-delay: 0.08s;
-}
-
-.customer-details__summary-row:nth-child(3) {
-  animation-delay: 0.16s;
-}
-
-.customer-details__summary-row:nth-child(4) {
-  animation-delay: 0.24s;
-}
-
-.customer-details__summary-row:nth-child(5) {
-  animation-delay: 0.32s;
-}
-
-.customer-details__summary-row:nth-child(n + 6) {
-  animation-delay: 0.4s;
 }
 
 .customer-details__summary-row dt {
@@ -1433,6 +1472,25 @@ function chooseAlternative(startsAt: string) {
   font-weight: 600;
   letter-spacing: -0.01em;
   font-variant-numeric: tabular-nums;
+}
+
+.bk-done__place {
+  font-size: 15px;
+  overflow-wrap: anywhere;
+  color: var(--color-text-secondary);
+}
+
+/* Como los demás enlaces de la reserva: texto principal, subrayado en el acento. */
+.bk-done__place a {
+  font-weight: 500;
+  color: var(--color-text-primary);
+  text-decoration-color: var(--bk-accent, var(--color-brand-accent-surface));
+  text-underline-offset: 3px;
+}
+
+.bk-done__again {
+  font-size: 17px;
+  font-weight: 500;
 }
 
 .bk-done__actions {

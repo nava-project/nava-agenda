@@ -73,7 +73,9 @@ function stripDial(value: string, dial: string): string {
     if (/\d/.test(rest[0]!)) pending -= 1
     rest = rest.slice(1)
   }
-  return rest.replace(/^[\s().-]+/, '')
+  // Se quitan los separadores que cerraban el prefijo, nunca el «(» que abre
+  // el primer grupo: «+57 (300) 123-45.67» → «(300) 123-45.67».
+  return rest.replace(/^[\s).-]+/, '')
 }
 
 function onInput(event: Event) {

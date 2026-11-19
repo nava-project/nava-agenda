@@ -61,6 +61,12 @@ describe('PhoneField', () => {
     expect(wrapper.emitted('update:national')!.at(-1)).toEqual(['3'])
   })
 
+  it('al quitar el prefijo conserva el paréntesis que abre el primer grupo', async () => {
+    const wrapper = mountField()
+    await wrapper.get('input[type="tel"]').setValue('+57 (300) 123-45.67')
+    expect(wrapper.emitted('update:national')!.at(-1)).toEqual(['(300) 123-45.67'])
+  })
+
   it('avisa al salir de la casilla del número', async () => {
     const wrapper = mountField()
     await wrapper.get('input[type="tel"]').trigger('blur')

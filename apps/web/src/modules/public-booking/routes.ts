@@ -78,6 +78,8 @@ export const publicBookingRoutes: RouteRecordRaw[] = [
           professionalId: String(to.params.professionalId),
           startsAt: String(to.params.startsAt),
           anyProfessional: to.query.cualquiera === '1',
+          // Puesto al confirmar (replace): recargar redibuja la confirmación y no el formulario.
+          confirmed: to.query.confirmado === '1',
         }),
         meta: { bookingStep: 3 },
         // Un `startsAt` ilegible o pasado (enlace viejo, URL tocada) devuelve a la

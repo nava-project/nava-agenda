@@ -21,8 +21,9 @@ vi.mock('../../api/confirmPublicAppointmentApi', () => ({
 }))
 
 const routerPushMock = vi.hoisted(() => vi.fn())
+const routerReplaceMock = vi.hoisted(() => vi.fn())
 vi.mock('vue-router', () => ({
-  useRouter: () => ({ push: routerPushMock }),
+  useRouter: () => ({ push: routerPushMock, replace: routerReplaceMock }),
 }))
 
 const listPublicProfessionalsMock = vi.hoisted(() => vi.fn())
@@ -87,6 +88,8 @@ beforeEach(() => {
   document.body.innerHTML = ''
   confirmPublicAppointmentMock.mockReset()
   routerPushMock.mockReset()
+  routerReplaceMock.mockReset()
+  sessionStorage.clear()
   listPublicProfessionalsMock.mockReset()
   loadPublicProfileMock.mockReset()
   loadPublicProfileMock.mockResolvedValue(profileOutcome(false))
@@ -606,6 +609,89 @@ describe('PublicCustomerDetailsPage', () => {
     const link = (await confirmWith()).get('.bk-done__whatsapp')
     expect(link.attributes('href')).toMatch(/^https:\/\/wa\.me\/573001234567\?text=Hola/)
     expect(link.attributes('rel')).toContain('noopener')
+    // La frase no acaba en la hora: nunca «a. m..».
+    const text = new URL(link.attributes('href')!).searchParams.get('text')!
+    expect(text).toMatch(/^Hola, reservé Corte clásico a las 9:30\sa\.\sm\. del .+2026\.$/)
+    expect(text).not.toContain('..')
+  })
+
+  it('says where: the business address with directions, or the home address', async () => {
+    loadPublicProfileMock.mockResolvedValue(
+      profileOutcome(false, {
+        address: 'Calle 10 # 40-20, Medellín',
+        latitude: 6.2,
+        longitude: -75.5,
+      }),
+    )
+    const place = (await confirmWith()).get('.bk-done__place')
+    expect(place.text()).toContain('Calle 10 # 40-20, Medellín')
+    expect(place.get('a').attributes('href')).toBe(
+      'https://www.google.com/maps/dir/?api=1&destination=6.2,-75.5',
+    )
+  })
+
+  describe('recargar la confirmación (revisión de #707)', () => {
+    it('moves the URL to the confirmation and keeps the visit in this tab, without the token', async () => {
+      await confirmWith()
+      expect(routerReplaceMock).toHaveBeenCalledWith({
+        name: 'reserva-publica-cliente',
+        params: { ...BASE_PROPS },
+        query: { confirmado: '1' },
+      })
+      const stored = Object.keys(sessionStorage).map((key) => sessionStorage.getItem(key)!)
+      expect(stored).toHaveLength(1)
+      expect(stored[0]).toContain('Corte clásico')
+      expect(stored[0]).not.toContain(CONFIRMED_APPOINTMENT.accessToken)
+      expect(stored[0]).not.toContain('ana@example.com')
+    })
+
+    it('keeps «Cualquiera» in the confirmation URL', async () => {
+      confirmPublicAppointmentMock.mockResolvedValueOnce({
+        kind: 'success',
+        appointment: CONFIRMED_APPOINTMENT,
+      })
+      const wrapper = mount(PublicCustomerDetailsPage, {
+        props: { ...BASE_PROPS, anyProfessional: true },
+      })
+      await flushPromises()
+      await fillValidForm(wrapper)
+      await wrapper.find('form').trigger('submit')
+      await wrapper
+        .findAll('button')
+        .find((b) => b.text().includes('Confirmar turno'))!
+        .trigger('click')
+      await flushPromises()
+      expect(routerReplaceMock.mock.calls[0]![0].query).toEqual({
+        cualquiera: '1',
+        confirmado: '1',
+      })
+    })
+
+    it('after a reload, redraws the confirmation and never offers the form again', async () => {
+      await confirmWith()
+      const reloaded = mount(PublicCustomerDetailsPage, {
+        props: { ...BASE_PROPS, confirmed: true },
+      })
+      await flushPromises()
+      expect(reloaded.find('form').exists()).toBe(false)
+      expect(reloaded.get('h1').text()).toBe('Tu turno quedó agendado')
+      expect(reloaded.get('.bk-done__pase').text()).toContain('Corte clásico')
+      expect(reloaded.get('.bk-done__time').text()).toMatch(/^9:30/)
+      expect(reloaded.text()).toContain('En tu correo está el enlace')
+      expect(confirmPublicAppointmentMock).toHaveBeenCalledTimes(1)
+    })
+
+    it('without anything stored, still says the turn is booked and hides the form', async () => {
+      const reloaded = mount(PublicCustomerDetailsPage, {
+        props: { ...BASE_PROPS, confirmed: true },
+      })
+      await flushPromises()
+      expect(reloaded.find('form').exists()).toBe(false)
+      expect(reloaded.find('.bk-done__pase').exists()).toBe(false)
+      expect(reloaded.text()).toContain('Este turno ya quedó reservado')
+      const results = await axe(reloaded.element)
+      expect(results).toHaveNoViolations()
+    })
   })
 
   it('names the attendee on the pass only when the turn is for someone else', async () => {
