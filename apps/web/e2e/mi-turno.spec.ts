@@ -118,7 +118,8 @@ test.describe('Creación→consulta del turno del cliente (HU-097/HU-098)', () =
     await page.route(`**/api/v1/customer/appointments/${ACCESS_TOKEN}`, fulfillAppointment)
     await page.goto(`/mi-turno/${ACCESS_TOKEN}`)
 
-    await expect(page.getByRole('heading', { name: APPOINTMENT_VIEW.businessName })).toBeVisible()
+    await expect(page.getByRole('heading', { level: 1, name: 'Tu turno' })).toBeVisible()
+    await expect(page.getByRole('banner')).toContainText(APPOINTMENT_VIEW.businessName)
     await expect(page.getByText(APPOINTMENT_VIEW.attendeeName)).toBeVisible()
     await expect(page.getByText(APPOINTMENT_VIEW.serviceName)).toBeVisible()
     await expect(page.getByText(APPOINTMENT_VIEW.professionalName)).toBeVisible()
@@ -133,7 +134,8 @@ test.describe('Consulta del turno del cliente (HU-098)', () => {
 
     await page.goto(`/mi-turno/${ACCESS_TOKEN}`)
 
-    await expect(page.getByRole('heading', { name: 'Barbería Ejemplo' })).toBeVisible()
+    await expect(page.getByRole('heading', { level: 1, name: 'Tu turno' })).toBeVisible()
+    await expect(page.getByRole('banner')).toContainText('Barbería Ejemplo')
     await expect(page.getByText('Confirmado')).toBeVisible()
     await expect(page.getByText('20 minutos antes')).toBeVisible()
 
@@ -167,7 +169,8 @@ test.describe('Consulta del turno del cliente (HU-098)', () => {
     })
 
     await page.goto(`/mi-turno/${ACCESS_TOKEN}`)
-    await expect(page.getByRole('heading', { name: 'Barbería Ejemplo' })).toBeVisible()
+    await expect(page.getByRole('heading', { level: 1, name: 'Tu turno' })).toBeVisible()
+    await expect(page.getByRole('banner')).toContainText('Barbería Ejemplo')
 
     expect(capturedUrl).toContain(ACCESS_TOKEN)
     const html = await page.content()
@@ -193,7 +196,8 @@ test.describe('Consulta del turno del cliente (HU-098)', () => {
     await expect(page.getByText('No pudimos conectar')).toBeVisible()
 
     await page.getByRole('button', { name: 'Reintentar' }).click()
-    await expect(page.getByRole('heading', { name: 'Barbería Ejemplo' })).toBeVisible()
+    await expect(page.getByRole('heading', { level: 1, name: 'Tu turno' })).toBeVisible()
+    await expect(page.getByRole('banner')).toContainText('Barbería Ejemplo')
     expect(attempts).toBe(2)
   })
 
@@ -216,7 +220,7 @@ test.describe('Consulta del turno del cliente (HU-098)', () => {
     })
 
     await page.goto(`/mi-turno/${ACCESS_TOKEN}`)
-    await expect(page.getByText('Ocurrió un error inesperado')).toBeVisible()
+    await expect(page.getByText('Algo no salió bien')).toBeVisible()
     await expect(page.getByText('e2e-hu098-500')).toBeVisible()
   })
 })

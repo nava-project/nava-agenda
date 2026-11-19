@@ -1,9 +1,8 @@
 <script setup lang="ts">
 // Acceso al turno con un código de un solo uso (HU-105, DEC-178): para quien no
 // tiene el enlace del correo de confirmación. Tres pasos —contacto, código, turno—
-// sobre la misma tinta de «Mi turno» y «Cambiar la hora», con el formulario en un
-// talón de papel: la persona «presenta su talón» para que le abran el turno.
-// Sin mockup asignado: identidad guiada NAVA / Tailored Grid (DEC-078).
+// con el lenguaje v2 de la reserva (DEC-188, 2c): los pasos en la cabecera, el
+// formulario en una hoja y la acción principal como la única con el acento.
 //
 // La página posee el flujo y los intentos locales. Qué contactos existen, cuántos
 // códigos se pueden pedir y si un código sirve lo decide solo el servidor, y nunca
@@ -16,8 +15,8 @@
 // turno y las dos acciones a las que vino (cambiar la hora o cancelar) aquí mismo; la
 // pantalla completa de «Mi turno» queda como enlace secundario.
 import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue'
-import { BaseAlert, BaseButton, BaseInput, NavaWordmark, OtpInput, PageState } from '@/shared/ui'
-import { BookingBackdrop } from '@/modules/public-booking'
+import { BaseAlert, BaseInput, OtpInput } from '@/shared/ui'
+import { BookingStateScreen, PublicFrame } from '@/modules/public-booking'
 import AppointmentActions from '../components/AppointmentActions.vue'
 import { requestAccessCode } from '../api/requestAccessCodeApi'
 import { verifyAccessCode } from '../api/verifyAccessCodeApi'
@@ -25,6 +24,7 @@ import { formatCountdown, maskContact, waitMinutes, isEmailContact } from '../mo
 import { calendarLeaf, timezoneCity } from '../model/appointmentMoment'
 import { formatTimeInTimezone } from '@/shared/time/formatInstant'
 import type { AccessGrant } from '../model/customerAccessOutcome'
+import '../styles/myTurnV2.css'
 
 interface Props {
   /** Slug público del negocio (`:slug`). No confiado: el servidor lo resuelve. */
@@ -298,66 +298,54 @@ const zoneCity = computed(() => (grant.value ? timezoneCity(grant.value.timezone
 </script>
 
 <template>
-  <div ref="root" class="access">
-    <BookingBackdrop />
-
-    <header class="access__masthead">
-      <NavaWordmark variant="inverted" size="sm" />
-      <span class="access__caption">Mi turno</span>
-    </header>
-
-    <main v-if="step === 'business-not-found'" class="access__main access__main--state">
-      <h1 class="visually-hidden">Tu turno</h1>
-      <PageState
-        variant="danger"
-        status-label="Error"
-        headline="No encontramos este enlace"
-        role="alert"
-      >
-        <template #default
-          >Puede estar incompleto o ya no recibir reservas en línea. Revisa el enlace que te
-          compartieron.</template
-        >
-      </PageState>
-    </main>
-
-    <main v-else class="access__main">
-      <ol class="access__steps" aria-label="Pasos para entrar a tu turno">
+  <PublicFrame caption="Mi turno">
+    <template v-if="step !== 'business-not-found'" #aside>
+      <ol class="bk-steps" aria-label="Pasos para entrar a tu turno">
         <li
           v-for="s in STEPS"
           :key="s.id"
-          class="access__step"
+          class="bk-steps__item access__step"
           :class="{
-            'access__step--done': s.id < stepNumber,
-            'access__step--current': s.id === stepNumber,
+            'bk-steps__item--done': s.id < stepNumber,
+            'bk-steps__item--current': s.id === stepNumber,
           }"
           :aria-current="s.id === stepNumber ? 'step' : undefined"
         >
-          <span class="access__step-num" aria-hidden="true">{{
-            String(s.id).padStart(2, '0')
-          }}</span>
-          <span class="access__step-label">{{ s.label }}</span>
+          <span class="bk-steps__mark" aria-hidden="true"></span>
+          <span class="bk-steps__label">{{ s.label }}</span>
+          <span v-if="s.id < stepNumber" class="visually-hidden"> (completado)</span>
         </li>
       </ol>
+    </template>
 
-      <div class="access__intro">
-        <p class="access__eyebrow">Tu turno</p>
-        <h1 ref="heading" class="access__title" tabindex="-1">{{ title }}</h1>
-        <p v-if="step === 'contact'" class="access__lead">
-          Escribe el correo o el celular con el que reservaste. Te enviamos un código de 6 dígitos
-          para entrar.
-        </p>
-        <p v-else-if="step === 'code'" class="access__lead">
-          Si <strong class="access__contact">{{ maskedContact }}</strong> tiene un turno, el código
-          va en camino por {{ channelWord }}. Vence en 10 minutos.
-        </p>
-        <p v-else-if="step === 'manage' && !cancelledHere" class="access__lead">
-          Cambia el día o la hora, o cancélalo si ya no puedes venir.
-        </p>
-        <p v-else class="access__lead">
-          Tienes {{ choices.length }} turnos próximos. Elige cuál quieres abrir.
-        </p>
-      </div>
+    <BookingStateScreen
+      v-if="step === 'business-not-found'"
+      status="not-found"
+      title="Tu turno"
+      loading-headline=""
+      :not-found="{
+        headline: 'No encontramos este enlace',
+        body: 'Puede estar incompleto o ya no recibir reservas en línea. Revisa el enlace que te compartieron.',
+      }"
+    />
+
+    <main v-else ref="root" class="bk-page mt mt-access">
+      <p class="bk-kicker">Tu turno</p>
+      <h1 ref="heading" class="bk-title mt__title" tabindex="-1">{{ title }}</h1>
+      <p v-if="step === 'contact'" class="mt-access__lead">
+        Escribe el correo o el celular con el que reservaste. Te enviamos un código de 6 dígitos
+        para entrar.
+      </p>
+      <p v-else-if="step === 'code'" class="mt-access__lead">
+        Si <strong>{{ maskedContact }}</strong> tiene un turno, el código va en camino por
+        {{ channelWord }}. Vence en 10 minutos.
+      </p>
+      <p v-else-if="step === 'manage' && !cancelledHere" class="mt-access__lead">
+        Cambia el día o la hora, o cancélalo si ya no puedes ir.
+      </p>
+      <p v-else-if="step === 'choose'" class="mt-access__lead">
+        Tienes {{ choices.length }} turnos próximos. Elige cuál quieres abrir.
+      </p>
 
       <BaseAlert
         v-if="alert"
@@ -370,7 +358,7 @@ const zoneCity = computed(() => (grant.value ? timezoneCity(grant.value.timezone
       <!-- Paso 1: contacto. -->
       <form
         v-if="step === 'contact'"
-        class="stub"
+        class="bk-sheet mt-form"
         novalidate
         aria-label="Buscar tu turno"
         @submit.prevent="submitContact"
@@ -385,10 +373,11 @@ const zoneCity = computed(() => (grant.value ? timezoneCity(grant.value.timezone
           hint="El mismo con el que hiciste la reserva."
           placeholder="ana@correo.com o 300 123 4567"
         />
-        <div class="stub__channel">
-          <span class="stub__channel-label" aria-hidden="true">Te llega por</span>
+        <!-- Por dónde llega el código: se adivina del contacto, sin pedirlo aparte. -->
+        <div class="stub__channel mt-channel">
+          <span class="mt-channel__label" aria-hidden="true">Te llega por</span>
           <span
-            class="stub__chip"
+            class="stub__chip mt-channel__chip"
             :class="{ 'stub__chip--on': channelPreview === 'correo' }"
             aria-hidden="true"
           >
@@ -399,7 +388,7 @@ const zoneCity = computed(() => (grant.value ? timezoneCity(grant.value.timezone
             Correo
           </span>
           <span
-            class="stub__chip"
+            class="stub__chip mt-channel__chip"
             :class="{ 'stub__chip--on': channelPreview === 'WhatsApp' }"
             aria-hidden="true"
           >
@@ -412,15 +401,20 @@ const zoneCity = computed(() => (grant.value ? timezoneCity(grant.value.timezone
             channelPreview ? `El código te llegará por ${channelPreview}.` : ''
           }}</span>
         </div>
-        <BaseButton type="submit" size="lg" :loading="submitting" class="stub__action">
-          Enviarme el código
-        </BaseButton>
+        <button
+          type="submit"
+          class="bk-cta mt-form__action"
+          :disabled="submitting"
+          :aria-busy="submitting"
+        >
+          {{ submitting ? 'Enviando…' : 'Enviarme el código' }}
+        </button>
       </form>
 
       <!-- Paso 2: código. -->
       <form
         v-else-if="step === 'code'"
-        class="stub"
+        class="bk-sheet mt-form"
         novalidate
         aria-label="Escribir el código"
         @submit.prevent="submitCode"
@@ -434,61 +428,55 @@ const zoneCity = computed(() => (grant.value ? timezoneCity(grant.value.timezone
           @complete="submitCode"
         />
 
-        <p v-if="notice" class="stub__notice" role="status">{{ notice }}</p>
+        <p v-if="notice" class="mt-form__notice" role="status">{{ notice }}</p>
 
-        <BaseButton
+        <button
           type="submit"
-          size="lg"
-          :loading="submitting"
-          :disabled="isLocked"
-          class="stub__action"
+          class="bk-cta mt-form__action"
+          :disabled="isLocked || submitting"
+          :aria-busy="submitting"
         >
-          Entrar a mi turno
-        </BaseButton>
+          {{ submitting ? 'Comprobando…' : 'Entrar a mi turno' }}
+        </button>
 
-        <div class="stub__aside">
-          <p v-if="!canResend" class="stub__wait" aria-live="off">
+        <div class="mt-form__aside">
+          <p v-if="!canResend" class="mt-form__wait" aria-live="off">
             ¿No te llegó? Podrás pedir otro en
-            <span class="stub__count">{{ formatCountdown(secondsToResend) }}</span>
+            <span class="mt-form__count">{{ formatCountdown(secondsToResend) }}</span>
           </p>
-          <BaseButton v-else variant="ghost" :loading="submitting" @click="resend">
+          <button v-else type="button" class="bk-link" :disabled="submitting" @click="resend">
             Pedir otro código
-          </BaseButton>
-          <button type="button" class="stub__link" @click="changeContact">
-            Cambiar el contacto
           </button>
+          <button type="button" class="bk-link" @click="changeContact">Cambiar el contacto</button>
         </div>
       </form>
 
       <!-- Paso 3: el turno y sus acciones, sin salir de la página (#647). -->
       <template v-else-if="step === 'manage'">
-        <button v-if="hasSeveral" type="button" class="access__back" @click="step = 'choose'">
-          ← Elegir otro turno
+        <button
+          v-if="hasSeveral"
+          type="button"
+          class="bk-link mt-access__back"
+          @click="step = 'choose'"
+        >
+          Elegir otro turno
         </button>
         <AppointmentActions :token="selectedToken" :slug="slug" @cancelled="cancelledHere = true" />
       </template>
 
       <!-- Paso 3 con varios turnos: primero se elige cuál. -->
-      <ul v-else class="access__list" aria-label="Tus turnos próximos">
+      <ul v-else class="mt-choices" aria-label="Tus turnos próximos">
         <li v-for="a in choices" :key="a.accessToken">
-          <button type="button" class="ticket" @click="openAppointment(a.accessToken)">
-            <span class="ticket__leaf" aria-hidden="true">
-              <span class="ticket__leaf-month">{{ a.leaf.month }}</span>
-              <span class="ticket__leaf-day">{{ a.leaf.day }}</span>
-            </span>
-            <span class="ticket__body">
-              <span class="ticket__when"
-                ><span class="ticket__weekday">{{ a.leaf.weekday }}</span> · {{ a.time }}</span
-              >
-              <span class="ticket__what">{{ a.serviceName }} con {{ a.professionalName }}</span>
-            </span>
-            <span class="ticket__go">Abrir mi turno<span aria-hidden="true"> →</span></span>
+          <button type="button" class="ticket mt-choice" @click="openAppointment(a.accessToken)">
+            <span class="mt-choice__when"
+              >{{ a.leaf.weekday }} {{ a.leaf.day }} {{ a.leaf.month }} · {{ a.time }}</span
+            >
+            <span class="mt-choice__what">{{ a.serviceName }} con {{ a.professionalName }}</span>
+            <span class="mt-choice__go" aria-hidden="true">Abrir</span>
           </button>
         </li>
-        <li v-if="zoneCity" class="access__zone">Todas las horas son de {{ zoneCity }}.</li>
+        <li v-if="zoneCity" class="mt-choices__zone">Todas las horas son de {{ zoneCity }}.</li>
       </ul>
     </main>
-  </div>
+  </PublicFrame>
 </template>
-
-<style scoped src="../styles/customerAccess.css"></style>

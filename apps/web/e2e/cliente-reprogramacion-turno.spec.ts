@@ -118,7 +118,7 @@ test.describe('HU-104 · cambiar la hora del turno', () => {
 
     await page.goto(`/mi-turno/${TOKEN}`)
     const entry = page.getByRole('link', { name: /Cambiar la hora/ })
-    await expect(entry).toContainText('Puedes cambiarla hasta 2 veces')
+    await expect(entry).toHaveAccessibleDescription(/Puedes cambiarla hasta 2 veces/)
     await entry.click()
     await expect(page).toHaveURL(new RegExp(`/mi-turno/${TOKEN}/reprogramar$`))
 

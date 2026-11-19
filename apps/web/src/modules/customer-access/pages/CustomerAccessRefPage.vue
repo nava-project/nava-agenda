@@ -1,9 +1,8 @@
 <script setup lang="ts">
 // Enlace de Odin para cancelar o cambiar la hora (HU-106, DEC-179): el cliente ya dijo
 // «sí, es mi turno» por WhatsApp y recibió un código de 6 dígitos; aquí solo lo escribe.
-// La pantalla abre directo en el código, sin pedir el contacto, sobre la misma tinta y el
-// mismo talón de «Encuentra tu turno» (HU-105). Sin mockup asignado: identidad NAVA /
-// Tailored Grid (DEC-078).
+// La pantalla abre directo en el código, sin pedir el contacto, con el mismo lenguaje v2
+// que «Encuentra tu turno» (HU-105, DEC-188).
 //
 // El enlace lleva solo una referencia opaca de un uso: por sí sola no da acceso ni dice de
 // quién es el turno. Qué código sirve lo decide el servidor y no lo distingue de «vencido»
@@ -20,11 +19,12 @@
 // `manage` (el que Odin usa por defecto) el paso 03 ofrece las dos acciones y la persona elige.
 import { computed, nextTick, onMounted, ref } from 'vue'
 import { useRouter } from 'vue-router'
-import { BaseAlert, BaseButton, NavaWordmark, OtpInput, PageState } from '@/shared/ui'
-import { BookingBackdrop } from '@/modules/public-booking'
+import { BaseAlert, OtpInput } from '@/shared/ui'
+import { BookingStateScreen, PublicFrame } from '@/modules/public-booking'
 import AppointmentActions from '../components/AppointmentActions.vue'
 import { verifyAccessRef } from '../api/verifyAccessRefApi'
 import type { AccessPurpose } from '../model/customerAccessOutcome'
+import '../styles/myTurnV2.css'
 
 interface Props {
   /** Slug público del negocio (`:slug`). No confiado: el servidor lo resuelve. */
@@ -140,70 +140,53 @@ async function submitCode() {
 </script>
 
 <template>
-  <div ref="root" class="access">
-    <BookingBackdrop />
-
-    <header class="access__masthead">
-      <NavaWordmark variant="inverted" size="sm" />
-      <span class="access__caption">Mi turno</span>
-    </header>
-
-    <main v-if="step === 'business-not-found'" class="access__main access__main--state">
-      <h1 class="visually-hidden">Tu turno</h1>
-      <PageState
-        variant="danger"
-        status-label="Error"
-        headline="No encontramos este enlace"
-        role="alert"
-      >
-        <template #default
-          >Puede estar incompleto o ya no recibir reservas en línea. Pide un enlace nuevo en
-          WhatsApp.</template
-        >
-      </PageState>
-    </main>
-
-    <main v-else-if="step === 'opening'" class="access__main access__main--state">
-      <h1 class="visually-hidden">Abriendo tu turno</h1>
-      <PageState variant="loading" headline="Abriendo tu turno…" role="status" />
-    </main>
-
-    <main v-else class="access__main">
-      <ol class="access__steps" aria-label="Pasos para entrar a tu turno">
+  <PublicFrame caption="Mi turno">
+    <template v-if="step !== 'business-not-found' && step !== 'opening'" #aside>
+      <ol class="bk-steps" aria-label="Pasos para entrar a tu turno">
         <li
           v-for="s in STEPS"
           :key="s.id"
-          class="access__step"
+          class="bk-steps__item access__step"
           :class="{
-            'access__step--done': s.id < stepNumber,
-            'access__step--current': s.id === stepNumber,
+            'bk-steps__item--done': s.id < stepNumber,
+            'bk-steps__item--current': s.id === stepNumber,
           }"
           :aria-current="s.id === stepNumber ? 'step' : undefined"
         >
-          <span class="access__step-num" aria-hidden="true">{{
-            String(s.id).padStart(2, '0')
-          }}</span>
-          <span class="access__step-label">{{ s.label }}</span>
+          <span class="bk-steps__mark" aria-hidden="true"></span>
+          <span class="bk-steps__label">{{ s.label }}</span>
+          <span v-if="s.id < stepNumber" class="visually-hidden"> (completado)</span>
         </li>
       </ol>
+    </template>
 
-      <div class="access__intro">
-        <p class="access__eyebrow">Tu turno</p>
-        <h1 ref="heading" class="access__title" tabindex="-1">
-          {{ step === 'manage' ? manageTitle : 'Escribe tu código' }}
-        </h1>
-        <p v-if="step === 'manage' && !cancelledHere" class="access__lead">
-          {{
-            actionsMode === 'cancel'
-              ? 'Confirma la cancelación. Si prefieres otra hora, vuelve a las opciones.'
-              : 'Cambia el día o la hora, o cancélalo si ya no puedes venir.'
-          }}
-        </p>
-        <p v-else-if="step === 'code'" class="access__lead">
-          Ya confirmamos tu turno por WhatsApp. Te enviamos allí un código de 6 dígitos: escríbelo
-          para continuar; vence en 10 minutos.
-        </p>
-      </div>
+    <BookingStateScreen
+      v-if="step === 'business-not-found' || step === 'opening'"
+      :status="step === 'opening' ? 'loading' : 'not-found'"
+      :title="step === 'opening' ? 'Abriendo tu turno' : 'Tu turno'"
+      loading-headline="Abriendo tu turno…"
+      :not-found="{
+        headline: 'No encontramos este enlace',
+        body: 'Puede estar incompleto o ya no recibir reservas en línea. Pide un enlace nuevo en WhatsApp.',
+      }"
+    />
+
+    <main v-else ref="root" class="bk-page mt mt-access">
+      <p class="bk-kicker">Tu turno</p>
+      <h1 ref="heading" class="bk-title mt__title" tabindex="-1">
+        {{ step === 'manage' ? manageTitle : 'Escribe tu código' }}
+      </h1>
+      <p v-if="step === 'manage' && !cancelledHere" class="mt-access__lead">
+        {{
+          actionsMode === 'cancel'
+            ? 'Confirma la cancelación. Si prefieres otra hora, vuelve a las opciones.'
+            : 'Cambia el día o la hora, o cancélalo si ya no puedes ir.'
+        }}
+      </p>
+      <p v-else-if="step === 'code'" class="mt-access__lead">
+        Ya confirmamos tu turno por WhatsApp. Te enviamos allí un código de 6 dígitos: escríbelo
+        para continuar; vence en 10 minutos.
+      </p>
 
       <AppointmentActions
         v-if="step === 'manage'"
@@ -224,7 +207,7 @@ async function submitCode() {
 
       <form
         v-if="step === 'code'"
-        class="stub"
+        class="bk-sheet mt-form"
         novalidate
         aria-label="Escribir el código"
         @submit.prevent="submitCode"
@@ -238,22 +221,19 @@ async function submitCode() {
           @complete="submitCode"
         />
 
-        <BaseButton
+        <button
           type="submit"
-          size="lg"
-          :loading="submitting"
-          :disabled="isLocked"
-          class="stub__action"
+          class="bk-cta mt-form__action"
+          :disabled="isLocked || submitting"
+          :aria-busy="submitting"
         >
-          Continuar
-        </BaseButton>
+          {{ submitting ? 'Comprobando…' : 'Continuar' }}
+        </button>
 
-        <p class="stub__wait">
+        <p class="mt-form__wait">
           ¿No te llegó? Vuelve a la conversación de WhatsApp y pide otro enlace.
         </p>
       </form>
     </main>
-  </div>
+  </PublicFrame>
 </template>
-
-<style scoped src="../styles/customerAccess.css"></style>

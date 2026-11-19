@@ -17,6 +17,9 @@ interface Props {
   title: string
   loadingHeadline: string
   requestId?: string
+  /** Texto propio para «no encontrado»: «Mi turno» no habla de agendas, sino de
+   * un enlace de turno que venció o se escribió incompleto. */
+  notFound?: { headline: string; body: string }
 }
 
 const props = defineProps<Props>()
@@ -27,8 +30,10 @@ const content = computed(() => {
     case 'not-found':
       // Reintentar no cambiaría nada: el enlace no existe o ya no se publica.
       return {
-        headline: 'Este enlace no lleva a ninguna agenda',
-        body: 'Pide al negocio el enlace de nuevo y ábrelo tal como te llegue.',
+        ...(props.notFound ?? {
+          headline: 'Este enlace no lleva a ninguna agenda',
+          body: 'Pide al negocio el enlace de nuevo y ábrelo tal como te llegue.',
+        }),
         retry: false,
       }
     case 'network-error':

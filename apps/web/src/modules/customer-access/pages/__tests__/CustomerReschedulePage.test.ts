@@ -129,7 +129,8 @@ describe('CustomerReschedulePage', () => {
     mockLoad()
     const w = await mountPage()
 
-    expect(w.find('h1').text()).toBe('Barbería Ejemplo')
+    expect(w.find('h1').text()).toBe('Cambiar la hora')
+    expect(w.text()).toContain('Barbería Ejemplo')
     expect(w.text()).toContain('Hora actual')
     expect(w.text()).toContain('Corte clásico')
     expect(days(w)).toHaveLength(2)

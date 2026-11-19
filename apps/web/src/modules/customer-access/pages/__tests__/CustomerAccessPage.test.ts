@@ -356,7 +356,7 @@ describe('CustomerAccessPage · paso 3, turno', () => {
     const actions = w.find('[data-test="actions"]')
     expect(actions.attributes('data-token')).toBe('tok-1')
     expect(actions.attributes('data-slug')).toBe('mi-barberia')
-    expect(buttonByText(w, '← Elegir otro turno')).toBeUndefined()
+    expect(buttonByText(w, 'Elegir otro turno')).toBeUndefined()
     expect(w.text()).not.toContain('tok-1')
   })
 
@@ -394,7 +394,7 @@ describe('CustomerAccessPage · paso 3, turno', () => {
     expect(router.currentRoute.value.name).toBe('mi-turno-acceso')
     expect(w.find('[data-test="actions"]').attributes('data-token')).toBe('tok-2')
 
-    await buttonByText(w, '← Elegir otro turno')!.trigger('click')
+    await buttonByText(w, 'Elegir otro turno')!.trigger('click')
     await flushPromises()
     expect(w.find('h1').text()).toBe('Elige tu turno')
     expect(w.findAll('button.ticket')).toHaveLength(2)

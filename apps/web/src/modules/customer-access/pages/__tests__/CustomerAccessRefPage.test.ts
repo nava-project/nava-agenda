@@ -94,8 +94,8 @@ describe('CustomerAccessRefPage', () => {
     expect(w.text()).toContain('Te enviamos allí un código de 6 dígitos')
     // DEC-181: el contacto lo resolvió Odin; la página abre en el paso 02 con el 01 hecho.
     const steps = w.findAll('.access__step')
-    expect(steps.map((s) => s.text())).toEqual(['01Contacto', '02Código', '03Tu turno'])
-    expect(steps[0]!.classes()).toContain('access__step--done')
+    expect(steps.map((s) => s.text())).toEqual(['Contacto (completado)', 'Código', 'Tu turno'])
+    expect(steps[0]!.classes()).toContain('bk-steps__item--done')
     expect(w.find('[aria-current="step"]').text()).toContain('Código')
     expect(w.find('input[name="contact"]').exists()).toBe(false)
     expect(slotInputs(w)).toHaveLength(6)
