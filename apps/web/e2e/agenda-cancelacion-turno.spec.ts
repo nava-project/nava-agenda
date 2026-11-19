@@ -11,7 +11,7 @@ import { pickAgendaDate } from './agenda-fecha'
  * Pendiente de ejecución contra Chromium real en esta entrega (no forma
  * parte de los checks de CI, que solo corren `test:unit`), mismo estado
  * documentado que `e2e/agenda-reprogramacion-turno.spec.ts` (HU-065) en
- * `apps/api/README.md`.
+ * `nava-docs/agenda/apps/api/README.md`.
  *
  * Variables de entorno:
  *   E2E_EMAIL / E2E_PASSWORD: credenciales válidas contra el API real

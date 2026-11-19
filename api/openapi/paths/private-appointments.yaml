@@ -1,6 +1,6 @@
 # Operaciones privadas de agenda del profesional: crear, modificar, reprogramar,
 # cancelar y cambiar estado de turnos, con historial. Requiere sesión
-# autenticada. Ver docs/06-api/estandar-openapi.md.
+# autenticada. Ver nava-docs/agenda/06-api/estandar-openapi.md.
 #
 # HU-061 (B3) agrega la creación manual; HU-064 agrega detalle e historial de
 # solo lectura; HU-065 agrega T2 (reprogramación auditada). Editar (T3),

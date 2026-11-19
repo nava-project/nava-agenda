@@ -4,7 +4,7 @@
 // aloja su propia región entre la cabecera y la navegación, y lo declara con
 // `meta.toastHost` para que solo haya una región a la vez (DEC-095). Cualquier
 // otro proveedor global se agrega en app/bootstrap, no aquí, según
-// docs/04-arquitectura/frontend.md.
+// nava-docs/agenda/04-arquitectura/frontend.md.
 import { computed } from 'vue'
 import { useRoute } from 'vue-router'
 import { ToastRegion } from '@/shared/ui'

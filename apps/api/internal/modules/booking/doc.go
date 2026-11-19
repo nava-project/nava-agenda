@@ -1,5 +1,5 @@
 // Package booking es el núcleo persistente de citas (HU-060), según
-// docs/03-desarrollo/estandar-backend-go.md.
+// nava-docs/agenda/03-desarrollo/estandar-backend-go.md.
 //
 // HU-060 entrega únicamente la base persistente y la primitiva
 // transaccional interna: tipos de dominio cerrados para estado, origen,

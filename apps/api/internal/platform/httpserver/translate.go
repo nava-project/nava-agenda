@@ -9,7 +9,7 @@ import (
 
 // problemSpec fija, para un apperr.Kind, la representación de red estable:
 // URI de tipo, título, código de proyecto y estado HTTP. type es una ruta
-// relativa bajo /api/v1 (docs/06-api/estandar-openapi.md): el proyecto
+// relativa bajo /api/v1 (nava-docs/agenda/06-api/estandar-openapi.md): el proyecto
 // todavía no tiene un dominio público donde publicar documentación de
 // errores, así que el identificador se ata a una ruta que el propio API
 // puede servir el día que exista ese contenido, en vez de a un dominio
@@ -21,7 +21,7 @@ type problemSpec struct {
 	status  int
 }
 
-// Los valores de code siguen docs/06-api/estandar-openapi.md sección 5:
+// Los valores de code siguen nava-docs/agenda/06-api/estandar-openapi.md sección 5:
 // minúscula con guiones, como el ejemplo normativo "slot-conflict".
 var notFoundProblem = problemSpec{
 	typeURI: "/api/v1/problems/not-found",
@@ -62,7 +62,7 @@ var invalidRequestProblem = problemSpec{
 }
 
 // validationProblem cubre un cuerpo bien formado que incumple una
-// validación de campo (docs/06-api/estandar-openapi.md sección 11, fila
+// validación de campo (nava-docs/agenda/06-api/estandar-openapi.md sección 11, fila
 // 422): distinto de invalidRequestProblem, que cubre JSON o sintaxis
 // inválida detectada antes de poder evaluar los campos.
 var validationProblem = problemSpec{
@@ -148,7 +148,7 @@ var invalidStateProblem = problemSpec{
 // scheduleConflictProblem cubre apperr.KindScheduleConflict (HU-097,
 // RN-CON-05): la franja pública elegida ya no está disponible porque otra
 // confirmación la ganó primero. Código distinto de "conflict" a propósito
-// (docs/06-api/estandar-openapi.md sección 5, ejemplo normativo
+// (nava-docs/agenda/06-api/estandar-openapi.md sección 5, ejemplo normativo
 // "slot-conflict"): el cliente debe ofrecer alternativas, no reintentar el
 // mismo intervalo. publicbookinghttpapi extiende este Problem con
 // `alternatives` (RFC 9457, extensión abierta) al escribir la respuesta;
@@ -231,7 +231,7 @@ var unavailableProblem = problemSpec{
 
 // Translate convierte cualquier error en un Problem seguro para el cliente.
 // Es el único punto central de traducción que exige
-// docs/04-arquitectura/backend-go.md sección 5 ("los errores de dominio se
+// nava-docs/agenda/04-arquitectura/backend-go.md sección 5 ("los errores de dominio se
 // traducen a HTTP en un punto común"):
 //
 //   - *apperr.Error con Kind distinto de KindInternal expone su Message,

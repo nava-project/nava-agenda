@@ -1,6 +1,6 @@
 // Package database aloja la apertura del pool de PostgreSQL y el
 // establecimiento del contexto de negocio (app.business_id) requerido por
-// RLS en cada transacción, según docs/05-backend/base-datos.md.
+// RLS en cada transacción, según nava-docs/agenda/05-backend/base-datos.md.
 //
 // El pool NO expone Query, QueryRow, Exec ni Begin como métodos exportados. La
 // única forma de ejecutar trabajo de negocio es InTenantTx, que recibe el

@@ -105,7 +105,7 @@ func (h *UpdateBookingPolicyHandler) ServeHTTP(w http.ResponseWriter, r *http.Re
 
 	// Normalización, validación de rango/coherencia y persistencia atómica
 	// viven en shops.BookingPolicyService: este handler no repite ninguna
-	// regla de negocio (docs/03-desarrollo/estandar-backend-go.md §4).
+	// regla de negocio (nava-docs/agenda/03-desarrollo/estandar-backend-go.md §4).
 	policy, err := h.service.Update(r.Context(), principal.BusinessID, shops.BookingPolicyInput{
 		MinAdvanceMinutes:              req.MinAdvanceMinutes,
 		MaxAdvanceDays:                 req.MaxAdvanceDays,

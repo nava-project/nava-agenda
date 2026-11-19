@@ -1,5 +1,5 @@
 // Único punto del módulo `schedules` que llama al cliente HTTP tipado para
-// HU-042 (docs/03-desarrollo/estandar-frontend-vue.md §6). Traduce las
+// HU-042 (nava-docs/agenda/03-desarrollo/estandar-frontend-vue.md §6). Traduce las
 // respuestas reales de time-blocks/time-block-series a los outcomes
 // discriminados que la página consume; ningún componente ve `Problem`,
 // `status` HTTP crudo ni cabeceras. Cubre el alta/listado/retiro de

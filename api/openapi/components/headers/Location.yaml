@@ -1,4 +1,4 @@
-# Cabecera estándar de un 201 (docs/06-api/estandar-openapi.md §7/§11):
+# Cabecera estándar de un 201 (nava-docs/agenda/06-api/estandar-openapi.md §7/§11):
 # ruta del recurso recién creado, relativa a `servers: - url: /api/v1`. HU-021
 # es la primera operación de este contrato que crea un recurso con
 # identificador propio, así que introduce el componente compartido en vez de

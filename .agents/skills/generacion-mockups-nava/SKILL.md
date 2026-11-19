@@ -45,7 +45,7 @@ forma explícita después de distinguirlo de los mockups visuales.
 ## Reglas de diseño del proyecto
 
 - Respetar NAVA / Tailored Grid, los tokens vigentes y el modo de fidelidad
-  definido por `docs/03-desarrollo/estandar-diseno-visual.md`.
+  definido por `nava-docs/agenda/03-desarrollo/estandar-diseno-visual.md`.
 - Un mockup nunca crea funciones. Si una acción o dato no existe en la HU, el
   contrato o la pantalla real, no se dibuja.
 - Evitar dashboards genéricos, tarjetas flotantes repetitivas, glassmorphism,

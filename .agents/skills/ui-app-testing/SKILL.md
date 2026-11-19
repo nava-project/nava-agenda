@@ -9,14 +9,14 @@ Fuente: solicitud explícita del propietario, DEC-120, issue #300. Activa «prue
 
 ## Preparación
 
-1. Leer AGENTS.md y [entrada](../../../docs/07-calidad/pruebas-ui/README.md). Detectar rutas actuales y SHA, no heredar alcance histórico de agosto.
-2. Aplicar [entorno y cuentas](../../../docs/07-calidad/pruebas-ui/01-entorno-cuentas.md) y local-app-startup si no está listo: API/PostgreSQL reales, Atlas sin pendientes y recorrido autenticado. Wrapper QA desactiva proveedores sin cambiar .env.local.
+1. Leer AGENTS.md y [entrada](https://github.com/nava-project/nava-docs/blob/main/agenda/07-calidad/pruebas-ui/README.md). Detectar rutas actuales y SHA, no heredar alcance histórico de agosto.
+2. Aplicar [entorno y cuentas](https://github.com/nava-project/nava-docs/blob/main/agenda/07-calidad/pruebas-ui/01-entorno-cuentas.md) y local-app-startup si no está listo: API/PostgreSQL reales, Atlas sin pendientes y recorrido autenticado. Wrapper QA desactiva proveedores sin cambiar .env.local.
 3. Probar Chromium con el smoke del kit. Scripts Playwright locales bastan si no hay MCP de navegador; node_modules no acredita control del navegador.
-4. Seleccionar issue real y [orquestación](../../../docs/10-backlog/prompts/orchestration/pruebas-ui-luna.md) vigente. Primera campaña #301; si cerrada, el coordinador crea otra y nuevos prompts según protocolo. Si GitHub no responde, continuar preflight local y registrar inicio de campaña BLOCKED. Persistir versiones y actualizar índice antes de ejecutar; pending sigue draft. No reescribir cuerpos ya ejecutados.
+4. Seleccionar issue real y [orquestación](https://github.com/nava-project/nava-docs/blob/main/agenda/10-backlog/prompts/orchestration/pruebas-ui-luna.md) vigente. Primera campaña #301; si cerrada, el coordinador crea otra y nuevos prompts según protocolo. Si GitHub no responde, continuar preflight local y registrar inicio de campaña BLOCKED. Persistir versiones y actualizar índice antes de ejecutar; pending sigue draft. No reescribir cuerpos ya ejecutados.
 
 ## Delegación y presupuesto
 
-Leer [reparto](../../../docs/07-calidad/pruebas-ui/03-inventario.md) y [protocolo](../../../docs/07-calidad/pruebas-ui/02-protocolo-agentes.md). Máximo dos agentes, una pantalla por tarea, cuenta/tenant/contexto/salida distintos. Serializar access/recovery, luego cola de pantallas, finalmente journeys/aislamiento.
+Leer [reparto](https://github.com/nava-project/nava-docs/blob/main/agenda/07-calidad/pruebas-ui/03-inventario.md) y [protocolo](https://github.com/nava-project/nava-docs/blob/main/agenda/07-calidad/pruebas-ui/02-protocolo-agentes.md). Máximo dos agentes, una pantalla por tarea, cuenta/tenant/contexto/salida distintos. Serializar access/recovery, luego cola de pantallas, finalmente journeys/aislamiento.
 
 Codex spawn_agent: model=gpt-6-luna, reasoning_effort=medium, fork_turns=none. Enviar solo ruta de prompt persistido, scope, campaña, SHA, URL local, ruta del manifiesto privado y salida exclusiva. No credenciales/historial completo. Encargos guardados antes de entregar; preferencias explícitas del propietario prevalecen.
 
@@ -28,4 +28,4 @@ Cada agente lee solo ficha/transversales/fuentes de capacidad y usa UI para nego
 
 Guardar checkpoint privado tras cada mutación y retomar desde estado verificado, según protocolo. Tanda hasta 12 casos/20 min, reencolar NOT_RUN. Dos intentos por bloqueo. Escalar únicamente la pregunta que Luna no resuelve, sin supervisor caro adicional.
 
-Consolidar [informe](../../../docs/07-calidad/pruebas-ui/06-informe.md), [recorridos](../../../docs/07-calidad/pruebas-ui/05-recorridos.md) y [límites](../../../docs/07-calidad/pruebas-ui/08-cobertura.md). Sanitizar evidencia. PASS requiere evidencia, no ausencia de bugs. Actualizar metadatos/índice y enlazar informes/pendientes. Fix confirmado = otro issue/rama/PR.
+Consolidar [informe](https://github.com/nava-project/nava-docs/blob/main/agenda/07-calidad/pruebas-ui/06-informe.md), [recorridos](https://github.com/nava-project/nava-docs/blob/main/agenda/07-calidad/pruebas-ui/05-recorridos.md) y [límites](https://github.com/nava-project/nava-docs/blob/main/agenda/07-calidad/pruebas-ui/08-cobertura.md). Sanitizar evidencia. PASS requiere evidencia, no ausencia de bugs. Actualizar metadatos/índice y enlazar informes/pendientes. Fix confirmado = otro issue/rama/PR.

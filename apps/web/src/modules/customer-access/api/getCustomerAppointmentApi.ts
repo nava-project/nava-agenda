@@ -1,5 +1,5 @@
 // Único punto del módulo `customer-access` que llama al cliente HTTP
-// tipado (docs/03-desarrollo/estandar-frontend-vue.md §6). Traduce la
+// tipado (nava-docs/agenda/03-desarrollo/estandar-frontend-vue.md §6). Traduce la
 // respuesta real de `GET /customer/appointments/{token}` a
 // `GetCustomerAppointmentOutcome`: la página coordinadora nunca ve
 // `Problem`, `status` HTTP crudo ni cabeceras.

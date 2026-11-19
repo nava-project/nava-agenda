@@ -271,7 +271,7 @@ func (r *Repository) Get(ctx context.Context, businessID, professionalID, workin
 
 // Create implementa schedule.Repository.Create: Begin, el bloqueo del
 // profesional, la verificación de solape, el INSERT y Complete ocurren dentro
-// de la MISMA InTenantTx (apps/api/README.md, "Patrón obligatorio:
+// de la MISMA InTenantTx (nava-docs/agenda/apps/api/README.md, "Patrón obligatorio:
 // idempotencia reutilizable"). Un solape (o un unique_violation defensivo
 // de workingHourWeekdayStartUniqueConstraint) hace ROLLBACK de toda la
 // transacción -incluida la reclamación de idempotencia que Begin ya había

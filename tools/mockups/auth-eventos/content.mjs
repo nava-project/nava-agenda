@@ -1,6 +1,6 @@
 /*
  * Modelo de contenido de los mockups de `/acceso` y `/recuperar-acceso`
- * (docs/10-backlog/evidence/ui-mockups-nava-tailored-grid-2026-09-03).
+ * (nava-docs/agenda/10-backlog/evidence/ui-mockups-nava-tailored-grid-2026-09-03).
  *
  * Cada evento se declara una sola vez y se renderiza en los dos viewports,
  * de modo que escritorio y móvil no pueden divergir en copy, orden ni

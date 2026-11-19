@@ -1,4 +1,4 @@
-# Colección paginada por cursor (docs/06-api/estandar-openapi.md §6.10),
+# Colección paginada por cursor (nava-docs/agenda/06-api/estandar-openapi.md §6.10),
 # mismo criterio que ServiceListResponse.yaml: el catálogo público de una
 # negocio no tiene un máximo de negocio aprobado.
 type: object

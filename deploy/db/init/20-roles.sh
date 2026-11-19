@@ -1,5 +1,5 @@
 #!/bin/sh
-# Bootstrap de roles (DEC-040, docs/05-backend/migraciones-atlas.md §6): los
+# Bootstrap de roles (DEC-040, nava-docs/agenda/05-backend/migraciones-atlas.md §6): los
 # cuatro roles se crean FUERA de Atlas, antes de la primera migración, con la
 # contraseña del secreto del ambiente. Se añade `barberia_backup` (lectura de
 # todo, incluso con RLS forzada) para que los respaldos no usen el superusuario.

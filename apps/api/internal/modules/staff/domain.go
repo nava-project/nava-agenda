@@ -22,7 +22,7 @@ const DescriptionMaxLength = 280
 
 // DefaultListLimit, MinListLimit y MaxListLimit acotan `limit` en la lista
 // paginada (CA-021-02): límites técnicos, no un máximo de negocio de
-// profesionales por negocio (docs/06-api/estandar-openapi.md §6.10).
+// profesionales por negocio (nava-docs/agenda/06-api/estandar-openapi.md §6.10).
 const (
 	DefaultListLimit = 20
 	MinListLimit     = 1

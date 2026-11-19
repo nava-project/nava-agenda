@@ -6,7 +6,7 @@
 // primitiva ya probada en booking/postgres/repository_test.go) sobre los
 // negocios dedicados del fixture, y agrega su propia fila
 // appointment_access_token con SQL directo: esa tabla es responsabilidad
-// de customeraccess/publicbooking, no de booking (docs/03-desarrollo/
+// de customeraccess/publicbooking, no de booking (nava-docs/agenda/03-desarrollo/
 // estrategia-pruebas.md §2 prohíbe mocks para RLS/resolución de tenant sin
 // contexto).
 //

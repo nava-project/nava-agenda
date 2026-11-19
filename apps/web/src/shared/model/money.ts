@@ -1,5 +1,5 @@
 // Importes del contrato como texto, sin pasar nunca por `number`
-// (docs/06-api/estandar-openapi.md §6: el precio es un decimal exacto en
+// (nava-docs/agenda/06-api/estandar-openapi.md §6: el precio es un decimal exacto en
 // cadena). El símbolo sale de Intl para la moneda REAL recibida, así que no
 // se asumen pesos (estandar-diseno-visual.md §10.3); Intl solo formatea un 0
 // para descubrirlo, nunca el importe. Agrupación y decimales siguen es-CO:

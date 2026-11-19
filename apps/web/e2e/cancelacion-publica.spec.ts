@@ -5,7 +5,7 @@ import { INITIAL_VOCABULARY } from './fixtures/vocabularioInicial'
 
 /**
  * Recorrido E2E y evidencia responsive/accesible de HU-099 (T5, cancelación
- * pública; docs/03-desarrollo/estrategia-pruebas.md §5.3 y §5.4): el cliente
+ * pública; nava-docs/agenda/03-desarrollo/estrategia-pruebas.md §5.3 y §5.4): el cliente
  * cancela su turno desde `/mi-turno/:token`. Mismo criterio que
  * `mi-turno.spec.ts`: cada solicitud se intercepta con `page.route(...)`, sin
  * servidor Go real. La política real (antes/exacto/después, atomicidad,

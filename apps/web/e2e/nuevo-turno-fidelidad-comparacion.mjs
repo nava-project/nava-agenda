@@ -26,7 +26,7 @@ const HERE = dirname(fileURLToPath(import.meta.url))
 const REPO = resolve(HERE, '../../..')
 const ATLAS = resolve(
   REPO,
-  'docs/10-backlog/evidence/ui-mockups-nava-tailored-grid-2026-09-03/nuevo-turno-eventos',
+  '../nava-docs/agenda/10-backlog/evidence/ui-mockups-nava-tailored-grid-2026-09-03/nuevo-turno-eventos',
 )
 const CAPTURES = resolve(HERE, 'evidence/nuevo-turno/fidelidad-190/mock')
 const OUT = resolve(HERE, 'evidence/nuevo-turno/fidelidad-190/comparacion')

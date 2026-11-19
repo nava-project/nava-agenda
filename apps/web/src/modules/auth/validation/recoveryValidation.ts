@@ -1,5 +1,5 @@
 // Validación de forma en cliente para los tres pasos de HU-011 (trabajo
-// requerido §3/§5, docs/03-desarrollo/estandar-frontend-vue.md §7.6): ayuda
+// requerido §3/§5, nava-docs/agenda/03-desarrollo/estandar-frontend-vue.md §7.6): ayuda
 // a corregir antes de enviar, nunca sustituye al backend. La política de
 // contraseña (`DEC-063`) se explica ANTES de escribir (CA-011-06) y se
 // valida aquí solo en lo que el cliente puede anticipar sin conocer datos

@@ -180,7 +180,7 @@ func (r *Repository) ListOccupiedIntervals(ctx context.Context, businessID, prof
 // centsFromNumeric convierte price_amount (pgtype.Numeric) a centavos
 // exactos, sin pasar nunca por coma flotante. Duplica
 // catalog/postgres.centsFromNumeric a propósito: el núcleo de publicbooking
-// no importa catalog (CA-002-06, docs/03-desarrollo/estandar-backend-go.md
+// no importa catalog (CA-002-06, nava-docs/agenda/03-desarrollo/estandar-backend-go.md
 // §5.23, mismo criterio ya aplicado por publicbooking.ServiceCursor frente
 // a catalog.Cursor).
 func centsFromNumeric(n pgtype.Numeric) (int64, error) {

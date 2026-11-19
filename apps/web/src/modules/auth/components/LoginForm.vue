@@ -1,6 +1,6 @@
 <script setup lang="ts">
 // Formulario de acceso: correo y contraseña, sin conocer transporte HTTP
-// ni la forma RFC 9457 del error (docs/03-desarrollo/estandar-frontend-vue.md
+// ni la forma RFC 9457 del error (nava-docs/agenda/03-desarrollo/estandar-frontend-vue.md
 // §6). Valida forma en cliente y emite `submit` solo cuando es localmente
 // válido; `LoginPage.vue` decide qué ocurre después (llamar al API,
 // navegar, mostrar un resultado del servidor).

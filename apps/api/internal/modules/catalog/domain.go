@@ -37,7 +37,7 @@ const CurrencyCOP = "COP"
 // DefaultListLimit, MinListLimit y MaxListLimit acotan `limit` en la lista
 // por cursor de asignaciones profesional-servicio (HU-023, AssignmentService.List
 // / AssignmentRepository.List), mismo criterio técnico que
-// staff.DefaultListLimit (docs/06-api/estandar-openapi.md §6.10). El
+// staff.DefaultListLimit (nava-docs/agenda/06-api/estandar-openapi.md §6.10). El
 // catálogo de servicios en sí (CatalogService.List, más abajo) dejó de
 // paginar por cursor (DEC-103): usa DefaultPageSize/MinPageSize/MaxPageSize,
 // deliberadamente NO estas constantes, para no acoplar dos endpoints con
@@ -54,7 +54,7 @@ const (
 // MaxListLimit (20/1/50): no cambia el volumen de datos que el servidor
 // mueve por solicitud, solo cómo el cliente pide una posición dentro de la
 // colección (DEC-103: excepción explícita del propietario a la paginación
-// por cursor de docs/06-api/estandar-openapi.md §6.10, para que el panel de
+// por cursor de nava-docs/agenda/06-api/estandar-openapi.md §6.10, para que el panel de
 // Servicios ofrezca un paginador numerado con total exacto — algo que un
 // cursor opaco no puede representar sin una consulta COUNT aparte de todos
 // modos).
@@ -73,7 +73,7 @@ const MaxSearchLength = NameMaxLength
 
 // Service es un servicio del catálogo del negocio activo. PriceCents
 // representa el precio en centavos (entero exacto, nunca coma flotante,
-// docs/03-desarrollo/estandar-backend-go.md, docs/05-backend/
+// nava-docs/agenda/03-desarrollo/estandar-backend-go.md, nava-docs/agenda/05-backend/
 // estandar-base-datos.md §5); Currency es siempre CurrencyCOP (DEC-067).
 // Description es nil cuando el servicio no tiene descripción. IsActive y
 // DeactivatedAt reflejan el ciclo de vida de HU-024 (RN-SER-03):
@@ -137,7 +137,7 @@ func NormalizeDescription(raw string) *string {
 
 // pricePattern exige un decimal estrictamente positivo con como máximo dos
 // dígitos de fracción y como máximo diez dígitos enteros (coherente con
-// numeric(12,2), docs/06-api/estandar-openapi.md §6: "importe exacto:
+// numeric(12,2), nava-docs/agenda/06-api/estandar-openapi.md §6: "importe exacto:
 // string decimal más código de moneda"). Sin signo: un precio nunca es
 // negativo ni lleva '+' explícito.
 var pricePattern = regexp.MustCompile(`^[0-9]{1,10}(\.[0-9]{1,2})?$`)
@@ -190,7 +190,7 @@ func FormatPriceCOP(cents int64) string {
 // Cursor es la posición decodificada de una página de la lista (CA-022-01):
 // orden estable por fecha de alta y luego por identificador, mismo patrón
 // que staff.Cursor (duplicación pequeña y clara preferible a una
-// abstracción cruzada entre módulos, docs/03-desarrollo/
+// abstracción cruzada entre módulos, nava-docs/agenda/03-desarrollo/
 // estandar-backend-go.md §5.23).
 type Cursor struct {
 	CreatedAt time.Time

@@ -1,5 +1,5 @@
 // Módulo: gestión de los profesionales del negocio (HU-021). API pública
-// mínima para `app`, según docs/03-desarrollo/estandar-frontend-vue.md: la
+// mínima para `app`, según nava-docs/agenda/03-desarrollo/estandar-frontend-vue.md: la
 // ruta hija privada (cargada de forma diferida) y la entrada de navegación
 // que la representa. `app/router/index.ts` combina esto con las rutas de
 // `auth`/`settings` (y de cualquier otro módulo con pantalla privada) antes

@@ -1,6 +1,6 @@
 // Módulo: horario laboral recurrente de cada profesional (HU-040) y bloqueos de
 // agenda (HU-042). API pública mínima para `app`, según
-// docs/03-desarrollo/estandar-frontend-vue.md: las rutas hijas privadas
+// nava-docs/agenda/03-desarrollo/estandar-frontend-vue.md: las rutas hijas privadas
 // (cargadas de forma diferida) y las entradas de navegación que las
 // representan. `schedules-bloqueos` ya existía en el router pero no tenía
 // entrada de navegación. DEC-105 integra los bloqueos en Profesionales; la

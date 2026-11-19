@@ -2,7 +2,7 @@
 // PostgreSQL REAL con las once migraciones aplicadas (incluida
 // 20260824140000_create_service.sql) y database/testdata/dos_negocios.sql +
 // database/testdata/hu022_catalogo.sql cargados. Conéctate como
-// agenda_app (docs/03-desarrollo/estrategia-pruebas.md §2 prohíbe mocks
+// agenda_app (nava-docs/agenda/03-desarrollo/estrategia-pruebas.md §2 prohíbe mocks
 // para RLS/idempotencia/atomicidad).
 //
 //	export TEST_DATABASE_URL="postgres://agenda_app:app_test@localhost:5432/postgres?sslmode=disable"

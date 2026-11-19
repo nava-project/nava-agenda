@@ -1,7 +1,7 @@
 // Pruebas de integración de HU-042 (bloqueos de agenda): mismo criterio que
 // repository_test.go (HU-040)/exception_repository_test.go (HU-041) -
 // PostgreSQL REAL, sin mocks para RLS/idempotencia/atomicidad
-// (docs/03-desarrollo/estrategia-pruebas.md §2)- con su propio fixture
+// (nava-docs/agenda/03-desarrollo/estrategia-pruebas.md §2)- con su propio fixture
 // aislado (testdata/hu042_bloqueos.sql).
 //
 //	export TEST_DATABASE_URL="postgres://agenda_app@localhost:5432/postgres?sslmode=disable"

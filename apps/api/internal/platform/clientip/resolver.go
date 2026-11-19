@@ -1,7 +1,7 @@
 // Package clientip resuelve la IP real de una solicitud HTTP (HU-007). Vive
 // en platform, no en el módulo auth, porque resolver una IP es un concern de
 // transporte reutilizable por cualquier límite futuro, no una regla de
-// negocio de autenticación (docs/04-arquitectura/backend-go.md).
+// negocio de autenticación (nava-docs/agenda/04-arquitectura/backend-go.md).
 package clientip
 
 import (

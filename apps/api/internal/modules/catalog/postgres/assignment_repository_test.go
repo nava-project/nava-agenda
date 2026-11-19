@@ -3,7 +3,7 @@
 // 20260824150000_create_barber_service.sql) y database/testdata/
 // dos_negocios.sql + database/testdata/hu023_asignaciones.sql cargados,
 // además de un professional y un service reales por prueba. Conéctate como
-// agenda_app (docs/03-desarrollo/estrategia-pruebas.md §2 prohíbe mocks
+// agenda_app (nava-docs/agenda/03-desarrollo/estrategia-pruebas.md §2 prohíbe mocks
 // para RLS/FK/carreras reales).
 //
 // Los profesionales de fixture se insertan con SQL directo (no vía

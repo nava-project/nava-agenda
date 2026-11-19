@@ -2,7 +2,7 @@ import { test, expect, type Route } from '@playwright/test'
 import { INITIAL_VOCABULARY } from './fixtures/vocabularioInicial'
 
 /**
- * Recorrido E2E de HU-091 (docs/03-desarrollo/estrategia-pruebas.md §5.3):
+ * Recorrido E2E de HU-091 (nava-docs/agenda/03-desarrollo/estrategia-pruebas.md §5.3):
  * catálogo público de servicios. Mismo criterio que
  * reserva-publica.spec.ts (HU-090): un único endpoint sin sesión (`GET
  * /public/businesses/{slug}/services`), interceptado con

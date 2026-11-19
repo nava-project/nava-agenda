@@ -2,7 +2,7 @@
 // entre el puerto auth.Repository y database.DB.InTenantTx/ResolveTenant,
 // sin que el núcleo del módulo (domain.go, ports.go, service.go) importe
 // pgx ni internal/platform/database (CA-002-06). Las consultas SQL viven
-// aquí, visibles y revisables, según docs/03-desarrollo/estandar-backend-go.md
+// aquí, visibles y revisables, según nava-docs/agenda/03-desarrollo/estandar-backend-go.md
 // §4.
 package postgres
 

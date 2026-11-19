@@ -15,7 +15,7 @@ const here = dirname(fileURLToPath(import.meta.url))
 const repo = resolve(here, '../../..')
 const atlas = resolve(
   repo,
-  'docs/10-backlog/evidence/ui-mockups-nava-tailored-grid-2026-09-02/06-barberos-y-barberia.png',
+  '../nava-docs/agenda/10-backlog/evidence/ui-mockups-nava-tailored-grid-2026-09-02/06-barberos-y-barberia.png',
 )
 const captures = resolve(here, 'evidence/barberos/fidelidad-192')
 const output = resolve(captures, 'comparacion')

@@ -105,7 +105,7 @@ func validateCloseRequest(req CloseAppointmentRequest) (appointmentID, expectedV
 // CompleteAppointmentService implementa T4 manual (HU-067): cierra una cita
 // `confirmed` cuyo starts_at ya pasó como `completed`. clock es el único
 // colaborador además del repositorio, inyectado para que las pruebas
-// congelen el instante de cierre (docs/03-desarrollo/estandar-backend-go.md).
+// congelen el instante de cierre (nava-docs/agenda/03-desarrollo/estandar-backend-go.md).
 type CompleteAppointmentService struct {
 	repo  Repository
 	clock clock.Clock

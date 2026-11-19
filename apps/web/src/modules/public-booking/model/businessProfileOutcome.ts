@@ -2,7 +2,7 @@
 // `PublicBusinessProfile` es la forma que la página consume;
 // `ResolveBusinessOutcome` es lo único que `api/resolveBusinessApi.ts`
 // entrega. Ninguno de los dos expone la forma RFC 9457 (`Problem`) del
-// contrato (docs/03-desarrollo/estandar-frontend-vue.md §6): un slug mal
+// contrato (nava-docs/agenda/03-desarrollo/estandar-frontend-vue.md §6): un slug mal
 // formado, desconocido o no publicable llegan TODOS como `not-found`
 // (CA-090-02), nunca distinguidos.
 

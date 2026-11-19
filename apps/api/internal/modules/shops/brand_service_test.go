@@ -2,7 +2,7 @@
 // PostgreSQL real: cubren normalización y validación de campo. El
 // aislamiento de tenant y las restricciones CHECK se prueban contra
 // PostgreSQL real en internal/modules/shops/postgres/brand_repository_test.go
-// (docs/03-desarrollo/estrategia-pruebas.md §2).
+// (nava-docs/agenda/03-desarrollo/estrategia-pruebas.md §2).
 package shops_test
 
 import (

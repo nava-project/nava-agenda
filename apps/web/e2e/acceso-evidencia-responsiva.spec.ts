@@ -3,7 +3,7 @@ import path from 'node:path'
 import { fileURLToPath } from 'node:url'
 
 /**
- * Evidencia visual responsive/accesible de HU-010 (docs/03-desarrollo/
+ * Evidencia visual responsive/accesible de HU-010 (nava-docs/agenda/03-desarrollo/
  * estandar-diseno-visual.md §16 y estrategia-pruebas.md §5.4): normal,
  * foco, carga, error y bloqueado en 320/360/768/1280 px, más una
  * aproximación de zoom de texto 200% (viewport a la mitad del ancho,

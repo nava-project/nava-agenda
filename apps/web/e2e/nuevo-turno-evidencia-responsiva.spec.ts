@@ -10,7 +10,7 @@ import {
 
 /**
  * Evidencia responsive y accesible de `/panel/turnos/nuevo` (issue #190;
- * docs/03-desarrollo/estandar-diseno-visual.md §16, estrategia-pruebas.md
+ * nava-docs/agenda/03-desarrollo/estandar-diseno-visual.md §16, estrategia-pruebas.md
  * §5.4): los mismos cinco anchos que ya fija
  * `e2e/panel-evidencia-responsiva.spec.ts` —320/360/768/1280 px más un
  * 1280 con zoom 200% aproximado (640×450)—, recorrido de teclado con foco

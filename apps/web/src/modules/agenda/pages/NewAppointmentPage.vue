@@ -9,7 +9,7 @@
 // Fidelidad visual con el atlas nuevo-turno-eventos (issue #190, segundo
 // pase del 2026-09-04): esta revisión es exclusivamente de composición,
 // color, jerarquía y estado visual, nunca de comportamiento. Los comentarios
-// que citan un evento del atlas (docs/10-backlog/evidence/
+// que citan un evento del atlas (nava-docs/agenda/10-backlog/evidence/
 // ui-mockups-nava-tailored-grid-2026-09-03/nuevo-turno-eventos/README.md)
 // documentan a qué panel responde cada bloque.
 // El resumen de éxito es el resultado persistente; el aviso emergente lo

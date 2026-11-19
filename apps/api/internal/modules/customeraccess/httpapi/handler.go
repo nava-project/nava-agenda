@@ -1,6 +1,6 @@
 // Package httpapi es el adaptador HTTP del módulo customeraccess: decodifica,
 // invoca customeraccess.Service y traduce el resultado a HTTP
-// (docs/03-desarrollo/estandar-backend-go.md §4). No importa Chi: la
+// (nava-docs/agenda/03-desarrollo/estandar-backend-go.md §4). No importa Chi: la
 // composición de rutas es responsabilidad exclusiva de cmd/api sobre el
 // router de audiencia customer que internal/platform/httpserver ya
 // construye.

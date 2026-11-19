@@ -1,6 +1,6 @@
 // Pruebas de integración de HU-041 (excepciones de jornada y festivos):
 // mismo criterio que repository_test.go (HU-040) -PostgreSQL REAL, sin
-// mocks para RLS/idempotencia/atomicidad (docs/03-desarrollo/
+// mocks para RLS/idempotencia/atomicidad (nava-docs/agenda/03-desarrollo/
 // estrategia-pruebas.md §2)- pero con su propio fixture aislado
 // (testdata/hu041_excepciones.sql) para que un conteo exacto de
 // excepciones por profesional no dependa del estado que dejen otras suites.

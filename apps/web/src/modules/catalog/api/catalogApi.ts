@@ -1,5 +1,5 @@
 // Único punto del módulo `catalog` que llama al cliente HTTP tipado
-// (docs/03-desarrollo/estandar-frontend-vue.md §6). Traduce las respuestas
+// (nava-docs/agenda/03-desarrollo/estandar-frontend-vue.md §6). Traduce las respuestas
 // reales de GET/POST /private/services y GET/PATCH
 // /private/services/{serviceId} a los outcomes discriminados que la página
 // consume; ningún componente ve `Problem`, `status` HTTP crudo ni cabeceras.
@@ -84,7 +84,7 @@ export async function createService(
         // DEC-067 (code: "conflict") frente a RN-IDE-01 (code:
         // "idempotency-conflict"/"idempotency-locked"): ambos comparten
         // status pero el cliente decide por `code`, nunca por `detail`
-        // (docs/06-api/estandar-openapi.md §5).
+        // (nava-docs/agenda/06-api/estandar-openapi.md §5).
         return isProblemCode(error, 'conflict')
           ? { kind: 'name-conflict' }
           : { kind: 'idempotency-conflict' }

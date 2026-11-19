@@ -1,5 +1,5 @@
 // Único punto del módulo `public-booking` que llama al cliente HTTP tipado
-// (docs/03-desarrollo/estandar-frontend-vue.md §6). Traduce la respuesta
+// (nava-docs/agenda/03-desarrollo/estandar-frontend-vue.md §6). Traduce la respuesta
 // real de `GET /public/businesses/{slug}` a `ResolveBusinessOutcome`: la
 // página coordinadora nunca ve `Problem`, `status` HTTP crudo ni cabeceras.
 import { httpClient } from '@/shared/api/httpClient'

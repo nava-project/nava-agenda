@@ -12,7 +12,7 @@
       los servicios del negocio derivado de la sesión vigente. Orden
       estable por fecha de alta y luego por identificador. Excepción
       explícita del propietario a la regla general de paginación por cursor
-      (docs/06-api/estandar-openapi.md §6.10): solo este endpoint pagina por
+      (nava-docs/agenda/06-api/estandar-openapi.md §6.10): solo este endpoint pagina por
       página/offset con conteo total, para que el panel privado ofrezca un
       paginador numerado; el resto de listas del contrato conserva cursor.
       `search` filtra por coincidencia parcial insensible a mayúsculas en

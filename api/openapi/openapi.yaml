@@ -1,5 +1,5 @@
 # Documento de entrada del contrato HTTP. Fuente de verdad según
-# docs/06-api/estandar-openapi.md (DEC-037). No se edita el bundle generado
+# nava-docs/agenda/06-api/estandar-openapi.md (DEC-037). No se edita el bundle generado
 # en dist/; este archivo y los que referencia son la fuente.
 #
 # La historia de cada operación (qué issue, HU o DEC la agregó o cambió) vive en
@@ -14,7 +14,7 @@ info:
     Contrato HTTP entre apps/web y apps/api. Tres audiencias comparten este
     documento: /api/v1/public (reserva sin sesión), /api/v1/customer
     (acceso por token del enlace de la cita) y /api/v1/private (sesión del
-    profesional), según docs/04-arquitectura/backend-go.md sección 7.
+    profesional), según nava-docs/agenda/04-arquitectura/backend-go.md sección 7.
   license:
     name: Propietaria, uso interno del proyecto
     identifier: UNLICENSED

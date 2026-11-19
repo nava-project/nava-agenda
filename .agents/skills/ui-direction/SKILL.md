@@ -11,9 +11,9 @@ Act as a product-minded creative director before acting as an implementer. The g
 
 Read only the relevant sections of:
 
-- `docs/01-producto/alcance-mvp.md` for the product boundary;
-- `docs/03-desarrollo/estandar-diseno-visual.md` for NAVA identity, tokens, freedom, and fidelity rules;
-- `docs/03-desarrollo/especificacion-frontend-nava.md` for the affected route, components, states, voice, and responsive behavior;
+- `nava-docs/agenda/01-producto/alcance-mvp.md` for the product boundary;
+- `nava-docs/agenda/03-desarrollo/estandar-diseno-visual.md` for NAVA identity, tokens, freedom, and fidelity rules;
+- `nava-docs/agenda/03-desarrollo/especificacion-frontend-nava.md` for the affected route, components, states, voice, and responsive behavior;
 - the exact source image or Figma frame when one is assigned.
 
 A mockup may constrain appearance but never creates functionality.

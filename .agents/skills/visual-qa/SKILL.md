@@ -9,7 +9,7 @@ Review what is rendered, not what the code appears to intend. This skill replace
 
 ## 1. Select the conformance mode
 
-Read `docs/03-desarrollo/estandar-diseno-visual.md` and decide before judging:
+Read `nava-docs/agenda/03-desarrollo/estandar-diseno-visual.md` and decide before judging:
 
 - **Identity-guided:** no exact image is assigned. Composition stays free within NAVA / Tailored Grid. Judge product clarity, NAVA identity, composition, hierarchy, consistency, responsive behavior, and interaction quality.
 - **Fidelity:** an issue, prompt, or user message assigns a specific image to the screen/component, or asks to match, reproduce, implement, or correct against it. The image is a visual contract for the viewport and state it represents.

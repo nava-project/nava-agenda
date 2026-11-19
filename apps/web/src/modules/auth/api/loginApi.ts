@@ -1,5 +1,5 @@
 // Único punto del módulo `auth` que llama al cliente HTTP tipado
-// (docs/03-desarrollo/estandar-frontend-vue.md §6: "un módulo define
+// (nava-docs/agenda/03-desarrollo/estandar-frontend-vue.md §6: "un módulo define
 // funciones API por intención"). Traduce la respuesta real de
 // `POST /public/auth/login` a `LoginOutcome`: la página coordinadora y el
 // formulario nunca ven `Problem`, `status` HTTP crudo ni cabeceras.

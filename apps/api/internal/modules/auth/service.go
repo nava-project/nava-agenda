@@ -15,7 +15,7 @@ import (
 // cuando sí hay un tenant real: un correo inexistente implica el mismo
 // trabajo de base de datos que un negocio resuelto con contraseña
 // incorrecta (CA-005-02). Es una elección de implementación, no una
-// decisión de producto que requiera registro en docs/00-control
+// decisión de producto que requiera registro en nava-docs/agenda/00-control
 // (estandar-backend-go.md §1: "una excepción es válida cuando simplifica un
 // caso real y queda explicada en la revisión").
 const decoyBusinessID = "00000000-0000-0000-0000-000000000000"

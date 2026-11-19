@@ -1,7 +1,7 @@
 import { test, expect, type Page, type BrowserContext } from '@playwright/test'
 
 /**
- * Recorrido E2E de HU-012 (docs/03-desarrollo/estrategia-pruebas.md,
+ * Recorrido E2E de HU-012 (nava-docs/agenda/03-desarrollo/estrategia-pruebas.md,
  * cascarón del panel privado). Corre contra el API real en local
  * (`go run ./cmd/api` sobre PostgreSQL real con las seis migraciones
  * aplicadas y un usuario con un hash argon2id REAL, mismo criterio que

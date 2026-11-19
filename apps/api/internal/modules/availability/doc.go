@@ -3,7 +3,7 @@
 // ventana de fechas.
 //
 // Este paquete NO importa schedule, booking, catalog, shops, Chi ni pgx
-// (docs/03-desarrollo/estandar-backend-go.md §5.23): recibe únicamente
+// (nava-docs/agenda/03-desarrollo/estandar-backend-go.md §5.23): recibe únicamente
 // tramos laborales y ocupaciones ya resueltos como instantes absolutos
 // (time.Time), y una política ya resuelta (duración del servicio, rejilla,
 // anticipación y ventana como instantes límite). No sabe qué es un festivo,

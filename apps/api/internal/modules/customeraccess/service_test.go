@@ -6,7 +6,7 @@
 // el aislamiento de tenant y la lectura de la proyección se prueban contra
 // PostgreSQL real con dos tenants en
 // internal/modules/customeraccess/postgres/repository_test.go
-// (docs/03-desarrollo/estrategia-pruebas.md §2).
+// (nava-docs/agenda/03-desarrollo/estrategia-pruebas.md §2).
 package customeraccess_test
 
 import (

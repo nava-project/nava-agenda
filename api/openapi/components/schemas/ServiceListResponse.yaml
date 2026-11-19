@@ -1,5 +1,5 @@
 # Colección paginada por número de página (DEC-103): excepción explícita del
-# propietario a docs/06-api/estandar-openapi.md §6.10 ("listas potencialmente
+# propietario a nava-docs/agenda/06-api/estandar-openapi.md §6.10 ("listas potencialmente
 # crecientes usan paginación por cursor"), solo para este endpoint, porque el
 # panel privado necesita un paginador numerado con total exacto. El resto de
 # listas del contrato (ProfessionalListResponse, AssignmentListResponse, etc.)

@@ -16,7 +16,7 @@ export default defineConfig({
     // detrás de un reverse proxy en despliegue real). En desarrollo local
     // este proxy reproduce ese mismo origen para que shared/api use rutas
     // relativas y la cookie de sesión HttpOnly viaje sin fricción de CORS
-    // ni de SameSite entre orígenes distintos (docs/06-api/estandar-openapi.md).
+    // ni de SameSite entre orígenes distintos (nava-docs/agenda/06-api/estandar-openapi.md).
     proxy: {
       '/api': {
         target: process.env.API_PROXY_TARGET ?? 'http://localhost:8080',

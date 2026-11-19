@@ -4,7 +4,7 @@
 -- REQUIERE modelo-fisico-referencia.sql cargado ADEMÁS de las cinco
 -- migraciones de database/migrations/: inserta en staff_credential,
 -- staff_session y el resto de las 23 tablas restantes, ninguna de las
--- cuales existe en el esquema realmente aplicado (database/README.md las
+-- cuales existe en el esquema realmente aplicado (nava-docs/agenda/database/README.md las
 -- lista como diseño de referencia, no migración). Ejecutar este fixture
 -- contra una base con solo las migraciones aplicadas falla con
 -- `relation "staff_credential" does not exist`. Esta suite certifica el

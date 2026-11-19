@@ -8,7 +8,7 @@ import { resetBrand } from '@/shared/model'
 /**
  * Construye la instancia de Vue con sus proveedores globales (router, y los
  * que se agreguen con una necesidad real). No contiene reglas de negocio:
- * eso vive en los módulos, según docs/04-arquitectura/frontend.md.
+ * eso vive en los módulos, según nava-docs/agenda/04-arquitectura/frontend.md.
  */
 export function createApplication(): VueApp {
   const app = createVueApp(App)

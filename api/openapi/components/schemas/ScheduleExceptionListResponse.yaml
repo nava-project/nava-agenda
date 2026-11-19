@@ -1,4 +1,4 @@
-# Colección paginada por cursor (docs/06-api/estandar-openapi.md §6, regla
+# Colección paginada por cursor (nava-docs/agenda/06-api/estandar-openapi.md §6, regla
 # 10), mismo criterio que WorkingHourListResponse.
 type: object
 description: >

@@ -1,5 +1,5 @@
 // Package auth administra identidad, sesiones y recuperación de acceso del
-// profesional, según docs/03-desarrollo/estandar-backend-go.md.
+// profesional, según nava-docs/agenda/03-desarrollo/estandar-backend-go.md.
 //
 // HU-005 entrega el inicio de sesión: [LoginService] verifica correo y
 // contraseña (hash argon2id, ver [Argon2Hasher]) sin distinguir un correo

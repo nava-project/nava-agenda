@@ -2,7 +2,7 @@
 // PostgreSQL REAL con las migraciones aplicadas (incluida
 // 20260911060000_add_barbershop_booking_policy.sql) y
 // database/testdata/hu093_politica_reserva.sql cargado. Conéctate como
-// agenda_app (docs/03-desarrollo/estrategia-pruebas.md §2 prohíbe mocks
+// agenda_app (nava-docs/agenda/03-desarrollo/estrategia-pruebas.md §2 prohíbe mocks
 // para RLS/concurrencia optimista real).
 //
 //	export TEST_DATABASE_URL="postgres://agenda_app:app_test@localhost:5432/postgres?sslmode=disable"

@@ -27,7 +27,7 @@ var keyPattern = regexp.MustCompile(`^[A-Za-z0-9._-]{1,255}$`)
 
 // ParseKey valida el valor crudo de la cabecera Idempotency-Key. No admite
 // vacío: a diferencia de X-Request-Id, esta cabecera es obligatoria para
-// toda operación crítica (docs/06-api/estandar-openapi.md sección 10) y no
+// toda operación crítica (nava-docs/agenda/06-api/estandar-openapi.md sección 10) y no
 // existe un valor generado de reemplazo razonable. El mensaje de error
 // nunca incluye raw: un formato inválido no es motivo para reflejar de
 // vuelta un valor que el cliente pudo escribir con datos sensibles.

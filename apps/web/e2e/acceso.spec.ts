@@ -2,7 +2,7 @@ import { test, expect, type Page } from '@playwright/test'
 import { randomBytes } from 'node:crypto'
 
 /**
- * Recorrido E2E de HU-010 (docs/03-desarrollo/estrategia-pruebas.md §5.3,
+ * Recorrido E2E de HU-010 (nava-docs/agenda/03-desarrollo/estrategia-pruebas.md §5.3,
  * recorrido P0 #4 "profesional inicia sesión"). Corre contra el API real en
  * local (`go run ./cmd/api` sobre PostgreSQL real con las migraciones
  * aplicadas y un usuario con un hash argon2id REAL, no el hash ficticio de

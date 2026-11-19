@@ -1,6 +1,6 @@
 // Package httpapi es el adaptador HTTP del módulo auth: decodifica,
 // valida la forma, invoca auth.LoginService y traduce el resultado a HTTP
-// (docs/03-desarrollo/estandar-backend-go.md §4). No importa Chi: la
+// (nava-docs/agenda/03-desarrollo/estandar-backend-go.md §4). No importa Chi: la
 // composición de rutas es responsabilidad exclusiva de cmd/api sobre el
 // *chi.Mux que internal/platform/httpserver ya construye
 // (internal/platform/archtest.TestDomainAndServicesDoNotImportChi solo
@@ -32,7 +32,7 @@ const (
 // CookieName, CookiePath, CookieSameSite y CookieSecure fijan los atributos
 // exactos de la cookie de sesión (DEC-050). SameSite, Path, Domain y el
 // nombre NO están fijados por ninguna fuente normativa ni por el issue #44:
-// ver DP-SEG-07 en docs/00-control/dudas-pendientes.md, que registra este
+// ver DP-SEG-07 en nava-docs/agenda/00-control/dudas-pendientes.md, que registra este
 // vacío y documenta por qué se eligió Lax/host-only/estos valores como
 // elección PROVISIONAL, pendiente de confirmación explícita del
 // propietario.
@@ -67,7 +67,7 @@ func DefaultCookieConfig() CookieConfig {
 
 // LoginHandler decodifica, valida la forma, invoca el caso de uso de login y
 // traduce el resultado a HTTP. No contiene reglas de negocio ni SQL
-// (docs/03-desarrollo/estandar-backend-go.md §4). trustedProxies (HU-007)
+// (nava-docs/agenda/03-desarrollo/estandar-backend-go.md §4). trustedProxies (HU-007)
 // resuelve la IP real de la solicitud antes de invocar el servicio.
 type LoginHandler struct {
 	service        *auth.LoginService

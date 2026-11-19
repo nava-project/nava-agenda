@@ -1,7 +1,7 @@
 // Despliegue de producción de NAVA (DEC-177); sustituye a .github/workflows/deploy.yml.
 //
 // Promueve un commit de main que ya superó el CI; no hay ramas por ambiente
-// (docs/03-desarrollo/flujo-git-github.md). Lo dispara el CI de main con AUTO=true
+// (nava-docs/agenda/03-desarrollo/flujo-git-github.md). Lo dispara el CI de main con AUTO=true
 // (DEC-160) y una persona con un SHA para reintentar o volver atrás. Los controles
 // posteriores son los de deploy.sh: respaldo verificado, simulación de migraciones y
 // pruebas de humo; si alguno falla, la aplicación en ejecución no se toca.

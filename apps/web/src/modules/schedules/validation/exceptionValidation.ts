@@ -1,4 +1,4 @@
-// Validación de forma en cliente (docs/03-desarrollo/estandar-frontend-vue.md
+// Validación de forma en cliente (nava-docs/agenda/03-desarrollo/estandar-frontend-vue.md
 // §7.6) para HU-041: ayuda a corregir antes de enviar, nunca sustituye al
 // backend (CA-041-04/05 reales viven en el servicio Go). No valida fecha
 // duplicada ni solape entre excepciones: esas comprobaciones dependen del

@@ -1,5 +1,5 @@
 // Package shops administra el negocio, su configuración y su zona horaria,
-// según docs/03-desarrollo/estandar-backend-go.md.
+// según nava-docs/agenda/03-desarrollo/estandar-backend-go.md.
 //
 // HU-020 entrega la primera funcionalidad: consultar y actualizar el
 // nombre, la zona horaria IANA y el contacto opcional (correo, teléfono) de

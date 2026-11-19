@@ -2,14 +2,14 @@
 // `CustomerAppointment` es la forma que la página consume;
 // `GetCustomerAppointmentOutcome` es lo único que
 // `api/getCustomerAppointmentApi.ts` entrega. Ninguno de los dos expone la
-// forma RFC 9457 (`Problem`) del contrato (docs/03-desarrollo/
+// forma RFC 9457 (`Problem`) del contrato (nava-docs/agenda/03-desarrollo/
 // estandar-frontend-vue.md §6): un token con forma inválida, inexistente,
 // vencido o revocado llegan TODOS como `not-found` (CA-098-02), nunca
 // distinguidos.
 
 import type { Vocabulary, VocabularyTerms } from '@/shared/model'
 
-/** Estado vigente del turno (docs/02-requisitos/estados-citas.md). Se
+/** Estado vigente del turno (nava-docs/agenda/02-requisitos/estados-citas.md). Se
  * duplica aquí en vez de importar `modules/agenda` (CA-002-06, mismo
  * criterio que publicbooking frente a booking en el backend): los módulos
  * de frontend no se importan entre sí, solo desde `shared`. */

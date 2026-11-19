@@ -89,7 +89,7 @@ const statusLabel = computed(() =>
 )
 // Mismo mapa que DailyAgendaPage.vue: cancelled_by_professional ya tiene el
 // tratamiento terminal 'danger' que el atlas asigna a un turno cancelado
-// (docs/10-backlog/evidence/.../detalle-turno-eventos/10-turno-cancelado.png),
+// (nava-docs/agenda/10-backlog/evidence/.../detalle-turno-eventos/10-turno-cancelado.png),
 // reutilizado tal cual en vez de inventar un color nuevo para HU-066.
 const statusBadgeVariant = computed(() =>
   detail.value ? APPOINTMENT_STATUS_BADGE_VARIANT[detail.value.status] : 'neutral',

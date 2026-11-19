@@ -7,5 +7,5 @@
 // customer_anonymization_run van en una misma transacción (DEC-053). Este
 // paquete solo decide cuántos lotes correr por pasada. La solicitud individual
 // del titular la ejecuta el operador con customer_anonymize_request (ver
-// deploy/README.md); no pasa por aquí.
+// nava-docs/agenda/deploy/README.md); no pasa por aquí.
 package retention

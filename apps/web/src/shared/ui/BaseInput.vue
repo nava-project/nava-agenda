@@ -31,7 +31,7 @@ interface Props {
   /** Si se dibuja el asterisco visual junto al label cuando `required` es
    * verdadero. La semántica (`required`, `aria-required`, validación) no
    * depende de esta bandera: existe solo para que una pantalla cuyo mockup
-   * no representa el asterisco (docs/10-backlog/evidence/
+   * no representa el asterisco (nava-docs/agenda/10-backlog/evidence/
    * ui-mockups-nava-tailored-grid-2026-09-02/02-acceso-recuperacion.png)
    * pueda ocultarlo sin perder "requerido" para el resto de la app. */
   showRequiredMarker?: boolean
@@ -81,7 +81,7 @@ void inputRef.value
 // useId() (Vue 3.5+) genera un identificador estable por instancia, a
 // diferencia de Math.random(): determinista dentro del ciclo de vida del
 // componente y sin riesgo de colisión entre dos instancias montadas a la
-// vez (docs/03-desarrollo/estandar-diseno-visual.md, auditoría HU-009:
+// vez (nava-docs/agenda/03-desarrollo/estandar-diseno-visual.md, auditoría HU-009:
 // "IDs aleatorios o relaciones label/description/error inestables").
 const generatedId = `base-input-${useId()}`
 const inputId = computed(() => props.id || generatedId)

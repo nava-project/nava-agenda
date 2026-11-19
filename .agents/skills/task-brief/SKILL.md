@@ -46,7 +46,7 @@ Keep this internal unless the user asks for a document or the project requires a
 - Make a reversible assumption when it does not change scope, contract, security, or data semantics; state it briefly.
 - Ask one focused question when different answers would materially change the result.
 - Record contradictions or missing decisions before coding. Never invent an `RN-*`, `DEC-*`, `HU-*`, issue number, or API behavior.
-- If the work needs a future execution prompt, persist it under `docs/10-backlog/prompts/` using the repository catalog before handoff.
+- If the work needs a future execution prompt, persist it under `nava-docs/agenda/10-backlog/prompts/` using the repository catalog before handoff.
 
 ## 5. Handoff
 

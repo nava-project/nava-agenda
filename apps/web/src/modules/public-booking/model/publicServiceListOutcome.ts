@@ -1,14 +1,14 @@
 // Modelo de dominio del catálogo público de servicios (HU-091).
 // `PublicService` es la forma que la página consume; `ListPublicServicesOutcome`
 // es lo único que `api/listPublicServicesApi.ts` entrega. Ninguno de los dos
-// expone la forma RFC 9457 (`Problem`) del contrato (docs/03-desarrollo/
+// expone la forma RFC 9457 (`Problem`) del contrato (nava-docs/agenda/03-desarrollo/
 // estandar-frontend-vue.md §6), mismo criterio que
 // model/businessProfileOutcome.ts.
 
 /** Servicio público mínimo, ya activo y con al menos una asignación
  * vigente a un profesional (CA-091-01). `price` viaja como el string decimal
  * exacto del contrato: nunca se convierte a `number` en el cliente
- * (docs/06-api/estandar-openapi.md §6). */
+ * (nava-docs/agenda/06-api/estandar-openapi.md §6). */
 export interface PublicService {
   id: string
   name: string

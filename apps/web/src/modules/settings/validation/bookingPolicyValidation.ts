@@ -1,4 +1,4 @@
-// Validación de forma en cliente (docs/03-desarrollo/estandar-frontend-vue.md
+// Validación de forma en cliente (nava-docs/agenda/03-desarrollo/estandar-frontend-vue.md
 // §7.6): ayuda a corregir antes de enviar, nunca sustituye al backend. Los
 // rangos son EXACTAMENTE los de DEC-083 y DEC-133 (business_*_ck en la
 // base): el cliente no inventa un límite más estricto ni más laxo que el

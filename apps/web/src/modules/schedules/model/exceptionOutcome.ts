@@ -1,6 +1,6 @@
 // Resultados discriminados de las operaciones de HU-041, tal como los
 // recibe la página coordinadora. Ninguno expone `Problem`, `status` HTTP
-// crudo ni cabeceras (docs/03-desarrollo/estandar-frontend-vue.md §6),
+// crudo ni cabeceras (nava-docs/agenda/03-desarrollo/estandar-frontend-vue.md §6),
 // mismo criterio que scheduleOutcome.ts (HU-040).
 import type {
   ColombianHoliday,

@@ -2,7 +2,7 @@
 # cuerpo bien formado con los seis campos esperados, pero uno de ellos
 # incumple un rango de DEC-083 o la combinación entre campos es
 # incoherente. Mismo schema que ValidationProblem.yaml; solo cambian los
-# ejemplos (docs/06-api/estandar-openapi.md sección 9, regla 4). Ninguna
+# ejemplos (nava-docs/agenda/06-api/estandar-openapi.md sección 9, regla 4). Ninguna
 # escritura ocurre cuando esto sucede, ni siquiera parcial.
 description: >
   El cuerpo es JSON válido con los seis campos esperados, pero uno está

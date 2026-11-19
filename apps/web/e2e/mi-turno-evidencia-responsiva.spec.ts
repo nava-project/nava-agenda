@@ -4,7 +4,7 @@ import { fileURLToPath } from 'node:url'
 import { INITIAL_VOCABULARY } from './fixtures/vocabularioInicial'
 
 /**
- * Evidencia visual responsive/accesible de HU-098 (docs/03-desarrollo/
+ * Evidencia visual responsive/accesible de HU-098 (nava-docs/agenda/03-desarrollo/
  * estandar-diseno-visual.md §16 y estrategia-pruebas.md §5.4): carga,
  * turno listo (estado terminal), enlace inválido y error de red, en
  * 320/360/768/1280 px, más una aproximación de zoom de texto 200% (mismo

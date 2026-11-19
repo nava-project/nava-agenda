@@ -1,6 +1,6 @@
 // Resultados discriminados de las operaciones de DEC-169 tal como los recibe
 // el panel; ninguno expone `Problem` ni `status` HTTP crudo
-// (docs/03-desarrollo/estandar-frontend-vue.md §6).
+// (nava-docs/agenda/03-desarrollo/estandar-frontend-vue.md §6).
 import type {
   ProfessionalBookingWindow,
   ProfessionalWindowOption,

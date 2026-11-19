@@ -2,7 +2,7 @@
 # turno del cliente por el teléfono que Meta firma y pide un código atado a ese
 # turno, para que el cliente cancele o reprograme él mismo. Se protegen con el
 # secreto de servicio (`OdinServiceToken`); sin `APP_ODIN_SERVICE_TOKEN` en el
-# despliegue estas rutas no existen. Ver docs/06-api/estandar-openapi.md.
+# despliegue estas rutas no existen. Ver nava-docs/agenda/06-api/estandar-openapi.md.
 /integrations/odin/businesses/{slug}/customer-appointments/lookup:
   post:
     tags: [Integrations]

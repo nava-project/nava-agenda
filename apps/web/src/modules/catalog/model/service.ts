@@ -1,7 +1,7 @@
 // Espejo tipado del cuerpo real del contrato (CA-022-01/02/07, CA-024-02,
 // CA-024-05): id, name, description, durationMinutes, price, currency,
 // isActive, deactivatedAt, createdAt, updatedAt. price es un string decimal
-// exacto (docs/06-api/estandar-openapi.md §6: "importe exacto: string
+// exacto (nava-docs/agenda/06-api/estandar-openapi.md §6: "importe exacto: string
 // decimal más código de moneda"): nunca se convierte a number en el
 // cliente, para no arriesgar coma flotante en un valor que solo se muestra
 // tal cual llega. currency es siempre "COP" (DEC-067): informativo, nunca

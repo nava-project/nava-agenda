@@ -53,7 +53,7 @@ classify() {
     case "$path" in
       graphify-out/*|apps/web/e2e/evidence/*|*.png|*.jpg|*.jpeg|*.webp|*.gif|*.svg|*.ico|pnpm-lock.yaml|*/pnpm-lock.yaml|*.sum)
         ;;
-      docs/*|respuesta-manuales/*|*.md|*.mdx|*.txt|*.docx|*.pdf)
+      *.md|*.mdx|*.txt|*.docx|*.pdf)
         docs=$((docs + 1)) ;;
       *)
         code=$((code + 1)) ;;

@@ -7,7 +7,7 @@ import (
 
 // Problem es el cuerpo de error uniforme según RFC 9457
 // (application/problem+json), con los campos adicionales que
-// docs/06-api/estandar-openapi.md sección 12 exige para todo el proyecto:
+// nava-docs/agenda/06-api/estandar-openapi.md sección 12 exige para todo el proyecto:
 // code (para lógica del cliente) y requestId (correlación con logs y
 // soporte). Ningún llamador debe construir un Problem a mano fuera de
 // [Translate]: eso es lo único que garantiza que Detail nunca lleve SQL,

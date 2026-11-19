@@ -14,7 +14,7 @@ import (
 // [SessionMiddleware.RequireSession] ya dejó en el contexto, y limpia la
 // cookie de sesión con los MISMOS atributos con que HU-005 la emitió
 // (Path, SameSite, Secure). No contiene reglas de negocio ni SQL
-// (docs/03-desarrollo/estandar-backend-go.md §4).
+// (nava-docs/agenda/03-desarrollo/estandar-backend-go.md §4).
 type LogoutHandler struct {
 	service *auth.SessionService
 	cookie  CookieConfig

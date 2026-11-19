@@ -1,6 +1,6 @@
 // Package httpapi es el adaptador HTTP de googlecalendar: decodifica, invoca
 // googlecalendar.Service y traduce el resultado a HTTP
-// (docs/03-desarrollo/estandar-backend-go.md §4). Ninguna respuesta contiene
+// (nava-docs/agenda/03-desarrollo/estandar-backend-go.md §4). Ninguna respuesta contiene
 // tokens, secretos, el código OAuth ni el `state`.
 package httpapi
 

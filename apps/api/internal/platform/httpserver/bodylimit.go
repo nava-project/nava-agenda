@@ -5,7 +5,7 @@ import "net/http"
 // MaxRequestBodyBytes acota el cuerpo de cualquier solicitud. 1 MiB cubre
 // con margen los payloads JSON del MVP (ninguna operación de negocio sube
 // archivos); una ruta futura con una necesidad distinta la documenta y la
-// ajusta en su propio middleware, según docs/04-arquitectura/backend-go.md
+// ajusta en su propio middleware, según nava-docs/agenda/04-arquitectura/backend-go.md
 // sección 6 paso 3.
 const MaxRequestBodyBytes = 1 << 20 // 1 MiB
 

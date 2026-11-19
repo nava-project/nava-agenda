@@ -10,7 +10,7 @@ import { axe } from 'vitest-axe'
 import BaseButton from '../BaseButton.vue'
 
 // axe-core (vía vitest-axe) es la herramienta de verificación accesible
-// automatizada elegida en la auditoría HU-009 para docs/03-desarrollo/estrategia-pruebas.md
+// automatizada elegida en la auditoría HU-009 para nava-docs/agenda/03-desarrollo/estrategia-pruebas.md
 // §5.4: motor WCAG 2.1/2.2 de referencia, MIT, mantenimiento activo, ya
 // integrable con Vitest sin un navegador real. No sustituye la revisión
 // manual por teclado que este mismo archivo ya cubre.

@@ -48,7 +48,7 @@ type ServiceDeactivationResponse struct {
 
 // ServiceListResponse es la página paginada por número de página de
 // GET /private/services (CA-022-01, DEC-103: excepción documentada a la
-// paginación por cursor de docs/06-api/estandar-openapi.md §6.10, para
+// paginación por cursor de nava-docs/agenda/06-api/estandar-openapi.md §6.10, para
 // ofrecer un paginador numerado con total exacto en el panel). Page y
 // PageSize reflejan lo que el servidor efectivamente usó (ya clamped, no lo
 // crudo que pidió el cliente); TotalPages tiene un piso de 1 para que

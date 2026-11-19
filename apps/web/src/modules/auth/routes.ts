@@ -1,4 +1,4 @@
-// Rutas del módulo auth, cargadas de forma diferida (docs/03-desarrollo/
+// Rutas del módulo auth, cargadas de forma diferida (nava-docs/agenda/03-desarrollo/
 // estandar-frontend-vue.md §7.8) y registradas desde `app/router`
 // (trabajo requerido §1). Este archivo es la API pública de rutas del
 // módulo: `app/router/index.ts` las importa y las compone, sin conocer

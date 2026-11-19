@@ -1,5 +1,5 @@
-# El límite de tamaño del cuerpo (docs/04-arquitectura/backend-go.md
-# sección 6 paso 3) usa 400: docs/06-api/estandar-openapi.md sección 11 no
+# El límite de tamaño del cuerpo (nava-docs/agenda/04-arquitectura/backend-go.md
+# sección 6 paso 3) usa 400: nava-docs/agenda/06-api/estandar-openapi.md sección 11 no
 # incluye 413 en la tabla de códigos del proyecto.
 description: >
   El cuerpo de la solicitud excede el límite permitido por el servidor.

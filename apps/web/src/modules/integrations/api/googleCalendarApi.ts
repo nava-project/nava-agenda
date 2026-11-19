@@ -1,5 +1,5 @@
 // Único punto del módulo `integrations` que llama al cliente HTTP tipado
-// (docs/03-desarrollo/estandar-frontend-vue.md §6). Traduce las respuestas
+// (nava-docs/agenda/03-desarrollo/estandar-frontend-vue.md §6). Traduce las respuestas
 // reales de /private/integrations/google-calendar a los outcomes discriminados
 // que las páginas consumen; ningún componente ve `Problem`, `status` HTTP crudo
 // ni cabeceras. Nunca maneja tokens: el flujo OAuth ocurre entre el navegador,

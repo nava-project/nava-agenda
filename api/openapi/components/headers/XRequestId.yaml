@@ -1,5 +1,5 @@
 # Cabecera de correlación devuelta en toda respuesta, incluidas las de
-# error, según docs/04-arquitectura/backend-go.md sección 6 y CA-003-01.
+# error, según nava-docs/agenda/04-arquitectura/backend-go.md sección 6 y CA-003-01.
 description: >
   Identificador de correlación de la solicitud. El cliente puede enviarlo;
   si está ausente o no cumple el formato aceptado, el servidor genera uno y

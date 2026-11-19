@@ -21,7 +21,7 @@ export interface AssignmentPage {
 // necesario para el selector y la lista de servicios), obtenidos por este
 // módulo directamente del cliente HTTP compartido -nunca importando
 // staffApi.ts ni catalogApi.ts, que son privados de sus propios módulos
-// (docs/03-desarrollo/estandar-frontend-vue.md §3: "un módulo no importa
+// (nava-docs/agenda/03-desarrollo/estandar-frontend-vue.md §3: "un módulo no importa
 // archivos internos de otro").
 export interface ProfessionalSummary {
   id: string

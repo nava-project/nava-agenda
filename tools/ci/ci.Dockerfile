@@ -8,7 +8,7 @@ FROM node:20-trixie-slim AS node
 
 FROM golang:1.26-trixie
 
-# Debe coincidir con ATLAS_VERSION de docs/05-backend/migraciones-atlas.md §3.3 y con
+# Debe coincidir con ATLAS_VERSION de nava-docs/agenda/05-backend/migraciones-atlas.md §3.3 y con
 # deploy/docker/db.Dockerfile.
 ARG ATLAS_VERSION=v1.3.0
 

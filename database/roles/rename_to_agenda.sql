@@ -5,7 +5,7 @@
 -- 20261121090000_rename_to_business_professional.sql y antes de cualquier
 -- migración posterior, que ya nombra agenda_*: en una base nueva, las
 -- migraciones anteriores crean y nombran barberia_*; este paso los renombra; las
--- siguientes encuentran agenda_*. Ver docs/05-backend/migraciones-atlas.md.
+-- siguientes encuentran agenda_*. Ver nava-docs/agenda/05-backend/migraciones-atlas.md.
 --
 -- Es idempotente: un rol que ya no existe con el nombre viejo se salta. Los
 -- privilegios, membresías, dueños y políticas siguen al rol (se guardan por
