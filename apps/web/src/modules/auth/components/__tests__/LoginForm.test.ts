@@ -139,15 +139,21 @@ describe('LoginForm', () => {
       expect(wrapper.get('input[name="email"]').attributes('aria-invalid')).toBe('true')
     })
 
-    it('moves focus to the error summary when there is more than one error', async () => {
+    it('moves focus to the first invalid field, with no summary repeating the errors', async () => {
       const wrapper = mountForm({ attachToBody: true })
       await wrapper.get('form').trigger('submit')
       await wrapper.vm.$nextTick()
-      // El resumen ahora es un `BaseAlert` al final del formulario. Los
-      // errores de campo también usan `role="alert"`, así que se identifica
-      // por el título del resumen en vez de depender de su orden en el DOM.
-      const summary = wrapper.get('.base-alert')
-      expect(document.activeElement).toBe(summary.element)
+      // v2 (DEC-188): cada error va junto a su campo; no hay resumen.
+      expect(wrapper.find('.base-alert').exists()).toBe(false)
+      expect(document.activeElement).toBe(wrapper.get('input[name="email"]').element)
+      wrapper.unmount()
+    })
+
+    it('focuses the password when only the password is missing', async () => {
+      const wrapper = mountForm({ email: 'barbero@ejemplo.test', attachToBody: true })
+      await wrapper.get('form').trigger('submit')
+      await wrapper.vm.$nextTick()
+      expect(document.activeElement).toBe(wrapper.get('input[name="password"]').element)
       wrapper.unmount()
     })
 

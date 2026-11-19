@@ -5,7 +5,7 @@
 // válido; `LoginPage.vue` decide qué ocurre después (llamar al API,
 // navegar, mostrar un resultado del servidor).
 import { computed, nextTick, ref } from 'vue'
-import { BaseAlert, BaseButton, BaseInput } from '@/shared/ui'
+import { BaseButton, BaseInput } from '@/shared/ui'
 import {
   hasLoginFieldErrors,
   validateLoginForm,
@@ -35,7 +35,7 @@ const emit = defineEmits<{
 
 const fieldErrors = ref<LoginFieldErrors>({})
 const attemptedSubmit = ref(false)
-const summaryRef = ref<{ focus: () => void } | null>(null)
+const formRef = ref<HTMLFormElement | null>(null)
 
 // Solo se muestran errores de campo tras el primer intento de envío: no se
 // regaña al profesional mientras todavía está escribiendo por primera vez.
@@ -44,9 +44,6 @@ const emailError = computed(() => (showFieldErrors.value ? fieldErrors.value.ema
 const passwordError = computed(() =>
   showFieldErrors.value ? fieldErrors.value.password : undefined,
 )
-
-const errorCount = computed(() => Object.keys(fieldErrors.value).length)
-const showSummary = computed(() => showFieldErrors.value && errorCount.value > 1)
 
 // Revalida en vivo, tras un intento fallido, en respuesta a la escritura
 // real del profesional (eventos de entrada de BaseInput), NUNCA a un cambio
@@ -79,13 +76,11 @@ const onSubmit = async () => {
   attemptedSubmit.value = true
 
   if (hasLoginFieldErrors(errors)) {
-    // Foco al resumen cuando hay más de un error (CA-010-05, estándar
-    // visual §16); con un único error el foco nativo del campo inválido
-    // ya es suficiente y un resumen de un solo ítem sería ruido.
-    if (errorCount.value > 1) {
-      await nextTick()
-      summaryRef.value?.focus?.()
-    }
+    // v2 (DEC-188): en un formulario de dos campos cada error ya va junto a
+    // su campo; un resumen que lo repita es ruido. El foco va al primer campo
+    // inválido (CA-010-05: orden y foco coherentes con teclado).
+    await nextTick()
+    formRef.value?.querySelector<HTMLElement>('[aria-invalid="true"]')?.focus()
     return
   }
 
@@ -94,7 +89,7 @@ const onSubmit = async () => {
 </script>
 
 <template>
-  <form class="login-form" novalidate @submit.prevent="onSubmit">
+  <form ref="formRef" class="login-form au-form" novalidate @submit.prevent="onSubmit">
     <BaseInput
       :model-value="email"
       type="email"
@@ -135,202 +130,15 @@ const onSubmit = async () => {
     </BaseButton>
 
     <p class="login-form__recovery">
-      <RouterLink :to="recoveryHref">¿Olvidaste tu contraseña?</RouterLink>
+      <RouterLink class="au-link" :to="recoveryHref">¿Olvidaste tu contraseña?</RouterLink>
     </p>
-
-    <!-- Ancla de alertas (issue #213, auth-eventos/README.md): la alerta
-         global va después del botón y del enlace de recuperación, nunca
-         entre el título y los campos. -->
-    <BaseAlert
-      v-if="showSummary"
-      ref="summaryRef"
-      variant="danger"
-      title="Revisa estos campos"
-      role="alert"
-      tabindex="-1"
-    >
-      <!-- Desviación conocida (trabajo requerido §7): el mockup muestra un
-           resumen que explica qué falta; el código sigue enumerando cada
-           error de campo tal como ya se comporta hoy. -->
-      <ul class="login-form__summary-list">
-        <li v-if="fieldErrors.email">{{ fieldErrors.email }}</li>
-        <li v-if="fieldErrors.password">{{ fieldErrors.password }}</li>
-      </ul>
-    </BaseAlert>
   </form>
 </template>
 
 <style scoped>
-.login-form {
-  display: flex;
-  flex-direction: column;
-  gap: 26px;
-  width: 100%;
-}
-
-.login-form :deep(.base-input__wrapper) {
-  gap: 6px;
-}
-
-.login-form :deep(.base-input__label) {
-  font-size: 16px;
-  font-weight: 600;
-  line-height: 22px;
-}
-
-.login-form :deep(.base-input) {
-  height: 56px;
-  padding-right: var(--space-4);
-  padding-left: var(--space-4);
-  font-size: 18px;
-  line-height: 24px;
-  background-color: var(--color-surface);
-  border-color: var(--color-border-subtle);
-  border-radius: var(--radius-sm);
-}
-
-/* "OCULTAR" (la palabra más larga del conmutador reglado) necesita más
-   ancho reservado que el icono de 22px que ocupaba este mismo lugar. */
-.login-form :deep(.base-input__input-wrapper:has(.base-input__toggle) .base-input) {
-  padding-right: 92px;
-}
-
-.login-form :deep(.base-input__toggle) {
-  min-width: 84px;
-}
-
-.login-form :deep(.base-input__toggle:hover:not(:disabled)) {
-  background-color: var(--color-overlay-hover);
-}
-
-.login-form :deep(.base-input__toggle:focus-visible) {
-  outline: var(--border-width-emphasis) solid var(--color-focus);
-  outline-offset: -4px;
-  box-shadow: none;
-}
-
-.login-form :deep(.base-input__toggle:disabled) {
-  opacity: 0.48;
-}
-
-/* Rótulo y línea base responden al foco: el rótulo pasa de latón a tinta y
-   un filete de latón recorre la base del campo de izquierda a derecha. El
-   anillo de foco de BaseInput sigue intacto; esto solo lo acompaña. */
-.login-form :deep(.base-input__label) {
-  transition: color var(--motion-duration-base) var(--motion-easing-standard);
-}
-
-.login-form :deep(.base-input__wrapper:focus-within .base-input__label) {
-  color: var(--color-action-primary);
-}
-
-.login-form :deep(.base-input__input-wrapper)::after {
-  content: '';
-  position: absolute;
-  right: 0;
-  bottom: 0;
-  left: 0;
-  height: var(--border-width-emphasis);
-  background-color: var(--color-brand-accent-surface);
-  border-radius: 0 0 var(--radius-sm) var(--radius-sm);
-  transform: scaleX(0);
-  transform-origin: left;
-  transition: transform 320ms cubic-bezier(0.2, 0.7, 0.2, 1);
-  pointer-events: none;
-}
-
-.login-form :deep(.base-input__input-wrapper:focus-within)::after {
-  transform: scaleX(1);
-}
-
-/* Reflejo de latón que cruza el botón al pasar o enfocar: una pasada, no un
-   bucle. El texto queda por encima y el botón no cambia de tamaño. */
-.login-form__submit {
-  position: relative;
-  overflow: hidden;
-  isolation: isolate;
-}
-
-.login-form__submit::after {
-  content: '';
-  position: absolute;
-  top: 0;
-  bottom: 0;
-  left: -40%;
-  z-index: -1;
-  width: 32%;
-  background: linear-gradient(
-    100deg,
-    transparent,
-    color-mix(in srgb, var(--color-brand-accent-surface) 38%, transparent),
-    transparent
-  );
-  transform: translateX(0) skewX(-18deg);
-  transition: transform 700ms cubic-bezier(0.2, 0.7, 0.2, 1);
-  pointer-events: none;
-}
-
-.login-form__submit:hover:not(:disabled)::after,
-.login-form__submit:focus-visible::after {
-  transform: translateX(460%) skewX(-18deg);
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .login-form :deep(.base-input__label),
-  .login-form :deep(.base-input__input-wrapper)::after,
-  .login-form__submit::after {
-    transition: none;
-  }
-}
-
-.login-form__summary-list {
-  margin: 0;
-  padding-left: var(--space-5);
-}
-
-.login-form__submit {
-  width: 100%;
-  height: 56px;
-  border-radius: var(--radius-sm);
-  font-size: 18px;
-  font-weight: 600;
-  letter-spacing: 0.01em;
-}
-
+/* La forma de campos, botón y enlace la pone authV2.css (DEC-188). */
 .login-form__recovery {
-  margin: 0;
+  margin: calc(-1 * var(--space-2)) 0 0;
   text-align: center;
-  font-size: 18px;
-  line-height: 26px;
-}
-
-.login-form__recovery a {
-  color: var(--color-action-primary);
-  font-weight: 500;
-  text-decoration-thickness: 1px;
-  text-underline-offset: 3px;
-}
-
-@media (min-width: 1024px) {
-  .login-form {
-    gap: 28px;
-  }
-
-  .login-form :deep(.base-input__wrapper) {
-    gap: 8px;
-  }
-
-  .login-form :deep(.base-input__label) {
-    font-size: 18px;
-    line-height: 24px;
-  }
-
-  .login-form :deep(.base-input__input-wrapper:has(.base-input__toggle) .base-input) {
-    padding-right: 96px;
-  }
-
-  .login-form :deep(.base-input__toggle) {
-    min-width: 88px;
-  }
 }
 </style>

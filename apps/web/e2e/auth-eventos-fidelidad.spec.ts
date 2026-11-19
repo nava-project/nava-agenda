@@ -127,7 +127,10 @@ for (const viewport of [
       test('03-validacion', async ({ page }) => {
         await page.goto('/acceso')
         await page.getByRole('button', { name: 'Iniciar sesión' }).click()
-        await expect(page.getByRole('heading', { name: 'Revisa estos campos' })).toBeVisible()
+        // v2 (DEC-188): sin resumen; cada error junto a su campo y el foco en el primero.
+        await expect(page.getByText('Escribe tu contraseña.')).toBeVisible()
+        await expect(page.getByLabel('Correo', { exact: true })).toBeFocused()
+        await expect(page.getByRole('heading', { name: 'Revisa estos campos' })).toHaveCount(0)
         await shoot(page, viewport.name, 'acceso', '03-validacion.png')
       })
 
@@ -397,7 +400,9 @@ for (const viewport of [
         await page.locator('input[name="newPassword"]').fill('corta')
         await page.locator('input[name="confirmPassword"]').fill('otraclave')
         await page.getByRole('button', { name: 'Guardar contraseña nueva' }).click()
-        await expect(page.getByRole('heading', { name: 'Revisa estos campos' })).toBeVisible()
+        await expect(page.getByText('Las dos contraseñas no coinciden.')).toBeVisible()
+        await expect(page.locator('input[name="newPassword"]')).toBeFocused()
+        await expect(page.getByRole('heading', { name: 'Revisa estos campos' })).toHaveCount(0)
         await shoot(page, viewport.name, 'recuperacion', '08-contrasena-validacion.png')
       })
 

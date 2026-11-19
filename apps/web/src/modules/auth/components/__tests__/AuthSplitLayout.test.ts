@@ -1,108 +1,80 @@
 /**
- * Tests for AuthSplitLayout (Fase 3 del rediseño Tailored Grid, issue #188;
- * marca reglada del issue #213). Verifies: brand panel is decorative
- * (aria-hidden), the content-column mark is decorative too, slot content
- * renders, default/custom tagline, the required caption, and axe.
+ * AuthSplitLayout v2 «La luz del día» (DEC-188, entrega 3): el cielo de la marca es
+ * decorativo, «Volver» lleva a la sección de Agenda de nava.wtf con un nombre que
+ * dice adónde va, los enlaces legales cierran la columna, la llegada se termina
+ * con cualquier gesto y el contenido de la página es el encabezado real.
  */
-import { afterEach, describe, it, expect, vi } from 'vitest'
+import { describe, it, expect } from 'vitest'
 import { mount } from '@vue/test-utils'
-import { createRouter, createMemoryHistory } from 'vue-router'
 import { axe } from 'vitest-axe'
 import AuthSplitLayout from '../AuthSplitLayout.vue'
 
 const axeOptions = { rules: { region: { enabled: false }, 'color-contrast': { enabled: false } } }
 
-const router = createRouter({
-  history: createMemoryHistory(),
-  routes: [{ path: '/', component: { template: '<div />' } }],
-})
-
 function mountLayout(
   props: Record<string, unknown> = {},
   slotHtml = '<h1>Accede a Nava Agenda</h1>',
 ) {
-  return mount(AuthSplitLayout, {
-    props: { caption: 'ACCESO SEGURO', ...props },
-    slots: { default: slotHtml },
-    global: { plugins: [router] },
-  })
+  return mount(AuthSplitLayout, { props, slots: { default: slotHtml }, attachTo: document.body })
 }
 
 describe('AuthSplitLayout', () => {
-  it('ofrece una barra para volver a la presentación pública (issue #517)', () => {
+  it('«Volver» lleva a la sección de Agenda de nava.wtf y dice adónde va', () => {
     const wrapper = mountLayout()
     const link = wrapper.get('nav[aria-label="Sitio"] a')
-    expect(link.attributes('href')).toBe('https://nava.wtf')
-    expect(link.text()).toBe('Volver a la presentación')
-    // No forma parte de la tarjeta: no altera el orden ni la entrada de su contenido.
-    expect(wrapper.get('.auth-split__card').find('.auth-split__nav').exists()).toBe(false)
+    expect(link.attributes('href')).toBe('https://nava.wtf/#agenda')
+    expect(link.text()).toBe('Volver')
+    // El nombre accesible contiene el texto visible y el destino (WCAG 2.5.3).
+    expect(link.attributes('aria-label')).toBe('Volver a Nava Agenda en nava.wtf')
+    // Va antes del formulario: es lo primero que se alcanza con Tab.
+    expect(wrapper.get('.au-card').find('nav[aria-label="Sitio"]').exists()).toBe(false)
+    wrapper.unmount()
   })
 
-  it('enlaza la política de privacidad y las condiciones al pie de la tarjeta (issue #545)', () => {
+  it('enlaza la privacidad y las condiciones al final de la columna (issue #545)', () => {
     const wrapper = mountLayout()
-    const card = wrapper.get('.auth-split__card')
+    const card = wrapper.get('.au-card')
     const legal = card.get('nav[aria-label="Documentos legales"]')
     expect(legal.get('a[href="https://nava.wtf/privacidad"]').text()).toBe('Privacidad')
     expect(legal.get('a[href="https://nava.wtf/terminos"]').text()).toBe('Condiciones')
-    // Va después de todo lo existente: no desplaza el formulario ni la marca.
     expect(card.element.lastElementChild).toBe(legal.element)
+    wrapper.unmount()
   })
 
-  it('renders the brand mark as decorative (aria-hidden)', () => {
+  it('el cielo de la marca es decorativo: con el sol del logo y sin texto para el lector', () => {
     const wrapper = mountLayout()
-    expect(wrapper.find('.auth-split__brand').attributes('aria-hidden')).toBe('true')
+    const sky = wrapper.get('.au-sky')
+    expect(sky.attributes('aria-hidden')).toBe('true')
+    expect(sky.find('.au-sky__sun svg').exists()).toBe(true)
+    expect(sky.get('.au-sky__tagline').text()).toBe('Tu agenda y tu equipo, a la luz del día.')
+    wrapper.unmount()
   })
 
-  it('renders the content-column mark as decorative too (issue #213)', () => {
-    const wrapper = mountLayout()
-    const mark = wrapper.get('.auth-split__mark')
-    expect(mark.attributes('aria-hidden')).toBe('true')
-    expect(mark.text()).toContain('NAVA')
+  it('acepta otra frase para el cielo', () => {
+    const wrapper = mountLayout({ tagline: 'Recupera el acceso a tu cuenta.' })
+    expect(wrapper.get('.au-sky__tagline').text()).toBe('Recupera el acceso a tu cuenta.')
+    wrapper.unmount()
   })
 
-  it('adds an ornamental backdrop inside the decorative brand panel, without text', () => {
-    const wrapper = mountLayout()
-    const backdrop = wrapper.get('.auth-split__brand .brand-backdrop')
-    expect(backdrop.attributes('aria-hidden')).toBe('true')
-    expect(backdrop.text()).toBe('')
+  it('un clic o una tecla terminan la llegada: nunca hace esperar', async () => {
+    const byKey = mountLayout()
+    expect(byKey.get('main').classes()).not.toContain('au--settled')
+    window.dispatchEvent(new KeyboardEvent('keydown', { key: 'a' }))
+    await byKey.vm.$nextTick()
+    expect(byKey.get('main').classes()).toContain('au--settled')
+    byKey.unmount()
+
+    const byPointer = mountLayout()
+    window.dispatchEvent(new Event('pointerdown'))
+    await byPointer.vm.$nextTick()
+    expect(byPointer.get('main').classes()).toContain('au--settled')
+    byPointer.unmount()
   })
 
-  describe('entrada escalonada de la tarjeta', () => {
-    afterEach(() => vi.useRealTimers())
-
-    it('se retira tras la entrada para que alertas tardías no hereden sus retrasos', async () => {
-      vi.useFakeTimers()
-      const wrapper = mountLayout()
-      expect(wrapper.get('.auth-split__card').classes()).toContain('auth-split__card--intro')
-      await vi.advanceTimersByTimeAsync(1700)
-      expect(wrapper.get('.auth-split__card').classes()).not.toContain('auth-split__card--intro')
-    })
-  })
-
-  it('renders the default tagline', () => {
-    const wrapper = mountLayout()
-    expect(wrapper.text()).toContain('Gestión precisa para tu negocio.')
-  })
-
-  it('renders a custom tagline when provided', () => {
-    const wrapper = mountLayout(
-      { tagline: 'Recupera el acceso a tu cuenta.' },
-      '<h1>Solicita tu código</h1>',
-    )
-    expect(wrapper.text()).toContain('Recupera el acceso a tu cuenta.')
-  })
-
-  it('renders the caption next to Nava Agenda in the brand panel and again at the foot of the card for mobile', () => {
-    const wrapper = mountLayout({ caption: 'RECUPERACIÓN SEGURA' })
-    expect(wrapper.get('.auth-split__caption').text()).toBe('RECUPERACIÓN SEGURA · Nava Agenda')
-    expect(wrapper.get('.auth-split__mobile-caption').text()).toBe(
-      'RECUPERACIÓN SEGURA · Nava Agenda',
-    )
-  })
-
-  it('renders slot content as the real page heading', () => {
+  it('el contenido de la página es el encabezado real', () => {
     const wrapper = mountLayout()
     expect(wrapper.get('h1').text()).toBe('Accede a Nava Agenda')
+    wrapper.unmount()
   })
 
   describe('Accesibilidad automatizada (axe-core, CA-009-05)', () => {
@@ -112,6 +84,7 @@ describe('AuthSplitLayout', () => {
         '<h1>Accede a Nava Agenda</h1><label for="c">Correo</label><input id="c" />',
       )
       expect(await axe(wrapper.element, axeOptions)).toHaveNoViolations()
+      wrapper.unmount()
     })
   })
 })

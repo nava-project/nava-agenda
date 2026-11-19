@@ -270,52 +270,26 @@ async function onSubmit() {
 </template>
 
 <style scoped>
+/* v2 (DEC-188): campos, acciones y enlaces de authV2.css. */
 .recovery-request {
   display: flex;
   flex-direction: column;
-  gap: var(--space-8);
+  gap: var(--space-5);
   width: 100%;
-  margin-top: var(--space-8);
-}
-
-.recovery-request :deep(.base-input) {
-  height: 56px;
-  font-size: 18px;
-}
-
-.recovery-request :deep(.base-input__label) {
-  font-size: 16px;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-}
-
-.recovery-request__submit {
-  width: 100%;
-  min-height: 56px;
-  font-size: 18px;
-}
-
-@media (min-width: 1024px) {
-  .recovery-request {
-    margin-top: 0;
-  }
 }
 
 .recovery-request__group {
   display: flex;
   flex-direction: column;
-  gap: var(--space-3);
+  gap: var(--space-2);
 }
 
-/* Versalitas de latón, mismo tratamiento que los rótulos de campo. */
 .recovery-request__group-label {
   margin: 0;
-  font-family: var(--font-sans);
   font-size: 14px;
-  font-weight: 600;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-  color: var(--color-accent-brass);
+  font-weight: 500;
+  line-height: 20px;
+  color: var(--color-text-primary);
 }
 
 .recovery-request__choices {
@@ -324,25 +298,34 @@ async function onSubmit() {
   gap: var(--space-3);
 }
 
+/* Los canales son tarjetas: la elegida lleva el borde y un tinte del acento, y
+   además el visto (CA-011-09: la señal no es solo el color). */
 .recovery-channel {
   display: flex;
-  align-items: center;
   gap: var(--space-3);
+  align-items: center;
   min-height: 64px;
   padding: 0 var(--space-4);
   font-family: inherit;
-  font-size: 18px;
+  font-size: 16px;
   font-weight: 600;
-  color: var(--color-action-primary);
+  color: var(--color-text-primary);
   cursor: pointer;
   background-color: var(--color-surface);
-  border: var(--border-width-normal) solid var(--color-border-control);
-  border-radius: var(--radius-sm);
+  border: 1px solid var(--color-border-control);
+  border-radius: var(--radius-md);
+  transition:
+    background-color var(--motion-duration-fast) var(--motion-easing-standard),
+    border-color var(--motion-duration-fast) var(--motion-easing-standard);
+}
+
+.recovery-channel:hover:not(:disabled) {
+  border-color: var(--color-text-primary);
 }
 
 .recovery-channel:focus-visible {
-  outline: var(--border-width-emphasis) solid var(--color-focus);
-  outline-offset: 3px;
+  outline: 2px solid var(--color-focus);
+  outline-offset: 2px;
 }
 
 .recovery-channel:disabled {
@@ -350,15 +333,25 @@ async function onSubmit() {
   opacity: 0.6;
 }
 
-.recovery-channel--selected {
-  color: var(--color-on-strong);
-  background-color: var(--color-action-primary);
-  border: var(--border-width-emphasis) solid var(--color-action-primary);
+.recovery-channel--selected,
+.recovery-channel--selected:hover:not(:disabled) {
+  background-color: color-mix(in srgb, var(--color-brand-accent-surface) 10%, var(--color-surface));
+  border-color: var(--color-brand-accent-surface);
+  box-shadow: inset 0 0 0 1px var(--color-brand-accent-surface);
 }
 
-.recovery-channel__icon,
+.recovery-channel__icon {
+  flex-shrink: 0;
+  color: var(--color-text-secondary);
+}
+
+.recovery-channel--selected .recovery-channel__icon {
+  color: var(--color-text-primary);
+}
+
 .recovery-channel__check {
   flex-shrink: 0;
+  color: var(--color-text-primary);
 }
 
 .recovery-channel__label {
@@ -366,19 +359,16 @@ async function onSubmit() {
   text-align: left;
 }
 
-/* Por debajo de 480 px el rótulo, el icono y el check no caben en una fila
-   sin recortar «Teléfono» (320 px): el icono pasa sobre el rótulo y el check
-   sale del flujo a la esquina, así el botón conserva un área táctil amplia y
-   el texto completo. */
+/* Por debajo de 480 px el icono pasa sobre el rótulo y el visto sale a la
+   esquina: «Teléfono» cabe completo a 320 px. */
 @media (max-width: 479px) {
   .recovery-channel {
     position: relative;
     flex-direction: column;
-    justify-content: center;
     gap: var(--space-1);
-    min-height: 84px;
+    justify-content: center;
+    min-height: 80px;
     padding: var(--space-3) var(--space-2);
-    font-size: 16px;
   }
 
   .recovery-channel__label {
@@ -395,8 +385,8 @@ async function onSubmit() {
 
 .recovery-request__hint {
   margin: 0;
-  font-size: 20px;
-  line-height: 28px;
+  font-size: 16px;
+  line-height: 24px;
   color: var(--color-text-secondary);
 }
 
@@ -405,112 +395,28 @@ async function onSubmit() {
   color: var(--color-text-primary);
 }
 
-@media (min-width: 1024px) {
-  .recovery-request__hint {
-    font-size: 18px;
-    line-height: 26px;
-  }
-
-  .recovery-channel {
-    min-height: 72px;
-  }
-}
-
-/* Selector de canal: el relleno de tinta se ilumina en vez de saltar, el botón
-   se alza al pasar y se hunde al pulsar, y la marca de elegido se dibuja
-   (aro y visto) con un pequeño rebote. */
-.recovery-channel {
-  transition:
-    background-color var(--motion-duration-base) var(--motion-easing-standard),
-    border-color var(--motion-duration-base) var(--motion-easing-standard),
-    color var(--motion-duration-base) var(--motion-easing-standard),
-    transform var(--motion-duration-base) cubic-bezier(0.2, 0.7, 0.2, 1),
-    box-shadow var(--motion-duration-base) var(--motion-easing-standard);
-}
-
-.recovery-channel:hover:not(:disabled):not(.recovery-channel--selected) {
-  border-color: var(--color-accent-brass);
-  box-shadow: 0 6px 14px -8px color-mix(in srgb, var(--color-action-primary) 45%, transparent);
-  transform: translateY(-2px);
-}
-
-.recovery-channel:active:not(:disabled) {
-  transform: translateY(0) scale(0.985);
-}
-
-.recovery-channel__icon {
-  transition: transform 320ms cubic-bezier(0.3, 1.4, 0.5, 1);
-}
-
-.recovery-channel:hover:not(:disabled) .recovery-channel__icon,
-.recovery-channel--selected .recovery-channel__icon {
-  transform: scale(1.1) rotate(-4deg);
-}
-
-.recovery-channel__check {
-  animation: recovery-check-pop 0.5s cubic-bezier(0.3, 1.4, 0.5, 1) backwards;
-}
-
-.recovery-channel__check-ring {
-  stroke-dasharray: 60;
-  animation: recovery-check-draw 0.45s cubic-bezier(0.65, 0, 0.2, 1) backwards;
-}
-
-.recovery-channel__check-tick {
-  stroke-dasharray: 18;
-  animation: recovery-check-draw 0.35s cubic-bezier(0.65, 0, 0.2, 1) 0.2s backwards;
-}
-
-@keyframes recovery-check-pop {
-  from {
-    opacity: 0;
-    transform: scale(0.4) rotate(-40deg);
-  }
-}
-
-@keyframes recovery-check-draw {
-  from {
-    stroke-dashoffset: 60;
-  }
-}
-
-/* El mensaje del canal elegido sustituye al anterior subiendo con suavidad. */
-.recovery-request__hint--swap,
-.recovery-request__field {
-  animation: recovery-hint-in 0.45s cubic-bezier(0.2, 0.7, 0.2, 1) backwards;
-}
-
-@keyframes recovery-hint-in {
-  from {
-    opacity: 0;
-    transform: translateY(8px);
-  }
-}
-
-/* Despliegue del campo y el botón: la fila de la rejilla pasa de 0fr a 1fr. El
-   margen negativo y el relleno superior reservan el hueco del `gap` del
-   formulario dentro del propio bloque, para que el enlace de abajo no salte
-   al terminar. El recorte solo existe mientras dura el movimiento, así el aro
-   de foco del campo no queda cortado en reposo. */
+/* Al elegir canal, el campo y el botón se despliegan (la fila pasa de 0fr a 1fr)
+   en vez de empujar de golpe el enlace de abajo. El margen negativo reserva el
+   hueco del gap dentro del bloque. El recorte solo existe durante el movimiento. */
 .recovery-reveal {
   display: grid;
   grid-template-rows: 1fr;
-  margin-top: calc(-1 * var(--space-8));
+  margin-top: calc(-1 * var(--space-5));
 }
 
 .recovery-reveal__inner {
   display: flex;
   flex-direction: column;
-  gap: var(--space-8);
+  gap: var(--space-5);
   min-height: 0;
-  padding-top: var(--space-8);
+  padding-top: var(--space-5);
 }
 
 .recovery-reveal-enter-active,
 .recovery-reveal-leave-active {
   transition:
-    grid-template-rows 360ms cubic-bezier(0.2, 0.7, 0.2, 1),
-    opacity 280ms var(--motion-easing-standard);
+    grid-template-rows 260ms cubic-bezier(0.2, 0.7, 0.2, 1),
+    opacity 200ms var(--motion-easing-standard);
 }
 
 .recovery-reveal-enter-active > .recovery-reveal__inner,
@@ -524,47 +430,11 @@ async function onSubmit() {
   opacity: 0;
 }
 
-/* Cada campo del bloque entra con un pequeño retraso, como la cascada de la
-   tarjeta de acceso. */
-.recovery-reveal-enter-active .recovery-reveal__inner > * {
-  animation: recovery-hint-in 0.55s cubic-bezier(0.2, 0.7, 0.2, 1) backwards;
-}
-
-.recovery-reveal-enter-active .recovery-reveal__inner > :nth-child(2) {
-  animation-delay: 0.1s;
-}
-
 @media (prefers-reduced-motion: reduce) {
   .recovery-channel,
-  .recovery-channel__icon,
   .recovery-reveal-enter-active,
   .recovery-reveal-leave-active {
     transition: none;
   }
-
-  .recovery-channel:hover:not(:disabled),
-  .recovery-channel:active:not(:disabled) {
-    transform: none;
-  }
-
-  .recovery-channel__check,
-  .recovery-channel__check-ring,
-  .recovery-channel__check-tick,
-  .recovery-request__hint--swap,
-  .recovery-request__field,
-  .recovery-reveal-enter-active .recovery-reveal__inner > * {
-    animation: none;
-  }
-}
-
-.recovery-back {
-  margin: 0;
-  text-align: center;
-  font-size: var(--font-size-body-sm);
-}
-
-.recovery-back a {
-  color: var(--color-action-primary);
-  font-weight: 500;
 }
 </style>
