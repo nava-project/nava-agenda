@@ -35,7 +35,7 @@ defineProps<{
           <svg v-if="index + 1 < current" viewBox="0 0 16 16" width="14" height="14">
             <path d="M3 8.5l3.2 3.2L13 4.8" fill="none" />
           </svg>
-          <template v-else>{{ index + 1 }}</template>
+          <span v-else>{{ index + 1 }}</span>
         </span>
         <span v-if="index < steps.length - 1" class="gcal-step__link">
           <span class="gcal-step__fill" />
@@ -90,19 +90,25 @@ defineProps<{
   display: grid;
   flex: 0 0 auto;
   place-content: center;
-  width: 30px;
-  height: 30px;
+  width: 24px;
+  height: 24px;
+  margin: 3px;
   font-size: var(--font-size-body-sm);
   font-weight: 600;
   font-variant-numeric: tabular-nums;
   color: inherit;
   background: var(--color-surface);
   border: var(--border-width-normal) solid var(--color-border-control);
-  border-radius: 50%;
+  border-radius: 3px;
+  rotate: 45deg;
   transition:
     background-color var(--motion-duration-base) var(--motion-easing-standard),
     border-color var(--motion-duration-base) var(--motion-easing-standard),
     color var(--motion-duration-base) var(--motion-easing-standard);
+}
+
+.gcal-step__mark > * {
+  rotate: -45deg;
 }
 
 .gcal-step__mark svg path {

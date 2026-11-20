@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { SunDiamond } from '@/shared/ui'
 /**
  * NewAppointmentSkeleton - Espera con la geometría del formulario por llegar
  * (issue #190, atlas nuevo-turno-eventos evento 01): mientras profesionales y zona
@@ -32,7 +33,7 @@ const BANDS: readonly (readonly number[])[] = [[2], [2, 2], [2], [1]]
 <template>
   <div class="nt-skeleton" role="status" aria-live="polite">
     <p class="nt-skeleton__status">
-      <span class="nt-skeleton__spinner" aria-hidden="true" />{{ label }}
+      <SunDiamond size="sm" class="nt-skeleton__spinner" />{{ label }}
     </p>
 
     <div class="nt-skeleton__layout" aria-hidden="true">
@@ -97,14 +98,7 @@ const BANDS: readonly (readonly number[])[] = [[2], [2, 2], [2], [1]]
 }
 
 .nt-skeleton__spinner {
-  width: 16px;
-  height: 16px;
-  flex-shrink: 0;
-  border: 2px solid color-mix(in srgb, var(--color-brand-accent-surface) 22%, transparent);
-  border-top-color: var(--color-brand-accent-surface);
-  border-right-color: var(--color-brand-accent-surface);
-  border-radius: 50%;
-  transform: rotate(-38deg);
+  font-size: 12px;
 }
 
 .nt-skeleton__layout {
@@ -176,9 +170,11 @@ const BANDS: readonly (readonly number[])[] = [[2], [2, 2], [2], [1]]
 
 .nt-skeleton__bar--num {
   flex: none;
-  width: 30px;
-  height: 30px;
-  border-radius: 50%;
+  width: 24px;
+  height: 24px;
+  margin: 3px;
+  border-radius: 3px;
+  rotate: 45deg;
 }
 
 .nt-skeleton__bar--title {
@@ -288,8 +284,7 @@ const BANDS: readonly (readonly number[])[] = [[2], [2, 2], [2], [1]]
   }
 
   .nt-skeleton__spinner {
-    width: 18px;
-    height: 18px;
+    font-size: 13px;
   }
 
   /* Misma retícula que el formulario real: hoja y boleto de 340px. */

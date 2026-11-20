@@ -459,14 +459,17 @@ a.actions__choice:hover {
   display: grid;
   flex: none;
   place-items: center;
-  width: 40px;
-  height: 40px;
+  width: 32px;
+  height: 32px;
+  margin: 4px;
   color: var(--color-text-primary);
   background-color: var(--color-surface-muted);
-  border-radius: 50%;
+  border-radius: 4px;
+  rotate: 45deg;
 }
 
 .actions__icon svg {
+  rotate: -45deg;
   fill: none;
   stroke: currentcolor;
   stroke-width: 1.6;

@@ -2211,7 +2211,8 @@ const dayChangeMarkerPercent = computed(() => {
     width: 12px;
     height: 12px;
     content: '';
-    border-radius: 50%;
+    border-radius: 1px;
+    rotate: 45deg;
   }
 
   .daily-agenda-page__timeline-mark--now::before {
@@ -2428,7 +2429,8 @@ const dayChangeMarkerPercent = computed(() => {
   height: 10px;
   content: '';
   background-color: var(--color-sun);
-  border-radius: 50%;
+  border-radius: 1px;
+  rotate: 45deg;
   box-shadow: 0 0 0 2px color-mix(in srgb, var(--color-sun) 30%, transparent);
 }
 

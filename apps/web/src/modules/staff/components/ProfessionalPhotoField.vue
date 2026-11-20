@@ -14,7 +14,7 @@
  * `prefers-reduced-motion` y con «Animaciones reducidas» (DEC-110).
  */
 import { computed, onBeforeUnmount, ref, useId, watch } from 'vue'
-import { ProfessionalAvatar, BaseButton } from '@/shared/ui'
+import { BaseButton, ProfessionalAvatar, SunDiamond } from '@/shared/ui'
 import { NO_PHOTO_CHANGE, type PhotoDraft } from '../model/photoDraft'
 import {
   PHOTO_ACCEPT_ATTRIBUTE,
@@ -161,7 +161,7 @@ onBeforeUnmount(() => {
         :photo-url="shownUrl"
       />
       <span v-if="preparing" class="professional-photo-field__busy">
-        <span class="professional-photo-field__busy-spinner" />
+        <SunDiamond size="md" class="professional-photo-field__busy-spinner" />
       </span>
       <span v-else-if="dragging" class="professional-photo-field__drop">Suelta la foto</span>
     </div>
@@ -284,15 +284,11 @@ onBeforeUnmount(() => {
   font-weight: 500;
 }
 
-/* Preparando la foto: un aro que gira mientras dura el trabajo (es carga,
-   finita), sin rombo ni acento (v2, DEC-188). */
+/* Preparando la foto: la espera de Agenda, el diamante dentro del sol
+   (#735/#737); sobre el velo de tinta, sol y caras en blanco. */
 .professional-photo-field__busy-spinner {
-  width: 22px;
-  height: 22px;
-  border: 2px solid rgb(255 255 255 / 35%);
-  border-top-color: #fff;
-  border-radius: 50%;
-  animation: professional-photo-spin 0.9s linear infinite;
+  --sd-sun: #fff;
+  --sd-ray: rgb(255 255 255 / 70%);
 }
 
 .professional-photo-field__side {
@@ -378,17 +374,8 @@ onBeforeUnmount(() => {
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .professional-photo-field__busy-spinner {
-    animation: none;
-  }
-
   .professional-photo-field__frame {
     transition: none;
   }
-}
-
-/* «Animaciones reducidas» de Configuración (DEC-110): el aro queda quieto. */
-:global(:root[data-motion='reduced']) .professional-photo-field__busy-spinner {
-  animation: none;
 }
 </style>

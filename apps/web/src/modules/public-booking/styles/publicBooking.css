@@ -1509,11 +1509,15 @@
   line-height: 24px;
 }
 
+/* Abierto: rombo lleno de latón · cerrado: rombo hueco con filete de 2 px,
+   para que a 1x no se lea como un círculo (#737). */
 .pb-hours__mark {
   flex: none;
-  width: 9px;
-  height: 9px;
-  border: 1.5px solid var(--pb-muted);
+  width: 10px;
+  height: 10px;
+  margin-inline: 2px;
+  border: 2px solid var(--pb-muted);
+  border-radius: 1px;
   transform: rotate(45deg);
 }
 

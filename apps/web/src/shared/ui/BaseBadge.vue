@@ -209,7 +209,8 @@ const style = computed(() => ({
   left: calc(-1 * (var(--badge-padding-x-md) + var(--badge-dot-size-md) + var(--badge-gap)));
   width: var(--badge-dot-size-md);
   height: var(--badge-dot-size-md);
-  border-radius: 50%;
+  border-radius: 0;
+  rotate: 45deg;
   flex-shrink: 0;
   background-color: var(--badge-dot-color);
 }

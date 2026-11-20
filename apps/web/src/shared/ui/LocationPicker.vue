@@ -391,7 +391,8 @@ const describedBy = computed(() => [hintId, props.error ? errorId : ''].filter(B
   height: 8px;
   content: '';
   background: #fff;
-  border-radius: 50%;
+  border-radius: 1px;
+  rotate: 45deg;
 }
 
 .location-picker__overlay {

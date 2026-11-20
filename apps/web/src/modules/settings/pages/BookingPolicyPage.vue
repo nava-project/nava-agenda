@@ -592,11 +592,17 @@ function onReloadAfterConflict() {
 .booking-policy-page__saved-icon {
   display: grid;
   flex: 0 0 auto;
-  width: 22px;
-  height: 22px;
+  width: 18px;
+  height: 18px;
+  margin: 2px;
   place-items: center;
   border: var(--border-width-normal) solid currentColor;
-  border-radius: 50%;
+  border-radius: 2px;
+  rotate: 45deg;
+}
+
+.booking-policy-page__saved-icon svg {
+  rotate: -45deg;
 }
 
 .booking-policy-page__saved-icon path {

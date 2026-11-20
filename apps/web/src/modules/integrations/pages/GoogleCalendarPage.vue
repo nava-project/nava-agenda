@@ -610,7 +610,9 @@ const HOW_IT_WORKS = [
         <h2 id="gcal-how-title" class="gcal-how__title">Cómo funciona</h2>
         <ul class="gcal-how__grid">
           <li v-for="(item, index) in HOW_IT_WORKS" :key="item.title" class="gcal-how__item">
-            <span class="gcal-how__num" aria-hidden="true">{{ index + 1 }}</span>
+            <span class="gcal-how__num" aria-hidden="true"
+              ><span>{{ index + 1 }}</span></span
+            >
             <strong class="gcal-how__name">{{ item.title }}</strong>
             <span class="gcal-how__text">{{ item.text }}</span>
           </li>
@@ -842,14 +844,16 @@ const HOW_IT_WORKS = [
   border-radius: var(--radius-pill);
 }
 
-/* Punto redondo (sin rombo, sin latido): lleno con la conexión viva; sin
-   conexión es solo contorno, «todavía no hay nada encendido». */
+/* Rombo quieto (sin latido; pulido #737, ningún marcador redondo): lleno con
+   la conexión viva; sin conexión es solo contorno, «todavía no hay nada
+   encendido». */
 .gcal-status__dot {
   flex: 0 0 auto;
   width: 8px;
   height: 8px;
   background: var(--gcal-tone);
-  border-radius: 50%;
+  border-radius: 1px;
+  rotate: 45deg;
 }
 
 .gcal-hero--not-connected .gcal-status__dot,
@@ -1080,11 +1084,12 @@ const HOW_IT_WORKS = [
 .gcal-mode__dot {
   position: relative;
   flex: 0 0 auto;
-  width: 20px;
-  height: 20px;
-  margin-top: 1px;
+  width: 16px;
+  height: 16px;
+  margin: 3px 2px 0;
   border: var(--border-width-normal) solid var(--color-border-control);
-  border-radius: 50%;
+  border-radius: 2px;
+  rotate: 45deg;
   transition: border-color var(--motion-duration-fast) var(--motion-easing-standard);
 }
 
@@ -1093,7 +1098,7 @@ const HOW_IT_WORKS = [
   inset: 4px;
   content: '';
   background: var(--color-text-primary);
-  border-radius: 50%;
+  border-radius: 1px;
   transform: scale(0);
   transition: transform var(--motion-duration-fast) var(--motion-easing-standard);
 }
@@ -1233,14 +1238,20 @@ const HOW_IT_WORKS = [
   grid-row: span 2;
   display: grid;
   place-content: center;
-  width: 28px;
-  height: 28px;
+  width: 22px;
+  height: 22px;
+  margin: 3px;
   font-size: 13px;
   font-weight: 500;
   font-variant-numeric: tabular-nums;
   color: var(--color-text-secondary);
   border: var(--border-width-normal) solid var(--color-border-subtle);
-  border-radius: 50%;
+  border-radius: 3px;
+  rotate: 45deg;
+}
+
+.gcal-how__num > span {
+  rotate: -45deg;
 }
 
 .gcal-how__name {
