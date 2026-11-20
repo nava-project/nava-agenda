@@ -779,8 +779,10 @@
 }
 
 .bk-hours__group--afternoon .bk-hours__sky {
-  /* 135° en el rombo girado = la mitad de arriba en pantalla. */
+  /* 135° en el rombo girado = la mitad de arriba en pantalla. El filete de
+     sol hondo dibuja la mitad vacía, que sobre el rosado se perdía. */
   background: linear-gradient(135deg, var(--color-sun) 50%, transparent 50%);
+  box-shadow: inset 0 0 0 1.5px color-mix(in srgb, var(--color-sun) 55%, var(--color-text-primary));
 }
 
 .bk-hours__group--night .bk-hours__sky {
