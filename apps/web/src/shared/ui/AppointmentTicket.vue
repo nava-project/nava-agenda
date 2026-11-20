@@ -12,14 +12,17 @@
  *
  * Estados:
  * - `draft`: borde punteado, «Por confirmar» en latón y el rombo vacío;
- * - `confirmed`: sello «Confirmado» a −4° en el color del estado del sistema
- *   (el mismo de la libreta: un estado, un color);
+ * - `confirmed`: sello «Confirmado» a −4° en latón (#747): es la tarjeta que
+ *   el cliente se lleva, de la familia; la libreta del panel conserva su color
+ *   de estado;
  * - `cancelled`, `completed`, `no-show`: el sello en el color de su estado.
  *
- * `ceremony`: al confirmar, la tarjeta se escribe una sola vez en ≤ 1,1 s.
- * El borde se cierra, la hora se asienta, el rombo pasa a Sol y el sello se
- * estampa. Con movimiento reducido (sistema o preferencia del panel), el
- * primer cuadro ya es el estado final.
+ * `ceremony`: al confirmar, la tarjeta se escribe una sola vez. El borde se
+ * cierra, la hora se asienta, el sello cae, la regla se dibuja de izquierda a
+ * derecha y el rombo pasa a Sol. `--ticket-ceremony-delay` corre todo el
+ * guion (la página lo usa para que la tarjeta entre después del titular).
+ * Con movimiento reducido (sistema o preferencia del panel), el primer cuadro
+ * ya es el estado final.
  */
 import { computed } from 'vue'
 import DayRuler, { type DayRulerMark } from './DayRuler.vue'
@@ -40,6 +43,8 @@ interface Props {
   day: string
   /** Hora de inicio con su sufijo: «11:00 a. m.». */
   time: string
+  /** Cuánto falta, junto a la hora: «hoy», «mañana», «en 7 días» (#747). */
+  relative?: string | null
   /** Nota bajo la hora: «Hora de Colombia» o «hasta 10:30 a. m. · Hora de Colombia». */
   timeNote?: string
   professionalName?: string
@@ -68,6 +73,7 @@ interface Props {
 const props = withDefaults(defineProps<Props>(), {
   meta: '',
   timeNote: '',
+  relative: null,
   professionalName: '',
   professionalPhotoUrl: null,
   professionalLabel: 'Profesional',
@@ -139,21 +145,29 @@ const rulerMarks = computed(
         <p class="appointment-ticket__weekday">{{ weekday }}</p>
         <p class="appointment-ticket__time">
           {{ timeParts.clock }}<small v-if="timeParts.suffix">&nbsp;{{ timeParts.suffix }}</small>
+          <span v-if="relative" class="appointment-ticket__relative"
+            ><span class="appointment-ticket__relative-mark" aria-hidden="true" />{{
+              relative
+            }}</span
+          >
         </p>
         <p v-if="timeNote" class="appointment-ticket__note">{{ timeNote }}</p>
       </div>
     </div>
 
-    <DayRuler
-      v-if="ruler"
-      class="appointment-ticket__ruler"
-      size="card"
-      :from="ruler.from"
-      :to="ruler.to"
-      :marks="rulerMarks"
-      :now="ruler.now ?? null"
-      :label="ruler.label"
-    />
+    <!-- La envoltura recorta la cortina que, en la ceremonia, descubre la
+         regla de izquierda a derecha (solo transform). -->
+    <div v-if="ruler" class="appointment-ticket__ruler-wrap">
+      <DayRuler
+        class="appointment-ticket__ruler"
+        size="card"
+        :from="ruler.from"
+        :to="ruler.to"
+        :marks="rulerMarks"
+        :now="ruler.now ?? null"
+        :label="ruler.label"
+      />
+    </div>
 
     <slot />
 
@@ -175,7 +189,10 @@ const rulerMarks = computed(
 /* --ticket-backdrop: el color de lo que hay detrás de la tarjeta, para calar las
    muescas del troquel. Por omisión, el lienzo; dentro de una hoja, su superficie. */
 .appointment-ticket {
-  --ticket-seal: var(--color-info-text);
+  /* El sello de la tarjeta confirmada, en latón (#747). --color-brass-text
+     pasa AA como texto en Día y en Noche. */
+  --ticket-seal: var(--color-brass-text);
+  --ticket-ceremony-delay: 0ms;
 
   position: relative;
   color: var(--color-text-primary);
@@ -236,7 +253,8 @@ const rulerMarks = computed(
   color: var(--color-text-secondary);
 }
 
-/* Sello: timbre de consultorio a −4°, en el color del estado. */
+/* Sello: timbre de consultorio a −4°, en latón si está confirmado y en el
+   color de su estado si no. */
 .appointment-ticket__seal {
   position: absolute;
   top: 20px;
@@ -263,6 +281,37 @@ const rulerMarks = computed(
   height: 7px;
   background-color: currentColor;
   transform: rotate(45deg);
+}
+
+/* La cuenta relativa (#747): un chip de latón con su rombo, junto a la hora. */
+.appointment-ticket__relative {
+  display: inline-flex;
+  gap: 6px;
+  align-items: center;
+  margin-left: 10px;
+  padding: 3px 9px;
+  font-family: var(--font-sans);
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 16px;
+  color: var(--color-brass-text);
+  letter-spacing: 0.06em;
+  white-space: nowrap;
+  vertical-align: 0.45em;
+  border: 1px solid color-mix(in srgb, var(--color-brass-line) 70%, transparent);
+  border-radius: 3px;
+}
+
+.appointment-ticket__relative-mark {
+  width: 6px;
+  height: 6px;
+  background-color: currentColor;
+  transform: rotate(45deg);
+}
+
+.appointment-ticket__ruler-wrap {
+  position: relative;
+  overflow: clip;
 }
 
 /* «Por confirmar»: texto en latón con el rombo vacío, sin caja (no es un botón). */
@@ -427,12 +476,15 @@ const rulerMarks = computed(
   }
 }
 
-/* ── Ceremonia: una sola vez, ≤ 1,1 s ──────────────────────────────────────
-   Solo existe con movimiento permitido; si no, el primer cuadro ya es el
-   estado final. */
+/* ── Ceremonia: una sola vez ─────────────────────────────────────────────
+   Guion (sumado a --ticket-ceremony-delay): la tarjeta entra y su borde se
+   cierra (0–400 ms), la
+   hora se asienta (150–600), el sello cae (450–830), la regla se dibuja
+   (620–1020) y el rombo pasa a Sol (800–1120). Solo existe con movimiento
+   permitido; si no, el primer cuadro ya es el estado final. */
 @media (prefers-reduced-motion: no-preference) {
   :root:not([data-motion='reduced']) .appointment-ticket--ceremony {
-    animation: ticket-close 320ms ease-out both;
+    animation: ticket-close 400ms var(--ticket-ceremony-delay) cubic-bezier(0.2, 0.7, 0.2, 1) both;
   }
 
   :root:not([data-motion='reduced']) .appointment-ticket--ceremony::after {
@@ -442,26 +494,51 @@ const rulerMarks = computed(
     content: '';
     border: 1px dashed var(--color-brass-line);
     border-radius: inherit;
-    animation: ticket-dash 320ms ease-out both;
+    animation: ticket-dash 320ms var(--ticket-ceremony-delay) ease-out both;
   }
 
   :root:not([data-motion='reduced']) .appointment-ticket--ceremony .appointment-ticket__time {
-    animation: ticket-settle 450ms 150ms cubic-bezier(0.2, 0.7, 0.2, 1) both;
-  }
-
-  :root:not([data-motion='reduced']) .appointment-ticket--ceremony :deep(.day-ruler__mark--mine) {
-    animation: ticket-mark 420ms 380ms cubic-bezier(0.2, 0.7, 0.2, 1) both;
+    animation: ticket-settle 450ms calc(var(--ticket-ceremony-delay) + 150ms)
+      cubic-bezier(0.2, 0.7, 0.2, 1) both;
   }
 
   :root:not([data-motion='reduced']) .appointment-ticket--ceremony .appointment-ticket__seal {
-    animation: ticket-stamp 380ms 720ms cubic-bezier(0.3, 1.4, 0.5, 1) both;
+    animation: ticket-stamp 380ms calc(var(--ticket-ceremony-delay) + 450ms)
+      cubic-bezier(0.3, 1.4, 0.5, 1) both;
+  }
+
+  /* La cortina del color de la tarjeta se corre a la derecha y descubre la regla. */
+  :root:not([data-motion='reduced'])
+    .appointment-ticket--ceremony
+    .appointment-ticket__ruler-wrap::after {
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    content: '';
+    background-color: var(--color-surface);
+    transform: translateX(101%);
+    animation: ticket-draw 400ms calc(var(--ticket-ceremony-delay) + 620ms)
+      cubic-bezier(0.45, 0, 0.2, 1) backwards;
+  }
+
+  :root:not([data-motion='reduced']) .appointment-ticket--ceremony :deep(.day-ruler__mark--mine) {
+    animation: ticket-mark 320ms calc(var(--ticket-ceremony-delay) + 800ms)
+      cubic-bezier(0.2, 0.7, 0.2, 1) both;
+  }
+}
+
+@keyframes ticket-draw {
+  from {
+    transform: translateX(0);
   }
 }
 
 @keyframes ticket-close {
   from {
+    opacity: 0;
     border-color: transparent;
     box-shadow: none;
+    transform: translateY(14px);
   }
 }
 

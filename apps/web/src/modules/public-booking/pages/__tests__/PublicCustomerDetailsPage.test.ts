@@ -270,6 +270,38 @@ describe('PublicCustomerDetailsPage', () => {
     expect(note.attributes('rows')).toBe('3')
   })
 
+  it('keeps «Tu cita» in view while filling the form, with dot leaders (#747)', async () => {
+    const wrapper = mountPage()
+    await flushPromises()
+    const pase = wrapper.get('aside.bk-details__pase')
+    expect(pase.attributes('aria-label')).toBe('Tu cita')
+    // La línea compacta del teléfono y el riel de escritorio dicen lo mismo.
+    expect(pase.get('.bk-details__pase-line').text()).toMatch(/Corte clásico.*9:30\sa\.\sm\./)
+    const rows = pase.findAll('.bk-leaders__row')
+    expect(rows.map((r) => r.get('dt').text())).toEqual([
+      'Corte clásico',
+      'Profesional',
+      'Día',
+      'Hora',
+    ])
+    expect(rows[0]!.get('dd').text()).toMatch(/20\.000/)
+    expect(rows[1]!.get('dd').text()).toBe('Mateo Cruz')
+    // Sin el año: cabe en el riel.
+    expect(rows[2]!.get('dd').text()).toBe('domingo, 20 de septiembre')
+    expect(rows[3]!.get('dd').text()).toMatch(/^9:30\sa\.\sm\. – 10:00\sa\.\sm\.$/)
+  })
+
+  it('drops the rail on the summary, where the card already says it, and uses leaders (#747)', async () => {
+    const wrapper = mountPage()
+    await flushPromises()
+    await fillValidForm(wrapper)
+    await wrapper.find('form').trigger('submit')
+    expect(wrapper.find('.bk-details__pase').exists()).toBe(false)
+    const rows = wrapper.findAll('.customer-details__summary-row')
+    expect(rows.length).toBeGreaterThan(0)
+    for (const row of rows) expect(row.classes()).toContain('bk-leaders__row')
+  })
+
   it('lets the customer go back to editing without losing the data already entered', async () => {
     const wrapper = mountPage()
     await fillValidForm(wrapper)
@@ -682,6 +714,43 @@ describe('PublicCustomerDetailsPage', () => {
     const text = new URL(link.attributes('href')!).searchParams.get('text')!
     expect(text).toMatch(/^Hola, reservé Corte clásico a las 9:30\sa\.\sm\. del .+2026\.$/)
     expect(text).not.toContain('..')
+  })
+
+  it('offers WhatsApp as a secondary button next to the calendar (#747)', async () => {
+    loadPublicProfileMock.mockResolvedValue({
+      ...profileOutcome(false),
+      profile: { ...profileOutcome(false).profile, contactPhone: '+573001234567' },
+    })
+    const wrapper = await confirmWith()
+    const link = wrapper.get('.bk-done__actions .bk-done__whatsapp')
+    expect(link.classes()).toEqual(expect.arrayContaining(['bk-cta', 'bk-cta--secondary']))
+    expect(wrapper.get('.bk-done__actions .bk-done__calendar').classes()).not.toContain(
+      'bk-cta--secondary',
+    )
+  })
+
+  it('says on the confirmed card how far away the turn is (#747)', async () => {
+    vi.useFakeTimers({ toFake: ['Date'] })
+    // Una semana antes del turno del 20 de septiembre, en Bogotá.
+    vi.setSystemTime(new Date('2026-09-13T15:00:00Z'))
+    try {
+      const wrapper = await confirmWith()
+      expect(wrapper.get('.bk-done__ticket .appointment-ticket__relative').text()).toBe('en 7 días')
+    } finally {
+      vi.useRealTimers()
+    }
+  })
+
+  it('omits the relative chip once the turn is in the past (#747)', async () => {
+    // El turno del fixture (septiembre de 2026) ya pasó frente al reloj real.
+    vi.useFakeTimers({ toFake: ['Date'] })
+    vi.setSystemTime(new Date('2026-09-21T15:00:00Z'))
+    try {
+      const wrapper = await confirmWith()
+      expect(wrapper.find('.bk-done__ticket .appointment-ticket__relative').exists()).toBe(false)
+    } finally {
+      vi.useRealTimers()
+    }
   })
 
   it('says where: the business address with directions, or the home address', async () => {

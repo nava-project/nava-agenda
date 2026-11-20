@@ -297,7 +297,13 @@ const failedRequestId = computed(() =>
         <span class="bk-skel bk-skel--strip"></span>
         <span class="bk-skel bk-skel--hours"></span>
       </div>
-      <div class="bk-pase bk-pase--skeleton" aria-hidden="true"></div>
+      <!-- El pase mientras carga (#747): su rótulo, una silueta y el botón
+           deshabilitado, como cuando ya cargó. Nunca una barra en blanco. -->
+      <div class="bk-pase bk-pase--skeleton" aria-hidden="true">
+        <p class="bk-pase__label">Tu cita</p>
+        <span class="bk-skel bk-skel--pase"></span>
+        <span class="bk-cta bk-cta--idle">Elige una hora</span>
+      </div>
     </div>
   </main>
 

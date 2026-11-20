@@ -10,6 +10,7 @@ import {
   isCivilDateString,
   minutesIntoCivilDate,
   minutesSinceCivilMidnight,
+  relativeDayLabel,
   shiftCivilDate,
 } from '../civilDate'
 
@@ -146,5 +147,27 @@ describe('formatCivilDateShort (DEC-188)', () => {
   it('adds the year when it is not the current one, and works without today', () => {
     expect(formatCivilDateShort('2027-01-04', '2026-11-19')).toBe('lun 4 ene 2027')
     expect(formatCivilDateShort('2026-11-21')).toBe('sáb 21 nov')
+  })
+})
+
+describe('relativeDayLabel (#747)', () => {
+  const tz = 'America/Bogota'
+  // 2026-11-20 08:00 en Bogotá.
+  const now = new Date('2026-11-20T13:00:00Z')
+
+  it('says hoy, mañana or en N días in the business timezone', () => {
+    expect(relativeDayLabel('2026-11-20T18:30:00-05:00', tz, now)).toBe('hoy')
+    expect(relativeDayLabel('2026-11-21T08:00:00-05:00', tz, now)).toBe('mañana')
+    expect(relativeDayLabel('2026-11-27T14:30:00-05:00', tz, now)).toBe('en 7 días')
+  })
+
+  it('counts civil days, not 24-hour blocks', () => {
+    // 23:30 de hoy y 00:15 de mañana están a 45 min, pero en días distintos.
+    const late = new Date('2026-11-21T04:30:00Z')
+    expect(relativeDayLabel('2026-11-21T00:15:00-05:00', tz, late)).toBe('mañana')
+  })
+
+  it('returns null for a past appointment', () => {
+    expect(relativeDayLabel('2026-11-19T10:00:00-05:00', tz, now)).toBeNull()
   })
 })

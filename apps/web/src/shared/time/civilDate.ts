@@ -170,3 +170,25 @@ export function civilDateChip(civilDate: string): CivilDateChip {
     (parts.find((part) => part.type === type)?.value ?? '').replace(/\.$/, '')
   return { weekday: pick('weekday'), day: pick('day'), month: pick('month') }
 }
+
+/**
+ * Cuánto falta para un turno, en días civiles de la zona del negocio (#747):
+ * «hoy», «mañana» o «en 7 días». Para un turno que ya pasó devuelve `null`.
+ */
+export function relativeDayLabel(
+  startsAt: string,
+  timezone: string,
+  now: Date = new Date(),
+): string | null {
+  const toDay = (civilDate: string) => {
+    const [y, m, d] = civilDate.split('-').map(Number)
+    return Date.UTC(y!, m! - 1, d!) / 86_400_000
+  }
+  const days =
+    toDay(getCivilDateInTimezone(timezone, new Date(startsAt))) -
+    toDay(getCivilDateInTimezone(timezone, now))
+  if (days < 0) return null
+  if (days === 0) return 'hoy'
+  if (days === 1) return 'mañana'
+  return `en ${days} días`
+}
