@@ -74,6 +74,20 @@ const classes = computed(() => {
     .join(' ')
 })
 
+/*
+ * Duración del resorte (#741). Se pasa explícita a <Transition> porque la
+ * animación larga es la de la ventana, no la del velo (el elemento raíz), y
+ * Vue mediría solo esta. Con movimiento reducido es 0: abre y cierra en seco.
+ */
+const DIALOG_MOTION = { enter: 460, leave: 200 } as const
+const prefersReducedMotion = () =>
+  document.documentElement.dataset.motion === 'reduced' ||
+  (typeof window.matchMedia === 'function' &&
+    window.matchMedia('(prefers-reduced-motion: reduce)').matches)
+// Se lee en cada render (cada apertura o cierre re-renderiza por el v-show),
+// así respeta un cambio de Configuración sin recargar.
+const dialogMotion = () => (prefersReducedMotion() ? 0 : DIALOG_MOTION)
+
 const overlayClasses = computed(() => {
   const base = 'base-dialog__overlay'
   return [base, `${base}--${props.placement}`, isOpen.value ? `${base}--open` : '']
@@ -250,91 +264,89 @@ onUnmounted(() => {
 
 <template>
   <Teleport to="body">
-    <div
-      v-show="isOpen"
-      ref="overlayRef"
-      :class="overlayClasses"
-      @click="handleBackdropClick"
-      @keydown="handleKeyDown"
-    >
+    <Transition name="base-dialog-motion" :duration="dialogMotion()">
       <div
         v-show="isOpen"
-        ref="dialogRef"
-        :class="classes"
-        :id="dialogId"
-        role="dialog"
-        aria-modal="true"
-        :aria-labelledby="title ? titleId : undefined"
-        :aria-describedby="description ? descriptionId : undefined"
+        ref="overlayRef"
+        :class="overlayClasses"
+        @click="handleBackdropClick"
+        @keydown="handleKeyDown"
       >
-        <div class="base-dialog__container">
-          <!-- div, no <header>: dentro de [role="dialog"] un <header> sigue
+        <div
+          ref="dialogRef"
+          :class="classes"
+          :id="dialogId"
+          role="dialog"
+          aria-modal="true"
+          :aria-labelledby="title ? titleId : undefined"
+          :aria-describedby="description ? descriptionId : undefined"
+        >
+          <div class="base-dialog__container">
+            <!-- div, no <header>: dentro de [role="dialog"] un <header> sigue
                resolviendo como landmark "banner" (el hueco de la lista de
                excepciones de la spec HTML no incluye role="dialog"), y con
                AppHeader ya presente en la página produce dos landmarks
                "banner" sin nombre único (axe-core landmark-unique). El
                diálogo ya se identifica por su propio role="dialog" +
                aria-labelledby; este contenedor no necesita ser landmark. -->
-          <div v-if="title || showClose || $slots.header" class="base-dialog__header">
-            <slot name="header">
-              <!-- #icon es opcional y vacío por defecto (ningún consumidor
+            <div v-if="title || showClose || $slots.header" class="base-dialog__header">
+              <slot name="header">
+                <!-- #icon es opcional y vacío por defecto (ningún consumidor
                    actual lo usa): un diálogo que quiera una ficha/monograma
                    junto al título -por ejemplo el alta de un registro- la
                    pasa aquí sin tocar este componente compartido. El título
                    conserva su :id de siempre, así aria-labelledby nunca
                    apunta a un elemento que el slot personalizado no
                    renderizó. -->
-              <div class="base-dialog__heading">
-                <slot name="icon" />
-                <h2 v-if="title" :id="titleId" class="base-dialog__title">{{ title }}</h2>
-              </div>
-              <button
-                v-if="showClose"
-                ref="closeButtonRef"
-                type="button"
-                class="base-dialog__close"
-                @click="handleCloseClick"
-                aria-label="Cerrar diálogo"
-              >
-                <svg
-                  class="base-dialog__close-icon"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  stroke-width="2"
-                  stroke-linecap="round"
-                  stroke-linejoin="round"
-                  aria-hidden="true"
+                <div class="base-dialog__heading">
+                  <slot name="icon" />
+                  <h2 v-if="title" :id="titleId" class="base-dialog__title">{{ title }}</h2>
+                </div>
+                <button
+                  v-if="showClose"
+                  ref="closeButtonRef"
+                  type="button"
+                  class="base-dialog__close"
+                  @click="handleCloseClick"
+                  aria-label="Cerrar diálogo"
                 >
-                  <line x1="18" y1="6" x2="6" y2="18"></line>
-                  <line x1="6" y1="6" x2="18" y2="18"></line>
-                </svg>
-              </button>
-            </slot>
-          </div>
+                  <svg
+                    class="base-dialog__close-icon"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="2"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    aria-hidden="true"
+                  >
+                    <line x1="18" y1="6" x2="6" y2="18"></line>
+                    <line x1="6" y1="6" x2="18" y2="18"></line>
+                  </svg>
+                </button>
+              </slot>
+            </div>
 
-          <div v-if="description" :id="descriptionId" class="base-dialog__description">
-            {{ description }}
-          </div>
+            <div v-if="description" :id="descriptionId" class="base-dialog__description">
+              {{ description }}
+            </div>
 
-          <div class="base-dialog__content">
-            <slot />
-          </div>
+            <div class="base-dialog__content">
+              <slot />
+            </div>
 
-          <footer v-if="$slots.footer" class="base-dialog__footer">
-            <slot name="footer" />
-          </footer>
+            <footer v-if="$slots.footer" class="base-dialog__footer">
+              <slot name="footer" />
+            </footer>
+          </div>
         </div>
       </div>
-    </div>
+    </Transition>
   </Teleport>
 </template>
 
 <style scoped>
 .base-dialog__overlay {
-  /* Sin backdrop-filter: blur() — el estándar visual prohíbe desenfoques
-   * decorativos (estandar-diseno-visual.md §6.3). El fondo no interactivo
-   * es solo un scrim translúcido. */
   position: fixed;
   inset: 0;
   display: flex;
@@ -342,27 +354,14 @@ onUnmounted(() => {
   justify-content: center;
   padding: var(--space-4);
   background-color: var(--color-overlay-scrim);
+  /* Velo desenfocado (pulido, punto 3): el fondo se aparta sin desaparecer. */
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
   z-index: var(--layer-dialog);
-  opacity: 0;
-  visibility: hidden;
-  transition:
-    opacity var(--motion-duration-base) var(--motion-easing-standard),
-    visibility var(--motion-duration-base) var(--motion-easing-standard);
 }
 
 .base-dialog__overlay--bottom {
   align-items: flex-end;
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .base-dialog__overlay {
-    transition: none;
-  }
-}
-
-.base-dialog__overlay--open {
-  opacity: 1;
-  visibility: visible;
 }
 
 .base-dialog {
@@ -373,22 +372,91 @@ onUnmounted(() => {
   border-radius: var(--radius-lg);
   box-shadow: var(--shadow-dialog);
   z-index: var(--layer-dialog);
-  transform: scale(0.95) translateY(8px);
-  opacity: 0;
-  transition:
-    transform var(--motion-duration-base) var(--motion-easing-standard),
-    opacity var(--motion-duration-base) var(--motion-easing-standard);
 }
 
-@media (prefers-reduced-motion: reduce) {
-  .base-dialog {
-    transition: none;
+/*
+ * Movimiento (#741): el velo entra en fundido y la ventana con resorte — la
+ * centrada crece desde 0,92 y sube; la de abajo (sheet) sube desde el borde.
+ * Al cerrar se van rápido y sin rebote. Solo transform y opacity, finito.
+ */
+.base-dialog-motion-enter-active {
+  animation: base-dialog-veil-in 240ms var(--motion-ease-out, ease-out) both;
+}
+
+.base-dialog-motion-leave-active {
+  animation: base-dialog-veil-out 200ms ease-in both;
+}
+
+.base-dialog-motion-enter-active .base-dialog {
+  animation: base-dialog-pop-in 460ms var(--motion-ease-spring, ease-out) both;
+}
+
+.base-dialog-motion-leave-active .base-dialog {
+  animation: base-dialog-pop-out 200ms ease-in both;
+}
+
+.base-dialog-motion-enter-active.base-dialog__overlay--bottom .base-dialog {
+  animation-name: base-dialog-sheet-in;
+}
+
+.base-dialog-motion-leave-active.base-dialog__overlay--bottom .base-dialog {
+  animation-name: base-dialog-sheet-out;
+}
+
+@keyframes base-dialog-veil-in {
+  from {
+    opacity: 0;
   }
 }
 
-.base-dialog--open {
-  transform: scale(1) translateY(0);
-  opacity: 1;
+@keyframes base-dialog-veil-out {
+  to {
+    opacity: 0;
+  }
+}
+
+@keyframes base-dialog-pop-in {
+  from {
+    opacity: 0;
+    transform: translateY(14px) scale(0.92);
+  }
+}
+
+@keyframes base-dialog-pop-out {
+  to {
+    opacity: 0;
+    transform: translateY(8px) scale(0.96);
+  }
+}
+
+@keyframes base-dialog-sheet-in {
+  from {
+    opacity: 0.4;
+    transform: translateY(100%);
+  }
+}
+
+@keyframes base-dialog-sheet-out {
+  to {
+    opacity: 0.4;
+    transform: translateY(100%);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .base-dialog-motion-enter-active,
+  .base-dialog-motion-leave-active,
+  .base-dialog-motion-enter-active .base-dialog,
+  .base-dialog-motion-leave-active .base-dialog {
+    animation: none;
+  }
+}
+
+:root[data-motion='reduced'] .base-dialog-motion-enter-active,
+:root[data-motion='reduced'] .base-dialog-motion-leave-active,
+:root[data-motion='reduced'] .base-dialog-motion-enter-active .base-dialog,
+:root[data-motion='reduced'] .base-dialog-motion-leave-active .base-dialog {
+  animation: none;
 }
 
 /* Tamaños */

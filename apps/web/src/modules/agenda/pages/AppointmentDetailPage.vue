@@ -15,7 +15,7 @@ import { timezoneLabel } from '@/shared/time/timezoneName'
 import { computed, onMounted, ref } from 'vue'
 import { useRoute, type LocationQueryRaw } from 'vue-router'
 import { useToast, useVocabulary } from '@/shared/composables'
-import { BaseAlert, BaseBadge, BaseButton, BaseDialog, BaseInput } from '@/shared/ui'
+import { BaseAlert, BaseBadge, BaseButton, BaseDialog, BaseInput, DiamondLoader } from '@/shared/ui'
 import {
   formatFullDateInTimezone,
   formatInstantInTimezone,
@@ -744,7 +744,7 @@ function occurredAtLabel(entry: HistoryEntry): string {
       role="status"
       aria-live="polite"
     >
-      <p>Cargando el detalle del turno…</p>
+      <DiamondLoader layout="inline" label="Cargando el detalle del turno…" />
     </div>
 
     <BaseAlert
@@ -958,7 +958,7 @@ function occurredAtLabel(entry: HistoryEntry): string {
             role="status"
             aria-live="polite"
           >
-            <p>Cargando historial…</p>
+            <DiamondLoader layout="inline" label="Cargando historial…" />
           </div>
 
           <BaseAlert

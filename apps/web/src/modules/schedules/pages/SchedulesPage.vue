@@ -1296,7 +1296,7 @@ const editPreview = computed(() =>
                 role="status"
                 aria-live="polite"
               >
-                <p>Cargando excepciones…</p>
+                <DiamondLoader layout="inline" label="Cargando excepciones…" />
               </div>
 
               <BaseAlert v-else-if="exceptionsStatus === 'error'" variant="warning" role="alert">
