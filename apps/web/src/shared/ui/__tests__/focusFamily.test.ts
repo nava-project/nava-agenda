@@ -76,6 +76,7 @@ describe('foco de la familia (#739)', () => {
   it.each([
     ['/src/shared/ui/BaseInput.vue', 'base-input__error'],
     ['/src/shared/ui/PhoneField.vue', 'phone-field__error'],
+    ['/src/shared/ui/OtpInput.vue', 'otp-input__error'],
   ])('el error de %s lleva su rombo de aviso', (path, cls) => {
     const source = sources[path] ?? ''
     const mark = source.match(new RegExp(`\\.${cls}::before \\{([^}]*)\\}`))?.[1] ?? ''
