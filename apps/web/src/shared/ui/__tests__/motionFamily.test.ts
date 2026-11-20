@@ -112,4 +112,16 @@ describe('movimiento de la familia (#741)', () => {
       /:root\[data-motion='reduced'\] \.appointment-detail-page__skeleton-bar \{\s*animation: none;/,
     )
   })
+
+  it('el sobrepaso del sheet sube tela, no abre hueco, y el velo no se desplaza', () => {
+    const mobile = dialog.slice(dialog.indexOf('@media (max-width: 639.98px)'))
+    for (const css of [dialog, mobile]) {
+      expect(css).toMatch(
+        /--(bottom|sheet-mobile) \.base-dialog::after \{[^}]*top: calc\(100% - 1px\);[^}]*height: max\(96px, 24%\);[^}]*background-color: inherit;/,
+      )
+    }
+    // clip, no hidden: hidden lo vuelve contenedor de scroll y el foco lo desplaza.
+    expect(dialog).toMatch(/\.base-dialog__overlay--bottom \{[^}]*overflow: clip;/)
+    expect(mobile).toMatch(/\.base-dialog__overlay--sheet-mobile \{\s*overflow: clip;/)
+  })
 })

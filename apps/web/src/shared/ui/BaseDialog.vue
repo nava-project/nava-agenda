@@ -390,6 +390,33 @@ onUnmounted(() => {
   max-width: none;
 }
 
+/* Tela bajo el borde: el resorte de --motion-ease-spring sube el sheet por
+   encima del borde de abajo, en torno al 10 % de su alto (47 px medidos en
+   «Más»). Esta extensión del mismo fondo, del 24 % y nunca menos de 96 px,
+   hace que asome tela y no un hueco por el que se vea la barra (#741,
+   revisión de nava). El velo la recorta en el borde del viewport. */
+.base-dialog__overlay--bottom {
+  /* clip y no hidden: hidden lo vuelve contenedor de scroll y, al enfocar
+     dentro del sheet, el navegador lo desplazaba hacia la tela y dejaba un
+     hueco abajo en reposo. */
+  overflow: clip;
+}
+
+.base-dialog__overlay--bottom .base-dialog {
+  position: relative;
+}
+
+.base-dialog__overlay--bottom .base-dialog::after {
+  position: absolute;
+  top: calc(100% - 1px);
+  right: 0;
+  left: 0;
+  height: max(96px, 24%);
+  content: '';
+  /* Hereda el fondo de la ventana, también si una contentClass lo cambia. */
+  background-color: inherit;
+}
+
 .base-dialog__overlay--bottom .base-dialog::before {
   flex: none;
   width: 36px;
@@ -415,6 +442,24 @@ onUnmounted(() => {
 
   .base-dialog__overlay--sheet-mobile .base-dialog .base-dialog__container {
     max-width: none;
+  }
+
+  .base-dialog__overlay--sheet-mobile {
+    overflow: clip;
+  }
+
+  .base-dialog__overlay--sheet-mobile .base-dialog {
+    position: relative;
+  }
+
+  .base-dialog__overlay--sheet-mobile .base-dialog::after {
+    position: absolute;
+    top: calc(100% - 1px);
+    right: 0;
+    left: 0;
+    height: max(96px, 24%);
+    content: '';
+    background-color: inherit;
   }
 
   .base-dialog__overlay--sheet-mobile .base-dialog::before {
