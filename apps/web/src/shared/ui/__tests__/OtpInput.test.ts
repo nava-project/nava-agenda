@@ -6,7 +6,7 @@
  */
 import { readFileSync } from 'node:fs'
 import { resolve } from 'node:path'
-import { describe, it, expect } from 'vitest'
+import { describe, it, expect, vi } from 'vitest'
 import { mount } from '@vue/test-utils'
 import { axe } from 'vitest-axe'
 import OtpInput from '../OtpInput.vue'
@@ -214,5 +214,46 @@ describe('OtpInput · ancho (#733)', () => {
 
   it('el componente puede encogerse dentro de una grilla', () => {
     expect(rule('.otp-input')).toMatch(/min-width: 0;/)
+  })
+
+  describe('Movimiento (#743)', () => {
+    it('marca el pegado de varios dígitos para escalonar los saltos', async () => {
+      const wrapper = mount(OtpInput)
+      const first = slots(wrapper)[0]!
+      ;(first.element as HTMLInputElement).value = '12345'
+      await first.trigger('input')
+      expect(wrapper.classes()).toContain('otp-input--pasted')
+      expect(slots(wrapper)[2]!.attributes('style')).toContain('--i: 2')
+    })
+
+    it('no escalona al teclear un solo dígito', async () => {
+      const wrapper = mount(OtpInput)
+      const first = slots(wrapper)[0]!
+      ;(first.element as HTMLInputElement).value = '4'
+      await first.trigger('input')
+      expect(wrapper.classes()).not.toContain('otp-input--pasted')
+    })
+
+    it('sacude la fila cuando llega un error y se limpia al terminar', async () => {
+      const raf = vi.spyOn(window, 'requestAnimationFrame').mockImplementation((cb) => {
+        cb(0)
+        return 0
+      })
+      const wrapper = mount(OtpInput)
+      await wrapper.setProps({ error: 'Ese código no es válido.' })
+      const group = wrapper.get('.otp-input__slots')
+      expect(group.classes()).toContain('otp-input__slots--shake')
+      await group.trigger('animationend')
+      expect(group.classes()).not.toContain('otp-input__slots--shake')
+      raf.mockRestore()
+    })
+
+    it('el salto y la sacudida se apagan con movimiento reducido', () => {
+      const css = readFileSync(resolve(__dirname, '../OtpInput.vue'), 'utf8')
+      expect(css).toMatch(
+        /@media \(prefers-reduced-motion: reduce\) \{\s*\.otp-input__slot--filled,\s*\.otp-input__slots--shake \{\s*animation: none;/,
+      )
+      expect(css).toMatch(/:root\[data-motion='reduced'\] \.otp-input__slot--filled,/)
+    })
   })
 })

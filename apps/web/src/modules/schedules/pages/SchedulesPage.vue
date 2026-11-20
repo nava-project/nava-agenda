@@ -13,7 +13,7 @@
 // La semana se dibuja como un tablero (WeeklyBoard): barras en tinta suave sobre una
 // regla horaria común, con la lista real de tramos debajo de cada día.
 import { computed, onMounted, onUnmounted, ref, watch } from 'vue'
-import { useToast, useVocabulary } from '@/shared/composables'
+import { useCountUp, useToast, useVocabulary } from '@/shared/composables'
 import { isSoloProfile, worksOwnProfessional } from '@/shared/model'
 import { getCivilDateInTimezone } from '@/shared/time/civilDate'
 import { timezoneName } from '@/shared/time/timezoneName'
@@ -902,6 +902,16 @@ const weekMinutes = computed(() =>
   workingHours.value.reduce((sum, wh) => sum + wh.durationMinutes, 0),
 )
 const activeDays = computed(() => new Set(workingHours.value.map((wh) => wh.isoWeekday)).size)
+// Las cifras de la cabecera cuentan hasta su valor al aparecer o cambiar (#743).
+// Las horas cuentan en horas enteras: contar minutos alargaría el texto
+// («37 h 12 min») a mitad de la cuenta; el formato exacto llega al final.
+const shownWeekMinutes = useCountUp(() => weekMinutes.value)
+const shownActiveDays = useCountUp(() => activeDays.value)
+const weekHoursLabel = computed(() =>
+  shownWeekMinutes.value === weekMinutes.value
+    ? formatHours(weekMinutes.value)
+    : `${Math.floor(shownWeekMinutes.value / 60)} h`,
+)
 
 // "Hoy" y "ahora" se leen en la zona del negocio, nunca en la del
 // dispositivo (CA-040-06). Sin zona conocida no se marca ninguno.
@@ -1057,7 +1067,7 @@ const editPreview = computed(() =>
                 aria-hidden="true"
               />
               <Transition v-else name="schedules-stat" mode="out-in">
-                <span :key="weekMinutes">{{ formatHours(weekMinutes) }}</span>
+                <span :key="weekMinutes">{{ weekHoursLabel }}</span>
               </Transition>
             </dd>
           </div>
@@ -1071,7 +1081,8 @@ const editPreview = computed(() =>
               />
               <Transition v-else name="schedules-stat" mode="out-in">
                 <span :key="activeDays"
-                  >{{ activeDays }}<small class="schedules-page__stat-total">/7</small></span
+                  >{{ Math.round(shownActiveDays)
+                  }}<small class="schedules-page__stat-total">/7</small></span
                 >
               </Transition>
             </dd>

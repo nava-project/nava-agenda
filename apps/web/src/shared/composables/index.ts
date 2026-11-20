@@ -7,4 +7,5 @@ export { DEFAULT_MIN_HOLD_MS, PAGE_MIN_HOLD_MS, useMinHoldLoading } from './useM
 export type { MinHoldLoading } from './useMinHoldLoading'
 export { useVocabulary } from './useVocabulary'
 export { ARRIVAL_MS, arrivalKey, finishArrival, useArrival } from './useArrival'
+export { COUNT_UP_MS, useCountUp } from './useCountUp'
 export type { Arrival } from './useArrival'

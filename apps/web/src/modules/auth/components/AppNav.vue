@@ -24,7 +24,7 @@ import { computed, ref } from 'vue'
 import type { NavItem } from '@/shared/navigation/navItem'
 import { useVocabulary } from '@/shared/composables'
 import { panelProfile } from '@/shared/model'
-import { BaseDialog, RecordRow } from '@/shared/ui'
+import { BaseDialog } from '@/shared/ui'
 import { useLogout } from '../model/logout'
 
 const props = defineProps<{ extraItems?: NavItem[] }>()
@@ -136,20 +136,41 @@ async function onLogoutFromMore() {
       </li>
     </ul>
 
-    <BaseDialog v-model="moreOpen" title="Más" size="sm" placement="sheet-mobile">
+    <!-- «Más» con la esencia de Agenda (#743): filas tipo carta con su rombo
+         de latón (lleno en el destino actual), filetes de latón y «Cerrar
+         sesión» aparte con su rombo de peligro. Las filas entran escalonadas
+         cada vez que se abre: el sheet usa v-show y la animación CSS se
+         reinicia al volver a mostrarse. -->
+    <BaseDialog
+      v-model="moreOpen"
+      title="Más"
+      size="sm"
+      placement="sheet-mobile"
+      content-class="app-nav__more-sheet"
+    >
       <ul class="app-nav__more-list" aria-label="Más destinos y cierre de sesión">
-        <RecordRow v-for="item in secondaryItems" :key="item.label">
+        <li
+          v-for="(item, index) in secondaryItems"
+          :key="item.label"
+          class="app-nav__more-item"
+          :style="{ '--i': index }"
+        >
           <RouterLink
             :to="item.to"
             class="app-nav__more-link"
             active-class="app-nav__more-link--active"
             @click="closeMore"
           >
+            <span class="app-nav__more-mark" aria-hidden="true" />
             <span class="app-nav__icon" aria-hidden="true" v-html="iconFor(item.to.name)" />
-            {{ labelOf(item) }}
+            <span class="app-nav__more-label">{{ labelOf(item) }}</span>
+            <span class="app-nav__more-go" aria-hidden="true">→</span>
           </RouterLink>
-        </RecordRow>
-        <RecordRow>
+        </li>
+        <li
+          class="app-nav__more-item app-nav__more-item--logout"
+          :style="{ '--i': secondaryItems.length }"
+        >
           <button
             type="button"
             class="app-nav__more-link app-nav__more-logout"
@@ -157,9 +178,10 @@ async function onLogoutFromMore() {
             :aria-busy="loggingOut"
             @click="onLogoutFromMore"
           >
+            <span class="app-nav__more-mark" aria-hidden="true" />
             Cerrar sesión
           </button>
-        </RecordRow>
+        </li>
       </ul>
     </BaseDialog>
   </nav>
@@ -437,49 +459,151 @@ async function onLogoutFromMore() {
   list-style: none;
 }
 
+/* Filas tipo carta (#743): filete de latón fino entre filas, sin grises. */
+.app-nav__more-item {
+  border-bottom: 1px solid color-mix(in srgb, var(--color-brass-line) 38%, transparent);
+  /* 40 ms por fila y 140 ms cada una: con las 5 filas de hoy termina en
+     280 ms (pedido de revisión: menos de 300 ms en total). */
+  animation: app-nav-more-in 140ms var(--motion-ease-out, ease-out) both;
+  animation-delay: calc(min(var(--i, 0), 6) * 40ms);
+}
+
+/* «Cerrar sesión» aparte: un hueco y un filete doble de latón encima. */
+.app-nav__more-item--logout {
+  margin-top: var(--space-3);
+  border-top: 3px double color-mix(in srgb, var(--color-brass-line) 45%, transparent);
+  border-bottom: 0;
+}
+
+@keyframes app-nav-more-in {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .app-nav__more-item {
+    animation: none;
+  }
+}
+
+:root[data-motion='reduced'] .app-nav__more-item {
+  animation: none;
+}
+
 .app-nav__more-link {
   display: flex;
   align-items: center;
   gap: var(--space-3);
   width: 100%;
-  min-height: var(--control-height);
-  padding: var(--space-2) 0;
+  min-height: 52px;
+  padding: var(--space-2) var(--space-2);
   background: transparent;
   border: none;
+  border-radius: var(--radius-sm);
   color: var(--color-text-primary);
   font-family: var(--font-family-base);
   font-size: var(--font-size-body);
   text-align: left;
   text-decoration: none;
   cursor: pointer;
+  transition: background-color var(--motion-duration-fast) var(--motion-easing-standard);
 }
 
-/* En «Más» el icono acompaña a la palabra en línea: sin la píldora de la barra. */
 .app-nav__more-link .app-nav__icon {
   width: auto;
   height: auto;
+  color: var(--color-text-secondary);
 }
 
-.app-nav__more-link:hover {
-  color: var(--color-action-primary);
+.app-nav__more-label {
+  flex: 1;
+  min-width: 0;
+}
+
+/* El rombo de la fila: hueco en latón; lleno en el destino actual. */
+.app-nav__more-mark {
+  flex: none;
+  width: 7px;
+  height: 7px;
+  margin-inline: 2px;
+  border: 1.5px solid var(--color-brass-line);
+  rotate: 45deg;
+  transition:
+    background-color var(--motion-duration-fast) var(--motion-easing-standard),
+    transform var(--motion-duration-base) var(--motion-ease-spring, ease-out);
+}
+
+.app-nav__more-go {
+  color: var(--color-brass-text);
+  opacity: 0;
+  transform: translateX(-4px);
+  transition:
+    opacity var(--motion-duration-fast) var(--motion-easing-standard),
+    transform var(--motion-duration-fast) var(--motion-ease-out);
+}
+
+@media (hover: hover) {
+  .app-nav__more-link:hover {
+    background-color: color-mix(in srgb, var(--color-text-primary) 6%, transparent);
+  }
+
+  .app-nav__more-link:hover .app-nav__more-mark {
+    transform: scale(1.25);
+  }
+
+  .app-nav__more-link:hover .app-nav__more-go {
+    opacity: 1;
+    transform: translateX(0);
+  }
 }
 
 .app-nav__more-link:focus-visible {
-  outline: none;
-  box-shadow: 0 0 0 var(--border-width-emphasis) var(--color-focus);
+  outline: 2px solid var(--color-focus);
+  outline-offset: 2px;
 }
 
 .app-nav__more-link--active {
-  color: var(--color-action-primary);
   font-weight: 600;
+}
+
+.app-nav__more-link--active .app-nav__more-mark {
+  background-color: var(--color-brass-line);
+}
+
+.app-nav__more-link--active .app-nav__icon {
+  color: var(--color-text-primary);
 }
 
 .app-nav__more-logout {
   color: var(--color-danger-text);
 }
 
+.app-nav__more-logout .app-nav__more-mark {
+  border-color: currentColor;
+}
+
 .app-nav__more-logout:disabled {
   opacity: 0.64;
   cursor: not-allowed;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .app-nav__more-mark,
+  .app-nav__more-go {
+    transition: none;
+  }
+}
+</style>
+
+<!-- Sin scoped: el título del diálogo vive dentro de BaseDialog (teletransportado),
+     fuera del alcance del CSS con ámbito; la clase de contenido lo acota a «Más». -->
+<style>
+.app-nav__more-sheet .base-dialog__title {
+  font-family: var(--font-display);
+  font-size: 26px;
+  font-weight: 400;
+  line-height: 30px;
 }
 </style>

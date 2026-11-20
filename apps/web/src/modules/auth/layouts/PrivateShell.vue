@@ -53,10 +53,15 @@ function onRetry() {
              isla de tableta y escritorio flote sobre el mismo fondo, en su
              propia fila: el contenido termina sobre ella y nunca queda tapado. -->
         <AppNav :extra-items="extraNavItems" />
-        <main class="private-shell__content">
-          <RouterView />
-        </main>
-        <ToastRegion placement="host" />
+        <!-- El visor es la fila del contenido, sin la barra: ancla la región de
+             avisos para que, abajo en el teléfono (#743), quede sobre la barra
+             y no encima de ella. -->
+        <div class="private-shell__viewport">
+          <main class="private-shell__content">
+            <RouterView />
+          </main>
+          <ToastRegion placement="host" />
+        </div>
       </div>
     </template>
 
@@ -103,6 +108,16 @@ function onRetry() {
 
 .private-shell__stage > :deep(.app-nav) {
   order: 2;
+}
+
+.private-shell__viewport {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  min-width: 0;
+  min-height: 0;
 }
 
 .private-shell__content {

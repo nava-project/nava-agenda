@@ -135,6 +135,17 @@
   animation-delay: calc(min(var(--i, 0), 12) * var(--motion-stagger));
 }
 
+/*
+ * Lista que llega con datos (#743): las filas suben escalonadas, rápido.
+ * 180 ms por fila, 20 ms entre filas y tope en la sexta: la lista entera
+ * termina en 300 ms como máximo, por larga que sea. Solo transform y
+ * opacity, así que no mueve el layout (CLS 0).
+ */
+.nv-stagger {
+  animation: nava-rise 180ms var(--motion-ease-out) backwards;
+  animation-delay: calc(min(var(--i, 0), 6) * 20ms);
+}
+
 .nv-wipe {
   animation: nava-wipe 700ms var(--motion-ease-out) backwards;
   animation-delay: calc(min(var(--i, 0), 12) * var(--motion-stagger));
@@ -168,6 +179,7 @@
   .nv-fade,
   .nv-slide,
   .nv-pop,
+  .nv-stagger,
   .nv-wipe {
     animation: none;
   }
@@ -184,6 +196,7 @@
 :root[data-motion='reduced'] .nv-fade,
 :root[data-motion='reduced'] .nv-slide,
 :root[data-motion='reduced'] .nv-pop,
+:root[data-motion='reduced'] .nv-stagger,
 :root[data-motion='reduced'] .nv-wipe {
   animation: none;
 }
