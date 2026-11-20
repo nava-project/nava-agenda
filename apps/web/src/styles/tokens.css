@@ -249,8 +249,10 @@
   /* Superposición: overlays translúcidos derivados de nava-ink (#101B2B),
      nunca un color nuevo. --color-overlay-scrim es el fondo no interactivo
      detrás de un diálogo (§8.5); --color-overlay-hover es el realce sutil
-     de un control de icono transparente (cerrar, descartar). */
-  --color-overlay-scrim: rgb(16 27 43 / 48%);
+     de un control de icono transparente (cerrar, descartar). En Día va al
+     28 % (#743): con el desenfoque del velo (#741) basta para apartar el
+     fondo, y al 48 % la página quedaba casi negra detrás del papel. */
+  --color-overlay-scrim: rgb(16 27 43 / 28%);
   --color-overlay-hover: rgb(16 27 43 / 8%);
   --color-overlay-active: rgb(16 27 43 / 16%);
 
