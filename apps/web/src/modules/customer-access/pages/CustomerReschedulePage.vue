@@ -8,7 +8,7 @@
 // clave de idempotencia. Plazo, límite, franja y versión los decide el servidor;
 // `rescheduleAvailability` es solo una pista para no ofrecer lo que no procede.
 import { computed, nextTick, onMounted, ref, watch } from 'vue'
-import { BaseAlert } from '@/shared/ui'
+import { AppointmentTicket, BaseAlert } from '@/shared/ui'
 import { buildVocabularyFromTerms } from '@/shared/model'
 import { civilDateChip, formatCivilDateFull, getCivilDateInTimezone } from '@/shared/time/civilDate'
 import { formatTimeInTimezone } from '@/shared/time/formatInstant'
@@ -26,6 +26,7 @@ import { rescheduleCustomerAppointment } from '../api/rescheduleCustomerAppointm
 import { newIdempotencyKey } from '../model/idempotencyKey'
 import { calendarLeaf } from '../model/appointmentMoment'
 import { timezoneLabel, timezoneName } from '@/shared/time/timezoneName'
+import { ticketMoment } from '@/shared/time/ticketMoment'
 import { rescheduleAvailability } from '../model/rescheduleAvailability'
 import type { CustomerAppointment } from '../model/customerAppointmentOutcome'
 import '../styles/myTurnV2.css'
@@ -352,10 +353,32 @@ const doneSummary = computed(() => {
     end: timeLabel(a.endsAt),
     previous: timeLabel(screenState.value.previousStartsAt),
     previousLeaf: calendarLeaf(screenState.value.previousStartsAt, a.timezone),
-    leaf: calendarLeaf(a.startsAt, a.timezone),
     remaining: a.rescheduleRemaining,
+    ticket: doneTicket(a),
   }
 })
+
+// La tarjeta de turno (DEC-189) con la hora nueva, quieta: la misma de mi turno.
+function doneTicket(a: CustomerAppointment) {
+  const m = ticketMoment(a.startsAt, a.endsAt, a.timezone)
+  return {
+    businessName: a.businessName,
+    serviceName: a.serviceName,
+    meta: `${a.durationMinutes} min`,
+    weekday: m.weekday,
+    month: m.month,
+    day: m.day,
+    time: m.time,
+    timeNote: `hasta ${m.endTime} · ${timezoneLabel(a.timezone)}`,
+    professionalName: a.professionalName,
+    ruler: {
+      from: m.from,
+      to: m.to,
+      at: m.at,
+      label: `Tu turno en el día: ${m.weekday.toLocaleLowerCase('es-CO')} ${m.day}, de ${m.time} a ${m.endTime}.`,
+    },
+  }
+}
 
 // Enlace que no abre: no se distingue vencido, usado o incompleto (CA-098-02).
 const NOT_FOUND = {
@@ -389,34 +412,31 @@ const requestId = computed(() =>
       @retry="retry"
     />
 
-    <!-- Listo: el pase vuelve con la hora nueva y la de antes, tachada. -->
+    <!-- Listo: la tarjeta vuelve con la hora nueva y la de antes, tachada. -->
     <main v-else-if="screenState.status === 'done' && doneSummary" class="bk-page mt">
       <p class="bk-kicker">Hora cambiada</p>
       <h1 ref="doneHeading" class="bk-title mt__title" tabindex="-1">Tu turno cambió de hora</h1>
 
       <p class="mt-access__lead" role="status">
+        <!-- Sin punto final: la hora ya termina en «a. m.» o «p. m.». -->
         Listo. Tu turno quedó para el {{ doneSummary.date }}, de {{ doneSummary.start }} a
-        {{ doneSummary.end }}.
+        {{ doneSummary.end }}
       </p>
 
-      <article class="mt-pase mt-pase--landed stamp" aria-label="Turno con la hora nueva">
-        <p class="mt-pase__service">
-          {{ screenState.appointment.serviceName }}
-          <span class="mt-pase__minutes">con {{ screenState.appointment.professionalName }}</span>
-        </p>
-        <p class="mt-pase__when">
-          <span class="mt-pase__day"
-            >{{ doneSummary.leaf.weekday }}, {{ doneSummary.leaf.longDate }}</span
-          >
-          <span class="mt-pase__time">{{ doneSummary.start }} – {{ doneSummary.end }}</span>
-        </p>
+      <AppointmentTicket
+        class="mt__ticket"
+        state="confirmed"
+        v-bind="doneSummary.ticket"
+        :professional-label="v.Professional"
+        label="Turno con la hora nueva"
+      >
         <p class="mt-swap__before">
           Antes:
           {{ doneSummary.previousLeaf.weekday }} {{ doneSummary.previousLeaf.day }}
           {{ doneSummary.previousLeaf.month }},
           <span class="stamp__time--struck">{{ doneSummary.previous }}</span>
         </p>
-      </article>
+      </AppointmentTicket>
 
       <p class="mt-block__policy mt-swap__fine">
         <template v-if="doneSummary.remaining > 0"

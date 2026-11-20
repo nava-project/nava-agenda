@@ -37,6 +37,9 @@ vi.mock('../../model/publicProfile', () => ({
   publicTermsFor: () => null,
 }))
 
+const loadPublicServicesMock = vi.hoisted(() => vi.fn())
+vi.mock('../../model/publicServices', () => ({ loadPublicServices: loadPublicServicesMock }))
+
 const { default: PublicCustomerDetailsPage } = await import('../PublicCustomerDetailsPage.vue')
 
 const BASE_PROPS = {
@@ -93,6 +96,20 @@ beforeEach(() => {
   listPublicProfessionalsMock.mockReset()
   loadPublicProfileMock.mockReset()
   loadPublicProfileMock.mockResolvedValue(profileOutcome(false))
+  loadPublicServicesMock.mockReset()
+  loadPublicServicesMock.mockResolvedValue({
+    kind: 'success',
+    services: [
+      {
+        id: BASE_PROPS.serviceId,
+        name: 'Corte clásico',
+        description: null,
+        durationMinutes: 30,
+        price: '20000.00',
+        currency: 'COP',
+      },
+    ],
+  })
   listPublicProfessionalsMock.mockResolvedValue({
     kind: 'success',
     professionals: [
@@ -141,14 +158,22 @@ describe('PublicCustomerDetailsPage', () => {
     expect(wrapper.text()).not.toContain('Atiende a')
   })
 
-  it('shows the appointment date and time as the headline of the summary', async () => {
+  it('heads the summary with the appointment card, still to be confirmed (DEC-189)', async () => {
     const wrapper = mountPage()
+    await flushPromises()
     await fillValidForm(wrapper)
     await wrapper.find('form').trigger('submit')
 
-    const when = wrapper.get('.customer-details__when')
-    expect(when.get('.customer-details__when-time').text()).toMatch(/\d{1,2}:\d{2}/)
-    expect(when.get('.customer-details__when-day').text()).toContain('2026')
+    const ticket = wrapper.get('.customer-details__ticket')
+    expect(ticket.classes()).toContain('appointment-ticket--draft')
+    expect(ticket.attributes('aria-label')).toBe('Tu turno, por confirmar')
+    expect(ticket.text()).toContain('Corte clásico')
+    expect(ticket.text()).toMatch(/30 min · \$\s?20\.000/)
+    // 14:30 UTC son las 9:30 a. m. en Bogotá; el 20 de septiembre de 2026 es domingo.
+    expect(ticket.get('.appointment-ticket__time').text()).toMatch(/^9:30\s?a\.\s?m\.$/)
+    expect(ticket.get('.appointment-ticket__weekday').text()).toBe('Domingo')
+    expect(ticket.get('.appointment-ticket__pending').text()).toBe('Por confirmar')
+    expect(ticket.find('.appointment-ticket__seal').exists()).toBe(false)
   })
 
   it('shows the chosen professional with their photo in the summary', async () => {
@@ -157,7 +182,7 @@ describe('PublicCustomerDetailsPage', () => {
     await fillValidForm(wrapper)
     await wrapper.find('form').trigger('submit')
 
-    const who = wrapper.get('.customer-details__who')
+    const who = wrapper.get('.customer-details__ticket .appointment-ticket__foot')
     expect(who.text()).toContain('Mateo Cruz')
     expect(who.get('img').attributes('src')).toContain(
       `/public/businesses/barberia-ejemplo/professionals/${BASE_PROPS.professionalId}/photo`,
@@ -171,7 +196,7 @@ describe('PublicCustomerDetailsPage', () => {
     await fillValidForm(wrapper)
     await wrapper.find('form').trigger('submit')
 
-    expect(wrapper.find('.customer-details__who').exists()).toBe(false)
+    expect(wrapper.find('.appointment-ticket__foot').exists()).toBe(false)
     expect(wrapper.text()).toContain('Ana Ríos')
   })
 
@@ -542,24 +567,31 @@ describe('PublicCustomerDetailsPage', () => {
     return wrapper
   }
 
-  it('shows the pass, now booked, in the business time zone and without the access token', async () => {
+  it('shows the card, now confirmed, in the business time zone and without the access token', async () => {
     const wrapper = await confirmWith()
-    const pase = wrapper.get('.bk-done__pase')
-    expect(pase.text()).toContain('Barbería Ejemplo')
-    expect(pase.text()).toContain('Corte clásico')
-    expect(pase.text()).toMatch(/20\.000/)
-    expect(pase.text()).toContain('Con Mateo Cruz')
+    const ticket = wrapper.get('.bk-done__ticket')
+    expect(ticket.classes()).toContain('appointment-ticket--confirmed')
+    expect(ticket.get('.appointment-ticket__seal').text()).toBe('Confirmado')
+    expect(ticket.text()).toContain('Barbería Ejemplo')
+    expect(ticket.text()).toContain('Corte clásico')
+    expect(ticket.text()).toMatch(/20\.000/)
+    expect(ticket.get('.appointment-ticket__foot').text()).toContain('Mateo Cruz')
     // 14:30 UTC son las 9:30 a. m. en Bogotá, sea cual sea la zona del navegador.
-    expect(pase.get('.bk-done__time').text()).toMatch(/^9:30\s?a\.\s?m\. – 10:00\s?a\.\s?m\.$/)
-    expect(pase.get('.bk-done__day').text()).toContain('20 de septiembre de 2026')
-    expect(pase.text()).not.toContain('Turno para')
+    expect(ticket.get('.appointment-ticket__time').text()).toMatch(/^9:30\s?a\.\s?m\.$/)
+    expect(ticket.get('.appointment-ticket__note').text()).toMatch(/^hasta 10:00\s?a\.\s?m\./)
+    expect(ticket.get('.appointment-ticket__leaf').text()).toContain('20')
+    expect(ticket.text()).not.toContain('Turno para')
+    // La ceremonia, una sola vez: al confirmar en esta visita.
+    expect(ticket.classes()).toContain('appointment-ticket--ceremony')
     // La credencial nunca se dibuja (DEC-089).
     expect(wrapper.html()).not.toContain(CONFIRMED_APPOINTMENT.accessToken)
     expect(wrapper.text()).toContain('ana@example.com')
   })
 
-  it('drops the pass into its day strip only when the business published its hours', async () => {
-    expect((await confirmWith()).find('.daylight').exists()).toBe(false)
+  it('lays the card on the day ruler: the published hours, or a plain 7 a. m. to 7 p. m. day', async () => {
+    const plain = (await confirmWith()).get('.bk-done__ticket .day-ruler')
+    expect(plain.findAll('.day-ruler__numeral')[0]!.text()).toBe('7a. m.')
+    expect(plain.find('.day-ruler__mark--mine').exists()).toBe(true)
 
     loadPublicProfileMock.mockResolvedValue({
       ...profileOutcome(false),
@@ -568,9 +600,9 @@ describe('PublicCustomerDetailsPage', () => {
         openingHours: [{ dayOfWeek: 'SUNDAY', opens: '08:00', closes: '14:00' }],
       },
     })
-    const withHours = await confirmWith()
-    expect(withHours.get('.daylight').classes()).toContain('daylight--land')
-    expect(withHours.find('.daylight__marker--selected').exists()).toBe(true)
+    const withHours = (await confirmWith()).get('.bk-done__ticket .day-ruler')
+    expect(withHours.findAll('.day-ruler__numeral')[0]!.text()).toBe('8a. m.')
+    expect(withHours.findAll('.day-ruler__numeral').at(-1)!.text()).toBe('2p. m.')
   })
 
   it('downloads an .ics built in the browser, without the access token', async () => {
@@ -675,8 +707,12 @@ describe('PublicCustomerDetailsPage', () => {
       await flushPromises()
       expect(reloaded.find('form').exists()).toBe(false)
       expect(reloaded.get('h1').text()).toBe('Tu turno quedó agendado')
-      expect(reloaded.get('.bk-done__pase').text()).toContain('Corte clásico')
-      expect(reloaded.get('.bk-done__time').text()).toMatch(/^9:30/)
+      expect(reloaded.get('.bk-done__ticket').text()).toContain('Corte clásico')
+      expect(reloaded.get('.appointment-ticket__time').text()).toMatch(/^9:30/)
+      // Al recargar, la tarjeta ya está quieta: sin ceremonia.
+      expect(reloaded.get('.bk-done__ticket').classes()).not.toContain(
+        'appointment-ticket--ceremony',
+      )
       expect(reloaded.text()).toContain('En tu correo está el enlace')
       expect(confirmPublicAppointmentMock).toHaveBeenCalledTimes(1)
     })
@@ -687,14 +723,14 @@ describe('PublicCustomerDetailsPage', () => {
       })
       await flushPromises()
       expect(reloaded.find('form').exists()).toBe(false)
-      expect(reloaded.find('.bk-done__pase').exists()).toBe(false)
+      expect(reloaded.find('.bk-done__ticket').exists()).toBe(false)
       expect(reloaded.text()).toContain('Este turno ya quedó reservado')
       const results = await axe(reloaded.element)
       expect(results).toHaveNoViolations()
     })
   })
 
-  it('names the attendee on the pass only when the turn is for someone else', async () => {
+  it('names the attendee on the card only when the turn is for someone else', async () => {
     const wrapper = await confirmWith(
       { ...CONFIRMED_APPOINTMENT, attendeeName: 'Mateo Ruiz' },
       async (w) => {
@@ -702,7 +738,7 @@ describe('PublicCustomerDetailsPage', () => {
         await w.findAll('input[type="text"]')[1]!.setValue('Mateo Ruiz')
       },
     )
-    expect(wrapper.get('.bk-done__pase').text()).toContain('Turno para Mateo Ruiz')
+    expect(wrapper.get('.bk-done__ticket').text()).toContain('Turno para Mateo Ruiz')
   })
 
   it('checks a field when the customer leaves it, keeps what was typed, and never scolds an untouched one', async () => {

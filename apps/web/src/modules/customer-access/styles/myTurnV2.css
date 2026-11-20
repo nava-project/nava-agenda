@@ -30,69 +30,10 @@
 /* ── Estado y cuenta regresiva ──────────────────────────────────────────── */
 
 .mt__meta {
-  display: flex;
-  flex-wrap: wrap;
-  gap: var(--space-2) var(--space-3);
-  align-items: center;
-  margin: 0 0 var(--space-3);
-  font-size: 14px;
-  color: var(--color-text-secondary);
-}
-
-.mt-status {
-  display: inline-flex;
-  gap: var(--space-2);
-  align-items: center;
-  min-height: 28px;
-  padding: 0 var(--space-3);
-  font-size: 13px;
-  font-weight: 600;
-  color: var(--color-text-primary);
-  background-color: var(--color-surface-muted);
-  border: 1px solid var(--color-border-subtle);
-  border-radius: 999px;
-}
-
-/* La marca del estado, la misma de la agenda (styles/statusMarks.css). */
-.mt-status::before {
-  flex: none;
-  width: 12px;
-  height: 12px;
-  content: '';
-  background-color: currentcolor;
-  mask: var(--mt-mark, var(--mark-confirmed)) center / contain no-repeat;
-}
-
-.mt-status--confirmed {
-  background-color: color-mix(in srgb, var(--bk-accent) 12%, var(--color-surface));
-  border-color: color-mix(in srgb, var(--bk-accent) 40%, transparent);
-}
-
-.mt-status--confirmed::before {
-  background-color: var(--bk-accent);
-}
-
-.mt-status--completed {
-  --mt-mark: var(--mark-completed);
-  color: var(--color-success-text);
-  background-color: var(--color-success-surface);
-  border-color: var(--color-success-border);
-}
-
-/* Un turno cancelado es gris, nunca del color del negocio. */
-.mt-status--cancelled_by_customer,
-.mt-status--cancelled_by_professional {
-  --mt-mark: var(--mark-cancelled);
-  color: var(--color-inactive-text);
-  background-color: var(--color-inactive-surface);
-  border-color: var(--color-inactive-border);
-}
-
-.mt-status--no_show {
-  --mt-mark: var(--mark-no-show);
-  color: var(--color-warning-text);
-  background-color: var(--color-warning-surface);
-  border-color: var(--color-warning-border);
+  margin: 0 0 var(--space-2);
+  font-size: 15px;
+  font-weight: 500;
+  color: var(--color-brass-text);
 }
 
 .mt__title {
@@ -126,14 +67,6 @@
   width: 4px;
   content: '';
   background-color: var(--bk-accent);
-}
-
-.mt-pase--off::before {
-  background-color: var(--color-border-control);
-}
-
-.mt-pase--off .mt-pase__time {
-  color: var(--color-text-secondary);
 }
 
 .mt-pase p {
@@ -183,52 +116,25 @@
   color: var(--color-text-secondary);
 }
 
-.mt-pase__progress {
-  display: block;
-  height: 4px;
-  overflow: hidden;
-  background-color: var(--color-surface-muted);
-  border-radius: 2px;
+/* La tarjeta de turno (DEC-189) y lo que lleva dentro. */
+.mt__ticket {
+  margin-top: var(--space-2);
 }
 
-.mt-pase__progress::after {
-  display: block;
-  height: 100%;
-  content: '';
-  background-color: var(--color-sun);
-  transform: scaleX(var(--progress, 0));
-  transform-origin: left;
-  transition: transform 600ms var(--bk-ease);
-}
-
-.mt-pase__people {
-  display: grid;
-  gap: var(--space-3);
-  padding-top: var(--space-4);
+.mt__attendee,
+.mt__ticket .mt-swap__before {
+  padding: var(--space-3) 22px 0;
   margin: 0;
-  border-top: 1px solid var(--color-border-subtle);
-}
-
-@media (min-width: 560px) {
-  .mt-pase__people {
-    grid-template-columns: 1fr 1fr;
-  }
-}
-
-.mt-pase__person dt {
-  margin-bottom: 2px;
-  font-size: 13px;
-  color: var(--color-text-secondary);
-}
-
-.mt-pase__person dd {
-  display: flex;
-  gap: var(--space-2);
-  align-items: center;
-  min-height: 32px;
-  margin: 0;
+  border-top: 0;
   font-size: 15px;
-  font-weight: 500;
+  line-height: 22px;
+}
+
+.mt__attendee-label {
+  display: block;
+  font-size: 12px;
+  line-height: 16px;
+  color: var(--color-text-secondary);
 }
 
 /* ── Avisos y acciones ──────────────────────────────────────────────────── */
@@ -650,23 +556,6 @@
   max-width: 360px;
 }
 
-/* La hora nueva «se agenda»: el pase baja a su sitio, como en la confirmación. */
-.mt-pase--landed {
-  margin-top: var(--space-4);
-  animation: mt-se-agenda 620ms cubic-bezier(0.2, 0.7, 0.2, 1) both;
-}
-
-@keyframes mt-se-agenda {
-  from {
-    opacity: 0;
-    transform: translateY(-24px) scale(0.98);
-  }
-
-  60% {
-    opacity: 1;
-  }
-}
-
 /* ── Acceso con código ──────────────────────────────────────────────────── */
 
 .mt-access {
@@ -885,16 +774,14 @@
 
 @media (prefers-reduced-motion: reduce) {
   .mt-pase,
-  .mt-swap__in,
-  .mt-pase__progress::after {
+  .mt-swap__in {
     animation: none;
     transition: none;
   }
 }
 
 :root[data-motion='reduced'] .mt-pase,
-:root[data-motion='reduced'] .mt-swap__in,
-:root[data-motion='reduced'] .mt-pase__progress::after {
+:root[data-motion='reduced'] .mt-swap__in {
   animation: none;
   transition: none;
 }

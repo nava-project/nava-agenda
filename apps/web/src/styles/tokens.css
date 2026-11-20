@@ -64,6 +64,8 @@
      (#B8955A) para filetes y reglas que no llevan texto. */
   --color-brass-text: #765c2f;
   --color-brass-line: #b8955a;
+  /* Cuerpo de la regla del día (DEC-189): latón plano, sin texto encima. */
+  --color-brass-body: #b8955a;
 
   /* Acento del negocio (DEC-110/DEC-171): workspaceTheme.ts y publicAccent.ts
      definen --business-accent-day/-night con el valor medido de cada modo;
@@ -315,6 +317,7 @@
   --color-accent-brass: var(--business-accent-night, #ff8daa);
   --color-brass-text: #c9a86f;
   --color-brass-line: #b8955a;
+  --color-brass-body: #c9a86f;
   --color-success-surface: #12301f;
   --color-success-text: #6fd39a;
   --color-success-border: #3e9a68;
@@ -382,6 +385,7 @@
     --color-accent-brass: var(--business-accent-night, #ff8daa);
     --color-brass-text: #c9a86f;
     --color-brass-line: #b8955a;
+    --color-brass-body: #c9a86f;
     --color-success-surface: #12301f;
     --color-success-text: #6fd39a;
     --color-success-border: #3e9a68;

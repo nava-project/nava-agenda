@@ -939,21 +939,7 @@
     gap: var(--space-4);
   }
 
-  .pb-page--scroll-form .customer-details__when {
-    padding: var(--space-3) var(--space-4);
-  }
-
-  .pb-page--scroll-form .customer-details__when-time {
-    font-size: 30px;
-    line-height: 36px;
-  }
-
-  .pb-page--scroll-form .customer-details__who {
-    padding-top: var(--space-2);
-    margin-top: 0;
-  }
-
-  /* El resumen, con el talón y el profesional ya arriba, cede más alto a la
+  /* El resumen, con la tarjeta de turno ya arriba, cede más alto a la
      región desplazable que el formulario: con tres filas basta para verla. */
   .pb-page--scroll-form .customer-details__summary-body {
     min-height: 104px;

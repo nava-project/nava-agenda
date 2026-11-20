@@ -1281,20 +1281,6 @@
   box-shadow: inset 0 0 0 1px var(--bk-accent);
 }
 
-/* El resumen: la cita arriba, como el pase, sin el filete de latón. */
-.bk .bk-details .customer-details__when {
-  background: var(--color-surface-muted);
-  border: 1px solid var(--bk-line);
-  border-radius: var(--radius-lg);
-}
-
-.bk .bk-details .customer-details__when-label {
-  font-size: 13px;
-  letter-spacing: 0;
-  color: var(--color-text-secondary);
-  text-transform: none;
-}
-
 .bk .bk-details .customer-details__summary-row dt {
   font-size: 13px;
   font-weight: 400;
