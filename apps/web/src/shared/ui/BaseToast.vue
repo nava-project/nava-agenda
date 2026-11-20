@@ -226,7 +226,6 @@ function onFocusOut(event: FocusEvent) {
     0 2px 6px rgb(16 27 43 / 20%),
     0 22px 44px -14px rgb(16 27 43 / 58%);
   font-family: var(--font-sans);
-  animation: base-toast-in 160ms ease-out;
 }
 
 .base-toast--info {
@@ -239,17 +238,6 @@ function onFocusOut(event: FocusEvent) {
 
 .base-toast--danger {
   --toast-accent: var(--color-danger-on-strong);
-}
-
-@keyframes base-toast-in {
-  from {
-    opacity: 0;
-    transform: translateY(-6px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
 }
 
 .base-toast__head {
@@ -491,10 +479,6 @@ function onFocusOut(event: FocusEvent) {
 
 /* Sin traslación ni transiciones; la regla sigue informando el tiempo. */
 @media (prefers-reduced-motion: reduce) {
-  .base-toast {
-    animation: none;
-  }
-
   .base-toast__head,
   .base-toast__chevron,
   .base-toast__panel,

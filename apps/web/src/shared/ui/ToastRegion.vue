@@ -31,29 +31,33 @@ function onAction(id: number, run: (() => void) | undefined) {
 
 <template>
   <div :class="['toast-region', `toast-region--${placement}`]" role="region" aria-label="Avisos">
-    <div
-      v-for="toast in toastState.items"
-      :key="toast.id"
-      class="toast-region__item"
-      @keydown.esc="dismissToast(toast.id)"
-    >
-      <BaseToast
-        :variant="toast.variant"
-        :title="toast.title"
-        :detail="toast.detail"
-        :reference="toast.reference"
-        :action-label="toast.action?.label"
-        :action-icon="toast.action?.icon"
-        :expanded="toast.expanded"
-        :held="toast.expanded || toast.hovered || toast.focused"
-        :duration-ms="toast.durationMs"
-        @toggle="toggleToast(toast.id)"
-        @dismiss="dismissToast(toast.id)"
-        @action="onAction(toast.id, toast.action?.run)"
-        @hover="setToastHeld(toast.id, 'hovered', $event)"
-        @focus="setToastHeld(toast.id, 'focused', $event)"
-      />
-    </div>
+    <!-- Movimiento (#743): cada aviso cae con resorte, se va hacia el lado y
+         los que quedan se reacomodan deslizando (FLIP con transform). -->
+    <TransitionGroup name="toast-motion">
+      <div
+        v-for="toast in toastState.items"
+        :key="toast.id"
+        class="toast-region__item"
+        @keydown.esc="dismissToast(toast.id)"
+      >
+        <BaseToast
+          :variant="toast.variant"
+          :title="toast.title"
+          :detail="toast.detail"
+          :reference="toast.reference"
+          :action-label="toast.action?.label"
+          :action-icon="toast.action?.icon"
+          :expanded="toast.expanded"
+          :held="toast.expanded || toast.hovered || toast.focused"
+          :duration-ms="toast.durationMs"
+          @toggle="toggleToast(toast.id)"
+          @dismiss="dismissToast(toast.id)"
+          @action="onAction(toast.id, toast.action?.run)"
+          @hover="setToastHeld(toast.id, 'hovered', $event)"
+          @focus="setToastHeld(toast.id, 'focused', $event)"
+        />
+      </div>
+    </TransitionGroup>
 
     <button
       v-if="toastState.items.length > 1"
@@ -95,13 +99,81 @@ function onAction(id: number, run: (() => void) | undefined) {
   pointer-events: none;
 }
 
+/* En el panel los avisos van abajo, sobre la barra, en todos los anchos
+   (#743). Arriba tapaban la acción de la cabecera de cada pantalla
+   («Agregar servicio», «Nuevo turno»), justo la que se quiere repetir tras
+   guardar. El visor del cascarón ya excluye la barra, así que nunca la
+   tapan. El más nuevo queda junto al borde y entra subiendo. */
 .toast-region--host {
   position: absolute;
-  top: var(--space-2);
+  top: auto;
+  bottom: var(--space-3);
+  flex-direction: column-reverse;
+}
+
+.toast-region--host .toast-motion-enter-active {
+  animation-name: toast-motion-in-up;
+}
+
+@keyframes toast-motion-in-up {
+  from {
+    opacity: 0;
+    transform: translateY(18px) scale(0.96);
+  }
 }
 
 .toast-region__item {
   pointer-events: auto;
+}
+
+.toast-motion-enter-active {
+  animation: toast-motion-in 420ms var(--motion-ease-spring, ease-out) both;
+}
+
+/* Sale del flujo para que los demás suban mientras se va. */
+.toast-motion-leave-active {
+  position: absolute;
+  right: 0;
+  left: 0;
+  animation: toast-motion-out 200ms ease-in both;
+}
+
+.toast-motion-move {
+  transition: transform 260ms var(--motion-ease-out, ease-out);
+}
+
+@keyframes toast-motion-in {
+  from {
+    opacity: 0;
+    transform: translateY(-18px) scale(0.96);
+  }
+}
+
+@keyframes toast-motion-out {
+  to {
+    opacity: 0;
+    transform: translateX(28px) scale(0.98);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .toast-motion-enter-active,
+  .toast-motion-leave-active {
+    animation: none;
+  }
+
+  .toast-motion-move {
+    transition: none;
+  }
+}
+
+:root[data-motion='reduced'] .toast-motion-enter-active,
+:root[data-motion='reduced'] .toast-motion-leave-active {
+  animation: none;
+}
+
+:root[data-motion='reduced'] .toast-motion-move {
+  transition: none;
 }
 
 @media (min-width: 1024px) {
@@ -112,7 +184,7 @@ function onAction(id: number, run: (() => void) | undefined) {
   }
 
   .toast-region--host {
-    top: var(--space-4);
+    bottom: var(--space-4);
   }
 }
 
