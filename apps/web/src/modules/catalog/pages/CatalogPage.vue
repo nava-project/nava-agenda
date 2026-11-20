@@ -1094,7 +1094,7 @@ async function reloadAfterConflict(serviceId: string) {
         role="status"
         aria-live="polite"
       >
-        <DiamondLoader label="Cargando el catálogo…" layout="inline" />
+        <DiamondLoader label="Cargando el catálogo…" layout="overlay" />
         <ul class="catalog-page__list" aria-hidden="true">
           <li v-for="n in 3" :key="n" class="catalog-page__skeleton-row">
             <span class="catalog-page__skeleton-icon" />
@@ -1510,6 +1510,7 @@ async function reloadAfterConflict(serviceId: string) {
             type="submit"
             variant="primary"
             :loading="createStatus === 'saving'"
+            loading-label="Guardando…"
             :disabled="createStatus === 'saving'"
           >
             Guardar
@@ -1649,6 +1650,7 @@ async function reloadAfterConflict(serviceId: string) {
             type="submit"
             variant="primary"
             :loading="editStatus === 'saving'"
+            loading-label="Guardando…"
             :disabled="editStatus === 'saving'"
           >
             Guardar

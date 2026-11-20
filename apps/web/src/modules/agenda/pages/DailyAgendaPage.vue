@@ -936,7 +936,7 @@ const dayChangeMarkerPercent = computed(() => {
     <!-- Evento 02 del atlas: sin profesional/zona resueltos, nada que anticipar
          todavía — estado de página centrado con spinner, sin divisor. -->
     <div v-if="pageStatus === 'loading'" class="daily-agenda-page__loading" role="status">
-      <DiamondLoader :label="`Cargando ${v.professionals}…`" />
+      <DiamondLoader :label="`Cargando ${v.professionals}…`" layout="overlay" />
     </div>
 
     <!-- Evento 03: fallo al cargar el contexto inicial. -->

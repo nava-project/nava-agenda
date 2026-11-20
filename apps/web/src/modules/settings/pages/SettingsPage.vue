@@ -646,7 +646,7 @@ const previewClass = computed(() => ({ 'settings-page__preview--changed': brandD
         role="status"
         aria-live="polite"
       >
-        <DiamondLoader label="Cargando la configuración…" layout="inline" />
+        <DiamondLoader label="Cargando la configuración…" layout="overlay" />
         <div class="settings-page__skeletons" aria-hidden="true">
           <span v-for="n in 3" :key="n" class="settings-page__skeleton" />
         </div>

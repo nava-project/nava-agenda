@@ -841,6 +841,7 @@ function chooseAlternative(startsAt: string) {
             variant="primary"
             size="lg"
             :loading="confirmState === 'submitting'"
+            loading-label="Confirmando…"
             @click="handleConfirm"
           >
             Confirmar turno

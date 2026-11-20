@@ -65,7 +65,7 @@ onMounted(() => {
     <h1 id="gcal-return-title" class="gcal-return__title">Google Calendar</h1>
 
     <div v-if="phase === 'working'" class="gcal-return__state" role="status" aria-live="polite">
-      <DiamondLoader label="Conectando con Google…" layout="inline" />
+      <DiamondLoader label="Conectando con Google…" />
     </div>
 
     <BaseAlert v-else :variant="phase === 'denied' ? 'warning' : 'danger'" role="alert">

@@ -4,7 +4,7 @@
 // reseña (formulario), el cliente ya la dejó (se muestra de solo lectura) o ninguno
 // (no renderiza nada: un turno no completado nunca ofrece «Calificar», CA-100-01).
 import { computed, ref } from 'vue'
-import { BaseAlert, StarRating, StarRatingInput } from '@/shared/ui'
+import { BaseAlert, StarRating, StarRatingInput, SunDiamond } from '@/shared/ui'
 import { commentLength, REVIEW_COMMENT_MAX_LENGTH } from '@/shared/model/rating'
 import type { CustomerReview, ReviewInput } from '../model/customerAppointmentOutcome'
 
@@ -88,6 +88,7 @@ function onSubmit() {
 
       <div class="mt-section__actions">
         <button type="submit" class="bk-cta" :disabled="submitting" :aria-busy="submitting">
+          <SunDiamond v-if="submitting" size="sm" class="bk-cta__wait" />
           {{ submitting ? 'Enviando…' : 'Enviar reseña' }}
         </button>
       </div>

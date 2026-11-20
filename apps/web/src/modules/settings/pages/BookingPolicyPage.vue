@@ -267,7 +267,7 @@ function onReloadAfterConflict() {
         role="status"
         aria-live="polite"
       >
-        <DiamondLoader label="Cargando la configuración…" layout="inline" />
+        <DiamondLoader label="Cargando la configuración…" layout="overlay" />
         <div class="booking-policy-page__skeletons" aria-hidden="true">
           <span v-for="n in 2" :key="n" class="booking-policy-page__skeleton" />
         </div>

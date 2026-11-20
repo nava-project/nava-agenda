@@ -17,7 +17,7 @@ import { arrivalKey } from '@/shared/composables/useArrival'
 import { isMapAvailable } from '@/shared/model/mapEmbed'
 import { formatMoney } from '@/shared/model/money'
 import { civilNow, clockToMinutes, formatClock } from '@/shared/model/openingHours'
-import { LocationMap, PhoneDisplay } from '@/shared/ui'
+import { DiamondLoader, LocationMap, PhoneDisplay } from '@/shared/ui'
 import { formatTimeInTimezone } from '@/shared/time/formatInstant'
 import BookingStateScreen from '../components/BookingStateScreen.vue'
 import DaylightStrip from '../components/DaylightStrip.vue'
@@ -147,6 +147,8 @@ function durationLabel(minutes: number): string {
 <template>
   <main v-if="screenState.status === 'loading'" class="bk-page bk-entry" aria-busy="true">
     <h1 class="pb-sr-only">Abriendo la reserva…</h1>
+    <!-- La espera a la vista (#735): el diamante dentro del sol sobre las siluetas,
+         que guardan el alto de lo que viene para que nada salte. -->
     <div class="bk-hero">
       <span class="bk-skel bk-skel--kicker"></span>
       <span class="bk-skel bk-skel--name"></span>
@@ -154,7 +156,9 @@ function durationLabel(minutes: number): string {
       <span class="bk-skel bk-skel--strip"></span>
     </div>
     <div class="bk-entry__grid">
-      <div class="bk-services">
+      <div class="bk-services bk-wait-col">
+        <!-- La espera a la vista (#735), centrada en la columna de los servicios. -->
+        <DiamondLoader layout="column" label="Abriendo la reserva…" announce />
         <span class="bk-skel bk-skel--title"></span>
         <span v-for="n in 4" :key="n" class="bk-skel bk-skel--service"></span>
       </div>

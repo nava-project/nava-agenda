@@ -387,7 +387,7 @@ const HOW_IT_WORKS = [
     </header>
 
     <div v-if="loadStatus === 'loading'" class="gcal-page__state" role="status" aria-live="polite">
-      <DiamondLoader label="Cargando Google Calendar…" layout="inline" />
+      <DiamondLoader label="Cargando Google Calendar…" layout="overlay" />
     </div>
 
     <BaseAlert

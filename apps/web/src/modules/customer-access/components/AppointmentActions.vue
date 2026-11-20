@@ -8,7 +8,7 @@
 // dos se ofrecen según la pista local; el servidor sigue decidiendo y su rechazo prevalece.
 // v2 (DEC-188, 2c): el pase compacto y dos filas de acción, como las filas del catálogo.
 import { computed, nextTick, onMounted, ref, watch } from 'vue'
-import { BaseAlert } from '@/shared/ui'
+import { BaseAlert, DiamondLoader } from '@/shared/ui'
 import { buildVocabularyFromTerms } from '@/shared/model'
 import { formatTimeInTimezone } from '@/shared/time/formatInstant'
 import { getCustomerAppointment } from '../api/getCustomerAppointmentApi'
@@ -194,9 +194,7 @@ const bookAgainHref = computed(() => `/reservar/${encodeURIComponent(props.slug)
 
 <template>
   <div ref="root" class="actions">
-    <p v-if="state.status === 'loading'" class="actions__loading" role="status">
-      <span class="actions__pulse" aria-hidden="true" />Abriendo tu turno…
-    </p>
+    <DiamondLoader v-if="state.status === 'loading'" label="Abriendo tu turno…" announce />
 
     <BaseAlert v-else-if="state.status === 'not-found'" variant="danger" role="alert">
       Este acceso ya no sirve: puede haber vencido. Pide un código nuevo para seguir.
@@ -323,23 +321,6 @@ const bookAgainHref = computed(() => `/reservar/${encodeURIComponent(props.slug)
 .actions {
   display: grid;
   gap: var(--space-4);
-}
-
-.actions__loading {
-  display: flex;
-  gap: var(--space-2);
-  align-items: center;
-  margin: 0;
-  font-size: 15px;
-  color: var(--color-text-secondary);
-}
-
-.actions__pulse {
-  width: 8px;
-  height: 8px;
-  background-color: var(--color-sun);
-  border-radius: 50%;
-  animation: actions-pulse 1.2s ease-in-out infinite;
 }
 
 .actions__error {
@@ -565,14 +546,7 @@ a.actions__choice:hover {
   justify-self: start;
 }
 
-@keyframes actions-pulse {
-  50% {
-    opacity: 0.35;
-  }
-}
-
 @media (prefers-reduced-motion: reduce) {
-  .actions__pulse,
   .actions__choice,
   .actions__go {
     animation: none;

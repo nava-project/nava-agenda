@@ -20,7 +20,7 @@ import { computed, inject, ref, watch } from 'vue'
 import { RouterLink, useRouter } from 'vue-router'
 import { arrivalKey } from '@/shared/composables/useArrival'
 import { formatMoney } from '@/shared/model/money'
-import { ProfessionalAvatar, StarRating } from '@/shared/ui'
+import { DiamondLoader, ProfessionalAvatar, StarRating } from '@/shared/ui'
 import { civilDateChip, formatCivilDateFull } from '@/shared/time/civilDate'
 import { formatTimeInTimezone } from '@/shared/time/formatInstant'
 import BookingStateScreen from '../components/BookingStateScreen.vue'
@@ -269,8 +269,12 @@ const failedRequestId = computed(() =>
 <template>
   <main v-if="screenState.status === 'loading'" class="bk-page bk-daytime" aria-busy="true">
     <h1 class="pb-sr-only">Cargando las horas libres…</h1>
+    <!-- La espera a la vista (#735): el diamante dentro del sol sobre las siluetas,
+         que guardan el alto de lo que viene para que nada salte. -->
     <div class="bk-daytime__grid">
-      <div class="bk-daytime__main">
+      <div class="bk-daytime__main bk-wait-col">
+        <!-- La espera a la vista (#735), centrada en la columna de las horas. -->
+        <DiamondLoader layout="column" label="Cargando las horas libres…" announce />
         <span class="bk-skel bk-skel--kicker"></span>
         <span class="bk-skel bk-skel--title"></span>
         <span class="bk-skel bk-skel--chips"></span>

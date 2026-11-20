@@ -12,6 +12,7 @@
  * --color-focus, prefers-reduced-motion.
  */
 import { computed } from 'vue'
+import SunDiamond from './SunDiamond.vue'
 
 interface Props {
   /** Variante visual del botón */
@@ -23,6 +24,9 @@ interface Props {
   /** Si muestra estado de carga. Bloquea la interacción como disabled, sin
    * sustituir la idempotencia del servidor (estandar-frontend-vue.md §6). */
   loading?: boolean
+  /** Lo que se espera, en gerundio («Confirmando…»): con `loading`, va junto al
+   * diamante en el sol en lugar del texto. Sin él, solo el diamante. */
+  loadingLabel?: string
   /** Si es un botón toggle (mantiene estado pressed) */
   pressed?: boolean
   /** Tipo nativo del botón */
@@ -34,6 +38,7 @@ const props = withDefaults(defineProps<Props>(), {
   size: 'md',
   disabled: false,
   loading: false,
+  loadingLabel: undefined,
   pressed: false,
   type: 'button',
 })
@@ -79,27 +84,13 @@ const handleClick = (event: MouseEvent) => {
     :aria-busy="loading"
     @click="handleClick"
   >
-    <span class="base-button__content">
-      <span v-if="loading" class="base-button__spinner" aria-hidden="true">
-        <svg
-          class="base-button__spinner-svg"
-          viewBox="0 0 24 24"
-          fill="none"
-          xmlns="http://www.w3.org/2000/svg"
-        >
-          <circle
-            class="base-button__spinner-circle"
-            cx="12"
-            cy="12"
-            r="10"
-            stroke="currentColor"
-            stroke-width="3"
-            stroke-linecap="round"
-            stroke-dasharray="31.4 31.4"
-          />
-        </svg>
-      </span>
+    <span class="base-button__content" :class="{ 'base-button__content--waiting': loading }">
       <slot />
+    </span>
+    <!-- El nombre accesible sigue siendo el texto del botón (aria-busy dice que espera). -->
+    <span v-if="loading" class="base-button__spinner" aria-hidden="true">
+      <SunDiamond size="sm" />
+      <span v-if="loadingLabel" class="base-button__wait-label">{{ loadingLabel }}</span>
     </span>
   </button>
 </template>
@@ -288,62 +279,36 @@ const handleClick = (event: MouseEvent) => {
   gap: var(--btn-gap);
 }
 
-/* Loading */
+/* Loading (#735): el botón conserva su ancho (el texto queda, invisible) y
+   encima, centrado, va el diamante dentro del sol en el color del texto, con
+   el gerundio si lo hay. Antes el spinner iba en absoluto sin centrar y el
+   texto, en color transparente que las pantallas pisaban: se leía
+   «C◌onfirmar turno». Esperar no es estar deshabilitado: sin la opacidad de
+   disabled. */
 .base-button--loading {
   position: relative;
-  color: transparent;
 }
 
-.base-button--loading .base-button__spinner {
+.base-button--loading:disabled {
+  opacity: 1;
+  cursor: progress;
+}
+
+.base-button__content--waiting {
+  opacity: 0;
+}
+
+.base-button__spinner {
   position: absolute;
+  inset: 0;
   display: flex;
+  gap: var(--btn-gap);
   align-items: center;
   justify-content: center;
 }
 
-/* El giro del spinner es un indicador de progreso indeterminado, no una
-   transición de estado: por eso no usa --motion-duration-fast/base (esas
-   cubren transiciones de 120-200 ms que explican un cambio, CA-009-07).
-   Sigue apagándose con prefers-reduced-motion más abajo. */
-.base-button__spinner-svg {
-  width: 1em;
-  height: 1em;
-  animation: base-button-spin 0.8s linear infinite;
-}
-
-@keyframes base-button-spin {
-  from {
-    transform: rotate(0deg);
-  }
-  to {
-    transform: rotate(360deg);
-  }
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .base-button__spinner-svg {
-    animation: none;
-    opacity: 0.6;
-  }
-}
-
-.base-button__spinner-circle {
-  animation: base-button-spin-dash 1.4s ease-in-out infinite;
-}
-
-@keyframes base-button-spin-dash {
-  0% {
-    stroke-dasharray: 1, 200;
-    stroke-dashoffset: 0;
-  }
-  50% {
-    stroke-dasharray: 90, 200;
-    stroke-dashoffset: -35;
-  }
-  100% {
-    stroke-dasharray: 90, 200;
-    stroke-dashoffset: -124;
-  }
+.base-button__wait-label {
+  white-space: nowrap;
 }
 
 /* Pressed (para toggle) */

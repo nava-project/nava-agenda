@@ -8,7 +8,7 @@
 // clave de idempotencia. Plazo, límite, franja y versión los decide el servidor;
 // `rescheduleAvailability` es solo una pista para no ofrecer lo que no procede.
 import { computed, nextTick, onMounted, ref, watch } from 'vue'
-import { AppointmentTicket, BaseAlert, type DayRulerMark } from '@/shared/ui'
+import { AppointmentTicket, BaseAlert, type DayRulerMark, SunDiamond } from '@/shared/ui'
 import { buildVocabularyFromTerms } from '@/shared/model'
 import { civilDateChip, formatCivilDateFull, getCivilDateInTimezone } from '@/shared/time/civilDate'
 import { formatTimeInTimezone } from '@/shared/time/formatInstant'
@@ -593,6 +593,7 @@ const requestId = computed(() =>
                   :aria-busy="submitting"
                   @click="confirmChange"
                 >
+                  <SunDiamond v-if="submitting" size="sm" class="bk-cta__wait" />
                   {{ submitting ? 'Cambiando…' : confirmLabel }}
                 </button>
               </div>

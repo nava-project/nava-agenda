@@ -521,6 +521,15 @@
   opacity: 0.7;
 }
 
+/* Esperar no es estar deshabilitado (#735): con el diamante en el sol y el
+   gerundio, el botón conserva su color. Lo mismo en «Sí, cancelar mi turno». */
+.mt-form__action[aria-busy='true']:disabled,
+.mt-button[aria-busy='true']:disabled,
+.bk-cta[aria-busy='true']:disabled {
+  cursor: progress;
+  opacity: 1;
+}
+
 .mt-form__notice {
   margin: 0;
   font-size: 14px;

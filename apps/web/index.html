@@ -20,8 +20,10 @@
         margin: 0;
       }
 
-      /* Arranque del panel (DEC-188, entrega 5a): el modo guardado y el sol
-         del logo desde la primera pintura, mientras se resuelve la sesión. */
+      /* Arranque (DEC-188, entrega 5a; #735): el modo guardado y la marca de la
+         espera, el diamante dentro del sol, desde la primera pintura. En el
+         panel mientras se resuelve la sesión; en la reserva y mi turno
+         mientras llega la app. Es el mismo dibujo que SunDiamond.vue. */
       .boot-loader {
         display: none;
       }
@@ -30,11 +32,12 @@
         background-color: #0b1022;
       }
 
-      html[data-boot='panel'][data-app-theme='ivory'] {
+      html[data-boot='panel'][data-app-theme='ivory'],
+      html[data-boot='public'] {
         background-color: #f4f0e7;
       }
 
-      html[data-boot='panel'] .boot-loader {
+      html[data-boot] .boot-loader {
         position: fixed;
         inset: 0;
         z-index: 1;
@@ -44,77 +47,124 @@
         align-items: center;
         justify-content: center;
         font:
-          15px/22px 'Instrument Sans',
-          system-ui,
-          sans-serif;
-        color: #a9b1c6;
+          19px/26px 'Instrument Serif',
+          Georgia,
+          serif;
+        color: #eef1f8;
         background-color: #0b1022;
+        --boot-ray: #c9a86f;
       }
 
-      html[data-boot='panel'][data-app-theme='ivory'] .boot-loader {
-        color: #4f5b6e;
+      html[data-boot='panel'][data-app-theme='ivory'] .boot-loader,
+      html[data-boot='public'] .boot-loader {
+        color: #101b2b;
         background-color: #f4f0e7;
+        --boot-ray: #b8955a;
       }
 
-      .boot-loader__stage {
-        position: relative;
-        width: 40px;
-        height: 22px;
-        overflow: hidden;
-        animation: boot-loader-in 200ms ease-out 300ms backwards;
+      @media (prefers-color-scheme: dark) {
+        html[data-boot='public'] {
+          background-color: #0b1022;
+        }
+
+        html[data-boot='public'] .boot-loader {
+          color: #eef1f8;
+          background-color: #0b1022;
+          --boot-ray: #c9a86f;
+        }
+      }
+
+      .boot-loader__mark {
+        width: 72px;
+        height: 72px;
+        overflow: visible;
+        animation: boot-loader-in 420ms cubic-bezier(0.34, 1.56, 0.64, 1) 300ms backwards;
       }
 
       .boot-loader__text {
-        animation: boot-loader-in 200ms ease-out 300ms backwards;
+        animation: boot-loader-fade 200ms ease-out 300ms backwards;
+      }
+
+      html[data-boot='panel'] .boot-loader__text--public,
+      html[data-boot='public'] .boot-loader__text--panel {
+        display: none;
+      }
+
+      .boot-loader__rays,
+      .boot-loader__sun,
+      .boot-loader__gem {
+        transform-box: view-box;
+        transform-origin: 24px 24px;
+      }
+
+      .boot-loader__rays {
+        fill: var(--boot-ray);
+        animation: boot-loader-turn 9s linear infinite;
       }
 
       .boot-loader__sun {
-        position: absolute;
-        bottom: -9px;
-        left: 11px;
-        width: 18px;
-        height: 18px;
-        background-color: #f4b740;
-        border-radius: 50%;
-        animation: boot-loader-rise 1.8s ease-in-out infinite alternate;
+        fill: #f4b740;
+        animation: boot-loader-breathe 1.6s ease-in-out infinite alternate;
       }
 
-      .boot-loader__horizon {
-        position: absolute;
-        right: 0;
-        bottom: 0;
-        left: 0;
-        height: 2px;
-        background-color: #eef1f8;
-        border-radius: 1px;
+      /* Las cuatro caras del latón, como en SunDiamond.vue. */
+      .boot-loader__facet-1 {
+        fill: color-mix(in srgb, var(--boot-ray) 55%, #fff);
       }
 
-      html[data-app-theme='ivory'] .boot-loader__horizon {
-        background-color: #101b2b;
+      .boot-loader__facet-2 {
+        fill: color-mix(in srgb, var(--boot-ray) 30%, #fff);
       }
 
-      @keyframes boot-loader-rise {
+      .boot-loader__facet-3 {
+        fill: color-mix(in srgb, var(--boot-ray) 80%, #000);
+      }
+
+      .boot-loader__facet-4 {
+        fill: var(--boot-ray);
+      }
+
+      .boot-loader__gem {
+        animation: boot-loader-breathe 1.6s ease-in-out infinite alternate-reverse;
+      }
+
+      @keyframes boot-loader-turn {
+        to {
+          transform: rotate(360deg);
+        }
+      }
+
+      @keyframes boot-loader-breathe {
         from {
-          transform: translateY(6px);
+          transform: scale(0.94);
         }
 
         to {
-          transform: translateY(-4px);
+          transform: scale(1.05);
         }
       }
 
       @keyframes boot-loader-in {
         from {
           opacity: 0;
+          transform: scale(0.6) rotate(-45deg);
+        }
+      }
+
+      @keyframes boot-loader-fade {
+        from {
+          opacity: 0;
         }
       }
 
       @media (prefers-reduced-motion: reduce) {
+        .boot-loader,
         .boot-loader * {
           animation: none !important;
         }
       }
 
+      html[data-motion='reduced'] .boot-loader,
       html[data-motion='reduced'] .boot-loader * {
         animation: none !important;
       }
@@ -126,7 +176,13 @@
          lo retira al resolver la primera navegación. -->
     <script>
       ;(function () {
-        if (!/^\/panel(\/|$)/.test(window.location.pathname)) return
+        var path = window.location.pathname
+        if (/^\/(reservar|mi-turno)(\/|$)/.test(path)) {
+          // La reserva y mi turno siguen el modo del sistema: solo la espera.
+          document.documentElement.setAttribute('data-boot', 'public')
+          return
+        }
+        if (!/^\/panel(\/|$)/.test(path)) return
         var prefs = {}
         try {
           prefs = JSON.parse(window.localStorage.getItem('nava.appearance.v1') || '{}') || {}
@@ -146,11 +202,33 @@
   </head>
   <body>
     <div id="boot-loader" class="boot-loader" role="status" aria-live="polite">
-      <span class="boot-loader__stage" aria-hidden="true">
-        <span class="boot-loader__sun"></span>
-        <span class="boot-loader__horizon"></span>
-      </span>
-      <span class="boot-loader__text">Abriendo tu agenda…</span>
+      <svg class="boot-loader__mark" viewBox="0 0 48 48" aria-hidden="true" focusable="false">
+        <g class="boot-loader__rays">
+          <path d="M24 0 L25.8 2.6 L24 5.2 L22.2 2.6 Z" />
+          <path d="M24 0 L25.8 2.6 L24 5.2 L22.2 2.6 Z" transform="rotate(45 24 24)" />
+          <path d="M24 0 L25.8 2.6 L24 5.2 L22.2 2.6 Z" transform="rotate(90 24 24)" />
+          <path d="M24 0 L25.8 2.6 L24 5.2 L22.2 2.6 Z" transform="rotate(135 24 24)" />
+          <path d="M24 0 L25.8 2.6 L24 5.2 L22.2 2.6 Z" transform="rotate(180 24 24)" />
+          <path d="M24 0 L25.8 2.6 L24 5.2 L22.2 2.6 Z" transform="rotate(225 24 24)" />
+          <path d="M24 0 L25.8 2.6 L24 5.2 L22.2 2.6 Z" transform="rotate(270 24 24)" />
+          <path d="M24 0 L25.8 2.6 L24 5.2 L22.2 2.6 Z" transform="rotate(315 24 24)" />
+        </g>
+        <defs>
+          <mask id="boot-cut" maskUnits="userSpaceOnUse" x="0" y="0" width="48" height="48">
+            <rect width="48" height="48" fill="#fff" />
+            <path d="M24 11 L37 24 L24 37 L11 24 Z" fill="#000" />
+          </mask>
+        </defs>
+        <circle class="boot-loader__sun" cx="24" cy="24" r="17.5" mask="url(#boot-cut)" />
+        <g class="boot-loader__gem">
+          <path class="boot-loader__facet-1" d="M24 13.5 L13.5 24 L24 24 Z" />
+          <path class="boot-loader__facet-2" d="M24 13.5 L34.5 24 L24 24 Z" />
+          <path class="boot-loader__facet-3" d="M34.5 24 L24 34.5 L24 24 Z" />
+          <path class="boot-loader__facet-4" d="M13.5 24 L24 34.5 L24 24 Z" />
+        </g>
+      </svg>
+      <span class="boot-loader__text boot-loader__text--panel">Abriendo tu agenda…</span>
+      <span class="boot-loader__text boot-loader__text--public">Abriendo…</span>
     </div>
     <div id="app"></div>
     <script type="module" src="/src/main.ts"></script>
