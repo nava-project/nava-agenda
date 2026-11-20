@@ -674,7 +674,13 @@
   margin: var(--space-2) calc(var(--space-1) * -1) var(--space-4);
   overflow-x: auto;
   scroll-snap-type: x proximity;
-  scrollbar-width: thin;
+  /* Sin barra nativa en ningún tema ni ancho (#747): las flechas, el arrastre
+     y el desvanecido ya dicen que hay más días. */
+  scrollbar-width: none;
+}
+
+.bk-days::-webkit-scrollbar {
+  display: none;
 }
 
 .bk-day {
@@ -1159,6 +1165,18 @@
   transform: scale(0.98);
 }
 
+/* La acción secundaria (#747), junto a la principal en el mismo bloque: mismo
+   alto y radio, filete de tinta y sin relleno. */
+.bk-cta--secondary {
+  color: var(--color-text-primary);
+  background-color: transparent;
+  box-shadow: inset 0 0 0 1px var(--color-text-primary);
+}
+
+.bk-cta--secondary:hover {
+  background-color: color-mix(in srgb, var(--color-text-primary) 7%, transparent);
+}
+
 .bk-cta--idle {
   font-weight: 500;
   color: var(--color-text-secondary);
@@ -1328,6 +1346,19 @@
   min-height: 76px;
 }
 
+.bk-skel--pase {
+  display: block;
+  width: 70%;
+  height: 16px;
+}
+
+/* En la barra del teléfono, la silueta sobra: rótulo y botón bastan. */
+@media (max-width: 1023px) {
+  .bk-pase--skeleton .bk-skel--pase {
+    display: none;
+  }
+}
+
 @media (min-width: 1024px) {
   .bk-pase--skeleton {
     min-height: 260px;
@@ -1369,6 +1400,161 @@
   }
 }
 
+/* «Tus datos» en escritorio (#747): el formulario y, a su derecha, «Tu cita»
+   fija mientras se baja. En el resumen y la confirmación, una sola columna. */
+@media (min-width: 1024px) {
+  .bk-details:has(> .bk-details__pase) {
+    display: grid;
+    /* Título, hoja y lo demás; el 1fr del final absorbe el alto del riel para
+       que no abra un hueco bajo el título. */
+    grid-template-rows: auto auto 1fr;
+    grid-template-columns: minmax(0, 1fr) 320px;
+    column-gap: var(--space-10);
+    align-items: start;
+    max-width: 1040px;
+  }
+
+  .bk-details:has(> .bk-details__pase) > :not(.bk-details__pase) {
+    grid-column: 1;
+  }
+
+  .bk-details__pase {
+    position: sticky;
+    top: var(--space-8);
+    grid-row: 2 / span 2;
+    grid-column: 2;
+    /* Arranca a la altura de la hoja (su mismo margen superior). */
+    margin-top: var(--space-6);
+  }
+}
+
+/* Teléfono y tableta: una línea bajo el título con lo que se reserva. */
+.bk-details__pase-line {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 2px 6px;
+  align-items: center;
+  margin: var(--space-3) 0 0;
+  font-size: 14px;
+  line-height: 20px;
+  color: var(--color-text-secondary);
+}
+
+.bk-details__pase-line strong {
+  font-weight: 600;
+  color: var(--color-text-primary);
+}
+
+.bk-details__pase-mark {
+  flex: none;
+  width: 7px;
+  height: 7px;
+  margin-right: 2px;
+  background-color: var(--color-brass-line);
+  transform: rotate(45deg);
+}
+
+.bk-details__pase-card {
+  display: none;
+}
+
+@media (min-width: 1024px) {
+  .bk-details__pase-line {
+    display: none;
+  }
+
+  .bk-details__pase-card {
+    display: grid;
+    gap: var(--space-4);
+    padding: var(--space-6);
+    background-color: var(--color-surface);
+    border: 1px solid var(--color-brass-line);
+    border-radius: 4px;
+  }
+}
+
+.bk-details__pase-label {
+  margin: 0;
+  font-size: 11.5px;
+  font-weight: 600;
+  line-height: 16px;
+  color: var(--color-brass-text);
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+}
+
+.bk-details__pase-day::first-letter {
+  text-transform: uppercase;
+}
+
+.bk-details__pase-relative {
+  display: inline-flex;
+  gap: 8px;
+  align-items: center;
+  justify-self: start;
+  margin: 0;
+  font-size: 13px;
+  font-weight: 600;
+  line-height: 18px;
+  color: var(--color-brass-text);
+}
+
+/* «Para otra persona» cabe en un renglón a 390 (#747). */
+@media (max-width: 419px) {
+  .bk .bk-details .customer-details__radio span {
+    padding-inline: var(--space-2);
+    font-size: 15px;
+  }
+}
+
+/* Renglones con puntos guía (#747): la etiqueta, una línea de puntos de latón
+   y el valor, como la carta. En el riel, en el resumen y donde haga falta. */
+.bk-leaders {
+  display: grid;
+  margin: 0;
+}
+
+.bk-leaders__row {
+  display: flex;
+  gap: 8px;
+  align-items: baseline;
+  padding: 6px 0;
+}
+
+.bk-leaders__row dt {
+  flex: none;
+  max-width: 55%;
+  overflow-wrap: anywhere;
+  font-size: 14px;
+  color: var(--color-text-secondary);
+}
+
+.bk-leaders__row::after {
+  order: 1;
+  flex: 1 1 24px;
+  min-width: 24px;
+  height: 2px;
+  content: '';
+  background-image: radial-gradient(
+    circle,
+    color-mix(in srgb, var(--color-brass-line) 80%, transparent) 1px,
+    transparent 1.3px
+  );
+  background-repeat: repeat-x;
+  background-size: 6px 2px;
+  transform: translateY(-3px);
+}
+
+.bk-leaders__row dd {
+  order: 2;
+  min-width: 0;
+  margin: 0;
+  overflow-wrap: anywhere;
+  text-align: right;
+  font-weight: 500;
+  color: var(--color-text-primary);
+}
+
 .bk-details--done .bk-sheet {
   padding: 0;
   margin-top: var(--space-5);
@@ -1396,6 +1582,7 @@
 /* «Para mí» / «Para otra persona»: chips como los de «Día y hora». */
 .bk .bk-details .customer-details__radio span {
   min-height: 48px;
+  white-space: nowrap;
   font-weight: 500;
   color: var(--color-text-primary);
   background-color: var(--color-surface);

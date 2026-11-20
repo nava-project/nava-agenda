@@ -56,6 +56,20 @@ describe('AppointmentTicket', () => {
     }
   })
 
+  it('says how far away the turn is in a brass chip beside the time (#747)', () => {
+    const wrapper = mount(AppointmentTicket, {
+      props: { ...props, state: 'confirmed' as const, relative: 'mañana' },
+    })
+    const chip = wrapper.get('.appointment-ticket__time .appointment-ticket__relative')
+    expect(chip.text()).toBe('mañana')
+    expect(chip.find('.appointment-ticket__relative-mark').attributes('aria-hidden')).toBe('true')
+    expect(
+      mount(AppointmentTicket, { props: { ...props, state: 'confirmed' as const } })
+        .find('.appointment-ticket__relative')
+        .exists(),
+    ).toBe(false)
+  })
+
   it('marks the ceremony only when asked and omits the ruler without one', () => {
     const quiet = mount(AppointmentTicket, {
       props: { ...props, ruler: null, state: 'confirmed' as const },

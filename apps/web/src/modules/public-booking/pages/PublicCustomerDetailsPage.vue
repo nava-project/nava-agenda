@@ -24,7 +24,9 @@ import { isPlacesAvailable, type PlaceSelection } from '@/shared/model/placesAut
 import { clockToMinutes, DAYS_OF_WEEK, segmentsByDay } from '@/shared/model/openingHours'
 import {
   formatCivilDateFull,
+  civilDateChip,
   getCivilDateInTimezone,
+  relativeDayLabel,
   minutesSinceCivilMidnight,
 } from '@/shared/time/civilDate'
 import { formatTimeInTimezone } from '@/shared/time/formatInstant'
@@ -338,6 +340,7 @@ const done = computed(() => {
       businessName: a.businessName,
       serviceName: a.serviceName,
       meta: `${a.durationMinutes} min · ${formatMoney(a.priceAmount, a.currency)}`,
+      relative: relativeDayLabel(a.startsAt, a.timezone),
     },
   }
 })
@@ -397,9 +400,40 @@ const draftTicket = computed(() => {
     timeNote: minutes > 0 ? fields.timeNote : timezoneLabel(timezone),
     businessName: businessProfile.value?.name ?? '',
     serviceName: service.value?.name ?? 'Tu turno',
+    relative: relativeDayLabel(selectedStartsAt.value, timezone),
     meta: service.value
       ? `${service.value.durationMinutes} min · ${formatMoney(service.value.price, service.value.currency)}`
       : '',
+  }
+})
+
+// «Tu cita» mientras se llenan los datos (#747): lo que se está reservando,
+// siempre a la vista. Riel en escritorio y una línea bajo el título en móvil.
+const pase = computed(() => {
+  const timezone = zone.value
+  if (!timezone || !selectedStartsAt.value || !service.value) return null
+  const startsAt = selectedStartsAt.value
+  const endsAt = new Date(
+    Date.parse(startsAt) + service.value.durationMinutes * 60_000,
+  ).toISOString()
+  const civilDate = getCivilDateInTimezone(timezone, new Date(startsAt))
+  const chip = civilDateChip(civilDate)
+  const start = formatTimeInTimezone(startsAt, timezone)
+  return {
+    service: service.value.name,
+    price: formatMoney(service.value.price, service.value.currency),
+    who: professional.value?.fullName ?? '',
+    // «miércoles, 25 de noviembre»: sin el año, que cabe en el riel.
+    day: new Intl.DateTimeFormat('es-CO', {
+      timeZone: 'UTC',
+      weekday: 'long',
+      day: 'numeric',
+      month: 'long',
+    }).format(new Date(`${civilDate}T12:00:00Z`)),
+    dayShort: `${chip.weekday} ${chip.day} ${chip.month}`,
+    start,
+    range: `${start} – ${formatTimeInTimezone(endsAt, timezone)}`,
+    relative: relativeDayLabel(startsAt, timezone),
   }
 })
 
@@ -605,6 +639,45 @@ function chooseAlternative(startsAt: string) {
       <h1 class="bk-title">{{ reviewing ? 'Revisa tus datos' : 'Tus datos' }}</h1>
     </template>
 
+    <!-- «Tu cita» mientras se llenan los datos (#747): una línea bajo el título
+         en el teléfono y un riel con puntos guía en escritorio. En el resumen
+         ya está la tarjeta, así que aquí no se repite. -->
+    <aside
+      v-if="!reviewing && confirmState !== 'confirmed' && pase"
+      class="bk-details__pase"
+      aria-label="Tu cita"
+    >
+      <p class="bk-details__pase-line">
+        <span class="bk-details__pase-mark" aria-hidden="true"></span>
+        <strong>{{ pase.service }}</strong>
+        <span>· {{ pase.dayShort }} · {{ pase.start }}</span>
+      </p>
+      <div class="bk-details__pase-card">
+        <p class="bk-details__pase-label">Tu cita</p>
+        <dl class="bk-leaders">
+          <div class="bk-leaders__row">
+            <dt>{{ pase.service }}</dt>
+            <dd>{{ pase.price }}</dd>
+          </div>
+          <div v-if="pase.who" class="bk-leaders__row">
+            <dt>{{ v.Professional }}</dt>
+            <dd>{{ pase.who }}</dd>
+          </div>
+          <div class="bk-leaders__row">
+            <dt>Día</dt>
+            <dd class="bk-details__pase-day">{{ pase.day }}</dd>
+          </div>
+          <div class="bk-leaders__row">
+            <dt>Hora</dt>
+            <dd>{{ pase.range }}</dd>
+          </div>
+        </dl>
+        <p v-if="pase.relative" class="bk-details__pase-relative">
+          <span class="bk-details__pase-mark" aria-hidden="true"></span>{{ pase.relative }}
+        </p>
+      </div>
+    </aside>
+
     <section
       class="bk-sheet customer-details"
       :class="{ 'customer-details--ticket': confirmState === 'confirmed' }"
@@ -785,30 +858,36 @@ function chooseAlternative(startsAt: string) {
           role="region"
           aria-label="Tus datos de contacto"
         >
-          <dl class="customer-details__summary-list">
-            <div class="customer-details__summary-row">
+          <dl class="customer-details__summary-list bk-leaders">
+            <div class="customer-details__summary-row bk-leaders__row">
               <dt>Cliente</dt>
               <dd>{{ fullName }}</dd>
             </div>
             <!-- Solo cuando el turno es de otra persona: para uno mismo repetiría
                el nombre del cliente. -->
-            <div v-if="attendeeChoice === 'other'" class="customer-details__summary-row">
+            <div
+              v-if="attendeeChoice === 'other'"
+              class="customer-details__summary-row bk-leaders__row"
+            >
               <dt>Turno para</dt>
               <dd>{{ resolvedAttendeeName }}</dd>
             </div>
-            <div class="customer-details__summary-row">
+            <div class="customer-details__summary-row bk-leaders__row">
               <dt>Teléfono</dt>
               <dd>{{ phoneCountry(phoneCountryIso).dial }} {{ phoneNational }}</dd>
             </div>
-            <div class="customer-details__summary-row">
+            <div class="customer-details__summary-row bk-leaders__row">
               <dt>Correo</dt>
               <dd>{{ email }}</dd>
             </div>
-            <div v-if="isHomeService && homePlace" class="customer-details__summary-row">
+            <div
+              v-if="isHomeService && homePlace"
+              class="customer-details__summary-row bk-leaders__row"
+            >
               <dt>Te atendemos en</dt>
               <dd>{{ composeHomeAddress(homePlace.address, homeDetails) }}</dd>
             </div>
-            <div v-if="note.trim()" class="customer-details__summary-row">
+            <div v-if="note.trim()" class="customer-details__summary-row bk-leaders__row">
               <dt>Nota</dt>
               <dd>{{ note }}</dd>
             </div>
@@ -899,7 +978,7 @@ function chooseAlternative(startsAt: string) {
             </button>
             <a
               v-if="whatsApp"
-              class="bk-done__whatsapp"
+              class="bk-cta bk-cta--secondary bk-done__whatsapp"
               :href="whatsApp"
               target="_blank"
               rel="noopener noreferrer"
@@ -1329,13 +1408,10 @@ function chooseAlternative(startsAt: string) {
   overflow-wrap: anywhere;
 }
 
+/* Renglones con puntos guía (.bk-leaders, #747): sin filete entre ellos, los
+   puntos ya llevan el ojo de la etiqueta al valor. */
 .customer-details__summary-row {
-  display: flex;
-  flex-wrap: wrap;
-  gap: var(--space-1) var(--space-6);
-  justify-content: space-between;
   padding: var(--space-3) 0;
-  border-bottom: 1px solid var(--pb-line);
 }
 
 .customer-details__summary-row dt {
@@ -1479,8 +1555,7 @@ function chooseAlternative(startsAt: string) {
 }
 
 /* Como los demás enlaces de la reserva: texto principal, subrayado en el acento. */
-.bk-done__place a,
-.bk-done__whatsapp {
+.bk-done__place a {
   font-weight: 500;
   color: var(--color-text-primary);
   text-decoration-color: var(--bk-accent, var(--color-brand-accent-surface));
@@ -1499,7 +1574,8 @@ function chooseAlternative(startsAt: string) {
   align-items: center;
 }
 
-.bk-done__calendar {
+.bk-done__calendar,
+.bk-done__whatsapp {
   flex: 1 1 220px;
 }
 
@@ -1519,15 +1595,49 @@ function chooseAlternative(startsAt: string) {
     min-width: 280px;
   }
 
+  .bk-done__whatsapp {
+    flex: 0 1 auto;
+    min-width: 220px;
+  }
+
   .bk-done .customer-details__note {
     margin-inline: auto;
     text-align: center;
   }
 }
 
+/* La llegada de «Todo listo» (#747), una sola vez y en ≤ 1,5 s: el emblema
+   (0–300 ms), el titular (120–520) y su bajada (220–620), la tarjeta, que
+   entra a los 380 ms y sigue su propio guion (sello que cae, regla que se
+   dibuja, rombo que pasa a Sol, hasta 1500), y por último las acciones y el
+   aviso del correo (1150–1450). */
 @media (prefers-reduced-motion: no-preference) {
   :root:not([data-motion='reduced']) .bk-details--ceremony .bk-done__emblem {
     animation: bk-emblem 300ms cubic-bezier(0.2, 0.7, 0.2, 1) both;
+  }
+
+  :root:not([data-motion='reduced']) .bk-details--ceremony .bk-done__moment {
+    animation: bk-done-rise 400ms 120ms cubic-bezier(0.2, 0.7, 0.2, 1) both;
+  }
+
+  :root:not([data-motion='reduced']) .bk-details--ceremony .bk-done__headline {
+    animation: bk-done-rise 400ms 220ms cubic-bezier(0.2, 0.7, 0.2, 1) both;
+  }
+
+  :root:not([data-motion='reduced']) .bk-details--ceremony .bk-done__ticket {
+    --ticket-ceremony-delay: 380ms;
+  }
+
+  :root:not([data-motion='reduced']) .bk-details--ceremony .bk-done__actions,
+  :root:not([data-motion='reduced']) .bk-details--ceremony .bk-done .customer-details__note {
+    animation: bk-done-rise 300ms 1150ms cubic-bezier(0.2, 0.7, 0.2, 1) both;
+  }
+}
+
+@keyframes bk-done-rise {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
   }
 }
 
@@ -1536,14 +1646,6 @@ function chooseAlternative(startsAt: string) {
     opacity: 0;
     transform: rotate(45deg) scale(0.4);
   }
-}
-
-/* Un solo estilo de botón: el calendario es la acción; WhatsApp, un enlace. */
-.bk-done__whatsapp {
-  display: inline-flex;
-  align-items: center;
-  min-height: 44px;
-  text-decoration-line: underline;
 }
 
 @media (prefers-reduced-motion: reduce) {

@@ -161,9 +161,10 @@ const arriving = arrival.arriving
         </RouterLink>
         <span v-else class="bk-top__spacer" aria-hidden="true"></span>
 
-        <!-- Sin negocio (enlace inexistente) no hay recorrido que mostrar. -->
+        <!-- Sin negocio (enlace inexistente) no hay recorrido que mostrar; mientras
+             el perfil se lee, sí (#747): la cabecera no queda vacía con red lenta. -->
         <ol
-          v-if="(step !== null || completed) && businessName"
+          v-if="(step !== null || completed) && (businessName || !vocabularySettled)"
           class="bk-steps"
           aria-label="Pasos de la reserva"
         >
