@@ -73,10 +73,25 @@ describe('foco de la familia (#739)', () => {
     )
   })
 
-  it('el error de BaseInput lleva su rombo de aviso', () => {
-    const input = sources['/src/shared/ui/BaseInput.vue'] ?? ''
-    const mark = input.match(/\.base-input__error::before \{([^}]*)\}/)?.[1] ?? ''
+  it.each([
+    ['/src/shared/ui/BaseInput.vue', 'base-input__error'],
+    ['/src/shared/ui/PhoneField.vue', 'phone-field__error'],
+  ])('el error de %s lleva su rombo de aviso', (path, cls) => {
+    const source = sources[path] ?? ''
+    const mark = source.match(new RegExp(`\\.${cls}::before \\{([^}]*)\\}`))?.[1] ?? ''
     expect(mark).toMatch(/mask: url\("data:image\/svg\+xml/)
     expect(mark).toMatch(/background-color: currentColor;/)
+  })
+
+  it('el selector de prefijo no pinta un segundo anillo dentro de la fila', () => {
+    expect(sources['/src/shared/ui/PhoneField.vue']).not.toMatch(
+      /phone-field__select:focus-visible\) \.phone-field__face/,
+    )
+  })
+
+  it('el iframe del mapa no es una parada de Tab invisible', () => {
+    expect(sources['/src/shared/ui/LocationMap.vue']).toMatch(
+      /class="location-map__frame"[^>]*tabindex="-1"/,
+    )
   })
 })

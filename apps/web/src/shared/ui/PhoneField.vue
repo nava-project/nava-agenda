@@ -318,15 +318,24 @@ function onInput(event: Event) {
 }
 
 .phone-field__error {
+  display: flex;
+  gap: 6px;
+  align-items: flex-start;
   font-size: var(--font-size-body-sm);
   line-height: var(--font-size-body-sm-line);
   color: var(--pf-danger);
 }
 
-/* El foco del selector (opacity 0) se dibuja en la cara. */
-.phone-field__prefix:has(.phone-field__select:focus-visible) .phone-field__face {
-  outline: 2px solid var(--color-focus);
-  outline-offset: -4px;
+/* El mismo rombo de aviso que `BaseInput` (#739). */
+.phone-field__error::before {
+  flex: none;
+  width: 14px;
+  height: 14px;
+  margin-top: calc((var(--font-size-body-sm-line) - 14px) / 2);
+  content: '';
+  background-color: currentColor;
+  mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 14 14'%3E%3Cpath d='M7 1.2 12.8 7 7 12.8 1.2 7z' fill='none' stroke='black' stroke-width='1.4' stroke-linejoin='round'/%3E%3Cpath d='M7 4.2v3.6' stroke='black' stroke-width='1.5' stroke-linecap='round'/%3E%3Ccircle cx='7' cy='9.9' r='.85'/%3E%3C/svg%3E")
+    center / contain no-repeat;
 }
 
 /* Fondo claro: mismos tokens que `BaseInput` (campo de papel, filete de piedra,

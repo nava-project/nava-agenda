@@ -783,7 +783,7 @@ function chooseAlternative(startsAt: string) {
           class="customer-details__summary-body"
           tabindex="0"
           role="region"
-          aria-label="Resumen del turno"
+          aria-label="Tus datos de contacto"
         >
           <dl class="customer-details__summary-list">
             <div class="customer-details__summary-row">

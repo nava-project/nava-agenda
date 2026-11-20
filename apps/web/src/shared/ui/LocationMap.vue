@@ -25,6 +25,7 @@ const linkUrl = computed(() => mapsLinkUrl(props.latitude, props.longitude))
     <iframe
       class="location-map__frame"
       :src="embedUrl"
+      tabindex="-1"
       :title="`Mapa de ${address}`"
       loading="lazy"
       referrerpolicy="no-referrer-when-downgrade"
