@@ -197,6 +197,30 @@ describe('PublicDayTimePage', () => {
     })
   })
 
+  it('says «Seguir con tus datos» without a text arrow (#745)', async () => {
+    respond()
+    const wrapper = mountPage()
+    await flushPromises()
+    await hours(wrapper)[0]!.trigger('click')
+    const cta = wrapper.get('a.bk-cta')
+    expect(cta.text()).toContain('Seguir con tus datos')
+    expect(cta.text()).not.toContain('→')
+  })
+
+  it('keeps the day arrows in their own column, after the days, never over them (#745)', async () => {
+    respond()
+    const wrapper = mountPage()
+    await flushPromises()
+    const wrap = wrapper.get('.bk-days-wrap')
+    const children = wrap.element.children
+    expect(children[0]!.classList.contains('bk-days')).toBe(true)
+    expect(children[1]!.classList.contains('bk-days__navs')).toBe(true)
+    // Al empezar no hay días hacia atrás: la flecha se apaga en su sitio.
+    const before = wrapper.get('.bk-days__nav--before')
+    expect(before.attributes('disabled')).toBeDefined()
+    expect(before.attributes('aria-hidden')).toBe('true')
+  })
+
   it('keeps a professional chosen in the URL and sends it on without «cualquiera»', async () => {
     respond()
     const wrapper = mountPage(BETO.id)

@@ -65,19 +65,19 @@ describe('movimiento de la familia (#741)', () => {
     )
   })
 
-  it('la tarjeta de servicio se levanta y deja asomar un rombo junto a la flecha', () => {
-    expect(booking).toMatch(/\.bk-service:hover \{\s*transform: translateY\(-3px\);/)
-    expect(booking).toMatch(/\.bk-service__go::before \{[^}]*rotate\(45deg\) scale\(0\.2\)/)
+  it('el renglón de la carta deja asomar un rombo en el margen con resorte (#745)', () => {
+    expect(booking).toMatch(/\.bk-service::before \{[^}]*rotate\(45deg\) scale\(0\.2\)/)
+    expect(booking).toMatch(/\.bk-service::before \{[^}]*transform 420ms var\(--motion-ease-spring/)
     expect(booking).toMatch(
-      /\.bk-service:hover \.bk-service__go::before \{\s*opacity: 1;\s*transform: translateX\(-6px\) rotate\(45deg\) scale\(1\);/,
+      /\.bk-service:hover::before,\s*\.bk-service:focus-visible::before \{\s*opacity: 1;\s*transform: translateX\(0\) rotate\(45deg\) scale\(1\);/,
     )
-    // La sombra aparece en fundido sobre su propia capa: no se anima box-shadow.
-    expect(booking).toMatch(/\.bk-service:hover::after \{\s*opacity: 1;/)
+    // Sin flecha de texto ni tarjeta que se levanta: es un renglón de carta.
+    expect(booking).not.toMatch(/bk-service__go/)
   })
 
-  it('con movimiento reducido la tarjeta y los botones no se desplazan', () => {
+  it('con movimiento reducido el rombo del renglón y los botones no se desplazan', () => {
     expect(booking).toMatch(
-      /\.bk-service:hover,\s*\.bk-service:active,\s*\.bk-service:hover \.bk-service__go \{\s*transform: none;/,
+      /\.bk-service:hover::before,\s*\.bk-service:focus-visible::before,\s*\.bk-service:active::before \{\s*transform: rotate\(45deg\);/,
     )
     expect(button).toMatch(
       /:root\[data-motion='reduced'\] \.base-button:hover:not\(:disabled\):not\(\.base-button--loading\),/,

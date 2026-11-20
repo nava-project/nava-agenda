@@ -175,25 +175,30 @@ function durationLabel(minutes: number): string {
   />
 
   <main v-else-if="profile" class="bk-page bk-entry">
-    <section class="bk-hero" aria-labelledby="bk-business-name">
-      <p class="bk-kicker">Reserva en línea</p>
-      <h1 id="bk-business-name" class="bk-hero__name">{{ profile.name }}</h1>
-      <p class="bk-hero__meta">
-        <span>Son las {{ currentTimeLabel }}</span>
-        <span v-if="attentionLabel">{{ attentionLabel }}</span>
-      </p>
-      <DaylightStrip
-        v-if="today"
-        class="bk-hero__strip"
-        :open="today.open"
-        :now="today.now"
-        :label="today.label"
-        :arrive="arriving"
-        variant="band"
-      />
-    </section>
-
     <div class="bk-entry__grid">
+      <!-- El negocio va en la grilla (#745): en escritorio los datos del local
+           suben junto a él y no quedan vacíos a la derecha ni bajo la carta. -->
+      <section class="bk-hero" aria-labelledby="bk-business-name">
+        <p class="bk-kicker">Reserva en línea</p>
+        <h1 id="bk-business-name" class="bk-hero__name">{{ profile.name }}</h1>
+        <!-- La hora del negocio con peso (#745): en serif, junto a dónde atiende. -->
+        <p class="bk-hero__meta">
+          <span class="bk-hero__clock"
+            >Hora del negocio <time class="bk-hero__time">{{ currentTimeLabel }}</time></span
+          >
+          <span v-if="attentionLabel">{{ attentionLabel }}</span>
+        </p>
+        <DaylightStrip
+          v-if="today"
+          class="bk-hero__strip"
+          :open="today.open"
+          :now="today.now"
+          :label="today.label"
+          :arrive="arriving"
+          variant="band"
+        />
+      </section>
+
       <section class="bk-services" aria-labelledby="bk-services-title">
         <h2 id="bk-services-title" class="bk-section-title">Elige un servicio</h2>
 
@@ -210,17 +215,19 @@ function durationLabel(minutes: number): string {
                 params: { slug: props.slug, serviceId: service.id },
               }"
             >
-              <span class="bk-service__name">{{ service.name }}</span>
-              <span v-if="service.description" class="bk-service__desc">{{
-                service.description
-              }}</span>
-              <span class="bk-service__meta">
-                <span>{{ durationLabel(service.durationMinutes) }}</span>
+              <!-- Un renglón de carta (#745): el nombre, los puntos guía y el
+                   precio en la misma línea; debajo, qué es y cuánto dura. -->
+              <span class="bk-service__line">
+                <span class="bk-service__name">{{ service.name }}</span>
+                <span class="bk-service__leader" aria-hidden="true"></span>
                 <span class="bk-service__price">{{
                   formatMoney(service.price, service.currency)
                 }}</span>
               </span>
-              <span class="bk-service__go" aria-hidden="true">→</span>
+              <span v-if="service.description" class="bk-service__desc">{{
+                service.description
+              }}</span>
+              <span class="bk-service__meta">{{ durationLabel(service.durationMinutes) }}</span>
             </RouterLink>
           </li>
         </ul>

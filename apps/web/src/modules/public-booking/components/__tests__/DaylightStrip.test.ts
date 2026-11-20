@@ -47,14 +47,25 @@ describe('DaylightStrip', () => {
     expect(markers[0]!.classes()).toContain('daylight__marker--selected')
   })
 
-  it('marks «now» only inside the visible window', () => {
+  it('marks «now» with the sun inside the window', () => {
     expect(
       mount(DaylightStrip, { props: { open, now: 10 * 60 } })
         .find('.daylight__marker--sun')
         .exists(),
     ).toBe(true)
+  })
+
+  it('keeps «now» on the edge in the entry band when closed (#745)', () => {
+    const before = mount(DaylightStrip, { props: { open, now: 2 * 60 } }).get('.daylight__marker')
+    expect(before.classes()).toContain('daylight__marker--off')
+    expect(parseFloat(before.attributes('style')!.match(/left: ([\d.]+)%/)![1]!)).toBeLessThan(5)
+    const after = mount(DaylightStrip, { props: { open, now: 23 * 60 } }).get('.daylight__marker')
+    expect(parseFloat(after.attributes('style')!.match(/left: ([\d.]+)%/)![1]!)).toBeGreaterThan(95)
+  })
+
+  it('leaves «now» out of the day map when it falls outside the window', () => {
     expect(
-      mount(DaylightStrip, { props: { open, now: 2 * 60 } })
+      mount(DaylightStrip, { props: { open, now: 2 * 60, variant: 'map' } })
         .find('.daylight__marker')
         .exists(),
     ).toBe(false)
