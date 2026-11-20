@@ -528,6 +528,77 @@
   padding: 0;
 }
 
+/* Datos del local con la esencia de la carta (#749): cada renglón une el
+   rótulo y el valor con puntos guía de latón, sin filetes entre renglones. */
+.bk-local .pb-contact__row,
+.bk-local .pb-hours__row {
+  flex-wrap: nowrap;
+  gap: 8px;
+  justify-content: flex-start;
+  border-bottom: 0;
+}
+
+.bk-local .pb-contact,
+.bk-local .pb-hours__week {
+  border-top: 0;
+}
+
+.bk-local .pb-contact__row::after,
+.bk-local .pb-hours__row::after {
+  order: 1;
+  flex: 1 1 16px;
+  min-width: 16px;
+  height: 2px;
+  content: '';
+  background-image: radial-gradient(
+    circle,
+    color-mix(in srgb, var(--color-brass-line) 80%, transparent) 1px,
+    transparent 1.3px
+  );
+  background-repeat: repeat-x;
+  background-size: 6px 2px;
+  transform: translateY(-3px);
+}
+
+.bk-local .pb-contact dt,
+.bk-local .pb-hours__row dt {
+  flex: none;
+}
+
+.bk-local .pb-contact dd,
+.bk-local .pb-hours__row dd {
+  order: 2;
+  min-width: 0;
+  text-align: right;
+}
+
+/* Hoy: un rombo de latón y su palabra; nada de fondo ni barra de color. */
+.bk-local .pb-hours__row--today {
+  padding-left: 0;
+  background: none;
+  box-shadow: none;
+}
+
+.bk-local .pb-hours__row--today dd {
+  padding-right: 0;
+  font-weight: 600;
+}
+
+.bk-local .pb-hours__row--today dt::before {
+  display: inline-block;
+  width: 7px;
+  height: 7px;
+  margin-right: 8px;
+  vertical-align: 0.12em;
+  content: '';
+  background-color: var(--color-brass-line);
+  transform: rotate(45deg);
+}
+
+.bk-local .pb-hours__today {
+  color: var(--color-brass-text);
+}
+
 /* ── Día y hora ─────────────────────────────────────────────────────────── */
 
 /* La barra fija del pase mide 77 px (12 + 52 + 12 y su filete). Su alto se
