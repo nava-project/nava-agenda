@@ -204,7 +204,7 @@ function goTo(page: number) {
 }
 
 .base-pagination__nav :deep(.base-button--secondary:hover:not(:disabled)) {
-  background: color-mix(in srgb, var(--color-text-primary) 6%, transparent);
+  background: color-mix(in srgb, var(--color-text-primary) 12%, transparent);
   color: var(--color-text-primary);
 }
 
@@ -216,6 +216,13 @@ function goTo(page: number) {
   box-shadow: none;
   color: var(--color-text-primary);
   font-weight: 600;
+}
+
+/* El `box-shadow: none` de arriba quitaba también el anillo de foco de
+   BaseButton: el paginador lleva el foco de la familia como contorno (#739). */
+.base-pagination__nav :deep(.base-button:focus-visible) {
+  outline: 2px solid var(--color-focus);
+  outline-offset: 2px;
 }
 
 /* Anterior/siguiente: flechas finas en vez de la caja, más grandes que los

@@ -295,7 +295,7 @@ function formatDate(iso: string): string {
 }
 
 .professional-reviews__toggle:focus-visible {
-  outline: var(--focus-ring-width, 2px) solid var(--color-focus);
+  outline: 2px solid var(--color-focus);
   outline-offset: 2px;
 }
 
@@ -382,7 +382,7 @@ function formatDate(iso: string): string {
 }
 
 .professional-reviews__body--scroll:focus-visible {
-  outline: var(--focus-ring-width, 2px) solid var(--color-focus);
+  outline: 2px solid var(--color-focus);
   outline-offset: 2px;
 }
 

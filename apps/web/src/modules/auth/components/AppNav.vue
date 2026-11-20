@@ -298,6 +298,13 @@ async function onLogoutFromMore() {
   transform: translateX(-50%) rotate(45deg) scale(1);
 }
 
+/* Con el cursor encima, lo elegido se afirma; antes la regla de hover (6 %)
+   pisaba la del activo (11 %) y lo apagaba (#739). */
+.app-nav__link--active:hover .app-nav__icon,
+.app-nav__link[aria-expanded='true']:hover .app-nav__icon {
+  background-color: color-mix(in srgb, var(--color-text-primary) 15%, transparent);
+}
+
 @media (prefers-reduced-motion: reduce) {
   .app-nav__link,
   .app-nav__link::before,
@@ -379,7 +386,9 @@ async function onLogoutFromMore() {
   /* La píldora ya no vive detrás del icono: es el enlace entero. */
   .app-nav__icon,
   .app-nav__link:hover .app-nav__icon,
-  .app-nav__link--active .app-nav__icon {
+  .app-nav__link--active .app-nav__icon,
+  .app-nav__link--active:hover .app-nav__icon,
+  .app-nav__link[aria-expanded='true']:hover .app-nav__icon {
     width: auto;
     height: auto;
     background-color: transparent;
@@ -391,6 +400,10 @@ async function onLogoutFromMore() {
 
   .app-nav__link--active {
     background-color: color-mix(in srgb, var(--color-text-primary) 11%, transparent);
+  }
+
+  .app-nav__link--active:hover {
+    background-color: color-mix(in srgb, var(--color-text-primary) 15%, transparent);
   }
 
   /* El enlace (44 px) va centrado en la isla (52 px con su borde de 1 px), así

@@ -162,13 +162,17 @@ function onInput(event: Event) {
   --pf-brass: var(--pb-brass, var(--color-text-secondary));
   --pf-line-strong: var(--pb-line-strong, color-mix(in srgb, var(--pf-text) 30%, transparent));
   --pf-row-bg: var(--color-surface);
-  --pf-row-bg-hover: color-mix(in srgb, var(--color-text-primary) 4%, var(--color-surface));
-  --pf-row-bg-focus: color-mix(in srgb, var(--color-text-primary) 8%, var(--color-surface));
+  /* Hover y foco conservan el fondo del campo (#739): teñido de gris parecía
+     deshabilitado. */
+  --pf-row-bg-hover: var(--color-surface);
+  --pf-row-bg-focus: var(--color-surface);
   --pf-row-base: color-mix(in srgb, var(--pf-brass) 75%, transparent);
   --pf-row-base-hover: var(--pf-brass);
   --pf-ring-gap: var(--color-surface-strong);
-  --pf-focus: var(--pb-brass, var(--color-focus));
-  --pf-focus-glow: 0 0 22px color-mix(in srgb, var(--pf-focus) 35%, transparent);
+  /* El foco de la familia (#739): del color del texto, sin el acento del
+     negocio ni resplandor. */
+  --pf-focus: var(--color-focus);
+  --pf-focus-glow: 0 0 0 0 transparent;
   --pf-danger: var(--color-danger-on-strong);
 
   display: flex;
@@ -205,8 +209,8 @@ function onInput(event: Event) {
 
 .phone-field__row:hover {
   background-color: var(--pf-row-bg-hover);
-  border-color: color-mix(in srgb, var(--pf-brass) 60%, transparent);
-  border-bottom-color: var(--pf-row-base-hover);
+  border-color: color-mix(in srgb, var(--color-text-primary) 60%, transparent);
+  border-bottom-color: var(--color-text-primary);
 }
 
 .phone-field__row:focus-within {
@@ -314,15 +318,24 @@ function onInput(event: Event) {
 }
 
 .phone-field__error {
+  display: flex;
+  gap: 6px;
+  align-items: flex-start;
   font-size: var(--font-size-body-sm);
   line-height: var(--font-size-body-sm-line);
   color: var(--pf-danger);
 }
 
-/* El foco del selector (opacity 0) se dibuja en la cara. */
-.phone-field__prefix:has(.phone-field__select:focus-visible) .phone-field__face {
-  outline: 2px solid var(--pf-brass);
-  outline-offset: -4px;
+/* El mismo rombo de aviso que `BaseInput` (#739). */
+.phone-field__error::before {
+  flex: none;
+  width: 14px;
+  height: 14px;
+  margin-top: calc((var(--font-size-body-sm-line) - 14px) / 2);
+  content: '';
+  background-color: currentColor;
+  mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 14 14'%3E%3Cpath d='M7 1.2 12.8 7 7 12.8 1.2 7z' fill='none' stroke='black' stroke-width='1.4' stroke-linejoin='round'/%3E%3Cpath d='M7 4.2v3.6' stroke='black' stroke-width='1.5' stroke-linecap='round'/%3E%3Ccircle cx='7' cy='9.9' r='.85'/%3E%3C/svg%3E")
+    center / contain no-repeat;
 }
 
 /* Fondo claro: mismos tokens que `BaseInput` (campo de papel, filete de piedra,

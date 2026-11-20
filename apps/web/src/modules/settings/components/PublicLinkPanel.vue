@@ -173,7 +173,7 @@ onBeforeUnmount(() => clearTimeout(resetTimer))
 }
 
 .public-link__field:focus-visible {
-  outline: var(--border-width-emphasis) solid var(--color-focus);
+  outline: 2px solid var(--color-focus);
   outline-offset: 2px;
 }
 
@@ -197,7 +197,7 @@ onBeforeUnmount(() => clearTimeout(resetTimer))
 }
 
 .public-link__open:focus-visible {
-  outline: var(--border-width-emphasis) solid var(--color-focus);
+  outline: 2px solid var(--color-focus);
   outline-offset: 2px;
 }
 

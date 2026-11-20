@@ -104,7 +104,7 @@ const describedBy = computed(() => (props.error ? errorId : undefined))
 }
 
 .star-input__option:has(.star-input__radio:focus-visible) {
-  outline: var(--focus-ring-width, 2px) solid var(--color-focus);
+  outline: 2px solid var(--color-focus);
   outline-offset: 2px;
 }
 

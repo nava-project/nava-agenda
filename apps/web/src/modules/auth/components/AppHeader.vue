@@ -96,7 +96,9 @@ const { loggingOut, logout: onLogout } = useLogout()
   font-family: var(--font-family-base);
   font-size: var(--font-size-body-sm);
   cursor: pointer;
-  transition: opacity var(--motion-duration-fast) var(--motion-easing-standard);
+  transition:
+    opacity var(--motion-duration-fast) var(--motion-easing-standard),
+    background-color var(--motion-duration-fast) var(--motion-easing-standard);
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -107,6 +109,8 @@ const { loggingOut, logout: onLogout } = useLogout()
 
 .app-header__logout:hover {
   opacity: 1;
+  /* Además del texto pleno, un velo: solo con la opacidad el hover se perdía (#739). */
+  background-color: color-mix(in srgb, var(--color-on-strong) 10%, transparent);
 }
 
 .app-header__logout:disabled {
