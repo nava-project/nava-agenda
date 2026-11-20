@@ -278,10 +278,19 @@ const nowLeft = computed(() =>
   border-style: dashed;
 }
 
+/* Tu turno por confirmar: el rombo vacío de «Por confirmar», del tamaño del tuyo
+   confirmado, con borde liso en tinta y un aura, para que se lea también sobre el
+   cielo claro del mediodía. Punteado no: a este tamaño, girado, el trazo se rompe
+   en manchas en las esquinas. */
 .day-ruler__mark--draft {
+  width: calc(var(--dr-mark) + 4px);
+  height: calc(var(--dr-mark) + 4px);
   color: var(--dr-ink);
   background: var(--dr-paper);
-  border-style: dashed;
+  border: 2px solid currentColor;
+  box-shadow:
+    0 0 0 1.5px var(--dr-paper),
+    0 0 0 5px rgb(16 27 43 / 22%);
 }
 
 .day-ruler__mark--mine {

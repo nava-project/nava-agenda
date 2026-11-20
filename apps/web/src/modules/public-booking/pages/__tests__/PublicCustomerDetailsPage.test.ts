@@ -86,6 +86,8 @@ function mountPage(options: { attachTo?: HTMLElement } = {}) {
 }
 
 beforeEach(() => {
+  // jsdom no implementa scrollTo; al confirmar, la página sube al momento.
+  window.scrollTo = vi.fn() as unknown as typeof window.scrollTo
   // El diálogo de conflicto se teletransporta al <body>: sin limpiarlo, los de
   // pruebas anteriores se acumulan.
   document.body.innerHTML = ''
@@ -559,9 +561,10 @@ describe('PublicCustomerDetailsPage', () => {
   async function confirmWith(
     appointment = CONFIRMED_APPOINTMENT,
     prepare?: (w: ReturnType<typeof mountPage>) => Promise<void>,
+    attach = false,
   ) {
     confirmPublicAppointmentMock.mockResolvedValueOnce({ kind: 'success', appointment })
-    const wrapper = mountPage()
+    const wrapper = mountPage(attach ? { attachTo: document.body } : {})
     await flushPromises()
     await fillValidForm(wrapper)
     if (prepare) await prepare(wrapper)
@@ -573,6 +576,17 @@ describe('PublicCustomerDetailsPage', () => {
     await flushPromises()
     return wrapper
   }
+
+  it('on confirm, goes to the top and focuses the title so the moment is seen (DEC-189)', async () => {
+    const scrollTo = vi.mocked(window.scrollTo)
+    const wrapper = await confirmWith(CONFIRMED_APPOINTMENT, async () => undefined, true)
+    expect(scrollTo).toHaveBeenCalledWith({ top: 0, behavior: 'instant' })
+    expect(document.activeElement).toBe(wrapper.get('h1').element)
+    // Un anuncio corto: no un role="status" que envuelva toda la tarjeta.
+    expect(wrapper.get('.bk-done [role="status"]').text()).toBe('Turno confirmado')
+    expect(wrapper.find('.bk-done__ticket').element.closest('[role="status"]')).toBeNull()
+    wrapper.unmount()
+  })
 
   it('shows the card, now confirmed, in the business time zone and without the access token', async () => {
     const wrapper = await confirmWith()

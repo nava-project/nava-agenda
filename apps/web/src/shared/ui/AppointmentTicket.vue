@@ -22,7 +22,7 @@
  * primer cuadro ya es el estado final.
  */
 import { computed } from 'vue'
-import DayRuler from './DayRuler.vue'
+import DayRuler, { type DayRulerMark } from './DayRuler.vue'
 import ProfessionalAvatar from './ProfessionalAvatar.vue'
 
 export type AppointmentTicketState = 'draft' | 'confirmed' | 'cancelled' | 'completed' | 'no-show'
@@ -58,6 +58,8 @@ interface Props {
     /** «Ahora», en minutos: el Sol sobre la regla mientras el turno está en curso. */
     now?: number | null
   } | null
+  /** Marcas propias de la regla (reprogramar: la hora actual y la nueva); por omisión, tu rombo. */
+  marks?: DayRulerMark[] | null
   ceremony?: boolean
   /** Nombre accesible de la tarjeta. */
   label?: string
@@ -71,6 +73,7 @@ const props = withDefaults(defineProps<Props>(), {
   professionalLabel: 'Profesional',
   stateLabel: '',
   ruler: null,
+  marks: null,
   ceremony: false,
   label: 'Tu turno',
 })
@@ -93,15 +96,17 @@ const timeParts = computed(() => {
     : { clock: props.time.slice(0, i), suffix: props.time.slice(i + 1) }
 })
 
-const rulerMarks = computed(() =>
-  props.ruler
-    ? [
-        {
-          at: props.ruler.at,
-          kind: props.state === 'draft' ? ('draft' as const) : ('mine' as const),
-        },
-      ]
-    : [],
+const rulerMarks = computed(
+  () =>
+    props.marks ??
+    (props.ruler
+      ? [
+          {
+            at: props.ruler.at,
+            kind: props.state === 'draft' ? ('draft' as const) : ('mine' as const),
+          },
+        ]
+      : []),
 )
 </script>
 

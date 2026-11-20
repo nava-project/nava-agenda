@@ -8,7 +8,7 @@
 // clave de idempotencia. Plazo, límite, franja y versión los decide el servidor;
 // `rescheduleAvailability` es solo una pista para no ofrecer lo que no procede.
 import { computed, nextTick, onMounted, ref, watch } from 'vue'
-import { AppointmentTicket, BaseAlert } from '@/shared/ui'
+import { AppointmentTicket, BaseAlert, type DayRulerMark } from '@/shared/ui'
 import { buildVocabularyFromTerms } from '@/shared/model'
 import { civilDateChip, formatCivilDateFull, getCivilDateInTimezone } from '@/shared/time/civilDate'
 import { formatTimeInTimezone } from '@/shared/time/formatInstant'
@@ -178,6 +178,42 @@ const proposed = computed(() => {
     leaf: calendarLeaf(start, timezone.value),
     start: timeLabel(start),
     end: timeLabel(endFor(start)),
+  }
+})
+
+// La tarjeta de turno en borrador (DEC-189): el cuerpo muestra la hora actual o,
+// elegida, la nueva; la regla lleva el rombo hueco en la actual y el Sol en la nueva.
+const swapTicket = computed(() => {
+  const a = appointment.value
+  if (!a) return null
+  const now = ticketMoment(a.startsAt, a.endsAt, a.timezone)
+  const start = selectedStart.value
+  const next = start ? ticketMoment(start, endFor(start), a.timezone) : null
+  const shown = next ?? now
+  const from = Math.min(now.from, next?.from ?? now.from)
+  const to = Math.max(now.to, next?.to ?? now.to)
+  const marks: DayRulerMark[] = [{ at: now.at, kind: 'draft' }]
+  if (next) marks.push({ at: next.at, kind: 'mine' })
+  return {
+    businessName: a.businessName,
+    serviceName: a.serviceName,
+    meta: `${a.durationMinutes} min`,
+    weekday: `${next ? 'Hora nueva' : 'Hora actual'} · ${shown.weekday}`,
+    month: shown.month,
+    day: shown.day,
+    time: shown.time,
+    timeNote: `hasta ${shown.endTime} · ${timezoneLabel(a.timezone)}`,
+    professionalName: a.professionalName,
+    stateLabel: next ? 'Por confirmar' : 'Cambiando la hora',
+    marks,
+    ruler: {
+      from,
+      to,
+      at: shown.at,
+      label: next
+        ? `Tu turno en el día: de las ${now.time} pasa a las ${next.time} del ${next.weekday.toLocaleLowerCase('es-CO')} ${next.day}.`
+        : `Tu turno en el día: ${now.weekday.toLocaleLowerCase('es-CO')} ${now.day}, a las ${now.time}.`,
+    },
   }
 })
 
@@ -470,45 +506,24 @@ const requestId = computed(() =>
         <!-- El pase: la hora de ahora y la nueva. En pantallas anchas queda fijo en el
              riel derecho, como en «Día y hora»; en móvil, arriba. -->
         <aside class="mt-swap__aside">
-          <article
-            class="mt-pase stamp"
-            :class="{ 'mt-pase--picked': proposed }"
-            aria-label="Hora actual y hora nueva"
+          <AppointmentTicket
+            v-if="swapTicket"
+            class="mt-swap__ticket"
+            state="draft"
+            v-bind="swapTicket"
+            :professional-label="v.Professional"
+            label="Hora actual y hora nueva"
           >
-            <p class="mt-pase__service">
-              {{ appointment.serviceName }}
-              <span class="mt-pase__minutes">{{ appointment.durationMinutes }} min</span>
+            <!-- Una sola línea de alto fijo: elegir no cambia el alto de la tarjeta
+                 ni mueve el selector que queda debajo en móvil. -->
+            <p class="mt-swap__before mt-swap__line">
+              <template v-if="proposed && current">
+                Antes: {{ current.leaf.weekday }} {{ current.leaf.day }} {{ current.leaf.month }},
+                <span class="stamp__time--struck">{{ current.start }}</span>
+              </template>
+              <template v-else>Elige abajo un día y una hora.</template>
             </p>
-            <div class="mt-swap__row">
-              <p class="mt-swap__label">Hora actual</p>
-              <p class="mt-swap__now">
-                {{ current.leaf.weekday }} {{ current.leaf.day }} {{ current.leaf.month }},
-                <span :class="{ 'stamp__time--struck': proposed }"
-                  >{{ current.start }} – {{ current.end }}</span
-                >
-              </p>
-            </div>
-            <div class="mt-swap__row mt-swap__row--new">
-              <p class="mt-swap__label">Hora nueva</p>
-              <!-- Marcador y hora comparten celda con una medida invisible del texto más
-                   largo posible: elegir no cambia el alto del pase ni mueve el selector
-                   que queda debajo en móvil. -->
-              <div class="mt-swap__stack">
-                <p class="mt-pase__when mt-swap__sizer" aria-hidden="true">
-                  <span class="mt-pase__day">miércoles, 30 de septiembre de 2026</span>
-                  <span class="mt-pase__time">12:45 p. m. – 12:45 p. m.</span>
-                </p>
-                <p v-if="proposed" :key="selectedStart ?? ''" class="mt-pase__when mt-swap__in">
-                  <span class="mt-pase__day"
-                    >{{ proposed.leaf.weekday }}, {{ proposed.leaf.longDate }}</span
-                  >
-                  <span class="mt-pase__time">{{ proposed.start }} – {{ proposed.end }}</span>
-                </p>
-                <p v-else class="mt-swap__placeholder">Elige un día y una hora</p>
-              </div>
-            </div>
-            <p class="mt-pase__zone">{{ timezoneLabel(timezone) }}</p>
-          </article>
+          </AppointmentTicket>
 
           <ul v-if="availability?.mode === 'available'" class="mt-swap__facts">
             <li>{{ remainingLabel }}</li>

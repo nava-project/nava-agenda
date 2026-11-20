@@ -183,7 +183,7 @@ if (props.confirmed) {
 const formRef = ref<HTMLElement | null>(null)
 const summaryRef = ref<HTMLElement | null>(null)
 const actionsRef = ref<HTMLElement | null>(null)
-const confirmedRef = ref<HTMLElement | null>(null)
+const doneHeadingRef = ref<HTMLElement | null>(null)
 
 const fieldErrors = computed(() => ({
   fullName: validateCustomerFullName(fullName.value),
@@ -515,8 +515,13 @@ async function handleConfirm() {
         },
         query: { ...(props.anyProfessional ? { cualquiera: '1' } : {}), confirmado: '1' },
       })
+      // El momento («Todo listo» y el emblema) va arriba: en el teléfono el botón
+      // quedaba al pie y el navegador desplazaba hasta la tarjeta, así que la
+      // ceremonia ocurría fuera de pantalla. Se sube antes del primer cuadro y el
+      // foco va al título, sin volver a desplazar (DEC-189).
       await nextTick()
-      confirmedRef.value?.focus()
+      window.scrollTo({ top: 0, behavior: 'instant' })
+      doneHeadingRef.value?.focus({ preventScroll: true })
       return
     }
     case 'schedule-conflict':
@@ -590,7 +595,7 @@ function chooseAlternative(startsAt: string) {
          serif (DEC-189). El emblema abre la ceremonia. -->
     <template v-if="confirmState === 'confirmed'">
       <span class="bk-done__emblem" aria-hidden="true"></span>
-      <h1 class="bk-title bk-done__title">
+      <h1 ref="doneHeadingRef" class="bk-title bk-done__title" tabindex="-1">
         <span class="bk-done__moment">Todo listo</span>
         <span class="bk-done__headline">Tu turno quedó agendado</span>
       </h1>
@@ -847,13 +852,10 @@ function chooseAlternative(startsAt: string) {
            con el enlace de acceso ya se envió; el token en claro solo
            existe en esta respuesta (DEC-089), nunca se vuelve a mostrar ni
            se dibuja aquí. Se presenta como un boleto de turno. -->
-      <div
-        v-else
-        ref="confirmedRef"
-        class="customer-details__confirmed bk-done"
-        role="status"
-        tabindex="-1"
-      >
+      <!-- Sin role="status" en todo el bloque: un lector leería la tarjeta entera. El
+           foco va al título y el anuncio es corto. -->
+      <div v-else class="customer-details__confirmed bk-done">
+        <p class="pb-sr-only" role="status">Turno confirmado</p>
         <template v-if="confirmedAppointment && done">
           <!-- La tarjeta del resumen, ahora confirmada: el borde se cierra, la hora
                se asienta, el rombo pasa a Sol y el sello se estampa, una sola vez
@@ -1359,8 +1361,10 @@ function chooseAlternative(startsAt: string) {
   gap: var(--space-3);
 }
 
+/* Los botones de una misma pila comparten radio (el del primario). */
 .customer-details__actions :deep(.base-button) {
   width: 100%;
+  border-radius: var(--radius-lg);
 }
 
 @media (min-width: 480px) {
@@ -1430,6 +1434,11 @@ function chooseAlternative(startsAt: string) {
 .bk-done__title {
   display: grid;
   gap: var(--space-3);
+}
+
+/* Recibe el foco al confirmar para el lector de pantalla; no es un control. */
+.bk-done__title:focus {
+  outline: none;
 }
 
 .bk-done__moment {
