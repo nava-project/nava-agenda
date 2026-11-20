@@ -1198,7 +1198,12 @@ async function reloadAfterConflict(serviceId: string) {
               </li>
             </template>
             <template v-else>
-              <li v-for="service in services" :key="service.id" class="catalog-page__row">
+              <li
+                v-for="(service, index) in services"
+                :key="service.id"
+                class="catalog-page__row nv-stagger"
+                :style="{ '--i': index }"
+              >
                 <div class="catalog-page__item-heading">
                   <span class="catalog-page__item-icon" aria-hidden="true">{{
                     serviceInitial(service.name)

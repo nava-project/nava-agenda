@@ -1323,7 +1323,8 @@ const dayChangeMarkerPercent = computed(() => {
                 </li>
                 <li
                   :data-entry-id="entry.id"
-                  class="daily-agenda-page__item"
+                  class="daily-agenda-page__item nv-stagger"
+                  :style="{ '--i': index }"
                   :class="{
                     'daily-agenda-page__item--terminal': entry.status !== 'confirmed',
                     'daily-agenda-page__item--current': isEntryInProgress(entry),

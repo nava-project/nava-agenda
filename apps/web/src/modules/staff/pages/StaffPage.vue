@@ -789,9 +789,10 @@ async function onSubmitRename() {
             :aria-label="`${v.Professionals} ${v.ofTheBusiness}`"
           >
             <li
-              v-for="professional in pageLoading ? [] : professionals"
+              v-for="(professional, index) in pageLoading ? [] : professionals"
               :key="professional.id"
-              class="staff-page__row"
+              class="staff-page__row nv-stagger"
+              :style="{ '--i': index }"
               :class="{
                 'staff-page__row--new': professional.id === justAddedId,
               }"
