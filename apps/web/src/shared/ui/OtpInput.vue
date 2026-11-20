@@ -200,6 +200,10 @@ const slotsClasses = (index: number) => {
   flex-direction: column;
   gap: var(--space-2);
   width: 100%;
+  /* Dentro de una grilla con columna implícita (los formularios de mi turno),
+     la pista se mide por el contenido: sin esto, Firefox la ensancha hasta
+     el ancho intrínseco de las seis casillas (#733). */
+  min-width: 0;
 }
 
 .otp-input__label {
@@ -221,6 +225,9 @@ const slotsClasses = (index: number) => {
    no en la sans funcional del resto del control. */
 .otp-input__slot {
   flex: 1 1 0;
+  /* Un <input> trae ancho intrínseco (≈20 caracteres a 22 px). Con ancho 0
+     la casilla solo toma lo que le reparte el flex y no empuja la fila (#733). */
+  width: 0;
   min-width: 0;
   height: var(--control-height);
   padding: 0;
