@@ -23,6 +23,7 @@
  * Para la tecnología de asistencia solo existe `label`, una frase con lo que
  * dibuja; sin ella la franja es decorativa (la información está en texto).
  */
+import { SKY_STOPS } from '@/shared/time/daySky'
 import { computed } from 'vue'
 import type { DaylightMark } from '../model/daylight'
 
@@ -106,21 +107,11 @@ const spanStyle = (i: Interval) => ({
 })
 
 // El cielo: cada color cae en su hora real (fuera de la ventana también, para
-// que el borde tenga el tono que le toca).
-const SKY: [number, string][] = [
-  [0, 'night'],
-  [5, 'night'],
-  [6.5, 'dawn'],
-  [8.5, 'morning'],
-  [12.5, 'noon'],
-  [16, 'afternoon'],
-  [18, 'dusk'],
-  [19.5, 'night'],
-  [24, 'night'],
-]
+// que el borde tenga el tono que le toca). Las paradas son las de la regla del
+// día (shared/time/daySky.ts): un solo cielo.
 const sky = computed(
   () =>
-    `linear-gradient(90deg, ${SKY.map(([h, c]) => `var(--dl-${c}) ${pct(h * HOUR)}`).join(', ')})`,
+    `linear-gradient(90deg, ${SKY_STOPS.map(([h, c]) => `var(--dl-${c}) ${pct(h * HOUR)}`).join(', ')})`,
 )
 
 function complement(spans: Interval[], within: Interval[]): Interval[] {

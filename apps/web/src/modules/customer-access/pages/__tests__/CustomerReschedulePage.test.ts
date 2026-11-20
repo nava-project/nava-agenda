@@ -173,6 +173,25 @@ describe('CustomerReschedulePage', () => {
     expect(w.find('[role="status"].visually-hidden').text()).toContain('Nueva hora elegida')
   })
 
+  it('usa la tarjeta de turno en borrador: rombo hueco en la hora actual y el Sol en la nueva (DEC-189)', async () => {
+    mockLoad()
+    const w = await mountPage()
+
+    const ticket = w.get('.mt-swap__ticket')
+    expect(ticket.classes()).toContain('appointment-ticket--draft')
+    expect(ticket.get('.appointment-ticket__weekday').text()).toMatch(/^Hora actual · /)
+    expect(ticket.findAll('.day-ruler__mark--draft')).toHaveLength(1)
+    expect(ticket.find('.day-ruler__mark--mine').exists()).toBe(false)
+
+    await days(w)[1]!.trigger('click')
+    await slots(w)[0]!.trigger('click')
+
+    expect(ticket.get('.appointment-ticket__weekday').text()).toMatch(/^Hora nueva · /)
+    expect(ticket.get('.appointment-ticket__pending').text()).toBe('Por confirmar')
+    expect(ticket.findAll('.day-ruler__mark--draft')).toHaveLength(1)
+    expect(ticket.findAll('.day-ruler__mark--mine')).toHaveLength(1)
+  })
+
   it('con el teclado las flechas recorren y eligen, como en «Día y hora»', async () => {
     mockLoad()
     const w = await mountPage()

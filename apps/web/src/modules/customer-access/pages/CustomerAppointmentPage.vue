@@ -11,9 +11,8 @@
 // mismo pase de la cita que el cliente vio al confirmar. La cuenta regresiva y el
 // progreso solo leen `startsAt`/`endsAt`; no deciden nada de la política.
 import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue'
-import { ProfessionalAvatar, BaseAlert } from '@/shared/ui'
+import { AppointmentTicket, BaseAlert, type AppointmentTicketState } from '@/shared/ui'
 import { buildVocabularyFromTerms } from '@/shared/model'
-import { formatTimeInTimezone } from '@/shared/time/formatInstant'
 import {
   BookingStateScreen,
   PublicFrame,
@@ -25,13 +24,10 @@ import { createReview } from '../api/createReviewApi'
 import AppointmentCancellation from '../components/AppointmentCancellation.vue'
 import AppointmentReview from '../components/AppointmentReview.vue'
 import { useAppointmentCancel } from '../composables/useAppointmentCancel'
-import {
-  appointmentPhase,
-  appointmentProgress,
-  calendarLeaf,
-  countdownLabel,
-} from '../model/appointmentMoment'
+import { appointmentPhase, countdownLabel } from '../model/appointmentMoment'
 import { timezoneLabel } from '@/shared/time/timezoneName'
+import { getCivilDateInTimezone, minutesSinceCivilMidnight } from '@/shared/time/civilDate'
+import { ticketMoment } from '@/shared/time/ticketMoment'
 import {
   appointmentStatusLabel,
   type CancelAppointmentInput,
@@ -245,13 +241,50 @@ const moment = computed(() => {
   const { appointment: a } = screenState.value
   const phase = appointmentPhase(a.startsAt, a.endsAt, clockMs.value)
   return {
-    leaf: calendarLeaf(a.startsAt, a.timezone),
-    start: formatTimeInTimezone(a.startsAt, a.timezone),
-    end: formatTimeInTimezone(a.endsAt, a.timezone),
     zone: timezoneLabel(a.timezone),
     phase,
-    progress: appointmentProgress(a.startsAt, a.endsAt, clockMs.value),
     countdown: countdownLabel(a.startsAt, a.endsAt, a.timezone, clockMs.value),
+  }
+})
+
+// La tarjeta de turno (DEC-189): la misma de la confirmación, quieta. El sello
+// dice el estado en corto; la línea de encima, la cuenta o el estado completo.
+const TICKET_STATE: Record<string, AppointmentTicketState> = {
+  confirmed: 'confirmed',
+  completed: 'completed',
+  no_show: 'no-show',
+  cancelled_by_customer: 'cancelled',
+  cancelled_by_professional: 'cancelled',
+}
+const ticket = computed(() => {
+  if (screenState.value.status !== 'success' || !moment.value) return null
+  const { appointment: a } = screenState.value
+  const m = ticketMoment(a.startsAt, a.endsAt, a.timezone)
+  // Sin horario del local en esta respuesta, la regla muestra el día con su
+  // contexto (ticketMoment); en curso, el Sol marca «ahora».
+  const now =
+    isConfirmed.value && moment.value.phase === 'in-progress'
+      ? minutesSinceCivilMidnight(
+          new Date(clockMs.value).toISOString(),
+          getCivilDateInTimezone(a.timezone, new Date(a.startsAt)),
+          a.timezone,
+        )
+      : null
+  return {
+    state: TICKET_STATE[a.status] ?? 'confirmed',
+    weekday: m.weekday,
+    month: m.month,
+    day: m.day,
+    time: m.time,
+    timeNote: `hasta ${m.endTime} · ${moment.value.zone}`,
+    meta: `${a.durationMinutes} min`,
+    ruler: {
+      from: m.from,
+      to: m.to,
+      at: m.at,
+      now,
+      label: `Tu turno en el día: ${m.weekday.toLocaleLowerCase('es-CO')} ${m.day}, de ${m.time} a ${m.endTime}.`,
+    },
   }
 })
 
@@ -319,62 +352,28 @@ function addToCalendar() {
     />
 
     <main v-else class="bk-page mt">
-      <p class="mt__meta">
-        <span
-          class="mt-status"
-          :class="`mt-status--${screenState.appointment.status}`"
-          role="status"
-          >{{ statusLabel }}</span
-        >
-        <span v-if="isConfirmed && moment" class="mt__countdown">{{ moment.countdown }}</span>
+      <!-- Encima de la tarjeta, una sola línea: la cuenta («En 2 días») o, si el
+           turno ya no está confirmado, su estado completo. -->
+      <p class="mt__meta" role="status">
+        {{ isConfirmed && moment ? moment.countdown : statusLabel }}
       </p>
       <h1 class="bk-title mt__title">Tu turno</h1>
-
-      <!-- El pase de la cita, el mismo de la confirmación, ahora como lectura viva.
-           La credencial del enlace nunca se dibuja (DEC-089). -->
-      <article
-        v-if="moment"
-        class="mt-pase"
-        :class="{ 'mt-pase--off': !isConfirmed }"
-        aria-label="Detalle del turno"
+      <!-- La tarjeta de turno (DEC-189). La credencial del enlace nunca se dibuja (DEC-089). -->
+      <AppointmentTicket
+        v-if="ticket"
+        class="mt__ticket"
+        v-bind="ticket"
+        :business-name="screenState.appointment.businessName"
+        :service-name="screenState.appointment.serviceName"
+        :professional-name="screenState.appointment.professionalName"
+        :professional-label="v.Professional"
+        label="Detalle del turno"
       >
-        <p class="mt-pase__service">
-          {{ screenState.appointment.serviceName }}
-          <span class="mt-pase__minutes">{{ screenState.appointment.durationMinutes }} min</span>
+        <p class="mt__attendee">
+          <span class="mt__attendee-label">Persona atendida</span>
+          {{ screenState.appointment.attendeeName }}
         </p>
-        <p class="mt-pase__when">
-          <span class="mt-pase__day">{{ moment.leaf.weekday }}, {{ moment.leaf.longDate }}</span>
-          <span class="mt-pase__time"
-            >{{ moment.start }}<span class="visually-hidden"> hasta </span
-            ><span aria-hidden="true"> – </span>{{ moment.end }}</span
-          >
-          <span class="mt-pase__zone">{{ moment.zone }}</span>
-        </p>
-        <!-- En curso, una línea avanza con el reloj hasta el final del turno. -->
-        <span
-          v-if="isConfirmed && moment.phase === 'in-progress'"
-          class="mt-pase__progress"
-          :style="{ '--progress': moment.progress }"
-          aria-hidden="true"
-        ></span>
-        <dl class="mt-pase__people">
-          <div class="mt-pase__person">
-            <dt>{{ v.Professional }}</dt>
-            <dd>
-              <ProfessionalAvatar
-                size="option"
-                :full-name="screenState.appointment.professionalName"
-              />
-              {{ screenState.appointment.professionalName }}
-            </dd>
-          </div>
-          <div class="mt-pase__person">
-            <dt>Persona atendida</dt>
-            <dd>{{ screenState.appointment.attendeeName }}</dd>
-          </div>
-        </dl>
-      </article>
-
+      </AppointmentTicket>
       <div class="mt__notes">
         <BaseAlert v-if="cancelNotice" variant="warning" role="status">{{
           cancelNotice

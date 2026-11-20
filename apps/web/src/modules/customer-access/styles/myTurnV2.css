@@ -30,69 +30,10 @@
 /* ── Estado y cuenta regresiva ──────────────────────────────────────────── */
 
 .mt__meta {
-  display: flex;
-  flex-wrap: wrap;
-  gap: var(--space-2) var(--space-3);
-  align-items: center;
-  margin: 0 0 var(--space-3);
-  font-size: 14px;
-  color: var(--color-text-secondary);
-}
-
-.mt-status {
-  display: inline-flex;
-  gap: var(--space-2);
-  align-items: center;
-  min-height: 28px;
-  padding: 0 var(--space-3);
-  font-size: 13px;
-  font-weight: 600;
-  color: var(--color-text-primary);
-  background-color: var(--color-surface-muted);
-  border: 1px solid var(--color-border-subtle);
-  border-radius: 999px;
-}
-
-/* La marca del estado, la misma de la agenda (styles/statusMarks.css). */
-.mt-status::before {
-  flex: none;
-  width: 12px;
-  height: 12px;
-  content: '';
-  background-color: currentcolor;
-  mask: var(--mt-mark, var(--mark-confirmed)) center / contain no-repeat;
-}
-
-.mt-status--confirmed {
-  background-color: color-mix(in srgb, var(--bk-accent) 12%, var(--color-surface));
-  border-color: color-mix(in srgb, var(--bk-accent) 40%, transparent);
-}
-
-.mt-status--confirmed::before {
-  background-color: var(--bk-accent);
-}
-
-.mt-status--completed {
-  --mt-mark: var(--mark-completed);
-  color: var(--color-success-text);
-  background-color: var(--color-success-surface);
-  border-color: var(--color-success-border);
-}
-
-/* Un turno cancelado es gris, nunca del color del negocio. */
-.mt-status--cancelled_by_customer,
-.mt-status--cancelled_by_professional {
-  --mt-mark: var(--mark-cancelled);
-  color: var(--color-inactive-text);
-  background-color: var(--color-inactive-surface);
-  border-color: var(--color-inactive-border);
-}
-
-.mt-status--no_show {
-  --mt-mark: var(--mark-no-show);
-  color: var(--color-warning-text);
-  background-color: var(--color-warning-surface);
-  border-color: var(--color-warning-border);
+  margin: 0 0 var(--space-2);
+  font-size: 15px;
+  font-weight: 500;
+  color: var(--color-brass-text);
 }
 
 .mt__title {
@@ -105,130 +46,26 @@
   outline: none;
 }
 
-/* ── El pase ────────────────────────────────────────────────────────────── */
-
-.mt-pase {
-  position: relative;
-  display: grid;
-  gap: var(--space-4);
-  padding: var(--space-5);
-  overflow: hidden;
-  background-color: var(--color-surface);
-  border: 1px solid var(--color-border-subtle);
-  border-radius: var(--radius-lg);
-  animation: mt-llega 420ms var(--bk-ease) both;
+/* La tarjeta de turno (DEC-189) y lo que lleva dentro. */
+.mt__ticket {
+  margin-top: var(--space-2);
 }
 
-/* El filete del acento a la izquierda: el pase sigue «agendado». */
-.mt-pase::before {
-  position: absolute;
-  inset: 0 auto 0 0;
-  width: 4px;
-  content: '';
-  background-color: var(--bk-accent);
-}
-
-.mt-pase--off::before {
-  background-color: var(--color-border-control);
-}
-
-.mt-pase--off .mt-pase__time {
-  color: var(--color-text-secondary);
-}
-
-.mt-pase p {
+.mt__attendee,
+.mt__ticket .mt-swap__before,
+.mt-swap__line {
+  padding: var(--space-3) 22px 0;
   margin: 0;
-}
-
-.mt-pase__service {
-  display: flex;
-  gap: var(--space-3);
-  align-items: baseline;
-  justify-content: space-between;
-  font-size: 18px;
-  font-weight: 600;
-}
-
-.mt-pase__minutes {
-  flex: none;
-  font-size: 14px;
-  font-weight: 400;
-  color: var(--color-text-secondary);
-  font-variant-numeric: tabular-nums;
-}
-
-.mt-pase__when {
-  display: grid;
-  gap: 2px;
-}
-
-.mt-pase__day {
+  border-top: 0;
   font-size: 15px;
+  line-height: 22px;
 }
 
-.mt-pase__day::first-letter {
-  text-transform: uppercase;
-}
-
-.mt-pase__time {
-  font-size: 28px;
-  font-weight: 600;
-  line-height: 1.15;
-  letter-spacing: -0.01em;
-  font-variant-numeric: tabular-nums;
-}
-
-.mt-pase__zone {
-  font-size: 13px;
-  color: var(--color-text-secondary);
-}
-
-.mt-pase__progress {
+.mt__attendee-label {
   display: block;
-  height: 4px;
-  overflow: hidden;
-  background-color: var(--color-surface-muted);
-  border-radius: 2px;
-}
-
-.mt-pase__progress::after {
-  display: block;
-  height: 100%;
-  content: '';
-  background-color: var(--color-sun);
-  transform: scaleX(var(--progress, 0));
-  transform-origin: left;
-  transition: transform 600ms var(--bk-ease);
-}
-
-.mt-pase__people {
-  display: grid;
-  gap: var(--space-3);
-  padding-top: var(--space-4);
-  margin: 0;
-  border-top: 1px solid var(--color-border-subtle);
-}
-
-@media (min-width: 560px) {
-  .mt-pase__people {
-    grid-template-columns: 1fr 1fr;
-  }
-}
-
-.mt-pase__person dt {
-  margin-bottom: 2px;
-  font-size: 13px;
+  font-size: 12px;
+  line-height: 16px;
   color: var(--color-text-secondary);
-}
-
-.mt-pase__person dd {
-  display: flex;
-  gap: var(--space-2);
-  align-items: center;
-  min-height: 32px;
-  margin: 0;
-  font-size: 15px;
-  font-weight: 500;
 }
 
 /* ── Avisos y acciones ──────────────────────────────────────────────────── */
@@ -477,7 +314,7 @@
 }
 
 @media (min-width: 1024px) {
-  /* El pase va en el riel derecho, como en «Día y hora»; en móvil queda arriba. */
+  /* La tarjeta va en el riel derecho, como en «Día y hora»; en móvil queda arriba. */
   .mt-swap__grid {
     grid-template-columns: minmax(0, 1fr) 360px;
     gap: var(--space-10, 40px);
@@ -491,64 +328,23 @@
   }
 }
 
-.mt-swap__row {
-  display: grid;
-  gap: 2px;
-}
-
-.mt-swap__row--new {
-  padding-top: var(--space-4);
-  border-top: 1px solid var(--color-border-subtle);
-}
-
-.mt-swap__label {
-  font-size: 13px;
-  color: var(--color-text-secondary);
-}
-
-.mt-swap__now {
-  font-size: 15px;
-}
-
-.mt-swap__now::first-letter,
 .mt-swap__before::first-letter {
   text-transform: uppercase;
+}
+
+/* Una línea de alto fijo bajo la regla: elegir no mueve el selector de abajo. */
+.mt-swap__line {
+  min-height: calc(22px + var(--space-3));
+  overflow: hidden;
+  color: var(--color-text-secondary);
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .stamp__time--struck {
   color: var(--color-text-secondary);
   text-decoration: line-through;
   text-decoration-thickness: 2px;
-}
-
-.mt-swap__stack {
-  display: grid;
-}
-
-.mt-swap__stack > * {
-  grid-area: 1 / 1;
-  margin: 0;
-}
-
-.mt-swap__sizer {
-  visibility: hidden;
-}
-
-.mt-swap__placeholder {
-  display: grid;
-  place-items: center;
-  font-size: 14px;
-  color: var(--color-text-secondary);
-  border: 1px dashed var(--color-border-control);
-  border-radius: var(--radius-md);
-}
-
-.mt-pase--picked .mt-pase__time {
-  color: var(--color-text-primary);
-}
-
-.mt-swap__in {
-  animation: mt-llega 320ms var(--bk-ease) both;
 }
 
 .mt-swap__facts {
@@ -648,23 +444,6 @@
 .mt-swap__cta {
   width: 100%;
   max-width: 360px;
-}
-
-/* La hora nueva «se agenda»: el pase baja a su sitio, como en la confirmación. */
-.mt-pase--landed {
-  margin-top: var(--space-4);
-  animation: mt-se-agenda 620ms cubic-bezier(0.2, 0.7, 0.2, 1) both;
-}
-
-@keyframes mt-se-agenda {
-  from {
-    opacity: 0;
-    transform: translateY(-24px) scale(0.98);
-  }
-
-  60% {
-    opacity: 1;
-  }
 }
 
 /* ── Acceso con código ──────────────────────────────────────────────────── */
@@ -872,29 +651,4 @@
 .mt-choices__zone {
   font-size: 13px;
   color: var(--color-text-secondary);
-}
-
-/* ── Movimiento ─────────────────────────────────────────────────────────── */
-
-@keyframes mt-llega {
-  from {
-    opacity: 0;
-    transform: translateY(8px);
-  }
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .mt-pase,
-  .mt-swap__in,
-  .mt-pase__progress::after {
-    animation: none;
-    transition: none;
-  }
-}
-
-:root[data-motion='reduced'] .mt-pase,
-:root[data-motion='reduced'] .mt-swap__in,
-:root[data-motion='reduced'] .mt-pase__progress::after {
-  animation: none;
-  transition: none;
 }
