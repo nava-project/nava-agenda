@@ -4,6 +4,8 @@
  * pegado con distribución automática, avance, retroceso, flechas,
  * filtrado a dígitos, nombre accesible del grupo y estados.
  */
+import { readFileSync } from 'node:fs'
+import { resolve } from 'node:path'
 import { describe, it, expect } from 'vitest'
 import { mount } from '@vue/test-utils'
 import { axe } from 'vitest-axe'
@@ -195,5 +197,22 @@ describe('OtpInput', () => {
       })
       expect(await axe(wrapper.element, axeOptions)).toHaveNoViolations()
     })
+  })
+})
+
+describe('OtpInput · ancho (#733)', () => {
+  const css = readFileSync(resolve(__dirname, '../OtpInput.vue'), 'utf-8')
+  const rule = (selector: string) =>
+    new RegExp(`\\n${selector.replace(/[.]/g, '\\.')} \\{([^}]*)\\}`).exec(css)?.[1] ?? ''
+
+  it('las casillas no aportan ancho intrínseco: solo reparten el de la fila', () => {
+    const slot = rule('.otp-input__slot')
+    expect(slot).toMatch(/flex: 1 1 0;/)
+    expect(slot).toMatch(/\n\s*width: 0;/)
+    expect(slot).toMatch(/min-width: 0;/)
+  })
+
+  it('el componente puede encogerse dentro de una grilla', () => {
+    expect(rule('.otp-input')).toMatch(/min-width: 0;/)
   })
 })
