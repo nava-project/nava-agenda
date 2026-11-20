@@ -225,7 +225,13 @@ onMounted(load)
       />
 
       <div class="opening__actions">
-        <BaseButton type="button" :loading="saving" :disabled="!dirty" @click="save">
+        <BaseButton
+          type="button"
+          :loading="saving"
+          loading-label="Guardando…"
+          :disabled="!dirty"
+          @click="save"
+        >
           Guardar horario
         </BaseButton>
         <BaseButton v-if="dirty && !saving" type="button" variant="ghost" @click="discard">

@@ -1,7 +1,7 @@
 /**
- * Tests for DiamondLoader v2 (DEC-188, entrega 5): el texto de la espera a la
- * vista y accesible, el dibujo del sol decorativo y sin temporizadores (ya no
- * rota frases).
+ * Tests for DiamondLoader (DEC-188, entrega 5; #735): el texto de la espera a
+ * la vista y accesible, el diamante dentro del sol decorativo, sin
+ * temporizadores, y su región viva solo cuando se pide (`announce`).
  */
 import { describe, expect, it, vi } from 'vitest'
 import { mount } from '@vue/test-utils'
@@ -14,10 +14,26 @@ describe('DiamondLoader', () => {
   it('says what it waits for in visible text and hides the drawing', () => {
     const wrapper = mount(DiamondLoader, { props: { label: 'Cargando el equipo…' } })
     expect(wrapper.text()).toBe('Cargando el equipo…')
-    expect(wrapper.get('.diamond-loader__stage').attributes('aria-hidden')).toBe('true')
-    // Sin la voz v1: ni frases rotativas ni rombo.
+    // La marca es el diamante dentro del sol (SunDiamond), decorativa.
+    const mark = wrapper.get('svg.sun-diamond')
+    expect(mark.attributes('aria-hidden')).toBe('true')
     expect(wrapper.find('.diamond-loader__phrase').exists()).toBe(false)
-    expect(wrapper.find('svg').exists()).toBe(false)
+    wrapper.unmount()
+  })
+
+  it('announces itself only when asked, so it never nests two live regions', () => {
+    const quiet = mount(DiamondLoader, { props: { label: 'Cargando' } })
+    expect(quiet.attributes('role')).toBeUndefined()
+    quiet.unmount()
+    const loud = mount(DiamondLoader, { props: { label: 'Abriendo la reserva…', announce: true } })
+    expect(loud.attributes('role')).toBe('status')
+    expect(loud.attributes('aria-live')).toBe('polite')
+    loud.unmount()
+  })
+
+  it('overlay sits on the skeleton without taking height of its own', () => {
+    const wrapper = mount(DiamondLoader, { props: { label: 'Cargando', layout: 'overlay' } })
+    expect(wrapper.classes()).toContain('diamond-loader--overlay')
     wrapper.unmount()
   })
 

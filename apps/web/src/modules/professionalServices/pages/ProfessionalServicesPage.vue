@@ -344,7 +344,7 @@ async function onToggleService(service: ServiceSummary, event: Event) {
       role="status"
       aria-live="polite"
     >
-      <DiamondLoader :label="`Cargando ${v.professionals} y servicios…`" layout="inline" />
+      <DiamondLoader :label="`Cargando ${v.professionals} y servicios…`" layout="overlay" />
       <!-- Esqueleto con la misma forma que la pantalla lista (ficha a la
            izquierda, tabla a la derecha) para que nada cambie de sitio al
            llegar los datos. -->

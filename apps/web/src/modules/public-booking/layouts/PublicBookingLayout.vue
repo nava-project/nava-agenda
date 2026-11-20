@@ -14,7 +14,7 @@ import { RouterLink, RouterView, useRoute, type RouteLocationRaw } from 'vue-rou
 import { buildVocabularyFromTerms } from '@/shared/model'
 import { NAVA_PRIVACY_URL, NAVA_TERMS_URL } from '@/shared/model/navaSite'
 import { arrivalKey, useArrival } from '@/shared/composables/useArrival'
-import { NavaWordmark } from '@/shared/ui'
+import { DiamondLoader, NavaWordmark } from '@/shared/ui'
 import { bookingChromeKey } from '../model/bookingChrome'
 import { paintPublicAccent } from '../model/publicAccent'
 import {
@@ -187,8 +187,12 @@ const arriving = arrival.arriving
       </div>
     </header>
 
-    <!-- Mientras se lee el vocabulario, un hueco del alto de una pantalla. -->
-    <div v-if="!showScreens" class="bk-page" aria-hidden="true"></div>
+    <!-- Mientras se lee el vocabulario, un hueco del alto de una pantalla con la
+         espera a la vista (#735): antes era un lienzo vacío bajo la cabecera. -->
+    <main v-if="!showScreens" class="bk-page" aria-busy="true">
+      <h1 class="pb-sr-only">Abriendo la reserva…</h1>
+      <DiamondLoader layout="overlay" label="Abriendo la reserva…" announce />
+    </main>
     <RouterView v-else v-slot="{ Component, route: current }">
       <Transition :name="`pb-step-${direction}`" mode="out-in">
         <component :is="Component" :key="String(current.name)" />

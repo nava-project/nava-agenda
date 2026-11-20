@@ -138,6 +138,28 @@ describe('BaseButton', () => {
       const spinner = wrapper.find('.base-button__spinner')
       expect(spinner.attributes('aria-hidden')).toBe('true')
     })
+
+    it('waits with the diamond in the sun, centered over the hidden label (#735)', () => {
+      const wrapper = mount(BaseButton, {
+        props: { loading: true, loadingLabel: 'Confirmando…' },
+        slots: { default: 'Confirmar turno' },
+      })
+      // El texto sigue en su sitio, invisible: guarda el ancho y el nombre accesible.
+      const content = wrapper.get('.base-button__content')
+      expect(content.classes()).toContain('base-button__content--waiting')
+      expect(content.text()).toBe('Confirmar turno')
+      // Encima, fuera del contenido: la marca y el gerundio, ocultos al lector.
+      const spinner = wrapper.get('.base-button__spinner')
+      expect(spinner.element.parentElement).toBe(wrapper.element)
+      expect(spinner.find('svg.sun-diamond').exists()).toBe(true)
+      expect(spinner.get('.base-button__wait-label').text()).toBe('Confirmando…')
+    })
+
+    it('does not look disabled while it waits', () => {
+      const css = readFileSync(resolve(__dirname, '../BaseButton.vue'), 'utf-8')
+      expect(css).toMatch(/\.base-button--loading:disabled \{\s*opacity: 1;/)
+      expect(css).toMatch(/\.base-button__content--waiting \{\s*opacity: 0;/)
+    })
   })
 
   describe('Accesibilidad automatizada (axe-core, CA-009-05)', () => {

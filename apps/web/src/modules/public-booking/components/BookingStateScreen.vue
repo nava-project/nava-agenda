@@ -9,6 +9,7 @@
 // pasa y, solo si sirve de algo, «Reintentar». La pantalla reserva el alto de
 // la página para que el pie no salte cuando llega el estado (CLS).
 import { computed } from 'vue'
+import { DiamondLoader } from '@/shared/ui'
 
 interface Props {
   status: 'loading' | 'not-found' | 'network-error' | 'unexpected-error'
@@ -59,9 +60,7 @@ const content = computed(() => {
 <template>
   <main class="bk-page bk-state">
     <h1 class="pb-sr-only">{{ title }}</h1>
-    <p v-if="status === 'loading'" class="bk-state__loading" role="status">
-      {{ loadingHeadline }}
-    </p>
+    <DiamondLoader v-if="status === 'loading'" :label="loadingHeadline" announce />
     <div v-else-if="content" class="bk-state__box" role="alert">
       <!-- Un horizonte con el sol a medio salir: tranquilo, sin alarma. -->
       <svg class="bk-state__horizon" viewBox="0 0 64 32" aria-hidden="true">
@@ -88,11 +87,6 @@ const content = computed(() => {
   align-content: start;
   justify-items: center;
   padding-top: clamp(48px, 14vh, 128px);
-}
-
-.bk-state__loading {
-  font-size: 15px;
-  color: var(--color-text-secondary);
 }
 
 .bk-state__box {

@@ -1123,17 +1123,26 @@
 .bk-skel {
   display: block;
   margin-bottom: var(--space-4);
-  background:
-    linear-gradient(
-        90deg,
-        transparent 0%,
-        color-mix(in srgb, var(--color-sky-morning) 70%, transparent) 50%,
-        transparent 100%
-      )
-      0 0 / 200% 100% no-repeat,
-    var(--color-surface-muted);
+  background-color: var(--color-surface-muted);
   border-radius: var(--radius-md);
-  animation: bk-shimmer 1.4s linear infinite;
+  /* Respiran juntas, despacio; el brillo de la espera es del diamante (#735).
+     El barrido de antes (bk-shimmer) se leía como un esqueleto genérico. */
+  animation: bk-skel-breathe 1.6s ease-in-out infinite alternate;
+}
+
+/* La columna que espera: el cargador se centra en ella (DiamondLoader column). */
+.bk-wait-col {
+  position: relative;
+}
+
+@keyframes bk-skel-breathe {
+  from {
+    opacity: 0.55;
+  }
+
+  to {
+    opacity: 1;
+  }
 }
 
 .bk-skel--kicker {
@@ -1401,20 +1410,6 @@
   }
 }
 
-@keyframes bk-shimmer {
-  from {
-    background-position:
-      150% 0,
-      0 0;
-  }
-
-  to {
-    background-position:
-      -50% 0,
-      0 0;
-  }
-}
-
 @media (prefers-reduced-motion: reduce) {
   .bk *,
   .bk-skel {
@@ -1425,4 +1420,14 @@
   .bk-min[aria-checked='true'] {
     transform: none;
   }
+}
+
+/* El botón que espera (#735): el diamante dentro del sol, en el color del
+   texto, junto al gerundio («Enviando…»). Lo usan la reserva y mi turno. */
+.bk-cta__wait {
+  margin-inline-end: var(--space-2);
+}
+
+.bk-cta[aria-busy='true'] {
+  cursor: progress;
 }

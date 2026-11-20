@@ -682,7 +682,7 @@ async function onSubmitRename() {
         role="status"
         aria-live="polite"
       >
-        <DiamondLoader label="Cargando el equipo…" layout="inline" />
+        <DiamondLoader label="Cargando el equipo…" layout="overlay" />
         <ul class="staff-page__list" aria-hidden="true">
           <li v-for="n in 3" :key="n" class="staff-page__skeleton-row">
             <span class="staff-page__skeleton-portrait" />
@@ -1075,6 +1075,7 @@ async function onSubmitRename() {
             type="submit"
             variant="primary"
             :loading="createStatus === 'saving'"
+            loading-label="Guardando…"
             :disabled="createStatus === 'saving'"
           >
             Guardar
@@ -1175,6 +1176,7 @@ async function onSubmitRename() {
             type="submit"
             variant="primary"
             :loading="renameStatus === 'saving'"
+            loading-label="Guardando…"
             :disabled="renameStatus === 'saving'"
           >
             Guardar
@@ -1209,10 +1211,11 @@ async function onSubmitRename() {
 
   display: flex;
   flex-direction: column;
-  /* Con pocos profesionales el bloque queda centrado en el visor en vez de pegado
-     arriba con un gran vacío debajo (issue #575); con muchos llena el alto y
-     el centrado no desplaza nada. */
-  justify-content: center;
+  /* Arriba, como el resto del panel (#735). Centrado en el visor (#575), la
+     cabecera saltaba ~50 px al pasar de la carga a la lista, porque las dos
+     tienen alto distinto. El vacío con pocos profesionales lo resuelve la
+     libreta del panel (G, #721). */
+  justify-content: flex-start;
   gap: 16px;
   min-height: 100%;
   padding: 34px 32px 48px;
@@ -1379,6 +1382,7 @@ async function onSubmitRename() {
 }
 
 .staff-page__loading {
+  position: relative;
   display: flex;
   flex-direction: column;
   gap: var(--space-4);

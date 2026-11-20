@@ -1088,7 +1088,7 @@ const editPreview = computed(() =>
         role="status"
         aria-live="polite"
       >
-        <DiamondLoader :label="`Cargando ${v.professionals}…`" layout="inline" />
+        <DiamondLoader :label="`Cargando ${v.professionals}…`" layout="overlay" />
         <div class="schedules-page__skeleton" aria-hidden="true">
           <span v-for="n in 4" :key="n" class="schedules-page__skeleton-row">
             <span class="schedules-page__skeleton-bar schedules-page__skeleton-bar--day" />
@@ -1535,6 +1535,7 @@ const editPreview = computed(() =>
             type="submit"
             variant="primary"
             :loading="createStatus === 'saving'"
+            loading-label="Guardando…"
             :disabled="createStatus === 'saving'"
           >
             Guardar
@@ -1642,6 +1643,7 @@ const editPreview = computed(() =>
             type="submit"
             variant="primary"
             :loading="editStatus === 'saving'"
+            loading-label="Guardando…"
             :disabled="editStatus === 'saving'"
           >
             Guardar

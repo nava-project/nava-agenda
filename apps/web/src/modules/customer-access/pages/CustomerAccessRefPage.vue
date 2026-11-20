@@ -19,7 +19,7 @@
 // `manage` (el que Odin usa por defecto) el paso 03 ofrece las dos acciones y la persona elige.
 import { computed, nextTick, onMounted, ref } from 'vue'
 import { useRouter } from 'vue-router'
-import { BaseAlert, OtpInput } from '@/shared/ui'
+import { BaseAlert, OtpInput, SunDiamond } from '@/shared/ui'
 import { BookingStateScreen, PublicFrame, usePublicBusinessName } from '@/modules/public-booking'
 import AppointmentActions from '../components/AppointmentActions.vue'
 import { verifyAccessRef } from '../api/verifyAccessRefApi'
@@ -229,6 +229,7 @@ async function submitCode() {
           :disabled="isLocked || submitting"
           :aria-busy="submitting"
         >
+          <SunDiamond v-if="submitting" size="sm" class="bk-cta__wait" />
           {{ submitting ? 'Comprobando…' : 'Continuar' }}
         </button>
 

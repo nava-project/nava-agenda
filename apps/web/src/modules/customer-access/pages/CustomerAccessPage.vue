@@ -15,7 +15,7 @@
 // turno y las dos acciones a las que vino (cambiar la hora o cancelar) aquí mismo; la
 // pantalla completa de «Mi turno» queda como enlace secundario.
 import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue'
-import { BaseAlert, BaseInput, OtpInput } from '@/shared/ui'
+import { BaseAlert, BaseInput, OtpInput, SunDiamond } from '@/shared/ui'
 import { BookingStateScreen, PublicFrame, usePublicBusinessName } from '@/modules/public-booking'
 import AppointmentActions from '../components/AppointmentActions.vue'
 import { requestAccessCode } from '../api/requestAccessCodeApi'
@@ -410,6 +410,7 @@ const zoneName = computed(() => (grant.value ? timezoneName(grant.value.timezone
           :disabled="submitting"
           :aria-busy="submitting"
         >
+          <SunDiamond v-if="submitting" size="sm" class="bk-cta__wait" />
           {{ submitting ? 'Enviando…' : 'Enviarme el código' }}
         </button>
       </form>
@@ -439,6 +440,7 @@ const zoneName = computed(() => (grant.value ? timezoneName(grant.value.timezone
           :disabled="isLocked || submitting"
           :aria-busy="submitting"
         >
+          <SunDiamond v-if="submitting" size="sm" class="bk-cta__wait" />
           {{ submitting ? 'Comprobando…' : 'Entrar a mi turno' }}
         </button>
 

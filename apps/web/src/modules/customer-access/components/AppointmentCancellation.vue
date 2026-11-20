@@ -6,7 +6,7 @@
 // por delante, y el rechazo del servidor (que siempre prevalece sobre la pista local
 // de `cancellationAvailability`, que usa el reloj del dispositivo).
 import { computed, nextTick, onMounted, ref, watch } from 'vue'
-import { BaseAlert } from '@/shared/ui'
+import { BaseAlert, SunDiamond } from '@/shared/ui'
 import type { Vocabulary } from '@/shared/model'
 import {
   CANCELLATION_REASON_MAX_LENGTH,
@@ -211,6 +211,7 @@ function onSubmit() {
           :disabled="submitting"
           :aria-busy="submitting"
         >
+          <SunDiamond v-if="submitting" size="sm" class="bk-cta__wait" />
           {{ submitting ? 'Cancelando…' : 'Sí, cancelar mi turno' }}
         </button>
         <button type="button" class="mt-button" :disabled="submitting" @click="close">

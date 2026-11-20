@@ -31,6 +31,7 @@ const emit = defineEmits<{ discard: []; save: [] }>()
         type="button"
         variant="primary"
         :loading="saving"
+        loading-label="Guardando…"
         :disabled="saving"
         @click="emit('save')"
       >

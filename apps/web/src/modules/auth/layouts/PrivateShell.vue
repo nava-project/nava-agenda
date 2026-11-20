@@ -73,7 +73,7 @@ function onRetry() {
     </div>
 
     <div v-else class="private-shell__state" role="status" aria-live="polite">
-      <DiamondLoader label="Abriendo tu agenda…" />
+      <DiamondLoader label="Abriendo tu agenda…" layout="overlay" />
     </div>
   </div>
 </template>
