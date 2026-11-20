@@ -164,6 +164,10 @@ describe('PublicCustomerDetailsPage', () => {
     await fillValidForm(wrapper)
     await wrapper.find('form').trigger('submit')
 
+    // Sin caja alrededor: la tarjeta sola y el título es la revisión.
+    expect(wrapper.get('h1').text()).toBe('Revisa tus datos')
+    expect(wrapper.classes()).toContain('bk-details--review')
+    expect(wrapper.find('h2').exists()).toBe(false)
     const ticket = wrapper.get('.customer-details__ticket')
     expect(ticket.classes()).toContain('appointment-ticket--draft')
     expect(ticket.attributes('aria-label')).toBe('Tu turno, por confirmar')
@@ -324,7 +328,10 @@ describe('PublicCustomerDetailsPage', () => {
     await flushPromises()
 
     expect(completed.value).toBe(true)
-    expect(wrapper.find('h1').text()).toBe('Tu turno quedó agendado')
+    // El momento sobre la tarjeta: el rombo emblema y «Todo listo» (DEC-189).
+    expect(wrapper.find('.bk-done__emblem').exists()).toBe(true)
+    expect(wrapper.get('h1 .bk-done__moment').text()).toBe('Todo listo')
+    expect(wrapper.get('h1 .bk-done__headline').text()).toBe('Tu turno quedó agendado')
   })
 
   it('does not complete the shell on a schedule conflict (DEC-111)', async () => {
@@ -346,7 +353,7 @@ describe('PublicCustomerDetailsPage', () => {
     await flushPromises()
 
     expect(completed.value).toBe(false)
-    expect(wrapper.find('h1').text()).toBe('Tus datos')
+    expect(wrapper.find('h1').text()).toBe('Revisa tus datos')
   })
 
   it('has no accessibility violations on the summary', async () => {
@@ -706,7 +713,8 @@ describe('PublicCustomerDetailsPage', () => {
       })
       await flushPromises()
       expect(reloaded.find('form').exists()).toBe(false)
-      expect(reloaded.get('h1').text()).toBe('Tu turno quedó agendado')
+      expect(reloaded.get('h1 .bk-done__headline').text()).toBe('Tu turno quedó agendado')
+      expect(reloaded.classes()).not.toContain('bk-details--ceremony')
       expect(reloaded.get('.bk-done__ticket').text()).toContain('Corte clásico')
       expect(reloaded.get('.appointment-ticket__time').text()).toMatch(/^9:30/)
       // Al recargar, la tarjeta ya está quieta: sin ceremonia.

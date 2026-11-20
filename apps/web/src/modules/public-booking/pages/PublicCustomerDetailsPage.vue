@@ -573,18 +573,32 @@ function chooseAlternative(startsAt: string) {
 </script>
 
 <template>
-  <main class="bk-page bk-details" :class="{ 'bk-details--done': confirmState === 'confirmed' }">
+  <main
+    class="bk-page bk-details"
+    :class="{
+      'bk-details--done': confirmState === 'confirmed',
+      'bk-details--review': reviewing && confirmState !== 'confirmed',
+      'bk-details--ceremony': justConfirmed,
+    }"
+  >
     <!-- v2 (DEC-188): página de documento, sin región con desplazamiento propio:
          los campos caben enteros y el navegador desplaza. Este comentario va
          dentro de <main>: un solo elemento raíz, que el cascarón anima con
          <Transition mode="out-in">. -->
     <!-- El paso ya lo dice la línea de rombos de la cabecera: sin «Paso 3 de 3» (#728). -->
-    <p v-if="confirmState === 'confirmed' || reviewing" class="bk-kicker">
-      {{ confirmState === 'confirmed' ? 'Reserva confirmada' : 'Última revisión' }}
-    </p>
-    <h1 class="bk-title">
-      {{ confirmState === 'confirmed' ? 'Tu turno quedó agendado' : 'Tus datos' }}
-    </h1>
+    <!-- Confirmado: el momento sobre la tarjeta, el rombo emblema y «Todo listo» en
+         serif (DEC-189). El emblema abre la ceremonia. -->
+    <template v-if="confirmState === 'confirmed'">
+      <span class="bk-done__emblem" aria-hidden="true"></span>
+      <h1 class="bk-title bk-done__title">
+        <span class="bk-done__moment">Todo listo</span>
+        <span class="bk-done__headline">Tu turno quedó agendado</span>
+      </h1>
+    </template>
+    <template v-else>
+      <p v-if="reviewing" class="bk-kicker">Última revisión</p>
+      <h1 class="bk-title">{{ reviewing ? 'Revisa tus datos' : 'Tus datos' }}</h1>
+    </template>
 
     <section
       class="bk-sheet customer-details"
@@ -737,8 +751,6 @@ function chooseAlternative(startsAt: string) {
         role="status"
         tabindex="-1"
       >
-        <h2 class="bk-section-title">Revisa tus datos</h2>
-
         <!-- La cita es lo que el cliente viene a comprobar: la tarjeta de turno
              por confirmar, punteada y sin sello (DEC-189). -->
         <AppointmentTicket
@@ -1220,49 +1232,38 @@ function chooseAlternative(startsAt: string) {
   color: var(--pb-muted);
 }
 
-/* ── Botones de BaseButton en latón sobre tinta ────────────────────────── */
+/* ── Botones: un solo primario en todo el flujo (DEC-189) ──────────────────
+   El primario es el de la reserva (.bk-cta): relleno del acento, sin filete
+   inferior. El secundario es un contorno, como los de mi turno. */
 
 .customer-details :deep(.base-button) {
+  min-height: 52px;
   font-weight: 600;
 }
 
 .customer-details :deep(.base-button--primary) {
-  color: var(--pb-on-brass);
-  background-color: var(--pb-brass);
-  border-color: var(--pb-brass);
-  border-bottom-width: var(--border-width-emphasis);
-  border-bottom-color: color-mix(in srgb, var(--pb-brass) 70%, #000);
+  color: var(--bk-on-accent);
+  background-color: var(--bk-accent);
+  border: 0;
+  border-radius: var(--radius-lg);
 }
 
 .customer-details :deep(.base-button--primary:hover:not(:disabled):not(.base-button--loading)) {
-  background-color: color-mix(in srgb, var(--pb-brass) 86%, #fff);
-  border-color: color-mix(in srgb, var(--pb-brass) 86%, #fff);
-  border-bottom-color: color-mix(in srgb, var(--pb-brass) 70%, #000);
-  box-shadow: 0 10px 24px -12px color-mix(in srgb, var(--pb-brass) 70%, transparent);
-}
-
-.customer-details :deep(.base-button--primary:active:not(:disabled):not(.base-button--loading)) {
-  background-color: color-mix(in srgb, var(--pb-brass) 88%, #000);
-  border-color: color-mix(in srgb, var(--pb-brass) 88%, #000);
+  background-color: color-mix(in srgb, var(--bk-accent) 88%, var(--color-text-primary));
 }
 
 .customer-details :deep(.base-button--secondary),
 .customer-details :deep(.base-button--soft) {
-  color: var(--pb-brass);
+  color: var(--color-text-primary);
   background-color: transparent;
-  border-color: var(--pb-brass);
-  border-bottom-width: var(--border-width-emphasis);
+  border: 1px solid var(--color-border-control);
+  border-radius: var(--radius-pill);
 }
 
 .customer-details :deep(.base-button--secondary:hover:not(:disabled):not(.base-button--loading)),
 .customer-details :deep(.base-button--soft:hover:not(:disabled):not(.base-button--loading)) {
-  background-color: var(--pb-wash-strong);
-  border-color: var(--pb-brass);
-}
-
-.customer-details :deep(.base-button--secondary:active:not(:disabled):not(.base-button--loading)),
-.customer-details :deep(.base-button--soft:active:not(:disabled):not(.base-button--loading)) {
-  background-color: var(--pb-wash-strong);
+  background-color: transparent;
+  border-color: var(--color-text-primary);
 }
 
 .customer-details :deep(.base-button:focus-visible) {
@@ -1295,11 +1296,16 @@ function chooseAlternative(startsAt: string) {
   margin-bottom: 0;
 }
 
-/* La tarjeta por confirmar ocupa el ancho de la hoja (DEC-189); sus muescas se
-   calan en la superficie de la hoja, no en el lienzo. */
-.customer-details__ticket {
-  --ticket-backdrop: var(--color-surface);
+/* Resumen: la tarjeta por confirmar sola sobre el papel, sin la caja de la hoja
+   (nada de tarjeta dentro de tarjeta), y debajo los datos en renglones (DEC-189). */
+.bk-details--review .bk-sheet {
+  padding: 0;
+  margin-top: var(--space-5);
+  background: none;
+  border: 0;
+}
 
+.customer-details__ticket {
   flex: none;
 }
 
@@ -1392,6 +1398,56 @@ function chooseAlternative(startsAt: string) {
   gap: var(--space-5);
 }
 
+/* Confirmado: el momento y la tarjeta, centrados en una columna de tarjeta. */
+.bk-details.bk-details--done {
+  max-width: 640px;
+  text-align: center;
+}
+
+.bk-done__ticket {
+  text-align: left;
+}
+
+/* El rombo emblema en latón, con su aura: abre la ceremonia. */
+.bk-done__emblem {
+  position: relative;
+  display: block;
+  width: 34px;
+  height: 34px;
+  margin: var(--space-3) auto var(--space-6);
+  border: 1.5px solid var(--color-brass-line);
+  box-shadow: 0 0 0 7px color-mix(in srgb, var(--color-brass-line) 16%, transparent);
+  transform: rotate(45deg);
+}
+
+.bk-done__emblem::after {
+  position: absolute;
+  inset: 8px;
+  content: '';
+  background-color: var(--color-brass-line);
+}
+
+.bk-done__title {
+  display: grid;
+  gap: var(--space-3);
+}
+
+.bk-done__moment {
+  font-family: var(--font-display);
+  font-size: clamp(48px, 7vw, 64px);
+  font-weight: 400;
+  line-height: 1;
+}
+
+.bk-done__headline {
+  font-family: var(--font-sans);
+  font-size: 17px;
+  font-weight: 500;
+  line-height: 24px;
+  color: var(--color-text-secondary);
+  letter-spacing: 0;
+}
+
 .bk-done__extra {
   display: grid;
   gap: var(--space-1);
@@ -1427,12 +1483,47 @@ function chooseAlternative(startsAt: string) {
 .bk-done__actions {
   display: flex;
   flex-wrap: wrap;
-  gap: var(--space-3);
+  gap: var(--space-3) var(--space-5);
   align-items: center;
 }
 
 .bk-done__calendar {
   flex: 1 1 220px;
+}
+
+/* En el teléfono el texto largo (el correo) no se centra; desde 600 px, todo el
+   bloque va centrado bajo la tarjeta. */
+.bk-done .customer-details__note {
+  text-align: left;
+}
+
+@media (min-width: 600px) {
+  .bk-done__actions {
+    justify-content: center;
+  }
+
+  .bk-done__calendar {
+    flex: 0 1 auto;
+    min-width: 280px;
+  }
+
+  .bk-done .customer-details__note {
+    margin-inline: auto;
+    text-align: center;
+  }
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  :root:not([data-motion='reduced']) .bk-details--ceremony .bk-done__emblem {
+    animation: bk-emblem 300ms cubic-bezier(0.2, 0.7, 0.2, 1) both;
+  }
+}
+
+@keyframes bk-emblem {
+  from {
+    opacity: 0;
+    transform: rotate(45deg) scale(0.4);
+  }
 }
 
 /* Un solo estilo de botón: el calendario es la acción; WhatsApp, un enlace. */

@@ -1002,12 +1002,16 @@
   justify-content: center;
   min-height: 52px;
   padding: 0 var(--space-5);
+  /* Como <button> heredaría el borde y la letra del navegador: sin filete inferior. */
+  font: inherit;
   font-size: 16px;
   font-weight: 600;
   color: var(--bk-on-accent);
   text-decoration: none;
   white-space: nowrap;
+  cursor: pointer;
   background-color: var(--bk-accent);
+  border: 0;
   border-radius: var(--radius-lg);
   transition:
     background-color var(--motion-duration-fast) var(--bk-ease),
