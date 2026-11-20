@@ -204,7 +204,7 @@ function goTo(page: number) {
 }
 
 .base-pagination__nav :deep(.base-button--secondary:hover:not(:disabled)) {
-  background: color-mix(in srgb, var(--color-text-primary) 6%, transparent);
+  background: color-mix(in srgb, var(--color-text-primary) 12%, transparent);
   color: var(--color-text-primary);
 }
 

@@ -332,7 +332,7 @@
 /* Hover de la familia (#739): el filete sube a tinta, nunca al acento del
    negocio (Alba en un borde se leía como selección o error). */
 .bk-service:hover {
-  border-color: color-mix(in srgb, var(--color-text-primary) 60%, transparent);
+  border-color: var(--color-text-primary);
 }
 
 .bk-service:active {

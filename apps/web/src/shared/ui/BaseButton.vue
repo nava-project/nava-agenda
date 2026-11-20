@@ -201,12 +201,13 @@ const handleClick = (event: MouseEvent) => {
 }
 
 .base-button--secondary:hover:not(:disabled):not(.base-button--loading) {
-  background-color: color-mix(in srgb, var(--color-text-primary) 4%, var(--color-surface));
+  /* 8 %: al 4 % el hover casi no se distinguía del reposo (#739). */
+  background-color: color-mix(in srgb, var(--color-text-primary) 8%, var(--color-surface));
   border-color: var(--color-text-primary);
 }
 
 .base-button--secondary:active:not(:disabled):not(.base-button--loading) {
-  background-color: color-mix(in srgb, var(--color-text-primary) 9%, var(--color-surface));
+  background-color: color-mix(in srgb, var(--color-text-primary) 13%, var(--color-surface));
 }
 
 /* Variant: soft */
