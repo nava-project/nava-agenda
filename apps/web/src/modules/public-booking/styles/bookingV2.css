@@ -324,9 +324,10 @@
   background-color: var(--color-surface);
   border: 1px solid var(--bk-line);
   border-radius: var(--radius-lg);
+  isolation: isolate;
   transition:
     border-color var(--motion-duration-fast) var(--bk-ease),
-    transform var(--motion-duration-fast) var(--bk-ease);
+    transform var(--motion-duration-base) var(--bk-ease);
 }
 
 /* Hover de la familia (#739): el filete sube a tinta, nunca al acento del
@@ -335,8 +336,33 @@
   border-color: var(--color-text-primary);
 }
 
+/* Movimiento (#741): con el cursor, la tarjeta se levanta 3 px sobre su
+   sombra, que aparece en fundido (una capa propia: solo opacity, sin repintar
+   la sombra en cada cuadro), y junto a la flecha asoma un rombo de tinta. */
+.bk-service::after {
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  content: '';
+  pointer-events: none;
+  border-radius: inherit;
+  box-shadow: 0 16px 28px -18px color-mix(in srgb, var(--color-text-primary) 60%, transparent);
+  opacity: 0;
+  transition: opacity var(--motion-duration-base) var(--bk-ease);
+}
+
+@media (hover: hover) {
+  .bk-service:hover {
+    transform: translateY(-3px);
+  }
+
+  .bk-service:hover::after {
+    opacity: 1;
+  }
+}
+
 .bk-service:active {
-  transform: scale(0.99);
+  transform: translateY(-1px) scale(0.99);
 }
 
 .bk-service__name {
@@ -374,16 +400,40 @@
 }
 
 .bk-service__go {
+  position: relative;
   grid-row: 1 / span 3;
   grid-column: 2;
   align-self: center;
   font-size: 20px;
   color: var(--bk-accent);
-  transition: transform var(--motion-duration-fast) var(--bk-ease);
+  transition: transform var(--motion-duration-base) var(--bk-ease);
+}
+
+/* El rombo que asoma: nace escondido detrás de la flecha y sale hacia la
+   izquierda con resorte cuando la flecha avanza. */
+.bk-service__go::before {
+  position: absolute;
+  top: 50%;
+  right: 100%;
+  width: 7px;
+  height: 7px;
+  margin-top: -3.5px;
+  content: '';
+  background-color: var(--color-text-primary);
+  opacity: 0;
+  transform: translateX(14px) rotate(45deg) scale(0.2);
+  transition:
+    opacity var(--motion-duration-base) var(--bk-ease),
+    transform 420ms var(--motion-ease-spring, var(--bk-ease));
 }
 
 .bk-service:hover .bk-service__go {
   transform: translateX(4px);
+}
+
+.bk-service:hover .bk-service__go::before {
+  opacity: 1;
+  transform: translateX(-6px) rotate(45deg) scale(1);
 }
 
 .bk-manage {
@@ -1425,7 +1475,10 @@
     animation: none !important;
   }
 
-  .bk-min[aria-checked='true'] {
+  .bk-min[aria-checked='true'],
+  .bk-service:hover,
+  .bk-service:active,
+  .bk-service:hover .bk-service__go {
     transform: none;
   }
 }

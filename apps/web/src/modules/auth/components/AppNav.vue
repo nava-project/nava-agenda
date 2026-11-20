@@ -136,7 +136,7 @@ async function onLogoutFromMore() {
       </li>
     </ul>
 
-    <BaseDialog v-model="moreOpen" title="Más" size="sm">
+    <BaseDialog v-model="moreOpen" title="Más" size="sm" placement="sheet-mobile">
       <ul class="app-nav__more-list" aria-label="Más destinos y cierre de sesión">
         <RecordRow v-for="item in secondaryItems" :key="item.label">
           <RouterLink

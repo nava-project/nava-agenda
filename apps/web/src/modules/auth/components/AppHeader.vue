@@ -98,12 +98,20 @@ const { loggingOut, logout: onLogout } = useLogout()
   cursor: pointer;
   transition:
     opacity var(--motion-duration-fast) var(--motion-easing-standard),
-    background-color var(--motion-duration-fast) var(--motion-easing-standard);
+    background-color var(--motion-duration-fast) var(--motion-easing-standard),
+    transform var(--motion-duration-fast) var(--motion-ease-out);
+}
+
+/* Se hunde al pulsar, como los botones (#741). */
+.app-header__logout:active:not(:disabled) {
+  transform: translateY(1px) scale(0.97);
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .app-header__logout {
+  .app-header__logout,
+  .app-header__logout:active:not(:disabled) {
     transition: none;
+    transform: none;
   }
 }
 

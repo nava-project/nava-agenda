@@ -135,6 +135,18 @@ const handleClick = (event: MouseEvent) => {
 /* Respuesta al pulsar: el botón se hunde un píxel y recupera su escala al
    soltar. Es la única señal táctil común a las cuatro variantes; el realce
    de color de cada una sigue siendo la del hover. */
+/* Movimiento (#741): con el cursor el botón sube 1 px sobre una sombra corta;
+   va antes de :active para que la presión (que hunde) gane al pulsar. */
+@media (hover: hover) {
+  .base-button:hover:not(:disabled):not(.base-button--loading) {
+    transform: translateY(-1px);
+  }
+
+  .base-button--secondary:hover:not(:disabled):not(.base-button--loading) {
+    box-shadow: 0 6px 14px -9px color-mix(in srgb, var(--color-text-primary) 70%, transparent);
+  }
+}
+
 .base-button:active:not(:disabled):not(.base-button--loading) {
   transform: translateY(1px) scale(0.985);
 }
@@ -150,9 +162,15 @@ const handleClick = (event: MouseEvent) => {
     transition: none;
   }
 
+  .base-button:hover:not(:disabled):not(.base-button--loading),
   .base-button:active:not(:disabled):not(.base-button--loading) {
     transform: none;
   }
+}
+
+:root[data-motion='reduced'] .base-button:hover:not(:disabled):not(.base-button--loading),
+:root[data-motion='reduced'] .base-button:active:not(:disabled):not(.base-button--loading) {
+  transform: none;
 }
 
 .base-button:focus-visible {
