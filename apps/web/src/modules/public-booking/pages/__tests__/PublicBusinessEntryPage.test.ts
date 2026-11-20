@@ -144,7 +144,8 @@ describe('PublicBusinessEntryPage', () => {
     await flushPromises()
 
     expect(wrapper.get('h1').text()).toBe('Barbería Ejemplo')
-    expect(wrapper.text()).toMatch(/Son las \d{1,2}:\d{2}/)
+    expect(wrapper.get('.bk-hero__time').text()).toMatch(/^\d{1,2}:\d{2}/)
+    expect(wrapper.text()).toContain('Hora del negocio')
     const rows = wrapper.findAll('.bk-service')
     expect(rows).toHaveLength(2)
     expect(rows[0]!.text()).toContain('Corte clásico')

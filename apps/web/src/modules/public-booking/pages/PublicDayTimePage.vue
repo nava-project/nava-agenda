@@ -16,7 +16,7 @@
 //
 // Una respuesta tardía de una carga ya reemplazada se descarta con un token
 // monótono (CA-095-03).
-import { computed, inject, ref, watch } from 'vue'
+import { computed, inject, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { RouterLink, useRouter } from 'vue-router'
 import { arrivalKey } from '@/shared/composables/useArrival'
 import { formatMoney } from '@/shared/model/money'
@@ -152,6 +152,21 @@ watch(
 
 // Los chips son un grupo de radio: una sola parada de Tab y las flechas eligen.
 const chipRefs = ref<HTMLElement[]>([])
+// Los chips de profesional se deslizan en el teléfono (#745): el borde que
+// sigue se desvanece para avisar que hay más nombres hacia ese lado.
+const chipsEl = ref<HTMLElement | null>(null)
+const chipsMoreBefore = ref(false)
+const chipsMoreAfter = ref(false)
+function measureChips() {
+  const el = chipsEl.value
+  if (!el) return
+  chipsMoreBefore.value = el.scrollLeft > 4
+  chipsMoreAfter.value = el.scrollLeft + el.clientWidth < el.scrollWidth - 4
+}
+watch(professionals, () => void nextTick(measureChips))
+onMounted(() => window.addEventListener('resize', measureChips))
+onBeforeUnmount(() => window.removeEventListener('resize', measureChips))
+
 function setChipRef(el: unknown, index: number) {
   if (el instanceof HTMLElement) chipRefs.value[index] = el
 }
@@ -331,10 +346,16 @@ const failedRequestId = computed(() =>
 
           <div
             v-else
+            ref="chipsEl"
             class="bk-chips"
+            :class="{
+              'bk-chips--before': chipsMoreBefore,
+              'bk-chips--after': chipsMoreAfter,
+            }"
             role="radiogroup"
             :aria-label="`Con qué ${v.professional}`"
             @keydown="onChipsKeydown"
+            @scroll.passive="measureChips"
           >
             <button
               :ref="(el) => setChipRef(el, 0)"
@@ -454,7 +475,7 @@ const failedRequestId = computed(() =>
         </p>
         <RouterLink v-if="next" :to="next" class="bk-cta">
           <span class="bk-cta__long">Seguir con tus datos</span
-          ><span class="bk-cta__short">Seguir</span> <span aria-hidden="true">→</span>
+          ><span class="bk-cta__short">Seguir</span>
         </RouterLink>
         <span v-else class="bk-cta bk-cta--idle" aria-hidden="true">Elige una hora</span>
       </aside>

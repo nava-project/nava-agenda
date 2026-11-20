@@ -142,7 +142,14 @@ const marker = computed(() => {
   const { from, to } = range.value
   if (props.selected !== null) return { at: props.selected, kind: 'selected' as const, top: 50 }
   const now = props.now
-  if (now === null || now < from || now > to) return null
+  if (now === null) return null
+  // En la entrada, fuera del horario el ahora no desaparece (#745): un rombo
+  // hueco se queda en el borde por el que el día empieza o ya terminó.
+  if (props.variant === 'band' && (now < from || now > to)) {
+    const inset = (to - from) * 0.015
+    return { at: now < from ? from + inset : to - inset, kind: 'off' as const, top: 50 }
+  }
+  if (now < from || now > to) return null
   // El sol sube hasta el mediodía y baja hasta el atardecer; de noche, la luna.
   const t = (now - 6 * HOUR) / (12 * HOUR)
   if (t <= 0 || t >= 1) return { at: now, kind: 'moon' as const, top: 32 }
@@ -451,6 +458,9 @@ function onPick(event: MouseEvent) {
   rotate: 45deg;
 }
 
+/* Fuera del horario: el ahora queda en el borde, hueco y en tinta sobre el
+   lienzo, legible sobre el sol de la mañana y sobre la noche. */
+.daylight__marker--off,
 .daylight__marker--current {
   width: 14px;
   height: 14px;

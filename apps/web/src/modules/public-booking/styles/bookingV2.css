@@ -112,41 +112,59 @@
   transform: translateX(-3px);
 }
 
+/* La línea de rombos con nombre (DEC-189, #728, #745): cada paso es su rombo
+   sobre un filete de latón y su nombre debajo, siempre visible, también en el
+   teléfono. El tramo ya recorrido toma el acento; el paso actual va lleno de
+   tinta y en negrita. */
 .bk-steps {
-  display: flex;
+  display: grid;
   flex-shrink: 0;
-  gap: var(--space-2);
-  align-items: center;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  width: min(100%, 330px);
   padding: 0;
   margin: 0;
   list-style: none;
 }
 
 .bk-steps__item {
-  display: inline-flex;
-  gap: 6px;
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
   align-items: center;
-  font-size: 13px;
+  min-width: 0;
+  font-size: 12px;
+  line-height: 16px;
   color: var(--color-text-secondary);
 }
 
 .bk-steps__mark {
-  width: 8px;
-  height: 8px;
+  width: 9px;
+  height: 9px;
+  margin-top: 2px;
   border: 1.5px solid currentcolor;
   border-radius: 1px;
   transform: rotate(45deg);
   transition:
     background-color var(--motion-duration-base) var(--bk-ease),
-    border-color var(--motion-duration-base) var(--bk-ease);
+    border-color var(--motion-duration-base) var(--bk-ease),
+    transform 360ms var(--motion-ease-spring, var(--bk-ease));
 }
 
-/* Una sola línea de rombos con nombre (DEC-189, #728): un filete de latón une
-   cada paso con el anterior; el tramo ya recorrido toma el acento. */
+.bk-steps__label {
+  max-width: 100%;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+/* El filete va del rombo anterior a este, por detrás de los nombres. */
 .bk-steps__item + .bk-steps__item::before {
-  width: 20px;
+  position: absolute;
+  top: 6px;
+  right: calc(50% + 10px);
+  width: calc(100% - 20px);
   height: 1px;
-  margin-right: var(--space-1);
   content: '';
   background-color: var(--color-brass-line);
 }
@@ -167,21 +185,29 @@
 
 .bk-steps__item--current .bk-steps__mark {
   background-color: currentcolor;
+  transform: rotate(45deg) scale(1.2);
 }
 
-/* En móvil solo se nombra el paso actual; los demás quedan como marcas. */
+/* En el teléfono la línea va en su propio renglón, a todo el ancho, bajo el
+   volver; en la entrada (sin volver) ocupa el renglón de arriba. */
 @media (max-width: 639px) {
-  .bk-steps__item + .bk-steps__item::before {
-    width: 12px;
+  .bk-top__inner {
+    flex-wrap: wrap;
+    row-gap: 0;
   }
 
-  .bk-steps__item:not(.bk-steps__item--current) .bk-steps__label {
-    position: absolute;
-    width: 1px;
-    height: 1px;
-    overflow: hidden;
-    clip-path: inset(50%);
-    white-space: nowrap;
+  .bk-top__spacer {
+    display: none;
+  }
+
+  .bk-steps {
+    width: 100%;
+    padding: var(--space-2) 0 var(--space-3);
+  }
+
+  .bk-top__lead + .bk-steps,
+  .bk-top__business + .bk-steps {
+    padding-top: 0;
   }
 }
 
@@ -276,6 +302,7 @@
   display: flex;
   flex-wrap: wrap;
   gap: var(--space-1) var(--space-4);
+  align-items: baseline;
   margin: var(--space-3) 0 0;
   font-size: 15px;
   color: var(--color-text-secondary);
@@ -285,6 +312,16 @@
 .bk-hero__meta span + span::before {
   margin-right: var(--space-4);
   content: '·';
+}
+
+/* La hora, en serif y en tinta: el reloj del local, sin el reloj de antes. */
+.bk-hero__time {
+  margin-left: var(--space-1);
+  font-family: var(--font-display);
+  font-size: 26px;
+  line-height: 30px;
+  color: var(--color-text-primary);
+  font-variant-numeric: tabular-nums;
 }
 
 .bk-hero__strip {
@@ -299,83 +336,95 @@
 @media (min-width: 1000px) {
   .bk-entry__grid {
     grid-template-columns: minmax(0, 1fr) 360px;
-    gap: var(--space-12);
+    gap: var(--space-10) var(--space-12);
     align-items: start;
   }
+
+  .bk-entry__grid > .bk-hero,
+  .bk-entry__grid > .bk-services {
+    grid-column: 1;
+  }
+
+  .bk-entry__grid > .bk-local {
+    grid-row: 1 / span 2;
+    grid-column: 2;
+  }
+}
+
+.bk-entry__grid > .bk-hero {
+  margin-bottom: 0;
 }
 
 .bk-services__list {
   display: grid;
-  gap: var(--space-3);
-  padding: 0;
+  padding: var(--space-1) var(--space-5);
   margin: 0;
   list-style: none;
+  background-color: var(--color-surface);
+  border: 1px solid var(--bk-line);
+  border-radius: var(--radius-lg);
+}
+
+/* La carta (#745): renglones separados por un filete de latón, no tarjetas
+   con flecha. */
+.bk-services__list li + li {
+  border-top: 1px solid color-mix(in srgb, var(--color-brass-line) 40%, transparent);
 }
 
 .bk-service {
   position: relative;
   display: grid;
-  grid-template-columns: minmax(0, 1fr) auto;
-  gap: var(--space-1) var(--space-4);
-  min-height: 84px;
-  padding: var(--space-4) var(--space-5);
+  gap: var(--space-1);
+  padding: var(--space-4) 0;
   color: var(--color-text-primary);
   text-decoration: none;
-  background-color: var(--color-surface);
-  border: 1px solid var(--bk-line);
-  border-radius: var(--radius-lg);
-  isolation: isolate;
-  transition:
-    border-color var(--motion-duration-fast) var(--bk-ease),
-    transform var(--motion-duration-base) var(--bk-ease);
+  border-radius: var(--radius-sm);
 }
 
-/* Hover de la familia (#739): el filete sube a tinta, nunca al acento del
-   negocio (Alba en un borde se leía como selección o error). */
-.bk-service:hover {
-  border-color: var(--color-text-primary);
+.bk-service:focus-visible {
+  outline: 2px solid var(--color-focus);
+  outline-offset: 2px;
 }
 
-/* Movimiento (#741): con el cursor, la tarjeta se levanta 3 px sobre su
-   sombra, que aparece en fundido (una capa propia: solo opacity, sin repintar
-   la sombra en cada cuadro), y junto a la flecha asoma un rombo de tinta. */
-.bk-service::after {
-  position: absolute;
-  inset: 0;
-  z-index: -1;
-  content: '';
-  pointer-events: none;
-  border-radius: inherit;
-  box-shadow: 0 16px 28px -18px color-mix(in srgb, var(--color-text-primary) 60%, transparent);
-  opacity: 0;
-  transition: opacity var(--motion-duration-base) var(--bk-ease);
-}
-
-@media (hover: hover) {
-  .bk-service:hover {
-    transform: translateY(-3px);
-  }
-
-  .bk-service:hover::after {
-    opacity: 1;
-  }
-}
-
-.bk-service:active {
-  transform: translateY(-1px) scale(0.99);
+.bk-service__line {
+  display: flex;
+  gap: var(--space-2);
+  align-items: baseline;
 }
 
 .bk-service__name {
-  grid-column: 1;
+  min-width: 0;
   font-family: var(--font-display);
   font-size: 22px;
   font-weight: 400;
-  line-height: 24px;
+  line-height: 26px;
+}
+
+/* Los puntos guía rellenan del nombre al precio, a la altura de la base del
+   texto. Sin línea propia: si el nombre ocupa dos renglones, siguen en el
+   último. */
+.bk-service__leader {
+  flex: 1 1 var(--space-6);
+  min-width: var(--space-6);
+  height: 2px;
+  color: color-mix(in srgb, var(--color-text-secondary) 70%, transparent);
+  background-image: radial-gradient(circle, currentcolor 0.9px, transparent 1.2px);
+  background-repeat: repeat-x;
+  background-position: left center;
+  background-size: 6px 2px;
+  transform: translateY(-4px);
+  transition: color var(--motion-duration-fast) var(--bk-ease);
+}
+
+.bk-service__price {
+  font-size: 16px;
+  font-weight: 600;
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
 }
 
 .bk-service__desc {
   display: -webkit-box;
-  grid-column: 1;
   overflow: hidden;
   font-size: 14px;
   line-height: 20px;
@@ -385,55 +434,42 @@
 }
 
 .bk-service__meta {
-  display: flex;
-  grid-column: 1;
-  gap: var(--space-4);
-  font-size: 14px;
-  line-height: 20px;
+  font-size: 13px;
+  line-height: 18px;
   color: var(--color-text-secondary);
   font-variant-numeric: tabular-nums;
 }
 
-.bk-service__price {
-  font-weight: 600;
-  color: var(--color-text-primary);
-}
-
-.bk-service__go {
-  position: relative;
-  grid-row: 1 / span 3;
-  grid-column: 2;
-  align-self: center;
-  font-size: 20px;
-  color: var(--bk-accent);
-  transition: transform var(--motion-duration-base) var(--bk-ease);
-}
-
-/* El rombo que asoma: nace escondido detrás de la flecha y sale hacia la
-   izquierda con resorte cuando la flecha avanza. */
-.bk-service__go::before {
+/* Con el cursor (#739, #741): los puntos guía pasan a tinta y en el margen
+   asoma un rombo de tinta con resorte, que marca el renglón que se elige. */
+.bk-service::before {
   position: absolute;
-  top: 50%;
-  right: 100%;
+  top: calc(var(--space-4) + 9px);
+  left: calc(var(--space-3) * -1 - 1px);
   width: 7px;
   height: 7px;
-  margin-top: -3.5px;
   content: '';
   background-color: var(--color-text-primary);
   opacity: 0;
-  transform: translateX(14px) rotate(45deg) scale(0.2);
+  transform: translateX(-6px) rotate(45deg) scale(0.2);
   transition:
     opacity var(--motion-duration-base) var(--bk-ease),
     transform 420ms var(--motion-ease-spring, var(--bk-ease));
 }
 
-.bk-service:hover .bk-service__go {
-  transform: translateX(4px);
+.bk-service:hover .bk-service__leader {
+  color: var(--color-text-primary);
 }
 
-.bk-service:hover .bk-service__go::before {
+.bk-service:hover::before,
+.bk-service:focus-visible::before {
   opacity: 1;
-  transform: translateX(-6px) rotate(45deg) scale(1);
+  transform: translateX(0) rotate(45deg) scale(1);
+}
+
+.bk-service:active::before {
+  background-color: var(--bk-accent);
+  transform: translateX(0) rotate(45deg) scale(0.85);
 }
 
 .bk-manage {
@@ -494,8 +530,14 @@
 
 /* ── Día y hora ─────────────────────────────────────────────────────────── */
 
-.bk-daytime {
-  padding-bottom: calc(var(--space-12) + 96px);
+/* La barra fija del pase mide 77 px (12 + 52 + 12 y su filete). Su alto se
+   reserva al final del documento, bajo el pie, y no bajo «Noche»: antes
+   quedaban 144 px vacíos entre las horas y el pie (#745), y aun así la barra
+   tapaba el pie al llegar al final. */
+@media (max-width: 1023px) {
+  .bk:has(.bk-daytime) .bk-foot {
+    padding-bottom: calc(var(--space-8) + 77px + env(safe-area-inset-bottom));
+  }
 }
 
 .bk-daytime__grid {
@@ -504,10 +546,6 @@
 }
 
 @media (min-width: 1024px) {
-  .bk-daytime {
-    padding-bottom: var(--space-12);
-  }
-
   .bk-daytime__grid {
     grid-template-columns: minmax(0, 1fr) 340px;
     gap: var(--space-12);
@@ -538,6 +576,26 @@
 
 .bk-chips::-webkit-scrollbar {
   display: none;
+}
+
+.bk-chips--before {
+  --bk-fade-before: 40px;
+}
+
+.bk-chips--after {
+  --bk-fade-after: 40px;
+}
+
+/* La pista de que la fila sigue (#745): el borde hacia donde hay más nombres
+   se desvanece. */
+.bk-chips {
+  mask-image: linear-gradient(
+    90deg,
+    transparent 0,
+    #000 var(--bk-fade-before, 0px),
+    #000 calc(100% - var(--bk-fade-after, 0px)),
+    transparent 100%
+  );
 }
 
 @media (min-width: 768px) {
@@ -663,41 +721,43 @@
 }
 
 .bk-days-wrap {
-  position: relative;
+  --bk-fade-before: 0px;
+  --bk-fade-after: 0px;
+
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: var(--space-2);
+  align-items: center;
 }
 
-.bk-days-wrap::before,
-.bk-days-wrap::after {
-  position: absolute;
-  top: 0;
-  bottom: var(--space-3);
-  z-index: 1;
-  width: 56px;
-  pointer-events: none;
-  content: '';
-  opacity: 0;
-  transition: opacity var(--motion-duration-fast) var(--bk-ease);
+.bk-days__navs {
+  display: grid;
+  gap: var(--space-2);
+  /* Centradas en los días, no en su franja de desplazamiento. */
+  margin-bottom: var(--space-3);
 }
 
-.bk-days-wrap::before {
-  left: -1px;
-  background: linear-gradient(90deg, var(--color-canvas) 20%, transparent);
+.bk-days-wrap--before {
+  --bk-fade-before: 40px;
 }
 
-.bk-days-wrap::after {
-  right: -1px;
-  background: linear-gradient(270deg, var(--color-canvas) 20%, transparent);
+.bk-days-wrap--after {
+  --bk-fade-after: 40px;
 }
 
-.bk-days-wrap--before::before,
-.bk-days-wrap--after::after {
-  opacity: 1;
+/* Fundido en el borde que sigue: es la pista de que hay más días hacia ese
+   lado, también en táctil, donde no hay flechas. */
+.bk-days {
+  mask-image: linear-gradient(
+    90deg,
+    transparent 0,
+    #000 var(--bk-fade-before),
+    #000 calc(100% - var(--bk-fade-after)),
+    transparent 100%
+  );
 }
 
 .bk-days__nav {
-  position: absolute;
-  top: calc(50% - 24px);
-  z-index: 2;
   display: grid;
   place-items: center;
   width: 36px;
@@ -711,20 +771,27 @@
   background: var(--color-surface);
   border: 1px solid var(--color-border-control);
   border-radius: 50%;
-  box-shadow: 0 2px 8px color-mix(in srgb, #000 12%, transparent);
+  transition:
+    opacity var(--motion-duration-fast) var(--bk-ease),
+    border-color var(--motion-duration-fast) var(--bk-ease);
 }
 
-.bk-days__nav--before {
-  left: 0;
+.bk-days__nav:hover:not(:disabled) {
+  border-color: var(--color-text-primary);
 }
 
-.bk-days__nav--after {
-  right: 0;
+.bk-days__nav:disabled {
+  cursor: default;
+  opacity: 0.35;
 }
 
-/* En táctil se desliza con el dedo: las flechas sobran. */
+/* En táctil se desliza con el dedo: las flechas sobran y su columna también. */
 @media (hover: none) {
-  .bk-days__nav {
+  .bk-days-wrap {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .bk-days__navs {
     display: none;
   }
 }
@@ -888,9 +955,15 @@
   grid-template-columns: repeat(auto-fill, minmax(52px, 1fr));
 }
 
-/* Un minuto libre. Todos miden lo mismo, también el elegido: nada se mueve. */
+/* Un minuto libre. Todos miden lo mismo, también el elegido: nada se mueve.
+   El ancho lo da la columna de la grilla; el rombo de la elegida entra dentro
+   de la píldora, junto a los minutos (#745). */
 .bk-min {
   position: relative;
+  display: inline-flex;
+  gap: 4px;
+  align-items: center;
+  justify-content: center;
   min-height: 44px;
   padding: 0;
   font: inherit;
@@ -916,25 +989,30 @@
   transform: scale(0.95);
 }
 
-/* La elegida es Sol (de la marca) y lleva su rombo colgado del borde. */
+/* La elegida es Sol (de la marca) y lleva su rombo «Tu hora» dentro, delante
+   de los minutos. La píldora no crece: el rombo es lo que se anima, con un
+   salto de resorte al aparecer. */
 .bk-min[aria-checked='true'] {
   color: var(--color-on-sun);
   background-color: var(--color-sun);
   border-color: var(--color-sun);
-  transform: scale(1.06);
 }
 
-.bk-min[aria-checked='true']::after {
-  position: absolute;
-  top: -4px;
-  right: -2px;
-  width: 9px;
-  height: 9px;
+.bk-min[aria-checked='true']::before {
+  flex: none;
+  width: 7px;
+  height: 7px;
   content: '';
-  background-color: var(--color-on-sun);
-  border: 2px solid var(--color-sun);
+  background-color: currentcolor;
   border-radius: 1px;
   transform: rotate(45deg);
+  animation: bk-tu-hora 320ms var(--motion-ease-spring, var(--bk-ease)) both;
+}
+
+@keyframes bk-tu-hora {
+  from {
+    transform: rotate(45deg) scale(0);
+  }
 }
 
 /* La hora que ya tiene el turno («Cambiar la hora»): punteada y con su rombo
@@ -951,15 +1029,12 @@
   transform: none;
 }
 
-.bk-min--current::after {
-  position: absolute;
-  top: -4px;
-  right: -2px;
-  width: 8px;
-  height: 8px;
+.bk-min--current::before {
+  flex: none;
+  width: 7px;
+  height: 7px;
   content: '';
-  background-color: var(--color-canvas);
-  border: 1.5px solid var(--color-text-primary);
+  border: 1.5px solid currentcolor;
   border-radius: 1px;
   transform: rotate(45deg);
 }
@@ -1475,11 +1550,17 @@
     animation: none !important;
   }
 
-  .bk-min[aria-checked='true'],
-  .bk-service:hover,
-  .bk-service:active,
-  .bk-service:hover .bk-service__go {
-    transform: none;
+  /* `.bk *` no alcanza los pseudoelementos: el rombo «Tu hora» aparece en
+     seco. */
+  .bk-min[aria-checked='true']::before {
+    animation: none;
+  }
+
+  /* El rombo del renglón aparece sin crecer ni deslizarse. */
+  .bk-service:hover::before,
+  .bk-service:focus-visible::before,
+  .bk-service:active::before {
+    transform: rotate(45deg);
   }
 }
 

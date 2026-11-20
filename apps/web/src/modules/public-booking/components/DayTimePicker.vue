@@ -286,6 +286,9 @@ function slotAria(slot: DaylightSlot): string {
 <template>
   <div class="bk-picker">
     <h2 class="pb-sr-only">Día</h2>
+    <!-- Las flechas van juntas en su propia columna, a la derecha y fuera de
+         los días (#745): nunca tapan uno y los días empiezan alineados con el
+         resto. Sin más días hacia un lado, su flecha se apaga sin mover nada. -->
     <div
       class="bk-days-wrap"
       :class="{ 'bk-days-wrap--before': moreBefore, 'bk-days-wrap--after': moreAfter }"
@@ -320,26 +323,28 @@ function slotAria(slot: DaylightSlot): string {
         </button>
       </div>
       <!-- Atajo de puntero: con teclado, las flechas del grupo recorren los días. -->
-      <button
-        v-if="moreBefore"
-        type="button"
-        class="bk-days__nav bk-days__nav--before"
-        tabindex="-1"
-        aria-hidden="true"
-        @click="scrollDays(-1)"
-      >
-        ‹
-      </button>
-      <button
-        v-if="moreAfter"
-        type="button"
-        class="bk-days__nav bk-days__nav--after"
-        tabindex="-1"
-        aria-hidden="true"
-        @click="scrollDays(1)"
-      >
-        ›
-      </button>
+      <div class="bk-days__navs">
+        <button
+          type="button"
+          class="bk-days__nav bk-days__nav--before"
+          :disabled="!moreBefore"
+          tabindex="-1"
+          aria-hidden="true"
+          @click="scrollDays(-1)"
+        >
+          ‹
+        </button>
+        <button
+          type="button"
+          class="bk-days__nav bk-days__nav--after"
+          :disabled="!moreAfter"
+          tabindex="-1"
+          aria-hidden="true"
+          @click="scrollDays(1)"
+        >
+          ›
+        </button>
+      </div>
     </div>
 
     <template v-if="activeDay">

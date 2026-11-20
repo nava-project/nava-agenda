@@ -49,8 +49,9 @@ const STEPS = { large: [4, 2], card: [4, 0], compact: [6, 2] } as const
 const span = computed(() => Math.max(60, props.to - props.from))
 const pct = (minutes: number) => ((minutes - props.from) / span.value) * 100
 
+// El mediodía es «p. m.», como en la franja, las horas, el pase y la etiqueta
+// accesible (#745): antes la regla decía «12 m.» y lo demás «12 p. m.».
 function suffix(hour: number): string {
-  if (hour === 12) return 'm.'
   return hour < 12 || hour === 24 ? 'a. m.' : 'p. m.'
 }
 

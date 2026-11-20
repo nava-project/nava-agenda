@@ -27,7 +27,7 @@ describe('DayRuler', () => {
     expect(first.text()).toBe('8a. m.')
     expect(first.attributes('style')).toContain('left: 0%')
     const noon = numerals.find((n) => n.text().startsWith('12'))!
-    expect(noon.get('small').text()).toBe('m.')
+    expect(noon.get('small').text()).toBe('p. m.')
     expect(noon.attributes('style')).toContain('left: 33.3333')
     const last = numerals.at(-1)!
     expect(last.text()).toBe('8p. m.')
