@@ -104,7 +104,7 @@ const descriptionId = `${dialogId}-description`
 
 // Solo el diálogo visualmente más alto (el último de openDialogStack)
 // reacciona a Escape y atrapa Tab. Ningún componente inventa un z-index
-// propio (estandar-diseno-visual.md §6.3): todos comparten --layer-dialog.
+// propio: todos comparten --layer-dialog y el orden lo da la pila.
 const isTopmost = () => openDialogStack[openDialogStack.length - 1] === dialogId
 
 const updateFocusableElements = () => {
@@ -354,7 +354,9 @@ onUnmounted(() => {
   justify-content: center;
   padding: var(--space-4);
   background-color: var(--color-overlay-scrim);
-  /* Velo desenfocado (pulido, punto 3): el fondo se aparta sin desaparecer. */
+  /* Velo desenfocado (pulido, punto 3; el orquestador lo confirmó en #742).
+     Es leve, para que el contexto siga reconocible (estandar-diseno-visual.md
+     §6.4: el overlay no lo vuelve incomprensible). */
   backdrop-filter: blur(6px);
   -webkit-backdrop-filter: blur(6px);
   z-index: var(--layer-dialog);
