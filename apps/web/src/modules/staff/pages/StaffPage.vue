@@ -1631,9 +1631,10 @@ async function onSubmitRename() {
 .staff-page__photo-state::before {
   content: '';
   flex-shrink: 0;
-  width: 6px;
-  height: 6px;
-  border-radius: 50%;
+  width: 7px;
+  height: 7px;
+  border-radius: 0;
+  rotate: 45deg;
   background-color: currentColor;
 }
 

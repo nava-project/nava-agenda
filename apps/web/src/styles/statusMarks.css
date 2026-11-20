@@ -7,17 +7,18 @@
  * cada estado lleva además su palabra y una forma distinta.
  *
  * - Confirmada: rombo lleno.
- * - En curso: el Sol (el disco del logo; «ahora»).
+ * - En curso: rombo de sol con un rombo calado dentro («ahora»; #737, sin discos).
  * - Por registrar: rombo medio (la hora pasó, falta el resultado).
  * - Atendida: rombo lleno con el ✓ calado.
- * - Cancelada: rombo punteado.
+ * - Cancelada: rombo punteado, con los trazos sobre las puntas y a media arista
+ *   para que a 14 px siga leyéndose rombo y no aro (#737).
  * - No asistió: rombo vacío.
  */
 :root {
   --mark-confirmed: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 14 14'%3E%3Cpath d='M7 1.5 12.5 7 7 12.5 1.5 7z'/%3E%3C/svg%3E");
-  --mark-in-progress: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 14 14'%3E%3Ccircle cx='7' cy='7' r='5.5'/%3E%3C/svg%3E");
+  --mark-in-progress: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 14 14'%3E%3Cpath fill-rule='evenodd' d='M7 .8 13.2 7 7 13.2.8 7zM7 3.4 10.6 7 7 10.6 3.4 7zM7 5.2 8.8 7 7 8.8 5.2 7z'/%3E%3C/svg%3E");
   --mark-to-record: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 14 14'%3E%3Cpath d='M7 1.8 12.2 7 7 12.2 1.8 7z' fill='none' stroke='black' stroke-width='1.6' stroke-linejoin='round'/%3E%3Cpath d='M7 1.8 12.2 7H1.8z'/%3E%3C/svg%3E");
   --mark-completed: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 14 14'%3E%3Cmask id='c'%3E%3Crect width='14' height='14' fill='white'/%3E%3Cpath d='m4.5 7.1 1.7 1.7 3.3-3.4' fill='none' stroke='black' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/mask%3E%3Cpath d='M7 .8 13.2 7 7 13.2.8 7z' mask='url(%23c)'/%3E%3C/svg%3E");
-  --mark-cancelled: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 14 14'%3E%3Cpath d='M7 1.8 12.2 7 7 12.2 1.8 7z' fill='none' stroke='black' stroke-width='1.6' stroke-dasharray='2.1 1.6'/%3E%3C/svg%3E");
+  --mark-cancelled: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 14 14'%3E%3Cpath d='M7 1.8 12.2 7 7 12.2 1.8 7z' fill='none' stroke='black' stroke-width='1.5' stroke-linejoin='miter' pathLength='8' stroke-dasharray='.62 .38' stroke-dashoffset='.31'/%3E%3C/svg%3E");
   --mark-no-show: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 14 14'%3E%3Cpath d='M7 1.8 12.2 7 7 12.2 1.8 7z' fill='none' stroke='black' stroke-width='1.6' stroke-linejoin='round'/%3E%3C/svg%3E");
 }

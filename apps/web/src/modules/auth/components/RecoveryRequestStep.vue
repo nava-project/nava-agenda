@@ -183,7 +183,7 @@ async function onSubmit() {
             stroke-linejoin="round"
             aria-hidden="true"
           >
-            <circle class="recovery-channel__check-ring" cx="12" cy="12" r="9.5" />
+            <path class="recovery-channel__check-ring" d="M12 2 L22 12 L12 22 L2 12 Z" />
             <path class="recovery-channel__check-tick" d="M7.8 12.4l3 3 5.4-6" />
           </svg>
         </button>

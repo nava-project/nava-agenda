@@ -46,14 +46,17 @@ withDefaults(
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 64px;
-  height: 64px;
-  border-radius: 50%;
+  width: 48px;
+  height: 48px;
+  margin: 8px;
+  border-radius: 6px;
+  rotate: 45deg;
   background-color: var(--color-surface-muted);
   color: var(--color-text-secondary);
 }
 
 .empty-state__icon svg {
+  rotate: -45deg;
   width: 32px;
   height: 32px;
 }

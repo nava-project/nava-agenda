@@ -143,10 +143,16 @@ defineEmits<{ toggle: [] }>()
   line-height: 22px;
 }
 
-/* Dato junto al título: pastilla neutra en tipo oración. */
+/* Dato junto al título: una píldora de verdad, más ancha que alta y con el
+   rombo de la familia delante de la cifra, para que no se lea como un
+   círculo con número (#737). */
 .accordion-item__badge {
+  display: inline-flex;
   flex: 0 0 auto;
-  padding: 1px 8px;
+  gap: 6px;
+  align-items: center;
+  min-width: 40px;
+  padding: 1px 10px;
   color: var(--color-text-secondary);
   font-size: 13px;
   font-variant-numeric: tabular-nums;
@@ -157,6 +163,14 @@ defineEmits<{ toggle: [] }>()
   transition:
     color var(--motion-duration-fast) var(--motion-easing-standard),
     border-color var(--motion-duration-fast) var(--motion-easing-standard);
+}
+
+.accordion-item__badge::before {
+  width: 5px;
+  height: 5px;
+  content: '';
+  background: currentColor;
+  rotate: 45deg;
 }
 
 .accordion-item__badge--on {

@@ -574,12 +574,13 @@ const ownRoster = computed(() =>
   color: var(--color-text-secondary);
 }
 
-/* Punto hueco (hereda) o lleno (propia): la palabra lo dice, el punto acompaña. */
+/* Rombo hueco (hereda) o lleno (propia): la palabra lo dice, el rombo acompaña. */
 .professional-window__status-mark {
   width: 8px;
   height: 8px;
   border: var(--border-width-normal) solid currentColor;
-  border-radius: 50%;
+  border-radius: 1px;
+  rotate: 45deg;
   transition:
     background-color var(--motion-duration-base) var(--motion-easing-standard),
     color var(--motion-duration-base) var(--motion-easing-standard);

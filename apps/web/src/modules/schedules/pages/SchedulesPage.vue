@@ -2709,12 +2709,13 @@ const editPreview = computed(() =>
 .schedules-row__state::before {
   content: '';
   display: inline-block;
-  width: 6px;
-  height: 6px;
+  width: 7px;
+  height: 7px;
   margin-right: 6px;
   vertical-align: 1px;
   background-color: currentColor;
-  border-radius: 50%;
+  border-radius: 0;
+  rotate: 45deg;
 }
 
 .schedules-row__state--open {

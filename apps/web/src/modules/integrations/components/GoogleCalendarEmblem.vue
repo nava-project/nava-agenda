@@ -41,18 +41,16 @@ const isAlert = computed(() => props.view === 'reauth' || props.view === 'sync-e
         />
       </g>
       <!-- Día marcado: hueco hasta que la agenda se publica. -->
-      <circle
+      <path
         class="gcal-emblem__mark"
         :class="{ 'gcal-emblem__mark--filled': isLive }"
-        cx="56"
-        cy="76"
-        r="5.5"
+        d="M56 69.5 L62.5 76 L56 82.5 L49.5 76 Z"
       />
     </g>
 
-    <!-- Insignia de estado. -->
+    <!-- Insignia de estado: un rombo, como todo marcador de la familia (#737). -->
     <g :key="view" class="gcal-emblem__badge">
-      <circle cx="88" cy="88" r="15" class="gcal-emblem__badge-disc" />
+      <path d="M88 70 L106 88 L88 106 L70 88 Z" class="gcal-emblem__badge-disc" />
       <path
         v-if="view === 'connected'"
         class="gcal-emblem__glyph"
@@ -116,6 +114,7 @@ const isAlert = computed(() => props.view === 'reauth' || props.view === 'sync-e
   fill: var(--color-surface);
   stroke: var(--emblem-tone);
   stroke-width: 2;
+  stroke-linejoin: round;
 }
 
 .gcal-emblem__glyph {

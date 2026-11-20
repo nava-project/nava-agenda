@@ -1681,7 +1681,7 @@ function occurredAtLabel(entry: HistoryEntry): string {
   height: 9px;
   border: 1px solid var(--color-border-control);
   transform: rotate(45deg);
-  border-radius: 50%;
+  border-radius: 1px;
 }
 
 /* ── Cabecera ───────────────────────────────────────────────────────────── */
@@ -2122,24 +2122,27 @@ function occurredAtLabel(entry: HistoryEntry): string {
   border-left-color: transparent;
 }
 
-/* Marca del evento: cuadrado de filete de latón; la más reciente va llena. */
+/* Marca del evento: rombo de filete (#737); la más reciente va llena. */
 .appointment-detail-page__history-icon {
   position: absolute;
-  top: 0;
-  left: -15px;
+  top: 3px;
+  left: -12px;
   display: grid;
   place-items: center;
-  width: 30px;
-  height: 30px;
+  width: 24px;
+  height: 24px;
+  margin: 0;
   color: var(--color-text-secondary);
   background-color: var(--color-surface);
   border: 1px solid var(--color-border-control);
-  border-radius: 50%;
+  border-radius: 3px;
+  rotate: 45deg;
 }
 
 .appointment-detail-page__history-icon :deep(svg) {
-  width: 16px;
-  height: 16px;
+  width: 15px;
+  height: 15px;
+  rotate: -45deg;
 }
 
 .appointment-detail-page__history-item:first-child .appointment-detail-page__history-icon {

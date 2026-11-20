@@ -27,10 +27,11 @@ import {
   BaseAlert,
   BaseButton,
   BaseInput,
-  ProfessionalAvatar,
-  ProfessionalSelect,
   PageState,
   PhoneField,
+  ProfessionalAvatar,
+  ProfessionalSelect,
+  SunDiamond,
 } from '@/shared/ui'
 import { DEFAULT_PHONE_COUNTRY, composePhone } from '@/shared/model/phoneCountries'
 import { formatCivilDateFull, isCivilDateString } from '@/shared/time/civilDate'
@@ -543,7 +544,7 @@ function onProfessionalSelect(professionalId: string) {
                       role="status"
                       aria-live="polite"
                     >
-                      <span class="new-appointment-page__note-spinner" aria-hidden="true" />
+                      <SunDiamond size="sm" class="new-appointment-page__note-spinner" />
                       <span>Cargando servicios…</span>
                     </p>
                     <p
@@ -1080,12 +1081,14 @@ function onProfessionalSelect(professionalId: string) {
   display: flex;
   align-items: center;
   justify-content: center;
-  width: var(--step-size);
-  height: var(--step-size);
+  width: calc(var(--step-size) * 0.78);
+  height: calc(var(--step-size) * 0.78);
+  margin: calc(var(--step-size) * 0.11);
   grid-column: 1;
   grid-row: 1;
   border: var(--border-width-normal) solid var(--color-border-control);
-  border-radius: 50%;
+  border-radius: 3px;
+  rotate: 45deg;
   font-family: var(--font-sans);
   font-size: var(--font-size-body);
   line-height: 1;
@@ -1097,6 +1100,10 @@ function onProfessionalSelect(professionalId: string) {
     color 260ms ease,
     box-shadow 260ms ease;
   font-weight: 600;
+}
+
+.new-appointment-page__section-number > * {
+  rotate: -45deg;
 }
 
 .new-appointment-page__section--done .new-appointment-page__section-number {
@@ -1526,14 +1533,8 @@ function onProfessionalSelect(professionalId: string) {
 }
 
 .new-appointment-page__note-spinner {
-  width: 13px;
-  height: 13px;
-  flex-shrink: 0;
-  border: 1.5px solid var(--color-border-control);
-  border-top-color: var(--color-text-secondary);
-  border-right-color: var(--color-text-secondary);
-  border-radius: 50%;
-  transform: rotate(-38deg);
+  font-size: 11px;
+  color: var(--color-text-secondary);
 }
 
 /* -------------------------------------------------------------- resumen */

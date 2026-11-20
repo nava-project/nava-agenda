@@ -17,13 +17,14 @@ import { computed, nextTick, ref, onMounted, onUnmounted, watch } from 'vue'
 import { useToast, useVocabulary } from '@/shared/composables'
 import { capitalize, isEmployeeProfile, worksOwnProfessional } from '@/shared/model'
 import {
-  ProfessionalAvatar,
-  ProfessionalSelect,
   BaseAlert,
   BaseButton,
   BasePagination,
   DiamondLoader,
   EmptyScene,
+  ProfessionalAvatar,
+  ProfessionalSelect,
+  SunDiamond,
 } from '@/shared/ui'
 import {
   assignService,
@@ -571,7 +572,7 @@ async function onToggleService(service: ServiceSummary, event: Event) {
                     class="professional-services-page__pending"
                     aria-live="polite"
                   >
-                    <span class="professional-services-page__spinner" aria-hidden="true" />
+                    <SunDiamond size="sm" class="professional-services-page__spinner" />
                     Guardando…
                   </span>
                   <span
@@ -1174,9 +1175,10 @@ async function onToggleService(service: ServiceSummary, event: Event) {
 
 .professional-services-page__assignment::before {
   content: '';
-  width: 6px;
-  height: 6px;
-  border-radius: 50%;
+  width: 7px;
+  height: 7px;
+  border-radius: 0;
+  rotate: 45deg;
   background-color: currentColor;
 }
 
@@ -1190,25 +1192,12 @@ async function onToggleService(service: ServiceSummary, event: Event) {
   flex-direction: column;
 }
 
+/* «Guardando…»: el diamante dentro del sol, del tono del texto (#737). */
 .professional-services-page__spinner {
-  width: 12px;
-  height: 12px;
-  /* «Guardando…»: aro en texto secundario que gira mientras dura el guardado
-     (es carga, finita); sin acento. */
-  border: var(--border-width-emphasis) solid var(--color-text-secondary);
-  border-top-color: transparent;
-  border-radius: 50%;
-  animation: professional-services-spin 800ms linear infinite;
-}
-
-@keyframes professional-services-spin {
-  to {
-    transform: rotate(360deg);
-  }
+  font-size: 12px;
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .professional-services-page__spinner,
   .professional-services-page__skeleton-row,
   .professional-services-page__skeleton-profile {
     animation: none;
@@ -1222,9 +1211,8 @@ async function onToggleService(service: ServiceSummary, event: Event) {
   }
 }
 
-/* «Animaciones reducidas» de Configuración (DEC-110): esqueletos y aro quedan
+/* «Animaciones reducidas» de Configuración (DEC-110): los esqueletos quedan
    quietos igual que con la preferencia del sistema. */
-:global(:root[data-motion='reduced']) .professional-services-page__spinner,
 :global(:root[data-motion='reduced']) .professional-services-page__skeleton-row,
 :global(:root[data-motion='reduced']) .professional-services-page__skeleton-profile {
   animation: none;

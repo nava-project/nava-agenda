@@ -148,7 +148,8 @@ const nowPercent = computed(() => {
   width: 8px;
   height: 8px;
   background-color: var(--color-sun);
-  border-radius: 50%;
+  border-radius: 1px;
+  rotate: 45deg;
   box-shadow: 0 0 0 2px var(--color-surface);
 }
 

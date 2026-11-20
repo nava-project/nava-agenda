@@ -419,21 +419,25 @@ function onPick(event: MouseEvent) {
   translate: -50% -50%;
 }
 
+/* El ahora del cielo, en rombo (#737): ningún sol ni luna redondos como
+   marcador. De día, un rombo de sol con su resplandor; de noche, hueco. */
 .daylight__marker--sun {
-  width: 22px;
-  height: 22px;
+  width: 16px;
+  height: 16px;
   background: var(--color-sun);
-  border-radius: 50%;
+  border-radius: 2px;
+  rotate: 45deg;
   box-shadow:
     0 0 0 2px #fff8e6,
     0 0 18px 6px color-mix(in srgb, var(--color-sun) 70%, transparent);
 }
 
 .daylight__marker--moon {
-  width: 18px;
-  height: 18px;
-  border-radius: 50%;
-  box-shadow: inset -5px -2px 0 0 #fff4d6;
+  width: 13px;
+  height: 13px;
+  border-radius: 2px;
+  rotate: 45deg;
+  box-shadow: inset 0 0 0 2px #fff4d6;
 }
 
 .daylight__marker--selected {
@@ -611,7 +615,8 @@ function onPick(event: MouseEvent) {
   height: 18px;
   pointer-events: none;
   border: 2px solid var(--color-sun);
-  border-radius: 50%;
+  border-radius: 2px;
+  rotate: 45deg;
   opacity: 0;
   translate: -50% -50%;
 }

@@ -324,7 +324,8 @@ const nowLeft = computed(() =>
   margin-left: -7px;
   content: '';
   background-color: var(--color-sun);
-  border-radius: 50%;
+  border-radius: 1px;
+  rotate: 45deg;
   box-shadow: 0 0 0 1.5px var(--dr-ink);
 }
 

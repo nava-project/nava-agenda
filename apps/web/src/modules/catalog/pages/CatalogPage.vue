@@ -1812,9 +1812,9 @@ async function reloadAfterConflict(serviceId: string) {
                 :class="{ 'catalog-page__lifecycle-impact--warning': affectedAppointments > 0 }"
                 role="status"
               >
-                <span class="catalog-page__lifecycle-impact-icon" aria-hidden="true">{{
-                  affectedAppointments > 0 ? '!' : '✓'
-                }}</span>
+                <span class="catalog-page__lifecycle-impact-icon" aria-hidden="true"
+                  ><span>{{ affectedAppointments > 0 ? '!' : '✓' }}</span></span
+                >
                 <p class="catalog-page__lifecycle-impact-text">
                   <template v-if="affectedAppointments > 0">
                     <strong>{{ affectedAppointments }}</strong>
@@ -2416,9 +2416,10 @@ async function reloadAfterConflict(serviceId: string) {
 .catalog-page__row :deep(.base-badge)::before {
   content: '';
   flex-shrink: 0;
-  width: 6px;
-  height: 6px;
-  border-radius: 50%;
+  width: 7px;
+  height: 7px;
+  border-radius: 0;
+  rotate: 45deg;
   background-color: currentColor;
 }
 
@@ -2726,10 +2727,12 @@ async function reloadAfterConflict(serviceId: string) {
   flex: 0 0 auto;
   align-items: center;
   justify-content: center;
-  width: 28px;
-  height: 28px;
+  width: 22px;
+  height: 22px;
+  margin: 3px;
   background-color: color-mix(in srgb, var(--color-on-strong) 8%, transparent);
-  border-radius: 50%;
+  border-radius: 3px;
+  rotate: 45deg;
   color: var(--color-on-strong-muted);
   /* Letra de monograma: sans 600. La serif por debajo de 20 px se ensucia (#726). */
   font-family: var(--font-sans);
@@ -2746,6 +2749,10 @@ async function reloadAfterConflict(serviceId: string) {
    añadir un color nuevo. */
 .catalog-page__lifecycle-impact--warning {
   border-color: color-mix(in srgb, var(--color-danger-on-strong) 40%, transparent);
+}
+
+.catalog-page__lifecycle-impact-icon > span {
+  rotate: -45deg;
 }
 
 .catalog-page__lifecycle-impact--warning .catalog-page__lifecycle-impact-icon {
@@ -2920,10 +2927,10 @@ async function reloadAfterConflict(serviceId: string) {
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 18px;
-  height: 18px;
+  width: 20px;
+  height: 20px;
   background-color: color-mix(in srgb, var(--color-success-on-strong) 16%, transparent);
-  border-radius: 50%;
+  clip-path: polygon(50% 0, 100% 50%, 50% 100%, 0 50%);
   color: var(--color-success-on-strong);
   font-size: var(--font-size-caption);
   line-height: 1;
@@ -2973,9 +2980,10 @@ async function reloadAfterConflict(serviceId: string) {
    como continuación de la fila. */
 .catalog-page__detail-dot {
   flex-shrink: 0;
-  width: 6px;
-  height: 6px;
-  border-radius: 50%;
+  width: 7px;
+  height: 7px;
+  border-radius: 0;
+  rotate: 45deg;
   background-color: currentColor;
 }
 
