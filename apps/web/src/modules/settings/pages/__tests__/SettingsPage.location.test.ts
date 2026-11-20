@@ -117,7 +117,8 @@ describe('SettingsPage', () => {
     it('with the local off, hides the pin map and only previews the saved point', async () => {
       const wrapper = await mountWithLocation({ ...savedLocation, hasPhysicalLocation: false })
       expect(wrapper.find('.settings-location-picker').exists()).toBe(false)
-      expect(wrapper.find('#configuracion-ubicacion iframe').exists()).toBe(true)
+      // La vista previa es el plano ilustrado del punto guardado (#749).
+      expect(wrapper.find('#configuracion-ubicacion .location-map__art').exists()).toBe(true)
       expect(wrapper.get('#configuracion-ubicacion').text()).toContain('oculta')
       wrapper.unmount()
     })
