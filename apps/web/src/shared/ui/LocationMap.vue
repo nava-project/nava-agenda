@@ -81,7 +81,7 @@ const linkUrl = computed(() => mapsLinkUrl(props.latitude, props.longitude))
 
 .location-map__link:focus-visible {
   outline: 2px solid currentColor;
-  outline-offset: 3px;
+  outline-offset: 2px;
 }
 
 .location-map__sr {

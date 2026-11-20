@@ -366,6 +366,22 @@ describe('PublicCustomerDetailsPage', () => {
     expect(results).toHaveNoViolations()
   })
 
+  it('announces the summary briefly instead of reading the whole card (#739)', async () => {
+    const wrapper = mountPage()
+    await fillValidForm(wrapper)
+    await wrapper.find('form').trigger('submit')
+
+    const summary = wrapper.get('.customer-details__summary')
+    // La tarjeta es una región con nombre, no una región viva.
+    expect(summary.attributes('role')).toBe('region')
+    expect(summary.attributes('aria-label')).toBe('Resumen de tu turno')
+    expect(summary.element.closest('[role="status"]')).toBeNull()
+    // El anuncio es una frase corta y no contiene la tarjeta.
+    const status = summary.get('[role="status"]')
+    expect(status.text()).toBe('Revisa tus datos antes de confirmar.')
+    expect(status.find('.customer-details__ticket').exists()).toBe(false)
+  })
+
   it('confirms the appointment and shows the server confirmation (CA-097-01, CA-097-07)', async () => {
     confirmPublicAppointmentMock.mockResolvedValueOnce({
       kind: 'success',

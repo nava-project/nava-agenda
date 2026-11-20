@@ -174,7 +174,7 @@ onUnmounted(() => document.removeEventListener('mousedown', onOutside))
 }
 .base-select__trigger:focus-visible {
   outline: 2px solid var(--color-focus);
-  outline-offset: 3px;
+  outline-offset: 2px;
 }
 .base-select__trigger:disabled {
   opacity: 0.5;

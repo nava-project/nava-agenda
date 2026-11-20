@@ -1736,7 +1736,7 @@ const previewClass = computed(() => ({ 'settings-page__preview--changed': brandD
 }
 
 .preset-chip:focus-visible {
-  outline: var(--border-width-emphasis) solid var(--color-focus);
+  outline: 2px solid var(--color-focus);
   outline-offset: 2px;
 }
 
@@ -1833,7 +1833,7 @@ const previewClass = computed(() => ({ 'settings-page__preview--changed': brandD
 }
 
 .settings-link:focus-visible {
-  outline: var(--border-width-emphasis) solid var(--color-focus);
+  outline: 2px solid var(--color-focus);
   outline-offset: 2px;
 }
 

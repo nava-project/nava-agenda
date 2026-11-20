@@ -329,8 +329,10 @@
     transform var(--motion-duration-fast) var(--bk-ease);
 }
 
+/* Hover de la familia (#739): el filete sube a tinta, nunca al acento del
+   negocio (Alba en un borde se leía como selección o error). */
 .bk-service:hover {
-  border-color: var(--bk-accent);
+  border-color: color-mix(in srgb, var(--color-text-primary) 60%, transparent);
 }
 
 .bk-service:active {
@@ -1022,8 +1024,10 @@
     transform var(--motion-duration-fast) var(--bk-ease);
 }
 
+/* El CTA se hunde al pasar el cursor en los dos modos (antes, en oscuro, la
+   mezcla con el marfil lo aclaraba). */
 .bk-cta:hover {
-  background-color: color-mix(in srgb, var(--bk-accent) 88%, var(--color-text-primary));
+  background-color: color-mix(in srgb, var(--bk-accent) 90%, #000);
 }
 
 .bk-cta:active {

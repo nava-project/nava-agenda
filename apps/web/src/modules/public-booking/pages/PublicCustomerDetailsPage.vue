@@ -753,9 +753,13 @@ function chooseAlternative(startsAt: string) {
         v-else-if="confirmState !== 'confirmed'"
         ref="summaryRef"
         class="customer-details__summary customer-details__rise"
-        role="status"
+        role="region"
+        aria-label="Resumen de tu turno"
         tabindex="-1"
       >
+        <!-- Un anuncio corto, no un role="status" que envuelva la tarjeta entera
+             (un lector la leía completa al entrar o al cambiar; #739). -->
+        <p class="pb-sr-only" role="status">Revisa tus datos antes de confirmar.</p>
         <!-- La cita es lo que el cliente viene a comprobar: la tarjeta de turno
              por confirmar, punteada y sin sello (DEC-189). -->
         <AppointmentTicket
@@ -1036,9 +1040,9 @@ function chooseAlternative(startsAt: string) {
   /* La reserva conserva su línea base de 2 px del color del negocio; el
      campo compartido v2 la tiene de 1 px y neutra (DEC-188, entrega 5). */
   border-bottom-width: var(--border-width-emphasis);
-  --input-focus-ring:
-    0 0 0 2px var(--color-surface-strong), 0 0 0 4px var(--pb-brass),
-    0 0 22px color-mix(in srgb, var(--pb-brass) 35%, transparent);
+  /* El foco de la familia (#739): anillo del color del texto con su hueco,
+     sin resplandor del acento, que se confundía con el error. */
+  --input-focus-ring: 0 0 0 2px var(--color-surface-strong), 0 0 0 4px var(--color-focus);
 
   color: var(--pb-text);
 }
@@ -1048,16 +1052,16 @@ function chooseAlternative(startsAt: string) {
   opacity: 1;
 }
 
+/* Hover y foco conservan el fondo del campo (antes se teñía de gris y
+   parecía deshabilitado) y suben el filete a tinta, no al acento (#739). */
 .customer-details :deep(.base-input:hover:not(:disabled):not(.base-input--invalid)) {
-  background-color: color-mix(in srgb, var(--color-text-primary) 4%, var(--color-surface));
-  border-color: color-mix(in srgb, var(--pb-brass) 60%, transparent);
-  border-bottom-color: var(--pb-brass);
+  border-color: color-mix(in srgb, var(--color-text-primary) 60%, transparent);
+  border-bottom-color: var(--color-text-primary);
 }
 
 .customer-details :deep(.base-input:focus-visible) {
-  background-color: color-mix(in srgb, var(--color-text-primary) 8%, var(--color-surface));
-  border-color: var(--pb-brass);
-  border-bottom-color: var(--pb-brass);
+  border-color: var(--color-text-primary);
+  border-bottom-color: var(--color-text-primary);
 }
 
 .customer-details :deep(.base-input:-webkit-autofill),
@@ -1147,7 +1151,7 @@ function chooseAlternative(startsAt: string) {
 
 .customer-details__radio:hover input:not(:checked) + span {
   background-color: var(--pb-wash);
-  border-color: var(--pb-brass);
+  border-color: color-mix(in srgb, var(--color-text-primary) 60%, transparent);
   transform: translateY(-1px);
 }
 
@@ -1172,7 +1176,7 @@ function chooseAlternative(startsAt: string) {
 .customer-details__radio input:focus-visible + span {
   box-shadow:
     0 0 0 2px var(--color-surface-strong),
-    0 0 0 4px var(--pb-brass);
+    0 0 0 4px var(--color-focus);
 }
 
 .customer-details__field {
@@ -1204,18 +1208,16 @@ function chooseAlternative(startsAt: string) {
 }
 
 .customer-details__textarea:hover {
-  background-color: color-mix(in srgb, var(--color-text-primary) 4%, var(--color-surface));
-  border-color: color-mix(in srgb, var(--pb-brass) 60%, transparent);
-  border-bottom-color: var(--pb-brass);
+  border-color: color-mix(in srgb, var(--color-text-primary) 60%, transparent);
+  border-bottom-color: var(--color-text-primary);
 }
 
+/* Mismo foco que los campos de BaseInput (#739). */
 .customer-details__textarea:focus-visible {
-  background-color: color-mix(in srgb, var(--color-text-primary) 8%, var(--color-surface));
-  border-color: var(--pb-brass);
+  border-color: var(--color-text-primary);
   box-shadow:
     0 0 0 2px var(--color-surface-strong),
-    0 0 0 4px var(--pb-brass),
-    0 0 22px color-mix(in srgb, var(--pb-brass) 35%, transparent);
+    0 0 0 4px var(--color-focus);
 }
 
 .customer-details__textarea[aria-invalid='true'] {
@@ -1252,7 +1254,7 @@ function chooseAlternative(startsAt: string) {
 }
 
 .customer-details :deep(.base-button--primary:hover:not(:disabled):not(.base-button--loading)) {
-  background-color: color-mix(in srgb, var(--bk-accent) 88%, var(--color-text-primary));
+  background-color: color-mix(in srgb, var(--bk-accent) 90%, #000);
 }
 
 .customer-details :deep(.base-button--secondary),

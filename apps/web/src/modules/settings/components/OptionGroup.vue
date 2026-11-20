@@ -78,8 +78,8 @@ const name = `option-group-${useId()}`
 
 /* El foco visible lo dibuja el contenedor de la opción, no el input invisible. */
 .option-group__option:has(.option-group__input:focus-visible) {
-  outline: var(--border-width-emphasis) solid var(--color-focus);
-  outline-offset: 3px;
+  outline: 2px solid var(--color-focus);
+  outline-offset: 2px;
   border-radius: var(--radius-md);
 }
 </style>

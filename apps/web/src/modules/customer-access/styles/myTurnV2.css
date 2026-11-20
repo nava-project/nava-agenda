@@ -255,7 +255,7 @@
 
 .mt-field textarea:focus-visible {
   outline: 2px solid var(--color-focus);
-  outline-offset: 1px;
+  outline-offset: 2px;
 }
 
 .mt-field textarea[aria-invalid='true'] {
@@ -627,7 +627,7 @@
 }
 
 .mt-choice:hover {
-  border-color: var(--bk-accent);
+  border-color: color-mix(in srgb, var(--color-text-primary) 60%, transparent);
 }
 
 .mt-choice__when {

@@ -519,7 +519,7 @@ defineExpose({ focus: () => inputRef.value?.focus() })
 }
 
 .tz-field__device:focus-visible {
-  outline: var(--border-width-emphasis) solid var(--color-focus);
+  outline: 2px solid var(--color-focus);
   outline-offset: 2px;
 }
 

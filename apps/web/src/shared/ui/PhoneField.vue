@@ -162,13 +162,17 @@ function onInput(event: Event) {
   --pf-brass: var(--pb-brass, var(--color-text-secondary));
   --pf-line-strong: var(--pb-line-strong, color-mix(in srgb, var(--pf-text) 30%, transparent));
   --pf-row-bg: var(--color-surface);
-  --pf-row-bg-hover: color-mix(in srgb, var(--color-text-primary) 4%, var(--color-surface));
-  --pf-row-bg-focus: color-mix(in srgb, var(--color-text-primary) 8%, var(--color-surface));
+  /* Hover y foco conservan el fondo del campo (#739): teñido de gris parecía
+     deshabilitado. */
+  --pf-row-bg-hover: var(--color-surface);
+  --pf-row-bg-focus: var(--color-surface);
   --pf-row-base: color-mix(in srgb, var(--pf-brass) 75%, transparent);
   --pf-row-base-hover: var(--pf-brass);
   --pf-ring-gap: var(--color-surface-strong);
-  --pf-focus: var(--pb-brass, var(--color-focus));
-  --pf-focus-glow: 0 0 22px color-mix(in srgb, var(--pf-focus) 35%, transparent);
+  /* El foco de la familia (#739): del color del texto, sin el acento del
+     negocio ni resplandor. */
+  --pf-focus: var(--color-focus);
+  --pf-focus-glow: 0 0 0 0 transparent;
   --pf-danger: var(--color-danger-on-strong);
 
   display: flex;
@@ -205,8 +209,8 @@ function onInput(event: Event) {
 
 .phone-field__row:hover {
   background-color: var(--pf-row-bg-hover);
-  border-color: color-mix(in srgb, var(--pf-brass) 60%, transparent);
-  border-bottom-color: var(--pf-row-base-hover);
+  border-color: color-mix(in srgb, var(--color-text-primary) 60%, transparent);
+  border-bottom-color: var(--color-text-primary);
 }
 
 .phone-field__row:focus-within {
@@ -321,7 +325,7 @@ function onInput(event: Event) {
 
 /* El foco del selector (opacity 0) se dibuja en la cara. */
 .phone-field__prefix:has(.phone-field__select:focus-visible) .phone-field__face {
-  outline: 2px solid var(--pf-brass);
+  outline: 2px solid var(--color-focus);
   outline-offset: -4px;
 }
 

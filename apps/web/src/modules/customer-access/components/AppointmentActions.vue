@@ -433,7 +433,7 @@ const bookAgainHref = computed(() => `/reservar/${encodeURIComponent(props.slug)
 }
 
 a.actions__choice:hover {
-  border-color: var(--bk-accent, var(--color-brand-accent-surface));
+  border-color: color-mix(in srgb, var(--color-text-primary) 60%, transparent);
 }
 
 .actions__choice--cancel:hover {

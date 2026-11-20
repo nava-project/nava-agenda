@@ -1656,7 +1656,7 @@ function occurredAtLabel(entry: HistoryEntry): string {
 
 .appointment-detail-page__back a:focus-visible {
   outline: 2px solid var(--color-focus);
-  outline-offset: 3px;
+  outline-offset: 2px;
 }
 
 .appointment-detail-page__state {
