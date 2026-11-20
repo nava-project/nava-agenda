@@ -12,7 +12,7 @@
 // que lo abre en Google Maps (no necesita clave). Sin forma de incrustar el
 // mapa en este entorno, no se ofrece «Ver mapa». Con un punto inválido no se
 // pinta nada: nunca un mapa sin coordenadas reales.
-import { computed, ref, useId, watch } from 'vue'
+import { computed, onBeforeUnmount, ref, useId, watch } from 'vue'
 import { mapEmbedUrl, mapsLinkUrl } from '../model/mapEmbed'
 
 const props = defineProps<{
@@ -28,18 +28,39 @@ const frameId = useId()
 const showLive = ref(false)
 const liveLoaded = ref(false)
 
+// Si `load` no llega (red lenta o Google colgado), el mapa vivo se muestra igual
+// a los 3 s: tocar «Ver mapa» siempre cambia algo. Su fondo opaco evita que lo
+// que pinte se mezcle con el plano (#750).
+const LOAD_FALLBACK_MS = 3000
+let fallbackTimer: ReturnType<typeof setTimeout> | null = null
+
+function clearFallback() {
+  if (fallbackTimer !== null) clearTimeout(fallbackTimer)
+  fallbackTimer = null
+}
+
+function hideLive() {
+  clearFallback()
+  showLive.value = false
+  liveLoaded.value = false
+}
+
+function onLiveLoaded() {
+  clearFallback()
+  liveLoaded.value = true
+}
+
 // Otro punto, otro mapa: se vuelve al plano.
-watch(
-  () => [props.latitude, props.longitude],
-  () => {
-    showLive.value = false
-    liveLoaded.value = false
-  },
-)
+watch(() => [props.latitude, props.longitude], hideLive)
+onBeforeUnmount(clearFallback)
 
 function toggleLive() {
-  showLive.value = !showLive.value
-  if (!showLive.value) liveLoaded.value = false
+  if (showLive.value) {
+    hideLive()
+    return
+  }
+  showLive.value = true
+  fallbackTimer = setTimeout(onLiveLoaded, LOAD_FALLBACK_MS)
 }
 
 // Cada local, su plano: el ángulo y el corrimiento de las calles salen de las
@@ -124,10 +145,9 @@ const plan = computed(() => {
         :src="embedUrl"
         tabindex="-1"
         :title="`Mapa de ${address}`"
-        loading="lazy"
         referrerpolicy="no-referrer-when-downgrade"
         allowfullscreen
-        @load="liveLoaded = true"
+        @load="onLiveLoaded"
       />
     </div>
     <figcaption class="location-map__caption">
@@ -240,13 +260,18 @@ const plan = computed(() => {
   }
 }
 
-/* El mapa vivo entra sobre el plano solo cuando ya cargó: sin recuadro vacío. */
+/* El mapa vivo entra sobre el plano solo cuando ya cargó: sin recuadro vacío.
+   Fondo opaco (#750): si Google rechaza la carga, el iframe dispara `load`
+   igual y su documento es transparente; sin fondo, el texto del error quedaba
+   encima de las calles y el pin. Desde otro origen no se puede saber si falló,
+   así que el iframe tapa el plano por completo y nunca se mezclan. */
 .location-map__frame {
   position: absolute;
   inset: 0;
   display: block;
   width: 100%;
   height: 100%;
+  background-color: var(--color-surface, Canvas);
   border: 0;
   opacity: 0;
 }

@@ -4,7 +4,9 @@
  * Siempre, la dirección en texto y el enlace para abrir Google Maps. En los
  * tests `import.meta.env.DEV` es true, así que hay incrustado sin clave.
  */
-import { describe, expect, it } from 'vitest'
+import { readFileSync } from 'node:fs'
+import { join } from 'node:path'
+import { describe, expect, it, vi } from 'vitest'
 import { mount } from '@vue/test-utils'
 import { axe } from 'vitest-axe'
 import LocationMap from '../LocationMap.vue'
@@ -60,6 +62,26 @@ describe('LocationMap', () => {
     await toggle.trigger('click')
     expect(wrapper.find('iframe').exists()).toBe(false)
     expect(wrapper.find('svg.location-map__art').exists()).toBe(true)
+  })
+
+  it('el mapa vivo tiene fondo opaco: un error de Google nunca se monta sobre el plano (#750)', () => {
+    const source = readFileSync(join(__dirname, '../LocationMap.vue'), 'utf8')
+    expect(source).toMatch(
+      /\.location-map__frame \{[^}]*background-color: var\(--color-surface, Canvas\);/,
+    )
+  })
+
+  it('muestra el mapa vivo a los 3 s aunque Google no dispare load (#750)', async () => {
+    vi.useFakeTimers()
+    try {
+      const wrapper = mount(LocationMap, { props })
+      await wrapper.get('button.location-map__toggle').trigger('click')
+      expect(wrapper.get('iframe').classes()).not.toContain('location-map__frame--ready')
+      await vi.advanceTimersByTimeAsync(3000)
+      expect(wrapper.get('iframe').classes()).toContain('location-map__frame--ready')
+    } finally {
+      vi.useRealTimers()
+    }
   })
 
   it('vuelve al plano si cambia el punto', async () => {
