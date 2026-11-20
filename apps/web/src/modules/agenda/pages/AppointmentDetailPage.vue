@@ -738,13 +738,45 @@ function occurredAtLabel(entry: HistoryEntry): string {
       <RouterLink :to="{ name: 'panel', query: backQuery }">← Volver a la agenda</RouterLink>
     </p>
 
+    <!-- Carga (#741): como las demás rutas del panel desde #736, el sol grande
+         centrado sobre un esqueleto con la forma real del detalle (cabecera,
+         ficha e historial), en vez de una línea sobre la pantalla vacía. -->
     <div
       v-if="pageStatus === 'loading'"
-      class="appointment-detail-page__state"
+      class="appointment-detail-page__loading"
       role="status"
       aria-live="polite"
     >
-      <DiamondLoader layout="inline" label="Cargando el detalle del turno…" />
+      <DiamondLoader layout="overlay" label="Cargando el detalle del turno…" />
+      <div class="appointment-detail-page__skeleton" aria-hidden="true">
+        <span
+          class="appointment-detail-page__skeleton-bar appointment-detail-page__skeleton-bar--kicker"
+        />
+        <span
+          class="appointment-detail-page__skeleton-bar appointment-detail-page__skeleton-bar--title"
+        />
+        <div class="appointment-detail-page__skeleton-card">
+          <span
+            class="appointment-detail-page__skeleton-bar appointment-detail-page__skeleton-bar--time"
+          />
+          <span v-for="n in 4" :key="n" class="appointment-detail-page__skeleton-row">
+            <span
+              class="appointment-detail-page__skeleton-bar appointment-detail-page__skeleton-bar--label"
+            />
+            <span
+              class="appointment-detail-page__skeleton-bar appointment-detail-page__skeleton-bar--value"
+            />
+          </span>
+        </div>
+        <span
+          class="appointment-detail-page__skeleton-bar appointment-detail-page__skeleton-bar--section"
+        />
+        <span
+          v-for="n in 2"
+          :key="`h${n}`"
+          class="appointment-detail-page__skeleton-bar appointment-detail-page__skeleton-bar--history"
+        />
+      </div>
     </div>
 
     <BaseAlert
@@ -1662,6 +1694,92 @@ function occurredAtLabel(entry: HistoryEntry): string {
 .appointment-detail-page__state {
   padding: var(--space-6);
   color: var(--color-on-strong-soft);
+}
+
+/* Esqueleto del detalle (#741): mismas medidas que la cabecera, la ficha y el
+   historial reales; el pulso es un indicador de carga (dura lo que la
+   petición) y se apaga con movimiento reducido. */
+.appointment-detail-page__loading {
+  position: relative;
+}
+
+.appointment-detail-page__skeleton {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  padding-block: var(--space-4);
+}
+
+.appointment-detail-page__skeleton-card {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+  margin-block: var(--space-2) var(--space-5);
+  padding: var(--space-5);
+  border: 1px dashed color-mix(in srgb, var(--color-on-strong) 18%, transparent);
+  border-radius: var(--radius-lg);
+}
+
+.appointment-detail-page__skeleton-row {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.appointment-detail-page__skeleton-bar {
+  display: block;
+  height: 14px;
+  background-color: color-mix(in srgb, var(--color-on-strong) 14%, transparent);
+  border-radius: var(--radius-sm);
+  animation: appointment-detail-skeleton-pulse 1400ms ease-in-out infinite;
+}
+
+.appointment-detail-page__skeleton-bar--kicker {
+  width: 38%;
+}
+
+.appointment-detail-page__skeleton-bar--title {
+  width: 64%;
+  height: 28px;
+}
+
+.appointment-detail-page__skeleton-bar--time {
+  width: 72%;
+  height: 26px;
+}
+
+.appointment-detail-page__skeleton-bar--label {
+  width: 28%;
+  height: 12px;
+}
+
+.appointment-detail-page__skeleton-bar--value {
+  width: 58%;
+}
+
+.appointment-detail-page__skeleton-bar--section {
+  width: 32%;
+  height: 22px;
+}
+
+.appointment-detail-page__skeleton-bar--history {
+  width: 86%;
+}
+
+@keyframes appointment-detail-skeleton-pulse {
+  50% {
+    opacity: 0.45;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .appointment-detail-page__skeleton-bar {
+    animation: none;
+  }
+}
+
+:root[data-motion='reduced'] .appointment-detail-page__skeleton-bar {
+  animation: none;
 }
 
 .appointment-detail-page__empty {

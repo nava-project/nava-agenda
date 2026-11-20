@@ -28,8 +28,12 @@ interface Props {
   description?: string
   /** Tamaño del diálogo */
   size?: 'sm' | 'md' | 'lg' | 'xl' | 'full'
-  /** Ubicación visual dentro del viewport. El foco y el backdrop no cambian. */
-  placement?: 'center' | 'bottom'
+  /**
+   * Ubicación visual dentro del viewport. El foco y el backdrop no cambian.
+   * `bottom` es siempre un sheet desde el borde de abajo; `sheet-mobile` es
+   * sheet por debajo de 640 px y diálogo centrado desde ahí (#741).
+   */
+  placement?: 'center' | 'bottom' | 'sheet-mobile'
   /** Clase opcional para una superficie de diálogo con contrato visual propio. */
   contentClass?: string
   /** Si se cierra al hacer click en el backdrop */
@@ -364,6 +368,72 @@ onUnmounted(() => {
 
 .base-dialog__overlay--bottom {
   align-items: flex-end;
+}
+
+/*
+ * Sheet (#741): pegado al borde de abajo, a todo el ancho, con las esquinas
+ * de arriba redondeadas, un asa y el inset del área segura. `sheet-mobile`
+ * repite estas reglas solo por debajo de 640 px.
+ */
+.base-dialog__overlay--bottom {
+  padding: 0;
+}
+
+.base-dialog__overlay--bottom .base-dialog {
+  width: 100%;
+  max-height: calc(100vh / var(--ui-zoom, 1) - var(--space-8));
+  padding-bottom: env(safe-area-inset-bottom, 0);
+  border-radius: var(--radius-lg) var(--radius-lg) 0 0;
+}
+
+.base-dialog__overlay--bottom .base-dialog .base-dialog__container {
+  max-width: none;
+}
+
+.base-dialog__overlay--bottom .base-dialog::before {
+  flex: none;
+  width: 36px;
+  height: 4px;
+  margin: var(--space-2) auto 0;
+  content: '';
+  background-color: color-mix(in srgb, var(--color-text-primary) 28%, transparent);
+  border-radius: 2px;
+}
+
+@media (max-width: 639.98px) {
+  .base-dialog__overlay--sheet-mobile {
+    align-items: flex-end;
+    padding: 0;
+  }
+
+  .base-dialog__overlay--sheet-mobile .base-dialog {
+    width: 100%;
+    max-height: calc(100vh / var(--ui-zoom, 1) - var(--space-8));
+    padding-bottom: env(safe-area-inset-bottom, 0);
+    border-radius: var(--radius-lg) var(--radius-lg) 0 0;
+  }
+
+  .base-dialog__overlay--sheet-mobile .base-dialog .base-dialog__container {
+    max-width: none;
+  }
+
+  .base-dialog__overlay--sheet-mobile .base-dialog::before {
+    flex: none;
+    width: 36px;
+    height: 4px;
+    margin: var(--space-2) auto 0;
+    content: '';
+    background-color: color-mix(in srgb, var(--color-text-primary) 28%, transparent);
+    border-radius: 2px;
+  }
+
+  .base-dialog-motion-enter-active.base-dialog__overlay--sheet-mobile .base-dialog {
+    animation-name: base-dialog-sheet-in;
+  }
+
+  .base-dialog-motion-leave-active.base-dialog__overlay--sheet-mobile .base-dialog {
+    animation-name: base-dialog-sheet-out;
+  }
 }
 
 .base-dialog {

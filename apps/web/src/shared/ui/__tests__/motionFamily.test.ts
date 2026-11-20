@@ -15,6 +15,8 @@ const read = (path: string) => readFileSync(join(SRC, path), 'utf8')
 const dialog = read('shared/ui/BaseDialog.vue')
 const booking = read('modules/public-booking/styles/bookingV2.css')
 const button = read('shared/ui/BaseButton.vue')
+const nav = read('modules/auth/components/AppNav.vue')
+const detail = read('modules/agenda/pages/AppointmentDetailPage.vue')
 
 function keyframes(source: string, prefix: string): Record<string, string> {
   return Object.fromEntries(
@@ -87,5 +89,27 @@ describe('movimiento de la familia (#741)', () => {
     const press = button.indexOf('transform: translateY(1px) scale(0.985);')
     expect(lift).toBeGreaterThan(-1)
     expect(press).toBeGreaterThan(lift)
+  })
+
+  it('«Más» sale como sheet desde abajo por debajo de 640 px, con asa y resorte', () => {
+    expect(nav).toMatch(/<BaseDialog[^>]*title="Más"[^>]*placement="sheet-mobile"/)
+    const mobile = dialog.slice(dialog.indexOf('@media (max-width: 639.98px)'))
+    expect(mobile).toMatch(/\.base-dialog__overlay--sheet-mobile \{\s*align-items: flex-end;/)
+    expect(mobile).toMatch(/\.base-dialog__overlay--sheet-mobile \.base-dialog::before \{/)
+    expect(mobile).toMatch(
+      /--sheet-mobile \.base-dialog \{\s*animation-name: base-dialog-sheet-in;/,
+    )
+    expect(mobile).toMatch(
+      /--sheet-mobile \.base-dialog \{\s*animation-name: base-dialog-sheet-out;/,
+    )
+  })
+
+  it('la carga del detalle es el sol grande sobre un esqueleto, no una línea', () => {
+    expect(detail).toMatch(
+      /<DiamondLoader layout="overlay" label="Cargando el detalle del turno…" \/>\s*<div class="appointment-detail-page__skeleton" aria-hidden="true">/,
+    )
+    expect(detail).toMatch(
+      /:root\[data-motion='reduced'\] \.appointment-detail-page__skeleton-bar \{\s*animation: none;/,
+    )
   })
 })
