@@ -65,9 +65,13 @@ test('un 409 marca la hora, relee ese día sin la tomada y conserva el resto', a
   await page.getByRole('button', { name: /Registrar turno/ }).click()
   await reread
 
-  // El error queda junto a la elección y en la alerta global.
-  await expect(page.locator('.manual-start__error')).toHaveText(
-    'el profesional ya tiene una cita en ese intervalo',
+  // El error queda junto a la elección (bajo el título del día, describiendo las
+  // horas) y en la alerta global.
+  const error = page.locator('.manual-start__error')
+  await expect(error).toHaveText('el profesional ya tiene una cita en ese intervalo')
+  await expect(page.getByRole('radiogroup', { name: 'Hora' })).toHaveAttribute(
+    'aria-describedby',
+    (await error.getAttribute('id'))!,
   )
   // La hora tomada ya no se ofrece ni queda elegida; lo demás sigue escrito.
   await expect(hours(page)).toHaveText([':00', ':00'])
@@ -92,26 +96,36 @@ test('la tira de días y las horas se recorren con el teclado', async ({ page })
   // Una sola parada de Tab en la tira: el día activo.
   const active = page.locator('.bk-day[tabindex="0"]')
   await expect(active).toHaveCount(1)
+  // Se llega con el teclado (Tab y vuelta), como lo haría quien no usa el ratón.
   await active.focus()
+  await page.keyboard.press('Tab')
+  await page.keyboard.press('Shift+Tab')
+  await expect(active).toBeFocused()
   await page.keyboard.press('ArrowLeft')
   await expect(days.nth(0)).toBeFocused()
   await expect(days.nth(0)).toHaveAttribute('aria-checked', 'true')
   await expect(page.locator('.manual-start__empty-text')).toContainText('Sin horas libres el ')
   await page.keyboard.press('End')
   await expect(days.nth(13)).toBeFocused()
+  // El día con foco lleva el anillo, no solo el filete de latón de la elección.
+  expect(await days.nth(13).evaluate((el) => getComputedStyle(el).boxShadow)).toContain(
+    '0px 0px 0px 4px',
+  )
   await page.keyboard.press('Home')
   await page.keyboard.press('ArrowRight')
   await expect(days.nth(1)).toHaveAttribute('aria-checked', 'true')
 
   // Las horas son un grupo de radio: las flechas eligen y el foco se ve.
-  await page.locator('.bk-min[tabindex="0"]').focus()
+  await page.keyboard.press('Tab')
+  await expect(page.locator('.bk-min[tabindex="0"]')).toBeFocused()
   await page.keyboard.press('ArrowRight')
   await expect(hours(page).nth(1)).toBeFocused()
   await expect(hours(page).nth(1)).toHaveAttribute('aria-checked', 'true')
-  const outline = await hours(page)
+  // El foco es el anillo de dos tonos (#771), distinto del filete de la elección.
+  const ring = await hours(page)
     .nth(1)
-    .evaluate((el) => getComputedStyle(el).outlineStyle)
-  expect(outline).not.toBe('none')
+    .evaluate((el) => el.matches(':focus-visible') && getComputedStyle(el).boxShadow)
+  expect(ring).toContain('0px 0px 0px 4px')
   // Escape no suelta la elección.
   await page.keyboard.press('Escape')
   await expect(hours(page).nth(1)).toHaveAttribute('aria-checked', 'true')

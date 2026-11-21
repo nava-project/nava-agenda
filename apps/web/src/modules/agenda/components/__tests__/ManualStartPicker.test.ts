@@ -205,13 +205,54 @@ describe('ManualStartPicker', () => {
     expect(wrapper.findAll('.bk-min').map((b) => b.text())).toEqual([':00'])
   })
 
-  it('shows the field error under the choice', async () => {
+  it('shows the field error under the day title, above the hours, describing them', async () => {
     fetchManualAvailabilityMock.mockResolvedValue(availability([at(today, '14:00')]))
     const { wrapper } = mountPicker({ error: 'el profesional ya tiene una cita en ese intervalo' })
     await flushPromises()
-    expect(wrapper.get('.manual-start__error').text()).toBe(
-      'el profesional ya tiene una cita en ese intervalo',
+    const error = wrapper.get('.manual-start__error')
+    expect(error.text()).toBe('el profesional ya tiene una cita en ese intervalo')
+    // Va entre el título del día y las horas, no al final de la rejilla.
+    const order = [
+      ...wrapper.element.querySelectorAll('.bk-day-title, .manual-start__error, .bk-hours'),
+    ]
+    expect(order.map((el) => el.className.split(' ')[0])).toEqual([
+      'bk-day-title',
+      'manual-start__error',
+      'bk-hours',
+    ])
+    expect(
+      wrapper.get('[role="radiogroup"][aria-label="Hora"]').attributes('aria-describedby'),
+    ).toBe(error.attributes('id'))
+  })
+
+  it('keeps the focus when switching to «Otra hora» and back', async () => {
+    fetchManualAvailabilityMock.mockResolvedValue(
+      availability([at(today, '14:00'), at(today, '14:30')]),
     )
+    const { wrapper } = mountPicker()
+    await flushPromises()
+
+    const otherTime = () => wrapper.findAll('button').find((b) => b.text().startsWith('Otra hora'))!
+    const backToGrid = () =>
+      wrapper.findAll('button').find((b) => b.text() === 'Ver las horas libres')!
+
+    // Sin hora elegida: entra al disparador de la fecha y vuelve al día activo.
+    await otherTime().trigger('click')
+    await flushPromises()
+    expect(document.activeElement?.id).toBe('new-appointment-date')
+    await backToGrid().trigger('click')
+    await flushPromises()
+    expect(document.activeElement).toBe(wrapper.get('.bk-day[aria-checked="true"]').element)
+
+    // Con hora elegida: vuelve a la hora.
+    await minute(wrapper, ':30').trigger('click')
+    await flushPromises()
+    await otherTime().trigger('click')
+    await flushPromises()
+    await backToGrid().trigger('click')
+    await flushPromises()
+    expect(document.activeElement).toBe(minute(wrapper, ':30').element)
+    wrapper.unmount()
   })
 
   it('moves between days with the arrow keys (roving tabindex)', async () => {

@@ -230,7 +230,9 @@ describe('NewAppointmentPage', () => {
     expect(resumen.text()).toContain('Carlos Ramírez')
     expect(resumen.text()).toContain('Corte clásico')
     expect(resumen.text()).toContain('Juan Pérez')
-    expect(resumen.text()).toContain('14:30')
+    // La hora del boleto, en 12 h como el resto del panel.
+    expect(resumen.get('.new-appointment-page__resumen-time').text()).toBe('2:30\u00a0p. m.')
+    expect(resumen.text()).not.toContain('14:30')
     expect(resumen.text()).toContain(formatCivilDateFull(today))
   })
 

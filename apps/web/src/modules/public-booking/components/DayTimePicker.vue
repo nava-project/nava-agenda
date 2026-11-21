@@ -53,6 +53,8 @@ interface Props {
   disabled?: boolean
   /** Anima la llegada de la franja. */
   arrive?: boolean
+  /** Id del aviso que describe el grupo «Hora» (p. ej. el error de un `409`). */
+  hoursDescribedby?: string
 }
 const props = withDefaults(defineProps<Props>(), {
   openingHours: () => [],
@@ -60,6 +62,7 @@ const props = withDefaults(defineProps<Props>(), {
   selectedLabel: 'Tu hora',
   disabled: false,
   arrive: false,
+  hoursDescribedby: undefined,
 })
 
 const emit = defineEmits<{
@@ -352,6 +355,9 @@ function slotAria(slot: DaylightSlot): string {
 
     <template v-if="activeDay">
       <h2 class="bk-day-title">{{ formatCivilDateFull(activeDay.civilDate) }}</h2>
+      <!-- Aviso del día (p. ej. la hora elegida se tomó): bajo el título, antes
+           de las horas, cerca de la elección que explica. -->
+      <slot name="notice" :day="activeDay" />
       <slot v-if="activeDay.slots.length === 0" name="empty" :day="activeDay" />
       <template v-else>
         <DaylightStrip
@@ -374,6 +380,7 @@ function slotAria(slot: DaylightSlot): string {
           class="bk-hours"
           role="radiogroup"
           aria-label="Hora"
+          :aria-describedby="props.hoursDescribedby"
           @keydown="onSlotsKeydown"
         >
           <section

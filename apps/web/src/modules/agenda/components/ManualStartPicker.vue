@@ -21,14 +21,14 @@
  * La página posee la fecha y la hora (`v-model:date`, `v-model:time`, «HH:MM» de
  * 24 h en la zona del negocio); este componente solo propone y emite.
  */
-import { computed, ref, watch } from 'vue'
+import { computed, nextTick, ref, watch } from 'vue'
 import {
   DayTimePicker,
   buildDaylightDays,
   type DaylightDay,
   type DaylightSlot,
 } from '@/modules/public-booking'
-import { BaseButton, BaseDatePicker, BaseTimePicker } from '@/shared/ui'
+import { BaseButton, BaseDatePicker, BaseTimePicker, DiamondLoader } from '@/shared/ui'
 import {
   formatCivilDateFull,
   formatCivilDateShort,
@@ -60,6 +60,7 @@ const zone = ref<string>(props.timezone ?? Intl.DateTimeFormat().resolvedOptions
 const grid = ref(15)
 const duration = ref(30)
 const activeDate = ref<string | null>(null)
+const root = ref<HTMLElement | null>(null)
 // La franja anima su llegada solo la primera vez que aparece en este paso.
 const arrived = ref(false)
 let request = 0
@@ -173,10 +174,24 @@ function goTo(civilDate: string) {
   activeDate.value = civilDate
 }
 
+// Al cambiar de modo, el botón pulsado desaparece: el foco se lleva a lo que
+// sigue en vez de caer en <body> (WCAG 2.4.3).
+async function focusIn(selectors: string[]) {
+  await nextTick()
+  for (const selector of selectors) {
+    const target = root.value?.querySelector<HTMLElement>(selector)
+    if (target) {
+      target.focus()
+      return
+    }
+  }
+}
+
 function useOtherTime() {
   // La fecha de la tira pasa al campo para no escribirla otra vez.
   if (!date.value && activeDate.value) date.value = activeDate.value
   mode.value = 'manual'
+  void focusIn(['#new-appointment-date'])
 }
 
 function useGrid() {
@@ -185,6 +200,11 @@ function useGrid() {
   if (!selectedStart.value) time.value = ''
   if (date.value && days.value.some((d) => d.civilDate === date.value))
     activeDate.value = date.value
+  void focusIn([
+    '.bk-min[aria-checked="true"]',
+    '.bk-day[aria-checked="true"]',
+    '.manual-start__switch',
+  ])
 }
 
 watch(status, (value) => {
@@ -193,7 +213,7 @@ watch(status, (value) => {
 </script>
 
 <template>
-  <div class="manual-start" :class="{ 'manual-start--manual': mode === 'manual' }">
+  <div ref="root" class="manual-start" :class="{ 'manual-start--manual': mode === 'manual' }">
     <template v-if="mode === 'grid'">
       <p v-if="status === 'idle'" class="manual-start__hint">
         Elige el profesional y el servicio para ver sus horas libres.
@@ -205,7 +225,7 @@ watch(status, (value) => {
         role="status"
         aria-live="polite"
       >
-        <span class="manual-start__sr-only">Cargando las horas libres…</span>
+        <DiamondLoader label="Cargando las horas libres…" layout="column" />
         <div class="manual-start__skeleton-days" aria-hidden="true">
           <span v-for="i in WINDOW_DAYS" :key="i" class="manual-start__skeleton-day" />
         </div>
@@ -217,13 +237,17 @@ watch(status, (value) => {
           class="manual-start__skeleton-bar manual-start__skeleton-bar--strip"
           aria-hidden="true"
         />
-        <div v-for="row in 3" :key="row" class="manual-start__skeleton-row" aria-hidden="true">
-          <span class="manual-start__skeleton-bar manual-start__skeleton-bar--hour" />
-          <span
-            v-for="col in 4"
-            :key="col"
-            class="manual-start__skeleton-bar manual-start__skeleton-bar--min"
-          />
+        <!-- Un día típico: dos partes del día con cinco horas cada una. -->
+        <div v-for="part in 2" :key="part" class="manual-start__skeleton-group" aria-hidden="true">
+          <span class="manual-start__skeleton-bar manual-start__skeleton-bar--label" />
+          <div v-for="row in 5" :key="row" class="manual-start__skeleton-row">
+            <span class="manual-start__skeleton-bar manual-start__skeleton-bar--hour" />
+            <span
+              v-for="col in 4"
+              :key="col"
+              class="manual-start__skeleton-bar manual-start__skeleton-bar--min"
+            />
+          </div>
         </div>
       </div>
 
@@ -246,8 +270,14 @@ watch(status, (value) => {
           selected-label="La hora"
           :disabled="props.disabled"
           :arrive="!arrived"
+          :hours-describedby="props.error ? errorId : undefined"
           @select="onSelect"
         >
+          <template #notice>
+            <p v-if="props.error" :id="errorId" class="manual-start__error" role="alert">
+              <span class="manual-start__error-mark" aria-hidden="true" />{{ props.error }}
+            </p>
+          </template>
           <template #empty="{ day }">
             <div class="manual-start__empty">
               <span class="manual-start__empty-mark" aria-hidden="true" />
@@ -266,9 +296,6 @@ watch(status, (value) => {
             </div>
           </template>
         </DayTimePicker>
-        <p v-if="props.error" :id="errorId" class="manual-start__error" role="alert">
-          {{ props.error }}
-        </p>
         <button type="button" class="manual-start__switch" @click="useOtherTime">
           Otra hora<span class="manual-start__switch-hint"> · escribir la fecha y la hora</span>
         </button>
@@ -307,7 +334,7 @@ watch(status, (value) => {
         <BaseTimePicker v-model="time" label="Hora del turno" required />
       </div>
       <p v-if="props.error" :id="errorId" class="manual-start__error" role="alert">
-        {{ props.error }}
+        <span class="manual-start__error-mark" aria-hidden="true" />{{ props.error }}
       </p>
       <button v-if="ready" type="button" class="manual-start__switch" @click="useGrid">
         Ver las horas libres
@@ -401,6 +428,38 @@ watch(status, (value) => {
   border-radius: 2px;
 }
 
+/* El foco del teclado, distinto de la elección (que ya es un filete de latón):
+   el anillo de dos tonos de los controles del panel (#771). */
+.manual-start :deep(.bk-day:focus-visible),
+.manual-start :deep(.bk-min:focus-visible),
+.manual-start :deep(.bk-min[aria-checked='true']:focus-visible) {
+  outline: none;
+  box-shadow:
+    0 0 0 2px var(--color-surface),
+    0 0 0 4px var(--color-focus);
+}
+
+/* Junto a las flechas, el desvanecido cubre un sello entero: nunca asoma medio
+   día debajo de la columna de flechas. */
+.manual-start :deep(.bk-days-wrap--before) {
+  --bk-fade-before: 64px;
+}
+
+.manual-start :deep(.bk-days-wrap--after) {
+  --bk-fade-after: 64px;
+}
+
+/* Los últimos 24 px antes de las flechas quedan del todo transparentes. */
+.manual-start :deep(.bk-days-wrap--after .bk-days) {
+  mask-image: linear-gradient(
+    90deg,
+    transparent 0,
+    #000 var(--bk-fade-before),
+    #000 calc(100% - 88px),
+    transparent calc(100% - 24px)
+  );
+}
+
 /* Las partes del día sin bloque de color: en el panel se leen como la libreta,
    con un filete de latón y el rombo del cielo delante del rótulo. */
 .manual-start :deep(.bk-hours) {
@@ -468,9 +527,31 @@ watch(status, (value) => {
 }
 
 .manual-start__error {
+  display: flex;
+  gap: 10px;
+  align-items: baseline;
+  margin: 0 0 12px;
+  padding: 10px 12px;
+  font-size: var(--font-size-body-sm);
+  font-weight: 600;
+  line-height: 20px;
+  color: var(--color-danger-text);
+  background-color: color-mix(in srgb, var(--color-danger-text) 8%, var(--color-surface));
+  border-left: 2px solid var(--color-danger-text);
+  border-radius: 2px;
+}
+
+.manual-start__manual .manual-start__error {
   margin: 0;
-  font-size: var(--font-size-caption, 14px);
-  color: var(--color-danger-text, var(--color-danger));
+}
+
+.manual-start__error-mark {
+  flex: none;
+  width: 7px;
+  height: 7px;
+  background-color: currentcolor;
+  translate: 0 -1px;
+  rotate: 45deg;
 }
 
 /* «Otra hora»: un enlace de texto con su objetivo táctil de 44 px (DEC-039). */
@@ -533,10 +614,24 @@ watch(status, (value) => {
 /* Esqueleto con la forma real: la tira de días, el título, la franja y tres
    filas de horas, para que la llegada no empuje nada. */
 .manual-start__skeleton {
+  position: relative;
   display: grid;
   gap: 12px;
   min-width: 0;
   overflow: hidden;
+}
+
+.manual-start__skeleton-group {
+  display: grid;
+  gap: 6px;
+  padding-top: 10px;
+  border-top: 1px solid color-mix(in srgb, var(--color-brass-line) 35%, transparent);
+}
+
+.manual-start__skeleton-bar--label {
+  width: 72px;
+  height: 14px;
+  margin-bottom: 6px;
 }
 
 .manual-start__skeleton-days {
