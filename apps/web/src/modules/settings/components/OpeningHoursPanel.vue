@@ -178,7 +178,7 @@ onMounted(load)
               :aria-label="`${DAY_LABELS[d.day]}, horario ${index + 1}`"
             >
               <BaseTimePicker v-model="interval.opens" label="Abre" />
-              <BaseTimePicker v-model="interval.closes" label="Cierra" />
+              <BaseTimePicker v-model="interval.closes" label="Cierra" closing />
               <button
                 type="button"
                 class="opening__remove"

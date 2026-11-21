@@ -75,6 +75,17 @@ describe('marcadores en rombo (#737)', () => {
     }
   })
 
+  it('el reloj del selector de hora es un rombo, no un <circle> (#767)', () => {
+    const picker = sources['/src/shared/ui/BaseTimePicker.vue'] ?? ''
+    expect(picker).not.toMatch(/<circle\b/)
+  })
+
+  it('la selección del texto de la hora es de latón, no el bloque oscuro (#767)', () => {
+    const picker = sources['/src/shared/ui/BaseTimePicker.vue'] ?? ''
+    const selection = picker.match(/input::selection \{([^}]*)\}/)?.[1] ?? ''
+    expect(selection).toMatch(/--color-brass-line/)
+  })
+
   it('el punto de BaseBadge es un rombo', () => {
     const badge = sources['/src/shared/ui/BaseBadge.vue'] ?? ''
     const dot = badge.match(/\n\.base-badge__dot \{([^}]*)\}/)?.[1] ?? ''

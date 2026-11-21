@@ -34,6 +34,36 @@ describe('BaseTimePicker', () => {
     wrapper.unmount()
   })
 
+  it('a closing field reads midnight as «12:00 a. m. (medianoche)» and keeps the value (#767)', async () => {
+    const wrapper = mount(BaseTimePicker, {
+      attachTo: document.body,
+      props: { modelValue: '00:00', label: 'Cierra', closing: true },
+      global: { stubs: { teleport: true } },
+    })
+    const trigger = wrapper.get('.base-time-picker__trigger')
+    expect(trigger.get('.base-time-picker__midnight-long').text()).toBe('12:00 a. m. (medianoche)')
+    expect(trigger.get('.base-time-picker__midnight-short').text()).toBe('Medianoche')
+    await wrapper.setProps({ modelValue: '24:00' })
+    expect(trigger.find('.base-time-picker__midnight-long').exists()).toBe(true)
+    // Cualquier otra hora se lee igual que en un campo de apertura.
+    await wrapper.setProps({ modelValue: '00:30' })
+    expect(trigger.find('.base-time-picker__midnight-long').exists()).toBe(false)
+    expect(trigger.text()).toContain('12:30 a. m.')
+    // Sin `closing`, la medianoche es solo «12:00 a. m.».
+    await wrapper.setProps({ modelValue: '00:00', closing: false })
+    expect(trigger.text()).toContain('12:00 a. m.')
+    expect(trigger.text()).not.toContain('medianoche')
+    expect(wrapper.emitted('update:modelValue')).toBeUndefined()
+    wrapper.unmount()
+  })
+
+  it('draws its clock as a diamond, never a circle (#767)', () => {
+    const wrapper = render('09:00')
+    expect(wrapper.find('.base-time-picker__trigger circle').exists()).toBe(false)
+    expect(wrapper.find('.base-time-picker__icon').exists()).toBe(true)
+    wrapper.unmount()
+  })
+
   it('opens in 12 h with the half of the day marked, and says so', async () => {
     const wrapper = render('19:45')
     await wrapper.get('.base-time-picker__trigger').trigger('click')

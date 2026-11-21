@@ -17,8 +17,14 @@ const props = withDefaults(
     required?: boolean
     /** Hora opcional (#507): se rotula «(opcional)» y, con hora elegida, ofrece «Quitar hora». */
     optional?: boolean
+    /**
+     * Campo de cierre o fin (#767): la medianoche se lee «12:00 a. m. (medianoche)»
+     * («Medianoche» si el campo es estrecho), porque «Cierra 12:00 a. m.» es ambiguo
+     * en una jornada. Solo cambia lo que se lee; el valor emitido sigue igual.
+     */
+    closing?: boolean
   }>(),
-  { id: undefined, disabled: false, required: false, optional: false },
+  { id: undefined, disabled: false, required: false, optional: false, closing: false },
 )
 const emit = defineEmits<{ 'update:modelValue': [value: string] }>()
 const uid = useId()
@@ -51,6 +57,9 @@ const hour = computed(() => Number(hourText.value))
 const minute = computed(() => Number(minuteText.value))
 const meridiemLabel = computed(() => (meridiem.value === 'am' ? 'a. m.' : 'p. m.'))
 const display = computed(() => (props.modelValue ? formatClock(props.modelValue) : ''))
+const midnight = computed(
+  () => props.closing && (props.modelValue === '00:00' || props.modelValue === '24:00'),
+)
 const labelledBy = computed(() => `${labelId} ${triggerId.value}`)
 const { style } = usePickerPopover(open, root, trigger, panel, close)
 
@@ -216,20 +225,30 @@ watch(
       @keydown.down.prevent="show"
       @keydown.up.prevent="show"
     >
-      <span :class="{ 'base-time-picker__placeholder': !modelValue }">{{
+      <!-- Medianoche de cierre: dos rótulos y el contenedor elige el que cabe; el
+           oculto va con display:none y no entra en el nombre accesible. -->
+      <span v-if="midnight" class="base-time-picker__value">
+        <span class="base-time-picker__midnight-long">12:00 a. m. (medianoche)</span>
+        <span class="base-time-picker__midnight-short">Medianoche</span>
+      </span>
+      <span v-else :class="{ 'base-time-picker__placeholder': !modelValue }">{{
         display || 'Elegir hora'
       }}</span>
+      <!-- Reloj en rombo (#767): la familia no dibuja círculos. -->
       <svg
+        class="base-time-picker__icon"
         viewBox="0 0 16 16"
         width="16"
         height="16"
         fill="none"
         stroke="currentColor"
         stroke-width="1.25"
+        stroke-linejoin="round"
         aria-hidden="true"
+        focusable="false"
       >
-        <circle cx="8" cy="8" r="6" />
-        <path d="M8 4v4l3 2" />
+        <path d="M8 1.25 14.75 8 8 14.75 1.25 8Z" />
+        <path d="M8 4.75V8l2.25 1.5" stroke-linecap="round" />
       </svg>
     </button>
     <Teleport to="body">
@@ -379,6 +398,7 @@ watch(
   text-transform: none;
 }
 .base-time-picker__trigger {
+  container-type: inline-size;
   display: flex;
   justify-content: space-between;
   align-items: center;
@@ -400,6 +420,21 @@ watch(
 }
 .base-time-picker__placeholder {
   color: var(--color-on-strong-muted);
+}
+.base-time-picker__value {
+  min-width: 0;
+}
+.base-time-picker__midnight-short {
+  display: none;
+}
+/* A 390 el campo de cierre mide ~155 px: «12:00 a. m. (medianoche)» no cabe. */
+@container (max-width: 220px) {
+  .base-time-picker__midnight-long {
+    display: none;
+  }
+  .base-time-picker__midnight-short {
+    display: inline;
+  }
 }
 .base-time-picker__trigger:hover:not(:disabled),
 .base-time-picker__trigger[aria-expanded='true'] {
@@ -496,9 +531,12 @@ watch(
   font: 500 20px/1 var(--font-family-base);
   text-align: center;
 }
+/* Selección de la familia (#767): latón tenue en lugar del bloque nativo. El
+   select() al enfocar se conserva para sobrescribir al teclear; el foco lo marca
+   el anillo doble. */
 .base-time-picker__column input::selection {
-  background: var(--color-text-primary);
-  color: var(--color-surface);
+  background: color-mix(in srgb, var(--color-brass-line) 28%, transparent);
+  color: inherit;
 }
 /* «a. m. / p. m.»: dos mitades de una ranura; la elegida en latón con su rombo,
    como el resto de selecciones de la familia. */

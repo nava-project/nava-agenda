@@ -1055,6 +1055,7 @@ function seriesCounts(item: TimeBlockSeries): string {
             <BaseTimePicker
               v-model="createEndTime"
               label="Hora de fin"
+              closing
               optional
               :disabled="createBlockStatus === 'saving'"
             />

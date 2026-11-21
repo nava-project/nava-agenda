@@ -1523,6 +1523,7 @@ const editPreview = computed(() =>
             <BaseTimePicker
               :model-value="createEndsTime"
               label="Hora de fin"
+              closing
               required
               :disabled="createStatus === 'saving'"
               @update:model-value="onCreateEndsTimeInput"
@@ -1633,6 +1634,7 @@ const editPreview = computed(() =>
             <BaseTimePicker
               :model-value="editEndsTime"
               label="Hora de fin"
+              closing
               required
               :disabled="editStatus === 'saving'"
               @update:model-value="onEditEndsTimeInput"
@@ -1791,6 +1793,7 @@ const editPreview = computed(() =>
             <BaseTimePicker
               :model-value="segment.endsTime"
               label="Hora de fin"
+              closing
               required
               :disabled="createExceptionStatus === 'saving'"
               @update:model-value="
@@ -1985,6 +1988,7 @@ const editPreview = computed(() =>
             <BaseTimePicker
               :model-value="segment.endsTime"
               label="Hora de fin"
+              closing
               required
               :disabled="editExceptionStatus === 'saving'"
               @update:model-value="
