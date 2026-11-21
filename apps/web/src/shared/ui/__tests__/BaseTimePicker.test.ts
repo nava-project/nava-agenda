@@ -27,6 +27,8 @@ describe('BaseTimePicker', () => {
     expect(wrapper.get('.base-time-picker__trigger').text()).toContain('12:00 a. m.')
     await wrapper.setProps({ modelValue: '12:30' })
     expect(wrapper.get('.base-time-picker__trigger').text()).toContain('12:30 p. m.')
+    await wrapper.setProps({ modelValue: '23:59' })
+    expect(wrapper.get('.base-time-picker__trigger').text()).toContain('11:59 p. m.')
     await wrapper.setProps({ modelValue: '' })
     expect(wrapper.get('.base-time-picker__trigger').text()).toContain('Elegir hora')
     wrapper.unmount()
