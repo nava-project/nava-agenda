@@ -274,9 +274,9 @@ test('series por fechas, excepciones y edición por alcance con API real', async
   // El diálogo pide la hora de fin, no la duración (#764): 12:00 → 12:45 es la
   // serie de 45 min que se creó; se alarga a 12:50.
   const endTime = edit.getByRole('button', { name: /^Hora de fin/ })
-  await expect(endTime).toContainText('12:45')
+  await expect(endTime).toContainText('12:45 p. m.')
   await setTime(page, edit, 'Hora de fin', '12:50')
-  await expect(endTime).toContainText('12:50')
+  await expect(endTime).toContainText('12:50 p. m.')
   await checkAxe(page)
   await page.screenshot({
     path: path.join(evidence, `${testInfo.project.name}-editar-serie.png`),
@@ -298,7 +298,7 @@ test('series por fechas, excepciones y edición por alcance con API real', async
   await expect(edit.getByText(/El corte debe ser posterior al inicio/)).toBeVisible()
   await pickDate(page, scope, /Aplicar desde/, '2099-06-01')
   await setTime(page, edit, 'Hora de fin', '12:30')
-  await expect(endTime).toContainText('12:30')
+  await expect(endTime).toContainText('12:30 p. m.')
   await expect(edit.getByText(/La serie actual termina el .*31/)).toBeVisible()
   await checkAxe(page)
   await page.screenshot({
