@@ -1156,6 +1156,11 @@
       empezó queda la hora escrita a mano. La rejilla solo
       propone inicios: la creación manual acepta cualquier minuto válido
       (DEC-006). Es de solo lectura y no aparta ninguna franja (RN-DIS-03).
+      Para reprogramar, `excludeAppointmentId` saca de la ocupación el
+      intervalo del propio turno, de modo que su misma hora vuelve a ofrecerse,
+      y el cálculo usa su duración congelada (`duration_minutes_snapshot`), que
+      `durationMinutes` refleja, como en la reprogramación del cliente
+      (issue #776, DEC-190).
     operationId: listManualAvailability
     security:
       - SessionCookie: []
@@ -1207,6 +1212,24 @@
         examples:
           dosSemanas:
             value: "2026-12-06"
+      - name: excludeAppointmentId
+        in: query
+        required: false
+        description: >
+          Turno que se va a reprogramar (issue #776, DEC-190). Solo cuenta si
+          es un turno `confirmed` del mismo negocio, con el mismo
+          `professionalId` y el mismo `serviceId` de la ruta: entonces su
+          intervalo deja de ocupar y la duración pasa a ser la congelada en el
+          turno. Cualquier otro valor —vacío, sin forma de UUID, inexistente,
+          de otro negocio, de otro profesional o servicio, o en otro estado—
+          se ignora sin error: la respuesta es idéntica a no enviarlo. Un turno
+          que ya empezó no hace aparecer horas pasadas.
+        schema:
+          type: string
+          format: uuid
+        examples:
+          turnoAReprogramar:
+            value: 5b6c7d8e-9f0a-4b1c-8d2e-3f4a5b6c7d8e
     responses:
       "200":
         $ref: '../components/responses/ManualAvailabilitySuccess.yaml'

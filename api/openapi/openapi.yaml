@@ -9,7 +9,7 @@
 openapi: 3.1.2
 info:
   title: API de Nava Agenda
-  version: 2.1.0
+  version: 2.2.0
   description: >
     Contrato HTTP entre apps/web y apps/api. Tres audiencias comparten este
     documento: /api/v1/public (reserva sin sesión), /api/v1/customer

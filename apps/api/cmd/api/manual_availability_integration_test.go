@@ -246,3 +246,103 @@ func TestManualAvailability_HTTP_BadRange_Returns422(t *testing.T) {
 	}
 	mustStatus(t, doManualAvailability(router, raw, professional.ID, service.ID, "?from=2027-07-01&to=2027-07-31"), http.StatusOK, "31 días")
 }
+
+// TestManualAvailability_HTTP_ExcludeOwnAppointment_TwoTenants (#776, DEC-190
+// enmendada): al reprogramar, excludeAppointmentId saca de la ocupación solo
+// el intervalo del propio turno y calcula con su duration_minutes_snapshot,
+// aunque el catálogo haya cambiado (borde: snapshot 30, catálogo 45, hueco de
+// exactamente 30). Cualquier id no válido —otro negocio, cancelado, mal
+// formado o inexistente— se ignora: la respuesta es idéntica a no enviarlo.
+func TestManualAvailability_HTTP_ExcludeOwnAppointment_TwoTenants(t *testing.T) {
+	db := setupTestDB(t)
+	t.Cleanup(func() { db.Close() })
+	router, err := buildRouter(db, discardLogger(), testRouterConfig())
+	if err != nil {
+		t.Fatalf("buildRouter: %v", err)
+	}
+
+	rawA := createSessionCookie(t, db, shopA, staffUserActiveA, "manual-excl-a")
+	professional := createProfessionalViaRouter(t, router, rawA, "Profesional Excluir "+uniqueToken(t, "pro"))
+	service := createServiceViaRouter(t, router, rawA, "Servicio Excluir "+uniqueToken(t, "svc"))
+	mustStatus(t, doAssignServiceRequest(router, rawA, professional.ID, service.ID), http.StatusCreated, "asignar servicio")
+	for weekday := 1; weekday <= 7; weekday++ {
+		body := fmt.Sprintf(`{"isoWeekday":%d,"startsTime":"09:00","durationMinutes":480}`, weekday)
+		mustStatus(t, doCreateWorkingHourRequest(router, rawA, professional.ID, uniqueToken(t, "manual-excl-wh"), body), http.StatusCreated, "tramo semanal")
+	}
+
+	// 10:30, 11:00 (el propio) y 11:30, de 30 minutos cada uno: al excluir el
+	// propio queda un hueco de exactamente 30 entre 11:00 y 11:30.
+	createManualAppointment(t, router, rawA, professional.ID, service.ID, manualDayNormal+"T10:30:00")
+	own := createManualAppointment(t, router, rawA, professional.ID, service.ID, manualDayNormal+"T11:00:00")
+	createManualAppointment(t, router, rawA, professional.ID, service.ID, manualDayNormal+"T11:30:00")
+	cancelled := createManualAppointment(t, router, rawA, professional.ID, service.ID, manualDayNormal+"T14:00:00")
+	mustStatus(t, doAppointmentCommand(router, rawA, "/appointments/"+cancelled+"/cancel", uniqueToken(t, "manual-excl-cancel"),
+		appointmentVersion(t, router, rawA, cancelled), ""), http.StatusOK, "cancelar")
+	mustStatus(t, doUpdateServiceRequest(router, rawA, service.ID, `{"durationMinutes":45}`), http.StatusOK, "catálogo a 45")
+
+	query := "?from=" + manualDayNormal
+	decode := func(rec *httptest.ResponseRecorder) manualAvailabilityBody {
+		t.Helper()
+		var body manualAvailabilityBody
+		if err := json.Unmarshal(rec.Body.Bytes(), &body); err != nil {
+			t.Fatalf("decode: %v", err)
+		}
+		return body
+	}
+
+	plain := doManualAvailability(router, rawA, professional.ID, service.ID, query)
+	mustStatus(t, plain, http.StatusOK, "sin exclusión")
+	plainBody := decode(plain)
+	if plainBody.DurationMinutes != 45 {
+		t.Fatalf("sin exclusión la duración es la del catálogo: %d", plainBody.DurationMinutes)
+	}
+	if hasClock(manualStartsByDay(t, plainBody)[manualDayNormal], "11:00") {
+		t.Fatal("sin exclusión, las 11:00 están ocupadas por el propio turno")
+	}
+
+	excluded := doManualAvailability(router, rawA, professional.ID, service.ID, query+"&excludeAppointmentId="+own)
+	mustStatus(t, excluded, http.StatusOK, "con exclusión")
+	excludedBody := decode(excluded)
+	if excludedBody.DurationMinutes != 30 {
+		t.Fatalf("con exclusión la duración es el snapshot del turno (30): %d", excludedBody.DurationMinutes)
+	}
+	day := manualStartsByDay(t, excludedBody)[manualDayNormal]
+	if !hasClock(day, "11:00") {
+		t.Fatalf("la hora del propio turno vuelve y cabe en el hueco de 30: %v", day)
+	}
+	for _, busy := range []string{"10:30", "11:30"} {
+		if hasClock(day, busy) {
+			t.Fatalf("%s sigue ocupado por otro turno: %v", busy, day)
+		}
+	}
+
+	// Ids no válidos en A: misma respuesta, byte a byte, que sin el parámetro.
+	for _, bad := range []string{cancelled, "no-es-uuid", "00000000-0000-4000-8000-000000000000"} {
+		rec := doManualAvailability(router, rawA, professional.ID, service.ID, query+"&excludeAppointmentId="+bad)
+		mustStatus(t, rec, http.StatusOK, "id ignorado "+bad)
+		if rec.Body.String() != plain.Body.String() {
+			t.Fatalf("excludeAppointmentId=%s cambió la respuesta:\n%s\nfrente a\n%s", bad, rec.Body.String(), plain.Body.String())
+		}
+	}
+
+	// B con su propio profesional y servicio y el turno de A: RLS no lo deja
+	// ver, así que tampoco libera nada.
+	rawB := createSessionCookie(t, db, shopB, staffUserActiveB, "manual-excl-b")
+	professionalB := createProfessionalViaRouter(t, router, rawB, "Profesional B Excluir "+uniqueToken(t, "pro-b"))
+	serviceB := createServiceViaRouter(t, router, rawB, "Servicio B Excluir "+uniqueToken(t, "svc-b"))
+	mustStatus(t, doAssignServiceRequest(router, rawB, professionalB.ID, serviceB.ID), http.StatusCreated, "asignar servicio B")
+	for weekday := 1; weekday <= 7; weekday++ {
+		body := fmt.Sprintf(`{"isoWeekday":%d,"startsTime":"09:00","durationMinutes":480}`, weekday)
+		mustStatus(t, doCreateWorkingHourRequest(router, rawB, professionalB.ID, uniqueToken(t, "manual-excl-wh-b"), body), http.StatusCreated, "tramo semanal B")
+	}
+	createManualAppointment(t, router, rawB, professionalB.ID, serviceB.ID, manualDayNormal+"T11:00:00")
+	plainB := doManualAvailability(router, rawB, professionalB.ID, serviceB.ID, query)
+	mustStatus(t, plainB, http.StatusOK, "B sin exclusión")
+	crossB := doManualAvailability(router, rawB, professionalB.ID, serviceB.ID, query+"&excludeAppointmentId="+own)
+	mustStatus(t, crossB, http.StatusOK, "B con el turno de A")
+	if crossB.Body.String() != plainB.Body.String() {
+		t.Fatalf("B liberó huecos con un turno de A:\n%s\nfrente a\n%s", crossB.Body.String(), plainB.Body.String())
+	}
+	// Y la ruta de A desde B sigue siendo el 404 uniforme, con o sin exclusión.
+	mustStatus(t, doManualAvailability(router, rawB, professional.ID, service.ID, query+"&excludeAppointmentId="+own), http.StatusNotFound, "B en la ruta de A")
+}

@@ -20,11 +20,35 @@ const manualAvailabilityMaxDays = 31
 // agenda), sin la anticipación mínima ni la ventana máxima (RN-DIS-04): el
 // mismo criterio que RescheduleSlotsPort frente a HU-104, para que booking no
 // importe publicbooking. fromDate y toDate son fechas civiles "AAAA-MM-DD" ya
-// validadas, en la zona del negocio.
+// validadas, en la zona del negocio. excludeStartsAt/excludeEndsAt, si no son
+// cero, son el intervalo del turno que se reprograma (#776): deja de contar como
+// ocupado, con el mismo withoutOwnAppointment de la reprogramación pública.
 type ManualSlotsPort interface {
-	ManualStarts(ctx context.Context, businessID, professionalID string, durationMinutes int, fromDate, toDate string) (
-		starts []time.Time, timezone string, slotGridMinutes int, err error,
-	)
+	ManualStarts(
+		ctx context.Context,
+		businessID, professionalID string,
+		durationMinutes int,
+		fromDate, toDate string,
+		excludeStartsAt, excludeEndsAt time.Time,
+	) (starts []time.Time, timezone string, slotGridMinutes int, err error)
+}
+
+// ExcludableAppointment es lo mínimo que la lectura de inicios necesita de un
+// turno para excluirlo de la ocupación al reprogramarlo (#776).
+type ExcludableAppointment struct {
+	ProfessionalID          string
+	ServiceID               string
+	Status                  Status
+	StartsAt                time.Time
+	EndsAt                  time.Time
+	DurationMinutesSnapshot int
+}
+
+// ExcludableAppointmentPort lee un turno dentro de businessID (RLS) para
+// excluirlo de la ocupación. found=false cubre un id inexistente o de otro
+// negocio, sin distinguir la causa (RN-TEN-01).
+type ExcludableAppointmentPort interface {
+	ExcludableAppointment(ctx context.Context, businessID, appointmentID string) (ExcludableAppointment, bool, error)
 }
 
 // ManualAvailability es la respuesta de ManualAvailabilityService.List.
@@ -40,19 +64,32 @@ type ManualAvailability struct {
 // (#717): los inicios libres del servicio con el profesional, para elegir la
 // hora de un turno manual sobre la disponibilidad real.
 type ManualAvailabilityService struct {
-	catalog ProfessionalServicePort
-	slots   ManualSlotsPort
+	catalog      ProfessionalServicePort
+	slots        ManualSlotsPort
+	appointments ExcludableAppointmentPort
 }
 
 // NewManualAvailabilityService construye el caso de uso.
-func NewManualAvailabilityService(catalog ProfessionalServicePort, slots ManualSlotsPort) *ManualAvailabilityService {
-	return &ManualAvailabilityService{catalog: catalog, slots: slots}
+func NewManualAvailabilityService(
+	catalog ProfessionalServicePort,
+	slots ManualSlotsPort,
+	appointments ExcludableAppointmentPort,
+) *ManualAvailabilityService {
+	return &ManualAvailabilityService{catalog: catalog, slots: slots, appointments: appointments}
 }
 
 // List valida el tramo de fechas (422) y la asignación (404 uniforme, el mismo
 // de la creación manual: DEC-072, RN-TEN-01) antes de calcular. rawTo vacío
 // significa un solo día, rawFrom.
-func (s *ManualAvailabilityService) List(ctx context.Context, businessID, professionalID, serviceID, rawFrom, rawTo string) (ManualAvailability, error) {
+//
+// rawExclude es el turno que se reprograma (#776, enmienda de DEC-190). Solo se
+// usa si es un turno de este negocio, de este profesional y de este servicio, y
+// sigue `confirmed` (el único estado que se reprograma, HU-065): entonces su
+// intervalo deja de contar como ocupado y el cálculo usa su duración congelada
+// (duration_minutes_snapshot), la misma con la que la reprogramación lo moverá,
+// igual que la reprogramación pública (HU-104). Cualquier otro valor se ignora en
+// silencio: la respuesta es la misma que sin él y no revela si el turno existe.
+func (s *ManualAvailabilityService) List(ctx context.Context, businessID, professionalID, serviceID, rawFrom, rawTo, rawExclude string) (ManualAvailability, error) {
 	if err := ctx.Err(); err != nil {
 		return ManualAvailability{}, apperr.Internal(fmt.Errorf("booking: contexto cancelado antes de listar inicios manuales: %w", err))
 	}
@@ -76,7 +113,17 @@ func (s *ManualAvailabilityService) List(ctx context.Context, businessID, profes
 		return ManualAvailability{}, errServiceNotAssigned()
 	}
 
-	starts, timezone, slotGridMinutes, err := s.slots.ManualStarts(ctx, businessID, professionalID, durationMinutes, fromDate, toDate)
+	var excludeStartsAt, excludeEndsAt time.Time
+	own, ok, err := s.excludable(ctx, businessID, professionalID, serviceID, rawExclude)
+	if err != nil {
+		return ManualAvailability{}, err
+	}
+	if ok {
+		durationMinutes = own.DurationMinutesSnapshot
+		excludeStartsAt, excludeEndsAt = own.StartsAt, own.EndsAt
+	}
+
+	starts, timezone, slotGridMinutes, err := s.slots.ManualStarts(ctx, businessID, professionalID, durationMinutes, fromDate, toDate, excludeStartsAt, excludeEndsAt)
 	if err != nil {
 		return ManualAvailability{}, err
 	}
@@ -89,6 +136,30 @@ func (s *ManualAvailabilityService) List(ctx context.Context, businessID, profes
 		Timezone:        timezone,
 		SlotGridMinutes: slotGridMinutes,
 	}, nil
+}
+
+// excludable resuelve rawExclude a un turno que se puede excluir, o ok=false
+// sin error para cualquier valor que no cumpla (forma inválida, inexistente, de
+// otro negocio, de otro profesional o servicio, o en un estado que no se
+// reprograma). Solo un fallo de lectura es error.
+func (s *ManualAvailabilityService) excludable(ctx context.Context, businessID, professionalID, serviceID, rawExclude string) (ExcludableAppointment, bool, error) {
+	appointmentID := strings.TrimSpace(rawExclude)
+	if appointmentID == "" || !LooksLikeAppointmentID(appointmentID) {
+		return ExcludableAppointment{}, false, nil
+	}
+	own, found, err := s.appointments.ExcludableAppointment(ctx, businessID, appointmentID)
+	if err != nil {
+		return ExcludableAppointment{}, false, apperr.Internal(fmt.Errorf("booking: leer el turno a excluir de los inicios: %w", err))
+	}
+	if !found ||
+		own.ProfessionalID != professionalID ||
+		own.ServiceID != serviceID ||
+		own.Status != StatusConfirmed ||
+		own.DurationMinutesSnapshot <= 0 ||
+		!own.EndsAt.After(own.StartsAt) {
+		return ExcludableAppointment{}, false, nil
+	}
+	return own, true, nil
 }
 
 // parseManualRange valida from/to como fechas civiles, to ≥ from y un tramo

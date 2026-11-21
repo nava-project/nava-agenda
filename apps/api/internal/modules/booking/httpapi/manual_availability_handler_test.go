@@ -27,15 +27,38 @@ func (c handlerCatalog) ActiveAssignedService(context.Context, string, string, s
 	return "Corte", 30, 2000000, "COP", c.found, nil
 }
 
-type handlerSlots struct{ starts []time.Time }
+type handlerSlots struct {
+	starts      []time.Time
+	gotDuration *int
+}
 
-func (s handlerSlots) ManualStarts(context.Context, string, string, int, string, string) ([]time.Time, string, int, error) {
+func (s handlerSlots) ManualStarts(_ context.Context, _, _ string, durationMinutes int, _, _ string, _, _ time.Time) ([]time.Time, string, int, error) {
+	if s.gotDuration != nil {
+		*s.gotDuration = durationMinutes
+	}
 	return s.starts, "America/Bogota", 30, nil
+}
+
+// handlerExcludable responde con un turno confirmado propio para
+// manualAvailHandlerAppointmentID y «no encontrado» para cualquier otro.
+type handlerExcludable struct{}
+
+const manualAvailHandlerAppointmentID = "5b6c7d8e-9f0a-4b1c-8d2e-3f4a5b6c7d8e"
+
+func (handlerExcludable) ExcludableAppointment(_ context.Context, _, appointmentID string) (booking.ExcludableAppointment, bool, error) {
+	if appointmentID != manualAvailHandlerAppointmentID {
+		return booking.ExcludableAppointment{}, false, nil
+	}
+	start := time.Date(2026, 11, 23, 14, 0, 0, 0, time.UTC)
+	return booking.ExcludableAppointment{
+		ProfessionalID: manualAvailHandlerProfessionalID, ServiceID: manualAvailHandlerServiceID,
+		Status: booking.StatusConfirmed, StartsAt: start, EndsAt: start.Add(20 * time.Minute), DurationMinutesSnapshot: 20,
+	}, true, nil
 }
 
 func serveManualAvailability(t *testing.T, found bool, starts []time.Time, query string) *httptest.ResponseRecorder {
 	t.Helper()
-	h := httpapi.NewListManualAvailabilityHandler(booking.NewManualAvailabilityService(handlerCatalog{found: found}, handlerSlots{starts: starts}))
+	h := httpapi.NewListManualAvailabilityHandler(booking.NewManualAvailabilityService(handlerCatalog{found: found}, handlerSlots{starts: starts}, handlerExcludable{}))
 	req := requestWithPrincipal(http.MethodGet, "/api/v1/private/professionals/"+manualAvailHandlerProfessionalID+"/services/"+manualAvailHandlerServiceID+"/availability"+query, nil)
 	req = httpserver.RequestWithURLParam(req, "professionalId", manualAvailHandlerProfessionalID)
 	req = httpserver.RequestWithURLParam(req, "serviceId", manualAvailHandlerServiceID)
@@ -98,5 +121,32 @@ func TestListManualAvailabilityHandler_Unassigned_Returns404Problem(t *testing.T
 	rec := serveManualAvailability(t, false, nil, "?from=2026-11-23")
 	if rec.Code != http.StatusNotFound {
 		t.Fatalf("expected 404, got %d: %s", rec.Code, rec.Body.String())
+	}
+}
+
+// #776: excludeAppointmentId llega al servicio; con un turno propio válido la
+// duración es la del snapshot y, con uno inválido, la respuesta es idéntica a
+// no enviar el parámetro.
+func TestListManualAvailabilityHandler_ExcludeAppointmentID(t *testing.T) {
+	base := "?from=2026-11-23"
+	plain := serveManualAvailability(t, true, nil, base)
+	valid := serveManualAvailability(t, true, nil, base+"&excludeAppointmentId="+manualAvailHandlerAppointmentID)
+	if valid.Code != http.StatusOK {
+		t.Fatalf("expected 200, got %d: %s", valid.Code, valid.Body.String())
+	}
+	var body struct {
+		DurationMinutes int `json:"durationMinutes"`
+	}
+	if err := json.Unmarshal(valid.Body.Bytes(), &body); err != nil {
+		t.Fatalf("decode: %v", err)
+	}
+	if body.DurationMinutes != 20 {
+		t.Fatalf("durationMinutes = %d, want 20 (snapshot)", body.DurationMinutes)
+	}
+	for _, bad := range []string{"", "no-es-uuid", "0e1f2a3b-4c5d-4e6f-8a7b-9c0d1e2f3a4b"} {
+		rec := serveManualAvailability(t, true, nil, base+"&excludeAppointmentId="+bad)
+		if rec.Code != http.StatusOK || rec.Body.String() != plain.Body.String() {
+			t.Fatalf("excludeAppointmentId=%q: %d %s, want the same 200 as without it: %s", bad, rec.Code, rec.Body.String(), plain.Body.String())
+		}
 	}
 }
