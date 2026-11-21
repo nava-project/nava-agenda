@@ -47,7 +47,7 @@ describe('TimezoneField', () => {
     const wrapper = mountField()
 
     expect(wrapper.get('.tz-field__time').text().replace(/\s+/g, ' ')).toBe('7:00 a. m.')
-    expect(wrapper.text()).toContain('Hora en Bogota')
+    expect(wrapper.text()).toContain('Hora en Bogotá')
     expect(wrapper.text()).toContain('UTC−5')
     expect(wrapper.text()).toContain('Sábado, 3 de octubre')
   })

@@ -152,13 +152,15 @@ onMounted(load)
   border-radius: var(--radius-md);
 }
 
-.login-otp__option:hover {
+/* El radio invisible cubre la opción y es quien recibe el puntero: el hover se
+   ancla a la opción de OptionGroup, no a la tarjeta (#759). */
+.option-group__option:hover .login-otp__option {
   border-color: var(--option-hover-border);
 }
 
 /* Elegida en latón con su rombo (#759; el rombo lo pone OptionGroup). */
 .login-otp__option--selected,
-.login-otp__option--selected:hover {
+.option-group__option:hover .login-otp__option--selected {
   background: var(--option-selected-bg);
   border-color: var(--option-selected-border);
   box-shadow: inset 0 0 0 1px var(--option-selected-border);

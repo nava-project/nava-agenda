@@ -98,6 +98,30 @@ describe('OpeningHoursPanel', () => {
     expect(wrapper.get('.opening__feedback').classes()).not.toContain('opening__feedback--saved')
   })
 
+  it('mientras guarda, «Guardando…» se ve solo en el botón y el lector lo oye en el estado (#759)', async () => {
+    let finish: (value: unknown) => void = () => {}
+    saveMock.mockImplementation(
+      (settings) =>
+        new Promise((resolve) => {
+          finish = () => resolve({ kind: 'success', settings })
+        }),
+    )
+    const wrapper = mountPanel()
+    await flushPromises()
+
+    await day(wrapper, 5).get('input[type="checkbox"]').setValue(true)
+    await saveButton(wrapper).trigger('click')
+
+    const status = wrapper.get('.opening__feedback')
+    expect(status.attributes('role')).toBe('status')
+    expect(status.get('.visually-hidden').text()).toBe('Guardando…')
+    expect(saveButton(wrapper).text()).toContain('Guardando…')
+    finish(undefined)
+    await flushPromises()
+    expect(status.find('.visually-hidden').exists()).toBe(false)
+    expect(status.text()).toContain('Tus clientes ya ven este horario')
+  })
+
   it('no envía un día con horarios que se cruzan y lo señala junto al día', async () => {
     fetchMock.mockResolvedValue({
       kind: 'success',

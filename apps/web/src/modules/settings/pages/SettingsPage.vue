@@ -1510,13 +1510,15 @@ const previewClass = computed(() => ({ 'settings-page__preview--changed': brandD
     background-color var(--motion-duration-fast) var(--motion-easing-standard);
 }
 
-.theme-tile:hover {
+/* El radio invisible cubre la opción y es quien recibe el puntero: el hover se
+   ancla a la opción de OptionGroup, no a la tarjeta (#759). */
+.option-group__option:hover .theme-tile {
   border-color: var(--option-hover-border);
 }
 
 /* Elegida en latón con su rombo (#759; el rombo lo pone OptionGroup). */
 .theme-tile--selected,
-.theme-tile--selected:hover {
+.option-group__option:hover .theme-tile--selected {
   background: var(--option-selected-bg);
   border-color: var(--option-selected-border);
   box-shadow: inset 0 0 0 1px var(--option-selected-border);
@@ -1653,12 +1655,12 @@ const previewClass = computed(() => ({ 'settings-page__preview--changed': brandD
     background-color var(--motion-duration-fast) var(--motion-easing-standard);
 }
 
-.size-step:hover {
+.option-group__option:hover .size-step {
   border-color: var(--option-hover-border);
 }
 
 .size-step--selected,
-.size-step--selected:hover {
+.option-group__option:hover .size-step--selected {
   background: var(--option-selected-bg);
   border-color: var(--option-selected-border);
   box-shadow: inset 0 0 0 1px var(--option-selected-border);
@@ -1705,6 +1707,7 @@ const previewClass = computed(() => ({ 'settings-page__preview--changed': brandD
 /* --- Acento: muestras de color -------------------------------------------- */
 
 .settings-accents {
+  --option-lift: 0px;
   --option-group-gap: 10px;
   /* La gema ya es el rombo: no lleva el de la esquina. */
   --option-mark-display: none;
@@ -1724,11 +1727,12 @@ const previewClass = computed(() => ({ 'settings-page__preview--changed': brandD
     border-color var(--motion-duration-fast) var(--motion-easing-standard);
 }
 
-.accent-swatch:hover {
-  background: color-mix(in srgb, var(--color-text-primary) 4%, transparent);
+.option-group__option:hover .accent-swatch {
+  border-color: var(--option-hover-border);
 }
 
-.accent-swatch--selected {
+.accent-swatch--selected,
+.option-group__option:hover .accent-swatch--selected {
   background: var(--option-selected-bg);
   border-color: var(--option-selected-border);
 }
@@ -1763,8 +1767,16 @@ const previewClass = computed(() => ({ 'settings-page__preview--changed': brandD
     transform var(--motion-duration-fast) var(--motion-easing-standard);
 }
 
-.accent-swatch:hover .accent-swatch__gem {
-  transform: rotate(45deg) scale(1.08);
+/* Al pasar, la gema se levanta un poco y crece apenas; con movimiento reducido
+   solo cambia el borde de la muestra. La muestra no sube entera
+   (`--option-lift: 0px` en el grupo): sube la gema. */
+@media (hover: hover) and (prefers-reduced-motion: no-preference) {
+  :root:not([data-motion='reduced'])
+    .option-group__option:hover
+    .accent-swatch:not(.accent-swatch--selected)
+    .accent-swatch__gem {
+    transform: translateY(-2px) rotate(45deg) scale(1.08);
+  }
 }
 
 .accent-swatch--selected .accent-swatch__gem {
@@ -1808,6 +1820,7 @@ const previewClass = computed(() => ({ 'settings-page__preview--changed': brandD
 }
 
 .settings-genders {
+  --option-lift: 0px;
   --option-group-gap: 0;
 }
 
@@ -1836,7 +1849,7 @@ const previewClass = computed(() => ({ 'settings-page__preview--changed': brandD
   border-radius: 0 var(--radius-md) var(--radius-md) 0;
 }
 
-.gender-pill:hover {
+.option-group__option:hover .gender-pill {
   color: var(--color-text-primary);
   border-color: var(--option-hover-border);
 }
@@ -1847,7 +1860,7 @@ const previewClass = computed(() => ({ 'settings-page__preview--changed': brandD
 }
 
 .gender-pill--selected,
-.gender-pill--selected:hover {
+.option-group__option:hover .gender-pill--selected {
   position: relative;
   z-index: 1;
   font-weight: 600;

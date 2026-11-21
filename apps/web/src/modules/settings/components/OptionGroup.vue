@@ -105,6 +105,45 @@ function onChange(value: T) {
   cursor: pointer;
 }
 
+/* Hover de la familia (#759) en las no elegidas: el consumidor pasa el borde a
+   latón tenue (`--option-hover-border`); aquí la tarjeta se levanta 2 px
+   (`--option-lift`, 0 donde no conviene, como el segmento de género) y un rombo
+   hueco se insinúa donde iría el de la elegida. Con movimiento reducido, del
+   sistema o del panel, no hay desplazamiento: solo color y rombo. */
+@media (hover: hover) {
+  .option-group__option:not(.option-group__option--selected):not(
+      :has(.option-group__input:disabled)
+    ):hover::after {
+    position: absolute;
+    top: var(--option-mark-top, 9px);
+    right: var(--option-mark-right, 9px);
+    z-index: 2;
+    display: var(--option-mark-display, block);
+    box-sizing: border-box;
+    width: 8px;
+    height: 8px;
+    pointer-events: none;
+    content: '';
+    border: 1.5px solid var(--color-brass-line);
+    opacity: 0.75;
+    transform: rotate(45deg);
+  }
+}
+
+@media (hover: hover) and (prefers-reduced-motion: no-preference) {
+  :root:not([data-motion='reduced']) .option-group__option > :not(.option-group__input) {
+    transition: translate 180ms cubic-bezier(0.2, 0.7, 0.2, 1);
+  }
+
+  :root:not([data-motion='reduced'])
+    .option-group__option:not(.option-group__option--selected):not(
+      :has(.option-group__input:disabled)
+    ):hover
+    > :not(.option-group__input) {
+    translate: 0 var(--option-lift, -2px);
+  }
+}
+
 /* Oculto a la vista pero operable: sigue siendo el control real. */
 .option-group__input {
   position: absolute;

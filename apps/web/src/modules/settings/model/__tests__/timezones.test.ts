@@ -114,7 +114,11 @@ describe('filterTimezones', () => {
 
 describe('helpers', () => {
   it('names a zone by its city', () => {
-    expect(cityOf('America/Bogota')).toBe('Bogota')
+    // Nombre visible en español; el identificador IANA no cambia (#759).
+    expect(cityOf('America/Bogota')).toBe('Bogotá')
+    expect(cityOf('America/Mexico_City')).toBe('Ciudad de México')
+    expect(cityOf('America/Sao_Paulo')).toBe('São Paulo')
+    expect(cityOf('America/New_York')).toBe('Nueva York')
     expect(cityOf('America/Argentina/Buenos_Aires')).toBe('Buenos Aires')
     expect(cityOf('UTC')).toBe('UTC')
   })

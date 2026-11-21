@@ -121,13 +121,56 @@ export function filterTimezones(zones: readonly string[], query: string, at: Dat
   if (!needle) return [...zones]
   const terms = needle.split(/\s+/).filter(Boolean)
   return zones.filter((zone) => {
-    const haystack = `${fold(zone)} ${offsetLabel(zone, at).toLowerCase().replace('−', '-')}`
+    const haystack = `${fold(zone)} ${fold(cityOf(zone))} ${offsetLabel(zone, at).toLowerCase().replace('−', '-')}`
     return terms.every((term) => haystack.includes(term))
   })
 }
 
-/** "America/Bogota" → "Bogota" para el título de una opción; el identificador va aparte. */
+/**
+ * Nombre visible en español de las zonas cuyo identificador IANA no se escribe
+ * igual (sin tildes o en inglés). Solo cambia lo que se lee: el identificador
+ * que se guarda y se envía sigue siendo el IANA («America/Bogota»). Las demás
+ * zonas se leen desde su identificador, con espacios en lugar de «_».
+ */
+const CITY_NAMES: Readonly<Record<string, string>> = {
+  'America/Bogota': 'Bogotá',
+  'America/Mexico_City': 'Ciudad de México',
+  'America/Merida': 'Mérida',
+  'America/Cancun': 'Cancún',
+  'America/Mazatlan': 'Mazatlán',
+  'America/Bahia_Banderas': 'Bahía de Banderas',
+  'America/Panama': 'Panamá',
+  'America/Havana': 'La Habana',
+  'America/Asuncion': 'Asunción',
+  'America/Sao_Paulo': 'São Paulo',
+  'America/Belem': 'Belém',
+  'America/Cuiaba': 'Cuiabá',
+  'America/Maceio': 'Maceió',
+  'America/Araguaina': 'Araguaína',
+  'America/Santarem': 'Santarém',
+  'America/Bahia': 'Bahía',
+  'America/Manaus': 'Manaos',
+  'America/Argentina/Cordoba': 'Córdoba',
+  'America/Argentina/Tucuman': 'Tucumán',
+  'America/Port_of_Spain': 'Puerto España',
+  'America/New_York': 'Nueva York',
+  'America/Los_Angeles': 'Los Ángeles',
+  'America/St_Johns': 'San Juan de Terranova',
+  'Pacific/Galapagos': 'Galápagos',
+  'Pacific/Easter': 'Isla de Pascua',
+  'Atlantic/Canary': 'Canarias',
+  'Europe/London': 'Londres',
+  'Europe/Paris': 'París',
+  'Europe/Rome': 'Roma',
+  'Europe/Lisbon': 'Lisboa',
+  'Europe/Berlin': 'Berlín',
+  'Asia/Tokyo': 'Tokio',
+}
+
+/** "America/Bogota" → "Bogotá" para leer; el identificador va aparte y no cambia. */
 export function cityOf(timezone: string): string {
+  const named = CITY_NAMES[timezone]
+  if (named) return named
   const last = timezone.split('/').pop() ?? timezone
   return last.replace(/_/g, ' ')
 }

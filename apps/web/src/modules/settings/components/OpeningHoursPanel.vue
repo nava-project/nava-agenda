@@ -248,7 +248,8 @@ onMounted(load)
         role="status"
         aria-live="polite"
       >
-        <template v-if="saving">Guardando…</template>
+        <!-- El botón ya dice «Guardando…» a la vista; aquí solo lo oye el lector. -->
+        <span v-if="saving" class="visually-hidden">Guardando…</span>
         <template v-else-if="feedback === 'saved'">
           {{
             openDays === 0
