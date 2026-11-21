@@ -46,6 +46,32 @@ const emit = defineEmits<{
 
 const ticks = computed(() => scaleTicks(props.scale))
 const activeId = ref<string | null>(null)
+const boardEl = ref<HTMLElement | null>(null)
+const axisEl = ref<HTMLElement | null>(null)
+
+/** Grosor del anillo de foco de BaseButton (2 + 2 px), igual que --board-focus-ring. */
+const FOCUS_RING_PX = 4
+
+// Con el tablero desplazable (escritorio), el control que recibe el foco debe
+// verse entero, con su anillo, entre el eje fijo y el borde inferior (WCAG
+// 2.4.11). Chromium lo resuelve con scroll-padding; Firefox no desplaza si el
+// control ya asoma en parte, así que se corrige aquí con scrollIntoView, que en
+// ambos respeta el scroll-padding (#769).
+function keepFocusInView(event: FocusEvent) {
+  const board = boardEl.value
+  const axis = axisEl.value
+  const target = event.target
+  if (!board || !axis || !(target instanceof HTMLElement)) return
+  if (board.scrollHeight <= board.clientHeight) return
+
+  const rect = target.getBoundingClientRect()
+  const visibleTop = axis.getBoundingClientRect().bottom + FOCUS_RING_PX
+  const visibleBottom =
+    board.getBoundingClientRect().top + board.clientTop + board.clientHeight - FOCUS_RING_PX
+  if (rect.top < visibleTop || rect.bottom > visibleBottom) {
+    target.scrollIntoView({ block: 'nearest' })
+  }
+}
 
 function dayMinutes(day: BoardDay): number {
   return day.items.reduce((sum, item) => sum + item.durationMinutes, 0)
@@ -57,8 +83,8 @@ function countLabel(day: BoardDay): string {
 </script>
 
 <template>
-  <div class="week-board">
-    <div class="week-board__axis" aria-hidden="true">
+  <div ref="boardEl" class="week-board" @focusin="keepFocusInView">
+    <div ref="axisEl" class="week-board__axis" aria-hidden="true">
       <div class="week-board__axis-scale">
         <span
           v-for="tick in ticks"
