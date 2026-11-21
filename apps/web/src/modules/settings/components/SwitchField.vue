@@ -1,8 +1,9 @@
 <script setup lang="ts">
-// Interruptor accesible (`role="switch"`) en el lenguaje v2 (DEC-188): pista
-// y botón redondos; encendido se pinta en tinta, no en el acento. El estado
-// se anuncia con `aria-checked` y también con texto ("Activado"/"Desactivado"),
-// nunca solo con el color.
+// Interruptor accesible (`role="switch"`) de la familia (#759): una ranura
+// recta con un rombo que se desliza y da un cuarto de vuelta; encendido, la
+// ranura se llena de latón (no del acento, que es de la acción principal). El
+// estado se anuncia con `aria-checked` y también con texto
+// ("Activado"/"Desactivado"), nunca solo con el color ni con la forma.
 import { useId } from 'vue'
 
 defineProps<{
@@ -87,8 +88,13 @@ const id = useId()
 }
 
 .switch-field__control:focus-visible {
-  outline: 2px solid var(--color-focus);
-  outline-offset: 2px;
+  outline: none;
+}
+
+.switch-field__control:focus-visible .switch-field__track {
+  box-shadow:
+    0 0 0 2px var(--color-surface),
+    0 0 0 4px var(--color-focus);
 }
 
 /* El estado en palabras, en tipo oración: el color nunca lo dice solo. */
@@ -102,16 +108,17 @@ const id = useId()
 }
 
 .switch-field--on .switch-field__state {
-  color: var(--color-text-primary);
+  color: var(--color-brass-text);
 }
 
+/* Ranura recta, como una incrustación: la familia no usa píldoras. */
 .switch-field__track {
   position: relative;
   display: block;
-  width: 44px;
+  width: 46px;
   height: 24px;
   border: var(--border-width-normal) solid var(--color-border-control);
-  border-radius: var(--radius-pill);
+  border-radius: 3px;
   background: var(--color-surface-muted);
   transition:
     background-color var(--motion-duration-fast) var(--motion-easing-standard),
@@ -119,31 +126,33 @@ const id = useId()
 }
 
 .switch-field--on .switch-field__track {
-  background: var(--color-text-primary);
-  border-color: var(--color-text-primary);
+  background: var(--color-brass-body);
+  border-color: var(--color-brass-text);
 }
 
+/* El rombo: un cuadrado girado 45°. Al encender avanza y gira un cuarto de
+   vuelta más, como si rodara por la ranura; `translate` y `rotate` sueltos para
+   que el giro y el avance se compongan sin pisarse. */
 .switch-field__thumb {
   position: absolute;
   top: 50%;
-  left: 3px;
-  width: 16px;
-  height: 16px;
-  border-radius: 50%;
+  left: 5px;
+  width: 11px;
+  height: 11px;
+  margin-top: -5.5px;
   background: var(--color-text-secondary);
-  transform: translateY(-50%);
-  transition:
-    left var(--motion-duration-fast) var(--motion-easing-standard),
-    background-color var(--motion-duration-fast) var(--motion-easing-standard);
+  rotate: 45deg;
+  translate: 0 0;
 }
 
 .switch-field--on .switch-field__thumb {
-  left: 23px;
   background: var(--color-surface);
+  rotate: 135deg;
+  translate: 22px 0;
 }
 
 .switch-field__control:hover:not(:disabled) .switch-field__track {
-  border-color: var(--color-text-primary);
+  border-color: var(--color-brass-line);
 }
 
 .switch-field__control:disabled {
@@ -151,9 +160,17 @@ const id = useId()
   opacity: 0.5;
 }
 
+@media (prefers-reduced-motion: no-preference) {
+  :root:not([data-motion='reduced']) .switch-field__thumb {
+    transition:
+      translate 280ms cubic-bezier(0.3, 1.35, 0.5, 1),
+      rotate 280ms cubic-bezier(0.3, 1.35, 0.5, 1),
+      background-color 160ms ease;
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
-  .switch-field__track,
-  .switch-field__thumb {
+  .switch-field__track {
     transition: none;
   }
 }

@@ -255,6 +255,7 @@ defineExpose({ focus: () => inputRef.value?.focus() })
         ><span class="tz-field__digits">{{ clock.minutes }}</span>
         <span class="tz-field__meridiem">&nbsp;{{ clock.meridiem }}</span>
       </span>
+      <span class="tz-field__clock-leader" aria-hidden="true" />
       <span class="tz-field__clock-copy">
         <span class="tz-field__clock-title"
           >Hora en {{ cityOf(modelValue) }}
@@ -437,22 +438,27 @@ defineExpose({ focus: () => inputRef.value?.focus() })
 }
 
 /* Reloj de la zona elegida en 12 h: cifras tabulares en tinta, sin parpadeo
-   (los dos puntos ya no laten: WCAG 2.2.2). */
+   (los dos puntos ya no laten: WCAG 2.2.2). Es la protagonista de la sección
+   (#759): la hora grande en serif, puntos guía de latón y, al otro lado, dónde
+   y qué día es, como la hora de la tarjeta de turno. */
 .tz-field__clock {
   display: flex;
   align-items: center;
-  gap: 16px;
-  padding: 12px 14px;
+  gap: 14px;
+  padding: 14px 18px;
   background: var(--color-surface-muted);
-  border-radius: var(--radius-md);
+  border: 1px solid color-mix(in srgb, var(--color-brass-line) 35%, transparent);
+  border-left: 3px solid var(--color-brass-line);
+  border-radius: 4px;
 }
 
 .tz-field__time {
   display: inline-flex;
+  flex: 0 0 auto;
   align-items: baseline;
-  font-family: var(--font-sans);
-  font-size: 28px;
-  font-weight: 600;
+  font-family: var(--font-display);
+  font-size: 52px;
+  font-weight: 400;
   line-height: 1;
   color: var(--color-text-primary);
   font-variant-numeric: tabular-nums;
@@ -468,10 +474,30 @@ defineExpose({ focus: () => inputRef.value?.focus() })
   color: var(--color-text-secondary);
 }
 
+.tz-field__clock-leader {
+  flex: 1 1 24px;
+  min-width: 24px;
+  height: 0;
+  border-bottom: 2px dotted color-mix(in srgb, var(--color-brass-line) 50%, transparent);
+}
+
 .tz-field__clock-copy {
   display: flex;
   flex-direction: column;
+  align-items: flex-end;
   min-width: 0;
+  text-align: right;
+}
+
+.tz-field__clock-title::before {
+  display: inline-block;
+  width: 7px;
+  height: 7px;
+  margin-right: 8px;
+  content: '';
+  background: var(--color-brass-body);
+  rotate: 45deg;
+  translate: 0 -2px;
 }
 
 .tz-field__clock-title {
@@ -490,6 +516,29 @@ defineExpose({ focus: () => inputRef.value?.focus() })
   font-size: 13px;
   line-height: 18px;
   color: var(--color-text-secondary);
+}
+
+/* Angosto: la hora arriba, los puntos guía como renglón y debajo dónde y qué
+   día es; al lado no caben sin partir la fecha. */
+@media (max-width: 480px) {
+  .tz-field__clock {
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+
+  .tz-field__time {
+    font-size: 46px;
+  }
+
+  .tz-field__clock-leader {
+    flex-basis: 100%;
+  }
+
+  .tz-field__clock-copy {
+    flex-basis: 100%;
+    align-items: flex-start;
+    text-align: left;
+  }
 }
 
 /* Atajo secundario: enlace en tinta, no en el acento. */

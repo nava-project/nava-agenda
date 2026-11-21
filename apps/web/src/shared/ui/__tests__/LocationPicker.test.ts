@@ -369,6 +369,34 @@ describe('LocationPicker', () => {
     expect(wrapper.find('.location-picker__pin').exists()).toBe(false)
   })
 
+  // P-picker: Google rechaza la clave DESPUÉS de dibujar; su aviso gris no debe quedar bajo el pin.
+  it('replaces a map the provider rejects after mounting with its own fallback', async () => {
+    const map = fakeMap()
+    let fail: () => void = () => {}
+    const stop = vi.fn()
+    const engine = {
+      ...map.engine,
+      watchFailure: vi.fn((listener: () => void) => {
+        fail = listener
+        return stop
+      }),
+    }
+    const wrapper = mountIt({ ...map, engine })
+    await flushPromises()
+    expect(wrapper.find('.location-picker__pin').exists()).toBe(true)
+
+    fail()
+    await flushPromises()
+
+    expect(wrapper.find('.location-picker__pin').exists()).toBe(false)
+    expect(wrapper.get('.location-picker__fallback').text()).toContain('El mapa no está disponible')
+    expect(wrapper.text()).toContain(
+      'No pudimos cargar el mapa. Busca tu dirección o usa tu ubicación.',
+    )
+    wrapper.unmount()
+    expect(stop).toHaveBeenCalled()
+  })
+
   it('draws the center pin only once the map is ready', async () => {
     const wrapper = mountIt(fakeMap())
     expect(wrapper.find('.location-picker__pin').exists()).toBe(false)

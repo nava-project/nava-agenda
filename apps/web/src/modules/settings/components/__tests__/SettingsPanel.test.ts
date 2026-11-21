@@ -41,6 +41,17 @@ describe('SettingsPanel', () => {
     expect(wrapper.get('.settings-panel__scope--device').text()).toBe('Solo este dispositivo')
   })
 
+  it('marks the business scope apart from the device one, so its diamond is filled (#759)', () => {
+    const shop = mount(SettingsPanel, {
+      props: { id: 'x', title: 'Marca', scope: 'shop', scopeLabel: 'Para el negocio' },
+    })
+
+    const label = shop.get('.settings-panel__scope')
+    expect(label.classes()).toContain('settings-panel__scope--shop')
+    expect(label.classes()).not.toContain('settings-panel__scope--device')
+    expect(label.text()).toBe('Para el negocio')
+  })
+
   it('shows no scope when none is given', () => {
     const wrapper = mount(SettingsPanel, { props: { id: 'x', title: 'Reservas' } })
 

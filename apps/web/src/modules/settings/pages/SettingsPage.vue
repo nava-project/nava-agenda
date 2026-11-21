@@ -647,8 +647,38 @@ const previewClass = computed(() => ({ 'settings-page__preview--changed': brandD
         aria-live="polite"
       >
         <DiamondLoader label="Cargando la configuración…" layout="overlay" />
-        <div class="settings-page__skeletons" aria-hidden="true">
-          <span v-for="n in 3" :key="n" class="settings-page__skeleton" />
+        <!-- La forma real (#759): el índice sobre su riel y dos secciones con
+             encabezado, rótulo de alcance, troquel y una fila de opciones, en la
+             misma rejilla que la página lista. -->
+        <div class="settings-page__skeletons settings-page__layout" aria-hidden="true">
+          <span class="settings-page__skeleton-index">
+            <span
+              v-for="n in SECTIONS.length"
+              :key="n"
+              class="settings-page__skeleton settings-page__skeleton--index"
+            />
+          </span>
+          <span class="settings-page__skeleton-panels">
+            <span v-for="n in 2" :key="n" class="settings-page__skeleton-panel">
+              <span class="settings-page__skeleton-head">
+                <span class="settings-page__skeleton settings-page__skeleton--title" />
+                <span class="settings-page__skeleton settings-page__skeleton--scope" />
+              </span>
+              <span class="settings-page__skeleton settings-page__skeleton--line" />
+              <span class="settings-page__skeleton-body">
+                <span class="settings-page__skeleton settings-page__skeleton--label" />
+                <span class="settings-page__skeleton-tiles">
+                  <span
+                    v-for="t in 3"
+                    :key="t"
+                    class="settings-page__skeleton settings-page__skeleton--tile"
+                  />
+                </span>
+                <span class="settings-page__skeleton settings-page__skeleton--label" />
+                <span class="settings-page__skeleton settings-page__skeleton--field" />
+              </span>
+            </span>
+          </span>
         </div>
       </div>
 
@@ -722,7 +752,6 @@ const previewClass = computed(() => ({ 'settings-page__preview--changed': brandD
                     </span>
                     <span class="theme-tile__name">
                       {{ option.label }}
-                      <span v-if="selected" class="theme-tile__check" aria-hidden="true">✓</span>
                     </span>
                     <span class="theme-tile__hint">{{ option.hint }}</span>
                   </span>
@@ -956,18 +985,21 @@ const previewClass = computed(() => ({ 'settings-page__preview--changed': brandD
               <ul v-if="isTeamPanel" class="settings-page__preview-list">
                 <li>
                   <span class="settings-page__preview-tag">Menú</span>
+                  <span class="settings-page__preview-leader" aria-hidden="true" />
                   <span class="settings-page__preview-dock">{{
                     draftVocabulary.Professionals
                   }}</span>
                 </li>
                 <li>
                   <span class="settings-page__preview-tag">Botón</span>
+                  <span class="settings-page__preview-leader" aria-hidden="true" />
                   <span class="settings-page__preview-button"
                     >+ Agregar {{ draftVocabulary.professional }}</span
                   >
                 </li>
                 <li>
                   <span class="settings-page__preview-tag">Aviso</span>
+                  <span class="settings-page__preview-leader" aria-hidden="true" />
                   <span
                     >Aún no tienes {{ draftVocabulary.professionalsRegistered }} en
                     {{ draftVocabulary.theBusiness }}.</span
@@ -975,16 +1007,19 @@ const previewClass = computed(() => ({ 'settings-page__preview--changed': brandD
                 </li>
                 <li>
                   <span class="settings-page__preview-tag">Agenda</span>
+                  <span class="settings-page__preview-leader" aria-hidden="true" />
                   <span>Elige {{ draftVocabulary.toTheProfessional }} y el servicio.</span>
                 </li>
               </ul>
               <ul v-else class="settings-page__preview-list">
                 <li>
                   <span class="settings-page__preview-tag">Perfil</span>
+                  <span class="settings-page__preview-leader" aria-hidden="true" />
                   <span>Mi perfil de {{ draftVocabulary.professional }}</span>
                 </li>
                 <li>
                   <span class="settings-page__preview-tag">Reserva</span>
+                  <span class="settings-page__preview-leader" aria-hidden="true" />
                   <span>Tus clientes reservan en {{ draftVocabulary.theBusiness }}.</span>
                 </li>
               </ul>
@@ -1169,6 +1204,7 @@ const previewClass = computed(() => ({ 'settings-page__preview--changed': brandD
                   >Anticipación mínima, ventana, rejilla de horarios y cancelación.</span
                 >
               </span>
+              <span class="settings-link__leader" aria-hidden="true" />
               <span class="settings-link__arrow" aria-hidden="true">→</span>
             </RouterLink>
           </SettingsPanel>
@@ -1195,6 +1231,7 @@ const previewClass = computed(() => ({ 'settings-page__preview--changed': brandD
                   >Publica tus turnos y bloqueos en tu calendario y elige tu recordatorio.</span
                 >
               </span>
+              <span class="settings-link__leader" aria-hidden="true" />
               <span class="settings-link__arrow" aria-hidden="true">→</span>
             </RouterLink>
           </SettingsPanel>
@@ -1273,19 +1310,103 @@ const previewClass = computed(() => ({ 'settings-page__preview--changed': brandD
   color: var(--color-text-secondary);
 }
 
-.settings-page__skeletons {
-  display: flex;
-  flex-direction: column;
-  gap: 16px;
-}
-
-/* El esqueleto pulsa solo mientras carga (estado finito, sin rombos). */
+/* El esqueleto pulsa solo mientras carga (estado finito). */
 .settings-page__skeleton {
   display: block;
-  height: 132px;
-  background: var(--color-surface-muted);
-  border-radius: var(--radius-lg);
+  background: color-mix(in srgb, var(--color-text-primary) 10%, transparent);
+  border-radius: var(--radius-sm);
   animation: settings-skeleton-pulse 1400ms ease-in-out infinite;
+}
+
+.settings-page__skeleton-index {
+  display: flex;
+  flex-direction: column;
+  gap: 26px;
+  padding: 13px 0 13px 12px;
+  border-left: var(--border-width-normal) solid var(--color-border-subtle);
+}
+
+.settings-page__skeleton--index {
+  width: 62%;
+  height: 12px;
+}
+
+.settings-page__skeleton-panels {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+  min-width: 0;
+}
+
+.settings-page__skeleton-panel {
+  display: flex;
+  flex-direction: column;
+  border: var(--border-width-normal) solid
+    color-mix(in srgb, var(--color-brass-line) 32%, var(--color-border-subtle));
+  border-radius: 4px;
+}
+
+.settings-page__skeleton-head {
+  display: flex;
+  gap: 16px;
+  align-items: flex-start;
+  justify-content: space-between;
+  padding: 22px 24px 18px;
+}
+
+.settings-page__skeleton--title {
+  width: 160px;
+  height: 26px;
+}
+
+.settings-page__skeleton--scope {
+  width: 130px;
+  height: 12px;
+  margin-top: 6px;
+}
+
+.settings-page__skeleton--line {
+  height: 0;
+  background: none;
+  border-top: var(--border-width-normal) dashed
+    color-mix(in srgb, var(--color-brass-line) 60%, transparent);
+  border-radius: 0;
+  animation: none;
+}
+
+.settings-page__skeleton-body {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  padding: 22px 24px 26px;
+}
+
+.settings-page__skeleton--label {
+  width: 90px;
+  height: 12px;
+}
+
+.settings-page__skeleton-tiles {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 14px;
+}
+
+.settings-page__skeleton--tile {
+  flex: 1 1 168px;
+  max-width: 244px;
+  height: 118px;
+  background: none;
+  border: var(--border-width-normal) solid var(--color-border-control);
+  border-radius: var(--radius-lg);
+}
+
+.settings-page__skeleton--field {
+  width: 100%;
+  height: 44px;
+  background: none;
+  border: var(--border-width-normal) solid var(--color-border-control);
+  border-radius: var(--radius-md);
 }
 
 .settings-page__layout {
@@ -1365,6 +1486,9 @@ const previewClass = computed(() => ({ 'settings-page__preview--changed': brandD
 
 .settings-themes {
   --option-group-gap: 14px;
+  /* El rombo de la elegida va en la fila del nombre, no sobre la miniatura. */
+  --option-mark-top: 102px;
+  --option-mark-right: 14px;
 }
 
 .settings-themes :deep(.option-group__option) {
@@ -1386,15 +1510,18 @@ const previewClass = computed(() => ({ 'settings-page__preview--changed': brandD
     background-color var(--motion-duration-fast) var(--motion-easing-standard);
 }
 
-.theme-tile:hover {
-  border-color: var(--color-text-primary);
+/* El radio invisible cubre la opción y es quien recibe el puntero: el hover se
+   ancla a la opción de OptionGroup, no a la tarjeta (#759). */
+.option-group__option:hover .theme-tile {
+  border-color: var(--option-hover-border);
 }
 
-/* Elegida en tinta (v2): borde de 2px y fondo tenue, no el acento. */
-.theme-tile--selected {
-  background: color-mix(in srgb, var(--color-text-primary) 8%, transparent);
-  border-color: var(--color-text-primary);
-  box-shadow: 0 0 0 1px var(--color-text-primary);
+/* Elegida en latón con su rombo (#759; el rombo lo pone OptionGroup). */
+.theme-tile--selected,
+.option-group__option:hover .theme-tile--selected {
+  background: var(--option-selected-bg);
+  border-color: var(--option-selected-border);
+  box-shadow: inset 0 0 0 1px var(--option-selected-border);
 }
 
 /* Miniatura: superficies literales a propósito (los valores v2 de Noche y
@@ -1499,10 +1626,6 @@ const previewClass = computed(() => ({ 'settings-page__preview--changed': brandD
   color: var(--color-text-primary);
 }
 
-.theme-tile__check {
-  color: var(--color-text-primary);
-}
-
 .theme-tile__hint {
   font-size: 13px;
   line-height: 18px;
@@ -1532,15 +1655,20 @@ const previewClass = computed(() => ({ 'settings-page__preview--changed': brandD
     background-color var(--motion-duration-fast) var(--motion-easing-standard);
 }
 
-.size-step:hover {
-  border-color: var(--color-text-primary);
+.option-group__option:hover .size-step {
+  border-color: var(--option-hover-border);
 }
 
-/* La elegida se marca en tinta: borde de 2px y fondo tenue. */
-.size-step--selected {
-  background: color-mix(in srgb, var(--color-text-primary) 8%, transparent);
-  border-color: var(--color-text-primary);
-  box-shadow: inset 0 0 0 1px var(--color-text-primary);
+.size-step--selected,
+.option-group__option:hover .size-step--selected {
+  background: var(--option-selected-bg);
+  border-color: var(--option-selected-border);
+  box-shadow: inset 0 0 0 1px var(--option-selected-border);
+}
+
+.settings-sizes {
+  --option-mark-top: 7px;
+  --option-mark-right: 7px;
 }
 
 .size-step__glyph {
@@ -1579,7 +1707,10 @@ const previewClass = computed(() => ({ 'settings-page__preview--changed': brandD
 /* --- Acento: muestras de color -------------------------------------------- */
 
 .settings-accents {
+  --option-lift: 0px;
   --option-group-gap: 10px;
+  /* La gema ya es el rombo: no lleva el de la esquina. */
+  --option-mark-display: none;
 }
 
 .accent-swatch {
@@ -1596,13 +1727,14 @@ const previewClass = computed(() => ({ 'settings-page__preview--changed': brandD
     border-color var(--motion-duration-fast) var(--motion-easing-standard);
 }
 
-.accent-swatch:hover {
-  background: color-mix(in srgb, var(--color-text-primary) 4%, transparent);
+.option-group__option:hover .accent-swatch {
+  border-color: var(--option-hover-border);
 }
 
-.accent-swatch--selected {
-  background: color-mix(in srgb, var(--color-text-primary) 8%, transparent);
-  border-color: var(--color-text-primary);
+.accent-swatch--selected,
+.option-group__option:hover .accent-swatch--selected {
+  background: var(--option-selected-bg);
+  border-color: var(--option-selected-border);
 }
 
 .accent-swatch__stage {
@@ -1612,21 +1744,46 @@ const previewClass = computed(() => ({ 'settings-page__preview--changed': brandD
   height: 44px;
 }
 
-/* Cada muestra pinta SU color (`--swatch`): es el dato que se elige, no un
-   adorno. Círculo, no rombo (v2, DEC-188); la elegida lleva un anillo. */
+/* Cada muestra pinta SU color (`--swatch`): es el dato que se elige. Gema
+   tallada (#759): un rombo con dos caras de luz y sombra y una arista; la
+   elegida lleva un engaste del mismo rombo. */
 .accent-swatch__gem {
   position: relative;
-  width: 26px;
-  height: 26px;
-  background: var(--swatch);
-  border-radius: 50%;
-  transition: box-shadow var(--motion-duration-fast) var(--motion-easing-standard);
+  width: 24px;
+  height: 24px;
+  background:
+    linear-gradient(
+      135deg,
+      rgb(255 255 255 / 38%) 0 30%,
+      transparent 30% 52%,
+      rgb(0 0 0 / 18%) 52% 100%
+    ),
+    var(--swatch);
+  border-radius: 3px;
+  box-shadow: inset 0 0 0 1px rgb(255 255 255 / 22%);
+  transform: rotate(45deg);
+  transition:
+    box-shadow var(--motion-duration-fast) var(--motion-easing-standard),
+    transform var(--motion-duration-fast) var(--motion-easing-standard);
+}
+
+/* Al pasar, la gema se levanta un poco y crece apenas; con movimiento reducido
+   solo cambia el borde de la muestra. La muestra no sube entera
+   (`--option-lift: 0px` en el grupo): sube la gema. */
+@media (hover: hover) and (prefers-reduced-motion: no-preference) {
+  :root:not([data-motion='reduced'])
+    .option-group__option:hover
+    .accent-swatch:not(.accent-swatch--selected)
+    .accent-swatch__gem {
+    transform: translateY(-2px) rotate(45deg) scale(1.08);
+  }
 }
 
 .accent-swatch--selected .accent-swatch__gem {
   box-shadow:
+    inset 0 0 0 1px rgb(255 255 255 / 22%),
     0 0 0 3px var(--color-surface),
-    0 0 0 5px var(--swatch);
+    0 0 0 4.5px var(--swatch);
 }
 
 .accent-swatch__label {
@@ -1663,6 +1820,7 @@ const previewClass = computed(() => ({ 'settings-page__preview--changed': brandD
 }
 
 .settings-genders {
+  --option-lift: 0px;
   --option-group-gap: 0;
 }
 
@@ -1691,18 +1849,33 @@ const previewClass = computed(() => ({ 'settings-page__preview--changed': brandD
   border-radius: 0 var(--radius-md) var(--radius-md) 0;
 }
 
-.gender-pill:hover {
+.option-group__option:hover .gender-pill {
   color: var(--color-text-primary);
+  border-color: var(--option-hover-border);
 }
 
-/* Segmento elegido en tinta, no en el acento. */
-.gender-pill--selected {
+/* Segmento elegido en latón; el rombo va delante de la palabra. */
+.settings-genders {
+  --option-mark-display: none;
+}
+
+.gender-pill--selected,
+.option-group__option:hover .gender-pill--selected {
   position: relative;
   z-index: 1;
   font-weight: 600;
-  background: color-mix(in srgb, var(--color-text-primary) 8%, var(--color-surface));
+  background: var(--option-selected-bg);
   color: var(--color-text-primary);
-  border-color: var(--color-text-primary);
+  border-color: var(--option-selected-border);
+}
+
+.gender-pill--selected::before {
+  width: 6px;
+  height: 6px;
+  margin-right: 9px;
+  content: '';
+  background: var(--color-brass-body);
+  transform: rotate(45deg);
 }
 
 .preset-list {
@@ -1732,18 +1905,33 @@ const previewClass = computed(() => ({ 'settings-page__preview--changed': brandD
 
 .preset-chip:hover:not(:disabled) {
   color: var(--color-text-primary);
-  border-color: var(--color-text-primary);
+  border-color: color-mix(in srgb, var(--color-brass-line) 55%, var(--color-border-control));
 }
 
 .preset-chip:focus-visible {
-  outline: 2px solid var(--color-focus);
-  outline-offset: 2px;
+  outline: none;
+  box-shadow:
+    0 0 0 2px var(--color-surface),
+    0 0 0 4px var(--color-focus);
 }
 
-.preset-chip--active {
+/* La palabra en uso: latón con su rombo, como la opción elegida (#759). */
+.preset-chip--active,
+.preset-chip--active:hover:not(:disabled) {
+  display: inline-flex;
+  align-items: center;
   color: var(--color-text-primary);
-  background: color-mix(in srgb, var(--color-text-primary) 8%, transparent);
-  border-color: var(--color-text-primary);
+  background: color-mix(in srgb, var(--color-brass-body) 13%, var(--color-surface));
+  border-color: var(--color-brass-line);
+}
+
+.preset-chip--active::before {
+  width: 5px;
+  height: 5px;
+  margin-right: 8px;
+  content: '';
+  background: var(--color-brass-body);
+  transform: rotate(45deg);
 }
 
 .preset-chip:disabled {
@@ -1753,18 +1941,45 @@ const previewClass = computed(() => ({ 'settings-page__preview--changed': brandD
 
 /* Vista previa del vocabulario: superficie hundida, sin filete de acento. Se
    actualiza al escribir; no destella (v2: nada parpadea). */
+/* La vista previa como una ficha de la familia (#759): rótulo de latón con su
+   rombo (hueco; se llena cuando hay cambios sin guardar) y cada línea con
+   puntos guía entre el lugar del panel y cómo se leerá. */
 .settings-page__preview {
   padding: 16px 18px 18px;
   background: var(--color-surface-muted);
-  border-radius: var(--radius-md);
+  border: 1px solid color-mix(in srgb, var(--color-brass-line) 35%, transparent);
+  border-radius: 4px;
 }
 
 .settings-page__preview-kicker {
-  margin: 0 0 12px;
-  color: var(--color-text-secondary);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0 0 14px;
+  color: var(--color-brass-text);
   font-size: 13px;
-  font-weight: 500;
+  font-weight: 600;
   line-height: 18px;
+}
+
+.settings-page__preview-kicker::before {
+  width: 7px;
+  height: 7px;
+  content: '';
+  border: 1.5px solid currentColor;
+  rotate: 45deg;
+}
+
+.settings-page__preview--changed .settings-page__preview-kicker::before {
+  background: currentColor;
+}
+
+.settings-page__preview-leader {
+  flex: 1 1 24px;
+  min-width: 24px;
+  align-self: center;
+  height: 0;
+  border-bottom: 2px dotted color-mix(in srgb, var(--color-brass-line) 50%, transparent);
 }
 
 .settings-page__preview-list {
@@ -1780,13 +1995,17 @@ const previewClass = computed(() => ({ 'settings-page__preview--changed': brandD
 
 .settings-page__preview-list li {
   display: flex;
-  flex-wrap: wrap;
   align-items: baseline;
-  gap: 4px 14px;
+  gap: 4px 10px;
+}
+
+.settings-page__preview-list li > :last-child {
+  max-width: 70%;
+  text-align: right;
 }
 
 .settings-page__preview-tag {
-  flex: 0 0 56px;
+  flex: 0 0 auto;
   color: var(--color-text-secondary);
   font-size: var(--font-size-caption);
 }
@@ -1809,44 +2028,52 @@ const previewClass = computed(() => ({ 'settings-page__preview--changed': brandD
   font-weight: 600;
 }
 
-/* --- Reservas: enlace a su propia pantalla ------------------------------- */
+/* --- Accesos a otra pantalla (#759) -------------------------------------
+   Fila de la familia: el nombre en serif, su detalle, puntos guía hasta la
+   flecha y un rombo de latón que la acompaña. Hover: el borde pasa a latón y
+   la flecha avanza; al pulsar, la fila se hunde un poco. */
 
 .settings-link {
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  gap: 16px;
-  padding: 14px 16px;
+  gap: 14px;
+  padding: 16px 18px;
   color: var(--color-text-primary);
   background: var(--color-surface);
-  border: var(--border-width-normal) solid var(--color-border-control);
-  border-radius: var(--radius-md);
+  border: var(--border-width-normal) solid
+    color-mix(in srgb, var(--color-brass-line) 40%, var(--color-border-subtle));
+  border-radius: 4px;
   text-decoration: none;
-  transition:
-    background-color var(--motion-duration-fast) var(--motion-easing-standard),
-    border-color var(--motion-duration-fast) var(--motion-easing-standard);
 }
 
 .settings-link:hover {
-  background: color-mix(in srgb, var(--color-text-primary) 4%, var(--color-surface));
-  border-color: var(--color-text-primary);
+  border-color: var(--color-brass-line);
+}
+
+.settings-link:active {
+  transform: translateY(1px);
 }
 
 .settings-link:focus-visible {
-  outline: 2px solid var(--color-focus);
-  outline-offset: 2px;
+  outline: none;
+  box-shadow:
+    0 0 0 2px var(--color-surface),
+    0 0 0 4px var(--color-focus);
 }
 
 .settings-link__copy {
   display: flex;
+  flex: 0 1 auto;
   flex-direction: column;
+  gap: 2px;
   min-width: 0;
 }
 
 .settings-link__title {
-  font-size: var(--font-size-body-sm);
-  font-weight: 600;
-  line-height: 20px;
+  font-family: var(--font-display);
+  font-size: 21px;
+  font-weight: 400;
+  line-height: 1.15;
 }
 
 .settings-link__detail {
@@ -1855,15 +2082,51 @@ const previewClass = computed(() => ({ 'settings-page__preview--changed': brandD
   color: var(--color-text-secondary);
 }
 
-.settings-link__arrow {
-  flex: 0 0 auto;
-  font-size: var(--font-size-h3);
-  color: var(--color-text-secondary);
-  transition: transform var(--motion-duration-fast) var(--motion-easing-standard);
+.settings-link__leader {
+  flex: 1 1 24px;
+  min-width: 24px;
+  height: 2px;
+  align-self: center;
+  background-image: radial-gradient(
+    circle,
+    color-mix(in srgb, var(--color-brass-line) 70%, transparent) 1px,
+    transparent 1.3px
+  );
+  background-size: 6px 2px;
 }
 
-.settings-link:hover .settings-link__arrow {
-  transform: translateX(3px);
+.settings-link__arrow {
+  display: inline-flex;
+  flex: 0 0 auto;
+  gap: 8px;
+  align-items: center;
+  font-size: var(--font-size-h3);
+  line-height: 1;
+  color: var(--color-brass-text);
+}
+
+.settings-link__arrow::before {
+  width: 7px;
+  height: 7px;
+  content: '';
+  background: var(--color-brass-body);
+  transform: rotate(45deg);
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  :root:not([data-motion='reduced']) .settings-link {
+    transition:
+      border-color 160ms ease,
+      transform 120ms ease;
+  }
+
+  :root:not([data-motion='reduced']) .settings-link__arrow {
+    transition: transform 200ms cubic-bezier(0.2, 0.7, 0.2, 1);
+  }
+
+  :root:not([data-motion='reduced']) .settings-link:hover .settings-link__arrow {
+    transform: translateX(4px);
+  }
 }
 
 /* --- Campos v2: los compartidos (BaseInput, BaseButton) sin repintar ---------
@@ -1952,6 +2215,52 @@ const previewClass = computed(() => ({ 'settings-page__preview--changed': brandD
   border-radius: var(--radius-lg);
 }
 
+/* Llegada (#759): al quedar lista, las secciones suben escalonadas y el índice
+   entra con ellas (~700 ms, solo transform y opacity). Ocurre una vez, porque la
+   rejilla se monta una sola vez por carga. Con movimiento reducido no existe. */
+@media (prefers-reduced-motion: no-preference) {
+  :root:not([data-motion='reduced'])
+    .settings-page__layout:not(.settings-page__skeletons)
+    > .settings-page__form
+    > .settings-panel {
+    animation: settings-arrive 420ms 120ms cubic-bezier(0.2, 0.7, 0.2, 1) both;
+  }
+
+  :root:not([data-motion='reduced'])
+    .settings-page__layout:not(.settings-page__skeletons)
+    > .settings-page__form
+    > .settings-panel:nth-of-type(2) {
+    animation-delay: 200ms;
+  }
+
+  :root:not([data-motion='reduced'])
+    .settings-page__layout:not(.settings-page__skeletons)
+    > .settings-page__form
+    > .settings-panel:nth-of-type(n + 3) {
+    animation-delay: 280ms;
+  }
+
+  :root:not([data-motion='reduced'])
+    .settings-page__layout:not(.settings-page__skeletons)
+    > .settings-index {
+    animation: settings-arrive-index 360ms cubic-bezier(0.2, 0.7, 0.2, 1) both;
+  }
+}
+
+@keyframes settings-arrive {
+  from {
+    opacity: 0;
+    transform: translateY(14px);
+  }
+}
+
+@keyframes settings-arrive-index {
+  from {
+    opacity: 0;
+    transform: translateX(-8px);
+  }
+}
+
 /* Fundido entre carga/error/listo (estandar-diseno-visual.md §12). */
 .settings-content-enter-active,
 .settings-content-leave-active {
@@ -2014,9 +2323,48 @@ const previewClass = computed(() => ({ 'settings-page__preview--changed': brandD
   }
 }
 
+@media (max-width: 1099px) {
+  .settings-page__skeleton-index {
+    flex-direction: row;
+    gap: 18px;
+    padding: 16px 0;
+    overflow: hidden;
+    border-left: 0;
+    border-bottom: var(--border-width-normal) solid var(--color-border-subtle);
+  }
+
+  .settings-page__skeleton--index {
+    flex: 0 0 64px;
+  }
+}
+
+@media (max-width: 767px) {
+  .settings-page__skeleton--tile {
+    flex-basis: 100%;
+    max-width: none;
+    height: 96px;
+  }
+}
+
+@media (max-width: 640px) {
+  .settings-page__skeleton-head,
+  .settings-page__skeleton-body {
+    padding-inline: 16px;
+  }
+
+  .settings-page__skeleton-head {
+    flex-direction: column;
+    gap: 8px;
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
   .settings-page__skeleton {
     animation: none;
   }
+}
+
+:root[data-motion='reduced'] .settings-page__skeleton {
+  animation: none;
 }
 </style>

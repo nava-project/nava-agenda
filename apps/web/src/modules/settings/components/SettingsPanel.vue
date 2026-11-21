@@ -1,6 +1,8 @@
 <script setup lang="ts">
-// Sección de Configuración (DEC-110) en el lenguaje v2 (DEC-188): tarjeta
-// sobre la superficie con borde sutil y título en tipo oración. Sin número: las
+// Sección de Configuración (DEC-110) con la esencia de la familia (#759): papel
+// con filete de latón, título en Instrument Serif, el alcance como rótulo de
+// latón con su rombo (lleno para el negocio, hueco para este dispositivo) y el
+// troquel punteado bajo el encabezado, como en la tarjeta de turno. Sin número: las
 // secciones son ajustes independientes, no pasos de un orden. El encabezado deja
 // claro DÓNDE vale lo que se cambia (este dispositivo o todo el negocio) y si
 // aplica al instante o necesita guardarse.
@@ -42,8 +44,9 @@ defineProps<{
   position: relative;
   scroll-margin-top: 72px;
   background: var(--color-surface);
-  border: var(--border-width-normal) solid var(--color-border-subtle);
-  border-radius: var(--radius-lg);
+  border: var(--border-width-normal) solid
+    color-mix(in srgb, var(--color-brass-line) 32%, var(--color-border-subtle));
+  border-radius: 4px;
 }
 
 .settings-panel:focus-within {
@@ -55,7 +58,8 @@ defineProps<{
   align-items: flex-start;
   gap: 12px;
   padding: 20px 24px 16px;
-  border-bottom: var(--border-width-normal) solid var(--color-border-subtle);
+  border-bottom: var(--border-width-normal) dashed
+    color-mix(in srgb, var(--color-brass-line) 60%, transparent);
 }
 
 .settings-panel__heading {
@@ -65,10 +69,11 @@ defineProps<{
 
 .settings-panel__title {
   margin: 0;
-  font-family: var(--font-sans);
-  font-size: 20px;
-  font-weight: 600;
-  line-height: 28px;
+  font-family: var(--font-display);
+  font-size: 27px;
+  font-weight: 400;
+  line-height: 1.1;
+  letter-spacing: -0.005em;
   color: var(--color-text-primary);
 }
 
@@ -80,17 +85,32 @@ defineProps<{
   color: var(--color-text-secondary);
 }
 
-/* Alcance en tipo oración y texto secundario: la palabra lo dice, sin marca. */
+/* Alcance como rótulo de latón: la palabra lo dice y el rombo lo marca (lleno,
+   para el negocio; hueco, solo este dispositivo). */
 .settings-panel__scope {
   display: inline-flex;
   flex: 0 0 auto;
+  gap: 8px;
   align-items: center;
-  margin-top: 4px;
-  color: var(--color-text-secondary);
+  margin-top: 6px;
+  color: var(--color-brass-text);
   font-size: 13px;
-  font-weight: 500;
+  font-weight: 600;
   line-height: 18px;
   white-space: nowrap;
+}
+
+.settings-panel__scope::before {
+  width: 7px;
+  height: 7px;
+  content: '';
+  background: var(--color-brass-body);
+  transform: rotate(45deg);
+}
+
+.settings-panel__scope--device::before {
+  background: transparent;
+  box-shadow: inset 0 0 0 1.5px var(--color-brass-body);
 }
 
 .settings-panel__body {
@@ -108,8 +128,7 @@ defineProps<{
   }
 
   .settings-panel__title {
-    font-size: 18px;
-    line-height: 26px;
+    font-size: 23px;
   }
 
   .settings-panel__scope {

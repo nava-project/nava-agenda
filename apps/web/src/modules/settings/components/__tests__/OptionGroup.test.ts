@@ -50,6 +50,19 @@ describe('OptionGroup', () => {
     expect(wrapper.emitted('update:modelValue')).toEqual([['c']])
   })
 
+  // #759: la elegida lleva el material de latón; su rombo aterriza solo tras un cambio de la persona.
+  it('marks the selected option and lands its diamond only after the person changes it', async () => {
+    const wrapper = mountGroup({ modelValue: 'b' })
+
+    const labels = wrapper.findAll('label')
+    expect(labels[1]!.classes()).toContain('option-group__option--selected')
+    expect(wrapper.get('[role="radiogroup"]').classes()).not.toContain('option-group--touched')
+
+    await wrapper.findAll('input')[2]!.setValue(true)
+
+    expect(wrapper.get('[role="radiogroup"]').classes()).toContain('option-group--touched')
+  })
+
   it('disables every radio and emits nothing while disabled', async () => {
     const wrapper = mountGroup({ disabled: true })
 
