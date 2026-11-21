@@ -15,7 +15,7 @@
 // turno y las dos acciones a las que vino (cambiar la hora o cancelar) aquí mismo; la
 // pantalla completa de «Mi turno» queda como enlace secundario.
 import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue'
-import { BaseAlert, BaseInput, OtpInput, SunDiamond } from '@/shared/ui'
+import { BaseAlert, BaseInput, OtpInput, ResendDusk, SunDiamond } from '@/shared/ui'
 import { BookingStateScreen, PublicFrame, usePublicBusinessName } from '@/modules/public-booking'
 import AppointmentActions from '../components/AppointmentActions.vue'
 import { requestAccessCode } from '../api/requestAccessCodeApi'
@@ -58,6 +58,8 @@ const cancelledHere = ref(false)
 const nowMs = ref(Date.now())
 /** Instante a partir del cual se ofrece «pedir otro código». */
 const resendAt = ref(0)
+/** Segundos completos de esa espera: el atardecer los recorre de principio a fin. */
+const resendTotal = ref(0)
 
 const heading = ref<HTMLElement | null>(null)
 const root = ref<HTMLElement | null>(null)
@@ -123,6 +125,12 @@ async function focusStep() {
 // Al llegar desde el enlace de la entrada pública el título recibe el foco, como en cada paso.
 onMounted(() => void focusStep())
 
+// Al volver a escribir después de un código equivocado, el aviso se retira: las
+// casillas dejan el rojo y vuelven al latón mientras se prueba otro código.
+watch(code, (value) => {
+  if (value && codeError.value && !isLocked.value) codeError.value = ''
+})
+
 watch(step, () => {
   void focusStep()
   if (step.value === 'code') startTicker()
@@ -144,6 +152,7 @@ async function submitContact() {
     case 'sent':
       resetCodeEntry()
       resendAt.value = Date.now() + outcome.resendAfterSeconds * 1000
+      resendTotal.value = outcome.resendAfterSeconds
       step.value = 'code'
       return
     case 'invalid-contact':
@@ -254,12 +263,14 @@ async function resend() {
     case 'sent':
       resetCodeEntry()
       resendAt.value = Date.now() + outcome.resendAfterSeconds * 1000
+      resendTotal.value = outcome.resendAfterSeconds
       nowMs.value = Date.now()
       notice.value = `Te enviamos otro código por ${channelWord.value}.`
       void focusStep()
       return
     case 'rate-limited':
       resendAt.value = Date.now() + outcome.retryAfterSeconds * 1000
+      resendTotal.value = outcome.retryAfterSeconds
       nowMs.value = Date.now()
       alert.value = {
         variant: 'warning',
@@ -446,10 +457,19 @@ const zoneName = computed(() => (grant.value ? timezoneName(grant.value.timezone
 
         <div class="mt-form__aside">
           <p v-if="!canResend" class="mt-form__wait" aria-live="off">
-            ¿No te llegó? Podrás pedir otro en
-            <span class="mt-form__count">{{ formatCountdown(secondsToResend) }}</span>
+            <ResendDusk :key="resendAt" :total="resendTotal" :remaining="secondsToResend" />
+            <span
+              >¿No te llegó? Podrás pedir otro en
+              <span class="mt-form__count">{{ formatCountdown(secondsToResend) }}</span></span
+            >
           </p>
-          <button v-else type="button" class="bk-link" :disabled="submitting" @click="resend">
+          <button
+            v-else
+            type="button"
+            class="bk-link mt-form__resend"
+            :disabled="submitting"
+            @click="resend"
+          >
             Pedir otro código
           </button>
           <button type="button" class="bk-link" @click="changeContact">Cambiar el contacto</button>

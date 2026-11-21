@@ -11,7 +11,7 @@
 // `PhoneChallengeForm.vue`, pero con cuenta regresiva visible (CA-011-04
 // exige "cuánto falta", no solo un botón deshabilitado).
 import { computed, onUnmounted, ref } from 'vue'
-import { BaseButton, OtpInput } from '@/shared/ui'
+import { BaseButton, OtpInput, ResendDusk } from '@/shared/ui'
 import { requestRecovery, verifyRecovery } from '../api/recoveryApi'
 import { notifyConnectionLost, notifyUnexpectedError } from '../model/authFeedback'
 import type { RecoveryTarget } from '../model/recoveryTarget'
@@ -40,6 +40,8 @@ const fieldError = ref<string | undefined>(undefined)
 const attemptedSubmit = ref(false)
 const verifyStatus = ref<'idle' | 'verifying' | 'invalid-code'>('idle')
 const resendCooldownRemaining = ref(0)
+/** Cambia en cada envío para que el atardecer de la espera vuelva a empezar (#751). */
+const cooldownRound = ref(0)
 let cooldownTimer: ReturnType<typeof setInterval> | undefined
 
 const isVerifying = computed(() => verifyStatus.value === 'verifying')
@@ -56,6 +58,7 @@ const otpError = computed(() =>
 
 function startResendCooldown() {
   resendCooldownRemaining.value = RESEND_COOLDOWN_SECONDS
+  cooldownRound.value += 1
   cooldownTimer = setInterval(() => {
     resendCooldownRemaining.value = Math.max(0, resendCooldownRemaining.value - 1)
     if (resendCooldownRemaining.value === 0 && cooldownTimer) {
@@ -169,6 +172,12 @@ async function onSubmit() {
         :disabled="!canResend"
         @click="onResend"
       >
+        <ResendDusk
+          v-if="!canResend"
+          :key="cooldownRound"
+          :total="RESEND_COOLDOWN_SECONDS"
+          :remaining="resendCooldownRemaining"
+        />
         {{ canResend ? 'Reenviar código' : `Reenviar en ${resendCooldownRemaining} s` }}
       </BaseButton>
     </div>

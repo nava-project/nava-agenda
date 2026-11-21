@@ -157,6 +157,21 @@ describe('RecoveryVerifyStep', () => {
     expect(resendButton()?.attributes('disabled')).toBeDefined()
   })
 
+  it('shows the sunset inside Reenviar while waiting and restarts it on each resend (#751)', async () => {
+    vi.useFakeTimers()
+    requestRecoveryMock.mockResolvedValueOnce({ kind: 'accepted' })
+    const wrapper = mountStep()
+    const resendButton = () => wrapper.findAll('button').find((b) => b.text().includes('Reenviar'))
+    expect(resendButton()?.find('.dusk').exists()).toBe(true)
+
+    await vi.advanceTimersByTimeAsync(60_000)
+    expect(resendButton()?.find('.dusk').exists()).toBe(false)
+
+    await resendButton()?.trigger('click')
+    await flushPromises()
+    expect(resendButton()?.find('.dusk').attributes('style')).toContain('--dusk-elapsed: 0s')
+  })
+
   it('has no obvious accessibility violations', async () => {
     const wrapper = mountStep()
     const results = await axe(wrapper.element, axeOptions)

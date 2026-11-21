@@ -321,6 +321,35 @@ describe('CustomerAccessPage · paso 2, código', () => {
     expect(document.activeElement).toBe(slotInputs(w)[0]!.element)
   })
 
+  it('al volver a escribir tras un código incorrecto, el aviso se retira (#751)', async () => {
+    script({ challenge: [ACCEPTED], verify: [WRONG] })
+    const w = await mountPage()
+    await sendContact(w)
+    await typeCode(w, '111111')
+    expect(w.find('.otp-input__error').exists()).toBe(true)
+
+    await slotInputs(w)[0]!.setValue('4')
+    await flushPromises()
+    expect(w.find('.otp-input__error').exists()).toBe(false)
+    expect(w.findAll('.otp-input__cell--invalid')).toHaveLength(0)
+  })
+
+  it('la espera para pedir otro código es un atardecer que arranca con la cuenta (#751)', async () => {
+    script({ challenge: [ACCEPTED, ACCEPTED] })
+    const w = await mountPage()
+    await sendContact(w)
+    const dusk = w.find('.mt-form__wait .dusk')
+    expect(dusk.exists()).toBe(true)
+    expect(dusk.attributes('aria-hidden')).toBe('true')
+    expect(dusk.attributes('style')).toContain('--dusk-total: 60s')
+    expect(dusk.attributes('style')).toContain('--dusk-elapsed: 0s')
+
+    vi.advanceTimersByTime(61_000)
+    await flushPromises()
+    expect(w.find('.dusk').exists()).toBe(false)
+    expect(buttonByText(w, 'Pedir otro código')!.classes()).toContain('mt-form__resend')
+  })
+
   it('a los cinco códigos incorrectos bloquea la entrada y ofrece pedir uno nuevo', async () => {
     script({ challenge: [ACCEPTED], verify: [WRONG, WRONG, WRONG, WRONG, WRONG] })
     const w = await mountPage()

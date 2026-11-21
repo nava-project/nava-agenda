@@ -248,12 +248,58 @@ describe('OtpInput · ancho (#733)', () => {
       raf.mockRestore()
     })
 
-    it('el salto y la sacudida se apagan con movimiento reducido', () => {
+    it('el salto, la sacudida, el rombo y la regla solo se mueven sin movimiento reducido', () => {
       const css = readFileSync(resolve(__dirname, '../OtpInput.vue'), 'utf8')
-      expect(css).toMatch(
-        /@media \(prefers-reduced-motion: reduce\) \{\s*\.otp-input__slot--filled,\s*\.otp-input__slots--shake \{\s*animation: none;/,
+      const style = css.slice(css.indexOf('<style'))
+      const motionBlock = style.slice(
+        style.indexOf('@media (prefers-reduced-motion: no-preference)'),
+        style.indexOf('/* Con movimiento reducido'),
       )
-      expect(css).toMatch(/:root\[data-motion='reduced'\] \.otp-input__slot--filled,/)
+      // Toda animación vive dentro del bloque no-preference y bajo el interruptor del panel.
+      const animations = style.match(/animation:[^;]+;/g) ?? []
+      expect(animations.length).toBe(3)
+      for (const declaration of animations) expect(motionBlock).toContain(declaration)
+      for (const selector of motionBlock.match(/^\s*:root[^{]+\{/gm) ?? []) {
+        expect(selector).toContain(":root:not([data-motion='reduced'])")
+      }
+      // Las transiciones del rombo también se apagan con reduce.
+      expect(style).toMatch(
+        /@media \(prefers-reduced-motion: reduce\) \{\s*\.otp-input__cell::before \{\s*transition: none;/,
+      )
+      expect(style).toMatch(
+        /:root\[data-motion='reduced'\] \.otp-input__cell::before \{\s*transition: none;/,
+      )
+    })
+  })
+
+  describe('marca de la familia (#751)', () => {
+    it('cada dígito va en su celda, que sostiene el rombo de espera', async () => {
+      const wrapper = mount(OtpInput, { props: { modelValue: '12' } })
+      const cells = wrapper.findAll('.otp-input__cell')
+      expect(cells).toHaveLength(6)
+      expect(cells[0]?.classes()).toContain('otp-input__cell--filled')
+      expect(cells[2]?.classes()).not.toContain('otp-input__cell--filled')
+      expect(cells.every((cell) => cell.find('input.otp-input__slot').exists())).toBe(true)
+    })
+
+    it('dibuja la regla de latón solo con las seis casillas llenas y sin error', async () => {
+      const wrapper = mount(OtpInput, { props: { modelValue: '12345' } })
+      const group = wrapper.get('.otp-input__slots')
+      expect(wrapper.find('.otp-input__rule').exists()).toBe(true)
+      expect(group.classes()).not.toContain('otp-input__slots--complete')
+      await wrapper.setProps({ modelValue: '123456' })
+      expect(group.classes()).toContain('otp-input__slots--complete')
+      await wrapper.setProps({ error: 'Ese código no es válido.' })
+      expect(group.classes()).not.toContain('otp-input__slots--complete')
+      expect(wrapper.findAll('.otp-input__cell--invalid')).toHaveLength(6)
+    })
+
+    it('el dígito va en la serif de la familia y sin cursor de texto encima del rombo', () => {
+      const css = readFileSync(resolve(__dirname, '../OtpInput.vue'), 'utf8')
+      const slot = css.slice(css.indexOf('.otp-input__slot {'))
+      const rule = slot.slice(0, slot.indexOf('}'))
+      expect(rule).toContain('font-family: var(--font-serif)')
+      expect(rule).toContain('caret-color: transparent')
     })
   })
 })

@@ -335,27 +335,7 @@
   color: var(--color-text-primary);
 }
 
-.au .otp-input__slots {
-  gap: var(--space-2);
-}
-
-.au .otp-input__slot {
-  height: 56px;
-  font-family: var(--font-sans);
-  font-size: 24px;
-  font-weight: 600;
-  font-variant-numeric: tabular-nums;
-  border: 1px solid var(--color-border-control);
-  border-radius: var(--radius-md);
-}
-
-.au .otp-input__slot--filled {
-  border-color: var(--color-text-primary);
-}
-
-.au .otp-input__slot--invalid {
-  border-color: var(--color-danger-border);
-}
+/* Las casillas del código no se revisten aquí: su marca vive en OtpInput (#751). */
 
 /* La acción de la pantalla: Alba lleno, 52 px, a lo ancho. */
 .au .base-button--primary {
