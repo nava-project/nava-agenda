@@ -1,4 +1,5 @@
-import { test, expect, type Locator, type Page, type BrowserContext } from '@playwright/test'
+import { type Locator, type Page, type BrowserContext } from '@playwright/test'
+import { test, expect } from './bloqueos-limpieza'
 import axe from 'axe-core'
 import { existsSync, mkdirSync, readFileSync } from 'node:fs'
 import path from 'node:path'
@@ -6,7 +7,8 @@ import path from 'node:path'
 // #100: bloqueos por fechas explícitas, excepciones y edición de serie por
 // alcance, sobre API y PostgreSQL reales. Reutiliza los datos dedicados de
 // #286 (database/testdata/ui_bloqueos_profesionales_286.sql); cada ejecución crea
-// sus propias series con un rótulo único y las retira al terminar.
+// sus propias series con un rótulo único. Las retira el fixture de
+// ./bloqueos-limpieza aunque el test falle a medias (#764).
 const PROFESSIONAL_A = '286b0001-0000-4000-8000-000000000001'
 const evidence = path.resolve('e2e/evidence/barberos/bloqueos-100')
 const API = `/api/v1/private/professionals/${PROFESSIONAL_A}`
@@ -89,6 +91,16 @@ async function pickDate(page: Page, scope: Locator, label: RegExp | string, date
   await calendar.locator(`[data-date="${date}"]`).click()
 }
 
+// Fija la hora de un BaseTimePicker cuyo disparador empieza por `label`.
+async function setTime(page: Page, scope: Locator, label: string, hour: string, minutes: string) {
+  await scope.getByRole('button', { name: new RegExp(`^${label}`) }).click()
+  const timePicker = page.getByRole('dialog', { name: label, exact: true })
+  await timePicker.getByRole('spinbutton', { name: 'Hora', exact: true }).fill(hour)
+  await timePicker.getByRole('spinbutton', { name: 'Minutos', exact: true }).fill(minutes)
+  await timePicker.getByRole('button', { name: 'Aplicar hora', exact: true }).click()
+  await expect(timePicker).not.toBeVisible()
+}
+
 async function choose(scope: Locator, label: string, option: string) {
   await scope.getByRole('button', { name: label, exact: true }).click()
   await scope.getByRole('option', { name: option, exact: true }).click()
@@ -123,12 +135,11 @@ test('series por fechas, excepciones y edición por alcance con API real', async
   const pageErrors: string[] = []
   page.on('pageerror', (error) => pageErrors.push(error.message))
   const marker = `Serie de prueba ${testInfo.project.name} ${Date.now()}`
-  const created: string[] = []
   mkdirSync(evidence, { recursive: true })
 
   await login(page)
   await openPanel(page)
-  try {
+  {
     // --- Alta por fechas explícitas -----------------------------------
     await page.getByRole('button', { name: 'Agregar bloqueo por días' }).click()
     const form = page.getByRole('dialog', { name: 'Agregar bloqueo por días' })
@@ -155,7 +166,6 @@ test('series por fechas, excepciones y edición por alcance con API real', async
     const dateListResponse = await createdResponse
     expect(dateListResponse.status()).toBe(201)
     const dateListId = (await dateListResponse.json()).id as string
-    created.push(dateListId)
     await expect(form).not.toBeVisible()
     const dateListRecord = page
       .locator('.blocks-panel__record')
@@ -253,7 +263,6 @@ test('series por fechas, excepciones y edición por alcance con API real', async
     )
     await weekly.getByRole('button', { name: 'Guardar bloqueo' }).click()
     const weeklyId = (await (await weeklyResponse).json()).id as string
-    created.push(weeklyId)
     await dismissNotices(page)
     const weeklyRecord = page
       .locator('.blocks-panel__record')
@@ -264,8 +273,12 @@ test('series por fechas, excepciones y edición por alcance con API real', async
     await weeklyRecord.getByRole('button', { name: /^Editar serie/ }).click()
     const edit = page.getByRole('dialog', { name: 'Editar serie de bloqueo' })
     await expect(edit).toBeVisible()
-    await expect(edit.getByLabel('Duración (minutos)')).toHaveValue('45')
-    await edit.getByLabel('Duración (minutos)').fill('50')
+    // El diálogo pide la hora de fin, no la duración (#764): 12:00 → 12:45 es la
+    // serie de 45 min que se creó; se alarga a 12:50.
+    const endTime = edit.getByRole('button', { name: /^Hora de fin/ })
+    await expect(endTime).toContainText('12:45')
+    await setTime(page, edit, 'Hora de fin', '12', '50')
+    await expect(endTime).toContainText('12:50')
     await checkAxe(page)
     await page.screenshot({
       path: path.join(evidence, `${testInfo.project.name}-editar-serie.png`),
@@ -276,7 +289,7 @@ test('series por fechas, excepciones y edición por alcance con API real', async
     await edit.getByRole('button', { name: 'Guardar cambios' }).click()
     expect((await patchWhole).status()).toBe(200)
     await expect(edit).not.toBeVisible()
-    await expect(weeklyRecord).toContainText('50 min')
+    await expect(weeklyRecord).toContainText('12:00 p. m. – 12:50 p. m.')
     await dismissNotices(page)
 
     await weeklyRecord.getByRole('button', { name: /^Editar serie/ }).click()
@@ -286,7 +299,8 @@ test('series por fechas, excepciones y edición por alcance con API real', async
     await edit.getByRole('button', { name: 'Guardar cambios' }).click()
     await expect(edit.getByText(/El corte debe ser posterior al inicio/)).toBeVisible()
     await pickDate(page, scope, /Aplicar desde/, '2099-06-01')
-    await edit.getByLabel('Duración (minutos)').fill('30')
+    await setTime(page, edit, 'Hora de fin', '12', '30')
+    await expect(endTime).toContainText('12:30')
     await expect(edit.getByText(/La serie actual termina el .*31/)).toBeVisible()
     await checkAxe(page)
     await page.screenshot({
@@ -299,7 +313,6 @@ test('series por fechas, excepciones y edición por alcance con API real', async
     const split = await patchSplit
     expect(split.status()).toBe(200)
     const newId = (await split.json()).id as string
-    created.push(newId)
     expect(newId).not.toBe(weeklyId)
     await expect(
       page
@@ -322,7 +335,8 @@ test('series por fechas, excepciones y edición por alcance con API real', async
     const newRecord = page
       .locator('.blocks-panel__record')
       .filter({ hasText: marker })
-      .filter({ hasText: '30 min' })
+      // El registro dice el rango, no la duración (#764).
+      .filter({ hasText: '12:00 p. m. – 12:30 p. m.' })
     await newRecord.getByRole('button', { name: /^Excepciones de la serie/ }).click()
     const weeklyInstances = page.getByRole('dialog', { name: 'Excepciones de la serie' })
     await expect(weeklyInstances.getByRole('list', { name: 'Fechas de la serie' })).toHaveCount(0)
@@ -353,8 +367,11 @@ test('series por fechas, excepciones y edición por alcance con API real', async
       { width: 1280, height: 900 },
     ]) {
       await page.setViewportSize(viewport)
-      const overflow = () => page.evaluate(() => document.documentElement.scrollWidth > innerWidth)
-      expect(await overflow()).toBe(false)
+      // Se mide el estado ya asentado tras el cambio de tamaño; un desborde real
+      // persiste y falla igual (#764).
+      await expect
+        .poll(() => page.evaluate(() => document.documentElement.scrollWidth > innerWidth))
+        .toBe(false)
       await checkAxe(page, '.blocks-panel')
       await page.screenshot({
         path: path.join(evidence, `${testInfo.project.name}-${viewport.width}-panel.png`),
@@ -379,7 +396,9 @@ test('series por fechas, excepciones y edición por alcance con API real', async
       const dialog = page.getByRole('dialog', { name: 'Fechas y excepciones' })
       await expect(dialog).toBeVisible()
       expect(await dialog.evaluate((el) => el.scrollWidth > el.clientWidth)).toBe(false)
-      expect(await overflow()).toBe(false)
+      expect(await page.evaluate(() => document.documentElement.scrollWidth > innerWidth)).toBe(
+        false,
+      )
       await checkAxe(page)
       await page.screenshot({
         path: path.join(evidence, `${testInfo.project.name}-${viewport.width}-fechas.png`),
@@ -403,9 +422,5 @@ test('series por fechas, excepciones y edición por alcance con API real', async
       await expect(alta).not.toBeVisible()
     }
     expect(pageErrors).toEqual([])
-  } finally {
-    // Retiro lógico (RN-BLQ-04): una serie retirada deja de mostrarse y
-    // el siguiente arranque la ignora.
-    for (const id of created) await page.request.delete(`${API}/time-block-series/${id}`)
   }
 })

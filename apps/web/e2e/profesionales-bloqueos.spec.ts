@@ -1,4 +1,5 @@
-import { test, expect, type Page, type BrowserContext } from '@playwright/test'
+import { type Page, type BrowserContext } from '@playwright/test'
+import { test, expect } from './bloqueos-limpieza'
 import axe from 'axe-core'
 import { existsSync, mkdirSync, readFileSync } from 'node:fs'
 import path from 'node:path'
@@ -114,9 +115,9 @@ test('bloqueos dentro de Profesionales: ciclo real, aislamiento, errores y evide
   await openPanel(page)
   await expect(page.getByRole('link', { name: 'Bloqueos', exact: true })).toHaveCount(0)
   const marker = `Pausa de prueba ${testInfo.project.name} ${Date.now()}`
-  let blockId: string | undefined
-  let seriesId: string | undefined
-  try {
+  // Lo que se crea aquí lo retira el fixture de ./bloqueos-limpieza, aunque el
+  // test falle a medias (#764).
+  {
     await page.getByRole('button', { name: 'Agregar bloqueo', exact: true }).click()
     const dialog = page.getByRole('dialog', { name: 'Agregar bloqueo puntual' })
     await expect(
@@ -143,7 +144,6 @@ test('bloqueos dentro de Profesionales: ciclo real, aislamiento, errores y evide
     await dialog.getByRole('button', { name: 'Guardar bloqueo' }).click()
     const result = await created
     expect(result.status()).toBe(201)
-    blockId = (await result.json()).id
     await expect(dialog).not.toBeVisible()
     await expect(page.locator('.blocks-panel__record').filter({ hasText: marker })).toBeVisible()
 
@@ -168,7 +168,6 @@ test('bloqueos dentro de Profesionales: ciclo real, aislamiento, errores y evide
     await weekly.getByRole('button', { name: 'Guardar bloqueo' }).click()
     const seriesResponse = await createdSeries
     expect(seriesResponse.status()).toBe(201)
-    seriesId = (await seriesResponse.json()).id
     await expect(weekly).not.toBeVisible()
 
     // Cambiar de profesional no mezcla registros; volver los consulta de verdad.
@@ -196,14 +195,23 @@ test('bloqueos dentro de Profesionales: ciclo real, aislamiento, errores y evide
       { width: 640, height: 450 },
     ]) {
       await page.setViewportSize(viewport)
-      const size = await page.evaluate(() => ({
-        width: innerWidth,
-        height: innerHeight,
-        overflow: document.documentElement.scrollWidth > innerWidth,
-      }))
-      expect(size.width).toBe(viewport.width)
-      expect(size.height).toBe(viewport.height)
-      expect(size.overflow).toBe(false)
+      // El cambio de tamaño se asienta en uno o dos cuadros (el diálogo recoloca
+      // su contenido): se espera al estado estable. Un desborde real sigue ahí y
+      // falla igual (#764).
+      await expect
+        .poll(() =>
+          page.evaluate(() => ({
+            width: innerWidth,
+            height: innerHeight,
+            overflow: document.documentElement.scrollWidth > innerWidth,
+            wide: [...document.querySelectorAll('body *')]
+              .filter((el) => el.getBoundingClientRect().right > innerWidth + 0.5)
+              .filter((el) => getComputedStyle(el).position !== 'fixed')
+              .map((el) => `${el.tagName}.${String(el.className).split(' ')[0]}`)
+              .slice(0, 4),
+          })),
+        )
+        .toMatchObject({ width: viewport.width, height: viewport.height, overflow: false })
       await page.locator('main').evaluate((el) => {
         el.scrollTop = 0
       })
@@ -226,6 +234,10 @@ test('bloqueos dentro de Profesionales: ciclo real, aislamiento, errores y evide
       )
       await content.evaluate((el) => {
         el.scrollTop = el.scrollHeight
+        // Desde 768 px cada lista (puntuales, series) es una columna con scroll
+        // propio: llegar al final es bajar también la columna (#764).
+        for (const list of el.querySelectorAll<HTMLElement>('.blocks-panel__scroll'))
+          list.scrollTop = list.scrollHeight
       })
       await expect(
         page
@@ -341,7 +353,8 @@ test('bloqueos dentro de Profesionales: ciclo real, aislamiento, errores y evide
     await page.unroute(`**/professionals/${PROFESSIONAL_A}/time-blocks`)
     await page.keyboard.press('Escape')
 
-    const contextB = await browser.newContext({ baseURL: 'http://localhost:5173' })
+    // La misma URL base del proyecto (APP_BASE_URL), no un puerto fijo (#764).
+    const contextB = await browser.newContext({ baseURL: testInfo.project.use.baseURL })
     try {
       const other = await contextB.newPage()
       await login(other, 2)
@@ -380,15 +393,6 @@ test('bloqueos dentro de Profesionales: ciclo real, aislamiento, errores y evide
     await page.goto('/panel/bloqueos')
     await expect(page).toHaveURL(/\/panel\/profesionales$/)
     expect(pageErrors).toEqual([])
-  } finally {
-    if (blockId)
-      await page.request.delete(
-        `/api/v1/private/professionals/${PROFESSIONAL_A}/time-blocks/${blockId}`,
-      )
-    if (seriesId)
-      await page.request.delete(
-        `/api/v1/private/professionals/${PROFESSIONAL_A}/time-block-series/${seriesId}`,
-      )
   }
 })
 
