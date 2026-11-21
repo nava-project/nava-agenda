@@ -36,6 +36,16 @@ func (r *AccessRepository) resolveShop(ctx context.Context, slug string) (databa
 	return shop, found, nil
 }
 
+// businessName lee el nombre del negocio dentro de la transacción del tenant, para
+// el mensaje del código (#753). Solo se consulta cuando de verdad se envía uno.
+func businessName(ctx context.Context, q database.Queries, shop database.BusinessID) (string, error) {
+	var name string
+	if err := q.QueryRow(ctx, `SELECT name FROM business WHERE id = $1`, string(shop)).Scan(&name); err != nil {
+		return "", fmt.Errorf("select business name: %w", err)
+	}
+	return name, nil
+}
+
 // RequestChallenge registra la solicitud en una sola transacción:
 //  1. serializa por contacto y por IP (el límite no se supera con solicitudes
 //     simultáneas);
@@ -96,6 +106,13 @@ func (r *AccessRepository) RequestChallenge(ctx context.Context, req customeracc
 		)
 		if err != nil {
 			return fmt.Errorf("insert challenge: %w", err)
+		}
+		if customerID != nil {
+			name, err := businessName(ctx, q, shop)
+			if err != nil {
+				return err
+			}
+			outcome.BusinessName = name
 		}
 		return nil
 	})

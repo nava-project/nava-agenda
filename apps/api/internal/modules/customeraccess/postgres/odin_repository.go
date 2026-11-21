@@ -155,6 +155,11 @@ func (r *AccessRepository) RequestRefChallenge(ctx context.Context, req customer
 		); err != nil {
 			return fmt.Errorf("insert ref challenge: %w", err)
 		}
+		name, err := businessName(ctx, q, shop)
+		if err != nil {
+			return err
+		}
+		outcome.BusinessName = name
 		outcome.Available = true
 		return nil
 	})

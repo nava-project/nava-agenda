@@ -4,6 +4,7 @@ import (
 	"math"
 	"os"
 	"path/filepath"
+	"regexp"
 	"strconv"
 	"strings"
 	"testing"
@@ -39,22 +40,30 @@ func contrast(t *testing.T, fg, bg string) float64 {
 // tanto en claro como en el modo oscuro de la hoja <style>.
 func TestEmailTemplate_ColorPairsMeetAA(t *testing.T) {
 	pairs := []struct{ name, fg, bg string }{
-		{"texto sobre tarjeta", emailTextMain, "#ffffff"},
-		{"texto secundario sobre tarjeta", emailTextMuted, "#ffffff"},
+		{"texto sobre papel", emailTextMain, emailPaper},
+		{"texto secundario sobre papel", emailTextMuted, emailPaper},
 		{"pie sobre crema", emailTextMuted, emailCream},
-		{"título sobre tarjeta", emailInk, "#ffffff"},
+		{"rótulo de latón sobre papel", emailBrassText, emailPaper},
+		{"rótulo de latón sobre crema", emailBrassText, emailCream},
+		{"título sobre papel", emailInk, emailPaper},
+		{"marca sobre papel", emailInk, emailPaper},
+		{"dígito del código sobre papel", emailInk, emailPaper},
 		{"etiqueta de dato sobre crema", emailBrassText, emailCream},
 		{"valor de dato sobre crema", emailInk, emailCream},
-		{"wordmark sobre tinta", emailCream, emailInk},
-		{"nombre de negocio sobre tinta", "#cbd0d8", emailInk},
-		{"código sobre tinta", emailCream, emailInk},
 		{"botón", emailCream, emailInk},
-		// Modo oscuro.
-		{"oscuro: texto sobre tarjeta", "#f4f0e7", "#16243a"},
-		{"oscuro: secundario sobre tarjeta", "#a8b0bd", "#16243a"},
-		{"oscuro: secundario sobre fondo", "#a8b0bd", "#0b1420"},
-		{"oscuro: texto sobre dato", "#f4f0e7", "#0b1420"},
-		{"oscuro: botón", "#101b2b", "#b8955a"},
+		// Modo oscuro (hoja <style>).
+		{"oscuro: texto sobre tarjeta", "#eef1f8", "#151b35"},
+		{"oscuro: secundario sobre tarjeta", "#a9b1c6", "#151b35"},
+		{"oscuro: secundario sobre fondo", "#a9b1c6", "#0b1022"},
+		{"oscuro: latón sobre tarjeta", "#c9a86f", "#151b35"},
+		{"oscuro: latón sobre fondo", "#c9a86f", "#0b1022"},
+		{"oscuro: dígito sobre celda", "#eef1f8", "#0b1022"},
+		{"oscuro: texto sobre dato", "#eef1f8", "#0b1022"},
+		{"oscuro: botón", "#0b1022", "#c9a86f"},
+		{"oscuro: insignia neutra", "#b9cde3", "#1c2a44"},
+		{"oscuro: insignia de éxito", "#6fd39a", "#12301f"},
+		{"oscuro: insignia de aviso", "#f2c060", "#33280f"},
+		{"oscuro: insignia de peligro", "#ff8f87", "#3a1518"},
 	}
 	for _, tone := range []emailTone{toneNeutral, toneSuccess, toneWarning, toneDanger} {
 		bg, fg, _ := badgeColors(tone)
@@ -148,12 +157,72 @@ func TestEmailContent_TextKeepsOrderAndData(t *testing.T) {
 		Code:    "123456", Footnotes: []string{"Ignóralo."},
 	}.Text()
 	last := -1
-	for _, want := range []string{"Barbería Centro", "TURNO CANCELADO", "Tu turno fue cancelado", "Hola Ana,", "Párrafo.", "123456", "Servicio: Corte", "Fecha y hora: mañana", "Ignóralo.", "Nava Agenda"} {
+	for _, want := range []string{"◆ NAVA Agenda", "Barbería Centro", "◆ Turno cancelado", "Tu turno fue cancelado", "Hola Ana,", "Párrafo.", "123456", "Servicio: Corte", "Fecha y hora: mañana", "Ignóralo.", "Nava Agenda"} {
 		i := strings.Index(txt, want)
 		if i < 0 || i < last {
 			t.Fatalf("%q falta o está fuera de orden en:\n%s", want, txt)
 		}
 		last = i
+	}
+}
+
+// #753: el código de cifras va en celdas, una por dígito, en la serif.
+func TestEmailTemplate_CodeGoesInOneCellPerDigit(t *testing.T) {
+	html, err := emailContent{Title: "Escribe tu código", Code: "482913"}.HTML()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got := strings.Count(html, `class="cell"`); got != 6 {
+		t.Fatalf("esperaba 6 celdas, hay %d", got)
+	}
+	for _, d := range []string{">4<", ">8<", ">2<", ">9<", ">1<", ">3<"} {
+		if !strings.Contains(html, d) {
+			t.Errorf("falta la celda %s", d)
+		}
+	}
+	if !strings.Contains(html, `width="16.67%"`) {
+		t.Error("las seis celdas se reparten la fila")
+	}
+	if strings.Contains(html, "monospace") || strings.Contains(html, "Courier") {
+		t.Error("el código ya no va en una tipografía de máquina")
+	}
+}
+
+func TestEmailTemplate_NonDigitCodeStaysInOneBlock(t *testing.T) {
+	html, _ := emailContent{Title: "T", Code: "AB-12"}.HTML()
+	if strings.Contains(html, `class="cell"`) || !strings.Contains(html, `class="codeblock"`) || !strings.Contains(html, "AB-12") {
+		t.Fatal("un código que no es solo de cifras va entero en un bloque")
+	}
+}
+
+// #753: la marca es texto (rombo en latón, NAVA y Agenda en serif), el rótulo
+// junta negocio y motivo, y nada va en mayúsculas espaciadas.
+func TestEmailTemplate_FamilyBrandWithoutImagesOrShouting(t *testing.T) {
+	c := emailContent{Brand: "Barbería Centro", Kicker: "Tu turno", Title: "Escribe tu código", Code: "482913"}
+	html, err := c.HTML()
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, want := range []string{"&#9670;", ">NAVA<", ">Agenda<", "Barbería Centro · Tu turno", "Instrument Serif", "Nava Agenda · agenda de citas para negocios"} {
+		if !strings.Contains(html, want) {
+			t.Errorf("la plantilla debe contener %q", want)
+		}
+	}
+	// Los rombos son decorativos: un lector de pantalla no debe decir «rombo negro».
+	diamonds := regexp.MustCompile(`<(?:span|td)[^>]*>&#9670;`).FindAllString(html, -1)
+	if len(diamonds) < 3 {
+		t.Fatalf("esperaba los rombos de la marca, la regla y el pie, hay %d", len(diamonds))
+	}
+	for _, d := range diamonds {
+		if !strings.Contains(d, `aria-hidden="true"`) {
+			t.Errorf("rombo sin aria-hidden: %s", d)
+		}
+	}
+	if strings.Contains(html, "text-transform:uppercase") || strings.Contains(html, "<img") {
+		t.Error("sin mayúsculas forzadas ni imágenes")
+	}
+	if !strings.HasPrefix(c.Text(), "◆ NAVA Agenda\n\nBarbería Centro · Tu turno\nEscribe tu código") {
+		t.Errorf("el texto plano abre con la marca, el rótulo y el título:\n%s", c.Text())
 	}
 }
 
@@ -166,10 +235,16 @@ func TestEmailTemplate_WritePreviews(t *testing.T) {
 		t.Skip("EMAIL_PREVIEW_DIR no definido")
 	}
 	samples := map[string]emailContent{
-		"codigo": {
-			Preheader: "Tu código de verificación para entrar a Nava Agenda.", Title: "Verifica que eres tú",
-			Paragraphs: []string{"Tu código de verificación para entrar es el siguiente. Vence en pocos minutos."},
+		"codigo-mi-turno": customerAccessEmail("Barbería Centro", "482913"),
+		"codigo-acceso": {
+			Preheader: "Tu código de verificación para entrar a Nava Agenda.", Kicker: "Entrar a tu agenda", Title: "Confirma que eres tú",
+			Paragraphs: []string{"Escribe este código en la pantalla para entrar. Vence en pocos minutos."},
 			Code:       "482913", Footnotes: []string{"Si no intentaste entrar, ignora este mensaje y considera cambiar tu contraseña."},
+		},
+		"codigo-recuperacion": {
+			Preheader: "Tu código para recuperar el acceso a Nava Agenda.", Kicker: "Recupera tu acceso", Title: "Verifica el código",
+			Paragraphs: []string{"Escríbelo en la pantalla para recuperar el acceso a tu cuenta. Vence en pocos minutos."},
+			Code:       "482913", Footnotes: []string{"Si no lo solicitaste, ignora este mensaje: tu cuenta sigue segura."},
 		},
 		"confirmado": {
 			Preheader: "Tu turno en Barbería Centro quedó confirmado.", Brand: "Barbería Centro",
@@ -211,6 +286,9 @@ func TestEmailTemplate_WritePreviews(t *testing.T) {
 			t.Fatal(err)
 		}
 		if err := os.WriteFile(filepath.Join(dir, name+".html"), []byte(html), 0o600); err != nil {
+			t.Fatal(err)
+		}
+		if err := os.WriteFile(filepath.Join(dir, name+".txt"), []byte(c.Text()), 0o600); err != nil {
 			t.Fatal(err)
 		}
 	}

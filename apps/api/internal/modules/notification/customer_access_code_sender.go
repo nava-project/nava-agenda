@@ -9,7 +9,8 @@ import (
 )
 
 // customerAccessEmailSubject es el asunto fijo del correo con el código con el que
-// el cliente entra a cambiar la hora de su turno (HU-105, DEC-178).
+// el cliente entra a cambiar la hora de su turno (HU-105, DEC-178). La plantilla de
+// marca no cambia asuntos (DEC-143): el título del cuerpo sí sigue a la pantalla.
 const customerAccessEmailSubject = "Tu código para cambiar tu turno"
 
 // ErrUnknownAccessChannel indica un canal que este adaptador no entrega. Es un
@@ -42,18 +43,13 @@ func NewCustomerAccessCodeSender(email ResendEmailConfig, whatsapp customerAcces
 	return CustomerAccessCodeSender{httpClient: httpClient, email: email, whatsapp: whatsapp}
 }
 
-// SendCode entrega code a destination. Los errores no incluyen el destinatario ni
-// el código (RN-DAT-02).
-func (s CustomerAccessCodeSender) SendCode(ctx context.Context, channel, destination, code string) error {
+// SendCode entrega code a destination. businessName nombra al negocio en el
+// correo (#753); WhatsApp lo ignora porque su plantilla de autenticación es fija.
+// Los errores no incluyen el destinatario ni el código (RN-DAT-02).
+func (s CustomerAccessCodeSender) SendCode(ctx context.Context, channel, destination, businessName, code string) error {
 	switch channel {
 	case "email":
-		return postResendEmail(ctx, s.httpClient, s.email, destination, customerAccessEmailSubject, emailContent{
-			Preheader:  "Tu código para cambiar la hora de tu turno.",
-			Title:      "Cambia la hora de tu turno",
-			Paragraphs: []string{"Escribe este código en la pantalla para entrar a tu turno. Vence en 10 minutos y sirve una sola vez."},
-			Code:       code,
-			Footnotes:  []string{"Si no lo pediste, ignora este mensaje: nadie puede entrar a tu turno sin el código."},
-		})
+		return postResendEmail(ctx, s.httpClient, s.email, destination, customerAccessEmailSubject, customerAccessEmail(businessName, code))
 	case "whatsapp":
 		if s.whatsapp == nil {
 			return fmt.Errorf("%w: WhatsApp no está configurado", errDeliveryFailed)
@@ -76,7 +72,27 @@ func NewLoggingCustomerAccessCodeSender(logger *slog.Logger) LoggingCustomerAcce
 }
 
 // SendCode registra el envío simulado.
-func (s LoggingCustomerAccessCodeSender) SendCode(ctx context.Context, channel, _, _ string) error {
+func (s LoggingCustomerAccessCodeSender) SendCode(ctx context.Context, channel, _, _, _ string) error {
 	s.logger.InfoContext(ctx, "customeraccess: envío de código simulado (proveedor no configurado)", slog.String("channel", channel))
 	return nil
+}
+
+// customerAccessEmail es el correo del código de mi turno: el mismo título que la
+// pantalla donde se escribe («Escribe tu código», #753) y el negocio que lo envía.
+func customerAccessEmail(businessName, code string) emailContent {
+	lead := "Escríbelo en la pantalla para entrar a tu turno. Vence en 10 minutos y sirve una sola vez."
+	preheader := "Tu código para entrar a tu turno."
+	if businessName != "" {
+		lead = "Escríbelo en la pantalla para entrar a tu turno en " + businessName + ". Vence en 10 minutos y sirve una sola vez."
+		preheader = "Tu código para entrar a tu turno en " + businessName + "."
+	}
+	return emailContent{
+		Preheader:  preheader,
+		Brand:      businessName,
+		Kicker:     "Tu turno",
+		Title:      "Escribe tu código",
+		Paragraphs: []string{lead},
+		Code:       code,
+		Footnotes:  []string{"Si no lo pediste, ignora este mensaje: nadie puede entrar a tu turno sin el código."},
+	}
 }

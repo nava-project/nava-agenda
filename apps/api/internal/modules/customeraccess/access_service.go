@@ -46,6 +46,9 @@ type ChallengeOutcome struct {
 	// Matched indica que hay un cliente con ese contacto y algún turno futuro
 	// confirmado: solo entonces se envía el código. Nunca llega al cliente.
 	Matched bool
+	// BusinessName es el nombre del negocio, para que el correo del código diga
+	// de dónde viene (#753). Solo se usa en el mensaje; nunca en la respuesta.
+	BusinessName string
 }
 
 // VerifyRequest es lo que el repositorio necesita para verificar un código.
@@ -86,10 +89,12 @@ type AccessRepository interface {
 }
 
 // AccessCodeSender entrega el código en claro al contacto ya verificado contra
-// el cliente. channel es «email» o «whatsapp». El error devuelto nunca incluye
-// el destinatario ni el código (RN-DAT-02).
+// el cliente. channel es «email» o «whatsapp»; businessName es el negocio que
+// lo envía, para nombrarlo en el mensaje (#753; el canal que no tenga dónde
+// ponerlo lo ignora). El error devuelto nunca incluye el destinatario ni el
+// código (RN-DAT-02).
 type AccessCodeSender interface {
-	SendCode(ctx context.Context, channel, destination, code string) error
+	SendCode(ctx context.Context, channel, destination, businessName, code string) error
 }
 
 // AccessChallengeAccepted es la respuesta de pedir un código: idéntica exista o
@@ -174,7 +179,7 @@ func (s *AccessService) RequestCode(ctx context.Context, slug, rawContact, rawIP
 	}
 
 	if outcome.Matched {
-		s.dispatch(contact, code)
+		s.dispatch(contact, outcome.BusinessName, code)
 	}
 	return AccessChallengeAccepted{
 		ExpiresInSeconds:   int(AccessCodeTTL / time.Second),
@@ -185,11 +190,11 @@ func (s *AccessService) RequestCode(ctx context.Context, slug, rawContact, rawIP
 // dispatch entrega el código en segundo plano con un contexto propio: la
 // solicitud HTTP ya respondió y su contexto se cancela. Un fallo solo se registra
 // con el canal; la persona puede pedir otro código.
-func (s *AccessService) dispatch(contact Contact, code string) {
+func (s *AccessService) dispatch(contact Contact, businessName, code string) {
 	s.deliver(func() {
 		ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
 		defer cancel()
-		if err := s.sender.SendCode(ctx, string(contact.Channel), contact.Value, code); err != nil && s.logger != nil {
+		if err := s.sender.SendCode(ctx, string(contact.Channel), contact.Value, businessName, code); err != nil && s.logger != nil {
 			s.logger.Error("customeraccess.code.delivery_failed", slog.String("channel", string(contact.Channel)))
 		}
 	})
