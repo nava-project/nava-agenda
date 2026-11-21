@@ -234,13 +234,9 @@ func (s *AvailabilityService) computeAvailableStartsExcluding(
 	durationMinutes int,
 	own *availability.Interval,
 ) (starts []time.Time, timezone string, slotGridMinutes int, err error) {
-	timezone, err = s.timezones.Timezone(ctx, businessID)
+	timezone, loc, err := s.businessLocation(ctx, businessID)
 	if err != nil {
-		return nil, "", 0, apperr.Internal(fmt.Errorf("publicbooking: resolver zona horaria para disponibilidad: %w", err))
-	}
-	loc, err := time.LoadLocation(timezone)
-	if err != nil {
-		return nil, "", 0, apperr.Internal(fmt.Errorf("publicbooking: zona horaria irresoluble para disponibilidad: %w", err))
+		return nil, "", 0, err
 	}
 
 	minAdvanceMinutes, maxAdvanceDays, slotGridMinutes, err := s.policy.BookingPolicy(ctx, businessID, professionalID)
@@ -252,32 +248,77 @@ func (s *AvailabilityService) computeAvailableStartsExcluding(
 	}
 
 	now := s.clock.Now()
-	earliestStart := now.Add(time.Duration(minAdvanceMinutes) * time.Minute)
 	latestStart := now.AddDate(0, 0, maxAdvanceDays)
-
-	fromDate := civilDateOnly(now.In(loc))
-	toDate := civilDateOnly(latestStart.In(loc))
-
-	segments, err := s.resolveSegments(ctx, businessID, professionalID, fromDate, toDate, loc)
+	starts, err = s.startsWithin(ctx, businessID, professionalID, durationMinutes, slotGridMinutes, timezone, startsBounds{
+		fromDate:      civilDateOnly(now.In(loc)),
+		toDate:        civilDateOnly(latestStart.In(loc)),
+		earliestStart: now.Add(time.Duration(minAdvanceMinutes) * time.Minute),
+		latestStart:   latestStart,
+		busyFrom:      now,
+		busyTo:        latestStart,
+	}, loc, own)
 	if err != nil {
 		return nil, "", 0, err
 	}
+	return starts, timezone, slotGridMinutes, nil
+}
 
-	busy, err := s.resolveBusyIntervals(ctx, businessID, professionalID, fromDate, toDate, timezone, now, latestStart)
+// startsBounds fija el alcance de un cálculo de inicios: las fechas civiles
+// cuyas jornadas y bloqueos se consultan (ambas incluidas), los instantes
+// límite de un inicio aceptable (ambos incluidos) y la ventana de citas que
+// ocupan agenda. La reserva pública los deriva de su política (anticipación y
+// ventana, RN-DIS-04); el turno manual, del tramo de fechas pedido (#717).
+type startsBounds struct {
+	fromDate, toDate           time.Time
+	earliestStart, latestStart time.Time
+	busyFrom, busyTo           time.Time
+}
+
+// businessLocation resuelve la zona IANA del negocio y su *time.Location.
+func (s *AvailabilityService) businessLocation(ctx context.Context, businessID string) (string, *time.Location, error) {
+	timezone, err := s.timezones.Timezone(ctx, businessID)
 	if err != nil {
-		return nil, "", 0, err
+		return "", nil, apperr.Internal(fmt.Errorf("publicbooking: resolver zona horaria para disponibilidad: %w", err))
+	}
+	loc, err := time.LoadLocation(timezone)
+	if err != nil {
+		return "", nil, apperr.Internal(fmt.Errorf("publicbooking: zona horaria irresoluble para disponibilidad: %w", err))
+	}
+	return timezone, loc, nil
+}
+
+// startsWithin es el núcleo único del cálculo de inicios: jornada efectiva
+// menos bloqueos y citas que ocupan agenda, en la rejilla del tramo (DEC-135).
+// La reserva pública, la confirmación, la reprogramación del cliente y el turno
+// manual lo usan con distintos límites; ninguna otra copia debe existir.
+func (s *AvailabilityService) startsWithin(
+	ctx context.Context,
+	businessID, professionalID string,
+	durationMinutes, slotGridMinutes int,
+	timezone string,
+	bounds startsBounds,
+	loc *time.Location,
+	own *availability.Interval,
+) ([]time.Time, error) {
+	segments, err := s.resolveSegments(ctx, businessID, professionalID, bounds.fromDate, bounds.toDate, loc)
+	if err != nil {
+		return nil, err
+	}
+
+	busy, err := s.resolveBusyIntervals(ctx, businessID, professionalID, bounds.fromDate, bounds.toDate, timezone, bounds.busyFrom, bounds.busyTo)
+	if err != nil {
+		return nil, err
 	}
 	if own != nil {
 		busy = withoutOwnAppointment(busy, *own)
 	}
 
-	starts = availability.GenerateStarts(segments, busy, availability.Policy{
+	return availability.GenerateStarts(segments, busy, availability.Policy{
 		ServiceDuration: time.Duration(durationMinutes) * time.Minute,
 		GridStep:        time.Duration(slotGridMinutes) * time.Minute,
-		EarliestStart:   earliestStart,
-		LatestStart:     latestStart,
-	})
-	return starts, timezone, slotGridMinutes, nil
+		EarliestStart:   bounds.earliestStart,
+		LatestStart:     bounds.latestStart,
+	}), nil
 }
 
 // civilDateOnly trunca t a medianoche civil en su propia ubicación: la
@@ -395,4 +436,68 @@ func (s *AvailabilityService) OfferedRescheduleStarts(
 		return nil, err
 	}
 	return starts, nil
+}
+
+// ManualStarts implementa booking.ManualSlotsPort (#717): los inicios libres
+// para registrar un turno manual entre las fechas civiles fromDate y toDate
+// (ambas incluidas, "AAAA-MM-DD" en la zona del negocio). Usa el mismo núcleo
+// que la reserva pública (startsWithin) y la rejilla del profesional (DEC-169),
+// pero no la anticipación mínima ni la ventana máxima: la cita manual está
+// exenta de ambas (RN-DIS-04). Nunca ofrece un inicio en el pasado: el primero
+// aceptable es «ahora» truncado al minuto, la precisión con la que la creación
+// manual recibe la hora. booking ya verificó la asignación y el formato de las
+// fechas; aquí solo se calcula.
+func (s *AvailabilityService) ManualStarts(
+	ctx context.Context,
+	businessID, professionalID string,
+	durationMinutes int,
+	fromDate, toDate string,
+) (starts []time.Time, timezone string, slotGridMinutes int, err error) {
+	if durationMinutes <= 0 {
+		return nil, "", 0, apperr.Internal(fmt.Errorf("publicbooking: duración no positiva para el turno manual"))
+	}
+	timezone, loc, err := s.businessLocation(ctx, businessID)
+	if err != nil {
+		return nil, "", 0, err
+	}
+
+	_, _, slotGridMinutes, err = s.policy.BookingPolicy(ctx, businessID, professionalID)
+	if err != nil {
+		return nil, "", 0, apperr.Internal(fmt.Errorf("publicbooking: resolver la rejilla para el turno manual: %w", err))
+	}
+	if slotGridMinutes <= 0 {
+		return nil, "", 0, apperr.Internal(fmt.Errorf("publicbooking: rejilla no positiva para el turno manual"))
+	}
+
+	from, err := time.ParseInLocation(civilDateLayout, fromDate, loc)
+	if err != nil {
+		return nil, "", 0, apperr.Internal(fmt.Errorf("publicbooking: fecha inicial inválida para el turno manual: %w", err))
+	}
+	to, err := time.ParseInLocation(civilDateLayout, toDate, loc)
+	if err != nil {
+		return nil, "", 0, apperr.Internal(fmt.Errorf("publicbooking: fecha final inválida para el turno manual: %w", err))
+	}
+
+	// Medianoche civil del día siguiente a toDate, con time.Date (no +24 h)
+	// para respetar días de 23 o 25 horas (RN-DIS-07). LatestStart es
+	// inclusivo, así que el último inicio aceptable es un instante antes.
+	rangeStart := civilDateOnly(from)
+	rangeEnd := time.Date(to.Year(), to.Month(), to.Day()+1, 0, 0, 0, 0, loc)
+	earliest := rangeStart
+	if now := s.clock.Now().Truncate(time.Minute); now.After(earliest) {
+		earliest = now
+	}
+
+	starts, err = s.startsWithin(ctx, businessID, professionalID, durationMinutes, slotGridMinutes, timezone, startsBounds{
+		fromDate:      rangeStart,
+		toDate:        civilDateOnly(to),
+		earliestStart: earliest,
+		latestStart:   rangeEnd.Add(-time.Nanosecond),
+		busyFrom:      earliest,
+		busyTo:        rangeEnd.Add(time.Duration(durationMinutes) * time.Minute),
+	}, loc, nil)
+	if err != nil {
+		return nil, "", 0, err
+	}
+	return starts, timezone, slotGridMinutes, nil
 }

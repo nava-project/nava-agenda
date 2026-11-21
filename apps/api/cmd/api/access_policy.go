@@ -115,6 +115,8 @@ var privateAccessPolicy = []access.Entry{
 	// Su agenda y sus turnos.
 	{Method: "POST", Pattern: "/appointments", Rule: access.OwnProfessionalInBody},
 	{Method: "GET", Pattern: "/professionals/{professionalId}/appointments/daily-agenda", Rule: access.OwnProfessional},
+	// Inicios libres para su propio turno manual (#717), con la misma regla que crearlo.
+	{Method: "GET", Pattern: "/professionals/{professionalId}/services/{serviceId}/availability", Rule: access.OwnProfessional},
 	{Method: "GET", Pattern: "/appointments/{appointmentId}", Rule: access.OwnAppointment},
 	{Method: "GET", Pattern: "/appointments/{appointmentId}/history", Rule: access.OwnAppointment},
 	{Method: "POST", Pattern: "/appointments/{appointmentId}/reschedule", Rule: access.OwnAppointment},

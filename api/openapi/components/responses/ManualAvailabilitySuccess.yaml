@@ -1,0 +1,31 @@
+# Respuesta 200 de
+# GET /private/professionals/{professionalId}/services/{serviceId}/availability
+# (issue #717): inicios libres para registrar un turno manual.
+description: >
+  Inicios libres del servicio con el profesional en el tramo de fechas pedido,
+  sin las reglas de la reserva pública.
+headers:
+  X-Request-Id:
+    $ref: '../headers/XRequestId.yaml'
+content:
+  application/json:
+    schema:
+      $ref: '../schemas/AvailabilityResponse.yaml'
+    examples:
+      conInicios:
+        summary: Inicios libres en la rejilla del profesional
+        value:
+          slots:
+            - startsAt: "2026-11-23T14:00:00Z"
+            - startsAt: "2026-11-23T14:30:00Z"
+            - startsAt: "2026-11-24T15:00:00Z"
+          durationMinutes: 30
+          timezone: America/Bogota
+          slotGridMinutes: 30
+      sinInicios:
+        summary: El tramo pedido no tiene ningún inicio libre
+        value:
+          slots: []
+          durationMinutes: 30
+          timezone: America/Bogota
+          slotGridMinutes: 30

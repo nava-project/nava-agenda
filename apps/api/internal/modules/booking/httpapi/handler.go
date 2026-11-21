@@ -780,3 +780,56 @@ func (h *CorrectAppointmentStatusHandler) ServeHTTP(w http.ResponseWriter, r *ht
 		httpserver.WriteProblem(w, httpserver.Translate(result.Decision.AsError(), requestID))
 	}
 }
+
+// manualAvailabilityServiceIDParam es el parámetro de ruta del servicio en
+// /private/professionals/{professionalId}/services/{serviceId}/availability.
+const manualAvailabilityServiceIDParam = "serviceId"
+
+// ListManualAvailabilityHandler expone
+// GET /private/professionals/{professionalId}/services/{serviceId}/availability
+// (#717): los inicios libres para registrar un turno manual. Solo lectura, sin
+// idempotencia.
+type ListManualAvailabilityHandler struct {
+	service *booking.ManualAvailabilityService
+}
+
+// NewListManualAvailabilityHandler construye el handler.
+func NewListManualAvailabilityHandler(service *booking.ManualAvailabilityService) *ListManualAvailabilityHandler {
+	return &ListManualAvailabilityHandler{service: service}
+}
+
+// ServeHTTP implementa http.Handler.
+func (h *ListManualAvailabilityHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	requestID := httpserver.RequestIDFromContext(r.Context())
+	principal, ok := principalOrInternalError(w, r, requestID)
+	if !ok {
+		return
+	}
+
+	query := r.URL.Query()
+	result, err := h.service.List(
+		r.Context(),
+		principal.BusinessID,
+		httpserver.URLParam(r, agendaProfessionalIDParam),
+		httpserver.URLParam(r, manualAvailabilityServiceIDParam),
+		query.Get("from"),
+		query.Get("to"),
+	)
+	if err != nil {
+		httpserver.WriteProblem(w, httpserver.Translate(err, requestID))
+		return
+	}
+
+	slots := make([]ManualAvailabilitySlotResponse, 0, len(result.Starts))
+	for _, start := range result.Starts {
+		slots = append(slots, ManualAvailabilitySlotResponse{StartsAt: start.UTC()})
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
+	_ = json.NewEncoder(w).Encode(ManualAvailabilityResponse{
+		Slots:           slots,
+		DurationMinutes: result.DurationMinutes,
+		Timezone:        result.Timezone,
+		SlotGridMinutes: result.SlotGridMinutes,
+	})
+}
