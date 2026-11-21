@@ -242,11 +242,53 @@ describe('AppointmentDetailPage', () => {
     expect(wrapper.text()).toContain('Ana Gómez')
     expect(wrapper.text()).toContain('Corte clásico')
     // El precio como en la reserva (es-CO, sin decimales para COP).
-    expect(wrapper.text()).toMatch(/Corte clásico · 30 min · \$\s20\.000/)
+    expect(wrapper.text()).toMatch(/30 min · \$\s20\.000/)
     expect(wrapper.text()).not.toContain('20000.00')
-    expect(wrapper.text()).toContain('+573001234567')
+    expect(wrapper.get('a[href="tel:+573001234567"]').text()).toMatch(/\+57\s*300/)
     expect(wrapper.text()).toContain('Prefiere silla junto a la ventana')
     expect(fetchAppointmentDetailMock).toHaveBeenCalledWith('a-1')
+  })
+
+  // #757: el turno en la tarjeta de la familia, con sello, origen y puntos guía.
+  it('shows the turn as the family ticket with seal, origin and leader rows', async () => {
+    fetchAppointmentDetailMock.mockResolvedValue({
+      kind: 'success',
+      detail: { ...readyDetail, customerEmail: 'juan.perez@example.test' },
+    })
+    const { wrapper } = await mountPage()
+
+    const ticket = wrapper.get('article.appointment-ticket')
+    expect(ticket.text()).toContain('Agendado en el panel')
+    expect(ticket.text()).toContain('Corte clásico')
+    expect(ticket.find('.appointment-ticket__seal').exists()).toBe(true)
+    expect(ticket.text()).toContain('Hora de Colombia')
+    expect(ticket.find('.appointment-ticket__ruler-wrap').exists()).toBe(true)
+    // Ya no hay ficha genérica con barra lateral ni grilla de etiqueta y valor.
+    expect(wrapper.find('.appointment-detail-page__sheet').exists()).toBe(false)
+    expect(wrapper.find('.appointment-detail-page__facts').exists()).toBe(false)
+    const labels = wrapper.findAll('.appointment-detail-page__leader dt').map((n) => n.text())
+    expect(labels).toEqual(['Persona atendida', 'Cliente que reservó', 'Teléfono', 'Correo'])
+    // Teléfono y correo en filas propias, cada uno con su acción.
+    expect(wrapper.get('a[href="mailto:juan.perez@example.test"]').attributes('aria-label')).toBe(
+      'Escribir a juan.perez@example.test',
+    )
+    expect(wrapper.get('a[href="tel:+573001234567"]').attributes('aria-label')).toBe(
+      'Llamar al +573001234567',
+    )
+  })
+
+  it('stamps the ticket with the terminal state and keeps it for screen readers', async () => {
+    fetchAppointmentDetailMock.mockResolvedValue({
+      kind: 'success',
+      detail: { ...readyDetail, status: 'cancelled_by_professional', origin: 'public' },
+    })
+    const { wrapper } = await mountPage()
+
+    expect(wrapper.get('article.appointment-ticket').classes()).toContain(
+      'appointment-ticket--cancelled',
+    )
+    expect(wrapper.text()).toContain('Reserva en línea')
+    expect(wrapper.get('.appointment-detail-page__status').attributes('role')).toBe('status')
   })
 
   it('shows the customer address with a map link for a home-service turn (DEC-131, HU-103)', async () => {
@@ -346,7 +388,9 @@ describe('AppointmentDetailPage', () => {
 
     expect(wrapper.text()).toContain('Estado corregido')
     expect(wrapper.text()).toContain('corrección administrativa de estado')
-    expect(wrapper.text()).toContain('Estado: confirmed → cancelled_by_professional')
+    // Los valores en español, nunca el estado técnico de la API (#757).
+    expect(wrapper.text()).toMatch(/Estado:\s*Confirmado\s*→\s*Cancelado por el /)
+    expect(wrapper.text()).not.toContain('cancelled_by_professional')
   })
 
   it('shows a "Cargar más" button when the history has a next page, and loads it', async () => {

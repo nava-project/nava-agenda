@@ -15,13 +15,24 @@ import { timezoneLabel } from '@/shared/time/timezoneName'
 import { computed, onMounted, ref } from 'vue'
 import { useRoute, type LocationQueryRaw } from 'vue-router'
 import { useToast, useVocabulary } from '@/shared/composables'
-import { BaseAlert, BaseBadge, BaseButton, BaseDialog, BaseInput, DiamondLoader } from '@/shared/ui'
+import {
+  AppointmentTicket,
+  BaseAlert,
+  BaseBadge,
+  BaseButton,
+  BaseDialog,
+  BaseInput,
+  DiamondLoader,
+  PhoneDisplay,
+  type AppointmentTicketState,
+} from '@/shared/ui'
+import { ticketMoment } from '@/shared/time/ticketMoment'
 import {
   formatFullDateInTimezone,
   formatInstantInTimezone,
   formatTimeInTimezone,
 } from '@/shared/time/formatInstant'
-import { getCivilDateInTimezone } from '@/shared/time/civilDate'
+import { getCivilDateInTimezone, minutesSinceCivilMidnight } from '@/shared/time/civilDate'
 import {
   cancelAppointmentByProfessional,
   completeAppointment,
@@ -35,7 +46,11 @@ import {
 import { mapsLinkUrl } from '@/shared/model/mapEmbed'
 import { newIdempotencyKey } from '../model/idempotencyKey'
 import type { AppointmentDetail, HistoryEntry } from '../model/appointmentDetail'
-import { historyEventLabel, historyFieldLabel } from '../model/appointmentDetail'
+import {
+  historyChangeValue,
+  historyEventLabel,
+  historyFieldLabel,
+} from '../model/appointmentDetail'
 import { formatMoney } from '@/shared/model/money'
 import {
   APPOINTMENT_STATUS_BADGE_VARIANT,
@@ -132,8 +147,6 @@ const statusTone = computed(() => {
   if (timePhase.value === 'to-record') return 'to-record'
   return STATUS_TONE[detail.value.status]
 })
-// Un turno terminal cambia de material (contorno sobre tinta), no de peso (§6.7).
-const isTerminal = computed(() => !!detail.value && isTerminalStatus(detail.value.status))
 const attendeeInitials = computed(() => {
   if (!detail.value) return ''
   return detail.value.attendeeName
@@ -157,7 +170,8 @@ const FACT_ICONS: Record<string, string> = {
   note: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M5 4h14v12H9l-4 4V4Z"></path></svg>`,
   calendar: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="5" width="16" height="15" rx="2"></rect><path d="M8 3v4M16 3v4M4 10h16"></path></svg>`,
   check: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5 9.5 17 19 7"></path></svg>`,
-  absent: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"></circle><path d="M9 9l6 6M15 9l-6 6"></path></svg>`,
+  // «No asistió»: el rombo de la familia, hueco y cruzado (#757), no el ⊗ genérico.
+  absent: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3.5 20.5 12 12 20.5 3.5 12Z"></path><path d="M9.5 9.5l5 5"></path></svg>`,
 }
 
 function factIcon(name: keyof typeof FACT_ICONS): string {
@@ -198,6 +212,57 @@ const timeRangeLabel = computed(() => {
     timeStyle: 'short',
   }).format(new Date(detail.value.endsAt))
   return `${start} – ${end}`
+})
+
+// La tarjeta de turno (DEC-189, #757): la misma que el cliente se lleva, ahora en
+// el panel. El sello dice el estado como lo lee la agenda («En curso», «Por
+// registrar»); el rótulo de latón, de dónde salió el turno.
+const TICKET_STATE: Record<AppointmentStatus, AppointmentTicketState> = {
+  confirmed: 'confirmed',
+  completed: 'completed',
+  no_show: 'no-show',
+  cancelled_by_customer: 'cancelled',
+  cancelled_by_professional: 'cancelled',
+}
+const ORIGIN_LABEL: Record<AppointmentDetail['origin'], string> = {
+  public: 'Reserva en línea',
+  manual: 'Agendado en el panel',
+}
+const ticket = computed(() => {
+  if (!detail.value || !businessTimezone.value) return null
+  const d = detail.value
+  const zone = businessTimezone.value
+  const m = ticketMoment(d.startsAt, d.endsAt, zone)
+  // El Sol sobre la regla mientras ocurre: el mismo instante con el que se leyó la fase.
+  const now =
+    timePhase.value === 'in-progress'
+      ? minutesSinceCivilMidnight(
+          new Date().toISOString(),
+          getCivilDateInTimezone(zone, new Date(d.startsAt)),
+          zone,
+        )
+      : null
+  return {
+    state: TICKET_STATE[d.status],
+    stateLabel: statusLabel.value,
+    businessName: ORIGIN_LABEL[d.origin],
+    serviceName: d.serviceName,
+    meta: `${d.durationMinutes} min · ${formatMoney(d.priceAmount, d.currency)}`,
+    weekday: m.weekday,
+    month: m.month,
+    day: m.day,
+    time: m.time,
+    timeNote: `hasta ${m.endTime} · ${timezoneLabel(zone)}`,
+    professionalName: d.professionalFullName,
+    professionalLabel: v.value.Professional,
+    ruler: {
+      from: m.from,
+      to: m.to,
+      at: m.at,
+      now,
+      label: `El turno en el día: ${m.weekday.toLocaleLowerCase('es-CO')} ${m.day}, de ${m.time} a ${m.endTime}.`,
+    },
+  }
 })
 
 // Reprogramar turno (HU-065, T2) y cancelar turno (HU-066, T6): ambas
@@ -755,14 +820,27 @@ function occurredAtLabel(entry: HistoryEntry): string {
         <span
           class="appointment-detail-page__skeleton-bar appointment-detail-page__skeleton-bar--title"
         />
+        <!-- La forma de la tarjeta de turno (#757): cabecera, troquel, hoja de
+             calendario con la hora y filas de puntos guía. -->
         <div class="appointment-detail-page__skeleton-card">
           <span
-            class="appointment-detail-page__skeleton-bar appointment-detail-page__skeleton-bar--time"
+            class="appointment-detail-page__skeleton-bar appointment-detail-page__skeleton-bar--kicker"
           />
+          <span
+            class="appointment-detail-page__skeleton-bar appointment-detail-page__skeleton-bar--service"
+          />
+          <span class="appointment-detail-page__skeleton-perforation" />
+          <span class="appointment-detail-page__skeleton-when">
+            <span class="appointment-detail-page__skeleton-leaf" />
+            <span
+              class="appointment-detail-page__skeleton-bar appointment-detail-page__skeleton-bar--time"
+            />
+          </span>
           <span v-for="n in 4" :key="n" class="appointment-detail-page__skeleton-row">
             <span
               class="appointment-detail-page__skeleton-bar appointment-detail-page__skeleton-bar--label"
             />
+            <span class="appointment-detail-page__skeleton-dots" />
             <span
               class="appointment-detail-page__skeleton-bar appointment-detail-page__skeleton-bar--value"
             />
@@ -885,96 +963,61 @@ function occurredAtLabel(entry: HistoryEntry): string {
       </header>
 
       <div class="appointment-detail-page__body">
-        <div
-          class="appointment-detail-page__sheet"
-          :class="{ 'appointment-detail-page__sheet--terminal': isTerminal }"
+        <AppointmentTicket
+          v-if="ticket"
+          class="appointment-detail-page__ticket"
+          v-bind="ticket"
+          label="Turno"
         >
-          <div v-if="timeSpan" class="appointment-detail-page__span" aria-hidden="true">
-            <p class="appointment-detail-page__span-date">
-              {{ timeSpan.date
-              }}<template v-if="businessTimezone">
-                · {{ timezoneLabel(businessTimezone) }}</template
-              >
-            </p>
-            <div class="appointment-detail-page__span-row">
-              <span class="appointment-detail-page__span-time">{{ timeSpan.start }}</span>
-              <span class="appointment-detail-page__span-track">
-                <i
-                  class="appointment-detail-page__span-line appointment-detail-page__span-line--start"
-                ></i>
-                <span class="appointment-detail-page__span-length"
-                  >{{ detail.durationMinutes }} min</span
-                >
-                <i
-                  class="appointment-detail-page__span-line appointment-detail-page__span-line--end"
-                ></i>
-              </span>
-              <span class="appointment-detail-page__span-time">{{ timeSpan.end }}</span>
-            </div>
-          </div>
-
-          <dl class="appointment-detail-page__facts">
-            <div class="appointment-detail-page__fact appointment-detail-page__fact--time">
-              <dt>Hora</dt>
-              <dd>
-                {{ timeRangeLabel }}
-                <span v-if="businessTimezone">· {{ timezoneLabel(businessTimezone) }}</span>
-              </dd>
-            </div>
-            <div class="appointment-detail-page__fact">
+          <dl class="appointment-detail-page__leaders">
+            <div class="appointment-detail-page__leader">
               <dt>Persona atendida</dt>
               <dd>{{ detail.attendeeName }}</dd>
             </div>
-            <div class="appointment-detail-page__fact appointment-detail-page__fact--service">
-              <dt>Servicio</dt>
-              <dd>
-                {{ detail.serviceName }} · {{ detail.durationMinutes }} min ·
-                {{ formatMoney(detail.priceAmount, detail.currency) }}
-              </dd>
-            </div>
-            <div class="appointment-detail-page__fact appointment-detail-page__fact--professional">
-              <dt>{{ v.Professional }}</dt>
-              <dd>{{ detail.professionalFullName }}</dd>
-            </div>
-            <div class="appointment-detail-page__fact">
+            <div class="appointment-detail-page__leader">
               <dt>Cliente que reservó</dt>
               <dd>{{ detail.customerFullName }}</dd>
             </div>
-            <div
-              v-if="detail.customerPhone || detail.customerEmail"
-              class="appointment-detail-page__fact"
-            >
-              <dt>Contacto</dt>
+            <div v-if="detail.customerPhone" class="appointment-detail-page__leader">
+              <dt>Teléfono</dt>
               <dd>
-                <span v-if="detail.customerPhone">{{ detail.customerPhone }}</span>
-                <span v-if="detail.customerPhone && detail.customerEmail"> · </span>
-                <span v-if="detail.customerEmail">{{ detail.customerEmail }}</span>
+                <a
+                  class="appointment-detail-page__contact"
+                  :href="`tel:${detail.customerPhone}`"
+                  :aria-label="`Llamar al ${detail.customerPhone}`"
+                  ><PhoneDisplay :value="detail.customerPhone"
+                /></a>
               </dd>
             </div>
-            <div
-              v-if="detail.homeService"
-              class="appointment-detail-page__fact appointment-detail-page__fact--wide"
-            >
-              <dt>A domicilio</dt>
+            <div v-if="detail.customerEmail" class="appointment-detail-page__leader">
+              <dt>Correo</dt>
               <dd>
-                <span>{{ detail.homeService.address }}</span>
-                <template v-if="homeServiceMapsUrl">
-                  {{ ' ' }}·
-                  <a :href="homeServiceMapsUrl" target="_blank" rel="noopener noreferrer"
-                    >Abrir en Google Maps (nueva pestaña)</a
-                  >
-                </template>
+                <a
+                  class="appointment-detail-page__contact"
+                  :href="`mailto:${detail.customerEmail}`"
+                  :aria-label="`Escribir a ${detail.customerEmail}`"
+                  >{{ detail.customerEmail }}</a
+                >
               </dd>
-            </div>
-            <div
-              v-if="detail.customerNote"
-              class="appointment-detail-page__fact appointment-detail-page__fact--wide"
-            >
-              <dt>Nota del cliente</dt>
-              <dd>{{ detail.customerNote }}</dd>
             </div>
           </dl>
-        </div>
+          <div v-if="detail.homeService" class="appointment-detail-page__block">
+            <p class="appointment-detail-page__block-label">A domicilio</p>
+            <p class="appointment-detail-page__block-value">{{ detail.homeService.address }}</p>
+            <a
+              v-if="homeServiceMapsUrl"
+              class="appointment-detail-page__contact"
+              :href="homeServiceMapsUrl"
+              target="_blank"
+              rel="noopener noreferrer"
+              >Abrir en Google Maps (nueva pestaña)</a
+            >
+          </div>
+          <div v-if="detail.customerNote" class="appointment-detail-page__block">
+            <p class="appointment-detail-page__block-label">Nota del cliente</p>
+            <p class="appointment-detail-page__block-value">{{ detail.customerNote }}</p>
+          </div>
+        </AppointmentTicket>
 
         <section
           class="appointment-detail-page__history"
@@ -1040,8 +1083,16 @@ function occurredAtLabel(entry: HistoryEntry): string {
                 >
                   <li v-for="change in entry.changes" :key="change.fieldName">
                     {{ historyFieldLabel(change.fieldName, v) }}:
-                    {{ change.previousValue ?? '—' }} →
-                    {{ change.newValue ?? '—' }}
+                    {{
+                      historyChangeValue(
+                        change.fieldName,
+                        change.previousValue,
+                        v,
+                        businessTimezone,
+                      )
+                    }}
+                    →
+                    {{ historyChangeValue(change.fieldName, change.newValue, v, businessTimezone) }}
                   </li>
                 </ul>
               </li>
@@ -1601,13 +1652,11 @@ function occurredAtLabel(entry: HistoryEntry): string {
 </template>
 
 <style scoped>
-/* Detalle de turno sobre la tinta del cascarón (DEC-146, issue #471): sustituye el
-   lienzo marfil de la lámina #191 por el lenguaje del panel — cabecera editorial,
-   ficha de pergamino con cinta métrica de latón y línea de tiempo con marcas de
-   latón. Un turno terminal cambia de material (contorno sobre tinta), no de peso
-   (§6.7). Los colores de estado son los de la agenda diaria. */
+/* Detalle de turno sobre la tinta del cascarón (DEC-146, issue #471): cabecera
+   editorial con el monograma de la familia, la tarjeta de turno compartida
+   (DEC-189, #757) con sus filas de puntos guía y la línea de tiempo con marcas de
+   latón. El estado vive en el sello de la tarjeta. */
 .appointment-detail-page {
-  --tone: var(--color-appt-confirmed);
   --rule: color-mix(in srgb, var(--color-on-strong) 16%, transparent);
 
   display: flex;
@@ -1618,18 +1667,6 @@ function occurredAtLabel(entry: HistoryEntry): string {
   padding: 20px 16px 24px;
   /* Transparente: la tinta y el fondo animado los pone el cascarón. */
   background: transparent;
-}
-
-.appointment-detail-page--completed {
-  --tone: var(--color-appt-completed);
-}
-
-.appointment-detail-page--no-show {
-  --tone: var(--color-appt-no-show);
-}
-
-.appointment-detail-page--cancelled {
-  --tone: var(--color-appt-cancelled);
 }
 
 @media (min-width: 1024px) {
@@ -1653,9 +1690,10 @@ function occurredAtLabel(entry: HistoryEntry): string {
   }
 }
 
+/* La tarjeta conserva su proporción (hasta 640 px) y el historial toma el resto. */
 .appointment-detail-page__body {
   display: grid;
-  grid-template-columns: minmax(0, 1.7fr) minmax(280px, 0.8fr);
+  grid-template-columns: minmax(0, 640px) minmax(280px, 1fr);
   gap: var(--space-12);
   align-items: start;
 }
@@ -1713,17 +1751,50 @@ function occurredAtLabel(entry: HistoryEntry): string {
 .appointment-detail-page__skeleton-card {
   display: flex;
   flex-direction: column;
-  gap: var(--space-4);
+  gap: var(--space-3);
+  width: 100%;
+  max-width: 620px;
   margin-block: var(--space-2) var(--space-5);
-  padding: var(--space-5);
-  border: 1px dashed color-mix(in srgb, var(--color-on-strong) 18%, transparent);
-  border-radius: var(--radius-lg);
+  padding: 18px 22px;
+  border: 1px solid color-mix(in srgb, var(--color-brass-line) 55%, transparent);
+  border-radius: 4px;
+}
+
+.appointment-detail-page__skeleton-perforation {
+  display: block;
+  margin-inline: -22px;
+  border-top: 1px dashed color-mix(in srgb, var(--color-brass-line) 55%, transparent);
+}
+
+.appointment-detail-page__skeleton-when {
+  display: flex;
+  gap: var(--space-4);
+  align-items: center;
+}
+
+.appointment-detail-page__skeleton-leaf {
+  flex: none;
+  width: 64px;
+  height: 64px;
+  border: 1px solid color-mix(in srgb, var(--color-brass-line) 55%, transparent);
+  border-radius: 3px;
 }
 
 .appointment-detail-page__skeleton-row {
   display: flex;
-  flex-direction: column;
   gap: var(--space-2);
+  align-items: center;
+}
+
+.appointment-detail-page__skeleton-dots {
+  flex: 1;
+  height: 2px;
+  background-image: radial-gradient(
+    circle,
+    color-mix(in srgb, var(--color-brass-line) 45%, transparent) 1px,
+    transparent 1.3px
+  );
+  background-size: 6px 2px;
 }
 
 .appointment-detail-page__skeleton-bar {
@@ -1743,18 +1814,25 @@ function occurredAtLabel(entry: HistoryEntry): string {
   height: 28px;
 }
 
+.appointment-detail-page__skeleton-bar--service {
+  width: 48%;
+  height: 24px;
+}
+
 .appointment-detail-page__skeleton-bar--time {
-  width: 72%;
-  height: 26px;
+  width: 42%;
+  height: 34px;
 }
 
 .appointment-detail-page__skeleton-bar--label {
-  width: 28%;
+  flex: none;
+  width: 24%;
   height: 12px;
 }
 
 .appointment-detail-page__skeleton-bar--value {
-  width: 58%;
+  flex: none;
+  width: 30%;
 }
 
 .appointment-detail-page__skeleton-bar--section {
@@ -1812,20 +1890,37 @@ function occurredAtLabel(entry: HistoryEntry): string {
   border-bottom: 1px solid var(--rule);
 }
 
-/* Retrato cuadrado con filete de latón y monograma (§6.7). */
+/* Monograma de la familia (#757): una tarjeta cuadrada con filete de latón, las
+   iniciales en serif y el rombo de latón asomando bajo el borde, como un sello. */
 .appointment-detail-page__avatar {
+  position: relative;
   display: grid;
-  flex: 0 0 72px;
+  flex: 0 0 68px;
   place-items: center;
-  width: 72px;
-  height: 72px;
-  font-family: var(--font-sans);
-  font-size: var(--font-size-title-item);
+  width: 68px;
+  height: 68px;
+  font-family: var(--font-display);
+  font-size: 30px;
+  font-weight: 400;
+  line-height: 1;
+  letter-spacing: 0.02em;
   color: var(--color-text-primary);
-  background-color: var(--color-surface-muted);
-  border: 0;
-  border-radius: 50%;
-  font-weight: 600;
+  background-color: var(--color-surface);
+  border: 1px solid var(--color-brass-line);
+  border-radius: 4px;
+  box-shadow: inset 0 -2px 0 var(--color-brass-body);
+}
+
+.appointment-detail-page__avatar::after {
+  position: absolute;
+  bottom: -5px;
+  left: 50%;
+  width: 9px;
+  height: 9px;
+  content: '';
+  background-color: var(--color-brass-body);
+  border: 2px solid var(--color-canvas);
+  transform: translateX(-50%) rotate(45deg);
 }
 
 .appointment-detail-page__identity {
@@ -1847,73 +1942,18 @@ function occurredAtLabel(entry: HistoryEntry): string {
   color: var(--color-on-strong);
 }
 
+/* El estado se ve en el sello de la tarjeta (#757); aquí queda para el lector
+   de pantalla, que lo anuncia junto al nombre. */
 .appointment-detail-page__status {
-  display: inline-flex;
-  align-items: center;
-  margin: 0;
-}
-
-/* La palabra de estado lleva el color del estado, además del texto. */
-.appointment-detail-page__status :deep(.base-badge) {
-  gap: var(--space-2);
-  height: auto;
+  position: absolute;
+  width: 1px;
+  height: 1px;
   padding: 0;
-  font-family: var(--font-sans);
-  font-size: 15px;
-  font-weight: 600;
-  line-height: 20px;
-  letter-spacing: 0;
-  color: var(--tone);
-  text-transform: none;
-  background-color: transparent;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
   border: 0;
-}
-
-/* El icono del estado, como en la agenda del día: el color nunca va solo. */
-.appointment-detail-page__status :deep(.base-badge)::before {
-  flex: none;
-  width: 14px;
-  height: 14px;
-  content: '';
-  background-color: currentColor;
-  mask: var(--tone-icon) center / contain no-repeat;
-}
-
-/* Marcas de estado compartidas (styles/statusMarks.css): el rombo en cada forma. */
-.appointment-detail-page {
-  --tone-icon: var(--mark-confirmed);
-}
-
-.appointment-detail-page--completed {
-  --tone-icon: var(--mark-completed);
-}
-
-.appointment-detail-page--no-show {
-  --tone-icon: var(--mark-no-show);
-}
-
-.appointment-detail-page--current {
-  --tone: var(--color-appt-in-progress);
-  --tone-icon: var(--mark-in-progress);
-}
-
-.appointment-detail-page--to-record {
-  --tone: var(--color-appt-pending);
-  --tone-icon: var(--mark-to-record);
-}
-
-.appointment-detail-page--cancelled {
-  --tone-icon: var(--mark-cancelled);
-}
-
-/* En curso: la palabra en tinta (el Sol no da contraste como texto) y el disco
-   en Sol, como en la agenda. */
-.appointment-detail-page--current .appointment-detail-page__status :deep(.base-badge) {
-  color: var(--color-text-primary);
-}
-
-.appointment-detail-page--current .appointment-detail-page__status :deep(.base-badge)::before {
-  background-color: var(--color-sun);
 }
 
 /* Cancelado: el nombre tachado, como en la agenda del día. */
@@ -1998,206 +2038,132 @@ function occurredAtLabel(entry: HistoryEntry): string {
   height: 100%;
 }
 
-/* ── Ficha del turno ────────────────────────────────────────────────────── */
+/* ── Tarjeta del turno (#757) ──────────────────────────────────────────── */
 
-/* Superficies sobre tinta: la ficha usa los tokens que el modo Marfil ya redefine
-   (`--color-on-strong*`, acento de marca), así que en Tinta es oscura, en Marfil
-   clara y en Automático sigue al sistema, sin hoja de estilos paralela (§6.9).
-   Un turno vigente lleva un velo tenue del color del texto; uno terminal cambia de
-   material a contorno puro con el color del estado (§6.7). */
-.appointment-detail-page__sheet {
-  --sx-text: var(--color-text-primary);
-  --sx-muted: var(--color-text-secondary);
-  --sx-label: var(--color-text-secondary);
-  --sx-line: var(--color-border-subtle);
+/* La tarjeta de turno compartida (DEC-189) sobre el lienzo del panel. Las muescas
+   del troquel se calan con el color de lo que hay detrás. */
+.appointment-detail-page__ticket {
+  --ticket-backdrop: var(--color-canvas);
 
-  position: relative;
-  min-width: 0;
-  background-color: var(--color-surface);
-  border: 1px solid var(--color-border-subtle);
-  border-left: 4px solid var(--tone);
-  border-radius: 10px;
-  overflow: hidden;
+  width: 100%;
+  max-width: 640px;
 }
 
-.appointment-detail-page__sheet--terminal {
-  background-color: transparent;
-  border-color: var(--color-border-subtle);
-  border-left-color: var(--tone);
-  border-style: dashed;
-}
-
-/* Cinta métrica de latón en el borde superior: marcas cada 10 px y una más larga
-   cada 50, como la de la hoja de datos de la reserva pública. */
-.appointment-detail-page__sheet::before {
-  content: none;
-  position: absolute;
-  inset: 0 0 auto;
-  height: 11px;
-  pointer-events: none;
-  background:
-    linear-gradient(var(--sx-label), var(--sx-label)) top / 100% 1px no-repeat,
-    repeating-linear-gradient(90deg, var(--sx-label) 0 1px, transparent 1px 10px) top / 100% 5px
-      no-repeat,
-    repeating-linear-gradient(90deg, var(--sx-label) 0 1px, transparent 1px 50px) top / 100% 10px
-      no-repeat;
-  transform-origin: left;
-  animation: none;
-}
-
-/* Franja de tiempo: inicio, regla con la duración y fin. Decorativa. */
-.appointment-detail-page__span {
-  padding: var(--space-8) var(--space-6) var(--space-4);
-  border-bottom: 1px solid var(--sx-line);
-}
-
-.appointment-detail-page__span-date {
-  margin: 0 0 var(--space-3);
-  font-family: var(--font-sans);
-  font-size: 14px;
-  font-weight: 500;
-  letter-spacing: 0;
-  text-transform: none;
-  color: var(--color-text-secondary);
-  line-height: 20px;
-}
-
-.appointment-detail-page__span-row {
-  display: flex;
-  gap: var(--space-4);
-  align-items: center;
-}
-
-@media (min-width: 1024px) {
-  .appointment-detail-page__title {
-    font-size: 48px;
-  }
-}
-
-.appointment-detail-page__span-time {
-  flex: none;
-  font-family: var(--font-sans);
-  font-size: var(--font-size-title-page);
-  line-height: 1;
-  white-space: nowrap;
-  font-variant-numeric: tabular-nums;
-  color: var(--sx-text);
-  font-weight: 600;
-}
-
-.appointment-detail-page__span-track {
-  display: flex;
-  flex: 1;
-  gap: var(--space-3);
-  align-items: center;
-  min-width: 0;
-}
-
-.appointment-detail-page__span-line {
-  position: relative;
-  flex: 1;
-  height: 1px;
-  min-width: 12px;
-  background-color: var(--sx-label);
-}
-
-.appointment-detail-page__span-line::before {
-  content: '';
-  position: absolute;
-  top: 50%;
-  width: 7px;
-  height: 7px;
-  background-color: var(--sx-label);
-  transform: translateY(-50%) rotate(45deg);
-}
-
-.appointment-detail-page__span-line--start::before {
-  left: 0;
-}
-
-.appointment-detail-page__span-line--end::before {
-  right: 0;
-}
-
-.appointment-detail-page__span-length {
-  flex: none;
-  font-family: var(--font-sans);
-  font-size: 13px;
-  font-weight: 500;
-  letter-spacing: 0;
-  text-transform: none;
-  color: var(--color-text-secondary);
-  line-height: 16px;
-}
-
-/* Hechos en cuadrícula, con el rótulo sobre el valor: tres columnas en escritorio,
-   dos en tablet y una en móvil. «Hora» ya la dice la franja de arriba; su fila queda
-   solo para el lector de pantalla. */
-.appointment-detail-page__facts {
+/* Los datos de la persona y del contacto, con puntos guía como la carta y los
+   correos (#747, #755): etiqueta, puntos de latón y valor. */
+.appointment-detail-page__leaders {
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 0 var(--space-6);
-  padding: var(--space-2) var(--space-6) var(--space-4);
+  padding: var(--space-3) 22px var(--space-2);
   margin: 0;
+  border-top: 1px dashed var(--color-brass-line);
 }
 
-.appointment-detail-page__fact {
+.appointment-detail-page__leader {
   display: flex;
-  flex-direction: column;
-  gap: var(--space-1);
-  order: 3;
-  min-width: 0;
-  padding: var(--space-3) 0;
-  border-bottom: 1px solid var(--sx-line);
+  gap: 8px;
+  align-items: baseline;
+  padding: 6px 0;
 }
 
-.appointment-detail-page__fact--service {
-  grid-column: span 2;
-  order: 1;
-}
-
-.appointment-detail-page__fact--professional {
-  order: 2;
-}
-
-.appointment-detail-page__fact--wide {
-  grid-column: 1 / -1;
-  order: 4;
-}
-
-.appointment-detail-page__fact--time {
-  position: absolute;
-  width: 1px;
-  height: 1px;
-  padding: 0;
-  overflow: hidden;
-  white-space: nowrap;
-  clip-path: inset(50%);
-  border: 0;
-}
-
-.appointment-detail-page__fact dt {
-  font-family: var(--font-sans);
-  font-size: 13px;
-  font-weight: 500;
-  letter-spacing: 0;
-  text-transform: none;
+.appointment-detail-page__leader dt {
+  flex: none;
+  max-width: 55%;
+  font-size: 14px;
+  line-height: 20px;
   color: var(--color-text-secondary);
-  line-height: 16px;
 }
 
-.appointment-detail-page__fact dd {
+.appointment-detail-page__leader::after {
+  order: 1;
+  flex: 1 1 24px;
+  min-width: 24px;
+  height: 2px;
+  content: '';
+  background-image: radial-gradient(
+    circle,
+    color-mix(in srgb, var(--color-brass-line) 80%, transparent) 1px,
+    transparent 1.3px
+  );
+  background-repeat: repeat-x;
+  background-size: 6px 2px;
+  transform: translateY(-3px);
+}
+
+.appointment-detail-page__leader dd {
+  order: 2;
+  min-width: 0;
   margin: 0;
-  font-family: var(--font-family-base);
-  font-size: var(--font-size-body);
-  line-height: var(--font-size-body-line);
   overflow-wrap: anywhere;
-  color: var(--sx-text);
+  text-align: right;
+  font-size: 15px;
+  line-height: 20px;
+  font-weight: 500;
+  color: var(--color-text-primary);
 }
 
-.appointment-detail-page__fact dd a {
+/* Lo largo (dirección, nota) va debajo de su etiqueta, sin puntos guía. */
+.appointment-detail-page__block {
+  display: grid;
+  gap: 2px;
+  padding: var(--space-2) 22px var(--space-3);
+}
+
+.appointment-detail-page__block p {
+  margin: 0;
+}
+
+.appointment-detail-page__block-label {
+  font-size: 14px;
+  line-height: 20px;
+  color: var(--color-text-secondary);
+}
+
+.appointment-detail-page__block-value {
+  font-size: 15px;
+  line-height: 22px;
+  overflow-wrap: anywhere;
+  color: var(--color-text-primary);
+}
+
+/* Llamar, escribir y abrir el mapa: el subrayado de latón del enlace de la familia. */
+.appointment-detail-page__contact {
   color: inherit;
-  text-underline-offset: 3px;
+  text-decoration: underline;
+  text-decoration-color: var(--color-brass-line);
+  text-decoration-thickness: 1px;
+  text-underline-offset: 4px;
+  border-radius: 2px;
+}
+
+/* El teléfono va partido en bandera, prefijo y número (PhoneDisplay, inline-flex):
+   la decoración del enlace no atraviesa una caja atómica, así que la línea de
+   latón la dibuja el propio número. */
+.appointment-detail-page__contact :deep(.phone-display__number) {
+  text-decoration: underline;
+  text-decoration-color: var(--color-brass-line);
+  text-decoration-thickness: 1px;
+  text-underline-offset: 4px;
+}
+
+.appointment-detail-page__contact:hover :deep(.phone-display__number) {
+  text-decoration-color: var(--color-brass-body);
+  text-decoration-thickness: 2px;
+}
+
+.appointment-detail-page__contact:hover {
+  text-decoration-color: var(--color-brass-body);
+  text-decoration-thickness: 2px;
+}
+
+.appointment-detail-page__contact:focus-visible {
+  outline: 2px solid var(--color-focus-ring);
+  outline-offset: 3px;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  :root:not([data-motion='reduced']) .appointment-detail-page__contact {
+    transition: text-decoration-color 160ms ease;
+  }
 }
 
 /* ── Historial: línea de tiempo ─────────────────────────────────────────── */
@@ -2213,9 +2179,9 @@ function occurredAtLabel(entry: HistoryEntry): string {
 
 .appointment-detail-page__history-title {
   margin: 0;
-  font-family: var(--font-sans);
+  font-family: var(--font-display);
   font-size: var(--font-size-title-section);
-  font-weight: 600;
+  font-weight: 400;
   line-height: 1.1;
   color: var(--color-on-strong);
 }
@@ -2765,6 +2731,7 @@ function occurredAtLabel(entry: HistoryEntry): string {
     flex-basis: 56px;
     width: 56px;
     height: 56px;
+    font-size: 25px;
   }
 
   /* La serif necesita ~20 % más que la sans de antes para leerse igual (#726). */
@@ -2796,27 +2763,6 @@ function occurredAtLabel(entry: HistoryEntry): string {
   .appointment-detail-page__body {
     grid-template-columns: 1fr;
     gap: var(--space-6);
-  }
-
-  .appointment-detail-page__span {
-    padding: var(--space-8) var(--space-4) var(--space-4);
-  }
-
-  .appointment-detail-page__span-time {
-    font-size: var(--font-size-title-item);
-  }
-
-  .appointment-detail-page__span-row {
-    gap: var(--space-3);
-  }
-
-  .appointment-detail-page__facts {
-    grid-template-columns: 1fr;
-    padding: var(--space-1) var(--space-4) var(--space-3);
-  }
-
-  .appointment-detail-page__fact--service {
-    grid-column: auto;
   }
 
   .appointment-detail-page__history {
@@ -2884,23 +2830,17 @@ function occurredAtLabel(entry: HistoryEntry): string {
     gap: var(--space-8);
   }
 
-  .appointment-detail-page__facts {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
-
   .appointment-detail-page__dialog-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .appointment-detail-page__sheet::before,
   .appointment-detail-page__cancel-time-text::after {
     animation: none;
   }
 }
 
-:global(:root[data-motion='reduced']) .appointment-detail-page__sheet::before,
 :global(:root[data-motion='reduced']) .appointment-detail-page__cancel-time-text::after {
   animation: none;
 }
