@@ -263,6 +263,15 @@ test('a 390 px el diálogo no desborda y los 14 días se desplazan dentro de la 
   expect(await dialog.locator('.bk-days').evaluate((el) => el.scrollWidth > el.clientWidth)).toBe(
     true,
   )
+  // El boleto se reduce a «Ahora» en una línea y la primera hora se ve sin
+  // desplazar, por encima del pie fijo.
+  await expect(dialog.locator('.appointment-detail-page__reschedule-line')).toBeVisible()
+  await expect(dialog.locator('.appointment-detail-page__reschedule-side--new')).toBeHidden()
+  const [first, foot] = await Promise.all([
+    hours(page).first().boundingBox(),
+    dialog.locator('.base-dialog__footer').boundingBox(),
+  ])
+  expect(first && foot && first.y + first.height <= foot.y).toBeTruthy()
 })
 
 test('con movimiento reducido la rejilla del diálogo no anima', async ({ page }) => {

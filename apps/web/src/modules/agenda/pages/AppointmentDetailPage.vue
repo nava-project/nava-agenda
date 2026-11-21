@@ -414,10 +414,13 @@ function splitClock(label: string): { clock: string; suffix: string } {
 const rescheduleNow = computed(() => {
   if (!detail.value || !businessTimezone.value) return null
   const zone = businessTimezone.value
+  const civil = getCivilDateInTimezone(zone, new Date(detail.value.startsAt))
   return {
     ...splitClock(formatClock(civilTimeInTimezone(detail.value.startsAt, zone))),
     until: formatClock(civilTimeInTimezone(detail.value.endsAt, zone)),
-    date: formatCivilDateFull(getCivilDateInTimezone(zone, new Date(detail.value.startsAt))),
+    date: formatCivilDateFull(civil),
+    // En móvil, una sola línea: el pie ya repite la nueva hora.
+    short: formatCivilDateShort(civil, getCivilDateInTimezone(zone)),
   }
 })
 
@@ -1348,6 +1351,16 @@ function occurredAtLabel(entry: HistoryEntry): string {
             class="appointment-detail-page__reschedule-ticket"
             aria-live="polite"
           >
+            <p class="appointment-detail-page__reschedule-line">
+              <span class="appointment-detail-page__reschedule-label">Ahora</span>
+              <span class="appointment-detail-page__reschedule-line-clock"
+                >{{ rescheduleNow.clock
+                }}<small v-if="rescheduleNow.suffix">&nbsp;{{ rescheduleNow.suffix }}</small></span
+              >
+              <span class="appointment-detail-page__reschedule-line-meta"
+                >{{ rescheduleNow.short }} · hasta {{ rescheduleNow.until }}</span
+              >
+            </p>
             <p class="appointment-detail-page__reschedule-side">
               <span class="appointment-detail-page__reschedule-label">Ahora</span>
               <span class="appointment-detail-page__reschedule-clock">
@@ -2879,20 +2892,52 @@ function occurredAtLabel(entry: HistoryEntry): string {
   border-top: 1px dashed color-mix(in srgb, var(--color-brass-line) 40%, transparent);
 }
 
+/* La línea compacta de «Ahora» solo existe en móvil. */
+.appointment-detail-page__reschedule-line {
+  display: none;
+}
+
+/* En móvil el boleto se reduce a «Ahora» en una línea: el pie fijo ya repite la
+   nueva hora, y la primera fila de horas queda a la vista sin desplazar. */
 @media (max-width: 520px) {
   .appointment-detail-page__reschedule-ticket {
-    grid-template-columns: 1fr;
-    gap: 10px;
+    display: block;
+    padding: 10px 14px;
   }
 
-  .appointment-detail-page__reschedule-rule {
-    width: 100%;
-    height: 1px;
+  .appointment-detail-page__reschedule-ticket > :not(.appointment-detail-page__reschedule-line) {
+    display: none;
   }
 
-  .appointment-detail-page__reschedule-rule::after {
-    top: -4.5px;
-    left: 18px;
+  .appointment-detail-page__reschedule-line {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 2px 10px;
+    align-items: baseline;
+    margin: 0;
+  }
+
+  .appointment-detail-page__reschedule-line-clock {
+    font-family: var(--font-display);
+    font-size: 22px;
+    line-height: 1.1;
+    color: var(--color-text-primary);
+    font-variant-numeric: tabular-nums;
+  }
+
+  .appointment-detail-page__reschedule-line-clock small {
+    font-size: 0.5em;
+  }
+
+  .appointment-detail-page__reschedule-line-meta {
+    font-family: var(--font-sans);
+    font-size: 13px;
+    line-height: 18px;
+    color: var(--color-text-secondary);
+  }
+
+  .appointment-detail-page__reschedule-line-meta::first-letter {
+    text-transform: uppercase;
   }
 }
 
