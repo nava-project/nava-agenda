@@ -11,7 +11,7 @@
 // tarjeta y la lista se dibuja en un cuadro propio a la derecha, en ese contenedor,
 // con scroll vertical interno. El estado vive aquí en ambos casos.
 import { computed, nextTick, ref, watch } from 'vue'
-import { BaseButton, StarRating } from '@/shared/ui'
+import { BaseButton, DiamondLoader, StarRating } from '@/shared/ui'
 import { listProfessionalReviews, setReviewHidden } from '../api/reviewsApi'
 import type { ProfessionalReview, ProfessionalReviewList } from '../model/review'
 
@@ -183,9 +183,14 @@ function formatDate(iso: string): string {
           :role="asideTo ? 'region' : undefined"
           :aria-label="asideTo ? 'Lista de reseñas' : undefined"
         >
-          <p v-if="state.status === 'loading'" class="professional-reviews__note" role="status">
-            Cargando reseñas…
-          </p>
+          <!-- La espera de la familia (rombo en el sol), no un texto suelto (#762). -->
+          <DiamondLoader
+            v-if="state.status === 'loading'"
+            class="professional-reviews__loader"
+            label="Cargando reseñas…"
+            layout="inline"
+            announce
+          />
           <p v-else-if="state.status === 'error'" class="professional-reviews__note" role="alert">
             No pudimos cargar las reseñas.
             <BaseButton type="button" variant="secondary" @click="load">Reintentar</BaseButton>
@@ -288,15 +293,24 @@ function formatDate(iso: string): string {
     border-color var(--motion-duration-fast) var(--motion-easing-standard);
 }
 
+/* Hover y foco de la familia (#762): borde de latón y la llamada en latón; el
+   foco es el anillo doble de toda la app. */
 .professional-reviews__toggle:hover,
 .professional-reviews__toggle--open {
-  background-color: color-mix(in srgb, var(--color-text-primary) 4%, var(--color-surface));
-  border-color: var(--color-text-primary);
+  background-color: color-mix(in srgb, var(--color-brass-body) 6%, var(--color-surface));
+  border-color: var(--color-brass-line);
+}
+
+.professional-reviews__toggle:hover .professional-reviews__cta,
+.professional-reviews__toggle--open .professional-reviews__cta {
+  color: var(--color-brass-text);
 }
 
 .professional-reviews__toggle:focus-visible {
-  outline: 2px solid var(--color-focus);
-  outline-offset: 2px;
+  outline: none;
+  box-shadow:
+    0 0 0 2px var(--color-surface),
+    0 0 0 4px var(--color-focus);
 }
 
 .professional-reviews__cta {

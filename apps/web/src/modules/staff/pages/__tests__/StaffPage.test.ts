@@ -497,8 +497,12 @@ describe('StaffPage', () => {
     const dialog = openDialogElement(wrapper)
     expect(dialog.textContent).toContain('Carlos Ramírez')
     expect(dialog.querySelector('img.professional-avatar__photo')).toBeTruthy()
-    expect(dialog.textContent).toContain('23/08/2026')
+    // La ficha dice la fecha en palabras, como la del servicio (#762).
+    expect(dialog.textContent).toContain('23 de agosto de 2026')
     expect(dialog.textContent).toContain('Con foto')
+    expect(
+      [...dialog.querySelectorAll('.staff-page__fact dt')].map((dt) => dt.textContent?.trim()),
+    ).toEqual(['En Nava Agenda desde', 'Foto'])
 
     dialogButton(wrapper, 'Editar').click()
     await flushPromises()

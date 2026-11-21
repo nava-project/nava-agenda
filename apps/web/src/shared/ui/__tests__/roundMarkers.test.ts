@@ -38,7 +38,6 @@ const ROUND_ALLOWED: Record<string, string> = {
   '.shell-ambient__glow': 'luz ambiental del fondo',
   '.professional-reviews__badge': 'píldora de texto',
   '.actions__stamp': 'píldora de texto',
-  '.catalog-page__detail-status': 'píldora de texto',
 }
 
 function roundSelectors(source: string): string[] {
