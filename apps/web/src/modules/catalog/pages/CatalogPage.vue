@@ -2920,7 +2920,9 @@ async function reloadAfterConflict(serviceId: string) {
 }
 
 .catalog-page__lifecycle-checks li::before {
+  /* Viñeta de dibujo: el texto alternativo vacío la saca del nombre. */
   content: '✓';
+  content: '✓' / '';
   position: absolute;
   top: 1px;
   left: 0;

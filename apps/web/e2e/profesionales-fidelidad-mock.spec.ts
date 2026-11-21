@@ -52,8 +52,18 @@ async function installStaffMock(page: Page, empty = false) {
       return
     }
     if (url.pathname.endsWith('/professionals') && route.request().method() === 'GET') {
+      // La lista pagina por número de página (page, pageSize, total, totalPages):
+      // sin esos campos la página toma la respuesta por un error y no muestra nada.
+      const items = empty ? [] : professionals
       await route.fulfill(
-        json({ items: empty ? [] : professionals, nextCursor: empty ? null : 'page-2' }),
+        json({
+          items,
+          page: Number(url.searchParams.get('page') ?? 1),
+          pageSize: Number(url.searchParams.get('pageSize') ?? 20),
+          total: items.length,
+          totalPages: items.length === 0 ? 0 : 1,
+          nextCursor: null,
+        }),
       )
       return
     }

@@ -390,7 +390,9 @@ defineExpose({ focus: () => inputRef.value?.focus() })
 }
 
 .tz-field__option--selected .tz-field__city::after {
+  /* La elección ya la dice aria-selected: el ✓ es dibujo y no entra en el nombre. */
   content: ' ✓';
+  content: ' ✓' / '';
   color: var(--color-text-primary);
 }
 
