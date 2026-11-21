@@ -29,6 +29,24 @@ pipeline {
       }
     }
 
+    // Plan de Pruebas PP-NAVA-001 (Ingeniería de Software III, #784): las pruebas
+    // unitarias dedicadas a cada caso CP. Sin `when`: corre siempre, aunque plan.sh no
+    // pida ningún check (árbol ya verificado). Va antes que el resto y no en paralelo: si
+    // una prueba CP falla, el build se detiene y no hay checks, imágenes ni despliegue.
+    stage('Pruebas unitarias · Plan de Pruebas (CP)') {
+      steps {
+        sh 'tools/ci/run.sh image'
+        sh 'tools/ci/run.sh web-deps'
+        sh 'tools/ci/run.sh plan-pruebas'
+      }
+      post {
+        always {
+          junit allowEmptyResults: true, testResults: 'reports/plan-pruebas/*-junit.xml'
+          archiveArtifacts allowEmptyArchive: true, artifacts: 'reports/plan-pruebas/**'
+        }
+      }
+    }
+
     stage('Preparar') {
       when { expression { hasAnyCheck() } }
       steps {

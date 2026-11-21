@@ -42,6 +42,7 @@ build_image
 case "$check" in
   go)         limits=(--memory 3g) ;;
   web-test)   limits=(--memory 2560m) ;;
+  plan-pruebas) limits=(--memory 2560m) ;;
   web-static) limits=(--memory 2g) ;;
   *)          limits=(--memory 1g) ;;
 esac
