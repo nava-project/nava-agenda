@@ -713,9 +713,11 @@ func buildRouter(db *database.DB, logger *slog.Logger, cfg config.Config) (*chi.
 	// booking.ManualSlotsPort, igual que RescheduleSlotsPort), sin la
 	// anticipación mínima ni la ventana máxima de la reserva (RN-DIS-04); la
 	// asignación se verifica con el mismo adaptador de catálogo que HU-061.
+	// bookingRepo lee el turno que se reprograma para excluirlo (#776).
 	manualAvailabilityService := booking.NewManualAvailabilityService(
 		catalog.NewManualBookingCatalog(catalogService, assignmentService),
 		publicAvailabilityService,
+		bookingRepo,
 	)
 	private.Get("/professionals/{professionalId}/services/{serviceId}/availability",
 		bookinghttpapi.NewListManualAvailabilityHandler(manualAvailabilityService).ServeHTTP)

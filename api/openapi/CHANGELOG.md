@@ -5,6 +5,18 @@ Ver [`nava-docs/agenda/06-api/estandar-openapi.md`](https://github.com/nava-proj
 sección 18 para qué cuenta como cambio compatible o incompatible.
 
 
+## 2.2.0 · 2026-11-21
+
+### Agregado
+
+- `GET /private/professionals/{professionalId}/services/{serviceId}/availability`
+  (`listManualAvailability`, issue #776): parámetro opcional `excludeAppointmentId`
+  para reprogramar. Con un turno `confirmed` del mismo negocio, profesional y servicio,
+  su intervalo deja de ocupar (su misma hora vuelve) y el cálculo usa su duración
+  congelada, que `durationMinutes` refleja (`DEC-190` enmendada). Cualquier otro valor
+  se ignora: la respuesta es la misma que sin el parámetro, y el `404` sigue siendo
+  solo para el profesional o el servicio. Compatible: parámetro opcional nuevo.
+
 ## 2.1.0 · 2026-11-21
 
 ### Agregado

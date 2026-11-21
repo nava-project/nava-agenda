@@ -447,11 +447,17 @@ func (s *AvailabilityService) OfferedRescheduleStarts(
 // aceptable es «ahora» truncado al minuto, la precisión con la que la creación
 // manual recibe la hora. booking ya verificó la asignación y el formato de las
 // fechas; aquí solo se calcula.
+//
+// excludeStartsAt/excludeEndsAt, si no son cero, son el intervalo del turno que
+// se reprograma (#776): sale de la ocupación con withoutOwnAppointment, igual que
+// en OfferedRescheduleStarts (HU-104). booking ya verificó que sea un turno
+// confirmado de este negocio, profesional y servicio, y pasa su duración.
 func (s *AvailabilityService) ManualStarts(
 	ctx context.Context,
 	businessID, professionalID string,
 	durationMinutes int,
 	fromDate, toDate string,
+	excludeStartsAt, excludeEndsAt time.Time,
 ) (starts []time.Time, timezone string, slotGridMinutes int, err error) {
 	if durationMinutes <= 0 {
 		return nil, "", 0, apperr.Internal(fmt.Errorf("publicbooking: duración no positiva para el turno manual"))
@@ -488,6 +494,11 @@ func (s *AvailabilityService) ManualStarts(
 		earliest = now
 	}
 
+	var own *availability.Interval
+	if !excludeStartsAt.IsZero() && excludeEndsAt.After(excludeStartsAt) {
+		own = &availability.Interval{Start: excludeStartsAt, End: excludeEndsAt}
+	}
+
 	starts, err = s.startsWithin(ctx, businessID, professionalID, durationMinutes, slotGridMinutes, timezone, startsBounds{
 		fromDate:      rangeStart,
 		toDate:        civilDateOnly(to),
@@ -495,7 +506,7 @@ func (s *AvailabilityService) ManualStarts(
 		latestStart:   rangeEnd.Add(-time.Nanosecond),
 		busyFrom:      earliest,
 		busyTo:        rangeEnd.Add(time.Duration(durationMinutes) * time.Minute),
-	}, loc, nil)
+	}, loc, own)
 	if err != nil {
 		return nil, "", 0, err
 	}

@@ -814,6 +814,7 @@ func (h *ListManualAvailabilityHandler) ServeHTTP(w http.ResponseWriter, r *http
 		httpserver.URLParam(r, manualAvailabilityServiceIDParam),
 		query.Get("from"),
 		query.Get("to"),
+		query.Get("excludeAppointmentId"),
 	)
 	if err != nil {
 		httpserver.WriteProblem(w, httpserver.Translate(err, requestID))

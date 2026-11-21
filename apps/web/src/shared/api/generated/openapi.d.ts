@@ -1580,7 +1580,7 @@ export interface paths {
         };
         /**
          * Listar los inicios libres para un turno manual
-         * @description Inicios donde el servicio activo `serviceId` completo cabe con el profesional `professionalId`, en las fechas civiles de `from` a `to` (zona IANA del negocio, RN-DIS-07), para elegir la hora de un turno manual (issue #717). Es la contraparte privada de `GET /public/businesses/{slug}/services/{serviceId}/professionals/{professionalId}/availability` y usa el mismo cálculo: jornada efectiva (recurrente, excepciones y festivos), menos bloqueos vigentes y citas que ocupan agenda, con la duración del servicio y la rejilla del profesional anclada al inicio de cada tramo (DEC-135, DEC-169). A diferencia de la lectura pública, no aplica la anticipación mínima ni la ventana máxima (RN-DIS-04, excepción de la cita manual) y no depende de que el enlace público esté publicado. Nunca ofrece un inicio anterior a «ahora menos la duración»: un turno que ya empezó y no ha terminado se puede registrar, uno que ya terminó no (para ese queda la hora escrita a mano). La rejilla solo propone inicios: la creación manual acepta cualquier minuto válido (DEC-006). Es de solo lectura y no aparta ninguna franja (RN-DIS-03).
+         * @description Inicios donde el servicio activo `serviceId` completo cabe con el profesional `professionalId`, en las fechas civiles de `from` a `to` (zona IANA del negocio, RN-DIS-07), para elegir la hora de un turno manual (issue #717). Es la contraparte privada de `GET /public/businesses/{slug}/services/{serviceId}/professionals/{professionalId}/availability` y usa el mismo cálculo: jornada efectiva (recurrente, excepciones y festivos), menos bloqueos vigentes y citas que ocupan agenda, con la duración del servicio y la rejilla del profesional anclada al inicio de cada tramo (DEC-135, DEC-169). A diferencia de la lectura pública, no aplica la anticipación mínima ni la ventana máxima (RN-DIS-04, excepción de la cita manual) y no depende de que el enlace público esté publicado. Nunca ofrece un inicio en el pasado: el primero posible es «ahora» truncado al minuto, el mismo redondeo de la agenda (un inicio igual a ese minuto entra; uno de un minuto antes, no). Para un turno que ya empezó queda la hora escrita a mano. La rejilla solo propone inicios: la creación manual acepta cualquier minuto válido (DEC-006). Es de solo lectura y no aparta ninguna franja (RN-DIS-03). Para reprogramar, `excludeAppointmentId` saca de la ocupación el intervalo del propio turno, de modo que su misma hora vuelve a ofrecerse, y el cálculo usa su duración congelada (`duration_minutes_snapshot`), que `durationMinutes` refleja, como en la reprogramación del cliente (issue #776, DEC-190).
          */
         get: operations["listManualAvailability"];
         put?: never;
@@ -8268,6 +8268,8 @@ export interface operations {
                 from: string;
                 /** @description Última fecha civil `AAAA-MM-DD` del tramo, incluida. Sin ella, el tramo es solo `from`. Debe ser igual o posterior a `from`, y el tramo no pasa de 31 días. */
                 to?: string;
+                /** @description Turno que se va a reprogramar (issue #776, DEC-190). Solo cuenta si es un turno `confirmed` del mismo negocio, con el mismo `professionalId` y el mismo `serviceId` de la ruta: entonces su intervalo deja de ocupar y la duración pasa a ser la congelada en el turno. Cualquier otro valor —vacío, sin forma de UUID, inexistente, de otro negocio, de otro profesional o servicio, o en otro estado— se ignora sin error: la respuesta es idéntica a no enviarlo. Un turno que ya empezó no hace aparecer horas pasadas. */
+                excludeAppointmentId?: string;
             };
             header?: never;
             path: {
@@ -8281,7 +8283,6 @@ export interface operations {
         requestBody?: never;
         responses: {
             200: components["responses"]["ManualAvailabilitySuccess"];
-            400: components["responses"]["InvalidRequestProblem"];
             401: components["responses"]["UnauthorizedProblem"];
             403: components["responses"]["ForbiddenProblem"];
             /** @description `professionalId` o `serviceId` con forma inválida, inexistente, de otro negocio (RN-TEN-01), o servicio inactivo o sin asignación vigente al profesional (DEC-072), sin distinguir la causa: la misma respuesta que `POST /private/appointments`. */
@@ -8294,7 +8295,7 @@ export interface operations {
                     "application/problem+json": components["schemas"]["Problem"];
                 };
             };
-            /** @description `to` anterior a `from`, o un tramo de más de 31 días. Una fecha mal formada responde `400`. */
+            /** @description `from` ausente, `from` o `to` mal formados, `to` anterior a `from`, o un tramo de más de 31 días. */
             422: {
                 headers: {
                     "X-Request-Id": components["headers"]["XRequestId"];

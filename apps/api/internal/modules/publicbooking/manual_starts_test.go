@@ -57,7 +57,7 @@ func TestManualStarts_NowTruncatedToTheMinute_IsTheEarliestStart(t *testing.T) {
 			repo, effectiveDay, blocks, policy, assignments, timezones := newAvailabilityFixture(tc.now)
 			svc := publicbooking.NewAvailabilityService(repo, effectiveDay, blocks, policy, assignments, timezones, fixedAvailabilityClock{now: tc.now.UTC()})
 
-			starts, tz, grid, err := svc.ManualStarts(context.Background(), "shop-1", availProfessionalID, 30, "2026-09-14", "2026-09-14")
+			starts, tz, grid, err := svc.ManualStarts(context.Background(), "shop-1", availProfessionalID, 30, "2026-09-14", "2026-09-14", time.Time{}, time.Time{})
 			if err != nil {
 				t.Fatalf("ManualStarts: %v", err)
 			}
@@ -84,7 +84,7 @@ func TestManualStarts_IgnoresMinimumAdvanceAndMaximumWindow(t *testing.T) {
 	effectiveDay.byDate["2026-09-20"] = fakeDayResult{isWorking: true, starts: []string{"14:00"}, durations: []int{60}}
 	svc := publicbooking.NewAvailabilityService(repo, effectiveDay, blocks, policy, assignments, timezones, fixedAvailabilityClock{now: now})
 
-	starts, _, _, err := svc.ManualStarts(context.Background(), "shop-1", availProfessionalID, 30, "2026-09-14", "2026-09-20")
+	starts, _, _, err := svc.ManualStarts(context.Background(), "shop-1", availProfessionalID, 30, "2026-09-14", "2026-09-20", time.Time{}, time.Time{})
 	if err != nil {
 		t.Fatalf("ManualStarts: %v", err)
 	}
@@ -107,7 +107,7 @@ func TestManualStarts_OnlyTheRequestedDates(t *testing.T) {
 	}
 	svc := publicbooking.NewAvailabilityService(repo, effectiveDay, blocks, policy, assignments, timezones, fixedAvailabilityClock{now: now})
 
-	starts, _, _, err := svc.ManualStarts(context.Background(), "shop-1", availProfessionalID, 30, "2026-09-16", "2026-09-16")
+	starts, _, _, err := svc.ManualStarts(context.Background(), "shop-1", availProfessionalID, 30, "2026-09-16", "2026-09-16", time.Time{}, time.Time{})
 	if err != nil {
 		t.Fatalf("ManualStarts: %v", err)
 	}
@@ -115,7 +115,7 @@ func TestManualStarts_OnlyTheRequestedDates(t *testing.T) {
 		t.Fatalf("inicios = %v, want solo los del 16", got)
 	}
 
-	past, _, _, err := svc.ManualStarts(context.Background(), "shop-1", availProfessionalID, 30, "2026-09-10", "2026-09-13")
+	past, _, _, err := svc.ManualStarts(context.Background(), "shop-1", availProfessionalID, 30, "2026-09-10", "2026-09-13", time.Time{}, time.Time{})
 	if err != nil {
 		t.Fatalf("ManualStarts pasado: %v", err)
 	}
@@ -135,11 +135,11 @@ func TestManualStarts_SubtractsBlocksAndAppointments(t *testing.T) {
 	repo.occEnds = []time.Time{time.Date(2026, 9, 14, 11, 30, 0, 0, loc)}
 	svc := publicbooking.NewAvailabilityService(repo, effectiveDay, blocks, policy, assignments, timezones, fixedAvailabilityClock{now: now})
 
-	_, _, _, err := svc.ManualStarts(context.Background(), "shop-1", availProfessionalID, 30, "2026-09-14", "")
+	_, _, _, err := svc.ManualStarts(context.Background(), "shop-1", availProfessionalID, 30, "2026-09-14", "", time.Time{}, time.Time{})
 	if err == nil {
 		t.Fatal("toDate vacío llega validado desde booking; aquí debe fallar como error interno")
 	}
-	starts, _, _, err := svc.ManualStarts(context.Background(), "shop-1", availProfessionalID, 30, "2026-09-14", "2026-09-14")
+	starts, _, _, err := svc.ManualStarts(context.Background(), "shop-1", availProfessionalID, 30, "2026-09-14", "2026-09-14", time.Time{}, time.Time{})
 	if err != nil {
 		t.Fatalf("ManualStarts: %v", err)
 	}
@@ -177,7 +177,7 @@ func TestManualStarts_MatchesPublicAvailabilityWithZeroAdvance(t *testing.T) {
 	if err != nil {
 		t.Fatalf("ListPublicAvailability: %v", err)
 	}
-	manual, _, _, err := svc.ManualStarts(context.Background(), "shop-1", availProfessionalID, 30, "2026-09-14", "2026-09-17")
+	manual, _, _, err := svc.ManualStarts(context.Background(), "shop-1", availProfessionalID, 30, "2026-09-14", "2026-09-17", time.Time{}, time.Time{})
 	if err != nil {
 		t.Fatalf("ManualStarts: %v", err)
 	}
@@ -280,5 +280,79 @@ func TestListPublicAvailability_RefactorKeepsTheSameStarts(t *testing.T) {
 				}
 			}
 		})
+	}
+}
+
+// #776: el intervalo excluido (el turno que se reprograma) sale de la ocupación
+// y su misma hora vuelve; otra cita del mismo profesional sigue ocupando, y un
+// bloqueo con el mismo intervalo no se libera por coincidir.
+func TestManualStarts_ExcludedOwnAppointment_FreesOnlyItsInterval(t *testing.T) {
+	loc := manualLoc(t)
+	now := time.Date(2026, 9, 14, 8, 0, 0, 0, loc)
+	repo, effectiveDay, blocks, policy, assignments, timezones := newAvailabilityFixture(now)
+	ownStart := time.Date(2026, 9, 14, 11, 0, 0, 0, loc)
+	ownEnd := ownStart.Add(30 * time.Minute)
+	otherStart := time.Date(2026, 9, 14, 12, 0, 0, 0, loc)
+	repo.occStarts = []time.Time{ownStart, otherStart}
+	repo.occEnds = []time.Time{ownEnd, otherStart.Add(30 * time.Minute)}
+	svc := publicbooking.NewAvailabilityService(repo, effectiveDay, blocks, policy, assignments, timezones, fixedAvailabilityClock{now: now})
+
+	without, _, _, err := svc.ManualStarts(context.Background(), "shop-1", availProfessionalID, 30, "2026-09-14", "2026-09-14", time.Time{}, time.Time{})
+	if err != nil {
+		t.Fatalf("ManualStarts sin exclusión: %v", err)
+	}
+	if contains(clockOf(t, without, loc), "2026-09-14 11:00") {
+		t.Fatal("sin exclusión, las 11:00 del propio turno están ocupadas")
+	}
+
+	with, _, _, err := svc.ManualStarts(context.Background(), "shop-1", availProfessionalID, 30, "2026-09-14", "2026-09-14", ownStart, ownEnd)
+	if err != nil {
+		t.Fatalf("ManualStarts con exclusión: %v", err)
+	}
+	got := clockOf(t, with, loc)
+	if !contains(got, "2026-09-14 11:00") {
+		t.Fatalf("la hora del propio turno debía volver: %v", got)
+	}
+	if contains(got, "2026-09-14 12:00") {
+		t.Fatalf("otra cita no se libera: %v", got)
+	}
+	if len(with) != len(without)+1 {
+		t.Fatalf("solo debía volver un inicio: sin %d, con %d", len(without), len(with))
+	}
+
+	// Un bloqueo idéntico al turno sigue contando: excluir el turno no lo borra.
+	blocks.starts = []time.Time{ownStart}
+	blocks.ends = []time.Time{ownEnd}
+	blocked, _, _, err := svc.ManualStarts(context.Background(), "shop-1", availProfessionalID, 30, "2026-09-14", "2026-09-14", ownStart, ownEnd)
+	if err != nil {
+		t.Fatalf("ManualStarts con bloqueo: %v", err)
+	}
+	if contains(clockOf(t, blocked, loc), "2026-09-14 11:00") {
+		t.Fatal("un bloqueo con el mismo intervalo debía seguir ocupando las 11:00")
+	}
+}
+
+// #776: un turno propio que ya empezó no hace aparecer su hora pasada; el
+// primer inicio sigue siendo «ahora» truncado al minuto.
+func TestManualStarts_ExcludedOwnAppointmentInThePast_OffersNoPastStart(t *testing.T) {
+	loc := manualLoc(t)
+	now := time.Date(2026, 9, 14, 11, 10, 20, 0, loc)
+	repo, effectiveDay, blocks, policy, assignments, timezones := newAvailabilityFixture(now)
+	ownStart := time.Date(2026, 9, 14, 11, 0, 0, 0, loc)
+	repo.occStarts = []time.Time{ownStart}
+	repo.occEnds = []time.Time{ownStart.Add(30 * time.Minute)}
+	svc := publicbooking.NewAvailabilityService(repo, effectiveDay, blocks, policy, assignments, timezones, fixedAvailabilityClock{now: now.UTC()})
+
+	starts, _, _, err := svc.ManualStarts(context.Background(), "shop-1", availProfessionalID, 30, "2026-09-14", "2026-09-14", ownStart, ownStart.Add(30*time.Minute))
+	if err != nil {
+		t.Fatalf("ManualStarts: %v", err)
+	}
+	for _, s := range starts {
+		if s.Before(now.Truncate(time.Minute)) {
+			t.Fatalf("inicio en el pasado: %s", s.In(loc).Format("15:04"))
+		}
+	}
+	if contains(clockOf(t, starts, loc), "2026-09-14 11:00") {
+		t.Fatal("la hora pasada del propio turno no se ofrece")
 	}
 }
