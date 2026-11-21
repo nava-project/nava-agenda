@@ -375,8 +375,48 @@ test('horarios: con muchos tramos el tablero se desplaza por dentro, nunca la p�
     expect(await edit.evaluate((el) => getComputedStyle(el).fontSize)).toBe('14px')
     await page.evaluate(() => document.querySelector('.week-board')!.scrollTo(0, 0))
     await page.screenshot({ path: path.join(evidenceDir, viewport.name, 'muchos-tramos.png') })
+
+    // Teclado (WCAG 2.4.11): el control enfocado, con su anillo de 4 px, queda
+    // entero entre el eje fijo y el borde inferior del tablero. Hacia delante
+    // hasta el último «+» y de vuelta con Shift+Tab por todo jueves.
+    await page.getByRole('button', { name: 'Agregar un tramo el Sábado' }).focus()
+    await page.keyboard.press('Tab')
+    await expect(lastAdd).toBeFocused()
+    await expectFocusInsideBoard(page, viewport.name)
+    const stop = page.getByRole('button', { name: 'Agregar un tramo el Miércoles' })
+    for (
+      let step = 0;
+      step < 40 && !(await stop.evaluate((el) => el === document.activeElement));
+      step++
+    ) {
+      await page.keyboard.press('Shift+Tab')
+      await expectFocusInsideBoard(page, viewport.name)
+    }
+    await expect(stop).toBeFocused()
+    await page.evaluate(() => document.querySelector('.week-board')!.scrollTo(0, 0))
   }
 })
+
+async function expectFocusInsideBoard(page: Page, viewportName: string) {
+  const ring = 4
+  const box = await page.evaluate(() => {
+    const active = document.activeElement as HTMLElement
+    const board = document.querySelector('.week-board') as HTMLElement
+    const axis = board.querySelector('.week-board__axis') as HTMLElement
+    const rect = active.getBoundingClientRect()
+    const boardRect = board.getBoundingClientRect()
+    return {
+      label: active.getAttribute('aria-label'),
+      top: rect.top,
+      bottom: rect.bottom,
+      axisBottom: axis.getBoundingClientRect().bottom,
+      boardBottom: boardRect.top + board.clientTop + board.clientHeight,
+    }
+  })
+  const where = `${box.label} a ${viewportName}`
+  expect(box.top - ring, `${where}: no queda bajo el eje`).toBeGreaterThanOrEqual(box.axisBottom)
+  expect(box.bottom + ring, `${where}: no se corta abajo`).toBeLessThanOrEqual(box.boardBottom)
+}
 
 test('horarios: el acordeón abre un apartado a la vez y oculta el resto', async ({ page }) => {
   await openSchedules(page, 1280, 900)

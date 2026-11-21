@@ -175,6 +175,10 @@ function countLabel(day: BoardDay): string {
   /* Objetivo de las acciones de fila y del «+»: 44 px táctil (DEC-039); en
      escritorio baja al piso de 36 px de las acciones de fila (DEC-112). */
   --board-control: 44px;
+  /* Alto del eje fijo y grosor del anillo de foco de BaseButton (2 + 2 px):
+     el desplazamiento por teclado se aparta de ambos (WCAG 2.4.11). */
+  --board-axis-height: 30px;
+  --board-focus-ring: 4px;
 
   display: flex;
   min-height: 0;
@@ -195,7 +199,7 @@ function countLabel(day: BoardDay): string {
   flex: none;
   grid-template-columns: 132px minmax(0, 1fr);
   gap: 18px;
-  height: 30px;
+  height: var(--board-axis-height);
   padding: 0 18px;
   align-items: end;
   background-color: var(--color-surface);
@@ -544,18 +548,21 @@ function countLabel(day: BoardDay): string {
    el piso de 36 px, para que dos tramos y el «+» quepan en un renglón; si un
    barbero tiene más, el tablero se desplaza por dentro, nunca la página. */
 @media (min-width: 1100px) {
+  /* Con el tablero desplazable, el foco que llega por teclado no queda bajo
+     el eje fijo ni con el anillo recortado contra el borde inferior. */
   .week-board {
     --board-control: 36px;
+    --board-axis-height: 26px;
+
+    padding-bottom: var(--board-focus-ring);
+    scroll-padding-top: calc(var(--board-axis-height) + 8px);
+    scroll-padding-bottom: 8px;
   }
 
   .week-board__axis,
   .week-board__day {
     gap: 14px;
     padding-inline: 14px;
-  }
-
-  .week-board__axis {
-    height: 26px;
   }
 
   .week-board__day {
