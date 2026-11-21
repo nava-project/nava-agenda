@@ -1402,10 +1402,10 @@ function seriesCounts(item: TimeBlockSeries): string {
   justify-content: flex-end;
   gap: 8px;
 }
-/* Acciones compactas: BaseButton secundario neutro, solo más pequeño. */
+/* Acciones del registro: BaseButton secundario neutro con texto más pequeño,
+   pero con su alto de 44 px (objetivo táctil del estándar visual). El alto fijo
+   de 34 px de #720 las dejaba por debajo y el E2E de series lo detectó (#764). */
 .blocks-panel__record :deep(.base-button) {
-  min-height: 34px;
-  height: 34px;
   padding-inline: 12px;
   font-size: var(--font-size-body-sm);
 }
