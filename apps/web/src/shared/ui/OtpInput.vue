@@ -28,11 +28,20 @@ interface Props {
   disabled?: boolean
   /** Nombre del campo lógico (no se refleja en el DOM de cada ranura) */
   name?: string
+  /** Aviso neutro bajo las casillas («Te enviamos otro código»); cede su sitio al error. */
+  note?: string
+  /**
+   * Reserva bajo las casillas el hueco del aviso o del error, aunque estén vacíos,
+   * para que lo que viene debajo no se mueva cuando llegan con la red lenta (#751).
+   */
+  reserveMessage?: boolean
 }
 
 const props = withDefaults(defineProps<Props>(), {
   modelValue: '',
   disabled: false,
+  note: '',
+  reserveMessage: false,
 })
 
 const emit = defineEmits<{
@@ -237,8 +246,15 @@ const slotsClasses = (index: number) => {
       <span class="otp-input__rule" aria-hidden="true"></span>
     </div>
 
-    <div v-if="error" :id="errorId" class="otp-input__error" aria-live="assertive" role="alert">
-      {{ error }}
+    <div
+      v-if="error || note || reserveMessage"
+      class="otp-input__message"
+      :class="{ 'otp-input__message--reserved': reserveMessage }"
+    >
+      <div v-if="error" :id="errorId" class="otp-input__error" aria-live="assertive" role="alert">
+        {{ error }}
+      </div>
+      <p v-else-if="note" class="otp-input__note" role="status">{{ note }}</p>
     </div>
   </div>
 </template>
@@ -351,6 +367,13 @@ const slotsClasses = (index: number) => {
   box-shadow:
     0 0 0 2px var(--color-surface),
     0 0 0 4px var(--color-focus);
+}
+
+/* Al enfocar una casilla llena se selecciona su dígito (para escribir encima):
+   sin el resaltado azul del sistema, que rompe el latón (#752). */
+.otp-input__slot::selection {
+  color: inherit;
+  background-color: transparent;
 }
 
 /* Llena: filete y línea base de latón, como la regla del pase. */
@@ -512,6 +535,20 @@ const slotsClasses = (index: number) => {
 
 .otp-input--disabled .otp-input__cell::before {
   opacity: 0.4;
+}
+
+/* Un solo hueco para el aviso y el error. Reservado, mide dos líneas: lo que
+   ocupa el error más largo a 390 px; así el botón de abajo no salta. */
+.otp-input__message--reserved {
+  min-height: calc(var(--font-size-body-sm-line) * 2);
+}
+
+.otp-input__note {
+  margin: 0;
+  font-family: var(--font-family-base);
+  font-size: var(--font-size-body-sm);
+  line-height: var(--font-size-body-sm-line);
+  color: var(--color-text-secondary);
 }
 
 .otp-input__error {

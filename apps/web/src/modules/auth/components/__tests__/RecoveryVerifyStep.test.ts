@@ -97,6 +97,32 @@ describe('RecoveryVerifyStep', () => {
     expect(readOtp(wrapper)).toBe('000000')
   })
 
+  it('withdraws the error when the code is corrected, like my-turn (#752)', async () => {
+    verifyRecoveryMock.mockResolvedValueOnce({ kind: 'invalid-code' })
+    const wrapper = mountStep()
+    await fillOtp(wrapper, '000000')
+    await wrapper.get('form').trigger('submit')
+    await flushPromises()
+    expect(wrapper.find('.otp-input__error').exists()).toBe(true)
+
+    await wrapper.findAll('.otp-input__slot')[5]!.setValue('7')
+    expect(wrapper.find('.otp-input__error').exists()).toBe(false)
+    // El hueco del mensaje sigue reservado: el botón no sube.
+    expect(wrapper.find('.otp-input__message--reserved').exists()).toBe(true)
+  })
+
+  it('shows «Verificando…» next to the sun while verifying, keeping the accessible name (#752)', async () => {
+    verifyRecoveryMock.mockReturnValueOnce(new Promise(() => {}))
+    const wrapper = mountStep()
+    await fillOtp(wrapper, '123456')
+    await wrapper.get('form').trigger('submit')
+    await flushPromises()
+    const submit = wrapper.get('button[type="submit"]')
+    expect(submit.attributes('aria-busy')).toBe('true')
+    expect(submit.get('.base-button__wait-label').text()).toBe('Verificando…')
+    expect(submit.get('.base-button__content').text()).toBe('Verificar código')
+  })
+
   it('warns with a toast on a transport error, without clearing the code (DEC-095)', async () => {
     verifyRecoveryMock.mockResolvedValueOnce({ kind: 'network-error' })
     const wrapper = mountStep()

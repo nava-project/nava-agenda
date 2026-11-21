@@ -49,6 +49,8 @@ const codeError = ref('')
 const alert = ref<{ variant: 'warning' | 'danger'; text: string } | null>(null)
 const notice = ref('')
 const submitting = ref(false)
+/** «Pedir otro código» en curso: espera en el propio enlace, no en el botón principal (#752). */
+const resending = ref(false)
 const wrongCodes = ref(0)
 const grant = ref<AccessGrant | null>(null)
 /** Credencial del turno abierto en el paso 03. */
@@ -254,11 +256,11 @@ function openAppointment(token: string) {
 const hasSeveral = computed(() => (grant.value?.appointments.length ?? 0) > 1)
 
 async function resend() {
-  if (submitting.value || !canResend.value) return
+  if (submitting.value || resending.value || !canResend.value) return
   alert.value = null
-  submitting.value = true
+  resending.value = true
   const outcome = await requestAccessCode(props.slug, contact.value.trim())
-  submitting.value = false
+  resending.value = false
   switch (outcome.kind) {
     case 'sent':
       resetCodeEntry()
@@ -434,16 +436,18 @@ const zoneName = computed(() => (grant.value ? timezoneName(grant.value.timezone
         aria-label="Escribir el código"
         @submit.prevent="submitCode"
       >
+        <!-- El aviso del reenvío y el error comparten un hueco reservado bajo las
+             casillas: con la red lenta el botón no se mueve (#752). -->
         <OtpInput
           v-model="code"
           label="Código de 6 dígitos"
           name="code"
           :error="codeError"
+          :note="notice"
+          reserve-message
           :disabled="isLocked || submitting"
           @complete="submitCode"
         />
-
-        <p v-if="notice" class="mt-form__notice" role="status">{{ notice }}</p>
 
         <button
           type="submit"
@@ -467,10 +471,13 @@ const zoneName = computed(() => (grant.value ? timezoneName(grant.value.timezone
             v-else
             type="button"
             class="bk-link mt-form__resend"
-            :disabled="submitting"
+            :class="{ 'mt-form__resend--busy': resending }"
+            :disabled="submitting || resending"
+            :aria-busy="resending"
             @click="resend"
           >
-            Pedir otro código
+            <SunDiamond v-if="resending" size="sm" class="mt-form__resend-wait" />
+            {{ resending ? 'Enviando otro código…' : 'Pedir otro código' }}
           </button>
           <button type="button" class="bk-link" @click="changeContact">Cambiar el contacto</button>
         </div>

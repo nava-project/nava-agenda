@@ -11,7 +11,7 @@
 // tampoco lo confirma, y tampoco nombra el canal: antes de entrar no se sabe a
 // qué negocio pertenece la cuenta y decir «correo» o «teléfono» revelaría su
 // configuración o su existencia (DEC-065, DEC-139).
-import { computed, nextTick, onMounted, onUnmounted, ref } from 'vue'
+import { computed, nextTick, onMounted, onUnmounted, ref, watch } from 'vue'
 import { BaseButton, OtpInput, ResendDusk } from '@/shared/ui'
 import { requestChallenge, verifyChallenge } from '../api/challengeApi'
 
@@ -52,6 +52,12 @@ const resendCooldownRemaining = ref(0)
 /** Cambia en cada envío para que el atardecer de la espera vuelva a empezar (#751). */
 const cooldownRound = ref(0)
 let cooldownTimer: ReturnType<typeof setInterval> | undefined
+
+// Al corregir el código después de un rechazo, el aviso se retira, como en mi turno
+// y en la recuperación (#752).
+watch(code, (value, previous) => {
+  if (verifyPhase.value === 'invalid' && value !== previous) verifyPhase.value = 'idle'
+})
 
 const codeDigitsOnly = computed(() => /^[0-9]{6}$/.test(code.value))
 const canVerify = computed(
@@ -181,6 +187,7 @@ async function onVerifyCode() {
       <OtpInput
         v-model="code"
         label="Código de 6 dígitos"
+        reserve-message
         :disabled="verifyPhase === 'verifying' || disabled"
         :error="
           verifyPhase === 'invalid'
@@ -195,6 +202,7 @@ async function onVerifyCode() {
           variant="primary"
           size="md"
           :loading="verifyPhase === 'verifying'"
+          loading-label="Verificando…"
           :disabled="!canVerify"
           @click="onVerifyCode"
         >

@@ -294,6 +294,31 @@ describe('OtpInput · ancho (#733)', () => {
       expect(wrapper.findAll('.otp-input__cell--invalid')).toHaveLength(6)
     })
 
+    it('un aviso neutro ocupa el hueco del mensaje y cede su sitio al error (#752)', async () => {
+      const wrapper = mount(OtpInput, {
+        props: { note: 'Te enviamos otro código.', reserveMessage: true },
+      })
+      expect(wrapper.get('.otp-input__note').text()).toBe('Te enviamos otro código.')
+      expect(wrapper.get('.otp-input__note').attributes('role')).toBe('status')
+      await wrapper.setProps({ error: 'Ese código no es válido.' })
+      expect(wrapper.find('.otp-input__note').exists()).toBe(false)
+      expect(wrapper.get('.otp-input__error').text()).toBe('Ese código no es válido.')
+      await wrapper.setProps({ error: '', note: '' })
+      expect(wrapper.find('.otp-input__message--reserved').exists()).toBe(true)
+    })
+
+    it('sin reserva ni mensajes no deja hueco', () => {
+      const wrapper = mount(OtpInput)
+      expect(wrapper.find('.otp-input__message').exists()).toBe(false)
+    })
+
+    it('la selección del dígito no lleva el resaltado azul del sistema (#752)', () => {
+      const css = readFileSync(resolve(__dirname, '../OtpInput.vue'), 'utf8')
+      expect(css).toMatch(
+        /\.otp-input__slot::selection \{\s*color: inherit;\s*background-color: transparent;/,
+      )
+    })
+
     it('el dígito va en la serif de la familia y sin cursor de texto encima del rombo', () => {
       const css = readFileSync(resolve(__dirname, '../OtpInput.vue'), 'utf8')
       const slot = css.slice(css.indexOf('.otp-input__slot {'))

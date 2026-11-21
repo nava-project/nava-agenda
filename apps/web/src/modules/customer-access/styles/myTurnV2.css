@@ -510,12 +510,6 @@
   opacity: 1;
 }
 
-.mt-form__notice {
-  margin: 0;
-  font-size: 14px;
-  color: var(--color-text-secondary);
-}
-
 .mt-form__aside {
   display: flex;
   flex-wrap: wrap;
@@ -554,6 +548,21 @@
   :root:not([data-motion='reduced']) .mt-form__resend::before {
     animation: mt-resend-rise 520ms var(--motion-ease-spring, ease-out) both;
   }
+}
+
+/* Pidiendo otro código: el diamante dentro del sol ocupa el sitio del rombo y el
+   enlace conserva su color (esperar no es estar apagado, #735). */
+.mt-form__resend--busy::before {
+  display: none;
+}
+
+.mt-form__resend--busy:disabled {
+  cursor: progress;
+  opacity: 1;
+}
+
+.mt-form__resend-wait {
+  --sd-size: 1.25em;
 }
 
 @keyframes mt-resend-rise {

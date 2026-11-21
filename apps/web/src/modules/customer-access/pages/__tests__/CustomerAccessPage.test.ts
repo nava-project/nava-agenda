@@ -7,6 +7,7 @@
  *   una lista, también sin salir;
  * - negocio inexistente y accesibilidad (axe-core) en cada paso.
  */
+import { nextTick } from 'vue'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { flushPromises, mount, type VueWrapper } from '@vue/test-utils'
 import { createMemoryHistory, createRouter, type Router } from 'vue-router'
@@ -379,6 +380,43 @@ describe('CustomerAccessPage · paso 2, código', () => {
     expect(postMock.mock.calls.filter(([path]) => path === CHALLENGE)).toHaveLength(2)
     expect(w.text()).toContain('Te enviamos otro código por correo.')
     expect(w.text()).toContain('Podrás pedir otro en 1:00')
+  })
+
+  it('«Pedir otro código» espera en el propio enlace, sin tocar el botón principal (#752)', async () => {
+    script({ challenge: [ACCEPTED] })
+    const w = await mountPage()
+    await sendContact(w)
+    vi.advanceTimersByTime(61_000)
+    await flushPromises()
+    postMock.mockReturnValueOnce(new Promise(() => {}))
+    await buttonByText(w, 'Pedir otro código')!.trigger('click')
+    await nextTick()
+
+    const link = w.get('.mt-form__resend')
+    expect(link.text()).toBe('Enviando otro código…')
+    expect(link.attributes('aria-busy')).toBe('true')
+    expect(link.find('.sun-diamond').exists()).toBe(true)
+    const main = buttonByText(w, 'Entrar a mi turno')!
+    expect(main.text()).toBe('Entrar a mi turno')
+    expect(main.attributes('aria-busy')).toBe('false')
+  })
+
+  it('el aviso del reenvío y el error comparten el hueco reservado bajo las casillas (#752)', async () => {
+    script({ challenge: [ACCEPTED, ACCEPTED], verify: [WRONG] })
+    const w = await mountPage()
+    await sendContact(w)
+    expect(w.find('.otp-input__message--reserved').exists()).toBe(true)
+    vi.advanceTimersByTime(61_000)
+    await flushPromises()
+    await buttonByText(w, 'Pedir otro código')!.trigger('click')
+    await flushPromises()
+
+    const slot = () => w.get('.otp-input__message--reserved')
+    expect(slot().text()).toBe('Te enviamos otro código por correo.')
+    await typeCode(w, '111111')
+    expect(w.findAll('.otp-input__message')).toHaveLength(1)
+    expect(slot().find('.otp-input__error').exists()).toBe(true)
+    expect(slot().text()).not.toContain('Te enviamos otro código')
   })
 
   it('un 429 al reenviar avisa y extiende la espera según Retry-After', async () => {

@@ -86,6 +86,9 @@ async function onResend() {
 }
 
 const handleCodeInput = (value: string) => {
+  // Al corregir el código después de un rechazo, el aviso se retira, igual que en
+  // mi turno (#752): las casillas vuelven al latón mientras se prueba otro.
+  if (verifyStatus.value === 'invalid-code' && value !== code.value) verifyStatus.value = 'idle'
   code.value = value
   if (attemptedSubmit.value) {
     fieldError.value = validateRecoveryCode(code.value)
@@ -146,6 +149,7 @@ async function onSubmit() {
     <OtpInput
       :model-value="code"
       label="Código de 6 dígitos"
+      reserve-message
       :disabled="isVerifying"
       :error="otpError"
       @update:model-value="handleCodeInput"
@@ -157,6 +161,7 @@ async function onSubmit() {
         variant="primary"
         size="lg"
         :loading="isVerifying"
+        loading-label="Verificando…"
         :disabled="isVerifying"
         class="recovery-verify__submit"
       >
