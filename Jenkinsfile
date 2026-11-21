@@ -154,9 +154,10 @@ pipeline {
     stage('Limpieza') {
       when { environment name: 'NAVA_ENTORNO', value: 'local' }
       steps {
-        // Contenedores de checks huérfanos e imágenes colgantes que dejó este pipeline.
+        // Contenedores de checks huérfanos de ESTE build (run.sh los nombra con BUILD_TAG)
+        // e imágenes colgantes que dejó el pipeline.
         sh '''
-          docker ps -aq --filter label=nava-ci=1 | xargs -r docker rm -f -v
+          docker ps -aq --filter label=nava-ci=1 --filter "name=nava-ci-${BUILD_TAG}-" | xargs -r docker rm -f -v
           docker image prune -f --filter label=org.opencontainers.image.revision
         '''
       }
