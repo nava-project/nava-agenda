@@ -59,9 +59,11 @@ type resendEmailRequest struct {
 // Send implementa [EmailSender].
 func (s ResendEmailSender) Send(ctx context.Context, email, code string) error {
 	return postResendEmail(ctx, s.httpClient, s.cfg, email, s.cfg.Subject, emailContent{
-		Preheader:  "Tu código para recuperar el acceso a Nava Agenda.",
-		Title:      "Recupera tu acceso",
-		Paragraphs: []string{"Usa este código para recuperar el acceso a tu cuenta. Vence en pocos minutos."},
+		Preheader: "Tu código para recuperar el acceso a Nava Agenda.",
+		Kicker:    "Recupera tu acceso",
+		// El mismo título que el paso donde se escribe (#753).
+		Title:      "Verifica el código",
+		Paragraphs: []string{"Escríbelo en la pantalla para recuperar el acceso a tu cuenta. Vence en pocos minutos."},
 		Code:       code,
 		Footnotes:  []string{"Si no lo solicitaste, ignora este mensaje: tu cuenta sigue segura."},
 	})

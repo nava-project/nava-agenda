@@ -32,7 +32,10 @@ func (f fakeAccessRepo) VerifyChallenge(context.Context, customeraccess.VerifyRe
 
 type discardSender struct{ sent int }
 
-func (d *discardSender) SendCode(context.Context, string, string, string) error { d.sent++; return nil }
+func (d *discardSender) SendCode(context.Context, string, string, string, string) error {
+	d.sent++
+	return nil
+}
 
 type fixedClock struct{}
 

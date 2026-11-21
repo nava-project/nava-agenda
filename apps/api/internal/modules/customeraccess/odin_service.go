@@ -93,6 +93,8 @@ type RefChallengeOutcome struct {
 	Available   bool
 	RateLimited bool
 	RetryAfter  time.Duration
+	// BusinessName es el nombre del negocio para el mensaje del código (#753).
+	BusinessName string
 }
 
 // VerifyRefRequest es lo que el repositorio necesita para verificar el código de
@@ -299,17 +301,17 @@ func (s *RefService) RequestCode(ctx context.Context, slug, rawPhone, ref, purpo
 		return RefChallengeAccepted{}, errAppointmentNotAvailable()
 	}
 
-	s.dispatch(contact, code)
+	s.dispatch(contact, outcome.BusinessName, code)
 	return RefChallengeAccepted{AccessRef: accessRef, ExpiresAt: expiresAt, Purpose: purpose}, nil
 }
 
 // dispatch entrega el código en segundo plano con un contexto propio. Un fallo solo
 // deja constancia del canal: el cliente puede pedir otro desde Odin.
-func (s *RefService) dispatch(contact Contact, code string) {
+func (s *RefService) dispatch(contact Contact, businessName, code string) {
 	s.deliver(func() {
 		ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
 		defer cancel()
-		if err := s.sender.SendCode(ctx, string(contact.Channel), contact.Value, code); err != nil && s.logger != nil {
+		if err := s.sender.SendCode(ctx, string(contact.Channel), contact.Value, businessName, code); err != nil && s.logger != nil {
 			s.logger.Error("customeraccess.ref_code.delivery_failed", slog.String("channel", string(contact.Channel)))
 		}
 	})

@@ -38,15 +38,42 @@ func TestCustomerAccessCodeSender_Email_UsesItsOwnSubjectAndCarriesTheCode(t *te
 	}))
 	defer resend.Close()
 
-	if err := newAccessSender(t, resend, nil).SendCode(context.Background(), "email", "ana@ejemplo.test", "482913"); err != nil {
+	if err := newAccessSender(t, resend, nil).SendCode(context.Background(), "email", "ana@ejemplo.test", "Barbería Ejemplo", "482913"); err != nil {
 		t.Fatalf("SendCode: %v", err)
 	}
-	if body["subject"] != "Tu código para cambiar tu turno" {
+	if body["subject"] != "Tu código para entrar a tu turno" {
 		t.Fatalf("unexpected subject %v", body["subject"])
 	}
 	text, _ := body["text"].(string)
 	if !strings.Contains(text, "482913") || !strings.Contains(text, "10 minutos") {
 		t.Fatalf("the email must carry the code and its lifetime, got %q", text)
+	}
+	// #753: el mismo título que la pantalla y el negocio que lo envía.
+	html, _ := body["html"].(string)
+	for _, want := range []string{"Escribe tu código", "Barbería Ejemplo", "Tu turno"} {
+		if !strings.Contains(text, want) || !strings.Contains(html, want) {
+			t.Fatalf("the email must say %q in text and HTML", want)
+		}
+	}
+	if strings.Contains(text, "Cambia la hora") {
+		t.Fatalf("the old title must be gone, got %q", text)
+	}
+}
+
+func TestCustomerAccessCodeSender_Email_WithoutBusinessNameStillReads(t *testing.T) {
+	var body map[string]any
+	resend := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		_ = json.NewDecoder(r.Body).Decode(&body)
+		w.WriteHeader(http.StatusOK)
+	}))
+	defer resend.Close()
+
+	if err := newAccessSender(t, resend, nil).SendCode(context.Background(), "email", "ana@ejemplo.test", "", "482913"); err != nil {
+		t.Fatalf("SendCode: %v", err)
+	}
+	text, _ := body["text"].(string)
+	if !strings.Contains(text, "para entrar a tu turno. Vence") || strings.Contains(text, " en .") {
+		t.Fatalf("without a business name the sentence must stay whole, got %q", text)
 	}
 }
 
@@ -60,7 +87,7 @@ func TestCustomerAccessCodeSender_WhatsApp_SendsTheAuthenticationTemplate(t *tes
 	resend := httptest.NewServer(http.NotFoundHandler())
 	defer resend.Close()
 
-	if err := newAccessSender(t, resend, meta).SendCode(context.Background(), "whatsapp", "+573001234567", "482913"); err != nil {
+	if err := newAccessSender(t, resend, meta).SendCode(context.Background(), "whatsapp", "+573001234567", "Barbería Ejemplo", "482913"); err != nil {
 		t.Fatalf("SendCode: %v", err)
 	}
 	if body["to"] != "573001234567" {
@@ -82,7 +109,7 @@ func TestCustomerAccessCodeSender_WhatsApp_SendsTheAuthenticationTemplate(t *tes
 func TestCustomerAccessCodeSender_WhatsAppNotConfigured_FailsWithoutLeaking(t *testing.T) {
 	resend := httptest.NewServer(http.NotFoundHandler())
 	defer resend.Close()
-	err := newAccessSender(t, resend, nil).SendCode(context.Background(), "whatsapp", "+573001234567", "482913")
+	err := newAccessSender(t, resend, nil).SendCode(context.Background(), "whatsapp", "+573001234567", "Barbería Ejemplo", "482913")
 	if err == nil {
 		t.Fatal("expected an error when WhatsApp is not configured")
 	}
@@ -96,7 +123,7 @@ func TestCustomerAccessCodeSender_WhatsAppNotConfigured_FailsWithoutLeaking(t *t
 func TestCustomerAccessCodeSender_UnknownChannel(t *testing.T) {
 	resend := httptest.NewServer(http.NotFoundHandler())
 	defer resend.Close()
-	if err := newAccessSender(t, resend, nil).SendCode(context.Background(), "sms", "x", "482913"); !errors.Is(err, notification.ErrUnknownAccessChannel) {
+	if err := newAccessSender(t, resend, nil).SendCode(context.Background(), "sms", "x", "Barbería Ejemplo", "482913"); !errors.Is(err, notification.ErrUnknownAccessChannel) {
 		t.Fatalf("expected ErrUnknownAccessChannel, got %v", err)
 	}
 }

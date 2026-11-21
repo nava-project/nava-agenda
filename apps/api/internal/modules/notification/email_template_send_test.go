@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
+	"regexp"
 	"strings"
 	"testing"
 
@@ -36,12 +37,12 @@ func TestTransactionalEmails_SendBrandedHTMLAndText(t *testing.T) {
 			return notification.NewResendEmailSender(
 				notification.ResendEmailConfig{APIKey: "k", FromAddress: "a@b.test", Subject: "Recuperación"}, client,
 			).Send(context.Background(), "c@ejemplo.test", "482913")
-		}, []string{"482913", "Recupera tu acceso"}},
+		}, []string{"482913", "Recupera tu acceso", "Verifica el código"}},
 		{"acceso", func() error {
 			return notification.NewResendLoginChallengeEmailSender(
 				notification.ResendEmailConfig{APIKey: "k", FromAddress: "a@b.test"}, client,
 			).SendCode(context.Background(), "c@ejemplo.test", "482913")
-		}, []string{"482913", "Verifica que eres tú"}},
+		}, []string{"482913", "Confirma que eres tú"}},
 		{"confirmación", func() error {
 			return notification.NewResendConfirmationEmailSender(
 				notification.ResendConfirmationEmailConfig{APIKey: "k", FromAddress: "a@b.test"}, client,
@@ -75,8 +76,12 @@ func TestTransactionalEmails_SendBrandedHTMLAndText(t *testing.T) {
 			if !strings.Contains(html, "Nava Agenda") || !strings.Contains(text, "Nava Agenda") {
 				t.Error("ambas versiones llevan la marca")
 			}
+			// El código va en celdas (#753): en el HTML se lee seguido al quitar
+			// etiquetas y espacios.
+			squashed := strings.Join(strings.Fields(tagPattern.ReplaceAllString(html, "")), "")
 			for _, want := range tc.wants {
-				if !strings.Contains(strings.ToLower(html), strings.ToLower(want)) || !strings.Contains(strings.ToLower(text), strings.ToLower(want)) {
+				inHTML := strings.Contains(strings.ToLower(html), strings.ToLower(want)) || strings.Contains(squashed, want)
+				if !inHTML || !strings.Contains(strings.ToLower(text), strings.ToLower(want)) {
 					t.Errorf("%q debe estar en html y en text", want)
 				}
 			}
@@ -86,3 +91,5 @@ func TestTransactionalEmails_SendBrandedHTMLAndText(t *testing.T) {
 		})
 	}
 }
+
+var tagPattern = regexp.MustCompile(`<[^>]*>`)

@@ -32,9 +32,11 @@ func NewResendLoginChallengeEmailSender(cfg ResendEmailConfig, httpClient *http.
 // incluye el destinatario ni el código (RN-DAT-02).
 func (s ResendLoginChallengeEmailSender) SendCode(ctx context.Context, email, code string) error {
 	return postResendEmail(ctx, s.httpClient, s.cfg, email, loginChallengeEmailSubject, emailContent{
-		Preheader:  "Tu código de verificación para entrar a Nava Agenda.",
-		Title:      "Verifica que eres tú",
-		Paragraphs: []string{"Tu código de verificación para entrar es el siguiente. Vence en pocos minutos."},
+		Preheader: "Tu código de verificación para entrar a Nava Agenda.",
+		Kicker:    "Entrar a tu agenda",
+		// El mismo título que el reto donde se escribe (#753).
+		Title:      "Confirma que eres tú",
+		Paragraphs: []string{"Escribe este código en la pantalla para entrar. Vence en pocos minutos."},
 		Code:       code,
 		Footnotes:  []string{"Si no intentaste entrar, ignora este mensaje y considera cambiar tu contraseña."},
 	})

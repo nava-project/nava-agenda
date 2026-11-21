@@ -36,17 +36,17 @@ const (
 var accessSecret = []byte("secreto-de-prueba-hu105-no-real")
 
 // capturedCode registra lo que el servicio habría enviado, en vez de enviarlo.
-type capturedCode struct{ channel, destination, code string }
+type capturedCode struct{ channel, destination, businessName, code string }
 
 type capturingSender struct {
 	mu   sync.Mutex
 	sent []capturedCode
 }
 
-func (c *capturingSender) SendCode(_ context.Context, channel, destination, code string) error {
+func (c *capturingSender) SendCode(_ context.Context, channel, destination, businessName, code string) error {
 	c.mu.Lock()
 	defer c.mu.Unlock()
-	c.sent = append(c.sent, capturedCode{channel, destination, code})
+	c.sent = append(c.sent, capturedCode{channel, destination, businessName, code})
 	return nil
 }
 
@@ -176,6 +176,10 @@ func TestAccess_EmailFlow_IssuesShortLivedAccessAndConsumesTheCode(t *testing.T)
 	sent := f.sender.last(t)
 	if sent.channel != "email" || sent.destination != email {
 		t.Fatalf("expected email delivery to the contact, got %+v", sent)
+	}
+	// #753: el correo nombra al negocio del enlace, leído en su propio tenant.
+	if sent.businessName != "Barbería de prueba HU-105 Uno" {
+		t.Fatalf("expected the business name in the message, got %q", sent.businessName)
 	}
 
 	verified, err := f.service.VerifyCode(ctx, accessSlugUno, email, sent.code)
