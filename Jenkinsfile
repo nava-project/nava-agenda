@@ -41,8 +41,17 @@ pipeline {
       }
       post {
         always {
-          junit allowEmptyResults: true, testResults: 'reports/plan-pruebas/*-junit.xml'
           archiveArtifacts allowEmptyArchive: true, artifacts: 'reports/plan-pruebas/**'
+          // La vista «Test Results» necesita el plugin junit. El Jenkins local de
+          // tools/ci/local lo trae; si un controlador no lo tiene, los XML quedan
+          // archivados igual y el build no cambia de resultado por eso.
+          script {
+            try {
+              junit allowEmptyResults: true, testResults: 'reports/plan-pruebas/*-junit.xml'
+            } catch (NoSuchMethodError ignored) {
+              echo 'Plugin junit no instalado: los reportes JUnit quedan solo como artefactos.'
+            }
+          }
         }
       }
     }
