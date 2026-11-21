@@ -291,6 +291,68 @@ describe('AppointmentDetailPage', () => {
     expect(wrapper.get('.appointment-detail-page__status').attributes('role')).toBe('status')
   })
 
+  // #758: la línea de tiempo llega hasta el turno si aún no ocurre; si ya pasó, cierra.
+  it('ends the history at the upcoming turn while it has not happened yet', async () => {
+    fetchAppointmentDetailMock.mockResolvedValue({
+      kind: 'success',
+      detail: { ...readyDetail, startsAt: '2099-01-15T14:00:00Z', endsAt: '2099-01-15T14:30:00Z' },
+    })
+    const { wrapper } = await mountPage()
+
+    const list = wrapper.get('.appointment-detail-page__history-list')
+    expect(list.classes()).toContain('appointment-detail-page__history-list--upcoming')
+    const end = wrapper.get('.appointment-detail-page__history-end--upcoming')
+    expect(end.text()).toContain('El turno')
+    expect(end.text()).toMatch(/Próximo · .*15.*9:00/)
+  })
+
+  it('closes the history with a hidden diamond once the turn is past', async () => {
+    fetchAppointmentDetailMock.mockResolvedValue({ kind: 'success', detail: readyDetail })
+    const { wrapper } = await mountPage()
+
+    const end = wrapper.get('.appointment-detail-page__history-end--close')
+    expect(end.attributes('aria-hidden')).toBe('true')
+    expect(wrapper.find('.appointment-detail-page__history-end--upcoming').exists()).toBe(false)
+  })
+
+  it('keeps the history open when more pages remain', async () => {
+    fetchAppointmentHistoryMock.mockResolvedValue({
+      kind: 'success',
+      items: [createdEvent],
+      nextCursor: 'cursor-1',
+    })
+    fetchAppointmentDetailMock.mockResolvedValue({ kind: 'success', detail: readyDetail })
+    const { wrapper } = await mountPage()
+
+    expect(wrapper.find('.appointment-detail-page__history-end').exists()).toBe(false)
+  })
+
+  it('runs the arrival once, when the ticket first gets its data', async () => {
+    fetchAppointmentDetailMock.mockResolvedValue({ kind: 'success', detail: readyDetail })
+    const { wrapper } = await mountPage()
+
+    expect(wrapper.get('.appointment-detail-page').classes()).toContain(
+      'appointment-detail-page--arrive',
+    )
+  })
+
+  it('shows a loading skeleton shaped like the header, ticket and history', async () => {
+    fetchAppointmentDetailMock.mockReturnValue(new Promise(() => {}))
+    const { wrapper } = await mountPage()
+
+    const skeleton = wrapper.get('.appointment-detail-page__skeleton')
+    expect(skeleton.find('.appointment-detail-page__hero').exists()).toBe(true)
+    expect(skeleton.findAll('.appointment-detail-page__skeleton-bar--button')).toHaveLength(2)
+    expect(
+      skeleton
+        .find('.appointment-detail-page__body .appointment-detail-page__skeleton-card')
+        .exists(),
+    ).toBe(true)
+    expect(
+      skeleton.find('.appointment-detail-page__body .appointment-detail-page__history').exists(),
+    ).toBe(true)
+  })
+
   it('shows the customer address with a map link for a home-service turn (DEC-131, HU-103)', async () => {
     fetchAppointmentDetailMock.mockResolvedValue({
       kind: 'success',

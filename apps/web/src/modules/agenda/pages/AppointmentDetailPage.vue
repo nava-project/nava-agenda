@@ -12,7 +12,7 @@
 // ya implementados. Cada comando confirmado añade un aviso emergente
 // (DEC-095); el resultado persistente es el estado y el historial del turno.
 import { timezoneLabel } from '@/shared/time/timezoneName'
-import { computed, onMounted, ref } from 'vue'
+import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { useRoute, type LocationQueryRaw } from 'vue-router'
 import { useToast, useVocabulary } from '@/shared/composables'
 import {
@@ -264,6 +264,53 @@ const ticket = computed(() => {
     },
   }
 })
+
+// El final del historial (#758): mientras el turno no ha ocurrido o está en curso,
+// la línea de tiempo termina en el propio turno, que es lo último que pasará; si
+// ya pasó, cierra con un rombo. Solo con el historial completo (sin más páginas),
+// para no dejar el turno delante de eventos que aún no se cargaron.
+type HistoryEnd = { kind: 'upcoming' | 'now'; title: string; meta: string } | { kind: 'close' }
+
+const historyEnd = computed((): HistoryEnd | null => {
+  if (!detail.value || !businessTimezone.value) return null
+  if (historyItems.value.length === 0 || historyNextCursor.value) return null
+  const d = detail.value
+  const m = ticketMoment(d.startsAt, d.endsAt, businessTimezone.value)
+  if (d.status === 'confirmed' && timePhase.value === null) {
+    const day = `${m.weekday} ${m.day} ${m.month}`.toLocaleLowerCase('es-CO')
+    return { kind: 'upcoming', title: 'El turno', meta: `Próximo · ${day} · ${m.time}` }
+  }
+  if (timePhase.value === 'in-progress') {
+    return { kind: 'now', title: 'En curso', meta: `hasta ${m.endTime}` }
+  }
+  return { kind: 'close' }
+})
+
+// Llegada (#758): la primera vez que la tarjeta tiene datos, la página corre un
+// guion finito (~900 ms, solo transform y opacity; el CSS lo apaga con
+// movimiento reducido). El rombo de la regla sale del borde izquierdo: la
+// distancia se mide una vez, porque depende del ancho real de la regla.
+const rootEl = ref<HTMLElement | null>(null)
+const arriving = ref(false)
+let arrivedOnce = false
+let arriveTimer: ReturnType<typeof setTimeout> | undefined
+
+watch(
+  () => ticket.value !== null,
+  async (hasTicket) => {
+    if (!hasTicket || arrivedOnce) return
+    arrivedOnce = true
+    arriving.value = true
+    await nextTick()
+    const mark = rootEl.value?.querySelector<HTMLElement>('.day-ruler__mark--mine')
+    if (mark) mark.style.setProperty('--arrive-mark-from', `${-mark.offsetLeft}px`)
+    arriveTimer = setTimeout(() => {
+      arriving.value = false
+    }, 1400)
+  },
+)
+
+onBeforeUnmount(() => clearTimeout(arriveTimer))
 
 // Reprogramar turno (HU-065, T2) y cancelar turno (HU-066, T6): ambas
 // acciones solo aplican sobre un turno `confirmed` (CA-066-08); ningún otro
@@ -795,8 +842,12 @@ function occurredAtLabel(entry: HistoryEntry): string {
 
 <template>
   <section
+    ref="rootEl"
     class="appointment-detail-page"
-    :class="`appointment-detail-page--${statusTone}`"
+    :class="[
+      `appointment-detail-page--${statusTone}`,
+      { 'appointment-detail-page--arrive': arriving },
+    ]"
     aria-labelledby="appointment-detail-page-title"
   >
     <p class="appointment-detail-page__back">
@@ -805,7 +856,10 @@ function occurredAtLabel(entry: HistoryEntry): string {
 
     <!-- Carga (#741): como las demás rutas del panel desde #736, el sol grande
          centrado sobre un esqueleto con la forma real del detalle (cabecera,
-         ficha e historial), en vez de una línea sobre la pantalla vacía. -->
+         ficha e historial), en vez de una línea sobre la pantalla vacía. El
+         esqueleto usa las mismas clases de cabecera, acciones, cuerpo e
+         historial (#758): hereda la rejilla de cada ancho y los datos llegan sin
+         reacomodo. -->
     <div
       v-if="pageStatus === 'loading'"
       class="appointment-detail-page__loading"
@@ -814,46 +868,69 @@ function occurredAtLabel(entry: HistoryEntry): string {
     >
       <DiamondLoader layout="overlay" label="Cargando el detalle del turno…" />
       <div class="appointment-detail-page__skeleton" aria-hidden="true">
-        <span
-          class="appointment-detail-page__skeleton-bar appointment-detail-page__skeleton-bar--kicker"
-        />
-        <span
-          class="appointment-detail-page__skeleton-bar appointment-detail-page__skeleton-bar--title"
-        />
-        <!-- La forma de la tarjeta de turno (#757): cabecera, troquel, hoja de
-             calendario con la hora y filas de puntos guía. -->
-        <div class="appointment-detail-page__skeleton-card">
-          <span
-            class="appointment-detail-page__skeleton-bar appointment-detail-page__skeleton-bar--kicker"
-          />
-          <span
-            class="appointment-detail-page__skeleton-bar appointment-detail-page__skeleton-bar--service"
-          />
-          <span class="appointment-detail-page__skeleton-perforation" />
-          <span class="appointment-detail-page__skeleton-when">
-            <span class="appointment-detail-page__skeleton-leaf" />
+        <div class="appointment-detail-page__hero">
+          <span class="appointment-detail-page__skeleton-monogram" />
+          <span class="appointment-detail-page__identity">
             <span
-              class="appointment-detail-page__skeleton-bar appointment-detail-page__skeleton-bar--time"
+              class="appointment-detail-page__skeleton-bar appointment-detail-page__skeleton-bar--title"
             />
           </span>
-          <span v-for="n in 4" :key="n" class="appointment-detail-page__skeleton-row">
+          <span class="appointment-detail-page__actions">
             <span
-              class="appointment-detail-page__skeleton-bar appointment-detail-page__skeleton-bar--label"
+              class="appointment-detail-page__skeleton-bar appointment-detail-page__skeleton-bar--button"
             />
-            <span class="appointment-detail-page__skeleton-dots" />
             <span
-              class="appointment-detail-page__skeleton-bar appointment-detail-page__skeleton-bar--value"
+              class="appointment-detail-page__skeleton-bar appointment-detail-page__skeleton-bar--button"
             />
           </span>
         </div>
-        <span
-          class="appointment-detail-page__skeleton-bar appointment-detail-page__skeleton-bar--section"
-        />
-        <span
-          v-for="n in 2"
-          :key="`h${n}`"
-          class="appointment-detail-page__skeleton-bar appointment-detail-page__skeleton-bar--history"
-        />
+        <div class="appointment-detail-page__body">
+          <!-- La tarjeta: cabecera, troquel, hoja con la hora, regla y puntos guía. -->
+          <div class="appointment-detail-page__skeleton-card">
+            <span
+              class="appointment-detail-page__skeleton-bar appointment-detail-page__skeleton-bar--kicker"
+            />
+            <span
+              class="appointment-detail-page__skeleton-bar appointment-detail-page__skeleton-bar--service"
+            />
+            <span class="appointment-detail-page__skeleton-perforation" />
+            <span class="appointment-detail-page__skeleton-when">
+              <span class="appointment-detail-page__skeleton-leaf" />
+              <span
+                class="appointment-detail-page__skeleton-bar appointment-detail-page__skeleton-bar--time"
+              />
+            </span>
+            <span
+              class="appointment-detail-page__skeleton-bar appointment-detail-page__skeleton-bar--ruler"
+            />
+            <span class="appointment-detail-page__skeleton-perforation" />
+            <span v-for="n in 4" :key="n" class="appointment-detail-page__skeleton-row">
+              <span
+                class="appointment-detail-page__skeleton-bar appointment-detail-page__skeleton-bar--label"
+              />
+              <span class="appointment-detail-page__skeleton-dots" />
+              <span
+                class="appointment-detail-page__skeleton-bar appointment-detail-page__skeleton-bar--value"
+              />
+            </span>
+          </div>
+          <div class="appointment-detail-page__history">
+            <span
+              class="appointment-detail-page__skeleton-bar appointment-detail-page__skeleton-bar--section"
+            />
+            <span class="appointment-detail-page__skeleton-events">
+              <span v-for="n in 2" :key="n" class="appointment-detail-page__skeleton-event">
+                <span class="appointment-detail-page__skeleton-diamond" />
+                <span
+                  class="appointment-detail-page__skeleton-bar appointment-detail-page__skeleton-bar--history"
+                />
+                <span
+                  class="appointment-detail-page__skeleton-bar appointment-detail-page__skeleton-bar--meta"
+                />
+              </span>
+            </span>
+          </div>
+        </div>
       </div>
     </div>
 
@@ -1055,7 +1132,15 @@ function occurredAtLabel(entry: HistoryEntry): string {
               Sin eventos registrados todavía.
             </p>
 
-            <ol v-else class="appointment-detail-page__history-list" aria-label="Eventos del turno">
+            <ol
+              v-else
+              class="appointment-detail-page__history-list"
+              :class="{
+                'appointment-detail-page__history-list--railed': historyEnd,
+                'appointment-detail-page__history-list--upcoming': historyEnd?.kind === 'upcoming',
+              }"
+              aria-label="Eventos del turno"
+            >
               <li
                 v-for="entry in historyItems"
                 :key="entry.id"
@@ -1095,6 +1180,28 @@ function occurredAtLabel(entry: HistoryEntry): string {
                     {{ historyChangeValue(change.fieldName, change.newValue, v, businessTimezone) }}
                   </li>
                 </ul>
+              </li>
+              <li
+                v-if="historyEnd && historyEnd.kind !== 'close'"
+                class="appointment-detail-page__history-item appointment-detail-page__history-end"
+                :class="`appointment-detail-page__history-end--${historyEnd.kind}`"
+              >
+                <span
+                  class="appointment-detail-page__history-icon"
+                  aria-hidden="true"
+                  v-html="factIcon('calendar')"
+                />
+                <div class="appointment-detail-page__history-main">
+                  <span class="appointment-detail-page__history-event">{{ historyEnd.title }}</span>
+                  <span class="appointment-detail-page__history-meta">{{ historyEnd.meta }}</span>
+                </div>
+              </li>
+              <li
+                v-else-if="historyEnd"
+                class="appointment-detail-page__history-item appointment-detail-page__history-end appointment-detail-page__history-end--close"
+                aria-hidden="true"
+              >
+                <span class="appointment-detail-page__history-icon" />
               </li>
             </ol>
 
@@ -1688,6 +1795,17 @@ function occurredAtLabel(entry: HistoryEntry): string {
     margin-bottom: auto;
     padding-bottom: var(--space-6);
   }
+
+  /* La carga se coloca igual que el detalle, para que llegue sin moverse (#758). */
+  .appointment-detail-page:has(> .appointment-detail-page__loading)
+    > .appointment-detail-page__back {
+    margin-top: auto;
+  }
+
+  .appointment-detail-page > .appointment-detail-page__loading {
+    margin-bottom: auto;
+    padding-bottom: var(--space-6);
+  }
 }
 
 /* La tarjeta conserva su proporción (hasta 640 px) y el historial toma el resto. */
@@ -1695,7 +1813,8 @@ function occurredAtLabel(entry: HistoryEntry): string {
   display: grid;
   grid-template-columns: minmax(0, 640px) minmax(280px, 1fr);
   gap: var(--space-12);
-  align-items: start;
+  /* El historial toma el alto de la tarjeta (#758); la tarjeta conserva el suyo. */
+  align-items: stretch;
 }
 
 .appointment-detail-page__back {
@@ -1744,17 +1863,75 @@ function occurredAtLabel(entry: HistoryEntry): string {
 .appointment-detail-page__skeleton {
   display: flex;
   flex-direction: column;
-  gap: var(--space-3);
-  padding-block: var(--space-4);
+  gap: var(--space-6);
+}
+
+.appointment-detail-page__skeleton-monogram {
+  flex: 0 0 68px;
+  width: 68px;
+  height: 68px;
+  border: 1px solid color-mix(in srgb, var(--color-brass-line) 55%, transparent);
+  border-radius: 4px;
+}
+
+.appointment-detail-page__skeleton-bar--button {
+  width: 188px;
+  height: 44px;
+  border-radius: var(--radius-md);
+}
+
+.appointment-detail-page__skeleton-bar--button + .appointment-detail-page__skeleton-bar--button {
+  width: 148px;
+}
+
+.appointment-detail-page__skeleton-bar--ruler {
+  width: 86%;
+  height: 34px;
+  margin-block: var(--space-3) var(--space-1);
+}
+
+.appointment-detail-page__skeleton-bar--meta {
+  width: 52%;
+  height: 12px;
+}
+
+.appointment-detail-page__skeleton-events {
+  display: flex;
+  flex-direction: column;
+}
+
+.appointment-detail-page__skeleton-event {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  min-height: 72px;
+  padding: 2px 0 var(--space-6) var(--space-8);
+  border-left: 1px solid color-mix(in srgb, var(--color-on-strong) 14%, transparent);
+}
+
+.appointment-detail-page__skeleton-event:last-child {
+  border-left-color: transparent;
+}
+
+.appointment-detail-page__skeleton-diamond {
+  position: absolute;
+  top: 3px;
+  left: -9px;
+  width: 17px;
+  height: 17px;
+  border: 1px solid color-mix(in srgb, var(--color-brass-line) 55%, transparent);
+  border-radius: 2px;
+  transform: rotate(45deg);
 }
 
 .appointment-detail-page__skeleton-card {
   display: flex;
   flex-direction: column;
   gap: var(--space-3);
+  align-self: start;
   width: 100%;
-  max-width: 620px;
-  margin-block: var(--space-2) var(--space-5);
+  max-width: 640px;
   padding: 18px 22px;
   border: 1px solid color-mix(in srgb, var(--color-brass-line) 55%, transparent);
   border-radius: 4px;
@@ -2045,6 +2222,7 @@ function occurredAtLabel(entry: HistoryEntry): string {
 .appointment-detail-page__ticket {
   --ticket-backdrop: var(--color-canvas);
 
+  align-self: start;
   width: 100%;
   max-width: 640px;
 }
@@ -2155,9 +2333,13 @@ function occurredAtLabel(entry: HistoryEntry): string {
   text-decoration-thickness: 2px;
 }
 
+/* El doble anillo de los botones de la familia, con el papel de la tarjeta por
+   dentro (#758). */
 .appointment-detail-page__contact:focus-visible {
-  outline: 2px solid var(--color-focus-ring);
-  outline-offset: 3px;
+  outline: none;
+  box-shadow:
+    0 0 0 2px var(--color-surface),
+    0 0 0 4px var(--color-focus);
 }
 
 @media (prefers-reduced-motion: no-preference) {
@@ -2188,10 +2370,65 @@ function occurredAtLabel(entry: HistoryEntry): string {
 
 .appointment-detail-page__history-list {
   display: flex;
+  flex: 1 0 auto;
   flex-direction: column;
   padding: 0;
   margin: 0;
   list-style: none;
+}
+
+/* El riel llega hasta el final de la columna (#758): el último evento estira su
+   filete hasta el hito del turno o el rombo de cierre. Hacia un turno que aún no
+   ocurre, el tramo va punteado en latón: es tiempo por venir. */
+.appointment-detail-page__history-list--railed
+  > .appointment-detail-page__history-item:nth-last-child(2) {
+  flex-grow: 1;
+}
+
+.appointment-detail-page__history-list--upcoming
+  > .appointment-detail-page__history-item:nth-last-child(2) {
+  border-left-style: dashed;
+  border-left-color: var(--color-brass-line);
+}
+
+.appointment-detail-page__history-end {
+  min-height: 0;
+}
+
+.appointment-detail-page__history-end .appointment-detail-page__history-event {
+  font-family: var(--font-display);
+  font-size: 21px;
+  font-weight: 400;
+  line-height: 1.1;
+}
+
+.appointment-detail-page__history-end .appointment-detail-page__history-meta {
+  color: var(--color-brass-text);
+}
+
+.appointment-detail-page__history-end--upcoming .appointment-detail-page__history-icon,
+.appointment-detail-page__history-end--now .appointment-detail-page__history-icon {
+  color: var(--color-brass-text);
+  border-color: var(--color-brass-line);
+}
+
+.appointment-detail-page__history-end--upcoming .appointment-detail-page__history-icon {
+  border-style: dashed;
+}
+
+.appointment-detail-page__history-end--close {
+  height: 10px;
+  padding: 0;
+}
+
+.appointment-detail-page__history-end--close .appointment-detail-page__history-icon {
+  top: 0;
+  left: -5px;
+  width: 9px;
+  height: 9px;
+  background-color: var(--color-brass-line);
+  border: 0;
+  border-radius: 1px;
 }
 
 .appointment-detail-page__history-item {
@@ -2784,6 +3021,21 @@ function occurredAtLabel(entry: HistoryEntry): string {
     gap: var(--space-6);
   }
 
+  .appointment-detail-page__skeleton {
+    gap: var(--space-4);
+  }
+
+  .appointment-detail-page__skeleton-monogram {
+    flex-basis: 56px;
+    width: 56px;
+    height: 56px;
+  }
+
+  .appointment-detail-page__skeleton-bar--button,
+  .appointment-detail-page__skeleton-bar--button + .appointment-detail-page__skeleton-bar--button {
+    width: 100%;
+  }
+
   .appointment-detail-page__history {
     padding: var(--space-5) 0 0;
     border-top: 1px solid var(--rule);
@@ -2862,5 +3114,138 @@ function occurredAtLabel(entry: HistoryEntry): string {
 
 :global(:root[data-motion='reduced']) .appointment-detail-page__cancel-time-text::after {
   animation: none;
+}
+/* ── Llegada (#758) ─────────────────────────────────────────────────────────
+   Una vez, cuando la tarjeta recibe sus datos (~900 ms, solo transform y
+   opacity): la cabecera se asienta (0–320), la tarjeta sube (60–520), el rombo
+   de la regla corre desde el borde hasta la hora (300–820), el sello aterriza
+   (380–760) y las filas de puntos guía y los eventos del historial entran
+   escalonados (440–920). Con movimiento reducido no existe: el primer cuadro ya
+   es el final. */
+@media (prefers-reduced-motion: no-preference) {
+  :root:not([data-motion='reduced'])
+    .appointment-detail-page--arrive
+    .appointment-detail-page__hero {
+    animation: detail-arrive-rise 320ms cubic-bezier(0.2, 0.7, 0.2, 1) both;
+  }
+
+  :root:not([data-motion='reduced'])
+    .appointment-detail-page--arrive
+    .appointment-detail-page__ticket {
+    animation: detail-arrive-ticket 460ms 60ms cubic-bezier(0.2, 0.7, 0.2, 1) both;
+  }
+
+  :root:not([data-motion='reduced'])
+    .appointment-detail-page--arrive
+    :deep(.appointment-ticket__seal) {
+    animation: detail-arrive-stamp 380ms 380ms cubic-bezier(0.3, 1.4, 0.5, 1) both;
+  }
+
+  :root:not([data-motion='reduced'])
+    .appointment-detail-page--arrive
+    :deep(.day-ruler__mark--mine) {
+    animation: detail-arrive-slide 520ms 300ms cubic-bezier(0.2, 0.7, 0.2, 1) both;
+  }
+
+  :root:not([data-motion='reduced'])
+    .appointment-detail-page--arrive
+    .appointment-detail-page__leader,
+  :root:not([data-motion='reduced'])
+    .appointment-detail-page--arrive
+    .appointment-detail-page__block {
+    animation: detail-arrive-rise 300ms 440ms cubic-bezier(0.2, 0.7, 0.2, 1) both;
+  }
+
+  :root:not([data-motion='reduced'])
+    .appointment-detail-page--arrive
+    .appointment-detail-page__leader:nth-child(2) {
+    animation-delay: 500ms;
+  }
+
+  :root:not([data-motion='reduced'])
+    .appointment-detail-page--arrive
+    .appointment-detail-page__leader:nth-child(3) {
+    animation-delay: 560ms;
+  }
+
+  :root:not([data-motion='reduced'])
+    .appointment-detail-page--arrive
+    .appointment-detail-page__leader:nth-child(4),
+  :root:not([data-motion='reduced'])
+    .appointment-detail-page--arrive
+    .appointment-detail-page__block {
+    animation-delay: 620ms;
+  }
+
+  :root:not([data-motion='reduced'])
+    .appointment-detail-page--arrive
+    .appointment-detail-page__history-item {
+    animation: detail-arrive-step 320ms 480ms cubic-bezier(0.2, 0.7, 0.2, 1) both;
+  }
+
+  :root:not([data-motion='reduced'])
+    .appointment-detail-page--arrive
+    .appointment-detail-page__history-item:nth-child(2) {
+    animation-delay: 560ms;
+  }
+
+  :root:not([data-motion='reduced'])
+    .appointment-detail-page--arrive
+    .appointment-detail-page__history-item:nth-child(3) {
+    animation-delay: 640ms;
+  }
+
+  :root:not([data-motion='reduced'])
+    .appointment-detail-page--arrive
+    .appointment-detail-page__history-item:nth-child(n + 4) {
+    animation-delay: 600ms;
+  }
+}
+
+@keyframes detail-arrive-rise {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+}
+
+@keyframes detail-arrive-ticket {
+  from {
+    opacity: 0;
+    transform: translateY(18px);
+  }
+}
+
+@keyframes detail-arrive-step {
+  from {
+    opacity: 0;
+    transform: translateX(-8px);
+  }
+}
+
+/* `scale` y `rotate` sueltos se suman al giro propio del sello sin pisarlo. */
+@keyframes detail-arrive-stamp {
+  from {
+    opacity: 0;
+    scale: 1.6;
+    rotate: -6deg;
+  }
+
+  60% {
+    opacity: 1;
+    scale: 0.94;
+  }
+}
+
+/* `translate` suelto se suma al centrado y al giro del rombo. */
+@keyframes detail-arrive-slide {
+  from {
+    opacity: 0;
+    translate: var(--arrive-mark-from, 0) 0;
+  }
+
+  25% {
+    opacity: 1;
+  }
 }
 </style>
