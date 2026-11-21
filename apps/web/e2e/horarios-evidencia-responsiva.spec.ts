@@ -50,7 +50,12 @@ function json(body: unknown, status = 200) {
   return { status, contentType: 'application/json', body: JSON.stringify(body) }
 }
 
-async function openSchedules(page: Page, width: number, height: number) {
+async function openSchedules(
+  page: Page,
+  width: number,
+  height: number,
+  items: ReturnType<typeof workingHour>[] = workingHours,
+) {
   await page.setViewportSize({ width, height })
   await page.route('**/api/v1/private/**', async (route) => {
     const { pathname } = new URL(route.request().url())
@@ -87,7 +92,7 @@ async function openSchedules(page: Page, width: number, height: number) {
         )
         return
       }
-      await route.fulfill(json({ items: workingHours, nextCursor: null }))
+      await route.fulfill(json({ items, nextCursor: null }))
       return
     }
     if (pathname.endsWith('/holiday-calendar')) {
@@ -324,6 +329,103 @@ test('horarios: en escritorio la semana y el panel caben sin desplazarse', async
     await page.screenshot({ path: path.join(evidenceDir, viewport.name, 'sin-scroll.png') })
   }
 })
+
+// Un barbero con cuatro o más tramos en varios días no cabe en la altura del
+// panel: la página sigue quieta y es el tablero el que se desplaza por dentro
+// (DEC-109; #769). El «+» del último día se alcanza sin mover la página.
+const busyWeek = [1, 2, 3, 4, 5, 6].flatMap((day) => [
+  workingHour(`d${day}-1`, day, '07:00', 90),
+  workingHour(`d${day}-2`, day, '09:00', 240),
+  workingHour(`d${day}-3`, day, '14:00', 120),
+  workingHour(`d${day}-4`, day, '16:30', 90),
+  ...(day % 2 === 0 ? [workingHour(`d${day}-5`, day, '18:30', 60)] : []),
+])
+
+test('horarios: con muchos tramos el tablero se desplaza por dentro, nunca la página', async ({
+  page,
+}) => {
+  await openSchedules(page, 1280, 900, busyWeek)
+  for (const viewport of noScrollViewports) {
+    await page.setViewportSize(viewport)
+    await page.waitForTimeout(1400)
+    const overflow = await page.evaluate(() => {
+      const content = document.querySelector('.private-shell__content')!
+      const board = document.querySelector('.week-board')!
+      return {
+        page: content.scrollHeight - content.clientHeight,
+        board: board.scrollHeight - board.clientHeight,
+      }
+    })
+    expect(overflow.page, `la página no se desplaza a ${viewport.name}`).toBe(0)
+    expect(overflow.board, `el tablero se desplaza por dentro a ${viewport.name}`).toBeGreaterThan(
+      0,
+    )
+    // Desplazable, el tablero es una región con nombre (Firefox lo enfoca).
+    await expect(page.getByRole('region', { name: 'Semana de Barbero NAVA' })).toBeVisible()
+
+    const lastAdd = page.getByRole('button', { name: 'Agregar un tramo el Domingo' })
+    await lastAdd.scrollIntoViewIfNeeded()
+    await expect(lastAdd).toBeInViewport()
+    expect(
+      await page.evaluate(() => document.querySelector('.private-shell__content')!.scrollTop),
+    ).toBe(0)
+
+    // Acciones de fila en el piso de escritorio (DEC-112): 36 px, texto de 14.
+    const edit = page.getByRole('button', { name: /^Editar tramo de Lunes/ }).first()
+    const box = await edit.boundingBox()
+    expect(box!.height).toBeGreaterThanOrEqual(36)
+    expect(await edit.evaluate((el) => getComputedStyle(el).fontSize)).toBe('14px')
+    await page.evaluate(() => document.querySelector('.week-board')!.scrollTo(0, 0))
+    await page.screenshot({ path: path.join(evidenceDir, viewport.name, 'muchos-tramos.png') })
+
+    // Teclado (WCAG 2.4.11): el control enfocado, con su anillo de 4 px, queda
+    // entero entre el eje fijo y el borde inferior del tablero. Hacia delante
+    // hasta el último «+» y de vuelta con Shift+Tab por todo jueves.
+    await page.getByRole('button', { name: 'Agregar un tramo el Sábado' }).focus()
+    await page.keyboard.press('Tab')
+    await expect(lastAdd).toBeFocused()
+    await expectFocusInsideBoard(page, viewport.name)
+    const stop = page.getByRole('button', { name: 'Agregar un tramo el Miércoles' })
+    for (
+      let step = 0;
+      step < 40 && !(await stop.evaluate((el) => el === document.activeElement));
+      step++
+    ) {
+      await page.keyboard.press('Shift+Tab')
+      await expectFocusInsideBoard(page, viewport.name)
+    }
+    await expect(stop).toBeFocused()
+    await page.evaluate(() => document.querySelector('.week-board')!.scrollTo(0, 0))
+  }
+
+  // Angosto: el tablero crece con la página y deja de ser región.
+  await page.setViewportSize({ width: 390, height: 844 })
+  await expect(page.getByRole('region', { name: 'Semana de Barbero NAVA' })).toHaveCount(0)
+})
+
+async function expectFocusInsideBoard(page: Page, viewportName: string) {
+  const ring = 4
+  const box = await page.evaluate(() => {
+    const active = document.activeElement as HTMLElement
+    const board = document.querySelector('.week-board') as HTMLElement
+    // El propio tablero (enfocable en Firefox) no es un control de fila.
+    if (active === board) return null
+    const axis = board.querySelector('.week-board__axis') as HTMLElement
+    const rect = active.getBoundingClientRect()
+    const boardRect = board.getBoundingClientRect()
+    return {
+      label: active.getAttribute('aria-label'),
+      top: rect.top,
+      bottom: rect.bottom,
+      axisBottom: axis.getBoundingClientRect().bottom,
+      boardBottom: boardRect.top + board.clientTop + board.clientHeight,
+    }
+  })
+  if (!box) return
+  const where = `${box.label} a ${viewportName}`
+  expect(box.top - ring, `${where}: no queda bajo el eje`).toBeGreaterThanOrEqual(box.axisBottom)
+  expect(box.bottom + ring, `${where}: no se corta abajo`).toBeLessThanOrEqual(box.boardBottom)
+}
 
 test('horarios: el acordeón abre un apartado a la vez y oculta el resto', async ({ page }) => {
   await openSchedules(page, 1280, 900)

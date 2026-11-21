@@ -7,7 +7,7 @@
  * eventos `add`/`edit`/`remove` y decide qué hacer (mismo contrato de estado
  * que la lista de antes: solo una respuesta exitosa cambia una fila).
  */
-import { computed, ref } from 'vue'
+import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { BaseButton } from '@/shared/ui'
 import {
   clockLabel,
@@ -34,6 +34,8 @@ interface Props {
   /** Minuto del día vigente en el negocio, para el marcador "ahora". */
   nowMinute: number | null
   pendingDeleteIds: ReadonlySet<string>
+  /** Nombre de la región cuando el tablero se desplaza por dentro («Semana de …»). */
+  regionLabel?: string
 }
 
 const props = defineProps<Props>()
@@ -46,6 +48,58 @@ const emit = defineEmits<{
 
 const ticks = computed(() => scaleTicks(props.scale))
 const activeId = ref<string | null>(null)
+const boardEl = ref<HTMLElement | null>(null)
+const axisEl = ref<HTMLElement | null>(null)
+
+// Cuando el tablero se desplaza por dentro (escritorio), Firefox lo vuelve
+// enfocable con teclado: se presenta como región con nombre (patrón de región
+// desplazable). En pantallas angostas crece con la página y no es región (#769).
+const scrollable = ref(false)
+let resizeObserver: ResizeObserver | null = null
+
+function measureScrollable() {
+  const board = boardEl.value
+  scrollable.value = !!board && board.scrollHeight > board.clientHeight
+}
+
+onMounted(() => {
+  measureScrollable()
+  if (typeof ResizeObserver === 'undefined' || !boardEl.value) return
+  resizeObserver = new ResizeObserver(measureScrollable)
+  resizeObserver.observe(boardEl.value)
+})
+
+onBeforeUnmount(() => resizeObserver?.disconnect())
+
+watch(
+  () => props.days,
+  () => nextTick(measureScrollable),
+  { deep: true },
+)
+
+/** Grosor del anillo de foco de BaseButton (2 + 2 px), igual que --board-focus-ring. */
+const FOCUS_RING_PX = 4
+
+// Con el tablero desplazable (escritorio), el control que recibe el foco debe
+// verse entero, con su anillo, entre el eje fijo y el borde inferior (WCAG
+// 2.4.11). Chromium lo resuelve con scroll-padding; Firefox no desplaza si el
+// control ya asoma en parte, así que se corrige aquí con scrollIntoView, que en
+// ambos respeta el scroll-padding (#769).
+function keepFocusInView(event: FocusEvent) {
+  const board = boardEl.value
+  const axis = axisEl.value
+  const target = event.target
+  if (!board || !axis || !(target instanceof HTMLElement)) return
+  if (board.scrollHeight <= board.clientHeight) return
+
+  const rect = target.getBoundingClientRect()
+  const visibleTop = axis.getBoundingClientRect().bottom + FOCUS_RING_PX
+  const visibleBottom =
+    board.getBoundingClientRect().top + board.clientTop + board.clientHeight - FOCUS_RING_PX
+  if (rect.top < visibleTop || rect.bottom > visibleBottom) {
+    target.scrollIntoView({ block: 'nearest' })
+  }
+}
 
 function dayMinutes(day: BoardDay): number {
   return day.items.reduce((sum, item) => sum + item.durationMinutes, 0)
@@ -57,8 +111,14 @@ function countLabel(day: BoardDay): string {
 </script>
 
 <template>
-  <div class="week-board">
-    <div class="week-board__axis" aria-hidden="true">
+  <div
+    ref="boardEl"
+    class="week-board"
+    :role="scrollable && regionLabel ? 'region' : undefined"
+    :aria-label="scrollable && regionLabel ? regionLabel : undefined"
+    @focusin="keepFocusInView"
+  >
+    <div ref="axisEl" class="week-board__axis" aria-hidden="true">
       <div class="week-board__axis-scale">
         <span
           v-for="tick in ticks"
@@ -172,6 +232,13 @@ function countLabel(day: BoardDay): string {
    del negocio no aparece aquí; «hoy» y «ahora» van en Sol, como en la agenda. */
 .week-board {
   --track-height: 14px;
+  /* Objetivo de las acciones de fila y del «+»: 44 px táctil (DEC-039); en
+     escritorio baja al piso de 36 px de las acciones de fila (DEC-112). */
+  --board-control: 44px;
+  /* Alto del eje fijo y grosor del anillo de foco de BaseButton (2 + 2 px):
+     el desplazamiento por teclado se aparta de ambos (WCAG 2.4.11). */
+  --board-axis-height: 30px;
+  --board-focus-ring: 4px;
 
   display: flex;
   min-height: 0;
@@ -180,6 +247,17 @@ function countLabel(day: BoardDay): string {
   background-color: var(--color-surface);
   border: var(--border-width-normal) solid var(--color-border-subtle);
   border-radius: var(--radius-lg);
+}
+
+/* Firefox enfoca el tablero desplazable: el anillo doble de la familia, por
+   fuera. Por dentro lo taparía el eje fijo (se pinta encima del outline y de un
+   box-shadow inset); por fuera sigue el radio y cabe en el hueco que rodea al
+   tablero (#769). */
+.week-board:focus-visible {
+  outline: none;
+  box-shadow:
+    0 0 0 2px var(--color-surface),
+    0 0 0 4px var(--color-focus);
 }
 
 /* Regla horaria: sus etiquetas quedan sobre la columna de pistas, alineadas
@@ -192,7 +270,7 @@ function countLabel(day: BoardDay): string {
   flex: none;
   grid-template-columns: 132px minmax(0, 1fr);
   gap: 18px;
-  height: 30px;
+  height: var(--board-axis-height);
   padding: 0 18px;
   align-items: end;
   background-color: var(--color-surface);
@@ -367,8 +445,8 @@ function countLabel(day: BoardDay): string {
   display: flex;
   align-items: center;
   gap: 12px;
-  min-height: 42px;
-  padding: 3px 4px 3px 14px;
+  min-height: calc(var(--board-control) + 6px);
+  padding: 2px 3px 2px 14px;
   background-color: var(--color-surface);
   border: var(--border-width-normal) solid var(--color-border-subtle);
   border-radius: var(--radius-md);
@@ -410,7 +488,7 @@ function countLabel(day: BoardDay): string {
 
 /* Acciones de fila: BaseButton secundario neutro (v2), solo más compacto. */
 .week-board__chip-actions :deep(.base-button) {
-  height: 32px;
+  height: var(--board-control);
   padding-inline: 12px;
   font-size: var(--font-size-body-sm);
 }
@@ -428,7 +506,7 @@ function countLabel(day: BoardDay): string {
 .week-board__empty {
   display: flex;
   align-items: center;
-  min-height: 42px;
+  min-height: calc(var(--board-control) + 6px);
   padding: 0 14px;
   margin: 0;
   color: var(--color-text-secondary);
@@ -441,8 +519,8 @@ function countLabel(day: BoardDay): string {
 .week-board__add {
   display: inline-grid;
   place-items: center;
-  width: 42px;
-  height: 42px;
+  width: var(--board-control);
+  height: var(--board-control);
   padding: 0;
   color: var(--color-text-primary);
   font-size: var(--font-size-title-item);
@@ -533,6 +611,50 @@ function countLabel(day: BoardDay): string {
 
   .week-board__line {
     gap: 8px;
+  }
+}
+
+/* Escritorio (≥ 1100 px): la semana entera cabe en la altura del panel
+   (DEC-109, «Composición sin desplazamiento»). Filas más ceñidas y acciones en
+   el piso de 36 px, para que dos tramos y el «+» quepan en un renglón; si un
+   barbero tiene más, el tablero se desplaza por dentro, nunca la página. */
+@media (min-width: 1100px) {
+  /* Con el tablero desplazable, el foco que llega por teclado no queda bajo
+     el eje fijo ni con el anillo recortado contra el borde inferior. */
+  .week-board {
+    --board-control: 36px;
+    --board-axis-height: 26px;
+
+    padding-bottom: var(--board-focus-ring);
+    scroll-padding-top: calc(var(--board-axis-height) + 8px);
+    scroll-padding-bottom: 8px;
+  }
+
+  .week-board__axis,
+  .week-board__day {
+    gap: 14px;
+    padding-inline: 14px;
+  }
+
+  .week-board__day {
+    padding-block: 3px;
+  }
+
+  .week-board__body {
+    gap: 4px;
+  }
+
+  .week-board__chip {
+    gap: 8px;
+    padding-left: 12px;
+  }
+
+  .week-board__chip-actions {
+    margin-left: 0;
+  }
+
+  .week-board__chip-actions :deep(.base-button) {
+    padding-inline: 10px;
   }
 }
 
