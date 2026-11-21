@@ -24,6 +24,7 @@ services:
       NAVA_JENKINS_USER: ${NAVA_JENKINS_USER:-admin}
       NAVA_JENKINS_PASSWORD: ${NAVA_JENKINS_PASSWORD:-nava-local}
       NAVA_RAMA: ${NAVA_RAMA:-main}
+      NAVA_JENKINS_PORT: ${NAVA_JENKINS_PORT:-8090}
       JAVA_OPTS: >-
         -Xms256m -Xmx1g
         -Djenkins.install.runSetupWizard=false

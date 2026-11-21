@@ -48,7 +48,7 @@ security:
 
 unclassified:
   location:
-    url: "http://localhost:8090/"
+    url: "http://localhost:${NAVA_JENKINS_PORT}/"
 
 jobs:
   - script: >
