@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import { mount } from '@vue/test-utils'
+import { flushPromises, mount } from '@vue/test-utils'
 import WeeklyBoard from '../WeeklyBoard.vue'
 
 // El tablero desplazable revela el control enfocado cuando queda bajo el eje
@@ -36,6 +36,7 @@ function mountBoard({ scrollable = true } = {}) {
       todayIsoWeekday: null,
       nowMinute: null,
       pendingDeleteIds: new Set<string>(),
+      regionLabel: 'Semana de Barbero de prueba',
     },
   })
   const board = wrapper.get('.week-board').element as HTMLElement
@@ -99,6 +100,33 @@ describe('WeeklyBoard · foco dentro del tablero desplazable', () => {
     const wrapper = mountBoard({ scrollable: false })
     focusAddAt(wrapper, 20)
     expect(scrollIntoView).not.toHaveBeenCalled()
+    wrapper.unmount()
+  })
+})
+
+describe('WeeklyBoard · región desplazable', () => {
+  afterEach(() => {
+    document.body.innerHTML = ''
+  })
+
+  it('is a named region only while it scrolls on its own (Firefox makes it focusable)', async () => {
+    const wrapper = mountBoard()
+    // Las medidas simuladas llegan después del montaje: un cambio de días vuelve a medir.
+    await wrapper.setProps({ days: days.map((day) => ({ ...day })) })
+    await flushPromises()
+    const board = wrapper.get('.week-board')
+    expect(board.attributes('role')).toBe('region')
+    expect(board.attributes('aria-label')).toBe('Semana de Barbero de prueba')
+    wrapper.unmount()
+  })
+
+  it('is not a region when it grows with the page (narrow layout)', async () => {
+    const wrapper = mountBoard({ scrollable: false })
+    await wrapper.setProps({ days: days.map((day) => ({ ...day })) })
+    await flushPromises()
+    const board = wrapper.get('.week-board')
+    expect(board.attributes('role')).toBeUndefined()
+    expect(board.attributes('aria-label')).toBeUndefined()
     wrapper.unmount()
   })
 })

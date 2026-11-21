@@ -7,7 +7,7 @@
  * eventos `add`/`edit`/`remove` y decide qué hacer (mismo contrato de estado
  * que la lista de antes: solo una respuesta exitosa cambia una fila).
  */
-import { computed, ref } from 'vue'
+import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { BaseButton } from '@/shared/ui'
 import {
   clockLabel,
@@ -34,6 +34,8 @@ interface Props {
   /** Minuto del día vigente en el negocio, para el marcador "ahora". */
   nowMinute: number | null
   pendingDeleteIds: ReadonlySet<string>
+  /** Nombre de la región cuando el tablero se desplaza por dentro («Semana de …»). */
+  regionLabel?: string
 }
 
 const props = defineProps<Props>()
@@ -48,6 +50,32 @@ const ticks = computed(() => scaleTicks(props.scale))
 const activeId = ref<string | null>(null)
 const boardEl = ref<HTMLElement | null>(null)
 const axisEl = ref<HTMLElement | null>(null)
+
+// Cuando el tablero se desplaza por dentro (escritorio), Firefox lo vuelve
+// enfocable con teclado: se presenta como región con nombre (patrón de región
+// desplazable). En pantallas angostas crece con la página y no es región (#769).
+const scrollable = ref(false)
+let resizeObserver: ResizeObserver | null = null
+
+function measureScrollable() {
+  const board = boardEl.value
+  scrollable.value = !!board && board.scrollHeight > board.clientHeight
+}
+
+onMounted(() => {
+  measureScrollable()
+  if (typeof ResizeObserver === 'undefined' || !boardEl.value) return
+  resizeObserver = new ResizeObserver(measureScrollable)
+  resizeObserver.observe(boardEl.value)
+})
+
+onBeforeUnmount(() => resizeObserver?.disconnect())
+
+watch(
+  () => props.days,
+  () => nextTick(measureScrollable),
+  { deep: true },
+)
 
 /** Grosor del anillo de foco de BaseButton (2 + 2 px), igual que --board-focus-ring. */
 const FOCUS_RING_PX = 4
@@ -83,7 +111,13 @@ function countLabel(day: BoardDay): string {
 </script>
 
 <template>
-  <div ref="boardEl" class="week-board" @focusin="keepFocusInView">
+  <div
+    ref="boardEl"
+    class="week-board"
+    :role="scrollable && regionLabel ? 'region' : undefined"
+    :aria-label="scrollable && regionLabel ? regionLabel : undefined"
+    @focusin="keepFocusInView"
+  >
     <div ref="axisEl" class="week-board__axis" aria-hidden="true">
       <div class="week-board__axis-scale">
         <span
@@ -213,6 +247,17 @@ function countLabel(day: BoardDay): string {
   background-color: var(--color-surface);
   border: var(--border-width-normal) solid var(--color-border-subtle);
   border-radius: var(--radius-lg);
+}
+
+/* Firefox enfoca el tablero desplazable: el anillo doble de la familia, por
+   fuera. Por dentro lo taparía el eje fijo (se pinta encima del outline y de un
+   box-shadow inset); por fuera sigue el radio y cabe en el hueco que rodea al
+   tablero (#769). */
+.week-board:focus-visible {
+  outline: none;
+  box-shadow:
+    0 0 0 2px var(--color-surface),
+    0 0 0 4px var(--color-focus);
 }
 
 /* Regla horaria: sus etiquetas quedan sobre la columna de pistas, alineadas

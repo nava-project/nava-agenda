@@ -1200,6 +1200,7 @@ const editPreview = computed(() =>
                   :today-iso-weekday="todayIsoWeekday"
                   :now-minute="nowMinute"
                   :pending-delete-ids="pendingDeleteIds"
+                  :region-label="`Semana de ${selectedProfessional?.fullName ?? v.theProfessional}`"
                   @add="openCreateDialog"
                   @edit="openEditDialog"
                   @remove="onDelete"

@@ -360,6 +360,8 @@ test('horarios: con muchos tramos el tablero se desplaza por dentro, nunca la pÃ
     expect(overflow.board, `el tablero se desplaza por dentro a ${viewport.name}`).toBeGreaterThan(
       0,
     )
+    // Desplazable, el tablero es una regiÃ³n con nombre (Firefox lo enfoca).
+    await expect(page.getByRole('region', { name: 'Semana de Barbero NAVA' })).toBeVisible()
 
     const lastAdd = page.getByRole('button', { name: 'Agregar un tramo el Domingo' })
     await lastAdd.scrollIntoViewIfNeeded()
@@ -395,6 +397,10 @@ test('horarios: con muchos tramos el tablero se desplaza por dentro, nunca la pÃ
     await expect(stop).toBeFocused()
     await page.evaluate(() => document.querySelector('.week-board')!.scrollTo(0, 0))
   }
+
+  // Angosto: el tablero crece con la pÃ¡gina y deja de ser regiÃ³n.
+  await page.setViewportSize({ width: 390, height: 844 })
+  await expect(page.getByRole('region', { name: 'Semana de Barbero NAVA' })).toHaveCount(0)
 })
 
 async function expectFocusInsideBoard(page: Page, viewportName: string) {
@@ -402,6 +408,8 @@ async function expectFocusInsideBoard(page: Page, viewportName: string) {
   const box = await page.evaluate(() => {
     const active = document.activeElement as HTMLElement
     const board = document.querySelector('.week-board') as HTMLElement
+    // El propio tablero (enfocable en Firefox) no es un control de fila.
+    if (active === board) return null
     const axis = board.querySelector('.week-board__axis') as HTMLElement
     const rect = active.getBoundingClientRect()
     const boardRect = board.getBoundingClientRect()
@@ -413,6 +421,7 @@ async function expectFocusInsideBoard(page: Page, viewportName: string) {
       boardBottom: boardRect.top + board.clientTop + board.clientHeight,
     }
   })
+  if (!box) return
   const where = `${box.label} a ${viewportName}`
   expect(box.top - ring, `${where}: no queda bajo el eje`).toBeGreaterThanOrEqual(box.axisBottom)
   expect(box.bottom + ring, `${where}: no se corta abajo`).toBeLessThanOrEqual(box.boardBottom)
