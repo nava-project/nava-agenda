@@ -673,6 +673,15 @@ describe('CatalogPage', () => {
     const dialog = openDialogElement(wrapper)
     expect(dialog.textContent).toContain('Inactivo')
     expect(dialog.textContent).toContain('1 de septiembre de 2026')
+    // Ficha de la familia (#762): el estado es un sello, apagado si está inactivo,
+    // y las fechas son renglones con puntos guía.
+    const seal = dialog.querySelector('.catalog-page__ficha-seal')
+    expect(seal?.textContent?.trim()).toBe('Inactivo')
+    expect(seal?.classList.contains('catalog-page__ficha-seal--inactive')).toBe(true)
+    const leaders = [...dialog.querySelectorAll('.catalog-page__ficha-leader dt')].map((dt) =>
+      dt.textContent?.trim(),
+    )
+    expect(leaders).toEqual(['Duración', 'Registrado', 'Inactivo desde'])
   })
 
   it('closes the detail dialog with Cerrar without calling the API', async () => {
