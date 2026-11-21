@@ -63,6 +63,20 @@ describe('ProfessionalReviewsPanel', () => {
     expect(wrapper.get('[role="img"]').attributes('aria-label')).toBe('3,0 de 5 · 2 reseñas')
   })
 
+  it('waits with the family loader (diamond in the sun), announced once (#762)', async () => {
+    let resolve: (value: unknown) => void = () => {}
+    getMock.mockReturnValueOnce(new Promise((r) => (resolve = r)))
+    const wrapper = mountIt()
+    await wrapper.get('button').trigger('click')
+
+    const loader = wrapper.get('.professional-reviews__loader')
+    expect(loader.attributes('role')).toBe('status')
+    expect(loader.text()).toContain('Cargando reseñas…')
+    resolve(ok(both))
+    await flushPromises()
+    expect(wrapper.find('.professional-reviews__loader').exists()).toBe(false)
+  })
+
   it('lists every review, hidden ones included with the date they were hidden', async () => {
     getMock.mockResolvedValueOnce(ok(both))
     const wrapper = mountIt()

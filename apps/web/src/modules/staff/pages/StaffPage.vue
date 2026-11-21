@@ -280,6 +280,20 @@ function firstInitial(fullName: string): string {
   return fullName.trim().charAt(0).toUpperCase()
 }
 
+// Fecha de alta en palabras («20 de noviembre de 2026») para la ficha, igual que
+// la del servicio; la lista conserva la forma corta.
+function formatDateLong(iso: string | null | undefined): string {
+  if (!iso) return ''
+  const date = new Date(iso)
+  if (Number.isNaN(date.getTime())) return ''
+  return new Intl.DateTimeFormat('es-CO', {
+    day: 'numeric',
+    month: 'long',
+    year: 'numeric',
+    timeZone: 'America/Bogota',
+  }).format(date)
+}
+
 // Fecha de alta. Zona fija de la moneda del contrato (COP, DEC-067), igual que
 // Servicios, para que la fecha no dependa del huso del equipo.
 function formatDate(iso: string | null | undefined): string {
@@ -910,31 +924,38 @@ async function onSubmitRename() {
       size="md"
       content-class="staff-page__dialog staff-page__detail-dialog"
     >
+      <!-- Ficha de la familia (#762, DEC-189): el retrato con filete y rombo de
+           latón, el oficio como rótulo de latón y los datos en renglones con
+           puntos guía. Mismos datos que antes. -->
       <div v-if="detailTarget" class="staff-page__ink staff-page__detail">
-        <div class="staff-page__detail-hero">
-          <span class="staff-page__detail-frame">
-            <ProfessionalAvatar
-              size="hero"
-              :full-name="detailTarget.fullName"
-              :photo-url="photoOf(detailTarget)"
-            />
-          </span>
-          <p class="staff-page__detail-role">{{ v.Professional }}</p>
-          <p v-if="detailTarget.description" class="staff-page__detail-description">
-            {{ detailTarget.description }}
-          </p>
-        </div>
+        <article class="staff-page__ficha" aria-label="Ficha del profesional">
+          <div class="staff-page__detail-hero">
+            <span class="staff-page__detail-frame">
+              <ProfessionalAvatar
+                size="portrait"
+                :full-name="detailTarget.fullName"
+                :photo-url="photoOf(detailTarget)"
+              />
+            </span>
+            <div class="staff-page__detail-identity">
+              <p class="staff-page__detail-role">{{ v.Professional }}</p>
+              <p v-if="detailTarget.description" class="staff-page__detail-description">
+                {{ detailTarget.description }}
+              </p>
+            </div>
+          </div>
 
-        <dl class="staff-page__facts">
-          <div>
-            <dt>En Nava Agenda desde</dt>
-            <dd>{{ formatDate(detailTarget.createdAt) }}</dd>
-          </div>
-          <div>
-            <dt>Foto</dt>
-            <dd>{{ hasPhoto(detailTarget) ? 'Con foto' : 'Sin foto' }}</dd>
-          </div>
-        </dl>
+          <dl class="staff-page__facts">
+            <div class="staff-page__fact">
+              <dt>En Nava Agenda desde</dt>
+              <dd>{{ formatDateLong(detailTarget.createdAt) }}</dd>
+            </div>
+            <div class="staff-page__fact">
+              <dt>Foto</dt>
+              <dd>{{ hasPhoto(detailTarget) ? 'Con foto' : 'Sin foto' }}</dd>
+            </div>
+          </dl>
+        </article>
         <ProfessionalReviewsPanel
           :professional-id="detailTarget.id"
           :rating="detailTarget.rating"
@@ -1735,82 +1756,157 @@ async function onSubmitRename() {
 /* Detalle: retrato grande, el nombre ya está en el encabezado del diálogo.
    v2 (DEC-188): sin marco de esquinas de acento ni entrada escalonada; todo
    llega con el propio diálogo. */
-.staff-page__detail-hero {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: var(--space-3);
-  padding: var(--space-4) 0 var(--space-2);
+/* Ficha de la familia (#762): papel con filete de latón, como la tarjeta de
+   turno. */
+.staff-page__ficha {
+  display: grid;
+  gap: var(--space-4);
+  padding: 20px 22px 18px;
+  background-color: var(--color-surface);
+  border: 1px solid var(--color-brass-line);
+  border-radius: 4px;
+  box-shadow: inset 0 -2px 0 var(--color-brass-body);
 }
 
+.staff-page__detail-hero {
+  display: flex;
+  align-items: center;
+  gap: var(--space-5);
+}
+
+/* El retrato lleva el monograma de la familia (#757): filete de latón y el
+   rombo asomando bajo el borde, como un sello. */
 .staff-page__detail-frame {
+  position: relative;
   display: inline-flex;
+  flex: none;
+  padding: 3px;
+  border: 1px solid var(--color-brass-line);
+  border-radius: 4px;
+  box-shadow: inset 0 -2px 0 var(--color-brass-body);
+}
+
+.staff-page__detail-frame::after {
+  position: absolute;
+  bottom: -5px;
+  left: 50%;
+  width: 9px;
+  height: 9px;
+  content: '';
+  background-color: var(--color-brass-body);
+  border: 2px solid var(--color-surface);
+  transform: translateX(-50%) rotate(45deg);
+}
+
+.staff-page__detail-frame :deep(.professional-avatar) {
+  border-color: transparent;
+  border-radius: 2px;
+}
+
+.staff-page__detail-identity {
+  display: grid;
+  gap: var(--space-2);
+  min-width: 0;
 }
 
 .staff-page__detail-description {
-  max-width: 36ch;
   margin: 0;
   color: var(--color-on-strong-muted);
   font-size: var(--font-size-body);
   line-height: var(--font-size-body-line);
-  text-align: center;
   overflow-wrap: anywhere;
   white-space: pre-line;
 }
 
-/* Rótulo v2 (DEC-188): tipo oración, 13px/500 en texto secundario. */
-.staff-page__detail-role {
+/* El oficio, en el rótulo de latón con su rombo hueco de la tarjeta. */
+.staff-page__detail-role,
+.staff-page__link-label {
+  display: flex;
+  gap: 8px;
+  align-items: center;
   margin: 0;
-  color: var(--color-text-secondary);
-  font-size: 13px;
-  font-weight: 500;
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 16px;
+  color: var(--color-brass-text);
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+}
+
+.staff-page__detail-role::before,
+.staff-page__link-label::before {
+  flex: none;
+  width: 6px;
+  height: 6px;
+  content: '';
+  border: 1.5px solid currentColor;
+  transform: rotate(45deg);
 }
 
 .staff-page__facts {
   display: grid;
-  grid-auto-flow: column;
-  grid-auto-columns: minmax(0, 1fr);
-  gap: var(--space-2);
   margin: 0;
+  padding-top: var(--space-2);
+  border-top: 1px dashed var(--color-brass-line);
 }
 
-.staff-page__facts > div {
+.staff-page__fact {
   display: flex;
-  flex-direction: column;
-  gap: var(--space-1);
-  padding: var(--space-3);
-  background-color: var(--color-surface);
-  border: var(--border-width-normal) solid var(--color-border-subtle);
-  border-radius: var(--radius-lg);
+  /* Si el valor no cabe junto a su etiqueta baja a su propia línea, alineado a
+     la derecha, y los puntos guía llenan la primera: nunca se sale ni se parte. */
+  flex-wrap: wrap;
+  gap: 2px 8px;
+  align-items: baseline;
+  padding: 6px 0;
 }
 
-.staff-page__facts dt {
+.staff-page__fact dt {
+  flex: none;
+  font-size: 14px;
+  line-height: 20px;
   color: var(--color-text-secondary);
-  font-size: 13px;
+}
+
+/* Puntos guía de latón, los mismos del detalle del turno (#758). */
+.staff-page__fact::after {
+  order: 1;
+  flex: 1 1 24px;
+  min-width: 24px;
+  height: 2px;
+  content: '';
+  background-image: radial-gradient(
+    circle,
+    color-mix(in srgb, var(--color-brass-line) 80%, transparent) 1px,
+    transparent 1.3px
+  );
+  background-repeat: repeat-x;
+  background-size: 6px 2px;
+  transform: translateY(-3px);
+}
+
+.staff-page__fact dd {
+  flex: none;
+  order: 2;
+  margin: 0 0 0 auto;
+  font-size: 15px;
   font-weight: 500;
+  line-height: 20px;
+  color: var(--color-text-primary);
+  text-align: right;
+  white-space: nowrap;
 }
 
-.staff-page__facts dd {
-  margin: 0;
-  /* Dato, no titular: va en la sans con cifras tabulares (#726). */
-  font-family: var(--font-sans);
-  font-size: var(--font-size-h3);
-  line-height: 1.2;
-  font-variant-numeric: tabular-nums;
-  overflow-wrap: anywhere;
-}
-
+/* «Tu usuario» deja de ser otra caja: un renglón de la ficha bajo un filete
+   punteado de latón, con el estado en serif y la acción a la derecha. */
 .staff-page__link {
   display: flex;
   flex-flow: row wrap;
   align-items: center;
   justify-content: space-between;
   gap: var(--space-3);
-  margin-top: var(--space-2);
-  padding: var(--space-3);
-  background-color: var(--color-surface);
-  border: var(--border-width-normal) solid var(--color-border-subtle);
-  border-radius: var(--radius-lg);
+  margin-top: var(--space-1);
+  padding: var(--space-4) 2px 0;
+  border-top: 1px dashed var(--color-brass-line);
 }
 
 .staff-page__link-text {
@@ -1820,17 +1916,56 @@ async function onSubmitRename() {
   min-width: 0;
 }
 
-.staff-page__link-label {
-  color: var(--color-text-secondary);
-  font-size: 13px;
-  font-weight: 500;
+.staff-page__link-state {
+  font-family: var(--font-display);
+  font-size: 24px;
+  font-weight: 400;
+  line-height: 1.1;
 }
 
-.staff-page__link-state {
-  /* Dato, no titular: va en la sans con cifras tabulares (#726). */
-  font-family: var(--font-sans);
-  font-size: var(--font-size-h3);
-  line-height: 1.2;
+/* Llegada (#762): el retrato asienta su rombo y los renglones suben
+   escalonados. Finita, solo transform y opacidad, y quieta con reduce o con el
+   movimiento reducido del panel. */
+@media (prefers-reduced-motion: no-preference) {
+  :root:not([data-motion='reduced']) .staff-page__detail-identity,
+  :root:not([data-motion='reduced']) .staff-page__fact,
+  :root:not([data-motion='reduced']) .staff-page__link {
+    animation: staff-ficha-rise 320ms cubic-bezier(0.2, 0.7, 0.2, 1) both;
+  }
+
+  :root:not([data-motion='reduced']) .staff-page__detail-identity {
+    animation-delay: 40ms;
+  }
+
+  :root:not([data-motion='reduced']) .staff-page__fact:nth-child(1) {
+    animation-delay: 100ms;
+  }
+
+  :root:not([data-motion='reduced']) .staff-page__fact:nth-child(2) {
+    animation-delay: 150ms;
+  }
+
+  :root:not([data-motion='reduced']) .staff-page__link {
+    animation-delay: 220ms;
+  }
+
+  :root:not([data-motion='reduced']) .staff-page__detail-frame::after {
+    animation: staff-ficha-mark 360ms 200ms cubic-bezier(0.3, 1.4, 0.5, 1) both;
+  }
+}
+
+@keyframes staff-ficha-rise {
+  from {
+    opacity: 0;
+    translate: 0 6px;
+  }
+}
+
+@keyframes staff-ficha-mark {
+  from {
+    opacity: 0;
+    transform: translateX(-50%) rotate(-45deg) scale(0.2);
+  }
 }
 
 .staff-page__link-hint {
@@ -1986,8 +2121,12 @@ async function onSubmitRename() {
     padding-inline: 10px;
   }
 
-  .staff-page__facts {
-    grid-auto-flow: row;
+  .staff-page__ficha {
+    padding: 16px 16px 14px;
+  }
+
+  .staff-page__detail-hero {
+    gap: var(--space-4);
   }
 
   .staff-page__dialog-actions :deep(.base-button) {
@@ -2050,6 +2189,14 @@ async function onSubmitRename() {
 .staff-page__dialog .base-dialog__title {
   color: var(--color-on-strong) !important;
   overflow-wrap: anywhere;
+}
+
+/* En la ficha (#762) el nombre es el título de la tarjeta, en serif. */
+.staff-page__detail-dialog .base-dialog__title {
+  font-family: var(--font-display) !important;
+  font-size: 30px !important;
+  font-weight: 400 !important;
+  line-height: 1.1 !important;
 }
 
 .staff-page__dialog .base-dialog__description {

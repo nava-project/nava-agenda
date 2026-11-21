@@ -1333,63 +1333,55 @@ async function reloadAfterConflict(serviceId: string) {
            contrato y duración) y la descripción como texto corrido. Antes
            eran dos cajas grandes con «25000.00 COP» y metadatos sueltos al
            pie. Todo está a la vista desde el primer cuadro (v2, DEC-188). -->
+      <!-- Ficha de la familia (#762, DEC-189): el servicio como un renglón de la
+           carta. El precio es el protagonista, en serif; la duración y las
+           fechas, renglones con puntos guía de latón; el estado, un sello con
+           su rombo. Mismos datos que antes, sin acciones nuevas. -->
       <div v-if="detailTarget" class="catalog-page__lifecycle catalog-page__detail">
-        <div class="catalog-page__detail-head">
+        <article class="catalog-page__ficha" aria-label="Ficha del servicio">
           <p
-            class="catalog-page__detail-status"
-            :class="{ 'catalog-page__detail-status--active': detailTarget.isActive }"
+            class="catalog-page__ficha-seal"
+            :class="{ 'catalog-page__ficha-seal--inactive': !detailTarget.isActive }"
           >
-            <span class="catalog-page__detail-dot" aria-hidden="true" />
-            {{ detailTarget.isActive ? 'Activo' : 'Inactivo' }}
+            <span class="catalog-page__ficha-seal-mark" aria-hidden="true" />{{
+              detailTarget.isActive ? 'Activo' : 'Inactivo'
+            }}
           </p>
-          <dl class="catalog-page__detail-meta">
-            <div>
+          <dl class="catalog-page__ficha-price catalog-page__detail-figure--price">
+            <dt class="catalog-page__ficha-kicker">Precio</dt>
+            <dd>
+              <span class="catalog-page__ficha-symbol">{{ detailPrice!.symbol }}</span>
+              <span class="catalog-page__ficha-amount">{{ detailPrice!.amount }}</span>
+              <small class="catalog-page__ficha-currency">{{ detailPrice!.currency }}</small>
+            </dd>
+          </dl>
+          <dl class="catalog-page__ficha-leaders">
+            <div class="catalog-page__ficha-leader">
+              <dt>Duración</dt>
+              <dd>
+                <span class="catalog-page__ficha-minutes">{{ detailTarget.durationMinutes }}</span>
+                min
+              </dd>
+            </div>
+            <div class="catalog-page__ficha-leader">
               <dt>Registrado</dt>
               <dd>{{ formatDateLong(detailTarget.createdAt) }}</dd>
             </div>
-            <div v-if="detailTarget.deactivatedAt">
+            <div v-if="detailTarget.deactivatedAt" class="catalog-page__ficha-leader">
               <dt>Inactivo desde</dt>
               <dd>{{ formatDateLong(detailTarget.deactivatedAt) }}</dd>
             </div>
           </dl>
-        </div>
-
-        <dl class="catalog-page__detail-figures">
-          <div class="catalog-page__detail-figure catalog-page__detail-figure--price">
-            <dt>Precio</dt>
-            <dd>
-              <span class="catalog-page__detail-symbol">{{ detailPrice!.symbol }}</span>
-              <span class="catalog-page__detail-amount">{{ detailPrice!.amount }}</span>
-              <small>{{ detailPrice!.currency }}</small>
-            </dd>
+          <div class="catalog-page__ficha-section">
+            <h3 class="catalog-page__ficha-kicker">Descripción</h3>
+            <p v-if="detailTarget.description" class="catalog-page__detail-text">
+              {{ detailTarget.description }}
+            </p>
+            <p v-else class="catalog-page__detail-text catalog-page__detail-text--empty">
+              Este servicio no tiene descripción.
+            </p>
           </div>
-          <div class="catalog-page__detail-figure">
-            <dt>Duración</dt>
-            <dd>
-              <svg
-                class="catalog-page__detail-clock"
-                viewBox="0 0 20 20"
-                aria-hidden="true"
-                focusable="false"
-              >
-                <circle cx="10" cy="10" r="7.5" />
-                <path d="M10 6v4.2l2.8 1.8" />
-              </svg>
-              <span class="catalog-page__detail-amount">{{ detailTarget.durationMinutes }}</span>
-              <small>min</small>
-            </dd>
-          </div>
-        </dl>
-
-        <div class="catalog-page__detail-section">
-          <h3 class="catalog-page__detail-label">Descripción</h3>
-          <p v-if="detailTarget.description" class="catalog-page__detail-text">
-            {{ detailTarget.description }}
-          </p>
-          <p v-else class="catalog-page__detail-text catalog-page__detail-text--empty">
-            Este servicio no tiene descripción.
-          </p>
-        </div>
+        </article>
       </div>
       <!-- Pie fuera del área con scroll: con una descripción larga solo esta
            se desplaza y "Cerrar"/"Editar" nunca quedan fuera de la pantalla. -->
@@ -2956,159 +2948,236 @@ async function reloadAfterConflict(serviceId: string) {
   gap: var(--space-5);
 }
 
-.catalog-page__detail-head {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  justify-content: space-between;
-  gap: var(--space-2) var(--space-4);
+/* Ficha de la familia (#762): una tarjeta de papel con filete de latón, como la
+   tarjeta de turno. */
+.catalog-page__ficha {
+  position: relative;
+  display: grid;
+  gap: var(--space-4);
+  padding: 22px 24px 24px;
+  background-color: var(--color-surface);
+  border: 1px solid var(--color-brass-line);
+  border-radius: 4px;
+  box-shadow: inset 0 -2px 0 var(--color-brass-body);
 }
 
-.catalog-page__detail-status {
+/* Sello a −4°: latón si el servicio está activo, apagado si no. */
+.catalog-page__ficha-seal {
+  position: absolute;
+  top: 20px;
+  right: 20px;
   display: inline-flex;
-  align-items: center;
   gap: 8px;
+  align-items: center;
   margin: 0;
-  padding: 5px 12px 5px 10px;
-  color: var(--color-on-strong-muted);
-  font-size: 13px;
-  font-weight: 500;
-  border: var(--border-width-normal) solid currentColor;
-  border-radius: 999px;
+  padding: 4px 12px;
+  font-size: 12px;
+  font-weight: 700;
+  line-height: 16px;
+  color: var(--color-brass-text);
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  border: 2px solid currentColor;
+  border-radius: 3px;
+  outline: 1px solid currentColor;
+  outline-offset: 2px;
+  transform: rotate(-4deg);
 }
 
-.catalog-page__detail-status--active {
-  color: var(--color-success-on-strong);
+.catalog-page__ficha-seal--inactive {
+  color: var(--color-text-secondary);
 }
 
-/* Mismo punto quieto que la insignia de la fila, para que el detalle lea
-   como continuación de la fila. */
-.catalog-page__detail-dot {
-  flex-shrink: 0;
+.catalog-page__ficha-seal-mark {
   width: 7px;
   height: 7px;
-  border-radius: 0;
-  rotate: 45deg;
   background-color: currentColor;
+  transform: rotate(45deg);
 }
 
-.catalog-page__detail-meta {
+/* Rótulo de latón en versalitas con su rombo hueco, como los encabezados de la
+   tarjeta de turno. */
+.catalog-page__ficha-kicker {
   display: flex;
-  flex-wrap: wrap;
-  gap: var(--space-1) var(--space-5);
+  gap: 8px;
+  align-items: center;
   margin: 0;
+  font-family: var(--font-sans);
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 16px;
+  color: var(--color-brass-text);
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
 }
 
-.catalog-page__detail-meta > div {
-  display: flex;
-  align-items: baseline;
-  gap: 6px;
+.catalog-page__ficha-kicker::before {
+  flex: none;
+  width: 6px;
+  height: 6px;
+  content: '';
+  border: 1.5px solid currentColor;
+  transform: rotate(45deg);
 }
 
-.catalog-page__detail-meta dt {
-  color: var(--color-text-secondary);
-  font-size: 13px;
-  font-weight: 500;
-}
-
-.catalog-page__detail-meta dd {
-  margin: 0;
-  color: var(--color-on-strong);
-  font-size: var(--font-size-body-sm);
-  font-variant-numeric: tabular-nums;
-}
-
-/* Ficha de cifras: una tarjeta v2 (borde sutil de 1px, sin filete de acento)
-   con las dos cifras separadas por un filete vertical (en angosto,
-   horizontal). El precio pesa más que la duración: es lo que se busca al
-   abrir el detalle. */
-.catalog-page__detail-figures {
+.catalog-page__ficha-price {
   display: grid;
-  grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr);
+  gap: 6px;
   margin: 0;
-  background-color: var(--color-surface);
-  border: var(--border-width-normal) solid var(--color-border-subtle);
-  border-radius: var(--radius-lg);
+  /* Deja sitio al sello de la esquina. */
+  padding-right: 120px;
 }
 
-.catalog-page__detail-figure {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-2);
-  min-width: 0;
-  padding: var(--space-4) var(--space-5);
-}
-
-.catalog-page__detail-figure + .catalog-page__detail-figure {
-  border-left: var(--border-width-normal) solid var(--color-border-subtle);
-}
-
-.catalog-page__detail-figure dt {
-  color: var(--color-text-secondary);
-  font-size: 13px;
-  font-weight: 500;
-}
-
-.catalog-page__detail-figure dd {
+.catalog-page__ficha-price dd {
   display: flex;
   flex-wrap: wrap;
   align-items: baseline;
   column-gap: 6px;
   margin: 0;
-  color: var(--color-on-strong);
+  color: var(--color-text-primary);
 }
 
-.catalog-page__detail-amount {
-  /* Dato, no titular: va en la sans con cifras tabulares (#726). */
-  font-family: var(--font-sans);
-  font-size: var(--font-size-h1);
-  line-height: 1.05;
+/* El precio es la cifra protagonista de la ficha: serif grande, como la hora
+   de la tarjeta (DEC-189: la serif va en lo que se lee primero y nunca por
+   debajo de 20 px). */
+.catalog-page__ficha-amount {
+  font-family: var(--font-display);
+  font-size: 64px;
+  font-weight: 400;
+  line-height: 0.95;
+  letter-spacing: -0.01em;
+}
+
+.catalog-page__ficha-symbol {
+  align-self: flex-start;
+  margin-top: 6px;
+  font-family: var(--font-display);
+  font-size: 30px;
+  line-height: 1;
+  color: var(--color-brass-text);
+}
+
+.catalog-page__ficha-currency {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--color-text-secondary);
+  letter-spacing: 0.08em;
+}
+
+.catalog-page__ficha-leaders {
+  display: grid;
+  margin: 0;
+  padding-top: var(--space-3);
+  border-top: 1px dashed var(--color-brass-line);
+}
+
+.catalog-page__ficha-leader {
+  display: flex;
+  /* Si el valor no cabe junto a su etiqueta baja a su propia línea, alineado a
+     la derecha, y los puntos guía llenan la primera: nunca se sale ni se parte. */
+  flex-wrap: wrap;
+  gap: 2px 8px;
+  align-items: baseline;
+  padding: 6px 0;
+}
+
+.catalog-page__ficha-leader dt {
+  flex: none;
+  max-width: 55%;
+  font-size: 14px;
+  line-height: 20px;
+  color: var(--color-text-secondary);
+}
+
+/* Puntos guía de latón entre la etiqueta y el valor, los mismos del detalle
+   del turno (#758). */
+.catalog-page__ficha-leader::after {
+  order: 1;
+  flex: 1 1 24px;
+  min-width: 24px;
+  height: 2px;
+  content: '';
+  background-image: radial-gradient(
+    circle,
+    color-mix(in srgb, var(--color-brass-line) 80%, transparent) 1px,
+    transparent 1.3px
+  );
+  background-repeat: repeat-x;
+  background-size: 6px 2px;
+  transform: translateY(-3px);
+}
+
+.catalog-page__ficha-leader dd {
+  flex: none;
+  order: 2;
+  margin: 0 0 0 auto;
+  text-align: right;
+  /* Valores cortos (minutos, una fecha): no se parten; cede la línea de puntos. */
+  white-space: nowrap;
+  font-size: 15px;
+  line-height: 20px;
+  font-weight: 500;
+  color: var(--color-text-primary);
   font-variant-numeric: tabular-nums;
 }
 
-.catalog-page__detail-figure--price .catalog-page__detail-amount {
-  font-size: var(--font-size-display);
-  line-height: 1;
+.catalog-page__ficha-minutes {
+  font-family: var(--font-display);
+  font-size: 26px;
+  font-weight: 400;
+  line-height: 20px;
 }
 
-.catalog-page__detail-symbol {
-  align-self: flex-start;
-  margin-top: 4px;
-  color: var(--color-text-secondary);
-  /* Dato, no titular: va en la sans con cifras tabulares (#726). */
-  font-family: var(--font-sans);
-  font-size: var(--font-size-h3);
-}
-
-.catalog-page__detail-figure dd small {
-  color: var(--color-text-secondary);
-  font-size: 13px;
-  font-weight: 500;
-}
-
-.catalog-page__detail-clock {
-  align-self: center;
-  width: 18px;
-  height: 18px;
-  margin-right: 2px;
-  fill: none;
-  stroke: var(--color-text-secondary);
-  stroke-width: 1.6;
-  stroke-linecap: round;
-}
-
-.catalog-page__detail-section {
-  display: flex;
-  flex-direction: column;
+.catalog-page__ficha-section {
+  display: grid;
   gap: var(--space-2);
+  padding-top: var(--space-3);
+  border-top: 1px dashed var(--color-brass-line);
 }
 
-/* Rótulo v2 (DEC-188): tipo oración, 13px/500 en texto secundario. */
-.catalog-page__detail-label {
-  margin: 0;
-  color: var(--color-text-secondary);
-  font-size: 13px;
-  font-weight: 500;
+/* Llegada (#762): el sello cae con un rebote corto y el precio y los renglones
+   suben escalonados. Finita, solo transform y opacidad, y sin movimiento con
+   reduce o con el movimiento reducido del panel. */
+@media (prefers-reduced-motion: no-preference) {
+  :root:not([data-motion='reduced']) .catalog-page__ficha-price,
+  :root:not([data-motion='reduced']) .catalog-page__ficha-leader,
+  :root:not([data-motion='reduced']) .catalog-page__ficha-section {
+    animation: ficha-rise 320ms cubic-bezier(0.2, 0.7, 0.2, 1) both;
+  }
+
+  :root:not([data-motion='reduced']) .catalog-page__ficha-leader:nth-child(1) {
+    animation-delay: 60ms;
+  }
+
+  :root:not([data-motion='reduced']) .catalog-page__ficha-leader:nth-child(2) {
+    animation-delay: 110ms;
+  }
+
+  :root:not([data-motion='reduced']) .catalog-page__ficha-leader:nth-child(3) {
+    animation-delay: 160ms;
+  }
+
+  :root:not([data-motion='reduced']) .catalog-page__ficha-section {
+    animation-delay: 200ms;
+  }
+
+  :root:not([data-motion='reduced']) .catalog-page__ficha-seal {
+    animation: ficha-stamp 380ms 240ms cubic-bezier(0.3, 1.4, 0.5, 1) both;
+  }
+}
+
+@keyframes ficha-rise {
+  from {
+    opacity: 0;
+    translate: 0 6px;
+  }
+}
+
+@keyframes ficha-stamp {
+  from {
+    opacity: 0;
+    scale: 1.35;
+  }
 }
 
 /* Las fichas de cifra del diálogo de estado (Desactivar/Reactivar) conservan
@@ -3167,13 +3236,23 @@ async function reloadAfterConflict(serviceId: string) {
 }
 
 @media (max-width: 480px) {
-  .catalog-page__detail-figures {
-    grid-template-columns: minmax(0, 1fr);
+  .catalog-page__ficha {
+    padding: 18px 16px 20px;
   }
 
-  .catalog-page__detail-figure + .catalog-page__detail-figure {
-    border-top: var(--border-width-normal) solid var(--color-border-subtle);
-    border-left: none;
+  /* En angosto el sello sube a su propia línea y el precio usa todo el ancho. */
+  .catalog-page__ficha-seal {
+    position: static;
+    justify-self: start;
+    margin: 2px 0 0 4px;
+  }
+
+  .catalog-page__ficha-price {
+    padding-right: 0;
+  }
+
+  .catalog-page__ficha-amount {
+    font-size: 52px;
   }
 }
 
@@ -3450,8 +3529,37 @@ async function reloadAfterConflict(serviceId: string) {
   color: var(--color-on-strong) !important;
 }
 
+/* En la ficha (#762) el nombre es el título de la tarjeta, en serif, y el
+   monograma lleva el filete y el rombo de latón del detalle del turno (#757);
+   las letras siguen en sans 600 (DEC-189). */
 .catalog-page__detail-dialog .base-dialog__title {
   overflow-wrap: anywhere;
+  font-family: var(--font-display) !important;
+  font-size: 30px !important;
+  font-weight: 400 !important;
+  line-height: 1.1 !important;
+}
+
+.catalog-page__detail-dialog .catalog-page__detail-icon {
+  overflow: visible;
+  width: 44px;
+  height: 44px;
+  background-color: var(--color-surface);
+  border: 1px solid var(--color-brass-line);
+  border-radius: 4px;
+  box-shadow: inset 0 -2px 0 var(--color-brass-body);
+}
+
+.catalog-page__detail-dialog .catalog-page__detail-icon::after {
+  position: absolute;
+  bottom: -5px;
+  left: 50%;
+  width: 8px;
+  height: 8px;
+  content: '';
+  background-color: var(--color-brass-body);
+  border: 2px solid var(--color-surface);
+  transform: translateX(-50%) rotate(45deg);
 }
 
 .catalog-page__detail-dialog .base-dialog__footer {
