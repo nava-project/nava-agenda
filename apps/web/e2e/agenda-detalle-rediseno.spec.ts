@@ -156,10 +156,8 @@ for (const [label, status] of [
 
         await expect(page.getByRole('heading', { name: 'Valentina Pardo', level: 1 })).toBeVisible()
         await expect(page.getByText('Turno reprogramado')).toBeVisible()
-        // La franja es decorativa; la hora completa sigue dicha en la fila «Hora» (solo lector de pantalla).
-        await expect(page.locator('.appointment-detail-page__span-date')).toContainText(
-          'Hora de Colombia',
-        )
+        // La zona horaria va en la nota de la hora de la tarjeta (#757), junto al fin del turno.
+        await expect(page.getByText(/^hasta .+ · Hora de Colombia$/)).toBeVisible()
         await expect(page.getByRole('button', { name: 'Corregir resultado' })).toHaveCount(
           status === 'confirmed' ? 0 : 1,
         )
@@ -240,6 +238,9 @@ const inkDialogs = [
   },
 ] as const
 
+// Textos del boleto de reprogramar que solo existen en la versión ancha.
+const wideOnly = new Set<string>(['Elige una hora libre abajo'])
+
 for (const card of inkDialogs) {
   for (const theme of themes) {
     for (const viewport of [...viewports, { name: '1920', width: 1920, height: 1080 }]) {
@@ -256,7 +257,9 @@ for (const card of inkDialogs) {
 
         const dialog = page.getByRole('dialog', { name: card.button })
         await expect(dialog).toBeVisible()
-        for (const text of card.texts) await expect(dialog.getByText(text)).toBeVisible()
+        // En móvil el boleto se compacta a una línea (#776): cada texto debe verse en su versión visible.
+        for (const text of card.texts.filter((t) => viewport.width > 520 || !wideOnly.has(t)))
+          await expect(dialog.getByText(text).filter({ visible: true })).toHaveCount(1)
         if (card.slug === 'reprogramar') {
           // #776: la hora se elige sobre los inicios libres, sin campos nativos.
           await expect(dialog.getByRole('radiogroup', { name: 'Hora' })).toBeVisible()

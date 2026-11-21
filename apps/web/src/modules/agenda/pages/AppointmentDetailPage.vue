@@ -1358,7 +1358,10 @@ function occurredAtLabel(entry: HistoryEntry): string {
                 }}<small v-if="rescheduleNow.suffix">&nbsp;{{ rescheduleNow.suffix }}</small></span
               >
               <span class="appointment-detail-page__reschedule-line-meta"
-                >{{ rescheduleNow.short }} · hasta {{ rescheduleNow.until }}</span
+                >{{ rescheduleNow.short }} · hasta {{ rescheduleNow.until
+                }}<template v-if="businessTimezone">
+                  · {{ timezoneLabel(businessTimezone) }}</template
+                ></span
               >
             </p>
             <p class="appointment-detail-page__reschedule-side">
@@ -3459,17 +3462,21 @@ function occurredAtLabel(entry: HistoryEntry): string {
   }
 }
 
-/* `scale` y `rotate` sueltos se suman al giro propio del sello sin pisarlo. */
+/* `scale` y `rotate` sueltos se suman al giro propio del sello sin pisarlo;
+   `translate` fija su borde (--ticket-seal-anchor) mientras crece, para que
+   caiga hacia dentro de la tarjeta sin desbordar (#780). */
 @keyframes detail-arrive-stamp {
   from {
     opacity: 0;
     scale: 1.6;
     rotate: -6deg;
+    translate: calc(var(--ticket-seal-anchor, -1) * 30%) 0;
   }
 
   60% {
     opacity: 1;
     scale: 0.94;
+    translate: calc(var(--ticket-seal-anchor, -1) * -3%) 0;
   }
 }
 
