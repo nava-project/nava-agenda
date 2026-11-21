@@ -327,7 +327,7 @@ func (s *ConfirmationService) ConfirmAppointment(
 	result = ConfirmResult{Decision: decision, Response: stored}
 
 	if decision.Outcome == idempotency.OutcomeProceed {
-		emailErr = s.sendConfirmationEmail(ctx, identity, profile, serviceName, startsAt, loc, tokenPlain)
+		emailErr = s.sendConfirmationEmail(ctx, slug, in, identity, profile, serviceName, durationMinutes, home, startsAt, loc, tokenPlain)
 	}
 	return result, emailErr, nil
 }
@@ -423,11 +423,18 @@ func generateAccessToken() (plain, hash string, err error) {
 // Nunca se llama para OutcomeReplay: el correo original ya se envió (o falló
 // y quedó registrado) la primera vez; reenviarlo en cada repetición
 // idempotente violaría "un único intento" (DEC-091).
+//
+// El lugar es el domicilio del cliente cuando el turno es a domicilio y, si no,
+// la dirección del local cuando el negocio la muestra (DEC-130).
 func (s *ConfirmationService) sendConfirmationEmail(
 	ctx context.Context,
+	slug string,
+	in ConfirmPublicAppointmentInput,
 	identity CustomerIdentity,
 	profile BusinessProfile,
 	serviceName string,
+	durationMinutes int,
+	home *HomeService,
 	startsAt time.Time,
 	loc *time.Location,
 	tokenPlain string,
@@ -436,12 +443,34 @@ func (s *ConfirmationService) sendConfirmationEmail(
 	if s.webBaseURL != "" {
 		link = s.webBaseURL + "/mi-turno/" + tokenPlain
 	}
-	formatted := startsAt.In(loc).Format("2006-01-02 15:04") + " (" + loc.String() + ")"
-	return s.email.SendConfirmation(ctx, identity.Email, profile.Name, serviceName, identity.AttendeeName, formatted, link)
+	address, atHome := "", false
+	switch {
+	case home != nil:
+		address, atHome = home.Address, true
+	case profile.Location != nil:
+		address = profile.Location.Address
+	}
+	return s.email.SendConfirmation(ctx, identity.Email, profile.Name, serviceName,
+		s.professionalName(ctx, slug, in.ServiceID, in.ProfessionalID), identity.AttendeeName,
+		startsAt.In(loc), durationMinutes, address, atHome, link)
 }
 
-// homeAddressOf, homeLatitudeOf y homeLongitudeOf desempaquetan el domicilio
-// opcional para el puerto, que usa tipos universales: nil los tres en el local.
+// professionalName lee el nombre de quien atiende con la misma lista pública que
+// ya mostró la reserva. El turno ya quedó guardado: si la lectura falla, el
+// correo sale sin esa fila en lugar de no salir.
+func (s *ConfirmationService) professionalName(ctx context.Context, slug, serviceID, professionalID string) string {
+	list, found, err := s.profiles.ListPublicProfessionals(ctx, slug, serviceID)
+	if err != nil || !found {
+		return ""
+	}
+	for _, p := range list.Items {
+		if p.ID == professionalID {
+			return p.FullName
+		}
+	}
+	return ""
+}
+
 func homeAddressOf(h *HomeService) *string {
 	if h == nil {
 		return nil

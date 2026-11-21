@@ -261,11 +261,17 @@ type PublicAppointmentPort interface {
 // devolvió éxito al cliente cuando este puerto se invoca; el llamador HTTP
 // solo registra el fallo en el log (mismo criterio que
 // auth.RecoveryService.Request frente a RecoveryCodeSender).
+//
+// startsAt llega en la zona del negocio: el adaptador redacta la fecha y la hora
+// para el cliente (#755). professionalName, address o durationMinutes vacíos o
+// en cero omiten su fila; atHome dice si address es la del domicilio del cliente
+// o la del local.
 type ConfirmationEmailPort interface {
 	SendConfirmation(
 		ctx context.Context,
-		email, businessName, serviceName, attendeeName string,
-		startsAtLocalFormatted string,
+		email, businessName, serviceName, professionalName, attendeeName string,
+		startsAt time.Time, durationMinutes int,
+		address string, atHome bool,
 		accessLink string,
 	) error
 }

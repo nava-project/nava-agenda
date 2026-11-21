@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"time"
 )
 
 // Tipos de aviso que el adaptador sabe redactar. Son los mismos valores que
@@ -61,53 +62,17 @@ func (e deliveryError) Permanent() bool {
 	return e.status >= 400 && e.status < 500 && e.status != http.StatusRequestTimeout && e.status != http.StatusTooManyRequests
 }
 
-// SendChangeNotice implementa appointmentnotice.Mailer. startsAtLocal llega ya
-// formateado en la zona del negocio.
+// SendChangeNotice implementa appointmentnotice.Mailer. startsAt llega en la
+// zona del negocio; relativeWhen es el «cuándo» del recordatorio y puede ir vacío.
 func (s ResendChangeNoticeSender) SendChangeNotice(
 	ctx context.Context,
-	kind, email, businessName, serviceName, attendeeName, startsAtLocal string,
+	kind, email, businessName, serviceName, professionalName, attendeeName string,
+	startsAt time.Time, relativeWhen string,
 ) error {
-	var subject string
-	content := emailContent{
-		Brand:    businessName,
-		Greeting: fmt.Sprintf("Hola %s,", attendeeName),
-		Details: []emailDetail{
-			{Label: "Servicio", Value: serviceName},
-			{Label: "Fecha y hora", Value: startsAtLocal},
-		},
+	subject, content, err := changeNoticeEmail(kind, businessName, serviceName, professionalName, attendeeName, startsAt, relativeWhen)
+	if err != nil {
+		return err
 	}
-	switch kind {
-	case changeNoticeCancelled:
-		subject = "Tu turno fue cancelado"
-		content.Preheader = fmt.Sprintf("%s canceló tu turno.", businessName)
-		content.Badge = &emailBadge{Label: "Turno cancelado", Tone: toneDanger}
-		content.Title = "Tu turno fue cancelado"
-		content.Paragraphs = []string{
-			fmt.Sprintf("%s canceló tu turno. Estos son los datos del turno cancelado:", businessName),
-			"Si quieres otro horario, comunícate con el negocio o reserva de nuevo.",
-		}
-	case changeNoticeRescheduled:
-		subject = "Tu turno cambió de horario"
-		content.Preheader = fmt.Sprintf("%s cambió el horario de tu turno.", businessName)
-		content.Badge = &emailBadge{Label: "Horario actualizado", Tone: toneWarning}
-		content.Title = "Tu turno cambió de horario"
-		content.Paragraphs = []string{
-			fmt.Sprintf("%s cambió el horario de tu turno. Este es el horario vigente:", businessName),
-			"Si no puedes asistir, comunícate con el negocio.",
-		}
-	case changeNoticeReminder:
-		subject = "Recordatorio de tu turno"
-		content.Preheader = fmt.Sprintf("Tu turno en %s es muy pronto.", businessName)
-		content.Badge = &emailBadge{Label: "Recordatorio", Tone: toneNeutral}
-		content.Title = "Tu turno es muy pronto"
-		content.Paragraphs = []string{
-			fmt.Sprintf("Te recordamos tu turno en %s. Te esperamos:", businessName),
-			"Si no puedes asistir, avísale al negocio con tiempo.",
-		}
-	default:
-		return errors.New("notification: tipo de aviso desconocido")
-	}
-	content.Footnotes = []string{"Si no esperabas este mensaje, ignóralo."}
 
 	htmlBody, err := content.HTML()
 	if err != nil {

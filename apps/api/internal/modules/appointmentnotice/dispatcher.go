@@ -176,8 +176,12 @@ func (d *Dispatcher) Process(ctx context.Context, n Notice) {
 		err = d.whatsapp.SendReminder(sendCtx, c.CustomerPhone, firstName(c.AttendeeName), c.BusinessName,
 			WhenText(c.StartsAt, now, loc), c.ServiceName, c.ProfessionalName)
 	} else {
-		err = d.mailer.SendChangeNotice(sendCtx, c.Kind, c.CustomerEmail, c.BusinessName, c.ServiceName, c.AttendeeName,
-			c.StartsAt.In(loc).Format("2006-01-02 15:04")+" ("+loc.String()+")")
+		var relativeWhen string
+		if IsReminder(c.Kind) {
+			relativeWhen = WhenText(c.StartsAt, now, loc)
+		}
+		err = d.mailer.SendChangeNotice(sendCtx, c.Kind, c.CustomerEmail, c.BusinessName, c.ServiceName, c.ProfessionalName,
+			c.AttendeeName, c.StartsAt.In(loc), relativeWhen)
 	}
 	cancel()
 

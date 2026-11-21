@@ -124,7 +124,7 @@ func (f *confirmFakePublicAppointmentPort) CreatePublicAppointment(
 
 type confirmFakeEmailPort struct{ calls int }
 
-func (f *confirmFakeEmailPort) SendConfirmation(context.Context, string, string, string, string, string, string) error {
+func (f *confirmFakeEmailPort) SendConfirmation(context.Context, string, string, string, string, string, time.Time, int, string, bool, string) error {
 	f.calls++
 	return nil
 }

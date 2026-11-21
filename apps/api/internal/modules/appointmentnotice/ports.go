@@ -79,7 +79,8 @@ type Context struct {
 	NoticeStateAt time.Time
 	// CustomerPhone es el teléfono E.164 del cliente, o vacío.
 	CustomerPhone string
-	// ProfessionalName es quien atiende el turno (para la plantilla de WhatsApp).
+	// ProfessionalName es quien atiende el turno: la plantilla de WhatsApp y la
+	// tarjeta del correo lo nombran.
 	ProfessionalName string
 }
 
@@ -107,14 +108,16 @@ type Store interface {
 }
 
 // Mailer envía el correo del aviso. El adaptador de Resend en el paquete
-// notification lo satisface de forma estructural. startsAtLocal llega ya
-// formateado en la zona del negocio. Un error nunca debe incluir el
+// notification lo satisface de forma estructural. startsAt llega en la zona del
+// negocio y el adaptador redacta la fecha (#755); relativeWhen es el «cuándo»
+// del recordatorio («hoy a las 3:30 p. m.») y va vacío en los demás avisos. Un error nunca debe incluir el
 // destinatario (RN-DAT-02); si implementa `Permanent() bool` y devuelve true, el
 // rechazo no se reintenta.
 type Mailer interface {
 	SendChangeNotice(
 		ctx context.Context,
-		kind, email, businessName, serviceName, attendeeName, startsAtLocal string,
+		kind, email, businessName, serviceName, professionalName, attendeeName string,
+		startsAt time.Time, relativeWhen string,
 	) error
 }
 

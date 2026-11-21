@@ -48,15 +48,19 @@ func (s *fakeStore) FinishNotice(_ context.Context, in appointmentnotice.FinishI
 	return s.finishOK, s.finishErr
 }
 
-type sentMail struct{ kind, email, shop, service, attendee, when string }
+type sentMail struct {
+	kind, email, shop, service, professional, attendee string
+	startsAt                                           time.Time
+	relativeWhen                                       string
+}
 
 type fakeMailer struct {
 	err   error
 	calls []sentMail
 }
 
-func (m *fakeMailer) SendChangeNotice(_ context.Context, kind, email, shop, service, attendee, when string) error {
-	m.calls = append(m.calls, sentMail{kind, email, shop, service, attendee, when})
+func (m *fakeMailer) SendChangeNotice(_ context.Context, kind, email, shop, service, professional, attendee string, startsAt time.Time, relativeWhen string) error {
+	m.calls = append(m.calls, sentMail{kind, email, shop, service, professional, attendee, startsAt, relativeWhen})
 	return m.err
 }
 
@@ -75,6 +79,7 @@ func validContext() appointmentnotice.Context {
 		AttendeeName:      "Ana Prueba",
 		ServiceName:       "Corte clásico",
 		BusinessName:      "Barbería Centro",
+		ProfessionalName:  "Laura Prueba",
 		Timezone:          "America/Bogota",
 	}
 }
@@ -106,9 +111,13 @@ func TestProcess_Sent_BuildsTheMessageFromTheCurrentStateInTheShopTimezone(t *te
 		t.Fatalf("debe enviar un correo, envió %d", len(mailer.calls))
 	}
 	got := mailer.calls[0]
-	want := sentMail{"rescheduled", "cliente.a@ejemplo.test", "Barbería Centro", "Corte clásico", "Ana Prueba", "2099-01-07 16:30 (America/Bogota)"}
-	if got != want {
-		t.Fatalf("correo = %+v, quiero %+v", got, want)
+	if got.kind != "rescheduled" || got.email != "cliente.a@ejemplo.test" || got.shop != "Barbería Centro" ||
+		got.service != "Corte clásico" || got.professional != "Laura Prueba" || got.attendee != "Ana Prueba" {
+		t.Fatalf("correo = %+v", got)
+	}
+	// La hora viaja en la zona del negocio; el adaptador la redacta.
+	if got.startsAt.Location().String() != "America/Bogota" || got.startsAt.Format("2006-01-02 15:04") != "2099-01-07 16:30" {
+		t.Fatalf("hora = %v, quiero 2099-01-07 16:30 en America/Bogota", got.startsAt)
 	}
 	if fin.Outcome != appointmentnotice.OutcomeSent || !fin.CoversStateAt.Equal(validContext().StateAt) {
 		t.Fatalf("cierre = %+v, debe ser sent cubriendo el estado leído", fin)
@@ -125,8 +134,11 @@ func TestProcess_TheMessageFollowsTheStateAtSendTime(t *testing.T) {
 	store2, mailer2 := &fakeStore{ctx: moved}, &fakeMailer{}
 	process(t, store2, mailer2, 1)
 
-	if mailer.calls[0].when == mailer2.calls[0].when || !strings.Contains(mailer2.calls[0].when, "18:00") {
-		t.Fatalf("la hora debe seguir al estado vigente: %q frente a %q", mailer.calls[0].when, mailer2.calls[0].when)
+	if got := mailer2.calls[0].startsAt.Format("15:04"); mailer.calls[0].startsAt.Equal(mailer2.calls[0].startsAt) || got != "18:00" {
+		t.Fatalf("la hora debe seguir al estado vigente: %v frente a %v", mailer.calls[0].startsAt, mailer2.calls[0].startsAt)
+	}
+	if mailer2.calls[0].relativeWhen != "" {
+		t.Fatalf("solo el recordatorio lleva el «cuándo» relativo: %q", mailer2.calls[0].relativeWhen)
 	}
 }
 
@@ -304,8 +316,12 @@ func TestProcess_Reminder_IsSentForTheCurrentHourAndCoversThatInstant(t *testing
 	fin, _ := process(t, store, mailer, 1)
 
 	if len(mailer.calls) != 1 || mailer.calls[0].kind != "reminder" ||
-		mailer.calls[0].when != "2099-01-07 16:30 (America/Bogota)" {
-		t.Fatalf("debe enviar el recordatorio con la hora vigente: %+v", mailer.calls)
+		mailer.calls[0].startsAt.Format("2006-01-02 15:04") != "2099-01-07 16:30" ||
+		mailer.calls[0].startsAt.Location().String() != "America/Bogota" {
+		t.Fatalf("debe enviar el recordatorio con la hora vigente en la zona del negocio: %+v", mailer.calls)
+	}
+	if mailer.calls[0].relativeWhen == "" || mailer.calls[0].professional != validContext().ProfessionalName {
+		t.Fatalf("el recordatorio lleva el «cuándo» relativo y quién atiende: %+v", mailer.calls[0])
 	}
 	if fin.Outcome != appointmentnotice.OutcomeSent || !fin.CoversStateAt.Equal(reminderContext().StartsAt) {
 		t.Fatalf("un recordatorio cubre el instante del turno, no el updated_at: %+v", fin)
