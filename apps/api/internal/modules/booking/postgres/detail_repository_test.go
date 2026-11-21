@@ -65,7 +65,7 @@ func TestGetAppointmentDetail_Found_ReturnsCustomerAndServiceSnapshot(t *testing
 	if !found {
 		t.Fatalf("found = false, want true")
 	}
-	if detail.ID != created.Appointment.ID || detail.ProfessionalID != professionalQ1 {
+	if detail.ID != created.Appointment.ID || detail.ProfessionalID != professionalQ1 || detail.ServiceID != serviceQ {
 		t.Fatalf("detalle inesperado: %+v", detail)
 	}
 	if detail.CustomerFullName != "Cliente de prueba "+suffix {

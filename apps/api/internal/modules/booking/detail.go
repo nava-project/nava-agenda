@@ -42,9 +42,13 @@ const (
 // repositorio de booking no puede unir contra la tabla `professional` (dueña de
 // staff, CA-002-06).
 type AppointmentDetail struct {
-	ID                       string
-	ProfessionalID           string
-	ProfessionalFullName     string
+	ID                   string
+	ProfessionalID       string
+	ProfessionalFullName string
+	// ServiceID es el servicio de la cita (appointment.service_id): con él el
+	// panel pide los inicios libres al reprogramar (#776). El nombre, la
+	// duración y el precio siguen siendo los snapshots.
+	ServiceID                string
 	AttendeeName             string
 	CustomerFullName         string
 	CustomerPhone            *string

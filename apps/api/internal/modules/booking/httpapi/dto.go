@@ -244,6 +244,7 @@ type AppointmentDetailResponse struct {
 	ID                   string               `json:"id"`
 	ProfessionalID       string               `json:"professionalId"`
 	ProfessionalFullName string               `json:"professionalFullName"`
+	ServiceID            string               `json:"serviceId"`
 	AttendeeName         string               `json:"attendeeName"`
 	CustomerFullName     string               `json:"customerFullName"`
 	CustomerPhone        *string              `json:"customerPhone"`

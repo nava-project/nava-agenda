@@ -14,6 +14,7 @@ content:
           id: 3f4a5b6c-7d8e-49f0-a1b2-c3d4e5f60718
           professionalId: 8f3ac2b1-e4d5-46f6-a7c8-d9e0f1a2b3c4
           professionalFullName: Ana Gómez
+          serviceId: 3a1b2c3d-4e5f-4a6b-8c7d-9e0f1a2b3c4d
           attendeeName: Carlos Restrepo
           customerFullName: Carlos Restrepo
           customerPhone: "+573001234567"
@@ -36,6 +37,7 @@ content:
           id: 4a5b6c7d-8e9f-40a1-b2c3-d4e5f6071829
           professionalId: 8f3ac2b1-e4d5-46f6-a7c8-d9e0f1a2b3c4
           professionalFullName: Ana Gómez
+          serviceId: 3a1b2c3d-4e5f-4a6b-8c7d-9e0f1a2b3c4d
           attendeeName: Carlos Restrepo
           customerFullName: Carlos Restrepo
           customerPhone: "+573001234567"

@@ -4082,6 +4082,11 @@ export interface components {
             /** Format: uuid */
             professionalId: string;
             professionalFullName: string;
+            /**
+             * Format: uuid
+             * @description Servicio de la cita (issue #776). Con `professionalId`, es la ruta de `listManualAvailability` para reprogramar con `excludeAppointmentId`. El servicio puede haberse desactivado o desasignado después de reservar; serviceName y durationMinutes siguen siendo el snapshot.
+             */
+            serviceId: string;
             /** @description Persona atendida (RN-RES-03); puede diferir de customerFullName. */
             attendeeName: string;
             /** @description Persona que reservó (RN-RES-02). */

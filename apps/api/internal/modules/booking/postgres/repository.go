@@ -741,7 +741,7 @@ func (r *Repository) GetAppointmentDetail(
 	)
 	err = r.db.InTenantTx(ctx, shop, func(ctx context.Context, q database.Queries) error {
 		row := q.QueryRow(ctx, `
-			SELECT a.id, a.professional_id, a.attendee_name,
+			SELECT a.id, a.professional_id, a.service_id, a.attendee_name,
 			       c.full_name, c.phone, c.email,
 			       a.customer_note, a.starts_at, a.ends_at, a.status, a.origin,
 			       a.service_name_snapshot, a.duration_minutes_snapshot,
@@ -776,7 +776,7 @@ func scanAppointmentDetail(row pgx.Row) (booking.AppointmentDetail, bool, error)
 		home        homeServiceColumns
 	)
 	err := row.Scan(
-		&d.ID, &d.ProfessionalID, &d.AttendeeName,
+		&d.ID, &d.ProfessionalID, &d.ServiceID, &d.AttendeeName,
 		&d.CustomerFullName, &d.CustomerPhone, &d.CustomerEmail,
 		&d.CustomerNote, &d.StartsAt, &d.EndsAt, &status, &origin,
 		&d.ServiceNameSnapshot, &d.DurationMinutesSnapshot,
