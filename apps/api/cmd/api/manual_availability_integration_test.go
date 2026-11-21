@@ -280,6 +280,24 @@ func TestManualAvailability_HTTP_ExcludeOwnAppointment_TwoTenants(t *testing.T) 
 		appointmentVersion(t, router, rawA, cancelled), ""), http.StatusOK, "cancelar")
 	mustStatus(t, doUpdateServiceRequest(router, rawA, service.ID, `{"durationMinutes":45}`), http.StatusOK, "catálogo a 45")
 
+	// El panel toma la ruta del detalle (#776, contrato 2.3.0): el serviceId
+	// de la cita, con su professionalId.
+	detailReq := httptest.NewRequest(http.MethodGet, "/api/v1/private/appointments/"+own, nil)
+	detailReq.AddCookie(&http.Cookie{Name: cookieName, Value: rawA})
+	detailRec := httptest.NewRecorder()
+	router.ServeHTTP(detailRec, detailReq)
+	mustStatus(t, detailRec, http.StatusOK, "detalle del turno propio")
+	var ownDetail struct {
+		ProfessionalID string `json:"professionalId"`
+		ServiceID      string `json:"serviceId"`
+	}
+	if err := json.Unmarshal(detailRec.Body.Bytes(), &ownDetail); err != nil {
+		t.Fatalf("decode detalle: %v", err)
+	}
+	if ownDetail.ProfessionalID != professional.ID || ownDetail.ServiceID != service.ID {
+		t.Fatalf("el detalle debía traer la ruta de la lectura: %+v", ownDetail)
+	}
+
 	query := "?from=" + manualDayNormal
 	decode := func(rec *httptest.ResponseRecorder) manualAvailabilityBody {
 		t.Helper()
@@ -343,6 +361,12 @@ func TestManualAvailability_HTTP_ExcludeOwnAppointment_TwoTenants(t *testing.T) 
 	if crossB.Body.String() != plainB.Body.String() {
 		t.Fatalf("B liberó huecos con un turno de A:\n%s\nfrente a\n%s", crossB.Body.String(), plainB.Body.String())
 	}
+	// El detalle de A (con su serviceId) tampoco se ve desde B.
+	crossDetailReq := httptest.NewRequest(http.MethodGet, "/api/v1/private/appointments/"+own, nil)
+	crossDetailReq.AddCookie(&http.Cookie{Name: cookieName, Value: rawB})
+	crossDetail := httptest.NewRecorder()
+	router.ServeHTTP(crossDetail, crossDetailReq)
+	mustStatus(t, crossDetail, http.StatusNotFound, "B lee el detalle de A")
 	// Y la ruta de A desde B sigue siendo el 404 uniforme, con o sin exclusión.
 	mustStatus(t, doManualAvailability(router, rawB, professional.ID, service.ID, query+"&excludeAppointmentId="+own), http.StatusNotFound, "B en la ruta de A")
 }

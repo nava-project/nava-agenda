@@ -5,6 +5,17 @@ Ver [`nava-docs/agenda/06-api/estandar-openapi.md`](https://github.com/nava-proj
 sección 18 para qué cuenta como cambio compatible o incompatible.
 
 
+## 2.3.0 · 2026-11-21
+
+### Agregado
+
+- `GET /private/appointments/{appointmentId}` (`getAppointmentDetail`, issue #776):
+  `AppointmentDetailResponse` gana `serviceId` (uuid, siempre presente), el servicio de
+  la cita. El panel lo usa con `professionalId` para pedir los inicios libres al
+  reprogramar (`listManualAvailability` con `excludeAppointmentId`). `serviceName`,
+  `durationMinutes` y el precio siguen siendo el snapshot. Compatible: campo nuevo en
+  una respuesta.
+
 ## 2.2.0 · 2026-11-21
 
 ### Agregado

@@ -247,6 +247,7 @@ func newAppointmentDetailResponse(d booking.AppointmentDetail) AppointmentDetail
 		ID:                   d.ID,
 		ProfessionalID:       d.ProfessionalID,
 		ProfessionalFullName: d.ProfessionalFullName,
+		ServiceID:            d.ServiceID,
 		AttendeeName:         d.AttendeeName,
 		CustomerFullName:     d.CustomerFullName,
 		CustomerPhone:        d.CustomerPhone,

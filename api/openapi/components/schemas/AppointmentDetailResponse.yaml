@@ -17,6 +17,15 @@ properties:
     format: uuid
   professionalFullName:
     type: string
+  serviceId:
+    type: string
+    format: uuid
+    description: >
+      Servicio de la cita (issue #776). Con `professionalId`, es la ruta de
+      `listManualAvailability` para reprogramar con
+      `excludeAppointmentId`. El servicio puede haberse desactivado o
+      desasignado después de reservar; serviceName y durationMinutes siguen
+      siendo el snapshot.
   attendeeName:
     type: string
     description: Persona atendida (RN-RES-03); puede diferir de customerFullName.
@@ -74,6 +83,7 @@ required:
   - id
   - professionalId
   - professionalFullName
+  - serviceId
   - attendeeName
   - customerFullName
   - customerPhone

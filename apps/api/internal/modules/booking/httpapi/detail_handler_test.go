@@ -87,6 +87,7 @@ func TestGetAppointmentDetailHandler_ValidRequest_Returns200WithDetail(t *testin
 		detail: booking.AppointmentDetail{
 			ID:                       validDetailAppointmentID,
 			ProfessionalID:           "professional-1",
+			ServiceID:                "service-1",
 			AttendeeName:             "Carlos Restrepo",
 			CustomerFullName:         "Carlos Restrepo",
 			CustomerPhone:            &phone,
@@ -117,7 +118,7 @@ func TestGetAppointmentDetailHandler_ValidRequest_Returns200WithDetail(t *testin
 	if err := json.Unmarshal(rec.Body.Bytes(), &got); err != nil {
 		t.Fatalf("unmarshal response: %v", err)
 	}
-	if got.ID != validDetailAppointmentID || got.ProfessionalFullName != "Ana Gómez" {
+	if got.ID != validDetailAppointmentID || got.ProfessionalFullName != "Ana Gómez" || got.ServiceID != "service-1" {
 		t.Fatalf("detalle inesperado: %+v", got)
 	}
 	if got.PriceAmount != "20000.00" || got.Currency != "COP" {
