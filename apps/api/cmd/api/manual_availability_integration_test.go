@@ -361,6 +361,12 @@ func TestManualAvailability_HTTP_ExcludeOwnAppointment_TwoTenants(t *testing.T) 
 	if crossB.Body.String() != plainB.Body.String() {
 		t.Fatalf("B liberó huecos con un turno de A:\n%s\nfrente a\n%s", crossB.Body.String(), plainB.Body.String())
 	}
+	// El detalle de A (con su serviceId) tampoco se ve desde B.
+	crossDetailReq := httptest.NewRequest(http.MethodGet, "/api/v1/private/appointments/"+own, nil)
+	crossDetailReq.AddCookie(&http.Cookie{Name: cookieName, Value: rawB})
+	crossDetail := httptest.NewRecorder()
+	router.ServeHTTP(crossDetail, crossDetailReq)
+	mustStatus(t, crossDetail, http.StatusNotFound, "B lee el detalle de A")
 	// Y la ruta de A desde B sigue siendo el 404 uniforme, con o sin exclusión.
 	mustStatus(t, doManualAvailability(router, rawB, professional.ID, service.ID, query+"&excludeAppointmentId="+own), http.StatusNotFound, "B en la ruta de A")
 }
