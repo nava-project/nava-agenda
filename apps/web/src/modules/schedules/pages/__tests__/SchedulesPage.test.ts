@@ -308,6 +308,25 @@ describe('SchedulesPage', () => {
     expect(toastState.items.map((item) => item.title)).toEqual(['Tramo actualizado'])
   })
 
+  // #782: sin cambios, «Guardar» espera en reposo (punteado de latón) y sigue
+  // activo; al cambiar algo vuelve a ser la acción principal.
+  it('rests the edit dialog save button until the tramo changes', async () => {
+    const wrapper = await mountReady(oneProfessional, [mondayMorning])
+    const editButtons = wrapper.findAll('button').filter((b) => b.text() === 'Editar')
+    await editButtons[0]!.trigger('click')
+    await flushPromises()
+
+    const save = () => editForm(wrapper).get('button[type="submit"]')
+    expect(save().classes()).toContain('schedules-page__save--rest')
+    expect(save().attributes('disabled')).toBeUndefined()
+
+    await setTime(editForm(wrapper), '09:00', 0)
+    expect(save().classes()).not.toContain('schedules-page__save--rest')
+
+    await setTime(editForm(wrapper), '08:00', 0)
+    expect(save().classes()).toContain('schedules-page__save--rest')
+  })
+
   it('deleting a tramo removes it from the list on success', async () => {
     const wrapper = await mountReady(oneProfessional, [mondayMorning])
     deleteWorkingHourMock.mockResolvedValueOnce({ kind: 'success' })

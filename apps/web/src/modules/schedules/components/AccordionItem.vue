@@ -69,11 +69,12 @@ defineEmits<{ toggle: [] }>()
 </template>
 
 <style scoped>
-/* Apartado v2 (DEC-188): separadores sutiles, rótulos en tipo oración y el
-   apartado abierto marcado en tinta, sin acento del negocio. */
+/* Apartado de la familia (#782, DEC-189): título en serif, troquel punteado
+   de latón entre apartados y el abierto marcado con un filete de latón, sin
+   acento del negocio. */
 .accordion-item {
   position: relative;
-  border-top: var(--border-width-normal) solid var(--color-border-subtle);
+  border-top: 1px dashed color-mix(in srgb, var(--color-brass-line) 70%, transparent);
   transition: background-color var(--motion-duration-fast) var(--motion-easing-standard);
 }
 
@@ -81,7 +82,7 @@ defineEmits<{ toggle: [] }>()
   border-top: none;
 }
 
-/* Filete en tinta del apartado abierto. */
+/* Filete de latón del apartado abierto. */
 .accordion-item::before {
   content: '';
   position: absolute;
@@ -89,13 +90,13 @@ defineEmits<{ toggle: [] }>()
   bottom: 0;
   left: 0;
   width: 2px;
-  background-color: var(--color-text-primary);
+  background-color: var(--color-brass-body);
   opacity: 0;
   transition: opacity var(--motion-duration-fast) var(--motion-easing-standard);
 }
 
 .accordion-item--open {
-  background-color: color-mix(in srgb, var(--color-text-primary) 3%, transparent);
+  background-color: color-mix(in srgb, var(--color-brass-body) 5%, transparent);
 }
 
 .accordion-item--open::before {
@@ -123,7 +124,7 @@ defineEmits<{ toggle: [] }>()
 
 @media (hover: hover) {
   .accordion-item__trigger:hover {
-    background-color: color-mix(in srgb, var(--color-text-primary) 4%, transparent);
+    background-color: color-mix(in srgb, var(--color-brass-body) 8%, transparent);
   }
 }
 
@@ -137,37 +138,34 @@ defineEmits<{ toggle: [] }>()
 .accordion-item__title {
   flex: 1;
   min-width: 0;
-  font-family: var(--font-sans);
-  font-size: var(--font-size-body-lg);
-  font-weight: 600;
-  line-height: 22px;
+  font-family: var(--font-display);
+  font-size: 21px;
+  font-weight: 400;
+  line-height: 25px;
 }
 
-/* Dato junto al título: una píldora de verdad, más ancha que alta y con el
-   rombo de la familia delante de la cifra, para que no se lea como un
-   círculo con número (#737). */
+/* Dato junto al título: el rótulo de latón en versalitas con su rombo, sin
+   píldora, como el alcance de las secciones de Configuración (8c). El estado
+   «Activo» se dice en palabras y con el rombo lleno; «Inactivo», hueco. */
 .accordion-item__badge {
   display: inline-flex;
   flex: 0 0 auto;
   gap: 6px;
   align-items: center;
-  min-width: 40px;
-  padding: 1px 10px;
-  color: var(--color-text-secondary);
-  font-size: 13px;
+  color: var(--color-brass-text);
+  font-size: 11px;
   font-variant-numeric: tabular-nums;
-  font-weight: 500;
-  line-height: 18px;
-  border: var(--border-width-normal) solid var(--color-border-subtle);
-  border-radius: var(--radius-pill);
-  transition:
-    color var(--motion-duration-fast) var(--motion-easing-standard),
-    border-color var(--motion-duration-fast) var(--motion-easing-standard);
+  font-weight: 600;
+  line-height: 16px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  transition: color var(--motion-duration-fast) var(--motion-easing-standard);
 }
 
 .accordion-item__badge::before {
-  width: 5px;
-  height: 5px;
+  flex: none;
+  width: 6px;
+  height: 6px;
   content: '';
   background: currentColor;
   rotate: 45deg;
@@ -175,19 +173,22 @@ defineEmits<{ toggle: [] }>()
 
 .accordion-item__badge--on {
   color: var(--color-success-on-strong);
-  border-color: color-mix(in srgb, var(--color-success-on-strong) 45%, transparent);
 }
 
-.accordion-item--open .accordion-item__badge--neutral {
-  color: var(--color-text-primary);
-  border-color: var(--color-border-control);
+.accordion-item__badge--off {
+  color: var(--color-text-secondary);
+}
+
+.accordion-item__badge--off::before {
+  background: transparent;
+  border: 1.5px solid currentColor;
 }
 
 .accordion-item__chevron {
   flex: 0 0 auto;
   width: 14px;
   height: 14px;
-  color: var(--color-text-secondary);
+  color: var(--color-brass-text);
   transition: transform var(--motion-duration-fast) var(--motion-easing-standard);
 }
 

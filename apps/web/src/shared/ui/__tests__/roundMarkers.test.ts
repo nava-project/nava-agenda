@@ -27,7 +27,6 @@ const ROUND_ALLOWED: Record<string, string> = {
   '.new-appointment-page__resumen-perforation::before': 'perforación del boleto (objeto físico)',
   '.new-appointment-page__resumen-perforation::after': 'perforación del boleto (objeto físico)',
   '.location-picker__activate-hint': 'píldora de texto',
-  '.schedules-switch__thumb': 'perilla de interruptor (control)',
   '.offer-switch__thumb': 'perilla de interruptor (control)',
   '.catalog-page__lifecycle-thumb': 'perilla de interruptor (control)',
   '.schedules-page__segment-add': 'botón de añadir (control, no marcador)',
