@@ -299,11 +299,15 @@ function slotAria(slot: DaylightSlot): string {
       class="bk-days-wrap"
       :class="{ 'bk-days-wrap--before': moreBefore, 'bk-days-wrap--after': moreAfter }"
     >
+      <!-- tabindex="-1": Firefox da su propia parada de Tab a un contenedor que
+           se desplaza; los días ya llevan el roving tabindex, así que la tira no
+           debe ser una parada más, e invisible (#773). -->
       <div
         ref="daysEl"
         class="bk-days"
         role="radiogroup"
         aria-label="Día"
+        tabindex="-1"
         @keydown="onDaysKeydown"
         @scroll.passive="measureDays"
       >

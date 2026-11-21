@@ -131,6 +131,17 @@ test('la tira de días y las horas se recorren con el teclado', async ({ page })
   await expect(hours(page).nth(1)).toHaveAttribute('aria-checked', 'true')
 })
 
+test('un solo Tab desde el campo anterior cae en el día activo, sin parada en la tira', async ({
+  page,
+}) => {
+  // Firefox da parada propia a un contenedor desplazable sin tabindex: la tira
+  // de días no debe ser una parada invisible antes del día (#773).
+  await openWithService(page, 'filled-form')
+  await page.getByLabel('Correo (opcional)').focus()
+  await page.keyboard.press('Tab')
+  await expect(page.locator('.bk-day[tabindex="0"]')).toBeFocused()
+})
+
 test('a 390 px los 14 días se desplazan dentro de la tira, sin desborde ni nada bajo el dock', async ({
   page,
 }) => {
