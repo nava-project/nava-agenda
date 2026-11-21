@@ -3,6 +3,7 @@ import { test, expect } from './bloqueos-limpieza'
 import axe from 'axe-core'
 import { existsSync, mkdirSync, readFileSync } from 'node:fs'
 import path from 'node:path'
+import { fillTime } from './horarios-controles'
 
 // #100: bloqueos por fechas explícitas, excepciones y edición de serie por
 // alcance, sobre API y PostgreSQL reales. Reutiliza los datos dedicados de
@@ -91,12 +92,12 @@ async function pickDate(page: Page, scope: Locator, label: RegExp | string, date
   await calendar.locator(`[data-date="${date}"]`).click()
 }
 
-// Fija la hora de un BaseTimePicker cuyo disparador empieza por `label`.
-async function setTime(page: Page, scope: Locator, label: string, hour: string, minutes: string) {
+// Fija la hora `HH:MM` (24 h) de un BaseTimePicker cuyo disparador empieza por
+// `label`. fillTime elige a. m./p. m. explícitamente: «12» solo es ambiguo en 12 h.
+async function setTime(page: Page, scope: Locator, label: string, time: string) {
   await scope.getByRole('button', { name: new RegExp(`^${label}`) }).click()
   const timePicker = page.getByRole('dialog', { name: label, exact: true })
-  await timePicker.getByRole('spinbutton', { name: 'Hora', exact: true }).fill(hour)
-  await timePicker.getByRole('spinbutton', { name: 'Minutos', exact: true }).fill(minutes)
+  await fillTime(timePicker, time)
   await timePicker.getByRole('button', { name: 'Aplicar hora', exact: true }).click()
   await expect(timePicker).not.toBeVisible()
 }
@@ -250,8 +251,7 @@ test('series por fechas, excepciones y edición por alcance con API real', async
   ] as const) {
     await scope.getByRole('button', { name: new RegExp(label) }).click()
     const timePicker = page.getByRole('dialog', { name: label, exact: true })
-    await timePicker.getByRole('spinbutton', { name: 'Hora', exact: true }).fill(hour)
-    await timePicker.getByRole('spinbutton', { name: 'Minutos', exact: true }).fill(minutes)
+    await fillTime(timePicker, `${hour}:${minutes}`)
     await timePicker.getByRole('button', { name: 'Aplicar hora', exact: true }).click()
   }
   await pickDate(page, scope, /Vigente desde/, '2099-01-01')
@@ -274,9 +274,9 @@ test('series por fechas, excepciones y edición por alcance con API real', async
   // El diálogo pide la hora de fin, no la duración (#764): 12:00 → 12:45 es la
   // serie de 45 min que se creó; se alarga a 12:50.
   const endTime = edit.getByRole('button', { name: /^Hora de fin/ })
-  await expect(endTime).toContainText('12:45')
-  await setTime(page, edit, 'Hora de fin', '12', '50')
-  await expect(endTime).toContainText('12:50')
+  await expect(endTime).toContainText('12:45 p. m.')
+  await setTime(page, edit, 'Hora de fin', '12:50')
+  await expect(endTime).toContainText('12:50 p. m.')
   await checkAxe(page)
   await page.screenshot({
     path: path.join(evidence, `${testInfo.project.name}-editar-serie.png`),
@@ -297,8 +297,8 @@ test('series por fechas, excepciones y edición por alcance con API real', async
   await edit.getByRole('button', { name: 'Guardar cambios' }).click()
   await expect(edit.getByText(/El corte debe ser posterior al inicio/)).toBeVisible()
   await pickDate(page, scope, /Aplicar desde/, '2099-06-01')
-  await setTime(page, edit, 'Hora de fin', '12', '30')
-  await expect(endTime).toContainText('12:30')
+  await setTime(page, edit, 'Hora de fin', '12:30')
+  await expect(endTime).toContainText('12:30 p. m.')
   await expect(edit.getByText(/La serie actual termina el .*31/)).toBeVisible()
   await checkAxe(page)
   await page.screenshot({

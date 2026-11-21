@@ -281,7 +281,8 @@ describe('SchedulesPage', () => {
     await flushPromises()
 
     expect(createWorkingHourMock).not.toHaveBeenCalled()
-    expect(wrapper.text()).toContain('Escribe una hora válida')
+    expect(wrapper.text()).toContain('Elige una hora válida.')
+    expect(wrapper.text()).not.toContain('24 horas')
   })
 
   it('editing a tramo succeeds and updates its row in place', async () => {

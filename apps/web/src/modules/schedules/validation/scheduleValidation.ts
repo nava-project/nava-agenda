@@ -18,7 +18,7 @@ export function validateISOWeekday(isoWeekday: number): string | undefined {
 
 export function validateStartsTime(startsTime: string): string | undefined {
   if (!STARTS_TIME_PATTERN.test(startsTime)) {
-    return 'Escribe una hora válida (HH:MM, 24 horas).'
+    return 'Elige una hora válida.'
   }
   return undefined
 }
