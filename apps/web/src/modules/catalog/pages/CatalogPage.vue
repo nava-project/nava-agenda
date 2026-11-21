@@ -1984,7 +1984,10 @@ async function reloadAfterConflict(serviceId: string) {
 }
 
 .catalog-page__create :deep(.base-button__content)::before {
+  /* El «+» es dibujo: el texto alternativo vacío lo saca del nombre accesible
+     («Agregar …», no «+ Agregar …»). La primera línea es el respaldo. */
   content: '+';
+  content: '+' / '';
   margin-right: 6px;
 }
 
@@ -2917,7 +2920,9 @@ async function reloadAfterConflict(serviceId: string) {
 }
 
 .catalog-page__lifecycle-checks li::before {
+  /* Viñeta de dibujo: el texto alternativo vacío la saca del nombre. */
   content: '✓';
+  content: '✓' / '';
   position: absolute;
   top: 1px;
   left: 0;

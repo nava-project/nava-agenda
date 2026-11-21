@@ -91,7 +91,9 @@
 
 .bk-top__name::before {
   margin-right: var(--space-3);
+  /* Separador de dibujo: no se lee («·» con texto alternativo vacío). */
   content: '·';
+  content: '·' / '';
 }
 
 .bk-top__name:hover {
@@ -312,6 +314,7 @@
 .bk-hero__meta span + span::before {
   margin-right: var(--space-4);
   content: '·';
+  content: '·' / '';
 }
 
 /* La hora, en serif y en tinta: el reloj del local, sin el reloj de antes. */

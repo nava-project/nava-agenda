@@ -52,8 +52,18 @@ async function installStaffMock(page: Page, empty = false) {
       return
     }
     if (url.pathname.endsWith('/professionals') && route.request().method() === 'GET') {
+      // La lista pagina por número de página (page, pageSize, total, totalPages):
+      // sin esos campos la página toma la respuesta por un error y no muestra nada.
+      const items = empty ? [] : professionals
       await route.fulfill(
-        json({ items: empty ? [] : professionals, nextCursor: empty ? null : 'page-2' }),
+        json({
+          items,
+          page: Number(url.searchParams.get('page') ?? 1),
+          pageSize: Number(url.searchParams.get('pageSize') ?? 20),
+          total: items.length,
+          totalPages: items.length === 0 ? 0 : 1,
+          nextCursor: null,
+        }),
       )
       return
     }
@@ -139,7 +149,10 @@ test('fidelidad #192: vacío, reflow, teclado y foco en los viewports obligatori
       }),
       `${viewport.name}: no hay desborde horizontal`,
     ).toBe(false)
-    const action = page.getByRole('button', { name: 'Agregar profesional' })
+    // El «+» es dibujo: el nombre es exactamente «Agregar profesional», y la acción
+    // no se anuncia como interruptor (#774).
+    const action = page.getByRole('button', { name: 'Agregar profesional', exact: true })
+    await expect(action).not.toHaveAttribute('aria-pressed')
     await action.focus()
     await expect(action).toBeFocused()
     await page.screenshot({

@@ -75,6 +75,18 @@ describe('BaseButton', () => {
       expect(wrapper.attributes('aria-pressed')).toBe('true')
     })
 
+    it('is an action, not a toggle, unless pressed is given: no aria-pressed by default', () => {
+      const wrapper = mount(BaseButton, { slots: { default: 'Guardar' } })
+      expect(wrapper.attributes('aria-pressed')).toBeUndefined()
+      expect(wrapper.classes()).not.toContain('base-button--pressed')
+    })
+
+    it('keeps aria-pressed="false" on a toggle that is not pressed', () => {
+      const wrapper = mount(BaseButton, { props: { pressed: false }, slots: { default: 'Correo' } })
+      expect(wrapper.attributes('aria-pressed')).toBe('false')
+      expect(wrapper.classes()).not.toContain('base-button--pressed')
+    })
+
     it('sets type attribute', () => {
       const types = ['button', 'submit', 'reset'] as const
       types.forEach((type) => {

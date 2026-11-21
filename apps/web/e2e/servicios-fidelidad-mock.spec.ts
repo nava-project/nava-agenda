@@ -98,8 +98,12 @@ test('fidelidad #194: foco, teclado y reflow obligatorio', async ({ page }) => {
     expect(
       await page.evaluate(() => document.documentElement.scrollWidth > window.innerWidth),
     ).toBe(false)
-    await page.getByRole('button', { name: 'Agregar servicio' }).focus()
-    await expect(page.getByRole('button', { name: 'Agregar servicio' })).toBeFocused()
+    // El «+» es dibujo: el nombre es exactamente «Agregar servicio», y la acción no
+    // se anuncia como interruptor (#774).
+    const action = page.getByRole('button', { name: 'Agregar servicio', exact: true })
+    await expect(action).not.toHaveAttribute('aria-pressed')
+    await action.focus()
+    await expect(action).toBeFocused()
     await page.screenshot({
       path: path.join(evidenceDir, 'responsive', viewport.name, 'foco-agregar.png'),
       animations: 'disabled',
