@@ -29,6 +29,33 @@ pipeline {
       }
     }
 
+    // Plan de Pruebas PP-NAVA-001 (Ingeniería de Software III, #784): las pruebas
+    // unitarias dedicadas a cada caso CP. Sin `when`: corre siempre, aunque plan.sh no
+    // pida ningún check (árbol ya verificado). Va antes que el resto y no en paralelo: si
+    // una prueba CP falla, el build se detiene y no hay checks, imágenes ni despliegue.
+    stage('Pruebas unitarias · Plan de Pruebas (CP)') {
+      steps {
+        sh 'tools/ci/run.sh image'
+        sh 'tools/ci/run.sh web-deps'
+        sh 'tools/ci/run.sh plan-pruebas'
+      }
+      post {
+        always {
+          archiveArtifacts allowEmptyArchive: true, artifacts: 'reports/plan-pruebas/**'
+          // La vista «Test Results» necesita el plugin junit. El Jenkins local de
+          // tools/ci/local lo trae; si un controlador no lo tiene, los XML quedan
+          // archivados igual y el build no cambia de resultado por eso.
+          script {
+            try {
+              junit allowEmptyResults: true, testResults: 'reports/plan-pruebas/*-junit.xml'
+            } catch (NoSuchMethodError ignored) {
+              echo 'Plugin junit no instalado: los reportes JUnit quedan solo como artefactos.'
+            }
+          }
+        }
+      }
+    }
+
     stage('Preparar') {
       when { expression { hasAnyCheck() } }
       steps {
