@@ -117,283 +117,277 @@ test('bloqueos dentro de Profesionales: ciclo real, aislamiento, errores y evide
   const marker = `Pausa de prueba ${testInfo.project.name} ${Date.now()}`
   // Lo que se crea aquí lo retira el fixture de ./bloqueos-limpieza, aunque el
   // test falle a medias (#764).
-  {
-    await page.getByRole('button', { name: 'Agregar bloqueo', exact: true }).click()
-    const dialog = page.getByRole('dialog', { name: 'Agregar bloqueo puntual' })
-    await expect(
-      dialog.getByRole('form', { name: 'Bloqueo puntual para Alex de prueba' }),
-    ).toBeVisible()
-    await expect(dialog.locator('.block-form__identity')).toHaveCount(0)
-    await dialog.getByRole('button', { name: 'Tipo de bloqueo', exact: true }).click()
-    await dialog.getByRole('option', { name: 'Vacaciones', exact: true }).click()
-    await pickBlockDate(page, 'Fecha de inicio', '2099-01-05')
-    await pickBlockTime(page, 'Hora de inicio', '22:00')
-    await pickBlockDate(page, 'Fecha de fin', '2099-01-06')
-    await pickBlockTime(page, 'Hora de fin', '02:00')
-    await dialog.getByLabel('Motivo (opcional)').fill(marker)
-    mkdirSync(evidence, { recursive: true })
-    await checkAxe(page)
-    await page.screenshot({
-      path: path.join(evidence, `${testInfo.project.name}-puntual-completo.png`),
-    })
-    const created = page.waitForResponse(
-      (r) =>
-        r.request().method() === 'POST' &&
-        r.url().endsWith(`/professionals/${PROFESSIONAL_A}/time-blocks`),
-    )
-    await dialog.getByRole('button', { name: 'Guardar bloqueo' }).click()
-    const result = await created
-    expect(result.status()).toBe(201)
-    await expect(dialog).not.toBeVisible()
-    await expect(page.locator('.blocks-panel__record').filter({ hasText: marker })).toBeVisible()
+  await page.getByRole('button', { name: 'Agregar bloqueo', exact: true }).click()
+  const dialog = page.getByRole('dialog', { name: 'Agregar bloqueo puntual' })
+  await expect(
+    dialog.getByRole('form', { name: 'Bloqueo puntual para Alex de prueba' }),
+  ).toBeVisible()
+  await expect(dialog.locator('.block-form__identity')).toHaveCount(0)
+  await dialog.getByRole('button', { name: 'Tipo de bloqueo', exact: true }).click()
+  await dialog.getByRole('option', { name: 'Vacaciones', exact: true }).click()
+  await pickBlockDate(page, 'Fecha de inicio', '2099-01-05')
+  await pickBlockTime(page, 'Hora de inicio', '22:00')
+  await pickBlockDate(page, 'Fecha de fin', '2099-01-06')
+  await pickBlockTime(page, 'Hora de fin', '02:00')
+  await dialog.getByLabel('Motivo (opcional)').fill(marker)
+  mkdirSync(evidence, { recursive: true })
+  await checkAxe(page)
+  await page.screenshot({
+    path: path.join(evidence, `${testInfo.project.name}-puntual-completo.png`),
+  })
+  const created = page.waitForResponse(
+    (r) =>
+      r.request().method() === 'POST' &&
+      r.url().endsWith(`/professionals/${PROFESSIONAL_A}/time-blocks`),
+  )
+  await dialog.getByRole('button', { name: 'Guardar bloqueo' }).click()
+  const result = await created
+  expect(result.status()).toBe(201)
+  await expect(dialog).not.toBeVisible()
+  await expect(page.locator('.blocks-panel__record').filter({ hasText: marker })).toBeVisible()
 
-    for (const notice of await page.getByRole('button', { name: /Descartar aviso/ }).all())
-      await notice.click()
-    await page.getByRole('button', { name: 'Agregar bloqueo por días', exact: true }).click()
-    const weekly = page.getByRole('dialog', { name: 'Agregar bloqueo por días' })
-    await weekly.getByRole('button', { name: 'Miércoles', exact: true }).click()
-    await pickBlockTime(page, 'Hora de inicio', '12:00')
-    await pickBlockTime(page, 'Hora de fin', '12:45')
-    await pickBlockDate(page, 'Vigente desde', '2099-01-01')
-    await weekly.getByLabel('Motivo (opcional)').fill(marker)
-    await checkAxe(page)
-    await page.screenshot({
-      path: path.join(evidence, `${testInfo.project.name}-semanal-completo.png`),
-    })
-    const createdSeries = page.waitForResponse(
-      (r) =>
-        r.request().method() === 'POST' &&
-        r.url().endsWith(`/professionals/${PROFESSIONAL_A}/time-block-series`),
-    )
-    await weekly.getByRole('button', { name: 'Guardar bloqueo' }).click()
-    const seriesResponse = await createdSeries
-    expect(seriesResponse.status()).toBe(201)
-    await expect(weekly).not.toBeVisible()
+  for (const notice of await page.getByRole('button', { name: /Descartar aviso/ }).all())
+    await notice.click()
+  await page.getByRole('button', { name: 'Agregar bloqueo por días', exact: true }).click()
+  const weekly = page.getByRole('dialog', { name: 'Agregar bloqueo por días' })
+  await weekly.getByRole('button', { name: 'Miércoles', exact: true }).click()
+  await pickBlockTime(page, 'Hora de inicio', '12:00')
+  await pickBlockTime(page, 'Hora de fin', '12:45')
+  await pickBlockDate(page, 'Vigente desde', '2099-01-01')
+  await weekly.getByLabel('Motivo (opcional)').fill(marker)
+  await checkAxe(page)
+  await page.screenshot({
+    path: path.join(evidence, `${testInfo.project.name}-semanal-completo.png`),
+  })
+  const createdSeries = page.waitForResponse(
+    (r) =>
+      r.request().method() === 'POST' &&
+      r.url().endsWith(`/professionals/${PROFESSIONAL_A}/time-block-series`),
+  )
+  await weekly.getByRole('button', { name: 'Guardar bloqueo' }).click()
+  const seriesResponse = await createdSeries
+  expect(seriesResponse.status()).toBe(201)
+  await expect(weekly).not.toBeVisible()
 
-    // Cambiar de profesional no mezcla registros; volver los consulta de verdad.
-    await page.keyboard.press('Escape')
-    await expect(
-      page.getByRole('button', { name: 'Bloquear a Alex de prueba', exact: true }),
-    ).toBeFocused()
-    await page.getByRole('button', { name: 'Bloquear a Samuel de prueba', exact: true }).click()
-    await expect(page.getByRole('heading', { name: 'Tiempo fuera de agenda' })).toBeVisible()
-    await expect(page.getByText('Sin bloqueos puntuales')).toBeVisible()
-    await expect(page.locator('.blocks-panel__record').filter({ hasText: marker })).toHaveCount(0)
-    await page.keyboard.press('Escape')
-    await page.getByRole('button', { name: 'Bloquear a Alex de prueba', exact: true }).click()
-    await expect(page.locator('.blocks-panel__record').filter({ hasText: marker })).toHaveCount(2)
+  // Cambiar de profesional no mezcla registros; volver los consulta de verdad.
+  await page.keyboard.press('Escape')
+  await expect(
+    page.getByRole('button', { name: 'Bloquear a Alex de prueba', exact: true }),
+  ).toBeFocused()
+  await page.getByRole('button', { name: 'Bloquear a Samuel de prueba', exact: true }).click()
+  await expect(page.getByRole('heading', { name: 'Tiempo fuera de agenda' })).toBeVisible()
+  await expect(page.getByText('Sin bloqueos puntuales')).toBeVisible()
+  await expect(page.locator('.blocks-panel__record').filter({ hasText: marker })).toHaveCount(0)
+  await page.keyboard.press('Escape')
+  await page.getByRole('button', { name: 'Bloquear a Alex de prueba', exact: true }).click()
+  await expect(page.locator('.blocks-panel__record').filter({ hasText: marker })).toHaveCount(2)
 
-    const dismiss = page.getByRole('button', { name: /Descartar todos/ })
-    if (await dismiss.isVisible()) await dismiss.click()
-    await checkAxe(page)
-    mkdirSync(evidence, { recursive: true })
-    for (const viewport of [
-      { width: 320, height: 740 },
-      { width: 360, height: 800 },
-      { width: 768, height: 1024 },
-      { width: 1280, height: 900 },
-      { width: 640, height: 450 },
-    ]) {
-      await page.setViewportSize(viewport)
-      // El cambio de tamaño se asienta en uno o dos cuadros (el diálogo recoloca
-      // su contenido): se espera al estado estable. Un desborde real sigue ahí y
-      // falla igual (#764).
-      await expect
-        .poll(() =>
-          page.evaluate(() => ({
-            width: innerWidth,
-            height: innerHeight,
-            overflow: document.documentElement.scrollWidth > innerWidth,
-            wide: [...document.querySelectorAll('body *')]
-              .filter((el) => el.getBoundingClientRect().right > innerWidth + 0.5)
-              .filter((el) => getComputedStyle(el).position !== 'fixed')
-              .map((el) => `${el.tagName}.${String(el.className).split(' ')[0]}`)
-              .slice(0, 4),
-          })),
-        )
-        .toMatchObject({ width: viewport.width, height: viewport.height, overflow: false })
-      await page.locator('main').evaluate((el) => {
-        el.scrollTop = 0
-      })
-      await page.screenshot({
-        path: path.join(evidence, `${testInfo.project.name}-${viewport.width}-equipo.png`),
-        fullPage: true,
-      })
-      await checkAxe(page)
-      expect(
-        await page
-          .locator('.blocks-workspace-dialog')
-          .evaluate((el) => el.scrollWidth > el.clientWidth),
-      ).toBe(false)
-      await page.screenshot({
-        path: path.join(evidence, `${testInfo.project.name}-${viewport.width}-panel.png`),
-        fullPage: true,
-      })
-      const content = page.locator(
-        '.blocks-workspace-dialog > .base-dialog__container > .base-dialog__content',
+  const dismiss = page.getByRole('button', { name: /Descartar todos/ })
+  if (await dismiss.isVisible()) await dismiss.click()
+  await checkAxe(page)
+  mkdirSync(evidence, { recursive: true })
+  for (const viewport of [
+    { width: 320, height: 740 },
+    { width: 360, height: 800 },
+    { width: 768, height: 1024 },
+    { width: 1280, height: 900 },
+    { width: 640, height: 450 },
+  ]) {
+    await page.setViewportSize(viewport)
+    // El cambio de tamaño se asienta en uno o dos cuadros (el diálogo recoloca
+    // su contenido): se espera al estado estable. Un desborde real sigue ahí y
+    // falla igual (#764).
+    await expect
+      .poll(() =>
+        page.evaluate(() => ({
+          width: innerWidth,
+          height: innerHeight,
+          overflow: document.documentElement.scrollWidth > innerWidth,
+          wide: [...document.querySelectorAll('body *')]
+            .filter((el) => el.getBoundingClientRect().right > innerWidth + 0.5)
+            .filter((el) => getComputedStyle(el).position !== 'fixed')
+            .map((el) => `${el.tagName}.${String(el.className).split(' ')[0]}`)
+            .slice(0, 4),
+        })),
       )
-      await content.evaluate((el) => {
-        el.scrollTop = el.scrollHeight
-        // Desde 768 px cada lista (puntuales, series) es una columna con scroll
-        // propio: llegar al final es bajar también la columna (#764).
-        for (const list of el.querySelectorAll<HTMLElement>('.blocks-panel__scroll'))
-          list.scrollTop = list.scrollHeight
-      })
-      await expect(
-        page
-          .locator('.blocks-panel__record')
-          .last()
-          .getByRole('button', { name: /Retirar/ }),
-      ).toBeInViewport()
-      await page.screenshot({
-        path: path.join(evidence, `${testInfo.project.name}-${viewport.width}-listas-fin.png`),
-      })
-      await content.evaluate((el) => {
-        el.scrollTop = 0
-      })
-      await page.getByRole('button', { name: 'Agregar bloqueo', exact: true }).click()
-      await expect(dialog).toBeVisible()
-      await checkAxe(page)
-      await page.screenshot({
-        path: path.join(evidence, `${testInfo.project.name}-${viewport.width}-formulario.png`),
-        fullPage: true,
-      })
-      await dialog.getByRole('button', { name: 'Tipo de bloqueo', exact: true }).press('ArrowDown')
-      await expect(dialog.getByRole('option', { name: 'Emergencia', exact: true })).toBeFocused()
-      await checkAxe(page)
-      await page.screenshot({
-        path: path.join(evidence, `${testInfo.project.name}-${viewport.width}-selector.png`),
-      })
-      await page.keyboard.press('Home')
-      await page.keyboard.press('Enter')
-      await expect(
-        dialog.getByRole('button', { name: 'Tipo de bloqueo', exact: true }),
-      ).toContainText('Descanso')
-      await dialog.getByRole('button', { name: 'Tipo de bloqueo', exact: true }).click()
-      await page.keyboard.press('Escape')
-      await expect(dialog).toBeVisible()
-      await expect(
-        dialog.getByRole('button', { name: 'Tipo de bloqueo', exact: true }),
-      ).toBeFocused()
-      await dialog.getByRole('button', { name: 'Tipo de bloqueo', exact: true }).click()
-      await page.keyboard.press('Tab')
-      await expect(dialog.getByRole('button', { name: /Fecha de inicio/ })).toBeFocused()
-      await dialog.getByRole('button', { name: /Fecha de inicio/ }).click()
-      const calendar = page.getByRole('dialog', { name: 'Elegir fecha', exact: true })
-      await expect(calendar).toBeVisible()
-      await checkAxe(page, '.agenda-date-picker__dialog')
-      const calendarBox = await calendar.boundingBox()
-      expect(calendarBox!.x).toBeGreaterThanOrEqual(0)
-      expect(calendarBox!.y).toBeGreaterThanOrEqual(0)
-      expect(calendarBox!.x + calendarBox!.width).toBeLessThanOrEqual(viewport.width)
-      expect(calendarBox!.y + calendarBox!.height).toBeLessThanOrEqual(viewport.height)
-      await page.screenshot({
-        path: path.join(evidence, `${testInfo.project.name}-${viewport.width}-calendario.png`),
-      })
-      await page.keyboard.press('ArrowRight')
-      await page.keyboard.press('Escape')
-      await expect(dialog).toBeVisible()
-      await expect(dialog.getByRole('button', { name: /Fecha de inicio/ })).toBeFocused()
-      await dialog.getByRole('button', { name: /Hora de inicio/ }).click()
-      const timePicker = page.getByRole('dialog', { name: 'Hora de inicio', exact: true })
-      await checkAxe(page, '.base-time-picker__dialog')
-      const timeBox = await timePicker.boundingBox()
-      const timeFieldBox = await dialog
-        .getByRole('button', { name: /Hora de inicio/ })
-        .boundingBox()
-      expect(timeBox!.width).toBeCloseTo(Math.min(240, Math.max(192, timeFieldBox!.width)), 0)
-      expect(timeBox!.height).toBeLessThan(220)
-      expect(timeBox!.x).toBeGreaterThanOrEqual(0)
-      expect(timeBox!.y).toBeGreaterThanOrEqual(0)
-      expect(timeBox!.x + timeBox!.width).toBeLessThanOrEqual(viewport.width)
-      expect(timeBox!.y + timeBox!.height).toBeLessThanOrEqual(viewport.height)
-      await page.screenshot({
-        path: path.join(evidence, `${testInfo.project.name}-${viewport.width}-hora.png`),
-      })
-      await timePicker.getByRole('spinbutton', { name: 'Hora', exact: true }).fill('09')
-      const minutes = timePicker.getByRole('spinbutton', { name: 'Minutos', exact: true })
-      await expect(minutes).toBeFocused()
-      await expect(timePicker.getByRole('listbox')).toHaveCount(0)
-      await minutes.fill('37')
-      await page.keyboard.press('ArrowUp')
-      await expect(minutes).toHaveValue('38')
-      await minutes.fill('37')
-      await checkAxe(page, '.base-time-picker__dialog')
-      await page.screenshot({
-        path: path.join(evidence, `${testInfo.project.name}-${viewport.width}-minutos.png`),
-      })
-      await timePicker.getByRole('button', { name: 'Aplicar hora', exact: true }).click()
-      await expect(dialog.getByRole('button', { name: /Hora de inicio/ })).toContainText('09:37')
-
-      expect(await dialog.evaluate((el) => el.scrollWidth > el.clientWidth)).toBe(false)
-      await page.keyboard.press('Escape')
-      await expect(dialog).not.toBeVisible()
-      await expect(page.getByRole('button', { name: 'Agregar bloqueo', exact: true })).toBeFocused()
-    }
-    await page.emulateMedia({ reducedMotion: 'reduce' })
+      .toMatchObject({ width: viewport.width, height: viewport.height, overflow: false })
+    await page.locator('main').evaluate((el) => {
+      el.scrollTop = 0
+    })
+    await page.screenshot({
+      path: path.join(evidence, `${testInfo.project.name}-${viewport.width}-equipo.png`),
+      fullPage: true,
+    })
+    await checkAxe(page)
     expect(
       await page
         .locator('.blocks-workspace-dialog')
-        .evaluate((el) => parseFloat(getComputedStyle(el).transitionDuration)),
-    ).toBeLessThanOrEqual(0.001)
-
-    // Fallo de escritura: conserva campos e idempotencia para un reintento.
-    await page.getByRole('button', { name: 'Agregar bloqueo', exact: true }).click()
-    await pickBlockDate(page, 'Fecha de inicio', '2099-02-01')
-    await pickBlockTime(page, 'Hora de inicio', '09:00')
-    await pickBlockDate(page, 'Fecha de fin', '2099-02-01')
-    await pickBlockTime(page, 'Hora de fin', '10:00')
-    await dialog.getByLabel('Motivo (opcional)').fill('Datos conservados de prueba')
-    await page.route(`**/professionals/${PROFESSIONAL_A}/time-blocks`, (route) =>
-      route.request().method() === 'POST' ? route.abort() : route.continue(),
+        .evaluate((el) => el.scrollWidth > el.clientWidth),
+    ).toBe(false)
+    await page.screenshot({
+      path: path.join(evidence, `${testInfo.project.name}-${viewport.width}-panel.png`),
+      fullPage: true,
+    })
+    const content = page.locator(
+      '.blocks-workspace-dialog > .base-dialog__container > .base-dialog__content',
     )
-    await dialog.getByRole('button', { name: 'Guardar bloqueo' }).click()
-    await expect(dialog.getByText(/Tus datos siguen aquí/)).toBeVisible()
-    await expect(dialog.getByLabel('Motivo (opcional)')).toHaveValue('Datos conservados de prueba')
-    await page.unroute(`**/professionals/${PROFESSIONAL_A}/time-blocks`)
+    await content.evaluate((el) => {
+      el.scrollTop = el.scrollHeight
+      // Desde 768 px cada lista (puntuales, series) es una columna con scroll
+      // propio: llegar al final es bajar también la columna (#764).
+      for (const list of el.querySelectorAll<HTMLElement>('.blocks-panel__scroll'))
+        list.scrollTop = list.scrollHeight
+    })
+    await expect(
+      page
+        .locator('.blocks-panel__record')
+        .last()
+        .getByRole('button', { name: /Retirar/ }),
+    ).toBeInViewport()
+    await page.screenshot({
+      path: path.join(evidence, `${testInfo.project.name}-${viewport.width}-listas-fin.png`),
+    })
+    await content.evaluate((el) => {
+      el.scrollTop = 0
+    })
+    await page.getByRole('button', { name: 'Agregar bloqueo', exact: true }).click()
+    await expect(dialog).toBeVisible()
+    await checkAxe(page)
+    await page.screenshot({
+      path: path.join(evidence, `${testInfo.project.name}-${viewport.width}-formulario.png`),
+      fullPage: true,
+    })
+    await dialog.getByRole('button', { name: 'Tipo de bloqueo', exact: true }).press('ArrowDown')
+    await expect(dialog.getByRole('option', { name: 'Emergencia', exact: true })).toBeFocused()
+    await checkAxe(page)
+    await page.screenshot({
+      path: path.join(evidence, `${testInfo.project.name}-${viewport.width}-selector.png`),
+    })
+    await page.keyboard.press('Home')
+    await page.keyboard.press('Enter')
+    await expect(
+      dialog.getByRole('button', { name: 'Tipo de bloqueo', exact: true }),
+    ).toContainText('Descanso')
+    await dialog.getByRole('button', { name: 'Tipo de bloqueo', exact: true }).click()
     await page.keyboard.press('Escape')
+    await expect(dialog).toBeVisible()
+    await expect(dialog.getByRole('button', { name: 'Tipo de bloqueo', exact: true })).toBeFocused()
+    await dialog.getByRole('button', { name: 'Tipo de bloqueo', exact: true }).click()
+    await page.keyboard.press('Tab')
+    await expect(dialog.getByRole('button', { name: /Fecha de inicio/ })).toBeFocused()
+    await dialog.getByRole('button', { name: /Fecha de inicio/ }).click()
+    const calendar = page.getByRole('dialog', { name: 'Elegir fecha', exact: true })
+    await expect(calendar).toBeVisible()
+    await checkAxe(page, '.agenda-date-picker__dialog')
+    const calendarBox = await calendar.boundingBox()
+    expect(calendarBox!.x).toBeGreaterThanOrEqual(0)
+    expect(calendarBox!.y).toBeGreaterThanOrEqual(0)
+    expect(calendarBox!.x + calendarBox!.width).toBeLessThanOrEqual(viewport.width)
+    expect(calendarBox!.y + calendarBox!.height).toBeLessThanOrEqual(viewport.height)
+    await page.screenshot({
+      path: path.join(evidence, `${testInfo.project.name}-${viewport.width}-calendario.png`),
+    })
+    await page.keyboard.press('ArrowRight')
+    await page.keyboard.press('Escape')
+    await expect(dialog).toBeVisible()
+    await expect(dialog.getByRole('button', { name: /Fecha de inicio/ })).toBeFocused()
+    await dialog.getByRole('button', { name: /Hora de inicio/ }).click()
+    const timePicker = page.getByRole('dialog', { name: 'Hora de inicio', exact: true })
+    await checkAxe(page, '.base-time-picker__dialog')
+    const timeBox = await timePicker.boundingBox()
+    const timeFieldBox = await dialog.getByRole('button', { name: /Hora de inicio/ }).boundingBox()
+    expect(timeBox!.width).toBeCloseTo(Math.min(240, Math.max(192, timeFieldBox!.width)), 0)
+    expect(timeBox!.height).toBeLessThan(220)
+    expect(timeBox!.x).toBeGreaterThanOrEqual(0)
+    expect(timeBox!.y).toBeGreaterThanOrEqual(0)
+    expect(timeBox!.x + timeBox!.width).toBeLessThanOrEqual(viewport.width)
+    expect(timeBox!.y + timeBox!.height).toBeLessThanOrEqual(viewport.height)
+    await page.screenshot({
+      path: path.join(evidence, `${testInfo.project.name}-${viewport.width}-hora.png`),
+    })
+    await timePicker.getByRole('spinbutton', { name: 'Hora', exact: true }).fill('09')
+    const minutes = timePicker.getByRole('spinbutton', { name: 'Minutos', exact: true })
+    await expect(minutes).toBeFocused()
+    await expect(timePicker.getByRole('listbox')).toHaveCount(0)
+    await minutes.fill('37')
+    await page.keyboard.press('ArrowUp')
+    await expect(minutes).toHaveValue('38')
+    await minutes.fill('37')
+    await checkAxe(page, '.base-time-picker__dialog')
+    await page.screenshot({
+      path: path.join(evidence, `${testInfo.project.name}-${viewport.width}-minutos.png`),
+    })
+    await timePicker.getByRole('button', { name: 'Aplicar hora', exact: true }).click()
+    await expect(dialog.getByRole('button', { name: /Hora de inicio/ })).toContainText('09:37')
 
-    // La misma URL base del proyecto (APP_BASE_URL), no un puerto fijo (#764).
-    const contextB = await browser.newContext({ baseURL: testInfo.project.use.baseURL })
-    try {
-      const other = await contextB.newPage()
-      await login(other, 2)
-      for (const route of [
-        `/professionals/${PROFESSIONAL_A}/time-blocks`,
-        `/professionals/${PROFESSIONAL_A}/time-block-series`,
-      ]) {
-        const response = await other.request.get(`/api/v1/private${route}`)
-        expect(response.status()).toBe(404)
-      }
-      const own = await other.request.get(
-        `/api/v1/private/professionals/${PROFESSIONAL_B}/time-blocks`,
-      )
-      expect(own.status()).toBe(200)
-      expect(JSON.stringify(await own.json())).not.toContain(marker)
-      const secondProfessional = await page.request.get(
-        `/api/v1/private/professionals/${PROFESSIONAL_OTHER}/time-blocks`,
-      )
-      expect(JSON.stringify(await secondProfessional.json())).not.toContain(marker)
-    } finally {
-      await contextB.close()
-    }
-
-    // Las filas se retiran inmediatamente con movimiento reducido. Reconsultar
-    // evita que los índices de locator.all() apunten a la fila ya desplazada.
-    const ownRecords = page.locator('.blocks-panel__record').filter({ hasText: marker })
-    while (await ownRecords.count()) {
-      const count = await ownRecords.count()
-      await ownRecords
-        .first()
-        .getByRole('button', { name: /Retirar/ })
-        .click()
-      await expect(ownRecords).toHaveCount(count - 1)
-    }
-    await expect(page.locator('.blocks-panel__record').filter({ hasText: marker })).toHaveCount(0)
-    await page.goto('/panel/bloqueos')
-    await expect(page).toHaveURL(/\/panel\/profesionales$/)
-    expect(pageErrors).toEqual([])
+    expect(await dialog.evaluate((el) => el.scrollWidth > el.clientWidth)).toBe(false)
+    await page.keyboard.press('Escape')
+    await expect(dialog).not.toBeVisible()
+    await expect(page.getByRole('button', { name: 'Agregar bloqueo', exact: true })).toBeFocused()
   }
+  await page.emulateMedia({ reducedMotion: 'reduce' })
+  expect(
+    await page
+      .locator('.blocks-workspace-dialog')
+      .evaluate((el) => parseFloat(getComputedStyle(el).transitionDuration)),
+  ).toBeLessThanOrEqual(0.001)
+
+  // Fallo de escritura: conserva campos e idempotencia para un reintento.
+  await page.getByRole('button', { name: 'Agregar bloqueo', exact: true }).click()
+  await pickBlockDate(page, 'Fecha de inicio', '2099-02-01')
+  await pickBlockTime(page, 'Hora de inicio', '09:00')
+  await pickBlockDate(page, 'Fecha de fin', '2099-02-01')
+  await pickBlockTime(page, 'Hora de fin', '10:00')
+  await dialog.getByLabel('Motivo (opcional)').fill('Datos conservados de prueba')
+  await page.route(`**/professionals/${PROFESSIONAL_A}/time-blocks`, (route) =>
+    route.request().method() === 'POST' ? route.abort() : route.continue(),
+  )
+  await dialog.getByRole('button', { name: 'Guardar bloqueo' }).click()
+  await expect(dialog.getByText(/Tus datos siguen aquí/)).toBeVisible()
+  await expect(dialog.getByLabel('Motivo (opcional)')).toHaveValue('Datos conservados de prueba')
+  await page.unroute(`**/professionals/${PROFESSIONAL_A}/time-blocks`)
+  await page.keyboard.press('Escape')
+
+  // La misma URL base del proyecto (APP_BASE_URL), no un puerto fijo (#764).
+  const contextB = await browser.newContext({ baseURL: testInfo.project.use.baseURL })
+  try {
+    const other = await contextB.newPage()
+    await login(other, 2)
+    for (const route of [
+      `/professionals/${PROFESSIONAL_A}/time-blocks`,
+      `/professionals/${PROFESSIONAL_A}/time-block-series`,
+    ]) {
+      const response = await other.request.get(`/api/v1/private${route}`)
+      expect(response.status()).toBe(404)
+    }
+    const own = await other.request.get(
+      `/api/v1/private/professionals/${PROFESSIONAL_B}/time-blocks`,
+    )
+    expect(own.status()).toBe(200)
+    expect(JSON.stringify(await own.json())).not.toContain(marker)
+    const secondProfessional = await page.request.get(
+      `/api/v1/private/professionals/${PROFESSIONAL_OTHER}/time-blocks`,
+    )
+    expect(JSON.stringify(await secondProfessional.json())).not.toContain(marker)
+  } finally {
+    await contextB.close()
+  }
+
+  // Las filas se retiran inmediatamente con movimiento reducido. Reconsultar
+  // evita que los índices de locator.all() apunten a la fila ya desplazada.
+  const ownRecords = page.locator('.blocks-panel__record').filter({ hasText: marker })
+  while (await ownRecords.count()) {
+    const count = await ownRecords.count()
+    await ownRecords
+      .first()
+      .getByRole('button', { name: /Retirar/ })
+      .click()
+    await expect(ownRecords).toHaveCount(count - 1)
+  }
+  await expect(page.locator('.blocks-panel__record').filter({ hasText: marker })).toHaveCount(0)
+  await page.goto('/panel/bloqueos')
+  await expect(page).toHaveURL(/\/panel\/profesionales$/)
+  expect(pageErrors).toEqual([])
 })
 
 test('el calendario compartido conserva selección civil y recarga en la agenda', async ({

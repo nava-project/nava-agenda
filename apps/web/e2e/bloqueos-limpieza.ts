@@ -2,8 +2,10 @@ import { test as base, expect } from '@playwright/test'
 
 /**
  * Limpieza de los E2E de bloqueos (#764). Cada bloqueo o serie que la página crea
- * queda registrado en cuanto el servidor responde 201, venga de la UI o de una
- * llamada directa, y se retira en el desmontaje del fixture.
+ * queda registrado en cuanto el servidor responde 201 y se retira en el desmontaje
+ * del fixture. Solo ve el tráfico de la página (la UI o un `fetch` dentro de
+ * `page.evaluate`): `page.request` es un APIRequestContext aparte, así que lo que
+ * se cree por esa vía hay que registrarlo con `retireCreatedBlocks.track(path)`.
  *
  * Antes la retirada vivía en el `finally` del propio test: si el test agotaba su
  * tiempo, el `delete` quedaba cortado y la serie seguía viva para la siguiente
@@ -15,7 +17,12 @@ const CREATED = /\/api\/v1\/private\/professionals\/[0-9a-f-]+\/(time-blocks|tim
 // nueva: también hay que retirarla.
 const SPLIT = /^(\/api\/v1\/private\/professionals\/[0-9a-f-]+\/time-block-series)\/([0-9a-f-]+)$/
 
-export const test = base.extend<{ retireCreatedBlocks: void }>({
+export interface CreatedBlocks {
+  /** Registra un recurso creado fuera de la página, p. ej. `…/time-blocks/<id>`. */
+  track(resource: string): void
+}
+
+export const test = base.extend<{ retireCreatedBlocks: CreatedBlocks }>({
   retireCreatedBlocks: [
     async ({ page }, use) => {
       const created: string[] = []
@@ -42,7 +49,7 @@ export const test = base.extend<{ retireCreatedBlocks: void }>({
         )
       })
 
-      await use()
+      await use({ track: (resource) => created.push(resource) })
       // Un 201 que llegó justo al final todavía puede estar leyéndose.
       await Promise.all(reading)
 

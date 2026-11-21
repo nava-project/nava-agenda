@@ -139,288 +139,283 @@ test('series por fechas, excepciones y edición por alcance con API real', async
 
   await login(page)
   await openPanel(page)
-  {
-    // --- Alta por fechas explícitas -----------------------------------
-    await page.getByRole('button', { name: 'Agregar bloqueo por días' }).click()
-    const form = page.getByRole('dialog', { name: 'Agregar bloqueo por días' })
-    await expect(form).toBeVisible()
-    const scope = page.locator('.block-dialog.base-dialog--open')
-    // En «Fechas elegidas» la vigencia sale de las fechas: no se pide aparte.
-    await form.getByRole('radio', { name: /Fechas elegidas/ }).click()
-    await expect(form.getByText('Vigente desde')).toHaveCount(0)
-    await pickDate(page, scope, /Elegir una fecha/, '2099-12-16')
-    await form.getByRole('button', { name: 'Añadir a la lista' }).click()
-    await pickDate(page, scope, /Elegir una fecha/, '2099-12-15')
-    await form.getByRole('button', { name: 'Añadir a la lista' }).click()
-    await expect(
-      form.getByRole('list', { name: 'Fechas elegidas' }).getByRole('listitem'),
-    ).toHaveCount(2)
-    await form.getByLabel('Motivo (opcional)').fill(marker)
+  // --- Alta por fechas explícitas -----------------------------------
+  await page.getByRole('button', { name: 'Agregar bloqueo por días' }).click()
+  const form = page.getByRole('dialog', { name: 'Agregar bloqueo por días' })
+  await expect(form).toBeVisible()
+  const scope = page.locator('.block-dialog.base-dialog--open')
+  // En «Fechas elegidas» la vigencia sale de las fechas: no se pide aparte.
+  await form.getByRole('radio', { name: /Fechas elegidas/ }).click()
+  await expect(form.getByText('Vigente desde')).toHaveCount(0)
+  await pickDate(page, scope, /Elegir una fecha/, '2099-12-16')
+  await form.getByRole('button', { name: 'Añadir a la lista' }).click()
+  await pickDate(page, scope, /Elegir una fecha/, '2099-12-15')
+  await form.getByRole('button', { name: 'Añadir a la lista' }).click()
+  await expect(
+    form.getByRole('list', { name: 'Fechas elegidas' }).getByRole('listitem'),
+  ).toHaveCount(2)
+  await form.getByLabel('Motivo (opcional)').fill(marker)
 
-    await checkAxe(page)
-    await page.screenshot({ path: path.join(evidence, `${testInfo.project.name}-alta-fechas.png`) })
-    const createdResponse = page.waitForResponse(
-      (r) => r.request().method() === 'POST' && r.url().endsWith(`${API}/time-block-series`),
-    )
-    await form.getByRole('button', { name: 'Guardar bloqueo' }).click()
-    const dateListResponse = await createdResponse
-    expect(dateListResponse.status()).toBe(201)
-    const dateListId = (await dateListResponse.json()).id as string
-    await expect(form).not.toBeVisible()
-    const dateListRecord = page
+  await checkAxe(page)
+  await page.screenshot({ path: path.join(evidence, `${testInfo.project.name}-alta-fechas.png`) })
+  const createdResponse = page.waitForResponse(
+    (r) => r.request().method() === 'POST' && r.url().endsWith(`${API}/time-block-series`),
+  )
+  await form.getByRole('button', { name: 'Guardar bloqueo' }).click()
+  const dateListResponse = await createdResponse
+  expect(dateListResponse.status()).toBe(201)
+  const dateListId = (await dateListResponse.json()).id as string
+  await expect(form).not.toBeVisible()
+  const dateListRecord = page
+    .locator('.blocks-panel__record')
+    .filter({ hasText: marker })
+    .filter({ hasText: '2 fechas' })
+  await expect(dateListRecord).toBeVisible()
+  await dismissNotices(page)
+
+  // --- Fechas y excepciones de la serie por fechas --------------------
+  await dateListRecord.getByRole('button', { name: /^Fechas y excepciones de la serie/ }).click()
+  const instances = page.getByRole('dialog', { name: 'Fechas y excepciones' })
+  await expect(instances).toBeVisible()
+  await pickDate(page, scope, /Agregar una fecha/, '2099-12-20')
+  const addDate = page.waitForResponse(
+    (r) =>
+      r.request().method() === 'POST' && r.url().endsWith(`/time-block-series/${dateListId}/dates`),
+  )
+  await instances.getByRole('button', { name: 'Agregar fecha' }).click()
+  expect((await addDate).status()).toBe(204)
+  await expect(
+    instances.getByRole('list', { name: 'Fechas de la serie' }).getByRole('listitem'),
+  ).toHaveCount(3)
+
+  // Repetir una fecha es un 409 determinista que la pantalla explica.
+  await pickDate(page, scope, /Agregar una fecha/, '2099-12-20')
+  await instances.getByRole('button', { name: 'Agregar fecha' }).click()
+  await expect(instances.getByText('Esa fecha ya está en la serie.')).toBeVisible()
+
+  await pickDate(page, scope, /Instancia que no se bloquea/, '2099-12-16')
+  await instances.getByLabel('Motivo de la excepción (opcional)').fill('Libró ese día')
+  const addException = page.waitForResponse(
+    (r) =>
+      r.request().method() === 'POST' &&
+      r.url().endsWith(`/time-block-series/${dateListId}/exceptions`),
+  )
+  await instances.getByRole('button', { name: 'Agregar excepción' }).click()
+  expect((await addException).status()).toBe(204)
+  await expect(
+    instances.getByRole('list', { name: 'Excepciones de la serie' }).getByText('Libró ese día'),
+  ).toBeVisible()
+
+  const removeDate = page.waitForResponse(
+    (r) =>
+      r.request().method() === 'DELETE' &&
+      r.url().endsWith(`/time-block-series/${dateListId}/dates/2099-12-15`),
+  )
+  await instances.getByRole('button', { name: /^Quitar la fecha .*15/ }).click()
+  expect((await removeDate).status()).toBe(204)
+  await checkAxe(page)
+  await page.screenshot({
+    path: path.join(evidence, `${testInfo.project.name}-fechas-excepciones.png`),
+  })
+
+  const afterEdits = (await listSeries(page)).find((item) => item.id === dateListId)!
+  expect(afterEdits.dates.map((item) => item.blockDate).sort()).toEqual([
+    '2099-12-16',
+    '2099-12-20',
+  ])
+  expect(afterEdits.exceptions).toEqual([
+    expect.objectContaining({ excludedDate: '2099-12-16', reason: 'Libró ese día' }),
+  ])
+
+  const restore = page.waitForResponse(
+    (r) => r.request().method() === 'DELETE' && r.url().endsWith(`/exceptions/2099-12-16`),
+  )
+  await instances.getByRole('button', { name: /^Restaurar la instancia del/ }).click()
+  expect((await restore).status()).toBe(204)
+  await expect(instances.getByText('Ninguna instancia está exceptuada.')).toBeVisible()
+  await instances.getByRole('button', { name: 'Cerrar', exact: true }).click()
+  await expect(instances).not.toBeVisible()
+  await expect(
+    dateListRecord.getByRole('button', { name: /^Fechas y excepciones de la serie/ }),
+  ).toBeFocused()
+  await expect(dateListRecord).toContainText('2 fechas')
+
+  // --- Serie semanal: editar toda la serie y «esta y las siguientes» --
+  await page.getByRole('button', { name: 'Agregar bloqueo por días', exact: true }).click()
+  const weekly = page.getByRole('dialog', { name: 'Agregar bloqueo por días' })
+  await weekly.getByRole('button', { name: 'Miércoles', exact: true }).click()
+  for (const [label, hour, minutes] of [
+    ['Hora de inicio', '12', '00'],
+    ['Hora de fin', '12', '45'],
+  ] as const) {
+    await scope.getByRole('button', { name: new RegExp(label) }).click()
+    const timePicker = page.getByRole('dialog', { name: label, exact: true })
+    await timePicker.getByRole('spinbutton', { name: 'Hora', exact: true }).fill(hour)
+    await timePicker.getByRole('spinbutton', { name: 'Minutos', exact: true }).fill(minutes)
+    await timePicker.getByRole('button', { name: 'Aplicar hora', exact: true }).click()
+  }
+  await pickDate(page, scope, /Vigente desde/, '2099-01-01')
+  await weekly.getByLabel('Motivo (opcional)').fill(marker)
+  const weeklyResponse = page.waitForResponse(
+    (r) => r.request().method() === 'POST' && r.url().endsWith(`${API}/time-block-series`),
+  )
+  await weekly.getByRole('button', { name: 'Guardar bloqueo' }).click()
+  const weeklyId = (await (await weeklyResponse).json()).id as string
+  await dismissNotices(page)
+  const weeklyRecord = page
+    .locator('.blocks-panel__record')
+    .filter({ hasText: marker })
+    .filter({ hasText: 'Semanal' })
+  await expect(weeklyRecord).toBeVisible()
+
+  await weeklyRecord.getByRole('button', { name: /^Editar serie/ }).click()
+  const edit = page.getByRole('dialog', { name: 'Editar serie de bloqueo' })
+  await expect(edit).toBeVisible()
+  // El diálogo pide la hora de fin, no la duración (#764): 12:00 → 12:45 es la
+  // serie de 45 min que se creó; se alarga a 12:50.
+  const endTime = edit.getByRole('button', { name: /^Hora de fin/ })
+  await expect(endTime).toContainText('12:45')
+  await setTime(page, edit, 'Hora de fin', '12', '50')
+  await expect(endTime).toContainText('12:50')
+  await checkAxe(page)
+  await page.screenshot({
+    path: path.join(evidence, `${testInfo.project.name}-editar-serie.png`),
+  })
+  const patchWhole = page.waitForResponse(
+    (r) => r.request().method() === 'PATCH' && r.url().endsWith(`/time-block-series/${weeklyId}`),
+  )
+  await edit.getByRole('button', { name: 'Guardar cambios' }).click()
+  expect((await patchWhole).status()).toBe(200)
+  await expect(edit).not.toBeVisible()
+  await expect(weeklyRecord).toContainText('12:00 p. m. – 12:50 p. m.')
+  await dismissNotices(page)
+
+  await weeklyRecord.getByRole('button', { name: /^Editar serie/ }).click()
+  await choose(scope, 'Qué cambia', 'Esta fecha y las siguientes')
+  // Un corte anterior al inicio de la serie se explica antes de enviar.
+  await pickDate(page, scope, /Aplicar desde/, '2099-01-01')
+  await edit.getByRole('button', { name: 'Guardar cambios' }).click()
+  await expect(edit.getByText(/El corte debe ser posterior al inicio/)).toBeVisible()
+  await pickDate(page, scope, /Aplicar desde/, '2099-06-01')
+  await setTime(page, edit, 'Hora de fin', '12', '30')
+  await expect(endTime).toContainText('12:30')
+  await expect(edit.getByText(/La serie actual termina el .*31/)).toBeVisible()
+  await checkAxe(page)
+  await page.screenshot({
+    path: path.join(evidence, `${testInfo.project.name}-editar-desde.png`),
+  })
+  const patchSplit = page.waitForResponse(
+    (r) => r.request().method() === 'PATCH' && r.url().endsWith(`/time-block-series/${weeklyId}`),
+  )
+  await edit.getByRole('button', { name: 'Guardar cambios' }).click()
+  const split = await patchSplit
+  expect(split.status()).toBe(200)
+  const newId = (await split.json()).id as string
+  expect(newId).not.toBe(weeklyId)
+  await expect(
+    page
+      .locator('.blocks-panel__record')
+      .filter({ hasText: marker })
+      .filter({ hasText: 'Semanal' }),
+  ).toHaveCount(2)
+
+  const series = await listSeries(page)
+  expect(series.find((item) => item.id === weeklyId)).toMatchObject({
+    effectiveUntil: '2099-05-31',
+    durationMinutes: 50,
+  })
+  expect(series.find((item) => item.id === newId)).toMatchObject({
+    effectiveFrom: '2099-06-01',
+    durationMinutes: 30,
+  })
+
+  // Excepción sobre una serie semanal (sin lista de fechas).
+  const newRecord = page
+    .locator('.blocks-panel__record')
+    .filter({ hasText: marker })
+    // El registro dice el rango, no la duración (#764).
+    .filter({ hasText: '12:00 p. m. – 12:30 p. m.' })
+  await newRecord.getByRole('button', { name: /^Excepciones de la serie/ }).click()
+  const weeklyInstances = page.getByRole('dialog', { name: 'Excepciones de la serie' })
+  await expect(weeklyInstances.getByRole('list', { name: 'Fechas de la serie' })).toHaveCount(0)
+  await pickDate(page, scope, /Instancia que no se bloquea/, '2099-06-03')
+  await weeklyInstances.getByRole('button', { name: 'Agregar excepción' }).click()
+  await expect(
+    weeklyInstances.getByRole('list', { name: 'Excepciones de la serie' }).getByRole('listitem'),
+  ).toHaveCount(1)
+  await weeklyInstances.getByRole('button', { name: 'Cerrar', exact: true }).click()
+  await expect(newRecord).toContainText('1 excepción')
+
+  // --- Recarga: todo persiste en el servidor ---------------------------
+  await page.reload()
+  await openPanel(page)
+  await expect(page.locator('.blocks-panel__record').filter({ hasText: marker })).toHaveCount(3)
+  await expect(
+    page
+      .locator('.blocks-panel__record')
+      .filter({ hasText: marker })
+      .filter({ hasText: '2 fechas' }),
+  ).toBeVisible()
+
+  // --- Responsive, teclado y desbordamiento --------------------------
+  for (const viewport of [
+    { width: 320, height: 740 },
+    { width: 360, height: 800 },
+    { width: 768, height: 1024 },
+    { width: 1280, height: 900 },
+  ]) {
+    await page.setViewportSize(viewport)
+    // Se mide el estado ya asentado tras el cambio de tamaño; un desborde real
+    // persiste y falla igual (#764).
+    await expect
+      .poll(() => page.evaluate(() => document.documentElement.scrollWidth > innerWidth))
+      .toBe(false)
+    await checkAxe(page, '.blocks-panel')
+    await page.screenshot({
+      path: path.join(evidence, `${testInfo.project.name}-${viewport.width}-panel.png`),
+    })
+    const record = page
       .locator('.blocks-panel__record')
       .filter({ hasText: marker })
       .filter({ hasText: '2 fechas' })
-    await expect(dateListRecord).toBeVisible()
-    await dismissNotices(page)
-
-    // --- Fechas y excepciones de la serie por fechas --------------------
-    await dateListRecord.getByRole('button', { name: /^Fechas y excepciones de la serie/ }).click()
-    const instances = page.getByRole('dialog', { name: 'Fechas y excepciones' })
-    await expect(instances).toBeVisible()
-    await pickDate(page, scope, /Agregar una fecha/, '2099-12-20')
-    const addDate = page.waitForResponse(
-      (r) =>
-        r.request().method() === 'POST' &&
-        r.url().endsWith(`/time-block-series/${dateListId}/dates`),
-    )
-    await instances.getByRole('button', { name: 'Agregar fecha' }).click()
-    expect((await addDate).status()).toBe(204)
-    await expect(
-      instances.getByRole('list', { name: 'Fechas de la serie' }).getByRole('listitem'),
-    ).toHaveCount(3)
-
-    // Repetir una fecha es un 409 determinista que la pantalla explica.
-    await pickDate(page, scope, /Agregar una fecha/, '2099-12-20')
-    await instances.getByRole('button', { name: 'Agregar fecha' }).click()
-    await expect(instances.getByText('Esa fecha ya está en la serie.')).toBeVisible()
-
-    await pickDate(page, scope, /Instancia que no se bloquea/, '2099-12-16')
-    await instances.getByLabel('Motivo de la excepción (opcional)').fill('Libró ese día')
-    const addException = page.waitForResponse(
-      (r) =>
-        r.request().method() === 'POST' &&
-        r.url().endsWith(`/time-block-series/${dateListId}/exceptions`),
-    )
-    await instances.getByRole('button', { name: 'Agregar excepción' }).click()
-    expect((await addException).status()).toBe(204)
-    await expect(
-      instances.getByRole('list', { name: 'Excepciones de la serie' }).getByText('Libró ese día'),
-    ).toBeVisible()
-
-    const removeDate = page.waitForResponse(
-      (r) =>
-        r.request().method() === 'DELETE' &&
-        r.url().endsWith(`/time-block-series/${dateListId}/dates/2099-12-15`),
-    )
-    await instances.getByRole('button', { name: /^Quitar la fecha .*15/ }).click()
-    expect((await removeDate).status()).toBe(204)
-    await checkAxe(page)
+    await record.scrollIntoViewIfNeeded()
+    for (const name of [/^Fechas y excepciones de la serie/, /^Editar serie/, /^Retirar serie/]) {
+      await expect(record.getByRole('button', { name })).toBeInViewport()
+      const box = await record.getByRole('button', { name }).boundingBox()
+      expect(box!.x).toBeGreaterThanOrEqual(0)
+      expect(box!.x + box!.width).toBeLessThanOrEqual(viewport.width)
+      expect(box!.height).toBeGreaterThanOrEqual(44)
+    }
     await page.screenshot({
-      path: path.join(evidence, `${testInfo.project.name}-fechas-excepciones.png`),
+      path: path.join(evidence, `${testInfo.project.name}-${viewport.width}-registro.png`),
     })
 
-    const afterEdits = (await listSeries(page)).find((item) => item.id === dateListId)!
-    expect(afterEdits.dates.map((item) => item.blockDate).sort()).toEqual([
-      '2099-12-16',
-      '2099-12-20',
-    ])
-    expect(afterEdits.exceptions).toEqual([
-      expect.objectContaining({ excludedDate: '2099-12-16', reason: 'Libró ese día' }),
-    ])
-
-    const restore = page.waitForResponse(
-      (r) => r.request().method() === 'DELETE' && r.url().endsWith(`/exceptions/2099-12-16`),
-    )
-    await instances.getByRole('button', { name: /^Restaurar la instancia del/ }).click()
-    expect((await restore).status()).toBe(204)
-    await expect(instances.getByText('Ninguna instancia está exceptuada.')).toBeVisible()
-    await instances.getByRole('button', { name: 'Cerrar', exact: true }).click()
-    await expect(instances).not.toBeVisible()
+    await record.getByRole('button', { name: /^Fechas y excepciones de la serie/ }).click()
+    const dialog = page.getByRole('dialog', { name: 'Fechas y excepciones' })
+    await expect(dialog).toBeVisible()
+    expect(await dialog.evaluate((el) => el.scrollWidth > el.clientWidth)).toBe(false)
+    expect(await page.evaluate(() => document.documentElement.scrollWidth > innerWidth)).toBe(false)
+    await checkAxe(page)
+    await page.screenshot({
+      path: path.join(evidence, `${testInfo.project.name}-${viewport.width}-fechas.png`),
+    })
+    await page.keyboard.press('Escape')
+    await expect(dialog).not.toBeVisible()
     await expect(
-      dateListRecord.getByRole('button', { name: /^Fechas y excepciones de la serie/ }),
+      record.getByRole('button', { name: /^Fechas y excepciones de la serie/ }),
     ).toBeFocused()
-    await expect(dateListRecord).toContainText('2 fechas')
 
-    // --- Serie semanal: editar toda la serie y «esta y las siguientes» --
-    await page.getByRole('button', { name: 'Agregar bloqueo por días', exact: true }).click()
-    const weekly = page.getByRole('dialog', { name: 'Agregar bloqueo por días' })
-    await weekly.getByRole('button', { name: 'Miércoles', exact: true }).click()
-    for (const [label, hour, minutes] of [
-      ['Hora de inicio', '12', '00'],
-      ['Hora de fin', '12', '45'],
-    ] as const) {
-      await scope.getByRole('button', { name: new RegExp(label) }).click()
-      const timePicker = page.getByRole('dialog', { name: label, exact: true })
-      await timePicker.getByRole('spinbutton', { name: 'Hora', exact: true }).fill(hour)
-      await timePicker.getByRole('spinbutton', { name: 'Minutos', exact: true }).fill(minutes)
-      await timePicker.getByRole('button', { name: 'Aplicar hora', exact: true }).click()
-    }
-    await pickDate(page, scope, /Vigente desde/, '2099-01-01')
-    await weekly.getByLabel('Motivo (opcional)').fill(marker)
-    const weeklyResponse = page.waitForResponse(
-      (r) => r.request().method() === 'POST' && r.url().endsWith(`${API}/time-block-series`),
-    )
-    await weekly.getByRole('button', { name: 'Guardar bloqueo' }).click()
-    const weeklyId = (await (await weeklyResponse).json()).id as string
-    await dismissNotices(page)
-    const weeklyRecord = page
-      .locator('.blocks-panel__record')
-      .filter({ hasText: marker })
-      .filter({ hasText: 'Semanal' })
-    await expect(weeklyRecord).toBeVisible()
-
-    await weeklyRecord.getByRole('button', { name: /^Editar serie/ }).click()
-    const edit = page.getByRole('dialog', { name: 'Editar serie de bloqueo' })
-    await expect(edit).toBeVisible()
-    // El diálogo pide la hora de fin, no la duración (#764): 12:00 → 12:45 es la
-    // serie de 45 min que se creó; se alarga a 12:50.
-    const endTime = edit.getByRole('button', { name: /^Hora de fin/ })
-    await expect(endTime).toContainText('12:45')
-    await setTime(page, edit, 'Hora de fin', '12', '50')
-    await expect(endTime).toContainText('12:50')
+    await page.getByRole('button', { name: 'Agregar bloqueo por días' }).click()
+    const alta = page.getByRole('dialog', { name: 'Agregar bloqueo por días' })
+    await expect(alta).toBeVisible()
+    expect(await alta.evaluate((el) => el.scrollWidth > el.clientWidth)).toBe(false)
     await checkAxe(page)
     await page.screenshot({
-      path: path.join(evidence, `${testInfo.project.name}-editar-serie.png`),
+      path: path.join(evidence, `${testInfo.project.name}-${viewport.width}-alta.png`),
+      fullPage: true,
     })
-    const patchWhole = page.waitForResponse(
-      (r) => r.request().method() === 'PATCH' && r.url().endsWith(`/time-block-series/${weeklyId}`),
-    )
-    await edit.getByRole('button', { name: 'Guardar cambios' }).click()
-    expect((await patchWhole).status()).toBe(200)
-    await expect(edit).not.toBeVisible()
-    await expect(weeklyRecord).toContainText('12:00 p. m. – 12:50 p. m.')
-    await dismissNotices(page)
-
-    await weeklyRecord.getByRole('button', { name: /^Editar serie/ }).click()
-    await choose(scope, 'Qué cambia', 'Esta fecha y las siguientes')
-    // Un corte anterior al inicio de la serie se explica antes de enviar.
-    await pickDate(page, scope, /Aplicar desde/, '2099-01-01')
-    await edit.getByRole('button', { name: 'Guardar cambios' }).click()
-    await expect(edit.getByText(/El corte debe ser posterior al inicio/)).toBeVisible()
-    await pickDate(page, scope, /Aplicar desde/, '2099-06-01')
-    await setTime(page, edit, 'Hora de fin', '12', '30')
-    await expect(endTime).toContainText('12:30')
-    await expect(edit.getByText(/La serie actual termina el .*31/)).toBeVisible()
-    await checkAxe(page)
-    await page.screenshot({
-      path: path.join(evidence, `${testInfo.project.name}-editar-desde.png`),
-    })
-    const patchSplit = page.waitForResponse(
-      (r) => r.request().method() === 'PATCH' && r.url().endsWith(`/time-block-series/${weeklyId}`),
-    )
-    await edit.getByRole('button', { name: 'Guardar cambios' }).click()
-    const split = await patchSplit
-    expect(split.status()).toBe(200)
-    const newId = (await split.json()).id as string
-    expect(newId).not.toBe(weeklyId)
-    await expect(
-      page
-        .locator('.blocks-panel__record')
-        .filter({ hasText: marker })
-        .filter({ hasText: 'Semanal' }),
-    ).toHaveCount(2)
-
-    const series = await listSeries(page)
-    expect(series.find((item) => item.id === weeklyId)).toMatchObject({
-      effectiveUntil: '2099-05-31',
-      durationMinutes: 50,
-    })
-    expect(series.find((item) => item.id === newId)).toMatchObject({
-      effectiveFrom: '2099-06-01',
-      durationMinutes: 30,
-    })
-
-    // Excepción sobre una serie semanal (sin lista de fechas).
-    const newRecord = page
-      .locator('.blocks-panel__record')
-      .filter({ hasText: marker })
-      // El registro dice el rango, no la duración (#764).
-      .filter({ hasText: '12:00 p. m. – 12:30 p. m.' })
-    await newRecord.getByRole('button', { name: /^Excepciones de la serie/ }).click()
-    const weeklyInstances = page.getByRole('dialog', { name: 'Excepciones de la serie' })
-    await expect(weeklyInstances.getByRole('list', { name: 'Fechas de la serie' })).toHaveCount(0)
-    await pickDate(page, scope, /Instancia que no se bloquea/, '2099-06-03')
-    await weeklyInstances.getByRole('button', { name: 'Agregar excepción' }).click()
-    await expect(
-      weeklyInstances.getByRole('list', { name: 'Excepciones de la serie' }).getByRole('listitem'),
-    ).toHaveCount(1)
-    await weeklyInstances.getByRole('button', { name: 'Cerrar', exact: true }).click()
-    await expect(newRecord).toContainText('1 excepción')
-
-    // --- Recarga: todo persiste en el servidor ---------------------------
-    await page.reload()
-    await openPanel(page)
-    await expect(page.locator('.blocks-panel__record').filter({ hasText: marker })).toHaveCount(3)
-    await expect(
-      page
-        .locator('.blocks-panel__record')
-        .filter({ hasText: marker })
-        .filter({ hasText: '2 fechas' }),
-    ).toBeVisible()
-
-    // --- Responsive, teclado y desbordamiento --------------------------
-    for (const viewport of [
-      { width: 320, height: 740 },
-      { width: 360, height: 800 },
-      { width: 768, height: 1024 },
-      { width: 1280, height: 900 },
-    ]) {
-      await page.setViewportSize(viewport)
-      // Se mide el estado ya asentado tras el cambio de tamaño; un desborde real
-      // persiste y falla igual (#764).
-      await expect
-        .poll(() => page.evaluate(() => document.documentElement.scrollWidth > innerWidth))
-        .toBe(false)
-      await checkAxe(page, '.blocks-panel')
-      await page.screenshot({
-        path: path.join(evidence, `${testInfo.project.name}-${viewport.width}-panel.png`),
-      })
-      const record = page
-        .locator('.blocks-panel__record')
-        .filter({ hasText: marker })
-        .filter({ hasText: '2 fechas' })
-      await record.scrollIntoViewIfNeeded()
-      for (const name of [/^Fechas y excepciones de la serie/, /^Editar serie/, /^Retirar serie/]) {
-        await expect(record.getByRole('button', { name })).toBeInViewport()
-        const box = await record.getByRole('button', { name }).boundingBox()
-        expect(box!.x).toBeGreaterThanOrEqual(0)
-        expect(box!.x + box!.width).toBeLessThanOrEqual(viewport.width)
-        expect(box!.height).toBeGreaterThanOrEqual(44)
-      }
-      await page.screenshot({
-        path: path.join(evidence, `${testInfo.project.name}-${viewport.width}-registro.png`),
-      })
-
-      await record.getByRole('button', { name: /^Fechas y excepciones de la serie/ }).click()
-      const dialog = page.getByRole('dialog', { name: 'Fechas y excepciones' })
-      await expect(dialog).toBeVisible()
-      expect(await dialog.evaluate((el) => el.scrollWidth > el.clientWidth)).toBe(false)
-      expect(await page.evaluate(() => document.documentElement.scrollWidth > innerWidth)).toBe(
-        false,
-      )
-      await checkAxe(page)
-      await page.screenshot({
-        path: path.join(evidence, `${testInfo.project.name}-${viewport.width}-fechas.png`),
-      })
-      await page.keyboard.press('Escape')
-      await expect(dialog).not.toBeVisible()
-      await expect(
-        record.getByRole('button', { name: /^Fechas y excepciones de la serie/ }),
-      ).toBeFocused()
-
-      await page.getByRole('button', { name: 'Agregar bloqueo por días' }).click()
-      const alta = page.getByRole('dialog', { name: 'Agregar bloqueo por días' })
-      await expect(alta).toBeVisible()
-      expect(await alta.evaluate((el) => el.scrollWidth > el.clientWidth)).toBe(false)
-      await checkAxe(page)
-      await page.screenshot({
-        path: path.join(evidence, `${testInfo.project.name}-${viewport.width}-alta.png`),
-        fullPage: true,
-      })
-      await page.keyboard.press('Escape')
-      await expect(alta).not.toBeVisible()
-    }
-    expect(pageErrors).toEqual([])
+    await page.keyboard.press('Escape')
+    await expect(alta).not.toBeVisible()
   }
+  expect(pageErrors).toEqual([])
 })
