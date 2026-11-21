@@ -19,6 +19,21 @@ export type FetchAssignedServicesOutcome =
 export type FetchBusinessTimezoneOutcome =
   { kind: 'success'; timezone: string } | { kind: 'unavailable' }
 
+/** Inicios libres para el turno manual (#717, DEC-190): instantes UTC, la zona
+ * del negocio, la duración del servicio y la rejilla del profesional. */
+export type ManualAvailability = {
+  starts: string[]
+  timezone: string
+  durationMinutes: number
+  slotGridMinutes: number
+}
+
+export type FetchManualAvailabilityOutcome =
+  | { kind: 'success'; availability: ManualAvailability }
+  | { kind: 'not-found' }
+  | { kind: 'unexpected-error' }
+  | { kind: 'network-error' }
+
 export type CreatedManualAppointment = {
   id: string
   professionalId: string

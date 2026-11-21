@@ -1,7 +1,8 @@
 <script setup lang="ts">
 // Pantalla "Nuevo turno" (HU-061): el profesional autenticado registra un
-// turno manual recibido por teléfono, WhatsApp o en persona. No consulta
-// disponibilidad pública ni propone franjas (B4 es dueña); no edita,
+// turno manual recibido por teléfono, WhatsApp o en persona. La hora se elige
+// sobre los inicios libres reales (#717, DEC-190: ManualStartPicker), con
+// «Otra hora» para escribirla a mano; no edita,
 // reprograma, cancela ni cambia estado (fuera de alcance de HU-061). El
 // éxito muestra un resumen honesto: HU-062 (agenda diaria) no es destino de
 // este enlace, así que esta pantalla no enlaza a ninguna vista de agenda.
@@ -45,6 +46,7 @@ import { newIdempotencyKey } from '../model/idempotencyKey'
 import type { ProfessionalSummary, ServiceSummary } from '../model/appointment'
 import type { CreatedManualAppointment } from '../model/appointmentOutcome'
 import NewAppointmentSkeleton from '../components/NewAppointmentSkeleton.vue'
+import ManualStartPicker from '../components/ManualStartPicker.vue'
 import { timezoneLabel } from '@/shared/time/timezoneName'
 import {
   buildStartsAt,
@@ -109,6 +111,7 @@ const customerNote = ref('')
 const startsAtDate = ref('')
 const startsAtTime = ref('')
 const noteRef = ref<HTMLTextAreaElement | null>(null)
+const startPicker = ref<InstanceType<typeof ManualStartPicker> | null>(null)
 
 // La nota crece con su contenido en vez de dejar que la persona la
 // arrastre a mano (`resize: none` en el estilo): el alto sigue al
@@ -302,6 +305,9 @@ async function onSubmit() {
       // texto: es el `detail` que devolvió el API.
       fieldErrors.value = { ...fieldErrors.value, startsAt: outcome.detail }
       saveStatus.value = 'conflict'
+      // Alguien tomó la hora entre la lectura y el envío: se vuelve a leer ese
+      // día para que la rejilla ya no la ofrezca. El resto del formulario queda.
+      void startPicker.value?.refreshDay(startsAtDate.value)
       return
     case 'validation-error':
       saveErrorDetail.value = outcome.detail
@@ -681,28 +687,23 @@ function onProfessionalSelect(professionalId: string) {
                       (listo)</span
                     >
                   </h2>
-                  <p class="new-appointment-page__section-hint">Define cuándo será el turno.</p>
+                  <p class="new-appointment-page__section-hint">
+                    Elige una hora libre o escribe otra.
+                  </p>
                 </div>
               </div>
 
               <div class="new-appointment-page__section-body">
-                <div class="new-appointment-page__row">
-                  <BaseInput
-                    v-model="startsAtDate"
-                    type="date"
-                    label="Fecha del turno"
-                    required
-                    :class="{ 'new-appointment-page__input--filled': !!startsAtDate }"
-                  />
-                  <BaseInput
-                    v-model="startsAtTime"
-                    type="time"
-                    label="Hora del turno"
-                    required
-                    :class="{ 'new-appointment-page__input--filled': !!startsAtTime }"
-                    :error="attempted ? fieldErrors.startsAt : undefined"
-                  />
-                </div>
+                <ManualStartPicker
+                  ref="startPicker"
+                  v-model:date="startsAtDate"
+                  v-model:time="startsAtTime"
+                  :professional-id="selectedProfessionalId"
+                  :service-id="selectedServiceId"
+                  :timezone="businessTimezone"
+                  :disabled="saveStatus === 'saving'"
+                  :error="attempted ? fieldErrors.startsAt : undefined"
+                />
               </div>
             </section>
 

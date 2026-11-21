@@ -1,4 +1,5 @@
 import type { Page, Route } from '@playwright/test'
+import { fillManualStart } from './nuevo-turno-hora'
 
 /**
  * Doble de API y datos sintéticos de `/panel/turnos/nuevo` (issue #190).
@@ -26,6 +27,8 @@ export type Scenario =
   | 'saving'
   | 'schedule-conflict'
   | 'created'
+  // #717: la hora elegida en la rejilla se toma entre la lectura y el envío.
+  | 'grid-conflict'
 
 export type Deferred = { release: () => void }
 
@@ -56,6 +59,22 @@ async function respondJson(route: Route, body: unknown, status = 200) {
   await route.fulfill({ status, contentType: 'application/json', body: JSON.stringify(body) })
 }
 
+/**
+ * Inicios libres del mock (#717): mañana a las 10:00, 10:30 y 11:00 (Bogotá,
+ * UTC−5). En `grid-conflict`, la relectura de un solo día ya no trae las 10:30.
+ */
+export function freeStartsFor(from: string, to: string, scenario: Scenario): string[] {
+  const tomorrow = new Date(`${from}T12:00:00Z`)
+  tomorrow.setUTCDate(tomorrow.getUTCDate() + 1)
+  const day = tomorrow.toISOString().slice(0, 10)
+  const singleDay = from === to
+  if (singleDay) {
+    const taken = scenario === 'grid-conflict'
+    return taken ? [`${from}T15:00:00Z`, `${from}T16:00:00Z`] : []
+  }
+  return [`${day}T15:00:00Z`, `${day}T15:30:00Z`, `${day}T16:00:00Z`]
+}
+
 const PENDING_SCENARIOS: readonly Scenario[] = ['context-loading', 'services-loading', 'saving']
 
 export async function installNewAppointmentMock(
@@ -63,6 +82,7 @@ export async function installNewAppointmentMock(
   scenario: Scenario,
 ): Promise<Deferred | null> {
   const pending = PENDING_SCENARIOS.includes(scenario) ? deferred() : null
+  let posts = 0
 
   await page.route('**/api/v1/**', async (route) => {
     const { pathname } = new URL(route.request().url())
@@ -131,8 +151,28 @@ export async function installNewAppointmentMock(
       return
     }
 
+    if (pathname.endsWith('/availability')) {
+      const params = new URL(route.request().url()).searchParams
+      const from = params.get('from') ?? ''
+      const to = params.get('to') ?? from
+      await respondJson(route, {
+        slots: freeStartsFor(from, to, scenario).map((startsAt) => ({ startsAt })),
+        durationMinutes: 30,
+        timezone: 'America/Bogota',
+        slotGridMinutes: 30,
+      })
+      return
+    }
     if (pathname === '/api/v1/private/appointments' && route.request().method() === 'POST') {
       if (scenario === 'saving' && pending) await pending.promise
+      if (scenario === 'grid-conflict' && posts++ === 0) {
+        await respondJson(
+          route,
+          { detail: 'el profesional ya tiene una cita en ese intervalo' },
+          409,
+        )
+        return
+      }
       if (scenario === 'schedule-conflict') {
         await respondJson(
           route,
@@ -176,8 +216,7 @@ export async function chooseProfessional(page: Page) {
 export async function fillCustomerAndSchedule(page: Page) {
   await page.getByLabel('Persona atendida').fill(ATTENDEE)
   await page.getByLabel('Nombre del cliente').fill(CUSTOMER)
-  await page.getByLabel('Fecha del turno').fill(CIVIL_DATE)
-  await page.getByLabel('Hora del turno').fill(TIME)
+  await fillManualStart(page, CIVIL_DATE, TIME)
 }
 
 export async function fillCompleteForm(page: Page) {

@@ -1,4 +1,5 @@
 import { test, expect, type Page } from '@playwright/test'
+import { fillManualStart } from './nuevo-turno-hora'
 
 /**
  * Recorrido E2E de HU-061 (creación manual de turnos). Corre contra el API
@@ -117,8 +118,7 @@ test.describe('Creación manual de turnos (HU-061)', () => {
       .selectOption({ label: serviceName })
     await page.getByLabel('Persona atendida').fill('Cliente de prueba E2E')
     await page.getByLabel('Nombre del cliente').fill('Cliente de prueba E2E')
-    await page.getByLabel('Fecha del turno').fill(date)
-    await page.getByLabel('Hora del turno').fill(time)
+    await fillManualStart(page, date, time)
     await page.getByRole('button', { name: 'Registrar turno' }).click()
 
     await expect(page.getByText('Turno registrado')).toBeVisible()
@@ -146,8 +146,7 @@ test.describe('Creación manual de turnos (HU-061)', () => {
         .selectOption({ label: serviceName })
       await page.getByLabel('Persona atendida').fill(attendeeName)
       await page.getByLabel('Nombre del cliente').fill(attendeeName)
-      await page.getByLabel('Fecha del turno').fill(date)
-      await page.getByLabel('Hora del turno').fill(time)
+      await fillManualStart(page, date, time)
       await page.getByRole('button', { name: 'Registrar turno' }).click()
     }
 

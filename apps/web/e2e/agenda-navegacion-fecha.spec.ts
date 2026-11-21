@@ -1,5 +1,6 @@
 import { test, expect, type Page } from '@playwright/test'
 import { pickAgendaDate } from './agenda-fecha'
+import { fillManualStart } from './nuevo-turno-hora'
 
 /**
  * Recorrido E2E de HU-063 (navegación de la agenda por fecha). Corre
@@ -105,8 +106,7 @@ async function registerManualAppointment(
   await page.getByLabel('Servicio', { exact: true }).selectOption({ label: serviceName })
   await page.getByLabel('Persona atendida').fill(attendeeName)
   await page.getByLabel('Nombre del cliente').fill(attendeeName)
-  await page.getByLabel('Fecha del turno').fill(date)
-  await page.getByLabel('Hora del turno').fill(time)
+  await fillManualStart(page, date, time)
   await page.getByRole('button', { name: 'Registrar turno' }).click()
   await expect(page.getByText('Turno registrado')).toBeVisible()
 }

@@ -17,15 +17,41 @@ const fetchProfessionalSummariesMock = vi.hoisted(() => vi.fn())
 const fetchAssignedServicesMock = vi.hoisted(() => vi.fn())
 const fetchBusinessTimezoneMock = vi.hoisted(() => vi.fn())
 const createManualAppointmentMock = vi.hoisted(() => vi.fn())
+const fetchManualAvailabilityMock = vi.hoisted(() => vi.fn())
 
 vi.mock('../../api/appointmentsApi', () => ({
   fetchProfessionalSummaries: fetchProfessionalSummariesMock,
   fetchAssignedServices: fetchAssignedServicesMock,
   fetchBusinessTimezone: fetchBusinessTimezoneMock,
   createManualAppointment: createManualAppointmentMock,
+  fetchManualAvailability: fetchManualAvailabilityMock,
 }))
 
 const { default: NewAppointmentPage } = await import('../NewAppointmentPage.vue')
+const { formatCivilDateFull, getCivilDateInTimezone } = await import('@/shared/time/civilDate')
+
+// Hoy en la zona del negocio: la hora se elige en la rejilla de inicios libres
+// (#717). 19:30 UTC son las 2:30 p. m. en Bogotá.
+const today = getCivilDateInTimezone('America/Bogota')
+const freeStarts = {
+  kind: 'success',
+  availability: {
+    starts: [`${today}T19:30:00Z`],
+    timezone: 'America/Bogota',
+    durationMinutes: 30,
+    slotGridMinutes: 30,
+  },
+}
+
+async function chooseFreeStart(wrapper: {
+  findAll: (s: string) => { text: () => string; trigger: (e: string) => Promise<void> }[]
+}) {
+  await wrapper
+    .findAll('.bk-min')
+    .find((b) => b.text() === ':30')!
+    .trigger('click')
+  await flushPromises()
+}
 
 const oneProfessional = [{ id: 'b-1', fullName: 'Carlos Ramírez' }]
 const twoServices = [
@@ -76,8 +102,8 @@ async function fillValidForm(wrapper: Awaited<ReturnType<typeof mountReady>>) {
     inputs.find((i) => i.element.labels?.[0]?.textContent?.includes(text))!
   await byLabel('Persona atendida').setValue('Juan Pérez')
   await byLabel('Nombre del cliente').setValue('Juan Pérez')
-  await byLabel('Fecha del turno').setValue('2026-09-03')
-  await byLabel('Hora del turno').setValue('14:30')
+  await flushPromises()
+  await chooseFreeStart(wrapper)
 }
 
 const axeOptions = { rules: { 'color-contrast': { enabled: false } } }
@@ -90,6 +116,8 @@ describe('NewAppointmentPage', () => {
     fetchAssignedServicesMock.mockReset()
     fetchBusinessTimezoneMock.mockReset()
     createManualAppointmentMock.mockReset()
+    fetchManualAvailabilityMock.mockReset()
+    fetchManualAvailabilityMock.mockResolvedValue(freeStarts)
   })
 
   it('shows a non-blank loading state, then the professional picker', async () => {
@@ -203,7 +231,7 @@ describe('NewAppointmentPage', () => {
     expect(resumen.text()).toContain('Corte clásico')
     expect(resumen.text()).toContain('Juan Pérez')
     expect(resumen.text()).toContain('14:30')
-    expect(resumen.text()).toMatch(/jueves.*3.*septiembre/)
+    expect(resumen.text()).toContain(formatCivilDateFull(today))
   })
 
   it('submits successfully and shows an honest summary, no link to a non-existent agenda screen', async () => {
@@ -314,8 +342,10 @@ describe('NewAppointmentPage', () => {
     const inputs = wrapper.findAll('input')
     const byLabel = (text: string) =>
       inputs.find((i) => i.element.labels?.[0]?.textContent?.includes(text))!
-    expect(byLabel('Hora del turno').element.value).toBe('14:30')
     expect(byLabel('Nombre del cliente').element.value).toBe('Juan Pérez')
+    // La rejilla vuelve a leer ese día para no ofrecer la hora tomada (#717).
+    expect(fetchManualAvailabilityMock).toHaveBeenLastCalledWith('b-1', 's-1', today, today)
+    expect(wrapper.find('.bk-min[aria-checked="true"]').exists()).toBe(true)
   })
 
   it('counts the note against the real validateCustomerNote limit (500)', async () => {
@@ -473,8 +503,8 @@ describe('NewAppointmentPage', () => {
         inputs.find((i) => i.element.labels?.[0]?.textContent?.includes(text))!
       await byLabel('Persona atendida').setValue('Juan Pérez')
       await byLabel('Nombre del cliente').setValue('Juan Pérez')
-      await byLabel('Fecha del turno').setValue('2026-09-03')
-      await byLabel('Hora del turno').setValue('14:30')
+      await flushPromises()
+      await chooseFreeStart(wrapper)
       createManualAppointmentMock.mockResolvedValueOnce({ kind: 'conflict', detail: 'ocupado' })
 
       await wrapper.get('form').trigger('submit.prevent')

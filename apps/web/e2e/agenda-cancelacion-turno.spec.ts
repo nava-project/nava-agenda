@@ -1,5 +1,6 @@
 import { test, expect, type Page } from '@playwright/test'
 import { pickAgendaDate } from './agenda-fecha'
+import { fillManualStart } from './nuevo-turno-hora'
 
 /**
  * Recorrido E2E de HU-066 (cancelación de un turno por el profesional, T6).
@@ -94,8 +95,7 @@ async function registerManualAppointment(
     .selectOption({ label: serviceName })
   await page.getByLabel('Persona atendida').fill(attendeeName)
   await page.getByLabel('Nombre del cliente').fill(attendeeName)
-  await page.getByLabel('Fecha del turno').fill(date)
-  await page.getByLabel('Hora del turno').fill(time)
+  await fillManualStart(page, date, time)
   await page.getByRole('button', { name: 'Registrar turno' }).click()
   await expect(page.getByText('Turno registrado')).toBeVisible()
   return { date, time }
@@ -164,8 +164,7 @@ test.describe('Cancelación de un turno por el profesional (HU-066, T6)', () => 
       .selectOption({ label: serviceName })
     await page.getByLabel('Persona atendida').fill(newAttendeeName)
     await page.getByLabel('Nombre del cliente').fill(newAttendeeName)
-    await page.getByLabel('Fecha del turno').fill(date)
-    await page.getByLabel('Hora del turno').fill(time)
+    await fillManualStart(page, date, time)
     await page.getByRole('button', { name: 'Registrar turno' }).click()
     await expect(page.getByText('Turno registrado')).toBeVisible()
 
