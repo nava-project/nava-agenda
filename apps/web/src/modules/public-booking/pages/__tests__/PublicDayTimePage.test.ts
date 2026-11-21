@@ -232,6 +232,15 @@ describe('PublicDayTimePage', () => {
     expect(next.query).toEqual({})
   })
 
+  it('keeps the scrolling day strip out of the Tab order: only the active day is a stop', async () => {
+    respond()
+    const wrapper = mountPage()
+    await flushPromises()
+    // Firefox da parada propia a un contenedor desplazable sin tabindex (#773).
+    expect(wrapper.get('.bk-days').attributes('tabindex')).toBe('-1')
+    expect(wrapper.findAll('.bk-day[tabindex="0"]')).toHaveLength(1)
+  })
+
   it('makes the professional chips a single Tab stop that arrows move through', async () => {
     respond()
     const wrapper = mountPage()

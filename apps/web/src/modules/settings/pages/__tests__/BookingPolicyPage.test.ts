@@ -6,7 +6,7 @@
  * un doble de prueba; el recorrido real contra el API vive en el E2E de
  * HU-093.
  */
-import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
+import { describe, it, expect, vi, beforeEach, afterEach, onTestFinished } from 'vitest'
 import { resetToasts, toastState } from '@/shared/model/toastStore'
 import { mount, flushPromises } from '@vue/test-utils'
 import { axe } from 'vitest-axe'
@@ -288,6 +288,12 @@ describe('BookingPolicyPage', () => {
   })
 
   it('changes the slot grid with the numeric field and mirrors it in the live preview', async () => {
+    // La muestra usa el reloj del dispositivo: a media mañana le quedan horas
+    // libres en cualquier zona (en el CI, UTC, a las 17:00 solo quedaba una).
+    vi.useFakeTimers({ toFake: ['Date'], now: new Date(2027, 6, 19, 10, 0) })
+    onTestFinished(() => {
+      vi.useRealTimers()
+    })
     const wrapper = await mountReady()
     expect(wrapper.get('.policy-preview').text()).toContain('una cada 15 min')
 

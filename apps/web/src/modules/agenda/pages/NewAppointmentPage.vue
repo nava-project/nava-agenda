@@ -1,7 +1,8 @@
 <script setup lang="ts">
 // Pantalla "Nuevo turno" (HU-061): el profesional autenticado registra un
-// turno manual recibido por teléfono, WhatsApp o en persona. No consulta
-// disponibilidad pública ni propone franjas (B4 es dueña); no edita,
+// turno manual recibido por teléfono, WhatsApp o en persona. La hora se elige
+// sobre los inicios libres reales (#717, DEC-190: ManualStartPicker), con
+// «Otra hora» para escribirla a mano; no edita,
 // reprograma, cancela ni cambia estado (fuera de alcance de HU-061). El
 // éxito muestra un resumen honesto: HU-062 (agenda diaria) no es destino de
 // este enlace, así que esta pantalla no enlaza a ninguna vista de agenda.
@@ -35,6 +36,7 @@ import {
 } from '@/shared/ui'
 import { DEFAULT_PHONE_COUNTRY, composePhone } from '@/shared/model/phoneCountries'
 import { formatCivilDateFull, isCivilDateString } from '@/shared/time/civilDate'
+import { formatClock } from '@/shared/model/openingHours'
 import {
   createManualAppointment,
   fetchAssignedServices,
@@ -45,6 +47,7 @@ import { newIdempotencyKey } from '../model/idempotencyKey'
 import type { ProfessionalSummary, ServiceSummary } from '../model/appointment'
 import type { CreatedManualAppointment } from '../model/appointmentOutcome'
 import NewAppointmentSkeleton from '../components/NewAppointmentSkeleton.vue'
+import ManualStartPicker from '../components/ManualStartPicker.vue'
 import { timezoneLabel } from '@/shared/time/timezoneName'
 import {
   buildStartsAt,
@@ -109,6 +112,7 @@ const customerNote = ref('')
 const startsAtDate = ref('')
 const startsAtTime = ref('')
 const noteRef = ref<HTMLTextAreaElement | null>(null)
+const startPicker = ref<InstanceType<typeof ManualStartPicker> | null>(null)
 
 // La nota crece con su contenido en vez de dejar que la persona la
 // arrastre a mano (`resize: none` en el estilo): el alto sigue al
@@ -189,6 +193,16 @@ const selectedProfessionalName = computed(
 const selectedServiceName = computed(
   () => services.value.find((s) => s.id === selectedServiceId.value)?.name ?? '',
 )
+// La hora del boleto, en 12 h como el resto del panel (#722): la cifra en la
+// serif protagonista y «a. m.»/«p. m.» en menor, igual que la tarjeta de turno.
+const summaryClock = computed(() => {
+  const label = startsAtTime.value ? formatClock(startsAtTime.value) : ''
+  const space = label.indexOf(' ')
+  return space < 0
+    ? { clock: label, suffix: '' }
+    : { clock: label.slice(0, space), suffix: label.slice(space + 1) }
+})
+
 const summaryDateLabel = computed(() =>
   isCivilDateString(startsAtDate.value) ? formatCivilDateFull(startsAtDate.value) : '',
 )
@@ -302,6 +316,9 @@ async function onSubmit() {
       // texto: es el `detail` que devolvió el API.
       fieldErrors.value = { ...fieldErrors.value, startsAt: outcome.detail }
       saveStatus.value = 'conflict'
+      // Alguien tomó la hora entre la lectura y el envío: se vuelve a leer ese
+      // día para que la rejilla ya no la ofrezca. El resto del formulario queda.
+      void startPicker.value?.refreshDay(startsAtDate.value)
       return
     case 'validation-error':
       saveErrorDetail.value = outcome.detail
@@ -681,28 +698,23 @@ function onProfessionalSelect(professionalId: string) {
                       (listo)</span
                     >
                   </h2>
-                  <p class="new-appointment-page__section-hint">Define cuándo será el turno.</p>
+                  <p class="new-appointment-page__section-hint">
+                    Elige una hora libre o escribe otra.
+                  </p>
                 </div>
               </div>
 
               <div class="new-appointment-page__section-body">
-                <div class="new-appointment-page__row">
-                  <BaseInput
-                    v-model="startsAtDate"
-                    type="date"
-                    label="Fecha del turno"
-                    required
-                    :class="{ 'new-appointment-page__input--filled': !!startsAtDate }"
-                  />
-                  <BaseInput
-                    v-model="startsAtTime"
-                    type="time"
-                    label="Hora del turno"
-                    required
-                    :class="{ 'new-appointment-page__input--filled': !!startsAtTime }"
-                    :error="attempted ? fieldErrors.startsAt : undefined"
-                  />
-                </div>
+                <ManualStartPicker
+                  ref="startPicker"
+                  v-model:date="startsAtDate"
+                  v-model:time="startsAtTime"
+                  :professional-id="selectedProfessionalId"
+                  :service-id="selectedServiceId"
+                  :timezone="businessTimezone"
+                  :disabled="saveStatus === 'saving'"
+                  :error="attempted ? fieldErrors.startsAt : undefined"
+                />
               </div>
             </section>
 
@@ -848,7 +860,13 @@ function onProfessionalSelect(professionalId: string) {
                   class="new-appointment-page__resumen-time"
                   :class="{ 'new-appointment-page__resumen-time--empty': !startsAtTime }"
                 >
-                  {{ startsAtTime || '--:--' }}
+                  <template v-if="startsAtTime"
+                    >{{ summaryClock.clock
+                    }}<small v-if="summaryClock.suffix"
+                      >&nbsp;{{ summaryClock.suffix }}</small
+                    ></template
+                  >
+                  <template v-else>--:--</template>
                 </span>
               </Transition>
               <Transition name="nt-swap" mode="out-in">
@@ -1587,16 +1605,23 @@ function onProfessionalSelect(professionalId: string) {
 }
 
 .new-appointment-page__resumen-time {
-  font-family: var(--font-sans);
+  font-family: var(--font-display);
   font-size: 44px;
+  font-weight: 400;
   line-height: 1;
+  letter-spacing: -0.01em;
   color: var(--color-on-strong);
   font-variant-numeric: tabular-nums;
 }
 
+.new-appointment-page__resumen-time small {
+  font-size: 0.45em;
+  letter-spacing: 0;
+}
+
+/* El marcador pendiente, con la misma serif: el boleto no cambia de letra al
+   elegir la hora. */
 .new-appointment-page__resumen-time--empty {
-  font-family: var(--font-sans);
-  font-weight: 300;
   letter-spacing: 0.06em;
   color: var(--color-on-strong-muted);
 }
@@ -1788,7 +1813,47 @@ function onProfessionalSelect(professionalId: string) {
   font-size: var(--font-size-body);
   line-height: 23px;
   font-weight: 600;
-  color: var(--color-surface-strong);
+  /* El texto de la alerta (BaseAlert), no el lienzo fuerte: ese color dejaba el
+     titular a 1,1:1 sobre la propia alerta, ilegible en los dos temas. */
+  color: inherit;
+}
+
+/* Monograma de la familia (#757, 8d) en el disparador «Profesional» y en el
+   boleto: tarjeta recta con filete de latón y el rombo asomando bajo el borde,
+   en vez de la caja gris del retrato genérico. */
+.new-appointment-page :deep(.professional-select__trigger .professional-avatar),
+.new-appointment-page__resumen :deep(.professional-avatar) {
+  --seal-ground: var(--color-field-strong);
+
+  position: relative;
+  overflow: visible;
+  color: var(--color-text-primary);
+  background-color: var(--color-surface);
+  border: 1px solid var(--color-brass-line);
+  border-radius: 2px;
+  box-shadow: inset 0 -2px 0 var(--color-brass-body);
+}
+
+.new-appointment-page__resumen :deep(.professional-avatar) {
+  --seal-ground: var(--ticket-bg);
+}
+
+.new-appointment-page :deep(.professional-select__trigger .professional-avatar)::after,
+.new-appointment-page__resumen :deep(.professional-avatar)::after {
+  position: absolute;
+  bottom: -4px;
+  left: 50%;
+  width: 7px;
+  height: 7px;
+  content: '';
+  background-color: var(--color-brass-body);
+  border: 1.5px solid var(--seal-ground);
+  transform: translateX(-50%) rotate(45deg);
+}
+
+.new-appointment-page :deep(.professional-select__trigger .professional-avatar__photo),
+.new-appointment-page__resumen :deep(.professional-avatar__photo) {
+  border-radius: 1px;
 }
 
 /* ------------------------------------------------- estados de página completos */

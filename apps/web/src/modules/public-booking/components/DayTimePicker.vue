@@ -13,6 +13,9 @@
  * - `current` (solo «Cambiar la hora»): la hora que ya tiene el turno. Se ve
  *   (rombo hueco en la franja, chip punteado en su fila) pero no se elige.
  *
+ * - Un día sin inicios (solo lo arma «Nuevo turno», que muestra todos los días de
+ *   su tramo) pinta su título y el hueco `empty`, sin franja ni horas.
+ *
  * Solo presenta y emite: la página posee los datos, la elección y la URL.
  */
 import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue'
@@ -50,6 +53,8 @@ interface Props {
   disabled?: boolean
   /** Anima la llegada de la franja. */
   arrive?: boolean
+  /** Id del aviso que describe el grupo «Hora» (p. ej. el error de un `409`). */
+  hoursDescribedby?: string
 }
 const props = withDefaults(defineProps<Props>(), {
   openingHours: () => [],
@@ -57,6 +62,7 @@ const props = withDefaults(defineProps<Props>(), {
   selectedLabel: 'Tu hora',
   disabled: false,
   arrive: false,
+  hoursDescribedby: undefined,
 })
 
 const emit = defineEmits<{
@@ -84,7 +90,7 @@ const currentMinutes = computed(() => {
 // ── Franja ────────────────────────────────────────────────────────────────
 const activeOpen = computed(() => {
   const day = activeDay.value
-  if (!day) return []
+  if (!day || day.slots.length === 0) return []
   if (props.openingHours.length > 0) {
     const [y, m, d] = day.civilDate.split('-').map(Number)
     const weekday = (new Date(Date.UTC(y!, m! - 1, d!)).getUTCDay() + 6) % 7
@@ -293,11 +299,15 @@ function slotAria(slot: DaylightSlot): string {
       class="bk-days-wrap"
       :class="{ 'bk-days-wrap--before': moreBefore, 'bk-days-wrap--after': moreAfter }"
     >
+      <!-- tabindex="-1": Firefox da su propia parada de Tab a un contenedor que
+           se desplaza; los días ya llevan el roving tabindex, así que la tira no
+           debe ser una parada más, e invisible (#773). -->
       <div
         ref="daysEl"
         class="bk-days"
         role="radiogroup"
         aria-label="Día"
+        tabindex="-1"
         @keydown="onDaysKeydown"
         @scroll.passive="measureDays"
       >
@@ -349,76 +359,83 @@ function slotAria(slot: DaylightSlot): string {
 
     <template v-if="activeDay">
       <h2 class="bk-day-title">{{ formatCivilDateFull(activeDay.civilDate) }}</h2>
-      <DaylightStrip
-        class="bk-daytime__strip"
-        variant="map"
-        :open="activeOpen"
-        :free="activeFree"
-        :selected="selectedMinutes"
-        :current="currentMinutes"
-        :selected-label="props.selectedLabel"
-        :arrive="props.arrive"
-        @pick="pickFromStrip"
-      />
+      <!-- Aviso del día (p. ej. la hora elegida se tomó): bajo el título, antes
+           de las horas, cerca de la elección que explica. -->
+      <slot name="notice" :day="activeDay" />
+      <slot v-if="activeDay.slots.length === 0" name="empty" :day="activeDay" />
+      <template v-else>
+        <DaylightStrip
+          class="bk-daytime__strip"
+          variant="map"
+          :open="activeOpen"
+          :free="activeFree"
+          :selected="selectedMinutes"
+          :current="currentMinutes"
+          :selected-label="props.selectedLabel"
+          :arrive="props.arrive"
+          @pick="pickFromStrip"
+        />
 
-      <!-- Una fila por hora, como una agenda: la hora grande a la izquierda y
+        <!-- Una fila por hora, como una agenda: la hora grande a la izquierda y
            sus minutos libres como chips en columnas fijas. La elegida pasa a Sol
            sin mover nada. -->
-      <div
-        :key="activeDay.civilDate"
-        class="bk-hours"
-        role="radiogroup"
-        aria-label="Hora"
-        @keydown="onSlotsKeydown"
-      >
-        <section
-          v-for="group in activeDay.groups"
-          :key="group.part"
-          class="bk-hours__group"
-          :class="`bk-hours__group--${group.part}`"
-          :aria-label="group.label"
+        <div
+          :key="activeDay.civilDate"
+          class="bk-hours"
+          role="radiogroup"
+          aria-label="Hora"
+          :aria-describedby="props.hoursDescribedby"
+          @keydown="onSlotsKeydown"
         >
-          <h3 class="bk-hours__label">
-            <span class="bk-hours__sky" aria-hidden="true"></span>{{ group.label }}
-          </h3>
-          <div
-            v-for="row in group.rows"
-            :key="row.label"
-            class="bk-hrow"
-            :class="{
-              'bk-hrow--chosen': row.slots.some((s) => s.startsAt === props.selectedStart),
-            }"
+          <section
+            v-for="group in activeDay.groups"
+            :key="group.part"
+            class="bk-hours__group"
+            :class="`bk-hours__group--${group.part}`"
+            :aria-label="group.label"
           >
-            <span class="bk-hrow__hour" aria-hidden="true"
-              ><span class="bk-hrow__number">{{ row.hour }}</span
-              ><span class="bk-hrow__meridiem">{{ row.meridiem }}</span></span
-            >
+            <h3 class="bk-hours__label">
+              <span class="bk-hours__sky" aria-hidden="true"></span>{{ group.label }}
+            </h3>
             <div
-              class="bk-hrow__mins"
-              :class="{ 'bk-hrow__mins--flow': minuteColumns === 0 }"
-              :style="{ '--bk-cols': minuteColumns || undefined }"
+              v-for="row in group.rows"
+              :key="row.label"
+              class="bk-hrow"
+              :class="{
+                'bk-hrow--chosen': row.slots.some((s) => s.startsAt === props.selectedStart),
+              }"
             >
-              <button
-                v-for="slot in row.slots"
-                :key="slot.startsAt"
-                :ref="(el) => setSlotRef(el, slot.startsAt)"
-                type="button"
-                role="radio"
-                class="bk-min"
-                :class="{ 'bk-min--current': isCurrent(slot) }"
-                :style="{ gridColumn: minuteColumn(slot) }"
-                :aria-checked="props.selectedStart === slot.startsAt"
-                :aria-disabled="isCurrent(slot) || props.disabled || undefined"
-                :aria-label="slotAria(slot)"
-                :tabindex="flatSlots[activeSlotIndex]?.startsAt === slot.startsAt ? 0 : -1"
-                @click="selectSlot(slot)"
+              <span class="bk-hrow__hour" aria-hidden="true"
+                ><span class="bk-hrow__number">{{ row.hour }}</span
+                ><span class="bk-hrow__meridiem">{{ row.meridiem }}</span></span
               >
-                {{ slot.minuteLabel }}
-              </button>
+              <div
+                class="bk-hrow__mins"
+                :class="{ 'bk-hrow__mins--flow': minuteColumns === 0 }"
+                :style="{ '--bk-cols': minuteColumns || undefined }"
+              >
+                <button
+                  v-for="slot in row.slots"
+                  :key="slot.startsAt"
+                  :ref="(el) => setSlotRef(el, slot.startsAt)"
+                  type="button"
+                  role="radio"
+                  class="bk-min"
+                  :class="{ 'bk-min--current': isCurrent(slot) }"
+                  :style="{ gridColumn: minuteColumn(slot) }"
+                  :aria-checked="props.selectedStart === slot.startsAt"
+                  :aria-disabled="isCurrent(slot) || props.disabled || undefined"
+                  :aria-label="slotAria(slot)"
+                  :tabindex="flatSlots[activeSlotIndex]?.startsAt === slot.startsAt ? 0 : -1"
+                  @click="selectSlot(slot)"
+                >
+                  {{ slot.minuteLabel }}
+                </button>
+              </div>
             </div>
-          </div>
-        </section>
-      </div>
+          </section>
+        </div>
+      </template>
     </template>
   </div>
 </template>

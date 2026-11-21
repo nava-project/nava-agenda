@@ -23,6 +23,7 @@ import type {
   FetchProfessionalSummariesOutcome,
   FetchBusinessTimezoneOutcome,
   FetchDailyAgendaOutcome,
+  FetchManualAvailabilityOutcome,
   RescheduleAppointmentOutcome,
 } from '../model/appointmentOutcome'
 import type { DailyAgendaEntry, HomeService } from '../model/dailyAgenda'
@@ -119,6 +120,38 @@ export async function fetchBusinessTimezone(): Promise<FetchBusinessTimezoneOutc
     return { kind: 'unavailable' }
   } catch {
     return { kind: 'unavailable' }
+  }
+}
+
+// fetchManualAvailability (#717, DEC-190): inicios libres del servicio con el
+// profesional entre dos fechas civiles (ambas incluidas, hasta 31 días), sin la
+// anticipación ni la ventana de la reserva pública. Servicio no asignado o ajeno:
+// 404 uniforme (DEC-072).
+export async function fetchManualAvailability(
+  professionalId: string,
+  serviceId: string,
+  from: string,
+  to: string,
+): Promise<FetchManualAvailabilityOutcome> {
+  try {
+    const { data, response } = await httpClient.GET(
+      '/private/professionals/{professionalId}/services/{serviceId}/availability',
+      { params: { path: { professionalId, serviceId }, query: { from, to } } },
+    )
+    if (response.ok && data) {
+      return {
+        kind: 'success',
+        availability: {
+          starts: data.slots.map((slot) => slot.startsAt),
+          timezone: data.timezone,
+          durationMinutes: data.durationMinutes,
+          slotGridMinutes: data.slotGridMinutes,
+        },
+      }
+    }
+    return response.status === 404 ? { kind: 'not-found' } : { kind: 'unexpected-error' }
+  } catch {
+    return { kind: 'network-error' }
   }
 }
 

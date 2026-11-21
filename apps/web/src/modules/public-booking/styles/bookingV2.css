@@ -754,6 +754,12 @@
   display: none;
 }
 
+/* Con tabindex="-1" la tira puede tomar el foco al pulsar un hueco: no es una
+   parada de teclado (el foco visible va en el día), así que no se marca. */
+.bk-days:focus {
+  outline: none;
+}
+
 .bk-day {
   display: grid;
   flex: 0 0 auto;

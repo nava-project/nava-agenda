@@ -172,6 +172,34 @@ test.describe('Reserva pública v2 (DEC-188)', () => {
     await expect(page.getByRole('radiogroup', { name: 'Hora' }).getByRole('radio')).toHaveCount(2)
   })
 
+  test('a 390 px la tira de días no es una parada de Tab: del profesional se pasa al día', async ({
+    page,
+  }) => {
+    // Firefox da parada propia a un contenedor desplazable sin tabindex; con
+    // diez días la tira se desplaza y no debe sumar una parada invisible (#773).
+    await page.setViewportSize({ width: 390, height: 844 })
+    await mockPublicApi(page)
+    const days = Array.from({ length: 10 }, (_, i) => {
+      const d = new Date(`${tomorrow}T12:00:00-05:00`)
+      d.setUTCDate(d.getUTCDate() + i)
+      return d.toISOString().slice(0, 10)
+    })
+    await api(page, new RegExp(`^/api/v1/public/businesses/${SLUG}/services/[^/]+/availability$`), {
+      slots: days.map((day) => ({ professionalId: ANA, startsAt: `${day}T10:00:00-05:00` })),
+      durationMinutes: 45,
+      timezone: 'America/Bogota',
+      slotGridMinutes: 15,
+    })
+    await page.goto(`/reservar/${SLUG}/servicios/${CUT}/horario`)
+    const strip = page.locator('.bk-days')
+    await expect(page.getByRole('radiogroup', { name: 'Día' }).getByRole('radio')).toHaveCount(10)
+    expect(await strip.evaluate((el) => el.scrollWidth > el.clientWidth)).toBe(true)
+
+    await page.locator('.bk-chip[tabindex="0"]').focus()
+    await page.keyboard.press('Tab')
+    await expect(page.locator('.bk-day[tabindex="0"]')).toBeFocused()
+  })
+
   test('un solo servicio pasa directo a «Día y hora»', async ({ page }) => {
     await mockPublicApi(page, [service(CUT, 'Corte clásico', 45, '35000.00')])
     await page.goto(`/reservar/${SLUG}`)
