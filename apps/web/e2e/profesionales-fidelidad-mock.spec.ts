@@ -139,7 +139,10 @@ test('fidelidad #192: vacío, reflow, teclado y foco en los viewports obligatori
       }),
       `${viewport.name}: no hay desborde horizontal`,
     ).toBe(false)
-    const action = page.getByRole('button', { name: 'Agregar profesional' })
+    // El «+» es dibujo: el nombre es exactamente «Agregar profesional», y la acción
+    // no se anuncia como interruptor (#774).
+    const action = page.getByRole('button', { name: 'Agregar profesional', exact: true })
+    await expect(action).not.toHaveAttribute('aria-pressed')
     await action.focus()
     await expect(action).toBeFocused()
     await page.screenshot({

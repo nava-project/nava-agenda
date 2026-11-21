@@ -27,7 +27,9 @@ interface Props {
   /** Lo que se espera, en gerundio («Confirmando…»): con `loading`, va junto al
    * diamante en el sol en lugar del texto. Sin él, solo el diamante. */
   loadingLabel?: string
-  /** Si es un botón toggle (mantiene estado pressed) */
+  /** Solo para un botón interruptor: su estado (`aria-pressed`). Sin la prop, el
+   * botón es una acción y no lleva `aria-pressed`: un «false» por defecto haría
+   * que el lector anunciara cada botón como un interruptor sin presionar. */
   pressed?: boolean
   /** Tipo nativo del botón */
   type?: 'button' | 'submit' | 'reset'
@@ -39,7 +41,7 @@ const props = withDefaults(defineProps<Props>(), {
   disabled: false,
   loading: false,
   loadingLabel: undefined,
-  pressed: false,
+  pressed: undefined,
   type: 'button',
 })
 
