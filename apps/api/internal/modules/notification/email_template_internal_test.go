@@ -2,6 +2,7 @@ package notification
 
 import (
 	"math"
+	"regexp"
 	"os"
 	"path/filepath"
 	"strconv"
@@ -205,6 +206,16 @@ func TestEmailTemplate_FamilyBrandWithoutImagesOrShouting(t *testing.T) {
 	for _, want := range []string{"&#9670;", ">NAVA<", ">Agenda<", "Barbería Centro · Tu turno", "Instrument Serif", "Nava Agenda · agenda de citas para negocios"} {
 		if !strings.Contains(html, want) {
 			t.Errorf("la plantilla debe contener %q", want)
+		}
+	}
+	// Los rombos son decorativos: un lector de pantalla no debe decir «rombo negro».
+	diamonds := regexp.MustCompile(`<(?:span|td)[^>]*>&#9670;`).FindAllString(html, -1)
+	if len(diamonds) < 3 {
+		t.Fatalf("esperaba los rombos de la marca, la regla y el pie, hay %d", len(diamonds))
+	}
+	for _, d := range diamonds {
+		if !strings.Contains(d, `aria-hidden="true"`) {
+			t.Errorf("rombo sin aria-hidden: %s", d)
 		}
 	}
 	if strings.Contains(html, "text-transform:uppercase") || strings.Contains(html, "<img") {

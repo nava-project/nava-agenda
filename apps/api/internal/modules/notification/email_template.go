@@ -287,12 +287,12 @@ const emailHTML = `<!doctype html>
   <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="max-width:600px;">
     <tr><td class="card px" style="background:{{.Paper}};padding:28px 36px 30px 36px;border:1px solid {{.Border}};border-radius:6px;font-family:'Instrument Sans',-apple-system,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;">
       <div style="font-size:0;line-height:0;">
-        <span class="brass" style="font-family:Arial,Helvetica,sans-serif;font-size:18px;line-height:20px;color:{{.Brass}};vertical-align:middle;">&#9670;</span><span class="ink" style="padding-left:8px;font-family:'Instrument Sans',-apple-system,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;font-size:14px;line-height:20px;font-weight:700;letter-spacing:3px;color:{{.Ink}};vertical-align:middle;">NAVA</span><span class="ink" style="padding-left:6px;font-family:'Instrument Serif',Georgia,'Times New Roman',serif;font-size:19px;line-height:20px;color:{{.Ink}};vertical-align:middle;">Agenda</span>
+        <span class="brass" aria-hidden="true" style="font-family:Arial,Helvetica,sans-serif;font-size:18px;line-height:20px;color:{{.Brass}};vertical-align:middle;">&#9670;</span><span class="ink" style="padding-left:8px;font-family:'Instrument Sans',-apple-system,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;font-size:14px;line-height:20px;font-weight:700;letter-spacing:3px;color:{{.Ink}};vertical-align:middle;">NAVA</span><span class="ink" style="padding-left:6px;font-family:'Instrument Serif',Georgia,'Times New Roman',serif;font-size:19px;line-height:20px;color:{{.Ink}};vertical-align:middle;">Agenda</span>
       </div>
       <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="margin:18px 0 22px 0;">
         <tr>
           <td width="50%" style="vertical-align:middle;"><div class="rule" style="height:1px;line-height:1px;font-size:1px;background:{{.Brass}};">&nbsp;</div></td>
-          <td class="brass" style="padding:0 10px;vertical-align:middle;font-family:Arial,Helvetica,sans-serif;font-size:13px;line-height:13px;color:{{.Brass}};">&#9670;</td>
+          <td class="brass" aria-hidden="true" style="padding:0 10px;vertical-align:middle;font-family:Arial,Helvetica,sans-serif;font-size:13px;line-height:13px;color:{{.Brass}};">&#9670;</td>
           <td width="50%" style="vertical-align:middle;"><div class="rule" style="height:1px;line-height:1px;font-size:1px;background:{{.Brass}};">&nbsp;</div></td>
         </tr>
       </table>
@@ -300,7 +300,7 @@ const emailHTML = `<!doctype html>
       <p class="brass" style="margin:0 0 6px 0;font-size:14px;line-height:1.4;font-weight:600;color:{{.BrassText}};">{{.Brand}}{{if and .Brand .Kicker}} · {{end}}{{.Kicker}}</p>
       {{- end}}
       {{- if .Badge}}
-      <div style="margin:4px 0 12px 0;"><span class="{{.BadgeClass}}" style="display:inline-block;padding:4px 10px;border-radius:3px;background:{{.BadgeBg}};color:{{.BadgeFg}};border:1px solid {{.BadgeBorder}};font-size:14px;line-height:1.3;font-weight:600;"><span style="font-family:Arial,Helvetica,sans-serif;font-size:12px;">&#9670;</span>&nbsp; {{.Badge.Label}}</span></div>
+      <div style="margin:4px 0 12px 0;"><span class="{{.BadgeClass}}" style="display:inline-block;padding:4px 10px;border-radius:3px;background:{{.BadgeBg}};color:{{.BadgeFg}};border:1px solid {{.BadgeBorder}};font-size:14px;line-height:1.3;font-weight:600;"><span aria-hidden="true" style="font-family:Arial,Helvetica,sans-serif;font-size:12px;">&#9670;</span>&nbsp; {{.Badge.Label}}</span></div>
       {{- end}}
       <h1 class="title ink" style="margin:0 0 16px 0;font-family:'Instrument Serif',Georgia,'Times New Roman',serif;font-size:34px;line-height:1.15;font-weight:400;color:{{.Ink}};">{{.Title}}</h1>
       {{- if .HasGreeting}}
@@ -342,7 +342,7 @@ const emailHTML = `<!doctype html>
       {{- end}}
     </td></tr>
     <tr><td class="px" align="center" style="padding:18px 32px 4px 32px;font-family:'Instrument Sans',-apple-system,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;">
-      <p class="muted" style="margin:0;font-size:13px;line-height:1.5;color:{{.TextMuted}};"><span class="brass" style="font-family:Arial,Helvetica,sans-serif;font-size:11px;color:{{.BrassText}};">&#9670;</span>&nbsp; Nava Agenda · agenda de citas para negocios</p>
+      <p class="muted" style="margin:0;font-size:13px;line-height:1.5;color:{{.TextMuted}};"><span class="brass" aria-hidden="true" style="font-family:Arial,Helvetica,sans-serif;font-size:11px;color:{{.BrassText}};">&#9670;</span>&nbsp; Nava Agenda · agenda de citas para negocios</p>
     </td></tr>
   </table>
 </td></tr>
