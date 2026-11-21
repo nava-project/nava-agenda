@@ -1,6 +1,6 @@
 import { test, expect, type Page } from '@playwright/test'
 import { pickAgendaDate } from './agenda-fecha'
-import { fillManualStart } from './nuevo-turno-hora'
+import { fillManualStart, fillRescheduleStart } from './nuevo-turno-hora'
 
 /**
  * Recorrido E2E de HU-065 (reprogramación auditada de un turno, T2). Corre
@@ -143,8 +143,7 @@ test.describe('Reprogramación de un turno (HU-065, T2)', () => {
     await page.getByRole('button', { name: 'Reprogramar turno' }).click()
     const dialog = page.getByRole('dialog', { name: 'Reprogramar turno' })
     await expect(dialog).toBeVisible()
-    await dialog.getByLabel('Nueva fecha').fill(newDate)
-    await dialog.getByLabel('Nueva hora').fill(newTime)
+    await fillRescheduleStart(page, newDate, newTime)
     await dialog.getByRole('button', { name: 'Confirmar' }).click()
     await expect(dialog).toBeHidden()
 
@@ -196,8 +195,7 @@ test.describe('Reprogramación de un turno (HU-065, T2)', () => {
 
     await page.getByRole('button', { name: 'Reprogramar turno' }).click()
     const dialog = page.getByRole('dialog', { name: 'Reprogramar turno' })
-    await dialog.getByLabel('Nueva fecha').fill(newDate)
-    await dialog.getByLabel('Nueva hora').fill(newTime)
+    await fillRescheduleStart(page, newDate, newTime)
 
     // Simula una caída de red justo tras el envío: el navegador queda sin
     // conexión antes de que la respuesta llegue, forzando el camino de

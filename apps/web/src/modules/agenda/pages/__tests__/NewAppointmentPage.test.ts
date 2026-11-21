@@ -346,7 +346,13 @@ describe('NewAppointmentPage', () => {
       inputs.find((i) => i.element.labels?.[0]?.textContent?.includes(text))!
     expect(byLabel('Nombre del cliente').element.value).toBe('Juan Pérez')
     // La rejilla vuelve a leer ese día para no ofrecer la hora tomada (#717).
-    expect(fetchManualAvailabilityMock).toHaveBeenLastCalledWith('b-1', 's-1', today, today)
+    expect(fetchManualAvailabilityMock).toHaveBeenLastCalledWith(
+      'b-1',
+      's-1',
+      today,
+      today,
+      undefined,
+    )
     expect(wrapper.find('.bk-min[aria-checked="true"]').exists()).toBe(true)
   })
 

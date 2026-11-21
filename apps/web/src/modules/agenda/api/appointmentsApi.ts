@@ -126,17 +126,24 @@ export async function fetchBusinessTimezone(): Promise<FetchBusinessTimezoneOutc
 // fetchManualAvailability (#717, DEC-190): inicios libres del servicio con el
 // profesional entre dos fechas civiles (ambas incluidas, hasta 31 días), sin la
 // anticipación ni la ventana de la reserva pública. Servicio no asignado o ajeno:
-// 404 uniforme (DEC-072).
+// 404 uniforme (DEC-072). Al reprogramar, `excludeAppointmentId` saca el propio
+// turno de la ocupación y la duración pasa a ser la suya (#776, DEC-190 punto 8).
 export async function fetchManualAvailability(
   professionalId: string,
   serviceId: string,
   from: string,
   to: string,
+  excludeAppointmentId?: string,
 ): Promise<FetchManualAvailabilityOutcome> {
   try {
     const { data, response } = await httpClient.GET(
       '/private/professionals/{professionalId}/services/{serviceId}/availability',
-      { params: { path: { professionalId, serviceId }, query: { from, to } } },
+      {
+        params: {
+          path: { professionalId, serviceId },
+          query: excludeAppointmentId ? { from, to, excludeAppointmentId } : { from, to },
+        },
+      },
     )
     if (response.ok && data) {
       return {
@@ -237,6 +244,7 @@ function toAppointmentDetail(data: {
   id: string
   professionalId: string
   professionalFullName: string
+  serviceId: string
   attendeeName: string
   customerFullName: string
   customerPhone: string | null
@@ -258,6 +266,7 @@ function toAppointmentDetail(data: {
     id: data.id,
     professionalId: data.professionalId,
     professionalFullName: data.professionalFullName,
+    serviceId: data.serviceId,
     attendeeName: data.attendeeName,
     customerFullName: data.customerFullName,
     customerPhone: data.customerPhone,

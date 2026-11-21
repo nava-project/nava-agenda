@@ -79,6 +79,7 @@ describe('ManualStartPicker', () => {
       's-1',
       today,
       shiftCivilDate(today, 13),
+      undefined,
     )
     expect(wrapper.findAll('.bk-day')).toHaveLength(14)
     // Abre en el primer día con hueco.
@@ -200,7 +201,13 @@ describe('ManualStartPicker', () => {
     await (wrapper.vm as unknown as { refreshDay: (d: string) => Promise<void> }).refreshDay(today)
     await flushPromises()
 
-    expect(fetchManualAvailabilityMock).toHaveBeenLastCalledWith('p-1', 's-1', today, today)
+    expect(fetchManualAvailabilityMock).toHaveBeenLastCalledWith(
+      'p-1',
+      's-1',
+      today,
+      today,
+      undefined,
+    )
     expect(time.value).toBe('')
     expect(wrapper.findAll('.bk-min').map((b) => b.text())).toEqual([':00'])
   })
@@ -285,5 +292,80 @@ describe('ManualStartPicker', () => {
         rules: { 'color-contrast': { enabled: false }, region: { enabled: false } },
       }),
     ).toHaveNoViolations()
+  })
+
+  // --- Reprogramar (#776) ---------------------------------------------------
+
+  it('when rescheduling, reads without the own appointment, also after a 409', async () => {
+    fetchManualAvailabilityMock.mockResolvedValue(availability([at(tomorrow, '09:00')]))
+    const { wrapper } = mountPicker({ excludeAppointmentId: 'a-1' })
+    await flushPromises()
+    expect(fetchManualAvailabilityMock).toHaveBeenCalledWith(
+      'p-1',
+      's-1',
+      today,
+      shiftCivilDate(today, 13),
+      'a-1',
+    )
+    await (wrapper.vm as unknown as { refreshDay: (d: string) => Promise<void> }).refreshDay(
+      tomorrow,
+    )
+    expect(fetchManualAvailabilityMock).toHaveBeenLastCalledWith(
+      'p-1',
+      's-1',
+      tomorrow,
+      tomorrow,
+      'a-1',
+    )
+  })
+
+  it('shows the current start of the appointment marked, and it cannot be chosen', async () => {
+    fetchManualAvailabilityMock.mockResolvedValue(
+      availability([at(tomorrow, '09:00'), at(tomorrow, '09:30'), at(tomorrow, '10:00')]),
+    )
+    const { wrapper, time } = mountPicker({
+      excludeAppointmentId: 'a-1',
+      current: at(tomorrow, '09:30'),
+      date: tomorrow,
+    })
+    await flushPromises()
+
+    const current = minute(wrapper, ':30')
+    expect(current.classes()).toContain('bk-min--current')
+    await current.trigger('click')
+    await flushPromises()
+    expect(time.value).toBe('')
+    expect(wrapper.find('.bk-min[aria-checked="true"]').exists()).toBe(false)
+
+    await minute(wrapper, ':00').trigger('click')
+    await flushPromises()
+    expect(time.value).toBe('09:00')
+  })
+
+  it('on a 404 of the reading says what happened and offers «Otra hora», without switching silently', async () => {
+    fetchManualAvailabilityMock.mockResolvedValue({ kind: 'not-found' })
+    const { wrapper } = mountPicker({
+      excludeAppointmentId: 'a-1',
+      idPrefix: 'reschedule',
+      dateLabel: 'Nueva fecha',
+      timeLabel: 'Nueva hora',
+    })
+    await flushPromises()
+
+    const notice = wrapper.get('.manual-start__empty[role="alert"]')
+    expect(notice.text()).toContain('Este servicio ya no tiene horas libres aquí.')
+    expect(notice.text()).toContain('dejó de estar asignado a este profesional')
+    expect(wrapper.find('.bk-days').exists()).toBe(false)
+    expect(wrapper.find('#reschedule-date').exists()).toBe(false)
+
+    await notice
+      .findAll('button')
+      .find((b) => b.text() === 'Otra hora')!
+      .trigger('click')
+    await flushPromises()
+    expect(document.activeElement?.id).toBe('reschedule-date')
+    expect(wrapper.get('#reschedule-date-label').text()).toContain('Nueva fecha')
+    expect(wrapper.text()).toContain('Nueva hora')
+    wrapper.unmount()
   })
 })

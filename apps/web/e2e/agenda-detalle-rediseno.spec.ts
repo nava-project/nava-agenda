@@ -28,6 +28,7 @@ function detail(status: 'confirmed' | 'cancelled_by_customer') {
     id: 'turno-demo',
     professionalId: 'profesional-demo',
     professionalFullName: 'Iván Carvajal',
+    serviceId: 'servicio-degradado',
     attendeeName: 'Valentina Pardo',
     customerFullName: 'Valentina Pardo',
     customerPhone: '+573000000001',
@@ -92,6 +93,20 @@ async function installApi(page: Page, status: 'confirmed' | 'cancelled_by_custom
       )
     } else if (pathname.endsWith('/settings/business')) {
       await route.fulfill(json({ timezone: 'America/Bogota' }))
+    } else if (pathname.endsWith('/availability')) {
+      // Inicios libres para reprogramar (#776): el día siguiente a `from`.
+      const from = new URL(route.request().url()).searchParams.get('from') ?? ''
+      const next = new Date(`${from}T12:00:00Z`)
+      next.setUTCDate(next.getUTCDate() + 1)
+      const day = next.toISOString().slice(0, 10)
+      await route.fulfill(
+        json({
+          slots: [{ startsAt: `${day}T15:00:00Z` }, { startsAt: `${day}T15:30:00Z` }],
+          durationMinutes: 45,
+          timezone: 'America/Bogota',
+          slotGridMinutes: 30,
+        }),
+      )
     } else if (pathname.endsWith('/appointments/turno-demo/history')) {
       await route.fulfill(json(history))
     } else if (pathname.endsWith('/appointments/turno-demo')) {
@@ -215,7 +230,7 @@ const inkDialogs = [
     slug: 'reprogramar',
     button: 'Reprogramar turno',
     maxWidth: 620,
-    texts: ['Horario actual', 'Vista previa'],
+    texts: ['Elige una hora libre abajo', 'Hora de Colombia'],
   },
   {
     slug: 'cancelar',
@@ -243,7 +258,9 @@ for (const card of inkDialogs) {
         await expect(dialog).toBeVisible()
         for (const text of card.texts) await expect(dialog.getByText(text)).toBeVisible()
         if (card.slug === 'reprogramar') {
-          await expect(dialog.getByLabel('Nueva fecha')).toBeVisible()
+          // #776: la hora se elige sobre los inicios libres, sin campos nativos.
+          await expect(dialog.getByRole('radiogroup', { name: 'Hora' })).toBeVisible()
+          await expect(dialog.locator('input[type="date"], input[type="time"]')).toHaveCount(0)
           await expect(dialog.getByRole('button', { name: 'Confirmar' })).toBeVisible()
         } else {
           await expect(dialog.getByRole('button', { name: 'Sí, cancelar turno' })).toBeVisible()
