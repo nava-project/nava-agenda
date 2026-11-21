@@ -21,7 +21,6 @@ import {
   BaseBadge,
   BaseButton,
   BaseDialog,
-  BaseInput,
   DiamondLoader,
   PhoneDisplay,
   type AppointmentTicketState,
@@ -32,7 +31,14 @@ import {
   formatInstantInTimezone,
   formatTimeInTimezone,
 } from '@/shared/time/formatInstant'
-import { getCivilDateInTimezone, minutesSinceCivilMidnight } from '@/shared/time/civilDate'
+import {
+  formatCivilDateFull,
+  formatCivilDateShort,
+  getCivilDateInTimezone,
+  minutesSinceCivilMidnight,
+} from '@/shared/time/civilDate'
+import { formatClock } from '@/shared/model/openingHours'
+import ManualStartPicker from '../components/ManualStartPicker.vue'
 import {
   cancelAppointmentByProfessional,
   completeAppointment,
@@ -395,18 +401,72 @@ function addMinutesToTimeString(time: string, minutes: number): string {
   return `${String(endHours).padStart(2, '0')}:${String(endMins).padStart(2, '0')}`
 }
 
-const rescheduleNewEndLabel = computed(() => {
-  if (!detail.value || !rescheduleTime.value) return ''
-  return addMinutesToTimeString(rescheduleTime.value, detail.value.durationMinutes)
+// El boleto de «Reprogramar» (#776): lo que hay ahora frente a lo que quedará,
+// todo en 12 h como el resto del panel, con la hora en serif y «a. m.»/«p. m.»
+// en menor, igual que el resumen de «Nuevo turno».
+function splitClock(label: string): { clock: string; suffix: string } {
+  const space = label.indexOf(' ')
+  return space < 0
+    ? { clock: label, suffix: '' }
+    : { clock: label.slice(0, space), suffix: label.slice(space + 1) }
+}
+
+const rescheduleNow = computed(() => {
+  if (!detail.value || !businessTimezone.value) return null
+  const zone = businessTimezone.value
+  return {
+    ...splitClock(formatClock(civilTimeInTimezone(detail.value.startsAt, zone))),
+    until: formatClock(civilTimeInTimezone(detail.value.endsAt, zone)),
+    date: formatCivilDateFull(getCivilDateInTimezone(zone, new Date(detail.value.startsAt))),
+  }
+})
+
+const rescheduleNew = computed(() => {
+  if (!detail.value || !rescheduleTime.value || !rescheduleDate.value) return null
+  return {
+    ...splitClock(formatClock(rescheduleTime.value)),
+    until: formatClock(addMinutesToTimeString(rescheduleTime.value, detail.value.durationMinutes)),
+    date: formatCivilDateFull(rescheduleDate.value),
+  }
+})
+
+// La fecha corta del pie («mañana», «dom 23 nov»), relativa al día de hoy en la
+// zona del negocio.
+const rescheduleFootDate = computed(() =>
+  rescheduleDate.value && businessTimezone.value
+    ? formatCivilDateShort(rescheduleDate.value, getCivilDateInTimezone(businessTimezone.value))
+    : '',
+)
+
+// El error del instante va junto a las horas, como en «Nuevo turno» (#773).
+const rescheduleFieldError = computed(() => {
+  if (rescheduleStatus.value === 'conflict')
+    return rescheduleErrorDetail.value ?? 'Esa hora ya se ocupó. Elige otra.'
+  if (rescheduleStatus.value === 'validation-error')
+    return rescheduleErrorDetail.value ?? 'Revisa la nueva fecha y hora.'
+  return undefined
+})
+
+const reschedulePicker = ref<InstanceType<typeof ManualStartPicker> | null>(null)
+
+// Elegir otra hora resuelve el error del instante anterior. Soltar la hora
+// tomada tras un 409 (la relectura del día) no lo borra: el aviso sigue
+// diciendo por qué hay que elegir otra.
+watch(rescheduleTime, (time) => {
+  if (!time) return
+  if (rescheduleStatus.value === 'conflict' || rescheduleStatus.value === 'validation-error')
+    rescheduleStatus.value = 'idle'
 })
 
 function onOpenReschedule() {
   if (!detail.value || !businessTimezone.value) return
+  // La tira abre en el día del turno; la hora se elige de nuevo: la actual se ve
+  // marcada en la rejilla, pero reprogramar a la misma hora no es un cambio.
   rescheduleDate.value = getCivilDateInTimezone(
     businessTimezone.value,
     new Date(detail.value.startsAt),
   )
-  rescheduleTime.value = civilTimeInTimezone(detail.value.startsAt, businessTimezone.value)
+  rescheduleTime.value = ''
   rescheduleStatus.value = 'idle'
   rescheduleErrorDetail.value = null
   rescheduleIdempotencyKey = newIdempotencyKey()
@@ -458,6 +518,8 @@ async function onSubmitReschedule() {
     case 'conflict':
       rescheduleErrorDetail.value = outcome.detail
       rescheduleStatus.value = 'conflict'
+      // Alguien tomó la hora entre la lectura y el envío: se relee ese día.
+      void reschedulePicker.value?.refreshDay(rescheduleDate.value)
       return
     case 'validation-error':
       rescheduleErrorDetail.value = outcome.detail
@@ -1226,6 +1288,7 @@ function occurredAtLabel(entry: HistoryEntry): string {
         @close="onRescheduleDialogClosed"
       >
         <form
+          id="reschedule-form"
           class="appointment-detail-page__dialog-form appointment-detail-page__ink-form"
           novalidate
           @submit.prevent="onSubmitReschedule"
@@ -1256,22 +1319,6 @@ function occurredAtLabel(entry: HistoryEntry): string {
             </template>
           </BaseAlert>
           <BaseAlert
-            v-if="rescheduleStatus === 'conflict'"
-            variant="danger"
-            title="No pudimos reprogramar el turno"
-            role="alert"
-          >
-            {{ rescheduleErrorDetail }}
-          </BaseAlert>
-          <BaseAlert
-            v-if="rescheduleStatus === 'validation-error'"
-            variant="danger"
-            title="Revisa la nueva fecha y hora"
-            role="alert"
-          >
-            {{ rescheduleErrorDetail }}
-          </BaseAlert>
-          <BaseAlert
             v-if="rescheduleStatus === 'idempotency-conflict'"
             variant="danger"
             title="No pudimos completar el intento anterior"
@@ -1296,56 +1343,98 @@ function occurredAtLabel(entry: HistoryEntry): string {
             Inténtalo de nuevo en unos segundos. No perdiste lo que elegiste.
           </BaseAlert>
 
-          <div class="appointment-detail-page__dialog-compare">
-            <p class="appointment-detail-page__dialog-current">
-              <strong>Horario actual</strong>
-              {{ timeRangeLabel }}
-              <span v-if="businessTimezone">{{ timezoneLabel(businessTimezone) }}</span>
+          <div
+            v-if="rescheduleNow"
+            class="appointment-detail-page__reschedule-ticket"
+            aria-live="polite"
+          >
+            <p class="appointment-detail-page__reschedule-side">
+              <span class="appointment-detail-page__reschedule-label">Ahora</span>
+              <span class="appointment-detail-page__reschedule-clock">
+                {{ rescheduleNow.clock
+                }}<small v-if="rescheduleNow.suffix">&nbsp;{{ rescheduleNow.suffix }}</small>
+              </span>
+              <span class="appointment-detail-page__reschedule-date">
+                {{ rescheduleNow.date }}<br />hasta {{ rescheduleNow.until }}
+              </span>
             </p>
-            <span class="appointment-detail-page__dialog-arrow" aria-hidden="true">→</span>
+            <span class="appointment-detail-page__reschedule-rule" aria-hidden="true" />
             <p
-              v-if="rescheduleNewEndLabel"
-              class="appointment-detail-page__dialog-preview appointment-detail-page__dialog-preview--new"
+              class="appointment-detail-page__reschedule-side appointment-detail-page__reschedule-side--new"
+              :class="{ 'appointment-detail-page__reschedule-side--empty': !rescheduleNew }"
             >
-              <strong>Vista previa</strong>
-              {{ rescheduleTime }} – {{ rescheduleNewEndLabel }}
-              <span v-if="businessTimezone">{{ timezoneLabel(businessTimezone) }}</span>
+              <span class="appointment-detail-page__reschedule-label">Nueva hora</span>
+              <span class="appointment-detail-page__reschedule-clock">
+                <template v-if="rescheduleNew"
+                  >{{ rescheduleNew.clock
+                  }}<small v-if="rescheduleNew.suffix"
+                    >&nbsp;{{ rescheduleNew.suffix }}</small
+                  ></template
+                >
+                <template v-else>--:--</template>
+              </span>
+              <span class="appointment-detail-page__reschedule-date">
+                <template v-if="rescheduleNew"
+                  >{{ rescheduleNew.date }}<br />hasta {{ rescheduleNew.until }}</template
+                >
+                <template v-else>Elige una hora libre abajo</template>
+              </span>
+            </p>
+            <p v-if="businessTimezone" class="appointment-detail-page__reschedule-zone">
+              {{ timezoneLabel(businessTimezone) }}
             </p>
           </div>
 
-          <div class="appointment-detail-page__dialog-grid">
-            <BaseInput
-              v-model="rescheduleDate"
-              type="date"
-              name="rescheduleDate"
-              label="Nueva fecha"
-              required
-              :disabled="rescheduleStatus === 'saving'"
-            />
-            <BaseInput
-              v-model="rescheduleTime"
-              type="time"
-              name="rescheduleTime"
-              label="Nueva hora"
-              required
-              :disabled="rescheduleStatus === 'saving'"
-            />
-          </div>
+          <ManualStartPicker
+            v-if="detail"
+            ref="reschedulePicker"
+            v-model:date="rescheduleDate"
+            v-model:time="rescheduleTime"
+            :professional-id="detail.professionalId"
+            :service-id="detail.serviceId"
+            :timezone="businessTimezone"
+            :exclude-appointment-id="detail.id"
+            :current="detail.startsAt"
+            :error="rescheduleFieldError"
+            :disabled="rescheduleStatus === 'saving'"
+            id-prefix="reschedule"
+            date-label="Nueva fecha"
+            time-label="Nueva hora"
+          />
+        </form>
 
-          <div class="appointment-detail-page__dialog-actions">
+        <!-- El pie queda fijo bajo la rejilla, que se desplaza: la hora elegida
+             y las acciones siempre a la vista (#776). -->
+        <template #footer>
+          <p class="appointment-detail-page__reschedule-foot">
+            <span class="appointment-detail-page__reschedule-foot-label">Nueva hora</span>
+            <span
+              v-if="rescheduleNew"
+              class="appointment-detail-page__reschedule-foot-value"
+              data-testid="reschedule-foot-value"
+              >{{ rescheduleNew.clock
+              }}<small v-if="rescheduleNew.suffix">&nbsp;{{ rescheduleNew.suffix }}</small>
+              <span class="appointment-detail-page__reschedule-foot-date">{{
+                rescheduleFootDate
+              }}</span></span
+            >
+            <span v-else class="appointment-detail-page__reschedule-foot-empty">Sin elegir</span>
+          </p>
+          <div class="appointment-detail-page__reschedule-foot-actions">
             <BaseButton type="button" variant="secondary" @click="isRescheduleOpen = false">
               Cancelar
             </BaseButton>
             <BaseButton
               type="submit"
+              form="reschedule-form"
               variant="primary"
               :loading="rescheduleStatus === 'saving'"
-              :disabled="rescheduleStatus === 'saving'"
+              :disabled="rescheduleStatus === 'saving' || !rescheduleDate || !rescheduleTime"
             >
               Confirmar
             </BaseButton>
           </div>
-        </form>
+        </template>
       </BaseDialog>
 
       <BaseDialog
@@ -2530,36 +2619,6 @@ function occurredAtLabel(entry: HistoryEntry): string {
   gap: var(--space-4);
 }
 
-.appointment-detail-page__dialog-grid {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: var(--space-4);
-  align-items: end;
-}
-
-.appointment-detail-page__dialog-current,
-.appointment-detail-page__dialog-preview {
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-  margin: 0;
-  font-family: var(--font-family-base);
-  font-size: var(--font-size-body-sm);
-  line-height: var(--font-size-body-sm-line);
-  color: var(--color-text-primary);
-}
-
-.appointment-detail-page__dialog-current strong,
-.appointment-detail-page__dialog-preview strong {
-  color: var(--color-text-primary);
-  font-size: var(--font-size-caption);
-}
-
-.appointment-detail-page__dialog-current span,
-.appointment-detail-page__dialog-preview span {
-  color: var(--color-text-secondary);
-}
-
 .appointment-detail-page__dialog-actions {
   display: flex;
   justify-content: flex-end;
@@ -2720,43 +2779,194 @@ function occurredAtLabel(entry: HistoryEntry): string {
   padding: var(--space-5) var(--space-6) var(--space-6);
 }
 
-/* Comparación: lo que hay ahora, una flecha y lo que quedará. */
-.appointment-detail-page__dialog-compare {
+/* Boleto de «Reprogramar» (#776): papel con filete de latón, «Ahora» a la
+   izquierda en tono menor y la nueva hora protagonista en serif, separadas por
+   un filete con el rombo. Mismo lenguaje que el resumen de «Nuevo turno». */
+.appointment-detail-page__reschedule-ticket {
   display: grid;
   grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
-  gap: var(--space-4);
+  gap: 4px 20px;
   align-items: start;
-  padding: var(--space-4);
-  background: color-mix(in srgb, var(--color-on-strong) 5%, transparent);
-  border: 1px solid var(--color-field-strong-border);
-  border-left: 3px solid var(--color-border-control);
-  border-radius: var(--radius-md);
+  padding: 16px 18px 14px;
+  background-color: color-mix(in srgb, var(--color-brass-line) 6%, var(--color-surface));
+  border: 1px solid color-mix(in srgb, var(--color-brass-line) 45%, transparent);
+  border-radius: 4px;
 }
 
-.appointment-detail-page__dialog-compare .appointment-detail-page__dialog-current,
-.appointment-detail-page__dialog-compare .appointment-detail-page__dialog-preview {
-  color: var(--color-on-strong);
+.appointment-detail-page__reschedule-side {
+  display: grid;
+  gap: 4px;
+  min-width: 0;
+  margin: 0;
 }
 
-.appointment-detail-page__dialog-compare strong {
-  font-size: 13px;
-  font-weight: 500;
-  letter-spacing: 0;
-  text-transform: none;
-  color: var(--color-text-secondary);
+.appointment-detail-page__reschedule-label {
   font-family: var(--font-sans);
+  font-size: 11px;
+  font-weight: 600;
   line-height: 16px;
-}
-
-.appointment-detail-page__dialog-compare span {
-  color: var(--color-on-strong-soft);
-}
-
-.appointment-detail-page__dialog-compare .appointment-detail-page__dialog-arrow {
-  align-self: center;
-  font-size: var(--font-size-title-item);
-  line-height: 1;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
   color: var(--color-text-secondary);
+}
+
+.appointment-detail-page__reschedule-side--new .appointment-detail-page__reschedule-label {
+  color: var(--color-brass-text);
+}
+
+.appointment-detail-page__reschedule-clock {
+  font-family: var(--font-display);
+  font-size: 30px;
+  font-weight: 400;
+  line-height: 1.05;
+  color: var(--color-text-secondary);
+  font-variant-numeric: tabular-nums;
+}
+
+.appointment-detail-page__reschedule-side--new .appointment-detail-page__reschedule-clock {
+  font-size: 40px;
+  color: var(--color-text-primary);
+}
+
+.appointment-detail-page__reschedule-side--empty .appointment-detail-page__reschedule-clock {
+  color: var(--color-text-secondary);
+}
+
+.appointment-detail-page__reschedule-clock small {
+  font-size: 0.45em;
+  letter-spacing: 0;
+}
+
+.appointment-detail-page__reschedule-date {
+  font-family: var(--font-sans);
+  font-size: 13px;
+  line-height: 18px;
+  color: var(--color-text-secondary);
+}
+
+.appointment-detail-page__reschedule-date::first-letter {
+  text-transform: uppercase;
+}
+
+/* El filete vertical con el rombo de latón en medio. */
+.appointment-detail-page__reschedule-rule {
+  position: relative;
+  align-self: stretch;
+  width: 1px;
+  background-color: color-mix(in srgb, var(--color-brass-line) 55%, transparent);
+}
+
+.appointment-detail-page__reschedule-rule::after {
+  position: absolute;
+  top: calc(50% - 5px);
+  left: -4.5px;
+  width: 10px;
+  height: 10px;
+  content: '';
+  background-color: var(--color-surface);
+  border: 1.5px solid var(--color-brass-line);
+  rotate: 45deg;
+}
+
+.appointment-detail-page__reschedule-zone {
+  grid-column: 1 / -1;
+  margin: 8px 0 0;
+  padding-top: 8px;
+  font-family: var(--font-sans);
+  font-size: 12px;
+  line-height: 16px;
+  color: var(--color-text-secondary);
+  border-top: 1px dashed color-mix(in srgb, var(--color-brass-line) 40%, transparent);
+}
+
+@media (max-width: 520px) {
+  .appointment-detail-page__reschedule-ticket {
+    grid-template-columns: 1fr;
+    gap: 10px;
+  }
+
+  .appointment-detail-page__reschedule-rule {
+    width: 100%;
+    height: 1px;
+  }
+
+  .appointment-detail-page__reschedule-rule::after {
+    top: -4.5px;
+    left: 18px;
+  }
+}
+
+/* Pie fijo de «Reprogramar» (#776): la nueva hora repetida en serif junto a las
+   acciones, para no subir a revisar lo elegido. */
+.appointment-detail-page__reschedule-foot {
+  display: grid;
+  flex: 1 1 auto;
+  gap: 2px;
+  min-width: 0;
+  margin: 0;
+}
+
+.appointment-detail-page__reschedule-foot-label {
+  font-family: var(--font-sans);
+  font-size: 11px;
+  font-weight: 600;
+  line-height: 14px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--color-brass-text);
+}
+
+.appointment-detail-page__reschedule-foot-value {
+  font-family: var(--font-display);
+  font-size: 24px;
+  font-weight: 400;
+  line-height: 1.1;
+  color: var(--color-text-primary);
+  font-variant-numeric: tabular-nums;
+}
+
+.appointment-detail-page__reschedule-foot-value small {
+  font-size: 0.5em;
+}
+
+.appointment-detail-page__reschedule-foot-date {
+  margin-left: 8px;
+  font-family: var(--font-sans);
+  font-size: 13px;
+  color: var(--color-text-secondary);
+}
+
+.appointment-detail-page__reschedule-foot-empty {
+  font-family: var(--font-sans);
+  font-size: 14px;
+  line-height: 24px;
+  color: var(--color-text-secondary);
+}
+
+.appointment-detail-page__reschedule-foot-actions {
+  display: flex;
+  flex: 0 0 auto;
+  gap: var(--space-3);
+}
+
+:global(.appointment-detail-page__ink-dialog .base-dialog__footer) {
+  justify-content: space-between;
+  padding: var(--space-4) var(--space-6);
+  border-top: 1px solid var(--color-field-strong-border) !important;
+}
+
+@media (max-width: 520px) {
+  :global(.appointment-detail-page__ink-dialog .base-dialog__footer) {
+    padding: var(--space-3) var(--space-4);
+  }
+
+  .appointment-detail-page__reschedule-foot-actions {
+    flex: 1 1 100%;
+  }
+
+  .appointment-detail-page__reschedule-foot-actions > * {
+    flex: 1 1 0;
+  }
 }
 
 /* Campos reglados sobre tinta, igual que Agenda y el catálogo. */
@@ -3046,21 +3256,6 @@ function occurredAtLabel(entry: HistoryEntry): string {
     font-size: var(--font-size-title-item);
   }
 
-  .appointment-detail-page__dialog-compare {
-    grid-template-columns: 1fr;
-    gap: var(--space-2);
-  }
-
-  .appointment-detail-page__dialog-arrow {
-    transform: rotate(90deg);
-    justify-self: start;
-  }
-
-  .appointment-detail-page__dialog-grid {
-    grid-template-columns: 1fr;
-    gap: var(--space-3);
-  }
-
   :global(.appointment-detail-page__ink-dialog .base-dialog__header) {
     padding: var(--space-4) var(--space-4) var(--space-3);
   }
@@ -3099,10 +3294,6 @@ function occurredAtLabel(entry: HistoryEntry): string {
   .appointment-detail-page__body {
     grid-template-columns: minmax(0, 1.3fr) minmax(240px, 0.7fr);
     gap: var(--space-8);
-  }
-
-  .appointment-detail-page__dialog-grid {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }
 

@@ -15,6 +15,7 @@ const detail = {
   id: 'turno-mateo',
   professionalId: 'profesional-julian',
   professionalFullName: 'Julián Rodríguez',
+  serviceId: 'servicio-corte',
   attendeeName: 'Mateo Rojas',
   customerFullName: 'Mateo Rojas',
   customerPhone: '+57 321 456 7890',
@@ -194,6 +195,23 @@ async function installDetailMock(
       await route.fulfill(json({ timezone: 'America/Bogota' }))
       return
     }
+    // Inicios libres para reprogramar (#776): el día siguiente a `from`, 10:00 y
+    // 10:30 en Bogotá.
+    if (url.pathname.endsWith('/availability')) {
+      const from = url.searchParams.get('from') ?? ''
+      const next = new Date(`${from}T12:00:00Z`)
+      next.setUTCDate(next.getUTCDate() + 1)
+      const day = next.toISOString().slice(0, 10)
+      await route.fulfill(
+        json({
+          slots: [{ startsAt: `${day}T15:00:00Z` }, { startsAt: `${day}T15:30:00Z` }],
+          durationMinutes: 45,
+          timezone: 'America/Bogota',
+          slotGridMinutes: 30,
+        }),
+      )
+      return
+    }
     if (url.pathname.endsWith('/appointments/turno-mateo/history')) {
       await route.fulfill(json(history))
       return
@@ -328,6 +346,7 @@ for (const viewport of [
     await openDetail(page, viewport.width, viewport.height)
     await page.getByRole('button', { name: 'Reprogramar turno' }).click()
     const dialog = page.getByRole('dialog', { name: 'Reprogramar turno' })
+    await dialog.getByRole('radiogroup', { name: 'Hora' }).getByRole('radio').first().click()
     await dialog.getByRole('button', { name: 'Confirmar' }).click()
     await expect(dialog.getByText('Este turno cambió mientras lo editabas')).toBeVisible()
     await page.screenshot({

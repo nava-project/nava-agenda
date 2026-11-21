@@ -18,6 +18,13 @@
  *   tomó la hora entre la lectura y el envío). Si la elegida ya no está, se suelta;
  *   el resto del formulario no se toca.
  *
+ * - Al reprogramar (#776), `excludeAppointmentId` pide la lectura sin el propio
+ *   turno (su hora vuelve a estar libre y la duración es la suya) y `current`
+ *   muestra esa hora en la rejilla sin dejar elegirla.
+ * - Un `404` de la lectura (el servicio se desactivó o dejó de estar asignado al
+ *   profesional después de reservar) dice qué pasó y ofrece «Otra hora»; no cambia
+ *   de modo en silencio.
+ *
  * La página posee la fecha y la hora (`v-model:date`, `v-model:time`, «HH:MM» de
  * 24 h en la zona del negocio); este componente solo propone y emite.
  */
@@ -47,12 +54,28 @@ interface Props {
   /** Error del instante (validación o `409`), bajo la elección. */
   error?: string
   disabled?: boolean
+  /** Turno que se reprograma: la lectura lo saca de la ocupación (#776). */
+  excludeAppointmentId?: string
+  /** Inicio actual de ese turno (ISO): se ve en la rejilla, no se elige. */
+  current?: string | null
+  /** Prefijo de los ids de «Otra hora», único en la página. */
+  idPrefix?: string
+  dateLabel?: string
+  timeLabel?: string
 }
-const props = withDefaults(defineProps<Props>(), { error: undefined, disabled: false })
+const props = withDefaults(defineProps<Props>(), {
+  error: undefined,
+  disabled: false,
+  excludeAppointmentId: undefined,
+  current: null,
+  idPrefix: 'new-appointment',
+  dateLabel: 'Fecha del turno',
+  timeLabel: 'Hora del turno',
+})
 const date = defineModel<string>('date', { required: true })
 const time = defineModel<string>('time', { required: true })
 
-type Status = 'idle' | 'loading' | 'ready' | 'error'
+type Status = 'idle' | 'loading' | 'ready' | 'not-found' | 'error'
 const status = ref<Status>('idle')
 const mode = ref<'grid' | 'manual'>('grid')
 const days = ref<DaylightDay[]>([])
@@ -66,6 +89,7 @@ const arrived = ref(false)
 let request = 0
 
 const errorId = `manual-start-error-${Math.random().toString(36).slice(2, 9)}`
+const dateId = computed(() => `${props.idPrefix}-date`)
 const ready = computed(() => !!props.professionalId && !!props.serviceId)
 const today = computed(() => getCivilDateInTimezone(props.timezone ?? zone.value))
 
@@ -102,10 +126,11 @@ async function load() {
     props.serviceId,
     from,
     shiftCivilDate(from, WINDOW_DAYS - 1),
+    props.excludeAppointmentId,
   )
   if (ticket !== request) return
   if (outcome.kind !== 'success') {
-    status.value = 'error'
+    status.value = outcome.kind === 'not-found' ? 'not-found' : 'error'
     return
   }
   const { availability } = outcome
@@ -140,6 +165,7 @@ async function refreshDay(civilDate: string) {
     props.serviceId,
     civilDate,
     civilDate,
+    props.excludeAppointmentId,
   )
   if (outcome.kind !== 'success') return
   const [fresh] = windowDays(outcome.availability.starts, outcome.availability.timezone, civilDate)
@@ -191,7 +217,7 @@ function useOtherTime() {
   // La fecha de la tira pasa al campo para no escribirla otra vez.
   if (!date.value && activeDate.value) date.value = activeDate.value
   mode.value = 'manual'
-  void focusIn(['#new-appointment-date'])
+  void focusIn([`#${dateId.value}`])
 }
 
 function useGrid() {
@@ -259,11 +285,27 @@ watch(status, (value) => {
         </div>
       </div>
 
+      <div v-else-if="status === 'not-found'" class="manual-start__empty" role="alert">
+        <span class="manual-start__empty-mark" aria-hidden="true" />
+        <p class="manual-start__empty-text">
+          <strong class="manual-start__empty-title"
+            >Este servicio ya no tiene horas libres aquí.</strong
+          >
+          Se desactivó o dejó de estar asignado a este profesional, así que no hay horas que
+          proponer. Puedes escribir la fecha y la hora a mano.
+        </p>
+        <div class="manual-start__actions">
+          <BaseButton variant="secondary" @click="useOtherTime">Otra hora</BaseButton>
+          <BaseButton variant="ghost" @click="load">Reintentar</BaseButton>
+        </div>
+      </div>
+
       <div v-else class="manual-start__picker">
         <DayTimePicker
           v-model:active-date="activeDate"
           :days="days"
           :selected-start="selectedStart"
+          :current="props.current"
           :slot-grid-minutes="grid"
           :duration-minutes="duration"
           :timezone="zone"
@@ -314,24 +356,21 @@ watch(status, (value) => {
     <div v-else class="manual-start__manual">
       <div class="manual-start__row">
         <div class="manual-start__field">
-          <label
-            id="new-appointment-date-label"
-            for="new-appointment-date"
-            class="manual-start__label"
-            >Fecha del turno<span class="manual-start__sr-only"> (obligatoria)</span
+          <label :id="`${dateId}-label`" :for="dateId" class="manual-start__label"
+            >{{ props.dateLabel }}<span class="manual-start__sr-only"> (obligatoria)</span
             ><span class="manual-start__required" aria-hidden="true"> *</span></label
           >
           <BaseDatePicker
             :model-value="date || null"
-            trigger-id="new-appointment-date"
-            label-id="new-appointment-date-label"
+            :trigger-id="dateId"
+            :label-id="`${dateId}-label`"
             :today="today"
             :format-value="(value: string) => formatCivilDateShort(value, today)"
             required
             @update:model-value="(value: string) => (date = value)"
           />
         </div>
-        <BaseTimePicker v-model="time" label="Hora del turno" required />
+        <BaseTimePicker v-model="time" :label="props.timeLabel" required />
       </div>
       <p v-if="props.error" :id="errorId" class="manual-start__error" role="alert">
         <span class="manual-start__error-mark" aria-hidden="true" />{{ props.error }}
@@ -511,6 +550,17 @@ watch(status, (value) => {
   gap: 12px;
   justify-items: start;
   padding: 16px 0 4px;
+}
+
+/* El 404 de la lectura: la frase que dice qué pasó, en la serif del panel. */
+.manual-start__empty-title {
+  display: block;
+  margin-bottom: 4px;
+  font-family: var(--font-display);
+  font-size: 22px;
+  font-weight: 400;
+  line-height: 1.2;
+  color: var(--color-text-primary);
 }
 
 .manual-start__empty-mark {

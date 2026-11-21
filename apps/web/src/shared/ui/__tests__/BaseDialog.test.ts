@@ -56,6 +56,35 @@ describe('BaseDialog', () => {
     openDialogStack.length = 0
   })
 
+  // #776: Firefox da parada de Tab a todo contenedor desplazable. El cuerpo con
+  // controles queda fuera del orden de Tab; sin ellos, sigue siendo enfocable
+  // para desplazarse con el teclado.
+  describe('Scrollable body and Tab (Firefox)', () => {
+    it('takes the body out of the Tab order when it holds controls', async () => {
+      mount(BaseDialog, {
+        props: { modelValue: true, title: 'Con controles' },
+        slots: { default: '<button type="button">Elegir</button>' },
+        attachTo: document.body,
+      })
+      await nextTick()
+      await nextTick()
+      const content = document.querySelector('.base-dialog__content')!
+      expect(content.getAttribute('tabindex')).toBe('-1')
+    })
+
+    it('leaves a text-only body focusable', async () => {
+      mount(BaseDialog, {
+        props: { modelValue: true, title: 'Solo texto', showClose: false },
+        slots: { default: '<p>Un texto largo que se lee desplazando.</p>' },
+        attachTo: document.body,
+      })
+      await nextTick()
+      await nextTick()
+      const content = document.querySelector('.base-dialog__content')!
+      expect(content.hasAttribute('tabindex')).toBe(false)
+    })
+  })
+
   describe('Rendering', () => {
     it('does not render when closed', () => {
       const wrapper = mount(BaseDialog, { props: { modelValue: false } })

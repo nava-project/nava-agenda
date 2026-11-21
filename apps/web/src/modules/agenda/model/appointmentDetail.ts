@@ -18,6 +18,8 @@ export type AppointmentDetail = {
   id: string
   professionalId: string
   professionalFullName: string
+  /** Servicio de la cita (#776): la ruta de los inicios libres al reprogramar. */
+  serviceId: string
   attendeeName: string
   customerFullName: string
   customerPhone: string | null

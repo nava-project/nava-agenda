@@ -23,6 +23,7 @@ const cancelAppointmentByProfessionalMock = vi.hoisted(() => vi.fn())
 const completeAppointmentMock = vi.hoisted(() => vi.fn())
 const markAppointmentNoShowMock = vi.hoisted(() => vi.fn())
 const correctAppointmentStatusMock = vi.hoisted(() => vi.fn())
+const fetchManualAvailabilityMock = vi.hoisted(() => vi.fn())
 
 vi.mock('../../api/appointmentsApi', () => ({
   fetchAppointmentDetail: fetchAppointmentDetailMock,
@@ -33,14 +34,17 @@ vi.mock('../../api/appointmentsApi', () => ({
   completeAppointment: completeAppointmentMock,
   markAppointmentNoShow: markAppointmentNoShowMock,
   correctAppointmentStatus: correctAppointmentStatusMock,
+  fetchManualAvailability: fetchManualAvailabilityMock,
 }))
 
 const { default: AppointmentDetailPage } = await import('../AppointmentDetailPage.vue')
+const { getCivilDateInTimezone, shiftCivilDate } = await import('@/shared/time/civilDate')
 
 const readyDetail = {
   id: 'a-1',
   professionalId: 'b-1',
   professionalFullName: 'Ana Gómez',
+  serviceId: 's-1',
   attendeeName: 'Juan Pérez',
   customerFullName: 'Juan Pérez',
   customerPhone: '+573001234567',
@@ -110,6 +114,8 @@ beforeEach(() => {
   completeAppointmentMock.mockReset()
   markAppointmentNoShowMock.mockReset()
   correctAppointmentStatusMock.mockReset()
+  fetchManualAvailabilityMock.mockReset()
+  fetchManualAvailabilityMock.mockResolvedValue(rescheduleAvailability())
   fetchBusinessTimezoneMock.mockResolvedValue({ kind: 'success', timezone: 'America/Bogota' })
   fetchAppointmentHistoryMock.mockResolvedValue({
     kind: 'success',
@@ -132,21 +138,56 @@ function openDialogForm(wrapper: VueWrapper): HTMLFormElement {
   return openDialogElement(wrapper).querySelector('form') as HTMLFormElement
 }
 
-function rescheduleDateInput(wrapper: VueWrapper): HTMLInputElement {
-  return openDialogElement(wrapper).querySelector(
-    'input[name="rescheduleDate"]',
-  ) as HTMLInputElement
+// Reprogramar (#776) elige sobre los inicios libres de mañana en Bogotá (UTC−5
+// todo el año): el turno está a las 9:30 y la lectura, sin él, ofrece 9:00, 9:30
+// (la suya, marcada «actual») y 10:00.
+const ZONE = 'America/Bogota'
+const today = getCivilDateInTimezone(ZONE)
+const tomorrow = shiftCivilDate(today, 1)
+const at = (civilDate: string, hhmm: string) => {
+  const [h, m] = hhmm.split(':').map(Number)
+  return `${civilDate}T${String(h! + 5).padStart(2, '0')}:${String(m).padStart(2, '0')}:00Z`
+}
+const rescheduleDetail = {
+  ...readyDetail,
+  startsAt: at(tomorrow, '09:30'),
+  endsAt: at(tomorrow, '10:00'),
 }
 
-function rescheduleTimeInput(wrapper: VueWrapper): HTMLInputElement {
-  return openDialogElement(wrapper).querySelector(
-    'input[name="rescheduleTime"]',
-  ) as HTMLInputElement
+function rescheduleAvailability(clocks = ['09:00', '09:30', '10:00']) {
+  return {
+    kind: 'success',
+    availability: {
+      starts: clocks.map((c) => at(tomorrow, c)),
+      timezone: ZONE,
+      durationMinutes: 30,
+      slotGridMinutes: 30,
+    },
+  }
 }
 
-function setInputValue(input: HTMLInputElement, value: string) {
-  input.value = value
-  input.dispatchEvent(new Event('input'))
+function rescheduleMinute(wrapper: VueWrapper, hour: string, label: string) {
+  const row = [...openDialogElement(wrapper).querySelectorAll('.bk-hrow')].find(
+    (r) => r.querySelector('.bk-hrow__number')?.textContent?.trim() === hour,
+  )
+  const button = [...(row?.querySelectorAll<HTMLButtonElement>('.bk-min') ?? [])].find(
+    (b) => b.textContent?.trim() === label,
+  )
+  if (!button) throw new Error(`minute ${hour}${label} not found`)
+  return button
+}
+
+async function chooseRescheduleStart(wrapper: VueWrapper, hour: string, label: string) {
+  rescheduleMinute(wrapper, hour, label).click()
+  await flushPromises()
+}
+
+function confirmButton(wrapper: VueWrapper): HTMLButtonElement {
+  const button = [...openDialogElement(wrapper).querySelectorAll('button')].find(
+    (b) => b.textContent?.trim() === 'Confirmar',
+  )
+  if (!button) throw new Error('Confirmar not found')
+  return button
 }
 
 function submitRescheduleDialog(wrapper: VueWrapper) {
@@ -528,59 +569,92 @@ describe('AppointmentDetailPage', () => {
     expect(wrapper.findAll('button').some((b) => b.text() === 'Reprogramar turno')).toBe(false)
   })
 
-  it('opens the reschedule dialog prefilled with the current date and time, and shows a preview', async () => {
-    fetchAppointmentDetailMock.mockResolvedValue({ kind: 'success', detail: readyDetail })
+  it('opens the reschedule dialog on the day of the appointment, reading without it, with no native inputs', async () => {
+    fetchAppointmentDetailMock.mockResolvedValue({ kind: 'success', detail: rescheduleDetail })
     const { wrapper } = await mountPage()
     await openRescheduleDialog(wrapper)
 
-    // readyDetail.startsAt = 2026-08-28T19:30:00Z, America/Bogota (UTC-5) => 14:30 local.
-    expect(rescheduleDateInput(wrapper).value).toBe('2026-08-28')
-    expect(rescheduleTimeInput(wrapper).value).toBe('14:30')
-    expect(openDialogElement(wrapper).textContent).toContain('Horario actual')
+    expect(fetchManualAvailabilityMock).toHaveBeenCalledWith(
+      'b-1',
+      's-1',
+      today,
+      shiftCivilDate(today, 13),
+      'a-1',
+    )
+    const dialog = openDialogElement(wrapper)
+    expect(dialog.querySelectorAll('input[type="date"], input[type="time"]')).toHaveLength(0)
+    // El día abre en el del turno; su hora actual no cuenta como elegible.
+    expect(
+      dialog.querySelector('.bk-day[aria-checked="true"]')?.getAttribute('aria-label'),
+    ).toContain('2 horarios libres')
+    // Su hora vuelve libre, marcada como la actual y sin poder elegirse.
+    expect(rescheduleMinute(wrapper, '9', ':30').classList).toContain('bk-min--current')
+    // Ahora, en 12 h; la nueva hora queda por elegir y Confirmar espera.
+    const ticket = dialog.querySelector('.appointment-detail-page__reschedule-ticket')!
+    expect(ticket.textContent).toContain('9:30\u00a0a. m.')
+    expect(ticket.textContent).toContain('hasta 10:00 a. m.')
+    expect(ticket.textContent).toContain('--:--')
+    expect(confirmButton(wrapper).disabled).toBe(true)
+  })
 
-    setInputValue(rescheduleTimeInput(wrapper), '15:00')
-    await flushPromises()
-    expect(openDialogElement(wrapper).textContent).toContain('15:00 – 15:30')
+  it('choosing a free start fills the ticket in 12 h and enables Confirmar', async () => {
+    fetchAppointmentDetailMock.mockResolvedValue({ kind: 'success', detail: rescheduleDetail })
+    const { wrapper } = await mountPage()
+    await openRescheduleDialog(wrapper)
+
+    await chooseRescheduleStart(wrapper, '10', ':00')
+    const ticket = openDialogElement(wrapper).querySelector(
+      '.appointment-detail-page__reschedule-side--new',
+    )!
+    expect(ticket.textContent).toContain('10:00\u00a0a. m.')
+    expect(ticket.textContent).toContain('hasta 10:30 a. m.')
+    expect(ticket.textContent).not.toContain('10:00 – 10:30')
+    // El pie fijo repite la elección junto a Confirmar.
+    const foot = openDialogElement(wrapper).querySelector('[data-testid="reschedule-foot-value"]')!
+    expect(foot.textContent).toContain('10:00')
+    expect(foot.textContent).toContain('Mañana')
+    expect(confirmButton(wrapper).disabled).toBe(false)
   })
 
   it('on success, refetches the detail and history, closes the dialog, and updates the back link to the new date', async () => {
-    fetchAppointmentDetailMock.mockResolvedValue({ kind: 'success', detail: readyDetail })
-    const { wrapper } = await mountPage({ date: '2026-08-28', professionalId: 'b-1' })
+    fetchAppointmentDetailMock.mockResolvedValue({ kind: 'success', detail: rescheduleDetail })
+    const { wrapper } = await mountPage({ date: today, professionalId: 'b-1' })
     await openRescheduleDialog(wrapper)
-
-    setInputValue(rescheduleDateInput(wrapper), '2026-08-30')
-    setInputValue(rescheduleTimeInput(wrapper), '10:00')
-    await flushPromises()
+    await chooseRescheduleStart(wrapper, '10', ':00')
 
     rescheduleAppointmentMock.mockResolvedValueOnce({
       kind: 'success',
-      startsAt: '2026-08-30T15:00:00Z',
+      startsAt: at(tomorrow, '10:00'),
     })
     fetchAppointmentDetailMock.mockResolvedValueOnce({
       kind: 'success',
-      detail: { ...readyDetail, startsAt: '2026-08-30T15:00:00Z', endsAt: '2026-08-30T15:30:00Z' },
+      detail: {
+        ...rescheduleDetail,
+        startsAt: at(tomorrow, '10:00'),
+        endsAt: at(tomorrow, '10:30'),
+      },
     })
     submitRescheduleDialog(wrapper)
     await flushPromises()
 
     expect(rescheduleAppointmentMock).toHaveBeenCalledWith(
       'a-1',
-      { startsAt: '2026-08-30T10:00:00' },
+      { startsAt: `${tomorrow}T10:00:00` },
       'opaque-token',
       expect.any(String),
     )
     expect(wrapper.element.querySelector('.base-dialog--open')).toBeNull()
     expect(fetchAppointmentDetailMock).toHaveBeenCalledTimes(2)
-    // 2026-08-30T15:00:00Z en America/Bogota (UTC-5) es todavía 2026-08-30.
     const back = wrapper.findAll('a').find((a) => a.text().includes('Volver'))
-    expect(back!.attributes('href')).toBe('/panel?date=2026-08-30&professionalId=b-1')
+    expect(back!.attributes('href')).toBe(`/panel?date=${tomorrow}&professionalId=b-1`)
     expect(toastState.items.map((item) => item.title)).toEqual(['Turno reprogramado'])
   })
 
   it('blocks a second submit while the first is still in flight (no double POST)', async () => {
-    fetchAppointmentDetailMock.mockResolvedValue({ kind: 'success', detail: readyDetail })
+    fetchAppointmentDetailMock.mockResolvedValue({ kind: 'success', detail: rescheduleDetail })
     const { wrapper } = await mountPage()
     await openRescheduleDialog(wrapper)
+    await chooseRescheduleStart(wrapper, '9', ':00')
 
     let resolveReschedule: (value: unknown) => void = () => {}
     rescheduleAppointmentMock.mockReturnValueOnce(
@@ -591,14 +665,15 @@ describe('AppointmentDetailPage', () => {
     await flushPromises()
 
     expect(rescheduleAppointmentMock).toHaveBeenCalledTimes(1)
-    resolveReschedule({ kind: 'success', startsAt: readyDetail.startsAt })
+    resolveReschedule({ kind: 'success', startsAt: rescheduleDetail.startsAt })
     await flushPromises()
   })
 
   it('sends the same idempotency key across a submit and a network-error retry of the same logical attempt', async () => {
-    fetchAppointmentDetailMock.mockResolvedValue({ kind: 'success', detail: readyDetail })
+    fetchAppointmentDetailMock.mockResolvedValue({ kind: 'success', detail: rescheduleDetail })
     const { wrapper } = await mountPage()
     await openRescheduleDialog(wrapper)
+    await chooseRescheduleStart(wrapper, '9', ':00')
 
     rescheduleAppointmentMock.mockResolvedValueOnce({ kind: 'network-error' })
     submitRescheduleDialog(wrapper)
@@ -606,7 +681,7 @@ describe('AppointmentDetailPage', () => {
 
     rescheduleAppointmentMock.mockResolvedValueOnce({
       kind: 'success',
-      startsAt: readyDetail.startsAt,
+      startsAt: rescheduleDetail.startsAt,
     })
     submitRescheduleDialog(wrapper)
     await flushPromises()
@@ -616,33 +691,42 @@ describe('AppointmentDetailPage', () => {
     expect(secondKey).toBe(firstKey)
   })
 
-  it('on an agenda conflict, shows the server message and keeps the chosen date/time', async () => {
-    fetchAppointmentDetailMock.mockResolvedValue({ kind: 'success', detail: readyDetail })
+  it('on an agenda conflict, shows the message next to the hours and rereads that day', async () => {
+    fetchAppointmentDetailMock.mockResolvedValue({ kind: 'success', detail: rescheduleDetail })
     const { wrapper } = await mountPage()
     await openRescheduleDialog(wrapper)
-
-    setInputValue(rescheduleDateInput(wrapper), '2026-08-29')
-    setInputValue(rescheduleTimeInput(wrapper), '11:00')
-    await flushPromises()
+    await chooseRescheduleStart(wrapper, '10', ':00')
 
     rescheduleAppointmentMock.mockResolvedValueOnce({
       kind: 'conflict',
       detail: 'El barbero ya tiene un turno en ese horario.',
     })
+    // Al releer el día, las 10:00 ya no están.
+    fetchManualAvailabilityMock.mockResolvedValueOnce(rescheduleAvailability(['09:00', '09:30']))
     submitRescheduleDialog(wrapper)
     await flushPromises()
 
-    expect(wrapper.text()).toContain('El barbero ya tiene un turno en ese horario.')
+    const error = openDialogElement(wrapper).querySelector('.manual-start__error')
+    expect(error?.textContent).toContain('El barbero ya tiene un turno en ese horario.')
+    expect(fetchManualAvailabilityMock).toHaveBeenLastCalledWith(
+      'b-1',
+      's-1',
+      tomorrow,
+      tomorrow,
+      'a-1',
+    )
     expect(wrapper.element.querySelector('.base-dialog--open')).toBeTruthy()
-    expect(rescheduleDateInput(wrapper).value).toBe('2026-08-29')
-    expect(rescheduleTimeInput(wrapper).value).toBe('11:00')
+    // La hora tomada se suelta; el día sigue elegido y Confirmar espera otra.
+    expect(openDialogElement(wrapper).querySelector('.bk-min[aria-checked="true"]')).toBeNull()
+    expect(confirmButton(wrapper).disabled).toBe(true)
     expect(fetchAppointmentDetailMock).toHaveBeenCalledTimes(1)
   })
 
   it('on a version conflict, offers a reload that refetches the real detail', async () => {
-    fetchAppointmentDetailMock.mockResolvedValue({ kind: 'success', detail: readyDetail })
+    fetchAppointmentDetailMock.mockResolvedValue({ kind: 'success', detail: rescheduleDetail })
     const { wrapper } = await mountPage()
     await openRescheduleDialog(wrapper)
+    await chooseRescheduleStart(wrapper, '9', ':00')
 
     rescheduleAppointmentMock.mockResolvedValueOnce({ kind: 'version-conflict' })
     submitRescheduleDialog(wrapper)
@@ -654,7 +738,7 @@ describe('AppointmentDetailPage', () => {
 
     fetchAppointmentDetailMock.mockResolvedValueOnce({
       kind: 'success',
-      detail: { ...readyDetail, versionToken: 'fresh-token' },
+      detail: { ...rescheduleDetail, versionToken: 'fresh-token' },
     })
     await reload!.trigger('click')
     await flushPromises()
@@ -664,9 +748,10 @@ describe('AppointmentDetailPage', () => {
   })
 
   it('on an invalid-state conflict, offers a reload with the same recoverable message', async () => {
-    fetchAppointmentDetailMock.mockResolvedValue({ kind: 'success', detail: readyDetail })
+    fetchAppointmentDetailMock.mockResolvedValue({ kind: 'success', detail: rescheduleDetail })
     const { wrapper } = await mountPage()
     await openRescheduleDialog(wrapper)
+    await chooseRescheduleStart(wrapper, '9', ':00')
 
     rescheduleAppointmentMock.mockResolvedValueOnce({ kind: 'invalid-state' })
     submitRescheduleDialog(wrapper)
@@ -817,7 +902,7 @@ describe('AppointmentDetailPage', () => {
 
     fetchAppointmentDetailMock.mockResolvedValueOnce({
       kind: 'success',
-      detail: { ...readyDetail, versionToken: 'fresh-token' },
+      detail: { ...rescheduleDetail, versionToken: 'fresh-token' },
     })
     await reload!.trigger('click')
     await flushPromises()
@@ -885,7 +970,7 @@ describe('AppointmentDetailPage', () => {
   // --- Cierre manual (HU-067, T4 manual y T7) -----------------------------
   // readyDetail.startsAt (2026-08-28) ya pasó respecto al reloj real: sirve
   // tal cual como el caso "ya se puede cerrar" (CA-067-08), sin fixture
-  // aparte. futureDetail cubre el caso "confirmed pero aún no empieza".
+  // aparte. rescheduleDetail cubre el caso "confirmed pero aún no empieza".
 
   const futureDetail = {
     ...readyDetail,
@@ -1084,7 +1169,7 @@ describe('AppointmentDetailPage', () => {
 
     fetchAppointmentDetailMock.mockResolvedValueOnce({
       kind: 'success',
-      detail: { ...readyDetail, versionToken: 'fresh-token' },
+      detail: { ...futureDetail, versionToken: 'fresh-token' },
     })
     await reload!.trigger('click')
     await flushPromises()

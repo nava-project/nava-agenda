@@ -65,6 +65,7 @@ const overlayRef = ref<HTMLDivElement | null>(null)
 const closeButtonRef = ref<HTMLButtonElement | null>(null)
 const previouslyFocusedElement = ref<HTMLElement | null>(null)
 const focusableElementsRef = ref<HTMLElement[]>([])
+const contentRef = ref<HTMLDivElement | null>(null)
 
 const isOpen = computed({
   get: () => props.modelValue,
@@ -111,14 +112,24 @@ const descriptionId = `${dialogId}-description`
 // propio: todos comparten --layer-dialog y el orden lo da la pila.
 const isTopmost = () => openDialogStack[openDialogStack.length - 1] === dialogId
 
+const FOCUSABLE =
+  'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"]), [contenteditable="true"]'
+
 const updateFocusableElements = () => {
   if (!dialogRef.value) return
-  const elements = dialogRef.value.querySelectorAll<HTMLElement>(
-    'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"]), [contenteditable="true"]',
-  )
+  const elements = dialogRef.value.querySelectorAll<HTMLElement>(FOCUSABLE)
   focusableElementsRef.value = Array.from(elements).filter(
     (el) => !el.hasAttribute('disabled') && !el.hidden && el.offsetParent !== null,
   )
+  // Firefox da parada de Tab a todo contenedor desplazable; Chromium, solo si no
+  // tiene nada enfocable dentro (#776). Con controles, el cuerpo no es una parada
+  // propia: se desplaza al enfocarlos. Sin ellos, sigue siendo enfocable para
+  // leerlo con las flechas.
+  const content = contentRef.value
+  if (content) {
+    if (content.querySelector(FOCUSABLE)) content.setAttribute('tabindex', '-1')
+    else content.removeAttribute('tabindex')
+  }
 }
 
 const handleKeyDown = (event: KeyboardEvent) => {
@@ -335,7 +346,7 @@ onUnmounted(() => {
               {{ description }}
             </div>
 
-            <div class="base-dialog__content">
+            <div ref="contentRef" class="base-dialog__content">
               <slot />
             </div>
 
@@ -714,6 +725,12 @@ onUnmounted(() => {
   overflow: auto;
   padding: var(--space-5);
   min-height: 0;
+}
+
+/* Fuera del orden de Tab (con controles dentro): un clic en su fondo no pinta
+   anillo, porque el teclado nunca llega a él. */
+.base-dialog__content[tabindex='-1']:focus {
+  outline: none;
 }
 
 .base-dialog__footer {
